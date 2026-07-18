@@ -672,7 +672,7 @@ html,body{height:100vh;overflow:hidden}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.11";
+window.__ATV_BUILD="1.7.7-desktop.12";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -706,7 +706,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.11</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.12</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">THE DIAL · THE SET</div>
@@ -5115,12 +5115,12 @@ var PADD_NAMES={1:"East Coast",2:"Midwest",3:"Gulf Coast",4:"Rocky Mountain",5:"
 async function tuneGas(ch,sl,my){
   if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Gas Price Ticker","");
   if(screenArea) screenArea.innerHTML='<div class="dc-screen" id="dcScreen">'+
-    '<div class="dc-media show" id="gasMedia" style="flex:1 1 45%;height:auto;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">'+
-      '<div id="gasGauge"></div>'+
-      '<div id="gasBig" style="font:800 clamp(30px,7vw,56px)/1 monospace;color:var(--phos);margin-top:-14px">$--</div>'+
-      '<div id="gasSub" style="font-size:13px;color:#9fd6a6">regular \u00b7 per gallon</div>'+
+    '<div class="dc-media show" id="gasMedia" style="flex:1 1 55%;height:auto;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px">'+
+      '<div style="display:flex;align-items:baseline;gap:8px"><div id="gasBig" style="font:800 clamp(28px,6.5vw,48px)/1 monospace;color:var(--phos)">$--</div><div id="gasSub" style="font-size:11px;color:#9fd6a6">regular/gal</div></div>'+
+      '<div id="gasChart" style="width:100%;max-width:300px"></div>'+
+      '<div style="font-size:9px;color:rgba(159,214,166,.6);align-self:stretch;max-width:300px;display:flex;justify-content:space-between;padding:0 2px"><span>12 WEEKS AGO</span><span>NOW</span></div>'+
     '</div>'+
-    '<div class="dc-body" id="dcBody" style="flex:0 1 55%;justify-content:flex-start;gap:4px;overflow:hidden">'+
+    '<div class="dc-body" id="dcBody" style="flex:0 1 45%;justify-content:flex-start;gap:4px;overflow:hidden">'+
       '<div class="dc-top"><span id="gasHead">GAS PRICE TICKER</span></div>'+
       '<div class="dc-list" id="dcList"></div>'+
       '<div class="dc-ticker" id="gasTicker">U.S. Energy Information Administration \u00b7 weekly retail survey</div>'+
@@ -5135,15 +5135,16 @@ async function tuneGas(ch,sl,my){
       var hEl=$("gasHead"); if(hEl)hEl.textContent="GAS PRICES \u2014 "+(PADD_NAMES[padd]||"U.S.").toUpperCase()+" (PADD "+padd+")";
       var url="https://api.eia.gov/v2/petroleum/pri/gnd/data/?api_key="+EIA_KEY+
         "&frequency=weekly&data[]=value&facets[duoarea][]=R"+padd+"0"+
-        "&facets[product][]=EPMR&sort[0][column]=period&sort[0][direction]=desc&length=1";
+        "&facets[product][]=EPMR&sort[0][column]=period&sort[0][direction]=desc&length=12";
       var d=await fetchJSON(url); if(my!==token)return;
       var rows=(d&&d.response&&d.response.data)||[];
       var latest=rows[0];
       var bigEl=$("gasBig");
       if(latest&&latest.value!=null){ if(bigEl)bigEl.textContent="$"+parseFloat(latest.value).toFixed(2);
-        var gaugeEl=$("gasGauge"); if(gaugeEl){ var gv=parseFloat(latest.value);
-          var gcolor=gv<3?"#67ff86":gv<4.5?"#ffd34d":"#ff5c4d";
-          gaugeEl.innerHTML=svgGauge(gv,2,6,gcolor,150); }
+        var chartEl=$("gasChart"); if(chartEl&&rows.length){
+          var series=rows.slice().reverse().map(function(r){return r.value!=null?parseFloat(r.value):null;}); /* oldest-first */
+          chartEl.innerHTML=svgLineChart(series,"#67ff86",300,80);
+        }
         nlog("gas",true,"$"+latest.value+" "+(PADD_NAMES[padd]||"")+" "+(latest.period||"")); }
       else throw new Error("no price rows returned \u2014 check DIAG, EIA field names may need adjustment");
       var diesUrl="https://api.eia.gov/v2/petroleum/pri/gnd/data/?api_key="+EIA_KEY+
@@ -5158,6 +5159,10 @@ async function tuneGas(ch,sl,my){
           (latest&&latest.value!=null?("$"+parseFloat(latest.value).toFixed(2)):"n/a")+'</span></div></div>');
         rowsHtml.push('<div class="dc-row2"><div class="dc-row2-main"><span class="dc-place">DIESEL</span><span class="dc-when">'+
           (dRow&&dRow.value!=null?("$"+parseFloat(dRow.value).toFixed(2)):"n/a")+'</span></div></div>');
+        if(rows.length>1&&rows[rows.length-1].value!=null&&latest.value!=null){
+          var chg=parseFloat(latest.value)-parseFloat(rows[rows.length-1].value);
+          rowsHtml.push('<div class="dc-row2"><div class="dc-row2-main"><span class="dc-place">12-WK CHANGE</span><span class="dc-when">'+(chg>=0?"+":"")+"$"+chg.toFixed(2)+'</span></div></div>');
+        }
         rowsHtml.push('<div class="dc-row2"><div class="dc-row2-main"><span class="dc-place">WEEK OF</span><span class="dc-when">'+esch((latest&&latest.period)||"?")+'</span></div></div>');
         listEl.innerHTML=rowsHtml.join("");
       }
@@ -5224,18 +5229,37 @@ async function tuneScanner(ch,sl,my){
     '</div></div>';
   nlog("scanner",true,"linked to broadcastify.com");
 }
+/* Estimated HF band conditions from solar flux + K-index, using the same real propagation
+   principles ham operators use by hand: higher solar flux favors higher/shorter-wavelength bands
+   (10m/15m), higher K-index degrades everything, hitting higher bands hardest. This is a genuine
+   simplification of real propagation science, not a lookup of authoritative predictions -- labeled
+   as an estimate everywhere it's shown, same honesty as everything else in this app. */
+function estimateBandConditions(sfi,k){
+  if(isNaN(sfi)||isNaN(k)) return null;
+  var bands=[{n:"80m",w:0.15},{n:"40m",w:0.35},{n:"20m",w:0.65},{n:"15m",w:0.85},{n:"10m",w:1.0}];
+  return bands.map(function(b){
+    var base=Math.min(1,Math.max(0,(sfi-65)/135))*b.w+(1-b.w)*0.55;
+    var kPenalty=Math.min(1,k/9)*(0.25+b.w*0.55);
+    var score=Math.max(0,Math.min(1,base-kPenalty));
+    var level=score>0.55?"GOOD":score>0.28?"FAIR":"POOR";
+    return {name:b.n,level:level,score:score};
+  });
+}
 async function tuneHF(ch,sl,my){
   if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"HF Radio Conditions","");
   if(screenArea) screenArea.innerHTML='<div class="dc-screen" id="dcScreen">'+
-    '<div class="dc-media show" id="hfMedia" style="flex:1 1 45%;height:auto;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">'+
-      '<div id="hfGauge"></div>'+
-      '<div style="display:flex;flex-direction:row;align-items:center;justify-content:center;gap:22px;margin-top:-10px">'+
-      '<div style="text-align:center"><div id="hfFlux" style="font:800 clamp(20px,5vw,34px)/1 monospace;color:var(--phos)">--</div><div style="font-size:10px;color:#9fd6a6">SOLAR FLUX</div></div>'+
-      '<div style="text-align:center"><div id="hfA" style="font:800 clamp(20px,5vw,34px)/1 monospace;color:var(--phos)">--</div><div style="font-size:10px;color:#9fd6a6">A-INDEX</div></div>'+
-      '<div style="text-align:center"><div id="hfK" style="font:800 clamp(20px,5vw,34px)/1 monospace;color:var(--phos)">--</div><div style="font-size:10px;color:#9fd6a6">K-INDEX</div></div>'+
+    '<div class="dc-media show" id="hfMedia" style="flex:1 1 60%;height:auto;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:6px">'+
+      '<div style="display:flex;flex-direction:row;align-items:center;justify-content:center;gap:20px">'+
+      '<div style="text-align:center"><div id="hfFlux" style="font:800 clamp(18px,4.5vw,30px)/1 monospace;color:var(--phos)">--</div><div style="font-size:9px;color:#9fd6a6">SOLAR FLUX</div></div>'+
+      '<div style="text-align:center"><div id="hfA" style="font:800 clamp(18px,4.5vw,30px)/1 monospace;color:var(--phos)">--</div><div style="font-size:9px;color:#9fd6a6">A-INDEX</div></div>'+
+      '<div style="text-align:center"><div id="hfK" style="font:800 clamp(18px,4.5vw,30px)/1 monospace;color:var(--phos)">--</div><div style="font-size:9px;color:#9fd6a6">K-INDEX</div></div>'+
       '</div>'+
+      '<div id="hfChart" style="width:100%;max-width:300px"></div>'+
+      '<div style="font-size:9px;color:rgba(159,214,166,.6);align-self:stretch;max-width:300px;display:flex;justify-content:space-between;padding:0 2px"><span>48H AGO</span><span>NOW</span></div>'+
+      '<div style="font-size:9px;color:#9fd6a6;letter-spacing:1px;margin-top:2px">ESTIMATED BAND CONDITIONS</div>'+
+      '<div id="hfBands" style="display:flex;gap:6px"></div>'+
     '</div>'+
-    '<div class="dc-body" id="dcBody" style="flex:0 1 55%;justify-content:flex-start;gap:4px;overflow:hidden">'+
+    '<div class="dc-body" id="dcBody" style="flex:0 1 40%;justify-content:flex-start;gap:4px;overflow:hidden">'+
       '<div class="dc-top"><span>HF RADIO CONDITIONS</span></div>'+
       '<div class="dc-sub" id="hfForecast">Loading NOAA bulletin\u2026</div>'+
       '<div class="afd-text" id="hfRaw" style="flex:1 1 auto;min-height:0;overflow-y:auto"></div>'+
@@ -5245,6 +5269,12 @@ async function tuneHF(ch,sl,my){
   var run=async function(){
     if(my!==token||!powered){ clearInterval(hfTimer); return; }
     try{
+      var kpData=await fetchJSON("https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json").catch(function(){return null;});
+      if(my!==token)return;
+      if(kpData){ var rows=(kpData||[]).slice(1);
+        var series=rows.map(function(r){ var v=parseFloat(r[1]); return isNaN(v)?null:v; }).slice(-16);
+        var chartEl=$("hfChart"); if(chartEl&&series.length) chartEl.innerHTML=svgBarChart(series,function(v){return v<4?"#67ff86":v<6?"#ffd34d":"#ff5c4d";},300,72);
+      }
       var txt=await withTO(fetch("https://services.swpc.noaa.gov/text/wwv.txt").then(function(r){
         if(!r.ok)throw new Error("http "+r.status); return r.text(); }),15000);
       if(my!==token)return;
@@ -5255,10 +5285,16 @@ async function tuneHF(ch,sl,my){
       var fEl=$("hfFlux"); if(fEl&&sf) fEl.textContent=sf[1];
       var aEl=$("hfA"); if(aEl&&aIdx) aEl.textContent=aIdx[1];
       var kEl=$("hfK"); if(kEl&&kIdx) kEl.textContent=parseFloat(kIdx[1]).toFixed(0);
-      var gaugeEl=$("hfGauge");
-      if(gaugeEl&&kIdx){ var kv=parseFloat(kIdx[1]);
-        var gcolor=kv<4?"#67ff86":kv<6?"#ffd34d":"#ff5c4d";
-        gaugeEl.innerHTML=svgGauge(kv,0,9,gcolor,120); }
+      var bandsEl=$("hfBands");
+      if(bandsEl&&sf&&kIdx){
+        var bands=estimateBandConditions(parseFloat(sf[1]),parseFloat(kIdx[1]));
+        if(bands) bandsEl.innerHTML=bands.map(function(b){
+          var c=b.level==="GOOD"?"#67ff86":b.level==="FAIR"?"#ffd34d":"#ff5c4d";
+          return '<div style="flex:1;text-align:center;padding:6px 2px;border-radius:6px;background:rgba(255,255,255,.05);border:1px solid '+c+'44">'+
+            '<div style="font:700 10px monospace;color:#cdeccc">'+b.name+'</div>'+
+            '<div style="font:800 9px monospace;color:'+c+'">'+b.level+'</div></div>';
+        }).join("");
+      }
       var fcEl=$("hfForecast");
       if(fcEl) fcEl.textContent=forecast?("Next 24 hours: "+forecast[1].toUpperCase()+" space weather expected"):"Current NOAA bulletin";
       /* whatever structured fields we couldn't confidently parse, show the real bulletin text
@@ -5293,13 +5329,19 @@ function ndbcMM(v){ return (v==null||v==="MM")?null:parseFloat(v); }
 async function tuneBuoy(ch,sl,my){
   if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Buoy & Surf Report","");
   if(screenArea) screenArea.innerHTML='<div class="dc-screen" id="dcScreen">'+
-    '<div class="dc-media show" id="buoyMedia" style="flex:1 1 50%;height:auto;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">'+
-      '<div class="dc-media-cap" id="buoyName">FINDING NEAREST BUOY\u2026</div>'+
-      '<div id="buoyGauge"></div>'+
-      '<div id="buoyWave" style="font:800 clamp(24px,6vw,44px)/1 monospace;color:var(--phos);margin-top:-10px">-- ft</div>'+
-      '<div id="buoyWaveSub" style="font-size:12px;color:#9fd6a6">significant wave height</div>'+
+    '<div class="dc-media show" id="buoyMedia" style="flex:1 1 55%;height:auto;min-height:0;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:16px;padding:6px">'+
+      '<div style="display:flex;flex-direction:column;align-items:center;gap:2px">'+
+        '<div class="dc-media-cap" id="buoyName" style="font-size:10px">FINDING NEAREST BUOY\u2026</div>'+
+        '<div id="buoyWave" style="font:800 clamp(24px,6vw,40px)/1 monospace;color:var(--phos)">-- ft</div>'+
+        '<div id="buoyWaveSub" style="font-size:10px;color:#9fd6a6">wave height</div>'+
+        '<div id="buoyChart" style="width:150px;margin-top:4px"></div>'+
+      '</div>'+
+      '<div style="display:flex;flex-direction:column;align-items:center;gap:2px">'+
+        '<div id="buoyCompass"></div>'+
+        '<div id="buoyWindLabel" style="font-size:10px;color:#9fd6a6">WIND</div>'+
+      '</div>'+
     '</div>'+
-    '<div class="dc-body" id="dcBody" style="flex:0 1 50%;justify-content:flex-start;gap:4px;overflow:hidden">'+
+    '<div class="dc-body" id="dcBody" style="flex:0 1 45%;justify-content:flex-start;gap:4px;overflow:hidden">'+
       '<div class="dc-top"><span>BUOY &amp; SURF REPORT</span></div>'+
       '<div class="dc-sub" id="buoyDist"></div>'+
       '<div class="dc-list" id="dcList"></div>'+
@@ -5322,19 +5364,25 @@ async function tuneBuoy(ch,sl,my){
       if(my!==token)return;
       var lines=txt.split("\n").filter(function(l){return l.trim()&&l.charAt(0)!=="#";});
       if(!lines.length) throw new Error("no observations in feed");
-      var cols=lines[0].trim().split(/\s+/);
       /* YY MM DD hh mm WDIR WSPD GST WVHT DPD APD MWD PRES ATMP WTMP DEWP VIS PTDY TIDE */
+      var recent=lines.slice(0,40).map(function(l){return l.trim().split(/\s+/);}).reverse(); /* oldest-first for the trend chart */
+      var cols=lines[0].trim().split(/\s+/);
       var wdir=ndbcMM(cols[5]), wspd=ndbcMM(cols[6]), wvht=ndbcMM(cols[8]), dpd=ndbcMM(cols[9]),
           pres=ndbcMM(cols[12]), atmp=ndbcMM(cols[13]), wtmp=ndbcMM(cols[14]);
       var wftVal=wvht!=null?(wvht*3.28084):null;
       var wEl=$("buoyWave"); if(wEl) wEl.textContent=(wftVal!=null?wftVal.toFixed(1)+" ft":"n/a");
-      var gaugeEl=$("buoyGauge");
-      if(gaugeEl&&wftVal!=null){ var gcolor=wftVal<4?"#67ff86":wftVal<9?"#ffd34d":"#ff5c4d";
-        gaugeEl.innerHTML=svgGauge(wftVal,0,20,gcolor,130); }
+      var chartEl=$("buoyChart");
+      if(chartEl){
+        var wvSeries=recent.map(function(c){ var v=ndbcMM(c[8]); return v==null?null:v*3.28084; });
+        if(wvSeries.some(function(v){return v!=null;})) chartEl.innerHTML=svgBarChart(wvSeries,function(v){return v<4?"#67ff86":v<9?"#ffd34d":"#ff5c4d";},150,60);
+      }
+      var compassEl=$("buoyCompass");
+      if(compassEl) compassEl.innerHTML=svgCompass(wdir,100);
+      var windLbl=$("buoyWindLabel");
+      if(windLbl) windLbl.textContent=(wspd!=null?Math.round(wspd*2.23694)+" mph":"WIND")+(wdir!=null?" \u00b7 "+Math.round(wdir)+"\u00b0":"");
       var listEl=$("dcList");
       if(listEl){
         var rows=[];
-        if(wspd!=null) rows.push(["WIND",Math.round(wspd*2.23694)+" mph"+(wdir!=null?(" @ "+Math.round(wdir)+"\u00b0"):"")]);
         if(dpd!=null) rows.push(["WAVE PERIOD",dpd+" sec"]);
         if(wtmp!=null) rows.push(["WATER TEMP",Math.round(wtmp*9/5+32)+"\u00b0F"]);
         if(atmp!=null) rows.push(["AIR TEMP",Math.round(atmp*9/5+32)+"\u00b0F"]);
@@ -5428,6 +5476,62 @@ async function tuneISS(ch,sl,my){
   };
   run(); issTimer=rtInterval(run,10000);
 }
+function svgBarChart(values,colorFn,w,h){
+  w=w||280; h=h||90; if(!values||!values.length) return '<svg width="'+w+'" height="'+h+'"></svg>';
+  var n=values.length, gap=2, bw=Math.max(2,(w-gap*(n-1))/n);
+  var maxV=Math.max.apply(null,values.filter(function(v){return v!=null&&!isNaN(v);})).valueOf()||1;
+  maxV=Math.max(maxV,1);
+  var bars="";
+  for(var i=0;i<n;i++){
+    var v=values[i]; if(v==null||isNaN(v)){ continue; }
+    var bh=Math.max(2,(v/maxV)*(h-4));
+    var x=i*(bw+gap), y=h-bh;
+    var isLast=(i===n-1);
+    var color=colorFn(v);
+    bars+='<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+bh.toFixed(1)+
+      '" rx="1.5" fill="'+color+'" opacity="'+(isLast?1:0.55)+'"'+(isLast?' stroke="#fff" stroke-width="1"':'')+'/>';
+  }
+  return '<svg width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'">'+bars+'</svg>';
+}
+/* Line/area chart -- for continuous trends like price history where a filled line reads more
+   naturally than discrete bars. */
+function svgLineChart(values,color,w,h){
+  w=w||280; h=h||90; var pad=4;
+  var pts=values.map(function(v,i){return {i:i,v:v};}).filter(function(p){return p.v!=null&&!isNaN(p.v);});
+  if(pts.length<2) return '<svg width="'+w+'" height="'+h+'"></svg>';
+  var minV=Math.min.apply(null,pts.map(function(p){return p.v;})), maxV=Math.max.apply(null,pts.map(function(p){return p.v;}));
+  if(minV===maxV){ minV-=1; maxV+=1; }
+  var n=values.length;
+  function X(i){ return pad+(i/(n-1))*(w-pad*2); }
+  function Y(v){ return h-pad-((v-minV)/(maxV-minV))*(h-pad*2); }
+  var line="M"+pts.map(function(p){return X(p.i).toFixed(1)+","+Y(p.v).toFixed(1);}).join(" L");
+  var area=line+" L"+X(pts[pts.length-1].i).toFixed(1)+","+(h-pad)+" L"+X(pts[0].i).toFixed(1)+","+(h-pad)+" Z";
+  var lastPt=pts[pts.length-1];
+  return '<svg width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'">'+
+    '<path d="'+area+'" fill="'+color+'" opacity="0.16"/>'+
+    '<path d="'+line+'" fill="none" stroke="'+color+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'+
+    '<circle cx="'+X(lastPt.i).toFixed(1)+'" cy="'+Y(lastPt.v).toFixed(1)+'" r="3.5" fill="'+color+'"/>'+
+    '</svg>';
+}
+/* Compass -- a real directional indicator for wind/heading data instead of a bare degree number. */
+function svgCompass(deg,size){
+  size=size||90; var cx=size/2,cy=size/2,r=size*0.42;
+  if(deg==null||isNaN(deg)) return '<svg width="'+size+'" height="'+size+'"></svg>';
+  var rad=(deg-90)*Math.PI/180, tipX=cx+r*0.82*Math.cos(rad), tipY=cy+r*0.82*Math.sin(rad);
+  var backX=cx-r*0.35*Math.cos(rad), backY=cy-r*0.35*Math.sin(rad);
+  var wingA=rad+2.6, wingB=rad-2.6;
+  var wAx=cx+r*0.28*Math.cos(wingA), wAy=cy+r*0.28*Math.sin(wingA);
+  var wBx=cx+r*0.28*Math.cos(wingB), wBy=cy+r*0.28*Math.sin(wingB);
+  var dirs=[["N",0],["E",90],["S",180],["W",270]];
+  var labels=dirs.map(function(d){ var a=(d[1]-90)*Math.PI/180; var lx=cx+r*1.18*Math.cos(a), ly=cy+r*1.18*Math.sin(a);
+    return '<text x="'+lx.toFixed(1)+'" y="'+(ly+3).toFixed(1)+'" text-anchor="middle" font-size="9" fill="rgba(103,255,134,.5)" font-family="monospace">'+d[0]+'</text>'; }).join("");
+  return '<svg width="'+size+'" height="'+size+'" viewBox="0 0 '+size+' '+size+'">'+
+    '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="rgba(255,255,255,.15)" stroke-width="1.5"/>'+
+    labels+
+    '<polygon points="'+tipX.toFixed(1)+','+tipY.toFixed(1)+' '+wAx.toFixed(1)+','+wAy.toFixed(1)+' '+backX.toFixed(1)+','+backY.toFixed(1)+' '+wBx.toFixed(1)+','+wBy.toFixed(1)+'" fill="#67ff86"/>'+
+    '<circle cx="'+cx+'" cy="'+cy+'" r="2.5" fill="#67ff86"/>'+
+    '</svg>';
+}
 function svgGauge(value,min,max,color,size){
   size=size||140; var sweep=Math.max(0,Math.min(1,(value-min)/(max-min)));
   var startAngle=135, totalAngle=270, endAngle=startAngle+totalAngle*sweep;
@@ -5455,12 +5559,12 @@ function kpDescribe(kp){
 async function tuneAurora(ch,sl,my){
   if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Aurora & Space Weather","");
   if(screenArea) screenArea.innerHTML='<div class="dc-screen" id="dcScreen">'+
-    '<div class="dc-media show" id="auroraMedia" style="flex:1 1 55%;height:auto;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">'+
-      '<div id="auroraGauge"></div>'+
-      '<div id="auroraKpBig" style="font:800 clamp(28px,7vw,54px)/1 monospace;color:var(--phos);margin-top:-14px">Kp --</div>'+
-      '<div class="dc-media-cap" id="auroraStatus">Loading NOAA Space Weather Prediction Center data\u2026</div>'+
+    '<div class="dc-media show" id="auroraMedia" style="flex:1 1 58%;height:auto;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:8px">'+
+      '<div style="display:flex;align-items:baseline;gap:10px"><div id="auroraKpBig" style="font:800 clamp(30px,7vw,52px)/1 monospace;color:var(--phos)">Kp --</div><div id="auroraStatus" style="font-size:12px;color:#9fd6a6;max-width:180px">Loading NOAA data\u2026</div></div>'+
+      '<div id="auroraChart" style="width:100%;max-width:320px"></div>'+
+      '<div style="font-size:9px;color:rgba(159,214,166,.6);align-self:stretch;max-width:320px;display:flex;justify-content:space-between;padding:0 2px"><span>48 HOURS AGO</span><span>NOW</span></div>'+
     '</div>'+
-    '<div class="dc-body" id="dcBody" style="flex:0 1 45%;justify-content:flex-start;gap:4px;overflow:hidden">'+
+    '<div class="dc-body" id="dcBody" style="flex:0 1 42%;justify-content:flex-start;gap:4px;overflow:hidden">'+
       '<div class="dc-top"><span>AURORA &amp; SPACE WEATHER</span></div>'+
       '<div class="dc-sub" id="auroraLoc"></div>'+
       '<div class="dc-list" id="dcList"></div>'+
@@ -5473,12 +5577,14 @@ async function tuneAurora(ch,sl,my){
       var loc=await getWxLocation(); if(my!==token)return;
       var kpData=await fetchJSON("https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json");
       if(my!==token)return;
-      var rows=(kpData||[]).slice(1); var last=rows[rows.length-1]||[];
+      var rows=(kpData||[]).slice(1); /* every row is a real 3-hour reading, not just the latest one -- this is the actual history NOAA sends */
+      var kpSeries=rows.map(function(r){ var v=parseFloat(r[1]); return isNaN(v)?null:v; }).slice(-16); /* last ~48 hours at 3hr intervals */
+      var last=rows[rows.length-1]||[];
       var kp=parseFloat(last[1]);
       var kpEl=$("auroraKpBig"); if(kpEl) kpEl.textContent="Kp "+(isNaN(kp)?"--":kp.toFixed(1));
-      var gaugeEl=$("auroraGauge"); if(gaugeEl&&!isNaN(kp)){
-        var gcolor=kp<4?"#67ff86":kp<6?"#ffd34d":"#ff5c4d";
-        gaugeEl.innerHTML=svgGauge(kp,0,9,gcolor,150);
+      var chartEl=$("auroraChart");
+      if(chartEl&&kpSeries.length){
+        chartEl.innerHTML=svgBarChart(kpSeries,function(v){return v<4?"#67ff86":v<6?"#ffd34d":"#ff5c4d";},320,86);
       }
       var statusEl=$("auroraStatus"); if(statusEl) statusEl.textContent=kpDescribe(kp);
       /* rough visibility estimate -- geographic latitude used as a simplification for geomagnetic

@@ -753,7 +753,11 @@ html.mob #mPanel .mp-grid button{appearance:none;-webkit-appearance:none;border:
   box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 2px 5px rgba(0,0,0,.4)}
 html.mob #mPanel .mp-grid button:active{transform:translateY(1px);filter:brightness(1.18)}
 html.mob #mPanel .b-guide{background:linear-gradient(180deg,#2e7f4a,#1c4a2e);border-color:#2e8f4a;color:#eafff0}
-html.mob #mPanel .mpow{background:radial-gradient(circle at 40% 33%,#e5564a,#8e241c);border-color:#b5342a;color:#fff;font-size:17px}
+/* QA FIX: .mp-grid button (below) has more selector components than .mpow and was winning the CSS
+   specificity fight, so the power button silently rendered as plain wood-brown like every other
+   button instead of red -- it never actually looked different despite the rule existing. !important
+   guarantees the intended red/white power styling wins regardless of selector-count technicalities. */
+html.mob #mPanel .mpow{background:radial-gradient(circle at 40% 33%,#e5564a,#8e241c)!important;border-color:#b5342a!important;color:#fff!important;font-size:17px}
 html.mob #mPanel .b-mute.on{background:rgba(181,52,42,.5)!important;border-color:#e5564a!important;color:#fff!important}
 
 /* guide -> full-screen tap-to-tune on mobile */
@@ -778,7 +782,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.33";
+window.__ATV_BUILD="1.7.7-mobile.34";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -812,7 +816,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.33</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.34</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -825,7 +829,7 @@ window.addEventListener("unhandledrejection",function(e){
     <button id="mChUp">CH &#9650;</button>
     <button id="mChDn">CH &#9660;</button>
     <button class="b-guide" id="mGuide">GUIDE</button>
-    <button class="mpow" id="mPow" aria-label="Power">&#9211;</button>
+    <button class="mpow" id="mPow" aria-label="Power"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 2.5v8"/><path d="M7 5.2a8 8 0 1 0 10 0"/></svg></button>
     <button id="mVolUp">VOL +</button>
     <button id="mVolDn">VOL &minus;</button>
     <button class="b-mute" id="mMute">MUTE</button>
@@ -2534,8 +2538,16 @@ function toggleClockFmt(){clk24=!clk24;store.set("clk24",clk24);updateClocks();
   if(typeof tick==="function"){try{tick();}catch(e){}} quickBanner(clk24?"CLOCK · 24-HOUR":"CLOCK · 12-HOUR");}
 
 /* ---------- category jump-nav ---------- */
+var CAT_ORDER=["NET","TV","MOV","TOON","MUS","DOC","SPEC","LOCAL","HOL"]; /* QA FIX: this used to be
+  derived from whatever order categories first appeared in the channel list, which drifted every time
+  a new channel got added anywhere -- not a designed order, just an accident of editing history. Now
+  it's deliberate: watchable entertainment first, the large Music category gets real priority instead
+  of being buried behind smaller ones, Local's practical/utility channels sit apart near the end since
+  they're a different mode of use entirely, Holiday stays last as the most seasonal/niche. */
 function buildCatNav(){
-  if(!catNav)return; const seen=[]; CH.forEach(c=>{if(!seen.includes(c.cat))seen.push(c.cat);});
+  if(!catNav)return; const present=new Set(CH.map(c=>c.cat));
+  const seen=CAT_ORDER.filter(function(cat){return present.has(cat);});
+  CH.forEach(function(c){ if(!seen.includes(c.cat)) seen.push(c.cat); }); /* any future category not yet in CAT_ORDER still shows up, just at the end, instead of silently vanishing */
   catNav.innerHTML=""; seen.forEach(function(cat){
     const b=document.createElement("button");b.className="catchip";b.textContent=CATNAME[cat];
     b.style.borderColor=CAT[cat];b.style.color=CAT[cat];

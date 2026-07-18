@@ -782,7 +782,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.34";
+window.__ATV_BUILD="1.7.7-mobile.36";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -816,7 +816,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.34</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.36</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -1322,6 +1322,8 @@ const CH=[
  {nm:"Weather Watch",     cat:"LOCAL", source:"weather", ns:"tv"},
  {nm:"Aurora & Space Weather", cat:"LOCAL", source:"aurora", ns:"tv"},
  {nm:"HF Radio Conditions", cat:"LOCAL", source:"hf",     ns:"tv"},
+ {nm:"Ham Radio Live",      cat:"LOCAL", source:"hamlive",ns:"tv"},
+ {nm:"Police & Fire Scanner", cat:"LOCAL", source:"scanner", ns:"tv"},
  {nm:"ISS Tracker",       cat:"SPEC", source:"iss",    ns:"space"},
  {nm:"NASA Picture of the Day", cat:"SPEC", source:"apod", ns:"space"},
  {nm:"Air Traffic",       cat:"LOCAL", source:"airtraffic", ns:"tv"},
@@ -1849,6 +1851,8 @@ async function tuneNum(n){
   if(sl.source==="apod"){ if(my!==token)return; return tuneAPOD(ch,sl,my); }
   if(sl.source==="buoy"){ if(my!==token)return; return tuneBuoy(ch,sl,my); }
   if(sl.source==="hf"){ if(my!==token)return; return tuneHF(ch,sl,my); }
+  if(sl.source==="hamlive"){ if(my!==token)return; return tuneHamLive(ch,sl,my); }
+  if(sl.source==="scanner"){ if(my!==token)return; return tuneScanner(ch,sl,my); }
   if(sl.source==="wildfire"){ if(my!==token)return; return tuneWildfire(ch,sl,my); }
   if(sl.source==="hometown"){ if(my!==token)return; return tuneHometown(ch,sl,my); }
   if(sl.source==="tides"){ if(my!==token)return; return tuneTides(ch,sl,my); }
@@ -5285,8 +5289,9 @@ var PADD_NAMES={1:"East Coast",2:"Midwest",3:"Gulf Coast",4:"Rocky Mountain",5:"
 async function tuneGas(ch,sl,my){
   if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Gas Price Ticker","");
   if(screenArea) screenArea.innerHTML='<div class="dc-screen" id="dcScreen">'+
-    '<div class="dc-media show" id="gasMedia" style="flex:1 1 45%;height:auto;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px">'+
-      '<div id="gasBig" style="font:800 clamp(30px,7vw,56px)/1 monospace;color:var(--phos)">$--</div>'+
+    '<div class="dc-media show" id="gasMedia" style="flex:1 1 45%;height:auto;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">'+
+      '<div id="gasGauge"></div>'+
+      '<div id="gasBig" style="font:800 clamp(30px,7vw,56px)/1 monospace;color:var(--phos);margin-top:-14px">$--</div>'+
       '<div id="gasSub" style="font-size:13px;color:#9fd6a6">regular \u00b7 per gallon</div>'+
     '</div>'+
     '<div class="dc-body" id="dcBody" style="flex:0 1 55%;justify-content:flex-start;gap:4px;overflow:hidden">'+
@@ -5310,6 +5315,9 @@ async function tuneGas(ch,sl,my){
       var latest=rows[0];
       var bigEl=$("gasBig");
       if(latest&&latest.value!=null){ if(bigEl)bigEl.textContent="$"+parseFloat(latest.value).toFixed(2);
+        var gaugeEl=$("gasGauge"); if(gaugeEl){ var gv=parseFloat(latest.value);
+          var gcolor=gv<3?"#67ff86":gv<4.5?"#ffd34d":"#ff5c4d";
+          gaugeEl.innerHTML=svgGauge(gv,2,6,gcolor,150); }
         nlog("gas",true,"$"+latest.value+" "+(PADD_NAMES[padd]||"")+" "+(latest.period||"")); }
       else throw new Error("no price rows returned \u2014 check DIAG, EIA field names may need adjustment");
       var diesUrl="https://api.eia.gov/v2/petroleum/pri/gnd/data/?api_key="+EIA_KEY+
@@ -5338,15 +5346,70 @@ var issTimer=null;
 var apodTimer=null;
 var buoyTimer=null, ndbcStationCache=null;
 var hfTimer=null;
+/* Curated, well-known public WebSDR/KiwiSDR receivers -- these are volunteer-run, genuinely free,
+   and explicitly built for public web listening (the opposite situation from Broadcastify, whose
+   own developer terms explicitly prohibit third-party redistribution of live audio and exclude
+   "police scanner" style apps entirely). Embedding their own web receiver directly, rather than
+   trying to reimplement their audio protocol, respects how these projects are actually meant to be
+   used. Each instance is individually volunteer-hosted with limited concurrent slots, so a short
+   list with manual switching is more honest than pretending one will always be available. */
+var HAM_RECEIVERS=[
+  {nm:"Univ. of Twente, Netherlands", url:"http://websdr.ewi.utwente.nl:8901/"},
+  {nm:"Northern Utah WebSDR", url:"http://k7fry.com:8073/"},
+  {nm:"KFS California WebSDR", url:"http://kfs.kiwisdr.com/"}
+];
+async function tuneHamLive(ch,sl,my){
+  if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Ham Radio Live","");
+  if(screenArea) screenArea.innerHTML='<div class="dc-screen" id="dcScreen">'+
+    '<div class="dc-media show" id="hamFrame" style="flex:1 1 78%;height:auto;min-height:0;background:#000"></div>'+
+    '<div class="dc-body" id="dcBody" style="flex:0 1 22%;justify-content:flex-start;gap:4px;overflow:hidden">'+
+      '<div class="dc-top"><span>HAM RADIO LIVE / PICK A RECEIVER</span></div>'+
+      '<div class="dc-list" id="dcList" style="flex:1 1 auto"></div>'+
+      '<div class="dc-ticker">Real public web receivers, volunteer-run \u2014 if one\u2019s offline or full, try another</div>'+
+    '</div></div>';
+  var listEl=$("dcList"), frame=$("hamFrame");
+  function load(i){
+    var r=HAM_RECEIVERS[i]; if(!frame||!r)return;
+    frame.innerHTML='<iframe src="'+esch(r.url)+'" style="width:100%;height:100%;border:0;background:#000" allow="autoplay"></iframe>';
+    listEl.querySelectorAll("[data-hi]").forEach(function(x){x.classList.remove("sel");});
+    var row=listEl.querySelector('[data-hi="'+i+'"]'); if(row)row.classList.add("sel");
+    nlog("hamlive",true,r.nm);
+  }
+  listEl.innerHTML=HAM_RECEIVERS.map(function(r,i){
+    return '<div class="dc-row2" data-hi="'+i+'" style="cursor:pointer"><div class="dc-row2-main"><span class="dc-place">'+esch(r.nm)+'</span></div></div>';
+  }).join("");
+  listEl.querySelectorAll("[data-hi]").forEach(function(el){ el.addEventListener("click",function(){ load(+el.dataset.hi); }); });
+  load(0);
+}
+async function tuneScanner(ch,sl,my){
+  if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Police & Fire Scanner","");
+  /* QA: Broadcastify's own developer program terms explicitly exclude "police scanner" apps and
+     prohibit third-party redistribution of live audio (violations = account termination). There is
+     no compliant way to pull their audio feeds into this app directly. The honest version links out
+     to their real site instead of faking a built-in player against their own rules. */
+  if(screenArea) screenArea.innerHTML='<div class="dc-screen" id="dcScreen">'+
+    '<div class="dc-media show" style="flex:1 1 60%;height:auto;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:0 20px">'+
+      '<div style="font:800 20px system-ui;color:var(--phos)">POLICE &amp; FIRE SCANNER</div>'+
+      '<div style="font-size:13px;color:#9fd6a6;max-width:340px">Broadcastify\u2019s own terms don\u2019t allow their live feeds to be redistributed inside other apps \u2014 so instead of faking it, this opens their real site directly.</div>'+
+      '<a href="https://www.broadcastify.com/listen/" target="_blank" rel="noopener" style="display:inline-block;padding:14px 28px;border-radius:12px;background:linear-gradient(180deg,#2e7f4a,#1c4a2e);border:1px solid #2e8f4a;color:#eafff0;font:800 15px system-ui;text-decoration:none">OPEN BROADCASTIFY.COM \u2197</a>'+
+    '</div>'+
+    '<div class="dc-body" style="flex:0 1 40%;justify-content:center;gap:4px;overflow:hidden;align-items:center;text-align:center;padding:0 20px">'+
+      '<div style="font-size:12px;color:#9fd6a6">7,000+ live public safety feeds worldwide \u2014 browse by state/county or search "near me" once you\u2019re there</div>'+
+    '</div></div>';
+  nlog("scanner",true,"linked to broadcastify.com");
+}
 async function tuneHF(ch,sl,my){
   if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"HF Radio Conditions","");
   if(screenArea) screenArea.innerHTML='<div class="dc-screen" id="dcScreen">'+
-    '<div class="dc-media show" id="hfMedia" style="flex:1 1 40%;height:auto;min-height:0;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:22px">'+
-      '<div style="text-align:center"><div id="hfFlux" style="font:800 clamp(22px,5.5vw,40px)/1 monospace;color:var(--phos)">--</div><div style="font-size:11px;color:#9fd6a6">SOLAR FLUX</div></div>'+
-      '<div style="text-align:center"><div id="hfA" style="font:800 clamp(22px,5.5vw,40px)/1 monospace;color:var(--phos)">--</div><div style="font-size:11px;color:#9fd6a6">A-INDEX</div></div>'+
-      '<div style="text-align:center"><div id="hfK" style="font:800 clamp(22px,5.5vw,40px)/1 monospace;color:var(--phos)">--</div><div style="font-size:11px;color:#9fd6a6">K-INDEX</div></div>'+
+    '<div class="dc-media show" id="hfMedia" style="flex:1 1 45%;height:auto;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">'+
+      '<div id="hfGauge"></div>'+
+      '<div style="display:flex;flex-direction:row;align-items:center;justify-content:center;gap:22px;margin-top:-10px">'+
+      '<div style="text-align:center"><div id="hfFlux" style="font:800 clamp(20px,5vw,34px)/1 monospace;color:var(--phos)">--</div><div style="font-size:10px;color:#9fd6a6">SOLAR FLUX</div></div>'+
+      '<div style="text-align:center"><div id="hfA" style="font:800 clamp(20px,5vw,34px)/1 monospace;color:var(--phos)">--</div><div style="font-size:10px;color:#9fd6a6">A-INDEX</div></div>'+
+      '<div style="text-align:center"><div id="hfK" style="font:800 clamp(20px,5vw,34px)/1 monospace;color:var(--phos)">--</div><div style="font-size:10px;color:#9fd6a6">K-INDEX</div></div>'+
+      '</div>'+
     '</div>'+
-    '<div class="dc-body" id="dcBody" style="flex:0 1 60%;justify-content:flex-start;gap:4px;overflow:hidden">'+
+    '<div class="dc-body" id="dcBody" style="flex:0 1 55%;justify-content:flex-start;gap:4px;overflow:hidden">'+
       '<div class="dc-top"><span>HF RADIO CONDITIONS</span></div>'+
       '<div class="dc-sub" id="hfForecast">Loading NOAA bulletin\u2026</div>'+
       '<div class="afd-text" id="hfRaw" style="flex:1 1 auto;min-height:0;overflow-y:auto"></div>'+
@@ -5366,6 +5429,10 @@ async function tuneHF(ch,sl,my){
       var fEl=$("hfFlux"); if(fEl&&sf) fEl.textContent=sf[1];
       var aEl=$("hfA"); if(aEl&&aIdx) aEl.textContent=aIdx[1];
       var kEl=$("hfK"); if(kEl&&kIdx) kEl.textContent=parseFloat(kIdx[1]).toFixed(0);
+      var gaugeEl=$("hfGauge");
+      if(gaugeEl&&kIdx){ var kv=parseFloat(kIdx[1]);
+        var gcolor=kv<4?"#67ff86":kv<6?"#ffd34d":"#ff5c4d";
+        gaugeEl.innerHTML=svgGauge(kv,0,9,gcolor,120); }
       var fcEl=$("hfForecast");
       if(fcEl) fcEl.textContent=forecast?("Next 24 hours: "+forecast[1].toUpperCase()+" space weather expected"):"Current NOAA bulletin";
       /* whatever structured fields we couldn't confidently parse, show the real bulletin text
@@ -5400,9 +5467,10 @@ function ndbcMM(v){ return (v==null||v==="MM")?null:parseFloat(v); }
 async function tuneBuoy(ch,sl,my){
   if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Buoy & Surf Report","");
   if(screenArea) screenArea.innerHTML='<div class="dc-screen" id="dcScreen">'+
-    '<div class="dc-media show" id="buoyMedia" style="flex:1 1 50%;height:auto;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px">'+
+    '<div class="dc-media show" id="buoyMedia" style="flex:1 1 50%;height:auto;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">'+
       '<div class="dc-media-cap" id="buoyName">FINDING NEAREST BUOY\u2026</div>'+
-      '<div id="buoyWave" style="font:800 clamp(24px,6vw,44px)/1 monospace;color:var(--phos)">-- ft</div>'+
+      '<div id="buoyGauge"></div>'+
+      '<div id="buoyWave" style="font:800 clamp(24px,6vw,44px)/1 monospace;color:var(--phos);margin-top:-10px">-- ft</div>'+
       '<div id="buoyWaveSub" style="font-size:12px;color:#9fd6a6">significant wave height</div>'+
     '</div>'+
     '<div class="dc-body" id="dcBody" style="flex:0 1 50%;justify-content:flex-start;gap:4px;overflow:hidden">'+
@@ -5432,7 +5500,11 @@ async function tuneBuoy(ch,sl,my){
       /* YY MM DD hh mm WDIR WSPD GST WVHT DPD APD MWD PRES ATMP WTMP DEWP VIS PTDY TIDE */
       var wdir=ndbcMM(cols[5]), wspd=ndbcMM(cols[6]), wvht=ndbcMM(cols[8]), dpd=ndbcMM(cols[9]),
           pres=ndbcMM(cols[12]), atmp=ndbcMM(cols[13]), wtmp=ndbcMM(cols[14]);
-      var wEl=$("buoyWave"); if(wEl) wEl.textContent=(wvht!=null?(wvht*3.28084).toFixed(1)+" ft":"n/a");
+      var wftVal=wvht!=null?(wvht*3.28084):null;
+      var wEl=$("buoyWave"); if(wEl) wEl.textContent=(wftVal!=null?wftVal.toFixed(1)+" ft":"n/a");
+      var gaugeEl=$("buoyGauge");
+      if(gaugeEl&&wftVal!=null){ var gcolor=wftVal<4?"#67ff86":wftVal<9?"#ffd34d":"#ff5c4d";
+        gaugeEl.innerHTML=svgGauge(wftVal,0,20,gcolor,130); }
       var listEl=$("dcList");
       if(listEl){
         var rows=[];
@@ -5530,6 +5602,23 @@ async function tuneISS(ch,sl,my){
   };
   run(); issTimer=rtInterval(run,10000);
 }
+/* Reusable SVG arc gauge for LOCAL data channels -- text-only numbers don't read as "worth
+   watching" the way a moving needle/filled arc does. One small, dependency-free helper instead of
+   hand-building a custom visual per channel. sweep 0-1 = empty-to-full around a 270-degree arc. */
+function svgGauge(value,min,max,color,size){
+  size=size||140; var sweep=Math.max(0,Math.min(1,(value-min)/(max-min)));
+  var startAngle=135, totalAngle=270, endAngle=startAngle+totalAngle*sweep;
+  function pt(cx,cy,r,deg){ var rad=(deg-90)*Math.PI/180; return [cx+r*Math.cos(rad), cy+r*Math.sin(rad)]; }
+  var cx=size/2, cy=size/2, r=size*0.38;
+  var p0=pt(cx,cy,r,startAngle), p1=pt(cx,cy,r,startAngle+totalAngle);
+  var bgLarge=1; var bgPath="M"+p0[0].toFixed(1)+","+p0[1].toFixed(1)+" A"+r+","+r+" 0 "+bgLarge+" 1 "+p1[0].toFixed(1)+","+p1[1].toFixed(1);
+  var fgStr="";
+  if(sweep>0){ var pf=pt(cx,cy,r,endAngle); var fgLarge=(totalAngle*sweep)>180?1:0;
+    fgStr='<path d="M'+p0[0].toFixed(1)+","+p0[1].toFixed(1)+" A"+r+","+r+" 0 "+fgLarge+" 1 "+pf[0].toFixed(1)+","+pf[1].toFixed(1)+'" fill="none" stroke="'+color+'" stroke-width="'+(size*0.09)+'" stroke-linecap="round"/>'; }
+  return '<svg width="'+size+'" height="'+(size*0.82)+'" viewBox="0 0 '+size+' '+size+'" style="overflow:visible">'+
+    '<path d="'+bgPath+'" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="'+(size*0.09)+'" stroke-linecap="round"/>'+
+    fgStr+'</svg>';
+}
 function kpDescribe(kp){
   if(kp==null||isNaN(kp)) return "Data unavailable";
   if(kp<4) return "Quiet geomagnetic conditions";
@@ -5543,8 +5632,9 @@ function kpDescribe(kp){
 async function tuneAurora(ch,sl,my){
   if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Aurora & Space Weather","");
   if(screenArea) screenArea.innerHTML='<div class="dc-screen" id="dcScreen">'+
-    '<div class="dc-media show" id="auroraMedia" style="flex:1 1 55%;height:auto;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px">'+
-      '<div id="auroraKpBig" style="font:800 clamp(28px,7vw,54px)/1 monospace;color:var(--phos)">Kp --</div>'+
+    '<div class="dc-media show" id="auroraMedia" style="flex:1 1 55%;height:auto;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">'+
+      '<div id="auroraGauge"></div>'+
+      '<div id="auroraKpBig" style="font:800 clamp(28px,7vw,54px)/1 monospace;color:var(--phos);margin-top:-14px">Kp --</div>'+
       '<div class="dc-media-cap" id="auroraStatus">Loading NOAA Space Weather Prediction Center data\u2026</div>'+
     '</div>'+
     '<div class="dc-body" id="dcBody" style="flex:0 1 45%;justify-content:flex-start;gap:4px;overflow:hidden">'+
@@ -5563,6 +5653,10 @@ async function tuneAurora(ch,sl,my){
       var rows=(kpData||[]).slice(1); var last=rows[rows.length-1]||[];
       var kp=parseFloat(last[1]);
       var kpEl=$("auroraKpBig"); if(kpEl) kpEl.textContent="Kp "+(isNaN(kp)?"--":kp.toFixed(1));
+      var gaugeEl=$("auroraGauge"); if(gaugeEl&&!isNaN(kp)){
+        var gcolor=kp<4?"#67ff86":kp<6?"#ffd34d":"#ff5c4d";
+        gaugeEl.innerHTML=svgGauge(kp,0,9,gcolor,150);
+      }
       var statusEl=$("auroraStatus"); if(statusEl) statusEl.textContent=kpDescribe(kp);
       /* rough visibility estimate -- geographic latitude used as a simplification for geomagnetic
          latitude, which is close enough for a TV-channel-style estimate, not precision forecasting */

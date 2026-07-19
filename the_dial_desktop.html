@@ -693,7 +693,7 @@ html,body{height:100vh;overflow:hidden}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.24";
+window.__ATV_BUILD="1.7.7-desktop.25";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -727,7 +727,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.24</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.25</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">THE DIAL · THE SET</div>
@@ -5236,13 +5236,14 @@ var SPORTS_LIST=[
   {k:"mlb",   label:"MLB",         espn:"baseball/mlb",                       yt:"MLB"},
   {k:"nhl",   label:"NHL",         espn:"hockey/nhl",                         yt:"NHL"},
   {k:"epl",   label:"SOCCER",      espn:"soccer/all",                         yt:"premierleague"},
+  {k:"worldcup",label:"WORLD CUP", espn:"soccer/fifa.world",                  yt:"FIFA"},
   {k:"f1",    label:"F1",          espn:"racing/f1",                          yt:"Formula1"},
   {k:"nascar",label:"NASCAR",      espn:"racing/nascar-premier",              yt:"NASCAR"},
   {k:"pga",   label:"GOLF",        espn:"golf/pga",                           yt:"PGATOUR"},
   {k:"atp",   label:"TENNIS",      espn:"tennis/atp",                         yt:"tennistv"},
   {k:"mma",   label:"MMA",         espn:"mma/ufc",                            yt:"ufc"},
   {k:"boxing",label:"BOXING",      sdb:"4445",                                yt:"toprank"},
-  {k:"cricket",label:"CRICKET",    sdb:"4575",                                yt:"iccmedia"},
+  {k:"cricket",label:"CRICKET",    espnCricket:true, sdb:"4575",              yt:"iccmedia"},
   {k:"rugby", label:"RUGBY",       sdb:"4414",                                yt:"WorldRugby"},
   {k:"wnba",  label:"WNBA",        espn:"basketball/wnba",                    yt:"wnba"},
   {k:"wta",   label:"WTA",         espn:"tennis/wta",                         yt:"WTA"},
@@ -5605,7 +5606,45 @@ async function tuneSports(ch,sl,my){
     if(pickerEl.value!==sp.k) pickerEl.value=sp.k;
     curEvents=[]; if(sportsSubView==="scores") bodyEl.innerHTML='<div class="pop-empty">Loading '+esch(sp.label)+' scores\u2026</div>';
     try{
-      if(sp.espn){
+      if(sp.espnCricket){
+        var cricketOk=false;
+        try{
+          var hd=await fetchJSON("https://site.api.espn.com/apis/personalized/v2/scoreboard/header?sport=cricket&region=us&tz=America%2FChicago");
+          if(my!==token||curSport!==sp)return;
+          var leagues=(hd&&hd.sports&&hd.sports[0]&&hd.sports[0].leagues)||[];
+          var activeLeague=leagues.find(function(l){return l.events&&l.events.length;})||leagues[0];
+          if(activeLeague&&activeLeague.id){
+            var cd=await fetchJSON("https://site.api.espn.com/apis/site/v2/sports/cricket/"+encodeURIComponent(activeLeague.id)+"/scoreboard");
+            if(my!==token||curSport!==sp)return;
+            var cEvents=(cd&&cd.events)||[];
+            if(cEvents.length){
+              curEvents=cEvents.map(function(ev){
+                var comp=ev.competitions&&ev.competitions[0];
+                return {id:ev.id,status:ev.status,competitions:comp?[comp]:[],shortName:activeLeague.name||ev.shortName||ev.name};
+              });
+              cricketOk=true;
+              nlog("sports",true,sp.label+" "+curEvents.length+" events (ESPN, "+(activeLeague.name||activeLeague.id)+")");
+            }
+          }
+        }catch(ce){ nlog("sports",false,"cricket ESPN path: "+((ce&&ce.message)||ce)); }
+        if(!cricketOk){
+          /* ESPN's cricket discovery came back empty (no currently active series, or the shape
+             didn't match) -- fall back to TheSportsDB rather than show nothing */
+          var d2c=await fetchJSON("https://www.thesportsdb.com/api/v1/json/3/eventspastleague.php?id="+encodeURIComponent(sp.sdb)).catch(function(){return null;});
+          var evsC=(d2c&&d2c.events)||[];
+          curEvents=evsC.map(function(ev){
+            var hasNames=ev.strHomeTeam&&ev.strAwayTeam;
+            if(hasNames){
+              return {competitions:[{competitors:[
+                {homeAway:"home",score:ev.intHomeScore,team:{shortDisplayName:ev.strHomeTeam}},
+                {homeAway:"away",score:ev.intAwayScore,team:{shortDisplayName:ev.strAwayTeam}}
+              ]}],status:{type:{shortDetail:ev.dateEvent||""}}};
+            }
+            return {competitions:[{competitors:[{homeAway:"home",score:null,team:{shortDisplayName:ev.strEvent||sp.label+" event"}}]}],status:{type:{shortDetail:ev.dateEvent||""}}};
+          });
+          nlog("sports",true,sp.label+" "+curEvents.length+" events (TheSportsDB fallback)");
+        }
+      } else if(sp.espn){
         var d=await fetchJSON("https://site.api.espn.com/apis/site/v2/sports/"+sp.espn+"/scoreboard");
         if(my!==token||curSport!==sp)return;
         var rawEvents=(d&&d.events)||[]; var flat=[];

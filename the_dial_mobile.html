@@ -804,7 +804,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.40";
+window.__ATV_BUILD="1.7.7-mobile.42";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -838,7 +838,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.40</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.42</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -1281,11 +1281,12 @@ networkValentine:[{g:"musicfilm",s:"Late Night Romance"},{g:"comedy",s:"Overnigh
 };
 
 /* ---------- category colors ---------- */
-const CAT={NET:"#ffe06a",TOON:"#7fd8ff",MOV:"#ff9ab0",TV:"#9affb0",MUS:"#ffbe7a",DOC:"#b9d8ff",SPEC:"#d6a8ff",LOCAL:"#4dd9c0",HOL:"#ff8fa3"};
-const CATNAME={NET:"NETWORKS",TOON:"CARTOONS",MOV:"MOVIES",TV:"TELEVISION",MUS:"MUSIC & RADIO",DOC:"NONFICTION",SPEC:"SPECIALTY",LOCAL:"LOCAL",HOL:"HOLIDAY"};
+const CAT={NET:"#ffe06a",TOON:"#7fd8ff",MOV:"#ff9ab0",TV:"#9affb0",SPORTS:"#8fff5c",MUS:"#ffbe7a",DOC:"#b9d8ff",SPEC:"#d6a8ff",LOCAL:"#4dd9c0",HOL:"#ff8fa3"};
+const CATNAME={NET:"NETWORKS",TOON:"CARTOONS",MOV:"MOVIES",TV:"TELEVISION",SPORTS:"SPORTS",MUS:"MUSIC & RADIO",DOC:"NONFICTION",SPEC:"SPECIALTY",LOCAL:"LOCAL",HOL:"HOLIDAY"};
 
 /* ---------- the dial (~36 channels) ---------- */
 const CH=[
+ {nm:"Sports Center",     cat:"SPORTS", source:"sports", ns:"tv"},
  {nm:"Channel 2 Network", cat:"NET", profile:"network", era:[1950,1969], ns:"movie"},
  {nm:"Nite-Owl 3",        cat:"NET", profile:"network", era:[1935,1955], ns:"movie"},
 
@@ -1886,6 +1887,7 @@ async function tuneNum(n){
   if(sl.source==="apod"){ if(my!==token)return; return tuneAPOD(ch,sl,my); }
   if(sl.source==="buoy"){ if(my!==token)return; return tuneBuoy(ch,sl,my); }
   if(sl.source==="hf"){ if(my!==token)return; return tuneHF(ch,sl,my); }
+  if(sl.source==="sports"){ if(my!==token)return; return tuneSports(ch,sl,my); }
   if(sl.source==="wildfire"){ if(my!==token)return; return tuneWildfire(ch,sl,my); }
   if(sl.source==="hometown"){ if(my!==token)return; return tuneHometown(ch,sl,my); }
   if(sl.source==="tides"){ if(my!==token)return; return tuneTides(ch,sl,my); }
@@ -2575,7 +2577,7 @@ function toggleClockFmt(){clk24=!clk24;store.set("clk24",clk24);updateClocks();
   if(typeof tick==="function"){try{tick();}catch(e){}} quickBanner(clk24?"CLOCK · 24-HOUR":"CLOCK · 12-HOUR");}
 
 /* ---------- category jump-nav ---------- */
-var CAT_ORDER=["NET","TV","MOV","TOON","MUS","DOC","SPEC","LOCAL","HOL"]; /* QA FIX: this used to be
+var CAT_ORDER=["NET","TV","SPORTS","MOV","TOON","MUS","DOC","SPEC","LOCAL","HOL"]; /* QA FIX: this used to be
   derived from whatever order categories first appeared in the channel list, which drifted every time
   a new channel got added anywhere -- not a designed order, just an accident of editing history. Now
   it's deliberate: watchable entertainment first, the large Music category gets real priority instead
@@ -5384,6 +5386,102 @@ var issTimer=null;
 var apodTimer=null;
 var buoyTimer=null, ndbcStationCache=null;
 var hfTimer=null;
+var YOUTUBE_KEY="AIzaSyBdN1eHQHXorjPqHaUJBrtQkvdyYAhH6nI";
+var sportsTimer=null;
+var ytChannelCache={}; /* handle -> uploads playlist id, resolved once per session and reused */
+/* ESPN's hidden API is real, free, keyless, and covers all the major leagues with genuinely live
+   data -- but it's unofficial/reverse-engineered, not published or supported by ESPN, so it could
+   change without notice. TheSportsDB backs up the long tail (200+ sports) ESPN doesn't cover, using
+   their public test key for basic free access. */
+var SPORTS_LIST=[
+  {k:"nfl",  label:"NFL",       espn:"football/nfl",        yt:"NFL"},
+  {k:"nba",  label:"NBA",       espn:"basketball/nba",      yt:"NBA"},
+  {k:"mlb",  label:"MLB",       espn:"baseball/mlb",        yt:"MLB"},
+  {k:"nhl",  label:"NHL",       espn:"hockey/nhl",          yt:"NHL"},
+  {k:"epl",  label:"SOCCER",    espn:"soccer/eng.1",        yt:"premierleague"},
+  {k:"pga",  label:"GOLF",      espn:"golf/pga",            yt:"PGATOUR"},
+  {k:"atp",  label:"TENNIS",    espn:"tennis/atp",          yt:"tennistv"},
+  {k:"mma",  label:"MMA",       espn:"mma/ufc",             yt:"ufc"},
+  {k:"cricket", label:"CRICKET", sdb:"4575", yt:"iccmedia"},
+  {k:"rugby",   label:"RUGBY",   sdb:"4414", yt:"WorldRugby"}
+];
+async function ytUploadsPlaylist(handle){
+  if(ytChannelCache[handle]) return ytChannelCache[handle];
+  var d=await fetchJSON("https://www.googleapis.com/youtube/v3/channels?part=contentDetails&forHandle="+encodeURIComponent(handle)+"&key="+YOUTUBE_KEY);
+  var item=d&&d.items&&d.items[0];
+  var pl=item&&item.contentDetails&&item.contentDetails.relatedPlaylists&&item.contentDetails.relatedPlaylists.uploads;
+  if(pl) ytChannelCache[handle]=pl;
+  return pl||null;
+}
+async function tuneSports(ch,sl,my){
+  if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Sports Center","");
+  if(screenArea) screenArea.innerHTML='<div class="dc-screen" id="dcScreen" style="flex-direction:column">'+
+    '<div id="sportsPicker" class="catnav" style="flex:0 0 auto;padding:6px 8px"></div>'+
+    '<div id="sportsVideo" style="flex:0 1 42%;min-height:0;background:#000"></div>'+
+    '<div class="dc-body" id="dcBody" style="flex:1 1 auto;min-height:0;justify-content:flex-start;gap:4px;overflow:hidden">'+
+      '<div class="dc-top"><span id="sportsHead">SPORTS CENTER</span></div>'+
+      '<div class="dc-list" id="dcList"></div>'+
+      '<div class="dc-ticker">ESPN &amp; TheSportsDB scores \u00b7 highlights from official league YouTube channels</div>'+
+    '</div></div>';
+  var pickerEl=$("sportsPicker"), listEl=$("dcList"), videoEl=$("sportsVideo"), headEl=$("sportsHead");
+  var curSport=SPORTS_LIST[0];
+  clearInterval(sportsTimer);
+  async function loadSport(sp){
+    curSport=sp; if(my!==token)return;
+    pickerEl.querySelectorAll(".catchip").forEach(function(x){x.classList.remove("act");});
+    var chip=pickerEl.querySelector('[data-sk="'+sp.k+'"]'); if(chip)chip.classList.add("act");
+    headEl.textContent="SPORTS CENTER / "+sp.label;
+    listEl.innerHTML='<div class="pop-empty">Loading '+esch(sp.label)+' scores\u2026</div>';
+    videoEl.innerHTML='<div class="dc-media-cap">Loading highlights\u2026</div>';
+    try{
+      if(sp.espn){
+        var d=await fetchJSON("https://site.api.espn.com/apis/site/v2/sports/"+sp.espn+"/scoreboard");
+        if(my!==token||curSport!==sp)return;
+        var events=(d&&d.events)||[];
+        if(!events.length){ listEl.innerHTML='<div class="pop-empty">No '+esch(sp.label)+' games scheduled right now.</div>'; }
+        else listEl.innerHTML=events.slice(0,15).map(function(ev){
+          var comp=ev.competitions&&ev.competitions[0]; var competitors=(comp&&comp.competitors)||[];
+          var home=competitors.find(function(c){return c.homeAway==="home";})||competitors[0]||{};
+          var away=competitors.find(function(c){return c.homeAway==="away";})||competitors[1]||{};
+          var homeName=(home.team&&(home.team.shortDisplayName||home.team.abbreviation))||"?";
+          var awayName=(away.team&&(away.team.shortDisplayName||away.team.abbreviation))||"?";
+          var status=(ev.status&&ev.status.type&&ev.status.type.shortDetail)||"";
+          var score=(home.score!=null&&away.score!=null)?(awayName+" "+away.score+" \u2014 "+home.score+" "+homeName):(awayName+" @ "+homeName);
+          return '<div class="dc-row2"><div class="dc-row2-main"><span class="dc-place">'+esch(score)+'</span><span class="dc-when">'+esch(status)+'</span></div></div>';
+        }).join("");
+        nlog("sports",true,sp.label+" "+events.length+" events (ESPN)");
+      } else if(sp.sdb){
+        var d2=await fetchJSON("https://www.thesportsdb.com/api/v1/json/3/eventspastleague.php?id="+encodeURIComponent(sp.sdb)).catch(function(){return null;});
+        var evs=(d2&&d2.events)||[];
+        if(!evs||!evs.length){ listEl.innerHTML='<div class="pop-empty">No recent '+esch(sp.label)+' results available right now.</div>'; }
+        else listEl.innerHTML=evs.slice(0,15).map(function(ev){
+          return '<div class="dc-row2"><div class="dc-row2-main"><span class="dc-place">'+esch(ev.strEvent||((ev.strHomeTeam||"?")+" vs "+(ev.strAwayTeam||"?")))+'</span><span class="dc-when">'+esch((ev.intHomeScore!=null&&ev.intAwayScore!=null)?(ev.intAwayScore+"-"+ev.intHomeScore):(ev.dateEvent||""))+'</span></div></div>';
+        }).join("");
+        nlog("sports",true,sp.label+" "+(evs?evs.length:0)+" events (TheSportsDB)");
+      }
+    }catch(e){ nlog("sports",false,sp.label+": "+((e&&e.message)||e));
+      listEl.innerHTML='<div class="pop-empty">'+esch(sp.label)+' data unavailable right now \u2014 check DIAG.</div>'; }
+    try{
+      var plId=await ytUploadsPlaylist(sp.yt); if(my!==token||curSport!==sp)return;
+      if(!plId) throw new Error("could not resolve @"+sp.yt+" channel");
+      var vids=await fetchJSON("https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId="+plId+"&maxResults=6&key="+YOUTUBE_KEY);
+      if(my!==token||curSport!==sp)return;
+      var first=vids&&vids.items&&vids.items[0];
+      var vid=first&&first.snippet&&first.snippet.resourceId&&first.snippet.resourceId.videoId;
+      if(vid){ videoEl.innerHTML='<iframe src="https://www.youtube.com/embed/'+esch(vid)+'?autoplay=0" style="width:100%;height:100%;border:0" allow="autoplay;encrypted-media" allowfullscreen></iframe>';
+        nlog("sportsyt",true,sp.yt+" -> "+vid); }
+      else throw new Error("no videos found");
+    }catch(e){ nlog("sportsyt",false,sp.label+": "+((e&&e.message)||e));
+      videoEl.innerHTML='<div class="dc-media-cap">Highlights unavailable right now \u2014 check DIAG.</div>'; }
+  }
+  pickerEl.innerHTML=SPORTS_LIST.map(function(sp){
+    return '<button class="catchip" data-sk="'+sp.k+'" style="border-color:#67ff86;color:#67ff86">'+esch(sp.label)+'</button>';
+  }).join("");
+  pickerEl.querySelectorAll("[data-sk]").forEach(function(el){ el.addEventListener("click",function(){
+    var sp=SPORTS_LIST.find(function(s){return s.k===el.dataset.sk;}); if(sp)loadSport(sp); }); });
+  loadSport(SPORTS_LIST[0]);
+  sportsTimer=rtInterval(function(){ if(my===token&&powered) loadSport(curSport); },5*60*1000);
+}
 /* Public WebSDR/KiwiSDR receivers -- volunteer-run, genuinely free, explicitly built for public
    web listening (the opposite situation from Broadcastify, whose own developer terms exclude
    "police scanner" style apps entirely and prohibit third-party redistribution of live audio).

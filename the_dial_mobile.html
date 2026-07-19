@@ -804,7 +804,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.39";
+window.__ATV_BUILD="1.7.7-mobile.40";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -838,7 +838,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.39</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.40</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -1358,9 +1358,7 @@ const CH=[
  {nm:"Public Domain Art", cat:"SPEC",source:"art",       ns:"doc"},
  {nm:"Weather Watch",     cat:"LOCAL", source:"weather", ns:"tv"},
  {nm:"Aurora & Space Weather", cat:"LOCAL", source:"aurora", ns:"tv"},
- {nm:"HF Radio Conditions", cat:"LOCAL", source:"hf",     ns:"tv"},
- {nm:"Ham Radio Live",      cat:"LOCAL", source:"hamlive",ns:"tv"},
- {nm:"Police & Fire Scanner", cat:"LOCAL", source:"scanner", ns:"tv"},
+ {nm:"Ham Radio",           cat:"LOCAL", source:"hf",     ns:"tv"},
  {nm:"ISS Tracker",       cat:"SPEC", source:"iss",    ns:"space"},
  {nm:"NASA Picture of the Day", cat:"SPEC", source:"apod", ns:"space"},
  {nm:"Air Traffic",       cat:"LOCAL", source:"airtraffic", ns:"tv"},
@@ -1888,8 +1886,6 @@ async function tuneNum(n){
   if(sl.source==="apod"){ if(my!==token)return; return tuneAPOD(ch,sl,my); }
   if(sl.source==="buoy"){ if(my!==token)return; return tuneBuoy(ch,sl,my); }
   if(sl.source==="hf"){ if(my!==token)return; return tuneHF(ch,sl,my); }
-  if(sl.source==="hamlive"){ if(my!==token)return; return tuneHamLive(ch,sl,my); }
-  if(sl.source==="scanner"){ if(my!==token)return; return tuneScanner(ch,sl,my); }
   if(sl.source==="wildfire"){ if(my!==token)return; return tuneWildfire(ch,sl,my); }
   if(sl.source==="hometown"){ if(my!==token)return; return tuneHometown(ch,sl,my); }
   if(sl.source==="tides"){ if(my!==token)return; return tuneTides(ch,sl,my); }
@@ -5388,58 +5384,19 @@ var issTimer=null;
 var apodTimer=null;
 var buoyTimer=null, ndbcStationCache=null;
 var hfTimer=null;
-/* Curated, well-known public WebSDR/KiwiSDR receivers -- these are volunteer-run, genuinely free,
-   and explicitly built for public web listening (the opposite situation from Broadcastify, whose
-   own developer terms explicitly prohibit third-party redistribution of live audio and exclude
-   "police scanner" style apps entirely). Embedding their own web receiver directly, rather than
-   trying to reimplement their audio protocol, respects how these projects are actually meant to be
-   used. Each instance is individually volunteer-hosted with limited concurrent slots, so a short
-   list with manual switching is more honest than pretending one will always be available. */
+/* Public WebSDR/KiwiSDR receivers -- volunteer-run, genuinely free, explicitly built for public
+   web listening (the opposite situation from Broadcastify, whose own developer terms exclude
+   "police scanner" style apps entirely and prohibit third-party redistribution of live audio).
+   rx.kiwisdr.com is KiwiSDR's own official live directory of 300+ current receivers with a real
+   status/map browser -- embedding it directly means this list is never stale, since it's their
+   real service, not a hand-picked snapshot. The other three are well-established individual
+   receivers kept as one-tap fallbacks in case the directory itself won't load or frame. */
 var HAM_RECEIVERS=[
+  {nm:"Browse All Live Receivers (rx.kiwisdr.com)", url:"http://rx.kiwisdr.com/"},
   {nm:"Univ. of Twente, Netherlands", url:"http://websdr.ewi.utwente.nl:8901/"},
   {nm:"Northern Utah WebSDR", url:"http://k7fry.com:8073/"},
   {nm:"KFS California WebSDR", url:"http://kfs.kiwisdr.com/"}
 ];
-async function tuneHamLive(ch,sl,my){
-  if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Ham Radio Live","");
-  if(screenArea) screenArea.innerHTML='<div class="dc-screen" id="dcScreen">'+
-    '<div class="dc-media show" id="hamFrame" style="flex:1 1 78%;height:auto;min-height:0;background:#000"></div>'+
-    '<div class="dc-body" id="dcBody" style="flex:0 1 22%;justify-content:flex-start;gap:4px;overflow:hidden">'+
-      '<div class="dc-top"><span>HAM RADIO LIVE / PICK A RECEIVER</span></div>'+
-      '<div class="dc-list" id="dcList" style="flex:1 1 auto"></div>'+
-      '<div class="dc-ticker">Real public web receivers, volunteer-run \u2014 if one\u2019s offline or full, try another</div>'+
-    '</div></div>';
-  var listEl=$("dcList"), frame=$("hamFrame");
-  function load(i){
-    var r=HAM_RECEIVERS[i]; if(!frame||!r)return;
-    frame.innerHTML='<iframe src="'+esch(r.url)+'" style="width:100%;height:100%;border:0;background:#000" allow="autoplay"></iframe>';
-    listEl.querySelectorAll("[data-hi]").forEach(function(x){x.classList.remove("sel");});
-    var row=listEl.querySelector('[data-hi="'+i+'"]'); if(row)row.classList.add("sel");
-    nlog("hamlive",true,r.nm);
-  }
-  listEl.innerHTML=HAM_RECEIVERS.map(function(r,i){
-    return '<div class="dc-row2" data-hi="'+i+'" style="cursor:pointer"><div class="dc-row2-main"><span class="dc-place">'+esch(r.nm)+'</span></div></div>';
-  }).join("");
-  listEl.querySelectorAll("[data-hi]").forEach(function(el){ el.addEventListener("click",function(){ load(+el.dataset.hi); }); });
-  load(0);
-}
-async function tuneScanner(ch,sl,my){
-  if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Police & Fire Scanner","");
-  /* QA: Broadcastify's own developer program terms explicitly exclude "police scanner" apps and
-     prohibit third-party redistribution of live audio (violations = account termination). There is
-     no compliant way to pull their audio feeds into this app directly. The honest version links out
-     to their real site instead of faking a built-in player against their own rules. */
-  if(screenArea) screenArea.innerHTML='<div class="dc-screen" id="dcScreen">'+
-    '<div class="dc-media show" style="flex:1 1 60%;height:auto;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:0 20px">'+
-      '<div style="font:800 20px system-ui;color:var(--phos)">POLICE &amp; FIRE SCANNER</div>'+
-      '<div style="font-size:13px;color:#9fd6a6;max-width:340px">Broadcastify\u2019s own terms don\u2019t allow their live feeds to be redistributed inside other apps \u2014 so instead of faking it, this opens their real site directly.</div>'+
-      '<a href="https://www.broadcastify.com/listen/" target="_blank" rel="noopener" style="display:inline-block;padding:14px 28px;border-radius:12px;background:linear-gradient(180deg,#2e7f4a,#1c4a2e);border:1px solid #2e8f4a;color:#eafff0;font:800 15px system-ui;text-decoration:none">OPEN BROADCASTIFY.COM \u2197</a>'+
-    '</div>'+
-    '<div class="dc-body" style="flex:0 1 40%;justify-content:center;gap:4px;overflow:hidden;align-items:center;text-align:center;padding:0 20px">'+
-      '<div style="font-size:12px;color:#9fd6a6">7,000+ live public safety feeds worldwide \u2014 browse by state/county or search "near me" once you\u2019re there</div>'+
-    '</div></div>';
-  nlog("scanner",true,"linked to broadcastify.com");
-}
 /* Estimated HF band conditions from solar flux + K-index, using the same real propagation
    principles ham operators use by hand: higher solar flux favors higher/shorter-wavelength bands
    (10m/15m), higher K-index degrades everything, hitting higher bands hardest. This is a genuine
@@ -5457,25 +5414,37 @@ function estimateBandConditions(sfi,k){
   });
 }
 async function tuneHF(ch,sl,my){
-  if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"HF Radio Conditions","");
-  if(screenArea) screenArea.innerHTML='<div class="dc-screen" id="dcScreen">'+
-    '<div class="dc-media show" id="hfMedia" style="flex:1 1 60%;height:auto;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:6px">'+
-      '<div style="display:flex;flex-direction:row;align-items:center;justify-content:center;gap:20px">'+
-      '<div style="text-align:center"><div id="hfFlux" style="font:800 clamp(18px,4.5vw,30px)/1 monospace;color:var(--phos)">--</div><div style="font-size:9px;color:#9fd6a6">SOLAR FLUX</div></div>'+
-      '<div style="text-align:center"><div id="hfA" style="font:800 clamp(18px,4.5vw,30px)/1 monospace;color:var(--phos)">--</div><div style="font-size:9px;color:#9fd6a6">A-INDEX</div></div>'+
-      '<div style="text-align:center"><div id="hfK" style="font:800 clamp(18px,4.5vw,30px)/1 monospace;color:var(--phos)">--</div><div style="font-size:9px;color:#9fd6a6">K-INDEX</div></div>'+
+  if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Ham Radio","");
+  if(screenArea) screenArea.innerHTML='<div class="dc-screen" id="dcScreen" style="flex-direction:column">'+
+    '<div id="hfMedia" style="flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 8px;border-bottom:1px solid rgba(103,255,134,.15)">'+
+      '<div style="display:flex;flex-direction:row;align-items:center;justify-content:center;gap:18px">'+
+      '<div style="text-align:center"><div id="hfFlux" style="font:800 15px monospace;color:var(--phos)">--</div><div style="font-size:8px;color:#9fd6a6">SOLAR FLUX</div></div>'+
+      '<div style="text-align:center"><div id="hfA" style="font:800 15px monospace;color:var(--phos)">--</div><div style="font-size:8px;color:#9fd6a6">A-INDEX</div></div>'+
+      '<div style="text-align:center"><div id="hfK" style="font:800 15px monospace;color:var(--phos)">--</div><div style="font-size:8px;color:#9fd6a6">K-INDEX</div></div>'+
+      '<div id="hfChart" style="width:100px;height:36px"></div>'+
       '</div>'+
-      '<div id="hfChart" style="width:100%;max-width:300px"></div>'+
-      '<div style="font-size:9px;color:rgba(159,214,166,.6);align-self:stretch;max-width:300px;display:flex;justify-content:space-between;padding:0 2px"><span>48H AGO</span><span>NOW</span></div>'+
-      '<div style="font-size:9px;color:#9fd6a6;letter-spacing:1px;margin-top:2px">ESTIMATED BAND CONDITIONS</div>'+
-      '<div id="hfBands" style="display:flex;gap:6px"></div>'+
+      '<div id="hfBands" style="display:flex;gap:4px;width:100%;max-width:340px"></div>'+
+      '<div class="dc-sub" id="hfForecast" style="font-size:10px">Loading NOAA data\u2026</div>'+
     '</div>'+
-    '<div class="dc-body" id="dcBody" style="flex:0 1 40%;justify-content:flex-start;gap:4px;overflow:hidden">'+
-      '<div class="dc-top"><span>HF RADIO CONDITIONS</span></div>'+
-      '<div class="dc-sub" id="hfForecast">Loading NOAA bulletin\u2026</div>'+
-      '<div class="afd-text" id="hfRaw" style="flex:1 1 auto;min-height:0;overflow-y:auto"></div>'+
-      '<div class="dc-ticker" id="hfTicker">NOAA SWPC \u00b7 WWV bulletin \u00b7 issued every 3 hours</div>'+
-    '</div></div>';
+    '<div id="hfPicker" class="catnav" style="flex:0 0 auto;padding:6px 8px"></div>'+
+    '<div id="hfFrame" style="flex:1 1 auto;min-height:0;background:#000"></div>'+
+    '<div class="dc-ticker" id="hfTicker">NOAA SWPC conditions \u00b7 rx.kiwisdr.com live receivers, volunteer-run \u2014 if one\u2019s full, try another</div>'+
+    '</div>';
+  var pickerEl=$("hfPicker"), frameEl=$("hfFrame");
+  function loadReceiver(i){
+    var r=HAM_RECEIVERS[i]; if(!frameEl||!r)return;
+    frameEl.innerHTML='<iframe src="'+esch(r.url)+'" style="width:100%;height:100%;border:0;background:#000" allow="autoplay"></iframe>';
+    pickerEl.querySelectorAll(".catchip").forEach(function(x){x.classList.remove("act");});
+    var chip=pickerEl.querySelector('[data-hi="'+i+'"]'); if(chip)chip.classList.add("act");
+    nlog("hamlive",true,r.nm);
+  }
+  if(pickerEl){
+    pickerEl.innerHTML=HAM_RECEIVERS.map(function(r,i){
+      return '<button class="catchip" data-hi="'+i+'" style="border-color:#67ff86;color:#67ff86">'+esch(r.nm)+'</button>';
+    }).join("");
+    pickerEl.querySelectorAll("[data-hi]").forEach(function(el){ el.addEventListener("click",function(){ loadReceiver(+el.dataset.hi); }); });
+  }
+  loadReceiver(0);
   clearInterval(hfTimer);
   var run=async function(){
     if(my!==token||!powered){ clearInterval(hfTimer); return; }
@@ -5484,7 +5453,7 @@ async function tuneHF(ch,sl,my){
       if(my!==token)return;
       if(kpData){ var rows=(kpData||[]).slice(1);
         var series=rows.map(function(r){ var v=parseFloat(r[1]); return isNaN(v)?null:v; }).slice(-16);
-        var chartEl=$("hfChart"); if(chartEl&&series.length) chartEl.innerHTML=svgBarChart(series,function(v){return v<4?"#67ff86":v<6?"#ffd34d":"#ff5c4d";},300,72);
+        var chartEl=$("hfChart"); if(chartEl&&series.length) chartEl.innerHTML=svgBarChart(series,function(v){return v<4?"#67ff86":v<6?"#ffd34d":"#ff5c4d";},100,36);
       }
       var txt=await withTO(fetch("https://services.swpc.noaa.gov/text/wwv.txt").then(function(r){
         if(!r.ok)throw new Error("http "+r.status); return r.text(); }),15000);
@@ -5501,17 +5470,14 @@ async function tuneHF(ch,sl,my){
         var bands=estimateBandConditions(parseFloat(sf[1]),parseFloat(kIdx[1]));
         if(bands) bandsEl.innerHTML=bands.map(function(b){
           var c=b.level==="GOOD"?"#67ff86":b.level==="FAIR"?"#ffd34d":"#ff5c4d";
-          return '<div style="flex:1;text-align:center;padding:6px 2px;border-radius:6px;background:rgba(255,255,255,.05);border:1px solid '+c+'44">'+
-            '<div style="font:700 10px monospace;color:#cdeccc">'+b.name+'</div>'+
-            '<div style="font:800 9px monospace;color:'+c+'">'+b.level+'</div></div>';
+          return '<div style="flex:1;text-align:center;padding:3px 2px;border-radius:5px;background:rgba(255,255,255,.05);border:1px solid '+c+'44">'+
+            '<div style="font:700 9px monospace;color:#cdeccc">'+b.name+'</div>'+
+            '<div style="font:800 8px monospace;color:'+c+'">'+b.level+'</div></div>';
         }).join("");
       }
       var fcEl=$("hfForecast");
-      if(fcEl) fcEl.textContent=forecast?("Next 24 hours: "+forecast[1].toUpperCase()+" space weather expected"):"Current NOAA bulletin";
-      /* whatever structured fields we couldn't confidently parse, show the real bulletin text
-         itself so nothing is silently missing -- the raw NOAA wording is always the fallback */
-      var rawEl=$("hfRaw"); if(rawEl) rawEl.textContent=txt.replace(/^:.*$/gm,"").replace(/^#.*$/gm,"").trim();
-      nlog("hf",true,sf?("SFI "+sf[1]):"parsed with gaps, raw text shown");
+      if(fcEl) fcEl.textContent=forecast?("Next 24h: "+forecast[1].toUpperCase()+" space weather \u2014 estimated band conditions above"):"Current NOAA bulletin";
+      nlog("hf",true,sf?("SFI "+sf[1]):"parsed with gaps");
     }catch(e){ nlog("hf",false,(e&&e.message)||e);
       var fcEl2=$("hfForecast"); if(fcEl2)fcEl2.textContent="NOAA bulletin unavailable right now \u2014 will retry."; }
   };

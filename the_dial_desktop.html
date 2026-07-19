@@ -672,7 +672,7 @@ html,body{height:100vh;overflow:hidden}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.14";
+window.__ATV_BUILD="1.7.7-desktop.15";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -706,7 +706,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.14</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.15</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">THE DIAL · THE SET</div>
@@ -1217,7 +1217,15 @@ const CH=[
  {nm:"Halloween Haunt",   cat:"HOL", gl:"halloween",    era:[1930,1995], ns:"movie"},
  {nm:"Thanksgiving Channel",cat:"HOL",gl:"thanksgiving", era:[1930,1990], ns:"tv"},
  {nm:"Test Pattern",      cat:"SPEC", source:"static", ns:"space"},
-].map((c,i)=>({num:i+2, ...c}));
+].map((function(){
+  var CAT_BLOCKS={NET:2,TV:10,SPORTS:50,MOV:100,TOON:150,DOC:200,SPEC:300,LOCAL:400,HOL:500,MUS:900};
+  var seen={};
+  return function(c){
+    var block=(CAT_BLOCKS[c.cat]!=null)?CAT_BLOCKS[c.cat]:2;
+    seen[c.cat]=(seen[c.cat]||0)+1;
+    return {num:block+seen[c.cat]-1, ...c};
+  };
+})());
 const byNum=n=>CH.find(c=>c.num===n);
 
 /* ===== 1.3 METADATA FOUNDATION: per-channel identity, driving INFO + guide + discovery ===== */

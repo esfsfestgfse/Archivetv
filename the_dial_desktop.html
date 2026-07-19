@@ -672,7 +672,7 @@ html,body{height:100vh;overflow:hidden}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.15";
+window.__ATV_BUILD="1.7.7-desktop.16";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -706,7 +706,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.15</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.16</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">THE DIAL · THE SET</div>
@@ -5194,21 +5194,35 @@ var hfTimer=null;
 var YOUTUBE_KEY="AIzaSyBdN1eHQHXorjPqHaUJBrtQkvdyYAhH6nI";
 var sportsTimer=null;
 var ytChannelCache={}; /* handle -> uploads playlist id, resolved once per session and reused */
-/* ESPN's hidden API is real, free, keyless, and covers all the major leagues with genuinely live
-   data -- but it's unofficial/reverse-engineered, not published or supported by ESPN, so it could
-   change without notice. TheSportsDB backs up the long tail (200+ sports) ESPN doesn't cover, using
-   their public test key for basic free access. */
+var sportsSubView="scores"; var favTeamsCache=null;
+function getFavTeams(){ if(!favTeamsCache){ try{ favTeamsCache=store.get("favTeams",{}); }catch(e){ favTeamsCache={}; } } return favTeamsCache; }
+function toggleFavTeam(sportKey,teamId,teamName){
+  var f=getFavTeams(); var key=sportKey+":"+teamId;
+  if(f[key]) delete f[key]; else f[key]={sport:sportKey,id:teamId,name:teamName};
+  favTeamsCache=f; try{store.set("favTeams",f);}catch(e){}
+}
+/* ESPN's hidden API is real, free, keyless, and covers far more than the major leagues -- college
+   football/basketball, F1, and NASCAR all have real working endpoints, verified against actual
+   developer documentation rather than guessed. Boxing does NOT have a working ESPN data endpoint
+   (confirmed: developers have tried and failed to find one, even though ESPN's website has a boxing
+   section) so it falls back to TheSportsDB instead of a slug that would silently return nothing.
+   TheSportsDB backs up the rest of the long tail using their public test key for free access. */
 var SPORTS_LIST=[
-  {k:"nfl",  label:"NFL",       espn:"football/nfl",        yt:"NFL"},
-  {k:"nba",  label:"NBA",       espn:"basketball/nba",      yt:"NBA"},
-  {k:"mlb",  label:"MLB",       espn:"baseball/mlb",        yt:"MLB"},
-  {k:"nhl",  label:"NHL",       espn:"hockey/nhl",          yt:"NHL"},
-  {k:"epl",  label:"SOCCER",    espn:"soccer/eng.1",        yt:"premierleague"},
-  {k:"pga",  label:"GOLF",      espn:"golf/pga",            yt:"PGATOUR"},
-  {k:"atp",  label:"TENNIS",    espn:"tennis/atp",          yt:"tennistv"},
-  {k:"mma",  label:"MMA",       espn:"mma/ufc",             yt:"ufc"},
-  {k:"cricket", label:"CRICKET", sdb:"4575", yt:"iccmedia"},
-  {k:"rugby",   label:"RUGBY",   sdb:"4414", yt:"WorldRugby"}
+  {k:"nfl",   label:"NFL",         espn:"football/nfl",                       yt:"NFL"},
+  {k:"ncaaf", label:"COLLEGE FB",  espn:"football/college-football",          yt:"NCAAFootball"},
+  {k:"nba",   label:"NBA",         espn:"basketball/nba",                     yt:"NBA"},
+  {k:"ncaab", label:"COLLEGE BB",  espn:"basketball/mens-college-basketball", yt:"NCAA"},
+  {k:"mlb",   label:"MLB",         espn:"baseball/mlb",                       yt:"MLB"},
+  {k:"nhl",   label:"NHL",         espn:"hockey/nhl",                         yt:"NHL"},
+  {k:"epl",   label:"SOCCER",      espn:"soccer/eng.1",                       yt:"premierleague"},
+  {k:"f1",    label:"F1",          espn:"racing/f1",                          yt:"Formula1"},
+  {k:"nascar",label:"NASCAR",      espn:"racing/nascar-premier",              yt:"NASCAR"},
+  {k:"pga",   label:"GOLF",        espn:"golf/pga",                           yt:"PGATOUR"},
+  {k:"atp",   label:"TENNIS",      espn:"tennis/atp",                         yt:"tennistv"},
+  {k:"mma",   label:"MMA",         espn:"mma/ufc",                            yt:"ufc"},
+  {k:"boxing",label:"BOXING",      sdb:"4445",                                yt:"mmaonyt"},
+  {k:"cricket",label:"CRICKET",    sdb:"4575",                                yt:"iccmedia"},
+  {k:"rugby", label:"RUGBY",       sdb:"4414",                                yt:"WorldRugby"}
 ];
 async function ytUploadsPlaylist(handle){
   if(ytChannelCache[handle]) return ytChannelCache[handle];
@@ -5222,68 +5236,148 @@ async function tuneSports(ch,sl,my){
   if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Sports Center","");
   if(screenArea) screenArea.innerHTML='<div class="dc-screen" id="dcScreen" style="flex-direction:column">'+
     '<div id="sportsPicker" class="catnav" style="flex:0 0 auto;padding:6px 8px"></div>'+
-    '<div id="sportsVideo" style="flex:0 1 42%;min-height:0;background:#000"></div>'+
-    '<div class="dc-body" id="dcBody" style="flex:1 1 auto;min-height:0;justify-content:flex-start;gap:4px;overflow:hidden">'+
-      '<div class="dc-top"><span id="sportsHead">SPORTS CENTER</span></div>'+
-      '<div class="dc-list" id="dcList"></div>'+
-      '<div class="dc-ticker">ESPN &amp; TheSportsDB scores \u00b7 highlights from official league YouTube channels</div>'+
-    '</div></div>';
-  var pickerEl=$("sportsPicker"), listEl=$("dcList"), videoEl=$("sportsVideo"), headEl=$("sportsHead");
-  var curSport=SPORTS_LIST[0];
+    '<div id="sportsSubPicker" style="flex:0 0 auto;display:flex;gap:6px;padding:0 8px 6px"></div>'+
+    '<div id="sportsBody" style="flex:1 1 auto;min-height:0;overflow-y:auto;padding:2px 8px"></div>'+
+    '<div class="dc-ticker" id="sportsTicker">ESPN &amp; TheSportsDB \u00b7 real highlights from official league YouTube channels \u00b7 tap a team in Standings to follow it</div>'+
+    '</div>';
+  var pickerEl=$("sportsPicker"), subPickerEl=$("sportsSubPicker"), bodyEl=$("sportsBody");
+  var curSport=SPORTS_LIST[0]; var curEvents=[];
   clearInterval(sportsTimer);
+
+  function renderSubPicker(){
+    var views=[["scores","SCORES"],["standings","STANDINGS"],["highlights","HIGHLIGHTS"]];
+    subPickerEl.innerHTML=views.map(function(v){
+      return '<button class="catchip" data-sv="'+v[0]+'" style="border-color:#8fff5c;color:#8fff5c'+(sportsSubView===v[0]?';background:rgba(143,255,92,.18)':'')+'">'+v[1]+'</button>';
+    }).join("");
+    subPickerEl.querySelectorAll("[data-sv]").forEach(function(el){
+      el.addEventListener("click",function(){ sportsSubView=el.dataset.sv; renderSubPicker(); renderBody(); });
+    });
+  }
+  function renderBody(){
+    if(my!==token)return;
+    if(sportsSubView==="scores") renderScores();
+    else if(sportsSubView==="standings") renderStandings();
+    else renderHighlights();
+  }
+  function renderScores(){
+    if(!curEvents.length){ bodyEl.innerHTML='<div class="pop-empty">No '+esch(curSport.label)+' games scheduled right now.</div>'; return; }
+    var favs=getFavTeams();
+    bodyEl.innerHTML=curEvents.map(function(ev){
+      var comp=ev.competitions&&ev.competitions[0]; var competitors=(comp&&comp.competitors)||[];
+      var home=competitors.find(function(c){return c.homeAway==="home";})||competitors[0]||{};
+      var away=competitors.find(function(c){return c.homeAway==="away";})||competitors[1]||{};
+      var homeId=home.team&&home.team.id, awayId=away.team&&away.team.id;
+      var homeName=(home.team&&(home.team.shortDisplayName||home.team.abbreviation))||"?";
+      var awayName=(away.team&&(away.team.shortDisplayName||away.team.abbreviation))||"?";
+      var isFav=(homeId&&favs[curSport.k+":"+homeId])||(awayId&&favs[curSport.k+":"+awayId]);
+      var status=(ev.status&&ev.status.type&&ev.status.type.shortDetail)||"";
+      var score=(home.score!=null&&away.score!=null)?(awayName+" "+away.score+" \u2014 "+home.score+" "+homeName):(awayName+" @ "+homeName);
+      var odds=comp&&comp.odds&&comp.odds[0]&&comp.odds[0].details;
+      return '<div class="dc-row2"'+(isFav?' style="background:rgba(143,255,92,.08);border-left:3px solid #8fff5c"':'')+'><div class="dc-row2-main">'+
+        (isFav?'<span style="color:#8fff5c;margin-right:4px">\u2605</span>':'')+
+        '<span class="dc-place">'+esch(score)+'</span><span class="dc-when">'+esch(status)+(odds?(" \u00b7 "+esch(odds)):"")+'</span></div></div>';
+    }).join("");
+  }
+  async function renderStandings(){
+    bodyEl.innerHTML='<div class="pop-empty">Loading standings\u2026</div>';
+    try{
+      if(!curSport.espn) throw new Error("standings only available for ESPN-covered sports right now");
+      var d=await fetchJSON("https://site.api.espn.com/apis/site/v2/sports/"+curSport.espn+"/standings");
+      if(my!==token||sportsSubView!=="standings")return;
+      var groups=(d&&d.children&&d.children.length)?d.children:(d&&d.standings?[{name:curSport.label,standings:d.standings}]:[]);
+      var favs=getFavTeams(); var html="";
+      groups.forEach(function(g){
+        var entries=(g.standings&&g.standings.entries)||[];
+        if(!entries.length)return;
+        html+='<div style="font:700 11px monospace;color:#9fd6a6;margin:8px 0 4px">'+esch(g.name||curSport.label)+'</div>';
+        html+=entries.map(function(e){
+          var teamId=e.team&&e.team.id; var teamName=(e.team&&(e.team.shortDisplayName||e.team.displayName))||"?";
+          var isFav=teamId&&favs[curSport.k+":"+teamId];
+          var stats=e.stats||[]; var wl=stats.find(function(s){return s.name==="wins";}), ll=stats.find(function(s){return s.name==="losses";});
+          var record=(wl&&ll)?(wl.value+"-"+ll.value):"";
+          return '<div class="dc-row2" data-teamid="'+esch(teamId||"")+'" data-teamname="'+esch(teamName)+'" style="cursor:pointer"><div class="dc-row2-main">'+
+            '<span style="color:'+(isFav?"#8fff5c":"rgba(255,255,255,.3)")+';margin-right:4px">'+(isFav?"\u2605":"\u2606")+'</span>'+
+            '<span class="dc-place">'+esch(teamName)+'</span><span class="dc-when">'+esch(record)+'</span></div></div>';
+        }).join("");
+      });
+      bodyEl.innerHTML=html||'<div class="pop-empty">No standings available right now.</div>';
+      bodyEl.querySelectorAll("[data-teamid]").forEach(function(row){
+        row.addEventListener("click",function(){
+          var tid=row.dataset.teamid; if(!tid)return;
+          toggleFavTeam(curSport.k,tid,row.dataset.teamname); renderStandings();
+        });
+      });
+      nlog("sportsstandings",true,curSport.label+" standings loaded");
+    }catch(e){ nlog("sportsstandings",false,curSport.label+": "+((e&&e.message)||e));
+      bodyEl.innerHTML='<div class="pop-empty">Standings unavailable for '+esch(curSport.label)+' \u2014 check DIAG.</div>'; }
+  }
+  async function renderHighlights(){
+    bodyEl.innerHTML='<div class="pop-empty">Loading highlights\u2026</div>';
+    try{
+      var plId=await ytUploadsPlaylist(curSport.yt);
+      if(my!==token||sportsSubView!=="highlights")return;
+      if(!plId) throw new Error("could not resolve @"+curSport.yt+" channel");
+      var vids=await fetchJSON("https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId="+plId+"&maxResults=12&key="+YOUTUBE_KEY);
+      if(my!==token||sportsSubView!=="highlights")return;
+      var items=(vids&&vids.items)||[];
+      /* prefer titles that actually read like highlights/recaps over just "whatever posted most
+         recently", which could be a press conference, a promo, anything */
+      var scored=items.map(function(it){
+        var t=((it.snippet&&it.snippet.title)||"").toLowerCase(); var s=0;
+        if(/highlight|recap|top plays|best of/i.test(t)) s+=2;
+        if(/full game|condensed/i.test(t)) s+=1;
+        return {item:it,score:s};
+      }).sort(function(a,b){return b.score-a.score;});
+      if(!scored.length) throw new Error("no videos found");
+      bodyEl.innerHTML='<div id="sportsVideoPlayer" style="width:100%;aspect-ratio:16/9;background:#000;margin-bottom:8px"></div>'+
+        '<div id="sportsVideoList" style="display:flex;flex-direction:column;gap:4px"></div>';
+      var playerEl=$("sportsVideoPlayer"), listEl2=$("sportsVideoList");
+      function loadVideo(vid){ if(!vid||!playerEl)return;
+        playerEl.innerHTML='<iframe src="https://www.youtube.com/embed/'+esch(vid)+'" style="width:100%;height:100%;border:0" allow="autoplay;encrypted-media" allowfullscreen></iframe>'; }
+      listEl2.innerHTML=scored.slice(0,12).map(function(s,i){
+        var vid=s.item.snippet&&s.item.snippet.resourceId&&s.item.snippet.resourceId.videoId;
+        var title=(s.item.snippet&&s.item.snippet.title)||"Video";
+        return '<div class="dc-row2" data-vid="'+esch(vid||"")+'" style="cursor:pointer"><div class="dc-row2-main"><span class="dc-place">'+esch(title.slice(0,64))+'</span></div></div>';
+      }).join("");
+      listEl2.querySelectorAll("[data-vid]").forEach(function(row){ row.addEventListener("click",function(){ loadVideo(row.dataset.vid); }); });
+      var firstVid=scored[0].item.snippet&&scored[0].item.snippet.resourceId&&scored[0].item.snippet.resourceId.videoId;
+      loadVideo(firstVid);
+      nlog("sportsyt",true,curSport.yt+" "+scored.length+" videos");
+    }catch(e){ nlog("sportsyt",false,curSport.label+": "+((e&&e.message)||e));
+      bodyEl.innerHTML='<div class="pop-empty">Highlights unavailable for '+esch(curSport.label)+' right now \u2014 check DIAG.</div>'; }
+  }
   async function loadSport(sp){
     curSport=sp; if(my!==token)return;
     pickerEl.querySelectorAll(".catchip").forEach(function(x){x.classList.remove("act");});
     var chip=pickerEl.querySelector('[data-sk="'+sp.k+'"]'); if(chip)chip.classList.add("act");
-    headEl.textContent="SPORTS CENTER / "+sp.label;
-    listEl.innerHTML='<div class="pop-empty">Loading '+esch(sp.label)+' scores\u2026</div>';
-    videoEl.innerHTML='<div class="dc-media-cap">Loading highlights\u2026</div>';
+    curEvents=[]; if(sportsSubView==="scores") bodyEl.innerHTML='<div class="pop-empty">Loading '+esch(sp.label)+' scores\u2026</div>';
     try{
       if(sp.espn){
         var d=await fetchJSON("https://site.api.espn.com/apis/site/v2/sports/"+sp.espn+"/scoreboard");
         if(my!==token||curSport!==sp)return;
-        var events=(d&&d.events)||[];
-        if(!events.length){ listEl.innerHTML='<div class="pop-empty">No '+esch(sp.label)+' games scheduled right now.</div>'; }
-        else listEl.innerHTML=events.slice(0,15).map(function(ev){
-          var comp=ev.competitions&&ev.competitions[0]; var competitors=(comp&&comp.competitors)||[];
-          var home=competitors.find(function(c){return c.homeAway==="home";})||competitors[0]||{};
-          var away=competitors.find(function(c){return c.homeAway==="away";})||competitors[1]||{};
-          var homeName=(home.team&&(home.team.shortDisplayName||home.team.abbreviation))||"?";
-          var awayName=(away.team&&(away.team.shortDisplayName||away.team.abbreviation))||"?";
-          var status=(ev.status&&ev.status.type&&ev.status.type.shortDetail)||"";
-          var score=(home.score!=null&&away.score!=null)?(awayName+" "+away.score+" \u2014 "+home.score+" "+homeName):(awayName+" @ "+homeName);
-          return '<div class="dc-row2"><div class="dc-row2-main"><span class="dc-place">'+esch(score)+'</span><span class="dc-when">'+esch(status)+'</span></div></div>';
-        }).join("");
-        nlog("sports",true,sp.label+" "+events.length+" events (ESPN)");
+        curEvents=(d&&d.events)||[];
+        nlog("sports",true,sp.label+" "+curEvents.length+" events (ESPN)");
       } else if(sp.sdb){
         var d2=await fetchJSON("https://www.thesportsdb.com/api/v1/json/3/eventspastleague.php?id="+encodeURIComponent(sp.sdb)).catch(function(){return null;});
         var evs=(d2&&d2.events)||[];
-        if(!evs||!evs.length){ listEl.innerHTML='<div class="pop-empty">No recent '+esch(sp.label)+' results available right now.</div>'; }
-        else listEl.innerHTML=evs.slice(0,15).map(function(ev){
-          return '<div class="dc-row2"><div class="dc-row2-main"><span class="dc-place">'+esch(ev.strEvent||((ev.strHomeTeam||"?")+" vs "+(ev.strAwayTeam||"?")))+'</span><span class="dc-when">'+esch((ev.intHomeScore!=null&&ev.intAwayScore!=null)?(ev.intAwayScore+"-"+ev.intHomeScore):(ev.dateEvent||""))+'</span></div></div>';
-        }).join("");
-        nlog("sports",true,sp.label+" "+(evs?evs.length:0)+" events (TheSportsDB)");
+        /* normalize TheSportsDB's shape to match ESPN's so renderScores() doesn't need two code paths */
+        curEvents=evs.map(function(ev){
+          return {competitions:[{competitors:[
+            {homeAway:"home",score:ev.intHomeScore,team:{shortDisplayName:ev.strHomeTeam||"?"}},
+            {homeAway:"away",score:ev.intAwayScore,team:{shortDisplayName:ev.strAwayTeam||"?"}}
+          ]}],status:{type:{shortDetail:ev.dateEvent||""}}};
+        });
+        nlog("sports",true,sp.label+" "+curEvents.length+" events (TheSportsDB)");
       }
-    }catch(e){ nlog("sports",false,sp.label+": "+((e&&e.message)||e));
-      listEl.innerHTML='<div class="pop-empty">'+esch(sp.label)+' data unavailable right now \u2014 check DIAG.</div>'; }
-    try{
-      var plId=await ytUploadsPlaylist(sp.yt); if(my!==token||curSport!==sp)return;
-      if(!plId) throw new Error("could not resolve @"+sp.yt+" channel");
-      var vids=await fetchJSON("https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId="+plId+"&maxResults=6&key="+YOUTUBE_KEY);
-      if(my!==token||curSport!==sp)return;
-      var first=vids&&vids.items&&vids.items[0];
-      var vid=first&&first.snippet&&first.snippet.resourceId&&first.snippet.resourceId.videoId;
-      if(vid){ videoEl.innerHTML='<iframe src="https://www.youtube.com/embed/'+esch(vid)+'?autoplay=0" style="width:100%;height:100%;border:0" allow="autoplay;encrypted-media" allowfullscreen></iframe>';
-        nlog("sportsyt",true,sp.yt+" -> "+vid); }
-      else throw new Error("no videos found");
-    }catch(e){ nlog("sportsyt",false,sp.label+": "+((e&&e.message)||e));
-      videoEl.innerHTML='<div class="dc-media-cap">Highlights unavailable right now \u2014 check DIAG.</div>'; }
+    }catch(e){ nlog("sports",false,sp.label+": "+((e&&e.message)||e)); }
+    renderBody();
   }
   pickerEl.innerHTML=SPORTS_LIST.map(function(sp){
-    return '<button class="catchip" data-sk="'+sp.k+'" style="border-color:#67ff86;color:#67ff86">'+esch(sp.label)+'</button>';
+    return '<button class="catchip" data-sk="'+sp.k+'" style="border-color:#8fff5c;color:#8fff5c">'+esch(sp.label)+'</button>';
   }).join("");
   pickerEl.querySelectorAll("[data-sk]").forEach(function(el){ el.addEventListener("click",function(){
     var sp=SPORTS_LIST.find(function(s){return s.k===el.dataset.sk;}); if(sp)loadSport(sp); }); });
+  renderSubPicker();
   loadSport(SPORTS_LIST[0]);
   sportsTimer=rtInterval(function(){ if(my===token&&powered) loadSport(curSport); },5*60*1000);
 }

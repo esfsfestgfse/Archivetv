@@ -829,7 +829,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.48";
+window.__ATV_BUILD="1.7.7-mobile.49";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -863,7 +863,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.48</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.49</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -5478,7 +5478,7 @@ async function tuneSports(ch,sl,my){
   clearInterval(sportsTimer);
 
   function renderSubPicker(){
-    var views=[["scores","SCORES"],["standings","STANDINGS"],["highlights","HIGHLIGHTS"]];
+    var views=[["scores","SCORES"],["standings","STANDINGS"],["news","NEWS"],["injuries","INJURIES"],["highlights","HIGHLIGHTS"]];
     subPickerEl.innerHTML=views.map(function(v){
       return '<button class="catchip" data-sv="'+v[0]+'" style="border-color:#8fff5c;color:#8fff5c'+(sportsSubView===v[0]?';background:rgba(143,255,92,.18)':'')+'">'+v[1]+'</button>';
     }).join("");
@@ -5490,7 +5490,63 @@ async function tuneSports(ch,sl,my){
     if(my!==token)return;
     if(sportsSubView==="scores") renderScores();
     else if(sportsSubView==="standings") renderStandings();
+    else if(sportsSubView==="news") renderNews();
+    else if(sportsSubView==="injuries") renderInjuries();
     else renderHighlights();
+  }
+  async function renderNews(){
+    bodyEl.innerHTML='<div class="pop-empty">Loading news\u2026</div>';
+    try{
+      if(!curSport.espn) throw new Error("news only available for ESPN-covered sports right now");
+      var d=await fetchJSON("https://site.api.espn.com/apis/site/v2/sports/"+curSport.espn+"/news?limit=20");
+      if(my!==token||sportsSubView!=="news")return;
+      var articles=(d&&d.articles)||[];
+      if(!articles.length){ bodyEl.innerHTML='<div class="pop-empty">No recent news for '+esch(curSport.label)+'.</div>'; return; }
+      bodyEl.innerHTML=articles.map(function(a){
+        var img=a.images&&a.images[0]&&a.images[0].url;
+        var dateStr=a.published?new Date(a.published).toLocaleDateString(undefined,{month:"short",day:"numeric"}):"";
+        var link=a.links&&a.links.web&&a.links.web.href;
+        return '<div class="score-card" style="display:flex;gap:10px;align-items:center;padding:8px" onclick="'+(link?('window.open(\''+esch(link).replace(/'/g,"&#39;")+'\',\'_blank\')'):"")+'">'+
+          (img?'<img src="'+esch(img)+'" style="width:88px;height:50px;object-fit:cover;border-radius:6px;flex:none" onerror="this.style.display=\'none\'">':'')+
+          '<div style="min-width:0;flex:1"><div style="font:700 13px system-ui;color:#e8f5e6;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">'+esch(a.headline||"")+'</div>'+
+          (dateStr?'<div style="font:600 10px monospace;color:#9fd6a6;margin-top:4px">'+esch(dateStr)+'</div>':'')+'</div></div>';
+      }).join("");
+      nlog("sportsnews",true,curSport.label+" "+articles.length+" articles");
+    }catch(e){ nlog("sportsnews",false,curSport.label+": "+((e&&e.message)||e));
+      bodyEl.innerHTML='<div class="pop-empty">News unavailable for '+esch(curSport.label)+' \u2014 check DIAG.</div>'; }
+  }
+  async function renderInjuries(){
+    bodyEl.innerHTML='<div class="pop-empty">Loading injury reports\u2026</div>';
+    try{
+      if(!curSport.espn) throw new Error("injury reports only available for ESPN-covered sports right now");
+      var d=await fetchJSON("https://site.api.espn.com/apis/site/v2/sports/"+curSport.espn+"/injuries");
+      if(my!==token||sportsSubView!=="injuries")return;
+      /* defensive about the exact shape here -- this endpoint's structure wasn't independently
+         live-verified the way scoreboard/standings/news were, so multiple reasonable shapes are
+         checked rather than assuming one and silently showing nothing if it's different */
+      var teams=(d&&d.injuries)||(d&&d.teams)||[];
+      var rows=[];
+      teams.forEach(function(t){
+        var teamName=(t.team&&(t.team.displayName||t.team.name))||t.displayName||"";
+        var items=t.injuries||t.athletes||[];
+        items.forEach(function(inj){
+          var name=(inj.athlete&&inj.athlete.displayName)||inj.displayName||"?";
+          var status=(inj.status&&(inj.status.type||inj.status))||inj.type||"";
+          var detail=inj.shortComment||inj.longComment||inj.details&&inj.details.type||"";
+          rows.push({team:teamName,name:name,status:String(status||""),detail:String(detail||"")});
+        });
+      });
+      if(!rows.length){ bodyEl.innerHTML='<div class="pop-empty">No injuries currently reported for '+esch(curSport.label)+'.</div>'; return; }
+      bodyEl.innerHTML=rows.map(function(r){
+        var c=/^(out|ir|il)/i.test(r.status)?"#ff5c4d":/^(questionable|day-to-day|dtd)/i.test(r.status)?"#ffd34d":"#67ff86";
+        return '<div class="score-card" style="border-left-color:'+c+'"><div class="score-team-row">'+
+          '<span class="score-team-name">'+esch(r.name)+(r.team?(' <span style="color:rgba(255,255,255,.4);font-weight:400">\u00b7 '+esch(r.team)+'</span>'):"")+'</span>'+
+          '<span style="font:800 11px monospace;color:'+c+'">'+esch(r.status.toUpperCase())+'</span></div>'+
+          (r.detail?'<div class="score-odds">'+esch(r.detail)+'</div>':'')+'</div>';
+      }).join("");
+      nlog("sportsinjuries",true,curSport.label+" "+rows.length+" reports");
+    }catch(e){ nlog("sportsinjuries",false,curSport.label+": "+((e&&e.message)||e));
+      bodyEl.innerHTML='<div class="pop-empty">Injury reports unavailable for '+esch(curSport.label)+' \u2014 check DIAG.</div>'; }
   }
   function espnLogoUrl(team,sportEspn){
     if(team&&team.logo) return team.logo;
@@ -5517,6 +5573,42 @@ async function tuneSports(ch,sl,my){
       var isTeamBased=!!(competitors[0].team||(competitors[1]&&competitors[1].team));
       return isTeamBased?renderTeamCard(ev,comp,competitors,favs):renderAthleteMatchCard(ev,comp,competitors);
     }).join("");
+    bodyEl.querySelectorAll("[data-eventid]").forEach(function(card){
+      var eid=card.dataset.eventid; if(!eid)return;
+      card.addEventListener("click",function(){ renderBoxScore(eid); });
+    });
+  }
+  async function renderBoxScore(eventId){
+    var prevScroll=bodyEl.scrollTop;
+    bodyEl.innerHTML='<div class="pop-empty">Loading box score\u2026</div>';
+    try{
+      var d=await fetchJSON("https://site.web.api.espn.com/apis/site/v2/sports/"+curSport.espn+"/summary?event="+encodeURIComponent(eventId));
+      if(my!==token)return;
+      var teams=(d&&d.boxscore&&d.boxscore.teams)||[];
+      if(!teams.length) throw new Error("no box score available for this event");
+      var html='<button id="boxScoreBack" class="catchip" style="border-color:#8fff5c;color:#8fff5c;margin-bottom:10px">\u2190 BACK TO SCORES</button>';
+      teams.forEach(function(t){
+        var team=t.team||{};
+        var accent=team.color?("#"+team.color):"#67ff86";
+        var stats=t.statistics||[];
+        html+='<div class="score-card" style="border-left-color:'+accent+'">'+
+          '<div class="score-team-row" style="margin-bottom:4px">'+
+          (team.logo?'<img class="score-team-logo" src="'+esch(team.logo)+'" onerror="this.style.visibility=\'hidden\'">':'')+
+          '<span class="score-team-name">'+esch(team.displayName||team.shortDisplayName||"?")+'</span></div>'+
+          stats.map(function(s){
+            return '<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12px">'+
+              '<span style="color:#9fd6a6">'+esch(s.label||s.name||"")+'</span>'+
+              '<span style="color:#e8f5e6;font-weight:700">'+esch(s.displayValue||"")+'</span></div>';
+          }).join("")+
+          '</div>';
+      });
+      bodyEl.innerHTML=html;
+      var backBtn=$("boxScoreBack"); if(backBtn) backBtn.addEventListener("click",function(){ renderScores(); bodyEl.scrollTop=prevScroll; });
+      nlog("sportsbox",true,curSport.label+" event "+eventId);
+    }catch(e){ nlog("sportsbox",false,curSport.label+": "+((e&&e.message)||e));
+      bodyEl.innerHTML='<button id="boxScoreBack" class="catchip" style="border-color:#8fff5c;color:#8fff5c;margin-bottom:10px">\u2190 BACK TO SCORES</button>'+
+        '<div class="pop-empty">Box score unavailable for this game \u2014 check DIAG.</div>';
+      var backBtn2=$("boxScoreBack"); if(backBtn2) backBtn2.addEventListener("click",function(){ renderScores(); }); }
   }
   function renderTeamCard(ev,comp,competitors,favs){
     var home=competitors.find(function(c){return c.homeAway==="home";})||competitors[0]||{};
@@ -5538,7 +5630,7 @@ async function tuneSports(ch,sl,my){
         '<span class="score-team-name'+(isFav?" fav":"")+'">'+esch(name)+'</span>'+
         '<span class="score-team-num">'+(score!=null?esch(String(score)):"")+'</span></div>';
     }
-    return '<div class="score-card" style="border-left-color:'+accentColor+'">'+
+    return '<div class="score-card" data-eventid="'+esch(ev.id||"")+'" style="cursor:pointer;border-left-color:'+accentColor+'">'+
       '<span class="score-status '+statusClass+'">'+esch(statusText.toUpperCase())+'</span>'+
       teamRow(awayLogo,awayName,away.score,awayFav)+
       teamRow(homeLogo,homeName,home.score,homeFav)+

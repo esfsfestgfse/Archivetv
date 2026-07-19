@@ -485,6 +485,19 @@ html,body{height:100vh;overflow:hidden}
 
 /* ============ v19: enriched Tropical Watch rows (pressure/movement/position) ============ */
 .dc-row2{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:7px;padding:6px 10px}
+.score-card{background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.09);border-radius:10px;
+  padding:10px 12px;margin-bottom:8px;border-left-width:4px;border-left-style:solid}
+.score-status{display:inline-block;font:800 9px/1 monospace;letter-spacing:.5px;padding:3px 7px;border-radius:4px;margin-bottom:7px}
+.score-status.live{background:rgba(255,92,77,.22);color:#ff5c4d}
+.score-status.final{background:rgba(255,255,255,.1);color:rgba(255,255,255,.55)}
+.score-status.pre{background:rgba(103,255,134,.14);color:#67ff86}
+.score-team-row{display:flex;align-items:center;gap:8px;padding:2px 0}
+.score-team-logo{width:26px;height:26px;object-fit:contain;flex:none}
+.score-team-name{flex:1;font:700 13px system-ui,-apple-system,sans-serif;color:#e8f5e6;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.score-team-name.fav{color:#8fff5c}
+.score-team-num{font:800 20px/1 monospace;color:#fff;min-width:28px;text-align:right}
+.score-odds{margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,.08);font:600 10px monospace;color:rgba(159,214,166,.75)}
+.score-fav-star{color:#8fff5c;font-size:14px;margin-right:2px}
 .dc-row2-main{display:flex;align-items:center;gap:10px;font-size:clamp(12px,2vmin,20px)}
 .dc-row2-sub{font-size:clamp(10px,1.6vmin,15px);color:#8fb3ff;margin-top:3px;letter-spacing:.3px}
 
@@ -672,7 +685,7 @@ html,body{height:100vh;overflow:hidden}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.16";
+window.__ATV_BUILD="1.7.7-desktop.17";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -706,7 +719,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.16</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.17</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">THE DIAL · THE SET</div>
@@ -5259,6 +5272,13 @@ async function tuneSports(ch,sl,my){
     else if(sportsSubView==="standings") renderStandings();
     else renderHighlights();
   }
+  function espnLogoUrl(team,sportEspn){
+    if(team&&team.logo) return team.logo;
+    var abbr=team&&team.abbreviation; var sportSlug=(sportEspn||"").split("/")[0];
+    var cdnSport={football:"nfl",basketball:"nba",baseball:"mlb",hockey:"nhl"}[sportSlug];
+    if(abbr&&cdnSport) return "https://a.espncdn.com/i/teamlogos/"+cdnSport+"/500/"+abbr.toLowerCase()+".png";
+    return null;
+  }
   function renderScores(){
     if(!curEvents.length){ bodyEl.innerHTML='<div class="pop-empty">No '+esch(curSport.label)+' games scheduled right now.</div>'; return; }
     var favs=getFavTeams();
@@ -5269,13 +5289,26 @@ async function tuneSports(ch,sl,my){
       var homeId=home.team&&home.team.id, awayId=away.team&&away.team.id;
       var homeName=(home.team&&(home.team.shortDisplayName||home.team.abbreviation))||"?";
       var awayName=(away.team&&(away.team.shortDisplayName||away.team.abbreviation))||"?";
-      var isFav=(homeId&&favs[curSport.k+":"+homeId])||(awayId&&favs[curSport.k+":"+awayId]);
-      var status=(ev.status&&ev.status.type&&ev.status.type.shortDetail)||"";
-      var score=(home.score!=null&&away.score!=null)?(awayName+" "+away.score+" \u2014 "+home.score+" "+homeName):(awayName+" @ "+homeName);
+      var homeFav=homeId&&favs[curSport.k+":"+homeId], awayFav=awayId&&favs[curSport.k+":"+awayId];
+      var stateType=(ev.status&&ev.status.type&&ev.status.type.state)||""; /* "in" | "post" | "pre" per ESPN */
+      var statusClass=stateType==="in"?"live":stateType==="post"?"final":"pre";
+      var statusText=(ev.status&&ev.status.type&&ev.status.type.shortDetail)||"";
+      var accentColor=(home.team&&home.team.color)?("#"+home.team.color):"#67ff86";
+      var homeLogo=espnLogoUrl(home.team,curSport.espn), awayLogo=espnLogoUrl(away.team,curSport.espn);
       var odds=comp&&comp.odds&&comp.odds[0]&&comp.odds[0].details;
-      return '<div class="dc-row2"'+(isFav?' style="background:rgba(143,255,92,.08);border-left:3px solid #8fff5c"':'')+'><div class="dc-row2-main">'+
-        (isFav?'<span style="color:#8fff5c;margin-right:4px">\u2605</span>':'')+
-        '<span class="dc-place">'+esch(score)+'</span><span class="dc-when">'+esch(status)+(odds?(" \u00b7 "+esch(odds)):"")+'</span></div></div>';
+      function teamRow(logo,name,score,isFav){
+        return '<div class="score-team-row">'+
+          (logo?'<img class="score-team-logo" src="'+esch(logo)+'" onerror="this.style.visibility=\'hidden\'">':'<span class="score-team-logo"></span>')+
+          (isFav?'<span class="score-fav-star">\u2605</span>':'')+
+          '<span class="score-team-name'+(isFav?" fav":"")+'">'+esch(name)+'</span>'+
+          '<span class="score-team-num">'+(score!=null?esch(String(score)):"")+'</span></div>';
+      }
+      return '<div class="score-card" style="border-left-color:'+accentColor+'">'+
+        '<span class="score-status '+statusClass+'">'+esch(statusText.toUpperCase())+'</span>'+
+        teamRow(awayLogo,awayName,away.score,awayFav)+
+        teamRow(homeLogo,homeName,home.score,homeFav)+
+        (odds?'<div class="score-odds">'+esch(odds)+'</div>':'')+
+        '</div>';
     }).join("");
   }
   async function renderStandings(){
@@ -5295,9 +5328,14 @@ async function tuneSports(ch,sl,my){
           var isFav=teamId&&favs[curSport.k+":"+teamId];
           var stats=e.stats||[]; var wl=stats.find(function(s){return s.name==="wins";}), ll=stats.find(function(s){return s.name==="losses";});
           var record=(wl&&ll)?(wl.value+"-"+ll.value):"";
-          return '<div class="dc-row2" data-teamid="'+esch(teamId||"")+'" data-teamname="'+esch(teamName)+'" style="cursor:pointer"><div class="dc-row2-main">'+
-            '<span style="color:'+(isFav?"#8fff5c":"rgba(255,255,255,.3)")+';margin-right:4px">'+(isFav?"\u2605":"\u2606")+'</span>'+
-            '<span class="dc-place">'+esch(teamName)+'</span><span class="dc-when">'+esch(record)+'</span></div></div>';
+          var logo=espnLogoUrl(e.team,curSport.espn);
+          var accentColor=(e.team&&e.team.color)?("#"+e.team.color):"rgba(255,255,255,.15)";
+          return '<div class="score-card" data-teamid="'+esch(teamId||"")+'" data-teamname="'+esch(teamName)+'" style="cursor:pointer;padding:7px 10px;border-left-color:'+accentColor+'">'+
+            '<div class="score-team-row">'+
+            '<span style="color:'+(isFav?"#8fff5c":"rgba(255,255,255,.3)")+';font-size:14px">'+(isFav?"\u2605":"\u2606")+'</span>'+
+            (logo?'<img class="score-team-logo" style="width:20px;height:20px" src="'+esch(logo)+'" onerror="this.style.visibility=\'hidden\'">':'')+
+            '<span class="score-team-name">'+esch(teamName)+'</span>'+
+            '<span style="font:700 13px monospace;color:#cdeccc">'+esch(record)+'</span></div></div>';
         }).join("");
       });
       bodyEl.innerHTML=html||'<div class="pop-empty">No standings available right now.</div>';

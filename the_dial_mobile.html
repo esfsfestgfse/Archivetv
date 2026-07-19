@@ -293,7 +293,9 @@ body{
 .flip-n{font-weight:bold;color:var(--amber);min-width:20px}
 .flip-nm{flex:1;font-size:12px;color:#dfe9df;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .flip-cat{font-size:9px;letter-spacing:1px}
-.catnav{display:flex;gap:6px;overflow-x:auto;padding:2px 0 0;scrollbar-width:none}
+.catnav{display:flex;gap:6px;overflow-x:auto;padding:2px 0 0;scrollbar-width:none;position:relative;
+  -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 22px),transparent 100%);
+  mask-image:linear-gradient(90deg,#000 calc(100% - 22px),transparent 100%)}
 .catnav::-webkit-scrollbar{display:none}
 .catchip{appearance:none;cursor:pointer;font-family:inherit;font-weight:bold;font-size:10px;letter-spacing:1px;
   background:rgba(0,0,0,.3);border:1px solid #555;border-radius:20px;padding:5px 11px;white-space:nowrap;transition:.15s}
@@ -821,7 +823,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.45";
+window.__ATV_BUILD="1.7.7-mobile.46";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -855,7 +857,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.45</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.46</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -5492,36 +5494,92 @@ async function tuneSports(ch,sl,my){
     return null;
   }
   function renderScores(){
-    if(!curEvents.length){ bodyEl.innerHTML='<div class="pop-empty">No '+esch(curSport.label)+' games scheduled right now.</div>'; return; }
+    if(!curEvents.length){ bodyEl.innerHTML='<div class="pop-empty">No '+esch(curSport.label)+' events right now.</div>'; return; }
     var favs=getFavTeams();
     bodyEl.innerHTML=curEvents.map(function(ev){
       var comp=ev.competitions&&ev.competitions[0]; var competitors=(comp&&comp.competitors)||[];
-      var home=competitors.find(function(c){return c.homeAway==="home";})||competitors[0]||{};
-      var away=competitors.find(function(c){return c.homeAway==="away";})||competitors[1]||{};
-      var homeId=home.team&&home.team.id, awayId=away.team&&away.team.id;
-      var homeName=(home.team&&(home.team.shortDisplayName||home.team.abbreviation))||"?";
-      var awayName=(away.team&&(away.team.shortDisplayName||away.team.abbreviation))||"?";
-      var homeFav=homeId&&favs[curSport.k+":"+homeId], awayFav=awayId&&favs[curSport.k+":"+awayId];
-      var stateType=(ev.status&&ev.status.type&&ev.status.type.state)||""; /* "in" | "post" | "pre" per ESPN */
-      var statusClass=stateType==="in"?"live":stateType==="post"?"final":"pre";
-      var statusText=(ev.status&&ev.status.type&&ev.status.type.shortDetail)||"";
-      var accentColor=(home.team&&home.team.color)?("#"+home.team.color):"#67ff86";
-      var homeLogo=espnLogoUrl(home.team,curSport.espn), awayLogo=espnLogoUrl(away.team,curSport.espn);
-      var odds=comp&&comp.odds&&comp.odds[0]&&comp.odds[0].details;
-      function teamRow(logo,name,score,isFav){
-        return '<div class="score-team-row">'+
-          (logo?'<img class="score-team-logo" src="'+esch(logo)+'" onerror="this.style.visibility=\'hidden\'">':'<span class="score-team-logo"></span>')+
-          (isFav?'<span class="score-fav-star">\u2605</span>':'')+
-          '<span class="score-team-name'+(isFav?" fav":"")+'">'+esch(name)+'</span>'+
-          '<span class="score-team-num">'+(score!=null?esch(String(score)):"")+'</span></div>';
-      }
-      return '<div class="score-card" style="border-left-color:'+accentColor+'">'+
-        '<span class="score-status '+statusClass+'">'+esch(statusText.toUpperCase())+'</span>'+
-        teamRow(awayLogo,awayName,away.score,awayFav)+
-        teamRow(homeLogo,homeName,home.score,homeFav)+
-        (odds?'<div class="score-odds">'+esch(odds)+'</div>':'')+
-        '</div>';
+      if(!competitors.length) return "";
+      /* three genuinely different shapes exist in ESPN's real data (verified via live API calls,
+         not assumed): team sports carry home/away + team objects; individual matchups like tennis
+         carry home/away + athlete objects but no single score field (real score is a set-by-set
+         linescores array); leaderboard sports like golf/racing carry no home/away at all and have
+         many ranked athlete-competitors per event, not a 2-way matchup. Everything used to funnel
+         through team-matchup logic alone, which is exactly why non-team sports showed "?" -- there
+         was nothing there to find. */
+      var isLeaderboard=competitors.length>2||!competitors.some(function(c){return c.homeAway;});
+      if(isLeaderboard) return renderLeaderboardCard(ev,competitors);
+      var isTeamBased=!!(competitors[0].team||(competitors[1]&&competitors[1].team));
+      return isTeamBased?renderTeamCard(ev,comp,competitors,favs):renderAthleteMatchCard(ev,comp,competitors);
     }).join("");
+  }
+  function renderTeamCard(ev,comp,competitors,favs){
+    var home=competitors.find(function(c){return c.homeAway==="home";})||competitors[0]||{};
+    var away=competitors.find(function(c){return c.homeAway==="away";})||competitors[1]||{};
+    var homeId=home.team&&home.team.id, awayId=away.team&&away.team.id;
+    var homeName=(home.team&&(home.team.shortDisplayName||home.team.abbreviation))||"?";
+    var awayName=(away.team&&(away.team.shortDisplayName||away.team.abbreviation))||"?";
+    var homeFav=homeId&&favs[curSport.k+":"+homeId], awayFav=awayId&&favs[curSport.k+":"+awayId];
+    var stateType=(ev.status&&ev.status.type&&ev.status.type.state)||"";
+    var statusClass=stateType==="in"?"live":stateType==="post"?"final":"pre";
+    var statusText=(ev.status&&ev.status.type&&ev.status.type.shortDetail)||"";
+    var accentColor=(home.team&&home.team.color)?("#"+home.team.color):"#67ff86";
+    var homeLogo=espnLogoUrl(home.team,curSport.espn), awayLogo=espnLogoUrl(away.team,curSport.espn);
+    var odds=comp&&comp.odds&&comp.odds[0]&&comp.odds[0].details;
+    function teamRow(logo,name,score,isFav){
+      return '<div class="score-team-row">'+
+        (logo?'<img class="score-team-logo" src="'+esch(logo)+'" onerror="this.style.visibility=\'hidden\'">':'<span class="score-team-logo"></span>')+
+        (isFav?'<span class="score-fav-star">\u2605</span>':'')+
+        '<span class="score-team-name'+(isFav?" fav":"")+'">'+esch(name)+'</span>'+
+        '<span class="score-team-num">'+(score!=null?esch(String(score)):"")+'</span></div>';
+    }
+    return '<div class="score-card" style="border-left-color:'+accentColor+'">'+
+      '<span class="score-status '+statusClass+'">'+esch(statusText.toUpperCase())+'</span>'+
+      teamRow(awayLogo,awayName,away.score,awayFav)+
+      teamRow(homeLogo,homeName,home.score,homeFav)+
+      (odds?'<div class="score-odds">'+esch(odds)+'</div>':'')+
+      '</div>';
+  }
+  function renderAthleteMatchCard(ev,comp,competitors){
+    var home=competitors.find(function(c){return c.homeAway==="home";})||competitors[0]||{};
+    var away=competitors.find(function(c){return c.homeAway==="away";})||competitors[1]||{};
+    var homeName=(home.athlete&&(home.athlete.shortName||home.athlete.displayName))||"?";
+    var awayName=(away.athlete&&(away.athlete.shortName||away.athlete.displayName))||"?";
+    var homeFlag=home.athlete&&home.athlete.flag&&home.athlete.flag.href;
+    var awayFlag=away.athlete&&away.athlete.flag&&away.athlete.flag.href;
+    var stateType=(ev.status&&ev.status.type&&ev.status.type.state)||"";
+    var statusClass=stateType==="in"?"live":stateType==="post"?"final":"pre";
+    var statusText=(ev.status&&ev.status.type&&ev.status.type.shortDetail)||"";
+    function setsFor(c){ return (c.linescores||[]).map(function(s){return s.value!=null?Math.round(s.value):"";}).join("-"); }
+    var homeScore=setsFor(home), awayScore=setsFor(away);
+    var noteText=comp&&comp.notes&&comp.notes[0]&&comp.notes[0].text;
+    function athRow(flag,name,score,won){
+      return '<div class="score-team-row">'+
+        (flag?'<img class="score-team-logo" src="'+esch(flag)+'" onerror="this.style.visibility=\'hidden\'">':'<span class="score-team-logo"></span>')+
+        '<span class="score-team-name'+(won?" fav":"")+'">'+esch(name)+'</span>'+
+        '<span class="score-team-num" style="font-size:14px">'+esch(score)+'</span></div>';
+    }
+    return '<div class="score-card" style="border-left-color:#67ff86">'+
+      '<span class="score-status '+statusClass+'">'+esch(statusText.toUpperCase())+'</span>'+
+      athRow(awayFlag,awayName,awayScore,away.winner)+
+      athRow(homeFlag,homeName,homeScore,home.winner)+
+      (noteText?'<div class="score-odds">'+esch(noteText)+'</div>':'')+
+      '</div>';
+  }
+  function renderLeaderboardCard(ev,competitors){
+    var sorted=competitors.slice().sort(function(a,b){return (a.order||99)-(b.order||99);}).slice(0,10);
+    var rows=sorted.map(function(c,i){
+      var name=(c.athlete&&(c.athlete.shortName||c.athlete.displayName))||"?";
+      var flag=c.athlete&&c.athlete.flag&&c.athlete.flag.href;
+      var score=c.score!=null?String(c.score):"";
+      return '<div class="score-team-row">'+
+        '<span style="width:18px;font:700 11px monospace;color:#9fd6a6">'+(i+1)+'</span>'+
+        (flag?'<img class="score-team-logo" style="width:20px;height:20px" src="'+esch(flag)+'" onerror="this.style.visibility=\'hidden\'">':'')+
+        '<span class="score-team-name">'+esch(name)+'</span>'+
+        '<span class="score-team-num" style="font-size:14px">'+esch(score)+'</span></div>';
+    }).join("");
+    return '<div class="score-card" style="border-left-color:#67ff86">'+
+      '<span class="score-status pre">'+esch((ev.shortName||ev.name||"LEADERBOARD").toUpperCase())+'</span>'+
+      rows+'</div>';
   }
   async function renderStandings(){
     bodyEl.innerHTML='<div class="pop-empty">Loading standings\u2026</div>';
@@ -5605,7 +5663,16 @@ async function tuneSports(ch,sl,my){
       if(sp.espn){
         var d=await fetchJSON("https://site.api.espn.com/apis/site/v2/sports/"+sp.espn+"/scoreboard");
         if(my!==token||curSport!==sp)return;
-        curEvents=(d&&d.events)||[];
+        var rawEvents=(d&&d.events)||[]; var flat=[];
+        rawEvents.forEach(function(ev){
+          if(ev.competitions){ flat.push(ev); }
+          else if(ev.groupings){ /* tennis-style: real matches live nested inside groupings, not on the event directly */
+            ev.groupings.forEach(function(g){
+              (g.competitions||[]).forEach(function(c){ flat.push({status:c.status,competitions:[c],shortName:ev.shortName||ev.name}); });
+            });
+          }
+        });
+        curEvents=flat;
         nlog("sports",true,sp.label+" "+curEvents.length+" events (ESPN)");
       } else if(sp.sdb){
         var d2=await fetchJSON("https://www.thesportsdb.com/api/v1/json/3/eventspastleague.php?id="+encodeURIComponent(sp.sdb)).catch(function(){return null;});

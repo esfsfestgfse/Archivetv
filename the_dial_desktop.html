@@ -693,7 +693,7 @@ html,body{height:100vh;overflow:hidden}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.25";
+window.__ATV_BUILD="1.7.7-desktop.26";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -727,7 +727,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.25</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.26</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">THE DIAL · THE SET</div>
@@ -5229,26 +5229,34 @@ function toggleFavTeam(sportKey,teamId,teamName){
    section) so it falls back to TheSportsDB instead of a slug that would silently return nothing.
    TheSportsDB backs up the rest of the long tail using their public test key for free access. */
 var SPORTS_LIST=[
-  {k:"nfl",   label:"NFL",         espn:"football/nfl",                       yt:"NFL"},
-  {k:"ncaaf", label:"COLLEGE FB",  espn:"football/college-football",          yt:"NCAAFootball"},
-  {k:"nba",   label:"NBA",         espn:"basketball/nba",                     yt:"NBA"},
-  {k:"ncaab", label:"COLLEGE BB",  espn:"basketball/mens-college-basketball", yt:"marchmadness"},
-  {k:"mlb",   label:"MLB",         espn:"baseball/mlb",                       yt:"MLB"},
-  {k:"nhl",   label:"NHL",         espn:"hockey/nhl",                         yt:"NHL"},
-  {k:"epl",   label:"SOCCER",      espn:"soccer/all",                         yt:"premierleague"},
-  {k:"worldcup",label:"WORLD CUP", espn:"soccer/fifa.world",                  yt:"FIFA"},
-  {k:"f1",    label:"F1",          espn:"racing/f1",                          yt:"Formula1"},
-  {k:"nascar",label:"NASCAR",      espn:"racing/nascar-premier",              yt:"NASCAR"},
-  {k:"pga",   label:"GOLF",        espn:"golf/pga",                           yt:"PGATOUR"},
-  {k:"atp",   label:"TENNIS",      espn:"tennis/atp",                         yt:"tennistv"},
-  {k:"mma",   label:"MMA",         espn:"mma/ufc",                            yt:"ufc"},
-  {k:"boxing",label:"BOXING",      sdb:"4445",                                yt:"toprank"},
-  {k:"cricket",label:"CRICKET",    espnCricket:true, sdb:"4575",              yt:"iccmedia"},
-  {k:"rugby", label:"RUGBY",       sdb:"4414",                                yt:"WorldRugby"},
-  {k:"wnba",  label:"WNBA",        espn:"basketball/wnba",                    yt:"wnba"},
-  {k:"wta",   label:"WTA",         espn:"tennis/wta",                         yt:"WTA"},
-  {k:"lpga",  label:"LPGA",        espn:"golf/lpga",                          yt:"LPGATOUR"},
-  {k:"indycar",label:"INDYCAR",    espn:"racing/irl",                         yt:"IndyCar"}
+  {k:"nfl",   label:"NFL",         cat:"Team Sports", espn:"football/nfl",                       yt:"NFL"},
+  {k:"ncaaf", label:"COLLEGE FB",  cat:"Team Sports", espn:"football/college-football",          yt:"NCAAFootball"},
+  {k:"nba",   label:"NBA",         cat:"Team Sports", espn:"basketball/nba",                     yt:"NBA"},
+  {k:"ncaab", label:"COLLEGE BB",  cat:"Team Sports", espn:"basketball/mens-college-basketball", yt:"marchmadness"},
+  {k:"mlb",   label:"MLB",         cat:"Team Sports", espn:"baseball/mlb",                       yt:"MLB"},
+  {k:"nhl",   label:"NHL",         cat:"Team Sports", espn:"hockey/nhl",                         yt:"NHL"},
+  {k:"wnba",  label:"WNBA",        cat:"Team Sports", espn:"basketball/wnba",                    yt:"wnba"},
+  {k:"epl",   label:"SOCCER",      cat:"International", espn:"soccer/all",                       yt:"premierleague"},
+  {k:"worldcup",label:"WORLD CUP", cat:"International", espn:"soccer/fifa.world",                yt:"FIFA"},
+  {k:"cricket",label:"CRICKET",    cat:"International", espnCricket:true, sdb:"4575",            yt:"iccmedia"},
+  {k:"rugby", label:"RUGBY",       cat:"International", sdb:"4414",                              yt:"WorldRugby"},
+  {k:"afl",   label:"AFL",         cat:"International", sdb:"4456",                              yt:"aflcomau"},
+  {k:"cycling",label:"CYCLING",    cat:"International", sdb:"4465",                              yt:"UCI_Cycling"},
+  {k:"f1",    label:"F1",          cat:"Racing", espn:"racing/f1",                                yt:"Formula1"},
+  {k:"nascar",label:"NASCAR",      cat:"Racing", espn:"racing/nascar-premier",                    yt:"NASCAR"},
+  {k:"indycar",label:"INDYCAR",    cat:"Racing", espn:"racing/irl",                                yt:"IndyCar"},
+  {k:"formulae",label:"FORMULA E", cat:"Racing", sdb:"4371",                                       yt:"FormulaE"},
+  {k:"motogp",label:"MOTOGP",      cat:"Racing", sdb:"4407",                                       yt:"motogp"},
+  {k:"mma",   label:"MMA",         cat:"Combat", espn:"mma/ufc",                                   yt:"ufc"},
+  {k:"bellator",label:"BELLATOR",  cat:"Combat", sdb:"4467",                                       yt:"BellatorMMA"},
+  {k:"one",   label:"ONE CHAMP.",  cat:"Combat", sdb:"4495",                                       yt:"ONEChampionship"},
+  {k:"boxing",label:"BOXING",      cat:"Combat", sdb:"4445",                                       yt:"toprank"},
+  {k:"pga",   label:"GOLF",        cat:"Individual", espn:"golf/pga",                              yt:"PGATOUR"},
+  {k:"lpga",  label:"LPGA",        cat:"Individual", espn:"golf/lpga",                             yt:"LPGATOUR"},
+  {k:"atp",   label:"TENNIS",      cat:"Individual", espn:"tennis/atp",                            yt:"tennistv"},
+  {k:"wta",   label:"WTA",         cat:"Individual", espn:"tennis/wta",                            yt:"WTA"},
+  {k:"darts", label:"DARTS",       cat:"Individual", sdb:"4561",                                   yt:"PDCTV"},
+  {k:"snooker",label:"SNOOKER",    cat:"Individual", sdb:"4555",                                   yt:"WorldSnooker"}
 ];
 async function ytUploadsPlaylist(handle){
   if(ytChannelCache[handle]) return ytChannelCache[handle];
@@ -5507,7 +5515,7 @@ async function tuneSports(ch,sl,my){
         '<div class="pop-empty">Scorecard unavailable for this player \u2014 check DIAG.</div>';
       var backBtn2=$("golfBack"); if(backBtn2) backBtn2.addEventListener("click",function(){ renderScores(); }); }
   }
-  var INDIVIDUAL_SPORTS={f1:1,nascar:1,indycar:1,pga:1,lpga:1,atp:1,wta:1,mma:1,boxing:1,cricket:1,rugby:1};
+  var INDIVIDUAL_SPORTS={f1:1,nascar:1,indycar:1,formulae:1,motogp:1,pga:1,lpga:1,atp:1,wta:1,mma:1,bellator:1,one:1,boxing:1,cricket:1,rugby:1,afl:1,cycling:1,darts:1,snooker:1};
   async function renderStandings(){
     bodyEl.innerHTML='<div class="pop-empty">Loading standings\u2026</div>';
     if(INDIVIDUAL_SPORTS[curSport.k]){
@@ -5694,15 +5702,30 @@ async function tuneSports(ch,sl,my){
     }catch(e){ nlog("sports",false,sp.label+": "+((e&&e.message)||e)); }
     renderBody();
   }
-  pickerEl.innerHTML=SPORTS_LIST.map(function(sp){
-    return '<option value="'+sp.k+'">'+esch(sp.label)+'</option>';
-  }).join("");
+  (function(){
+    var cats=[]; var byCat={};
+    SPORTS_LIST.forEach(function(sp){
+      if(!byCat[sp.cat]){ byCat[sp.cat]=[]; cats.push(sp.cat); }
+      byCat[sp.cat].push(sp);
+    });
+    pickerEl.innerHTML=cats.map(function(cat){
+      return '<optgroup label="'+esch(cat.toUpperCase())+'">'+byCat[cat].map(function(sp){
+        return '<option value="'+sp.k+'">'+esch(sp.label)+'</option>';
+      }).join("")+'</optgroup>';
+    }).join("");
+  })();
   pickerEl.addEventListener("change",function(){
     var sp=SPORTS_LIST.find(function(s){return s.k===pickerEl.value;}); if(sp)loadSport(sp);
   });
   renderSubPicker();
   loadSport(SPORTS_LIST[0]);
-  sportsTimer=rtInterval(function(){ if(my===token&&powered) loadSport(curSport); },5*60*1000);
+  var lastSportsFetch=Date.now();
+  sportsTimer=rtInterval(function(){
+    if(my!==token||!powered)return;
+    var hasLive=curEvents.some(function(ev){ return ev.status&&ev.status.type&&ev.status.type.state==="in"; });
+    var dueForRefresh=hasLive?(Date.now()-lastSportsFetch>30*1000):(Date.now()-lastSportsFetch>5*60*1000);
+    if(dueForRefresh){ lastSportsFetch=Date.now(); loadSport(curSport); }
+  },30*1000);
 }
 /* Public WebSDR/KiwiSDR receivers -- volunteer-run, genuinely free, explicitly built for public
    web listening (the opposite situation from Broadcastify, whose own developer terms exclude

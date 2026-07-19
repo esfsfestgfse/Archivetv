@@ -693,7 +693,7 @@ html,body{height:100vh;overflow:hidden}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.22";
+window.__ATV_BUILD="1.7.7-desktop.23";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -727,7 +727,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.22</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.23</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">THE DIAL · THE SET</div>
@@ -5243,7 +5243,11 @@ var SPORTS_LIST=[
   {k:"mma",   label:"MMA",         espn:"mma/ufc",                            yt:"ufc"},
   {k:"boxing",label:"BOXING",      sdb:"4445",                                yt:"toprank"},
   {k:"cricket",label:"CRICKET",    sdb:"4575",                                yt:"iccmedia"},
-  {k:"rugby", label:"RUGBY",       sdb:"4414",                                yt:"WorldRugby"}
+  {k:"rugby", label:"RUGBY",       sdb:"4414",                                yt:"WorldRugby"},
+  {k:"wnba",  label:"WNBA",        espn:"basketball/wnba",                    yt:"wnba"},
+  {k:"wta",   label:"WTA",         espn:"tennis/wta",                         yt:"WTA"},
+  {k:"lpga",  label:"LPGA",        espn:"golf/lpga",                          yt:"LPGATOUR"},
+  {k:"indycar",label:"INDYCAR",    espn:"racing/irl",                         yt:"IndyCar"}
 ];
 async function ytUploadsPlaylist(handle){
   if(ytChannelCache[handle]) return ytChannelCache[handle];
@@ -5471,8 +5475,13 @@ async function tuneSports(ch,sl,my){
       '<span class="score-status pre">'+esch((ev.shortName||ev.name||"LEADERBOARD").toUpperCase())+'</span>'+
       rows+'</div>';
   }
+  var INDIVIDUAL_SPORTS={f1:1,nascar:1,indycar:1,pga:1,lpga:1,atp:1,wta:1,mma:1,boxing:1,cricket:1,rugby:1};
   async function renderStandings(){
     bodyEl.innerHTML='<div class="pop-empty">Loading standings\u2026</div>';
+    if(INDIVIDUAL_SPORTS[curSport.k]){
+      bodyEl.innerHTML='<div class="pop-empty">'+esch(curSport.label)+' doesn\u2019t have team win-loss standings \u2014 it\u2019s scored as individual rankings/points instead. Check the SCORES tab for the current leaderboard.</div>';
+      return;
+    }
     try{
       if(!curSport.espn) throw new Error("standings only available for ESPN-covered sports right now");
       var d=await fetchJSON("https://site.api.espn.com/apis/site/v2/sports/"+curSport.espn+"/standings");

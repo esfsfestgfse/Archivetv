@@ -829,7 +829,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.54";
+window.__ATV_BUILD="1.7.7-mobile.55";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -863,7 +863,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.54</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.55</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -5449,7 +5449,8 @@ var SPORTS_LIST=[
   {k:"nhl",   label:"NHL",         cat:"Team Sports", espn:"hockey/nhl",                         yt:"NHL"},
   {k:"wnba",  label:"WNBA",        cat:"Team Sports", espn:"basketball/wnba",                    yt:"wnba"},
   {k:"epl",   label:"SOCCER",      cat:"International", espn:"soccer/all",                       yt:"premierleague"},
-  {k:"worldcup",label:"WORLD CUP", cat:"International", espn:"soccer/fifa.world",                yt:"FIFA"},
+  {k:"worldcup",label:"WORLD CUP", cat:"International", sdb:"4429",           yt:"FIFA"},
+  {k:"lol",   label:"ESPORTS (LOL)", cat:"International", sdb:"4514",         yt:"lolesports"},
   {k:"cricket",label:"CRICKET",    cat:"International", espnCricket:true, sdb:"4575",            yt:"iccmedia"},
   {k:"rugby", label:"RUGBY",       cat:"International", sdb:"4414",                              yt:"WorldRugby"},
   {k:"afl",   label:"AFL",         cat:"International", sdb:"4456",                              yt:"aflcomau"},
@@ -5467,7 +5468,7 @@ var SPORTS_LIST=[
   {k:"lpga",  label:"LPGA",        cat:"Individual", espn:"golf/lpga",                             yt:"LPGATOUR"},
   {k:"atp",   label:"TENNIS",      cat:"Individual", espn:"tennis/atp",                            yt:"tennistv"},
   {k:"wta",   label:"WTA",         cat:"Individual", espn:"tennis/wta",                            yt:"WTA"},
-  {k:"darts", label:"DARTS",       cat:"Individual", sdb:"4561",                                   yt:"PDCTV"},
+  {k:"darts", label:"DARTS",       cat:"Individual", sdb:"4554",                                   yt:"PDCTV"},
   {k:"snooker",label:"SNOOKER",    cat:"Individual", sdb:"4555",                                   yt:"WorldSnooker"}
 ];
 async function ytUploadsPlaylist(handle){

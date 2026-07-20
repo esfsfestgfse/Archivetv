@@ -693,7 +693,7 @@ html,body{height:100vh;overflow:hidden}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.28";
+window.__ATV_BUILD="1.7.7-desktop.29";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -727,7 +727,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.28</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.29</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">THE DIAL · THE SET</div>
@@ -5516,7 +5516,7 @@ async function tuneSports(ch,sl,my){
         '<div class="pop-empty">Scorecard unavailable for this player \u2014 check DIAG.</div>';
       var backBtn2=$("golfBack"); if(backBtn2) backBtn2.addEventListener("click",function(){ renderScores(); }); }
   }
-  var INDIVIDUAL_SPORTS={f1:1,nascar:1,indycar:1,formulae:1,motogp:1,pga:1,lpga:1,atp:1,wta:1,mma:1,bellator:1,one:1,boxing:1,cricket:1,rugby:1,cycling:1,darts:1,snooker:1};
+  var INDIVIDUAL_SPORTS={f1:1,nascar:1,indycar:1,formulae:1,motogp:1,pga:1,lpga:1,atp:1,wta:1,mma:1,bellator:1,one:1,boxing:1,cricket:1,cycling:1,darts:1,snooker:1};
   async function renderStandings(){
     bodyEl.innerHTML='<div class="pop-empty">Loading standings\u2026</div>';
     if(INDIVIDUAL_SPORTS[curSport.k]){

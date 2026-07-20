@@ -693,7 +693,7 @@ html,body{height:100vh;overflow:hidden}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.27";
+window.__ATV_BUILD="1.7.7-desktop.28";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -727,7 +727,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.27</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.28</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">THE DIAL · THE SET</div>
@@ -5516,11 +5516,49 @@ async function tuneSports(ch,sl,my){
         '<div class="pop-empty">Scorecard unavailable for this player \u2014 check DIAG.</div>';
       var backBtn2=$("golfBack"); if(backBtn2) backBtn2.addEventListener("click",function(){ renderScores(); }); }
   }
-  var INDIVIDUAL_SPORTS={f1:1,nascar:1,indycar:1,formulae:1,motogp:1,pga:1,lpga:1,atp:1,wta:1,mma:1,bellator:1,one:1,boxing:1,cricket:1,rugby:1,afl:1,cycling:1,darts:1,snooker:1};
+  var INDIVIDUAL_SPORTS={f1:1,nascar:1,indycar:1,formulae:1,motogp:1,pga:1,lpga:1,atp:1,wta:1,mma:1,bellator:1,one:1,boxing:1,cricket:1,rugby:1,cycling:1,darts:1,snooker:1};
   async function renderStandings(){
     bodyEl.innerHTML='<div class="pop-empty">Loading standings\u2026</div>';
     if(INDIVIDUAL_SPORTS[curSport.k]){
       bodyEl.innerHTML='<div class="pop-empty">'+esch(curSport.label)+' doesn\u2019t have team win-loss standings \u2014 it\u2019s scored as individual rankings/points instead. Check the SCORES tab for the current leaderboard.</div>';
+      return;
+    }
+    if(!curSport.espn&&curSport.sdb){
+      /* genuinely team-based sports sourced from TheSportsDB (starting with AFL) -- real endpoint,
+         verified against a working example, but the season-string format varies by sport (some
+         leagues use "2026", others "2025-2026") so this tries the most likely format and says so
+         plainly rather than silently showing nothing if the format guess is wrong for this league. */
+      try{
+        var yr=new Date().getFullYear();
+        var td=await fetchJSON("https://www.thesportsdb.com/api/v1/json/3/lookuptable.php?l="+encodeURIComponent(curSport.sdb)+"&s="+yr).catch(function(){return null;});
+        if(my!==token||sportsSubView!=="standings")return;
+        var table=(td&&td.table)||[];
+        if(!table.length){
+          bodyEl.innerHTML='<div class="pop-empty">No '+esch(curSport.label)+' standings table available right now \u2014 check DIAG.</div>';
+          nlog("sportsstandings",false,curSport.label+": lookuptable returned empty for season "+yr);
+          return;
+        }
+        var favs2=getFavTeams();
+        bodyEl.innerHTML=table.map(function(t){
+          var teamId=t.idTeam, teamName=t.strTeam||"?";
+          var isFav=teamId&&favs2[curSport.k+":"+teamId];
+          var record=(t.intWin!=null&&t.intLoss!=null)?(t.intWin+"-"+t.intLoss):"";
+          var logo=t.strBadge;
+          return '<div class="score-card" data-teamid="'+esch(teamId||"")+'" data-teamname="'+esch(teamName)+'" style="cursor:pointer;padding:9px 12px;border-left-color:rgba(255,255,255,.15)">'+
+            '<div class="score-team-row" style="gap:10px">'+
+            '<span style="color:'+(isFav?"#8fff5c":"rgba(255,255,255,.3)")+';font-size:16px">'+(isFav?"\u2605":"\u2606")+'</span>'+
+            '<span style="width:20px;font:700 12px monospace;color:#9fd6a6">'+esch(t.intRank||"")+'</span>'+
+            (logo?'<img class="score-team-logo" style="width:28px;height:28px" src="'+esch(logo)+'" onerror="this.style.visibility=\'hidden\'">':'')+
+            '<span class="score-team-name">'+esch(teamName)+'</span>'+
+            '<span style="font:700 15px monospace;color:#cdeccc">'+esch(record)+'</span></div></div>';
+        }).join("");
+        bodyEl.querySelectorAll("[data-teamid]").forEach(function(row){
+          row.addEventListener("click",function(){ var tid=row.dataset.teamid; if(!tid)return;
+            toggleFavTeam(curSport.k,tid,row.dataset.teamname); renderStandings(); });
+        });
+        nlog("sportsstandings",true,curSport.label+" "+table.length+" teams (TheSportsDB, season "+yr+")");
+      }catch(e){ nlog("sportsstandings",false,curSport.label+": "+((e&&e.message)||e));
+        bodyEl.innerHTML='<div class="pop-empty">Standings unavailable for '+esch(curSport.label)+' \u2014 check DIAG.</div>'; }
       return;
     }
     try{

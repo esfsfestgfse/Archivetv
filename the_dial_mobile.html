@@ -63,6 +63,18 @@ body{
   box-shadow:inset 0 0 60px rgba(0,0,0,.9),0 0 0 3px #2a2a2a, 0 0 34px rgba(103,255,134,.10)}
 .curve{position:absolute;inset:0;z-index:30;pointer-events:none;border-radius:14px/20px;
   background:radial-gradient(120% 120% at 50% 50%,transparent 58%,rgba(0,0,0,.6) 100%)}
+/* aperture grille -- real CRTs have a fine vertical RGB triad structure, not just horizontal
+   scanlines. this was entirely missing before; kept very subtle (6% opacity) since it's easy to
+   overdo and I can't personally verify the visual result, only that it's structurally applied. */
+.grille{position:absolute;inset:0;z-index:29;pointer-events:none;mix-blend-mode:overlay;opacity:.06;
+  background:repeating-linear-gradient(90deg,#ff3b3b 0 1px,#3bff6b 1px 2px,#3b6bff 2px 3px,transparent 3px 4px)}
+/* chromatic aberration -- real CRT/lens color-channel separation, strongest at the edges and
+   essentially absent in the center, same as the real optical effect. kept to the periphery only
+   via a radial mask so it never interferes with actual readability in the middle of the screen. */
+.aberration{position:absolute;inset:0;z-index:29;pointer-events:none;
+  -webkit-mask-image:radial-gradient(120% 120% at 50% 50%,transparent 55%,#000 100%);
+  mask-image:radial-gradient(120% 120% at 50% 50%,transparent 55%,#000 100%);
+  box-shadow:inset 2px 0 0 rgba(255,0,60,.12),inset -2px 0 0 rgba(0,140,255,.12)}
 .scan{position:absolute;inset:0;z-index:28;pointer-events:none;mix-blend-mode:overlay;opacity:.45;
   background:repeating-linear-gradient(0deg,transparent 0 1px,rgba(0,0,0,.5) 1px 2px);animation:roll 9s linear infinite}
 @keyframes roll{from{background-position:0 0}to{background-position:0 120px}}
@@ -830,7 +842,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.59";
+window.__ATV_BUILD="1.7.7-mobile.60";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -864,7 +876,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.59</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.60</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -952,6 +964,8 @@ window.addEventListener("unhandledrejection",function(e){
           <div class="flip-bar" id="flipBar"></div>
           <div class="prog-wrap" id="progWrap"><div class="prog-track"><div class="prog-fill" id="progFill"></div></div><div class="prog-time" id="progTime"></div></div>
           <div class="scan"></div>
+          <div class="grille"></div>
+          <div class="aberration"></div>
           <div class="curve"></div>
         </div>
         <div class="speaker">

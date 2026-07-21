@@ -692,7 +692,7 @@ html,body{height:100vh;overflow:hidden}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.35";
+window.__ATV_BUILD="1.7.7-desktop.36";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -726,7 +726,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.35</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.36</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">THE DIAL · THE SET</div>
@@ -5464,6 +5464,7 @@ async function tuneSports(ch,sl,my){
       (away.team?teamRow(awayLogo,awayName,away.score,awayFav):"")+
       teamRow(homeLogo,homeName,home.score,homeFav)+
       (odds?'<div class="score-odds">'+esch(odds)+'</div>':'')+
+      (ev._meta?'<div class="score-odds">'+esch(ev._meta)+'</div>':'')+
       '</div>';
   }
   function renderAthleteMatchCard(ev,comp,competitors){
@@ -5748,24 +5749,58 @@ async function tuneSports(ch,sl,my){
         curEvents=flat;
         nlog("sports",true,sp.label+" "+curEvents.length+" events (ESPN)");
       } else if(sp.sdb){
-        var d2=await fetchJSON("https://www.thesportsdb.com/api/v1/json/3/eventspastleague.php?id="+encodeURIComponent(sp.sdb)).catch(function(){return null;});
-        var evs=(d2&&d2.events)||[];
+        /* STRENGTHENED: previously fetched only past events and used 2 of the ~20 real fields
+           TheSportsDB returns, which is exactly why some sports showed nothing but an event
+           name. Now pulls upcoming events too (so a sport between fixtures isn't blank) and
+           uses the real venue / round / status / time / team-badge fields. */
+        var sdbBase="https://www.thesportsdb.com/api/v1/json/3/";
+        var d2=await fetchJSON(sdbBase+"eventspastleague.php?id="+encodeURIComponent(sp.sdb)).catch(function(){return null;});
+        var dNext=await fetchJSON(sdbBase+"eventsnextleague.php?id="+encodeURIComponent(sp.sdb)).catch(function(){return null;});
+        var past=(d2&&d2.events)||[], next=(dNext&&dNext.events)||[];
+        var evs=past.concat(next);
         /* normalize TheSportsDB's shape to match ESPN's so renderScores() doesn't need two code
            paths -- but individual/combat sports on TheSportsDB don't reliably populate
            strHomeTeam/strAwayTeam the way team sports do (that's exactly why boxing showed "?"
            with no data), so fall back to the universal strEvent title field when they're empty
            rather than forcing a broken home/away split. */
+        function sdbWhen(ev){
+          var d=ev.dateEvent||"", t=(ev.strTime||"").slice(0,5);
+          if(!d) return ev.strProgress||ev.strStatus||"";
+          var dt=new Date(d+"T"+((ev.strTime||"00:00:00").slice(0,8))+"Z");
+          var ds=isNaN(dt.getTime())?d:dt.toLocaleDateString(undefined,{month:"short",day:"numeric"});
+          return ds+(t?(" "+t+"Z"):"");
+        }
+        function sdbState(ev){
+          var prog=(ev.strProgress||"").trim(), st=(ev.strStatus||"").trim();
+          if(/final|ft|match finished/i.test(prog+" "+st)) return "post";
+          if(prog||/live|1h|2h|ht/i.test(st)) return "in";
+          var d=ev.dateEvent?new Date(ev.dateEvent+"T23:59:59Z").getTime():0;
+          return (d && d < Date.now()) ? "post" : "pre";
+        }
+        function sdbMeta(ev){
+          return [ev.strLeague, ev.intRound?("ROUND "+ev.intRound):"", ev.strVenue,
+                  [ev.strCity,ev.strCountry].filter(Boolean).join(", ")]
+                 .filter(Boolean).join("   \u00b7   ");
+        }
         curEvents=evs.map(function(ev){
+          var detail=(ev.strProgress||"").trim()||(ev.strStatus||"").trim()||sdbWhen(ev);
+          var st={type:{shortDetail:detail,state:sdbState(ev)}};
+          var meta=sdbMeta(ev);
           var hasNames=ev.strHomeTeam&&ev.strAwayTeam;
           if(hasNames){
-            return {competitions:[{competitors:[
-              {homeAway:"home",score:ev.intHomeScore,team:{shortDisplayName:ev.strHomeTeam}},
-              {homeAway:"away",score:ev.intAwayScore,team:{shortDisplayName:ev.strAwayTeam}}
-            ]}],status:{type:{shortDetail:ev.dateEvent||""}}};
+            return {id:ev.idEvent,_meta:meta,_thumb:ev.strThumb,status:st,competitions:[{competitors:[
+              {homeAway:"home",score:ev.intHomeScore,team:{id:ev.idHomeTeam,shortDisplayName:ev.strHomeTeam,logo:ev.strHomeTeamBadge}},
+              {homeAway:"away",score:ev.intAwayScore,team:{id:ev.idAwayTeam,shortDisplayName:ev.strAwayTeam,logo:ev.strAwayTeamBadge}}
+            ]}]};
           }
-          return {competitions:[{competitors:[
-            {homeAway:"home",score:null,team:{shortDisplayName:ev.strEvent||sp.label+" event"}}
-          ]}],status:{type:{shortDetail:ev.dateEvent||""}}};
+          /* individual/combat sports: no home/away split exists, so the event title IS the
+             matchup -- but it now carries real venue/round/date/result context instead of
+             being a bare name with nothing else. */
+          var res=(ev.strResult||"").trim();
+          return {id:ev.idEvent,_meta:[meta,res].filter(Boolean).join("   \u00b7   "),_thumb:ev.strThumb,status:st,
+            competitions:[{competitors:[
+              {homeAway:"home",score:null,team:{id:ev.idEvent,shortDisplayName:ev.strEvent||sp.label+" event"}}
+            ]}]};
         });
         nlog("sports",true,sp.label+" "+curEvents.length+" events (TheSportsDB)");
       }

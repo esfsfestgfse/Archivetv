@@ -839,7 +839,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.68";
+window.__ATV_BUILD="1.7.7-mobile.69";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -873,7 +873,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.68</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.69</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -4622,32 +4622,44 @@ function parseM3U(text){
 }
 async function fetchSportsIPTV(){
   if(sportsIptvCache) return sportsIptvCache;
-  var out=[];
+  /* English sports channels only. Rather than guess language from channel names, this
+     intersects the sports-category playlist against iptv-org's English-language playlist --
+     both are maintained by the same project with proper language tagging, so a channel has to
+     be BOTH sports AND English to appear. Free-TV entries are held to the same test. */
+  var engUrls={}, engNames={};
+  try{
+    var te=await withTO(fetch("https://iptv-org.github.io/iptv/languages/eng.m3u",{cache:"no-store"}).then(function(r){return r.text();}),15000);
+    parseM3U(te).forEach(function(c){
+      if(c.url) engUrls[c.url]=1;
+      var k=(c.name||"").toLowerCase().replace(/\s*\(\d+p\)\s*$/,"").replace(/\s+/g," ").trim();
+      if(k) engNames[k]=1;
+    });
+    nlog("sportstv",true,"English list: "+Object.keys(engUrls).length+" channels");
+  }catch(e){ nlog("sportstv",false,"English list: "+((e&&e.message)||e)); }
+  function isEnglish(c){
+    if(c.url&&engUrls[c.url]) return true;
+    var k=(c.name||"").toLowerCase().replace(/\s*\(\d+p\)\s*$/,"").replace(/\s+/g," ").trim();
+    return !!(k&&engNames[k]);
+  }
+  var out=[], gotEng=Object.keys(engUrls).length>0;
   try{
     var t1=await withTO(fetch("https://iptv-org.github.io/iptv/categories/sports.m3u",{cache:"no-store"}).then(function(r){return r.text();}),15000);
-    out=out.concat(parseM3U(t1));
-    nlog("sportstv",true,"iptv-org sports category: "+out.length);
+    var cat=parseM3U(t1);
+    var keep=gotEng?cat.filter(isEnglish):cat;
+    out=out.concat(keep);
+    nlog("sportstv",true,"iptv-org sports: "+cat.length+" -> "+keep.length+" English");
   }catch(e){ nlog("sportstv",false,"iptv-org sports category: "+((e&&e.message)||e)); }
   try{
     var t2=await withTO(fetch("https://raw.githubusercontent.com/Free-TV/IPTV/master/playlist.m3u8",{cache:"no-store"}).then(function(r){return r.text();}),15000);
     var ft=parseM3U(t2).filter(function(c){ return /sport|football|soccer|basketball|cricket|rugby|tennis|golf|racing|motor|fight|boxing|wrestl/i.test((c.cat||"")+" "+(c.name||"")); });
-    out=out.concat(ft);
-    nlog("sportstv",true,"Free-TV sports: "+ft.length);
+    var ftKeep=gotEng?ft.filter(isEnglish):[];
+    out=out.concat(ftKeep);
+    nlog("sportstv",true,"Free-TV sports: "+ft.length+" -> "+ftKeep.length+" English");
   }catch(e){ nlog("sportstv",false,"Free-TV: "+((e&&e.message)||e)); }
-  if(!out.length){ /* last resort: the English list the main Live TV channel already uses */
-    try{ out=(await fetchIPTV()).filter(function(c){ return /sport/i.test(c.cat||""); }); }catch(e){}
+  if(!out.length){ /* fallback: the English list itself, sports groups only */
+    try{ out=(await fetchIPTV()).filter(function(c){ return /sport/i.test(c.cat||""); }); nlog("sportstv",true,"fallback English-list sports: "+out.length); }catch(e){}
   }
   sportsIptvCache=out; return out;
-}
-async function fetchIPTV(){
-  if(iptvCache)return iptvCache;
-  var text=""; try{ text=await withTO(fetch("https://iptv-org.github.io/iptv/languages/eng.m3u",{cache:"no-store"}).then(function(r){return r.text();}),15000); }catch(e){}
-  var out=[], lines=text.split("\n"), cur=null;
-  for(var k=0;k<lines.length;k++){ var ln=lines[k].trim();
-    if(ln.indexOf("#EXTINF")===0){ var gm=/group-title="([^"]*)"/.exec(ln); var nm=ln.split(",").slice(1).join(",").trim(); cur={name:nm||"Channel",cat:(gm&&gm[1])||"General"}; }
-    else if(ln&&ln.charAt(0)!=="#"&&cur){ if(/^https?:/i.test(ln)&&/\.m3u8/i.test(ln)){ cur.url=ln; out.push(cur); } cur=null; }
-  }
-  iptvCache=out; return out;
 }
 function ensureTVCSS(){ if($("tvCSS"))return; var st=document.createElement("style"); st.id="tvCSS";
   st.textContent=
@@ -5581,7 +5593,7 @@ async function tuneSports(ch,sl,my){
         if(!k||seen[k])return false; seen[k]=1; return true; }).slice(0,120);
       if(!chans.length){ bodyEl.innerHTML='<div class="pop-empty">No live sports channels available from iptv-org right now.</div>'; return; }
       bodyEl.innerHTML='<div id="tvPane" style="width:100%;aspect-ratio:16/9;background:#000;border-radius:8px;overflow:hidden;margin-bottom:8px;position:relative"></div>'+
-        '<div style="font:700 10px monospace;color:#9fd6a6;margin-bottom:6px">'+chans.length+' LIVE SPORTS CHANNELS \u00b7 iptv-org + Free-TV</div>'+
+        '<div style="font:700 10px monospace;color:#9fd6a6;margin-bottom:6px">'+chans.length+' ENGLISH LIVE SPORTS \u00b7 iptv-org + Free-TV</div>'+
         chans.map(function(c,i){
           return '<div class="score-card" data-ci="'+i+'" style="cursor:pointer;padding:9px 12px;border-left-color:#8fff5c">'+
             '<div class="score-team-row"><span class="score-status live" style="margin:0">LIVE</span>'+

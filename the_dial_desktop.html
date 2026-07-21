@@ -692,7 +692,7 @@ html,body{height:100vh;overflow:hidden}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.32";
+window.__ATV_BUILD="1.7.7-desktop.33";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -726,7 +726,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.32</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.33</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">THE DIAL · THE SET</div>
@@ -4730,12 +4730,37 @@ async function tuneTropical(ch,sl,my){
         var lat=s.latitude||s.lat, lon=s.longitude||s.lon;
         var pos=(lat!=null&&lon!=null)?(parseFloat(lat).toFixed(1)+"°, "+parseFloat(lon).toFixed(1)+"°"):"";
         var sub=[basin,pres&&("PRESSURE "+pres),move&&("MOVING "+move),pos&&("POSITION "+pos)].filter(Boolean).join("   ·   ");
-        return '<div class="dc-row2"><div class="dc-row2-main"><span class="dc-mag '+sev+'">'+esch(cls||"?")+'</span><span class="dc-place">'+esch(name)+'</span><span class="dc-when">'+esch(inten)+'</span></div>'+
-          (sub?'<div class="dc-row2-sub">'+esch(sub)+'</div>':'')+'</div>';
+        var bin=String(s.binNumber||"").toUpperCase().replace(/\s+/g,"");
+        return '<div class="dc-row2"'+(bin?(' data-bin="'+esch(bin)+'" data-stormname="'+esch(name)+'" style="cursor:pointer"'):'')+'><div class="dc-row2-main"><span class="dc-mag '+sev+'">'+esch(cls||"?")+'</span><span class="dc-place">'+esch(name)+'</span><span class="dc-when">'+esch(inten)+'</span></div>'+
+          (sub?'<div class="dc-row2-sub">'+esch(sub)+'</div>':'')+
+          (bin?'<div class="dc-row2-sub" style="color:#67ff86">tap for the current NHC advisory \u2192</div>':'')+'</div>';
       }).join("");
+      listEl.querySelectorAll("[data-bin]").forEach(function(row){
+        row.addEventListener("click",function(){ renderNhcAdvisory(row.dataset.bin,row.dataset.stormname); });
+      });
     }catch(e){ nlog("tropical",false,(e&&e.message)||e); listEl.innerHTML='<div class="pop-empty">NHC feed unavailable \u2014 check DIAG, will retry</div>'; }
   };
   run(); tropicalTimer=rtInterval(run,900000);
+}
+async function renderNhcAdvisory(bin,stormName){
+  var twEl=$("twoText"); if(!twEl)return;
+  var prevHtml=twEl.innerHTML;
+  twEl.innerHTML='<div class="pop-empty">Loading the current NHC advisory for '+esch(stormName)+'\u2026</div>';
+  try{
+    /* real NHC numbered public advisory per storm -- verified live URL pattern: the same
+       binNumber (e.g. "AT1", "EP2") already used for the cone graphic maps directly onto
+       nhc.noaa.gov/text/MIATCP{bin}.shtml, NHC's real current public advisory for that storm */
+    var html=await fetchTextResilient("https://www.nhc.noaa.gov/text/MIATCP"+encodeURIComponent(bin)+".shtml","tcp");
+    var mpre=html.match(/<pre>([\s\S]*?)<\/pre>/i);
+    var txt=(mpre?mpre[1]:"").replace(/<[^>]+>/g," ").replace(/&amp;/g,"&").replace(/\r/g,"").trim();
+    if(!txt) throw new Error("advisory text empty for bin "+bin);
+    twEl.innerHTML='<button id="nhcAdvBack" class="catchip" style="border-color:#8fff5c;color:#8fff5c;margin-bottom:8px">\u2190 BACK TO OUTLOOK</button>'+
+      '<div style="white-space:pre-wrap;font-family:inherit">'+esch(txt.slice(0,3000))+'</div>';
+    nlog("tcp",true,stormName+" advisory ("+bin+")");
+  }catch(e){ nlog("tcp",false,(e&&e.message)||e);
+    twEl.innerHTML='<button id="nhcAdvBack" class="catchip" style="border-color:#8fff5c;color:#8fff5c;margin-bottom:8px">\u2190 BACK TO OUTLOOK</button>'+
+      '<div class="pop-empty">Advisory unavailable for '+esch(stormName)+' \u2014 check DIAG.</div>'; }
+  var backBtn=$("nhcAdvBack"); if(backBtn) backBtn.addEventListener("click",function(){ twEl.innerHTML=prevHtml; });
 }
 
 /* ---------- Deep Space Jazz: rotating NASA imagery + original synthesized jazz pad ----------

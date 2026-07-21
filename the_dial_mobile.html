@@ -525,8 +525,11 @@ html,body{height:100vh;overflow:hidden}
 /* compact sports chrome: measured on a real device screenshot, the picker + sub-tabs were
    consuming a large share of the viewport before any score was visible. Scoped to Sports
    Center so the shared .catchip styling elsewhere in the app is unaffected. */
-#sportsSubPicker .catchip{font-size:9px;letter-spacing:.6px;padding:4px 8px;border-radius:14px}
-#sportsSubPicker{padding-bottom:4px!important}
+/* QA FIX (measured on the deployed build): 6 sub-tabs needed 428px inside a 412px viewport, so
+   the last tab (LIVE TV) sat off-screen and read as "the feature isn't there". Tightened so the
+   full set fits without horizontal scrolling on a standard phone width. */
+#sportsSubPicker .catchip{font-size:8.5px;letter-spacing:.2px;padding:4px 5px;border-radius:12px}
+#sportsSubPicker{padding-bottom:4px!important;gap:4px!important}
 .dc-row2-main{display:flex;align-items:center;gap:10px;font-size:clamp(12px,2vmin,20px)}
 .dc-row2-sub{font-size:clamp(10px,1.6vmin,15px);color:#8fb3ff;margin-top:3px;letter-spacing:.3px}
 
@@ -839,7 +842,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.69";
+window.__ATV_BUILD="1.7.7-mobile.70";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -873,7 +876,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.69</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.70</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">

@@ -697,7 +697,7 @@ html,body{height:100vh;overflow:hidden}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.37";
+window.__ATV_BUILD="1.7.7-desktop.38";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -731,7 +731,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.37</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.38</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">THE DIAL · THE SET</div>
@@ -4381,7 +4381,46 @@ var IPTV_TABS=[
  {label:"KIDS",re:/kids|animation|family|cartoon/i},{label:"MUSIC",re:/music/i},
  {label:"DOCS",re:/documentary|science|history|education|culture|nature|travel/i},{label:"GENERAL",re:/general|lifestyle/i}
 ];
-var iptvCache=null, tvHls=null;
+var iptvCache=null, tvHls=null, sportsIptvCache=null;
+/* Dedicated sports channel sourcing. The general Live TV channel pulls the English-language
+   playlist; that is the wrong slice for a sports tab (English-only, sports diluted). These two
+   sources are sports-specific and complementary:
+     1. iptv-org's category playlist -- every language/country, sports only, and documented as
+        carrying far fewer dead entries than the broad index playlists.
+     2. Free-TV/IPTV -- a separately maintained GitHub project curated on the opposite
+        philosophy: one working URL per channel, HD where possible, no duplicates. Used as a
+        reliability backstop, filtered to its sports groups.
+   Both are parsed with the same M3U reader already proven for Live TV. Either failing alone
+   still leaves a usable list. */
+function parseM3U(text){
+  var out=[], lines=String(text||"").split("\n"), cur=null;
+  for(var k=0;k<lines.length;k++){ var ln=lines[k].trim();
+    if(ln.indexOf("#EXTINF")===0){ var gm=/group-title="([^"]*)"/.exec(ln);
+      var nm=ln.split(",").slice(1).join(",").trim();
+      cur={name:nm||"Channel",cat:(gm&&gm[1])||"Sports"}; }
+    else if(ln&&ln.charAt(0)!=="#"&&cur){ if(/^https?:/i.test(ln)&&/\.m3u8/i.test(ln)){ cur.url=ln; out.push(cur); } cur=null; }
+  }
+  return out;
+}
+async function fetchSportsIPTV(){
+  if(sportsIptvCache) return sportsIptvCache;
+  var out=[];
+  try{
+    var t1=await withTO(fetch("https://iptv-org.github.io/iptv/categories/sports.m3u",{cache:"no-store"}).then(function(r){return r.text();}),15000);
+    out=out.concat(parseM3U(t1));
+    nlog("sportstv",true,"iptv-org sports category: "+out.length);
+  }catch(e){ nlog("sportstv",false,"iptv-org sports category: "+((e&&e.message)||e)); }
+  try{
+    var t2=await withTO(fetch("https://raw.githubusercontent.com/Free-TV/IPTV/master/playlist.m3u8",{cache:"no-store"}).then(function(r){return r.text();}),15000);
+    var ft=parseM3U(t2).filter(function(c){ return /sport|football|soccer|basketball|cricket|rugby|tennis|golf|racing|motor|fight|boxing|wrestl/i.test((c.cat||"")+" "+(c.name||"")); });
+    out=out.concat(ft);
+    nlog("sportstv",true,"Free-TV sports: "+ft.length);
+  }catch(e){ nlog("sportstv",false,"Free-TV: "+((e&&e.message)||e)); }
+  if(!out.length){ /* last resort: the English list the main Live TV channel already uses */
+    try{ out=(await fetchIPTV()).filter(function(c){ return /sport/i.test(c.cat||""); }); }catch(e){}
+  }
+  sportsIptvCache=out; return out;
+}
 async function fetchIPTV(){
   if(iptvCache)return iptvCache;
   var text=""; try{ text=await withTO(fetch("https://iptv-org.github.io/iptv/languages/eng.m3u",{cache:"no-store"}).then(function(r){return r.text();}),15000); }catch(e){}
@@ -5318,16 +5357,13 @@ async function tuneSports(ch,sl,my){
     bodyEl.innerHTML='<div class="pop-empty">Loading live sports channels\u2026</div>';
     try{
       ensureTVCSS();
-      var all=await fetchIPTV();
+      var all=await fetchSportsIPTV();
       if(my!==token||sportsSubView!=="livetv")return;
-      /* iptv-org tags every channel with its group-title; sports channels are already in the
-         same list Live TV uses, so this needs no new source -- just the sports slice of it. */
-      var seen={}, chans=all.filter(function(c){ return /sport|football|soccer|basketball|cricket|rugby|tennis|golf|racing|motor|fight|boxing|wrestl/i.test(c.cat||"")
-                                                     || /sport|espn|bein|dazn|fight|racing|golf|tennis/i.test(c.name||""); })
-        .filter(function(c){ var k=(c.name||"").toLowerCase(); if(seen[k])return false; seen[k]=1; return true; }).slice(0,80);
+      var seen={}, chans=all.filter(function(c){ var k=(c.name||"").toLowerCase().replace(/\s+/g," ").trim();
+        if(!k||seen[k])return false; seen[k]=1; return true; }).slice(0,120);
       if(!chans.length){ bodyEl.innerHTML='<div class="pop-empty">No live sports channels available from iptv-org right now.</div>'; return; }
       bodyEl.innerHTML='<div id="tvPane" style="width:100%;aspect-ratio:16/9;background:#000;border-radius:8px;overflow:hidden;margin-bottom:8px;position:relative"></div>'+
-        '<div style="font:700 10px monospace;color:#9fd6a6;margin-bottom:6px">'+chans.length+' LIVE SPORTS CHANNELS \u00b7 iptv-org</div>'+
+        '<div style="font:700 10px monospace;color:#9fd6a6;margin-bottom:6px">'+chans.length+' LIVE SPORTS CHANNELS \u00b7 iptv-org + Free-TV</div>'+
         chans.map(function(c,i){
           return '<div class="score-card" data-ci="'+i+'" style="cursor:pointer;padding:9px 12px;border-left-color:#8fff5c">'+
             '<div class="score-team-row"><span class="score-status live" style="margin:0">LIVE</span>'+

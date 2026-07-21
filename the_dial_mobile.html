@@ -842,7 +842,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.72";
+window.__ATV_BUILD="1.7.7-mobile.73";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -876,7 +876,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.72</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.73</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -4688,6 +4688,28 @@ async function fetchSportsIPTV(){
     out=out.concat(wvKeep);
     nlog("sportstv",true,"world_ip_tv (auto-verified): "+wv.length+" -> "+wvKeep.length+" English");
   }catch(e){ nlog("sportstv",false,"world_ip_tv: "+((e&&e.message)||e)); }
+  /* FAST-service playlists (Roku / Pluto TV / Tubi). These are legal, free ad-supported
+     services rather than community-scraped links, so their streams are far more stable than
+     typical IPTV lists -- a direct answer to "why don't these channels play". All are
+     English-region (US/global) and carry well-formed HLS URLs. Samsung TV+ and Plex were
+     evaluated and deliberately left out: Samsung's URLs aren't HLS-form and Plex requires an
+     auth token. */
+  var FAST=[
+    ["Roku","https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/refs/heads/main/playlists/roku_all.m3u"],
+    ["Pluto TV","https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/refs/heads/main/playlists/plutotv_us.m3u"],
+    ["Tubi","https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/refs/heads/main/playlists/tubi_all.m3u"]
+  ];
+  for(var fi=0; fi<FAST.length; fi++){
+    try{
+      var ftxt=await withTO(fetch(FAST[fi][1],{cache:"no-store"}).then(function(r){return r.text();}),15000);
+      var fl=parseM3U(ftxt).filter(function(c){
+        return /sport|motorsport|fight|racing|golf|tennis|boxing|ufc|wwe|nfl|nba|mlb|nhl|soccer|football|outdoor/i.test((c.cat||"")+" "+(c.name||""));
+      });
+      fl.forEach(function(c){ c.src=FAST[fi][0]; });
+      out=out.concat(fl);
+      nlog("sportstv",true,FAST[fi][0]+": "+fl.length+" sports");
+    }catch(e){ nlog("sportstv",false,FAST[fi][0]+": "+((e&&e.message)||e)); }
+  }
   try{
     var t2=await withTO(fetch("https://raw.githubusercontent.com/Free-TV/IPTV/master/playlist.m3u8",{cache:"no-store"}).then(function(r){return r.text();}),15000);
     var ft=parseM3U(t2).filter(function(c){ return /sport|football|soccer|basketball|cricket|rugby|tennis|golf|racing|motor|fight|boxing|wrestl/i.test((c.cat||"")+" "+(c.name||"")); });
@@ -5654,7 +5676,7 @@ async function tuneSports(ch,sl,my){
           return '<div class="score-card" data-ci="'+i+'" style="cursor:pointer;padding:9px 12px;border-left-color:#8fff5c">'+
             '<div class="score-team-row"><span class="score-status '+(c.verified?"live":"pre")+'" style="margin:0">'+(c.verified?"VERIFIED":"LIVE")+'</span>'+
             '<span class="score-team-name">'+esch(String(c.name).slice(0,46))+'</span>'+
-            '<span style="font:600 10px monospace;color:rgba(159,214,166,.75)">'+esch(String(c.cat||"").slice(0,14))+'</span></div></div>';
+            '<span style="font:600 10px monospace;color:rgba(159,214,166,.75)">'+esch(String(c.src||c.cat||"").slice(0,14))+'</span></div></div>';
         }).join("");
       bodyEl.querySelectorAll("[data-ci]").forEach(function(el){
         el.addEventListener("click",function(){

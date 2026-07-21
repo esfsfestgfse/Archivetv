@@ -4670,6 +4670,13 @@ async function fetchSportsIPTV(){
     return !!(k&&engNames[k]);
   }
   var out=[], gotEng=Object.keys(engUrls).length>0;
+  /* FAST-service channels (Pluto, Samsung TV Plus, Plex, Roku, Tubi) are not carried in
+     iptv-org's language lists, so the intersection test above would reject all of them. They
+     get an exclusion test instead: drop the clearly non-English feeds these services publish
+     alongside the English ones. Heuristic rather than authoritative -- flagged honestly. */
+  function looksNonEnglish(n){
+    return /espa|español|deportes|en fran|fran\u00e7ais|portugu|brasil|italiano|deutsch|latino|\u00f1|\bMX\b|\bBR\b|\bES\b\s*$/i.test(String(n||""));
+  }
   try{
     var t1=await withTO(fetch("https://iptv-org.github.io/iptv/categories/sports.m3u",{cache:"no-store"}).then(function(r){return r.text();}),15000);
     var cat=parseM3U(t1);
@@ -4704,7 +4711,7 @@ async function fetchSportsIPTV(){
       var ftxt=await withTO(fetch(FAST[fi][1],{cache:"no-store"}).then(function(r){return r.text();}),15000);
       var fl=parseM3U(ftxt).filter(function(c){
         return /sport|motorsport|fight|racing|golf|tennis|boxing|ufc|wwe|nfl|nba|mlb|nhl|soccer|football|outdoor/i.test((c.cat||"")+" "+(c.name||""));
-      });
+      }).filter(function(c){ return !looksNonEnglish(c.name); });
       fl.forEach(function(c){ c.src=FAST[fi][0]; });
       out=out.concat(fl);
       nlog("sportstv",true,FAST[fi][0]+": "+fl.length+" sports");

@@ -692,7 +692,7 @@ html,body{height:100vh;overflow:hidden}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.34";
+window.__ATV_BUILD="1.7.7-desktop.35";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -726,7 +726,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.34</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.35</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">THE DIAL · THE SET</div>
@@ -986,6 +986,7 @@ const G={
  gmcountry:  {mt:"audio", col:["georgeblood","78rpm"],  fcol:[],               subj:["hillbilly","country","western","cowboy"], era:[1925,1959], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
  gmgospel:   {mt:"audio", col:["georgeblood","78rpm"],  fcol:[],               subj:["gospel","spiritual","sacred"], era:[1920,1959], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
  gmlatin:    {mt:"audio", col:["georgeblood","78rpm"],  fcol:[],               subj:["tango","rumba","latin","mambo","calypso"], era:[1920,1959], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
+ gmtropical: {mt:"audio", col:["georgeblood","78rpm"],  fcol:[],               subj:["hawaiian","hawaii","steel guitar","hula","calypso","mento","island","ukulele","caribbean","trinidad"], subjRotate:true, era:[1920,1959], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
  gmragtime:  {mt:"audio", col:["georgeblood","78rpm"],  fcol:[],               subj:["ragtime","cakewalk"],       era:[1899,1929], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
  gmclassical:{mt:"audio", col:["georgeblood","78rpm"],  fcol:[],               subj:["classical","symphony","opera","concerto","orchestra"], era:[1917,1959], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
  gmpop:      {mt:"audio", col:["georgeblood","78rpm"],  fcol:[],               subj:["popular","vocal","crooner","standards"], era:[1935,1959], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
@@ -2614,12 +2615,16 @@ setInterval(function(){ if(powered) applyNight(); }, 60000);
    hidden background <audio> element \u2014 auto-advancing to a new track when one ends, like a
    real jukebox. Used by Weather, Brazos River, Tropical Watch, and Deep Space Jazz. */
 var pendingMusicRestart=null;
-var iaJazzToken=0, iaJazzEl=null, iaJazzQueries=null;
+var iaJazzToken=0, iaJazzEl=null, iaJazzQueries=null, iaJazzGenre=null;
 function stopIAJazz(){ iaJazzToken++; if(iaJazzEl){ try{iaJazzEl.pause(); iaJazzEl.src="";}catch(e){} iaJazzEl=null; } }
-function startIAJazz(){
+function startIAJazz(genreKey){
   stopIAJazz(); var my=++iaJazzToken;
   if(muted) return;
-  if(!iaJazzQueries) iaJazzQueries=buildQuery("jazz78",[1920,1949]);
+  /* genre is optional -- everything that called this before still gets the 78rpm jazz it always
+     had; Tropical Watch passes "gmtropical" so a hurricane channel plays Hawaiian/Caribbean
+     records instead of Chicago jazz. Cached per-genre so switching channels rebuilds correctly. */
+  var gk=genreKey||"jazz78";
+  if(!iaJazzQueries||iaJazzGenre!==gk){ iaJazzGenre=gk; iaJazzQueries=buildQuery(gk,(G[gk]&&G[gk].era)||[1920,1949]); }
   var playNext=async function(){
     if(iaJazzToken!==my || !powered) return;
     try{
@@ -4686,7 +4691,7 @@ async function tuneTropical(ch,sl,my){
     '<div class="dc-top" id="tropTop"><span>NHC TROPICAL ACTIVITY — ALL BASINS</span></div>'+
     '<div class="dc-list" id="dcList" style="flex:1 1 auto;min-height:120px;overflow-y:auto"></div>'+
     '<div class="afd-text" id="twoText" style="flex:0 0 auto;max-height:34%;min-height:0;overflow-y:auto">Loading the NHC Tropical Weather Outlook\u2026</div></div></div>'; /* QA FIX: dcList was computing to clientHeight 0 — storms invisible — because twoText out-competed it for space. List now has guaranteed primary space. */
-  clearInterval(tropicalTimer); startIAJazz(); tropImgIdx=0; tropDynImgs=[]; showTropImg(); rtInterval(showTropImg,15000); /* 1.3.2: GOES + NHC + CIMSS + spaghetti + live cones */
+  clearInterval(tropicalTimer); startIAJazz("gmtropical"); tropImgIdx=0; tropDynImgs=[]; showTropImg(); rtInterval(showTropImg,15000); /* 1.3.2: GOES + NHC + CIMSS + spaghetti + live cones */
   var run=async function(){
     if(my!==token||!powered){clearInterval(tropicalTimer);return;}
     var listEl=$("dcList"); if(!listEl)return;
@@ -5241,6 +5246,8 @@ var SPORTS_LIST=[
   {k:"mlb",   label:"MLB",         cat:"Team Sports", espn:"baseball/mlb",                       yt:"MLB"},
   {k:"nhl",   label:"NHL",         cat:"Team Sports", espn:"hockey/nhl",                         yt:"NHL"},
   {k:"wnba",  label:"WNBA",        cat:"Team Sports", espn:"basketball/wnba",                    yt:"wnba"},
+  {k:"wcbb",  label:"WOMEN'S COLLEGE BB", cat:"Team Sports", espn:"basketball/womens-college-basketball", yt:"NCAA"},
+  {k:"cbase", label:"COLLEGE BASEBALL", cat:"Team Sports", espn:"baseball/college-baseball",       yt:"NCAA"},
   {k:"epl",   label:"SOCCER",      cat:"International", espn:"soccer/all",                       yt:"premierleague"},
   {k:"worldcup",label:"WORLD CUP", cat:"International", sdb:"4429",           yt:"FIFA"},
   {k:"lol",   label:"ESPORTS (LOL)", cat:"International", sdb:"4514",         yt:"lolesports"},
@@ -5419,12 +5426,25 @@ async function tuneSports(ch,sl,my){
         '<div class="pop-empty">Box score unavailable for this game \u2014 check DIAG.</div>';
       var backBtn2=$("boxScoreBack"); if(backBtn2) backBtn2.addEventListener("click",function(){ renderScores(); }); }
   }
+  /* QA FIX: "?" was showing wherever ESPN/TheSportsDB didn't populate the two specific name
+     fields originally checked. These widen the chain across every real name field those APIs
+     actually provide (team: displayName/name/location/nickname/abbreviation; athlete:
+     fullName/lastName/shortName/displayName), and fall back to the competitor-level label
+     before ever rendering a placeholder. */
+  function teamName(c){
+    var t=c&&c.team; if(!t) return (c&&(c.displayName||c.name))||"";
+    return t.shortDisplayName||t.abbreviation||t.displayName||t.name||t.nickname||t.location||"";
+  }
+  function athName(c){
+    var a=c&&c.athlete; if(!a) return (c&&(c.displayName||c.name))||"";
+    return a.shortName||a.displayName||a.fullName||a.lastName||a.name||"";
+  }
   function renderTeamCard(ev,comp,competitors,favs){
     var home=competitors.find(function(c){return c.homeAway==="home";})||competitors[0]||{};
     var away=competitors.find(function(c){return c.homeAway==="away";})||competitors[1]||{};
     var homeId=home.team&&home.team.id, awayId=away.team&&away.team.id;
-    var homeName=(home.team&&(home.team.shortDisplayName||home.team.abbreviation))||"?";
-    var awayName=(away.team&&(away.team.shortDisplayName||away.team.abbreviation))||"?";
+    var homeName=teamName(home)||"TBD";
+    var awayName=teamName(away)||"TBD";
     var homeFav=homeId&&favs[curSport.k+":"+homeId], awayFav=awayId&&favs[curSport.k+":"+awayId];
     var stateType=(ev.status&&ev.status.type&&ev.status.type.state)||"";
     var statusClass=stateType==="in"?"live":stateType==="post"?"final":"pre";
@@ -5449,8 +5469,8 @@ async function tuneSports(ch,sl,my){
   function renderAthleteMatchCard(ev,comp,competitors){
     var home=competitors.find(function(c){return c.homeAway==="home";})||competitors[0]||{};
     var away=competitors.find(function(c){return c.homeAway==="away";})||competitors[1]||{};
-    var homeName=(home.athlete&&(home.athlete.shortName||home.athlete.displayName))||"?";
-    var awayName=(away.athlete&&(away.athlete.shortName||away.athlete.displayName))||"?";
+    var homeName=athName(home)||teamName(home)||"TBD";
+    var awayName=athName(away)||teamName(away)||"TBD";
     var homeFlag=home.athlete&&home.athlete.flag&&home.athlete.flag.href;
     var awayFlag=away.athlete&&away.athlete.flag&&away.athlete.flag.href;
     var stateType=(ev.status&&ev.status.type&&ev.status.type.state)||"";
@@ -5476,7 +5496,7 @@ async function tuneSports(ch,sl,my){
     var isGolf=curSport.k==="pga"||curSport.k==="lpga";
     var sorted=competitors.slice().sort(function(a,b){return (a.order||99)-(b.order||99);});
     var rows=sorted.map(function(c,i){
-      var name=(c.athlete&&(c.athlete.shortName||c.athlete.displayName))||"?";
+      var name=athName(c)||teamName(c)||"TBD";
       var flag=c.athlete&&c.athlete.flag&&c.athlete.flag.href;
       var score=c.score!=null?String(c.score):"";
       var stats=(c.statistics||[]).filter(function(s){return s.displayValue!=null&&s.displayValue!=="";});
@@ -5568,7 +5588,13 @@ async function tuneSports(ch,sl,my){
     }
     try{
       if(!curSport.espn) throw new Error("standings only available for ESPN-covered sports right now");
-      var d=await fetchJSON("https://site.api.espn.com/apis/site/v2/sports/"+curSport.espn+"/standings");
+      /* QA FIX: ESPN's standings live on /apis/v2/ -- the /apis/site/v2/ path used before
+         returns a stub for at least NHL, which is why some sports showed thin/empty standings.
+         Try the correct path first, keep the old one as a fallback so nothing that already
+         worked can regress. */
+      var d=null;
+      try{ d=await fetchJSON("https://site.api.espn.com/apis/v2/sports/"+curSport.espn+"/standings"); }catch(e1){ d=null; }
+      if(!d||(!d.children&&!d.standings)) { try{ d=await fetchJSON("https://site.api.espn.com/apis/site/v2/sports/"+curSport.espn+"/standings"); }catch(e2){} }
       if(my!==token||sportsSubView!=="standings")return;
       var groups=(d&&d.children&&d.children.length)?d.children:(d&&d.standings?[{name:curSport.label,standings:d.standings}]:[]);
       var favs=getFavTeams(); var html="";

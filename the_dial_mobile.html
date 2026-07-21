@@ -517,11 +517,16 @@ html,body{height:100vh;overflow:hidden}
 .score-odds{margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.08);font:600 11px monospace;color:rgba(159,214,166,.75)}
 .score-fav-star{color:#8fff5c;font-size:14px;margin-right:2px}
 .sports-dropdown{appearance:none;-webkit-appearance:none;width:100%;background:linear-gradient(180deg,#0d1f10,#081409);
-  color:#8fff5c;border:1px solid rgba(143,255,92,.4);border-radius:9px;padding:11px 36px 11px 14px;
-  font:800 14px system-ui,-apple-system,sans-serif;letter-spacing:.5px;cursor:pointer;
+  color:#8fff5c;border:1px solid rgba(143,255,92,.4);border-radius:7px;padding:7px 30px 7px 11px;
+  font:800 12px system-ui,-apple-system,sans-serif;letter-spacing:.4px;cursor:pointer;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238fff5c' stroke-width='3'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
   background-repeat:no-repeat;background-position:right 12px center;background-size:16px}
 .sports-dropdown option{background:#0d1f10;color:#eafff0}
+/* compact sports chrome: measured on a real device screenshot, the picker + sub-tabs were
+   consuming a large share of the viewport before any score was visible. Scoped to Sports
+   Center so the shared .catchip styling elsewhere in the app is unaffected. */
+#sportsSubPicker .catchip{font-size:9px;letter-spacing:.6px;padding:4px 8px;border-radius:14px}
+#sportsSubPicker{padding-bottom:4px!important}
 .dc-row2-main{display:flex;align-items:center;gap:10px;font-size:clamp(12px,2vmin,20px)}
 .dc-row2-sub{font-size:clamp(10px,1.6vmin,15px);color:#8fb3ff;margin-top:3px;letter-spacing:.3px}
 
@@ -834,7 +839,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.66";
+window.__ATV_BUILD="1.7.7-mobile.67";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -868,7 +873,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.66</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.67</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -5510,7 +5515,7 @@ async function tuneSports(ch,sl,my){
   clearInterval(sportsTimer);
 
   function renderSubPicker(){
-    var views=[["scores","SCORES"],["standings","STANDINGS"],["news","NEWS"],["injuries","INJURIES"],["highlights","HIGHLIGHTS"]];
+    var views=[["scores","SCORES"],["standings","STANDINGS"],["news","NEWS"],["injuries","INJURIES"],["highlights","HIGHLIGHTS"],["livetv","LIVE TV"]];
     subPickerEl.innerHTML=views.map(function(v){
       return '<button class="catchip" data-sv="'+v[0]+'" style="border-color:#8fff5c;color:#8fff5c'+(sportsSubView===v[0]?';background:rgba(143,255,92,.18)':'')+'">'+v[1]+'</button>';
     }).join("");
@@ -5524,7 +5529,40 @@ async function tuneSports(ch,sl,my){
     else if(sportsSubView==="standings") renderStandings();
     else if(sportsSubView==="news") renderNews();
     else if(sportsSubView==="injuries") renderInjuries();
+    else if(sportsSubView==="livetv") renderSportsTV();
     else renderHighlights();
+  }
+  async function renderSportsTV(){
+    bodyEl.innerHTML='<div class="pop-empty">Loading live sports channels\u2026</div>';
+    try{
+      ensureTVCSS();
+      var all=await fetchIPTV();
+      if(my!==token||sportsSubView!=="livetv")return;
+      /* iptv-org tags every channel with its group-title; sports channels are already in the
+         same list Live TV uses, so this needs no new source -- just the sports slice of it. */
+      var seen={}, chans=all.filter(function(c){ return /sport|football|soccer|basketball|cricket|rugby|tennis|golf|racing|motor|fight|boxing|wrestl/i.test(c.cat||"")
+                                                     || /sport|espn|bein|dazn|fight|racing|golf|tennis/i.test(c.name||""); })
+        .filter(function(c){ var k=(c.name||"").toLowerCase(); if(seen[k])return false; seen[k]=1; return true; }).slice(0,80);
+      if(!chans.length){ bodyEl.innerHTML='<div class="pop-empty">No live sports channels available from iptv-org right now.</div>'; return; }
+      bodyEl.innerHTML='<div id="tvPane" style="width:100%;aspect-ratio:16/9;background:#000;border-radius:8px;overflow:hidden;margin-bottom:8px;position:relative"></div>'+
+        '<div style="font:700 10px monospace;color:#9fd6a6;margin-bottom:6px">'+chans.length+' LIVE SPORTS CHANNELS \u00b7 iptv-org</div>'+
+        chans.map(function(c,i){
+          return '<div class="score-card" data-ci="'+i+'" style="cursor:pointer;padding:9px 12px;border-left-color:#8fff5c">'+
+            '<div class="score-team-row"><span class="score-status live" style="margin:0">LIVE</span>'+
+            '<span class="score-team-name">'+esch(String(c.name).slice(0,46))+'</span>'+
+            '<span style="font:600 10px monospace;color:rgba(159,214,166,.75)">'+esch(String(c.cat||"").slice(0,14))+'</span></div></div>';
+        }).join("");
+      bodyEl.querySelectorAll("[data-ci]").forEach(function(el){
+        el.addEventListener("click",function(){
+          bodyEl.querySelectorAll("[data-ci]").forEach(function(x){x.style.background="";});
+          el.style.background="rgba(143,255,92,.14)";
+          var i=+el.dataset.ci; playTV(chans[i],my,chans,i,1);
+          try{ bodyEl.scrollTop=0; }catch(e){}
+        });
+      });
+      nlog("sportstv",true,chans.length+" sports channels");
+    }catch(e){ nlog("sportstv",false,(e&&e.message)||e);
+      bodyEl.innerHTML='<div class="pop-empty">Live sports channels unavailable \u2014 check DIAG.</div>'; }
   }
   async function renderNews(){
     bodyEl.innerHTML='<div class="pop-empty">Loading news\u2026</div>';
@@ -5608,8 +5646,13 @@ async function tuneSports(ch,sl,my){
     bodyEl.querySelectorAll("[data-eventid]").forEach(function(card){
       var eid=card.dataset.eventid; if(!eid)return;
       var pid=card.dataset.playerid;
-      if(pid) card.addEventListener("click",function(){ renderGolfScorecard(eid,pid); });
-      else card.addEventListener("click",function(){ renderBoxScore(eid); });
+      if(pid){ card.addEventListener("click",function(){ renderGolfScorecard(eid,pid); }); return; }
+      /* QA FIX (seen live in DIAG as "sportsbox ... Fail"): box scores come from ESPN's summary
+         endpoint, so only wire the tap for ESPN-backed sports. TheSportsDB events started
+         carrying an idEvent, which made boxing/ONE cards clickable into a URL with an
+         undefined sport slug. */
+      if(!curSport.espn){ card.style.cursor="default"; return; }
+      card.addEventListener("click",function(){ renderBoxScore(eid); });
     });
   }
   async function renderBoxScore(eventId){
@@ -6052,6 +6095,9 @@ async function tuneSports(ch,sl,my){
           return ls.length?ls.join("-"):""; }
         var an=nm(a), hn=nm(h); if(!an&&!hn)return;
         var as=sc(a), hs=sc(h);
+        /* QA FIX (seen live: "BOXING - @ U-Next Boxing"): single-competitor events have no away
+           side, so render the event name alone rather than a dangling "@". */
+        if(!an||cs.length<2){ parts.push(hn+(hs?(" "+hs):"")+(st?("  "+st):"")); return; }
         parts.push(an+(as?(" "+as):"")+" @ "+hn+(hs?(" "+hs):"")+(st?("  "+st):""));
       });
     }catch(e){}

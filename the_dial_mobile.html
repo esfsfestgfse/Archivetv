@@ -842,7 +842,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.71";
+window.__ATV_BUILD="1.7.7-mobile.72";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -876,7 +876,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.71</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.72</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -4594,8 +4594,23 @@ async function tuneArt(ch,sl,my){
 }
 
 /* ---------- Live TV: genre aggregator from iptv-org, played through the user's stream proxy ---------- */
-function streamProxyBase(){ return String(store.get("streamProxy","https://tv-proxy.tdy1990.workers.dev")||"").trim().replace(/\/+$/,""); }
-function proxied(u){ var b=streamProxyBase(); return b?(b+"/?url="+encodeURIComponent(u)):u; }
+function streamProxyList(){
+  /* The proxy setting now accepts a comma-separated list. Streams get retried through each
+     proxy in turn before giving up, so one dead/rate-limited proxy no longer kills a channel.
+     Add more in SETTINGS as: https://proxy-a.example, https://proxy-b.example */
+  return String(store.get("streamProxy","https://tv-proxy.tdy1990.workers.dev")||"")
+    .split(",").map(function(x){ return x.trim().replace(/\/+$/,""); }).filter(Boolean);
+}
+function streamProxyBase(){ return streamProxyList()[0]||""; }
+function proxiedVia(base,u,opts){
+  if(!base) return u;
+  var q=base+"/?url="+encodeURIComponent(u);
+  /* passed through for proxies that honour them; harmlessly ignored by ones that don't */
+  if(opts&&opts.ua) q+="&ua="+encodeURIComponent(opts.ua);
+  if(opts&&opts.ref) q+="&referer="+encodeURIComponent(opts.ref);
+  return q;
+}
+function proxied(u,opts){ return proxiedVia(streamProxyBase(),u,opts); }
 var IPTV_TABS=[
  {label:"NEWS",re:/news/i},{label:"SPORTS",re:/sport/i},{label:"WEATHER",re:/weather/i},
  {label:"MOVIES",re:/movie|cinema|film/i},{label:"ENTERTAIN",re:/entertain|comedy|series|drama|classic/i},
@@ -4614,11 +4629,21 @@ var iptvCache=null, tvHls=null, sportsIptvCache=null;
    Both are parsed with the same M3U reader already proven for Live TV. Either failing alone
    still leaves a usable list. */
 function parseM3U(text){
+  /* Also captures the per-stream user-agent / referrer directives that appear in real
+     playlists (#EXTVLCOPT and the inline :http-user-agent= form). A lot of streams reject
+     requests without them, which is one real reason a channel "loads nothing" -- a browser
+     can't set those headers itself, so they get handed to the proxy instead. */
   var out=[], lines=String(text||"").split("\n"), cur=null;
   for(var k=0;k<lines.length;k++){ var ln=lines[k].trim();
     if(ln.indexOf("#EXTINF")===0){ var gm=/group-title="([^"]*)"/.exec(ln);
       var nm=ln.split(",").slice(1).join(",").trim();
-      cur={name:nm||"Channel",cat:(gm&&gm[1])||"Sports"}; }
+      if(nm.indexOf(":http-")>-1) nm=nm.split(":http-")[0].trim();
+      cur={name:nm||"Channel",cat:(gm&&gm[1])||"Sports"};
+      var ua=/http-user-agent="?([^"\n]*)"?/i.exec(ln); if(ua&&ua[1]) cur.ua=ua[1].trim();
+      var rf=/http-referrer="?([^"\n]*)"?/i.exec(ln); if(rf&&rf[1]) cur.ref=rf[1].trim(); }
+    else if(ln.indexOf("#EXTVLCOPT")===0&&cur){
+      var m1=/http-user-agent=(.*)$/i.exec(ln); if(m1&&m1[1]) cur.ua=m1[1].trim();
+      var m2=/http-referrer=(.*)$/i.exec(ln); if(m2&&m2[1]) cur.ref=m2[1].trim(); }
     else if(ln&&ln.charAt(0)!=="#"&&cur){ if(/^https?:/i.test(ln)&&/\.m3u8/i.test(ln)){ cur.url=ln; out.push(cur); } cur=null; }
   }
   return out;
@@ -4652,6 +4677,17 @@ async function fetchSportsIPTV(){
     out=out.concat(keep);
     nlog("sportstv",true,"iptv-org sports: "+cat.length+" -> "+keep.length+" English");
   }catch(e){ nlog("sportstv",false,"iptv-org sports category: "+((e&&e.message)||e)); }
+  try{
+    /* world_ip_tv runs an automated checker every 6h (HTTP 200 + stream response) and purges
+       dead channels, so its entries have a much higher chance of actually playing than a raw
+       community list. Best available answer to "why doesn't this channel load". */
+    var t3=await withTO(fetch("https://romaxa55.github.io/world_ip_tv/output/index.m3u",{cache:"no-store"}).then(function(r){return r.text();}),15000);
+    var wv=parseM3U(t3).filter(function(c){ return /sport|football|soccer|basketball|cricket|rugby|tennis|golf|racing|motor|fight|boxing|wrestl/i.test((c.cat||"")+" "+(c.name||"")); });
+    var wvKeep=gotEng?wv.filter(isEnglish):wv;
+    wvKeep.forEach(function(c){ c.verified=true; });
+    out=out.concat(wvKeep);
+    nlog("sportstv",true,"world_ip_tv (auto-verified): "+wv.length+" -> "+wvKeep.length+" English");
+  }catch(e){ nlog("sportstv",false,"world_ip_tv: "+((e&&e.message)||e)); }
   try{
     var t2=await withTO(fetch("https://raw.githubusercontent.com/Free-TV/IPTV/master/playlist.m3u8",{cache:"no-store"}).then(function(r){return r.text();}),15000);
     var ft=parseM3U(t2).filter(function(c){ return /sport|football|soccer|basketball|cricket|rugby|tennis|golf|racing|motor|fight|boxing|wrestl/i.test((c.cat||"")+" "+(c.name||"")); });
@@ -4687,26 +4723,35 @@ async function loadTVCat(tab,my){
   listEl.querySelectorAll("[data-ci]").forEach(function(el){ el.addEventListener("click",function(){
     listEl.querySelectorAll("[data-ci]").forEach(function(x){x.classList.remove("sel");}); el.classList.add("sel"); playTV(chans[+el.dataset.ci],my,chans,+el.dataset.ci,1); }); });
 }
-async function playTV(c,my,list,idx,triedCount){
+async function playTV(c,my,list,idx,triedCount,proxyIdx){
   var pane=$("tvPane"); if(!pane||!c)return;
-  list=list||[c]; idx=idx==null?0:idx; triedCount=triedCount||1;
+  list=list||[c]; idx=idx==null?0:idx; triedCount=triedCount||1; proxyIdx=proxyIdx||0;
   try{ if(tvHls){tvHls.destroy();tvHls=null;} }catch(e){}
   var hasProxy=!!streamProxyBase();
   var v=document.createElement("video"); v.setAttribute("playsinline","");v.muted=true;v.autoplay=true;v.controls=true;
   v.style.cssText="width:100%;height:100%;object-fit:contain;background:#000;display:block";
   pane.innerHTML=""; pane.appendChild(v);
   var cap=document.createElement("div");cap.className="dc-media-cap";cap.textContent="LIVE: "+String(c.name).toUpperCase()+(hasProxy?" · via your proxy":" · direct");pane.appendChild(cap);
-  var src=proxied(c.url);
+  var proxies=streamProxyList();
+  var src=proxies.length?proxiedVia(proxies[Math.min(proxyIdx,proxies.length-1)],c.url,{ua:c.ua,ref:c.ref}):c.url;
   function highlightRow(i){ var l=$("dcList"); if(!l)return; l.querySelectorAll("[data-ci]").forEach(function(x){x.classList.remove("sel");});
     var r=l.querySelector('[data-ci="'+i+'"]'); if(r)r.classList.add("sel"); }
   function fail(m){ if(my!==token)return; nlog("livetv",false,c.name+": "+m);
+    /* try the SAME channel through the next configured proxy before writing it off -- a stream
+       that fails on one proxy very often works on another (rate limits, blocked origins). Only
+       after every proxy has been tried do we move on to the next channel. */
+    if(proxyIdx+1<proxies.length){
+      nlog("livetv",false,c.name+": retrying via proxy "+(proxyIdx+2)+"/"+proxies.length);
+      setTimeout(function(){ if(my===token) playTV(c,my,list,idx,triedCount,proxyIdx+1); },400);
+      return;
+    }
     if(triedCount<Math.min(list.length,8)){ /* QA FIX: auto-advance instead of dead-ending -- iptv-org's
         own maintainers confirmed they no longer automatically verify stream health, so individual
         entries in the playlist can be stale; cap at 8 tries so a genuinely offline proxy doesn't spin forever */
       var nextIdx=(idx+1)%list.length; var p=$("tvPane");
       if(p)p.innerHTML='<div class="dc-media-cap">'+esch(String(c.name).toUpperCase())+' is down \u2014 trying '+esch(list[nextIdx].name)+'\u2026</div>';
       highlightRow(nextIdx);
-      setTimeout(function(){ if(my===token) playTV(list[nextIdx],my,list,nextIdx,triedCount+1); },600);
+      setTimeout(function(){ if(my===token) playTV(list[nextIdx],my,list,nextIdx,triedCount+1,0); },600);
     } else {
       var p2=$("tvPane"); if(p2)p2.innerHTML='<div class="dc-media-cap">Several channels in this genre failed to connect'+(hasProxy?'':' — set a stream proxy (\u2699 above) to unlock live TV')+'. Try a different genre or check DIAG.</div>';
     }
@@ -5595,15 +5640,19 @@ async function tuneSports(ch,sl,my){
       /* QA FIX: this used to cap at 120 channels, which silently truncated the list partway
          through the alphabet -- it looked like the channel list "stopped at S". No cap now;
          sorted A-Z so it's actually browsable. */
-      var seen={}, chans=all.filter(function(c){ var k=(c.name||"").toLowerCase().replace(/\s+/g," ").trim();
-        if(!k||seen[k])return false; seen[k]=1; return true; });
+      /* dedupe preferring auto-verified entries, so when the same channel appears in more than
+         one source we keep the copy most likely to actually play */
+      var byName={};
+      all.forEach(function(c){ var k=(c.name||"").toLowerCase().replace(/\s+/g," ").trim(); if(!k)return;
+        if(!byName[k]||(c.verified&&!byName[k].verified)) byName[k]=c; });
+      var chans=Object.keys(byName).map(function(k){ return byName[k]; });
       chans.sort(function(a,b){ return String(a.name||"").toLowerCase().localeCompare(String(b.name||"").toLowerCase()); });
       if(!chans.length){ bodyEl.innerHTML='<div class="pop-empty">No live sports channels available from iptv-org right now.</div>'; return; }
       bodyEl.innerHTML='<div id="tvPane" style="width:100%;aspect-ratio:16/9;background:#000;border-radius:8px;overflow:hidden;margin-bottom:8px;position:relative"></div>'+
-        '<div style="font:700 10px monospace;color:#9fd6a6;margin-bottom:6px">'+chans.length+' ENGLISH LIVE SPORTS \u00b7 iptv-org + Free-TV</div>'+
+        '<div style="font:700 10px monospace;color:#9fd6a6;margin-bottom:6px">'+chans.length+' ENGLISH LIVE SPORTS \u00b7 \u2713VERIFIED FIRST</div>'+
         chans.map(function(c,i){
           return '<div class="score-card" data-ci="'+i+'" style="cursor:pointer;padding:9px 12px;border-left-color:#8fff5c">'+
-            '<div class="score-team-row"><span class="score-status live" style="margin:0">LIVE</span>'+
+            '<div class="score-team-row"><span class="score-status '+(c.verified?"live":"pre")+'" style="margin:0">'+(c.verified?"VERIFIED":"LIVE")+'</span>'+
             '<span class="score-team-name">'+esch(String(c.name).slice(0,46))+'</span>'+
             '<span style="font:600 10px monospace;color:rgba(159,214,166,.75)">'+esch(String(c.cat||"").slice(0,14))+'</span></div></div>';
         }).join("");

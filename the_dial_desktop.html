@@ -700,7 +700,7 @@ html,body{height:100vh;overflow:hidden}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.52";
+window.__ATV_BUILD="1.7.7-desktop.53";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -734,7 +734,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.52</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.53</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">THE DIAL · THE SET</div>
@@ -5668,9 +5668,10 @@ async function tuneSports(ch,sl,my){
         if(!byName[k]||(c.verified&&!byName[k].verified)) byName[k]=c; });
       var chans=Object.keys(byName).map(function(k){ return byName[k]; });
       sortByHealthThenName(chans);
+      var culledS=cullDead(chans); chans=culledS.list;
       if(!chans.length){ bodyEl.innerHTML='<div class="pop-empty">No live sports channels available from iptv-org right now.</div>'; return; }
       bodyEl.innerHTML='<div id="tvPane" style="width:100%;aspect-ratio:16/9;background:#000;border-radius:8px;overflow:hidden;margin-bottom:8px;position:relative"></div>'+
-        '<div style="font:700 10px monospace;color:#9fd6a6;margin-bottom:6px">'+chans.length+' ENGLISH LIVE SPORTS \u00b7 \u2713VERIFIED FIRST</div>'+
+        '<div style="font:700 10px monospace;color:#9fd6a6;margin-bottom:6px">'+chans.length+' ENGLISH LIVE SPORTS'+(culledS.hidden?(' \u00b7 '+culledS.hidden+' DEAD HIDDEN'):'')+'</div>'+
         chans.map(function(c,i){
           return '<div class="score-card" data-ci="'+i+'" style="cursor:pointer;padding:9px 12px;border-left-color:#8fff5c">'+
             '<div class="score-team-row"><span class="score-status '+(c.verified?"live":"pre")+'" style="margin:0">'+(c.verified?"VERIFIED":"LIVE")+'</span>'+
@@ -5838,6 +5839,39 @@ async function tuneSports(ch,sl,my){
     var accentColor=(home.team&&home.team.color)?("#"+home.team.color):"#67ff86";
     var homeLogo=espnLogoUrl(home.team,curSport.espn), awayLogo=espnLogoUrl(away.team,curSport.espn);
     var odds=comp&&comp.odds&&comp.odds[0]&&comp.odds[0].details;
+    /* ESPN already returns venue, broadcast network, weather and series/bowl notes on the same
+       scoreboard response -- all of it was being fetched and discarded. Surfaced here so a card
+       reads like a TV lower-third instead of just two names and a number. Every field is
+       optional and simply omitted when absent, so thin sports degrade quietly. */
+    var venue = comp&&comp.venue&&comp.venue.fullName;
+    var venueCity = comp&&comp.venue&&comp.venue.address&&
+                    [comp.venue.address.city,comp.venue.address.state].filter(Boolean).join(", ");
+    var bcast = (function(){
+      var b=(comp&&comp.broadcasts)||[];
+      for(var i=0;i<b.length;i++){
+        if(b[i].names&&b[i].names.length) return b[i].names.join("/");
+        if(b[i].media&&b[i].media.shortName) return b[i].media.shortName;
+        if(b[i].shortName) return b[i].shortName;
+      }
+      var g=(comp&&comp.geoBroadcasts)||[];
+      if(g[0]&&g[0].media&&g[0].media.shortName) return g[0].media.shortName;
+      return "";
+    })();
+    var wx = (function(){
+      var w=ev&&ev.weather; if(!w)return "";
+      var t=(w.temperature!=null?w.temperature:w.highTemperature);
+      var c=w.displayValue||w.conditionId||"";
+      return [t!=null?(t+"\u00b0F"):"",c].filter(Boolean).join(" ");
+    })();
+    var noteTxt = (comp&&comp.notes&&comp.notes[0]&&(comp.notes[0].headline||comp.notes[0].type))||"";
+    var seriesTxt = (function(){
+      var sr=comp&&comp.series; if(!sr)return "";
+      if(sr.summary) return sr.summary;
+      if(sr.completed!=null&&sr.totalCompetitions) return "Game "+((sr.completed||0)+1)+" of "+sr.totalCompetitions;
+      return "";
+    })();
+    var infoLine=[noteTxt,seriesTxt,venue&&("\ud83c\udfdf "+venue+(venueCity?(" \u00b7 "+venueCity):"")),
+                  bcast&&("\ud83d\udcfa "+bcast), wx&&("\u26c5 "+wx)].filter(Boolean).join("   \u00b7   ");
     function teamRow(logo,name,score,isFav){
       return '<div class="score-team-row">'+
         (logo?'<img class="score-team-logo" src="'+esch(logo)+'" onerror="this.style.visibility=\'hidden\'">':'<span class="score-team-logo"></span>')+
@@ -5849,6 +5883,7 @@ async function tuneSports(ch,sl,my){
       '<span class="score-status '+statusClass+'">'+esch(statusText.toUpperCase())+'</span>'+
       (away.team?teamRow(awayLogo,awayName,away.score,awayFav):"")+
       teamRow(homeLogo,homeName,home.score,homeFav)+
+      (infoLine?'<div class="score-odds">'+esch(infoLine)+'</div>':'')+
       (odds?'<div class="score-odds">'+esch(odds)+'</div>':'')+
       (ev._meta?'<div class="score-odds">'+esch(ev._meta)+'</div>':'')+
       '</div>';
@@ -6123,12 +6158,14 @@ async function tuneSports(ch,sl,my){
             ev.competitions.forEach(function(c){
               var label=ev.shortName||ev.name||"";
               if(multi&&c.type&&c.type.abbreviation) label+=" \u2014 "+c.type.abbreviation;
-              flat.push({id:c.id||ev.id,status:c.status||ev.status,competitions:[c],shortName:label});
+              /* carry event-level fields through the flatten -- weather lives on the event, not
+                 the competition, and was being dropped here before the card could read it */
+              flat.push({id:c.id||ev.id,status:c.status||ev.status,competitions:[c],shortName:label,weather:ev.weather,season:ev.season});
             });
           }
           else if(ev.groupings){ /* tennis-style: real matches live nested inside groupings, not on the event directly */
             ev.groupings.forEach(function(g){
-              (g.competitions||[]).forEach(function(c){ flat.push({status:c.status,competitions:[c],shortName:ev.shortName||ev.name}); });
+              (g.competitions||[]).forEach(function(c){ flat.push({status:c.status,competitions:[c],shortName:ev.shortName||ev.name,weather:ev.weather,season:ev.season}); });
             });
           }
         });

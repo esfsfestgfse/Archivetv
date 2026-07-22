@@ -700,7 +700,7 @@ html,body{height:100vh;overflow:hidden}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.50";
+window.__ATV_BUILD="1.7.7-desktop.51";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -734,7 +734,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.50</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.51</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">THE DIAL · THE SET</div>
@@ -4696,12 +4696,24 @@ async function playTV(c,my,list,idx,triedCount,proxyIdx){
     },secs*1000);
   }
 
-  if(v.canPlayType("application/vnd.apple.mpegurl")){
-    v.src=src; try{var pT=v.play(); if(pT&&pT.catch)pT.catch(function(){});}catch(e){}
-    startWatch(15); nlog("livetv",true,c.name+" (native, awaiting frame)"); return;
+  /* hls.js FIRST, native second. Android Chrome reports it can play HLS natively, so the old
+     order took the native path and returned early -- meaning on the actual target device none
+     of the recovery logic (startLoad / recoverMediaError) or detailed error reporting ever ran,
+     and flaky native HLS failures looked like dead channels. Where MSE is available hls.js is
+     both more reliable and far more diagnosable; native remains the fallback (iOS, and any
+     device without MSE). */
+  var Hls=null;
+  try{ Hls=await loadHlsLib(); }catch(e){ nlog("livetv",false,"hls.js unavailable: "+((e&&e.message)||e)); }
+  if(my!==token)return;
+  if(!(Hls&&Hls.isSupported())){
+    if(v.canPlayType("application/vnd.apple.mpegurl")){
+      v.src=src; try{var pT=v.play(); if(pT&&pT.catch)pT.catch(function(){});}catch(e){}
+      startWatch(15); nlog("livetv",true,c.name+" (native HLS, awaiting frame)"); return;
+    }
+    fail("no HLS support on this device"); return;
   }
-  try{ var Hls=await loadHlsLib(); if(my!==token)return;
-    if(Hls&&Hls.isSupported()){
+  try{
+    {
       tvHls=new Hls({liveDurationInfinity:true});
       tvHls.loadSource(src); tvHls.attachMedia(v);
       var netRecover=0, medRecover=0;
@@ -4726,10 +4738,7 @@ async function playTV(c,my,list,idx,triedCount,proxyIdx){
         try{tvHls.destroy();}catch(e){} tvHls=null;
         fail("hls "+(d.type||"")+" "+(d.details||""));
       });
-      nlog("livetv",true,c.name+" (hls, awaiting frame)");
-    } else {
-      v.src=src; try{var pT3=v.play(); if(pT3&&pT3.catch)pT3.catch(function(){});}catch(e){}
-      startWatch(15);
+      nlog("livetv",true,c.name+" (hls.js, awaiting frame)");
     }
   }catch(e){ fail((e&&e.message)||e); }
 }

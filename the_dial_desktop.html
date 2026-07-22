@@ -700,7 +700,7 @@ html,body{height:100vh;overflow:hidden}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.48";
+window.__ATV_BUILD="1.7.7-desktop.49";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -734,7 +734,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.48</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.49</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">THE DIAL · THE SET</div>
@@ -4567,7 +4567,7 @@ async function loadTVCat(tab,my){
   sortByHealthThenName(chans);
   var t=$("tvTitle"); if(t)t.textContent="LIVE TV / "+tab.label;
   if(!chans.length){ listEl.innerHTML='<div class="pop-empty">No channels in this genre right now.</div>'; return; }
-  listEl.innerHTML=chans.map(function(c,i){return '<div class="dc-row2" data-ci="'+i+'"><div class="dc-row2-main"><span class="dc-mag dc-sev-low">TV</span><span class="dc-place">'+esch(c.name.slice(0,46))+'</span><span class="dc-when">'+esch(c.cat.slice(0,16))+'</span></div></div>';}).join("");
+  listEl.innerHTML=chans.map(function(c,i){var rad=looksRadio(c);return '<div class="dc-row2" data-ci="'+i+'"><div class="dc-row2-main"><span class="dc-mag '+(rad?"dc-sev-mid":"dc-sev-low")+'">'+(rad?"\u266A":"TV")+'</span><span class="dc-place">'+esch(c.name.slice(0,46))+'</span><span class="dc-when">'+esch((rad?"AUDIO \u00b7 ":"")+String(c.cat||"").slice(0,14))+'</span></div></div>';}).join("");
   listEl.querySelectorAll("[data-ci]").forEach(function(el){ el.addEventListener("click",function(){
     listEl.querySelectorAll("[data-ci]").forEach(function(x){x.classList.remove("sel");}); el.classList.add("sel"); playTV(chans[+el.dataset.ci],my,chans,+el.dataset.ci,1); }); });
 }
@@ -4586,6 +4586,12 @@ function tvHealthAll(){
       if(n++>TVH_MAX) break; out[k]=o[k]; }
     return out;
   }catch(e){ return {}; }
+}
+/* Radio simulcasts are common in the English IPTV lists and legitimately have no picture.
+   Flagging them up front means a black-but-working stream isn't mistaken for a broken one. */
+function looksRadio(c){
+  return /\bradio\b|\bFM\b|\bAM\b|\bLBC\b|talkSPORT|\b2GB\b|\b3AW\b|\bWBZ\b/i.test(String((c&&c.name)||""))
+      || /radio/i.test(String((c&&c.cat)||""));
 }
 function tvHealthKey(c){ return String((c&&(c.url||c.name))||"").slice(0,180); }
 function tvHealthSave(o){ try{ store.set(TVH_KEY,o); }catch(e){} }
@@ -4652,10 +4658,21 @@ async function playTV(c,my,list,idx,triedCount,proxyIdx){
   function clearWatch(){ if(watchdog){clearTimeout(watchdog);watchdog=null;} }
   function firstFrameOk(){
     if(settled||my!==token)return;
-    if(!(v.videoWidth>0))return;            /* audio-only / no decodable video track */
-    if(!(v.currentTime>0))return;           /* decoded but not advancing */
-    settled=true; clearWatch(); markTvOk(c);
-    nlog("livetv",true,c.name+" playing "+v.videoWidth+"x"+v.videoHeight);
+    if(!(v.currentTime>0))return;           /* nothing decoded yet */
+    if(v.videoWidth>0){
+      settled=true; clearWatch(); markTvOk(c);
+      nlog("livetv",true,c.name+" playing "+v.videoWidth+"x"+v.videoHeight);
+      return;
+    }
+    /* AUDIO-ONLY: a lot of what iptv-org carries under English is radio (2GB Sydney, etc).
+       The clock is advancing and audio is decoding -- that stream IS working, it simply has no
+       picture. Failing it over was wrong; label it instead so the black screen is explained. */
+    if(v.readyState>=2){
+      settled=true; clearWatch(); markTvOk(c);
+      var capA=pane.querySelector(".dc-media-cap");
+      if(capA) capA.textContent="\u266A AUDIO ONLY \u00b7 "+String(c.name).toUpperCase()+" (radio \u2014 no video track)";
+      nlog("livetv",true,c.name+" audio-only stream (radio)");
+    }
   }
   v.addEventListener("timeupdate",firstFrameOk);
   v.addEventListener("loadeddata",firstFrameOk);
@@ -4664,7 +4681,8 @@ async function playTV(c,my,list,idx,triedCount,proxyIdx){
     watchdog=setTimeout(function(){
       if(settled||my!==token)return;
       var why = (v.videoWidth>0) ? "stalled after first frame"
-              : (v.readyState>0 ? "no decodable video track (codec/audio-only)" : "no data");
+              : (v.readyState>=2 ? "decoding but no picture and no audio progress"
+              : (v.readyState>0 ? "opened but never decoded (codec unsupported?)" : "no data"));
       settled=true; try{ if(tvHls){tvHls.destroy();tvHls=null;} }catch(e){}
       fail(why);
     },secs*1000);

@@ -700,7 +700,7 @@ html,body{height:100vh;overflow:hidden}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.46";
+window.__ATV_BUILD="1.7.7-desktop.47";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -734,7 +734,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.46</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.47</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">THE DIAL · THE SET</div>
@@ -4564,13 +4564,49 @@ async function loadTVCat(tab,my){
   /* QA FIX: with four sources concatenated (iptv-org, Roku, Pluto, Tubi) the list ran A-Z per
      source and then restarted, which reads as the alphabet "stopping" partway. Sort the merged
      list so it is genuinely browsable end to end. */
-  chans.sort(function(a,b){ return String(a.name||"").toLowerCase().localeCompare(String(b.name||"").toLowerCase()); });
-  chans.sort(function(a,b){ return String(a.name||"").toLowerCase().localeCompare(String(b.name||"").toLowerCase()); });
+  sortByHealthThenName(chans);
   var t=$("tvTitle"); if(t)t.textContent="LIVE TV / "+tab.label;
   if(!chans.length){ listEl.innerHTML='<div class="pop-empty">No channels in this genre right now.</div>'; return; }
   listEl.innerHTML=chans.map(function(c,i){return '<div class="dc-row2" data-ci="'+i+'"><div class="dc-row2-main"><span class="dc-mag dc-sev-low">TV</span><span class="dc-place">'+esch(c.name.slice(0,46))+'</span><span class="dc-when">'+esch(c.cat.slice(0,16))+'</span></div></div>';}).join("");
   listEl.querySelectorAll("[data-ci]").forEach(function(el){ el.addEventListener("click",function(){
     listEl.querySelectorAll("[data-ci]").forEach(function(x){x.classList.remove("sel");}); el.classList.add("sel"); playTV(chans[+el.dataset.ci],my,chans,+el.dataset.ci,1); }); });
+}
+/* ---------- IPTV channel health (dead-channel feedback loop) ----------
+   Free IPTV streams rot constantly and no amount of source-picking fixes that from outside.
+   This records what actually happened on THIS device: a channel that exhausts every configured
+   proxy takes a strike, a channel that plays gets cleared. Strikes push a channel down the list
+   rather than hiding it -- a stream down yesterday may be fine today -- and entries expire, so
+   nothing is ever permanently removed on the strength of one bad night. */
+/* key is bare -- store.get/set already namespace with "atv:" and handle JSON themselves */
+var TVH_KEY="tvHealth", TVH_TTL=7*24*3600*1000, TVH_MAX=400;
+function tvHealthAll(){
+  try{ var o=store.get(TVH_KEY,{})||{}; if(typeof o==="string") o=JSON.parse(o); var now=Date.now(), out={}, n=0;
+    for(var k in o){ if(!o[k]||typeof o[k]!=="object")continue;
+      if(now-(o[k].t||0)>TVH_TTL) continue;
+      if(n++>TVH_MAX) break; out[k]=o[k]; }
+    return out;
+  }catch(e){ return {}; }
+}
+function tvHealthKey(c){ return String((c&&(c.url||c.name))||"").slice(0,180); }
+function tvHealthSave(o){ try{ store.set(TVH_KEY,o); }catch(e){} }
+function markTvFail(c){
+  var k=tvHealthKey(c); if(!k)return; var o=tvHealthAll();
+  var e=o[k]||{f:0}; e.f=(e.f||0)+1; e.t=Date.now(); o[k]=e; tvHealthSave(o);
+  nlog("tvhealth",false,(c.name||"?")+" strike "+e.f);
+}
+function markTvOk(c){
+  var k=tvHealthKey(c); if(!k)return; var o=tvHealthAll();
+  if(o[k]){ delete o[k]; tvHealthSave(o); nlog("tvhealth",true,(c.name||"?")+" recovered"); }
+}
+function tvStrikes(c,health){ var e=(health||tvHealthAll())[tvHealthKey(c)]; return e?(e.f||0):0; }
+function sortByHealthThenName(arr){
+  var h=tvHealthAll();
+  arr.forEach(function(c){ c._strikes=tvStrikes(c,h); });
+  arr.sort(function(a,b){
+    if(a._strikes!==b._strikes) return a._strikes-b._strikes;   /* healthy first */
+    return String(a.name||"").toLowerCase().localeCompare(String(b.name||"").toLowerCase());
+  });
+  return arr;
 }
 async function playTV(c,my,list,idx,triedCount,proxyIdx){
   var pane=$("tvPane"); if(!pane||!c)return;
@@ -4594,6 +4630,7 @@ async function playTV(c,my,list,idx,triedCount,proxyIdx){
       setTimeout(function(){ if(my===token) playTV(c,my,list,idx,triedCount,proxyIdx+1); },400);
       return;
     }
+    markTvFail(c);  /* every proxy exhausted -- genuinely didn't play on this device */
     if(triedCount<Math.min(list.length,8)){ /* QA FIX: auto-advance instead of dead-ending -- iptv-org's
         own maintainers confirmed they no longer automatically verify stream health, so individual
         entries in the playlist can be stale; cap at 8 tries so a genuinely offline proxy doesn't spin forever */
@@ -4605,10 +4642,10 @@ async function playTV(c,my,list,idx,triedCount,proxyIdx){
       var p2=$("tvPane"); if(p2)p2.innerHTML='<div class="dc-media-cap">Several channels in this genre failed to connect'+(hasProxy?'':' — set a stream proxy (\u2699 above) to unlock live TV')+'. Try a different genre or check DIAG.</div>';
     }
   }
-  if(v.canPlayType("application/vnd.apple.mpegurl")){ v.src=src; try{var pT=v.play(); if(pT&&pT.catch)pT.catch(function(){});}catch(e){} nlog("livetv",true,c.name+" (native)"); return; }
+  if(v.canPlayType("application/vnd.apple.mpegurl")){ v.src=src; try{var pT=v.play(); if(pT&&pT.catch)pT.catch(function(){});}catch(e){} v.addEventListener("playing",function(){markTvOk(c);},{once:true}); nlog("livetv",true,c.name+" (native)"); return; }
   try{ var Hls=await loadHlsLib(); if(my!==token)return;
     if(Hls&&Hls.isSupported()){ tvHls=new Hls({liveDurationInfinity:true}); tvHls.loadSource(src); tvHls.attachMedia(v);
-      tvHls.on(Hls.Events.MANIFEST_PARSED,function(){try{var pT2=v.play(); if(pT2&&pT2.catch)pT2.catch(function(){});}catch(e){}});
+      tvHls.on(Hls.Events.MANIFEST_PARSED,function(){markTvOk(c);try{var pT2=v.play(); if(pT2&&pT2.catch)pT2.catch(function(){});}catch(e){}});
       tvHls.on(Hls.Events.ERROR,function(ev,d){ if(d&&d.fatal){try{tvHls.destroy();}catch(e){}tvHls=null;fail("hls "+(d.type||""));} });
       nlog("livetv",true,c.name+" (hls)");
     } else { v.src=src; try{var pT3=v.play(); if(pT3&&pT3.catch)pT3.catch(function(){});}catch(e){} }
@@ -5495,7 +5532,7 @@ async function tuneSports(ch,sl,my){
       all.forEach(function(c){ var k=(c.name||"").toLowerCase().replace(/\s+/g," ").trim(); if(!k)return;
         if(!byName[k]||(c.verified&&!byName[k].verified)) byName[k]=c; });
       var chans=Object.keys(byName).map(function(k){ return byName[k]; });
-      chans.sort(function(a,b){ return String(a.name||"").toLowerCase().localeCompare(String(b.name||"").toLowerCase()); });
+      sortByHealthThenName(chans);
       if(!chans.length){ bodyEl.innerHTML='<div class="pop-empty">No live sports channels available from iptv-org right now.</div>'; return; }
       bodyEl.innerHTML='<div id="tvPane" style="width:100%;aspect-ratio:16/9;background:#000;border-radius:8px;overflow:hidden;margin-bottom:8px;position:relative"></div>'+
         '<div style="font:700 10px monospace;color:#9fd6a6;margin-bottom:6px">'+chans.length+' ENGLISH LIVE SPORTS \u00b7 \u2713VERIFIED FIRST</div>'+

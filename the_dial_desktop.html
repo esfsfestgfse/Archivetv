@@ -700,7 +700,7 @@ html,body{height:100vh;overflow:hidden}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.53";
+window.__ATV_BUILD="1.7.7-desktop.54";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -734,7 +734,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.53</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.54</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">THE DIAL · THE SET</div>
@@ -4420,7 +4420,8 @@ function parseM3U(text){
     if(ln.indexOf("#EXTINF")===0){ var gm=/group-title="([^"]*)"/.exec(ln);
       var nm=ln.split(",").slice(1).join(",").trim();
       if(nm.indexOf(":http-")>-1) nm=nm.split(":http-")[0].trim();
-      cur={name:nm||"Channel",cat:(gm&&gm[1])||"Sports"};
+      var idm=/tvg-id="([^"]*)"/.exec(ln);
+      cur={name:nm||"Channel",cat:(gm&&gm[1])||"Sports",tvgId:(idm&&idm[1])||""};
       var ua=/http-user-agent="?([^"\n]*)"?/i.exec(ln); if(ua&&ua[1]) cur.ua=ua[1].trim();
       var rf=/http-referrer="?([^"\n]*)"?/i.exec(ln); if(rf&&rf[1]) cur.ref=rf[1].trim(); }
     else if(ln.indexOf("#EXTVLCOPT")===0&&cur){
@@ -4475,6 +4476,47 @@ async function fetchIPTV(){
     var k=(c.name||"").toLowerCase().replace(/\s+/g," ").trim();
     if(!k||seen[k])return false; seen[k]=1; return true; });
   iptvCache=out; return out;
+}
+/* ---------- EPG "now playing" ----------
+   The Tubi playlist ships a matching XMLTV guide (verified: all 173 tvg-ids in the playlist have
+   a channel entry in the guide). The file is ~3MB, so it is fetched lazily on first use, scanned
+   with a regex rather than DOMParser, and only the programme airing RIGHT NOW per channel is
+   kept -- the other ~11k entries are discarded immediately so nothing large stays resident. */
+var epgNow=null, epgFetching=null, epgAt=0;
+function epgParseTime(t){
+  var m=/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})\s*([+-]\d{4})?/.exec(String(t||""));
+  if(!m) return NaN;
+  var iso=m[1]+"-"+m[2]+"-"+m[3]+"T"+m[4]+":"+m[5]+":"+m[6]+(m[7]?(m[7].slice(0,3)+":"+m[7].slice(3)):"Z");
+  return Date.parse(iso);
+}
+async function fetchEPG(){
+  if(epgNow && Date.now()-epgAt < 20*60*1000) return epgNow;   /* refresh every 20 min */
+  if(epgFetching) return epgFetching;
+  epgFetching=(async function(){
+    try{
+      var txt=await withTO(fetch("https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/refs/heads/main/playlists/tubi_epg.xml",{cache:"no-store"}).then(function(r){return r.text();}),20000);
+      var now=Date.now(), map={}, kept=0;
+      var re=/<programme channel="([^"]+)" start="([^"]+)" stop="([^"]+)"[^>]*>([\s\S]{0,300}?)<\/programme>/g, mm;
+      while((mm=re.exec(txt))){
+        var st=epgParseTime(mm[2]), sp=epgParseTime(mm[3]);
+        if(!(now>=st&&now<sp)) continue;                        /* only what's on right now */
+        var tm=/<title[^>]*>([^<]*)<\/title>/.exec(mm[4]);
+        if(!tm) continue;
+        map[mm[1]]={title:tm[1],start:st,stop:sp}; kept++;
+      }
+      epgNow=map; epgAt=Date.now();
+      nlog("epg",true,kept+" channels with a programme on now");
+      return map;
+    }catch(e){ nlog("epg",false,(e&&e.message)||e); epgNow=epgNow||{}; epgAt=Date.now(); return epgNow; }
+    finally{ epgFetching=null; }
+  })();
+  return epgFetching;
+}
+function epgFor(c){
+  if(!epgNow||!c||!c.tvgId) return null;
+  var e=epgNow[c.tvgId]; if(!e) return null;
+  var left=Math.max(0,Math.round((e.stop-Date.now())/60000));
+  return {title:e.title,left:left};
 }
 async function fetchSportsIPTV(){
   if(sportsIptvCache) return sportsIptvCache;
@@ -4566,15 +4608,33 @@ async function loadTVCat(tab,my){
   listEl.innerHTML='<div class="pop-empty">Loading channels…</div>';
   var all=await fetchIPTV(); if(my!==token)return;
   if(!all.length){ listEl.innerHTML='<div class="pop-empty">Couldn’t reach the iptv-org list — will retry.</div>'; return; }
+  /* QA FIX: this capped each genre at 60 channels, which truncated the list partway through the
+     alphabet -- the Music tab visibly "stopped at M". No cap now, and sorted A-Z so the list is
+     actually browsable rather than however the source playlists happened to concatenate. */
   var seen={}, chans=all.filter(function(c){return tab.re.test(c.cat);}).filter(function(c){var k=(c.name||"").toLowerCase();if(!k||seen[k])return false;seen[k]=1;return true;});
   /* QA FIX: with four sources concatenated (iptv-org, Roku, Pluto, Tubi) the list ran A-Z per
      source and then restarted, which reads as the alphabet "stopping" partway. Sort the merged
      list so it is genuinely browsable end to end. */
   sortByHealthThenName(chans);
   var culled=cullDead(chans); chans=culled.list;
-  var t=$("tvTitle"); if(t)t.textContent="LIVE TV / "+tab.label+(culled.hidden?("  ("+culled.hidden+" dead hidden)"):"");
+  /* lists run to hundreds of entries now that the caps are gone, so a filter box is the
+     difference between browsable and unusable */
+  var q=String(window.__tvQuery||"").toLowerCase().trim();
+  if(q) chans=chans.filter(function(c){ return String(c.name||"").toLowerCase().indexOf(q)>-1; });
+  var t=$("tvTitle"); if(t)t.textContent="LIVE TV / "+tab.label+" \u00b7 "+chans.length+(culled.hidden?("  ("+culled.hidden+" dead hidden)"):"");
+  fetchEPG().then(function(){ try{ if(my===token) paintEPG(); }catch(e){} });
   if(!chans.length){ listEl.innerHTML='<div class="pop-empty">No channels in this genre right now.</div>'; return; }
-  listEl.innerHTML=chans.map(function(c,i){var rad=looksRadio(c);return '<div class="dc-row2" data-ci="'+i+'"><div class="dc-row2-main"><span class="dc-mag '+(rad?"dc-sev-mid":"dc-sev-low")+'">'+(rad?"\u266A":"TV")+'</span><span class="dc-place">'+esch(c.name.slice(0,46))+'</span><span class="dc-when">'+esch((rad?"AUDIO \u00b7 ":"")+String(c.cat||"").slice(0,14))+'</span></div></div>';}).join("");
+  listEl.innerHTML=chans.map(function(c,i){var rad=looksRadio(c);return '<div class="dc-row2" data-ci="'+i+'" data-epg="'+esch(c.tvgId||"")+'"><div class="dc-row2-main"><span class="dc-mag '+(rad?"dc-sev-mid":"dc-sev-low")+'">'+(rad?"\u266A":"TV")+'</span><span class="dc-place">'+esch(c.name.slice(0,46))+'</span><span class="dc-when">'+esch((rad?"AUDIO \u00b7 ":"")+String(c.cat||"").slice(0,14))+'</span></div><div class="dc-row2-sub tv-epg" style="display:none"></div></div>';}).join("");
+  window.__tvChans=chans;
+  function paintEPG(){
+    var l=$("dcList"); if(!l)return;
+    l.querySelectorAll("[data-epg]").forEach(function(row){
+      var id=row.dataset.epg; if(!id)return;
+      var e=epgFor({tvgId:id}); var sub=row.querySelector(".tv-epg");
+      if(e&&sub){ sub.textContent="NOW: "+e.title+(e.left?("  \u00b7  "+e.left+" min left"):""); sub.style.display=""; }
+    });
+  }
+  window.__paintEPG=paintEPG;
   listEl.querySelectorAll("[data-ci]").forEach(function(el){ el.addEventListener("click",function(){
     listEl.querySelectorAll("[data-ci]").forEach(function(x){x.classList.remove("sel");}); el.classList.add("sel"); playTV(chans[+el.dataset.ci],my,chans,+el.dataset.ci,1); }); });
 }
@@ -4594,6 +4654,8 @@ function tvHealthAll(){
     return out;
   }catch(e){ return {}; }
 }
+/* Radio simulcasts are common in the English IPTV lists and legitimately have no picture.
+   Flagging them up front means a black-but-working stream isn't mistaken for a broken one. */
 /* Stream URLs behind a link-shortener/redirector can't survive a second CORS proxy hop, so
    they are excluded wherever they appear rather than listed as channels that never play. */
 function isRedirectorUrl(u){ return /(^|\/\/)(jmp2\.uk|bit\.ly|tinyurl\.com|t\.co)\//i.test(String(u||"")); }
@@ -4769,6 +4831,7 @@ async function tuneLiveTV(ch,sl,my){
     '<div class="dc-top"><span id="tvTitle">LIVE TV</span><span id="tvProxyBtn" style="float:right;cursor:pointer;font-size:11px;color:#7fb4ff">⚙ proxy</span></div>'+
     '<div id="tvProxyBar"></div>'+
     '<div id="tvTabs"></div>'+
+    '<input id="tvSearch" placeholder="filter channels\u2026" style="flex:none;width:100%;box-sizing:border-box;margin:2px 0 4px;padding:5px 8px;border-radius:8px;border:1px solid rgba(127,180,255,.35);background:rgba(10,22,40,.7);color:#dbeaff;font:600 10px monospace;letter-spacing:.5px">'+
     '<div class="dc-list" id="dcList" style="flex:1 1 auto;overflow-y:auto"></div>'+
     '<div class="dc-ticker" style="margin-top:auto">Live TV via iptv-org · set a free stream proxy to unlock most channels</div></div></div>';
   var curTab=null;
@@ -4779,6 +4842,13 @@ async function tuneLiveTV(ch,sl,my){
     } else { bar.style.display="none"; }
   }
   var pb=$("tvProxyBtn"); if(pb)pb.addEventListener("click",function(){ var bar=$("tvProxyBar"); renderProxyBar(bar.style.display==="none"||!bar.style.display); });
+  /* single reload hook so the filter box and the menu toggles can all re-render the list */
+  window.__tvReload=function(){ try{ if(my===token&&curTab) loadTVCat(curTab,my); }catch(e){} };
+  var srch=$("tvSearch");
+  if(srch){ srch.value=window.__tvQuery||"";
+    srch.addEventListener("input",function(){ window.__tvQuery=srch.value;
+      clearTimeout(window.__tvQT); window.__tvQT=setTimeout(function(){ if(window.__tvReload)window.__tvReload(); },180); });
+    srch.addEventListener("keydown",function(e){ e.stopPropagation(); }); }
   var tabsEl=$("tvTabs");
   if(tabsEl){ tabsEl.innerHTML=IPTV_TABS.map(function(t,i){return '<span class="rcat" data-t="'+i+'">'+esch(t.label)+'</span>';}).join("");
     tabsEl.querySelectorAll("[data-t]").forEach(function(el){ el.addEventListener("click",function(){
@@ -4894,13 +4964,29 @@ async function tuneLiveCams(ch,sl,my){
     '<div id="camCats"></div>'+
     '<div class="dc-list" id="dcList" style="flex:1 1 auto;overflow-y:auto"></div>'+
     '<div class="dc-ticker" style="margin-top:auto">Real webcams via Windy · spin the earth, click a cam</div></div></div>';
-  var cams=[], globe=null, refreshIv=null;
+  var cams=[], globe=null, refreshIv=null, camsLoadedAt=0, lastCat=null, selIdx=-1;
   var lat=31.55, lon=-97.13;
   try{ var loc=await getWxLocation(); if(my===token&&loc){ lat=loc.lat; lon=loc.lon; } }catch(e){}
   function showGlobe(){ var cv=$("camView"); if(cv)cv.style.display="none"; }
   function showCam(c){ var cv=$("camView"),im=$("camImg"),cap=$("camCap"); if(!cv||!im)return;
     cv.style.display="block";
-    function refresh(){ if(my!==token){clearInterval(refreshIv);return;} im.src=c.img+(c.img.indexOf("?")<0?"?":"&")+"t="+Date.now(); }
+    /* Windy signs image URLs with a token that expires after 10 minutes on the free tier; after
+       that every request 401s and the picture silently freezes. A cache-buster can't renew a
+       token, so the whole list is re-fetched before expiry to obtain freshly signed URLs. */
+    function refresh(){
+      if(my!==token){clearInterval(refreshIv);return;}
+      if(Date.now()-camsLoadedAt > 8*60*1000 && lastCat){
+        nlog("livecams",true,"refreshing expiring image tokens");
+        loadCat(lastCat).then(function(){
+          if(my!==token)return;
+          var fresh=cams.filter(function(x){return x.id===c.id;})[0];
+          if(fresh){ c.img=fresh.img; }
+          im.src=c.img+(c.img.indexOf("?")<0?"?":"&")+"t="+Date.now();
+        });
+        return;
+      }
+      im.src=c.img+(c.img.indexOf("?")<0?"?":"&")+"t="+Date.now();
+    }
     refresh(); clearInterval(refreshIv); refreshIv=rtInterval(refresh,20000);
     if(cap)cap.innerHTML='<b>'+esch(c.title)+'</b><small>'+esch([c.city,c.country].filter(Boolean).join(", "))+' · updates every ~20s</small>';
     nlog("livecams",true,c.title.slice(0,40));
@@ -4962,7 +5048,10 @@ async function tuneLiveCams(ch,sl,my){
     else if(cat.k==="countrypick"){ qs="countries="+encodeURIComponent(cat.countryCode); }
     else { qs="categories="+encodeURIComponent(cat.cat); }
     var raw=await wcamFetch(qs); if(my!==token)return;
-    var seen={}; cams=raw.map(wcamNorm).filter(Boolean).filter(function(c){ if(seen[c.id])return false; seen[c.id]=1; return true; }).slice(0,50);
+    /* QA FIX: this .slice(0,50) silently discarded everything the paginated fetch brought back,
+       so the cam list stayed at 50 no matter what. Uncapped -- the fetch itself is the bound. */
+    var seen={}; cams=raw.map(wcamNorm).filter(Boolean).filter(function(c){ if(seen[c.id])return false; seen[c.id]=1; return true; });
+    camsLoadedAt=Date.now(); lastCat=cat;
     if(!cams.length){ listEl.innerHTML='<div class="pop-empty">No cameras here right now — try another.</div>'; if(globe&&globe.setDots)globe.setDots([]); return; }
     listEl.innerHTML=cams.map(function(c,i){ return '<div class="dc-row2" data-si="'+i+'" style="cursor:pointer"><div class="dc-row2-main"><span class="dc-mag dc-sev-low">CAM</span><span class="dc-place">'+esch(c.title.slice(0,42))+'</span><span class="dc-when">'+esch([c.city,c.country].filter(Boolean).join(", ").slice(0,20))+'</span></div></div>'; }).join("");
     listEl.querySelectorAll("[data-si]").forEach(function(el){ el.addEventListener("click",function(){ select(+el.dataset.si); }); });
@@ -5640,7 +5729,7 @@ async function tuneSports(ch,sl,my){
       return '<button class="catchip" data-sv="'+v[0]+'" style="border-color:#8fff5c;color:#8fff5c'+(sportsSubView===v[0]?';background:rgba(143,255,92,.18)':'')+'">'+v[1]+'</button>';
     }).join("");
     subPickerEl.querySelectorAll("[data-sv]").forEach(function(el){
-      el.addEventListener("click",function(){ sportsSubView=el.dataset.sv; renderSubPicker(); renderBody(); });
+      el.addEventListener("click",function(){ window.__sportsTouch=Date.now(); sportsSubView=el.dataset.sv; renderSubPicker(); renderBody(); });
     });
   }
   function renderBody(){
@@ -6280,7 +6369,7 @@ async function tuneSports(ch,sl,my){
       }).join("")+'</optgroup>';
     }).join("");
   })();
-  pickerEl.addEventListener("change",function(){
+  pickerEl.addEventListener("change",function(){ window.__sportsTouch=Date.now();
     var sp=SPORTS_LIST.find(function(s){return s.k===pickerEl.value;}); if(sp)loadSport(sp);
   });
   renderSubPicker();
@@ -6291,6 +6380,33 @@ async function tuneSports(ch,sl,my){
     var hasLive=curEvents.some(function(ev){ return ev.status&&ev.status.type&&ev.status.type.state==="in"; });
     var dueForRefresh=hasLive?(Date.now()-lastSportsFetch>30*1000):(Date.now()-lastSportsFetch>5*60*1000);
     if(dueForRefresh){ lastSportsFetch=Date.now(); loadSport(curSport); }
+    /* Auto-rotate: opt-in, and only ever moves to a sport that currently has a live game, so it
+       behaves like a sports network cutting to live action rather than shuffling at random. Any
+       interaction (changing sport or sub-tab) resets the dwell timer so it can't yank the view
+       out from under you mid-read. */
+    if(store.get("sportsRotate",false) && sportsSubView==="scores"){
+      var idle=Date.now()-(window.__sportsTouch||0);
+      if(idle>45*1000 && Date.now()-(window.__sportsRotAt||0)>45*1000){
+        window.__sportsRotAt=Date.now();
+        (async function(){
+          var start=SPORTS_LIST.indexOf(curSport);
+          for(var i=1;i<=SPORTS_LIST.length;i++){
+            var cand=SPORTS_LIST[(start+i)%SPORTS_LIST.length];
+            if(!cand.espn) continue;                       /* live-state detection needs ESPN */
+            try{
+              var d=await fetchJSON("https://site.api.espn.com/apis/site/v2/sports/"+cand.espn+"/scoreboard");
+              var live=((d&&d.events)||[]).some(function(ev){return ev.status&&ev.status.type&&ev.status.type.state==="in";});
+              if(live&&my===token){
+                nlog("sports",true,"auto-rotate \u2192 "+cand.label+" (live game)");
+                var sel=$("sportsPicker"); if(sel)sel.value=cand.k;
+                curSport=cand; lastSportsFetch=Date.now(); loadSport(cand);
+                return;
+              }
+            }catch(e){}
+          }
+        })();
+      }
+    }
   },30*1000);
 }
 /* Public WebSDR/KiwiSDR receivers -- volunteer-run, genuinely free, explicitly built for public
@@ -7450,6 +7566,9 @@ var OSD_ITEMS=[
  {label:"DIAGNOSTICS",act:function(){closeOsd();toggleDiag();}},
  {label:"SETTINGS",act:function(){closeOsd();toggleSettings();}},
  {label:"SHARE",act:function(){closeOsd();shareCurrent();}},
+ {label:"SPORTS: AUTO-ROTATE",act:function(){closeOsd();
+   var on=!store.get("sportsRotate",false); store.set("sportsRotate",on);
+   quickBanner(on?"AUTO-ROTATE ON \u00b7 CUTS TO LIVE GAMES":"AUTO-ROTATE OFF"); }},
  {label:"TV: SHOW/HIDE DEAD",act:function(){closeOsd();
    var now=!tvHideDead(); store.set("tvHideDead",now);
    quickBanner(now?"DEAD CHANNELS HIDDEN":"SHOWING ALL CHANNELS");

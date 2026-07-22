@@ -700,7 +700,7 @@ html,body{height:100vh;overflow:hidden}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.51";
+window.__ATV_BUILD="1.7.7-desktop.52";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -734,7 +734,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.51</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.52</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">THE DIAL · THE SET</div>
@@ -4830,10 +4830,36 @@ async function wcamCountries(){
     return wcamCountryCache;
   }catch(e){ nlog("livecams",false,(e&&e.message)||e); return []; }
 }
-async function wcamFetch(qs){
-  try{ var r=await withTO(fetch(proxied("https://api.windy.com/webcams/api/v3/webcams?include=images,location&limit=50&"+qs),{cache:"no-store"}),13000);
-    var d=await r.json(); return (d&&d.webcams)||[];
-  }catch(e){ nlog("livecams",false,(e&&e.message)||e); return []; }
+function wcamUnwrap(d){
+  /* v3 wraps results as {status,result:{offset,limit,total,webcams}} while v2 returned them at
+     the top level. Handle both so a shape change can't silently empty the list. */
+  if(!d) return {list:[],total:0};
+  if(Array.isArray(d.webcams)) return {list:d.webcams,total:(d.total!=null?d.total:d.webcams.length)};
+  if(d.result&&Array.isArray(d.result.webcams)) return {list:d.result.webcams,total:(d.result.total!=null?d.result.total:d.result.webcams.length)};
+  return {list:[],total:0};
+}
+async function wcamFetch(qs,maxWanted){
+  /* Windy caps a single request at 50 webcams -- that 50 was the API's ceiling, not a choice --
+     so more coverage means paginating with offset. Pages are fetched until we have everything
+     the filter matches or hit a sane bound, whichever comes first. */
+  maxWanted=maxWanted||400;
+  var out=[], offset=0, total=null, PAGE=50, guard=0;
+  try{
+    while(guard++<12 && out.length<maxWanted){
+      var url="https://api.windy.com/webcams/api/v3/webcams?include=images,location&limit="+PAGE+"&offset="+offset+"&"+qs;
+      var r=await withTO(fetch(proxied(url),{cache:"no-store"}),13000);
+      var d=await r.json();
+      var u=wcamUnwrap(d);
+      if(total===null) total=u.total;
+      if(!u.list.length) break;
+      out=out.concat(u.list);
+      offset+=PAGE;
+      if(total!=null && offset>=total) break;
+      if(offset>=9500) break;   /* free tier rejects offset beyond 10000 */
+    }
+    nlog("livecams",true,out.length+" webcams"+(total!=null?(" of "+total+" matching"):""));
+    return out;
+  }catch(e){ nlog("livecams",false,(e&&e.message)||e); return out; }
 }
 function wcamNorm(w){ var loc=w&&w.location||{}; var im=w&&w.images&&w.images.current||{};
   if(loc.latitude==null||loc.longitude==null)return null;

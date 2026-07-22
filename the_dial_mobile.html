@@ -842,7 +842,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.73";
+window.__ATV_BUILD="1.7.7-mobile.74";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -876,7 +876,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.73</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.74</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -4648,6 +4648,46 @@ function parseM3U(text){
   }
   return out;
 }
+/* Non-English exclusion heuristic shared by Live TV and the Sports tab. FAST services aren't
+   in iptv-org's language database, so authoritative tagging isn't available for them. */
+function looksNonEnglish(n){
+  return /espa|español|deportes|en fran|fran\u00e7ais|portugu|brasil|italiano|deutsch|latino|\u00f1|\bMX\b|\bBR\b|\bES\b\s*$/i.test(String(n||""));
+}
+async function fetchIPTV(){
+  /* QA FIX + FEATURE: this function's definition was accidentally destroyed during an earlier
+     wholesale block port (it was still being called from tuneLiveTV and the sports fallback,
+     so the main Live TV channel would have thrown on tune). Rebuilt, and extended per request:
+     the three workable FAST services (Roku / Pluto TV / Tubi -- Samsung and Plex remain
+     excluded for non-HLS/auth reasons verified earlier) now feed the main Live TV channel
+     across ALL genres, not just sports. Their group-titles flow into the existing genre tabs.
+     English-only via the shared exclusion heuristic; iptv-org's own list is already the
+     English-language playlist. */
+  if(iptvCache) return iptvCache;
+  var out=[];
+  try{
+    var te=await withTO(fetch("https://iptv-org.github.io/iptv/languages/eng.m3u",{cache:"no-store"}).then(function(r){return r.text();}),15000);
+    var eng=parseM3U(te);
+    out=out.concat(eng);
+    nlog("livetv",true,"iptv-org English: "+eng.length);
+  }catch(e){ nlog("livetv",false,"iptv-org eng: "+((e&&e.message)||e)); }
+  var FASTALL=[
+    ["Roku","https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/refs/heads/main/playlists/roku_all.m3u"],
+    ["Pluto TV","https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/refs/heads/main/playlists/plutotv_us.m3u"],
+    ["Tubi","https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/refs/heads/main/playlists/tubi_all.m3u"]
+  ];
+  for(var fi=0; fi<FASTALL.length; fi++){
+    try{
+      var ftxt=await withTO(fetch(FASTALL[fi][1],{cache:"no-store"}).then(function(r){return r.text();}),15000);
+      var fl=parseM3U(ftxt).filter(function(c){ return !looksNonEnglish(c.name); });
+      fl.forEach(function(c){ c.src=FASTALL[fi][0]; });
+      out=out.concat(fl);
+      nlog("livetv",true,FASTALL[fi][0]+" (all genres): "+fl.length);
+    }catch(e){ nlog("livetv",false,FASTALL[fi][0]+": "+((e&&e.message)||e)); }
+  }
+  var seen={}; out=out.filter(function(c){ var k=(c.name||"").toLowerCase().replace(/\s+/g," ").trim();
+    if(!k||seen[k])return false; seen[k]=1; return true; });
+  iptvCache=out; return out;
+}
 async function fetchSportsIPTV(){
   if(sportsIptvCache) return sportsIptvCache;
   /* English sports channels only. Rather than guess language from channel names, this
@@ -4670,13 +4710,6 @@ async function fetchSportsIPTV(){
     return !!(k&&engNames[k]);
   }
   var out=[], gotEng=Object.keys(engUrls).length>0;
-  /* FAST-service channels (Pluto, Samsung TV Plus, Plex, Roku, Tubi) are not carried in
-     iptv-org's language lists, so the intersection test above would reject all of them. They
-     get an exclusion test instead: drop the clearly non-English feeds these services publish
-     alongside the English ones. Heuristic rather than authoritative -- flagged honestly. */
-  function looksNonEnglish(n){
-    return /espa|español|deportes|en fran|fran\u00e7ais|portugu|brasil|italiano|deutsch|latino|\u00f1|\bMX\b|\bBR\b|\bES\b\s*$/i.test(String(n||""));
-  }
   try{
     var t1=await withTO(fetch("https://iptv-org.github.io/iptv/categories/sports.m3u",{cache:"no-store"}).then(function(r){return r.text();}),15000);
     var cat=parseM3U(t1);

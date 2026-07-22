@@ -4672,9 +4672,14 @@ async function fetchIPTV(){
     out=out.concat(eng);
     nlog("livetv",true,"iptv-org English: "+eng.length);
   }catch(e){ nlog("livetv",false,"iptv-org eng: "+((e&&e.message)||e)); }
+  /* Roku and Pluto TV were dropped after a user report that none of their channels ever played.
+     Cause: every URL in those two playlists is a jmp2.uk redirect link, not a real manifest --
+     the generator's own docs say it routes them through that proxy "to ensure streams remain
+     functional in standard IPTV players". Stacking that redirector behind a browser CORS proxy
+     breaks twice over: the redirect target changes origin, and the returned playlist's relative
+     segment paths then resolve against the wrong base, so segments 404 and nothing decodes.
+     Tubi is kept because it publishes direct tubi.io manifests with no redirector. */
   var FASTALL=[
-    ["Roku","https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/refs/heads/main/playlists/roku_all.m3u"],
-    ["Pluto TV","https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/refs/heads/main/playlists/plutotv_us.m3u"],
     ["Tubi","https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/refs/heads/main/playlists/tubi_all.m3u"]
   ];
   for(var fi=0; fi<FASTALL.length; fi++){
@@ -4686,7 +4691,8 @@ async function fetchIPTV(){
       nlog("livetv",true,FASTALL[fi][0]+" (all genres): "+fl.length);
     }catch(e){ nlog("livetv",false,FASTALL[fi][0]+": "+((e&&e.message)||e)); }
   }
-  var seen={}; out=out.filter(function(c){ var k=(c.name||"").toLowerCase().replace(/\s+/g," ").trim();
+  var seen={}; out=out.filter(function(c){ if(isRedirectorUrl(c.url))return false;
+    var k=(c.name||"").toLowerCase().replace(/\s+/g," ").trim();
     if(!k||seen[k])return false; seen[k]=1; return true; });
   iptvCache=out; return out;
 }
@@ -4736,9 +4742,9 @@ async function fetchSportsIPTV(){
      English-region (US/global) and carry well-formed HLS URLs. Samsung TV+ and Plex were
      evaluated and deliberately left out: Samsung's URLs aren't HLS-form and Plex requires an
      auth token. */
+  /* see fetchIPTV: Roku/Pluto entries are jmp2.uk redirect links and cannot play through a
+     browser CORS proxy. Tubi publishes direct manifests, so it stays. */
   var FAST=[
-    ["Roku","https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/refs/heads/main/playlists/roku_all.m3u"],
-    ["Pluto TV","https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/refs/heads/main/playlists/plutotv_us.m3u"],
     ["Tubi","https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/refs/heads/main/playlists/tubi_all.m3u"]
   ];
   for(var fi=0; fi<FAST.length; fi++){
@@ -4788,7 +4794,8 @@ async function loadTVCat(tab,my){
      source and then restarted, which reads as the alphabet "stopping" partway. Sort the merged
      list so it is genuinely browsable end to end. */
   sortByHealthThenName(chans);
-  var t=$("tvTitle"); if(t)t.textContent="LIVE TV / "+tab.label;
+  var culled=cullDead(chans); chans=culled.list;
+  var t=$("tvTitle"); if(t)t.textContent="LIVE TV / "+tab.label+(culled.hidden?("  ("+culled.hidden+" dead hidden)"):"");
   if(!chans.length){ listEl.innerHTML='<div class="pop-empty">No channels in this genre right now.</div>'; return; }
   listEl.innerHTML=chans.map(function(c,i){var rad=looksRadio(c);return '<div class="dc-row2" data-ci="'+i+'"><div class="dc-row2-main"><span class="dc-mag '+(rad?"dc-sev-mid":"dc-sev-low")+'">'+(rad?"\u266A":"TV")+'</span><span class="dc-place">'+esch(c.name.slice(0,46))+'</span><span class="dc-when">'+esch((rad?"AUDIO \u00b7 ":"")+String(c.cat||"").slice(0,14))+'</span></div></div>';}).join("");
   listEl.querySelectorAll("[data-ci]").forEach(function(el){ el.addEventListener("click",function(){
@@ -4812,6 +4819,9 @@ function tvHealthAll(){
 }
 /* Radio simulcasts are common in the English IPTV lists and legitimately have no picture.
    Flagging them up front means a black-but-working stream isn't mistaken for a broken one. */
+/* Stream URLs behind a link-shortener/redirector can't survive a second CORS proxy hop, so
+   they are excluded wherever they appear rather than listed as channels that never play. */
+function isRedirectorUrl(u){ return /(^|\/\/)(jmp2\.uk|bit\.ly|tinyurl\.com|t\.co)\//i.test(String(u||"")); }
 function looksRadio(c){
   return /\bradio\b|\bFM\b|\bAM\b|\bLBC\b|talkSPORT|\b2GB\b|\b3AW\b|\bWBZ\b/i.test(String((c&&c.name)||""))
       || /radio/i.test(String((c&&c.cat)||""));
@@ -4828,6 +4838,16 @@ function markTvOk(c){
   if(o[k]){ delete o[k]; tvHealthSave(o); nlog("tvhealth",true,(c.name||"?")+" recovered"); }
 }
 function tvStrikes(c,health){ var e=(health||tvHealthAll())[tvHealthKey(c)]; return e?(e.f||0):0; }
+/* Culling: a channel that has failed twice or more on THIS device is hidden by default rather
+   than left cluttering the list. Nothing is deleted -- strikes still expire after 7 days, and
+   SHOW DEAD CHANNELS in the menu reveals them, so a stream that comes back can be found again. */
+function tvHideDead(){ return store.get("tvHideDead",true)!==false; }
+function cullDead(arr){
+  if(!tvHideDead()) return {list:arr,hidden:0};
+  var h=tvHealthAll(), kept=[], hidden=0;
+  arr.forEach(function(c){ if(tvStrikes(c,h)>=2){hidden++;} else kept.push(c); });
+  return {list:kept,hidden:hidden};
+}
 function sortByHealthThenName(arr){
   var h=tvHealthAll();
   arr.forEach(function(c){ c._strikes=tvStrikes(c,h); });
@@ -5847,9 +5867,10 @@ async function tuneSports(ch,sl,my){
         if(!byName[k]||(c.verified&&!byName[k].verified)) byName[k]=c; });
       var chans=Object.keys(byName).map(function(k){ return byName[k]; });
       sortByHealthThenName(chans);
+      var culledS=cullDead(chans); chans=culledS.list;
       if(!chans.length){ bodyEl.innerHTML='<div class="pop-empty">No live sports channels available from iptv-org right now.</div>'; return; }
       bodyEl.innerHTML='<div id="tvPane" style="width:100%;aspect-ratio:16/9;background:#000;border-radius:8px;overflow:hidden;margin-bottom:8px;position:relative"></div>'+
-        '<div style="font:700 10px monospace;color:#9fd6a6;margin-bottom:6px">'+chans.length+' ENGLISH LIVE SPORTS \u00b7 \u2713VERIFIED FIRST</div>'+
+        '<div style="font:700 10px monospace;color:#9fd6a6;margin-bottom:6px">'+chans.length+' ENGLISH LIVE SPORTS'+(culledS.hidden?(' \u00b7 '+culledS.hidden+' DEAD HIDDEN'):'')+'</div>'+
         chans.map(function(c,i){
           return '<div class="score-card" data-ci="'+i+'" style="cursor:pointer;padding:9px 12px;border-left-color:#8fff5c">'+
             '<div class="score-team-row"><span class="score-status '+(c.verified?"live":"pre")+'" style="margin:0">'+(c.verified?"VERIFIED":"LIVE")+'</span>'+
@@ -7598,6 +7619,15 @@ var OSD_ITEMS=[
  {label:"DIAGNOSTICS",act:function(){closeOsd();toggleDiag();}},
  {label:"SETTINGS",act:function(){closeOsd();toggleSettings();}},
  {label:"SHARE",act:function(){closeOsd();shareCurrent();}},
+ {label:"TV: SHOW/HIDE DEAD",act:function(){closeOsd();
+   var now=!tvHideDead(); store.set("tvHideDead",now);
+   quickBanner(now?"DEAD CHANNELS HIDDEN":"SHOWING ALL CHANNELS");
+   try{ if(typeof renderTVList==="function") renderTVList(); }catch(e){}
+   try{ if(curSl&&curSl.source==="livetv") tuneNum(curNum); }catch(e){} }},
+ {label:"TV: RESET DEAD LIST",act:function(){closeOsd();
+   try{ store.set("tvHealth",{}); }catch(e){}
+   quickBanner("CHANNEL HEALTH CLEARED");
+   try{ if(curSl&&curSl.source==="livetv") tuneNum(curNum); }catch(e){} }},
  {label:"EAS TEST",act:function(){closeOsd(); if(!powered){quickBanner("TURN THE TV ON FIRST");return;}
    triggerEmergencyTakeover({event:"TORNADO WARNING",areaDesc:"McLennan County, TX; Bell County, TX; Falls County, TX",
      headline:"THIS IS ONLY A TEST of the Archive TV Emergency Studio. No warning is in effect. If this had been an actual emergency, live radar, the warned counties, and official instructions would appear exactly like this.",

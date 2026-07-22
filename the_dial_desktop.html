@@ -700,7 +700,7 @@ html,body{height:100vh;overflow:hidden}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.45";
+window.__ATV_BUILD="1.7.7-desktop.46";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -734,7 +734,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.45</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.46</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">THE DIAL · THE SET</div>
@@ -4242,7 +4242,7 @@ async function tuneLiveRadio(ch,sl,my){
     else if(cat.k==="top"){ qs="order=clickcount&reverse=true&limit=120"; }
     else { qs="tag="+encodeURIComponent(cat.tag)+"&order=clickcount&reverse=true&limit=120"; }
     var arr=await rbSearch(qs); if(my!==token)return;
-    var seen={}; rbCurrent=arr.filter(rbPlayable).filter(function(s){ var k=(s.name||"")+(s.url_resolved||s.url); if(seen[k])return false; seen[k]=1; return true; }).slice(0,60);
+    var seen={}; rbCurrent=arr.filter(rbPlayable).filter(function(s){ var k=(s.name||"")+(s.url_resolved||s.url); if(seen[k])return false; seen[k]=1; return true; });
     if(!rbCurrent.length){ listEl.innerHTML='<div class="pop-empty">No playable stations here — try another genre.</div>'; if(globe&&globe.setDots)globe.setDots([]); return; }
     listEl.innerHTML=rbCurrent.map(function(s,i){ var sub=[s.state,s.country].filter(Boolean).join(", ");
       return '<div class="dc-row2" data-si="'+i+'" style="cursor:pointer"><div class="dc-row2-main"><span class="dc-mag dc-sev-low">'+esch(String(s.codec||"FM").slice(0,4).toUpperCase())+'</span><span class="dc-place">'+esch((s.name||"?").replace(/\s+/g," ").trim().slice(0,42))+'</span><span class="dc-when">'+esch(sub.slice(0,20))+'</span></div></div>';
@@ -4560,7 +4560,12 @@ async function loadTVCat(tab,my){
   listEl.innerHTML='<div class="pop-empty">Loading channels…</div>';
   var all=await fetchIPTV(); if(my!==token)return;
   if(!all.length){ listEl.innerHTML='<div class="pop-empty">Couldn’t reach the iptv-org list — will retry.</div>'; return; }
-  var seen={}, chans=all.filter(function(c){return tab.re.test(c.cat);}).filter(function(c){var k=c.name.toLowerCase();if(seen[k])return false;seen[k]=1;return true;}).slice(0,60);
+  var seen={}, chans=all.filter(function(c){return tab.re.test(c.cat);}).filter(function(c){var k=(c.name||"").toLowerCase();if(!k||seen[k])return false;seen[k]=1;return true;});
+  /* QA FIX: with four sources concatenated (iptv-org, Roku, Pluto, Tubi) the list ran A-Z per
+     source and then restarted, which reads as the alphabet "stopping" partway. Sort the merged
+     list so it is genuinely browsable end to end. */
+  chans.sort(function(a,b){ return String(a.name||"").toLowerCase().localeCompare(String(b.name||"").toLowerCase()); });
+  chans.sort(function(a,b){ return String(a.name||"").toLowerCase().localeCompare(String(b.name||"").toLowerCase()); });
   var t=$("tvTitle"); if(t)t.textContent="LIVE TV / "+tab.label;
   if(!chans.length){ listEl.innerHTML='<div class="pop-empty">No channels in this genre right now.</div>'; return; }
   listEl.innerHTML=chans.map(function(c,i){return '<div class="dc-row2" data-ci="'+i+'"><div class="dc-row2-main"><span class="dc-mag dc-sev-low">TV</span><span class="dc-place">'+esch(c.name.slice(0,46))+'</span><span class="dc-when">'+esch(c.cat.slice(0,16))+'</span></div></div>';}).join("");

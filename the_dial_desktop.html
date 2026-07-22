@@ -700,7 +700,7 @@ html,body{height:100vh;overflow:hidden}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.47";
+window.__ATV_BUILD="1.7.7-desktop.48";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -734,7 +734,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.47</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.48</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">THE DIAL · THE SET</div>
@@ -4621,7 +4621,7 @@ async function playTV(c,my,list,idx,triedCount,proxyIdx){
   var src=proxies.length?proxiedVia(proxies[Math.min(proxyIdx,proxies.length-1)],c.url,{ua:c.ua,ref:c.ref}):c.url;
   function highlightRow(i){ var l=$("dcList"); if(!l)return; l.querySelectorAll("[data-ci]").forEach(function(x){x.classList.remove("sel");});
     var r=l.querySelector('[data-ci="'+i+'"]'); if(r)r.classList.add("sel"); }
-  function fail(m){ if(my!==token)return; nlog("livetv",false,c.name+": "+m);
+  function fail(m){ if(my!==token)return; try{clearWatch();}catch(e){} nlog("livetv",false,c.name+": "+m);
     /* try the SAME channel through the next configured proxy before writing it off -- a stream
        that fails on one proxy very often works on another (rate limits, blocked origins). Only
        after every proxy has been tried do we move on to the next channel. */
@@ -4642,13 +4642,69 @@ async function playTV(c,my,list,idx,triedCount,proxyIdx){
       var p2=$("tvPane"); if(p2)p2.innerHTML='<div class="dc-media-cap">Several channels in this genre failed to connect'+(hasProxy?'':' — set a stream proxy (\u2699 above) to unlock live TV')+'. Try a different genre or check DIAG.</div>';
     }
   }
-  if(v.canPlayType("application/vnd.apple.mpegurl")){ v.src=src; try{var pT=v.play(); if(pT&&pT.catch)pT.catch(function(){});}catch(e){} v.addEventListener("playing",function(){markTvOk(c);},{once:true}); nlog("livetv",true,c.name+" (native)"); return; }
+  /* ---- "reports working but shows nothing" fix ----
+     Success used to be declared at MANIFEST_PARSED, which fires when the *playlist* parses --
+     before a single frame is decoded. A stream whose manifest is fine but whose segments never
+     decode (unsupported codec, dead edge, audio-only feed) therefore looked healthy while the
+     screen stayed black. Success is now first ACTUAL FRAME: videoWidth>0 and the clock moving.
+     A watchdog fails the channel over if no frame arrives, so it can't sit black forever. */
+  var settled=false, watchdog=null;
+  function clearWatch(){ if(watchdog){clearTimeout(watchdog);watchdog=null;} }
+  function firstFrameOk(){
+    if(settled||my!==token)return;
+    if(!(v.videoWidth>0))return;            /* audio-only / no decodable video track */
+    if(!(v.currentTime>0))return;           /* decoded but not advancing */
+    settled=true; clearWatch(); markTvOk(c);
+    nlog("livetv",true,c.name+" playing "+v.videoWidth+"x"+v.videoHeight);
+  }
+  v.addEventListener("timeupdate",firstFrameOk);
+  v.addEventListener("loadeddata",firstFrameOk);
+  function startWatch(secs){
+    clearWatch();
+    watchdog=setTimeout(function(){
+      if(settled||my!==token)return;
+      var why = (v.videoWidth>0) ? "stalled after first frame"
+              : (v.readyState>0 ? "no decodable video track (codec/audio-only)" : "no data");
+      settled=true; try{ if(tvHls){tvHls.destroy();tvHls=null;} }catch(e){}
+      fail(why);
+    },secs*1000);
+  }
+
+  if(v.canPlayType("application/vnd.apple.mpegurl")){
+    v.src=src; try{var pT=v.play(); if(pT&&pT.catch)pT.catch(function(){});}catch(e){}
+    startWatch(15); nlog("livetv",true,c.name+" (native, awaiting frame)"); return;
+  }
   try{ var Hls=await loadHlsLib(); if(my!==token)return;
-    if(Hls&&Hls.isSupported()){ tvHls=new Hls({liveDurationInfinity:true}); tvHls.loadSource(src); tvHls.attachMedia(v);
-      tvHls.on(Hls.Events.MANIFEST_PARSED,function(){markTvOk(c);try{var pT2=v.play(); if(pT2&&pT2.catch)pT2.catch(function(){});}catch(e){}});
-      tvHls.on(Hls.Events.ERROR,function(ev,d){ if(d&&d.fatal){try{tvHls.destroy();}catch(e){}tvHls=null;fail("hls "+(d.type||""));} });
-      nlog("livetv",true,c.name+" (hls)");
-    } else { v.src=src; try{var pT3=v.play(); if(pT3&&pT3.catch)pT3.catch(function(){});}catch(e){} }
+    if(Hls&&Hls.isSupported()){
+      tvHls=new Hls({liveDurationInfinity:true});
+      tvHls.loadSource(src); tvHls.attachMedia(v);
+      var netRecover=0, medRecover=0;
+      tvHls.on(Hls.Events.MANIFEST_PARSED,function(){
+        try{var pT2=v.play(); if(pT2&&pT2.catch)pT2.catch(function(){});}catch(e){}
+        startWatch(15);   /* manifest is only the promise -- frames are the proof */
+      });
+      tvHls.on(Hls.Events.ERROR,function(ev,d){
+        if(!d)return;
+        if(!d.fatal) return;                 /* non-fatal: hls.js self-heals */
+        /* documented hls.js recovery path -- try before writing the channel off */
+        if(d.type===Hls.ErrorTypes.NETWORK_ERROR && netRecover<2){
+          netRecover++; nlog("livetv",false,c.name+": network error, reloading ("+netRecover+")");
+          try{ tvHls.startLoad(); startWatch(15); return; }catch(e){}
+        }
+        if(d.type===Hls.ErrorTypes.MEDIA_ERROR && medRecover<2){
+          medRecover++; nlog("livetv",false,c.name+": media error, recovering ("+medRecover+")");
+          try{ tvHls.recoverMediaError(); startWatch(15); return; }catch(e){}
+        }
+        if(settled&&d.type===Hls.ErrorTypes.MEDIA_ERROR) return;
+        settled=true; clearWatch();
+        try{tvHls.destroy();}catch(e){} tvHls=null;
+        fail("hls "+(d.type||"")+" "+(d.details||""));
+      });
+      nlog("livetv",true,c.name+" (hls, awaiting frame)");
+    } else {
+      v.src=src; try{var pT3=v.play(); if(pT3&&pT3.catch)pT3.catch(function(){});}catch(e){}
+      startWatch(15);
+    }
   }catch(e){ fail((e&&e.message)||e); }
 }
 async function tuneLiveTV(ch,sl,my){

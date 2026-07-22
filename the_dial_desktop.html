@@ -700,7 +700,7 @@ html,body{height:100vh;overflow:hidden}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.49";
+window.__ATV_BUILD="1.7.7-desktop.50";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -734,7 +734,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.49</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.50</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">THE DIAL · THE SET</div>
@@ -4641,7 +4641,15 @@ async function playTV(c,my,list,idx,triedCount,proxyIdx){
         own maintainers confirmed they no longer automatically verify stream health, so individual
         entries in the playlist can be stale; cap at 8 tries so a genuinely offline proxy doesn't spin forever */
       var nextIdx=(idx+1)%list.length; var p=$("tvPane");
-      if(p)p.innerHTML='<div class="dc-media-cap">'+esch(String(c.name).toUpperCase())+' is down \u2014 trying '+esch(list[nextIdx].name)+'\u2026</div>';
+      /* surface WHY on screen -- previously the reason lived only in DIAG, so a channel just
+         silently became a different channel. Plain-language mapping, not raw hls error codes. */
+      var reason = /no data|network/i.test(m) ? "unreachable (dead link or geo-blocked)"
+                 : /codec|never decoded/i.test(m) ? "unsupported video codec on this device"
+                 : /stalled/i.test(m) ? "stream stalled"
+                 : /no picture/i.test(m) ? "no picture or audio"
+                 : "failed to connect";
+      if(p)p.innerHTML='<div class="dc-media-cap">'+esch(String(c.name).toUpperCase())+' \u2014 '+esch(reason)+
+        '<br>trying '+esch(list[nextIdx].name)+'\u2026</div>';
       highlightRow(nextIdx);
       setTimeout(function(){ if(my===token) playTV(list[nextIdx],my,list,nextIdx,triedCount+1,0); },600);
     } else {

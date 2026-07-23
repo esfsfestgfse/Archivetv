@@ -791,7 +791,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.62";
+window.__ATV_BUILD="1.7.7-desktop.63";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -825,7 +825,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.62</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.63</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">THE DIAL · THE SET</div>
@@ -5722,9 +5722,10 @@ async function tuneShips(ch,sl,my){
     '<div class="dc-body" id="dcBody" style="flex:0 1 60%;justify-content:flex-start;gap:4px;overflow:hidden">'+
       '<div class="dc-top"><span id="shipHead">SHIP TRACKER \u2014 WORLD TRAFFIC</span></div>'+
       '<div class="dc-sub" id="shipSub">Connecting to AIS stream\u2026</div>'+
-      '<div class="dc-list" id="dcList"></div>'+
+      '<div class="dc-list" id="dcList" style="margin-bottom:30px"></div>'+
       '<div class="dc-ticker" id="shipTicker">aisstream.io \u00b7 live global AIS vessel positions</div>'+
     '</div></div>';
+  var shipBug=mountChanBug("dcScreen",{ident:"SHIP TRACKER"});
   if(shipSocket){ try{shipSocket.close();}catch(e){} shipSocket=null; }
   shipList={};
   var msgCount=0, firstMsgAt=null, dirty=false;
@@ -5733,6 +5734,9 @@ async function tuneShips(ch,sl,my){
     var arr=Object.keys(shipList).map(function(k){return shipList[k];})
       .sort(function(a,b){return b.ts-a.ts;}).slice(0,20);
     var bigEl=$("shipBig"); if(bigEl)bigEl.textContent=msgCount>999?(Math.round(msgCount/1000)+"k"):msgCount;
+    setChanStatus(ch.num,msgCount+" vessels tracked");
+    if(shipBug) shipBug.update(String(msgCount>999?(Math.round(msgCount/1000)+"k"):msgCount),
+      arr[0]?((arr[0].name||("MMSI "+arr[0].mmsi))+" \u00b7 "+(arr[0].sog!=null?Math.round(arr[0].sog)+"kn":"tracking")):"vessels worldwide");
     listEl.innerHTML=arr.length?arr.map(function(s){
       return '<div class="dc-row2"><div class="dc-row2-main"><span class="dc-place">'+esch(s.name||("MMSI "+s.mmsi))+'</span>'+
         '<span class="dc-when">'+(s.sog!=null?Math.round(s.sog)+" kn":"")+'</span></div></div>';
@@ -5805,9 +5809,10 @@ async function tuneGas(ch,sl,my){
     '</div>'+
     '<div class="dc-body" id="dcBody" style="flex:0 1 45%;justify-content:flex-start;gap:4px;overflow:hidden">'+
       '<div class="dc-top"><span id="gasHead">GAS PRICE TICKER</span></div>'+
-      '<div class="dc-list" id="dcList"></div>'+
+      '<div class="dc-list" id="dcList" style="margin-bottom:30px"></div>'+
       '<div class="dc-ticker" id="gasTicker">U.S. Energy Information Administration \u00b7 weekly retail survey</div>'+
     '</div></div>';
+  var gasBug=mountChanBug("dcScreen",{ident:"GAS WATCH"});
   clearInterval(gasTimer);
   var run=async function(){
     if(my!==token||!powered){ clearInterval(gasTimer); return; }
@@ -5825,6 +5830,7 @@ async function tuneGas(ch,sl,my){
       var bigEl=$("gasBig");
       if(latest&&latest.value!=null){ if(bigEl)bigEl.textContent="$"+parseFloat(latest.value).toFixed(2);
         setChanStatus(ch.num,"$"+parseFloat(latest.value).toFixed(2)+"/gal");
+        if(gasBug) gasBug.update("$"+parseFloat(latest.value).toFixed(2),(PADD_NAMES[padd]||"REGULAR")+" \u00b7 PER GALLON");
         var chartEl=$("gasChart"); if(chartEl&&rows.length){
           var series=rows.slice().reverse().map(function(r){return r.value!=null?parseFloat(r.value):null;}); /* oldest-first */
           chartEl.innerHTML=svgLineChart(series,"#67ff86",300,80);
@@ -6828,6 +6834,7 @@ async function tuneAPOD(ch,sl,my){
       '<div class="afd-text" id="apodTxt" style="flex:1 1 auto;min-height:0"></div>'+
       '<div class="dc-ticker" id="apodTicker">api.nasa.gov \u00b7 public DEMO_KEY \u00b7 refreshes daily</div>'+
     '</div></div>';
+  var apodBug=mountChanBug("dcScreen",{ident:"NASA APOD"});
   clearInterval(apodTimer);
   var run=async function(){
     if(my!==token||!powered){ clearInterval(apodTimer); return; }
@@ -6842,6 +6849,7 @@ async function tuneAPOD(ch,sl,my){
       } else { throw new Error("no media in response"); }
       var tEl=$("apodTitle"); if(tEl) tEl.textContent=(d.title||"NASA ASTRONOMY PICTURE OF THE DAY").toUpperCase();
       var dEl=$("apodDate"); if(dEl) dEl.textContent=(d.date||"")+(d.copyright?(" \u00b7 \u00a9 "+d.copyright):"");
+      if(apodBug) apodBug.update(d.date||"--", (d.title||"").toUpperCase().slice(0,40));
       var txtEl=$("apodTxt"); if(txtEl) txtEl.textContent=d.explanation||"";
       nlog("apod",true,d.title||"ok");
     }catch(e){
@@ -6986,9 +6994,10 @@ async function tuneAurora(ch,sl,my){
     '<div class="dc-body" id="dcBody" style="flex:0 1 42%;justify-content:flex-start;gap:4px;overflow:hidden">'+
       '<div class="dc-top"><span>AURORA &amp; SPACE WEATHER</span></div>'+
       '<div class="dc-sub" id="auroraLoc"></div>'+
-      '<div class="dc-list" id="dcList"></div>'+
+      '<div class="dc-list" id="dcList" style="margin-bottom:30px"></div>'+
       '<div class="dc-ticker" id="auroraTicker">NOAA SWPC \u00b7 real-time geomagnetic data \u00b7 updates every 5 min</div>'+
     '</div></div>';
+  var auroraBug=mountChanBug("dcScreen",{ident:"AURORA WATCH"});
   clearInterval(auroraTimer);
   var run=async function(){
     if(my!==token||!powered){ clearInterval(auroraTimer); return; }
@@ -7002,6 +7011,7 @@ async function tuneAurora(ch,sl,my){
       var kp=parseFloat(last[1]);
       var kpEl=$("auroraKpBig"); if(kpEl) kpEl.textContent="Kp "+(isNaN(kp)?"--":kp.toFixed(1));
       if(!isNaN(kp)) setChanStatus(ch.num,"Kp "+kp.toFixed(1));
+      if(auroraBug) auroraBug.update("Kp "+(isNaN(kp)?"--":kp.toFixed(1)), kpDescribe(kp));
       var chartEl=$("auroraChart");
       if(chartEl&&kpSeries.length){
         chartEl.innerHTML=svgBarChart(kpSeries,function(v){return v<4?"#67ff86":v<6?"#ffd34d":"#ff5c4d";},320,86);

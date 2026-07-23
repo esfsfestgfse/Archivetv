@@ -791,7 +791,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.65";
+window.__ATV_BUILD="1.7.7-desktop.66";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -825,7 +825,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.65</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.66</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">THE DIAL · THE SET</div>
@@ -5908,6 +5908,7 @@ var SPORTS_LIST=[
   {k:"wcbb",  label:"WOMEN'S COLLEGE BB", cat:"Team Sports", espn:"basketball/womens-college-basketball", yt:"NCAA"},
   {k:"cbase", label:"COLLEGE BASEBALL", cat:"Team Sports", espn:"baseball/college-baseball",       yt:"NCAA"},
   {k:"epl",   label:"SOCCER",      cat:"International", espn:"soccer/all",                       yt:"premierleague"},
+  {k:"mls",   label:"MLS",         cat:"Team Sports",    espn:"soccer/usa.1",                     yt:"MLS"},
   {k:"worldcup",label:"WORLD CUP", cat:"International", sdb:"4429",           yt:"FIFA"},
   {k:"lol",   label:"ESPORTS (LOL)", cat:"International", sdb:"4514",         yt:"lolesports"},
   {k:"cricket",label:"CRICKET",    cat:"International", espnCricket:true, sdb:"4575",            yt:"iccmedia"},
@@ -6194,7 +6195,22 @@ async function tuneSports(ch,sl,my){
       if(sr.completed!=null&&sr.totalCompetitions) return "Game "+((sr.completed||0)+1)+" of "+sr.totalCompetitions;
       return "";
     })();
-    var infoLine=[noteTxt,seriesTxt,venue&&("\ud83c\udfdf "+venue+(venueCity?(" \u00b7 "+venueCity):"")),
+    /* ESPN's scoreboard response carries a per-competition leaders[] array -- passing/rushing/
+       receiving for football, points/rebounds/assists for basketball, etc. -- confirmed against
+       independently-documented response shapes. Picking the first category is a reasonable
+       stand-in for "who mattered most" without needing a second request per game. */
+    var leaderTxt = (function(){
+      var lg=(comp&&comp.leaders)||[];
+      for(var i=0;i<lg.length;i++){
+        var cat=lg[i], ld=cat&&cat.leaders&&cat.leaders[0];
+        if(!ld) continue;
+        var who=(ld.athlete&&(ld.athlete.shortName||ld.athlete.displayName))||"";
+        if(!who) continue;
+        return "\ud83c\udfc6 "+who+" "+(ld.displayValue||"");
+      }
+      return "";
+    })();
+    var infoLine=[noteTxt,seriesTxt,leaderTxt,venue&&("\ud83c\udfdf "+venue+(venueCity?(" \u00b7 "+venueCity):"")),
                   bcast&&("\ud83d\udcfa "+bcast), wx&&("\u26c5 "+wx)].filter(Boolean).join("   \u00b7   ");
     function teamRow(logo,name,score,isFav){
       return '<div class="score-team-row">'+

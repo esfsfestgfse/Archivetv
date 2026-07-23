@@ -720,7 +720,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.57";
+window.__ATV_BUILD="1.7.7-desktop.58";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -754,7 +754,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.57</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.58</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">THE DIAL · THE SET</div>
@@ -4426,6 +4426,12 @@ function proxiedVia(base,u,opts){
 }
 function proxied(u,opts){ return proxiedVia(streamProxyBase(),u,opts); }
 var IPTV_TABS=[
+ /* Service tabs first -- these match on the SOURCE a channel came from (c.src) rather than its
+    genre, so each FAST provider gets its own browsable lineup the way a real box presents them.
+    Genre tabs follow and still match on group-title. */
+ {label:"ALL",src:/./},
+ {label:"ROKU",src:/^Roku$/i},{label:"PLUTO",src:/^Pluto TV$/i},{label:"TUBI",src:/^Tubi$/i},
+ {label:"SAMSUNG",src:/^Samsung TV\+$/i},{label:"PLEX",src:/^Plex$/i},
  {label:"NEWS",re:/news/i},{label:"SPORTS",re:/sport/i},{label:"WEATHER",re:/weather/i},
  {label:"MOVIES",re:/movie|cinema|film/i},{label:"ENTERTAIN",re:/entertain|comedy|series|drama|classic/i},
  {label:"KIDS",re:/kids|animation|family|cartoon/i},{label:"MUSIC",re:/music/i},
@@ -4459,7 +4465,13 @@ function parseM3U(text){
     else if(ln.indexOf("#EXTVLCOPT")===0&&cur){
       var m1=/http-user-agent=(.*)$/i.exec(ln); if(m1&&m1[1]) cur.ua=m1[1].trim();
       var m2=/http-referrer=(.*)$/i.exec(ln); if(m2&&m2[1]) cur.ref=m2[1].trim(); }
-    else if(ln&&ln.charAt(0)!=="#"&&cur){ if(/^https?:/i.test(ln)&&/\.m3u8/i.test(ln)){ cur.url=ln; out.push(cur); } cur=null; }
+    else if(ln&&ln.charAt(0)!=="#"&&cur){
+      /* QA FIX: this required ".m3u8" in the URL, which silently dropped every Samsung TV Plus
+         (578) and Plex (693) entry -- those are redirect/endpoint URLs with no file extension.
+         Accept any http(s) URL that isn't obviously a non-stream file type; the HLS-aware proxy
+         resolves the redirect and the player decides if it's playable. */
+      if(/^https?:/i.test(ln)&&!/\.(png|jpg|jpeg|gif|webp|svg|html?|txt|xml|json|pdf|zip)(\?|$)/i.test(ln)){ cur.url=ln; out.push(cur); }
+      cur=null; }
   }
   return out;
 }
@@ -4482,6 +4494,7 @@ async function fetchIPTV(){
   try{
     var te=await withTO(fetch("https://iptv-org.github.io/iptv/languages/eng.m3u",{cache:"no-store"}).then(function(r){return r.text();}),15000);
     var eng=parseM3U(te);
+    eng.forEach(function(c){ c.src="IPTV-org"; });
     out=out.concat(eng);
     nlog("livetv",true,"iptv-org English: "+eng.length);
   }catch(e){ nlog("livetv",false,"iptv-org eng: "+((e&&e.message)||e)); }
@@ -4497,10 +4510,16 @@ async function fetchIPTV(){
      real CDN). An HLS-aware proxy that resolves against the POST-redirect URL handles them
      fine, so they are listed again. If the configured proxy can't cope, the dead-channel
      health system culls them automatically after two strikes -- no manual list needed. */
+  var FASTBASE="https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/refs/heads/main/playlists/";
   var FASTALL=[
-    ["Tubi","https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/refs/heads/main/playlists/tubi_all.m3u"],
-    ["Roku","https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/refs/heads/main/playlists/roku_all.m3u"],
-    ["Pluto TV","https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/refs/heads/main/playlists/plutotv_us.m3u"]
+    ["Tubi",       FASTBASE+"tubi_all.m3u"],
+    ["Roku",       FASTBASE+"roku_all.m3u"],
+    ["Pluto TV",   FASTBASE+"plutotv_us.m3u"],
+    ["Pluto TV",   FASTBASE+"plutotv_gb.m3u"],
+    ["Samsung TV+",FASTBASE+"samsungtvplus_us.m3u"],
+    ["Samsung TV+",FASTBASE+"samsungtvplus_gb.m3u"],
+    ["Plex",       FASTBASE+"plex_us.m3u"],
+    ["Plex",       FASTBASE+"plex_gb.m3u"]
   ];
   for(var fi=0; fi<FASTALL.length; fi++){
     try{
@@ -4655,7 +4674,10 @@ async function loadTVCat(tab,my){
   /* QA FIX: this capped each genre at 60 channels, which truncated the list partway through the
      alphabet -- the Music tab visibly "stopped at M". No cap now, and sorted A-Z so the list is
      actually browsable rather than however the source playlists happened to concatenate. */
-  var seen={}, chans=all.filter(function(c){return tab.re.test(c.cat);}).filter(function(c){var k=(c.name||"").toLowerCase();if(!k||seen[k])return false;seen[k]=1;return true;});
+  var seen={}, chans=all.filter(function(c){
+    if(tab.src) return tab.src.test(String(c.src||""));   /* service tab */
+    return tab.re.test(String(c.cat||""));                 /* genre tab */
+  }).filter(function(c){var k=(c.name||"").toLowerCase();if(!k||seen[k])return false;seen[k]=1;return true;});
   /* QA FIX: with four sources concatenated (iptv-org, Roku, Pluto, Tubi) the list ran A-Z per
      source and then restarted, which reads as the alphabet "stopping" partway. Sort the merged
      list so it is genuinely browsable end to end. */
@@ -4668,7 +4690,7 @@ async function loadTVCat(tab,my){
   var t=$("tvTitle"); if(t)t.textContent="LIVE TV / "+tab.label+" \u00b7 "+chans.length+(culled.hidden?("  ("+culled.hidden+" dead hidden)"):"");
   fetchEPG().then(function(){ try{ if(my===token) paintEPG(); }catch(e){} });
   if(!chans.length){ listEl.innerHTML='<div class="pop-empty">No channels in this genre right now.</div>'; return; }
-  listEl.innerHTML=chans.map(function(c,i){var rad=looksRadio(c);return '<div class="dc-row2" data-ci="'+i+'" data-epg="'+esch(c.tvgId||"")+'"><div class="dc-row2-main"><span class="dc-mag '+(rad?"dc-sev-mid":"dc-sev-low")+'">'+(rad?"\u266A":"TV")+'</span><span class="dc-place">'+esch(c.name.slice(0,46))+'</span><span class="dc-when">'+esch((rad?"AUDIO \u00b7 ":"")+String(c.cat||"").slice(0,14))+'</span></div><div class="dc-row2-sub tv-epg" style="display:none"></div></div>';}).join("");
+  listEl.innerHTML=chans.map(function(c,i){var rad=looksRadio(c);return '<div class="dc-row2" data-ci="'+i+'" data-epg="'+esch(c.tvgId||"")+'"><div class="dc-row2-main"><span class="dc-mag '+(rad?"dc-sev-mid":"dc-sev-low")+'">'+(rad?"\u266A":"TV")+'</span><span class="dc-place">'+esch(c.name.slice(0,46))+'</span><span class="dc-when">'+esch((rad?"AUDIO \u00b7 ":"")+(c.src?(c.src+" \u00b7 "):"")+String(c.cat||"").slice(0,12))+'</span></div><div class="dc-row2-sub tv-epg" style="display:none"></div></div>';}).join("");
   window.__tvChans=chans;
   function paintEPG(){
     var l=$("dcList"); if(!l)return;

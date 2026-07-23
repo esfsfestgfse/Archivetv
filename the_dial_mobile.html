@@ -335,6 +335,30 @@ html,body{height:100vh;overflow:hidden}
   background:linear-gradient(180deg,#131a13,#0c100c);color:#cfe8d2;text-align:left;cursor:pointer}
 .chcell .cc-n{font-size:18px;font-weight:bold;color:#ffd98a;line-height:1}
 .chcell .cc-nm{font-size:10px;letter-spacing:.4px;color:#9ad6a8;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* ---- rebuilt Live TV layout ---- */
+.tv2-pane{flex:0 0 34%;min-height:0;background:#000;position:relative;border-radius:6px;overflow:hidden;
+  display:flex;align-items:center;justify-content:center}
+.tv2-pane video{width:100%;height:100%;object-fit:contain;background:#000}
+.tv2-body{flex:1 1 66%;min-height:0;display:flex;flex-direction:column;gap:4px;overflow:hidden;padding-top:5px}
+.tv2-bar{flex:none;display:flex;gap:5px;align-items:stretch}
+.tv2-sel{flex:0 0 auto;max-width:33%;appearance:none;-webkit-appearance:none;background:rgba(10,22,40,.85);
+  color:#9fc4ff;border:1px solid rgba(127,180,255,.4);border-radius:7px;padding:5px 7px;
+  font:700 9.5px/1.1 monospace;letter-spacing:.6px;cursor:pointer}
+.tv2-sel option{background:#0a1628;color:#dbeaff}
+.tv2-search{flex:1 1 auto;min-width:0;box-sizing:border-box;padding:5px 8px;border-radius:7px;
+  border:1px solid rgba(127,180,255,.35);background:rgba(10,22,40,.7);color:#dbeaff;
+  font:600 10px monospace;letter-spacing:.5px}
+.tv2-meta{flex:none;display:flex;justify-content:space-between;align-items:center;
+  font:700 9.5px monospace;letter-spacing:1px;color:#7fb4ff;opacity:.85;padding:1px 2px}
+.tv2-gear{cursor:pointer;font-size:12px}
+/* the old layout kept a ticker pinned at the bottom which happened to hold the list clear of
+   the pull-up tab handle. Removing it let the list run underneath the handle, so reserve the
+   space explicitly rather than by accident. */
+/* the pull-out panel tab is a strip on the RIGHT edge. The old layout only avoided it by
+   accident -- its video pane was tall enough that the list started below the tab. This layout
+   gives the list more height, so it must reserve the right edge explicitly or rows sit under
+   the handle and steal its taps. */
+.tv2-list{flex:1 1 auto;min-height:60px;overflow-y:auto;margin-right:30px}
 .chcell .cc-status{display:block;font-size:9px;color:#67ff86;opacity:.85;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
 .chcell .cc-f{position:absolute;top:5px;right:7px;color:#ffd34d;font-size:11px}
 .chcell.on{border-color:#ffb03a;box-shadow:inset 0 0 0 1px #ffb03a,0 0 14px rgba(255,176,58,.25);
@@ -862,7 +886,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.88";
+window.__ATV_BUILD="1.7.7-mobile.89";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -896,7 +920,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.88</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.89</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -1431,7 +1455,6 @@ const CH=[
  {nm:"On This Day",       cat:"RETRO", source:"onthisday",ns:"movie"},
  {nm:"Public Domain Day", cat:"RETRO", source:"pdday",    ns:"tv"},
  {nm:"Tropical Watch",    cat:"LDATA", source:"tropical",  ns:"tv"},
- {nm:"Live News",        cat:"LBRO", source:"livenews",  ns:"tv"},
  {nm:"Live TV",          cat:"LBRO", source:"livetv",    ns:"tv"},
  {nm:"Live Cams",        cat:"LBRO", source:"livecams",  ns:"tv"},
  {nm:"Deep Space Jazz",   cat:"MUS", source:"spacejazz", ns:"tv"},
@@ -1948,7 +1971,6 @@ async function tuneNum(n){
   if(sl.source==="afd"){ if(my!==token)return; return tuneAFD(ch,sl,my); }
   if(sl.source==="volcano"){ if(my!==token)return; return tuneVolcano(ch,sl,my); }
   if(sl.source==="tropical"){ if(my!==token)return; return tuneTropical(ch,sl,my); }
-  if(sl.source==="livenews"){ if(my!==token)return; return tuneLiveNews(ch,sl,my); }
   if(sl.source==="livetv"){ if(my!==token)return; return tuneLiveTV(ch,sl,my); }
   if(sl.source==="livecams"){ if(my!==token)return; return tuneLiveCams(ch,sl,my); }
   if(sl.source==="liveradio"){ if(my!==token)return; return tuneLiveRadio(ch,sl,my); }
@@ -4263,20 +4285,7 @@ var volcanoTimer=null;
    every embed threw "Error 153 / Video player configuration error". So we drop YouTube entirely and
    play each broadcaster's own public HLS (.m3u8) feed in a <video> via hls.js. These endpoints are
    CORS-open to a null origin (verified), so they work when the TV is opened as a local file. */
-var LIVE_NEWS=[
-  {nm:"DW News",           src:"https://dwamdstream102.akamaized.net/hls/live/2015525/dwstream102/index.m3u8"},
-  {nm:"France 24 English", src:"https://static.france24.com/live/F24_EN_HI_HLS/live_web.m3u8"},
-  {nm:"Al Jazeera English",src:"https://live-hls-web-aje.getaj.net/AJE/01.m3u8"},
-  {nm:"CGTN",              src:"https://news.cgtn.com/resource/live/english/cgtn-news.m3u8"},
-  {nm:"Channel NewsAsia",  src:"https://d2e1asnsl7br7b.cloudfront.net/7782e205e72f43aeb4a48ec97f66ebbe/index.m3u8"},
-  {nm:"TRT World",         src:"https://tv-trtworld.medya.trt.com.tr/master.m3u8"},
-  {nm:"Arirang",           src:"https://amdlive-ch01-ctnd-com.akamaized.net/arirang_1ch/smil:arirang_1ch.smil/playlist.m3u8"},
-  {nm:"NHK World-Japan",   src:"https://nhkwtvglobal-i.akamaihd.net/hls/live/2003459/nhkwtvglobal/index_4M.m3u8"},
-  {nm:"CBS News",          src:"https://cbsn-us.cbsnews.com/out/v1/55a8648e8f134e82a470f83d562deeca/master.m3u8"},
-  {nm:"Newsmax",           src:"https://nmxlive.akamaized.net/hls/live/529965/Live_1/index.m3u8"},
-  {nm:"Red Bull TV",       src:"https://rbmn-live.akamaized.net/hls/live/590964/BoRB-AT/master.m3u8"}
-];
-var newsHls=null, hlsLoading=null;
+var hlsLoading=null;
 function loadHlsLib(){ if(window.Hls)return Promise.resolve(window.Hls); if(hlsLoading)return hlsLoading;
   hlsLoading=new Promise(function(res,rej){ var sc=document.createElement("script");
     sc.src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.15/hls.min.js";
@@ -4284,70 +4293,6 @@ function loadHlsLib(){ if(window.Hls)return Promise.resolve(window.Hls); if(hlsL
     document.head.appendChild(sc); });
   return hlsLoading;
 }
-async function loadNewsStream(item,my,idx,triedCount){
-  var pane=$("newsPane"); if(!pane||!item)return;
-  idx=idx==null?LIVE_NEWS.indexOf(item):idx; triedCount=triedCount||1;
-  try{ if(newsHls){ newsHls.destroy(); newsHls=null; } }catch(e){}
-  pane.innerHTML='<div class="dc-media-cap">CONNECTING TO '+esch(String(item.nm).toUpperCase())+'\u2026</div>';
-  var v=document.createElement("video");
-  v.setAttribute("playsinline",""); v.muted=true; v.autoplay=true; v.controls=true;
-  v.style.cssText="width:100%;height:100%;object-fit:contain;background:#000;display:block";
-  pane.innerHTML=""; pane.appendChild(v);
-  var cap=document.createElement("div"); cap.className="dc-media-cap";
-  cap.textContent="LIVE: "+String(item.nm).toUpperCase()+" \u00b7 muted \u2014 use player controls for sound";
-  pane.appendChild(cap);
-  var attempts=[item.src]; var pu=proxied(item.src); if(pu!==item.src) attempts.push(pu);
-  var ai=0;
-  function highlightRow(i){ var l=$("dcList"); if(!l)return; l.querySelectorAll("[data-ni]").forEach(function(x){x.classList.remove("sel");});
-    var r=l.querySelector('[data-ni="'+i+'"]'); if(r)r.classList.add("sel"); }
-  function fail(msg){ if(my!==token)return; nlog("livenews",false,item.nm+": "+msg);
-    if(triedCount<LIVE_NEWS.length){ /* QA FIX: auto-advance instead of dead-ending -- individual
-        stream links go stale over time and there was previously no recovery except the user
-        manually clicking a different channel */
-      var nextIdx=(idx+1)%LIVE_NEWS.length; var p=$("newsPane");
-      if(p)p.innerHTML='<div class="dc-media-cap">'+esch(String(item.nm).toUpperCase())+' is down \u2014 trying '+esch(LIVE_NEWS[nextIdx].nm)+'\u2026</div>';
-      highlightRow(nextIdx);
-      setTimeout(function(){ if(my===token) loadNewsStream(LIVE_NEWS[nextIdx],my,nextIdx,triedCount+1); },600);
-    } else {
-      var p2=$("newsPane"); if(p2)p2.innerHTML='<div class="dc-media-cap">Every live news channel failed to connect right now \u2014 check DIAG, or try again shortly.</div>';
-    }
-  }
-  function playSrc(){
-    if(my!==token)return;
-    if(ai>=attempts.length){ fail("all sources failed"); return; }
-    var src=attempts[ai++];
-    try{ if(newsHls){ newsHls.destroy(); newsHls=null; } }catch(e){}
-    if(v.canPlayType("application/vnd.apple.mpegurl")){ v.src=src; try{ var pN=v.play(); if(pN&&pN.catch)pN.catch(function(){}); }catch(e){} nlog("livenews",true,item.nm+" (native)"); return; }
-    loadHlsLib().then(function(Hls){ if(my!==token)return;
-      if(Hls&&Hls.isSupported()){
-        newsHls=new Hls({liveDurationInfinity:true}); newsHls.loadSource(src); newsHls.attachMedia(v);
-        newsHls.on(Hls.Events.MANIFEST_PARSED,function(){ try{ var pN2=v.play(); if(pN2&&pN2.catch)pN2.catch(function(){}); }catch(e){} });
-        newsHls.on(Hls.Events.ERROR,function(ev,data){ if(data&&data.fatal){ try{newsHls.destroy();}catch(e){} newsHls=null; if(ai<attempts.length){ playSrc(); } else { fail("hls "+(data.type||"fatal")); } } });
-        nlog("livenews",true,item.nm+(ai>1?" (via proxy)":" (direct)"));
-      } else { v.src=src; try{ var pN3=v.play(); if(pN3&&pN3.catch)pN3.catch(function(){}); }catch(e){} }
-    }).catch(function(e){ fail((e&&e.message)||e); });
-  }
-  playSrc();
-}
-async function tuneLiveNews(ch,sl,my){
-  if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Live News","");
-  if(screenArea) screenArea.innerHTML='<div class="dc-screen" id="dcScreen">'+
-    '<div class="dc-media show" id="newsPane" style="flex:1 1 66%;height:auto;min-height:0;background:#000"><div class="dc-media-cap">LOADING LIVE NEWS…</div></div>'+
-    '<div class="dc-body" id="dcBody" style="flex:0 1 34%;justify-content:flex-start;gap:4px;overflow:hidden">'+
-    '<div class="dc-top"><span>LIVE NEWS / TAP A CHANNEL</span></div>'+
-    '<div class="dc-list" id="dcList" style="flex:none;overflow-y:auto"></div>'+
-    '<div class="dc-ticker" style="margin-top:auto">Free 24/7 livestreams · muted by default — use the on-screen player for sound</div></div></div>';
-  var listEl=$("dcList"); if(!listEl)return;
-  listEl.innerHTML=LIVE_NEWS.map(function(it,i){
-    return '<div class="dc-row2" data-ni="'+i+'"><div class="dc-row2-main"><span class="dc-mag dc-sev-low">LIVE</span><span class="dc-place">'+esch(it.nm)+'</span><span class="dc-when">HLS</span></div></div>';
-  }).join("");
-  listEl.querySelectorAll("[data-ni]").forEach(function(r){ r.style.cursor="pointer";
-    r.addEventListener("click",function(){ listEl.querySelectorAll("[data-ni]").forEach(function(x){x.classList.remove("sel");});
-      r.classList.add("sel"); loadNewsStream(LIVE_NEWS[+r.dataset.ni],my,+r.dataset.ni,1); }); });
-  var first=listEl.querySelector("[data-ni]"); if(first)first.classList.add("sel");
-  loadNewsStream(LIVE_NEWS[0],my,0,1);
-}
-
 /* ---------- Live Radio: real stations (radio-browser.info) on a draggable 3D globe (Radio Garden style) ---------- */
 var RB_SERVERS=["https://de1.api.radio-browser.info","https://nl1.api.radio-browser.info","https://at1.api.radio-browser.info"];
 var RB_CATS=[
@@ -4718,6 +4663,20 @@ async function fetchIPTV(){
     out=out.concat(eng);
     nlog("livetv",true,"iptv-org English: "+eng.length);
   }catch(e){ nlog("livetv",false,"iptv-org eng: "+((e&&e.message)||e)); }
+  /* English-speaking country playlists. These are NOT redundant with languages/eng.m3u --
+     a channel with no language tag set is absent from the language list but still present in
+     its country list, so these recover entries the language filter alone misses. Paths are the
+     official ones from iptv-org's PLAYLISTS.md. */
+  var COUNTRIES=[["US","us"],["UK","uk"],["Canada","ca"],["Australia","au"],["NZ","nz"],["Ireland","ie"]];
+  for(var ci=0; ci<COUNTRIES.length; ci++){
+    try{
+      var ct=await withTO(fetch("https://iptv-org.github.io/iptv/countries/"+COUNTRIES[ci][1]+".m3u",{cache:"no-store"}).then(function(r){return r.text();}),15000);
+      var cl=parseM3U(ct).filter(function(c){ return !looksNonEnglish(c.name); });
+      cl.forEach(function(c){ c.src="IPTV-org"; c.country=COUNTRIES[ci][0]; });
+      out=out.concat(cl);
+      nlog("livetv",true,"iptv-org "+COUNTRIES[ci][0]+": "+cl.length);
+    }catch(e){ nlog("livetv",false,"iptv-org "+COUNTRIES[ci][0]+": "+((e&&e.message)||e)); }
+  }
   /* Roku and Pluto TV were dropped after a user report that none of their channels ever played.
      Cause: every URL in those two playlists is a jmp2.uk redirect link, not a real manifest --
      the generator's own docs say it routes them through that proxy "to ensure streams remain
@@ -4895,8 +4854,10 @@ async function loadTVCat(tab,my){
      alphabet -- the Music tab visibly "stopped at M". No cap now, and sorted A-Z so the list is
      actually browsable rather than however the source playlists happened to concatenate. */
   var seen={}, chans=all.filter(function(c){
-    if(tab.src) return tab.src.test(String(c.src||""));   /* service tab */
-    return tab.re.test(String(c.cat||""));                 /* genre tab */
+    /* source and genre are now independent selectors, so both can be active at once */
+    if(tab.src && !tab.src.test(String(c.src||""))) return false;
+    if(tab.re  && !tab.re.test(String(c.cat||""))) return false;
+    return true;
   }).filter(function(c){var k=(c.name||"").toLowerCase();if(!k||seen[k])return false;seen[k]=1;return true;});
   /* QA FIX: with four sources concatenated (iptv-org, Roku, Pluto, Tubi) the list ran A-Z per
      source and then restarted, which reads as the alphabet "stopping" partway. Sort the merged
@@ -5112,15 +5073,40 @@ async function tuneLiveTV(ch,sl,my){
   if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Live TV","");
   ensureTVCSS();
   if(screenArea) screenArea.innerHTML='<div class="dc-screen" id="dcScreen">'+
-    '<div class="dc-media show" id="tvPane" style="flex:1 1 60%;height:auto;min-height:0;background:#000"><div class="dc-media-cap">LOADING LIVE TV…</div></div>'+
-    '<div class="dc-body" id="dcBody" style="flex:0 1 40%;justify-content:flex-start;gap:4px;overflow:hidden">'+
-    '<div class="dc-top"><span id="tvTitle">LIVE TV</span><span id="tvProxyBtn" style="float:right;cursor:pointer;font-size:11px;color:#7fb4ff">⚙ proxy</span></div>'+
-    '<div id="tvProxyBar"></div>'+
-    '<div id="tvTabs"></div>'+
-    '<input id="tvSearch" placeholder="filter channels\u2026" style="flex:none;width:100%;box-sizing:border-box;margin:2px 0 4px;padding:5px 8px;border-radius:8px;border:1px solid rgba(127,180,255,.35);background:rgba(10,22,40,.7);color:#dbeaff;font:600 10px monospace;letter-spacing:.5px">'+
-    '<div class="dc-list" id="dcList" style="flex:1 1 auto;overflow-y:auto"></div>'+
-    '<div class="dc-ticker" style="margin-top:auto">Live TV via iptv-org · set a free stream proxy to unlock most channels</div></div></div>';
+    /* REBUILT UI. The old layout gave video 60% and squeezed the channel list into 40%, then
+       spent two more rows on a 15-chip scrolling tab strip and a separate search box. Browsing
+       is the actual job here, so: the video pane is small until something is playing, the 15
+       chips collapse into two dropdowns, and the list gets the screen. */
+    '<div class="tv2-pane" id="tvPane"><div class="dc-media-cap" id="tvCap">SELECT A CHANNEL</div></div>'+
+    '<div class="tv2-body">'+
+      '<div class="tv2-bar">'+
+        '<select id="tvSrcSel" class="tv2-sel" title="source"></select>'+
+        '<select id="tvGenSel" class="tv2-sel" title="genre"></select>'+
+        '<input id="tvSearch" class="tv2-search" placeholder="search\u2026">'+
+      '</div>'+
+      '<div class="tv2-meta"><span id="tvTitle">LIVE TV</span>'+
+        '<span id="tvProxyBtn" class="tv2-gear">\u2699</span></div>'+
+      '<div id="tvProxyBar"></div>'+
+      '<div class="dc-list tv2-list" id="dcList"></div>'+
+    '</div></div>';
   var curTab=null;
+  /* split the combined tab list into the two dropdowns */
+  var TV_SRCS=IPTV_TABS.filter(function(t){return !!t.src;});
+  var TV_GENS=IPTV_TABS.filter(function(t){return !t.src;});
+  var curSrc=TV_SRCS[0], curGen=null;
+  function currentTab(){
+    /* genre wins when chosen; otherwise the source tab drives the list */
+    if(curGen) return {label:curGen.label, re:curGen.re, src:(curSrc&&curSrc.label!=="ALL")?curSrc.src:null};
+    return curSrc;
+  }
+  (function buildSelectors(){
+    var ss=$("tvSrcSel"), gs=$("tvGenSel");
+    if(ss){ ss.innerHTML=TV_SRCS.map(function(t,i){return '<option value="'+i+'">'+esch(t.label)+'</option>';}).join("");
+      ss.addEventListener("change",function(){ curSrc=TV_SRCS[+ss.value]; if(window.__tvReload)window.__tvReload(); }); }
+    if(gs){ gs.innerHTML='<option value="-1">ALL GENRES</option>'+
+        TV_GENS.map(function(t,i){return '<option value="'+i+'">'+esch(t.label)+'</option>';}).join("");
+      gs.addEventListener("change",function(){ var v=+gs.value; curGen=(v<0?null:TV_GENS[v]); if(window.__tvReload)window.__tvReload(); }); }
+  })();
   function renderProxyBar(open){ var bar=$("tvProxyBar"); if(!bar)return;
     if(open){ bar.style.display="flex";
       bar.innerHTML='<input id="tvProxyIn" placeholder="https://your-worker.workers.dev" value="'+esch(streamProxyBase())+'"><span id="tvProxySave">SAVE</span>';
@@ -5129,20 +5115,14 @@ async function tuneLiveTV(ch,sl,my){
   }
   var pb=$("tvProxyBtn"); if(pb)pb.addEventListener("click",function(){ var bar=$("tvProxyBar"); renderProxyBar(bar.style.display==="none"||!bar.style.display); });
   /* single reload hook so the filter box and the menu toggles can all re-render the list */
-  window.__tvReload=function(){ try{ if(my===token&&curTab) loadTVCat(curTab,my); }catch(e){} };
+  window.__tvReload=function(){ try{ if(my!==token)return; curTab=currentTab(); loadTVCat(curTab,my); }catch(e){} };
   var srch=$("tvSearch");
   if(srch){ srch.value=window.__tvQuery||"";
     srch.addEventListener("input",function(){ window.__tvQuery=srch.value;
       clearTimeout(window.__tvQT); window.__tvQT=setTimeout(function(){ if(window.__tvReload)window.__tvReload(); },180); });
     srch.addEventListener("keydown",function(e){ e.stopPropagation(); }); }
-  var tabsEl=$("tvTabs");
-  if(tabsEl){ tabsEl.innerHTML=IPTV_TABS.map(function(t,i){return '<span class="rcat" data-t="'+i+'">'+esch(t.label)+'</span>';}).join("");
-    tabsEl.querySelectorAll("[data-t]").forEach(function(el){ el.addEventListener("click",function(){
-      tabsEl.querySelectorAll("[data-t]").forEach(function(x){x.classList.remove("sel");}); el.classList.add("sel"); curTab=IPTV_TABS[+el.dataset.t]; loadTVCat(curTab,my); }); });
-    var f=tabsEl.querySelector('[data-t="0"]'); if(f)f.classList.add("sel");
-  }
   if(!streamProxyBase()) renderProxyBar(true);
-  curTab=IPTV_TABS[0]; loadTVCat(curTab,my);
+  curTab=currentTab(); loadTVCat(curTab,my);
 }
 
 /* ---------- Stage-2 live merges: auto-rotating multi-view channels ----------

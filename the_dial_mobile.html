@@ -362,10 +362,30 @@ html,body{height:100vh;overflow:hidden}
 
 /* ============ v11: Weather Watch screen ============ */
 .wx-screen{width:100%;height:100%;overflow:hidden;display:flex;flex-direction:column;gap:0.9vmin;
-  background:linear-gradient(165deg,#0d1f5c 0%,#0a1740 45%,#061029 100%);color:#eaf2ff;padding:1.2vmin 1.5vmin;box-sizing:border-box;position:relative}
+  background:linear-gradient(165deg,#0d1f5c 0%,#0a1740 45%,#061029 100%);color:#eaf2ff;padding:1.2vmin 1.5vmin calc(1.2vmin + 30px);box-sizing:border-box;position:relative}
 .wx-screen::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.09;
   background-image:linear-gradient(rgba(255,255,255,.5) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.5) 1px,transparent 1px);
   background-size:34px 34px}
+/* ---- broadcast bug: the persistent station ident / clock / temp strip that a real weather
+   channel keeps on screen at all times. Sits above the CRT overlays but below the OSD. ---- */
+.wx-bug{position:absolute;left:0;right:0;bottom:0;z-index:24;display:flex;align-items:stretch;
+  font-family:inherit;pointer-events:none;filter:drop-shadow(0 -2px 6px rgba(0,0,0,.6))}
+.wx-bug-id{flex:none;display:flex;align-items:center;gap:6px;padding:5px 10px;
+  background:linear-gradient(180deg,#153a86,#0b2350);color:#fff;font-weight:900;
+  font-size:clamp(10px,1.7vmin,17px);letter-spacing:2px;border-top:2px solid #ffd75e}
+.wx-bug-id .wx-bug-dot{width:8px;height:8px;border-radius:50%;background:#ff4d4d;
+  box-shadow:0 0 6px #ff4d4d;animation:wxBugPulse 2s ease-in-out infinite}
+@keyframes wxBugPulse{0%,100%{opacity:1}50%{opacity:.35}}
+.wx-bug-mid{flex:1;min-width:0;display:flex;align-items:center;gap:10px;padding:5px 12px;
+  background:linear-gradient(180deg,rgba(8,16,34,.94),rgba(4,9,20,.94));border-top:2px solid rgba(255,215,94,.5);
+  color:#eaf2ff;font-size:clamp(10px,1.7vmin,17px);letter-spacing:1px;white-space:nowrap;overflow:hidden}
+.wx-bug-temp{font-weight:900;color:#ffe27a;font-size:clamp(13px,2.3vmin,24px)}
+.wx-bug-place{color:#bcd2ff;overflow:hidden;text-overflow:ellipsis}
+.wx-bug-clock{flex:none;padding:5px 11px;background:linear-gradient(180deg,#153a86,#0b2350);
+  color:#ffd75e;font-weight:900;font-size:clamp(11px,1.9vmin,19px);letter-spacing:1.5px;
+  border-top:2px solid #ffd75e;font-variant-numeric:tabular-nums}
+html.mob .wx-bug-id{letter-spacing:1px;padding:4px 7px}
+html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
 .wx-top{display:flex;justify-content:space-between;align-items:baseline;font-size:clamp(12px,2vmin,22px);letter-spacing:2px;color:#ffd75e;flex:none;
   font-weight:bold;text-shadow:0 1px 0 rgba(0,0,0,.6);position:relative;z-index:1}
 .wx-upd{font-size:clamp(9px,1.5vmin,15px);letter-spacing:.5px;color:#8fb3ff}
@@ -375,9 +395,9 @@ html,body{height:100vh;overflow:hidden}
 .wx-left .wx-stats{grid-template-columns:1fr;min-width:0;align-content:center;grid-auto-rows:min-content;gap:1vmin}
 .wx-now{display:flex;align-items:center;gap:2vmin;flex-wrap:wrap;flex:none;position:relative;z-index:1}
 .wx-now-main{display:flex;flex-direction:column;min-width:20vmin}
-.wx-temp{font-size:12.5vmin;font-weight:900;line-height:1;color:#ffe27a;
+.wx-temp{font-size:16vmin;font-weight:900;line-height:.95;color:#ffe27a;letter-spacing:-2px;
   text-shadow:0 1px 0 #fff8,0 2px 2px rgba(0,0,0,.5),0 0 22px rgba(255,214,90,.35);font-family:Arial,sans-serif}
-.wx-fx{font-size:clamp(13px,2.5vmin,26px);color:#dfe9ff;margin-top:3px}
+.wx-fx{font-size:clamp(15px,3.1vmin,32px);color:#dfe9ff;margin-top:4px;font-weight:700;letter-spacing:.5px}
 .wx-stats{flex:1;display:grid;grid-template-columns:repeat(2,1fr);gap:0.7vmin 2.2vmin;min-width:220px}
 .wx-stat{font-size:clamp(12px,2.2vmin,23px);color:#cfe0ff;display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.14);padding-bottom:2px}
 .wx-stat b{color:#8fb3ff;font-weight:normal;letter-spacing:.5px;font-size:clamp(10px,1.7vmin,17px)}
@@ -842,7 +862,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.84";
+window.__ATV_BUILD="1.7.7-mobile.85";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -876,7 +896,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.84</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.85</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -7528,11 +7548,25 @@ async function tuneWeather(ch,sl,my){
       '<div class="wx-fcgrid"><div class="wx-hourly" id="wxHourly"></div><div class="wx-daily" id="wxDaily"></div></div>'+
       '<div class="wx-ticker" id="wxTicker">NO ACTIVE ALERTS</div>'+
       '<div class="haz-ticker" id="hazTicker"><span id="hazTickerInner">NATIONWIDE HAZARDOUS WEATHER \u00b7 checking\u2026</span></div>'+
+      '<div class="wx-bug" id="wxBug">'+
+        '<div class="wx-bug-id"><span class="wx-bug-dot"></span><span>ARCHIVE TV WX</span></div>'+
+        '<div class="wx-bug-mid"><span class="wx-bug-temp" id="wxBugTemp">--\u00b0</span>'+
+          '<span class="wx-bug-place" id="wxBugPlace">LOCATING\u2026</span></div>'+
+        '<div class="wx-bug-clock" id="wxBugClock">--:--</div>'+
+      '</div>'+
     '</div>'; }
   var radarMode=0; /* 1.4.2: tap the radar to cycle LOCAL -> REGIONAL -> NATIONAL */
   var rw=screenArea?screenArea.querySelector(".wx-radar-wrap"):null;
   if(rw){ rw.style.cursor="pointer"; rw.title="Tap to switch radar layer";
     rw.addEventListener("click",function(){ radarMode=(radarMode+1)%3; run(); }); }
+  /* bug clock ticks independently of the 10-minute data refresh so it always reads live */
+  (function(){
+    function tickBug(){ var c=$("wxBugClock"); if(!c)return;
+      var d=new Date();
+      var hh=d.getHours(), ap=hh>=12?"PM":"AM"; hh=hh%12; if(!hh)hh=12;
+      c.textContent=hh+":"+String(d.getMinutes()).padStart(2,"0")+" "+ap; }
+    tickBug(); rtInterval(tickBug,1000);
+  })();
   clearInterval(weatherTimer); startIAJazz(); startHazTicker(); // CHANGED: nationwide ticker now lives only on this channel, not globally
   var run=async function(){
     if(my!==token || !powered){ clearInterval(weatherTimer); return; }
@@ -7590,6 +7624,11 @@ async function tuneWeather(ch,sl,my){
       if(tEl)tEl.textContent=(curTempF!=null?curTempF+"\u00b0F":"--\u00b0");
       if(fEl)fEl.innerHTML='<span class="wx-fx-ic">'+wxIcon(curDesc,(per0.isDaytime!=null?per0.isDaytime:(function(){var h=new Date().getHours();return h>=7&&h<19;})()))+'<span>'+esch(curDesc)+'</span></span>';
       if(curTempF!=null) setChanStatus(ch.num,curTempF+"\u00b0F \u00b7 "+curDesc);
+      /* feed the broadcast bug from the same values -- no extra requests */
+      var bt=$("wxBugTemp"); if(bt&&curTempF!=null) bt.textContent=curTempF+"\u00b0";
+      var bp=$("wxBugPlace");
+      if(bp){ var lc=el.querySelector(".wx-loc");
+        bp.textContent=((lc&&lc.textContent)||"").replace(/\s+/g," ").trim()+(curDesc?("  \u00b7  "+curDesc.toUpperCase()):""); }
       if(statsEl){
         if(op){
           var hum=op.relativeHumidity&&op.relativeHumidity.value!=null?Math.round(op.relativeHumidity.value)+"%":"--";

@@ -937,7 +937,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.98";
+window.__ATV_BUILD="1.7.7-mobile.99";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -971,7 +971,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.98</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.99</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -6180,7 +6180,7 @@ async function tuneSports(ch,sl,my){
   clearInterval(sportsTimer);
 
   function renderSubPicker(){
-    var views=[["scores","SCORES"],["standings","STANDINGS"],["news","NEWS"],["injuries","INJURIES"],["highlights","HIGHLIGHTS"],["livetv","LIVE TV"]];
+    var views=[["today","ON TODAY"],["scores","SCORES"],["standings","STANDINGS"],["news","NEWS"],["injuries","INJURIES"],["highlights","HIGHLIGHTS"],["livetv","LIVE TV"]];
     subPickerEl.innerHTML=views.map(function(v){
       return '<button class="catchip" data-sv="'+v[0]+'" style="border-color:#8fff5c;color:#8fff5c'+(sportsSubView===v[0]?';background:rgba(143,255,92,.18)':'')+'">'+v[1]+'</button>';
     }).join("");
@@ -6190,12 +6190,116 @@ async function tuneSports(ch,sl,my){
   }
   function renderBody(){
     if(my!==token)return;
-    if(sportsSubView==="scores") renderScores();
+    if(sportsSubView==="today") renderOnToday();
+    else if(sportsSubView==="scores") renderScores();
     else if(sportsSubView==="standings") renderStandings();
     else if(sportsSubView==="news") renderNews();
     else if(sportsSubView==="injuries") renderInjuries();
     else if(sportsSubView==="livetv") renderSportsTV();
     else renderHighlights();
+  }
+  /* ---------- ON TODAY: cross-sport day schedule ----------
+     Modelled on what allsportdb's Live page actually does: instead of forcing you to pick one
+     sport and look at it in isolation, show EVERYTHING happening on a given day across every
+     sport, sorted by start time, with yesterday/today/tomorrow switching. Fetches every
+     ESPN-backed sport in parallel (one scoreboard call each, the same endpoint the SCORES tab
+     already uses) and merges the results. Individual sports contribute their events too, so
+     golf rounds and race sessions appear alongside team games. */
+  var onTodayOffset=0;   /* -1 yesterday, 0 today, +1 tomorrow */
+  function espnDateParam(off){
+    var d=new Date(Date.now()+off*86400000);
+    return d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0");
+  }
+  async function renderOnToday(){
+    var my2=token;
+    var dayLabel=onTodayOffset===0?"TODAY":onTodayOffset<0?"YESTERDAY":"TOMORROW";
+    var dObj=new Date(Date.now()+onTodayOffset*86400000);
+    var nav='<div style="display:flex;gap:5px;margin-bottom:7px">'+
+      ["-1|\u2039 YESTERDAY","0|TODAY","1|TOMORROW \u203a"].map(function(x){
+        var parts=x.split("|"), off=+parts[0];
+        return '<button class="catchip" data-day="'+off+'" style="flex:1;border-color:#8fff5c;color:#8fff5c'+
+          (onTodayOffset===off?';background:rgba(143,255,92,.18)':'')+'">'+parts[1]+'</button>';
+      }).join("")+'</div>';
+    bodyEl.innerHTML=nav+'<div class="pop-empty">Loading '+dayLabel.toLowerCase()+'\u2019s schedule across all sports\u2026</div>';
+    wireDayNav();
+
+    var espnSports=SPORTS_LIST.filter(function(sp){ return !!sp.espn; });
+    var dateQ=espnDateParam(onTodayOffset);
+    var results=await Promise.all(espnSports.map(function(sp){
+      return fetchJSON("https://site.api.espn.com/apis/site/v2/sports/"+sp.espn+"/scoreboard?dates="+dateQ)
+        .then(function(d){ return {sp:sp,d:d}; })
+        .catch(function(){ return {sp:sp,d:null}; });
+    }));
+    if(my2!==token||sportsSubView!=="today")return;
+
+    var rows=[];
+    results.forEach(function(r){
+      var evs=(r.d&&r.d.events)||[];
+      evs.forEach(function(ev){
+        /* same multi-competition flattening the SCORES tab uses, so F1 sessions and fight-card
+           bouts each get their own row rather than only the first one showing */
+        var comps=(ev.competitions&&ev.competitions.length)?ev.competitions:[];
+        if(!comps.length && ev.groupings){ (ev.groupings||[]).forEach(function(g){ comps=comps.concat(g.competitions||[]); }); }
+        if(!comps.length) comps=[{competitors:[]}];
+        comps.forEach(function(c){
+          var st=(c.status||ev.status||{});
+          var t=(st.type&&st.type.state)||"";
+          var when=ev.date||c.date||"";
+          var nm=ev.shortName||ev.name||"";
+          var cs=c.competitors||[];
+          var label="";
+          if(cs.length>=2){
+            var h=cs.find(function(x){return x.homeAway==="home";})||cs[0];
+            var a=cs.find(function(x){return x.homeAway==="away";})||cs[1];
+            var hn=teamName(h)||athName(h), an=teamName(a)||athName(a);
+            if(hn&&an) label=an+" @ "+hn;
+            var hs=h&&h.score, as=a&&a.score;
+            if((t==="in"||t==="post")&&hs!=null&&as!=null) label=an+" "+as+" @ "+hn+" "+hs;
+          }
+          if(!label) label=nm||(r.sp.label+" event");
+          rows.push({sport:r.sp.label, label:label, when:when,
+                     detail:(st.type&&st.type.shortDetail)||"", state:t,
+                     ts:when?Date.parse(when):0});
+        });
+      });
+    });
+
+    rows.sort(function(a,b){
+      var order={in:0,pre:1,post:2};
+      var oa=order[a.state]!=null?order[a.state]:1, ob=order[b.state]!=null?order[b.state]:1;
+      if(oa!==ob) return oa-ob;          /* live first, then upcoming, then finished */
+      return (a.ts||0)-(b.ts||0);
+    });
+
+    if(my2!==token||sportsSubView!=="today")return;
+    var head='<div style="font:700 10px monospace;color:#9fd6a6;margin-bottom:6px">'+
+      dayLabel+' \u00b7 '+dObj.toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"})+
+      ' \u00b7 '+rows.length+' EVENT'+(rows.length===1?"":"S")+' ACROSS '+espnSports.length+' SPORTS</div>';
+    if(!rows.length){
+      bodyEl.innerHTML=nav+head+'<div class="pop-empty">Nothing scheduled '+dayLabel.toLowerCase()+' across the sports we cover.</div>';
+      wireDayNav(); return;
+    }
+    bodyEl.innerHTML=nav+head+rows.map(function(r){
+      var cls=r.state==="in"?"live":r.state==="post"?"final":"pre";
+      var tm=r.ts?new Date(r.ts).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}):"";
+      return '<div class="score-card" style="padding:8px 11px;border-left-color:'+(r.state==="in"?"#ff5c4d":"#8fff5c")+'">'+
+        '<div class="score-team-row" style="gap:8px">'+
+          '<span class="score-status '+cls+'" style="margin:0;min-width:46px;text-align:center">'+
+            esch(r.state==="in"?"LIVE":r.state==="post"?"FINAL":(tm||"SOON"))+'</span>'+
+          '<span class="score-team-name" style="flex:1">'+esch(r.label.slice(0,52))+'</span>'+
+          '<span style="font:700 9px monospace;color:rgba(159,214,166,.8)">'+esch(r.sport)+'</span>'+
+        '</div>'+
+        (r.detail?'<div class="score-odds">'+esch(r.detail)+'</div>':'')+'</div>';
+    }).join("");
+    wireDayNav();
+    nlog("sportstoday",true,rows.length+" events "+dayLabel);
+  }
+  function wireDayNav(){
+    bodyEl.querySelectorAll("[data-day]").forEach(function(btn){
+      btn.addEventListener("click",function(){
+        onTodayOffset=+btn.dataset.day; window.__sportsTouch=Date.now(); renderOnToday();
+      });
+    });
   }
   async function renderSportsTV(){
     bodyEl.innerHTML='<div class="pop-empty">Loading live sports channels\u2026</div>';

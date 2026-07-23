@@ -4707,6 +4707,31 @@ function parseM3U(text){
 function looksNonEnglish(n){
   return /espa|español|deportes|en fran|fran\u00e7ais|portugu|brasil|italiano|deutsch|latino|\u00f1|\bMX\b|\bBR\b|\bES\b\s*$/i.test(String(n||""));
 }
+/* ---------- IPTV-CHECK ingestion ----------
+   peterpt/IPTV-CHECK is a desktop tool (Python + ffmpeg + yt-dlp + Tesseract OCR) that verifies
+   an m3u playlist, including "soft" errors a plain connection check can't see -- a stream that
+   returns valid video headers but is actually showing a login wall or geo-block splash. That is
+   real signal the browser-side health tracker structurally cannot produce.
+   It can't run inside a browser, so the integration point is a file, not code: run it locally,
+   push the cleaned output to this repo, and it is picked up here as a trusted top-priority
+   source -- same pattern already working for world_ip_tv's auto-verified list. No file existing
+   yet is expected and harmless; this just falls through to the normal sources. */
+var CHECKED_FILES=["checked_livetv.m3u","checked_sports.m3u"];
+async function fetchCheckedIPTV(){
+  var out=[];
+  for(var i=0;i<CHECKED_FILES.length;i++){
+    try{
+      var r=await fetch("https://raw.githubusercontent.com/esfsfestgfse/Archivetv/main/"+CHECKED_FILES[i],{cache:"no-store"});
+      if(!r.ok) continue;
+      var txt=await r.text();
+      var list=parseM3U(txt);
+      list.forEach(function(c){ c.checked=true; c.src="Checked"; });
+      out=out.concat(list);
+      nlog("livetv",true,CHECKED_FILES[i]+": "+list.length+" IPTV-CHECK verified");
+    }catch(e){}
+  }
+  return out;
+}
 async function fetchIPTV(){
   /* QA FIX + FEATURE: this function's definition was accidentally destroyed during an earlier
      wholesale block port (it was still being called from tuneLiveTV and the sports fallback,
@@ -4717,7 +4742,7 @@ async function fetchIPTV(){
      English-only via the shared exclusion heuristic; iptv-org's own list is already the
      English-language playlist. */
   if(iptvCache) return iptvCache;
-  var out=[];
+  var out=await fetchCheckedIPTV();
   try{
     var te=await withTO(fetch("https://iptv-org.github.io/iptv/languages/eng.m3u",{cache:"no-store"}).then(function(r){return r.text();}),15000);
     var eng=parseM3U(te);
@@ -4774,12 +4799,11 @@ async function fetchIPTV(){
       nlog("livetv",true,FASTALL[fi][0]+" (all genres): "+fl.length);
     }catch(e){ nlog("livetv",false,FASTALL[fi][0]+": "+((e&&e.message)||e)); }
   }
-  var seen={}; out=out.filter(function(c){
-    /* redirector URLs are no longer dropped -- an HLS-aware proxy resolves them. They are
-       merely flagged so a failure is diagnosable in DIAG. */
-    if(isRedirectorUrl(c.url)) c.viaRedirect=true;
-    var k=(c.name||"").toLowerCase().replace(/\s+/g," ").trim();
-    if(!k||seen[k])return false; seen[k]=1; return true; });
+  var byName={};
+  out.forEach(function(c){ if(isRedirectorUrl(c.url)) c.viaRedirect=true;
+    var k=(c.name||"").toLowerCase().replace(/\s+/g," ").trim(); if(!k)return;
+    if(!byName[k]||(c.checked&&!byName[k].checked)) byName[k]=c; });
+  out=Object.keys(byName).map(function(k){ return byName[k]; });
   iptvCache=out; return out;
 }
 /* ---------- EPG "now playing" ----------
@@ -6111,7 +6135,7 @@ async function tuneSports(ch,sl,my){
         '<div style="font:700 10px monospace;color:#9fd6a6;margin-bottom:6px">'+chans.length+' ENGLISH LIVE SPORTS'+(culledS.hidden?(' \u00b7 '+culledS.hidden+' DEAD HIDDEN'):'')+'</div>'+
         chans.map(function(c,i){
           return '<div class="score-card" data-ci="'+i+'" style="cursor:pointer;padding:9px 12px;border-left-color:#8fff5c">'+
-            '<div class="score-team-row"><span class="score-status '+(c.verified?"live":"pre")+'" style="margin:0">'+(c.verified?"VERIFIED":"LIVE")+'</span>'+
+            '<div class="score-team-row"><span class="score-status '+((c.checked||c.verified)?"live":"pre")+'" style="margin:0">'+(c.checked?"CHECKED":c.verified?"VERIFIED":"LIVE")+'</span>'+
             '<span class="score-team-name">'+esch(String(c.name).slice(0,46))+'</span>'+
             '<span style="font:600 10px monospace;color:rgba(159,214,166,.75)">'+esch(String(c.src||c.cat||"").slice(0,14))+'</span></div></div>';
         }).join("");

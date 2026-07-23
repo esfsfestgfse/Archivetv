@@ -937,7 +937,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.95";
+window.__ATV_BUILD="1.7.7-mobile.96";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -971,7 +971,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.95</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.96</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -1963,6 +1963,20 @@ function visibleChannels(){let l=favOnly?CH.filter(c=>isFav(c.num)):CH;
       return hay.indexOf(q)>-1;
     });
   }
+  /* QA FIX: the guide previously rendered channels in raw CH-array order. That array was built
+     across many editing sessions and each category ended up scattered in ~34 separate blocks
+     (Movies, then TV, then Movies again, then Toon, then Documentary...) even though each
+     category's OWN channel numbers happened to already be individually clean. The guide looked
+     broken -- genres out of order, numbers jumping around -- despite the underlying data being
+     fine. Sorted for display only: real category order first, channel number second within it.
+     Nothing about CH itself changes, so tuning/search/everything else is unaffected. */
+  var catPos={}; CAT_ORDER.forEach(function(c,i){ catPos[c]=i; });
+  l=l.slice().sort(function(a,b){
+    var pa=catPos[a.cat], pb=catPos[b.cat];
+    if(pa==null) pa=999; if(pb==null) pb=999;
+    if(pa!==pb) return pa-pb;
+    return a.num-b.num;
+  });
   return l;}
 window.__chanStatus=window.__chanStatus||{};
 /* mount a channel bug into any container. opts: {ident, getMain, getSub}. Returns an update()

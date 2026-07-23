@@ -335,6 +335,24 @@ html,body{height:100vh;overflow:hidden}
   background:linear-gradient(180deg,#131a13,#0c100c);color:#cfe8d2;text-align:left;cursor:pointer}
 .chcell .cc-n{font-size:18px;font-weight:bold;color:#ffd98a;line-height:1}
 .chcell .cc-nm{font-size:10px;letter-spacing:.4px;color:#9ad6a8;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* ---- Live TV: full-bleed video with an overlay guide ---- */
+.tv3-screen{position:relative;padding:0;overflow:hidden}
+.tv3-video{position:absolute;inset:0;background:#000;display:flex;align-items:center;justify-content:center}
+.tv3-video video{width:100%;height:100%;object-fit:contain;background:#000}
+.tv3-hud{position:absolute;left:0;right:0;top:0;z-index:12;display:flex;align-items:center;gap:8px;
+  padding:6px 8px;background:linear-gradient(180deg,rgba(4,10,22,.85),rgba(4,10,22,0))}
+.tv3-btn{cursor:pointer;font:800 10px monospace;letter-spacing:1.5px;color:#9fc4ff;
+  border:1px solid rgba(127,180,255,.5);border-radius:6px;padding:4px 9px;background:rgba(8,18,36,.75)}
+.tv3-now{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font:700 10px monospace;letter-spacing:1px;color:#dbeaff;opacity:.9}
+.tv3-gear{flex:none}
+.tv3-guide{position:absolute;left:0;right:0;bottom:0;top:34px;z-index:14;display:flex;flex-direction:column;
+  gap:5px;padding:7px 8px 8px;background:rgba(4,10,22,.94);backdrop-filter:blur(3px);
+  border-top:2px solid rgba(127,180,255,.5)}
+.tv3-ghead{flex:none;display:flex;gap:5px;align-items:stretch}
+.tv3-close{flex:none;cursor:pointer;color:#9fc4ff;font-size:15px;padding:0 6px;line-height:1.9}
+.tv3-gmeta{flex:none;font:700 9px monospace;letter-spacing:1px;color:#7fb4ff;opacity:.8}
+.tv3-list{flex:1 1 auto;min-height:60px;overflow-y:auto;margin-right:26px}
 /* ---- rebuilt Live TV layout ---- */
 .tv2-pane{flex:0 0 34%;min-height:0;background:#000;position:relative;border-radius:6px;overflow:hidden;
   display:flex;align-items:center;justify-content:center}
@@ -392,6 +410,10 @@ html,body{height:100vh;overflow:hidden}
   background-size:34px 34px}
 /* ---- broadcast bug: the persistent station ident / clock / temp strip that a real weather
    channel keeps on screen at all times. Sits above the CRT overlays but below the OSD. ---- */
+.wx-seg-lbl{position:absolute;top:6px;left:50%;transform:translateX(-50%);z-index:23;
+  background:linear-gradient(180deg,#153a86,#0b2350);color:#ffd75e;font-weight:900;
+  font-size:clamp(11px,2vmin,20px);letter-spacing:3px;padding:4px 14px;border-radius:4px;
+  border:1px solid rgba(255,215,94,.55);pointer-events:none;white-space:nowrap}
 .wx-bug{position:absolute;left:0;right:0;bottom:0;z-index:24;display:flex;align-items:stretch;
   font-family:inherit;pointer-events:none;filter:drop-shadow(0 -2px 6px rgba(0,0,0,.6))}
 .wx-bug-id{flex:none;display:flex;align-items:center;gap:6px;padding:5px 10px;
@@ -886,7 +908,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.89";
+window.__ATV_BUILD="1.7.7-mobile.91";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -920,7 +942,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.89</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.91</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -4667,10 +4689,13 @@ async function fetchIPTV(){
      a channel with no language tag set is absent from the language list but still present in
      its country list, so these recover entries the language filter alone misses. Paths are the
      official ones from iptv-org's PLAYLISTS.md. */
+  /* Pull from iptv-org's RAW streams/ directory rather than the built countries/ playlists:
+     it lives on raw.githubusercontent.com (more reliable than the github.io pages host) and is
+     substantially larger -- streams/us.m3u alone carries ~1,278 entries. */
   var COUNTRIES=[["US","us"],["UK","uk"],["Canada","ca"],["Australia","au"],["NZ","nz"],["Ireland","ie"]];
   for(var ci=0; ci<COUNTRIES.length; ci++){
     try{
-      var ct=await withTO(fetch("https://iptv-org.github.io/iptv/countries/"+COUNTRIES[ci][1]+".m3u",{cache:"no-store"}).then(function(r){return r.text();}),15000);
+      var ct=await withTO(fetch("https://raw.githubusercontent.com/iptv-org/iptv/master/streams/"+COUNTRIES[ci][1]+".m3u",{cache:"no-store"}).then(function(r){return r.text();}),15000);
       var cl=parseM3U(ct).filter(function(c){ return !looksNonEnglish(c.name); });
       cl.forEach(function(c){ c.src="IPTV-org"; c.country=COUNTRIES[ci][0]; });
       out=out.concat(cl);
@@ -4883,7 +4908,11 @@ async function loadTVCat(tab,my){
   }
   window.__paintEPG=paintEPG;
   listEl.querySelectorAll("[data-ci]").forEach(function(el){ el.addEventListener("click",function(){
-    listEl.querySelectorAll("[data-ci]").forEach(function(x){x.classList.remove("sel");}); el.classList.add("sel"); playTV(chans[+el.dataset.ci],my,chans,+el.dataset.ci,1); }); });
+    listEl.querySelectorAll("[data-ci]").forEach(function(x){x.classList.remove("sel");}); el.classList.add("sel");
+    var pick=chans[+el.dataset.ci];
+    var nm=$("tvNowName"); if(nm) nm.textContent=String((pick&&pick.name)||"").slice(0,38);
+    if(window.__tvGuideOpen) window.__tvGuideOpen(false);   /* get out of the way of the picture */
+    playTV(pick,my,chans,+el.dataset.ci,1); }); });
 }
 /* ---------- IPTV channel health (dead-channel feedback loop) ----------
    Free IPTV streams rot constantly and no amount of source-picking fixes that from outside.
@@ -5072,23 +5101,36 @@ async function playTV(c,my,list,idx,triedCount,proxyIdx){
 async function tuneLiveTV(ch,sl,my){
   if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Live TV","");
   ensureTVCSS();
-  if(screenArea) screenArea.innerHTML='<div class="dc-screen" id="dcScreen">'+
-    /* REBUILT UI. The old layout gave video 60% and squeezed the channel list into 40%, then
-       spent two more rows on a 15-chip scrolling tab strip and a separate search box. Browsing
-       is the actual job here, so: the video pane is small until something is playing, the 15
-       chips collapse into two dropdowns, and the list gets the screen. */
-    '<div class="tv2-pane" id="tvPane"><div class="dc-media-cap" id="tvCap">SELECT A CHANNEL</div></div>'+
-    '<div class="tv2-body">'+
-      '<div class="tv2-bar">'+
-        '<select id="tvSrcSel" class="tv2-sel" title="source"></select>'+
-        '<select id="tvGenSel" class="tv2-sel" title="genre"></select>'+
+  if(screenArea) screenArea.innerHTML='<div class="dc-screen tv3-screen" id="dcScreen">'+
+    /* REBUILT AGAIN: a TV shows the picture full-size and brings the guide up OVER it on
+       demand. The previous attempt shrank the video to make room for a permanent list, which
+       is backwards. Video now fills the screen; the guide is an overlay you summon and dismiss,
+       and picking a channel closes it automatically. */
+    '<div class="tv3-video" id="tvPane"><div class="dc-media-cap" id="tvCap">PRESS GUIDE</div></div>'+
+    '<div class="tv3-hud">'+
+      '<span class="tv3-btn" id="tvGuideBtn">\u2630 GUIDE</span>'+
+      '<span class="tv3-now" id="tvNowName"></span>'+
+      '<span class="tv3-btn tv3-gear" id="tvProxyBtn">\u2699</span>'+
+    '</div>'+
+    '<div class="tv3-guide" id="tvGuide" style="display:none">'+
+      '<div class="tv3-ghead">'+
+        '<select id="tvSrcSel" class="tv2-sel"></select>'+
+        '<select id="tvGenSel" class="tv2-sel"></select>'+
         '<input id="tvSearch" class="tv2-search" placeholder="search\u2026">'+
+        '<span class="tv3-close" id="tvGuideClose">\u2715</span>'+
       '</div>'+
-      '<div class="tv2-meta"><span id="tvTitle">LIVE TV</span>'+
-        '<span id="tvProxyBtn" class="tv2-gear">\u2699</span></div>'+
+      '<div class="tv3-gmeta"><span id="tvTitle">LIVE TV</span></div>'+
       '<div id="tvProxyBar"></div>'+
-      '<div class="dc-list tv2-list" id="dcList"></div>'+
+      '<div class="dc-list tv3-list" id="dcList"></div>'+
     '</div></div>';
+  (function guideToggle(){
+    var g=$("tvGuide");
+    function open(v){ if(g) g.style.display = v?"flex":"none"; }
+    var b=$("tvGuideBtn"); if(b) b.addEventListener("click",function(){ open(g.style.display==="none"); });
+    var c=$("tvGuideClose"); if(c) c.addEventListener("click",function(){ open(false); });
+    window.__tvGuideOpen=open;
+    open(true);   /* start open so there is something to pick from */
+  })();
   var curTab=null;
   /* split the combined tab list into the two dropdowns */
   var TV_SRCS=IPTV_TABS.filter(function(t){return !!t.src;});
@@ -7560,7 +7602,7 @@ async function tuneWeather(ch,sl,my){
   if(screenArea){ screenArea.innerHTML=
     '<div class="wx-screen" id="wxScreen">'+
       '<div class="wx-top"><span class="wx-loc">LOCATING\u2026</span><span class="wx-upd" id="wxUpd"></span></div>'+
-      '<div class="wx-main">'+
+      '<div class="wx-main" id="wxMain">'+
         '<div class="wx-left">'+
           '<div class="wx-now-main"><div class="wx-temp">--\u00b0</div><div class="wx-fx">Loading current conditions\u2026</div></div>'+
           '<div class="wx-stats" id="wxStats"></div>'+
@@ -7570,8 +7612,8 @@ async function tuneWeather(ch,sl,my){
           '<div class="wx-radar-wrap"><img class="wx-radar" id="wxRadar" alt="radar loop"></div>'+
         '</div>'+
       '</div>'+
-      '<div class="wx-section-label">FORECAST</div>'+
-      '<div class="wx-fcgrid"><div class="wx-hourly" id="wxHourly"></div><div class="wx-daily" id="wxDaily"></div></div>'+
+      '<div class="wx-section-label" id="wxFcLbl">FORECAST</div>'+
+      '<div class="wx-fcgrid" id="wxFcGrid"><div class="wx-hourly" id="wxHourly"></div><div class="wx-daily" id="wxDaily"></div></div>'+
       '<div class="wx-ticker" id="wxTicker">NO ACTIVE ALERTS</div>'+
       '<div class="haz-ticker" id="hazTicker"><span id="hazTickerInner">NATIONWIDE HAZARDOUS WEATHER \u00b7 checking\u2026</span></div>'+
       '<div class="wx-bug" id="wxBug">'+
@@ -7585,6 +7627,58 @@ async function tuneWeather(ch,sl,my){
   var rw=screenArea?screenArea.querySelector(".wx-radar-wrap"):null;
   if(rw){ rw.style.cursor="pointer"; rw.title="Tap to switch radar layer";
     rw.addEventListener("click",function(){ radarMode=(radarMode+1)%3; run(); }); }
+  /* ---- "Local on the 8s" segment cycling ----
+     Opt-in. Instead of showing every panel at once, the channel gives each segment the screen
+     in turn the way a broadcast weather block does: CURRENT -> HOURLY -> RADAR -> EXTENDED.
+     The bug and ticker stay put throughout. Any tap pauses it for a minute so it can't yank a
+     panel away mid-read, and it degrades to the normal all-at-once view when switched off. */
+  (function segmentCycle(){
+    var SEGS=[
+      {id:"current", label:"CURRENT CONDITIONS"},
+      {id:"hourly",  label:"HOUR BY HOUR"},
+      {id:"radar",   label:"LIVE RADAR"},
+      {id:"extended",label:"EXTENDED FORECAST"}
+    ];
+    var idx=0, touched=0;
+    function el(id){ return $(id); }
+    function showAll(){
+      /* must clear EVERY display we set, including the hourly/daily grids -- restoring only the
+         outer panels left those two hidden after a tap */
+      ["wxMain","wxFcGrid","wxFcLbl","wxHourly","wxDaily"].forEach(function(i){ var e=el(i); if(e)e.style.display=""; });
+      var lft=document.querySelector(".wx-left"), rgt=document.querySelector(".wx-right");
+      if(lft)lft.style.display=""; if(rgt)rgt.style.display="";
+      var lbl=el("wxSegLbl"); if(lbl)lbl.style.display="none";
+    }
+    function applySeg(){
+      var seg=SEGS[idx%SEGS.length];
+      var main=el("wxMain"), grid=el("wxFcGrid"), fcl=el("wxFcLbl");
+      var lft=document.querySelector(".wx-left"), rgt=document.querySelector(".wx-right");
+      var lbl=el("wxSegLbl");
+      if(lbl){ lbl.style.display=""; lbl.textContent=seg.label; }
+      if(main)main.style.display = (seg.id==="extended"||seg.id==="hourly") ? "none" : "flex";
+      if(lft) lft.style.display  = (seg.id==="current") ? "" : "none";
+      if(rgt) rgt.style.display  = (seg.id==="radar")   ? "" : "none";
+      if(grid)grid.style.display = (seg.id==="hourly"||seg.id==="extended") ? "" : "none";
+      if(fcl) fcl.style.display  = (seg.id==="hourly"||seg.id==="extended") ? "" : "none";
+      var h=el("wxHourly"), dd=el("wxDaily");
+      if(h) h.style.display  = (seg.id==="hourly")   ? "" : "none";
+      if(dd)dd.style.display = (seg.id==="extended") ? "" : "none";
+    }
+    var sc=$("wxScreen");
+    if(sc && !$("wxSegLbl")){
+      var l=document.createElement("div");
+      l.id="wxSegLbl"; l.className="wx-seg-lbl"; l.style.display="none";
+      sc.insertBefore(l, sc.firstChild);
+    }
+    if(sc) sc.addEventListener("click",function(){ touched=Date.now(); showAll(); },true);
+    rtInterval(function(){
+      if(my!==token)return;
+      if(!store.get("wxSegments",false)){ showAll(); return; }
+      if(Date.now()-touched < 60*1000) return;   /* paused after interaction */
+      idx++; applySeg();
+    },12000);
+    if(store.get("wxSegments",false)) applySeg();
+  })();
   /* bug clock ticks independently of the 10-minute data refresh so it always reads live */
   (function(){
     function tickBug(){ var c=$("wxBugClock"); if(!c)return;
@@ -7857,6 +7951,10 @@ var OSD_ITEMS=[
  {label:"DIAGNOSTICS",act:function(){closeOsd();toggleDiag();}},
  {label:"SETTINGS",act:function(){closeOsd();toggleSettings();}},
  {label:"SHARE",act:function(){closeOsd();shareCurrent();}},
+ {label:"WX: SEGMENT MODE",act:function(){closeOsd();
+   var on=!store.get("wxSegments",false); store.set("wxSegments",on);
+   quickBanner(on?"SEGMENT MODE ON \u00b7 LOCAL ON THE 8s":"SEGMENT MODE OFF");
+   try{ if(curSl&&curSl.source==="weather") tuneNum(curNum); }catch(e){} }},
  {label:"SPORTS: AUTO-ROTATE",act:function(){closeOsd();
    var on=!store.get("sportsRotate",false); store.set("sportsRotate",on);
    quickBanner(on?"AUTO-ROTATE ON \u00b7 CUTS TO LIVE GAMES":"AUTO-ROTATE OFF"); }},

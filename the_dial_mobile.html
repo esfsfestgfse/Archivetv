@@ -937,7 +937,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.93";
+window.__ATV_BUILD="1.7.7-mobile.94";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -971,7 +971,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.93</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.94</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -3905,7 +3905,7 @@ var TIDE_STATIONS=[
 ];
 async function tuneTides(ch,sl,my){
   if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Tide & Marine","");
-  if(screenArea) screenArea.innerHTML=dcSkeleton("TIDE & MARINE");
+  if(screenArea) screenArea.innerHTML=dcSkeletonWithBug("TIDE & MARINE","TIDE WATCH");
   var run=async function(){
     if(my!==token||!powered)return;
     try{
@@ -3930,6 +3930,11 @@ async function tuneTides(ch,sl,my){
       nlog("tides",true,used.name+" / "+used.dist.toFixed(0)+" mi");
       var events=preds.map(function(p){ return {t:new Date(p.t.replace(" ","T")),v:parseFloat(p.v),hi:p.type==="H"}; });
       var next=events.find(function(e){return e.t>now;})||events[events.length-1];
+      setChanStatus(ch.num,(next.hi?"HIGH":"LOW")+" tide "+next.t.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}));
+      var tideBug=$("dcScreen")&&$("dcScreen").querySelector(".chan-bug");
+      if(tideBug){ var tm=tideBug.querySelector(".chan-bug-main"), ts=tideBug.querySelector(".chan-bug-sub");
+        if(tm) tm.textContent=(next.hi?"HIGH":"LOW")+" "+next.t.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});
+        if(ts) ts.textContent=(used.name+" \u00b7 "+next.v.toFixed(1)+"ft").toUpperCase(); }
       function ft(e){ return e.t.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})+(e.t.getDate()!==now.getDate()?" (tmrw)":""); }
       var upcoming=events.filter(function(e){return e.t>now;}).slice(0,4);
       var stats=upcoming.map(function(e){ return [(e.hi?"HIGH":"LOW")+" "+ft(e), e.v.toFixed(1)+" ft"]; });
@@ -5824,8 +5829,9 @@ async function tuneRiver(ch,sl,my){
     '<div class="dc-media show" id="rlwMedia" style="flex:1 1 60%;height:auto;min-height:0"><div class="dc-media-cap">LOCATING YOUR RIVERS &amp; LAKES…</div></div>'+
     '<div class="dc-body" id="dcBody" style="flex:0 1 40%;justify-content:flex-start;gap:4px;overflow:hidden">'+
     '<div class="dc-top"><span id="rlwTitle">RIVERS &amp; LAKES: LOCATING…</span></div>'+
-    '<div class="dc-list" id="dcList" style="flex:none;overflow-y:auto"></div>'+
+    '<div class="dc-list" id="dcList" style="flex:none;overflow-y:auto;margin-bottom:30px"></div>'+
     '<div class="dc-ticker">NWS National Water Prediction Service · official flood categories · tap a gauge to feature it</div></div></div>';
+  var riverBug=mountChanBug("dcScreen",{ident:"RIVER WATCH"});
   startIAJazz(); clearInterval(riverMediaIv);
   var imgs=[], imgIdx=0, built=false;
   function sevOf(r){ return /major|moderate/.test(r.cat)?"dc-sev-high":(/minor|action/.test(r.cat)?"dc-sev-mid":"dc-sev-low"); }
@@ -5872,6 +5878,10 @@ async function tuneRiver(ch,sl,my){
       }).filter(function(r){return r.val!=null;});
       rows.sort(function(a,b){return a.dist-b.dist;});
       if(!rows.length){ listEl.innerHTML='<div class="pop-empty">Gauges found but none reporting right now.</div>'; return; }
+      var nearest=rows[0];
+      var nearestSev=/major|moderate/.test(nearest.cat)?"ELEVATED":/minor|action/.test(nearest.cat)?"WATCH":"NORMAL";
+      setChanStatus(ch.num, nearest.name.slice(0,20)+" "+nearest.val.toFixed(1)+"ft");
+      if(riverBug) riverBug.update(nearest.val.toFixed(1)+"ft", nearest.name.toUpperCase()+" \u00b7 "+nearestSev);
       var top=rows.slice(0,14);
       listEl.innerHTML=top.map(function(r,i){
         var sev=sevOf(r);
@@ -6895,6 +6905,7 @@ async function tuneHF(ch,sl,my){
     pickerEl.querySelectorAll("[data-hi]").forEach(function(el){ el.addEventListener("click",function(){ loadReceiver(+el.dataset.hi); }); });
   }
   loadReceiver(0);
+  mountChanBug("dcScreen",{ident:"HAM RADIO"});
   clearInterval(hfTimer);
   var run=async function(){
     if(my!==token||!powered){ clearInterval(hfTimer); return; }
@@ -6915,6 +6926,13 @@ async function tuneHF(ch,sl,my){
       var fEl=$("hfFlux"); if(fEl&&sf) fEl.textContent=sf[1];
       var aEl=$("hfA"); if(aEl&&aIdx) aEl.textContent=aIdx[1];
       var kEl=$("hfK"); if(kEl&&kIdx) kEl.textContent=parseFloat(kIdx[1]).toFixed(0);
+      if(sf&&kIdx){
+        setChanStatus(ch.num,"SFI "+sf[1]+" \u00b7 K"+parseFloat(kIdx[1]).toFixed(0));
+        var hfBug=$("dcScreen")&&$("dcScreen").querySelector(".chan-bug");
+        if(hfBug){ var hm=hfBug.querySelector(".chan-bug-main"), hs=hfBug.querySelector(".chan-bug-sub");
+          if(hm) hm.textContent="SFI "+sf[1];
+          if(hs) hs.textContent="K-INDEX "+parseFloat(kIdx[1]).toFixed(0); }
+      }
       var bandsEl=$("hfBands");
       if(bandsEl&&sf&&kIdx){
         var bands=estimateBandConditions(parseFloat(sf[1]),parseFloat(kIdx[1]));
@@ -7080,6 +7098,7 @@ async function tuneISS(ch,sl,my){
       '<div class="dc-list" id="dcList"></div>'+
       '<div class="dc-ticker" id="issTicker">Open Notify \u00b7 live ISS telemetry \u00b7 updates every 10s</div>'+
     '</div></div>';
+  var issBug=mountChanBug("dcScreen",{ident:"ISS TRACKER"});
   clearInterval(issTimer);
   var run=async function(){
     if(my!==token||!powered){ clearInterval(issTimer); return; }
@@ -7091,6 +7110,11 @@ async function tuneISS(ch,sl,my){
       var cEl=$("issCoords"); if(cEl&&!isNaN(lat)) cEl.textContent=(lat>=0?lat.toFixed(2)+"\u00b0N":Math.abs(lat).toFixed(2)+"\u00b0S")+", "+(lon>=0?lon.toFixed(2)+"\u00b0E":Math.abs(lon).toFixed(2)+"\u00b0W");
       var dot=$("issDot");
       if(dot&&!isNaN(lat)&&!isNaN(lon)){ dot.style.left=((lon+180)/360*100)+"%"; dot.style.top=((90-lat)/180*100)+"%"; }
+      if(!isNaN(lat)&&!isNaN(lon)){
+        var posTxt=(lat>=0?lat.toFixed(1)+"N":Math.abs(lat).toFixed(1)+"S")+", "+(lon>=0?lon.toFixed(1)+"E":Math.abs(lon).toFixed(1)+"W");
+        setChanStatus(ch.num,"ISS "+posTxt);
+        if(issBug) issBug.update(posTxt,"17,500 mph \u00b7 orbit ~90 min");
+      }
       /* rough distance from the viewer, great-circle approximation -- close enough for a TV channel */
       var dLat=(lat-loc.lat)*Math.PI/180, dLon=(lon-loc.lon)*Math.PI/180;
       var a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(loc.lat*Math.PI/180)*Math.cos(lat*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);

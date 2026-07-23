@@ -791,7 +791,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.64";
+window.__ATV_BUILD="1.7.7-desktop.65";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -825,7 +825,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.64</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.65</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">THE DIAL · THE SET</div>
@@ -5989,11 +5989,19 @@ async function tuneSports(ch,sl,my){
       bodyEl.innerHTML='<div id="tvPane" style="width:100%;aspect-ratio:16/9;background:#000;border-radius:8px;overflow:hidden;margin-bottom:8px;position:relative"></div>'+
         '<div style="font:700 10px monospace;color:#9fd6a6;margin-bottom:6px">'+chans.length+' ENGLISH LIVE SPORTS'+(culledS.hidden?(' \u00b7 '+culledS.hidden+' DEAD HIDDEN'):'')+'</div>'+
         chans.map(function(c,i){
-          return '<div class="score-card" data-ci="'+i+'" style="cursor:pointer;padding:9px 12px;border-left-color:#8fff5c">'+
-            '<div class="score-team-row"><span class="score-status '+(c.verified?"live":"pre")+'" style="margin:0">'+(c.verified?"VERIFIED":"LIVE")+'</span>'+
+          return '<div class="score-card" data-ci="'+i+'" data-epg="'+esch(c.tvgId||"")+'" style="cursor:pointer;padding:9px 12px;border-left-color:#8fff5c">'+
+            '<div class="score-team-row"><span class="score-status '+((c.checked||c.verified)?"live":"pre")+'" style="margin:0">'+(c.checked?"CHECKED":c.verified?"VERIFIED":"LIVE")+'</span>'+
             '<span class="score-team-name">'+esch(String(c.name).slice(0,46))+'</span>'+
-            '<span style="font:600 10px monospace;color:rgba(159,214,166,.75)">'+esch(String(c.src||c.cat||"").slice(0,14))+'</span></div></div>';
+            '<span style="font:600 10px monospace;color:rgba(159,214,166,.75)">'+esch(String(c.src||c.cat||"").slice(0,14))+'</span></div>'+
+            '<div class="score-odds sports-epg" style="display:none"></div></div>';
         }).join("");
+      fetchEPG().then(function(){ if(my!==token||sportsSubView!=="livetv")return;
+        bodyEl.querySelectorAll("[data-epg]").forEach(function(row){
+          var id=row.dataset.epg; if(!id)return;
+          var e=epgFor({tvgId:id}); var sub=row.querySelector(".sports-epg");
+          if(e&&sub){ sub.textContent="NOW: "+e.title+(e.left?("  \u00b7  "+e.left+" min left"):""); sub.style.display=""; }
+        });
+      });
       bodyEl.querySelectorAll("[data-ci]").forEach(function(el){
         el.addEventListener("click",function(){
           bodyEl.querySelectorAll("[data-ci]").forEach(function(x){x.style.background="";});

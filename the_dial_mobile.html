@@ -937,7 +937,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.99";
+window.__ATV_BUILD="1.7.7-mobile.100";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -971,7 +971,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.99</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.100</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -6422,7 +6422,7 @@ async function tuneSports(ch,sl,my){
          through team-matchup logic alone, which is exactly why non-team sports showed "?" -- there
          was nothing there to find. */
       var isLeaderboard=competitors.length>2||!competitors.some(function(c){return c.homeAway;});
-      if(isLeaderboard) return renderLeaderboardCard(ev,competitors);
+      if(isLeaderboard) return renderLeaderboardCard(ev,competitors,comp);
       var isTeamBased=!!(competitors[0].team||(competitors[1]&&competitors[1].team));
       return isTeamBased?renderTeamCard(ev,comp,competitors,favs):renderAthleteMatchCard(ev,comp,competitors);
     }).join("");
@@ -6586,15 +6586,32 @@ async function tuneSports(ch,sl,my){
       (noteText?'<div class="score-odds">'+esch(noteText)+'</div>':'')+
       '</div>';
   }
-  function renderLeaderboardCard(ev,competitors){
+  function renderLeaderboardCard(ev,competitors,comp){
     var isGolf=curSport.k==="pga"||curSport.k==="lpga";
     var sorted=competitors.slice().sort(function(a,b){return (a.order||99)-(b.order||99);});
+    /* Individual sports were showing a bare ranked list with no context -- you couldn't tell
+       which round it was, where it was being played, or how big the field is. Same enrichment
+       the team cards already got, applied here. Every field optional; absent ones are skipped. */
+    var lbSt=(ev.status&&ev.status.type)||{};
+    var lbState=lbSt.shortDetail||lbSt.description||"";
+    var lbVenue=(comp&&comp.venue&&comp.venue.fullName)||(ev.venue&&ev.venue.fullName)||"";
+    var lbCity=(comp&&comp.venue&&comp.venue.address&&
+                [comp.venue.address.city,comp.venue.address.state||comp.venue.address.country].filter(Boolean).join(", "))||"";
+    var lbNote=(comp&&comp.notes&&comp.notes[0]&&(comp.notes[0].headline||comp.notes[0].type))||"";
+    var lbField=sorted.length?(sorted.length+" competing"):"";
+    var lbInfo=[lbState,lbNote,lbVenue&&("\ud83c\udfdf "+lbVenue+(lbCity?(" \u00b7 "+lbCity):"")),lbField]
+      .filter(Boolean).join("   \u00b7   ");
     var rows=sorted.map(function(c,i){
       var name=athName(c)||teamName(c)||"TBD";
       var flag=c.athlete&&c.athlete.flag&&c.athlete.flag.href;
       var score=c.score!=null?String(c.score):"";
       var stats=(c.statistics||[]).filter(function(s){return s.displayValue!=null&&s.displayValue!=="";});
       var statLine=stats.length?stats.map(function(s){return (s.label||s.name||"")+" "+s.displayValue;}).join(" \u00b7 "):"";
+      if(!statLine){
+        var rec=(c.records&&c.records[0]&&(c.records[0].summary||c.records[0].displayValue))||"";
+        var lin=(c.linescores||[]).map(function(x){return x.value!=null?x.value:"";}).filter(String).join("-");
+        statLine=[rec,lin].filter(Boolean).join(" \u00b7 ");
+      }
       var playerId=c.athlete&&c.athlete.id;
       return '<div'+(isGolf&&playerId?' data-eventid="'+esch(ev.id||"")+'" data-playerid="'+esch(playerId)+'" style="cursor:pointer;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.05)"':' style="padding:4px 0;border-bottom:1px solid rgba(255,255,255,.05)"')+'><div class="score-team-row">'+
         '<span style="width:24px;font:700 13px monospace;color:#9fd6a6">'+(i+1)+'</span>'+
@@ -6606,6 +6623,7 @@ async function tuneSports(ch,sl,my){
     }).join("");
     return '<div class="score-card" data-leaderboardcard="1" style="border-left-color:#67ff86">'+
       '<span class="score-status pre">'+esch((ev.shortName||ev.name||"LEADERBOARD").toUpperCase())+'</span>'+
+      (lbInfo?'<div class="score-odds" style="margin:4px 0 6px">'+esch(lbInfo)+'</div>':'')+
       rows+'</div>';
   }
   async function renderGolfScorecard(eventId,playerId){

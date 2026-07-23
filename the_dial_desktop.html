@@ -720,7 +720,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.56";
+window.__ATV_BUILD="1.7.7-desktop.57";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -754,7 +754,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.56</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.57</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">THE DIAL · THE SET</div>
@@ -4400,7 +4400,19 @@ function streamProxyList(){
   /* The proxy setting now accepts a comma-separated list. Streams get retried through each
      proxy in turn before giving up, so one dead/rate-limited proxy no longer kills a channel.
      Add more in SETTINGS as: https://proxy-a.example, https://proxy-b.example */
-  return String(store.get("streamProxy","https://tv-proxy.tdy1990.workers.dev")||"")
+  /* Default is now the HLS-aware worker first, plain relay second. The HLS proxy resolves
+     redirector links (jmp2.uk) by rewriting manifests against the POST-redirect URL, which the
+     plain relay cannot do -- that was why every Roku/Pluto channel failed. Kept as a list so
+     playTV can fail a stream over to the old relay if the new one chokes on something. */
+  var DEFAULT_PROXIES="https://hls-proxy.tdy1990.workers.dev, https://tv-proxy.tdy1990.workers.dev";
+  var saved=store.get("streamProxy",null);
+  /* one-time migration: anyone already holding the old single-relay value gets upgraded, but a
+     genuinely custom setting is left alone */
+  if(saved!=null && String(saved).trim()==="https://tv-proxy.tdy1990.workers.dev"){
+    store.set("streamProxy",DEFAULT_PROXIES); saved=DEFAULT_PROXIES;
+    try{ nlog("livetv",true,"proxy upgraded to HLS-aware worker"); }catch(e){}
+  }
+  return String((saved==null?DEFAULT_PROXIES:saved)||"")
     .split(",").map(function(x){ return x.trim().replace(/\/+$/,""); }).filter(Boolean);
 }
 function streamProxyBase(){ return streamProxyList()[0]||""; }

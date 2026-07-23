@@ -364,6 +364,13 @@ html,body{height:100vh;overflow:hidden}
    gives the list more height, so it must reserve the right edge explicitly or rows sit under
    the handle and steal its taps. */
 .tv2-list{flex:1 1 auto;min-height:60px;overflow-y:auto;margin-right:30px}
+.gsearch-wrap{position:relative;padding:0 14px 6px;flex:none}
+.gsearch{width:100%;box-sizing:border-box;padding:7px 28px 7px 10px;border-radius:8px;
+  border:1px solid rgba(103,255,134,.35);background:rgba(6,18,10,.75);color:#d8ffe2;
+  font:600 11px monospace;letter-spacing:.5px}
+.gsearch:focus{outline:none;border-color:rgba(103,255,134,.8)}
+.gsearch-x{position:absolute;right:22px;top:6px;cursor:pointer;color:#67ff86;opacity:.6;font-size:12px}
+html.mob .gsearch-wrap{padding:0 12px 6px}
 .chcell .cc-status{display:block;font-size:9px;color:#67ff86;opacity:.85;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
 .chcell .cc-f{position:absolute;top:5px;right:7px;color:#ffd34d;font-size:11px}
 .chcell.on{border-color:#ffb03a;box-shadow:inset 0 0 0 1px #ffb03a,0 0 14px rgba(255,176,58,.25);
@@ -762,7 +769,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.60";
+window.__ATV_BUILD="1.7.7-desktop.61";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -796,7 +803,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.60</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.61</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">THE DIAL · THE SET</div>
@@ -909,6 +916,7 @@ window.addEventListener("unhandledrejection",function(e){
     <div class="gtop"><span>CHANNEL BANK</span><span><span id="gClock">--:--</span> &nbsp; <span class="x" id="gClose">CLOSE ✕</span></span></div>
     <div class="railhead"><span id="railTitle">CHANNEL GUIDE</span>
       <button class="btn" id="favFilter">★ Favorites</button></div>
+    <div class="gsearch-wrap"><input id="gSearch" class="gsearch" placeholder="search channels, categories\u2026" autocomplete="off"><span class="gsearch-x" id="gSearchX">\u2715</span></div>
     <div class="catnav" id="catNav"></div>
     <div class="chlist" id="chList"></div>
   </div>
@@ -1729,7 +1737,21 @@ function sfxClick(){if(!soundOn||!audioCtx())return;const c=ac,t=c.currentTime;c
 function isFav(n){var c=byNum(n);return c?favs.includes(c.nm):false;}
 var catFilter=null; /* v9: chips filter the bank instead of yank-tuning the TV */
 function visibleChannels(){let l=favOnly?CH.filter(c=>isFav(c.num)):CH;
-  if(catFilter)l=l.filter(c=>c.cat===catFilter);return l;}
+  if(catFilter)l=l.filter(c=>c.cat===catFilter);
+  /* Universal search. Matches channel name, its category label, its number, and whatever the
+     dynamic status line currently says -- so "storm", "402", "hurricane" and "sports" all find
+     something. When a query is active the category filter is ignored, because searching inside
+     one category is almost never what someone means when they type. */
+  var q=String(window.__gQuery||"").toLowerCase().trim();
+  if(q){
+    l=(favOnly?CH.filter(c=>isFav(c.num)):CH).filter(function(c){
+      var st=String((window.__chanStatus||{})[c.num]||"");
+      var hay=(c.nm+" "+(CATNAME[c.cat]||c.cat)+" "+c.num+" "+st+" "+
+               ((CHANNEL_META[c.nm]&&CHANNEL_META[c.nm].desc)||"")).toLowerCase();
+      return hay.indexOf(q)>-1;
+    });
+  }
+  return l;}
 window.__chanStatus=window.__chanStatus||{};
 function setChanStatus(num,text){ try{ window.__chanStatus[num]=text; if(gwrap&&gwrap.classList.contains("show")) renderRail(); }catch(e){} }
 function renderRail(){ /* v9: honest CHANNEL BANK grid — replaces the horizontal scroll rail */
@@ -2167,6 +2189,24 @@ $("rVolDn").addEventListener("click",()=>setVol(-.1));
 $("gClose").addEventListener("click",closeGuide);
 $("favFilter").addEventListener("click",()=>{favOnly=!favOnly;$("favFilter").style.background=favOnly?"linear-gradient(180deg,#ffd98a,#e0b052)":"";
   $("railTitle").textContent=favOnly?"FAVORITES":"CHANNEL GUIDE";renderRail();});
+(function wireGuideSearch(){
+  var inp=$("gSearch"), x=$("gSearchX");
+  if(!inp)return;
+  function apply(){
+    window.__gQuery=inp.value;
+    var t=$("railTitle");
+    if(t) t.textContent = inp.value.trim() ? ("SEARCH: "+inp.value.trim().toUpperCase().slice(0,22))
+                        : (favOnly?"FAVORITES":"CHANNEL GUIDE");
+    renderRail();
+  }
+  inp.addEventListener("input",function(){ clearTimeout(window.__gQT); window.__gQT=setTimeout(apply,140); });
+  /* the app binds number keys and arrows for tuning -- stop them firing while typing */
+  inp.addEventListener("keydown",function(e){
+    e.stopPropagation();
+    if(e.key==="Escape"){ inp.value=""; apply(); inp.blur(); }
+  });
+  if(x) x.addEventListener("click",function(){ inp.value=""; apply(); inp.focus(); });
+})();
 gwrap.addEventListener("click",e=>{if(e.target===gwrap)closeGuide();});
 
 document.addEventListener("keydown",e=>{
@@ -4443,6 +4483,31 @@ function parseM3U(text){
 function looksNonEnglish(n){
   return /espa|español|deportes|en fran|fran\u00e7ais|portugu|brasil|italiano|deutsch|latino|\u00f1|\bMX\b|\bBR\b|\bES\b\s*$/i.test(String(n||""));
 }
+/* ---------- IPTV-CHECK ingestion ----------
+   peterpt/IPTV-CHECK is a desktop tool (Python + ffmpeg + yt-dlp + Tesseract OCR) that verifies
+   an m3u playlist, including "soft" errors a plain connection check can't see -- a stream that
+   returns valid video headers but is actually showing a login wall or geo-block splash. That is
+   real signal the browser-side health tracker structurally cannot produce.
+   It can't run inside a browser, so the integration point is a file, not code: run it locally,
+   push the cleaned output to this repo, and it is picked up here as a trusted top-priority
+   source -- same pattern already working for world_ip_tv's auto-verified list. No file existing
+   yet is expected and harmless; this just falls through to the normal sources. */
+var CHECKED_FILES=["checked_livetv.m3u","checked_sports.m3u"];
+async function fetchCheckedIPTV(){
+  var out=[];
+  for(var i=0;i<CHECKED_FILES.length;i++){
+    try{
+      var r=await fetch("https://raw.githubusercontent.com/esfsfestgfse/Archivetv/main/"+CHECKED_FILES[i],{cache:"no-store"});
+      if(!r.ok) continue;
+      var txt=await r.text();
+      var list=parseM3U(txt);
+      list.forEach(function(c){ c.checked=true; c.src="Checked"; });
+      out=out.concat(list);
+      nlog("livetv",true,CHECKED_FILES[i]+": "+list.length+" IPTV-CHECK verified");
+    }catch(e){}
+  }
+  return out;
+}
 async function fetchIPTV(){
   /* QA FIX + FEATURE: this function's definition was accidentally destroyed during an earlier
      wholesale block port (it was still being called from tuneLiveTV and the sports fallback,
@@ -4453,7 +4518,7 @@ async function fetchIPTV(){
      English-only via the shared exclusion heuristic; iptv-org's own list is already the
      English-language playlist. */
   if(iptvCache) return iptvCache;
-  var out=[];
+  var out=await fetchCheckedIPTV();
   try{
     var te=await withTO(fetch("https://iptv-org.github.io/iptv/languages/eng.m3u",{cache:"no-store"}).then(function(r){return r.text();}),15000);
     var eng=parseM3U(te);
@@ -4510,12 +4575,11 @@ async function fetchIPTV(){
       nlog("livetv",true,FASTALL[fi][0]+" (all genres): "+fl.length);
     }catch(e){ nlog("livetv",false,FASTALL[fi][0]+": "+((e&&e.message)||e)); }
   }
-  var seen={}; out=out.filter(function(c){
-    /* redirector URLs are no longer dropped -- an HLS-aware proxy resolves them. They are
-       merely flagged so a failure is diagnosable in DIAG. */
-    if(isRedirectorUrl(c.url)) c.viaRedirect=true;
-    var k=(c.name||"").toLowerCase().replace(/\s+/g," ").trim();
-    if(!k||seen[k])return false; seen[k]=1; return true; });
+  var byName={};
+  out.forEach(function(c){ if(isRedirectorUrl(c.url)) c.viaRedirect=true;
+    var k=(c.name||"").toLowerCase().replace(/\s+/g," ").trim(); if(!k)return;
+    if(!byName[k]||(c.checked&&!byName[k].checked)) byName[k]=c; });
+  out=Object.keys(byName).map(function(k){ return byName[k]; });
   iptvCache=out; return out;
 }
 /* ---------- EPG "now playing" ----------

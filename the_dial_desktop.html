@@ -404,6 +404,28 @@ html.mob .gsearch-wrap{padding:0 12px 6px}
   background-size:34px 34px}
 /* ---- broadcast bug: the persistent station ident / clock / temp strip that a real weather
    channel keeps on screen at all times. Sits above the CRT overlays but below the OSD. ---- */
+/* ---- Reusable channel bug (layout kit, first extracted component) ----
+   Weather's broadcast bug proved genuinely useful and had zero reason to be weather-only. Any
+   dc-screen channel can now mount one via mountChanBug() below instead of hand-rolling markup.
+   Weather itself is left on its bespoke wx-bug for now -- it already works and is tested; no
+   reason to touch it just to prove the kit generalizes. */
+.chan-bug{position:absolute;left:0;right:0;bottom:0;z-index:24;display:flex;align-items:stretch;
+  font-family:inherit;pointer-events:none;filter:drop-shadow(0 -2px 6px rgba(0,0,0,.6))}
+.chan-bug-id{flex:none;display:flex;align-items:center;gap:6px;padding:5px 10px;
+  background:linear-gradient(180deg,#153a86,#0b2350);color:#fff;font-weight:900;
+  font-size:clamp(10px,1.7vmin,17px);letter-spacing:2px;border-top:2px solid #ffd75e}
+.chan-bug-dot{width:8px;height:8px;border-radius:50%;background:#ff4d4d;box-shadow:0 0 6px #ff4d4d;
+  animation:wxBugPulse 2s ease-in-out infinite}
+.chan-bug-mid{flex:1;min-width:0;display:flex;align-items:center;gap:10px;padding:5px 12px;
+  background:linear-gradient(180deg,rgba(8,16,34,.94),rgba(4,9,20,.94));border-top:2px solid rgba(255,215,94,.5);
+  color:#eaf2ff;font-size:clamp(10px,1.7vmin,17px);letter-spacing:1px;white-space:nowrap;overflow:hidden}
+.chan-bug-main{font-weight:900;color:#ffe27a;font-size:clamp(13px,2.3vmin,24px)}
+.chan-bug-sub{color:#bcd2ff;overflow:hidden;text-overflow:ellipsis}
+.chan-bug-clock{flex:none;padding:5px 11px;background:linear-gradient(180deg,#153a86,#0b2350);
+  color:#ffd75e;font-weight:900;font-size:clamp(11px,1.9vmin,19px);letter-spacing:1.5px;
+  border-top:2px solid #ffd75e;font-variant-numeric:tabular-nums}
+html.mob .chan-bug-id{letter-spacing:1px;padding:4px 7px}
+html.mob .chan-bug-mid{padding:4px 8px;gap:7px}
 .wx-bug{position:absolute;left:0;right:0;bottom:0;z-index:24;display:flex;align-items:stretch;
   font-family:inherit;pointer-events:none;filter:drop-shadow(0 -2px 6px rgba(0,0,0,.6))}
 .wx-bug-id{flex:none;display:flex;align-items:center;gap:6px;padding:5px 10px;
@@ -1753,6 +1775,20 @@ function visibleChannels(){let l=favOnly?CH.filter(c=>isFav(c.num)):CH;
   }
   return l;}
 window.__chanStatus=window.__chanStatus||{};
+function mountChanBug(hostId,opts){
+  var host=$(hostId); if(!host) return null;
+  var uid="cb"+Math.random().toString(36).slice(2,8);
+  host.insertAdjacentHTML("beforeend",
+    '<div class="chan-bug"><div class="chan-bug-id"><span class="chan-bug-dot"></span><span>'+esch(opts.ident||"ARCHIVE TV")+'</span></div>'+
+    '<div class="chan-bug-mid"><span class="chan-bug-main" id="'+uid+'m">--</span><span class="chan-bug-sub" id="'+uid+'s">LOADING\u2026</span></div>'+
+    '<div class="chan-bug-clock" id="'+uid+'c">--:--</div></div>');
+  function tick(){ var c=$(uid+"c"); if(!c)return; var d=new Date(); var hh=d.getHours(),ap=hh>=12?"PM":"AM"; hh=hh%12; if(!hh)hh=12;
+    c.textContent=hh+":"+String(d.getMinutes()).padStart(2,"0")+" "+ap; }
+  tick(); rtInterval(tick,1000);
+  return { update:function(main,sub){ var m=$(uid+"m"), sEl=$(uid+"s");
+    if(m&&main!=null) m.textContent=main;
+    if(sEl&&sub!=null) sEl.textContent=sub; } };
+}
 function setChanStatus(num,text){ try{ window.__chanStatus[num]=text; if(gwrap&&gwrap.classList.contains("show")) renderRail(); }catch(e){} }
 function renderRail(){ /* v9: honest CHANNEL BANK grid — replaces the horizontal scroll rail */
   if(!chList)return;
@@ -3585,7 +3621,7 @@ async function tuneNature(ch,sl,my){
 /* ---------- Air & Allergy: AQI + pollen for your ZIP (Open-Meteo, keyless) ---------- */
 async function tuneAir(ch,sl,my){
   if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Air & Allergy","");
-  if(screenArea) screenArea.innerHTML=dcSkeleton("AIR & ALLERGY");
+  if(screenArea) screenArea.innerHTML=dcSkeletonWithBug("AIR & ALLERGY","AIR QUALITY");
   function aqiWord(a){ return a==null?"--":a<=50?"GOOD":a<=100?"MODERATE":a<=150?"UNHEALTHY (SENSITIVE)":a<=200?"UNHEALTHY":a<=300?"VERY UNHEALTHY":"HAZARDOUS"; }
   function polWord(v){ return v==null?"--":v<10?"low":v<50?"moderate":v<200?"high":"very high"; }
   var run=async function(){
@@ -3597,6 +3633,10 @@ async function tuneAir(ch,sl,my){
       if(my!==token)return;
       nlog("air",true,"AQI "+c.us_aqi);
       if(c.us_aqi!=null) setChanStatus(ch.num,"AQI "+Math.round(c.us_aqi)+" · "+aqiWord(c.us_aqi));
+      var airBug=$("dcScreen")&&$("dcScreen").querySelector(".chan-bug");
+      if(airBug){ var am=airBug.querySelector(".chan-bug-main"), as=airBug.querySelector(".chan-bug-sub");
+        if(am) am.textContent=c.us_aqi!=null?("AQI "+Math.round(c.us_aqi)):"--";
+        if(as) as.textContent=(aqiWord(c.us_aqi)+" · "+((homeLoc&&homeLoc.city)||"YOUR AREA")).toUpperCase(); }
       renderDcBody({title:"AIR & ALLERGY \u00b7 "+((homeLoc.city||"YOUR AREA")).toUpperCase(),
         hero:(c.us_aqi!=null?("AQI "+Math.round(c.us_aqi)):"--"),
         sub:aqiWord(c.us_aqi),
@@ -5463,8 +5503,17 @@ function renderDcBody(opts){ // shared renderer for the hero+stats+ticker data-c
     (opts.ticker!=null?'<div class="dc-ticker">'+opts.ticker+'</div>':'');
   var tkE=body.querySelector(".dc-ticker"); if(tkE&&tkE.querySelector(".wx-tk-in"))tickerize(tkE); /* 1.3.5 */
 }
-function dcSkeleton(title){ return '<div class="dc-screen" id="dcScreen"><div class="dc-tabs" id="dcTabs"></div><div class="dc-body" id="dcBody">'+
+function dcSkeleton(title,bugIdent){
+  /* bugIdent is optional -- pass it and a chan-bug mounts automatically after the DOM exists.
+     Every existing caller that doesn't pass it keeps behaving exactly as before. */
+  return '<div class="dc-screen" id="dcScreen"><div class="dc-tabs" id="dcTabs"></div>'+
+  '<div class="dc-body" id="dcBody" style="'+(bugIdent?"padding-bottom:30px":"")+'">'+
   '<div class="dc-top"><span>'+esch(title)+'</span></div><div class="dc-hero">\u2014</div><div class="dc-sub">Loading\u2026</div></div></div>'; }
+function dcSkeletonWithBug(title,ident){
+  var html=dcSkeleton(title,ident);
+  setTimeout(function(){ try{ mountChanBug("dcScreen",{ident:ident}); }catch(e){} },0);
+  return html;
+}
 
 /* ---------- Space & Sky: rotates every 2 min through 3 live pages, refreshes data every 5 min ---------- */
 var spaceTimer=null, spaceRotateTimer=null, spacePage=0, spaceData={};
@@ -6694,9 +6743,10 @@ async function tuneBuoy(ch,sl,my){
     '<div class="dc-body" id="dcBody" style="flex:0 1 45%;justify-content:flex-start;gap:4px;overflow:hidden">'+
       '<div class="dc-top"><span>BUOY &amp; SURF REPORT</span></div>'+
       '<div class="dc-sub" id="buoyDist"></div>'+
-      '<div class="dc-list" id="dcList"></div>'+
+      '<div class="dc-list" id="dcList" style="margin-bottom:30px"></div>'+
       '<div class="dc-ticker" id="buoyTicker">NOAA National Data Buoy Center \u00b7 nearest live reporting station</div>'+
     '</div></div>';
+  var buoyBug=mountChanBug("dcScreen",{ident:"BUOY WATCH"});
   clearInterval(buoyTimer);
   var run=async function(){
     if(my!==token||!powered){ clearInterval(buoyTimer); return; }
@@ -6722,6 +6772,8 @@ async function tuneBuoy(ch,sl,my){
       var wftVal=wvht!=null?(wvht*3.28084):null;
       var wEl=$("buoyWave"); if(wEl) wEl.textContent=(wftVal!=null?wftVal.toFixed(1)+" ft":"n/a");
       if(wftVal!=null) setChanStatus(ch.num,wftVal.toFixed(1)+"ft waves");
+      if(buoyBug) buoyBug.update(wftVal!=null?(wftVal.toFixed(1)+"ft"):"--",
+        (nameEl&&nameEl.textContent)||"");
       var chartEl=$("buoyChart");
       if(chartEl){
         var wvSeries=recent.map(function(c){ var v=ndbcMM(c[8]); return v==null?null:v*3.28084; });

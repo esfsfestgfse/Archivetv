@@ -962,7 +962,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.101";
+window.__ATV_BUILD="1.7.7-mobile.102";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -996,7 +996,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.101</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.102</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -1448,121 +1448,115 @@ const CATNAME={NET:"NETWORKS",TOON:"CARTOONS",MOV:"MOVIES",TV:"TELEVISION",SPORT
 
 /* ---------- the dial (~36 channels) ---------- */
 const CH=[
- {nm:"Sports Center",     cat:"SPORTS", source:"sports", ns:"tv"},
- {nm:"Channel 2 Network", cat:"NET", profile:"network", era:[1950,1969], ns:"movie"},
- {nm:"Nite-Owl 3",        cat:"NET", profile:"network", era:[1935,1955], ns:"movie"},
+ {nm:"Sports Center", num:50,     cat:"SPORTS", source:"sports", ns:"tv"},
+ {nm:"Channel 2 Network", num:2, cat:"NET", profile:"network", era:[1950,1969], ns:"movie"},
+ {nm:"Nite-Owl 3", num:3,        cat:"NET", profile:"network", era:[1935,1955], ns:"movie"},
 
- {nm:"Classic Cartoons",        cat:"TOON", gl:"cartoon", era:[1930,1972], ns:"toon"}, // consolidated: was 4 overlapping era-slices of the same pool, now 1 broad + 1 postwar-skewed
- {nm:"Anime Alley",       cat:"TOON", gl:"anime",   era:[1950,2005], ns:"toon"},
+ {nm:"Classic Cartoons", num:150,        cat:"TOON", gl:"cartoon", era:[1930,1972], ns:"toon"}, // consolidated: was 4 overlapping era-slices of the same pool, now 1 broad + 1 postwar-skewed
+ {nm:"Anime Alley", num:151,       cat:"TOON", gl:"anime",   era:[1950,2005], ns:"toon"},
 
 
- {nm:"Sci-Fi Theater",    cat:"MOV", gl:"scifi",       era:[1950,1979], ns:"movie"},
- {nm:"Shock Theater",     cat:"MOV", profile:"frightnight", era:[1950,1979], ns:"movie"},
- {nm:"Western Channel",   cat:"MOV", gl:"western",     era:[1935,1965], ns:"movie"},
- {nm:"Comedy Classics",   cat:"MOV", gl:"comedy",      era:[1930,1965], ns:"movie"},
- {nm:"Music Films",       cat:"MOV", gl:"musicfilm",   era:[1935,1969], ns:"movie"},
+ {nm:"Sci-Fi Theater", num:100,    cat:"MOV", gl:"scifi",       era:[1950,1979], ns:"movie"},
+ {nm:"Shock Theater", num:101,     cat:"MOV", profile:"frightnight", era:[1950,1979], ns:"movie"},
+ {nm:"Western Channel", num:102,   cat:"MOV", gl:"western",     era:[1935,1965], ns:"movie"},
+ {nm:"Comedy Classics", num:103,   cat:"MOV", gl:"comedy",      era:[1930,1965], ns:"movie"},
+ {nm:"Music Films", num:104,       cat:"MOV", gl:"musicfilm",   era:[1935,1969], ns:"movie"},
 
- {nm:"Classic Rerun TV",  cat:"TV", gl:"sitcom",       era:[1950,1969], ns:"tv"},
- {nm:"Modern Rerun TV",   cat:"TV", gl:"sitcommodern", era:[1970,2003], ns:"tv"},
- {nm:"Game Show Channel", cat:"TV", gl:"gameshow",     era:[1950,2005], ns:"tv"},
- {nm:"Vintage Commercials",cat:"TV",gl:"commercials",  era:[1948,1985], ns:"tv"},
- {nm:"Black Cinema",      cat:"MOV", gl:"blackcinema", era:[1915,1955], ns:"movie"},
- {nm:"Arcade Archive",    cat:"TOON",gl:"arcade",       era:[1980,2015], ns:"movie"},
- {nm:"Manufacturing Marvels",cat:"DOC",gl:"manufacturing",era:[1935,1970], ns:"doc"},
- {nm:"Home Economics",    cat:"DOC", gl:"testkitchen",   era:[1935,1985], ns:"doc"},
- {nm:"Found Footage Static",cat:"RETRO",gl:"foundfootage",era:[1920,1965], ns:"movie", glitch:true},
- {nm:"Computer Chronicles",cat:"TV",gl:"computer",     era:[1983,2002], ns:"tv"},
+ {nm:"Classic Rerun TV", num:10,  cat:"TV", gl:"sitcom",       era:[1950,1969], ns:"tv"},
+ {nm:"Modern Rerun TV", num:11,   cat:"TV", gl:"sitcommodern", era:[1970,2003], ns:"tv"},
+ {nm:"Game Show Channel", num:12, cat:"TV", gl:"gameshow",     era:[1950,2005], ns:"tv"},
+ {nm:"Vintage Commercials", num:13,cat:"TV",gl:"commercials",  era:[1948,1985], ns:"tv"},
+ {nm:"Black Cinema", num:105,      cat:"MOV", gl:"blackcinema", era:[1915,1955], ns:"movie"},
+ {nm:"Arcade Archive", num:152,    cat:"TOON",gl:"arcade",       era:[1980,2015], ns:"movie"},
+ {nm:"Manufacturing Marvels", num:200,cat:"DOC",gl:"manufacturing",era:[1935,1970], ns:"doc"},
+ {nm:"Home Economics", num:201,    cat:"DOC", gl:"testkitchen",   era:[1935,1985], ns:"doc"},
+ {nm:"Found Footage Static", num:500,cat:"RETRO",gl:"foundfootage",era:[1920,1965], ns:"movie", glitch:true},
+ {nm:"Computer Chronicles", num:14,cat:"TV",gl:"computer",     era:[1983,2002], ns:"tv"},
 
- {nm:"Live Concerts",      cat:"MUS", gl:"concertrock",  era:[1970,2015], ns:"music", audio:true},
- {nm:"Rock",              cat:"MUS", gl:"gmrock",      era:[1965,2015], ns:"music", audio:true},
- {nm:"Bluegrass & Folk",  cat:"MUS", gl:"gmfolk",      era:[1965,2015], ns:"music", audio:true},
- {nm:"Jazz",              cat:"MUS", gl:"gmjazz",      era:[1917,1959], ns:"music", audio:true},
- {nm:"Contemporary Jazz", cat:"MUS", gl:"gmjazzmod",   era:[1960,2025], ns:"music", audio:true},
- {nm:"Blues",             cat:"MUS", gl:"gmblues",     era:[1917,1959], ns:"music", audio:true},
- {nm:"Contemporary Blues",cat:"MUS", gl:"gmbluesmod",  era:[1960,2025], ns:"music", audio:true},
- {nm:"Swing & Big Band",  cat:"MUS", gl:"gmswing",     era:[1925,1949], ns:"music", audio:true},
- {nm:"Country & Western", cat:"MUS", gl:"gmcountry",   era:[1925,1959], ns:"music", audio:true},
- {nm:"Gospel",            cat:"MUS", gl:"gmgospel",    era:[1920,1959], ns:"music", audio:true},
- {nm:"Latin",             cat:"MUS", gl:"gmlatin",     era:[1920,1959], ns:"music", audio:true},
- {nm:"Ragtime",           cat:"MUS", gl:"gmragtime",   era:[1899,1929], ns:"music", audio:true},
- {nm:"Classical",         cat:"MUS", gl:"gmclassical", era:[1917,1959], ns:"music", audio:true},
- {nm:"Vintage Pop",       cat:"MUS", gl:"gmpop",       era:[1935,1959], ns:"music", audio:true},
- {nm:"Hip-Hop",           cat:"MUS", gl:"gmhiphop",    era:[1985,2025], ns:"music", audio:true},
- {nm:"Reggae & Dub",      cat:"MUS", gl:"gmreggae",    era:[1968,2025], ns:"music", audio:true},
- {nm:"Punk",              cat:"MUS", gl:"gmpunk",      era:[1975,2025], ns:"music", audio:true},
- {nm:"Metal",             cat:"MUS", gl:"gmmetal",     era:[1980,2025], ns:"music", audio:true},
- {nm:"Electronic",        cat:"MUS", gl:"gmelectro",   era:[1990,2025], ns:"music", audio:true},
- {nm:"Funk & Soul",       cat:"MUS", gl:"gmfunk",      era:[1968,2025], ns:"music", audio:true},
- {nm:"Jukebox 78",        cat:"MUS", gl:"jazz78",   era:[1920,1949], ns:"music", audio:true},
- {nm:"Fallout Radio",     cat:"MUS", gl:"radiofallout",era:[1948,1965], ns:"radio", audio:true},
- {nm:"Comedy",             cat:"DOC", gl:"standup",      era:[1960,2025], ns:"radio", audio:true},
- {nm:"Podcasts",           cat:"DOC", gl:"podcasts",     era:[2004,2025], ns:"radio", audio:true},
- {nm:"Modern Country",     cat:"MUS", gl:"gmcountrymod", era:[1970,2025], ns:"music", audio:true},
- {nm:"Field Recordings",   cat:"MUS", gl:"fieldrec",     era:[1990,2025], ns:"music", audio:true},
+ {nm:"Live Concerts", num:900,      cat:"MUS", gl:"concertrock",  era:[1970,2015], ns:"music", audio:true},
+ {nm:"Rock", num:901,              cat:"MUS", gl:"gmrock",      era:[1965,2015], ns:"music", audio:true},
+ {nm:"Bluegrass & Folk", num:902,  cat:"MUS", gl:"gmfolk",      era:[1965,2015], ns:"music", audio:true},
+ {nm:"Jazz", num:903,              cat:"MUS", gl:"gmjazz",      era:[1917,1959], ns:"music", audio:true},
+ {nm:"Contemporary Jazz", num:904, cat:"MUS", gl:"gmjazzmod",   era:[1960,2025], ns:"music", audio:true},
+ {nm:"Blues", num:905,             cat:"MUS", gl:"gmblues",     era:[1917,1959], ns:"music", audio:true},
+ {nm:"Contemporary Blues", num:906,cat:"MUS", gl:"gmbluesmod",  era:[1960,2025], ns:"music", audio:true},
+ {nm:"Swing & Big Band", num:907,  cat:"MUS", gl:"gmswing",     era:[1925,1949], ns:"music", audio:true},
+ {nm:"Country & Western", num:908, cat:"MUS", gl:"gmcountry",   era:[1925,1959], ns:"music", audio:true},
+ {nm:"Gospel", num:909,            cat:"MUS", gl:"gmgospel",    era:[1920,1959], ns:"music", audio:true},
+ {nm:"Latin", num:910,             cat:"MUS", gl:"gmlatin",     era:[1920,1959], ns:"music", audio:true},
+ {nm:"Ragtime", num:911,           cat:"MUS", gl:"gmragtime",   era:[1899,1929], ns:"music", audio:true},
+ {nm:"Classical", num:912,         cat:"MUS", gl:"gmclassical", era:[1917,1959], ns:"music", audio:true},
+ {nm:"Vintage Pop", num:913,       cat:"MUS", gl:"gmpop",       era:[1935,1959], ns:"music", audio:true},
+ {nm:"Hip-Hop", num:914,           cat:"MUS", gl:"gmhiphop",    era:[1985,2025], ns:"music", audio:true},
+ {nm:"Reggae & Dub", num:915,      cat:"MUS", gl:"gmreggae",    era:[1968,2025], ns:"music", audio:true},
+ {nm:"Punk", num:916,              cat:"MUS", gl:"gmpunk",      era:[1975,2025], ns:"music", audio:true},
+ {nm:"Metal", num:917,             cat:"MUS", gl:"gmmetal",     era:[1980,2025], ns:"music", audio:true},
+ {nm:"Electronic", num:918,        cat:"MUS", gl:"gmelectro",   era:[1990,2025], ns:"music", audio:true},
+ {nm:"Funk & Soul", num:919,       cat:"MUS", gl:"gmfunk",      era:[1968,2025], ns:"music", audio:true},
+ {nm:"Jukebox 78", num:920,        cat:"MUS", gl:"jazz78",   era:[1920,1949], ns:"music", audio:true},
+ {nm:"Fallout Radio", num:921,     cat:"MUS", gl:"radiofallout",era:[1948,1965], ns:"radio", audio:true},
+ {nm:"Comedy", num:202,             cat:"DOC", gl:"standup",      era:[1960,2025], ns:"radio", audio:true},
+ {nm:"Podcasts", num:203,           cat:"DOC", gl:"podcasts",     era:[2004,2025], ns:"radio", audio:true},
+ {nm:"Modern Country", num:922,     cat:"MUS", gl:"gmcountrymod", era:[1970,2025], ns:"music", audio:true},
+ {nm:"Field Recordings", num:923,   cat:"MUS", gl:"fieldrec",     era:[1990,2025], ns:"music", audio:true},
 
- {nm:"Prelinger Vault",   cat:"DOC", profile:"prelingervault", era:[1940,1985], ns:"doc"}, // consolidated: was 3 channels drawing from the same prelinger/educational/industrial pool
+ {nm:"Prelinger Vault", num:204,   cat:"DOC", profile:"prelingervault", era:[1940,1985], ns:"doc"}, // consolidated: was 3 channels drawing from the same prelinger/educational/industrial pool
 
- {nm:"Trailer Park",      cat:"RETRO", gl:"trailer", era:[1940,1985], ns:"movie"},
- {nm:"World Cinema",      cat:"MOV", gl:"worldcinema",era:[1930,1970], ns:"movie"},
- {nm:"Public Access TV",  cat:"TV",  gl:"publicaccess",era:[1975,2005], ns:"doc"},
- {nm:"Sports Vault",      cat:"TV",  gl:"sportsvault", era:[1930,1995], ns:"doc"},
- {nm:"Sunday Service",    cat:"DOC", gl:"faith",       era:[1940,1985], ns:"doc"},
- {nm:"VHS Vault",         cat:"RETRO",gl:"vhsvault",    era:[1980,1999], ns:"movie"},
- {nm:"Silent Cinema",     cat:"MOV", gl:"silentcinema", era:[1905,1929], ns:"movie"},
- {nm:"Noir & Mystery",    cat:"MOV", gl:"noirmystery",  era:[1940,1965], ns:"movie"},
- {nm:"Action & Serials",  cat:"MOV", gl:"actionserials",era:[1935,1965], ns:"movie"},
- {nm:"Classic Film",      cat:"MOV", gl:"classicmovie", era:[1930,1965], ns:"movie"},
- {nm:"Modern Cartoons",   cat:"TOON",gl:"cartoonmodern",era:[1970,2001], ns:"toon"},
- {nm:"Home Movies & Travelogues",cat:"DOC",gl:"homemovietravel",era:[1935,1985], ns:"doc"},
- {nm:"Auto Racing",       cat:"DOC", gl:"autoracing",  era:[1930,1995], ns:"doc"},
- {nm:"Railroad",          cat:"DOC", gl:"railroad",    era:[1930,1990], ns:"doc"},
- {nm:"Aviation",          cat:"DOC", gl:"aviationfilm",era:[1930,1990], ns:"doc"},
- {nm:"Live Radio",        cat:"MUS", source:"liveradio", ns:"radio", audio:true},
- {nm:"Public Domain Art", cat:"RETRO",source:"art",       ns:"doc"},
- {nm:"Weather Watch",     cat:"LDATA", source:"weather", ns:"tv"},
- {nm:"Aurora & Space Weather", cat:"LDATA", source:"aurora", ns:"tv"},
- {nm:"Ham Radio",           cat:"LDATA", source:"hf",     ns:"tv"},
- {nm:"ISS Tracker",       cat:"LDATA", source:"iss",    ns:"space"},
- {nm:"NASA Picture of the Day", cat:"LDATA", source:"apod", ns:"space"},
- {nm:"Air Traffic",       cat:"LDATA", source:"airtraffic", ns:"tv"},
- {nm:"Seismic Watch",     cat:"LDATA", source:"seismic",    ns:"tv"},
- {nm:"News, News, News",  cat:"DOC", gl:"newsarchive", era:[1920,1975], ns:"doc"},
- {nm:"Space",             cat:"LDATA", source:"space",   ns:"tv"},
- {nm:"River & Lake Watch",cat:"LDATA", source:"river",   ns:"tv"},
- {nm:"On This Day",       cat:"RETRO", source:"onthisday",ns:"movie"},
- {nm:"Public Domain Day", cat:"RETRO", source:"pdday",    ns:"tv"},
- {nm:"Tropical Watch",    cat:"LDATA", source:"tropical",  ns:"tv"},
- {nm:"Live TV",          cat:"LBRO", source:"livetv",    ns:"tv"},
- {nm:"Live Cams",        cat:"LBRO", source:"livecams",  ns:"tv"},
- {nm:"Deep Space Jazz",   cat:"MUS", source:"spacejazz", ns:"tv"},
- {nm:"World Clock",       cat:"LDATA", source:"worldclock", ns:"tv"},
- {nm:"Wildfire Watch",    cat:"LDATA", source:"wildfire",   ns:"tv"},
- {nm:"Hometown History",  cat:"LDATA", source:"hometown",   ns:"doc"},
- {nm:"Tide & Marine",     cat:"LDATA", source:"tides",      ns:"tv"},
- {nm:"Buoy & Surf Report", cat:"LDATA", source:"buoy",      ns:"tv"},
- {nm:"Gas Price Ticker",   cat:"LDATA", source:"gas",       ns:"tv"},
- {nm:"Ship Tracker",       cat:"LDATA", source:"ships",     ns:"tv"},
- {nm:"Historic Waco",     cat:"LDATA", source:"paper",      ns:"doc"},
- {nm:"Backyard Naturalist",cat:"LDATA",source:"nature",     ns:"doc"},
- {nm:"Air & Allergy",     cat:"LDATA", source:"air",        ns:"tv"},
- {nm:"Christmas Channel", cat:"HOL", gl:"xmas",         era:[1930,1995], ns:"movie"},
- {nm:"Halloween Haunt",   cat:"HOL", gl:"halloween",    era:[1930,1995], ns:"movie"},
- {nm:"Thanksgiving Channel",cat:"HOL",gl:"thanksgiving", era:[1930,1990], ns:"tv"},
- {nm:"Test Pattern",      cat:"RETRO", source:"static", ns:"space"},
-].map((function(){
-  /* QA CHANGE: channel numbers used to just be array position + 2 -- accidental, not organized,
-     shifted around every time a channel got added anywhere. Real cable/satellite systems reserve
-     distinct number blocks per content type (locals in the low single digits, movies in the 100s,
-     music up in the 900s, etc.) so regulars learn "channel 9xx is music" the way they'd learn any
-     real lineup. Each block has real headroom past current channel counts for future growth. */
-  var CAT_BLOCKS={NET:2,TV:10,SPORTS:50,MOV:100,TOON:150,DOC:200,LBRO:300,LDATA:400,RETRO:500,HOL:700,MUS:900};
-  var seen={};
-  return function(c){
-    var block=(CAT_BLOCKS[c.cat]!=null)?CAT_BLOCKS[c.cat]:2;
-    seen[c.cat]=(seen[c.cat]||0)+1;
-    return {num:block+seen[c.cat]-1, ...c};
-  };
-})());
+ {nm:"Trailer Park", num:501,      cat:"RETRO", gl:"trailer", era:[1940,1985], ns:"movie"},
+ {nm:"World Cinema", num:106,      cat:"MOV", gl:"worldcinema",era:[1930,1970], ns:"movie"},
+ {nm:"Public Access TV", num:15,  cat:"TV",  gl:"publicaccess",era:[1975,2005], ns:"doc"},
+ {nm:"Sports Vault", num:16,      cat:"TV",  gl:"sportsvault", era:[1930,1995], ns:"doc"},
+ {nm:"Sunday Service", num:205,    cat:"DOC", gl:"faith",       era:[1940,1985], ns:"doc"},
+ {nm:"VHS Vault", num:502,         cat:"RETRO",gl:"vhsvault",    era:[1980,1999], ns:"movie"},
+ {nm:"Silent Cinema", num:107,     cat:"MOV", gl:"silentcinema", era:[1905,1929], ns:"movie"},
+ {nm:"Noir & Mystery", num:108,    cat:"MOV", gl:"noirmystery",  era:[1940,1965], ns:"movie"},
+ {nm:"Action & Serials", num:109,  cat:"MOV", gl:"actionserials",era:[1935,1965], ns:"movie"},
+ {nm:"Classic Film", num:110,      cat:"MOV", gl:"classicmovie", era:[1930,1965], ns:"movie"},
+ {nm:"Modern Cartoons", num:153,   cat:"TOON",gl:"cartoonmodern",era:[1970,2001], ns:"toon"},
+ {nm:"Home Movies & Travelogues", num:206,cat:"DOC",gl:"homemovietravel",era:[1935,1985], ns:"doc"},
+ {nm:"Auto Racing", num:207,       cat:"DOC", gl:"autoracing",  era:[1930,1995], ns:"doc"},
+ {nm:"Railroad", num:208,          cat:"DOC", gl:"railroad",    era:[1930,1990], ns:"doc"},
+ {nm:"Aviation", num:209,          cat:"DOC", gl:"aviationfilm",era:[1930,1990], ns:"doc"},
+ {nm:"Live Radio", num:924,        cat:"MUS", source:"liveradio", ns:"radio", audio:true},
+ {nm:"Public Domain Art", num:503, cat:"RETRO",source:"art",       ns:"doc"},
+ {nm:"Weather Watch", num:400,     cat:"LDATA", source:"weather", ns:"tv"},
+ {nm:"Aurora & Space Weather", num:401, cat:"LDATA", source:"aurora", ns:"tv"},
+ {nm:"Ham Radio", num:402,           cat:"LDATA", source:"hf",     ns:"tv"},
+ {nm:"ISS Tracker", num:403,       cat:"LDATA", source:"iss",    ns:"space"},
+ {nm:"NASA Picture of the Day", num:404, cat:"LDATA", source:"apod", ns:"space"},
+ {nm:"Air Traffic", num:405,       cat:"LDATA", source:"airtraffic", ns:"tv"},
+ {nm:"Seismic Watch", num:406,     cat:"LDATA", source:"seismic",    ns:"tv"},
+ {nm:"News, News, News", num:210,  cat:"DOC", gl:"newsarchive", era:[1920,1975], ns:"doc"},
+ {nm:"Space", num:407,             cat:"LDATA", source:"space",   ns:"tv"},
+ {nm:"River & Lake Watch", num:408,cat:"LDATA", source:"river",   ns:"tv"},
+ {nm:"On This Day", num:504,       cat:"RETRO", source:"onthisday",ns:"movie"},
+ {nm:"Public Domain Day", num:505, cat:"RETRO", source:"pdday",    ns:"tv"},
+ {nm:"Tropical Watch", num:409,    cat:"LDATA", source:"tropical",  ns:"tv"},
+ {nm:"Live TV", num:300,          cat:"LBRO", source:"livetv",    ns:"tv"},
+ {nm:"Live Cams", num:301,        cat:"LBRO", source:"livecams",  ns:"tv"},
+ {nm:"Deep Space Jazz", num:925,   cat:"MUS", source:"spacejazz", ns:"tv"},
+ {nm:"World Clock", num:410,       cat:"LDATA", source:"worldclock", ns:"tv"},
+ {nm:"Wildfire Watch", num:411,    cat:"LDATA", source:"wildfire",   ns:"tv"},
+ {nm:"Hometown History", num:412,  cat:"LDATA", source:"hometown",   ns:"doc"},
+ {nm:"Tide & Marine", num:413,     cat:"LDATA", source:"tides",      ns:"tv"},
+ {nm:"Buoy & Surf Report", num:414, cat:"LDATA", source:"buoy",      ns:"tv"},
+ {nm:"Gas Price Ticker", num:415,   cat:"LDATA", source:"gas",       ns:"tv"},
+ {nm:"Ship Tracker", num:416,       cat:"LDATA", source:"ships",     ns:"tv"},
+ {nm:"Historic Waco", num:417,     cat:"LDATA", source:"paper",      ns:"doc"},
+ {nm:"Backyard Naturalist", num:418,cat:"LDATA",source:"nature",     ns:"doc"},
+ {nm:"Air & Allergy", num:419,     cat:"LDATA", source:"air",        ns:"tv"},
+ {nm:"Christmas Channel", num:700, cat:"HOL", gl:"xmas",         era:[1930,1995], ns:"movie"},
+ {nm:"Halloween Haunt", num:701,   cat:"HOL", gl:"halloween",    era:[1930,1995], ns:"movie"},
+ {nm:"Thanksgiving Channel", num:702,cat:"HOL",gl:"thanksgiving", era:[1930,1990], ns:"tv"},
+ {nm:"Test Pattern", num:506,      cat:"RETRO", source:"static", ns:"space"},
+];
+/* QA FIX (from Programmed Channels 2.0 audit, Phase 1): channel numbers used to be computed by
+   the array's own order via a seen[c.cat] counter -- meaning if any two channels in the same
+   category ever swapped position in the source array, every user's saved favorites and last
+   tuned channel would silently redirect to the wrong channel because localStorage-persisted
+   channel numbers survived across builds. Numbers are now hard-coded on every record. The
+   category number blocks (NET:2, TV:10, SPORTS:50, MOV:100, TOON:150, DOC:200, LBRO:300,
+   LDATA:400, RETRO:500, HOL:700, MUS:900) are the invariant, not the array order. */
 const byNum=n=>CH.find(c=>c.num===n);
 
 /* ===== 1.3 METADATA FOUNDATION: per-channel identity, driving INFO + guide + discovery ===== */
@@ -1717,6 +1711,20 @@ function fetchTextResilient(url,tag){ /* CYCLE-8: same direct->relay chain, for 
       .catch(function(e){ nlog(tag||"relay",false,(e&&e.message)||e); return relay(); });
   }
   return direct().catch(function(e){ return relay(); });
+}
+function sportsCacheBase(){ return String(store.get("sportsCacheProxy","")||"").trim().replace(/\/+$/,""); }
+async function fetchSportsData(url,tag){
+  /* Optional caching + stale-on-error resilience layer for ESPN/TheSportsDB, same shape as the
+     stream proxy. Unset by default -- store.get returns "" until configured in SETTINGS, so this
+     falls straight through to the existing direct->CORS-relay chain and nothing changes for
+     anyone who hasn't deployed the worker. Once set, it's tried first; any failure there
+     (unconfigured KV, cold start, network) falls back to the same proven path as before. */
+  var base=sportsCacheBase();
+  if(base){
+    try{ return await fetchJSON(base+"/?url="+encodeURIComponent(url)); }
+    catch(e){ nlog(tag||"sportscache",false,"cache proxy failed ("+((e&&e.message)||e)+"), falling back"); }
+  }
+  return fetchJSONResilient(url,tag);
 }
 async function fetchJSONResilient(url,tag){
   try{ return await fetchJSON(url); }
@@ -6268,7 +6276,7 @@ async function tuneSports(ch,sl,my){
     var espnSports=SPORTS_LIST.filter(function(sp){ return !!sp.espn; });
     var dateQ=espnDateParam(onTodayOffset);
     var results=await Promise.all(espnSports.map(function(sp){
-      return fetchJSON("https://site.api.espn.com/apis/site/v2/sports/"+sp.espn+"/scoreboard?dates="+dateQ)
+      return fetchSportsData("https://site.api.espn.com/apis/site/v2/sports/"+sp.espn+"/scoreboard?dates="+dateQ,"today")
         .then(function(d){ return {sp:sp,d:d}; })
         .catch(function(){ return {sp:sp,d:null}; });
     }));
@@ -6407,7 +6415,7 @@ async function tuneSports(ch,sl,my){
     bodyEl.innerHTML='<div class="pop-empty">Loading news\u2026</div>';
     try{
       if(!curSport.espn) throw new Error("news only available for ESPN-covered sports right now");
-      var d=await fetchJSON("https://site.api.espn.com/apis/site/v2/sports/"+curSport.espn+"/news?limit=20");
+      var d=await fetchSportsData("https://site.api.espn.com/apis/site/v2/sports/"+curSport.espn+"/news?limit=20","sportsnews");
       if(my!==token||sportsSubView!=="news")return;
       var articles=(d&&d.articles)||[];
       if(!articles.length){ bodyEl.innerHTML='<div class="pop-empty">No recent news for '+esch(curSport.label)+'.</div>'; return; }
@@ -6428,7 +6436,7 @@ async function tuneSports(ch,sl,my){
     bodyEl.innerHTML='<div class="pop-empty">Loading injury reports\u2026</div>';
     try{
       if(!curSport.espn) throw new Error("injury reports only available for ESPN-covered sports right now");
-      var d=await fetchJSON("https://site.api.espn.com/apis/site/v2/sports/"+curSport.espn+"/injuries");
+      var d=await fetchSportsData("https://site.api.espn.com/apis/site/v2/sports/"+curSport.espn+"/injuries","sportsinjuries");
       if(my!==token||sportsSubView!=="injuries")return;
       /* defensive about the exact shape here -- this endpoint's structure wasn't independently
          live-verified the way scoreboard/standings/news were, so multiple reasonable shapes are
@@ -6723,7 +6731,7 @@ async function tuneSports(ch,sl,my){
          plainly rather than silently showing nothing if the format guess is wrong for this league. */
       try{
         var yr=new Date().getFullYear();
-        var td=await fetchJSON("https://www.thesportsdb.com/api/v1/json/3/lookuptable.php?l="+encodeURIComponent(curSport.sdb)+"&s="+yr).catch(function(){return null;});
+        var td=await fetchSportsData("https://www.thesportsdb.com/api/v1/json/3/lookuptable.php?l="+encodeURIComponent(curSport.sdb)+"&s="+yr,"sportsstandings").catch(function(){return null;});
         if(my!==token||sportsSubView!=="standings")return;
         var table=(td&&td.table)||[];
         if(!table.length){
@@ -6761,8 +6769,8 @@ async function tuneSports(ch,sl,my){
          Try the correct path first, keep the old one as a fallback so nothing that already
          worked can regress. */
       var d=null;
-      try{ d=await fetchJSON("https://site.api.espn.com/apis/v2/sports/"+curSport.espn+"/standings"); }catch(e1){ d=null; }
-      if(!d||(!d.children&&!d.standings)) { try{ d=await fetchJSON("https://site.api.espn.com/apis/site/v2/sports/"+curSport.espn+"/standings"); }catch(e2){} }
+      try{ d=await fetchSportsData("https://site.api.espn.com/apis/v2/sports/"+curSport.espn+"/standings","sportsstandings"); }catch(e1){ d=null; }
+      if(!d||(!d.children&&!d.standings)) { try{ d=await fetchSportsData("https://site.api.espn.com/apis/site/v2/sports/"+curSport.espn+"/standings","sportsstandings"); }catch(e2){} }
       if(my!==token||sportsSubView!=="standings")return;
       var groups=(d&&d.children&&d.children.length)?d.children:(d&&d.standings?[{name:curSport.label,standings:d.standings}]:[]);
       var favs=getFavTeams(); var html="";
@@ -6855,12 +6863,12 @@ async function tuneSports(ch,sl,my){
       if(sp.espnCricket){
         var cricketOk=false;
         try{
-          var hd=await fetchJSON("https://site.api.espn.com/apis/personalized/v2/scoreboard/header?sport=cricket&region=us&tz=America%2FChicago");
+          var hd=await fetchSportsData("https://site.api.espn.com/apis/personalized/v2/scoreboard/header?sport=cricket&region=us&tz=America%2FChicago","cricket");
           if(my!==token||curSport!==sp)return;
           var leagues=(hd&&hd.sports&&hd.sports[0]&&hd.sports[0].leagues)||[];
           var activeLeague=leagues.find(function(l){return l.events&&l.events.length;})||leagues[0];
           if(activeLeague&&activeLeague.id){
-            var cd=await fetchJSON("https://site.api.espn.com/apis/site/v2/sports/cricket/"+encodeURIComponent(activeLeague.id)+"/scoreboard");
+            var cd=await fetchSportsData("https://site.api.espn.com/apis/site/v2/sports/cricket/"+encodeURIComponent(activeLeague.id)+"/scoreboard","cricket");
             if(my!==token||curSport!==sp)return;
             var cEvents=(cd&&cd.events)||[];
             if(cEvents.length){
@@ -6876,7 +6884,7 @@ async function tuneSports(ch,sl,my){
         if(!cricketOk){
           /* ESPN's cricket discovery came back empty (no currently active series, or the shape
              didn't match) -- fall back to TheSportsDB rather than show nothing */
-          var d2c=await fetchJSON("https://www.thesportsdb.com/api/v1/json/3/eventspastleague.php?id="+encodeURIComponent(sp.sdb)).catch(function(){return null;});
+          var d2c=await fetchSportsData("https://www.thesportsdb.com/api/v1/json/3/eventspastleague.php?id="+encodeURIComponent(sp.sdb),"sports").catch(function(){return null;});
           var evsC=(d2c&&d2c.events)||[];
           curEvents=evsC.map(function(ev){
             var hasNames=ev.strHomeTeam&&ev.strAwayTeam;
@@ -6891,7 +6899,7 @@ async function tuneSports(ch,sl,my){
           nlog("sports",true,sp.label+" "+curEvents.length+" events (TheSportsDB fallback)");
         }
       } else if(sp.espn){
-        var d=await fetchJSON("https://site.api.espn.com/apis/site/v2/sports/"+sp.espn+"/scoreboard");
+        var d=await fetchSportsData("https://site.api.espn.com/apis/site/v2/sports/"+sp.espn+"/scoreboard","sports");
         if(my!==token||curSport!==sp)return;
         var rawEvents=(d&&d.events)||[]; var flat=[];
         rawEvents.forEach(function(ev){
@@ -7055,7 +7063,7 @@ async function tuneSports(ch,sl,my){
             var cand=SPORTS_LIST[(start+i)%SPORTS_LIST.length];
             if(!cand.espn) continue;                       /* live-state detection needs ESPN */
             try{
-              var d=await fetchJSON("https://site.api.espn.com/apis/site/v2/sports/"+cand.espn+"/scoreboard");
+              var d=await fetchSportsData("https://site.api.espn.com/apis/site/v2/sports/"+cand.espn+"/scoreboard","sports");
               var live=((d&&d.events)||[]).some(function(ev){return ev.status&&ev.status.type&&ev.status.type.state==="in";});
               if(live&&my===token){
                 nlog("sports",true,"auto-rotate \u2192 "+cand.label+" (live game)");
@@ -8331,6 +8339,12 @@ var OSD_ITEMS=[
    var on=!store.get("wxSegments",false); store.set("wxSegments",on);
    quickBanner(on?"SEGMENT MODE ON \u00b7 LOCAL ON THE 8s":"SEGMENT MODE OFF");
    try{ if(curSl&&curSl.source==="weather") tuneNum(curNum); }catch(e){} }},
+ {label:"SPORTS: CACHE PROXY",act:function(){closeOsd();
+   var cur=sportsCacheBase();
+   var val=prompt("Sports-data cache/resilience worker URL (blank to disable):",cur);
+   if(val==null)return;
+   store.set("sportsCacheProxy",val.trim());
+   quickBanner(val.trim()?"CACHE PROXY SET":"CACHE PROXY DISABLED \u2014 DIRECT FETCH"); }},
  {label:"SPORTS: AUTO-ROTATE",act:function(){closeOsd();
    var on=!store.get("sportsRotate",false); store.set("sportsRotate",on);
    quickBanner(on?"AUTO-ROTATE ON \u00b7 CUTS TO LIVE GAMES":"AUTO-ROTATE OFF"); }},

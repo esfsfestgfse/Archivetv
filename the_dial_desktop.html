@@ -816,7 +816,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.69";
+window.__ATV_BUILD="1.7.7-desktop.70";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -850,7 +850,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.69</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.70</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">THE DIAL · THE SET</div>
@@ -1527,7 +1527,13 @@ function fetchTextResilient(url,tag){ /* CYCLE-8: same direct->relay chain, for 
   }
   return direct().catch(function(e){ return relay(); });
 }
-function sportsCacheBase(){ return String(store.get("sportsCacheProxy","")||"").trim().replace(/\/+$/,""); }
+function sportsCacheBase(){
+  /* Hard-coded to the deployed worker. Was originally settings-driven but there is exactly one
+     worker URL, no viewer will ever change it, and making it a setting was friction not flexibility.
+     If ever redeployed to a different URL, change this string; the OSD entry that used to expose
+     it was removed. */
+  return "https://sports-cache.tdy1990.workers.dev";
+}
 async function fetchSportsData(url,tag){
   /* Optional caching + stale-on-error resilience layer for ESPN/TheSportsDB, same shape as the
      stream proxy. Unset by default -- store.get returns "" until configured in SETTINGS, so this
@@ -8058,12 +8064,6 @@ var OSD_ITEMS=[
  {label:"DIAGNOSTICS",act:function(){closeOsd();toggleDiag();}},
  {label:"SETTINGS",act:function(){closeOsd();toggleSettings();}},
  {label:"SHARE",act:function(){closeOsd();shareCurrent();}},
- {label:"SPORTS: CACHE PROXY",act:function(){closeOsd();
-   var cur=sportsCacheBase();
-   var val=prompt("Sports-data cache/resilience worker URL (blank to disable):",cur);
-   if(val==null)return;
-   store.set("sportsCacheProxy",val.trim());
-   quickBanner(val.trim()?"CACHE PROXY SET":"CACHE PROXY DISABLED \u2014 DIRECT FETCH"); }},
  {label:"SPORTS: AUTO-ROTATE",act:function(){closeOsd();
    var on=!store.get("sportsRotate",false); store.set("sportsRotate",on);
    quickBanner(on?"AUTO-ROTATE ON \u00b7 CUTS TO LIVE GAMES":"AUTO-ROTATE OFF"); }},

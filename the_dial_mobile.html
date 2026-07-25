@@ -965,7 +965,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.104";
+window.__ATV_BUILD="1.7.7-mobile.105";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -999,7 +999,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.104</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.105</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -3225,7 +3225,11 @@ async function tuneSkyTraffic(ch,sl,my){
     var arr=Object.keys(acsMap).map(function(k){return acsMap[k];});
     arr.sort(function(a,b){return (a.dist!=null?a.dist:9e9)-(b.dist!=null?b.dist:9e9);});
     var top=arr.slice(0,6);
-    if(!top.length){ listEl.innerHTML='<div class="pop-empty">Quiet skies - nothing airborne within '+rangeMi+' miles right now.</div>'; return; }
+    if(!top.length){ listEl.innerHTML='<div class="pop-empty">Quiet skies - nothing airborne within '+rangeMi+' miles right now.</div>';
+      setChanStatus(ch.num, "quiet skies");
+      return; }
+    var nearestAc=top[0];
+    setChanStatus(ch.num, arr.length+" aircraft \u00b7 "+((nearestAc.cs||"nearest")+(nearestAc.dist!=null?(" "+nearestAc.dist.toFixed(0)+"mi"):"")));
     listEl.innerHTML=top.map(function(a){
       var col=(a.alt!=null&&a.alt<10000)?"#ffb84d":((a.alt!=null&&a.alt>=25000)?"#7fd8ff":"#9affb0");
       var climb=(a.vr!=null&&Math.abs(a.vr)>320)?(a.vr>0?" climbing":" descending"):"";
@@ -3544,6 +3548,11 @@ async function tuneWildfire(ch,sl,my){
       rows.sort(function(a,b){ return nearby?((a.dist!=null?a.dist:9e9)-(b.dist!=null?b.dist:9e9)):((b.ac||0)-(a.ac||0)); });
       nlog("wildfire",true,rows.length+" incidents ("+(nearby?"regional":"national fallback")+")");
       var t=$("wfTitle"); if(t)t.textContent=nearby?("FIRE ACTIVITY NEAR "+((li&&li.city)?li.city.toUpperCase():"YOU")):"NO FIRES NEAR YOU / LARGEST NATIONWIDE";
+      /* guide status: nearby count and the closest / largest headline */
+      if(rows.length){
+        var r0=rows[0], acres=r0.ac!=null?Math.round(r0.ac).toLocaleString()+"ac":"";
+        setChanStatus(ch.num, (nearby?rows.length+" nearby \u00b7 ":"nat'l: ")+(r0.n||"unnamed")+(acres?(" \u00b7 "+acres):""));
+      } else setChanStatus(ch.num, "all quiet");
       buildMap(nearby?rows:[],loc,rangeMi);
       if(!rows.length){ listEl.innerHTML='<div class="pop-empty">No active wildland fire incidents reported anywhere. Remarkable.</div>'; return; }
       listEl.innerHTML=rows.slice(0,10).map(function(r){
@@ -5583,6 +5592,9 @@ async function tuneVolcano(ch,sl,my){
       var vols=Array.isArray(d)?d:((d&&d.result)||(d&&d.volcanoes)||[]);
       if(my!==token)return;
       nlog("volcano",true,vols.length+" elevated volcanoes");
+      /* guide status. Rotator alternates volcano/earthquake -- both write so a viewer sees a
+         live number regardless of which sub-view is currently airing. */
+      setChanStatus(ch.num, vols.length? (vols.length+" elevated volcano"+(vols.length===1?"":"es")) : "no elevated volcanoes");
       if(!vols.length){ listEl.innerHTML='<div class="pop-empty">No U.S. volcanoes currently elevated above NORMAL/GREEN.</div>'; return; }
       // ENRICHED: found an actual cached real response for this API family, confirming region and
       // noticeSynopsis are genuine fields — noticeSynopsis in particular is real descriptive text
@@ -5845,6 +5857,10 @@ async function tuneSpace(ch,sl,my){
       spaceData={kp:kpVal,windSpeed:windSpeed,iss:res[2]||null,sun:(res[3]&&res[3].results)||null,loc:loc};
       if(my!==token)return;
       nlog("space",true,"kp="+kpVal);
+      /* guide status: geomag conditions + solar wind */
+      var kpDesc=kpVal==null?"--":kpVal<3?"quiet":kpVal<5?"unsettled":kpVal<7?"minor storm":"major storm";
+      setChanStatus(ch.num, "Kp "+(kpVal==null?"--":kpVal.toFixed(1))+" \u00b7 "+kpDesc+
+        (windSpeed!=null?(" \u00b7 wind "+windSpeed+"km/s"):""));
       renderSpacePage();
     }catch(e){ nlog("space",false,(e&&e.message)||e); }
   };
@@ -7559,6 +7575,12 @@ async function tuneQuake(ch,sl,my){
       var d=await fetchJSON("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson");
       var feats=((d&&d.features)||[]).slice().sort(function(a,b){return b.properties.mag-a.properties.mag;}).slice(0,10);
       if(my!==token)return; nlog("quake",true,feats.length+" events");
+      /* guide status: largest quake in last 24hr */
+      var top=feats[0];
+      if(top && top.properties){
+        var pp=top.properties;
+        setChanStatus(ch.num, "M"+pp.mag.toFixed(1)+" \u00b7 "+String(pp.place||"unknown location").slice(0,30));
+      }
       eqFeats=feats; if(eqSel>=feats.length)eqSel=0;
       if(!feats.length){ listEl.innerHTML='<div class="pop-empty">No M2.5+ earthquakes in the last 24 hours worldwide.</div>'; return; }
       listEl.innerHTML=feats.map(function(f,i){ var pp=f.properties; var cls=pp.mag>=6?"dc-sev-high":pp.mag>=4.5?"dc-sev-mid":"dc-sev-low";

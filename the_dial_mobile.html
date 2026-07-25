@@ -965,7 +965,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.105";
+window.__ATV_BUILD="1.7.7-mobile.106";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -999,7 +999,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.105</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.106</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -4505,123 +4505,223 @@ function ensureThree(){ if(window.THREE)return Promise.resolve(window.THREE); if
   return window.__threeP;
 }
 function ensureRadioCSS(){ if($("radioCSS"))return; var st=document.createElement("style"); st.id="radioCSS";
+  /* Vintage AM/FM radio cabinet. All CSS/SVG -- no external assets, keeps single-file. Modeled
+     on a real 60s-70s wooden tabletop set: cabinet frame, mesh grille, horizontal dial with
+     FM/AM scales, two knobs (volume + tuning), band buttons across the middle. */
   st.textContent=
-    "#radioPane{position:relative;overflow:hidden;background:radial-gradient(120% 100% at 50% 10%,#0a1830,#02060e)}"+
-    "#radioGlobe{position:absolute;inset:0;touch-action:none}#radioGlobe canvas{display:block}"+
-    "#rgHint{position:absolute;top:8px;left:10px;z-index:2;font:600 9px/1.3 monospace;letter-spacing:1px;color:#6f9fd0;opacity:.8;pointer-events:none}"+
-    "#rgNow{position:absolute;left:0;right:0;bottom:0;padding:9px 13px;background:linear-gradient(0deg,rgba(0,8,20,.94),rgba(0,8,20,0));color:#e6f2ff;z-index:3;pointer-events:none}"+
-    "#rgNow b{font:700 clamp(14px,2.7vmin,21px)/1.1 Georgia,'Times New Roman',serif}"+
-    "#rgNow small{display:block;margin-top:2px;font:600 10px/1.2 monospace;letter-spacing:.5px;color:#a2c8ea}"+
-    "#radioCats{display:flex;gap:5px;overflow-x:auto;flex:none;padding:2px 0 4px;scrollbar-width:none}#radioCats::-webkit-scrollbar{display:none}"+
-    "#radioCats .rcat{flex:none;cursor:pointer;font:700 9.5px/1 monospace;letter-spacing:1px;color:#9fc4ff;border:1px solid rgba(127,180,255,.35);border-radius:12px;padding:5px 9px;white-space:nowrap;background:rgba(20,40,70,.4)}"+
-    "#radioCats .rcat.sel{background:#7fb4ff;color:#07101e;border-color:#7fb4ff}"+
-    "#dcList .dc-row2.sel{background:rgba(127,180,255,.16)}";
+    "#radioPane{position:absolute;inset:0;overflow:hidden;background:#2a1608}"+
+    ".wr-cabinet{position:absolute;inset:0;padding:14px;box-sizing:border-box;"+
+      "background:"+
+        "repeating-linear-gradient(93deg,rgba(255,255,255,.02) 0 1px,transparent 1px 5px),"+
+        "repeating-linear-gradient(87deg,rgba(0,0,0,.15) 0 2px,transparent 2px 9px),"+
+        "linear-gradient(155deg,#8b5a2b 0%,#6a3f14 50%,#4a2810 100%);"+
+      "box-shadow:inset 0 0 0 3px #3a1e08,inset 0 0 0 4px #1a0a02,inset 0 2px 6px rgba(255,220,170,.15),inset 0 -3px 8px rgba(0,0,0,.55)}"+
+    ".wr-cabinet::before{content:'';position:absolute;left:14px;right:14px;top:14px;height:58%;border-radius:5px;"+
+      "background:"+
+        "repeating-linear-gradient(45deg,rgba(200,190,175,.55) 0 2px,rgba(50,40,30,.45) 2px 4px),"+
+        "repeating-linear-gradient(-45deg,rgba(210,200,180,.35) 0 2px,rgba(40,30,20,.4) 2px 4px),"+
+        "#3a2e24;"+
+      "box-shadow:inset 0 0 14px rgba(0,0,0,.75),inset 0 0 0 2px #1a0e05,inset 0 0 0 3px #6b4321;pointer-events:none}"+
+    /* now-playing over the grille */
+    ".wr-now{position:absolute;left:20px;right:20px;top:16%;height:36%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;z-index:3;pointer-events:none;padding:0 24px}"+
+    ".wr-now b{display:inline-block;font:700 clamp(15px,2.9vmin,25px)/1.15 Georgia,'Times New Roman',serif;"+
+      "color:#f4e6c8;background:rgba(0,0,0,.62);padding:4px 14px;border-radius:3px;text-shadow:0 2px 6px rgba(0,0,0,.85);max-width:95%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}"+
+    ".wr-now small{display:inline-block;margin-top:6px;font:600 10px/1.2 monospace;letter-spacing:1.5px;"+
+      "color:#f8d980;background:rgba(0,0,0,.62);padding:3px 10px;border-radius:2px;max-width:95%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}"+
+    /* dial panel */
+    ".wr-dial{position:absolute;left:20px;right:20px;top:60%;height:22%;border-radius:4px;"+
+      "background:#0a0400;box-shadow:inset 0 0 6px rgba(0,0,0,.9);padding:2px;box-sizing:border-box;overflow:hidden}"+
+    ".wr-dial-glass{position:absolute;inset:2px;border-radius:3px;overflow:hidden;"+
+      "background:linear-gradient(180deg,#2a1a08 0%,#c89a48 12%,#f4d276 42%,#f4d276 58%,#c89a48 88%,#2a1a08 100%)}"+
+    ".wr-dial-band{position:absolute;left:26px;right:8px;font:700 8.5px/1 monospace;letter-spacing:.3px;color:#3a1a08;pointer-events:none}"+
+    ".wr-dial-band.fm{top:5%}.wr-dial-band.am{bottom:5%}"+
+    ".wr-dial-band-lbl{position:absolute;left:-22px;font:900 10px/1 monospace;letter-spacing:1px;color:#7a1c04}"+
+    ".wr-dial-tick{position:absolute;top:0;width:1px;background:#3a1a08}"+
+    ".wr-dial-tick.major{width:2px;background:#2a0c02;height:6px}"+
+    ".wr-dial-tick.minor{height:3px;opacity:.55}"+
+    ".wr-dial-tickN{position:absolute;top:7px;transform:translateX(-50%);font:700 8.5px/1 monospace;color:#2a0c02}"+
+    /* station strip -- horizontal ribbon of station labels that scrolls under a fixed needle */
+    ".wr-strip-wrap{position:absolute;left:0;right:0;top:36%;height:28%;overflow:hidden;pointer-events:none}"+
+    ".wr-strip{position:absolute;top:0;bottom:0;left:0;white-space:nowrap;transition:transform .22s ease-out;pointer-events:auto}"+
+    ".wr-st-name{position:absolute;top:50%;transform:translate(-50%,-50%);font:700 10px/1 monospace;letter-spacing:.3px;color:#2a0f00;"+
+      "background:rgba(255,220,150,.7);padding:1px 5px;border-radius:2px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"+
+      "opacity:.55;cursor:pointer;transition:opacity .18s,transform .18s,background .18s}"+
+    ".wr-st-name:hover{opacity:.85}"+
+    ".wr-st-name.close{opacity:1;font-weight:900;color:#5a1004;background:rgba(255,200,80,.95);box-shadow:0 1px 3px rgba(0,0,0,.4);transform:translate(-50%,-50%) scale(1.08)}"+
+    /* needle -- fixed at horizontal center, strip scrolls under it */
+    ".wr-needle{position:absolute;top:0;bottom:0;left:50%;width:2px;background:#c31a0f;box-shadow:0 0 6px #ff3020,0 0 12px rgba(255,48,32,.55);z-index:4;pointer-events:none;transform:translateX(-50%)}"+
+    ".wr-needle::before{content:'';position:absolute;top:0;left:-4px;width:10px;height:8px;background:#c31a0f;border-radius:0 0 5px 5px;box-shadow:0 2px 4px rgba(0,0,0,.6)}"+
+    /* knobs */
+    ".wr-knob{position:absolute;bottom:16px;width:54px;height:54px;border-radius:50%;cursor:grab;touch-action:none;user-select:none;"+
+      "background:radial-gradient(circle at 32% 26%,#f6dea0 0%,#c89a48 40%,#8b5a2b 75%,#4a2810 100%);"+
+      "box-shadow:0 3px 6px rgba(0,0,0,.65),inset 0 2px 3px rgba(255,240,200,.45),inset 0 -2px 3px rgba(0,0,0,.45),inset 0 0 0 2px #3a1e08}"+
+    ".wr-knob:active{cursor:grabbing}"+
+    ".wr-knob-tick{position:absolute;top:5px;left:50%;transform:translateX(-50%);width:3px;height:15px;background:#2a0c02;border-radius:2px}"+
+    ".wr-knob.left{left:20px}.wr-knob.right{right:20px}"+
+    ".wr-knob-lbl{position:absolute;bottom:2px;font:700 8px/1 monospace;letter-spacing:1.5px;color:#f4e6c8;text-align:center;width:70px;text-shadow:0 1px 2px rgba(0,0,0,.7)}"+
+    ".wr-knob-lbl.left{left:12px}.wr-knob-lbl.right{right:12px}"+
+    /* band buttons */
+    ".wr-bands{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);display:flex;flex-wrap:wrap;gap:3px;max-width:calc(100% - 180px);justify-content:center;padding:3px;background:#2a1408;border-radius:4px;box-shadow:inset 0 1px 3px rgba(0,0,0,.7)}"+
+    ".wr-band{cursor:pointer;padding:5px 9px;background:linear-gradient(180deg,#e8d4a8,#b8905c);border:1px solid #4a2810;border-radius:2px;font:900 9px/1 monospace;letter-spacing:1.2px;color:#3a1e08;box-shadow:0 1px 2px rgba(0,0,0,.4)}"+
+    ".wr-band:hover{background:linear-gradient(180deg,#f4dfac,#c89a5c)}"+
+    ".wr-band.sel{background:linear-gradient(180deg,#c8981a,#6a4a10);color:#f8e0a0;box-shadow:inset 0 2px 3px rgba(0,0,0,.55)}"+
+    ".wr-hint{position:absolute;left:20px;bottom:3px;font:700 8px/1 monospace;letter-spacing:1px;color:rgba(244,230,200,.55)}"+
+    /* narrow-screen adjustments so the whole cabinet still fits without the knobs eating the band row */
+    "@media (max-width:520px){.wr-bands{max-width:calc(100% - 150px);gap:2px}.wr-band{padding:4px 6px;font-size:8px;letter-spacing:.8px}.wr-knob{width:44px;height:44px}}";
   document.head.appendChild(st);
 }
 async function tuneLiveRadio(ch,sl,my){
   if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Live Radio","");
   ensureRadioCSS();
-  if(screenArea) screenArea.innerHTML='<div class="dc-screen" id="dcScreen">'+
-    '<div class="dc-media show" id="radioPane" style="flex:1 1 60%;height:auto;min-height:0">'+
-      '<div id="radioGlobe"></div><div id="rgHint">drag to spin · scroll to zoom · click a dot</div>'+
-      '<div id="rgNow">Spinning up the globe…</div><audio id="raEl"></audio></div>'+
-    '<div class="dc-body" id="dcBody" style="flex:0 1 40%;justify-content:flex-start;gap:4px;overflow:hidden">'+
-    '<div class="dc-top"><span id="radioTitle">LIVE RADIO</span></div>'+
-    '<div id="radioCats"></div>'+
-    '<div class="dc-list" id="dcList" style="flex:1 1 auto;overflow-y:auto"></div>'+
-    '<div class="dc-ticker" style="margin-top:auto">Real stations via radio-browser · spin the earth to explore</div></div></div>';
-  var rbCurrent=[], globe=null;
+  /* build the dial band scale (decorative -- these are FM/AM MHz/kHz markings that look real
+     but don't correspond to any actual station frequency; internet radio has no true frequency). */
+  var fmMarks=[88,92,96,100,104,108], amMarks=[530,700,1000,1400,1700];
+  function scaleHTML(marks,cls,lbl){
+    var out='<span class="wr-dial-band-lbl">'+lbl+'</span>';
+    var span=marks[marks.length-1]-marks[0];
+    marks.forEach(function(m,i){
+      var pct=((m-marks[0])/span)*100;
+      out+='<span class="wr-dial-tickN" style="left:'+pct+'%">'+m+'</span>';
+    });
+    /* minor ticks between */
+    for(var i=0;i<40;i++){
+      var pct2=(i/40)*100;
+      out+='<span class="wr-dial-tick '+(i%4===0?'major':'minor')+'" style="left:'+pct2+'%"></span>';
+    }
+    return out;
+  }
+  if(screenArea) screenArea.innerHTML='<div id="radioPane">'+
+    '<div class="wr-cabinet">'+
+      '<div class="wr-now" id="wrNow"><b>Live Radio</b><small>pick a band \u00b7 drag TUNING to scan</small></div>'+
+      '<div class="wr-dial"><div class="wr-dial-glass">'+
+        '<div class="wr-dial-band fm">'+scaleHTML(fmMarks,'fm','FM')+'</div>'+
+        '<div class="wr-strip-wrap"><div class="wr-strip" id="wrStrip"></div></div>'+
+        '<div class="wr-needle"></div>'+
+        '<div class="wr-dial-band am">'+scaleHTML(amMarks,'am','AM')+'</div>'+
+      '</div></div>'+
+      '<div class="wr-knob left" id="wrVol"><span class="wr-knob-tick"></span></div>'+
+      '<span class="wr-knob-lbl left">VOLUME</span>'+
+      '<div class="wr-bands" id="wrBands"></div>'+
+      '<div class="wr-knob right" id="wrTune"><span class="wr-knob-tick"></span></div>'+
+      '<span class="wr-knob-lbl right">TUNING</span>'+
+      '<span class="wr-hint">drag TUNING to scan \u00b7 click a name to lock \u00b7 pick a band</span>'+
+      '<audio id="raEl"></audio>'+
+    '</div></div>';
+
+  var rbCurrent=[], curIdx=0, settleT=null, stationGap=110;
   var stateName=""; try{ var loc=await getWxLocation(); var li=await resolveLocale(loc); if(my!==token)return;
     var ab=(homeLoc&&homeLoc.state)||(li&&li.state)||""; stateName=STATE_NAMES[ab]||""; }catch(e){}
 
   function play(i){ var s=rbCurrent[i]; if(!s)return;
     var au=$("raEl"); if(au){ au.src=s.url_resolved||s.url; au.volume=Math.min(1,vol); au.muted=muted;
-      au.onerror=function(){ var n=$("rgNow"); if(n&&my===token)n.innerHTML='<b>'+esch(s.name||"")+'</b><small>stream offline — pick another</small>'; };
+      au.onerror=function(){ var n=$("wrNow"); if(n&&my===token)n.innerHTML='<b>'+esch(s.name||"")+'</b><small>stream offline \u2014 tune another</small>'; };
       try{ var pRa=au.play(); if(pRa&&pRa.catch)pRa.catch(function(){}); }catch(e){} }
-    var now=$("rgNow"); if(now)now.innerHTML='<b>'+esch((s.name||"Unknown").replace(/\s+/g," ").trim())+'</b>'+
-      '<small>'+esch([s.state,s.country,String(s.codec||"")+((s.bitrate)?(" "+s.bitrate+"k"):"")].filter(Boolean).join(" · ").slice(0,70))+'</small>';
+    var now=$("wrNow"); if(now)now.innerHTML='<b>'+esch((s.name||"Unknown").replace(/\s+/g," ").trim())+'</b>'+
+      '<small>'+esch([s.state,s.country,String(s.codec||"").toUpperCase()+(s.bitrate?(" "+s.bitrate+"k"):"")].filter(Boolean).join(" \u00b7 ").slice(0,80))+'</small>';
     nlog("radio",true,(s.name||"?").slice(0,40));
   }
-  function highlightRow(i){ var l=$("dcList"); if(!l)return; l.querySelectorAll("[data-si]").forEach(function(x){x.classList.remove("sel");});
-    var r=l.querySelector('[data-si="'+i+'"]'); if(r){ r.classList.add("sel"); try{r.scrollIntoView({block:"nearest"});}catch(e){} } }
-  function select(i){ highlightRow(i); if(globe&&globe.mark)globe.mark(i); if(globe&&globe.focusStation){var s=rbCurrent[i]; var p=rbLatLon(s); if(p)globe.focusStation(p.lat,p.lon);} play(i); }
 
-  async function initGlobe(){
-    var THREE; try{ THREE=await ensureThree(); }catch(e){ var n=$("rgNow"); if(n)n.textContent="3D globe unavailable — use the station list."; return null; }
-    if(my!==token)return null; var host=$("radioGlobe"); if(!host)return null;
-    var W=host.clientWidth||600, H=host.clientHeight||340;
-    var renderer; try{ renderer=new THREE.WebGLRenderer({antialias:true,alpha:true}); }catch(e){ var n2=$("rgNow"); if(n2)n2.textContent="WebGL unavailable — use the station list."; return null; }
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2)); renderer.setSize(W,H); host.appendChild(renderer.domElement);
-    var scene=new THREE.Scene();
-    var camera=new THREE.PerspectiveCamera(45,W/H,0.1,100); camera.position.z=3.1;
-    scene.add(new THREE.AmbientLight(0xffffff,1.0)); var dl=new THREE.DirectionalLight(0xffffff,0.5); dl.position.set(5,3,5); scene.add(dl);
-    var g=new THREE.Group(); scene.add(g);
-    try{ (function(){ var N=1300,pos=new Float32Array(N*3); for(var i=0;i<N;i++){ var r=16+Math.random()*24,th=Math.random()*Math.PI*2,ph=Math.acos(2*Math.random()-1); pos[i*3]=r*Math.sin(ph)*Math.cos(th); pos[i*3+1]=r*Math.cos(ph); pos[i*3+2]=r*Math.sin(ph)*Math.sin(th); } var sg=new THREE.BufferGeometry(); sg.setAttribute("position",new THREE.BufferAttribute(pos,3)); scene.add(new THREE.Points(sg,new THREE.PointsMaterial({color:0x9fc4ff,size:0.07,sizeAttenuation:true,transparent:true,opacity:0.85}))); })(); }catch(e){}
-    var baseTex=null; try{ baseTex=(function(){ var c=document.createElement("canvas"); c.width=1024; c.height=512; var x=c.getContext("2d"); var gr=x.createLinearGradient(0,0,0,512); gr.addColorStop(0,"#0c3358"); gr.addColorStop(.5,"#0f4269"); gr.addColorStop(1,"#0a2a46"); x.fillStyle=gr; x.fillRect(0,0,1024,512); x.strokeStyle="rgba(130,190,250,.30)"; x.lineWidth=1.3; for(var la=0;la<=512;la+=512/12){ x.beginPath(); x.moveTo(0,la); x.lineTo(1024,la); x.stroke(); } for(var lo=0;lo<=1024;lo+=1024/24){ x.beginPath(); x.moveTo(lo,0); x.lineTo(lo,512); x.stroke(); } var t=new THREE.CanvasTexture(c); return t; })(); }catch(e){}
-    var mat=new THREE.MeshPhongMaterial({map:baseTex,color:0xdfe8f2,emissive:0x0a2542,emissiveIntensity:0.55,shininess:16});
-    g.add(new THREE.Mesh(new THREE.SphereGeometry(1,64,64),mat));
-    (function(){ var urls=[RG_TEX].concat(RG_TEX_ALT||[]),i=0; function nxt(){ if(i>=urls.length)return; var u=urls[i++]; try{ var tl=new THREE.TextureLoader(); tl.setCrossOrigin("anonymous"); tl.load(u,function(tex){ mat.map=tex; mat.emissiveIntensity=0.16; mat.needsUpdate=true; },undefined,nxt); }catch(e){ nxt(); } } nxt(); })();
-    scene.add(new THREE.Mesh(new THREE.SphereGeometry(1.15,48,48),new THREE.MeshBasicMaterial({color:0x3a86ff,transparent:true,opacity:0.12,side:THREE.BackSide})));
-    g.add(new THREE.Mesh(new THREE.SphereGeometry(1.004,24,18),new THREE.MeshBasicMaterial({color:0x6fb6ff,wireframe:true,transparent:true,opacity:0.10})));
-    var dots=new THREE.Group(); g.add(dots);
-    var dotGeo=new THREE.SphereGeometry(0.017,10,10);
-    function ll2v(lat,lon,rad){ var phi=(90-lat)*Math.PI/180, th=(lon+180)*Math.PI/180; return new THREE.Vector3(-(rad*Math.sin(phi)*Math.cos(th)), rad*Math.cos(phi), rad*Math.sin(phi)*Math.sin(th)); }
-    var el=renderer.domElement; el.style.cursor="grab";
-    var drag=false,px=0,py=0,spin=0.0012;
-    el.addEventListener("pointerdown",function(e){ drag=true; px=e.clientX; py=e.clientY; el.style.cursor="grabbing"; try{el.setPointerCapture(e.pointerId);}catch(_){} });
-    el.addEventListener("pointermove",function(e){ if(!drag)return; var dx=e.clientX-px,dy=e.clientY-py; px=e.clientX; py=e.clientY; g.rotation.y+=dx*0.005; g.rotation.x=Math.max(-1.3,Math.min(1.3,g.rotation.x+dy*0.005)); });
-    window.addEventListener("pointerup",function(){ drag=false; try{el.style.cursor="grab";}catch(_){}});
-    el.addEventListener("wheel",function(e){ e.preventDefault(); camera.position.z=Math.max(1.4,Math.min(6,camera.position.z+e.deltaY*0.0022)); },{passive:false});
-    var ray=new THREE.Raycaster(), mouse=new THREE.Vector2(), downX=0,downY=0;
-    el.addEventListener("pointerdown",function(e){downX=e.clientX;downY=e.clientY;});
-    el.addEventListener("click",function(e){ if(Math.abs(e.clientX-downX)>4||Math.abs(e.clientY-downY)>4)return; var r=el.getBoundingClientRect();
-      mouse.x=((e.clientX-r.left)/r.width)*2-1; mouse.y=-((e.clientY-r.top)/r.height)*2+1; ray.setFromCamera(mouse,camera);
-      var hits=ray.intersectObjects(dots.children,false); if(hits.length){ var idx=hits[0].object.userData.i; if(idx!=null)select(idx); } });
-    var running=true, tc0=Date.now();
-    function animate(){ if(!running||my!==token||!$("radioGlobe")){ running=false; try{renderer.dispose();}catch(e){} return; }
-      if(!drag) g.rotation.y+=spin; var tt=(Date.now()-tc0)/1000, kids=dots.children;
-      for(var di=0;di<kids.length;di++){ var m=kids[di],b=m.userData.sel?2.1:1; m.scale.setScalar(b*(1+0.33*Math.abs(Math.sin(tt*2.2+di*0.55)))); }
-      renderer.render(scene,camera); requestAnimationFrame(animate); }
-    animate();
-    return {
-      setDots:function(list){ while(dots.children.length)dots.remove(dots.children[0]);
-        list.forEach(function(s,i){ var p=rbLatLon(s); if(!p)return;
-          var m=new THREE.Mesh(dotGeo,new THREE.MeshBasicMaterial({color:0x7fd4ff,transparent:true,opacity:0.95,blending:THREE.AdditiveBlending})); m.position.copy(ll2v(p.lat,p.lon,1.02)); m.userData.i=i; dots.add(m); }); },
-      mark:function(i){ dots.children.forEach(function(m){ var on=m.userData.i===i; m.userData.sel=on; m.material.color.set(on?0xffcf5a:0x7fd4ff); }); },
-      focusStation:function(lat,lon){ g.rotation.y=-((lon+180)*Math.PI/180)+Math.PI/2; g.rotation.x=Math.max(-1.3,Math.min(1.3,lat*Math.PI/180)); }
-    };
+  function renderStrip(){
+    var strip=$("wrStrip"); if(!strip)return;
+    if(!rbCurrent.length){ strip.innerHTML=''; return; }
+    strip.innerHTML=rbCurrent.map(function(s,i){
+      var name=(s.name||"?").replace(/\s+/g," ").trim().slice(0,26);
+      return '<span class="wr-st-name" data-si="'+i+'" style="left:'+(i*stationGap+stationGap/2)+'px">'+esch(name)+'</span>';
+    }).join("");
+    strip.querySelectorAll("[data-si]").forEach(function(el){
+      el.addEventListener("click", function(e){ e.stopPropagation(); tuneTo(+el.dataset.si,false); });
+    });
+    tuneTo(0,true);
+  }
+
+  function tuneTo(idx, instant){
+    curIdx=Math.max(0,Math.min(rbCurrent.length-1,idx));
+    var strip=$("wrStrip"), wrap=strip&&strip.parentElement; if(!strip||!wrap)return;
+    var needleX = wrap.clientWidth/2;
+    var targetX = curIdx*stationGap + stationGap/2;
+    var offset = needleX - targetX;
+    strip.style.transition = instant?"none":"transform .22s ease-out";
+    strip.style.transform = "translateX("+offset+"px)";
+    strip.querySelectorAll(".wr-st-name").forEach(function(el,i){ el.classList.toggle("close", i===curIdx); });
+    /* rotate the tuning knob visually -- 15 degrees per station step, looks alive */
+    var tk=$("wrTune"); if(tk) tk.style.transform="rotate("+((curIdx%24)*15)+"deg)";
+    clearTimeout(settleT);
+    settleT = setTimeout(function(){ play(curIdx); }, instant?0:600);
+  }
+
+  /* TUNING knob: horizontal drag = scan stations. Every ~10px of drag = 1 station step. */
+  function attachTuning(){
+    var tk=$("wrTune"), strip=$("wrStrip"); if(!tk||!strip)return;
+    var down=false, sx=0, si=0;
+    function grab(e){ down=true; sx=e.clientX||(e.touches&&e.touches[0].clientX)||0; si=curIdx;
+      try{tk.setPointerCapture&&tk.setPointerCapture(e.pointerId);}catch(_){} }
+    function move(e){ if(!down)return;
+      var x=e.clientX||(e.touches&&e.touches[0].clientX)||0;
+      var dx=x-sx, step=-Math.round(dx/10);
+      tuneTo(si+step,false); }
+    function up(){ down=false; }
+    tk.addEventListener("pointerdown",grab);
+    window.addEventListener("pointermove",move);
+    window.addEventListener("pointerup",up);
+    /* also allow horizontal drag on the strip itself for a more analog feel */
+    var wrap=strip.parentElement;
+    var wdown=false,wsx=0,wsi=0;
+    wrap.style.pointerEvents="auto"; wrap.style.cursor="ew-resize";
+    wrap.addEventListener("pointerdown",function(e){ if(e.target.dataset&&e.target.dataset.si!=null)return; /* clicks handled per-station */
+      wdown=true; wsx=e.clientX; wsi=curIdx; });
+    window.addEventListener("pointermove",function(e){ if(!wdown)return;
+      var dx=e.clientX-wsx; tuneTo(wsi - Math.round(dx/stationGap),false); });
+    window.addEventListener("pointerup",function(){ wdown=false; });
+    /* keyboard: left/right arrow to step */
+    document.addEventListener("keydown", function ev(e){
+      if(my!==token){ document.removeEventListener("keydown",ev); return; }
+      if(e.key==="ArrowLeft"){ tuneTo(curIdx-1,false); }
+      else if(e.key==="ArrowRight"){ tuneTo(curIdx+1,false); }
+    });
+  }
+
+  /* VOLUME knob: vertical drag = adjust volume 0..1 */
+  function attachVolume(){
+    var vk=$("wrVol"); if(!vk)return;
+    var down=false, sy=0, sv=vol;
+    vk.addEventListener("pointerdown",function(e){ down=true; sy=e.clientY; sv=vol;
+      try{vk.setPointerCapture&&vk.setPointerCapture(e.pointerId);}catch(_){} });
+    window.addEventListener("pointermove",function(e){ if(!down)return;
+      var dy=sy-e.clientY, nv=Math.max(0,Math.min(1,sv + dy/120));
+      vol=nv; try{store.set("vol",vol);}catch(_){} var au=$("raEl"); if(au)au.volume=vol;
+      vk.style.transform="rotate("+((nv*270)-135)+"deg)"; });
+    window.addEventListener("pointerup",function(){ down=false; });
+    /* initial rotation to match current vol */
+    vk.style.transform="rotate("+((vol*270)-135)+"deg)";
   }
 
   async function loadCat(cat){
-    if(my!==token)return; var listEl=$("dcList"); if(!listEl)return;
-    listEl.innerHTML='<div class="pop-empty">Loading stations…</div>';
-    var t=$("radioTitle"); if(t)t.textContent="LIVE RADIO / "+cat.label;
-    var qs; if(cat.k==="local"&&stateName){ qs="countrycode=US&state="+encodeURIComponent(stateName)+"&order=clickcount&reverse=true&limit=100"; }
-    else if(cat.k==="top"){ qs="order=clickcount&reverse=true&limit=120"; }
-    else { qs="tag="+encodeURIComponent(cat.tag)+"&order=clickcount&reverse=true&limit=120"; }
+    if(my!==token)return;
+    var t=$("wrNow"); if(t)t.innerHTML='<b>Loading '+esch(cat.label.toLowerCase())+'\u2026</b><small>tuning receiver</small>';
+    /* QA: removed hard limit=100/120 caps. radio-browser's default is unbounded; we ceiling at
+       10000 as a DOM-render safety, well above any real category's station count while short of
+       their ~40k total (which would actually hang mobile devices). */
+    var qs;
+    if(cat.k==="local"&&stateName){ qs="countrycode=US&state="+encodeURIComponent(stateName)+"&order=clickcount&reverse=true&limit=10000"; }
+    else if(cat.k==="top"){ qs="order=clickcount&reverse=true&limit=10000"; }
+    else { qs="tag="+encodeURIComponent(cat.tag)+"&order=clickcount&reverse=true&limit=10000"; }
     var arr=await rbSearch(qs); if(my!==token)return;
-    /* same truncation issue as Live TV: capping here cut the station list off alphabetically */
     var seen={}; rbCurrent=arr.filter(rbPlayable).filter(function(s){ var k=(s.name||"")+(s.url_resolved||s.url); if(seen[k])return false; seen[k]=1; return true; });
-    rbCurrent.sort(function(a,b){ return String(a.name||"").toLowerCase().localeCompare(String(b.name||"").toLowerCase()); });
-    if(!rbCurrent.length){ listEl.innerHTML='<div class="pop-empty">No playable stations here — try another genre.</div>'; if(globe&&globe.setDots)globe.setDots([]); return; }
-    listEl.innerHTML=rbCurrent.map(function(s,i){ var sub=[s.state,s.country].filter(Boolean).join(", ");
-      return '<div class="dc-row2" data-si="'+i+'" style="cursor:pointer"><div class="dc-row2-main"><span class="dc-mag dc-sev-low">'+esch(String(s.codec||"FM").slice(0,4).toUpperCase())+'</span><span class="dc-place">'+esch((s.name||"?").replace(/\s+/g," ").trim().slice(0,42))+'</span><span class="dc-when">'+esch(sub.slice(0,20))+'</span></div></div>';
-    }).join("");
-    listEl.querySelectorAll("[data-si]").forEach(function(el){ el.addEventListener("click",function(){ select(+el.dataset.si); }); });
-    if(globe&&globe.setDots)globe.setDots(rbCurrent);
-    select(0);
+    rbCurrent.sort(function(a,b){ return (b.clickcount||0)-(a.clickcount||0); });
+    if(!rbCurrent.length){ var t2=$("wrNow"); if(t2)t2.innerHTML='<b>No stations on this band</b><small>try another band</small>'; return; }
+    renderStrip();
+    setChanStatus(ch.num, rbCurrent.length+" stations \u00b7 "+cat.label.toLowerCase());
   }
 
-  globe=await initGlobe(); if(my!==token)return;
-  var catsEl=$("radioCats");
-  if(catsEl){ catsEl.innerHTML=RB_CATS.map(function(c,i){return '<span class="rcat" data-c="'+i+'">'+esch(c.label)+'</span>';}).join("");
-    catsEl.querySelectorAll("[data-c]").forEach(function(el){ el.addEventListener("click",function(){
-      catsEl.querySelectorAll("[data-c]").forEach(function(x){x.classList.remove("sel");}); el.classList.add("sel"); loadCat(RB_CATS[+el.dataset.c]); }); });
+  attachTuning(); attachVolume();
+  var bandsEl=$("wrBands");
+  if(bandsEl){ bandsEl.innerHTML=RB_CATS.map(function(c,i){return '<span class="wr-band" data-c="'+i+'">'+esch(c.label)+'</span>';}).join("");
+    bandsEl.querySelectorAll("[data-c]").forEach(function(el){ el.addEventListener("click",function(){
+      bandsEl.querySelectorAll("[data-c]").forEach(function(x){x.classList.remove("sel");}); el.classList.add("sel"); loadCat(RB_CATS[+el.dataset.c]); }); });
   }
-  var startIdx=stateName?0:1; var se=catsEl&&catsEl.querySelector('[data-c="'+startIdx+'"]'); if(se)se.classList.add("sel");
+  var startIdx=stateName?0:1; var se=bandsEl&&bandsEl.querySelector('[data-c="'+startIdx+'"]'); if(se)se.classList.add("sel");
   loadCat(RB_CATS[startIdx]);
 }
-
 /* ---------- NASA imagery gallery (NASA Image Library, keyless + CORS-open) — a Space sub-view ---------- */
 var NASA_THEMES=["nebula","galaxy","apollo 11","mars surface","earth from space","saturn","jupiter","hubble deep field","astronaut spacewalk","aurora from space","the sun","milky way","supernova","international space station","moon landing","pillars of creation"];
 var nasaTimer=null;

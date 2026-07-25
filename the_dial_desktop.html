@@ -819,7 +819,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.73";
+window.__ATV_BUILD="1.7.7-desktop.74";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -853,7 +853,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.73</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.74</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">THE DIAL · THE SET</div>
@@ -1122,7 +1122,7 @@ const G={
  radiocom:   {mt:"audio", col:["oldtimeradio"],         fcol:[],               subj:["comedy"],                   era:[1935,1962], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
  radiofallout:{mt:"audio", col:["oldtimeradio"],        fcol:[],               subj:["mystery","detective","comedy","science fiction","suspense","war","thriller","horror"],era:[1935,1965], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
  publicaccess:{mt:"movies",col:["community_media"],     fcol:[],               subj:["public access television","community television","local cable access"],era:[1975,2005]},
- faith:      {mt:"movies",col:["spiritualityandreligion"],fcol:[],             subj:["christianity","sermon","gospel","catholic","judaism","jewish","islam","muslim","buddhism","buddhist","hinduism","hindu","sikh","meditation","spirituality","worship","religion","religious film"],subjRotate:true,era:[1930,2000]}, /* 1.1: interfaith — one tradition per tune-in, all rotate through */
+ faith:      {mt:"movies",col:["spiritualityandreligion"],fcol:["feature_films","prelinger","classic_tv"], subj:["christianity","sermon","gospel","catholic","judaism","jewish","islam","muslim","buddhism","buddhist","hinduism","hindu","sikh","meditation","spirituality","worship","religion","religious film"],subjRotate:true,subjRequired:true,noBlindFallback:true,era:[1930,2000]}, /* QA FIX: Sunday Service was returning NO SIGNAL because spiritualityandreligion is text-dominant, mediatype:movies filtered it near-empty, subjRotate narrowed each query further, and fcol was empty -- no fallback. Added real fallback pools (all have religious video content in practice), plus subjRequired to guarantee the fallback is still subject-locked so nothing off-theme can leak. */
  sportsvault:{mt:"movies",col:["sports"],               fcol:[],               subj:["baseball","football","basketball","hockey","boxing","olympics","golf","tennis","soccer","auto racing","horse racing","track and field","swimming","bowling","skiing","sports newsreel"],subjRotate:true,not:["wrestling","wwe","wwf","ufc","mma"],era:[1930,1985]},
  vhsvault:   {mt:"movies",col:[],                       fcol:[],               subj:["vhs","vhs rip","off-air recording","home video recording"],era:[1980,1999]},
  worldcinema:{mt:"movies",col:[],                       fcol:["feature_films"],subj:["foreign film","world cinema","international film"],not:FNOT,era:[1930,1970]},
@@ -2501,7 +2501,13 @@ function setCurItem(it,ch,sl){
   if(!it.isAd){
     const nt=normTitle(curItem.title); if(nt){ recentTitles.unshift(nt); if(recentTitles.length>12)recentTitles.length=12; }
     chStats[ch.num]=(chStats[ch.num]||0)+1; store.set("chStats",chStats);
-    lastMeta={creator:(it.meta&&it.meta.creator)||"",collection:(it.meta&&it.meta.collection)||"",chNum:ch.num}; /* 1.3: fuel for programming flow */
+    lastMeta={creator:(it.meta&&it.meta.creator)||"",collection:(it.meta&&it.meta.collection)||"",chNum:ch.num,
+      /* enriched for soak-harness bleed audit -- programming flow only reads creator/collection so
+         these extras are additive, no behavior change. */
+      identifier:(it.meta&&(it.meta.identifier||it.meta.id))||"",
+      title:(it.meta&&it.meta.title)||"",
+      subject:(it.meta&&(it.meta.subject||it.meta.subjects))||"",
+      date:(it.meta&&(it.meta.date||it.meta.year))||""}; /* 1.3: fuel for programming flow */
   }
   ccOn=false; updateCCBtn();
 }
@@ -8106,7 +8112,14 @@ function startSoak(){
       clearInterval(soakPoll);
       var mem=(window.performance&&performance.memory)?Math.round(performance.memory.usedJSHeapSize/1048576):null;
       var sample={t:Date.now(),ch:ch?ch.num:0,nm:ch?ch.nm:"?",sig:sig,ms:Date.now()-t0,
-        title:String((curItem&&curItem.title)||"").slice(0,50),aud:"pending",mem:mem};
+        title:String((curItem&&curItem.title)||"").slice(0,50),aud:"pending",mem:mem,
+        /* bleed-audit enrichment: title alone can't distinguish on-theme from off-theme (a
+           "Home movie: farm" title on the Railroad channel needs its subject/collection to
+           confirm the bleed). Every field optional, empty for data channels. */
+        col:String((lastMeta&&lastMeta.collection)||"").slice(0,32),
+        subj:String((lastMeta&&lastMeta.subject)||"").slice(0,60),
+        cre:String((lastMeta&&lastMeta.creator)||"").slice(0,32),
+        id:String((lastMeta&&lastMeta.identifier)||"").slice(0,40)};
       soakLog.samples.push(sample); soakSave();
       setTimeout(function(){ /* 1.2.4: judge audio AFTER the heal window, not during it */
         var v=curVideo;

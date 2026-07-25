@@ -103,7 +103,10 @@ body{
 .bars .row3{flex:2;background:#0a0a0a;display:flex;align-items:center;justify-content:center;color:#888;letter-spacing:4px;font-size:12px}
 
 /* station bug + channel entry */
-.bug{position:absolute;top:9px;right:11px;z-index:25;font-size:11px;font-weight:bold;letter-spacing:1px;
+.bug{position:absolute;top:9px;right:90px;z-index:25;font-size:11px;font-weight:bold;letter-spacing:1px;
+  /* QA FIX: was at right:11px, identical to .clock-bug, so the two overlapped character-on-character
+     ("9:02 PM" and "CH 02" stacked) -- visible in a real screenshot. Broadcast convention is
+     station ID + clock side-by-side, so shifted left of the clock. */
   color:var(--amber);text-shadow:0 0 8px rgba(255,180,58,.8);background:rgba(0,0,0,.35);padding:3px 7px;
   border-radius:4px;border:1px solid rgba(255,180,58,.4);pointer-events:none}
 .bug.hide{display:none}
@@ -962,7 +965,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.103";
+window.__ATV_BUILD="1.7.7-mobile.104";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -996,7 +999,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.103</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.104</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">

@@ -965,7 +965,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.109";
+window.__ATV_BUILD="1.7.7-mobile.110";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -999,7 +999,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.109</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.110</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -2117,6 +2117,9 @@ async function tuneNum(n){
   }
   else showOv("TUNING…","PLEASE STAND BY","“"+ch.nm+"” — "+sl.show);
   clearScreen();
+  /* QA FIX: data channels (source-based) never set lastMeta, so it retained whatever the last
+     content channel wrote — contaminating every subsequent soak sample with stale metadata. */
+  if(sl.source) lastMeta=null;
   if(sl.source==="weather"){ if(my!==token)return; return tuneWeather(ch,sl,my); }
   if(sl.source==="space"){ if(my!==token)return; return tuneSpaceHub(ch,sl,my); }
   if(sl.source==="river"){ if(my!==token)return; return tuneRiver(ch,sl,my); }
@@ -6008,6 +6011,7 @@ async function tuneSpace(ch,sl,my){
       ]);
       var kpRows=(res[0]||[]).slice(1); var lastKp=kpRows.length?kpRows[kpRows.length-1]:null;
       var kpVal=lastKp?parseFloat(lastKp[1]):null;
+      if(kpVal!=null && isNaN(kpVal)) kpVal=null; /* SWPC sometimes sends empty or non-numeric Kp values during data gaps */
       var windRows=(res[1]||[]).slice(1).filter(function(r){return r&&r[2]!=null&&r[2]!=="";});
       var lastWind=windRows.length?windRows[windRows.length-1]:null;
       var windSpeed=lastWind?Math.round(parseFloat(lastWind[2])):null;
@@ -6028,8 +6032,8 @@ function renderSpacePage(){
   var tabs=$("dcTabs"); var d=spaceData;
   if(tabs) tabs.innerHTML=[0,1,2].map(function(i){return '<span class="dc-tab'+(i===spacePage?' on':'')+'"></span>';}).join("");
   if(spacePage===0){
-    var kpTxt=d.kp!=null?d.kp.toFixed(2):"--";
-    var kpLevel=d.kp==null?"--":(d.kp>=7?"STORM":d.kp>=5?"ACTIVE":d.kp>=4?"UNSETTLED":"QUIET");
+    var kpTxt=(d.kp!=null&&!isNaN(d.kp))?d.kp.toFixed(2):"--";
+    var kpLevel=(d.kp==null||isNaN(d.kp))?"--":(d.kp>=7?"STORM":d.kp>=5?"ACTIVE":d.kp>=4?"UNSETTLED":"QUIET");
     renderDcBody({title:"SPACE WEATHER", hero:"Kp "+kpTxt, sub:kpLevel+(d.kp>=5?" \u00b7 aurora possible at high latitudes":""),
       stats:[["SOLAR WIND",(d.windSpeed!=null?d.windSpeed+" km/s":"--")],["GEOMAGNETIC",kpLevel]], ticker:"NOAA SWPC \u00b7 next: ISS Tracker"});
   } else if(spacePage===1){

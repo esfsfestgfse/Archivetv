@@ -1,0 +1,50 @@
+name: Archive TV CI
+on:
+  push:
+    paths:
+      - 'the_dial_mobile.html'
+      - 'the_dial_desktop.html'
+  workflow_dispatch:
+
+jobs:
+  test-mobile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Playwright
+        run: |
+          pip install playwright
+          playwright install chromium
+      - name: Serve app
+        run: |
+          python -m http.server 8799 &
+          sleep 2
+      - name: Run tune-all (94 channels, zero page errors)
+        run: python ci/test_tune_all.py http://localhost:8799/the_dial_mobile.html
+      - name: Run regression (8-point functional check)
+        run: python ci/test_regression.py http://localhost:8799/the_dial_mobile.html
+
+  test-desktop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Playwright
+        run: |
+          pip install playwright
+          playwright install chromium
+      - name: Serve app
+        run: |
+          python -m http.server 8800 &
+          sleep 2
+      - name: Run tune-all (94 channels, zero page errors)
+        run: python ci/test_tune_all.py http://localhost:8800/the_dial_desktop.html
+      - name: Run regression (8-point functional check)
+        run: python ci/test_regression.py http://localhost:8800/the_dial_desktop.html

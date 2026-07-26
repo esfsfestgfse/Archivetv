@@ -965,7 +965,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.107";
+window.__ATV_BUILD="1.7.7-mobile.108";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -999,7 +999,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.107</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.108</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -4511,9 +4511,11 @@ function ensureThree(){ if(window.THREE)return Promise.resolve(window.THREE); if
   return window.__threeP;
 }
 function ensureRadioCSS(){ if($("radioCSS"))return; var st=document.createElement("style"); st.id="radioCSS";
-  /* Vintage AM/FM radio cabinet. All CSS/SVG -- no external assets, keeps single-file. Modeled
-     on a real 60s-70s wooden tabletop set: cabinet frame, mesh grille, horizontal dial with
-     FM/AM scales, two knobs (volume + tuning), band buttons across the middle. */
+  /* Vintage AM/FM radio, v2. Reproportioned closer to the reference photo: grille 42% (was 58%),
+     wooden shelf between grille and dial, bigger cabinet-anchoring knobs, real amber-inset dial
+     with radial glow, full-height needle. Station strip uses a fixed 7-slot ring rather than a
+     translate transform, so labels can't overlap by construction: center station is prominent,
+     ±1 stations medium, ±2 stations smaller, ±3 smallest at the edges. */
   st.textContent=
     "#radioPane{position:absolute;inset:0;overflow:hidden;background:#2a1608}"+
     ".wr-cabinet{position:absolute;inset:0;padding:14px;box-sizing:border-box;"+
@@ -4522,99 +4524,148 @@ function ensureRadioCSS(){ if($("radioCSS"))return; var st=document.createElemen
         "repeating-linear-gradient(87deg,rgba(0,0,0,.15) 0 2px,transparent 2px 9px),"+
         "linear-gradient(155deg,#8b5a2b 0%,#6a3f14 50%,#4a2810 100%);"+
       "box-shadow:inset 0 0 0 3px #3a1e08,inset 0 0 0 4px #1a0a02,inset 0 2px 6px rgba(255,220,170,.15),inset 0 -3px 8px rgba(0,0,0,.55)}"+
-    ".wr-cabinet::before{content:'';position:absolute;left:14px;right:14px;top:14px;height:58%;border-radius:5px;"+
+    /* mesh grille -- 42% of cabinet (was 58%). Slight arch top by mask-image. */
+    ".wr-grille{position:absolute;left:18px;right:18px;top:16px;height:42%;border-radius:6px 6px 3px 3px;"+
       "background:"+
-        "repeating-linear-gradient(45deg,rgba(200,190,175,.55) 0 2px,rgba(50,40,30,.45) 2px 4px),"+
-        "repeating-linear-gradient(-45deg,rgba(210,200,180,.35) 0 2px,rgba(40,30,20,.4) 2px 4px),"+
-        "#3a2e24;"+
-      "box-shadow:inset 0 0 14px rgba(0,0,0,.75),inset 0 0 0 2px #1a0e05,inset 0 0 0 3px #6b4321;pointer-events:none}"+
+        "repeating-linear-gradient(45deg,rgba(210,195,175,.65) 0 2px,rgba(50,40,30,.5) 2px 4px),"+
+        "repeating-linear-gradient(-45deg,rgba(220,205,185,.4) 0 2px,rgba(40,30,20,.45) 2px 4px),"+
+        "#2e241c;"+
+      "box-shadow:inset 0 0 18px rgba(0,0,0,.85),inset 0 0 0 2px #1a0e05,inset 0 0 0 3px #7a4f28,0 3px 5px rgba(0,0,0,.4)}"+
+    /* wooden shelf between grille and dial -- the reference photo shows a distinct horizontal band here */
+    ".wr-shelf{position:absolute;left:18px;right:18px;top:calc(42% + 20px);height:14px;border-radius:2px;"+
+      "background:linear-gradient(180deg,#8b5a2b 0%,#5a3818 60%,#3a1e08 100%);"+
+      "box-shadow:0 2px 3px rgba(0,0,0,.5),inset 0 1px 1px rgba(255,220,170,.3),inset 0 -1px 1px rgba(0,0,0,.4)}"+
     /* now-playing over the grille */
-    ".wr-now{position:absolute;left:20px;right:20px;top:16%;height:36%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;z-index:3;pointer-events:none;padding:0 24px}"+
+    ".wr-now{position:absolute;left:24px;right:24px;top:8%;height:32%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;z-index:3;pointer-events:none;padding:0 24px}"+
     ".wr-now b{display:inline-block;font:700 clamp(15px,2.9vmin,25px)/1.15 Georgia,'Times New Roman',serif;"+
-      "color:#f4e6c8;background:rgba(0,0,0,.62);padding:4px 14px;border-radius:3px;text-shadow:0 2px 6px rgba(0,0,0,.85);max-width:95%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}"+
+      "color:#f4e6c8;background:rgba(0,0,0,.68);padding:5px 16px;border-radius:3px;text-shadow:0 2px 6px rgba(0,0,0,.85);max-width:96%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}"+
     ".wr-now small{display:inline-block;margin-top:6px;font:600 10px/1.2 monospace;letter-spacing:1.5px;"+
-      "color:#f8d980;background:rgba(0,0,0,.62);padding:3px 10px;border-radius:2px;max-width:95%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}"+
-    /* dial panel */
-    ".wr-dial{position:absolute;left:20px;right:20px;top:60%;height:22%;border-radius:4px;"+
-      "background:#0a0400;box-shadow:inset 0 0 6px rgba(0,0,0,.9);padding:2px;box-sizing:border-box;overflow:hidden}"+
-    ".wr-dial-glass{position:absolute;inset:2px;border-radius:3px;overflow:hidden;"+
-      "background:linear-gradient(180deg,#2a1a08 0%,#c89a48 12%,#f4d276 42%,#f4d276 58%,#c89a48 88%,#2a1a08 100%)}"+
-    ".wr-dial-band{position:absolute;left:26px;right:8px;font:700 8.5px/1 monospace;letter-spacing:.3px;color:#3a1a08;pointer-events:none}"+
-    ".wr-dial-band.fm{top:5%}.wr-dial-band.am{bottom:5%}"+
-    ".wr-dial-band-lbl{position:absolute;left:-22px;font:900 10px/1 monospace;letter-spacing:1px;color:#7a1c04}"+
+      "color:#f8d980;background:rgba(0,0,0,.68);padding:3px 11px;border-radius:2px;max-width:96%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}"+
+    /* dial panel -- amber inset with radial glow, positioned below the shelf */
+    ".wr-dial{position:absolute;left:18px;right:18px;top:calc(42% + 38px);height:20%;border-radius:3px;"+
+      "background:#0a0400;box-shadow:inset 0 0 8px rgba(0,0,0,.95),0 2px 4px rgba(0,0,0,.5);padding:3px;box-sizing:border-box;overflow:hidden}"+
+    ".wr-dial-glass{position:absolute;inset:3px;border-radius:2px;overflow:hidden;"+
+      "background:"+
+        "radial-gradient(ellipse at 50% 50%,rgba(255,240,180,.55) 0%,rgba(200,140,50,.35) 45%,rgba(80,40,10,.9) 100%),"+
+        "linear-gradient(180deg,#2a1a08 0%,#c89a48 12%,#f4d276 42%,#f4d276 58%,#c89a48 88%,#2a1a08 100%)}"+
+    /* dial band scales */
+    ".wr-dial-band{position:absolute;left:28px;right:12px;font:700 8.5px/1 monospace;letter-spacing:.3px;color:#3a1a08;pointer-events:none}"+
+    ".wr-dial-band.fm{top:4%}.wr-dial-band.am{bottom:4%}"+
+    ".wr-dial-band-lbl{position:absolute;left:-24px;font:900 10px/1 monospace;letter-spacing:1px;color:#7a1c04}"+
     ".wr-dial-tick{position:absolute;top:0;width:1px;background:#3a1a08}"+
     ".wr-dial-tick.major{width:2px;background:#2a0c02;height:6px}"+
     ".wr-dial-tick.minor{height:3px;opacity:.55}"+
     ".wr-dial-tickN{position:absolute;top:7px;transform:translateX(-50%);font:700 8.5px/1 monospace;color:#2a0c02}"+
-    /* station strip -- horizontal ribbon of station labels that scrolls under a fixed needle */
-    ".wr-strip-wrap{position:absolute;left:0;right:0;top:36%;height:28%;overflow:hidden;pointer-events:none}"+
-    ".wr-strip{position:absolute;top:0;bottom:0;left:0;white-space:nowrap;transition:transform .22s ease-out;pointer-events:auto}"+
-    ".wr-st-name{position:absolute;top:50%;transform:translate(-50%,-50%);font:700 10px/1 monospace;letter-spacing:.3px;color:#2a0f00;"+
-      "background:rgba(255,220,150,.7);padding:1px 5px;border-radius:2px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"+
-      "opacity:.55;cursor:pointer;transition:opacity .18s,transform .18s,background .18s}"+
-    ".wr-st-name:hover{opacity:.85}"+
-    ".wr-st-name.close{opacity:1;font-weight:900;color:#5a1004;background:rgba(255,200,80,.95);box-shadow:0 1px 3px rgba(0,0,0,.4);transform:translate(-50%,-50%) scale(1.08)}"+
-    /* needle -- fixed at horizontal center, strip scrolls under it */
-    ".wr-needle{position:absolute;top:0;bottom:0;left:50%;width:2px;background:#c31a0f;box-shadow:0 0 6px #ff3020,0 0 12px rgba(255,48,32,.55);z-index:4;pointer-events:none;transform:translateX(-50%)}"+
-    ".wr-needle::before{content:'';position:absolute;top:0;left:-4px;width:10px;height:8px;background:#c31a0f;border-radius:0 0 5px 5px;box-shadow:0 2px 4px rgba(0,0,0,.6)}"+
-    /* knobs */
-    ".wr-knob{position:absolute;bottom:16px;width:54px;height:54px;border-radius:50%;cursor:grab;touch-action:none;user-select:none;"+
+    /* station strip -- 7 slots with fixed offsets from center, per-slot size classes. No overlap possible. */
+    ".wr-strip-wrap{position:absolute;left:0;right:0;top:32%;height:36%;overflow:visible;pointer-events:none}"+
+    ".wr-strip{position:absolute;top:0;bottom:0;left:0;right:0;pointer-events:auto}"+
+    ".wr-st-name{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);"+
+      "font-family:monospace;font-weight:700;letter-spacing:.3px;color:#2a0f00;"+
+      "background:rgba(255,220,150,.75);border-radius:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"+
+      "cursor:pointer;transition:left .22s ease-out,opacity .18s,transform .22s ease-out,font-size .18s,background .18s}"+
+    ".wr-st-name.d0{font-size:13px;padding:3px 9px;max-width:20%;background:rgba(255,200,80,.95);color:#5a1004;font-weight:900;"+
+      "box-shadow:0 2px 4px rgba(0,0,0,.5);z-index:5}"+
+    ".wr-st-name.d1{font-size:11px;padding:2px 7px;max-width:13%;opacity:.85;z-index:4}"+
+    ".wr-st-name.d2{font-size:9.5px;padding:2px 6px;max-width:8%;opacity:.65;z-index:3}"+
+    ".wr-st-name.d3{font-size:9px;padding:1px 5px;max-width:5%;opacity:.35;z-index:2}"+
+    ".wr-st-name.hidden{opacity:0;pointer-events:none}"+
+    /* full-height needle spanning the dial glass */
+    ".wr-needle{position:absolute;top:-4px;bottom:-4px;left:50%;width:2px;background:#c31a0f;box-shadow:0 0 6px #ff3020,0 0 12px rgba(255,48,32,.65);z-index:6;pointer-events:none;transform:translateX(-50%)}"+
+    ".wr-needle::before{content:'';position:absolute;top:-1px;left:-5px;width:12px;height:9px;background:#c31a0f;border-radius:0 0 6px 6px;box-shadow:0 2px 4px rgba(0,0,0,.7)}"+
+    ".wr-needle::after{content:'';position:absolute;bottom:-1px;left:-5px;width:12px;height:9px;background:#c31a0f;border-radius:6px 6px 0 0}"+
+    /* knobs -- 74px, cabinet-anchoring like the reference */
+    ".wr-knob{position:absolute;bottom:52px;width:74px;height:74px;border-radius:50%;cursor:grab;touch-action:none;user-select:none;"+
       "background:radial-gradient(circle at 32% 26%,#f6dea0 0%,#c89a48 40%,#8b5a2b 75%,#4a2810 100%);"+
-      "box-shadow:0 3px 6px rgba(0,0,0,.65),inset 0 2px 3px rgba(255,240,200,.45),inset 0 -2px 3px rgba(0,0,0,.45),inset 0 0 0 2px #3a1e08}"+
+      "box-shadow:0 4px 8px rgba(0,0,0,.75),inset 0 3px 4px rgba(255,240,200,.5),inset 0 -3px 4px rgba(0,0,0,.55),inset 0 0 0 3px #3a1e08,inset 0 0 0 4px #6b4321}"+
     ".wr-knob:active{cursor:grabbing}"+
-    ".wr-knob-tick{position:absolute;top:5px;left:50%;transform:translateX(-50%);width:3px;height:15px;background:#2a0c02;border-radius:2px}"+
-    ".wr-knob.left{left:20px}.wr-knob.right{right:20px}"+
-    ".wr-knob-lbl{position:absolute;bottom:2px;font:700 8px/1 monospace;letter-spacing:1.5px;color:#f4e6c8;text-align:center;width:70px;text-shadow:0 1px 2px rgba(0,0,0,.7)}"+
-    ".wr-knob-lbl.left{left:12px}.wr-knob-lbl.right{right:12px}"+
-    /* band buttons */
-    ".wr-bands{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);display:flex;flex-wrap:wrap;gap:3px;max-width:calc(100% - 180px);justify-content:center;padding:3px;background:#2a1408;border-radius:4px;box-shadow:inset 0 1px 3px rgba(0,0,0,.7)}"+
-    ".wr-band{cursor:pointer;padding:5px 9px;background:linear-gradient(180deg,#e8d4a8,#b8905c);border:1px solid #4a2810;border-radius:2px;font:900 9px/1 monospace;letter-spacing:1.2px;color:#3a1e08;box-shadow:0 1px 2px rgba(0,0,0,.4)}"+
+    ".wr-knob-tick{position:absolute;top:7px;left:50%;transform:translateX(-50%);width:4px;height:19px;background:#2a0c02;border-radius:2px;box-shadow:0 1px 2px rgba(255,240,200,.35)}"+
+    ".wr-knob.left{left:16px}.wr-knob.right{right:16px}"+
+    ".wr-knob-lbl{position:absolute;bottom:32px;font:700 8.5px/1 monospace;letter-spacing:1.8px;color:#f4e6c8;text-align:center;width:90px;text-shadow:0 1px 2px rgba(0,0,0,.75)}"+
+    ".wr-knob-lbl.left{left:8px}.wr-knob-lbl.right{right:8px}"+
+    /* band buttons -- two-row wrap so all 12 categories fit without eating knobs */
+    ".wr-bands{position:absolute;bottom:14px;left:110px;right:110px;display:flex;flex-wrap:wrap;gap:3px;justify-content:center;padding:3px;background:#1e0e04;border-radius:4px;box-shadow:inset 0 1px 3px rgba(0,0,0,.75)}"+
+    ".wr-band{cursor:pointer;padding:4px 8px;background:linear-gradient(180deg,#e8d4a8,#b8905c);border:1px solid #4a2810;border-radius:2px;font:900 8.5px/1 monospace;letter-spacing:1px;color:#3a1e08;box-shadow:0 1px 2px rgba(0,0,0,.4)}"+
     ".wr-band:hover{background:linear-gradient(180deg,#f4dfac,#c89a5c)}"+
     ".wr-band.sel{background:linear-gradient(180deg,#c8981a,#6a4a10);color:#f8e0a0;box-shadow:inset 0 2px 3px rgba(0,0,0,.55)}"+
-    ".wr-hint{position:absolute;left:20px;bottom:3px;font:700 8px/1 monospace;letter-spacing:1px;color:rgba(244,230,200,.55)}"+
-    /* narrow-screen adjustments so the whole cabinet still fits without the knobs eating the band row */
-    "@media (max-width:520px){.wr-bands{max-width:calc(100% - 150px);gap:2px}.wr-band{padding:4px 6px;font-size:8px;letter-spacing:.8px}.wr-knob{width:44px;height:44px}}";
+    /* narrow-screen: smaller knobs, tighter bands */
+    "@media (max-width:520px){.wr-knob{width:58px;height:58px}.wr-bands{left:82px;right:82px;gap:2px}.wr-band{padding:3px 6px;font-size:8px;letter-spacing:.6px}.wr-knob-lbl{width:74px;bottom:22px}}";
   document.head.appendChild(st);
 }
+/* SomaFM channel directory. Verified endpoint via SomaFM's official API doc; stream URL pattern
+   ice1.somafm.com/{id}-128-mp3 is documented and widely used by community projects. Cached at
+   the module level so band-switching doesn't refetch. */
+var _somaCache=null, _somaCacheT=0;
+async function fetchSomaFM(){
+  if(_somaCache && (Date.now()-_somaCacheT)<600000) return _somaCache;
+  try{
+    var r=await fetch("https://api.somafm.com/channels.json");
+    var j=await r.json();
+    var out=(j.channels||[]).map(function(c){
+      return { name: c.title||c.id, url_resolved: "https://ice1.somafm.com/"+c.id+"-128-mp3",
+        country:"US", state:"CA", codec:"MP3", bitrate:128,
+        tags: String((c.genre||"")+" "+(c.description||"")).toLowerCase(),
+        src:"SomaFM", clickcount: parseInt(c.listeners||"0",10) || 0 };
+    });
+    _somaCache=out; _somaCacheT=Date.now();
+    return out;
+  }catch(e){ nlog("somafm",false,(e&&e.message)||e); return []; }
+}
+function somaMatchesCat(s, cat){
+  var t=s.tags||"";
+  if(cat.k==="top") return true;
+  if(cat.k==="local") return false; /* SomaFM is not local to anywhere */
+  var tag=(cat.tag||"").toLowerCase();
+  if(!tag) return false;
+  if(tag==="jazz") return /jazz|lounge/.test(t);
+  if(tag==="rock") return /rock|indie|alternative/.test(t);
+  if(tag==="pop") return /pop|indie|new wave|synth/.test(t);
+  if(tag==="dance") return /electronic|dance|edm|beat|club|drum|bass|breakbeat/.test(t);
+  if(tag==="hip hop") return /hip hop|hip-hop|rap/.test(t);
+  if(tag==="country") return /country|folk|americana/.test(t);
+  if(tag==="classical") return /classical|orchestral|ambient/.test(t);
+  if(tag==="latin") return /latin|reggaeton|salsa/.test(t);
+  if(tag==="news") return /news|talk/.test(t);
+  if(tag==="oldies") return /oldies|retro|vintage/.test(t);
+  return t.indexOf(tag)>=0;
+}
+function radioNormName(n){ return String(n||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim().replace(/\s+/g," "); }
+
 async function tuneLiveRadio(ch,sl,my){
   if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Live Radio","");
   ensureRadioCSS();
-  /* build the dial band scale (decorative -- these are FM/AM MHz/kHz markings that look real
-     but don't correspond to any actual station frequency; internet radio has no true frequency). */
   var fmMarks=[88,92,96,100,104,108], amMarks=[530,700,1000,1400,1700];
-  function scaleHTML(marks,cls,lbl){
+  function scaleHTML(marks,lbl){
     var out='<span class="wr-dial-band-lbl">'+lbl+'</span>';
     var span=marks[marks.length-1]-marks[0];
-    marks.forEach(function(m,i){
-      var pct=((m-marks[0])/span)*100;
-      out+='<span class="wr-dial-tickN" style="left:'+pct+'%">'+m+'</span>';
-    });
-    /* minor ticks between */
-    for(var i=0;i<40;i++){
-      var pct2=(i/40)*100;
-      out+='<span class="wr-dial-tick '+(i%4===0?'major':'minor')+'" style="left:'+pct2+'%"></span>';
-    }
+    marks.forEach(function(m){ var pct=((m-marks[0])/span)*100;
+      out+='<span class="wr-dial-tickN" style="left:'+pct+'%">'+m+'</span>'; });
+    for(var i=0;i<40;i++){ var pct2=(i/40)*100;
+      out+='<span class="wr-dial-tick '+(i%4===0?'major':'minor')+'" style="left:'+pct2+'%"></span>'; }
     return out;
   }
   if(screenArea) screenArea.innerHTML='<div id="radioPane">'+
     '<div class="wr-cabinet">'+
+      '<div class="wr-grille"></div>'+
+      '<div class="wr-shelf"></div>'+
       '<div class="wr-now" id="wrNow"><b>Live Radio</b><small>pick a band \u00b7 drag TUNING to scan</small></div>'+
       '<div class="wr-dial"><div class="wr-dial-glass">'+
-        '<div class="wr-dial-band fm">'+scaleHTML(fmMarks,'fm','FM')+'</div>'+
+        '<div class="wr-dial-band fm">'+scaleHTML(fmMarks,'FM')+'</div>'+
         '<div class="wr-strip-wrap"><div class="wr-strip" id="wrStrip"></div></div>'+
         '<div class="wr-needle"></div>'+
-        '<div class="wr-dial-band am">'+scaleHTML(amMarks,'am','AM')+'</div>'+
+        '<div class="wr-dial-band am">'+scaleHTML(amMarks,'AM')+'</div>'+
       '</div></div>'+
       '<div class="wr-knob left" id="wrVol"><span class="wr-knob-tick"></span></div>'+
       '<span class="wr-knob-lbl left">VOLUME</span>'+
       '<div class="wr-bands" id="wrBands"></div>'+
       '<div class="wr-knob right" id="wrTune"><span class="wr-knob-tick"></span></div>'+
       '<span class="wr-knob-lbl right">TUNING</span>'+
-      '<span class="wr-hint">drag TUNING to scan \u00b7 click a name to lock \u00b7 pick a band</span>'+
       '<audio id="raEl"></audio>'+
     '</div></div>';
 
-  var rbCurrent=[], curIdx=0, settleT=null, stationGap=110;
+  /* 7-slot ring: percentages from center of strip. Fixed by construction -- can't overlap. */
+  var SLOTS=[{d:3,pct:3},{d:2,pct:15},{d:1,pct:30},{d:0,pct:50},{d:1,pct:70},{d:2,pct:85},{d:3,pct:97}];
+  var rbCurrent=[], curIdx=0, settleT=null;
+
   var stateName=""; try{ var loc=await getWxLocation(); var li=await resolveLocale(loc); if(my!==token)return;
     var ab=(homeLoc&&homeLoc.state)||(li&&li.state)||""; stateName=STATE_NAMES[ab]||""; }catch(e){}
 
@@ -4623,62 +4674,47 @@ async function tuneLiveRadio(ch,sl,my){
       au.onerror=function(){ var n=$("wrNow"); if(n&&my===token)n.innerHTML='<b>'+esch(s.name||"")+'</b><small>stream offline \u2014 tune another</small>'; };
       try{ var pRa=au.play(); if(pRa&&pRa.catch)pRa.catch(function(){}); }catch(e){} }
     var now=$("wrNow"); if(now)now.innerHTML='<b>'+esch((s.name||"Unknown").replace(/\s+/g," ").trim())+'</b>'+
-      '<small>'+esch([s.state,s.country,String(s.codec||"").toUpperCase()+(s.bitrate?(" "+s.bitrate+"k"):"")].filter(Boolean).join(" \u00b7 ").slice(0,80))+'</small>';
+      '<small>'+esch([s.src||"radio",s.state,s.country,String(s.codec||"").toUpperCase()+(s.bitrate?(" "+s.bitrate+"k"):"")].filter(Boolean).join(" \u00b7 ").slice(0,80))+'</small>';
     nlog("radio",true,(s.name||"?").slice(0,40));
   }
 
   function renderStrip(){
     var strip=$("wrStrip"); if(!strip)return;
     if(!rbCurrent.length){ strip.innerHTML=''; return; }
-    strip.innerHTML=rbCurrent.map(function(s,i){
-      var name=(s.name||"?").replace(/\s+/g," ").trim().slice(0,26);
-      return '<span class="wr-st-name" data-si="'+i+'" style="left:'+(i*stationGap+stationGap/2)+'px">'+esch(name)+'</span>';
-    }).join("");
+    /* only render the 7-slot window around curIdx. Off-window stations don't exist in the DOM
+       at all -- keeps this cheap even with thousands of stations loaded. */
+    var html='';
+    SLOTS.forEach(function(slot, si){
+      var offset=si-3; /* -3 .. +3 */
+      var stIdx=curIdx+offset;
+      if(stIdx<0||stIdx>=rbCurrent.length) return;
+      var name=(rbCurrent[stIdx].name||"?").replace(/\s+/g," ").trim();
+      html+='<span class="wr-st-name d'+slot.d+'" data-si="'+stIdx+'" style="left:'+slot.pct+'%">'+esch(name)+'</span>';
+    });
+    strip.innerHTML=html;
     strip.querySelectorAll("[data-si]").forEach(function(el){
       el.addEventListener("click", function(e){ e.stopPropagation(); tuneTo(+el.dataset.si,false); });
     });
-    tuneTo(0,true);
   }
 
   function tuneTo(idx, instant){
     curIdx=Math.max(0,Math.min(rbCurrent.length-1,idx));
-    var strip=$("wrStrip"), wrap=strip&&strip.parentElement; if(!strip||!wrap)return;
-    var needleX = wrap.clientWidth/2;
-    var targetX = curIdx*stationGap + stationGap/2;
-    var offset = needleX - targetX;
-    strip.style.transition = instant?"none":"transform .22s ease-out";
-    strip.style.transform = "translateX("+offset+"px)";
-    strip.querySelectorAll(".wr-st-name").forEach(function(el,i){ el.classList.toggle("close", i===curIdx); });
-    /* rotate the tuning knob visually -- 15 degrees per station step, looks alive */
+    renderStrip();
     var tk=$("wrTune"); if(tk) tk.style.transform="rotate("+((curIdx%24)*15)+"deg)";
     clearTimeout(settleT);
     settleT = setTimeout(function(){ play(curIdx); }, instant?0:600);
   }
 
-  /* TUNING knob: horizontal drag = scan stations. Every ~10px of drag = 1 station step. */
   function attachTuning(){
-    var tk=$("wrTune"), strip=$("wrStrip"); if(!tk||!strip)return;
+    var tk=$("wrTune"); if(!tk)return;
     var down=false, sx=0, si=0;
-    function grab(e){ down=true; sx=e.clientX||(e.touches&&e.touches[0].clientX)||0; si=curIdx;
-      try{tk.setPointerCapture&&tk.setPointerCapture(e.pointerId);}catch(_){} }
-    function move(e){ if(!down)return;
-      var x=e.clientX||(e.touches&&e.touches[0].clientX)||0;
-      var dx=x-sx, step=-Math.round(dx/10);
-      tuneTo(si+step,false); }
-    function up(){ down=false; }
-    tk.addEventListener("pointerdown",grab);
-    window.addEventListener("pointermove",move);
-    window.addEventListener("pointerup",up);
-    /* also allow horizontal drag on the strip itself for a more analog feel */
-    var wrap=strip.parentElement;
-    var wdown=false,wsx=0,wsi=0;
-    wrap.style.pointerEvents="auto"; wrap.style.cursor="ew-resize";
-    wrap.addEventListener("pointerdown",function(e){ if(e.target.dataset&&e.target.dataset.si!=null)return; /* clicks handled per-station */
-      wdown=true; wsx=e.clientX; wsi=curIdx; });
-    window.addEventListener("pointermove",function(e){ if(!wdown)return;
-      var dx=e.clientX-wsx; tuneTo(wsi - Math.round(dx/stationGap),false); });
-    window.addEventListener("pointerup",function(){ wdown=false; });
-    /* keyboard: left/right arrow to step */
+    tk.addEventListener("pointerdown", function(e){ down=true; sx=e.clientX; si=curIdx;
+      try{tk.setPointerCapture&&tk.setPointerCapture(e.pointerId);}catch(_){} });
+    window.addEventListener("pointermove", function(e){ if(!down)return;
+      var dx=e.clientX-sx; tuneTo(si - Math.round(dx/12), false); });
+    window.addEventListener("pointerup", function(){ down=false; });
+    /* also allow clicking the strip area to advance -- pass through to per-station handlers */
+    /* keyboard */
     document.addEventListener("keydown", function ev(e){
       if(my!==token){ document.removeEventListener("keydown",ev); return; }
       if(e.key==="ArrowLeft"){ tuneTo(curIdx-1,false); }
@@ -4686,36 +4722,38 @@ async function tuneLiveRadio(ch,sl,my){
     });
   }
 
-  /* VOLUME knob: vertical drag = adjust volume 0..1 */
   function attachVolume(){
     var vk=$("wrVol"); if(!vk)return;
     var down=false, sy=0, sv=vol;
-    vk.addEventListener("pointerdown",function(e){ down=true; sy=e.clientY; sv=vol;
+    vk.addEventListener("pointerdown", function(e){ down=true; sy=e.clientY; sv=vol;
       try{vk.setPointerCapture&&vk.setPointerCapture(e.pointerId);}catch(_){} });
-    window.addEventListener("pointermove",function(e){ if(!down)return;
+    window.addEventListener("pointermove", function(e){ if(!down)return;
       var dy=sy-e.clientY, nv=Math.max(0,Math.min(1,sv + dy/120));
       vol=nv; try{store.set("vol",vol);}catch(_){} var au=$("raEl"); if(au)au.volume=vol;
       vk.style.transform="rotate("+((nv*270)-135)+"deg)"; });
-    window.addEventListener("pointerup",function(){ down=false; });
-    /* initial rotation to match current vol */
+    window.addEventListener("pointerup", function(){ down=false; });
     vk.style.transform="rotate("+((vol*270)-135)+"deg)";
   }
 
   async function loadCat(cat){
     if(my!==token)return;
     var t=$("wrNow"); if(t)t.innerHTML='<b>Loading '+esch(cat.label.toLowerCase())+'\u2026</b><small>tuning receiver</small>';
-    /* QA: removed hard limit=100/120 caps. radio-browser's default is unbounded; we ceiling at
-       10000 as a DOM-render safety, well above any real category's station count while short of
-       their ~40k total (which would actually hang mobile devices). */
     var qs;
     if(cat.k==="local"&&stateName){ qs="countrycode=US&state="+encodeURIComponent(stateName)+"&order=clickcount&reverse=true&limit=10000"; }
     else if(cat.k==="top"){ qs="order=clickcount&reverse=true&limit=10000"; }
     else { qs="tag="+encodeURIComponent(cat.tag)+"&order=clickcount&reverse=true&limit=10000"; }
-    var arr=await rbSearch(qs); if(my!==token)return;
-    var seen={}; rbCurrent=arr.filter(rbPlayable).filter(function(s){ var k=(s.name||"")+(s.url_resolved||s.url); if(seen[k])return false; seen[k]=1; return true; });
-    rbCurrent.sort(function(a,b){ return (b.clickcount||0)-(a.clickcount||0); });
+    /* fetch radio-browser and SomaFM in parallel */
+    var pair=await Promise.all([rbSearch(qs), fetchSomaFM()]); if(my!==token)return;
+    var rb=(pair[0]||[]).filter(rbPlayable).map(function(s){ s.src=s.src||"radio-browser"; return s; });
+    var soma=(pair[1]||[]).filter(function(s){ return somaMatchesCat(s,cat); });
+    /* merge: soma first (curated, small set), then rb by clickcount. Dedupe by normalized name. */
+    var seen={}; var merged=[];
+    soma.forEach(function(s){ var k=radioNormName(s.name); if(!seen[k]){ seen[k]=1; merged.push(s); } });
+    rb.sort(function(a,b){ return (b.clickcount||0)-(a.clickcount||0); });
+    rb.forEach(function(s){ var k=radioNormName(s.name); if(!seen[k]){ seen[k]=1; merged.push(s); } });
+    rbCurrent=merged;
     if(!rbCurrent.length){ var t2=$("wrNow"); if(t2)t2.innerHTML='<b>No stations on this band</b><small>try another band</small>'; return; }
-    renderStrip();
+    curIdx=0; renderStrip(); play(0);
     setChanStatus(ch.num, rbCurrent.length+" stations \u00b7 "+cat.label.toLowerCase());
   }
 
@@ -4728,19 +4766,7 @@ async function tuneLiveRadio(ch,sl,my){
   var startIdx=stateName?0:1; var se=bandsEl&&bandsEl.querySelector('[data-c="'+startIdx+'"]'); if(se)se.classList.add("sel");
   loadCat(RB_CATS[startIdx]);
 }
-/* ---------- NASA imagery gallery (NASA Image Library, keyless + CORS-open) — a Space sub-view ---------- */
-var NASA_THEMES=["nebula","galaxy","apollo 11","mars surface","earth from space","saturn","jupiter","hubble deep field","astronaut spacewalk","aurora from space","the sun","milky way","supernova","international space station","moon landing","pillars of creation"];
-var nasaTimer=null;
-function ensureNasaCSS(){ if($("nasaCSS"))return; var st=document.createElement("style"); st.id="nasaCSS";
-  st.textContent=
-    "#nasaMedia{overflow:hidden;position:relative;background:#05060c}"+
-    "#nasaMedia .na-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;animation:naken 20s ease-out both}"+
-    "@keyframes naken{0%{transform:scale(1.02)}100%{transform:scale(1.2)}}"+
-    "#nasaMedia .na-cap{position:absolute;left:0;right:0;bottom:0;padding:12px 16px 10px;background:linear-gradient(0deg,rgba(0,0,0,.86),rgba(0,0,0,0));z-index:2}"+
-    "#nasaMedia .na-nm{font:700 clamp(14px,2.7vmin,22px)/1.2 Georgia,'Times New Roman',serif;color:#eaf1ff;text-shadow:0 2px 8px #000}"+
-    "#nasaMedia .na-by{margin-top:3px;font:600 11px/1 monospace;letter-spacing:.5px;color:#9bb6e0}";
-  document.head.appendChild(st);
-}
+
 async function tuneNasaImagery(ch,sl,my){
   if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Space","");
   ensureNasaCSS();

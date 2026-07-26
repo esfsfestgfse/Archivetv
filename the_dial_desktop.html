@@ -819,7 +819,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.78";
+window.__ATV_BUILD="1.7.7-desktop.79";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -853,7 +853,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.78</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.79</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">THE DIAL · THE SET</div>
@@ -1496,6 +1496,81 @@ const PROGRAM = {
     require: { runtime_max_s: 300 },
     noBlindFallback: true,
     subjRequired: true
+  },
+
+  /* Classic Rerun TV — audit flagged: no subjRequired, so tier 2 fires blind into
+     classic_tv (80% episodes but also news, public-access, bumpers). The fix: require
+     subjects, and deny the non-episode content that shares the collection. */
+  "Classic Rerun TV": {
+    genre: "sitcom", era: [1950, 1969],
+    providers: [
+      { collections: ["classic_tv"], require_subj: ["sitcom","television comedy","comedy series","situation comedy","comedy program"] }
+    ],
+    deny: {
+      title: ["newsreel","news report","commercial","advertisement","public service","test pattern"],
+      subject: ["newsreel","news","commercial","advertising","public service announcement","educational film","instructional"]
+    },
+    subjRequired: true, noBlindFallback: true
+  },
+
+  /* Modern Rerun TV — same problem as Classic but with vhsvault fcol (includes off-air news
+     captures). Deny news and non-comedy content. */
+  "Modern Rerun TV": {
+    genre: "sitcommodern", era: [1970, 2003],
+    providers: [
+      { collections: ["classic_tv","television"], require_subj: ["sitcom","television comedy","television series","tv series","comedy series","situation comedy"] },
+      { collections: ["vhsvault"], require_subj: ["sitcom","television comedy","comedy"] }
+    ],
+    deny: {
+      title: ["news","newscast","commercial","advertisement","c-span","cnn","weather"],
+      subject: ["news","newscast","newsreel","commercial","advertising","documentary","public service","educational"]
+    },
+    subjRequired: true, noBlindFallback: true
+  },
+
+  /* Game Show Channel — already has subjRequired and noBlindFallback on G, but no deny list.
+     The audit noted: if it bleeds, classic_tv items with subject:"game" are the culprit. */
+  "Game Show Channel": {
+    genre: "gameshow", era: [1950, 2005],
+    providers: [
+      { collections: ["classic_tv","television"], require_subj: ["game show","quiz show","panel show","game shows","television game show"] },
+      { collections: ["vhsvault"], require_subj: ["game show","quiz show"] }
+    ],
+    deny: {
+      title: ["video game","computer game","board game review","gameplay","walkthrough","let's play"],
+      subject: ["video game","computer game","sports","football","baseball","basketball","drama","sitcom","news"]
+    },
+    subjRequired: true, noBlindFallback: true
+  },
+
+  /* Public Access TV — community_media collection is heterogeneous (public access + local cable
+     + amateur video). No deny list existed. */
+  "Public Access TV": {
+    genre: "publicaccess", era: [1975, 2005],
+    providers: [
+      { collections: ["community_media"], require_subj: ["public access television","community television","local cable access","public access","cable access","community media"] }
+    ],
+    deny: {
+      title: ["test pattern","color bars","tone"],
+      subject: ["test pattern"]
+    },
+    subjRequired: true, noBlindFallback: true
+  },
+
+  /* News, News, News — 3 collections, no subjRequired. Tier 2 fires all three blind.
+     Fix: subject-lock to newsreel/documentary terms, deny entertainment content. */
+  "News, News, News": {
+    genre: "newsarchive", era: [1920, 1975],
+    providers: [
+      { collections: ["universal_newsreels"], require_subj: ["newsreel","news","actuality"] },
+      { collections: ["FedFlix"], require_subj: ["documentary film","government film","historic footage","newsreel"] },
+      { collections: ["prelinger"], require_subj: ["newsreel","documentary film","historic footage","actuality film","government film"] }
+    ],
+    deny: {
+      title: ["cartoon","comedy short","musical","song","dance"],
+      subject: ["cartoon","animated","comedy","musical","entertainment","fiction","feature film"]
+    },
+    subjRotate: true, subjRequired: true, noBlindFallback: true
   }
 };
 
@@ -1512,6 +1587,9 @@ function buildProgramQueries(prog) {
   (prog.providers || []).forEach(function(prov) {
     var cols = prov.collections || [];
     var subjs = prov.require_subj || [];
+    /* subjRotate: pick one subject per tune so the channel cycles through its vocabulary
+       instead of always matching on the most common term. Same pattern as G's subjRotate. */
+    if (prog.subjRotate && subjs.length > 1) { subjs = [subjs[Math.floor(Math.random() * subjs.length)]]; }
     if (subjs.length) {
       var subjQ = subjs.map(function(s) { return '"' + s + '"'; }).join(" OR ");
       cols.forEach(function(c) {
@@ -2179,14 +2257,25 @@ async function tuneIA(ch,sl,my){
        deny:{title:[...],subject:[...]}, reject items whose metadata matches before spending
        the resolvePlayable fetch on them. The retry loop handles this naturally — rejected
        items just burn one attempt, same as a missing file would. */
-    if(sl.program && sl.program.deny){
-      var pd=sl.program.deny;
-      var it_title=String(item.title||"").toLowerCase();
-      var it_subj=String(item.subject||item.subjects||"").toLowerCase();
-      var denied=false;
-      if(pd.title){ for(var di=0;di<pd.title.length;di++){ if(it_title.indexOf(pd.title[di].toLowerCase())>=0){denied=true;break;} } }
-      if(!denied&&pd.subject){ for(var dj=0;dj<pd.subject.length;dj++){ if(it_subj.indexOf(pd.subject[dj].toLowerCase())>=0){denied=true;break;} } }
-      if(denied){ nlog("program",true,"denied: "+it_title.slice(0,40)); continue; }
+    if(sl.program){
+      /* PROGRAM deny-list filter */
+      if(sl.program.deny){
+        var pd=sl.program.deny;
+        var it_title=String(item.title||"").toLowerCase();
+        var it_subj=String(item.subject||item.subjects||"").toLowerCase();
+        var denied=false;
+        if(pd.title){ for(var di=0;di<pd.title.length;di++){ if(it_title.indexOf(pd.title[di].toLowerCase())>=0){denied=true;break;} } }
+        if(!denied&&pd.subject){ for(var dj=0;dj<pd.subject.length;dj++){ if(it_subj.indexOf(pd.subject[dj].toLowerCase())>=0){denied=true;break;} } }
+        if(denied){ nlog("program",true,"denied: "+it_title.slice(0,40)); continue; }
+      }
+      /* PROGRAM runtime enforcement — reject items exceeding runtime_max_s before resolvePlayable.
+         IA's runtime field is either seconds (number) or HH:MM:SS (string). */
+      if(sl.program.require && sl.program.require.runtime_max_s && item.runtime){
+        var rt=item.runtime, secs=0;
+        if(typeof rt==="number") secs=rt;
+        else if(typeof rt==="string"){ var parts=rt.split(":"); if(parts.length===3) secs=+parts[0]*3600 + +parts[1]*60 + +parts[2]; else if(parts.length===2) secs=+parts[0]*60 + +parts[1]; else secs=parseFloat(rt)||0; }
+        if(secs>sl.program.require.runtime_max_s){ nlog("program",true,"too long ("+Math.round(secs)+"s): "+String(item.title||"").slice(0,30)); continue; }
+      }
     }
     const pl=await resolvePlayable(item.identifier); if(my!==token)return;
     if(pl){ pl.title=item.title||item.identifier; pl.year=item.year;

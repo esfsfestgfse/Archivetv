@@ -3337,7 +3337,16 @@ var TX_AIRPORTS=[
  ["SAT","San Antonio",29.534,-98.470],["ELP","El Paso",31.807,-106.378],
  ["LBB","Lubbock",33.664,-101.823],["AMA","Amarillo",35.219,-101.706],
  ["MAF","Midland",31.942,-102.202],["CRP","Corpus Christi",27.770,-97.501]]; /* fallback only, if the live DB fetch fails */
-var routeCache={};
+/* QA FIX (audit Phase 1 sweep): routeCache was truly unbounded. Flight routes don't change so
+   caching them is correct, but a user who leaves Air Traffic on for weeks would accumulate
+   tens of thousands of entries silently. Bounded to 5000 with FIFO eviction -- well past any
+   single-session usage (~1500 unique callsigns in a 24hr soak) but prevents unbounded growth. */
+var routeCache={}; var _routeKeys=[]; var ROUTE_MAX=5000;
+function _routeCacheSet(k,v){
+  if(routeCache[k]===undefined) _routeKeys.push(k);
+  routeCache[k]=v;
+  while(_routeKeys.length>ROUTE_MAX){ delete routeCache[_routeKeys.shift()]; }
+}
 async function lookupRoutes(list){
   /* 1.5.1 (live-diagnosed): adsb.lol's routeset POST is CORS-preflight-blocked in browsers.
      adsbdb.com answers plain GETs with CURRENT routes incl. cities — verified in-page. */
@@ -3350,10 +3359,10 @@ async function lookupRoutes(list){
       var d=await withTO(fetchJSON("https://api.adsbdb.com/v0/callsign/"+encodeURIComponent(cs)),9000);
       var fr=d&&d.response&&d.response.flightroute;
       if(fr&&fr.origin&&fr.destination){
-        routeCache[cs]=(fr.origin.iata_code||fr.origin.icao_code||"?")+" > "+(fr.destination.iata_code||fr.destination.icao_code||"?");
-        routeCache[cs+"|full"]=(fr.origin.municipality||"")+" > "+(fr.destination.municipality||"");
-      } else routeCache[cs]="";
-    }catch(e){ routeCache[cs]=""; }
+        _routeCacheSet(cs,(fr.origin.iata_code||fr.origin.icao_code||"?")+" > "+(fr.destination.iata_code||fr.destination.icao_code||"?"));
+        _routeCacheSet(cs+"|full",(fr.origin.municipality||"")+" > "+(fr.destination.municipality||""));
+      } else _routeCacheSet(cs,"");
+    }catch(e){ _routeCacheSet(cs,""); }
     await new Promise(function(r){setTimeout(r,350);});
   }
   if(need.length)nlog("routes",true,need.length+" looked up via adsbdb");

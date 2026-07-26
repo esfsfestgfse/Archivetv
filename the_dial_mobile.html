@@ -965,7 +965,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.112";
+window.__ATV_BUILD="1.7.7-mobile.113";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -999,7 +999,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.112</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.113</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -1756,6 +1756,125 @@ const PROGRAM = {
       title: ["cartoon","comedy short","musical","song","dance"],
       subject: ["cartoon","animated","comedy","musical","entertainment","fiction","feature film"]
     },
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  "Sci-Fi Theater": {
+    genre: "scifi", era: [1950, 1979],
+    providers: [{"collections": ["SciFi_Horror", "feature_films"], "require_subj": ["science fiction", "sci-fi", "scifi", "alien", "space travel", "robot", "futuristic", "outer space", "flying saucer", "monster"]}],
+    deny: {"title": ["comedy", "romance", "musical", "cartoon"], "subject": ["comedy", "romance", "musical", "cartoon", "animated", "children", "educational"]},
+    subjRequired: true, noBlindFallback: true
+  },
+
+  "Western Channel": {
+    genre: "western", era: [1930, 1969],
+    providers: [{"collections": ["feature_films", "classic_tv"], "require_subj": ["western", "cowboy", "frontier", "ranch", "gunfighter", "outlaw", "sheriff", "wild west"]}],
+    deny: {"title": ["cartoon", "animated", "comedy short"], "subject": ["cartoon", "animated", "comedy", "musical", "educational", "documentary"]},
+    subjRequired: true, noBlindFallback: true
+  },
+
+  "Comedy Classics": {
+    genre: "comedy", era: [1920, 1969],
+    providers: [{"collections": ["feature_films", "classic_tv", "prelinger"], "require_subj": ["comedy", "slapstick", "farce", "screwball", "comedian", "humor", "humorous", "comic"]}],
+    deny: {"title": ["newsreel", "educational", "training"], "subject": ["newsreel", "educational", "training", "documentary", "instructional", "drama", "horror"]},
+    subjRequired: true, noBlindFallback: true
+  },
+
+  "Noir & Mystery": {
+    genre: "noirmystery", era: [1940, 1965],
+    providers: [{"collections": ["Film_Noir", "feature_films"], "require_subj": ["film noir", "noir", "mystery", "detective", "crime", "thriller", "suspense", "hardboiled", "whodunit"]}],
+    deny: {"title": ["cartoon", "comedy short", "musical"], "subject": ["comedy", "cartoon", "animated", "musical", "children", "educational", "western"]},
+    subjRequired: true, noBlindFallback: true
+  },
+
+  "Action & Serials": {
+    genre: "actionserials", era: [1930, 1955],
+    providers: [{"collections": ["feature_films", "classic_tv"], "require_subj": ["serial", "chapter play", "cliffhanger", "action", "adventure", "swashbuckler"]}],
+    deny: {"title": ["cartoon", "educational", "newsreel"], "subject": ["cartoon", "animated", "educational", "newsreel", "documentary", "comedy", "romance"]},
+    subjRequired: true, noBlindFallback: true
+  },
+
+  "Classic Film": {
+    genre: "classicmovie", era: [1930, 1969],
+    providers: [{"collections": ["feature_films", "classic_tv"], "require_subj": ["feature film", "classic film", "drama", "motion picture", "movie"]}],
+    deny: {"title": ["newsreel", "commercial", "test pattern", "home movie"], "subject": ["newsreel", "commercial", "advertising", "test pattern", "home movie", "educational film", "instructional"]},
+    subjRequired: true, noBlindFallback: true
+  },
+
+  "Silent Cinema": {
+    genre: "silentcinema", era: [1895, 1930],
+    providers: [{"collections": ["silent_films", "feature_films"], "require_subj": ["silent film", "silent", "silent era", "silent movie", "silent comedy", "slapstick"]}],
+    deny: {"title": ["sound version", "talkie", "1935", "1940"], "subject": ["sound", "talkie", "educational"]},
+    subjRequired: true, noBlindFallback: true
+  },
+
+  "Classic Cartoons": {
+    genre: "cartoon", era: [1928, 1969],
+    providers: [{"collections": ["animationandcartoons"], "require_subj": ["cartoon", "animated", "animation", "animated short", "animated film"]}],
+    deny: {"title": ["educational", "training film", "safety film"], "subject": ["educational", "training", "safety", "live action", "documentary", "newsreel"]},
+    subjRequired: true, noBlindFallback: true
+  },
+
+  "VHS Vault": {
+    genre: "vhsvault", era: [1975, 2003],
+    providers: [{"collections": ["vhsvault", "classic_tv", "television"], "require_subj": ["television", "tv show", "tv series", "sitcom", "drama", "game show", "talk show", "variety show", "television program"]}],
+    deny: {"title": ["newscast", "c-span", "weather forecast", "infomercial"], "subject": ["newscast", "news broadcast", "infomercial", "weather"]},
+    subjRequired: true, noBlindFallback: true
+  },
+
+  "Christmas Channel": {
+    genre: "xmas", era: [1930, 1990],
+    providers: [{"collections": ["feature_films", "classic_tv", "SciFi_Horror", "animationandcartoons"], "require_subj": ["christmas", "xmas", "holiday", "santa claus", "yuletide", "christmas special", "christmas carol"]}],
+    deny: {"title": ["halloween", "horror", "scary"], "subject": ["halloween", "horror"]},
+    subjRequired: true, noBlindFallback: true
+  },
+
+  "Halloween Haunt": {
+    genre: "halloween", era: [1920, 1990],
+    providers: [{"collections": ["SciFi_Horror", "feature_films", "animationandcartoons"], "require_subj": ["halloween", "horror", "ghost", "haunted", "witch", "vampire", "zombie", "monster", "creature", "fright", "scary"]}],
+    deny: {"title": ["christmas", "xmas", "santa", "romance", "comedy"], "subject": ["christmas", "romance", "romantic comedy"]},
+    subjRequired: true, noBlindFallback: true
+  },
+
+  "Thanksgiving Channel": {
+    genre: "thanksgiving", era: [1930, 1990],
+    providers: [{"collections": ["feature_films", "classic_tv", "prelinger"], "require_subj": ["thanksgiving", "turkey", "harvest", "pilgrim", "gratitude"]}],
+    deny: {"title": ["christmas", "halloween", "horror"], "subject": ["christmas", "halloween", "horror"]},
+    subjRequired: true, noBlindFallback: true
+  },
+
+  "World Cinema": {
+    genre: "worldcinema", era: [1920, 1980],
+    providers: [{"collections": ["feature_films"], "require_subj": ["foreign film", "international cinema", "french film", "italian film", "japanese film", "german film", "world cinema", "subtitled"]}],
+    deny: {"title": ["home movie", "newsreel", "commercial"], "subject": ["home movie", "newsreel", "commercial", "advertising", "educational"]},
+    subjRequired: true, noBlindFallback: true
+  },
+
+  "Black Cinema": {
+    genre: "blackcinema", era: [1920, 1975],
+    providers: [{"collections": ["feature_films", "classic_tv"], "require_subj": ["race film", "African American", "Black cinema", "Black cast", "blaxploitation", "Black film"]}],
+    deny: {"title": ["newsreel", "commercial", "educational"], "subject": ["newsreel", "commercial", "educational", "instructional"]},
+    subjRequired: true, noBlindFallback: true
+  },
+
+  "Trailer Park": {
+    genre: "trailer", era: [1930, 1990],
+    providers: [{"collections": ["movie_trailers", "feature_films"], "require_subj": ["trailer", "preview", "coming attraction", "movie trailer", "film trailer", "theatrical trailer"]}],
+    deny: {"title": ["full movie", "full film", "complete", "episode"], "subject": ["full movie", "full film", "episode", "complete film"]},
+    subjRequired: true, noBlindFallback: true
+  },
+
+  "Home Movies & Travelogues": {
+    genre: "homemovietravel", era: [1920, 1990],
+    providers: [{"collections": ["prelinger", "home_movies"], "require_subj": ["home movie", "home movies", "amateur film", "travelogue", "travel film", "vacation", "family film", "home video"]}],
+    deny: {"title": ["feature film", "hollywood", "studio"], "subject": ["feature film", "hollywood", "commercial", "advertising"]},
+    subjRequired: true, noBlindFallback: true
+  },
+
+  "Sports Vault": {
+    genre: "sportsvault", era: [1920, 2000],
+    providers: [{"collections": ["prelinger", "FedFlix", "feature_films"], "require_subj": ["sports", "athletic", "boxing", "baseball", "football", "basketball", "olympic", "wrestling", "racing", "tennis", "golf", "swimming"]}],
+    deny: {"title": ["cartoon", "animated", "comedy short"], "subject": ["cartoon", "animated", "comedy", "educational", "instructional"]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
   }
 };

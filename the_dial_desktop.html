@@ -819,7 +819,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.75";
+window.__ATV_BUILD="1.7.7-desktop.76";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -853,7 +853,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.75</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.76</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">THE DIAL · THE SET</div>
@@ -1375,7 +1375,12 @@ const CH=[
    channel numbers survived across builds. Numbers are now hard-coded on every record. The
    category number blocks (NET:2, TV:10, SPORTS:50, MOV:100, TOON:150, DOC:200, LBRO:300,
    LDATA:400, RETRO:500, HOL:700, MUS:900) are the invariant, not the array order. */
-const byNum=n=>CH.find(c=>c.num===n);
+/* QA FIX: was CH.find(c=>c.num===n) -- O(n) scan called on every tune (16 call sites). Fine at
+   94 channels, but any future channel additions compound this linearly. A boot-time Map keeps
+   lookup constant-time. Rebuilt whenever CH mutates (it doesn't in normal operation, but this
+   guarantees correctness in case something splices it later). */
+const _byNumMap=new Map(CH.map(c=>[c.num,c]));
+const byNum=n=>_byNumMap.get(n);
 
 /* ===== 1.3 METADATA FOUNDATION: per-channel identity, driving INFO + guide + discovery ===== */
 const CHANNEL_META={
@@ -1582,7 +1587,18 @@ function iaSearch(q,rows,page,sort){
     {tag:"search:scrape", delay:2500, run:()=>fetchJSON(scrapeURL(q,rows,sort)).then(normSearch)}
   ]);
 }
-const countCache={}; const ROWS=50;
+/* QA FIX: was unbounded and untimed -- one entry per sort+query+era-slice grew without limit
+   across a session. In a long PWA session surfing many channels through 6 strategies each, this
+   was the leak signature the audit flagged. Adding a 30min TTL (IA numFound is stable within a
+   session) and a 500-entry cap with FIFO eviction (plain object insertion order is reliable). */
+const countCache={}; var _ccKeys=[]; const CC_TTL=30*60*1000, CC_MAX=500;
+function countCacheGet(k){ var e=countCache[k]; if(!e) return undefined;
+  if(Date.now()-e.t > CC_TTL){ delete countCache[k]; var i=_ccKeys.indexOf(k); if(i>=0)_ccKeys.splice(i,1); return undefined; }
+  return e.v; }
+function countCacheSet(k,v){ if(!(k in countCache)) _ccKeys.push(k);
+  countCache[k]={v:v,t:Date.now()};
+  while(_ccKeys.length>CC_MAX){ delete countCache[_ccKeys.shift()]; } }
+const ROWS=50;
 
 /* ===== CYCLE-10: PROGRAMMING DIRECTOR =====
    Replaces pure download-rank sampling — the root cause of every "one thing dominates"
@@ -1634,10 +1650,10 @@ async function pickIA(q){
   var st=pickStrategy();
   if(st.eraSlice) q=eraSliceQuery(q);
   var ck=st.sort+"|"+q; /* pool counts cached per sort+query */
-  var c=countCache[ck], firstDocs=null;
+  var c=countCacheGet(ck), firstDocs=null;
   if(c===undefined){
     var d0=await iaSearch(q,ROWS,1,st.sort);
-    c=d0.numFound||0; countCache[ck]=c; firstDocs=d0.docs;
+    c=d0.numFound||0; countCacheSet(ck,c); firstDocs=d0.docs;
   }
   if(!c) return null;
   var rows=Math.min(ROWS,c);

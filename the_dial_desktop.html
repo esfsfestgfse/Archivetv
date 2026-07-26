@@ -733,7 +733,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
 .apb-photo img{width:100%;height:100%;object-fit:contain}
 
 /* ============ cycle-8: Wildfire regional fire plot ============ */
-.wf-wrap{width:100%;height:100%;display:flex;background:radial-gradient(120% 80% at 50% 0%,#140b04,#0a0603 70%);color:#ffd7a0;box-sizing:border-box}
+.wf-wrap{position:relative;width:100%;height:100%;display:flex;background:radial-gradient(120% 80% at 50% 0%,#140b04,#0a0603 70%);color:#ffd7a0;box-sizing:border-box}
 .wf-map-box{flex:none;height:100%;aspect-ratio:1/1;max-width:56%;padding:10px;box-sizing:border-box}
 .wf-map{position:relative;width:100%;height:100%;border:2px solid #5a3a1f;border-radius:8px;overflow:hidden;
   background:repeating-linear-gradient(0deg,transparent 0 24px,rgba(255,200,120,.06) 24px 25px),
@@ -819,7 +819,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.77";
+window.__ATV_BUILD="1.7.7-desktop.78";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -853,7 +853,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.77</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.78</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">THE DIAL · THE SET</div>
@@ -1139,7 +1139,7 @@ const G={
  homemovietravel:{mt:"movies",col:["home_movies","prelinger"],fcol:[],subj:["home movies","amateur film","travelogue","travel film","travel","tourism"],era:[1935,1985]},
  autoracing:{mt:"movies",col:["prelinger","avgeeks","FedFlix"],fcol:["feature_films"],subj:["auto racing","motor racing","grand prix","indianapolis 500","stock car racing","hot rod","drag racing","sports car","le mans","automobile","cars","motoring"],subjRotate:true,subjRequired:true,not:FNOTX,era:[1930,1995]},
  railroad:{mt:"movies",col:["prelinger","avgeeks","FedFlix"],fcol:["feature_films"],subj:["railroad","train","locomotive","steam locomotive","railway","streamliner","diesel locomotive","rail transport"],subjRotate:true,subjRequired:true,not:FNOTX,era:[1930,1990]},
- aviationfilm:{mt:"movies",col:["prelinger","avgeeks","FedFlix"],fcol:["feature_films"],subj:["aviation","aircraft","airplane","aeroplane","aeronautics","flight","aviator","jet aircraft","airline","airliner","biplane"],subjRotate:true,subjRequired:true,not:FNOTX,era:[1930,1990]},
+ aviationfilm:{mt:"movies",col:["prelinger","avgeeks","FedFlix"],fcol:["feature_films"],subj:["aviation","aircraft","airplane","aeroplane","aeronautics","flight","aviator","jet aircraft","airline","airliner","biplane"],subjRotate:true,subjRequired:true,not:FNOTX.concat(["family","children","romance","drama","comedy","adventure","fantasy","musical","cartoon","animated"]),era:[1930,1990]}, /* QA: tightened not-list after soak confirmed "The Sky's The Limit" (family TV movie) bleeding in via "flight" subject match */
  concertrock:{mt:"audio",col:["etree"],fcol:[],subj:["rock","live","concert"],subjRequired:true,era:[1965,2015],dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
  gmhiphop:  {mt:"audio", col:["netlabels"], fcol:[], subj:["hip hop","hip-hop","rap","turntablism","boom bap","instrumental hip hop"], subjRequired:true, era:[1985,2025], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
  gmreggae:  {mt:"audio", col:["netlabels"], fcol:[], subj:["reggae","dub","ska","dancehall","roots reggae"], subjRequired:true, era:[1968,2025], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
@@ -1467,12 +1467,74 @@ const CHANNEL_META={
 "Test Pattern":{desc:"Color bars. Please stand by.",best:"sign-off",rel:["Channel 2 Network","Found Footage Static"]}
 };
 
+/* =====================================================================
+   PROGRAMMED CHANNELS 2.0 — per-channel editorial rules, deny lists, and
+   provider config. See the Programmed Channels audit (Phase 7) for the full
+   design rationale. Channels with a PROGRAM entry use it instead of G; channels
+   without one fall through to the existing G-based path unchanged.
+   Migration is incremental: add channels one at a time, G stays as fallback.
+   ===================================================================== */
+const PROGRAM = {
+  /* Vintage Commercials — proof-of-concept migration.
+     Root cause of bleed: G["commercials"] has subj:"commercial" which matches episode metadata
+     like "commercial break" and "commercial television". Combined with col:["classic_tv"]
+     (80% episodes), episodes leak in. The PROGRAM entry fixes this with:
+     - Tighter subjects (no bare "commercial")
+     - Runtime cap (reject anything over 300s at filter time)
+     - Per-channel deny list for episode-shaped metadata
+     - noBlindFallback so generic movies can never fill the channel */
+  "Vintage Commercials": {
+    genre: "commercials",
+    era: [1948, 1985],
+    providers: [
+      { collections: ["classic_tv","prelinger"], require_subj: ["television commercials","advertising","toy commercial","toy advertisement","vintage commercial","retro commercial","classic commercial","tv commercial"] }
+    ],
+    deny: {
+      title: ["episode","full episode","season","pilot","documentary","feature film","movie"],
+      subject: ["episode","full episode","situation comedy","sitcom","drama","soap opera"]
+    },
+    require: { runtime_max_s: 300 },
+    noBlindFallback: true,
+    subjRequired: true
+  }
+};
+
+/* Build queries from a PROGRAM entry instead of from G. Same shape output as buildQuery
+   so the rest of the pipeline (pickFromQueries, pickIA, choose) works unchanged. */
+function buildProgramQueries(prog) {
+  var era = prog.era || [1930, 1990];
+  var yr = "year:[" + era[0] + " TO " + era[1] + "]";
+  var mt = "movies";
+  var qs = [];
+  var deny = prog.deny || {};
+  var denySubj = (deny.subject || []).map(function(s) { return '"' + s + '"'; }).join(" OR ");
+  var NOT = denySubj ? (" AND NOT subject:(" + denySubj + ")") : "";
+  (prog.providers || []).forEach(function(prov) {
+    var cols = prov.collections || [];
+    var subjs = prov.require_subj || [];
+    if (subjs.length) {
+      var subjQ = subjs.map(function(s) { return '"' + s + '"'; }).join(" OR ");
+      cols.forEach(function(c) {
+        qs.push("collection:" + c + " AND subject:(" + subjQ + ") AND " + yr + NOT);
+      });
+      qs.push("mediatype:" + mt + " AND subject:(" + subjQ + ") AND " + yr + NOT);
+    }
+  });
+  return qs;
+}
+
 /* what's "on" for a channel at a given hour */
 function slotFor(ch,hour){
   const h=((hour%24)+24)%24, names=NS[ch.ns||"movie"];
   if(ch.source) return {show:names[h], source:ch.source};
   if(ch.profile){ const pn=seasonalProfileName(ch.profile); const pr=(PROFILES[pn]||PROFILES[ch.profile])[h]; const g=pr.g, era=ch.era||(G[g]&&G[g].era);
     return {show:pr.s, genre:g, era, source:"ia", queries:buildQuery(g,era)}; }
+  /* PROGRAMMED CHANNELS 2.0: if a PROGRAM entry exists for this channel, use it. */
+  if(PROGRAM[ch.nm]){
+    var prog=PROGRAM[ch.nm];
+    var pq=buildProgramQueries(prog);
+    return {show:names[h], genre:prog.genre||ch.gl, era:prog.era||ch.era, source:"ia", queries:pq, program:prog};
+  }
   const g=ch.gl; let era=ch.era||(G[g]&&G[g].era);
   if(ch.nm==="Sports Vault"&&sportsEra!=="all") era=SPORTS_ERAS[sportsEra]||era; /* 1.4.2 */
   return {show:names[h]+((ch.nm==="Sports Vault"&&sportsEra!=="all")?(" ("+sportsEra+")"):""), genre:g, era, source:"ia", queries:buildQuery(g,era)};
@@ -2113,6 +2175,19 @@ async function tuneIA(ch,sl,my){
   }
   for(let a=0;a<8;a++){ if(my!==token)return;
     const item=await pickFromQueries(queries); if(my!==token)return; if(!item)continue;
+    /* PROGRAMMED CHANNELS 2.0: deny-list filter. If this channel has a PROGRAM entry with
+       deny:{title:[...],subject:[...]}, reject items whose metadata matches before spending
+       the resolvePlayable fetch on them. The retry loop handles this naturally — rejected
+       items just burn one attempt, same as a missing file would. */
+    if(sl.program && sl.program.deny){
+      var pd=sl.program.deny;
+      var it_title=String(item.title||"").toLowerCase();
+      var it_subj=String(item.subject||item.subjects||"").toLowerCase();
+      var denied=false;
+      if(pd.title){ for(var di=0;di<pd.title.length;di++){ if(it_title.indexOf(pd.title[di].toLowerCase())>=0){denied=true;break;} } }
+      if(!denied&&pd.subject){ for(var dj=0;dj<pd.subject.length;dj++){ if(it_subj.indexOf(pd.subject[dj].toLowerCase())>=0){denied=true;break;} } }
+      if(denied){ nlog("program",true,"denied: "+it_title.slice(0,40)); continue; }
+    }
     const pl=await resolvePlayable(item.identifier); if(my!==token)return;
     if(pl){ pl.title=item.title||item.identifier; pl.year=item.year;
       if(await playFile(pl,ch,sl,my,a)) return; }
@@ -3305,12 +3380,13 @@ async function tuneAirport(ch,sl,my){
    as empty results, tags prescribed burns (RX), and plots fires on a 200-mi map. */
 async function tuneWildfire(ch,sl,my){
   if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Wildfire Watch","");
-  if(screenArea) screenArea.innerHTML='<div class="wf-wrap">'+
+  if(screenArea) screenArea.innerHTML='<div class="wf-wrap" id="wfWrap">'+
     '<div class="wf-map-box"><div class="wf-map" id="wfMap"><div class="wf-you"></div></div></div>'+
     '<div class="wf-side"><div class="dc-top"><span id="wfTitle">WILDFIRE WATCH / LOCATING...</span></div>'+
     '<div class="dc-list" id="dcList"></div>'+
     '<div class="dc-ticker">NIFC WFIGS / dot size = acres / RX = prescribed burn / TAP MAP TO ZOOM</div></div></div>';
   var rangeMi=200; /* CYCLE-9: click-to-zoom */
+  var wfBug=mountChanBug("wfWrap",{ident:"WILDFIRE WATCH"});
   var mp0=$("wfMap"); if(mp0){ mp0.style.cursor="pointer"; mp0.title="Tap to toggle range";
     mp0.addEventListener("click",function(){ rangeMi=(rangeMi===200?400:200); quickBanner("MAP RANGE: "+rangeMi+" MI"); run(); }); }
   var BASE="https://services3.arcgis.com/T4QMspbfLg3qTGWY/arcgis/rest/services/WFIGS_Incident_Locations_Current/FeatureServer/0/query";
@@ -3365,8 +3441,10 @@ async function tuneWildfire(ch,sl,my){
       /* guide status: nearby count and the closest / largest headline */
       if(rows.length){
         var r0=rows[0], acres=r0.ac!=null?Math.round(r0.ac).toLocaleString()+"ac":"";
-        setChanStatus(ch.num, (nearby?rows.length+" nearby · ":"nat'l: ")+(r0.n||"unnamed")+(acres?(" · "+acres):""));
-      } else setChanStatus(ch.num, "all quiet");
+        var statusTxt=(nearby?rows.length+" nearby · ":"nat'l: ")+(r0.n||"unnamed")+(acres?(" · "+acres):"");
+        setChanStatus(ch.num, statusTxt);
+        if(wfBug) wfBug.update(nearby?rows.length+" fire"+(rows.length===1?"":"s")+" nearby":(r0.n||"nationwide"), acres||(r0.pct!=null?(r0.pct+"% contained"):"active"));
+      } else { setChanStatus(ch.num, "all quiet"); if(wfBug) wfBug.update("All quiet","no active incidents"); }
       buildMap(nearby?rows:[],loc,rangeMi);
       if(!rows.length){ listEl.innerHTML='<div class="pop-empty">No active wildland fire incidents reported anywhere. Remarkable.</div>'; return; }
       listEl.innerHTML=rows.slice(0,10).map(function(r){

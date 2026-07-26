@@ -819,7 +819,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.80";
+window.__ATV_BUILD="1.7.7-desktop.81";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -853,7 +853,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.80</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.81</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">THE DIAL · THE SET</div>
@@ -1496,6 +1496,272 @@ const PROGRAM = {
     require: { runtime_max_s: 300 },
     noBlindFallback: true,
     subjRequired: true
+  },
+
+  "Live Concerts": {
+    genre: "concertrock", era: [1960, 2020],
+    providers: [{"collections": ["etree", "audio_music"], "require_subj": ["live concert", "live music", "live performance", "concert", "live recording", "bootleg", "live show"]}],
+    deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture", "studio"]},
+    subjRequired: true, noBlindFallback: true
+  },
+
+  "Rock": {
+    genre: "gmrock", era: [1955, 2010],
+    providers: [{"collections": ["etree", "audio_music"], "require_subj": ["rock", "rock music", "rock and roll", "alternative rock", "indie rock", "punk rock", "hard rock", "classic rock", "garage rock"]}],
+    deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture", "classical", "jazz"]},
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  "Contemporary Jazz": {
+    genre: "gmjazzmod", era: [1970, 2020],
+    providers: [{"collections": ["etree", "audio_music"], "require_subj": ["jazz", "fusion", "contemporary jazz", "smooth jazz", "jazz fusion", "post-bop", "acid jazz", "nu jazz"]}],
+    deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture", "rock", "pop"]},
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  "Contemporary Blues": {
+    genre: "gmbluesmod", era: [1970, 2020],
+    providers: [{"collections": ["etree", "audio_music"], "require_subj": ["blues", "modern blues", "contemporary blues", "blues rock", "electric blues", "slide guitar"]}],
+    deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture"]},
+    subjRequired: true, noBlindFallback: true
+  },
+
+  "Hip-Hop": {
+    genre: "gmhiphop", era: [1979, 2020],
+    providers: [{"collections": ["etree", "audio_music", "opensource_audio"], "require_subj": ["hip hop", "hip-hop", "rap", "MC", "turntablism", "beatbox", "freestyle"]}],
+    deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture", "jazz", "classical"]},
+    subjRequired: true, noBlindFallback: true
+  },
+
+  "Reggae & Dub": {
+    genre: "gmreggae", era: [1960, 2020],
+    providers: [{"collections": ["etree", "audio_music"], "require_subj": ["reggae", "dub", "ska", "dancehall", "roots reggae", "rocksteady"]}],
+    deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture"]},
+    subjRequired: true, noBlindFallback: true
+  },
+
+  "Punk": {
+    genre: "gmpunk", era: [1975, 2020],
+    providers: [{"collections": ["etree", "audio_music"], "require_subj": ["punk", "punk rock", "hardcore", "hardcore punk", "post-punk", "pop punk", "anarcho-punk"]}],
+    deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture", "classical", "jazz"]},
+    subjRequired: true, noBlindFallback: true
+  },
+
+  "Metal": {
+    genre: "gmmetal", era: [1970, 2020],
+    providers: [{"collections": ["etree", "audio_music"], "require_subj": ["metal", "heavy metal", "thrash metal", "death metal", "black metal", "doom metal", "power metal", "progressive metal"]}],
+    deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture", "jazz", "classical"]},
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  "Electronic": {
+    genre: "gmelectro", era: [1970, 2020],
+    providers: [{"collections": ["etree", "audio_music"], "require_subj": ["electronic", "electronic music", "techno", "house", "ambient", "IDM", "drum and bass", "dubstep", "trance", "synth"]}],
+    deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture"]},
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  "Funk & Soul": {
+    genre: "gmfunk", era: [1960, 2010],
+    providers: [{"collections": ["etree", "audio_music"], "require_subj": ["funk", "soul", "soul music", "motown", "R&B", "rhythm and blues", "disco", "funk music"]}],
+    deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture"]},
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  "Comedy": {
+    genre: "standup", era: [1950, 2020],
+    providers: [{"collections": ["etree", "audio_music", "opensource_audio"], "require_subj": ["stand-up comedy", "standup", "comedy", "comedian", "comedy album", "comic", "humor", "sketch comedy"]}],
+    deny: {"subject": ["podcast", "music", "concert", "rock", "jazz", "classical", "lecture"]},
+    subjRequired: true, noBlindFallback: true
+  },
+
+  "Modern Country": {
+    genre: "gmcountrymod", era: [1980, 2020],
+    providers: [{"collections": ["etree", "audio_music"], "require_subj": ["country", "modern country", "alt-country", "country rock", "Americana", "new country", "Nashville"]}],
+    deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture"]},
+    subjRequired: true, noBlindFallback: true
+  },
+
+  "Field Recordings": {
+    genre: "fieldrec", era: [1900, 2020],
+    providers: [{"collections": ["audio_music", "opensource_audio"], "require_subj": ["field recording", "sound recording", "nature sounds", "ambient recording", "environmental sound", "soundscape", "ethnographic recording"]}],
+    deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture", "music", "concert"]},
+    subjRequired: true, noBlindFallback: true
+  },
+
+  "Sunday Service": {
+    genre: "faith", era: [1930, 2000],
+    providers: [{"collections": ["spiritualityandreligion"], "require_subj": ["christianity", "sermon", "gospel", "catholic", "judaism", "jewish", "islam", "muslim", "buddhism", "buddhist", "hinduism", "hindu", "sikh", "meditation", "spirituality", "worship", "religion", "religious film"]}, {"collections": ["feature_films", "prelinger", "classic_tv"], "require_subj": ["christianity", "sermon", "gospel", "catholic", "judaism", "jewish", "islam", "muslim", "buddhism", "buddhist", "hinduism", "hindu", "sikh", "meditation", "spirituality", "worship", "religion", "religious film"]}],
+    deny: {"subject": ["comedy", "horror", "thriller", "crime", "western", "science fiction"]},
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  "Aviation": {
+    genre: "aviationfilm", era: [1930, 1990],
+    providers: [{"collections": ["prelinger", "avgeeks", "FedFlix"], "require_subj": ["aviation", "aircraft", "airplane", "aeroplane", "aeronautics", "flight", "aviator", "jet aircraft", "airline", "airliner", "biplane"]}, {"collections": ["feature_films"], "require_subj": ["aviation", "aircraft", "airplane", "aeronautics", "aviator", "jet aircraft", "airline"]}],
+    deny: {"title": ["family", "children"], "subject": ["family", "children", "romance", "drama", "comedy", "adventure", "fantasy", "musical", "cartoon", "animated"]},
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  "Bluegrass & Folk": {
+    genre: "gmfolk", era: [1920, 2010],
+    providers: [{"collections": ["etree", "audio_music"], "require_subj": ["bluegrass", "folk", "folk music", "acoustic", "fiddle", "banjo", "mandolin", "folk rock", "traditional", "americana"]}],
+    deny: {"subject": ["podcast", "talk show", "comedy", "spoken word", "audiobook", "lecture"]},
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  "Jazz": {
+    genre: "gmjazz", era: [1920, 1969],
+    providers: [{"collections": ["etree", "audio_music"], "require_subj": ["jazz", "bebop", "swing", "big band", "cool jazz", "hard bop", "free jazz", "modal jazz", "dixieland"]}],
+    deny: {"subject": ["podcast", "talk show", "comedy", "spoken word", "audiobook", "lecture", "rock", "pop"]},
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  "Blues": {
+    genre: "gmblues", era: [1920, 1969],
+    providers: [{"collections": ["etree", "audio_music"], "require_subj": ["blues", "delta blues", "chicago blues", "electric blues", "blues rock", "rhythm and blues", "R&B"]}],
+    deny: {"subject": ["podcast", "talk show", "comedy", "spoken word", "audiobook", "lecture"]},
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  "Swing & Big Band": {
+    genre: "gmswing", era: [1930, 1955],
+    providers: [{"collections": ["etree", "audio_music", "78rpm"], "require_subj": ["swing", "big band", "dance band", "orchestra", "ballroom", "foxtrot", "jitterbug", "swing music"]}],
+    deny: {"subject": ["podcast", "talk show", "comedy", "spoken word", "audiobook", "rock", "punk"]},
+    subjRequired: true, noBlindFallback: true
+  },
+
+  "Country & Western": {
+    genre: "gmcountry", era: [1920, 1979],
+    providers: [{"collections": ["etree", "audio_music"], "require_subj": ["country", "country music", "western", "honky tonk", "outlaw country", "country western", "hillbilly", "Nashville"]}],
+    deny: {"subject": ["podcast", "talk show", "comedy", "spoken word", "audiobook", "lecture"]},
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  "Gospel": {
+    genre: "gmgospel", era: [1920, 2000],
+    providers: [{"collections": ["etree", "audio_music"], "require_subj": ["gospel", "gospel music", "spiritual", "hymn", "choir", "praise", "worship music", "sacred music"]}],
+    deny: {"subject": ["podcast", "talk show", "comedy", "spoken word", "audiobook", "sermon"]},
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  "Latin": {
+    genre: "gmlatin", era: [1940, 2010],
+    providers: [{"collections": ["etree", "audio_music"], "require_subj": ["latin", "salsa", "bossa nova", "cumbia", "mambo", "tango", "latin jazz", "samba", "merengue", "bachata", "reggaeton"]}],
+    deny: {"subject": ["podcast", "talk show", "comedy", "spoken word", "audiobook", "lecture"]},
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  "Ragtime": {
+    genre: "gmragtime", era: [1895, 1930],
+    providers: [{"collections": ["78rpm", "audio_music"], "require_subj": ["ragtime", "rag", "stride piano", "piano roll", "joplin", "ragtime music"]}],
+    deny: {"subject": ["podcast", "talk show", "comedy", "spoken word", "lecture"]},
+    subjRequired: true, noBlindFallback: true
+  },
+
+  "Classical": {
+    genre: "gmclassical", era: [1900, 2010],
+    providers: [{"collections": ["etree", "audio_music", "78rpm"], "require_subj": ["classical", "orchestra", "symphony", "concerto", "sonata", "opera", "chamber music", "classical music", "baroque", "romantic"]}],
+    deny: {"subject": ["podcast", "talk show", "comedy", "spoken word", "audiobook", "rock", "pop", "jazz"]},
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  "Vintage Pop": {
+    genre: "gmpop", era: [1920, 1969],
+    providers: [{"collections": ["78rpm", "audio_music"], "require_subj": ["pop", "popular music", "crooner", "vocal", "easy listening", "standard", "torch song"]}],
+    deny: {"subject": ["podcast", "talk show", "comedy", "spoken word", "audiobook", "lecture"]},
+    subjRequired: true, noBlindFallback: true
+  },
+
+  "Jukebox 78": {
+    genre: "jazz78", era: [1900, 1960],
+    providers: [{"collections": ["78rpm", "78rpm_bostonpubliclibrary"], "require_subj": ["78rpm", "78 rpm", "shellac", "gramophone", "phonograph", "78", "victrola"]}],
+    deny: {"subject": ["podcast", "talk show", "spoken word", "lecture", "audiobook"]},
+    subjRequired: true, noBlindFallback: true
+  },
+
+  "Podcasts": {
+    genre: "podcasts", era: [2004, 2025],
+    providers: [{"collections": ["podcasts", "opensource_audio"], "require_subj": ["podcast", "talk", "interview", "discussion", "commentary", "radio show"]}],
+    deny: {"subject": ["music", "song", "album", "concert", "live performance"]},
+    subjRequired: true, noBlindFallback: true
+  },
+
+  "Fallout Radio": {
+    genre: "radiofallout", era: [1948, 1965],
+    providers: [{"collections": ["78rpm", "audio_music"], "require_subj": ["atomic age", "cold war", "1950s", "doo wop", "rockabilly", "early rock", "rock and roll", "crooner", "easy listening"]}],
+    deny: {"subject": ["podcast", "talk show", "spoken word", "lecture", "audiobook"]},
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  "Music Films": {
+    genre: "musicfilm", era: [1940, 1979],
+    providers: [{"collections": ["feature_films", "classic_tv"], "require_subj": ["musical", "music film", "musical film", "concert film", "music", "band", "orchestra", "singing", "dancer"]}],
+    deny: {"title": ["newsreel", "commercial", "educational", "training"], "subject": ["newsreel", "commercial", "educational", "training", "instructional", "documentary"]},
+    subjRequired: true, noBlindFallback: true
+  },
+
+  "Anime Alley": {
+    genre: "anime", era: [1960, 2005],
+    providers: [{"collections": ["animationandcartoons", "anime"], "require_subj": ["anime", "japanese animation", "manga", "mecha", "shonen", "shojo", "tokusatsu", "OVA"]}],
+    deny: {"title": ["AMV", "music video", "tribute", "trailer", "fan edit"], "subject": ["AMV", "fan video", "music video", "tribute", "review"]},
+    subjRequired: true, noBlindFallback: true
+  },
+
+  "Arcade Archive": {
+    genre: "arcade", era: [1975, 2005],
+    providers: [{"collections": ["arcade_films", "internetarcade"], "require_subj": ["video game", "arcade", "gameplay", "retro gaming", "classic game", "8-bit", "16-bit", "console", "arcade game"]}],
+    deny: {"title": ["review", "unboxing", "haul"], "subject": ["review", "unboxing", "podcast", "talk show"]},
+    subjRequired: true, noBlindFallback: true
+  },
+
+  "Modern Cartoons": {
+    genre: "cartoonmodern", era: [1970, 2005],
+    providers: [{"collections": ["animationandcartoons", "classic_tv", "television"], "require_subj": ["cartoon", "animated", "animation", "animated series", "cartoon series", "animated film"]}],
+    deny: {"title": ["educational", "training", "safety", "live action"], "subject": ["educational", "training", "safety", "live action", "documentary", "newsreel"]},
+    subjRequired: true, noBlindFallback: true
+  },
+
+  "Found Footage Static": {
+    genre: "foundfootage", era: [1920, 2000],
+    providers: [{"collections": ["prelinger", "home_movies", "opensource_movies"], "require_subj": ["found footage", "test pattern", "film leader", "countdown", "static", "glitch", "experimental film", "avant garde", "abstract film"]}],
+    deny: {"title": ["feature film", "hollywood", "studio production"], "subject": ["feature film", "hollywood", "studio", "commercial"]},
+    subjRequired: true, noBlindFallback: true
+  },
+
+  "Computer Chronicles": {
+    genre: "computer", era: [1975, 2005],
+    providers: [{"collections": ["computerchronicles", "classic_tv", "television"], "require_subj": ["computer", "computing", "software", "hardware", "internet", "technology", "digital", "programming", "silicon valley", "personal computer", "PC"]}],
+    deny: {"title": ["cartoon", "comedy", "sitcom", "drama"], "subject": ["cartoon", "comedy", "sitcom", "drama", "romance", "horror"]},
+    subjRequired: true, noBlindFallback: true
+  },
+
+  "Manufacturing Marvels": {
+    genre: "manufacturing", era: [1930, 1980],
+    providers: [{"collections": ["prelinger", "FedFlix"], "require_subj": ["manufacturing", "factory", "industrial", "assembly line", "production", "machinery", "steel", "automobile manufacturing"]}],
+    deny: {"title": ["home movie", "vacation", "family film"], "subject": ["home movie", "vacation", "family", "comedy", "romance"]},
+    subjRequired: true, noBlindFallback: true
+  },
+
+  "Home Economics": {
+    genre: "testkitchen", era: [1930, 1975],
+    providers: [{"collections": ["prelinger", "FedFlix"], "require_subj": ["home economics", "cooking", "baking", "kitchen", "household", "homemaker", "domestic", "nutrition", "food preparation"]}],
+    deny: {"title": ["industrial", "factory", "military"], "subject": ["industrial", "factory", "military", "weapons", "combat"]},
+    subjRequired: true, noBlindFallback: true
+  },
+
+  "Auto Racing": {
+    genre: "autoracing", era: [1930, 1990],
+    providers: [{"collections": ["prelinger", "FedFlix", "feature_films"], "require_subj": ["auto racing", "automobile racing", "car racing", "motor racing", "NASCAR", "Indianapolis", "Formula One", "Grand Prix", "drag racing", "stock car"]}],
+    deny: {"title": ["home movie", "family film", "comedy", "cartoon"], "subject": ["home movie", "family", "comedy", "cartoon", "animated", "educational"]},
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  "Railroad": {
+    genre: "railroad", era: [1930, 1990],
+    providers: [{"collections": ["prelinger", "FedFlix", "feature_films"], "require_subj": ["railroad", "railway", "train", "locomotive", "steam engine", "diesel locomotive", "rail", "railway station", "freight train", "passenger train"]}],
+    deny: {"title": ["home movie", "farm", "family film", "vacation"], "subject": ["home movie", "farm", "family", "vacation", "comedy", "cartoon"]},
+    subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
   /* Classic Rerun TV — audit flagged: no subjRequired, so tier 2 fires blind into

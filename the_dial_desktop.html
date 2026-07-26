@@ -819,7 +819,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.81";
+window.__ATV_BUILD="1.7.7-desktop.82";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -853,7 +853,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.81</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.82</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">THE DIAL · THE SET</div>
@@ -8011,11 +8011,12 @@ async function tuneAurora(ch,sl,my){
 }
 async function tuneQuake(ch,sl,my){
   if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Earthquake Bulletin","");
-  if(screenArea) screenArea.innerHTML='<div class="wf-wrap" style="background:radial-gradient(120% 80% at 50% 0%,#04101c,#020810 70%);color:#cfe0ff">'+
+  if(screenArea) screenArea.innerHTML='<div class="wf-wrap" id="eqWrap" style="background:radial-gradient(120% 80% at 50% 0%,#04101c,#020810 70%);color:#cfe0ff">'+
     '<div class="wf-map-box"><div class="wf-map" id="eqMap" style="border-color:#1f3a5a"></div></div>'+
     '<div class="wf-side"><div class="dc-top"><span>EARTHQUAKE BULLETIN / M2.5+ / TAP A QUAKE TO RECENTER</span></div>'+
     '<div class="dc-list" id="dcList"></div>'+
     '<div class="dc-news" id="quakeNews" style="display:none"></div></div></div>';
+  var eqBug=mountChanBug("eqWrap",{ident:"EARTHQUAKE BULLETIN"});
   clearInterval(quakeTimer); var autoNews=false, eqFeats=[], eqRange=300, eqSel=0;
   function buildEqMap(){
     var m=$("eqMap"); if(!m||!eqFeats.length)return;
@@ -8066,6 +8067,7 @@ async function tuneQuake(ch,sl,my){
       if(top && top.properties){
         var pp=top.properties;
         setChanStatus(ch.num, "M"+pp.mag.toFixed(1)+" · "+String(pp.place||"unknown location").slice(0,30));
+        if(eqBug) eqBug.update("M"+pp.mag.toFixed(1)+" "+String(pp.place||"").slice(0,25), feats.length+" quakes 24hr");
       }
       eqFeats=feats; if(eqSel>=feats.length)eqSel=0;
       if(!feats.length){ listEl.innerHTML='<div class="pop-empty">No M2.5+ earthquakes in the last 24 hours worldwide.</div>'; return; }

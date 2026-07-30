@@ -43,17 +43,17 @@ body{
 /* ============ TV CONSOLE ============ */
 
 
-.console::before{content:"";position:absolute;inset:0;border-radius:18px 18px 12px 12px;pointer-events:none;opacity:.5;
+.console::before{content:"";position:absolute;inset:0;border-radius:10px;pointer-events:none;opacity:.3;
   background:repeating-linear-gradient(90deg,transparent 0 4px,rgba(0,0,0,.05) 4px 5px)}
-.console-legs{position:absolute;left:0;right:0;bottom:-16px;height:18px;display:flex;justify-content:space-between;padding:0 26px}
-.console-legs i{width:16px;height:18px;background:linear-gradient(180deg,#2f1d10,#150c06);border-radius:0 0 4px 4px}
+.console-legs{display:none} /* hidden for thin-bezel layout */
 
 
 
 /* CRT tube */
-.tube{position:relative;background:#000;border-radius:14px/20px;overflow:hidden;
-  border:12px solid #0c0c0c;aspect-ratio:4/3;--ident-flash:transparent;
-  box-shadow:inset 0 0 60px rgba(0,0,0,.9),0 0 0 3px #2a2a2a, 0 0 34px rgba(103,255,134,.10)}
+.tube{position:relative;background:#000;border-radius:8px;overflow:hidden;
+  border:6px solid #0c0c0c;--ident-flash:transparent;
+  /* QA: removed aspect-ratio:4/3 — screen now fills available height. Thinned border from 12px to 6px. */
+  box-shadow:inset 0 0 60px rgba(0,0,0,.9),0 0 0 2px #2a2a2a, 0 0 34px rgba(103,255,134,.10)}
 .curve{position:absolute;inset:0;z-index:30;pointer-events:none;border-radius:14px/20px;
   background:radial-gradient(120% 120% at 50% 50%,transparent 58%,rgba(0,0,0,.6) 100%)}
 .grille{position:absolute;inset:0;z-index:29;pointer-events:none;mix-blend-mode:overlay;opacity:.06;
@@ -415,8 +415,12 @@ html.mob .gsearch-wrap{padding:0 12px 6px}
     linear-gradient(180deg, #4d331c 0%, #3a2614 70%, #2a1b0e 100%);height:100vh;justify-content:center;overflow:hidden}
 /* stage width is now driven by the tube's 4:3 height budget, so the picture is as big as the window allows */
 .stage{position:relative;z-index:2;width:100%;max-width:min(1800px,calc((100vh - 146px)*1.3333 + 344px));display:grid;grid-template-columns:1fr 150px;gap:14px;align-items:end} /* CYCLE-6: EXTRAS panel gone -> narrower side column, wider tube */
-.console{background:linear-gradient(180deg,var(--wood-l),var(--wood) 30%,var(--wood-d));border-radius:18px 18px 12px 12px;padding:12px 14px 10px;border:2px solid #241509;position:relative;box-shadow:0 26px 50px rgba(0,0,0,.6), inset 0 2px 0 rgba(255,255,255,.08)}
-.set{display:grid;grid-template-columns:1fr 46px;gap:10px;align-items:stretch}
+.console{background:linear-gradient(180deg,var(--wood-l),var(--wood) 30%,var(--wood-d));border-radius:10px;padding:5px;border:2px solid #241509;position:relative;box-shadow:0 26px 50px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.08)}
+/* QA: console padding shrunk from 12px/14px/10px to 5px — "thin wooden bezel" per user request.
+   The wood grain is still visible as a border but no longer eats screen real estate. */
+.set{display:grid;grid-template-columns:1fr 46px;gap:6px;align-items:stretch;height:calc(100vh - 100px)}
+/* QA: set now has an explicit height so the tube fills the viewport minus header/footer,
+   since the tube no longer has aspect-ratio:4/3 constraining it. */
 .grille{width:24px;flex:1;margin:4px 0;border-radius:5px;background:repeating-linear-gradient(0deg,#0c0c0c 0 3px,#2a2a2a 3px 5px)}
 .knob{width:29px;height:29px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#d8c7a0,#7a5a32 70%,#3a2a18);border:2px solid #1a1109;box-shadow:0 2px 4px rgba(0,0,0,.5);margin:6px 0;position:relative}
 .remote{width:150px;background:linear-gradient(180deg,#2b2b2b,#161616);border-radius:15px;padding:9px 9px 11px;border:2px solid #000;box-shadow:0 18px 30px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.08)}
@@ -5874,10 +5878,56 @@ function tuneRotator(ch,sl,my,subs,secs){
   }
   step();
 }
-function tuneAirTraffic(ch,sl,my){ return tuneRotator(ch,sl,my,[
-  function(m){ return tuneSkyTraffic(ch,sl,m); },
-  function(m){ return tuneAirport(ch,sl,m); }
-],24); }
+function tuneAirTraffic(ch,sl,my){
+  /* Combined Air Traffic view: radar scope + aircraft list + field conditions on one screen
+     instead of rotating between two separate views. */
+  if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Air Traffic","");
+  if(screenArea) screenArea.innerHTML='<div class="sky-wrap">'+
+    '<div class="sky-scope-box"><div class="sky-scope" id="skyScope"></div></div>'+
+    '<div class="sky-side">'+
+      '<div class="dc-top"><span id="skyTitle">AIR TRAFFIC / ACQUIRING...</span></div>'+
+      '<div class="dc-list" id="dcList" style="gap:4px;flex:1 1 auto;min-height:0;overflow-y:auto"></div>'+
+      '<div id="apbWxMini" style="flex:0 0 auto;max-height:35%;overflow-y:auto;border-top:1px solid rgba(103,255,134,.15);padding-top:4px"></div>'+
+      '<div class="dc-ticker">LIVE ADS-B / 8s updates \u00b7 field METAR conditions \u00b7 TAP SCOPE TO ZOOM</div>'+
+    '</div></div>';
+  /* --- Sky Traffic (radar + aircraft list) --- */
+  var rangeMi=50, loc=null, mp=null, acsMap={};
+  tuneSkyTraffic(ch,sl,my);
+  /* --- Field conditions (METAR mini-board inside the sidebar) --- */
+  (async function(){
+    try{
+      var wxLoc=await getWxLocation(); if(my!==token)return;
+      var near=await nearbyAirports(wxLoc,8); if(my!==token)return;
+      var fields=near.length?near:TX_AIRPORTS;
+      var wxEl=$("apbWxMini"); if(!wxEl)return;
+      async function refreshWx(){
+        if(my!==token)return;
+        var rows=[];
+        for(var i=0;i<Math.min(fields.length,10);i++){
+          var f=fields[i];
+          try{
+            var md=await withTO(fetch("https://aviationweather.gov/api/data/metar?ids="+f.icao+"&format=json").then(function(r){return r.json();}),8000);
+            if(my!==token)return;
+            var m=(md&&md[0])||{};
+            var vis=m.visib!=null?m.visib+"mi":"--";
+            var wind=m.wspd!=null?(["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"][Math.round((m.wdir||0)/22.5)%16]||"")+" "+m.wspd:"--";
+            var cat=m.fltcat||"--";
+            var catClr=cat==="VFR"?"#67ff86":cat==="MVFR"?"#7fb4ff":cat==="IFR"?"#ff5c4d":"#ffd34d";
+            var temp=m.temp!=null?Math.round(m.temp*9/5+32)+"\u00b0F":"--";
+            rows.push('<div style="display:flex;gap:6px;padding:2px 4px;font:700 10px/1.3 monospace;border-bottom:1px solid rgba(255,255,255,.06)">'+
+              '<span style="color:#ffd34d;min-width:32px">'+f.icao+'</span>'+
+              '<span style="color:'+catClr+';min-width:28px">'+cat+'</span>'+
+              '<span style="color:#9fd6a6;flex:1">'+wind+'</span>'+
+              '<span style="color:#cfe0ff">'+temp+'</span></div>');
+          }catch(e){ rows.push('<div style="display:flex;gap:6px;padding:2px 4px;font:700 10px/1.3 monospace"><span style="color:#ffd34d">'+f.icao+'</span><span style="color:#666">--</span></div>'); }
+        }
+        if(wxEl) wxEl.innerHTML='<div style="font:700 9px/1 monospace;letter-spacing:1px;color:#9fd6a6;padding:2px 4px;margin-bottom:2px">FIELD CONDITIONS</div>'+rows.join("");
+      }
+      refreshWx();
+      var wxIv=setInterval(function(){ if(my!==token){clearInterval(wxIv);return;} refreshWx(); }, 5*60*1000);
+    }catch(e){}
+  })();
+}
 function tuneSeismic(ch,sl,my){ return tuneRotator(ch,sl,my,[
   function(m){ return tuneVolcano(ch,sl,m); },
   function(m){ return tuneQuake(ch,sl,m); }

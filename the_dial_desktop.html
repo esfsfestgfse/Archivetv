@@ -819,7 +819,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.83";
+window.__ATV_BUILD="1.7.7-desktop.84";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -853,7 +853,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.83</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.84</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">THE DIAL · THE SET</div>
@@ -7642,7 +7642,12 @@ async function tuneHF(ch,sl,my){
       '<div class="dc-sub" id="hfForecast" style="font-size:10px">Loading NOAA data\u2026</div>'+
     '</div>'+
     '<div id="hfPicker" class="catnav" style="flex:0 0 auto;padding:6px 8px"></div>'+
-    '<div id="hfFrame" style="flex:1 1 auto;min-height:0;background:#000"></div>'+
+    '<div id="hfFrame" style="flex:1 1 auto;min-height:0;background:#000;position:relative">'+
+      '<div id="hfLoadMsg" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#67ff86;font:600 11px/1.4 monospace;text-align:center;padding:20px;pointer-events:none">'+
+        '<div style="font-size:14px;letter-spacing:1px">TUNING RECEIVER\u2026</div>'+
+        '<div style="color:#9fd6a6;font-size:9px">WebSDR receivers are volunteer-run and may be at capacity.<br>If no audio appears, try another receiver from the buttons above.</div>'+
+      '</div>'+
+    '</div>'+
     '<div class="dc-ticker" id="hfTicker">NOAA SWPC conditions \u00b7 rx.kiwisdr.com live receivers, volunteer-run \u2014 if one\u2019s full, try another</div>'+
     '</div>';
   var pickerEl=$("hfPicker"), frameEl=$("hfFrame");
@@ -7884,7 +7889,15 @@ async function tuneISS(ch,sl,my){
       }
       nlog("iss",true,(lat||0).toFixed(1)+","+(lon||0).toFixed(1));
     }catch(e){ nlog("iss",false,(e&&e.message)||e);
-      var cEl2=$("issCoords"); if(cEl2)cEl2.textContent="SIGNAL UNAVAILABLE \u2014 RETRYING"; }
+      var cEl2=$("issCoords"); if(cEl2)cEl2.textContent="SIGNAL UNAVAILABLE \u2014 RETRYING";
+      var listEl2=$("dcList"); if(listEl2&&!listEl2.innerHTML.trim()) listEl2.innerHTML=
+        '<div class="dc-top" style="padding-top:4px">ISS FACTS WHILE WE RECONNECT</div>'+
+        '<div class="dc-row2"><div class="dc-row2-main"><span class="dc-place">Orbits Earth every ~92 minutes at 17,500 mph</span></div></div>'+
+        '<div class="dc-row2"><div class="dc-row2-main"><span class="dc-place">Altitude: ~254 miles (408 km) above sea level</span></div></div>'+
+        '<div class="dc-row2"><div class="dc-row2-main"><span class="dc-place">Wingspan: 356 feet \u2014 larger than a football field</span></div></div>'+
+        '<div class="dc-row2"><div class="dc-row2-main"><span class="dc-place">First module launched: November 20, 1998</span></div></div>'+
+        '<div class="dc-row2"><div class="dc-row2-main"><span class="dc-place">Continuously crewed since November 2, 2000</span></div></div>'+
+        '<div class="dc-row2"><div class="dc-row2-main"><span class="dc-place">Visible from Earth as a bright moving star near twilight</span></div></div>'; }
   };
   run(); issTimer=rtInterval(run,10000);
 }

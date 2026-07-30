@@ -8029,7 +8029,6 @@ async function tuneAurora(ch,sl,my){
           return '<div class="dc-row2"><div class="dc-row2-main"><span class="dc-mag '+tagCls+'">'+typeTag+'</span><span class="dc-place">'+esch(summary.slice(0,100))+'</span></div></div>';
         }).join(""):'<div class="pop-empty">No active geomagnetic storm watches or warnings right now.</div>';
       }
-      }
       nlog("aurora",true,"Kp "+(isNaN(kp)?"?":kp));
     }catch(e){ nlog("aurora",false,(e&&e.message)||e);
       var statusEl2=$("auroraStatus"); if(statusEl2)statusEl2.textContent="NOAA data unavailable right now \u2014 will retry."; }

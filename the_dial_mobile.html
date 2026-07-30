@@ -6561,7 +6561,12 @@ async function tuneSpace(ch,sl,my){
       var res=await Promise.all([
         fetchJSON("https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json").catch(function(){return null;}),
         fetchJSON("https://services.swpc.noaa.gov/products/solar-wind/plasma-1-day.json").catch(function(){return null;}),
-        fetchJSON("https://api.wheretheiss.at/v1/satellites/25544").catch(function(){return null;}),
+        fetchJSON("https://api.wheretheiss.at/v1/satellites/25544").catch(function(){
+          /* fallback: open-notify has a simpler API but different shape — normalize it */
+          return fetchJSON("https://api.open-notify.org/iss-now.json").then(function(d){
+            var p=(d&&d.iss_position)||{}; return {latitude:parseFloat(p.latitude),longitude:parseFloat(p.longitude),altitude:408,velocity:28000,visibility:"unknown"};
+          }).catch(function(){return null;});
+        }),
         fetchJSON("https://api.sunrise-sunset.org/json?lat="+loc.lat+"&lng="+loc.lon+"&formatted=0").catch(function(){return null;})
       ]);
       var kpRows=(res[0]||[]).slice(1); var lastKp=kpRows.length?kpRows[kpRows.length-1]:null;

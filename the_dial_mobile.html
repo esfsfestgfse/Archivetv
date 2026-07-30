@@ -535,13 +535,14 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
 .dc-tabs{flex:none;display:flex;gap:5px;justify-content:center;padding:6px 0 0}
 .dc-tab{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.2)}
 .dc-tab.on{background:var(--phos);box-shadow:0 0 6px var(--phos)}
-.dc-body{flex:1;min-height:0;display:flex;flex-direction:column;gap:6px;padding:8px 12px;justify-content:center}
+.dc-body{flex:1;min-height:0;display:flex;flex-direction:column;gap:8px;padding:10px 14px;justify-content:flex-start}
 .dc-top{flex:none;font-size:clamp(11px,1.8vmin,18px);letter-spacing:2px;color:#9ad6a8}
-.dc-hero{flex:none;font-size:9vmin;font-weight:bold;line-height:1.05;text-shadow:0 0 18px rgba(103,255,134,.4)}
-.dc-sub{flex:none;font-size:clamp(13px,2.2vmin,22px);color:#dff}
-.dc-stats{flex:none;display:grid;grid-template-columns:repeat(2,1fr);gap:3px 14px;margin-top:2px}
-.dc-stat{font-size:clamp(12px,2vmin,20px);color:#bfe;display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.08);padding-bottom:2px}
-.dc-stat b{color:#7fb38f;font-weight:normal;letter-spacing:.5px;font-size:clamp(9px,1.5vmin,15px)}
+.dc-hero{flex:none;font-size:clamp(36px,10vmin,80px);font-weight:bold;line-height:1.05;text-shadow:0 0 18px rgba(103,255,134,.4);margin-top:4px}
+.dc-sub{flex:none;font-size:clamp(14px,2.4vmin,24px);color:#dff;margin-bottom:4px}
+.dc-stats{flex:none;display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:6px 18px;margin-top:4px;padding:8px 0;border-top:1px solid rgba(103,255,134,.12);border-bottom:1px solid rgba(103,255,134,.12)}
+.dc-stat{font-size:clamp(13px,2.2vmin,22px);color:#bfe;display:flex;flex-direction:column;gap:2px;padding:4px 0}
+.dc-stat b{color:#7fb38f;font-weight:700;letter-spacing:1px;font-size:clamp(8px,1.3vmin,12px);text-transform:uppercase}
+.dc-extra{flex:1 1 auto;min-height:0;overflow-y:auto;padding-top:6px;font:500 clamp(11px,1.8vmin,16px)/1.5 monospace;color:#9fd6a6}
 .dc-ticker{flex:none;font-size:clamp(11px,1.9vmin,19px);letter-spacing:.3px;color:var(--amber);background:rgba(0,0,0,.4);
   padding:4px 9px;border-radius:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:auto}
 .dc-list{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:5px}
@@ -965,7 +966,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.120";
+window.__ATV_BUILD="1.7.7-mobile.121";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -999,7 +1000,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.120</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.121</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -6598,14 +6599,14 @@ function moonPhaseInfo(date){ // simple synodic-month approximation — accurate
 }
 function fmtLocalTime(iso){ try{return new Date(iso).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});}catch(e){return "--";} }
 function fmtDuration(sec){ if(sec==null)return "--"; var h=Math.floor(sec/3600), m=Math.round((sec%3600)/60); return h+"h "+m+"m"; }
-function renderDcBody(opts){ // shared renderer for the hero+stats+ticker data-channel layout (consolidation)
+function renderDcBody(opts){ // shared renderer for the hero+stats+ticker data-channel layout
   var body=$("dcBody"); if(!body)return;
-  var stats=(opts.stats||[]).map(function(s){return '<div class="dc-stat"><b>'+s[0]+'</b>'+s[1]+'</div>';}).join("");
+  var stats=(opts.stats||[]).map(function(s){return '<div class="dc-stat"><b>'+s[0]+'</b><span>'+s[1]+'</span></div>';}).join("");
   body.innerHTML='<div class="dc-top"><span>'+opts.title+'</span></div>'+
     (opts.hero!=null?'<div class="dc-hero">'+opts.hero+'</div>':'')+
     (opts.sub!=null?'<div class="dc-sub">'+opts.sub+'</div>':'')+
     (stats?'<div class="dc-stats">'+stats+'</div>':'')+
-    (opts.extra||'')+
+    (opts.extra?'<div class="dc-extra">'+opts.extra+'</div>':'')+
     (opts.ticker!=null?'<div class="dc-ticker">'+opts.ticker+'</div>':'');
   var tkE=body.querySelector(".dc-ticker"); if(tkE&&tkE.querySelector(".wx-tk-in"))tickerize(tkE); /* 1.3.5 */
 }

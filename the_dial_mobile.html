@@ -965,7 +965,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.117";
+window.__ATV_BUILD="1.7.7-mobile.118";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -999,7 +999,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.117</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.118</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -4992,7 +4992,13 @@ function showTropImg(){
   var img=w.querySelector("img"), tries=[e.u].concat(e.alt?[e.alt]:[]), i=0;
   function bust(u){ return u+(u.indexOf("?")<0?"?":"&")+"_="+Math.floor(Date.now()/300000); }
   img.onerror=function(){ i++; if(i<tries.length) img.src=bust(tries[i]);
-    else { var cp=w.querySelector(".dc-media-cap"); if(cp)cp.textContent="IMAGERY TEMPORARILY UNAVAILABLE - rotating..."; } };
+    else {
+      w.innerHTML='<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:radial-gradient(ellipse at 50% 40%,#0a1a3a,#020810);padding:20px">'+
+        '<div style="font:700 12px/1.3 monospace;letter-spacing:1px;color:#4a8aff;text-align:center">'+esch(e.c)+'</div>'+
+        '<div style="font:600 10px/1.4 monospace;color:#6a9acc;text-align:center;max-width:80%">SATELLITE IMAGE TEMPORARILY UNAVAILABLE<br>NOAA imagery rotates every 15 seconds \u2014 next source loading shortly</div>'+
+        '<div style="width:60px;height:2px;background:linear-gradient(90deg,transparent,#4a8aff,transparent);border-radius:1px"></div>'+
+      '</div><div class="dc-media-cap">'+esch(e.c)+' \u2014 RETRYING</div>';
+    } };
   img.src=bust(tries[0]);
 }
 
@@ -6533,6 +6539,7 @@ function renderDcBody(opts){ // shared renderer for the hero+stats+ticker data-c
     (opts.hero!=null?'<div class="dc-hero">'+opts.hero+'</div>':'')+
     (opts.sub!=null?'<div class="dc-sub">'+opts.sub+'</div>':'')+
     (stats?'<div class="dc-stats">'+stats+'</div>':'')+
+    (opts.extra||'')+
     (opts.ticker!=null?'<div class="dc-ticker">'+opts.ticker+'</div>':'');
   var tkE=body.querySelector(".dc-ticker"); if(tkE&&tkE.querySelector(".wx-tk-in"))tickerize(tkE); /* 1.3.5 */
 }
@@ -6601,7 +6608,15 @@ function renderSpacePage(){
     var windDens=d.windDensity!=null?d.windDensity.toFixed(1)+" p/cm\u00b3":"--";
     var windTemp=d.windTemp!=null?Math.round(d.windTemp/1000)+"K":"--";
     renderDcBody({title:"SPACE WEATHER", hero:"Kp "+kpTxt, sub:kpLevel+(d.kp>=5?" \u00b7 aurora possible at high latitudes":""),
-      stats:[["SOLAR WIND",(d.windSpeed!=null?d.windSpeed+" km/s":"--")],["DENSITY",windDens],["TEMP",windTemp],["GEOMAGNETIC",kpLevel]], ticker:"NOAA SWPC \u00b7 next: ISS Tracker"});
+      stats:[["SOLAR WIND",(d.windSpeed!=null?d.windSpeed+" km/s":"--")],["DENSITY",windDens],["TEMP",windTemp],["GEOMAGNETIC",kpLevel]],
+      extra:'<div style="padding:8px 12px;margin-top:6px;font:500 10px/1.5 monospace;color:rgba(159,214,166,.7);border-top:1px solid rgba(103,255,134,.1)">'+
+        '<div style="margin-bottom:4px;font-weight:700;color:#9fd6a6">KP INDEX SCALE</div>'+
+        '<div>Kp 0\u20132: <span style="color:#67ff86">QUIET</span> \u2014 no aurora visible from mid-latitudes</div>'+
+        '<div>Kp 3\u20134: <span style="color:#ffd34d">UNSETTLED</span> \u2014 aurora possible at high latitudes (55\u00b0+)</div>'+
+        '<div>Kp 5\u20136: <span style="color:#ff8c4d">MINOR STORM</span> \u2014 aurora visible from northern US/UK</div>'+
+        '<div>Kp 7\u20139: <span style="color:#ff5c4d">MAJOR STORM</span> \u2014 aurora visible from mid-latitudes, possible GPS disruption</div>'+
+        '</div>',
+      ticker:"NOAA SWPC \u00b7 next: ISS Tracker"});
   } else if(spacePage===1){
     var iss=d.iss;
     var dist=(iss&&d.loc)?Math.round(haversineKm(d.loc.lat,d.loc.lon,iss.latitude,iss.longitude)*0.621371):null;
@@ -6609,11 +6624,26 @@ function renderSpacePage(){
     renderDcBody({title:"ISS TRACKER", hero:(iss?iss.latitude.toFixed(1)+'\u00b0, '+iss.longitude.toFixed(1)+'\u00b0':'--'),
       sub:(iss?(iss.visibility==="daylight"?"In sunlight \u2014 may be visible near twilight":"In Earth\u2019s shadow"):"Acquiring position\u2026"),
       stats:[["ALTITUDE",(iss?Math.round(iss.altitude*0.621371)+" mi":"--")],["SPEED",(iss?Math.round(iss.velocity*0.621371)+" mph":"--")],["FROM YOU",(dist!=null?dist+" mi":"--")],["ORBITS/DAY","~"+orbitsPerDay]],
+      extra:'<div style="padding:8px 12px;margin-top:6px;font:500 10px/1.5 monospace;color:rgba(159,214,166,.7);border-top:1px solid rgba(103,255,134,.1)">'+
+        '<div style="margin-bottom:4px;font-weight:700;color:#9fd6a6">ISS FACTS</div>'+
+        '<div>Mass: ~420,000 kg (925,000 lb) \u2014 largest structure in orbit</div>'+
+        '<div>Wingspan: 109m (356 ft) \u2014 larger than a football field</div>'+
+        '<div>Pressurized volume: 916 m\u00b3 (32,333 ft\u00b3)</div>'+
+        '<div>First module: Zarya, launched Nov 20, 1998</div>'+
+        '<div>Continuously crewed since Nov 2, 2000</div>'+
+        '</div>',
       ticker:"wheretheiss.at \u00b7 next: Tonight\u2019s Sky"});
   } else {
     var sun=d.sun, moon=moonPhaseInfo(new Date());
     renderDcBody({title:"TONIGHT\u2019S SKY", hero:moon.name, sub:moon.pct+"% illuminated"+(moon.pct>85?" \u2014 bright moon, poor stargazing":""),
       stats:[["SUNRISE",(sun?fmtLocalTime(sun.sunrise):"--")],["SUNSET",(sun?fmtLocalTime(sun.sunset):"--")],["DAY LENGTH",(sun?fmtDuration(sun.day_length):"--")],["MOON AGE",moon.age!=null?moon.age.toFixed(1)+" days":"--"]],
+      extra:'<div style="padding:8px 12px;margin-top:6px;font:500 10px/1.5 monospace;color:rgba(159,214,166,.7);border-top:1px solid rgba(103,255,134,.1)">'+
+        '<div style="margin-bottom:4px;font-weight:700;color:#9fd6a6">TONIGHT\u2019S VIEWING</div>'+
+        '<div>Best viewing: 45\u201390 min after sunset or before sunrise</div>'+
+        '<div>New/crescent moon = darkest skies, best for faint objects</div>'+
+        '<div>Full/gibbous moon = bright skies, only planets and bright stars visible</div>'+
+        '<div>Light pollution: face away from city centers, allow 15 min for eyes to adapt</div>'+
+        '</div>',
       ticker:(d.loc?esch(d.loc.label):"")+" \u00b7 next: Space Weather"});
   }
 }

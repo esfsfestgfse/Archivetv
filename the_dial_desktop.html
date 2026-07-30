@@ -823,7 +823,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.86";
+window.__ATV_BUILD="1.7.7-desktop.87";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -857,7 +857,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.86</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.87</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">THE DIAL · THE SET</div>
@@ -1533,15 +1533,18 @@ const PROGRAM = {
 
   "Hip-Hop": {
     genre: "gmhiphop", era: [1979, 2020],
-    providers: [{"collections": ["etree", "audio_music", "opensource_audio"], "require_subj": ["hip hop", "hip-hop", "rap", "MC", "turntablism", "beatbox", "freestyle"]}],
-    deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture", "jazz", "classical"]},
+    providers: [
+      {"collections": ["opensource_audio"], "require_subj": ["hip hop", "hip-hop", "rap", "MC", "turntablism", "beatbox", "freestyle"]},
+      {"collections": ["etree", "audio_music"], "require_subj": ["hip hop", "hip-hop", "rap", "nerdcore", "turntablism"]}
+    ],
+    deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture", "jazz", "classical", "reggae", "jam","jamband","jam band","grateful dead","jerry garcia","phish","widespread panic","string cheese","cheese incident","ween","moe.","umphrey","disco biscuits","ratdog","leftover salmon","donna the buffalo","radiators","mr. blotto","maradeen","vince welnick"]},
     subjRequired: true, noBlindFallback: true
   },
 
   "Reggae & Dub": {
     genre: "gmreggae", era: [1960, 2020],
     providers: [{"collections": ["etree", "audio_music"], "require_subj": ["reggae", "dub", "ska", "dancehall", "roots reggae", "rocksteady"]}],
-    deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture"]},
+    deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture", "rock", "funk", "jam","jamband","jam band","grateful dead","jerry garcia","phish","widespread panic","string cheese","cheese incident","ween","moe.","umphrey","disco biscuits","ratdog","leftover salmon","donna the buffalo","radiators","mr. blotto","maradeen","vince welnick"]},
     subjRequired: true, noBlindFallback: true
   },
 
@@ -1634,8 +1637,10 @@ const PROGRAM = {
 
   "Swing & Big Band": {
     genre: "gmswing", era: [1930, 1955],
-    providers: [{"collections": ["etree", "audio_music", "78rpm"], "require_subj": ["swing", "big band", "dance band", "orchestra", "ballroom", "foxtrot", "jitterbug", "swing music"]}],
-    deny: {"subject": ["podcast", "talk show", "comedy", "spoken word", "audiobook", "rock", "punk"]},
+    providers: [{"collections": ["78rpm", "airellebigbandarchive"], "require_subj": ["swing", "big band", "dance band", "ballroom", "foxtrot", "jitterbug", "swing music"]},
+      {"collections": ["etree", "audio_music"], "require_subj": ["swing", "big band", "dance band", "swing music"]}
+    ],
+    deny: {"subject": ["podcast", "talk show", "comedy", "spoken word", "audiobook", "rock", "punk", "classical", "concerto", "sonata", "opera", "symphony", "jam","jamband","jam band","grateful dead","jerry garcia","phish","widespread panic","string cheese","cheese incident","ween","moe.","umphrey","disco biscuits","ratdog","leftover salmon","donna the buffalo","radiators","mr. blotto","maradeen","vince welnick"]},
     subjRequired: true, noBlindFallback: true
   },
 
@@ -1669,8 +1674,11 @@ const PROGRAM = {
 
   "Classical": {
     genre: "gmclassical", era: [1900, 2010],
-    providers: [{"collections": ["etree", "audio_music", "78rpm"], "require_subj": ["classical", "orchestra", "symphony", "concerto", "sonata", "opera", "chamber music", "classical music", "baroque", "romantic"]}],
-    deny: {"subject": ["podcast", "talk show", "comedy", "spoken word", "audiobook", "rock", "pop", "jazz"]},
+    providers: [
+      {"collections": ["78rpm", "album_recordings"], "require_subj": ["classical", "orchestra", "symphony", "concerto", "sonata", "opera", "chamber music", "baroque"]},
+      {"collections": ["etree", "audio_music"], "require_subj": ["classical", "orchestra", "symphony", "concerto", "sonata", "opera"]}
+    ],
+    deny: {"subject": ["podcast", "talk show", "comedy", "spoken word", "audiobook", "rock", "pop", "jazz", "ethnic", "folk", "latin", "blues", "funk", "jam","jamband","jam band","grateful dead","jerry garcia","phish","widespread panic","string cheese","cheese incident","ween","moe.","umphrey","disco biscuits","ratdog","leftover salmon","donna the buffalo","radiators","mr. blotto","maradeen","vince welnick"]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
@@ -1736,7 +1744,7 @@ const PROGRAM = {
   "Found Footage Static": {
     genre: "foundfootage", era: [1920, 2000],
     providers: [{"collections": ["prelinger", "home_movies", "opensource_movies"], "require_subj": ["found footage", "test pattern", "film leader", "countdown", "static", "glitch", "experimental film", "avant garde", "abstract film"]}],
-    deny: {"title": ["feature film", "hollywood", "studio production"], "subject": ["feature film", "hollywood", "studio", "commercial"]},
+    deny: {"title": ["feature film", "hollywood", "studio production", "fellini", "8½"], "subject": ["feature film", "hollywood", "studio", "commercial", "comedy drama", "Federico Fellini", "Italian"]},
     subjRequired: true, noBlindFallback: true
   },
 
@@ -1770,8 +1778,11 @@ const PROGRAM = {
 
   "Railroad": {
     genre: "railroad", era: [1930, 1990],
-    providers: [{"collections": ["prelinger", "FedFlix", "feature_films"], "require_subj": ["railroad", "railway", "train", "locomotive", "steam engine", "diesel locomotive", "rail", "railway station", "freight train", "passenger train"]}],
-    deny: {"title": ["home movie", "farm", "family film", "vacation"], "subject": ["home movie", "farm", "family", "vacation", "comedy", "cartoon"]},
+    providers: [
+      {"collections": ["prelinger", "FedFlix", "opensource_movies"], "require_subj": ["railroad", "railway", "train", "locomotive", "steam engine", "diesel locomotive", "rail", "freight train", "passenger train", "rail fan", "railfan"]},
+      {"collections": ["feature_films"], "require_subj": ["railroad", "railway", "train", "locomotive"]}
+    ],
+    deny: {"title": ["home movie", "farm", "family film", "vacation", "rio lobo", "john wayne"], "subject": ["home movie", "farm", "family", "vacation", "comedy", "cartoon", "western", "cowboy"]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 

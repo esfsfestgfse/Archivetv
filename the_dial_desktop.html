@@ -823,7 +823,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.85";
+window.__ATV_BUILD="1.7.7-desktop.86";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -857,7 +857,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.85</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.86</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">THE DIAL · THE SET</div>
@@ -1491,11 +1491,12 @@ const PROGRAM = {
     genre: "commercials",
     era: [1948, 1985],
     providers: [
+      { collections: ["classic_tv_commercials"], require_subj: ["commercial","commercials","advertising","tv commercial","television commercial"] },
       { collections: ["classic_tv","prelinger"], require_subj: ["television commercials","advertising","toy commercial","toy advertisement","vintage commercial","retro commercial","classic commercial","tv commercial"] }
     ],
     deny: {
-      title: ["episode","full episode","season","pilot","documentary","feature film","movie"],
-      subject: ["episode","full episode","situation comedy","sitcom","drama","soap opera"]
+      title: ["show","program","episode","full episode","season","pilot","documentary","feature film","movie","series"],
+      subject: ["episode","full episode","situation comedy","sitcom","drama","soap opera","tv show","television series","music","pop music"]
     },
     require: { runtime_max_s: 300 },
     noBlindFallback: true,
@@ -1574,8 +1575,11 @@ const PROGRAM = {
 
   "Comedy": {
     genre: "standup", era: [1950, 2020],
-    providers: [{"collections": ["etree", "audio_music", "opensource_audio"], "require_subj": ["stand-up comedy", "standup", "comedy", "comedian", "comedy album", "comic", "humor", "sketch comedy"]}],
-    deny: {"subject": ["podcast", "music", "concert", "rock", "jazz", "classical", "lecture"]},
+    providers: [
+      {"collections": ["comedy_recordings","stand-up_comedy"], "require_subj": ["stand-up comedy","standup","comedian","comedy album","sketch comedy","comic","humor"]},
+      {"collections": ["opensource_audio","audio_music"], "require_subj": ["stand-up comedy","standup","comedian","comedy album","sketch comedy"]}
+    ],
+    deny: {"title": ["live at","live on","concert","festival","band","trio","quartet"], "subject": ["live concert","jam","jamband","jam band","punk","garage","rock","metal","funk","electronic","reggae","blues","folk","indie","alternative","psychedelic","brass band","hip-hop","hip hop"]},
     subjRequired: true, noBlindFallback: true
   },
 
@@ -1637,15 +1641,15 @@ const PROGRAM = {
 
   "Country & Western": {
     genre: "gmcountry", era: [1920, 1979],
-    providers: [{"collections": ["etree", "audio_music"], "require_subj": ["country", "country music", "western", "honky tonk", "outlaw country", "country western", "hillbilly", "Nashville"]}],
-    deny: {"subject": ["podcast", "talk show", "comedy", "spoken word", "audiobook", "lecture"]},
+    providers: [{"collections": ["etree", "audio_music", "78rpm"], "require_subj": ["country", "country music", "honky tonk", "outlaw country", "country western", "hillbilly", "bluegrass"]}],
+    deny: {"title": ["elvis costello"], "subject": ["podcast", "talk show", "comedy", "spoken word", "audiobook", "lecture", "punk", "new wave", "post-punk", "alternative", "indie"]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
   "Gospel": {
     genre: "gmgospel", era: [1920, 2000],
-    providers: [{"collections": ["etree", "audio_music"], "require_subj": ["gospel", "gospel music", "spiritual", "hymn", "choir", "praise", "worship music", "sacred music"]}],
-    deny: {"subject": ["podcast", "talk show", "comedy", "spoken word", "audiobook", "sermon"]},
+    providers: [{"collections": ["etree", "audio_music", "78rpm", "lomaxky"], "require_subj": ["gospel", "gospel music", "spiritual", "hymn", "choir", "praise", "worship music", "sacred music", "sacred song"]}],
+    deny: {"subject": ["podcast", "talk show", "comedy", "spoken word", "audiobook", "jam", "jamband", "rock", "grateful dead", "jerry garcia", "blues", "funk", "psychedelic"]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
@@ -1714,9 +1718,12 @@ const PROGRAM = {
 
   "Arcade Archive": {
     genre: "arcade", era: [1975, 2005],
-    providers: [{"collections": ["arcade_films", "internetarcade"], "require_subj": ["video game", "arcade", "gameplay", "retro gaming", "classic game", "8-bit", "16-bit", "console", "arcade game"]}],
-    deny: {"title": ["review", "unboxing", "haul"], "subject": ["review", "unboxing", "podcast", "talk show"]},
-    subjRequired: true, noBlindFallback: true
+    providers: [
+      {"collections": ["game_replays"], "require_subj": ["arcade","gameplay","Atari","Nintendo","Sega","Namco","Capcom","retro gaming","classic game"]},
+      {"collections": ["opensource_movies"], "require_subj": ["arcade","gameplay","video game","retro gaming","classic game","8-bit","16-bit"]}
+    ],
+    deny: {"title": ["review","unboxing","haul","let's play","walkthrough","tutorial"], "subject": ["review","unboxing","podcast","talk show","let's play","walkthrough"]},
+    subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
   "Modern Cartoons": {
@@ -1837,8 +1844,8 @@ const PROGRAM = {
       { collections: ["prelinger"], require_subj: ["newsreel","documentary film","historic footage","actuality film","government film"] }
     ],
     deny: {
-      title: ["cartoon","comedy short","musical","song","dance"],
-      subject: ["cartoon","animated","comedy","musical","entertainment","fiction","feature film"]
+      title: ["cartoon","comedy short","musical","song","dance","YTP","bloopers","blooper","poop","spider-man","biography"],
+      subject: ["cartoon","animated","comedy","musical","entertainment","fiction","feature film","MARVEL","Spider-Man","bloopers","BBC News Bloopers","biography","tv series"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
@@ -1908,8 +1915,8 @@ const PROGRAM = {
 
   "Christmas Channel": {
     genre: "xmas", era: [1930, 1990],
-    providers: [{"collections": ["feature_films", "classic_tv", "SciFi_Horror", "animationandcartoons"], "require_subj": ["christmas", "xmas", "holiday", "santa claus", "yuletide", "christmas special", "christmas carol"]}],
-    deny: {"title": ["halloween", "horror", "scary"], "subject": ["halloween", "horror"]},
+    providers: [{"collections": ["feature_films", "classic_tv", "SciFi_Horror", "animationandcartoons"], "require_subj": ["christmas", "xmas", "santa claus", "yuletide", "christmas special", "christmas carol", "scrooge"]}],
+    deny: {"title": ["halloween", "horror", "scary", "holiday in spain", "holiday inn"], "subject": ["halloween", "horror"]},
     subjRequired: true, noBlindFallback: true
   },
 
@@ -1957,8 +1964,10 @@ const PROGRAM = {
 
   "Sports Vault": {
     genre: "sportsvault", era: [1920, 2000],
-    providers: [{"collections": ["prelinger", "FedFlix", "feature_films"], "require_subj": ["sports", "athletic", "boxing", "baseball", "football", "basketball", "olympic", "wrestling", "racing", "tennis", "golf", "swimming"]}],
-    deny: {"title": ["cartoon", "animated", "comedy short"], "subject": ["cartoon", "animated", "comedy", "educational", "instructional"]},
+    providers: [
+      {"collections": ["prelinger", "FedFlix", "feature_films"], "require_subj": ["sports", "athletic", "boxing", "baseball", "football", "basketball", "olympic", "wrestling", "racing", "tennis", "golf", "swimming"]}
+    ],
+    deny: {"title": ["home movie", "home movies", "family film", "vacation", "farm", "christmas", "wedding"], "subject": ["home movies", "prelinger", "family", "vacation", "farm", "christmas", "wedding", "cartoon", "animated", "comedy", "educational", "instructional", "public broadcasting"]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
   }
 };

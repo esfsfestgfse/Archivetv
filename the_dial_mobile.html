@@ -966,7 +966,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.121";
+window.__ATV_BUILD="1.7.7-mobile.122";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1000,7 +1000,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.121</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.122</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -4544,6 +4544,12 @@ async function tuneAir(ch,sl,my){
                ["PM10",(c.pm10!=null?c.pm10.toFixed(1)+" \u00b5g/m\u00b3":"--")],
                ["OZONE",(c.ozone!=null?Math.round(c.ozone)+" \u00b5g/m\u00b3":"--")],
                ["RAGWEED",polWord(c.ragweed_pollen)],["GRASS",polWord(c.grass_pollen)],["TREE (BIRCH)",polWord(c.birch_pollen)]],
+        extra:'<div style="font-weight:700;color:#9fd6a6;margin-bottom:4px">AQI SCALE</div>'+
+          '<div><span style="color:#67ff86">0\u201350 GOOD</span> \u2014 air quality is satisfactory</div>'+
+          '<div><span style="color:#ffd34d">51\u2013100 MODERATE</span> \u2014 acceptable for most people</div>'+
+          '<div><span style="color:#ff8c4d">101\u2013150 UNHEALTHY (SENSITIVE)</span> \u2014 limit prolonged outdoor exertion</div>'+
+          '<div><span style="color:#ff5c4d">151\u2013200 UNHEALTHY</span> \u2014 everyone may experience effects</div>'+
+          '<div><span style="color:#cc33cc">201\u2013300 VERY UNHEALTHY</span> \u2014 health alert, reduce outdoor activity</div>',
         ticker:'<span class="wx-tk-in">'+esch((c.us_aqi!=null&&c.us_aqi>100)?"AIR QUALITY ADVISORY \u2014 sensitive groups should limit prolonged outdoor exertion":"Air quality is acceptable \u2014 enjoy the outdoors \u00b7 data: Open-Meteo")+'</span>'});
     }catch(e){ nlog("air",false,(e&&e.message)||e);
       renderDcBody({title:"AIR & ALLERGY",hero:"--",sub:"Air quality service unavailable",ticker:"will retry"}); }
@@ -4628,10 +4634,24 @@ async function tuneTides(ch,sl,my){
         if(fu){ var fc=await fetchJSON(fu); var per=fc&&fc.properties&&fc.properties.periods&&fc.properties.periods[0];
           if(per) fcTxt=per.name+": "+per.detailedForecast; }
       }catch(e2){ nlog("tides",false,"coastal forecast: "+((e2&&e2.message)||e2)); }
+      /* build upcoming tides list for extra panel */
+      var upcomingHtml='';
+      if(preds&&preds.length>1){
+        upcomingHtml='<div style="font-weight:700;color:#9fd6a6;margin-bottom:4px">UPCOMING TIDES</div>';
+        preds.slice(0,8).forEach(function(p){
+          var isHi=p.type==="H";
+          var clr=isHi?"#7fb4ff":"#67ff86";
+          upcomingHtml+='<div style="display:flex;gap:8px;padding:2px 0;border-bottom:1px solid rgba(255,255,255,.05)">'+
+            '<span style="color:'+clr+';min-width:36px;font-weight:700">'+(isHi?"HIGH":"LOW")+'</span>'+
+            '<span>'+ft(p)+'</span>'+
+            '<span style="color:#9fd6a6;margin-left:auto">'+new Date(p.t).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})+'</span></div>';
+        });
+      }
       renderDcBody({title:"TIDE & MARINE / NEAREST COAST",
         hero:(next.hi?"HIGH":"LOW")+" "+ft(next),
         sub:esch(used.name)+" / "+used.dist.toFixed(0)+" mi from you / datum MLLW",
         stats:stats,
+        extra:upcomingHtml,
         ticker:fcTxt?('<span class="wx-tk-in">'+esch("COASTAL FORECAST - "+fcTxt)+'</span>'):"NOAA CO-OPS tide predictions / coastal forecast unavailable"});
     }catch(e){ nlog("tides",false,(e&&e.message)||e);
       renderDcBody({title:"TIDE & MARINE", hero:"--", sub:"Tide service unavailable", ticker:esch((e&&e.message)||"unknown error")+" - will retry"}); }
@@ -6570,9 +6590,18 @@ async function tunePDDay(ch,sl,my){
   var render=function(){
     if(my!==token||!powered){clearInterval(pdTimer);return;}
     var d=pdDayInfo();
+    var extraHtml='<div style="font-weight:700;color:#9fd6a6;margin-bottom:6px">HOW PUBLIC DOMAIN WORKS</div>'+
+      '<div>In the US, works published 95+ years ago enter the public domain on January 1st each year.</div>'+
+      '<div style="margin-top:8px;font-weight:700;color:#9fd6a6">WHAT THIS MEANS FOR ARCHIVE TV</div>'+
+      '<div>Every movie, cartoon, newsreel, and song on this app is here because its copyright expired. '+
+      'On Jan 1, '+d.nextJan1Year+', everything published in '+d.enteringYear+' becomes free \u2014 '+
+      'new silent films, jazz recordings, newspaper archives, and early talkies join the library.</div>'+
+      '<div style="margin-top:8px;font-weight:700;color:#9fd6a6">NOTABLE '+d.justEnteredYear+' WORKS (NOW PUBLIC DOMAIN)</div>'+
+      '<div>Films, music, books, and art from '+d.justEnteredYear+' are now free to watch, share, and remix worldwide.</div>';
     renderDcBody({title:"PUBLIC DOMAIN DAY COUNTDOWN", hero:d.daysLeft+" day"+(d.daysLeft===1?"":"s"),
       sub:"until "+d.enteringYear+" works enter the public domain",
-      stats:[["NEXT PD DAY","Jan 1, "+d.nextJan1Year],["MOST RECENT",d.justEnteredYear+" works (this year)"]],
+      stats:[["NEXT PD DAY","Jan 1, "+d.nextJan1Year],["MOST RECENT",d.justEnteredYear+" works (this year)"],["COPYRIGHT TERM","95 years"],["CLOCK","ticking"]],
+      extra:extraHtml,
       ticker:"U.S. copyright term: 95 years from publication \u00b7 the whole reason this app has anything to play"});
   };
   render(); pdTimer=rtInterval(render,60000);

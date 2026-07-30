@@ -6098,10 +6098,56 @@ function tuneRotator(ch,sl,my,subs,secs){
   }
   step();
 }
-function tuneAirTraffic(ch,sl,my){ return tuneRotator(ch,sl,my,[
-  function(m){ return tuneSkyTraffic(ch,sl,m); },
-  function(m){ return tuneAirport(ch,sl,m); }
-],24); }
+function tuneAirTraffic(ch,sl,my){
+  /* Combined Air Traffic view: radar scope + aircraft list + field conditions on one screen
+     instead of rotating between two separate views. */
+  if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Air Traffic","");
+  if(screenArea) screenArea.innerHTML='<div class="sky-wrap">'+
+    '<div class="sky-scope-box"><div class="sky-scope" id="skyScope"></div></div>'+
+    '<div class="sky-side">'+
+      '<div class="dc-top"><span id="skyTitle">AIR TRAFFIC / ACQUIRING...</span></div>'+
+      '<div class="dc-list" id="dcList" style="gap:4px;flex:1 1 auto;min-height:0;overflow-y:auto"></div>'+
+      '<div id="apbWxMini" style="flex:0 0 auto;max-height:35%;overflow-y:auto;border-top:1px solid rgba(103,255,134,.15);padding-top:4px"></div>'+
+      '<div class="dc-ticker">LIVE ADS-B / 8s updates \u00b7 field METAR conditions \u00b7 TAP SCOPE TO ZOOM</div>'+
+    '</div></div>';
+  /* --- Sky Traffic (radar + aircraft list) --- */
+  var rangeMi=50, loc=null, mp=null, acsMap={};
+  tuneSkyTraffic(ch,sl,my);
+  /* --- Field conditions (METAR mini-board inside the sidebar) --- */
+  (async function(){
+    try{
+      var wxLoc=await getWxLocation(); if(my!==token)return;
+      var near=await nearbyAirports(wxLoc,8); if(my!==token)return;
+      var fields=near.length?near:TX_AIRPORTS;
+      var wxEl=$("apbWxMini"); if(!wxEl)return;
+      async function refreshWx(){
+        if(my!==token)return;
+        var rows=[];
+        for(var i=0;i<Math.min(fields.length,10);i++){
+          var f=fields[i];
+          try{
+            var md=await withTO(fetch("https://aviationweather.gov/api/data/metar?ids="+f.icao+"&format=json").then(function(r){return r.json();}),8000);
+            if(my!==token)return;
+            var m=(md&&md[0])||{};
+            var vis=m.visib!=null?m.visib+"mi":"--";
+            var wind=m.wspd!=null?(["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"][Math.round((m.wdir||0)/22.5)%16]||"")+" "+m.wspd:"--";
+            var cat=m.fltcat||"--";
+            var catClr=cat==="VFR"?"#67ff86":cat==="MVFR"?"#7fb4ff":cat==="IFR"?"#ff5c4d":"#ffd34d";
+            var temp=m.temp!=null?Math.round(m.temp*9/5+32)+"\u00b0F":"--";
+            rows.push('<div style="display:flex;gap:6px;padding:2px 4px;font:700 10px/1.3 monospace;border-bottom:1px solid rgba(255,255,255,.06)">'+
+              '<span style="color:#ffd34d;min-width:32px">'+f.icao+'</span>'+
+              '<span style="color:'+catClr+';min-width:28px">'+cat+'</span>'+
+              '<span style="color:#9fd6a6;flex:1">'+wind+'</span>'+
+              '<span style="color:#cfe0ff">'+temp+'</span></div>');
+          }catch(e){ rows.push('<div style="display:flex;gap:6px;padding:2px 4px;font:700 10px/1.3 monospace"><span style="color:#ffd34d">'+f.icao+'</span><span style="color:#666">--</span></div>'); }
+        }
+        if(wxEl) wxEl.innerHTML='<div style="font:700 9px/1 monospace;letter-spacing:1px;color:#9fd6a6;padding:2px 4px;margin-bottom:2px">FIELD CONDITIONS</div>'+rows.join("");
+      }
+      refreshWx();
+      var wxIv=setInterval(function(){ if(my!==token){clearInterval(wxIv);return;} refreshWx(); }, 5*60*1000);
+    }catch(e){}
+  })();
+}
 function tuneSeismic(ch,sl,my){ return tuneRotator(ch,sl,my,[
   function(m){ return tuneVolcano(ch,sl,m); },
   function(m){ return tuneQuake(ch,sl,m); }

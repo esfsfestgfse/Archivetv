@@ -819,7 +819,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.82";
+window.__ATV_BUILD="1.7.7-desktop.83";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -853,7 +853,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.82</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.83</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">THE DIAL · THE SET</div>
@@ -6344,7 +6344,11 @@ async function tuneSpace(ch,sl,my){
       var windRows=(res[1]||[]).slice(1).filter(function(r){return r&&r[2]!=null&&r[2]!=="";});
       var lastWind=windRows.length?windRows[windRows.length-1]:null;
       var windSpeed=lastWind?Math.round(parseFloat(lastWind[2])):null;
-      spaceData={kp:kpVal,windSpeed:windSpeed,iss:res[2]||null,sun:(res[3]&&res[3].results)||null,loc:loc};
+      var windDensity=lastWind?parseFloat(lastWind[1]):null;
+      var windTemp=lastWind?parseFloat(lastWind[3]):null;
+      if(windDensity!=null&&isNaN(windDensity)) windDensity=null;
+      if(windTemp!=null&&isNaN(windTemp)) windTemp=null;
+      spaceData={kp:kpVal,windSpeed:windSpeed,windDensity:windDensity,windTemp:windTemp,iss:res[2]||null,sun:(res[3]&&res[3].results)||null,loc:loc};
       if(my!==token)return;
       nlog("space",true,"kp="+kpVal);
       var kpDesc=kpVal==null?"--":kpVal<3?"quiet":kpVal<5?"unsettled":kpVal<7?"minor storm":"major storm";
@@ -6362,19 +6366,22 @@ function renderSpacePage(){
   if(spacePage===0){
     var kpTxt=(d.kp!=null&&!isNaN(d.kp))?d.kp.toFixed(2):"--";
     var kpLevel=(d.kp==null||isNaN(d.kp))?"--":(d.kp>=7?"STORM":d.kp>=5?"ACTIVE":d.kp>=4?"UNSETTLED":"QUIET");
+    var windDens=d.windDensity!=null?d.windDensity.toFixed(1)+" p/cm\u00b3":"--";
+    var windTemp=d.windTemp!=null?Math.round(d.windTemp/1000)+"K":"--";
     renderDcBody({title:"SPACE WEATHER", hero:"Kp "+kpTxt, sub:kpLevel+(d.kp>=5?" \u00b7 aurora possible at high latitudes":""),
-      stats:[["SOLAR WIND",(d.windSpeed!=null?d.windSpeed+" km/s":"--")],["GEOMAGNETIC",kpLevel]], ticker:"NOAA SWPC \u00b7 next: ISS Tracker"});
+      stats:[["SOLAR WIND",(d.windSpeed!=null?d.windSpeed+" km/s":"--")],["DENSITY",windDens],["TEMP",windTemp],["GEOMAGNETIC",kpLevel]], ticker:"NOAA SWPC \u00b7 next: ISS Tracker"});
   } else if(spacePage===1){
     var iss=d.iss;
     var dist=(iss&&d.loc)?Math.round(haversineKm(d.loc.lat,d.loc.lon,iss.latitude,iss.longitude)*0.621371):null;
+    var orbitsPerDay=iss?Math.round(86400/(2*Math.PI*Math.sqrt(Math.pow((6371+iss.altitude),3)/(3.986e5)))):16;
     renderDcBody({title:"ISS TRACKER", hero:(iss?iss.latitude.toFixed(1)+'\u00b0, '+iss.longitude.toFixed(1)+'\u00b0':'--'),
-      sub:(iss?(iss.visibility==="daylight"?"In sunlight":"In Earth\u2019s shadow"):"Acquiring position\u2026"),
-      stats:[["ALTITUDE",(iss?Math.round(iss.altitude*0.621371)+" mi":"--")],["SPEED",(iss?Math.round(iss.velocity*0.621371)+" mph":"--")],["FROM YOU",(dist!=null?dist+" mi":"--")]],
+      sub:(iss?(iss.visibility==="daylight"?"In sunlight \u2014 may be visible near twilight":"In Earth\u2019s shadow"):"Acquiring position\u2026"),
+      stats:[["ALTITUDE",(iss?Math.round(iss.altitude*0.621371)+" mi":"--")],["SPEED",(iss?Math.round(iss.velocity*0.621371)+" mph":"--")],["FROM YOU",(dist!=null?dist+" mi":"--")],["ORBITS/DAY","~"+orbitsPerDay]],
       ticker:"wheretheiss.at \u00b7 next: Tonight\u2019s Sky"});
   } else {
     var sun=d.sun, moon=moonPhaseInfo(new Date());
-    renderDcBody({title:"TONIGHT\u2019S SKY", hero:moon.name, sub:moon.pct+"% illuminated",
-      stats:[["SUNRISE",(sun?fmtLocalTime(sun.sunrise):"--")],["SUNSET",(sun?fmtLocalTime(sun.sunset):"--")],["DAY LENGTH",(sun?fmtDuration(sun.day_length):"--")]],
+    renderDcBody({title:"TONIGHT\u2019S SKY", hero:moon.name, sub:moon.pct+"% illuminated"+(moon.pct>85?" \u2014 bright moon, poor stargazing":""),
+      stats:[["SUNRISE",(sun?fmtLocalTime(sun.sunrise):"--")],["SUNSET",(sun?fmtLocalTime(sun.sunset):"--")],["DAY LENGTH",(sun?fmtDuration(sun.day_length):"--")],["MOON AGE",moon.age!=null?moon.age.toFixed(1)+" days":"--"]],
       ticker:(d.loc?esch(d.loc.label):"")+" \u00b7 next: Space Weather"});
   }
 }
@@ -7999,9 +8006,29 @@ async function tuneAurora(ch,sl,my){
       if(listEl){
         var active=(alerts||[]).slice(-8).reverse();
         listEl.innerHTML=active.length?active.map(function(a){
-          var msg=(a&&a.message)||""; var firstLine=msg.split("\n").find(function(l){return l.trim();})||msg;
-          return '<div class="dc-row2"><div class="dc-row2-main"><span class="dc-place">'+esch(firstLine.slice(0,110))+'</span></div></div>';
+          var msg=(a&&a.message)||"";
+          /* SWPC alerts have a machine-readable header (Code/Serial/Issue Time) followed by
+             a blank line, then the human-readable description. Parse past the header. */
+          var lines=msg.split("\n");
+          var pastHeader=false, summary="";
+          for(var li=0;li<lines.length;li++){
+            var ln=lines[li].trim();
+            if(!pastHeader){
+              if(ln==="") pastHeader=true; /* blank line = end of header block */
+              continue;
+            }
+            if(ln){ summary=ln; break; } /* first non-empty line after header */
+          }
+          if(!summary){ /* fallback: just grab the first non-empty line */
+            summary=lines.find(function(l){return l.trim();})||msg;
+          }
+          /* Strip common SWPC prefixes to keep it readable */
+          summary=summary.replace(/^(ALERT|WARNING|WATCH|SUMMARY|EXTENDED WARNING|CANCEL WATCH|CONTINUED WATCH)[:\s]*/i,"").trim();
+          var typeTag=msg.indexOf("WARNING")>=0?"WARNING":msg.indexOf("ALERT")>=0?"ALERT":msg.indexOf("WATCH")>=0?"WATCH":"INFO";
+          var tagCls=typeTag==="WARNING"?"dc-sev-high":typeTag==="ALERT"?"dc-sev-mid":"dc-sev-low";
+          return '<div class="dc-row2"><div class="dc-row2-main"><span class="dc-mag '+tagCls+'">'+typeTag+'</span><span class="dc-place">'+esch(summary.slice(0,100))+'</span></div></div>';
         }).join(""):'<div class="pop-empty">No active geomagnetic storm watches or warnings right now.</div>';
+      }
       }
       nlog("aurora",true,"Kp "+(isNaN(kp)?"?":kp));
     }catch(e){ nlog("aurora",false,(e&&e.message)||e);

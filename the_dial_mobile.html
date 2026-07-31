@@ -293,7 +293,10 @@ body{
 .prog-wrap.show{opacity:1}
 .prog-track{position:absolute;left:0;right:0;bottom:0;height:4px;background:rgba(0,0,0,.55)}
 .prog-fill{height:100%;width:0;background:linear-gradient(90deg,var(--amber-d),var(--amber));box-shadow:0 0 8px rgba(255,180,58,.7)}
-.prog-time{position:absolute;right:10px;bottom:9px;font-size:10px;letter-spacing:1px;color:#ffd9a0;background:rgba(0,0,0,.5);padding:2px 7px;border-radius:4px}
+/* QA FIX (audit 5A): prog-time at bottom:9 landed inside .lower's ~45px padded content zone
+   (padding 10 + title 13 + gap 2 + meta 10 + padding 10) and painted over lower-third titles at
+   its z:25 vs lower's z:24. Lifted above lower's content — still visually near the progress bar. */
+.prog-time{position:absolute;right:10px;bottom:52px;font-size:10px;letter-spacing:1px;color:#ffd9a0;background:rgba(0,0,0,.5);padding:2px 7px;border-radius:4px}
 .flip-bar{position:absolute;right:10px;top:50%;transform:translate(60px,-50%);z-index:28;width:222px;
   background:rgba(6,10,8,.88);border:1px solid var(--phos-d);border-radius:10px;padding:6px;
   display:flex;flex-direction:column;gap:2px;opacity:0;pointer-events:none;transition:transform .25s,opacity .25s}
@@ -556,7 +559,9 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
 .dc-sev-low{color:#ffe08a}
 
 /* ============ v14: ident flash (station idents feature) ============ */
-.tube.ident-flash::after{content:"";position:absolute;inset:0;z-index:29;pointer-events:none;
+/* QA FIX (audit 5A): was z:29, same as .buff-ov. Both fire on every channel change; .buff-ov's
+   35% black backdrop killed the intended phosphor flash. Bumped to z:30 so the CRT ident wins. */
+.tube.ident-flash::after{content:"";position:absolute;inset:0;z-index:30;pointer-events:none;
   background:var(--ident-flash);opacity:.22;animation:identFlashFade .42s ease-out forwards}
 @keyframes identFlashFade{0%{opacity:.35}100%{opacity:0}}
 
@@ -966,7 +971,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.125";
+window.__ATV_BUILD="1.7.7-mobile.126";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1000,7 +1005,10 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.125</div>
+<!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
+     pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
+     content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.126</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">

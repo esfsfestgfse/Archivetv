@@ -824,7 +824,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.89";
+window.__ATV_BUILD="1.7.7-desktop.90";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -858,7 +858,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.89</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.90</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">THE DIAL · THE SET</div>
@@ -1479,6 +1479,10 @@ const CHANNEL_META={
    without one fall through to the existing G-based path unchanged.
    Migration is incremental: add channels one at a time, G stays as fallback.
    ===================================================================== */
+/* Shared deny fragment — jam-band bleed into non-jam music channels. Was copy-pasted
+   verbatim across Hip-Hop, Reggae & Dub, Swing & Big Band, and Classical; consolidated
+   here so one edit updates all four. Gospel keeps its own curated shorter list. */
+const JAMBAND_DENY = ["jam","jamband","jam band","grateful dead","jerry garcia","phish","widespread panic","string cheese","cheese incident","ween","moe.","umphrey","disco biscuits","ratdog","leftover salmon","donna the buffalo","radiators","mr. blotto","maradeen","vince welnick"];
 const PROGRAM = {
   /* Vintage Commercials — proof-of-concept migration.
      Root cause of bleed: G["commercials"] has subj:"commercial" which matches episode metadata
@@ -1538,14 +1542,14 @@ const PROGRAM = {
       {"collections": ["opensource_audio"], "require_subj": ["hip hop", "hip-hop", "rap", "MC", "turntablism", "beatbox", "freestyle"]},
       {"collections": ["etree", "audio_music"], "require_subj": ["hip hop", "hip-hop", "rap", "nerdcore", "turntablism"]}
     ],
-    deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture", "jazz", "classical", "reggae", "jam","jamband","jam band","grateful dead","jerry garcia","phish","widespread panic","string cheese","cheese incident","ween","moe.","umphrey","disco biscuits","ratdog","leftover salmon","donna the buffalo","radiators","mr. blotto","maradeen","vince welnick"]},
+    deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture", "jazz", "classical", "reggae", ...JAMBAND_DENY]},
     subjRequired: true, noBlindFallback: true
   },
 
   "Reggae & Dub": {
     genre: "gmreggae", era: [1960, 2020],
     providers: [{"collections": ["etree", "audio_music"], "require_subj": ["reggae", "dub", "ska", "dancehall", "roots reggae", "rocksteady"]}],
-    deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture", "rock", "funk", "jam","jamband","jam band","grateful dead","jerry garcia","phish","widespread panic","string cheese","cheese incident","ween","moe.","umphrey","disco biscuits","ratdog","leftover salmon","donna the buffalo","radiators","mr. blotto","maradeen","vince welnick"]},
+    deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture", "rock", "funk", ...JAMBAND_DENY]},
     subjRequired: true, noBlindFallback: true
   },
 
@@ -1583,7 +1587,10 @@ const PROGRAM = {
       {"collections": ["comedy_recordings","stand-up_comedy"], "require_subj": ["stand-up comedy","standup","comedian","comedy album","sketch comedy","comic","humor"]},
       {"collections": ["opensource_audio","audio_music"], "require_subj": ["stand-up comedy","standup","comedian","comedy album","sketch comedy"]}
     ],
-    deny: {"title": ["live at","live on","concert","festival","band","trio","quartet"], "subject": ["live concert","jam","jamband","jam band","punk","garage","rock","metal","funk","electronic","reggae","blues","folk","indie","alternative","psychedelic","brass band","hip-hop","hip hop"]},
+    /* Removed "live at","live on" from title deny — those match canonical stand-up special titles
+       (Carlin "Jammin' in New York", Pryor "Live on the Sunset Strip", Murphy "Delirious - Live at
+       Constitution Hall"). Music-concert bleed is handled by the subject deny below. */
+    deny: {"title": ["concert","festival","band","trio","quartet"], "subject": ["live concert","jam","jamband","jam band","punk","garage","rock","metal","funk","electronic","reggae","blues","folk","indie","alternative","psychedelic","brass band","hip-hop","hip hop"]},
     subjRequired: true, noBlindFallback: true
   },
 
@@ -1641,7 +1648,7 @@ const PROGRAM = {
     providers: [{"collections": ["78rpm", "airellebigbandarchive"], "require_subj": ["swing", "big band", "dance band", "ballroom", "foxtrot", "jitterbug", "swing music"]},
       {"collections": ["etree", "audio_music"], "require_subj": ["swing", "big band", "dance band", "swing music"]}
     ],
-    deny: {"subject": ["podcast", "talk show", "comedy", "spoken word", "audiobook", "rock", "punk", "classical", "concerto", "sonata", "opera", "symphony", "jam","jamband","jam band","grateful dead","jerry garcia","phish","widespread panic","string cheese","cheese incident","ween","moe.","umphrey","disco biscuits","ratdog","leftover salmon","donna the buffalo","radiators","mr. blotto","maradeen","vince welnick"]},
+    deny: {"subject": ["podcast", "talk show", "comedy", "spoken word", "audiobook", "rock", "punk", "classical", "concerto", "sonata", "opera", "symphony", ...JAMBAND_DENY]},
     subjRequired: true, noBlindFallback: true
   },
 
@@ -1679,7 +1686,7 @@ const PROGRAM = {
       {"collections": ["78rpm", "album_recordings"], "require_subj": ["classical", "orchestra", "symphony", "concerto", "sonata", "opera", "chamber music", "baroque"]},
       {"collections": ["etree", "audio_music"], "require_subj": ["classical", "orchestra", "symphony", "concerto", "sonata", "opera"]}
     ],
-    deny: {"subject": ["podcast", "talk show", "comedy", "spoken word", "audiobook", "rock", "pop", "jazz", "ethnic", "folk", "latin", "blues", "funk", "jam","jamband","jam band","grateful dead","jerry garcia","phish","widespread panic","string cheese","cheese incident","ween","moe.","umphrey","disco biscuits","ratdog","leftover salmon","donna the buffalo","radiators","mr. blotto","maradeen","vince welnick"]},
+    deny: {"subject": ["podcast", "talk show", "comedy", "spoken word", "audiobook", "rock", "pop", "jazz", "ethnic", "folk", "latin", "blues", "funk", ...JAMBAND_DENY]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
@@ -1721,7 +1728,8 @@ const PROGRAM = {
   "Anime Alley": {
     genre: "anime", era: [1960, 2005],
     providers: [{"collections": ["animationandcartoons", "anime"], "require_subj": ["anime", "japanese animation", "manga", "mecha", "shonen", "shojo", "tokusatsu", "OVA"]}],
-    deny: {"title": ["AMV", "music video", "tribute", "trailer", "fan edit"], "subject": ["AMV", "fan video", "music video", "tribute", "review"]},
+    deny: {"title": ["AMV", "music video", "tribute", "trailer", "fan edit", "hentai", "adult", "18+", "R-18", "ecchi", "erotic", "xxx", "nsfw"], "subject": ["AMV", "fan video", "music video", "tribute", "review", "hentai", "adult", "18+", "R-18", "ecchi", "erotic", "xxx", "nsfw"]},
+    require: { runtime_max_s: 1800 },
     subjRequired: true, noBlindFallback: true
   },
 
@@ -1738,7 +1746,8 @@ const PROGRAM = {
   "Modern Cartoons": {
     genre: "cartoonmodern", era: [1970, 2005],
     providers: [{"collections": ["animationandcartoons", "classic_tv", "television"], "require_subj": ["cartoon", "animated", "animation", "animated series", "cartoon series", "animated film"]}],
-    deny: {"title": ["educational", "training", "safety", "live action"], "subject": ["educational", "training", "safety", "live action", "documentary", "newsreel"]},
+    deny: {"title": ["educational", "training", "safety", "live action", "hentai", "adult", "18+", "R-18", "ecchi", "nsfw"], "subject": ["educational", "training", "safety", "live action", "documentary", "newsreel", "hentai", "adult", "18+", "R-18", "ecchi", "nsfw"]},
+    require: { runtime_max_s: 1800 },
     subjRequired: true, noBlindFallback: true
   },
 
@@ -1915,6 +1924,7 @@ const PROGRAM = {
     genre: "cartoon", era: [1928, 1969],
     providers: [{"collections": ["animationandcartoons"], "require_subj": ["cartoon", "animated", "animation", "animated short", "animated film"]}],
     deny: {"title": ["educational", "training film", "safety film"], "subject": ["educational", "training", "safety", "live action", "documentary", "newsreel"]},
+    require: { runtime_max_s: 900 },
     subjRequired: true, noBlindFallback: true
   },
 
@@ -1964,6 +1974,7 @@ const PROGRAM = {
     genre: "trailer", era: [1930, 1990],
     providers: [{"collections": ["movie_trailers", "feature_films"], "require_subj": ["trailer", "preview", "coming attraction", "movie trailer", "film trailer", "theatrical trailer"]}],
     deny: {"title": ["full movie", "full film", "complete", "episode"], "subject": ["full movie", "full film", "episode", "complete film"]},
+    require: { runtime_max_s: 300 },
     subjRequired: true, noBlindFallback: true
   },
 
@@ -3800,6 +3811,11 @@ async function tuneAirport(ch,sl,my){
       }catch(e){}
     }
     if(my!==token)return;
+    /* Age-based cleanup: renderFlights filters by ts<360000 but keys stayed in the map,
+       accumulating for the whole channel dwell. Delete stale keys before render so the
+       map size tracks the visible list. */
+    var cutoff=Date.now()-360000;
+    for(var k in flights) if(flights[k].ts<cutoff) delete flights[k];
     var upd=$("apbUpd"); if(upd)upd.textContent="LIVE / "+new Date().toLocaleTimeString([],{hour:"numeric",minute:"2-digit",second:"2-digit"});
     renderFlights();
     lookupRoutes(found).then(function(){ if(my===token)renderFlights(); });
@@ -6341,7 +6357,7 @@ async function tuneSpaceJazz(ch,sl,my){
     if(img){ img.style.opacity="0"; setTimeout(function(){ img.src=pic.url; img.style.opacity="1"; },300); }
     if(cap) cap.textContent=pic.title;
   };
-  await fetchBatch(); showNext();
+  await fetchBatch(); if(my!==token)return; showNext();
   spaceJazzTimer=rtInterval(function(){
     if(spaceJazzIdx>0 && spaceJazzIdx%spaceJazzImgs.length===0) fetchBatch().then(showNext); else showNext();
   },20000);

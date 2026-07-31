@@ -829,7 +829,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.93";
+window.__ATV_BUILD="1.7.7-desktop.94";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -866,7 +866,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.93</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.94</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">THE DIAL · THE SET</div>
@@ -1140,11 +1140,11 @@ const G={
  railroad:{mt:"movies",col:["prelinger","avgeeks","FedFlix"],fcol:["feature_films"],subj:["railroad","train","locomotive","steam locomotive","railway","streamliner","diesel locomotive","rail transport"],subjRotate:true,subjRequired:true,not:FNOTX,era:[1930,1990]},
  aviationfilm:{mt:"movies",col:["prelinger","avgeeks","FedFlix"],fcol:["feature_films"],subj:["aviation","aircraft","airplane","aeroplane","aeronautics","flight","aviator","jet aircraft","airline","airliner","biplane"],subjRotate:true,subjRequired:true,not:FNOTX.concat(["family","children","romance","drama","comedy","adventure","fantasy","musical","cartoon","animated"]),era:[1930,1990]}, /* QA: tightened not-list after soak confirmed "The Sky's The Limit" (family TV movie) bleeding in via "flight" subject match */
  concertrock:{mt:"audio",col:["etree"],fcol:[],subj:["rock","live","concert"],subjRequired:true,era:[1965,2015],dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
- gmhiphop:  {mt:"audio", col:["netlabels"], fcol:[], subj:["hip hop","hip-hop","rap","turntablism","boom bap","instrumental hip hop"], subjRequired:true, era:[1985,2025], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
+ gmhiphop:  {mt:"audio", col:["netlabels"], fcol:[], subj:["hip hop","hip-hop","rap","turntablism","boom bap","instrumental hip hop"], subjRequired:true, era:[1979,2025], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}}, /* audit 6B: hip-hop starts 1979 (Sugarhill Gang) */
  gmreggae:  {mt:"audio", col:["netlabels"], fcol:[], subj:["reggae","dub","ska","dancehall","roots reggae"], subjRequired:true, era:[1968,2025], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
  gmpunk:    {mt:"audio", col:["netlabels"], fcol:[], subj:["punk","hardcore","post-punk","punk rock","garage"], subjRequired:true, era:[1975,2025], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
  gmmetal:   {mt:"audio", col:["netlabels"], fcol:[], subj:["metal","heavy metal","doom metal","thrash","death metal","black metal"], subjRequired:true, era:[1980,2025], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
- gmelectro: {mt:"audio", col:["netlabels"], fcol:[], subj:["electronic","techno","house","ambient","drum and bass","idm","dubstep","synthwave","electronica"], subjRequired:true, era:[1990,2025], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
+ gmelectro: {mt:"audio", col:["netlabels"], fcol:[], subj:["electronic","techno","house","ambient","drum and bass","idm","dubstep","synthwave","electronica"], subjRequired:true, era:[1970,2025], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}}, /* audit 6B: Kraftwerk 1970, house 1984, techno 1985, ambient 1978 — all pre-1990 */
  gmfunk:    {mt:"audio", col:["netlabels"], fcol:[], subj:["funk","soul","rhythm and blues","groove","disco","nu funk"], subjRequired:true, era:[1968,2025], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
  /* The existing Jazz/Blues channels are sourced from georgeblood/78rpm, which is inherently a
     pre-1960 shellac-disc collection by nature of the format -- there's no way to get modern jazz or
@@ -1510,14 +1510,17 @@ const PROGRAM = {
   },
 
   "Rock": {
+    /* audit 2B: dropped "classical","jazz" from deny.subject. Jazz-rock (Zappa, Chicago, Blood
+       Sweat & Tears), symphonic prog rock (ELP, Yes), and orchestral rock are all card-carrying
+       rock genres tagged jazz/classical by uploaders. */
     genre: "gmrock", era: [1955, 2010],
     providers: [{"collections": ["etree", "audio_music"], "require_subj": ["rock", "rock music", "rock and roll", "alternative rock", "indie rock", "punk rock", "hard rock", "classic rock", "garage rock"]}],
-    deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture", "classical", "jazz"]},
+    deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture"]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
   "Contemporary Jazz": {
-    genre: "gmjazzmod", era: [1970, 2020],
+    genre: "gmjazzmod", era: [1970, 2025], /* audit 6B: still-active genre, extend upper bound */
     providers: [{"collections": ["etree", "audio_music"], "require_subj": ["jazz", "fusion", "contemporary jazz", "smooth jazz", "jazz fusion", "post-bop", "acid jazz", "nu jazz"]}],
     deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture", "rock", "pop"]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
@@ -1531,7 +1534,7 @@ const PROGRAM = {
   },
 
   "Hip-Hop": {
-    genre: "gmhiphop", era: [1979, 2020],
+    genre: "gmhiphop", era: [1979, 2025], /* audit 6B: still-active genre, extend upper bound */
     providers: [
       {"collections": ["opensource_audio"], "require_subj": ["hip hop", "hip-hop", "rap", "MC", "turntablism", "beatbox", "freestyle"]},
       {"collections": ["etree", "audio_music"], "require_subj": ["hip hop", "hip-hop", "rap", "nerdcore", "turntablism"]}
@@ -1543,14 +1546,18 @@ const PROGRAM = {
   "Reggae & Dub": {
     genre: "gmreggae", era: [1960, 2020],
     providers: [{"collections": ["etree", "audio_music"], "require_subj": ["reggae", "dub", "ska", "dancehall", "roots reggae", "rocksteady"]}],
-    deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture", "rock", "funk", ...JAMBAND_DENY]},
+    /* audit 2B: dropped "rock","funk" from deny.subject. Reggae-rock (Police, Sublime lineage)
+       and reggae-funk crossovers were being blocked. */
+    deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture", ...JAMBAND_DENY]},
     subjRequired: true, noBlindFallback: true
   },
 
   "Punk": {
+    /* audit 2B: dropped "classical","jazz" from deny.subject. Punk-jazz (Lounge Lizards, John Zorn)
+       and jazz-punk crossovers were being blocked. */
     genre: "gmpunk", era: [1975, 2020],
     providers: [{"collections": ["etree", "audio_music"], "require_subj": ["punk", "punk rock", "hardcore", "hardcore punk", "post-punk", "pop punk", "anarcho-punk"]}],
-    deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture", "classical", "jazz"]},
+    deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture"]},
     subjRequired: true, noBlindFallback: true
   },
 
@@ -1589,7 +1596,7 @@ const PROGRAM = {
   },
 
   "Modern Country": {
-    genre: "gmcountrymod", era: [1980, 2020],
+    genre: "gmcountrymod", era: [1980, 2025], /* audit 6B: still-active genre, extend upper bound */
     providers: [{"collections": ["etree", "audio_music"], "require_subj": ["country", "modern country", "alt-country", "country rock", "Americana", "new country", "Nashville"]}],
     deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture"]},
     subjRequired: true, noBlindFallback: true
@@ -1597,7 +1604,9 @@ const PROGRAM = {
 
   "Field Recordings": {
     genre: "fieldrec", era: [1900, 2020],
-    providers: [{"collections": ["audio_music", "opensource_audio"], "require_subj": ["field recording", "sound recording", "nature sounds", "ambient recording", "environmental sound", "soundscape", "ethnographic recording"]}],
+    /* audit 6A: dropped "sound recording" from require_subj — every audio item on IA is arguably one,
+       so the token was meaningless as a filter. */
+    providers: [{"collections": ["audio_music", "opensource_audio"], "require_subj": ["field recording", "nature sounds", "ambient recording", "environmental sound", "soundscape", "ethnographic recording"]}],
     deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture", "music", "concert"]},
     subjRequired: true, noBlindFallback: true
   },
@@ -1680,7 +1689,10 @@ const PROGRAM = {
       {"collections": ["78rpm", "album_recordings"], "require_subj": ["classical", "orchestra", "symphony", "concerto", "sonata", "opera", "chamber music", "baroque"]},
       {"collections": ["etree", "audio_music"], "require_subj": ["classical", "orchestra", "symphony", "concerto", "sonata", "opera"]}
     ],
-    deny: {"subject": ["podcast", "talk show", "comedy", "spoken word", "audiobook", "rock", "pop", "jazz", "ethnic", "folk", "latin", "blues", "funk", ...JAMBAND_DENY]},
+    /* audit 2B: dropped "ethnic","folk","latin" from deny.subject. Latin classical (Villa-Lobos),
+       folk-adjacent classical (Copland Americana), and world orchestral are all mainstream classical
+       repertoire that carry those tags. */
+    deny: {"subject": ["podcast", "talk show", "comedy", "spoken word", "audiobook", "rock", "pop", "jazz", "blues", "funk", ...JAMBAND_DENY]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
@@ -1721,9 +1733,15 @@ const PROGRAM = {
   },
 
   "Music Films": {
-    genre: "musicfilm", era: [1940, 1979],
-    providers: [{"collections": ["feature_films", "classic_tv"], "require_subj": ["musical", "music film", "musical film", "concert film", "music", "band", "orchestra", "singing", "dancer"]}],
-    deny: {"title": ["newsreel", "commercial", "educational", "training"], "subject": ["newsreel", "commercial", "educational", "training", "instructional", "documentary"]},
+    /* audit 6B: era extended to 2000 (Stop Making Sense 1984, plus 80s/90s concert films matched).
+       audit 6A: dropped bare "music","band","orchestra","singing","dancer" from require_subj —
+       "music" matches any music item, "band" matches marching-band footage, "singing" matches
+       sing-along filmstrips. Replaced with tighter music-film-shape terms.
+       audit 2B: dropped "documentary" from deny — music docs (Monterey Pop, Woodstock, Gimme
+       Shelter) are the flagship music-film form and are all tagged documentary. */
+    genre: "musicfilm", era: [1940, 2000],
+    providers: [{"collections": ["feature_films", "classic_tv"], "require_subj": ["musical", "music film", "musical film", "concert film", "music documentary", "music biography", "musical performance", "rockumentary"]}],
+    deny: {"title": ["newsreel", "commercial", "educational", "training"], "subject": ["newsreel", "commercial", "educational", "training", "instructional"]},
     subjRequired: true, noBlindFallback: true
   },
 
@@ -1747,7 +1765,9 @@ const PROGRAM = {
 
   "Modern Cartoons": {
     genre: "cartoonmodern", era: [1970, 2005],
-    providers: [{"collections": ["animationandcartoons", "classic_tv", "television"], "require_subj": ["cartoon", "animated", "animation", "animated series", "cartoon series", "animated film"]}],
+    /* audit 6A: dropped bare "animation" — matches motion-graphics educational films and any
+       animated content, defeats the "modern TV cartoons" intent. Specific terms cover the target. */
+    providers: [{"collections": ["animationandcartoons", "classic_tv", "television"], "require_subj": ["cartoon", "animated", "animated series", "cartoon series", "animated film", "saturday morning cartoon", "tv animation"]}],
     deny: {"title": ["educational", "training", "safety", "live action", "hentai", "adult", "18+", "R-18", "ecchi", "nsfw"], "subject": ["educational", "training", "safety", "live action", "documentary", "newsreel", "hentai", "adult", "18+", "R-18", "ecchi", "nsfw"]},
     require: { runtime_max_s: 1800 },
     subjRequired: true, noBlindFallback: true
@@ -1776,7 +1796,8 @@ const PROGRAM = {
 
   "Home Economics": {
     genre: "testkitchen", era: [1930, 1975],
-    providers: [{"collections": ["prelinger", "FedFlix"], "require_subj": ["home economics", "cooking", "baking", "kitchen", "household", "homemaker", "domestic", "nutrition", "food preparation"]}],
+    /* audit 6A: dropped bare "domestic" — matches "domestic terrorism" newsreels and other off-topic items. */
+    providers: [{"collections": ["prelinger", "FedFlix"], "require_subj": ["home economics", "cooking", "baking", "kitchen", "household", "homemaker", "nutrition", "food preparation"]}],
     deny: {"title": ["industrial", "factory", "military"], "subject": ["industrial", "factory", "military", "weapons", "combat"]},
     subjRequired: true, noBlindFallback: true
   },
@@ -1784,7 +1805,10 @@ const PROGRAM = {
   "Auto Racing": {
     genre: "autoracing", era: [1930, 1990],
     providers: [{"collections": ["prelinger", "FedFlix", "feature_films"], "require_subj": ["auto racing", "automobile racing", "car racing", "motor racing", "NASCAR", "Indianapolis", "Formula One", "Grand Prix", "drag racing", "stock car"]}],
-    deny: {"title": ["home movie", "family film", "comedy", "cartoon"], "subject": ["home movie", "family", "comedy", "cartoon", "animated", "educational"]},
+    /* audit 2B: dropped "educational" from deny.subject. Almost every mid-century Prelinger
+       driver's-ed film about race cars, hot rods, and traffic safety is tagged "educational" —
+       this channel's own primary collection (prelinger) is dominated by sponsored educational films. */
+    deny: {"title": ["home movie", "family film", "comedy", "cartoon"], "subject": ["home movie", "family", "comedy", "cartoon", "animated"]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
@@ -1874,9 +1898,11 @@ const PROGRAM = {
   },
 
   "Sci-Fi Theater": {
+    /* audit 2B: dropped "children" from deny.subject. Kid-oriented sci-fi (Lost in Space, most
+       Ray Harryhausen creature features that were pitched at family audiences) is core to the genre. */
     genre: "scifi", era: [1950, 1979],
     providers: [{"collections": ["SciFi_Horror", "feature_films"], "require_subj": ["science fiction", "sci-fi", "scifi", "alien", "space travel", "robot", "futuristic", "outer space", "flying saucer", "monster"]}],
-    deny: {"title": ["comedy", "romance", "musical", "cartoon"], "subject": ["comedy", "romance", "musical", "cartoon", "animated", "children", "educational"]},
+    deny: {"title": ["comedy", "romance", "musical", "cartoon"], "subject": ["comedy", "romance", "musical", "cartoon", "animated", "educational"]},
     subjRequired: true, noBlindFallback: true
   },
 
@@ -1932,7 +1958,9 @@ const PROGRAM = {
 
   "VHS Vault": {
     genre: "vhsvault", era: [1975, 2003],
-    providers: [{"collections": ["vhsvault", "classic_tv", "television"], "require_subj": ["television", "tv show", "tv series", "sitcom", "drama", "game show", "talk show", "variety show", "television program"]}],
+    /* audit 6A: dropped bare "television" — two of three provider collections are literally
+       named "television", so every item in scope carries the tag; the filter was a no-op. */
+    providers: [{"collections": ["vhsvault", "classic_tv", "television"], "require_subj": ["tv show", "tv series", "sitcom", "drama", "game show", "talk show", "variety show", "television program", "made for tv", "tv movie"]}],
     deny: {"title": ["newscast", "c-span", "weather forecast", "infomercial"], "subject": ["newscast", "news broadcast", "infomercial", "weather"]},
     subjRequired: true, noBlindFallback: true
   },

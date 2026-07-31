@@ -425,7 +425,7 @@ html.mob .gsearch-wrap{padding:0 12px 6px}
 /* ============ v10: bigger picture · condensed remote ============ */
 .room{min-height:0;width:100%;position:relative;padding:10px 12px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;background:radial-gradient(70% 55% at 82% 8%, rgba(255,206,122,.20), transparent 60%),
     repeating-linear-gradient(90deg, var(--pan1) 0 78px, var(--pan-line) 78px 82px, var(--pan3) 82px 86px, var(--pan-line) 86px 90px),
-    linear-gradient(180deg, #4d331c 0%, #3a2614 70%, #2a1b0e 100%);height:100vh;justify-content:center;overflow:hidden}
+    linear-gradient(180deg, #4d331c 0%, #3a2614 70%, #2a1b0e 100%);height:100dvh;justify-content:center;overflow:hidden}
 /* stage width is now driven by the tube's 4:3 height budget, so the picture is as big as the window allows */
 .stage{position:relative;z-index:2;width:100%;max-width:min(1800px,calc((100vh - 146px)*1.3333 + 344px));display:grid;grid-template-columns:1fr 150px;gap:14px;align-items:end} /* CYCLE-6: EXTRAS panel gone -> narrower side column, wider tube */
 .console{background:linear-gradient(180deg,var(--wood-l),var(--wood) 30%,var(--wood-d));border-radius:18px 18px 12px 12px;padding:12px 14px 10px;border:2px solid #241509;position:relative;box-shadow:0 26px 50px rgba(0,0,0,.6), inset 0 2px 0 rgba(255,255,255,.08)}
@@ -966,7 +966,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.123";
+window.__ATV_BUILD="1.7.7-mobile.124";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1000,7 +1000,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.123</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.124</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -1255,7 +1255,6 @@ const FNOTX=FNOT.concat(["video game","gameplay","let's play","lets play","speed
 const G={
  cartoon:    {mt:"movies",col:["animationandcartoons"],fcol:[],            subj:["animation","cartoon"],          era:[1930,1969]},
  anime:      {mt:"movies",col:["anime_miscellaneous","anime"],fcol:[],          subj:["anime","japanese animation","japanimation"],not:["trailer","amv","music video","fan edit"],era:[1950,2005],noBlindFallback:true},
- silent:     {mt:"movies",col:["silent_films"],         fcol:["feature_films"],subj:["silent film","silent"],     era:[1905,1929]},
  golden:     {mt:"movies",col:[],                       fcol:["feature_films"],subj:[],                           era:[1930,1949]},
  classicfilm:{mt:"movies",col:[],                       fcol:["feature_films"],subj:[],                           era:[1950,1965]},
  noir:       {mt:"movies",col:["Film_Noir"],            fcol:["feature_films"],subj:["film noir"],                era:[1945,1959]}, // FIX: real IA collection is capitalized "Film_Noir" — lowercase never matched anything
@@ -1273,24 +1272,15 @@ const G={
  computer:   {mt:"movies",col:["computerchronicles"],   fcol:[],               subj:[],                           era:[1983,2002]},
  commercials:{mt:"movies",col:["classic_tv","prelinger"],fcol:[],              subj:["television commercials","advertising","toy commercial","toy advertisement","commercial","commercials","vintage commercial","retro commercial","classic commercial","tv commercial"],era:[1948,1995]},
  blackcinema:{mt:"movies",col:[],                       fcol:["feature_films"],       subj:["race film","black cinema","oscar micheaux","all black cast"],not:FNOT,era:[1915,1955]},
- silentcomedy:{mt:"movies",col:["silent_films"],        fcol:[],                      subj:["slapstick","silent comedy","keystone","buster keaton","charlie chaplin"],not:["sound"],era:[1910,1929]},
- filmstrip:  {mt:"movies",col:["prelinger"],            fcol:[],                      subj:["filmstrip","educational filmstrip"],era:[1940,1985],noBlindFallback:true},
- serial:     {mt:"movies",col:[],                       fcol:["feature_films"],       subj:["movie serial","film serial","chapter play","cliffhanger serial"],not:FNOT,era:[1930,1956]},
- civildefense:{mt:"movies",col:["prelinger"],           fcol:[],                      subj:["civil defense","duck and cover","atomic bomb film","fallout shelter"],era:[1948,1965],noBlindFallback:true},
  arcade:     {mt:"movies",col:["gamevideos"],           fcol:[],                      subj:[],                      era:[1980,2015],noBlindFallback:true},
  manufacturing:{mt:"movies",col:["prelinger","FedFlix","avgeeks"],fcol:[],              subj:["manufacturing","assembly line","industrial process","factory","steel","machining","machinery","engineering","construction","production","industry","mining"],subjRotate:true,subjRequired:true,not:FNOT,era:[1930,1990]}, /* 1.3.3: bolstered — 3 collections, 12 rotating topics, subject-locked, wider era */
  testkitchen:{mt:"movies",col:["prelinger"],            fcol:["avgeeks"],             subj:["cooking","recipe","home economics","baking","food preparation","kitchen","nutrition","meal planning","housekeeping","sewing","etiquette"],subjRotate:true,subjRequired:true,not:FNOT,era:[1935,1985]}, /* 1.3: true Home-Ec — one topic per tune, subject-locked, all decades */
  foundfootage:{mt:"movies",col:[],                      fcol:["feature_films","home_movies"],subj:["home movies","amateur film","newsreel"],era:[1920,1965]},
- nasapress:  {mt:"movies",col:[],                       fcol:[],                      subj:["apollo press conference","astronaut interview","mission control","nasa briefing"],not:FNOT,era:[1960,2010],noBlindFallback:true},
  edu:        {mt:"movies",col:["prelinger"],            fcol:[],               subj:["educational film","classroom film","university film","museum film"],era:[1940,1969]},
  newsreel:   {mt:"movies",col:["universal_newsreels"],  fcol:[],               subj:["newsreel"],                 era:[1930,1965]},
  industrial: {mt:"movies",col:["prelinger"],            fcol:[],               subj:["industrial film","sponsored film"],era:[1940,1969]},
  avgeeks:    {mt:"movies",col:["avgeeks"],              fcol:["prelinger"],     subj:["educational film"],         era:[1950,1985]},
- homemovies: {mt:"movies",col:["home_movies"],fcol:["prelinger"],subj:["home movies","amateur film"],era:[1940,1985]}, /* CYCLE-10: dropped prelinger_home_movies — verified dead against the live API */
  trailer:    {mt:"movies",col:["movie_trailers"],       fcol:[],               subj:["trailer","coming attractions"],era:[1940,1989]},
- travel:     {mt:"movies",col:["prelinger"],            fcol:[],               subj:["travelogue","travel film","travel","tourism"],subjRequired:true,era:[1935,1969]}, /* 1.2.3: subject-locked — soak caught off-genre bleed */
- concert:    {mt:"audio", col:["etree"],                fcol:[],               subj:[],                           era:[1970,2015], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
- rock:       {mt:"audio", col:["etree"],                fcol:[],               subj:["rock"], subjRequired:true,  era:[1970,2010], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
  jazz78:     {mt:"audio", col:["georgeblood","78rpm"],  fcol:[],               subj:["jazz","swing"],             era:[1920,1949], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
  gmrock:     {mt:"audio", col:["etree"],                fcol:[],               subj:["rock"], subjRequired:true,  era:[1965,2015], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
  gmfolk:     {mt:"audio", col:["etree"],                fcol:[],               subj:["bluegrass","folk","americana","acoustic"], era:[1965,2015], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
@@ -1304,8 +1294,6 @@ const G={
  gmragtime:  {mt:"audio", col:["georgeblood","78rpm"],  fcol:[],               subj:["ragtime","cakewalk"],       era:[1899,1929], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
  gmclassical:{mt:"audio", col:["georgeblood","78rpm"],  fcol:[],               subj:["classical","symphony","opera","concerto","orchestra"], era:[1917,1959], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
  gmpop:      {mt:"audio", col:["georgeblood","78rpm"],  fcol:[],               subj:["popular","vocal","crooner","standards"], era:[1935,1959], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
- radiomyst:  {mt:"audio", col:["oldtimeradio"],         fcol:[],               subj:["mystery","detective"],      era:[1935,1962], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
- radiocom:   {mt:"audio", col:["oldtimeradio"],         fcol:[],               subj:["comedy"],                   era:[1935,1962], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
  radiofallout:{mt:"audio", col:["oldtimeradio"],        fcol:[],               subj:["mystery","detective","comedy","science fiction","suspense","war","thriller","horror"],era:[1935,1965], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
  publicaccess:{mt:"movies",col:["community_media"],     fcol:[],               subj:["public access television","community television","local cable access"],era:[1975,2005]},
  faith:      {mt:"movies",col:["spiritualityandreligion"],fcol:["feature_films","prelinger","classic_tv"], subj:["christianity","sermon","gospel","catholic","judaism","jewish","islam","muslim","buddhism","buddhist","hinduism","hindu","sikh","meditation","spirituality","worship","religion","religious film"],subjRotate:true,subjRequired:true,noBlindFallback:true,era:[1930,2000]}, /* QA FIX: Sunday Service was returning NO SIGNAL because spiritualityandreligion is text-dominant, mediatype:movies filtered it near-empty, subjRotate narrowed each query further, and fcol was empty -- no fallback. Added real fallback pools (all have religious video content in practice), plus subjRequired to guarantee the fallback is still subject-locked so nothing off-theme can leak. */
@@ -1315,8 +1303,6 @@ const G={
  xmas:       {mt:"movies",col:[],fcol:["feature_films","classic_tv","prelinger","animationandcartoons"],subj:["christmas","santa claus","yuletide","christmas carol","christmas special"],not:FNOT,era:[1930,1995],noBlindFallback:true},
  halloween:  {mt:"movies",col:[],fcol:["feature_films","classic_tv","SciFi_Horror","animationandcartoons"],subj:["halloween","haunted house","haunted","witchcraft","ghost story","witch"],not:FNOT,era:[1930,1995],noBlindFallback:true},
  thanksgiving:{mt:"movies",col:[],fcol:["prelinger","classic_tv","feature_films"],subj:["thanksgiving","pilgrims","harvest festival","turkey"],not:FNOT,era:[1930,1990],noBlindFallback:true},
- patriotic:  {mt:"movies",col:[],fcol:["prelinger","universal_newsreels","classic_tv"],subj:["independence day","fourth of july","patriotic","americana"],not:["trailer","home movies","fascist","mussolini","giornale luce","nazi","propaganda"],era:[1930,1990],noBlindFallback:true}, /* 1.5: soak caught an Italian fascist newsreel airing here */
- valentine:  {mt:"movies",col:[],fcol:["feature_films","classic_tv"],subj:["valentine","romance","love story","romantic comedy"],not:FNOT,era:[1930,1975],noBlindFallback:true},
  cartoonmodern:{mt:"movies",col:["animationandcartoons"],fcol:[],subj:["cartoon","animated series","saturday morning cartoon","tv animation"],era:[1970,2001],noBlindFallback:true},
  silentcinema:{mt:"movies",col:["silent_films"],fcol:["feature_films"],subj:["silent film","silent","slapstick","silent comedy","keystone","buster keaton","charlie chaplin","harold lloyd"],era:[1905,1929]},
  noirmystery:{mt:"movies",col:["Film_Noir"],fcol:["feature_films"],subj:["film noir","mystery","detective","crime","whodunit"],era:[1940,1965]},
@@ -2172,7 +2158,10 @@ const PROGRAM = {
     providers: [
       {"collections": ["prelinger", "FedFlix", "feature_films"], "require_subj": ["sports", "athletic", "boxing", "baseball", "football", "basketball", "olympic", "wrestling", "racing", "tennis", "golf", "swimming"]}
     ],
-    deny: {"title": ["home movie", "home movies", "family film", "vacation", "farm", "christmas", "wedding"], "subject": ["home movies", "prelinger", "family", "vacation", "farm", "christmas", "wedding", "cartoon", "animated", "comedy", "educational", "instructional", "public broadcasting"]},
+    /* WWE/UFC/MMA blocklist mirrors the G.sportsvault filter (line ~1305) — audit caught
+       that the PROGRAM migration dropped this exclusion. Sports Vault is a vintage-sports
+       channel, modern combat sports don't belong. */
+    deny: {"title": ["home movie", "home movies", "family film", "vacation", "farm", "christmas", "wedding", "wrestling", "wwe", "wwf", "ufc", "mma"], "subject": ["home movies", "prelinger", "family", "vacation", "farm", "christmas", "wedding", "cartoon", "animated", "comedy", "educational", "instructional", "public broadcasting", "wrestling", "wwe", "wwf", "ufc", "mma"]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
   }
 };

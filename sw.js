@@ -1,4 +1,6 @@
-const CACHE = "archive-tv-v1";
+/* v2: cache bump forces eviction of any 5xx/404 responses that leaked in before we added
+   the res.ok guard below. */
+const CACHE = "archive-tv-v2";
 const SHELL = ["the_dial_mobile.html", "manifest.json", "icon-192.png", "icon-512.png"];
 
 self.addEventListener("install", (e) => {
@@ -23,8 +25,12 @@ self.addEventListener("fetch", (e) => {
   e.respondWith(
     fetch(e.request)
       .then((res) => {
-        const copy = res.clone();
-        caches.open(CACHE).then((c) => c.put(e.request, copy));
+        /* Only cache successful 200s. Without this guard a transient 5xx or a 404 during a
+           network hiccup would poison the offline cache and be served on the next offline load. */
+        if (res && res.ok && res.status === 200) {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put(e.request, copy));
+        }
         return res;
       })
       .catch(() => caches.match(e.request))

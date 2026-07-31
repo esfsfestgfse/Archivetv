@@ -280,6 +280,32 @@ body{
 #tube:fullscreen,#tube:-webkit-full-screen{width:100vw;height:100vh;border-radius:0;border:0}
 #tube:fullscreen .screen-area video,#tube:-webkit-full-screen .screen-area video{object-fit:contain}
 
+/* ===== 90s CRT closed-captions ==================================================================
+   Modeled on Line-21 broadcast captions from late-80s / 90s TVs: chunky white monospace text on
+   an opaque black block, sharp edges, no smoothing halo, bottom-center. Only shown when the user
+   toggles CC on (btnCC or the "c" key) — attachCaptions() sets textTracks[0].mode to "showing"
+   which is what triggers ::cue rendering. Programs that don't ship with a VTT/SRT (most of the
+   IA public-domain corpus) never render the caption layer — the CC button is greyed out for those.
+   The properties allowed on ::cue by the spec are narrow (color/background/font-*/text-shadow/
+   line-height/opacity/visibility/white-space) — padding and margin are ignored by the browser but
+   the vertical-position controls live on ::-webkit-media-text-track-display below. */
+video::cue {
+  font-family: "Courier New", "Consolas", "Lucida Console", monospace;
+  font-weight: bold;
+  font-size: clamp(16px, 3vmin, 26px);
+  line-height: 1.2;
+  letter-spacing: 1px;
+  color: #ffffff;
+  background: #000;
+  text-shadow: none;
+}
+/* Nudge captions up off the very bottom so channel-bug + lower-third don't fight the caption
+   block for the same 40-60px band. WebKit-only selector; Firefox/Gecko will fall back to its
+   default position, which is already reasonable. */
+video::-webkit-media-text-track-display {
+  bottom: 10% !important;
+}
+
 /* ===== v6 elements ===== */
 .clock-bug{position:absolute;top:9px;right:11px;left:auto;z-index:25;font-size:11px;font-weight:bold;letter-spacing:1px; /* 1.5.1: moved off the top-left — it was overlapping channel headers (seen on screenshot) */
   color:var(--amber);background:rgba(0,0,0,.45);border:1px solid rgba(255,180,58,.35);border-radius:5px;padding:2px 7px;
@@ -974,7 +1000,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.128";
+window.__ATV_BUILD="1.7.7-mobile.129";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1011,7 +1037,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.128</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.129</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -9396,7 +9422,7 @@ renderRail(); updateClocks();
 showOv("THE DIAL","PRESS POWER","Grab the remote and hit the red button.");
 setSig("","STANDBY");
 /* Populate the build-number chip beside STANDBY. Just the increment ("v128"), not the whole
-   "1.7.7-mobile.128" — the small chip has room for a short tag and that's the part that changes. */
+   "1.7.7-mobile.129" — the small chip has room for a short tag and that's the part that changes. */
 (function(){ try{
   var b=String(window.__ATV_BUILD||""); var v=b.split(".").pop();
   if(!v) return;

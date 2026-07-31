@@ -430,6 +430,9 @@ html.mob .gsearch-wrap{padding:0 12px 6px}
 .rbtn{appearance:none;cursor:pointer;font-family:inherit;font-weight:bold;font-size:10.5px;color:#e8e8e8;background:linear-gradient(180deg,#3a3a3a,#202020);border:1px solid #000;border-bottom-width:2px;border-radius:7px;padding:6px 0;text-align:center;box-shadow:inset 0 1px 0 rgba(255,255,255,.08);transition:transform .05s,filter .12s}
 .rlabel{text-align:center;font-size:8px;letter-spacing:1.6px;color:#777;margin:5px 0 3px}
 .readout{position:relative;z-index:2;width:100%;max-width:1180px;display:grid;grid-template-columns:auto 1fr auto auto;gap:14px;align-items:center;background:linear-gradient(180deg,#0e120e,#0a0d0a);border:2px solid #1f3a23;border-radius:8px;padding:8px 14px}
+/* Build-number chip beside STANDBY so you can see at a glance whether the visible page is the
+   latest deploy. Populated from window.__ATV_BUILD at boot. Tiny, low-contrast, non-interactive. */
+.ver-chip{font-size:9px;letter-spacing:1.2px;color:#5a8a62;margin-left:8px;opacity:.75;font-family:monospace;user-select:none;font-weight:600}
 
 /* ============ v11: Weather Watch screen ============ */
 .wx-screen{width:100%;height:100%;overflow:hidden;display:flex;flex-direction:column;gap:0.9vmin;
@@ -829,7 +832,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.94";
+window.__ATV_BUILD="1.7.7-desktop.95";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -866,7 +869,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.94</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.95</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">THE DIAL · THE SET</div>
@@ -968,7 +971,7 @@ window.addEventListener("unhandledrejection",function(e){
     <div class="chnum" id="chNum">--</div>
     <div class="nb" aria-live="polite"><div class="nm" id="nowName">Television is off</div><div class="me" id="nowMeta">Press power on the remote</div></div>
     <span class="sleep-ind hide" id="sleepInd"></span>
-    <div class="sig" aria-live="polite"><span class="led" id="led"></span><span id="sigText">STANDBY</span></div>
+    <div class="sig" aria-live="polite"><span class="led" id="led"></span><span id="sigText">STANDBY</span><span class="ver-chip" id="verChip"></span></div>
   </div>
 
 </div>
@@ -9111,6 +9114,13 @@ renderRail(); updateClocks();
 }catch(e){} })();
 showOv("THE DIAL","PRESS POWER","Grab the remote and hit the red button.");
 setSig("","STANDBY");
+/* Populate the build-number chip beside STANDBY. Just the increment ("v95"), not the whole
+   "1.7.7-desktop.95" — the small chip has room for a short tag and that's the part that changes. */
+(function(){ try{
+  var b=String(window.__ATV_BUILD||""); var v=b.split(".").pop();
+  if(!v) return;
+  var el=document.getElementById("verChip"); if(el) el.textContent="v"+v;
+}catch(e){} })();
 window.__atvBootDone=true; /* app is up -- from here on, errors get logged, not blacked out over */
 
 </script>

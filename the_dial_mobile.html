@@ -966,7 +966,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.124";
+window.__ATV_BUILD="1.7.7-mobile.125";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1000,7 +1000,7 @@ window.addEventListener("unhandledrejection",function(e){
   __atvShowBootError();
 });
 </script>
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.124</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:999998;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.125</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -1880,9 +1880,17 @@ const PROGRAM = {
   },
 
   "Fallout Radio": {
-    genre: "radiofallout", era: [1948, 1965],
-    providers: [{"collections": ["78rpm", "audio_music"], "require_subj": ["atomic age", "cold war", "1950s", "doo wop", "rockabilly", "early rock", "rock and roll", "crooner", "easy listening"]}],
-    deny: {"subject": ["podcast", "talk show", "spoken word", "lecture", "audiobook"]},
+    /* QA FIX (audit 6A): previous config queried 78rpm music collections for "atomic age" / "cold war"
+       subject tokens that individual music-track records almost never carry, so the intersection was
+       near-empty. Channel is radio-drama per its own guide desc ("Cold-war airwaves: sci-fi, suspense
+       and civil defense radio"), so provider is now oldtimeradio with the drama-shape subjects that
+       collection actually uses (mirrors G.radiofallout from before the PROGRAM migration). Deny list
+       loosened: "spoken word","lecture","talk show" would kill radio dramas (they ARE spoken word). */
+    genre: "radiofallout", era: [1935, 1965],
+    providers: [
+      { collections: ["oldtimeradio"], require_subj: ["science fiction","suspense","mystery","detective","horror","thriller","war","civil defense","atomic age","cold war","crime","adventure"] }
+    ],
+    deny: {"subject": ["modern podcast","npr","book review","audiobook"]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
@@ -7969,11 +7977,15 @@ async function tuneSports(ch,sl,my){
    status/map browser -- embedding it directly means this list is never stale, since it's their
    real service, not a hand-picked snapshot. The other three are well-established individual
    receivers kept as one-tap fallbacks in case the directory itself won't load or frame. */
+/* QA FIX (audit 3D): all four receivers are HTTP-only. This page is HTTPS via GitHub Pages, so
+   browsers block them from loading inside iframes as mixed content. The receiver card below now
+   uses a click-to-open link that spawns a new tab — new tabs load the URL directly (no HTTPS parent
+   frame to violate). Removed kfs.kiwisdr.com from the list because DNS resolution fails: host is
+   dead as of 2026-07-31. */
 var HAM_RECEIVERS=[
   {nm:"Browse All Live Receivers (rx.kiwisdr.com)", url:"http://rx.kiwisdr.com/"},
   {nm:"Univ. of Twente, Netherlands", url:"http://websdr.ewi.utwente.nl:8901/"},
-  {nm:"Northern Utah WebSDR", url:"http://k7fry.com:8073/"},
-  {nm:"KFS California WebSDR", url:"http://kfs.kiwisdr.com/"}
+  {nm:"Northern Utah WebSDR", url:"http://k7fry.com:8073/"}
 ];
 /* Estimated HF band conditions from solar flux + K-index, using the same real propagation
    principles ham operators use by hand: higher solar flux favors higher/shorter-wavelength bands
@@ -8007,16 +8019,22 @@ async function tuneHF(ch,sl,my){
     '<div id="hfPicker" class="catnav" style="flex:0 0 auto;padding:6px 8px"></div>'+
     '<div id="hfFrame" style="flex:1 1 auto;min-height:0;background:#000;position:relative">'+
       '<div id="hfLoadMsg" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#67ff86;font:600 11px/1.4 monospace;text-align:center;padding:20px;pointer-events:none">'+
-        '<div style="font-size:14px;letter-spacing:1px">TUNING RECEIVER\u2026</div>'+
-        '<div style="color:#9fd6a6;font-size:9px">WebSDR receivers are volunteer-run and may be at capacity.<br>If no audio appears, try another receiver from the buttons above.</div>'+
+        '<div style="font-size:14px;letter-spacing:1px">PICK A RECEIVER</div>'+
+        '<div style="color:#9fd6a6;font-size:9px">Live WebSDR receivers open in a new window because they run on plain HTTP.<br>Choose one from the buttons above to tune.</div>'+
       '</div>'+
     '</div>'+
-    '<div class="dc-ticker" id="hfTicker">NOAA SWPC conditions \u00b7 rx.kiwisdr.com live receivers, volunteer-run \u2014 if one\u2019s full, try another</div>'+
+    '<div class="dc-ticker" id="hfTicker">NOAA SWPC conditions \u00b7 rx.kiwisdr.com live receivers, volunteer-run \u2014 opens in a new window (HTTP)</div>'+
     '</div>';
   var pickerEl=$("hfPicker"), frameEl=$("hfFrame");
   function loadReceiver(i){
     var r=HAM_RECEIVERS[i]; if(!frameEl||!r)return;
-    frameEl.innerHTML='<iframe src="'+esch(r.url)+'" style="width:100%;height:100%;border:0;background:#000" allow="autoplay"></iframe>';
+    /* Not iframed \u2014 HTTPS/HTTP mixed-content block. Render as a click-to-open card instead. */
+    frameEl.innerHTML='<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center;color:#67ff86;font-family:monospace">'+
+      '<div style="font-size:11px;letter-spacing:2px;color:#9fd6a6">TUNED TO</div>'+
+      '<div style="font:800 16px monospace;color:#67ff86;max-width:92%;line-height:1.3">'+esch(r.nm)+'</div>'+
+      '<a href="'+esch(r.url)+'" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:11px 24px;border:2px solid #67ff86;color:#67ff86;background:rgba(6,18,10,.6);text-decoration:none;letter-spacing:2px;font:700 13px monospace">\u25b6 OPEN RECEIVER</a>'+
+      '<div style="color:#9fd6a6;font-size:9px;max-width:82%;line-height:1.55">These WebSDR / KiwiSDR sites serve plain HTTP. Browsers block them from loading inside HTTPS pages, so they open in a new tab. Return here to switch receivers.</div>'+
+    '</div>';
     pickerEl.querySelectorAll(".catchip").forEach(function(x){x.classList.remove("act");});
     var chip=pickerEl.querySelector('[data-hi="'+i+'"]'); if(chip)chip.classList.add("act");
     nlog("hamlive",true,r.nm);

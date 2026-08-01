@@ -858,7 +858,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.99";
+window.__ATV_BUILD="1.7.7-desktop.100";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -895,7 +895,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.99</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.100</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">THE DIAL · THE SET</div>
@@ -1587,24 +1587,30 @@ const PROGRAM = {
 
   "Punk": {
     /* audit 2B: dropped "classical","jazz" from deny.subject. Punk-jazz (Lounge Lizards, John Zorn)
-       and jazz-punk crossovers were being blocked. */
+       and jazz-punk crossovers were being blocked.
+       Soak follow-up: "Slightly Stoopid Live at Gathering of The Vibes" bled in — reggae-rock at a
+       jamband festival. Spreading JAMBAND_DENY. */
     genre: "gmpunk", era: [1975, 2020],
     providers: [{"collections": ["etree", "audio_music"], "require_subj": ["punk", "punk rock", "hardcore", "hardcore punk", "post-punk", "pop punk", "anarcho-punk"]}],
-    deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture"]},
+    deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture", ...JAMBAND_DENY]},
     subjRequired: true, noBlindFallback: true
   },
 
   "Metal": {
+    /* Soak caught "Jerry Joseph and the Jackmormons" tagged "Heavy Metal Gospel" — actually
+       alt-country/jamband, not metal. Spreading JAMBAND_DENY. */
     genre: "gmmetal", era: [1970, 2020],
     providers: [{"collections": ["etree", "audio_music"], "require_subj": ["metal", "heavy metal", "thrash metal", "death metal", "black metal", "doom metal", "power metal", "progressive metal"]}],
-    deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture", "jazz", "classical"]},
+    deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture", "jazz", "classical", ...JAMBAND_DENY]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
   "Electronic": {
+    /* Soak caught "Sam Holt Live at The Pour House" — Widespread Panic-adjacent jamband guitarist,
+       not electronic. Spreading JAMBAND_DENY. */
     genre: "gmelectro", era: [1970, 2020],
     providers: [{"collections": ["etree", "audio_music"], "require_subj": ["electronic", "electronic music", "techno", "house", "ambient", "IDM", "drum and bass", "dubstep", "trance", "synth"]}],
-    deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture"]},
+    deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture", ...JAMBAND_DENY]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
@@ -1623,8 +1629,11 @@ const PROGRAM = {
     ],
     /* Removed "live at","live on" from title deny — those match canonical stand-up special titles
        (Carlin "Jammin' in New York", Pryor "Live on the Sunset Strip", Murphy "Delirious - Live at
-       Constitution Hall"). Music-concert bleed is handled by the subject deny below. */
-    deny: {"title": ["concert","festival","band","trio","quartet"], "subject": ["live concert","jam","jamband","jam band","punk","garage","rock","metal","funk","electronic","reggae","blues","folk","indie","alternative","psychedelic","brass band","hip-hop","hip hop"]},
+       Constitution Hall"). Music-concert bleed is handled by the subject deny below.
+       Soak follow-up: "M8 Yer Dugs A Nazi" by Count Dankula (a YouTube political joke rip) leaked
+       in from the "offcenter" collection. Added youtube/vlog subject deny to filter YouTube-rip
+       content masquerading as stand-up. */
+    deny: {"title": ["concert","festival","band","trio","quartet"], "subject": ["live concert","jam","jamband","jam band","punk","garage","rock","metal","funk","electronic","reggae","blues","folk","indie","alternative","psychedelic","brass band","hip-hop","hip hop","youtube","youtube video","youtube rip","vlog","prank","internet video"]},
     subjRequired: true, noBlindFallback: true
   },
 
@@ -1659,9 +1668,11 @@ const PROGRAM = {
   },
 
   "Bluegrass & Folk": {
+    /* Soak caught "Nathan Moore Live at Las Tortugas Dance of the Dead" bleeding through — a
+       jamband collective, not folk. Spreading JAMBAND_DENY here matches Hip-Hop/Reggae/etc. */
     genre: "gmfolk", era: [1920, 2010],
     providers: [{"collections": ["etree", "audio_music"], "require_subj": ["bluegrass", "folk", "folk music", "acoustic", "fiddle", "banjo", "mandolin", "folk rock", "traditional", "americana"]}],
-    deny: {"subject": ["podcast", "talk show", "comedy", "spoken word", "audiobook", "lecture"]},
+    deny: {"subject": ["podcast", "talk show", "comedy", "spoken word", "audiobook", "lecture", ...JAMBAND_DENY]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
@@ -1691,7 +1702,9 @@ const PROGRAM = {
   "Country & Western": {
     genre: "gmcountry", era: [1920, 1979],
     providers: [{"collections": ["etree", "audio_music", "78rpm"], "require_subj": ["country", "country music", "honky tonk", "outlaw country", "country western", "hillbilly", "bluegrass"]}],
-    deny: {"title": ["elvis costello"], "subject": ["podcast", "talk show", "comedy", "spoken word", "audiobook", "lecture", "punk", "new wave", "post-punk", "alternative", "indie"]},
+    /* Soak caught "Robert Hunter Live at Record Factory" — Grateful Dead lyricist / jamband adjacent.
+       Spreading JAMBAND_DENY here matches Hip-Hop/Reggae/etc. */
+    deny: {"title": ["elvis costello"], "subject": ["podcast", "talk show", "comedy", "spoken word", "audiobook", "lecture", "punk", "new wave", "post-punk", "alternative", "indie", ...JAMBAND_DENY]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
@@ -1703,9 +1716,12 @@ const PROGRAM = {
   },
 
   "Latin": {
+    /* Soak caught "Baila El Chiki Chiki" (Rodolfo Chikilicuatre) TWICE — a Spanish Eurovision
+       parody entry tagged "Reggaeton,Parody Reggaeton". Not real Latin music. Deny eurovision
+       and novelty/parody so the eurovision-archive collection stops leaking through. */
     genre: "gmlatin", era: [1940, 2010],
     providers: [{"collections": ["etree", "audio_music"], "require_subj": ["latin", "salsa", "bossa nova", "cumbia", "mambo", "tango", "latin jazz", "samba", "merengue", "bachata", "reggaeton"]}],
-    deny: {"subject": ["podcast", "talk show", "comedy", "spoken word", "audiobook", "lecture"]},
+    deny: {"subject": ["podcast", "talk show", "comedy", "spoken word", "audiobook", "lecture", "eurovision", "parody", "novelty song", "parody reggaeton"]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
@@ -2013,9 +2029,13 @@ const PROGRAM = {
   },
 
   "Thanksgiving Channel": {
+    /* Soak caught "Hazal (1979)" — a Turkish drama — airing here because the ambiguous "turkey"
+       in require_subj matches Turkey (the country) as well as the food/holiday. Fix: removed the
+       bare "turkey" token, added unambiguous "turkey day" and "mayflower"; added deny for the
+       Turkish-cinema tags as belt-and-suspenders in case another matching term slips through. */
     genre: "thanksgiving", era: [1930, 1990],
-    providers: [{"collections": ["feature_films", "classic_tv", "prelinger"], "require_subj": ["thanksgiving", "turkey", "harvest", "pilgrim", "gratitude"]}],
-    deny: {"title": ["christmas", "halloween", "horror"], "subject": ["christmas", "halloween", "horror"]},
+    providers: [{"collections": ["feature_films", "classic_tv", "prelinger"], "require_subj": ["thanksgiving", "thanksgiving day", "turkey day", "harvest festival", "pilgrim", "pilgrims", "mayflower", "gratitude"]}],
+    deny: {"title": ["christmas", "halloween", "horror", "turkish"], "subject": ["christmas", "halloween", "horror", "turkish", "turkish film", "turkish cinema", "turkey (country)", "istanbul"]},
     subjRequired: true, noBlindFallback: true
   },
 
@@ -9264,7 +9284,7 @@ renderRail(); updateClocks();
 showOv("THE DIAL","PRESS POWER","Grab the remote and hit the red button.");
 setSig("","STANDBY");
 /* Populate the build-number chip beside STANDBY. Just the increment ("v95"), not the whole
-   "1.7.7-desktop.99" — the small chip has room for a short tag and that's the part that changes. */
+   "1.7.7-desktop.100" — the small chip has room for a short tag and that's the part that changes. */
 (function(){ try{
   var b=String(window.__ATV_BUILD||""); var v=b.split(".").pop();
   if(!v) return;

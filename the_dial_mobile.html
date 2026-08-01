@@ -1000,7 +1000,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.130";
+window.__ATV_BUILD="1.7.7-mobile.131";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1037,7 +1037,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.130</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.131</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -1573,8 +1573,7 @@ const CH=[
  {nm:"Backyard Naturalist", num:418,cat:"LDATA",source:"nature",     ns:"doc"},
  {nm:"Air & Allergy", num:419,     cat:"LDATA", source:"air",        ns:"tv"},
  {nm:"Storm Center", num:420,      cat:"LDATA", source:"stormcenter", ns:"tv"}, /* SPC Day 1 Convective Outlook — old-country music bed */
- {nm:"Watch Boxes", num:421,       cat:"LDATA", source:"watchbox",    ns:"tv"}, /* Active SPC Tornado/SVR watches — reggae bed */
- {nm:"Local Radar", num:422,       cat:"LDATA", source:"localradar",  ns:"tv"}, /* Nearest NEXRAD reflectivity — ragtime bed */
+ {nm:"Local Radar", num:422,       cat:"LDATA", source:"localradar",  ns:"tv"}, /* Nearest NEXRAD live loop — ragtime bed */
  {nm:"Christmas Channel", num:700, cat:"HOL", gl:"xmas",         era:[1930,1995], ns:"movie"},
  {nm:"Halloween Haunt", num:701,   cat:"HOL", gl:"halloween",    era:[1930,1995], ns:"movie"},
  {nm:"Thanksgiving Channel", num:702,cat:"HOL",gl:"thanksgiving", era:[1930,1990], ns:"tv"},
@@ -1662,9 +1661,8 @@ const CHANNEL_META={
 "On This Day":{desc:"LIVE: archival footage tied to today's date in history.",best:"mornings",rel:["News, News, News","Public Domain Day"]},
 "Public Domain Day":{desc:"Countdown to the next copyright expiration - the reason this TV exists.",best:"New Year's",rel:["On This Day","News, News, News"]},
 "Tropical Watch":{desc:"LIVE: every basin's storms with GOES satellite imagery.",best:"hurricane season",rel:["Weather Watch","Tide & Marine"]},
-"Storm Center":{desc:"LIVE: SPC Day 1 Convective Outlook — risk categories, severe-weather discussion, old country music bed.",best:"storm season",rel:["Watch Boxes","Local Radar"]},
-"Watch Boxes":{desc:"LIVE: active SPC Tornado + Severe Thunderstorm Watches with expiration countdown, reggae bed.",best:"storm season",rel:["Storm Center","Local Radar"]},
-"Local Radar":{desc:"LIVE: your nearest NEXRAD WSR-88D reflectivity refreshed every minute, ragtime bed.",best:"anytime",rel:["Weather Watch","Storm Center"]},
+"Storm Center":{desc:"LIVE: SPC Day 1 Convective Outlook — risk categories, severe-weather discussion, old country music bed.",best:"storm season",rel:["Local Radar","Weather Watch"]},
+"Local Radar":{desc:"LIVE: your nearest NEXRAD WSR-88D animated loop straight from radar.weather.gov, ragtime bed.",best:"anytime",rel:["Weather Watch","Storm Center"]},
 "Live News":{desc:"LIVE: 24/7 English news \u2014 DW, France 24, Al Jazeera, CGTN, NewsAsia, TRT, Arirang, NHK, CBS, Newsmax \u0026 Red Bull, via HLS + your proxy.",best:"anytime",rel:["Live TV","Live Radio"]},
 "Live TV":{desc:"LIVE: a genre grid of free TV channels (News/Sports/Weather/Movies/Kids\u2026) from iptv-org \u2014 add a free stream proxy to unlock most of them.",best:"anytime",rel:["Live News","Live Radio"]},
 "Live Cams":{desc:"LIVE: real webcams worldwide on a spinnable 3D globe (Windy) \u2014 drag the earth, click a cam to watch.",best:"anytime",rel:["Live TV","Live Radio"]},
@@ -2759,7 +2757,6 @@ async function tuneNum(n){
   if(sl.source==="volcano"){ if(my!==token)return; return tuneVolcano(ch,sl,my); }
   if(sl.source==="tropical"){ if(my!==token)return; return tuneTropical(ch,sl,my); }
   if(sl.source==="stormcenter"){ if(my!==token)return; return tuneStormCenter(ch,sl,my); }
-  if(sl.source==="watchbox"){ if(my!==token)return; return tuneWatchBox(ch,sl,my); }
   if(sl.source==="localradar"){ if(my!==token)return; return tuneLocalRadar(ch,sl,my); }
   if(sl.source==="livetv"){ if(my!==token)return; return tuneLiveTV(ch,sl,my); }
   if(sl.source==="livecams"){ if(my!==token)return; return tuneLiveCams(ch,sl,my); }
@@ -6490,7 +6487,9 @@ async function tuneStormCenter(ch,sl,my){
   var run=async function(){
     if(my!==token||!powered) return;
     var img=$("spcImg");
-    if(img) img.innerHTML='<img src="https://www.spc.noaa.gov/products/outlook/day1otlk.gif?ts='+Date.now()+'" style="max-width:100%;max-height:100%;object-fit:contain" onerror="this.parentNode.innerHTML=\'&lt;div class=&quot;dc-media-cap&quot;&gt;SPC outlook image unavailable&lt;/div&gt;\'">';
+    /* Categorical outlook is served as PNG (day1otlk.gif was retired). Cache-bust so a stale
+       proxy or CDN copy doesn't outlive an SPC re-issuance. */
+    if(img) img.innerHTML='<img src="https://www.spc.noaa.gov/products/outlook/day1otlk.png?ts='+Date.now()+'" style="max-width:100%;max-height:100%;object-fit:contain" onerror="this.parentNode.innerHTML=\'&lt;div class=&quot;dc-media-cap&quot;&gt;SPC outlook image unavailable&lt;/div&gt;\'">';
     try{
       var txt=await fetchTextResilient("https://www.spc.noaa.gov/products/outlook/day1otlk.txt","spc-day1");
       if(my!==token) return;
@@ -6508,68 +6507,14 @@ async function tuneStormCenter(ch,sl,my){
   run(); rtInterval(run, 30*60*1000);
 }
 
-/* ---------- Watch Boxes: active SPC Tornado + Severe Thunderstorm Watches ---------- */
-/* NWS API alerts endpoint supports event-type filter, sends good CORS. Watches repeat one feature
-   per county so we group by watch number for a clean per-watch view with rolled-up counties.
-   Music bed: gmreggae — offbeat contrast to the tension of active severe watches; also, listener
-   compensation for the fact that these things usually mean bad weather is coming to somebody. */
-async function tuneWatchBox(ch,sl,my){
-  if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Watch Boxes","");
-  if(screenArea) screenArea.innerHTML='<div class="dc-screen" id="dcScreen" style="flex-direction:column">'+
-    '<div class="dc-body" style="flex:1 1 auto;justify-content:flex-start;gap:4px;overflow:hidden">'+
-      '<div class="dc-top"><span id="wbHead">ACTIVE SPC WATCHES</span></div>'+
-      '<div class="dc-list" id="wbList" style="flex:1 1 auto;overflow-y:auto"></div>'+
-    '</div>'+
-    '<div class="dc-ticker">SPC Tornado + Severe Thunderstorm Watch boxes · grouped by watch #, with expiration countdown</div></div>';
-  mountChanBug("dcScreen",{ident:"WATCH BOXES"});
-  startIAJazz("gmreggae");
-  var run=async function(){
-    if(my!==token||!powered) return;
-    var listEl=$("wbList"); if(!listEl) return;
-    try{
-      var d=await withTO(fetchJSON("https://api.weather.gov/alerts/active?event=Tornado%20Watch,Severe%20Thunderstorm%20Watch"),15000);
-      if(my!==token) return;
-      var feats=(d&&d.features)||[];
-      nlog("watchbox",true,feats.length+" watch features");
-      var byWatch={};
-      feats.forEach(function(f){
-        var p=f.properties||{};
-        var head=p.headline||(p.parameters&&p.parameters.NWSheadline&&p.parameters.NWSheadline[0])||"";
-        var m=/Watch\s+(\d+)/i.exec(head);
-        var key=m?("Watch "+m[1]):(p.id||"unknown");
-        if(!byWatch[key]) byWatch[key]={event:p.event||"Watch",areas:[],expires:p.expires||"",severity:p.severity||"",headline:head};
-        (p.areaDesc||"").split(";").forEach(function(a){ a=a.trim(); if(a && byWatch[key].areas.indexOf(a)<0) byWatch[key].areas.push(a); });
-      });
-      var keys=Object.keys(byWatch);
-      setChanStatus(ch.num, keys.length ? (keys.length+" active watch"+(keys.length===1?"":"es")) : "no active watches");
-      if(!keys.length){
-        listEl.innerHTML='<div class="pop-empty">No active Tornado or Severe Thunderstorm Watches in the country right now. Storm Center still shows the day\'s outlook.</div>';
-        return;
-      }
-      var rows=keys.map(function(k){
-        var w=byWatch[k];
-        var isTOR=/Tornado/i.test(w.event);
-        var sev=isTOR?"dc-sev-hi":"dc-sev-mid";
-        var lbl=isTOR?"TOR":"SVR";
-        var expL="";
-        try{ if(w.expires){ var exp=new Date(w.expires); var mins=Math.round((exp-Date.now())/60000); if(mins>0) expL=mins+"m left"; else expL="expired"; } }catch(e){}
-        var moreN=Math.max(0,w.areas.length-6);
-        var areas=esch(w.areas.slice(0,6).join(", ")+(moreN?(" +"+moreN+" more"):""));
-        return '<div class="dc-row2"><div class="dc-row2-main"><span class="dc-mag '+sev+'">'+esch(lbl)+'</span><span class="dc-place">'+esch(k)+'</span><span class="dc-when">'+esch(expL)+'</span></div>'+
-          '<div style="padding:2px 10px 6px 10px;color:#bcd2ff;font-size:10.5px;line-height:1.4">'+areas+'</div></div>';
-      });
-      listEl.innerHTML=rows.join("");
-    }catch(e){ nlog("watchbox",false,(e&&e.message)||e); listEl.innerHTML='<div class="pop-empty">NWS watch feed unavailable — will retry in 5 minutes.</div>'; setChanStatus(ch.num,"NWS feed unreachable"); }
-  };
-  run(); rtInterval(run, 5*60*1000);
-}
-
-/* ---------- Local Radar: nearest NEXRAD WSR-88D single-frame loop ---------- */
-/* radar.weather.gov serves per-station reflectivity images with permissive CORS. We ask NWS
-   points-API which station is authoritative for the user's homeLoc/gpsLoc; if that fails, fall
-   back to KFWS (Fort Worth — Waco/Central-TX default given owner geography). Single most-recent
-   frame refreshed every minute — animation would need frame-file discovery which is fragile
-   across radar.weather.gov's endpoint variations. Cache-bust via ?ts= each paint.
+/* ---------- Local Radar: nearest NEXRAD WSR-88D animated loop ---------- */
+/* radar.weather.gov serves per-station animated reflectivity loops as animated GIFs at
+   /ridge/standard/{STATION}_loop.gif — this is the "live radar" the user asked for, a real
+   NWS-generated animation showing the last several scans in sequence. GIF is ~400KB and
+   auto-loops in the browser natively, no JS animation needed. We ask NWS points-API which
+   station is authoritative for the user's homeLoc/gpsLoc; if that fails, fall back to KFWS
+   (Fort Worth — Waco/Central-TX default given owner geography). Refresh every 5 minutes so a
+   new scan replaces the loop; the browser <img> reload swaps the whole animation atomically.
    Music bed: gmragtime — 1899-1929 shellac ragtime/cakewalk, the calmest possible sonic under
    scanning reflectivity. */
 async function tuneLocalRadar(ch,sl,my){
@@ -6589,15 +6534,15 @@ async function tuneLocalRadar(ch,sl,my){
     var rs=pt&&pt.properties&&pt.properties.radarStation;
     if(rs && /^[A-Z]{4}$/.test(rs)){ radarStation=rs; label=(loc.label||("near "+loc.lat.toFixed(2)+","+loc.lon.toFixed(2))); }
   }catch(e){ nlog("radar-station",false,(e&&e.message)||e); }
-  var t=$("radarTick"); if(t) t.textContent="NEXRAD "+radarStation+" · "+label+" · via radar.weather.gov";
+  var t=$("radarTick"); if(t) t.textContent="NEXRAD "+radarStation+" · "+label+" · LIVE animated loop from radar.weather.gov";
   setChanStatus(ch.num, radarStation+" ("+label+")");
   function paint(){
     if(my!==token||!powered) return;
     var img=$("radarImg"); if(!img) return;
-    img.innerHTML='<img src="https://radar.weather.gov/ridge/standard/'+radarStation+'_0.png?ts='+Date.now()+'" style="max-width:100%;max-height:100%;object-fit:contain" onerror="this.parentNode.innerHTML=\'&lt;div class=&quot;dc-media-cap&quot;&gt;Radar frame unavailable — retrying&#8230;&lt;/div&gt;\'">';
+    img.innerHTML='<img src="https://radar.weather.gov/ridge/standard/'+radarStation+'_loop.gif?ts='+Date.now()+'" style="max-width:100%;max-height:100%;object-fit:contain" onerror="this.parentNode.innerHTML=\'&lt;div class=&quot;dc-media-cap&quot;&gt;Radar loop unavailable — retrying&#8230;&lt;/div&gt;\'">';
   }
-  paint(); rtInterval(paint, 60*1000);
-  nlog("localradar",true,radarStation);
+  paint(); rtInterval(paint, 5*60*1000);
+  nlog("localradar",true,radarStation+" loop");
 }
 
 async function tuneVolcano(ch,sl,my){
@@ -9573,7 +9518,7 @@ renderRail(); updateClocks();
 showOv("THE DIAL","PRESS POWER","Grab the remote and hit the red button.");
 setSig("","STANDBY");
 /* Populate the build-number chip beside STANDBY. Just the increment ("v128"), not the whole
-   "1.7.7-mobile.130" — the small chip has room for a short tag and that's the part that changes. */
+   "1.7.7-mobile.131" — the small chip has room for a short tag and that's the part that changes. */
 (function(){ try{
   var b=String(window.__ATV_BUILD||""); var v=b.split(".").pop();
   if(!v) return;

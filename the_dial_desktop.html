@@ -858,7 +858,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.98";
+window.__ATV_BUILD="1.7.7-desktop.99";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -895,7 +895,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.98</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.99</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">THE DIAL · THE SET</div>
@@ -6299,9 +6299,18 @@ async function tuneStormCenter(ch,sl,my){
    scanning reflectivity. */
 async function tuneLocalRadar(ch,sl,my){
   if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Local Radar","");
+  /* Structure: radarImg is a positioned parent; radarImgInner receives the <img>, radarLive is a
+     sibling overlay (top-left) with pulsing dot + last-updated timestamp + refresh countdown.
+     Separating the overlay from the img means repaints don't nuke the LIVE badge. */
   if(screenArea) screenArea.innerHTML='<div class="dc-screen" id="dcScreen" style="flex-direction:column">'+
     '<div class="dc-media show" id="radarImg" style="flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;background:#000;position:relative">'+
-      '<div class="dc-media-cap">Finding your closest NEXRAD radar…</div>'+
+      '<div id="radarImgInner" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center"><div class="dc-media-cap">Finding your closest NEXRAD radar…</div></div>'+
+      '<div id="radarLive" style="position:absolute;top:8px;left:8px;z-index:10;display:none;align-items:center;gap:7px;background:rgba(0,0,0,.75);border:1px solid rgba(255,80,80,.55);border-radius:5px;padding:4px 9px;font-family:monospace;font-size:11px;letter-spacing:1px;color:#fff;pointer-events:none">'+
+        '<span style="width:8px;height:8px;border-radius:50%;background:#ff3030;box-shadow:0 0 8px #ff5050;animation:wxBugPulse 1.4s ease-in-out infinite"></span>'+
+        '<span style="font-weight:900;color:#ff5050;letter-spacing:1.5px">LIVE</span>'+
+        '<span id="radarLast" style="color:#c0e0c0">--:-- UTC</span>'+
+        '<span id="radarNext" style="color:#9fc4a0"></span>'+
+      '</div>'+
     '</div>'+
     '<div class="dc-ticker" id="radarTick">NEXRAD WSR-88D reflectivity · via radar.weather.gov</div></div>';
   mountChanBug("dcScreen",{ident:"LOCAL RADAR"});
@@ -6314,15 +6323,33 @@ async function tuneLocalRadar(ch,sl,my){
     var rs=pt&&pt.properties&&pt.properties.radarStation;
     if(rs && /^[A-Z]{4}$/.test(rs)){ radarStation=rs; label=(loc.label||("near "+loc.lat.toFixed(2)+","+loc.lon.toFixed(2))); }
   }catch(e){ nlog("radar-station",false,(e&&e.message)||e); }
-  var t=$("radarTick"); if(t) t.textContent="NEXRAD "+radarStation+" · "+label+" · LIVE animated loop from radar.weather.gov";
+  var t=$("radarTick"); if(t) t.textContent="NEXRAD "+radarStation+" · "+label+" · LIVE feed from radar.weather.gov, refreshes every 2 min";
   setChanStatus(ch.num, radarStation+" ("+label+")");
+  /* 2 min matches typical NEXRAD scan cadence — a fresh scan lands roughly every 5-10 min,
+     but polling more often catches new frames as soon as they're published without hammering. */
+  var REFRESH_MS = 2*60*1000;
+  var lastPaintAt = 0;
   function paint(){
     if(my!==token||!powered) return;
-    var img=$("radarImg"); if(!img) return;
-    img.innerHTML='<img src="https://radar.weather.gov/ridge/standard/'+radarStation+'_loop.gif?ts='+Date.now()+'" style="max-width:100%;max-height:100%;object-fit:contain" onerror="this.parentNode.innerHTML=\'&lt;div class=&quot;dc-media-cap&quot;&gt;Radar loop unavailable — retrying&#8230;&lt;/div&gt;\'">';
+    var inner=$("radarImgInner"); if(!inner) return;
+    inner.innerHTML='<img src="https://radar.weather.gov/ridge/standard/'+radarStation+'_loop.gif?ts='+Date.now()+'" style="max-width:100%;max-height:100%;object-fit:contain" onerror="this.parentNode.innerHTML=\'&lt;div class=&quot;dc-media-cap&quot;&gt;Radar loop unavailable — retrying&#8230;&lt;/div&gt;\'">';
+    lastPaintAt = Date.now();
+    var d = new Date();
+    var pad=function(n){n=String(n);return n.length<2?"0"+n:n;};
+    var stamp = pad(d.getUTCHours())+":"+pad(d.getUTCMinutes())+" UTC";
+    var lastEl = $("radarLast"); if(lastEl) lastEl.textContent = stamp;
+    var liveEl = $("radarLive"); if(liveEl) liveEl.style.display = "inline-flex";
   }
-  paint(); rtInterval(paint, 5*60*1000);
-  nlog("localradar",true,radarStation+" loop");
+  paint();
+  rtInterval(paint, REFRESH_MS);
+  /* countdown ticker — updates once per second. Cheap; only touches one text node. */
+  rtInterval(function(){
+    if(my!==token||!powered) return;
+    var el = $("radarNext"); if(!el || !lastPaintAt) return;
+    var remaining = Math.max(0, Math.round((REFRESH_MS - (Date.now() - lastPaintAt))/1000));
+    el.textContent = "· next in "+remaining+"s";
+  }, 1000);
+  nlog("localradar",true,radarStation+" LIVE");
 }
 
 async function tuneVolcano(ch,sl,my){
@@ -9237,7 +9264,7 @@ renderRail(); updateClocks();
 showOv("THE DIAL","PRESS POWER","Grab the remote and hit the red button.");
 setSig("","STANDBY");
 /* Populate the build-number chip beside STANDBY. Just the increment ("v95"), not the whole
-   "1.7.7-desktop.98" — the small chip has room for a short tag and that's the part that changes. */
+   "1.7.7-desktop.99" — the small chip has room for a short tag and that's the part that changes. */
 (function(){ try{
   var b=String(window.__ATV_BUILD||""); var v=b.split(".").pop();
   if(!v) return;

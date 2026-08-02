@@ -835,6 +835,18 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
 
 /* 1.7.1: A/V polish — CRT display mode (press C) + channel-change static burst */
 .fx-scan{position:absolute;inset:0;z-index:30;pointer-events:none;opacity:0;background:repeating-linear-gradient(rgba(0,0,0,0) 0 2px,rgba(0,0,0,.16) 2px 3px);mix-blend-mode:multiply;transition:opacity .3s}
+/* CRT effect levels: crt-1 subtle, crt-2 medium (historic default from when the `c` toggle
+   was binary), crt-3 full. Cycle with the `c` key or the CRT setting in the Settings modal.
+   Legacy `atv:crt` bool migrates to `atv:crtLevel` at boot (true -> 2, false -> 0). */
+.tube.crt-1 .fx-scan{opacity:0.5}
+.tube.crt-1 .screen-area,.tube.crt-1 .audio-screen{filter:saturate(1.08) contrast(1.03)}
+.tube.crt-2 .fx-scan{opacity:1}
+.tube.crt-2 .screen-area,.tube.crt-2 .audio-screen{filter:saturate(1.18) contrast(1.06) brightness(1.02)}
+.tube.crt-2{box-shadow:inset 0 0 130px 22px rgba(0,0,0,.38)}
+.tube.crt-3 .fx-scan{opacity:1}
+.tube.crt-3 .screen-area,.tube.crt-3 .audio-screen{filter:saturate(1.32) contrast(1.14) brightness(1.02)}
+.tube.crt-3{box-shadow:inset 0 0 180px 32px rgba(0,0,0,.55)}
+/* Legacy .crt class still triggers medium (crt-2) so anything that toggled it directly still works. */
 .tube.crt .fx-scan{opacity:1}
 .tube.crt .screen-area,.tube.crt .audio-screen{filter:saturate(1.18) contrast(1.06) brightness(1.02)}
 .tube.crt{box-shadow:inset 0 0 130px 22px rgba(0,0,0,.38)}
@@ -858,7 +870,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.101";
+window.__ATV_BUILD="1.7.7-desktop.102";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -895,7 +907,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.101</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.102</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">THE DIAL · THE SET</div>
@@ -1034,6 +1046,7 @@ window.addEventListener("unhandledrejection",function(e){
     <div class="settings-row"><span>Station Manager \u03b2 (plan the day ahead)</span><button class="rbtn xs" id="setPlan">OFF</button></div>
     <div class="settings-row"><span>Ad Breaks</span><button class="rbtn xs" id="setAds">ON</button></div>
     <div class="settings-row"><span>Clock Format</span><button class="rbtn xs" id="setClock">12H</button></div>
+    <div class="settings-row"><span>CRT Effects</span><button class="rbtn xs" id="setCRT">OFF</button></div>
     <div class="settings-row"><span>Cabinet Theme</span><button class="rbtn xs" id="setTheme">WALNUT</button></div>
     <div class="settings-sep"></div>
     <div class="settings-row"><span>Picture Adjustment</span><button class="rbtn xs" id="setPicLink">OPEN →</button></div>
@@ -3433,6 +3446,7 @@ function renderSettings(){
   var n=$("setNight"); if(n) n.textContent=nightMode.toUpperCase();
   var a=$("setAds"); if(a) a.textContent=adsOn?"ON":"OFF";
   var c=$("setClock"); if(c) c.textContent=clk24?"24H":"12H";
+  var cr=$("setCRT"); if(cr) cr.textContent=(["OFF","SUBTLE","MEDIUM","FULL"])[window.__crtLevel||0];
   var t=$("setTheme"); if(t) t.textContent=THEMES[themeIdx].toUpperCase();
   var k=$("naraKeyInput"); if(k && !k.value) k.value=naraKey();
   var sp2=$("setPlan"); if(sp2)sp2.textContent=stationMgr?"ON":"OFF";
@@ -3443,6 +3457,7 @@ function toggleSettings(){ var o=$("settingsOv"); if(!o){quickBanner("SETTINGS U
   if(o.classList.contains("show")) o.classList.remove("show"); else { renderSettings(); o.classList.add("show"); } }
 
 wire("setNight",function(){ cycleNight(); renderSettings(); });
+wire("setCRT",function(){ if(window.__cycleCRT) window.__cycleCRT(); });
 wire("setAds",function(){ var b=$("btnAds"); if(b) b.click(); else { adsOn=!adsOn; store.set("ads",adsOn); } renderSettings(); });
 wire("setClock",function(){ toggleClockFmt(); renderSettings(); });
 wire("setTheme",function(){ cycleTheme(); renderSettings(); });
@@ -6310,6 +6325,33 @@ async function tuneStormCenter(ch,sl,my){
   run(); rtInterval(run, 30*60*1000);
 }
 
+/* Chase-heavy NEXRAD picker — TX plus tornado alley + a few common southeast/plains stations.
+   AUTO uses api.weather.gov/points/{lat,lon} to pick the authoritative station for the user's
+   location; any other value overrides that lookup. Persisted as atv:radarStation. */
+var NEXRAD_STATIONS = [
+  {code:"AUTO", label:"AUTO (nearest to your location)"},
+  {code:"KFWS", label:"KFWS · Dallas/Fort Worth TX"},
+  {code:"KGRK", label:"KGRK · Central Texas (Waco/Killeen)"},
+  {code:"KHGX", label:"KHGX · Houston TX"},
+  {code:"KEWX", label:"KEWX · Austin/San Antonio TX"},
+  {code:"KAMA", label:"KAMA · Amarillo TX"},
+  {code:"KLBB", label:"KLBB · Lubbock TX"},
+  {code:"KMAF", label:"KMAF · Midland/Odessa TX"},
+  {code:"KSJT", label:"KSJT · San Angelo TX"},
+  {code:"KDFX", label:"KDFX · Del Rio TX"},
+  {code:"KDDC", label:"KDDC · Dodge City KS"},
+  {code:"KICT", label:"KICT · Wichita KS"},
+  {code:"KTWX", label:"KTWX · Topeka KS"},
+  {code:"KTLX", label:"KTLX · Norman OK"},
+  {code:"KVNX", label:"KVNX · Vance AFB OK"},
+  {code:"KFDR", label:"KFDR · Frederick OK"},
+  {code:"KOAX", label:"KOAX · Omaha NE"},
+  {code:"KLZK", label:"KLZK · Little Rock AR"},
+  {code:"KSRX", label:"KSRX · Fort Smith AR"},
+  {code:"KLIX", label:"KLIX · New Orleans LA"},
+  {code:"KMOB", label:"KMOB · Mobile AL"}
+];
+
 /* ---------- Local Radar: nearest NEXRAD WSR-88D animated loop ---------- */
 /* radar.weather.gov serves per-station animated reflectivity loops as animated GIFs at
    /ridge/standard/{STATION}_loop.gif — this is the "live radar" the user asked for, a real
@@ -6324,7 +6366,9 @@ async function tuneLocalRadar(ch,sl,my){
   if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Local Radar","");
   /* Structure: radarImg is a positioned parent; radarImgInner receives the <img>, radarLive is a
      sibling overlay (top-left) with pulsing dot + last-updated timestamp + refresh countdown.
-     Separating the overlay from the img means repaints don't nuke the LIVE badge. */
+     Separating the overlay from the img means repaints don't nuke the LIVE badge.
+     radarPick is a sibling overlay (top-right) — NEXRAD station selector. Independent so it doesn't
+     get wiped on each image swap, and pointer-events:auto so it actually accepts clicks. */
   if(screenArea) screenArea.innerHTML='<div class="dc-screen" id="dcScreen" style="flex-direction:column">'+
     '<div class="dc-media show" id="radarImg" style="flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;background:#000;position:relative">'+
       '<div id="radarImgInner" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center"><div class="dc-media-cap">Finding your closest NEXRAD radar…</div></div>'+
@@ -6334,18 +6378,52 @@ async function tuneLocalRadar(ch,sl,my){
         '<span id="radarLast" style="color:#c0e0c0">--:-- UTC</span>'+
         '<span id="radarNext" style="color:#9fc4a0"></span>'+
       '</div>'+
+      '<div style="position:absolute;top:8px;right:8px;z-index:10;background:rgba(0,0,0,.75);border:1px solid rgba(103,255,134,.45);border-radius:5px;padding:2px 4px;font-family:monospace;font-size:11px;color:#67ff86">'+
+        '<select id="radarPick" style="background:transparent;border:0;color:#67ff86;font-family:monospace;font-size:11px;letter-spacing:1px;outline:none;cursor:pointer;padding:2px 4px">'+
+          NEXRAD_STATIONS.map(function(s){ return '<option value="'+esch(s.code)+'" style="background:#0a1410;color:#67ff86">'+esch(s.code==="AUTO"?"AUTO":s.code)+'</option>'; }).join("")+
+        '</select>'+
+      '</div>'+
     '</div>'+
     '<div class="dc-ticker" id="radarTick">NEXRAD WSR-88D reflectivity · via radar.weather.gov</div></div>';
   mountChanBug("dcScreen",{ident:"LOCAL RADAR"});
   startIAJazz("gmragtime");
-  var radarStation="KFWS", label="Fort Worth (default)";
-  try{
-    var loc=await getWxLocation(); if(my!==token) return;
-    var pt=await fetchJSON("https://api.weather.gov/points/"+loc.lat+","+loc.lon);
-    if(my!==token) return;
-    var rs=pt&&pt.properties&&pt.properties.radarStation;
-    if(rs && /^[A-Z]{4}$/.test(rs)){ radarStation=rs; label=(loc.label||("near "+loc.lat.toFixed(2)+","+loc.lon.toFixed(2))); }
-  }catch(e){ nlog("radar-station",false,(e&&e.message)||e); }
+  /* Read persisted user override first. AUTO (default) falls through to the NWS points-API lookup.
+     Any explicit 4-letter code short-circuits the lookup and paints that station immediately. */
+  var stored = store.get("radarStation", "AUTO");
+  var radarStation = "KFWS", label = "Fort Worth (default)";
+  if(stored && stored !== "AUTO" && /^[A-Z]{4}$/.test(stored)){
+    radarStation = stored; label = "user override";
+  } else {
+    try{
+      var loc=await getWxLocation(); if(my!==token) return;
+      var pt=await fetchJSON("https://api.weather.gov/points/"+loc.lat+","+loc.lon);
+      if(my!==token) return;
+      var rs=pt&&pt.properties&&pt.properties.radarStation;
+      if(rs && /^[A-Z]{4}$/.test(rs)){ radarStation=rs; label=(loc.label||("near "+loc.lat.toFixed(2)+","+loc.lon.toFixed(2))); }
+    }catch(e){ nlog("radar-station",false,(e&&e.message)||e); }
+  }
+  /* Sync the picker to whatever we resolved to (so AUTO->KFWS picker still shows KFWS,
+     while an override user picked shows their choice). */
+  var pickEl = $("radarPick");
+  if(pickEl){
+    pickEl.value = (stored === "AUTO") ? "AUTO" : radarStation;
+    pickEl.addEventListener("change", function(){
+      if(my !== token) return;
+      var pick = pickEl.value;
+      try{ store.set("radarStation", pick); }catch(e){}
+      if(pick === "AUTO"){
+        quickBanner("RADAR: AUTO — retuning to detect your local station");
+        tuneNum(curNum); /* full retune re-runs points-API auto-detect */
+      } else if(/^[A-Z]{4}$/.test(pick)){
+        radarStation = pick;
+        label = "user override";
+        var tk=$("radarTick"); if(tk) tk.textContent="NEXRAD "+radarStation+" · "+label+" · LIVE feed from radar.weather.gov, refreshes every 2 min";
+        setChanStatus(ch.num, radarStation+" ("+label+")");
+        lastPaintAt = 0; paint();
+        quickBanner("RADAR: "+radarStation);
+      }
+    });
+  }
   var t=$("radarTick"); if(t) t.textContent="NEXRAD "+radarStation+" · "+label+" · LIVE feed from radar.weather.gov, refreshes every 2 min";
   setChanStatus(ch.num, radarStation+" ("+label+")");
   /* 2 min matches typical NEXRAD scan cadence — a fresh scan lands roughly every 5-10 min,
@@ -9281,13 +9359,34 @@ renderRail(); updateClocks();
 (function(){ try{ var tb=document.getElementById("tube"); if(!tb)return;
   if(!document.getElementById("fxScan")){ var sc=document.createElement("div"); sc.id="fxScan"; sc.className="fx-scan"; tb.appendChild(sc); }
   if(!document.getElementById("fxStatic")){ var stt=document.createElement("div"); stt.id="fxStatic"; stt.className="fx-static"; tb.appendChild(stt); }
-  if(store.get("crt",false)) tb.classList.add("crt");
-  document.addEventListener("keydown",function(e){ if((e.key==="c"||e.key==="C")&&!e.ctrlKey&&!e.metaKey&&!e.altKey){ var ae=document.activeElement; if(ae&&/^(input|textarea|select)$/i.test(ae.tagName))return; var on=tb.classList.toggle("crt"); try{store.set("crt",on);}catch(_){} try{quickBanner("CRT MODE "+(on?"ON":"OFF"));}catch(_){} } });
+  /* CRT effects now have 4 levels (0 OFF / 1 SUBTLE / 2 MEDIUM / 3 FULL) instead of the old bool.
+     Legacy `atv:crt` bool migrates: true -> level 2 (matches historic behavior), false -> 0. */
+  var _legacyCrt = store.get("crt", null);
+  var _crtLv = store.get("crtLevel", null);
+  if(_crtLv === null && _legacyCrt !== null){ _crtLv = _legacyCrt ? 2 : 0; store.set("crtLevel", _crtLv); }
+  if(_crtLv === null) _crtLv = 0;
+  window.__crtLevel = _crtLv;
+  function applyCRT(){
+    var t = document.getElementById("tube"); if(!t) return;
+    t.classList.remove("crt","crt-1","crt-2","crt-3");
+    if(window.__crtLevel >= 1) t.classList.add("crt-"+window.__crtLevel);
+  }
+  function cycleCRT(){
+    window.__crtLevel = (window.__crtLevel + 1) % 4;
+    try{ store.set("crtLevel", window.__crtLevel); }catch(_){}
+    applyCRT();
+    var names = ["OFF","SUBTLE","MEDIUM","FULL"];
+    try{ quickBanner("CRT: "+names[window.__crtLevel]); }catch(_){}
+    try{ if(typeof renderSettings === "function") renderSettings(); }catch(_){}
+  }
+  window.__cycleCRT = cycleCRT; /* expose across IIFE boundary for Settings button + tests */
+  applyCRT();
+  document.addEventListener("keydown",function(e){ if((e.key==="c"||e.key==="C")&&!e.ctrlKey&&!e.metaKey&&!e.altKey){ var ae=document.activeElement; if(ae&&/^(input|textarea|select)$/i.test(ae.tagName))return; cycleCRT(); } });
 }catch(e){} })();
 showOv("THE DIAL","PRESS POWER","Grab the remote and hit the red button.");
 setSig("","STANDBY");
 /* Populate the build-number chip beside STANDBY. Just the increment ("v95"), not the whole
-   "1.7.7-desktop.101" — the small chip has room for a short tag and that's the part that changes. */
+   "1.7.7-desktop.102" — the small chip has room for a short tag and that's the part that changes. */
 (function(){ try{
   var b=String(window.__ATV_BUILD||""); var v=b.split(".").pop();
   if(!v) return;

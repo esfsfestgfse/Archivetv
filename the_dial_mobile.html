@@ -1012,7 +1012,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.138";
+window.__ATV_BUILD="1.7.7-mobile.139";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1049,7 +1049,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.138</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.139</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -1554,8 +1554,12 @@ const CH=[
  {nm:"Action & Serials", num:109,  cat:"MOV", gl:"actionserials",era:[1935,1965], ns:"movie"},
  {nm:"Classic Film", num:110,      cat:"MOV", gl:"classicmovie", era:[1930,1965], ns:"movie"},
  {nm:"The Drive-In", num:111,      cat:"MOV", gl:"drivein",     era:[1955,1975], ns:"movie"}, /* grindhouse/exploitation features */
+ {nm:"Sunday Matinee", num:112,    cat:"MOV", gl:"sundaymatinee", era:[1935,1959], ns:"movie"}, /* 30s-50s musicals + romantic comedies */
+ {nm:"The Late Late Show", num:113,cat:"MOV", gl:"latelate",    era:[1940,1975], ns:"movie"}, /* auteur / foreign / arthouse public-domain films */
  {nm:"Modern Cartoons", num:153,   cat:"TOON",gl:"cartoonmodern",era:[1970,2001], ns:"toon"},
  {nm:"Cop Show Classic", num:154,  cat:"RETRO", gl:"copshow",    era:[1950,1985], ns:"movie"}, /* police procedurals + detective shows */
+ {nm:"Adult Animation", num:155,   cat:"TOON", gl:"adultanim",   era:[1970,2010], ns:"toon"}, /* Bakshi/Heavy Metal/Liquid TV + adult TV animation */
+ {nm:"Kids Hour", num:156,         cat:"TOON", gl:"kidshour",    era:[1965,2000], ns:"toon"}, /* Sesame Street / Electric Company / Mister Rogers era */
  {nm:"Home Movies & Travelogues", num:206,cat:"DOC",gl:"homemovietravel",era:[1935,1985], ns:"doc"},
  {nm:"Auto Racing", num:207,       cat:"DOC", gl:"autoracing",  era:[1930,1995], ns:"doc"},
  {nm:"Railroad", num:208,          cat:"DOC", gl:"railroad",    era:[1930,1990], ns:"doc"},
@@ -1575,6 +1579,12 @@ const CH=[
  {nm:"NASA Marathon", num:213,     cat:"DOC", gl:"nasamarathon", era:[1960,2020], ns:"space"}, /* Apollo/Shuttle/mission footage */
  {nm:"Country Roads", num:214,     cat:"DOC", gl:"countryroads", era:[1935,1985], ns:"doc"}, /* rural Americana, farm + ranch life */
  {nm:"Storm Chase Classics", num:215,cat:"DOC",gl:"stormchase",  era:[1970,2015], ns:"doc"}, /* tornado + severe-weather documentaries */
+ {nm:"Cold War Cinema", num:216,   cat:"DOC", gl:"coldwar",     era:[1948,1985], ns:"doc"}, /* civil defense / atomic-age propaganda + PSAs */
+ {nm:"Educational Filmstrip", num:217,cat:"DOC",gl:"filmstrip", era:[1945,1985], ns:"doc"}, /* classic classroom slide-and-narration format */
+ {nm:"Roller Derby & Wrestling", num:218,cat:"DOC",gl:"rollerderby",era:[1955,1985], ns:"doc"}, /* vintage pro wrestling + roller derby */
+ {nm:"Vintage Local News", num:219,cat:"DOC", gl:"localnews",   era:[1975,2005], ns:"doc"}, /* off-air affiliate newscasts */
+ {nm:"Bob Ross & Comfort TV", num:220,cat:"DOC",gl:"comforttv", era:[1980,2010], ns:"doc"}, /* Joy of Painting + chore-doer TV */
+ {nm:"Vintage Sports Broadcasts", num:221,cat:"DOC",gl:"vintagesports",era:[1950,1995], ns:"doc"}, /* archival game broadcasts, not shorts */
  {nm:"Space", num:407,             cat:"LDATA", source:"space",   ns:"tv"},
  {nm:"River & Lake Watch", num:408,cat:"LDATA", source:"river",   ns:"tv"},
  {nm:"On This Day", num:504,       cat:"RETRO", source:"onthisday",ns:"movie"},
@@ -1686,6 +1696,16 @@ const CHANNEL_META={
 "Country Roads":{desc:"Rural Americana, farm & ranch life, small-town portrait films from the Prelinger era.",best:"anytime",rel:["Home Movies & Travelogues","Railroad"]},
 "Storm Chase Classics":{desc:"Tornado, severe weather and hurricane documentaries — for the chase season and off-season.",best:"storm season",rel:["Weather Watch","Storm Center"]},
 "OTR Theater":{desc:"Suspense, Inner Sanctum, Escape, X Minus One and The Shadow — old-time radio drama from 1935-1965.",best:"late night",rel:["Fallout Radio","Prelinger Vault"]},
+"Sunday Matinee":{desc:"Musicals, screwball comedies and romances — the studio-era matinee bill.",best:"Sunday afternoons",rel:["Classic Film","Music Films"]},
+"The Late Late Show":{desc:"Foreign, arthouse and auteur cinema from the public-domain shelves.",best:"after midnight",rel:["World Cinema","Classic Film"]},
+"Adult Animation":{desc:"Ralph Bakshi shorts, Heavy Metal, Liquid Television, Beavis & Butt-Head — adult-oriented animation.",best:"after dark",rel:["Modern Cartoons","Anime Alley"]},
+"Kids Hour":{desc:"Sesame Street, Electric Company, Mister Rogers — the educational kids-TV era.",best:"weekday mornings",rel:["Classic Cartoons","Home Economics"]},
+"Cold War Cinema":{desc:"Civil defense, atomic-age propaganda, Duck and Cover — the government's own films 1948-1985.",best:"late night",rel:["Fallout Radio","Prelinger Vault"]},
+"Educational Filmstrip":{desc:"The classic classroom slide-and-narration format from the AV cart era.",best:"weekday afternoons",rel:["Prelinger Vault","Home Economics"]},
+"Roller Derby & Wrestling":{desc:"Vintage professional wrestling and roller derby broadcasts.",best:"weekends",rel:["Sports Vault","Vintage Sports Broadcasts"]},
+"Vintage Local News":{desc:"Off-air affiliate newscasts from the 80s and 90s — WCBS, WNBC and friends.",best:"anytime",rel:["News, News, News","VHS Vault"]},
+"Bob Ross & Comfort TV":{desc:"Joy of Painting and other calm, quiet daytime programming.",best:"weekday afternoons",rel:["Public Domain Art","Nature Channel"]},
+"Vintage Sports Broadcasts":{desc:"Archival game broadcasts — baseball, football, Olympics from the 50s-90s.",best:"weekends",rel:["Sports Vault","Sports Center"]},
 "Space":{desc:"LIVE: space weather, ISS position, tonight's sky.",best:"nights",rel:["Space","Deep Space Jazz"]},
 "River & Lake Watch":{desc:"LIVE: every river gauge and lake level near you, with flood categories.",best:"storm season",rel:["Weather Watch","Tide & Marine"]},
 "On This Day":{desc:"LIVE: archival footage tied to today's date in history.",best:"mornings",rel:["News, News, News","Public Domain Day"]},
@@ -2056,6 +2076,155 @@ const PROGRAM = {
     providers: [{"collections": ["prelinger", "FedFlix"], "require_subj": ["manufacturing", "factory", "industrial", "assembly line", "production", "machinery", "steel", "automobile manufacturing"]}],
     deny: {"title": ["home movie", "vacation", "family film"], "subject": ["home movie", "vacation", "family", "comedy", "romance"]},
     subjRequired: true, noBlindFallback: true
+  },
+
+  "Sunday Matinee": {
+    /* 30s-50s musicals + romantic comedies. feature_films has deep pool. Denies war/combat/horror/
+       noir subjects to keep it in "family-friendly matinee" mood. */
+    genre: "sundaymatinee", era: [1935, 1959],
+    providers: [
+      { collections: ["feature_films"], require_subj: ["musical", "musical film", "song and dance", "romance", "romantic comedy", "screwball comedy", "family film", "musical comedy"] }
+    ],
+    deny: {
+      title: ["news"],
+      subject: ["news", "commercial", "youtube", "war", "combat", "horror", "noir", "crime"]
+    },
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  "The Late Late Show": {
+    /* Foreign / arthouse / auteur PD cinema. Distinct from World Cinema (broader international
+       features) — this leans harder into the "criterion collection late-night" mood. */
+    genre: "latelate", era: [1940, 1975],
+    providers: [
+      { collections: ["feature_films"], require_subj: ["foreign film", "world cinema", "art film", "auteur", "european cinema", "japanese cinema", "italian cinema", "french new wave", "arthouse", "art house"] }
+    ],
+    deny: {
+      title: ["news", "trailer"],
+      subject: ["news", "commercial", "youtube", "trailer", "biography"]
+    },
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  "Adult Animation": {
+    /* Ralph Bakshi, Heavy Metal, Liquid Television, MTV animation, adult-oriented TV animation
+       (Beavis & Butt-Head, Duckman, The Maxx, Aeon Flux). Uses the same collection surface as
+       Modern Cartoons (animationandcartoons + classic_tv + television per user request) but with
+       adult-swim-style subject tags and explicit denies for kids/family content. */
+    genre: "adultanim", era: [1970, 2010],
+    providers: [
+      { collections: ["animationandcartoons", "classic_tv", "television"], require_subj: ["adult animation", "ralph bakshi", "bakshi", "heavy metal", "MTV animation", "liquid television", "aeon flux", "beavis and butt-head", "duckman", "the maxx", "underground animation", "experimental animation", "adult swim"] }
+    ],
+    deny: {
+      title: ["educational", "training", "safety", "for kids", "children"],
+      subject: ["children", "kids", "family", "educational film", "saturday morning cartoon", "youtube", "vlog", "podcast", "training film"]
+    },
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  "Kids Hour": {
+    /* Educational kids TV from the golden era — Sesame Street, Electric Company, Mister Rogers,
+       Captain Kangaroo, Romper Room. IA has scattered uploads across classic_tv + educationalfilms.
+       Content pool is thinner than most channels — watch for empty tunes on soak. */
+    genre: "kidshour", era: [1965, 2000],
+    providers: [
+      { collections: ["classic_tv", "television"], require_subj: ["sesame street", "electric company", "mister rogers", "mr rogers", "children's television", "kids show", "educational children", "captain kangaroo", "romper room", "reading rainbow"] },
+      { collections: ["educationalfilms", "prelinger"], require_subj: ["children", "kids", "educational children", "kindergarten", "elementary school"] }
+    ],
+    deny: {
+      title: ["adult", "18+"],
+      subject: ["adult", "youtube", "vlog", "commercial", "advertising", "hentai", "R-18"]
+    },
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  "Cold War Cinema": {
+    /* Civil defense films, atomic-age propaganda, Duck and Cover, fallout-shelter public-info
+       spots. Prelinger has huge pool. Distinct from Fallout Radio (audio drama) — this is the
+       actual government/public-info film aesthetic. */
+    genre: "coldwar", era: [1948, 1985],
+    providers: [
+      { collections: ["prelinger"], require_subj: ["civil defense", "cold war", "atomic age", "duck and cover", "fallout shelter", "cuban missile", "communism", "nuclear", "atomic bomb", "propaganda film", "public information film", "national defense"] },
+      { collections: ["FedFlix"], require_subj: ["cold war", "civil defense", "atomic", "nuclear", "communism", "national defense"] }
+    ],
+    deny: {
+      title: ["news"],
+      subject: ["news", "commercial", "youtube", "vlog", "children's film"]
+    },
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  "Educational Filmstrip": {
+    /* The classroom slide-and-narration filmstrip format specifically — not general educational
+       moving-image content. Prelinger has a substantial filmstrip subset. If content pool is
+       thin on soak, widen require_subj to include "audio-visual education" and "classroom film". */
+    genre: "filmstrip", era: [1945, 1985],
+    providers: [
+      { collections: ["prelinger"], require_subj: ["filmstrip", "educational filmstrip", "classroom filmstrip", "slide show", "audio-visual education", "school film", "classroom film"] }
+    ],
+    deny: {
+      title: ["news"],
+      subject: ["news", "commercial", "youtube", "advertising"]
+    },
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  "Roller Derby & Wrestling": {
+    /* Vintage pro wrestling + roller derby broadcasts. Sports Vault denies these (wrestling/wwe/
+       wwf/mma) so there's no overlap — this channel embraces them. Denies hardcore/explicit to
+       filter modern uploads that skew adult. */
+    genre: "rollerderby", era: [1955, 1985],
+    providers: [
+      { collections: ["sports"], require_subj: ["roller derby", "wrestling", "professional wrestling", "wwe", "wwf", "AWA", "NWA", "roller skating", "roller games"] }
+    ],
+    deny: {
+      title: ["news"],
+      subject: ["news", "commercial", "youtube", "vlog", "hardcore", "explicit", "mma"]
+    },
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  "Vintage Local News": {
+    /* Off-air affiliate newscasts from the 80s and 90s — vhsnews_1990s is the deepest source.
+       Distinct from News News News (which is newsreels and federal films decades old). */
+    genre: "localnews", era: [1975, 2005],
+    providers: [
+      { collections: ["vhsnews_1990s", "television"], require_subj: ["newscast", "local news", "evening news", "news broadcast", "affiliate", "local affiliate", "WCBS", "WNBC", "WABC", "vhs news"] }
+    ],
+    deny: {
+      title: ["training"],
+      subject: ["youtube", "vlog", "commercial", "podcast", "modern podcast"]
+    },
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  "Bob Ross & Comfort TV": {
+    /* Joy of Painting and other quiet daytime programming. bobrossonlinemuseum is a real IA
+       collection with actual Bob Ross uploads. Deny YouTube-rip / vlog to avoid modern imitators. */
+    genre: "comforttv", era: [1980, 2010],
+    providers: [
+      { collections: ["bobrossonlinemuseum", "opensource_movies"], require_subj: ["bob ross", "joy of painting", "painting show", "painting tutorial", "PBS painting", "arts and crafts", "watercolor", "oil painting"] }
+    ],
+    deny: {
+      title: ["news"],
+      subject: ["news", "commercial", "youtube", "vlog", "podcast"]
+    },
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  "Vintage Sports Broadcasts": {
+    /* Archival game broadcasts (full games, not shorts). Distinct from Sports Vault (which is
+       short sports films) and Roller Derby & Wrestling (which has its own niche). Denies
+       wrestling/roller-derby so there's no overlap with that channel. */
+    genre: "vintagesports", era: [1950, 1995],
+    providers: [
+      { collections: ["sports", "television"], require_subj: ["game broadcast", "sports broadcast", "baseball game", "football game", "basketball game", "olympics", "world series", "super bowl", "monday night football", "wide world of sports", "abc sports", "cbs sports", "nbc sports"] }
+    ],
+    deny: {
+      title: ["news"],
+      subject: ["news", "commercial", "youtube", "wrestling", "wwe", "wwf", "roller derby", "mma"]
+    },
+    subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
   "The Drive-In": {
@@ -9847,7 +10016,7 @@ renderRail(); updateClocks();
 showOv("THE DIAL","PRESS POWER","Grab the remote and hit the red button.");
 setSig("","STANDBY");
 /* Populate the build-number chip beside STANDBY. Just the increment ("v128"), not the whole
-   "1.7.7-mobile.138" — the small chip has room for a short tag and that's the part that changes. */
+   "1.7.7-mobile.139" — the small chip has room for a short tag and that's the part that changes. */
 (function(){ try{
   var b=String(window.__ATV_BUILD||""); var v=b.split(".").pop();
   if(!v) return;

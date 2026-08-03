@@ -870,7 +870,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.103";
+window.__ATV_BUILD="1.7.7-desktop.104";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -907,7 +907,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.103</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.104</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">THE DIAL · THE SET</div>
@@ -1387,6 +1387,7 @@ const CH=[
  {nm:"Air Traffic", num:405,       cat:"LDATA", source:"airtraffic", ns:"tv"},
  {nm:"Seismic Watch", num:406,     cat:"LDATA", source:"seismic",    ns:"tv"},
  {nm:"News, News, News", num:210,  cat:"DOC", gl:"newsarchive", era:[1920,1975], ns:"doc"},
+ {nm:"The Kitchen", num:211,       cat:"DOC", gl:"kitchen",     era:[1960,2010], ns:"doc"}, /* Julia Child + vintage cooking TV */
  {nm:"Space", num:407,             cat:"LDATA", source:"space",   ns:"tv"},
  {nm:"River & Lake Watch", num:408,cat:"LDATA", source:"river",   ns:"tv"},
  {nm:"On This Day", num:504,       cat:"RETRO", source:"onthisday",ns:"movie"},
@@ -1489,6 +1490,7 @@ const CHANNEL_META={
 "Air Traffic":{desc:"LIVE: aircraft overhead and nearby airport boards, on rotation.",best:"anytime",rel:["Weather Watch","Live TV"]},
 "Seismic Watch":{desc:"LIVE: elevated volcanoes and global earthquakes, on rotation.",best:"anytime",rel:["Weather Watch","Wildfire Watch"]},
 "News, News, News":{desc:"Newsreels, federal films and historic footage \u2014 the week\u2019s news, decades late.",best:"anytime",rel:["Live News","Historic Waco"]},
+"The Kitchen":{desc:"Julia Child's French Chef and other vintage cooking shows, chef demos and culinary how-tos.",best:"dinner hour",rel:["Home Economics","Prelinger Vault"]},
 "Space":{desc:"LIVE: space weather, ISS position, tonight's sky.",best:"nights",rel:["Space","Deep Space Jazz"]},
 "River & Lake Watch":{desc:"LIVE: every river gauge and lake level near you, with flood categories.",best:"storm season",rel:["Weather Watch","Tide & Marine"]},
 "On This Day":{desc:"LIVE: archival footage tied to today's date in history.",best:"mornings",rel:["News, News, News","Public Domain Day"]},
@@ -1858,6 +1860,25 @@ const PROGRAM = {
     providers: [{"collections": ["prelinger", "FedFlix"], "require_subj": ["manufacturing", "factory", "industrial", "assembly line", "production", "machinery", "steel", "automobile manufacturing"]}],
     deny: {"title": ["home movie", "vacation", "family film"], "subject": ["home movie", "vacation", "family", "comedy", "romance"]},
     subjRequired: true, noBlindFallback: true
+  },
+
+  "The Kitchen": {
+    /* Julia Child is the crown jewel — IA search confirmed real French Chef episodes uploaded to
+       opensource_movies with the "the-french-chef-with-julia-child-*" identifier pattern (season 4,
+       5, 7, 10 verified). Also picks up misc cooking-show / chef-demo content while denying the
+       YouTube-rip + political-news noise that surfaced during content research (MSNBC talking-head
+       segments and altcensored/fringe uploads leaked into a generic "cooking" search). */
+    genre: "kitchen", era: [1960, 2010],
+    providers: [
+      { collections: ["opensource_movies"], require_subj: ["julia child", "the french chef", "cooking show", "chef", "cuisine", "culinary"] },
+      { collections: ["vhsvault", "vhsvault_inbox"], require_subj: ["julia child", "cooking", "chef", "culinary", "cuisine", "recipe"] },
+      { collections: ["classic_tv_1960s", "classic_tv_1970s"], require_subj: ["cooking show", "julia child", "the french chef", "chef", "culinary"] }
+    ],
+    deny: {
+      title: ["news", "politics", "cannabis", "how to cook drugs", "MSNBC", "CSPAN"],
+      subject: ["news", "politics", "youtube", "youtube video", "vlog", "podcast", "MSNBC", "CSPAN", "commercial", "advertising", "home economics", "educational film", "training film", "instructional"]
+    },
+    subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
   "Home Economics": {
@@ -9421,7 +9442,7 @@ renderRail(); updateClocks();
 showOv("THE DIAL","PRESS POWER","Grab the remote and hit the red button.");
 setSig("","STANDBY");
 /* Populate the build-number chip beside STANDBY. Just the increment ("v95"), not the whole
-   "1.7.7-desktop.103" — the small chip has room for a short tag and that's the part that changes. */
+   "1.7.7-desktop.104" — the small chip has room for a short tag and that's the part that changes. */
 (function(){ try{
   var b=String(window.__ATV_BUILD||""); var v=b.split(".").pop();
   if(!v) return;

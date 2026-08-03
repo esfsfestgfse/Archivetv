@@ -1012,7 +1012,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.137";
+window.__ATV_BUILD="1.7.7-mobile.138";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1049,7 +1049,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.137</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.138</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -1553,7 +1553,9 @@ const CH=[
  {nm:"Noir & Mystery", num:108,    cat:"MOV", gl:"noirmystery",  era:[1940,1965], ns:"movie"},
  {nm:"Action & Serials", num:109,  cat:"MOV", gl:"actionserials",era:[1935,1965], ns:"movie"},
  {nm:"Classic Film", num:110,      cat:"MOV", gl:"classicmovie", era:[1930,1965], ns:"movie"},
+ {nm:"The Drive-In", num:111,      cat:"MOV", gl:"drivein",     era:[1955,1975], ns:"movie"}, /* grindhouse/exploitation features */
  {nm:"Modern Cartoons", num:153,   cat:"TOON",gl:"cartoonmodern",era:[1970,2001], ns:"toon"},
+ {nm:"Cop Show Classic", num:154,  cat:"RETRO", gl:"copshow",    era:[1950,1985], ns:"movie"}, /* police procedurals + detective shows */
  {nm:"Home Movies & Travelogues", num:206,cat:"DOC",gl:"homemovietravel",era:[1935,1985], ns:"doc"},
  {nm:"Auto Racing", num:207,       cat:"DOC", gl:"autoracing",  era:[1930,1995], ns:"doc"},
  {nm:"Railroad", num:208,          cat:"DOC", gl:"railroad",    era:[1930,1990], ns:"doc"},
@@ -1569,6 +1571,10 @@ const CH=[
  {nm:"Seismic Watch", num:406,     cat:"LDATA", source:"seismic",    ns:"tv"},
  {nm:"News, News, News", num:210,  cat:"DOC", gl:"newsarchive", era:[1920,1975], ns:"doc"},
  {nm:"The Kitchen", num:211,       cat:"DOC", gl:"kitchen",     era:[1960,2010], ns:"doc"}, /* Julia Child + vintage cooking TV */
+ {nm:"Nature Channel", num:212,    cat:"DOC", gl:"nature",       era:[1935,1990], ns:"doc"}, /* vintage nature + national park docs */
+ {nm:"NASA Marathon", num:213,     cat:"DOC", gl:"nasamarathon", era:[1960,2020], ns:"space"}, /* Apollo/Shuttle/mission footage */
+ {nm:"Country Roads", num:214,     cat:"DOC", gl:"countryroads", era:[1935,1985], ns:"doc"}, /* rural Americana, farm + ranch life */
+ {nm:"Storm Chase Classics", num:215,cat:"DOC",gl:"stormchase",  era:[1970,2015], ns:"doc"}, /* tornado + severe-weather documentaries */
  {nm:"Space", num:407,             cat:"LDATA", source:"space",   ns:"tv"},
  {nm:"River & Lake Watch", num:408,cat:"LDATA", source:"river",   ns:"tv"},
  {nm:"On This Day", num:504,       cat:"RETRO", source:"onthisday",ns:"movie"},
@@ -1577,6 +1583,7 @@ const CH=[
  {nm:"Live TV", num:300,          cat:"LBRO", source:"livetv",    ns:"tv"},
  {nm:"Live Cams", num:301,        cat:"LBRO", source:"livecams",  ns:"tv"},
  {nm:"Deep Space Jazz", num:925,   cat:"MUS", source:"spacejazz", ns:"tv"},
+ {nm:"OTR Theater", num:926,       cat:"MUS", gl:"otrtheater",   era:[1935,1965], ns:"radio", audio:true}, /* Suspense/Inner Sanctum/Escape old-time radio drama */
  {nm:"World Clock", num:410,       cat:"LDATA", source:"worldclock", ns:"tv"},
  {nm:"Wildfire Watch", num:411,    cat:"LDATA", source:"wildfire",   ns:"tv"},
  {nm:"Hometown History", num:412,  cat:"LDATA", source:"hometown",   ns:"doc"},
@@ -1672,6 +1679,13 @@ const CHANNEL_META={
 "Seismic Watch":{desc:"LIVE: elevated volcanoes and global earthquakes, on rotation.",best:"anytime",rel:["Weather Watch","Wildfire Watch"]},
 "News, News, News":{desc:"Newsreels, federal films and historic footage \u2014 the week\u2019s news, decades late.",best:"anytime",rel:["Live News","Historic Waco"]},
 "The Kitchen":{desc:"Julia Child's French Chef and other vintage cooking shows, chef demos and culinary how-tos.",best:"dinner hour",rel:["Home Economics","Prelinger Vault"]},
+"The Drive-In":{desc:"Grindhouse, exploitation and B-movie features — the drive-in era 1955-1975.",best:"after dark",rel:["Shock Theater","Sci-Fi Theater"]},
+"Cop Show Classic":{desc:"Dragnet, Adam-12, Highway Patrol — classic TV police procedurals and detective shows.",best:"primetime",rel:["Noir & Mystery","Classic Rerun TV"]},
+"Nature Channel":{desc:"Vintage nature documentaries, national park films, wildlife and wilderness footage.",best:"mornings",rel:["Backyard Naturalist","Prelinger Vault"]},
+"NASA Marathon":{desc:"Apollo, Space Shuttle, ISS and deep-space mission footage from the NASA archive.",best:"anytime",rel:["Space","ISS Tracker"]},
+"Country Roads":{desc:"Rural Americana, farm & ranch life, small-town portrait films from the Prelinger era.",best:"anytime",rel:["Home Movies & Travelogues","Railroad"]},
+"Storm Chase Classics":{desc:"Tornado, severe weather and hurricane documentaries — for the chase season and off-season.",best:"storm season",rel:["Weather Watch","Storm Center"]},
+"OTR Theater":{desc:"Suspense, Inner Sanctum, Escape, X Minus One and The Shadow — old-time radio drama from 1935-1965.",best:"late night",rel:["Fallout Radio","Prelinger Vault"]},
 "Space":{desc:"LIVE: space weather, ISS position, tonight's sky.",best:"nights",rel:["Space","Deep Space Jazz"]},
 "River & Lake Watch":{desc:"LIVE: every river gauge and lake level near you, with flood categories.",best:"storm season",rel:["Weather Watch","Tide & Marine"]},
 "On This Day":{desc:"LIVE: archival footage tied to today's date in history.",best:"mornings",rel:["News, News, News","Public Domain Day"]},
@@ -2042,6 +2056,114 @@ const PROGRAM = {
     providers: [{"collections": ["prelinger", "FedFlix"], "require_subj": ["manufacturing", "factory", "industrial", "assembly line", "production", "machinery", "steel", "automobile manufacturing"]}],
     deny: {"title": ["home movie", "vacation", "family film"], "subject": ["home movie", "vacation", "family", "comedy", "romance"]},
     subjRequired: true, noBlindFallback: true
+  },
+
+  "The Drive-In": {
+    /* Grindhouse / exploitation / B-movie features from the 1955-1975 drive-in era. Content pool
+       is deep on IA feature_films_unsorted — biker movies, JD films, LSD-scare pictures, nudie
+       cuties (period-clothed). Denies hardcore/pornographic subjects hard so nothing above the
+       era's own soft-R feel makes it through. */
+    genre: "drivein", era: [1955, 1975],
+    providers: [
+      { collections: ["feature_films_unsorted", "feature_films"], require_subj: ["exploitation", "b-movie", "cult film", "drive-in", "grindhouse", "biker", "psychotronic", "sexploitation"] }
+    ],
+    deny: {
+      title: ["news", "documentary", "training film", "educational"],
+      subject: ["news", "educational film", "training", "commercial", "advertising", "youtube", "vlog", "podcast", "pornographic", "hardcore", "xxx", "explicit"]
+    },
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  "Cop Show Classic": {
+    /* Dragnet, Adam-12, Highway Patrol, Peter Gunn, Boston Blackie all uploaded to classic_tv
+       collections. Broad procedural terms in require_subj because IA subject-tagging on TV shows
+       is inconsistent — some items are tagged just "police", others "crime drama", others by
+       show name. */
+    genre: "copshow", era: [1950, 1985],
+    providers: [
+      { collections: ["classic_tv_1950s", "classic_tv_1960s", "classic_tv_1970s"], require_subj: ["police procedural", "cop show", "police drama", "detective show", "detective", "police", "crime drama", "law enforcement", "dragnet", "adam-12", "highway patrol", "peter gunn"] },
+      { collections: ["classic_tv"], require_subj: ["police", "detective", "crime drama", "cop show", "police drama"] }
+    ],
+    deny: {
+      title: ["news"],
+      subject: ["news", "commercial", "advertising", "youtube", "vlog", "podcast", "MSNBC", "CSPAN"]
+    },
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  "Nature Channel": {
+    /* Prelinger + FedFlix + avgeeks have vintage nature docs — national parks, wildlife, oceans.
+       Filter out hunting/fishing tip films (different tone) and generic educational films (goes
+       to Prelinger Vault). */
+    genre: "nature", era: [1935, 1990],
+    providers: [
+      { collections: ["prelinger", "FedFlix", "avgeeks"], require_subj: ["nature", "wildlife", "national park", "conservation", "wilderness", "national forest", "birds", "ocean", "sea life", "safari", "ecology", "natural history"] }
+    ],
+    deny: {
+      title: ["news", "politics", "training", "safety"],
+      subject: ["news", "commercial", "youtube", "vlog", "hunting", "fishing tips", "home economics", "training film"]
+    },
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  "NASA Marathon": {
+    /* NASA collection on IA is huge — Apollo mission footage, Shuttle documentaries, ISS video,
+       Hubble deep-field stuff. Deny press conferences + briefings so the channel plays the
+       mission film content, not talking heads. */
+    genre: "nasamarathon", era: [1960, 2020],
+    providers: [
+      { collections: ["nasa", "nasa_techdocs"], require_subj: ["NASA", "apollo", "space shuttle", "space station", "mars", "hubble", "mercury program", "gemini program", "astronaut", "moon landing", "planetary exploration", "spacecraft", "space program"] }
+    ],
+    deny: {
+      title: ["press conference", "conference", "briefing"],
+      subject: ["press conference", "briefing", "youtube", "vlog", "news", "podcast"]
+    },
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  "Country Roads": {
+    /* Rural Americana — Prelinger has extensive farm/ranch/small-town content. Widen deny for
+       urban/city subjects and generic educational films so we get the atmospheric portrait films,
+       not classroom instructionals. */
+    genre: "countryroads", era: [1935, 1985],
+    providers: [
+      { collections: ["prelinger", "avgeeks", "FedFlix"], require_subj: ["farm", "farm life", "rural life", "small town", "agriculture", "farming", "livestock", "ranch", "country life", "americana", "rural", "harvest", "cattle", "cotton"] }
+    ],
+    deny: {
+      title: ["news"],
+      subject: ["news", "commercial", "youtube", "urban", "city life", "training film", "educational film", "safety film"]
+    },
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  "Storm Chase Classics": {
+    /* Tornado + severe-weather docs — content skews to NOAA/NWS training films (allowed here,
+       unlike Nature Channel where they're denied) plus modern amateur chase footage on
+       opensource_movies. Deny news + cartoon so it stays documentary-flavored. */
+    genre: "stormchase", era: [1970, 2015],
+    providers: [
+      { collections: ["opensource_movies", "prelinger", "FedFlix"], require_subj: ["storm chaser", "tornado", "storm chase", "severe weather", "hurricane", "supercell", "weather documentary", "meteorology", "thunderstorm", "national weather service", "NOAA"] }
+    ],
+    deny: {
+      title: ["news", "forecast"],
+      subject: ["news", "commercial", "youtube", "cartoon", "animated", "vlog", "MSNBC"]
+    },
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  "OTR Theater": {
+    /* Old-time radio drama — the oldtimeradio collection on IA is enormous. Suspense, Inner
+       Sanctum, Escape, X Minus One, The Shadow all well-represented. Broader era than Fallout
+       Radio (which is atomic-age themed subset 1948-1965). */
+    genre: "otrtheater", era: [1935, 1965],
+    providers: [
+      { collections: ["oldtimeradio"], require_subj: ["radio drama", "suspense", "inner sanctum", "escape", "the shadow", "x minus one", "old time radio", "otr", "mystery", "detective", "science fiction", "horror", "thriller", "adventure"] }
+    ],
+    deny: {
+      title: ["news", "commercial"],
+      subject: ["podcast", "youtube", "modern podcast", "npr", "commercial", "advertising"]
+    },
+    subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
   "The Kitchen": {
@@ -9725,7 +9847,7 @@ renderRail(); updateClocks();
 showOv("THE DIAL","PRESS POWER","Grab the remote and hit the red button.");
 setSig("","STANDBY");
 /* Populate the build-number chip beside STANDBY. Just the increment ("v128"), not the whole
-   "1.7.7-mobile.137" — the small chip has room for a short tag and that's the part that changes. */
+   "1.7.7-mobile.138" — the small chip has room for a short tag and that's the part that changes. */
 (function(){ try{
   var b=String(window.__ATV_BUILD||""); var v=b.split(".").pop();
   if(!v) return;

@@ -870,7 +870,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.102";
+window.__ATV_BUILD="1.7.7-desktop.103";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -907,7 +907,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.102</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.103</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">THE DIAL · THE SET</div>
@@ -1045,6 +1045,7 @@ window.addEventListener("unhandledrejection",function(e){
     <div class="settings-row"><span>Night Dim</span><button class="rbtn xs" id="setNight">AUTO</button></div>
     <div class="settings-row"><span>Station Manager \u03b2 (plan the day ahead)</span><button class="rbtn xs" id="setPlan">OFF</button></div>
     <div class="settings-row"><span>Ad Breaks</span><button class="rbtn xs" id="setAds">ON</button></div>
+    <div class="settings-row"><span>Station Bumpers β (vintage broadcast idents between programs)</span><button class="rbtn xs" id="setBumpers">ON</button></div>
     <div class="settings-row"><span>Clock Format</span><button class="rbtn xs" id="setClock">12H</button></div>
     <div class="settings-row"><span>CRT Effects</span><button class="rbtn xs" id="setCRT">OFF</button></div>
     <div class="settings-row"><span>Cabinet Theme</span><button class="rbtn xs" id="setTheme">WALNUT</button></div>
@@ -2905,6 +2906,14 @@ function playFile(it,ch,sl,my,isFallback){return new Promise(res=>{
     if(!powered) return;
     if(it.isAd){ if(adQueue>0){ await fadeOutCurrent(); if(await nextAd(ch,sl,my)) return; }
       if(token===my&&powered){ await fadeOutCurrent(); tuneNum(curNum); } return; }
+    /* Station bumper insertion — 40% chance on network-shaped channels. Preempts ad break so we
+       don't chain (real TV was often bumper OR commercial, not both). Bumper's own onended re-enters
+       here with isAd:true and adQueue:0, which cleanly falls through to tuneNum for next program. */
+    if(bumperOn && !ch.source && !ch.audio && ch.gl!=="commercials" && Math.random()<0.4){
+      await fadeOutCurrent();
+      if(await playBumper(ch,sl,my)) return;
+      /* fell through: no bumper item found — let ad break try */
+    }
     if(adsOn && !ch.source && !ch.audio && ch.gl!=="commercials"){ await fadeOutCurrent(); if(await playAdBreak(ch,sl,my)) return; } // fade to black, then break
     try{ if(curVideo&&isFinite(curVideo.duration)){ totalMs+=curVideo.duration*1000; store.set("totalMs",totalMs); } }catch(e){} // NEW: watch-stats tally
     if(token===my&&powered) tuneNum(curNum); },{signal:sig}); // 'ended' is still the ONLY advance path
@@ -3447,6 +3456,7 @@ function renderSettings(){
   var a=$("setAds"); if(a) a.textContent=adsOn?"ON":"OFF";
   var c=$("setClock"); if(c) c.textContent=clk24?"24H":"12H";
   var cr=$("setCRT"); if(cr) cr.textContent=(["OFF","SUBTLE","MEDIUM","FULL"])[window.__crtLevel||0];
+  var bb=$("setBumpers"); if(bb) bb.textContent=bumperOn?"ON":"OFF";
   var t=$("setTheme"); if(t) t.textContent=THEMES[themeIdx].toUpperCase();
   var k=$("naraKeyInput"); if(k && !k.value) k.value=naraKey();
   var sp2=$("setPlan"); if(sp2)sp2.textContent=stationMgr?"ON":"OFF";
@@ -3458,6 +3468,7 @@ function toggleSettings(){ var o=$("settingsOv"); if(!o){quickBanner("SETTINGS U
 
 wire("setNight",function(){ cycleNight(); renderSettings(); });
 wire("setCRT",function(){ if(window.__cycleCRT) window.__cycleCRT(); });
+wire("setBumpers",function(){ bumperOn=!bumperOn; store.set("bumpers",bumperOn); renderSettings(); quickBanner("STATION BUMPERS "+(bumperOn?"ON":"OFF")); });
 wire("setAds",function(){ var b=$("btnAds"); if(b) b.click(); else { adsOn=!adsOn; store.set("ads",adsOn); } renderSettings(); });
 wire("setClock",function(){ toggleClockFmt(); renderSettings(); });
 wire("setTheme",function(){ cycleTheme(); renderSettings(); });
@@ -8618,6 +8629,30 @@ async function nextAd(ch,sl,my){
       if(await playFile(pl,ch,{show:"COMMERCIAL BREAK",isAd:true,genre:sl&&sl.genre,queries:sl&&sl.queries},my)) return true;
     }catch(e){} }
   return false; }
+
+/* Station Bumpers (beta) — vintage broadcast/cable network idents ("HGTV 1998", "CBS Olympics",
+   "CNN Station ID") pulled from classic_tv_commercials, played between programs on network-shaped
+   channels. Structurally identical to ads (isAd:true keeps them out of history/stats/dedup + caps
+   at 2 min per line ~3118) but the show label reads STATION IDENT instead of COMMERCIAL BREAK.
+   Verified content source: classic_tv_commercials + subject:"station identification" returns
+   ~15+ stable items last checked (HGTV, A&E, CBS, CNN, Fox News idents). */
+var bumperOn=store.get("bumpers",true), BUMPER_Q=null;
+function bumperQueries(){
+  if(!BUMPER_Q) BUMPER_Q=[
+    'collection:classic_tv_commercials AND (subject:"station identification" OR subject:"network ident" OR subject:"station id")',
+    'collection:classic_tv_commercials AND (title:"station id" OR title:"network ident" OR title:"sign off")'
+  ];
+  return BUMPER_Q;
+}
+async function playBumper(ch,sl,my){
+  if(my!==token) return false;
+  try{
+    const item=await pickFromQueries(bumperQueries()); if(!item) return false;
+    const pl=await resolvePlayable(item.identifier); if(!pl||pl.type!=="video") return false;
+    pl.title=item.title||"Station Ident"; pl.isAd=true; pl.isBumper=true;
+    return await playFile(pl,ch,{show:"STATION IDENT",isAd:true,isBumper:true,genre:sl&&sl.genre,queries:sl&&sl.queries},my);
+  }catch(e){ nlog("bumper",false,(e&&e.message)||e); return false; }
+}
 /* 1.0: btnAds wire removed — COMMERCIALS toggle lives in the OSD + Settings */
 
 /* ===== v10.1: skip — next item on the same channel, on demand ===== */
@@ -9386,7 +9421,7 @@ renderRail(); updateClocks();
 showOv("THE DIAL","PRESS POWER","Grab the remote and hit the red button.");
 setSig("","STANDBY");
 /* Populate the build-number chip beside STANDBY. Just the increment ("v95"), not the whole
-   "1.7.7-desktop.102" — the small chip has room for a short tag and that's the part that changes. */
+   "1.7.7-desktop.103" — the small chip has room for a short tag and that's the part that changes. */
 (function(){ try{
   var b=String(window.__ATV_BUILD||""); var v=b.split(".").pop();
   if(!v) return;

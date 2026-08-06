@@ -1012,7 +1012,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.139";
+window.__ATV_BUILD="1.7.7-mobile.140";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1049,7 +1049,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.139</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.140</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -6640,189 +6640,115 @@ function tuneSeismic(ch,sl,my){ return tuneRotator(ch,sl,my,[
 ],26); }
 
 /* ---------- Live Cams: real webcams worldwide on a draggable 3D globe (Windy, via the worker) ---------- */
-var WCAM_CATS=[
- {k:"local",label:"NEAR YOU"},{k:"popular",label:"POPULAR"},{k:"country",label:"BY COUNTRY"},
- {k:"beach",label:"BEACH",cat:"beach"},{k:"mountain",label:"MOUNTAIN",cat:"mountain"},
- {k:"city",label:"CITY",cat:"city"},{k:"harbor",label:"HARBOR",cat:"harbor"},
- {k:"traffic",label:"TRAFFIC",cat:"traffic"},{k:"landscape",label:"NATURE",cat:"landscape"},
- {k:"golf",label:"GOLF",cat:"golf"},{k:"airport",label:"AIRPORT",cat:"airport"}
+/* ============================================================================================
+   LIVE CAMS — rebuilt 2026-08-04. Windy's webcams API was paywalled by Webcams.travel after the
+   handover, and api.windy.com/webcams/api/v3 now returns 403 across the board. Rather than adding
+   a paid API key, the channel pivoted to a curated slideshow of NOAA/NASA satellite + solar
+   imagery — all government-published, no auth, no expiring tokens, no external dependencies. The
+   Windy-era globe UX (WCAM_CATS, wcamCountries, wcamFetch, wcamUnwrap, wcamNorm, ensureCamCSS,
+   Three.js globe init) is deleted; git log has it if we ever wire up a paid webcam API.
+   ============================================================================================ */
+var LIVECAMS_VIEWS=[
+  /* Satellite views of Earth */
+  {cat:"SATELLITE", nm:"GOES-East · Full Disk (Atlantic)",   url:"https://cdn.star.nesdis.noaa.gov/GOES16/ABI/FD/GEOCOLOR/1808x1808.jpg",              src:"NOAA GOES-16"},
+  {cat:"SATELLITE", nm:"GOES-East · CONUS",                  url:"https://cdn.star.nesdis.noaa.gov/GOES16/ABI/CONUS/GEOCOLOR/1250x750.jpg",            src:"NOAA GOES-16"},
+  {cat:"SATELLITE", nm:"GOES-West · Full Disk (Pacific)",    url:"https://cdn.star.nesdis.noaa.gov/GOES18/ABI/FD/GEOCOLOR/1808x1808.jpg",              src:"NOAA GOES-18"},
+  {cat:"SATELLITE", nm:"GOES-East · Tropical Atlantic",      url:"https://cdn.star.nesdis.noaa.gov/GOES16/ABI/SECTOR/taw/GEOCOLOR/1200x1200.jpg",      src:"NOAA GOES-16"},
+  {cat:"SATELLITE", nm:"GOES-East · Gulf of Mexico",         url:"https://cdn.star.nesdis.noaa.gov/GOES16/ABI/SECTOR/gm/GEOCOLOR/1200x1200.jpg",       src:"NOAA GOES-16"},
+  {cat:"SATELLITE", nm:"GOES-East · Southern Plains (TX)",   url:"https://cdn.star.nesdis.noaa.gov/GOES16/ABI/SECTOR/sp/GEOCOLOR/1200x1200.jpg",       src:"NOAA GOES-16"},
+  {cat:"SATELLITE", nm:"GOES-East · Northeast US",           url:"https://cdn.star.nesdis.noaa.gov/GOES16/ABI/SECTOR/ne/GEOCOLOR/1200x1200.jpg",       src:"NOAA GOES-16"},
+  {cat:"SATELLITE", nm:"GOES-East · Southeast US",           url:"https://cdn.star.nesdis.noaa.gov/GOES16/ABI/SECTOR/se/GEOCOLOR/1200x1200.jpg",       src:"NOAA GOES-16"},
+  {cat:"SATELLITE", nm:"GOES-East · Upper Mississippi",      url:"https://cdn.star.nesdis.noaa.gov/GOES16/ABI/SECTOR/umv/GEOCOLOR/1200x1200.jpg",      src:"NOAA GOES-16"},
+  {cat:"SATELLITE", nm:"GOES-West · Alaska",                 url:"https://cdn.star.nesdis.noaa.gov/GOES18/ABI/SECTOR/ak/GEOCOLOR/1200x1200.jpg",       src:"NOAA GOES-18"},
+  {cat:"SATELLITE", nm:"GOES-West · Hawaii",                 url:"https://cdn.star.nesdis.noaa.gov/GOES18/ABI/SECTOR/hi/GEOCOLOR/1200x1200.jpg",       src:"NOAA GOES-18"},
+  /* Solar / space weather */
+  {cat:"SOLAR",     nm:"Sun · Ultraviolet 195Å",             url:"https://services.swpc.noaa.gov/images/animations/suvi/primary/195/latest.png",       src:"NOAA SWPC"},
+  {cat:"SOLAR",     nm:"Sun · Ultraviolet 284Å",             url:"https://services.swpc.noaa.gov/images/animations/suvi/primary/284/latest.png",       src:"NOAA SWPC"},
+  {cat:"SOLAR",     nm:"Sun · Ultraviolet 94Å (Flare)",      url:"https://services.swpc.noaa.gov/images/animations/suvi/primary/094/latest.png",       src:"NOAA SWPC"},
+  {cat:"SOLAR",     nm:"Coronagraph · LASCO C2",             url:"https://services.swpc.noaa.gov/images/animations/lasco-c2/latest.jpg",               src:"NASA SOHO"},
+  {cat:"SOLAR",     nm:"Coronagraph · LASCO C3",             url:"https://services.swpc.noaa.gov/images/animations/lasco-c3/latest.jpg",               src:"NASA SOHO"},
+  {cat:"SOLAR",     nm:"Aurora · North Pole (OVATION)",      url:"https://services.swpc.noaa.gov/images/animations/ovation/north/latest.jpg",          src:"NOAA SWPC"},
+  {cat:"SOLAR",     nm:"Aurora · South Pole (OVATION)",      url:"https://services.swpc.noaa.gov/images/animations/ovation/south/latest.jpg",          src:"NOAA SWPC"}
 ];
-var wcamCountryCache=null;
-async function wcamCountries(){
-  if(wcamCountryCache) return wcamCountryCache;
-  try{ var r=await withTO(fetch(proxied("https://api.windy.com/webcams/api/v3/countries"),{cache:"no-store"}),13000);
-    var d=await r.json();
-    wcamCountryCache=(Array.isArray(d)?d:[]).filter(function(c){return c&&c.code&&c.name;}).sort(function(a,b){return a.name.localeCompare(b.name);});
-    return wcamCountryCache;
-  }catch(e){ nlog("livecams",false,(e&&e.message)||e); return []; }
-}
-function wcamUnwrap(d){
-  /* v3 wraps results as {status,result:{offset,limit,total,webcams}} while v2 returned them at
-     the top level. Handle both so a shape change can't silently empty the list. */
-  if(!d) return {list:[],total:0};
-  if(Array.isArray(d.webcams)) return {list:d.webcams,total:(d.total!=null?d.total:d.webcams.length)};
-  if(d.result&&Array.isArray(d.result.webcams)) return {list:d.result.webcams,total:(d.result.total!=null?d.result.total:d.result.webcams.length)};
-  return {list:[],total:0};
-}
-async function wcamFetch(qs,maxWanted){
-  /* Windy caps a single request at 50 webcams -- that 50 was the API's ceiling, not a choice --
-     so more coverage means paginating with offset. Pages are fetched until we have everything
-     the filter matches or hit a sane bound, whichever comes first. */
-  maxWanted=maxWanted||400;
-  var out=[], offset=0, total=null, PAGE=50, guard=0;
-  try{
-    while(guard++<12 && out.length<maxWanted){
-      var url="https://api.windy.com/webcams/api/v3/webcams?include=images,location&limit="+PAGE+"&offset="+offset+"&"+qs;
-      var r=await withTO(fetch(proxied(url),{cache:"no-store"}),13000);
-      var d=await r.json();
-      var u=wcamUnwrap(d);
-      if(total===null) total=u.total;
-      if(!u.list.length) break;
-      out=out.concat(u.list);
-      offset+=PAGE;
-      if(total!=null && offset>=total) break;
-      if(offset>=9500) break;   /* free tier rejects offset beyond 10000 */
-    }
-    nlog("livecams",true,out.length+" webcams"+(total!=null?(" of "+total+" matching"):""));
-    return out;
-  }catch(e){ nlog("livecams",false,(e&&e.message)||e); return out; }
-}
-function wcamNorm(w){ var loc=w&&w.location||{}; var im=w&&w.images&&w.images.current||{};
-  if(loc.latitude==null||loc.longitude==null)return null;
-  var img=im.preview||im.thumbnail||im.icon; if(!img)return null;
-  return {id:w.webcamId,title:(w.title||"Webcam").replace(/\s+/g," ").trim(),lat:+loc.latitude,lon:+loc.longitude,city:loc.city||"",country:loc.country||"",img:img};
-}
-function ensureCamCSS(){ if($("camCSS"))return; var st=document.createElement("style"); st.id="camCSS";
-  st.textContent=
-    "#camPane{position:relative;overflow:hidden;background:radial-gradient(120% 100% at 50% 10%,#0a1830,#02060e)}"+
-    "#camGlobe{position:absolute;inset:0;touch-action:none}#camGlobe canvas{display:block}"+
-    "#camHint{position:absolute;top:8px;left:10px;z-index:2;font:600 9px/1.3 monospace;letter-spacing:1px;color:#6f9fd0;opacity:.8;pointer-events:none}"+
-    "#camView{position:absolute;inset:0;z-index:4;background:#000;display:none}"+
-    "#camView img{width:100%;height:100%;object-fit:contain;background:#000}"+
-    "#camView .cv-cap{position:absolute;left:0;right:0;bottom:0;padding:9px 13px;background:linear-gradient(0deg,rgba(0,8,20,.94),rgba(0,8,20,0));color:#e6f2ff}"+
-    "#camView .cv-cap b{font:700 clamp(14px,2.7vmin,21px)/1.1 Georgia,serif}#camView .cv-cap small{display:block;margin-top:2px;font:600 10px/1.2 monospace;color:#a2c8ea}"+
-    "#camBack{position:absolute;top:8px;right:10px;z-index:5;cursor:pointer;font:700 10px/1 monospace;letter-spacing:1px;color:#07101e;background:#7fd4ff;padding:6px 9px;border-radius:12px}"+
-    "#camCats{display:flex;gap:5px;overflow-x:auto;flex:none;padding:2px 0 4px;scrollbar-width:none}#camCats::-webkit-scrollbar{display:none}"+
-    "#camCats .rcat{flex:none;cursor:pointer;font:700 9.5px/1 monospace;letter-spacing:1px;color:#9fc4ff;border:1px solid rgba(127,180,255,.35);border-radius:12px;padding:5px 9px;white-space:nowrap;background:rgba(20,40,70,.4)}"+
-    "#camCats .rcat.sel{background:#7fb4ff;color:#07101e;border-color:#7fb4ff}"+
-    "#dcList .dc-row2.sel{background:rgba(127,180,255,.16)}";
-  document.head.appendChild(st);
-}
+/* [deleted 2026-08-04] wcamCountries, wcamUnwrap, wcamFetch, wcamNorm, ensureCamCSS,
+   initGlobe, loadCountryPicker, loadCat, and everything else Windy-specific. Removed because
+   the Windy Webcams API v3 now returns 403 for everyone (Webcams.travel took it paid). See
+   tuneLiveCams below for the NOAA/NASA satellite slideshow replacement. */
+
+/* Live Cams — curated NOAA/NASA satellite + solar imagery slideshow. Rotates every 15 sec
+   through LIVECAMS_VIEWS (declared above). Category filter chip lets the user narrow to
+   SATELLITE-only or SOLAR-only. Same structural pattern as Local Radar: img inside an inner
+   div, LIVE badge + title overlay as siblings so image swaps don't nuke the chrome. onerror
+   auto-skips a broken view to the next slot after a 4-second cooldown. Music bed: gmelectro. */
 async function tuneLiveCams(ch,sl,my){
   if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Live Cams","");
-  ensureCamCSS();
-  if(screenArea) screenArea.innerHTML='<div class="dc-screen" id="dcScreen">'+
-    '<div class="dc-media show" id="camPane" style="flex:1 1 62%;height:auto;min-height:0">'+
-      '<div id="camGlobe"></div><div id="camHint">drag to spin · scroll to zoom · click a dot</div>'+
-      '<div id="camView"><img id="camImg" alt="webcam"><div id="camBack">← GLOBE</div><div class="cv-cap" id="camCap"></div></div></div>'+
-    '<div class="dc-body" id="dcBody" style="flex:0 1 38%;justify-content:flex-start;gap:4px;overflow:hidden">'+
-    '<div class="dc-top"><span id="camTitle">LIVE CAMS</span></div>'+
-    '<div id="camCats"></div>'+
-    '<div class="dc-list" id="dcList" style="flex:1 1 auto;overflow-y:auto"></div>'+
-    '<div class="dc-ticker" style="margin-top:auto">Real webcams via Windy · spin the earth, click a cam</div></div></div>';
-  var cams=[], globe=null, refreshIv=null, camsLoadedAt=0, lastCat=null, selIdx=-1;
-  var lat=31.55, lon=-97.13;
-  try{ var loc=await getWxLocation(); if(my===token&&loc){ lat=loc.lat; lon=loc.lon; } }catch(e){}
-  function showGlobe(){ var cv=$("camView"); if(cv)cv.style.display="none"; }
-  function showCam(c){ var cv=$("camView"),im=$("camImg"),cap=$("camCap"); if(!cv||!im)return;
-    cv.style.display="block";
-    /* Windy signs image URLs with a token that expires after 10 minutes on the free tier; after
-       that every request 401s and the picture silently freezes. A cache-buster can't renew a
-       token, so the whole list is re-fetched before expiry to obtain freshly signed URLs. */
-    function refresh(){
-      if(my!==token){clearInterval(refreshIv);return;}
-      if(Date.now()-camsLoadedAt > 8*60*1000 && lastCat){
-        nlog("livecams",true,"refreshing expiring image tokens");
-        loadCat(lastCat).then(function(){
-          if(my!==token)return;
-          var fresh=cams.filter(function(x){return x.id===c.id;})[0];
-          if(fresh){ c.img=fresh.img; }
-          im.src=c.img+(c.img.indexOf("?")<0?"?":"&")+"t="+Date.now();
+  if(screenArea) screenArea.innerHTML='<div class="dc-screen" id="dcScreen" style="flex-direction:column;background:#000">'+
+    '<div id="lcCats" style="flex:0 0 auto;display:flex;gap:6px;padding:6px 8px;background:rgba(4,10,22,.7);overflow-x:auto">'+
+      '<span class="rcat sel" data-lccat="ALL" style="flex:none;cursor:pointer;font:700 9.5px/1 monospace;letter-spacing:1px;color:#07101e;background:#7fb4ff;border:1px solid #7fb4ff;border-radius:12px;padding:5px 10px;white-space:nowrap">ALL VIEWS</span>'+
+      '<span class="rcat" data-lccat="SATELLITE" style="flex:none;cursor:pointer;font:700 9.5px/1 monospace;letter-spacing:1px;color:#9fc4ff;background:rgba(20,40,70,.4);border:1px solid rgba(127,180,255,.35);border-radius:12px;padding:5px 10px;white-space:nowrap">SATELLITE</span>'+
+      '<span class="rcat" data-lccat="SOLAR" style="flex:none;cursor:pointer;font:700 9.5px/1 monospace;letter-spacing:1px;color:#9fc4ff;background:rgba(20,40,70,.4);border:1px solid rgba(127,180,255,.35);border-radius:12px;padding:5px 10px;white-space:nowrap">SOLAR</span>'+
+    '</div>'+
+    '<div id="lcPane" style="flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden">'+
+      '<div id="lcImgInner" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center">'+
+        '<div class="dc-media-cap">Loading live views…</div>'+
+      '</div>'+
+      '<div id="lcLive" style="position:absolute;top:8px;left:8px;z-index:10;display:inline-flex;align-items:center;gap:7px;background:rgba(0,0,0,.75);border:1px solid rgba(255,80,80,.55);border-radius:5px;padding:4px 9px;font-family:monospace;font-size:11px;letter-spacing:1px;color:#fff;pointer-events:none">'+
+        '<span style="width:8px;height:8px;border-radius:50%;background:#ff3030;box-shadow:0 0 8px #ff5050;animation:wxBugPulse 1.4s ease-in-out infinite"></span>'+
+        '<span style="font-weight:900;color:#ff5050;letter-spacing:1.5px">LIVE</span>'+
+        '<span id="lcSrc" style="color:#c0e0c0"></span>'+
+      '</div>'+
+      '<div id="lcTitle" style="position:absolute;left:0;right:0;bottom:0;padding:12px 16px 14px;background:linear-gradient(0deg,rgba(0,0,0,.88),rgba(0,0,0,0));color:#fff;font-family:monospace;pointer-events:none">'+
+        '<div id="lcNm" style="font-weight:700;text-transform:uppercase;font-size:14px;letter-spacing:1.5px"></div>'+
+        '<div id="lcCat" style="font-size:10px;letter-spacing:2px;color:#9fc4a0;margin-top:3px"></div>'+
+      '</div>'+
+    '</div>'+
+    '<div class="dc-ticker">NOAA GOES-East/West + NOAA SWPC solar imagery · rotating every 15 sec · no auth, no API key, no expiring tokens</div>'+
+  '</div>';
+  mountChanBug("dcScreen",{ident:"LIVE CAMS"});
+  startIAJazz("gmelectro");
+  /* Filter state: which category is shown. "ALL" cycles everything. */
+  var lcFilter = "ALL";
+  function pool(){ return lcFilter==="ALL" ? LIVECAMS_VIEWS : LIVECAMS_VIEWS.filter(function(v){ return v.cat===lcFilter; }); }
+  var idx = Math.floor(Math.random() * pool().length);
+  function paint(){
+    if(my!==token||!powered) return;
+    var p = pool();
+    if(!p.length){ idx=0; return; }
+    if(idx>=p.length) idx=0;
+    var view = p[idx];
+    var inner = $("lcImgInner"); if(!inner) return;
+    /* Cache-bust every paint so a mid-tab refresh always shows the freshest scan. onerror auto-
+       skips the broken view to the next one in the pool after a brief cooldown. */
+    inner.innerHTML='<img src="'+esch(view.url)+(view.url.indexOf("?")<0?"?":"&")+'ts='+Date.now()+'" style="max-width:100%;max-height:100%;object-fit:contain" onerror="var e=document.getElementById(\'lcImgInner\');if(e)e.innerHTML=\'&lt;div class=&quot;dc-media-cap&quot;&gt;View temporarily unavailable&#8230;&lt;/div&gt;\'">';
+    var nm=$("lcNm"); if(nm) nm.textContent = view.nm;
+    var cat=$("lcCat"); if(cat) cat.textContent = view.cat + " · " + view.src;
+    var src=$("lcSrc"); if(src) src.textContent = view.src;
+    setChanStatus(ch.num, view.nm + " (" + view.src + ")");
+    nlog("livecams", true, view.nm);
+  }
+  /* Category chip clicks — visually swap sel state, reset idx, repaint immediately. */
+  var catsEl = $("lcCats");
+  if(catsEl){
+    catsEl.querySelectorAll("[data-lccat]").forEach(function(el){
+      el.addEventListener("click", function(){
+        catsEl.querySelectorAll("[data-lccat]").forEach(function(x){
+          x.classList.remove("sel");
+          x.style.background = "rgba(20,40,70,.4)";
+          x.style.color = "#9fc4ff";
+          x.style.borderColor = "rgba(127,180,255,.35)";
         });
-        return;
-      }
-      im.src=c.img+(c.img.indexOf("?")<0?"?":"&")+"t="+Date.now();
-    }
-    refresh(); clearInterval(refreshIv); refreshIv=rtInterval(refresh,20000);
-    if(cap)cap.innerHTML='<b>'+esch(c.title)+'</b><small>'+esch([c.city,c.country].filter(Boolean).join(", "))+' · updates every ~20s</small>';
-    nlog("livecams",true,c.title.slice(0,40));
+        el.classList.add("sel");
+        el.style.background = "#7fb4ff";
+        el.style.color = "#07101e";
+        el.style.borderColor = "#7fb4ff";
+        lcFilter = el.dataset.lccat;
+        idx = 0;
+        paint();
+      });
+    });
   }
-  function highlightRow(i){ var l=$("dcList"); if(!l)return; l.querySelectorAll("[data-si]").forEach(function(x){x.classList.remove("sel");});
-    var r=l.querySelector('[data-si="'+i+'"]'); if(r){ r.classList.add("sel"); try{r.scrollIntoView({block:"nearest"});}catch(e){} } }
-  function select(i){ var c=cams[i]; if(!c)return; highlightRow(i); if(globe&&globe.mark)globe.mark(i); if(globe&&globe.focusPt)globe.focusPt(c.lat,c.lon); showCam(c); }
-
-  async function initGlobe(){
-    var THREE; try{ THREE=await ensureThree(); }catch(e){ return null; } if(my!==token)return null;
-    var host=$("camGlobe"); if(!host)return null;
-    var W=host.clientWidth||600,H=host.clientHeight||340;
-    var renderer; try{ renderer=new THREE.WebGLRenderer({antialias:true,alpha:true}); }catch(e){ return null; }
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2)); renderer.setSize(W,H); host.appendChild(renderer.domElement);
-    var scene=new THREE.Scene(), camera=new THREE.PerspectiveCamera(45,W/H,0.1,100); camera.position.z=3.1;
-    scene.add(new THREE.AmbientLight(0xffffff,1.0)); var dl=new THREE.DirectionalLight(0xffffff,0.5); dl.position.set(5,3,5); scene.add(dl);
-    var g=new THREE.Group(); scene.add(g);
-    var mat=new THREE.MeshPhongMaterial({color:0x17324f,emissive:0x081524,shininess:6});
-    g.add(new THREE.Mesh(new THREE.SphereGeometry(1,64,64),mat));
-    try{ var tl=new THREE.TextureLoader(); tl.setCrossOrigin("anonymous"); tl.load(RG_TEX,function(tex){ mat.map=tex; mat.color.set(0xdfe8f2); mat.needsUpdate=true; },undefined,function(){}); }catch(e){}
-    var dots=new THREE.Group(); g.add(dots); var dotGeo=new THREE.SphereGeometry(0.014,8,8);
-    function ll2v(la,lo,rad){ var phi=(90-la)*Math.PI/180, th=(lo+180)*Math.PI/180; return new THREE.Vector3(-(rad*Math.sin(phi)*Math.cos(th)),rad*Math.cos(phi),rad*Math.sin(phi)*Math.sin(th)); }
-    var el=renderer.domElement; el.style.cursor="grab"; var drag=false,px=0,py=0,downX=0,downY=0;
-    el.addEventListener("pointerdown",function(e){ drag=true; px=e.clientX; py=e.clientY; downX=e.clientX; downY=e.clientY; el.style.cursor="grabbing"; try{el.setPointerCapture(e.pointerId);}catch(_){} });
-    el.addEventListener("pointermove",function(e){ if(!drag)return; g.rotation.y+=(e.clientX-px)*0.005; g.rotation.x=Math.max(-1.3,Math.min(1.3,g.rotation.x+(e.clientY-py)*0.005)); px=e.clientX; py=e.clientY; });
-    window.addEventListener("pointerup",function(){ drag=false; try{el.style.cursor="grab";}catch(_){}});
-    el.addEventListener("wheel",function(e){ e.preventDefault(); camera.position.z=Math.max(1.4,Math.min(6,camera.position.z+e.deltaY*0.0022)); },{passive:false});
-    var ray=new THREE.Raycaster(), mouse=new THREE.Vector2();
-    el.addEventListener("click",function(e){ if(Math.abs(e.clientX-downX)>4||Math.abs(e.clientY-downY)>4)return; var r=el.getBoundingClientRect();
-      mouse.x=((e.clientX-r.left)/r.width)*2-1; mouse.y=-((e.clientY-r.top)/r.height)*2+1; ray.setFromCamera(mouse,camera);
-      var hits=ray.intersectObjects(dots.children,false); if(hits.length){ var idx=hits[0].object.userData.i; if(idx!=null)select(idx); } });
-    var running=true;
-    function animate(){ if(!running||my!==token||!$("camGlobe")){ running=false; try{renderer.dispose();}catch(e){} return; } if(!drag)g.rotation.y+=0.0012; renderer.render(scene,camera); requestAnimationFrame(animate); }
-    animate();
-    return {
-      setDots:function(list){ while(dots.children.length)dots.remove(dots.children[0]); list.forEach(function(c,i){ var m=new THREE.Mesh(dotGeo,new THREE.MeshBasicMaterial({color:0x7fd4ff})); m.position.copy(ll2v(c.lat,c.lon,1.015)); m.userData.i=i; dots.add(m); }); },
-      mark:function(i){ dots.children.forEach(function(m){ var on=m.userData.i===i; m.material.color.set(on?0xffcf5a:0x7fd4ff); m.scale.setScalar(on?2.0:1); }); },
-      focusPt:function(la,lo){ g.rotation.y=-((lo+180)*Math.PI/180)+Math.PI/2; g.rotation.x=Math.max(-1.3,Math.min(1.3,la*Math.PI/180)); }
-    };
-  }
-
-  async function loadCountryPicker(){
-    if(my!==token)return; var listEl=$("dcList"); if(!listEl)return;
-    listEl.innerHTML='<div class="pop-empty">Loading country list…</div>'; showGlobe();
-    var t=$("camTitle"); if(t)t.textContent="LIVE CAMS / BY COUNTRY";
-    var countries=await wcamCountries(); if(my!==token)return;
-    if(!countries.length){ listEl.innerHTML='<div class="pop-empty">Could not load country list — try another tab.</div>'; return; }
-    listEl.innerHTML=countries.map(function(c,i){ return '<div class="dc-row2" data-ci="'+i+'" style="cursor:pointer"><div class="dc-row2-main"><span class="dc-place">'+esch(c.name)+'</span></div></div>'; }).join("");
-    listEl.querySelectorAll("[data-ci]").forEach(function(el){ el.addEventListener("click",function(){ loadCat({k:"countrypick",label:countries[+el.dataset.ci].name,countryCode:countries[+el.dataset.ci].code}); }); });
-    if(globe&&globe.setDots)globe.setDots([]);
-  }
-  async function loadCat(cat){
-    if(cat.k==="country") return loadCountryPicker();
-    if(my!==token)return; var listEl=$("dcList"); if(!listEl)return;
-    listEl.innerHTML='<div class="pop-empty">Finding cameras…</div>'; showGlobe();
-    var t=$("camTitle"); if(t)t.textContent="LIVE CAMS / "+cat.label;
-    var qs; if(cat.k==="local"){ qs="nearby="+lat.toFixed(3)+","+lon.toFixed(3)+",400"; }
-    else if(cat.k==="popular"){ qs="sortBy=popularity"; }
-    else if(cat.k==="countrypick"){ qs="countries="+encodeURIComponent(cat.countryCode); }
-    else { qs="categories="+encodeURIComponent(cat.cat); }
-    var raw=await wcamFetch(qs); if(my!==token)return;
-    /* QA FIX: this .slice(0,50) silently discarded everything the paginated fetch brought back,
-       so the cam list stayed at 50 no matter what. Uncapped -- the fetch itself is the bound. */
-    var seen={}; cams=raw.map(wcamNorm).filter(Boolean).filter(function(c){ if(seen[c.id])return false; seen[c.id]=1; return true; });
-    camsLoadedAt=Date.now(); lastCat=cat;
-    if(!cams.length){ listEl.innerHTML='<div class="pop-empty">No cameras here right now — try another.</div>'; if(globe&&globe.setDots)globe.setDots([]); return; }
-    listEl.innerHTML=cams.map(function(c,i){ return '<div class="dc-row2" data-si="'+i+'" style="cursor:pointer"><div class="dc-row2-main"><span class="dc-mag dc-sev-low">CAM</span><span class="dc-place">'+esch(c.title.slice(0,42))+'</span><span class="dc-when">'+esch([c.city,c.country].filter(Boolean).join(", ").slice(0,20))+'</span></div></div>'; }).join("");
-    listEl.querySelectorAll("[data-si]").forEach(function(el){ el.addEventListener("click",function(){ select(+el.dataset.si); }); });
-    if(globe&&globe.setDots)globe.setDots(cams);
-    select(0);
-  }
-
-  globe=await initGlobe(); if(my!==token)return;
-  var bk=$("camBack"); if(bk)bk.addEventListener("click",function(){ showGlobe(); });
-  var catsEl=$("camCats");
-  if(catsEl){ catsEl.innerHTML=WCAM_CATS.map(function(c,i){return '<span class="rcat" data-c="'+i+'">'+esch(c.label)+'</span>';}).join("");
-    catsEl.querySelectorAll("[data-c]").forEach(function(el){ el.addEventListener("click",function(){ catsEl.querySelectorAll("[data-c]").forEach(function(x){x.classList.remove("sel");}); el.classList.add("sel"); loadCat(WCAM_CATS[+el.dataset.c]); }); });
-    var f=catsEl.querySelector('[data-c="0"]'); if(f)f.classList.add("sel");
-  }
-  loadCat(WCAM_CATS[0]);
+  paint();
+  rtInterval(function(){ var p=pool(); if(p.length) idx=(idx+1)%p.length; paint(); }, 15*1000);
 }
 
 /* ---------- Storm Center: SPC Day 1 Convective Outlook (image + text) ---------- */
@@ -10016,7 +9942,7 @@ renderRail(); updateClocks();
 showOv("THE DIAL","PRESS POWER","Grab the remote and hit the red button.");
 setSig("","STANDBY");
 /* Populate the build-number chip beside STANDBY. Just the increment ("v128"), not the whole
-   "1.7.7-mobile.139" — the small chip has room for a short tag and that's the part that changes. */
+   "1.7.7-mobile.140" — the small chip has room for a short tag and that's the part that changes. */
 (function(){ try{
   var b=String(window.__ATV_BUILD||""); var v=b.split(".").pop();
   if(!v) return;

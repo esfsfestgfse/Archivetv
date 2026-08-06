@@ -134,23 +134,65 @@ body{
 
 .knob::after{content:"";position:absolute;top:5px;left:50%;width:3px;height:11px;background:#1a1109;transform:translateX(-50%);border-radius:2px}
 
-/* ============ SIDE TABLE + REMOTE ============ */
+/* ============ SIDE TABLE + REMOTE — redesigned 2026-08-06 ============ */
 .sidetable{position:relative;display:flex;flex-direction:column;align-items:center;gap:10px;padding-bottom:10px}
 
-.remote .rtop{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
-.remote .brandr{font-size:9px;letter-spacing:2px;color:#888}
-.rpow{width:34px;height:34px;border-radius:50%;border:2px solid #5a0f0a;cursor:pointer;
-  background:radial-gradient(circle at 35% 30%,#e0564a,#7e271d);color:#ffd;font-size:13px;box-shadow:0 2px 4px rgba(0,0,0,.5)}
-.rpow:active{transform:translateY(1px)}
-.rgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+/* Softer, more remote-like body: rounded top with IR emitter, wider battery cover at bottom,
+   plastic gradient body, more depth. */
+.remote{position:relative;padding:24px 12px 18px !important}
+.remote::before{content:"";position:absolute;top:-4px;left:50%;transform:translateX(-50%);
+  width:38px;height:9px;background:linear-gradient(180deg,#0a0a0a,#1a1a1a);border-radius:5px 5px 0 0;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05);z-index:1}
+.remote::after{content:"";position:absolute;top:-1px;left:50%;transform:translateX(-50%);
+  width:5px;height:5px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#ff5a4a,#7a1810);
+  box-shadow:0 0 5px rgba(255,90,74,.55);z-index:2}
+.remote .rtop{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding:0 3px}
+.remote .brandr{font-size:9px;letter-spacing:2.5px;color:#7a7a7a;font-weight:700}
+.rpow-wrap{display:flex;flex-direction:column;align-items:center;gap:3px}
+.rpow{width:38px;height:38px;border-radius:50%;border:2px solid #4a0a06;cursor:pointer;
+  background:radial-gradient(circle at 32% 28%,#f0685a 0%,#c33020 45%,#7e271d 100%);color:#fff5e6;
+  font-size:15px;box-shadow:0 3px 6px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.25),inset 0 -3px 6px rgba(0,0,0,.4);
+  transition:transform .05s}
+.rpow:active{transform:translateY(2px);box-shadow:0 1px 3px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.15),inset 0 -1px 3px rgba(0,0,0,.4)}
+.rpow-led{width:5px;height:5px;border-radius:50%;background:#2a1a1a;border:1px solid #0a0a0a;transition:background .2s,box-shadow .2s}
+.rpow-led.on{background:radial-gradient(circle,#60ff80,#0a5020);box-shadow:0 0 6px rgba(96,255,128,.9)}
 
+.rsection{margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,.06);position:relative}
+.rsection:first-of-type{margin-top:0;padding-top:0;border-top:none}
+.rlabel{text-align:center !important;font-size:8px !important;letter-spacing:2px !important;color:#888 !important;margin:0 0 6px !important;font-weight:700}
+
+.rgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
 .rbtn:hover{filter:brightness(1.25)}
 .rbtn:active{transform:translateY(2px);border-bottom-width:1px}
 .rbtn.sm{font-size:10px;letter-spacing:1px}
 .rbtn.acc{color:var(--amber);text-shadow:0 0 6px rgba(255,180,58,.5)}
 .rbtn.grn{color:var(--phos);text-shadow:0 0 6px rgba(103,255,134,.5)}
 .rbtn:focus-visible,.btn:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
-.rrow{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:7px}
+.rrow{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px}
+
+/* CH + VOL rocker switches — single elongated pill with top/bottom halves. Real remote feel. */
+.r-rockers{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:2px 4px}
+.r-rocker{display:flex;flex-direction:column;align-items:center;gap:4px}
+.r-rocker-lbl{font-size:8px;letter-spacing:1.5px;color:#888;font-weight:700}
+.r-rocker-pill{display:flex;flex-direction:column;width:100%;border-radius:22px;overflow:hidden;
+  background:linear-gradient(180deg,#3a3a3a,#151515);border:1px solid #000;
+  box-shadow:0 2px 4px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.08)}
+.r-rocker-btn{appearance:none;cursor:pointer;background:transparent;border:none;
+  color:#e8e8e8;font-size:13px;font-weight:bold;padding:8px 0;letter-spacing:1px;
+  transition:background .1s;font-family:inherit}
+.r-rocker-btn:first-child{border-radius:22px 22px 0 0;border-bottom:1px solid rgba(0,0,0,.6)}
+.r-rocker-btn:last-child{border-radius:0 0 22px 22px;border-top:1px solid rgba(255,255,255,.05)}
+.r-rocker-btn:hover{background:rgba(255,255,255,.07)}
+.r-rocker-btn:active{background:rgba(0,0,0,.35);color:var(--amber)}
+
+/* Mute LED — lights amber when muted, so you can see mute state at a glance */
+.rbtn.mute-on{background:linear-gradient(180deg,#5a3a10,#3a1f04) !important;color:var(--amber) !important;text-shadow:0 0 8px rgba(255,180,58,.9) !important;box-shadow:inset 0 0 6px rgba(255,180,58,.4),inset 0 1px 0 rgba(255,255,255,.15) !important}
+
+/* Battery compartment cover cosmetic at the bottom */
+.r-batcover{margin:14px -12px -18px;padding:6px 12px;
+  background:linear-gradient(180deg,#1a1a1a,#0a0a0a);border-top:1px solid #000;border-radius:0 0 15px 15px;
+  display:flex;align-items:center;justify-content:space-between;font-size:7px;letter-spacing:1.5px;color:#4a4a4a}
+.r-batcover::before,.r-batcover::after{content:"";width:12px;height:2px;background:#0a0a0a;border-radius:1px;box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
 
 
 /* ============ READOUT (below console) ============ */
@@ -455,7 +497,7 @@ html.mob .gsearch-wrap{padding:0 12px 6px}
     repeating-linear-gradient(90deg, var(--pan1) 0 78px, var(--pan-line) 78px 82px, var(--pan3) 82px 86px, var(--pan-line) 86px 90px),
     linear-gradient(180deg, #4d331c 0%, #3a2614 70%, #2a1b0e 100%);height:100dvh;justify-content:center;overflow:hidden}
 /* stage width is now driven by the tube's 4:3 height budget, so the picture is as big as the window allows */
-.stage{position:relative;z-index:2;width:100%;max-width:min(2400px,calc((100vh - 100px)*1.3333 + 200px));display:grid;grid-template-columns:1fr 150px;gap:14px;align-items:end} /* 2026-08-06: bumped ceiling 1800→2400, reduced vertical padding 146→100 and side-column budget 344→200, so the tube fills more of the empty brown space on wide monitors */
+.stage{position:relative;z-index:2;width:100%;max-width:calc(100vw - 32px);display:grid;grid-template-columns:1fr 165px;gap:14px;align-items:end} /* 2026-08-06 v2: previous formula-based cap was actually SMALLER on 1080p than the original. Now uses full viewport width minus a 32px margin — the tube grows to fill nearly all horizontal space. Content still fits with object-fit:contain so 4:3 letterboxes cleanly on ultra-wide monitors. Remote column widened 150→165 for the redesign. */
 .console{background:linear-gradient(180deg,var(--wood-l),var(--wood) 30%,var(--wood-d));border-radius:10px;padding:5px;border:2px solid #241509;position:relative;box-shadow:0 26px 50px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.08)}
 /* QA: console padding shrunk from 12px/14px/10px to 5px — "thin wooden bezel" per user request.
    The wood grain is still visible as a border but no longer eats screen real estate. */
@@ -882,7 +924,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.116";
+window.__ATV_BUILD="1.7.7-desktop.117";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -987,33 +1029,64 @@ window.addEventListener("unhandledrejection",function(e){
     <!-- side table + remote -->
     <div class="sidetable">
       <div class="remote">
-        <div class="rtop"><span class="brandr">THE&nbsp;DIAL</span>
-          <button class="rpow" id="rPow" title="Power" aria-label="Power">⏻</button></div>
-        <div class="rlabel">CHANNEL</div>
-        <div class="rgrid">
-          <button class="rbtn" data-d="1">1</button><button class="rbtn" data-d="2">2</button><button class="rbtn" data-d="3">3</button>
-          <button class="rbtn" data-d="4">4</button><button class="rbtn" data-d="5">5</button><button class="rbtn" data-d="6">6</button>
-          <button class="rbtn" data-d="7">7</button><button class="rbtn" data-d="8">8</button><button class="rbtn" data-d="9">9</button>
-          <button class="rbtn sm" id="rLast">LAST</button><button class="rbtn" data-d="0">0</button><button class="rbtn sm grn" id="rEnter">↵</button>
+        <div class="rtop">
+          <span class="brandr">THE&nbsp;DIAL</span>
+          <div class="rpow-wrap">
+            <button class="rpow" id="rPow" title="Power" aria-label="Power">⏻</button>
+            <div class="rpow-led" id="rPowLed"></div>
+          </div>
         </div>
-        <div class="rrow">
-          <button class="rbtn sm" id="rChUp">CH ▲</button><button class="rbtn sm" id="rChDn">CH ▼</button>
+        <!-- CHANNEL section: number pad -->
+        <div class="rsection">
+          <div class="rlabel">CHANNEL</div>
+          <div class="rgrid">
+            <button class="rbtn" data-d="1">1</button><button class="rbtn" data-d="2">2</button><button class="rbtn" data-d="3">3</button>
+            <button class="rbtn" data-d="4">4</button><button class="rbtn" data-d="5">5</button><button class="rbtn" data-d="6">6</button>
+            <button class="rbtn" data-d="7">7</button><button class="rbtn" data-d="8">8</button><button class="rbtn" data-d="9">9</button>
+            <button class="rbtn sm" id="rLast">LAST</button><button class="rbtn" data-d="0">0</button><button class="rbtn sm grn" id="rEnter">↵</button>
+          </div>
         </div>
-        <div class="rrow">
-          <button class="rbtn sm" id="rVolUp">VOL ▲</button><button class="rbtn sm" id="rVolDn">VOL ▼</button>
+        <!-- ROCKERS section: CH + VOL as proper rocker switches, like a real remote -->
+        <div class="rsection">
+          <div class="r-rockers">
+            <div class="r-rocker">
+              <div class="r-rocker-pill">
+                <button class="r-rocker-btn" id="rChUp" aria-label="Channel up">▲</button>
+                <button class="r-rocker-btn" id="rChDn" aria-label="Channel down">▼</button>
+              </div>
+              <div class="r-rocker-lbl">CH</div>
+            </div>
+            <div class="r-rocker">
+              <div class="r-rocker-pill">
+                <button class="r-rocker-btn" id="rVolUp" aria-label="Volume up">+</button>
+                <button class="r-rocker-btn" id="rVolDn" aria-label="Volume down">−</button>
+              </div>
+              <div class="r-rocker-lbl">VOL</div>
+            </div>
+          </div>
         </div>
-        <div class="rrow">
-          <button class="rbtn sm acc" id="rGuide">GUIDE</button><button class="rbtn sm acc" id="rFav">★ FAV</button>
+        <!-- NAVIGATION section -->
+        <div class="rsection">
+          <div class="rlabel">NAVIGATION</div>
+          <div class="rrow" style="margin-top:0">
+            <button class="rbtn sm acc" id="rGuide">GUIDE</button><button class="rbtn sm acc" id="rMenu">&#9776; MENU</button>
+          </div>
+          <div class="rrow">
+            <button class="rbtn sm" id="rSurf">SURF</button><button class="rbtn sm" id="rInfo">&#9432; INFO</button>
+          </div>
+          <div class="rrow">
+            <button class="rbtn sm acc" id="rFav">★ FAV</button><button class="rbtn sm" id="rMute">MUTE</button>
+          </div>
         </div>
-        <div class="rrow">
-          <button class="rbtn sm" id="rSurf">SURF</button><button class="rbtn sm" id="rMute">MUTE</button>
+        <!-- PROGRAM section: skip/save at bottom -->
+        <div class="rsection">
+          <div class="rlabel">PROGRAM</div>
+          <div class="rrow" style="margin-top:0">
+            <button class="rbtn sm acc" id="rSkip">&#9197; SKIP</button><button class="rbtn sm" id="rSave">&#128427; SAVE</button>
+          </div>
         </div>
-        <div class="rrow">
-          <button class="rbtn sm acc" id="rMenu">&#9776; MENU</button><button class="rbtn sm" id="rInfo">&#9432; INFO</button>
-        </div>
-        <div class="rrow">
-          <button class="rbtn sm acc" id="rSkip">&#9197; SKIP</button><button class="rbtn sm" id="rSave">&#128427; SAVE</button>
-        </div>
+        <!-- battery cover cosmetic -->
+        <div class="r-batcover"><span>2× AA</span><span>MODEL DL-1</span></div>
       </div>
       <!-- CYCLE-5: EXTRAS panel replaced by the on-screen MENU (press MENU on the remote or N) -->
     </div>
@@ -3308,10 +3381,15 @@ function powerOn(){powered=true;justPowered=true;
   audioCtx();unlockMedia();sfxClick();tube.classList.remove("off");setSig("tuning","WARMING UP");
   renderRail();startClock();applyPicture();acquireWake();showClockBug();applyNight();tuneNum(curNum);startEmergencyMonitor();
   getWxLocation().then(resolveLocale); /* CYCLE-2: warm the locale cache */
-  if(stationMgr)setTimeout(buildPlan,9000); /* 1.5: draft the day plan once the set is warm */}
+  if(stationMgr)setTimeout(buildPlan,9000); /* 1.5: draft the day plan once the set is warm */
+  var pLed=$("rPowLed"); if(pLed) pLed.classList.add("on"); /* PWR LED green when powered on */
+  var mBtn=$("rMute"); if(mBtn) mBtn.classList.remove("mute-on"); /* mute cleared on power-on */
+}
 function powerOff(){powered=false;++token;stopClock();clearTimeout(retryTimer);releaseWake();tube.classList.add("off");
   setTimeout(()=>{clearScreen();showOv("THE DIAL","PRESS POWER","Grab the remote and hit the red button.");tube.classList.remove("off");},470);
   bug.classList.add("hide");lower.classList.add("fade");volHint.classList.remove("show");
+  var pLed=$("rPowLed"); if(pLed) pLed.classList.remove("on"); /* PWR LED off */
+  var mBtn=$("rMute"); if(mBtn) mBtn.classList.remove("mute-on");
   if(banner)banner.classList.remove("show");if(infoPanel)infoPanel.classList.add("hide");
   if(flipBar)flipBar.classList.remove("show");if(clockBug)clockBug.classList.remove("show");
   if(tube)tube.classList.remove("sleep-dim");closeOsd();resetProgress();hideBuffer();
@@ -3337,9 +3415,11 @@ function showVolOsd(){volOsd.classList.add("show");volOsdBar.style.width=(muted?
   clearTimeout(showVolOsd._t);showVolOsd._t=setTimeout(()=>volOsd.classList.remove("show"),1200);}
 function toggleMute(){muted=!muted;store.set("muted",muted);applyAV();showVolOsd();
   if(volHint){ if(muted){ volHint.textContent="MUTED - PRESS MUTE TO RESTORE"; volHint.classList.add("show"); } else if(!soundBlocked){ volHint.classList.remove("show"); } } /* 1.2.2: mute is never invisible again */
-  if(led.classList.contains("live"))setSig("live",muted?"MUTED":liveLabel());}
+  if(led.classList.contains("live"))setSig("live",muted?"MUTED":liveLabel());
+  var mBtn=$("rMute"); if(mBtn) mBtn.classList.toggle("mute-on",muted); /* MUTE button lights amber while muted */}
 function setVol(dv){vol=Math.max(0,Math.min(1,Math.round((vol+dv)*100)/100));store.set("vol",vol);if(vol>0)muted=false;applyAV();showVolOsd();
-  if(volHint){ if(muted){ volHint.textContent="MUTED - PRESS MUTE TO RESTORE"; volHint.classList.add("show"); } else if(!soundBlocked){ volHint.classList.remove("show"); } } /* 1.2.2: mute is never invisible again */}
+  if(volHint){ if(muted){ volHint.textContent="MUTED - PRESS MUTE TO RESTORE"; volHint.classList.add("show"); } else if(!soundBlocked){ volHint.classList.remove("show"); } } /* 1.2.2: mute is never invisible again */
+  var mBtn=$("rMute"); if(mBtn) mBtn.classList.toggle("mute-on",muted); /* keep MUTE LED in sync when vol-up clears mute */}
 
 $("rPow").addEventListener("click",togglePower);
 document.querySelectorAll("[data-d]").forEach(b=>b.addEventListener("click",()=>pressDigit(b.dataset.d)));

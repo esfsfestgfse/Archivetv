@@ -1012,7 +1012,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.144";
+window.__ATV_BUILD="1.7.7-mobile.145";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1592,6 +1592,7 @@ const CH=[
  {nm:"Tropical Watch", num:409,    cat:"LDATA", source:"tropical",  ns:"tv"},
  {nm:"Live TV", num:300,          cat:"LBRO", source:"livetv",    ns:"tv"},
  {nm:"Live Cams", num:301,        cat:"LBRO", source:"livecams",  ns:"tv"},
+ {nm:"Highway Cams", num:302,     cat:"LBRO", source:"highway",   ns:"tv"}, /* KCScout, MassDOT, UDOT YouTube live streams — filtered subset of LIVECAMS_STREAMS */
  {nm:"Deep Space Jazz", num:925,   cat:"MUS", source:"spacejazz", ns:"tv"},
  {nm:"OTR Theater", num:926,       cat:"MUS", gl:"otrtheater",   era:[1935,1965], ns:"radio", audio:true}, /* Suspense/Inner Sanctum/Escape old-time radio drama */
  {nm:"World Clock", num:410,       cat:"LDATA", source:"worldclock", ns:"tv"},
@@ -1715,7 +1716,8 @@ const CHANNEL_META={
 "Local Radar":{desc:"LIVE: your nearest NEXRAD WSR-88D animated loop straight from radar.weather.gov, ragtime bed.",best:"anytime",rel:["Weather Watch","Storm Center"]},
 "Live News":{desc:"LIVE: 24/7 English news \u2014 DW, France 24, Al Jazeera, CGTN, NewsAsia, TRT, Arirang, NHK, CBS, Newsmax \u0026 Red Bull, via HLS + your proxy.",best:"anytime",rel:["Live TV","Live Radio"]},
 "Live TV":{desc:"LIVE: a genre grid of free TV channels (News/Sports/Weather/Movies/Kids\u2026) from iptv-org \u2014 add a free stream proxy to unlock most of them.",best:"anytime",rel:["Live News","Live Radio"]},
-"Live Cams":{desc:"LIVE: real webcams worldwide on a spinnable 3D globe (Windy) \u2014 drag the earth, click a cam to watch.",best:"anytime",rel:["Live TV","Live Radio"]},
+"Live Cams":{desc:"LIVE: 20+ webcams worldwide \u2014 Katmai brown bears, Times Square, Kruger safari, Austrian Alps, ISS. Rotates every 90 sec, tap NEXT to skip.",best:"anytime",rel:["Highway Cams","Live TV"]},
+"Highway Cams":{desc:"LIVE: Kansas City DOT, MassDOT and UDOT traffic streams \u2014 real 24/7 highway watch from state DOTs, all via YouTube Live.",best:"rush hour",rel:["Live Cams","Live TV"]},
 "Deep Space Jazz":{desc:"NASA imagery slideshow over a 78rpm jazz bed.",best:"late night",rel:["Space","Jukebox 78"]},
 "World Clock":{desc:"LIVE: the world's time zones on a day/night map.",best:"anytime",rel:["Space","On This Day"]},
 "Wildfire Watch":{desc:"LIVE: active fires near you and nationwide, mapped.",best:"fire season",rel:["Seismic Watch","Weather Watch"]},
@@ -3138,6 +3140,7 @@ async function tuneNum(n){
   if(sl.source==="localradar"){ if(my!==token)return; return tuneLocalRadar(ch,sl,my); }
   if(sl.source==="livetv"){ if(my!==token)return; return tuneLiveTV(ch,sl,my); }
   if(sl.source==="livecams"){ if(my!==token)return; return tuneLiveCams(ch,sl,my); }
+  if(sl.source==="highway"){ if(my!==token)return; return tuneHighwayCams(ch,sl,my); }
   if(sl.source==="liveradio"){ if(my!==token)return; return tuneLiveRadio(ch,sl,my); }
   if(sl.source==="art"){ if(my!==token)return; return tuneArt(ch,sl,my); }
   if(sl.source==="spacejazz"){ if(my!==token)return; return tuneSpaceJazz(ch,sl,my); }
@@ -6668,61 +6671,97 @@ function tuneSeismic(ch,sl,my){ return tuneRotator(ch,sl,my,[
   function(m){ return tuneQuake(ch,sl,m); }
 ],26); }
 
-/* ---------- Live Cams: real webcams worldwide on a draggable 3D globe (Windy, via the worker) ---------- */
 /* ============================================================================================
-   LIVE CAMS — rebuilt again 2026-08-04 (v3). First rebuild used NOAA satellite JPGs, which was
-   not what the user wanted (they asked for actual live IP cams worldwide). This version uses real
-   live HLS webcam streams pulled from the iptv-org public catalog — beach cams, safari cams,
-   alpine cams, city cams, all publicly published streams that work via the existing hls.js
-   loadHlsLib() infrastructure. All URLs verified alive at rebuild time. No API keys.
+   LIVE CAMS — rebuilt again 2026-08-06 (v4). Now supports THREE stream types:
+     - "hls"     : HLS .m3u8 URLs, played in <video> via hls.js/native
+     - "youtube" : YouTube Live channel or video, played via iframe embed
+     - "explore" : Explore.org cam slug, played via their embed iframe
+   Adding YouTube + Explore.org opens up hundreds of verified perpetual live streams that a raw
+   HLS-only pool can't reach (Katmai bears, Kansas City highway cams, NASA Live, EarthCam feeds).
+   Iframe embeds fail visibly (YouTube's own "unavailable" placeholder) if a stream drops, and
+   the ERROR path auto-advances rotation, so the channel never stalls.
    ============================================================================================ */
 var LIVECAMS_STREAMS=[
-  /* Beach + coastal */
-  {cat:"BEACH",   nm:"Beach TV · Florida & Alabama",           url:"http://media4.tripsmarter.com:1935/LiveTV/DTVHD/playlist.m3u8",                                                                                                                          src:"Beach TV"},
-  {cat:"BEACH",   nm:"Beach TV · Key West & Florida Keys",     url:"https://5ed325193d4e1.streamlock.net:444/LiveTV/KTVHD/playlist.m3u8",                                                                                                                    src:"Beach TV"},
-  {cat:"BEACH",   nm:"Beach TV · Myrtle Beach & Grand Strand", url:"http://media4.tripsmarter.com:1935/LiveTV/MTVHD/playlist.m3u8",                                                                                                                          src:"Beach TV"},
-  {cat:"BEACH",   nm:"Beach TV · Panama City Beach",           url:"http://media4.tripsmarter.com:1935/LiveTV/BTVHD/playlist.m3u8",                                                                                                                          src:"Beach TV"},
-  {cat:"BEACH",   nm:"Palm Beaches TV",                        url:"https://live.feed.thepalmbeaches.tv/index.m3u8",                                                                                                                                        src:"Palm Beaches"},
-  {cat:"BEACH",   nm:"NOTV · New Orleans TV",                  url:"http://media4.tripsmarter.com:1935/LiveTV/NOTVHD/playlist.m3u8",                                                                                                                         src:"NOTV"},
+  /* ---------- HIGHWAY (YouTube live · DOT + traffic authority streams) ---------- */
+  {type:"youtube", cat:"HIGHWAY", nm:"KC Scout · Kansas City Highway",         url:"UCd8XyXTQGiVpcHUxTn05VfA", src:"KC Scout DOT",  isChannel:true},
+  {type:"youtube", cat:"HIGHWAY", nm:"MassDOT · I-90 & Boston Corridor",       url:"UCH6nEBObEyG2u2XwvSMHzKw", src:"MassDOT",       isChannel:true},
+  {type:"youtube", cat:"HIGHWAY", nm:"UDOT · Utah Traffic Cams",               url:"UCJ4mVKPCzsGSXrbcJHKnkeg", src:"UDOT",          isChannel:true},
 
-  /* Nature + wildlife */
-  {cat:"NATURE",  nm:"WildEarth · Kruger Safari Live",         url:"https://dqga3jatxofgx.cloudfront.net/WildEarth.m3u8",                                                                                                                                    src:"WildEarth"},
-  {cat:"NATURE",  nm:"DroneTV · Aerial Views",                 url:"https://d35j504z0x2vu2.cloudfront.net/v1/master/0bc8e8376bd8417a1b6761138aa41c26c7309312/dronetv/playlist.m3u8",                                                                          src:"DroneTV"},
+  /* ---------- BEACH (HLS streams from iptv-org outdoor catalog) ---------- */
+  {type:"hls", cat:"BEACH",   nm:"Beach TV · Florida & Alabama",           url:"http://media4.tripsmarter.com:1935/LiveTV/DTVHD/playlist.m3u8",                                                                                                                          src:"Beach TV"},
+  {type:"hls", cat:"BEACH",   nm:"Beach TV · Key West & Florida Keys",     url:"https://5ed325193d4e1.streamlock.net:444/LiveTV/KTVHD/playlist.m3u8",                                                                                                                    src:"Beach TV"},
+  {type:"hls", cat:"BEACH",   nm:"Beach TV · Myrtle Beach & Grand Strand", url:"http://media4.tripsmarter.com:1935/LiveTV/MTVHD/playlist.m3u8",                                                                                                                          src:"Beach TV"},
+  {type:"hls", cat:"BEACH",   nm:"Beach TV · Panama City Beach",           url:"http://media4.tripsmarter.com:1935/LiveTV/BTVHD/playlist.m3u8",                                                                                                                          src:"Beach TV"},
+  {type:"hls", cat:"BEACH",   nm:"Palm Beaches TV",                        url:"https://live.feed.thepalmbeaches.tv/index.m3u8",                                                                                                                                        src:"Palm Beaches"},
+  {type:"hls", cat:"BEACH",   nm:"NOTV · New Orleans TV",                  url:"http://media4.tripsmarter.com:1935/LiveTV/NOTVHD/playlist.m3u8",                                                                                                                         src:"NOTV"},
 
-  /* City / destination scenic */
-  {cat:"CITY",    nm:"Aruba TV · Island Cams",                 url:"https://cdn01.setar.aw/Canal49/canal49/playlist.m3u8",                                                                                                                                   src:"Aruba TV"},
-  {cat:"CITY",    nm:"Schladming-Dachstein · Austrian Alps",   url:"https://m317.video-stream-hosting.de/gzSoftware-live/_definst_/smil:livestream.smil/playlist.m3u8",                                                                                       src:"Schladming-Dachstein"},
-  {cat:"CITY",    nm:"Pocono Television Network",              url:"https://dfoiz3dv1euv7.cloudfront.net/ptnlive-s3/live1.m3u8",                                                                                                                             src:"PTN"},
-  {cat:"CITY",    nm:"3Cat · Weather Cams (Catalonia)",        url:"https://directes-tv-int.3catdirectes.cat/live-content/beauties-hls/master.m3u8",                                                                                                         src:"3Cat"},
+  /* ---------- NATURE (HLS + Explore.org iframe embeds for wildlife cams) ---------- */
+  {type:"hls",     cat:"NATURE", nm:"WildEarth · Kruger Safari Live",           url:"https://dqga3jatxofgx.cloudfront.net/WildEarth.m3u8",                                                                                                                                    src:"WildEarth"},
+  {type:"hls",     cat:"NATURE", nm:"DroneTV · Aerial Views",                   url:"https://d35j504z0x2vu2.cloudfront.net/v1/master/0bc8e8376bd8417a1b6761138aa41c26c7309312/dronetv/playlist.m3u8",                                                                          src:"DroneTV"},
+  {type:"explore", cat:"NATURE", nm:"Katmai · Brooks Falls Brown Bears",         url:"brown-bear-salmon-cam-brooks-falls",       src:"Explore.org"},
+  {type:"explore", cat:"NATURE", nm:"Big Sur · Condor Sanctuary Cam",            url:"condor-cam",                               src:"Explore.org"},
+  {type:"explore", cat:"NATURE", nm:"African Watering Hole (Namibia)",           url:"africam-nkorho-pan",                       src:"Explore.org"},
+  {type:"explore", cat:"NATURE", nm:"Puppy Playroom · Warrior Canine Connection", url:"warrior-canine-connection-service-puppy-cam", src:"Explore.org"},
+  {type:"explore", cat:"NATURE", nm:"Panda Cam · Zoo Atlanta",                    url:"panda-cam",                                src:"Explore.org"},
 
-  /* Space */
-  {cat:"SPACE",   nm:"Sen · Earth from Orbit (Space Live)",    url:"https://880ca9c9341c405f83d8664a18cc7134.mediatailor.us-west-2.amazonaws.com/v1/master/ba62fe743df0fe93366eba3a257d792884136c7f/LINEAR-1224-SPACELIVE-LG-UK/mt/lg-uk/1224/hls/master/playlist.m3u8", src:"Sen"}
+  /* ---------- CITY / SCENIC (HLS + YouTube live for major destinations) ---------- */
+  {type:"hls",     cat:"CITY",    nm:"Aruba TV · Island Cams",                 url:"https://cdn01.setar.aw/Canal49/canal49/playlist.m3u8",                                                                                                                                   src:"Aruba TV"},
+  {type:"hls",     cat:"CITY",    nm:"Schladming-Dachstein · Austrian Alps",   url:"https://m317.video-stream-hosting.de/gzSoftware-live/_definst_/smil:livestream.smil/playlist.m3u8",                                                                                       src:"Schladming-Dachstein"},
+  {type:"hls",     cat:"CITY",    nm:"Pocono Television Network",              url:"https://dfoiz3dv1euv7.cloudfront.net/ptnlive-s3/live1.m3u8",                                                                                                                             src:"PTN"},
+  {type:"hls",     cat:"CITY",    nm:"3Cat · Weather Cams (Catalonia)",        url:"https://directes-tv-int.3catdirectes.cat/live-content/beauties-hls/master.m3u8",                                                                                                         src:"3Cat"},
+  {type:"youtube", cat:"CITY",    nm:"EarthCam · Times Square NYC",            url:"UCPGzT4wecu2yql7qbHrEZog", src:"EarthCam", isChannel:true},
+  {type:"youtube", cat:"CITY",    nm:"Bourbon Street · New Orleans Live",      url:"UCEtdiQwLuA0Nn6mavdrxIbA", src:"BourbonOCam", isChannel:true},
+
+  /* ---------- SPACE (HLS + NASA Live iframe) ---------- */
+  {type:"hls",     cat:"SPACE",   nm:"Sen · Earth from Orbit (Space Live)",    url:"https://880ca9c9341c405f83d8664a18cc7134.mediatailor.us-west-2.amazonaws.com/v1/master/ba62fe743df0fe93366eba3a257d792884136c7f/LINEAR-1224-SPACELIVE-LG-UK/mt/lg-uk/1224/hls/master/playlist.m3u8", src:"Sen"},
+  {type:"youtube", cat:"SPACE",   nm:"NASA Live · ISS + Mission Feed",         url:"UCLA_DiR1FfKNvjuUpBHmylQ", src:"NASA", isChannel:true},
+  {type:"youtube", cat:"SPACE",   nm:"SpaceX Live",                             url:"UCtI0Hodo5o5dUb67FeUjDeA", src:"SpaceX", isChannel:true}
 ];
 /* [deleted 2026-08-04] wcamCountries, wcamUnwrap, wcamFetch, wcamNorm, ensureCamCSS,
    initGlobe, loadCountryPicker, loadCat, and everything else Windy-specific. Removed because
    the Windy Webcams API v3 now returns 403 for everyone (Webcams.travel took it paid). See
    tuneLiveCams below for the NOAA/NASA satellite slideshow replacement. */
 
-/* Live Cams — real HLS webcam streams from around the world. Uses the existing loadHlsLib()
-   infrastructure (same hls.js instance the Live TV channel uses at CH 300). Cycles streams
-   every 60 sec (long enough to actually watch). Category chips let user narrow the pool.
-   No music bed — the streams have their own audio; jazz-over-jazz would be a mess. */
+/* Live Cams (v4) — HLS + YouTube iframe + Explore.org iframe. tuneLiveCams accepts an optional
+   filterCat parameter so Highway Cams (ch 302) can reuse the same shell filtered to HIGHWAY.
+   Cats visible in the chip strip depend on which streams the current pool has.
+   Iframes have no music bed conflict — YouTube/Explore serve their own audio. */
 var lcHls = null;
 function tuneLiveCams_destroyHls(){ if(lcHls){ try{lcHls.destroy();}catch(e){} lcHls=null; } }
-async function tuneLiveCams(ch,sl,my){
-  if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Live Cams","");
-  tuneLiveCams_destroyHls(); /* clean up any leftover instance from prior tune */
+function ytEmbedUrl(view){
+  /* channel-live URL for perpetual streams, direct video URL for fixed IDs. Autoplay muted so
+     browsers actually let it start; user can unmute via YouTube's own player controls. */
+  var base = view.isChannel
+    ? "https://www.youtube.com/embed/live_stream?channel="+encodeURIComponent(view.url)
+    : "https://www.youtube.com/embed/"+encodeURIComponent(view.url);
+  return base + "?autoplay=1&mute=1&modestbranding=1&rel=0&playsinline=1";
+}
+function exploreEmbedUrl(view){
+  return "https://explore.org/livecams/currently-live/"+encodeURIComponent(view.url)+"/embed";
+}
+async function tuneLiveCams(ch,sl,my,poolOverride,titleOverride,catsOverride){
+  if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,titleOverride||"Live Cams","");
+  tuneLiveCams_destroyHls();
+  var streams = poolOverride || LIVECAMS_STREAMS;
+  /* Build category chip set from what's actually in the pool (some pools have HIGHWAY only). */
+  var cats = catsOverride || (function(){
+    var seen={}, out=["ALL"];
+    streams.forEach(function(s){ if(!seen[s.cat]){seen[s.cat]=1; out.push(s.cat);} });
+    return out;
+  })();
+  var catChipHtml = cats.map(function(c,i){
+    var sel = i===0 ? "sel" : "";
+    var style = i===0
+      ? "color:#07101e;background:#7fb4ff;border:1px solid #7fb4ff"
+      : "color:#9fc4ff;background:rgba(20,40,70,.4);border:1px solid rgba(127,180,255,.35)";
+    return '<span class="rcat '+sel+'" data-lccat="'+esch(c)+'" style="flex:none;cursor:pointer;font:700 9.5px/1 monospace;letter-spacing:1px;border-radius:12px;padding:5px 10px;white-space:nowrap;'+style+'">'+esch(c==="ALL"?"ALL CAMS":c)+'</span>';
+  }).join("");
   if(screenArea) screenArea.innerHTML='<div class="dc-screen" id="dcScreen" style="flex-direction:column;background:#000">'+
-    '<div id="lcCats" style="flex:0 0 auto;display:flex;gap:6px;padding:6px 8px;background:rgba(4,10,22,.7);overflow-x:auto">'+
-      '<span class="rcat sel" data-lccat="ALL" style="flex:none;cursor:pointer;font:700 9.5px/1 monospace;letter-spacing:1px;color:#07101e;background:#7fb4ff;border:1px solid #7fb4ff;border-radius:12px;padding:5px 10px;white-space:nowrap">ALL CAMS</span>'+
-      '<span class="rcat" data-lccat="BEACH" style="flex:none;cursor:pointer;font:700 9.5px/1 monospace;letter-spacing:1px;color:#9fc4ff;background:rgba(20,40,70,.4);border:1px solid rgba(127,180,255,.35);border-radius:12px;padding:5px 10px;white-space:nowrap">BEACH</span>'+
-      '<span class="rcat" data-lccat="NATURE" style="flex:none;cursor:pointer;font:700 9.5px/1 monospace;letter-spacing:1px;color:#9fc4ff;background:rgba(20,40,70,.4);border:1px solid rgba(127,180,255,.35);border-radius:12px;padding:5px 10px;white-space:nowrap">NATURE</span>'+
-      '<span class="rcat" data-lccat="CITY" style="flex:none;cursor:pointer;font:700 9.5px/1 monospace;letter-spacing:1px;color:#9fc4ff;background:rgba(20,40,70,.4);border:1px solid rgba(127,180,255,.35);border-radius:12px;padding:5px 10px;white-space:nowrap">CITY / SCENIC</span>'+
-      '<span class="rcat" data-lccat="SPACE" style="flex:none;cursor:pointer;font:700 9.5px/1 monospace;letter-spacing:1px;color:#9fc4ff;background:rgba(20,40,70,.4);border:1px solid rgba(127,180,255,.35);border-radius:12px;padding:5px 10px;white-space:nowrap">SPACE</span>'+
-    '</div>'+
+    '<div id="lcCats" style="flex:0 0 auto;display:flex;gap:6px;padding:6px 8px;background:rgba(4,10,22,.7);overflow-x:auto">'+catChipHtml+'</div>'+
     '<div id="lcPane" style="flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;background:#000">'+
-      '<video id="lcVideo" playsinline autoplay muted controls style="width:100%;height:100%;object-fit:contain;background:#000"></video>'+
-      '<div id="lcStatus" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#9fc4a0;font-family:monospace;font-size:12px;pointer-events:none">Loading first cam…</div>'+
+      '<video id="lcVideo" playsinline autoplay muted controls style="width:100%;height:100%;object-fit:contain;background:#000;display:none"></video>'+
+      '<iframe id="lcFrame" src="about:blank" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen style="width:100%;height:100%;border:0;background:#000;display:none"></iframe>'+
+      '<div id="lcStatus" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#9fc4a0;font-family:monospace;font-size:12px;pointer-events:none;background:#000">Loading first cam…</div>'+
       '<div id="lcLive" style="position:absolute;top:8px;left:8px;z-index:10;display:inline-flex;align-items:center;gap:7px;background:rgba(0,0,0,.75);border:1px solid rgba(255,80,80,.55);border-radius:5px;padding:4px 9px;font-family:monospace;font-size:11px;letter-spacing:1px;color:#fff;pointer-events:none">'+
         '<span style="width:8px;height:8px;border-radius:50%;background:#ff3030;box-shadow:0 0 8px #ff5050;animation:wxBugPulse 1.4s ease-in-out infinite"></span>'+
         '<span style="font-weight:900;color:#ff5050;letter-spacing:1.5px">LIVE</span>'+
@@ -6732,60 +6771,67 @@ async function tuneLiveCams(ch,sl,my){
         '<div id="lcNm" style="font-weight:700;text-transform:uppercase;font-size:14px;letter-spacing:1.5px"></div>'+
         '<div id="lcCat" style="font-size:10px;letter-spacing:2px;color:#9fc4a0;margin-top:3px"></div>'+
       '</div>'+
+      '<button id="lcNext" title="Skip to next cam" style="position:absolute;right:10px;bottom:44px;z-index:11;background:rgba(0,0,0,.7);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:4px;padding:6px 12px;font:700 10px/1 monospace;letter-spacing:1px;cursor:pointer">NEXT ▸</button>'+
     '</div>'+
-    '<div class="dc-ticker">Live public HLS webcam streams via iptv-org · rotating every 60 sec · beach / nature / city / space</div>'+
+    '<div class="dc-ticker">Rotating every 90 sec · HLS + YouTube live + Explore.org · '+streams.length+' cams · tap NEXT to skip</div>'+
   '</div>';
-  mountChanBug("dcScreen",{ident:"LIVE CAMS"});
+  mountChanBug("dcScreen",{ident:(titleOverride||"LIVE CAMS").toUpperCase()});
   var Hls = null;
   try { Hls = await loadHlsLib(); }
   catch(e){ nlog("livecams",false,"hls.js load failed: "+((e&&e.message)||e)); }
   if(my!==token) return;
   var lcFilter = "ALL";
-  function pool(){ return lcFilter==="ALL" ? LIVECAMS_STREAMS : LIVECAMS_STREAMS.filter(function(v){ return v.cat===lcFilter; }); }
+  function pool(){ return lcFilter==="ALL" ? streams : streams.filter(function(v){ return v.cat===lcFilter; }); }
   var idx = Math.floor(Math.random() * pool().length);
-  var v = $("lcVideo"), statusEl = $("lcStatus");
+  var v = $("lcVideo"), fr = $("lcFrame"), statusEl = $("lcStatus");
+  function showVideo(){ if(v)v.style.display="block"; if(fr){fr.style.display="none"; fr.src="about:blank";} }
+  function showFrame(){ if(v){v.style.display="none"; v.pause&&v.pause(); try{v.removeAttribute("src");}catch(e){} v.load&&v.load();} if(fr)fr.style.display="block"; }
   function play(){
     if(my!==token||!powered) return;
     var p = pool(); if(!p.length){ if(statusEl){ statusEl.style.display="flex"; statusEl.textContent="No cams in this category"; } return; }
     if(idx>=p.length) idx=0;
     var view = p[idx];
     tuneLiveCams_destroyHls();
-    if(!v) return;
-    v.pause(); try{v.removeAttribute("src");}catch(e){} v.load();
     if(statusEl){ statusEl.style.display="flex"; statusEl.textContent="Tuning "+view.nm+"…"; }
-    /* Try native HLS first (Safari + iOS both play .m3u8 without a library). Fall back to hls.js
-       everywhere else. */
     try {
-      if(v.canPlayType && v.canPlayType("application/vnd.apple.mpegurl")){
-        v.src = view.url;
-        v.play().catch(function(){});
-      } else if(Hls && Hls.isSupported()){
-        lcHls = new Hls({liveDurationInfinity:true});
-        lcHls.loadSource(view.url);
-        lcHls.attachMedia(v);
-        lcHls.on(Hls.Events.MANIFEST_PARSED, function(){ v.play().catch(function(){}); if(statusEl) statusEl.style.display="none"; });
-        lcHls.on(Hls.Events.ERROR, function(ev,d){
-          if(d && d.fatal){
-            nlog("livecams",false,"stream error: "+(d.type||"unknown"));
-            /* auto-advance past broken streams so a dead source doesn't halt rotation */
-            idx = (idx+1) % pool().length;
-            setTimeout(play, 2000);
-          }
-        });
+      if(view.type==="youtube"){
+        showFrame();
+        if(fr) fr.src = ytEmbedUrl(view);
+        /* iframe onload fires whether embed plays or shows YouTube's "unavailable" page — either
+           way rotation continues. If a specific embed is dead the user sees YouTube's own message,
+           which is clear enough to signal "skip". */
+        if(statusEl) setTimeout(function(){ if(my===token) statusEl.style.display="none"; }, 2500);
+      } else if(view.type==="explore"){
+        showFrame();
+        if(fr) fr.src = exploreEmbedUrl(view);
+        if(statusEl) setTimeout(function(){ if(my===token) statusEl.style.display="none"; }, 2500);
       } else {
-        if(statusEl){ statusEl.textContent="HLS playback not supported in this browser."; }
+        /* HLS path — same as v3 */
+        showVideo();
+        if(v){ v.pause(); try{v.removeAttribute("src");}catch(e){} v.load(); }
+        if(v && v.canPlayType && v.canPlayType("application/vnd.apple.mpegurl")){
+          v.src = view.url; v.play().catch(function(){});
+        } else if(v && Hls && Hls.isSupported()){
+          lcHls = new Hls({liveDurationInfinity:true});
+          lcHls.loadSource(view.url); lcHls.attachMedia(v);
+          lcHls.on(Hls.Events.MANIFEST_PARSED, function(){ v.play().catch(function(){}); if(statusEl) statusEl.style.display="none"; });
+          lcHls.on(Hls.Events.ERROR, function(ev,d){
+            if(d && d.fatal){
+              nlog("livecams",false,"stream error: "+(d.type||"unknown"));
+              idx = (idx+1) % pool().length;
+              setTimeout(play, 1500);
+            }
+          });
+        } else if(statusEl) statusEl.textContent="HLS playback not supported in this browser.";
+        if(v) v.addEventListener("playing", function once(){ v.removeEventListener("playing", once); if(statusEl) statusEl.style.display="none"; }, {once:true});
       }
-    } catch(err){
-      nlog("livecams",false,"play failed: "+((err&&err.message)||err));
-    }
-    v.addEventListener("playing", function once(){ v.removeEventListener("playing", once); if(statusEl) statusEl.style.display="none"; }, {once:true});
+    } catch(err){ nlog("livecams",false,"play failed: "+((err&&err.message)||err)); }
     var nm=$("lcNm"); if(nm) nm.textContent = view.nm;
-    var cat=$("lcCat"); if(cat) cat.textContent = view.cat + " · " + view.src;
+    var cat=$("lcCat"); if(cat) cat.textContent = view.cat + " · " + view.src + " · " + (view.type||"hls").toUpperCase();
     var src=$("lcSrc"); if(src) src.textContent = view.src;
     setChanStatus(ch.num, view.nm+" ("+view.src+")");
-    nlog("livecams", true, view.nm);
+    nlog("livecams", true, view.nm+" ["+view.type+"]");
   }
-  /* Category chip clicks — swap sel state, reset idx, restart playback with new pool. */
   var catsEl = $("lcCats");
   if(catsEl){
     catsEl.querySelectorAll("[data-lccat]").forEach(function(el){
@@ -6801,18 +6847,23 @@ async function tuneLiveCams(ch,sl,my){
         el.style.color = "#07101e";
         el.style.borderColor = "#7fb4ff";
         lcFilter = el.dataset.lccat;
-        idx = 0;
-        play();
+        idx = 0; play();
       });
     });
   }
+  /* NEXT button for manual skip when a stream is dead or boring. */
+  var nextBtn = $("lcNext");
+  if(nextBtn) nextBtn.addEventListener("click", function(){ var p=pool(); if(p.length) idx=(idx+1)%p.length; play(); });
   play();
-  /* Auto-cycle every 60 sec. If user is actively watching one cam, they can pause the video
-     controls to freeze it — the rotation timer keeps ticking but v.play() is what actually
-     advances the visible stream, and pause blocks that gracefully. */
-  rtInterval(function(){ var p=pool(); if(p.length) idx=(idx+1)%p.length; play(); }, 60*1000);
-  /* Register HLS teardown so channel-change cleanly kills the stream loader. */
+  /* Auto-cycle every 90 sec (v3 was 60 — too short for iframe cams that take 5-10 sec to actually
+     start playing). Rotation runs regardless of whether current stream loaded successfully. */
+  rtInterval(function(){ var p=pool(); if(p.length) idx=(idx+1)%p.length; play(); }, 90*1000);
   if(chanRT && chanRT.teardowns) chanRT.teardowns.push(tuneLiveCams_destroyHls);
+}
+/* Highway Cams (ch 302) shares the tuneLiveCams shell but filters to HIGHWAY-tagged streams. */
+async function tuneHighwayCams(ch,sl,my){
+  var hwy = LIVECAMS_STREAMS.filter(function(s){ return s.cat==="HIGHWAY"; });
+  return tuneLiveCams(ch,sl,my,hwy,"Highway Cams",["ALL","HIGHWAY"]);
 }
 
 /* ---------- Storm Center: SPC Day 1 Convective Outlook (image + text) ---------- */

@@ -1012,7 +1012,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.145";
+window.__ATV_BUILD="1.7.7-mobile.146";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -2127,20 +2127,21 @@ const PROGRAM = {
   },
 
   "Kids Hour": {
-    /* Educational kids TV from the golden era — Sesame Street, Electric Company, Mister Rogers,
-       Captain Kangaroo, Romper Room. IA has scattered uploads across classic_tv +
-       childrenstelevision + educationalfilms.
-       AUDIT 2026-08-06: caught serving a German BDSM-education doc via the tier-2 broad "children"
-       match — rewritten to require specific show names only, added hard deny for sexual/adult
-       content across all channels that source opensource_movies. */
-    genre: "kidshour", era: [1965, 2000],
+    /* Educational kids TV — Sesame Street, Mister Rogers, Reading Rainbow, Captain Kangaroo,
+       Romper Room + 90s/2000s golden era (3-2-1 Contact, Mr. Wizard's World, Bill Nye,
+       Magic School Bus, Wishbone, Ghostwriter, Kratts' Creatures, Blue's Clues, Barney,
+       Arthur, Shining Time Station, Muppet Show, Fraggle Rock).
+       AUDIT 2026-08-06 v2: expanded from 12 show names to 30+, added educationalvideos
+       collection. Deny list from v1 preserved to keep adult content locked out. */
+    genre: "kidshour", era: [1965, 2010],
     providers: [
-      { collections: ["childrenstelevision", "classic_tv"], require_subj: ["sesame street", "electric company", "mister rogers", "mr rogers", "captain kangaroo", "romper room", "reading rainbow", "shining time station", "jim henson hour", "muppet", "children's television", "kids show"] },
-      { collections: ["classic_tv_1970s", "classic_tv_1980s", "classic_tv_1990s"], require_subj: ["sesame street", "mister rogers", "reading rainbow", "children's television series", "kids show", "puppet show", "educational children"] }
+      { collections: ["childrenstelevision", "classic_tv"], require_subj: ["sesame street", "electric company", "mister rogers", "mr rogers", "captain kangaroo", "romper room", "reading rainbow", "shining time station", "jim henson hour", "muppet show", "muppet", "fraggle rock", "3-2-1 contact", "mr. wizard", "mr wizard", "bill nye", "magic school bus", "kratts", "zoboomafoo", "wishbone", "ghostwriter", "blue's clues", "barney", "arthur", "puppet show", "children's television"] },
+      { collections: ["classic_tv_1970s", "classic_tv_1980s", "classic_tv_1990s"], require_subj: ["sesame street", "mister rogers", "reading rainbow", "shining time station", "3-2-1 contact", "muppet", "fraggle rock", "kratts", "wishbone", "ghostwriter", "magic school bus", "children's television series", "kids show", "puppet show"] },
+      { collections: ["educationalfilms"], require_subj: ["children's educational film", "kindergarten", "elementary school", "reading rainbow", "sesame street", "mister rogers", "3-2-1 contact"] }
     ],
     deny: {
       title: ["adult", "18+", "sex", "erotic", "porn", "BDSM", "hentai", "R-rated", "R-18", "explicit", "mature", "aufklärung"],
-      subject: ["adult", "adults only", "adult film", "sex", "sexuality", "sex education", "erotic", "erotica", "pornographic", "porn", "BDSM", "sadism", "masochism", "tantra", "hentai", "R-18", "R-rated", "explicit", "mature", "youtube", "vlog", "commercial", "advertising"]
+      subject: ["adult", "adults only", "adult film", "sex", "sexuality", "sex education", "erotic", "erotica", "pornographic", "porn", "BDSM", "sadism", "masochism", "tantra", "hentai", "R-18", "R-rated", "explicit", "mature", "youtube", "vlog", "commercial", "advertising", "ytv", "teletoon"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
@@ -2611,14 +2612,22 @@ const PROGRAM = {
   },
 
   "Sports Vault": {
-    genre: "sportsvault", era: [1920, 2000],
+    /* AUDIT 2026-08-06: NO_SIGNAL 4x per soak — old pool (prelinger/FedFlix/feature_films)
+       had almost no sports content. Rebuilt against the real sports collections on IA:
+         - sports (9968 items)  · sportstelevision (14479) · vhssports (2063)
+         - auburnulibrary (4745, college sports archive) · sportstelevision has full games,
+           wrestling PPVs, wide era coverage.
+       User directive: ALL SPORTS included — WWE / UFC / MMA / wrestling denies REMOVED. */
+    genre: "sportsvault", era: [1920, 2020],
     providers: [
-      {"collections": ["prelinger", "FedFlix", "feature_films"], "require_subj": ["sports", "athletic", "boxing", "baseball", "football", "basketball", "olympic", "wrestling", "racing", "tennis", "golf", "swimming"]}
+      { collections: ["vhssports", "sportstelevision"], require_subj: ["baseball", "football", "basketball", "hockey", "soccer", "boxing", "wrestling", "olympics", "world series", "super bowl", "monday night football", "wide world of sports", "NFL", "NBA", "MLB", "NHL", "college football", "college basketball", "world cup"] },
+      { collections: ["sports"], require_subj: ["baseball", "football", "basketball", "hockey", "soccer", "boxing", "wrestling", "MMA", "UFC", "martial arts", "olympics", "tennis", "golf", "auto racing", "NASCAR", "F1", "cycling", "swimming", "track and field", "gymnastics", "skateboarding", "BMX", "surfing"] },
+      { collections: ["auburnulibrary", "dickinsoncollegearchives"], require_subj: ["basketball", "football", "baseball", "college sports", "NCAA", "college athletics"] }
     ],
-    /* WWE/UFC/MMA blocklist mirrors the G.sportsvault filter (line ~1305) — audit caught
-       that the PROGRAM migration dropped this exclusion. Sports Vault is a vintage-sports
-       channel, modern combat sports don't belong. */
-    deny: {"title": ["home movie", "home movies", "family film", "vacation", "farm", "christmas", "wedding", "wrestling", "wwe", "wwf", "ufc", "mma"], "subject": ["home movies", "prelinger", "family", "vacation", "farm", "christmas", "wedding", "cartoon", "animated", "comedy", "educational", "instructional", "public broadcasting", "wrestling", "wwe", "wwf", "ufc", "mma"]},
+    deny: {
+      title: ["home movie", "family film", "vacation", "farm", "christmas", "wedding", "cartoon", "sports news", "sportscenter", "highlights show", "sports talk"],
+      subject: ["home movie", "family", "vacation", "farm", "christmas", "wedding", "cartoon", "animated", "comedy", "sports news", "sports talk", "highlights", "podcast", "youtube", "vlog", "video game", "esports", "gameplay"]
+    },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   }
 };
@@ -7547,15 +7556,16 @@ async function tuneShips(ch,sl,my){
   if(screenArea) screenArea.innerHTML='<div class="dc-screen" id="dcScreen">'+
     '<div class="dc-media show" id="shipMedia" style="flex:1 1 40%;height:auto;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px">'+
       '<div id="shipBig" style="font:800 clamp(28px,6.5vw,48px)/1 monospace;color:var(--phos)">--</div>'+
-      '<div style="font-size:12px;color:#9fd6a6">vessels tracked worldwide</div>'+
+      '<div style="font-size:12px;color:#9fd6a6">vessels in the Gulf of Mexico</div>'+
+      '<div style="font-size:10px;color:#9fd6a6;opacity:.7;letter-spacing:1px">GALVESTON \u00b7 HOUSTON \u00b7 CORPUS CHRISTI \u00b7 PORT ARTHUR \u00b7 FREEPORT</div>'+
     '</div>'+
     '<div class="dc-body" id="dcBody" style="flex:0 1 60%;justify-content:flex-start;gap:4px;overflow:hidden">'+
-      '<div class="dc-top"><span id="shipHead">SHIP TRACKER \u2014 WORLD TRAFFIC</span></div>'+
+      '<div class="dc-top"><span id="shipHead">SHIP TRACKER \u2014 TX GULF PORTS</span></div>'+
       '<div class="dc-sub" id="shipSub">Connecting to AIS stream\u2026</div>'+
       '<div class="dc-list" id="dcList" style="margin-bottom:30px"></div>'+
-      '<div class="dc-ticker" id="shipTicker">aisstream.io \u00b7 live global AIS vessel positions</div>'+
+      '<div class="dc-ticker" id="shipTicker">aisstream.io \u00b7 live AIS vessel positions in the Gulf</div>'+
     '</div></div>';
-  var shipBug=mountChanBug("dcScreen",{ident:"SHIP TRACKER"});
+  var shipBug=mountChanBug("dcScreen",{ident:"SHIP TRACKER \u00b7 GULF"});
   if(shipSocket){ try{shipSocket.close();}catch(e){} shipSocket=null; }
   shipList={};
   var msgCount=0, firstMsgAt=null, dirty=false;
@@ -7564,9 +7574,9 @@ async function tuneShips(ch,sl,my){
     var arr=Object.keys(shipList).map(function(k){return shipList[k];})
       .sort(function(a,b){return b.ts-a.ts;}).slice(0,20);
     var bigEl=$("shipBig"); if(bigEl)bigEl.textContent=msgCount>999?(Math.round(msgCount/1000)+"k"):msgCount;
-    setChanStatus(ch.num,msgCount+" vessels tracked");
+    setChanStatus(ch.num,msgCount+" vessels in the Gulf");
     if(shipBug) shipBug.update(String(msgCount>999?(Math.round(msgCount/1000)+"k"):msgCount),
-      arr[0]?((arr[0].name||("MMSI "+arr[0].mmsi))+" \u00b7 "+(arr[0].sog!=null?Math.round(arr[0].sog)+"kn":"tracking")):"vessels worldwide");
+      arr[0]?((arr[0].name||("MMSI "+arr[0].mmsi))+" \u00b7 "+(arr[0].sog!=null?Math.round(arr[0].sog)+"kn":"tracking")):"vessels in the Gulf");
     listEl.innerHTML=arr.length?arr.map(function(s){
       return '<div class="dc-row2"><div class="dc-row2-main"><span class="dc-place">'+esch(s.name||("MMSI "+s.mmsi))+'</span>'+
         '<span class="dc-when">'+(s.sog!=null?Math.round(s.sog)+" kn":"")+'</span></div></div>';
@@ -7585,19 +7595,24 @@ async function tuneShips(ch,sl,my){
     Object.keys(shipList).forEach(function(k){ if(shipList[k].ts<cutoff) delete shipList[k]; });
   },5*60*1000);
   try{
-    var box=[[-90.0,-180.0],[90.0,180.0]]; /* full world, per aisstream.io's documented format */
+    /* Bounding box: Gulf of Mexico ~ [18\u00b0N,-98\u00b0W] to [31\u00b0N,-80\u00b0W] \u2014 covers all Texas ports
+       (Galveston, Houston Ship Channel, Corpus Christi, Port Arthur, Freeport), Louisiana
+       (New Orleans / Mississippi Delta), Alabama (Mobile), Florida Panhandle, plus the outer
+       Gulf shipping lanes. Much smaller box than world = higher message-delivery reliability
+       (aisstream.io's silent-world-subscription bug documented previously is a non-issue at
+       this scope) + far more relevant to a Texas storm chaser. */
+    var box=[[18.0,-98.0],[31.0,-80.0]];
     var sock=new WebSocket("wss://stream.aisstream.io/v0/stream");
     shipSocket=sock;
     sock.onopen=function(){ if(my!==token){try{sock.close();}catch(e){}return;}
       try{ sock.send(JSON.stringify({APIKey:AISSTREAM_KEY,BoundingBoxes:[box],FilterMessageTypes:["PositionReport","ShipStaticData"]})); }catch(e){}
-      var subEl=$("shipSub"); if(subEl)subEl.textContent="Listening for worldwide AIS traffic\u2026";
-      nlog("ais",true,"subscribed world-wide");
-      /* aisstream.io has a documented, unresolved case where a world subscription connects and is
-         accepted but silently delivers zero messages. If nothing's arrived after a generous window,
-         say so plainly instead of leaving "Listening..." up forever with no explanation. */
+      var subEl=$("shipSub"); if(subEl)subEl.textContent="Listening for Gulf of Mexico AIS traffic\u2026";
+      nlog("ais",true,"subscribed Gulf of Mexico box");
+      /* Gulf shipping is heavy \u2014 first messages should arrive in seconds. If nothing's arrived
+         after a generous window, surface that plainly. */
       setTimeout(function(){ if(my!==token||msgCount>0)return;
-        var s=$("shipSub"); if(s)s.textContent="No AIS traffic received yet \u2014 aisstream.io occasionally accepts a world subscription without delivering data (a known open issue on their end). Check DIAG; try leaving this on a bit longer or re-tuning.";
-        nlog("ais",false,"no messages received within 20s of a successful subscription");
+        var s=$("shipSub"); if(s)s.textContent="No AIS traffic received yet \u2014 the Gulf feed should light up in seconds during any normal shipping hour. Check DIAG.";
+        nlog("ais",false,"no messages within 20s of Gulf subscription");
       },20000);
     };
     sock.onmessage=function(ev){ if(my!==token)return;

@@ -870,7 +870,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.109";
+window.__ATV_BUILD="1.7.7-desktop.110";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1425,6 +1425,9 @@ const CH=[
  {nm:"Air & Allergy", num:419,     cat:"LDATA", source:"air",        ns:"tv"},
  {nm:"Storm Center", num:420,      cat:"LDATA", source:"stormcenter", ns:"tv"}, /* SPC Day 1 Convective Outlook — old-country music bed */
  {nm:"Local Radar", num:422,       cat:"LDATA", source:"localradar",  ns:"tv"}, /* Nearest NEXRAD live loop — ragtime bed */
+ {nm:"Farmer's Almanac", num:423,  cat:"LDATA", source:"almanac",    ns:"tv"}, /* Moon phase + sunrise/sunset + weather + planting zone — country music bed */
+ {nm:"Public Library", num:424,    cat:"LDATA", source:"library",    ns:"doc"}, /* Wikipedia daily featured + on-this-day — classical piano bed */
+ {nm:"Border Watch", num:425,      cat:"LDATA", source:"border",     ns:"tv"}, /* CBP border-crossing wait times, Texas-first — country/folk bed */
  {nm:"Christmas Channel", num:700, cat:"HOL", gl:"xmas",         era:[1930,1995], ns:"movie"},
  {nm:"Halloween Haunt", num:701,   cat:"HOL", gl:"halloween",    era:[1930,1995], ns:"movie"},
  {nm:"Thanksgiving Channel", num:702,cat:"HOL",gl:"thanksgiving", era:[1930,1990], ns:"tv"},
@@ -1546,6 +1549,9 @@ const CHANNEL_META={
 "Historic Waco":{desc:"LIVE: a rolling archive of historical photographs of Waco \u0026 Central Texas \u2014 Library of Congress, Wikimedia Commons \u0026 Internet Archive, with a Ken Burns treatment and a warm narrator.",best:"anytime",rel:["News, News, News","Hometown History"]},
 "Backyard Naturalist":{desc:"LIVE: wildlife spotted near you this week, with photos.",best:"mornings",rel:["Hometown History","Home Movies & Travelogues"]},
 "Air & Allergy":{desc:"LIVE: AQI, particulates, ozone and pollen for your ZIP.",best:"allergy season",rel:["Weather Watch","River & Lake Watch"]},
+"Farmer's Almanac":{desc:"LIVE: moon phase, sunrise/sunset, growing-degree data and 3-day outlook — the front-porch almanac layout.",best:"planting season",rel:["Weather Watch","Backyard Naturalist"]},
+"Public Library":{desc:"LIVE: today's Wikipedia featured article, on-this-day, picture of the day and most-read — a rotating reading room.",best:"quiet hours",rel:["Historic Waco","On This Day"]},
+"Border Watch":{desc:"LIVE: real-time wait times at every Texas / Mexico border crossing, with the rest of the Southwest border rotating in.",best:"travel days",rel:["Historic Waco","World Clock"]},
 "Test Pattern":{desc:"Color bars. Please stand by.",best:"sign-off",rel:["Channel 2 Network","Found Footage Static"]}
 };
 
@@ -2972,6 +2978,9 @@ async function tuneNum(n){
   if(sl.source==="paper"){ if(my!==token)return; return tunePaper(ch,sl,my); }
   if(sl.source==="nature"){ if(my!==token)return; return tuneNature(ch,sl,my); }
   if(sl.source==="air"){ if(my!==token)return; return tuneAir(ch,sl,my); }
+  if(sl.source==="almanac"){ if(my!==token)return; return tuneAlmanac(ch,sl,my); }
+  if(sl.source==="library"){ if(my!==token)return; return tuneLibrary(ch,sl,my); }
+  if(sl.source==="border"){ if(my!==token)return; return tuneBorder(ch,sl,my); }
 
   if(sl.source==="static"){ if(my!==token)return; hideOv(); bars.style.display="flex";
     barsText.textContent=(hour>=2&&hour<6)?"SIGN-OFF · PLEASE STAND BY":"THE DIAL · COLOR BARS";
@@ -9469,6 +9478,173 @@ async function tuneWeather(ch,sl,my){
     }
   };
   run(); weatherTimer=rtInterval(run,300000);
+}
+
+/* ---------- Farmer's Almanac (ch 423): moon phase + sunrise/sunset + weather almanac ----------
+   Client-side moon phase via Conway's algorithm (no API needed). Weather + sun times via
+   Open-Meteo (keyless). Planting-zone lookup is a static table keyed on state. Music bed:
+   country/folk for the front-porch almanac feel. */
+function moonPhaseName(d){
+  /* Conway's algorithm — accurate enough for a display dial. Returns {phase:0-7, name, illum:0-100}. */
+  var y=d.getUTCFullYear(), m=d.getUTCMonth()+1, day=d.getUTCDate();
+  var r=y%100; r%=19; if(r>9)r-=19;
+  r=(r*11)%30+m+day;
+  if(m<3)r+=2;
+  r-=(y<2000)?4:8.3;
+  r=Math.floor(r+0.5)%30; if(r<0)r+=30;
+  var phase=Math.floor((r/29.53)*8+0.5)%8;
+  var names=["NEW MOON","WAXING CRESCENT","FIRST QUARTER","WAXING GIBBOUS","FULL MOON","WANING GIBBOUS","LAST QUARTER","WANING CRESCENT"];
+  var illum=Math.round((1-Math.cos(2*Math.PI*r/29.53))*50);
+  return {phase:phase, name:names[phase], illum:illum, glyph:["○","\u{1F312}","\u{1F313}","\u{1F314}","●","\u{1F316}","\u{1F317}","\u{1F318}"][phase]};
+}
+var HARDINESS_ZONES={"TX":"8a-9b","LA":"8b-9a","OK":"7a-8a","AR":"7a-8a","MS":"8a-9a","AL":"8a-9a","GA":"7b-9a","FL":"9a-11a","SC":"8a-9a","NC":"7a-8b","VA":"6a-8a","TN":"6b-7b","KY":"6a-7a","WV":"5b-7a","OH":"5b-6b","IN":"5b-6b","IL":"5a-7a","MO":"5b-7a","IA":"4b-5b","MN":"3a-5a","WI":"3b-5b","MI":"4a-6b","PA":"5b-7a","NY":"3b-7b","NJ":"6a-7b","MA":"5b-7a","CT":"5b-7a","RI":"6a-7a","VT":"3b-5b","NH":"3b-6a","ME":"3a-6a","MD":"5b-7b","DE":"6b-7b","DC":"7a","CA":"5a-11a","OR":"4b-9b","WA":"4a-9a","NV":"4a-10a","AZ":"4b-10b","NM":"4b-9a","CO":"3a-7a","UT":"3b-9a","WY":"3a-6a","MT":"3a-6b","ID":"3b-7a","ND":"2b-4b","SD":"3a-5a","NE":"4a-6a","KS":"5a-7a"};
+async function tuneAlmanac(ch,sl,my){
+  if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Farmer's Almanac","");
+  if(screenArea) screenArea.innerHTML=dcSkeletonWithBug("FARMER'S ALMANAC","ALMANAC");
+  startIAJazz("country");
+  var run=async function(){
+    if(my!==token||!powered)return;
+    try{
+      var loc=await getWxLocation(); if(my!==token)return;
+      var li=await resolveLocale(loc);
+      var st=(li&&li.state)||homeLoc.state||"TX";
+      var city=(li&&li.city)||homeLoc.city||"YOUR AREA";
+      var d=await fetchJSONResilient("https://api.open-meteo.com/v1/forecast?latitude="+loc.lat+"&longitude="+loc.lon+"&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset,precipitation_sum,uv_index_max,windspeed_10m_max&current=temperature_2m,relative_humidity_2m,pressure_msl&temperature_unit=fahrenheit&windspeed_unit=mph&precipitation_unit=inch&timezone=auto&forecast_days=3","almanac");
+      if(my!==token)return;
+      var cur=(d&&d.current)||{}, day=(d&&d.daily)||{};
+      var moon=moonPhaseName(new Date());
+      var sr=day.sunrise&&day.sunrise[0]?day.sunrise[0].slice(11,16):"--";
+      var ss=day.sunset&&day.sunset[0]?day.sunset[0].slice(11,16):"--";
+      var hi=day.temperature_2m_max&&day.temperature_2m_max[0]!=null?Math.round(day.temperature_2m_max[0])+"°":"--";
+      var lo=day.temperature_2m_min&&day.temperature_2m_min[0]!=null?Math.round(day.temperature_2m_min[0])+"°":"--";
+      var zone=HARDINESS_ZONES[st]||"see USDA";
+      nlog("almanac",true,"moon "+moon.name+" · "+moon.illum+"%");
+      setChanStatus(ch.num,moon.name+" · "+moon.illum+"% illum");
+      var bug=$("dcScreen")&&$("dcScreen").querySelector(".chan-bug");
+      if(bug){ var bm=bug.querySelector(".chan-bug-main"), bs=bug.querySelector(".chan-bug-sub");
+        if(bm) bm.textContent=moon.glyph+" "+moon.name;
+        if(bs) bs.textContent=(city+" · zone "+zone).toUpperCase(); }
+      renderDcBody({title:"FARMER'S ALMANAC · "+city.toUpperCase(),
+        hero:moon.glyph+" "+moon.illum+"%",
+        sub:moon.name+"  ·  today "+hi+"/"+lo,
+        stats:[["SUNRISE",sr],["SUNSET",ss],
+               ["HUMIDITY",(cur.relative_humidity_2m!=null?cur.relative_humidity_2m+"%":"--")],
+               ["PRESSURE",(cur.pressure_msl!=null?(cur.pressure_msl/33.864).toFixed(2)+" inHg":"--")],
+               ["WIND MAX",(day.windspeed_10m_max&&day.windspeed_10m_max[0]!=null?Math.round(day.windspeed_10m_max[0])+" mph":"--")],
+               ["RAIN 3-DAY",(day.precipitation_sum?(day.precipitation_sum[0]+day.precipitation_sum[1]+day.precipitation_sum[2]).toFixed(2)+"\"":"--")],
+               ["UV INDEX",(day.uv_index_max&&day.uv_index_max[0]!=null?Math.round(day.uv_index_max[0]):"--")],
+               ["ZONE",zone]],
+        extra:'<div style="font-weight:700;color:#9fd6a6;margin-bottom:4px">MOON &amp; PLANTING</div>'+
+          '<div>Best planting days follow the waxing moon (new → full).</div>'+
+          '<div>Root crops, weeding &amp; harvesting favor the waning moon.</div>'+
+          '<div style="margin-top:6px;font-weight:700;color:#9fd6a6">3-DAY OUTLOOK</div>'+
+          (day.time||[]).slice(0,3).map(function(t,i){
+            return '<div>'+esch(t)+' · '+Math.round(day.temperature_2m_min[i])+'°/'+Math.round(day.temperature_2m_max[i])+'° · '+(day.precipitation_sum[i]||0).toFixed(2)+'"</div>';
+          }).join(""),
+        ticker:'<span class="wx-tk-in">'+esch("Almanac · "+moon.name+" · sunrise "+sr+" · sunset "+ss+" · hardiness zone "+zone+" · data: Open-Meteo, USDA")+'</span>'});
+    }catch(e){ nlog("almanac",false,(e&&e.message)||e);
+      renderDcBody({title:"FARMER'S ALMANAC",hero:"--",sub:"Almanac data unavailable",ticker:"will retry"}); }
+  };
+  run(); rtInterval(run,1800000);
+}
+
+/* ---------- Public Library (ch 424): Wikipedia daily featured article + on-this-day ----------
+   Wikipedia REST API returns TFA, on-this-day events, image of the day. Rotates through them
+   every 20 sec. Music bed: classical piano for the reading-room feel. */
+async function tuneLibrary(ch,sl,my){
+  if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Public Library","");
+  if(screenArea) screenArea.innerHTML='<div class="dc-screen" id="dcScreen">'+
+    '<div class="dc-media show" id="libImg" style="flex:1 1 45%;height:auto;min-height:0"><div class="dc-media-cap">OPENING THE STACKS…</div></div>'+
+    '<div class="dc-body" id="dcBody" style="flex:0 1 55%;justify-content:flex-start;gap:6px;overflow:hidden;padding:8px">'+
+    '<div class="dc-top"><span id="libTitle">PUBLIC LIBRARY</span></div>'+
+    '<div id="libExtract" style="flex:1 1 auto;overflow-y:auto;font-size:14px;line-height:1.4;color:#c8e8c8">Loading today\'s reading list…</div>'+
+    '<div class="dc-ticker" id="libTicker">Source: Wikipedia · rotates every 20 sec</div></div></div>';
+  startIAJazz("classical");
+  var items=[], idx=0, rotTimer=null;
+  function feature(it){
+    var img=$("libImg"), tit=$("libTitle"), ext=$("libExtract"), tk=$("libTicker");
+    if(!it||!ext)return;
+    var ph=it.thumbnail&&it.thumbnail.source?it.thumbnail.source.replace(/\/\d+px-/,"/800px-"):null;
+    if(img) img.innerHTML=(ph?'<img src="'+esch(ph)+'" alt="">':'<div class="dc-media-cap">'+esch((it.kind||"ARTICLE").toUpperCase())+'</div>')+
+      '<div class="dc-media-cap">'+esch((it.kind||"FEATURED").toUpperCase())+' · '+esch(it.title||"")+'</div>';
+    if(tit) tit.textContent=("PUBLIC LIBRARY · "+(it.kind||"reading")).toUpperCase();
+    if(ext) ext.innerHTML='<div style="font-weight:700;color:#9fd6a6;margin-bottom:6px">'+esch(it.title||"")+'</div>'+
+      '<div>'+esch(it.extract||"(no summary available)")+'</div>';
+    if(tk) tk.innerHTML='<b>'+esch("Public Library   ·   "+(it.kind||"")+"   ·   Wikipedia")+'</b>';
+  }
+  var run=async function(){
+    if(my!==token||!powered)return;
+    try{
+      var now=new Date();
+      var y=now.getUTCFullYear(), m=String(now.getUTCMonth()+1).padStart(2,"0"), d=String(now.getUTCDate()).padStart(2,"0");
+      var feed=await fetchJSONResilient("https://en.wikipedia.org/api/rest_v1/feed/featured/"+y+"/"+m+"/"+d,"library");
+      if(my!==token)return;
+      items=[];
+      if(feed&&feed.tfa) items.push({kind:"Today's featured article",title:feed.tfa.normalizedtitle||feed.tfa.title,extract:feed.tfa.extract,thumbnail:feed.tfa.thumbnail});
+      if(feed&&feed.image) items.push({kind:"Picture of the day",title:feed.image.title||"Featured image",extract:(feed.image.description&&feed.image.description.text)||"","thumbnail":feed.image.thumbnail||feed.image.image});
+      if(feed&&feed.onthisday) feed.onthisday.slice(0,4).forEach(function(o){
+        var p=o.pages&&o.pages[0]; if(!p)return;
+        items.push({kind:"On this day · "+o.year,title:p.normalizedtitle||p.title,extract:o.text+"  —  "+(p.extract||""),thumbnail:p.thumbnail});
+      });
+      if(feed&&feed.mostread&&feed.mostread.articles) feed.mostread.articles.slice(0,4).forEach(function(a){
+        items.push({kind:"Most read today",title:a.normalizedtitle||a.title,extract:a.extract||"",thumbnail:a.thumbnail});
+      });
+      nlog("library",true,items.length+" items");
+      setChanStatus(ch.num,items.length+" articles today");
+      if(!items.length){ var ext=$("libExtract"); if(ext)ext.innerHTML='<div>Wikipedia feed returned no items — will retry.</div>'; return; }
+      idx=0; feature(items[0]);
+      if(rotTimer) clearInterval(rotTimer);
+      rotTimer=rtInterval(function(){ if(my!==token||!powered||!items.length)return; idx=(idx+1)%items.length; feature(items[idx]); },20000);
+    }catch(e){ nlog("library",false,(e&&e.message)||e);
+      var ext=$("libExtract"); if(ext)ext.innerHTML='<div>Public Library unavailable — will retry.</div>'; }
+  };
+  run(); rtInterval(run,3600000);
+}
+
+/* ---------- Border Watch (ch 425): CBP border crossing wait times ----------
+   CBP publishes real-time wait times as JSON at bwt.cbp.gov. Focuses on Texas ports of entry
+   (Laredo, El Paso, Brownsville, Del Rio, Eagle Pass) since that's the owner's region, with the
+   rest of the Southwest border rotating in. Music bed: country/folk for the border-town feel. */
+async function tuneBorder(ch,sl,my){
+  if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Border Watch","");
+  if(screenArea) screenArea.innerHTML=dcSkeletonWithBug("BORDER WATCH","CBP");
+  startIAJazz("country");
+  function fmtWait(n){ var w=parseInt(n,10); if(isNaN(w))return "--"; return w+" min"; }
+  function statusColor(op){ op=(op||"").toLowerCase();
+    if(op.indexOf("closed")>-1)return "#ff5c4d";
+    if(op.indexOf("delay")>-1&&op.indexOf("no")<0)return "#ffd34d";
+    return "#67ff86"; }
+  var run=async function(){
+    if(my!==token||!powered)return;
+    try{
+      var d=await fetchJSONResilient("https://bwt.cbp.gov/api/waittimes","border");
+      if(my!==token)return;
+      var texas=(d||[]).filter(function(p){ return p.border==="Mexican Border"&&["Laredo","El Paso","Brownsville","Del Rio","Eagle Pass","Hidalgo","Progreso","Pharr","Roma","Rio Grande City","Presidio","Fabens","Ysleta","Bridge of the Americas","Paso Del Norte","Stanton St."].some(function(city){ return (p.port_name||"").indexOf(city)>-1||(p.crossing_name||"").indexOf(city)>-1; }); });
+      var other=(d||[]).filter(function(p){ return p.border==="Mexican Border"&&texas.indexOf(p)<0; });
+      var all=texas.concat(other.slice(0,10));
+      nlog("border",true,texas.length+" TX + "+other.length+" other");
+      var openCount=all.filter(function(p){ return (p.port_status||"").toLowerCase()==="open"; }).length;
+      setChanStatus(ch.num,openCount+"/"+all.length+" TX/MX crossings open");
+      var bug=$("dcScreen")&&$("dcScreen").querySelector(".chan-bug");
+      if(bug){ var bm=bug.querySelector(".chan-bug-main"), bs=bug.querySelector(".chan-bug-sub");
+        if(bm) bm.textContent=openCount+"/"+all.length+" OPEN";
+        if(bs) bs.textContent="TX/MX BORDER CROSSINGS"; }
+      var rows=all.slice(0,10).map(function(p){
+        var pass=p.passenger_vehicle_lanes&&p.passenger_vehicle_lanes.standard_lanes||{};
+        var st=p.port_status||"?";
+        var col=statusColor(pass.operational_status||st);
+        return '<div class="dc-stat"><b>'+esch(p.port_name+(p.crossing_name?" · "+p.crossing_name:""))+'</b>'+
+          '<span style="color:'+col+'">'+esch(fmtWait(pass.delay_minutes)+" · "+(pass.operational_status||st))+'</span></div>';
+      }).join("");
+      renderDcBody({title:"BORDER WATCH · TX/MEXICO",
+        hero:openCount+"/"+all.length,
+        sub:"crossings open now",
+        extra:'<div style="font-weight:700;color:#9fd6a6;margin-bottom:4px">PASSENGER VEHICLE WAIT TIMES</div>'+rows,
+        ticker:'<span class="wx-tk-in">'+esch("Border Watch · CBP standard lanes · "+all.length+" crossings monitored · data updates every 15 min · source: bwt.cbp.gov")+'</span>'});
+    }catch(e){ nlog("border",false,(e&&e.message)||e);
+      renderDcBody({title:"BORDER WATCH",hero:"--",sub:"CBP data unavailable",ticker:"will retry"}); }
+  };
+  run(); rtInterval(run,900000);
 }
 
 updateBanBtn();

@@ -1012,7 +1012,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.141";
+window.__ATV_BUILD="1.7.7-mobile.142";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -2108,63 +2108,73 @@ const PROGRAM = {
 
   "Adult Animation": {
     /* Ralph Bakshi, Heavy Metal, Liquid Television, MTV animation, adult-oriented TV animation
-       (Beavis & Butt-Head, Duckman, The Maxx, Aeon Flux). Uses the same collection surface as
-       Modern Cartoons (animationandcartoons + classic_tv + television per user request) but with
-       adult-swim-style subject tags and explicit denies for kids/family content. */
+       (Beavis & Butt-Head, Duckman, The Maxx, Aeon Flux).
+       AUDIT 2026-08-06: was serving Def Leppard "Too Late For Love" music video via classic_tv
+       collection. Removed classic_tv/television broad collections, kept animation-only sources,
+       added hard deny for music videos and concert footage. */
     genre: "adultanim", era: [1970, 2010],
     providers: [
-      { collections: ["animationandcartoons", "classic_tv", "television"], require_subj: ["adult animation", "ralph bakshi", "bakshi", "heavy metal", "MTV animation", "liquid television", "aeon flux", "beavis and butt-head", "duckman", "the maxx", "underground animation", "experimental animation", "adult swim"] }
+      { collections: ["animationandcartoons"], require_subj: ["adult animation", "ralph bakshi", "bakshi", "heavy metal", "MTV animation", "liquid television", "aeon flux", "beavis and butt-head", "duckman", "the maxx", "underground animation", "experimental animation", "adult swim", "aeon flux"] },
+      { collections: ["more_animation", "classic_cartoons"], require_subj: ["adult animation", "bakshi", "aeon flux", "liquid television", "beavis and butt-head", "the maxx", "underground animation", "experimental animation"] }
     ],
     deny: {
-      title: ["educational", "training", "safety", "for kids", "children"],
-      subject: ["children", "kids", "family", "educational film", "saturday morning cartoon", "youtube", "vlog", "podcast", "training film"]
+      title: ["educational", "training", "safety", "for kids", "children", "music video", "MTV video", "live at", "concert"],
+      subject: ["children", "kids", "family", "educational film", "saturday morning cartoon", "youtube", "vlog", "podcast", "training film", "music video", "music videos", "rock music", "heavy metal music", "pop music", "hair metal", "concert", "live concert", "def leppard", "van halen"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
   "Kids Hour": {
     /* Educational kids TV from the golden era — Sesame Street, Electric Company, Mister Rogers,
-       Captain Kangaroo, Romper Room. IA has scattered uploads across classic_tv + educationalfilms.
-       Content pool is thinner than most channels — watch for empty tunes on soak. */
+       Captain Kangaroo, Romper Room. IA has scattered uploads across classic_tv +
+       childrenstelevision + educationalfilms.
+       AUDIT 2026-08-06: caught serving a German BDSM-education doc via the tier-2 broad "children"
+       match — rewritten to require specific show names only, added hard deny for sexual/adult
+       content across all channels that source opensource_movies. */
     genre: "kidshour", era: [1965, 2000],
     providers: [
-      { collections: ["classic_tv", "television"], require_subj: ["sesame street", "electric company", "mister rogers", "mr rogers", "children's television", "kids show", "educational children", "captain kangaroo", "romper room", "reading rainbow"] },
-      { collections: ["educationalfilms", "prelinger"], require_subj: ["children", "kids", "educational children", "kindergarten", "elementary school"] }
+      { collections: ["childrenstelevision", "classic_tv"], require_subj: ["sesame street", "electric company", "mister rogers", "mr rogers", "captain kangaroo", "romper room", "reading rainbow", "shining time station", "jim henson hour", "muppet", "children's television", "kids show"] },
+      { collections: ["classic_tv_1970s", "classic_tv_1980s", "classic_tv_1990s"], require_subj: ["sesame street", "mister rogers", "reading rainbow", "children's television series", "kids show", "puppet show", "educational children"] }
     ],
     deny: {
-      title: ["adult", "18+"],
-      subject: ["adult", "youtube", "vlog", "commercial", "advertising", "hentai", "R-18"]
+      title: ["adult", "18+", "sex", "erotic", "porn", "BDSM", "hentai", "R-rated", "R-18", "explicit", "mature", "aufklärung"],
+      subject: ["adult", "adults only", "adult film", "sex", "sexuality", "sex education", "erotic", "erotica", "pornographic", "porn", "BDSM", "sadism", "masochism", "tantra", "hentai", "R-18", "R-rated", "explicit", "mature", "youtube", "vlog", "commercial", "advertising"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
   "Cold War Cinema": {
     /* Civil defense films, atomic-age propaganda, Duck and Cover, fallout-shelter public-info
-       spots. Prelinger has huge pool. Distinct from Fallout Radio (audio drama) — this is the
-       actual government/public-info film aesthetic. */
+       spots. Prelinger + FedFlix have huge pool. AUDIT 2026-08-06: caught serving "Green Cross
+       Code - Blockhead Boy" (UK road-safety PSA) via broad "public information film" match.
+       Narrowed require_subj to atomic/civil-defense-specific terms, added deny for road/traffic
+       safety and other non-cold-war PSAs. */
     genre: "coldwar", era: [1948, 1985],
     providers: [
-      { collections: ["prelinger"], require_subj: ["civil defense", "cold war", "atomic age", "duck and cover", "fallout shelter", "cuban missile", "communism", "nuclear", "atomic bomb", "propaganda film", "public information film", "national defense"] },
-      { collections: ["FedFlix"], require_subj: ["cold war", "civil defense", "atomic", "nuclear", "communism", "national defense"] }
+      { collections: ["prelinger"], require_subj: ["civil defense", "cold war", "atomic age", "duck and cover", "fallout shelter", "cuban missile", "communism", "atomic bomb", "atomic weapons", "hydrogen bomb", "atomic warfare", "nuclear war", "anti-communist"] },
+      { collections: ["FedFlix"], require_subj: ["cold war", "civil defense", "atomic bomb", "nuclear weapons", "communism", "national defense", "cuban missile"] }
     ],
     deny: {
-      title: ["news"],
-      subject: ["news", "commercial", "youtube", "vlog", "children's film"]
+      title: ["news", "road safety", "traffic", "green cross", "blockhead", "highway safety"],
+      subject: ["news", "commercial", "youtube", "vlog", "children's film", "road safety", "traffic safety", "highway safety", "pedestrian safety", "fire safety", "kitchen safety", "public service announcement", "brand", "product"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
   "Educational Filmstrip": {
-    /* The classroom slide-and-narration filmstrip format specifically — not general educational
-       moving-image content. Prelinger has a substantial filmstrip subset. If content pool is
-       thin on soak, widen require_subj to include "audio-visual education" and "classroom film". */
+    /* Classroom-format filmstrips + short educational instructionals from the 1945-1985 era.
+       AUDIT 2026-08-06: NO SIGNAL 3x — pool too narrow. Widened to include the broader "classroom
+       film" and "instructional film" terms, added avgeeks + uncommon-ephemera (which has actual
+       filmstrip uploads like "Home Fire Dangers" and "Going Steady" seen in soak). */
     genre: "filmstrip", era: [1945, 1985],
     providers: [
-      { collections: ["prelinger"], require_subj: ["filmstrip", "educational filmstrip", "classroom filmstrip", "slide show", "audio-visual education", "school film", "classroom film"] }
+      { collections: ["uncommon-ephemera", "opensource"], require_subj: ["filmstrip", "educational filmstrip", "classroom filmstrip", "school film"] },
+      { collections: ["prelinger"], require_subj: ["filmstrip", "educational filmstrip", "classroom film", "instructional film", "audio-visual education", "school film", "classroom", "sponsored film"] },
+      { collections: ["avgeeks"], require_subj: ["educational film", "classroom", "instructional", "filmstrip", "school film", "audio-visual"] }
     ],
     deny: {
-      title: ["news"],
-      subject: ["news", "commercial", "youtube", "advertising"]
+      title: ["news", "trailer"],
+      subject: ["news", "commercial", "youtube", "advertising", "trailer"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
@@ -2199,15 +2209,19 @@ const PROGRAM = {
   },
 
   "Bob Ross & Comfort TV": {
-    /* Joy of Painting and other quiet daytime programming. bobrossonlinemuseum is a real IA
-       collection with actual Bob Ross uploads. Deny YouTube-rip / vlog to avoid modern imitators. */
-    genre: "comforttv", era: [1980, 2010],
+    /* Joy of Painting + adjacent quiet daytime programming (art tutorials, craft shows, gentle
+       PBS reruns). AUDIT 2026-08-06: NO SIGNAL 4x in soak — pool was too narrow. Added
+       artsandmusicvideos + widened to craft/knitting/quilting/cooking-show subjects for the
+       "comfort TV" flavor. */
+    genre: "comforttv", era: [1970, 2015],
     providers: [
-      { collections: ["bobrossonlinemuseum", "opensource_movies"], require_subj: ["bob ross", "joy of painting", "painting show", "painting tutorial", "PBS painting", "arts and crafts", "watercolor", "oil painting"] }
+      { collections: ["opensource_movies"], require_subj: ["bob ross", "joy of painting", "painting tutorial", "painting demonstration", "PBS painting"] },
+      { collections: ["artsandmusicvideos", "opensource_movies"], require_subj: ["oil painting", "watercolor", "painting demonstration", "art tutorial", "arts and crafts", "craft demonstration"] },
+      { collections: ["prelinger", "avgeeks"], require_subj: ["craft", "handicraft", "knitting", "quilting", "sewing", "pottery", "woodworking", "gardening", "flower arrangement"] }
     ],
     deny: {
-      title: ["news"],
-      subject: ["news", "commercial", "youtube", "vlog", "podcast"]
+      title: ["news", "commercial", "advertisement"],
+      subject: ["news", "commercial", "youtube", "vlog", "podcast", "advertising", "trailer"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
@@ -2245,17 +2259,17 @@ const PROGRAM = {
 
   "Cop Show Classic": {
     /* Dragnet, Adam-12, Highway Patrol, Peter Gunn, Boston Blackie all uploaded to classic_tv
-       collections. Broad procedural terms in require_subj because IA subject-tagging on TV shows
-       is inconsistent — some items are tagged just "police", others "crime drama", others by
-       show name. */
+       collections. AUDIT 2026-08-06: caught serving "Design for Correction" — a Prelinger prison-
+       architecture film that matched on "law enforcement" subject. Removed broad "law enforcement"
+       from require_subj, added deny for architecture/prison-design/training. */
     genre: "copshow", era: [1950, 1985],
     providers: [
-      { collections: ["classic_tv_1950s", "classic_tv_1960s", "classic_tv_1970s"], require_subj: ["police procedural", "cop show", "police drama", "detective show", "detective", "police", "crime drama", "law enforcement", "dragnet", "adam-12", "highway patrol", "peter gunn"] },
-      { collections: ["classic_tv"], require_subj: ["police", "detective", "crime drama", "cop show", "police drama"] }
+      { collections: ["classic_tv_1950s", "classic_tv_1960s", "classic_tv_1970s"], require_subj: ["police procedural", "cop show", "police drama", "detective show", "detective", "crime drama", "dragnet", "adam-12", "highway patrol", "peter gunn", "hawaii five-o", "kojak"] },
+      { collections: ["classic_tv"], require_subj: ["police procedural", "detective show", "crime drama", "cop show", "police drama"] }
     ],
     deny: {
-      title: ["news"],
-      subject: ["news", "commercial", "advertising", "youtube", "vlog", "podcast", "MSNBC", "CSPAN"]
+      title: ["news", "design for", "correction", "training film", "documentary"],
+      subject: ["news", "commercial", "advertising", "youtube", "vlog", "podcast", "MSNBC", "CSPAN", "architecture", "construction", "prison design", "correctional facility", "training film", "educational film", "law enforcement training", "safety film"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
@@ -2291,31 +2305,35 @@ const PROGRAM = {
   },
 
   "Country Roads": {
-    /* Rural Americana — Prelinger has extensive farm/ranch/small-town content. Widen deny for
-       urban/city subjects and generic educational films so we get the atmospheric portrait films,
-       not classroom instructionals. */
+    /* Rural Americana — Prelinger has extensive farm/ranch/small-town content.
+       AUDIT 2026-08-06: caught serving "A Strange Harvest Cattle Mutilation" (Linda Moulton Howe
+       UFO doc) via broad "cattle" match, and an electronic-organ demo via "americana". Removed
+       generic "cattle"/"americana", added UFO/paranormal/conspiracy denies. */
     genre: "countryroads", era: [1935, 1985],
     providers: [
-      { collections: ["prelinger", "avgeeks", "FedFlix"], require_subj: ["farm", "farm life", "rural life", "small town", "agriculture", "farming", "livestock", "ranch", "country life", "americana", "rural", "harvest", "cattle", "cotton"] }
+      { collections: ["prelinger", "FedFlix"], require_subj: ["farm life", "rural life", "small town", "agriculture", "farming", "livestock", "ranch", "country life", "harvest", "cotton farming", "wheat", "corn", "dairy farm", "rural america"] },
+      { collections: ["avgeeks", "prelingerhomemovies"], require_subj: ["farm life", "rural", "small town", "agriculture", "farming", "ranch", "country life", "harvest"] }
     ],
     deny: {
-      title: ["news"],
-      subject: ["news", "commercial", "youtube", "urban", "city life", "training film", "educational film", "safety film"]
+      title: ["news", "cattle mutilation", "UFO", "strange harvest", "electronic organ"],
+      subject: ["news", "commercial", "youtube", "urban", "city life", "training film", "educational film", "safety film", "UFO", "paranormal", "conspiracy", "cattle mutilation", "Linda Moulton Howe", "abduction", "electronic organ", "keyboard", "music equipment"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
   "Storm Chase Classics": {
-    /* Tornado + severe-weather docs — content skews to NOAA/NWS training films (allowed here,
-       unlike Nature Channel where they're denied) plus modern amateur chase footage on
-       opensource_movies. Deny news + cartoon so it stays documentary-flavored. */
+    /* Tornado + severe-weather docs — content skews to NOAA/NWS training films plus modern
+       amateur chase footage on opensource_movies. AUDIT 2026-08-06: caught serving "Mangrove
+       Water Snakes" (marine wildlife) and a Hurricane Sandy relief travel show — tightened
+       require_subj to weather-event-specific terms only, added marine/wildlife/travel denies. */
     genre: "stormchase", era: [1970, 2015],
     providers: [
-      { collections: ["opensource_movies", "prelinger", "FedFlix"], require_subj: ["storm chaser", "tornado", "storm chase", "severe weather", "hurricane", "supercell", "weather documentary", "meteorology", "thunderstorm", "national weather service", "NOAA"] }
+      { collections: ["opensource_movies"], require_subj: ["storm chaser", "tornado", "storm chase", "severe weather", "supercell", "thunderstorm", "chase footage", "storm chasing"] },
+      { collections: ["prelinger", "FedFlix"], require_subj: ["tornado", "severe weather", "hurricane", "meteorology", "weather documentary", "national weather service", "NOAA", "storm"] }
     ],
     deny: {
-      title: ["news", "forecast"],
-      subject: ["news", "commercial", "youtube", "cartoon", "animated", "vlog", "MSNBC"]
+      title: ["news", "forecast", "mangrove", "sanctuary", "your sanctuary", "traveltelevision", "voluntourist"],
+      subject: ["news", "commercial", "youtube", "cartoon", "animated", "vlog", "MSNBC", "marine life", "sea life", "wildlife", "waterways", "voluntourism", "travel show", "relief effort", "ecology"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
@@ -2363,12 +2381,16 @@ const PROGRAM = {
   },
 
   "Auto Racing": {
-    genre: "autoracing", era: [1930, 1990],
-    providers: [{"collections": ["prelinger", "FedFlix", "feature_films"], "require_subj": ["auto racing", "automobile racing", "car racing", "motor racing", "NASCAR", "Indianapolis", "Formula One", "Grand Prix", "drag racing", "stock car"]}],
-    /* audit 2B: dropped "educational" from deny.subject. Almost every mid-century Prelinger
-       driver's-ed film about race cars, hot rods, and traffic safety is tagged "educational" —
-       this channel's own primary collection (prelinger) is dominated by sponsored educational films. */
-    deny: {"title": ["home movie", "family film", "comedy", "cartoon"], "subject": ["home movie", "family", "comedy", "cartoon", "animated"]},
+    /* AUDIT 2026-08-06: same NASCAR 1990 Goodwrench 500 played 4x in a row — pool too thin.
+       Added opensource_movies + feature_films_unsorted + ontariocitylibrary (which has vintage
+       race footage), widened terms to include vintage F1, Le Mans, sprint cars, Indy 500. */
+    genre: "autoracing", era: [1930, 2000],
+    providers: [
+      { collections: ["prelinger", "FedFlix"], require_subj: ["auto racing", "automobile racing", "car racing", "motor racing", "hot rod", "sports car racing", "stock car"] },
+      { collections: ["opensource_movies", "feature_films_unsorted"], require_subj: ["auto racing", "car racing", "motor racing", "NASCAR", "Indianapolis 500", "Indy 500", "Formula One", "F1", "Grand Prix", "Le Mans", "drag racing", "stock car", "sprint car"] },
+      { collections: ["ontariocitylibrary", "opensource_movies"], require_subj: ["motor racing", "Ontario Motor Speedway", "stock car racing", "sports cars"] }
+    ],
+    deny: {"title": ["home movie", "family film", "comedy", "cartoon"], "subject": ["home movie", "family", "comedy", "cartoon", "animated", "children"]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
@@ -2558,10 +2580,17 @@ const PROGRAM = {
   },
 
   "Black Cinema": {
+    /* Oscar Micheaux, race films, blaxploitation era. AUDIT 2026-08-06: caught serving "The
+       Klansman" (mainstream 1974 KKK exploitation with Lee Marvin/Richard Burton) — added hard
+       deny for KKK/racial-violence-themed mainstream films that were pulling on generic subject
+       matches. */
     genre: "blackcinema", era: [1920, 1975],
-    providers: [{"collections": ["feature_films", "classic_tv"], "require_subj": ["race film", "African American", "Black cinema", "Black cast", "blaxploitation", "Black film"]}],
-    deny: {"title": ["newsreel", "commercial", "educational"], "subject": ["newsreel", "commercial", "educational", "instructional"]},
-    subjRequired: true, noBlindFallback: true
+    providers: [{"collections": ["feature_films", "feature_films_unsorted"], "require_subj": ["race film", "African American", "Black cinema", "Black cast", "blaxploitation", "Black film", "Oscar Micheaux", "all-Black cast"]}],
+    deny: {
+      title: ["newsreel", "commercial", "educational", "Klansman", "KKK", "birth of a nation"],
+      subject: ["newsreel", "commercial", "educational", "instructional", "Ku Klux Klan", "KKK", "white supremacy", "racial violence"]
+    },
+    subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
   "Trailer Park": {

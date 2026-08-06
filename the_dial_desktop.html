@@ -89,13 +89,27 @@ body{
 .bars .row2{flex:1;background:#1d1d1d}
 .bars .row3{flex:2;background:#0a0a0a;display:flex;align-items:center;justify-content:center;color:#888;letter-spacing:4px;font-size:12px}
 
-/* station bug + channel entry */
+/* Station bug + clock rendered as a Scientific Atlanta 8600-series cable-box VFD display.
+   Both readouts share one black bezel with a small red LED, thin chamfered edges, and green
+   vacuum-fluorescent digits. Positioned as a single unit in the top-right of the tube. */
+.sa-box{position:absolute;top:10px;right:12px;z-index:25;pointer-events:none;
+  display:inline-flex;align-items:stretch;gap:0;
+  background:linear-gradient(180deg,#1a1e1f 0%,#0d1010 50%,#161a1b 100%);
+  border:1px solid #2c2f30;border-top-color:#3a3d3e;border-bottom-color:#050607;
+  border-radius:4px;padding:3px 4px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05),inset 0 -1px 0 rgba(0,0,0,.5),0 3px 6px rgba(0,0,0,.55);
+  font-family:"VT323","Courier New",monospace}
+.sa-box::before{content:"";width:6px;height:6px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#ff5a4a,#8a1810);align-self:center;margin:0 6px 0 3px;box-shadow:0 0 5px rgba(255,90,74,.85)}
+.sa-vfd{background:#040806;border:1px solid #050707;border-radius:2px;padding:2px 8px;min-height:20px;display:flex;align-items:center;justify-content:center;
+  color:#8cffb0;font-weight:700;font-size:14px;letter-spacing:2px;text-shadow:0 0 4px rgba(140,255,176,.75),0 0 10px rgba(60,255,120,.35);
+  box-shadow:inset 0 1px 2px rgba(0,0,0,.85)}
+.sa-vfd + .sa-vfd{margin-left:5px}
 .bug{position:absolute;top:9px;right:90px;z-index:25;font-size:11px;font-weight:bold;letter-spacing:1px;
-  /* QA FIX: was at right:11px, identical to .clock-bug, so the two overlapped character-on-character
-     ("9:02 PM" and "CH 02" stacked) -- visible in a real screenshot. Broadcast convention is
-     station ID + clock side-by-side, so shifted left of the clock. */
-  color:var(--amber);text-shadow:0 0 8px rgba(255,180,58,.8);background:rgba(0,0,0,.35);padding:3px 7px;
-  border-radius:4px;border:1px solid rgba(255,180,58,.4);pointer-events:none}
+  /* Legacy .bug kept because tune() and channel-flash code still writes into $("bug"). It now
+     lives inside the .sa-box VFD panel — see HTML change in the tube markup. Colors + border
+     are transparent so it inherits the VFD styling from its parent instead of the old amber
+     text-on-black-pill look. */
+  color:inherit;background:none;padding:0;border:none;text-shadow:none;pointer-events:none;position:static}
 .bug.hide{display:none}
 .entry{position:absolute;top:9px;left:11px;z-index:26;font-size:20px;font-weight:bold;letter-spacing:3px;
   color:var(--phos);text-shadow:0 0 10px rgba(103,255,134,.9);background:rgba(0,0,0,.45);padding:2px 10px;border-radius:4px;display:none}
@@ -294,10 +308,8 @@ video::-webkit-media-text-track-display {
 }
 
 /* ===== v6 elements ===== */
-.clock-bug{position:absolute;top:9px;right:11px;left:auto;z-index:25;font-size:11px;font-weight:bold;letter-spacing:1px; /* 1.5.1: moved off the top-left — it was overlapping channel headers (seen on screenshot) */
-  color:var(--amber);background:rgba(0,0,0,.45);border:1px solid rgba(255,180,58,.35);border-radius:5px;padding:2px 7px;
-  opacity:0;transition:opacity .3s;text-shadow:0 0 6px rgba(255,180,58,.5)}
-.clock-bug.show{opacity:.92}
+.clock-bug{color:inherit;background:none;padding:0;border:none;text-shadow:none;opacity:0;transition:opacity .3s;position:static;font-family:inherit;font-size:14px;letter-spacing:2px}
+.clock-bug.show{opacity:1}
 .buff-ov{position:absolute;inset:0;z-index:29;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;
   background:rgba(0,0,0,.35);color:var(--phos);font-size:12px;letter-spacing:3px;font-weight:bold}
 .buff-ov.show{display:flex}
@@ -443,7 +455,7 @@ html.mob .gsearch-wrap{padding:0 12px 6px}
     repeating-linear-gradient(90deg, var(--pan1) 0 78px, var(--pan-line) 78px 82px, var(--pan3) 82px 86px, var(--pan-line) 86px 90px),
     linear-gradient(180deg, #4d331c 0%, #3a2614 70%, #2a1b0e 100%);height:100dvh;justify-content:center;overflow:hidden}
 /* stage width is now driven by the tube's 4:3 height budget, so the picture is as big as the window allows */
-.stage{position:relative;z-index:2;width:100%;max-width:min(1800px,calc((100vh - 146px)*1.3333 + 344px));display:grid;grid-template-columns:1fr 150px;gap:14px;align-items:end} /* CYCLE-6: EXTRAS panel gone -> narrower side column, wider tube */
+.stage{position:relative;z-index:2;width:100%;max-width:min(2400px,calc((100vh - 100px)*1.3333 + 200px));display:grid;grid-template-columns:1fr 150px;gap:14px;align-items:end} /* 2026-08-06: bumped ceiling 1800→2400, reduced vertical padding 146→100 and side-column budget 344→200, so the tube fills more of the empty brown space on wide monitors */
 .console{background:linear-gradient(180deg,var(--wood-l),var(--wood) 30%,var(--wood-d));border-radius:10px;padding:5px;border:2px solid #241509;position:relative;box-shadow:0 26px 50px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.08)}
 /* QA: console padding shrunk from 12px/14px/10px to 5px — "thin wooden bezel" per user request.
    The wood grain is still visible as a border but no longer eats screen real estate. */
@@ -870,7 +882,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.115";
+window.__ATV_BUILD="1.7.7-desktop.116";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -940,7 +952,11 @@ window.addEventListener("unhandledrejection",function(e){
             <div class="audio-title" id="audioTitle">Now Playing</div>
             <div class="audio-tag">♪ AUDIO ♪</div>
           </div>
-          <div class="bug hide" id="bug">CH 02</div>
+          <!-- Scientific Atlanta 8600-style VFD panel: channel + clock in one bezel, top-right of tube -->
+          <div class="sa-box" id="saBox">
+            <div class="sa-vfd"><span class="bug hide" id="bug">CH 02</span></div>
+            <div class="sa-vfd"><span class="clock-bug" id="clockBug"></span></div>
+          </div>
           <div class="volosd" id="volOsd"><span class="vlabel">VOL</span><span class="vtrack"><span class="vfill" id="volOsdBar" style="width:80%"></span></span></div>
           <div class="volhint" id="volHint">▶ use on-screen player for volume</div>
           <div class="lower fade" id="lower">
@@ -951,7 +967,6 @@ window.addEventListener("unhandledrejection",function(e){
           <div class="banner" id="banner"></div>
           <div class="info-panel hide" id="infoPanel"></div>
           <div class="osd hide" id="osdMenu"></div>
-          <div class="clock-bug" id="clockBug"></div>
           <div class="buff-ov" id="buffOv"><div class="buff-ring"></div><span>BUFFERING…</span></div>
           <div class="flip-bar" id="flipBar"></div>
           <div class="prog-wrap" id="progWrap"><div class="prog-track"><div class="prog-fill" id="progFill"></div></div><div class="prog-time" id="progTime"></div></div>

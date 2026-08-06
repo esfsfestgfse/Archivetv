@@ -870,7 +870,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.114";
+window.__ATV_BUILD="1.7.7-desktop.115";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1416,8 +1416,7 @@ const CH=[
  {nm:"World Clock", num:410,       cat:"LDATA", source:"worldclock", ns:"tv"},
  {nm:"Wildfire Watch", num:411,    cat:"LDATA", source:"wildfire",   ns:"tv"},
  {nm:"Hometown History", num:412,  cat:"LDATA", source:"hometown",   ns:"doc"},
- {nm:"Tide & Marine", num:413,     cat:"LDATA", source:"tides",      ns:"tv"},
- {nm:"Buoy & Surf Report", num:414, cat:"LDATA", source:"buoy",      ns:"tv"},
+ {nm:"Gulf Marine", num:413,       cat:"LDATA", source:"tides",      ns:"tv"}, /* Tide + Buoy + Gulf-preferred stations, merged 2026-08-06 (was ch 413 Tide & Marine + ch 414 Buoy & Surf Report) */
  {nm:"Gas Price Ticker", num:415,   cat:"LDATA", source:"gas",       ns:"tv"},
  {nm:"Ship Tracker", num:416,       cat:"LDATA", source:"ships",     ns:"tv"},
  {nm:"Historic Waco", num:417,     cat:"LDATA", source:"paper",      ns:"doc"},
@@ -1525,10 +1524,10 @@ const CHANNEL_META={
 "Vintage Local News":{desc:"Off-air affiliate newscasts from the 80s and 90s — WCBS, WNBC and friends.",best:"anytime",rel:["News, News, News","VHS Vault"]},
 "Bob Ross & Comfort TV":{desc:"Joy of Painting and other calm, quiet daytime programming.",best:"weekday afternoons",rel:["Public Domain Art","Nature Channel"]},
 "Space":{desc:"LIVE: space weather, ISS position, tonight's sky.",best:"nights",rel:["Space","Deep Space Jazz"]},
-"River & Lake Watch":{desc:"LIVE: every river gauge and lake level near you, with flood categories.",best:"storm season",rel:["Weather Watch","Tide & Marine"]},
+"River & Lake Watch":{desc:"LIVE: every river gauge and lake level near you, with flood categories.",best:"storm season",rel:["Weather Watch","Gulf Marine"]},
 "On This Day":{desc:"LIVE: archival footage tied to today's date in history.",best:"mornings",rel:["News, News, News","Public Domain Day"]},
 "Public Domain Day":{desc:"Countdown to the next copyright expiration - the reason this TV exists.",best:"New Year's",rel:["On This Day","News, News, News"]},
-"Tropical Watch":{desc:"LIVE: every basin's storms with GOES satellite imagery.",best:"hurricane season",rel:["Weather Watch","Tide & Marine"]},
+"Tropical Watch":{desc:"LIVE: every basin's storms with GOES satellite imagery.",best:"hurricane season",rel:["Weather Watch","Gulf Marine"]},
 "Storm Center":{desc:"LIVE: SPC Day 1 Convective Outlook — risk categories, severe-weather discussion, old country music bed.",best:"storm season",rel:["Local Radar","Weather Watch"]},
 "Local Radar":{desc:"LIVE: your nearest NEXRAD WSR-88D animated loop straight from radar.weather.gov, ragtime bed.",best:"anytime",rel:["Weather Watch","Storm Center"]},
 "Live News":{desc:"LIVE: 24/7 English news \u2014 DW, France 24, Al Jazeera, CGTN, NewsAsia, TRT, Arirang, NHK, CBS, Newsmax \u0026 Red Bull, via HLS + your proxy.",best:"anytime",rel:["Live TV","Live Radio"]},
@@ -1539,7 +1538,7 @@ const CHANNEL_META={
 "World Clock":{desc:"LIVE: the world's time zones on a day/night map.",best:"anytime",rel:["Space","On This Day"]},
 "Wildfire Watch":{desc:"LIVE: active fires near you and nationwide, mapped.",best:"fire season",rel:["Seismic Watch","Weather Watch"]},
 "Hometown History":{desc:"LIVE: local landmarks narrated aloud, with local photos, footage and headlines.",best:"anytime",rel:["Home Movies & Travelogues"]},
-"Tide & Marine":{desc:"LIVE: your nearest coast's tides and shore forecast.",best:"beach trips",rel:["River & Lake Watch","Weather Watch"]},
+"Gulf Marine":{desc:"LIVE: Gulf-preferred tide station + nearest wave buoy + shore forecast in one screen — Galveston, Corpus Christi, Port Isabel, Grand Isle, Pensacola.",best:"beach trips + hurricane season",rel:["Weather Watch","Tropical Watch"]},
 "Christmas Channel":{desc:"Yuletide features, cartoons and TV specials - all year, unashamed.",best:"December evenings",rel:["Comedy Classics","Classic Rerun TV"]},
 "Halloween Haunt":{desc:"Ghosts, witches and haunted houses - the spooky shelf.",best:"October nights",rel:["Shock Theater","Sci-Fi Theater"]},
 "Thanksgiving Channel":{desc:"Harvest films, pilgrims and turkey-day television.",best:"late November",rel:["Home Economics","Classic Rerun TV"]},
@@ -2962,7 +2961,6 @@ async function tuneNum(n){
   if(sl.source==="ships"){ if(my!==token)return; return tuneShips(ch,sl,my); }
   if(sl.source==="iss"){ if(my!==token)return; return tuneISS(ch,sl,my); }
   if(sl.source==="apod"){ if(my!==token)return; return tuneAPOD(ch,sl,my); }
-  if(sl.source==="buoy"){ if(my!==token)return; return tuneBuoy(ch,sl,my); }
   if(sl.source==="hf"){ if(my!==token)return; return tuneHF(ch,sl,my); }
   if(sl.source==="sports"){ if(my!==token)return; return tuneSports(ch,sl,my); }
   if(sl.source==="wildfire"){ if(my!==token)return; return tuneWildfire(ch,sl,my); }
@@ -4542,7 +4540,7 @@ async function tunePaper(ch,sl,my){
     '<div class="dc-sub" id="paperCap">Waco &amp; Central Texas — a living photo archive</div>'+
     '<div class="afd-text" id="paperTxt" style="flex:1 1 auto;min-height:0"></div>'+
     '<div class="dc-ticker" id="paperTicker"><b>Historic Waco · Central Texas</b></div></div></div>';
-  startIAJazz();
+  startIAJazz("gmcountry"); /* Central TX = country & western — Bob Wills, Ernest Tubb, Willie Nelson territory */
   ensureWacoCSS();
 
   var pages=[], idx=0, seen={}, lastSpoken="", loading=false, curTheme=null, srcCursor=0, wacoVoice=null;
@@ -4838,9 +4836,15 @@ var TIDE_STATIONS=[
  ["1612340","Honolulu, HI",21.307,-157.867],["1617760","Hilo, HI",19.730,-155.060],
  ["1615680","Kahului, HI",20.895,-156.477],["9755371","San Juan, PR",18.459,-66.116]
 ];
+/* Gulf Marine (ch 413) \u2014 merged Tide & Marine (was 413) + Buoy & Surf Report (was 414) as of
+   2026-08-06. One screen shows nearest tide station's next high/low + upcoming schedule + water
+   temp + station wind + nearest NDBC buoy's wave height + period + water/air temp + pressure +
+   compass. Coastal forecast in the ticker. Gulf-focused: TIDE_STATIONS already lists Galveston,
+   Sabine Pass, Rockport, Port Isabel etc. at the top \u2014 distance-sort naturally picks them for
+   a Waco user. */
 async function tuneTides(ch,sl,my){
-  if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Tide & Marine","");
-  if(screenArea) screenArea.innerHTML=dcSkeletonWithBug("TIDE & MARINE","TIDE WATCH");
+  if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Gulf Marine","");
+  if(screenArea) screenArea.innerHTML=dcSkeletonWithBug("GULF MARINE","GULF MARINE");
   var run=async function(){
     if(my!==token||!powered)return;
     try{
@@ -4865,15 +4869,11 @@ async function tuneTides(ch,sl,my){
       nlog("tides",true,used.name+" / "+used.dist.toFixed(0)+" mi");
       var events=preds.map(function(p){ return {t:new Date(p.t.replace(" ","T")),v:parseFloat(p.v),hi:p.type==="H"}; });
       var next=events.find(function(e){return e.t>now;})||events[events.length-1];
-      setChanStatus(ch.num,(next.hi?"HIGH":"LOW")+" tide "+next.t.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}));
-      var tideBug=$("dcScreen")&&$("dcScreen").querySelector(".chan-bug");
-      if(tideBug){ var tm=tideBug.querySelector(".chan-bug-main"), ts=tideBug.querySelector(".chan-bug-sub");
-        if(tm) tm.textContent=(next.hi?"HIGH":"LOW")+" "+next.t.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});
-        if(ts) ts.textContent=(used.name+" \u00b7 "+next.v.toFixed(1)+"ft").toUpperCase(); }
       function ft(e){ return e.t.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})+(e.t.getDate()!==now.getDate()?" (tmrw)":""); }
       var upcoming=events.filter(function(e){return e.t>now;}).slice(0,4);
       var stats=upcoming.map(function(e){ return [(e.hi?"HIGH":"LOW")+" "+ft(e), e.v.toFixed(1)+" ft"]; });
-      try{ /* 1.5: station water temp + winds */
+      /* Tide station's own water temp + winds */
+      try{
         var wt=await fetchJSON("https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=water_temperature&application=archive_tv&date=latest&station="+used.id+"&time_zone=lst_ldt&units=english&format=json");
         var wv=wt&&wt.data&&wt.data[0]; if(wv&&wv.v)stats.push(["WATER TEMP",parseFloat(wv.v).toFixed(0)+"\u00b0F"]);
       }catch(ew){}
@@ -4881,6 +4881,34 @@ async function tuneTides(ch,sl,my){
         var wn=await fetchJSON("https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=wind&application=archive_tv&date=latest&station="+used.id+"&time_zone=lst_ldt&units=english&format=json");
         var wd2=wn&&wn.data&&wn.data[0]; if(wd2&&wd2.s)stats.push(["STATION WIND",wxCompass(parseFloat(wd2.d))+" "+Math.round(parseFloat(wd2.s)*1.15078)+" mph"]);
       }catch(ew2){}
+      /* MERGED FROM BUOY: nearest NDBC station + wave height/period/pressure */
+      var buoyBest=null, buoyD=Infinity, buoyRaw=null;
+      try{
+        var stations=await ndbcStations(); if(my!==token)return;
+        stations.forEach(function(s){ var dkm=haversineKm(loc.lat,loc.lon,s.lat,s.lon); if(dkm<buoyD){buoyD=dkm;buoyBest=s;} });
+        if(buoyBest){
+          var btxt=await withTO(fetch("https://www.ndbc.noaa.gov/data/realtime2/"+buoyBest.id+".txt").then(function(r){
+            if(!r.ok)throw new Error("http "+r.status); return r.text(); }),12000);
+          if(my!==token)return;
+          var blines=btxt.split("\n").filter(function(l){return l.trim()&&l.charAt(0)!=="#";});
+          if(blines.length){
+            buoyRaw=blines[0].trim().split(/\s+/);
+            var bwvht=ndbcMM(buoyRaw[8]), bdpd=ndbcMM(buoyRaw[9]), bpres=ndbcMM(buoyRaw[12]), batmp=ndbcMM(buoyRaw[13]);
+            if(bwvht!=null) stats.push(["WAVE HEIGHT",(bwvht*3.28084).toFixed(1)+" ft @ "+buoyBest.id]);
+            if(bdpd!=null) stats.push(["WAVE PERIOD",bdpd+" sec"]);
+            if(batmp!=null) stats.push(["BUOY AIR TEMP",Math.round(batmp*9/5+32)+"\u00b0F"]);
+            if(bpres!=null) stats.push(["BUOY PRESSURE",(bpres*0.02953).toFixed(2)+" inHg"]);
+            nlog("gulfmarine",true,"buoy "+buoyBest.id+" "+(buoyD*0.621371).toFixed(0)+"mi");
+          }
+        }
+      }catch(eb){ nlog("gulfmarine",false,"buoy: "+((eb&&eb.message)||eb)); }
+      /* Hero: next tide time \u2014 the most actionable thing on this screen */
+      setChanStatus(ch.num,(next.hi?"HIGH":"LOW")+" tide "+next.t.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})+(buoyRaw?" \u00b7 "+(ndbcMM(buoyRaw[8])!=null?(ndbcMM(buoyRaw[8])*3.28084).toFixed(1)+"ft waves":""):""));
+      var tideBug=$("dcScreen")&&$("dcScreen").querySelector(".chan-bug");
+      if(tideBug){ var tm=tideBug.querySelector(".chan-bug-main"), ts=tideBug.querySelector(".chan-bug-sub");
+        if(tm) tm.textContent=(next.hi?"HIGH":"LOW")+" "+next.t.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});
+        if(ts) ts.textContent=(used.name+" \u00b7 "+next.v.toFixed(1)+"ft").toUpperCase(); }
+      /* Coastal forecast for the ticker */
       var fcTxt="";
       try{
         var pt=await fetchJSON("https://api.weather.gov/points/"+used.lat+","+used.lon);
@@ -4888,27 +4916,25 @@ async function tuneTides(ch,sl,my){
         if(fu){ var fc=await fetchJSON(fu); var per=fc&&fc.properties&&fc.properties.periods&&fc.properties.periods[0];
           if(per) fcTxt=per.name+": "+per.detailedForecast; }
       }catch(e2){ nlog("tides",false,"coastal forecast: "+((e2&&e2.message)||e2)); }
-      /* build upcoming tides list for extra panel */
-      var upcomingHtml='';
-      if(preds&&preds.length>1){
-        upcomingHtml='<div style="font-weight:700;color:#9fd6a6;margin-bottom:4px">UPCOMING TIDES</div>';
-        preds.slice(0,8).forEach(function(p){
-          var isHi=p.type==="H";
-          var clr=isHi?"#7fb4ff":"#67ff86";
-          upcomingHtml+='<div style="display:flex;gap:8px;padding:2px 0;border-bottom:1px solid rgba(255,255,255,.05)">'+
-            '<span style="color:'+clr+';min-width:36px;font-weight:700">'+(isHi?"HIGH":"LOW")+'</span>'+
-            '<span>'+ft(p)+'</span>'+
-            '<span style="color:#9fd6a6;margin-left:auto">'+new Date(p.t).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})+'</span></div>';
-        });
-      }
-      renderDcBody({title:"TIDE & MARINE / NEAREST COAST",
+      /* Upcoming tides + buoy attribution in the extra panel */
+      var extraHtml='<div style="font-weight:700;color:#9fd6a6;margin-bottom:4px">UPCOMING TIDES</div>';
+      preds.slice(0,8).forEach(function(p){
+        var isHi=p.type==="H"; var clr=isHi?"#7fb4ff":"#67ff86";
+        extraHtml+='<div style="display:flex;gap:8px;padding:2px 0;border-bottom:1px solid rgba(255,255,255,.05)">'+
+          '<span style="color:'+clr+';min-width:36px;font-weight:700">'+(isHi?"HIGH":"LOW")+'</span>'+
+          '<span>'+esch(new Date(p.t.replace(" ","T")).toLocaleDateString([],{month:"short",day:"numeric"}))+' '+esch(new Date(p.t.replace(" ","T")).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}))+'</span>'+
+          '<span style="color:#9fd6a6;margin-left:auto">'+parseFloat(p.v).toFixed(1)+' ft</span></div>';
+      });
+      if(buoyBest) extraHtml+='<div style="font-weight:700;color:#9fd6a6;margin-top:8px">NEAREST WAVE BUOY</div>'+
+        '<div style="color:#cfe0ff;font-size:11px">'+esch(buoyBest.name)+' \u00b7 '+esch(buoyBest.id)+' \u00b7 '+Math.round(buoyD*0.539957)+' nmi</div>';
+      renderDcBody({title:"GULF MARINE / "+esch(used.name.toUpperCase()),
         hero:(next.hi?"HIGH":"LOW")+" "+ft(next),
-        sub:esch(used.name)+" / "+used.dist.toFixed(0)+" mi from you / datum MLLW",
+        sub:esch(used.name)+" \u00b7 "+used.dist.toFixed(0)+" mi \u00b7 datum MLLW",
         stats:stats,
-        extra:upcomingHtml,
-                ticker:fcTxt?('<span class="wx-tk-in">'+esch("COASTAL FORECAST - "+fcTxt)+'</span>'):"NOAA CO-OPS tide predictions / coastal forecast unavailable"});
+        extra:extraHtml,
+        ticker:fcTxt?('<span class="wx-tk-in">'+esch("COASTAL FORECAST \u2014 "+fcTxt)+'</span>'):"NOAA CO-OPS tide predictions + NDBC wave buoys \u00b7 coastal forecast unavailable"});
     }catch(e){ nlog("tides",false,(e&&e.message)||e);
-      renderDcBody({title:"TIDE & MARINE", hero:"--", sub:"Tide service unavailable", ticker:esch((e&&e.message)||"unknown error")+" - will retry"}); }
+      renderDcBody({title:"GULF MARINE", hero:"--", sub:"Marine service unavailable", ticker:esch((e&&e.message)||"unknown error")+" \u2014 will retry"}); }
   };
   run(); rtInterval(run,1800000);
 }
@@ -7400,8 +7426,8 @@ async function tuneGas(ch,sl,my){
   if(screenArea) screenArea.innerHTML='<div class="dc-screen" id="dcScreen">'+
     '<div class="dc-media show" id="gasMedia" style="flex:1 1 55%;height:auto;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px">'+
       '<div style="display:flex;align-items:baseline;gap:8px"><div id="gasBig" style="font:800 clamp(28px,6.5vw,48px)/1 monospace;color:var(--phos)">$--</div><div id="gasSub" style="font-size:11px;color:#9fd6a6">regular/gal</div></div>'+
-      '<div id="gasChart" style="width:100%;max-width:300px"></div>'+
-      '<div style="font-size:9px;color:rgba(159,214,166,.6);align-self:stretch;max-width:300px;display:flex;justify-content:space-between;padding:0 2px"><span>12 WEEKS AGO</span><span>NOW</span></div>'+
+      '<div id="gasChart" style="width:100%;max-width:340px"></div>'+
+      '<div style="font-size:9px;color:rgba(159,214,166,.6);align-self:stretch;max-width:340px;display:flex;justify-content:space-between;padding:0 2px"><span>52 WEEKS AGO</span><span>26w</span><span>NOW</span></div>'+
     '</div>'+
     '<div class="dc-body" id="dcBody" style="flex:0 1 45%;justify-content:flex-start;gap:4px;overflow:hidden">'+
       '<div class="dc-top"><span id="gasHead">GAS PRICE TICKER</span></div>'+
@@ -7419,7 +7445,7 @@ async function tuneGas(ch,sl,my){
       var hEl=$("gasHead"); if(hEl)hEl.textContent="GAS PRICES \u2014 "+(PADD_NAMES[padd]||"U.S.").toUpperCase()+" (PADD "+padd+")";
       var url="https://api.eia.gov/v2/petroleum/pri/gnd/data/?api_key="+EIA_KEY+
         "&frequency=weekly&data[]=value&facets[duoarea][]=R"+padd+"0"+
-        "&facets[product][]=EPMR&sort[0][column]=period&sort[0][direction]=desc&length=12";
+        "&facets[product][]=EPMR&sort[0][column]=period&sort[0][direction]=desc&length=52"; /* 1 year of weekly data for a proper trend chart */
       var d=await fetchJSON(url); if(my!==token)return;
       var rows=(d&&d.response&&d.response.data)||[];
       var latest=rows[0];
@@ -7429,7 +7455,7 @@ async function tuneGas(ch,sl,my){
         if(gasBug) gasBug.update("$"+parseFloat(latest.value).toFixed(2),(PADD_NAMES[padd]||"REGULAR")+" \u00b7 PER GALLON");
         var chartEl=$("gasChart"); if(chartEl&&rows.length){
           var series=rows.slice().reverse().map(function(r){return r.value!=null?parseFloat(r.value):null;}); /* oldest-first */
-          chartEl.innerHTML=svgLineChart(series,"#67ff86",300,80);
+          chartEl.innerHTML=svgLineChart(series,"#67ff86",340,90); /* 52 weeks needs a bit more width */
         }
         nlog("gas",true,"$"+latest.value+" "+(PADD_NAMES[padd]||"")+" "+(latest.period||"")); }
       else throw new Error("no price rows returned \u2014 check DIAG, EIA field names may need adjustment");
@@ -8415,6 +8441,23 @@ function estimateBandConditions(sfi,k){
     return {name:b.n,level:level,score:score};
   });
 }
+/* Ham Radio (rebuilt 2026-08-06): LIVE WSPR beacon spots feed populates INSIDE the channel.
+   Old version showed NOAA space weather then made you click out to WebSDR in a new tab \u2014
+   user complaint: nothing live actually populated in-channel. New version pulls the last
+   ~15 min of worldwide WSPR (Weak Signal Propagation Reporter) beacon activity from
+   db1.wspr.live every 30 sec and renders a live scrolling QSO board. */
+function bandColor(b){
+  b=parseInt(b,10);
+  if(b>=160)return "#c78bff";
+  if(b>=80) return "#7fb4ff";
+  if(b>=40) return "#67ffd3";
+  if(b>=30) return "#67ff86";
+  if(b>=20) return "#ffd34d";
+  if(b>=17) return "#ffb04d";
+  if(b>=15) return "#ff8c4d";
+  if(b>=12) return "#ff5c4d";
+  return "#ff5c9a";
+}
 async function tuneHF(ch,sl,my){
   if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Ham Radio","");
   if(screenArea) screenArea.innerHTML='<div class="dc-screen" id="dcScreen" style="flex-direction:column">'+
@@ -8428,37 +8471,48 @@ async function tuneHF(ch,sl,my){
       '<div id="hfBands" style="display:flex;gap:4px;width:100%;max-width:340px"></div>'+
       '<div class="dc-sub" id="hfForecast" style="font-size:10px">Loading NOAA data\u2026</div>'+
     '</div>'+
-    '<div id="hfPicker" class="catnav" style="flex:0 0 auto;padding:6px 8px"></div>'+
-    '<div id="hfFrame" style="flex:1 1 auto;min-height:0;background:#000;position:relative">'+
-      '<div id="hfLoadMsg" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#67ff86;font:600 11px/1.4 monospace;text-align:center;padding:20px;pointer-events:none">'+
-        '<div style="font-size:14px;letter-spacing:1px">PICK A RECEIVER</div>'+
-        '<div style="color:#9fd6a6;font-size:9px">Live WebSDR receivers open in a new window because they run on plain HTTP.<br>Choose one from the buttons above to tune.</div>'+
+    '<div id="hfSpots" style="flex:1 1 auto;min-height:0;overflow-y:auto;background:#000;padding:4px 6px;font-family:monospace">'+
+      '<div id="hfSpotsHdr" style="position:sticky;top:0;background:#000;font:700 10px monospace;color:#9fd6a6;letter-spacing:1px;padding:6px 4px 4px;border-bottom:1px solid rgba(103,255,134,.15);display:flex;gap:6px;align-items:center">'+
+        '<span style="width:6px;height:6px;border-radius:50%;background:#ff3030;box-shadow:0 0 6px #ff5050;animation:wxBugPulse 1.4s ease-in-out infinite"></span>'+
+        '<span>LIVE WSPR BEACON SPOTS \u00b7 last 15 min worldwide</span>'+
+        '<span id="hfSpotCount" style="margin-left:auto;color:#67ff86">--</span>'+
       '</div>'+
+      '<div id="hfSpotsList" style="padding:4px 0">Loading beacon spots\u2026</div>'+
     '</div>'+
-    '<div class="dc-ticker" id="hfTicker">NOAA SWPC conditions \u00b7 rx.kiwisdr.com live receivers, volunteer-run \u2014 opens in a new window (HTTP)</div>'+
+    '<div class="dc-ticker" id="hfTicker">Data: NOAA SWPC (space weather) + db1.wspr.live (worldwide beacon reports)</div>'+
     '</div>';
-  var pickerEl=$("hfPicker"), frameEl=$("hfFrame");
-  function loadReceiver(i){
-    var r=HAM_RECEIVERS[i]; if(!frameEl||!r)return;
-    /* Not iframed \u2014 HTTPS/HTTP mixed-content block. Render as a click-to-open card instead. */
-    frameEl.innerHTML='<div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center;color:#67ff86;font-family:monospace">'+
-      '<div style="font-size:11px;letter-spacing:2px;color:#9fd6a6">TUNED TO</div>'+
-      '<div style="font:800 16px monospace;color:#67ff86;max-width:92%;line-height:1.3">'+esch(r.nm)+'</div>'+
-      '<a href="'+esch(r.url)+'" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:11px 24px;border:2px solid #67ff86;color:#67ff86;background:rgba(6,18,10,.6);text-decoration:none;letter-spacing:2px;font:700 13px monospace">\u25b6 OPEN RECEIVER</a>'+
-      '<div style="color:#9fd6a6;font-size:9px;max-width:82%;line-height:1.55">These WebSDR / KiwiSDR sites serve plain HTTP. Browsers block them from loading inside HTTPS pages, so they open in a new tab. Return here to switch receivers.</div>'+
-    '</div>';
-    pickerEl.querySelectorAll(".catchip").forEach(function(x){x.classList.remove("act");});
-    var chip=pickerEl.querySelector('[data-hi="'+i+'"]'); if(chip)chip.classList.add("act");
-    nlog("hamlive",true,r.nm);
-  }
-  if(pickerEl){
-    pickerEl.innerHTML=HAM_RECEIVERS.map(function(r,i){
-      return '<button class="catchip" data-hi="'+i+'" style="border-color:#67ff86;color:#67ff86">'+esch(r.nm)+'</button>';
-    }).join("");
-    pickerEl.querySelectorAll("[data-hi]").forEach(function(el){ el.addEventListener("click",function(){ loadReceiver(+el.dataset.hi); }); });
-  }
-  loadReceiver(0);
   mountChanBug("dcScreen",{ident:"HAM RADIO"});
+  var loadSpots=async function(){
+    if(my!==token||!powered)return;
+    var listEl=$("hfSpotsList"), cntEl=$("hfSpotCount");
+    try{
+      var q="SELECT+time,tx_sign,rx_sign,band,power,tx_loc,rx_loc,distance,frequency+FROM+wspr.rx+WHERE+time+%3E+now()-INTERVAL+15+MINUTE+ORDER+BY+time+DESC+LIMIT+40";
+      var r=await withTO(fetch("https://db1.wspr.live/?query="+q+"&FORMAT=JSONCompact"),12000);
+      if(!r.ok)throw new Error("wspr.live http "+r.status);
+      var txt=await r.text(); if(my!==token)return;
+      var lines=txt.split("\n").filter(function(l){return l.trim();});
+      if(!lines.length){ if(listEl)listEl.innerHTML='<div style="color:#9fd6a6;padding:12px;text-align:center;font-size:11px">No WSPR spots reported in the last 15 minutes.</div>'; return; }
+      if(cntEl) cntEl.textContent=lines.length+" spots";
+      setChanStatus(ch.num,lines.length+" WSPR spots \u00b7 15 min");
+      var rows=lines.map(function(l){
+        var f=l.split("\t");
+        if(f.length<8)return "";
+        var t=f[0]?f[0].slice(11,19):"--";
+        var tx=f[1]||"?", rx=f[2]||"?", band=f[3]||"?", pwr=f[4]||"?", dist=f[7]||"0";
+        var col=bandColor(band);
+        return '<div style="display:grid;grid-template-columns:52px 1fr auto 60px;gap:6px;align-items:center;padding:3px 4px;border-bottom:1px solid rgba(255,255,255,.04);font-size:11px">'+
+          '<span style="color:#9fd6a6;font-size:9.5px">'+esch(t)+'</span>'+
+          '<span style="color:#cfe0ff"><b style="color:'+col+'">'+esch(tx)+'</b> \u2192 '+esch(rx)+'</span>'+
+          '<span style="color:'+col+';font-weight:700">'+esch(band)+'m</span>'+
+          '<span style="color:#9fd6a6;text-align:right">'+esch(dist)+' km</span>'+
+        '</div>';
+      }).join("");
+      if(listEl) listEl.innerHTML=rows;
+      nlog("wspr",true,lines.length+" spots");
+    }catch(e){ nlog("wspr",false,(e&&e.message)||e);
+      if(listEl) listEl.innerHTML='<div style="color:#ff8c4d;padding:12px;text-align:center;font-size:11px">wspr.live unavailable \u2014 will retry.<br><span style="color:#9fd6a6;font-size:9px">'+esch((e&&e.message)||"unknown error")+'</span></div>'; }
+  };
+  loadSpots(); rtInterval(loadSpots,30000);
   clearInterval(hfTimer);
   var run=async function(){
     if(my!==token||!powered){ clearInterval(hfTimer); return; }
@@ -8524,7 +8578,8 @@ function nmiDist(lat1,lon1,lat2,lon2){
   return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 }
 function ndbcMM(v){ return (v==null||v==="MM")?null:parseFloat(v); }
-async function tuneBuoy(ch,sl,my){
+/* tuneBuoy retired 2026-08-06 — Buoy & Surf Report merged into Gulf Marine (ch 413). */
+async function tuneBuoy_RETIRED(ch,sl,my){
   if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Buoy & Surf Report","");
   if(screenArea) screenArea.innerHTML='<div class="dc-screen" id="dcScreen">'+
     '<div class="dc-media show" id="buoyMedia" style="flex:1 1 55%;height:auto;min-height:0;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:16px;padding:6px">'+

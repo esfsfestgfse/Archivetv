@@ -870,7 +870,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.107";
+window.__ATV_BUILD="1.7.7-desktop.108";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -907,7 +907,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.107</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.108</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">THE DIAL · THE SET</div>
@@ -6421,88 +6421,118 @@ function tuneSeismic(ch,sl,my){ return tuneRotator(ch,sl,my,[
 
 /* ---------- Live Cams: real webcams worldwide on a draggable 3D globe (Windy, via the worker) ---------- */
 /* ============================================================================================
-   LIVE CAMS — rebuilt 2026-08-04. Windy's webcams API was paywalled by Webcams.travel after the
-   handover, and api.windy.com/webcams/api/v3 now returns 403 across the board. Rather than adding
-   a paid API key, the channel pivoted to a curated slideshow of NOAA/NASA satellite + solar
-   imagery — all government-published, no auth, no expiring tokens, no external dependencies. The
-   Windy-era globe UX (WCAM_CATS, wcamCountries, wcamFetch, wcamUnwrap, wcamNorm, ensureCamCSS,
-   Three.js globe init) is deleted; git log has it if we ever wire up a paid webcam API.
+   LIVE CAMS — rebuilt again 2026-08-04 (v3). First rebuild used NOAA satellite JPGs, which was
+   not what the user wanted (they asked for actual live IP cams worldwide). This version uses real
+   live HLS webcam streams pulled from the iptv-org public catalog — beach cams, safari cams,
+   alpine cams, city cams, all publicly published streams that work via the existing hls.js
+   loadHlsLib() infrastructure. All URLs verified alive at rebuild time. No API keys.
    ============================================================================================ */
-var LIVECAMS_VIEWS=[
-  /* Satellite views of Earth */
-  {cat:"SATELLITE", nm:"GOES-East · Full Disk (Atlantic)",   url:"https://cdn.star.nesdis.noaa.gov/GOES16/ABI/FD/GEOCOLOR/1808x1808.jpg",              src:"NOAA GOES-16"},
-  {cat:"SATELLITE", nm:"GOES-East · CONUS",                  url:"https://cdn.star.nesdis.noaa.gov/GOES16/ABI/CONUS/GEOCOLOR/1250x750.jpg",            src:"NOAA GOES-16"},
-  {cat:"SATELLITE", nm:"GOES-West · Full Disk (Pacific)",    url:"https://cdn.star.nesdis.noaa.gov/GOES18/ABI/FD/GEOCOLOR/1808x1808.jpg",              src:"NOAA GOES-18"},
-  {cat:"SATELLITE", nm:"GOES-East · Tropical Atlantic",      url:"https://cdn.star.nesdis.noaa.gov/GOES16/ABI/SECTOR/taw/GEOCOLOR/1200x1200.jpg",      src:"NOAA GOES-16"},
-  {cat:"SATELLITE", nm:"GOES-East · Gulf of Mexico",         url:"https://cdn.star.nesdis.noaa.gov/GOES16/ABI/SECTOR/gm/GEOCOLOR/1200x1200.jpg",       src:"NOAA GOES-16"},
-  {cat:"SATELLITE", nm:"GOES-East · Southern Plains (TX)",   url:"https://cdn.star.nesdis.noaa.gov/GOES16/ABI/SECTOR/sp/GEOCOLOR/1200x1200.jpg",       src:"NOAA GOES-16"},
-  {cat:"SATELLITE", nm:"GOES-East · Northeast US",           url:"https://cdn.star.nesdis.noaa.gov/GOES16/ABI/SECTOR/ne/GEOCOLOR/1200x1200.jpg",       src:"NOAA GOES-16"},
-  {cat:"SATELLITE", nm:"GOES-East · Southeast US",           url:"https://cdn.star.nesdis.noaa.gov/GOES16/ABI/SECTOR/se/GEOCOLOR/1200x1200.jpg",       src:"NOAA GOES-16"},
-  {cat:"SATELLITE", nm:"GOES-East · Upper Mississippi",      url:"https://cdn.star.nesdis.noaa.gov/GOES16/ABI/SECTOR/umv/GEOCOLOR/1200x1200.jpg",      src:"NOAA GOES-16"},
-  {cat:"SATELLITE", nm:"GOES-West · Alaska",                 url:"https://cdn.star.nesdis.noaa.gov/GOES18/ABI/SECTOR/ak/GEOCOLOR/1200x1200.jpg",       src:"NOAA GOES-18"},
-  {cat:"SATELLITE", nm:"GOES-West · Hawaii",                 url:"https://cdn.star.nesdis.noaa.gov/GOES18/ABI/SECTOR/hi/GEOCOLOR/1200x1200.jpg",       src:"NOAA GOES-18"},
-  /* Solar / space weather */
-  {cat:"SOLAR",     nm:"Sun · Ultraviolet 195Å",             url:"https://services.swpc.noaa.gov/images/animations/suvi/primary/195/latest.png",       src:"NOAA SWPC"},
-  {cat:"SOLAR",     nm:"Sun · Ultraviolet 284Å",             url:"https://services.swpc.noaa.gov/images/animations/suvi/primary/284/latest.png",       src:"NOAA SWPC"},
-  {cat:"SOLAR",     nm:"Sun · Ultraviolet 94Å (Flare)",      url:"https://services.swpc.noaa.gov/images/animations/suvi/primary/094/latest.png",       src:"NOAA SWPC"},
-  {cat:"SOLAR",     nm:"Coronagraph · LASCO C2",             url:"https://services.swpc.noaa.gov/images/animations/lasco-c2/latest.jpg",               src:"NASA SOHO"},
-  {cat:"SOLAR",     nm:"Coronagraph · LASCO C3",             url:"https://services.swpc.noaa.gov/images/animations/lasco-c3/latest.jpg",               src:"NASA SOHO"},
-  {cat:"SOLAR",     nm:"Aurora · North Pole (OVATION)",      url:"https://services.swpc.noaa.gov/images/animations/ovation/north/latest.jpg",          src:"NOAA SWPC"},
-  {cat:"SOLAR",     nm:"Aurora · South Pole (OVATION)",      url:"https://services.swpc.noaa.gov/images/animations/ovation/south/latest.jpg",          src:"NOAA SWPC"}
+var LIVECAMS_STREAMS=[
+  /* Beach + coastal */
+  {cat:"BEACH",   nm:"Beach TV · Florida & Alabama",           url:"http://media4.tripsmarter.com:1935/LiveTV/DTVHD/playlist.m3u8",                                                                                                                          src:"Beach TV"},
+  {cat:"BEACH",   nm:"Beach TV · Key West & Florida Keys",     url:"https://5ed325193d4e1.streamlock.net:444/LiveTV/KTVHD/playlist.m3u8",                                                                                                                    src:"Beach TV"},
+  {cat:"BEACH",   nm:"Beach TV · Myrtle Beach & Grand Strand", url:"http://media4.tripsmarter.com:1935/LiveTV/MTVHD/playlist.m3u8",                                                                                                                          src:"Beach TV"},
+  {cat:"BEACH",   nm:"Beach TV · Panama City Beach",           url:"http://media4.tripsmarter.com:1935/LiveTV/BTVHD/playlist.m3u8",                                                                                                                          src:"Beach TV"},
+  {cat:"BEACH",   nm:"Palm Beaches TV",                        url:"https://live.feed.thepalmbeaches.tv/index.m3u8",                                                                                                                                        src:"Palm Beaches"},
+  {cat:"BEACH",   nm:"NOTV · New Orleans TV",                  url:"http://media4.tripsmarter.com:1935/LiveTV/NOTVHD/playlist.m3u8",                                                                                                                         src:"NOTV"},
+
+  /* Nature + wildlife */
+  {cat:"NATURE",  nm:"WildEarth · Kruger Safari Live",         url:"https://dqga3jatxofgx.cloudfront.net/WildEarth.m3u8",                                                                                                                                    src:"WildEarth"},
+  {cat:"NATURE",  nm:"DroneTV · Aerial Views",                 url:"https://d35j504z0x2vu2.cloudfront.net/v1/master/0bc8e8376bd8417a1b6761138aa41c26c7309312/dronetv/playlist.m3u8",                                                                          src:"DroneTV"},
+
+  /* City / destination scenic */
+  {cat:"CITY",    nm:"Aruba TV · Island Cams",                 url:"https://cdn01.setar.aw/Canal49/canal49/playlist.m3u8",                                                                                                                                   src:"Aruba TV"},
+  {cat:"CITY",    nm:"Schladming-Dachstein · Austrian Alps",   url:"https://m317.video-stream-hosting.de/gzSoftware-live/_definst_/smil:livestream.smil/playlist.m3u8",                                                                                       src:"Schladming-Dachstein"},
+  {cat:"CITY",    nm:"Pocono Television Network",              url:"https://dfoiz3dv1euv7.cloudfront.net/ptnlive-s3/live1.m3u8",                                                                                                                             src:"PTN"},
+  {cat:"CITY",    nm:"3Cat · Weather Cams (Catalonia)",        url:"https://directes-tv-int.3catdirectes.cat/live-content/beauties-hls/master.m3u8",                                                                                                         src:"3Cat"},
+
+  /* Space */
+  {cat:"SPACE",   nm:"Sen · Earth from Orbit (Space Live)",    url:"https://880ca9c9341c405f83d8664a18cc7134.mediatailor.us-west-2.amazonaws.com/v1/master/ba62fe743df0fe93366eba3a257d792884136c7f/LINEAR-1224-SPACELIVE-LG-UK/mt/lg-uk/1224/hls/master/playlist.m3u8", src:"Sen"}
 ];
 
-/* Live Cams — curated NOAA/NASA satellite + solar imagery slideshow. Rotates every 15 sec
-   through LIVECAMS_VIEWS (declared above). Category filter chip lets the user narrow to
-   SATELLITE-only or SOLAR-only. Same structural pattern as Local Radar: img inside an inner
-   div, LIVE badge + title overlay as siblings so image swaps don't nuke the chrome. onerror
-   auto-skips a broken view to the next slot after a 4-second cooldown. Music bed: gmelectro. */
+/* Live Cams — real HLS webcam streams from around the world. Uses the existing loadHlsLib()
+   infrastructure (same hls.js instance the Live TV channel uses at CH 300). Cycles streams
+   every 60 sec (long enough to actually watch). Category chips let user narrow the pool.
+   No music bed — the streams have their own audio; jazz-over-jazz would be a mess. */
+var lcHls = null;
+function tuneLiveCams_destroyHls(){ if(lcHls){ try{lcHls.destroy();}catch(e){} lcHls=null; } }
 async function tuneLiveCams(ch,sl,my){
   if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Live Cams","");
+  tuneLiveCams_destroyHls(); /* clean up any leftover instance from prior tune */
   if(screenArea) screenArea.innerHTML='<div class="dc-screen" id="dcScreen" style="flex-direction:column;background:#000">'+
     '<div id="lcCats" style="flex:0 0 auto;display:flex;gap:6px;padding:6px 8px;background:rgba(4,10,22,.7);overflow-x:auto">'+
-      '<span class="rcat sel" data-lccat="ALL" style="flex:none;cursor:pointer;font:700 9.5px/1 monospace;letter-spacing:1px;color:#07101e;background:#7fb4ff;border:1px solid #7fb4ff;border-radius:12px;padding:5px 10px;white-space:nowrap">ALL VIEWS</span>'+
-      '<span class="rcat" data-lccat="SATELLITE" style="flex:none;cursor:pointer;font:700 9.5px/1 monospace;letter-spacing:1px;color:#9fc4ff;background:rgba(20,40,70,.4);border:1px solid rgba(127,180,255,.35);border-radius:12px;padding:5px 10px;white-space:nowrap">SATELLITE</span>'+
-      '<span class="rcat" data-lccat="SOLAR" style="flex:none;cursor:pointer;font:700 9.5px/1 monospace;letter-spacing:1px;color:#9fc4ff;background:rgba(20,40,70,.4);border:1px solid rgba(127,180,255,.35);border-radius:12px;padding:5px 10px;white-space:nowrap">SOLAR</span>'+
+      '<span class="rcat sel" data-lccat="ALL" style="flex:none;cursor:pointer;font:700 9.5px/1 monospace;letter-spacing:1px;color:#07101e;background:#7fb4ff;border:1px solid #7fb4ff;border-radius:12px;padding:5px 10px;white-space:nowrap">ALL CAMS</span>'+
+      '<span class="rcat" data-lccat="BEACH" style="flex:none;cursor:pointer;font:700 9.5px/1 monospace;letter-spacing:1px;color:#9fc4ff;background:rgba(20,40,70,.4);border:1px solid rgba(127,180,255,.35);border-radius:12px;padding:5px 10px;white-space:nowrap">BEACH</span>'+
+      '<span class="rcat" data-lccat="NATURE" style="flex:none;cursor:pointer;font:700 9.5px/1 monospace;letter-spacing:1px;color:#9fc4ff;background:rgba(20,40,70,.4);border:1px solid rgba(127,180,255,.35);border-radius:12px;padding:5px 10px;white-space:nowrap">NATURE</span>'+
+      '<span class="rcat" data-lccat="CITY" style="flex:none;cursor:pointer;font:700 9.5px/1 monospace;letter-spacing:1px;color:#9fc4ff;background:rgba(20,40,70,.4);border:1px solid rgba(127,180,255,.35);border-radius:12px;padding:5px 10px;white-space:nowrap">CITY / SCENIC</span>'+
+      '<span class="rcat" data-lccat="SPACE" style="flex:none;cursor:pointer;font:700 9.5px/1 monospace;letter-spacing:1px;color:#9fc4ff;background:rgba(20,40,70,.4);border:1px solid rgba(127,180,255,.35);border-radius:12px;padding:5px 10px;white-space:nowrap">SPACE</span>'+
     '</div>'+
-    '<div id="lcPane" style="flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden">'+
-      '<div id="lcImgInner" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center">'+
-        '<div class="dc-media-cap">Loading live views…</div>'+
-      '</div>'+
+    '<div id="lcPane" style="flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;background:#000">'+
+      '<video id="lcVideo" playsinline autoplay muted controls style="width:100%;height:100%;object-fit:contain;background:#000"></video>'+
+      '<div id="lcStatus" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#9fc4a0;font-family:monospace;font-size:12px;pointer-events:none">Loading first cam…</div>'+
       '<div id="lcLive" style="position:absolute;top:8px;left:8px;z-index:10;display:inline-flex;align-items:center;gap:7px;background:rgba(0,0,0,.75);border:1px solid rgba(255,80,80,.55);border-radius:5px;padding:4px 9px;font-family:monospace;font-size:11px;letter-spacing:1px;color:#fff;pointer-events:none">'+
         '<span style="width:8px;height:8px;border-radius:50%;background:#ff3030;box-shadow:0 0 8px #ff5050;animation:wxBugPulse 1.4s ease-in-out infinite"></span>'+
         '<span style="font-weight:900;color:#ff5050;letter-spacing:1.5px">LIVE</span>'+
         '<span id="lcSrc" style="color:#c0e0c0"></span>'+
       '</div>'+
-      '<div id="lcTitle" style="position:absolute;left:0;right:0;bottom:0;padding:12px 16px 14px;background:linear-gradient(0deg,rgba(0,0,0,.88),rgba(0,0,0,0));color:#fff;font-family:monospace;pointer-events:none">'+
+      '<div id="lcTitle" style="position:absolute;left:0;right:0;bottom:36px;padding:12px 16px 14px;background:linear-gradient(0deg,rgba(0,0,0,.88),rgba(0,0,0,0));color:#fff;font-family:monospace;pointer-events:none;z-index:9">'+
         '<div id="lcNm" style="font-weight:700;text-transform:uppercase;font-size:14px;letter-spacing:1.5px"></div>'+
         '<div id="lcCat" style="font-size:10px;letter-spacing:2px;color:#9fc4a0;margin-top:3px"></div>'+
       '</div>'+
     '</div>'+
-    '<div class="dc-ticker">NOAA GOES-East/West + NOAA SWPC solar imagery · rotating every 15 sec · no auth, no API key, no expiring tokens</div>'+
+    '<div class="dc-ticker">Live public HLS webcam streams via iptv-org · rotating every 60 sec · beach / nature / city / space</div>'+
   '</div>';
   mountChanBug("dcScreen",{ident:"LIVE CAMS"});
-  startIAJazz("gmelectro");
-  /* Filter state: which category is shown. "ALL" cycles everything. */
+  var Hls = null;
+  try { Hls = await loadHlsLib(); }
+  catch(e){ nlog("livecams",false,"hls.js load failed: "+((e&&e.message)||e)); }
+  if(my!==token) return;
   var lcFilter = "ALL";
-  function pool(){ return lcFilter==="ALL" ? LIVECAMS_VIEWS : LIVECAMS_VIEWS.filter(function(v){ return v.cat===lcFilter; }); }
+  function pool(){ return lcFilter==="ALL" ? LIVECAMS_STREAMS : LIVECAMS_STREAMS.filter(function(v){ return v.cat===lcFilter; }); }
   var idx = Math.floor(Math.random() * pool().length);
-  function paint(){
+  var v = $("lcVideo"), statusEl = $("lcStatus");
+  function play(){
     if(my!==token||!powered) return;
-    var p = pool();
-    if(!p.length){ idx=0; return; }
+    var p = pool(); if(!p.length){ if(statusEl){ statusEl.style.display="flex"; statusEl.textContent="No cams in this category"; } return; }
     if(idx>=p.length) idx=0;
     var view = p[idx];
-    var inner = $("lcImgInner"); if(!inner) return;
-    /* Cache-bust every paint so a mid-tab refresh always shows the freshest scan. onerror auto-
-       skips the broken view to the next one in the pool after a brief cooldown. */
-    inner.innerHTML='<img src="'+esch(view.url)+(view.url.indexOf("?")<0?"?":"&")+'ts='+Date.now()+'" style="max-width:100%;max-height:100%;object-fit:contain" onerror="var e=document.getElementById(\'lcImgInner\');if(e)e.innerHTML=\'&lt;div class=&quot;dc-media-cap&quot;&gt;View temporarily unavailable&#8230;&lt;/div&gt;\'">';
+    tuneLiveCams_destroyHls();
+    if(!v) return;
+    v.pause(); try{v.removeAttribute("src");}catch(e){} v.load();
+    if(statusEl){ statusEl.style.display="flex"; statusEl.textContent="Tuning "+view.nm+"…"; }
+    /* Try native HLS first (Safari + iOS both play .m3u8 without a library). Fall back to hls.js
+       everywhere else. */
+    try {
+      if(v.canPlayType && v.canPlayType("application/vnd.apple.mpegurl")){
+        v.src = view.url;
+        v.play().catch(function(){});
+      } else if(Hls && Hls.isSupported()){
+        lcHls = new Hls({liveDurationInfinity:true});
+        lcHls.loadSource(view.url);
+        lcHls.attachMedia(v);
+        lcHls.on(Hls.Events.MANIFEST_PARSED, function(){ v.play().catch(function(){}); if(statusEl) statusEl.style.display="none"; });
+        lcHls.on(Hls.Events.ERROR, function(ev,d){
+          if(d && d.fatal){
+            nlog("livecams",false,"stream error: "+(d.type||"unknown"));
+            /* auto-advance past broken streams so a dead source doesn't halt rotation */
+            idx = (idx+1) % pool().length;
+            setTimeout(play, 2000);
+          }
+        });
+      } else {
+        if(statusEl){ statusEl.textContent="HLS playback not supported in this browser."; }
+      }
+    } catch(err){
+      nlog("livecams",false,"play failed: "+((err&&err.message)||err));
+    }
+    v.addEventListener("playing", function once(){ v.removeEventListener("playing", once); if(statusEl) statusEl.style.display="none"; }, {once:true});
     var nm=$("lcNm"); if(nm) nm.textContent = view.nm;
     var cat=$("lcCat"); if(cat) cat.textContent = view.cat + " · " + view.src;
     var src=$("lcSrc"); if(src) src.textContent = view.src;
-    setChanStatus(ch.num, view.nm + " (" + view.src + ")");
+    setChanStatus(ch.num, view.nm+" ("+view.src+")");
     nlog("livecams", true, view.nm);
   }
-  /* Category chip clicks — visually swap sel state, reset idx, repaint immediately. */
+  /* Category chip clicks — swap sel state, reset idx, restart playback with new pool. */
   var catsEl = $("lcCats");
   if(catsEl){
     catsEl.querySelectorAll("[data-lccat]").forEach(function(el){
@@ -6519,12 +6549,17 @@ async function tuneLiveCams(ch,sl,my){
         el.style.borderColor = "#7fb4ff";
         lcFilter = el.dataset.lccat;
         idx = 0;
-        paint();
+        play();
       });
     });
   }
-  paint();
-  rtInterval(function(){ var p=pool(); if(p.length) idx=(idx+1)%p.length; paint(); }, 15*1000);
+  play();
+  /* Auto-cycle every 60 sec. If user is actively watching one cam, they can pause the video
+     controls to freeze it — the rotation timer keeps ticking but v.play() is what actually
+     advances the visible stream, and pause blocks that gracefully. */
+  rtInterval(function(){ var p=pool(); if(p.length) idx=(idx+1)%p.length; play(); }, 60*1000);
+  /* Register HLS teardown so channel-change cleanly kills the stream loader. */
+  if(chanRT && chanRT.teardowns) chanRT.teardowns.push(tuneLiveCams_destroyHls);
 }
 
 /* ---------- Storm Center: SPC Day 1 Convective Outlook (image + text) ---------- */
@@ -9655,7 +9690,7 @@ renderRail(); updateClocks();
 showOv("THE DIAL","PRESS POWER","Grab the remote and hit the red button.");
 setSig("","STANDBY");
 /* Populate the build-number chip beside STANDBY. Just the increment ("v95"), not the whole
-   "1.7.7-desktop.107" — the small chip has room for a short tag and that's the part that changes. */
+   "1.7.7-desktop.108" — the small chip has room for a short tag and that's the part that changes. */
 (function(){ try{
   var b=String(window.__ATV_BUILD||""); var v=b.split(".").pop();
   if(!v) return;

@@ -870,7 +870,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.113";
+window.__ATV_BUILD="1.7.7-desktop.114";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1403,7 +1403,6 @@ const CH=[
  {nm:"Roller Derby & Wrestling", num:218,cat:"DOC",gl:"rollerderby",era:[1955,1985], ns:"doc"}, /* vintage pro wrestling + roller derby */
  {nm:"Vintage Local News", num:219,cat:"DOC", gl:"localnews",   era:[1975,2005], ns:"doc"}, /* off-air affiliate newscasts */
  {nm:"Bob Ross & Comfort TV", num:220,cat:"DOC",gl:"comforttv", era:[1980,2010], ns:"doc"}, /* Joy of Painting + chore-doer TV */
- {nm:"Vintage Sports Broadcasts", num:221,cat:"DOC",gl:"vintagesports",era:[1950,1995], ns:"doc"}, /* archival game broadcasts, not shorts */
  {nm:"Space", num:407,             cat:"LDATA", source:"space",   ns:"tv"},
  {nm:"River & Lake Watch", num:408,cat:"LDATA", source:"river",   ns:"tv"},
  {nm:"On This Day", num:504,       cat:"RETRO", source:"onthisday",ns:"movie"},
@@ -1522,10 +1521,9 @@ const CHANNEL_META={
 "Kids Hour":{desc:"Sesame Street, Electric Company, Mister Rogers — the educational kids-TV era.",best:"weekday mornings",rel:["Classic Cartoons","Home Economics"]},
 "Cold War Cinema":{desc:"Civil defense, atomic-age propaganda, Duck and Cover — the government's own films 1948-1985.",best:"late night",rel:["Fallout Radio","Prelinger Vault"]},
 "Educational Filmstrip":{desc:"The classic classroom slide-and-narration format from the AV cart era.",best:"weekday afternoons",rel:["Prelinger Vault","Home Economics"]},
-"Roller Derby & Wrestling":{desc:"Vintage professional wrestling and roller derby broadcasts.",best:"weekends",rel:["Sports Vault","Vintage Sports Broadcasts"]},
+"Roller Derby & Wrestling":{desc:"Vintage professional wrestling and roller derby broadcasts.",best:"weekends",rel:["Sports Vault","Sports Center"]},
 "Vintage Local News":{desc:"Off-air affiliate newscasts from the 80s and 90s — WCBS, WNBC and friends.",best:"anytime",rel:["News, News, News","VHS Vault"]},
 "Bob Ross & Comfort TV":{desc:"Joy of Painting and other calm, quiet daytime programming.",best:"weekday afternoons",rel:["Public Domain Art","Nature Channel"]},
-"Vintage Sports Broadcasts":{desc:"Archival game broadcasts — baseball, football, Olympics from the 50s-90s.",best:"weekends",rel:["Sports Vault","Sports Center"]},
 "Space":{desc:"LIVE: space weather, ISS position, tonight's sky.",best:"nights",rel:["Space","Deep Space Jazz"]},
 "River & Lake Watch":{desc:"LIVE: every river gauge and lake level near you, with flood categories.",best:"storm season",rel:["Weather Watch","Tide & Marine"]},
 "On This Day":{desc:"LIVE: archival footage tied to today's date in history.",best:"mornings",rel:["News, News, News","Public Domain Day"]},
@@ -2047,20 +2045,9 @@ const PROGRAM = {
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
-  "Vintage Sports Broadcasts": {
-    /* Archival game broadcasts (full games, not shorts). Distinct from Sports Vault (which is
-       short sports films) and Roller Derby & Wrestling (which has its own niche). Denies
-       wrestling/roller-derby so there's no overlap with that channel. */
-    genre: "vintagesports", era: [1950, 1995],
-    providers: [
-      { collections: ["sports", "television"], require_subj: ["game broadcast", "sports broadcast", "baseball game", "football game", "basketball game", "olympics", "world series", "super bowl", "monday night football", "wide world of sports", "abc sports", "cbs sports", "nbc sports"] }
-    ],
-    deny: {
-      title: ["news"],
-      subject: ["news", "commercial", "youtube", "wrestling", "wwe", "wwf", "roller derby", "mma"]
-    },
-    subjRotate: true, subjRequired: true, noBlindFallback: true
-  },
+  /* Vintage Sports Broadcasts (ch 221) merged into Sports Vault (ch 16) — 2026-08-06.
+     Game-broadcast subjects (super bowl, monday night football, wide world of sports, abc/cbs/nbc
+     sports) folded into Sports Vault tier-1 above. */
 
   "The Drive-In": {
     /* Grindhouse / exploitation / B-movie features from the 1955-1975 drive-in era. Content pool
@@ -2438,7 +2425,7 @@ const PROGRAM = {
        User directive: ALL SPORTS included — WWE / UFC / MMA / wrestling denies REMOVED. */
     genre: "sportsvault", era: [1920, 2020],
     providers: [
-      { collections: ["vhssports", "sportstelevision"], require_subj: ["baseball", "football", "basketball", "hockey", "soccer", "boxing", "wrestling", "olympics", "world series", "super bowl", "monday night football", "wide world of sports", "NFL", "NBA", "MLB", "NHL", "college football", "college basketball", "world cup"] },
+      { collections: ["vhssports", "sportstelevision"], require_subj: ["baseball", "football", "basketball", "hockey", "soccer", "boxing", "wrestling", "olympics", "world series", "super bowl", "monday night football", "wide world of sports", "abc sports", "cbs sports", "nbc sports", "game broadcast", "sports broadcast", "baseball game", "football game", "basketball game", "NFL", "NBA", "MLB", "NHL", "college football", "college basketball", "world cup"] },
       { collections: ["sports"], require_subj: ["baseball", "football", "basketball", "hockey", "soccer", "boxing", "wrestling", "MMA", "UFC", "martial arts", "olympics", "tennis", "golf", "auto racing", "NASCAR", "F1", "cycling", "swimming", "track and field", "gymnastics", "skateboarding", "BMX", "surfing"] },
       { collections: ["auburnulibrary", "dickinsoncollegearchives"], require_subj: ["basketball", "football", "baseball", "college sports", "NCAA", "college athletics"] }
     ],

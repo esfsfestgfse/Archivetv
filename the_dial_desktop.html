@@ -242,12 +242,18 @@ body{
 .btn:active{transform:translateY(1px)}
 
 /* ============ GUIDE GRID ============ */
-.gwrap{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.8);padding:16px}
+/* Time Warner Cable 2000s-style TV GUIDE (redesigned 2026-08-07):
+   Deep navy background, cyan channel numbers, yellow highlight bar on the current channel,
+   condensed sans-serif typography, row-based layout instead of the card grid. */
+.gwrap{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;background:rgba(0,4,20,.85);padding:16px}
 .gwrap.show{display:flex}
 
-.gtop{background:linear-gradient(90deg,#15306a,#3a1f6a);color:#ffd34d;padding:11px 15px;
-  display:flex;justify-content:space-between;align-items:center;font-weight:bold;letter-spacing:2px;border-bottom:2px solid #ffd34d}
-.gtop .x{cursor:pointer;color:#fff;border:1px solid #ffd34d;border-radius:4px;padding:1px 9px}
+.gtop{background:linear-gradient(180deg,#1a3a8a 0%,#0a2a6a 40%,#04216a 100%);color:#ffcc00;
+  padding:12px 18px;display:flex;justify-content:space-between;align-items:center;
+  font:900 14px/1 "Arial Narrow","Helvetica Neue Condensed",Arial,sans-serif;
+  letter-spacing:3px;border-bottom:2px solid #ffcc00;text-shadow:0 1px 2px rgba(0,0,0,.5)}
+.gtop .x{cursor:pointer;color:#e8f0ff;border:1px solid #ffcc00;border-radius:3px;padding:2px 12px;background:rgba(0,0,0,.3);font-weight:700;letter-spacing:2px}
+.gtop .x:hover{background:#ffcc00;color:#04216a}
 
 /* ============ responsive ============ */
 @media (max-width:880px){
@@ -418,16 +424,37 @@ body.theme-silver .marq-wall,body.theme-silver .brandr{color:#16202a}
 html,body{height:100vh;overflow:hidden}
 
 
-.guide{width:100%;max-width:980px;max-height:86vh;display:flex;flex-direction:column;background:linear-gradient(180deg,#0a0f18,#0a0d0a);border:3px solid #2a4a8a;border-radius:12px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.7)}
-.guide .railhead{padding:10px 14px 0}
-.guide .catnav{display:flex;flex-wrap:wrap;gap:6px;padding:8px 14px 4px;overflow:visible}
-.guide .chlist{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;overflow-y:auto;
-  min-height:0;padding:10px 14px 16px;background:linear-gradient(180deg,#0d110d,#0a0d0a)}
-.chcell{appearance:none;font-family:inherit;position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:2px;
-  padding:9px 9px 8px 11px;border-radius:10px;border:1px solid #263126;border-left:4px solid var(--cat,#67ff86);
-  background:linear-gradient(180deg,#131a13,#0c100c);color:#cfe8d2;text-align:left;cursor:pointer}
-.chcell .cc-n{font-size:18px;font-weight:bold;color:#ffd98a;line-height:1}
-.chcell .cc-nm{font-size:10px;letter-spacing:.4px;color:#9ad6a8;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.guide{width:100%;max-width:1180px;max-height:88vh;display:flex;flex-direction:column;
+  background:linear-gradient(180deg,#04216a 0%,#02174a 50%,#010f36 100%);
+  border:3px solid #ffcc00;border-radius:4px;overflow:hidden;
+  box-shadow:0 24px 60px rgba(0,0,0,.85),inset 0 1px 0 rgba(255,255,255,.06);
+  font-family:"Arial Narrow","Helvetica Neue Condensed",Arial,sans-serif}
+.guide .railhead{padding:10px 14px 4px;color:#4dc8ff;letter-spacing:3px;font-weight:900;font-size:12px;background:rgba(0,0,0,.15);border-bottom:1px solid rgba(77,200,255,.2)}
+.guide .railhead button{font-size:10px;letter-spacing:2px;color:#ffcc00;background:transparent;border:1px solid #ffcc00;border-radius:3px;padding:4px 10px;font-weight:700}
+.guide .railhead button:hover{background:#ffcc00;color:#04216a}
+.guide .catnav{display:flex;flex-wrap:wrap;gap:5px;padding:8px 14px 6px;overflow:visible;background:rgba(0,0,0,.15);border-bottom:1px solid rgba(77,200,255,.15)}
+/* Row-based channel list — replaces the 5-column card grid. TWC 2000s always showed a scrolling
+   list of rows, not a wall of cards. */
+.guide .chlist{display:flex;flex-direction:column;gap:0;overflow-y:auto;min-height:0;padding:0;
+  background:linear-gradient(180deg,#02174a,#010f36);scrollbar-color:#4dc8ff #010f36}
+.guide .chlist::-webkit-scrollbar{width:12px;height:12px}
+.guide .chlist::-webkit-scrollbar-track{background:#010f36}
+.guide .chlist::-webkit-scrollbar-thumb{background:#4dc8ff;border-radius:0;border:2px solid #010f36}
+/* Row layout: [cat stripe | CH# | NAME | NOW PLAYING | fav] */
+.chcell{appearance:none;font-family:inherit;position:relative;display:grid;
+  grid-template-columns:6px 60px minmax(160px,220px) 1fr auto;gap:12px;align-items:center;
+  padding:10px 14px 10px 0;border:none;border-bottom:1px solid rgba(77,200,255,.10);
+  background:transparent;color:#e8f0ff;text-align:left;cursor:pointer;min-height:38px}
+.chcell::before{content:"";background:var(--cat,#67ff86);grid-column:1;align-self:stretch;box-shadow:0 0 6px var(--cat,#67ff86)}
+.chcell .cc-n{grid-column:2;font-size:26px;font-weight:900;color:#4dc8ff;line-height:1;letter-spacing:1px;text-align:center;text-shadow:0 0 6px rgba(77,200,255,.5);font-variant-numeric:tabular-nums}
+.chcell .cc-nm{grid-column:3;font-size:14px;font-weight:700;color:#e8f0ff;letter-spacing:.8px;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:uppercase}
+.chcell:hover{background:linear-gradient(90deg,rgba(77,200,255,.10),rgba(77,200,255,.02))}
+.chcell.on{background:linear-gradient(90deg,#ffcc00 0%,#e6b800 100%) !important;color:#04216a !important}
+.chcell.on .cc-n{color:#04216a !important;text-shadow:none !important}
+.chcell.on .cc-nm{color:#04216a !important;text-shadow:none !important}
+.chcell.on .cc-status{color:#02174a !important;text-shadow:none !important;font-weight:800 !important}
+.chcell.on .cc-f{color:#04216a !important}
+.chcell.on::before{background:#04216a !important;box-shadow:none !important}
 /* ---- ON TODAY compact schedule rows ----
    Real-device screenshot showed the first version burning ~90px per event, so only 7 of 363
    fit on screen. One line per event instead. */
@@ -495,21 +522,29 @@ html.mob .ot-detail{display:none}   /* phone: name + sport is enough, detail is 
    gives the list more height, so it must reserve the right edge explicitly or rows sit under
    the handle and steal its taps. */
 .tv2-list{flex:1 1 auto;min-height:60px;overflow-y:auto;margin-right:30px}
-.gsearch-wrap{position:relative;padding:0 14px 6px;flex:none}
-.gsearch{width:100%;box-sizing:border-box;padding:7px 28px 7px 10px;border-radius:8px;
+.gsearch-wrap{position:relative;padding:6px 14px;flex:none;background:rgba(0,0,0,.15)}
+.guide .gsearch{width:100%;box-sizing:border-box;padding:7px 28px 7px 10px;border-radius:3px;background:rgba(0,0,0,.35);color:#e8f0ff;border:1px solid rgba(77,200,255,.35);font:700 12px/1 "Arial Narrow","Helvetica Neue Condensed",Arial,sans-serif;letter-spacing:.5px}
+.guide .gsearch:focus{outline:none;border-color:#ffcc00;box-shadow:0 0 0 2px rgba(255,204,0,.2)}
+.guide .gsearch::placeholder{color:rgba(232,240,255,.4);letter-spacing:.5px}
+.guide .gsearch-x{color:#4dc8ff;opacity:.9}
+.gsearch-orig-keep{width:100%;box-sizing:border-box;padding:7px 28px 7px 10px;border-radius:8px;
   border:1px solid rgba(103,255,134,.35);background:rgba(6,18,10,.75);color:#d8ffe2;
   font:600 11px monospace;letter-spacing:.5px}
 .gsearch:focus{outline:none;border-color:rgba(103,255,134,.8)}
 .gsearch-x{position:absolute;right:22px;top:6px;cursor:pointer;color:#67ff86;opacity:.6;font-size:12px}
 html.mob .gsearch-wrap{padding:0 12px 6px}
-.chcell .cc-status{display:block;font-size:9px;color:#67ff86;opacity:.85;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
-.chcell .cc-f{position:absolute;top:5px;right:7px;color:#ffd34d;font-size:11px}
-.chcell.on{border-color:#ffb03a;box-shadow:inset 0 0 0 1px #ffb03a,0 0 14px rgba(255,176,58,.25);
+.chcell .cc-status{grid-column:4;display:block;font-size:12px;color:#ffcc00;font-weight:700;letter-spacing:.5px;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:0;text-transform:uppercase;text-shadow:0 0 4px rgba(255,204,0,.35)}
+.chcell .cc-f{grid-column:5;position:static;color:#ffcc00;font-size:14px;padding:0 8px}
+.chcell.on-old-unused{border-color:#ffb03a;box-shadow:inset 0 0 0 1px #ffb03a,0 0 14px rgba(255,176,58,.25);
   background:linear-gradient(180deg,#241d10,#141008)}
 .chcell:hover{border-color:#3a4a3a;background:linear-gradient(180deg,#182118,#0e130e)}
 .chcell.on:hover{border-color:#ffb03a}
 .chcell:active{transform:translateY(1px)}
-.chempty{grid-column:1/-1;color:#caa06a;font-size:12px;padding:12px}
+.chempty{grid-column:1/-1;color:#4dc8ff;font-size:13px;padding:24px;text-align:center;letter-spacing:1px;font-weight:700}
+/* TWC-style catnav chips inside .guide (override the generic .catchip amber theme) */
+.guide .catchip{background:rgba(0,0,0,.35);border:1px solid rgba(77,200,255,.35);color:#4dc8ff;border-radius:2px;font-weight:900;letter-spacing:1.5px}
+.guide .catchip:hover{background:rgba(77,200,255,.15);color:#e8f0ff;transform:none}
+.guide .catchip.act{background:#ffcc00;color:#04216a;border-color:#ffcc00;box-shadow:0 0 6px rgba(255,204,0,.5)}
 .catchip.act{background:rgba(255,255,255,.10);box-shadow:inset 0 0 0 1px currentColor}
 
 /* ============ v10: bigger picture · condensed remote ============ */
@@ -950,7 +985,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.121";
+window.__ATV_BUILD="1.7.7-desktop.122";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1131,8 +1166,15 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- guide grid modal -->
 <div class="gwrap" id="gwrap">
   <div class="guide">
-    <div class="gtop"><span>CHANNEL BANK</span><span><span id="gClock">--:--</span> &nbsp; <span class="x" id="gClose">CLOSE ✕</span></span></div>
-    <div class="railhead"><span id="railTitle">CHANNEL GUIDE</span>
+    <div class="gtop">
+      <span>▶ TV&nbsp;GUIDE</span>
+      <span style="display:flex;gap:16px;align-items:center;font-size:12px;letter-spacing:2px;color:#4dc8ff">
+        <span id="gDate" style="color:#e8f0ff">--</span>
+        <span id="gClock" style="color:#ffcc00">--:--</span>
+        <span class="x" id="gClose">CLOSE ✕</span>
+      </span>
+    </div>
+    <div class="railhead"><span id="railTitle">CHANNEL LINEUP</span>
       <button class="btn" id="favFilter">★ Favorites</button></div>
     <div class="gsearch-wrap"><input id="gSearch" class="gsearch" placeholder="search channels, categories\u2026" autocomplete="off"><span class="gsearch-x" id="gSearchX">\u2715</span></div>
     <div class="catnav" id="catNav"></div>
@@ -3516,7 +3558,8 @@ document.addEventListener("keydown",e=>{
 /* clocks — display only; programs change when a show ENDS, never mid-show */
 function two(x){return String(x).padStart(2,"0");}
 function updateClocks(){const d=new Date();const t=fmtClock(d);if(gClock)gClock.textContent=t;
-  if(wallClock)wallClock.textContent="THE DIAL · THE SET   —   "+t;updateClockBug(d);}
+  if(wallClock)wallClock.textContent="THE DIAL · THE SET   —   "+t;updateClockBug(d);
+  var gd=document.getElementById("gDate"); if(gd) gd.textContent=d.toLocaleDateString([],{weekday:"short",month:"short",day:"numeric"}).toUpperCase(); /* TWC guide header date field */}
 function startClock(){stopClock();clockTimer=setInterval(updateClocks,15000);}
 function stopClock(){if(clockTimer){clearInterval(clockTimer);clockTimer=null;}}
 

@@ -1,6 +1,7 @@
-/* v2: cache bump forces eviction of any 5xx/404 responses that leaked in before we added
-   the res.ok guard below. */
-const CACHE = "archive-tv-v2";
+/* v3 (2026-08-06): bumped from v2 to force eviction of any stale shells cached before we added
+   HTML meta cache-control tags. Old browsers with archive-tv-v2 caches will drop them on next
+   visit (activate handler deletes anything not matching CACHE). No behavior change beyond that. */
+const CACHE = "archive-tv-v3";
 const SHELL = ["the_dial_mobile.html", "manifest.json", "icon-192.png", "icon-512.png"];
 
 self.addEventListener("install", (e) => {

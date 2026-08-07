@@ -1050,7 +1050,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.155";
+window.__ATV_BUILD="1.7.7-mobile.156";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1536,6 +1536,7 @@ const CATNAME={NET:"NETWORKS",TOON:"CARTOONS",MOV:"MOVIES",TV:"TELEVISION",SPORT
 const CH=[
  {nm:"Sports Center", num:50,     cat:"SPORTS", source:"sports", ns:"tv"},
  {nm:"Hard Count", num:51,        cat:"SPORTS", gl:"nflfilms",   era:[1965,2010], ns:"doc"}, /* NFL Films golden age — Sabol / Facenda, gridiron poetry */
+ {nm:"The Octagon", num:52,       cat:"SPORTS", gl:"combat",     era:[1960,2020], ns:"doc"}, /* Combat sports — boxing, MMA, UFC classics, Ali/Frazier era */
  {nm:"Channel 2 Network", num:2, cat:"NET", profile:"network", era:[1950,1969], ns:"movie"},
  {nm:"Nite-Owl 3", num:3,        cat:"NET", profile:"network", era:[1935,1955], ns:"movie"},
 
@@ -1593,6 +1594,7 @@ const CH=[
  {nm:"World Cinema", num:106,      cat:"MOV", gl:"worldcinema",era:[1930,1970], ns:"movie"},
  {nm:"Public Access TV", num:15,  cat:"TV",  gl:"publicaccess",era:[1975,2005], ns:"doc"},
  {nm:"Sports Vault", num:16,      cat:"TV",  gl:"sportsvault", era:[1930,1995], ns:"doc"},
+ {nm:"The Up-All-Night", num:17, cat:"TV",  gl:"latenight",   era:[1962,2005], ns:"tv"}, /* Late-night talk-show clips — Cavett, Snyder, Merv Griffin, Mike Douglas, Carson, Letterman */
  {nm:"Sunday Service", num:205,    cat:"DOC", gl:"faith",       era:[1940,1985], ns:"doc"},
  {nm:"VHS Vault", num:502,         cat:"RETRO",gl:"vhsvault",    era:[1980,1999], ns:"movie"},
  {nm:"Silent Cinema", num:107,     cat:"MOV", gl:"silentcinema", era:[1905,1929], ns:"movie"},
@@ -1605,10 +1607,12 @@ const CH=[
  {nm:"The 36th Chamber", num:114, cat:"MOV", gl:"kungfu",      era:[1965,2000], ns:"movie"}, /* Shaw Brothers / Golden Harvest / chopsocky kung fu theater */
  {nm:"Monster Island", num:115,   cat:"MOV", gl:"kaiju",       era:[1954,1995], ns:"movie"}, /* Godzilla, Gamera, Toho — Japanese giant-monster cinema */
  {nm:"Blaxploitation", num:116,   cat:"MOV", gl:"blaxploit",   era:[1970,1979], ns:"movie"}, /* 70s Black action cinema — Shaft, Foxy Brown, Superfly, Coffy, Cleopatra Jones */
+ {nm:"The Festival Circuit", num:117, cat:"MOV", gl:"indiefilm", era:[1980,2015], ns:"movie"}, /* Sundance-adjacent indie features + short films from 80s-00s */
  {nm:"Modern Cartoons", num:153,   cat:"TOON",gl:"cartoonmodern",era:[1970,2001], ns:"toon"},
  {nm:"Cop Show Classic", num:154,  cat:"RETRO", gl:"copshow",    era:[1950,1985], ns:"movie"}, /* police procedurals + detective shows */
  {nm:"Adult Animation", num:155,   cat:"TOON", gl:"adultanim",   era:[1970,2010], ns:"toon"}, /* Bakshi/Heavy Metal/Liquid TV + adult TV animation */
  {nm:"Kids Hour", num:156,         cat:"TOON", gl:"kidshour",    era:[1965,2000], ns:"toon"}, /* Sesame Street / Electric Company / Mister Rogers era */
+ {nm:"After School", num:157,      cat:"TOON", gl:"kids2000",    era:[1995,2010], ns:"toon"}, /* Nick / Cartoon Network / Disney Channel late 90s + early 2000s */
  {nm:"Home Movies & Travelogues", num:206,cat:"DOC",gl:"homemovietravel",era:[1935,1985], ns:"doc"},
  {nm:"Auto Racing", num:207,       cat:"DOC", gl:"autoracing",  era:[1930,1995], ns:"doc"},
  {nm:"Railroad", num:208,          cat:"DOC", gl:"railroad",    era:[1930,1990], ns:"doc"},
@@ -1637,6 +1641,8 @@ const CH=[
  {nm:"The Cipher", num:223,       cat:"DOC", gl:"hiphopvault", era:[1978,2010], ns:"doc"}, /* Hip-hop history — Yo! MTV Raps era, rap docs, freestyle circles, breaking */
  {nm:"Eyes on the Prize", num:224,cat:"DOC", gl:"civilrights", era:[1955,2000], ns:"doc"}, /* Civil rights movement documentaries + speeches + MLK/Malcolm X archives */
  {nm:"Uptown Comedy", num:225,    cat:"DOC", gl:"blackcomedy", era:[1970,2020], ns:"doc"}, /* Def Comedy Jam era + Black stand-up + sketch — Pryor, Rock, Chappelle, Def Jam */
+ {nm:"The Documentary Hour", num:226, cat:"DOC", gl:"pbsdocs",  era:[1970,2020], ns:"doc"}, /* PBS-style — Ken Burns, Frontline, Nova, American Experience, POV */
+ {nm:"Gear Head", num:227,        cat:"DOC", gl:"topgear",     era:[1990,2020], ns:"doc"}, /* Top Gear-like — car reviews, road tests, restoration, automotive culture */
  {nm:"Space", num:407,             cat:"LDATA", source:"space",   ns:"tv"},
  {nm:"River & Lake Watch", num:408,cat:"LDATA", source:"river",   ns:"tv"},
  {nm:"On This Day", num:504,       cat:"RETRO", source:"onthisday",ns:"movie"},
@@ -1666,6 +1672,7 @@ const CH=[
  {nm:"The Hearth", num:703,       cat:"HOL", gl:"yulelog",     era:[1900,2025], ns:"tv"}, /* Yule log fireplace loop with vintage Christmas music bed */
  {nm:"Test Pattern", num:506,      cat:"RETRO", source:"static", ns:"space"},
  {nm:"The Long Shot", num:507,     cat:"RETRO", gl:"slowtv",    era:[2000,2025], ns:"tv"}, /* Slow TV — NRK-style long-form: train rides, sunsets, ferry crossings, waterfalls */
+ {nm:"Infomercial Insomnia", num:508, cat:"RETRO", gl:"infomercial", era:[1985,2010], ns:"tv"}, /* Late-night 90s infomercials — Ronco, Popeil, Ginsu, Ab Roller, Time-Life sets */
 ];
 /* QA FIX (from Programmed Channels 2.0 audit, Phase 1): channel numbers used to be computed by
    the array's own order via a seen[c.cat] counter -- meaning if any two channels in the same
@@ -1796,7 +1803,14 @@ const CHANNEL_META={
 "Eyes on the Prize":{desc:"Civil rights movement — MLK & Malcolm X speeches, march footage, freedom rider docs, SNCC / Black Panthers / SCLC archives.",best:"anytime",rel:["News, News, News","Cold War Cinema"]},
 "Uptown Comedy":{desc:"Def Comedy Jam, Def Poetry, In Living Color, Chris Rock Show, Pryor / Rock / Chappelle / Kings of Comedy. The greats.",best:"nights",rel:["Mic Night","Joke Joint"]},
 "Soul Train Vault":{desc:"Don Cornelius era R&B / funk / disco / soul performances — Motown, Stax, James Brown, Sly, Parliament, EWF.",best:"Saturday afternoons",rel:["Funk & Soul","The Cipher"]},
-"The Jazz Masters":{desc:"Duke Ellington, Louis Armstrong, Miles Davis, Coltrane, Basie, Monk, Bird, Billie, Ella. Jazz giants specifically.",best:"evenings",rel:["Jazz","Swing & Big Band"]}
+"The Jazz Masters":{desc:"Duke Ellington, Louis Armstrong, Miles Davis, Coltrane, Basie, Monk, Bird, Billie, Ella. Jazz giants specifically.",best:"evenings",rel:["Jazz","Swing & Big Band"]},
+"The Octagon":{desc:"Combat sports classics — boxing, MMA, UFC, kickboxing. Ali, Frazier, Tyson, PRIDE FC era.",best:"Saturday nights",rel:["Sports Vault","Roller Derby & Wrestling"]},
+"The Up-All-Night":{desc:"Late-night talk shows — Cavett, Snyder, Merv Griffin, Mike Douglas, Carson, Letterman. Guest interviews from the golden age.",best:"late night",rel:["Classic Rerun TV","Modern Rerun TV"]},
+"The Festival Circuit":{desc:"Indie cinema — Sundance / SXSW / Tribeca-adjacent features and shorts from the 80s through the 00s.",best:"evenings",rel:["World Cinema","Found Footage Static"]},
+"After School":{desc:"Nick / Cartoon Network / Disney Channel / Kids' WB era — Toonami, Nicktoons, TGIF, late-90s and early-2000s kids TV.",best:"weekdays 3-5 PM",rel:["Modern Cartoons","Kids Hour"]},
+"The Documentary Hour":{desc:"PBS-style — Ken Burns, Frontline, Nova, American Experience, POV, Nat Geo. Long-form documentary programming.",best:"Sunday nights",rel:["Nature Channel","Eyes on the Prize"]},
+"Gear Head":{desc:"Top Gear-style — car reviews, road tests, restoration shows, hot-rod culture, Jay Leno's Garage, MotorWeek. Not racing — cars.",best:"weekends",rel:["Auto Racing","Manufacturing Marvels"]},
+"Infomercial Insomnia":{desc:"Late-night 90s/00s infomercials — Ronco, Popeil, Ginsu, Ab Roller, Bowflex, Billy Mays, Time-Life sets.",best:"3 AM insomnia",rel:["Vintage Commercials","VHS Vault"]}
 };
 
 
@@ -2629,16 +2643,128 @@ const PROGRAM = {
   },
 
   "Auto Racing": {
-    /* AUDIT 2026-08-06: same NASCAR 1990 Goodwrench 500 played 4x in a row — pool too thin.
-       Added opensource_movies + feature_films_unsorted + ontariocitylibrary (which has vintage
-       race footage), widened terms to include vintage F1, Le Mans, sprint cars, Indy 500. */
-    genre: "autoracing", era: [1930, 2000],
+    /* AUDIT 2026-08-07: user wants ALL racing (rally, WRC, ARCA, truck racing, sprint,
+       dirt, motocross, supercross, IMSA, Le Mans, Formula E, IndyCar). Pool expanded
+       accordingly — 1,020 items match broader racing subjects in opensource_movies. */
+    genre: "autoracing", era: [1930, 2025],
     providers: [
-      { collections: ["prelinger", "FedFlix"], require_subj: ["auto racing", "automobile racing", "car racing", "motor racing", "hot rod", "sports car racing", "stock car"] },
-      { collections: ["opensource_movies", "feature_films_unsorted"], require_subj: ["auto racing", "car racing", "motor racing", "NASCAR", "Indianapolis 500", "Indy 500", "Formula One", "F1", "Grand Prix", "Le Mans", "drag racing", "stock car", "sprint car"] },
+      { collections: ["opensource_movies"], require_subj: ["NASCAR", "ARCA", "IndyCar", "Indianapolis 500", "Indy 500", "Formula One", "F1", "F2", "F3", "Formula E", "Grand Prix", "Le Mans", "IMSA", "sports car racing", "endurance racing"] },
+      { collections: ["opensource_movies"], require_subj: ["rally", "WRC", "world rally championship", "rallycross", "dakar", "baja", "off-road racing"] },
+      { collections: ["opensource_movies"], require_subj: ["truck racing", "NASCAR truck series", "camping world truck", "supercross", "motocross", "AMA supercross", "monster jam", "monster truck"] },
+      { collections: ["opensource_movies", "feature_films_unsorted"], require_subj: ["dirt track", "sprint car", "midget racing", "drag racing", "top fuel", "funny car", "kart racing", "karting"] },
+      { collections: ["prelinger", "FedFlix"], require_subj: ["auto racing", "automobile racing", "car racing", "motor racing", "hot rod", "stock car"] },
       { collections: ["ontariocitylibrary", "opensource_movies"], require_subj: ["motor racing", "Ontario Motor Speedway", "stock car racing", "sports cars"] }
     ],
     deny: {"title": ["home movie", "family film", "comedy", "cartoon"], "subject": ["home movie", "family", "comedy", "cartoon", "animated", "children"]},
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  /* The Octagon (ch 52, new 2026-08-07). Combat sports classics — boxing, MMA, UFC, wrestling
+     (kept separate from Roller Derby & Wrestling which is pro wrestling). Ali/Frazier era.
+     Pool: 1,386 boxing/UFC/MMA items in opensource_movies. */
+  "The Octagon": {
+    genre: "combat", era: [1960, 2025],
+    providers: [
+      { collections: ["opensource_movies", "sports"], require_subj: ["boxing", "boxing match", "UFC", "MMA", "mixed martial arts", "muhammad ali", "mike tyson", "ali vs frazier", "heavyweight championship", "welterweight", "middleweight"] },
+      { collections: ["sportstelevision", "opensource_movies"], require_subj: ["boxing documentary", "UFC event", "PRIDE FC", "K-1", "kickboxing", "muay thai"] }
+    ],
+    deny: {
+      title: ["news", "commercial", "trailer", "cartoon"],
+      subject: ["news", "commercial", "cartoon", "animated", "youtube vlog", "sports talk"]
+    },
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  /* The Up-All-Night (ch 17, new 2026-08-07). Late-night talk-show clips — Cavett, Snyder,
+     Merv Griffin, Mike Douglas, Carson, Letterman. Pool: 64 direct + 130 classic_tv + 807
+     talk-show subjects in opensource_movies. */
+  "The Up-All-Night": {
+    genre: "latenight", era: [1962, 2005],
+    providers: [
+      { collections: ["opensource_movies"], require_subj: ["dick cavett", "mike douglas", "merv griffin", "tom snyder", "johnny carson", "david letterman", "late night talk show", "talk show", "the tonight show", "tomorrow show"] },
+      { collections: ["classic_tv", "classic_tv_1960s", "classic_tv_1970s", "classic_tv_1980s"], require_subj: ["cavett", "merv", "mike douglas", "carson", "letterman", "late night", "talk show", "variety"] }
+    ],
+    deny: {
+      title: ["news", "commercial", "cartoon", "sports"],
+      subject: ["news", "commercial", "cartoon", "children", "sports talk", "sitcom"]
+    },
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  /* The Festival Circuit (ch 117, new 2026-08-07). Indie films — Sundance-adjacent 80s-00s
+     features + short films. Pool: 1,329 indie-tagged items. */
+  "The Festival Circuit": {
+    genre: "indiefilm", era: [1980, 2015],
+    providers: [
+      { collections: ["opensource_movies", "feature_films"], require_subj: ["indie film", "independent film", "sundance", "indie cinema", "independent cinema", "short film", "art film", "film festival"] },
+      { collections: ["feature_films_unsorted"], require_subj: ["indie", "independent film", "sundance", "SXSW", "tribeca", "festival"] }
+    ],
+    deny: {
+      title: ["trailer", "news", "commercial", "cartoon"],
+      subject: ["trailer", "news", "commercial", "cartoon", "children", "training film"]
+    },
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  /* After School (ch 157, new 2026-08-07). Kids TV late-90s / early-00s — Nick, Cartoon
+     Network, Disney Channel, Kids' WB era. Pool: 10,761 broad items — will need tight
+     filtering to avoid modern uploads. */
+  "After School": {
+    genre: "kids2000", era: [1995, 2010],
+    providers: [
+      { collections: ["classic_tv_1990s", "classic_tv_2000s"], require_subj: ["nickelodeon", "cartoon network", "disney channel", "kids' WB", "kids WB", "toonami", "nicktoons", "TGIF"] },
+      { collections: ["opensource_movies"], require_subj: ["nickelodeon", "cartoon network", "disney channel", "toonami", "nicktoons", "reboot", "power rangers", "hey arnold", "rugrats", "ren and stimpy"] }
+    ],
+    deny: {
+      title: ["news", "commercial", "trailer", "adult"],
+      subject: ["news", "commercial", "advertising", "adult", "youtube short", "vlog"]
+    },
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  /* The Documentary Hour (ch 226, new 2026-08-07). PBS-style — Ken Burns, Frontline, Nova,
+     American Experience, POV, National Geographic. Pool: 8,337 PBS-adjacent items. */
+  "The Documentary Hour": {
+    genre: "pbsdocs", era: [1970, 2020],
+    providers: [
+      { collections: ["opensource_movies"], require_subj: ["PBS", "ken burns", "frontline", "nova", "american experience", "POV", "P.O.V.", "national geographic", "documentary", "public broadcasting"] },
+      { collections: ["news_and_journalism", "opensource_movies"], require_subj: ["PBS", "documentary film", "public broadcasting", "historical documentary"] }
+    ],
+    deny: {
+      title: ["trailer", "commercial", "news broadcast"],
+      subject: ["trailer", "commercial", "advertising", "cartoon", "children", "sitcom", "news broadcast"]
+    },
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  /* Gear Head (ch 227, new 2026-08-07). Top Gear-like — car reviews, road tests, restoration
+     shows, automotive journalism, hot-rod culture. Distinct from Auto Racing (competitive).
+     Pool: 350 items matching top gear / car review / motor trend / automotive subjects. */
+  "Gear Head": {
+    genre: "topgear", era: [1990, 2020],
+    providers: [
+      { collections: ["opensource_movies"], require_subj: ["top gear", "car review", "motor trend", "automotive", "car documentary", "road test", "car restoration", "hot rod", "muscle car", "classic car"] },
+      { collections: ["opensource_movies"], require_subj: ["clarkson", "hammond", "may", "jay leno's garage", "motorweek", "car and driver", "chasing classic cars"] }
+    ],
+    deny: {
+      title: ["trailer", "news", "commercial", "racing"],
+      subject: ["trailer", "news", "commercial", "cartoon", "sports talk", "children"]
+    },
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  /* Infomercial Insomnia (ch 508, new 2026-08-07). Late-night 90s/00s infomercials — Ronco,
+     Popeil, Ginsu, Ab Roller, Time-Life sets, get-rich-quick pitches, Bowflex. Pool: 123. */
+  "Infomercial Insomnia": {
+    genre: "infomercial", era: [1985, 2010],
+    providers: [
+      { collections: ["opensource_movies", "vhscommercials"], require_subj: ["infomercial", "as seen on TV", "ronco", "popeil", "ginsu", "ab roller", "bowflex", "time-life", "george foreman grill", "billy mays", "sham wow"] },
+      { collections: ["classic_tv_commercials", "opensource_movies"], require_subj: ["infomercial", "late night TV", "as seen on TV", "product demonstration"] }
+    ],
+    deny: {
+      title: ["trailer", "news", "cartoon"],
+      subject: ["trailer", "news", "cartoon", "children", "sitcom"]
+    },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
@@ -8007,75 +8133,132 @@ var quakeTimer=null;
 var gasTimer=null;
 var AISSTREAM_KEY="0b62b63d69be3fdb7dfe2d039bd1eb1f8eccd0ca";
 var shipSocket=null, shipList={};
+/* Ship Tracker rebuilt 2026-08-07: Gulf-of-Mexico map on the left, live vessel list on the
+   right, connection-status pill at the top-right. Ships plot as blips on the map using the
+   same ensureMap() infrastructure as Air Traffic / Seismic. Clear visible status: green
+   when messages are flowing, amber when connected-but-empty, red when the feed appears down.
+   Prior version rendered only a text list \u2014 user's screenshot showed "no ships whatsoever"
+   with no way to tell whether it was an ocean-empty situation or a data-source failure. */
 async function tuneShips(ch,sl,my){
   if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Ship Tracker","");
-  if(screenArea) screenArea.innerHTML='<div class="dc-screen" id="dcScreen">'+
-    '<div class="dc-media show" id="shipMedia" style="flex:1 1 40%;height:auto;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px">'+
-      '<div id="shipBig" style="font:800 clamp(28px,6.5vw,48px)/1 monospace;color:var(--phos)">--</div>'+
-      '<div style="font-size:12px;color:#9fd6a6">vessels in the Gulf of Mexico</div>'+
-      '<div style="font-size:10px;color:#9fd6a6;opacity:.7;letter-spacing:1px">GALVESTON \u00b7 HOUSTON \u00b7 CORPUS CHRISTI \u00b7 PORT ARTHUR \u00b7 FREEPORT</div>'+
+  if(screenArea) screenArea.innerHTML='<style>#shipRoot .ship-blip{position:absolute;width:6px;height:6px;border-radius:50%;background:var(--phos);box-shadow:0 0 5px var(--phos);pointer-events:none;transition:left .6s linear,top .6s linear,opacity .6s;margin:-3px 0 0 -3px} #shipRoot .ship-blip.fast{background:#ffd34d;box-shadow:0 0 6px #ffd34d;width:7px;height:7px;margin:-3.5px 0 0 -3.5px} #shipRoot .ship-blip.slow{background:#7fb4ff;box-shadow:0 0 4px #7fb4ff} #shipRoot .ship-blip.anchor{background:#888;box-shadow:0 0 3px #888;opacity:.7} #shipRoot .status-pill{display:inline-flex;align-items:center;gap:6px;font:700 10px monospace;letter-spacing:1px;padding:3px 8px;border-radius:10px;border:1px solid} .st-connecting{color:#9fd6a6;border-color:rgba(159,214,166,.4);background:rgba(0,0,0,.35)} .st-waiting{color:#ffd34d;border-color:rgba(255,211,77,.5);background:rgba(80,60,0,.35)} .st-live{color:#67ff86;border-color:rgba(103,255,134,.5);background:rgba(0,40,15,.35)} .st-down{color:#ff5c4d;border-color:rgba(255,92,77,.5);background:rgba(60,10,10,.35)} .st-dot{width:6px;height:6px;border-radius:50%;background:currentColor;box-shadow:0 0 5px currentColor;animation:wxBugPulse 1.4s ease-in-out infinite}</style>'+
+    '<div id="shipRoot" style="width:100%;height:100%;display:grid;grid-template-columns:minmax(0,60%) minmax(0,40%);grid-template-rows:1fr auto;gap:6px;padding:6px;box-sizing:border-box;background:radial-gradient(120% 80% at 50% 0%,#04140a,#020a06 70%);color:var(--phos);font-family:monospace;overflow:hidden">'+
+    '<div style="grid-column:1;grid-row:1/span 2;display:flex;align-items:center;justify-content:center;min-height:0;min-width:0;background:#000;border-radius:6px;overflow:hidden;position:relative">'+
+      '<div id="shipMap" style="width:100%;height:100%;position:relative;background:#0a1928">'+
+        '<div style="position:absolute;bottom:6px;left:8px;font:700 9px monospace;letter-spacing:1.5px;color:#9fc4ff;background:rgba(0,0,0,.6);padding:3px 8px;border-radius:3px;pointer-events:none;z-index:20">GULF OF MEXICO \u00b7 AIS LIVE</div>'+
+      '</div>'+
     '</div>'+
-    '<div class="dc-body" id="dcBody" style="flex:0 1 60%;justify-content:flex-start;gap:4px;overflow:hidden">'+
-      '<div class="dc-top"><span id="shipHead">SHIP TRACKER \u2014 TX GULF PORTS</span></div>'+
-      '<div class="dc-sub" id="shipSub">Connecting to AIS stream\u2026</div>'+
-      '<div class="dc-list" id="dcList" style="margin-bottom:30px"></div>'+
-      '<div class="dc-ticker" id="shipTicker">aisstream.io \u00b7 live AIS vessel positions in the Gulf</div>'+
-    '</div></div>';
-  var shipBug=mountChanBug("dcScreen",{ident:"SHIP TRACKER \u00b7 GULF"});
+    '<div style="grid-column:2;grid-row:1;display:flex;flex-direction:column;min-height:0;background:rgba(3,10,6,.55);border:1px solid rgba(103,255,134,.15);border-radius:6px;overflow:hidden">'+
+      '<div style="flex:none;padding:6px 8px;background:linear-gradient(180deg,rgba(103,255,134,.10),transparent);border-bottom:1px solid rgba(103,255,134,.15);display:flex;align-items:center;gap:8px">'+
+        '<span style="font:700 11px monospace;letter-spacing:1.5px">SHIP TRACKER \u00b7 GULF</span>'+
+        '<span id="shipStatus" class="status-pill st-connecting" style="margin-left:auto"><span class="st-dot"></span><span id="shipStatusTxt">connecting\u2026</span></span>'+
+      '</div>'+
+      '<div id="shipList" style="flex:1;overflow-y:auto;padding:4px 6px">Waiting for AIS feed\u2026</div>'+
+    '</div>'+
+    '<div style="grid-column:2;grid-row:2;padding:5px 8px;font:700 9px monospace;letter-spacing:1.2px;color:#9fd6a6;border-top:1px solid rgba(103,255,134,.10);background:rgba(0,0,0,.25);text-align:center" id="shipTicker">aisstream.io \u00b7 live AIS positions \u00b7 GALVESTON \u00b7 HOUSTON \u00b7 CORPUS CHRISTI \u00b7 PORT ARTHUR \u00b7 FREEPORT</div>'+
+  '</div>';
+  var shipBug=mountChanBug("shipRoot",{ident:"SHIP TRACKER \u00b7 GULF"});
   if(shipSocket){ try{shipSocket.close();}catch(e){} shipSocket=null; }
   shipList={};
-  var msgCount=0, firstMsgAt=null, dirty=false;
-  function render(){
-    var listEl=$("dcList"); if(!listEl)return;
-    var arr=Object.keys(shipList).map(function(k){return shipList[k];})
-      .sort(function(a,b){return b.ts-a.ts;}).slice(0,20);
-    var bigEl=$("shipBig"); if(bigEl)bigEl.textContent=msgCount>999?(Math.round(msgCount/1000)+"k"):msgCount;
-    setChanStatus(ch.num,msgCount+" vessels in the Gulf");
-    if(shipBug) shipBug.update(String(msgCount>999?(Math.round(msgCount/1000)+"k"):msgCount),
-      arr[0]?((arr[0].name||("MMSI "+arr[0].mmsi))+" \u00b7 "+(arr[0].sog!=null?Math.round(arr[0].sog)+"kn":"tracking")):"vessels in the Gulf");
-    listEl.innerHTML=arr.length?arr.map(function(s){
-      return '<div class="dc-row2"><div class="dc-row2-main"><span class="dc-place">'+esch(s.name||("MMSI "+s.mmsi))+'</span>'+
-        '<span class="dc-when">'+(s.sog!=null?Math.round(s.sog)+" kn":"")+'</span></div></div>';
-    }).join(""):'<div class="pop-empty">Listening\u2026 vessels will start appearing within a few seconds.</div>';
+  var msgCount=0, firstMsgAt=null, lastMsgAt=null, dirty=false;
+  /* Gulf-centered map. Center ~27\u00b0N -89\u00b0W = middle of Gulf. Range 700mi covers Brownsville
+     to Key West with room for outer shipping lanes. */
+  var mp=null;
+  function ensureShipMap(){
+    var box=$("shipMap"); if(!box||mp)return;
+    /* wait for layout: ensureMap needs a non-zero container size to compute scale */
+    if(!box.clientWidth||!box.clientHeight){ setTimeout(ensureShipMap,120); return; }
+    mp=ensureMap(box,27.5,-89.0,700,"dkblue");
+    var blips=box.querySelector(".ship-blips");
+    if(!blips){ blips=document.createElement("div"); blips.className="map-dyn ship-blips"; box.appendChild(blips); }
   }
-  /* QA FIX: a world-scale AIS feed runs ~300 messages/sec per aisstream.io's own documentation.
-     Re-rendering the DOM on every single message (the old "near you" behavior, fine at that low
-     volume) would hammer the browser's main thread at world scale and risk aisstream.io dropping
-     the connection if the read queue backs up while JS is busy re-painting. Messages now just
-     update the in-memory registry; a slow interval handles the actual rendering. */
+  function paint(){
+    var box=$("shipMap"); if(!box||!mp)return;
+    var blips=box.querySelector(".ship-blips"); if(!blips)return;
+    Object.keys(shipList).forEach(function(mmsi){
+      var s=shipList[mmsi];
+      if(s.lat==null||s.lon==null)return;
+      var xy=mp.project(s.lat,s.lon); if(!xy)return;
+      if(!s._el){
+        s._el=document.createElement("div");
+        var cls="ship-blip";
+        var sog=s.sog!=null?s.sog:0;
+        if(sog<0.5) cls+=" anchor"; else if(sog>15) cls+=" fast"; else if(sog>=5) cls+=""; else cls+=" slow";
+        s._el.className=cls;
+        s._el.title=(s.name||("MMSI "+mmsi))+(s.sog!=null?" \u00b7 "+Math.round(s.sog)+" kn":"");
+        blips.appendChild(s._el);
+      }
+      s._el.style.left="calc(50% + "+xy.x.toFixed(1)+"px)";
+      s._el.style.top="calc(50% + "+xy.y.toFixed(1)+"px)";
+    });
+  }
+  function statusPill(cls,txt){
+    var pill=$("shipStatus"), t=$("shipStatusTxt");
+    if(pill) pill.className="status-pill "+cls;
+    if(t) t.textContent=txt;
+  }
+  function renderList(){
+    var listEl=$("shipList"); if(!listEl)return;
+    var arr=Object.keys(shipList).map(function(k){return shipList[k];})
+      .filter(function(s){return s.lat!=null||s.name;})
+      .sort(function(a,b){return b.ts-a.ts;});
+    setChanStatus(ch.num,arr.length+" vessels \u00b7 "+msgCount+" msgs");
+    if(shipBug) shipBug.update(String(arr.length),
+      arr[0]?((arr[0].name||("MMSI "+arr[0].mmsi))+" \u00b7 "+(arr[0].sog!=null?Math.round(arr[0].sog)+"kn":"tracking")):"vessels in the Gulf");
+    var top=arr.slice(0,20);
+    if(!top.length){ listEl.innerHTML='<div style="padding:12px;text-align:center;color:#9fd6a6;font-size:11px;line-height:1.5">Waiting for AIS traffic\u2026<br><span style="opacity:.7;font-size:10px">Vessels appear here as they broadcast position reports.</span></div>'; return; }
+    listEl.innerHTML=top.map(function(s){
+      var sog=s.sog!=null?s.sog:0;
+      var col=sog<0.5?"#888":sog>15?"#ffd34d":sog>=5?"#67ff86":"#7fb4ff";
+      var lbl=sog<0.5?"ANCHOR":sog>15?"FAST":sog>=5?"CRUISE":"SLOW";
+      return '<div style="display:grid;grid-template-columns:6px 1fr auto;gap:6px;align-items:center;padding:3px 4px 3px 0;border-bottom:1px solid rgba(255,255,255,.05)">'+
+        '<div style="background:'+col+';border-radius:2px;align-self:stretch;box-shadow:0 0 3px '+col+'88"></div>'+
+        '<div><div style="color:#cfe0ff;font-size:11px;font-weight:700;letter-spacing:.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esch(s.name||("MMSI "+s.mmsi))+'</div>'+
+        '<div style="color:#9fd6a6;font-size:9.5px;letter-spacing:.5px">'+lbl+' \u00b7 '+(s.sog!=null?Math.round(s.sog)+" kn":"\u2014")+(s.lat!=null?' \u00b7 '+s.lat.toFixed(2)+"\u00b0N "+Math.abs(s.lon).toFixed(2)+"\u00b0W":"")+'</div></div>'+
+      '</div>';
+    }).join("");
+  }
+  function render(){ paint(); renderList(); }
+  /* Update the status pill every second based on time-since-last-message */
+  var stateIv=rtInterval(function(){
+    if(my!==token) return;
+    if(msgCount===0){
+      var elapsed=firstMsgAt?0:Math.floor((Date.now()-tuneStart)/1000);
+      if(elapsed<20) statusPill("st-connecting","connecting\u2026 "+elapsed+"s");
+      else if(elapsed<45) statusPill("st-waiting","no data yet \u00b7 "+elapsed+"s");
+      else statusPill("st-down","feed appears down \u00b7 aisstream.io");
+    } else {
+      var ago=Math.floor((Date.now()-lastMsgAt)/1000);
+      if(ago<3) statusPill("st-live",Object.keys(shipList).length+" vessels \u00b7 live");
+      else if(ago<30) statusPill("st-live",Object.keys(shipList).length+" vessels \u00b7 "+ago+"s ago");
+      else statusPill("st-waiting","stream idle \u00b7 last msg "+ago+"s ago");
+    }
+  },1000);
+  var tuneStart=Date.now();
+  ensureShipMap();
   var renderIv=rtInterval(function(){ if(dirty){ dirty=false; render(); } },2000);
-  /* the registry itself also needs periodic pruning independent of rendering, or a long session
-     watching world traffic would accumulate thousands of stale MMSI entries in memory forever */
   var pruneIv=rtInterval(function(){
     var cutoff=Date.now()-20*60*1000;
-    Object.keys(shipList).forEach(function(k){ if(shipList[k].ts<cutoff) delete shipList[k]; });
+    Object.keys(shipList).forEach(function(k){
+      var s=shipList[k];
+      if(s.ts<cutoff){ if(s._el&&s._el.remove)s._el.remove(); delete shipList[k]; }
+    });
+    dirty=true;
   },5*60*1000);
   try{
-    /* Bounding box: Gulf of Mexico ~ [18\u00b0N,-98\u00b0W] to [31\u00b0N,-80\u00b0W] \u2014 covers all Texas ports
-       (Galveston, Houston Ship Channel, Corpus Christi, Port Arthur, Freeport), Louisiana
-       (New Orleans / Mississippi Delta), Alabama (Mobile), Florida Panhandle, plus the outer
-       Gulf shipping lanes. Much smaller box than world = higher message-delivery reliability
-       (aisstream.io's silent-world-subscription bug documented previously is a non-issue at
-       this scope) + far more relevant to a Texas storm chaser. */
+    /* Gulf of Mexico bounding box \u2014 [18\u00b0N,-98\u00b0W] to [31\u00b0N,-80\u00b0W] */
     var box=[[18.0,-98.0],[31.0,-80.0]];
     var sock=new WebSocket("wss://stream.aisstream.io/v0/stream");
     shipSocket=sock;
     sock.onopen=function(){ if(my!==token){try{sock.close();}catch(e){}return;}
       try{ sock.send(JSON.stringify({APIKey:AISSTREAM_KEY,BoundingBoxes:[box],FilterMessageTypes:["PositionReport","ShipStaticData"]})); }catch(e){}
-      var subEl=$("shipSub"); if(subEl)subEl.textContent="Listening for Gulf of Mexico AIS traffic\u2026";
       nlog("ais",true,"subscribed Gulf of Mexico box");
-      /* Gulf shipping is heavy \u2014 first messages should arrive in seconds. If nothing's arrived
-         after a generous window, surface that plainly. */
-      setTimeout(function(){ if(my!==token||msgCount>0)return;
-        var s=$("shipSub"); if(s)s.textContent="No AIS traffic received yet \u2014 the Gulf feed should light up in seconds during any normal shipping hour. Check DIAG.";
-        nlog("ais",false,"no messages within 20s of Gulf subscription");
-      },20000);
     };
     sock.onmessage=function(ev){ if(my!==token)return;
       try{
         var msg=JSON.parse(ev.data); var mmsi=msg&&msg.MetaData&&msg.MetaData.MMSI;
         if(!mmsi)return;
-        msgCount++; if(!firstMsgAt)firstMsgAt=Date.now();
+        msgCount++; lastMsgAt=Date.now(); if(!firstMsgAt)firstMsgAt=Date.now();
         var rec=shipList[mmsi]||{mmsi:mmsi};
         if(msg.MessageType==="PositionReport"&&msg.Message&&msg.Message.PositionReport){
           var pr=msg.Message.PositionReport; rec.sog=pr.Sog; rec.lat=pr.Latitude; rec.lon=pr.Longitude;
@@ -8084,12 +8267,12 @@ async function tuneShips(ch,sl,my){
         rec.ts=Date.now(); shipList[mmsi]=rec; dirty=true;
       }catch(e){}
     };
-    sock.onerror=function(){ nlog("ais",false,"websocket error");
-      var subEl=$("shipSub"); if(subEl&&my===token)subEl.textContent="AIS stream connection error \u2014 check DIAG / API key."; };
+    sock.onerror=function(){ nlog("ais",false,"websocket error"); statusPill("st-down","socket error \u00b7 check DIAG"); };
     sock.onclose=function(){ if(shipSocket===sock)shipSocket=null;
-      if(my===token) nlog("ais",false,"connection closed"+(msgCount>0?(" after "+msgCount+" messages"):" before any data arrived (possibly disconnected for reading too slowly)")); };
-  }catch(e){ nlog("ais",false,(e&&e.message)||e);
-    var subEl2=$("shipSub"); if(subEl2)subEl2.textContent="Could not start AIS stream \u2014 check DIAG."; }
+      if(my===token){ nlog("ais",false,"connection closed after "+msgCount+" msgs");
+        if(msgCount===0) statusPill("st-down","connection closed \u00b7 no data");
+      } };
+  }catch(e){ nlog("ais",false,(e&&e.message)||e); statusPill("st-down","could not start AIS stream"); }
   render();
 }
 var EIA_KEY="FZH1LWEZjMe2CcwfC3wh6evYHObLeMsNICaNsARL";

@@ -1018,7 +1018,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.150";
+window.__ATV_BUILD="1.7.7-mobile.151";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -6654,8 +6654,9 @@ function tuneRotator(ch,sl,my,subs,secs){
    find it \u2014 METAR never appeared. (2) list rows used .dc-place which truncates with ellipses. */
 async function tuneAirTraffic(ch,sl,my){
   if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Air Traffic","");
-  var rangeMi=50, loc=null, mp=null, acsMap={}, cityName="OVERHEAD";
-  if(screenArea) screenArea.innerHTML='<div id="atRoot" style="width:100%;height:100%;display:grid;grid-template-columns:minmax(0,55%) minmax(0,45%);grid-template-rows:1fr auto;gap:6px;padding:6px;box-sizing:border-box;background:radial-gradient(120% 80% at 50% 0%,#04140a,#020a06 70%);color:var(--phos);font-family:monospace;overflow:hidden">'+
+  var rangeMi=50, loc=null, mp=null, acsMap={}, cityName="OVERHEAD", selectedCs=null;
+  if(screenArea) screenArea.innerHTML='<style>#atRoot .sky-blip i{display:none} #atRoot .sky-blip.tag i{display:block} #atRoot .sky-blip.sel{background:#fff!important;box-shadow:0 0 14px #fff,0 0 30px var(--phos)!important;z-index:5;width:11px;height:11px;margin:-5.5px 0 0 -5.5px} #atRoot .sky-blip{cursor:pointer} #atRoot .at-row{cursor:pointer;transition:background .1s} #atRoot .at-row:hover{background:rgba(103,255,134,.05)} #atRoot .at-row.sel{background:rgba(103,255,134,.10);border-left:2px solid var(--phos)!important}</style>'+
+  '<div id="atRoot" style="width:100%;height:100%;display:grid;grid-template-columns:minmax(0,55%) minmax(0,45%);grid-template-rows:1fr auto;gap:6px;padding:6px;box-sizing:border-box;background:radial-gradient(120% 80% at 50% 0%,#04140a,#020a06 70%);color:var(--phos);font-family:monospace;overflow:hidden">'+
     /* LEFT: radar scope, fills the left column at 1:1 aspect */
     '<div style="grid-column:1;grid-row:1/span 2;display:flex;align-items:center;justify-content:center;min-height:0;min-width:0">'+
       '<div id="atScopeWrap" style="aspect-ratio:1/1;width:100%;max-width:100%;max-height:100%;display:flex;align-items:center;justify-content:center;padding:6px;box-sizing:border-box;position:relative">'+
@@ -6712,7 +6713,7 @@ async function tuneAirTraffic(ch,sl,my){
       var pos=drPos(a,now);
       a.dist=haversineKm(loc.lat,loc.lon,pos.lat,pos.lon)*0.621371;
       var xy=mp?mp.project(pos.lat,pos.lon):null; if(!xy)return;
-      if(!a.el) a.el=skyBlipEl(bl,a);
+      if(!a.el){ a.el=skyBlipEl(bl,a); a.el.dataset.cs=a.cs||""; attachBlipClick(a.el, a); }
       a.el.style.left="calc(50% + "+xy.x.toFixed(1)+"px)";
       a.el.style.top="calc(50% + "+xy.y.toFixed(1)+"px)";
       a.el.style.opacity=(a.dist>rangeMi*0.98||now-a.seenT>20000)?"0.25":"1";
@@ -6728,11 +6729,46 @@ async function tuneAirTraffic(ch,sl,my){
     var top=arr.slice(0,8);
     var nearest=top[0];
     setChanStatus(ch.num, arr.length+" aircraft \u00b7 "+((nearest.cs||"nearest")+(nearest.dist!=null?(" "+nearest.dist.toFixed(0)+"mi"):"")));
+    /* Only the top-8 (the ones in the list) get their callsign tag shown on the map. This
+       cuts the DFW-cluster label soup down to just what's currently featured. Everything else
+       stays as an anonymous dot. Selected aircraft gets a highlight class. */
+    Object.keys(acsMap).forEach(function(k){ var e=acsMap[k]; if(e.el){ e.el.classList.remove("tag","sel"); } });
+    top.forEach(function(a){ if(a.el){ a.el.classList.add("tag"); if(selectedCs===a.cs) a.el.classList.add("sel"); } });
+    /* Fire route lookups for the visible aircraft \u2014 populates routeCache so clicking a row
+       shows origin\u2192destination when available. */
+    try{ lookupRoutes(top); }catch(e){}
     listEl.innerHTML=top.map(function(a){
       var band=(a.alt!=null&&a.alt<10000)?{c:"#ffb84d",lbl:"LO"}:((a.alt!=null&&a.alt>=25000)?{c:"#7fd8ff",lbl:"HI"}:{c:"#9affb0",lbl:"MID"});
       var climb=(a.vr!=null&&Math.abs(a.vr)>320)?(a.vr>0?" \u2191climb":" \u2193desc"):"";
-      /* Two-line row layout: NO ellipsis, wraps if needed. Left color bar = altitude band. */
-      return '<div style="display:grid;grid-template-columns:4px 1fr;gap:6px;padding:4px 2px 4px 0;border-bottom:1px solid rgba(255,255,255,.05)">'+
+      var isSel=selectedCs===a.cs;
+      /* routeCache stores strings \u2014 "DFW > LAX" for codes, "Dallas > Los Angeles" for cities.
+         "" means adsbdb had no route (private/GA/military). undefined means never looked up yet. */
+      var routeCode=routeCache[a.cs], routeFull=routeCache[a.cs+"|full"];
+      /* Two-line row layout when unselected. Selected row expands with route + full detail. */
+      var routeLine="";
+      if(isSel && routeCode){
+        routeLine='<div style="color:#7fd8ff;font-size:11px;margin-top:4px;letter-spacing:.5px;background:rgba(127,216,255,.08);padding:3px 6px;border-radius:3px">'+
+          '<b>'+esch(routeCode.replace(" > "," \u2192 "))+'</b>'+
+          (routeFull?' <div style="color:#9fd6a6;font-size:9.5px;margin-top:1px">'+esch(routeFull.replace(" > "," \u2192 "))+'</div>':'')+
+        '</div>';
+      } else if(isSel && routeCode===""){
+        routeLine='<div style="color:#9fd6a6;font-size:9.5px;margin-top:4px;opacity:.6">no route registered (likely private / GA / military)</div>';
+      } else if(isSel){
+        routeLine='<div style="color:#9fd6a6;font-size:9.5px;margin-top:4px;opacity:.7">route: looking up\u2026</div>';
+      }
+      var detailLine="";
+      if(isSel){
+        var vrTxt=a.vr!=null?(a.vr>0?"+":"")+a.vr+" ft/min":"level";
+        detailLine='<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;color:#cfe0ff;font-size:10px;margin-top:5px;background:rgba(255,255,255,.03);padding:5px 6px;border-radius:3px">'+
+          '<div><span style="color:#9fd6a6">HEX:</span> '+esch(a.hex||"\u2014")+'</div>'+
+          '<div><span style="color:#9fd6a6">TYPE:</span> '+esch(a.type||"\u2014")+'</div>'+
+          '<div><span style="color:#9fd6a6">VERT:</span> '+esch(vrTxt)+'</div>'+
+          '<div><span style="color:#9fd6a6">TRACK:</span> '+(a.trk!=null?Math.round(a.trk)+"\u00b0":"\u2014")+'</div>'+
+          '<div><span style="color:#9fd6a6">GRND:</span> '+(a.spd!=null?a.spd+" mph":"\u2014")+'</div>'+
+          '<div><span style="color:#9fd6a6">DIST:</span> '+(a.dist!=null?a.dist.toFixed(1)+" mi":"\u2014")+'</div>'+
+        '</div>';
+      }
+      return '<div class="at-row'+(isSel?' sel':'')+'" data-cs="'+esch(a.cs||"")+'" style="display:grid;grid-template-columns:4px 1fr;gap:6px;padding:5px 4px 5px 0;border-bottom:1px solid rgba(255,255,255,.05);border-left:0px solid transparent">'+
         '<div style="background:'+band.c+';border-radius:2px;box-shadow:0 0 4px '+band.c+'88"></div>'+
         '<div>'+
           '<div style="display:flex;gap:8px;align-items:baseline;flex-wrap:wrap"><b style="color:'+band.c+';font-size:12px;letter-spacing:1px">'+esch(a.cs||"?")+'</b>'+
@@ -6743,9 +6779,30 @@ async function tuneAirTraffic(ch,sl,my){
             '  \u00b7  '+(a.spd!=null?a.spd+" mph":"--")+
             '  \u00b7  '+wxCompass(a.trk)+(a.trk!=null?" "+Math.round(a.trk)+"\u00b0":"")+
           '</div>'+
+          routeLine+detailLine+
         '</div>'+
       '</div>';
     }).join("");
+    /* wire row clicks \u2014 toggle selection, re-render */
+    listEl.querySelectorAll(".at-row").forEach(function(r){
+      r.addEventListener("click",function(){
+        var cs=r.dataset.cs; selectedCs=(selectedCs===cs?null:cs); renderList();
+      });
+    });
+  }
+  /* Blip click handler \u2014 same effect as row click. Attached in paint() where blips are created. */
+  function attachBlipClick(el, a){
+    if(el._atClickWired) return; el._atClickWired=true;
+    el.addEventListener("click",function(ev){
+      ev.stopPropagation();
+      selectedCs=(selectedCs===a.cs?null:a.cs);
+      renderList();
+      /* scroll the selected row into view */
+      var row=document.querySelector('#atAcList .at-row[data-cs="'+CSS.escape(a.cs||"")+'"]');
+      if(row) row.scrollIntoView({block:"nearest",behavior:"smooth"});
+    });
+    el.style.cursor="pointer";
+    el.title=a.cs+(a.type?(" ("+a.type+")"):"")+" \u2014 tap for details";
   }
   /* ----- METAR list (multi-line, no ellipses) ----- */
   var wxTimer=null;
@@ -6759,8 +6816,12 @@ async function tuneAirTraffic(ch,sl,my){
       var rows=[];
       for(var i=0;i<Math.min(fields.length,8);i++){
         var f=fields[i];
+        /* nearbyAirports returns arrays [icao, name, lat, lon], TX_AIRPORTS fallback is the
+           same shape. Original v2 code read f.icao (undefined) \u2014 that's why every row said
+           "?" and "no METAR" in the initial screenshot. Reading f[0] / f[1] fixes it. */
+        var icao=Array.isArray(f)?f[0]:(f.icao||"?");
         try{
-          var md=await withTO(fetch("https://aviationweather.gov/api/data/metar?ids="+f.icao+"&format=json").then(function(r){return r.json();}),8000);
+          var md=await withTO(fetch("https://aviationweather.gov/api/data/metar?ids="+encodeURIComponent(icao)+"&format=json").then(function(r){return r.json();}),8000);
           if(my!==token)return;
           var m=(md&&md[0])||{};
           var cat=m.fltcat||"--";
@@ -6769,13 +6830,13 @@ async function tuneAirTraffic(ch,sl,my){
           var temp=m.temp!=null?Math.round(m.temp*9/5+32)+"\u00b0F":"--";
           var vis=m.visib!=null?(m.visib+" mi"):"--";
           rows.push('<div style="display:grid;grid-template-columns:44px auto 1fr auto;gap:8px;padding:4px 2px;border-bottom:1px solid rgba(255,255,255,.05);align-items:baseline">'+
-            '<b style="color:#ffd34d;font-size:11px;letter-spacing:1px">'+esch(f.icao||"?")+'</b>'+
+            '<b style="color:#ffd34d;font-size:11px;letter-spacing:1px">'+esch(icao)+'</b>'+
             '<span style="color:'+catClr+';font-size:11px;font-weight:700;letter-spacing:1px">'+esch(cat)+'</span>'+
             '<span style="color:#9fd6a6;font-size:10px">'+esch(wind)+'  \u00b7  vis '+esch(vis)+'</span>'+
             '<span style="color:#cfe0ff;font-size:11px">'+esch(temp)+'</span>'+
           '</div>');
         }catch(e){
-          rows.push('<div style="display:grid;grid-template-columns:44px 1fr;gap:8px;padding:4px 2px;font-size:10px"><b style="color:#ffd34d">'+esch(f.icao||"?")+'</b><span style="color:#666">no METAR</span></div>');
+          rows.push('<div style="display:grid;grid-template-columns:44px 1fr;gap:8px;padding:4px 2px;font-size:10px"><b style="color:#ffd34d">'+esch(icao)+'</b><span style="color:#666">no METAR</span></div>');
         }
       }
       if(wxEl) wxEl.innerHTML=rows.join("");

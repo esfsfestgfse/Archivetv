@@ -985,7 +985,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.122";
+window.__ATV_BUILD="1.7.7-desktop.123";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1465,6 +1465,7 @@ const CATNAME={NET:"NETWORKS",TOON:"CARTOONS",MOV:"MOVIES",TV:"TELEVISION",SPORT
 /* ---------- the dial (~36 channels) ---------- */
 const CH=[
  {nm:"Sports Center", num:50,     cat:"SPORTS", source:"sports", ns:"tv"},
+ {nm:"Hard Count", num:51,        cat:"SPORTS", gl:"nflfilms",   era:[1965,2010], ns:"doc"}, /* NFL Films golden age — Sabol / Facenda, gridiron poetry */
  {nm:"Channel 2 Network", num:2, cat:"NET", profile:"network", era:[1950,1969], ns:"movie"},
  {nm:"Nite-Owl 3", num:3,        cat:"NET", profile:"network", era:[1935,1955], ns:"movie"},
 
@@ -1511,7 +1512,7 @@ const CH=[
  {nm:"Funk & Soul", num:919,       cat:"MUS", gl:"gmfunk",      era:[1968,2025], ns:"music", audio:true},
  {nm:"Jukebox 78", num:920,        cat:"MUS", gl:"jazz78",   era:[1920,1949], ns:"music", audio:true},
  {nm:"Fallout Radio", num:921,     cat:"MUS", gl:"radiofallout",era:[1948,1965], ns:"radio", audio:true},
- {nm:"Comedy", num:202,             cat:"DOC", gl:"standup",      era:[1960,2025], ns:"radio", audio:true},
+ {nm:"Joke Joint", num:202,         cat:"DOC", gl:"comedycentral", era:[1970,2025], ns:"tv"}, /* renamed from "Comedy" + rebuilt 2026-08-07: was audio-only standup; now video sketch + comedy TV in the Comedy Central vibe */
  {nm:"Podcasts", num:203,           cat:"DOC", gl:"podcasts",     era:[2004,2025], ns:"radio", audio:true},
  {nm:"Modern Country", num:922,     cat:"MUS", gl:"gmcountrymod", era:[1970,2025], ns:"music", audio:true},
  {nm:"Field Recordings", num:923,   cat:"MUS", gl:"fieldrec",     era:[1990,2025], ns:"music", audio:true},
@@ -1531,6 +1532,8 @@ const CH=[
  {nm:"The Drive-In", num:111,      cat:"MOV", gl:"drivein",     era:[1955,1975], ns:"movie"}, /* grindhouse/exploitation features */
  {nm:"Sunday Matinee", num:112,    cat:"MOV", gl:"sundaymatinee", era:[1935,1959], ns:"movie"}, /* 30s-50s musicals + romantic comedies */
  {nm:"The Late Late Show", num:113,cat:"MOV", gl:"latelate",    era:[1940,1975], ns:"movie"}, /* auteur / foreign / arthouse public-domain films */
+ {nm:"The 36th Chamber", num:114, cat:"MOV", gl:"kungfu",      era:[1965,2000], ns:"movie"}, /* Shaw Brothers / Golden Harvest / chopsocky kung fu theater */
+ {nm:"Monster Island", num:115,   cat:"MOV", gl:"kaiju",       era:[1954,1995], ns:"movie"}, /* Godzilla, Gamera, Toho — Japanese giant-monster cinema */
  {nm:"Modern Cartoons", num:153,   cat:"TOON",gl:"cartoonmodern",era:[1970,2001], ns:"toon"},
  {nm:"Cop Show Classic", num:154,  cat:"RETRO", gl:"copshow",    era:[1950,1985], ns:"movie"}, /* police procedurals + detective shows */
  {nm:"Adult Animation", num:155,   cat:"TOON", gl:"adultanim",   era:[1970,2010], ns:"toon"}, /* Bakshi/Heavy Metal/Liquid TV + adult TV animation */
@@ -1559,6 +1562,7 @@ const CH=[
  {nm:"Roller Derby & Wrestling", num:218,cat:"DOC",gl:"rollerderby",era:[1955,1985], ns:"doc"}, /* vintage pro wrestling + roller derby */
  {nm:"Vintage Local News", num:219,cat:"DOC", gl:"localnews",   era:[1975,2005], ns:"doc"}, /* off-air affiliate newscasts */
  {nm:"Bob Ross & Comfort TV", num:220,cat:"DOC",gl:"comforttv", era:[1980,2010], ns:"doc"}, /* Joy of Painting + chore-doer TV */
+ {nm:"Mic Night", num:222,        cat:"DOC", gl:"standup",     era:[1970,2020], ns:"doc"}, /* Stand-up comedy specials only — no sketch, no sitcoms */
  {nm:"Space", num:407,             cat:"LDATA", source:"space",   ns:"tv"},
  {nm:"River & Lake Watch", num:408,cat:"LDATA", source:"river",   ns:"tv"},
  {nm:"On This Day", num:504,       cat:"RETRO", source:"onthisday",ns:"movie"},
@@ -1583,7 +1587,9 @@ const CH=[
  {nm:"Christmas Channel", num:700, cat:"HOL", gl:"xmas",         era:[1930,1995], ns:"movie"},
  {nm:"Halloween Haunt", num:701,   cat:"HOL", gl:"halloween",    era:[1930,1995], ns:"movie"},
  {nm:"Thanksgiving Channel", num:702,cat:"HOL",gl:"thanksgiving", era:[1930,1990], ns:"tv"},
+ {nm:"The Hearth", num:703,       cat:"HOL", gl:"yulelog",     era:[1900,2025], ns:"tv"}, /* Yule log fireplace loop with vintage Christmas music bed */
  {nm:"Test Pattern", num:506,      cat:"RETRO", source:"static", ns:"space"},
+ {nm:"The Long Shot", num:507,     cat:"RETRO", gl:"slowtv",    era:[2000,2025], ns:"tv"}, /* Slow TV — NRK-style long-form: train rides, sunsets, ferry crossings, waterfalls */
 ];
 /* QA FIX (from Programmed Channels 2.0 audit, Phase 1): channel numbers used to be computed by
    the array's own order via a seen[c.cat] counter -- meaning if any two channels in the same
@@ -1701,7 +1707,14 @@ const CHANNEL_META={
 "Historic Waco":{desc:"LIVE: a rolling archive of historical photographs of Waco \u0026 Central Texas \u2014 Library of Congress, Wikimedia Commons \u0026 Internet Archive, with a Ken Burns treatment and a warm narrator.",best:"anytime",rel:["News, News, News","Hometown History"]},
 "Backyard Naturalist":{desc:"LIVE: wildlife spotted near you this week, with photos.",best:"mornings",rel:["Hometown History","Home Movies & Travelogues"]},
 "Air & Allergy":{desc:"LIVE: AQI, particulates, ozone and pollen for your ZIP.",best:"allergy season",rel:["Weather Watch","River & Lake Watch"]},
-"Test Pattern":{desc:"Color bars. Please stand by.",best:"sign-off",rel:["Channel 2 Network","Found Footage Static"]}
+"Test Pattern":{desc:"Color bars. Please stand by.",best:"sign-off",rel:["Channel 2 Network","Found Footage Static"]},
+"Joke Joint":{desc:"Sketch, satire, cult-classic TV comedy — Kids in the Hall, SCTV, SNL era, State, Reno 911, Chappelle. Comedy Central's greatest hits, minus the ads.",best:"nights + weekends",rel:["Mic Night","Adult Animation"]},
+"Mic Night":{desc:"Stand-up specials only — comedy clubs, comedy hours, one-mic-one-audience. No sketch, no sitcoms. Just microphones.",best:"late night",rel:["Joke Joint","Comedy Classics"]},
+"The 36th Chamber":{desc:"Kung fu theater — Shaw Brothers, Golden Harvest, dubbed 70s Hong Kong chopsocky and wuxia.",best:"Saturday afternoons",rel:["Action & Serials","The Drive-In"]},
+"Monster Island":{desc:"Kaiju cinema — Godzilla, Gamera, Toho / Daiei monster movies. Giant lizards vs. tanks, in glorious rubber suits.",best:"Saturday nights",rel:["Sci-Fi Theater","Shock Theater"]},
+"Hard Count":{desc:"NFL Films from the golden era — Steve Sabol's cameras, John Facenda's voice, gridiron poetry set to French horns.",best:"Fall Sundays",rel:["Sports Vault","Sports Center"]},
+"The Hearth":{desc:"A crackling yule log, all night. Vintage Christmas jazz on the audio. Best in December but on year-round.",best:"December evenings",rel:["Christmas Channel","Bob Ross & Comfort TV"]},
+"The Long Shot":{desc:"Slow TV — Norwegian NRK-style long-form: train rides, sunsets, waterfalls, ferry crossings. Meditative watching.",best:"late nights + Sunday afternoons",rel:["Nature Channel","Home Movies & Travelogues"]}
 };
 
 /* =====================================================================
@@ -1826,20 +1839,98 @@ const PROGRAM = {
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
-  "Comedy": {
-    genre: "standup", era: [1950, 2020],
+  /* Joke Joint (was "Comedy" — renamed + rebuilt 2026-08-07). Was audio-only stand-up; now
+     video sketch + comedy TV in the Comedy Central variety-hour vibe. Stand-up moved to its
+     own dedicated channel (ch 222 Mic Night). */
+  "Joke Joint": {
+    genre: "comedycentral", era: [1970, 2025],
     providers: [
-      {"collections": ["comedy_recordings","stand-up_comedy"], "require_subj": ["stand-up comedy","standup","comedian","comedy album","sketch comedy","comic","humor"]},
-      {"collections": ["opensource_audio","audio_music"], "require_subj": ["stand-up comedy","standup","comedian","comedy album","sketch comedy"]}
+      { collections: ["opensource_movies", "Comedy_Films"], require_subj: ["sketch comedy", "SNL", "saturday night live", "kids in the hall", "MADtv", "in living color", "the state", "reno 911", "chappelle show", "mr show", "upright citizens brigade", "UCB", "comedy central", "conan", "colbert report", "daily show", "key & peele", "portlandia"] },
+      { collections: ["classic_tv_1980s", "classic_tv_1990s"], require_subj: ["sketch comedy", "SNL", "MADtv", "kids in the hall", "in living color", "SCTV", "monty python", "second city"] }
     ],
-    /* Removed "live at","live on" from title deny — those match canonical stand-up special titles
-       (Carlin "Jammin' in New York", Pryor "Live on the Sunset Strip", Murphy "Delirious - Live at
-       Constitution Hall"). Music-concert bleed is handled by the subject deny below.
-       Soak follow-up: "M8 Yer Dugs A Nazi" by Count Dankula (a YouTube political joke rip) leaked
-       in from the "offcenter" collection. Added youtube/vlog subject deny to filter YouTube-rip
-       content masquerading as stand-up. */
-    deny: {"title": ["concert","festival","band","trio","quartet"], "subject": ["live concert","jam","jamband","jam band","punk","garage","rock","metal","funk","electronic","reggae","blues","folk","indie","alternative","psychedelic","brass band","hip-hop","hip hop","youtube","youtube video","youtube rip","vlog","prank","internet video"]},
-    subjRequired: true, noBlindFallback: true
+    deny: {
+      title: ["news", "commercial", "trailer", "advertisement", "documentary about"],
+      subject: ["news", "commercial", "advertising", "youtube", "youtube video", "vlog", "podcast", "children's television", "kids show", "cartoon", "animated series"]
+    },
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  /* Mic Night (ch 222, new 2026-08-07). Dedicated stand-up specials — one-mic, one-audience. */
+  "Mic Night": {
+    genre: "standup", era: [1970, 2020],
+    providers: [
+      { collections: ["opensource_movies"], require_subj: ["stand-up comedy", "standup comedy", "comedy special", "comedy hour", "comedy club", "comedy live", "stand up", "one-hour comedy"] },
+      { collections: ["Comedy_Films"], require_subj: ["stand-up", "comedy special", "comedy hour", "live comedy", "stand-up comedy"] }
+    ],
+    deny: {
+      title: ["sketch", "sitcom", "cartoon", "trailer", "concert", "festival", "band", "album"],
+      subject: ["sketch comedy", "sitcom", "cartoon", "animated", "children", "podcast", "youtube", "vlog", "prank", "internet video", "music album", "concert"]
+    },
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  "The 36th Chamber": {
+    genre: "kungfu", era: [1965, 2000],
+    providers: [
+      { collections: ["feature_films_unsorted", "feature_films"], require_subj: ["martial arts", "kung fu", "wuxia", "shaw brothers", "chopsocky", "hong kong action", "karate", "chinese action", "kung-fu"] }
+    ],
+    deny: {
+      title: ["documentary", "cartoon", "trailer", "news"],
+      subject: ["cartoon", "animated", "children", "documentary about", "news", "commercial", "trailer"]
+    },
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  "Monster Island": {
+    genre: "kaiju", era: [1954, 1995],
+    providers: [
+      { collections: ["SciFi_Horror", "feature_films_unsorted"], require_subj: ["kaiju", "godzilla", "gamera", "monster movie", "japanese sci-fi", "japanese monster", "toho", "daiei", "giant monster", "creature feature"] },
+      { collections: ["opensource_movies"], require_subj: ["kaiju", "godzilla", "gamera", "toho", "japanese monster", "japanese sci-fi"] }
+    ],
+    deny: {
+      title: ["trailer", "news", "documentary"],
+      subject: ["trailer", "news", "commercial", "cartoon", "animated", "children", "documentary about"]
+    },
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  "Hard Count": {
+    genre: "nflfilms", era: [1965, 2010],
+    providers: [
+      { collections: ["opensource_movies"], require_subj: ["NFL Films", "NFL", "Steve Sabol", "Ed Sabol", "John Facenda", "pro football", "football films", "NFL history", "super bowl", "gridiron"] },
+      { collections: ["sports", "sportstelevision"], require_subj: ["NFL Films", "Steve Sabol", "John Facenda", "pro football", "NFL Films Presents"] }
+    ],
+    deny: {
+      title: ["news", "commercial", "trailer", "highlights show"],
+      subject: ["news", "commercial", "youtube", "vlog", "trailer", "cartoon", "sports talk"]
+    },
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  "The Long Shot": {
+    genre: "slowtv", era: [2000, 2025],
+    providers: [
+      { collections: ["opensource_movies"], require_subj: ["slow tv", "slow television", "NRK", "long form video", "ambient video", "long take", "meditative", "real time video"] },
+      { collections: ["opensource_movies"], require_subj: ["train journey", "sunset", "waterfall", "log fire", "fireplace", "ambient", "ocean waves", "rain sounds"] }
+    ],
+    deny: {
+      title: ["trailer", "news", "commercial", "highlights"],
+      subject: ["trailer", "news", "commercial", "advertising", "cartoon", "youtube short"]
+    },
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  "The Hearth": {
+    genre: "yulelog", era: [1900, 2025],
+    providers: [
+      { collections: ["opensource_movies"], require_subj: ["yule log", "fireplace", "christmas fire", "burning log", "hearth", "log fire"] },
+      { collections: ["opensource_movies"], require_subj: ["christmas", "yule", "holiday fire", "cozy fire"] }
+    ],
+    deny: {
+      title: ["trailer", "news", "commercial"],
+      subject: ["trailer", "news", "commercial", "advertising", "cartoon"]
+    },
+    subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
   "Modern Country": {

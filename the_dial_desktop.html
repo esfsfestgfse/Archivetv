@@ -201,19 +201,33 @@ body{
 .r-batcover::before,.r-batcover::after{content:"";width:12px;height:2px;background:#0a0a0a;border-radius:1px;box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
 
 
-/* ============ READOUT (below console) ============ */
-
-.chnum{font-size:28px;font-weight:bold;letter-spacing:3px;color:var(--amber);min-width:70px;text-align:center;
-  background:#160f06;border:1px solid #3a2a12;border-radius:6px;padding:2px 8px;font-variant-numeric:tabular-nums;
-  text-shadow:0 0 12px rgba(255,180,58,.6)}
-.nb{min-width:0}
-.nb .nm{font-weight:bold;color:var(--phos);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.nb .me{font-size:11px;color:var(--phos-d);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sig{display:flex;align-items:center;gap:7px;font-size:10px;letter-spacing:2px;color:var(--phos-d)}
-.led{width:9px;height:9px;border-radius:50%;background:#444}
-.led.live{background:var(--phos);box-shadow:0 0 8px var(--phos)}
-.led.tuning{background:var(--amber);box-shadow:0 0 8px var(--amber);animation:bl 1s steps(1) infinite}
-.led.dead{background:var(--red);box-shadow:0 0 8px var(--red)}
+/* ============ READOUT (below console) — Scientific Atlanta 8600-style cable box ============
+   2026-08-07: redesigned to match the small SA-box OSD on the tube. Whole bar is a black bezel
+   with a red power LED, three green vacuum-fluorescent display panels (channel · now-playing
+   · signal indicator), chamfered edges, inset lighting. Feels like a piece of real hardware
+   sitting on top of the TV instead of a data strip. Existing IDs (#chNum, #nowName, #nowMeta,
+   #led, #sigText, #verChip) are all preserved so no JS changes are needed. */
+.chnum{font:900 30px/1 "VT323","Courier New",monospace;letter-spacing:4px;
+  color:#8cffb0;text-shadow:0 0 6px rgba(140,255,176,.85),0 0 14px rgba(60,255,120,.45);
+  min-width:88px;text-align:center;font-variant-numeric:tabular-nums;
+  background:#040806;border:1px solid #050707;border-radius:3px;padding:6px 10px;
+  box-shadow:inset 0 1px 2px rgba(0,0,0,.85),inset 0 0 8px rgba(0,0,0,.5)}
+.nb{min-width:0;background:#040806;border:1px solid #050707;border-radius:3px;padding:8px 14px;
+  box-shadow:inset 0 1px 2px rgba(0,0,0,.85),inset 0 0 8px rgba(0,0,0,.5)}
+.nb .nm{font:700 15px/1.2 "VT323","Courier New",monospace;color:#8cffb0;letter-spacing:1.5px;
+  text-shadow:0 0 4px rgba(140,255,176,.7),0 0 10px rgba(60,255,120,.3);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nb .me{font:700 11px/1.2 "VT323","Courier New",monospace;color:#5fd688;letter-spacing:1.5px;margin-top:2px;
+  text-shadow:0 0 3px rgba(95,214,136,.5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sig{display:flex;align-items:center;gap:8px;font:700 11px/1 "VT323","Courier New",monospace;letter-spacing:2px;color:#5fd688;
+  background:#040806;border:1px solid #050707;border-radius:3px;padding:8px 12px;
+  box-shadow:inset 0 1px 2px rgba(0,0,0,.85),inset 0 0 8px rgba(0,0,0,.5);
+  text-shadow:0 0 3px rgba(95,214,136,.5)}
+.sig #sigText{color:#8cffb0;text-shadow:0 0 4px rgba(140,255,176,.7)}
+.led{width:9px;height:9px;border-radius:50%;background:#2a1a1a;border:1px solid #0a0a0a}
+.led.live{background:radial-gradient(circle at 30% 30%,#8cffb0,#0a5020);border-color:#0a5020;box-shadow:0 0 8px rgba(140,255,176,.85)}
+.led.tuning{background:radial-gradient(circle at 30% 30%,#ffd680,#8a5a10);border-color:#8a5a10;box-shadow:0 0 8px rgba(255,214,128,.9);animation:bl 1s steps(1) infinite}
+.led.dead{background:radial-gradient(circle at 30% 30%,#ff5a4a,#7a1810);border-color:#7a1810;box-shadow:0 0 8px rgba(255,90,74,.85)}
 @keyframes bl{50%{opacity:.25}}
 
 /* ============ CHANNEL RAIL ============ */
@@ -515,7 +529,13 @@ html.mob .gsearch-wrap{padding:0 12px 6px}
 .remote{width:150px;background:linear-gradient(180deg,#2b2b2b,#161616);border-radius:15px;padding:9px 9px 11px;border:2px solid #000;box-shadow:0 18px 30px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.08)}
 .rbtn{appearance:none;cursor:pointer;font-family:inherit;font-weight:bold;font-size:10.5px;color:#e8e8e8;background:linear-gradient(180deg,#3a3a3a,#202020);border:1px solid #000;border-bottom-width:2px;border-radius:7px;padding:6px 0;text-align:center;box-shadow:inset 0 1px 0 rgba(255,255,255,.08);transition:transform .05s,filter .12s}
 .rlabel{text-align:center;font-size:8px;letter-spacing:1.6px;color:#777;margin:5px 0 3px}
-.readout{position:relative;z-index:2;width:100%;max-width:1180px;display:grid;grid-template-columns:auto 1fr auto auto;gap:14px;align-items:center;background:linear-gradient(180deg,#0e120e,#0a0d0a);border:2px solid #1f3a23;border-radius:8px;padding:8px 14px}
+.readout{position:relative;z-index:2;width:100%;max-width:1180px;display:grid;grid-template-columns:auto auto 1fr auto auto;gap:10px;align-items:center;
+  background:linear-gradient(180deg,#1a1e1f 0%,#0d1010 50%,#161a1b 100%);
+  border:1px solid #2c2f30;border-top-color:#3a3d3e;border-bottom-color:#050607;
+  border-radius:6px;padding:8px 14px 8px 10px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05),inset 0 -1px 0 rgba(0,0,0,.5),0 4px 10px rgba(0,0,0,.55);
+  font-family:"VT323","Courier New",monospace}
+.readout::before{content:"";width:8px;height:8px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#ff5a4a,#8a1810);box-shadow:0 0 6px rgba(255,90,74,.85);align-self:center;justify-self:center;grid-row:1;grid-column:1}
 /* Build-number chip beside STANDBY so you can see at a glance whether the visible page is the
    latest deploy. Populated from window.__ATV_BUILD at boot. Tiny, low-contrast, non-interactive. */
 .ver-chip{font-size:9px;letter-spacing:1.2px;color:#5a8a62;margin-left:8px;opacity:.75;font-family:monospace;user-select:none;font-weight:600}
@@ -930,7 +950,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.120";
+window.__ATV_BUILD="1.7.7-desktop.121";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -6674,8 +6694,11 @@ async function tuneAirTraffic(ch,sl,my){
       var rows=[];
       for(var i=0;i<Math.min(fields.length,8);i++){
         var f=fields[i];
-        /* nearbyAirports returns arrays [icao, name, lat, lon]; f.icao is undefined. */
-        var icao=Array.isArray(f)?f[0]:(f.icao||"?");
+        /* nearbyAirports returns arrays [icao, name, lat, lon]. airportDB() ALSO strips the
+           leading K from US airport codes (ACT not KACT). aviationweather.gov's METAR endpoint
+           requires the full ICAO — for 3-char codes we re-add the K. 4-char codes pass through. */
+        var stored=Array.isArray(f)?f[0]:(f.icao||"?");
+        var icao=(stored.length===3)?("K"+stored):stored;
         try{
           var md=await withTO(fetch("https://aviationweather.gov/api/data/metar?ids="+encodeURIComponent(icao)+"&format=json").then(function(r){return r.json();}),8000);
           if(my!==token)return;

@@ -1018,7 +1018,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.151";
+window.__ATV_BUILD="1.7.7-mobile.152";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -6817,9 +6817,13 @@ async function tuneAirTraffic(ch,sl,my){
       for(var i=0;i<Math.min(fields.length,8);i++){
         var f=fields[i];
         /* nearbyAirports returns arrays [icao, name, lat, lon], TX_AIRPORTS fallback is the
-           same shape. Original v2 code read f.icao (undefined) \u2014 that's why every row said
-           "?" and "no METAR" in the initial screenshot. Reading f[0] / f[1] fixes it. */
-        var icao=Array.isArray(f)?f[0]:(f.icao||"?");
+           same shape. Original v2 code read f.icao (undefined). Reading f[0] fixed the empty
+           reads, but airportDB() STRIPS the leading K from US airport codes (ACT not KACT).
+           aviationweather.gov's METAR endpoint requires the full ICAO code \u2014 so for 3-char
+           codes we re-add the K prefix. Verified with a direct curl: "?ids=ACT" returns empty,
+           "?ids=KACT" returns the full METAR. 4-char codes (international) pass through as-is. */
+        var stored=Array.isArray(f)?f[0]:(f.icao||"?");
+        var icao=(stored.length===3)?("K"+stored):stored;
         try{
           var md=await withTO(fetch("https://aviationweather.gov/api/data/metar?ids="+encodeURIComponent(icao)+"&format=json").then(function(r){return r.json();}),8000);
           if(my!==token)return;

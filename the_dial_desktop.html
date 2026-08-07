@@ -985,7 +985,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.123";
+window.__ATV_BUILD="1.7.7-desktop.124";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1534,6 +1534,7 @@ const CH=[
  {nm:"The Late Late Show", num:113,cat:"MOV", gl:"latelate",    era:[1940,1975], ns:"movie"}, /* auteur / foreign / arthouse public-domain films */
  {nm:"The 36th Chamber", num:114, cat:"MOV", gl:"kungfu",      era:[1965,2000], ns:"movie"}, /* Shaw Brothers / Golden Harvest / chopsocky kung fu theater */
  {nm:"Monster Island", num:115,   cat:"MOV", gl:"kaiju",       era:[1954,1995], ns:"movie"}, /* Godzilla, Gamera, Toho — Japanese giant-monster cinema */
+ {nm:"Blaxploitation", num:116,   cat:"MOV", gl:"blaxploit",   era:[1970,1979], ns:"movie"}, /* 70s Black action cinema — Shaft, Foxy Brown, Superfly, Coffy, Cleopatra Jones */
  {nm:"Modern Cartoons", num:153,   cat:"TOON",gl:"cartoonmodern",era:[1970,2001], ns:"toon"},
  {nm:"Cop Show Classic", num:154,  cat:"RETRO", gl:"copshow",    era:[1950,1985], ns:"movie"}, /* police procedurals + detective shows */
  {nm:"Adult Animation", num:155,   cat:"TOON", gl:"adultanim",   era:[1970,2010], ns:"toon"}, /* Bakshi/Heavy Metal/Liquid TV + adult TV animation */
@@ -1563,6 +1564,9 @@ const CH=[
  {nm:"Vintage Local News", num:219,cat:"DOC", gl:"localnews",   era:[1975,2005], ns:"doc"}, /* off-air affiliate newscasts */
  {nm:"Bob Ross & Comfort TV", num:220,cat:"DOC",gl:"comforttv", era:[1980,2010], ns:"doc"}, /* Joy of Painting + chore-doer TV */
  {nm:"Mic Night", num:222,        cat:"DOC", gl:"standup",     era:[1970,2020], ns:"doc"}, /* Stand-up comedy specials only — no sketch, no sitcoms */
+ {nm:"The Cipher", num:223,       cat:"DOC", gl:"hiphopvault", era:[1978,2010], ns:"doc"}, /* Hip-hop history — Yo! MTV Raps era, rap docs, freestyle circles, breaking */
+ {nm:"Eyes on the Prize", num:224,cat:"DOC", gl:"civilrights", era:[1955,2000], ns:"doc"}, /* Civil rights movement documentaries + speeches + MLK/Malcolm X archives */
+ {nm:"Uptown Comedy", num:225,    cat:"DOC", gl:"blackcomedy", era:[1970,2020], ns:"doc"}, /* Def Comedy Jam era + Black stand-up + sketch — Pryor, Rock, Chappelle, Def Jam */
  {nm:"Space", num:407,             cat:"LDATA", source:"space",   ns:"tv"},
  {nm:"River & Lake Watch", num:408,cat:"LDATA", source:"river",   ns:"tv"},
  {nm:"On This Day", num:504,       cat:"RETRO", source:"onthisday",ns:"movie"},
@@ -1573,6 +1577,8 @@ const CH=[
  {nm:"Highway Cams", num:302,     cat:"LBRO", source:"highway",   ns:"tv"}, /* KCScout, MassDOT, UDOT YouTube live streams — filtered subset of LIVECAMS_STREAMS */
  {nm:"Deep Space Jazz", num:925,   cat:"MUS", source:"spacejazz", ns:"tv"},
  {nm:"OTR Theater", num:926,       cat:"MUS", gl:"otrtheater",   era:[1935,1965], ns:"radio", audio:true}, /* Suspense/Inner Sanctum/Escape old-time radio drama */
+ {nm:"Soul Train Vault", num:927, cat:"MUS", gl:"soultrain",    era:[1971,1995], ns:"tv"}, /* Don Cornelius era R&B / funk / disco / soul performances + Soul Train archive */
+ {nm:"The Jazz Masters", num:928, cat:"MUS", gl:"jazzmasters",  era:[1920,1975], ns:"radio", audio:true}, /* Ellington, Armstrong, Miles Davis, Coltrane, Basie — jazz giants specifically */
  {nm:"World Clock", num:410,       cat:"LDATA", source:"worldclock", ns:"tv"},
  {nm:"Wildfire Watch", num:411,    cat:"LDATA", source:"wildfire",   ns:"tv"},
  {nm:"Hometown History", num:412,  cat:"LDATA", source:"hometown",   ns:"doc"},
@@ -1714,7 +1720,13 @@ const CHANNEL_META={
 "Monster Island":{desc:"Kaiju cinema — Godzilla, Gamera, Toho / Daiei monster movies. Giant lizards vs. tanks, in glorious rubber suits.",best:"Saturday nights",rel:["Sci-Fi Theater","Shock Theater"]},
 "Hard Count":{desc:"NFL Films from the golden era — Steve Sabol's cameras, John Facenda's voice, gridiron poetry set to French horns.",best:"Fall Sundays",rel:["Sports Vault","Sports Center"]},
 "The Hearth":{desc:"A crackling yule log, all night. Vintage Christmas jazz on the audio. Best in December but on year-round.",best:"December evenings",rel:["Christmas Channel","Bob Ross & Comfort TV"]},
-"The Long Shot":{desc:"Slow TV — Norwegian NRK-style long-form: train rides, sunsets, waterfalls, ferry crossings. Meditative watching.",best:"late nights + Sunday afternoons",rel:["Nature Channel","Home Movies & Travelogues"]}
+"The Long Shot":{desc:"Slow TV — Norwegian NRK-style long-form: train rides, sunsets, waterfalls, ferry crossings. Meditative watching.",best:"late nights + Sunday afternoons",rel:["Nature Channel","Home Movies & Travelogues"]},
+"Blaxploitation":{desc:"70s Black action cinema — Shaft, Superfly, Foxy Brown, Coffy, Cleopatra Jones, Sweet Sweetback, Truck Turner, Dolemite.",best:"Saturday nights",rel:["Black Cinema","The Drive-In"]},
+"The Cipher":{desc:"Hip-hop history — Yo! MTV Raps era, rap documentaries, breaking, graffiti, DJ battles, freestyle circles, Def Jam origins.",best:"anytime",rel:["Hip-Hop","Uptown Comedy"]},
+"Eyes on the Prize":{desc:"Civil rights movement — MLK & Malcolm X speeches, march footage, freedom rider docs, SNCC / Black Panthers / SCLC archives.",best:"anytime",rel:["News, News, News","Cold War Cinema"]},
+"Uptown Comedy":{desc:"Def Comedy Jam, Def Poetry, In Living Color, Chris Rock Show, Pryor / Rock / Chappelle / Kings of Comedy. The greats.",best:"nights",rel:["Mic Night","Joke Joint"]},
+"Soul Train Vault":{desc:"Don Cornelius era R&B / funk / disco / soul performances — Motown, Stax, James Brown, Sly, Parliament, EWF.",best:"Saturday afternoons",rel:["Funk & Soul","The Cipher"]},
+"The Jazz Masters":{desc:"Duke Ellington, Louis Armstrong, Miles Davis, Coltrane, Basie, Monk, Bird, Billie, Ella. Jazz giants specifically.",best:"evenings",rel:["Jazz","Swing & Big Band"]}
 };
 
 /* =====================================================================
@@ -1929,6 +1941,91 @@ const PROGRAM = {
     deny: {
       title: ["trailer", "news", "commercial"],
       subject: ["trailer", "news", "commercial", "advertising", "cartoon"]
+    },
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  /* ============================================================================
+     BLACK MEDIA EXPANSION — 2026-08-07
+     Added six dedicated channels: Blaxploitation (116), The Cipher / hip-hop (223),
+     Eyes on the Prize / civil rights (224), Uptown Comedy / Black comedy (225),
+     Soul Train Vault (927), The Jazz Masters (928). One Black Cinema channel was
+     never going to cover the field.
+     ============================================================================ */
+
+  "Blaxploitation": {
+    genre: "blaxploit", era: [1970, 1979],
+    providers: [
+      { collections: ["opensource_movies", "feature_films_unsorted"], require_subj: ["blaxploitation", "black action", "70s black cinema", "black exploitation"] },
+      { collections: ["feature_films_unsorted"], require_subj: ["shaft", "superfly", "coffy", "foxy brown", "cleopatra jones", "sweet sweetback", "truck turner", "black caesar", "dolemite"] }
+    ],
+    deny: {
+      title: ["news", "trailer", "documentary about", "commercial"],
+      subject: ["news", "trailer", "commercial", "cartoon", "children", "documentary about"]
+    },
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  "The Cipher": {
+    genre: "hiphopvault", era: [1978, 2015],
+    providers: [
+      { collections: ["opensource_movies"], require_subj: ["hip hop", "hip-hop", "rap music", "hip hop history", "yo! MTV raps", "rap city", "breakdancing", "breaking", "graffiti", "DJ battle", "freestyle", "hip hop documentary", "rap documentary", "Def Jam", "wild style", "beat street"] }
+    ],
+    deny: {
+      title: ["news", "commercial", "trailer"],
+      subject: ["news", "commercial", "advertising", "youtube short", "vlog", "cartoon", "children"]
+    },
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  "Eyes on the Prize": {
+    genre: "civilrights", era: [1955, 2005],
+    providers: [
+      { collections: ["opensource_movies"], require_subj: ["civil rights", "civil rights movement", "martin luther king", "malcolm x", "black panthers", "SNCC", "freedom riders", "selma", "montgomery bus boycott", "march on washington", "voting rights", "SCLC", "NAACP", "black power"] },
+      { collections: ["news_and_journalism", "opensource_movies"], require_subj: ["civil rights", "martin luther king", "malcolm x", "african american history"] }
+    ],
+    deny: {
+      title: ["trailer", "commercial"],
+      subject: ["trailer", "commercial", "advertising", "youtube vlog", "cartoon", "children"]
+    },
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  "Uptown Comedy": {
+    genre: "blackcomedy", era: [1970, 2020],
+    providers: [
+      { collections: ["opensource_movies", "Comedy_Films"], require_subj: ["def comedy jam", "def poetry", "richard pryor", "chris rock", "eddie murphy", "dave chappelle", "black comedy", "african american comedy", "kings of comedy", "queens of comedy", "in living color", "comic view", "shuck and jive"] },
+      { collections: ["opensource_movies"], require_subj: ["chappelle show", "chappelle's show", "def jam", "african american stand-up", "black stand-up"] }
+    ],
+    deny: {
+      title: ["trailer", "news", "commercial"],
+      subject: ["trailer", "news", "commercial", "cartoon", "children", "sitcom"]
+    },
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  "Soul Train Vault": {
+    genre: "soultrain", era: [1971, 1995],
+    providers: [
+      { collections: ["opensource_movies"], require_subj: ["soul train", "don cornelius", "R&B performance", "funk performance", "soul music", "70s R&B", "80s R&B", "disco performance", "black music television"] },
+      { collections: ["opensource_movies"], require_subj: ["motown", "stax", "philadelphia international", "james brown", "sly stone", "parliament funkadelic", "earth wind and fire"] }
+    ],
+    deny: {
+      title: ["news", "commercial", "trailer"],
+      subject: ["news", "commercial", "advertising", "youtube vlog", "cartoon"]
+    },
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  "The Jazz Masters": {
+    genre: "jazzmasters", era: [1920, 1975],
+    providers: [
+      { collections: ["78rpm"], require_subj: ["duke ellington", "louis armstrong", "count basie", "miles davis", "john coltrane", "thelonious monk", "charlie parker", "billie holiday", "ella fitzgerald", "cab calloway", "fletcher henderson", "art tatum", "ma rainey", "bessie smith"] },
+      { collections: ["78rpm", "opensource_audio"], require_subj: ["jazz", "bebop", "swing", "big band jazz", "harlem renaissance", "cotton club"] }
+    ],
+    deny: {
+      title: ["youtube", "instructional"],
+      subject: ["youtube", "vlog", "podcast", "spoken word", "audiobook", "commercial"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },

@@ -1050,7 +1050,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.157";
+window.__ATV_BUILD="1.7.7-mobile.158";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1403,6 +1403,7 @@ const G={
  silentcinema:{mt:"movies",col:["silent_films"],fcol:["feature_films"],subj:["silent film","silent","slapstick","silent comedy","keystone","buster keaton","charlie chaplin","harold lloyd"],era:[1905,1929]},
  noirmystery:{mt:"movies",col:["Film_Noir"],fcol:["feature_films"],subj:["film noir","mystery","detective","crime","whodunit"],era:[1940,1965]},
  actionserials:{mt:"movies",col:[],fcol:["feature_films"],subj:["adventure","serial","movie serial","film serial","chapter play","cliffhanger serial"],not:FNOT,era:[1935,1965]},
+ british:   {mt:"movies",col:["classic_tv","feature_films_unsorted"],fcol:["feature_films","opensource_movies"],subj:["british television","british sitcom","british comedy","british drama","british film","british cinema","bbc","itv","monty python","fawlty towers","blackadder","doctor who","ealing","hammer film","carry on"],subjRotate:true,subjRequired:true,noBlindFallback:true,not:FNOT,era:[1945,2026]},
  classicmovie:{mt:"movies",col:[],fcol:["feature_films"],subj:[],era:[1930,1965]},
  homemovietravel:{mt:"movies",col:["home_movies","prelinger"],fcol:[],subj:["home movies","amateur film","travelogue","travel film","travel","tourism"],era:[1935,1985]},
  autoracing:{mt:"movies",col:["prelinger","avgeeks","FedFlix"],fcol:["feature_films"],subj:["auto racing","motor racing","grand prix","indianapolis 500","stock car racing","hot rod","drag racing","sports car","le mans","automobile","cars","motoring"],subjRotate:true,subjRequired:true,not:FNOTX,era:[1930,1995]},
@@ -1608,6 +1609,7 @@ const CH=[
  {nm:"Monster Island", num:115,   cat:"MOV", gl:"kaiju",       era:[1954,1995], ns:"movie"}, /* Godzilla, Gamera, Toho — Japanese giant-monster cinema */
  {nm:"Blaxploitation", num:116,   cat:"MOV", gl:"blaxploit",   era:[1970,1979], ns:"movie"}, /* 70s Black action cinema — Shaft, Foxy Brown, Superfly, Coffy, Cleopatra Jones */
  {nm:"The Festival Circuit", num:117, cat:"MOV", gl:"indiefilm", era:[1980,2026], ns:"movie"}, /* Sundance-adjacent indie features + short films from 80s-00s */
+ {nm:"Blighty", num:118,           cat:"MOV", gl:"british",     era:[1945,2026], ns:"tv"}, /* British TV + cinema — Beeb sitcoms, Doctor Who, Monty Python, Ealing, Hammer, Carry On */
  {nm:"Modern Cartoons", num:153,   cat:"TOON",gl:"cartoonmodern",era:[1970,2026], ns:"toon"},
  {nm:"Cop Show Classic", num:154,  cat:"RETRO", gl:"copshow",    era:[1950,1985], ns:"movie"}, /* police procedurals + detective shows */
  {nm:"Adult Animation", num:155,   cat:"TOON", gl:"adultanim",   era:[1970,2026], ns:"toon"}, /* Bakshi/Heavy Metal/Liquid TV + adult TV animation */
@@ -1807,6 +1809,7 @@ const CHANNEL_META={
 "The Octagon":{desc:"Combat sports classics — boxing, MMA, UFC, kickboxing. Ali, Frazier, Tyson, PRIDE FC era.",best:"Saturday nights",rel:["Sports Vault","Roller Derby & Wrestling"]},
 "The Up-All-Night":{desc:"Late-night talk shows — Cavett, Snyder, Merv Griffin, Mike Douglas, Carson, Letterman. Guest interviews from the golden age.",best:"late night",rel:["Classic Rerun TV","Modern Rerun TV"]},
 "The Festival Circuit":{desc:"Indie cinema — Sundance / SXSW / Tribeca-adjacent features and shorts from the 80s through the 00s.",best:"evenings",rel:["World Cinema","Found Footage Static"]},
+"Blighty":{desc:"British TV and cinema — Monty Python, Fawlty Towers, Blackadder, Only Fools & Horses, Doctor Who, Red Dwarf, Ealing comedies, Hammer horror, Carry Ons, kitchen-sink drama.",best:"evenings",rel:["Joke Joint","Classic Rerun TV"]},
 "After School":{desc:"Nick / Cartoon Network / Disney Channel / Kids' WB era — Toonami, Nicktoons, TGIF, late-90s and early-2000s kids TV.",best:"weekdays 3-5 PM",rel:["Modern Cartoons","Kids Hour"]},
 "The Documentary Hour":{desc:"PBS-style — Ken Burns, Frontline, Nova, American Experience, POV, Nat Geo. Long-form documentary programming.",best:"Sunday nights",rel:["Nature Channel","Eyes on the Prize"]},
 "Gear Head":{desc:"Top Gear-style — car reviews, road tests, restoration shows, hot-rod culture, Jay Leno's Garage, MotorWeek. Not racing — cars.",best:"weekends",rel:["Auto Racing","Manufacturing Marvels"]},
@@ -2718,6 +2721,72 @@ const PROGRAM = {
     deny: {
       title: ["trailer", "news", "commercial", "cartoon"],
       subject: ["trailer", "news", "commercial", "cartoon", "children", "training film"]
+    },
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  /* Blighty (ch 118, new 2026-08-08). British TV + cinema in one channel — Beeb sitcoms,
+     ITV drama, Doctor Who, Ealing, Hammer, Carry On, kitchen-sink. Provider tiers rotate
+     so we don't camp on one era: (1) named British sitcoms/comedies, (2) named British
+     drama + Doctor Who + genre TV, (3) British cinema by studio/movement (Ealing, Hammer,
+     Carry On, British New Wave), (4) generic British-television / BBC / ITV subject sweep
+     as a broadening tier when the named-show tiers thin out. Deny blocks the American-TV
+     bleed IA metadata frequently mixes in ("british" appears in the subject line of a lot
+     of Anglophile US content). */
+  "Blighty": {
+    genre: "british", era: [1945, 2026],
+    providers: [
+      { collections: ["classic_tv", "classic_tv_1960s", "classic_tv_1970s", "classic_tv_1980s", "classic_tv_1990s", "classic_tv_2000s", "opensource_movies"], require_subj: [
+        "monty python", "monty python's flying circus", "flying circus", "fawlty towers",
+        "blackadder", "are you being served", "only fools and horses", "yes minister",
+        "yes prime minister", "keeping up appearances", "mr. bean", "mr bean", "vicar of dibley",
+        "father ted", "red dwarf", "the young ones", "black books", "spaced", "peep show",
+        "extras", "the it crowd", "gavin and stacey", "the inbetweeners", "the mighty boosh",
+        "the office uk", "porridge", "open all hours", "some mothers do 'ave 'em",
+        "till death us do part", "steptoe and son", "rising damp", "the two ronnies",
+        "morecambe and wise", "not the nine o'clock news", "spitting image", "hi-de-hi",
+        "'allo 'allo", "goodnight sweetheart", "bread", "one foot in the grave"
+      ] },
+      { collections: ["classic_tv", "classic_tv_1960s", "classic_tv_1970s", "classic_tv_1980s", "classic_tv_1990s", "SciFi_Horror", "opensource_movies"], require_subj: [
+        "doctor who", "classic doctor who", "the prisoner", "the avengers",
+        "the saint", "danger man", "the persuaders", "the professionals", "the sweeney",
+        "minder", "rumpole", "rumpole of the bailey", "inspector morse", "prime suspect",
+        "poirot", "agatha christie's poirot", "miss marple", "sherlock holmes",
+        "jeremy brett", "brideshead revisited", "upstairs downstairs", "the forsyte saga",
+        "i, claudius", "tinker tailor soldier spy", "smiley's people",
+        "blake's 7", "quatermass", "the tomorrow people", "space 1999", "ufo tv series",
+        "cracker", "cadfael", "campion", "wycliffe", "a touch of frost", "midsomer murders",
+        "spooks", "spooks television", "life on mars", "gene hunt"
+      ] },
+      { collections: ["feature_films_unsorted", "feature_films", "opensource_movies"], require_subj: [
+        "british film", "british cinema", "united kingdom cinema",
+        "ealing", "ealing studios", "ealing comedy", "ealing comedies",
+        "hammer film", "hammer horror", "hammer films", "hammer productions",
+        "carry on", "carry on film", "carry on films",
+        "british new wave", "kitchen sink", "kitchen sink drama", "kitchen sink realism",
+        "j. arthur rank", "rank organisation", "gainsborough pictures", "gainsborough film",
+        "michael powell", "emeric pressburger", "the archers", "powell and pressburger",
+        "lawrence of arabia", "bridge on the river kwai", "brief encounter",
+        "the italian job", "get carter", "the ipcress file", "the ladykillers",
+        "kind hearts and coronets", "the lavender hill mob", "passport to pimlico",
+        "the third man", "a hard day's night", "help!", "quadrophenia",
+        "if....", "this sporting life", "saturday night and sunday morning",
+        "look back in anger", "kes", "billy liar"
+      ] },
+      { collections: ["classic_tv", "opensource_movies", "feature_films_unsorted"], require_subj: [
+        "british television", "british tv", "british sitcom", "british sitcoms",
+        "british comedy", "british comedies", "british drama", "british drama series",
+        "bbc television", "bbc tv", "bbc one", "bbc two", "bbc comedy", "bbc drama",
+        "itv television", "channel 4 television", "channel four",
+        "granada television", "thames television", "central television", "yorkshire television",
+        "the beeb", "british broadcasting corporation"
+      ] }
+    ],
+    deny: {
+      title: ["american", "hollywood", "u.s. news", "us news", "training film"],
+      subject: ["american television", "hollywood", "united states television", "u.s. television", "us television",
+        "news broadcast", "newscast", "newsreel", "commercial", "advertising",
+        "training film", "instructional", "public service announcement", "cartoon", "children's cartoon"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },

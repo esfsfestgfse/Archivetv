@@ -95,27 +95,11 @@ body{
 .bars .row2{flex:1;background:#1d1d1d}
 .bars .row3{flex:2;background:#0a0a0a;display:flex;align-items:center;justify-content:center;color:#888;letter-spacing:4px;font-size:12px}
 
-/* Station bug + clock rendered as a Scientific Atlanta 8600-series cable-box VFD display.
-   Both readouts share one black bezel with a small red LED, thin chamfered edges, and green
-   vacuum-fluorescent digits. Positioned as a single unit in the top-right of the tube. */
-.sa-box{position:absolute;top:10px;right:12px;z-index:25;pointer-events:none;
-  display:inline-flex;align-items:stretch;gap:0;
-  background:linear-gradient(180deg,#1a1e1f 0%,#0d1010 50%,#161a1b 100%);
-  border:1px solid #2c2f30;border-top-color:#3a3d3e;border-bottom-color:#050607;
-  border-radius:4px;padding:3px 4px;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.05),inset 0 -1px 0 rgba(0,0,0,.5),0 3px 6px rgba(0,0,0,.55);
-  font-family:"VT323","Courier New",monospace}
-.sa-box::before{content:"";width:6px;height:6px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#ff5a4a,#8a1810);align-self:center;margin:0 6px 0 3px;box-shadow:0 0 5px rgba(255,90,74,.85)}
-.sa-vfd{background:#040806;border:1px solid #050707;border-radius:2px;padding:2px 8px;min-height:20px;display:flex;align-items:center;justify-content:center;
-  color:#8cffb0;font-weight:700;font-size:14px;letter-spacing:2px;text-shadow:0 0 4px rgba(140,255,176,.75),0 0 10px rgba(60,255,120,.35);
-  box-shadow:inset 0 1px 2px rgba(0,0,0,.85)}
-.sa-vfd + .sa-vfd{margin-left:5px}
-.bug{position:absolute;top:9px;right:90px;z-index:25;font-size:11px;font-weight:bold;letter-spacing:1px;
-  /* Legacy .bug kept because tune() and channel-flash code still writes into $("bug"). It now
-     lives inside the .sa-box VFD panel — see HTML change in the tube markup. Colors + border
-     are transparent so it inherits the VFD styling from its parent instead of the old amber
-     text-on-black-pill look. */
-  color:inherit;background:none;padding:0;border:none;text-shadow:none;pointer-events:none;position:static}
+/* Top-right SA-box VFD was covering channel content — removed 2026-08-07. The clock + channel
+   number live in the bottom .readout SA cable-box instead. Keeping the invisible .bug span so
+   the existing tune() / channel-flash JS that writes into $("bug") doesn't error. */
+.sa-box{display:none}
+.bug{display:none}
 .bug.hide{display:none}
 .entry{position:absolute;top:9px;left:11px;z-index:26;font-size:20px;font-weight:bold;letter-spacing:3px;
   color:var(--phos);text-shadow:0 0 10px rgba(103,255,134,.9);background:rgba(0,0,0,.45);padding:2px 10px;border-radius:4px;display:none}
@@ -564,13 +548,43 @@ html.mob .gsearch-wrap{padding:0 12px 6px}
 .remote{width:150px;background:linear-gradient(180deg,#2b2b2b,#161616);border-radius:15px;padding:9px 9px 11px;border:2px solid #000;box-shadow:0 18px 30px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.08)}
 .rbtn{appearance:none;cursor:pointer;font-family:inherit;font-weight:bold;font-size:10.5px;color:#e8e8e8;background:linear-gradient(180deg,#3a3a3a,#202020);border:1px solid #000;border-bottom-width:2px;border-radius:7px;padding:6px 0;text-align:center;box-shadow:inset 0 1px 0 rgba(255,255,255,.08);transition:transform .05s,filter .12s}
 .rlabel{text-align:center;font-size:8px;letter-spacing:1.6px;color:#777;margin:5px 0 3px}
-.readout{position:relative;z-index:2;width:100%;max-width:1180px;display:grid;grid-template-columns:auto auto 1fr auto auto;gap:10px;align-items:center;
-  background:linear-gradient(180deg,#1a1e1f 0%,#0d1010 50%,#161a1b 100%);
-  border:1px solid #2c2f30;border-top-color:#3a3d3e;border-bottom-color:#050607;
-  border-radius:6px;padding:8px 14px 8px 10px;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.05),inset 0 -1px 0 rgba(0,0,0,.5),0 4px 10px rgba(0,0,0,.55);
+/* ==== Scientific Atlanta Explorer-style cable box readout ==============================
+   Bezeled dark plastic housing with a brushed-metal top edge, three LED indicators on the
+   left (PWR / MSG / TUNE), and three green vacuum-fluorescent panels — channel, now-playing,
+   time — in a segment-display feel. Subtle horizontal vent slots on the outer bezel. */
+.readout{position:relative;z-index:2;width:100%;max-width:1180px;
+  display:grid;grid-template-columns:auto auto 1fr auto auto auto;gap:10px;align-items:center;
+  background:
+    linear-gradient(180deg,rgba(80,84,86,.35) 0%,rgba(80,84,86,0) 6%,rgba(0,0,0,0) 12%),
+    repeating-linear-gradient(180deg,rgba(255,255,255,0) 0px,rgba(255,255,255,0) 3px,rgba(255,255,255,.015) 3px,rgba(255,255,255,.015) 4px),
+    linear-gradient(180deg,#22282a 0%,#0d1010 45%,#161a1b 100%);
+  border:1px solid #050607;
+  border-top:1px solid #4a5052;
+  border-bottom:1px solid #050607;
+  border-radius:4px;padding:10px 16px 10px 12px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08),inset 0 -2px 4px rgba(0,0,0,.6),0 6px 14px rgba(0,0,0,.65);
   font-family:"VT323","Courier New",monospace}
-.readout::before{content:"";width:8px;height:8px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#ff5a4a,#8a1810);box-shadow:0 0 6px rgba(255,90,74,.85);align-self:center;justify-self:center;grid-row:1;grid-column:1}
+.readout::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#3a3d3e,#5a5d5e,#3a3d3e);border-radius:4px 4px 0 0;pointer-events:none}
+/* LED cluster on the far left — the "power / message-waiting / tuning" indicator stack a
+   real cable box has */
+.sa-leds{grid-column:1;display:flex;flex-direction:column;gap:3px;padding:0 3px 0 0;justify-self:center}
+.sa-led{width:6px;height:6px;border-radius:50%;background:#2a1a1a;border:1px solid #050505;box-shadow:inset 0 0 2px rgba(0,0,0,.9)}
+.sa-led.pwr{background:radial-gradient(circle at 30% 30%,#ff5a4a,#8a1810);box-shadow:0 0 5px rgba(255,90,74,.75)}
+.sa-led.msg{background:radial-gradient(circle at 30% 30%,#8cffb0,#0a5020);box-shadow:0 0 4px rgba(140,255,176,.65)}
+.sa-led.msg.off{background:#2a1a1a;box-shadow:none}
+.sa-led.tune{background:radial-gradient(circle at 30% 30%,#ffd680,#8a5a10);box-shadow:0 0 4px rgba(255,214,128,.7)}
+.sa-led.tune.off{background:#2a1a1a;box-shadow:none}
+/* VFD clock panel — recessed amber-green segment display, right of the now-playing block.
+   This is where the wall clock lives now that the top-right SA VFD box is gone; a real cable
+   box shows time here so the user doesn't need a separate widget covering the picture. */
+.sa-clock{grid-column:4;justify-self:end;min-width:106px;text-align:center;padding:5px 12px 4px;
+  font-family:"VT323","Courier New",monospace;font-size:22px;letter-spacing:2.5px;
+  color:#8cffb0;text-shadow:0 0 6px rgba(140,255,176,.6),0 0 2px rgba(140,255,176,.9);
+  background:linear-gradient(180deg,#050705 0%,#0a0f0a 100%);
+  border:1px solid #050505;border-top:1px solid #1a1f1a;
+  border-radius:3px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.03),inset 0 0 8px rgba(0,0,0,.75),inset 0 0 22px rgba(140,255,176,.05);
+  user-select:none}
 /* Build-number chip beside STANDBY so you can see at a glance whether the visible page is the
    latest deploy. Populated from window.__ATV_BUILD at boot. Tiny, low-contrast, non-interactive. */
 .ver-chip{font-size:9px;letter-spacing:1.2px;color:#5a8a62;margin-left:8px;opacity:.75;font-family:monospace;user-select:none;font-weight:600}
@@ -985,7 +999,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.125";
+window.__ATV_BUILD="1.7.7-desktop.126";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1153,10 +1167,12 @@ window.addEventListener("unhandledrejection",function(e){
     </div>
   </div>
 
-  <!-- readout -->
+  <!-- readout — SA Explorer-8300-style cable box: LED cluster · channel VFD · now-playing VFD · clock VFD · signal indicator -->
   <div class="readout">
+    <div class="sa-leds"><span class="sa-led pwr"></span><span class="sa-led msg off" id="saLedMsg"></span><span class="sa-led tune off" id="saLedTune"></span></div>
     <div class="chnum" id="chNum">--</div>
     <div class="nb" aria-live="polite"><div class="nm" id="nowName">Television is off</div><div class="me" id="nowMeta">Press power on the remote</div></div>
+    <div class="sa-clock" id="saClock" title="current time">--:-- --</div>
     <span class="sleep-ind hide" id="sleepInd"></span>
     <div class="sig" aria-live="polite"><span class="led" id="led"></span><span id="sigText">STANDBY</span><span class="ver-chip" id="verChip"></span></div>
   </div>
@@ -1280,7 +1296,7 @@ const FNOTX=FNOT.concat(["video game","gameplay","let's play","lets play","speed
    whole app fails -> nothing plays, channel bank is empty, total outage. */
 const G={
  cartoon:    {mt:"movies",col:["animationandcartoons"],fcol:[],            subj:["animation","cartoon"],          era:[1930,1969]},
- anime:      {mt:"movies",col:["anime_miscellaneous","anime"],fcol:[],          subj:["anime","japanese animation","japanimation"],not:["trailer","amv","music video","fan edit"],era:[1950,2005],noBlindFallback:true},
+ anime:      {mt:"movies",col:["anime_miscellaneous","anime"],fcol:[],          subj:["anime","japanese animation","japanimation"],not:["trailer","amv","music video","fan edit"],era:[1950,2026],noBlindFallback:true},
  golden:     {mt:"movies",col:[],                       fcol:["feature_films"],subj:[],                           era:[1930,1949]},
  classicfilm:{mt:"movies",col:[],                       fcol:["feature_films"],subj:[],                           era:[1950,1965]},
  noir:       {mt:"movies",col:["Film_Noir"],            fcol:["feature_films"],subj:["film noir"],                era:[1945,1959]}, // FIX: real IA collection is capitalized "Film_Noir" — lowercase never matched anything
@@ -1294,11 +1310,11 @@ const G={
  musicfilm:  {mt:"movies",col:["artsandmusicvideos"],   fcol:["feature_films"],subj:["musical","music"],          era:[1935,1969]},
  sitcom:     {mt:"movies",col:["classic_tv"],           fcol:["feature_films"],subj:["sitcom","television comedy"],era:[1950,1969]},
  sitcommodern:{mt:"movies",col:["classic_tv","television"],fcol:["vhsvault"],   subj:["sitcom","television comedy","television series","tv series"],era:[1970,2003]}, /* CYCLE-10: VHS Vault fallback tier (subject-scoped) for the thin post-85 years */
- gameshow:   {mt:"movies",col:["classic_tv","television"],fcol:["vhsvault"],     subj:["game show","quiz show","panel show","game shows"],not:FNOT,era:[1950,2005],subjRequired:true,noBlindFallback:true}, /* CYCLE-14: ONLY game shows, every era */
+ gameshow:   {mt:"movies",col:["classic_tv","television"],fcol:["vhsvault"],     subj:["game show","quiz show","panel show","game shows"],not:FNOT,era:[1950,2026],subjRequired:true,noBlindFallback:true}, /* CYCLE-14: ONLY game shows, every era */
  computer:   {mt:"movies",col:["computerchronicles"],   fcol:[],               subj:[],                           era:[1983,2002]},
  commercials:{mt:"movies",col:["classic_tv","prelinger"],fcol:[],              subj:["television commercials","advertising","toy commercial","toy advertisement","commercial","commercials","vintage commercial","retro commercial","classic commercial","tv commercial"],era:[1948,1995]},
  blackcinema:{mt:"movies",col:[],                       fcol:["feature_films"],       subj:["race film","black cinema","oscar micheaux","all black cast"],not:FNOT,era:[1915,1955]},
- arcade:     {mt:"movies",col:["gamevideos"],           fcol:[],                      subj:[],                      era:[1980,2015],noBlindFallback:true},
+ arcade:     {mt:"movies",col:["gamevideos"],           fcol:[],                      subj:[],                      era:[1980,2026],noBlindFallback:true},
  manufacturing:{mt:"movies",col:["prelinger","FedFlix","avgeeks"],fcol:[],              subj:["manufacturing","assembly line","industrial process","factory","steel","machining","machinery","engineering","construction","production","industry","mining"],subjRotate:true,subjRequired:true,not:FNOT,era:[1930,1990]}, /* 1.3.3: bolstered — 3 collections, 12 rotating topics, subject-locked, wider era */
  testkitchen:{mt:"movies",col:["prelinger"],            fcol:["avgeeks"],             subj:["cooking","recipe","home economics","baking","food preparation","kitchen","nutrition","meal planning","housekeeping","sewing","etiquette"],subjRotate:true,subjRequired:true,not:FNOT,era:[1935,1985]}, /* 1.3: true Home-Ec — one topic per tune, subject-locked, all decades */
  foundfootage:{mt:"movies",col:[],                      fcol:["feature_films","home_movies"],subj:["home movies","amateur film","newsreel"],era:[1920,1965]},
@@ -1308,8 +1324,8 @@ const G={
  avgeeks:    {mt:"movies",col:["avgeeks"],              fcol:["prelinger"],     subj:["educational film"],         era:[1950,1985]},
  trailer:    {mt:"movies",col:["movie_trailers"],       fcol:[],               subj:["trailer","coming attractions"],era:[1940,1989]},
  jazz78:     {mt:"audio", col:["georgeblood","78rpm"],  fcol:[],               subj:["jazz","swing"],             era:[1920,1949], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
- gmrock:     {mt:"audio", col:["etree"],                fcol:[],               subj:["rock"], subjRequired:true,  era:[1965,2015], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
- gmfolk:     {mt:"audio", col:["etree"],                fcol:[],               subj:["bluegrass","folk","americana","acoustic"], era:[1965,2015], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
+ gmrock:     {mt:"audio", col:["etree"],                fcol:[],               subj:["rock"], subjRequired:true,  era:[1965,2026], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
+ gmfolk:     {mt:"audio", col:["etree"],                fcol:[],               subj:["bluegrass","folk","americana","acoustic"], era:[1965,2026], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
  gmjazz:     {mt:"audio", col:["georgeblood","78rpm"],  fcol:[],               subj:["jazz","dixieland","bebop"], era:[1917,1959], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
  gmblues:    {mt:"audio", col:["georgeblood","78rpm"],  fcol:[],               subj:["blues","rhythm and blues"], era:[1917,1959], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
  gmswing:    {mt:"audio", col:["georgeblood","78rpm"],  fcol:[],               subj:["swing","big band","dance orchestra","fox trot"], era:[1925,1949], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
@@ -1465,8 +1481,8 @@ const CATNAME={NET:"NETWORKS",TOON:"CARTOONS",MOV:"MOVIES",TV:"TELEVISION",SPORT
 /* ---------- the dial (~36 channels) ---------- */
 const CH=[
  {nm:"Sports Center", num:50,     cat:"SPORTS", source:"sports", ns:"tv"},
- {nm:"Hard Count", num:51,        cat:"SPORTS", gl:"nflfilms",   era:[1965,2010], ns:"doc"}, /* NFL Films golden age — Sabol / Facenda, gridiron poetry */
- {nm:"The Octagon", num:52,       cat:"SPORTS", gl:"combat",     era:[1960,2020], ns:"doc"}, /* Combat sports — boxing, MMA, UFC classics, Ali/Frazier era */
+ {nm:"Hard Count", num:51,        cat:"SPORTS", gl:"nflfilms",   era:[1965,2026], ns:"doc"}, /* NFL Films golden age — Sabol / Facenda, gridiron poetry */
+ {nm:"The Octagon", num:52,       cat:"SPORTS", gl:"combat",     era:[1960,2026], ns:"doc"}, /* Combat sports — boxing, MMA, UFC classics, Ali/Frazier era */
  {nm:"Channel 2 Network", num:2, cat:"NET", profile:"network", era:[1950,1969], ns:"movie"},
  {nm:"Nite-Owl 3", num:3,        cat:"NET", profile:"network", era:[1935,1955], ns:"movie"},
 
@@ -1481,8 +1497,8 @@ const CH=[
  {nm:"Music Films", num:104,       cat:"MOV", gl:"musicfilm",   era:[1935,1969], ns:"movie"},
 
  {nm:"Classic Rerun TV", num:10,  cat:"TV", gl:"sitcom",       era:[1950,1969], ns:"tv"},
- {nm:"Modern Rerun TV", num:11,   cat:"TV", gl:"sitcommodern", era:[1970,2003], ns:"tv"},
- {nm:"Game Show Channel", num:12, cat:"TV", gl:"gameshow",     era:[1950,2005], ns:"tv"},
+ {nm:"Modern Rerun TV", num:11,   cat:"TV", gl:"sitcommodern", era:[1970,2026], ns:"tv"},
+ {nm:"Game Show Channel", num:12, cat:"TV", gl:"gameshow",     era:[1950,2026], ns:"tv"},
  {nm:"Vintage Commercials", num:13,cat:"TV",gl:"commercials",  era:[1948,1985], ns:"tv"},
  {nm:"Black Cinema", num:105,      cat:"MOV", gl:"blackcinema", era:[1915,1955], ns:"movie"},
  {nm:"Arcade Archive", num:152,    cat:"TOON",gl:"arcade",       era:[1980,2015], ns:"movie"},
@@ -1491,13 +1507,13 @@ const CH=[
  {nm:"Found Footage Static", num:500,cat:"RETRO",gl:"foundfootage",era:[1920,1965], ns:"movie", glitch:true},
  {nm:"Computer Chronicles", num:14,cat:"TV",gl:"computer",     era:[1983,2002], ns:"tv"},
 
- {nm:"Live Concerts", num:900,      cat:"MUS", gl:"concertrock",  era:[1970,2015], ns:"music", audio:true},
+ {nm:"Live Concerts", num:900,      cat:"MUS", gl:"concertrock",  era:[1970,2026], ns:"music", audio:true},
  {nm:"Rock", num:901,              cat:"MUS", gl:"gmrock",      era:[1965,2015], ns:"music", audio:true},
  {nm:"Bluegrass & Folk", num:902,  cat:"MUS", gl:"gmfolk",      era:[1965,2015], ns:"music", audio:true},
  {nm:"Jazz", num:903,              cat:"MUS", gl:"gmjazz",      era:[1917,1959], ns:"music", audio:true},
- {nm:"Contemporary Jazz", num:904, cat:"MUS", gl:"gmjazzmod",   era:[1960,2025], ns:"music", audio:true},
+ {nm:"Contemporary Jazz", num:904, cat:"MUS", gl:"gmjazzmod",   era:[1960,2026], ns:"music", audio:true},
  {nm:"Blues", num:905,             cat:"MUS", gl:"gmblues",     era:[1917,1959], ns:"music", audio:true},
- {nm:"Contemporary Blues", num:906,cat:"MUS", gl:"gmbluesmod",  era:[1960,2025], ns:"music", audio:true},
+ {nm:"Contemporary Blues", num:906,cat:"MUS", gl:"gmbluesmod",  era:[1960,2026], ns:"music", audio:true},
  {nm:"Swing & Big Band", num:907,  cat:"MUS", gl:"gmswing",     era:[1925,1949], ns:"music", audio:true},
  {nm:"Country & Western", num:908, cat:"MUS", gl:"gmcountry",   era:[1925,1959], ns:"music", audio:true},
  {nm:"Gospel", num:909,            cat:"MUS", gl:"gmgospel",    era:[1920,1959], ns:"music", audio:true},
@@ -1515,7 +1531,7 @@ const CH=[
  {nm:"Fallout Radio", num:921,     cat:"MUS", gl:"radiofallout",era:[1948,1965], ns:"radio", audio:true},
  {nm:"Joke Joint", num:202,         cat:"DOC", gl:"comedycentral", era:[1970,2025], ns:"tv"}, /* renamed from "Comedy" + rebuilt 2026-08-07: was audio-only standup; now video sketch + comedy TV in the Comedy Central vibe */
  {nm:"Podcasts", num:203,           cat:"DOC", gl:"podcasts",     era:[2004,2025], ns:"radio", audio:true},
- {nm:"Modern Country", num:922,     cat:"MUS", gl:"gmcountrymod", era:[1970,2025], ns:"music", audio:true},
+ {nm:"Modern Country", num:922,     cat:"MUS", gl:"gmcountrymod", era:[1970,2026], ns:"music", audio:true},
  {nm:"Field Recordings", num:923,   cat:"MUS", gl:"fieldrec",     era:[1990,2025], ns:"music", audio:true},
 
  {nm:"Prelinger Vault", num:204,   cat:"DOC", profile:"prelingervault", era:[1940,1985], ns:"doc"}, // consolidated: was 3 channels drawing from the same prelinger/educational/industrial pool
@@ -1537,14 +1553,14 @@ const CH=[
  {nm:"The 36th Chamber", num:114, cat:"MOV", gl:"kungfu",      era:[1965,2000], ns:"movie"}, /* Shaw Brothers / Golden Harvest / chopsocky kung fu theater */
  {nm:"Monster Island", num:115,   cat:"MOV", gl:"kaiju",       era:[1954,1995], ns:"movie"}, /* Godzilla, Gamera, Toho — Japanese giant-monster cinema */
  {nm:"Blaxploitation", num:116,   cat:"MOV", gl:"blaxploit",   era:[1970,1979], ns:"movie"}, /* 70s Black action cinema — Shaft, Foxy Brown, Superfly, Coffy, Cleopatra Jones */
- {nm:"The Festival Circuit", num:117, cat:"MOV", gl:"indiefilm", era:[1980,2015], ns:"movie"}, /* Sundance-adjacent indie features + short films from 80s-00s */
- {nm:"Modern Cartoons", num:153,   cat:"TOON",gl:"cartoonmodern",era:[1970,2001], ns:"toon"},
+ {nm:"The Festival Circuit", num:117, cat:"MOV", gl:"indiefilm", era:[1980,2026], ns:"movie"}, /* Sundance-adjacent indie features + short films from 80s-00s */
+ {nm:"Modern Cartoons", num:153,   cat:"TOON",gl:"cartoonmodern",era:[1970,2026], ns:"toon"},
  {nm:"Cop Show Classic", num:154,  cat:"RETRO", gl:"copshow",    era:[1950,1985], ns:"movie"}, /* police procedurals + detective shows */
- {nm:"Adult Animation", num:155,   cat:"TOON", gl:"adultanim",   era:[1970,2010], ns:"toon"}, /* Bakshi/Heavy Metal/Liquid TV + adult TV animation */
- {nm:"Kids Hour", num:156,         cat:"TOON", gl:"kidshour",    era:[1965,2000], ns:"toon"}, /* Sesame Street / Electric Company / Mister Rogers era */
- {nm:"After School", num:157,      cat:"TOON", gl:"kids2000",    era:[1995,2010], ns:"toon"}, /* Nick / Cartoon Network / Disney Channel late 90s + early 2000s */
+ {nm:"Adult Animation", num:155,   cat:"TOON", gl:"adultanim",   era:[1970,2026], ns:"toon"}, /* Bakshi/Heavy Metal/Liquid TV + adult TV animation */
+ {nm:"Kids Hour", num:156,         cat:"TOON", gl:"kidshour",    era:[1965,2026], ns:"toon"}, /* Sesame Street / Electric Company / Mister Rogers era */
+ {nm:"After School", num:157,      cat:"TOON", gl:"kids2000",    era:[1995,2026], ns:"toon"}, /* Nick / Cartoon Network / Disney Channel late 90s + early 2000s */
  {nm:"Home Movies & Travelogues", num:206,cat:"DOC",gl:"homemovietravel",era:[1935,1985], ns:"doc"},
- {nm:"Auto Racing", num:207,       cat:"DOC", gl:"autoracing",  era:[1930,1995], ns:"doc"},
+ {nm:"Auto Racing", num:207,       cat:"DOC", gl:"autoracing",  era:[1930,2026], ns:"doc"},
  {nm:"Railroad", num:208,          cat:"DOC", gl:"railroad",    era:[1930,1990], ns:"doc"},
  {nm:"Aviation", num:209,          cat:"DOC", gl:"aviationfilm",era:[1930,1990], ns:"doc"},
  {nm:"Live Radio", num:924,        cat:"MUS", source:"liveradio", ns:"radio", audio:true},
@@ -1557,22 +1573,22 @@ const CH=[
  {nm:"Air Traffic", num:405,       cat:"LDATA", source:"airtraffic", ns:"tv"},
  {nm:"Seismic Watch", num:406,     cat:"LDATA", source:"seismic",    ns:"tv"},
  {nm:"News, News, News", num:210,  cat:"DOC", gl:"newsarchive", era:[1920,1975], ns:"doc"},
- {nm:"The Kitchen", num:211,       cat:"DOC", gl:"kitchen",     era:[1960,2010], ns:"doc"}, /* Julia Child + vintage cooking TV */
+ {nm:"The Kitchen", num:211,       cat:"DOC", gl:"kitchen",     era:[1960,2026], ns:"doc"}, /* Julia Child + vintage cooking TV */
  {nm:"Nature Channel", num:212,    cat:"DOC", gl:"nature",       era:[1935,1990], ns:"doc"}, /* vintage nature + national park docs */
  {nm:"NASA Marathon", num:213,     cat:"DOC", gl:"nasamarathon", era:[1960,2020], ns:"space"}, /* Apollo/Shuttle/mission footage */
  {nm:"Country Roads", num:214,     cat:"DOC", gl:"countryroads", era:[1935,1985], ns:"doc"}, /* rural Americana, farm + ranch life */
- {nm:"Storm Chase Classics", num:215,cat:"DOC",gl:"stormchase",  era:[1970,2015], ns:"doc"}, /* tornado + severe-weather documentaries */
+ {nm:"Storm Chase Classics", num:215,cat:"DOC",gl:"stormchase",  era:[1970,2026], ns:"doc"}, /* tornado + severe-weather documentaries */
  {nm:"Cold War Cinema", num:216,   cat:"DOC", gl:"coldwar",     era:[1948,1985], ns:"doc"}, /* civil defense / atomic-age propaganda + PSAs */
  {nm:"Educational Filmstrip", num:217,cat:"DOC",gl:"filmstrip", era:[1945,1985], ns:"doc"}, /* classic classroom slide-and-narration format */
  {nm:"Roller Derby & Wrestling", num:218,cat:"DOC",gl:"rollerderby",era:[1955,1985], ns:"doc"}, /* vintage pro wrestling + roller derby */
  {nm:"Vintage Local News", num:219,cat:"DOC", gl:"localnews",   era:[1975,2005], ns:"doc"}, /* off-air affiliate newscasts */
  {nm:"Bob Ross & Comfort TV", num:220,cat:"DOC",gl:"comforttv", era:[1980,2010], ns:"doc"}, /* Joy of Painting + chore-doer TV */
- {nm:"Mic Night", num:222,        cat:"DOC", gl:"standup",     era:[1970,2020], ns:"doc"}, /* Stand-up comedy specials only — no sketch, no sitcoms */
- {nm:"The Cipher", num:223,       cat:"DOC", gl:"hiphopvault", era:[1978,2010], ns:"doc"}, /* Hip-hop history — Yo! MTV Raps era, rap docs, freestyle circles, breaking */
- {nm:"Eyes on the Prize", num:224,cat:"DOC", gl:"civilrights", era:[1955,2000], ns:"doc"}, /* Civil rights movement documentaries + speeches + MLK/Malcolm X archives */
- {nm:"Uptown Comedy", num:225,    cat:"DOC", gl:"blackcomedy", era:[1970,2020], ns:"doc"}, /* Def Comedy Jam era + Black stand-up + sketch — Pryor, Rock, Chappelle, Def Jam */
- {nm:"The Documentary Hour", num:226, cat:"DOC", gl:"pbsdocs",  era:[1970,2020], ns:"doc"}, /* PBS-style — Ken Burns, Frontline, Nova, American Experience, POV */
- {nm:"Gear Head", num:227,        cat:"DOC", gl:"topgear",     era:[1990,2020], ns:"doc"}, /* Top Gear-like — car reviews, road tests, restoration, automotive culture */
+ {nm:"Mic Night", num:222,        cat:"DOC", gl:"standup",     era:[1970,2026], ns:"doc"}, /* Stand-up comedy specials only — no sketch, no sitcoms */
+ {nm:"The Cipher", num:223,       cat:"DOC", gl:"hiphopvault", era:[1978,2026], ns:"doc"}, /* Hip-hop history — Yo! MTV Raps era, rap docs, freestyle circles, breaking */
+ {nm:"Eyes on the Prize", num:224,cat:"DOC", gl:"civilrights", era:[1955,2026], ns:"doc"}, /* Civil rights movement documentaries + speeches + MLK/Malcolm X archives */
+ {nm:"Uptown Comedy", num:225,    cat:"DOC", gl:"blackcomedy", era:[1970,2026], ns:"doc"}, /* Def Comedy Jam era + Black stand-up + sketch — Pryor, Rock, Chappelle, Def Jam */
+ {nm:"The Documentary Hour", num:226, cat:"DOC", gl:"pbsdocs",  era:[1970,2026], ns:"doc"}, /* PBS-style — Ken Burns, Frontline, Nova, American Experience, POV */
+ {nm:"Gear Head", num:227,        cat:"DOC", gl:"topgear",     era:[1990,2026], ns:"doc"}, /* Top Gear-like — car reviews, road tests, restoration, automotive culture */
  {nm:"Space", num:407,             cat:"LDATA", source:"space",   ns:"tv"},
  {nm:"River & Lake Watch", num:408,cat:"LDATA", source:"river",   ns:"tv"},
  {nm:"On This Day", num:504,       cat:"RETRO", source:"onthisday",ns:"movie"},
@@ -1780,7 +1796,7 @@ const PROGRAM = {
   },
 
   "Live Concerts": {
-    genre: "concertrock", era: [1960, 2020],
+    genre: "concertrock", era: [1960, 2026],
     providers: [{"collections": ["etree", "audio_music"], "require_subj": ["live concert", "live music", "live performance", "concert", "live recording", "bootleg", "live show"]}],
     deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture", "studio"]},
     subjRequired: true, noBlindFallback: true
@@ -1790,7 +1806,7 @@ const PROGRAM = {
     /* audit 2B: dropped "classical","jazz" from deny.subject. Jazz-rock (Zappa, Chicago, Blood
        Sweat & Tears), symphonic prog rock (ELP, Yes), and orchestral rock are all card-carrying
        rock genres tagged jazz/classical by uploaders. */
-    genre: "gmrock", era: [1955, 2010],
+    genre: "gmrock", era: [1955, 2026],
     providers: [{"collections": ["etree", "audio_music"], "require_subj": ["rock", "rock music", "rock and roll", "alternative rock", "indie rock", "punk rock", "hard rock", "classic rock", "garage rock"]}],
     deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture"]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
@@ -1804,7 +1820,7 @@ const PROGRAM = {
   },
 
   "Contemporary Blues": {
-    genre: "gmbluesmod", era: [1970, 2020],
+    genre: "gmbluesmod", era: [1970, 2026],
     providers: [{"collections": ["etree", "audio_music"], "require_subj": ["blues", "modern blues", "contemporary blues", "blues rock", "electric blues", "slide guitar"]}],
     deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture"]},
     subjRequired: true, noBlindFallback: true
@@ -1821,7 +1837,7 @@ const PROGRAM = {
   },
 
   "Reggae & Dub": {
-    genre: "gmreggae", era: [1960, 2020],
+    genre: "gmreggae", era: [1960, 2026],
     providers: [{"collections": ["etree", "audio_music"], "require_subj": ["reggae", "dub", "ska", "dancehall", "roots reggae", "rocksteady"]}],
     /* audit 2B: dropped "rock","funk" from deny.subject. Reggae-rock (Police, Sublime lineage)
        and reggae-funk crossovers were being blocked. */
@@ -1834,7 +1850,7 @@ const PROGRAM = {
        and jazz-punk crossovers were being blocked.
        Soak follow-up: "Slightly Stoopid Live at Gathering of The Vibes" bled in — reggae-rock at a
        jamband festival. Spreading JAMBAND_DENY. */
-    genre: "gmpunk", era: [1975, 2020],
+    genre: "gmpunk", era: [1975, 2026],
     providers: [{"collections": ["etree", "audio_music"], "require_subj": ["punk", "punk rock", "hardcore", "hardcore punk", "post-punk", "pop punk", "anarcho-punk"]}],
     deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture", ...JAMBAND_DENY]},
     subjRequired: true, noBlindFallback: true
@@ -1843,7 +1859,7 @@ const PROGRAM = {
   "Metal": {
     /* Soak caught "Jerry Joseph and the Jackmormons" tagged "Heavy Metal Gospel" — actually
        alt-country/jamband, not metal. Spreading JAMBAND_DENY. */
-    genre: "gmmetal", era: [1970, 2020],
+    genre: "gmmetal", era: [1970, 2026],
     providers: [{"collections": ["etree", "audio_music"], "require_subj": ["metal", "heavy metal", "thrash metal", "death metal", "black metal", "doom metal", "power metal", "progressive metal"]}],
     deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture", "jazz", "classical", ...JAMBAND_DENY]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
@@ -1852,14 +1868,14 @@ const PROGRAM = {
   "Electronic": {
     /* Soak caught "Sam Holt Live at The Pour House" — Widespread Panic-adjacent jamband guitarist,
        not electronic. Spreading JAMBAND_DENY. */
-    genre: "gmelectro", era: [1970, 2020],
+    genre: "gmelectro", era: [1970, 2026],
     providers: [{"collections": ["etree", "audio_music"], "require_subj": ["electronic", "electronic music", "techno", "house", "ambient", "IDM", "drum and bass", "dubstep", "trance", "synth"]}],
     deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture", ...JAMBAND_DENY]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
   "Funk & Soul": {
-    genre: "gmfunk", era: [1960, 2010],
+    genre: "gmfunk", era: [1960, 2026],
     providers: [{"collections": ["etree", "audio_music"], "require_subj": ["funk", "soul", "soul music", "motown", "R&B", "rhythm and blues", "disco", "funk music"]}],
     deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture"]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
@@ -1883,14 +1899,20 @@ const PROGRAM = {
 
   /* Mic Night (ch 222, new 2026-08-07). Dedicated stand-up specials — one-mic, one-audience. */
   "Mic Night": {
-    genre: "standup", era: [1970, 2020],
+    /* AUDIT 2026-08-07: soak served "Civil War Journals" because subject line contained
+       "Catherine's Comedy Hour" — bare "comedy hour" matched it as a substring against
+       the full comma-joined subject field. Ripped "comedy hour" and "comedy special" from
+       requires (too generic; they collide with variety/magazine shows and doc collections
+       that use "hour" freely). Require phrases are now stand-up-specific. Deny list now
+       explicitly blocks documentary/history/journal titles + subjects. Era bumped to 2026. */
+    genre: "standup", era: [1970, 2026],
     providers: [
-      { collections: ["opensource_movies"], require_subj: ["stand-up comedy", "standup comedy", "comedy special", "comedy hour", "comedy club", "comedy live", "stand up", "one-hour comedy"] },
-      { collections: ["Comedy_Films"], require_subj: ["stand-up", "comedy special", "comedy hour", "live comedy", "stand-up comedy"] }
+      { collections: ["opensource_movies"], require_subj: ["stand-up comedy", "standup comedy", "stand-up special", "standup special", "comedy club", "comedy live", "one-hour stand-up", "comedy central presents", "hbo comedy hour", "hbo one night stand"] },
+      { collections: ["Comedy_Films"], require_subj: ["stand-up comedy", "standup comedy", "stand-up special", "live comedy performance"] }
     ],
     deny: {
-      title: ["sketch", "sitcom", "cartoon", "trailer", "concert", "festival", "band", "album"],
-      subject: ["sketch comedy", "sitcom", "cartoon", "animated", "children", "podcast", "youtube", "vlog", "prank", "internet video", "music album", "concert"]
+      title: ["sketch", "sitcom", "cartoon", "trailer", "concert", "festival", "band", "album", "civil war", "journal", "documentary", "history channel", "a&e", "pbs", "history of"],
+      subject: ["sketch comedy", "sitcom", "cartoon", "animated", "children", "podcast", "youtube", "vlog", "prank", "internet video", "music album", "concert", "documentary", "history", "biography", "civil war", "war documentary", "journalism"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
@@ -1921,7 +1943,7 @@ const PROGRAM = {
   },
 
   "Hard Count": {
-    genre: "nflfilms", era: [1965, 2010],
+    genre: "nflfilms", era: [1965, 2026],
     providers: [
       { collections: ["opensource_movies"], require_subj: ["NFL Films", "NFL", "Steve Sabol", "Ed Sabol", "John Facenda", "pro football", "football films", "NFL history", "super bowl", "gridiron"] },
       { collections: ["sports", "sportstelevision"], require_subj: ["NFL Films", "Steve Sabol", "John Facenda", "pro football", "NFL Films Presents"] }
@@ -1981,7 +2003,7 @@ const PROGRAM = {
   },
 
   "The Cipher": {
-    genre: "hiphopvault", era: [1978, 2015],
+    genre: "hiphopvault", era: [1978, 2026],
     providers: [
       { collections: ["opensource_movies"], require_subj: ["hip hop", "hip-hop", "rap music", "hip hop history", "yo! MTV raps", "rap city", "breakdancing", "breaking", "graffiti", "DJ battle", "freestyle", "hip hop documentary", "rap documentary", "Def Jam", "wild style", "beat street"] }
     ],
@@ -1993,7 +2015,7 @@ const PROGRAM = {
   },
 
   "Eyes on the Prize": {
-    genre: "civilrights", era: [1955, 2005],
+    genre: "civilrights", era: [1955, 2026],
     providers: [
       { collections: ["opensource_movies"], require_subj: ["civil rights", "civil rights movement", "martin luther king", "malcolm x", "black panthers", "SNCC", "freedom riders", "selma", "montgomery bus boycott", "march on washington", "voting rights", "SCLC", "NAACP", "black power"] },
       { collections: ["news_and_journalism", "opensource_movies"], require_subj: ["civil rights", "martin luther king", "malcolm x", "african american history"] }
@@ -2006,7 +2028,7 @@ const PROGRAM = {
   },
 
   "Uptown Comedy": {
-    genre: "blackcomedy", era: [1970, 2020],
+    genre: "blackcomedy", era: [1970, 2026],
     providers: [
       { collections: ["opensource_movies", "Comedy_Films"], require_subj: ["def comedy jam", "def poetry", "richard pryor", "chris rock", "eddie murphy", "dave chappelle", "black comedy", "african american comedy", "kings of comedy", "queens of comedy", "in living color", "comic view", "shuck and jive"] },
       { collections: ["opensource_movies"], require_subj: ["chappelle show", "chappelle's show", "def jam", "african american stand-up", "black stand-up"] }
@@ -2055,7 +2077,7 @@ const PROGRAM = {
   },
 
   "Field Recordings": {
-    genre: "fieldrec", era: [1900, 2020],
+    genre: "fieldrec", era: [1900, 2026],
     /* audit 6A: dropped "sound recording" from require_subj — every audio item on IA is arguably one,
        so the token was meaningless as a filter. */
     providers: [{"collections": ["audio_music", "opensource_audio"], "require_subj": ["field recording", "nature sounds", "ambient recording", "environmental sound", "soundscape", "ethnographic recording"]}],
@@ -2080,7 +2102,7 @@ const PROGRAM = {
   "Bluegrass & Folk": {
     /* Soak caught "Nathan Moore Live at Las Tortugas Dance of the Dead" bleeding through — a
        jamband collective, not folk. Spreading JAMBAND_DENY here matches Hip-Hop/Reggae/etc. */
-    genre: "gmfolk", era: [1920, 2010],
+    genre: "gmfolk", era: [1920, 2026],
     providers: [{"collections": ["etree", "audio_music"], "require_subj": ["bluegrass", "folk", "folk music", "acoustic", "fiddle", "banjo", "mandolin", "folk rock", "traditional", "americana"]}],
     deny: {"subject": ["podcast", "talk show", "comedy", "spoken word", "audiobook", "lecture", ...JAMBAND_DENY]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
@@ -2129,7 +2151,7 @@ const PROGRAM = {
     /* Soak caught "Baila El Chiki Chiki" (Rodolfo Chikilicuatre) TWICE — a Spanish Eurovision
        parody entry tagged "Reggaeton,Parody Reggaeton". Not real Latin music. Deny eurovision
        and novelty/parody so the eurovision-archive collection stops leaking through. */
-    genre: "gmlatin", era: [1940, 2010],
+    genre: "gmlatin", era: [1940, 2026],
     providers: [{"collections": ["etree", "audio_music"], "require_subj": ["latin", "salsa", "bossa nova", "cumbia", "mambo", "tango", "latin jazz", "samba", "merengue", "bachata", "reggaeton"]}],
     deny: {"subject": ["podcast", "talk show", "comedy", "spoken word", "audiobook", "lecture", "eurovision", "parody", "novelty song", "parody reggaeton"]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
@@ -2198,7 +2220,7 @@ const PROGRAM = {
        sing-along filmstrips. Replaced with tighter music-film-shape terms.
        audit 2B: dropped "documentary" from deny — music docs (Monterey Pop, Woodstock, Gimme
        Shelter) are the flagship music-film form and are all tagged documentary. */
-    genre: "musicfilm", era: [1940, 2000],
+    genre: "musicfilm", era: [1940, 2026],
     providers: [{"collections": ["feature_films", "classic_tv"], "require_subj": ["musical", "music film", "musical film", "concert film", "music documentary", "music biography", "musical performance", "rockumentary"]}],
     deny: {"title": ["newsreel", "commercial", "educational", "training"], "subject": ["newsreel", "commercial", "educational", "training", "instructional"]},
     subjRequired: true, noBlindFallback: true
@@ -2223,7 +2245,7 @@ const PROGRAM = {
   },
 
   "Modern Cartoons": {
-    genre: "cartoonmodern", era: [1970, 2005],
+    genre: "cartoonmodern", era: [1970, 2026],
     /* audit 6A: dropped bare "animation" — matches motion-graphics educational films and any
        animated content, defeats the "modern TV cartoons" intent. Specific terms cover the target. */
     providers: [{"collections": ["animationandcartoons", "classic_tv", "television"], "require_subj": ["cartoon", "animated", "animated series", "cartoon series", "animated film", "saturday morning cartoon", "tv animation"]}],
@@ -2233,7 +2255,7 @@ const PROGRAM = {
   },
 
   "Found Footage Static": {
-    genre: "foundfootage", era: [1920, 2000],
+    genre: "foundfootage", era: [1920, 2026],
     providers: [{"collections": ["prelinger", "home_movies", "opensource_movies"], "require_subj": ["found footage", "test pattern", "film leader", "countdown", "static", "glitch", "experimental film", "avant garde", "abstract film"]}],
     deny: {"title": ["feature film", "hollywood", "studio production", "fellini", "8½"], "subject": ["feature film", "hollywood", "studio", "commercial", "comedy drama", "Federico Fellini", "Italian"]},
     subjRequired: true, noBlindFallback: true
@@ -2287,7 +2309,7 @@ const PROGRAM = {
        AUDIT 2026-08-06: was serving Def Leppard "Too Late For Love" music video via classic_tv
        collection. Removed classic_tv/television broad collections, kept animation-only sources,
        added hard deny for music videos and concert footage. */
-    genre: "adultanim", era: [1970, 2010],
+    genre: "adultanim", era: [1970, 2026],
     providers: [
       { collections: ["animationandcartoons"], require_subj: ["adult animation", "ralph bakshi", "bakshi", "heavy metal", "MTV animation", "liquid television", "aeon flux", "beavis and butt-head", "duckman", "the maxx", "underground animation", "experimental animation", "adult swim", "aeon flux"] },
       { collections: ["more_animation", "classic_cartoons"], require_subj: ["adult animation", "bakshi", "aeon flux", "liquid television", "beavis and butt-head", "the maxx", "underground animation", "experimental animation"] }
@@ -2306,7 +2328,7 @@ const PROGRAM = {
        Arthur, Shining Time Station, Muppet Show, Fraggle Rock).
        AUDIT 2026-08-06 v2: expanded from 12 show names to 30+, added educationalvideos
        collection. Deny list from v1 preserved to keep adult content locked out. */
-    genre: "kidshour", era: [1965, 2010],
+    genre: "kidshour", era: [1965, 2026],
     providers: [
       { collections: ["childrenstelevision", "classic_tv"], require_subj: ["sesame street", "electric company", "mister rogers", "mr rogers", "captain kangaroo", "romper room", "reading rainbow", "shining time station", "jim henson hour", "muppet show", "muppet", "fraggle rock", "3-2-1 contact", "mr. wizard", "mr wizard", "bill nye", "magic school bus", "kratts", "zoboomafoo", "wishbone", "ghostwriter", "blue's clues", "barney", "arthur", "puppet show", "children's television"] },
       { collections: ["classic_tv_1970s", "classic_tv_1980s", "classic_tv_1990s"], require_subj: ["sesame street", "mister rogers", "reading rainbow", "shining time station", "3-2-1 contact", "muppet", "fraggle rock", "kratts", "wishbone", "ghostwriter", "magic school bus", "children's television series", "kids show", "puppet show"] },
@@ -2389,7 +2411,7 @@ const PROGRAM = {
        PBS reruns). AUDIT 2026-08-06: NO SIGNAL 4x in soak — pool was too narrow. Added
        artsandmusicvideos + widened to craft/knitting/quilting/cooking-show subjects for the
        "comfort TV" flavor. */
-    genre: "comforttv", era: [1970, 2015],
+    genre: "comforttv", era: [1970, 2026],
     providers: [
       { collections: ["opensource_movies"], require_subj: ["bob ross", "joy of painting", "painting tutorial", "painting demonstration", "PBS painting"] },
       { collections: ["artsandmusicvideos", "opensource_movies"], require_subj: ["oil painting", "watercolor", "painting demonstration", "art tutorial", "arts and crafts", "craft demonstration"] },
@@ -2458,7 +2480,7 @@ const PROGRAM = {
     /* NASA collection on IA is huge — Apollo mission footage, Shuttle documentaries, ISS video,
        Hubble deep-field stuff. Deny press conferences + briefings so the channel plays the
        mission film content, not talking heads. */
-    genre: "nasamarathon", era: [1960, 2020],
+    genre: "nasamarathon", era: [1960, 2026],
     providers: [
       { collections: ["nasa", "nasa_techdocs"], require_subj: ["NASA", "apollo", "space shuttle", "space station", "mars", "hubble", "mercury program", "gemini program", "astronaut", "moon landing", "planetary exploration", "spacecraft", "space program"] }
     ],
@@ -2491,7 +2513,7 @@ const PROGRAM = {
        amateur chase footage on opensource_movies. AUDIT 2026-08-06: caught serving "Mangrove
        Water Snakes" (marine wildlife) and a Hurricane Sandy relief travel show — tightened
        require_subj to weather-event-specific terms only, added marine/wildlife/travel denies. */
-    genre: "stormchase", era: [1970, 2015],
+    genre: "stormchase", era: [1970, 2026],
     providers: [
       { collections: ["opensource_movies"], require_subj: ["storm chaser", "tornado", "storm chase", "severe weather", "supercell", "thunderstorm", "chase footage", "storm chasing"] },
       { collections: ["prelinger", "FedFlix"], require_subj: ["tornado", "severe weather", "hurricane", "meteorology", "weather documentary", "national weather service", "NOAA", "storm"] }
@@ -2519,20 +2541,21 @@ const PROGRAM = {
   },
 
   "The Kitchen": {
-    /* Julia Child is the crown jewel — IA search confirmed real French Chef episodes uploaded to
-       opensource_movies with the "the-french-chef-with-julia-child-*" identifier pattern (season 4,
-       5, 7, 10 verified). Also picks up misc cooking-show / chef-demo content while denying the
-       YouTube-rip + political-news noise that surfaced during content research (MSNBC talking-head
-       segments and altcensored/fringe uploads leaked into a generic "cooking" search). */
-    genre: "kitchen", era: [1960, 2010],
+    /* AUDIT 2026-08-07: soak served "Robin's Nest" — a British sitcom about a guy who runs
+       a bistro — because bare "chef" was in the require list and Robin's Nest is tagged
+       "chef" in its subject metadata. Dropped bare "chef" (kept "chef demo"/"celebrity chef"
+       which are cooking-show-specific). Added sitcom title/subject deny to catch the same
+       shape of collision going forward. Era bumped to 2026 so newer cooking shows can
+       surface once they hit IA. */
+    genre: "kitchen", era: [1960, 2026],
     providers: [
-      { collections: ["opensource_movies"], require_subj: ["julia child", "the french chef", "cooking show", "chef", "cuisine", "culinary"] },
-      { collections: ["vhsvault", "vhsvault_inbox"], require_subj: ["julia child", "cooking", "chef", "culinary", "cuisine", "recipe"] },
-      { collections: ["classic_tv_1960s", "classic_tv_1970s"], require_subj: ["cooking show", "julia child", "the french chef", "chef", "culinary"] }
+      { collections: ["opensource_movies"], require_subj: ["julia child", "the french chef", "cooking show", "cooking demonstration", "chef demo", "celebrity chef", "cuisine", "culinary arts", "food preparation"] },
+      { collections: ["vhsvault", "vhsvault_inbox"], require_subj: ["julia child", "cooking", "cooking show", "culinary", "cuisine", "recipe", "baking"] },
+      { collections: ["classic_tv_1960s", "classic_tv_1970s"], require_subj: ["cooking show", "julia child", "the french chef", "culinary", "cuisine"] }
     ],
     deny: {
-      title: ["news", "politics", "cannabis", "how to cook drugs", "MSNBC", "CSPAN"],
-      subject: ["news", "politics", "youtube", "youtube video", "vlog", "podcast", "MSNBC", "CSPAN", "commercial", "advertising", "home economics", "educational film", "training film", "instructional"]
+      title: ["news", "politics", "cannabis", "how to cook drugs", "MSNBC", "CSPAN", "robin's nest", "sitcom"],
+      subject: ["news", "politics", "youtube", "youtube video", "vlog", "podcast", "MSNBC", "CSPAN", "commercial", "advertising", "home economics", "educational film", "training film", "instructional", "sitcom", "situation comedy", "comedy series"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
@@ -2546,18 +2569,28 @@ const PROGRAM = {
   },
 
   "Auto Racing": {
-    /* AUDIT 2026-08-07: user wants ALL racing — rally, WRC, ARCA, truck racing, sprint,
-       dirt, motocross, supercross, IMSA, Le Mans, Formula E, IndyCar. Pool: 1,020 items. */
-    genre: "autoracing", era: [1930, 2025],
+    /* AUDIT 2026-08-07: soak showed France 2 news being served because bare "F2" matched
+       "France 2" as a substring. Ripped "F1"/"F2"/"F3" from the require lists — anything
+       that short is a substring-collision landmine. Only full-word forms remain
+       ("Formula 1"/"Formula One"/"Formula 2" etc.). Reordered providers so NASCAR / rally
+       / dirt-track / truck tiers rotate BEFORE the Formula tier so the picker doesn't
+       spend every third pick on F1. Era bumped to 2026. deny.title now blocks "france 2"
+       and "news journal" explicitly. */
+    genre: "autoracing", era: [1930, 2026],
     providers: [
-      { collections: ["opensource_movies"], require_subj: ["NASCAR", "ARCA", "IndyCar", "Indianapolis 500", "Indy 500", "Formula One", "F1", "F2", "F3", "Formula E", "Grand Prix", "Le Mans", "IMSA", "sports car racing", "endurance racing"] },
-      { collections: ["opensource_movies"], require_subj: ["rally", "WRC", "world rally championship", "rallycross", "dakar", "baja", "off-road racing"] },
-      { collections: ["opensource_movies"], require_subj: ["truck racing", "NASCAR truck series", "camping world truck", "supercross", "motocross", "AMA supercross", "monster jam", "monster truck"] },
-      { collections: ["opensource_movies", "feature_films_unsorted"], require_subj: ["dirt track", "sprint car", "midget racing", "drag racing", "top fuel", "funny car", "kart racing", "karting"] },
-      { collections: ["prelinger", "FedFlix"], require_subj: ["auto racing", "automobile racing", "car racing", "motor racing", "hot rod", "stock car"] },
-      { collections: ["ontariocitylibrary", "opensource_movies"], require_subj: ["motor racing", "Ontario Motor Speedway", "stock car racing", "sports cars"] }
+      { collections: ["opensource_movies", "sports"], require_subj: ["NASCAR", "NASCAR Cup", "Winston Cup", "Nextel Cup", "Sprint Cup", "Monster Energy Cup", "Daytona 500", "Talladega", "stock car racing", "stock car"] },
+      { collections: ["opensource_movies", "feature_films_unsorted"], require_subj: ["dirt track", "dirt track racing", "sprint car", "sprint car racing", "midget racing", "midget car", "USAC", "World of Outlaws", "late model", "dirt late model"] },
+      { collections: ["opensource_movies", "sports"], require_subj: ["rally", "rally racing", "WRC", "world rally championship", "rallycross", "dakar rally", "baja 1000", "off-road racing", "Group B rally", "Pikes Peak"] },
+      { collections: ["opensource_movies", "sports"], require_subj: ["truck racing", "NASCAR truck series", "NASCAR Craftsman Truck", "camping world truck", "ARCA", "ARCA Menards", "supercross", "motocross", "AMA supercross", "AMA motocross", "monster jam", "monster truck"] },
+      { collections: ["opensource_movies", "feature_films_unsorted"], require_subj: ["drag racing", "NHRA", "top fuel", "funny car", "pro stock", "kart racing", "karting", "hot rod"] },
+      { collections: ["opensource_movies", "sports"], require_subj: ["IndyCar", "IRL", "IndyCar Series", "Indianapolis 500", "Indy 500", "CART", "Championship Auto Racing Teams", "Long Beach Grand Prix"] },
+      { collections: ["opensource_movies", "sports"], require_subj: ["Formula 1", "Formula One", "Formula 2", "Formula 3", "Formula E", "Grand Prix racing", "Grand Prix", "Le Mans", "24 hours of Le Mans", "IMSA", "sports car racing", "endurance racing"] },
+      { collections: ["prelinger", "FedFlix"], require_subj: ["auto racing", "automobile racing", "car racing", "motor racing"] }
     ],
-    deny: {"title": ["home movie", "family film", "comedy", "cartoon"], "subject": ["home movie", "family", "comedy", "cartoon", "animated", "children"]},
+    deny: {
+      title: ["home movie", "family film", "comedy", "cartoon", "france 2", "journal", "news journal", "20 heures", "20h"],
+      subject: ["home movie", "family", "comedy", "cartoon", "animated", "children", "news broadcast", "television news", "French news", "journal télévisé"]
+    },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
@@ -2588,7 +2621,7 @@ const PROGRAM = {
   },
 
   "The Festival Circuit": {
-    genre: "indiefilm", era: [1980, 2015],
+    genre: "indiefilm", era: [1980, 2026],
     providers: [
       { collections: ["opensource_movies", "feature_films"], require_subj: ["indie film", "independent film", "sundance", "indie cinema", "independent cinema", "short film", "art film", "film festival"] },
       { collections: ["feature_films_unsorted"], require_subj: ["indie", "independent film", "sundance", "SXSW", "tribeca", "festival"] }
@@ -2601,7 +2634,7 @@ const PROGRAM = {
   },
 
   "After School": {
-    genre: "kids2000", era: [1995, 2010],
+    genre: "kids2000", era: [1995, 2026],
     providers: [
       { collections: ["classic_tv_1990s", "classic_tv_2000s"], require_subj: ["nickelodeon", "cartoon network", "disney channel", "kids' WB", "kids WB", "toonami", "nicktoons", "TGIF"] },
       { collections: ["opensource_movies"], require_subj: ["nickelodeon", "cartoon network", "disney channel", "toonami", "nicktoons", "reboot", "power rangers", "hey arnold", "rugrats", "ren and stimpy"] }
@@ -2614,7 +2647,7 @@ const PROGRAM = {
   },
 
   "The Documentary Hour": {
-    genre: "pbsdocs", era: [1970, 2020],
+    genre: "pbsdocs", era: [1970, 2026],
     providers: [
       { collections: ["opensource_movies"], require_subj: ["PBS", "ken burns", "frontline", "nova", "american experience", "POV", "P.O.V.", "national geographic", "documentary", "public broadcasting"] },
       { collections: ["news_and_journalism", "opensource_movies"], require_subj: ["PBS", "documentary film", "public broadcasting", "historical documentary"] }
@@ -2627,7 +2660,7 @@ const PROGRAM = {
   },
 
   "Gear Head": {
-    genre: "topgear", era: [1990, 2020],
+    genre: "topgear", era: [1990, 2026],
     providers: [
       { collections: ["opensource_movies"], require_subj: ["top gear", "car review", "motor trend", "automotive", "car documentary", "road test", "car restoration", "hot rod", "muscle car", "classic car"] },
       { collections: ["opensource_movies"], require_subj: ["clarkson", "hammond", "may", "jay leno's garage", "motorweek", "car and driver", "chasing classic cars"] }
@@ -2680,10 +2713,19 @@ const PROGRAM = {
   /* Modern Rerun TV — same problem as Classic but with vhsvault fcol (includes off-air news
      captures). Deny news and non-comedy content. */
   "Modern Rerun TV": {
-    genre: "sitcommodern", era: [1970, 2003],
+    genre: "sitcommodern", era: [1970, 2026],
     providers: [
-      { collections: ["classic_tv","television"], require_subj: ["sitcom","television comedy","television series","tv series","comedy series","situation comedy"] },
-      { collections: ["vhsvault"], require_subj: ["sitcom","television comedy","comedy"] }
+      { collections: ["classic_tv","classic_tv_1970s","classic_tv_1980s","classic_tv_1990s","classic_tv_2000s","television"], require_subj: [
+        "sitcom","television comedy","television series","tv series","comedy series","situation comedy",
+        "drew carey","home improvement","fresh prince","seinfeld","frasier","cheers","everybody loves raymond",
+        "king of queens","friends","3rd rock","3rd rock from the sun","married with children","full house",
+        "family matters","boy meets world","step by step","perfect strangers","who's the boss","growing pains",
+        "night court","taxi","barney miller","mash","m*a*s*h","murphy brown","designing women","golden girls",
+        "wonder years","doogie howser","mork and mindy","happy days","laverne and shirley","facts of life",
+        "different strokes","gimme a break","alf","cosby show","family ties","spin city","just shoot me",
+        "will and grace","yes dear","becker","dharma and greg","two and a half men","that 70s show","malcolm in the middle"
+      ] },
+      { collections: ["vhsvault","opensource_movies","avgeeks"], require_subj: ["sitcom","television comedy","complete series","tv series","syndicated"] }
     ],
     deny: {
       title: ["news","newscast","commercial","advertisement","c-span","cnn","weather"],
@@ -2695,10 +2737,21 @@ const PROGRAM = {
   /* Game Show Channel — already has subjRequired and noBlindFallback on G, but no deny list.
      The audit noted: if it bleeds, classic_tv items with subject:"game" are the culprit. */
   "Game Show Channel": {
-    genre: "gameshow", era: [1950, 2005],
+    genre: "gameshow", era: [1950, 2026],
     providers: [
-      { collections: ["classic_tv","television"], require_subj: ["game show","quiz show","panel show","game shows","television game show"] },
-      { collections: ["vhsvault"], require_subj: ["game show","quiz show"] }
+      { collections: ["classic_tv","classic_tv_1950s","classic_tv_1960s","classic_tv_1970s","classic_tv_1980s","classic_tv_1990s","classic_tv_2000s","television"], require_subj: [
+        "game show","game shows","quiz show","panel show","television game show",
+        "jeopardy","wheel of fortune","price is right","family feud","match game","password",
+        "pyramid","$10,000 pyramid","$25,000 pyramid","$100,000 pyramid","newlywed game",
+        "hollywood squares","let's make a deal","truth or consequences","to tell the truth",
+        "what's my line","i've got a secret","press your luck","card sharks","tic-tac-dough",
+        "concentration","name that tune","the joker's wild","sale of the century","supermarket sweep",
+        "double dare","legends of the hidden temple","nick arcade","fun house","remote control",
+        "deal or no deal","who wants to be a millionaire","cash cab","fear factor","the weakest link",
+        "1 vs 100","identity","don't forget the lyrics","are you smarter than a 5th grader",
+        "beat the clock","you bet your life","the dating game","gong show","hollywood game night"
+      ] },
+      { collections: ["vhsvault","opensource_movies"], require_subj: ["game show","quiz show","complete series"] }
     ],
     deny: {
       title: ["video game","computer game","board game review","gameplay","walkthrough","let's play"],
@@ -2873,7 +2926,7 @@ const PROGRAM = {
          - auburnulibrary (4745, college sports archive) · sportstelevision has full games,
            wrestling PPVs, wide era coverage.
        User directive: ALL SPORTS included — WWE / UFC / MMA / wrestling denies REMOVED. */
-    genre: "sportsvault", era: [1920, 2020],
+    genre: "sportsvault", era: [1920, 2026],
     providers: [
       { collections: ["vhssports", "sportstelevision"], require_subj: ["baseball", "football", "basketball", "hockey", "soccer", "boxing", "wrestling", "olympics", "world series", "super bowl", "monday night football", "wide world of sports", "abc sports", "cbs sports", "nbc sports", "game broadcast", "sports broadcast", "baseball game", "football game", "basketball game", "NFL", "NBA", "MLB", "NHL", "college football", "college basketball", "world cup"] },
       { collections: ["sports"], require_subj: ["baseball", "football", "basketball", "hockey", "soccer", "boxing", "wrestling", "MMA", "UFC", "martial arts", "olympics", "tennis", "golf", "auto racing", "NASCAR", "F1", "cycling", "swimming", "track and field", "gymnastics", "skateboarding", "BMX", "surfing"] },
@@ -3348,7 +3401,10 @@ function closeGuide(){gwrap.classList.remove("show");}
 /* =====================================================================
    TUNING + PLAYBACK
    ===================================================================== */
-function setSig(s,l){led.className="led "+(s||"");sigText.textContent=l;}
+function setSig(s,l){led.className="led "+(s||"");sigText.textContent=l;
+  /* mirror state onto the SA cable-box tune LED so the amber indicator glows while tuning, matches real hardware */
+  var tl=document.getElementById("saLedTune"); if(tl){ if(s==="tuning") tl.classList.remove("off"); else tl.classList.add("off"); }
+}
 function showOv(big,standby,sub){ov.classList.remove("hide");ovBig.textContent=big;
   ovStandby.style.display=standby?"block":"none";if(standby)ovStandby.textContent=standby;ovSub.textContent=sub||"";}
 function hideOv(){ov.classList.add("hide");}
@@ -3854,7 +3910,8 @@ document.addEventListener("keydown",e=>{
 function two(x){return String(x).padStart(2,"0");}
 function updateClocks(){const d=new Date();const t=fmtClock(d);if(gClock)gClock.textContent=t;
   if(wallClock)wallClock.textContent="THE DIAL · THE SET   —   "+t;updateClockBug(d);
-  var gd=document.getElementById("gDate"); if(gd) gd.textContent=d.toLocaleDateString([],{weekday:"short",month:"short",day:"numeric"}).toUpperCase(); /* TWC guide header date field */}
+  var gd=document.getElementById("gDate"); if(gd) gd.textContent=d.toLocaleDateString([],{weekday:"short",month:"short",day:"numeric"}).toUpperCase(); /* TWC guide header date field */
+  var sc=document.getElementById("saClock"); if(sc) sc.textContent=t; /* VFD clock in the SA cable-box readout */ }
 function startClock(){stopClock();clockTimer=setInterval(updateClocks,15000);}
 function stopClock(){if(clockTimer){clearInterval(clockTimer);clockTimer=null;}}
 

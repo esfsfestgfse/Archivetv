@@ -1050,7 +1050,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.158";
+window.__ATV_BUILD="1.7.7-mobile.159";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1570,7 +1570,7 @@ const CH=[
  {nm:"Blues", num:905,             cat:"MUS", gl:"gmblues",     era:[1917,1959], ns:"music", audio:true},
  {nm:"Contemporary Blues", num:906,cat:"MUS", gl:"gmbluesmod",  era:[1960,2026], ns:"music", audio:true},
  {nm:"Swing & Big Band", num:907,  cat:"MUS", gl:"gmswing",     era:[1925,1949], ns:"music", audio:true},
- {nm:"Country & Western", num:908, cat:"MUS", gl:"gmcountry",   era:[1925,1959], ns:"music", audio:true},
+ {nm:"Country & Western", num:908, cat:"MUS", gl:"gmcountry",   era:[1920,1995], ns:"music", audio:true},
  {nm:"Gospel", num:909,            cat:"MUS", gl:"gmgospel",    era:[1920,1959], ns:"music", audio:true},
  {nm:"Latin", num:910,             cat:"MUS", gl:"gmlatin",     era:[1920,1959], ns:"music", audio:true},
  {nm:"Ragtime", num:911,           cat:"MUS", gl:"gmragtime",   era:[1899,1929], ns:"music", audio:true},
@@ -1607,7 +1607,7 @@ const CH=[
  {nm:"The Late Late Show", num:113,cat:"MOV", gl:"latelate",    era:[1940,1975], ns:"movie"}, /* auteur / foreign / arthouse public-domain films */
  {nm:"The 36th Chamber", num:114, cat:"MOV", gl:"kungfu",      era:[1965,2000], ns:"movie"}, /* Shaw Brothers / Golden Harvest / chopsocky kung fu theater */
  {nm:"Monster Island", num:115,   cat:"MOV", gl:"kaiju",       era:[1954,1995], ns:"movie"}, /* Godzilla, Gamera, Toho — Japanese giant-monster cinema */
- {nm:"Blaxploitation", num:116,   cat:"MOV", gl:"blaxploit",   era:[1970,1979], ns:"movie"}, /* 70s Black action cinema — Shaft, Foxy Brown, Superfly, Coffy, Cleopatra Jones */
+ {nm:"Blaxploitation", num:116,   cat:"MOV", gl:"blaxploit",   era:[1970,1985], ns:"movie"}, /* 70s Black action cinema — Shaft, Foxy Brown, Superfly, Coffy, Cleopatra Jones */
  {nm:"The Festival Circuit", num:117, cat:"MOV", gl:"indiefilm", era:[1980,2026], ns:"movie"}, /* Sundance-adjacent indie features + short films from 80s-00s */
  {nm:"Blighty", num:118,           cat:"MOV", gl:"british",     era:[1945,2026], ns:"tv"}, /* British TV + cinema — Beeb sitcoms, Doctor Who, Monty Python, Ealing, Hammer, Carry On */
  {nm:"Modern Cartoons", num:153,   cat:"TOON",gl:"cartoonmodern",era:[1970,2026], ns:"toon"},
@@ -2058,14 +2058,34 @@ const PROGRAM = {
      Black Cinema (105) which is broader race films 1920-1975. This is Shaft / Superfly /
      Cleopatra Jones / Coffy / Foxy Brown / TNT Jackson / Truck Turner / Sweet Sweetback era.
      Pool: 59 items in opensource_movies with blaxploitation subject. */
+  /* Blaxploitation (ch 116) — AUDIT 2026-08-08: original narrow subject list ("blaxploitation",
+     "black action", "70s black cinema") returned NO_SIGNAL because IA metadata almost never
+     uses that literal term. Rebuilt with (1) actor/director names IA does tag, (2) film titles
+     that surface directly, (3) broader "black cinema"/"african american film" umbrella,
+     (4) urban-crime-70s genre terms. Era bumped one year to catch 1980 stragglers. */
   "Blaxploitation": {
-    genre: "blaxploit", era: [1970, 1979],
+    genre: "blaxploit", era: [1970, 1985],
     providers: [
-      { collections: ["opensource_movies", "feature_films_unsorted"], require_subj: ["blaxploitation", "black action", "70s black cinema", "black exploitation"] },
-      { collections: ["feature_films_unsorted"], require_subj: ["shaft", "superfly", "coffy", "foxy brown", "cleopatra jones", "sweet sweetback", "truck turner", "black caesar", "dolemite"] }
+      { collections: ["feature_films_unsorted", "opensource_movies", "feature_films"], require_subj: [
+        "blaxploitation", "black exploitation", "black action", "black action film",
+        "black cinema", "african american cinema", "african american film", "african-american cinema",
+        "urban action", "urban crime", "70s crime film"
+      ] },
+      { collections: ["feature_films_unsorted", "opensource_movies", "feature_films"], require_subj: [
+        "pam grier", "fred williamson", "richard roundtree", "ron o'neal", "jim brown",
+        "melvin van peebles", "gordon parks", "gordon parks jr", "ossie davis", "sidney poitier",
+        "isaac hayes", "curtis mayfield", "rudy ray moore", "jim kelly", "tamara dobson",
+        "yaphet kotto", "richard pryor", "cicely tyson", "d'urville martin"
+      ] },
+      { collections: ["feature_films_unsorted", "opensource_movies", "feature_films"], require_subj: [
+        "shaft", "superfly", "coffy", "foxy brown", "cleopatra jones", "sweet sweetback",
+        "truck turner", "black caesar", "dolemite", "the mack", "hell up in harlem",
+        "cotton comes to harlem", "black belt jones", "three the hard way", "across 110th street",
+        "willie dynamite", "trouble man", "detroit 9000", "hit man", "black samson"
+      ] }
     ],
     deny: {
-      title: ["news", "trailer", "documentary about", "commercial"],
+      title: ["news", "trailer", "documentary about", "commercial", "interview about"],
       subject: ["news", "trailer", "commercial", "cartoon", "children", "documentary about"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
@@ -2074,14 +2094,42 @@ const PROGRAM = {
   /* The Cipher (ch 223, new 2026-08-07). Hip-hop history — documentaries, Yo! MTV Raps era,
      freestyle circles, breaking / graffiti / DJing docs, rap tributes. Distinct from Hip-Hop
      music channel (914) which is contemporary rap AUDIO. Pool: 2,797 hip-hop video items. */
+  /* The Cipher (ch 223) — AUDIT 2026-08-08: narrow subject list returned NO_SIGNAL. IA
+     tags hip-hop content with a much wider vocabulary — artist names, "rap" as bare, MC
+     terminology, region tags, "old school", etc. Rebuilt with (1) core hip-hop culture
+     terms, (2) legendary MC/DJ/crew names as subjects (uploaders tag films by who's in
+     them), (3) region + era tags, (4) film titles that catalog directly. */
   "The Cipher": {
     genre: "hiphopvault", era: [1978, 2026],
     providers: [
-      { collections: ["opensource_movies"], require_subj: ["hip hop", "hip-hop", "rap music", "hip hop history", "yo! MTV raps", "rap city", "breakdancing", "breaking", "graffiti", "DJ battle", "freestyle", "hip hop documentary", "rap documentary", "Def Jam", "wild style", "beat street"] }
+      { collections: ["opensource_movies", "feature_films_unsorted", "vhsvault"], require_subj: [
+        "hip hop", "hip-hop", "hiphop", "rap", "rap music", "rap video", "hip hop history",
+        "hip hop culture", "hip hop documentary", "rap documentary", "rap film",
+        "old school hip hop", "old school rap", "urban music", "urban film",
+        "breakdancing", "breaking", "b-boy", "b-boying", "graffiti", "graffiti art",
+        "turntablism", "DJ battle", "DJing", "freestyle", "cypher", "rap cypher",
+        "yo! MTV raps", "yo mtv raps", "rap city", "the source magazine"
+      ] },
+      { collections: ["opensource_movies", "feature_films_unsorted", "vhsvault"], require_subj: [
+        "def jam", "run-dmc", "run dmc", "public enemy", "beastie boys", "eric b and rakim",
+        "eric b & rakim", "kool herc", "grandmaster flash", "afrika bambaataa", "kurtis blow",
+        "sugar hill gang", "sugarhill gang", "LL cool J", "big daddy kane", "rakim",
+        "tupac", "tupac shakur", "2pac", "notorious BIG", "biggie smalls", "nas",
+        "wu-tang clan", "wu tang", "ice cube", "ice-t", "N.W.A", "nwa", "snoop dogg",
+        "dr. dre", "dr dre", "jay-z", "jay z", "mos def", "talib kweli", "common",
+        "de la soul", "a tribe called quest", "gang starr", "eric b."
+      ] },
+      { collections: ["opensource_movies", "feature_films_unsorted", "vhsvault"], require_subj: [
+        "gangsta rap", "west coast rap", "east coast rap", "southern rap", "boom bap",
+        "bronx", "south bronx", "new york rap", "compton", "los angeles rap",
+        "wild style", "beat street", "style wars", "breakin", "krush groove",
+        "juice", "boyz n the hood", "menace II society", "belly", "brown sugar",
+        "8 mile", "hustle & flow", "notorious", "straight outta compton"
+      ] }
     ],
     deny: {
-      title: ["news", "commercial", "trailer"],
-      subject: ["news", "commercial", "advertising", "youtube short", "vlog", "cartoon", "children"]
+      title: ["news", "commercial", "trailer", "reaction video", "podcast episode"],
+      subject: ["news broadcast", "commercial", "advertising", "youtube short", "vlog", "cartoon", "children", "reaction", "reaction video"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
@@ -2215,12 +2263,36 @@ const PROGRAM = {
     subjRequired: true, noBlindFallback: true
   },
 
+  /* Country & Western (ch 908) — AUDIT 2026-08-08: NO_SIGNAL. Prior config used etree
+     (jamband/live-taper collection, wrong media for country) and era ceiling of 1979 which
+     cut off the golden Willie/Waylon/Merle years plus everything after. Rebuilt with
+     78rpm-first for pre-1960 hillbilly + audio_music/opensource_audio for wider country
+     vault + specific artist-name subjects. Era ceiling to 1995 (classic era ending; modern
+     country lives on Modern Country ch 922). */
   "Country & Western": {
-    genre: "gmcountry", era: [1920, 1979],
-    providers: [{"collections": ["etree", "audio_music", "78rpm"], "require_subj": ["country", "country music", "honky tonk", "outlaw country", "country western", "hillbilly", "bluegrass"]}],
-    /* Soak caught "Robert Hunter Live at Record Factory" — Grateful Dead lyricist / jamband adjacent.
-       Spreading JAMBAND_DENY here matches Hip-Hop/Reggae/etc. */
-    deny: {"title": ["elvis costello"], "subject": ["podcast", "talk show", "comedy", "spoken word", "audiobook", "lecture", "punk", "new wave", "post-punk", "alternative", "indie", ...JAMBAND_DENY]},
+    genre: "gmcountry", era: [1920, 1995],
+    providers: [
+      { collections: ["78rpm", "georgeblood", "opensource_audio"], require_subj: [
+        "country", "country music", "country and western", "country & western",
+        "hillbilly", "hillbilly music", "old-time", "old time music", "old-time country",
+        "honky tonk", "honky-tonk", "western swing", "cowboy songs", "cowboy music",
+        "singing cowboy", "folk country", "appalachian"
+      ] },
+      { collections: ["audio_music", "opensource_audio", "78rpm"], require_subj: [
+        "hank williams", "hank snow", "hank thompson", "ernest tubb", "roy acuff",
+        "jimmie rodgers", "bob wills", "gene autry", "roy rogers", "tex ritter",
+        "eddy arnold", "kitty wells", "patsy cline", "loretta lynn", "tammy wynette",
+        "dolly parton", "conway twitty", "george jones", "merle haggard", "buck owens",
+        "willie nelson", "waylon jennings", "johnny cash", "jerry lee lewis",
+        "charley pride", "chet atkins", "porter wagoner", "roger miller", "george strait",
+        "randy travis", "reba mcentire", "alan jackson", "vince gill", "carrie underwood"
+      ] },
+      { collections: ["audio_music", "opensource_audio"], require_subj: [
+        "grand ole opry", "opry", "nashville sound", "bakersfield sound", "outlaw country",
+        "countrypolitan", "cowpunk", "americana", "roots country", "traditional country"
+      ] }
+    ],
+    deny: {"title": ["elvis costello"], "subject": ["podcast", "talk show", "comedy", "spoken word", "audiobook", "lecture", "punk", "new wave", "post-punk", "alternative", "indie rock", "electronic", "hip hop", "rap", ...JAMBAND_DENY]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 

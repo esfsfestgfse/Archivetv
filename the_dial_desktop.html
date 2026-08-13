@@ -999,7 +999,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.134";
+window.__ATV_BUILD="1.7.7-desktop.135";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -2113,18 +2113,40 @@ const PROGRAM = {
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
-  /* Joke Joint (was "Comedy" — renamed + rebuilt 2026-08-07). Was audio-only stand-up; now
-     video sketch + comedy TV in the Comedy Central variety-hour vibe. Stand-up moved to its
-     own dedicated channel (ch 222 Mic Night). */
+  /* Joke Joint (ch 202) — Phase 6 overhaul 2026-08-08. Comedy Central style —
+     sketch, satire, cult TV comedy. Distinct from Mic Night (stand-up only). */
   "Joke Joint": {
-    genre: "comedycentral", era: [1970, 2025],
+    genre: "comedycentral", era: [1975, 2026],
     providers: [
-      { collections: ["opensource_movies", "Comedy_Films"], require_subj: ["sketch comedy", "SNL", "saturday night live", "kids in the hall", "MADtv", "in living color", "the state", "reno 911", "chappelle show", "mr show", "upright citizens brigade", "UCB", "comedy central", "conan", "colbert report", "daily show", "key & peele", "portlandia"] },
-      { collections: ["classic_tv_1980s", "classic_tv_1990s"], require_subj: ["sketch comedy", "SNL", "MADtv", "kids in the hall", "in living color", "SCTV", "monty python", "second city"] }
+      { collections: ["Comedy_Films", "opensource_movies", "vhsvault", "classic_tv_1980s", "classic_tv_1990s"], require_subj: [
+        "saturday night live","snl","saturday night live 1975","snl 1976","snl 1977","snl 1980","snl 1985",
+        "snl 1990","snl 1995","snl 2000","snl 2005","snl 2010","snl 2015","not ready for prime time players",
+        "second city television","sctv","john candy sctv","eugene levy sctv","catherine o'hara sctv","rick moranis sctv",
+        "andrea martin sctv","dave thomas sctv","joe flaherty sctv","the state","the state mtv","reno 911",
+        "kids in the hall","kids in the hall canada","kith","bruce mcculloch","dave foley","kevin mcdonald",
+        "mark mckinney","scott thompson","the ben stiller show","ben stiller show","mr show","mr show with bob and david",
+        "bob odenkirk","david cross","mr show hbo","tim and eric","tim and eric awesome show","tim and eric awesome show great job",
+        "tim heidecker","eric wareheim","the eric andre show","eric andre","adult swim eric andre","the whitest kids u know",
+        "wkuk","the whitest kids you know","upright citizens brigade","ucb","matt besser","matt walsh ucb","ian roberts",
+        "amy poehler ucb","stella","david wain","michael showalter","michael ian black","wet hot american summer",
+        "chappelle's show","chappelle show","dave chappelle sketch","the sarah silverman program","sarah silverman program",
+        "sarah silverman","comedy central presents","comedy central","the daily show","the daily show jon stewart",
+        "the daily show trevor noah","the colbert report","stephen colbert","last week tonight","last week tonight john oliver",
+        "conan","conan o'brien","late night with conan","conan tbs","strangers with candy","stella (tv series)",
+        "human giant","aziz ansari","paul scheer","rob huebel","the whitest kids u' know","monty python","monty python's flying circus",
+        "flying circus","monty python and the holy grail","life of brian","the meaning of life","fawlty towers",
+        "the young ones","black adder","blackadder","are you being served","the two ronnies","morecambe and wise",
+        "peep show","the it crowd","the office uk","spaced","black books","the mighty boosh","garth marenghi's darkplace"
+      ] },
+      { collections: ["Comedy_Films", "opensource_movies", "vhsvault"], require_subj: [
+        "sketch comedy","sketch show","comedy sketch","comedy series","comedy variety","satirical comedy",
+        "satire","political satire","late night comedy","late-night comedy","fake news comedy","mock news",
+        "improv comedy","improvisational comedy","improv troupe","cult comedy","cult classic comedy"
+      ] }
     ],
     deny: {
-      title: ["news", "commercial", "trailer", "advertisement", "documentary about"],
-      subject: ["news", "commercial", "advertising", "youtube", "youtube video", "vlog", "podcast", "children's television", "kids show", "cartoon", "animated series"]
+      title: ["stand-up special","standup special","concert","music video"],
+      subject: ["stand-up comedy","standup comedy","stand up comedy","concert","music video","podcast","game show","cartoon"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
@@ -2149,27 +2171,89 @@ const PROGRAM = {
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* The 36th Chamber (ch 114) — Phase 6 overhaul 2026-08-08. Chinese kung-fu
+     cinema — Shaw Brothers, Golden Harvest, chopsocky, Hong Kong action. */
   "The 36th Chamber": {
-    genre: "kungfu", era: [1965, 2000],
+    genre: "kungfu", era: [1965, 2010],
     providers: [
-      { collections: ["feature_films_unsorted", "feature_films"], require_subj: ["martial arts", "kung fu", "wuxia", "shaw brothers", "chopsocky", "hong kong action", "karate", "chinese action", "kung-fu"] }
+      { collections: ["feature_films_unsorted", "feature_films", "opensource_movies"], require_subj: [
+        "shaw brothers","shaw brothers studio","shaw brothers productions","chang cheh","liu chia-liang",
+        "lau kar-leung","lau kar leung","gordon liu","lau kar-fai","fu sheng","david chiang","ti lung",
+        "the 36th chamber of shaolin","36th chamber of shaolin","the 36th chamber","master killer",
+        "return to the 36th chamber","disciples of the 36th chamber","the 8 diagram pole fighter","eight diagram pole fighter",
+        "the five deadly venoms","five deadly venoms","the venom mob","venom mob","crippled avengers",
+        "one-armed swordsman","one armed swordsman","the new one-armed swordsman","the boxer from shantung",
+        "boxer from shantung","five element ninjas","the executioners from shaolin","the mystery of chessboxing",
+        "chess boxing","five superfighters","the invincible pole fighter","clan of the white lotus",
+        "heroes of the east","heroes two","kid with the golden arm","kid with golden arm","killer clans","killer constable",
+        "master of the flying guillotine","flying guillotine","the master killer","legendary weapons of china",
+        "legendary weapons","dirty ho","the eight diagram pole fighter","the magnificent butcher","magnificent butcher",
+        "golden harvest","golden harvest studios","raymond chow","bruce lee","the big boss","fists of fury",
+        "the chinese connection","enter the dragon","game of death","way of the dragon","return of the dragon",
+        "jackie chan","drunken master","snake in the eagle's shadow","the young master","dragon lord","project a",
+        "police story","armour of god","armor of god","who am i jackie chan","supercop","police story 3",
+        "sammo hung","yuen biao","biao yuen","yuen woo-ping","yuen wo-ping","iron monkey","wing chun film",
+        "jet li","fist of legend","once upon a time in china","hero jet li","kiss of the dragon","romeo must die",
+        "wong fei-hung","wong fei hung","invincible shaolin","invincible fist","five fingers of death","king boxer",
+        "chow yun-fat","chow yun fat","john woo","hard boiled john woo","the killer john woo","face/off john woo",
+        "a better tomorrow","hard boiled","bullet in the head","broken arrow john woo","mission impossible ii"
+      ] },
+      { collections: ["feature_films_unsorted", "feature_films"], require_subj: [
+        "kung fu","kung-fu","kung fu film","kung-fu film","kung fu movie","kung-fu movie","martial arts film",
+        "martial arts movie","martial arts cinema","chinese martial arts","chinese cinema","chinese action",
+        "chinese kung fu","wu xia","wuxia","wuxia film","wuxia movie","wuxia cinema","hong kong action",
+        "hong kong cinema","hong kong film","hk cinema","hk action","chopsocky","chop socky","chop-socky",
+        "asian action","asian action cinema","kung fu classic","classic kung fu","70s kung fu","1970s kung fu",
+        "shaolin","shaolin temple","shaolin monk","shaolin film","shaolin cinema","monk film","warrior monk",
+        "karate film","karate movie","japanese action","korean action","thai action","thai boxing film"
+      ] }
     ],
     deny: {
-      title: ["documentary", "cartoon", "trailer", "news"],
-      subject: ["cartoon", "animated", "children", "documentary about", "news", "commercial", "trailer"]
+      title: ["documentary about","cartoon","commercial","trailer","training"],
+      subject: ["documentary about","cartoon","animated","children","commercial","trailer","training film"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Monster Island (ch 115) — Phase 6 overhaul 2026-08-08. Kaiju cinema —
+     Godzilla, Gamera, Ultraman, Toho, Daiei, Tsuburaya. */
   "Monster Island": {
-    genre: "kaiju", era: [1954, 1995],
+    genre: "kaiju", era: [1950, 2020],
     providers: [
-      { collections: ["SciFi_Horror", "feature_films_unsorted"], require_subj: ["kaiju", "godzilla", "gamera", "monster movie", "japanese sci-fi", "japanese monster", "toho", "daiei", "giant monster", "creature feature"] },
-      { collections: ["opensource_movies"], require_subj: ["kaiju", "godzilla", "gamera", "toho", "japanese monster", "japanese sci-fi"] }
+      { collections: ["SciFi_Horror", "feature_films_unsorted", "opensource_movies", "feature_films"], require_subj: [
+        "godzilla","godzilla king of the monsters","gojira","gojira 1954","godzilla vs king kong","godzilla vs mothra",
+        "godzilla vs ghidorah","godzilla vs mechagodzilla","godzilla vs biollante","godzilla vs destoroyah",
+        "godzilla vs space godzilla","godzilla vs the smog monster","godzilla vs hedorah","godzilla vs megalon",
+        "godzilla raids again","son of godzilla","destroy all monsters","godzilla final wars","shin godzilla",
+        "godzilla king kong 2021","godzilla vs kong","godzilla king of the monsters 2019","godzilla 2014",
+        "gamera","gamera vs barugon","gamera vs gyaos","gamera vs zigra","gamera guardian of the universe",
+        "gamera 2 attack of legion","gamera 3 revenge of iris","gamera daikaiju","gamera daikaiju kuchu kessen",
+        "mothra","mothra vs godzilla","king kong vs godzilla","king kong escapes","king kong lives",
+        "rodan","varan the unbelievable","frankenstein conquers the world","war of the gargantuas","gargantuas",
+        "ghidorah the three-headed monster","ghidrah the three-headed monster","invasion of astro-monster",
+        "mechagodzilla","terror of mechagodzilla","the return of godzilla","godzilla 1985","godzilla vs biollante",
+        "the mysterians","battle in outer space","atragon","atragon undersea kingdom","matango",
+        "the h-man","the human vapor","the last war 1961","the last war","dogora","yog monster from space",
+        "space amoeba","yog","goke body snatcher from hell","goke bodysnatcher","the x from outer space",
+        "ultraman","ultra q","ultraman tv series","ultraseven","return of ultraman","ultraman ace","ultraman tiger",
+        "ultraman leo","ultraman 80","ultraman 80s","ultraman powered","ultraman tiga","ultraman dyna",
+        "ultraman gaia","ultraman cosmos","ultraman nexus","ultraman max","ultraman mebius","ultraman geed",
+        "toho","toho studios","toho productions","daiei","daiei film","tsuburaya","tsuburaya productions",
+        "ishirō honda","ishiro honda","eiji tsuburaya","haruo nakajima","teruyoshi nakano","tomoyuki tanaka",
+        "akira ifukube","kaiju","kaijū","daikaiju","tokusatsu","suitmation","suit actor","monster suit",
+        "giant monster","big monster","city-destroying monster","atomic monster","radioactive monster"
+      ] },
+      { collections: ["SciFi_Horror", "feature_films_unsorted"], require_subj: [
+        "kaiju eiga","kaiju cinema","kaiju movie","kaiju film","kaiju series","kaiju franchise","kaiju genre",
+        "japanese monster movie","japanese monster film","japanese giant monster","tokusatsu film","tokusatsu movie",
+        "showa era godzilla","heisei era godzilla","millennium era godzilla","reiwa era godzilla",
+        "giant monster movie","giant monster film","atomic monster movie","radioactive monster movie",
+        "monster vs monster","kaiju vs kaiju","kaiju battle","kaiju fight","city destruction","urban destruction"
+      ] }
     ],
     deny: {
-      title: ["trailer", "news", "documentary"],
-      subject: ["trailer", "news", "commercial", "cartoon", "animated", "children", "documentary about"]
+      title: ["anime","cartoon","training film","commercial","documentary about"],
+      subject: ["anime","cartoon","animated","commercial","documentary about","training film","live action superhero"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
@@ -2210,28 +2294,57 @@ const PROGRAM = {
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* The Long Shot (ch 507) — Phase 6 overhaul 2026-08-08. Slow TV — NRK-style
+     long-form + ambient + landscape videos + train-ride/ferry aesthetic. */
   "The Long Shot": {
-    genre: "slowtv", era: [2000, 2025],
+    genre: "slowtv", era: [2000, 2026],
     providers: [
-      { collections: ["opensource_movies"], require_subj: ["slow tv", "slow television", "NRK", "long form video", "ambient video", "long take", "meditative", "real time video"] },
-      { collections: ["opensource_movies"], require_subj: ["train journey", "sunset", "waterfall", "log fire", "fireplace", "ambient", "ocean waves", "rain sounds"] }
+      { collections: ["opensource_movies", "prelinger", "opensource_audio"], require_subj: [
+        "slow tv","slow television","slow-tv","nrk","nrk slow tv","nrk slow television","norwegian slow tv",
+        "bergensbanen","bergen line","train journey","train ride","cab ride","driver's eye view","driver eye view",
+        "long-form train","long form video","ferry crossing","ferry journey","ferry ride","ambient landscape",
+        "landscape video","aerial landscape","scenic drive","scenic route","road trip video","route drive",
+        "waterfall video","waterfall ambient","stream ambient","forest ambient","forest walk","nature walk video",
+        "beach ambient","ocean waves ambient","ocean waves loop","fireplace loop","rain ambient","rain sounds",
+        "thunderstorm loop","rain video loop","nature loop","meditation video","meditation loop","zen video"
+      ] },
+      { collections: ["opensource_movies", "opensource_audio"], require_subj: [
+        "long form video","long-form video","real time video","real-time video","unedited","raw video",
+        "ambient video","ambient soundscape","atmospheric video","atmospheric soundscape","field recording video",
+        "field-recording video","stationary shot","static shot","fixed camera","observational video",
+        "wildlife cam","live cam","live camera","live feed","webcam recording"
+      ] }
     ],
     deny: {
-      title: ["trailer", "news", "commercial", "highlights"],
-      subject: ["trailer", "news", "commercial", "advertising", "cartoon", "youtube short"]
+      title: ["commercial","music video","tutorial","talk show","podcast"],
+      subject: ["commercial","music video","tutorial","talk show","podcast","narrated","narration","dramatic","fictional"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* The Hearth (ch 703) — Phase 6 overhaul 2026-08-08. Yule log video + vintage
+     Christmas jazz audio bed year-round. */
   "The Hearth": {
-    genre: "yulelog", era: [1900, 2025],
+    genre: "yulelog", era: [1900, 2026],
     providers: [
-      { collections: ["opensource_movies"], require_subj: ["yule log", "fireplace", "christmas fire", "burning log", "hearth", "log fire"] },
-      { collections: ["opensource_movies"], require_subj: ["christmas", "yule", "holiday fire", "cozy fire"] }
+      { collections: ["opensource_movies", "opensource_audio"], require_subj: [
+        "yule log","yulelog","yule log video","yule log fireplace","yule log 4k","yule log loop",
+        "fireplace loop","fireplace video","fireplace crackle","fireplace ambience","fireplace ambiance",
+        "cozy fireplace","cabin fireplace","fireplace hd","fireplace 4k","fireplace 8-hour","fireplace 24 hour",
+        "burning fireplace","burning logs","crackling fire","crackling logs","crackling fireplace","hearth video",
+        "hearth loop","hearth video loop","wbbm yule log","yule log wpix","wpix yule log","chelsea yule log",
+        "chelsea community yule log","fake fireplace","virtual fireplace","tv fireplace","broadcast fireplace"
+      ] },
+      { collections: ["opensource_movies", "opensource_audio", "78rpm", "audio_music"], require_subj: [
+        "christmas music","christmas jazz","christmas swing","christmas standards","christmas carols",
+        "bing crosby christmas","frank sinatra christmas","nat king cole christmas","ella fitzgerald christmas",
+        "vince guaraldi","charlie brown christmas soundtrack","christmas jazz trio","christmas mood music",
+        "cocktail hour christmas","christmas cocktail","holiday jazz","holiday mood music"
+      ] }
     ],
     deny: {
-      title: ["trailer", "news", "commercial"],
-      subject: ["trailer", "news", "commercial", "advertising", "cartoon"]
+      title: ["commercial","cartoon","action","horror","tutorial","instructional"],
+      subject: ["commercial","cartoon","animated","action","horror","tutorial","instructional","training","talk show","podcast"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
@@ -2456,19 +2569,69 @@ const PROGRAM = {
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Field Recordings (ch 924x) — Phase 6 overhaul 2026-08-08. Environmental + folk
+     ethnographic + soundscape recordings. */
   "Field Recordings": {
     genre: "fieldrec", era: [1900, 2026],
-    /* audit 6A: dropped "sound recording" from require_subj — every audio item on IA is arguably one,
-       so the token was meaningless as a filter. */
-    providers: [{"collections": ["audio_music", "opensource_audio"], "require_subj": ["field recording", "nature sounds", "ambient recording", "environmental sound", "soundscape", "ethnographic recording"]}],
-    deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture", "music", "concert"]},
-    subjRequired: true, noBlindFallback: true
+    providers: [
+      { collections: ["opensource_audio", "netlabels", "audio_music", "lomaxky"], require_subj: [
+        "field recording","field recordings","field-recorded","field-recorded audio","field recording audio",
+        "ethnographic recording","ethnomusicology","ethnographic","ethnographic film audio","ethnomusicological",
+        "alan lomax","john lomax","lomax recordings","alan lomax recordings","southern journey","american folk music",
+        "smithsonian folkways","folkways records","smithsonian folkways recordings","new lost city ramblers",
+        "moe asch","harry smith","anthology of american folk music","folkways ethnographic",
+        "bernie krause","bernard l krause","bernie krause soundscape","chris watson","chris watson bbc",
+        "hildegard westerkamp","francisco lopez","francisco lópez","toshiya tsunoda","henri chopin",
+        "nature sounds","nature recording","wildlife sounds","wildlife recording","bird sounds","birdcall",
+        "bird call","bird recording","ambient nature","ambient field","ambient environment","environmental audio",
+        "environmental recording","environmental sounds","soundscape","soundscape recording","acoustic ecology",
+        "ambient soundscape","natural soundscape","rural soundscape","urban soundscape","industrial soundscape",
+        "ocean sounds","wave sounds","forest sounds","forest recording","rainforest recording","desert recording",
+        "arctic recording","tundra recording","cave recording","underwater recording","hydrophone recording",
+        "traditional music","folk music tradition","world folk","world music","indigenous music","tribal music",
+        "african field recording","asian field recording","latin american field recording","aboriginal recording"
+      ] },
+      { collections: ["opensource_audio", "netlabels"], require_subj: [
+        "sound art","sound-art","phonography","phonographer","microsound","microsound recording",
+        "acousmatic","musique concrète","musique concrete","sound collage","tape music","tape composition"
+      ] }
+    ],
+    deny: {
+      title: ["podcast","talk","song","album","commercial"],
+      subject: ["podcast","talk radio","pop song","rock song","hip hop","rap","commercial","tv show","game show"]
+    },
+    subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Sunday Service (ch various) — Phase 6 overhaul 2026-08-08. Faith broadcasts,
+     hymns, sermons, gospel radio, sacred music. */
   "Sunday Service": {
-    genre: "faith", era: [1930, 2000],
-    providers: [{"collections": ["spiritualityandreligion"], "require_subj": ["christianity", "sermon", "gospel", "catholic", "judaism", "jewish", "islam", "muslim", "buddhism", "buddhist", "hinduism", "hindu", "sikh", "meditation", "spirituality", "worship", "religion", "religious film"]}, {"collections": ["feature_films", "prelinger", "classic_tv"], "require_subj": ["christianity", "sermon", "gospel", "catholic", "judaism", "jewish", "islam", "muslim", "buddhism", "buddhist", "hinduism", "hindu", "sikh", "meditation", "spirituality", "worship", "religion", "religious film"]}],
-    deny: {"subject": ["comedy", "horror", "thriller", "crime", "western", "science fiction"]},
+    genre: "faith", era: [1930, 2010],
+    providers: [
+      { collections: ["opensource_audio", "OTRR_Certified", "OldTimeRadio", "78rpm", "audio_music"], require_subj: [
+        "hymn","hymns","sacred music","sacred song","spiritual","spirituals","gospel","gospel music",
+        "gospel radio","gospel broadcast","gospel hymn","hymn sing","hymn singing","choir","church choir",
+        "church music","worship","worship service","praise","praise and worship","liturgical","liturgy",
+        "sermon","sermons","preaching","preacher","radio preacher","tv preacher","televangelist","evangelist",
+        "billy graham","billy graham crusade","billy graham radio","hour of decision","oral roberts",
+        "jimmy swaggart","jerry falwell","robert schuller","hour of power","rex humbard","kathryn kuhlman",
+        "fulton sheen","bishop sheen","life is worth living","catholic hour","the catholic hour",
+        "lutheran hour","hour of decision","back to god hour","voice of prophecy","voice of prophecy radio",
+        "national radio pulpit","the eternal light","message of israel","the lutheran hour","the catholic hour",
+        "sunday service","sunday worship","sunday broadcast","sunday radio","gospel quartet","gospel choir",
+        "black gospel","white gospel","southern gospel","southern gospel quartet","country gospel","bluegrass gospel"
+      ] },
+      { collections: ["opensource_audio", "OTRR_Certified", "OldTimeRadio"], require_subj: [
+        "religious broadcast","religious radio","religious programming","religious service","radio church",
+        "radio pulpit","radio ministry","gospel ministry","broadcast ministry","evangelism","evangelist broadcast",
+        "revival meeting","tent revival","tent meeting","camp meeting","southern revival","revival service",
+        "prayer meeting","prayer service","bible study","bible reading","bible teaching","biblical study"
+      ] }
+    ],
+    deny: {
+      title: ["fundraising","donation","commercial","dance","rock band"],
+      subject: ["commercial","fundraising","dance","rock band","hip hop","rap","electronic dance","punk","metal"]
+    },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
@@ -3382,19 +3545,41 @@ const PROGRAM = {
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Cop Show Classic (ch 154) — Phase 6 overhaul 2026-08-08. Police procedurals +
+     detective series 1950-1985 (kept classic; distinct from modern cop shows). */
   "Cop Show Classic": {
-    /* Dragnet, Adam-12, Highway Patrol, Peter Gunn, Boston Blackie all uploaded to classic_tv
-       collections. AUDIT 2026-08-06: caught serving "Design for Correction" — a Prelinger prison-
-       architecture film that matched on "law enforcement" subject. Removed broad "law enforcement"
-       from require_subj, added deny for architecture/prison-design/training. */
-    genre: "copshow", era: [1950, 1985],
+    genre: "copshow", era: [1950, 1990],
     providers: [
-      { collections: ["classic_tv_1950s", "classic_tv_1960s", "classic_tv_1970s"], require_subj: ["police procedural", "cop show", "police drama", "detective show", "detective", "crime drama", "dragnet", "adam-12", "highway patrol", "peter gunn", "hawaii five-o", "kojak"] },
-      { collections: ["classic_tv"], require_subj: ["police procedural", "detective show", "crime drama", "cop show", "police drama"] }
+      { collections: ["classic_tv", "classic_tv_1950s", "classic_tv_1960s", "classic_tv_1970s", "classic_tv_1980s"], require_subj: [
+        "dragnet","joe friday","jack webb","adam-12","adam 12","emergency!","jack webb emergency",
+        "highway patrol","broderick crawford","broderick crawford highway patrol","the fbi","efrem zimbalist jr fbi",
+        "hawaii five-o","hawaii 5-0","jack lord","james macarthur","kojak","telly savalas kojak","who loves ya baby",
+        "columbo","peter falk columbo","lieutenant columbo","mccloud","dennis weaver mccloud","mannix",
+        "mike connors mannix","cannon","william conrad cannon","barnaby jones","buddy ebsen barnaby jones",
+        "the rockford files","james garner rockford","jim rockford","magnum p.i.","magnum pi","tom selleck magnum",
+        "miami vice","don johnson miami vice","philip michael thomas","hill street blues","daniel j travanti",
+        "cagney and lacey","tyne daly cagney","sharon gless lacey","law and order","law & order","dick wolf",
+        "police story","police woman","angie dickinson","starsky and hutch","paul michael glaser","david soul",
+        "the mod squad","peggy lipton","clarence williams iii","michael cole mod squad","chips","chips television",
+        "erik estrada","larry wilcox","t.j. hooker","tj hooker","william shatner tj hooker","dallas police",
+        "the streets of san francisco","karl malden streets","michael douglas streets of san francisco",
+        "quincy m.e.","jack klugman quincy","the untouchables","robert stack untouchables","eliot ness",
+        "peter gunn","craig stevens peter gunn","richard diamond","perry mason","raymond burr perry mason",
+        "ironside","raymond burr ironside","matt houston","matlock","andy griffith matlock","murder she wrote",
+        "angela lansbury murder she wrote","jessica fletcher","hart to hart","robert wagner hart to hart",
+        "stefanie powers hart to hart","charlie's angels","charlies angels","farrah fawcett charlies angels",
+        "kate jackson","jaclyn smith","get christie love","teresa graves","police story anthology","joseph wambaugh"
+      ] },
+      { collections: ["classic_tv_1950s", "classic_tv_1960s", "classic_tv_1970s", "classic_tv_1980s"], require_subj: [
+        "police drama","police procedural","cop show","detective show","detective drama","detective series",
+        "crime drama","crime series","crime tv","police tv","law enforcement drama","private eye tv","private detective tv",
+        "police work","precinct drama","precinct show","noir tv","gritty crime tv","street cop","beat cop",
+        "police squad","police squadroom","detective bureau"
+      ] }
     ],
     deny: {
-      title: ["news", "design for", "correction", "training film", "documentary"],
-      subject: ["news", "commercial", "advertising", "youtube", "vlog", "podcast", "MSNBC", "CSPAN", "architecture", "construction", "prison design", "correctional facility", "training film", "educational film", "law enforcement training", "safety film"]
+      title: ["cartoon","commercial","training film","architecture","prison documentary"],
+      subject: ["cartoon","animated","children","commercial","training film","architecture","prison documentary","documentary about"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
@@ -4460,11 +4645,39 @@ const PROGRAM = {
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Christmas Channel (ch 700) — Phase 6 overhaul 2026-08-08. Christmas films +
+     specials + music + variety across every era. */
   "Christmas Channel": {
-    genre: "xmas", era: [1930, 1990],
-    providers: [{"collections": ["feature_films", "classic_tv", "SciFi_Horror", "animationandcartoons"], "require_subj": ["christmas", "xmas", "santa claus", "yuletide", "christmas special", "christmas carol", "scrooge"]}],
-    deny: {"title": ["halloween", "horror", "scary", "holiday in spain", "holiday inn"], "subject": ["halloween", "horror"]},
-    subjRequired: true, noBlindFallback: true
+    genre: "xmas", era: [1900, 2020],
+    providers: [
+      { collections: ["feature_films", "feature_films_unsorted", "opensource_movies", "classic_tv"], require_subj: [
+        "christmas","christmas film","christmas movie","christmas special","christmas tv special",
+        "christmas broadcast","a christmas carol","christmas carol","scrooge","dickens christmas",
+        "it's a wonderful life","its a wonderful life","frank capra christmas","miracle on 34th street",
+        "the shop around the corner","holiday inn","white christmas","christmas in connecticut",
+        "we're no angels","meet me in st louis","christmas eve","a charlie brown christmas","charlie brown christmas",
+        "how the grinch stole christmas","the grinch","dr seuss christmas","rudolph the red-nosed reindeer",
+        "rudolph","frosty the snowman","frosty","the year without a santa claus","santa claus is comin to town",
+        "the little drummer boy","the polar express","the polar express book","home alone","home alone 2",
+        "elf will ferrell","the santa clause","tim allen the santa clause","jingle all the way","muppet christmas carol",
+        "the muppet christmas carol","a christmas story","ralphie christmas story","national lampoon christmas",
+        "national lampoon's christmas vacation","christmas vacation","die hard christmas","christmas story",
+        "santa","santa claus","st nicholas","father christmas","kris kringle","reindeer","nativity",
+        "yule","yuletide","winter holiday","winter solstice","hanukkah","kwanzaa"
+      ] },
+      { collections: ["78rpm", "audio_music", "opensource_audio"], require_subj: [
+        "christmas music","christmas carol","christmas song","christmas album","christmas record",
+        "christmas hymn","christmas jazz","christmas swing","christmas standards","christmas classics",
+        "bing crosby christmas","frank sinatra christmas","dean martin christmas","perry como christmas",
+        "andy williams christmas","nat king cole christmas","mel torme christmas","peggy lee christmas",
+        "vince guaraldi","charlie brown christmas soundtrack","phil spector christmas","christmas gift for you"
+      ] }
+    ],
+    deny: {
+      title: ["horror","commercial","cartoon","training"],
+      subject: ["horror","adult","commercial","cartoon","children's cartoon","training film","action film"]
+    },
+    subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
   /* Halloween Haunt (ch 702) — Phase 2 overhaul 2026-08-08. Universal monsters
@@ -4498,15 +4711,33 @@ const PROGRAM = {
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Thanksgiving Channel (ch 701) — Phase 6 overhaul 2026-08-08. Thanksgiving-specific
+     films + Macy's Parade + harvest festival + Pilgrims history. */
   "Thanksgiving Channel": {
-    /* Soak caught "Hazal (1979)" — a Turkish drama — airing here because the ambiguous "turkey"
-       in require_subj matches Turkey (the country) as well as the food/holiday. Fix: removed the
-       bare "turkey" token, added unambiguous "turkey day" and "mayflower"; added deny for the
-       Turkish-cinema tags as belt-and-suspenders in case another matching term slips through. */
-    genre: "thanksgiving", era: [1930, 1990],
-    providers: [{"collections": ["feature_films", "classic_tv", "prelinger"], "require_subj": ["thanksgiving", "thanksgiving day", "turkey day", "harvest festival", "pilgrim", "pilgrims", "mayflower", "gratitude"]}],
-    deny: {"title": ["christmas", "halloween", "horror", "turkish"], "subject": ["christmas", "halloween", "horror", "turkish", "turkish film", "turkish cinema", "turkey (country)", "istanbul"]},
-    subjRequired: true, noBlindFallback: true
+    genre: "thanksgiving", era: [1930, 2010],
+    providers: [
+      { collections: ["prelinger", "feature_films", "classic_tv", "opensource_movies"], require_subj: [
+        "thanksgiving","thanksgiving day","thanksgiving film","thanksgiving movie","thanksgiving special",
+        "thanksgiving tv special","macy's thanksgiving day parade","macys thanksgiving day parade",
+        "macy's parade","thanksgiving parade","thanksgiving pageant","pilgrims","pilgrim","mayflower",
+        "plymouth colony","plymouth rock","first thanksgiving","harvest festival","harvest home","harvest",
+        "harvest time","cornucopia","turkey","turkey day","thanksgiving dinner","thanksgiving feast",
+        "thanksgiving traditions","american thanksgiving","canadian thanksgiving","autumn","fall festival",
+        "a charlie brown thanksgiving","charlie brown thanksgiving","the mouse on the mayflower","mouse on the mayflower",
+        "the thanksgiving that almost wasn't","planes trains and automobiles","planes, trains and automobiles",
+        "national dog show","national dog show thanksgiving","thanksgiving football","turkey bowl football",
+        "detroit lions thanksgiving","dallas cowboys thanksgiving","john candy thanksgiving","steve martin thanksgiving"
+      ] },
+      { collections: ["prelinger", "opensource_movies"], require_subj: [
+        "americana thanksgiving","harvest americana","pilgrim history","new england history","colonial america",
+        "colonial history","autumn americana","fall americana","american tradition","american holiday"
+      ] }
+    ],
+    deny: {
+      title: ["horror","commercial","cartoon"],
+      subject: ["horror","adult","commercial","cartoon","training film","action"]
+    },
+    subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
   /* World Cinema (ch 113) — Phase 2 overhaul 2026-08-08. Non-English arthouse

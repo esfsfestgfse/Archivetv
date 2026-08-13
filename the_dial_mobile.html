@@ -1050,7 +1050,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.166";
+window.__ATV_BUILD="1.7.7-mobile.167";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1563,8 +1563,8 @@ const CH=[
  {nm:"Classic Rerun TV", num:10,  cat:"TV", gl:"sitcom",       era:[1950,1969], ns:"tv"},
  {nm:"Modern Rerun TV", num:11,   cat:"TV", gl:"sitcommodern", era:[1970,2026], ns:"tv"},
  {nm:"Game Show Channel", num:12, cat:"TV", gl:"gameshow",     era:[1950,2026], ns:"tv"},
- {nm:"Old Nick", num:13, cat:"TV", gl:"nickatnite", era:[1950,1985], ns:"tv"}, /* Nick at Nite era classic sitcoms */
- {nm:"The Court Room", num:14, cat:"TV", gl:"courtroom", era:[1980,2020], ns:"tv"}, /* Judge shows — People's Court, Judge Judy, Judge Wapner */
+ {nm:"Old Nick", num:19, cat:"TV", gl:"nickatnite", era:[1950,1985], ns:"tv"}, /* Nick at Nite era classic sitcoms — moved 13→19 to clear collision with Vintage Commercials */
+ {nm:"The Court Room", num:20, cat:"TV", gl:"courtroom", era:[1980,2020], ns:"tv"}, /* Judge shows — People's Court, Judge Judy, Judge Wapner — moved 14→20 to clear Computer Chronicles collision */
  {nm:"Vintage Commercials", num:13,cat:"TV",gl:"commercials",  era:[1948,1985], ns:"tv"},
  {nm:"Black Cinema", num:105,      cat:"MOV", gl:"blackcinema", era:[1915,1955], ns:"movie"},
  {nm:"Arcade Archive", num:152,    cat:"TOON",gl:"arcade",       era:[1980,2015], ns:"movie"},
@@ -1605,7 +1605,7 @@ const CH=[
  {nm:"Trailer Park", num:501,      cat:"RETRO", gl:"trailer", era:[1940,1985], ns:"movie"},
  {nm:"World Cinema", num:106,      cat:"MOV", gl:"worldcinema",era:[1930,1970], ns:"movie"},
  {nm:"Public Access TV", num:15,  cat:"TV",  gl:"publicaccess",era:[1975,2005], ns:"doc"},
- {nm:"Court TV", num:16, cat:"TV", gl:"realtrials", era:[1985,2020], ns:"tv"}, /* Real trial coverage — OJ, Menendez, Casey Anthony */
+ {nm:"Court TV", num:21, cat:"TV", gl:"realtrials", era:[1985,2020], ns:"tv"}, /* Real trial coverage — OJ, Menendez, Casey Anthony — moved 16→21 to clear Sports Vault collision */
  {nm:"Sports Vault", num:16,      cat:"TV",  gl:"sportsvault", era:[1930,1995], ns:"doc"},
  {nm:"The Up-All-Night", num:17, cat:"TV",  gl:"latenight",   era:[1962,2005], ns:"tv"}, /* Late-night talk-show clips — Cavett, Snyder, Merv Griffin, Mike Douglas, Carson, Letterman */
  {nm:"The ER", num:18, cat:"TV", gl:"medicaldrama", era:[1960,2026], ns:"tv"}, /* Medical drama — Marcus Welby, Ben Casey, ER, Chicago Hope, Grey's Anatomy, House MD, Scrubs */

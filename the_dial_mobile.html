@@ -1050,7 +1050,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.160";
+window.__ATV_BUILD="1.7.7-mobile.161";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1880,35 +1880,128 @@ const PROGRAM = {
     subjRequired: true
   },
 
+  /* Live Concerts (ch 900) — Phase 1 overhaul 2026-08-08. Etree taper vault is
+     ~99% jamband — that's fine, but named legends and non-jam artists get their own tier
+     so rotation isn't 90% Dead. */
   "Live Concerts": {
     genre: "concertrock", era: [1960, 2026],
-    providers: [{"collections": ["etree", "audio_music"], "require_subj": ["live concert", "live music", "live performance", "concert", "live recording", "bootleg", "live show"]}],
-    deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture", "studio"]},
-    subjRequired: true, noBlindFallback: true
+    providers: [
+      { collections: ["etree"], require_subj: [
+        "grateful dead","phish","widespread panic","string cheese incident","moe.","dave matthews band",
+        "blues traveler","spin doctors","the allman brothers","allman brothers","gov't mule","warren haynes",
+        "derek trucks","tedeschi trucks","umphrey's mcgee","medeski martin and wood","garaj mahal",
+        "leftover salmon","yonder mountain string band","greensky bluegrass","railroad earth",
+        "trey anastasio","mickey hart","phil lesh","bob weir","furthur","dark star orchestra"
+      ] },
+      { collections: ["etree", "audio_music"], require_subj: [
+        "bruce springsteen","tom petty","neil young","bob dylan","van morrison","eric clapton",
+        "elvis costello","john prine","jason isbell","drive-by truckers","wilco","son volt","uncle tupelo",
+        "ryan adams","whiskeytown","lucinda williams","gillian welch","emmylou harris",
+        "little feat","the band","the black crowes","gov't mule","dead & company","dead and company"
+      ] },
+      { collections: ["etree", "audio_music", "opensource_audio"], require_subj: [
+        "live concert","live music","live performance","concert recording","concert bootleg","live album",
+        "live tape","soundboard","audience recording","board tape","live at","live in","live from"
+      ] }
+    ],
+    deny: {"subject": ["podcast","talk show","comedy","classical","opera","hip hop","rap","electronic dance","metal","punk","hardcore"]},
+    subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Rock (ch 901) — Phase 1 overhaul 2026-08-08. Multi-tier: (1) legends by name
+     across all eras, (2) genre/subgenre umbrella, (3) live-taper etree slice.
+     JAMBAND_DENY dampens Dead-adjacent overrepresentation on etree. */
   "Rock": {
-    /* audit 2B: dropped "classical","jazz" from deny.subject. Jazz-rock (Zappa, Chicago, Blood
-       Sweat & Tears), symphonic prog rock (ELP, Yes), and orchestral rock are all card-carrying
-       rock genres tagged jazz/classical by uploaders. */
     genre: "gmrock", era: [1955, 2026],
-    providers: [{"collections": ["etree", "audio_music"], "require_subj": ["rock", "rock music", "rock and roll", "alternative rock", "indie rock", "punk rock", "hard rock", "classic rock", "garage rock"]}],
-    deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture"]},
+    providers: [
+      { collections: ["etree", "audio_music", "opensource_audio"], require_subj: [
+        "elvis presley","chuck berry","little richard","buddy holly","fats domino","jerry lee lewis",
+        "the beatles","the rolling stones","the who","the kinks","the animals","the yardbirds",
+        "led zeppelin","pink floyd","the doors","the beach boys","cream","jimi hendrix",
+        "eric clapton","david bowie","queen","fleetwood mac","the eagles","aerosmith",
+        "van halen","black sabbath","deep purple","rush","the police","u2","r.e.m.",
+        "the clash","talking heads","the ramones","tom petty","bruce springsteen","bob seger",
+        "john mellencamp","neil young","joni mitchell","james taylor","carly simon","joan jett",
+        "the pretenders","chrissie hynde","sheryl crow","alanis morissette","liz phair",
+        "nirvana","pearl jam","soundgarden","alice in chains","stone temple pilots",
+        "the smashing pumpkins","radiohead","oasis","the strokes","the white stripes","the killers",
+        "arctic monkeys","kings of leon","foo fighters","weezer","green day","blink-182"
+      ] },
+      { collections: ["audio_music", "opensource_audio"], require_subj: [
+        "rock","rock and roll","rock \u0027n\u0027 roll","classic rock","hard rock","arena rock",
+        "album rock","southern rock","progressive rock","prog rock","art rock",
+        "alternative rock","indie rock","modern rock","garage rock","garage",
+        "surf rock","surf","psychedelic rock","psychedelic","acid rock",
+        "glam rock","new wave","power pop","pop rock","folk rock","country rock",
+        "grunge","post-grunge","emo","pop punk","nu metal","stoner rock","desert rock"
+      ] },
+      { collections: ["etree"], require_subj: ["rock","live","concert","live rock"], subjRequired: true }
+    ],
+    deny: {"title": [], "subject": ["podcast","talk show","comedy","spoken word","audiobook","lecture","classical","opera","liturgical","gospel","hymn","reggaeton","narcocorrido", ...JAMBAND_DENY]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Contemporary Jazz (ch 904) — Phase 1 overhaul 2026-08-08. Post-1960 jazz —
+     fusion, spiritual, avant-garde, smooth, nu-jazz, jazz-hop, contemporary hard bop. */
   "Contemporary Jazz": {
-    genre: "gmjazzmod", era: [1970, 2025], /* audit 6B: still-active genre, extend upper bound */
-    providers: [{"collections": ["etree", "audio_music"], "require_subj": ["jazz", "fusion", "contemporary jazz", "smooth jazz", "jazz fusion", "post-bop", "acid jazz", "nu jazz"]}],
-    deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture", "rock", "pop"]},
+    genre: "gmjazzmod", era: [1960, 2026],
+    providers: [
+      { collections: ["audio_music", "opensource_audio", "netlabels"], require_subj: [
+        "miles davis","john coltrane","alice coltrane","pharoah sanders","albert ayler","archie shepp",
+        "cecil taylor","sun ra","art ensemble of chicago","anthony braxton","muhal richard abrams",
+        "keith jarrett","chick corea","herbie hancock","weather report","wayne shorter","joe zawinul",
+        "mahavishnu orchestra","john mclaughlin","al di meola","larry coryell","return to forever",
+        "pat metheny","pat metheny group","lyle mays","jaco pastorius","stanley clarke","marcus miller",
+        "yellowjackets","spyro gyra","spyrogyra","the crusaders","joe sample","david sanborn",
+        "grover washington jr","grover washington jr.","kenny g","george benson","earl klugh","stanley jordan",
+        "brad mehldau","kurt rosenwinkel","joshua redman","chris potter","james carter","david murray",
+        "wynton marsalis","branford marsalis","delfeayo marsalis","ellis marsalis","terence blanchard",
+        "roy hargrove","christian mcbride","brian blade","jason moran","robert glasper","kamasi washington",
+        "esperanza spalding","gregory porter","cecile mclorin salvant","jazzmeia horn","cory henry",
+        "snarky puppy","hiromi","tigran hamasyan","vijay iyer","jason moran","brian blade fellowship",
+        "acid jazz","us3","jamiroquai","incognito","the brand new heavies"
+      ] },
+      { collections: ["audio_music", "opensource_audio"], require_subj: [
+        "jazz","modern jazz","contemporary jazz","post-bop","post bop","hard bop","modal jazz",
+        "free jazz","avant-garde jazz","avant garde jazz","spiritual jazz","fusion","jazz fusion",
+        "jazz-rock","jazz rock","electric jazz","funk jazz","jazz funk","acid jazz","nu-jazz","nu jazz",
+        "smooth jazz","cool jazz","world jazz","latin jazz","afro-cuban jazz","brazilian jazz",
+        "jazz-hop","jazz hip hop","chamber jazz","ecm"
+      ] }
+    ],
+    deny: {"subject": ["podcast","talk show","comedy","classical","opera","country","rock band","punk","metal","electronic dance", ...JAMBAND_DENY]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Contemporary Blues (ch 906) — Phase 1 overhaul 2026-08-08. Blues after 1960 —
+     modern electric, blues-rock, contemporary acoustic, revival + heirs. */
   "Contemporary Blues": {
-    genre: "gmbluesmod", era: [1970, 2026],
-    providers: [{"collections": ["etree", "audio_music"], "require_subj": ["blues", "modern blues", "contemporary blues", "blues rock", "electric blues", "slide guitar"]}],
-    deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture"]},
-    subjRequired: true, noBlindFallback: true
+    genre: "gmbluesmod", era: [1960, 2026],
+    providers: [
+      { collections: ["audio_music", "opensource_audio", "netlabels"], require_subj: [
+        "buddy guy","b.b. king","albert king","freddie king","albert collins","otis rush",
+        "junior wells","james cotton","koko taylor","willie dixon","muddy waters","howlin' wolf",
+        "howlin wolf","john lee hooker","lightnin' hopkins","stevie ray vaughan","jimmy vaughan",
+        "double trouble","robert cray","kenny wayne shepherd","jonny lang","susan tedeschi",
+        "tedeschi trucks band","tedeschi trucks","derek trucks","warren haynes","joe bonamassa",
+        "gary clark jr","gary clark jr.","alvin youngblood hart","corey harris","keb mo","keb' mo'",
+        "taj mahal","luther allison","bernard allison","clarence gatemouth brown","charlie musselwhite",
+        "paul butterfield","the butterfield blues band","mike bloomfield","john mayall","peter green",
+        "eric clapton","cream","the yardbirds","fleetwood mac","john mayall bluesbreakers","bluesbreakers",
+        "roy buchanan","danny gatton","little charlie and the nightcats","rod piazza","kim wilson",
+        "the fabulous thunderbirds","fabulous thunderbirds","los lobos","north mississippi allstars",
+        "north mississippi all stars","r.l. burnside","junior kimbrough","t-model ford","cedric burnside",
+        "fat possum records","alligator records"
+      ] },
+      { collections: ["audio_music", "opensource_audio"], require_subj: [
+        "blues","modern blues","contemporary blues","electric blues","urban blues","chicago blues",
+        "texas blues","west coast blues","memphis blues","delta blues revival","juke joint",
+        "blues rock","blues-rock","blues revival","british blues","blues fusion","soul blues",
+        "hill country blues","north mississippi blues","punk blues","garage blues","slide guitar"
+      ] }
+    ],
+    deny: {"subject": ["podcast","talk show","comedy","classical","opera","hip hop","rap","electronic dance","punk","metal","folk","country","gospel","reggae", ...JAMBAND_DENY]},
+    subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
   "Hip-Hop": {
@@ -1921,48 +2014,153 @@ const PROGRAM = {
     subjRequired: true, noBlindFallback: true
   },
 
+  /* Reggae & Dub (ch 916) — Phase 1 overhaul 2026-08-08. Jamaican tradition
+     including ska/rocksteady precursors and dancehall descendants. */
   "Reggae & Dub": {
-    genre: "gmreggae", era: [1960, 2026],
-    providers: [{"collections": ["etree", "audio_music"], "require_subj": ["reggae", "dub", "ska", "dancehall", "roots reggae", "rocksteady"]}],
-    /* audit 2B: dropped "rock","funk" from deny.subject. Reggae-rock (Police, Sublime lineage)
-       and reggae-funk crossovers were being blocked. */
-    deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture", ...JAMBAND_DENY]},
-    subjRequired: true, noBlindFallback: true
+    genre: "gmreggae", era: [1962, 2026],
+    providers: [
+      { collections: ["audio_music", "netlabels", "opensource_audio"], require_subj: [
+        "bob marley","bob marley and the wailers","the wailers","peter tosh","bunny wailer",
+        "burning spear","jimmy cliff","toots and the maytals","toots hibbert","the maytals",
+        "desmond dekker","gregory isaacs","dennis brown","freddie mcgregor","beres hammond",
+        "black uhuru","israel vibration","the abyssinians","culture","the congos","steel pulse",
+        "aswad","misty in roots","linton kwesi johnson","mutabaruka","yellowman","eek-a-mouse",
+        "lee scratch perry","lee \u0022scratch\u0022 perry","king tubby","scientist","mad professor",
+        "prince jammy","augustus pablo","tommy mccook","don drummond","the skatalites",
+        "prince buster","laurel aitken","alton ellis","ken boothe","john holt","delroy wilson",
+        "beenie man","bounty killer","sean paul","shaggy","damian marley","stephen marley","ziggy marley"
+      ] },
+      { collections: ["audio_music", "netlabels", "opensource_audio"], require_subj: [
+        "reggae","roots reggae","roots rock reggae","dub","dub reggae","dubwise","dubstep origins",
+        "ska","two tone","2-tone","rocksteady","dancehall","dance hall","raggamuffin","ragga",
+        "lovers rock","nyabinghi","niyabinghi","conscious reggae","one drop","riddim"
+      ] }
+    ],
+    deny: {"subject": ["podcast","talk show","comedy","classical","country","rock band","reggaeton","narcocorrido", ...JAMBAND_DENY]},
+    subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Punk (ch 913) — Phase 1 overhaul 2026-08-08. UK, NYC, LA, DC, hardcore, post-
+     punk, pop-punk with named bands. */
   "Punk": {
-    /* audit 2B: dropped "classical","jazz" from deny.subject. Punk-jazz (Lounge Lizards, John Zorn)
-       and jazz-punk crossovers were being blocked.
-       Soak follow-up: "Slightly Stoopid Live at Gathering of The Vibes" bled in — reggae-rock at a
-       jamband festival. Spreading JAMBAND_DENY. */
     genre: "gmpunk", era: [1975, 2026],
-    providers: [{"collections": ["etree", "audio_music"], "require_subj": ["punk", "punk rock", "hardcore", "hardcore punk", "post-punk", "pop punk", "anarcho-punk"]}],
-    deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture", ...JAMBAND_DENY]},
-    subjRequired: true, noBlindFallback: true
+    providers: [
+      { collections: ["audio_music", "netlabels", "opensource_audio"], require_subj: [
+        "sex pistols","the clash","the damned","the buzzcocks","the jam","x-ray spex",
+        "generation x","siouxsie and the banshees","joy division","the fall","gang of four",
+        "wire","stiff little fingers","sham 69","the exploited","g.b.h.","discharge",
+        "the ramones","richard hell","television","the dead boys","the heartbreakers","blondie",
+        "talking heads","patti smith","new york dolls","the misfits","the descendants","descendents",
+        "black flag","circle jerks","the germs","fear","x","the minutemen","the meat puppets",
+        "bad brains","minor threat","fugazi","dischord","dead kennedys","dks","husker du","husker du",
+        "the replacements","the pixies","sonic youth","dinosaur jr","sebadoh","pavement",
+        "green day","rancid","operation ivy","offspring","the offspring","bad religion","nofx",
+        "pennywise","lagwagon","face to face","screeching weasel","alkaline trio",
+        "fat wreck chords","epitaph records","dischord records","sst records","touch and go"
+      ] },
+      { collections: ["audio_music", "netlabels", "opensource_audio"], require_subj: [
+        "punk","punk rock","hardcore","hardcore punk","post-punk","post punk","proto-punk",
+        "pop punk","street punk","d-beat","crust punk","anarcho-punk","riot grrrl","riot grrl",
+        "emo","screamo","skate punk","melodic hardcore","garage rock","garage punk"
+      ] }
+    ],
+    deny: {"subject": ["podcast","talk show","comedy","classical","country","folk","gospel","hip hop","rap","electronic dance", ...JAMBAND_DENY]},
+    subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Metal (ch 914) — Phase 1 overhaul 2026-08-08. Every subgenre — NWOBHM, thrash,
+     death, doom, black, power, prog, sludge, stoner — with named legends. */
   "Metal": {
-    /* Soak caught "Jerry Joseph and the Jackmormons" tagged "Heavy Metal Gospel" — actually
-       alt-country/jamband, not metal. Spreading JAMBAND_DENY. */
-    genre: "gmmetal", era: [1970, 2026],
-    providers: [{"collections": ["etree", "audio_music"], "require_subj": ["metal", "heavy metal", "thrash metal", "death metal", "black metal", "doom metal", "power metal", "progressive metal"]}],
-    deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture", "jazz", "classical", ...JAMBAND_DENY]},
+    genre: "gmmetal", era: [1968, 2026],
+    providers: [
+      { collections: ["audio_music", "netlabels", "opensource_audio"], require_subj: [
+        "black sabbath","led zeppelin","deep purple","uriah heep","blue oyster cult","judas priest",
+        "iron maiden","motörhead","motorhead","saxon","diamond head","venom","celtic frost",
+        "metallica","megadeth","slayer","anthrax","testament","exodus","overkill","death angel",
+        "iced earth","nevermore","annihilator","kreator","sodom","destruction",
+        "death","cannibal corpse","morbid angel","obituary","deicide","suffocation","immolation",
+        "carcass","napalm death","at the gates","in flames","opeth","behemoth","emperor",
+        "mayhem","darkthrone","burzum","satyricon","dimmu borgir","dissection","enslaved",
+        "candlemass","paradise lost","my dying bride","katatonia","electric wizard","sleep",
+        "sunn o)))","earth","kyuss","monster magnet","fu manchu","corrosion of conformity",
+        "eyehategod","crowbar","down","pantera","white zombie","rob zombie","tool","system of a down",
+        "korn","slipknot","lamb of god","gojira","mastodon","meshuggah","dream theater",
+        "queensryche","fates warning","symphony x","blind guardian","helloween","hammerfall",
+        "power metal","progressive metal","doom metal","death metal","black metal","folk metal",
+        "symphonic metal","gothic metal","industrial metal","nu metal","alternative metal"
+      ] },
+      { collections: ["audio_music", "netlabels", "opensource_audio"], require_subj: [
+        "metal","heavy metal","hard rock","nwobhm","thrash metal","speed metal","death metal",
+        "black metal","doom metal","funeral doom","sludge metal","stoner metal","stoner rock",
+        "power metal","progressive metal","symphonic metal","folk metal","viking metal","pagan metal",
+        "grindcore","goregrind","deathgrind","gothic metal","industrial metal","nu-metal","nu metal",
+        "alternative metal","metalcore","deathcore","djent","post-metal","atmospheric black metal"
+      ] }
+    ],
+    deny: {"subject": ["podcast","talk show","comedy","classical","gospel","hip hop","electronic dance","country","folk","reggae", ...JAMBAND_DENY]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Electronic (ch 915) — Phase 1 overhaul 2026-08-08. From krautrock synths through
+     Chicago house / Detroit techno / UK jungle / all post-2000 subgenres. */
   "Electronic": {
-    /* Soak caught "Sam Holt Live at The Pour House" — Widespread Panic-adjacent jamband guitarist,
-       not electronic. Spreading JAMBAND_DENY. */
-    genre: "gmelectro", era: [1970, 2026],
-    providers: [{"collections": ["etree", "audio_music"], "require_subj": ["electronic", "electronic music", "techno", "house", "ambient", "IDM", "drum and bass", "dubstep", "trance", "synth"]}],
-    deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture", ...JAMBAND_DENY]},
+    genre: "gmelectro", era: [1968, 2026],
+    providers: [
+      { collections: ["netlabels", "audio_music", "opensource_audio"], require_subj: [
+        "kraftwerk","tangerine dream","klaus schulze","brian eno","cluster","harmonia","neu!",
+        "can","faust","giorgio moroder","donna summer","yellow magic orchestra","yellow magic",
+        "chicago house","detroit techno","juan atkins","derrick may","kevin saunderson","larry heard",
+        "frankie knuckles","ron hardy","farley jackmaster funk","marshall jefferson","dj pierre",
+        "adonis","phuture","richie hawtin","carl craig","jeff mills","robert hood","underground resistance",
+        "aphex twin","autechre","boards of canada","squarepusher","µ-ziq","mu-ziq","luke vibert","µ-ziq",
+        "the orb","the future sound of london","future sound of london","ambient","ambient techno",
+        "orbital","chemical brothers","the prodigy","fatboy slim","daft punk","justice","cassius",
+        "moby","fat boy slim","kruder and dorfmeister","kruder & dorfmeister","air","stereolab",
+        "massive attack","portishead","tricky","goldie","4 hero","4-hero","roni size","reprazent",
+        "photek","dj shadow","cut chemist","rjd2","prefuse 73","flying lotus","four tet","burial",
+        "boards of canada","warp records","ninja tune","hyperdub","planet mu","rephlex","kompakt"
+      ] },
+      { collections: ["netlabels", "audio_music", "opensource_audio"], require_subj: [
+        "electronic","electronic music","electronica","synth","synthesizer","synth pop","synthpop",
+        "techno","house","deep house","tech house","minimal techno","acid house","acid techno",
+        "trance","psy-trance","goa trance","hard trance","progressive house","progressive trance",
+        "drum and bass","drum \u0026 bass","d\u0026b","jungle","breakbeat","big beat",
+        "downtempo","trip hop","idm","intelligent dance music","glitch","glitch hop","chiptune",
+        "ambient","dark ambient","drone","noise","industrial","ebm","gabber","hardcore techno",
+        "dubstep","brostep","future bass","witch house","synthwave","vaporwave","retrowave",
+        "krautrock","kosmische","berlin school","microhouse","minimal","dub techno"
+      ] }
+    ],
+    deny: {"subject": ["podcast","talk show","comedy","classical","opera","country","folk","gospel","hip hop","rap","metal","punk", ...JAMBAND_DENY]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Funk & Soul (ch 907) — Phase 1 overhaul 2026-08-08. Motown / Stax / Philly /
+     P-Funk / New Orleans traditions with named artists. */
   "Funk & Soul": {
-    genre: "gmfunk", era: [1960, 2026],
-    providers: [{"collections": ["etree", "audio_music"], "require_subj": ["funk", "soul", "soul music", "motown", "R&B", "rhythm and blues", "disco", "funk music"]}],
-    deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture"]},
+    genre: "gmfunk", era: [1960, 1990],
+    providers: [
+      { collections: ["audio_music", "78rpm", "opensource_audio"], require_subj: [
+        "james brown","aretha franklin","otis redding","sam cooke","ray charles","stevie wonder",
+        "marvin gaye","al green","curtis mayfield","donny hathaway","roberta flack","gladys knight",
+        "diana ross","the supremes","the temptations","the four tops","smokey robinson","the miracles",
+        "the jackson 5","michael jackson","gladys knight and the pips","dionne warwick",
+        "wilson pickett","solomon burke","percy sledge","joe tex","clarence carter","tyrone davis",
+        "isaac hayes","booker t and the mgs","booker t. and the m.g.'s","bar-kays","the meters",
+        "parliament","funkadelic","p-funk","george clinton","bootsy collins","sly and the family stone",
+        "sly stone","the family stone","earth wind and fire","earth, wind & fire","kool and the gang",
+        "kool & the gang","the ohio players","the isley brothers","the o'jays","harold melvin",
+        "the spinners","the delfonics","the stylistics","the whispers","chic","rick james",
+        "prince","the time","cameo","zapp","roger troutman","con funk shun","teena marie","betty davis"
+      ] },
+      { collections: ["audio_music", "opensource_audio"], require_subj: [
+        "funk","soul","soul music","northern soul","southern soul","deep soul","philly soul",
+        "philadelphia soul","new orleans soul","memphis soul","motown","motown records","stax records",
+        "stax","fame studios","muscle shoals","r&b","rhythm and blues","p-funk","g-funk","electro-funk",
+        "disco","boogie","quiet storm"
+      ] }
+    ],
+    deny: {"subject": ["podcast","talk show","comedy","classical","opera","country","rock band","electronic","punk","metal", ...JAMBAND_DENY]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
@@ -2225,14 +2423,34 @@ const PROGRAM = {
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Modern Country (ch 922) — Phase 1 overhaul 2026-08-08. Contemporary artists
+     since 1970 — outlaw, neo-traditional, Americana, alt-country, bro-country, Nashville pop. */
   "Modern Country": {
-    /* Preemptive JAMBAND_DENY spread — same rationale as Country & Western. Newgrass/jamgrass acts
-       (Railroad Earth, Yonder Mountain, Leftover Salmon, String Cheese Incident) tag themselves with
-       "country","Americana","alt-country" but are actually jamband. */
-    genre: "gmcountrymod", era: [1980, 2025], /* audit 6B: still-active genre, extend upper bound */
-    providers: [{"collections": ["etree", "audio_music"], "require_subj": ["country", "modern country", "alt-country", "country rock", "Americana", "new country", "Nashville"]}],
-    deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture", ...JAMBAND_DENY]},
-    subjRequired: true, noBlindFallback: true
+    genre: "gmcountrymod", era: [1970, 2026],
+    providers: [
+      { collections: ["audio_music", "opensource_audio", "netlabels"], require_subj: [
+        "willie nelson","waylon jennings","kris kristofferson","tompall glaser","david allan coe",
+        "hank williams jr","hank williams jr.","johnny cash","merle haggard","george jones","tammy wynette",
+        "loretta lynn","dolly parton","conway twitty","charley pride","emmylou harris","gram parsons",
+        "george strait","reba mcentire","alan jackson","clint black","garth brooks","vince gill",
+        "randy travis","travis tritt","dwight yoakam","steve earle","lyle lovett","nanci griffith",
+        "shania twain","faith hill","tim mcgraw","toby keith","kenny chesney","brooks and dunn",
+        "brooks & dunn","dixie chicks","the chicks","carrie underwood","miranda lambert","kacey musgraves",
+        "chris stapleton","sturgill simpson","tyler childers","colter wall","jason isbell",
+        "the drive-by truckers","drive-by truckers","wilco","son volt","uncle tupelo","the mavericks",
+        "old 97's","old 97s","son volt","whiskeytown","ryan adams","alison krauss","alison krauss and union station",
+        "brad paisley","keith urban","luke bryan","blake shelton","jason aldean","florida georgia line",
+        "eric church","chris young","dierks bentley","luke combs","morgan wallen","kane brown"
+      ] },
+      { collections: ["audio_music", "opensource_audio"], require_subj: [
+        "country","country music","modern country","contemporary country","outlaw country",
+        "neo-traditional country","texas country","red dirt","alt-country","alternative country",
+        "americana","country rock","country pop","nashville sound","new country","progressive country",
+        "cowpunk","insurgent country","bro-country","country blues","bluegrass gospel","country gospel"
+      ] }
+    ],
+    deny: {"title": ["elvis costello"], "subject": ["podcast","talk show","comedy","spoken word","audiobook","punk","new wave","post-punk","alternative rock","indie rock","electronic","hip hop", ...JAMBAND_DENY]},
+    subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
   "Field Recordings": {
@@ -2258,26 +2476,87 @@ const PROGRAM = {
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Bluegrass & Folk (ch 902) — Phase 1 overhaul 2026-08-08. Old-time / bluegrass /
+     traditional folk / folk revival / singer-songwriter tradition. */
   "Bluegrass & Folk": {
-    /* Soak caught "Nathan Moore Live at Las Tortugas Dance of the Dead" bleeding through — a
-       jamband collective, not folk. Spreading JAMBAND_DENY here matches Hip-Hop/Reggae/etc. */
     genre: "gmfolk", era: [1920, 2026],
-    providers: [{"collections": ["etree", "audio_music"], "require_subj": ["bluegrass", "folk", "folk music", "acoustic", "fiddle", "banjo", "mandolin", "folk rock", "traditional", "americana"]}],
-    deny: {"subject": ["podcast", "talk show", "comedy", "spoken word", "audiobook", "lecture", ...JAMBAND_DENY]},
+    providers: [
+      { collections: ["etree", "audio_music", "78rpm", "lomaxky", "opensource_audio"], require_subj: [
+        "bill monroe","monroe brothers","the stanley brothers","flatt and scruggs","earl scruggs",
+        "lester flatt","doc watson","norman blake","tony rice","clarence white","david grisman",
+        "jerry garcia acoustic","alison krauss","union station","ricky skaggs","del mccoury",
+        "the seldom scene","the country gentlemen","new grass revival","sam bush","béla fleck",
+        "bela fleck","tim o'brien","peter rowan","john hartford","vassar clements","kenny baker",
+        "the carter family","a.p. carter","maybelle carter","mother maybelle","the delmore brothers",
+        "roscoe holcomb","dock boggs","clarence ashley","the new lost city ramblers","mike seeger",
+        "pete seeger","woody guthrie","cisco houston","huddie ledbetter","alan lomax","john lomax",
+        "leadbelly folk","bob dylan","joan baez","judy collins","joni mitchell","phil ochs",
+        "tim buckley","tim hardin","richard and mimi farina","the byrds","gram parsons",
+        "the flying burrito brothers","sandy denny","fairport convention","richard thompson",
+        "iron and wine","fleet foxes","gillian welch","dave rawlings","david rawlings",
+        "old crow medicine show","the avett brothers","the punch brothers","chris thile","nickel creek"
+      ] },
+      { collections: ["etree", "audio_music", "78rpm"], require_subj: [
+        "bluegrass","old-time","old time music","appalachian","string band","stringband","mountain music",
+        "folk","folk music","american folk","traditional folk","folk revival","folk-rock","freak folk",
+        "singer-songwriter","folksinger","fiddle","banjo","mandolin","dobro","dulcimer","autoharp",
+        "sea shanty","field holler","ballad","american ballad","murder ballad","protest song"
+      ] }
+    ],
+    deny: {"subject": ["podcast","talk show","comedy","classical","opera","electronic","hip hop","rap","metal","punk", ...JAMBAND_DENY]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Jazz (ch 903) — Phase 1 overhaul 2026-08-08. Named-legend tier + subgenre tier.
+     Covers pre-swing through fusion. */
   "Jazz": {
-    genre: "gmjazz", era: [1920, 1969],
-    providers: [{"collections": ["etree", "audio_music"], "require_subj": ["jazz", "bebop", "swing", "big band", "cool jazz", "hard bop", "free jazz", "modal jazz", "dixieland"]}],
-    deny: {"subject": ["podcast", "talk show", "comedy", "spoken word", "audiobook", "lecture", "rock", "pop"]},
+    genre: "gmjazz", era: [1920, 1985],
+    providers: [
+      { collections: ["78rpm", "audio_music", "opensource_audio", "georgeblood"], require_subj: [
+        "louis armstrong","duke ellington","count basie","benny goodman","artie shaw","tommy dorsey",
+        "jimmy dorsey","glenn miller","cab calloway","fats waller","django reinhardt","stephane grappelli",
+        "coleman hawkins","lester young","ben webster","charlie parker","dizzy gillespie","thelonious monk",
+        "bud powell","art tatum","fats navarro","clifford brown","max roach","kenny clarke",
+        "miles davis","john coltrane","cannonball adderley","sonny rollins","dexter gordon","stan getz",
+        "gerry mulligan","chet baker","art pepper","jimmy giuffre","paul desmond","dave brubeck",
+        "bill evans","oscar peterson","mccoy tyner","herbie hancock","chick corea","wayne shorter",
+        "keith jarrett","ornette coleman","eric dolphy","charles mingus","gil evans","clifford jordan",
+        "sarah vaughan","ella fitzgerald","billie holiday","carmen mcrae","nina simone","dinah washington"
+      ] },
+      { collections: ["78rpm", "audio_music"], require_subj: [
+        "jazz","dixieland","new orleans jazz","hot jazz","early jazz","classic jazz",
+        "swing","big band jazz","bebop","be-bop","hard bop","post bop","cool jazz","west coast jazz",
+        "modal jazz","free jazz","avant-garde jazz","third stream","jazz vocal","jazz standards",
+        "jazz fusion","jazz-rock","latin jazz","afro-cuban jazz","spiritual jazz"
+      ] }
+    ],
+    deny: {"subject": ["podcast","talk show","comedy","spoken word","audiobook","classical","opera","gospel","hymn","rock","country","hip hop","rap","reggae","electronic","punk", ...JAMBAND_DENY]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Blues (ch 905) — Phase 1 overhaul 2026-08-08. Named legends across delta,
+     chicago, texas, jump-blues traditions. */
   "Blues": {
-    genre: "gmblues", era: [1920, 1969],
-    providers: [{"collections": ["etree", "audio_music"], "require_subj": ["blues", "delta blues", "chicago blues", "electric blues", "blues rock", "rhythm and blues", "R&B"]}],
-    deny: {"subject": ["podcast", "talk show", "comedy", "spoken word", "audiobook", "lecture"]},
+    genre: "gmblues", era: [1920, 1985],
+    providers: [
+      { collections: ["78rpm", "audio_music", "opensource_audio", "georgeblood"], require_subj: [
+        "robert johnson","son house","charley patton","blind lemon jefferson","blind willie mctell",
+        "blind blake","big bill broonzy","lead belly","leadbelly","memphis minnie","tampa red",
+        "muddy waters","howlin' wolf","howlin wolf","willie dixon","little walter","sonny boy williamson",
+        "junior wells","james cotton","elmore james","john lee hooker","lightnin' hopkins","lightnin hopkins",
+        "t-bone walker","bb king","b.b. king","albert king","freddie king","albert collins","otis rush",
+        "buddy guy","koko taylor","etta james","ma rainey","bessie smith","ida cox","alberta hunter",
+        "big mama thornton","big joe turner","louis jordan","professor longhair","clarence gatemouth brown",
+        "lightnin' slim","slim harpo","jimmy reed","john lee sonny boy williamson","sonny terry","brownie mcghee",
+        "mississippi john hurt","fred mcdowell","skip james","bukka white","furry lewis","reverend gary davis"
+      ] },
+      { collections: ["78rpm", "audio_music"], require_subj: [
+        "blues","delta blues","country blues","piedmont blues","chicago blues","texas blues",
+        "west coast blues","memphis blues","jump blues","electric blues","urban blues","classic blues",
+        "boogie-woogie","boogie woogie","barrelhouse","rhythm and blues"
+      ] }
+    ],
+    deny: {"subject": ["podcast","talk show","comedy","spoken word","classical","opera","hip hop","rap","electronic","rock band","punk", ...JAMBAND_DENY]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
@@ -2323,28 +2602,92 @@ const PROGRAM = {
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Gospel (ch 917) — Phase 1 overhaul 2026-08-08. Traditional Black gospel,
+     white gospel/southern gospel, quartet, spirituals, contemporary. */
   "Gospel": {
-    genre: "gmgospel", era: [1920, 2000],
-    providers: [{"collections": ["etree", "audio_music", "78rpm", "lomaxky"], "require_subj": ["gospel", "gospel music", "spiritual", "hymn", "choir", "praise", "worship music", "sacred music", "sacred song"]}],
-    deny: {"subject": ["podcast", "talk show", "comedy", "spoken word", "audiobook", "jam", "jamband", "rock", "grateful dead", "jerry garcia", "blues", "funk", "psychedelic"]},
+    genre: "gmgospel", era: [1920, 2010],
+    providers: [
+      { collections: ["78rpm", "audio_music", "opensource_audio"], require_subj: [
+        "mahalia jackson","sister rosetta tharpe","the staple singers","the swan silvertones",
+        "the dixie hummingbirds","the soul stirrers","sam cooke","the pilgrim travelers","claude jeter",
+        "the mighty clouds of joy","the ward singers","clara ward","the caravans","albertina walker",
+        "shirley caesar","the andrae crouch singers","andrae crouch","edwin hawkins","the edwin hawkins singers",
+        "walter hawkins","tramaine hawkins","james cleveland","aretha franklin gospel","aretha gospel",
+        "yolanda adams","cece winans","bebe winans","kirk franklin","fred hammond",
+        "thomas a dorsey","thomas a. dorsey","reverend gary davis","blind willie johnson","washington phillips",
+        "elder utah smith","the fisk jubilee singers","fisk jubilee singers","paul robeson spirituals",
+        "the golden gate quartet","the jubalaires","the ravens gospel","spirit of memphis quartet",
+        "the blackwood brothers","statesmen quartet","cathedrals","gaither vocal band","bill gaither",
+        "j.d. sumner","hovie lister","southern gospel quartet"
+      ] },
+      { collections: ["78rpm", "audio_music"], require_subj: [
+        "gospel","gospel music","black gospel","african american gospel","southern gospel","white gospel",
+        "quartet gospel","gospel quartet","country gospel","bluegrass gospel","contemporary gospel",
+        "urban gospel","gospel blues","holy blues","spiritual","spirituals","negro spirituals",
+        "african american spirituals","hymn","hymns","sacred song","sacred music","church music",
+        "praise and worship","worship music","choir","choral","choir music"
+      ] }
+    ],
+    deny: {"subject": ["podcast","talk show","comedy","secular","hip hop","rock band","electronic","punk","metal","country","blues", ...JAMBAND_DENY]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Latin (ch 909) — Phase 1 overhaul 2026-08-08. Cuban, Puerto Rican, Mexican,
+     Brazilian, Argentine, Colombian, Peruvian traditions with named artists. */
   "Latin": {
-    /* Soak caught "Baila El Chiki Chiki" (Rodolfo Chikilicuatre) TWICE — a Spanish Eurovision
-       parody entry tagged "Reggaeton,Parody Reggaeton". Not real Latin music. Deny eurovision
-       and novelty/parody so the eurovision-archive collection stops leaking through. */
-    genre: "gmlatin", era: [1940, 2026],
-    providers: [{"collections": ["etree", "audio_music"], "require_subj": ["latin", "salsa", "bossa nova", "cumbia", "mambo", "tango", "latin jazz", "samba", "merengue", "bachata", "reggaeton"]}],
-    deny: {"subject": ["podcast", "talk show", "comedy", "spoken word", "audiobook", "lecture", "eurovision", "parody", "novelty song", "parody reggaeton"]},
+    genre: "gmlatin", era: [1930, 2026],
+    providers: [
+      { collections: ["audio_music", "78rpm", "opensource_audio"], require_subj: [
+        "carmen miranda","xavier cugat","tito puente","tito rodriguez","machito","celia cruz",
+        "beny more","benny more","perez prado","damaso perez prado","arsenio rodriguez",
+        "buena vista social club","compay segundo","ibrahim ferrer","ruben gonzalez","omara portuondo",
+        "eliades ochoa","chico buarque","gilberto gil","caetano veloso","milton nascimento",
+        "elis regina","jorge ben","jorge ben jor","tom jobim","antonio carlos jobim","joão gilberto",
+        "joao gilberto","astrud gilberto","stan getz jobim","gal costa","maria bethânia",
+        "tania maria","hermeto pascoal","airto moreira","flora purim","paco de lucia",
+        "camarón de la isla","enrique iglesias","julio iglesias","juan luis guerra","juan gabriel",
+        "vicente fernandez","javier solis","pedro infante","jorge negrete","astor piazzolla",
+        "carlos gardel","mercedes sosa","atahualpa yupanqui","victor jara","violeta parra","inti-illimani",
+        "los panchos","trio los panchos","los indios tabajaras","tego calderon","calle 13",
+        "shakira","selena","los tigres del norte","el gran combo","willie colon","hector lavoe",
+        "eddie palmieri","ray barretto","fania all-stars","fania all stars","ruben blades",
+        "gilberto santa rosa","marc anthony","victor manuelle","juan formell","los van van"
+      ] },
+      { collections: ["audio_music", "78rpm", "opensource_audio"], require_subj: [
+        "latin","latin music","salsa","salsa dura","son cubano","son montuno","mambo","cha cha cha",
+        "cha-cha-cha","charanga","danzón","danzon","bolero","guaguancó","rumba","guaracha",
+        "bossa nova","samba","choro","forró","forro","MPB","musica popular brasileira","tropicália",
+        "tropicalia","axé","axe","brazilian jazz","brazilian pop","brazilian folk",
+        "tango","milonga","nueva canción","nueva cancion","chilean folk","argentine folk",
+        "cumbia","vallenato","merengue","bachata","reggaeton","latin pop","latin rock","rock en español"
+      ] }
+    ],
+    deny: {"subject": ["podcast","talk show","comedy","classical","opera","country","rock band","punk","metal","hip hop","rap","electronic dance", ...JAMBAND_DENY]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Ragtime (ch 910) — Phase 1 overhaul 2026-08-08. Composers + performers +
+     piano-roll recordings + subgenre depth. */
   "Ragtime": {
-    genre: "gmragtime", era: [1895, 1930],
-    providers: [{"collections": ["78rpm", "audio_music"], "require_subj": ["ragtime", "rag", "stride piano", "piano roll", "joplin", "ragtime music"]}],
-    deny: {"subject": ["podcast", "talk show", "comedy", "spoken word", "lecture"]},
-    subjRequired: true, noBlindFallback: true
+    genre: "gmragtime", era: [1893, 1930],
+    providers: [
+      { collections: ["78rpm", "georgeblood", "audio_music", "opensource_audio"], require_subj: [
+        "scott joplin","joseph lamb","james scott","tom turpin","james sylvester scott","artie matthews",
+        "eubie blake","james p johnson","james p. johnson","luckey roberts","charles hunter",
+        "may aufderheide","jelly roll morton","cow cow davenport","willie the lion smith",
+        "willie \u0022the lion\u0022 smith","pete johnson","meade lux lewis","albert ammons",
+        "mike bernard","zez confrey","fred stone","charles l johnson","henry lodge","axel christensen",
+        "the maple leaf rag","maple leaf rag","the entertainer","gladiolus rag","fig leaf rag",
+        "solace","peacherine rag","the cascades","ragtime dance","original rags","weeping willow rag"
+      ] },
+      { collections: ["78rpm", "georgeblood", "audio_music"], require_subj: [
+        "ragtime","rag","classic ragtime","folk ragtime","piano rag","stride piano","stride",
+        "novelty piano","novelty ragtime","cakewalk","two-step","two step","boogie-woogie",
+        "piano roll","player piano","pianola","early jazz piano","new orleans piano"
+      ] }
+    ],
+    deny: {"subject": ["podcast","talk show","comedy","spoken word","modern jazz","bebop","electronic","rock","country","hip hop", ...JAMBAND_DENY]},
+    subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
   "Classical": {
@@ -2360,18 +2703,62 @@ const PROGRAM = {
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Vintage Pop (ch 912) — Phase 1 overhaul 2026-08-08. Crooners, torch singers,
+     easy listening, standards, tin pan alley. */
   "Vintage Pop": {
-    genre: "gmpop", era: [1920, 1969],
-    providers: [{"collections": ["78rpm", "audio_music"], "require_subj": ["pop", "popular music", "crooner", "vocal", "easy listening", "standard", "torch song"]}],
-    deny: {"subject": ["podcast", "talk show", "comedy", "spoken word", "audiobook", "lecture"]},
-    subjRequired: true, noBlindFallback: true
+    genre: "gmpop", era: [1920, 1970],
+    providers: [
+      { collections: ["78rpm", "audio_music", "georgeblood", "opensource_audio"], require_subj: [
+        "bing crosby","frank sinatra","dean martin","sammy davis jr","sammy davis jr.","tony bennett",
+        "perry como","andy williams","nat king cole","nat \u0022king\u0022 cole","mel torme","mel tormé",
+        "vic damone","al martino","jerry vale","eddie fisher","johnny mathis","harry belafonte",
+        "peggy lee","doris day","rosemary clooney","patti page","teresa brewer","kay starr",
+        "jo stafford","dinah shore","kate smith","judy garland","barbra streisand","liza minnelli",
+        "julie london","june christy","chris connor","anita o'day","dakota staton","ella mae morse",
+        "helen forrest","helen o'connell","the andrews sisters","the mcguire sisters","the boswell sisters",
+        "the ink spots","the mills brothers","the four freshmen","the hi-lo's","hi-lo's",
+        "tommy dorsey vocals","harry james vocals","les brown","ray anthony","billy vaughn","lawrence welk",
+        "mantovani","percy faith","henry mancini","nelson riddle","gordon jenkins","axel stordahl",
+        "great american songbook","tin pan alley","broadway standards","standards","american standards",
+        "cole porter","irving berlin","george gershwin","ira gershwin","richard rodgers","oscar hammerstein",
+        "jerome kern","harold arlen","johnny mercer","sammy cahn","jimmy van heusen","hoagy carmichael"
+      ] },
+      { collections: ["78rpm", "audio_music"], require_subj: [
+        "pop","popular music","vintage pop","classic pop","traditional pop","american songbook",
+        "great american songbook","standards","american standards","broadway standards","musical theatre",
+        "crooner","crooners","torch song","torch singer","easy listening","adult contemporary",
+        "mood music","light orchestral","pop vocal","vocal jazz","cabaret","supper club",
+        "tin pan alley","music hall","vaudeville pop"
+      ] }
+    ],
+    deny: {"subject": ["podcast","talk show","comedy","spoken word","rock","country","folk","hip hop","electronic","metal","punk","reggae","classical opera", ...JAMBAND_DENY]},
+    subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Jukebox 78 (ch 923) — Phase 1 overhaul 2026-08-08. 78rpm shellac era —
+     jazz-age, hillbilly-race, standards, novelty, whatever the phonograph pressed. */
   "Jukebox 78": {
-    genre: "jazz78", era: [1900, 1960],
-    providers: [{"collections": ["78rpm", "78rpm_bostonpubliclibrary"], "require_subj": ["78rpm", "78 rpm", "shellac", "gramophone", "phonograph", "78", "victrola"]}],
-    deny: {"subject": ["podcast", "talk show", "spoken word", "lecture", "audiobook"]},
-    subjRequired: true, noBlindFallback: true
+    genre: "jazz78", era: [1900, 1955],
+    providers: [
+      { collections: ["78rpm", "georgeblood", "audio_music", "opensource_audio"], require_subj: [
+        "78rpm","78 rpm","78-rpm","shellac","gramophone","phonograph","victrola","victor records",
+        "columbia records 78","brunswick records 78","okeh records","paramount records","black patti",
+        "edison cylinder","edison diamond disc","edison records","cylinder recording","wax cylinder",
+        "acoustical recording","electrical recording","early recording","early phonograph"
+      ] },
+      { collections: ["78rpm", "georgeblood"], require_subj: [
+        "jazz age","dance orchestra","dance band","early jazz","hot dance","sweet dance","jazz band",
+        "novelty song","novelty foxtrot","comic song","vaudeville","music hall","tin pan alley",
+        "hillbilly","early country","string band","old time music","fiddle","mountain music",
+        "race records","classic blues","country blues","early blues","gospel quartet","spirituals",
+        "hawaiian music","hawaiian guitar","polka","polka band","cajun music","cajun accordion",
+        "yiddish","klezmer","opera aria","light classical","salon music","concert band","march",
+        "sousa","john philip sousa","military band","dance-band vocal","crooner","early crooner",
+        "flapper era","charleston","black bottom","turkey trot","fox trot","waltz","tango 78"
+      ] }
+    ],
+    deny: {"subject": ["podcast","talk show","comedy sketch","modern jazz","bebop","rock and roll","electric blues","electric guitar","electronic","synthesizer", ...JAMBAND_DENY]},
+    subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
   "Podcasts": {

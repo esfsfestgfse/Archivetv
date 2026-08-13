@@ -999,7 +999,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.133";
+window.__ATV_BUILD="1.7.7-desktop.134";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -2174,15 +2174,38 @@ const PROGRAM = {
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Hard Count (ch 51) — Phase 5 overhaul 2026-08-08. NFL Films golden era —
+     Sabol / Facenda / gridiron poetry. */
   "Hard Count": {
     genre: "nflfilms", era: [1965, 2026],
     providers: [
-      { collections: ["opensource_movies"], require_subj: ["NFL Films", "NFL", "Steve Sabol", "Ed Sabol", "John Facenda", "pro football", "football films", "NFL history", "super bowl", "gridiron"] },
-      { collections: ["sports", "sportstelevision"], require_subj: ["NFL Films", "Steve Sabol", "John Facenda", "pro football", "NFL Films Presents"] }
+      { collections: ["sports", "sportstelevision", "opensource_movies", "vhssports"], require_subj: [
+        "nfl films","nfl film","steve sabol","ed sabol","sabol nfl","john facenda","facenda","voice of god facenda",
+        "sam spence","sam spence nfl","nfl films music","nfl films soundtrack","nfl films score","nfl films film",
+        "the autumn wind","autumn wind raiders","nfl films highlight","nfl films highlights",
+        "nfl films yearbook","nfl films team highlight","team highlight film","hard knocks","hard knocks hbo",
+        "nfl this week","game of the week nfl","nfl game of the week","football follies","football follies nfl",
+        "america's game","americas game","america's game nfl","america's game the missing rings",
+        "a football life","football life nfl films","the top 10","nfl films top 10","the greatest game ever played",
+        "super bowl highlight film","super bowl highlights","nfl films super bowl","nfl films super bowl film",
+        "steel curtain","doomsday defense","fearsome foursome","monsters of the midway","purple people eaters",
+        "orange crush","new york sack exchange","the sack pack","greatest show on turf","tampa 2","46 defense",
+        "vince lombardi","don shula","bill walsh","chuck noll","tom landry","joe gibbs","bill parcells",
+        "bill belichick","paul brown","curly lambeau","weeb ewbank","hank stram","john madden","dick vermeil",
+        "johnny unitas","joe namath","terry bradshaw","joe montana","john elway","dan marino","peyton manning",
+        "tom brady","brett favre","dan fouts","warren moon","steve young","kurt warner","aaron rodgers",
+        "jim brown","walter payton","emmitt smith","barry sanders","gale sayers","o.j. simpson runner",
+        "eric dickerson","earl campbell","jim taylor","john riggins","franco harris","bo jackson",
+        "reggie white","lawrence taylor","bruce smith","dick butkus","ray lewis","brian urlacher","mike singletary"
+      ] },
+      { collections: ["sports", "sportstelevision", "vhssports"], require_subj: [
+        "nfl","national football league","professional football","american football","gridiron football",
+        "nfl history","nfl documentary","pro football","pro football hall of fame","canton","pro football history"
+      ] }
     ],
     deny: {
-      title: ["news", "commercial", "trailer", "highlights show"],
-      subject: ["news", "commercial", "youtube", "vlog", "trailer", "cartoon", "sports talk"]
+      title: ["fantasy","commercial","cartoon","instructional","training"],
+      subject: ["fantasy football","cartoon","animated","commercial","training","instructional","college football"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
@@ -2294,28 +2317,85 @@ const PROGRAM = {
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Eyes on the Prize (ch 224) — Phase 5 overhaul 2026-08-08. Civil rights movement
+     archive — MLK/Malcolm X/SNCC/SCLC/Panthers + Eyes on the Prize documentary + successor
+     civil-rights-history docs. */
   "Eyes on the Prize": {
-    genre: "civilrights", era: [1955, 2026],
+    genre: "civilrights", era: [1954, 2026],
     providers: [
-      { collections: ["opensource_movies"], require_subj: ["civil rights", "civil rights movement", "martin luther king", "malcolm x", "black panthers", "SNCC", "freedom riders", "selma", "montgomery bus boycott", "march on washington", "voting rights", "SCLC", "NAACP", "black power"] },
-      { collections: ["news_and_journalism", "opensource_movies"], require_subj: ["civil rights", "martin luther king", "malcolm x", "african american history"] }
+      { collections: ["opensource_movies", "pbs_public_broadcasting_service", "prelinger"], require_subj: [
+        "eyes on the prize","eyes on the prize pbs","eyes on the prize documentary","henry hampton",
+        "civil rights","civil rights movement","american civil rights movement","civil-rights movement",
+        "martin luther king","dr martin luther king","martin luther king jr","mlk","mlk jr","dr king",
+        "i have a dream","i have a dream speech","march on washington","1963 march on washington","letter from birmingham jail",
+        "letter from birmingham","selma to montgomery march","selma","bloody sunday","edmund pettus bridge",
+        "malcolm x","el-hajj malik el-shabazz","malcolm x speech","the ballot or the bullet","autobiography of malcolm x",
+        "nation of islam","noi","black muslims","medgar evers","medgar evers assassination","fannie lou hamer",
+        "mississippi freedom democratic party","mfdp","sncc","student nonviolent coordinating committee",
+        "sclc","southern christian leadership conference","naacp","urban league","national urban league",
+        "core","congress of racial equality","freedom riders","freedom summer","mississippi burning",
+        "black panther party","black panthers","huey newton","bobby seale","eldridge cleaver","fred hampton",
+        "assata shakur","angela davis","stokely carmichael","kwame ture","h. rap brown","hakim jamal",
+        "james baldwin","james baldwin speech","james baldwin debate","the fire next time","james baldwin documentary",
+        "montgomery bus boycott","rosa parks","brown v. board","brown v board","brown vs board","brown vs. board",
+        "little rock nine","little rock crisis","central high school integration","james meredith","ole miss integration",
+        "greensboro sit-in","greensboro sit ins","lunch counter sit-in","freedom march","poor people's campaign",
+        "watts riots","detroit riot 1967","newark riot 1967","kerner commission","mlk assassination","james earl ray",
+        "loving v virginia","loving v. virginia","voting rights act","voting rights act of 1965","civil rights act 1964"
+      ] },
+      { collections: ["opensource_movies", "prelinger", "pbs_public_broadcasting_service"], require_subj: [
+        "civil rights history","african american history","black history","american black history",
+        "black power movement","black liberation","black nationalism","civil rights speeches","civil rights documentary",
+        "civil rights archive","civil rights footage","black history month","voting rights",
+        "school desegregation","desegregation","integration","jim crow","jim crow south","segregation",
+        "reconstruction era","great migration","harlem renaissance","tulsa race massacre","rosewood massacre",
+        "chicago freedom movement","poor people campaign","poor peoples campaign"
+      ] }
     ],
     deny: {
-      title: ["trailer", "commercial"],
-      subject: ["trailer", "commercial", "advertising", "youtube vlog", "cartoon", "children"]
+      title: ["commercial","cartoon","sitcom","training film"],
+      subject: ["commercial","cartoon","animated","children","sitcom","game show","training film","dramatic film"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Uptown Comedy (ch 225) — Phase 5 overhaul 2026-08-08. Black stand-up + sketch
+     tradition — Def Comedy Jam era through modern. */
   "Uptown Comedy": {
     genre: "blackcomedy", era: [1970, 2026],
     providers: [
-      { collections: ["opensource_movies", "Comedy_Films"], require_subj: ["def comedy jam", "def poetry", "richard pryor", "chris rock", "eddie murphy", "dave chappelle", "black comedy", "african american comedy", "kings of comedy", "queens of comedy", "in living color", "comic view", "shuck and jive"] },
-      { collections: ["opensource_movies"], require_subj: ["chappelle show", "chappelle's show", "def jam", "african american stand-up", "black stand-up"] }
+      { collections: ["opensource_movies", "vhsvault", "Comedy_Films"], require_subj: [
+        "def comedy jam","def jam comedy","russell simmons def comedy jam","stan lathan","stan lathan def comedy",
+        "def poetry","def poetry jam","russell simmons def poetry","hbo def","hbo def comedy","hbo def poetry",
+        "in living color","in living color fox","the wayans brothers","damon wayans","keenan ivory wayans",
+        "shawn wayans","marlon wayans","the wayans","marlon and shawn","david alan grier","tommy davidson",
+        "chris rock","the chris rock show","chris rock hbo","never scared","kill the messenger","bring the pain",
+        "chris rock stand up","chris rock special","chris rock hbo special","tamborine chris rock","chris rock netflix",
+        "richard pryor","pryor stand up","richard pryor concert film","pryor concert","pryor live in concert",
+        "richard pryor: live on the sunset strip","live on the sunset strip","richard pryor here and now",
+        "eddie murphy","eddie murphy raw","raw eddie murphy","eddie murphy delirious","delirious eddie murphy",
+        "dave chappelle","chappelle's show","chappelle show","dave chappelle killin them softly","killin them softly",
+        "for what it's worth chappelle","dave chappelle sticks and stones","chappelle sticks and stones",
+        "kings of comedy","original kings of comedy","spike lee kings of comedy","steve harvey","cedric the entertainer",
+        "d.l. hughley","dl hughley","bernie mac","bernie mac show","the bernie mac show","queens of comedy",
+        "sommore","adele givens","laura hayes","mo'nique","monique","monique netflix",
+        "kevin hart","kevin hart laugh at my pain","laugh at my pain","kevin hart let me explain","let me explain kevin",
+        "kevin hart irresponsible","irresponsible kevin hart","kevin hart what now","kevin hart zero fucks",
+        "wanda sykes","wanda sykes im a be me","cedric the entertainer starting here","katt williams",
+        "katt williams pimp chronicles","pimp chronicles","katt williams american hustle","american hustle katt",
+        "hannibal buress","donald glover","weirdo donald glover","childish gambino","tiffany haddish","tiffany haddish she ready",
+        "lil rel howery","jerrod carmichael","carmichael show","the carmichael show","ali wong","ali wong baby cobra"
+      ] },
+      { collections: ["opensource_movies", "vhsvault", "Comedy_Films"], require_subj: [
+        "black comedy","black stand-up","black stand up","african american comedy","african american stand-up",
+        "black comedian","african american comedian","black sketch","black comedy sketch","black comedy show",
+        "urban comedy","urban comic","hbo comedy special","comedy central presents","black comedy central",
+        "showtime at the apollo","showtime at the apollo showtime","apollo theater comedy","apollo comedy"
+      ] }
     ],
     deny: {
-      title: ["trailer", "news", "commercial"],
-      subject: ["trailer", "news", "commercial", "cartoon", "children", "sitcom"]
+      title: ["cartoon","commercial","sitcom","music video"],
+      subject: ["cartoon","animated","children","commercial","sitcom","music video","training film","game show"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
@@ -2392,10 +2472,43 @@ const PROGRAM = {
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Aviation (ch 209) — Phase 5 overhaul 2026-08-08. Aviation history — biplanes
+     through jets + named aircraft + named aviators. */
   "Aviation": {
-    genre: "aviationfilm", era: [1930, 1990],
-    providers: [{"collections": ["prelinger", "avgeeks", "FedFlix"], "require_subj": ["aviation", "aircraft", "airplane", "aeroplane", "aeronautics", "flight", "aviator", "jet aircraft", "airline", "airliner", "biplane"]}, {"collections": ["feature_films"], "require_subj": ["aviation", "aircraft", "airplane", "aeronautics", "aviator", "jet aircraft", "airline"]}],
-    deny: {"title": ["family", "children"], "subject": ["family", "children", "romance", "drama", "comedy", "adventure", "fantasy", "musical", "cartoon", "animated"]},
+    genre: "aviationfilm", era: [1900, 2010],
+    providers: [
+      { collections: ["prelinger", "FedFlix", "avgeeks", "opensource_movies"], require_subj: [
+        "aviation","aviation history","aviation film","aeronautics","aeronautical","aeronautical film",
+        "aircraft","airplane","aeroplane","biplane","monoplane","triplane","glider","dirigible","zeppelin",
+        "airship","balloon","hot air balloon","helicopter","autogyro","autogiro","seaplane","flying boat",
+        "wright brothers","wilbur wright","orville wright","kitty hawk","first flight","glenn curtiss",
+        "louis blériot","louis bleriot","charles lindbergh","spirit of st louis","spirit of st. louis",
+        "amelia earhart","howard hughes","chuck yeager","bell x-1","x-15","test pilot","test flight",
+        "sound barrier","supersonic","mach 1","the right stuff","mercury seven","astronaut aviator",
+        "jimmy doolittle","doolittle raid","curtis lemay","hap arnold","billy mitchell","claire chennault",
+        "flying tigers","american volunteer group","raf","royal air force","battle of britain","spitfire",
+        "hurricane fighter","messerschmitt","luftwaffe","p-51 mustang","p-47 thunderbolt","p-38 lightning",
+        "b-17 flying fortress","b-24 liberator","b-25 mitchell","b-29 superfortress","enola gay","bockscar",
+        "b-52 stratofortress","c-47 skytrain","dc-3","douglas dc-3","c-130 hercules","c-5 galaxy",
+        "747","boeing 747","747-100","727","boeing 727","737","boeing 737","dc-10","l-1011","concorde",
+        "sr-71 blackbird","u-2 spy plane","f-4 phantom","f-14 tomcat","f-15 eagle","f-16 fighting falcon",
+        "f-18 hornet","f-22 raptor","a-10 warthog","harrier","av-8b","stealth","f-117 nighthawk","b-2 spirit"
+      ] },
+      { collections: ["prelinger", "FedFlix", "avgeeks"], require_subj: [
+        "airport","airline","airliner","commercial aviation","commercial aircraft","airline industry",
+        "twa","pan am","pan american","united airlines","american airlines","delta airlines","northwest airlines",
+        "eastern airlines","braniff","western airlines","continental airlines","allegheny airlines","usair",
+        "boeing","boeing company","boeing aircraft","mcdonnell douglas","douglas aircraft","lockheed","lockheed martin",
+        "grumman","grumman aircraft","north american aviation","convair","piper aircraft","cessna","beechcraft",
+        "air force","us air force","usaf","army air corps","army air forces","naval aviation","us navy aviation",
+        "marine corps aviation","marine aviation","air combat","dogfight","aerial combat","strafing",
+        "carrier aviation","aircraft carrier","carrier landing","carrier launch","catapult launch"
+      ] }
+    ],
+    deny: {
+      title: ["home movie","family","romance","cartoon","commercial","training film","kids"],
+      subject: ["home movie","family","children","romance","comedy","adventure film","fantasy","musical","cartoon","animated","training film"]
+    },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
@@ -2837,25 +2950,111 @@ const PROGRAM = {
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Found Footage Static (ch various) — Phase 5 overhaul 2026-08-08. Amateur video
+     + weird found footage + home tapes + abandoned VHS. */
   "Found Footage Static": {
-    genre: "foundfootage", era: [1920, 2026],
-    providers: [{"collections": ["prelinger", "home_movies", "opensource_movies"], "require_subj": ["found footage", "test pattern", "film leader", "countdown", "static", "glitch", "experimental film", "avant garde", "abstract film"]}],
-    deny: {"title": ["feature film", "hollywood", "studio production", "fellini", "8½"], "subject": ["feature film", "hollywood", "studio", "commercial", "comedy drama", "Federico Fellini", "Italian"]},
-    subjRequired: true, noBlindFallback: true
+    genre: "foundfootage", era: [1965, 2005],
+    providers: [
+      { collections: ["opensource_movies", "vhsvault", "home_movies", "avgeeks"], require_subj: [
+        "found footage","abandoned footage","abandoned vhs","abandoned tapes","tape found in","attic tape",
+        "estate sale vhs","estate sale tape","garage sale tape","goodwill vhs","thrift store vhs",
+        "raw footage","unedited footage","camcorder footage","vhs-c","video 8","hi8","hi-8","digital 8",
+        "public access weird","public access strange","weird public access","strange cable access",
+        "orphaned media","orphaned footage","lost media","lost television","lost tv","lost pilot",
+        "surveillance footage","security footage","dashcam","dash cam","body cam","bodycam",
+        "unclaimed footage","home taping compilation","home movie compilation","random vhs","random footage",
+        "ephemera","ephemeral film","ephemeral video","industrial ephemera","commercial ephemera",
+        "vintage vhs","weird vhs","weird tapes","obscure vhs","obscure television","obscure tv"
+      ] },
+      { collections: ["opensource_movies", "vhsvault", "home_movies"], require_subj: [
+        "amateur film","amateur video","amateur cinema","amateur television","home movie","home movies",
+        "family home video","home camcorder","backyard footage","vacation footage","holiday footage",
+        "birthday footage","school footage","recital footage","talent show footage","school assembly"
+      ] }
+    ],
+    deny: {
+      title: ["hollywood","feature film","professional","training film","commercial trailer"],
+      subject: ["hollywood","professional","training film","dramatic film","commercial","sitcom","game show"]
+    },
+    subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Computer Chronicles (ch various) — Phase 5 overhaul 2026-08-08. Personal computer
+     era — Cheifet + Kildall, plus tech doc canon. */
   "Computer Chronicles": {
     genre: "computer", era: [1975, 2005],
-    providers: [{"collections": ["computerchronicles", "classic_tv", "television"], "require_subj": ["computer", "computing", "software", "hardware", "internet", "technology", "digital", "programming", "silicon valley", "personal computer", "PC"]}],
-    deny: {"title": ["cartoon", "comedy", "sitcom", "drama"], "subject": ["cartoon", "comedy", "sitcom", "drama", "romance", "horror"]},
-    subjRequired: true, noBlindFallback: true
+    providers: [
+      { collections: ["computerchronicles", "opensource_movies", "vhsvault"], require_subj: [
+        "computer chronicles","the computer chronicles","stewart cheifet","gary kildall","paul schindler",
+        "computer chronicles pbs","pbs computer chronicles","kcsm","kcsm-tv","computer history",
+        "history of computing","personal computer","microcomputer","home computer","home computing",
+        "altair 8800","altair","apple ii","apple 2","apple ][","apple ii+","apple iic","apple iie",
+        "apple macintosh","macintosh","classic macintosh","macintosh 128k","macintosh se","macintosh plus",
+        "ibm pc","ibm pcjr","ibm pc/at","ibm compatible","clone pc","tandy trs-80","trs-80","tandy 1000",
+        "commodore 64","c64","commodore","commodore amiga","amiga","atari 800","atari 400","atari 130xe",
+        "atari st","atari 520st","atari falcon","texas instruments ti-99/4a","ti-99","coleco adam",
+        "compaq portable","kaypro","osborne 1","osborne","zilog z80","6502","motorola 68000","intel 8080",
+        "intel 8086","intel 80286","intel 80386","intel 80486","intel pentium","cyrix","amd k5","amd k6",
+        "ms-dos","pc-dos","cp/m","cpm","unix","xenix","os/2","apple os","mac os","classic mac os",
+        "windows 3.1","windows 95","windows 98","windows nt","windows 2000","windows xp","macintosh system 7",
+        "wordstar","wordperfect","microsoft word","lotus 1-2-3","visicalc","dbase","dbase iii","dbase iv",
+        "spreadsheet","word processing","desktop publishing","pagemaker","aldus pagemaker","quark xpress",
+        "netscape navigator","netscape","mosaic browser","internet explorer","world wide web","aol","compuserve",
+        "prodigy","bbs","bulletin board system","fidonet","usenet","early internet","dial-up internet"
+      ] },
+      { collections: ["computerchronicles", "opensource_movies"], require_subj: [
+        "computer history","computing history","personal computer revolution","pc revolution","home computer revolution",
+        "silicon valley","silicon valley history","computer industry","computer industry history","tech industry",
+        "computer show","computer television","computer tv","tech tv","tech television","cnet"
+      ] }
+    ],
+    deny: {
+      title: ["gaming","gameplay","let's play","commercial","cartoon"],
+      subject: ["gameplay","let's play","cartoon","animated","children","commercial","training video","music"]
+    },
+    subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Manufacturing Marvels (ch various) — Phase 5 overhaul 2026-08-08. Industrial
+     process films — how it's made / factories / heavy machinery / labor / mid-century industry. */
   "Manufacturing Marvels": {
-    genre: "manufacturing", era: [1930, 1980],
-    providers: [{"collections": ["prelinger", "FedFlix"], "require_subj": ["manufacturing", "factory", "industrial", "assembly line", "production", "machinery", "steel", "automobile manufacturing"]}],
-    deny: {"title": ["home movie", "vacation", "family film"], "subject": ["home movie", "vacation", "family", "comedy", "romance"]},
-    subjRequired: true, noBlindFallback: true
+    genre: "manufacturing", era: [1930, 2000],
+    providers: [
+      { collections: ["prelinger", "avgeeks", "FedFlix", "opensource_movies"], require_subj: [
+        "manufacturing","factory","industrial","industrial film","industry film","industrial process",
+        "manufacturing process","assembly line","assembly plant","production line","mass production",
+        "how it's made","how its made","how it is made","how things are made","modern marvels","industrial revolution",
+        "industrial history","american manufacturing","american industry","american workers","industrial workers",
+        "steel","steel mill","steel industry","us steel","bethlehem steel","carnegie steel","gary works",
+        "gary indiana","pittsburgh steel","iron ore","iron mining","coal mining","coal industry","appalachian coal",
+        "aluminum","aluminum industry","alcoa","reynolds aluminum","copper","copper mining","kennecott",
+        "automobile manufacturing","auto industry","auto plant","assembly line ford","ford motor company",
+        "ford rouge","river rouge","general motors","gm","chevrolet plant","chrysler","dodge plant",
+        "detroit","motor city","big three","detroit auto industry","american motors","amc",
+        "textile","textile industry","textile mill","cotton mill","southern textile","new england textile",
+        "chemical industry","chemical plant","dupont","du pont","dow chemical","monsanto","union carbide",
+        "petrochemical","oil refinery","oil industry","standard oil","exxon","mobil","texaco","shell",
+        "power generation","power plant","power station","nuclear power","hydroelectric","tva","electricity generation",
+        "electrical equipment","electric power","electric generation","general electric","ge","westinghouse",
+        "aerospace","aerospace industry","aerospace manufacturing","aircraft manufacturing","boeing plant",
+        "shipbuilding","shipyard","navy shipyard","dry dock","kaiser shipbuilding","liberty ship",
+        "food processing","food manufacturing","food production","canning industry","meatpacking","meatpacking industry",
+        "brewing","brewery","beer manufacturing","dairy processing","milk processing","cheese manufacturing"
+      ] },
+      { collections: ["prelinger", "avgeeks", "FedFlix"], require_subj: [
+        "labor","labor film","labor history","american labor","industrial workers of the world","iww",
+        "afl-cio","american federation of labor","united auto workers","uaw","united mine workers","umw",
+        "united steelworkers","teamsters","labor union","labor movement","strike","strike footage",
+        "safety film","industrial safety","factory safety","workplace safety","occupational safety","osha",
+        "quality control","quality assurance","time and motion","time-and-motion","efficiency expert",
+        "taylorism","scientific management"
+      ] }
+    ],
+    deny: {
+      title: ["commercial","cartoon","home movie","training film"],
+      subject: ["commercial","cartoon","animated","children","home movie","amateur","military combat"]
+    },
+    subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
   /* Sunday Matinee (ch 123) — Phase 2 overhaul 2026-08-08. Family-friendly
@@ -2984,53 +3183,106 @@ const PROGRAM = {
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Cold War Cinema (ch 216) — Phase 5 overhaul 2026-08-08. Civil defense films +
+     atomic-age propaganda + duck-and-cover PSAs. */
   "Cold War Cinema": {
-    /* Civil defense films, atomic-age propaganda, Duck and Cover, fallout-shelter public-info
-       spots. Prelinger + FedFlix have huge pool. AUDIT 2026-08-06: caught serving "Green Cross
-       Code - Blockhead Boy" (UK road-safety PSA) via broad "public information film" match.
-       Narrowed require_subj to atomic/civil-defense-specific terms, added deny for road/traffic
-       safety and other non-cold-war PSAs. */
-    genre: "coldwar", era: [1948, 1985],
+    genre: "coldwar", era: [1948, 1990],
     providers: [
-      { collections: ["prelinger"], require_subj: ["civil defense", "cold war", "atomic age", "duck and cover", "fallout shelter", "cuban missile", "communism", "atomic bomb", "atomic weapons", "hydrogen bomb", "atomic warfare", "nuclear war", "anti-communist"] },
-      { collections: ["FedFlix"], require_subj: ["cold war", "civil defense", "atomic bomb", "nuclear weapons", "communism", "national defense", "cuban missile"] }
+      { collections: ["prelinger", "FedFlix", "opensource_movies"], require_subj: [
+        "civil defense","civil defense film","civil defense administration","federal civil defense administration",
+        "office of civilian defense","duck and cover","survival under atomic attack","atomic attack","atomic strike",
+        "atomic energy","atomic energy commission","aec","atomic bomb","hydrogen bomb","nuclear bomb","nuclear war",
+        "nuclear attack","fallout","fallout shelter","fallout protection","personal preparedness",
+        "conelrad","emergency broadcasting","emergency broadcast system","ebs","cold war","cold war film",
+        "cold war propaganda","anti-communist","anticommunist","anti-communism","red scare","hollywood ten",
+        "house un-american activities","huac","mccarthyism","mccarthy hearings","army-mccarthy hearings",
+        "united states information agency","usia","voice of america","voa","radio free europe","rfe",
+        "berlin wall","berlin airlift","korean war","vietnam war","cuban missile crisis","bay of pigs",
+        "kennedy assassination","warren commission","warsaw pact","iron curtain","nato","seato","cento",
+        "sputnik","space race","mad magazine cold war","cold war propaganda film","cold war psa",
+        "prepare for atomic attack","atomic training film","army training film","army film","navy film",
+        "air force film","marine corps film","office of war information","owi","department of defense"
+      ] },
+      { collections: ["prelinger", "FedFlix"], require_subj: [
+        "atomic age","atomic-age","nuclear age","cold war era","1950s propaganda","1960s propaganda",
+        "military propaganda","government propaganda","training film","military training","army training",
+        "public service announcement","psa","government psa","federal psa","informational film","instructional",
+        "civil defense drill","atomic drill","atomic test","nevada test site","hydrogen bomb test",
+        "trinity test","los alamos","manhattan project"
+      ] }
     ],
     deny: {
-      title: ["news", "road safety", "traffic", "green cross", "blockhead", "highway safety"],
-      subject: ["news", "commercial", "youtube", "vlog", "children's film", "road safety", "traffic safety", "highway safety", "pedestrian safety", "fire safety", "kitchen safety", "public service announcement", "brand", "product"]
+      title: ["road safety","home safety","fire safety","commercial","cartoon"],
+      subject: ["road safety","traffic safety","home safety","fire safety","kitchen safety","commercial","cartoon","animated","children"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Educational Filmstrip (ch 217) — Phase 5 overhaul 2026-08-08. Classroom slide-
+     narration format + 16mm classroom films. */
   "Educational Filmstrip": {
-    /* Classroom-format filmstrips + short educational instructionals from the 1945-1985 era.
-       AUDIT 2026-08-06: NO SIGNAL 3x — pool too narrow. Widened to include the broader "classroom
-       film" and "instructional film" terms, added avgeeks + uncommon-ephemera (which has actual
-       filmstrip uploads like "Home Fire Dangers" and "Going Steady" seen in soak). */
     genre: "filmstrip", era: [1945, 1985],
     providers: [
-      { collections: ["uncommon-ephemera", "opensource"], require_subj: ["filmstrip", "educational filmstrip", "classroom filmstrip", "school film"] },
-      { collections: ["prelinger"], require_subj: ["filmstrip", "educational filmstrip", "classroom film", "instructional film", "audio-visual education", "school film", "classroom", "sponsored film"] },
-      { collections: ["avgeeks"], require_subj: ["educational film", "classroom", "instructional", "filmstrip", "school film", "audio-visual"] }
+      { collections: ["prelinger", "avgeeks", "FedFlix", "opensource_movies"], require_subj: [
+        "filmstrip","film strip","classroom filmstrip","educational filmstrip","school filmstrip",
+        "sound filmstrip","captioned filmstrip","captioned film","narrated filmstrip","educational sound filmstrip",
+        "coronet films","coronet","coronet instructional","encyclopedia britannica films","eb films",
+        "britannica films","mcgraw-hill educational","mcgraw hill educational","mcgraw-hill instructional",
+        "aims media","aims instructional","churchill films","churchill educational","fleischman-hillard",
+        "wexler film productions","international film bureau","modern learning aids","learning corporation of america",
+        "los angeles unified school district","school district audio-visual","audio visual film",
+        "audio-visual film","school av","av room","classroom","classroom film","classroom 16mm",
+        "16mm educational","16mm classroom","educational 16mm","school 16mm","instructional 16mm",
+        "instructional film","instructional short","educational short","classroom short","teaching film",
+        "study film","study aids","teacher's guide","teacher guide","study guide","classroom guide"
+      ] },
+      { collections: ["prelinger", "avgeeks"], require_subj: [
+        "elementary school","elementary education","junior high","junior high school","middle school",
+        "high school","health education","hygiene film","personal hygiene","dental hygiene","dating film",
+        "social guidance","social guidance film","mental hygiene","citizenship","citizenship film","americanism",
+        "geography","geography film","history film","american history","world history","natural science",
+        "biology","chemistry","physics","earth science","reading","reading skills","language arts",
+        "arithmetic","mathematics","music appreciation","art appreciation","physical education","pe film"
+      ] }
     ],
     deny: {
-      title: ["news", "trailer"],
-      subject: ["news", "commercial", "youtube", "advertising", "trailer"]
+      title: ["commercial","trailer","home movie","hollywood","feature film"],
+      subject: ["commercial","trailer","home movie","amateur","feature film","fiction","dramatic","cartoon","animated"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Roller Derby & Wrestling (ch 218) — Phase 5 overhaul 2026-08-08. Vintage pro
+     wrestling + roller derby broadcasts. */
   "Roller Derby & Wrestling": {
-    /* Vintage pro wrestling + roller derby broadcasts. Sports Vault denies these (wrestling/wwe/
-       wwf/mma) so there's no overlap — this channel embraces them. Denies hardcore/explicit to
-       filter modern uploads that skew adult. */
-    genre: "rollerderby", era: [1955, 1985],
+    genre: "rollerderby", era: [1948, 1990],
     providers: [
-      { collections: ["sports"], require_subj: ["roller derby", "wrestling", "professional wrestling", "wwe", "wwf", "AWA", "NWA", "roller skating", "roller games"] }
+      { collections: ["sports", "opensource_movies", "vhsvault"], require_subj: [
+        "roller derby","roller derby (1953 film)","roller derby league","international roller derby",
+        "bay bombers","los angeles t-birds","chicago westerners","new york chiefs","roller games",
+        "banked track","women's roller derby","joan weston","ann calvello","charlie o'connell","charlie oconnell",
+        "professional wrestling","pro wrestling","catch wrestling","world championship wrestling","wcw",
+        "world wrestling federation","wwf","wwf classic","american wrestling association","awa","verne gagne",
+        "national wrestling alliance","nwa","nwa wrestling","world class championship wrestling","wccw",
+        "mid-south wrestling","mid south wrestling","memphis wrestling","jerry lawler","lance russell","dave brown",
+        "portland wrestling","don owen","southern wrestling","florida championship wrestling","fcw",
+        "georgia championship wrestling","gordon solie","gordon solie wrestling","jim ross wrestling",
+        "wahoo mcdaniel","bruno sammartino","gorilla monsoon","classy freddie blassie","the sheik",
+        "abdullah the butcher","dusty rhodes","ric flair","ricky steamboat","harley race","jack brisco",
+        "andre the giant","hulk hogan","hulkamania","macho man randy savage","ultimate warrior",
+        "roddy piper","rowdy roddy piper","junkyard dog","jyd","greg 'the hammer' valentine",
+        "iron sheik","nikolai volkoff","sgt slaughter","brutus beefcake","junkyard dog","big john studd"
+      ] },
+      { collections: ["sports", "opensource_movies"], require_subj: [
+        "wrestling broadcast","wrestling program","wrestling match","wrestling event","territorial wrestling",
+        "syndicated wrestling","first-run wrestling","first run wrestling","live wrestling","wrestling live",
+        "wrestling television","wrestling tv","wrestling on tv","classic wrestling","vintage wrestling",
+        "70s wrestling","80s wrestling","territory era","territory wrestling","territorial era wrestling"
+      ] }
     ],
     deny: {
-      title: ["news"],
-      subject: ["news", "commercial", "youtube", "vlog", "hardcore", "explicit", "mma"]
+      title: ["mma","ufc","hardcore","explicit","training"],
+      subject: ["mma","ufc","hardcore wrestling","explicit","adult wrestling","training","boxing"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
@@ -3147,66 +3399,139 @@ const PROGRAM = {
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Nature Channel (ch 212) — Phase 5 overhaul 2026-08-08. Nature docs + national
+     parks + wildlife films. */
   "Nature Channel": {
-    /* Prelinger + FedFlix + avgeeks have vintage nature docs — national parks, wildlife, oceans.
-       Filter out hunting/fishing tip films (different tone) and generic educational films (goes
-       to Prelinger Vault). */
-    genre: "nature", era: [1935, 1990],
+    genre: "nature", era: [1935, 2026],
     providers: [
-      { collections: ["prelinger", "FedFlix", "avgeeks"], require_subj: ["nature", "wildlife", "national park", "conservation", "wilderness", "national forest", "birds", "ocean", "sea life", "safari", "ecology", "natural history"] }
+      { collections: ["prelinger", "FedFlix", "opensource_movies", "avgeeks"], require_subj: [
+        "national park","national parks","yellowstone","yosemite","grand canyon","glacier national park",
+        "national park service","nps film","us forest service","us fish and wildlife","department of interior",
+        "wilderness","wildlife","wildlife film","wildlife documentary","nature documentary","nature film",
+        "nature series","nature short","natural history","natural history film","natural history documentary",
+        "audubon","john muir","ansel adams","aldo leopold","rachel carson","conservation film",
+        "conservation","environment","environmental","environmental film","ecology","ecosystem",
+        "wilderness area","state park","state parks","scenic film","scenic america","america the beautiful",
+        "national geographic","nat geo","national geographic special","nova pbs","nova nature","wild kingdom",
+        "mutual of omaha's wild kingdom","marlin perkins","jim fowler","the undersea world of jacques cousteau",
+        "jacques cousteau","jean-michel cousteau","david attenborough","planet earth bbc","blue planet",
+        "life on earth","the living planet","the trials of life","wildlife on one","natural world"
+      ] },
+      { collections: ["prelinger", "opensource_movies", "avgeeks"], require_subj: [
+        "birds","birding","bird watching","mammals","fish","reptiles","amphibians","insects","butterflies",
+        "wildflowers","forest","forestry","rainforest","desert","ocean","marine life","coral reef","tide pool",
+        "wetlands","prairie","tundra","mountain","volcano","geology","paleontology","fossil","dinosaur",
+        "north american wildlife","african wildlife","australian wildlife","polar wildlife","arctic","antarctic"
+      ] }
     ],
     deny: {
-      title: ["news", "politics", "training", "safety"],
-      subject: ["news", "commercial", "youtube", "vlog", "hunting", "fishing tips", "home economics", "training film"]
+      title: ["hunting","fishing tips","commercial","training","industrial"],
+      subject: ["hunting","fishing tips","commercial","training","industrial","cartoon","children's"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* NASA Marathon (ch 213) — Phase 5 overhaul 2026-08-08. Full NASA film catalog —
+     Apollo, Shuttle, ISS, Mars rovers, Voyager, mission documentation. */
   "NASA Marathon": {
-    /* NASA collection on IA is huge — Apollo mission footage, Shuttle documentaries, ISS video,
-       Hubble deep-field stuff. Deny press conferences + briefings so the channel plays the
-       mission film content, not talking heads. */
-    genre: "nasamarathon", era: [1960, 2026],
+    genre: "nasamarathon", era: [1957, 2026],
     providers: [
-      { collections: ["nasa", "nasa_techdocs"], require_subj: ["NASA", "apollo", "space shuttle", "space station", "mars", "hubble", "mercury program", "gemini program", "astronaut", "moon landing", "planetary exploration", "spacecraft", "space program"] }
+      { collections: ["nasa", "NASAAudioCollection", "FedFlix", "prelinger", "opensource_movies"], require_subj: [
+        "nasa","national aeronautics and space administration","apollo","apollo program","apollo 11",
+        "apollo 12","apollo 13","apollo 14","apollo 15","apollo 16","apollo 17","apollo 1","apollo 8",
+        "mercury program","gemini program","mercury","gemini","skylab","apollo-soyuz","apollo soyuz",
+        "space shuttle","sts-1","space shuttle challenger","space shuttle columbia","space shuttle discovery",
+        "space shuttle atlantis","space shuttle endeavour","challenger disaster","columbia disaster",
+        "international space station","iss","expedition","mir","salyut","astronaut","cosmonaut",
+        "neil armstrong","buzz aldrin","michael collins","john glenn","alan shepard","gus grissom",
+        "jim lovell","gene cernan","charles conrad","alan bean","edgar mitchell","harrison schmitt",
+        "mars rover","curiosity rover","spirit rover","opportunity rover","perseverance rover","mars pathfinder",
+        "sojourner","viking mission","voyager","voyager 1","voyager 2","voyager mission",
+        "pioneer","pioneer 10","pioneer 11","galileo mission","cassini","cassini-huygens","juno",
+        "new horizons","dawn mission","mars odyssey","mars reconnaissance orbiter","insight mars",
+        "hubble space telescope","hubble","james webb space telescope","james webb","chandra x-ray",
+        "kepler mission","planetary science","planetary exploration","solar system exploration",
+        "manned spaceflight","human spaceflight","spacewalk","eva","extravehicular activity","launch footage"
+      ] },
+      { collections: ["nasa", "FedFlix", "prelinger"], require_subj: [
+        "space exploration","space program","spaceflight","space travel","rocket","rocketry","saturn v",
+        "space race","cold war space","mercury capsule","gemini capsule","apollo capsule",
+        "space station","space walk","spacewalk","zero gravity","microgravity","orbit","reentry",
+        "kennedy space center","johnson space center","cape canaveral","cape kennedy","mission control",
+        "houston mission control","mission accomplished","one small step","giant leap"
+      ] }
     ],
     deny: {
-      title: ["press conference", "conference", "briefing"],
-      subject: ["press conference", "briefing", "youtube", "vlog", "news", "podcast"]
+      title: ["conspiracy","hoax","fake moon","commercial","cartoon"],
+      subject: ["conspiracy","moon hoax","fake landing","commercial","cartoon","animated","children","fictional"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Country Roads (ch 214) — Phase 5 overhaul 2026-08-08. Rural Americana — farm
+     life, ranch, small-town America, agriculture films. */
   "Country Roads": {
-    /* Rural Americana — Prelinger has extensive farm/ranch/small-town content.
-       AUDIT 2026-08-06: caught serving "A Strange Harvest Cattle Mutilation" (Linda Moulton Howe
-       UFO doc) via broad "cattle" match, and an electronic-organ demo via "americana". Removed
-       generic "cattle"/"americana", added UFO/paranormal/conspiracy denies. */
     genre: "countryroads", era: [1935, 1985],
     providers: [
-      { collections: ["prelinger", "FedFlix"], require_subj: ["farm life", "rural life", "small town", "agriculture", "farming", "livestock", "ranch", "country life", "harvest", "cotton farming", "wheat", "corn", "dairy farm", "rural america"] },
-      { collections: ["avgeeks", "prelingerhomemovies"], require_subj: ["farm life", "rural", "small town", "agriculture", "farming", "ranch", "country life", "harvest"] }
+      { collections: ["prelinger", "FedFlix", "opensource_movies", "usda"], require_subj: [
+        "usda","department of agriculture","farm","farming","farmer","farm life","rural life","rural america",
+        "agriculture","agricultural","agricultural film","agricultural extension","cooperative extension",
+        "4-h","4-h club","4h","future farmers of america","ffa","american farmer","country living",
+        "small town america","small town","main street america","rural communities","rural community",
+        "ranch","ranching","rancher","cowboy","cattle","cattle drive","cattle ranch","dairy farm","dairy",
+        "sheep","hogs","pigs","poultry","chicken farm","harvest","harvesting","planting","plowing",
+        "corn belt","wheat belt","great plains","midwest","american midwest","southern farming",
+        "sharecropper","sharecropping","tenant farmer","homestead","homesteading","frontier life",
+        "grange","grange hall","country store","general store","country school","one-room schoolhouse",
+        "county fair","state fair","rodeo","tractor pull","hoedown","barn dance","square dance",
+        "amish","mennonite","country doctor","country parson","folk life","folklife","folklife film",
+        "tva","tennessee valley authority","rural electrification","rural electric","farm bureau"
+      ] },
+      { collections: ["prelinger", "FedFlix", "usda"], require_subj: [
+        "americana","rural americana","country americana","heartland","american heartland",
+        "farmland","farmstead","harvest festival","country music radio","country music broadcast",
+        "regional americana","local americana","new deal","new deal film","wpa film","fsa film",
+        "farm security administration","dust bowl","dust bowl film"
+      ] }
     ],
     deny: {
-      title: ["news", "cattle mutilation", "UFO", "strange harvest", "electronic organ"],
-      subject: ["news", "commercial", "youtube", "urban", "city life", "training film", "educational film", "safety film", "UFO", "paranormal", "conspiracy", "cattle mutilation", "Linda Moulton Howe", "abduction", "electronic organ", "keyboard", "music equipment"]
+      title: ["ufo","paranormal","murder","horror","commercial","cartoon"],
+      subject: ["ufo","paranormal","supernatural","horror","commercial","cartoon","animated","children","fictional"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Storm Chase Classics (ch 215) — Phase 5 overhaul 2026-08-08. Tornado + severe
+     weather + hurricane documentaries. */
   "Storm Chase Classics": {
-    /* Tornado + severe-weather docs — content skews to NOAA/NWS training films plus modern
-       amateur chase footage on opensource_movies. AUDIT 2026-08-06: caught serving "Mangrove
-       Water Snakes" (marine wildlife) and a Hurricane Sandy relief travel show — tightened
-       require_subj to weather-event-specific terms only, added marine/wildlife/travel denies. */
     genre: "stormchase", era: [1970, 2026],
     providers: [
-      { collections: ["opensource_movies"], require_subj: ["storm chaser", "tornado", "storm chase", "severe weather", "supercell", "thunderstorm", "chase footage", "storm chasing"] },
-      { collections: ["prelinger", "FedFlix"], require_subj: ["tornado", "severe weather", "hurricane", "meteorology", "weather documentary", "national weather service", "NOAA", "storm"] }
+      { collections: ["opensource_movies", "prelinger", "FedFlix"], require_subj: [
+        "storm chaser","storm chasing","tornado chaser","tornado chasing","severe weather chase",
+        "tornado","tornado documentary","tornado outbreak","f5 tornado","ef5 tornado","killer tornado",
+        "super tornado","tornado alley","oklahoma tornado","kansas tornado","texas tornado",
+        "may 3 1999","greensburg tornado","joplin tornado","jarrell tornado","el reno tornado",
+        "moore tornado","tuscaloosa tornado","super outbreak","1974 super outbreak","2011 super outbreak",
+        "hurricane","hurricane documentary","hurricane katrina","hurricane andrew","hurricane hugo",
+        "hurricane camille","hurricane sandy","hurricane harvey","hurricane maria","hurricane ida",
+        "hurricane ian","hurricane laura","hurricane michael","hurricane florence","hurricane dorian",
+        "hurricane isaac","hurricane rita","hurricane wilma","hurricane irene","hurricane ivan",
+        "hurricane charley","hurricane frances","hurricane jeanne","hurricane matthew",
+        "severe thunderstorm","supercell","supercell thunderstorm","mesocyclone","wall cloud","funnel cloud",
+        "wedge tornado","stovepipe tornado","rope tornado","waterspout","microburst","derecho",
+        "national weather service","noaa","nws","spc","storm prediction center","norman oklahoma",
+        "tim samaras","joel taylor","reed timmer","vortex project","project vortex","doppler on wheels",
+        "chaser convergence","tornado video","chaser video","dashcam tornado"
+      ] },
+      { collections: ["opensource_movies", "prelinger", "FedFlix"], require_subj: [
+        "severe weather","severe storms","weather documentary","meteorology","meteorological","storm",
+        "thunderstorm","lightning","hail","flash flood","weather warning","weather event","weather emergency",
+        "twister","twister film","storm story","weather channel special","weather channel documentary"
+      ] }
     ],
     deny: {
-      title: ["news", "forecast", "mangrove", "sanctuary", "your sanctuary", "traveltelevision", "voluntourist"],
-      subject: ["news", "commercial", "youtube", "cartoon", "animated", "vlog", "MSNBC", "marine life", "sea life", "wildlife", "waterways", "voluntourism", "travel show", "relief effort", "ecology"]
+      title: ["fictional","drama","horror movie","commercial","cartoon"],
+      subject: ["fictional","dramatic","horror","commercial","cartoon","animated","children","marine wildlife","marine biology","sitcom"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
@@ -3265,12 +3590,36 @@ const PROGRAM = {
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Home Economics (ch 210x) — Phase 5 overhaul 2026-08-08. Vintage domestic-science
+     films — cooking, homemaking, sewing, budgeting, hygiene. */
   "Home Economics": {
     genre: "testkitchen", era: [1930, 1975],
-    /* audit 6A: dropped bare "domestic" — matches "domestic terrorism" newsreels and other off-topic items. */
-    providers: [{"collections": ["prelinger", "FedFlix"], "require_subj": ["home economics", "cooking", "baking", "kitchen", "household", "homemaker", "nutrition", "food preparation"]}],
-    deny: {"title": ["industrial", "factory", "military"], "subject": ["industrial", "factory", "military", "weapons", "combat"]},
-    subjRequired: true, noBlindFallback: true
+    providers: [
+      { collections: ["prelinger", "FedFlix", "opensource_movies"], require_subj: [
+        "home economics","home economics film","home ec","domestic science","domestic arts","household arts",
+        "homemaker","homemaking","housewife","housekeeping","housekeeping film","home management","household management",
+        "family life","family living","family life education","home living","home ec class","home ec department",
+        "cooking film","cooking class","cooking demonstration","home cooking","meal planning","meal preparation",
+        "kitchen","kitchen film","kitchen safety","kitchen appliances","kitchen equipment","modern kitchen",
+        "recipe film","baking film","baking demonstration","canning","food preservation","home canning",
+        "food safety","food handling","nutrition","nutrition film","food and nutrition","balanced diet",
+        "sewing","sewing film","sewing demonstration","garment construction","dressmaking","tailoring",
+        "clothing construction","fashion sewing","home sewing","singer sewing","home budget","household budget",
+        "personal budget","home finance","household finance","consumer education","home management film",
+        "cleaning","housecleaning","home cleaning","laundry film","laundry demonstration","modern laundry",
+        "textile film","fabric film","interior decoration","interior design","home decoration","home decorating"
+      ] },
+      { collections: ["prelinger", "FedFlix"], require_subj: [
+        "junior high home ec","high school home ec","elementary home ec","4-h home ec","future homemakers",
+        "future homemakers of america","fha","teenage homemaker","dating film","teen dating","teen etiquette",
+        "etiquette","manners","personal grooming","personal hygiene","hygiene film","grooming film"
+      ] }
+    ],
+    deny: {
+      title: ["industrial","factory","military","commercial","cartoon"],
+      subject: ["industrial","factory","military","weapons","combat","commercial","cartoon","animated","adult"]
+    },
+    subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
   "Auto Racing": {
@@ -3299,15 +3648,38 @@ const PROGRAM = {
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* The Octagon (ch 52) — Phase 5 overhaul 2026-08-08. Combat sports — boxing,
+     MMA, wrestling classics, muay thai, kickboxing. Deny powerlifting/gym demos. */
   "The Octagon": {
-    genre: "combat", era: [1960, 2025],
+    genre: "combat", era: [1960, 2026],
     providers: [
-      { collections: ["opensource_movies", "sports"], require_subj: ["boxing", "boxing match", "UFC", "MMA", "mixed martial arts", "muhammad ali", "mike tyson", "ali vs frazier", "heavyweight championship", "welterweight", "middleweight"] },
-      { collections: ["sportstelevision", "opensource_movies"], require_subj: ["boxing documentary", "UFC event", "PRIDE FC", "K-1", "kickboxing", "muay thai"] }
+      { collections: ["sports", "sportstelevision", "opensource_movies", "vhssports"], require_subj: [
+        "boxing","boxing match","professional boxing","heavyweight boxing","world championship boxing",
+        "muhammad ali","joe frazier","george foreman","larry holmes","mike tyson","evander holyfield",
+        "lennox lewis","riddick bowe","holyfield tyson","tyson holyfield","ali frazier","ali foreman",
+        "sugar ray leonard","marvelous marvin hagler","thomas hearns","roberto duran","the four kings",
+        "sugar ray robinson","jack dempsey","joe louis","rocky marciano","joe louis vs schmeling","joe louis schmeling",
+        "julio cesar chavez","oscar de la hoya","floyd mayweather","manny pacquiao","canelo alvarez",
+        "roy jones jr","bernard hopkins","james toney","james 'buster' douglas","tyson douglas",
+        "hbo boxing","hbo world championship boxing","showtime boxing","fox sports boxing","top rank boxing",
+        "premier boxing champions","boxing after dark","legendary nights hbo",
+        "ufc","ultimate fighting championship","ufc 1","ufc 100","royce gracie","ken shamrock","dan severn",
+        "randy couture","chuck liddell","tito ortiz","matt hughes","georges st-pierre","gsp","anderson silva",
+        "jose aldo","conor mcgregor","khabib nurmagomedov","dustin poirier","nate diaz","nick diaz",
+        "jon jones","daniel cormier","stipe miocic","francis ngannou","israel adesanya","alex pereira",
+        "amanda nunes","ronda rousey","holly holm","cris cyborg","valentina shevchenko",
+        "pride fc","pride fighting championships","pride grand prix","strikeforce","bellator","one championship",
+        "mma","mixed martial arts","cage fighting","cage match","brazilian jiu-jitsu","bjj","judo","catch wrestling",
+        "kickboxing","muay thai","k-1","glory kickboxing","dutch kickboxing","thai boxing","lethwei","sanda"
+      ] },
+      { collections: ["sports", "sportstelevision"], require_subj: [
+        "combat sports","combat sports documentary","boxing documentary","mma documentary","fight documentary",
+        "fight film","fight footage","classic fight","classic bout","legendary fight","greatest fights"
+      ] }
     ],
     deny: {
-      title: ["news", "commercial", "trailer", "cartoon"],
-      subject: ["news", "commercial", "cartoon", "animated", "youtube vlog", "sports talk"]
+      title: ["gym demo","powerlifting","bodybuilding","commercial","cartoon","professional wrestling"],
+      subject: ["gym","powerlifting","bodybuilding","weightlifting","professional wrestling","wwe","wwf","commercial","cartoon","animated","children","fitness demo","exercise"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
@@ -3476,28 +3848,77 @@ const PROGRAM = {
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* The Documentary Hour (ch 226) — Phase 5 overhaul 2026-08-08. PBS/BBC serious
+     documentary — Frontline, Nova, American Experience, POV, Independent Lens. */
   "The Documentary Hour": {
     genre: "pbsdocs", era: [1970, 2026],
     providers: [
-      { collections: ["opensource_movies"], require_subj: ["PBS", "ken burns", "frontline", "nova", "american experience", "POV", "P.O.V.", "national geographic", "documentary", "public broadcasting"] },
-      { collections: ["news_and_journalism", "opensource_movies"], require_subj: ["PBS", "documentary film", "public broadcasting", "historical documentary"] }
+      { collections: ["opensource_movies", "pbs_public_broadcasting_service", "prelinger"], require_subj: [
+        "frontline","pbs frontline","frontline pbs","nova","nova pbs","nova science","science nova",
+        "american experience","american experience pbs","the american experience","pov","p.o.v.","pov pbs",
+        "independent lens","itvs","independent television service","american masters","american masters pbs",
+        "great performances","masterpiece","masterpiece theatre","masterpiece contemporary","masterpiece classic",
+        "nature pbs","pbs nature","secrets of the dead","the war ken burns","the civil war ken burns",
+        "eyes on the prize documentary","eyes on the prize pbs","american history documentary","bbc documentary",
+        "bbc horizon","horizon bbc","panorama bbc","bbc panorama","channel 4 documentary","channel four documentary",
+        "dispatches channel 4","dispatches","cnn special report","cnn presents","hbo documentary","hbo real time",
+        "showtime documentary","vice special","vice documentary","vice on hbo","al jazeera documentary",
+        "national geographic special","national geographic explorer","natgeo special","natgeo explorer",
+        "discovery channel special","discovery documentary","the learning channel","tlc documentary",
+        "arts and entertainment biography","a&e biography","biography channel","history channel documentary",
+        "history channel special","history's mysteries","modern marvels","modern marvels history channel",
+        "the history channel","independent film channel documentary","ifc documentary","sundance documentary"
+      ] },
+      { collections: ["opensource_movies", "prelinger", "avgeeks"], require_subj: [
+        "documentary","documentary film","feature documentary","documentary series","documentary special",
+        "documentary hour","long-form documentary","investigative documentary","observational documentary",
+        "cinéma vérité","cinema verite","direct cinema","essay film","essay documentary","personal documentary",
+        "biography documentary","biographical documentary","historical documentary","political documentary",
+        "social documentary","cultural documentary","music documentary","sports documentary","true crime documentary",
+        "science documentary","nature documentary","wildlife documentary","travel documentary"
+      ] }
     ],
     deny: {
-      title: ["trailer", "commercial", "news broadcast"],
-      subject: ["trailer", "commercial", "advertising", "cartoon", "children", "sitcom", "news broadcast"]
+      title: ["commercial","trailer","cartoon","sitcom","fiction film","made-for-tv movie"],
+      subject: ["commercial","trailer","cartoon","animated","children","sitcom","game show","fiction film","fictional narrative"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Gear Head (ch 227) — Phase 5 overhaul 2026-08-08. Top Gear-style car culture —
+     road tests, restoration, hot-rod, automotive history. */
   "Gear Head": {
     genre: "topgear", era: [1990, 2026],
     providers: [
-      { collections: ["opensource_movies"], require_subj: ["top gear", "car review", "motor trend", "automotive", "car documentary", "road test", "car restoration", "hot rod", "muscle car", "classic car"] },
-      { collections: ["opensource_movies"], require_subj: ["clarkson", "hammond", "may", "jay leno's garage", "motorweek", "car and driver", "chasing classic cars"] }
+      { collections: ["opensource_movies", "vhsvault"], require_subj: [
+        "top gear","top gear bbc","bbc top gear","top gear america","top gear usa","top gear us",
+        "the grand tour","grand tour amazon","james may","richard hammond","jeremy clarkson","clarkson may hammond",
+        "jay leno's garage","jay leno garage","jay leno","chasing classic cars","chasing classic cars velocity",
+        "wayne carini","carini","the car chasers","car chasers","american pickers cars","classic car",
+        "graveyard carz","fast n loud","fast n' loud","richard rawlings","gas monkey garage","gas monkey",
+        "counting cars","danny 'the count' koker","overhaulin","overhaulin'","chip foose","foose",
+        "wheeler dealers","wheeler dealer","edd china","mike brewer","car sos","car s.o.s.",
+        "motorweek","motor week","john davis motorweek","auto weekly","auto week","auto shows","auto show coverage",
+        "car and driver","road and track","road & track","motor trend","motor trend television","motor trend tv",
+        "muscle car","muscle car history","american muscle","american muscle car","classic american car",
+        "hot rod","hot rodding","hot rod culture","hot rod magazine","hot rod magazine television","street rod",
+        "restoration","car restoration","auto restoration","classic car restoration","auto refurbishment",
+        "concours d'elegance","concours delegance","pebble beach concours","goodwood revival","goodwood",
+        "car show","auto show","auto expo","classic car show","car auction","barrett-jackson","mecum auction",
+        "corvette","chevrolet corvette","mustang","ford mustang","porsche 911","porsche","ferrari","ferrari classic",
+        "lamborghini","mclaren","bugatti","aston martin","jaguar","jaguar e-type","jaguar xj","land rover",
+        "bmw m","bmw m series","mercedes-benz","mercedes benz","audi","volkswagen beetle","volkswagen bus"
+      ] },
+      { collections: ["opensource_movies", "vhsvault"], require_subj: [
+        "automotive","automotive television","automotive tv","car culture","car enthusiast","auto enthusiast",
+        "automobile history","automobile film","auto documentary","car documentary","automotive documentary",
+        "car review","auto review","road test","road testing","car test","auto test","auto journalism",
+        "car magazine tv","auto magazine tv","garage show","garage tv","car mechanic show","mechanic show"
+      ] }
     ],
     deny: {
-      title: ["trailer", "news", "commercial", "racing"],
-      subject: ["trailer", "news", "commercial", "cartoon", "sports talk", "children"]
+      title: ["racing","nascar","f1","commercial","cartoon"],
+      subject: ["racing","auto racing","commercial","cartoon","animated","children","training film"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
@@ -3560,13 +3981,42 @@ const PROGRAM = {
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Railroad (ch 208) — Phase 5 overhaul 2026-08-08. Steam through diesel era +
+     named railroads + rail heritage. */
   "Railroad": {
-    genre: "railroad", era: [1930, 1990],
+    genre: "railroad", era: [1900, 2010],
     providers: [
-      {"collections": ["prelinger", "FedFlix", "opensource_movies"], "require_subj": ["railroad", "railway", "train", "locomotive", "steam engine", "diesel locomotive", "rail", "freight train", "passenger train", "rail fan", "railfan"]},
-      {"collections": ["feature_films"], "require_subj": ["railroad", "railway", "train", "locomotive"]}
+      { collections: ["prelinger", "FedFlix", "avgeeks", "opensource_movies"], require_subj: [
+        "railroad","railway","train","locomotive","steam locomotive","steam engine","diesel locomotive",
+        "diesel engine","electric locomotive","electric train","streamliner","streamline train","narrow gauge",
+        "standard gauge","narrow-gauge","broad gauge","short line","short-line railroad","interurban",
+        "class 1 railroad","transcontinental","transcontinental railroad","cross-country railroad",
+        "amtrak","conrail","southern pacific","union pacific","central pacific","canadian pacific",
+        "canadian national","pennsylvania railroad","new york central","baltimore and ohio","b&o railroad",
+        "chesapeake and ohio","c&o railroad","norfolk and western","norfolk southern","southern railway",
+        "atlantic coast line","seaboard air line","atchison topeka and santa fe","santa fe railway",
+        "denver and rio grande western","d&rgw","great northern","northern pacific","milwaukee road",
+        "chicago and north western","c&nw","burlington northern","cb&q","rock island","frisco","katy",
+        "erie lackawanna","el","reading railroad","lehigh valley","new haven","boston and maine","b&m",
+        "long island railroad","lirr","new york subway","chicago l","chicago elevated","bart",
+        "railfan","railfanning","train enthusiast","train spotting","trainspotting","railroad enthusiast",
+        "railroad history","railway history","american railroad","american railway","rail transport",
+        "big boy locomotive","challenger locomotive","hudson locomotive","pacific locomotive","mikado locomotive",
+        "berkshire locomotive","northern locomotive","mallet locomotive","4-8-8-4","4-6-6-4"
+      ] },
+      { collections: ["prelinger", "FedFlix", "avgeeks"], require_subj: [
+        "freight train","freight railroad","freight service","passenger train","passenger service",
+        "commuter rail","commuter train","commuter service","express train","limited train",
+        "rail yard","switchyard","classification yard","hump yard","roundhouse","engine house",
+        "signal tower","interlocking tower","depot","train station","union station","grand central",
+        "rail history","railroad heritage","preserved railway","tourist railroad","heritage railway",
+        "steam preservation","steam excursion","railroad museum","rail museum"
+      ] }
     ],
-    deny: {"title": ["home movie", "farm", "family film", "vacation", "rio lobo", "john wayne"], "subject": ["home movie", "farm", "family", "vacation", "comedy", "cartoon", "western", "cowboy"]},
+    deny: {
+      title: ["western","john wayne","cartoon","commercial","home movie","family film"],
+      subject: ["western","cowboy","home movie","farm","family","comedy","cartoon","animated"]
+    },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
@@ -4169,25 +4619,47 @@ const PROGRAM = {
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Sports Vault (ch 16 sports? — actually ch that hosts sports broadcasts) — Phase 5
+     overhaul 2026-08-08. Vintage sports broadcasts — every major American sport. */
   "Sports Vault": {
-    /* AUDIT 2026-08-06: NO_SIGNAL 4x per soak — old pool (prelinger/FedFlix/feature_films)
-       had almost no sports content. Rebuilt against the real sports collections on IA:
-         - sports (9968 items)  · sportstelevision (14479) · vhssports (2063)
-         - auburnulibrary (4745, college sports archive) · sportstelevision has full games,
-           wrestling PPVs, wide era coverage.
-       User directive: ALL SPORTS included — WWE / UFC / MMA / wrestling denies REMOVED. */
     genre: "sportsvault", era: [1920, 2026],
     providers: [
-      { collections: ["vhssports", "sportstelevision"], require_subj: ["baseball", "football", "basketball", "hockey", "soccer", "boxing", "wrestling", "olympics", "world series", "super bowl", "monday night football", "wide world of sports", "abc sports", "cbs sports", "nbc sports", "game broadcast", "sports broadcast", "baseball game", "football game", "basketball game", "NFL", "NBA", "MLB", "NHL", "college football", "college basketball", "world cup"] },
-      { collections: ["sports"], require_subj: ["baseball", "football", "basketball", "hockey", "soccer", "boxing", "wrestling", "MMA", "UFC", "martial arts", "olympics", "tennis", "golf", "auto racing", "NASCAR", "F1", "cycling", "swimming", "track and field", "gymnastics", "skateboarding", "BMX", "surfing"] },
-      { collections: ["auburnulibrary", "dickinsoncollegearchives"], require_subj: ["basketball", "football", "baseball", "college sports", "NCAA", "college athletics"] }
+      { collections: ["sports", "sportstelevision", "vhssports", "auburnulibrary", "opensource_movies"], require_subj: [
+        "baseball","baseball game","baseball broadcast","world series","world series baseball","all-star game",
+        "mlb","major league baseball","american league","national league","spring training",
+        "babe ruth","lou gehrig","joe dimaggio","ted williams","stan musial","mickey mantle","willie mays",
+        "hank aaron","sandy koufax","bob gibson","nolan ryan","reggie jackson","cal ripken","tony gwynn",
+        "greg maddux","cy young","jackie robinson","satchel paige","roberto clemente","yogi berra",
+        "nfl","national football league","nfl football","super bowl","super bowl broadcast","monday night football",
+        "afc championship","nfc championship","nfl films","nfl films sabol","steve sabol","john facenda",
+        "vince lombardi","joe montana","jerry rice","walter payton","jim brown","johnny unitas","john elway",
+        "dan marino","peyton manning","tom brady","terry bradshaw","roger staubach","joe namath",
+        "nba","national basketball association","nba playoffs","nba finals","larry bird","magic johnson",
+        "michael jordan","kareem abdul-jabbar","wilt chamberlain","bill russell","kobe bryant","lebron james",
+        "shaquille o'neal","hakeem olajuwon","david robinson","charles barkley","karl malone","john stockton",
+        "nhl","national hockey league","stanley cup","stanley cup finals","wayne gretzky","gordie howe",
+        "bobby orr","bobby hull","mario lemieux","patrick roy","martin brodeur","sidney crosby",
+        "boxing","heavyweight boxing","muhammad ali","joe frazier","george foreman","mike tyson",
+        "sugar ray leonard","sugar ray robinson","evander holyfield","lennox lewis","riddick bowe",
+        "olympics","olympic games","summer olympics","winter olympics","tokyo olympics","los angeles olympics",
+        "espn","espn documentary","30 for 30","espn 30 for 30","hbo real sports","hbo sports","hbo boxing"
+      ] },
+      { collections: ["sports", "sportstelevision", "vhssports"], require_subj: [
+        "sports broadcast","sports game","sports event","sporting event","sports documentary",
+        "sports film","sports vault","classic sports","vintage sports","sports television","sports tv",
+        "sports radio","sports commentary","play-by-play","play by play","sports highlights","sports highlight",
+        "professional sports","college sports","college football","college basketball","ncaa","ncaa tournament",
+        "march madness","final four","rose bowl","orange bowl","sugar bowl","cotton bowl","fiesta bowl",
+        "kentucky derby","preakness","belmont stakes","triple crown","masters golf","us open golf",
+        "wimbledon","us open tennis","french open","australian open"
+      ] }
     ],
     deny: {
-      title: ["home movie", "family film", "vacation", "farm", "christmas", "wedding", "cartoon", "sports news", "sportscenter", "highlights show", "sports talk"],
-      subject: ["home movie", "family", "vacation", "farm", "christmas", "wedding", "cartoon", "animated", "comedy", "sports news", "sports talk", "highlights", "podcast", "youtube", "vlog", "video game", "esports", "gameplay"]
+      title: ["fantasy sports","commercial","cartoon","training video","instructional"],
+      subject: ["fantasy sports","cartoon","animated","children","training video","instructional","commercial","fictional"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
-  }
+  },
 };
 
 /* Build queries from a PROGRAM entry instead of from G. Same shape output as buildQuery

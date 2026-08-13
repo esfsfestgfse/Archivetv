@@ -1150,7 +1150,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.171";
+window.__ATV_BUILD="1.7.7-mobile.172";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -2091,7 +2091,7 @@ const PROGRAM = {
         "jazz-hop","jazz hip hop","chamber jazz","ecm"
       ] }
     ],
-    deny: {"subject": ["podcast","talk show","comedy","classical","opera","country","rock band","punk","metal","electronic dance", ...JAMBAND_DENY]},
+    deny: {"subject": ["podcast","talk show","comedy","classical","opera","country","rock band","punk","metal","electronic dance", ...JAMBAND_DENY, "movie soundtrack", "film soundtrack", "dance movie", "kids movie", "animated film soundtrack", "jazz festival coverage"]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
@@ -2122,7 +2122,7 @@ const PROGRAM = {
         "hill country blues","north mississippi blues","punk blues","garage blues","slide guitar"
       ] }
     ],
-    deny: {"subject": ["podcast","talk show","comedy","classical","opera","hip hop","rap","electronic dance","punk","metal","folk","country","gospel","reggae", ...JAMBAND_DENY]},
+    deny: {"subject": ["podcast","talk show","comedy","classical","opera","hip hop","rap","electronic dance","punk","metal","folk","country","gospel","reggae", ...JAMBAND_DENY, "rock oldies", "classic rock radio", "70s rock radio", "mott the hoople", "traffic band", "rock band radio"]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
@@ -2132,7 +2132,7 @@ const PROGRAM = {
       {"collections": ["opensource_audio"], "require_subj": ["hip hop", "hip-hop", "rap", "MC", "turntablism", "beatbox", "freestyle"]},
       {"collections": ["etree", "audio_music"], "require_subj": ["hip hop", "hip-hop", "rap", "nerdcore", "turntablism"]}
     ],
-    deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture", "jazz", "classical", "reggae", ...JAMBAND_DENY]},
+    deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture", "jazz", "classical", "reggae", ...JAMBAND_DENY, "pan afrikanism", "radio talk", "political radio", "current affairs radio", "talk radio", "commentary radio"]},
     subjRequired: true, noBlindFallback: true
   },
 
@@ -2158,7 +2158,7 @@ const PROGRAM = {
         "lovers rock","nyabinghi","niyabinghi","conscious reggae","one drop","riddim"
       ] }
     ],
-    deny: {"subject": ["podcast","talk show","comedy","classical","country","rock band","reggaeton","narcocorrido", ...JAMBAND_DENY]},
+    deny: {"subject": ["podcast","talk show","comedy","classical","country","rock band","reggaeton","narcocorrido", ...JAMBAND_DENY, "avant-garde", "noise experimental", "treetrunk", "noise music", "experimental composition", "dub composition"]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
@@ -2186,7 +2186,7 @@ const PROGRAM = {
         "emo","screamo","skate punk","melodic hardcore","garage rock","garage punk"
       ] }
     ],
-    deny: {"subject": ["podcast","talk show","comedy","classical","country","folk","gospel","hip hop","rap","electronic dance", ...JAMBAND_DENY]},
+    deny: {"subject": ["podcast","talk show","comedy","classical","country","folk","gospel","hip hop","rap","electronic dance", ...JAMBAND_DENY, "vaporwave", "chillwave", "synthwave", "retrowave", "broken transmission", "aesthetic music"]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
@@ -2219,7 +2219,7 @@ const PROGRAM = {
         "alternative metal","metalcore","deathcore","djent","post-metal","atmospheric black metal"
       ] }
     ],
-    deny: {"subject": ["podcast","talk show","comedy","classical","gospel","hip hop","electronic dance","country","folk","reggae", ...JAMBAND_DENY]},
+    deny: {"subject": ["podcast","talk show","comedy","classical","gospel","hip hop","electronic dance","country","folk","reggae", ...JAMBAND_DENY, "audiobook", "novel", "spoken word", "narration", "retrofuturism", "science fiction novel", "speculative fiction novel"]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
@@ -2282,7 +2282,7 @@ const PROGRAM = {
         "disco","boogie","quiet storm"
       ] }
     ],
-    deny: {"subject": ["podcast","talk show","comedy","classical","opera","country","rock band","electronic","punk","metal", ...JAMBAND_DENY]},
+    deny: {"subject": ["podcast","talk show","comedy","classical","opera","country","rock band","electronic","punk","metal", ...JAMBAND_DENY, "easy listening", "choir", "chorale", "vocal choir", "light orchestral", "big band vocal", "1960s easy listening"]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
@@ -2340,8 +2340,8 @@ const PROGRAM = {
       { collections: ["Comedy_Films"], require_subj: ["stand-up comedy", "standup comedy", "stand-up special", "live comedy performance"] }
     ],
     deny: {
-      title: ["sketch", "sitcom", "cartoon", "trailer", "concert", "festival", "band", "album", "civil war", "journal", "documentary", "history channel", "a&e", "pbs", "history of"],
-      subject: ["sketch comedy", "sitcom", "cartoon", "animated", "children", "podcast", "youtube", "vlog", "prank", "internet video", "music album", "concert", "documentary", "history", "biography", "civil war", "war documentary", "journalism"]
+      title: ["sketch", "sitcom", "cartoon", "trailer", "concert", "festival", "band", "album", "civil war", "journal", "documentary", "history channel", "a&e", "pbs", "history of", "comedy central commercials", "commercials", "commercial break", "some prefer cake", "desi del valle"],
+      subject: ["sketch comedy", "sitcom", "cartoon", "animated", "children", "podcast", "youtube", "vlog", "prank", "internet video", "music album", "concert", "documentary", "history", "biography", "civil war", "war documentary", "journalism", "commercial reel", "comedy central commercial", "ad break", "indie drama film", "desi del valle"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
@@ -2491,8 +2491,8 @@ const PROGRAM = {
       ] }
     ],
     deny: {
-      title: ["commercial","music video","tutorial","talk show","podcast"],
-      subject: ["commercial","music video","tutorial","talk show","podcast","narrated","narration","dramatic","fictional"]
+      title: ["commercial","music video","tutorial","talk show","podcast", "gameplay", "video game", "game menu", "title screen", "raw footage", "world cup", "super bowl", "nvidia", "directors cut", "director's cut menu"],
+      subject: ["commercial","music video","tutorial","talk show","podcast","narrated","narration","dramatic","fictional", "gameplay", "video game", "game", "deltarune", "deus ex", "nvidia", "tech tutorial", "review video", "football video"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
@@ -2555,8 +2555,8 @@ const PROGRAM = {
       ] }
     ],
     deny: {
-      title: ["news", "trailer", "documentary about", "commercial", "interview about"],
-      subject: ["news", "trailer", "commercial", "cartoon", "children", "documentary about"]
+      title: ["news", "trailer", "documentary about", "commercial", "interview about", "soul train", "(season 1, episode", "don cornelius"],
+      subject: ["news", "trailer", "commercial", "cartoon", "children", "documentary about", "music variety", "dance show", "soul music show", "don cornelius", "music television", "tv variety"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
@@ -2598,8 +2598,8 @@ const PROGRAM = {
       ] }
     ],
     deny: {
-      title: ["news", "commercial", "trailer", "reaction video", "podcast episode"],
-      subject: ["news broadcast", "commercial", "advertising", "youtube short", "vlog", "cartoon", "children", "reaction", "reaction video"]
+      title: ["news", "commercial", "trailer", "reaction video", "podcast episode", "nostalgia chick", "breaking dawn", "twilight", "not another", "not another breaking dawn"],
+      subject: ["news broadcast", "commercial", "advertising", "youtube short", "vlog", "cartoon", "children", "reaction", "reaction video", "nostalgia chick", "lindsay ellis", "video review", "film review", "movie review", "commentary channel"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
@@ -2681,8 +2681,8 @@ const PROGRAM = {
       ] }
     ],
     deny: {
-      title: ["cartoon","commercial","sitcom","music video"],
-      subject: ["cartoon","animated","children","commercial","sitcom","music video","training film","game show"]
+      title: ["cartoon","commercial","sitcom","music video", "vhs saga", "my vhs saga", "vhs compilation", "(woc)", "vhs channel"],
+      subject: ["cartoon","animated","children","commercial","sitcom","music video","training film","game show", "vhs compilation", "vhs channel surfing", "channel surfing tape", "tv compilation"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
@@ -2696,8 +2696,8 @@ const PROGRAM = {
       { collections: ["opensource_movies"], require_subj: ["motown", "stax", "philadelphia international", "james brown", "sly stone", "parliament funkadelic", "earth wind and fire"] }
     ],
     deny: {
-      title: ["news", "commercial", "trailer"],
-      subject: ["news", "commercial", "advertising", "youtube vlog", "cartoon"]
+      title: ["news", "commercial", "trailer", "moomin", "aapb", "new jersey network", "howard jarvis", "proposition 13", "njn"],
+      subject: ["news", "commercial", "advertising", "youtube vlog", "cartoon", "kids show", "children's television", "kids animation", "public broadcasting news", "aapb", "government access"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
@@ -2712,8 +2712,8 @@ const PROGRAM = {
       { collections: ["78rpm", "opensource_audio"], require_subj: ["jazz", "bebop", "swing", "big band jazz", "harlem renaissance", "cotton club"] }
     ],
     deny: {
-      title: ["youtube", "instructional"],
-      subject: ["youtube", "vlog", "podcast", "spoken word", "audiobook", "commercial"]
+      title: ["youtube", "instructional", "elevator to the gallows", "ascenseur pour", "louis malle", "gallows"],
+      subject: ["youtube", "vlog", "podcast", "spoken word", "audiobook", "commercial", "feature film", "film noir film", "french film", "louis malle film", "dramatic film", "fiction film"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
@@ -2744,7 +2744,7 @@ const PROGRAM = {
         "cowpunk","insurgent country","bro-country","country blues","bluegrass gospel","country gospel"
       ] }
     ],
-    deny: {"title": ["elvis costello"], "subject": ["podcast","talk show","comedy","spoken word","audiobook","punk","new wave","post-punk","alternative rock","indie rock","electronic","hip hop", ...JAMBAND_DENY]},
+    deny: {"title": ["elvis costello", "airborne toxic event", "adult mom", "stitches", "pokey lafarge", "lenny kravitz"], "subject": ["podcast","talk show","comedy","spoken word","audiobook","punk","new wave","post-punk","alternative rock","indie rock","electronic","hip hop", ...JAMBAND_DENY, "adult alternative", "folk rock modern"]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
@@ -2776,8 +2776,8 @@ const PROGRAM = {
       ] }
     ],
     deny: {
-      title: ["podcast","talk","song","album","commercial"],
-      subject: ["podcast","talk radio","pop song","rock song","hip hop","rap","commercial","tv show","game show"]
+      title: ["podcast","talk","song","album","commercial", "wasteland echoes", "dark ambient exploration", "qdc", "composition"],
+      subject: ["podcast","talk radio","pop song","rock song","hip hop","rap","commercial","tv show","game show", "dark ambient composition", "ambient composition", "synthesized ambient", "electronic ambient", "dark ambient mix", "post apocalyptic ambient"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
@@ -2881,7 +2881,7 @@ const PROGRAM = {
         "sea shanty","field holler","ballad","american ballad","murder ballad","protest song"
       ] }
     ],
-    deny: {"subject": ["podcast","talk show","comedy","classical","opera","electronic","hip hop","rap","metal","punk", ...JAMBAND_DENY]},
+    deny: {"subject": ["podcast","talk show","comedy","classical","opera","electronic","hip hop","rap","metal","punk", ...JAMBAND_DENY, "alternative rock 2017", "modern indie", "indie 2017", "ears to the universe", "modern alternative"]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
@@ -2908,7 +2908,7 @@ const PROGRAM = {
         "jazz fusion","jazz-rock","latin jazz","afro-cuban jazz","spiritual jazz"
       ] }
     ],
-    deny: {"subject": ["podcast","talk show","comedy","spoken word","audiobook","classical","opera","gospel","hymn","rock","country","hip hop","rap","reggae","electronic","punk", ...JAMBAND_DENY]},
+    deny: {"subject": ["podcast","talk show","comedy","spoken word","audiobook","classical","opera","gospel","hymn","rock","country","hip hop","rap","reggae","electronic","punk", ...JAMBAND_DENY, "news show", "aapb", "black journal", "public broadcasting news", "current affairs", "political show"]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
@@ -2976,7 +2976,7 @@ const PROGRAM = {
         "countrypolitan", "cowpunk", "americana", "roots country", "traditional country"
       ] }
     ],
-    deny: {"title": ["elvis costello"], "subject": ["podcast", "talk show", "comedy", "spoken word", "audiobook", "lecture", "punk", "new wave", "post-punk", "alternative", "indie rock", "electronic", "hip hop", "rap", ...JAMBAND_DENY]},
+    deny: {"title": ["elvis costello", "civil war", "cival war", "military", "brass band", "concert band"], "subject": ["podcast", "talk show", "comedy", "spoken word", "audiobook", "lecture", "punk", "new wave", "post-punk", "alternative", "indie rock", "electronic", "hip hop", "rap", ...JAMBAND_DENY, "civil war", "military march", "brass band", "concert band", "military folk", "march music", "electra nonesuch"]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
@@ -3006,7 +3006,7 @@ const PROGRAM = {
         "praise and worship","worship music","choir","choral","choir music"
       ] }
     ],
-    deny: {"subject": ["podcast","talk show","comedy","secular","hip hop","rock band","electronic","punk","metal","country","blues", ...JAMBAND_DENY]},
+    deny: {"subject": ["podcast","talk show","comedy","secular","hip hop","rock band","electronic","punk","metal","country","blues", ...JAMBAND_DENY, "movie soundtrack", "film soundtrack", "dance movie", "animated film soundtrack", "classic rock"]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
@@ -3116,7 +3116,7 @@ const PROGRAM = {
         "tin pan alley","music hall","vaudeville pop"
       ] }
     ],
-    deny: {"subject": ["podcast","talk show","comedy","spoken word","rock","country","folk","hip hop","electronic","metal","punk","reggae","classical opera", ...JAMBAND_DENY]},
+    deny: {"subject": ["podcast","talk show","comedy","spoken word","rock","country","folk","hip hop","electronic","metal","punk","reggae","classical opera", ...JAMBAND_DENY, "cartoon", "animated", "warner bros cartoon", "looney tunes", "merrie melodies", "animated short"]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
@@ -3400,8 +3400,8 @@ const PROGRAM = {
       ] }
     ],
     deny: {
-      title: ["commercial","cartoon","home movie","training film"],
-      subject: ["commercial","cartoon","animated","children","home movie","amateur","military combat"]
+      title: ["commercial","cartoon","home movie","training film", "genetically modified", "gmo", "organic food", "gm food", "modified food", "to live in darkness"],
+      subject: ["commercial","cartoon","animated","children","home movie","amateur","military combat", "genetic modification", "gmo", "genetically modified", "food safety news", "blindness"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
@@ -3492,8 +3492,8 @@ const PROGRAM = {
       ] }
     ],
     deny: {
-      title: ["kids","children","trailer","commercial","instructional"],
-      subject: ["kids","children","commercial","trailer","instructional","training film","saturday morning cartoon"]
+      title: ["kids","children","trailer","commercial","instructional", "britannia (2005", "fire and ice the dragon", "dragon chronicles", "live action", "live-action", "quick vid", "kipo season"],
+      subject: ["kids","children","commercial","trailer","instructional","training film","saturday morning cartoon", "documentary about animation", "live action film", "live-action film", "animation review", "cartoon review", "fantasy live action"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
@@ -3695,8 +3695,8 @@ const PROGRAM = {
       ] }
     ],
     deny: {
-      title: ["news","commercial","cartoon","action","exploitation","sitcom","drama"],
-      subject: ["news","commercial","cartoon","animated","children's animation","action","exploitation","sitcom","drama","game show"]
+      title: ["news","commercial","cartoon","action","exploitation","sitcom","drama", "bedford day", "fancy kind", "town", "around town", "public access day", "access day"],
+      subject: ["news","commercial","cartoon","animated","children's animation","action","exploitation","sitcom","drama","game show", "public access channel", "community television", "local access", "bedford tv", "town meeting"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
@@ -3870,8 +3870,8 @@ const PROGRAM = {
       ] }
     ],
     deny: {
-      title: ["ufo","paranormal","murder","horror","commercial","cartoon"],
-      subject: ["ufo","paranormal","supernatural","horror","commercial","cartoon","animated","children","fictional"]
+      title: ["ufo","paranormal","murder","horror","commercial","cartoon", "l'homme", "picardie", "drame", "french tv", "partie", "the sundowners"],
+      subject: ["ufo","paranormal","supernatural","horror","commercial","cartoon","animated","children","fictional", "french tv", "french drama", "dramatic tv series", "tv serial", "television drama", "western feature film"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
@@ -4267,8 +4267,8 @@ const PROGRAM = {
       ] }
     ],
     deny: {
-      title: ["commercial","trailer","cartoon","sitcom","fiction film","made-for-tv movie"],
-      subject: ["commercial","trailer","cartoon","animated","children","sitcom","game show","fiction film","fictional narrative"]
+      title: ["commercial","trailer","cartoon","sitcom","fiction film","made-for-tv movie", "live at the zacc", "zacc", "minot", "doom scroll", "local band", "band show"],
+      subject: ["commercial","trailer","cartoon","animated","children","sitcom","game show","fiction film","fictional narrative", "local band", "concert local", "community music", "local music", "allbands.tv", "local concert"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
@@ -4305,8 +4305,8 @@ const PROGRAM = {
       ] }
     ],
     deny: {
-      title: ["racing","nascar","f1","commercial","cartoon"],
-      subject: ["racing","auto racing","commercial","cartoon","animated","children","training film"]
+      title: ["racing","nascar","f1","commercial","cartoon", "1991 nissan", "best-in-class ad", "tv commercial", "ad "],
+      subject: ["racing","auto racing","commercial","cartoon","animated","children","training film", "tv commercial", "car commercial", "auto commercial", "advertisement", "commercial break"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
@@ -4320,8 +4320,8 @@ const PROGRAM = {
       { collections: ["opensource_movies", "classic_tv", "classic_tv_1970s", "classic_tv_1980s", "classic_tv_1990s", "classic_tv_2000s"], require_subj: ["60 minutes", "sixty minutes", "cbs 60 minutes", "20/20", "twenty twenty", "abc 20/20", "dateline nbc", "dateline", "nightline", "primetime live", "primetime", "abc primetime", "frontline", "pbs frontline", "cbs reports", "cbs news special", "nbc news special", "abc news special", "48 hours", "48 hours mystery", "cnn special", "hbo real sports", "real sports", "american experience", "newsmagazine", "news magazine", "investigative journalism", "investigative report", "in-depth report", "mike wallace", "morley safer", "ed bradley", "don hewitt", "dan rather", "barbara walters", "diane sawyer", "ted koppel", "bryant gumbel", "stone phillips", "chris hansen", "katie couric", "leslie stahl", "steve kroft", "scott pelley", "lara logan", "anderson cooper 360", "60 minutes ii"] }
     ],
     deny: {
-      title: ["commercial", "cartoon", "sitcom", "game show"],
-      subject: ["commercial", "advertising", "cartoon", "animated", "children", "sitcom", "game show", "training film"]
+      title: ["commercial", "cartoon", "sitcom", "game show", "gaming news", "dota", "league of legends", "esports", "shout!", "dumpster fire", "epstein files"],
+      subject: ["commercial", "advertising", "cartoon", "animated", "children", "sitcom", "game show", "training film", "gaming", "esports", "game informer", "video game news", "gaming news roundup", "youtube commentary"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
@@ -5057,7 +5057,7 @@ const PROGRAM = {
         "harlem film","urban film","urban drama","hood film","black comedy film","black romance"
       ] }
     ],
-    deny: {"title": ["trailer","commercial","documentary about","cartoon"], "subject": ["trailer","commercial","cartoon","animated","children","training film","documentary about"]},
+    deny: {"title": ["trailer","commercial","documentary about","cartoon", "arbor day", "around town", "safeharbor", "around town:", "behind the scenes", "behind the sce"], "subject": ["trailer","commercial","cartoon","animated","children","training film","documentary about", "government access", "town meeting", "public access", "local government", "experimental short", "constraint art", "behind the scenes"]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 

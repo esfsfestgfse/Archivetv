@@ -999,7 +999,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.131";
+window.__ATV_BUILD="1.7.7-desktop.132";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1801,28 +1801,32 @@ const CHANNEL_META={
    here so one edit updates all four. Gospel keeps its own curated shorter list. */
 const JAMBAND_DENY = ["jam","jamband","jam band","grateful dead","jerry garcia","phish","widespread panic","string cheese","cheese incident","ween","moe.","umphrey","disco biscuits","ratdog","leftover salmon","donna the buffalo","radiators","mr. blotto","maradeen","vince welnick"];
 const PROGRAM = {
-  /* Vintage Commercials — proof-of-concept migration.
-     Root cause of bleed: G["commercials"] has subj:"commercial" which matches episode metadata
-     like "commercial break" and "commercial television". Combined with col:["classic_tv"]
-     (80% episodes), episodes leak in. The PROGRAM entry fixes this with:
-     - Tighter subjects (no bare "commercial")
-     - Runtime cap (reject anything over 300s at filter time)
-     - Per-channel deny list for episode-shaped metadata
-     - noBlindFallback so generic movies can never fill the channel */
+  /* Vintage Commercials — Phase 3 overhaul 2026-08-08. 1948-1985 TV commercials. */
   "Vintage Commercials": {
-    genre: "commercials",
-    era: [1948, 1985],
+    genre: "commercials", era: [1948, 1985],
     providers: [
-      { collections: ["classic_tv_commercials"], require_subj: ["commercial","commercials","advertising","tv commercial","television commercial"] },
-      { collections: ["classic_tv","prelinger"], require_subj: ["television commercials","advertising","toy commercial","toy advertisement","vintage commercial","retro commercial","classic commercial","tv commercial"] }
+      { collections: ["vhscommercials", "classic_tv_commercials", "opensource_movies"], require_subj: [
+        "commercial","tv commercial","television commercial","tv ad","tv advertisement","television advertisement",
+        "advertising","vintage commercial","classic commercial","classic ad","vintage ad","old commercial",
+        "retro commercial","retro ad","commercial break","ad break","commercial reel","ad reel",
+        "jingle","tv jingle","commercial jingle","tv spot","30 second spot","60 second spot",
+        "public service announcement","psa","psa reel","commercial compilation","ad compilation"
+      ] },
+      { collections: ["vhscommercials", "classic_tv_commercials"], require_subj: [
+        "1950s commercial","1960s commercial","1970s commercial","1980s commercial",
+        "car commercial","auto commercial","cereal commercial","toy commercial","fast food commercial",
+        "beer commercial","cigarette commercial","soap commercial","laundry commercial","detergent commercial",
+        "cola commercial","coca-cola commercial","pepsi commercial","mcdonald's commercial","burger king commercial",
+        "kellogg's commercial","general mills commercial","chevrolet commercial","ford commercial","dodge commercial",
+        "atari commercial","nintendo commercial","apple commercial","ibm commercial","microsoft commercial",
+        "kellogg commercial","procter and gamble commercial"
+      ] }
     ],
     deny: {
-      title: ["show","program","episode","full episode","season","pilot","documentary","feature film","movie","series"],
-      subject: ["episode","full episode","situation comedy","sitcom","drama","soap opera","tv show","television series","music","pop music"]
+      title: ["feature film","full movie","complete","music video","modern web"],
+      subject: ["feature film","full-length","music video","modern internet ad","youtube ad","banner ad","print advertisement"]
     },
-    require: { runtime_max_s: 300 },
-    noBlindFallback: true,
-    subjRequired: true
+    subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
   /* Live Concerts (ch 900) — Phase 1 overhaul 2026-08-08. Etree taper vault is
@@ -2680,25 +2684,60 @@ const PROGRAM = {
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Podcasts (ch 925) — Phase 3 overhaul 2026-08-08. IA-hosted podcasts. */
   "Podcasts": {
-    genre: "podcasts", era: [2004, 2025],
-    providers: [{"collections": ["podcasts", "opensource_audio"], "require_subj": ["podcast", "talk", "interview", "discussion", "commentary", "radio show"]}],
-    deny: {"subject": ["music", "song", "album", "concert", "live performance"]},
-    subjRequired: true, noBlindFallback: true
+    genre: "podcasts", era: [2004, 2026],
+    providers: [
+      { collections: ["podcasts", "opensource_audio", "archiveteam"], require_subj: [
+        "podcast","podcast episode","radio podcast","independent podcast","indie podcast",
+        "history podcast","science podcast","philosophy podcast","tech podcast","interview podcast",
+        "storytelling podcast","comedy podcast","true crime podcast","music podcast",
+        "documentary podcast","narrative podcast","current events podcast","cultural podcast",
+        "creative commons podcast","cc-licensed podcast","open podcast","free podcast",
+        "npr podcast","prx podcast","radio public","public radio podcast","pri podcast","hearing voices"
+      ] },
+      { collections: ["podcasts", "opensource_audio"], require_subj: [
+        "this american life","radiolab","99% invisible","99 percent invisible","serial podcast",
+        "reply all","the moth","freakonomics radio","planet money","startup podcast",
+        "revisionist history","malcolm gladwell","hardcore history","dan carlin","the history of rome",
+        "mike duncan","revolutions podcast","the history of philosophy","stuff you should know",
+        "stuff you missed in history","how stuff works podcast","science friday","radio ambulante",
+        "code switch","invisibilia","embedded npr","hidden brain","ted radio hour","fresh air",
+        "on the media","backstory podcast"
+      ] }
+    ],
+    deny: {
+      title: ["explicit","adult","commercial"],
+      subject: ["explicit content","adult","commercial radio","talk radio political","conservative talk","liberal talk","far-right","far-left"]
+    },
+    subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Fallout Radio (ch 926) — Phase 3 overhaul 2026-08-08. Post-nuclear / atomic-age
+     mood radio. */
   "Fallout Radio": {
-    /* QA FIX (audit 6A): previous config queried 78rpm music collections for "atomic age" / "cold war"
-       subject tokens that individual music-track records almost never carry, so the intersection was
-       near-empty. Channel is radio-drama per its own guide desc ("Cold-war airwaves: sci-fi, suspense
-       and civil defense radio"), so provider is now oldtimeradio with the drama-shape subjects that
-       collection actually uses (mirrors G.radiofallout from before the PROGRAM migration). Deny list
-       loosened: "spoken word","lecture","talk show" would kill radio dramas (they ARE spoken word). */
-    genre: "radiofallout", era: [1935, 1965],
+    genre: "radiofallout", era: [1940, 1965],
     providers: [
-      { collections: ["oldtimeradio"], require_subj: ["science fiction","suspense","mystery","detective","horror","thriller","war","civil defense","atomic age","cold war","crime","adventure"] }
+      { collections: ["OTRR_Certified", "OldTimeRadio", "opensource_audio", "prelinger"], require_subj: [
+        "atomic age radio","atomic age","cold war radio","cold-war radio","atomic bomb","atomic energy",
+        "nuclear age","civil defense","civil defense film audio","conelrad","conelrad radio",
+        "duck and cover","emergency broadcasting","emergency broadcast","the fallout shelter","fallout shelter",
+        "atomic war","nuclear war radio","atomic paranoia","atomic scare","atomic-age suspense","atomic-age drama",
+        "x minus one","dimension x","dimension x radio","space patrol","tom corbett space cadet",
+        "captain video","rocky jones space ranger","man in space","project moon base","destination moon audio",
+        "when worlds collide radio","cbs radio workshop","radio workshop","2000 plus","suspense radio",
+        "escape radio","escape (radio)","beyond tomorrow","radio science fiction","radio drama sci-fi"
+      ] },
+      { collections: ["OTRR_Certified", "OldTimeRadio", "opensource_audio"], require_subj: [
+        "americana radio","1950s radio","1940s radio","big band radio","swing era radio",
+        "vintage radio","vintage advertising radio","period radio","vintage news","vintage broadcast",
+        "wartime radio","wartime broadcast","wartime news","war news radio","home front radio"
+      ] }
     ],
-    deny: {"subject": ["modern podcast","npr","book review","audiobook"]},
+    deny: {
+      title: ["podcast","modern","commercial radio","talk show"],
+      subject: ["podcast","modern podcast","talk show","talk radio","modern music","electronic","rock band","hip hop"]
+    },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
@@ -2910,34 +2949,63 @@ const PROGRAM = {
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Vintage Local News (ch 219) — Phase 3 overhaul 2026-08-08. Off-air affiliate
+     newscasts 1975-2005. */
   "Vintage Local News": {
-    /* Off-air affiliate newscasts from the 80s and 90s — vhsnews_1990s is the deepest source.
-       Distinct from News News News (which is newsreels and federal films decades old). */
     genre: "localnews", era: [1975, 2005],
     providers: [
-      { collections: ["vhsnews_1990s", "television"], require_subj: ["newscast", "local news", "evening news", "news broadcast", "affiliate", "local affiliate", "WCBS", "WNBC", "WABC", "vhs news"] }
+      { collections: ["vhsnews_1990s", "television", "opensource_movies", "vhsvault"], require_subj: [
+        "local news","local newscast","local news broadcast","evening news","late news","morning news",
+        "6 o'clock news","10 o'clock news","11 o'clock news","eleven o'clock news","noon news",
+        "action news","eyewitness news","first news","channel news","tv news broadcast",
+        "affiliate newscast","affiliate news","abc affiliate","nbc affiliate","cbs affiliate","fox affiliate",
+        "abc affiliate news","nbc affiliate news","cbs affiliate news","fox affiliate news","local anchor",
+        "kcbs","kabc","knbc","wnbc","wcbs","wabc","kron","kpix","kntv","wjbk","wjw","wxyz","wdiv",
+        "weather forecast local","local weather","sports segment","local sports","local sports report",
+        "local traffic report","traffic report"
+      ] },
+      { collections: ["vhsnews_1990s", "television", "opensource_movies"], require_subj: [
+        "vhs news","off-air news","off air news","home taped news","news off air","news off-air",
+        "1970s news","1980s news","1990s news","local anchor","news anchor","local reporter","field reporter",
+        "network broadcast","tv station id","station identification"
+      ] }
     ],
     deny: {
-      title: ["training"],
-      subject: ["youtube", "vlog", "commercial", "podcast", "modern podcast"]
+      title: ["cartoon","training film","commercial"],
+      subject: ["cartoon","animated","children","training film","dramatic film","fiction film","sitcom"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Bob Ross & Comfort TV (ch 220) — Phase 3 overhaul 2026-08-08. Joy of Painting +
+     chore-doer / craft / cooking TV that scratches the same brain-itch. */
   "Bob Ross & Comfort TV": {
-    /* Joy of Painting + adjacent quiet daytime programming (art tutorials, craft shows, gentle
-       PBS reruns). AUDIT 2026-08-06: NO SIGNAL 4x in soak — pool was too narrow. Added
-       artsandmusicvideos + widened to craft/knitting/quilting/cooking-show subjects for the
-       "comfort TV" flavor. */
     genre: "comforttv", era: [1970, 2026],
     providers: [
-      { collections: ["opensource_movies"], require_subj: ["bob ross", "joy of painting", "painting tutorial", "painting demonstration", "PBS painting"] },
-      { collections: ["artsandmusicvideos", "opensource_movies"], require_subj: ["oil painting", "watercolor", "painting demonstration", "art tutorial", "arts and crafts", "craft demonstration"] },
-      { collections: ["prelinger", "avgeeks"], require_subj: ["craft", "handicraft", "knitting", "quilting", "sewing", "pottery", "woodworking", "gardening", "flower arrangement"] }
+      { collections: ["opensource_movies", "classic_tv_1980s", "classic_tv_1990s", "classic_tv_2000s"], require_subj: [
+        "bob ross","the joy of painting","joy of painting","bob ross painting","happy little trees",
+        "beauty is everywhere","bob ross workshop","ross painting","wet on wet","wet-on-wet",
+        "mister rogers","mister rogers' neighborhood","mr. rogers' neighborhood","fred rogers","mr rogers",
+        "reading rainbow","levar burton","3-2-1 contact","3 2 1 contact","the electric company",
+        "sesame street","captain kangaroo","mr. wizard","mr wizard","mr wizard's world","don herbert",
+        "julia child","the french chef","cooking with julia","julia and jacques","jacques pepin",
+        "graham kerr","the galloping gourmet","yan can cook","martin yan","this old house","bob vila",
+        "new yankee workshop","norm abram","the woodwright's shop","roy underhill",
+        "hometime","dean johnson","home time","the victory garden","paul james","james crockett",
+        "crockett's victory garden","masterpiece garden","gardening show","gardener's world",
+        "arts and crafts show","carol duvall show","carol duvall","the carol duvall show",
+        "aleene's creative living","aleene lawrence","home matters"
+      ] },
+      { collections: ["opensource_movies", "classic_tv_1990s"], require_subj: [
+        "how-to television","how to television","craft television","craft tv","cooking show television",
+        "instructional television","hobby show","painting show","art show","art instruction",
+        "garden show","gardening show","cooking show","chef show","home improvement show","home renovation",
+        "handyman show","diy show","d.i.y. show","calming tv","comfort viewing","asmr tv","slow tv"
+      ] }
     ],
     deny: {
-      title: ["news", "commercial", "advertisement"],
-      subject: ["news", "commercial", "youtube", "vlog", "podcast", "advertising", "trailer"]
+      title: ["news","commercial","cartoon","action","exploitation","sitcom","drama"],
+      subject: ["news","commercial","cartoon","animated","children's animation","action","exploitation","sitcom","drama","game show"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
@@ -3057,17 +3125,36 @@ const PROGRAM = {
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* OTR Theater (ch 921) — Phase 3 overhaul 2026-08-08. Old-time radio drama +
+     comedy + mystery + suspense. IA's OTR archive is massive. */
   "OTR Theater": {
-    /* Old-time radio drama — the oldtimeradio collection on IA is enormous. Suspense, Inner
-       Sanctum, Escape, X Minus One, The Shadow all well-represented. Broader era than Fallout
-       Radio (which is atomic-age themed subset 1948-1965). */
-    genre: "otrtheater", era: [1935, 1965],
+    genre: "otrtheater", era: [1930, 1962],
     providers: [
-      { collections: ["oldtimeradio"], require_subj: ["radio drama", "suspense", "inner sanctum", "escape", "the shadow", "x minus one", "old time radio", "otr", "mystery", "detective", "science fiction", "horror", "thriller", "adventure"] }
+      { collections: ["OTRR_Certified", "OldTimeRadio", "opensource_audio", "audio_music"], require_subj: [
+        "suspense radio","suspense old time radio","the shadow","the whistler","inner sanctum",
+        "inner sanctum mysteries","escape radio","escape (radio series)","yours truly johnny dollar",
+        "johnny dollar","dragnet radio","gunsmoke radio","have gun will travel radio",
+        "fibber mcgee and molly","fibber mcgee","jack benny program","the jack benny program",
+        "burns and allen radio","the great gildersleeve","gildersleeve","duffy's tavern","our miss brooks",
+        "my friend irma","fred allen show","fred allen","amos and andy","amos 'n' andy",
+        "edgar bergen","charlie mccarthy","bergen and mccarthy","the lone ranger radio","the green hornet radio",
+        "the cisco kid radio","tom mix ralston straight shooters","captain midnight","little orphan annie",
+        "superman radio","the adventures of superman","the adventures of nero wolfe","boston blackie radio",
+        "philip marlowe radio","adventures of philip marlowe","sam spade radio","the adventures of sam spade",
+        "richard diamond","mr and mrs north","orson welles","mercury theatre","mercury theatre on the air",
+        "the war of the worlds broadcast","cbs radio workshop","radio workshop","x minus one","dimension x",
+        "2000 plus","lights out","lights out radio","quiet please","the mysterious traveler","murder at midnight"
+      ] },
+      { collections: ["OTRR_Certified", "OldTimeRadio", "opensource_audio"], require_subj: [
+        "old time radio","old-time radio","otr","radio drama","radio play","radio theater","radio theatre",
+        "radio show","radio program","radio serial","radio anthology","radio comedy","radio mystery",
+        "radio thriller","radio detective","radio western","radio suspense","radio horror","radio science fiction",
+        "network radio","cbs radio","nbc radio","mutual radio","abc radio","live radio","radio drama live"
+      ] }
     ],
     deny: {
-      title: ["news", "commercial"],
-      subject: ["podcast", "youtube", "modern podcast", "npr", "commercial", "advertising"]
+      title: ["training","commercial","podcast episode","talk radio"],
+      subject: ["training","podcast","talk radio","modern podcast","interview show","talk show"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
@@ -3374,19 +3461,39 @@ const PROGRAM = {
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
-  /* Classic Rerun TV — audit flagged: no subjRequired, so tier 2 fires blind into
-     classic_tv (80% episodes but also news, public-access, bumpers). The fix: require
-     subjects, and deny the non-episode content that shares the collection. */
+  /* Classic Rerun TV (ch 10) — Phase 3 overhaul 2026-08-08. 1950s-60s TV canon
+     including anthologies, live-drama, variety-show era. */
   "Classic Rerun TV": {
-    genre: "sitcom", era: [1950, 1969],
+    genre: "sitcom", era: [1948, 1975],
     providers: [
-      { collections: ["classic_tv"], require_subj: ["sitcom","television comedy","comedy series","situation comedy","comedy program"] }
+      { collections: ["classic_tv", "classic_tv_1950s", "classic_tv_1960s", "classic_tv_1970s", "television"], require_subj: [
+        "i love lucy","the honeymooners","the jack benny show","the jack benny program","jack benny",
+        "the burns and allen show","george burns and gracie allen","gracie allen","george burns",
+        "the dick van dyke show","the mary tyler moore show","the andy griffith show","mayberry",
+        "the phil silvers show","sgt bilko","sergeant bilko","car 54 where are you","car 54",
+        "the ed sullivan show","ed sullivan","the milton berle show","milton berle","texaco star theater",
+        "your show of shows","sid caesar","imogene coca","the red skelton show","red skelton",
+        "the jackie gleason show","jackie gleason","art carney","the perry como show","perry como",
+        "the dinah shore chevy show","dinah shore","the danny thomas show","make room for daddy",
+        "the donna reed show","donna reed","father knows best","leave it to beaver","the beverly hillbillies",
+        "green acres","petticoat junction","the addams family","the munsters","bewitched","i dream of jeannie",
+        "my favorite martian","mr ed","mister ed","hogan's heroes","gomer pyle usmc","gomer pyle","f troop","get smart",
+        "the twilight zone","the outer limits","alfred hitchcock presents","alfred hitchcock hour",
+        "one step beyond","boris karloff's thriller","thriller","night gallery","kraft television theatre",
+        "playhouse 90","goodyear playhouse","philco playhouse","studio one","suspense television"
+      ] },
+      { collections: ["classic_tv", "classic_tv_1950s", "classic_tv_1960s", "television"], require_subj: [
+        "classic television","classic tv","early television","golden age of television","golden age television",
+        "live tv drama","live television","anthology series","tv anthology","dramatic anthology",
+        "variety show","tv variety","comedy variety","situation comedy","sitcom","tv western","detective tv",
+        "crime tv","medical tv","legal tv","kinescope","kinescope recording"
+      ] }
     ],
     deny: {
-      title: ["newsreel","news report","commercial","advertisement","public service","test pattern"],
-      subject: ["newsreel","news","commercial","advertising","public service announcement","educational film","instructional"]
+      title: ["news","commercial","cartoon","test pattern","training film"],
+      subject: ["news","newscast","commercial","advertising","cartoon","animated","children","training film","documentary"]
     },
-    subjRequired: true, noBlindFallback: true
+    subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
   /* Modern Rerun TV — same problem as Classic but with vhsvault fcol (includes off-air news
@@ -3468,18 +3575,30 @@ const PROGRAM = {
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
-  /* Public Access TV — community_media collection is heterogeneous (public access + local cable
-     + amateur video). No deny list existed. */
+  /* Public Access TV (ch 15) — Phase 3 overhaul 2026-08-08. Community-cable
+     access 70s-2000s + televised town meetings + local government. */
   "Public Access TV": {
-    genre: "publicaccess", era: [1975, 2005],
+    genre: "publicaccess", era: [1975, 2015],
     providers: [
-      { collections: ["community_media"], require_subj: ["public access television","community television","local cable access","public access","cable access","community media"] }
+      { collections: ["community_media", "opensource_movies"], require_subj: [
+        "public access television","public-access television","public access","cable access",
+        "community television","community media","community cable","local cable","local origination",
+        "leased access","local cable access","municipal cable","government access","peg access","peg channel",
+        "public education government","town meeting","city council","planning commission","school board meeting",
+        "manhattan cable","manhattan neighborhood network","mnn","channel four public access",
+        "wayne's world public access","wayne's world","public access show","cable show"
+      ] },
+      { collections: ["community_media", "opensource_movies"], require_subj: [
+        "amateur video","amateur television","home video television","camcorder","vhs upload",
+        "u-matic","betacam","local artist show","local band tv","local comedy tv",
+        "underground television","cable underground","public affairs","public affairs program"
+      ] }
     ],
     deny: {
-      title: ["test pattern","color bars","tone"],
-      subject: ["test pattern"]
+      title: ["test pattern","color bars","tone","music video"],
+      subject: ["test pattern","broadcast news","music video","commercial television","corporate video"]
     },
-    subjRequired: true, noBlindFallback: true
+    subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
   /* Court TV (ch 16, new 2026-08-08). ACTUAL criminal trial coverage — famous cases
@@ -3497,18 +3616,28 @@ const PROGRAM = {
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
-  /* News, News, News — 3 collections, no subjRequired. Tier 2 fires all three blind.
-     Fix: subject-lock to newsreel/documentary terms, deny entertainment content. */
+  /* News, News, News (ch 210) — Phase 3 overhaul 2026-08-08. Historical newsreels
+     1920-1975 — Fox Movietone, Universal, Paramount, Hearst. */
   "News, News, News": {
     genre: "newsarchive", era: [1920, 1975],
     providers: [
-      { collections: ["universal_newsreels"], require_subj: ["newsreel","news","actuality"] },
-      { collections: ["FedFlix"], require_subj: ["documentary film","government film","historic footage","newsreel"] },
-      { collections: ["prelinger"], require_subj: ["newsreel","documentary film","historic footage","actuality film","government film"] }
+      { collections: ["universal_newsreels", "movietonenews", "prelinger", "opensource_movies"], require_subj: [
+        "fox movietone","fox movietone news","movietone","movietone news","universal newsreel","universal news",
+        "universal international news","paramount news","paramount newsreel","hearst news","hearst metrotone",
+        "hearst metrotone news","news of the day","pathe news","pathe","british pathe","warner-pathe news",
+        "warner pathe","warner brothers news","warner news","gaumont news","gaumont british news",
+        "castle films","castle films newsreel","telenews","world in action","the march of time","march of time"
+      ] },
+      { collections: ["universal_newsreels", "movietonenews", "prelinger"], require_subj: [
+        "newsreel","news reel","cinema newsreel","theatrical newsreel","documentary newsreel",
+        "historical newsreel","vintage newsreel","classic newsreel","weekly newsreel","monthly newsreel",
+        "war newsreel","wartime newsreel","world war ii newsreel","ww2 newsreel","election newsreel",
+        "sports newsreel","fashion newsreel","royal newsreel","american newsreel"
+      ] }
     ],
     deny: {
-      title: ["cartoon","comedy short","musical","song","dance","YTP","bloopers","blooper","poop","spider-man","biography"],
-      subject: ["cartoon","animated","comedy","musical","entertainment","fiction","feature film","MARVEL","Spider-Man","bloopers","BBC News Bloopers","biography","tv series"]
+      title: ["training film","industrial","commercial","cartoon","feature film"],
+      subject: ["training film","industrial","cartoon","animated","feature film","dramatic film","fiction film"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
@@ -3719,13 +3848,29 @@ const PROGRAM = {
     subjRequired: true, noBlindFallback: true
   },
 
+  /* VHS Vault (ch 502) — Phase 3 overhaul 2026-08-08. Off-air VHS captures. */
   "VHS Vault": {
-    genre: "vhsvault", era: [1975, 2003],
-    /* audit 6A: dropped bare "television" — two of three provider collections are literally
-       named "television", so every item in scope carries the tag; the filter was a no-op. */
-    providers: [{"collections": ["vhsvault", "classic_tv", "television"], "require_subj": ["tv show", "tv series", "sitcom", "drama", "game show", "talk show", "variety show", "television program", "made for tv", "tv movie"]}],
-    deny: {"title": ["newscast", "c-span", "weather forecast", "infomercial"], "subject": ["newscast", "news broadcast", "infomercial", "weather"]},
-    subjRequired: true, noBlindFallback: true
+    genre: "vhsvault", era: [1978, 2003],
+    providers: [
+      { collections: ["vhsvault", "vhsvault_inbox", "vhs", "vhsdeath"], require_subj: [
+        "vhs","vhs tape","vhs recording","vhs capture","vhs rip","vhs release","off-air recording",
+        "off air recording","home taping","home taped","home recorded","home vhs","home video",
+        "tape trading","tape trader","video rental","rental tape","ex-rental","big box vhs",
+        "clamshell vhs","promotional vhs","promo vhs","screener vhs","screener tape"
+      ] },
+      { collections: ["vhsvault", "vhsvault_inbox", "vhs", "opensource_movies"], require_subj: [
+        "80s television","1980s television","80s tv","90s television","1990s television","90s tv",
+        "tape era","home video era","betamax","betamax tape","laserdisc","cablevision","hbo original",
+        "showtime original","cinemax original","tcm original","made for tv","made-for-tv","tv movie",
+        "network premiere","broadcast premiere","promotional tape","industrial vhs","training vhs",
+        "exercise vhs","kids vhs","cartoon vhs","music vhs","concert vhs","how-to vhs","how to vhs"
+      ] }
+    ],
+    deny: {
+      title: ["dvd","blu-ray","digital broadcast","hdtv"],
+      subject: ["dvd release","blu-ray","4k restoration","hd broadcast","hdtv","digital-only"]
+    },
+    subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
   "Christmas Channel": {

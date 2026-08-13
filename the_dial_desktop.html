@@ -1078,7 +1078,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.139";
+window.__ATV_BUILD="1.7.7-desktop.140";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -2962,27 +2962,34 @@ const PROGRAM = {
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
-  /* Ragtime (ch 910) — Phase 1 overhaul 2026-08-08. Composers + performers +
-     piano-roll recordings + subgenre depth. */
+  /* Ragtime (ch 911) — AUDIT 2026-08-09 soak: 4/4 NO_SIGNAL. Root cause: era [1893,1930]
+     too narrow (IA 78rpm items often have year=1920 or year missing), and specific-composer
+     required subjects rarely match IA metadata which mostly just says "ragtime" or "78rpm".
+     Rebuilt: era ceiling relaxed to 1960 (ragtime revival era), broader piano/78rpm subjects,
+     composer/song-title tier as secondary. */
   "Ragtime": {
-    genre: "gmragtime", era: [1893, 1930],
+    genre: "gmragtime", era: [1893, 1960],
     providers: [
       { collections: ["78rpm", "georgeblood", "audio_music", "opensource_audio"], require_subj: [
-        "scott joplin","joseph lamb","james scott","tom turpin","james sylvester scott","artie matthews",
-        "eubie blake","james p johnson","james p. johnson","luckey roberts","charles hunter",
-        "may aufderheide","jelly roll morton","cow cow davenport","willie the lion smith",
-        "willie \u0022the lion\u0022 smith","pete johnson","meade lux lewis","albert ammons",
-        "mike bernard","zez confrey","fred stone","charles l johnson","henry lodge","axel christensen",
-        "the maple leaf rag","maple leaf rag","the entertainer","gladiolus rag","fig leaf rag",
-        "solace","peacherine rag","the cascades","ragtime dance","original rags","weeping willow rag"
+        "ragtime","rag","classic ragtime","piano rag","piano ragtime","folk ragtime","novelty ragtime",
+        "stride piano","stride","novelty piano","cakewalk","two-step","two step","piano roll","player piano",
+        "pianola","piano solo","piano band","piano orchestra","syncopated","syncopation","early jazz piano"
+      ] },
+      { collections: ["78rpm", "georgeblood", "audio_music", "opensource_audio"], require_subj: [
+        "scott joplin","joseph lamb","james scott","tom turpin","artie matthews","eubie blake",
+        "james p johnson","james p. johnson","luckey roberts","charles hunter","may aufderheide",
+        "jelly roll morton","cow cow davenport","willie the lion smith","pete johnson","meade lux lewis",
+        "albert ammons","mike bernard","zez confrey","fred stone","charles l johnson","henry lodge",
+        "axel christensen","maple leaf rag","the entertainer","gladiolus rag","fig leaf rag","peacherine rag",
+        "the cascades","ragtime dance","original rags","weeping willow rag","black and white rag"
       ] },
       { collections: ["78rpm", "georgeblood", "audio_music"], require_subj: [
-        "ragtime","rag","classic ragtime","folk ragtime","piano rag","stride piano","stride",
-        "novelty piano","novelty ragtime","cakewalk","two-step","two step","boogie-woogie",
-        "piano roll","player piano","pianola","early jazz piano","new orleans piano"
+        "boogie-woogie","boogie woogie","barrelhouse","ragtime piano","piano recording","78 piano",
+        "acoustic piano","1900s recording","1910s recording","1920s recording","tin pan alley piano",
+        "novelty song","novelty music","early piano","early 20th century music"
       ] }
     ],
-    deny: {"subject": ["podcast","talk show","comedy","spoken word","modern jazz","bebop","electronic","rock","country","hip hop", ...JAMBAND_DENY]},
+    deny: {"subject": ["podcast","talk show","spoken word","modern jazz","bebop","electronic","rock band","hip hop","rap","reggae", ...JAMBAND_DENY]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
@@ -3547,30 +3554,34 @@ const PROGRAM = {
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
-  /* Vintage Local News (ch 219) — Phase 3 overhaul 2026-08-08. Off-air affiliate
-     newscasts 1975-2005. */
+  /* Vintage Local News (ch 219) — AUDIT 2026-08-09 soak: 3/3 NO_SIGNAL. Root cause:
+     `vhsnews_1990s` is a real but tiny collection, and specific call letters (KCBS/KABC/
+     WNBC) rarely appear as tagged subjects. Rebuilt with broader affiliate/local-news
+     umbrella subjects + more collections + relaxed era ceiling. */
   "Vintage Local News": {
-    genre: "localnews", era: [1975, 2005],
+    genre: "localnews", era: [1970, 2010],
     providers: [
-      { collections: ["vhsnews_1990s", "television", "opensource_movies", "vhsvault"], require_subj: [
-        "local news","local newscast","local news broadcast","evening news","late news","morning news",
-        "6 o'clock news","10 o'clock news","11 o'clock news","eleven o'clock news","noon news",
-        "action news","eyewitness news","first news","channel news","tv news broadcast",
-        "affiliate newscast","affiliate news","abc affiliate","nbc affiliate","cbs affiliate","fox affiliate",
-        "abc affiliate news","nbc affiliate news","cbs affiliate news","fox affiliate news","local anchor",
-        "kcbs","kabc","knbc","wnbc","wcbs","wabc","kron","kpix","kntv","wjbk","wjw","wxyz","wdiv",
-        "weather forecast local","local weather","sports segment","local sports","local sports report",
-        "local traffic report","traffic report"
+      { collections: ["vhsnews_1990s", "opensource_movies", "vhsvault", "television", "classic_tv_1990s", "classic_tv_2000s"], require_subj: [
+        "local news","local newscast","local news broadcast","local news recording","tv news broadcast",
+        "evening news","late news","morning news","noon news","action news","eyewitness news","first news",
+        "channel news","affiliate newscast","affiliate news","local affiliate","local anchor","news anchor",
+        "local reporter","field reporter","news bulletin","news update","breaking news local"
       ] },
-      { collections: ["vhsnews_1990s", "television", "opensource_movies"], require_subj: [
+      { collections: ["vhsnews_1990s", "opensource_movies", "vhsvault"], require_subj: [
+        "abc affiliate","nbc affiliate","cbs affiliate","fox affiliate","abc news","nbc news","cbs news",
+        "wcbs","wnbc","wabc","kcbs","kabc","knbc","wjbk","wjw","wxyz","wdiv","kron","kpix","kntv",
+        "wgn","wls","wmaq","wbbm","wtvj","wsvn","wtsp","wfla","wcvb","whdh"
+      ] },
+      { collections: ["vhsvault", "opensource_movies", "television"], require_subj: [
         "vhs news","off-air news","off air news","home taped news","news off air","news off-air",
-        "1970s news","1980s news","1990s news","local anchor","news anchor","local reporter","field reporter",
-        "network broadcast","tv station id","station identification"
+        "1970s news","1980s news","1990s news","2000s news","vintage news broadcast","old news broadcast",
+        "network broadcast","tv station id","station identification","station ident","broadcast promo",
+        "news promo","weather forecast local","local weather report","local sports report","local traffic report"
       ] }
     ],
     deny: {
       title: ["cartoon","training film","commercial"],
-      subject: ["cartoon","animated","children","training film","dramatic film","fiction film","sitcom"]
+      subject: ["cartoon","animated","children","training film","dramatic film","fiction film","sitcom","game show"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
@@ -4220,16 +4231,38 @@ const PROGRAM = {
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
-  /* The Chronicle (ch 229, new 2026-08-08). Ken Burns's PBS documentary catalog —
-     the definitive American-history docs. Every major series across four decades. */
+  /* The Chronicle (ch 229) — AUDIT 2026-08-09 soak: 3/3 NO_SIGNAL. Root cause:
+     `pbs_public_broadcasting_service` collection doesn't exist on IA, and 30 Ken-Burns
+     specific titles rarely appear as tagged subjects. Rebuilt with (1) valid PBS-adjacent
+     collections, (2) generic long-form doc terms that IA uses, (3) named series depth as
+     a secondary tier. */
   "The Chronicle": {
     genre: "kenburns", era: [1980, 2026],
     providers: [
-      { collections: ["opensource_movies", "pbs_public_broadcasting_service"], require_subj: ["ken burns", "ken burns documentary", "the civil war ken burns", "the civil war documentary", "baseball ken burns", "jazz ken burns", "the west ken burns", "statue of liberty ken burns", "the war ken burns", "the national parks ken burns", "prohibition ken burns", "the roosevelts", "the vietnam war ken burns", "the vietnam war documentary", "country music ken burns", "muhammad ali ken burns", "hemingway ken burns", "benjamin franklin ken burns", "mark twain ken burns", "thomas jefferson ken burns", "huey long ken burns", "empire of the air", "not for ourselves alone", "unforgivable blackness", "the dust bowl", "the tenth inning", "cancer the emperor of all maladies", "the mayo clinic", "the u.s. and the holocaust", "muhammad ali documentary", "brooklyn bridge documentary", "florentine films", "pbs documentary", "american experience"] }
+      { collections: ["opensource_movies", "prelinger", "avgeeks", "vhsvault"], require_subj: [
+        "documentary series","historical documentary","american history documentary","long-form documentary",
+        "long form documentary","multi-part documentary","docuseries","pbs documentary","pbs special",
+        "public television","public broadcasting","public tv","american experience","american masters",
+        "frontline","nova","the american experience","great performances","masterpiece","independent lens"
+      ] },
+      { collections: ["opensource_movies", "avgeeks", "prelinger"], require_subj: [
+        "ken burns","florentine films","dayton duncan","geoffrey ward","the civil war",
+        "baseball documentary","jazz documentary","the west documentary","the war documentary",
+        "the national parks","prohibition documentary","the roosevelts","vietnam war documentary",
+        "country music documentary","muhammad ali documentary","hemingway documentary","benjamin franklin documentary",
+        "mark twain documentary","thomas jefferson documentary","brooklyn bridge documentary","statue of liberty documentary",
+        "not for ourselves alone","unforgivable blackness","empire of the air","the dust bowl documentary",
+        "the tenth inning","the mayo clinic","the u.s. and the holocaust","the west"
+      ] },
+      { collections: ["opensource_movies", "vhsvault"], require_subj: [
+        "american history","us history","world history","civil war history","world war history",
+        "cultural history","biography documentary","biographical documentary","biography film",
+        "history film","history channel documentary","a and e biography","a&e biography","biography channel"
+      ] }
     ],
     deny: {
-      title: ["news", "commercial", "cartoon", "trailer"],
-      subject: ["news", "commercial", "advertising", "cartoon", "animated", "children", "training film", "sitcom", "game show"]
+      title: ["news","commercial","cartoon","trailer","game show"],
+      subject: ["news broadcast","commercial","advertising","cartoon","animated","children","training film","sitcom","game show","fictional narrative","dramatic film"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
@@ -4442,17 +4475,37 @@ const PROGRAM = {
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
-  /* Court TV (ch 16, new 2026-08-08). ACTUAL criminal trial coverage — famous cases
-     from OJ through modern. IA has C-SPAN-uploaded gavel-to-gavel footage plus contemporary
-     Court TV recordings. Distinct from The Court Room (ch 14, judge shows). */
+  /* Court TV (ch 21) — AUDIT 2026-08-09 soak: 3/3 attempts NO_SIGNAL. Root cause:
+     require_subj was 25 SPECIFIC trial names (OJ, Menendez, Casey Anthony) — IA
+     almost never tags videos with the exact trial name as a subject. Rebuilt with
+     (1) broad legal-broadcast umbrella subjects that IA actually uses, (2) the
+     specific-trial names as a secondary tier, (3) generic courtroom/law-adjacent
+     terms as a fallback. Broader collection list. */
   "Court TV": {
-    genre: "realtrials", era: [1985, 2020],
+    genre: "realtrials", era: [1985, 2026],
     providers: [
-      { collections: ["opensource_movies", "classic_tv_1990s", "classic_tv_2000s", "c-span"], require_subj: ["oj simpson trial", "o.j. simpson trial", "simpson trial", "menendez brothers trial", "menendez trial", "casey anthony trial", "jodi arias trial", "scott peterson trial", "ted bundy trial", "charles manson trial", "phil spector trial", "dr. conrad murray trial", "michael jackson trial", "robert blake trial", "court tv", "court tv trial", "real trial", "criminal trial", "murder trial", "high profile trial", "gavel to gavel", "gavel-to-gavel", "courtroom coverage", "trial coverage", "closing arguments", "opening statements"] }
+      { collections: ["opensource_movies", "vhsvault", "classic_tv_1990s", "classic_tv_2000s"], require_subj: [
+        "court tv","courttv","court television","true crime","true crime tv","true crime television",
+        "trial","trial coverage","criminal trial","murder trial","courtroom","courtroom coverage",
+        "courtroom drama","legal proceedings","legal case","law and order","cold case","cold case files",
+        "unsolved mysteries","forensic files","american justice","american greed","dateline true crime",
+        "48 hours mystery","investigative journalism","true crime documentary"
+      ] },
+      { collections: ["opensource_movies", "vhsvault"], require_subj: [
+        "oj simpson","o.j. simpson","simpson trial","menendez","menendez brothers","casey anthony",
+        "jodi arias","scott peterson","ted bundy","charles manson","phil spector","michael jackson trial",
+        "robert blake","conrad murray","enron trial","mcmartin preschool","rodney king","waco siege",
+        "unabomber","oklahoma city bombing"
+      ] },
+      { collections: ["opensource_movies", "c-span"], require_subj: [
+        "gavel to gavel","gavel-to-gavel","opening statement","closing argument","cross examination",
+        "cross-examination","jury verdict","jury selection","witness testimony","expert witness",
+        "public hearing","congressional hearing","supreme court","supreme court oral argument"
+      ] }
     ],
     deny: {
-      title: ["cartoon", "commercial", "training film", "sitcom"],
-      subject: ["cartoon", "animated", "children", "commercial", "advertising", "training film", "sitcom", "judge show", "game show"]
+      title: ["cartoon","commercial","training film","sitcom"],
+      subject: ["cartoon","animated","children","commercial","advertising","training film","sitcom","game show"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },

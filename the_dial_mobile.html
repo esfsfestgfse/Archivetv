@@ -1050,7 +1050,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.163";
+window.__ATV_BUILD="1.7.7-mobile.164";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -2835,12 +2835,38 @@ const PROGRAM = {
     subjRequired: true, noBlindFallback: true
   },
 
+  /* Anime Alley (ch 151) — Phase 4 overhaul 2026-08-08. Named anime titles that
+     IA hosts as public-domain or CC — mostly early tokusatsu-adjacent / dubbed 70s-80s
+     English releases plus unaffiliated Japanese short films. */
   "Anime Alley": {
-    genre: "anime", era: [1960, 2005],
-    providers: [{"collections": ["animationandcartoons", "anime"], "require_subj": ["anime", "japanese animation", "manga", "mecha", "shonen", "shojo", "tokusatsu", "OVA"]}],
-    deny: {"title": ["AMV", "music video", "tribute", "trailer", "fan edit", "hentai", "adult", "18+", "R-18", "ecchi", "erotic", "xxx", "nsfw"], "subject": ["AMV", "fan video", "music video", "tribute", "review", "hentai", "adult", "18+", "R-18", "ecchi", "erotic", "xxx", "nsfw"]},
-    require: { runtime_max_s: 1800 },
-    subjRequired: true, noBlindFallback: true
+    genre: "anime", era: [1950, 2005],
+    providers: [
+      { collections: ["anime_miscellaneous", "anime", "feature_films_unsorted", "opensource_movies"], require_subj: [
+        "anime","japanese animation","japanimation","japanese cartoon","japanese animated",
+        "astro boy","tetsuwan atom","kimba the white lion","jungle emperor","gigantor","tetsujin 28",
+        "speed racer","mach go go go","robotech","macross","voltron","gforce","battle of the planets",
+        "space battleship yamato","star blazers","captain harlock","galaxy express 999","gundam",
+        "mobile suit gundam","transformers anime","transformers","go-bots","go bots","tranzor z","mazinger z",
+        "ghost in the shell","akira","ninja scroll","vampire hunter d","fist of the north star",
+        "urusei yatsura","lupin iii","lupin 3rd","the castle of cagliostro","nausicaä","nausicaa",
+        "studio ghibli","hayao miyazaki","isao takahata","my neighbor totoro","spirited away","laputa",
+        "grave of the fireflies","only yesterday","porco rosso","kiki's delivery service",
+        "toei animation","toei","tatsunoko","sunrise","gainax","madhouse","production ig",
+        "sailor moon","dragon ball","dragon ball z","dragonball","pokemon","pokémon","digimon",
+        "yu-gi-oh","cowboy bebop","trigun","hellsing","evangelion","neon genesis evangelion","escaflowne"
+      ] },
+      { collections: ["anime_miscellaneous", "anime", "opensource_movies"], require_subj: [
+        "shonen","shōnen","shojo","shoujo","seinen","josei","mecha","mecha anime","magical girl",
+        "cyberpunk anime","space opera anime","fantasy anime","romance anime","comedy anime","action anime",
+        "japanese animation film","japanese animated film","ova","original video animation",
+        "otaku","cosplay","manga adaptation","tokusatsu","kaiju anime","chibi","kawaii"
+      ] }
+    ],
+    deny: {
+      title: ["fan edit","amv","music video","trailer","commercial","fan dub","abridged","live action","live-action"],
+      subject: ["fan edit","amv","abridged","music video","trailer","commercial","live action","live-action","live-action japanese"]
+    },
+    subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
   "Arcade Archive": {
@@ -2853,14 +2879,43 @@ const PROGRAM = {
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Modern Cartoons (ch 153) — Phase 4 overhaul 2026-08-08. TV animation from
+     the 70s through 2000s. Distinct from Adult Animation and After School. */
   "Modern Cartoons": {
     genre: "cartoonmodern", era: [1970, 2026],
-    /* audit 6A: dropped bare "animation" — matches motion-graphics educational films and any
-       animated content, defeats the "modern TV cartoons" intent. Specific terms cover the target. */
-    providers: [{"collections": ["animationandcartoons", "classic_tv", "television"], "require_subj": ["cartoon", "animated", "animated series", "cartoon series", "animated film", "saturday morning cartoon", "tv animation"]}],
-    deny: {"title": ["educational", "training", "safety", "live action", "hentai", "adult", "18+", "R-18", "ecchi", "nsfw"], "subject": ["educational", "training", "safety", "live action", "documentary", "newsreel", "hentai", "adult", "18+", "R-18", "ecchi", "nsfw"]},
-    require: { runtime_max_s: 1800 },
-    subjRequired: true, noBlindFallback: true
+    providers: [
+      { collections: ["animationandcartoons", "classic_tv_1970s", "classic_tv_1980s", "classic_tv_1990s", "classic_tv_2000s", "vhsvault"], require_subj: [
+        "scooby-doo","scooby doo","scooby doo where are you","josie and the pussycats","the flintstones",
+        "the jetsons","the smurfs","yogi bear","huckleberry hound","top cat","atom ant","secret squirrel",
+        "hong kong phooey","captain caveman","hanna-barbera","hanna barbera","he-man","he man","masters of the universe",
+        "she-ra","gi joe","g.i. joe","transformers","transformers g1","transformers generation 1","voltron",
+        "thundercats","thundarr the barbarian","dungeons and dragons cartoon","the smurfs","alvin and the chipmunks",
+        "chip 'n dale rescue rangers","ducktales","talespin","tale spin","darkwing duck","goof troop",
+        "gargoyles","gummi bears","adventures of the gummi bears","the disney afternoon","raw toonage",
+        "muppet babies","the real ghostbusters","ghostbusters cartoon","turtles cartoon","tmnt","teenage mutant ninja turtles",
+        "captain planet","captain n","captain n the game master","mario bros super show","super mario",
+        "sonic the hedgehog","sonic saturday","adventures of sonic the hedgehog","x-men animated","x-men tas",
+        "spider-man animated","batman the animated series","batman animated","superman the animated series",
+        "justice league","justice league unlimited","teen titans","the powerpuff girls","dexter's laboratory",
+        "cow and chicken","i am weasel","johnny bravo","ed edd n eddy","ed edd n' eddy","courage the cowardly dog",
+        "rocko's modern life","angry beavers","the wild thornberrys","hey arnold","doug","rugrats",
+        "invader zim","chalkzone","fairly odd parents","spongebob squarepants","spongebob","kim possible",
+        "pepper ann","recess","pinky and the brain","animaniacs","tiny toon adventures","freakazoid",
+        "sam and max","sam & max freelance police","earthworm jim","reboot","beast wars","transformers beast wars"
+      ] },
+      { collections: ["animationandcartoons", "vhsvault", "opensource_movies"], require_subj: [
+        "cartoon","cartoons","animated series","animated tv series","saturday morning cartoon",
+        "tv animation","television animation","cartoon network","nickelodeon","disney channel","kids' wb",
+        "kids wb","fox kids","fox family","warner bros animation","disney television animation",
+        "cartoon network studios","syndicated cartoon","first-run syndication","first run syndication",
+        "80s cartoon","1980s cartoon","90s cartoon","1990s cartoon","2000s cartoon","modern cartoon"
+      ] }
+    ],
+    deny: {
+      title: ["anime","commercial","trailer","adult animation","live action","live-action"],
+      subject: ["anime","commercial","trailer","adult swim","live action","live-action","training film"]
+    },
+    subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
   "Found Footage Static": {
@@ -2941,40 +2996,71 @@ const PROGRAM = {
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Adult Animation (ch 155) — Phase 4 overhaul 2026-08-08. Bakshi/Heavy Metal/
+     Liquid TV era + adult-swim canon. */
   "Adult Animation": {
-    /* Ralph Bakshi, Heavy Metal, Liquid Television, MTV animation, adult-oriented TV animation
-       (Beavis & Butt-Head, Duckman, The Maxx, Aeon Flux).
-       AUDIT 2026-08-06: was serving Def Leppard "Too Late For Love" music video via classic_tv
-       collection. Removed classic_tv/television broad collections, kept animation-only sources,
-       added hard deny for music videos and concert footage. */
     genre: "adultanim", era: [1970, 2026],
     providers: [
-      { collections: ["animationandcartoons"], require_subj: ["adult animation", "ralph bakshi", "bakshi", "heavy metal", "MTV animation", "liquid television", "aeon flux", "beavis and butt-head", "duckman", "the maxx", "underground animation", "experimental animation", "adult swim", "aeon flux"] },
-      { collections: ["more_animation", "classic_cartoons"], require_subj: ["adult animation", "bakshi", "aeon flux", "liquid television", "beavis and butt-head", "the maxx", "underground animation", "experimental animation"] }
+      { collections: ["animationandcartoons", "feature_films_unsorted", "opensource_movies", "vhsvault"], require_subj: [
+        "ralph bakshi","fritz the cat","heavy traffic","coonskin","wizards","american pop","fire and ice",
+        "cool world","heavy metal","heavy metal film","heavy metal magazine","heavy metal 2000",
+        "watership down","the plague dogs","the last unicorn","when the wind blows","yellow submarine",
+        "the beatles yellow submarine","liquid television","liquid tv","mtv liquid television",
+        "the maxx","aeon flux","æon flux","aeon flux mtv","beavis and butt-head","beavis and butthead",
+        "daria","the head","the brothers grunt","celebrity deathmatch","celebrity death match",
+        "the simpsons","futurama","king of the hill","family guy","american dad","the cleveland show",
+        "south park","drawn together","the critic","dilbert","the pjs","the p.j.s.","home movies",
+        "adult swim","home movies adult swim","aqua teen hunger force","aqua teen","atlanta hawks",
+        "sealab 2021","space ghost coast to coast","the brak show","harvey birdman","harvey birdman attorney at law",
+        "12 oz mouse","tim and eric","tim and eric awesome show","xavier renegade angel","superjail",
+        "the boondocks","metalocalypse","venture bros","the venture bros","the venture brothers",
+        "rick and morty","rick & morty","bojack horseman","big mouth","f is for family","tuca and bertie",
+        "archer","archer fx","paradise pd","disenchantment","hoops","q-force","final space"
+      ] },
+      { collections: ["animationandcartoons", "vhsvault"], require_subj: [
+        "adult animation","adult cartoon","adult cartoons","mature animation","satirical animation",
+        "satirical cartoon","animation for adults","cartoon for adults","alternative animation",
+        "underground animation","underground cartoon","independent animation","indie animation",
+        "adult swim","cartoon network adult swim","mtv animation","fox animation","fx animation"
+      ] }
     ],
     deny: {
-      title: ["educational", "training", "safety", "for kids", "children", "music video", "MTV video", "live at", "concert"],
-      subject: ["children", "kids", "family", "educational film", "saturday morning cartoon", "youtube", "vlog", "podcast", "training film", "music video", "music videos", "rock music", "heavy metal music", "pop music", "hair metal", "concert", "live concert", "def leppard", "van halen"]
+      title: ["kids","children","trailer","commercial","instructional"],
+      subject: ["kids","children","commercial","trailer","instructional","training film","saturday morning cartoon"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Kids Hour (ch 156) — Phase 4 overhaul 2026-08-08. Educational kids TV —
+     Sesame Street/Electric Company/Mister Rogers era + PBS Kids catalog. */
   "Kids Hour": {
-    /* Educational kids TV — Sesame Street, Mister Rogers, Reading Rainbow, Captain Kangaroo,
-       Romper Room + 90s/2000s golden era (3-2-1 Contact, Mr. Wizard's World, Bill Nye,
-       Magic School Bus, Wishbone, Ghostwriter, Kratts' Creatures, Blue's Clues, Barney,
-       Arthur, Shining Time Station, Muppet Show, Fraggle Rock).
-       AUDIT 2026-08-06 v2: expanded from 12 show names to 30+, added educationalvideos
-       collection. Deny list from v1 preserved to keep adult content locked out. */
     genre: "kidshour", era: [1965, 2026],
     providers: [
-      { collections: ["childrenstelevision", "classic_tv"], require_subj: ["sesame street", "electric company", "mister rogers", "mr rogers", "captain kangaroo", "romper room", "reading rainbow", "shining time station", "jim henson hour", "muppet show", "muppet", "fraggle rock", "3-2-1 contact", "mr. wizard", "mr wizard", "bill nye", "magic school bus", "kratts", "zoboomafoo", "wishbone", "ghostwriter", "blue's clues", "barney", "arthur", "puppet show", "children's television"] },
-      { collections: ["classic_tv_1970s", "classic_tv_1980s", "classic_tv_1990s"], require_subj: ["sesame street", "mister rogers", "reading rainbow", "shining time station", "3-2-1 contact", "muppet", "fraggle rock", "kratts", "wishbone", "ghostwriter", "magic school bus", "children's television series", "kids show", "puppet show"] },
-      { collections: ["educationalfilms"], require_subj: ["children's educational film", "kindergarten", "elementary school", "reading rainbow", "sesame street", "mister rogers", "3-2-1 contact"] }
+      { collections: ["classic_tv_1970s", "classic_tv_1980s", "classic_tv_1990s", "opensource_movies", "prelinger"], require_subj: [
+        "sesame street","the electric company","mister rogers","mister rogers' neighborhood","fred rogers",
+        "captain kangaroo","romper room","the friendly giant","howdy doody","kukla fran and ollie",
+        "shari lewis","lamb chop","lamb chop's play-along","between the lions","reading rainbow",
+        "3-2-1 contact","3 2 1 contact","the electric company","zoom","zoom pbs","new zoom",
+        "the letter people","muppet babies","muppet show","the muppets","fraggle rock","jim henson",
+        "barney and friends","barney the dinosaur","teletubbies","boohbah","in the night garden",
+        "wishbone","ghostwriter","ghostwriter pbs","square one tv","square one","cyberchase","dragon tales",
+        "arthur","arthur pbs","clifford the big red dog","clifford","cyberchase","word world","super why",
+        "dinosaur train","peg + cat","daniel tiger's neighborhood","daniel tiger","curious george tv",
+        "curious george","the magic school bus","bill nye the science guy","bill nye","kratts creatures",
+        "wild kratts","zoboomafoo","liberty's kids","liberty kids","the puzzle place","gullah gullah island",
+        "eureeka's castle","eureka's castle","allegra's window","blue's clues","blues clues","dora the explorer",
+        "diego","dora","little bear","franklin","little bill","kipper","peppa pig","paw patrol"
+      ] },
+      { collections: ["classic_tv_1970s", "classic_tv_1980s", "opensource_movies", "prelinger"], require_subj: [
+        "children's television","children's tv","kids tv","kids television","preschool tv","preschool television",
+        "early childhood education","educational television","educational children","educational tv","children's programming",
+        "pbs kids","pbs children's","noggin","nickelodeon jr","nick jr","disney junior","abc kids",
+        "cbs kids","nbc kids","cbc kids","tv ontario kids","learning television","learning show"
+      ] }
     ],
     deny: {
-      title: ["adult", "18+", "sex", "erotic", "porn", "BDSM", "hentai", "R-rated", "R-18", "explicit", "mature", "aufklärung"],
-      subject: ["adult", "adults only", "adult film", "sex", "sexuality", "sex education", "erotic", "erotica", "pornographic", "porn", "BDSM", "sadism", "masochism", "tantra", "hentai", "R-18", "R-rated", "explicit", "mature", "youtube", "vlog", "commercial", "advertising", "ytv", "teletoon"]
+      title: ["commercial","trailer","adult","horror","action figure","toy ad"],
+      subject: ["commercial","trailer","adult","horror","action figure","toy commercial","training film"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
@@ -3451,18 +3537,38 @@ const PROGRAM = {
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
-  /* After School (ch 157, new 2026-08-07). Kids TV late-90s / early-00s — Nick, Cartoon
-     Network, Disney Channel, Kids' WB era. Pool: 10,761 broad items — will need tight
-     filtering to avoid modern uploads. */
+  /* After School (ch 157) — Phase 4 overhaul 2026-08-08. Nick/CN/Disney/Kids' WB
+     late-90s + early-2000s kids TV block. */
   "After School": {
     genre: "kids2000", era: [1995, 2026],
     providers: [
-      { collections: ["classic_tv_1990s", "classic_tv_2000s"], require_subj: ["nickelodeon", "cartoon network", "disney channel", "kids' WB", "kids WB", "toonami", "nicktoons", "TGIF"] },
-      { collections: ["opensource_movies"], require_subj: ["nickelodeon", "cartoon network", "disney channel", "toonami", "nicktoons", "reboot", "power rangers", "hey arnold", "rugrats", "ren and stimpy"] }
+      { collections: ["classic_tv_1990s", "classic_tv_2000s", "opensource_movies", "vhsvault"], require_subj: [
+        "nickelodeon","nick","nicktoons","nick jr","nick at nite kids","nickelodeon kids","kids' wb",
+        "kids wb","fox kids","fox kids network","cartoon network","boomerang","cartoon network studios",
+        "disney channel","disney channel original","dcom","disney channel movie","disney xd",
+        "toonami","cartoon cartoons","toonami block","toonami adult swim",
+        "hey arnold","doug","rugrats","the wild thornberrys","angry beavers","cowchicken","cow and chicken",
+        "i am weasel","dexter's laboratory","the powerpuff girls","johnny bravo","ed edd n eddy",
+        "courage the cowardly dog","samurai jack","codename kids next door","codename: kids next door",
+        "kids next door","foster's home","foster's home for imaginary friends","the grim adventures of billy and mandy",
+        "grim and evil","invader zim","spongebob squarepants","spongebob","fairly odd parents","chalkzone",
+        "danny phantom","avatar the last airbender","atla","teen titans","teen titans go","code lyoko",
+        "kim possible","phineas and ferb","american dragon jake long","the emperor's new school",
+        "recess","pepper ann","the weekenders","teacher's pet","house of mouse","brandy and mr whiskers",
+        "lloyd in space","doug disney","goof troop","gargoyles","tale spin","chip 'n dale rescue rangers",
+        "kappa mikey","chaotic","teenage mutant ninja turtles 2003","tmnt 2003","yu-gi-oh gx","yu gi oh gx",
+        "beyblade","pokemon","pokémon","yu-gi-oh","yu gi oh","cardcaptors","medabots"
+      ] },
+      { collections: ["classic_tv_1990s", "classic_tv_2000s", "vhsvault"], require_subj: [
+        "90s kids show","1990s kids show","2000s kids show","after school block","after-school",
+        "afternoon programming","kids' block","tween tv","tween show","tween programming",
+        "kids' wb block","fox kids block","cartoon network block","nick block","disney channel block",
+        "syndicated kids","first-run syndication","first run syndication"
+      ] }
     ],
     deny: {
-      title: ["news", "commercial", "trailer", "adult"],
-      subject: ["news", "commercial", "advertising", "adult", "youtube short", "vlog"]
+      title: ["preschool","commercial","adult swim","instructional"],
+      subject: ["preschool","commercial","adult swim","adult animation","adult","instructional","training film"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
@@ -3956,12 +4062,40 @@ const PROGRAM = {
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Classic Cartoons (ch 501) — Phase 4 overhaul 2026-08-08. Studio-era animation
+     — Fleischer, Warner Bros/Looney Tunes, MGM, UPA, Walter Lantz, Ub Iwerks, Van Beuren. */
   "Classic Cartoons": {
-    genre: "cartoon", era: [1928, 1969],
-    providers: [{"collections": ["animationandcartoons"], "require_subj": ["cartoon", "animated", "animation", "animated short", "animated film"]}],
-    deny: {"title": ["educational", "training film", "safety film"], "subject": ["educational", "training", "safety", "live action", "documentary", "newsreel"]},
-    require: { runtime_max_s: 900 },
-    subjRequired: true, noBlindFallback: true
+    genre: "cartoon", era: [1920, 1970],
+    providers: [
+      { collections: ["classic_cartoons", "animation_shorts", "opensource_movies", "prelinger"], require_subj: [
+        "looney tunes","merrie melodies","bugs bunny","daffy duck","porky pig","elmer fudd","tweety","sylvester",
+        "yosemite sam","foghorn leghorn","road runner","wile e coyote","wile e. coyote","tasmanian devil",
+        "chuck jones","tex avery","bob clampett","friz freleng","robert mckimson","frank tashlin",
+        "mel blanc","carl stalling","warner brothers cartoons","warner bros cartoons","warner brothers animation",
+        "fleischer studios","max fleischer","dave fleischer","betty boop","popeye","popeye the sailor",
+        "koko the clown","superman fleischer","fleischer superman","gulliver's travels fleischer",
+        "walter lantz","woody woodpecker","chilly willy","andy panda","oswald the lucky rabbit",
+        "ub iwerks","flip the frog","willie whopper","tom and jerry","tom and jerry mgm","hanna barbera",
+        "hanna-barbera","william hanna","joseph barbera","droopy","spike the dog","screwy squirrel",
+        "van beuren studios","cubby bear","tom and jerry van beuren","aesop's fables cartoon",
+        "terry-toons","paul terry","mighty mouse","heckle and jeckle","gandy goose","little roquefort",
+        "upa","united productions of america","mr magoo","mr. magoo","gerald mcboing-boing","gerald mcboing boing",
+        "jay ward","rocky and bullwinkle","rocky and his friends","the bullwinkle show","dudley do-right",
+        "george of the jungle","fractured fairy tales","peabody's improbable history","peabody and sherman"
+      ] },
+      { collections: ["classic_cartoons", "animation_shorts", "opensource_movies"], require_subj: [
+        "cartoon","cartoons","animated short","animated shorts","animation","classic animation",
+        "classic cartoon","classic cartoons","golden age of animation","golden age animation",
+        "theatrical cartoon","theatrical short","theatrical animation","saturday morning cartoon",
+        "vintage cartoon","vintage animation","black and white cartoon","technicolor cartoon","color cartoon",
+        "silent cartoon","silent animation","stop motion","stop-motion"
+      ] }
+    ],
+    deny: {
+      title: ["trailer","commercial","home movie","instructional"],
+      subject: ["trailer","commercial","home movie","amateur","instructional","training film","modern anime","anime"]
+    },
+    subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
   /* VHS Vault (ch 502) — Phase 3 overhaul 2026-08-08. Off-air VHS captures. */

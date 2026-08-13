@@ -999,7 +999,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.130";
+window.__ATV_BUILD="1.7.7-desktop.131";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -2764,31 +2764,60 @@ const PROGRAM = {
     subjRequired: true, noBlindFallback: true
   },
 
+  /* Sunday Matinee (ch 123) — Phase 2 overhaul 2026-08-08. Family-friendly
+     afternoon-programming feel — adventure, musicals, comedies, kid-appropriate. */
   "Sunday Matinee": {
-    /* 30s-50s musicals + romantic comedies. feature_films has deep pool. Denies war/combat/horror/
-       noir subjects to keep it in "family-friendly matinee" mood. */
-    genre: "sundaymatinee", era: [1935, 1959],
+    genre: "sundaymatinee", era: [1930, 1985],
     providers: [
-      { collections: ["feature_films"], require_subj: ["musical", "musical film", "song and dance", "romance", "romantic comedy", "screwball comedy", "family film", "musical comedy"] }
+      { collections: ["feature_films", "feature_films_unsorted", "opensource_movies"], require_subj: [
+        "the wizard of oz","the sound of music","mary poppins","chitty chitty bang bang","willy wonka",
+        "the parent trap","freaky friday","escape to witch mountain","the love bug","that darn cat",
+        "old yeller","the incredible journey","born free","black beauty","national velvet","misty",
+        "national velvet","the yearling","the black stallion","international velvet","lassie",
+        "walt disney","disney film","disney classic","disney live action","disney animated",
+        "the wonderful world of disney","wonderful world of disney","technicolor","cinemascope",
+        "julie andrews","dick van dyke","kurt russell disney","hayley mills","fred macmurray disney",
+        "singing in the rain","an american in paris","the band wagon","seven brides for seven brothers",
+        "meet me in st louis","meet me in st. louis","easter parade","white christmas","holiday inn",
+        "family film","family movie","family friendly","family adventure","children's film","kids film",
+        "coming-of-age","coming of age","tearjerker","feel-good","feel good","musical film","hollywood musical"
+      ] },
+      { collections: ["feature_films", "feature_films_unsorted"], require_subj: [
+        "matinee","sunday matinee","afternoon movie","family entertainment","family classic",
+        "musical","hollywood musical","movie musical","technicolor musical","holiday movie"
+      ] }
     ],
-    deny: {
-      title: ["news"],
-      subject: ["news", "commercial", "youtube", "war", "combat", "horror", "noir", "crime"]
-    },
+    deny: {"title": ["trailer","commercial","cartoon short","horror","exploitation"], "subject": ["trailer","commercial","horror","exploitation","drive-in","adult","sexploitation","training film"]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* The Late Late Show (ch 124) — Phase 2 overhaul 2026-08-08. Post-midnight
+     movie feel — B-horror, cult, low-budget sci-fi, weirdness, MST3K fodder. */
   "The Late Late Show": {
-    /* Foreign / arthouse / auteur PD cinema. Distinct from World Cinema (broader international
-       features) — this leans harder into the "criterion collection late-night" mood. */
-    genre: "latelate", era: [1940, 1975],
+    genre: "latelate", era: [1950, 1995],
     providers: [
-      { collections: ["feature_films"], require_subj: ["foreign film", "world cinema", "art film", "auteur", "european cinema", "japanese cinema", "italian cinema", "french new wave", "arthouse", "art house"] }
+      { collections: ["feature_films_unsorted", "opensource_movies", "SciFi_Horror"], require_subj: [
+        "plan 9 from outer space","robot monster","the beast of yucca flats","manos the hands of fate",
+        "eegah","the creeping terror","the giant gila monster","the killer shrews","the wasp woman",
+        "attack of the killer tomatoes","the giant claw","teenagers from outer space","zontar",
+        "santa claus conquers the martians","the amazing colossal man","the astounding she-monster",
+        "night of the living dead","carnival of souls","spider baby","the toolbox murders","don't torture a duckling",
+        "ed wood","edward d wood jr","edward d. wood jr.","larry buchanan","al adamson","ray dennis steckler",
+        "coleman francis","hal p warren","hal p. warren","jerry warren","phil tucker",
+        "mystery science theater 3000","mst3k","joel hodgson","tom servo","crow t robot","dr forrester",
+        "elvira","elvira mistress of the dark","cassandra peterson","zacherley","john zacherle",
+        "vampira","commander uss","commander uss.","chiller theater","creature features",
+        "svengoolie","son of svengoolie","joe bob briggs","joe bob's drive-in",
+        "usa up all night","up all night","commander uss.","monster movie host","horror host",
+        "b-movie horror","b movie horror","z-grade horror","z grade","cult horror","late night movie"
+      ] },
+      { collections: ["feature_films_unsorted", "opensource_movies"], require_subj: [
+        "cult film","cult movie","cult classic","midnight movie","late night movie","late-late show",
+        "so bad it's good","paracinema","psychotronic","b movie","b-movie","z movie","z-grade",
+        "low budget","no budget","microbudget","independent horror","independent b movie"
+      ] }
     ],
-    deny: {
-      title: ["news", "trailer"],
-      subject: ["news", "commercial", "youtube", "trailer", "biography"]
-    },
+    deny: {"title": ["trailer","commercial","cartoon","training"], "subject": ["trailer","commercial","cartoon","animated","children","training film"]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
@@ -2917,19 +2946,33 @@ const PROGRAM = {
      Game-broadcast subjects (super bowl, monday night football, wide world of sports, abc/cbs/nbc
      sports) folded into Sports Vault tier-1 above. */
 
+  /* The Drive-In (ch 121) — Phase 2 overhaul 2026-08-08. Grindhouse / exploitation /
+     drive-in feature culture — biker films, women-in-prison, revenge, roadshow horror,
+     Corman, AIP, Filmways, Cannon. */
   "The Drive-In": {
-    /* Grindhouse / exploitation / B-movie features from the 1955-1975 drive-in era. Content pool
-       is deep on IA feature_films_unsorted — biker movies, JD films, LSD-scare pictures, nudie
-       cuties (period-clothed). Denies hardcore/pornographic subjects hard so nothing above the
-       era's own soft-R feel makes it through. */
-    genre: "drivein", era: [1955, 1975],
+    genre: "drivein", era: [1955, 1985],
     providers: [
-      { collections: ["feature_films_unsorted", "feature_films"], require_subj: ["exploitation", "b-movie", "cult film", "drive-in", "grindhouse", "biker", "psychotronic", "sexploitation"] }
+      { collections: ["feature_films_unsorted", "opensource_movies", "feature_films"], require_subj: [
+        "roger corman","russ meyer","doris wishman","herschell gordon lewis","david friedman","ted v mikels",
+        "ted v. mikels","al adamson","jesus franco","jess franco","jean rollin","radley metzger",
+        "jack hill","larry cohen","stephanie rothman","curtis harrington","joe dante corman","jonathan demme corman",
+        "american international pictures","aip film","new world pictures","crown international",
+        "cannon films","cannon group","dimension pictures","filmways","hallmark releasing",
+        "biker film","biker movie","motorcycle gang","hell's angels film","wild angels","born losers",
+        "women in prison","big doll house","black mama white mama","chained heat","caged heat",
+        "grindhouse","grind house","drive-in movie","drive in movie","drive-in feature","exploitation film",
+        "exploitation cinema","sexploitation","softcore","nudie cutie","roughie","kinkie",
+        "revenge film","rape revenge","vigilante film","death wish","i spit on your grave",
+        "roadshow horror","gore film","splatter film","slasher","proto-slasher","giallo",
+        "chesty morgan","tura satana","pam grier drive-in","claudia jennings","edy williams"
+      ] },
+      { collections: ["feature_films_unsorted", "opensource_movies"], require_subj: [
+        "grindhouse","drive in","drive-in","drive in movie","exploitation","exploitation film","b movie",
+        "b-movie","cult film","cult movie","cult classic","midnight movie","z movie","z-grade",
+        "trash cinema","trash film","psychotronic","weird cinema","paracinema"
+      ] }
     ],
-    deny: {
-      title: ["news", "documentary", "training film", "educational"],
-      subject: ["news", "educational film", "training", "commercial", "advertising", "youtube", "vlog", "podcast", "pornographic", "hardcore", "xxx", "explicit"]
-    },
+    deny: {"title": ["trailer","commercial","cartoon","training"], "subject": ["trailer","commercial","cartoon","animated","children","training film"]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
@@ -3470,55 +3513,202 @@ const PROGRAM = {
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Sci-Fi Theater (ch 110) — Phase 2 overhaul 2026-08-08. Golden-age sci-fi
+     through 70s. Bug-eyed monsters, atomic paranoia, space opera, Twilight Zone era. */
   "Sci-Fi Theater": {
-    /* audit 2B: dropped "children" from deny.subject. Kid-oriented sci-fi (Lost in Space, most
-       Ray Harryhausen creature features that were pitched at family audiences) is core to the genre. */
-    genre: "scifi", era: [1950, 1979],
-    providers: [{"collections": ["SciFi_Horror", "feature_films"], "require_subj": ["science fiction", "sci-fi", "scifi", "alien", "space travel", "robot", "futuristic", "outer space", "flying saucer", "monster"]}],
-    deny: {"title": ["comedy", "romance", "musical", "cartoon"], "subject": ["comedy", "romance", "musical", "cartoon", "animated", "educational"]},
-    subjRequired: true, noBlindFallback: true
+    genre: "scifi", era: [1950, 1980],
+    providers: [
+      { collections: ["SciFi_Horror", "feature_films", "feature_films_unsorted"], require_subj: [
+        "the day the earth stood still","forbidden planet","invasion of the body snatchers","them!",
+        "the thing from another world","the war of the worlds","earth vs the flying saucers","this island earth",
+        "20 million miles to earth","tarantula","the incredible shrinking man","the fly","the blob",
+        "attack of the 50 foot woman","plan 9 from outer space","robot monster","the beast from 20000 fathoms",
+        "godzilla king of the monsters","them","x the unknown","the crawling eye","fiend without a face",
+        "invaders from mars","it came from outer space","it! the terror from beyond space","panic in year zero",
+        "the omega man","soylent green","logan's run","silent running","the andromeda strain",
+        "the last man on earth","the illustrated man","charly","fantastic voyage","zardoz","westworld",
+        "colossus the forbin project","phase iv","the man who fell to earth","seconds",
+        "ray bradbury","isaac asimov","robert heinlein","arthur c clarke","richard matheson","harlan ellison"
+      ] },
+      { collections: ["SciFi_Horror", "feature_films"], require_subj: [
+        "science fiction","sci-fi","sci fi","science-fiction","atomic-age sci-fi","atomic age",
+        "space opera","space adventure","space travel","alien invasion","invasion film","robot film",
+        "post-apocalyptic","post apocalyptic","dystopian","time travel","time machine",
+        "cold war sci-fi","atomic monster","monster movie","creature feature","b-movie sci-fi",
+        "50s sci-fi","1950s sci-fi","1960s sci-fi","1970s sci-fi"
+      ] }
+    ],
+    deny: {"title": ["trailer","commercial","documentary about","cartoon"], "subject": ["trailer","commercial","cartoon","animated","children","documentary about"]},
+    subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Western Channel (ch 111) — Phase 2 overhaul 2026-08-08. B-western oaters
+     through prestige western. */
   "Western Channel": {
-    genre: "western", era: [1930, 1969],
-    providers: [{"collections": ["feature_films", "classic_tv"], "require_subj": ["western", "cowboy", "frontier", "ranch", "gunfighter", "outlaw", "sheriff", "wild west"]}],
-    deny: {"title": ["cartoon", "animated", "comedy short"], "subject": ["cartoon", "animated", "comedy", "musical", "educational", "documentary"]},
-    subjRequired: true, noBlindFallback: true
+    genre: "western", era: [1935, 1980],
+    providers: [
+      { collections: ["feature_films", "feature_films_unsorted", "opensource_movies"], require_subj: [
+        "john wayne","clint eastwood","gary cooper","james stewart western","jimmy stewart western",
+        "randolph scott","joel mccrea","glenn ford","robert mitchum western","kirk douglas western",
+        "burt lancaster western","gregory peck western","henry fonda western","robert taylor western",
+        "audie murphy","gene autry","roy rogers","hopalong cassidy","tex ritter","buck jones",
+        "tom mix","hoot gibson","ken maynard","tim mccoy","the lone ranger","the cisco kid",
+        "john ford","howard hawks western","sam peckinpah","sergio leone","sergio corbucci","budd boetticher",
+        "anthony mann","raoul walsh western","john sturges","henry hathaway","delmer daves",
+        "stagecoach","red river","the searchers","rio bravo","el dorado","the man who shot liberty valance",
+        "high noon","shane","the ox-bow incident","3:10 to yuma","the magnificent seven",
+        "a fistful of dollars","for a few dollars more","the good the bad and the ugly",
+        "once upon a time in the west","the wild bunch","true grit","the shootist","open range",
+        "unforgiven","tombstone","dances with wolves","silverado","hondo"
+      ] },
+      { collections: ["feature_films", "feature_films_unsorted"], require_subj: [
+        "western","western film","cowboy","cowboy film","frontier","frontier film","american west",
+        "spaghetti western","italian western","revisionist western","classic western","adult western",
+        "b western","b-western","poverty row western","singing cowboy","outlaw","gunfighter",
+        "cattle drive","range war","gunfight","showdown","posse","stagecoach","wagon train"
+      ] }
+    ],
+    deny: {"title": ["trailer","commercial","cartoon"], "subject": ["trailer","commercial","cartoon","animated","children","training film","documentary about"]},
+    subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Comedy Classics (ch 112) — Phase 2 overhaul 2026-08-08. Silent-era through
+     70s screwball/comic-team/situation comedy in FILM form. */
   "Comedy Classics": {
-    genre: "comedy", era: [1920, 1969],
-    providers: [{"collections": ["feature_films", "classic_tv", "prelinger"], "require_subj": ["comedy", "slapstick", "farce", "screwball", "comedian", "humor", "humorous", "comic"]}],
-    deny: {"title": ["newsreel", "educational", "training"], "subject": ["newsreel", "educational", "training", "documentary", "instructional", "drama", "horror"]},
-    subjRequired: true, noBlindFallback: true
+    genre: "comedy", era: [1927, 1980],
+    providers: [
+      { collections: ["Comedy_Films", "feature_films", "feature_films_unsorted"], require_subj: [
+        "the marx brothers","marx brothers","groucho marx","harpo marx","chico marx","zeppo marx",
+        "abbott and costello","bud abbott","lou costello","laurel and hardy","stan laurel","oliver hardy",
+        "w.c. fields","w. c. fields","mae west","the three stooges","three stooges","moe howard",
+        "curly howard","larry fine","shemp howard","jack benny","bob hope","bing crosby","danny kaye",
+        "red skelton","milton berle","phil silvers","the ritz brothers","olsen and johnson",
+        "wheeler and woolsey","clark and mccullough","don knotts","jerry lewis","dean martin",
+        "jack lemmon","walter matthau","peter sellers","alec guinness","peter ustinov","dick van dyke",
+        "jonathan winters","mel brooks","gene wilder","richard pryor","cheech and chong",
+        "billy wilder","frank capra","preston sturges","howard hawks comedy","ernst lubitsch",
+        "leo mccarey","george cukor","blake edwards","stanley donen"
+      ] },
+      { collections: ["Comedy_Films", "feature_films", "feature_films_unsorted"], require_subj: [
+        "comedy","comedy film","classic comedy","screwball comedy","romantic comedy","slapstick",
+        "physical comedy","musical comedy","sketch comedy film","comedy team","satire","farce",
+        "parody","spoof","situation comedy film","bedroom farce","black comedy","dark comedy",
+        "british comedy","ealing comedy","carry on"
+      ] }
+    ],
+    deny: {"title": ["trailer","commercial","cartoon short"], "subject": ["trailer","commercial","cartoon","animated","children","training film","documentary about"]},
+    subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Noir & Mystery (ch 108) — Phase 2 overhaul 2026-08-08. Classic film noir +
+     hard-boiled + gothic mystery, named directors/stars/adaptations. */
   "Noir & Mystery": {
     genre: "noirmystery", era: [1940, 1965],
-    providers: [{"collections": ["Film_Noir", "feature_films"], "require_subj": ["film noir", "noir", "mystery", "detective", "crime", "thriller", "suspense", "hardboiled", "whodunit"]}],
-    deny: {"title": ["cartoon", "comedy short", "musical"], "subject": ["comedy", "cartoon", "animated", "musical", "children", "educational", "western"]},
-    subjRequired: true, noBlindFallback: true
+    providers: [
+      { collections: ["Film_Noir", "feature_films", "feature_films_unsorted"], require_subj: [
+        "the maltese falcon","the big sleep","double indemnity","the postman always rings twice",
+        "out of the past","laura","gilda","murder my sweet","farewell my lovely","the killers",
+        "the third man","the asphalt jungle","in a lonely place","sunset boulevard","kiss me deadly",
+        "the killing","touch of evil","white heat","gun crazy","detour","d.o.a.","dark passage",
+        "raymond chandler","dashiell hammett","james m cain","james m. cain","cornell woolrich",
+        "jim thompson","david goodis","w.r. burnett","charles williams","john d macdonald",
+        "sam spade","philip marlowe","mike hammer","perry mason","charlie chan","mr. moto","the falcon",
+        "the thin man","nick charles","boston blackie","the whistler","suspense film"
+      ] },
+      { collections: ["Film_Noir", "feature_films", "feature_films_unsorted"], require_subj: [
+        "film noir","noir","classic noir","american noir","neo-noir","gothic noir",
+        "hard-boiled","hard boiled","hardboiled","mystery","murder mystery","whodunit","who dunnit",
+        "crime drama","crime film","gangster","gangster film","crime thriller","suspense","psychological thriller",
+        "detective","detective film","private eye","femme fatale","chiaroscuro","expressionist"
+      ] }
+    ],
+    deny: {"title": ["trailer","commercial","cartoon"], "subject": ["trailer","commercial","cartoon","animated","children","comedy","training film"]},
+    subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Action & Serials (ch 109) — Phase 2 overhaul 2026-08-08. Movie serials +
+     early action-adventure + chapter plays. */
   "Action & Serials": {
-    genre: "actionserials", era: [1930, 1955],
-    providers: [{"collections": ["feature_films", "classic_tv"], "require_subj": ["serial", "chapter play", "cliffhanger", "action", "adventure", "swashbuckler"]}],
-    deny: {"title": ["cartoon", "educational", "newsreel"], "subject": ["cartoon", "animated", "educational", "newsreel", "documentary", "comedy", "romance"]},
-    subjRequired: true, noBlindFallback: true
+    genre: "actionserials", era: [1930, 1960],
+    providers: [
+      { collections: ["feature_films", "feature_films_unsorted", "opensource_movies"], require_subj: [
+        "flash gordon","buck rogers","the phantom","zorro","captain marvel","the shadow","dick tracy",
+        "the green hornet","captain america serial","superman serial","batman serial","the lone ranger serial",
+        "the cisco kid serial","undersea kingdom","the mysterious dr fu manchu","fu manchu",
+        "the perils of pauline","the exploits of elaine","tarzan serial","king of the rocket men",
+        "commando cody","radar men from the moon","zombies of the stratosphere","the crimson ghost",
+        "spy smasher","the phantom empire","undersea kingdom","the fighting devil dogs",
+        "republic pictures","republic serial","columbia serial","universal serial","mascot serial",
+        "chapter play","cliffhanger serial","movie serial","film serial","serialized adventure",
+        "kirk alyn","buster crabbe","clayton moore","tom tyler","tom mix serial","larry (buster) crabbe",
+        "errol flynn","douglas fairbanks jr","tyrone power","robert taylor adventure","richard arlen"
+      ] },
+      { collections: ["feature_films", "feature_films_unsorted"], require_subj: [
+        "serial","movie serial","film serial","chapter play","cliffhanger","cliffhanger serial",
+        "adventure","adventure film","action","action film","action adventure","swashbuckler",
+        "swashbuckling","jungle adventure","pirate film","aviation adventure","western serial",
+        "sci-fi serial","superhero serial","spy serial","mystery serial","crime serial"
+      ] }
+    ],
+    deny: {"title": ["trailer","commercial","documentary about","cartoon"], "subject": ["trailer","commercial","cartoon","animated","children","training film","documentary about"]},
+    subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Classic Film (ch 105) — Phase 2 overhaul 2026-08-08. Studio-era Hollywood
+     with named directors + stars + IA-tagged film titles across every genre. */
   "Classic Film": {
-    genre: "classicmovie", era: [1930, 1969],
-    providers: [{"collections": ["feature_films", "classic_tv"], "require_subj": ["feature film", "classic film", "drama", "motion picture", "movie"]}],
-    deny: {"title": ["newsreel", "commercial", "test pattern", "home movie"], "subject": ["newsreel", "commercial", "advertising", "test pattern", "home movie", "educational film", "instructional"]},
-    subjRequired: true, noBlindFallback: true
+    genre: "classicmovie", era: [1927, 1970],
+    providers: [
+      { collections: ["feature_films", "feature_films_unsorted", "opensource_movies"], require_subj: [
+        "orson welles","alfred hitchcock","john ford","howard hawks","frank capra","billy wilder",
+        "george cukor","william wyler","john huston","michael curtiz","preston sturges","raoul walsh",
+        "fritz lang","josef von sternberg","ernst lubitsch","victor fleming","king vidor","cecil b demille",
+        "cecil b. demille","stanley kubrick","elia kazan","nicholas ray","douglas sirk","robert wise",
+        "james cagney","humphrey bogart","cary grant","james stewart","jimmy stewart","henry fonda",
+        "gary cooper","spencer tracy","clark gable","gregory peck","john wayne","kirk douglas",
+        "burt lancaster","robert mitchum","charles laughton","laurence olivier","peter lorre","boris karloff",
+        "bette davis","joan crawford","katharine hepburn","ingrid bergman","greta garbo","marlene dietrich",
+        "audrey hepburn","grace kelly","marilyn monroe","elizabeth taylor","lauren bacall","rita hayworth",
+        "barbara stanwyck","carole lombard","irene dunne","olivia de havilland","ginger rogers"
+      ] },
+      { collections: ["feature_films", "feature_films_unsorted"], require_subj: [
+        "classic film","classic movie","classic hollywood","golden age of hollywood","golden age hollywood",
+        "hollywood classic","studio era","mgm film","paramount film","warner brothers","warner bros",
+        "rko film","universal picture","columbia picture","20th century fox","romantic comedy",
+        "screwball comedy","melodrama","costume drama","period drama","epic film","biblical epic"
+      ] }
+    ],
+    deny: {"title": ["trailer","commercial","cartoon"], "subject": ["trailer","commercial","cartoon","animated","children","training film","documentary about","home movie","amateur"]},
+    subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Silent Cinema (ch 107) — Phase 2 overhaul 2026-08-08. Silent-era masters +
+     named stars + studio identifiers. IA has a substantial silent vault. */
   "Silent Cinema": {
-    genre: "silentcinema", era: [1895, 1930],
-    providers: [{"collections": ["silent_films", "feature_films"], "require_subj": ["silent film", "silent", "silent era", "silent movie", "silent comedy", "slapstick"]}],
-    deny: {"title": ["sound version", "talkie", "1935", "1940"], "subject": ["sound", "talkie", "educational"]},
-    subjRequired: true, noBlindFallback: true
+    genre: "silentcinema", era: [1895, 1929],
+    providers: [
+      { collections: ["silent_films", "feature_films", "opensource_movies"], require_subj: [
+        "charlie chaplin","buster keaton","harold lloyd","fatty arbuckle","roscoe arbuckle","harry langdon",
+        "laurel and hardy","the little rascals","our gang","douglas fairbanks","douglas fairbanks sr",
+        "mary pickford","lillian gish","dorothy gish","rudolph valentino","john gilbert","greta garbo silent",
+        "lon chaney","lon chaney sr","lon chaney sr.","gloria swanson","clara bow","louise brooks",
+        "theda bara","mabel normand","marion davies","norma talmadge","constance talmadge",
+        "d.w. griffith","cecil b demille silent","cecil b. demille silent","erich von stroheim",
+        "f.w. murnau","fritz lang silent","g.w. pabst","carl theodor dreyer","victor sjostrom","victor sjöström",
+        "sergei eisenstein","dziga vertov","abel gance","jean epstein","rene clair","rené clair",
+        "the birth of a nation","intolerance","broken blossoms","way down east","orphans of the storm",
+        "the general","sherlock jr","the gold rush","modern times silent","city lights",
+        "safety last","the freshman","metropolis","nosferatu","the cabinet of dr caligari","the cabinet of dr. caligari",
+        "sunrise","faust silent","battleship potemkin","strike","october ten days","the passion of joan of arc"
+      ] },
+      { collections: ["silent_films", "feature_films"], require_subj: [
+        "silent film","silent movie","silent cinema","silent era","silent comedy","silent drama",
+        "silent western","slapstick","keystone","keystone cops","keystone kops","keystone studios",
+        "hal roach","mack sennett","essanay","biograph","edison","kalem","triangle film"
+      ] }
+    ],
+    deny: {"title": ["talkie","sound version","trailer","commercial"], "subject": ["talkie","sound version","trailer","commercial","training","children's cartoon","home movie"]},
+    subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
   "Classic Cartoons": {
@@ -3545,11 +3735,35 @@ const PROGRAM = {
     subjRequired: true, noBlindFallback: true
   },
 
+  /* Halloween Haunt (ch 702) — Phase 2 overhaul 2026-08-08. Universal monsters
+     + Hammer horror + slashers + haunted-house classics. */
   "Halloween Haunt": {
-    genre: "halloween", era: [1920, 1990],
-    providers: [{"collections": ["SciFi_Horror", "feature_films", "animationandcartoons"], "require_subj": ["halloween", "horror", "ghost", "haunted", "witch", "vampire", "zombie", "monster", "creature", "fright", "scary"]}],
-    deny: {"title": ["christmas", "xmas", "santa", "romance", "comedy"], "subject": ["christmas", "romance", "romantic comedy"]},
-    subjRequired: true, noBlindFallback: true
+    genre: "halloween", era: [1920, 2010],
+    providers: [
+      { collections: ["SciFi_Horror", "feature_films_unsorted", "feature_films", "opensource_movies"], require_subj: [
+        "dracula","frankenstein","the wolf man","the mummy","the invisible man","the creature from the black lagoon",
+        "boris karloff","bela lugosi","lon chaney jr","lon chaney jr.","vincent price","peter cushing",
+        "christopher lee","ingrid pitt","barbara steele","carrie fisher horror","jamie lee curtis",
+        "the exorcist","the omen","rosemary's baby","the amityville horror","the haunting","the innocents",
+        "the shining","poltergeist","halloween film","halloween movie","friday the 13th","a nightmare on elm street",
+        "michael myers","jason voorhees","freddy krueger","leatherface","the texas chain saw massacre",
+        "the texas chainsaw massacre","evil dead","the evil dead","dawn of the dead","day of the dead",
+        "night of the living dead","george romero","john carpenter","wes craven","tobe hooper","dario argento",
+        "mario bava","lucio fulci","david cronenberg","clive barker","stuart gordon","brian yuzna",
+        "hammer horror","hammer film","hammer productions","amicus productions","american international horror",
+        "universal monsters","universal horror","tod browning","james whale","val lewton","jacques tourneur",
+        "roger corman edgar allan poe","edgar allan poe adaptation","poe adaptation","poe cycle",
+        "haunted house","gothic horror","supernatural horror","psychological horror","slasher","proto-slasher",
+        "giallo","zombie film","vampire film","werewolf film","witch film","possession film","body horror"
+      ] },
+      { collections: ["SciFi_Horror", "feature_films_unsorted"], require_subj: [
+        "horror","horror film","horror movie","classic horror","gothic horror","gothic","haunted",
+        "supernatural","occult","witchcraft","exorcism","monster movie","creature feature","vampire","werewolf",
+        "zombie","mummy","frankenstein","dracula","halloween","spooky","scary","fright","macabre"
+      ] }
+    ],
+    deny: {"title": ["trailer","commercial","cartoon short"], "subject": ["trailer","commercial","cartoon","animated","children","training film","documentary about","comedy"]},
+    subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
   "Thanksgiving Channel": {
@@ -3563,40 +3777,114 @@ const PROGRAM = {
     subjRequired: true, noBlindFallback: true
   },
 
+  /* World Cinema (ch 113) — Phase 2 overhaul 2026-08-08. Non-English arthouse
+     from every era + region. */
   "World Cinema": {
-    genre: "worldcinema", era: [1920, 1980],
-    providers: [{"collections": ["feature_films"], "require_subj": ["foreign film", "international cinema", "french film", "italian film", "japanese film", "german film", "world cinema", "subtitled"]}],
-    deny: {"title": ["home movie", "newsreel", "commercial"], "subject": ["home movie", "newsreel", "commercial", "advertising", "educational"]},
-    subjRequired: true, noBlindFallback: true
-  },
-
-  "Black Cinema": {
-    /* Oscar Micheaux, race films, blaxploitation era. AUDIT 2026-08-06: caught serving "The
-       Klansman" (mainstream 1974 KKK exploitation with Lee Marvin/Richard Burton) — added hard
-       deny for KKK/racial-violence-themed mainstream films that were pulling on generic subject
-       matches. */
-    genre: "blackcinema", era: [1920, 1975],
-    providers: [{"collections": ["feature_films", "feature_films_unsorted"], "require_subj": ["race film", "African American", "Black cinema", "Black cast", "blaxploitation", "Black film", "Oscar Micheaux", "all-Black cast"]}],
-    deny: {
-      title: ["newsreel", "commercial", "educational", "Klansman", "KKK", "birth of a nation"],
-      subject: ["newsreel", "commercial", "educational", "instructional", "Ku Klux Klan", "KKK", "white supremacy", "racial violence"]
-    },
+    genre: "worldcinema", era: [1930, 2010],
+    providers: [
+      { collections: ["feature_films", "feature_films_unsorted", "opensource_movies"], require_subj: [
+        "ingmar bergman","federico fellini","michelangelo antonioni","luchino visconti","vittorio de sica",
+        "pier paolo pasolini","dario argento","mario bava","bernardo bertolucci","roberto rossellini",
+        "francois truffaut","françois truffaut","jean-luc godard","jean luc godard","claude chabrol",
+        "eric rohmer","éric rohmer","alain resnais","robert bresson","jean renoir","jacques tati",
+        "louis malle","jean-pierre melville","jean pierre melville","chris marker","agnes varda","agnès varda",
+        "werner herzog","wim wenders","rainer werner fassbinder","fassbinder","volker schlondorff","volker schlöndorff",
+        "andrei tarkovsky","tarkovsky","sergei eisenstein","sergei parajanov","aleksandr sokurov",
+        "krzysztof kieslowski","krzysztof kieślowski","andrzej wajda","roman polanski","milos forman",
+        "miloš forman","jiří menzel","jiri menzel","vera chytilova","věra chytilová",
+        "akira kurosawa","yasujiro ozu","kenji mizoguchi","mikio naruse","masaki kobayashi","hiroshi teshigahara",
+        "seijun suzuki","nagisa oshima","shohei imamura","juzo itami","hayao miyazaki","isao takahata",
+        "wong kar-wai","hou hsiao-hsien","edward yang","tsai ming-liang","jia zhangke","zhang yimou","chen kaige",
+        "abbas kiarostami","asghar farhadi","satyajit ray","ritwik ghatak","mrinal sen","adoor gopalakrishnan",
+        "italian neorealism","french new wave","japanese new wave","german new wave","new german cinema",
+        "polish film school","czech new wave","yugoslav black wave","romanian new wave","dogme 95"
+      ] },
+      { collections: ["feature_films", "feature_films_unsorted"], require_subj: [
+        "world cinema","international cinema","foreign film","foreign cinema","non-english film",
+        "art film","arthouse","arthouse cinema","art cinema","auteur cinema","auteur film",
+        "italian film","french film","german film","japanese film","chinese film","korean film",
+        "indian film","spanish film","russian film","swedish film","danish film","polish film",
+        "czech film","hungarian film","iranian film","brazilian film","argentine film","cuban film"
+      ] }
+    ],
+    deny: {"title": ["trailer","commercial","cartoon"], "subject": ["trailer","commercial","cartoon","animated","children","training film","documentary about","home movie","amateur"]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
-  "Trailer Park": {
-    genre: "trailer", era: [1930, 1990],
-    providers: [{"collections": ["movie_trailers", "feature_films"], "require_subj": ["trailer", "preview", "coming attraction", "movie trailer", "film trailer", "theatrical trailer"]}],
-    deny: {"title": ["full movie", "full film", "complete", "episode"], "subject": ["full movie", "full film", "episode", "complete film"]},
-    require: { runtime_max_s: 300 },
-    subjRequired: true, noBlindFallback: true
+  /* Black Cinema (ch 115) — Phase 2 overhaul 2026-08-08. Race films through
+     Sidney Poitier era through modern Black auteurs. Distinct from Blaxploitation
+     which is specifically 70s Black action. */
+  "Black Cinema": {
+    genre: "blackcinema", era: [1910, 2020],
+    providers: [
+      { collections: ["feature_films", "feature_films_unsorted", "opensource_movies"], require_subj: [
+        "oscar micheaux","spencer williams","spencer williams jr","noble johnson","lincoln motion picture",
+        "colored players","paul robeson","hattie mcdaniel","dorothy dandridge","canada lee",
+        "sidney poitier","harry belafonte","ossie davis","ruby dee","cicely tyson","diahann carroll",
+        "eartha kitt","james earl jones","denzel washington","morgan freeman","laurence fishburne",
+        "wesley snipes","samuel l jackson","samuel l. jackson","don cheadle","forest whitaker",
+        "eddie murphy","chris tucker","chris rock","martin lawrence","will smith","jamie foxx",
+        "halle berry","angela bassett","whoopi goldberg","viola davis","regina king","kerry washington",
+        "gordon parks","melvin van peebles","sidney poitier director","spike lee","john singleton",
+        "julie dash","charles burnett","haile gerima","carl franklin","reggie hudlin","warrington hudlin",
+        "kasi lemmons","gina prince-bythewood","ava duvernay","barry jenkins","jordan peele",
+        "ryan coogler","dee rees","steve mcqueen director","raoul peck",
+        "race film","race films","african american film","african american cinema","black cinema",
+        "black american film","black indie film","black indie","new black cinema","LA Rebellion",
+        "l.a. rebellion","black arts","harlem renaissance","black nationalist cinema"
+      ] },
+      { collections: ["feature_films", "feature_films_unsorted"], require_subj: [
+        "african american","african-american","black film","black cinema","black-directed","black-led",
+        "harlem film","urban film","urban drama","hood film","black comedy film","black romance"
+      ] }
+    ],
+    deny: {"title": ["trailer","commercial","documentary about","cartoon"], "subject": ["trailer","commercial","cartoon","animated","children","training film","documentary about"]},
+    subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Trailer Park (ch 122) — Phase 2 overhaul 2026-08-08. Original theatrical trailers
+     across every era. This IS the trailer channel — deny lists are inverted (only pull
+     items tagged as trailers). */
+  "Trailer Park": {
+    genre: "trailer", era: [1920, 2010],
+    providers: [
+      { collections: ["feature_films", "feature_films_unsorted", "opensource_movies", "classic_tv_commercials"], require_subj: [
+        "trailer","movie trailer","film trailer","theatrical trailer","coming attractions",
+        "coming attraction","preview trailer","trailer reel","classic trailer","cinema trailer",
+        "movie preview","film preview","classic movie trailer","vintage trailer","silent trailer",
+        "sound trailer","teaser trailer","teaser","exploitation trailer","grindhouse trailer",
+        "drive-in trailer","horror trailer","sci-fi trailer","western trailer","comedy trailer"
+      ] },
+      { collections: ["opensource_movies", "feature_films_unsorted"], require_subj: [
+        "trailer compilation","trailer reel","preview reel","trailer collection","previews of coming attractions"
+      ] }
+    ],
+    deny: {"title": ["full movie","full length","complete film","feature film"], "subject": ["feature film","complete film","full-length","full length","full movie"]},
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  /* Home Movies & Travelogues (ch 206) — Phase 2 overhaul 2026-08-08. Amateur
+     home movies + professional travelogue films + tourism promo. */
   "Home Movies & Travelogues": {
-    genre: "homemovietravel", era: [1920, 1990],
-    providers: [{"collections": ["prelinger", "home_movies"], "require_subj": ["home movie", "home movies", "amateur film", "travelogue", "travel film", "vacation", "family film", "home video"]}],
-    deny: {"title": ["feature film", "hollywood", "studio"], "subject": ["feature film", "hollywood", "commercial", "advertising"]},
-    subjRequired: true, noBlindFallback: true
+    genre: "homemovietravel", era: [1930, 1990],
+    providers: [
+      { collections: ["home_movies", "prelinger", "opensource_movies"], require_subj: [
+        "home movie","home movies","amateur film","amateur cinema","amateur 8mm","amateur 16mm",
+        "kodak 8mm","kodachrome home movie","super 8","super 8mm","cine film","cine kodak",
+        "family film","family vacation","family gathering","family reunion","family christmas",
+        "birthday party home movie","wedding home movie","kids playing","backyard film",
+        "vacation film","holiday film","travel home movie"
+      ] },
+      { collections: ["prelinger", "opensource_movies", "avgeeks"], require_subj: [
+        "travelogue","travelogues","travel film","travel documentary","tourism promotion","tourism film",
+        "national park film","world's fair","worlds fair","exposition","travel promotion",
+        "visit america","visit europe","see the world","route 66","route sixty six","cross country",
+        "grand tour","world tour","seven wonders","ports of call","city tour","industrial tour",
+        "chamber of commerce film","state tourism"
+      ] }
+    ],
+    deny: {"title": ["training film","industrial film","news","commercial","cartoon"], "subject": ["training film","industrial","military","weapons","combat","cartoon","animated","children"]},
+    subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
   "Sports Vault": {

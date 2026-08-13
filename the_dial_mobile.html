@@ -1150,7 +1150,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.169";
+window.__ATV_BUILD="1.7.7-mobile.170";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1782,6 +1782,8 @@ const CH=[
  {nm:"Live TV", num:300,          cat:"LBRO", source:"livetv",    ns:"tv"},
  {nm:"Live Cams", num:301,        cat:"LBRO", source:"livecams",  ns:"tv"},
  {nm:"Highway Cams", num:302,     cat:"LBRO", source:"highway",   ns:"tv"}, /* KCScout, MassDOT, UDOT YouTube live streams — filtered subset of LIVECAMS_STREAMS */
+ {nm:"The Ranger", num:303,       cat:"LBRO", source:"ranger",    ns:"tv"}, /* NPS + wildlife live cams — Kruger safari, Katmai bears, condors, pandas, watering hole */
+ {nm:"NASA Live", num:304,        cat:"LBRO", source:"nasalive",  ns:"tv"}, /* NASA TV live stream, SpaceX launches, Sen Earth-from-orbit */
  {nm:"Deep Space Jazz", num:925,   cat:"MUS", source:"spacejazz", ns:"tv"},
  {nm:"OTR Theater", num:926,       cat:"MUS", gl:"otrtheater",   era:[1935,1965], ns:"radio", audio:true}, /* Suspense/Inner Sanctum/Escape old-time radio drama */
  {nm:"Soul Train Vault", num:927, cat:"MUS", gl:"soultrain",    era:[1971,1995], ns:"tv"}, /* Don Cornelius era R&B / funk / disco / soul performances + Soul Train archive */
@@ -1797,6 +1799,7 @@ const CH=[
  {nm:"Air & Allergy", num:968,     cat:"LDATA", source:"air",        ns:"tv"},
  {nm:"Storm Center", num:969,      cat:"LDATA", source:"stormcenter", ns:"tv"}, /* SPC Day 1 Convective Outlook — old-country music bed */
  {nm:"Local Radar", num:970,       cat:"LDATA", source:"localradar",  ns:"tv"}, /* Nearest NEXRAD live loop — ragtime bed */
+ {nm:"The Grid", num:971,          cat:"LDATA", source:"grid",        ns:"tv"}, /* ERCOT Texas power grid live via EIA — demand, net gen, forecast + country music bed */
  {nm:"Christmas Channel", num:700, cat:"HOL", gl:"xmas",         era:[1930,1995], ns:"movie"},
  {nm:"Halloween Haunt", num:701,   cat:"HOL", gl:"halloween",    era:[1930,1995], ns:"movie"},
  {nm:"Thanksgiving Channel", num:702,cat:"HOL",gl:"thanksgiving", era:[1930,1990], ns:"tv"},
@@ -1914,6 +1917,9 @@ const CHANNEL_META={
 "Live TV":{desc:"LIVE: a genre grid of free TV channels (News/Sports/Weather/Movies/Kids\u2026) from iptv-org \u2014 add a free stream proxy to unlock most of them.",best:"anytime",rel:["Live News","Live Radio"]},
 "Live Cams":{desc:"LIVE: 20+ webcams worldwide \u2014 Katmai brown bears, Times Square, Kruger safari, Austrian Alps, ISS. Rotates every 90 sec, tap NEXT to skip.",best:"anytime",rel:["Highway Cams","Live TV"]},
 "Highway Cams":{desc:"LIVE: Kansas City DOT, MassDOT and UDOT traffic streams \u2014 real 24/7 highway watch from state DOTs, all via YouTube Live.",best:"rush hour",rel:["Live Cams","Live TV"]},
+"The Ranger":{desc:"LIVE: NPS + wildlife cams \u2014 Kruger safari, Katmai brown bears, Big Sur condors, African watering hole, panda cam, puppy playroom. Rotates every 90 sec.",best:"anytime",rel:["Live Cams","Nature Channel"]},
+"NASA Live":{desc:"LIVE: NASA TV main feed, SpaceX launch coverage, Sen Earth-from-orbit HLS. Space happenings as they happen.",best:"launch windows",rel:["NASA Picture of the Day","ISS Tracker"]},
+"The Grid":{desc:"LIVE: Texas power grid \u2014 ERCOT demand, net generation, forecast peak, 24-hour trend. Country music bed. Refreshes every 10 min.",best:"heatwaves + cold snaps",rel:["Gas Price Ticker","Weather Watch"]},
 "Deep Space Jazz":{desc:"NASA imagery slideshow over a 78rpm jazz bed.",best:"late night",rel:["Space","Jukebox 78"]},
 "World Clock":{desc:"LIVE: the world's time zones on a day/night map.",best:"anytime",rel:["Space","On This Day"]},
 "Wildfire Watch":{desc:"LIVE: active fires near you and nationwide, mapped.",best:"fire season",rel:["Seismic Watch","Weather Watch"]},
@@ -5706,6 +5712,9 @@ async function tuneNum(n){
   if(sl.source==="paper"){ if(my!==token)return; return tunePaper(ch,sl,my); }
   if(sl.source==="nature"){ if(my!==token)return; return tuneNature(ch,sl,my); }
   if(sl.source==="air"){ if(my!==token)return; return tuneAir(ch,sl,my); }
+  if(sl.source==="nasalive"){ if(my!==token)return; return tuneNASALive(ch,sl,my); }
+  if(sl.source==="ranger"){ if(my!==token)return; return tuneRanger(ch,sl,my); }
+  if(sl.source==="grid"){ if(my!==token)return; return tuneGrid(ch,sl,my); }
 
   if(sl.source==="static"){ if(my!==token)return; hideOv(); bars.style.display="flex";
     barsText.textContent=(hour>=2&&hour<6)?"SIGN-OFF · PLEASE STAND BY":"THE DIAL · COLOR BARS";
@@ -9619,6 +9628,97 @@ async function tuneLiveCams(ch,sl,my,poolOverride,titleOverride,catsOverride){
 async function tuneHighwayCams(ch,sl,my){
   var hwy = LIVECAMS_STREAMS.filter(function(s){ return s.cat==="HIGHWAY"; });
   return tuneLiveCams(ch,sl,my,hwy,"Highway Cams",["ALL","HIGHWAY"]);
+}
+
+/* NASA Live (ch 304, new 2026-08-09). Reuses the LiveCams shell filtered to
+   SPACE — NASA main YT channel + SpaceX + Sen Earth-from-orbit HLS. Same
+   pattern as Highway Cams. */
+async function tuneNASALive(ch,sl,my){
+  var pool = LIVECAMS_STREAMS.filter(function(s){ return s.cat==="SPACE"; });
+  return tuneLiveCams(ch,sl,my,pool,"NASA Live",["ALL","SPACE"]);
+}
+
+/* The Ranger (ch 303, new 2026-08-09). Reuses the LiveCams shell filtered to
+   NATURE — Kruger safari, Katmai bears, Big Sur condors, African watering
+   hole, panda cam, puppy playroom. Rotates every 90s. */
+async function tuneRanger(ch,sl,my){
+  var pool = LIVECAMS_STREAMS.filter(function(s){ return s.cat==="NATURE"; });
+  return tuneLiveCams(ch,sl,my,pool,"The Ranger",["ALL","NATURE"]);
+}
+
+/* The Grid (ch 971, new 2026-08-09). ERCOT Texas power grid live via EIA's
+   region-data API (respondent=TEX). Displays current demand, net generation,
+   forecast peak, and a 24-hour demand sparkline. Country/hillbilly music bed
+   for the Texas-porch vibe. */
+var gridTimer=null;
+async function tuneGrid(ch,sl,my){
+  if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"The Grid — ERCOT","");
+  if(screenArea) screenArea.innerHTML='<div class="dc-screen" id="dcScreen">'+
+    '<div class="dc-media show" id="gridMedia" style="flex:1 1 55%;height:auto;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:8px">'+
+      '<div style="display:flex;align-items:baseline;gap:8px"><div id="gridBig" style="font:800 clamp(28px,6.5vw,52px)/1 monospace;color:var(--phos)">-- GW</div><div id="gridSub" style="font-size:11px;color:#9fd6a6">Texas demand</div></div>'+
+      '<div id="gridChart" style="width:100%;max-width:360px"></div>'+
+      '<div style="font-size:9px;color:rgba(159,214,166,.6);align-self:stretch;max-width:360px;display:flex;justify-content:space-between;padding:0 2px"><span>24H AGO</span><span>12H</span><span>NOW</span></div>'+
+    '</div>'+
+    '<div class="dc-body" id="dcBody" style="flex:0 1 45%;justify-content:flex-start;gap:4px;overflow:hidden">'+
+      '<div class="dc-top"><span id="gridHead">TEXAS POWER GRID · ERCOT</span></div>'+
+      '<div class="dc-list" id="dcList" style="margin-bottom:30px"></div>'+
+      '<div class="dc-ticker" id="gridTicker">U.S. Energy Information Administration · hourly · respondent TEX</div>'+
+    '</div></div>';
+  var gridBug=mountChanBug("dcScreen",{ident:"POWER GRID"});
+  try{ if(typeof startIAJazz==="function") startIAJazz("gmcountry"); }catch(e){}
+  clearInterval(gridTimer);
+  var run=async function(){
+    if(my!==token||!powered){ clearInterval(gridTimer); return; }
+    try{
+      /* EIA hourly RTO region-data for ERCOT (TEX). type=D=Demand, NG=Net Generation, DF=Demand Forecast. */
+      var base="https://api.eia.gov/v2/electricity/rto/region-data/data/?api_key="+EIA_KEY+
+        "&frequency=hourly&data[]=value&facets[respondent][]=TEX"+
+        "&sort[0][column]=period&sort[0][direction]=desc&length=100";
+      var d=await fetchJSON(base); if(my!==token)return;
+      var rows=(d&&d.response&&d.response.data)||[];
+      if(!rows.length) throw new Error("no ERCOT rows returned");
+      /* Split by type. Take most-recent value per type. */
+      var byType={};
+      rows.forEach(function(r){
+        var t=r.type||"?"; if(!byType[t]) byType[t]=[];
+        byType[t].push(r);
+      });
+      var demand=(byType.D&&byType.D[0])||null;
+      var netgen=(byType.NG&&byType.NG[0])||null;
+      var fcst=(byType.DF&&byType.DF[0])||null;
+      /* 24 most-recent demand points, oldest-first for the chart */
+      var series=(byType.D||[]).slice(0,24).reverse().map(function(r){ return r.value!=null?parseFloat(r.value):null; });
+      var bigEl=$("gridBig");
+      if(demand&&demand.value!=null){
+        var gw=(parseFloat(demand.value)/1000).toFixed(1);
+        if(bigEl)bigEl.textContent=gw+" GW";
+        setChanStatus(ch.num,gw+" GW · ERCOT");
+        if(gridBug) gridBug.update(gw+" GW","TEXAS DEMAND · ERCOT");
+      }
+      var chartEl=$("gridChart");
+      if(chartEl&&series.length){ chartEl.innerHTML=svgLineChart(series,"#67ff86",360,90); }
+      var listEl=$("dcList");
+      if(listEl){
+        var rowsHtml=[];
+        var mw=function(v){ if(v==null||isNaN(v))return "n/a"; return Math.round(parseFloat(v)).toLocaleString()+" MW"; };
+        rowsHtml.push('<div class="dc-row2"><div class="dc-row2-main"><span class="dc-place">CURRENT DEMAND</span><span class="dc-when">'+mw(demand&&demand.value)+'</span></div></div>');
+        rowsHtml.push('<div class="dc-row2"><div class="dc-row2-main"><span class="dc-place">NET GENERATION</span><span class="dc-when">'+mw(netgen&&netgen.value)+'</span></div></div>');
+        rowsHtml.push('<div class="dc-row2"><div class="dc-row2-main"><span class="dc-place">DEMAND FORECAST</span><span class="dc-when">'+mw(fcst&&fcst.value)+'</span></div></div>');
+        if(series.length>=2){
+          var chg=series[series.length-1]-series[0];
+          rowsHtml.push('<div class="dc-row2"><div class="dc-row2-main"><span class="dc-place">24H CHANGE</span><span class="dc-when">'+(chg>=0?"+":"")+Math.round(chg).toLocaleString()+' MW</span></div></div>');
+        }
+        rowsHtml.push('<div class="dc-row2"><div class="dc-row2-main"><span class="dc-place">HOUR OF</span><span class="dc-when">'+esch((demand&&demand.period)||"?")+'</span></div></div>');
+        listEl.innerHTML=rowsHtml.join("");
+      }
+      nlog("grid",true,"demand="+(demand&&demand.value)+" MW");
+    }catch(e){ nlog("grid",false,(e&&e.message)||e);
+      var bigEl2=$("gridBig"); if(bigEl2)bigEl2.textContent="--";
+      var subEl=$("gridSub"); if(subEl)subEl.textContent="ERCOT data unavailable — check DIAG"; }
+  };
+  await run();
+  gridTimer=setInterval(run,10*60*1000); /* refresh every 10 minutes; EIA hourly is fresh at :30 past */
+  if(chanRT && chanRT.teardowns) chanRT.teardowns.push(function(){ clearInterval(gridTimer); });
 }
 
 /* ---------- Storm Center: SPC Day 1 Convective Outlook (image + text) ---------- */

@@ -1150,7 +1150,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.175";
+window.__ATV_BUILD="1.7.7-mobile.176";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1383,8 +1383,9 @@ window.addEventListener("unhandledrejection",function(e){
     <!-- audit-fix Ship A 2026-08-09: Night Dim / Ad Breaks / CRT Effects removed here \u2014 they now
          live in OSD Menu / Picture pop as "adjust while watching" controls. Clock Format + Cabinet
          Theme stay in Settings as set-once prefs. Station Manager \u03b2 + Bumpers \u03b2 pending Ship C audit. -->
-    <div class="settings-row"><span>Station Manager \u03b2 (plan the day ahead)</span><button class="rbtn xs" id="setPlan">OFF</button></div>
-    <div class="settings-row"><span>Station Bumpers β (vintage broadcast idents between programs)</span><button class="rbtn xs" id="setBumpers">ON</button></div>
+    <!-- audit-fix Ship C 2026-08-09: \u03b2 dropped \u2014 both features have been in Settings long enough that if they were broken they'd have surfaced. Graduated to stable. -->
+    <div class="settings-row"><span>Station Manager (plan the day ahead)</span><button class="rbtn xs" id="setPlan">OFF</button></div>
+    <div class="settings-row"><span>Station Bumpers (vintage broadcast idents between programs)</span><button class="rbtn xs" id="setBumpers">ON</button></div>
     <div class="settings-row"><span>Clock Format</span><button class="rbtn xs" id="setClock">12H</button></div>
     <div class="settings-row"><span>Cabinet Theme</span><button class="rbtn xs" id="setTheme">WALNUT</button></div>
     <div class="settings-sep"></div>
@@ -1400,7 +1401,28 @@ window.addEventListener("unhandledrejection",function(e){
     <div class="settings-sep"></div>
     <div class="settings-label">NARA API KEY — optional, email Catalog_API@nara.gov for a free one</div>
     <div class="settings-row"><input id="naraKeyInput" class="settings-input" type="text" placeholder="paste key here" autocomplete="off"><button id="btnNaraSave" class="rbtn xs">SAVE</button></div>
+    <!-- audit-fix Ship C 2026-08-09: new manager surfaces + backup/reset -->
+    <div class="settings-sep"></div>
+    <div class="settings-label">FAVORITES &amp; BLOCKLIST</div>
+    <div class="settings-row"><span>Manage Favorites</span><button class="rbtn xs" id="setFavMgr">OPEN →</button></div>
+    <div class="settings-row"><span>Banished Programs</span><button class="rbtn xs" id="setBanMgr">OPEN →</button></div>
+    <div class="settings-sep"></div>
+    <div class="settings-label">BACKUP &amp; RESET — favorites, blocked items, preferences</div>
+    <div class="settings-row"><span>Export all as JSON</span><button class="rbtn xs" id="setExport">DOWNLOAD</button></div>
+    <div class="settings-row"><span>Import from JSON</span><label class="rbtn xs" for="setImportFile" style="cursor:pointer">CHOOSE FILE</label><input id="setImportFile" type="file" accept="application/json" style="display:none"></div>
+    <div class="settings-row"><span>Reset ALL settings + favorites</span><button class="rbtn xs" id="setReset" style="color:#ff8a7a;border-color:rgba(255,138,122,.5)">RESET</button></div>
   </div>
+</div>
+<!-- audit-fix Ship C 2026-08-09: Favorites Manager popup — list + per-item remove + tune-to-channel. -->
+<div class="pop" id="favMgrPop" role="dialog" aria-label="Favorites Manager">
+  <div class="pop-h">FAVORITES <span class="pop-x" data-close="favMgrPop" role="button" tabindex="0" aria-label="Close">✕</span></div>
+  <div class="hist-list" id="favMgrList"></div>
+</div>
+<!-- audit-fix Ship C 2026-08-09: Blocklist Manager popup — banned program titles + per-item unban + clear all. -->
+<div class="pop" id="banMgrPop" role="dialog" aria-label="Banished Programs">
+  <div class="pop-h">BANISHED <span class="pop-x" data-close="banMgrPop" role="button" tabindex="0" aria-label="Close">✕</span></div>
+  <div style="padding:8px 12px;font-size:10px;color:#7fb38f">Items you banished via the OSD Menu — they won't be picked again on any channel. Un-ban restores.</div>
+  <div class="hist-list" id="banMgrList"></div>
 </div>
 <div class="pop" id="diagOv" role="dialog" aria-label="Network diagnostics">
   <div class="pop-h">SIGNAL DIAGNOSTICS <span class="pop-x" data-close="diagOv" role="button" tabindex="0" aria-label="Close">✕</span></div>
@@ -7970,6 +7992,105 @@ async function tuneNARA(ch,sl,my){
   }
 }
 wire("btnNaraSave", function(){ var el=$("naraKeyInput"); if(!el)return; store.set("naraKey",(el.value||"").trim()); quickBanner("NARA KEY SAVED"); });
+
+/* audit-fix Ship C 2026-08-09: Favorites Manager, Blocklist Manager, Export/Import/Reset handlers. */
+function renderFavMgr(){
+  var el=$("favMgrList"); if(!el) return;
+  var list=(typeof CH!=="undefined"&&CH)?CH.filter(function(c){ try{return isFav(c.num);}catch(_){return false;} }):[];
+  if(!list.length){ el.innerHTML='<div class="hist-row" style="opacity:.6"><span class="hist-t">No favorites yet.</span><span class="hist-a">press ★ FAV while watching</span></div>'; return; }
+  var html='';
+  list.forEach(function(c){
+    html+='<div class="hist-row" data-n="'+c.num+'"><span class="hist-t"><b>'+c.num+'</b> &nbsp; '+esch(c.nm)+'</span>'+
+      '<span class="hist-a"><a href="#" data-act="tune" data-n="'+c.num+'" style="color:#4dc8ff;margin-right:10px">TUNE</a>'+
+      '<a href="#" data-act="unfav" data-n="'+c.num+'" style="color:#ff8a7a">★ REMOVE</a></span></div>';
+  });
+  el.innerHTML=html;
+  el.querySelectorAll("[data-act]").forEach(function(a){
+    a.addEventListener("click",function(e){ e.preventDefault();
+      var n=+a.dataset.n, act=a.dataset.act;
+      if(act==="tune"){ document.getElementById("favMgrPop").classList.remove("show"); if(!powered)powerOn(); tuneNum(n); }
+      else if(act==="unfav"){ try{ toggleFav(n); }catch(_){} renderFavMgr(); }
+    });
+  });
+}
+function toggleFavMgr(){ var o=$("favMgrPop"); if(!o){quickBanner("FAV MGR UNAVAILABLE");return;}
+  if(o.classList.contains("show")){o.classList.remove("show");} else{renderFavMgr();o.classList.add("show");} }
+function renderBanMgr(){
+  var el=$("banMgrList"); if(!el) return;
+  var list=(typeof banned!=="undefined"&&Array.isArray(banned))?banned:[];
+  if(!list.length){ el.innerHTML='<div class="hist-row" style="opacity:.6"><span class="hist-t">Nothing banished.</span><span class="hist-a">use BANISH PROGRAM in the OSD Menu</span></div>'; return; }
+  var html='<div class="hist-row" style="opacity:.7;border-bottom:1px solid rgba(255,255,255,.1)"><span class="hist-t">'+list.length+' banished items</span><span class="hist-a"><a href="#" id="banClearAll" style="color:#ff8a7a">CLEAR ALL</a></span></div>';
+  list.forEach(function(id,i){
+    html+='<div class="hist-row" data-id="'+esch(id)+'"><span class="hist-t" style="font-family:monospace;font-size:11px;overflow:hidden;text-overflow:ellipsis">'+esch(id)+'</span>'+
+      '<span class="hist-a"><a href="#" data-act="unban" data-i="'+i+'" style="color:#8affb2">UNBAN</a></span></div>';
+  });
+  el.innerHTML=html;
+  var ca=$("banClearAll"); if(ca) ca.addEventListener("click",function(e){e.preventDefault(); if(typeof clearBans==="function") clearBans(); renderBanMgr();});
+  el.querySelectorAll("[data-act='unban']").forEach(function(a){
+    a.addEventListener("click",function(e){ e.preventDefault();
+      var i=+a.dataset.i;
+      try{ banned.splice(i,1); store.set("banned",banned); if(typeof updateBanBtn==="function") updateBanBtn(); }catch(_){}
+      renderBanMgr();
+    });
+  });
+}
+function toggleBanMgr(){ var o=$("banMgrPop"); if(!o){quickBanner("BLOCKLIST UNAVAILABLE");return;}
+  if(o.classList.contains("show")){o.classList.remove("show");} else{renderBanMgr();o.classList.add("show");} }
+
+wire("setFavMgr", function(){ toggleSettings(); setTimeout(toggleFavMgr, 200); });
+wire("setBanMgr", function(){ toggleSettings(); setTimeout(toggleBanMgr, 200); });
+
+/* Export / Import / Reset — the whole localStorage under the "atv:" prefix. */
+function _atvExport(){
+  var dump={version:"1.7.7",exportedAt:new Date().toISOString(),data:{}};
+  try{
+    for(var i=0;i<localStorage.length;i++){
+      var k=localStorage.key(i); if(!k) continue;
+      if(k.indexOf("atv:")===0) dump.data[k]=localStorage.getItem(k);
+    }
+  }catch(_){}
+  return dump;
+}
+wire("setExport", function(){
+  try{
+    var d=_atvExport();
+    var blob=new Blob([JSON.stringify(d,null,2)],{type:"application/json"});
+    var a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+    a.download="archive-tv-backup-"+new Date().toISOString().slice(0,10)+".json";
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ try{ URL.revokeObjectURL(a.href); a.remove(); }catch(_){} },100);
+    quickBanner("BACKUP DOWNLOADED");
+  }catch(e){ quickBanner("EXPORT FAILED"); }
+});
+(function(){
+  var fi=document.getElementById("setImportFile"); if(!fi) return;
+  fi.addEventListener("change", function(){
+    var f=fi.files&&fi.files[0]; if(!f) return;
+    var r=new FileReader();
+    r.onload=function(){
+      try{
+        var d=JSON.parse(r.result||"{}");
+        if(!d||!d.data||typeof d.data!=="object") throw new Error("bad format");
+        if(!confirm("Import "+Object.keys(d.data).length+" settings? This overwrites your current prefs + favorites + blocklist. Reload after import.")) return;
+        var n=0;
+        Object.keys(d.data).forEach(function(k){ if(k.indexOf("atv:")===0){ localStorage.setItem(k,d.data[k]); n++; } });
+        quickBanner("IMPORTED "+n+" ITEMS · RELOAD");
+      }catch(e){ quickBanner("IMPORT FAILED · CHECK JSON"); }
+      fi.value="";
+    };
+    r.readAsText(f);
+  });
+})();
+wire("setReset", function(){
+  if(!confirm("Reset ALL Archive TV settings, favorites, blocklist, and cached channel health? This cannot be undone.")) return;
+  try{
+    var kill=[];
+    for(var i=0;i<localStorage.length;i++){ var k=localStorage.key(i); if(k&&k.indexOf("atv:")===0) kill.push(k); }
+    kill.forEach(function(k){ localStorage.removeItem(k); });
+    quickBanner("RESET · RELOADING");
+    setTimeout(function(){ location.reload(); },600);
+  }catch(e){ quickBanner("RESET FAILED"); }
+});
 wire("setPlan",function(){ stationMgr=!stationMgr; store.set("stationMgr",stationMgr); renderSettings();
   quickBanner(stationMgr?"STATION MANAGER ON \u2014 planning the broadcast day":"STATION MANAGER OFF");
   if(stationMgr&&powered)setTimeout(buildPlan,2500); });

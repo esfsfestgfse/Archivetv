@@ -1078,7 +1078,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.142";
+window.__ATV_BUILD="1.7.7-desktop.143";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1305,16 +1305,15 @@ window.addEventListener("unhandledrejection",function(e){
 <div class="pop" id="settingsOv" role="dialog" aria-label="Settings">
   <div class="pop-h">SETTINGS <span class="pop-x" data-close="settingsOv" role="button" tabindex="0" aria-label="Close">✕</span></div>
   <div class="settings-body" id="settingsBody">
-    <div class="settings-row"><span>Night Dim</span><button class="rbtn xs" id="setNight">AUTO</button></div>
+    <!-- audit-fix Ship A 2026-08-09: Night Dim / Ad Breaks / CRT Effects removed here \u2014 they now
+         live in OSD Menu / Picture pop as "adjust while watching" controls. Clock Format + Cabinet
+         Theme stay in Settings. \u03b2 features pending Ship C audit. -->
     <div class="settings-row"><span>Station Manager \u03b2 (plan the day ahead)</span><button class="rbtn xs" id="setPlan">OFF</button></div>
-    <div class="settings-row"><span>Ad Breaks</span><button class="rbtn xs" id="setAds">ON</button></div>
     <div class="settings-row"><span>Station Bumpers β (vintage broadcast idents between programs)</span><button class="rbtn xs" id="setBumpers">ON</button></div>
     <div class="settings-row"><span>Clock Format</span><button class="rbtn xs" id="setClock">12H</button></div>
-    <div class="settings-row"><span>CRT Effects</span><button class="rbtn xs" id="setCRT">OFF</button></div>
     <div class="settings-row"><span>Cabinet Theme</span><button class="rbtn xs" id="setTheme">WALNUT</button></div>
     <div class="settings-sep"></div>
-    <div class="settings-row"><span>Picture Adjustment</span><button class="rbtn xs" id="setPicLink">OPEN →</button></div>
-    <div class="settings-row"><span>Signal Diagnostics</span><button class="rbtn xs" id="setDiagLink">OPEN →</button></div>
+    <div class="settings-row"><span>Picture Adjustment (CRT · brightness · color)</span><button class="rbtn xs" id="setPicLink">OPEN →</button></div>
     <div class="settings-sep"></div>
     <div class="settings-label">EXTERNAL FEED HEALTH — every live service the channels depend on</div>
     <div class="settings-row"><span>Check all sources now</span><button class="rbtn xs" id="btnHealth">RUN ALL</button></div>
@@ -1340,6 +1339,9 @@ window.addEventListener("unhandledrejection",function(e){
   <label class="pic-row"><span>Contrast</span><input type="range" id="picContrast" min="50" max="150" value="105"></label>
   <label class="pic-row"><span>Color</span><input type="range" id="picColor" min="0" max="200" value="110"></label>
   <label class="pic-row"><span>Tint</span><input type="range" id="picTint" min="0" max="60" value="8"></label>
+  <!-- audit-fix Ship A 2026-08-09: CRT Effects moved here from Settings (all picture-quality controls
+       in one place). 0=OFF · 1=SUBTLE · 2=MEDIUM · 3=FULL. -->
+  <label class="pic-row"><span>CRT Effects</span><input type="range" id="picCRT" min="0" max="3" step="1" value="0"></label>
   <button class="pop-btn" id="picReset">RESET TO DEFAULT</button>
 </div>
 
@@ -6532,7 +6534,20 @@ function toggleSettings(){ var o=$("settingsOv"); if(!o){quickBanner("SETTINGS U
   if(o.classList.contains("show")) o.classList.remove("show"); else { renderSettings(); o.classList.add("show"); } }
 
 wire("setNight",function(){ cycleNight(); renderSettings(); });
-wire("setCRT",function(){ if(window.__cycleCRT) window.__cycleCRT(); });
+/* audit-fix Ship A 2026-08-09: #setCRT removed from Settings — CRT now lives as #picCRT slider
+   in the Picture pop. Init to current level + wire input to store + applyCRT. */
+(function(){
+  var s=document.getElementById("picCRT"); if(!s) return;
+  try{ s.value=String(window.__crtLevel||0); }catch(_){}
+  s.addEventListener("input",function(){
+    var v=Math.max(0,Math.min(3,parseInt(s.value,10)||0));
+    window.__crtLevel=v;
+    try{ store.set("crtLevel",v); }catch(_){}
+    if(typeof applyCRT==="function") applyCRT();
+    var names=["OFF","SUBTLE","MEDIUM","FULL"];
+    try{ quickBanner("CRT: "+names[v]); }catch(_){}
+  });
+})();
 wire("setBumpers",function(){ bumperOn=!bumperOn; store.set("bumpers",bumperOn); renderSettings(); quickBanner("STATION BUMPERS "+(bumperOn?"ON":"OFF")); });
 wire("setAds",function(){ var b=$("btnAds"); if(b) b.click(); else { adsOn=!adsOn; store.set("ads",adsOn); } renderSettings(); });
 wire("setClock",function(){ toggleClockFmt(); renderSettings(); });
@@ -12749,7 +12764,7 @@ var OSD_ITEMS=[
  {label:"FULLSCREEN",act:function(){closeOsd();toggleFullscreen();}},
  {label:"ZOOM",act:toggleAspect,val:function(){return aspectFill?"FILL":"FIT";}},
  {label:"PICTURE ADJUST",act:function(){closeOsd();togglePic();}},
- {label:"CABINET",act:cycleTheme,val:function(){return THEMES[themeIdx%THEMES.length].toUpperCase();}},
+ /* audit-fix Ship A 2026-08-09: CABINET moved to Settings-only (cosmetic set-once pref). */
  {label:"PICTURE-IN-PICTURE",act:function(){closeOsd();togglePip();}},
  {h:"PLAYBACK"},
  {label:"SKIP PROGRAM",act:function(){closeOsd();skipOne();}},
@@ -12761,7 +12776,7 @@ var OSD_ITEMS=[
  {h:"LIBRARY"},
  {label:"MORE LIKE THIS",act:function(){closeOsd();moreLikeThis();}},
  {label:"MARATHON LOCK",act:marathonToggle,val:function(){var c=byNum(curNum);return (c&&marathonLock[c.num])?"ON":"OFF";}},
- {label:"TV GUIDE",act:function(){closeOsd();toggleTVGuide();}},
+ {label:"SCHEDULE GRID",act:function(){closeOsd();toggleTVGuide();}}, /* renamed 2026-08-09 Ship A: was "TV GUIDE" — collided with main channel guide */
  {label:"SAVE TO TAPE",act:function(){closeOsd();saveCurrent();}},
  {label:"TAPE SHELF",act:function(){closeOsd();toggleSaved();}},
  {label:"DEEP CUTS",act:toggleDeepCuts,val:function(){return deepCuts?"ON":"OFF";}},
@@ -12774,8 +12789,11 @@ var OSD_ITEMS=[
  {label:"CLEAR BANS",act:clearBans,val:function(){return String(banned.length);}},
  {h:"SYSTEM"},
  {label:"OPEN ON ARCHIVE",act:function(){closeOsd();openSource();}},
- {label:"CLOCK FORMAT",act:toggleClockFmt,val:function(){return clk24?"24H":"12H";}},
- {label:"DIAGNOSTICS",act:function(){closeOsd();toggleDiag();}},
+ /* audit-fix Ship A 2026-08-09: CLOCK FORMAT moved to Settings-only (set-once pref). */
+ {label:"FEED HEALTH",act:function(){closeOsd();toggleSettings();
+   /* audit-fix Ship A 2026-08-09: was DIAGNOSTICS → opened separate #diagOv pop that duplicated
+      Settings' Feed Health section. Now opens Settings + auto-runs the health check. */
+   setTimeout(function(){ var b=document.getElementById("btnHealth"); if(b)b.click(); },220);}},
  {label:"SETTINGS",act:function(){closeOsd();toggleSettings();}},
  {label:"SHARE",act:function(){closeOsd();shareCurrent();}},
  {label:"SPORTS: AUTO-ROTATE",act:function(){closeOsd();

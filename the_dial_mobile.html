@@ -1177,7 +1177,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.181";
+window.__ATV_BUILD="1.7.7-mobile.182";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1538,7 +1538,7 @@ const G={
  gameshow:   {mt:"movies",col:["classic_tv","television"],fcol:["vhsvault"],     subj:["game show","quiz show","panel show","game shows"],not:FNOT,era:[1950,2026],subjRequired:true,noBlindFallback:true}, /* CYCLE-14: ONLY game shows, every era */
  computer:   {mt:"movies",col:["computerchronicles"],   fcol:[],               subj:[],                           era:[1983,2002]},
  commercials:{mt:"movies",col:["classic_tv","prelinger"],fcol:[],              subj:["television commercials","advertising","toy commercial","toy advertisement","commercial","commercials","vintage commercial","retro commercial","classic commercial","tv commercial"],era:[1948,1995]},
- blackcinema:{mt:"movies",col:[],                       fcol:["feature_films"],       subj:["race film","black cinema","oscar micheaux","all black cast"],not:FNOT,era:[1915,1955]},
+ blackcinema:{mt:"movies",col:[],                       fcol:["feature_films"],       subj:["race film","black cinema","oscar micheaux","all black cast","african american film","spike lee","john singleton","julie dash","charles burnett","ava duvernay","barry jenkins","ryan coogler","jordan peele","denzel washington","sidney poitier","morgan freeman"],not:FNOT,era:[1915,2026]},
  arcade:     {mt:"movies",col:["gamevideos"],           fcol:[],                      subj:[],                      era:[1980,2026],noBlindFallback:true},
  manufacturing:{mt:"movies",col:["prelinger","FedFlix","avgeeks"],fcol:[],              subj:["manufacturing","assembly line","industrial process","factory","steel","machining","machinery","engineering","construction","production","industry","mining"],subjRotate:true,subjRequired:true,not:FNOT,era:[1930,1990]}, /* 1.3.3: bolstered — 3 collections, 12 rotating topics, subject-locked, wider era */
  testkitchen:{mt:"movies",col:["prelinger"],            fcol:["avgeeks"],             subj:["cooking","recipe","home economics","baking","food preparation","kitchen","nutrition","meal planning","housekeeping","sewing","etiquette"],subjRotate:true,subjRequired:true,not:FNOT,era:[1935,1985]}, /* 1.3: true Home-Ec — one topic per tune, subject-locked, all decades */
@@ -1738,7 +1738,7 @@ const CH=[
  {nm:"Old Nick", num:19, cat:"TV", gl:"nickatnite", era:[1950,1985], ns:"tv"}, /* Nick at Nite era classic sitcoms — moved 13→19 to clear collision with Vintage Commercials */
  {nm:"The Court Room", num:20, cat:"TV", gl:"courtroom", era:[1980,2020], ns:"tv"}, /* Judge shows — People's Court, Judge Judy, Judge Wapner — moved 14→20 to clear Computer Chronicles collision */
  {nm:"Vintage Commercials", num:13,cat:"TV",gl:"commercials",  era:[1948,1985], ns:"tv"},
- {nm:"Black Cinema", num:105,      cat:"MOV", gl:"blackcinema", era:[1915,1955], ns:"movie"},
+ {nm:"Black Cinema", num:105,      cat:"MOV", gl:"blackcinema", era:[1915,2026], ns:"movie"},
  {nm:"Arcade Archive", num:152,    cat:"TOON",gl:"arcade",       era:[1980,2015], ns:"movie"},
  {nm:"Manufacturing Marvels", num:200,cat:"DOC",gl:"manufacturing",era:[1935,1970], ns:"doc"},
  {nm:"Home Economics", num:201,    cat:"DOC", gl:"testkitchen",   era:[1935,1985], ns:"doc"},
@@ -1907,7 +1907,7 @@ const CHANNEL_META={
 "The Court Room":{desc:"Judge shows and small-claims TV — People's Court, Judge Judy, Judge Wapner, Divorce Court, Judge Mathis, Judge Joe Brown, Judge Alex.",best:"afternoons",rel:["Court TV","Old Nick"]},
 "Game Show Channel":{desc:"Panel shows, quizzes and game shows across every era.",best:"daytime",rel:["Classic Rerun TV"]},
 "Vintage Commercials":{desc:"Wall-to-wall ad breaks from 1948-1985.",best:"anytime",rel:["Game Show Channel","VHS Vault"]},
-"Black Cinema":{desc:"Race films and pioneering Black filmmaking, 1915-55.",best:"primetime",rel:["Classic Film","Silent Cinema"]},
+"Black Cinema":{desc:"The full arc of Black cinema — Oscar Micheaux race films of the 1920s through Spike Lee, Julie Dash, Charles Burnett, Barry Jenkins, Ryan Coogler, Jordan Peele. 1915 through today.",best:"primetime",rel:["Blaxploitation","Classic Film"]},
 "Arcade Archive":{desc:"Videogame footage, longplays and arcade history.",best:"late night",rel:["Classic Cartoons","Computer Chronicles"]},
 "Manufacturing Marvels":{desc:"How things get made: industrial process films.",best:"afternoons",rel:["Prelinger Vault","Home Economics"]},
 "Home Economics":{desc:"Cooking, baking, meal planning and household arts - a rotating topic each tune-in.",best:"daytime",rel:["Manufacturing Marvels","Prelinger Vault"]},
@@ -5144,7 +5144,7 @@ const PROGRAM = {
      Sidney Poitier era through modern Black auteurs. Distinct from Blaxploitation
      which is specifically 70s Black action. */
   "Black Cinema": {
-    genre: "blackcinema", era: [1910, 2020],
+    genre: "blackcinema", era: [1910, 2026],
     providers: [
       { collections: ["feature_films", "feature_films_unsorted", "opensource_movies"], require_subj: [
         "oscar micheaux","spencer williams","spencer williams jr","noble johnson","lincoln motion picture",
@@ -7005,16 +7005,48 @@ function skyNormReadsb(list){
   }).filter(Boolean);
 }
 async function fetchSky(loc,nm,quiet){
+  /* 2026-08-14 diagnostic: all three ADS-B tiers CORS-block browser requests. Verified via
+     curl with Origin: https://esfsfestgfse.github.io header — adsb.lol returns 200 + data
+     but no Access-Control-Allow-Origin; airplanes.live now requires email-registered token;
+     opensky-network.org sets Access-Control-Allow-Origin to its own origin only. Fix: try
+     direct first (still works for future browser-CORS-friendly upgrades), then fall through
+     to the shared CORS-relay chain (allorigins/codetabs/thingproxy) on every failure. */
   var latf=loc.lat.toFixed(3), lonf=loc.lon.toFixed(3); nm=nm||44;
-  try{ var d1=await withTO(fetchJSON("https://api.adsb.lol/v2/point/"+latf+"/"+lonf+"/"+nm),12000);
-       var l1=skyNormReadsb(d1&&d1.ac); if(!quiet)nlog("skytraffic",true,"adsb.lol: "+l1.length+" aircraft"); return l1;
-  }catch(e1){ nlog("skytraffic",false,"adsb.lol: "+((e1&&e1.message)||e1)); }
-  try{ var d2=await withTO(fetchJSON("https://api.airplanes.live/v2/point/"+latf+"/"+lonf+"/"+nm),12000);
-       var l2=skyNormReadsb(d2&&d2.ac); if(!quiet)nlog("skytraffic",true,"airplanes.live: "+l2.length+" aircraft"); return l2;
-  }catch(e2){ nlog("skytraffic",false,"airplanes.live: "+((e2&&e2.message)||e2)); }
+  async function tryDirect(url){
+    try{ return await withTO(fetchJSON(url), 8000); }catch(_){ return null; }
+  }
+  async function tryWithRelayFallback(url, tag){
+    var d = await tryDirect(url);
+    if(d) return d;
+    try{ return await fetchJSONviaProxy(url); }
+    catch(e){ nlog(tag||"skytraffic", false, "direct+relay both failed: "+((e&&e.message)||e)); return null; }
+  }
+  /* Tier 1: adsb.lol */
+  var url1 = "https://api.adsb.lol/v2/point/"+latf+"/"+lonf+"/"+nm;
+  var d1 = await tryWithRelayFallback(url1, "adsb.lol");
+  if(d1 && d1.ac){
+    var l1 = skyNormReadsb(d1.ac);
+    if(!quiet) nlog("skytraffic", true, "adsb.lol: "+l1.length+" aircraft"+(d1.__viaRelay?" (via relay)":""));
+    return l1;
+  }
+  /* Tier 2: airplanes.live — often responds with an "email us for a key" message now, but the
+     relay path still sometimes works around whatever they use to gate direct browser requests. */
+  var url2 = "https://api.airplanes.live/v2/point/"+latf+"/"+lonf+"/"+nm;
+  var d2 = await tryWithRelayFallback(url2, "airplanes.live");
+  if(d2 && d2.ac){
+    var l2 = skyNormReadsb(d2.ac);
+    if(!quiet) nlog("skytraffic", true, "airplanes.live: "+l2.length+" aircraft");
+    return l2;
+  }
+  /* Tier 3: OpenSky Network (largest box for wider views) — CORS restricted to their own origin,
+     so this MUST go through the relay chain. */
   var dg=(nm>=80?1.45:0.72);
-  var d3=await fetchJSONResilient("https://opensky-network.org/api/states/all?lamin="+(loc.lat-dg).toFixed(3)+"&lomin="+(loc.lon-dg).toFixed(3)+"&lamax="+(loc.lat+dg).toFixed(3)+"&lomax="+(loc.lon+dg).toFixed(3),"skytraffic");
-  return ((d3&&d3.states)||[]).map(function(a){
+  var url3 = "https://opensky-network.org/api/states/all?lamin="+(loc.lat-dg).toFixed(3)+"&lomin="+(loc.lon-dg).toFixed(3)+"&lamax="+(loc.lat+dg).toFixed(3)+"&lomax="+(loc.lon+dg).toFixed(3);
+  var d3 = null;
+  try{ d3 = await fetchJSONviaProxy(url3); }
+  catch(e3){ nlog("skytraffic", false, "opensky via relay failed: "+((e3&&e3.message)||e3)); }
+  if(!d3 || !d3.states){ return []; }
+  return d3.states.map(function(a){
     if(a[8]||a[6]==null||a[5]==null)return null;
     return {cs:String(a[1]||a[0]||"").trim().toUpperCase(),type:"",alt:(a[7]!=null?Math.round(a[7]*3.28084):null),
       spd:(a[9]!=null?Math.round(a[9]*2.23694):null),trk:a[10],vr:(a[11]!=null?Math.round(a[11]*196.85):null),hex:String(a[0]||""),lat:a[6],lon:a[5]};
@@ -9876,14 +9908,16 @@ var LIVECAMS_STREAMS=[
   {type:"hls", cat:"BEACH",   nm:"Palm Beaches TV",                        url:"https://live.feed.thepalmbeaches.tv/index.m3u8",                                                                                                                                        src:"Palm Beaches"},
   {type:"hls", cat:"BEACH",   nm:"NOTV · New Orleans TV",                  url:"http://media4.tripsmarter.com:1935/LiveTV/NOTVHD/playlist.m3u8",                                                                                                                         src:"NOTV"},
 
-  /* ---------- NATURE (HLS + Explore.org iframe embeds for wildlife cams) ---------- */
-  {type:"hls",     cat:"NATURE", nm:"WildEarth · Kruger Safari Live",           url:"https://dqga3jatxofgx.cloudfront.net/WildEarth.m3u8",                                                                                                                                    src:"WildEarth"},
-  {type:"hls",     cat:"NATURE", nm:"DroneTV · Aerial Views",                   url:"https://d35j504z0x2vu2.cloudfront.net/v1/master/0bc8e8376bd8417a1b6761138aa41c26c7309312/dronetv/playlist.m3u8",                                                                          src:"DroneTV"},
-  {type:"explore", cat:"NATURE", nm:"Katmai · Brooks Falls Brown Bears",         url:"brown-bear-salmon-cam-brooks-falls",       src:"Explore.org"},
-  {type:"explore", cat:"NATURE", nm:"Big Sur · Condor Sanctuary Cam",            url:"condor-cam",                               src:"Explore.org"},
-  {type:"explore", cat:"NATURE", nm:"African Watering Hole (Namibia)",           url:"africam-nkorho-pan",                       src:"Explore.org"},
-  {type:"explore", cat:"NATURE", nm:"Puppy Playroom · Warrior Canine Connection", url:"warrior-canine-connection-service-puppy-cam", src:"Explore.org"},
-  {type:"explore", cat:"NATURE", nm:"Panda Cam · Zoo Atlanta",                    url:"panda-cam",                                src:"Explore.org"},
+  /* ---------- NATURE (HLS + YouTube live wildlife cams — explore.org iframes removed 2026-08-14
+       after all /livecams/currently-live/{slug}/embed URLs went 404. Explore migrated to a Next.js
+       SPA with no reliable oembed replacement, so the YouTube channels behind their cams and other
+       verified nature-cam feeds are the pool now.) ---------- */
+  {type:"hls",     cat:"NATURE", nm:"WildEarth · Kruger Safari Live",           url:"https://dqga3jatxofgx.cloudfront.net/WildEarth.m3u8", src:"WildEarth"},
+  {type:"hls",     cat:"NATURE", nm:"DroneTV · Aerial Views",                   url:"https://d35j504z0x2vu2.cloudfront.net/v1/master/0bc8e8376bd8417a1b6761138aa41c26c7309312/dronetv/playlist.m3u8", src:"DroneTV"},
+  {type:"youtube", cat:"NATURE", nm:"Cornell Lab · Feeder & Bird Cams",         url:"UCoOX_gpsC-N3fUmCFuo3xhw", src:"Cornell Lab of Ornithology", isChannel:true},
+  {type:"youtube", cat:"NATURE", nm:"Nat Geo WILD Live",                        url:"UCwmZiChSryoWQCZMIQezgTg", src:"National Geographic Wild",   isChannel:true},
+  {type:"youtube", cat:"NATURE", nm:"Monterey Bay Aquarium · Live Cams",        url:"UCcSJfLQV5FzvJXBQ_KJc6iQ", src:"Monterey Bay Aquarium",     isChannel:true},
+  {type:"youtube", cat:"NATURE", nm:"Explore Live Nature Cams",                 url:"UCadHRXthcKgAA6nc23wRVsw", src:"Explore.org (YouTube)",     isChannel:true},
 
   /* ---------- CITY / SCENIC (HLS + YouTube live for major destinations) ---------- */
   {type:"hls",     cat:"CITY",    nm:"Aruba TV · Island Cams",                 url:"https://cdn01.setar.aw/Canal49/canal49/playlist.m3u8",                                                                                                                                   src:"Aruba TV"},

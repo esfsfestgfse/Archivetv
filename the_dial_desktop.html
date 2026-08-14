@@ -1098,7 +1098,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.152";
+window.__ATV_BUILD="1.7.7-desktop.153";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -9700,14 +9700,20 @@ function tuneSeismic(ch,sl,my){ return tuneRotator(ch,sl,my,[
    the ERROR path auto-advances rotation, so the channel never stalls.
    ============================================================================================ */
 var LIVECAMS_STREAMS=[
-  /* ---------- HIGHWAY (DOT + traffic streams) ----------
-     ALL YouTube DOT channel-embeds removed 2026-08-14 — user confirmed every YT live_stream
-     embed shows YouTube's "channel not currently live" placeholder. Root cause: most DOT
-     accounts allow embedding on their historical uploads but not on live streams, so the
-     iframe just shows a placeholder. Direct HLS from state DOTs is rare; the honest state is
-     that this category has no working streams right now. The tuneLiveCams empty-state below
-     shows a friendly "no active streams" message instead of a broken iframe.
-     Follow-up: add a type:"jpg-refresh" stream type + wire to Texas TxDOT / Caltrans image cams. */
+  /* ---------- HIGHWAY (DOT traffic cams, jpg-refresh type — added 2026-08-14 after the YT purge) ----------
+     Caltrans publishes a public JPG endpoint per camera (also has HLS but many streams are gated by
+     hard-to-guess CDN routes). JPG refreshes every 5 sec — that's Caltrans's own updateFrequency.
+     Cache-busted per fetch via ?t=<epoch> so the browser doesn't serve a stale copy from an
+     upstream cache. All 8 URLs verified 200 with real image bytes as of the ship date. */
+  {type:"jpg-refresh", cat:"HIGHWAY", nm:"Oakland · I-580 West of SR-24",           url:"https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv102i580westofsr24/tv102i580westofsr24.jpg", src:"Caltrans D4", refreshSec:5},
+  {type:"jpg-refresh", cat:"HIGHWAY", nm:"Antioch · SR-4 at Lone Tree Way",         url:"https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv224sr4lonetreeway/tv224sr4lonetreeway.jpg", src:"Caltrans D4", refreshSec:5},
+  {type:"jpg-refresh", cat:"HIGHWAY", nm:"San Diego · SR-163 at Friars",            url:"https://cwwp2.dot.ca.gov/data/d11/cctv/image/c348sr163friarsneb/c348sr163friarsneb.jpg", src:"Caltrans D11", refreshSec:5},
+  {type:"jpg-refresh", cat:"HIGHWAY", nm:"San Diego · SR-163 just S of I-8",        url:"https://cwwp2.dot.ca.gov/data/d11/cctv/image/c002sr163justsouthofi8/c002sr163justsouthofi8.jpg", src:"Caltrans D11", refreshSec:5},
+  {type:"jpg-refresh", cat:"HIGHWAY", nm:"San Diego · SR-163 at I-8",               url:"https://cwwp2.dot.ca.gov/data/d11/cctv/image/c003sr163i8/c003sr163i8.jpg", src:"Caltrans D11", refreshSec:5},
+  {type:"jpg-refresh", cat:"HIGHWAY", nm:"Anaheim · I-5 north of Magnolia",         url:"https://cwwp2.dot.ca.gov/data/d12/cctv/image/i51northofmagnoliaavenuesouthofsr91/i51northofmagnoliaavenuesouthofsr91.jpg", src:"Caltrans D12", refreshSec:5},
+  {type:"jpg-refresh", cat:"HIGHWAY", nm:"Buena Park · SR-91 at Beach Blvd",        url:"https://cwwp2.dot.ca.gov/data/d12/cctv/image/sr912beachboulevard/sr912beachboulevard.jpg", src:"Caltrans D12", refreshSec:5},
+  {type:"jpg-refresh", cat:"HIGHWAY", nm:"Orange · SR-57 at SR-22",                 url:"https://cwwp2.dot.ca.gov/data/d12/cctv/image/sr5712sr22/sr5712sr22.jpg", src:"Caltrans D12", refreshSec:5},
+
 
   /* ---------- BEACH (Wowza HLS from tripsmarter.com — Beach TV network + Palm Beaches) ---------- */
   {type:"hls", cat:"BEACH",   nm:"Beach TV \u00b7 Destin & Fort Walton",       url:"http://media4.tripsmarter.com:1935/LiveTV/DTVHD/playlist.m3u8", src:"Beach TV"},
@@ -9744,8 +9750,11 @@ var LIVECAMS_STREAMS=[
    filterCat parameter so Highway Cams (ch 302) can reuse the same shell filtered to HIGHWAY.
    Cats visible in the chip strip depend on which streams the current pool has.
    Iframes have no music bed conflict — YouTube/Explore serve their own audio. */
-var lcHls = null;
-function tuneLiveCams_destroyHls(){ if(lcHls){ try{lcHls.destroy();}catch(e){} lcHls=null; } }
+var lcHls = null, lcJpgTimer = null;
+function tuneLiveCams_destroyHls(){
+  if(lcHls){ try{lcHls.destroy();}catch(e){} lcHls=null; }
+  if(lcJpgTimer){ clearInterval(lcJpgTimer); lcJpgTimer=null; }
+}
 function ytEmbedUrl(view){
   /* channel-live URL for perpetual streams, direct video URL for fixed IDs. Autoplay muted so
      browsers actually let it start; user can unmute via YouTube's own player controls. */
@@ -9792,6 +9801,7 @@ async function tuneLiveCams(ch,sl,my,poolOverride,titleOverride,catsOverride){
     '<div id="lcPane" style="flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;background:#000">'+
       '<video id="lcVideo" playsinline autoplay muted controls style="width:100%;height:100%;object-fit:contain;background:#000;display:none"></video>'+
       '<iframe id="lcFrame" src="about:blank" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen style="width:100%;height:100%;border:0;background:#000;display:none"></iframe>'+
+      '<img id="lcImg" alt="" style="width:100%;height:100%;object-fit:contain;background:#000;display:none">'+
       '<div id="lcStatus" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#9fc4a0;font-family:monospace;font-size:12px;pointer-events:none;background:#000">Loading first cam…</div>'+
       '<div id="lcLive" style="position:absolute;top:8px;left:8px;z-index:10;display:inline-flex;align-items:center;gap:7px;background:rgba(0,0,0,.75);border:1px solid rgba(255,80,80,.55);border-radius:5px;padding:4px 9px;font-family:monospace;font-size:11px;letter-spacing:1px;color:#fff;pointer-events:none">'+
         '<span style="width:8px;height:8px;border-radius:50%;background:#ff3030;box-shadow:0 0 8px #ff5050;animation:wxBugPulse 1.4s ease-in-out infinite"></span>'+
@@ -9815,8 +9825,10 @@ async function tuneLiveCams(ch,sl,my,poolOverride,titleOverride,catsOverride){
   function pool(){ return lcFilter==="ALL" ? streams : streams.filter(function(v){ return v.cat===lcFilter; }); }
   var idx = Math.floor(Math.random() * pool().length);
   var v = $("lcVideo"), fr = $("lcFrame"), statusEl = $("lcStatus");
-  function showVideo(){ if(v)v.style.display="block"; if(fr){fr.style.display="none"; fr.src="about:blank";} }
-  function showFrame(){ if(v){v.style.display="none"; v.pause&&v.pause(); try{v.removeAttribute("src");}catch(e){} v.load&&v.load();} if(fr)fr.style.display="block"; }
+  var im = $("lcImg");
+  function showVideo(){ if(v)v.style.display="block"; if(fr){fr.style.display="none"; fr.src="about:blank";} if(im){im.style.display="none"; im.removeAttribute("src");} }
+  function showFrame(){ if(v){v.style.display="none"; v.pause&&v.pause(); try{v.removeAttribute("src");}catch(e){} v.load&&v.load();} if(fr)fr.style.display="block"; if(im){im.style.display="none"; im.removeAttribute("src");} }
+  function showImg(){ if(v){v.style.display="none"; v.pause&&v.pause(); try{v.removeAttribute("src");}catch(e){} v.load&&v.load();} if(fr){fr.style.display="none"; fr.src="about:blank";} if(im)im.style.display="block"; }
   function play(){
     if(my!==token||!powered) return;
     var p = pool(); if(!p.length){ if(statusEl){ statusEl.style.display="flex"; statusEl.textContent="No cams in this category"; } return; }
@@ -9825,14 +9837,29 @@ async function tuneLiveCams(ch,sl,my,poolOverride,titleOverride,catsOverride){
     tuneLiveCams_destroyHls();
     if(statusEl){ statusEl.style.display="flex"; statusEl.textContent="Tuning "+view.nm+"…"; }
     try {
-      if(view.type==="youtube"){
-        showFrame();
-        if(fr) fr.src = ytEmbedUrl(view);
-        if(statusEl) setTimeout(function(){ if(my===token) statusEl.style.display="none"; }, 2500);
-      } else if(view.type==="explore"){
-        showFrame();
-        if(fr) fr.src = exploreEmbedUrl(view);
-        if(statusEl) setTimeout(function(){ if(my===token) statusEl.style.display="none"; }, 2500);
+      if(view.type==="jpg-refresh"){
+        /* 2026-08-14 new stream type: static-image cameras (DOT traffic cams). Refresh interval
+           in seconds via view.refreshSec (default 5). Cache-bust with ?t=<epoch> so the browser
+           actually re-requests instead of serving a stale copy. */
+        showImg();
+        var refreshSec = view.refreshSec || 5;
+        var loadOne = function(){
+          if(my!==token) return;
+          if(im){
+            var bust = "?t=" + Math.floor(Date.now()/1000);
+            im.src = view.url + bust;
+          }
+        };
+        loadOne();
+        if(im){
+          im.onload = function(){ if(statusEl) statusEl.style.display="none"; };
+          im.onerror = function(){
+            nlog("livecams", false, "jpg-refresh 404: "+view.url);
+            idx = (idx+1) % pool().length;
+            setTimeout(play, 1200);
+          };
+        }
+        lcJpgTimer = setInterval(loadOne, refreshSec * 1000);
       } else {
         showVideo();
         if(v){ v.pause(); try{v.removeAttribute("src");}catch(e){} v.load(); }

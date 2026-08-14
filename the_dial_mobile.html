@@ -502,10 +502,17 @@ html,body{height:100vh;overflow:hidden}
 .guide .catnav{display:flex;flex-wrap:wrap;gap:6px;padding:8px 14px 4px;overflow:visible}
 .guide .chlist{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;overflow-y:auto;
   min-height:0;padding:10px 14px 16px;background:linear-gradient(180deg,#0d110d,#0a0d0a)}
-.chcell{appearance:none;font-family:inherit;position:relative;display:grid;grid-template-columns:6px 60px minmax(160px,220px) 1fr auto;gap:12px;align-items:center;padding:10px 14px 10px 0;border:none;border-bottom:1px solid rgba(77,200,255,.10);background:transparent;color:#e8f0ff;text-align:left;cursor:pointer;min-height:38px}
+.chcell{appearance:none;font-family:inherit;position:relative;display:grid;grid-template-columns:6px 60px 36px minmax(140px,200px) 1fr auto;gap:12px;align-items:center;padding:10px 14px 10px 0;border:none;border-bottom:1px solid rgba(77,200,255,.10);background:transparent;color:#e8f0ff;text-align:left;cursor:pointer;min-height:38px}
+/* F06 (2026-08-14): 32×32 IA thumbnail column. When we have a last-played identifier for the
+   channel, render its IA thumb; otherwise a category-colored initial as a placeholder. */
+.chcell .cc-thumb{grid-column:3;width:32px;height:32px;border-radius:4px;overflow:hidden;background:rgba(77,200,255,.08);border:1px solid rgba(77,200,255,.18);display:flex;align-items:center;justify-content:center;flex:none;position:relative}
+.chcell .cc-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.chcell .cc-thumb .cc-thumb-glyph{font:900 14px/1 "Arial Narrow","Helvetica Neue Condensed",Impact,sans-serif;letter-spacing:0;color:var(--cat,#67ff86);text-shadow:0 0 4px currentColor;opacity:.7}
+.chcell.chcell-ldata .cc-thumb{background:rgba(255,204,0,.08);border-color:rgba(255,204,0,.22)}
+.chcell.chcell-ldata .cc-thumb .cc-thumb-glyph{color:#ffcc00}
 .chcell::before{content:"";background:var(--cat,#67ff86);grid-column:1;align-self:stretch;box-shadow:0 0 6px var(--cat,#67ff86)}
 .chcell .cc-n{grid-column:2;font-size:26px;font-weight:900;color:#4dc8ff;line-height:1;letter-spacing:1px;text-align:center;text-shadow:0 0 6px rgba(77,200,255,.5);font-variant-numeric:tabular-nums}
-.chcell .cc-nm{grid-column:3;font-size:14px;font-weight:700;color:#e8f0ff;letter-spacing:.8px;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:uppercase}
+.chcell .cc-nm{grid-column:4;font-size:14px;font-weight:700;color:#e8f0ff;letter-spacing:.8px;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-transform:uppercase}
 .chcell:hover{background:linear-gradient(90deg,rgba(77,200,255,.10),rgba(77,200,255,.02))}
 .chcell.on{background:linear-gradient(90deg,#ffcc00 0%,#e6b800 100%) !important;color:#04216a !important}
 .chcell.on .cc-n{color:#04216a !important;text-shadow:none !important}
@@ -592,8 +599,8 @@ html.mob .ot-detail{display:none}   /* phone: name + sport is enough, detail is 
 .gsearch:focus{outline:none;border-color:rgba(103,255,134,.8)}
 .gsearch-x{position:absolute;right:22px;top:6px;cursor:pointer;color:#67ff86;opacity:.6;font-size:12px}
 html.mob .gsearch-wrap{padding:0 12px 6px}
-.chcell .cc-status{grid-column:4;display:block;font-size:12px;color:#ffcc00;font-weight:700;letter-spacing:.5px;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:0;text-transform:uppercase;text-shadow:0 0 4px rgba(255,204,0,.35)}
-.chcell .cc-f{grid-column:5;position:static;color:#ffcc00;font-size:14px;padding:0 8px}
+.chcell .cc-status{grid-column:5;display:block;font-size:12px;color:#ffcc00;font-weight:700;letter-spacing:.5px;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:0;text-transform:uppercase;text-shadow:0 0 4px rgba(255,204,0,.35)}
+.chcell .cc-f{grid-column:6;position:static;color:#ffcc00;font-size:14px;padding:0 8px}
 .chcell.on{border-color:#ffb03a;box-shadow:inset 0 0 0 1px #ffb03a,0 0 14px rgba(255,176,58,.25);
   background:linear-gradient(180deg,#241d10,#141008)}
 .chcell:hover{border-color:#3a4a3a;background:linear-gradient(180deg,#182118,#0e130e)}
@@ -1170,7 +1177,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.179";
+window.__ATV_BUILD="1.7.7-mobile.180";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1857,6 +1864,8 @@ const CH=[
  {nm:"Wikipedia Live", num:972,   cat:"LDATA", source:"wiki",        ns:"doc"}, /* Wikimedia EventStreams — every edit as it happens, across the top wikis */
  {nm:"Solar Dashboard", num:973,  cat:"LDATA", source:"solar",       ns:"space"}, /* SDO imagery + GOES X-ray flux + F10.7 solar flux — the sun as a channel */
  {nm:"Global Quakes Map", num:974, cat:"LDATA", source:"quakemap",    ns:"tv"}, /* World map with pulsing dots for every ≥M2.5 quake in the last 24h — USGS ANSS feed */
+ {nm:"Newsstand", num:975,         cat:"LDATA", source:"newsstand",   ns:"doc"}, /* Historic newspaper front pages from LOC Chronicling America, rotating every 20 sec */
+ {nm:"Prevue Guide", num:999,      cat:"RETRO", source:"prevueguide", ns:"tv"}, /* Meta channel: renders the classic 90s Prevue Guide look right in the tube */
  {nm:"Christmas Channel", num:700, cat:"HOL", gl:"xmas",         era:[1930,1995], ns:"movie"},
  {nm:"Halloween Haunt", num:701,   cat:"HOL", gl:"halloween",    era:[1930,1995], ns:"movie"},
  {nm:"Thanksgiving Channel", num:702,cat:"HOL",gl:"thanksgiving", era:[1930,1990], ns:"tv"},
@@ -1981,6 +1990,8 @@ const CHANNEL_META={
 "Wikipedia Live":{desc:"LIVE: every edit to Wikipedia, in real time, across the nine biggest wikis. Article titles, edit sizes, running rate. The world writing itself.",best:"anytime",rel:["Storm Center","World Clock"]},
 "Solar Dashboard":{desc:"LIVE: the sun. SDO imagery rotating through the AIA 171/304 filters and the HMI magnetogram, GOES X-ray flux with flare-class letter (A/B/C/M/X), daily F10.7 solar radio flux, sunspot number.",best:"solar maximum",rel:["Aurora & Space Weather","NASA Picture of the Day"]},
 "Global Quakes Map":{desc:"LIVE: every earthquake on Earth in the last 24 hours, plotted as pulsing dots on a world map. Sized and colored by magnitude — amber under M4, orange M4-6, red above. USGS ANSS feed, refresh every 5 min.",best:"anytime",rel:["Seismic Watch","Wildfire Watch"]},
+"Newsstand":{desc:"Newspaper front pages from the Library of Congress Chronicling America archive. Vintage broadsheets from 1789 through 1963 — Titanic, Lindbergh, Pearl Harbor, V-J Day, Sputnik. New paper every 20 seconds.",best:"anytime",rel:["Hometown History","Historic Waco"]},
+"Prevue Guide":{desc:"The classic 90s cable Prevue Guide look — scrolling channel list across the tube with time and branding across the top. All 147 Afterglow channels, autoscroll every 3 sec, click a row to tune.",best:"anytime",rel:["World Clock","Weather Watch"]},
 "Deep Space Jazz":{desc:"NASA imagery slideshow over a 78rpm jazz bed.",best:"late night",rel:["Space","Jukebox 78"]},
 "World Clock":{desc:"LIVE: the world's time zones on a day/night map.",best:"anytime",rel:["Space","On This Day"]},
 "Wildfire Watch":{desc:"LIVE: active fires near you and nationwide, mapped.",best:"fire season",rel:["Seismic Watch","Weather Watch"]},
@@ -5711,7 +5722,16 @@ function renderRail(){ /* v9: honest CHANNEL BANK grid — replaces the horizont
     r.className="chcell"+(ch.num===curNum?" on":"")+(ch.cat==="LDATA"?" chcell-ldata":"");
     r.style.setProperty("--cat",CAT[ch.cat]||"#67ff86");
     const status=window.__chanStatus[ch.num];
-    r.innerHTML='<span class="cc-n">'+ch.num+'</span><span class="cc-nm">'+ch.nm+'</span>'+
+    /* F06 (2026-08-14): tiny IA thumbnail if we've watched this channel before, else a
+       channel-number glyph in the category color as a friendly placeholder. */
+    var _lid=(window.__chLastId||{})[ch.num];
+    var _thumbHtml;
+    if(_lid){
+      _thumbHtml='<span class="cc-thumb"><img src="https://archive.org/services/img/'+esch(_lid)+'" alt="" loading="lazy" decoding="async" onerror="this.parentNode.innerHTML=\'<span class=cc-thumb-glyph>'+ch.num+'</span>\'"></span>';
+    } else {
+      _thumbHtml='<span class="cc-thumb"><span class="cc-thumb-glyph">'+ch.num+'</span></span>';
+    }
+    r.innerHTML='<span class="cc-n">'+ch.num+'</span>'+_thumbHtml+'<span class="cc-nm">'+ch.nm+'</span>'+
       (status?'<span class="cc-status">'+esch(status)+'</span>':'')+
       (isFav(ch.num)?'<span class="cc-f">★</span>':'');
     r.addEventListener("click",(function(num){return function(){tuneNum(num);
@@ -5868,6 +5888,8 @@ async function tuneNum(n){
   if(sl.source==="wiki"){ if(my!==token)return; return tuneWiki(ch,sl,my); }
   if(sl.source==="solar"){ if(my!==token)return; return tuneSolar(ch,sl,my); }
   if(sl.source==="quakemap"){ if(my!==token)return; return tuneQuakeMap(ch,sl,my); }
+  if(sl.source==="newsstand"){ if(my!==token)return; return tuneNewsstand(ch,sl,my); }
+  if(sl.source==="prevueguide"){ if(my!==token)return; return tunePrevueGuide(ch,sl,my); }
 
   if(sl.source==="static"){ if(my!==token)return; hideOv(); bars.style.display="flex";
     barsText.textContent=(hour>=2&&hour<6)?"SIGN-OFF · PLEASE STAND BY":"AFTERGLOW · COLOR BARS";
@@ -6554,6 +6576,10 @@ function setCurItem(it,ch,sl){
   if(!it.isAd){
     const nt=normTitle(curItem.title); if(nt){ recentTitles.unshift(nt); if(recentTitles.length>12)recentTitles.length=12; }
     chStats[ch.num]=(chStats[ch.num]||0)+1; store.set("chStats",chStats);
+    /* F06 (2026-08-14): remember last-played IA identifier per channel for guide thumbnails */
+    var _lid=(it.meta&&(it.meta.identifier||it.meta.id))||curItem.id||"";
+    if(_lid){ try{ window.__chLastId=window.__chLastId||store.get("chLastId",{}); window.__chLastId[ch.num]=_lid; store.set("chLastId",window.__chLastId); }catch(_){}
+    }
     lastMeta={creator:(it.meta&&it.meta.creator)||"",collection:(it.meta&&it.meta.collection)||"",chNum:ch.num,
       /* enriched for soak-harness bleed audit -- programming flow only reads creator/collection so
          these extras are additive, no behavior change. */
@@ -10480,6 +10506,184 @@ async function tuneQuakeMap(ch,sl,my){
   if(chanRT && chanRT.teardowns) chanRT.teardowns.push(function(){ clearInterval(qmTimer); });
 }
 
+/* C01 NEWSSTAND (2026-08-14): historic newspaper front pages from LOC Chronicling America.
+   Uses the public search API to grab 20 random pages, rotates every 20 sec. Zero auth. */
+async function tuneNewsstand(ch,sl,my){
+  if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Newsstand","");
+  if(screenArea) screenArea.innerHTML='<div class="dc-screen" id="dcScreen">'+
+    '<div class="dc-media show" id="nsMedia" style="flex:1 1 62%;height:auto;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#1a1610;position:relative;overflow:hidden;padding:6px">'+
+      '<img id="nsImg" alt="" style="max-width:100%;max-height:100%;object-fit:contain;background:#e8e0c8;box-shadow:0 8px 32px rgba(0,0,0,.6);filter:sepia(.15)">'+
+      '<div id="nsImgCap" style="position:absolute;bottom:6px;left:8px;font:900 10px monospace;color:var(--phos);background:rgba(0,0,0,.6);padding:4px 8px;letter-spacing:.1em">LOADING\u2026</div>'+
+    '</div>'+
+    '<div class="dc-body" id="dcBody" style="flex:0 1 38%;justify-content:flex-start;gap:4px;overflow:hidden">'+
+      '<div class="dc-top"><span>NEWSSTAND \u00b7 LOC</span></div>'+
+      '<div class="dc-sub" id="nsTitle">Chronicling America</div>'+
+      '<div class="dc-list" id="dcList" style="margin-bottom:30px"></div>'+
+      '<div class="dc-ticker">chroniclingamerica.loc.gov \u00b7 public LOC archive \u00b7 1789-1963</div>'+
+    '</div></div>';
+  var nsBug=mountChanBug("dcScreen",{ident:"NEWSSTAND"});
+  var pages=[], idx=0, nsTimer=null;
+  async function loadPages(){
+    /* random query — LOC serves ~20 pages per page-of-results; scramble via date range */
+    var startYear=1900+Math.floor(Math.random()*60);   /* 1900-1959 range mostly */
+    var endYear=Math.min(1963, startYear+9);
+    var url="https://chroniclingamerica.loc.gov/search/pages/results/?format=json&rows=25"+
+            "&dateFilterType=yearRange&date1="+startYear+"&date2="+endYear+
+            "&andtext=&page=1";
+    try{
+      var d=await fetchJSON(url);
+      if(my!==token) return [];
+      var items=(d && d.items)||[];
+      /* each item has .id (path), .title (publication), .date (YYYYMMDD), .place_of_publication */
+      return items.filter(function(it){ return it.id && it.date; }).map(function(it){
+        /* Chronicling America page image URL — the .id looks like /lccn/sn89066313/1912-04-15/ed-1/seq-1/ */
+        return {
+          image: "https://chroniclingamerica.loc.gov"+it.id+"thumbnail.jpg",
+          imageMed: "https://chroniclingamerica.loc.gov"+it.id.replace(/\/$/,"")+"/print/image_800x800_from_0,0_to_6000,6000.jpg",
+          title: it.title||"Unknown paper",
+          date: it.date||"",
+          place: (it.place_of_publication||[it.city||"", it.state||""].filter(Boolean).join(", "))||"",
+          detailUrl: "https://chroniclingamerica.loc.gov"+it.id
+        };
+      });
+    }catch(e){
+      nlog("newsstand",false,(e&&e.message)||"LOC fetch failed");
+      return [];
+    }
+  }
+  function show(){
+    if(my!==token) return;
+    var p=pages[idx];
+    if(!p){
+      var imgEl=document.getElementById("nsImg");
+      if(imgEl){ imgEl.removeAttribute("src"); imgEl.style.display="none"; }
+      var capEl=document.getElementById("nsImgCap");
+      if(capEl) capEl.textContent="LOADING NEXT BATCH\u2026";
+      return;
+    }
+    var imgEl=document.getElementById("nsImg");
+    if(imgEl){
+      imgEl.style.display="block";
+      imgEl.onload=function(){}; imgEl.onerror=function(){
+        /* fallback to thumbnail if the medium size 404s */
+        if(imgEl.src.indexOf("thumbnail.jpg")<0) imgEl.src=p.image;
+      };
+      imgEl.src=p.imageMed || p.image;
+    }
+    var capEl=document.getElementById("nsImgCap");
+    var dateFmt=p.date ? (p.date.slice(0,4)+"-"+p.date.slice(4,6)+"-"+p.date.slice(6,8)) : "?";
+    if(capEl) capEl.textContent=(p.title.toUpperCase()+" \u00b7 "+dateFmt).slice(0,60);
+    var titleEl=document.getElementById("nsTitle");
+    if(titleEl) titleEl.textContent=p.title;
+    var listEl=document.getElementById("dcList");
+    if(listEl){
+      listEl.innerHTML=
+        '<div class="dc-row2"><div class="dc-row2-main"><span class="dc-place">DATE</span><span class="dc-when">'+esch(dateFmt)+'</span></div></div>'+
+        '<div class="dc-row2"><div class="dc-row2-main"><span class="dc-place">CITY</span><span class="dc-when">'+esch((p.place||"?").slice(0,30))+'</span></div></div>'+
+        '<div class="dc-row2"><div class="dc-row2-main"><span class="dc-place">PAGE</span><span class="dc-when">'+(idx+1)+' / '+pages.length+'</span></div></div>'+
+        '<div style="padding:8px 12px;font-size:11px;color:#9fd6a6;line-height:1.5">Open full page at <a href="'+esch(p.detailUrl)+'" target="_blank" rel="noopener" style="color:var(--phos);text-decoration:underline">Chronicling America</a>.</div>';
+    }
+    if(nsBug) nsBug.update(dateFmt, (p.title||"UNKNOWN").toUpperCase().slice(0,40));
+    setChanStatus(ch.num, p.title+" \u00b7 "+dateFmt);
+  }
+  async function refresh(){
+    if(my!==token || !powered) return;
+    idx++;
+    if(idx >= pages.length){
+      pages=await loadPages();
+      idx=0;
+      if(!pages.length){
+        var capEl=document.getElementById("nsImgCap");
+        if(capEl) capEl.textContent="CHRONICLING AMERICA UNAVAILABLE";
+        return;
+      }
+    }
+    show();
+  }
+  pages=await loadPages();
+  idx=0;
+  if(pages.length){ show(); nlog("newsstand",true,pages.length+" pages loaded"); }
+  nsTimer=rtInterval(refresh, 20000);
+  if(chanRT && chanRT.teardowns) chanRT.teardowns.push(function(){ clearInterval(nsTimer); });
+}
+
+/* C28 PREVUE GUIDE (2026-08-14): meta channel that renders the classic 90s cable Prevue Guide
+   look inside the tube — a scrolling channel grid, time in the corner, ambient background.
+   Reads from the CH array directly. Rows are clickable = tune. Autoscroll every 3 seconds. */
+async function tunePrevueGuide(ch,sl,my){
+  if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Prevue Guide","");
+  if(screenArea) screenArea.innerHTML='<div id="pgWrap" style="position:absolute;inset:0;background:linear-gradient(180deg,#0a1a3a 0%,#1a0f4a 100%);color:#fff;font-family:Arial,sans-serif;overflow:hidden;display:flex;flex-direction:column">'+
+    /* header bar — Prevue signature yellow */
+    '<div style="background:linear-gradient(180deg,#ffcc00,#e6b000);color:#0a1a3a;font-weight:900;letter-spacing:.15em;padding:6px 12px;display:flex;justify-content:space-between;align-items:center;font-size:clamp(11px,2vw,14px);border-bottom:2px solid #0a1a3a">'+
+      '<span>\u25b6 AFTERGLOW PREVUE GUIDE</span>'+
+      '<span id="pgClock">--:--</span>'+
+    '</div>'+
+    /* preview strip — where the "commercial" would go on real Prevue */
+    '<div style="background:#3a1a5a;color:#ffcc00;padding:6px 12px;font-size:11px;font-weight:bold;letter-spacing:.1em;border-bottom:1px solid #0a1a3a;text-align:center">'+
+      '<span id="pgTag">The Dial \u00b7 tune anywhere with the numbers on your remote</span>'+
+    '</div>'+
+    /* scrolling channel wall */
+    '<div style="flex:1 1 auto;overflow:hidden;position:relative;background:#0a1a3a">'+
+      '<div id="pgScroll" style="position:absolute;left:0;right:0;top:0;transition:transform 2.4s cubic-bezier(.4,0,.2,1)"></div>'+
+    '</div>'+
+    /* footer bar */
+    '<div style="background:#0a1a3a;color:#ffcc00;padding:4px 12px;font-size:10px;letter-spacing:.15em;text-align:center;font-weight:bold;border-top:1px solid #ffcc00">'+
+      '<span id="pgFoot">PRESS ANY NUMBER TO TUNE \u00b7 PRESS 999 TO RETURN</span>'+
+    '</div>'+
+    '</div>';
+  var pgBug=mountChanBug("screenArea",{ident:"PREVUE"});
+  /* build the channel wall — 3 columns like real Prevue: ch#, name, tagline/category */
+  var scrollEl=document.getElementById("pgScroll");
+  if(scrollEl){
+    var order=CH.slice().sort(function(a,b){ return a.num-b.num; });
+    var rowH=32;
+    var rows=order.map(function(c,i){
+      var catNm=(typeof CATNAME!=="undefined" && CATNAME[c.cat])||c.cat;
+      var stripe=(i%2===0)?"#1a2a5a":"#0a1a3a";
+      return '<div class="pg-row" data-ch="'+c.num+'" style="display:grid;grid-template-columns:60px 1fr 100px;gap:8px;align-items:center;padding:6px 12px;height:'+rowH+'px;background:'+stripe+';border-bottom:1px solid rgba(255,204,0,.1);cursor:pointer;transition:background .15s ease">'+
+        '<span style="color:#ffcc00;font-weight:900;font-size:16px;font-family:monospace;text-align:center;text-shadow:0 0 4px rgba(255,204,0,.6)">'+c.num+'</span>'+
+        '<span style="color:#e8f0ff;font-weight:700;font-size:12px;letter-spacing:.5px;text-transform:uppercase;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esch(c.nm)+'</span>'+
+        '<span style="color:#8fb0ff;font-size:9px;letter-spacing:.15em;text-align:right;text-transform:uppercase">'+esch(String(catNm))+'</span>'+
+      '</div>';
+    }).join("");
+    scrollEl.innerHTML=rows;
+    /* wire row clicks — tune to selected channel */
+    Array.prototype.forEach.call(scrollEl.querySelectorAll(".pg-row"), function(row){
+      row.addEventListener("mouseenter", function(){ row.style.background="#4a3a1a"; });
+      row.addEventListener("mouseleave", function(){}); /* base color set inline, revert not needed */
+      row.addEventListener("click", function(){
+        var n=parseInt(row.getAttribute("data-ch"),10);
+        if(!isNaN(n)) tuneNum(n);
+      });
+    });
+    /* autoscroll every 3 seconds */
+    var totalRows=order.length, visibleRows=Math.floor(400/rowH), scrollIdx=0;
+    var pgScrollTimer=rtInterval(function(){
+      if(my!==token) return;
+      scrollIdx = (scrollIdx + 1) % Math.max(1, totalRows - visibleRows + 1);
+      if(scrollEl) scrollEl.style.transform="translateY("+(-scrollIdx*rowH)+"px)";
+    }, 3000);
+    /* clock */
+    var pgClockTimer=rtInterval(function(){
+      if(my!==token) return;
+      var t=document.getElementById("pgClock");
+      if(t){
+        var d=new Date(), h=d.getHours(), m=d.getMinutes(), ampm=(h>=12?"PM":"AM");
+        h=h%12||12;
+        t.textContent=h+":"+(m<10?"0"+m:m)+" "+ampm;
+      }
+    }, 1000);
+    if(chanRT && chanRT.teardowns) chanRT.teardowns.push(function(){
+      clearInterval(pgScrollTimer); clearInterval(pgClockTimer);
+    });
+  }
+  if(pgBug) pgBug.update(String(CH.length)+" CHANNELS", "AFTERGLOW PREVUE GUIDE");
+  setChanStatus(ch.num, CH.length+" channels \u00b7 autoscroll");
+  nlog("prevueguide", true, "meta channel up");
+}
+
+
+
 
 
 
@@ -13097,6 +13301,8 @@ function signOff(){
 
 /* watch stats (feature #6) */
 var chStats=store.get("chStats",{}), totalMs=store.get("totalMs",0);
+/* F06: preload persisted last-played identifiers for guide thumbnails */
+window.__chLastId=store.get("chLastId",{});
 function renderStats(){
   var el=$("statsList"); if(!el)return;
   var hrs=(totalMs/3600000).toFixed(1);

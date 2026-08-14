@@ -1098,7 +1098,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.151";
+window.__ATV_BUILD="1.7.7-desktop.152";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -9700,43 +9700,45 @@ function tuneSeismic(ch,sl,my){ return tuneRotator(ch,sl,my,[
    the ERROR path auto-advances rotation, so the channel never stalls.
    ============================================================================================ */
 var LIVECAMS_STREAMS=[
-  /* ---------- HIGHWAY (YouTube live · DOT + traffic authority streams) ---------- */
-  {type:"youtube", cat:"HIGHWAY", nm:"KC Scout · Kansas City Highway",         url:"UCd8XyXTQGiVpcHUxTn05VfA", src:"KC Scout DOT",  isChannel:true},
-  {type:"youtube", cat:"HIGHWAY", nm:"MassDOT · I-90 & Boston Corridor",       url:"UCH6nEBObEyG2u2XwvSMHzKw", src:"MassDOT",       isChannel:true},
-  {type:"youtube", cat:"HIGHWAY", nm:"UDOT · Utah Traffic Cams",               url:"UCJ4mVKPCzsGSXrbcJHKnkeg", src:"UDOT",          isChannel:true},
+  /* ---------- HIGHWAY (DOT + traffic streams) ----------
+     ALL YouTube DOT channel-embeds removed 2026-08-14 — user confirmed every YT live_stream
+     embed shows YouTube's "channel not currently live" placeholder. Root cause: most DOT
+     accounts allow embedding on their historical uploads but not on live streams, so the
+     iframe just shows a placeholder. Direct HLS from state DOTs is rare; the honest state is
+     that this category has no working streams right now. The tuneLiveCams empty-state below
+     shows a friendly "no active streams" message instead of a broken iframe.
+     Follow-up: add a type:"jpg-refresh" stream type + wire to Texas TxDOT / Caltrans image cams. */
 
-  /* ---------- BEACH (HLS streams from iptv-org outdoor catalog) ---------- */
-  {type:"hls", cat:"BEACH",   nm:"Beach TV · Florida & Alabama",           url:"http://media4.tripsmarter.com:1935/LiveTV/DTVHD/playlist.m3u8",                                                                                                                          src:"Beach TV"},
-  {type:"hls", cat:"BEACH",   nm:"Beach TV · Key West & Florida Keys",     url:"https://5ed325193d4e1.streamlock.net:444/LiveTV/KTVHD/playlist.m3u8",                                                                                                                    src:"Beach TV"},
-  {type:"hls", cat:"BEACH",   nm:"Beach TV · Myrtle Beach & Grand Strand", url:"http://media4.tripsmarter.com:1935/LiveTV/MTVHD/playlist.m3u8",                                                                                                                          src:"Beach TV"},
-  {type:"hls", cat:"BEACH",   nm:"Beach TV · Panama City Beach",           url:"http://media4.tripsmarter.com:1935/LiveTV/BTVHD/playlist.m3u8",                                                                                                                          src:"Beach TV"},
-  {type:"hls", cat:"BEACH",   nm:"Palm Beaches TV",                        url:"https://live.feed.thepalmbeaches.tv/index.m3u8",                                                                                                                                        src:"Palm Beaches"},
-  {type:"hls", cat:"BEACH",   nm:"NOTV · New Orleans TV",                  url:"http://media4.tripsmarter.com:1935/LiveTV/NOTVHD/playlist.m3u8",                                                                                                                         src:"NOTV"},
+  /* ---------- BEACH (Wowza HLS from tripsmarter.com — Beach TV network + Palm Beaches) ---------- */
+  {type:"hls", cat:"BEACH",   nm:"Beach TV \u00b7 Destin & Fort Walton",       url:"http://media4.tripsmarter.com:1935/LiveTV/DTVHD/playlist.m3u8", src:"Beach TV"},
+  {type:"hls", cat:"BEACH",   nm:"Beach TV \u00b7 Key West & Florida Keys",    url:"https://5ed325193d4e1.streamlock.net:444/LiveTV/KTVHD/playlist.m3u8", src:"Beach TV"},
+  {type:"hls", cat:"BEACH",   nm:"Beach TV \u00b7 Myrtle Beach & Grand Strand",url:"http://media4.tripsmarter.com:1935/LiveTV/MTVHD/playlist.m3u8", src:"Beach TV"},
+  {type:"hls", cat:"BEACH",   nm:"Beach TV \u00b7 Panama City Beach",          url:"http://media4.tripsmarter.com:1935/LiveTV/BTVHD/playlist.m3u8", src:"Beach TV"},
+  {type:"hls", cat:"BEACH",   nm:"Palm Beaches TV",                             url:"https://live.feed.thepalmbeaches.tv/index.m3u8", src:"Palm Beaches"},
+  {type:"hls", cat:"BEACH",   nm:"NOTV \u00b7 New Orleans TV",                 url:"http://media4.tripsmarter.com:1935/LiveTV/NOTVHD/playlist.m3u8", src:"NOTV"},
 
-  /* ---------- NATURE (HLS + Explore.org iframe embeds for wildlife cams) ---------- */
-  {type:"hls",     cat:"NATURE", nm:"WildEarth · Kruger Safari Live",           url:"https://dqga3jatxofgx.cloudfront.net/WildEarth.m3u8",                                                                                                                                    src:"WildEarth"},
-  {type:"hls",     cat:"NATURE", nm:"DroneTV · Aerial Views",                   url:"https://d35j504z0x2vu2.cloudfront.net/v1/master/0bc8e8376bd8417a1b6761138aa41c26c7309312/dronetv/playlist.m3u8",                                                                          src:"DroneTV"},
-  /* explore.org iframe entries removed 2026-08-14 — all /livecams/currently-live/{slug}/embed
-     URLs went 404 after their Next.js migration. YouTube channels behind the same feeds serve
-     as the working replacement. */
-  {type:"youtube", cat:"NATURE", nm:"Cornell Lab · Feeder & Bird Cams",         url:"UCoOX_gpsC-N3fUmCFuo3xhw", src:"Cornell Lab of Ornithology", isChannel:true},
-  {type:"youtube", cat:"NATURE", nm:"Nat Geo WILD Live",                        url:"UCwmZiChSryoWQCZMIQezgTg", src:"National Geographic Wild",   isChannel:true},
-  {type:"youtube", cat:"NATURE", nm:"Monterey Bay Aquarium · Live Cams",        url:"UCcSJfLQV5FzvJXBQ_KJc6iQ", src:"Monterey Bay Aquarium",     isChannel:true},
-  {type:"youtube", cat:"NATURE", nm:"Explore Live Nature Cams",                 url:"UCadHRXthcKgAA6nc23wRVsw", src:"Explore.org (YouTube)",     isChannel:true},
+  /* ---------- NATURE (HLS only — YouTube nature cams removed 2026-08-14, replaced with
+       verified-working nature-programming HLS streams from iptv-org catalog) ---------- */
+  {type:"hls", cat:"NATURE",  nm:"WildEarth \u00b7 Kruger Safari Live",        url:"https://dqga3jatxofgx.cloudfront.net/WildEarth.m3u8", src:"WildEarth"},
+  {type:"hls", cat:"NATURE",  nm:"Love Nature 4K",                              url:"https://pb-ehs1glsha1juy.akamaized.net/Love_Nature_4K.m3u8", src:"Love Nature"},
+  {type:"hls", cat:"NATURE",  nm:"Samsung Wild Life",                           url:"https://pb-olm46bexcljjf.akamaized.net/Samsung_Wild_Life.m3u8", src:"Samsung TV+"},
+  {type:"hls", cat:"NATURE",  nm:"PBS Nature",                                  url:"https://amg02333-pbs-amg02333c11-firetv-us-4242.playouts.now.amagi.tv/playlist.m3u8", src:"PBS"},
+  {type:"hls", cat:"NATURE",  nm:"Safari TV \u00b7 India",                     url:"https://j78dp346yq5r-hls-live.5centscdn.com/safari/live.stream/playlist.m3u8", src:"Safari TV"},
+  {type:"hls", cat:"NATURE",  nm:"Outdoor America",                             url:"https://d1e354daam8g5r.cloudfront.net/playlist.m3u8", src:"Outdoor America"},
+  {type:"hls", cat:"NATURE",  nm:"BBC Earth",                                   url:"https://amg00793-amg00793c6-firetv-us-4067.playouts.now.amagi.tv/playlist.m3u8", src:"BBC Earth"},
 
-  /* ---------- CITY / SCENIC (HLS + YouTube live for major destinations) ---------- */
-  {type:"hls",     cat:"CITY",    nm:"Aruba TV · Island Cams",                 url:"https://cdn01.setar.aw/Canal49/canal49/playlist.m3u8",                                                                                                                                   src:"Aruba TV"},
-  {type:"hls",     cat:"CITY",    nm:"Schladming-Dachstein · Austrian Alps",   url:"https://m317.video-stream-hosting.de/gzSoftware-live/_definst_/smil:livestream.smil/playlist.m3u8",                                                                                       src:"Schladming-Dachstein"},
-  {type:"hls",     cat:"CITY",    nm:"Pocono Television Network",              url:"https://dfoiz3dv1euv7.cloudfront.net/ptnlive-s3/live1.m3u8",                                                                                                                             src:"PTN"},
-  {type:"hls",     cat:"CITY",    nm:"3Cat · Weather Cams (Catalonia)",        url:"https://directes-tv-int.3catdirectes.cat/live-content/beauties-hls/master.m3u8",                                                                                                         src:"3Cat"},
-  {type:"youtube", cat:"CITY",    nm:"EarthCam · Times Square NYC",            url:"UCPGzT4wecu2yql7qbHrEZog", src:"EarthCam", isChannel:true},
-  {type:"youtube", cat:"CITY",    nm:"Bourbon Street · New Orleans Live",      url:"UCEtdiQwLuA0Nn6mavdrxIbA", src:"BourbonOCam", isChannel:true},
+  /* ---------- CITY / SCENIC ---------- */
+  {type:"hls", cat:"CITY",    nm:"Aruba TV \u00b7 Island Cams",                url:"https://cdn01.setar.aw/Canal49/canal49/playlist.m3u8", src:"Aruba TV"},
+  {type:"hls", cat:"CITY",    nm:"Schladming-Dachstein \u00b7 Austrian Alps",  url:"https://m317.video-stream-hosting.de/gzSoftware-live/_definst_/smil:livestream.smil/playlist.m3u8", src:"Schladming-Dachstein"},
+  {type:"hls", cat:"CITY",    nm:"Pocono Television Network",                   url:"https://dfoiz3dv1euv7.cloudfront.net/ptnlive-s3/live1.m3u8", src:"PTN"},
+  {type:"hls", cat:"CITY",    nm:"3Cat \u00b7 Weather Cams (Catalonia)",       url:"https://directes-tv-int.3catdirectes.cat/live-content/beauties-hls/master.m3u8", src:"3Cat"},
+  {type:"hls", cat:"CITY",    nm:"China Travel \u00b7 CCTV+",                  url:"https://fastlive.cctvplus.com/out/v1/ca6f9297b7314a63959435028af287fc/index.m3u8", src:"CCTV+"}
 
-  /* ---------- SPACE (HLS + NASA Live iframe) ---------- */
-  {type:"hls",     cat:"SPACE",   nm:"Sen · Earth from Orbit (Space Live)",    url:"https://880ca9c9341c405f83d8664a18cc7134.mediatailor.us-west-2.amazonaws.com/v1/master/ba62fe743df0fe93366eba3a257d792884136c7f/LINEAR-1224-SPACELIVE-LG-UK/mt/lg-uk/1224/hls/master/playlist.m3u8", src:"Sen"},
-  {type:"youtube", cat:"SPACE",   nm:"NASA Live · ISS + Mission Feed",         url:"UCLA_DiR1FfKNvjuUpBHmylQ", src:"NASA", isChannel:true},
-  {type:"youtube", cat:"SPACE",   nm:"SpaceX Live",                             url:"UCtI0Hodo5o5dUb67FeUjDeA", src:"SpaceX", isChannel:true}
+  /* ---------- SPACE (removed 2026-08-14 — Sen HLS went 404, NASA + SpaceX YT embeds broken)
+     Space content is still available via the NASA Live channel (200s DOC row) which uses IA
+     content, not live YT. If a working NASA HLS is found, re-add here with cat:"SPACE". */
 ];
+
 
 /* Live Cams (v4) — HLS + YouTube iframe + Explore.org iframe. tuneLiveCams accepts an optional
    filterCat parameter so Highway Cams (ch 302) can reuse the same shell filtered to HIGHWAY.
@@ -9759,6 +9761,19 @@ async function tuneLiveCams(ch,sl,my,poolOverride,titleOverride,catsOverride){
   if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,titleOverride||"Live Cams","");
   tuneLiveCams_destroyHls();
   var streams = poolOverride || LIVECAMS_STREAMS;
+  /* 2026-08-14 empty-pool handling: after removing all YT+Explore entries some category-filtered
+     pools (Highway, Space) now come out empty. Show a friendly "channel offline" screen instead
+     of the "Loading first cam…" placeholder that would hang forever with idx modulo 0. */
+  if(!streams || !streams.length){
+    if(screenArea) screenArea.innerHTML='<div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#0a0805;color:var(--phos);font-family:monospace;text-align:center;padding:24px">'+
+      '<div style="font-weight:900;font-size:clamp(20px,4vw,32px);letter-spacing:.15em;text-shadow:0 0 12px rgba(103,255,134,.5);margin-bottom:10px">CHANNEL OFFLINE</div>'+
+      '<div style="font-size:13px;color:#9fd6a6;max-width:44ch;line-height:1.5">The upstream video streams for this channel are all down right now. This is usually temporary. Try another channel and come back later.</div>'+
+      '<div style="margin-top:20px;font-size:10px;color:rgba(159,214,166,.55);letter-spacing:.15em">'+esch((titleOverride||ch.nm||"LIVE CAMS").toUpperCase())+' · 0 STREAMS AVAILABLE</div>'+
+    '</div>';
+    mountChanBug("screenArea",{ident:(titleOverride||"LIVE CAMS").toUpperCase()});
+    setSig("dead","OFF-AIR"); setChanStatus(ch.num,"channel offline · 0 streams");
+    return;
+  }
   /* Build category chip set from what's actually in the pool (some pools have HIGHWAY only). */
   var cats = catsOverride || (function(){
     var seen={}, out=["ALL"];
@@ -9789,7 +9804,7 @@ async function tuneLiveCams(ch,sl,my,poolOverride,titleOverride,catsOverride){
       '</div>'+
       '<button id="lcNext" title="Skip to next cam" style="position:absolute;right:10px;bottom:44px;z-index:11;background:rgba(0,0,0,.7);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:4px;padding:6px 12px;font:700 10px/1 monospace;letter-spacing:1px;cursor:pointer">NEXT ▸</button>'+
     '</div>'+
-    '<div class="dc-ticker">Rotating every 90 sec · HLS + YouTube live + Explore.org · '+streams.length+' cams · tap NEXT to skip</div>'+
+    '<div class="dc-ticker">Rotating every 90 sec · HLS · '+streams.length+' cams · tap NEXT to skip</div>'+
   '</div>';
   mountChanBug("dcScreen",{ident:(titleOverride||"LIVE CAMS").toUpperCase()});
   var Hls = null;

@@ -9,7 +9,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>THE DIAL 1.7.7 — The Set</title>
+<title>AFTERGLOW · The Dial 1.7.7</title>
 <style>
 :root{
   --pan1:#6b4626; --pan2:#5a3a1f; --pan3:#7d5530; --pan-line:#3c2614;
@@ -20,6 +20,11 @@
   --red:#ff5a4d; --blue:#2c4a8c;
   --lamp:#ffce7a;
 }
+/* F16 PHOSPHOR TINT (2026-08-14): CRT phosphor color options. Applied as a filter on #tube only,
+   so the OSD/remote/settings chrome stays unshifted. Default = P1 green (no filter, no attr). */
+#tube[data-phos="amber"]{filter:hue-rotate(28deg) sepia(.42) saturate(1.55) brightness(.96)}
+#tube[data-phos="cyan"] {filter:hue-rotate(148deg) saturate(1.25)}
+#tube[data-phos="white"]{filter:grayscale(1) contrast(1.14) brightness(1.02)}
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{height:100%}
 body{
@@ -1078,7 +1083,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.145";
+window.__ATV_BUILD="1.7.7-desktop.146";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1092,7 +1097,7 @@ function __atvShowBootError(){
       "font:12px/1.5 monospace;padding:16px;overflow:auto;white-space:pre-wrap;box-sizing:border-box;";
     (document.body||document.documentElement).appendChild(el);
   }
-  el.textContent="ARCHIVE TV failed to start.\n\nBuild: "+window.__ATV_BUILD+
+  el.textContent="AFTERGLOW failed to start.\n\nBuild: "+window.__ATV_BUILD+
     "\nURL scheme: "+location.protocol+"\nUA: "+navigator.userAgent+
     "\n\nError(s):\n"+window.__atvBootErrors.join("\n")+
     "\n\n(Screenshot this whole box and send it back — this is the real cause.)";
@@ -1118,7 +1123,7 @@ window.addEventListener("unhandledrejection",function(e){
 <div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.108</div>
 <div class="room">
   <div class="lamp"></div>
-  <div class="marq-wall" id="wallClock">THE DIAL · THE SET</div>
+  <div class="marq-wall" id="wallClock">AFTERGLOW · THE DIAL</div>
 
   <div class="stage">
     <!-- console + tv -->
@@ -1136,7 +1141,7 @@ window.addEventListener("unhandledrejection",function(e){
           </div>
           <div class="ov" id="ov">
             <div class="snow"></div>
-            <div class="big" id="ovBig">THE DIAL</div>
+            <div class="big" id="ovBig">AFTERGLOW</div>
             <div class="standby" id="ovStandby">PRESS POWER</div>
             <div class="sub" id="ovSub">Grab the remote and hit the red button.</div>
           </div>
@@ -1262,7 +1267,7 @@ window.addEventListener("unhandledrejection",function(e){
 <div class="gwrap" id="gwrap">
   <div class="guide">
     <div class="gtop">
-      <span class="glogo"><span class="glogo-mark">▶</span> THE DIAL <span class="gsub">PROGRAM GUIDE</span></span>
+      <span class="glogo"><span class="glogo-mark">▶</span> AFTERGLOW <span class="gsub">THE DIAL · PROGRAM GUIDE</span></span>
       <span class="gclock-wrap">
         <span id="gDate" class="gdate">--</span>
         <span id="gClock" class="gclock">--:--</span>
@@ -1285,7 +1290,7 @@ window.addEventListener("unhandledrejection",function(e){
     <div class="gsearch-wrap"><input id="gSearch" class="gsearch" placeholder="search channels, categories\u2026" autocomplete="off"><span class="gsearch-x" id="gSearchX">\u2715</span></div>
     <div class="catnav" id="catNav"></div>
     <div class="chlist" id="chList"></div>
-    <div class="gticker" aria-hidden="true"><div class="gticker-inner" id="gTickerInner">▶ ARCHIVE TV · THE DIAL · PRESS ANY NUMBER TO TUNE · PRESS ★ TO FAVORITE · 900–926 MUSIC · 950–970 LIVE DATA · 500–509 RETRO · 700–703 HOLIDAY ·</div></div>
+    <div class="gticker" aria-hidden="true"><div class="gticker-inner" id="gTickerInner">▶ AFTERGLOW · THE DIAL · PRESS ANY NUMBER TO TUNE · PRESS ★ TO FAVORITE · 900–929 MUSIC · 950–970 LIVE DATA · 500–509 RETRO · 700–703 HOLIDAY ·</div></div>
   </div>
 </div>
 
@@ -1751,6 +1756,7 @@ const CH=[
  {nm:"Storm Center", num:969,      cat:"LDATA", source:"stormcenter", ns:"tv"}, /* SPC Day 1 Convective Outlook — old-country music bed */
  {nm:"Local Radar", num:970,       cat:"LDATA", source:"localradar",  ns:"tv"}, /* Nearest NEXRAD live loop — ragtime bed */
  {nm:"The Grid", num:971,          cat:"LDATA", source:"grid",        ns:"tv"}, /* ERCOT Texas power grid live via EIA — demand, net gen, forecast + country music bed */
+ {nm:"Wikipedia Live", num:972,   cat:"LDATA", source:"wiki",        ns:"doc"}, /* Wikimedia EventStreams — every edit as it happens, across the top wikis */
  {nm:"Christmas Channel", num:700, cat:"HOL", gl:"xmas",         era:[1930,1995], ns:"movie"},
  {nm:"Halloween Haunt", num:701,   cat:"HOL", gl:"halloween",    era:[1930,1995], ns:"movie"},
  {nm:"Thanksgiving Channel", num:702,cat:"HOL",gl:"thanksgiving", era:[1930,1990], ns:"tv"},
@@ -1872,6 +1878,7 @@ const CHANNEL_META={
 "The Ranger":{desc:"LIVE: NPS + wildlife cams \u2014 Kruger safari, Katmai brown bears, Big Sur condors, African watering hole, panda cam, puppy playroom. Rotates every 90 sec.",best:"anytime",rel:["Live Cams","Nature Channel"]},
 "NASA Live":{desc:"LIVE: NASA TV main feed, SpaceX launch coverage, Sen Earth-from-orbit HLS. Space happenings as they happen.",best:"launch windows",rel:["NASA Picture of the Day","ISS Tracker"]},
 "The Grid":{desc:"LIVE: Texas power grid \u2014 ERCOT demand, net generation, forecast peak, 24-hour trend. Country music bed. Refreshes every 10 min.",best:"heatwaves + cold snaps",rel:["Gas Price Ticker","Weather Watch"]},
+"Wikipedia Live":{desc:"LIVE: every edit to Wikipedia, in real time, across the nine biggest wikis. Article titles, edit sizes, running rate. The world writing itself.",best:"anytime",rel:["Storm Center","World Clock"]},
 "Deep Space Jazz":{desc:"NASA imagery slideshow over a 78rpm jazz bed.",best:"late night",rel:["Space","Jukebox 78"]},
 "World Clock":{desc:"LIVE: the world's time zones on a day/night map.",best:"anytime",rel:["Space","On This Day"]},
 "Wildfire Watch":{desc:"LIVE: active fires near you and nationwide, mapped.",best:"fire season",rel:["Seismic Watch","Weather Watch"]},
@@ -5525,7 +5532,7 @@ function mountChanBug(hostId,opts){
   var host=$(hostId); if(!host) return null;
   var uid="cb"+Math.random().toString(36).slice(2,8);
   host.insertAdjacentHTML("beforeend",
-    '<div class="chan-bug"><div class="chan-bug-id"><span class="chan-bug-dot"></span><span>'+esch(opts.ident||"ARCHIVE TV")+'</span></div>'+
+    '<div class="chan-bug"><div class="chan-bug-id"><span class="chan-bug-dot"></span><span>'+esch(opts.ident||"AFTERGLOW")+'</span></div>'+
     '<div class="chan-bug-mid"><span class="chan-bug-main" id="'+uid+'m">--</span><span class="chan-bug-sub" id="'+uid+'s">LOADING\u2026</span></div>'+
     '<div class="chan-bug-clock" id="'+uid+'c">--:--</div></div>');
   function tick(){ var c=$(uid+"c"); if(!c)return; var d=new Date(); var hh=d.getHours(),ap=hh>=12?"PM":"AM"; hh=hh%12; if(!hh)hh=12;
@@ -5622,7 +5629,7 @@ function guideRefreshTicker(){
     var t=document.getElementById("gTickerInner");
     if(!t) return;
     var chCount=(typeof CH!=="undefined" && CH && CH.length)?CH.length:"—";
-    var head="▶ ARCHIVE TV · THE DIAL · "+chCount+" CHANNELS ";
+    var head="▶ AFTERGLOW · THE DIAL · "+chCount+" CHANNELS ";
     var body=_gTickerHints.map(function(h){return "· "+h+" "}).join("");
     var s=head+body;
     while(s.length<420) s+=body;
@@ -5711,9 +5718,10 @@ async function tuneNum(n){
   if(sl.source==="nasalive"){ if(my!==token)return; return tuneNASALive(ch,sl,my); }
   if(sl.source==="ranger"){ if(my!==token)return; return tuneRanger(ch,sl,my); }
   if(sl.source==="grid"){ if(my!==token)return; return tuneGrid(ch,sl,my); }
+  if(sl.source==="wiki"){ if(my!==token)return; return tuneWiki(ch,sl,my); }
 
   if(sl.source==="static"){ if(my!==token)return; hideOv(); bars.style.display="flex";
-    barsText.textContent=(hour>=2&&hour<6)?"SIGN-OFF · PLEASE STAND BY":"THE DIAL · COLOR BARS";
+    barsText.textContent=(hour>=2&&hour<6)?"SIGN-OFF · PLEASE STAND BY":"AFTERGLOW · COLOR BARS";
     setSig("live","ON AIR"); showNow(ch,sl,"Test Pattern",""); bug.classList.remove("hide"); return; }
 
   if(sl.source==="nasa"){
@@ -6041,7 +6049,7 @@ function powerOn(){powered=true;justPowered=true;
   showShortcutHint(); /* audit-fix Ship B 2026-08-09: fade-in-and-out shortcut strip on power-on */
 }
 function powerOff(){powered=false;++token;stopClock();clearTimeout(retryTimer);releaseWake();tube.classList.add("off");
-  setTimeout(()=>{clearScreen();showOv("THE DIAL","PRESS POWER","Grab the remote and hit the red button.");tube.classList.remove("off");},470);
+  setTimeout(()=>{clearScreen();showOv("AFTERGLOW","PRESS POWER","Grab the remote and hit the red button.");tube.classList.remove("off");},470);
   bug.classList.add("hide");lower.classList.add("fade");volHint.classList.remove("show");
   var pLed=$("rPowLed"); if(pLed) pLed.classList.remove("on"); /* PWR LED off */
   var mBtn=$("rMute"); if(mBtn) mBtn.classList.remove("mute-on");
@@ -6190,6 +6198,10 @@ function showInfo(){if(!infoPanel||!powered)return;const ch=byNum(curNum);if(!ch
   infoPanel.innerHTML='<div class="ip-ch">CH '+ch.num+' \u00b7 '+esch(ch.nm)+'</div>'+
    '<div class="ip-row"><b>NOW</b><span>'+esch(now.show)+((curItem&&curItem.title)?(" \u2014 "+esch(String(curItem.title).slice(0,70))):"")+'</span></div>'+
    (im.creator?'<div class="ip-row"><b>BY</b><span>'+esch(im.creator)+(im.date?(" \u00b7 "+esch(im.date)):"")+'</span></div>':"")+
+   /* F30 (2026-08-14): expose source-collection + IA identifier inline so the reader
+      can see which IA collection served this item and jump straight to it. */
+   ((im.collection||im.mediatype)?'<div class="ip-row"><b>COLL</b><span>'+esch(String(im.collection||im.mediatype).toUpperCase())+'</span></div>':"")+
+   ((im.identifier||im.id)?'<div class="ip-row"><b>SRC</b><span><a href="https://archive.org/details/'+esch(String(im.identifier||im.id))+'" target="_blank" rel="noopener" style="color:var(--phos);text-decoration:underline">'+esch(String(im.identifier||im.id))+'</a></span></div>':"")+
    '<div class="ip-row"><b>NEXT</b><span>'+esch(nx.show)+'</span></div>'+
    (cm.desc?'<div class="ip-row"><b>ABOUT</b><span>'+esch(cm.desc)+'</span></div>':"")+
    (cm.best?'<div class="ip-row"><b>BEST</b><span>'+esch(cm.best)+'</span></div>':"")+
@@ -7936,7 +7948,7 @@ wire("setExport", function(){
   });
 })();
 wire("setReset", function(){
-  if(!confirm("Reset ALL Archive TV settings, favorites, blocklist, and cached channel health? This cannot be undone.")) return;
+  if(!confirm("Reset ALL Afterglow settings, favorites, blocklist, and cached channel health? This cannot be undone.")) return;
   try{
     var kill=[];
     for(var i=0;i<localStorage.length;i++){ var k=localStorage.key(i); if(k&&k.indexOf("atv:")===0) kill.push(k); }
@@ -9800,6 +9812,111 @@ async function tuneGrid(ch,sl,my){
   if(chanRT && chanRT.teardowns) chanRT.teardowns.push(function(){ clearInterval(gridTimer); });
 }
 
+/* C22 WIKIPEDIA LIVE (2026-08-14): Wikimedia EventStreams SSE of live edits across the
+   nine biggest wikis. Rolling wall of last 12 edits + running rate + per-wiki mix.
+   Public endpoint, browser CORS-clean, no auth. */
+async function tuneWiki(ch,sl,my){
+  if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Wikipedia Live","");
+  if(screenArea) screenArea.innerHTML='<div class="dc-screen" id="dcScreen">'+
+    '<div class="dc-media show" id="wikiMedia" style="flex:1 1 60%;height:auto;min-height:0;display:flex;flex-direction:column;background:#0a0d0a;overflow:hidden;position:relative">'+
+      '<div style="padding:6px 12px;border-bottom:1px solid #15240f;display:flex;justify-content:space-between;align-items:center;font:800 10px monospace;color:#9fd6a6;letter-spacing:1px">'+
+        '<span>\u25b6 LIVE EDIT STREAM</span>'+
+        '<span><span id="wikiRate" style="color:var(--phos)">--/min</span> \u00b7 <span id="wikiCount">0</span> observed</span>'+
+      '</div>'+
+      '<div id="wikiStream" style="flex:1 1 auto;overflow:hidden;padding:4px 12px;font:400 12px monospace;line-height:1.35;color:var(--phos)"></div>'+
+    '</div>'+
+    '<div class="dc-body" id="dcBody" style="flex:0 1 40%;justify-content:flex-start;gap:4px;overflow:hidden">'+
+      '<div class="dc-top"><span>WIKIPEDIA LIVE</span></div>'+
+      '<div class="dc-sub" id="wikiSub">Every edit to Wikipedia, as it happens.</div>'+
+      '<div class="dc-list" id="wikiStats" style="margin-bottom:30px"></div>'+
+      '<div class="dc-ticker" id="wikiTicker">stream.wikimedia.org \u00b7 public EventStreams \u00b7 EN DE FR ES JA ZH RU PT IT</div>'+
+    '</div></div>';
+  var wikiBug=mountChanBug("dcScreen",{ident:"WIKI LIVE"});
+  var wikiEs=null, wikiEvents=[], wikiWikis={}, wikiTotal=0, wikiStart=Date.now(), wikiRT=null;
+  var ALLOW={enwiki:"EN", dewiki:"DE", frwiki:"FR", eswiki:"ES", jawiki:"JA", zhwiki:"ZH", ruwiki:"RU", ptwiki:"PT", itwiki:"IT"};
+
+  function render(){
+    if(my!==token) return;
+    var streamEl=$("wikiStream");
+    if(streamEl){
+      if(!wikiEvents.length){
+        streamEl.innerHTML='<div style="color:#5a7f60;padding-top:18px;text-align:center;font-size:11px">connecting to the stream\u2026</div>';
+      } else {
+        streamEl.innerHTML=wikiEvents.map(function(e){
+          var col=e.delta>0?"#8dff9e":(e.delta<0?"#ff8f7a":"#9fd6a6");
+          var dt=e.delta>0?("+"+e.delta):String(e.delta);
+          return '<div style="padding:2px 0;border-bottom:1px dotted rgba(159,214,166,.12);display:flex;gap:8px;align-items:baseline;min-height:20px">'+
+            '<span style="min-width:20px;font-size:9px;color:#5a7f60;font-weight:bold;letter-spacing:.5px">'+e.lang+'</span>'+
+            '<a href="'+esch(e.url)+'" target="_blank" rel="noopener" style="flex:1;color:var(--phos);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-decoration:none">'+esch(e.title)+'</a>'+
+            '<span style="font-size:10px;min-width:52px;text-align:right;color:'+col+';font-variant-numeric:tabular-nums">'+dt+'</span>'+
+          '</div>';
+        }).join("");
+      }
+    }
+    var rEl=$("wikiRate"), secs=(Date.now()-wikiStart)/1000;
+    if(rEl && secs>1) rEl.textContent=Math.round(wikiTotal/(secs/60))+"/min";
+    var cEl=$("wikiCount"); if(cEl) cEl.textContent=wikiTotal.toLocaleString();
+    var stEl=$("wikiStats");
+    if(stEl){
+      var mix=Object.keys(wikiWikis).map(function(w){ return {w:w, n:wikiWikis[w]}; })
+        .sort(function(a,b){ return b.n-a.n; }).slice(0,6);
+      var maxN=Math.max.apply(null, mix.map(function(m){return m.n;}).concat([1]));
+      stEl.innerHTML=mix.map(function(m){
+        var barW=Math.max(4, Math.round(60*m.n/maxN));
+        return '<div class="dc-row2"><div class="dc-row2-main"><span class="dc-place">'+esch(m.w)+'</span>'+
+          '<span class="dc-when" style="display:flex;align-items:center;gap:6px">'+m.n+
+          '<span style="display:inline-block;width:'+barW+'px;height:5px;background:var(--phos-d);opacity:.75"></span></span></div></div>';
+      }).join("");
+    }
+    var last=wikiEvents[0];
+    if(wikiBug){
+      var mainT=wikiTotal.toLocaleString()+" EDITS";
+      var subT=last ? (last.lang+" \u00b7 "+last.title).toUpperCase().slice(0,42) : "CONNECTING\u2026";
+      wikiBug.update(mainT, subT);
+    }
+    setChanStatus(ch.num, wikiTotal+" edits \u00b7 "+Object.keys(wikiWikis).length+" wikis");
+  }
+
+  function connect(){
+    if(wikiEs){ try{ wikiEs.close(); }catch(_){} }
+    try{
+      wikiEs=new EventSource("https://stream.wikimedia.org/v2/stream/recentchange");
+      wikiEs.addEventListener("message", function(evt){
+        if(my!==token) return;
+        try{
+          var d=JSON.parse(evt.data);
+          if(d.type!=="edit" && d.type!=="new") return;
+          if(!ALLOW[d.wiki]) return;
+          if(d.bot) return;
+          var lang=ALLOW[d.wiki];
+          var oldL=(d.length&&d.length.old)||0, newL=(d.length&&d.length.new)||0;
+          wikiEvents.unshift({
+            title:d.title||"?", lang:lang,
+            url:(d.meta&&d.meta.uri)||("https://"+(d.server_name||"en.wikipedia.org")+"/wiki/"+encodeURIComponent((d.title||"").replace(/ /g,"_"))),
+            delta:newL-oldL, user:d.user||"?", at:Date.now()
+          });
+          if(wikiEvents.length>12) wikiEvents.length=12;
+          wikiWikis[lang]=(wikiWikis[lang]||0)+1;
+          wikiTotal++;
+        }catch(_){}
+      });
+      wikiEs.addEventListener("error", function(){ nlog("wiki",false,"stream error (browser will auto-reconnect)"); });
+      nlog("wiki",true,"stream open");
+    }catch(e){
+      nlog("wiki",false,(e&&e.message)||"connect failed");
+      var streamEl=$("wikiStream");
+      if(streamEl) streamEl.innerHTML='<div style="color:#ff8f7a;text-align:center;padding-top:20px;font-size:11px">EventStream unavailable in this browser.</div>';
+    }
+  }
+  connect(); render();
+  wikiRT=rtInterval(render, 800);
+  if(chanRT && chanRT.teardowns) chanRT.teardowns.push(function(){
+    try{ if(wikiEs) wikiEs.close(); }catch(_){}
+    clearInterval(wikiRT);
+  });
+}
+
+
 /* ---------- Storm Center: SPC Day 1 Convective Outlook (image + text) ---------- */
 /* Storm Prediction Center serves the categorical outlook GIF at spc.noaa.gov and a plain-text
    discussion at the same base. The image loads cross-origin via <img src>, no CORS needed.
@@ -10181,7 +10298,7 @@ async function tunePDDay(ch,sl,my){
     var d=pdDayInfo();
     var extraHtml='<div style="font-weight:700;color:#9fd6a6;margin-bottom:6px">HOW PUBLIC DOMAIN WORKS</div>'+
       '<div>In the US, works published 95+ years ago enter the public domain on January 1st each year.</div>'+
-      '<div style="margin-top:8px;font-weight:700;color:#9fd6a6">WHAT THIS MEANS FOR ARCHIVE TV</div>'+
+      '<div style="margin-top:8px;font-weight:700;color:#9fd6a6">WHAT THIS MEANS FOR AFTERGLOW</div>'+
       '<div>Every movie, cartoon, newsreel, and song on this app is here because its copyright expired. '+
       'On Jan 1, '+d.nextJan1Year+', everything published in '+d.enteringYear+' becomes free \u2014 '+
       'new silent films, jazz recordings, newspaper archives, and early talkies join the library.</div>'+
@@ -12625,7 +12742,7 @@ async function tuneWeather(ch,sl,my){
       '<div class="wx-ticker" id="wxTicker">NO ACTIVE ALERTS</div>'+
       '<div class="haz-ticker" id="hazTicker"><span id="hazTickerInner">NATIONWIDE HAZARDOUS WEATHER \u00b7 checking\u2026</span></div>'+
       '<div class="wx-bug" id="wxBug">'+
-        '<div class="wx-bug-id"><span class="wx-bug-dot"></span><span>ARCHIVE TV WX</span></div>'+
+        '<div class="wx-bug-id"><span class="wx-bug-dot"></span><span>AFTERGLOW WX</span></div>'+
         '<div class="wx-bug-mid"><span class="wx-bug-temp" id="wxBugTemp">--\u00b0</span>'+
           '<span class="wx-bug-place" id="wxBugPlace">LOCATING\u2026</span></div>'+
         '<div class="wx-bug-clock" id="wxBugClock">--:--</div>'+
@@ -12786,7 +12903,7 @@ function renderSaved(){ /* UPGRADED (feature: tape-shelf visual) — a shelf of 
 function toggleSaved(){ var o=$("savedOv"); if(!o){quickBanner("SAVED LIST UNAVAILABLE");return;} if(o.classList.contains("show"))o.classList.remove("show"); else{renderSaved();o.classList.add("show");} }
 function shareCurrent(){ if(!curItem||!curItem.id){quickBanner("NOTHING TO SHARE");return;}
   var url="https://archive.org/details/"+encodeURIComponent(curItem.id);
-  if(navigator.share){navigator.share({title:curItem.title||"Archive TV",url:url}).catch(function(){});}
+  if(navigator.share){navigator.share({title:curItem.title||"Afterglow",url:url}).catch(function(){});}
   else{ try{if(navigator.clipboard&&navigator.clipboard.writeText){var pr=navigator.clipboard.writeText(url);if(pr&&pr.catch)pr.catch(function(){});}}catch(e){} quickBanner("LINK COPIED"); } }
 
 
@@ -12896,6 +13013,7 @@ var OSD_ITEMS=[
  {label:"ZOOM",act:toggleAspect,val:function(){return aspectFill?"FILL":"FIT";}},
  {label:"PICTURE ADJUST",act:function(){closeOsd();togglePic();}},
  {label:"PICTURE-IN-PICTURE",act:function(){closeOsd();togglePip();}},
+ {label:"PHOSPHOR TINT",act:function(){ if(typeof window.__cyclePhosphor==="function") window.__cyclePhosphor(); },val:function(){ try{return (typeof window.__getPhos==="function")?window.__getPhos():"GREEN";}catch(_){return "GREEN";} }},
 
  {h:"WHILE WATCHING"},
  {label:"SKIP PROGRAM",act:function(){closeOsd();skipOne();}},
@@ -12944,7 +13062,7 @@ var OSD_ITEMS=[
    if(loc){ if(loc.city&&loc.state) areaDesc=loc.city+", "+loc.state+" and surrounding counties";
             else if(loc.label) areaDesc=loc.label+" and surrounding counties"; }
    triggerEmergencyTakeover({event:"TORNADO WARNING",areaDesc:areaDesc,
-     headline:"THIS IS ONLY A TEST of the Archive TV Emergency Studio. No warning is in effect. If this had been an actual emergency, live radar, the warned counties, and official instructions would appear exactly like this.",
+     headline:"THIS IS ONLY A TEST of the Afterglow Emergency Studio. No warning is in effect. If this had been an actual emergency, live radar, the warned counties, and official instructions would appear exactly like this.",
      instruction:"This is a test of the Emergency Studio. No action is required.",
      expires:new Date(Date.now()+3600000).toISOString(),_test:true});}},
 
@@ -13083,8 +13201,30 @@ renderRail(); updateClocks();
   window.__cycleCRT = cycleCRT; /* expose across IIFE boundary for Settings button + tests */
   applyCRT();
   document.addEventListener("keydown",function(e){ if((e.key==="c"||e.key==="C")&&!e.ctrlKey&&!e.metaKey&&!e.altKey){ var ae=document.activeElement; if(ae&&/^(input|textarea|select)$/i.test(ae.tagName))return; cycleCRT(); } });
+
+  /* F16 PHOSPHOR TINT (2026-08-14): 4-way cycle GREEN(P1 default) / AMBER(P3) / CYAN(P4) / WHITE(mono).
+     Sets #tube[data-phos] which the CSS above turns into a color-shift filter. */
+  var _phosOrder = ["green","amber","cyan","white"];
+  var _phosSaved = store.get("phosTint", "green");
+  if(_phosOrder.indexOf(_phosSaved) < 0) _phosSaved = "green";
+  window.__phosTint = _phosSaved;
+  function applyPhosphor(){
+    var t = document.getElementById("tube"); if(!t) return;
+    if(window.__phosTint === "green") t.removeAttribute("data-phos");
+    else t.setAttribute("data-phos", window.__phosTint);
+  }
+  function cyclePhosphor(){
+    var i = _phosOrder.indexOf(window.__phosTint);
+    window.__phosTint = _phosOrder[(i + 1) % _phosOrder.length];
+    try{ store.set("phosTint", window.__phosTint); }catch(_){}
+    applyPhosphor();
+    try{ quickBanner("PHOSPHOR: "+window.__phosTint.toUpperCase()); }catch(_){}
+  }
+  window.__cyclePhosphor = cyclePhosphor;
+  window.__getPhos = function(){ return (window.__phosTint||"green").toUpperCase(); };
+  applyPhosphor();
 }catch(e){} })();
-showOv("THE DIAL","PRESS POWER","Grab the remote and hit the red button.");
+showOv("AFTERGLOW","PRESS POWER","Grab the remote and hit the red button.");
 setSig("","STANDBY");
 /* Populate the build-number chip beside STANDBY. Just the increment ("v95"), not the whole
    "1.7.7-desktop.108" — the small chip has room for a short tag and that's the part that changes. */

@@ -1150,7 +1150,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.172";
+window.__ATV_BUILD="1.7.7-mobile.173";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1490,6 +1490,7 @@ const G={
  avgeeks:    {mt:"movies",col:["avgeeks"],              fcol:["prelinger"],     subj:["educational film"],         era:[1950,1985]},
  trailer:    {mt:"movies",col:["movie_trailers"],       fcol:[],               subj:["trailer","coming attractions"],era:[1940,1989]},
  jazz78:     {mt:"audio", col:["georgeblood","78rpm"],  fcol:[],               subj:["jazz","swing"],             era:[1920,1949], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
+ waxmuseum:  {mt:"audio", col:["georgeblood","78rpm"],  fcol:["opensource_audio"], subj:["acoustic recording","wax cylinder","edison cylinder","victrola","78rpm","early 20th century","enrico caruso","john mccormack","al jolson","marion harris","john philip sousa","harry lauder","billy murray","ada jones","henry burr","bert williams","nora bayes"], subjRotate:true, subjRequired:true, noBlindFallback:true, era:[1893,1925]},
  gmrock:     {mt:"audio", col:["etree"],                fcol:[],               subj:["rock"], subjRequired:true,  era:[1965,2026], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
  gmfolk:     {mt:"audio", col:["etree"],                fcol:[],               subj:["bluegrass","folk","americana","acoustic"], era:[1965,2026], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
  gmjazz:     {mt:"audio", col:["georgeblood","78rpm"],  fcol:[],               subj:["jazz","dixieland","bebop"], era:[1917,1959], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
@@ -1706,6 +1707,7 @@ const CH=[
  {nm:"Electronic", num:918,        cat:"MUS", gl:"gmelectro",   era:[1990,2025], ns:"music", audio:true},
  {nm:"Funk & Soul", num:919,       cat:"MUS", gl:"gmfunk",      era:[1968,2025], ns:"music", audio:true},
  {nm:"Jukebox 78", num:920,        cat:"MUS", gl:"jazz78",   era:[1920,1949], ns:"music", audio:true},
+ {nm:"The Wax Museum", num:929,   cat:"MUS", gl:"waxmuseum", era:[1893,1925], ns:"music", audio:true}, /* LOC National Jukebox era — Caruso, McCormack, Sousa, Jolson, Marion Harris, wax cylinders, acoustic-era recording */
  {nm:"Fallout Radio", num:921,     cat:"MUS", gl:"radiofallout",era:[1948,1965], ns:"radio", audio:true},
  {nm:"Joke Joint", num:202,         cat:"DOC", gl:"comedycentral", era:[1970,2026], ns:"tv"}, /* renamed from "Comedy" + rebuilt 2026-08-07: was audio-only standup; now video sketch + comedy TV in the Comedy Central vibe */
  {nm:"Podcasts", num:203,           cat:"DOC", gl:"podcasts",     era:[2004,2025], ns:"radio", audio:true},
@@ -1753,7 +1755,7 @@ const CH=[
  {nm:"Ham Radio", num:952,           cat:"LDATA", source:"hf",     ns:"tv"},
  {nm:"ISS Tracker", num:953,       cat:"LDATA", source:"iss",    ns:"space"},
  {nm:"NASA Picture of the Day", num:954, cat:"LDATA", source:"apod", ns:"space"},
- {nm:"Air Traffic", num:955,       cat:"LDATA", source:"airtraffic", ns:"tv"},
+ {nm:"Sky Beacon Live", num:955,   cat:"LDATA", source:"airtraffic", ns:"tv"}, /* International flight tracker — cycles through world hubs every 90s (JFK, LHR, CDG, DXB, HND, LAX, HKG, etc.) */
  {nm:"Seismic Watch", num:956,     cat:"LDATA", source:"seismic",    ns:"tv"},
  {nm:"News, News, News", num:210,  cat:"DOC", gl:"newsarchive", era:[1920,1975], ns:"doc"},
  {nm:"The Kitchen", num:211,       cat:"DOC", gl:"kitchen",     era:[1960,2026], ns:"doc"}, /* Julia Child + vintage cooking TV */
@@ -1865,6 +1867,7 @@ const CHANNEL_META={
 "Electronic":{desc:"Techno, house, ambient, DnB and more (netlabels).",best:"nights",rel:["Hip-Hop","Funk & Soul"]},
 "Funk & Soul":{desc:"Funk, soul and groove — Creative Commons.",best:"anytime",rel:["Hip-Hop","Reggae & Dub"]},
 "Jukebox 78":{desc:"78rpm shellac: jazz and swing, 1920-49.",best:"cocktail hour",rel:["Music Films","Fallout Radio"]},
+"The Wax Museum":{desc:"Acoustic-era recordings, 1893-1925 — Caruso, McCormack, Al Jolson, Marion Harris, John Philip Sousa marches, Tin Pan Alley crooners, early ragtime cylinders. The LOC National Jukebox era in one channel.",best:"quiet mornings",rel:["Jukebox 78","Ragtime"]},
 "Fallout Radio":{desc:"Cold-war airwaves: sci-fi, suspense and civil defense radio.",best:"late night",rel:["Prelinger Vault","Fallout Radio"]},
 "Prelinger Vault":{desc:"The great ephemeral-film archive: educational, industrial, sponsored.",best:"all day",rel:["Prelinger Vault","Manufacturing Marvels"]},
 "Trailer Park":{desc:"Coming attractions, back to back.",best:"anytime",rel:["Classic Film","VHS Vault"]},
@@ -1886,7 +1889,7 @@ const CHANNEL_META={
 "Live Radio":{desc:"LIVE: real broadcast stations worldwide on a spinnable 3D globe (radio-browser) \u2014 drag the earth, click a dot.",best:"anytime",rel:["Public Domain Art","Live TV"]},
 "Public Domain Art":{desc:"A rotating gallery of public-domain masterworks from The Met Open Access, with a classical-music bed.",best:"anytime",rel:["Historic Waco","Deep Space Jazz"]},
 "Weather Watch":{desc:"LIVE: your local conditions, radar, forecast and alerts.",best:"mornings",rel:["Weather Watch","Tropical Watch"]},
-"Air Traffic":{desc:"LIVE: aircraft overhead and nearby airport boards, on rotation.",best:"anytime",rel:["Weather Watch","Live TV"]},
+"Sky Beacon Live":{desc:"LIVE: international flight tracker — starts at your local airspace then cycles every 90 s through the world's busiest hubs (JFK, Heathrow, CDG, DXB, HND, Singapore, LAX, Sydney). Real ADS-B via adsb.lol + airplanes.live + OpenSky fallback.",best:"anytime",rel:["Weather Watch","ISS Tracker"]},
 "Seismic Watch":{desc:"LIVE: elevated volcanoes and global earthquakes, on rotation.",best:"anytime",rel:["Weather Watch","Wildfire Watch"]},
 "News, News, News":{desc:"Newsreels, federal films and historic footage \u2014 the week\u2019s news, decades late.",best:"anytime",rel:["Live News","Historic Waco"]},
 "The Kitchen":{desc:"Julia Child's French Chef and other vintage cooking shows, chef demos and culinary how-tos.",best:"dinner hour",rel:["Home Economics","Prelinger Vault"]},
@@ -3143,6 +3146,42 @@ const PROGRAM = {
       ] }
     ],
     deny: {"subject": ["podcast","talk show","comedy sketch","modern jazz","bebop","rock and roll","electric blues","electric guitar","electronic","synthesizer", ...JAMBAND_DENY]},
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  /* The Wax Museum (ch 929, new 2026-08-09). LOC National Jukebox era — acoustic-recording
+     era, 1893-1925. Named legends of the phonograph era: Caruso, McCormack, Al Jolson,
+     Marion Harris, Billy Murray, Sousa. Distinct from Jukebox 78 (which is later 78rpm
+     electric-era, 1920-49) — this one is the earlier, acoustic-horn recording era. */
+  "The Wax Museum": {
+    genre: "waxmuseum", era: [1893, 1925],
+    providers: [
+      { collections: ["georgeblood", "78rpm", "opensource_audio"], require_subj: [
+        "enrico caruso","john mccormack","al jolson","marion harris","billy murray","ada jones",
+        "henry burr","bert williams","nora bayes","harry lauder","john philip sousa","sousa",
+        "arthur collins","byron g harlan","peerless quartet","american quartet","haydn quartet",
+        "vernon dalhart","alma gluck","mabel wayne","fanny brice","eddie cantor","cliff edwards",
+        "gene austin","paul whiteman","paul robeson early","bessie smith early","jelly roll morton",
+        "james reese europe","fred van eps","charles harrison","frank crumit","irving kaufman",
+        "elsie janis","anna case","lucrezia bori","amelita galli-curci"
+      ] },
+      { collections: ["georgeblood", "78rpm", "opensource_audio"], require_subj: [
+        "wax cylinder","edison cylinder","edison record","edison diamond disc","victor records",
+        "victrola","gramophone recording","phonograph recording","acoustic recording","acoustical era",
+        "acoustic horn recording","early phonograph","78rpm early","early 78","pre-electric recording",
+        "brown wax cylinder","blue amberol","edison amberol","victor red seal","black patti record",
+        "columbia record early","brunswick record early","okeh record early","paramount record early"
+      ] },
+      { collections: ["georgeblood", "78rpm"], require_subj: [
+        "tin pan alley","tin pan alley song","broadway 1910s","broadway 1920s","early musical comedy",
+        "coon song","cakewalk","two-step early","early ragtime song","novelty song 1910s",
+        "victor military band","edison concert band","march music","sousa march","military march",
+        "operatic aria","light opera","gilbert and sullivan","recital tenor","concert soprano",
+        "italian aria","french chanson early","irish tenor","hawaiian steel guitar early",
+        "banjo record","fiddle 78","string band early"
+      ] }
+    ],
+    deny: {"subject": ["podcast","talk show","electric guitar","electronic","synthesizer","bebop","modern jazz","rock and roll","big band swing","electric blues","hip hop","rap", ...JAMBAND_DENY]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
@@ -5519,7 +5558,7 @@ let powered=false, curNum=(function(){
     return raw;
   })(), favOnly=false, muted=store.get("muted",false),
     vol=store.get("vol",0.8), soundOn=true, entryBuf="", entryTimer=null, clockTimer=null;
-var CH_RENAMES={"Sky Traffic":"Air Traffic","Airport Board":"Air Traffic","Volcano Watch":"Seismic Watch","Earthquake Bulletin":"Seismic Watch","Space & Sky":"Space","Cosmos":"Space","NASA Briefing Room":"Space","Storm Watch Radio":"Weather Watch","Newsreel Network":"News, News, News","National Archives":"News, News, News","Historic Footage":"News, News, News","Transportation":"Auto Racing","Silent Bijou":"Silent Cinema","Silent Comedy":"Silent Cinema","Noir Alley":"Noir & Mystery","Mystery Theater":"Noir & Mystery","Action Theater":"Action & Serials","Serial Cliffhangers":"Action & Serials","Golden Age Cinema":"Classic Film","The Movie House":"Classic Film","Toon Vault":"Classic Cartoons","Saturday Morning":"Classic Cartoons","Home Movies":"Home Movies & Travelogues","Travelogue":"Home Movies & Travelogues","Rock Archive":"Live Concerts","Concert Vault":"Live Concerts","Concert & Rock":"Live Concerts","Radio Mystery":"Fallout Radio","Old Time Radio":"Fallout Radio","Filmstrip Theater":"Prelinger Vault","Civil Defense Theater":"Prelinger Vault","The Morning Paper":"Historic Waco","Brazos River Watch":"River & Lake Watch","Rerun TV":"Classic Rerun TV","The Test Kitchen":"Home Economics"}; /* channel renames across versions */
+var CH_RENAMES={"Sky Traffic":"Sky Beacon Live","Airport Board":"Sky Beacon Live","Air Traffic":"Sky Beacon Live","Volcano Watch":"Seismic Watch","Earthquake Bulletin":"Seismic Watch","Space & Sky":"Space","Cosmos":"Space","NASA Briefing Room":"Space","Storm Watch Radio":"Weather Watch","Newsreel Network":"News, News, News","National Archives":"News, News, News","Historic Footage":"News, News, News","Transportation":"Auto Racing","Silent Bijou":"Silent Cinema","Silent Comedy":"Silent Cinema","Noir Alley":"Noir & Mystery","Mystery Theater":"Noir & Mystery","Action Theater":"Action & Serials","Serial Cliffhangers":"Action & Serials","Golden Age Cinema":"Classic Film","The Movie House":"Classic Film","Toon Vault":"Classic Cartoons","Saturday Morning":"Classic Cartoons","Home Movies":"Home Movies & Travelogues","Travelogue":"Home Movies & Travelogues","Rock Archive":"Live Concerts","Concert Vault":"Live Concerts","Concert & Rock":"Live Concerts","Radio Mystery":"Fallout Radio","Old Time Radio":"Fallout Radio","Filmstrip Theater":"Prelinger Vault","Civil Defense Theater":"Prelinger Vault","The Morning Paper":"Historic Waco","Brazos River Watch":"River & Lake Watch","Rerun TV":"Classic Rerun TV","The Test Kitchen":"Home Economics"}; /* channel renames across versions */
 favs=favs.map(function(n){return CH_RENAMES[n]||n;});
 if(CH_RENAMES[store.get("lastName",null)])store.set("lastName",CH_RENAMES[store.get("lastName",null)]);
 let ac=null;
@@ -9258,9 +9297,39 @@ function tuneRotator(ch,sl,my,subs,secs){
    Prior version had two bugs: (1) tuneAirTraffic rendered a layout with #apbWxMini then called
    tuneSkyTraffic which overwrote screenArea, deleting #apbWxMini before the METAR fetch could
    find it \u2014 METAR never appeared. (2) list rows used .dc-place which truncates with ellipses. */
+/* International region rotation for Sky Beacon Live / Air Traffic (ch 955).
+   The channel starts at the user's own local airspace, then cycles through the world's
+   busiest airports every 90 s so you're always watching real live traffic somewhere on
+   the planet. Each entry is {name, lat, lon, mi} — mi tuned to airspace size (Dubai/DXB
+   gets 150 because Middle-East transit airspace is huge). */
+var SKYBEACON_INTL_REGIONS = [
+  {name:"NEW YORK · JFK",        lat: 40.6413, lon:  -73.7781, mi: 90},
+  {name:"LONDON · HEATHROW",     lat: 51.4700, lon:   -0.4543, mi: 90},
+  {name:"PARIS · CDG",           lat: 49.0097, lon:    2.5479, mi: 90},
+  {name:"FRANKFURT · FRA",       lat: 50.0379, lon:    8.5622, mi: 90},
+  {name:"DUBAI · DXB",           lat: 25.2532, lon:   55.3657, mi:150},
+  {name:"SINGAPORE · SIN",       lat:  1.3644, lon:  103.9915, mi:100},
+  {name:"TOKYO · HND",           lat: 35.5494, lon:  139.7798, mi:100},
+  {name:"SYDNEY · SYD",          lat:-33.9399, lon:  151.1753, mi:100},
+  {name:"LOS ANGELES · LAX",     lat: 33.9425, lon: -118.4081, mi:100},
+  {name:"CHICAGO · ORD",         lat: 41.9742, lon:  -87.9073, mi:100},
+  {name:"ATLANTA · ATL",         lat: 33.6407, lon:  -84.4277, mi:100},
+  {name:"HONG KONG · HKG",       lat: 22.3080, lon:  113.9185, mi:100},
+  {name:"AMSTERDAM · AMS",       lat: 52.3086, lon:    4.7639, mi:100},
+  {name:"ISTANBUL · IST",        lat: 41.2753, lon:   28.7519, mi:100},
+  {name:"SAO PAULO · GRU",       lat:-23.4356, lon:  -46.4731, mi:100},
+  {name:"JOHANNESBURG · JNB",    lat:-26.1367, lon:   28.2411, mi:100},
+  {name:"SEOUL · ICN",           lat: 37.4602, lon:  126.4407, mi:100},
+  {name:"DELHI · DEL",           lat: 28.5562, lon:   77.1000, mi:100},
+];
+
 async function tuneAirTraffic(ch,sl,my){
-  if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Air Traffic","");
+  if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Sky Beacon Live","");
   var rangeMi=50, loc=null, mp=null, acsMap={}, cityName="OVERHEAD", selectedCs=null;
+  /* International rotation state — starts at the user's local airspace (idx=-1 sentinel),
+     then cycles through SKYBEACON_INTL_REGIONS every 90 s. userLoc is captured once so
+     we can always return "home" as the first stop of each full loop. */
+  var regionIdx = -1, userLoc = null, regionTimer = null;
   if(screenArea) screenArea.innerHTML='<style>#atRoot .sky-blip i{display:none} #atRoot .sky-blip.tag i{display:block} #atRoot .sky-blip.sel{background:#fff!important;box-shadow:0 0 14px #fff,0 0 30px var(--phos)!important;z-index:5;width:11px;height:11px;margin:-5.5px 0 0 -5.5px} #atRoot .sky-blip{cursor:pointer} #atRoot .at-row{cursor:pointer;transition:background .1s} #atRoot .at-row:hover{background:rgba(103,255,134,.05)} #atRoot .at-row.sel{background:rgba(103,255,134,.10);border-left:2px solid var(--phos)!important}</style>'+
   '<div id="atRoot" style="width:100%;height:100%;display:grid;grid-template-columns:minmax(0,55%) minmax(0,45%);grid-template-rows:1fr auto;gap:6px;padding:6px;box-sizing:border-box;background:radial-gradient(120% 80% at 50% 0%,#04140a,#020a06 70%);color:var(--phos);font-family:monospace;overflow:hidden">'+
     /* LEFT: radar scope, fills the left column at 1:1 aspect */
@@ -9456,12 +9525,32 @@ async function tuneAirTraffic(ch,sl,my){
   var poll=async function(){
     if(my!==token||!powered)return;
     try{
-      if(!loc){ loc=await getWxLocation(); var li=await resolveLocale(loc); if(my!==token)return;
+      if(!loc){ loc=await getWxLocation(); userLoc=loc; var li=await resolveLocale(loc); if(my!==token)return;
         cityName=(li&&li.city)?li.city.toUpperCase():"OVERHEAD";
-        var t=$("skyTitle"); if(t)t.textContent="AIR TRAFFIC \u00b7 "+cityName;
+        var t=$("skyTitle"); if(t)t.textContent="SKY BEACON \u00b7 "+cityName+" \u00b7 LOCAL";
         chrome();
         refreshWx(); /* kick off METAR once we have location */
         wxTimer=rtInterval(function(){ if(my===token)refreshWx(); },5*60*1000);
+        /* Kick off the international region rotator \u2014 cycles every 90 s through SKYBEACON_INTL_REGIONS.
+           regionIdx=-1 means "local" (userLoc); >=0 indexes into SKYBEACON_INTL_REGIONS. */
+        var rotateRegion=function(){
+          if(my!==token||!powered) return;
+          regionIdx = (regionIdx + 1) % (SKYBEACON_INTL_REGIONS.length + 1);
+          var newLoc, newLabel, newRange;
+          if(regionIdx === 0){ newLoc = userLoc; newLabel = cityName + " \u00b7 LOCAL"; newRange = 50; }
+          else {
+            var r = SKYBEACON_INTL_REGIONS[regionIdx - 1];
+            newLoc = { lat: r.lat, lon: r.lon }; newLabel = r.name; newRange = r.mi;
+          }
+          /* wipe stale aircraft blips from old region */
+          Object.keys(acsMap).forEach(function(k){ var e=acsMap[k]; if(e.el&&e.el.remove)e.el.remove(); delete acsMap[k]; });
+          loc = newLoc; rangeMi = newRange;
+          var titleEl=$("skyTitle"); if(titleEl) titleEl.textContent = "SKY BEACON \u00b7 " + newLabel;
+          chrome(); /* redraw radar chrome at new center */
+          refreshWx(); /* fresh METAR for the new region (may be empty for some intl hubs \u2014 that's fine) */
+          poll(); /* immediate aircraft fetch */
+        };
+        regionTimer = rtInterval(rotateRegion, 90000);
       }
       var acs=await fetchSky(loc,Math.round(rangeMi*0.87),true); if(my!==token)return;
       var now=Date.now();

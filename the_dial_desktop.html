@@ -1091,7 +1091,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.147";
+window.__ATV_BUILD="1.7.7-desktop.148";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1772,6 +1772,7 @@ const CH=[
  {nm:"The Grid", num:971,          cat:"LDATA", source:"grid",        ns:"tv"}, /* ERCOT Texas power grid live via EIA — demand, net gen, forecast + country music bed */
  {nm:"Wikipedia Live", num:972,   cat:"LDATA", source:"wiki",        ns:"doc"}, /* Wikimedia EventStreams — every edit as it happens, across the top wikis */
  {nm:"Solar Dashboard", num:973,  cat:"LDATA", source:"solar",       ns:"space"}, /* SDO imagery + GOES X-ray flux + F10.7 solar flux — the sun as a channel */
+ {nm:"Global Quakes Map", num:974, cat:"LDATA", source:"quakemap",    ns:"tv"}, /* World map with pulsing dots for every ≥M2.5 quake in the last 24h — USGS ANSS feed */
  {nm:"Christmas Channel", num:700, cat:"HOL", gl:"xmas",         era:[1930,1995], ns:"movie"},
  {nm:"Halloween Haunt", num:701,   cat:"HOL", gl:"halloween",    era:[1930,1995], ns:"movie"},
  {nm:"Thanksgiving Channel", num:702,cat:"HOL",gl:"thanksgiving", era:[1930,1990], ns:"tv"},
@@ -1895,6 +1896,7 @@ const CHANNEL_META={
 "The Grid":{desc:"LIVE: Texas power grid \u2014 ERCOT demand, net generation, forecast peak, 24-hour trend. Country music bed. Refreshes every 10 min.",best:"heatwaves + cold snaps",rel:["Gas Price Ticker","Weather Watch"]},
 "Wikipedia Live":{desc:"LIVE: every edit to Wikipedia, in real time, across the nine biggest wikis. Article titles, edit sizes, running rate. The world writing itself.",best:"anytime",rel:["Storm Center","World Clock"]},
 "Solar Dashboard":{desc:"LIVE: the sun. SDO imagery rotating through the AIA 171/304 filters and the HMI magnetogram, GOES X-ray flux with flare-class letter (A/B/C/M/X), daily F10.7 solar radio flux, sunspot number.",best:"solar maximum",rel:["Aurora & Space Weather","NASA Picture of the Day"]},
+"Global Quakes Map":{desc:"LIVE: every earthquake on Earth in the last 24 hours, plotted as pulsing dots on a world map. Sized and colored by magnitude — amber under M4, orange M4-6, red above. USGS ANSS feed, refresh every 5 min.",best:"anytime",rel:["Seismic Watch","Wildfire Watch"]},
 "Deep Space Jazz":{desc:"NASA imagery slideshow over a 78rpm jazz bed.",best:"late night",rel:["Space","Jukebox 78"]},
 "World Clock":{desc:"LIVE: the world's time zones on a day/night map.",best:"anytime",rel:["Space","On This Day"]},
 "Wildfire Watch":{desc:"LIVE: active fires near you and nationwide, mapped.",best:"fire season",rel:["Seismic Watch","Weather Watch"]},
@@ -5736,6 +5738,7 @@ async function tuneNum(n){
   if(sl.source==="grid"){ if(my!==token)return; return tuneGrid(ch,sl,my); }
   if(sl.source==="wiki"){ if(my!==token)return; return tuneWiki(ch,sl,my); }
   if(sl.source==="solar"){ if(my!==token)return; return tuneSolar(ch,sl,my); }
+  if(sl.source==="quakemap"){ if(my!==token)return; return tuneQuakeMap(ch,sl,my); }
 
   if(sl.source==="static"){ if(my!==token)return; hideOv(); bars.style.display="flex";
     barsText.textContent=(hour>=2&&hour<6)?"SIGN-OFF · PLEASE STAND BY":"AFTERGLOW · COLOR BARS";
@@ -9837,6 +9840,15 @@ async function tuneGrid(ch,sl,my){
       '<div style="display:flex;align-items:baseline;gap:8px"><div id="gridBig" style="font:800 clamp(28px,6.5vw,52px)/1 monospace;color:var(--phos)">-- GW</div><div id="gridSub" style="font-size:11px;color:#9fd6a6">Texas demand</div></div>'+
       '<div id="gridChart" style="width:100%;max-width:360px"></div>'+
       '<div style="font-size:9px;color:rgba(159,214,166,.6);align-self:stretch;max-width:360px;display:flex;justify-content:space-between;padding:0 2px"><span>24H AGO</span><span>12H</span><span>NOW</span></div>'+
+      /* F24 (2026-08-14): stress meter — horizontal bar showing demand as % of ERCOT peak capacity */
+      '<div id="gridStressWrap" style="width:100%;max-width:360px;margin-top:8px">'+
+        '<div style="display:flex;justify-content:space-between;font-size:9px;color:rgba(159,214,166,.6);letter-spacing:.1em;padding-bottom:3px"><span id="gridStressLbl">GRID STRESS</span><span id="gridStressPct">--</span></div>'+
+        '<div style="position:relative;height:8px;background:rgba(103,255,134,.08);border:1px solid rgba(103,255,134,.2);border-radius:4px;overflow:hidden">'+
+          '<div id="gridStressBar" style="height:100%;width:0%;background:#67ff86;transition:width .8s ease-out,background-color .5s ease-out;box-shadow:0 0 8px rgba(103,255,134,.5)"></div>'+
+          '<div style="position:absolute;top:0;bottom:0;left:65%;width:1px;background:rgba(255,180,58,.35)"></div>'+
+          '<div style="position:absolute;top:0;bottom:0;left:80%;width:1px;background:rgba(255,90,77,.4)"></div>'+
+        '</div>'+
+      '</div>'+
     '</div>'+
     '<div class="dc-body" id="dcBody" style="flex:0 1 45%;justify-content:flex-start;gap:4px;overflow:hidden">'+
       '<div class="dc-top"><span id="gridHead">TEXAS POWER GRID · ERCOT</span></div>'+
@@ -9862,11 +9874,28 @@ async function tuneGrid(ch,sl,my){
       var fcst=(byType.DF&&byType.DF[0])||null;
       var series=(byType.D||[]).slice(0,24).reverse().map(function(r){ return r.value!=null?parseFloat(r.value):null; });
       var bigEl=$("gridBig");
+      var gwVal=null;
       if(demand&&demand.value!=null){
-        var gw=(parseFloat(demand.value)/1000).toFixed(1);
+        gwVal=parseFloat(demand.value)/1000;
+        var gw=gwVal.toFixed(1);
         if(bigEl)bigEl.textContent=gw+" GW";
         setChanStatus(ch.num,gw+" GW · ERCOT");
         if(gridBug) gridBug.update(gw+" GW","TEXAS DEMAND · ERCOT");
+      }
+      /* F24 (2026-08-14): stress meter — % of ERCOT peak capacity (~85 GW). Color-codes: green
+         under 65%, amber 65-80% (conservation), red above 80% (emergency alert territory). */
+      var stressBar=$("gridStressBar"), stressPct=$("gridStressPct"), stressLbl=$("gridStressLbl");
+      if(stressBar && gwVal!=null){
+        var pct=Math.max(2, Math.min(100, Math.round(gwVal/85*100)));
+        var color, label;
+        if(pct < 65){ color="#67ff86"; label="GRID: NORMAL"; }
+        else if(pct < 80){ color="#ffb43a"; label="GRID: ELEVATED"; }
+        else { color="#ff5a4d"; label="GRID: STRESSED"; }
+        stressBar.style.width=pct+"%";
+        stressBar.style.background=color;
+        stressBar.style.boxShadow="0 0 8px "+color;
+        if(stressPct) stressPct.textContent=pct+"% OF 85GW CAP";
+        if(stressLbl) stressLbl.textContent=label;
       }
       var chartEl=$("gridChart");
       if(chartEl&&series.length){ chartEl.innerHTML=svgLineChart(series,"#67ff86",360,90); }
@@ -10117,6 +10146,126 @@ async function tuneSolar(ch,sl,my){
     clearInterval(solarImgTimer); clearInterval(solarStatsTimer);
   });
 }
+
+/* C16 GLOBAL QUAKES MAP (2026-08-14): world map with pulsing dots for every quake in the last 24h.
+   USGS ANSS GeoJSON — same source as Seismic Watch, different presentation. Equirectangular
+   projection at 400x200 unit SVG viewport, no coastlines (deliberate; the dots are the story). */
+async function tuneQuakeMap(ch,sl,my){
+  if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Global Quakes Map","");
+  if(screenArea) screenArea.innerHTML='<div class="dc-screen" id="dcScreen">'+
+    '<div class="dc-media show" id="qmMedia" style="flex:1 1 62%;height:auto;min-height:0;display:flex;flex-direction:column;justify-content:center;align-items:stretch;padding:6px;background:radial-gradient(120% 90% at 50% 40%,#04101c,#010509 75%);position:relative;overflow:hidden">'+
+      '<div id="qmMap" style="width:100%;flex:1 1 auto;display:flex;align-items:center;justify-content:center;position:relative"></div>'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;font:900 9px monospace;color:#9fc4ff;letter-spacing:.2em;padding:4px 6px 0"><span id="qmTotal">-- quakes</span><span id="qmWindow">LAST 24 HOURS</span></div>'+
+    '</div>'+
+    '<div class="dc-body" id="dcBody" style="flex:0 1 38%;justify-content:flex-start;gap:4px;overflow:hidden">'+
+      '<div class="dc-top"><span>GLOBAL QUAKES MAP</span></div>'+
+      '<div class="dc-sub" id="qmBiggest">Biggest: —</div>'+
+      '<div class="dc-list" id="dcList" style="margin-bottom:30px;max-height:220px;overflow-y:auto"></div>'+
+      '<div class="dc-ticker">USGS ANSS \u00b7 all_day.geojson \u00b7 refresh 5 min</div>'+
+    '</div></div>';
+  var qmBug=mountChanBug("dcScreen",{ident:"QUAKE MAP"});
+  var qmTimer=null;
+  function colorFor(mag){
+    if(mag>=6) return "#ff5a4d";
+    if(mag>=5) return "#ff9d3d";
+    if(mag>=4) return "#ffce7a";
+    return "#67ff86";
+  }
+  function radiusFor(mag){
+    /* px in the 400x200 viewbox — sqrt scale keeps big quakes prominent but small ones visible */
+    return Math.max(2, Math.min(14, Math.sqrt(Math.max(0.5,mag))*3.2));
+  }
+  async function refresh(){
+    if(my!==token || !powered) return;
+    try{
+      var d=await fetchJSON("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson");
+      if(my!==token) return;
+      var feats=(d && d.features)||[];
+      /* keep meaningful magnitudes only; the raw feed includes many M1.x noise */
+      var quakes=feats.filter(function(f){
+        var m=(f.properties && f.properties.mag);
+        return typeof m==="number" && !isNaN(m) && m>=2.5;
+      }).map(function(f){
+        var c=f.geometry && f.geometry.coordinates || [0,0];
+        return {
+          lon:c[0], lat:c[1], depth:c[2],
+          mag:f.properties.mag, place:f.properties.place||"Unknown",
+          time:f.properties.time, url:f.properties.url
+        };
+      });
+      /* build SVG map */
+      var mapEl=document.getElementById("qmMap");
+      if(mapEl){
+        var W=400, H=200;
+        var svgParts=['<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;max-height:100%;filter:drop-shadow(0 0 8px rgba(103,255,134,.15))">'];
+        /* subtle graticule */
+        for(var lat=-60;lat<=60;lat+=30){
+          var y=(90-lat)/180*H;
+          svgParts.push('<line x1="0" y1="'+y.toFixed(1)+'" x2="'+W+'" y2="'+y.toFixed(1)+'" stroke="rgba(127,180,255,.08)" stroke-width=".5"/>');
+        }
+        for(var lon=-150;lon<=150;lon+=30){
+          var x=(lon+180)/360*W;
+          svgParts.push('<line x1="'+x.toFixed(1)+'" y1="0" x2="'+x.toFixed(1)+'" y2="'+H+'" stroke="rgba(127,180,255,.08)" stroke-width=".5"/>');
+        }
+        /* equator + prime meridian */
+        svgParts.push('<line x1="0" y1="'+(H/2)+'" x2="'+W+'" y2="'+(H/2)+'" stroke="rgba(127,180,255,.14)" stroke-width=".6"/>');
+        svgParts.push('<line x1="'+(W/2)+'" y1="0" x2="'+(W/2)+'" y2="'+H+'" stroke="rgba(127,180,255,.14)" stroke-width=".6"/>');
+        /* dots — smallest first so biggest sit on top */
+        quakes.sort(function(a,b){ return a.mag-b.mag; }).forEach(function(q){
+          var x=(q.lon+180)/360*W, y=(90-q.lat)/180*H;
+          var r=radiusFor(q.mag), col=colorFor(q.mag);
+          var delay=(Math.random()*3).toFixed(2);
+          svgParts.push('<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="'+r.toFixed(1)+'" fill="'+col+'" fill-opacity=".85"><animate attributeName="opacity" values=".9;.35;.9" dur="'+(1.8+q.mag*0.15).toFixed(2)+'s" repeatCount="indefinite" begin="'+delay+'s"/></circle>');
+          /* outer halo for larger quakes */
+          if(q.mag>=4){
+            svgParts.push('<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="'+(r*2.2).toFixed(1)+'" fill="none" stroke="'+col+'" stroke-width=".8" stroke-opacity=".5"><animate attributeName="r" values="'+(r*1.4).toFixed(1)+';'+(r*3.5).toFixed(1)+'" dur="2.4s" repeatCount="indefinite" begin="'+delay+'s"/><animate attributeName="stroke-opacity" values=".55;0" dur="2.4s" repeatCount="indefinite" begin="'+delay+'s"/></circle>');
+          }
+        });
+        svgParts.push('</svg>');
+        mapEl.innerHTML=svgParts.join("");
+      }
+      /* top-10 by magnitude for the side list */
+      var top10=quakes.slice().sort(function(a,b){ return b.mag-a.mag; }).slice(0,10);
+      var listEl=document.getElementById("dcList");
+      if(listEl){
+        if(!top10.length){
+          listEl.innerHTML='<div class="pop-empty">Quiet planet right now — no significant quakes in the last 24 hours.</div>';
+        } else {
+          var now=Date.now();
+          listEl.innerHTML=top10.map(function(q){
+            var mins=Math.round((now-q.time)/60000);
+            var when=mins<60?(mins+" min ago"):(Math.round(mins/60)+" hr ago");
+            var col=colorFor(q.mag);
+            return '<div class="dc-row2" style="border-left:2px solid '+col+';padding-left:8px"><div class="dc-row2-main">'+
+              '<span class="dc-place" style="color:'+col+';font-weight:bold">M'+q.mag.toFixed(1)+'</span>'+
+              '<span class="dc-when" style="font-size:10px">'+esch(when)+'</span></div>'+
+              '<div style="font-size:11px;color:#9fd6a6;margin-top:2px">'+esch(q.place.slice(0,50))+'</div></div>';
+          }).join("");
+        }
+      }
+      var total=document.getElementById("qmTotal");
+      if(total) total.textContent=quakes.length+" quakes \u2265 M2.5";
+      var biggest=top10[0];
+      var bigEl=document.getElementById("qmBiggest");
+      if(bigEl && biggest) bigEl.textContent="Biggest: M"+biggest.mag.toFixed(1)+" \u00b7 "+biggest.place.slice(0,42);
+      else if(bigEl) bigEl.textContent="Biggest: — no significant quakes";
+      if(qmBug){
+        var subtxt=biggest ? ("M"+biggest.mag.toFixed(1)+" \u00b7 "+biggest.place).toUpperCase().slice(0,42) : "QUIET PLANET";
+        qmBug.update(quakes.length+" QUAKES", subtxt);
+      }
+      setChanStatus(ch.num, quakes.length+" quakes"+(biggest?(" \u00b7 biggest M"+biggest.mag.toFixed(1)):""));
+      nlog("quakemap",true,quakes.length+" quakes");
+    }catch(e){
+      nlog("quakemap",false,(e&&e.message)||"USGS fetch failed");
+      var mapEl2=document.getElementById("qmMap");
+      if(mapEl2) mapEl2.innerHTML='<div class="pop-empty">USGS earthquake feed unavailable \u2014 will retry.</div>';
+    }
+  }
+  await refresh();
+  qmTimer=rtInterval(refresh, 5*60*1000);
+  if(chanRT && chanRT.teardowns) chanRT.teardowns.push(function(){ clearInterval(qmTimer); });
+}
+
 
 
 

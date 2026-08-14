@@ -1177,7 +1177,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.180";
+window.__ATV_BUILD="1.7.7-mobile.181";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1865,6 +1865,7 @@ const CH=[
  {nm:"Solar Dashboard", num:973,  cat:"LDATA", source:"solar",       ns:"space"}, /* SDO imagery + GOES X-ray flux + F10.7 solar flux — the sun as a channel */
  {nm:"Global Quakes Map", num:974, cat:"LDATA", source:"quakemap",    ns:"tv"}, /* World map with pulsing dots for every ≥M2.5 quake in the last 24h — USGS ANSS feed */
  {nm:"Newsstand", num:975,         cat:"LDATA", source:"newsstand",   ns:"doc"}, /* Historic newspaper front pages from LOC Chronicling America, rotating every 20 sec */
+ {nm:"Airport Watch", num:976,    cat:"LDATA", source:"airport",     ns:"tv"}, /* Nearest-fields arrival/departure board — ADS-B derived, live METAR + planespotters photos */
  {nm:"Prevue Guide", num:999,      cat:"RETRO", source:"prevueguide", ns:"tv"}, /* Meta channel: renders the classic 90s Prevue Guide look right in the tube */
  {nm:"Christmas Channel", num:700, cat:"HOL", gl:"xmas",         era:[1930,1995], ns:"movie"},
  {nm:"Halloween Haunt", num:701,   cat:"HOL", gl:"halloween",    era:[1930,1995], ns:"movie"},
@@ -1991,6 +1992,7 @@ const CHANNEL_META={
 "Solar Dashboard":{desc:"LIVE: the sun. SDO imagery rotating through the AIA 171/304 filters and the HMI magnetogram, GOES X-ray flux with flare-class letter (A/B/C/M/X), daily F10.7 solar radio flux, sunspot number.",best:"solar maximum",rel:["Aurora & Space Weather","NASA Picture of the Day"]},
 "Global Quakes Map":{desc:"LIVE: every earthquake on Earth in the last 24 hours, plotted as pulsing dots on a world map. Sized and colored by magnitude — amber under M4, orange M4-6, red above. USGS ANSS feed, refresh every 5 min.",best:"anytime",rel:["Seismic Watch","Wildfire Watch"]},
 "Newsstand":{desc:"Newspaper front pages from the Library of Congress Chronicling America archive. Vintage broadsheets from 1789 through 1963 — Titanic, Lindbergh, Pearl Harbor, V-J Day, Sputnik. New paper every 20 seconds.",best:"anytime",rel:["Hometown History","Historic Waco"]},
+"Airport Watch":{desc:"LIVE: arrival/departure boards for the twelve fields nearest you. Real ADS-B climb/descent rates classify aircraft as DEP or ARR, live METAR conditions per field, tap a row for the airframe's photo. TX fallback list if geolocation fails.",best:"anytime",rel:["Sky Beacon Live","Weather Watch"]},
 "Prevue Guide":{desc:"The classic 90s cable Prevue Guide look — scrolling channel list across the tube with time and branding across the top. All 147 Afterglow channels, autoscroll every 3 sec, click a row to tune.",best:"anytime",rel:["World Clock","Weather Watch"]},
 "Deep Space Jazz":{desc:"NASA imagery slideshow over a 78rpm jazz bed.",best:"late night",rel:["Space","Jukebox 78"]},
 "World Clock":{desc:"LIVE: the world's time zones on a day/night map.",best:"anytime",rel:["Space","On This Day"]},

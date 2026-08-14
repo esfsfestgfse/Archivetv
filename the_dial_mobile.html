@@ -1150,7 +1150,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.174";
+window.__ATV_BUILD="1.7.7-mobile.175";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -6161,7 +6161,9 @@ function powerOn(){powered=true;justPowered=true;
   audioCtx();unlockMedia();sfxClick();tube.classList.remove("off");setSig("tuning","WARMING UP");
   renderRail();startClock();applyPicture();acquireWake();showClockBug();applyNight();tuneNum(curNum);startEmergencyMonitor();
   getWxLocation().then(resolveLocale); /* CYCLE-2: warm the locale cache */
-  if(stationMgr)setTimeout(buildPlan,9000); /* 1.5: draft the day plan once the set is warm */}
+  if(stationMgr)setTimeout(buildPlan,9000); /* 1.5: draft the day plan once the set is warm */
+  showShortcutHint(); /* audit-fix Ship B 2026-08-09: fade-in-and-out shortcut strip on power-on */
+}
 function powerOff(){powered=false;++token;stopClock();clearTimeout(retryTimer);releaseWake();tube.classList.add("off");
   setTimeout(()=>{clearScreen();showOv("THE DIAL","PRESS POWER","Grab the remote and hit the red button.");tube.classList.remove("off");},470);
   bug.classList.add("hide");lower.classList.add("fade");volHint.classList.remove("show");
@@ -13034,100 +13036,166 @@ function soakReport(){
    live values, like a real set's OSD. Toggle items stay open and refresh; "opens a
    panel" items close the menu first. */
 var OSD_ITEMS=[
- {h:"PICTURE"},
+ /* audit-fix Ship B 2026-08-09: restructured per audit report. New shape:
+      PICTURE & VIEW (4) - Fullscreen/Zoom/Picture Adjust/PiP
+      WHILE WATCHING (7) - Skip/Sleep/Night Dim/Commercials/Captions/Fav Surf/More Like This
+      THIS CHANNEL   (contextual) - shown only when curSl matches (weather/sports/livetv)
+      LIBRARY & INFO (10) - Marathon/Schedule/Save/Tape/Deep Cuts/Now-Next/Hist/Stats/Ban/Clear
+      SYSTEM         (5) - Open Archive/Feed Health/More Settings/Share/EAS Test
+      DEVELOPER      (hidden) - Soak Mode/Report/Reset Dead/Sports Era
+      HELP
+    Items support: dev:true (hidden unless window.__devMode) and ctx:fn (hidden unless truthy).
+    Toggle window.__devMode by tapping the build chip 5x rapidly (wired below). */
+ {h:"PICTURE & VIEW"},
  {label:"FULLSCREEN",act:function(){closeOsd();toggleFullscreen();}},
  {label:"ZOOM",act:toggleAspect,val:function(){return aspectFill?"FILL":"FIT";}},
  {label:"PICTURE ADJUST",act:function(){closeOsd();togglePic();}},
- /* audit-fix Ship A 2026-08-09: CABINET moved to Settings-only (cosmetic set-once pref). */
  {label:"PICTURE-IN-PICTURE",act:function(){closeOsd();togglePip();}},
- {h:"PLAYBACK"},
+
+ {h:"WHILE WATCHING"},
  {label:"SKIP PROGRAM",act:function(){closeOsd();skipOne();}},
  {label:"SLEEP TIMER",act:cycleSleep,val:function(){return sleepMin>0?(sleepMin+" MIN"):"OFF";}},
  {label:"NIGHT DIM",act:cycleNight,val:function(){return nightMode.toUpperCase();}},
  {label:"COMMERCIALS",act:function(){adsOn=!adsOn;store.set("ads",adsOn);},val:function(){return adsOn?"ON":"OFF";}},
  {label:"CAPTIONS",act:toggleCC,val:function(){return (curItem&&curItem.hasCC)?(ccOn?"ON":"OFF"):"N/A";}},
  {label:"FAVORITE SURF",act:function(){closeOsd();favSurf();}},
- {h:"LIBRARY"},
  {label:"MORE LIKE THIS",act:function(){closeOsd();moreLikeThis();}},
+
+ {h:"THIS CHANNEL",ctx:function(){ try{ return !!(curSl&&(curSl.source==="weather"||curSl.source==="livetv"||curSl.source==="sports")); }catch(_){return false;} }},
+ {label:"WX: SEGMENT MODE",ctx:function(){try{return !!(curSl&&curSl.source==="weather");}catch(_){return false;}},act:function(){closeOsd();
+   var on=!store.get("wxSegments",false); store.set("wxSegments",on);
+   quickBanner(on?"SEGMENT MODE ON \u00b7 LOCAL ON THE 8s":"SEGMENT MODE OFF");
+   try{ if(curSl&&curSl.source==="weather") tuneNum(curNum); }catch(e){} }},
+ {label:"SPORTS: AUTO-ROTATE",ctx:function(){try{return !!(curSl&&curSl.source==="sports");}catch(_){return false;}},act:function(){closeOsd();
+   var on=!store.get("sportsRotate",false); store.set("sportsRotate",on);
+   quickBanner(on?"AUTO-ROTATE ON \u00b7 CUTS TO LIVE GAMES":"AUTO-ROTATE OFF"); }},
+ {label:"TV: SHOW/HIDE DEAD",ctx:function(){try{return !!(curSl&&curSl.source==="livetv");}catch(_){return false;}},act:function(){closeOsd();
+   var now=!tvHideDead(); store.set("tvHideDead",now);
+   quickBanner(now?"DEAD CHANNELS HIDDEN":"SHOWING ALL CHANNELS");
+   try{ if(window.__tvReload)window.__tvReload(); }catch(e){}
+   try{ if(curSl&&curSl.source==="livetv") tuneNum(curNum); }catch(e){} }},
+
+ {h:"LIBRARY & INFO"},
  {label:"MARATHON LOCK",act:marathonToggle,val:function(){var c=byNum(curNum);return (c&&marathonLock[c.num])?"ON":"OFF";}},
- {label:"SCHEDULE GRID",act:function(){closeOsd();toggleTVGuide();}}, /* renamed 2026-08-09: previously "TV GUIDE" — collided with the main channel guide (GUIDE button / #gwrap). This one is the NOW + next-3-hours EPG grid. */
+ {label:"SCHEDULE GRID",act:function(){closeOsd();toggleTVGuide();}},
  {label:"SAVE TO TAPE",act:function(){closeOsd();saveCurrent();}},
  {label:"TAPE SHELF",act:function(){closeOsd();toggleSaved();}},
  {label:"DEEP CUTS",act:toggleDeepCuts,val:function(){return deepCuts?"ON":"OFF";}},
- {label:"SPORTS ERA",act:cycleSportsEra,val:function(){return sportsEra.toUpperCase();}},
- {h:"INFO & STATS"},
  {label:"NOW / NEXT",act:function(){closeOsd();toggleInfo();}},
  {label:"HISTORY",act:function(){closeOsd();toggleHist();}},
  {label:"WATCH STATS",act:function(){closeOsd();toggleStats();}},
  {label:"BANISH PROGRAM",act:function(){closeOsd();banishCurrent();}},
  {label:"CLEAR BANS",act:clearBans,val:function(){return String(banned.length);}},
+
  {h:"SYSTEM"},
  {label:"OPEN ON ARCHIVE",act:function(){closeOsd();openSource();}},
- /* audit-fix Ship A 2026-08-09: CLOCK FORMAT moved to Settings-only (set-once pref). */
  {label:"FEED HEALTH",act:function(){closeOsd();toggleSettings();
-   /* audit-fix Ship A 2026-08-09: DIAGNOSTICS used to open its own #diagOv pop that
-      duplicated Settings' Feed Health section. Now it opens Settings and auto-runs the
-      health check so there's one canonical place for network debugging. */
    setTimeout(function(){ var b=document.getElementById("btnHealth"); if(b)b.click(); },220);}},
- {label:"SETTINGS",act:function(){closeOsd();toggleSettings();}},
+ {label:"MORE SETTINGS\u2026",act:function(){closeOsd();toggleSettings();}},
  {label:"SHARE",act:function(){closeOsd();shareCurrent();}},
- {label:"WX: SEGMENT MODE",act:function(){closeOsd();
-   var on=!store.get("wxSegments",false); store.set("wxSegments",on);
-   quickBanner(on?"SEGMENT MODE ON \u00b7 LOCAL ON THE 8s":"SEGMENT MODE OFF");
-   try{ if(curSl&&curSl.source==="weather") tuneNum(curNum); }catch(e){} }},
- {label:"SPORTS: AUTO-ROTATE",act:function(){closeOsd();
-   var on=!store.get("sportsRotate",false); store.set("sportsRotate",on);
-   quickBanner(on?"AUTO-ROTATE ON \u00b7 CUTS TO LIVE GAMES":"AUTO-ROTATE OFF"); }},
- {label:"TV: SHOW/HIDE DEAD",act:function(){closeOsd();
-   var now=!tvHideDead(); store.set("tvHideDead",now);
-   quickBanner(now?"DEAD CHANNELS HIDDEN":"SHOWING ALL CHANNELS");
-   try{ if(window.__tvReload)window.__tvReload(); }catch(e){}
-   try{ if(curSl&&curSl.source==="livetv") tuneNum(curNum); }catch(e){} }},
- {label:"TV: RESET DEAD LIST",act:function(){closeOsd();
-   try{ store.set("tvHealth",{}); }catch(e){}
-   quickBanner("CHANNEL HEALTH CLEARED");
-   try{ if(curSl&&curSl.source==="livetv") tuneNum(curNum); }catch(e){} }},
  {label:"EAS TEST",act:function(){closeOsd(); if(!powered){quickBanner("TURN THE TV ON FIRST");return;}
-   /* Pull the user's own location for the demo areaDesc so the EAS test names their area
-      instead of the previous hardcoded McLennan/Bell/Falls Texas counties (owner's home region,
-      wrong for anyone else running the app). Falls back gracefully if no location is set. */
    var loc=store.get("homeLoc",null)||store.get("gpsLoc",null);
    var areaDesc="your local area (set HOME ZIP in Settings for a county-specific test)";
-   if(loc){
-     if(loc.city&&loc.state) areaDesc=loc.city+", "+loc.state+" and surrounding counties";
-     else if(loc.label) areaDesc=loc.label+" and surrounding counties";
-   }
+   if(loc){ if(loc.city&&loc.state) areaDesc=loc.city+", "+loc.state+" and surrounding counties";
+            else if(loc.label) areaDesc=loc.label+" and surrounding counties"; }
    triggerEmergencyTakeover({event:"TORNADO WARNING",areaDesc:areaDesc,
      headline:"THIS IS ONLY A TEST of the Archive TV Emergency Studio. No warning is in effect. If this had been an actual emergency, live radar, the warned counties, and official instructions would appear exactly like this.",
      instruction:"This is a test of the Emergency Studio. No action is required.",
      expires:new Date(Date.now()+3600000).toISOString(),_test:true});}},
- {label:"SOAK MODE",act:toggleSoak,val:function(){return soakTimer?"ON":"OFF";}},
- {label:"SOAK REPORT",act:function(){closeOsd();soakReport();}},
+
+ {h:"DEVELOPER",dev:true},
+ {label:"SOAK MODE",dev:true,act:toggleSoak,val:function(){return soakTimer?"ON":"OFF";}},
+ {label:"SOAK REPORT",dev:true,act:function(){closeOsd();soakReport();}},
+ {label:"TV: RESET DEAD LIST",dev:true,act:function(){closeOsd();
+   try{ store.set("tvHealth",{}); }catch(e){}
+   quickBanner("CHANNEL HEALTH CLEARED");
+   try{ if(curSl&&curSl.source==="livetv") tuneNum(curNum); }catch(e){} }},
+ {label:"SPORTS ERA",dev:true,act:cycleSportsEra,val:function(){return sportsEra.toUpperCase();}},
+
  {label:"HELP",act:function(){closeOsd();
-   /* audit-fix Ship A 2026-08-09: unified — HELP always opens #helpOv (was split: mobile replayed
-      the splash, desktop opened the modal). The splash "welcome again" affordance can be added
-      later inside helpOv via a "Replay welcome" button. */
    if(typeof toggleHelp==="function") toggleHelp();
    else if(window.__atvReplaySplash) window.__atvReplaySplash();
  }}
 ];
 var osdIdx=1;
+/* audit-fix Ship B 2026-08-09: dev mode + contextual visibility support. Items with dev:true
+   are hidden unless window.__devMode is truthy (persisted via localStorage["devMode"]);
+   items with ctx:fn() are hidden unless fn() returns truthy. */
+try{ window.__devMode = !!store.get("devMode", false); }catch(_){ window.__devMode = false; }
+function osdVisible(it){
+  if(!it) return false;
+  if(it.dev && !window.__devMode) return false;
+  if(typeof it.ctx==="function"){ try{ if(!it.ctx()) return false; }catch(_){ return false; } }
+  return true;
+}
 function osdOpen(){var o=$("osdMenu");return !!(o&&!o.classList.contains("hide"));}
-function osdStep(from,dir){var i=from;for(var k=0;k<OSD_ITEMS.length;k++){i=(i+dir+OSD_ITEMS.length)%OSD_ITEMS.length;if(!OSD_ITEMS[i].h)return i;}return from;}
+function osdStep(from,dir){var i=from;for(var k=0;k<OSD_ITEMS.length;k++){i=(i+dir+OSD_ITEMS.length)%OSD_ITEMS.length;var it=OSD_ITEMS[i];if(!it.h && osdVisible(it))return i;}return from;}
 function renderOsd(){
   var o=$("osdMenu"); if(!o)return;
   var html='<div class="osd-h"><span>&#9776; MENU</span><span class="osd-x" role="button" tabindex="0" aria-label="Close menu">&#10005;</span></div><div class="osd-list">';
   OSD_ITEMS.forEach(function(it,i){
-    if(it.h){ html+='<div class="osd-sec">'+it.h+'</div>'; return; }
+    if(!osdVisible(it)) return;
+    if(it.h){ html+='<div class="osd-sec'+(it.dev?" osd-sec-dev":"")+'">'+esch(it.h)+'</div>'; return; }
     var val=""; try{ val=it.val?String(it.val()):""; }catch(e){}
-    html+='<div class="osd-item'+(i===osdIdx?" cur":"")+'" data-i="'+i+'"><span>'+it.label+'</span>'+(val?('<span class="osd-val">'+esch(val)+'</span>'):'')+'</div>';
+    html+='<div class="osd-item'+(i===osdIdx?" cur":"")+(it.dev?" osd-item-dev":"")+'" data-i="'+i+'"><span>'+it.label+'</span>'+(val?('<span class="osd-val">'+esch(val)+'</span>'):'')+'</div>';
   });
-  html+='</div><div class="osd-f">&#9650;&#9660; NAVIGATE &nbsp;&#8629; SELECT &nbsp;ESC CLOSE</div>';
+  html+='</div><div class="osd-f">&#9650;&#9660; NAVIGATE &nbsp;&#8629; SELECT &nbsp;ESC CLOSE'+
+    (window.__devMode?' &nbsp;·&nbsp;<span style="color:#ffd75e">DEV MODE</span>':'')+'</div>';
   o.innerHTML=html;
   o.querySelectorAll(".osd-item").forEach(function(r){ r.addEventListener("click",function(){ osdIdx=+r.dataset.i; osdActivate(); }); });
   var x=o.querySelector(".osd-x"); if(x){ x.addEventListener("click",closeOsd);
     x.addEventListener("keydown",function(e){ if(e.key==="Enter"||e.key===" "){e.preventDefault();closeOsd();} }); }
   var cur=o.querySelector(".osd-item.cur"); if(cur&&cur.scrollIntoView)cur.scrollIntoView({block:"nearest"});
+}
+/* Build-chip 5-tap gesture to toggle dev mode. Rapid taps within 1.5 s. */
+(function(){
+  var chips=["verChip","mVerChip"], hits=0, resetT=null;
+  function bump(){
+    hits++;
+    clearTimeout(resetT); resetT=setTimeout(function(){hits=0;},1500);
+    if(hits>=5){
+      hits=0;
+      window.__devMode = !window.__devMode;
+      try{ store.set("devMode", window.__devMode); }catch(_){}
+      try{ quickBanner(window.__devMode?"DEV MODE UNLOCKED":"DEV MODE OFF"); }catch(_){}
+      if(osdOpen()) renderOsd();
+    }
+  }
+  chips.forEach(function(id){ var el=document.getElementById(id); if(el){ el.style.cursor="pointer"; el.addEventListener("click",bump); } });
+})();
+
+/* audit-fix Ship B 2026-08-09: keyboard-shortcut ghost strip. On power-on, fade a small strip in
+   at bottom-right for ~4 s showing the most useful shortcuts, then fade it out. Respects
+   prefers-reduced-motion (still shows the strip but skips the animation). */
+(function(){
+  if(document.getElementById("shortcutHintCss")) return;
+  var st=document.createElement("style"); st.id="shortcutHintCss";
+  st.textContent=".shortcut-hint{position:absolute;right:12px;bottom:60px;z-index:22;"+
+    "font:900 10px/1 'Arial Narrow','Helvetica Neue Condensed',Arial,sans-serif;"+
+    "letter-spacing:2px;padding:6px 10px;background:rgba(4,9,20,.75);color:#4dc8ff;"+
+    "border:1px solid rgba(77,200,255,.35);border-radius:2px;text-transform:uppercase;"+
+    "pointer-events:none;opacity:0;transition:opacity .4s ease}"+
+    ".shortcut-hint.show{opacity:1}"+
+    ".shortcut-hint kbd{background:rgba(255,204,0,.15);color:#ffcc00;border:1px solid rgba(255,204,0,.4);"+
+    "padding:1px 5px;border-radius:2px;font-family:'VT323','Courier New',monospace;font-size:12px;margin:0 2px 0 6px}"+
+    "@media (prefers-reduced-motion:reduce){.shortcut-hint{transition:none}}";
+  document.head.appendChild(st);
+})();
+var _shortcutHintT=null;
+function showShortcutHint(){
+  try{
+    /* only makes sense on keyboardy contexts — skip on true touch-only phones where these keys don't exist */
+    if(document.documentElement.classList.contains("mob") && !window.matchMedia("(pointer:fine)").matches) return;
+    var host=document.getElementById("tube") || document.body;
+    var el=document.getElementById("shortcutHintEl");
+    if(!el){ el=document.createElement("div"); el.id="shortcutHintEl"; el.className="shortcut-hint";
+      el.innerHTML="<kbd>N</kbd> MENU <kbd>G</kbd> GUIDE <kbd>S</kbd> SURF <kbd>F</kbd> FAV";
+      host.appendChild(el); }
+    clearTimeout(_shortcutHintT);
+    /* stagger the reveal so it doesn't fight the tube warm-up */
+    setTimeout(function(){ el.classList.add("show"); },900);
+    _shortcutHintT=setTimeout(function(){ el.classList.remove("show"); },5200);
+  }catch(_){}
 }
 function openOsd(){ if(!powered){quickBanner("TURN THE TV ON FIRST");return;}
   var o=$("osdMenu"); if(!o)return;

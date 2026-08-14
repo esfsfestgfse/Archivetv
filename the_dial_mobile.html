@@ -462,6 +462,14 @@ video::-webkit-media-text-track-display {
 .rbtn.xs.on{outline:2px solid var(--amber);color:#fff}
 .rbtn.xs.disabled{opacity:.4;cursor:not-allowed}
 .tube.sleep-dim .screen-area,.tube.sleep-dim .audio-screen{filter:brightness(.22) saturate(.55);transition:filter 8s linear}
+/* F20 (2026-08-14): last-10-seconds sleep countdown overlay */
+#sleepCount{position:absolute;inset:0;z-index:35;display:none;align-items:center;justify-content:center;pointer-events:none;
+  font:900 clamp(80px,18vw,180px)/1 "Courier New",monospace;color:var(--amber);
+  text-shadow:0 0 30px rgba(255,157,61,.7),0 0 60px rgba(255,157,61,.4);
+  animation:sleepCountPulse 1s ease-out both}
+#sleepCount.show{display:flex}
+@keyframes sleepCountPulse{0%{transform:scale(1.4);opacity:0}20%{transform:scale(1);opacity:1}100%{transform:scale(.85);opacity:.85}}
+@media (prefers-reduced-motion:reduce){#sleepCount{animation:none}}
 #tube:fullscreen .flip-bar{right:24px}
 /* ===== cabinet themes ===== */
 body.theme-ebony{--wood:#1c1c1f;--wood-d:#0d0d0f;--wood-l:#33333a;--pan1:#2a2a30;--pan2:#222227;--pan3:#34343c;--pan-line:#141417;--lamp:#9fb6ff}
@@ -1162,7 +1170,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.177";
+window.__ATV_BUILD="1.7.7-mobile.178";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1460,6 +1468,12 @@ window.addEventListener("unhandledrejection",function(e){
 <div class="pop" id="histPanel" role="dialog" aria-label="Recently watched">
   <div class="pop-h">RECENTLY WATCHED <span class="pop-x" data-close="histPanel" role="button" tabindex="0" aria-label="Close">✕</span></div>
   <div class="hist-list" id="histList"></div>
+</div>
+
+<!-- F26 (2026-08-14): TODAY IN HISTORY — Wikipedia OnThisDay events for today, click to tune -->
+<div class="pop pop-wide" id="todayPop" role="dialog" aria-label="Today in history">
+  <div class="pop-h">TODAY IN HISTORY <span class="pop-x" data-close="todayPop" role="button" tabindex="0" aria-label="Close">✕</span></div>
+  <div class="hist-list" id="todayList" style="max-height:60vh"></div>
 </div>
 
 <!-- controls / help -->
@@ -1841,6 +1855,7 @@ const CH=[
  {nm:"Local Radar", num:970,       cat:"LDATA", source:"localradar",  ns:"tv"}, /* Nearest NEXRAD live loop — ragtime bed */
  {nm:"The Grid", num:971,          cat:"LDATA", source:"grid",        ns:"tv"}, /* ERCOT Texas power grid live via EIA — demand, net gen, forecast + country music bed */
  {nm:"Wikipedia Live", num:972,   cat:"LDATA", source:"wiki",        ns:"doc"}, /* Wikimedia EventStreams — every edit as it happens, across the top wikis */
+ {nm:"Solar Dashboard", num:973,  cat:"LDATA", source:"solar",       ns:"space"}, /* SDO imagery + GOES X-ray flux + F10.7 solar flux — the sun as a channel */
  {nm:"Christmas Channel", num:700, cat:"HOL", gl:"xmas",         era:[1930,1995], ns:"movie"},
  {nm:"Halloween Haunt", num:701,   cat:"HOL", gl:"halloween",    era:[1930,1995], ns:"movie"},
  {nm:"Thanksgiving Channel", num:702,cat:"HOL",gl:"thanksgiving", era:[1930,1990], ns:"tv"},
@@ -1963,6 +1978,7 @@ const CHANNEL_META={
 "NASA Live":{desc:"LIVE: NASA TV main feed, SpaceX launch coverage, Sen Earth-from-orbit HLS. Space happenings as they happen.",best:"launch windows",rel:["NASA Picture of the Day","ISS Tracker"]},
 "The Grid":{desc:"LIVE: Texas power grid \u2014 ERCOT demand, net generation, forecast peak, 24-hour trend. Country music bed. Refreshes every 10 min.",best:"heatwaves + cold snaps",rel:["Gas Price Ticker","Weather Watch"]},
 "Wikipedia Live":{desc:"LIVE: every edit to Wikipedia, in real time, across the nine biggest wikis. Article titles, edit sizes, running rate. The world writing itself.",best:"anytime",rel:["Storm Center","World Clock"]},
+"Solar Dashboard":{desc:"LIVE: the sun. SDO imagery rotating through the AIA 171/304 filters and the HMI magnetogram, GOES X-ray flux with flare-class letter (A/B/C/M/X), daily F10.7 solar radio flux, sunspot number.",best:"solar maximum",rel:["Aurora & Space Weather","NASA Picture of the Day"]},
 "Deep Space Jazz":{desc:"NASA imagery slideshow over a 78rpm jazz bed.",best:"late night",rel:["Space","Jukebox 78"]},
 "World Clock":{desc:"LIVE: the world's time zones on a day/night map.",best:"anytime",rel:["Space","On This Day"]},
 "Wildfire Watch":{desc:"LIVE: active fires near you and nationwide, mapped.",best:"fire season",rel:["Seismic Watch","Weather Watch"]},
@@ -5848,6 +5864,7 @@ async function tuneNum(n){
   if(sl.source==="ranger"){ if(my!==token)return; return tuneRanger(ch,sl,my); }
   if(sl.source==="grid"){ if(my!==token)return; return tuneGrid(ch,sl,my); }
   if(sl.source==="wiki"){ if(my!==token)return; return tuneWiki(ch,sl,my); }
+  if(sl.source==="solar"){ if(my!==token)return; return tuneSolar(ch,sl,my); }
 
   if(sl.source==="static"){ if(my!==token)return; hideOv(); bars.style.display="flex";
     barsText.textContent=(hour>=2&&hour<6)?"SIGN-OFF · PLEASE STAND BY":"AFTERGLOW · COLOR BARS";
@@ -6379,6 +6396,62 @@ function renderHist(){if(!histList)return;if(!histArr.length){histList.innerHTML
    r.addEventListener("click",function(){if(histPanel)histPanel.classList.remove("show");if(!powered)powerOn();tuneNum(h.n);});histList.appendChild(r);});}
 function toggleHist(){if(!histPanel)return;if(histPanel.classList.contains("show"))histPanel.classList.remove("show");else{renderHist();histPanel.classList.add("show");}}
 
+/* F26 (2026-08-14) TODAY IN HISTORY — fetches Wikipedia OnThisDay events for today's month/day
+   and renders them as a browsable list. Clicking an event tunes to the On This Day channel
+   (which then searches Commons for footage tied to it). */
+function showTodayInHistory(){
+  var pop=document.getElementById("todayPop"), list=document.getElementById("todayList");
+  if(!pop||!list) return;
+  list.innerHTML='<div class="pop-empty">Loading events…</div>';
+  pop.classList.add("show");
+  var now=new Date(), mm=String(now.getMonth()+1).padStart(2,"0"), dd=String(now.getDate()).padStart(2,"0");
+  var monthNames=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  var todayLabel=monthNames[now.getMonth()]+" "+parseInt(dd,10);
+  fetch("https://en.wikipedia.org/api/rest_v1/feed/onthisday/events/"+mm+"/"+dd,{cache:"default"})
+    .then(function(r){ if(!r.ok) throw new Error("http "+r.status); return r.json(); })
+    .then(function(d){
+      var events=(d&&d.events)||[];
+      /* dedup by year, keep the first 30, sort most-recent-first */
+      var seen={}, keep=[];
+      events.forEach(function(ev){
+        var y=ev.year; if(y==null || seen[y]) return; seen[y]=true; keep.push(ev);
+      });
+      keep.sort(function(a,b){ return (b.year||0)-(a.year||0); });
+      keep=keep.slice(0,30);
+      if(!keep.length){ list.innerHTML='<div class="pop-empty">Nothing on record for '+esch(todayLabel)+'.</div>'; return; }
+      var html='<div style="padding:8px 12px 4px;font-size:11px;color:#9fd6a6;letter-spacing:.15em">'+esch(todayLabel.toUpperCase())+' · '+keep.length+' EVENTS</div>';
+      html+=keep.map(function(ev){
+        var year=ev.year||"?";
+        var text=(ev.text||"").slice(0,150);
+        return '<div class="hist-row" data-year="'+esch(String(year))+'" data-text="'+esch(text)+'" tabindex="0" role="button">'+
+          '<span class="hist-ch" style="min-width:52px">'+esch(String(year))+'</span>'+
+          '<span class="hist-t">'+esch(text)+'</span>'+
+        '</div>';
+      }).join("");
+      html+='<div style="padding:10px 14px 14px;text-align:center;border-top:1px solid #15240f;margin-top:6px">'+
+        '<button class="pop-btn" id="todayTune">TUNE ON THIS DAY CHANNEL</button></div>';
+      list.innerHTML=html;
+      /* wire click on rows: quick banner with the event description so user can pick before tuning */
+      Array.prototype.forEach.call(list.querySelectorAll(".hist-row"),function(r){
+        r.addEventListener("click",function(){
+          var y=r.getAttribute("data-year"), t=r.getAttribute("data-text");
+          try{ quickBanner(y+" · "+t.slice(0,60)); }catch(_){}
+        });
+      });
+      var btn=document.getElementById("todayTune");
+      if(btn) btn.addEventListener("click",function(){
+        pop.classList.remove("show");
+        /* find the On This Day channel by source and tune to it */
+        var ch=CH.find(function(c){return c.source==="onthisday";});
+        if(ch){ if(!powered) powerOn(); tuneNum(ch.num); }
+        else { quickBanner("ON THIS DAY channel not found"); }
+      });
+    })
+    .catch(function(e){
+      list.innerHTML='<div class="pop-empty">Wikipedia is unreachable right now — try again in a bit.<br><br><span style="font-size:10px;opacity:.6">'+esch((e&&e.message)||String(e))+'</span></div>';
+    });
+}
+
 /* favorites quick-surf */
 function favSurf(){if(!powered)return;const f=CH.filter(function(c){return isFav(c.num);});if(!f.length){quickBanner("No favorites yet — press ★ FAV");return;}
   let pool=f.filter(function(c){return c.num!==curNum;});if(!pool.length)pool=f;lastNum=curNum;tuneNum(pool[Math.floor(Math.random()*pool.length)].num);}
@@ -6391,9 +6464,21 @@ function renderSleep(){if(!sleepInd)return;if(sleepMin<=0){sleepInd.classList.ad
 function tickSleep(){if(sleepMin<=0)return;const left=sleepDeadline-Date.now();
   if(left<=0){clearInterval(sleepTimer);sleepTimer=null;sleepMin=0;if(sleepInd)sleepInd.classList.add("hide");
     if(tube)tube.classList.remove("sleep-dim");const vv=screenArea.querySelector("video,audio");if(vv)vv.volume=vol;
+    /* F20: tear down the countdown overlay before the sign-off starts */
+    var scEnd=document.getElementById("sleepCount"); if(scEnd) scEnd.classList.remove("show");
     if(powered)signOff();return;} // NEW: authentic sign-off sequence instead of an instant cut
   if(left<=8000){if(tube)tube.classList.add("sleep-dim");
     const vv=screenArea.querySelector("video,audio");if(vv&&!muted)vv.volume=Math.max(0,vol*(left/8000));}
+  /* F20 (2026-08-14): big countdown overlay in the last 10 seconds so the sign-off
+     feels intentional instead of abrupt. Mounts on demand, one big number, animated. */
+  if(left<=10000){
+    var sc=document.getElementById("sleepCount");
+    if(!sc){ sc=document.createElement("div"); sc.id="sleepCount"; if(tube) tube.appendChild(sc); }
+    var secsLeft=Math.max(1,Math.ceil(left/1000));
+    if(sc.textContent!==String(secsLeft)){ sc.textContent=String(secsLeft); sc.classList.remove("show"); void sc.offsetWidth; sc.classList.add("show"); }
+  } else {
+    var scOff=document.getElementById("sleepCount"); if(scOff) scOff.classList.remove("show");
+  }
   renderSleep();}
 function cycleSleep(){let i=SLEEP_STEPS.indexOf(sleepMin);if(i<0)i=0;i=(i+1)%SLEEP_STEPS.length;sleepMin=SLEEP_STEPS[i];
   if(sleepTimer){clearInterval(sleepTimer);sleepTimer=null;}
@@ -10126,6 +10211,127 @@ async function tuneWiki(ch,sl,my){
   });
 }
 
+/* C17 SOLAR DASHBOARD (2026-08-14): SDO imagery rotator + GOES X-ray flux + F10.7 solar flux.
+   All NOAA SWPC public JSON + image feeds, CORS-clean, no auth. */
+async function tuneSolar(ch,sl,my){
+  if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Solar Dashboard","");
+  if(screenArea) screenArea.innerHTML='<div class="dc-screen" id="dcScreen">'+
+    '<div class="dc-media show" id="solarMedia" style="flex:1 1 58%;height:auto;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:8px;background:#000;position:relative;overflow:hidden">'+
+      '<img id="solarImg" alt="" style="max-width:100%;max-height:100%;object-fit:contain;filter:contrast(1.05) brightness(1.02)">'+
+      '<div id="solarImgCap" style="position:absolute;bottom:6px;left:8px;font:900 10px monospace;letter-spacing:.15em;color:var(--phos);background:rgba(0,0,0,.5);padding:3px 8px;text-shadow:0 0 4px rgba(0,0,0,.9)">SDO AIA 171</div>'+
+    '</div>'+
+    '<div class="dc-body" id="dcBody" style="flex:0 1 42%;justify-content:flex-start;gap:4px;overflow:hidden">'+
+      '<div class="dc-top"><span>SOLAR DASHBOARD \u00b7 SDO</span></div>'+
+      '<div style="display:flex;align-items:baseline;gap:8px;padding:0 10px 6px;border-bottom:1px solid #15240f;margin-bottom:6px">'+
+        '<div id="solarClass" style="font:800 clamp(28px,6.5vw,44px)/1 monospace;color:var(--phos)">--</div>'+
+        '<div style="display:flex;flex-direction:column"><span style="font-size:9px;color:#5a7f60;letter-spacing:.2em">X-RAY FLUX</span><span id="solarClassText" style="font-size:11px;color:#9fd6a6">connecting to GOES\u2026</span></div>'+
+      '</div>'+
+      '<div class="dc-list" id="dcList" style="margin-bottom:30px"></div>'+
+      '<div class="dc-ticker" id="solarTicker">SDO \u00b7 GOES-16/18 X-ray sensor \u00b7 SWPC public feed</div>'+
+    '</div></div>';
+  var solarBug=mountChanBug("dcScreen",{ident:"SOLAR"});
+  var IMGS=[
+    {url:"https://services.swpc.noaa.gov/images/animations/sdo/aia171/latest.jpg", cap:"SDO AIA 171 \u00b7 CORONA"},
+    {url:"https://services.swpc.noaa.gov/images/animations/sdo/aia304/latest.jpg", cap:"SDO AIA 304 \u00b7 CHROMOSPHERE"},
+    {url:"https://services.swpc.noaa.gov/images/animations/sdo/hmib/latest.jpg",   cap:"SDO HMI \u00b7 MAGNETOGRAM"}
+  ];
+  var imgIdx=0, solarImgTimer=null, solarStatsTimer=null;
+  function rotateImg(){
+    if(my!==token) return;
+    var im=IMGS[imgIdx];
+    var el=document.getElementById("solarImg"); var cap=document.getElementById("solarImgCap");
+    if(el){ el.src=im.url + "?t=" + Math.floor(Date.now()/60000); /* cache-bust every minute */ }
+    if(cap){ cap.textContent=im.cap; }
+    imgIdx=(imgIdx+1) % IMGS.length;
+  }
+  function xrayClass(fluxWm2){
+    /* GOES X-ray flux to letter class: A<1e-7, B<1e-6, C<1e-5, M<1e-4, X>=1e-4.
+       Number after letter is mantissa (e.g. M2.1). */
+    if(fluxWm2==null || isNaN(fluxWm2)) return {letter:"--",number:"",risk:"data pending"};
+    var f=parseFloat(fluxWm2);
+    var letter, base;
+    if(f>=1e-4){ letter="X"; base=1e-4; }
+    else if(f>=1e-5){ letter="M"; base=1e-5; }
+    else if(f>=1e-6){ letter="C"; base=1e-6; }
+    else if(f>=1e-7){ letter="B"; base=1e-7; }
+    else { letter="A"; base=1e-8; }
+    var num=(f/base).toFixed(1);
+    var risk;
+    if(letter==="X") risk="MAJOR FLARE \u00b7 radio blackouts likely";
+    else if(letter==="M") risk="MODERATE FLARE \u00b7 poles-radio impact";
+    else if(letter==="C") risk="MINOR FLARE \u00b7 mostly harmless";
+    else risk="quiet sun \u00b7 no significant flares";
+    return {letter:letter, number:num, risk:risk};
+  }
+  async function fetchStats(){
+    if(my!==token || !powered) return;
+    try{
+      /* GOES primary X-ray flux, last 6 hours at 1-min cadence. Grab the most recent short-channel flux. */
+      var xray=await fetchJSON("https://services.swpc.noaa.gov/json/goes/primary/xrays-6-hour.json");
+      if(my!==token) return;
+      var short=(xray||[]).filter(function(r){ return r.energy==="0.1-0.8nm"; }); /* short-channel = flare class */
+      var latest=short[short.length-1] || null;
+      var xc=xrayClass(latest && latest.flux);
+      var classEl=document.getElementById("solarClass"); if(classEl) classEl.textContent=xc.letter+xc.number;
+      var classTxt=document.getElementById("solarClassText"); if(classTxt) classTxt.textContent=xc.risk;
+      if(solarBug) solarBug.update(xc.letter+xc.number+" CLASS", xc.risk.toUpperCase().slice(0,40));
+      setChanStatus(ch.num, "X-ray "+xc.letter+xc.number+" \u00b7 "+xc.risk);
+
+      /* Kp forecast (next 24 hours) — for the stats table only */
+      var kpData=null;
+      try{ kpData=await fetchJSON("https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json"); }catch(_){}
+      var kpLast="--";
+      if(kpData && kpData.length>1){
+        var lastRow=kpData[kpData.length-1];
+        kpLast=parseFloat(lastRow[1]);
+        if(!isNaN(kpLast)) kpLast=kpLast.toFixed(1); else kpLast="--";
+      }
+
+      /* F10.7 solar radio flux (daily) */
+      var f107="--", ssn="--";
+      try{
+        var fData=await fetchJSON("https://services.swpc.noaa.gov/json/f107_cm_flux.json");
+        if(fData && fData.length){
+          var fLast=fData[fData.length-1];
+          f107=(fLast && (fLast.flux || fLast.observed_flux || fLast.f10_7)) || "--";
+          if(f107!=="--" && !isNaN(parseFloat(f107))) f107=Math.round(parseFloat(f107)) + " sfu";
+        }
+      }catch(_){}
+      try{
+        var cyc=await fetchJSON("https://services.swpc.noaa.gov/json/solar-cycle/observed-solar-cycle-indices.json");
+        if(cyc && cyc.length){
+          var cLast=cyc[cyc.length-1];
+          if(cLast && cLast.ssn!=null) ssn=Math.round(parseFloat(cLast.ssn)).toString();
+        }
+      }catch(_){}
+
+      var listEl=document.getElementById("dcList");
+      if(listEl){
+        var rows=[
+          '<div class="dc-row2"><div class="dc-row2-main"><span class="dc-place">FLARE RISK</span><span class="dc-when">'+esch(xc.letter+xc.number)+'</span></div></div>',
+          '<div class="dc-row2"><div class="dc-row2-main"><span class="dc-place">Kp INDEX (latest)</span><span class="dc-when">'+esch(String(kpLast))+'</span></div></div>',
+          '<div class="dc-row2"><div class="dc-row2-main"><span class="dc-place">F10.7 RADIO FLUX</span><span class="dc-when">'+esch(String(f107))+'</span></div></div>',
+          '<div class="dc-row2"><div class="dc-row2-main"><span class="dc-place">SUNSPOT NUMBER</span><span class="dc-when">'+esch(String(ssn))+'</span></div></div>',
+          '<div class="dc-row2"><div class="dc-row2-main"><span class="dc-place">UPDATED</span><span class="dc-when">'+esch((latest && latest.time_tag) ? String(latest.time_tag).replace("T"," ").slice(0,16)+" UTC" : "just now")+'</span></div></div>'
+        ];
+        listEl.innerHTML=rows.join("");
+      }
+      nlog("solar",true,xc.letter+xc.number);
+    }catch(e){
+      nlog("solar",false,(e&&e.message)||"stats fetch failed");
+      var classEl=document.getElementById("solarClass"); if(classEl) classEl.textContent="--";
+      var classTxt=document.getElementById("solarClassText"); if(classTxt) classTxt.textContent="SWPC unavailable \u2014 will retry";
+    }
+  }
+  rotateImg(); await fetchStats();
+  solarImgTimer=rtInterval(rotateImg, 15000);      /* rotate SDO view every 15 sec */
+  solarStatsTimer=rtInterval(fetchStats, 5*60*1000); /* refresh stats every 5 min */
+  if(chanRT && chanRT.teardowns) chanRT.teardowns.push(function(){
+    clearInterval(solarImgTimer); clearInterval(solarStatsTimer);
+  });
+}
+
+
 
 /* ---------- Storm Center: SPC Day 1 Convective Outlook (image + text) ---------- */
 /* Storm Prediction Center serves the categorical outlook GIF at spc.noaa.gov and a plain-text
@@ -13329,6 +13535,7 @@ var OSD_ITEMS=[
  {label:"TAPE SHELF",act:function(){closeOsd();toggleSaved();}},
  {label:"DEEP CUTS",act:toggleDeepCuts,val:function(){return deepCuts?"ON":"OFF";}},
  {label:"NOW / NEXT",act:function(){closeOsd();toggleInfo();}},
+ {label:"TODAY IN HISTORY",act:function(){closeOsd();showTodayInHistory();}},
  {label:"HISTORY",act:function(){closeOsd();toggleHist();}},
  {label:"WATCH STATS",act:function(){closeOsd();toggleStats();}},
  {label:"BANISH PROGRAM",act:function(){closeOsd();banishCurrent();}},

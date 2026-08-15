@@ -1204,7 +1204,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.197";
+window.__ATV_BUILD="1.7.7-mobile.198";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -5387,11 +5387,10 @@ function fetchTextResilient(url,tag){ /* CYCLE-8: same direct->relay chain, for 
   return direct().catch(function(e){ return relay(); });
 }
 function sportsCacheBase(){
-  /* Hard-coded to the deployed worker. Was originally settings-driven but there is exactly one
-     worker URL, no viewer will ever change it, and making it a setting was friction not flexibility.
-     If ever redeployed to a different URL, change this string; the OSD entry that used to expose
-     it was removed. */
-  return "https://sports-cache.tdy1990.workers.dev";
+  /* The previous cache worker is currently returning 502. Keep the direct -> relay chain as the
+     default until a healthy cache endpoint is available; this avoids adding a failing first hop to
+     every live score request. */
+  return "";
 }
 async function fetchSportsData(url,tag){
   /* Optional caching + stale-on-error resilience layer for ESPN/TheSportsDB, same shape as the
@@ -6919,6 +6918,7 @@ var HEALTH_SOURCES=[
  ["NOAA tides",function(){return fetchJSON("https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=predictions&application=archive_tv&date=today&datum=MLLW&station=8771450&time_zone=lst_ldt&units=english&interval=hilo&format=json");}],
  ["ISS tracker",function(){return fetchJSON("https://api.wheretheiss.at/v1/satellites/25544");}],
  ["Aviation weather (METAR)",function(){return fetchJSONResilient("https://aviationweather.gov/api/data/metar?format=json&ids=KACT","health");}],
+ ["Sports scoreboard (ESPN)",function(){return fetchSportsData("https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard","health").then(function(d){if(!d||!Array.isArray(d.events))throw new Error("unexpected scoreboard");return d;});}],
  ["Live TV catalog (IPTV-org)",function(){return healthM3U("https://iptv-org.github.io/iptv/languages/eng.m3u");}],
  ["Live TV FAST catalog",function(){return healthM3U("https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/refs/heads/main/playlists/tubi_all.m3u");}],
  ["Flight data relay fallback",function(){return fetchJSONviaProxy("https://api.adsb.lol/v2/point/31.6/-97.2/5");}],

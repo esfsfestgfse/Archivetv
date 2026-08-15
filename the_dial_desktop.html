@@ -5425,6 +5425,29 @@ var IA_RELAY_BASE="https://ais-relay.tdy1990.workers.dev/ia";
 function iaRelaySearchURL(q,rows,page,sort){return IA_RELAY_BASE+"/search?"+[
   "q="+encodeURIComponent(q),"rows="+encodeURIComponent(rows),"page="+encodeURIComponent(page),"sort="+encodeURIComponent(sort||"downloads desc")].join("&");}
 function iaRelayMetadataURL(id){return IA_RELAY_BASE+"/metadata/"+encodeURIComponent(id);}
+/* PROGRAM DIRECTOR QUEUE: the Worker picks and caches the next five identifiers per channel.
+   The browser still resolves media locally (so direct Archive CDN playback, captions and
+   fallbacks stay intact), but discovery is no longer on the channel-change critical path. */
+var iaProgramQueues={}, iaProgramInflight={}, iaProgramMedia={};
+function iaQueueKey(ch){return String((ch&&ch.num)||((ch&&ch.nm)||""));}
+function iaRuntimeSeconds(v){if(typeof v==="number")return v;var p=String(v||"").split(":");if(p.length===3)return (+p[0]||0)*3600+(+p[1]||0)*60+(+p[2]||0);if(p.length===2)return (+p[0]||0)*60+(+p[1]||0);return parseFloat(v)||0;}
+function iaRuntimeLabel(v){var s=Math.round(iaRuntimeSeconds(v));if(!s)return "";return s>=3600?Math.floor(s/3600)+"h "+Math.round((s%3600)/60)+"m":Math.max(1,Math.round(s/60))+"m";}
+function iaProgramAllowed(item,sl){
+  if(!item||!item.identifier||banned.indexOf(item.identifier)>=0||isTemporarilySkipped(item.identifier)||blockedId(item.identifier))return false;
+  var cur=(curItem&&typeof curItem==="object")?curItem.id:null;if(item.identifier===cur)return false;
+  if(!sl||!sl.program)return true;var p=sl.program, title=String(item.title||"").toLowerCase(), subj=String(item.subject||item.subjects||"").toLowerCase();
+  if(p.deny){if((p.deny.title||[]).some(function(x){return title.indexOf(String(x).toLowerCase())>=0;}))return false;if((p.deny.subject||[]).some(function(x){return subj.indexOf(String(x).toLowerCase())>=0;}))return false;}
+  return !(p.require&&p.require.runtime_max_s&&item.runtime&&iaRuntimeSeconds(item.runtime)>p.require.runtime_max_s);
+}
+async function iaQueueRequest(ch,sl,count){
+  var qs=(sl&&sl.queries||[]).slice(0,5);if(!qs.length)return [];
+  try{var d=await withTO(fetch(IA_RELAY_BASE+"/queue",{method:"POST",mode:"cors",headers:{"content-type":"application/json"},body:JSON.stringify({channel:iaQueueKey(ch),queries:qs,count:Math.max(1,Math.min(5,count||5))})}).then(function(r){if(!r.ok)throw new Error("queue "+r.status);return r.json();}),3600);
+    return ((d&&d.items)||[]).filter(function(it){return iaProgramAllowed(it,sl);});
+  }catch(e){nlog("queue",false,"director unavailable: "+(e&&e.message||e));return [];}
+}
+function warmIAQueue(ch,sl){var q=iaProgramQueues[iaQueueKey(ch)]||[];q.slice(0,2).forEach(function(it){if(!it||iaProgramMedia[it.identifier])return;iaProgramMedia[it.identifier]=resolvePlayable(it.identifier).catch(function(){return null;});});}
+async function refillIAQueue(ch,sl){var k=iaQueueKey(ch);if(iaProgramInflight[k])return iaProgramInflight[k];iaProgramInflight[k]=iaQueueRequest(ch,sl,5).then(function(items){var old=iaProgramQueues[k]||[], seen={}, merged=[];old.concat(items).forEach(function(it){if(it&&it.identifier&&!seen[it.identifier]&&iaProgramAllowed(it,sl)){seen[it.identifier]=1;merged.push(it);}});iaProgramQueues[k]=merged.slice(0,5);warmIAQueue(ch,sl);nlog("queue",true,"CH "+k+" ready="+iaProgramQueues[k].length);return iaProgramQueues[k];}).finally(function(){delete iaProgramInflight[k];});return iaProgramInflight[k];}
+function takeIAQueue(ch,sl){var k=iaQueueKey(ch), q=iaProgramQueues[k]||[];while(q.length){var it=q.shift();if(iaProgramAllowed(it,sl)){refillIAQueue(ch,sl);return it;}}refillIAQueue(ch,sl);return null;}
 /* Archive is blocked outright in some desktop browsers. Keep every discovery probe short so
    a dead route never holds a channel change hostage for 15+ seconds. */
 function iaFastJSON(url,ms){return withTO(fetch(url,{mode:"cors"}).then(r=>{if(!r.ok)throw new Error("http "+r.status);return r.json();}),ms||1800);}
@@ -6013,8 +6036,8 @@ async function buildPlan(){
              the next editorial lane. Unlike the guide/info preview, this is real
              programming rather than a passive render. */
           var slp=slotFor(c,hh); if(!slp.queries)continue;
-          var it=await pickFromQueries(slp.queries);
-          if(it){ planMap[k]={id:it.identifier,title:it.title||it.identifier,year:it.year||null,show:slp.show};
+          var staged=await iaQueueRequest(c,slp,1), it=staged[0]||await pickFromQueries(slp.queries);
+          if(it){ planMap[k]={id:it.identifier,title:it.title||it.identifier,year:it.year||null,runtime:it.runtime||null,show:slp.show};
             store.set("plan",planMap); }
         }catch(e){}
         await new Promise(function(r){setTimeout(r,700);});
@@ -6054,6 +6077,7 @@ function schedSet(ch,it,dur){
 function schedClear(ch){ if(ch&&ch.nm&&schedMap[ch.nm]){ delete schedMap[ch.nm]; store.set("sched",schedMap); } }
 
 async function tuneIA(ch,sl,my){
+  refillIAQueue(ch,sl); /* do discovery in the background while instant-path checks run */
   var rapid=fastTuneGet(ch.num);
   if(rapid){
     nlog("rapid-tune",true,"CH "+ch.num+" cached media");
@@ -6105,6 +6129,16 @@ async function tuneIA(ch,sl,my){
     preloadCache=null;
     nlog("preload",true,"instant start from preload");
     if(await playFile(pc.pl,ch,sl,my,0)) return;
+  }
+  /* The queued head has already been discovered and its metadata is normally resolving in
+     parallel. This is the fast path after a channel has been visited once. */
+  var queued=takeIAQueue(ch,sl);
+  if(queued){
+    var qpl=iaProgramMedia[queued.identifier];
+    if(qpl&&typeof qpl.then==="function")qpl=await qpl;
+    else if(!qpl)qpl=await resolvePlayable(queued.identifier);
+    if(my!==token)return;
+    if(qpl){qpl.title=queued.title||queued.identifier;qpl.year=queued.year;if(await playFile(qpl,ch,sl,my,0))return;}
   }
   for(let a=0;a<8;a++){ if(my!==token)return;
     const item=await pickFromQueries(queries); if(my!==token)return; if(!item)continue;
@@ -13522,7 +13556,8 @@ function renderTVGuide(){ /* UPGRADED (feature: real multi-hour EPG) — NOW plu
     var live=schedGet(ch); /* 1.2: NOW column shows the actual program on the air */
     html+='<div class="epg-row" data-n="'+ch.num+'"><span class="epg-ch">'+ch.num+' <b>'+esch(ch.nm)+'</b></span>'+
       hours.map(function(h,hi){ var pe2=stationMgr?planMap[planKey(ch.nm,h)]:null;
-        var txt=(hi===0&&live&&live.title)?("\u25b6 "+live.title):((pe2&&pe2.title)?("\u25b7 "+pe2.title):slotFor(ch,h,{preview:true}).show);
+        var next=(pe2&&pe2.title)?("\u25b7 "+pe2.title+(iaRuntimeLabel(pe2.runtime)?(" · "+iaRuntimeLabel(pe2.runtime)):"")):slotFor(ch,h,{preview:true}).show;
+        var txt=(hi===0&&live&&live.title)?("\u25b6 "+live.title+(iaRuntimeLabel(live.dur)?(" · "+iaRuntimeLabel(live.dur)):"")):next;
         return '<span class="epg-cell">'+esch(txt); }).join('</span>')+'</span></div>';
   });
   el.innerHTML=html;

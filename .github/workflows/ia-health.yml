@@ -1,0 +1,27 @@
+name: Internet Archive Health
+
+on:
+  schedule:
+    - cron: '17 11 * * *'
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Probe representative genre rails
+        run: node scripts/probe-ia-genres.js --strict --out artifacts/ia-genre-health.json
+      - name: Probe PROGRAM provider rails
+        run: node scripts/probe-ia-programs.js --strict --out artifacts/ia-program-health.json
+      - name: Upload probe reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ia-health-${{ github.run_id }}
+          path: artifacts/
+          if-no-files-found: warn

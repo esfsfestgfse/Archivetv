@@ -68,8 +68,12 @@ const results=await mapWithConcurrency(names, 3, async name=>{
     return {name,query:q,status:res.status,total,samples:docs.map(x=>({id:x.identifier,title:x.title,year:x.year,mediatype:x.mediatype}))};
   }catch(error){ return {name,query:q,error:String(error)}; }
 });
+const unavailable=results.filter(result=>result.error || !(result.total>0));
+console.log(`IA genre health: ${results.length-unavailable.length}/${results.length} representative rails returned records`);
+for(const result of unavailable) console.log(`UNAVAILABLE ${result.name}: ${result.error||'0 results'}`);
 const report=JSON.stringify({file:path.basename(file),generatedAt:new Date().toISOString(),genres:results},null,2)+'\n';
 const oi=process.argv.indexOf('--out');
 if(oi>=0&&process.argv[oi+1]){fs.mkdirSync(path.dirname(path.resolve(process.argv[oi+1])),{recursive:true});fs.writeFileSync(path.resolve(process.argv[oi+1]),report);console.log(`Wrote ${process.argv[oi+1]}`);}else console.log(report);
+if(process.argv.includes('--strict')&&unavailable.length) process.exitCode=1;
 }
 main().catch(error=>{console.error(error);process.exitCode=1;});

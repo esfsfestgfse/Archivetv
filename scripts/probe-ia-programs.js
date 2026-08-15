@@ -92,6 +92,16 @@ async function main() {
         samples: docs.map(doc => ({ id: doc.identifier, title: doc.title, year: doc.year, mediatype: doc.mediatype })) };
     } catch (error) { return { ...rail, error: String(error) }; }
   });
+  const byChannel = new Map();
+  for (const result of results) {
+    const summary = byChannel.get(result.channel) || { total: 0, healthy: 0 };
+    summary.total++;
+    if (!result.error && result.total > 0) summary.healthy++;
+    byChannel.set(result.channel, summary);
+  }
+  const unavailable = [...byChannel.entries()].filter(([, summary]) => summary.healthy === 0);
+  console.log(`IA PROGRAM health: ${byChannel.size-unavailable.length}/${byChannel.size} channels have a live provider rail`);
+  for (const [channel, summary] of unavailable) console.log(`UNAVAILABLE ${channel}: 0/${summary.total} provider rails returned records`);
   const report = JSON.stringify({ file: path.basename(file), generatedAt: new Date().toISOString(), rails: results }, null, 2) + '\n';
   const outputIndex = process.argv.indexOf('--out');
   if (outputIndex >= 0 && process.argv[outputIndex + 1]) {
@@ -100,5 +110,6 @@ async function main() {
     fs.writeFileSync(output, report);
     console.log(`Wrote ${process.argv[outputIndex + 1]}`);
   } else console.log(report);
+  if (process.argv.includes('--strict') && unavailable.length) process.exitCode = 1;
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });

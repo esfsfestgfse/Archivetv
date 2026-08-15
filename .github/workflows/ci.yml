@@ -29,7 +29,7 @@ jobs:
         run: node scripts/check-html-syntax.js
       - name: Validate IA channel contract
         run: |
-          node scripts/audit-ia-channels.js --file the_dial_mobile.html
+          node scripts/audit-ia-channels.js the_dial_mobile.html
           node scripts/check-ia-contract.js the_dial_mobile.html
           node scripts/check-ia-parity.js
       - name: Serve app
@@ -60,7 +60,7 @@ jobs:
         run: node scripts/check-html-syntax.js
       - name: Validate IA channel contract
         run: |
-          node scripts/audit-ia-channels.js --file the_dial_desktop.html
+          node scripts/audit-ia-channels.js the_dial_desktop.html
           node scripts/check-ia-contract.js the_dial_desktop.html
           node scripts/check-ia-parity.js
       - name: Serve app

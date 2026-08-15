@@ -1098,7 +1098,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.156";
+window.__ATV_BUILD="1.7.7-desktop.157";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1760,7 +1760,7 @@ const CH=[
  {nm:"Tropical Watch", num:959,    cat:"LDATA", source:"tropical",  ns:"tv"},
  {nm:"Live TV", num:300,          cat:"LBRO", source:"livetv",    ns:"tv"},
  {nm:"Live Cams", num:301,        cat:"LBRO", source:"livecams",  ns:"tv"},
- {nm:"Highway Cams", num:302,     cat:"LBRO", source:"highway",   ns:"tv"}, /* KCScout, MassDOT, UDOT YouTube live streams — filtered subset of LIVECAMS_STREAMS */
+ {nm:"Highway Cams", num:302,     cat:"LBRO", source:"highway",   ns:"tv"}, /* Caltrans direct JPG refresh pool — filtered subset of LIVECAMS_STREAMS */
  {nm:"The Ranger", num:303,       cat:"LBRO", source:"ranger",    ns:"tv"}, /* NPS + wildlife live cams — Kruger safari, Katmai bears, condors, pandas, watering hole */
  {nm:"NASA Live", num:304,        cat:"LBRO", source:"nasalive",  ns:"tv"}, /* NASA TV live stream, SpaceX launches, Sen Earth-from-orbit */
  {nm:"Deep Space Jazz", num:925,   cat:"MUS", source:"spacejazz", ns:"tv"},
@@ -1902,7 +1902,7 @@ const CHANNEL_META={
 "Live News":{desc:"LIVE: 24/7 English news \u2014 DW, France 24, Al Jazeera, CGTN, NewsAsia, TRT, Arirang, NHK, CBS, Newsmax \u0026 Red Bull, via HLS + your proxy.",best:"anytime",rel:["Live TV","Live Radio"]},
 "Live TV":{desc:"LIVE: a genre grid of free TV channels (News/Sports/Weather/Movies/Kids\u2026) from iptv-org \u2014 add a free stream proxy to unlock most of them.",best:"anytime",rel:["Live News","Live Radio"]},
 "Live Cams":{desc:"LIVE: 20+ webcams worldwide \u2014 Katmai brown bears, Times Square, Kruger safari, Austrian Alps, ISS. Rotates every 90 sec, tap NEXT to skip.",best:"anytime",rel:["Highway Cams","Live TV"]},
-"Highway Cams":{desc:"LIVE: Kansas City DOT, MassDOT and UDOT traffic streams \u2014 real 24/7 highway watch from state DOTs, all via YouTube Live.",best:"rush hour",rel:["Live Cams","Live TV"]},
+"Highway Cams":{desc:"LIVE: verified Caltrans highway cameras refreshed from direct JPG feeds \u2014 a focused traffic-watch rotation.",best:"rush hour",rel:["Live Cams","Live TV"]},
 "The Ranger":{desc:"LIVE: NPS + wildlife cams \u2014 Kruger safari, Katmai brown bears, Big Sur condors, African watering hole, panda cam, puppy playroom. Rotates every 90 sec.",best:"anytime",rel:["Live Cams","Nature Channel"]},
 "NASA Live":{desc:"LIVE: NASA TV main feed, SpaceX launch coverage, Sen Earth-from-orbit HLS. Space happenings as they happen.",best:"launch windows",rel:["NASA Picture of the Day","ISS Tracker"]},
 "The Grid":{desc:"LIVE: Texas power grid \u2014 ERCOT demand, net generation, forecast peak, 24-hour trend. Country music bed. Refreshes every 10 min.",best:"heatwaves + cold snaps",rel:["Gas Price Ticker","Weather Watch"]},
@@ -11321,7 +11321,6 @@ async function tuneRiver(ch,sl,my){
    across. Dots sized by magnitude, selected quake highlighted. */
 var quakeTimer=null;
 var gasTimer=null;
-var AISSTREAM_KEY="0b62b63d69be3fdb7dfe2d039bd1eb1f8eccd0ca";
 var shipSocket=null, shipList={};
 /* Ship Tracker rebuilt 2026-08-07: Gulf-of-Mexico map on the left, live vessel list on the
    right, connection-status pill at the top-right. Ships plot as blips on the map using the
@@ -13473,7 +13472,7 @@ async function tuneWeather(ch,sl,my){
   if(screenArea){ screenArea.innerHTML=
     '<div class="wx-screen" id="wxScreen">'+
       '<div class="wx-top"><span class="wx-loc">LOCATING\u2026</span><span class="wx-upd" id="wxUpd"></span></div>'+
-      '<div class="wx-main">'+
+      '<div class="wx-main" id="wxMain">'+
         '<div class="wx-left">'+
           '<div class="wx-now-main"><div class="wx-temp">--\u00b0</div><div class="wx-fx">Loading current conditions\u2026</div></div>'+
           '<div class="wx-stats" id="wxStats"></div>'+
@@ -13483,8 +13482,8 @@ async function tuneWeather(ch,sl,my){
           '<div class="wx-radar-wrap"><img class="wx-radar" id="wxRadar" alt="radar loop"></div>'+
         '</div>'+
       '</div>'+
-      '<div class="wx-section-label">FORECAST</div>'+
-      '<div class="wx-fcgrid"><div class="wx-hourly" id="wxHourly"></div><div class="wx-daily" id="wxDaily"></div></div>'+
+      '<div class="wx-section-label" id="wxFcLbl">FORECAST</div>'+
+      '<div class="wx-fcgrid" id="wxFcGrid"><div class="wx-hourly" id="wxHourly"></div><div class="wx-daily" id="wxDaily"></div></div>'+
       '<div class="wx-ticker" id="wxTicker">NO ACTIVE ALERTS</div>'+
       '<div class="haz-ticker" id="hazTicker"><span id="hazTickerInner">NATIONWIDE HAZARDOUS WEATHER \u00b7 checking\u2026</span></div>'+
       '<div class="wx-bug" id="wxBug">'+
@@ -13498,6 +13497,13 @@ async function tuneWeather(ch,sl,my){
   var rw=screenArea?screenArea.querySelector(".wx-radar-wrap"):null;
   if(rw){ rw.style.cursor="pointer"; rw.title="Tap to switch radar layer";
     rw.addEventListener("click",function(){ radarMode=(radarMode+1)%3; run(); }); }
+  /* Keep desktop Weather Watch aligned with mobile's opt-in broadcast segment mode. */
+  (function segmentCycle(){
+    var SEGS=[{id:"current",label:"CURRENT CONDITIONS"},{id:"hourly",label:"HOUR BY HOUR"},{id:"radar",label:"LIVE RADAR"},{id:"extended",label:"EXTENDED FORECAST"}],idx=0,touched=0;
+    function showAll(){["wxMain","wxFcGrid","wxFcLbl","wxHourly","wxDaily"].forEach(function(i){var e=$(i);if(e)e.style.display="";});var l=document.querySelector(".wx-left"),r=document.querySelector(".wx-right");if(l)l.style.display="";if(r)r.style.display="";var x=$("wxSegLbl");if(x)x.style.display="none";}
+    function applySeg(){var s=SEGS[idx%SEGS.length],m=$("wxMain"),g=$("wxFcGrid"),f=$("wxFcLbl"),l=document.querySelector(".wx-left"),r=document.querySelector(".wx-right"),x=$("wxSegLbl");if(x){x.style.display="";x.textContent=s.label;}if(m)m.style.display=(s.id==="extended"||s.id==="hourly")?"none":"flex";if(l)l.style.display=s.id==="current"?"":"none";if(r)r.style.display=s.id==="radar"?"":"none";if(g)g.style.display=(s.id==="hourly"||s.id==="extended")?"":"none";if(f)f.style.display=(s.id==="hourly"||s.id==="extended")?"":"none";var h=$("wxHourly"),d=$("wxDaily");if(h)h.style.display=s.id==="hourly"?"":"none";if(d)d.style.display=s.id==="extended"?"":"none";}
+    var sc=$("wxScreen");if(sc&&!$("wxSegLbl")){var x=document.createElement("div");x.id="wxSegLbl";x.className="wx-seg-lbl";x.style.display="none";sc.insertBefore(x,sc.firstChild);}if(sc)sc.addEventListener("click",function(){touched=Date.now();showAll();},true);rtInterval(function(){if(my!==token)return;if(!store.get("wxSegments",false)){showAll();return;}if(Date.now()-touched<60000)return;idx++;applySeg();},12000);if(store.get("wxSegments",false))applySeg();
+  })();
   /* bug clock ticks independently of the 10-minute data refresh so it always reads live */
   (function(){
     function tickBug(){ var c=$("wxBugClock"); if(!c)return;

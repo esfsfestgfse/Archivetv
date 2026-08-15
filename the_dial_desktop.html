@@ -1098,7 +1098,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.157";
+window.__ATV_BUILD="1.7.7-desktop.158";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1440,8 +1440,8 @@ const FNOTX=FNOT.concat(["video game","gameplay","let's play","lets play","speed
 const G={
  cartoon:    {mt:"movies",col:["animationandcartoons"],fcol:[],            subj:["animation","cartoon"],          era:[1930,1969]},
  anime:      {mt:"movies",col:["anime_miscellaneous","anime"],fcol:[],          subj:["anime","japanese animation","japanimation"],not:["trailer","amv","music video","fan edit"],era:[1950,2026],noBlindFallback:true},
- golden:     {mt:"movies",col:[],                       fcol:["feature_films"],subj:[],                           era:[1930,1949]},
- classicfilm:{mt:"movies",col:[],                       fcol:["feature_films"],subj:[],                           era:[1950,1965]},
+ golden:     {mt:"movies",col:[],                       fcol:["feature_films"],subj:[],                           era:[1930,1949],noBlindFallback:true},
+ classicfilm:{mt:"movies",col:[],                       fcol:["feature_films"],subj:[],                           era:[1950,1965],noBlindFallback:true},
  noir:       {mt:"movies",col:["Film_Noir"],            fcol:["feature_films"],subj:["film noir"],                era:[1945,1959]}, // FIX: real IA collection is capitalized "Film_Noir" — lowercase never matched anything
  scifi:      {mt:"movies",col:["SciFi_Horror"],         fcol:["feature_films"],subj:["science fiction"],          era:[1950,1979]},
  horror:     {mt:"movies",col:["SciFi_Horror"],         fcol:["feature_films"],subj:["horror"],                   era:[1950,1985]},
@@ -1450,7 +1450,7 @@ const G={
  comedy:     {mt:"movies",col:["Comedy_Films"],         fcol:["feature_films"],subj:["comedy"],                   era:[1930,1969]},
  action:     {mt:"movies",col:[],                       fcol:["feature_films"],subj:["adventure","serial"],       era:[1935,1965]},
  mystery:    {mt:"movies",col:[],                       fcol:["feature_films"],subj:["mystery","detective"],      era:[1940,1965]},
- musicfilm:  {mt:"movies",col:["artsandmusicvideos"],   fcol:["feature_films"],subj:["musical","music"],          era:[1935,1969]},
+ musicfilm:  {mt:"movies",col:["artsandmusicvideos"],   fcol:["feature_films"],subj:["musical","music"],          era:[1935,1969],subjRequired:true,noBlindFallback:true},
  sitcom:     {mt:"movies",col:["classic_tv"],           fcol:["feature_films"],subj:["sitcom","television comedy"],era:[1950,1969]},
  sitcommodern:{mt:"movies",col:["classic_tv","television"],fcol:["vhsvault"],   subj:["sitcom","television comedy","television series","tv series"],era:[1970,2003]}, /* CYCLE-10: VHS Vault fallback tier (subject-scoped) for the thin post-85 years */
  gameshow:   {mt:"movies",col:["classic_tv","television"],fcol:["vhsvault"],     subj:["game show","quiz show","panel show","game shows"],not:FNOT,era:[1950,2026],subjRequired:true,noBlindFallback:true}, /* CYCLE-14: ONLY game shows, every era */
@@ -1461,7 +1461,7 @@ const G={
  manufacturing:{mt:"movies",col:["prelinger","FedFlix","avgeeks"],fcol:[],              subj:["manufacturing","assembly line","industrial process","factory","steel","machining","machinery","engineering","construction","production","industry","mining"],subjRotate:true,subjRequired:true,not:FNOT,era:[1930,1990]}, /* 1.3.3: bolstered — 3 collections, 12 rotating topics, subject-locked, wider era */
  testkitchen:{mt:"movies",col:["prelinger"],            fcol:["avgeeks"],             subj:["cooking","recipe","home economics","baking","food preparation","kitchen","nutrition","meal planning","housekeeping","sewing","etiquette"],subjRotate:true,subjRequired:true,not:FNOT,era:[1935,1985]}, /* 1.3: true Home-Ec — one topic per tune, subject-locked, all decades */
  foundfootage:{mt:"movies",col:[],                      fcol:["feature_films","home_movies"],subj:["home movies","amateur film","newsreel"],era:[1920,1965]},
- edu:        {mt:"movies",col:["prelinger"],            fcol:[],               subj:["educational film","classroom film","university film","museum film"],era:[1940,1969]},
+ edu:        {mt:"movies",col:["prelinger"],            fcol:[],               subj:["education","school","classroom","agriculture","science"],era:[1940,1969],subjRequired:true,noBlindFallback:true},
  newsreel:   {mt:"movies",col:["universal_newsreels"],  fcol:[],               subj:["newsreel"],                 era:[1930,1965]},
  industrial: {mt:"movies",col:["prelinger"],            fcol:[],               subj:["industrial film","sponsored film"],era:[1940,1969]},
  avgeeks:    {mt:"movies",col:["avgeeks"],              fcol:["prelinger"],     subj:["educational film"],         era:[1950,1985]},
@@ -1547,13 +1547,13 @@ function buildQuery(genre,era){
   const subj=subjList.map(s=>'"'+s+'"').join(" OR ");
   const nots=(g.not||[]).map(s=>'"'+s+'"').join(" OR "); const NOT=nots?(" AND NOT subject:("+nots+")"):"";
   const ch=[];
-  if(subj) cols.forEach(c=>ch.push(`collection:${c} AND subject:(${subj}) AND ${yr}${NOT}`)); // 1 collection+subject+year
-  if(!g.subjRequired) cols.forEach(c=>ch.push(`collection:${c} AND ${yr}${NOT}`));            // 2 collection+year (CYCLE-14: skipped for subject-locked genres — this tier caused off-genre bleed)
+  if(subj) cols.forEach(c=>ch.push(`collection:${c} AND mediatype:${mt} AND subject:(${subj}) AND ${yr}${NOT}`)); // 1 collection+type+subject+year
+  if(!g.subjRequired) cols.forEach(c=>ch.push(`collection:${c} AND mediatype:${mt} AND ${yr}${NOT}`));            // 2 collection+type+year
   if(subj) ch.push(`mediatype:${mt} AND subject:(${subj}) AND ${yr}${NOT}`);                  // 3 subject+year
-  if(!g.subjRequired) cols.forEach(c=>ch.push(`collection:${c}${NOT}`));                      // 4 collection (any year, also subject-locked-skipped)
+  if(!g.subjRequired) cols.forEach(c=>ch.push(`collection:${c} AND mediatype:${mt}${NOT}`));                      // 4 collection+type (any year)
   if(subj) ch.push(`mediatype:${mt} AND subject:(${subj})${NOT}`);                            // 5 subject (any year)
-  if(subj) fcols.forEach(c=>ch.push(`collection:${c} AND subject:(${subj}) AND ${yr}${NOT}`)); // 6 CYCLE-5: fallback pool STAYS scoped to the genre's subjects
-  else fcols.forEach(c=>ch.push(`collection:${c} AND ${yr}${NOT}`));                            //   era-defined genres (golden/classic) draw the general pool by design
+  if(subj) fcols.forEach(c=>ch.push(`collection:${c} AND mediatype:${mt} AND subject:(${subj}) AND ${yr}${NOT}`)); // 6 type- and subject-scoped fallback
+  else fcols.forEach(c=>ch.push(`collection:${c} AND mediatype:${mt} AND ${yr}${NOT}`));                            // era-defined fallback
   if(!g.noBlindFallback && !subj) ch.push(`mediatype:${mt} AND ${yr}${NOT}`);                   // 7 CYCLE-5: blind any-movie fallback reserved for era-defined genres only
   /* CYCLE-6: dominance damper — download-ranked sampling lets one huge act (etree = Grateful
      Dead) swamp a whole channel. 80% of tunes exclude the dominant act so the rest of the vault

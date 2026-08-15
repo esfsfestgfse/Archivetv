@@ -27,6 +27,10 @@ jobs:
           playwright install chromium
       - name: Validate HTML syntax and build stamps
         run: node scripts/check-html-syntax.js
+      - name: Audit IA channel contracts
+        run: |
+          node scripts/audit-ia-channels.js the_dial_mobile.html
+          node scripts/audit-ia-channels.js the_dial_desktop.html
       - name: Serve app
         run: |
           python -m http.server 8799 &
@@ -53,6 +57,10 @@ jobs:
           playwright install chromium
       - name: Validate HTML syntax and build stamps
         run: node scripts/check-html-syntax.js
+      - name: Audit IA channel contracts
+        run: |
+          node scripts/audit-ia-channels.js the_dial_mobile.html
+          node scripts/audit-ia-channels.js the_dial_desktop.html
       - name: Serve app
         run: |
           python -m http.server 8800 &

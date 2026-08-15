@@ -4517,6 +4517,9 @@ const PROGRAM = {
       title: ["video game","computer game","board game review","gameplay","walkthrough","let's play","hardball"],
       subject: ["video game","computer game","sports","football","baseball","basketball","drama","sitcom","news"]
     },
+    require: { title_any: [
+      "game show","quiz show","panel show","what's my line","price is right","jeopardy","wheel of fortune","family feud","match game","password","pyramid","newlywed game","hollywood squares","let's make a deal","truth or consequences","to tell the truth","i've got a secret","press your luck","card sharks","tic tac dough","concentration","name that tune","joker's wild","sale of the century","supermarket sweep","double dare","legends of the hidden temple","nick arcade","fun house","remote control","deal or no deal","millionaire","cash cab","fear factor","weakest link","1 vs 100","beat the clock","you bet your life","dating game","gong show"
+    ] },
     subjRequired: true, noBlindFallback: true
   },
 
@@ -5266,6 +5269,8 @@ function buildProgramQueries(prog,ch,advance) {
   var qs = [];
   var globalQs = [];
   var deny = prog.deny || {};
+  var requiredTitles=((prog.require&&prog.require.title_any)||[]).map(programPhrase).join(" OR ");
+  var titleClause=requiredTitles?(" AND title:("+requiredTitles+")"):"";
   var denySubj = (deny.subject || []).map(programPhrase).join(" OR ");
   var denyTitle = (deny.title || []).map(programPhrase).join(" OR ");
   var NOT = (denySubj ? (" AND NOT subject:(" + denySubj + ")") : "") +
@@ -5289,7 +5294,7 @@ function buildProgramQueries(prog,ch,advance) {
       }
       if(subjs.length){
         var subjQ=subjs.map(programPhrase).join(" OR ");
-        var base="mediatype:"+mt+" AND subject:("+subjQ+") AND "+yr+NOT;
+        var base="mediatype:"+mt+" AND subject:("+subjQ+")"+titleClause+" AND "+yr+NOT;
         cols.forEach(function(c){
           var collectionBase="collection:"+c+" AND "+base;
           if(topicClause)qs.push(collectionBase+topicClause);
@@ -5437,6 +5442,7 @@ function iaProgramAllowed(item,sl){
   var cur=(curItem&&typeof curItem==="object")?curItem.id:null;if(item.identifier===cur)return false;
   if(!sl||!sl.program)return true;var p=sl.program, title=String(item.title||"").toLowerCase(), subj=String(item.subject||item.subjects||"").toLowerCase();
   if(p.deny){if((p.deny.title||[]).some(function(x){return title.indexOf(String(x).toLowerCase())>=0;}))return false;if((p.deny.subject||[]).some(function(x){return subj.indexOf(String(x).toLowerCase())>=0;}))return false;}
+  if(p.require&&p.require.title_any&&p.require.title_any.length&&!p.require.title_any.some(function(x){return title.indexOf(String(x).toLowerCase())>=0;}))return false;
   return !(p.require&&p.require.runtime_max_s&&item.runtime&&iaRuntimeSeconds(item.runtime)>p.require.runtime_max_s);
 }
 async function iaQueueRequest(ch,sl,count){

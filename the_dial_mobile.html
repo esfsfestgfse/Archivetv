@@ -1204,7 +1204,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.190";
+window.__ATV_BUILD="1.7.7-mobile.191";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1580,8 +1580,8 @@ const G={
  trailer:    {mt:"movies",col:["movie_trailers"],       fcol:[],               subj:["trailer","coming attractions"],era:[1940,1989]},
  jazz78:     {mt:"audio", col:["georgeblood","78rpm"],  fcol:[],               subj:["jazz","swing"],             era:[1920,1949], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
  waxmuseum:  {mt:"audio", col:["georgeblood","78rpm"],  fcol:["opensource_audio"], subj:["acoustic recording","wax cylinder","edison cylinder","victrola","78rpm","early 20th century","enrico caruso","john mccormack","al jolson","marion harris","john philip sousa","harry lauder","billy murray","ada jones","henry burr","bert williams","nora bayes"], subjRotate:true, subjRequired:true, noBlindFallback:true, era:[1893,1925]},
- gmrock:     {mt:"audio", col:["etree"],                fcol:[],               subj:["rock"], subjRequired:true,  era:[1965,2026], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
- gmfolk:     {mt:"audio", col:["etree"],                fcol:[],               subj:["bluegrass","folk","americana","acoustic"], era:[1965,2026], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
+ gmrock:     {mt:"audio", col:["opensource_audio"],    fcol:[],               subj:["rock"], subjRequired:true,  era:[1965,2026], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
+ gmfolk:     {mt:"audio", col:["opensource_audio"],    fcol:[],               subj:["bluegrass","folk","americana","acoustic"], era:[1965,2026], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
  gmjazz:     {mt:"audio", col:["georgeblood","78rpm"],  fcol:[],               subj:["jazz","dixieland","bebop"], era:[1917,1959], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
  gmblues:    {mt:"audio", col:["georgeblood","78rpm"],  fcol:[],               subj:["blues","rhythm and blues"], era:[1917,1959], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
  gmswing:    {mt:"audio", col:["georgeblood","78rpm"],  fcol:[],               subj:["swing","big band","dance orchestra","fox trot"], era:[1925,1949], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
@@ -1620,7 +1620,7 @@ const G={
  autoracing:{mt:"movies",col:["prelinger","avgeeks","FedFlix"],fcol:["feature_films"],subj:["auto racing","motor racing","grand prix","indianapolis 500","stock car racing","hot rod","drag racing","sports car","le mans","automobile","cars","motoring"],subjRotate:true,subjRequired:true,not:FNOTX,era:[1930,1995]},
  railroad:{mt:"movies",col:["prelinger","avgeeks","FedFlix"],fcol:["feature_films"],subj:["railroad","train","locomotive","steam locomotive","railway","streamliner","diesel locomotive","rail transport"],subjRotate:true,subjRequired:true,not:FNOTX,era:[1930,1990]},
  aviationfilm:{mt:"movies",col:["prelinger","avgeeks","FedFlix"],fcol:["feature_films"],subj:["aviation","aircraft","airplane","aeroplane","aeronautics","flight","aviator","jet aircraft","airline","airliner","biplane"],subjRotate:true,subjRequired:true,not:FNOTX.concat(["family","children","romance","drama","comedy","adventure","fantasy","musical","cartoon","animated"]),era:[1930,1990]}, /* QA: tightened not-list after soak confirmed "The Sky's The Limit" (family TV movie) bleeding in via "flight" subject match */
- concertrock:{mt:"audio",col:["etree"],fcol:[],subj:["rock","live","concert"],subjRequired:true,era:[1965,2015],dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
+ concertrock:{mt:"audio",col:["opensource_audio"],fcol:[],subj:["rock","live","concert"],subjRequired:true,era:[1965,2015],dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
  gmhiphop:  {mt:"audio", col:["netlabels"], fcol:[], subj:["hip hop","hip-hop","rap","turntablism","boom bap","instrumental hip hop"], subjRequired:true, era:[1979,2025], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}}, /* audit 6B: hip-hop starts 1979 (Sugarhill Gang) */
  gmreggae:  {mt:"audio", col:["netlabels"], fcol:[], subj:["reggae","dub","ska","dancehall","roots reggae"], subjRequired:true, era:[1968,2025], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
  gmpunk:    {mt:"audio", col:["netlabels"], fcol:[], subj:["punk","hardcore","post-punk","punk rock","garage"], subjRequired:true, era:[1975,2025], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
@@ -1629,20 +1629,20 @@ const G={
  gmfunk:    {mt:"audio", col:["netlabels"], fcol:[], subj:["funk","soul","rhythm and blues","groove","disco","nu funk"], subjRequired:true, era:[1968,2025], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
  /* The existing Jazz/Blues channels are sourced from georgeblood/78rpm, which is inherently a
     pre-1960 shellac-disc collection by nature of the format -- there's no way to get modern jazz or
-    blues out of it. etree (Live Music Archive) has real, substantial modern jazz and blues live-show
-    taping communities (fusion, jam-jazz, modern blues/blues-rock acts), so these two draw from there
+    blues out of it. Open Source Audio has substantial modern jazz and blues recordings, so these two draw
+    from that broad community archive
     instead, covering the gap the 78rpm-based channels structurally can't. */
- gmjazzmod: {mt:"audio", col:["etree"], fcol:["opensource_audio"], subj:["jazz","fusion","jazz fusion","bebop","jazz improvisation"], subjRequired:true, era:[1960,2026], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
- gmbluesmod:{mt:"audio", col:["etree"], fcol:["opensource_audio","georgeblood"], subj:["blues","blues rock","electric blues","delta blues"], subjRequired:true, era:[1960,2026], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
+ gmjazzmod: {mt:"audio", col:["opensource_audio"], fcol:[], subj:["jazz","fusion","jazz fusion","bebop","jazz improvisation"], subjRequired:true, era:[1960,2026], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
+ gmbluesmod:{mt:"audio", col:["opensource_audio"], fcol:["georgeblood"], subj:["blues","blues rock","electric blues","delta blues"], subjRequired:true, era:[1960,2026], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
  /* four more genuinely new channels: Comedy (standalone standup albums, distinct from oldtimeradio's
     scripted radio comedy shows), Podcasts (archive.org's real, dedicated podcasts collection),
     Modern Country/Americana (the existing Country channel is 78rpm-locked same as Jazz/Blues were --
-    etree has real coverage here, overlapping with but distinct from the Bluegrass & Folk channel),
+    Open Source Audio has real coverage here, overlapping with but distinct from the Bluegrass & Folk channel),
     and Field Recordings (nature/ambient soundscapes, a real niche on archive.org distinct from any
     music genre -- sourced broadly since there's no single dedicated collection for it). */
  standup:    {mt:"audio", col:[], fcol:["opensource_audio","netlabels"], subj:["stand-up comedy","comedy album","stand up comedy"], subjRequired:true, era:[1960,2026]},
  podcasts:   {mt:"audio", col:["podcasts"], fcol:[], subj:[], era:[2004,2025]},
- gmcountrymod:{mt:"audio", col:["etree"], fcol:["opensource_audio"], subj:["country","americana","alt-country","country rock","roots rock"], subjRequired:true, era:[1970,2026], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
+ gmcountrymod:{mt:"audio", col:["opensource_audio"], fcol:[], subj:["country","americana","alt-country","country rock","roots rock"], subjRequired:true, era:[1970,2026], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
  fieldrec:   {mt:"audio", col:[], fcol:["opensource_audio","netlabels"], subj:["field recording","nature sounds","soundscape","ambient nature recording"], subjRequired:true, era:[1990,2025]},
  newsarchive:{mt:"movies",col:["universal_newsreels","FedFlix","prelinger"],fcol:["feature_films"],subj:["newsreel","documentary film","government film","historic footage","actuality film"],subjRotate:true,era:[1920,1975]},
 };
@@ -1667,7 +1667,7 @@ function buildQuery(genre,era){
   if(subj) fcols.forEach(c=>ch.push(`collection:${c} AND mediatype:${mt} AND subject:(${subj}) AND ${yr}${NOT}`)); // 6 type- and subject-scoped fallback
   else fcols.forEach(c=>ch.push(`collection:${c} AND mediatype:${mt} AND ${yr}${NOT}`));                            // era-defined fallback
   if(!g.noBlindFallback && !subj) ch.push(`mediatype:${mt} AND ${yr}${NOT}`);                   // 7 CYCLE-5: blind any-movie fallback reserved for era-defined genres only
-  /* CYCLE-6: dominance damper — download-ranked sampling lets one huge act (etree = Grateful
+  /* CYCLE-6: dominance damper — download-ranked sampling lets one huge act (often Grateful
      Dead) swamp a whole channel. 80% of tunes exclude the dominant act so the rest of the vault
      gets real airtime; 20% still let it through so it's limited, not banned. */
   if(g.dampen && Math.random()<0.8){
@@ -1943,8 +1943,8 @@ const CHANNEL_META={
 "Home Economics":{desc:"Cooking, baking, meal planning and household arts - a rotating topic each tune-in.",best:"daytime",rel:["Manufacturing Marvels","Prelinger Vault"]},
 "Found Footage Static":{desc:"Degraded prints and off-air oddities, glitch treatment included.",best:"after midnight",rel:["Shock Theater","VHS Vault"]},
 "Computer Chronicles":{desc:"The definitive record of the personal-computer revolution.",best:"evenings",rel:["Arcade Archive","Modern Rerun TV"]},
-"Live Concerts":{desc:"Live concert tapes from the world's biggest taper community (Live Music Archive).",best:"evenings",rel:["Rock","Music Films"]},
-"Rock":{desc:"Live rock, jam and roots from the Live Music Archive (etree).",best:"evenings",rel:["Bluegrass & Folk","Live Concerts"]},
+"Live Concerts":{desc:"Live concert recordings from the Open Source Audio community archive.",best:"evenings",rel:["Rock","Music Films"]},
+"Rock":{desc:"Live rock, jam and roots from the Open Source Audio community archive.",best:"evenings",rel:["Bluegrass & Folk","Live Concerts"]},
 "Bluegrass & Folk":{desc:"Bluegrass, folk and Americana live tapes.",best:"anytime",rel:["Rock","Country & Western"]},
 "Jazz":{desc:"78rpm-era jazz — dixieland, swing and bebop.",best:"evenings",rel:["Swing & Big Band","Blues"]},
 "Blues":{desc:"Vintage blues and rhythm-and-blues 78s.",best:"evenings",rel:["Jazz","Gospel"]},
@@ -2106,26 +2106,26 @@ const PROGRAM = {
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
-  /* Live Concerts (ch 900) — Phase 1 overhaul 2026-08-08. Etree taper vault is
+  /* Live Concerts (ch 900) — Phase 1 overhaul 2026-08-08. The former taper-vault
      ~99% jamband — that's fine, but named legends and non-jam artists get their own tier
      so rotation isn't 90% Dead. */
   "Live Concerts": {
     genre: "concertrock", era: [1960, 2026],
     providers: [
-      { collections: ["etree"], require_subj: [
+      { collections: ["opensource_audio"], require_subj: [
         "grateful dead","phish","widespread panic","string cheese incident","moe.","dave matthews band",
         "blues traveler","spin doctors","the allman brothers","allman brothers","gov't mule","warren haynes",
         "derek trucks","tedeschi trucks","umphrey's mcgee","medeski martin and wood","garaj mahal",
         "leftover salmon","yonder mountain string band","greensky bluegrass","railroad earth",
         "trey anastasio","mickey hart","phil lesh","bob weir","furthur","dark star orchestra"
       ] },
-      { collections: ["etree", "audio_music"], require_subj: [
+      { collections: ["opensource_audio", "audio_music"], require_subj: [
         "bruce springsteen","tom petty","neil young","bob dylan","van morrison","eric clapton",
         "elvis costello","john prine","jason isbell","drive-by truckers","wilco","son volt","uncle tupelo",
         "ryan adams","whiskeytown","lucinda williams","gillian welch","emmylou harris",
         "little feat","the band","the black crowes","gov't mule","dead & company","dead and company"
       ] },
-      { collections: ["etree", "audio_music", "opensource_audio"], require_subj: [
+      { collections: ["opensource_audio", "audio_music"], require_subj: [
         "live concert","live music","live performance","concert recording","concert bootleg","live album",
         "live tape","soundboard","audience recording","board tape","live at","live in","live from"
       ] }
@@ -2135,12 +2135,12 @@ const PROGRAM = {
   },
 
   /* Rock (ch 901) — Phase 1 overhaul 2026-08-08. Multi-tier: (1) legends by name
-     across all eras, (2) genre/subgenre umbrella, (3) live-taper etree slice.
-     JAMBAND_DENY dampens Dead-adjacent overrepresentation on etree. */
+     across all eras, (2) genre/subgenre umbrella, (3) live-performance slice.
+     JAMBAND_DENY dampens Dead-adjacent overrepresentation. */
   "Rock": {
     genre: "gmrock", era: [1955, 2026],
     providers: [
-      { collections: ["etree", "audio_music", "opensource_audio"], require_subj: [
+      { collections: ["opensource_audio", "audio_music"], require_subj: [
         "elvis presley","chuck berry","little richard","buddy holly","fats domino","jerry lee lewis",
         "the beatles","the rolling stones","the who","the kinks","the animals","the yardbirds",
         "led zeppelin","pink floyd","the doors","the beach boys","cream","jimi hendrix",
@@ -2161,7 +2161,7 @@ const PROGRAM = {
         "glam rock","new wave","power pop","pop rock","folk rock","country rock",
         "grunge","post-grunge","emo","pop punk","nu metal","stoner rock","desert rock"
       ] },
-      { collections: ["etree"], require_subj: ["rock","live","concert","live rock"], subjRequired: true }
+      { collections: ["opensource_audio"], require_subj: ["rock","live","concert","live rock"], subjRequired: true }
     ],
     deny: {"title": [], "subject": ["podcast","talk show","comedy","spoken word","audiobook","lecture","classical","opera","liturgical","gospel","hymn","reggaeton","narcocorrido", ...JAMBAND_DENY]},
     subjRotate: true, subjRequired: true, noBlindFallback: true
@@ -2234,7 +2234,7 @@ const PROGRAM = {
     genre: "gmhiphop", era: [1979, 2025], /* audit 6B: still-active genre, extend upper bound */
     providers: [
       {"collections": ["opensource_audio"], "require_subj": ["hip hop", "hip-hop", "rap", "MC", "turntablism", "beatbox", "freestyle"]},
-      {"collections": ["etree", "audio_music"], "require_subj": ["hip hop", "hip-hop", "rap", "nerdcore", "turntablism"]}
+      {"collections": ["opensource_audio", "audio_music"], "require_subj": ["hip hop", "hip-hop", "rap", "nerdcore", "turntablism"]}
     ],
     deny: {"subject": ["podcast", "talk show", "spoken word", "audiobook", "lecture", "jazz", "classical", "reggae", ...JAMBAND_DENY, "pan afrikanism", "radio talk", "political radio", "current affairs radio", "talk radio", "commentary radio"]},
     subjRequired: true, noBlindFallback: true
@@ -2963,7 +2963,7 @@ const PROGRAM = {
   "Bluegrass & Folk": {
     genre: "gmfolk", era: [1920, 2026],
     providers: [
-      { collections: ["etree", "audio_music", "78rpm", "lomaxky", "opensource_audio"], require_subj: [
+      { collections: ["opensource_audio", "audio_music", "78rpm", "lomaxky"], require_subj: [
         "bill monroe","monroe brothers","the stanley brothers","flatt and scruggs","earl scruggs",
         "lester flatt","doc watson","norman blake","tony rice","clarence white","david grisman",
         "jerry garcia acoustic","alison krauss","union station","ricky skaggs","del mccoury",
@@ -2978,7 +2978,7 @@ const PROGRAM = {
         "iron and wine","fleet foxes","gillian welch","dave rawlings","david rawlings",
         "old crow medicine show","the avett brothers","the punch brothers","chris thile","nickel creek"
       ] },
-      { collections: ["etree", "audio_music", "78rpm"], require_subj: [
+      { collections: ["opensource_audio", "audio_music", "78rpm"], require_subj: [
         "bluegrass","old-time","old time music","appalachian","string band","stringband","mountain music",
         "folk","folk music","american folk","traditional folk","folk revival","folk-rock","freak folk",
         "singer-songwriter","folksinger","fiddle","banjo","mandolin","dobro","dulcimer","autoharp",
@@ -3045,13 +3045,13 @@ const PROGRAM = {
   "Swing & Big Band": {
     genre: "gmswing", era: [1930, 1955],
     providers: [{"collections": ["78rpm", "airellebigbandarchive"], "require_subj": ["swing", "big band", "dance band", "ballroom", "foxtrot", "jitterbug", "swing music"]},
-      {"collections": ["etree", "audio_music"], "require_subj": ["swing", "big band", "dance band", "swing music"]}
+      {"collections": ["opensource_audio", "audio_music"], "require_subj": ["swing", "big band", "dance band", "swing music"]}
     ],
     deny: {"subject": ["podcast", "talk show", "comedy", "spoken word", "audiobook", "rock", "punk", "classical", "concerto", "sonata", "opera", "symphony", ...JAMBAND_DENY]},
     subjRequired: true, noBlindFallback: true
   },
 
-  /* Country & Western (ch 908) — AUDIT 2026-08-08: NO_SIGNAL. Prior config used etree
+  /* Country & Western (ch 908) — AUDIT 2026-08-08: NO_SIGNAL. Prior config used a live-taper
      (jamband/live-taper collection, wrong media for country) and era ceiling of 1979 which
      cut off the golden Willie/Waylon/Merle years plus everything after. Rebuilt with
      78rpm-first for pre-1960 hillbilly + audio_music/opensource_audio for wider country
@@ -3183,7 +3183,7 @@ const PROGRAM = {
     genre: "gmclassical", era: [1900, 2010],
     providers: [
       {"collections": ["78rpm", "album_recordings"], "require_subj": ["classical", "orchestra", "symphony", "concerto", "sonata", "opera", "chamber music", "baroque"]},
-      {"collections": ["etree", "audio_music"], "require_subj": ["classical", "orchestra", "symphony", "concerto", "sonata", "opera"]}
+      {"collections": ["opensource_audio", "audio_music"], "require_subj": ["classical", "orchestra", "symphony", "concerto", "sonata", "opera"]}
     ],
     /* audit 2B: dropped "ethnic","folk","latin" from deny.subject. Latin classical (Villa-Lobos),
        folk-adjacent classical (Copland Americana), and world orchestral are all mainstream classical
@@ -5291,10 +5291,10 @@ const PROGRAM = {
 
 /* Build queries from a PROGRAM entry instead of from G. Same shape output as buildQuery
    so the rest of the pipeline (pickFromQueries, pickIA, choose) works unchanged. */
-function buildProgramQueries(prog) {
+function buildProgramQueries(prog,ch) {
   var era = prog.era || [1930, 1990];
   var yr = "year:[" + era[0] + " TO " + era[1] + "]";
-  var mt = "movies";
+  var mt = prog.mt || ((ch && ch.audio) ? "audio" : "movies");
   var qs = [];
   var deny = prog.deny || {};
   var denySubj = (deny.subject || []).map(function(s) { return '"' + s + '"'; }).join(" OR ");
@@ -5308,7 +5308,7 @@ function buildProgramQueries(prog) {
     if (subjs.length) {
       var subjQ = subjs.map(function(s) { return '"' + s + '"'; }).join(" OR ");
       cols.forEach(function(c) {
-        qs.push("collection:" + c + " AND subject:(" + subjQ + ") AND " + yr + NOT);
+        qs.push("collection:" + c + " AND mediatype:" + mt + " AND subject:(" + subjQ + ") AND " + yr + NOT);
       });
       qs.push("mediatype:" + mt + " AND subject:(" + subjQ + ") AND " + yr + NOT);
     }
@@ -5327,7 +5327,7 @@ function slotFor(ch,hour){
      non-migrated channels. */
   if(PROGRAM[ch.nm]){
     var prog=PROGRAM[ch.nm];
-    var pq=buildProgramQueries(prog);
+    var pq=buildProgramQueries(prog,ch);
     return {show:names[h], genre:prog.genre||ch.gl, era:prog.era||ch.era, source:"ia", queries:pq, program:prog};
   }
   const g=ch.gl; let era=ch.era||(G[g]&&G[g].era);

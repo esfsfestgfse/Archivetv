@@ -1204,7 +1204,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.199";
+window.__ATV_BUILD="1.7.7-mobile.200";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -11582,6 +11582,9 @@ async function tuneRiver(ch,sl,my){
 var quakeTimer=null;
 var gasTimer=null;
 var shipSocket=null, shipList={};
+/* The relay exposes a cached Kpler snapshot here when AISStream is quiet.
+   No provider credential is ever present in this public browser client. */
+var SHIP_SNAPSHOT_URL="https://ais-relay.tdy1990.workers.dev/snapshot";
 /* Ship Tracker rebuilt 2026-08-07: Gulf-of-Mexico map on the left, live vessel list on the
    right, connection-status pill at the top-right. Ships plot as blips on the map using the
    same ensureMap() infrastructure as Air Traffic / Seismic. Clear visible status: green
@@ -11594,7 +11597,7 @@ async function tuneShips(ch,sl,my){
     '<div id="shipRoot" style="width:100%;height:100%;display:grid;grid-template-columns:minmax(0,60%) minmax(0,40%);grid-template-rows:1fr auto;gap:6px;padding:6px;box-sizing:border-box;background:radial-gradient(120% 80% at 50% 0%,#04140a,#020a06 70%);color:var(--phos);font-family:monospace;overflow:hidden">'+
     '<div style="grid-column:1;grid-row:1/span 2;display:flex;align-items:center;justify-content:center;min-height:0;min-width:0;background:#000;border-radius:6px;overflow:hidden;position:relative">'+
       '<div id="shipMap" style="width:100%;height:100%;position:relative;background:#0a1928">'+
-        '<div style="position:absolute;bottom:6px;left:8px;font:700 9px monospace;letter-spacing:1.5px;color:#9fc4ff;background:rgba(0,0,0,.6);padding:3px 8px;border-radius:3px;pointer-events:none;z-index:20">GULF OF MEXICO \u00b7 AIS LIVE</div>'+
+        '<div style="position:absolute;bottom:6px;left:8px;font:700 9px monospace;letter-spacing:1.5px;color:#9fc4ff;background:rgba(0,0,0,.6);padding:3px 8px;border-radius:3px;pointer-events:none;z-index:20">GULF OF MEXICO \u00b7 VESSEL TRACKER</div>'+
       '</div>'+
     '</div>'+
     '<div style="grid-column:2;grid-row:1;display:flex;flex-direction:column;min-height:0;background:rgba(3,10,6,.55);border:1px solid rgba(103,255,134,.15);border-radius:6px;overflow:hidden">'+
@@ -11602,14 +11605,14 @@ async function tuneShips(ch,sl,my){
         '<span style="font:700 11px monospace;letter-spacing:1.5px">SHIP TRACKER \u00b7 GULF</span>'+
         '<span id="shipStatus" class="status-pill st-connecting" style="margin-left:auto"><span class="st-dot"></span><span id="shipStatusTxt">connecting\u2026</span></span>'+
       '</div>'+
-      '<div id="shipList" style="flex:1;overflow-y:auto;padding:4px 6px">Waiting for AIS feed\u2026</div>'+
+      '<div id="shipList" style="flex:1;overflow-y:auto;padding:4px 6px">Connecting to vessel data\u2026</div>'+
     '</div>'+
-    '<div style="grid-column:2;grid-row:2;padding:5px 8px;font:700 9px monospace;letter-spacing:1.2px;color:#9fd6a6;border-top:1px solid rgba(103,255,134,.10);background:rgba(0,0,0,.25);text-align:center" id="shipTicker">ais-relay Worker \u00b7 live AIS positions \u00b7 GALVESTON \u00b7 HOUSTON \u00b7 CORPUS CHRISTI \u00b7 PORT ARTHUR \u00b7 FREEPORT</div>'+
+    '<div style="grid-column:2;grid-row:2;padding:5px 8px;font:700 9px monospace;letter-spacing:1.2px;color:#9fd6a6;border-top:1px solid rgba(103,255,134,.10);background:rgba(0,0,0,.25);text-align:center" id="shipTicker">AIS STREAM \u00b7 KPLER SNAPSHOT FALLBACK \u00b7 GALVESTON \u00b7 HOUSTON \u00b7 CORPUS CHRISTI \u00b7 PORT ARTHUR \u00b7 FREEPORT</div>'+
   '</div>';
   var shipBug=mountChanBug("shipRoot",{ident:"SHIP TRACKER \u00b7 GULF"});
   if(shipSocket){ try{shipSocket.close();}catch(e){} shipSocket=null; }
   shipList={};
-  var msgCount=0, firstMsgAt=null, lastMsgAt=null, dirty=false;
+  var msgCount=0, firstMsgAt=null, lastMsgAt=null, snapshotAt=null, snapshotError=null, dirty=false;
   /* Gulf-centered map. Center ~27\u00b0N -89\u00b0W = middle of Gulf. Range 700mi covers Brownsville
      to Key West with room for outer shipping lanes. */
   var mp=null;
@@ -11646,12 +11649,42 @@ async function tuneShips(ch,sl,my){
     if(pill) pill.className="status-pill "+cls;
     if(t) t.textContent=txt;
   }
+  function addSnapshot(payload){
+    var features=payload&&Array.isArray(payload.features)?payload.features:[];
+    var received=Date.now(), added=0;
+    features.forEach(function(feature){
+      var p=feature&&feature.properties||{}, coords=feature&&feature.geometry&&feature.geometry.coordinates||[];
+      var mmsi=p.mmsi;
+      if(mmsi==null)return;
+      var lat=Number(p.latitude!=null?p.latitude:coords[1]), lon=Number(p.longitude!=null?p.longitude:coords[0]);
+      if(!isFinite(lat)||!isFinite(lon))return;
+      var rec=shipList[mmsi]||{mmsi:mmsi};
+      rec.lat=lat; rec.lon=lon; rec.sog=p.sog!=null?Number(p.sog):rec.sog;
+      if(p.vesselName)rec.name=String(p.vesselName).trim();
+      rec.ts=received; rec.source="snapshot"; shipList[mmsi]=rec; added++;
+    });
+    return added;
+  }
+  async function refreshSnapshot(){
+    if(my!==token)return;
+    try{
+      var res=await fetch(SHIP_SNAPSHOT_URL,{cache:"no-store"});
+      if(!res.ok)throw new Error("snapshot "+res.status);
+      var payload=await res.json(), added=addSnapshot(payload);
+      if(!added)throw new Error("empty snapshot");
+      snapshotAt=Date.now(); snapshotError=null; dirty=true;
+      nlog("ais",true,"loaded "+added+" vessel snapshot via relay");
+    }catch(e){
+      snapshotError=(e&&e.message)||"snapshot unavailable";
+      nlog("ais",false,"snapshot fallback unavailable: "+snapshotError);
+    }
+  }
   function renderList(){
     var listEl=$("shipList"); if(!listEl)return;
     var arr=Object.keys(shipList).map(function(k){return shipList[k];})
       .filter(function(s){return s.lat!=null||s.name;})
       .sort(function(a,b){return b.ts-a.ts;});
-    setChanStatus(ch.num,arr.length+" vessels \u00b7 "+msgCount+" msgs");
+    setChanStatus(ch.num,arr.length+" vessels \u00b7 "+msgCount+" stream msgs"+(snapshotAt?" \u00b7 snapshot":""));
     if(shipBug) shipBug.update(String(arr.length),
       arr[0]?((arr[0].name||("MMSI "+arr[0].mmsi))+" \u00b7 "+(arr[0].sog!=null?Math.round(arr[0].sog)+"kn":"tracking")):"vessels in the Gulf");
     var top=arr.slice(0,20);
@@ -11673,9 +11706,12 @@ async function tuneShips(ch,sl,my){
     if(my!==token) return;
     if(msgCount===0){
       var elapsed=firstMsgAt?0:Math.floor((Date.now()-tuneStart)/1000);
-      if(elapsed<20) statusPill("st-connecting","connecting\u2026 "+elapsed+"s");
-      else if(elapsed<45) statusPill("st-waiting","no data yet \u00b7 "+elapsed+"s");
-      else statusPill("st-down","feed appears down \u00b7 aisstream.io");
+      if(snapshotAt){
+        var snapAgo=Math.floor((Date.now()-snapshotAt)/1000);
+        statusPill(snapAgo<90?"st-live":"st-waiting",Object.keys(shipList).length+" vessels \u00b7 snapshot "+snapAgo+"s ago");
+      } else if(elapsed<12) statusPill("st-connecting","connecting\u2026 "+elapsed+"s");
+      else if(elapsed<35) statusPill("st-waiting","stream quiet \u00b7 loading fallback");
+      else statusPill("st-down","provider unavailable \u00b7 retrying");
     } else {
       var ago=Math.floor((Date.now()-lastMsgAt)/1000);
       if(ago<3) statusPill("st-live",Object.keys(shipList).length+" vessels \u00b7 live");
@@ -11686,6 +11722,8 @@ async function tuneShips(ch,sl,my){
   var tuneStart=Date.now();
   ensureShipMap();
   var renderIv=rtInterval(function(){ if(dirty){ dirty=false; render(); } },2000);
+  rtInterval(refreshSnapshot,60*1000);
+  setTimeout(refreshSnapshot,8000);
   var pruneIv=rtInterval(function(){
     var cutoff=Date.now()-20*60*1000;
     Object.keys(shipList).forEach(function(k){
@@ -11699,8 +11737,8 @@ async function tuneShips(ch,sl,my){
        2026-08-14: switched from direct aisstream.io (which blocks all browser origins) to
        the ais-relay.tdy1990.workers.dev Cloudflare Worker. The Worker injects the API key
        server-side from its AIS_API_KEY secret so the browser never sees it \u2014 subscribe
-       message omits APIKey now. If the Worker is down or misconfigured the socket closes
-       cleanly and the existing "connection closed \u00b7 no data" statusPill fires. */
+       message omits APIKey now. A separate cached Kpler snapshot is polled so an
+       AISStream outage does not leave the tracker permanently empty. */
     var box=[[18.0,-98.0],[31.0,-80.0]];
     var sock=new WebSocket("wss://ais-relay.tdy1990.workers.dev/");
     shipSocket=sock;
@@ -11721,10 +11759,10 @@ async function tuneShips(ch,sl,my){
         rec.ts=Date.now(); shipList[mmsi]=rec; dirty=true;
       }catch(e){}
     };
-    sock.onerror=function(){ nlog("ais",false,"websocket error"); statusPill("st-down","socket error \u00b7 check DIAG"); };
+    sock.onerror=function(){ nlog("ais",false,"websocket error"); statusPill("st-waiting","stream error \u00b7 fallback loading"); };
     sock.onclose=function(){ if(shipSocket===sock)shipSocket=null;
       if(my===token){ nlog("ais",false,"connection closed after "+msgCount+" msgs");
-        if(msgCount===0) statusPill("st-down","connection closed \u00b7 no data");
+        if(msgCount===0) statusPill("st-waiting","stream closed \u00b7 fallback loading");
       } };
   }catch(e){ nlog("ais",false,(e&&e.message)||e); statusPill("st-down","could not start AIS stream"); }
   render();

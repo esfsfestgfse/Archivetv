@@ -1,13 +1,18 @@
-# AIS Relay Worker — deploy in 5 minutes
+# Ship Tracker Relay Worker — deploy in 5 minutes
 
-The Ship Tracker channel (num 965) needs a Cloudflare Worker to proxy
-`aisstream.io` because they explicitly block direct browser connections.
-This worker is stateless, one file, ~120 lines. Deploy once, never think
-about it again.
+The Ship Tracker channel (num 965) uses a Cloudflare Worker so provider keys
+stay out of the public web app. It has two independent data paths:
+
+- **AISStream WebSocket** for low-latency updates when that service is healthy.
+- **Kpler AIS snapshots** every minute when the stream is unavailable.
+
+The browser automatically uses either path. The Worker is one file; deploy it
+once and update its secrets as providers change.
 
 ## Prerequisites
 - A Cloudflare account (free tier is fine)
-- Your **aisstream.io API key** (already have one — it's in prior notes)
+- An aisstream.io API key (optional: keeps the live WebSocket fast path)
+- A Kpler AIS API key (recommended: provides the reliable snapshot fallback)
 
 ## Steps (Cloudflare dashboard — no CLI needed)
 
@@ -22,42 +27,43 @@ about it again.
 7. Copy the deployed URL — it will look like
    `https://ais-relay.<your-account>.workers.dev`.
 
-## Set the API key
+## Set provider secrets
 
 8. Back at the Worker's overview, **Settings** tab → **Variables and Secrets**
    → **Add variable**.
 9. **Type**: Secret (not plaintext).
-10. **Name**: `AIS_API_KEY`
-11. **Value**: paste your aisstream.io API key.
-12. **Save**.
+10. Add `AIS_API_KEY` and paste the aisstream.io API key (optional).
+11. Add `KPLER_API_KEY` and paste the Kpler API key exactly as provided for
+    the documented `Authorization: Basic <API_KEY>` header (recommended).
+12. Save and redeploy the Worker after changing a secret.
 
-The Worker will now inject the key into every subscription message
-so the browser never sees it.
+The Worker injects the AISStream key into WebSocket subscriptions and sends
+Kpler credentials only from its server-side snapshot request. The browser
+never sees either secret.
 
 ## Test it
 
-13. Open a browser to your Worker URL. You should see:
-    ```
-    afterglow-ais-relay · WebSocket-only endpoint
-    Open `wss://<this-domain>/` from the Afterglow client to use it.
-    ```
-    That means it's alive.
+13. Open `<worker-url>/` in a browser. It returns a small health JSON object.
+    Confirm it reports `"snapshot": true` after the Kpler secret is saved.
+14. Open `<worker-url>/snapshot`. It should return JSON with
+    `"source":"kpler"` and a GeoJSON `features` list. The result is cached
+    for one minute to protect the provider quota during normal app use.
 
 ## Tell Afterglow to use it
 
-14. Send me the Worker URL and I'll wire it into `tuneShips` in one commit.
+15. The deployed Afterglow build already targets `/snapshot` on the configured
+    relay URL. No browser-side credential is required.
 
 ## What the Worker does
 
-- Accepts a WebSocket connection from the browser
-- Opens its own WebSocket to `wss://stream.aisstream.io/v0/stream`
-- On the first browser message (which should be the subscription JSON),
-  injects `AIS_API_KEY` and forwards to aisstream
-- Bidirectionally relays every subsequent message
-- Closes the paired connection when either side drops
+- Accepts a WebSocket connection and relays AISStream when configured
+- Fetches a fixed Gulf-of-Mexico Kpler snapshot at `/snapshot`
+- Caches snapshots for one minute, including through transient provider blips
+- Restricts the paid upstream query to the single region used by Ship Tracker
+- Never sends a provider key to the browser
 
 ## Cost
 
 Free tier: 100,000 requests/day. A Ship Tracker session opens one long-lived
-WebSocket, so each browser tune = ~1 request. You will not come close to the
-limit.
+WebSocket, while snapshot clients share a one-minute cached response. Review
+your Kpler contract for its data-request allowance.

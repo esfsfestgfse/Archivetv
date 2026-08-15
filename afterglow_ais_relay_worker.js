@@ -231,18 +231,27 @@ async function buildIaQueue(channel, queries, count) {
     }
     if (!found) break;
   }
-  const enriched = await Promise.all(items.map(async (item) => ({ ...item, media: await queuePlayable(item.identifier) })));
-  const ready = enriched.filter((item) => item.media).concat(enriched.filter((item) => !item.media)).slice(0, count);
   return {
     channel,
     generatedAt: new Date().toISOString(),
     ttlSeconds: IA_QUEUE_TTL_SECONDS,
-    items: ready,
-    ready: ready.length,
+    items: items.slice(0, count),
+    ready: Math.min(items.length, count),
   };
 }
 
-async function getIaQueue(request, url) {
+async function hydrateIaQueue(payload) {
+  const enriched = await Promise.all(payload.items.map(async (item) => ({ ...item, media: await queuePlayable(item.identifier) })));
+  const ready = enriched.filter((item) => item.media).concat(enriched.filter((item) => !item.media)).slice(0, payload.items.length);
+  return {
+    ...payload,
+    items: ready,
+    ready: ready.length,
+    hydrating: false,
+  };
+}
+
+async function getIaQueue(request, url, ctx) {
   let body;
   try {
     body = await request.json();
@@ -255,8 +264,18 @@ async function getIaQueue(request, url) {
   if (!safeChannel(channel) || !queries) return json({ error: "invalid queue request" }, 400);
   const cacheKey = new Request(url.origin + IA_PREFIX + "/cache/queue/" + await stableKey(JSON.stringify({ channel, queries, count })));
   try {
-    const payload = await cachedArchiveJson(cacheKey, IA_QUEUE_TTL_SECONDS, () => buildIaQueue(channel, queries, count));
-    return cacheableJson(payload, IA_QUEUE_TTL_SECONDS, { "X-Afterglow-Source": "program-director" });
+    const cache = caches.default, cached = await cache.match(cacheKey);
+    if (cached) return cached;
+    const payload = await buildIaQueue(channel, queries, count);
+    const initial = { ...payload, hydrating: true };
+    const response = cacheableJson(initial, IA_QUEUE_TTL_SECONDS, { "X-Afterglow-Source": "program-director" });
+    await cache.put(cacheKey, response.clone());
+    ctx.waitUntil(
+      hydrateIaQueue(payload)
+        .then((hydrated) => cache.put(cacheKey, cacheableJson(hydrated, IA_QUEUE_TTL_SECONDS, { "X-Afterglow-Source": "program-director" })))
+        .catch(() => {})
+    );
+    return response;
   } catch {
     return json({ error: "archive queue unavailable" }, 502);
   }
@@ -343,7 +362,7 @@ export default {
     }
 
     if (request.method === "POST" && (url.pathname === IA_QUEUE_PATH || url.pathname === IA_PROGRAM_PATH)) {
-      return getIaQueue(request, url);
+      return getIaQueue(request, url, ctx);
     }
 
     // Anything other than a WebSocket upgrade gets a useful health response.

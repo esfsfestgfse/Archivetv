@@ -4,6 +4,9 @@ on:
     paths:
       - 'the_dial_mobile.html'
       - 'the_dial_desktop.html'
+      - 'ci/**'
+      - 'scripts/**'
+      - '.github/workflows/ci.yml'
   workflow_dispatch:
 
 jobs:
@@ -12,6 +15,9 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -19,11 +25,13 @@ jobs:
         run: |
           pip install playwright
           playwright install chromium
+      - name: Validate HTML syntax and build stamps
+        run: node scripts/check-html-syntax.js
       - name: Serve app
         run: |
           python -m http.server 8799 &
           sleep 2
-      - name: Run tune-all (94 channels, zero page errors)
+      - name: Run tune-all (all discovered channels, zero page errors)
         run: python ci/test_tune_all.py http://localhost:8799/the_dial_mobile.html
       - name: Run regression (8-point functional check)
         run: python ci/test_regression.py http://localhost:8799/the_dial_mobile.html
@@ -33,6 +41,9 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -40,11 +51,13 @@ jobs:
         run: |
           pip install playwright
           playwright install chromium
+      - name: Validate HTML syntax and build stamps
+        run: node scripts/check-html-syntax.js
       - name: Serve app
         run: |
           python -m http.server 8800 &
           sleep 2
-      - name: Run tune-all (94 channels, zero page errors)
+      - name: Run tune-all (all discovered channels, zero page errors)
         run: python ci/test_tune_all.py http://localhost:8800/the_dial_desktop.html
       - name: Run regression (8-point functional check)
         run: python ci/test_regression.py http://localhost:8800/the_dial_desktop.html

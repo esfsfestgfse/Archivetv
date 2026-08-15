@@ -35,14 +35,19 @@ const AISSTREAM_URL = "https://stream.aisstream.io/v0/stream";
 const KPLER_URL = "https://api.kpler.com/v2/maritime/ais-latest";
 const SNAPSHOT_PATH = "/snapshot";
 const IA_PREFIX = "/ia";
+const IA_QUEUE_PATH = IA_PREFIX + "/queue";
+const IA_PROGRAM_PATH = IA_PREFIX + "/program";
 const SNAPSHOT_TTL_SECONDS = 60;
+const IA_SEARCH_TTL_SECONDS = 300;
+const IA_METADATA_TTL_SECONDS = 3600;
+const IA_QUEUE_TTL_SECONDS = 300;
 const GULF_FILTER = "BBOX(geometry,-98,18,-80,31)";
 const KPLER_FIELDS = "mmsi,longitude,latitude,posDt,sog,vesselName,heading,cog,navStatus,destination,vesselType";
 
 function corsHeaders() {
   return {
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
     "Vary": "Origin",
   };
@@ -78,34 +83,138 @@ function iaResponse(upstream, extraHeaders = {}) {
   return new Response(upstream.body, { status: upstream.status, headers });
 }
 
-async function getIaSearch(url) {
+function cacheableJson(body, ttlSeconds, extraHeaders = {}) {
+  return json(body, 200, {
+    "Cache-Control": "public, max-age=" + ttlSeconds,
+    ...extraHeaders,
+  });
+}
+
+function safeChannel(channel) {
+  return /^[A-Za-z0-9._ -]{1,80}$/.test(channel || "");
+}
+
+function safeQueries(queries) {
+  if (!Array.isArray(queries) || !queries.length || queries.length > 16) return null;
+  const clean = queries.map((query) => String(query || "").trim()).filter(Boolean);
+  return clean.length && clean.every((query) => query.length <= 2400) ? clean : null;
+}
+
+async function stableKey(value) {
+  const bytes = new TextEncoder().encode(value);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function cachedArchiveJson(cacheKey, ttlSeconds, load) {
+  const cache = caches.default;
+  const cached = await cache.match(cacheKey);
+  if (cached) return cached.json();
+  const payload = await load();
+  const response = cacheableJson(payload, ttlSeconds, { "X-Afterglow-Cache": "miss" });
+  await cache.put(cacheKey, response.clone());
+  return payload;
+}
+
+async function searchArchive(query, rows, page, sort) {
+  const upstreamUrl = new URL("https://archive.org/advancedsearch.php");
+  upstreamUrl.searchParams.set("q", query);
+  ["identifier", "title", "year", "subject", "runtime", "downloads"].forEach((field) => upstreamUrl.searchParams.append("fl[]", field));
+  upstreamUrl.searchParams.append("sort[]", sort || "downloads desc");
+  upstreamUrl.searchParams.set("rows", String(rows));
+  upstreamUrl.searchParams.set("page", String(page));
+  upstreamUrl.searchParams.set("output", "json");
+  const upstream = await fetch(upstreamUrl.toString());
+  if (!upstream.ok) throw new Error("archive search " + upstream.status);
+  const payload = await upstream.json();
+  return payload.response || { numFound: 0, docs: [] };
+}
+
+async function getIaSearch(url, ctx) {
   const q = (url.searchParams.get("q") || "").trim();
   if (!q || q.length > 2400) return json({ error: "invalid archive search" }, 400);
   const rows = Math.max(1, Math.min(100, Number(url.searchParams.get("rows")) || 50));
   const page = Math.max(1, Math.min(10000, Number(url.searchParams.get("page")) || 1));
   const sort = (url.searchParams.get("sort") || "downloads desc").slice(0, 80);
-  const upstreamUrl = new URL("https://archive.org/advancedsearch.php");
-  upstreamUrl.searchParams.set("q", q);
-  ["identifier", "title", "year", "subject", "runtime"].forEach((field) => upstreamUrl.searchParams.append("fl[]", field));
-  upstreamUrl.searchParams.append("sort[]", sort);
-  upstreamUrl.searchParams.set("rows", String(rows));
-  upstreamUrl.searchParams.set("page", String(page));
-  upstreamUrl.searchParams.set("output", "json");
+  const cacheKey = new Request(url.origin + IA_PREFIX + "/cache/search/" + await stableKey([q, rows, page, sort].join("|")));
   try {
-    const upstream = await fetch(upstreamUrl.toString());
-    return iaResponse(upstream);
+    const payload = await cachedArchiveJson(cacheKey, IA_SEARCH_TTL_SECONDS, () => searchArchive(q, rows, page, sort));
+    return cacheableJson({ response: payload }, IA_SEARCH_TTL_SECONDS, { "X-Afterglow-Source": "internet-archive-cache" });
   } catch {
     return json({ error: "archive search unavailable" }, 502);
   }
 }
 
-async function getIaMetadata(id) {
+async function getIaMetadata(id, requestUrl) {
   if (!safeIaId(id)) return json({ error: "invalid archive identifier" }, 400);
+  const cacheKey = new Request(requestUrl.origin + IA_PREFIX + "/cache/metadata/" + id);
   try {
-    const upstream = await fetch("https://archive.org/metadata/" + encodeURIComponent(id));
-    return iaResponse(upstream);
+    const payload = await cachedArchiveJson(cacheKey, IA_METADATA_TTL_SECONDS, async () => {
+      const upstream = await fetch("https://archive.org/metadata/" + encodeURIComponent(id));
+      if (!upstream.ok) throw new Error("archive metadata " + upstream.status);
+      return upstream.json();
+    });
+    return cacheableJson(payload, IA_METADATA_TTL_SECONDS, { "X-Afterglow-Source": "internet-archive-cache" });
   } catch {
     return json({ error: "archive metadata unavailable" }, 502);
+  }
+}
+
+function queueItem(doc) {
+  return {
+    identifier: doc.identifier,
+    title: doc.title || doc.identifier,
+    year: doc.year || null,
+    runtime: doc.runtime || null,
+    subject: doc.subject || null,
+  };
+}
+
+async function buildIaQueue(channel, queries, count) {
+  const items = [], seen = new Set();
+  /* Query lanes are already editorially ordered by the app.  The Worker keeps
+     that order but asks Archive for enough candidates to fill a short queue. */
+  for (const query of queries) {
+    let result;
+    try {
+      result = await searchArchive(query, Math.min(50, Math.max(12, count * 4)), 1, "downloads desc");
+    } catch {
+      continue;
+    }
+    for (const doc of result.docs || []) {
+      if (!doc || !safeIaId(doc.identifier) || seen.has(doc.identifier)) continue;
+      seen.add(doc.identifier);
+      items.push(queueItem(doc));
+      if (items.length >= count) break;
+    }
+    if (items.length >= count) break;
+  }
+  return {
+    channel,
+    generatedAt: new Date().toISOString(),
+    ttlSeconds: IA_QUEUE_TTL_SECONDS,
+    items,
+    ready: items.length,
+  };
+}
+
+async function getIaQueue(request, url) {
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: "queue payload must be JSON" }, 400);
+  }
+  const channel = String(body && body.channel || "").trim();
+  const queries = safeQueries(body && body.queries);
+  const count = Math.max(1, Math.min(5, Number(body && body.count) || 5));
+  if (!safeChannel(channel) || !queries) return json({ error: "invalid queue request" }, 400);
+  const cacheKey = new Request(url.origin + IA_PREFIX + "/cache/queue/" + await stableKey(JSON.stringify({ channel, queries, count })));
+  try {
+    const payload = await cachedArchiveJson(cacheKey, IA_QUEUE_TTL_SECONDS, () => buildIaQueue(channel, queries, count));
+    return cacheableJson(payload, IA_QUEUE_TTL_SECONDS, { "X-Afterglow-Source": "program-director" });
+  } catch {
+    return json({ error: "archive queue unavailable" }, 502);
   }
 }
 
@@ -182,11 +291,15 @@ export default {
     }
 
     if (request.method === "GET" && url.pathname === IA_PREFIX + "/search") {
-      return getIaSearch(url);
+      return getIaSearch(url, ctx);
     }
 
     if (request.method === "GET" && url.pathname.startsWith(IA_PREFIX + "/metadata/")) {
-      return getIaMetadata(decodeURIComponent(url.pathname.slice((IA_PREFIX + "/metadata/").length)));
+      return getIaMetadata(decodeURIComponent(url.pathname.slice((IA_PREFIX + "/metadata/").length)), url);
+    }
+
+    if (request.method === "POST" && (url.pathname === IA_QUEUE_PATH || url.pathname === IA_PROGRAM_PATH)) {
+      return getIaQueue(request, url);
     }
 
     // Anything other than a WebSocket upgrade gets a useful health response.
@@ -197,6 +310,8 @@ export default {
         stream: Boolean(env.AIS_API_KEY),
         snapshot: Boolean(env.KPLER_API_KEY),
         snapshotPath: SNAPSHOT_PATH,
+        archiveQueuePath: IA_QUEUE_PATH,
+        archiveProgramPath: IA_PROGRAM_PATH,
       });
     }
 

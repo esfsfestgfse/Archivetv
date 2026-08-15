@@ -49,7 +49,7 @@ async def main():
         check("1. Channel number visible after power-on", ch_num and ch_num.strip() != "")
 
         # 2. Tune to a specific channel
-        await pg.evaluate("()=>tuneNum(50)")  # Sports Center
+        await pg.evaluate("()=>{ tuneNum(50); }")  # Sports Center
         await pg.wait_for_timeout(1000)
         cur = await pg.evaluate("()=>curNum")
         check("2. tuneNum(50) sets curNum to 50", cur == 50)
@@ -80,7 +80,7 @@ async def main():
         check("6. Channel unchanged after guide open", cur_after == 50)
 
         # 7. Tune a different channel
-        await pg.evaluate("()=>tuneNum(2)")  # Channel 2 Network
+        await pg.evaluate("()=>{ tuneNum(2); }")  # Channel 2 Network
         await pg.wait_for_timeout(1000)
         cur2 = await pg.evaluate("()=>curNum")
         check("7. tuneNum(2) works", cur2 == 2)

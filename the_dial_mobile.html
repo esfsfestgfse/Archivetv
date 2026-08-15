@@ -1204,7 +1204,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.208";
+window.__ATV_BUILD="1.7.7-mobile.209";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -5290,7 +5290,7 @@ const PROGRAM = {
       {collections:["classic_tv","classic_tv_1950s","classic_tv_1960s","television"],require_subj:["classic television","family sitcom","situation comedy","variety show","television variety","anthology series","live television","game show","quiz show","public affairs","newsreel"]}
     ],
     deny:{title:["feature film","training film","test pattern"],subject:["feature film","training film","industrial film","commercial","color bars"]},
-    subjRequired:true,noBlindFallback:true
+    collectionOnly:true,subjRequired:true,noBlindFallback:true
   },
   "Nite-Owl 3": {
     genre:"noir", era:[1935,1955], show:"Nite-Owl 3",
@@ -5300,7 +5300,7 @@ const PROGRAM = {
       {collections:["Film_Noir","feature_films","SciFi_Horror"],require_subj:["film noir","crime drama","mystery","detective","suspense","thriller","gothic horror","classic horror"]}
     ],
     deny:{title:["children","cartoon","commercial","training film","sports"],subject:["children","cartoon","game show","sports","instructional","commercial"]},
-    subjRequired:true,noBlindFallback:true
+    collectionOnly:true,subjRequired:true,noBlindFallback:true
   },
   "Shock Theater": {
     genre:"horror", era:[1930,1979], show:"Shock Theater",
@@ -5310,7 +5310,7 @@ const PROGRAM = {
       {collections:["SciFi_Horror","feature_films"],require_subj:["horror","gothic horror","universal horror","creature feature","classic monster","supernatural horror","ghost story","psychological horror","suspense horror"]}
     ],
     deny:{title:["kaiju","godzilla","gamera","sci-fi","trailer","documentary"],subject:["kaiju","science fiction","gore","exploitation","trailer","documentary"]},
-    subjRequired:true,noBlindFallback:true
+    collectionOnly:true,subjRequired:true,noBlindFallback:true
   },
   "Prelinger Vault": {
     genre:"industrial", era:[1930,1989], show:"Prelinger Vault",
@@ -5320,7 +5320,7 @@ const PROGRAM = {
       {collections:["prelinger"],require_subj:["civic film","public affairs","industrial film","sponsored film","educational film","classroom film","travel film","consumer culture","public health","safety film"]}
     ],
     deny:{title:["feature film","fiction film","cartoon","modern upload","commercial compilation"],subject:["feature film","fiction film","cartoon","animation","modern internet video"]},
-    subjRequired:true,noBlindFallback:true
+    collectionOnly:true,subjRequired:true,noBlindFallback:true
   },
 };
 
@@ -5380,7 +5380,9 @@ function buildProgramQueries(prog,ch,advance) {
   var globalQs = [];
   var deny = prog.deny || {};
   var denySubj = (deny.subject || []).map(programPhrase).join(" OR ");
-  var NOT = denySubj ? (" AND NOT subject:(" + denySubj + ")") : "";
+  var denyTitle = (deny.title || []).map(programPhrase).join(" OR ");
+  var NOT = (denySubj ? (" AND NOT subject:(" + denySubj + ")") : "") +
+            (denyTitle ? (" AND NOT title:(" + denyTitle + ")") : "");
   var providers=(prog.providers||[]).map(function(prov,index){return {prov:prov,index:index};});
   if(providers.length>1){
     var start=Number(selectProgramLane(channel,"provider",providers.map(function(_,i){return i;}),advance))||0;
@@ -5411,7 +5413,7 @@ function buildProgramQueries(prog,ch,advance) {
       }
     });
   });
-  return qs.concat(globalQs);
+  return prog.collectionOnly?qs:qs.concat(globalQs);
 }
 
 /* what's "on" for a channel at a given hour */

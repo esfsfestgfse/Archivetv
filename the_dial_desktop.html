@@ -1098,7 +1098,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.177";
+window.__ATV_BUILD="1.7.7-desktop.178";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -5177,6 +5177,39 @@ const PROGRAM = {
     collectionOnly:true,subjRequired:true,noBlindFallback:true
   },
 };
+
+/* Editorial lane overlay: these are programming rules, not clock schedules.
+   Provider/deny definitions above remain the authority for channel identity. */
+const PROGRAM_EDITORIAL={
+  "Classic Rerun TV":{eraBuckets:[[1950,1955],[1956,1962],[1963,1969],[1970,1975]],topicBuckets:[["family sitcom","situation comedy"],["variety show","comedy variety"],["anthology series","television drama"],["detective tv","crime tv"]]},
+  "Modern Rerun TV":{eraBuckets:[[1976,1984],[1985,1992],[1993,1999],[2000,2026]],topicBuckets:[["family sitcom"],["workplace sitcom"],["ensemble sitcom"],["syndicated comedy"]]},
+  "Game Show Channel":{eraBuckets:[[1950,1959],[1960,1969],[1970,1979],[1980,1989],[1990,1999],[2000,2026]],topicBuckets:[["panel show"],["quiz show"],["word game"],["pricing game"],["dating game"],["stunt game"]]},
+  "Vintage Commercials":{eraBuckets:[[1948,1959],[1960,1969],[1970,1979],[1980,1985]],topicBuckets:[["food commercial"],["automobile commercial"],["toy commercial"],["technology commercial"],["household commercial"],["public service announcement"]]},
+  "Computer Chronicles":{eraBuckets:[[1975,1982],[1983,1989],[1990,1995],[1996,2005]],topicBuckets:[["home computer"],["business pc"],["software"],["networking"],["early internet"],["computer television"]]},
+  "Public Access TV":{eraBuckets:[[1975,1984],[1985,1994],[1995,2005],[2006,2015]],topicBuckets:[["civic meeting"],["local arts"],["call-in show"],["local performance"],["community affairs"]]},
+  "Sports Vault":{eraBuckets:[[1920,1949],[1950,1969],[1970,1979],[1980,1999],[2000,2026]],topicBuckets:[["baseball"],["football"],["basketball"],["hockey"],["olympics"],["golf"],["tennis"]]},
+  "The Up-All-Night":{eraBuckets:[[1962,1969],[1970,1979],[1980,1989],[1990,2005]],topicBuckets:[["late night talk show"],["interview"],["variety"],["monologue"],["music performance"]]},
+  "The ER":{eraBuckets:[[1960,1979],[1980,1989],[1990,1999],[2000,2026]],topicBuckets:[["hospital drama"],["private practice"],["emergency medicine"],["forensic medical"],["medical comedy"]]},
+  "Old Nick":{eraBuckets:[[1950,1959],[1960,1969],[1970,1979],[1980,1985]],topicBuckets:[["family sitcom"],["domestic sitcom"],["workplace sitcom"],["ensemble sitcom"]]},
+  "The Court Room":{eraBuckets:[[1980,1989],[1990,1999],[2000,2009],[2010,2020]],topicBuckets:[["small claims court"],["divorce court"],["civil court"],["television judge show"]]},
+  "Court TV":{eraBuckets:[[1988,1999],[2000,2009],[2010,2019],[2020,2026]],topicBuckets:[["criminal trial"],["trial analysis"],["forensic analysis"],["case recap"]]},
+  "Manufacturing Marvels":{eraBuckets:[[1930,1949],[1950,1969],[1970,1989],[1990,2026]],topicBuckets:[["steel","metallurgy"],["automobile manufacturing","assembly line"],["food processing","canning"],["energy production","power plant"],["aviation manufacturing","aircraft factory"],["textile manufacturing","textile mill"]]},
+  "Home Economics":{eraBuckets:[[1930,1949],[1950,1969],[1970,1989],[1990,2026]],topicBuckets:[["cooking","meal planning"],["sewing","clothing construction"],["budgeting","consumer education"],["cleaning","housekeeping"],["childcare","child development"],["etiquette","home management"]]},
+  "News, News, News":{eraBuckets:[[1910,1919],[1920,1929],[1930,1939],[1940,1949],[1950,1959],[1960,1969],[1970,1979]],topicBuckets:[["world affairs newsreel","political newsreel"],["science newsreel","technology newsreel"],["sports newsreel","entertainment newsreel"],["fashion newsreel","culture newsreel"],["local newsreel","community newsreel"]]},
+  "The Kitchen":{eraBuckets:[[1930,1949],[1950,1969],[1970,1989],[1990,2009],[2010,2026]],topicBuckets:[["baking","pastry"],["regional cuisine","international cooking"],["television chef","cooking show"],["grilling","barbecue"],["preserving","canning"],["cooking technique","food instruction"]]},
+  "Nature Channel":{eraBuckets:[[1930,1949],[1950,1969],[1970,1989],[1990,2009],[2010,2026]],topicBuckets:[["wildlife documentary","animal behavior"],["ocean documentary","marine life"],["national parks","wilderness"],["conservation","ecology"],["geology","earth science"]]},
+  "NASA Marathon":{eraBuckets:[[1950,1961],[1962,1972],[1973,1989],[1990,2009],[2010,2026]],topicBuckets:[["Mercury program","Gemini program"],["Apollo program","moon landing"],["Space Shuttle","space station"],["robotic mission","planetary science"],["launch footage","mission briefing"]]},
+  "Rock":{eraBuckets:[[1955,1964],[1965,1974],[1975,1984],[1985,1994],[1995,2009],[2010,2026]],topicBuckets:[["rock and roll"],["classic rock"],["progressive rock"],["new wave","glam rock"],["alternative","grunge"],["indie rock","garage rock"]]},
+  "Jazz":{eraBuckets:[[1917,1924],[1925,1932],[1933,1939],[1940,1949],[1950,1959]],topicBuckets:[["new orleans jazz","dixieland"],["chicago jazz","hot jazz"],["swing small group"],["bebop"],["cool jazz","hard bop"]]},
+  "Blues":{eraBuckets:[[1917,1929],[1930,1939],[1940,1949],[1950,1959]],topicBuckets:[["country blues","delta blues"],["piedmont blues"],["chicago blues"],["jump blues","rhythm and blues"],["texas blues","west coast blues"]]},
+  "Country & Western":{eraBuckets:[[1920,1934],[1935,1945],[1946,1955],[1956,1969],[1970,1995]],topicBuckets:[["old time country"],["western swing"],["honky tonk"],["nashville sound"],["bakersfield sound"],["outlaw country"]]},
+  "Hip-Hop":{eraBuckets:[[1979,1984],[1985,1991],[1992,1999],[2000,2009],[2010,2026]],topicBuckets:[["old school"],["golden age"],["regional hip hop"],["underground hip hop"],["turntablism"],["contemporary hip hop"]]},
+  "Electronic":{eraBuckets:[[1970,1984],[1985,1994],[1995,2004],[2005,2014],[2015,2026]],topicBuckets:[["ambient"],["techno"],["house"],["idm"],["electro"],["synthwave"]]}
+};
+Object.keys(PROGRAM_EDITORIAL).forEach(function(name){
+  if(!PROGRAM[name])return;
+  Object.keys(PROGRAM_EDITORIAL[name]).forEach(function(key){PROGRAM[name][key]=PROGRAM_EDITORIAL[name][key];});
+});
 
 /* Build queries from a PROGRAM entry instead of from G. Same shape output as buildQuery
    so the rest of the pipeline (pickFromQueries, pickIA, choose) works unchanged. */

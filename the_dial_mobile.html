@@ -523,8 +523,9 @@ html,body{height:100vh;overflow:hidden}
 .chcell-old-unused{appearance:none;font-family:inherit;position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:2px;
   padding:9px 9px 8px 11px;border-radius:10px;border:1px solid #263126;border-left:4px solid var(--cat,#67ff86);
   background:linear-gradient(180deg,#131a13,#0c100c);color:#cfe8d2;text-align:left;cursor:pointer}
-.chcell .cc-n{font-size:18px;font-weight:bold;color:#ffd98a;line-height:1}
-.chcell .cc-nm{font-size:10px;letter-spacing:.4px;color:#9ad6a8;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* 2026-08-14: two orphaned selectors that used to override .chcell into 18px/10px muddy-color
+   text were removed here. Comment was labeled "old-unused" but the rules were still targeting
+   .chcell (not .chcell-old-unused), silently muddying the guide typography since 1.6.x. */
 /* ---- ON TODAY compact schedule rows ----
    Real-device screenshot showed the first version burning ~90px per event, so only 7 of 363
    fit on screen. One line per event instead. */
@@ -1133,7 +1134,33 @@ html.mob .gtop{padding:calc(env(safe-area-inset-top,0px) + 13px) 16px 13px;font-
 html.mob .gtop .x{padding:9px 13px;background:rgba(255,211,77,.16);border-radius:9px}
 html.mob .catnav{padding:9px 12px 5px;gap:8px}
 html.mob .chlist{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:12px 12px calc(env(safe-area-inset-bottom,0px) + 22px)}
-html.mob .chcell{min-height:68px;padding:12px}
+/* 2026-08-14: mobile chcell layout is a compact CARD — 2-col chlist grid means each cell
+   is ~half-viewport wide, no room for the desktop 6-column horizontal grid. Rebuild as:
+     [4px accent stripe] [40px thumb] [name+num+status stack] [fav corner]
+   Uses column-flow layout inside the cell rather than the desktop grid so the number, name,
+   and status stack vertically inside their column. Wider viewports (tablet, landscape) keep
+   the desktop layout via the html.mob scoping. */
+html.mob .chcell{
+  min-height:78px; padding:10px 10px 10px 0;
+  display:grid; grid-template-columns:6px 40px 1fr auto; gap:10px;
+  border-radius:10px; border:1px solid rgba(77,200,255,.10);
+  background:linear-gradient(180deg,rgba(15,25,50,.35),rgba(8,15,30,.35));
+  border-bottom:1px solid rgba(77,200,255,.10);
+}
+html.mob .chcell::before{grid-column:1;grid-row:1/-1;border-radius:2px 0 0 2px}
+html.mob .chcell .cc-thumb{grid-column:2;grid-row:1/-1;width:40px;height:40px;align-self:center}
+html.mob .chcell .cc-n{grid-column:3;grid-row:1;font-size:18px;text-align:left;font-weight:900;color:#4dc8ff;text-shadow:0 0 4px rgba(77,200,255,.4);line-height:1;padding-top:2px}
+html.mob .chcell .cc-nm{grid-column:3;grid-row:2;font-size:12px;color:#e8f0ff;font-weight:700;letter-spacing:.4px;line-height:1.15;white-space:normal;overflow:hidden;text-overflow:clip;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+html.mob .chcell .cc-status{grid-column:3;grid-row:3;font-size:10px;color:#ffcc00;letter-spacing:.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-top:1px}
+html.mob .chcell .cc-f{grid-column:4;grid-row:1/-1;align-self:start;padding:2px 6px 0 0;font-size:13px;color:#ffcc00}
+html.mob .chcell.on{background:linear-gradient(90deg,#ffcc00 0%,#e6b800 100%)}
+html.mob .chcell.on .cc-n,html.mob .chcell.on .cc-nm,html.mob .chcell.on .cc-status,html.mob .chcell.on .cc-f{color:#04216a;text-shadow:none}
+/* Section dividers span both columns of the 2-col chlist grid */
+html.mob .chsection{grid-column:1/-1;padding:12px 12px 6px;font-size:11px;letter-spacing:2px}
+html.mob .chsection-label{font-size:13px;letter-spacing:2px}
+html.mob .chsection-ldata .chsection-label{font-size:14px;letter-spacing:2.5px}
+html.mob .chsection-sub{font-size:9px;letter-spacing:1px}
+html.mob .chempty{grid-column:1/-1;font-size:12px;padding:20px}
 html.mob .pop{max-width:94vw}
 
 /* ---- first-launch tutorial splash ---- */
@@ -1177,7 +1204,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.184";
+window.__ATV_BUILD="1.7.7-mobile.185";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }

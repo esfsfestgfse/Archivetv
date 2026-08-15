@@ -1098,7 +1098,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.155";
+window.__ATV_BUILD="1.7.7-desktop.156";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -11343,7 +11343,7 @@ async function tuneShips(ch,sl,my){
       '</div>'+
       '<div id="shipList" style="flex:1;overflow-y:auto;padding:4px 6px">Waiting for AIS feed\u2026</div>'+
     '</div>'+
-    '<div style="grid-column:2;grid-row:2;padding:5px 8px;font:700 9px monospace;letter-spacing:1.2px;color:#9fd6a6;border-top:1px solid rgba(103,255,134,.10);background:rgba(0,0,0,.25);text-align:center" id="shipTicker">aisstream.io \u00b7 live AIS positions \u00b7 GALVESTON \u00b7 HOUSTON \u00b7 CORPUS CHRISTI \u00b7 PORT ARTHUR \u00b7 FREEPORT</div>'+
+    '<div style="grid-column:2;grid-row:2;padding:5px 8px;font:700 9px monospace;letter-spacing:1.2px;color:#9fd6a6;border-top:1px solid rgba(103,255,134,.10);background:rgba(0,0,0,.25);text-align:center" id="shipTicker">ais-relay Worker \u00b7 live AIS positions \u00b7 GALVESTON \u00b7 HOUSTON \u00b7 CORPUS CHRISTI \u00b7 PORT ARTHUR \u00b7 FREEPORT</div>'+
   '</div>';
   var shipBug=mountChanBug("shipRoot",{ident:"SHIP TRACKER \u00b7 GULF"});
   if(shipSocket){ try{shipSocket.close();}catch(e){} shipSocket=null; }
@@ -11430,12 +11430,14 @@ async function tuneShips(ch,sl,my){
     dirty=true;
   },5*60*1000);
   try{
+    /* 2026-08-14: switched from direct aisstream.io to the ais-relay Cloudflare Worker so
+       Ship Tracker actually reaches AIS data (aisstream blocks all browser origins). */
     var box=[[18.0,-98.0],[31.0,-80.0]];
-    var sock=new WebSocket("wss://stream.aisstream.io/v0/stream");
+    var sock=new WebSocket("wss://ais-relay.tdy1990.workers.dev/");
     shipSocket=sock;
     sock.onopen=function(){ if(my!==token){try{sock.close();}catch(e){}return;}
-      try{ sock.send(JSON.stringify({APIKey:AISSTREAM_KEY,BoundingBoxes:[box],FilterMessageTypes:["PositionReport","ShipStaticData"]})); }catch(e){}
-      nlog("ais",true,"subscribed Gulf of Mexico box");
+      try{ sock.send(JSON.stringify({BoundingBoxes:[box],FilterMessageTypes:["PositionReport","ShipStaticData"]})); }catch(e){}
+      nlog("ais",true,"subscribed Gulf of Mexico box via ais-relay Worker");
     };
     sock.onmessage=function(ev){ if(my!==token)return;
       try{

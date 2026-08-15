@@ -172,22 +172,29 @@ function queueItem(doc) {
 
 async function buildIaQueue(channel, queries, count) {
   const items = [], seen = new Set();
-  /* Query lanes are already editorially ordered by the app.  The Worker keeps
-     that order but asks Archive for enough candidates to fill a short queue. */
-  for (const query of queries) {
-    let result;
+  /* Query lanes are already editorially ordered by the app. Fetch a small
+     sample from each lane in parallel, then take one from every lane before
+     taking a second: a five-item buffer spans eras/topics instead of becoming
+     five nearly identical top-download results. */
+  const lanes = await Promise.all(queries.slice(0, count).map(async (query) => {
     try {
-      result = await searchArchive(query, Math.min(50, Math.max(12, count * 4)), 1, "downloads desc");
+      const result = await searchArchive(query, Math.min(24, Math.max(12, count * 3)), 1, "downloads desc");
+      return (result.docs || []).filter((doc) => doc && safeIaId(doc.identifier));
     } catch {
-      continue;
+      return [];
     }
-    for (const doc of result.docs || []) {
-      if (!doc || !safeIaId(doc.identifier) || seen.has(doc.identifier)) continue;
+  }));
+  for (let row = 0; items.length < count; row += 1) {
+    let found = false;
+    for (const lane of lanes) {
+      const doc = lane[row];
+      if (!doc || seen.has(doc.identifier)) continue;
       seen.add(doc.identifier);
       items.push(queueItem(doc));
+      found = true;
       if (items.length >= count) break;
     }
-    if (items.length >= count) break;
+    if (!found) break;
   }
   return {
     channel,

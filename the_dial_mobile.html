@@ -5578,7 +5578,7 @@ function iaRelayMetadataURL(id){return IA_RELAY_BASE+"/metadata/"+encodeURICompo
    fallbacks stay intact), but discovery is no longer on the channel-change critical path. */
 var iaProgramQueues={}, iaProgramInflight={}, iaProgramMedia={};
 function iaQueueKey(ch){return String((ch&&ch.num)||((ch&&ch.nm)||""));}
-function iaRuntimeSeconds(v){if(typeof v==="number")return v;var p=String(v||"").split(":");if(p.length===3)return (+p[0]||0)*3600+(+p[1]||0)*60+(+p[2]||0);if(p.length===2)return (+p[0]||0)*60+(+p[1]||0);return parseFloat(v)||0;}
+function iaRuntimeSeconds(v){if(typeof v==="number")return v;var s=String(v||""),p=s.split(":");if(p.length===3)return (+p[0]||0)*3600+(+p[1]||0)*60+(+p[2]||0);if(p.length===2)return (+p[0]||0)*60+(+p[1]||0);var h=s.match(/(\d+(?:\.\d+)?)\s*(?:hours?|hrs?)/i),m=s.match(/(\d+(?:\.\d+)?)\s*(?:minutes?|mins?)/i);if(h||m)return Math.round(((h?+h[1]:0)*3600)+((m?+m[1]:0)*60));return parseFloat(s)||0;}
 function iaRuntimeLabel(v){var s=Math.round(iaRuntimeSeconds(v));if(!s)return "";return s>=3600?Math.floor(s/3600)+"h "+Math.round((s%3600)/60)+"m":Math.max(1,Math.round(s/60))+"m";}
 function iaProgramAllowed(item,sl){
   if(!item||!item.identifier||banned.indexOf(item.identifier)>=0||isTemporarilySkipped(item.identifier)||blockedId(item.identifier))return false;
@@ -6326,9 +6326,7 @@ async function tuneIA(ch,sl,my){
       /* PROGRAM runtime enforcement — reject items exceeding runtime_max_s before resolvePlayable.
          IA's runtime field is either seconds (number) or HH:MM:SS (string). */
       if(sl.program.require && sl.program.require.runtime_max_s && item.runtime){
-        var rt=item.runtime, secs=0;
-        if(typeof rt==="number") secs=rt;
-        else if(typeof rt==="string"){ var parts=rt.split(":"); if(parts.length===3) secs=+parts[0]*3600 + +parts[1]*60 + +parts[2]; else if(parts.length===2) secs=+parts[0]*60 + +parts[1]; else secs=parseFloat(rt)||0; }
+        var rt=item.runtime, secs=iaRuntimeSeconds(rt);
         if(secs>sl.program.require.runtime_max_s){ nlog("program",true,"too long ("+Math.round(secs)+"s): "+String(item.title||"").slice(0,30)); continue; }
       }
     }

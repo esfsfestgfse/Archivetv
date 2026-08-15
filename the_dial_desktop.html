@@ -1098,7 +1098,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.169";
+window.__ATV_BUILD="1.7.7-desktop.168";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1455,7 +1455,7 @@ const G={
  sitcommodern:{mt:"movies",col:["classic_tv","television"],fcol:["vhsvault"],   subj:["sitcom","television comedy","television series","tv series"],era:[1970,2003]}, /* CYCLE-10: VHS Vault fallback tier (subject-scoped) for the thin post-85 years */
  gameshow:   {mt:"movies",col:["classic_tv","television"],fcol:["vhsvault"],     subj:["game show","quiz show","panel show","game shows"],not:FNOT,era:[1950,2026],subjRequired:true,noBlindFallback:true}, /* CYCLE-14: ONLY game shows, every era */
  computer:   {mt:"movies",col:["computerchronicles"],   fcol:[],               subj:[],                           era:[1983,2002]},
- commercials:{mt:"movies",col:["classic_tv","prelinger"],fcol:[],              subj:["television commercials","advertising","toy commercial","toy advertisement","commercial","commercials","vintage commercial","retro commercial","classic commercial","tv commercial"],era:[1948,1995],subjRequired:true,noBlindFallback:true},
+ commercials:{mt:"movies",col:["classic_tv","prelinger"],fcol:[],              subj:["television commercials","advertising","toy commercial","toy advertisement","commercial","commercials","vintage commercial","retro commercial","classic commercial","tv commercial"],era:[1948,1995]},
  blackcinema:{mt:"movies",col:[],                       fcol:["feature_films"],       subj:["race film","black cinema","oscar micheaux","all black cast","african american film","spike lee","john singleton","julie dash","charles burnett","ava duvernay","barry jenkins","ryan coogler","jordan peele","denzel washington","sidney poitier","morgan freeman"],not:FNOT,era:[1915,2026]},
  arcade:     {mt:"movies",col:["gamevideos"],           fcol:[],                      subj:[],                      era:[1980,2026],noBlindFallback:true},
  manufacturing:{mt:"movies",col:["prelinger","FedFlix","avgeeks"],fcol:[],              subj:["manufacturing","assembly line","industrial process","factory","steel","machining","machinery","engineering","construction","production","industry","mining"],subjRotate:true,subjRequired:true,not:FNOT,era:[1930,1990]}, /* 1.3.3: bolstered — 3 collections, 12 rotating topics, subject-locked, wider era */
@@ -1463,7 +1463,7 @@ const G={
  foundfootage:{mt:"movies",col:[],                      fcol:["feature_films","home_movies"],subj:["home movies","amateur film","newsreel"],era:[1920,1965]},
  edu:        {mt:"movies",col:["prelinger"],            fcol:[],               subj:["education","school","classroom","agriculture","science"],era:[1940,1969],subjRequired:true,noBlindFallback:true},
  newsreel:   {mt:"movies",col:["universal_newsreels"],  fcol:[],               subj:["newsreel"],                 era:[1930,1965]},
- industrial: {mt:"movies",col:["prelinger"],            fcol:[],               subj:["industrial film","sponsored film"],era:[1940,1969],subjRequired:true,noBlindFallback:true},
+ industrial: {mt:"movies",col:["prelinger"],            fcol:[],               subj:["industrial film","sponsored film"],era:[1940,1969]},
  avgeeks:    {mt:"movies",col:["avgeeks"],              fcol:["prelinger"],     subj:["educational film"],         era:[1950,1985]},
  trailer:    {mt:"movies",col:["movie_trailers"],       fcol:[],               subj:["trailer","coming attractions"],era:[1940,1989]},
  jazz78:     {mt:"audio", col:["georgeblood","78rpm"],  fcol:[],               subj:["jazz","swing"],             era:[1920,1949], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
@@ -1698,7 +1698,7 @@ const CH=[
  {nm:"Public Access TV", num:15,  cat:"TV",  gl:"publicaccess",era:[1975,2005], ns:"doc"},
  {nm:"Court TV", num:21, cat:"TV", gl:"realtrials", era:[1985,2020], ns:"tv"}, /* Real trial coverage — OJ, Menendez, Casey Anthony — moved 16→21 to clear Sports Vault collision */
  {nm:"Sports Vault", num:16,      cat:"TV",  gl:"sportsvault", era:[1930,1995], ns:"doc"},
- {nm:"Talk Show Vault", num:17, cat:"TV",  gl:"latenight",   era:[1962,2005], ns:"tv"}, /* Cavett, Snyder, Merv Griffin, Mike Douglas, Carson, Letterman */
+ {nm:"The Up-All-Night", num:17, cat:"TV",  gl:"latenight",   era:[1962,2005], ns:"tv"}, /* Late-night talk-show clips — Cavett, Snyder, Merv Griffin, Mike Douglas, Carson, Letterman */
  {nm:"The ER", num:18, cat:"TV", gl:"medicaldrama", era:[1960,2026], ns:"tv"}, /* Medical drama — Marcus Welby, Ben Casey, ER, Chicago Hope, Grey's Anatomy, House MD, Scrubs */
  {nm:"Sunday Service", num:205,    cat:"DOC", gl:"faith",       era:[1940,1985], ns:"doc"},
  {nm:"VHS Vault", num:502,         cat:"RETRO",gl:"vhsvault",    era:[1980,1999], ns:"movie"},
@@ -1708,7 +1708,7 @@ const CH=[
  {nm:"Classic Film", num:110,      cat:"MOV", gl:"classicmovie", era:[1930,1965], ns:"movie"},
  {nm:"The Drive-In", num:111,      cat:"MOV", gl:"drivein",     era:[1955,1975], ns:"movie"}, /* grindhouse/exploitation features */
  {nm:"Sunday Matinee", num:112,    cat:"MOV", gl:"sundaymatinee", era:[1935,1959], ns:"movie"}, /* 30s-50s musicals + romantic comedies */
- {nm:"Cult Cinema", num:113,      cat:"MOV", gl:"latelate",    era:[1940,1975], ns:"movie"}, /* auteur / foreign / arthouse public-domain films */
+ {nm:"The Late Late Show", num:113,cat:"MOV", gl:"latelate",    era:[1940,1975], ns:"movie"}, /* auteur / foreign / arthouse public-domain films */
  {nm:"The 36th Chamber", num:114, cat:"MOV", gl:"kungfu",      era:[1965,2000], ns:"movie"}, /* Shaw Brothers / Golden Harvest / chopsocky kung fu theater */
  {nm:"Monster Island", num:115,   cat:"MOV", gl:"kaiju",       era:[1954,1995], ns:"movie"}, /* Godzilla, Gamera, Toho — Japanese giant-monster cinema */
  {nm:"Blaxploitation", num:116,   cat:"MOV", gl:"blaxploit",   era:[1970,1985], ns:"movie"}, /* 70s Black action cinema — Shaft, Foxy Brown, Superfly, Coffy, Cleopatra Jones */
@@ -1789,9 +1789,9 @@ const CH=[
  {nm:"Halloween Haunt", num:701,   cat:"HOL", gl:"halloween",    era:[1930,1995], ns:"movie"},
  {nm:"Thanksgiving Channel", num:702,cat:"HOL",gl:"thanksgiving", era:[1930,1990], ns:"tv"},
  {nm:"The Hearth", num:703,       cat:"HOL", gl:"yulelog",     era:[1900,2026], ns:"tv"}, /* Yule log fireplace loop with vintage Christmas music bed */
- {nm:"Archive Sampler", num:506,   cat:"RETRO", gl:"industrial", era:[1940,1969], ns:"doc"},
+ {nm:"Test Pattern", num:506,      cat:"RETRO", source:"static", ns:"space"},
  {nm:"The Long Shot", num:507,     cat:"RETRO", gl:"slowtv",    era:[2000,2026], ns:"tv"}, /* Slow TV — NRK-style long-form: train rides, sunsets, ferry crossings, waterfalls */
- {nm:"Infomercial Vault", num:508, cat:"RETRO", gl:"commercials", era:[1948,1995], ns:"tv"}, /* Ronco, Popeil, Ginsu, Ab Roller, Time-Life sets */
+ {nm:"Infomercial Insomnia", num:508, cat:"RETRO", gl:"infomercial", era:[1985,2010], ns:"tv"}, /* Late-night 90s infomercials — Ronco, Popeil, Ginsu, Ab Roller, Time-Life sets */
  {nm:"The Weather Loop", num:509, cat:"RETRO", gl:"weatherstar", era:[1985,2005], ns:"tv"}, /* WeatherStar 4000 nostalgia — TWC music beds + local-on-the-8s */
 ];
 /* QA FIX (from Programmed Channels 2.0 audit, Phase 1): channel numbers used to be computed by
@@ -1884,7 +1884,7 @@ const CHANNEL_META={
 "Storm Chase Classics":{desc:"Tornado, severe weather and hurricane documentaries — for the chase season and off-season.",best:"storm season",rel:["Weather Watch","Storm Center"]},
 "OTR Theater":{desc:"Suspense, Inner Sanctum, Escape, X Minus One and The Shadow — old-time radio drama from 1935-1965.",best:"late night",rel:["Fallout Radio","Prelinger Vault"]},
 "Sunday Matinee":{desc:"Musicals, screwball comedies and romances — the studio-era matinee bill.",best:"Sunday afternoons",rel:["Classic Film","Music Films"]},
-"Cult Cinema":{desc:"Foreign, arthouse and auteur cinema from the public-domain shelves.",best:"anytime",rel:["World Cinema","Classic Film"]},
+"The Late Late Show":{desc:"Foreign, arthouse and auteur cinema from the public-domain shelves.",best:"after midnight",rel:["World Cinema","Classic Film"]},
 "Adult Animation":{desc:"Ralph Bakshi shorts, Heavy Metal, Liquid Television, Beavis & Butt-Head — adult-oriented animation.",best:"after dark",rel:["Modern Cartoons","Anime Alley"]},
 "Kids Hour":{desc:"Sesame Street, Electric Company, Mister Rogers — the educational kids-TV era.",best:"weekday mornings",rel:["Classic Cartoons","Home Economics"]},
 "Cold War Cinema":{desc:"Civil defense, atomic-age propaganda, Duck and Cover — the government's own films 1948-1985.",best:"late night",rel:["Fallout Radio","Prelinger Vault"]},
@@ -1923,8 +1923,7 @@ const CHANNEL_META={
 "Historic Waco":{desc:"LIVE: a rolling archive of historical photographs of Waco \u0026 Central Texas \u2014 Library of Congress, Wikimedia Commons \u0026 Internet Archive, with a Ken Burns treatment and a warm narrator.",best:"anytime",rel:["News, News, News","Hometown History"]},
 "Backyard Naturalist":{desc:"LIVE: wildlife spotted near you this week, with photos.",best:"mornings",rel:["Hometown History","Home Movies & Travelogues"]},
 "Air & Allergy":{desc:"LIVE: AQI, particulates, ozone and pollen for your ZIP.",best:"allergy season",rel:["Weather Watch","River & Lake Watch"]},
-"Archive Sampler":{desc:"A rotating grab bag from the public-domain archive.",best:"anytime",rel:["Prelinger Vault","Found Footage Static"]},
-"Infomercial Vault":{desc:"Direct-response television and product-pitch nostalgia — Ronco, Popeil, Ginsu, Ab Roller, Time-Life and more.",best:"anytime",rel:["Vintage Commercials","VHS Vault"]},
+"Test Pattern":{desc:"Color bars. Please stand by.",best:"sign-off",rel:["Channel 2 Network","Found Footage Static"]},
 "Joke Joint":{desc:"Sketch, satire, cult-classic TV comedy — Kids in the Hall, SCTV, SNL era, State, Reno 911, Chappelle. Comedy Central's greatest hits, minus the ads.",best:"nights + weekends",rel:["Mic Night","Adult Animation"]},
 "Mic Night":{desc:"Stand-up specials only — comedy clubs, comedy hours, one-mic-one-audience. No sketch, no sitcoms. Just microphones.",best:"late night",rel:["Joke Joint","Comedy Classics"]},
 "The 36th Chamber":{desc:"Kung fu theater — Shaw Brothers, Golden Harvest, dubbed 70s Hong Kong chopsocky and wuxia.",best:"Saturday afternoons",rel:["Action & Serials","The Drive-In"]},
@@ -1939,7 +1938,7 @@ const CHANNEL_META={
 "Soul Train Vault":{desc:"Don Cornelius era R&B / funk / disco / soul performances — Motown, Stax, James Brown, Sly, Parliament, EWF.",best:"Saturday afternoons",rel:["Funk & Soul","The Cipher"]},
 "The Jazz Masters":{desc:"Duke Ellington, Louis Armstrong, Miles Davis, Coltrane, Basie, Monk, Bird, Billie, Ella. Jazz giants specifically.",best:"evenings",rel:["Jazz","Swing & Big Band"]},
 "The Octagon":{desc:"Combat sports classics — boxing, MMA, UFC, kickboxing. Ali, Frazier, Tyson, PRIDE FC era.",best:"Saturday nights",rel:["Sports Vault","Roller Derby & Wrestling"]},
-"Talk Show Vault":{desc:"Cavett, Snyder, Merv Griffin, Mike Douglas, Carson and Letterman interviews from the golden age.",best:"anytime",rel:["Classic Rerun TV","Modern Rerun TV"]},
+"The Up-All-Night":{desc:"Late-night talk shows — Cavett, Snyder, Merv Griffin, Mike Douglas, Carson, Letterman. Guest interviews from the golden age.",best:"late night",rel:["Classic Rerun TV","Modern Rerun TV"]},
 "The ER":{desc:"Medical drama — Marcus Welby MD, Ben Casey, Dr. Kildare, Medical Center, Quincy ME, St. Elsewhere, ER, Chicago Hope, Grey's Anatomy, House MD, Scrubs.",best:"evenings",rel:["The Documentary Hour","Old Nick"]},
 "The Festival Circuit":{desc:"Indie cinema — Sundance / SXSW / Tribeca-adjacent features and shorts from the 80s through the 00s.",best:"evenings",rel:["World Cinema","Found Footage Static"]},
 "Blighty":{desc:"British TV and cinema — Monty Python, Fawlty Towers, Blackadder, Only Fools & Horses, Doctor Who, Red Dwarf, Ealing comedies, Hammer horror, Carry Ons, kitchen-sink drama.",best:"evenings",rel:["Joke Joint","Classic Rerun TV"]},
@@ -3454,7 +3453,7 @@ const PROGRAM = {
 
   /* The Late Late Show (ch 124) — Phase 2 overhaul 2026-08-08. Post-midnight
      movie feel — B-horror, cult, low-budget sci-fi, weirdness, MST3K fodder. */
-  "Cult Cinema": {
+  "The Late Late Show": {
     genre: "latelate", era: [1950, 1995],
     providers: [
       { collections: ["feature_films_unsorted", "opensource_movies", "SciFi_Horror"], require_subj: [
@@ -4078,7 +4077,7 @@ const PROGRAM = {
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
-  "Talk Show Vault": {
+  "The Up-All-Night": {
     genre: "latenight", era: [1962, 2005],
     providers: [
       { collections: ["opensource_movies"], require_subj: ["dick cavett", "mike douglas", "merv griffin", "tom snyder", "johnny carson", "david letterman", "late night talk show", "talk show", "the tonight show", "tomorrow show"] },
@@ -5165,28 +5164,21 @@ function buildProgramQueries(prog,ch) {
   return qs.concat(globalQs);
 }
 
-/* On-demand channel contract: archive channels never change availability, identity, or
-   search rail because of the local clock. The hour argument remains accepted for old
-   callers and guide rendering, but it has no effect on what a viewer can watch. */
+/* what's "on" for a channel at a given hour */
 function slotFor(ch,hour){
-  var label=(ch.nm||"Afterglow")+" · ON DEMAND";
-  if(ch.source) return {show:ch.nm||"LIVE", source:ch.source};
-  if(ch.profile){
-    var profile=PROFILES[ch.profile]||[];
-    /* Pick from the full programmed identity, not a time-of-day row. */
-    var pr=profile.length?profile[Math.floor(Math.random()*profile.length)]:null;
-    var profileGenre=(pr&&pr.g)||ch.gl, profileEra=ch.era||(G[profileGenre]&&G[profileGenre].era);
-    return {show:label, genre:profileGenre, era:profileEra, source:"ia", queries:buildQuery(profileGenre,profileEra)}; }
-  /* PROGRAMMED CHANNELS are available at every hour; the provider contract selects
-     their content rather than a broadcast-day slot. */
+  const h=((hour%24)+24)%24, names=NS[ch.ns||"movie"];
+  if(ch.source) return {show:names[h], source:ch.source};
+  if(ch.profile){ const pn=seasonalProfileName(ch.profile); const pr=(PROFILES[pn]||PROFILES[ch.profile])[h]; const g=pr.g, era=ch.era||(G[g]&&G[g].era);
+    return {show:pr.s, genre:g, era, source:"ia", queries:buildQuery(g,era)}; }
+  /* PROGRAMMED CHANNELS 2.0: if a PROGRAM entry exists for this channel, use it. */
   if(PROGRAM[ch.nm]){
     var prog=PROGRAM[ch.nm];
     var pq=buildProgramQueries(prog,ch);
-    return {show:label, genre:prog.genre||ch.gl, era:prog.era||ch.era, source:"ia", queries:pq, program:prog};
+    return {show:names[h], genre:prog.genre||ch.gl, era:prog.era||ch.era, source:"ia", queries:pq, program:prog};
   }
   const g=ch.gl; let era=ch.era||(G[g]&&G[g].era);
   if(ch.nm==="Sports Vault"&&sportsEra!=="all") era=SPORTS_ERAS[sportsEra]||era; /* 1.4.2 */
-  return {show:label+((ch.nm==="Sports Vault"&&sportsEra!=="all")?(" ("+sportsEra+")"):""), genre:g, era, source:"ia", queries:buildQuery(g,era)};
+  return {show:names[h]+((ch.nm==="Sports Vault"&&sportsEra!=="all")?(" ("+sportsEra+")"):""), genre:g, era, source:"ia", queries:buildQuery(g,era)};
 }
 
 /* =====================================================================
@@ -5767,6 +5759,10 @@ async function tuneNum(n){
   if(sl.source==="newsstand"){ if(my!==token)return; return tuneNewsstand(ch,sl,my); }
   if(sl.source==="prevueguide"){ if(my!==token)return; return tunePrevueGuide(ch,sl,my); }
 
+  if(sl.source==="static"){ if(my!==token)return; hideOv(); bars.style.display="flex";
+    barsText.textContent=(hour>=2&&hour<6)?"SIGN-OFF · PLEASE STAND BY":"AFTERGLOW · COLOR BARS";
+    setSig("live","ON AIR"); showNow(ch,sl,"Test Pattern",""); bug.classList.remove("hide"); return; }
+
   if(sl.source==="nasa"){
     for(let a=0;a<3;a++){ if(my!==token)return; let it=null; try{it=await pickNASA();}catch(e){}
       if(my!==token)return; if(!it)continue;
@@ -5799,9 +5795,7 @@ var preloadCache=null; /* 1.4: the next program, resolved ahead of time */
    current + next 2 hours on favorite/network channels. The TV Guide shows the plan, and
    tuning during a planned hour airs the APPOINTMENT, joined in progress from the top of
    the hour — appointment television. */
-/* Retired: scheduled, top-of-hour programming restricted a channel based on the
-   clock. Keep the stored setting off for existing installations as well. */
-var stationMgr=false; try{store.set("stationMgr",false);}catch(e){}
+var stationMgr=store.get("stationMgr",false);
 var planMap=store.get("plan",{}), planBusy=false;
 function planKey(nm,h,d){ d=d||new Date(); return nm+"|"+d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate()+"-"+(((h%24)+24)%24); }
 function planTargets(){
@@ -6249,6 +6243,7 @@ function showInfo(){if(!infoPanel||!powered)return;const ch=byNum(curNum);if(!ch
    ((im.identifier||im.id)?'<div class="ip-row"><b>SRC</b><span><a href="https://archive.org/details/'+esch(String(im.identifier||im.id))+'" target="_blank" rel="noopener" style="color:var(--phos);text-decoration:underline">'+esch(String(im.identifier||im.id))+'</a></span></div>':"")+
    '<div class="ip-row"><b>NEXT</b><span>'+esch(nx.show)+'</span></div>'+
    (cm.desc?'<div class="ip-row"><b>ABOUT</b><span>'+esch(cm.desc)+'</span></div>':"")+
+   (cm.best?'<div class="ip-row"><b>BEST</b><span>'+esch(cm.best)+'</span></div>':"")+
    ((cm.rel&&cm.rel.length)?'<div class="ip-row"><b>ALSO</b><span>'+esch(cm.rel.map(function(n){var c2=CH.find(function(x){return x.nm===n;});return (c2?("CH "+c2.num+" "):"")+n;}).join("  \u00b7  "))+'</span></div>':"")+
    ((curItem&&curItem.onThisDay)?('<div class="ip-row" style="display:block"><b>ON THIS DAY</b><div>'+esch(curItem.onThisDay)+'</div></div>'):"");
   infoPanel.classList.remove("hide");clearTimeout(infoTimer);infoTimer=setTimeout(()=>infoPanel.classList.add("hide"),10000);}
@@ -6774,10 +6769,11 @@ wire("btnHealth",runHealthCheck);
 
 
 /* ---------- Night Dim (ported from mobile — desktop never got this) ---------- */
-var nightMode=store.get("nightMode","off"); if(nightMode==="auto")nightMode="off";
-function applyNight(){ if(!tube)return; var dim=nightMode==="on";
+var nightMode="auto";
+function applyNight(){ if(!tube)return; var h=new Date().getHours();
+  var dim = nightMode==="on" || (nightMode==="auto" && (h>=22||h<6));
   tube.classList.toggle("night", !!(dim&&powered)); }
-function cycleNight(){ nightMode = nightMode==="on"?"off":"on"; store.set("nightMode",nightMode); applyNight();
+function cycleNight(){ nightMode = nightMode==="auto"?"on":(nightMode==="on"?"off":"auto"); applyNight();
   quickBanner("NIGHT DIM \u00b7 "+nightMode.toUpperCase()); }
 setInterval(function(){ if(powered) applyNight(); }, 60000);
 
@@ -7964,10 +7960,16 @@ var NARA_Q=["moving images","motion picture film","newsreel","documentary film"]
 function naraKey(){ return String(store.get("naraKey","")||"").trim(); }
 async function tuneNARA(ch,sl,my){
   if(my!==token)return;
-  var mirror=function(note){ /* Always-available government-film vault: no daypart gates. */
-    var title="National Archives Vault";
-    nlog("nara",true,"mirror ("+note+") \u00b7 "+title);
-    return tuneIA(ch,{...sl,show:title,queries:[
+  var mirror=function(note){ /* 1.3.3: DAYPARTED government-film network — the FedFlix mirror
+       now runs a real broadcast day instead of shuffling the whole vault */
+    var h=new Date().getHours();
+    var slot=(h>=6&&h<12)?["Government Training Film",'subject:(training OR instructional OR education OR orientation)']:
+             (h>=12&&h<17)?["The Federal Reel",'subject:(documentary OR newsreel OR report OR "united states")']:
+             (h>=17&&h<22)?["American History Vault",'subject:(military OR war OR NASA OR space OR history OR navy OR army)']:
+                           ["Late Night Declassified",'subject:("safety film" OR "mental hygiene" OR accident OR atomic OR emergency)'];
+    nlog("nara",true,"mirror ("+note+") \u00b7 "+slot[0]);
+    return tuneIA(ch,{...sl,show:slot[0],queries:[
+      'collection:FedFlix AND mediatype:movies AND '+slot[1],
       'collection:FedFlix AND mediatype:movies AND year:[1930 TO 1990]',
       'collection:FedFlix AND mediatype:movies',
       'mediatype:movies AND subject:("national archives")']},my);
@@ -8107,8 +8109,9 @@ wire("setReset", function(){
     setTimeout(function(){ location.reload(); },600);
   }catch(e){ quickBanner("RESET FAILED"); }
 });
-wire("setPlan",function(){ stationMgr=false; store.set("stationMgr",false); renderSettings();
-  quickBanner("ON-DEMAND MODE \u00b7 NO TIMED PROGRAMMING"); });
+wire("setPlan",function(){ stationMgr=!stationMgr; store.set("stationMgr",stationMgr); renderSettings();
+  quickBanner(stationMgr?"STATION MANAGER ON \u2014 planning the broadcast day":"STATION MANAGER OFF");
+  if(stationMgr&&powered)setTimeout(buildPlan,2500); });
 wire("setLocMode",function(){ locMode=(locMode==="zip")?"gps":"zip"; store.set("locMode",locMode);
   wxLocCache=null; gpsLoc=null; try{store.set("gpsLoc",null);}catch(e){} localeInfo={}; renderSettings();
   quickBanner("LOCATION: "+(locMode==="zip"?("HOME "+(homeLoc.zip||"ZIP")):"GPS (browser may ask once)")); });
@@ -13178,6 +13181,16 @@ function marathonToggle(){
   if(powered){resetProgress();tuneNum(curNum);}
 }
 
+/* seasonal takeover: the real calendar swaps which profile the network channels run */
+function seasonalProfileName(base){
+  if(base!=="network") return base; // scoped to the two network channels \u2014 safest blast radius
+  var d=new Date(), m=d.getMonth(), day=d.getDate();
+  if(m===9 && PROFILES.networkSpooky) return "networkSpooky";
+  if(m===11 && PROFILES.networkHoliday) return "networkHoliday";
+  if(m===6 && day<=7 && PROFILES.networkPatriot) return "networkPatriot";
+  if(m===1 && day>=7 && day<=14 && PROFILES.networkValentine) return "networkValentine"; // NEW: Valentine's week
+  return base;
+}
 /* NEW (feature: rolling-dial tune animation): briefly cycle the channel-number readouts
    through nearby digits before landing on the real one, like an old mechanical selector */
 function rollDialTo(target){

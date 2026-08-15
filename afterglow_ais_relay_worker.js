@@ -170,8 +170,43 @@ function queueItem(doc) {
   };
 }
 
+/* Resolve a queue candidate to a direct Archive CDN URL while it is still in
+   the Worker cache. The browser receives a ready-to-play URL, not a metadata
+   chore it must perform after the viewer has already pressed SKIP. */
+function queueFileUrls(id, payload, name) {
+  const archiveBase = "https://archive.org/download/" + encodeURIComponent(id) + "/";
+  const dir = String(payload && payload.dir || "").replace(/\/+$/, "");
+  const hosts = [payload && payload.server, payload && payload.d1, payload && payload.d2]
+    .filter((host, index, all) => typeof host === "string" && /^[a-z0-9.-]+\.archive\.org$/i.test(host) && all.indexOf(host) === index);
+  const bases = hosts.map((host) => dir ? "https://" + host + dir + "/" : archiveBase);
+  bases.push(archiveBase);
+  const encoded = String(name).split("/").map(encodeURIComponent).join("/");
+  return bases.map((base) => base + encoded).filter((url, index, all) => all.indexOf(url) === index);
+}
+
+async function queuePlayable(id) {
+  try {
+    const upstream = await fetch("https://archive.org/metadata/" + encodeURIComponent(id));
+    if (!upstream.ok) return null;
+    const payload = await upstream.json(), files = payload.files || [];
+    const format = (file) => String(file && file.format || "").toLowerCase();
+    const video = files.filter((file) => file && file.name && (/\.mp4$|\.m4v$/i.test(file.name) || /\.webm$/i.test(file.name) || /\.ogv$/i.test(file.name)))
+      .sort((a, b) => {
+        const score = (file) => /h\.?264/.test(format(file)) ? 0 : /\.mp4$|\.m4v$/i.test(file.name) ? 1 : /\.webm$/i.test(file.name) ? 2 : 3;
+        return score(a) - score(b);
+      });
+    const audio = files.find((file) => file && file.name && /\.mp3$|\.ogg$|\.m4a$|\.flac$/i.test(file.name));
+    const chosen = video[0] || audio;
+    if (!chosen) return null;
+    const urls = queueFileUrls(id, payload, chosen.name);
+    return urls.length ? { type: video[0] ? "video" : "audio", url: urls[0], alts: urls.slice(1, 8) } : null;
+  } catch {
+    return null;
+  }
+}
+
 async function buildIaQueue(channel, queries, count) {
-  const items = [], seen = new Set();
+  const items = [], seen = new Set(), candidateLimit = count;
   /* Query lanes are already editorially ordered by the app. Fetch a small
      sample from each lane in parallel, then take one from every lane before
      taking a second: a five-item buffer spans eras/topics instead of becoming
@@ -184,7 +219,7 @@ async function buildIaQueue(channel, queries, count) {
       return [];
     }
   }));
-  for (let row = 0; items.length < count; row += 1) {
+  for (let row = 0; items.length < candidateLimit; row += 1) {
     let found = false;
     for (const lane of lanes) {
       const doc = lane[row];
@@ -192,16 +227,18 @@ async function buildIaQueue(channel, queries, count) {
       seen.add(doc.identifier);
       items.push(queueItem(doc));
       found = true;
-      if (items.length >= count) break;
+      if (items.length >= candidateLimit) break;
     }
     if (!found) break;
   }
+  const enriched = await Promise.all(items.map(async (item) => ({ ...item, media: await queuePlayable(item.identifier) })));
+  const ready = enriched.filter((item) => item.media).concat(enriched.filter((item) => !item.media)).slice(0, count);
   return {
     channel,
     generatedAt: new Date().toISOString(),
     ttlSeconds: IA_QUEUE_TTL_SECONDS,
-    items,
-    ready: items.length,
+    items: ready,
+    ready: ready.length,
   };
 }
 

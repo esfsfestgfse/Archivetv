@@ -5284,8 +5284,33 @@ const PROGRAM = {
 
 /* Build queries from a PROGRAM entry instead of from G. Same shape output as buildQuery
    so the rest of the pipeline (pickFromQueries, pickIA, choose) works unchanged. */
+/* PROGRAM ROTATION — editorial rules only work when their valid lanes take turns.
+   Keep a compact per-channel cursor in localStorage: this is not a real-world time gate,
+   and a sparse lane simply falls through to the next approved lane in pickFromQueries(). */
+var programRotationState={};
+try{programRotationState=JSON.parse(localStorage.getItem("atv:program-rotation")||"{}")||{};}catch(e){}
+function rotateProgramLane(channel,lane,values){
+  if(!values||!values.length)return null;
+  var key=String(channel||"archive")+"|"+lane;
+  var at=(Number(programRotationState[key])||0)%values.length;
+  programRotationState[key]=at+1;
+  try{localStorage.setItem("atv:program-rotation",JSON.stringify(programRotationState));}catch(e){}
+  return values[at];
+}
+function programEraBuckets(era){
+  var first=Number(era&&era[0]), last=Number(era&&era[1]);
+  if(!isFinite(first)||!isFinite(last)||last<=first)return [era||[1930,1990]];
+  var years=last-first+1, n=years>=60?5:(years>=32?4:(years>=14?3:2));
+  var out=[], cursor=first;
+  for(var i=0;i<n;i++){
+    var end=(i===n-1)?last:Math.floor(first+(years*(i+1)/n)-1);
+    out.push([cursor,Math.max(cursor,end)]); cursor=end+1;
+  }
+  return out;
+}
 function buildProgramQueries(prog,ch) {
-  var era = prog.era || [1930, 1990];
+  var channel=(ch&&ch.nm)||prog.genre||"Archive";
+  var era=rotateProgramLane(channel,"era",prog.eraBuckets||programEraBuckets(prog.era||[1930,1990]))||prog.era||[1930,1990];
   var yr = "year:[" + era[0] + " TO " + era[1] + "]";
   var mt = prog.mt || ((ch && ch.audio) ? "audio" : "movies");
   var qs = [];
@@ -5293,12 +5318,21 @@ function buildProgramQueries(prog,ch) {
   var deny = prog.deny || {};
   var denySubj = (deny.subject || []).map(function(s) { return '"' + s + '"'; }).join(" OR ");
   var NOT = denySubj ? (" AND NOT subject:(" + denySubj + ")") : "";
-  (prog.providers || []).forEach(function(prov) {
+  var providers=(prog.providers||[]).map(function(prov,index){return {prov:prov,index:index};});
+  if(providers.length>1){
+    var start=Number(rotateProgramLane(channel,"provider",providers.map(function(_,i){return i;})))||0;
+    providers=providers.slice(start).concat(providers.slice(0,start));
+  }
+  providers.forEach(function(entry) {
+    var prov=entry.prov, providerIndex=entry.index;
     var cols = prov.collections || [];
     var subjs = prov.require_subj || [];
     /* subjRotate: pick one subject per tune so the channel cycles through its vocabulary
        instead of always matching on the most common term. Same pattern as G's subjRotate. */
-    if (prog.subjRotate && subjs.length > 1) { subjs = [subjs[Math.floor(Math.random() * subjs.length)]]; }
+    if(prog.subjRotate && subjs.length>1){
+      var picked=rotateProgramLane(channel,"subject:"+providerIndex,subjs);
+      subjs=picked?[picked]:subjs;
+    }
     if (subjs.length) {
       var subjQ = subjs.map(function(s) { return '"' + s + '"'; }).join(" OR ");
       cols.forEach(function(c) {

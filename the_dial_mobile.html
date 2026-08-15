@@ -1204,7 +1204,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.192";
+window.__ATV_BUILD="1.7.7-mobile.193";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1601,7 +1601,7 @@ const G={
  hispanic: {mt:"movies",col:["feature_films_unsorted","opensource_movies"],fcol:["feature_films"],subj:["spanish cinema","mexican cinema","cine mexicano","cine español","almodovar","buñuel","cuarón","del toro","carlos saura","la movida","cantinflas"],subjRotate:true,subjRequired:true,noBlindFallback:true,not:FNOT,era:[1930,2020]},
  newsmagazine:{mt:"movies",col:["opensource_movies","classic_tv_1970s","classic_tv_1980s","classic_tv_1990s","classic_tv_2000s"],fcol:["television"],subj:["60 minutes","20/20","dateline","nightline","frontline","primetime live","48 hours","newsmagazine","mike wallace","morley safer","ed bradley","barbara walters","diane sawyer","ted koppel"],subjRotate:true,subjRequired:true,noBlindFallback:true,not:FNOT,era:[1968,2026]},
  kenburns: {mt:"movies",col:["opensource_movies"],fcol:["television"],subj:["ken burns","the civil war ken burns","baseball ken burns","jazz ken burns","the war ken burns","the national parks","the roosevelts","the vietnam war ken burns","country music ken burns","florentine films"],subjRotate:true,subjRequired:true,noBlindFallback:true,not:FNOT,era:[1980,2026]},
- weatherstar:{mt:"movies",col:["opensource_movies"],fcol:["opensource_audio"],subj:["weatherstar 4000","weather channel music","trammell starks","local on the 8s","twc jazz","weather channel archive","classic weather channel"],subjRotate:true,subjRequired:true,noBlindFallback:true,not:FNOT,era:[1985,2005]},
+ weatherstar:{mt:"movies",col:["opensource_movies"],fcol:[],subj:["weatherstar 4000","weather channel music","trammell starks","local on the 8s","twc jazz","weather channel archive","classic weather channel"],subjRotate:true,subjRequired:true,noBlindFallback:true,not:FNOT,era:[1985,2005]},
  publicaccess:{mt:"movies",col:["community_media"],     fcol:[],               subj:["public access television","community television","local cable access"],era:[1975,2005]},
  faith:      {mt:"movies",col:["spiritualityandreligion"],fcol:["feature_films","prelinger","classic_tv"], subj:["christianity","sermon","gospel","catholic","judaism","jewish","islam","muslim","buddhism","buddhist","hinduism","hindu","sikh","meditation","spirituality","worship","religion","religious film"],subjRotate:true,subjRequired:true,noBlindFallback:true,era:[1930,2000]}, /* QA FIX: Sunday Service was returning NO SIGNAL because spiritualityandreligion is text-dominant, mediatype:movies filtered it near-empty, subjRotate narrowed each query further, and fcol was empty -- no fallback. Added real fallback pools (all have religious video content in practice), plus subjRequired to guarantee the fallback is still subject-locked so nothing off-theme can leak. */
  sportsvault:{mt:"movies",col:["sports"],               fcol:[],               subj:["baseball","football","basketball","hockey","boxing","olympics","golf","tennis","soccer","auto racing","horse racing","track and field","swimming","bowling","skiing","sports newsreel"],subjRotate:true,not:["wrestling","wwe","wwf","ufc","mma"],era:[1930,1985]},
@@ -2578,7 +2578,7 @@ const PROGRAM = {
   "The Long Shot": {
     genre: "slowtv", era: [2000, 2026],
     providers: [
-      { collections: ["opensource_movies", "prelinger", "opensource_audio"], require_subj: [
+      { collections: ["opensource_movies", "prelinger"], require_subj: [
         "slow tv","slow television","slow-tv","nrk","nrk slow tv","nrk slow television","norwegian slow tv",
         "bergensbanen","bergen line","train journey","train ride","cab ride","driver's eye view","driver eye view",
         "long-form train","long form video","ferry crossing","ferry journey","ferry ride","ambient landscape",
@@ -2587,7 +2587,7 @@ const PROGRAM = {
         "beach ambient","ocean waves ambient","ocean waves loop","fireplace loop","rain ambient","rain sounds",
         "thunderstorm loop","rain video loop","nature loop","meditation video","meditation loop","zen video"
       ] },
-      { collections: ["opensource_movies", "opensource_audio"], require_subj: [
+      { collections: ["opensource_movies"], require_subj: [
         "long form video","long-form video","real time video","real-time video","unedited","raw video",
         "ambient video","ambient soundscape","atmospheric video","atmospheric soundscape","field recording video",
         "field-recording video","stationary shot","static shot","fixed camera","observational video",
@@ -2606,7 +2606,7 @@ const PROGRAM = {
   "The Hearth": {
     genre: "yulelog", era: [1900, 2026],
     providers: [
-      { collections: ["opensource_movies", "opensource_audio"], require_subj: [
+      { collections: ["opensource_movies"], require_subj: [
         "yule log","yulelog","yule log video","yule log fireplace","yule log 4k","yule log loop",
         "fireplace loop","fireplace video","fireplace crackle","fireplace ambience","fireplace ambiance",
         "cozy fireplace","cabin fireplace","fireplace hd","fireplace 4k","fireplace 8-hour","fireplace 24 hour",
@@ -2614,7 +2614,7 @@ const PROGRAM = {
         "hearth loop","hearth video loop","wbbm yule log","yule log wpix","wpix yule log","chelsea yule log",
         "chelsea community yule log","fake fireplace","virtual fireplace","tv fireplace","broadcast fireplace"
       ] },
-      { collections: ["opensource_movies", "opensource_audio", "78rpm", "audio_music"], require_subj: [
+      { collections: ["opensource_movies"], require_subj: [
         "christmas music","christmas jazz","christmas swing","christmas standards","christmas carols",
         "bing crosby christmas","frank sinatra christmas","nat king cole christmas","ella fitzgerald christmas",
         "vince guaraldi","charlie brown christmas soundtrack","christmas jazz trio","christmas mood music",
@@ -2891,7 +2891,7 @@ const PROGRAM = {
   "Sunday Service": {
     genre: "faith", era: [1930, 2010],
     providers: [
-      { collections: ["opensource_audio", "OTRR_Certified", "OldTimeRadio", "78rpm", "audio_music"], require_subj: [
+      { collections: ["opensource_audio", "oldtimeradio", "78rpm", "audio_music"], require_subj: [
         "hymn","hymns","sacred music","sacred song","spiritual","spirituals","gospel","gospel music",
         "gospel radio","gospel broadcast","gospel hymn","hymn sing","hymn singing","choir","church choir",
         "church music","worship","worship service","praise","praise and worship","liturgical","liturgy",
@@ -2904,7 +2904,7 @@ const PROGRAM = {
         "sunday service","sunday worship","sunday broadcast","sunday radio","gospel quartet","gospel choir",
         "black gospel","white gospel","southern gospel","southern gospel quartet","country gospel","bluegrass gospel"
       ] },
-      { collections: ["opensource_audio", "OTRR_Certified", "OldTimeRadio"], require_subj: [
+      { collections: ["opensource_audio", "oldtimeradio"], require_subj: [
         "religious broadcast","religious radio","religious programming","religious service","radio church",
         "radio pulpit","radio ministry","gospel ministry","broadcast ministry","evangelism","evangelist broadcast",
         "revival meeting","tent revival","tent meeting","camp meeting","southern revival","revival service",
@@ -3290,7 +3290,7 @@ const PROGRAM = {
   "Podcasts": {
     genre: "podcasts", era: [2004, 2026],
     providers: [
-      { collections: ["podcasts", "opensource_audio", "archiveteam"], require_subj: [
+      { collections: ["podcasts", "opensource_audio"], require_subj: [
         "podcast","podcast episode","radio podcast","independent podcast","indie podcast",
         "history podcast","science podcast","philosophy podcast","tech podcast","interview podcast",
         "storytelling podcast","comedy podcast","true crime podcast","music podcast",
@@ -3320,7 +3320,7 @@ const PROGRAM = {
   "Fallout Radio": {
     genre: "radiofallout", era: [1940, 1965],
     providers: [
-      { collections: ["OTRR_Certified", "OldTimeRadio", "opensource_audio", "prelinger"], require_subj: [
+      { collections: ["oldtimeradio", "opensource_audio"], require_subj: [
         "atomic age radio","atomic age","cold war radio","cold-war radio","atomic bomb","atomic energy",
         "nuclear age","civil defense","civil defense film audio","conelrad","conelrad radio",
         "duck and cover","emergency broadcasting","emergency broadcast","the fallout shelter","fallout shelter",
@@ -3330,7 +3330,7 @@ const PROGRAM = {
         "when worlds collide radio","cbs radio workshop","radio workshop","2000 plus","suspense radio",
         "escape radio","escape (radio)","beyond tomorrow","radio science fiction","radio drama sci-fi"
       ] },
-      { collections: ["OTRR_Certified", "OldTimeRadio", "opensource_audio"], require_subj: [
+      { collections: ["oldtimeradio", "opensource_audio"], require_subj: [
         "americana radio","1950s radio","1940s radio","big band radio","swing era radio",
         "vintage radio","vintage advertising radio","period radio","vintage news","vintage broadcast",
         "wartime radio","wartime broadcast","wartime news","war news radio","home front radio"
@@ -3951,7 +3951,7 @@ const PROGRAM = {
   "NASA Marathon": {
     genre: "nasamarathon", era: [1957, 2026],
     providers: [
-      { collections: ["nasa", "NASAAudioCollection", "FedFlix", "prelinger", "opensource_movies"], require_subj: [
+      { collections: ["nasa", "FedFlix", "prelinger", "opensource_movies"], require_subj: [
         "nasa","national aeronautics and space administration","apollo","apollo program","apollo 11",
         "apollo 12","apollo 13","apollo 14","apollo 15","apollo 16","apollo 17","apollo 1","apollo 8",
         "mercury program","gemini program","mercury","gemini","skylab","apollo-soyuz","apollo soyuz",
@@ -4056,7 +4056,7 @@ const PROGRAM = {
   "OTR Theater": {
     genre: "otrtheater", era: [1930, 1962],
     providers: [
-      { collections: ["OTRR_Certified", "OldTimeRadio", "opensource_audio", "audio_music"], require_subj: [
+      { collections: ["oldtimeradio", "opensource_audio", "audio_music"], require_subj: [
         "suspense radio","suspense old time radio","the shadow","the whistler","inner sanctum",
         "inner sanctum mysteries","escape radio","escape (radio series)","yours truly johnny dollar",
         "johnny dollar","dragnet radio","gunsmoke radio","have gun will travel radio",
@@ -4071,7 +4071,7 @@ const PROGRAM = {
         "the war of the worlds broadcast","cbs radio workshop","radio workshop","x minus one","dimension x",
         "2000 plus","lights out","lights out radio","quiet please","the mysterious traveler","murder at midnight"
       ] },
-      { collections: ["OTRR_Certified", "OldTimeRadio", "opensource_audio"], require_subj: [
+      { collections: ["oldtimeradio", "opensource_audio"], require_subj: [
         "old time radio","old-time radio","otr","radio drama","radio play","radio theater","radio theatre",
         "radio show","radio program","radio serial","radio anthology","radio comedy","radio mystery",
         "radio thriller","radio detective","radio western","radio suspense","radio horror","radio science fiction",
@@ -4524,7 +4524,7 @@ const PROGRAM = {
   "The Weather Loop": {
     genre: "weatherstar", era: [1985, 2005],
     providers: [
-      { collections: ["opensource_movies", "opensource_audio"], require_subj: ["weatherstar 4000", "weatherstar", "weatherstar 3000", "weather channel music", "the weather channel", "weather channel", "twc music", "trammell starks", "local on the 8s", "local on the 8's", "weather channel jazz", "twc jazz", "twc smooth jazz", "the weather channel jazz", "weather forecast loop", "weather channel forecast", "local forecast", "weather channel archive", "weather channel recording", "weather channel background music", "weather scan", "weatherscan", "twc archive", "classic weather channel"] }
+      { collections: ["opensource_movies"], require_subj: ["weatherstar 4000", "weatherstar", "weatherstar 3000", "weather channel music", "the weather channel", "weather channel", "twc music", "trammell starks", "local on the 8s", "local on the 8's", "weather channel jazz", "twc jazz", "twc smooth jazz", "the weather channel jazz", "weather forecast loop", "weather channel forecast", "local forecast", "weather channel archive", "weather channel recording", "weather channel background music", "weather scan", "weatherscan", "twc archive", "classic weather channel"] }
     ],
     deny: {
       title: ["storm chaser", "tornado", "hurricane", "live weather"],
@@ -4985,7 +4985,7 @@ const PROGRAM = {
   "Classic Cartoons": {
     genre: "cartoon", era: [1920, 1970],
     providers: [
-      { collections: ["classic_cartoons", "animation_shorts", "opensource_movies", "prelinger"], require_subj: [
+      { collections: ["classic_cartoons", "opensource_movies", "prelinger"], require_subj: [
         "looney tunes","merrie melodies","bugs bunny","daffy duck","porky pig","elmer fudd","tweety","sylvester",
         "yosemite sam","foghorn leghorn","road runner","wile e coyote","wile e. coyote","tasmanian devil",
         "chuck jones","tex avery","bob clampett","friz freleng","robert mckimson","frank tashlin",
@@ -5001,7 +5001,7 @@ const PROGRAM = {
         "jay ward","rocky and bullwinkle","rocky and his friends","the bullwinkle show","dudley do-right",
         "george of the jungle","fractured fairy tales","peabody's improbable history","peabody and sherman"
       ] },
-      { collections: ["classic_cartoons", "animation_shorts", "opensource_movies"], require_subj: [
+      { collections: ["classic_cartoons", "opensource_movies"], require_subj: [
         "cartoon","cartoons","animated short","animated shorts","animation","classic animation",
         "classic cartoon","classic cartoons","golden age of animation","golden age animation",
         "theatrical cartoon","theatrical short","theatrical animation","saturday morning cartoon",
@@ -5061,13 +5061,6 @@ const PROGRAM = {
         "santa","santa claus","st nicholas","father christmas","kris kringle","reindeer","nativity",
         "yule","yuletide","winter holiday","winter solstice","hanukkah","kwanzaa"
       ] },
-      { collections: ["78rpm", "audio_music", "opensource_audio"], require_subj: [
-        "christmas music","christmas carol","christmas song","christmas album","christmas record",
-        "christmas hymn","christmas jazz","christmas swing","christmas standards","christmas classics",
-        "bing crosby christmas","frank sinatra christmas","dean martin christmas","perry como christmas",
-        "andy williams christmas","nat king cole christmas","mel torme christmas","peggy lee christmas",
-        "vince guaraldi","charlie brown christmas soundtrack","phil spector christmas","christmas gift for you"
-      ] }
     ],
     deny: {
       title: ["horror","commercial","cartoon","training"],
@@ -5296,6 +5289,7 @@ function buildProgramQueries(prog,ch) {
   var yr = "year:[" + era[0] + " TO " + era[1] + "]";
   var mt = prog.mt || ((ch && ch.audio) ? "audio" : "movies");
   var qs = [];
+  var globalQs = [];
   var deny = prog.deny || {};
   var denySubj = (deny.subject || []).map(function(s) { return '"' + s + '"'; }).join(" OR ");
   var NOT = denySubj ? (" AND NOT subject:(" + denySubj + ")") : "";
@@ -5310,10 +5304,10 @@ function buildProgramQueries(prog,ch) {
       cols.forEach(function(c) {
         qs.push("collection:" + c + " AND mediatype:" + mt + " AND subject:(" + subjQ + ") AND " + yr + NOT);
       });
-      qs.push("mediatype:" + mt + " AND subject:(" + subjQ + ") AND " + yr + NOT);
+      globalQs.push("mediatype:" + mt + " AND subject:(" + subjQ + ") AND " + yr + NOT);
     }
   });
-  return qs;
+  return qs.concat(globalQs);
 }
 
 /* what's "on" for a channel at a given hour */

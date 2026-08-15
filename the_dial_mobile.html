@@ -1204,7 +1204,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.203";
+window.__ATV_BUILD="1.7.7-mobile.204";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -5967,6 +5967,19 @@ async function tuneNum(n){
 var schedMap=store.get("sched",{});
 var lastMeta=null; /* 1.3: programming flow memory */
 var preloadCache=null; /* 1.4: the next program, resolved ahead of time */
+/* Rapid Tune cache: Archive discovery can be slow or blocked, but a resolved direct CDN URL
+   is reusable. Keep a deliberately small, expiring channel cache so power-on and return-tunes
+   go straight to media rather than repeating search + metadata every time. */
+var fastTuneCache=store.get("fastTune",{}), FAST_TUNE_TTL=36*60*60*1000, FAST_TUNE_MAX=24;
+function fastTuneGet(chNum){var e=fastTuneCache[String(chNum)];
+  if(!e||!e.pl||!e.pl.url||Date.now()-e.at>FAST_TUNE_TTL){if(e){delete fastTuneCache[String(chNum)];store.set("fastTune",fastTuneCache);}return null;}
+  return {type:e.pl.type,url:e.pl.url,alts:(e.pl.alts||[]).slice(),id:e.pl.id,captions:e.pl.captions||null,
+    meta:e.pl.meta||{},title:e.pl.title||"",year:e.pl.year||""};}
+function fastTunePut(chNum,it){if(!it||!it.id||!it.url)return;
+  fastTuneCache[String(chNum)]={at:Date.now(),pl:{type:it.type,url:it.url,alts:(it.alts||[]).slice(0,4),id:it.id,
+    captions:it.captions||null,meta:it.meta||{},title:it.title||"",year:it.year||""}};
+  var keys=Object.keys(fastTuneCache).sort(function(a,b){return fastTuneCache[a].at-fastTuneCache[b].at;});
+  while(keys.length>FAST_TUNE_MAX)delete fastTuneCache[keys.shift()]; store.set("fastTune",fastTuneCache);}
 
 /* ===== 1.5 STATION MANAGER (beta, OFF by default) =====
    When enabled in Settings, the set plans ahead: concrete programs are picked for the
@@ -6036,6 +6049,12 @@ function schedSet(ch,it,dur){
 function schedClear(ch){ if(ch&&ch.nm&&schedMap[ch.nm]){ delete schedMap[ch.nm]; store.set("sched",schedMap); } }
 
 async function tuneIA(ch,sl,my){
+  var rapid=fastTuneGet(ch.num);
+  if(rapid){
+    nlog("rapid-tune",true,"CH "+ch.num+" cached media");
+    if(await playFile(rapid,ch,sl,my,0))return;
+    if(my!==token)return;
+  }
   /* 1.2: if this channel has a program on the air right now, rejoin it in progress */
   var rec=schedGet(ch);
   if(rec){
@@ -6199,6 +6218,7 @@ function playFile(it,ch,sl,my,isFallback){return new Promise(res=>{
             if(_m){ _art.src="https://archive.org/services/img/"+_m[1]; } else { _art.removeAttribute("src"); } } }catch(e){} }
       else audioScreen.classList.add("hide");
       curVideo=v; setCurItem(it,ch,sl);            // track for PiP / source / CC
+      if(!it.isAd&&!it.isSignoff&&ch&&ch.num>0&&!ch.source)fastTunePut(ch.num,it);
       attachCaptions(v,it);                         // wire CC track if available
       showNow(ch,sl,it.title||ch.nm, it.year?("· "+it.year):(it.source||""));
       bug.classList.remove("hide");

@@ -5593,7 +5593,7 @@ async function iaQueueRequest(ch,sl,count){
     return ((d&&d.items)||[]).filter(function(it){return iaProgramAllowed(it,sl);});
   }catch(e){nlog("queue",false,"director unavailable: "+(e&&e.message||e));return [];}
 }
-function warmIAQueue(ch,sl){var q=iaProgramQueues[iaQueueKey(ch)]||[];q.slice(0,2).forEach(function(it){if(!it||iaProgramMedia[it.identifier])return;iaProgramMedia[it.identifier]=resolvePlayable(it.identifier).catch(function(){return null;});});}
+function warmIAQueue(ch,sl){var q=iaProgramQueues[iaQueueKey(ch)]||[];q.slice(0,5).forEach(function(it){if(!it||iaProgramMedia[it.identifier])return;iaProgramMedia[it.identifier]=resolvePlayable(it.identifier).catch(function(){return null;});});}
 async function refillIAQueue(ch,sl){var k=iaQueueKey(ch);if(iaProgramInflight[k])return iaProgramInflight[k];iaProgramInflight[k]=iaQueueRequest(ch,sl,5).then(function(items){var old=iaProgramQueues[k]||[], seen={}, merged=[];old.concat(items).forEach(function(it){if(it&&it.identifier&&!seen[it.identifier]&&iaProgramAllowed(it,sl)){seen[it.identifier]=1;merged.push(it);}});iaProgramQueues[k]=merged.slice(0,5);warmIAQueue(ch,sl);nlog("queue",true,"CH "+k+" ready="+iaProgramQueues[k].length);return iaProgramQueues[k];}).finally(function(){delete iaProgramInflight[k];});return iaProgramInflight[k];}
 function takeIAQueue(ch,sl){var k=iaQueueKey(ch), q=iaProgramQueues[k]||[];while(q.length){var it=q.shift();if(iaProgramAllowed(it,sl)){refillIAQueue(ch,sl);return it;}}refillIAQueue(ch,sl);return null;}
 /* Archive is blocked outright in some desktop browsers. Keep every discovery probe short so
@@ -6207,9 +6207,9 @@ setInterval(function(){ if(stationMgr&&powered)buildPlan(); },900000);
 async function preloadNext(ch,sl,my){
   if(my!==token||!powered||!sl||!sl.queries)return;
   try{
-    var item=await pickFromQueries(sl.queries);
+    var item=takeIAQueue(ch,sl)||await pickFromQueries(sl.queries);
     if(my!==token||!item)return;
-    var pl=await resolvePlayable(item.identifier);
+    var pl=iaProgramMedia[item.identifier]; if(pl&&typeof pl.then==="function")pl=await pl; else if(!pl)pl=await resolvePlayable(item.identifier);
     if(my!==token||!pl)return;
     pl.title=item.title||item.identifier; pl.year=item.year;
     preloadCache={chNum:ch.num,pl:pl,at:Date.now()};
@@ -6232,6 +6232,12 @@ function schedSet(ch,it,dur){
   store.set("sched",schedMap);
 }
 function schedClear(ch){ if(ch&&ch.nm&&schedMap[ch.nm]){ delete schedMap[ch.nm]; store.set("sched",schedMap); } }
+function primeIAQueues(){
+  var cur=CH.find(function(c){return c.num===curNum;}), picks=[];
+  if(cur&&!cur.source)picks.push(cur);
+  CH.filter(function(c){return !c.source&&(isFav(c.num)||c.cat==="NET");}).forEach(function(c){if(picks.indexOf(c)<0)picks.push(c);});
+  picks.slice(0,5).forEach(function(c,i){setTimeout(function(){if(!powered)return;refillIAQueue(c,slotFor(c,new Date().getHours(),{preview:true}));},350+i*500);});
+}
 
 async function tuneIA(ch,sl,my){
   refillIAQueue(ch,sl); /* do discovery in the background while instant-path checks run */
@@ -6504,6 +6510,7 @@ function powerOn(){powered=true;justPowered=true;
   audioCtx();unlockMedia();sfxClick();tube.classList.remove("off");setSig("tuning","WARMING UP");
   renderRail();startClock();applyPicture();acquireWake();showClockBug();applyNight();tuneNum(curNum);startEmergencyMonitor();
   getWxLocation().then(resolveLocale); /* CYCLE-2: warm the locale cache */
+  primeIAQueues(); /* current station plus four likely destinations enter the five-show buffer */
   if(stationMgr)setTimeout(buildPlan,9000); /* 1.5: draft the day plan once the set is warm */
   showShortcutHint(); /* audit-fix Ship B 2026-08-09: fade-in-and-out shortcut strip on power-on */
 }

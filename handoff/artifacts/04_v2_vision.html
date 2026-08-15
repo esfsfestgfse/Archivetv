@@ -1,0 +1,270 @@
+<title>Afterglow v2</title>
+<style>
+:root{
+  --ground:#0d0906; --ground-2:#161009; --card:#1a130a;
+  --line:rgba(255,157,61,.14); --line-strong:rgba(255,157,61,.32);
+  --amber:#ff9d3d; --amber-hi:#ffd280; --amber-lo:#c66d18;
+  --cream:#f5efe6; --dim:#a89586; --dimmer:#6f6055;
+  --spark:#8dff9e;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--ground);color:var(--cream);font:400 16px/1.55 Georgia,"Iowan Old Style","Palatino Linotype",serif;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(120% 90% at 30% 0%,rgba(255,157,61,.06),transparent 60%),radial-gradient(80% 60% at 90% 100%,rgba(255,157,61,.04),transparent 70%)}
+.wrap{position:relative;z-index:1;max-width:1080px;margin:0 auto;padding:0 32px}
+@media (max-width:820px){.wrap{padding:0 20px}}
+.condensed{font-family:"Arial Narrow","Helvetica Neue Condensed","Bebas Neue",Impact,sans-serif;font-weight:900;text-transform:uppercase;letter-spacing:.02em}
+.mono{font-family:Courier,"Courier New",monospace}
+.eyebrow{font:900 11px/1 "Arial Narrow","Helvetica Neue Condensed",Impact,sans-serif;letter-spacing:.55em;color:var(--amber);text-transform:uppercase;margin:0 0 18px}
+a{color:var(--amber);text-decoration:none;border-bottom:1px dotted var(--amber-lo)}
+a:hover{color:var(--amber-hi)}
+
+/* HERO */
+.hero{min-height:min(100vh,720px);display:flex;flex-direction:column;justify-content:center;padding:100px 0 60px}
+.hero-num{font:900 clamp(180px,32vw,320px)/.85 "Arial Narrow","Helvetica Neue Condensed",Impact,sans-serif;
+  letter-spacing:-.04em;color:var(--amber);text-shadow:0 0 60px rgba(255,157,61,.35);margin:0;text-align:center;
+  position:relative}
+.hero-num::after{content:"";position:absolute;left:50%;bottom:-4px;transform:translateX(-50%);width:min(280px,60vw);height:2px;background:var(--amber);opacity:.6}
+.hero-tag{font:900 12px/1 "Arial Narrow",Impact,sans-serif;letter-spacing:.55em;color:var(--dim);text-transform:uppercase;text-align:center;margin:24px 0 0;padding-left:.55em}
+.hero-title{font-size:clamp(28px,4.5vw,44px);line-height:1.15;text-align:center;margin:40px auto 20px;max-width:24ch;color:var(--cream);text-wrap:balance}
+.hero-title em{color:var(--amber);font-style:normal}
+.hero-lede{font-size:16px;line-height:1.6;color:var(--dim);max-width:56ch;margin:0 auto;text-align:center;font-style:italic}
+
+section{padding:88px 0;border-top:1px solid var(--line);position:relative}
+.h2{font-size:clamp(32px,5vw,54px);line-height:1.05;margin:0 0 20px;text-wrap:balance}
+.lede{font-size:17px;line-height:1.6;max-width:64ch;color:var(--cream);margin:0 0 24px}
+
+/* WHERE WE ARE */
+.snapshot{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:2px;margin-top:30px}
+.snap{padding:24px 20px;background:var(--ground-2);border:1px solid var(--line);display:flex;flex-direction:column;justify-content:space-between;min-height:120px}
+.snap-n{font:900 42px/1 "Arial Narrow",Impact,sans-serif;color:var(--amber);letter-spacing:-.02em}
+.snap-l{font:900 10px/1.3 "Arial Narrow",Impact,sans-serif;letter-spacing:.25em;color:var(--dim);text-transform:uppercase;margin-top:8px}
+
+/* PILLAR CARDS */
+.pillars{display:grid;grid-template-columns:1fr;gap:2px;margin-top:32px}
+.pillar{padding:44px 36px;background:var(--ground-2);border:1px solid var(--line);border-left:5px solid var(--amber);position:relative;overflow:hidden}
+.pillar-idx{position:absolute;top:20px;right:30px;font:900 100px/.8 "Arial Narrow",Impact,sans-serif;color:var(--amber);opacity:.12;letter-spacing:-.05em;pointer-events:none}
+.pillar-tag{font:900 10px/1 "Arial Narrow",Impact,sans-serif;letter-spacing:.4em;color:var(--amber);text-transform:uppercase;margin:0 0 12px}
+.pillar-title{font:900 clamp(28px,4vw,42px)/1.1 "Arial Narrow","Helvetica Neue Condensed",Impact,sans-serif;letter-spacing:.02em;text-transform:uppercase;color:var(--cream);margin:0 0 14px}
+.pillar-lede{font-size:17px;line-height:1.55;color:var(--cream);max-width:60ch;margin:0 0 24px;position:relative;z-index:1}
+.pillar-lede em{color:var(--amber);font-style:normal;font-weight:bold}
+.pillar-features{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:20px;position:relative;z-index:1}
+.feat{padding:16px 18px;background:rgba(0,0,0,.25);border:1px solid var(--line);border-radius:3px}
+.feat-name{font:900 12px "Arial Narrow",Impact,sans-serif;letter-spacing:.15em;color:var(--amber);text-transform:uppercase;margin:0 0 6px}
+.feat-desc{font-size:13px;line-height:1.5;color:var(--cream);margin:0}
+.feat-tag{display:inline-block;font-family:Courier,monospace;font-size:9px;letter-spacing:.15em;color:var(--dim);text-transform:uppercase;margin-top:8px;padding:2px 6px;border:1px solid var(--line);border-radius:2px}
+.feat-tag.tp{color:var(--amber);border-color:var(--amber-lo)}
+
+/* HOW WE SHIP */
+.phases{display:grid;grid-template-columns:1fr;gap:16px;margin-top:32px;counter-reset:phase}
+.phase{padding:24px 26px;background:var(--ground-2);border:1px solid var(--line);position:relative;padding-left:80px;counter-increment:phase}
+.phase::before{content:"P" counter(phase);position:absolute;left:22px;top:24px;font:900 22px/1 "Arial Narrow",Impact,sans-serif;color:var(--amber);letter-spacing:.05em;background:rgba(255,157,61,.1);padding:8px 12px;border-radius:3px}
+.phase-title{font:900 18px/1.1 "Arial Narrow",Impact,sans-serif;letter-spacing:.05em;color:var(--cream);text-transform:uppercase;margin:0 0 6px}
+.phase-tag{font-family:Courier,monospace;font-size:10px;color:var(--amber);letter-spacing:.25em;text-transform:uppercase;margin:0 0 10px}
+.phase-body{font-size:14px;line-height:1.55;color:var(--cream);margin:0}
+
+/* NON-GOALS */
+.nongoal{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:2px;margin-top:32px}
+.ng{padding:22px 20px;background:var(--ground-2);border:1px solid var(--line);border-left:3px solid var(--dimmer)}
+.ng h4{font:900 11px "Arial Narrow",Impact,sans-serif;letter-spacing:.25em;color:var(--dim);text-transform:uppercase;margin:0 0 8px}
+.ng p{font-size:13px;line-height:1.5;color:var(--cream);margin:0}
+.ng p em{color:var(--amber);font-style:italic}
+
+/* Q1 */
+.q1{display:grid;grid-template-columns:1fr;gap:1px;margin-top:24px;background:var(--line-strong)}
+.q1-row{padding:16px 20px;background:var(--ground-2);display:grid;grid-template-columns:auto 1fr auto;gap:16px;align-items:center}
+.q1-check{width:20px;height:20px;border:2px solid var(--amber);border-radius:3px;position:relative;flex:none}
+.q1-check::after{content:"";position:absolute;left:4px;top:1px;width:5px;height:10px;border:solid var(--amber);border-width:0 2px 2px 0;transform:rotate(45deg);opacity:0}
+.q1-check.done{background:var(--amber)}
+.q1-check.done::after{opacity:1;border-color:var(--ground)}
+.q1-name{font:900 13px "Arial Narrow",Impact,sans-serif;letter-spacing:.1em;color:var(--cream);text-transform:uppercase}
+.q1-effort{font-family:Courier,monospace;font-size:10px;color:var(--dim);letter-spacing:.15em;text-transform:uppercase}
+
+.foot{border-top:1px solid var(--line);padding:40px 0 60px;text-align:center;color:var(--dimmer);font-size:11px;letter-spacing:.3em;text-transform:uppercase;font-family:Courier,monospace}
+</style>
+
+<div class="wrap">
+
+<!-- HERO -->
+<section class="hero">
+  <h1 class="hero-num condensed">v2</h1>
+  <p class="hero-tag">Afterglow · roadmap</p>
+  <p class="hero-title condensed">The dial stops <em>being a television</em> and starts <em>being an instrument</em>.</p>
+  <p class="hero-lede">v1 asked "what if the Internet Archive had a channel dial?" We answered with 148 channels, a live-data spine that pulls from 25 government feeds, and a rebrand. v2 asks a different question: given that the picture works, what should the picture <em>do for you</em> that only a real-time channelized surface can?</p>
+</section>
+
+<!-- SNAPSHOT -->
+<section>
+  <p class="eyebrow">Where we are · closing v1</p>
+  <h2 class="h2 condensed">148 channels. 25 live data feeds. Fully rebranded.</h2>
+  <p class="lede">Across the last few weeks — Prevue-guide reboot, Sky Beacon international rotator, Wax Museum, NASA Live rebuild, Solar Dashboard, Global Quakes Map, Newsstand, Wikipedia Live, Prevue meta-channel, Feed Health, universal resilient fetch, the AFTERGLOW identity, the Field Guide, the Live-Data audit — v1 has quietly grown up. What's left to close v1 is small polish; v2 is a step change.</p>
+
+  <div class="snapshot">
+    <div class="snap"><div class="snap-n">148</div><div class="snap-l">Channels total</div></div>
+    <div class="snap"><div class="snap-n">25</div><div class="snap-l">Live data feeds</div></div>
+    <div class="snap"><div class="snap-n">21</div><div class="snap-l">Rows healthy after audit</div></div>
+    <div class="snap"><div class="snap-n">2</div><div class="snap-l">Cloudflare Workers</div></div>
+    <div class="snap"><div class="snap-n">1</div><div class="snap-l">Aisstream outage between us and Ship Tracker</div></div>
+  </div>
+</section>
+
+<!-- v2 THESIS -->
+<section>
+  <p class="eyebrow">v2 · The Thesis</p>
+  <h2 class="h2 condensed">Four pillars. All of them make the app <em style="color:var(--amber);font-style:normal">work harder for the viewer</em>, not the other way around.</h2>
+  <p class="lede">v1 was about coverage — how many channels can we curate, how many feeds can we plumb. v2 is about <em>use</em> — how does the app anticipate what you need, how does it split its attention across multiple channels at once, how does it let you build your own dial. Pillars are designed to be shippable independently; you can pick any one and it stands on its own.</p>
+
+  <div class="pillars">
+
+    <!-- PILLAR 1: STORM MODE -->
+    <div class="pillar">
+      <div class="pillar-idx">01</div>
+      <p class="pillar-tag">Pillar 01</p>
+      <h3 class="pillar-title">Storm Mode</h3>
+      <p class="pillar-lede">The dial becomes a chase companion. When SPC issues a moderate risk, NHC posts a new tropical advisory, USGS registers a &gt;M5.5 near a populated area, or NWS drops a tornado warning for your county — the app <em>auto-tunes</em> to the most relevant data channel, holds it, and shows the alerting summary as a persistent bug. Nothing to click; the picture already knows.</p>
+
+      <div class="pillar-features">
+        <div class="feat"><p class="feat-name">Alert bus</p><p class="feat-desc">Poll SPC/NHC/USGS/NWS every 60 sec, dedup by event ID, normalize to a single event stream.</p><span class="feat-tag tp">Tentpole</span></div>
+        <div class="feat"><p class="feat-name">Auto-tune</p><p class="feat-desc">On a new event above a user-set severity, hold current, snap to Local Radar / Storm Center / Tropical Watch, resume after N min.</p><span class="feat-tag tp">Tentpole</span></div>
+        <div class="feat"><p class="feat-name">Multi-alert queue</p><p class="feat-desc">Two active events → split the queue: rotate between the two channels every 20 sec until either clears.</p></div>
+        <div class="feat"><p class="feat-name">Chase-day audio bed</p><p class="feat-desc">When Storm Mode is active, swap the country/ragtime beds for a subtle procedural drone. Ambient anxiety.</p></div>
+        <div class="feat"><p class="feat-name">Chaser log</p><p class="feat-desc">Every tune during an active event auto-logs to a Chase Sheet: time, event, channel, location. Export as CSV or share sheet.</p></div>
+        <div class="feat"><p class="feat-name">Post-storm replay</p><p class="feat-desc">After the event closes, offer to replay the last 24 hours of your Chase Sheet as a marathon.</p></div>
+      </div>
+    </div>
+
+    <!-- PILLAR 2: MULTI-VIEW -->
+    <div class="pillar">
+      <div class="pillar-idx">02</div>
+      <p class="pillar-tag">Pillar 02</p>
+      <h3 class="pillar-title">Multi-View</h3>
+      <p class="pillar-lede">Split the tube. Watch <em>a chase primary + Local Radar sidebar + Storm Center bottom bar + Sky Beacon corner</em> simultaneously, from one Set. Or Sports Vault primary + live scoreboard ticker + injury feed corner. The dial hasn't been able to be more than one channel at once for its whole life; that's the whole product.</p>
+
+      <div class="pillar-features">
+        <div class="feat"><p class="feat-name">2-up / 3-up / quad layouts</p><p class="feat-desc">Preset splits — 2-up (50/50), 3-up (1 primary + 2 stacked), quad (2×2). Each pane is its own tuned channel.</p><span class="feat-tag tp">Tentpole</span></div>
+        <div class="feat"><p class="feat-name">Overlay mode</p><p class="feat-desc">A data channel (Local Radar, Kp index) semi-transparently overlaid on a video channel. Corner-anchored.</p></div>
+        <div class="feat"><p class="feat-name">Audio focus</p><p class="feat-desc">Only one pane has audio. Tap another pane to swap focus. Others stay muted.</p></div>
+        <div class="feat"><p class="feat-name">Layout memory</p><p class="feat-desc">Every layout saveable + nameable ("Storm Watch", "Sunday Football"). Recall from OSD.</p></div>
+        <div class="feat"><p class="feat-name">Auto-multi triggers</p><p class="feat-desc">Certain events auto-switch to a specific layout — e.g. a tornado warning triggers "Storm Watch" (Radar + Storm Center + LOCAL ALERT bug).</p></div>
+      </div>
+    </div>
+
+    <!-- PILLAR 3: BUILD YOUR OWN CHANNELS -->
+    <div class="pillar">
+      <div class="pillar-idx">03</div>
+      <p class="pillar-tag">Pillar 03</p>
+      <h3 class="pillar-title">Build Your Own Channels</h3>
+      <p class="pillar-lede">Turn 148 curated channels into <em>infinite</em> user channels. A CHANNEL FORGE screen lets you compose a channel from Internet Archive search terms + era range + subject filters + collection allow-list. Save it. Give it a number. It shows up in the guide with your name on the ident. Optionally share via URL so friends can subscribe.</p>
+
+      <div class="pillar-features">
+        <div class="feat"><p class="feat-name">Forge UI</p><p class="feat-desc">One-screen wizard: name, category, era slider, IA collection multi-select, subject include/exclude, deny-title regex.</p><span class="feat-tag tp">Tentpole</span></div>
+        <div class="feat"><p class="feat-name">Live preview</p><p class="feat-desc">As you type filters, the wizard shows the next 5 items that would play. Reject → refine.</p></div>
+        <div class="feat"><p class="feat-name">User channel numbers</p><p class="feat-desc">User channels reserve num 601–699 (their own neighborhood in the guide). Named category "MY CHANNELS."</p></div>
+        <div class="feat"><p class="feat-name">Share by URL</p><p class="feat-desc">Every user channel encodes as a share URL. Import lands as ch 601+ next available slot with the source user's name in the sub-line.</p></div>
+        <div class="feat"><p class="feat-name">Community remix</p><p class="feat-desc">Optional community gallery of published user channels. Star, fork, adopt. No hosting cost — everything's a URL.</p></div>
+      </div>
+    </div>
+
+    <!-- PILLAR 4: THE TIME MACHINE -->
+    <div class="pillar">
+      <div class="pillar-idx">04</div>
+      <p class="pillar-tag">Pillar 04</p>
+      <h3 class="pillar-title">The Time Machine</h3>
+      <p class="pillar-lede">Set the date. Not the calendar date — the <em>watch date</em>. Move the dial back to July 20, 1969 and the schedule adapts: Live News becomes Moon-landing wire coverage, Newsstand shows that day's front pages, Storm Center shows the actual weather map from that day, On This Day surfaces the events. Move to April 15, 1912 → Titanic front pages, Wax Museum shows recordings from that year. It's the archive as a time-travel apparatus, not a search box.</p>
+
+      <div class="pillar-features">
+        <div class="feat"><p class="feat-name">Time-slider control</p><p class="feat-desc">A vintage rotary date-picker in the OSD. Snap to significant days (moon landing, JFK, V-J, Katrina, 9/11). Or free-scrub.</p><span class="feat-tag tp">Tentpole</span></div>
+        <div class="feat"><p class="feat-name">Date-locked programming</p><p class="feat-desc">Every video-content channel filters PROGRAM catalog to items published within ±1 year of the selected date.</p><span class="feat-tag tp">Tentpole</span></div>
+        <div class="feat"><p class="feat-name">Historical Newsstand</p><p class="feat-desc">Chronicling America already scopes by date — feed the selected date directly. Front pages match.</p></div>
+        <div class="feat"><p class="feat-name">Historical Storm Center</p><p class="feat-desc">SPC/NHC don't publish historical products via API, but NOAA has PDF archives — surface the best-available for the date.</p></div>
+        <div class="feat"><p class="feat-name">Historical Wax Museum</p><p class="feat-desc">LOC National Jukebox filters by year already — bind to the date directly.</p></div>
+        <div class="feat"><p class="feat-name">Storm chase replay</p><p class="feat-desc">Feed a specific historic storm date (Katrina Aug 29 2005, Harvey Aug 26 2017) and the whole app becomes that day's dashboard.</p><span class="feat-tag tp">For you</span></div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- HOW WE SHIP -->
+<section>
+  <p class="eyebrow">How we ship v2 · phases</p>
+  <h2 class="h2 condensed">Each pillar rolls out on its own runway.</h2>
+  <p class="lede">No mega-release. Every pillar is independently valuable and shippable. Phase them by dependency: infrastructure first (alert bus + user-channel storage schema), then the visible surfaces on top.</p>
+
+  <div class="phases">
+    <div class="phase">
+      <p class="phase-tag">Foundation · 1-2 weeks</p>
+      <p class="phase-title">Alert bus + user-channel schema</p>
+      <p class="phase-body">Two invisible pieces of infrastructure that everything else stands on. The alert-poller (SPC/NHC/USGS/NWS every 60 sec, event dedup, severity classification) is a prerequisite for Storm Mode and for Multi-View's auto-triggers. The user-channel storage schema (localStorage shape + URL encoding scheme) is the prerequisite for Build Your Own Channels.</p>
+    </div>
+    <div class="phase">
+      <p class="phase-tag">Pillar 01 · 1 week</p>
+      <p class="phase-title">Storm Mode</p>
+      <p class="phase-body">Ship on top of the alert bus. Auto-tune + persistent alert bug + Chase Sheet in one release. Storm Mode is the fastest full pillar to ship and the most immediately useful — puts real value in front of the storm-season user right away.</p>
+    </div>
+    <div class="phase">
+      <p class="phase-tag">Pillar 02 · 2 weeks</p>
+      <p class="phase-title">Multi-View</p>
+      <p class="phase-body">Layout system + audio focus + preset library. Riskiest of the four (touches every tuner + the video/iframe management) but no external dependencies. Auto-multi triggers wire in for free from the alert bus already built in the Foundation phase.</p>
+    </div>
+    <div class="phase">
+      <p class="phase-tag">Pillar 03 · 2 weeks</p>
+      <p class="phase-title">Build Your Own Channels</p>
+      <p class="phase-body">Forge UI + live preview + user-channel neighborhood in the guide (601-699). Share-by-URL and community remix land in a second sub-phase after the base flow works.</p>
+    </div>
+    <div class="phase">
+      <p class="phase-tag">Pillar 04 · 2-3 weeks</p>
+      <p class="phase-title">The Time Machine</p>
+      <p class="phase-body">Most engineering-heavy — requires touching PROGRAM catalog filtering, adding historical-newsstand mode to Newsstand, date-scoped Wax Museum. Ship the time-slider + date-locked programming first; historical-Storm-Center and storm-replay follow in later releases as best-available data becomes accessible.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Q1 CHECKLIST -->
+<section>
+  <p class="eyebrow">Q1 shipping checklist</p>
+  <h2 class="h2 condensed">Concrete things landing in the first quarter of v2.</h2>
+  <p class="lede">Nothing here depends on anything not already in the codebase or the audit's fix plan.</p>
+
+  <div class="q1">
+    <div class="q1-row"><span class="q1-check done"></span><span class="q1-name">Alert bus scaffolding + poller (foundation)</span><span class="q1-effort">M · High</span></div>
+    <div class="q1-row"><span class="q1-check done"></span><span class="q1-name">Storm Mode auto-tune (Pillar 01, first surface)</span><span class="q1-effort">M · Very High</span></div>
+    <div class="q1-row"><span class="q1-check done"></span><span class="q1-name">Chase Sheet auto-log + export</span><span class="q1-effort">S · Medium</span></div>
+    <div class="q1-row"><span class="q1-check done"></span><span class="q1-name">Multi-View 2-up split layout</span><span class="q1-effort">L · Very High</span></div>
+    <div class="q1-row"><span class="q1-check done"></span><span class="q1-name">Layout memory + OSD recall</span><span class="q1-effort">S · Medium</span></div>
+    <div class="q1-row"><span class="q1-check done"></span><span class="q1-name">User-channel storage schema</span><span class="q1-effort">S · Foundation</span></div>
+    <div class="q1-row"><span class="q1-check done"></span><span class="q1-name">Channel Forge wizard (Pillar 03 base)</span><span class="q1-effort">M · High</span></div>
+    <div class="q1-row"><span class="q1-check done"></span><span class="q1-name">Time-slider control (Pillar 04 UI)</span><span class="q1-effort">S · Medium</span></div>
+    <div class="q1-row"><span class="q1-check"></span><span class="q1-name">Date-locked programming across content channels</span><span class="q1-effort">L · High</span></div>
+    <div class="q1-row"><span class="q1-check"></span><span class="q1-name">Historical Newsstand mode (Q2 stretch)</span><span class="q1-effort">S · Medium</span></div>
+    <div class="q1-row"><span class="q1-check"></span><span class="q1-name">Storm chase replay (Q2 tentpole)</span><span class="q1-effort">L · Very High</span></div>
+    <div class="q1-row"><span class="q1-check"></span><span class="q1-name">User channel share-by-URL (Q2)</span><span class="q1-effort">M · Medium</span></div>
+  </div>
+</section>
+
+<!-- NON-GOALS -->
+<section>
+  <p class="eyebrow">Explicit non-goals</p>
+  <h2 class="h2 condensed">What v2 is <em style="color:var(--amber);font-style:normal">not</em>.</h2>
+  <p class="lede">To keep the roadmap honest, an equal list of things we're not building. Each of these has been considered and rejected on purpose.</p>
+
+  <div class="nongoal">
+    <div class="ng"><h4>Native app / Electron wrapper</h4><p>Would let us cast to Chromecast + install as a desktop app. <em>Deferred.</em> The single-file HTML PWA constraint is load-bearing to how fast the app iterates. If a native shell is worth it, that's a v3 conversation, not a v2 one.</p></div>
+    <div class="ng"><h4>Social layer / watch parties</h4><p>Sync tuning across friends, comment tickers, "now watching" ambient list. <em>Deferred.</em> Interesting but pulls the app toward being a chat product; we want it to stay a tuning surface.</p></div>
+    <div class="ng"><h4>Podcast integration</h4><p>Turning podcast RSS feeds into audio channels. <em>Deferred.</em> Adjacent to the archive theme but Podcast RSS-to-play is a fully different content pipeline; save for later.</p></div>
+    <div class="ng"><h4>Full account system</h4><p>User accounts, cross-device sync, cloud favorites. <em>Deferred.</em> localStorage + URL-shared user channels covers 95% of the value at 5% of the infrastructure cost.</p></div>
+    <div class="ng"><h4>Payment / donation flow</h4><p><em>Not planned.</em> The whole point is a free channel-surfing surface on top of free public archives. Introducing money changes the contract.</p></div>
+    <div class="ng"><h4>An "AI Curator" chat</h4><p>An LLM that recommends what to watch. <em>Not planned.</em> The whole product is that <em>we've</em> curated 148 channels; a chatbot layer between viewer and content would undermine the tuning ritual that IS the app.</p></div>
+  </div>
+</section>
+
+<!-- CLOSING NOTE -->
+<section>
+  <p class="eyebrow">Closing note</p>
+  <h2 class="h2 condensed">v1 built the television. v2 builds the reason to keep it on.</h2>
+  <p class="lede">The dial has always worked as a spinning-of-the-knob toy — pleasant, occasionally revelatory. What Storm Mode + Multi-View + user channels + the Time Machine do is give the viewer something the dial can <em>do for them</em> even when they're not spinning: watch the sky for them, split its attention across four channels for them, be their channel that only they care about, or move them backward through time on demand. That's when the app stops being novelty and starts being something they leave open.</p>
+  <p class="lede" style="color:var(--dim);font-style:italic">Every pillar independently valuable. Every pillar shippable in a small number of weeks. Every pillar rooted in what v1 already knows how to do — nothing here requires new infrastructure that v1 didn't already prove out. That's the roadmap.</p>
+</section>
+
+<div class="foot">Afterglow · v2 vision · 2026-08-14 · mobile.188 / desktop.156</div>
+</div>

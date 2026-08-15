@@ -1,0 +1,354 @@
+<title>Afterglow Field Guide</title>
+<style>
+:root{
+  --ground:#0d0906; --ground-2:#161009; --card:#1a130a;
+  --line:rgba(255,157,61,.14); --line-strong:rgba(255,157,61,.32);
+  --amber:#ff9d3d; --amber-hi:#ffd280; --amber-lo:#c66d18;
+  --cream:#f5efe6; --dim:#a89586; --dimmer:#6f6055;
+  --phos:#67ff86; /* the actual in-app default; used sparingly for authenticity */
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--ground); color:var(--cream);
+  font:400 16px/1.6 Georgia,"Iowan Old Style","Palatino Linotype",serif;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(120% 90% at 30% 0%,rgba(255,157,61,.06),transparent 60%),
+             radial-gradient(80% 60% at 90% 100%,rgba(255,157,61,.04),transparent 70%);
+}
+.wrap{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:0 32px}
+@media (max-width:820px){.wrap{padding:0 20px}}
+
+/* ============ TYPE + STRUCTURE ============ */
+.condensed{font-family:"Arial Narrow","Helvetica Neue Condensed","Bebas Neue",Impact,sans-serif;font-weight:900;text-transform:uppercase;letter-spacing:.02em}
+.mono{font-family:Courier,"Courier New",monospace}
+.h1{font-size:clamp(64px,12vw,140px);line-height:.9;letter-spacing:.02em;margin:0;text-wrap:balance}
+.h2{font-size:clamp(32px,5vw,54px);line-height:1.05;margin:0 0 24px;text-wrap:balance}
+.h3{font-size:clamp(22px,3vw,32px);line-height:1.15;margin:0 0 12px;text-wrap:balance}
+.eyebrow{font:900 11px/1 "Arial Narrow","Helvetica Neue Condensed",Impact,sans-serif;letter-spacing:.55em;color:var(--amber);text-transform:uppercase;margin:0 0 18px;padding:0}
+.lede{font-size:19px;line-height:1.55;max-width:60ch;margin:0 0 20px;color:var(--cream)}
+.dim{color:var(--dim)}
+.center{text-align:center}
+a{color:var(--amber);text-decoration:none;border-bottom:1px dotted var(--amber-lo)}
+a:hover{color:var(--amber-hi);border-bottom-color:var(--amber-hi)}
+section{padding:80px 0;border-top:1px solid var(--line);position:relative}
+section:first-of-type{border-top:0}
+
+/* ============ HERO ============ */
+.hero{min-height:min(100vh,760px);display:flex;flex-direction:column;justify-content:center;padding:80px 0 40px;text-align:center;border-top:0}
+.mark{position:relative;width:min(260px,50vw);aspect-ratio:1/1;margin:0 auto 32px}
+.mark svg{width:100%;height:100%;display:block}
+.mark .core{filter:drop-shadow(0 0 12px rgba(255,157,61,.6)) drop-shadow(0 0 40px rgba(255,157,61,.35));animation:coreBreathe 5s ease-in-out infinite}
+.mark .r{transform-origin:center;animation:ring 5s ease-out infinite}
+.mark .r2{animation-delay:.6s}
+.mark .r3{animation-delay:1.2s}
+@keyframes ring{0%{opacity:.6;transform:scale(.55)}70%{opacity:0}100%{opacity:0;transform:scale(1.5)}}
+@keyframes coreBreathe{0%,100%{opacity:.95}50%{opacity:1}}
+@media (prefers-reduced-motion:reduce){.mark .r{animation:none;opacity:.3}.mark .core{animation:none}}
+.hero .h1{color:var(--cream);text-shadow:0 2px 40px rgba(255,157,61,.35);letter-spacing:.02em}
+.hero .subtitle{font:900 14px/1 "Arial Narrow","Helvetica Neue Condensed",Impact,sans-serif;letter-spacing:.7em;color:var(--amber);margin:24px 0 0;padding-left:.7em;text-transform:uppercase}
+.hero .tag{color:var(--dim);font-size:14px;margin:36px auto 0;max-width:52ch;line-height:1.55;font-style:italic}
+.hero-toc{margin:60px auto 0;display:flex;flex-wrap:wrap;justify-content:center;gap:8px 24px;max-width:640px}
+.hero-toc a{font:900 10px/1 "Arial Narrow","Helvetica Neue Condensed",Impact,sans-serif;letter-spacing:.3em;color:var(--dim);border-bottom:none;text-transform:uppercase;padding:6px 4px}
+.hero-toc a:hover{color:var(--amber)}
+
+/* ============ REMOTE DIAGRAM ============ */
+.remote-wrap{display:grid;grid-template-columns:auto 1fr;gap:48px;margin-top:40px;align-items:center}
+@media (max-width:720px){.remote-wrap{grid-template-columns:1fr}}
+.remote{background:linear-gradient(180deg,#3a2818,#241610);border:1px solid #4a3220;border-radius:16px;padding:22px 18px;width:200px;justify-self:center;box-shadow:0 30px 60px rgba(0,0,0,.5),0 0 0 1px rgba(255,157,61,.15) inset}
+.remote-brand{font-family:Courier,monospace;font-size:9px;color:var(--dim);text-align:center;letter-spacing:.3em;margin-bottom:18px}
+.remote-screen{background:#0a0805;border:1px solid #4a3220;border-radius:4px;padding:6px;height:40px;margin-bottom:14px;color:var(--phos);font-family:Courier,monospace;font-size:11px;text-align:center;line-height:1.3;text-shadow:0 0 4px rgba(103,255,134,.5);display:flex;flex-direction:column;justify-content:center}
+.remote-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.rbtn{background:#3a281c;border:1px solid #5a3f28;border-radius:8px;height:40px;color:var(--cream);font:900 10px/1 "Arial Narrow",Impact,sans-serif;letter-spacing:.05em;display:flex;align-items:center;justify-content:center;text-transform:uppercase;cursor:default}
+.rbtn.pwr{background:#7a2020;border-color:#a03030;color:#ffcaca;grid-column:1/-1;height:32px}
+.rbtn.big{grid-column:span 2;background:#4a3220}
+.rbtn.acc{background:linear-gradient(180deg,#c9851f,#a06818);border-color:#e5a040;color:#fff;text-shadow:0 -1px 0 rgba(0,0,0,.3)}
+.remote-desc{list-style:none;padding:0;margin:0;display:grid;gap:16px}
+.remote-desc li{padding:14px 18px;background:var(--ground-2);border-left:3px solid var(--amber);border-radius:0 6px 6px 0}
+.remote-desc li b{display:block;font:900 12px/1 "Arial Narrow",Impact,sans-serif;letter-spacing:.2em;color:var(--amber);text-transform:uppercase;margin-bottom:6px}
+.remote-desc li span{color:var(--cream);font-size:14px;line-height:1.5}
+
+/* ============ NEIGHBORHOODS ============ */
+.neighborhoods{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:16px;margin-top:40px}
+.hood{padding:22px 20px;background:var(--ground-2);border:1px solid var(--line);border-top:3px solid var(--amber);position:relative;transition:transform .2s ease}
+.hood:hover{transform:translateY(-2px);border-color:var(--line-strong)}
+.hood .num{font:900 44px/1 "Arial Narrow","Helvetica Neue Condensed",Impact,sans-serif;color:var(--amber);letter-spacing:-.02em;margin:0}
+.hood .num small{font-size:16px;color:var(--dim);font-weight:900;letter-spacing:.05em;margin-left:4px}
+.hood .cat{font:900 11px/1 "Arial Narrow",Impact,sans-serif;letter-spacing:.3em;color:var(--cream);text-transform:uppercase;margin:6px 0 12px}
+.hood .desc{font-size:13px;line-height:1.5;color:var(--dim);margin:0}
+.hood .count{position:absolute;top:12px;right:14px;font:900 10px/1 Courier,monospace;color:var(--dim);letter-spacing:.05em;font-family:Courier,monospace}
+
+/* ============ SPOTLIGHT ============ */
+.spotlight{display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-top:40px}
+@media (max-width:720px){.spotlight{grid-template-columns:1fr}}
+.spot{background:var(--ground-2);border:1px solid var(--line);padding:26px 24px;display:flex;flex-direction:column;gap:12px;position:relative;overflow:hidden}
+.spot::before{content:"";position:absolute;top:0;left:0;width:100%;height:2px;background:linear-gradient(90deg,var(--amber),transparent)}
+.spot-num{font:900 46px/1 "Arial Narrow",Impact,sans-serif;color:var(--amber);letter-spacing:-.02em;line-height:1}
+.spot-nm{font:900 20px/1.1 "Arial Narrow",Impact,sans-serif;letter-spacing:.05em;color:var(--cream);text-transform:uppercase}
+.spot-tag{font-family:Courier,monospace;font-size:10px;color:var(--dim);letter-spacing:.2em;text-transform:uppercase;margin-top:-4px}
+.spot-desc{font-size:14px;line-height:1.55;color:var(--cream);margin:6px 0 0;flex:1}
+.spot-src{font-family:Courier,monospace;font-size:11px;color:var(--dim);border-top:1px dotted var(--line);padding-top:10px;margin-top:6px}
+
+/* ============ LDATA TABLE ============ */
+.ldata-scroll{overflow-x:auto;margin-top:32px}
+.ldata{width:100%;border-collapse:collapse;font-size:14px;min-width:600px}
+.ldata th{text-align:left;padding:10px 12px;font:900 11px/1 "Arial Narrow",Impact,sans-serif;letter-spacing:.2em;color:var(--amber);text-transform:uppercase;border-bottom:1px solid var(--line-strong);background:var(--ground-2)}
+.ldata td{padding:12px 12px;border-bottom:1px solid var(--line);color:var(--cream);vertical-align:top}
+.ldata td.num{font-family:Courier,monospace;color:var(--amber);font-weight:bold;font-variant-numeric:tabular-nums;width:50px}
+.ldata td.nm{font-weight:bold;color:var(--cream);font-family:"Arial Narrow",Impact,sans-serif;letter-spacing:.03em;text-transform:uppercase;font-size:13px;width:22%}
+.ldata td.desc{color:var(--dim);line-height:1.5;font-size:13px}
+.ldata tr:hover td{background:rgba(255,157,61,.03)}
+
+/* ============ TIPS ============ */
+.tips{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:24px;margin-top:32px}
+.tip{padding:22px 20px;background:var(--ground-2);border-left:3px solid var(--amber-lo)}
+.tip h4{font:900 12px/1 "Arial Narrow",Impact,sans-serif;letter-spacing:.25em;color:var(--amber);text-transform:uppercase;margin:0 0 10px}
+.tip p{font-size:14px;line-height:1.55;color:var(--cream);margin:0}
+.tip kbd{display:inline-block;font-family:Courier,monospace;font-size:11px;background:#3a2818;border:1px solid #5a3f28;color:var(--amber-hi);padding:2px 7px;border-radius:3px;margin:0 2px;letter-spacing:0}
+
+/* ============ COLOPHON ============ */
+.colo{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:24px;margin-top:32px}
+.colo-item h4{font:900 10px/1 "Arial Narrow",Impact,sans-serif;letter-spacing:.4em;color:var(--amber);text-transform:uppercase;margin:0 0 12px;border-bottom:1px solid var(--line);padding-bottom:8px}
+.colo-item ul{list-style:none;padding:0;margin:0;font-family:Courier,monospace;font-size:12px;color:var(--cream);line-height:1.7}
+.colo-item ul li{padding:2px 0}
+.colo-item ul li span{color:var(--dim);font-size:10px;letter-spacing:.05em;margin-left:6px}
+
+.foot{border-top:1px solid var(--line);padding:40px 0 60px;text-align:center;color:var(--dimmer);font-size:11px;letter-spacing:.3em;text-transform:uppercase;font-family:Courier,monospace}
+
+/* small badges */
+.badge{display:inline-block;font-family:Courier,monospace;font-size:9px;letter-spacing:.15em;padding:2px 6px;border:1px solid var(--line-strong);border-radius:2px;color:var(--amber);vertical-align:middle;margin-left:6px;text-transform:uppercase}
+.badge.new{background:rgba(255,157,61,.12);color:var(--amber-hi);border-color:var(--amber-lo)}
+
+/* SVG mark shared */
+.miniMark{width:28px;height:28px;vertical-align:middle;margin-right:8px}
+</style>
+
+<!-- ============ HERO ============ -->
+<div class="wrap">
+  <section class="hero">
+    <div class="mark">
+      <svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" aria-label="Afterglow — phosphor dot with decaying halo rings">
+        <defs>
+          <radialGradient id="halo"><stop offset="0%" stop-color="#ff9d3d" stop-opacity=".9"/><stop offset="15%" stop-color="#ff9d3d" stop-opacity=".55"/><stop offset="40%" stop-color="#ff9d3d" stop-opacity=".15"/><stop offset="100%" stop-color="#ff9d3d" stop-opacity="0"/></radialGradient>
+          <radialGradient id="core"><stop offset="0%" stop-color="#ffefe0"/><stop offset="40%" stop-color="#ffd280"/><stop offset="100%" stop-color="#ff9d3d"/></radialGradient>
+        </defs>
+        <circle cx="200" cy="200" r="180" fill="url(#halo)"/>
+        <circle class="r" cx="200" cy="200" r="70" fill="none" stroke="#ff9d3d" stroke-opacity=".35" stroke-width="1.5"/>
+        <circle class="r r2" cx="200" cy="200" r="70" fill="none" stroke="#ff9d3d" stroke-opacity=".35" stroke-width="1.5"/>
+        <circle class="r r3" cx="200" cy="200" r="70" fill="none" stroke="#ff9d3d" stroke-opacity=".35" stroke-width="1.5"/>
+        <circle class="core" cx="200" cy="200" r="18" fill="url(#core)"/>
+      </svg>
+    </div>
+    <h1 class="h1 condensed">Field Guide</h1>
+    <p class="subtitle">Afterglow · The Dial · v1.7.7</p>
+    <p class="tag">A hundred and forty-seven channels of public-domain video, live government data, international ADS-B, deep-catalog radio, and a 24-hour test pattern for when nothing else will do. Here's how to work it.</p>
+    <nav class="hero-toc">
+      <a href="#remote">The Remote</a>
+      <a href="#hoods">Neighborhoods</a>
+      <a href="#spot">Spotlight</a>
+      <a href="#live">Live Data</a>
+      <a href="#hidden">Hidden Features</a>
+      <a href="#sources">Sources</a>
+    </nav>
+  </section>
+
+  <!-- ============ WHAT IS IT ============ -->
+  <section id="what">
+    <p class="eyebrow">What Afterglow Is</p>
+    <h2 class="h2 condensed">A television for a signal that stopped broadcasting a while ago.</h2>
+    <p class="lede">Afterglow is a retro-CRT web app that channel-surfs across the Internet Archive, NASA, NOAA, USGS, the LOC National Jukebox, Wikimedia EventStreams, ADS-B feeds, ERCOT, and about a dozen more public sources. It runs entirely in your browser — no account, no subscription, no ads — and installs as a PWA on Android or as a bookmarked page anywhere else.</p>
+    <p class="lede dim">The name is what a phosphor screen does after you cut the power: the picture doesn't leave immediately. That's what late-night TV feels like, and that's what this app is trying to be.</p>
+  </section>
+
+  <!-- ============ THE REMOTE ============ -->
+  <section id="remote">
+    <p class="eyebrow">The Remote Control</p>
+    <h2 class="h2 condensed">Every control lives in one panel on the right edge of the screen.</h2>
+    <p class="lede dim">Tap the right edge of the tube to summon the remote. It fades on its own after a few seconds; tap the picture to dismiss it immediately.</p>
+
+    <div class="remote-wrap">
+      <div class="remote" aria-hidden="true">
+        <div class="remote-brand">AFTERGLOW · REMOTE</div>
+        <div class="remote-screen">CH 955<br><span style="font-size:8px;letter-spacing:.2em">SKY BEACON LIVE</span></div>
+        <div class="remote-grid">
+          <div class="rbtn pwr">POWER</div>
+          <div class="rbtn">CH ▲</div>
+          <div class="rbtn">CH ▼</div>
+          <div class="rbtn acc">GUIDE</div>
+          <div class="rbtn">VOL▲</div>
+          <div class="rbtn">VOL▼</div>
+          <div class="rbtn">MUTE</div>
+          <div class="rbtn">MENU</div>
+          <div class="rbtn">INFO</div>
+          <div class="rbtn">SKIP</div>
+          <div class="rbtn">SAVE</div>
+          <div class="rbtn acc">FAV ★</div>
+        </div>
+      </div>
+      <ul class="remote-desc">
+        <li><b>Power</b><span>Wakes the tube. The screen warms up in about half a second — CRT ident, snow, then the picture. Hit power again to send the whole thing back through the vintage sign-off sequence.</span></li>
+        <li><b>CH ▲ / ▼ · Number entry</b><span>Surf one channel at a time, or type a three-digit number to jump directly. Dead channels get auto-skipped so you're never left staring at a blank.</span></li>
+        <li><b>Guide</b><span>Opens the Prevue-Guide-style program grid: preview pane on top, scrolling ticker at the bottom, sections divided by category. Live Data lives in its own amber section at the bottom.</span></li>
+        <li><b>Menu · Info</b><span>MENU opens the on-screen display with 22 items grouped into Picture, While Watching, This Channel, Library, and System sections. INFO shows what's on now, what's on next, and where the current item came from.</span></li>
+        <li><b>Skip · Save · Fav</b><span>SKIP jumps to the next item in the current channel. SAVE tapes what you're watching to your Tape Shelf. FAV ★ toggles a favorite (later reachable via FAVORITE SURF in the OSD).</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ============ THE NEIGHBORHOODS ============ -->
+  <section id="hoods">
+    <p class="eyebrow">Channel Neighborhoods</p>
+    <h2 class="h2 condensed">147 channels, 11 categories, one predictable numbering plan.</h2>
+    <p class="lede dim">Every channel lives in a fixed number range so you can memorize the neighborhood you like and always find your way back — even if you forget the name. Music runs high, live data runs highest.</p>
+
+    <div class="neighborhoods">
+      <div class="hood"><span class="count">17 CH</span><p class="num">2<small>–52</small></p><p class="cat">Home & Legacy</p><p class="desc">Local broadcast look-alikes, the color-bars/static staples, the emergency test pattern. The "opening the app in a hurry" channels.</p></div>
+      <div class="hood"><span class="count">29 CH</span><p class="num">100<small>–157</small></p><p class="cat">Retro TV & Movies</p><p class="desc">Classic sitcoms, film noir, universal monsters, MST3K vault, silent film, spaghetti westerns, drive-in double features.</p></div>
+      <div class="hood"><span class="count">29 CH</span><p class="num">200<small>–229</small></p><p class="cat">Documentary Row</p><p class="desc">News, Nature, NASA Marathon, Storm Chase Classics, Cold War Cinema, Bob Ross, Ken Burns-style, hip-hop history, civil rights.</p></div>
+      <div class="hood"><span class="count">5 CH</span><p class="num">300<small>–304</small></p><p class="cat">Sports & Live Broadcast</p><p class="desc">Sports Vault (auto-rotates to live games), Live TV, Live News. When something's on right now.</p></div>
+      <div class="hood"><span class="count">10 CH</span><p class="num">500<small>–509</small></p><p class="cat">Retro & Special</p><p class="desc">Test Pattern, Deep Space Jazz, Public Domain Art, the "no signal" static, holiday reservations.</p></div>
+      <div class="hood"><span class="count">4 CH</span><p class="num">700<small>–703</small></p><p class="cat">Holiday</p><p class="desc">Seasonal auto-schedulers — appear only when the calendar makes them make sense.</p></div>
+      <div class="hood"><span class="count">30 CH</span><p class="num">900<small>–929</small></p><p class="cat">Music</p><p class="desc">Fallout Radio, Jukebox 78, The Wax Museum, ragtime, jazz, blues, country, gospel, soul, reggae, hip-hop, world, film scores.</p></div>
+      <div class="hood"><span class="count">23 CH</span><p class="num">950<small>–972</small></p><p class="cat">Live Data <span class="badge new">AMBER SECTION</span></p><p class="desc">Weather, radar, aurora, ISS, APOD, Sky Beacon Live, Wikipedia Live, wildfires, seismic, tides, gas prices, ERCOT.</p></div>
+    </div>
+  </section>
+
+  <!-- ============ CHANNEL SPOTLIGHT ============ -->
+  <section id="spot">
+    <p class="eyebrow">Channel Spotlight</p>
+    <h2 class="h2 condensed">Ten channels that show what Afterglow does that TV never could.</h2>
+    <p class="lede dim">Every entry here does something you can't get on a cable box. Pick one and start there.</p>
+
+    <div class="spotlight">
+      <div class="spot"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px"><div class="spot-num">955</div><span class="badge">LDATA</span></div><div class="spot-nm">Sky Beacon Live</div><div class="spot-tag">international · ADS-B</div><p class="spot-desc">Starts at your local airspace, then rotates every 90 seconds through the world's busiest hubs — JFK, Heathrow, CDG, DXB, HND, LAX, Sydney. Real aircraft, real callsigns, real altitudes. Three fallback ADS-B providers stacked so it stays on even when one is down.</p><div class="spot-src">adsb.lol · airplanes.live · OpenSky</div></div>
+
+      <div class="spot"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px"><div class="spot-num">972</div><span class="badge new">LDATA · NEW</span></div><div class="spot-nm">Wikipedia Live</div><div class="spot-tag">every edit · nine languages</div><p class="spot-desc">Every edit to Wikipedia across the nine biggest wikis, as they happen. Rolling wall of last twelve, running rate, per-wiki mix bars. Article titles link straight to the page. Watch the world write itself.</p><div class="spot-src">Wikimedia EventStreams (SSE, public)</div></div>
+
+      <div class="spot"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px"><div class="spot-num">929</div><span class="badge">MUS</span></div><div class="spot-nm">The Wax Museum</div><div class="spot-tag">1893 · 1925 · acoustic era</div><p class="spot-desc">The Library of Congress National Jukebox era in one channel: Caruso, McCormack, Jolson, Marion Harris, Sousa marches, Tin Pan Alley crooners, early ragtime cylinders. Recordings that predate the microphone.</p><div class="spot-src">LOC National Jukebox · georgeblood · 78rpm coll.</div></div>
+
+      <div class="spot"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px"><div class="spot-num">971</div><span class="badge">LDATA</span></div><div class="spot-nm">The Grid</div><div class="spot-tag">ERCOT · Texas power</div><p class="spot-desc">Texas power grid: current demand in GW, net generation, forecast peak, 24-hour trend chart. Country music bed. Refreshes every ten minutes. During heatwaves and cold snaps you'll watch it climb.</p><div class="spot-src">EIA API · respondent TEX · hourly</div></div>
+
+      <div class="spot"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px"><div class="spot-num">969</div><span class="badge">LDATA</span></div><div class="spot-nm">Storm Center</div><div class="spot-tag">SPC Day 1 · convective outlook</div><p class="spot-desc">SPC Day 1 Convective Outlook — the risk category map + severe-weather discussion the Storm Prediction Center puts out for today. Old-country music bed. Storm-season staple.</p><div class="spot-src">Storm Prediction Center (NOAA)</div></div>
+
+      <div class="spot"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px"><div class="spot-num">970</div><span class="badge">LDATA</span></div><div class="spot-nm">Local Radar</div><div class="spot-tag">nearest NEXRAD · ragtime bed</div><p class="spot-desc">Your nearest WSR-88D radar site as a live animated loop, straight from radar.weather.gov. No mediation, no vendor overlay — the raw sweep.</p><div class="spot-src">radar.weather.gov · geo-nearest station</div></div>
+
+      <div class="spot"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px"><div class="spot-num">953</div><span class="badge">LDATA</span></div><div class="spot-nm">ISS Tracker</div><div class="spot-tag">orbital position · overhead notifications</div><p class="spot-desc">The International Space Station's current lat/lon on an animated Earth backdrop, updated every ten seconds. Also shows when it'll next pass over your location.</p><div class="spot-src">Open Notify · Where the ISS at?</div></div>
+
+      <div class="spot"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px"><div class="spot-num">951</div><span class="badge">LDATA</span></div><div class="spot-nm">Aurora & Space Weather</div><div class="spot-tag">Kp index · geomagnetic storms</div><p class="spot-desc">NOAA's Space Weather Prediction Center feed: current Kp index, solar wind speed, active geomagnetic storms, aurora oval visibility map. When to walk outside and look north.</p><div class="spot-src">SWPC / NOAA</div></div>
+
+      <div class="spot"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px"><div class="spot-num">223</div><span class="badge">DOC</span></div><div class="spot-nm">The Cipher</div><div class="spot-tag">hip-hop · Yo! MTV Raps era</div><p class="spot-desc">Hip-hop history from the beginning: Yo! MTV Raps era, rap documentaries, freestyle circles, breaking, the rise of the DJ. Pulled from IA's hip-hop vault.</p><div class="spot-src">IA · hiphopvault + curated subjects</div></div>
+
+      <div class="spot"><div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px"><div class="spot-num">215</div><span class="badge">DOC</span></div><div class="spot-nm">Storm Chase Classics</div><div class="spot-tag">tornado docs · severe wx</div><p class="spot-desc">Tornado and severe-weather documentaries — the F5s, the Discovery Channel golden-era chase docs, the Warren Faidley footage. Ties directly to Storm Center and Local Radar for a full storm-day loop.</p><div class="spot-src">IA · stormchase + curated subjects</div></div>
+    </div>
+  </section>
+
+  <!-- ============ LIVE DATA DEEP DIVE ============ -->
+  <section id="live">
+    <p class="eyebrow">Live Data · The Amber Section</p>
+    <h2 class="h2 condensed">23 channels of things happening right now.</h2>
+    <p class="lede">Live Data is Afterglow's opinion of what a channel can be. Nothing here is programmed content — it's all real-time feeds from public APIs, formatted to look like a channel. Everything follows you geographically: weather, radar, air traffic, tides, gas prices all tune to wherever you actually are.</p>
+
+    <div class="ldata-scroll">
+      <table class="ldata">
+        <thead><tr><th>Num</th><th>Channel</th><th>What it shows · where it comes from</th></tr></thead>
+        <tbody>
+          <tr><td class="num">950</td><td class="nm">Weather Watch</td><td class="desc">Current conditions + 12-hour forecast for your location. NWS station-nearest lookup, refreshes every 15 min.</td></tr>
+          <tr><td class="num">951</td><td class="nm">Aurora & Space Weather</td><td class="desc">Kp index, solar wind speed, aurora oval. NOAA Space Weather Prediction Center.</td></tr>
+          <tr><td class="num">952</td><td class="nm">Ham Radio</td><td class="desc">HF propagation conditions, SFI/A/K, current CQ zones. hamqsl.com feed.</td></tr>
+          <tr><td class="num">953</td><td class="nm">ISS Tracker</td><td class="desc">International Space Station lat/lon + next overhead pass. Open Notify API.</td></tr>
+          <tr><td class="num">954</td><td class="nm">NASA Picture of the Day</td><td class="desc">APOD image + explanation. Refreshes daily.</td></tr>
+          <tr><td class="num">955</td><td class="nm">Sky Beacon Live</td><td class="desc">International ADS-B — starts local, rotates world hubs every 90 sec. Three-provider stack.</td></tr>
+          <tr><td class="num">956</td><td class="nm">Seismic Watch</td><td class="desc">Global earthquakes ≥ M4.5, last 24 hours. USGS Earthquake Hazards Program.</td></tr>
+          <tr><td class="num">957</td><td class="nm">Space</td><td class="desc">Upcoming rocket launches + who's flying + current satellites overhead.</td></tr>
+          <tr><td class="num">958</td><td class="nm">River & Lake Watch</td><td class="desc">USGS gauge readings for rivers/lakes near you. Stage height, flow rate, flood level.</td></tr>
+          <tr><td class="num">959</td><td class="nm">Tropical Watch</td><td class="desc">Active hurricanes + NHC advisories + tropical outlook. National Hurricane Center.</td></tr>
+          <tr><td class="num">960</td><td class="nm">World Clock</td><td class="desc">Every time zone on a live day/night map. Which hemisphere is awake.</td></tr>
+          <tr><td class="num">961</td><td class="nm">Wildfire Watch</td><td class="desc">Active wildfires near you and nationwide. NIFC + local inciweb feeds.</td></tr>
+          <tr><td class="num">962</td><td class="nm">Hometown History</td><td class="desc">Local landmarks narrated aloud, with photos, footage, and headlines from your area.</td></tr>
+          <tr><td class="num">963</td><td class="nm">Gulf Marine</td><td class="desc">Tide predictions + buoy reports + Gulf-preferred coastal stations. NOAA CO-OPS.</td></tr>
+          <tr><td class="num">964</td><td class="nm">Gas Price Ticker</td><td class="desc">Average regular gas price for your state, week-over-week trend. EIA.</td></tr>
+          <tr><td class="num">965</td><td class="nm">Ship Tracker</td><td class="desc">AIS-tracked vessels near your coast. When a proxy's available.</td></tr>
+          <tr><td class="num">966</td><td class="nm">Historic Waco</td><td class="desc">Vintage local newspaper archive rotation. Chronicling America / LOC.</td></tr>
+          <tr><td class="num">967</td><td class="nm">Backyard Naturalist</td><td class="desc">Local bird sightings + wildlife records. iNaturalist + eBird.</td></tr>
+          <tr><td class="num">968</td><td class="nm">Air & Allergy</td><td class="desc">Local AQI + pollen count + smoke plume overlay. EPA AirNow.</td></tr>
+          <tr><td class="num">969</td><td class="nm">Storm Center</td><td class="desc">SPC Day 1 Convective Outlook — severe-weather risk map + discussion.</td></tr>
+          <tr><td class="num">970</td><td class="nm">Local Radar</td><td class="desc">Nearest NEXRAD WSR-88D animated loop. radar.weather.gov direct.</td></tr>
+          <tr><td class="num">971</td><td class="nm">The Grid</td><td class="desc">Texas power grid demand + net generation + 24-hour trend. EIA / ERCOT.</td></tr>
+          <tr><td class="num">972</td><td class="nm">Wikipedia Live <span class="badge new">NEW</span></td><td class="desc">Every Wikipedia edit as it happens, nine biggest wikis. Wikimedia EventStreams.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============ HIDDEN FEATURES ============ -->
+  <section id="hidden">
+    <p class="eyebrow">Hidden Features</p>
+    <h2 class="h2 condensed">Things not on the remote.</h2>
+    <p class="lede dim">The interface tries to look like a TV, so a lot of the power is behind a menu button. Here's what's worth finding.</p>
+
+    <div class="tips">
+      <div class="tip"><h4>Phosphor Tint</h4><p>MENU → PICTURE &amp; VIEW → PHOSPHOR TINT cycles the CRT through <b>Green</b> (P1 default) → <b>Amber</b> (P3) → <b>Cyan</b> (P4) → <b>White</b> (mono). The chrome stays green; only the tube shifts. Persists across sessions.</p></div>
+      <div class="tip"><h4>CRT Effects</h4><p>Press <kbd>C</kbd> anywhere to cycle CRT scanline intensity: <b>OFF · SUBTLE · MEDIUM · FULL</b>. Higher levels add scan-lines, chromatic aberration, and static.</p></div>
+      <div class="tip"><h4>Favorite Surf</h4><p>Star a channel with FAV ★, then MENU → FAVORITE SURF plays only from your starred set. Great for building a personal 10-channel dial inside the 147.</p></div>
+      <div class="tip"><h4>Deep Cuts</h4><p>MENU → DEEP CUTS makes the picker prefer older + more obscure items over the popular ones. On some channels the difference is dramatic.</p></div>
+      <div class="tip"><h4>Marathon Lock</h4><p>MENU → MARATHON LOCK freezes the current channel to skip only within its own catalog when SKIP is pressed — no automatic time-of-day slot changes.</p></div>
+      <div class="tip"><h4>EAS Test</h4><p>MENU → EAS TEST triggers the full Emergency Alert takeover sequence for your county. Sound + visual + duck-tone. Best experienced with the volume up.</p></div>
+      <div class="tip"><h4>Sleep Timer</h4><p>MENU → SLEEP TIMER cycles OFF/5/15/30/60/90/120 min. Ends with the vintage sign-off sequence (fade + CRT shrink + color bars).</p></div>
+      <div class="tip"><h4>Developer Mode</h4><p>Tap the build-number chip beside STANDBY <b>five times rapidly</b> to unlock the DEVELOPER drawer in the OSD — Soak Mode, Soak Report, Reset Dead-Channel List, Sports Era override.</p></div>
+    </div>
+  </section>
+
+  <!-- ============ SOURCES ============ -->
+  <section id="sources">
+    <p class="eyebrow">Under the Hood</p>
+    <h2 class="h2 condensed">Where the signal comes from.</h2>
+    <p class="lede dim">Everything Afterglow shows comes from a public source. Nothing here is scraped from a subscription service, nothing here is stolen. The list is long because a good dial has many suppliers.</p>
+
+    <div class="colo">
+      <div class="colo-item"><h4>Video</h4><ul>
+        <li>archive.org<span>~120 chan</span></li>
+        <li>tubi.io<span>live TV</span></li>
+        <li>Roku · Pluto<span>live TV</span></li>
+        <li>iptv-org<span>curated</span></li>
+        <li>NASA TV<span>live</span></li>
+      </ul></div>
+      <div class="colo-item"><h4>Audio</h4><ul>
+        <li>LOC Nat'l Jukebox<span>1893-1925</span></li>
+        <li>georgeblood 78s<span>1920-49</span></li>
+        <li>SomaFM<span>curated</span></li>
+        <li>radio-browser<span>global</span></li>
+      </ul></div>
+      <div class="colo-item"><h4>Weather</h4><ul>
+        <li>NWS<span>forecast + obs</span></li>
+        <li>radar.weather.gov<span>NEXRAD</span></li>
+        <li>SPC<span>convective outlook</span></li>
+        <li>NHC<span>tropical</span></li>
+        <li>SWPC<span>space wx</span></li>
+      </ul></div>
+      <div class="colo-item"><h4>Data</h4><ul>
+        <li>USGS<span>quakes + rivers</span></li>
+        <li>EIA<span>gas + ERCOT</span></li>
+        <li>NASA APIs<span>APOD + ISS</span></li>
+        <li>NOAA CO-OPS<span>tides</span></li>
+        <li>EPA AirNow<span>air quality</span></li>
+      </ul></div>
+      <div class="colo-item"><h4>Live Feeds</h4><ul>
+        <li>adsb.lol<span>aircraft</span></li>
+        <li>airplanes.live<span>aircraft</span></li>
+        <li>OpenSky<span>aircraft</span></li>
+        <li>Wikimedia<span>event stream</span></li>
+        <li>iNaturalist<span>wildlife</span></li>
+      </ul></div>
+      <div class="colo-item"><h4>Sports</h4><ul>
+        <li>ESPN (undoc.)<span>via Worker</span></li>
+        <li>TheSportsDB<span>via Worker</span></li>
+      </ul></div>
+    </div>
+  </section>
+
+  <div class="foot">Afterglow · The Dial · v1.7.7 · esfsfestgfse.github.io/Archivetv</div>
+</div>

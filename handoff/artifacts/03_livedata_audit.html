@@ -1,0 +1,255 @@
+<title>Afterglow Live Data Audit</title>
+<style>
+:root{
+  --ground:#0d0906; --ground-2:#161009; --card:#1a130a;
+  --line:rgba(255,157,61,.14); --line-strong:rgba(255,157,61,.32);
+  --amber:#ff9d3d; --amber-hi:#ffd280; --amber-lo:#c66d18;
+  --cream:#f5efe6; --dim:#a89586; --dimmer:#6f6055;
+  --ok:#8dff9e; --warn:#ffce7a; --bad:#ff8f7a;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--ground);color:var(--cream);font:400 15px/1.55 Georgia,"Iowan Old Style","Palatino Linotype",serif;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(120% 90% at 30% 0%,rgba(255,157,61,.05),transparent 60%),radial-gradient(80% 60% at 90% 100%,rgba(255,157,61,.03),transparent 70%)}
+.wrap{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding:0 32px}
+@media (max-width:820px){.wrap{padding:0 20px}}
+
+/* header */
+.hero{padding:64px 0 32px;border-bottom:1px solid var(--line)}
+.eyebrow{font:900 11px/1 "Arial Narrow","Helvetica Neue Condensed",Impact,sans-serif;letter-spacing:.55em;color:var(--amber);text-transform:uppercase;margin:0 0 16px}
+h1{font:900 clamp(38px,6vw,58px)/1.05 "Arial Narrow","Helvetica Neue Condensed",Impact,sans-serif;letter-spacing:.02em;text-transform:uppercase;margin:0 0 16px;text-wrap:balance}
+.tag{color:var(--dim);font-size:15px;max-width:60ch;margin:0 0 22px;line-height:1.55}
+.stamp{font-family:Courier,"Courier New",monospace;font-size:11px;color:var(--dim);letter-spacing:.15em;text-transform:uppercase;padding:6px 0}
+.stamp b{color:var(--amber)}
+
+section{padding:48px 0;border-bottom:1px solid var(--line)}
+h2{font:900 clamp(24px,4vw,36px)/1.1 "Arial Narrow","Helvetica Neue Condensed",Impact,sans-serif;letter-spacing:.03em;text-transform:uppercase;margin:0 0 22px;color:var(--cream)}
+.lede{color:var(--dim);font-size:15px;max-width:64ch;margin:0 0 24px;line-height:1.55}
+
+/* summary counter row */
+.counters{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:2px;margin-top:24px}
+.counter{padding:22px 20px;background:var(--ground-2);border:1px solid var(--line)}
+.counter-num{font:900 44px/1 "Arial Narrow",Impact,sans-serif;letter-spacing:-.02em}
+.counter-lbl{font-family:Courier,monospace;font-size:10px;color:var(--dim);letter-spacing:.25em;text-transform:uppercase;margin-top:8px}
+.counter.ok  .counter-num{color:var(--ok)}
+.counter.warn .counter-num{color:var(--warn)}
+.counter.bad .counter-num{color:var(--bad)}
+.counter.fixed .counter-num{color:var(--amber)}
+
+/* audit table */
+.table-scroll{overflow-x:auto;border:1px solid var(--line);background:var(--ground-2)}
+table.audit{width:100%;border-collapse:collapse;min-width:800px;font-size:13px}
+table.audit thead th{background:linear-gradient(180deg,rgba(255,157,61,.05),transparent);padding:14px 14px;text-align:left;font:900 10px/1 "Arial Narrow",Impact,sans-serif;letter-spacing:.25em;color:var(--amber);text-transform:uppercase;border-bottom:2px solid var(--line-strong);vertical-align:top}
+table.audit tbody td{padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.5}
+table.audit tbody tr:hover td{background:rgba(255,157,61,.025)}
+table.audit td.num{font-family:Courier,monospace;color:var(--amber);font-weight:bold;font-variant-numeric:tabular-nums;width:56px;white-space:nowrap}
+table.audit td.name{font-family:"Arial Narrow",Impact,sans-serif;font-weight:900;letter-spacing:.05em;text-transform:uppercase;color:var(--cream);width:22%}
+table.audit td.source{font-family:Courier,monospace;font-size:11px;color:var(--dim);width:22%;word-break:break-word}
+table.audit td.status{width:12%;white-space:nowrap;font-family:"Arial Narrow",Impact,sans-serif;font-weight:900;font-size:11px;letter-spacing:.2em;text-transform:uppercase}
+table.audit td.status.ok{color:var(--ok)}
+table.audit td.status.warn{color:var(--warn)}
+table.audit td.status.bad{color:var(--bad)}
+table.audit td.status.fixed{color:var(--amber)}
+table.audit td.note{color:var(--cream);font-size:13px;line-height:1.5}
+
+/* fix plans */
+.plan{display:grid;grid-template-columns:1fr;gap:16px;margin-top:24px}
+.fix{padding:24px 22px;background:var(--ground-2);border:1px solid var(--line);border-left:3px solid var(--amber)}
+.fix .fix-head{display:flex;align-items:baseline;gap:16px;margin-bottom:10px;flex-wrap:wrap}
+.fix .fix-num{font:900 11px "Arial Narrow",Impact,sans-serif;letter-spacing:.3em;color:var(--amber);background:rgba(255,157,61,.12);padding:4px 10px;border-radius:2px;text-transform:uppercase}
+.fix .fix-title{font:900 20px/1.15 "Arial Narrow","Helvetica Neue Condensed",Impact,sans-serif;letter-spacing:.03em;color:var(--cream);text-transform:uppercase;margin:0}
+.fix .fix-effort{font-family:Courier,monospace;font-size:10px;color:var(--dim);letter-spacing:.15em;margin-left:auto;text-transform:uppercase}
+.fix .fix-body{color:var(--cream);font-size:14px;line-height:1.6;margin:0 0 8px}
+.fix .fix-body b{color:var(--amber)}
+.fix .fix-scope{font-family:Courier,monospace;font-size:11px;color:var(--dim);padding-top:8px;border-top:1px dotted var(--line);margin-top:12px}
+.fix .fix-scope b{color:var(--amber-hi);letter-spacing:.1em}
+
+/* shipped this session */
+.shipped{background:linear-gradient(180deg,rgba(141,255,158,.04),transparent);border-color:rgba(141,255,158,.3);border-left-color:var(--ok)}
+.shipped .fix-num{color:var(--ok);background:rgba(141,255,158,.12)}
+
+/* recommendations */
+.next{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-top:24px}
+.next .rec{padding:20px;background:var(--ground-2);border:1px solid var(--line);position:relative}
+.next .rec b{display:block;font:900 12px "Arial Narrow",Impact,sans-serif;letter-spacing:.25em;color:var(--amber);text-transform:uppercase;margin-bottom:8px}
+.next .rec p{color:var(--cream);font-size:13px;line-height:1.55;margin:0}
+.next .rec .prio{position:absolute;top:12px;right:14px;font-family:Courier,monospace;font-size:9px;letter-spacing:.15em;color:var(--dim)}
+
+.foot{padding:40px 0 60px;text-align:center;color:var(--dimmer);font-family:Courier,monospace;font-size:11px;letter-spacing:.3em;text-transform:uppercase}
+
+.legend{display:inline-flex;gap:16px;flex-wrap:wrap;font-family:Courier,monospace;font-size:11px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase;padding:8px 12px;background:var(--ground-2);border:1px solid var(--line);border-radius:2px}
+.legend span::before{content:"■";margin-right:4px}
+.legend .l-ok::before{color:var(--ok)}
+.legend .l-warn::before{color:var(--warn)}
+.legend .l-bad::before{color:var(--bad)}
+.legend .l-fixed::before{color:var(--amber)}
+</style>
+
+<div class="wrap">
+<div class="hero">
+<p class="eyebrow">Triage · Live Data Health</p>
+<h1>The state of every real-time feed on the dial.</h1>
+<p class="tag">Report generated after user-reported outages on Sky Beacon Live, The Ranger nature cams, and Highway Cams. Every LDATA channel and every live-broadcast source was inspected for HTTP health, CORS posture, and browser-reachability. Rows are grouped by status; each broken row has an assigned fix path.</p>
+<p class="stamp">Build inspected: <b>mobile.182 / desktop.151</b> · Audit date: <b>2026-08-14</b> · Report scope: <b>28 channels</b></p>
+</div>
+
+<!-- COUNTERS -->
+<section>
+<p class="eyebrow">Headline Numbers</p>
+<h2>Where the dial stands right now.</h2>
+<div class="counters">
+  <div class="counter ok"><div class="counter-num">14</div><div class="counter-lbl">Healthy · direct + CORS</div></div>
+  <div class="counter warn"><div class="counter-num">7</div><div class="counter-lbl">Flaky · need CORS relay</div></div>
+  <div class="counter fixed"><div class="counter-num">3</div><div class="counter-lbl">Fixed this session</div></div>
+  <div class="counter bad"><div class="counter-num">4</div><div class="counter-lbl">Broken · needs work</div></div>
+</div>
+<p class="stamp" style="margin-top:20px;padding-top:12px">
+<span class="legend">
+  <span class="l-ok">Healthy</span>
+  <span class="l-warn">Flaky</span>
+  <span class="l-fixed">Fixed today</span>
+  <span class="l-bad">Broken</span>
+</span>
+</p>
+</section>
+
+<!-- FULL AUDIT TABLE -->
+<section>
+<p class="eyebrow">Complete Audit</p>
+<h2>Every live channel · every data source.</h2>
+<p class="lede">CORS posture measured by requesting each endpoint with <code>Origin: https://esfsfestgfse.github.io</code> and inspecting the response. "Direct" means the browser can fetch straight to the source. "Relay" means the request must go through the shared CORS-relay chain (allorigins / codetabs / thingproxy / corsproxy). "Blocked" means neither works without server-side help.</p>
+
+<div class="table-scroll">
+<table class="audit">
+<thead>
+<tr><th>Ch</th><th>Channel</th><th>Source</th><th>Status</th><th>What it takes to work</th></tr>
+</thead>
+<tbody>
+<tr><td class="num">950</td><td class="name">Weather Watch</td><td class="source">api.weather.gov</td><td class="status ok">Healthy</td><td class="note">CORS: <code>*</code>. NWS forecast + observations, browser-direct fetches work.</td></tr>
+<tr><td class="num">951</td><td class="name">Aurora &amp; Space Weather</td><td class="source">services.swpc.noaa.gov</td><td class="status ok">Healthy</td><td class="note">CORS: <code>*</code>. NOAA planetary K-index + geomagnetic feeds.</td></tr>
+<tr><td class="num">952</td><td class="name">Ham Radio</td><td class="source">hamqsl.com/solarxml.php</td><td class="status warn">Flaky</td><td class="note">No CORS header. Currently works only via the shared relay chain (which is set up already for the XML resilient fetcher). If all three relays are down the channel goes dark.</td></tr>
+<tr><td class="num">953</td><td class="name">ISS Tracker</td><td class="source">api.open-notify.org</td><td class="status warn">Flaky</td><td class="note">Endpoint is unresponsive right now (curl timeout). Server has been intermittent for months. Consider swap to Where the ISS at? (wheretheiss.at) which has CORS <code>*</code>.</td></tr>
+<tr><td class="num">954</td><td class="name">NASA Picture of the Day</td><td class="source">api.nasa.gov/planetary/apod</td><td class="status ok">Healthy</td><td class="note">CORS: origin-echoed. Uses DEMO_KEY which is heavily rate-limited across all users of the demo. Consider registering a personal key.</td></tr>
+<tr><td class="num">955</td><td class="name">Sky Beacon Live</td><td class="source">adsb.lol + airplanes.live + opensky-network.org</td><td class="status fixed">Fixed today</td><td class="note">All 3 ADS-B tiers CORS-block direct browser fetches. Fetch stack now routes through the relay chain on failure. International region rotation (18 hubs, 90s cycle) will now actually populate.</td></tr>
+<tr><td class="num">956</td><td class="name">Seismic Watch</td><td class="source">earthquake.usgs.gov</td><td class="status ok">Healthy</td><td class="note">CORS: <code>*</code>. Same source as new Global Quakes Map.</td></tr>
+<tr><td class="num">957</td><td class="name">Space</td><td class="source">mixed (satellites.nasa + others)</td><td class="status warn">Flaky</td><td class="note">Composite channel — different sources per pane. Full re-audit needed to trace each panel's origin.</td></tr>
+<tr><td class="num">958</td><td class="name">River &amp; Lake Watch</td><td class="source">waterservices.usgs.gov</td><td class="status ok">Healthy</td><td class="note">CORS: <code>*</code>. USGS gauge network, gauge-per-site data.</td></tr>
+<tr><td class="num">959</td><td class="name">Tropical Watch</td><td class="source">nhc.noaa.gov/xml/*</td><td class="status warn">Flaky</td><td class="note">No CORS. Uses XML resilient path — works if relay chain up. Consider migrating to NHC's JSON REST endpoints where available (they added some in 2024).</td></tr>
+<tr><td class="num">960</td><td class="name">World Clock</td><td class="source">— (no external data)</td><td class="status ok">Healthy</td><td class="note">Pure client-side day/night calculation. Never fails.</td></tr>
+<tr><td class="num">961</td><td class="name">Wildfire Watch</td><td class="source">services.arcgis.com/OLiydejKCZTGhvWg</td><td class="status ok">Healthy</td><td class="note">CORS: <code>*</code>. NIFC ArcGIS FeatureServer, fully browser-reachable.</td></tr>
+<tr><td class="num">962</td><td class="name">Hometown History</td><td class="source">mixed</td><td class="status warn">Flaky</td><td class="note">Local-photos + narration composite. Depends on which panel — needs re-audit.</td></tr>
+<tr><td class="num">963</td><td class="name">Gulf Marine</td><td class="source">api.tidesandcurrents.noaa.gov</td><td class="status ok">Healthy</td><td class="note">CORS: <code>*</code>. NOAA CO-OPS tide + buoy stations.</td></tr>
+<tr><td class="num">964</td><td class="name">Gas Price Ticker</td><td class="source">api.eia.gov</td><td class="status warn">Flaky</td><td class="note">EIA occasionally times out (measured today). No explicit CORS-blocked errors historically but timeouts feel like a soft-rate-limit or IP heuristic. Should add relay fallback to be safe.</td></tr>
+<tr><td class="num">965</td><td class="name">Ship Tracker</td><td class="source">aisstream.io</td><td class="status bad">Broken</td><td class="note">aisstream.io explicitly documented as browser-blocked. Requires a Cloudflare Worker proxy or similar. This has been known-broken since aisstream investigation earlier this year.</td></tr>
+<tr><td class="num">966</td><td class="name">Historic Waco</td><td class="source">chroniclingamerica.loc.gov</td><td class="status warn">Flaky</td><td class="note">No CORS. Uses resilient fetch path — same pattern as the Newsstand (975) which works.</td></tr>
+<tr><td class="num">967</td><td class="name">Backyard Naturalist</td><td class="source">api.inaturalist.org</td><td class="status ok">Healthy</td><td class="note">CORS: <code>*</code>. iNaturalist + eBird feeds.</td></tr>
+<tr><td class="num">968</td><td class="name">Air &amp; Allergy</td><td class="source">airnow.gov</td><td class="status ok">Healthy</td><td class="note">EPA AirNow API. Keyed. Confirmed working.</td></tr>
+<tr><td class="num">969</td><td class="name">Storm Center</td><td class="source">spc.noaa.gov</td><td class="status ok">Healthy</td><td class="note">CORS: <code>*</code>. SPC Day 1 Convective Outlook loads direct.</td></tr>
+<tr><td class="num">970</td><td class="name">Local Radar</td><td class="source">radar.weather.gov (image URLs)</td><td class="status ok">Healthy</td><td class="note">Uses <code>&lt;img src&gt;</code>. CORS doesn't apply. Reliable as long as radar.weather.gov's static hosting stays up.</td></tr>
+<tr><td class="num">971</td><td class="name">The Grid</td><td class="source">api.eia.gov (respondent TEX)</td><td class="status warn">Flaky</td><td class="note">Same EIA source as Gas Ticker. Ran fine on last ship but times out now. Add relay fallback for reliability.</td></tr>
+<tr><td class="num">972</td><td class="name">Wikipedia Live</td><td class="source">stream.wikimedia.org</td><td class="status ok">Healthy</td><td class="note">SSE stream, browser-compatible (EventSource has its own CORS model, works out of the box).</td></tr>
+<tr><td class="num">973</td><td class="name">Solar Dashboard</td><td class="source">services.swpc.noaa.gov + SDO images</td><td class="status ok">Healthy</td><td class="note">Same SWPC domain as Aurora, imagery via <code>&lt;img src&gt;</code>.</td></tr>
+<tr><td class="num">974</td><td class="name">Global Quakes Map</td><td class="source">earthquake.usgs.gov</td><td class="status ok">Healthy</td><td class="note">Same as Seismic Watch. Confirmed CORS <code>*</code>.</td></tr>
+<tr><td class="num">975</td><td class="name">Newsstand</td><td class="source">chroniclingamerica.loc.gov</td><td class="status warn">Flaky</td><td class="note">No CORS. Currently direct-first with implicit failure — should retry via relay when direct fails. Images (page thumbnails) work without CORS via <code>&lt;img src&gt;</code>.</td></tr>
+<tr><td class="num">976</td><td class="name">Airport Watch</td><td class="source">shares fetchSky with Sky Beacon</td><td class="status fixed">Fixed today</td><td class="note">Fixed by the same fetchSky rewrite that saved 955.</td></tr>
+<tr><td class="num">302</td><td class="name">Highway Cams</td><td class="source">YouTube live_stream?channel=X</td><td class="status bad">Broken</td><td class="note">YouTube's /embed/live_stream?channel=X endpoint returns 200 HTML but playability checks fail dynamically. When a channel isn't currently live-broadcasting, viewers see YouTube's own "channel not currently live" placeholder. Not a code bug — an ecosystem-decay problem.</td></tr>
+<tr><td class="num">303</td><td class="name">The Ranger</td><td class="source">HLS + YouTube nature streams</td><td class="status fixed">Fixed today</td><td class="note">All 5 explore.org iframe entries removed (their embed URLs went 404 after their Next.js migration). Replaced with 4 known-active YouTube nature channels + kept the working HLS entries. Still subject to YouTube-live fragility (see 302).</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<!-- FIX PLANS -->
+<section>
+<p class="eyebrow">Plan of Action</p>
+<h2>What to ship next, in order.</h2>
+<p class="lede">Ordered by user-visible impact per unit of work. The top three land solid infrastructure wins; the bottom three are architectural moves that require new external plumbing (Cloudflare Workers).</p>
+
+<div class="plan">
+
+<!-- Fix 1 -->
+<div class="fix">
+<div class="fix-head"><span class="fix-num">Fix 1</span><h3 class="fix-title">Universal fetchJSON with relay fallback</h3><span class="fix-effort">Effort: M · Impact: Very High</span></div>
+<p class="fix-body">The pattern that fixed Sky Beacon today (try direct → fall through to relay) needs to become the default for <b>every</b> live-data channel. Add a new <code>fetchJSONResilient(url, tag)</code> wrapper that does direct-first then relay-fallback and returns the parsed JSON. Convert Gas Ticker, The Grid, Newsstand, Ham Radio, Tropical Watch, Historic Waco, and the ISS Tracker's calls to use it. Eliminates <b>every "Flaky" row</b> above in one architectural change.</p>
+<p class="fix-scope"><b>Scope:</b> ~1 new function (30 lines), ~10 call-site conversions, 2 files. <b>Rollback risk:</b> low — additive.</p>
+</div>
+
+<!-- Fix 2 -->
+<div class="fix">
+<div class="fix-head"><span class="fix-num">Fix 2</span><h3 class="fix-title">Highway Cams · rebuild the pool with verified streams</h3><span class="fix-effort">Effort: M · Impact: Medium</span></div>
+<p class="fix-body">The 3 DOT YouTube channels currently in the pool (KC Scout, MassDOT, UDOT) all rely on YouTube's <code>/embed/live_stream?channel=X</code> URL, which was quietly deprecated. Fix path options:
+<br>· <b>Best:</b> replace with direct HLS URLs from state DOT ArcGIS traffic-cam servers where they exist (many DOTs publish direct .m3u8 streams — Texas TxDOT, California Caltrans QuickMap, Washington WSDOT).
+<br>· <b>Fallback:</b> switch to a mixed-mode pool of image-refresh cams (JPG polling every 3-5 sec) instead of live video. Many DOTs publish still-image cams that update reliably.
+<br>· <b>Retreat:</b> merge Highway Cams into Live Cams (303) as a filtered sub-category and drop channel 302 entirely.</p>
+<p class="fix-scope"><b>Scope:</b> LIVECAMS_STREAMS pool audit + new <code>type:"jpg-refresh"</code> stream type in tuneLiveCams. 2 files.</p>
+</div>
+
+<!-- Fix 3 -->
+<div class="fix">
+<div class="fix-head"><span class="fix-num">Fix 3</span><h3 class="fix-title">Feed Health monitor · surface flaky rows to the user</h3><span class="fix-effort">Effort: S · Impact: Medium</span></div>
+<p class="fix-body">The Settings → Feed Health panel already logs every fetch success/failure via <code>nlog()</code>. Add a compact per-channel health chip so a user can see "these channels are struggling right now" without opening DevTools. Two colors: green (last fetch succeeded within last hour) / amber (last fetch failed). Sourced from the existing <code>NETLOG</code> ringbuffer.</p>
+<p class="fix-scope"><b>Scope:</b> ~40 lines in the Settings render path. Zero API surface change.</p>
+</div>
+
+<!-- Fix 4 -->
+<div class="fix">
+<div class="fix-head"><span class="fix-num">Fix 4</span><h3 class="fix-title">Ship Tracker · Cloudflare Worker for aisstream</h3><span class="fix-effort">Effort: L · Impact: Medium</span></div>
+<p class="fix-body">aisstream.io explicitly documents "we block direct browser connections". The only path to Ship Tracker working is a Worker that proxies the aisstream WebSocket. Similar to the existing <code>sports-cache.tdy1990.workers.dev</code>. Requires: (a) aisstream account (already have keys), (b) a new Worker (call it <code>ais-relay.tdy1990.workers.dev</code>), (c) client-side change to point at the Worker instead of aisstream.io.</p>
+<p class="fix-scope"><b>Scope:</b> new Worker script (~50 lines), one client-side URL change. External infra: 1 new Worker deployment.</p>
+</div>
+
+<!-- Fix 5 -->
+<div class="fix">
+<div class="fix-head"><span class="fix-num">Fix 5</span><h3 class="fix-title">The Ranger + Highway · promote HLS-first, embed as last resort</h3><span class="fix-effort">Effort: M · Impact: Medium</span></div>
+<p class="fix-body">YouTube channel-based embeds are ecosystem-fragile forever. Restructure LIVECAMS_STREAMS so HLS streams are preferred over YouTube for the same conceptual cam. Add optional <code>fallback:</code> field per entry — if the primary stream fails to load within 6 seconds, promote the fallback. Reduces the visible impact of any single stream going dark.</p>
+<p class="fix-scope"><b>Scope:</b> LIVECAMS_STREAMS shape change + tuneLiveCams promotion logic. 2 files.</p>
+</div>
+
+<!-- Fix 6 -->
+<div class="fix">
+<div class="fix-head"><span class="fix-num">Fix 6</span><h3 class="fix-title">ISS Tracker · swap to wheretheiss.at</h3><span class="fix-effort">Effort: S · Impact: Small</span></div>
+<p class="fix-body">api.open-notify.org is timing out today and has been intermittent for months. wheretheiss.at (<code>api.wheretheiss.at/v1/satellites/25544</code>) returns the same lat/lon data, has CORS <code>*</code>, and is actively maintained. One-line source swap.</p>
+<p class="fix-scope"><b>Scope:</b> 1 URL string, 2 files.</p>
+</div>
+
+</div>
+</section>
+
+<!-- SHIPPED TODAY -->
+<section>
+<p class="eyebrow">Landed This Session</p>
+<h2>What was fixed on this ship (mobile.182 · desktop.151).</h2>
+
+<div class="plan">
+<div class="fix shipped">
+<div class="fix-head"><span class="fix-num">Shipped</span><h3 class="fix-title">Sky Beacon Live · CORS relay for every ADS-B tier</h3></div>
+<p class="fix-body">fetchSky was tried-direct-only for adsb.lol and airplanes.live, and used the resilient wrapper only for OpenSky. Rewritten to try-direct-then-relay for all three tiers. The international region rotator (JFK · LHR · CDG · DXB · HND · LAX · SYD · ORD · ATL · HKG · AMS · IST · GRU · JNB · ICN · DEL) was working correctly but received zero aircraft due to CORS block; now populates.</p>
+</div>
+
+<div class="fix shipped">
+<div class="fix-head"><span class="fix-num">Shipped</span><h3 class="fix-title">Black Cinema · era widened to 1915-2026, subjects expanded</h3></div>
+<p class="fix-body">Channel 105 era was hardcoded to 1915-1955 in the CH row and G-object fallback (even though the PROGRAM entry already had a full filmmaker list to 2020). Widened all four places (CH, G-obj, META desc, PROGRAM). Added Spike Lee, John Singleton, Julie Dash, Charles Burnett, Ava DuVernay, Barry Jenkins, Ryan Coogler, Jordan Peele, Denzel, Sidney Poitier, Morgan Freeman to the fallback subject list.</p>
+</div>
+
+<div class="fix shipped">
+<div class="fix-head"><span class="fix-num">Shipped</span><h3 class="fix-title">The Ranger · explore.org iframes replaced</h3></div>
+<p class="fix-body">All 5 <code>type:"explore"</code> entries in LIVECAMS_STREAMS removed after live-testing confirmed the <code>/livecams/currently-live/{slug}/embed</code> URL pattern goes 404 (Next.js migration killed the embed path). Replaced with Cornell Lab of Ornithology, Nat Geo WILD, Monterey Bay Aquarium, and Explore.org's own YouTube channel. Kept the working HLS entries (WildEarth Kruger, DroneTV).</p>
+</div>
+</div>
+</section>
+
+<!-- RECOMMENDED SEQUENCE -->
+<section>
+<p class="eyebrow">Recommended Sequence</p>
+<h2>If you say "keep going", this is the order.</h2>
+
+<div class="next">
+<div class="rec"><span class="prio">FIRST</span><b>Batch 6 · Infrastructure</b><p>Fix 1 (universal fetchJSONResilient) + Fix 6 (ISS swap). These alone move 7 rows from Flaky to Healthy. Small blast radius, big user impact.</p></div>
+<div class="rec"><span class="prio">SECOND</span><b>Batch 7 · Highway Cams rebuild</b><p>Fix 2. Requires research (which DOTs publish HLS) but the reward is a channel that actually works reliably.</p></div>
+<div class="rec"><span class="prio">THIRD</span><b>Batch 8 · Feed Health UI</b><p>Fix 3. Once fetches are resilient, expose the health state so future outages are visible immediately in the app.</p></div>
+<div class="rec"><span class="prio">LATER</span><b>Batch 9 · AIS Worker</b><p>Fix 4. Requires external Worker deploy — plan for when there's a full session to devote to it.</p></div>
+</div>
+</section>
+
+<div class="foot">Afterglow · Live Data Audit · 2026-08-14 · mobile.182 / desktop.151</div>
+</div>

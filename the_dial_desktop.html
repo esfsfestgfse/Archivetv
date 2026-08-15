@@ -1542,11 +1542,21 @@ function buildQuery(genre,era){
      of falling through to an unrelated "any movie" catch-all. */
   const g=G[genre]||G.classicfilm; const e=era||g.era||[1930,1979]; const yr=`year:[${e[0]} TO ${e[1]}]`;
   const mt=g.mt, cols=g.col||[], fcols=g.fcol||[];
-  let subjList=g.subj||[];
+  const fullSubjects=g.subj||[];
+  let subjList=fullSubjects.slice();
   if(g.subjRotate&&subjList.length){ subjList=[subjList[Math.floor(Math.random()*subjList.length)]]; } /* CYCLE-9: sport-of-the-tune rotation — stops one download-heavy sport (boxing) hogging the channel */
   const subj=subjList.map(s=>'"'+s+'"').join(" OR ");
   const nots=(g.not||[]).map(s=>'"'+s+'"').join(" OR "); const NOT=nots?(" AND NOT subject:("+nots+")"):"";
   const ch=[];
+  /* Rotating a single sparse tag made a cold channel depend on one needle in
+     Archive's metadata. Put one approved, broad lane first; later queries keep
+     the intended rotation once video is already on air. */
+  if(g.subjRotate&&fullSubjects.length){
+    const fastSubj=fullSubjects.slice(0,12).map(s=>'"'+s+'"').join(" OR ");
+    const fast=`mediatype:${mt} AND subject:(${fastSubj}) AND ${yr}${NOT}`;
+    ch.push(fast);
+    cols.slice(0,2).forEach(c=>ch.push(`collection:${c} AND ${fast}`));
+  }
   if(subj) cols.forEach(c=>ch.push(`collection:${c} AND mediatype:${mt} AND subject:(${subj}) AND ${yr}${NOT}`)); // 1 collection+type+subject+year
   if(!g.subjRequired) cols.forEach(c=>ch.push(`collection:${c} AND mediatype:${mt} AND ${yr}${NOT}`));            // 2 collection+type+year
   if(subj) ch.push(`mediatype:${mt} AND subject:(${subj}) AND ${yr}${NOT}`);                  // 3 subject+year
@@ -4045,6 +4055,10 @@ const PROGRAM = {
      MMA, wrestling classics, muay thai, kickboxing. Deny powerlifting/gym demos. */
   "The Octagon": {
     genre: "combat", era: [1960, 2026],
+    /* Stable umbrella tags lead the first tune; detailed fighter and promotion
+       lanes below still provide the long-term editorial rotation. */
+    fastSubjects: ["boxing","professional boxing","boxing match","mma","mixed martial arts","ufc","kickboxing","muay thai","martial arts"],
+    fastCollections: ["sports","opensource_movies"],
     providers: [
       { collections: ["sports", "sportstelevision", "opensource_movies", "vhssports"], require_subj: [
         "boxing","boxing match","professional boxing","heavyweight boxing","world championship boxing",
@@ -5275,6 +5289,17 @@ function buildProgramQueries(prog,ch,advance) {
   var denyTitle = (deny.title || []).map(programPhrase).join(" OR ");
   var NOT = (denySubj ? (" AND NOT subject:(" + denySubj + ")") : "") +
             (denyTitle ? (" AND NOT title:(" + denyTitle + ")") : "");
+  /* A compact, broad lane gets the first tune; full editorial rotation then
+     fills the buffer without making the viewer wait on sparse metadata. */
+  var fastQs=[];
+  if(Array.isArray(prog.fastSubjects)&&prog.fastSubjects.length){
+    var fastClause="subject:("+prog.fastSubjects.map(programPhrase).join(" OR ")+")";
+    eras.slice(0,2).forEach(function(era){
+      var fastBase="mediatype:"+mt+" AND "+fastClause+" AND year:["+era[0]+" TO "+era[1]+"]"+NOT;
+      fastQs.push(fastBase);
+      (prog.fastCollections||[]).slice(0,2).forEach(function(collection){fastQs.push("collection:"+collection+" AND "+fastBase);});
+    });
+  }
   var providers=(prog.providers||[]).map(function(prov,index){return {prov:prov,index:index};});
   if(providers.length>1){
     var start=Number(selectProgramLane(channel,"provider",providers.map(function(_,i){return i;}),advance))||0;
@@ -5305,7 +5330,8 @@ function buildProgramQueries(prog,ch,advance) {
       }
     });
   });
-  return prog.collectionOnly?qs:qs.concat(globalQs);
+  var editorialQs=prog.collectionOnly?qs:qs.concat(globalQs);
+  return fastQs.concat(editorialQs);
 }
 
 /* what's "on" for a channel at a given hour */
@@ -5451,7 +5477,7 @@ async function iaQueueRequest(ch,sl,count){
     var out=((d&&d.items)||[]).filter(function(it){return iaProgramAllowed(it,sl);});out.hydrating=!!(d&&d.hydrating);return out;
   }catch(e){nlog("queue",false,"director unavailable: "+(e&&e.message||e));return [];}
 }
-function warmIAQueue(ch,sl,hydrating){var q=iaProgramQueues[iaQueueKey(ch)]||[];q.slice(0,5).forEach(function(it){if(!it||iaProgramMedia[it.identifier])return;if(it.media&&it.media.url){iaProgramMedia[it.identifier]={type:it.media.type||"video",url:it.media.url,alts:it.media.alts||[],id:it.identifier,captions:null,meta:{}};return;}if(!hydrating)iaProgramMedia[it.identifier]=resolvePlayable(it.identifier).catch(function(){return null;});});}
+function warmIAQueue(ch,sl,hydrating){var q=iaProgramQueues[iaQueueKey(ch)]||[];q.slice(0,5).forEach(function(it){if(!it||iaProgramMedia[it.identifier])return;if(it.media&&it.media.url){iaProgramMedia[it.identifier]={type:it.media.type||"video",url:it.media.url,alts:it.media.alts||[],id:it.identifier,captions:null,meta:{}};return;}/* Resolve locally while the Worker hydrates its cached copy too. */iaProgramMedia[it.identifier]=resolvePlayable(it.identifier).catch(function(){return null;});});}
 async function refillIAQueue(ch,sl){var k=iaQueueKey(ch);if(iaProgramInflight[k])return iaProgramInflight[k];iaProgramInflight[k]=iaQueueRequest(ch,sl,5).then(function(items){var old=iaProgramQueues[k]||[], byId={}, order=[];old.concat(items).forEach(function(it){if(!it||!it.identifier||!iaProgramAllowed(it,sl))return;if(!byId[it.identifier])order.push(it.identifier);if(!byId[it.identifier]||(it.media&&it.media.url&&!byId[it.identifier].media))byId[it.identifier]=it;});iaProgramQueues[k]=order.map(function(id){return byId[id];}).slice(0,5);warmIAQueue(ch,sl,items.hydrating);if(items.hydrating)setTimeout(function(){refillIAQueue(ch,sl);},1200);nlog("queue",true,"CH "+k+" ready="+iaProgramQueues[k].length);return iaProgramQueues[k];}).finally(function(){delete iaProgramInflight[k];});return iaProgramInflight[k];}
 function takeIAQueue(ch,sl){var k=iaQueueKey(ch), q=iaProgramQueues[k]||[];while(q.length){var it=q.shift();if(iaProgramAllowed(it,sl)){refillIAQueue(ch,sl);return it;}}refillIAQueue(ch,sl);return null;}
 /* Archive is blocked outright in some desktop browsers. Keep every discovery probe short so
@@ -5564,17 +5590,21 @@ function choose(docs){
   ok.sort((a,b)=>(seenMap[a.identifier]||0)-(seenMap[b.identifier]||0)); // thin channel: fall back to LEAST-recently-watched
   return ok[0];}
 async function pickFromQueries(qs){for(const q of qs){try{const it=await pickIA(q);if(it)return it;}catch(e){}}return null;}
+async function pickFromQueriesFast(qs,lanes){var pick=(qs||[]).slice(0,Math.max(1,lanes||2));if(!pick.length)return null;
+  var out=await Promise.all(pick.map(function(q){return withTO(pickIA(q),4500).catch(function(){return null;});}));
+  return out.find(function(item){return !!item;})||null;
+}
 
 /* metadata -> a directly playable file (so volume + 'ended' work) */
 function mArr(x){return Array.isArray(x)?x.filter(Boolean):(x?[x]:[]);}
 function mStrip(s){return (s==null?"":String(s)).replace(/<[^>]+>/g," ").replace(/&[a-z]+;/gi," ").replace(/\s+/g," ").trim();}
 async function resolvePlayable(id){
   const mu="https://archive.org/metadata/"+encodeURIComponent(id);
-  let m; try{m=await firstOk([
+  let m; try{m=await withTO(firstOk([
     {tag:"metadata:afterglow-relay",delay:0,run:()=>iaFastJSON(iaRelayMetadataURL(id))},
     {tag:"metadata:cors",delay:180,run:()=>iaFastJSON(mu)},
     {tag:"metadata:proxy",delay:360,run:()=>iaFastProxy(mu)}
-  ]).catch(()=>fetchJSONResilient(mu,"metadata"));}catch(e){nlog("metadata",false,id+" "+(e&&e.message||e));return null;}
+  ]),4200);}catch(e){nlog("metadata",false,id+" "+(e&&e.message||e));return null;}
   const files=(m&&m.files)||[]; const md=(m&&m.metadata)||{}; const archiveBase="https://archive.org/download/"+encodeURIComponent(id)+"/";
   const dt=mArr(md.date)[0]||mArr(md.year)[0]||"";
   /* NEW: captured for Marathon Mode (collection) and More Like This (subjects) */
@@ -6058,7 +6088,7 @@ async function preloadNext(ch,sl,my){
      across a same-channel SKIP so the new program is already playable. */
   if(!powered||!sl||!sl.queries)return;
   try{
-    var item=takeIAQueue(ch,sl)||await pickFromQueries(sl.queries);
+    var item=takeIAQueue(ch,sl)||await pickFromQueriesFast(sl.queries,3);
     if(!item)return;
     var pl=iaProgramMedia[item.identifier]; if(pl&&typeof pl.then==="function")pl=await pl; else if(!pl)pl=await resolvePlayable(item.identifier);
     if(!pl)return;
@@ -6088,10 +6118,14 @@ function primeIAQueues(){
   if(cur&&!cur.source)picks.push(cur);
   CH.filter(function(c){return !c.source&&(isFav(c.num)||c.cat==="NET");}).forEach(function(c){if(picks.indexOf(c)<0)picks.push(c);});
   picks.slice(0,5).forEach(function(c,i){setTimeout(function(){if(!powered)return;refillIAQueue(c,slotFor(c,new Date().getHours(),{preview:true}));},350+i*500);});
+  /* Warm the whole dial gently after the priority set. This is intentionally
+     serialized: every channel gains a local five-show buffer without flooding
+     Archive or delaying the channel the viewer is watching. */
+  CH.filter(function(c){return !c.source&&picks.indexOf(c)<0;}).forEach(function(c,i){setTimeout(function(){if(!powered)return;refillIAQueue(c,slotFor(c,new Date().getHours(),{preview:true}));},4200+i*900);});
 }
 
 async function tuneIA(ch,sl,my){
-  refillIAQueue(ch,sl); /* do discovery in the background while instant-path checks run */
+  var queuePending=refillIAQueue(ch,sl); /* do discovery in the background while instant-path checks run */
   var rapid=fastTuneGet(ch.num);
   if(rapid){
     nlog("rapid-tune",true,"CH "+ch.num+" cached media");
@@ -6147,6 +6181,11 @@ async function tuneIA(ch,sl,my){
   /* The queued head has already been discovered and its metadata is normally resolving in
      parallel. This is the fast path after a channel has been visited once. */
   var queued=takeIAQueue(ch,sl);
+  if(!queued){ /* A cold channel gets one short chance to receive its buffer, never an endless spinner. */
+    try{await withTO(queuePending,2800);}catch(e){}
+    if(my!==token)return;
+    queued=takeIAQueue(ch,sl);
+  }
   if(queued){
     var qpl=iaProgramMedia[queued.identifier];
     if(qpl&&typeof qpl.then==="function")qpl=await qpl;
@@ -6154,12 +6193,15 @@ async function tuneIA(ch,sl,my){
     if(my!==token)return;
     if(qpl){qpl.title=queued.title||queued.identifier;qpl.year=queued.year;if(await playFile(qpl,ch,sl,my,0))return;}
   }
-  for(let a=0;a<8;a++){ if(my!==token)return;
-    const item=await pickFromQueries(queries); if(my!==token)return; if(!item)continue;
+  /* Last-resort discovery is bounded: slow or sparse Archive lanes keep warming
+     in the background but cannot hold a channel change for minutes. */
+  for(let a=0;a<2;a++){ if(my!==token)return;
+    const item=await pickFromQueriesFast(queries,a?3:2); if(my!==token)return; if(!item)continue;
     /* PROGRAMMED CHANNELS 2.0: deny-list filter. If this channel has a PROGRAM entry with
        deny:{title:[...],subject:[...]}, reject items whose metadata matches before spending
        the resolvePlayable fetch on them. The retry loop handles this naturally — rejected
        items just burn one attempt, same as a missing file would. */
+    if(!iaProgramAllowed(item,sl)){ nlog("program",true,"not approved: "+String(item.title||"").slice(0,40)); continue; }
     if(sl.program){
       /* PROGRAM deny-list filter */
       if(sl.program.deny){
@@ -6231,7 +6273,9 @@ function playFile(it,ch,sl,my,isFallback){return new Promise(res=>{
   /* FIX err4: crossorigin attribute removed. It forced CORS-mode media loading, and any hop of
      the archive.org download redirect chain without CORS headers made Chrome reject the file as
      MEDIA_ERR_SRC_NOT_SUPPORTED (err 4) before touching the codec. Plain media loading just works. */
-  let done=false; const to=setTimeout(()=>fin(false),(isFallback>0?12000:22000)); /* 1.2.3: patient on attempt 1, brisk on retries */
+  /* A bad Archive derivative used to own the television for 22 seconds before
+     the next ready program could try. Keep the screen responsive instead. */
+  let done=false; const to=setTimeout(()=>fin(false),(isFallback>0?5000:7000));
   function tryPlay(){ try{const p=v.play&&v.play();
     if(p&&p.catch)p.catch(()=>{ /* audible autoplay blocked -> mute & retry so the queue continues */
       try{ v.muted=true; needSound(true); const q=v.play&&v.play(); if(q&&q.catch)q.catch(()=>{});

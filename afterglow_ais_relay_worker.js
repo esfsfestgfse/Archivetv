@@ -116,6 +116,19 @@ async function cachedArchiveJson(cacheKey, ttlSeconds, load) {
   return payload;
 }
 
+/* Internet Archive will occasionally leave a TCP request open for a very long
+   time. A television tune must never inherit that wait: abort the upstream
+   request and let the caller use a cached or alternate lane instead. */
+async function archiveFetch(input, init = {}, timeoutMs = 3500) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function searchArchive(query, rows, page, sort) {
   const upstreamUrl = new URL("https://archive.org/advancedsearch.php");
   upstreamUrl.searchParams.set("q", query);
@@ -124,7 +137,7 @@ async function searchArchive(query, rows, page, sort) {
   upstreamUrl.searchParams.set("rows", String(rows));
   upstreamUrl.searchParams.set("page", String(page));
   upstreamUrl.searchParams.set("output", "json");
-  const upstream = await fetch(upstreamUrl.toString());
+  const upstream = await archiveFetch(upstreamUrl.toString(), {}, 3200);
   if (!upstream.ok) throw new Error("archive search " + upstream.status);
   const payload = await upstream.json();
   return payload.response || { numFound: 0, docs: [] };
@@ -186,7 +199,7 @@ function queueFileUrls(id, payload, name) {
 
 async function queuePlayable(id) {
   try {
-    const upstream = await fetch("https://archive.org/metadata/" + encodeURIComponent(id));
+    const upstream = await archiveFetch("https://archive.org/metadata/" + encodeURIComponent(id), {}, 4200);
     if (!upstream.ok) return null;
     const payload = await upstream.json(), files = payload.files || [];
     const format = (file) => String(file && file.format || "").toLowerCase();
@@ -211,7 +224,9 @@ async function buildIaQueue(channel, queries, count) {
      sample from each lane in parallel, then take one from every lane before
      taking a second: a five-item buffer spans eras/topics instead of becoming
      five nearly identical top-download results. */
-  const lanes = await Promise.all(queries.slice(0, count).map(async (query) => {
+  /* Three lanes are enough to build a diverse five-program buffer. More lanes
+     used to mean one stalled Archive request could hold the whole channel. */
+  const lanes = await Promise.all(queries.slice(0, Math.min(3, count)).map(async (query) => {
     try {
       const result = await searchArchive(query, Math.min(24, Math.max(12, count * 3)), 1, "downloads desc");
       return (result.docs || []).filter((doc) => doc && safeIaId(doc.identifier));

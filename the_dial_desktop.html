@@ -1098,7 +1098,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.174";
+window.__ATV_BUILD="1.7.7-desktop.175";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -5151,6 +5151,14 @@ function rotateProgramLane(channel,lane,values){
   try{localStorage.setItem("atv:program-rotation",JSON.stringify(programRotationState));}catch(e){}
   return values[at];
 }
+function peekProgramLane(channel,lane,values){
+  if(!values||!values.length)return null;
+  var key=String(channel||"archive")+"|"+lane;
+  return values[(Number(programRotationState[key])||0)%values.length];
+}
+function selectProgramLane(channel,lane,values,advance){
+  return advance===false?peekProgramLane(channel,lane,values):rotateProgramLane(channel,lane,values);
+}
 function programEraBuckets(era){
   var first=Number(era&&era[0]), last=Number(era&&era[1]);
   if(!isFinite(first)||!isFinite(last)||last<=first)return [era||[1930,1990]];
@@ -5162,10 +5170,20 @@ function programEraBuckets(era){
   }
   return out;
 }
-function buildProgramQueries(prog,ch) {
+function buildProgramQueries(prog,ch,advance) {
   var channel=(ch&&ch.nm)||prog.genre||"Archive";
-  var era=rotateProgramLane(channel,"era",prog.eraBuckets||programEraBuckets(prog.era||[1930,1990]))||prog.era||[1930,1990];
-  var yr = "year:[" + era[0] + " TO " + era[1] + "]";
+  var eraBuckets=prog.eraBuckets||programEraBuckets(prog.era||[1930,1990]);
+  var selectedEra=selectProgramLane(channel,"era",eraBuckets,advance)||prog.era||[1930,1990];
+  var eraStart=Math.max(0,eraBuckets.indexOf(selectedEra));
+  var eras=eraBuckets.slice(eraStart).concat(eraBuckets.slice(0,eraStart));
+  /* A topic bucket is a small, intentional lane within a channel.  It is tried
+     first, then the same provider/era combination is retained as a safe fallback
+     because Archive metadata is not consistent enough to make every phrase hard
+     required. */
+  var selectedTopic=selectProgramLane(channel,"topic",prog.topicBuckets||[],advance);
+  var topics=Array.isArray(selectedTopic)?selectedTopic:(selectedTopic?[selectedTopic]:[]);
+  var topicQ=topics.map(function(s){return '"'+s+'"';}).join(" OR ");
+  var topicClause=topicQ?(" AND subject:("+topicQ+")"):"";
   var mt = prog.mt || ((ch && ch.audio) ? "audio" : "movies");
   var qs = [];
   var globalQs = [];
@@ -5174,42 +5192,50 @@ function buildProgramQueries(prog,ch) {
   var NOT = denySubj ? (" AND NOT subject:(" + denySubj + ")") : "";
   var providers=(prog.providers||[]).map(function(prov,index){return {prov:prov,index:index};});
   if(providers.length>1){
-    var start=Number(rotateProgramLane(channel,"provider",providers.map(function(_,i){return i;})))||0;
+    var start=Number(selectProgramLane(channel,"provider",providers.map(function(_,i){return i;}),advance))||0;
     providers=providers.slice(start).concat(providers.slice(0,start));
   }
-  providers.forEach(function(entry) {
-    var prov=entry.prov, providerIndex=entry.index;
-    var cols = prov.collections || [];
-    var subjs = prov.require_subj || [];
-    /* subjRotate: pick one subject per tune so the channel cycles through its vocabulary
-       instead of always matching on the most common term. Same pattern as G's subjRotate. */
-    if(prog.subjRotate && subjs.length>1){
-      var picked=rotateProgramLane(channel,"subject:"+providerIndex,subjs);
-      subjs=picked?[picked]:subjs;
-    }
-    if (subjs.length) {
-      var subjQ = subjs.map(function(s) { return '"' + s + '"'; }).join(" OR ");
-      cols.forEach(function(c) {
-        qs.push("collection:" + c + " AND mediatype:" + mt + " AND subject:(" + subjQ + ") AND " + yr + NOT);
-      });
-      globalQs.push("mediatype:" + mt + " AND subject:(" + subjQ + ") AND " + yr + NOT);
-    }
+  eras.forEach(function(era){
+    var yr="year:["+era[0]+" TO "+era[1]+"]";
+    providers.forEach(function(entry) {
+      var prov=entry.prov, providerIndex=entry.index;
+      var cols=prov.collections||[];
+      var subjs=prov.require_subj||[];
+      /* subjRotate: pick one subject per tune so the channel cycles through its vocabulary
+         instead of always matching on the most common term. Same pattern as G's subjRotate. */
+      if(prog.subjRotate&&subjs.length>1){
+        var picked=selectProgramLane(channel,"subject:"+providerIndex,subjs,advance);
+        subjs=picked?[picked]:subjs;
+      }
+      if(subjs.length){
+        var subjQ=subjs.map(function(s){return '"'+s+'"';}).join(" OR ");
+        var base="mediatype:"+mt+" AND subject:("+subjQ+") AND "+yr+NOT;
+        cols.forEach(function(c){
+          var collectionBase="collection:"+c+" AND "+base;
+          if(topicClause)qs.push(collectionBase+topicClause);
+          qs.push(collectionBase);
+        });
+        if(topicClause)globalQs.push(base+topicClause);
+        globalQs.push(base);
+      }
+    });
   });
   return qs.concat(globalQs);
 }
 
 /* what's "on" for a channel at a given hour */
-function slotFor(ch,hour){
+function slotFor(ch,hour,opts){
   const h=((hour%24)+24)%24, names=NS[ch.ns||"movie"];
+  var advance=!(opts&&opts.preview);
   if(ch.source) return {show:names[h], source:ch.source};
-  if(ch.profile){ const pn=seasonalProfileName(ch.profile); const pr=(PROFILES[pn]||PROFILES[ch.profile])[h]; const g=pr.g, era=ch.era||(G[g]&&G[g].era);
-    return {show:pr.s, genre:g, era, source:"ia", queries:buildQuery(g,era)}; }
   /* PROGRAMMED CHANNELS 2.0: if a PROGRAM entry exists for this channel, use it. */
   if(PROGRAM[ch.nm]){
     var prog=PROGRAM[ch.nm];
-    var pq=buildProgramQueries(prog,ch);
+    var pq=buildProgramQueries(prog,ch,advance);
     return {show:names[h], genre:prog.genre||ch.gl, era:prog.era||ch.era, source:"ia", queries:pq, program:prog};
   }
+  if(ch.profile){ const pn=seasonalProfileName(ch.profile); const pr=(PROFILES[pn]||PROFILES[ch.profile])[h]; const g=pr.g, era=ch.era||(G[g]&&G[g].era);
+    return {show:pr.s, genre:g, era, source:"ia", queries:buildQuery(g,era)}; }
   const g=ch.gl; let era=ch.era||(G[g]&&G[g].era);
   if(ch.nm==="Sports Vault"&&sportsEra!=="all") era=SPORTS_ERAS[sportsEra]||era; /* 1.4.2 */
   return {show:names[h]+((ch.nm==="Sports Vault"&&sportsEra!=="all")?(" ("+sportsEra+")"):""), genre:g, era, source:"ia", queries:buildQuery(g,era)};
@@ -5902,7 +5928,7 @@ async function buildPlan(){
         var c=targets[i], k=planKey(c.nm,hh);
         if(planMap[k])continue;
         try{
-          var slp=slotFor(c,hh); if(!slp.queries)continue;
+          var slp=slotFor(c,hh,{preview:true}); if(!slp.queries)continue;
           var it=await pickFromQueries(slp.queries);
           if(it){ planMap[k]={id:it.identifier,title:it.title||it.identifier,year:it.year||null,show:slp.show};
             store.set("plan",planMap); }
@@ -6325,7 +6351,7 @@ function quickBanner(t){if(!banner)return;banner.innerHTML='<span class="bn-msg"
 /* info / up-next */
 function toggleInfo(){if(!infoPanel)return;if(infoPanel.classList.contains("hide"))showInfo();else infoPanel.classList.add("hide");}
 function showInfo(){if(!infoPanel||!powered)return;const ch=byNum(curNum);if(!ch)return;
-  const h=new Date().getHours(),now=slotFor(ch,h),nx=slotFor(ch,h+1);
+  const h=new Date().getHours(),now=slotFor(ch,h,{preview:true}),nx=slotFor(ch,h+1,{preview:true});
   var cm=CHANNEL_META[ch.nm]||{}; var im=(curItem&&curItem.meta)||{};
   infoPanel.innerHTML='<div class="ip-ch">CH '+ch.num+' \u00b7 '+esch(ch.nm)+'</div>'+
    '<div class="ip-row"><b>NOW</b><span>'+esch(now.show)+((curItem&&curItem.title)?(" \u2014 "+esch(String(curItem.title).slice(0,70))):"")+'</span></div>'+
@@ -13411,7 +13437,7 @@ function renderTVGuide(){ /* UPGRADED (feature: real multi-hour EPG) — NOW plu
     var live=schedGet(ch); /* 1.2: NOW column shows the actual program on the air */
     html+='<div class="epg-row" data-n="'+ch.num+'"><span class="epg-ch">'+ch.num+' <b>'+esch(ch.nm)+'</b></span>'+
       hours.map(function(h,hi){ var pe2=stationMgr?planMap[planKey(ch.nm,h)]:null;
-        var txt=(hi===0&&live&&live.title)?("\u25b6 "+live.title):((pe2&&pe2.title)?("\u25b7 "+pe2.title):slotFor(ch,h).show);
+        var txt=(hi===0&&live&&live.title)?("\u25b6 "+live.title):((pe2&&pe2.title)?("\u25b7 "+pe2.title):slotFor(ch,h,{preview:true}).show);
         return '<span class="epg-cell">'+esch(txt); }).join('</span>')+'</span></div>';
   });
   el.innerHTML=html;

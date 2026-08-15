@@ -1098,7 +1098,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.161";
+window.__ATV_BUILD="1.7.7-desktop.162";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -2772,7 +2772,7 @@ const PROGRAM = {
   "Sunday Service": {
     genre: "faith", era: [1930, 2010],
     providers: [
-      { collections: ["opensource_audio", "oldtimeradio", "78rpm", "audio_music"], require_subj: [
+      { collections: ["feature_films", "prelinger", "classic_tv", "opensource_movies"], require_subj: [
         "hymn","hymns","sacred music","sacred song","spiritual","spirituals","gospel","gospel music",
         "gospel radio","gospel broadcast","gospel hymn","hymn sing","hymn singing","choir","church choir",
         "church music","worship","worship service","praise","praise and worship","liturgical","liturgy",
@@ -2785,7 +2785,7 @@ const PROGRAM = {
         "sunday service","sunday worship","sunday broadcast","sunday radio","gospel quartet","gospel choir",
         "black gospel","white gospel","southern gospel","southern gospel quartet","country gospel","bluegrass gospel"
       ] },
-      { collections: ["opensource_audio", "oldtimeradio"], require_subj: [
+      { collections: ["feature_films", "prelinger", "classic_tv", "opensource_movies"], require_subj: [
         "religious broadcast","religious radio","religious programming","religious service","radio church",
         "radio pulpit","radio ministry","gospel ministry","broadcast ministry","evangelism","evangelist broadcast",
         "revival meeting","tent revival","tent meeting","camp meeting","southern revival","revival service",

@@ -1098,7 +1098,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.159";
+window.__ATV_BUILD="1.7.7-desktop.160";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1509,12 +1509,12 @@ const G={
  railroad:{mt:"movies",col:["prelinger","avgeeks","FedFlix"],fcol:["feature_films"],subj:["railroad","train","locomotive","steam locomotive","railway","streamliner","diesel locomotive","rail transport"],subjRotate:true,subjRequired:true,not:FNOTX,era:[1930,1990]},
  aviationfilm:{mt:"movies",col:["prelinger","avgeeks","FedFlix"],fcol:["feature_films"],subj:["aviation","aircraft","airplane","aeroplane","aeronautics","flight","aviator","jet aircraft","airline","airliner","biplane"],subjRotate:true,subjRequired:true,not:FNOTX.concat(["family","children","romance","drama","comedy","adventure","fantasy","musical","cartoon","animated"]),era:[1930,1990]}, /* QA: tightened not-list after soak confirmed "The Sky's The Limit" (family TV movie) bleeding in via "flight" subject match */
  concertrock:{mt:"audio",col:["opensource_audio"],fcol:[],subj:["rock","live","concert"],subjRequired:true,era:[1965,2015],dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
- gmhiphop:  {mt:"audio", col:["netlabels"], fcol:[], subj:["hip hop","hip-hop","rap","turntablism","boom bap","instrumental hip hop"], subjRequired:true, era:[1979,2025], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}}, /* audit 6B: hip-hop starts 1979 (Sugarhill Gang) */
- gmreggae:  {mt:"audio", col:["netlabels"], fcol:[], subj:["reggae","dub","ska","dancehall","roots reggae"], subjRequired:true, era:[1968,2025], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
- gmpunk:    {mt:"audio", col:["netlabels"], fcol:[], subj:["punk","hardcore","post-punk","punk rock","garage"], subjRequired:true, era:[1975,2025], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
- gmmetal:   {mt:"audio", col:["netlabels"], fcol:[], subj:["metal","heavy metal","doom metal","thrash","death metal","black metal"], subjRequired:true, era:[1980,2025], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
- gmelectro: {mt:"audio", col:["netlabels"], fcol:[], subj:["electronic","techno","house","ambient","drum and bass","idm","dubstep","synthwave","electronica"], subjRequired:true, era:[1970,2025], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}}, /* audit 6B: Kraftwerk 1970, house 1984, techno 1985, ambient 1978 — all pre-1990 */
- gmfunk:    {mt:"audio", col:["netlabels"], fcol:[], subj:["funk","soul","rhythm and blues","groove","disco","nu funk"], subjRequired:true, era:[1968,2025], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
+ gmhiphop:  {mt:"audio", col:["netlabels"], fcol:[], subj:["hip hop","hip-hop","rap","turntablism","boom bap","instrumental hip hop"], subjRequired:true, era:[1979,2026], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}}, /* audit 6B: hip-hop starts 1979 (Sugarhill Gang) */
+ gmreggae:  {mt:"audio", col:["netlabels"], fcol:[], subj:["reggae","dub","ska","dancehall","roots reggae"], subjRequired:true, era:[1968,2026], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
+ gmpunk:    {mt:"audio", col:["netlabels"], fcol:[], subj:["punk","hardcore","post-punk","punk rock","garage"], subjRequired:true, era:[1975,2026], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
+ gmmetal:   {mt:"audio", col:["netlabels"], fcol:[], subj:["metal","heavy metal","doom metal","thrash","death metal","black metal"], subjRequired:true, era:[1980,2026], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
+ gmelectro: {mt:"audio", col:["netlabels"], fcol:[], subj:["electronic","techno","house","ambient","drum and bass","idm","dubstep","synthwave","electronica"], subjRequired:true, era:[1970,2026], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}}, /* audit 6B: Kraftwerk 1970, house 1984, techno 1985, ambient 1978 — all pre-1990 */
+ gmfunk:    {mt:"audio", col:["netlabels"], fcol:[], subj:["funk","soul","rhythm and blues","groove","disco","nu funk"], subjRequired:true, era:[1968,2026], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
  /* The existing Jazz/Blues channels are sourced from georgeblood/78rpm, which is inherently a
     pre-1960 shellac-disc collection by nature of the format -- there's no way to get modern jazz or
     blues out of it. Open Source Audio has substantial modern jazz and blues recordings, so these two draw
@@ -1528,10 +1528,10 @@ const G={
     Open Source Audio has real coverage here, overlapping with but distinct from the Bluegrass & Folk channel),
     and Field Recordings (nature/ambient soundscapes, a real niche on archive.org distinct from any
     music genre -- sourced broadly since there's no single dedicated collection for it). */
- standup:    {mt:"audio", col:[], fcol:["opensource_audio","netlabels"], subj:["stand-up comedy","comedy album","stand up comedy"], subjRequired:true, era:[1960,2025]},
- podcasts:   {mt:"audio", col:["podcasts"], fcol:[], subj:[], era:[2004,2025]},
+ standup:    {mt:"audio", col:[], fcol:["opensource_audio","netlabels"], subj:["stand-up comedy","comedy album","stand up comedy"], subjRequired:true, era:[1960,2026]},
+ podcasts:   {mt:"audio", col:["podcasts"], fcol:[], subj:[], era:[2004,2026]},
  gmcountrymod:{mt:"audio", col:["opensource_audio"], fcol:[], subj:["country","americana","alt-country","country rock","roots rock"], subjRequired:true, era:[1970,2026], dampen:{col:["GratefulDead","DarkStarOrchestra"],cr:["Grateful Dead","Dark Star Orchestra"]}},
- fieldrec:   {mt:"audio", col:[], fcol:["opensource_audio","netlabels"], subj:["field recording","nature sounds","soundscape","ambient nature recording"], subjRequired:true, era:[1990,2025]},
+ fieldrec:   {mt:"audio", col:[], fcol:["opensource_audio","netlabels"], subj:["field recording","nature sounds","soundscape","ambient nature recording"], subjRequired:true, era:[1990,2026]},
  newsarchive:{mt:"movies",col:["universal_newsreels","FedFlix","prelinger"],fcol:["feature_films"],subj:["newsreel","documentary film","government film","historic footage","actuality film"],subjRotate:true,era:[1920,1975]},
 };
 /* ordered most-specific -> broadest so genre match wins before generic fallback */
@@ -1677,19 +1677,19 @@ const CH=[
  {nm:"Ragtime", num:911,           cat:"MUS", gl:"gmragtime",   era:[1899,1929], ns:"music", audio:true},
  {nm:"Classical", num:912,         cat:"MUS", gl:"gmclassical", era:[1917,1959], ns:"music", audio:true},
  {nm:"Vintage Pop", num:913,       cat:"MUS", gl:"gmpop",       era:[1935,1959], ns:"music", audio:true},
- {nm:"Hip-Hop", num:914,           cat:"MUS", gl:"gmhiphop",    era:[1985,2025], ns:"music", audio:true},
- {nm:"Reggae & Dub", num:915,      cat:"MUS", gl:"gmreggae",    era:[1968,2025], ns:"music", audio:true},
- {nm:"Punk", num:916,              cat:"MUS", gl:"gmpunk",      era:[1975,2025], ns:"music", audio:true},
- {nm:"Metal", num:917,             cat:"MUS", gl:"gmmetal",     era:[1980,2025], ns:"music", audio:true},
- {nm:"Electronic", num:918,        cat:"MUS", gl:"gmelectro",   era:[1990,2025], ns:"music", audio:true},
- {nm:"Funk & Soul", num:919,       cat:"MUS", gl:"gmfunk",      era:[1968,2025], ns:"music", audio:true},
+ {nm:"Hip-Hop", num:914,           cat:"MUS", gl:"gmhiphop",    era:[1985,2026], ns:"music", audio:true},
+ {nm:"Reggae & Dub", num:915,      cat:"MUS", gl:"gmreggae",    era:[1968,2026], ns:"music", audio:true},
+ {nm:"Punk", num:916,              cat:"MUS", gl:"gmpunk",      era:[1975,2026], ns:"music", audio:true},
+ {nm:"Metal", num:917,             cat:"MUS", gl:"gmmetal",     era:[1980,2026], ns:"music", audio:true},
+ {nm:"Electronic", num:918,        cat:"MUS", gl:"gmelectro",   era:[1990,2026], ns:"music", audio:true},
+ {nm:"Funk & Soul", num:919,       cat:"MUS", gl:"gmfunk",      era:[1968,2026], ns:"music", audio:true},
  {nm:"Jukebox 78", num:920,        cat:"MUS", gl:"jazz78",   era:[1920,1949], ns:"music", audio:true},
  {nm:"The Wax Museum", num:929,   cat:"MUS", gl:"waxmuseum", era:[1893,1925], ns:"music", audio:true}, /* LOC National Jukebox era — Caruso, McCormack, Sousa, Jolson, Marion Harris, wax cylinders, acoustic-era recording */
  {nm:"Fallout Radio", num:921,     cat:"MUS", gl:"radiofallout",era:[1948,1965], ns:"radio", audio:true},
- {nm:"Joke Joint", num:202,         cat:"DOC", gl:"comedycentral", era:[1970,2025], ns:"tv"}, /* renamed from "Comedy" + rebuilt 2026-08-07: was audio-only standup; now video sketch + comedy TV in the Comedy Central vibe */
- {nm:"Podcasts", num:203,           cat:"DOC", gl:"podcasts",     era:[2004,2025], ns:"radio", audio:true},
+ {nm:"Joke Joint", num:202,         cat:"DOC", gl:"comedycentral", era:[1970,2026], ns:"tv"}, /* renamed from "Comedy" + rebuilt 2026-08-07: was audio-only standup; now video sketch + comedy TV in the Comedy Central vibe */
+ {nm:"Podcasts", num:203,           cat:"DOC", gl:"podcasts",     era:[2004,2026], ns:"radio", audio:true},
  {nm:"Modern Country", num:922,     cat:"MUS", gl:"gmcountrymod", era:[1970,2026], ns:"music", audio:true},
- {nm:"Field Recordings", num:923,   cat:"MUS", gl:"fieldrec",     era:[1990,2025], ns:"music", audio:true},
+ {nm:"Field Recordings", num:923,   cat:"MUS", gl:"fieldrec",     era:[1990,2026], ns:"music", audio:true},
 
  {nm:"Prelinger Vault", num:204,   cat:"DOC", profile:"prelingervault", era:[1940,1985], ns:"doc"}, // consolidated: was 3 channels drawing from the same prelinger/educational/industrial pool
 
@@ -1788,9 +1788,9 @@ const CH=[
  {nm:"Christmas Channel", num:700, cat:"HOL", gl:"xmas",         era:[1930,1995], ns:"movie"},
  {nm:"Halloween Haunt", num:701,   cat:"HOL", gl:"halloween",    era:[1930,1995], ns:"movie"},
  {nm:"Thanksgiving Channel", num:702,cat:"HOL",gl:"thanksgiving", era:[1930,1990], ns:"tv"},
- {nm:"The Hearth", num:703,       cat:"HOL", gl:"yulelog",     era:[1900,2025], ns:"tv"}, /* Yule log fireplace loop with vintage Christmas music bed */
+ {nm:"The Hearth", num:703,       cat:"HOL", gl:"yulelog",     era:[1900,2026], ns:"tv"}, /* Yule log fireplace loop with vintage Christmas music bed */
  {nm:"Test Pattern", num:506,      cat:"RETRO", source:"static", ns:"space"},
- {nm:"The Long Shot", num:507,     cat:"RETRO", gl:"slowtv",    era:[2000,2025], ns:"tv"}, /* Slow TV — NRK-style long-form: train rides, sunsets, ferry crossings, waterfalls */
+ {nm:"The Long Shot", num:507,     cat:"RETRO", gl:"slowtv",    era:[2000,2026], ns:"tv"}, /* Slow TV — NRK-style long-form: train rides, sunsets, ferry crossings, waterfalls */
  {nm:"Infomercial Insomnia", num:508, cat:"RETRO", gl:"infomercial", era:[1985,2010], ns:"tv"}, /* Late-night 90s infomercials — Ronco, Popeil, Ginsu, Ab Roller, Time-Life sets */
  {nm:"The Weather Loop", num:509, cat:"RETRO", gl:"weatherstar", era:[1985,2005], ns:"tv"}, /* WeatherStar 4000 nostalgia — TWC music beds + local-on-the-8s */
 ];
@@ -5278,13 +5278,13 @@ function jsonp(url){return new Promise((res,rej)=>{const cb="cb"+Math.random().t
   window[cb]=d=>{fin();res(d);};s.onerror=()=>{fin();rej(new Error("err"));};s.src=url+sep+"callback="+cb;document.body.appendChild(s);});}
 
 function iaURL(q,rows,page,sort){return "https://archive.org/advancedsearch.php?"+[
-  "q="+encodeURIComponent(q),"fl[]=identifier","fl[]=title","fl[]=year",
+  "q="+encodeURIComponent(q),"fl[]=identifier","fl[]=title","fl[]=year","fl[]=subject","fl[]=runtime",
   "sort[]="+encodeURIComponent(sort||"downloads desc"),"rows="+rows,"page="+page,"output=json"].join("&");}
 /* three search transports race each other (JSONP advancedsearch, CORS advancedsearch, modern scrape API);
    first to answer wins, failures are logged to DIAG. Restores what a careless dead-code removal deleted
    along with the truly-unused iaGet — this whole block was accidentally taken out with it. */
 function scrapeURL(q,rows,sort){return "https://archive.org/services/search/v1/scrape?q="+encodeURIComponent(q)+
-  "&fields=identifier,title,year&sorts="+encodeURIComponent(sort||"downloads desc")+"&count="+Math.max(100,rows);}
+  "&fields=identifier,title,year,subject,runtime&sorts="+encodeURIComponent(sort||"downloads desc")+"&count="+Math.max(100,rows);}
 function normSearch(d){ if(d&&d.response) return {numFound:(d.response.numFound||0), docs:(d.response.docs||[])};
   if(d&&d.items) return {numFound:(d.total||d.count||d.items.length||0), docs:d.items};
   throw new Error("unexpected response shape"); }

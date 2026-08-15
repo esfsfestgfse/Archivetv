@@ -1098,7 +1098,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.168";
+window.__ATV_BUILD="1.7.7-desktop.171";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -5265,8 +5265,8 @@ async function fetchJSONResilient(url,tag){
     catch(e2){ nlog(tag||"cors",false,"CORS relay also failed: "+((e2&&e2.message)||e2)); throw e2; }
   }
 }
-function jsonp(url){return new Promise((res,rej)=>{const cb="cb"+Math.random().toString(36).slice(2),sep=url.includes("?")?"&":"?";
-  const s=document.createElement("script");const t=setTimeout(()=>{fin();rej(new Error("timeout"));},12000);
+function jsonp(url,timeoutMs){return new Promise((res,rej)=>{const cb="cb"+Math.random().toString(36).slice(2),sep=url.includes("?")?"&":"?";
+  const s=document.createElement("script");const t=setTimeout(()=>{fin();rej(new Error("timeout"));},timeoutMs||12000);
   function fin(){clearTimeout(t);try{delete window[cb];}catch(e){window[cb]=undefined;}s.remove();}
   window[cb]=d=>{fin();res(d);};s.onerror=()=>{fin();rej(new Error("err"));};s.src=url+sep+"callback="+cb;document.body.appendChild(s);});}
 
@@ -5281,12 +5281,22 @@ function scrapeURL(q,rows,sort){return "https://archive.org/services/search/v1/s
 function normSearch(d){ if(d&&d.response) return {numFound:(d.response.numFound||0), docs:(d.response.docs||[])};
   if(d&&d.items) return {numFound:(d.total||d.count||d.items.length||0), docs:d.items};
   throw new Error("unexpected response shape"); }
+var IA_RELAY_BASE="https://ais-relay.tdy1990.workers.dev/ia";
+function iaRelaySearchURL(q,rows,page,sort){return IA_RELAY_BASE+"/search?"+[
+  "q="+encodeURIComponent(q),"rows="+encodeURIComponent(rows),"page="+encodeURIComponent(page),"sort="+encodeURIComponent(sort||"downloads desc")].join("&");}
+function iaRelayMetadataURL(id){return IA_RELAY_BASE+"/metadata/"+encodeURIComponent(id);}
+/* Archive is blocked outright in some desktop browsers. Keep every discovery probe short so
+   a dead route never holds a channel change hostage for 15+ seconds. */
+function iaFastJSON(url,ms){return withTO(fetch(url,{mode:"cors"}).then(r=>{if(!r.ok)throw new Error("http "+r.status);return r.json();}),ms||1800);}
+function iaFastProxy(url){return firstOk(CORS_RELAYS.map(function(make,i){return {tag:"archive-proxy-"+(i+1),delay:i*220,run:function(){return iaFastJSON(make(url),2000);}};}));}
 function iaSearch(q,rows,page,sort){
   const au=iaURL(q,rows,page,sort);
   return firstOk([
-    {tag:"search:jsonp",  delay:0,    run:()=>jsonp(au).then(normSearch)},
-    {tag:"search:cors",   delay:2500, run:()=>fetchJSON(au).then(normSearch)},
-    {tag:"search:scrape", delay:2500, run:()=>fetchJSON(scrapeURL(q,rows,sort)).then(normSearch)}
+    {tag:"search:afterglow-relay",delay:0,run:()=>iaFastJSON(iaRelaySearchURL(q,rows,page,sort)).then(normSearch)},
+    {tag:"search:jsonp",  delay:0,   run:()=>jsonp(au,2200).then(normSearch)},
+    {tag:"search:cors",   delay:180, run:()=>iaFastJSON(au).then(normSearch)},
+    {tag:"search:scrape", delay:360, run:()=>iaFastJSON(scrapeURL(q,rows,sort)).then(normSearch)},
+    {tag:"search:proxy",  delay:540, run:()=>iaFastProxy(au).then(normSearch)}
   ]);
 }
 /* QA FIX: was unbounded and untimed -- one entry per sort+query+era-slice grew without limit
@@ -5392,8 +5402,12 @@ function mArr(x){return Array.isArray(x)?x.filter(Boolean):(x?[x]:[]);}
 function mStrip(s){return (s==null?"":String(s)).replace(/<[^>]+>/g," ").replace(/&[a-z]+;/gi," ").replace(/\s+/g," ").trim();}
 async function resolvePlayable(id){
   const mu="https://archive.org/metadata/"+encodeURIComponent(id);
-  let m; try{m=await fetchJSON(mu).catch(()=>jsonp(mu));}catch(e){nlog("metadata",false,id+" "+(e&&e.message||e));return null;}
-  const files=(m&&m.files)||[]; const md=(m&&m.metadata)||{}; const base="https://archive.org/download/"+encodeURIComponent(id)+"/";
+  let m; try{m=await firstOk([
+    {tag:"metadata:afterglow-relay",delay:0,run:()=>iaFastJSON(iaRelayMetadataURL(id))},
+    {tag:"metadata:cors",delay:180,run:()=>iaFastJSON(mu)},
+    {tag:"metadata:proxy",delay:360,run:()=>iaFastProxy(mu)}
+  ]).catch(()=>fetchJSONResilient(mu,"metadata"));}catch(e){nlog("metadata",false,id+" "+(e&&e.message||e));return null;}
+  const files=(m&&m.files)||[]; const md=(m&&m.metadata)||{}; const archiveBase="https://archive.org/download/"+encodeURIComponent(id)+"/";
   const dt=mArr(md.date)[0]||mArr(md.year)[0]||"";
   /* NEW: captured for Marathon Mode (collection) and More Like This (subjects) */
   const meta={creator:mArr(md.creator).slice(0,2).join(", "),
@@ -5407,10 +5421,17 @@ async function resolvePlayable(id){
               })(), subjects:mArr(md.subject).slice(0,6)};
   const v=n=>files.find(f=>f.name&&n.test(f.name));
   const enc=n=>String(n).split("/").map(encodeURIComponent).join("/"); // FIX err4: subfoldered file names were %2F-encoded into 404s
+  /* Prefer the item-specific Archive CDN host. Browser content blockers commonly target
+     archive.org but leave these delivery hosts alone; archive.org remains the final fallback. */
+  const cdnDir=String(m&&m.dir||"").replace(/\/+$/,"");
+  const cdnHosts=[m&&m.server,m&&m.d1,m&&m.d2].filter(function(h,i,a){return typeof h==="string"&&/^[a-z0-9.-]+\.archive\.org$/i.test(h)&&a.indexOf(h)===i;});
+  const bases=cdnHosts.map(function(h){return cdnDir?("https://"+h+cdnDir+"/"):archiveBase;});
+  bases.push(archiveBase);
+  const mediaUrls=function(names){var out=[]; names.forEach(function(name){bases.forEach(function(base){var u=base+enc(name);if(out.indexOf(u)<0)out.push(u);});});return out;};
   /* captions: prefer .vtt (native), else .srt (we convert on the fly) */
   const capV=v(/\.vtt$/i), capS=v(/\.srt$/i);
-  const cap = capV?{url:base+enc(capV.name),kind:"vtt"}
-            : capS?{url:base+enc(capS.name),kind:"srt"}:null;
+  const cap = capV?{url:mediaUrls([capV.name])[0],kind:"vtt"}
+            : capS?{url:mediaUrls([capS.name])[0],kind:"srt"}:null;
   /* FIX err4 (part 2): pick by the file's declared FORMAT, not just the extension. Old items'
      "*.512kb.mp4" derivatives are often MPEG-4 Part 2 — a codec Chrome cannot decode (err 4).
      True H.264 first, then other mp4/m4v, then WebM/Ogg (first-class in Chrome; skipped on Apple). */
@@ -5422,11 +5443,11 @@ async function resolvePlayable(id){
     else if(/\.ogv$/i.test(n)) scored.push([IOS?9:3,n]); });
   const cand=scored.filter(x=>x[0]<9).sort((a,b)=>a[0]-b[0]).map(x=>x[1])
     .filter((n,i,arr)=>arr.indexOf(n)===i).slice(0,4);
-  if(cand.length) return {type:"video", url:base+enc(cand[0]),
-    alts:cand.slice(1).map(n=>base+enc(n)), // fallback files, tried in order if one errors
-    id, captions:cap, meta};
+  if(cand.length){ const urls=mediaUrls(cand); return {type:"video", url:urls[0],
+    alts:urls.slice(1,8), // CDN hosts first, then alternate playable files
+    id, captions:cap, meta}; }
   const aud = v(/\.mp3$/i)||v(/\.ogg$/i)||v(/\.m4a$/i)||v(/\.flac$/i);
-  if(aud) return {type:"audio", url:base+enc(aud.name), id, captions:cap, meta};
+  if(aud){ const urls=mediaUrls([aud.name]); return {type:"audio", url:urls[0], alts:urls.slice(1,4), id, captions:cap, meta}; }
   nlog("files",false,"no playable file in "+id);
   return null;
 }

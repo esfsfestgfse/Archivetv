@@ -34,6 +34,7 @@
 const AISSTREAM_URL = "https://stream.aisstream.io/v0/stream";
 const KPLER_URL = "https://api.kpler.com/v2/maritime/ais-latest";
 const SNAPSHOT_PATH = "/snapshot";
+const IA_PREFIX = "/ia";
 const SNAPSHOT_TTL_SECONDS = 60;
 const GULF_FILTER = "BBOX(geometry,-98,18,-80,31)";
 const KPLER_FIELDS = "mmsi,longitude,latitude,posDt,sog,vesselName,heading,cog,navStatus,destination,vesselType";
@@ -57,6 +58,55 @@ function json(body, status = 200, extraHeaders = {}) {
       ...extraHeaders,
     },
   });
+}
+
+/* Internet Archive fallback -------------------------------------------------
+   Some privacy extensions block archive.org in a browser context. The app uses
+   this narrowly-scoped route only for search and metadata; media itself is sent
+   straight to the item's ia*.us.archive.org CDN host, so this Worker never
+   becomes a high-bandwidth video relay or a general-purpose proxy. */
+function safeIaId(id) {
+  return /^[A-Za-z0-9._-]{1,180}$/.test(id || "");
+}
+
+function iaResponse(upstream, extraHeaders = {}) {
+  const headers = new Headers(upstream.headers);
+  Object.entries(corsHeaders()).forEach(([key, value]) => headers.set(key, value));
+  headers.set("Cache-Control", "public, max-age=300");
+  headers.set("X-Afterglow-Source", "internet-archive-relay");
+  Object.entries(extraHeaders).forEach(([key, value]) => headers.set(key, value));
+  return new Response(upstream.body, { status: upstream.status, headers });
+}
+
+async function getIaSearch(url) {
+  const q = (url.searchParams.get("q") || "").trim();
+  if (!q || q.length > 2400) return json({ error: "invalid archive search" }, 400);
+  const rows = Math.max(1, Math.min(100, Number(url.searchParams.get("rows")) || 50));
+  const page = Math.max(1, Math.min(10000, Number(url.searchParams.get("page")) || 1));
+  const sort = (url.searchParams.get("sort") || "downloads desc").slice(0, 80);
+  const upstreamUrl = new URL("https://archive.org/advancedsearch.php");
+  upstreamUrl.searchParams.set("q", q);
+  ["identifier", "title", "year", "subject", "runtime"].forEach((field) => upstreamUrl.searchParams.append("fl[]", field));
+  upstreamUrl.searchParams.append("sort[]", sort);
+  upstreamUrl.searchParams.set("rows", String(rows));
+  upstreamUrl.searchParams.set("page", String(page));
+  upstreamUrl.searchParams.set("output", "json");
+  try {
+    const upstream = await fetch(upstreamUrl.toString());
+    return iaResponse(upstream);
+  } catch {
+    return json({ error: "archive search unavailable" }, 502);
+  }
+}
+
+async function getIaMetadata(id) {
+  if (!safeIaId(id)) return json({ error: "invalid archive identifier" }, 400);
+  try {
+    const upstream = await fetch("https://archive.org/metadata/" + encodeURIComponent(id));
+    return iaResponse(upstream);
+  } catch {
+    return json({ error: "archive metadata unavailable" }, 502);
+  }
 }
 
 async function getKplerSnapshot(request, env, ctx) {
@@ -129,6 +179,14 @@ export default {
 
     if (request.method === "GET" && url.pathname === SNAPSHOT_PATH) {
       return getKplerSnapshot(request, env, ctx);
+    }
+
+    if (request.method === "GET" && url.pathname === IA_PREFIX + "/search") {
+      return getIaSearch(url);
+    }
+
+    if (request.method === "GET" && url.pathname.startsWith(IA_PREFIX + "/metadata/")) {
+      return getIaMetadata(decodeURIComponent(url.pathname.slice((IA_PREFIX + "/metadata/").length)));
     }
 
     // Anything other than a WebSocket upgrade gets a useful health response.

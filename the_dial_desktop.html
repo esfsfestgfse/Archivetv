@@ -4514,7 +4514,7 @@ const PROGRAM = {
       { collections: ["vhsvault","opensource_movies"], require_subj: ["game show","quiz show","complete series"] }
     ],
     deny: {
-      title: ["video game","computer game","board game review","gameplay","walkthrough","let's play"],
+      title: ["video game","computer game","board game review","gameplay","walkthrough","let's play","hardball"],
       subject: ["video game","computer game","sports","football","baseball","basketball","drama","sitcom","news"]
     },
     subjRequired: true, noBlindFallback: true
@@ -13387,6 +13387,10 @@ async function playBumper(ch,sl,my){
 function skipOne(){ if(!powered){quickBanner("TURN THE TV ON FIRST");return;}
   var sc=byNum(curNum); if(sc)schedClear(sc); /* 1.2: SKIP = manual re-roll of the slot */
   if(curItem&&curItem.id){markSkipped(curItem.id);fastTuneDrop(curNum);}
+  /* Promote a resolved program-director item before retuning. Unlike the normal
+     preloader this is synchronous: SKIP can immediately consume a warm URL. */
+  if(sc&&!sc.source){var ss=slotFor(sc,new Date().getHours(),{preview:true}), qi=takeIAQueue(sc,ss), qm=qi&&iaProgramMedia[qi.identifier];
+    if(qm&&typeof qm.then!=="function"&&qm.url){preloadCache={chNum:sc.num,pl:{...qm,title:qi.title||qi.identifier,year:qi.year},at:Date.now()};}}
   adQueue=0; /* skipping during a break kills the rest of the break */
   quickBanner("SKIPPING\u2026"); resetProgress(); tuneNum(curNum); }
 

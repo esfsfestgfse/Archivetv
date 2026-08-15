@@ -1098,7 +1098,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.154";
+window.__ATV_BUILD="1.7.7-desktop.155";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1372,7 +1372,9 @@ window.addEventListener("unhandledrejection",function(e){
 <div class="pop" id="diagOv" role="dialog" aria-label="Network diagnostics">
   <div class="pop-h">SIGNAL DIAGNOSTICS <span class="pop-x" data-close="diagOv" role="button" tabindex="0" aria-label="Close">✕</span></div>
   <div style="padding:10px 12px 4px"><button id="diagTest" class="rbtn xs" style="width:100%">TEST CONNECTION</button></div>
-  <div style="padding:0 12px 8px;font-size:10px;color:#7fb38f">NARA API key has moved — see SETTINGS.</div>
+  <!-- Feed Health chip strip (2026-08-14) -->
+  <div style="padding:8px 12px 0"><div style="font-size:10px;color:#7fb38f;letter-spacing:.15em;margin-bottom:6px">FEED HEALTH</div><div id="diagHealth" style="display:flex;flex-wrap:wrap;gap:4px"></div></div>
+  <div style="padding:8px 12px 8px;font-size:10px;color:#7fb38f">Below: raw network log · newest first</div>
   <div class="hist-list" id="diagList"></div>
 </div>
 <div class="pop" id="picPop" role="dialog" aria-label="Picture controls">
@@ -6649,7 +6651,28 @@ function firstOk(attempts){ /* start each transport (staggered); first success w
   });
 }
 var escD=esch; /* CYCLE-1 DEDUP: escD was byte-identical to esch */
+/* Feed Health chip renderer (2026-08-14). */
+function renderFeedHealth(){
+  var el=$("diagHealth"); if(!el) return;
+  if(!NETLOG.length){ el.innerHTML='<div style="font-size:11px;color:#7fb38f;opacity:.7">No fetches yet — tune a channel.</div>'; return; }
+  var byKind={};
+  NETLOG.forEach(function(L){
+    var k=L.k||"?";
+    if(!byKind[k]) byKind[k]={ok:0,err:0,lastT:0,lastOk:false};
+    if(L.ok) byKind[k].ok++; else byKind[k].err++;
+    if(L.t > byKind[k].lastT){ byKind[k].lastT=L.t; byKind[k].lastOk=L.ok; }
+  });
+  var kinds=Object.keys(byKind).sort(function(a,b){ return byKind[b].lastT-byKind[a].lastT; });
+  el.innerHTML=kinds.map(function(k){
+    var s=byKind[k]; var status, bg, fg;
+    if(s.err===0){ status="ok"; bg="rgba(103,255,134,.15)"; fg="#67ff86"; }
+    else if(s.ok>0 && s.lastOk){ status="mixed"; bg="rgba(255,204,0,.15)"; fg="#ffcc00"; }
+    else { status="dead"; bg="rgba(255,90,77,.15)"; fg="#ff5a4d"; }
+    return '<span title="'+escD(k)+' · '+s.ok+' ok / '+s.err+' err · last '+ago(s.lastT)+'" style="display:inline-flex;align-items:center;gap:5px;padding:3px 7px;border-radius:3px;background:'+bg+';color:'+fg+';font:700 10px/1 monospace;letter-spacing:.5px;white-space:nowrap"><span style="width:6px;height:6px;border-radius:50%;background:'+fg+';box-shadow:0 0 4px '+fg+'"></span>'+escD(k)+'</span>';
+  }).join("");
+}
 function renderDiag(){var el=$("diagList");if(!el)return;
+  renderFeedHealth();
   var head='<div class="hist-row"><span class="hist-t">'+escD(location.protocol+" · "+navigator.userAgent.slice(0,72))+'</span></div>';
   if(!NETLOG.length){el.innerHTML=head+'<div class="pop-empty">No network attempts yet — tune a channel or press TEST CONNECTION.</div>';return;}
   el.innerHTML=head+NETLOG.map(function(L){
@@ -9713,6 +9736,8 @@ var LIVECAMS_STREAMS=[
   {type:"jpg-refresh", cat:"HIGHWAY", nm:"Anaheim · I-5 north of Magnolia",         url:"https://cwwp2.dot.ca.gov/data/d12/cctv/image/i51northofmagnoliaavenuesouthofsr91/i51northofmagnoliaavenuesouthofsr91.jpg", src:"Caltrans D12", refreshSec:5},
   {type:"jpg-refresh", cat:"HIGHWAY", nm:"Buena Park · SR-91 at Beach Blvd",        url:"https://cwwp2.dot.ca.gov/data/d12/cctv/image/sr912beachboulevard/sr912beachboulevard.jpg", src:"Caltrans D12", refreshSec:5},
   {type:"jpg-refresh", cat:"HIGHWAY", nm:"Orange · SR-57 at SR-22",                 url:"https://cwwp2.dot.ca.gov/data/d12/cctv/image/sr5712sr22/sr5712sr22.jpg", src:"Caltrans D12", refreshSec:5},
+  {type:"jpg-refresh", cat:"HIGHWAY", nm:"Lathrop · SB I-5 N/O Lathrop Rd",         url:"https://cwwp2.dot.ca.gov/data/d10/cctv/image/137sbi5nolathroprd/137sbi5nolathroprd.jpg", src:"Caltrans D10", refreshSec:5},
+  {type:"jpg-refresh", cat:"HIGHWAY", nm:"Lathrop · SB I-5 Junction SR-120",        url:"https://cwwp2.dot.ca.gov/data/d10/cctv/image/3sbi5junctionsr120/3sbi5junctionsr120.jpg", src:"Caltrans D10", refreshSec:5},
 
 
   /* ---------- BEACH (Wowza HLS from tripsmarter.com — Beach TV network + Palm Beaches) ---------- */
@@ -9918,8 +9943,84 @@ async function tuneHighwayCams(ch,sl,my){
 
 /* NASA Live (ch 304, new 2026-08-09). See mobile build for full comment. */
 async function tuneNASALive(ch,sl,my){
-  var pool = LIVECAMS_STREAMS.filter(function(s){ return s.cat==="SPACE"; });
-  return tuneLiveCams(ch,sl,my,pool,"NASA Live",["ALL","SPACE"]);
+  /* 2026-08-14 REBUILD: after YT purge left NASA Live empty, replaced LiveCams filter shell
+     with a bespoke NASA imagery slideshow. Rotates every 15 sec through SDO filters, APOD,
+     and EPIC (DSCOVR polychromatic Earth imager L1). All CORS-safe for <img> tags. */
+  if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"NASA Live","");
+  if(screenArea) screenArea.innerHTML='<div style="width:100%;height:100%;display:flex;flex-direction:column;background:#04081a;position:relative;overflow:hidden">'+
+    '<div style="flex:none;padding:6px 12px;display:flex;justify-content:space-between;align-items:center;background:linear-gradient(180deg,rgba(20,60,120,.6),transparent);border-bottom:1px solid rgba(127,180,255,.2);font:900 10px monospace;letter-spacing:.2em;color:#9fc4ff">'+
+      '<span>\u25b6 NASA LIVE \u00b7 <span id="nlSrc">SDO</span></span>'+
+      '<span id="nlCounter">1/6</span>'+
+    '</div>'+
+    '<div style="flex:1 1 auto;min-height:0;display:flex;align-items:center;justify-content:center;position:relative;background:#000">'+
+      '<img id="nlImg" alt="" style="max-width:100%;max-height:100%;object-fit:contain;background:#000">'+
+      '<div id="nlStatus" style="position:absolute;color:#9fc4ff;font-family:monospace;font-size:12px;letter-spacing:.15em;text-align:center">Loading NASA imagery\u2026</div>'+
+    '</div>'+
+    '<div id="nlCap" style="flex:none;padding:10px 14px;background:linear-gradient(0deg,rgba(4,8,26,.95),transparent);color:#e8f0ff;font-family:monospace;font-size:11px;line-height:1.5">'+
+      '<div id="nlTitle" style="font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:#7fd8ff">\u2014</div>'+
+      '<div id="nlDesc" style="font-size:10px;color:#9fc4ff;margin-top:3px;max-height:3.2em;overflow:hidden">Public NASA imagery, refreshed every 15 seconds</div>'+
+    '</div>'+
+  '</div>';
+  var nlBug=mountChanBug("screenArea",{ident:"NASA LIVE"});
+  var IMGS=[
+    {src:"SDO",     url:"https://sdo.gsfc.nasa.gov/assets/img/latest/latest_512_0171.jpg", title:"SDO AIA 171 \u00b7 Solar Corona", desc:"Coronal loops in extreme UV \u2014 hot magnetized plasma at ~1 million K around the sun."},
+    {src:"SDO",     url:"https://sdo.gsfc.nasa.gov/assets/img/latest/latest_512_0304.jpg", title:"SDO AIA 304 \u00b7 Chromosphere", desc:"Cooler chromosphere and transition region at ~50,000 K \u2014 solar prominences visible."},
+    {src:"SDO",     url:"https://sdo.gsfc.nasa.gov/assets/img/latest/latest_512_HMIIF.jpg", title:"SDO HMI \u00b7 Visible Light", desc:"The sun as your eyes would see it \u2014 sunspots and granulation on the photosphere."},
+    {src:"SUVI",    url:"https://services.swpc.noaa.gov/images/animations/suvi/primary/171/latest.png", title:"GOES SUVI 171 \u00b7 Corona", desc:"Same 171 \u00c5 wavelength captured by the GOES weather satellite's Solar Ultraviolet Imager."},
+  ];
+  var idx=0, nlImgTimer=null, nlMetaTimer=null;
+  function show(){
+    if(my!==token) return;
+    var im=IMGS[idx];
+    var imgEl=document.getElementById("nlImg"), status=document.getElementById("nlStatus");
+    if(imgEl){
+      imgEl.onload = function(){ if(status) status.style.display="none"; };
+      imgEl.onerror = function(){
+        nlog("nasalive", false, "img fail: "+im.url);
+        idx = (idx+1) % IMGS.length; setTimeout(show, 800);
+      };
+      var bust = (im.src==="SDO"||im.src==="SUVI") ? ("?t="+Math.floor(Date.now()/60000)) : "";
+      imgEl.src = im.url + bust;
+    }
+    var srcEl=document.getElementById("nlSrc"); if(srcEl) srcEl.textContent=im.src;
+    var cntEl=document.getElementById("nlCounter"); if(cntEl) cntEl.textContent=(idx+1)+"/"+IMGS.length;
+    var tEl=document.getElementById("nlTitle"); if(tEl) tEl.textContent=im.title;
+    var dEl=document.getElementById("nlDesc"); if(dEl) dEl.textContent=im.desc||"";
+    if(nlBug) nlBug.update(im.src, im.title.toUpperCase().slice(0,42));
+    setChanStatus(ch.num, im.title);
+  }
+  async function loadMeta(){
+    if(my!==token) return;
+    try{
+      var apod=await fetchJSONResilient("https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY","apod");
+      if(my===token && apod && apod.media_type==="image" && (apod.hdurl||apod.url)){
+        for(var i=IMGS.length-1;i>=0;i--) if(IMGS[i].src==="APOD") IMGS.splice(i,1);
+        IMGS.push({src:"APOD", url:(apod.hdurl||apod.url), title:apod.title||"Astronomy Picture of the Day", desc:(apod.explanation||"").slice(0,240)+(apod.copyright?" \u2014 \u00a9 "+apod.copyright:"")});
+      }
+    }catch(e){ nlog("nasalive-apod", false, (e&&e.message)||"apod fetch failed"); }
+    try{
+      var epic=await fetchJSONResilient("https://epic.gsfc.nasa.gov/api/natural","epic");
+      if(my===token && Array.isArray(epic) && epic.length){
+        for(var j=IMGS.length-1;j>=0;j--) if(IMGS[j].src==="EPIC") IMGS.splice(j,1);
+        var latest=epic[epic.length-1];
+        var d=latest && latest.date ? latest.date.split(" ")[0] : "";
+        var parts=d.split("-");
+        if(parts.length===3 && latest.image){
+          var epicUrl="https://epic.gsfc.nasa.gov/archive/natural/"+parts[0]+"/"+parts[1]+"/"+parts[2]+"/png/"+latest.image+".png";
+          IMGS.push({src:"EPIC", url:epicUrl, title:"EPIC \u00b7 Earth from DSCOVR L1", desc:"Full-disk Earth from a million miles out. Captured at "+(latest.date||"today")+" UTC. Instrument: NASA EPIC / NOAA DSCOVR."});
+        }
+      }
+    }catch(e){ nlog("nasalive-epic", false, (e&&e.message)||"epic fetch failed"); }
+    if(my!==token) return;
+    var cntEl=document.getElementById("nlCounter"); if(cntEl) cntEl.textContent=(idx+1)+"/"+IMGS.length;
+    nlog("nasalive", true, "IMGS pool now has "+IMGS.length+" sources");
+  }
+  show(); loadMeta();
+  nlImgTimer = rtInterval(function(){ idx = (idx+1) % IMGS.length; show(); }, 15000);
+  nlMetaTimer = rtInterval(loadMeta, 30*60*1000);
+  if(chanRT && chanRT.teardowns) chanRT.teardowns.push(function(){
+    clearInterval(nlImgTimer); clearInterval(nlMetaTimer);
+  });
 }
 
 /* The Ranger (ch 303, new 2026-08-09). See mobile build for full comment. */
@@ -10144,10 +10245,14 @@ async function tuneSolar(ch,sl,my){
       '<div class="dc-ticker" id="solarTicker">SDO \u00b7 GOES-16/18 X-ray sensor \u00b7 SWPC public feed</div>'+
     '</div></div>';
   var solarBug=mountChanBug("dcScreen",{ident:"SOLAR"});
+  /* 2026-08-14: original URLs at services.swpc.noaa.gov/images/animations/sdo/{...}/latest.jpg
+     all returned 404 - silent breakage since Solar Dashboard shipped. Swapped to two working sources:
+     SDO GSFC direct (no CORS header but <img> tag doesn't need CORS) and SWPC SUVI (has CORS *). */
   var IMGS=[
-    {url:"https://services.swpc.noaa.gov/images/animations/sdo/aia171/latest.jpg", cap:"SDO AIA 171 \u00b7 CORONA"},
-    {url:"https://services.swpc.noaa.gov/images/animations/sdo/aia304/latest.jpg", cap:"SDO AIA 304 \u00b7 CHROMOSPHERE"},
-    {url:"https://services.swpc.noaa.gov/images/animations/sdo/hmib/latest.jpg",   cap:"SDO HMI \u00b7 MAGNETOGRAM"}
+    {url:"https://sdo.gsfc.nasa.gov/assets/img/latest/latest_512_0171.jpg", cap:"SDO AIA 171 \u00b7 CORONA"},
+    {url:"https://sdo.gsfc.nasa.gov/assets/img/latest/latest_512_0304.jpg", cap:"SDO AIA 304 \u00b7 CHROMOSPHERE"},
+    {url:"https://sdo.gsfc.nasa.gov/assets/img/latest/latest_512_HMIIF.jpg", cap:"SDO HMI \u00b7 VISIBLE LIGHT"},
+    {url:"https://services.swpc.noaa.gov/images/animations/suvi/primary/171/latest.png", cap:"GOES SUVI 171 \u00b7 CORONA"}
   ];
   var imgIdx=0, solarImgTimer=null, solarStatsTimer=null;
   function rotateImg(){

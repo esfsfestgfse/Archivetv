@@ -1204,7 +1204,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.207";
+window.__ATV_BUILD="1.7.7-mobile.208";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1749,15 +1749,15 @@ const CH=[
  {nm:"Sports Center", num:50,     cat:"SPORTS", source:"sports", ns:"tv"},
  {nm:"Hard Count", num:51,        cat:"SPORTS", gl:"nflfilms",   era:[1965,2026], ns:"doc"}, /* NFL Films golden age — Sabol / Facenda, gridiron poetry */
  {nm:"The Octagon", num:52,       cat:"SPORTS", gl:"combat",     era:[1960,2026], ns:"doc"}, /* Combat sports — boxing, MMA, UFC classics, Ali/Frazier era */
- {nm:"Channel 2 Network", num:2, cat:"NET", profile:"network", era:[1950,1969], ns:"movie"},
- {nm:"Nite-Owl 3", num:3,        cat:"NET", profile:"network", era:[1935,1955], ns:"movie"},
+ {nm:"Channel 2 Network", num:2, cat:"NET", gl:"network", era:[1950,1969], ns:"movie"},
+ {nm:"Nite-Owl 3", num:3,        cat:"NET", gl:"noir", era:[1935,1955], ns:"movie"},
 
  {nm:"Classic Cartoons", num:150,        cat:"TOON", gl:"cartoon", era:[1930,1972], ns:"toon"}, // consolidated: was 4 overlapping era-slices of the same pool, now 1 broad + 1 postwar-skewed
  {nm:"Anime Alley", num:151,       cat:"TOON", gl:"anime",   era:[1950,2005], ns:"toon"},
 
 
  {nm:"Sci-Fi Theater", num:100,    cat:"MOV", gl:"scifi",       era:[1950,1979], ns:"movie"},
- {nm:"Shock Theater", num:101,     cat:"MOV", profile:"frightnight", era:[1950,1979], ns:"movie"},
+ {nm:"Shock Theater", num:101,     cat:"MOV", gl:"horror", era:[1950,1979], ns:"movie"},
  {nm:"Western Channel", num:102,   cat:"MOV", gl:"western",     era:[1935,1965], ns:"movie"},
  {nm:"Comedy Classics", num:103,   cat:"MOV", gl:"comedy",      era:[1930,1965], ns:"movie"},
  {nm:"Music Films", num:104,       cat:"MOV", gl:"musicfilm",   era:[1935,1969], ns:"movie"},
@@ -1803,7 +1803,7 @@ const CH=[
  {nm:"Modern Country", num:922,     cat:"MUS", gl:"gmcountrymod", era:[1970,2026], ns:"music", audio:true},
  {nm:"Field Recordings", num:923,   cat:"MUS", gl:"fieldrec",     era:[1990,2026], ns:"music", audio:true},
 
- {nm:"Prelinger Vault", num:204,   cat:"DOC", profile:"prelingervault", era:[1940,1985], ns:"doc"}, // consolidated: was 3 channels drawing from the same prelinger/educational/industrial pool
+ {nm:"Prelinger Vault", num:204,   cat:"DOC", gl:"industrial", era:[1940,1985], ns:"doc"}, // consolidated: was 3 channels drawing from the same prelinger/educational/industrial pool
 
  {nm:"Trailer Park", num:501,      cat:"RETRO", gl:"trailer", era:[1940,1985], ns:"movie"},
  {nm:"World Cinema", num:106,      cat:"MOV", gl:"worldcinema",era:[1930,1970], ns:"movie"},
@@ -5280,6 +5280,48 @@ const PROGRAM = {
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
+  /* Formerly clock/daypart profiles. These are now permanent editorial channels:
+     every candidate remains collection-scoped and no clock branch can override it. */
+  "Channel 2 Network": {
+    genre:"network", era:[1950,1969], show:"Network Television",
+    eraBuckets:[[1950,1955],[1956,1961],[1962,1969]],
+    topicBuckets:[["family sitcom","situation comedy"],["variety show","television variety"],["anthology drama","live television"],["game show","quiz show"],["public affairs","newsreel"]],
+    providers:[
+      {collections:["classic_tv","classic_tv_1950s","classic_tv_1960s","television"],require_subj:["classic television","family sitcom","situation comedy","variety show","television variety","anthology series","live television","game show","quiz show","public affairs","newsreel"]}
+    ],
+    deny:{title:["feature film","training film","test pattern"],subject:["feature film","training film","industrial film","commercial","color bars"]},
+    subjRequired:true,noBlindFallback:true
+  },
+  "Nite-Owl 3": {
+    genre:"noir", era:[1935,1955], show:"Nite-Owl 3",
+    eraBuckets:[[1935,1944],[1945,1949],[1950,1955]],
+    topicBuckets:[["film noir","crime drama"],["mystery","detective"],["suspense","thriller"],["gothic horror","classic horror"]],
+    providers:[
+      {collections:["Film_Noir","feature_films","SciFi_Horror"],require_subj:["film noir","crime drama","mystery","detective","suspense","thriller","gothic horror","classic horror"]}
+    ],
+    deny:{title:["children","cartoon","commercial","training film","sports"],subject:["children","cartoon","game show","sports","instructional","commercial"]},
+    subjRequired:true,noBlindFallback:true
+  },
+  "Shock Theater": {
+    genre:"horror", era:[1930,1979], show:"Shock Theater",
+    eraBuckets:[[1930,1949],[1950,1959],[1960,1969],[1970,1979]],
+    topicBuckets:[["gothic horror","universal horror"],["creature feature","classic monster"],["supernatural horror","ghost story"],["psychological horror","suspense horror"]],
+    providers:[
+      {collections:["SciFi_Horror","feature_films"],require_subj:["horror","gothic horror","universal horror","creature feature","classic monster","supernatural horror","ghost story","psychological horror","suspense horror"]}
+    ],
+    deny:{title:["kaiju","godzilla","gamera","sci-fi","trailer","documentary"],subject:["kaiju","science fiction","gore","exploitation","trailer","documentary"]},
+    subjRequired:true,noBlindFallback:true
+  },
+  "Prelinger Vault": {
+    genre:"industrial", era:[1930,1989], show:"Prelinger Vault",
+    eraBuckets:[[1930,1944],[1945,1959],[1960,1974],[1975,1989]],
+    topicBuckets:[["civic film","public affairs"],["industrial film","sponsored film"],["educational film","classroom film"],["travel film","consumer culture"],["public health","safety film"]],
+    providers:[
+      {collections:["prelinger"],require_subj:["civic film","public affairs","industrial film","sponsored film","educational film","classroom film","travel film","consumer culture","public health","safety film"]}
+    ],
+    deny:{title:["feature film","fiction film","cartoon","modern upload","commercial compilation"],subject:["feature film","fiction film","cartoon","animation","modern internet video"]},
+    subjRequired:true,noBlindFallback:true
+  },
 };
 
 /* Build queries from a PROGRAM entry instead of from G. Same shape output as buildQuery
@@ -5305,6 +5347,9 @@ function peekProgramLane(channel,lane,values){
 function selectProgramLane(channel,lane,values,advance){
   return advance===false?peekProgramLane(channel,lane,values):rotateProgramLane(channel,lane,values);
 }
+function programPhrase(value){
+  return '"' + String(value==null?"":value).replace(/["\\]/g,function(ch){return "\\"+ch;}) + '"';
+}
 function programEraBuckets(era){
   var first=Number(era&&era[0]), last=Number(era&&era[1]);
   if(!isFinite(first)||!isFinite(last)||last<=first)return [era||[1930,1990]];
@@ -5328,13 +5373,13 @@ function buildProgramQueries(prog,ch,advance) {
      required. */
   var selectedTopic=selectProgramLane(channel,"topic",prog.topicBuckets||[],advance);
   var topics=Array.isArray(selectedTopic)?selectedTopic:(selectedTopic?[selectedTopic]:[]);
-  var topicQ=topics.map(function(s){return '"'+s+'"';}).join(" OR ");
+  var topicQ=topics.map(programPhrase).join(" OR ");
   var topicClause=topicQ?(" AND subject:("+topicQ+")"):"";
   var mt = prog.mt || ((ch && ch.audio) ? "audio" : "movies");
   var qs = [];
   var globalQs = [];
   var deny = prog.deny || {};
-  var denySubj = (deny.subject || []).map(function(s) { return '"' + s + '"'; }).join(" OR ");
+  var denySubj = (deny.subject || []).map(programPhrase).join(" OR ");
   var NOT = denySubj ? (" AND NOT subject:(" + denySubj + ")") : "";
   var providers=(prog.providers||[]).map(function(prov,index){return {prov:prov,index:index};});
   if(providers.length>1){
@@ -5354,7 +5399,7 @@ function buildProgramQueries(prog,ch,advance) {
         subjs=picked?[picked]:subjs;
       }
       if(subjs.length){
-        var subjQ=subjs.map(function(s){return '"'+s+'"';}).join(" OR ");
+        var subjQ=subjs.map(programPhrase).join(" OR ");
         var base="mediatype:"+mt+" AND subject:("+subjQ+") AND "+yr+NOT;
         cols.forEach(function(c){
           var collectionBase="collection:"+c+" AND "+base;
@@ -5380,7 +5425,7 @@ function slotFor(ch,hour,opts){
   if(PROGRAM[ch.nm]){
     var prog=PROGRAM[ch.nm];
     var pq=buildProgramQueries(prog,ch,advance);
-    return {show:names[h], genre:prog.genre||ch.gl, era:prog.era||ch.era, source:"ia", queries:pq, program:prog};
+    return {show:prog.show||names[h], genre:prog.genre||ch.gl, era:prog.era||ch.era, source:"ia", queries:pq, program:prog};
   }
   if(ch.profile){ const pn=seasonalProfileName(ch.profile); const pr=(PROFILES[pn]||PROFILES[ch.profile])[h]; const g=pr.g, era=ch.era||(G[g]&&G[g].era);
     return {show:pr.s, genre:g, era, source:"ia", queries:buildQuery(g,era)}; }
@@ -6044,6 +6089,7 @@ function fastTunePut(chNum,it){if(!it||!it.id||!it.url)return;
     captions:it.captions||null,meta:it.meta||{},title:it.title||"",year:it.year||""}};
   var keys=Object.keys(fastTuneCache).sort(function(a,b){return fastTuneCache[a].at-fastTuneCache[b].at;});
   while(keys.length>FAST_TUNE_MAX)delete fastTuneCache[keys.shift()]; store.set("fastTune",fastTuneCache);}
+function fastTuneDrop(chNum){if(fastTuneCache[String(chNum)]){delete fastTuneCache[String(chNum)];store.set("fastTune",fastTuneCache);}}
 var rapidWarmVideo=null;
 function warmRapidTune(){ /* One quiet first-run warmup: last station only, never the whole lineup. */
   var ch=byNum(+store.get("last",curNum)); if(!ch||fastTuneGet(ch.num))return;
@@ -6085,7 +6131,10 @@ async function buildPlan(){
         var c=targets[i], k=planKey(c.nm,hh);
         if(planMap[k])continue;
         try{
-          var slp=slotFor(c,hh,{preview:true}); if(!slp.queries)continue;
+          /* A planner result is a persisted appointment, so it intentionally owns
+             the next editorial lane. Unlike the guide/info preview, this is real
+             programming rather than a passive render. */
+          var slp=slotFor(c,hh); if(!slp.queries)continue;
           var it=await pickFromQueries(slp.queries);
           if(it){ planMap[k]={id:it.identifier,title:it.title||it.identifier,year:it.year||null,show:slp.show};
             store.set("plan",planMap); }
@@ -6114,7 +6163,7 @@ function schedGet(ch){
   if(!(r.id&&r.dur>60))return null;
   var age=(Date.now()-r.start)/1000;
   if(age<0||age>r.dur-20){ delete schedMap[ch.nm]; store.set("sched",schedMap); return null; }
-  if(banned.indexOf(r.id)>=0){ delete schedMap[ch.nm]; store.set("sched",schedMap); return null; }
+  if(banned.indexOf(r.id)>=0||isTemporarilySkipped(r.id)){ delete schedMap[ch.nm]; store.set("sched",schedMap); return null; }
   return r;
 }
 function schedSet(ch,it,dur){
@@ -6161,7 +6210,7 @@ async function tuneIA(ch,sl,my){
   if(stationMgr){ /* 1.5: appointment television — air the planned program, joined from the top of the hour */
     var pk2=planKey(ch.nm,new Date().getHours());
     var pe=planMap[pk2];
-    if(pe&&pe.id&&!pe.played&&banned.indexOf(pe.id)<0){
+    if(pe&&pe.id&&!pe.played&&banned.indexOf(pe.id)<0&&!isTemporarilySkipped(pe.id)){
       var pj=null; try{ pj=await resolvePlayable(pe.id); }catch(e){}
       if(my!==token)return;
       if(pj){
@@ -6174,7 +6223,7 @@ async function tuneIA(ch,sl,my){
     }
   }
   var pc=preloadCache; /* 1.4: near-gapless cuts — the next program was resolved while the last one played */
-  if(pc&&pc.chNum===ch.num&&pc.pl&&(Date.now()-pc.at)<1800000&&banned.indexOf(pc.pl.id)<0){
+  if(pc&&pc.chNum===ch.num&&pc.pl&&(Date.now()-pc.at)<1800000&&banned.indexOf(pc.pl.id)<0&&!isTemporarilySkipped(pc.pl.id)){
     preloadCache=null;
     nlog("preload",true,"instant start from preload");
     if(await playFile(pc.pl,ch,sl,my,0)) return;
@@ -6324,6 +6373,7 @@ function playFile(it,ch,sl,my,isFallback){return new Promise(res=>{
     }
     if(adsOn && !ch.source && !ch.audio && ch.gl!=="commercials"){ await fadeOutCurrent(); if(await playAdBreak(ch,sl,my)) return; } // fade to black, then break
     try{ if(curVideo&&isFinite(curVideo.duration)){ totalMs+=curVideo.duration*1000; store.set("totalMs",totalMs); } }catch(e){} // NEW: watch-stats tally
+    fastTuneDrop(ch.num); /* An ended program must advance, never restart from the return-tune cache. */
     if(token===my&&powered) tuneNum(curNum); },{signal:sig}); // 'ended' is still the ONLY advance path
   /* buffering / stall handling — show spinner, auto-recover if a feed hangs */
   v.addEventListener("waiting",()=>{ if(my===token&&curVideo===v){ showBuffer(); armStall(my); } },{signal:sig});
@@ -13555,7 +13605,7 @@ async function playBumper(ch,sl,my){
 /* ===== v10.1: skip — next item on the same channel, on demand ===== */
 function skipOne(){ if(!powered){quickBanner("TURN THE TV ON FIRST");return;}
   var sc=byNum(curNum); if(sc)schedClear(sc); /* 1.2: SKIP = manual re-roll of the slot */
-  if(curItem&&curItem.id){markSkipped(curItem.id);delete fastTuneCache[String(curNum)];store.set("fastTune",fastTuneCache);}
+  if(curItem&&curItem.id){markSkipped(curItem.id);fastTuneDrop(curNum);}
   adQueue=0; /* skipping during a break kills the rest of the break */
   quickBanner("SKIPPING\u2026"); resetProgress(); tuneNum(curNum); }
 

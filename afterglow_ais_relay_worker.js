@@ -24,7 +24,10 @@
  *   AIS_API_KEY   your aisstream.io API key (set as a Secret in Workers dash)
  * ============================================================================ */
 
-const AISSTREAM_URL = "wss://stream.aisstream.io/v0/stream";
+/* IMPORTANT: Cloudflare Workers `fetch()` accepts https:// only. The wss:// upgrade happens
+   because of the Upgrade: websocket header, not the URL scheme. Using wss:// throws
+   "Fetch API cannot load" and returns 502 to the client. */
+const AISSTREAM_URL = "https://stream.aisstream.io/v0/stream";
 
 export default {
   async fetch(request, env, ctx) {

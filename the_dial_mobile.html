@@ -1204,7 +1204,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.196";
+window.__ATV_BUILD="1.7.7-mobile.197";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -6906,6 +6906,7 @@ wire("setPicLink",function(){ toggleSettings(); togglePic(); });
 wire("setDiagLink",function(){ toggleSettings(); toggleDiag(); });
 
 /* ---------- CYCLE-12: external feed health check — one row per service, OK/ERR + latency ---------- */
+function healthM3U(url){return withTO(fetch(url,{cache:"no-store"}).then(function(r){if(!r.ok)throw new Error("http "+r.status);return r.text();}).then(function(t){if(!/#EXTM3U/.test(t))throw new Error("invalid playlist");return true;}),15000);}
 var HEALTH_SOURCES=[
  ["Internet Archive search",function(){return fetchJSON(iaURL("mediatype:movies",1,1));}],
  ["Internet Archive metadata",function(){return fetchJSON("https://archive.org/metadata/prelinger/metadata/identifier");}],
@@ -6918,6 +6919,8 @@ var HEALTH_SOURCES=[
  ["NOAA tides",function(){return fetchJSON("https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=predictions&application=archive_tv&date=today&datum=MLLW&station=8771450&time_zone=lst_ldt&units=english&interval=hilo&format=json");}],
  ["ISS tracker",function(){return fetchJSON("https://api.wheretheiss.at/v1/satellites/25544");}],
  ["Aviation weather (METAR)",function(){return fetchJSONResilient("https://aviationweather.gov/api/data/metar?format=json&ids=KACT","health");}],
+ ["Live TV catalog (IPTV-org)",function(){return healthM3U("https://iptv-org.github.io/iptv/languages/eng.m3u");}],
+ ["Live TV FAST catalog",function(){return healthM3U("https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/refs/heads/main/playlists/tubi_all.m3u");}],
  ["Flight data relay fallback",function(){return fetchJSONviaProxy("https://api.adsb.lol/v2/point/31.6/-97.2/5");}],
  ["NIFC wildfires",function(){return fetchJSON("https://services3.arcgis.com/T4QMspbfLg3qTGWY/arcgis/rest/services/WFIGS_Incident_Locations_Current/FeatureServer/0/query?f=json&where=1%3D1&outFields=IncidentName&resultRecordCount=1").then(function(d){if(d&&d.error)throw new Error("query rejected");return d;});}],
  ["GDELT newswire",function(){return fetchJSONResilient("https://api.gdeltproject.org/api/v2/doc/doc?query=earthquake%20sourcelang:eng&mode=ArtList&maxrecords=1&format=json","health");}],

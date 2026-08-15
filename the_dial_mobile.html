@@ -1204,7 +1204,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.205";
+window.__ATV_BUILD="1.7.7-mobile.206";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -5533,10 +5533,9 @@ async function pickIA(q){
 function normTitle(t){return String(t||"").toLowerCase().replace(/\(\d{4}\)/g,"").replace(/[^a-z0-9]+/g," ").trim();}
 function choose(docs){
   const cur=(curItem&&typeof curItem==="object")?curItem.id:null;
-  let ok=(docs||[]).filter(x=>x&&x.identifier&&x.identifier!==cur&&banned.indexOf(x.identifier)<0); // never re-offer a banished item
-  if(!ok.length) ok=(docs||[]).filter(x=>x&&x.identifier&&x.identifier!==cur);
-  if(!ok.length) ok=(docs||[]).filter(x=>x&&x.identifier);               // last resort even ignores bans, so a thin channel never fully dies
-  if(!ok.length) return null;
+  let ok=(docs||[]).filter(x=>x&&x.identifier&&x.identifier!==cur&&banned.indexOf(x.identifier)<0&&!isTemporarilySkipped(x.identifier));
+  if(!ok.length) ok=(docs||[]).filter(x=>x&&x.identifier&&x.identifier!==cur&&banned.indexOf(x.identifier)<0&&!isTemporarilySkipped(x.identifier));
+  if(!ok.length) return null; /* Skip and Banish must never silently replay the rejected item. */
   const notDupeTitle=x=>recentTitles.indexOf(normTitle(x.title))<0;      // NEW: skip near-duplicate re-uploads of a film we just played
   let fresh=ok.filter(x=>!blockedId(x.identifier)&&notDupeTitle(x));
   if(!fresh.length) fresh=ok.filter(x=>!blockedId(x.identifier));        // if dedup ate the whole pool, fall back without it
@@ -5860,10 +5859,10 @@ function setSig(s,l){led.className="led "+(s||"");sigText.textContent=l;}
 function showOv(big,standby,sub){ov.classList.remove("hide");ovBig.textContent=big;
   ovStandby.style.display=standby?"block":"none";if(standby)ovStandby.textContent=standby;ovSub.textContent=sub||"";}
 function hideOv(){ov.classList.add("hide");}
-function clearScreen(){killMedia();screenArea.innerHTML="";bars.style.display="none";audioScreen.classList.add("hide");
+function clearScreen(keepMedia){if(!keepMedia){killMedia();screenArea.innerHTML="";}bars.style.display="none";audioScreen.classList.add("hide");
   rtTeardown(); stopAfdSpeech(); stopIAJazz(); stopHazTicker(); /* registry teardown replaces the old hand-maintained 12-timer list */
   if(shipSocket){ try{shipSocket.close();}catch(e){} shipSocket=null; } /* AIS websocket isn't a setInterval timer, needs its own explicit teardown */
-  curVideo=null;curItem=null;resetProgress();hideBuffer();clearStall();} /* 1.2.3: data channels no longer inherit the last video's identity */
+  if(!keepMedia){curVideo=null;curItem=null;}resetProgress();hideBuffer();clearStall();} /* 1.2.3: data channels no longer inherit the last video's identity */
 function applyAV(){const el=screenArea.querySelector("video,audio");if(el){el.muted=muted;el.volume=vol;}
   if(iaJazzEl){iaJazzEl.muted=muted;iaJazzEl.volume=vol*0.5;}}
 
@@ -5881,14 +5880,16 @@ async function tuneNum(n){
   volHint.classList.remove("show");
   setSig("tuning","TUNING"); sfxStatic();
   try{ var fxs=document.getElementById("fxStatic"); if(fxs){ fxs.classList.remove("burst"); void fxs.offsetWidth; fxs.classList.add("burst"); } }catch(e){}
-  if(changedChannel){ // NEW: station bumper + regional-flavor ident + rolling-dial number + colored ident flash
+  const holdPicture=!!(!sl.source&&curVideo&&curVideo.tagName==="VIDEO"&&!curVideo.paused&&curVideo.parentNode===screenArea);
+  if(changedChannel&&!holdPicture){ // Keep the outgoing picture up while the new station resolves.
     var identLine=(CATNAME[ch.cat]||"")+" \u00b7 "+sl.show;
     if(ch.cat==="NET" && Math.random()<0.5){ var RI=regionalIdents(); identLine=RI[Math.floor(Math.random()*RI.length)]; }
     showOv("YOU'RE WATCHING",ch.nm.toUpperCase(),identLine);
     rollDialTo(n); flashIdent(ch.cat);
   }
-  else showOv("TUNING…","PLEASE STAND BY","“"+ch.nm+"” — "+sl.show);
-  clearScreen();
+  else if(!holdPicture) showOv("TUNING…","PLEASE STAND BY","“"+ch.nm+"” — "+sl.show);
+  else hideOv();
+  clearScreen(holdPicture);
   /* QA FIX: data channels (source-based) never set lastMeta, so it retained whatever the last
      content channel wrote — contaminating every subsequent soak sample with stale metadata. */
   if(sl.source) lastMeta=null;
@@ -5965,6 +5966,9 @@ async function tuneNum(n){
    re-rolls through the Programming Director exactly as before. SKIP/BANISH/MARATHON
    clear the slot (manual re-roll). Keyed by channel name; survives power-off. */
 var schedMap=store.get("sched",{});
+var skipUntil=store.get("skipUntil",{}), SKIP_COOLDOWN=2*60*60*1000;
+function isTemporarilySkipped(id){var until=skipUntil[id]||0;if(until&&until<=Date.now()){delete skipUntil[id];store.set("skipUntil",skipUntil);return false;}return until>Date.now();}
+function markSkipped(id){if(!id)return;skipUntil[id]=Date.now()+SKIP_COOLDOWN;var ks=Object.keys(skipUntil);if(ks.length>200){ks.sort(function(a,b){return skipUntil[a]-skipUntil[b];});while(ks.length>200)delete skipUntil[ks.shift()];}store.set("skipUntil",skipUntil);}
 var lastMeta=null; /* 1.3: programming flow memory */
 var preloadCache=null; /* 1.4: the next program, resolved ahead of time */
 /* Rapid Tune cache: Archive discovery can be slow or blocked, but a resolved direct CDN URL
@@ -5972,7 +5976,7 @@ var preloadCache=null; /* 1.4: the next program, resolved ahead of time */
    go straight to media rather than repeating search + metadata every time. */
 var fastTuneCache=store.get("fastTune",{}), FAST_TUNE_TTL=36*60*60*1000, FAST_TUNE_MAX=24;
 function fastTuneGet(chNum){var e=fastTuneCache[String(chNum)];
-  if(!e||!e.pl||!e.pl.url||Date.now()-e.at>FAST_TUNE_TTL){if(e){delete fastTuneCache[String(chNum)];store.set("fastTune",fastTuneCache);}return null;}
+  if(!e||!e.pl||!e.pl.url||Date.now()-e.at>FAST_TUNE_TTL||isTemporarilySkipped(e.pl.id)||(Array.isArray(banned)&&banned.indexOf(e.pl.id)>=0)){if(e){delete fastTuneCache[String(chNum)];store.set("fastTune",fastTuneCache);}return null;}
   return {type:e.pl.type,url:e.pl.url,alts:(e.pl.alts||[]).slice(),id:e.pl.id,captions:e.pl.captions||null,
     meta:e.pl.meta||{},title:e.pl.title||"",year:e.pl.year||""};}
 function fastTunePut(chNum,it){if(!it||!it.id||!it.url)return;
@@ -13491,6 +13495,7 @@ async function playBumper(ch,sl,my){
 /* ===== v10.1: skip — next item on the same channel, on demand ===== */
 function skipOne(){ if(!powered){quickBanner("TURN THE TV ON FIRST");return;}
   var sc=byNum(curNum); if(sc)schedClear(sc); /* 1.2: SKIP = manual re-roll of the slot */
+  if(curItem&&curItem.id){markSkipped(curItem.id);delete fastTuneCache[String(curNum)];store.set("fastTune",fastTuneCache);}
   adQueue=0; /* skipping during a break kills the rest of the break */
   quickBanner("SKIPPING\u2026"); resetProgress(); tuneNum(curNum); }
 

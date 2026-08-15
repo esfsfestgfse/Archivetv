@@ -1204,7 +1204,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.195";
+window.__ATV_BUILD="1.7.7-mobile.196";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -6918,24 +6918,18 @@ var HEALTH_SOURCES=[
  ["NOAA tides",function(){return fetchJSON("https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=predictions&application=archive_tv&date=today&datum=MLLW&station=8771450&time_zone=lst_ldt&units=english&interval=hilo&format=json");}],
  ["ISS tracker",function(){return fetchJSON("https://api.wheretheiss.at/v1/satellites/25544");}],
  ["Aviation weather (METAR)",function(){return fetchJSONResilient("https://aviationweather.gov/api/data/metar?format=json&ids=KACT","health");}],
- ["adsb.lol (flights)",function(){return fetchJSON("https://api.adsb.lol/v2/point/31.6/-97.2/5");}],
- ["airplanes.live (flights)",function(){return fetchJSON("https://api.airplanes.live/v2/point/31.6/-97.2/5");}],
+ ["Flight data relay fallback",function(){return fetchJSONviaProxy("https://api.adsb.lol/v2/point/31.6/-97.2/5");}],
  ["NIFC wildfires",function(){return fetchJSON("https://services3.arcgis.com/T4QMspbfLg3qTGWY/arcgis/rest/services/WFIGS_Incident_Locations_Current/FeatureServer/0/query?f=json&where=1%3D1&outFields=IncidentName&resultRecordCount=1").then(function(d){if(d&&d.error)throw new Error("query rejected");return d;});}],
  ["GDELT newswire",function(){return fetchJSONResilient("https://api.gdeltproject.org/api/v2/doc/doc?query=earthquake%20sourcelang:eng&mode=ArtList&maxrecords=1&format=json","health");}],
- ["Piped video search #1",function(){return fetchJSON("https://pipedapi.kavin.rocks/search?q=volcano&filter=videos");}],
- ["Piped video search #2",function(){return fetchJSON("https://pipedapi.adminforge.de/search?q=volcano&filter=videos");}],
  ["Wikipedia",function(){return fetchJSON("https://en.wikipedia.org/api/rest_v1/page/summary/Internet_Archive");}],
  ["Wikimedia Commons",function(){return fetchJSON("https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&meta=siteinfo");}],
  ["NASA images",function(){return fetchJSON("https://images-api.nasa.gov/search?q=apollo&media_type=image&page_size=1");}],
  ["FAA status",function(){return fetchTextResilient("https://nasstatus.faa.gov/api/airport-status-information","health");}],
- ["Relay: allorigins",function(){return withTO(fetch("https://api.allorigins.win/raw?url="+encodeURIComponent("https://archive.org/metadata/prelinger/metadata/identifier")).then(function(r){if(!r.ok)throw new Error("http "+r.status);return r.json();}),15000);}],
- ["Relay: corsproxy.io",function(){return withTO(fetch("https://corsproxy.io/?url="+encodeURIComponent("https://archive.org/metadata/prelinger/metadata/identifier")).then(function(r){if(!r.ok)throw new Error("http "+r.status);return r.json();}),15000);}],
- ["YouTube via relay",function(){return fetchTextResilient("https://www.youtube.com/results?search_query=test","health").then(function(t){if(!/videoRenderer/.test(t))throw new Error("degraded page");return true;});}],
+ ["CORS relay chain",function(){return fetchJSONviaProxy("https://archive.org/metadata/prelinger/metadata/identifier");}],
  ["Historic Waco: LOC photos",function(){return fetchJSONResilient("https://www.loc.gov/photos/?q=Waco+Texas&fo=json&c=1&at=results","health");}],
  ["Historic Waco: Wikimedia",function(){return fetchJSONResilient("https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrsearch=Waco%20Texas&gsrnamespace=6&gsrlimit=1&prop=imageinfo&iiprop=url","health");}],
  ["iNaturalist",function(){return fetchJSON("https://api.inaturalist.org/v1/observations?lat=31.58&lng=-97.13&radius=20&per_page=1");}],
- ["Open-Meteo air quality",function(){return fetchJSON("https://air-quality-api.open-meteo.com/v1/air-quality?latitude=31.58&longitude=-97.13&current=us_aqi");}],
- ["NARA catalog (your key)",function(){return withTO(fetch("https://catalog.archives.gov/api/v2/records/search?q=film&limit=1",{headers:{"x-api-key":naraKey()}}).then(function(r){if(!r.ok)throw new Error("http "+r.status);return r.json();}),15000);}]
+ ["Open-Meteo air quality",function(){return fetchJSON("https://air-quality-api.open-meteo.com/v1/air-quality?latitude=31.58&longitude=-97.13&current=us_aqi");}]
 ];
 function runHealthCheck(){
   var box=$("healthList"); if(!box)return;
@@ -8151,8 +8145,7 @@ function triggerEmergencyTakeover(props){
    logging), but ANY failure now falls through to NARA/government film mirrors hosted on the
    Internet Archive itself (FedFlix + subject search), which are verified live and always play. */
 var NARA_Q=["moving images","motion picture film","newsreel","documentary film"];
-var NARA_DEFAULT_KEY="ROrTDTdjNg4cabAN0okp4ZbJNw4smW68mTLcFxQ2"; /* owner-provided key; Settings overrides */
-function naraKey(){ return (store.get("naraKey",NARA_DEFAULT_KEY)||NARA_DEFAULT_KEY).trim(); }
+function naraKey(){ return String(store.get("naraKey","")||"").trim(); }
 async function tuneNARA(ch,sl,my){
   if(my!==token)return;
   var mirror=function(note){ /* 1.3.3: DAYPARTED government-film network — the FedFlix mirror

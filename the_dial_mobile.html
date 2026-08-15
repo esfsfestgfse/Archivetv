@@ -1204,7 +1204,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.185";
+window.__ATV_BUILD="1.7.7-mobile.186";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -10200,11 +10200,12 @@ async function tuneGrid(ch,sl,my){
   var run=async function(){
     if(my!==token||!powered){ clearInterval(gridTimer); return; }
     try{
-      /* EIA hourly RTO region-data for ERCOT (TEX). type=D=Demand, NG=Net Generation, DF=Demand Forecast. */
+      /* EIA hourly RTO region-data for ERCOT (TEX). type=D=Demand, NG=Net Generation, DF=Demand Forecast.
+         2026-08-14: promoted to fetchJSONResilient so direct EIA CORS-hiccups fall through to relay. */
       var base="https://api.eia.gov/v2/electricity/rto/region-data/data/?api_key="+EIA_KEY+
         "&frequency=hourly&data[]=value&facets[respondent][]=TEX"+
         "&sort[0][column]=period&sort[0][direction]=desc&length=100";
-      var d=await fetchJSON(base); if(my!==token)return;
+      var d=await fetchJSONResilient(base,"grid"); if(my!==token)return;
       var rows=(d&&d.response&&d.response.data)||[];
       if(!rows.length) throw new Error("no ERCOT rows returned");
       /* Split by type. Take most-recent value per type. */
@@ -10637,7 +10638,9 @@ async function tuneNewsstand(ch,sl,my){
             "&dateFilterType=yearRange&date1="+startYear+"&date2="+endYear+
             "&andtext=&page=1";
     try{
-      var d=await fetchJSON(url);
+      /* 2026-08-14: Chronicling America JSON API has no CORS header; use resilient path so
+         direct fetches fall through to the CORS relay when the browser refuses them. */
+      var d=await fetchJSONResilient(url,"newsstand");
       if(my!==token) return [];
       var items=(d && d.items)||[];
       /* each item has .id (path), .title (publication), .date (YYYYMMDD), .place_of_publication */
@@ -11644,7 +11647,9 @@ async function tuneGas(ch,sl,my){
       var url="https://api.eia.gov/v2/petroleum/pri/gnd/data/?api_key="+EIA_KEY+
         "&frequency=weekly&data[]=value&facets[duoarea][]=R"+padd+"0"+
         "&facets[product][]=EPMR&sort[0][column]=period&sort[0][direction]=desc&length=52"; /* 1 year of weekly data for a proper trend chart */
-      var d=await fetchJSON(url); if(my!==token)return;
+      /* 2026-08-14: EIA calls promoted to fetchJSONResilient — direct EIA has been intermittent
+         from browser origins; fall through to CORS relay on failure. */
+      var d=await fetchJSONResilient(url,"gas"); if(my!==token)return;
       var rows=(d&&d.response&&d.response.data)||[];
       var latest=rows[0];
       var bigEl=$("gasBig");
@@ -11660,7 +11665,7 @@ async function tuneGas(ch,sl,my){
       var diesUrl="https://api.eia.gov/v2/petroleum/pri/gnd/data/?api_key="+EIA_KEY+
         "&frequency=weekly&data[]=value&facets[duoarea][]=R"+padd+"0"+
         "&facets[product][]=EPD2D&sort[0][column]=period&sort[0][direction]=desc&length=1";
-      var dd=await fetchJSON(diesUrl).catch(function(){return null;}); if(my!==token)return;
+      var dd=await fetchJSONResilient(diesUrl,"gas-diesel").catch(function(){return null;}); if(my!==token)return;
       var dRow=dd&&dd.response&&dd.response.data&&dd.response.data[0];
       var listEl=$("dcList");
       if(listEl){
@@ -12689,9 +12694,10 @@ async function tuneHF(ch,sl,my){
     var listEl=$("hfSpotsList"), cntEl=$("hfSpotCount");
     try{
       var q="SELECT+time,tx_sign,rx_sign,band,power,tx_loc,rx_loc,distance,frequency+FROM+wspr.rx+WHERE+time+%3E+now()-INTERVAL+15+MINUTE+ORDER+BY+time+DESC+LIMIT+40";
-      var r=await withTO(fetch("https://db1.wspr.live/?query="+q+"&FORMAT=JSONCompact"),12000);
-      if(!r.ok)throw new Error("wspr.live http "+r.status);
-      var txt=await r.text(); if(my!==token)return;
+      /* 2026-08-14: wspr.live has no CORS header for our origin. Route through fetchTextResilient
+         so direct fetches fall through to the CORS relay chain on failure. */
+      var txt=await fetchTextResilient("https://db1.wspr.live/?query="+q+"&FORMAT=JSONCompact","wspr");
+      if(my!==token)return;
       var lines=txt.split("\n").filter(function(l){return l.trim();});
       if(!lines.length){ if(listEl)listEl.innerHTML='<div style="color:#9fd6a6;padding:12px;text-align:center;font-size:11px">No WSPR spots reported in the last 15 minutes.</div>'; return; }
       if(cntEl) cntEl.textContent=lines.length+" spots";
@@ -12725,8 +12731,9 @@ async function tuneHF(ch,sl,my){
         var series=rows.map(function(r){ var v=parseFloat(r[1]); return isNaN(v)?null:v; }).slice(-16);
         var chartEl=$("hfChart"); if(chartEl&&series.length) chartEl.innerHTML=svgBarChart(series,function(v){return v<4?"#67ff86":v<6?"#ffd34d":"#ff5c4d";},100,36);
       }
-      var txt=await withTO(fetch("https://services.swpc.noaa.gov/text/wwv.txt").then(function(r){
-        if(!r.ok)throw new Error("http "+r.status); return r.text(); }),15000);
+      /* 2026-08-14: WWV text file has CORS * from SWPC so direct usually works, but wrap for
+         parity with the other channels' resilient path. */
+      var txt=await fetchTextResilient("https://services.swpc.noaa.gov/text/wwv.txt","wwv");
       if(my!==token)return;
       var sf=/Solar flux (\d+)/.exec(txt);
       var aIdx=/planetary A-index[^\d]*(\d+)/.exec(txt);
@@ -12912,7 +12919,7 @@ async function tuneISS(ch,sl,my){
       '<div class="dc-top"><span>ISS TRACKER</span></div>'+
       '<div class="dc-sub" id="issOverhead"></div>'+
       '<div class="dc-list" id="dcList"></div>'+
-      '<div class="dc-ticker" id="issTicker">Open Notify \u00b7 live ISS telemetry \u00b7 updates every 10s</div>'+
+      '<div class="dc-ticker" id="issTicker">wheretheiss.at \u00b7 live ISS telemetry \u00b7 updates every 10s</div>'+
     '</div></div>';
   var issBug=mountChanBug("dcScreen",{ident:"ISS TRACKER"});
   clearInterval(issTimer);
@@ -12920,9 +12927,12 @@ async function tuneISS(ch,sl,my){
     if(my!==token||!powered){ clearInterval(issTimer); return; }
     try{
       var loc=await getWxLocation(); if(my!==token)return;
-      var d=await fetchJSON("https://api.open-notify.org/iss-now.json");
+      /* 2026-08-14: swap api.open-notify.org (unresponsive/dead) to api.wheretheiss.at which
+         returns {latitude, longitude, altitude, velocity, visibility} directly, has CORS *,
+         and is actively maintained. Wrapped in fetchJSONResilient anyway for durability. */
+      var d=await fetchJSONResilient("https://api.wheretheiss.at/v1/satellites/25544","iss");
       if(my!==token)return;
-      var pos=(d&&d.iss_position)||{}; var lat=parseFloat(pos.latitude), lon=parseFloat(pos.longitude);
+      var lat=parseFloat(d&&d.latitude), lon=parseFloat(d&&d.longitude);
       var cEl=$("issCoords"); if(cEl&&!isNaN(lat)) cEl.textContent=(lat>=0?lat.toFixed(2)+"\u00b0N":Math.abs(lat).toFixed(2)+"\u00b0S")+", "+(lon>=0?lon.toFixed(2)+"\u00b0E":Math.abs(lon).toFixed(2)+"\u00b0W");
       var dot=$("issDot");
       if(dot&&!isNaN(lat)&&!isNaN(lon)){ dot.style.left=((lon+180)/360*100)+"%"; dot.style.top=((90-lat)/180*100)+"%"; }
@@ -12936,12 +12946,20 @@ async function tuneISS(ch,sl,my){
       var a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(loc.lat*Math.PI/180)*Math.cos(lat*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
       var distMi=Math.round(2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))*3958.8);
       var ovEl=$("issOverhead"); if(ovEl) ovEl.textContent=(distMi<=1200?("~"+distMi+" mi from "+((loc.label)||"you")+" \u2014 could be visible overhead soon"):("~"+distMi.toLocaleString()+" mi from "+((loc.label)||"you")));
-      var astros=await fetchJSON("https://api.open-notify.org/astros.json").catch(function(){return null;});
-      if(my!==token)return;
+      /* 2026-08-14: dropped astros.json fetch — api.open-notify.org has been unresponsive for
+         months so the crew list was silently empty. Replaced with a static ISS-facts panel
+         that always renders. Live position + altitude still drive the map dot + status. */
       var listEl=$("dcList");
-      if(listEl&&astros&&astros.people){
-        listEl.innerHTML='<div class="dc-top" style="padding-top:4px">'+astros.number+' PEOPLE CURRENTLY IN SPACE</div>'+
-          astros.people.map(function(p){ return '<div class="dc-row2"><div class="dc-row2-main"><span class="dc-place">'+esch(p.name)+'</span><span class="dc-when">'+esch(p.craft)+'</span></div></div>'; }).join("");
+      if(listEl){
+        var altKm=(d&&d.altitude!=null)?Math.round(parseFloat(d.altitude)):null;
+        var velKmH=(d&&d.velocity!=null)?Math.round(parseFloat(d.velocity)):null;
+        var vis=(d&&d.visibility)||"unknown";
+        listEl.innerHTML='<div class="dc-top" style="padding-top:4px">TELEMETRY</div>'+
+          (altKm!=null?'<div class="dc-row2"><div class="dc-row2-main"><span class="dc-place">ALTITUDE</span><span class="dc-when">'+altKm+' km · '+Math.round(altKm*0.621)+' mi</span></div></div>':'')+
+          (velKmH!=null?'<div class="dc-row2"><div class="dc-row2-main"><span class="dc-place">VELOCITY</span><span class="dc-when">'+velKmH.toLocaleString()+' km/h · '+Math.round(velKmH*0.621).toLocaleString()+' mph</span></div></div>':'')+
+          '<div class="dc-row2"><div class="dc-row2-main"><span class="dc-place">VISIBILITY</span><span class="dc-when">'+esch(String(vis))+'</span></div></div>'+
+          '<div class="dc-row2"><div class="dc-row2-main"><span class="dc-place">ORBITS EARTH</span><span class="dc-when">~ every 92 min</span></div></div>'+
+          '<div class="dc-row2"><div class="dc-row2-main"><span class="dc-place">CONTINUOUSLY CREWED SINCE</span><span class="dc-when">Nov 2, 2000</span></div></div>';
       }
       nlog("iss",true,(lat||0).toFixed(1)+","+(lon||0).toFixed(1));
     }catch(e){ nlog("iss",false,(e&&e.message)||e);

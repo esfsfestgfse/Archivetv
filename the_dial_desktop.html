@@ -1098,7 +1098,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.172";
+window.__ATV_BUILD="1.7.7-desktop.173";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -5823,6 +5823,20 @@ function fastTunePut(chNum,it){if(!it||!it.id||!it.url)return;
     captions:it.captions||null,meta:it.meta||{},title:it.title||"",year:it.year||""}};
   var keys=Object.keys(fastTuneCache).sort(function(a,b){return fastTuneCache[a].at-fastTuneCache[b].at;});
   while(keys.length>FAST_TUNE_MAX)delete fastTuneCache[keys.shift()]; store.set("fastTune",fastTuneCache);}
+var rapidWarmVideo=null;
+function warmRapidTune(){ /* One quiet first-run warmup: last station only, never the whole lineup. */
+  var ch=byNum(+store.get("last",curNum)); if(!ch||fastTuneGet(ch.num))return;
+  var rec=schedMap[ch.nm]; if(!rec||!rec.id)return;
+  resolvePlayable(rec.id).then(function(pl){if(!pl)return;
+    pl.title=rec.title||pl.title; pl.year=rec.year||pl.year; fastTunePut(ch.num,pl);
+    if(pl.type!=="video")return;
+    try{rapidWarmVideo=document.createElement("video");rapidWarmVideo.preload="auto";rapidWarmVideo.muted=true;rapidWarmVideo.src=pl.url;rapidWarmVideo.load();
+      setTimeout(function(){try{rapidWarmVideo.pause();rapidWarmVideo.removeAttribute("src");rapidWarmVideo.load();}catch(e){}rapidWarmVideo=null;},12000);
+    }catch(e){}
+    nlog("rapid-tune",true,"warmed CH "+ch.num+" before power on");
+  }).catch(function(){});
+}
+setTimeout(warmRapidTune,700);
 
 /* ===== 1.5 STATION MANAGER (beta, OFF by default) =====
    When enabled in Settings, the set plans ahead: concrete programs are picked for the

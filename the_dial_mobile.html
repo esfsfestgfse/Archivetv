@@ -1204,7 +1204,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.198";
+window.__ATV_BUILD="1.7.7-mobile.199";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -6918,6 +6918,7 @@ var HEALTH_SOURCES=[
  ["NOAA tides",function(){return fetchJSON("https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=predictions&application=archive_tv&date=today&datum=MLLW&station=8771450&time_zone=lst_ldt&units=english&interval=hilo&format=json");}],
  ["ISS tracker",function(){return fetchJSON("https://api.wheretheiss.at/v1/satellites/25544");}],
  ["Aviation weather (METAR)",function(){return fetchJSONResilient("https://aviationweather.gov/api/data/metar?format=json&ids=KACT","health");}],
+ ["Energy data (EIA)",function(){return fetchJSONResilient("https://api.eia.gov/v2/electricity/rto/region-data/data/?api_key=DEMO_KEY&frequency=hourly&data[]=value&facets[respondent][]=TEX&sort[0][column]=period&sort[0][direction]=desc&length=1","health").then(function(d){if(!d||!d.response||!Array.isArray(d.response.data)||!d.response.data.length)throw new Error("no ERCOT rows");return d;});}],
  ["Sports scoreboard (ESPN)",function(){return fetchSportsData("https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard","health").then(function(d){if(!d||!Array.isArray(d.events))throw new Error("unexpected scoreboard");return d;});}],
  ["Live TV catalog (IPTV-org)",function(){return healthM3U("https://iptv-org.github.io/iptv/languages/eng.m3u");}],
  ["Live TV FAST catalog",function(){return healthM3U("https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/refs/heads/main/playlists/tubi_all.m3u");}],
@@ -11728,7 +11729,7 @@ async function tuneShips(ch,sl,my){
   }catch(e){ nlog("ais",false,(e&&e.message)||e); statusPill("st-down","could not start AIS stream"); }
   render();
 }
-var EIA_KEY="FZH1LWEZjMe2CcwfC3wh6evYHObLeMsNICaNsARL";
+var EIA_KEY="DEMO_KEY"; /* supported public EIA access; no private credential in the client */
 /* Official EIA PADD region membership — not approximated from lat/lon, these are the exact state
    groupings EIA itself uses for regional gas price reporting. */
 var PADD_BY_STATE={CT:1,DE:1,FL:1,GA:1,ME:1,MD:1,MA:1,NH:1,NJ:1,NY:1,NC:1,PA:1,RI:1,SC:1,VT:1,VA:1,WV:1,DC:1,

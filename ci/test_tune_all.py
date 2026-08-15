@@ -53,7 +53,10 @@ async def main():
         pre = len(errors)
         for i, n in enumerate(nums):
             pre_count = len(errors)
-            await pg.evaluate("(n)=>tuneNum(n)", n)
+            # tuneNum() starts long-lived channel work (refresh timers, media
+            # probes, and live-data fetches). Do not await that lifecycle here;
+            # this sweep only needs to trigger the tune and observe page errors.
+            await pg.evaluate("(n)=>{ tuneNum(n); }", n)
             await pg.wait_for_timeout(800)
             if len(errors) > pre_count:
                 nm = await pg.evaluate(f"()=>CH.find(c=>c.num==={n}).nm")

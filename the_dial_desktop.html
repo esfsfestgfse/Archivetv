@@ -5441,7 +5441,7 @@ function iaProgramAllowed(item,sl){
 }
 async function iaQueueRequest(ch,sl,count){
   var qs=(sl&&sl.queries||[]).slice(0,5);if(!qs.length)return [];
-  try{var d=await withTO(fetch(IA_RELAY_BASE+"/queue",{method:"POST",mode:"cors",headers:{"content-type":"application/json"},body:JSON.stringify({channel:iaQueueKey(ch),queries:qs,count:Math.max(1,Math.min(5,count||5))})}).then(function(r){if(!r.ok)throw new Error("queue "+r.status);return r.json();}),3600);
+  try{var d=await withTO(fetch(IA_RELAY_BASE+"/queue",{method:"POST",mode:"cors",headers:{"content-type":"application/json"},body:JSON.stringify({channel:iaQueueKey(ch),queries:qs,count:Math.max(1,Math.min(5,count||5))})}).then(function(r){if(!r.ok)throw new Error("queue "+r.status);return r.json();}),28000);
     var out=((d&&d.items)||[]).filter(function(it){return iaProgramAllowed(it,sl);});out.hydrating=!!(d&&d.hydrating);return out;
   }catch(e){nlog("queue",false,"director unavailable: "+(e&&e.message||e));return [];}
 }

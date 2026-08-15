@@ -6048,12 +6048,14 @@ async function buildPlan(){
 }
 setInterval(function(){ if(stationMgr&&powered)buildPlan(); },900000);
 async function preloadNext(ch,sl,my){
-  if(my!==token||!powered||!sl||!sl.queries)return;
+  /* This cache belongs to the channel, not a single tune token. Let it complete
+     across a same-channel SKIP so the new program is already playable. */
+  if(!powered||!sl||!sl.queries)return;
   try{
     var item=takeIAQueue(ch,sl)||await pickFromQueries(sl.queries);
-    if(my!==token||!item)return;
+    if(!item)return;
     var pl=iaProgramMedia[item.identifier]; if(pl&&typeof pl.then==="function")pl=await pl; else if(!pl)pl=await resolvePlayable(item.identifier);
-    if(my!==token||!pl)return;
+    if(!pl)return;
     pl.title=item.title||item.identifier; pl.year=item.year;
     preloadCache={chNum:ch.num,pl:pl,at:Date.now()};
     nlog("preload",true,'CH '+ch.num+' next: "'+String(pl.title).slice(0,40)+'"');
@@ -6243,9 +6245,9 @@ function playFile(it,ch,sl,my,isFallback){return new Promise(res=>{
       if(my!==token){ try{v.pause();}catch(e){} return res(true);} // superseded; report handled
       hideOv(); hideBuffer(); setSig("live", isAudio?"ON AIR ♪":"ON AIR");
       nlog("audio",!v.muted,(v.muted?"MUTED":"AUDIBLE")+" start / vol="+Math.round(v.volume*100)+(muted?" / GLOBAL MUTE ON":"")); /* 1.2.2: every program logs its audio state to DIAG */
-      if(!it.isAd&&!it.isSignoff&&ch&&ch.num>0&&sl&&sl.queries){ /* 1.4: after 20s of stable playback, quietly resolve the NEXT program */
+      if(!it.isAd&&!it.isSignoff&&ch&&ch.num>0&&sl&&sl.queries){ /* resolve the NEXT program before a viewer can hit SKIP */
         clearTimeout(preloadNext._t);
-        preloadNext._t=setTimeout(function(){ preloadNext(ch,sl,my); },20000);
+        preloadNext._t=setTimeout(function(){ preloadNext(ch,sl,my); },2500);
       }
       if(v.muted&&!muted){ needSound(true); setTimeout(function(){ attemptUnmute(v); },400); }
       if(isAudio){ audioScreen.classList.remove("hide"); audioTitle.textContent=it.title||ch.nm;

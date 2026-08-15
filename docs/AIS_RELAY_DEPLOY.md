@@ -41,6 +41,19 @@ The Worker injects the AISStream key into WebSocket subscriptions and sends
 Kpler credentials only from its server-side snapshot request. The browser
 never sees either secret.
 
+## Repeat deployments
+
+The repository now includes `wrangler.jsonc`, so subsequent source updates can
+be deployed without re-creating the Worker. After authenticating Wrangler or
+the Cloudflare MCP integration, deploy from the repository root with:
+
+```powershell
+pnpm dlx wrangler@latest deploy --keep-vars
+```
+
+`--keep-vars` preserves the provider variables already configured in the
+dashboard. Do not place provider keys in this repository or in `wrangler.jsonc`.
+
 ## Test it
 
 13. Open `<worker-url>/` in a browser. It returns a small health JSON object.

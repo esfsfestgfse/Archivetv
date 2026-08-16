@@ -1098,7 +1098,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.179";
+window.__ATV_BUILD="1.7.7-desktop.181";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -5486,13 +5486,17 @@ function iaFastJSON(url,ms){return withTO(fetch(url,{mode:"cors"}).then(r=>{if(!
 function iaFastProxy(url){return firstOk(CORS_RELAYS.map(function(make,i){return {tag:"archive-proxy-"+(i+1),delay:i*220,run:function(){return iaFastJSON(make(url),2000);}};}));}
 function iaSearch(q,rows,page,sort){
   const au=iaURL(q,rows,page,sort);
-  return firstOk([
+  const routes=[
     {tag:"search:afterglow-relay",delay:0,run:()=>iaFastJSON(iaRelaySearchURL(q,rows,page,sort)).then(normSearch)},
-    {tag:"search:jsonp",  delay:0,   run:()=>jsonp(au,2200).then(normSearch)},
     {tag:"search:cors",   delay:180, run:()=>iaFastJSON(au).then(normSearch)},
     {tag:"search:scrape", delay:360, run:()=>iaFastJSON(scrapeURL(q,rows,sort)).then(normSearch)},
     {tag:"search:proxy",  delay:540, run:()=>iaFastProxy(au).then(normSearch)}
-  ]);
+  ];
+  /* JSONP is only a file:// escape hatch. On a normal web build it starts a
+     cross-origin script for every IA lookup, producing the soak's hundreds of
+     opaque “Script error.” events even when the relay has already answered. */
+  if(fileMode)routes.splice(1,0,{tag:"search:jsonp",delay:0,run:()=>jsonp(au,2200).then(normSearch)});
+  return firstOk(routes);
 }
 /* QA FIX: was unbounded and untimed -- one entry per sort+query+era-slice grew without limit
    across a session. In a long PWA session surfing many channels through 6 strategies each, this
@@ -5591,8 +5595,13 @@ function choose(docs){
   return ok[0];}
 async function pickFromQueries(qs){for(const q of qs){try{const it=await pickIA(q);if(it)return it;}catch(e){}}return null;}
 async function pickFromQueriesFast(qs,lanes){var pick=(qs||[]).slice(0,Math.max(1,lanes||2));if(!pick.length)return null;
-  var out=await Promise.all(pick.map(function(q){return withTO(pickIA(q),4500).catch(function(){return null;});}));
-  return out.find(function(item){return !!item;})||null;
+  /* Promise.all made a fast valid result wait behind another sparse lane's
+     timeout. Resolve the instant any approved program is found. */
+  return new Promise(function(resolve){var left=pick.length,done=false;
+    pick.forEach(function(q){withTO(pickIA(q),4500).then(function(item){
+      if(done)return;if(item){done=true;resolve(item);return;}if(--left<=0){done=true;resolve(null);}
+    },function(){if(!done&&--left<=0){done=true;resolve(null);}});});
+  });
 }
 
 /* metadata -> a directly playable file (so volume + 'ended' work) */

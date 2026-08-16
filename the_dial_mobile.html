@@ -1192,6 +1192,14 @@ html.mob .pop{max-width:94vw}
   letter-spacing:.5px;cursor:pointer;-webkit-tap-highlight-color:transparent}
 #splashGo:active{filter:brightness(1.15)}
 </style>
+<style id="hardware-rebuild">
+/* Mobile keeps its touch remote, while the live picture is seated in the same
+   photographic CRT/cable-box cabinet as the desktop version. */
+html.mob .room{padding:7px 7px 18px;background:radial-gradient(70% 50% at 50% 0%,rgba(109,68,37,.34),transparent 72%),#060606;height:auto;min-height:100dvh}
+html.mob .stage{display:grid;flex:none;grid-template-columns:1fr;max-width:100%;height:auto;min-height:0;gap:0}
+html.mob .console{width:100%;flex:none;aspect-ratio:3/2;min-height:0;display:block;padding:0;border:0;border-radius:13px;background:url("assets/afterglow-crt-cablebox-v1.png") center/100% 100% no-repeat;box-shadow:0 16px 38px rgba(0,0,0,.72)}
+html.mob .console::before,html.mob .speaker,html.mob .console-legs{display:none!important}html.mob .set{position:absolute;left:13.2%;top:7.1%;width:63%;height:58.4%;display:block;min-height:0}html.mob .tube{width:100%;height:100%;min-height:0;border:0;border-radius:9%/12%;box-shadow:inset 0 0 32px rgba(0,0,0,.9);overflow:hidden}html.mob .curve{border-radius:9%/12%!important}.marq-wall{font-size:8px;letter-spacing:2px}
+</style>
 </head>
 <body>
 <script>
@@ -1204,7 +1212,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.217";
+window.__ATV_BUILD="1.7.7-mobile.218";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }

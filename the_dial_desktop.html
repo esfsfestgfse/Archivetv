@@ -1087,6 +1087,27 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
 .audio-screen.hasart .audio-art{display:block}
 .audio-screen.hasart .vinyl{opacity:.28;transform:scale(.82)}
 </style>
+<style id="hardware-rebuild">
+/* Interactive video remains real HTML, but now sits inside a photographic CRT
+   cabinet and Scientific-Atlanta-inspired cable box instead of a flat shell. */
+@media (min-width:881px){
+  .room{padding:14px 18px 22px;gap:4px;background:radial-gradient(68% 62% at 50% 0%,rgba(126,78,39,.3),transparent 72%),radial-gradient(110% 100% at 50% 100%,#0e0b08 0%,#050505 72%)}
+  .room::after{height:150px;opacity:.72}.marq-wall{max-width:1450px;text-align:left;padding:5px 12px;color:#c9a576;font:700 10px/1 monospace;letter-spacing:4px;opacity:.72}
+  .stage{max-width:1500px;grid-template-columns:1fr;gap:0;justify-items:center;align-items:start}
+  .console{width:min(100%,1360px);aspect-ratio:3/2;min-height:0;padding:0;border:0;border-radius:22px;background:url("assets/afterglow-crt-cablebox-v1.png") center/100% 100% no-repeat;box-shadow:0 30px 80px rgba(0,0,0,.8),0 4px 0 rgba(255,214,160,.08) inset;isolation:isolate}
+  .console::before{display:none}.set{position:absolute;left:13.2%;top:7.1%;width:63%;height:58.4%;display:block}.speaker,.console-legs{display:none}
+  .tube{width:100%;height:100%;border:0;border-radius:9%/12%;background:#000;box-shadow:inset 0 0 42px rgba(0,0,0,.95),0 0 0 2px rgba(0,0,0,.82);overflow:hidden}
+  .curve{border-radius:9%/12%;background:radial-gradient(120% 108% at 52% 49%,transparent 50%,rgba(0,0,0,.62) 100%)}.lower{padding:18px 23px 14px;background:linear-gradient(0deg,rgba(0,0,0,.88),transparent);text-shadow:0 2px 2px #000}.scan{opacity:.32}.grille{opacity:.045}
+  .sidetable{width:min(920px,94vw);margin-top:-4px;padding:0 0 8px;z-index:4}.remote{width:100%;padding:11px 16px 13px!important;border-radius:11px;background:linear-gradient(180deg,#42413c 0%,#1c1d1c 8%,#111 100%);border:1px solid #050505;box-shadow:0 18px 34px rgba(0,0,0,.72),inset 0 1px 0 rgba(255,255,255,.18),inset 0 -2px 0 #000;display:grid;grid-template-columns:132px 1.15fr .95fr .95fr;gap:11px;align-items:stretch}
+  .remote::before{left:36px;top:9px;width:58px;background:linear-gradient(180deg,#070707,#1f1f1f);border:1px solid #000}.remote::after{left:57px;top:11px}.remote .rtop{grid-column:1;grid-row:1;margin:0;padding:10px 8px 6px;border-right:1px solid rgba(255,255,255,.08);flex-direction:column;justify-content:center;gap:12px}.remote .brandr{font-size:10px;color:#b6b1a5;letter-spacing:3px;text-shadow:0 1px 0 #000}.rpow{width:46px;height:46px}.rpow-led{width:7px;height:7px}
+  .remote .rsection{margin:0;padding:5px 10px 7px;border:0;border-left:1px solid rgba(255,255,255,.07);min-width:0}.remote .rsection:nth-of-type(2){grid-column:2}.remote .rsection:nth-of-type(3){grid-column:3}.remote .rsection:nth-of-type(4){grid-column:4}.remote .rsection:nth-of-type(5){grid-column:2/5;display:grid;grid-template-columns:110px 1fr;gap:12px;align-items:center;padding:7px 10px;border-top:1px solid rgba(255,255,255,.07)}.remote .rsection:nth-of-type(5) .rlabel{margin:0!important}.remote .rsection:nth-of-type(5) .rrow{margin:0;max-width:320px}
+  .rlabel{font-size:8px!important;color:#c1bcae!important;text-shadow:0 1px #000}.rgrid{gap:5px}.rrow{gap:5px;margin-top:5px}.rbtn{min-height:30px;padding:5px 3px!important;border-radius:5px}.r-rockers{gap:9px;padding:0}.r-rocker-pill{max-width:52px}.r-rocker-btn{padding:6px 0}.r-rocker-lbl{font-size:8px}.r-batcover{display:none}
+  .readout{width:min(730px,82vw);margin:-78px auto 0;z-index:5;position:relative;border-radius:4px;transform:scale(.8);transform-origin:center top;opacity:.96}
+}
+@media (max-width:880px){
+  .room{padding:7px 7px 18px;background:radial-gradient(70% 50% at 50% 0%,rgba(109,68,37,.34),transparent 72%),#060606}.stage{grid-template-columns:1fr;max-width:100%;gap:0}.console{width:100%;aspect-ratio:3/2;padding:0;border:0;border-radius:13px;background:url("assets/afterglow-crt-cablebox-v1.png") center/100% 100% no-repeat;box-shadow:0 16px 38px rgba(0,0,0,.72)}.console::before,.speaker,.console-legs,.sidetable{display:none}.set{position:absolute;left:13.2%;top:7.1%;width:63%;height:58.4%;display:block}.tube{width:100%;height:100%;border:0;border-radius:9%/12%;box-shadow:inset 0 0 32px rgba(0,0,0,.9);overflow:hidden}.curve{border-radius:9%/12%}.scan{opacity:.28}.grille{opacity:.04}.readout{width:86%;margin:-42px auto 0;position:relative;z-index:5;transform:scale(.72);transform-origin:center top}.marq-wall{font-size:8px;letter-spacing:2px}
+}
+</style>
 </head>
 <body>
 <script>
@@ -1098,7 +1119,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.185";
+window.__ATV_BUILD="1.7.7-desktop.186";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }

@@ -1098,7 +1098,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.178";
+window.__ATV_BUILD="1.7.7-desktop.179";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -6125,6 +6125,11 @@ function primeIAQueues(){
 }
 
 async function tuneIA(ch,sl,my){
+  /* End-to-end circuit breaker: individual fetches are bounded, but serial
+     fallbacks used to add up to nearly a minute. A channel must either be on
+     air or visibly retrying within this single television-sized deadline. */
+  var tuneDeadline=setTimeout(function(){if(my!==token)return;var rescue=++token;nlog("tune",false,"CH "+ch.num+" deadline");noSignal(ch,rescue);},12000);
+  try{
   var queuePending=refillIAQueue(ch,sl); /* do discovery in the background while instant-path checks run */
   var rapid=fastTuneGet(ch.num);
   if(rapid){
@@ -6225,6 +6230,7 @@ async function tuneIA(ch,sl,my){
       if(await playFile(pl,ch,sl,my,a)) return; }
   }
   noSignal(ch,my);
+  }finally{clearTimeout(tuneDeadline);}
 }
 
 /* ---------- 1.1: THE audio-autostart fix — gesture-unlocked, reused media elements ----------

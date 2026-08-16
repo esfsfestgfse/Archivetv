@@ -6,6 +6,8 @@ const path = require('node:path');
 const file = (process.argv[2] && !process.argv[2].startsWith('--'))
   ? process.argv[2] : path.join(__dirname, '..', 'the_dial_mobile.html');
 const source = fs.readFileSync(file, 'utf8');
+const useRelay = process.argv.includes('--relay');
+const relayBase = 'https://ais-relay.tdy1990.workers.dev/ia/search';
 
 function blockAfter(marker, open, close) {
   const start = source.indexOf(marker);
@@ -81,14 +83,16 @@ async function main() {
     })));
   });
   const results = await mapWithConcurrency(rails, 3, async rail => {
-    const url = 'https://archive.org/advancedsearch.php?' + new URLSearchParams({
-      q: rail.query, 'fl[]': 'identifier,title,year,mediatype', rows: '3', page: '1', output: 'json'
-    });
+    const url = useRelay
+      ? relayBase + '?' + new URLSearchParams({ q: rail.query, rows: '3', page: '1', sort: 'downloads desc' })
+      : 'https://archive.org/advancedsearch.php?' + new URLSearchParams({
+        q: rail.query, 'fl[]': 'identifier,title,year,mediatype', rows: '3', page: '1', output: 'json'
+      });
     try {
-      const res = await fetch(url, { signal: AbortSignal.timeout(30000) });
+      const res = await fetch(url, { signal: AbortSignal.timeout(useRelay ? 7000 : 30000) });
       if (!res.ok) throw new Error(`http ${res.status}`);
-      const data = await res.json(), docs = data?.response?.docs || [];
-      return { ...rail, status: res.status, total: data?.response?.numFound || 0,
+      const data = await res.json(), response = data?.response || data?.response?.response || {}, docs = response.docs || [];
+      return { ...rail, status: res.status, total: response.numFound || 0,
         samples: docs.map(doc => ({ id: doc.identifier, title: doc.title, year: doc.year, mediatype: doc.mediatype })) };
     } catch (error) { return { ...rail, error: String(error) }; }
   });

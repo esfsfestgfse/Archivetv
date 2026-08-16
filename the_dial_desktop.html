@@ -1098,7 +1098,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.181";
+window.__ATV_BUILD="1.7.7-desktop.183";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -5444,7 +5444,7 @@ function jsonp(url,timeoutMs){return new Promise((res,rej)=>{const cb="cb"+Math.
 function iaURL(q,rows,page,sort){return "https://archive.org/advancedsearch.php?"+[
   "q="+encodeURIComponent(q),"fl[]=identifier","fl[]=title","fl[]=year","fl[]=subject","fl[]=runtime",
   "sort[]="+encodeURIComponent(sort||"downloads desc"),"rows="+rows,"page="+page,"output=json"].join("&");}
-/* three search transports race each other (JSONP advancedsearch, CORS advancedsearch, modern scrape API);
+/* Search transports race each other (JSONP advancedsearch locally, CORS advancedsearch, relay);
    first to answer wins, failures are logged to DIAG. Restores what a careless dead-code removal deleted
    along with the truly-unused iaGet — this whole block was accidentally taken out with it. */
 function scrapeURL(q,rows,sort){return "https://archive.org/services/search/v1/scrape?q="+encodeURIComponent(q)+
@@ -5487,10 +5487,9 @@ function iaFastProxy(url){return firstOk(CORS_RELAYS.map(function(make,i){return
 function iaSearch(q,rows,page,sort){
   const au=iaURL(q,rows,page,sort);
   const routes=[
-    {tag:"search:afterglow-relay",delay:0,run:()=>iaFastJSON(iaRelaySearchURL(q,rows,page,sort)).then(normSearch)},
-    {tag:"search:cors",   delay:180, run:()=>iaFastJSON(au).then(normSearch)},
-    {tag:"search:scrape", delay:360, run:()=>iaFastJSON(scrapeURL(q,rows,sort)).then(normSearch)},
-    {tag:"search:proxy",  delay:540, run:()=>iaFastProxy(au).then(normSearch)}
+    {tag:"search:afterglow-relay",delay:0,run:()=>iaFastJSON(iaRelaySearchURL(q,rows,page,sort),5500).then(normSearch)},
+    {tag:"search:cors",   delay:180, run:()=>iaFastJSON(au,3000).then(normSearch)},
+    {tag:"search:proxy",  delay:420, run:()=>iaFastProxy(au).then(normSearch)}
   ];
   /* JSONP is only a file:// escape hatch. On a normal web build it starts a
      cross-origin script for every IA lookup, producing the soak's hundreds of
@@ -5557,7 +5556,7 @@ let seenMap={}; try{seenMap=JSON.parse(localStorage.getItem("atv:seen")||"{}")||
 function pruneSeen(){const now=Date.now();for(const k in seenMap){if(now-seenMap[k]>12*3600e3)delete seenMap[k];}}
 function markSeen(id){if(!id)return;seenMap[id]=Date.now();pruneSeen();try{localStorage.setItem("atv:seen",JSON.stringify(seenMap));}catch(e){}}
 function blockedId(id){return !!(id&&seenMap[id]&&(Date.now()-seenMap[id]<NOREPEAT_MS));}
-async function pickIA(q){
+async function pickIA(q,fast){
   var st=pickStrategy();
   if(st.eraSlice) q=eraSliceQuery(q);
   var ck=st.sort+"|"+q; /* pool counts cached per sort+query */
@@ -5570,7 +5569,7 @@ async function pickIA(q){
   var rows=Math.min(ROWS,c);
   var poolStart=(st.start<c)?st.start:0, poolEnd=Math.min(c,st.end);
   if(poolEnd<=poolStart){ poolStart=0; poolEnd=Math.min(c,st.end||1500); }
-  if(firstDocs&&firstDocs.length&&poolStart===0&&(poolEnd<=ROWS||Math.random()<0.5)){
+  if(firstDocs&&firstDocs.length&&poolStart===0&&(fast||poolEnd<=ROWS||Math.random()<0.5)){
     nlog("director",true,st.tag+" pool="+c); return choose(firstDocs); /* reuse the count-page we already have */
   }
   var pool=Math.max(1,poolEnd-poolStart), mp=Math.max(1,Math.ceil(pool/rows)), startPage=Math.floor(poolStart/rows)+1;
@@ -5598,7 +5597,7 @@ async function pickFromQueriesFast(qs,lanes){var pick=(qs||[]).slice(0,Math.max(
   /* Promise.all made a fast valid result wait behind another sparse lane's
      timeout. Resolve the instant any approved program is found. */
   return new Promise(function(resolve){var left=pick.length,done=false;
-    pick.forEach(function(q){withTO(pickIA(q),4500).then(function(item){
+    pick.forEach(function(q){withTO(pickIA(q,true),6500).then(function(item){
       if(done)return;if(item){done=true;resolve(item);return;}if(--left<=0){done=true;resolve(null);}
     },function(){if(!done&&--left<=0){done=true;resolve(null);}});});
   });

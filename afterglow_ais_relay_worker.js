@@ -39,6 +39,9 @@ const IA_QUEUE_PATH = IA_PREFIX + "/queue";
 const IA_PROGRAM_PATH = IA_PREFIX + "/program";
 const SNAPSHOT_TTL_SECONDS = 60;
 const IA_SEARCH_TTL_SECONDS = 300;
+/* Bump this when the normalized search response changes so an older edge
+   entry cannot be mistaken for the current program-director result. */
+const IA_SEARCH_CACHE_VERSION = "v4";
 const IA_METADATA_TTL_SECONDS = 3600;
 const IA_QUEUE_TTL_SECONDS = 300;
 const GULF_FILTER = "BBOX(geometry,-98,18,-80,31)";
@@ -137,10 +140,13 @@ async function searchArchive(query, rows, page, sort) {
   upstreamUrl.searchParams.set("rows", String(rows));
   upstreamUrl.searchParams.set("page", String(page));
   upstreamUrl.searchParams.set("output", "json");
-  const upstream = await archiveFetch(upstreamUrl.toString(), {}, 3200);
-  if (!upstream.ok) throw new Error("archive search " + upstream.status);
+  /* Archive's scrape endpoint does not honor advancedsearch's field grammar
+     (for example `subject:boxing` becomes an empty result). Keep one precise
+     backend here: a fast wrong answer is worse than an alternate lane. */
+  const upstream = await archiveFetch(upstreamUrl.toString(), { cache: "no-store" }, 5200);
+  if (!upstream.ok) throw new Error("archive advanced search " + upstream.status);
   const payload = await upstream.json();
-  return payload.response || { numFound: 0, docs: [] };
+  return { ...(payload.response || { numFound: 0, docs: [] }), _afterglowSource: "advanced" };
 }
 
 async function getIaSearch(url, ctx) {
@@ -149,10 +155,14 @@ async function getIaSearch(url, ctx) {
   const rows = Math.max(1, Math.min(100, Number(url.searchParams.get("rows")) || 50));
   const page = Math.max(1, Math.min(10000, Number(url.searchParams.get("page")) || 1));
   const sort = (url.searchParams.get("sort") || "downloads desc").slice(0, 80);
-  const cacheKey = new Request(url.origin + IA_PREFIX + "/cache/search/" + await stableKey([q, rows, page, sort].join("|")));
+  const cacheKey = new Request(url.origin + IA_PREFIX + "/cache/search/" + IA_SEARCH_CACHE_VERSION + "/" + await stableKey([q, rows, page, sort].join("|")));
   try {
     const payload = await cachedArchiveJson(cacheKey, IA_SEARCH_TTL_SECONDS, () => searchArchive(q, rows, page, sort));
-    return cacheableJson({ response: payload }, IA_SEARCH_TTL_SECONDS, { "X-Afterglow-Source": "internet-archive-cache" });
+    return cacheableJson(
+      { response: payload },
+      IA_SEARCH_TTL_SECONDS,
+      { "X-Afterglow-Source": "internet-archive-cache", "X-Afterglow-Archive-Route": payload._afterglowSource || "unknown" },
+    );
   } catch {
     return json({ error: "archive search unavailable" }, 502);
   }

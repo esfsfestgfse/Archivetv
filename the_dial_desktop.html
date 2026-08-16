@@ -1103,6 +1103,12 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
   .remote .rsection{margin:0;padding:5px 10px 7px;border:0;border-left:1px solid rgba(255,255,255,.07);min-width:0}.remote .rsection:nth-of-type(2){grid-column:2}.remote .rsection:nth-of-type(3){grid-column:3}.remote .rsection:nth-of-type(4){grid-column:4}.remote .rsection:nth-of-type(5){grid-column:2/5;display:grid;grid-template-columns:110px 1fr;gap:12px;align-items:center;padding:7px 10px;border-top:1px solid rgba(255,255,255,.07)}.remote .rsection:nth-of-type(5) .rlabel{margin:0!important}.remote .rsection:nth-of-type(5) .rrow{margin:0;max-width:320px}
   .rlabel{font-size:8px!important;color:#c1bcae!important;text-shadow:0 1px #000}.rgrid{gap:5px}.rrow{gap:5px;margin-top:5px}.rbtn{min-height:30px;padding:5px 3px!important;border-radius:5px}.r-rockers{gap:9px;padding:0}.r-rocker-pill{max-width:52px}.r-rocker-btn{padding:6px 0}.r-rocker-lbl{font-size:8px}.r-batcover{display:none}
   .readout{width:min(730px,82vw);margin:-78px auto 0;z-index:5;position:relative;border-radius:4px;transform:scale(.8);transform-origin:center top;opacity:.96}
+  /* Put the real status data in the cable-box VFD, not in a duplicate strip. */
+  .cabinet-readout{position:absolute;left:40.3%;top:69.2%;width:18.6%;height:7.6%;margin:0!important;transform:none!important;display:block;background:transparent!important;border:0!important;box-shadow:none!important;pointer-events:none;opacity:1}
+  .cabinet-readout .sa-leds,.cabinet-readout .nb,.cabinet-readout .sig,.cabinet-readout .sleep-ind{display:none}.cabinet-readout .chnum{position:absolute;left:14%;top:8%;min-width:0;padding:0;border:0;background:transparent;color:#74ff95;font:900 clamp(16px,2.45vw,35px)/1 "VT323","Courier New",monospace;letter-spacing:2px;text-shadow:0 0 4px #1aff54,0 0 13px rgba(73,255,120,.8);box-shadow:none}.cabinet-readout .sa-clock{position:absolute;right:0;top:29%;display:block!important;color:#74ff95;font:700 clamp(7px,.9vw,13px)/1 "VT323","Courier New",monospace;letter-spacing:1px;white-space:nowrap;text-shadow:0 0 4px #1aff54,0 0 10px rgba(73,255,120,.65)}
+  /* The photographed handset at the right is now the remote. Buttons are
+     transparent hit targets aligned to its power, number and rocker controls. */
+  .sidetable{position:absolute;right:3.1%;bottom:4.2%;width:13.8%;height:46%;margin:0;padding:0;z-index:8;pointer-events:none}.remote{position:relative!important;width:100%!important;height:100%!important;display:block!important;padding:0!important;background:transparent!important;border:0!important;box-shadow:none!important}.remote::before,.remote::after,.remote .brandr,.remote .rpow-led,.remote .rlabel,.remote .r-rocker-lbl,.remote .r-batcover{display:none!important}.remote .rtop,.remote .rsection{position:absolute!important;margin:0!important;padding:0!important;border:0!important;pointer-events:none}.remote .rtop{left:18%;top:13%;width:64%;height:12%}.remote .rpow-wrap{position:absolute;inset:0}.remote .rpow{position:absolute;left:23%;top:0;width:54px;height:32px;max-width:58%;opacity:0;pointer-events:auto}.remote .rsection:nth-of-type(2){left:15%;top:29%;width:67%;height:43%;display:block!important}.remote .rsection:nth-of-type(2) .rgrid{width:100%;height:100%;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(4,1fr);gap:2px}.remote .rsection:nth-of-type(2) .rbtn{width:100%;height:100%;min-height:0;padding:0!important;opacity:0;pointer-events:auto}.remote .rsection:nth-of-type(3){left:19%;top:75%;width:58%;height:20%;display:block!important}.remote .rsection:nth-of-type(3) .r-rockers{height:100%;display:grid;grid-template-columns:1fr 1fr;gap:4px}.remote .rsection:nth-of-type(3) .r-rocker{height:100%}.remote .rsection:nth-of-type(3) .r-rocker-pill{height:100%;width:100%;max-width:none;background:transparent;border:0;box-shadow:none}.remote .rsection:nth-of-type(3) .r-rocker-btn{height:50%;padding:0;opacity:0;pointer-events:auto}.remote .rsection:nth-of-type(4),.remote .rsection:nth-of-type(5){display:none!important}
 }
 @media (max-width:880px){
   .room{padding:7px 7px 18px;background:radial-gradient(70% 50% at 50% 0%,rgba(109,68,37,.34),transparent 72%),#060606}.stage{grid-template-columns:1fr;max-width:100%;gap:0}.console{width:100%;aspect-ratio:3/2;padding:0;border:0;border-radius:13px;background:url("assets/afterglow-crt-cablebox-v1.png") center/100% 100% no-repeat;box-shadow:0 16px 38px rgba(0,0,0,.72)}.console::before,.speaker,.console-legs,.sidetable{display:none}.set{position:absolute;left:13.2%;top:7.1%;width:63%;height:58.4%;display:block}.tube{width:100%;height:100%;border:0;border-radius:9%/12%;box-shadow:inset 0 0 32px rgba(0,0,0,.9);overflow:hidden}.curve{border-radius:9%/12%}.scan{opacity:.28}.grille{opacity:.04}.readout{width:86%;margin:-42px auto 0;position:relative;z-index:5;transform:scale(.72);transform-origin:center top}.marq-wall{font-size:8px;letter-spacing:2px}
@@ -1119,7 +1125,7 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.186";
+window.__ATV_BUILD="1.7.7-desktop.187";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1218,6 +1224,15 @@ window.addEventListener("unhandledrejection",function(e){
           <div class="knob"></div>
         </div>
       </div>
+      <!-- Live VFD overlay, seated directly in the photographed cable-box window. -->
+      <div class="readout cabinet-readout">
+        <div class="sa-leds"><span class="sa-led pwr"></span><span class="sa-led msg off" id="saLedMsg"></span><span class="sa-led tune off" id="saLedTune"></span></div>
+        <div class="chnum" id="chNum">--</div>
+        <div class="nb" aria-live="polite"><div class="nm" id="nowName">Television is off</div><div class="me" id="nowMeta">Press power on the remote</div></div>
+        <div class="sa-clock" id="saClock" title="current time">--:-- --</div>
+        <span class="sleep-ind hide" id="sleepInd"></span>
+        <div class="sig" aria-live="polite"><span class="led" id="led"></span><span id="sigText">STANDBY</span><span class="ver-chip" id="verChip"></span></div>
+      </div>
       <div class="console-legs"><i></i><i></i></div>
     </div>
 
@@ -1285,16 +1300,6 @@ window.addEventListener("unhandledrejection",function(e){
       </div>
       <!-- CYCLE-5: EXTRAS panel replaced by the on-screen MENU (press MENU on the remote or N) -->
     </div>
-  </div>
-
-  <!-- readout — SA Explorer-8300-style cable box: LED cluster · channel VFD · now-playing VFD · clock VFD · signal indicator -->
-  <div class="readout">
-    <div class="sa-leds"><span class="sa-led pwr"></span><span class="sa-led msg off" id="saLedMsg"></span><span class="sa-led tune off" id="saLedTune"></span></div>
-    <div class="chnum" id="chNum">--</div>
-    <div class="nb" aria-live="polite"><div class="nm" id="nowName">Television is off</div><div class="me" id="nowMeta">Press power on the remote</div></div>
-    <div class="sa-clock" id="saClock" title="current time">--:-- --</div>
-    <span class="sleep-ind hide" id="sleepInd"></span>
-    <div class="sig" aria-live="polite"><span class="led" id="led"></span><span id="sigText">STANDBY</span><span class="ver-chip" id="verChip"></span></div>
   </div>
 
 </div>

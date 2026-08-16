@@ -44,6 +44,7 @@ const IA_SEARCH_TTL_SECONDS = 300;
 const IA_SEARCH_CACHE_VERSION = "v4";
 const IA_METADATA_TTL_SECONDS = 3600;
 const IA_QUEUE_TTL_SECONDS = 300;
+const IA_QUEUE_CACHE_VERSION = "v3";
 const GULF_FILTER = "BBOX(geometry,-98,18,-80,31)";
 const KPLER_FIELDS = "mmsi,longitude,latitude,posDt,sog,vesselName,heading,cog,navStatus,destination,vesselType";
 
@@ -101,6 +102,14 @@ function safeQueries(queries) {
   if (!Array.isArray(queries) || !queries.length || queries.length > 16) return null;
   const clean = queries.map((query) => String(query || "").trim()).filter(Boolean);
   return clean.length && clean.every((query) => query.length <= 2400) ? clean : null;
+}
+
+function queueTitleKey(doc) {
+  return String(doc && doc.title || "")
+    .toLowerCase()
+    .replace(/\(\d{4}\)/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
 }
 
 async function stableKey(value) {
@@ -229,7 +238,7 @@ async function queuePlayable(id) {
 }
 
 async function buildIaQueue(channel, queries, count) {
-  const items = [], seen = new Set(), candidateLimit = count;
+  const items = [], seen = new Set(), seenTitles = new Set(), candidateLimit = count;
   /* Query lanes are already editorially ordered by the app. Fetch a small
      sample from each lane in parallel, then take one from every lane before
      taking a second: a five-item buffer spans eras/topics instead of becoming
@@ -244,17 +253,17 @@ async function buildIaQueue(channel, queries, count) {
       return [];
     }
   }));
-  for (let row = 0; items.length < candidateLimit; row += 1) {
-    let found = false;
+  const laneDepth = Math.max(0, ...lanes.map((lane) => lane.length));
+  for (let row = 0; row < laneDepth && items.length < candidateLimit; row += 1) {
     for (const lane of lanes) {
       const doc = lane[row];
-      if (!doc || seen.has(doc.identifier)) continue;
+      const titleKey = queueTitleKey(doc);
+      if (!doc || seen.has(doc.identifier) || (titleKey && seenTitles.has(titleKey))) continue;
       seen.add(doc.identifier);
+      if (titleKey) seenTitles.add(titleKey);
       items.push(queueItem(doc));
-      found = true;
       if (items.length >= candidateLimit) break;
     }
-    if (!found) break;
   }
   return {
     channel,
@@ -287,7 +296,7 @@ async function getIaQueue(request, url, ctx) {
   const queries = safeQueries(body && body.queries);
   const count = Math.max(1, Math.min(5, Number(body && body.count) || 5));
   if (!safeChannel(channel) || !queries) return json({ error: "invalid queue request" }, 400);
-  const cacheKey = new Request(url.origin + IA_PREFIX + "/cache/queue/" + await stableKey(JSON.stringify({ channel, queries, count })));
+  const cacheKey = new Request(url.origin + IA_PREFIX + "/cache/queue/" + IA_QUEUE_CACHE_VERSION + "/" + await stableKey(JSON.stringify({ channel, queries, count })));
   try {
     const cache = caches.default, cached = await cache.match(cacheKey);
     if (cached) return cached;

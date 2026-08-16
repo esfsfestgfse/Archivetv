@@ -1204,7 +1204,7 @@ html.mob .pop{max-width:94vw}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.216";
+window.__ATV_BUILD="1.7.7-mobile.217";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -5611,7 +5611,7 @@ function iaRelayMetadataURL(id){return IA_RELAY_BASE+"/metadata/"+encodeURICompo
 /* PROGRAM DIRECTOR QUEUE: the Worker picks and caches the next five identifiers per channel.
    The browser still resolves media locally (so direct Archive CDN playback, captions and
    fallbacks stay intact), but discovery is no longer on the channel-change critical path. */
-var iaProgramQueues={}, iaProgramInflight={}, iaProgramMedia={}, iaQueueRetries={};
+var iaProgramQueues={}, iaProgramInflight={}, iaProgramMedia={}, iaQueueRetries={}, iaTuneRetries={};
 function iaQueueKey(ch){return String((ch&&ch.num)||((ch&&ch.nm)||""));}
 function iaRuntimeSeconds(v){if(typeof v==="number")return v;var s=String(v||""),p=s.split(":");if(p.length===3)return (+p[0]||0)*3600+(+p[1]||0)*60+(+p[2]||0);if(p.length===2)return (+p[0]||0)*60+(+p[1]||0);var h=s.match(/(\d+(?:\.\d+)?)\s*(?:hours?|hrs?)/i),m=s.match(/(\d+(?:\.\d+)?)\s*(?:minutes?|mins?)/i);if(h||m)return Math.round(((h?+h[1]:0)*3600)+((m?+m[1]:0)*60));return parseFloat(s)||0;}
 function iaRuntimeLabel(v){var s=Math.round(iaRuntimeSeconds(v));if(!s)return "";return s>=3600?Math.floor(s/3600)+"h "+Math.round((s%3600)/60)+"m":Math.max(1,Math.round(s/60))+"m";}
@@ -6297,7 +6297,7 @@ async function tuneIA(ch,sl,my){
   /* End-to-end circuit breaker: individual fetches are bounded, but serial
      fallbacks used to add up to nearly a minute. A channel must either be on
      air or visibly retrying within this single television-sized deadline. */
-  var tuneDeadline=setTimeout(function(){if(my!==token)return;var rescue=++token;nlog("tune",false,"CH "+ch.num+" deadline");noSignal(ch,rescue);},12000);
+  var tuneDeadline=setTimeout(function(){if(my!==token)return;var rescue=++token;nlog("tune",false,"CH "+ch.num+" deadline");iaRetry(ch,rescue);},12000);
   try{
   var queuePending=refillIAQueue(ch,sl); /* do discovery in the background while instant-path checks run */
   var rapid=fastTuneGet(ch.num);
@@ -6401,7 +6401,7 @@ async function tuneIA(ch,sl,my){
       if(await playFile(pl,ch,sl,my,a)) return; }
   }
   netDownStreak++;
-  noSignal(ch,my);
+  iaRetry(ch,my);
   }finally{clearTimeout(tuneDeadline);}
 }
 
@@ -6471,6 +6471,7 @@ function playFile(it,ch,sl,my,isFallback){return new Promise(res=>{
   function fin(ok){ if(done)return; done=true; clearTimeout(to);
     if(ok){
       if(my!==token){ try{v.pause();}catch(e){} return res(true);} // superseded; report handled
+      if(ch&&!ch.source)iaTuneRetries[String(ch.num||ch.nm||"")]=0;
       hideOv(); hideBuffer(); setSig("live", isAudio?"ON AIR ♪":"ON AIR");
       nlog("audio",!v.muted,(v.muted?"MUTED":"AUDIBLE")+" start / vol="+Math.round(v.volume*100)+(muted?" / GLOBAL MUTE ON":"")); /* 1.2.2: every program logs its audio state to DIAG */
       if(!it.isAd&&!it.isSignoff&&ch&&ch.num>0&&sl&&sl.queries){ /* resolve the NEXT program before a viewer can hit SKIP */
@@ -6561,6 +6562,11 @@ function diagHint(){
     return "";
   }catch(e){ return ""; }
 }
+function iaRetry(ch,my){if(my!==token)return;var k=String(ch&&ch.num||"?"),attempt=(iaTuneRetries[k]||0)+1;iaTuneRetries[k]=attempt;
+  var delay=Math.min(4500,700+attempt*700);nlog("channel",false,"IA retry ch"+k+" #"+attempt);
+  setSig("tuning","LOADING");showOv("LOADING PROGRAM","PLEASE STAND BY","Finding another program for “"+ch.nm+"”…");
+  nowName.textContent="Loading program";nowMeta.textContent="CH "+ch.num+" · "+ch.nm;
+  clearTimeout(retryTimer);retryTimer=setTimeout(function(){if(my===token&&powered)tuneNum(curNum);},delay);}
 function noSignal(ch,my){ if(my!==token)return; clearScreen(); nlog("channel",false,"NO SIGNAL ch"+ch.num);
   setSig("dead","NO SIGNAL"); var hint=diagHint();
   showOv("NO SIGNAL","PLEASE STAND BY","Weak feed on “"+ch.nm+"” — retrying… or press CH ▲ / SURF."+(hint?(" ["+hint+"]"):""));
@@ -6940,7 +6946,7 @@ function armStall(my){clearStall();stallTimer=setTimeout(function(){
   try{ v.load();
     const onm=function(){ v.removeEventListener("loadedmetadata",onm); try{if(t>0.5)v.currentTime=t;}catch(e){}
       try{const p=v.play&&v.play(); if(p&&p.catch)p.catch(function(){ try{v.muted=true; needSound(true); const q=v.play&&v.play(); if(q&&q.catch)q.catch(function(){});}catch(e){} });}catch(e){} };
-    const oner=function(){ v.removeEventListener("error",oner); if(my===token&&curVideo===v){ const ch=byNum(curNum); if(ch)noSignal(ch,my); } };
+    const oner=function(){ v.removeEventListener("error",oner); if(my===token&&curVideo===v){ const ch=byNum(curNum); if(ch){if(ch.source)noSignal(ch,my);else iaRetry(ch,my);} } };
     v.addEventListener("loadedmetadata",onm); v.addEventListener("error",oner);
   }catch(e){}
 },9000);}

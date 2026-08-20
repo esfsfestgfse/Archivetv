@@ -1203,8 +1203,7 @@ html.mob .console::before,html.mob .speaker,html.mob .console-legs{display:none!
 <style id="afterglow-live-guide">
 /* Program-aware rows: live data exposes its actual current reading, IA rows show Now / Next. */
 .guide .cc-program{grid-column:5;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 8px;min-width:0;align-items:baseline}.guide .cc-now,.guide .cc-next{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:"Courier New",monospace}.guide .cc-now{color:#effff2;font-size:12px;font-weight:700}.guide .cc-next{color:rgba(193,233,204,.72);font-size:10px;font-weight:700}.guide .cc-program .cc-status{grid-column:2;grid-row:1 / span 2;align-self:center;margin:0;color:#9affb3;font-size:9px;letter-spacing:.07em;text-align:right;text-shadow:none}.guide .cc-program.live .cc-now::before{content:"●";margin-right:6px;color:#7dff9d;text-shadow:0 0 8px rgba(125,255,157,.8)}.guide .chcell.on .cc-now,.guide .chcell.on .cc-next,.guide .chcell.on .cc-program .cc-status{color:#04216a!important}.guide .chcell.on .cc-now::before{color:#04216a!important;text-shadow:none!important}
-.live-deck{position:absolute;left:2.1%;bottom:2.1%;z-index:14;width:min(360px,42%);padding:10px 12px;border:1px solid rgba(118,255,154,.36);border-radius:10px;background:linear-gradient(135deg,rgba(5,24,15,.92),rgba(5,12,10,.76));box-shadow:0 12px 32px rgba(0,0,0,.32),inset 0 1px 0 rgba(255,255,255,.1);backdrop-filter:blur(12px);pointer-events:none;font-family:"Courier New",monospace;color:#e7ffe9}.live-deck.hide{display:none!important}.live-deck-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:5px;color:#86ffa6;font:900 9px/1 "Courier New",monospace;letter-spacing:.15em}.live-deck-live{display:inline-flex;align-items:center;gap:5px}.live-deck-live::before{content:"";width:6px;height:6px;border-radius:50%;background:#73ff9c;box-shadow:0 0 9px #73ff9c}.live-deck-source{color:rgba(203,255,215,.62);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.live-deck-value{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#fff;font:800 clamp(12px,1.25vw,16px)/1.25 "Courier New",monospace;letter-spacing:.02em}.live-deck-meta{display:block;margin-top:5px;color:rgba(196,244,207,.66);font:700 9px/1.2 "Courier New",monospace;letter-spacing:.08em}
-@media(max-width:880px){html.mob .guide .cc-program{grid-column:3;grid-row:4;display:block;min-width:0}html.mob .guide .cc-now,html.mob .guide .cc-next{display:block;font-size:9px;line-height:1.25}html.mob .guide .cc-program .cc-status{display:none}html.mob .chcell{min-height:94px}html.mob .live-deck{left:3%;bottom:3%;width:72%;padding:8px 10px}}
+@media(max-width:880px){html.mob .guide .cc-program{grid-column:3;grid-row:4;display:block;min-width:0}html.mob .guide .cc-now,html.mob .guide .cc-next{display:block;font-size:9px;line-height:1.25}html.mob .guide .cc-program .cc-status{display:none}html.mob .chcell{min-height:94px}}
 </style>
 </head>
 <body>
@@ -1218,7 +1217,7 @@ html.mob .console::before,html.mob .speaker,html.mob .console-legs{display:none!
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.219-live-guide";
+window.__ATV_BUILD="1.7.7-mobile.220-clean-guide";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1255,7 +1254,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.219 · live guide</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.220 · clean guide</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -1306,11 +1305,6 @@ window.addEventListener("unhandledrejection",function(e){
       <div class="set">
         <div class="tube" id="tube">
           <div class="screen-area" id="screenArea"></div>
-          <aside class="live-deck hide" id="liveDeck" aria-live="polite" aria-label="Live channel status">
-            <div class="live-deck-head"><span class="live-deck-live">LIVE DATA</span><span class="live-deck-source" id="liveDeckSource">SIGNAL</span></div>
-            <strong class="live-deck-value" id="liveDeckValue">CONNECTING…</strong>
-            <span class="live-deck-meta" id="liveDeckMeta">WAITING FOR FIRST UPDATE</span>
-          </aside>
           <div class="bars" id="bars">
             <div class="row1">
               <i style="background:#c0c0c0"></i><i style="background:#c0c000"></i><i style="background:#00c0c0"></i>
@@ -5972,7 +5966,6 @@ function mountChanBug(hostId,opts){
 }
 var liveGuideState=window.__atvLiveGuideState||{}; window.__atvLiveGuideState=liveGuideState;
 var LIVE_DATA_BEDS={weather:"gmjazz",stormcenter:"gmjazz",localradar:"gmjazz",tropical:"gmtropical",skytraffic:"gmelectro",airport:"gmelectro",airtraffic:"gmelectro",ships:"fieldrec",tides:"fieldrec",river:"fieldrec",space:"gmelectro",solar:"gmelectro",aurora:"gmelectro",iss:"gmelectro",apod:"gmelectro",seismic:"gmcountry",quake:"gmcountry",quakemap:"gmcountry",volcano:"gmcountry",wildfire:"gmcountry",grid:"gmjazz",gas:"gmjazz",sports:"gmjazz",wiki:"gmelectro",hf:"gmelectro",newsstand:"gmjazz"};
-var LIVE_SOURCE_NAMES={weather:"LOCAL WEATHER",stormcenter:"STORM CENTER",localradar:"LOCAL RADAR",tropical:"TROPICAL WATCH",skytraffic:"SKY BEACON",airport:"AIRPORT WATCH",airtraffic:"AIR TRAFFIC",ships:"SHIP TRACKER",tides:"TIDE DESK",river:"RIVER GAUGE",space:"SPACE DESK",solar:"SOLAR DESK",aurora:"AURORA WATCH",iss:"ISS TRACKER",apod:"NASA IMAGE",seismic:"SEISMIC DESK",quake:"EARTHQUAKE WATCH",quakemap:"QUAKE MAP",volcano:"VOLCANO WATCH",wildfire:"WILDFIRE WATCH",grid:"POWER GRID",gas:"GAS WATCH",sports:"SPORTS DESK",wiki:"WIKI PULSE",hf:"HF PROPAGATION",newsstand:"NEWSSTAND"};
 function guideDurationLabel(sec){sec=Math.max(0,Math.round(Number(sec)||0));var h=Math.floor(sec/3600),m=Math.max(0,Math.round((sec%3600)/60));return h?(h+"H "+m+"M"):(m+"M");}
 function guideUpdatedLabel(at){if(!at)return "WAITING FOR LIVE DATA";var age=Math.max(0,Math.round((Date.now()-at)/1000));return age<60?"UPDATED JUST NOW":("UPDATED "+guideDurationLabel(age)+" AGO");}
 function guideQueueNext(ch,sl){var q=(iaProgramQueues[iaQueueKey(ch)]||[]);for(var i=0;i<q.length;i++)if(iaProgramAllowed(q[i],sl))return q[i];return null;}
@@ -5985,11 +5978,9 @@ function guideListing(ch){
   if(next)return {now:"UP NEXT · "+(next.title||next.identifier),next:next.runtime?("RUNS "+iaRuntimeLabel(next.runtime)):"READY IN BUFFER",detail:"PROGRAM BUFFER READY",live:false};
   return {now:"BUILDING PROGRAM LINEUP",next:"FIVE-SHOW BUFFER WARMING",detail:"ARCHIVE DIRECTOR",live:false};
 }
-function updateLiveDeck(ch,sl){try{var deck=$("liveDeck");if(!deck)return;if(!ch||ch.cat!=="LDATA"||!powered){deck.classList.add("hide");return;}var live=liveGuideState[ch.num]||{},source=(sl&&sl.source)||ch.source||"";deck.classList.remove("hide");$("liveDeckSource").textContent=LIVE_SOURCE_NAMES[source]||String(ch.nm||"LIVE DATA").toUpperCase();$("liveDeckValue").textContent=live.text||window.__chanStatus[ch.num]||"CONNECTING TO LIVE DATA…";$("liveDeckMeta").textContent=guideUpdatedLabel(live.at);}catch(e){}}
-function hideLiveDeck(){var deck=$("liveDeck");if(deck)deck.classList.add("hide");}
 function startLiveDataBed(ch,sl){if(!ch||ch.cat!=="LDATA")return;var source=(sl&&sl.source)||ch.source||"";if(/^(livetv|livecams|highway|liveradio)$/.test(source))return;try{if(typeof startIAJazz==="function")startIAJazz(LIVE_DATA_BEDS[source]||"gmjazz");}catch(e){}}
 function refreshGuideData(){try{if(gwrap&&gwrap.classList.contains("show")){guideUpdatePreview();renderRail();}}catch(e){}}
-function setChanStatus(num,text){ try{var status=String(text||"LIVE DATA");window.__chanStatus[num]=status;liveGuideState[num]={text:status,at:Date.now()};var ch=byNum(num);if(ch&&ch.num===curNum)updateLiveDeck(ch,slotFor(ch,new Date().getHours(),{preview:true}));refreshGuideData();}catch(e){} }
+function setChanStatus(num,text){ try{var status=String(text||"LIVE DATA");window.__chanStatus[num]=status;liveGuideState[num]={text:status,at:Date.now()};refreshGuideData();}catch(e){} }
 function renderRail(){ /* v9: honest CHANNEL BANK grid — replaces the horizontal scroll rail */
   if(!chList)return;
   if(!gwrap||!gwrap.classList.contains("show"))return; /* CYCLE-1 PERF: no rebuilds while the bank is hidden */
@@ -6147,8 +6138,7 @@ async function tuneNum(n){
   clearScreen(holdPicture);
   /* QA FIX: data channels (source-based) never set lastMeta, so it retained whatever the last
      content channel wrote — contaminating every subsequent soak sample with stale metadata. */
-  if(sl.source){ lastMeta=null; if(ch.cat==="LDATA"){ updateLiveDeck(ch,sl); startLiveDataBed(ch,sl); } else hideLiveDeck(); }
-  else hideLiveDeck();
+  if(sl.source){ lastMeta=null; if(ch.cat==="LDATA")startLiveDataBed(ch,sl); }
   if(sl.source==="weather"){ if(my!==token)return; return tuneWeather(ch,sl,my); }
   if(sl.source==="space"){ if(my!==token)return; return tuneSpaceHub(ch,sl,my); }
   if(sl.source==="river"){ if(my!==token)return; return tuneRiver(ch,sl,my); }
@@ -6640,7 +6630,7 @@ function powerOff(){powered=false;++token;stopClock();clearTimeout(retryTimer);r
   bug.classList.add("hide");lower.classList.add("fade");volHint.classList.remove("show");
   if(banner)banner.classList.remove("show");if(infoPanel)infoPanel.classList.add("hide");
   if(flipBar)flipBar.classList.remove("show");if(clockBug)clockBug.classList.remove("show");
-  if(tube)tube.classList.remove("sleep-dim");closeOsd();hideLiveDeck();resetProgress();hideBuffer();
+  if(tube)tube.classList.remove("sleep-dim");closeOsd();resetProgress();hideBuffer();
   if(sleepMin>0){sleepMin=0;if(sleepTimer){clearInterval(sleepTimer);sleepTimer=null;}if(sleepInd)sleepInd.classList.add("hide");}
   if(tube)tube.classList.remove("night");
   setSig("","STANDBY");chNum.textContent="--";nowName.textContent="Television is off";nowMeta.textContent="Press power on the remote";stopEmergencyMonitor();stopHazTicker();}

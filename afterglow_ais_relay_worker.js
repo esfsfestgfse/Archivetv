@@ -44,7 +44,7 @@ const IA_SEARCH_TTL_SECONDS = 300;
 const IA_SEARCH_CACHE_VERSION = "v4";
 const IA_METADATA_TTL_SECONDS = 3600;
 const IA_QUEUE_TTL_SECONDS = 300;
-const IA_QUEUE_CACHE_VERSION = "v3";
+const IA_QUEUE_CACHE_VERSION = "v4";
 const GULF_FILTER = "BBOX(geometry,-98,18,-80,31)";
 const KPLER_FIELDS = "mmsi,longitude,latitude,posDt,sog,vesselName,heading,cog,navStatus,destination,vesselType";
 
@@ -158,15 +158,19 @@ async function searchArchive(query, rows, page, sort) {
   return { ...(payload.response || { numFound: 0, docs: [] }), _afterglowSource: "advanced" };
 }
 
+async function cachedSearchArchive(cacheOrigin, query, rows, page, sort) {
+  const cacheKey = new Request(cacheOrigin + IA_PREFIX + "/cache/search/" + IA_SEARCH_CACHE_VERSION + "/" + await stableKey([query, rows, page, sort].join("|")));
+  return cachedArchiveJson(cacheKey, IA_SEARCH_TTL_SECONDS, () => searchArchive(query, rows, page, sort));
+}
+
 async function getIaSearch(url, ctx) {
   const q = (url.searchParams.get("q") || "").trim();
   if (!q || q.length > 2400) return json({ error: "invalid archive search" }, 400);
   const rows = Math.max(1, Math.min(100, Number(url.searchParams.get("rows")) || 50));
   const page = Math.max(1, Math.min(10000, Number(url.searchParams.get("page")) || 1));
   const sort = (url.searchParams.get("sort") || "downloads desc").slice(0, 80);
-  const cacheKey = new Request(url.origin + IA_PREFIX + "/cache/search/" + IA_SEARCH_CACHE_VERSION + "/" + await stableKey([q, rows, page, sort].join("|")));
   try {
-    const payload = await cachedArchiveJson(cacheKey, IA_SEARCH_TTL_SECONDS, () => searchArchive(q, rows, page, sort));
+    const payload = await cachedSearchArchive(url.origin, q, rows, page, sort);
     return cacheableJson(
       { response: payload },
       IA_SEARCH_TTL_SECONDS,
@@ -182,7 +186,7 @@ async function getIaMetadata(id, requestUrl) {
   const cacheKey = new Request(requestUrl.origin + IA_PREFIX + "/cache/metadata/" + id);
   try {
     const payload = await cachedArchiveJson(cacheKey, IA_METADATA_TTL_SECONDS, async () => {
-      const upstream = await fetch("https://archive.org/metadata/" + encodeURIComponent(id));
+      const upstream = await archiveFetch("https://archive.org/metadata/" + encodeURIComponent(id), {}, 4200);
       if (!upstream.ok) throw new Error("archive metadata " + upstream.status);
       return upstream.json();
     });
@@ -216,11 +220,15 @@ function queueFileUrls(id, payload, name) {
   return bases.map((base) => base + encoded).filter((url, index, all) => all.indexOf(url) === index);
 }
 
-async function queuePlayable(id) {
+async function queuePlayable(id, cacheOrigin) {
   try {
-    const upstream = await archiveFetch("https://archive.org/metadata/" + encodeURIComponent(id), {}, 4200);
-    if (!upstream.ok) return null;
-    const payload = await upstream.json(), files = payload.files || [];
+    const cacheKey = new Request(cacheOrigin + IA_PREFIX + "/cache/metadata/" + id);
+    const payload = await cachedArchiveJson(cacheKey, IA_METADATA_TTL_SECONDS, async () => {
+      const upstream = await archiveFetch("https://archive.org/metadata/" + encodeURIComponent(id), {}, 4200);
+      if (!upstream.ok) throw new Error("archive metadata " + upstream.status);
+      return upstream.json();
+    });
+    const files = payload.files || [];
     const format = (file) => String(file && file.format || "").toLowerCase();
     const video = files.filter((file) => file && file.name && (/\.mp4$|\.m4v$/i.test(file.name) || /\.webm$/i.test(file.name) || /\.ogv$/i.test(file.name)))
       .sort((a, b) => {
@@ -237,7 +245,7 @@ async function queuePlayable(id) {
   }
 }
 
-async function buildIaQueue(channel, queries, count) {
+async function buildIaQueue(channel, queries, count, cacheOrigin) {
   const items = [], seen = new Set(), seenTitles = new Set(), candidateLimit = count;
   /* Query lanes are already editorially ordered by the app. Fetch a small
      sample from each lane in parallel, then take one from every lane before
@@ -247,7 +255,7 @@ async function buildIaQueue(channel, queries, count) {
      used to mean one stalled Archive request could hold the whole channel. */
   const lanes = await Promise.all(queries.slice(0, Math.min(3, count)).map(async (query) => {
     try {
-      const result = await searchArchive(query, Math.min(24, Math.max(12, count * 3)), 1, "downloads desc");
+      const result = await cachedSearchArchive(cacheOrigin, query, Math.min(24, Math.max(12, count * 3)), 1, "downloads desc");
       return (result.docs || []).filter((doc) => doc && safeIaId(doc.identifier));
     } catch {
       return [];
@@ -274,15 +282,32 @@ async function buildIaQueue(channel, queries, count) {
   };
 }
 
-async function hydrateIaQueue(payload) {
-  const enriched = await Promise.all(payload.items.map(async (item) => ({ ...item, media: await queuePlayable(item.identifier) })));
-  const ready = enriched.filter((item) => item.media).concat(enriched.filter((item) => !item.media)).slice(0, payload.items.length);
+async function hydrateIaQueue(payload, requestedCount, cacheOrigin) {
+  /* Keep a few extra candidates behind the five-program shelf. Archive items
+     occasionally have no browser-playable derivative; filtering those here
+     means the viewer receives five actual media URLs instead of five names
+     that each need another network trip in the browser. */
+  const enriched = await Promise.all(payload.items.map(async (item) => ({ ...item, media: await queuePlayable(item.identifier, cacheOrigin) })));
+  const ready = enriched.filter((item) => item.media).slice(0, requestedCount);
   return {
     ...payload,
     items: ready,
+    candidates: payload.items.length,
     ready: ready.length,
     hydrating: false,
   };
+}
+
+async function timeboxQueueHydration(hydration, timeoutMs) {
+  let timer;
+  try {
+    return await Promise.race([
+      hydration,
+      new Promise((resolve) => { timer = setTimeout(() => resolve(null), timeoutMs); }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 async function getIaQueue(request, url, ctx) {
@@ -300,16 +325,34 @@ async function getIaQueue(request, url, ctx) {
   try {
     const cache = caches.default, cached = await cache.match(cacheKey);
     if (cached) return cached;
-    const payload = await buildIaQueue(channel, queries, count);
-    const initial = { ...payload, hydrating: true };
-    const response = cacheableJson(initial, IA_QUEUE_TTL_SECONDS, { "X-Afterglow-Source": "program-director" });
-    await cache.put(cacheKey, response.clone());
+    const candidateCount = Math.min(10, Math.max(count, count * 2));
+    const payload = await buildIaQueue(channel, queries, candidateCount, url.origin);
+    const hydration = hydrateIaQueue(payload, count, url.origin);
+    /* A cold channel gets one short, bounded chance to receive ready media.
+       If Archive is slow, return the discovery shelf immediately and finish
+       hydration in the background; the browser's own fallback can still use
+       those identifiers without turning a channel change into a long wait. */
+    const hydrated = await timeboxQueueHydration(hydration, 4800);
+    if (hydrated && hydrated.items.length) {
+      const response = cacheableJson(hydrated, IA_QUEUE_TTL_SECONDS, {
+        "X-Afterglow-Source": "program-director",
+        "X-Afterglow-Queue-Ready": String(hydrated.ready),
+      });
+      await cache.put(cacheKey, response.clone());
+      return response;
+    }
+    const initial = { ...payload, items: payload.items.slice(0, count), ready: 0, hydrating: true };
     ctx.waitUntil(
-      hydrateIaQueue(payload)
-        .then((hydrated) => cache.put(cacheKey, cacheableJson(hydrated, IA_QUEUE_TTL_SECONDS, { "X-Afterglow-Source": "program-director" })))
+      hydration
+        .then((ready) => ready && ready.items.length
+          ? cache.put(cacheKey, cacheableJson(ready, IA_QUEUE_TTL_SECONDS, {
+            "X-Afterglow-Source": "program-director",
+            "X-Afterglow-Queue-Ready": String(ready.ready),
+          }))
+          : undefined)
         .catch(() => {})
     );
-    return response;
+    return cacheableJson(initial, 20, { "X-Afterglow-Source": "program-director", "X-Afterglow-Queue-Ready": "0" });
   } catch {
     return json({ error: "archive queue unavailable" }, 502);
   }

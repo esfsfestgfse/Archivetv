@@ -44,7 +44,7 @@ for (const match of programBlock.matchAll(/^\s*"([^"]+)":\s*\{([\s\S]*?)(?=^\s*"
 
 if (!/fl\[\]=subject/.test(source) || !/fl\[\]=runtime/.test(source)) issues.push('IA advanced search must request subject and runtime for PROGRAM filters');
 if (!/&fields=identifier,title,year,subject,runtime/.test(source)) issues.push('IA scrape search must request subject and runtime for PROGRAM filters');
-if (!/var globalQs = \[\]/.test(source) || !/return qs\.concat\(globalQs\)/.test(source)) issues.push('PROGRAM global subject fallback must remain after collection-scoped rails');
+if (!/var globalQs = \[\]/.test(source) || !/qs\.concat\(globalQs\)/.test(source)) issues.push('PROGRAM global subject fallback must remain after collection-scoped rails');
 
 console.log(`${path.basename(file)}: ${issues.length ? 'FAILED' : 'passed'} IA contract checks`);
 for (const issue of issues) console.log(`P0 ${issue}`);

@@ -16,6 +16,8 @@ function blockAfter(source, marker, open, close) {
   for (let i = begin; i < source.length; i++) {
     const char = source[i];
     if (quote) { if (escaped) escaped = false; else if (char === '\\') escaped = true; else if (char === quote) quote = null; continue; }
+    if (char === '/' && source[i + 1] === '/') { const end = source.indexOf('\n', i + 2); if (end < 0) break; i = end; continue; }
+    if (char === '/' && source[i + 1] === '*') { const end = source.indexOf('*/', i + 2); if (end < 0) throw new Error(`Unclosed comment after ${marker}`); i = end + 1; continue; }
     if (char === '"' || char === "'" || char === '`') { quote = char; continue; }
     if (char === open) depth++;
     if (char === close && --depth === 0) return source.slice(begin, i);

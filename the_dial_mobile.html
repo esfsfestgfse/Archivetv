@@ -913,6 +913,25 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
   .apod-screen{grid-template-rows:auto minmax(0,1fr);padding:3px 4px 25px}.apod-head-source,.apod-strip,.apod-ticker{display:none}.apod-main{grid-template-columns:65% 35%}.apod-story{grid-template-rows:auto minmax(0,1fr)}.apod-kicker,.apod-credit{display:none}.apod-title{font-size:8px}.apod-explanation{font-size:6px}.apod-hero-title{font-size:9px}
 }
 
+/* ============ Sky Beacon Live / global ADS-B operations desk ============ */
+.skybeacon-screen{width:100%;height:100%;overflow:hidden;box-sizing:border-box;position:relative;display:grid;grid-template-rows:auto minmax(0,1fr) auto auto;gap:clamp(4px,.65vmin,7px);padding:clamp(7px,1vmin,12px) clamp(8px,1.2vmin,14px) 33px;color:#dfffe8;background:radial-gradient(90% 70% at 20% -10%,rgba(34,125,73,.34),transparent 70%),linear-gradient(155deg,#020c06,#020805 68%,#07110a)}
+.skybeacon-head{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:center;gap:9px;min-width:0;color:#78ffa0;font:900 clamp(10px,1.5vmin,15px)/1 monospace;letter-spacing:1.5px}.skybeacon-live{display:inline-block;width:7px;height:7px;margin-right:7px;border-radius:50%;background:#ff4e4e;box-shadow:0 0 9px #ff4e4e;animation:wxBugPulse 1.4s ease-in-out infinite}.skybeacon-source{min-width:0;color:#749782;font:700 clamp(7px,1.05vmin,10px)/1 monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right}
+.skybeacon-main{position:relative;z-index:1;min-height:0;display:grid;grid-template-columns:minmax(0,1.62fr) minmax(205px,.78fr);gap:7px}.skybeacon-radar{position:relative;min-width:0;min-height:0;overflow:hidden;border:1px solid rgba(103,255,134,.18);border-radius:9px;background:#010703}.skybeacon-radar .sky-scope{position:absolute;inset:0;width:100%;height:100%;border-radius:0}.skybeacon-radar-top{position:absolute;left:8px;right:8px;top:7px;z-index:8;display:flex;justify-content:space-between;gap:8px;pointer-events:none}.skybeacon-loc,.skybeacon-range{padding:5px 7px;border:1px solid rgba(103,255,134,.2);border-radius:6px;background:rgba(0,8,4,.76);font:800 clamp(7px,1.05vmin,10px)/1.25 monospace}.skybeacon-loc{color:#dfffe8}.skybeacon-loc small{display:block;margin-top:3px;color:#76a084;font-size:.75em}.skybeacon-range{color:#7effa0;text-align:right}
+.skybeacon-radar .sky-blip i{display:none}.skybeacon-radar .sky-blip.sel i{display:block}.skybeacon-radar .sky-blip.sel{z-index:6;background:#fff!important;box-shadow:0 0 12px #fff,0 0 26px #67ff86!important;width:11px;height:11px;margin:-5.5px 0 0 -5.5px}
+.skybeacon-side{min-width:0;min-height:0;display:grid;grid-template-rows:auto auto minmax(0,1fr);gap:5px;padding:7px;border:1px solid rgba(103,255,134,.15);border-radius:9px;background:linear-gradient(155deg,rgba(8,29,16,.9),rgba(1,8,4,.95))}.skybeacon-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}.skybeacon-stat{min-width:0;padding:6px;border:1px solid rgba(103,255,134,.1);border-radius:6px;background:rgba(255,255,255,.025)}.skybeacon-stat b{display:block;color:#71917b;font:800 clamp(6px,.95vmin,9px)/1 monospace}.skybeacon-stat span{display:block;margin-top:4px;color:#e0ffe8;font:900 clamp(11px,1.8vmin,18px)/1 monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.skybeacon-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:3px}.skybeacon-tab{appearance:none;padding:6px 3px;border:1px solid rgba(103,255,134,.13);border-radius:5px;background:rgba(0,0,0,.3);color:#74957e;font:800 clamp(7px,1vmin,9px)/1 monospace;cursor:pointer}.skybeacon-tab.on{color:#79ffa0;border-color:#5fe98a;background:rgba(67,221,107,.12)}.skybeacon-panel{min-height:0;overflow:auto;border-top:1px solid rgba(103,255,134,.08)}
+.skybeacon-row{display:grid;grid-template-columns:4px minmax(0,1fr) auto;gap:7px;align-items:center;padding:6px 3px;border-bottom:1px solid rgba(255,255,255,.05);cursor:pointer;font:700 clamp(8px,1.15vmin,11px)/1.2 monospace}.skybeacon-row:hover,.skybeacon-row.on{background:rgba(103,255,134,.055)}.skybeacon-altbar{align-self:stretch;border-radius:2px;background:#67ff86}.skybeacon-flight{min-width:0}.skybeacon-flight b{color:#e7fff0;font-size:1.12em;letter-spacing:.7px}.skybeacon-flight small{display:block;margin-top:3px;color:#7fa38a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.skybeacon-distance{color:#8effaa;text-align:right;white-space:nowrap}.skybeacon-detail{grid-column:2/4;margin-top:3px;padding:5px 6px;border:1px solid rgba(127,216,255,.12);border-radius:5px;background:rgba(127,216,255,.055);color:#b8d9c2;font-size:.9em;line-height:1.35}.skybeacon-detail b{color:#7fd8ff}
+.skybeacon-wx{display:grid;grid-template-columns:52px 46px minmax(0,1fr) auto;gap:7px;align-items:center;padding:6px 4px;border-bottom:1px solid rgba(255,255,255,.05);font:700 clamp(8px,1.1vmin,10px)/1.2 monospace}.skybeacon-wx b{color:#ffd15b}.skybeacon-wx-cat{font-weight:900}.skybeacon-wx-mid{color:#83a58c;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.skybeacon-wx-temp{color:#e7fff0}
+.skybeacon-regions{position:relative;z-index:1;display:flex;gap:3px;overflow:auto;padding-bottom:1px}.skybeacon-region{appearance:none;flex:none;padding:5px 7px;border:1px solid rgba(103,255,134,.12);border-radius:5px;background:rgba(0,0,0,.32);color:#708f78;font:800 clamp(6px,.95vmin,8px)/1 monospace;cursor:pointer}.skybeacon-region.on{color:#7effa0;border-color:#5fe98a;background:rgba(61,205,98,.12)}.skybeacon-region:focus-visible,.skybeacon-tab:focus-visible{outline:2px solid #79ffa0;outline-offset:1px}.skybeacon-empty{display:grid;place-items:center;height:100%;min-height:55px;padding:12px;color:#789a82;text-align:center;font:700 9px/1.45 monospace;box-sizing:border-box}
+.skybeacon-ticker{position:relative;z-index:1;min-width:0;padding:4px 8px;border:1px solid rgba(103,255,134,.12);border-radius:6px;background:rgba(0,0,0,.38);color:#85a98f;font:700 clamp(7px,1.05vmin,10px)/1.2 monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.skybeacon-ticker a{color:#8fe7ff;text-decoration:none}.skybeacon-ticker a:hover{text-decoration:underline}
+@container (max-height:430px){
+  .skybeacon-screen{gap:3px;padding:5px 6px 28px}.skybeacon-head{font-size:8px}.skybeacon-source{font-size:6px}.skybeacon-main{grid-template-columns:minmax(0,1.5fr) minmax(130px,.75fr);gap:4px}.skybeacon-radar-top{left:4px;right:4px;top:4px}.skybeacon-loc,.skybeacon-range{padding:3px 4px;font-size:6px}
+  .skybeacon-side{gap:3px;padding:4px}.skybeacon-stat{padding:4px}.skybeacon-stat b{font-size:5px}.skybeacon-stat span{font-size:9px;margin-top:2px}.skybeacon-tab{padding:4px 2px;font-size:6px}.skybeacon-row{padding:4px 2px;font-size:7px}.skybeacon-wx{grid-template-columns:38px 34px minmax(0,1fr);gap:4px;padding:4px 2px;font-size:6px}.skybeacon-wx-temp{display:none}.skybeacon-region{padding:3px 5px;font-size:5px}.skybeacon-ticker{font-size:6px;padding:2px 4px}
+}
+@container (max-height:220px){
+  .skybeacon-screen{grid-template-rows:auto minmax(0,1fr);padding:3px 4px 25px}.skybeacon-source,.skybeacon-regions,.skybeacon-ticker{display:none}.skybeacon-main{grid-template-columns:62% 38%}.skybeacon-range{display:none}.skybeacon-side{grid-template-rows:auto auto minmax(0,1fr)}.skybeacon-tabs{display:grid}.skybeacon-stat:nth-child(n+3){display:none}.skybeacon-row:nth-child(n+5),.skybeacon-wx:nth-child(n+5){display:none}
+}
+
 /* ============ v14: ident flash (station idents feature) ============ */
 /* QA FIX (audit 5A): was z:29, same as .buff-ov. Both fire on every channel change; .buff-ov's
    35% black backdrop killed the intended phosphor flash. Bumped to z:30 so the CRT ident wins. */
@@ -1384,7 +1403,7 @@ html.mob .console::before,html.mob .speaker,html.mob .console-legs{display:none!
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.229-apod-gallery";
+window.__ATV_BUILD="1.7.7-mobile.230-sky-beacon";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1421,7 +1440,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.229 · APOD Gallery</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.230 · Sky Beacon</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -2166,7 +2185,7 @@ const CHANNEL_META={
 "Ham Radio":{desc:"LIVE: worldwide WSPR beacon paths with corrected amateur bands, exact frequencies, transmitter power, Maidenhead grids, path distance, and NOAA propagation conditions.",best:"anytime",rel:["Aurora & Space Weather","Live Radio"]},
 "ISS Tracker":{desc:"LIVE: International Space Station ground position, orbital track, altitude, velocity, visibility footprint, viewer-relative distance, future orbit samples, and current CelesTrak elements.",best:"anytime",rel:["Aurora & Space Weather","NASA Live"]},
 "NASA Picture of the Day":{desc:"LIVE: NASA’s current Astronomy Picture of the Day plus a seven-day visual gallery, in-channel video support, explanations, credits, instant cache, and official NASA fallback sources.",best:"anytime",rel:["ISS Tracker","NASA Live"]},
-"Sky Beacon Live":{desc:"LIVE: international flight tracker — starts at your local airspace then cycles every 90 s through the world's busiest hubs (JFK, Heathrow, CDG, DXB, HND, Singapore, LAX, Sydney). Real ADS-B via adsb.lol + airplanes.live + OpenSky fallback.",best:"anytime",rel:["Weather Watch","ISS Tracker"]},
+"Sky Beacon Live":{desc:"LIVE: edge-cached ADS-B radar for local airspace and eighteen world hubs, with moving aircraft, altitude/speed/track, route details, batched airport weather, last-good scope, and instant NEXT hub changes.",best:"anytime",rel:["Weather Watch","ISS Tracker"]},
 "Seismic Watch":{desc:"LIVE: elevated volcanoes and global earthquakes, on rotation.",best:"anytime",rel:["Weather Watch","Wildfire Watch"]},
 "News, News, News":{desc:"Newsreels, federal films and historic footage \u2014 the week\u2019s news, decades late.",best:"anytime",rel:["Live News","Historic Waco"]},
 "The Kitchen":{desc:"Julia Child's French Chef and other vintage cooking shows, chef demos and culinary how-tos.",best:"dinner hour",rel:["Home Economics","Prelinger Vault"]},
@@ -7602,9 +7621,9 @@ function stopHazTicker(){ clearInterval(hazTickerTimer); hazTickerTimer=null; }
    the rtInterval registry so teardown is automatic. */
 
 /* ---------- Sky Traffic (CYCLE-7 rebuild): radar scope + resilient ADS-B sources ----------
-   OpenSky's anonymous API turned unreliable (quota 429s / auth migration) — primary source is
-   now adsb.lol (community ADS-B, keyless, CORS-open), then airplanes.live, then OpenSky as a
-   true last resort. Rendered as a radar scope: range rings, rotating sweep, altitude-colored
+   Browser CORS and public-feed availability change often, so the narrow Afterglow Worker is
+   primary, followed by independent community relays and OpenSky as the last resort. Rendered
+   as a radar scope: range rings, rotating sweep, altitude-colored
    blips around YOU at the center, with the nearest aircraft detailed alongside. */
 function skyNormReadsb(list){
   return (list||[]).map(function(a){
@@ -7617,6 +7636,40 @@ function skyNormReadsb(list){
   }).filter(Boolean);
 }
 async function fetchSky(loc,nm,quiet){
+  var latf=Number(loc.lat).toFixed(3),lonf=Number(loc.lon).toFixed(3);nm=Math.max(1,Math.min(250,Math.round(nm||44)));
+  function tagged(list,source){list=list||[];list._source=source;return list;}
+  var workerUrl="https://ais-relay.tdy1990.workers.dev/live/adsb?lat="+latf+"&lon="+lonf+"&radius="+nm;
+  try{
+    var edge=await withTO(fetchJSON(workerUrl),6500);
+    if(edge&&Array.isArray(edge.ac)){var edgeList=skyNormReadsb(edge.ac);if(!quiet)nlog("skytraffic",true,(edge.source||"edge")+" edge: "+edgeList.length+" aircraft");return tagged(edgeList,edge.source||"edge");}
+  }catch(edgeError){if(!quiet)nlog("skytraffic",false,"edge relay failed: "+((edgeError&&edgeError.message)||edgeError));}
+  var adsbUrl="https://api.adsb.lol/v2/point/"+latf+"/"+lonf+"/"+nm;
+  try{
+    var direct=await withTO(fetchJSON(adsbUrl),7000);
+    if(direct&&Array.isArray(direct.ac)){var directList=skyNormReadsb(direct.ac);if(!quiet)nlog("skytraffic",true,"adsb.lol direct: "+directList.length+" aircraft");return tagged(directList,"adsb.lol direct");}
+  }catch(_){}
+  var mirrorUrl="https://opendata.adsb.fi/api/v3/lat/"+latf+"/lon/"+lonf+"/dist/"+nm;
+  try{
+    var mirror=await withTO(fetchJSON("https://api.cors.syrins.tech/?url="+encodeURIComponent(mirrorUrl)),5500),mirrorRows=mirror&&(Array.isArray(mirror.ac)?mirror.ac:mirror.aircraft);
+    if(Array.isArray(mirrorRows)){var mirrorList=skyNormReadsb(mirrorRows);if(!quiet)nlog("skytraffic",true,"adsb.fi relay: "+mirrorList.length+" aircraft");return tagged(mirrorList,"adsb.fi relay");}
+  }catch(mirrorError){if(!quiet)nlog("skytraffic",false,"adsb.fi relay failed: "+((mirrorError&&mirrorError.message)||mirrorError));}
+  try{
+    var relayed=await fetchJSONviaProxy(adsbUrl);
+    if(relayed&&Array.isArray(relayed.ac)){var relayList=skyNormReadsb(relayed.ac);if(!quiet)nlog("skytraffic",true,"adsb.lol relay: "+relayList.length+" aircraft");return tagged(relayList,"adsb.lol relay");}
+  }catch(relayError){if(!quiet)nlog("skytraffic",false,"adsb.lol relay failed: "+((relayError&&relayError.message)||relayError));}
+  var degrees=nm/60,lonDegrees=Math.min(20,degrees/Math.max(.18,Math.cos(Number(loc.lat)*Math.PI/180)));
+  var openSky="https://opensky-network.org/api/states/all?lamin="+Math.max(-90,Number(loc.lat)-degrees).toFixed(3)+"&lomin="+Math.max(-180,Number(loc.lon)-lonDegrees).toFixed(3)+"&lamax="+Math.min(90,Number(loc.lat)+degrees).toFixed(3)+"&lomax="+Math.min(180,Number(loc.lon)+lonDegrees).toFixed(3);
+  try{
+    var os=await fetchJSONviaProxy(openSky);
+    if(os&&Array.isArray(os.states)){
+      var states=os.states.map(function(a){if(a[8]||a[6]==null||a[5]==null)return null;return {cs:String(a[1]||a[0]||"").trim().toUpperCase(),type:"",alt:(a[7]!=null?Math.round(a[7]*3.28084):null),spd:(a[9]!=null?Math.round(a[9]*2.23694):null),trk:a[10],vr:(a[11]!=null?Math.round(a[11]*196.85):null),hex:String(a[0]||""),lat:a[6],lon:a[5]};}).filter(Boolean);
+      if(!quiet)nlog("skytraffic",true,"OpenSky relay: "+states.length+" aircraft");return tagged(states,"opensky relay");
+    }
+  }catch(openError){if(!quiet)nlog("skytraffic",false,"OpenSky relay failed: "+((openError&&openError.message)||openError));}
+  throw new Error("all ADS-B sources unavailable");
+}
+
+async function fetchSkyLegacy(loc,nm,quiet){
   /* 2026-08-14 diagnostic: all three ADS-B tiers CORS-block browser requests. Verified via
      curl with Origin: https://esfsfestgfse.github.io header — adsb.lol returns 200 + data
      but no Access-Control-Allow-Origin; airplanes.live now requires email-registered token;
@@ -10232,6 +10285,132 @@ var SKYBEACON_INTL_REGIONS = [
 ];
 
 async function tuneAirTraffic(ch,sl,my){
+  if(my!==token)return;hideOv();setSig("live","ON AIR");showNow(ch,sl,"Sky Beacon Live","");
+  if(screenArea)screenArea.innerHTML=
+    '<div class="skybeacon-screen" id="skyBeaconScreen">'+
+      '<div class="skybeacon-head"><span><i class="skybeacon-live"></i>SKY BEACON · GLOBAL ADS-B</span><span class="skybeacon-source" id="skyBeaconFresh">WARMING LOCAL AIRSPACE…</span></div>'+
+      '<div class="skybeacon-main">'+
+        '<section class="skybeacon-radar"><div class="sky-scope" id="skyBeaconScope"></div><div class="skybeacon-radar-top"><div class="skybeacon-loc" id="skyBeaconLoc">LOCAL AIRSPACE<small>LIVE AIRCRAFT POSITION</small></div><div class="skybeacon-range" id="skyBeaconRange">60 MI<br>RANGE</div></div></section>'+
+        '<aside class="skybeacon-side"><div class="skybeacon-stats" id="skyBeaconStats"><div class="skybeacon-stat"><b>AIRBORNE</b><span>--</span></div><div class="skybeacon-stat"><b>NEAREST</b><span>--</span></div><div class="skybeacon-stat"><b>CLIMBING</b><span>--</span></div><div class="skybeacon-stat"><b>DESCENDING</b><span>--</span></div></div>'+
+          '<div class="skybeacon-tabs"><button class="skybeacon-tab on" type="button" data-sky-view="0">AIRCRAFT</button><button class="skybeacon-tab" type="button" data-sky-view="1">FIELD WEATHER</button></div>'+
+          '<div class="skybeacon-panel" id="skyBeaconPanel"><div class="skybeacon-empty">LISTENING FOR ADS-B TRANSPONDERS…</div></div></aside>'+
+      '</div>'+
+      '<div class="skybeacon-regions" id="skyBeaconRegions"></div>'+
+      '<div class="skybeacon-ticker" id="skyBeaconTicker">AFTERGLOW EDGE ADS-B · NEXT moves to the next world hub · local scope refreshes every 8 seconds</div>'+
+    '</div>';
+  var skyBug=mountChanBug("skyBeaconScreen",{ident:"SKY BEACON"}),regions=[{name:"LOCAL AIRSPACE",local:true,mi:60}].concat(SKYBEACON_INTL_REGIONS);
+  var storedLoc=store.get("skyBeaconLastLoc",null),fallback={lat:31.5493,lon:-97.1467,label:"Waco TX"};
+  if(storedLoc&&isFinite(Number(storedLoc.lat))&&isFinite(Number(storedLoc.lon)))fallback=storedLoc;
+  var userLoc=fallback,loc=fallback,regionIndex=0,rangeMi=60,regionLabel="LOCAL AIRSPACE",viewIndex=0,aircraft=[],weather=[],selectedId="",sourceName="EDGE ADS-B",updatedAt=0,stale=false;
+  var projection=null,pollBusy=false,pollSeq=0,wxSeq=0,routePaintPending=false,snapshotCache=store.get("skyBeaconSnapshots",{})||{};
+  startIAJazz("gmelectro");
+  function regionKey(){return regionIndex===0?("local|"+Number(loc.lat).toFixed(2)+"|"+Number(loc.lon).toFixed(2)):("hub|"+regions[regionIndex].name);}
+  function cleanAircraft(list){return (list||[]).map(function(a){return {cs:String(a.cs||a.hex||"?"),type:String(a.type||""),alt:a.alt==null?null:Number(a.alt),spd:a.spd==null?null:Number(a.spd),trk:a.trk==null?null:Number(a.trk),vr:a.vr==null?null:Number(a.vr),hex:String(a.hex||""),lat:Number(a.lat),lon:Number(a.lon),baseLat:Number(a.lat),baseLon:Number(a.lon),baseT:Date.now(),seenT:Date.now()};}).filter(function(a){return isFinite(a.lat)&&isFinite(a.lon);});}
+  function saveSnapshot(){
+    var key=regionKey();snapshotCache[key]={at:Date.now(),source:sourceName,aircraft:aircraft.map(function(a){var copy={};Object.keys(a).forEach(function(k){if(k!=="el")copy[k]=a[k];});return copy;})};
+    var keys=Object.keys(snapshotCache).sort(function(a,b){return Number(snapshotCache[b].at)-Number(snapshotCache[a].at);});keys.slice(20).forEach(function(k){delete snapshotCache[k];});store.set("skyBeaconSnapshots",snapshotCache);
+  }
+  function clearScope(){
+    var scope=$("skyBeaconScope");if(!scope)return;scope.innerHTML="";scope._mapKey=null;scope._mapProj=null;projection=null;
+  }
+  function buildScope(){
+    var scope=$("skyBeaconScope");if(!scope||!loc)return;
+    projection=ensureMap(scope,Number(loc.lat),Number(loc.lon),rangeMi,"dkgreen");
+    var layer=document.createElement("div");layer.className="map-dyn scope-static";layer.innerHTML='<div class="sky-ring" style="inset:25%"></div><div class="sky-ring" style="inset:1%"></div><div class="sky-cross" style="left:50%;top:0;bottom:0;width:1px"></div><div class="sky-cross" style="top:50%;left:0;right:0;height:1px"></div><div class="sky-lbl" style="left:51.5%;top:26%">'+Math.round(rangeMi/2)+'</div><div class="sky-lbl" style="left:51.5%;top:2.5%">'+rangeMi+' MI</div><div class="sky-lbl" style="left:48.6%;top:-1px;color:#9ad6a8">N</div><div class="sky-sweep"></div><div class="map-attrib">© OpenStreetMap</div><div class="sky-blip" style="left:50%;top:50%;background:#fff;box-shadow:0 0 6px #fff;width:5px;height:5px;margin:-2.5px 0 0 -2.5px;transition:none"></div>';scope.appendChild(layer);
+    var blips=document.createElement("div");blips.className="map-dyn scope-blips";scope.appendChild(blips);paint();
+  }
+  function projectedPosition(a){
+    var elapsed=Math.min(30000,Date.now()-Number(a.baseT||Date.now()))/3600000;
+    if(a.spd==null||a.trk==null||elapsed<=0)return {lat:a.baseLat,lon:a.baseLon};
+    var miles=a.spd*elapsed,radians=a.trk*Math.PI/180,lat=a.baseLat+miles*Math.cos(radians)/69.05;
+    return {lat:lat,lon:a.baseLon+miles*Math.sin(radians)/(69.17*Math.max(.15,Math.cos(lat*Math.PI/180)))};
+  }
+  function paint(){
+    var scope=$("skyBeaconScope"),layer=scope&&scope.querySelector(".scope-blips");if(!layer||!projection||!loc)return;
+    aircraft.forEach(function(a){
+      var pos=projectedPosition(a);a.dist=haversineKm(Number(loc.lat),Number(loc.lon),pos.lat,pos.lon)*.621371;
+      var xy=projection.project(pos.lat,pos.lon);
+      if(!a.el){a.el=skyBlipEl(layer,a);a.el.addEventListener("click",function(ev){ev.stopPropagation();selectedId=selectedId===(a.hex||a.cs)?"":(a.hex||a.cs);renderPanel();});}
+      a.el.style.left="calc(50% + "+xy.x.toFixed(1)+"px)";a.el.style.top="calc(50% + "+xy.y.toFixed(1)+"px)";a.el.style.opacity=a.dist>rangeMi*.99?".2":"1";a.el.classList.toggle("sel",selectedId===(a.hex||a.cs));
+    });
+  }
+  function renderStats(){
+    var stats=$("skyBeaconStats");if(!stats)return;
+    var sorted=aircraft.slice().sort(function(a,b){return (a.dist||9e9)-(b.dist||9e9);}),nearest=sorted[0],climb=aircraft.filter(function(a){return Number(a.vr)>320;}).length,desc=aircraft.filter(function(a){return Number(a.vr)<-320;}).length;
+    var cards=[["AIRBORNE",aircraft.length.toLocaleString()],["NEAREST",nearest&&isFinite(nearest.dist)?nearest.dist.toFixed(0)+" mi":"--"],["CLIMBING",climb],["DESCENDING",desc]];
+    stats.innerHTML=cards.map(function(card){return '<div class="skybeacon-stat"><b>'+card[0]+'</b><span>'+card[1]+'</span></div>';}).join("");
+  }
+  function weatherHtml(){
+    if(!weather.length)return '<div class="skybeacon-empty">BATCHING NEARBY AIRPORT WEATHER…</div>';
+    return weather.map(function(row){var color=row.cat==="VFR"?"#67ff86":row.cat==="MVFR"?"#7fb4ff":row.cat==="IFR"?"#ff766d":"#ffd15b";return '<div class="skybeacon-wx"><b>'+esch(row.icao)+'</b><span class="skybeacon-wx-cat" style="color:'+color+'">'+esch(row.cat)+'</span><span class="skybeacon-wx-mid">'+esch(row.wind)+' · VIS '+esch(row.vis)+'</span><span class="skybeacon-wx-temp">'+esch(row.temp)+'</span></div>';}).join("");
+  }
+  function renderPanel(){
+    document.querySelectorAll("[data-sky-view]").forEach(function(button){button.classList.toggle("on",Number(button.dataset.skyView)===viewIndex);});
+    var panel=$("skyBeaconPanel");if(!panel)return;
+    if(viewIndex===1){panel.innerHTML=weatherHtml();return;}
+    if(!aircraft.length){panel.innerHTML='<div class="skybeacon-empty">'+(stale?"ADS-B FEEDS ARE RECONNECTING<br>THE LAST VALID SCOPE REMAINS ON SCREEN":"QUIET SKIES · NO AIRBORNE TRANSPONDERS IN RANGE")+'</div>';return;}
+    var top=aircraft.slice().sort(function(a,b){return (a.dist||9e9)-(b.dist||9e9);}).slice(0,12);
+    panel.innerHTML=top.map(function(a){
+      var id=a.hex||a.cs,isOn=id===selectedId,color=a.alt!=null&&a.alt<10000?"#ffb85c":a.alt!=null&&a.alt>=25000?"#7fd8ff":"#67ff86",route=routeCache[a.cs],full=routeCache[a.cs+"|full"],detail="";
+      if(isOn){detail='<div class="skybeacon-detail"><b>'+(route?esch(route.replace(" > "," → ")):"ROUTE LOOKUP PENDING")+'</b>'+(full?("<br>"+esch(full.replace(" > "," → "))):"")+'<br>HEX '+esch(a.hex||"--")+' · '+esch(a.type||"TYPE --")+' · '+(a.vr==null?"LEVEL":((a.vr>0?"+":"")+Math.round(a.vr)+" ft/min"))+' · TRACK '+(a.trk==null?"--":Math.round(a.trk)+"°")+'</div>';}
+      return '<div class="skybeacon-row'+(isOn?" on":"")+'" data-sky-id="'+esch(id)+'"><span class="skybeacon-altbar" style="background:'+color+'"></span><span class="skybeacon-flight"><b>'+esch(a.cs||a.hex||"?")+'</b><small>'+(a.alt==null?"ALT --":Math.round(a.alt).toLocaleString()+" ft")+' · '+(a.spd==null?"SPD --":Math.round(a.spd)+" mph")+' · '+wxCompass(a.trk)+(a.trk==null?"":(" "+Math.round(a.trk)+"°"))+'</small></span><span class="skybeacon-distance">'+(isFinite(a.dist)?a.dist.toFixed(1)+" mi":"--")+'</span>'+detail+'</div>';
+    }).join("");
+    panel.querySelectorAll("[data-sky-id]").forEach(function(row){row.addEventListener("click",function(){selectedId=selectedId===row.dataset.skyId?"":row.dataset.skyId;renderPanel();paint();});});
+    if(!routePaintPending&&top.some(function(a){return a.cs&&routeCache[a.cs]===undefined;})){routePaintPending=true;lookupRoutes(top).then(function(){routePaintPending=false;if(my===token)renderPanel();}).catch(function(){routePaintPending=false;});}
+  }
+  function renderRegions(){
+    var host=$("skyBeaconRegions");if(!host)return;
+    host.innerHTML=regions.map(function(region,index){return '<button class="skybeacon-region'+(index===regionIndex?" on":"")+'" type="button" data-sky-region="'+index+'">'+esch(region.local?"LOCAL":region.name.replace(/ · .*/,""))+'</button>';}).join("");
+    host.querySelectorAll("[data-sky-region]").forEach(function(button){button.addEventListener("click",function(){setRegion(Number(button.dataset.skyRegion)||0,true);});});
+  }
+  function renderHeader(){
+    var locEl=$("skyBeaconLoc"),rangeEl=$("skyBeaconRange"),fresh=$("skyBeaconFresh"),ticker=$("skyBeaconTicker");
+    if(locEl)locEl.innerHTML=esch(regionLabel)+'<small>'+aircraft.length+' LIVE TRANSPONDERS · '+(updatedAt?guideUpdatedLabel(updatedAt):"CONNECTING")+'</small>';
+    if(rangeEl)rangeEl.innerHTML=rangeMi+' MI<br>RANGE';
+    if(fresh)fresh.textContent=(stale?"CACHED · RECONNECTING · ":"")+(sourceName||"ADS-B")+" · "+(updatedAt?guideUpdatedLabel(updatedAt):"ACQUIRING");
+    var tickerText=(stale?"LAST-GOOD SCOPE · RECONNECTING · ":"")+(sourceName||"ADS-B")+" · "+regionLabel+" · "+aircraft.length+" aircraft · NEXT moves to "+regions[(regionIndex+1)%regions.length].name;
+    if(ticker)ticker.innerHTML=esch(tickerText)+(/adsb\.fi/i.test(sourceName||"")?' · <a href="https://adsb.fi" target="_blank" rel="noopener">DATA: ADSB.FI</a>':"");
+    setChanStatus(ch.num,aircraft.length+" aircraft · "+regionLabel);
+    if(skyBug)skyBug.update(aircraft.length+" AIRCRAFT",regionLabel.slice(0,42));
+  }
+  function applyAircraft(list,isCached,source){
+    aircraft=cleanAircraft(list);sourceName=source||list._source||"ADS-B";updatedAt=isCached?Number((snapshotCache[regionKey()]||{}).at)||Date.now():Date.now();stale=!!isCached;selectedId="";
+    if(!isCached)saveSnapshot();renderStats();renderPanel();renderHeader();paint();
+  }
+  async function refreshWeather(){
+    var seq=++wxSeq,atLoc={lat:Number(loc.lat),lon:Number(loc.lon)};
+    try{
+      var near=await nearbyAirports(atLoc,7);if(seq!==wxSeq||my!==token)return;
+      var fields=(near&&near.length?near:TX_AIRPORTS).slice(0,7),codes=fields.map(function(field){var code=Array.isArray(field)?field[0]:(field.icao||"");return code.length===3?"K"+code:code;}).filter(Boolean);
+      var data=await fetchJSONResilient("https://aviationweather.gov/api/data/metar?ids="+encodeURIComponent(codes.join(","))+"&format=json","sky-metar");if(seq!==wxSeq||my!==token)return;
+      var byCode={};(Array.isArray(data)?data:[]).forEach(function(m){var code=String(m.icaoId||m.icao||m.station_id||"").toUpperCase();if(code)byCode[code]=m;});
+      weather=codes.map(function(code){var m=byCode[code]||{},cat=String(m.fltcat||"--"),wind=m.wspd!=null?(wxCompass(m.wdir)+" "+m.wspd+" kt"):"CALM",temp=m.temp!=null?Math.round(m.temp*9/5+32)+"°F":"--",visibility=m.visib!=null?m.visib+" mi":"--";return {icao:code,cat:cat,wind:wind,vis:visibility,temp:temp};});if(viewIndex===1)renderPanel();
+    }catch(e){nlog("sky-metar",false,(e&&e.message)||e);}
+  }
+  async function poll(){
+    if(my!==token||!powered||pollBusy)return;pollBusy=true;var seq=++pollSeq,queryLoc={lat:Number(loc.lat),lon:Number(loc.lon)};
+    try{
+      var list=await fetchSky(queryLoc,Math.round(rangeMi*.87),false);if(seq!==pollSeq||my!==token)return;
+      applyAircraft(list,false,list._source||"ADS-B");nlog("skybeacon",true,list.length+" at "+regionLabel);
+    }catch(e){if(seq!==pollSeq||my!==token)return;nlog("skybeacon",false,(e&&e.message)||e);stale=true;renderHeader();renderPanel();}finally{pollBusy=false;}
+  }
+  function setRegion(index,announce){
+    regionIndex=((index%regions.length)+regions.length)%regions.length;var region=regions[regionIndex];pollSeq++;wxSeq++;pollBusy=false;selectedId="";
+    if(region.local){loc=userLoc;rangeMi=60;regionLabel=String(userLoc.label||"LOCAL AIRSPACE").toUpperCase()+" · LOCAL";}else{loc={lat:region.lat,lon:region.lon};rangeMi=region.mi||100;regionLabel=region.name;}
+    aircraft=[];weather=[];updatedAt=0;stale=false;clearScope();buildScope();renderRegions();renderStats();renderPanel();renderHeader();
+    var cached=snapshotCache[regionKey()];if(cached&&Array.isArray(cached.aircraft)&&Date.now()-Number(cached.at)<3*60*1000)applyAircraft(cached.aircraft,true,cached.source||"CACHED ADS-B");
+    poll();refreshWeather();if(announce)quickBanner("SKY BEACON · "+regionLabel);
+  }
+  function nextRegion(){setRegion((regionIndex+1)%regions.length,true);}
+  window.__skyBeaconNext=nextRegion;window.__skyBeaconRefresh=poll;
+  document.querySelectorAll("[data-sky-view]").forEach(function(button){button.addEventListener("click",function(){viewIndex=Number(button.dataset.skyView)||0;renderPanel();});});
+  var scope=$("skyBeaconScope");if(scope){scope.addEventListener("click",function(){var base=regions[regionIndex].mi||60;rangeMi=rangeMi===base?Math.min(220,base*2):base;clearScope();buildScope();poll();quickBanner("SKY BEACON · "+rangeMi+" MI RANGE");});}
+  setRegion(0,false);
+  getWxLocation().then(function(real){if(my!==token||!real)return;userLoc=real;store.set("skyBeaconLastLoc",real);resolveLocale(real).then(function(place){if(place&&place.city)userLoc.label=place.city;store.set("skyBeaconLastLoc",userLoc);if(my===token&&regionIndex===0)setRegion(0,false);}).catch(function(){if(my===token&&regionIndex===0)setRegion(0,false);});}).catch(function(){});
+  rtInterval(poll,8000);rtInterval(function(){if(my===token&&powered){paint();renderStats();}},600);rtInterval(refreshWeather,5*60*1000);rtInterval(nextRegion,90000);
+}
+
+async function tuneAirTrafficLegacy(ch,sl,my){
   if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Sky Beacon Live","");
   var rangeMi=50, loc=null, mp=null, acsMap={}, cityName="OVERHEAD", selectedCs=null;
   /* International rotation state — starts at the user's local airspace (idx=-1 sentinel),
@@ -14480,6 +14659,7 @@ async function playBumper(ch,sl,my){
 /* ===== v10.1: skip — next item on the same channel, on demand ===== */
 function skipOne(){ if(!powered){quickBanner("TURN THE TV ON FIRST");return;}
   var sc=byNum(curNum);
+  if(sc&&sc.source==="airtraffic"&&typeof window.__skyBeaconNext==="function"){window.__skyBeaconNext();return;}
   if(sc&&sc.source==="apod"&&typeof window.__apodNext==="function"){window.__apodNext();return;}
   if(sc&&sc.source==="iss"&&typeof window.__issNext==="function"){window.__issNext();return;}
   if(sc&&sc.source==="hf"&&typeof window.__hfNext==="function"){window.__hfNext();return;}

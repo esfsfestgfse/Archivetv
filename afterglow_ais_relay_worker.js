@@ -37,7 +37,10 @@ const SNAPSHOT_PATH = "/snapshot";
 const IA_PREFIX = "/ia";
 const IA_QUEUE_PATH = IA_PREFIX + "/queue";
 const IA_PROGRAM_PATH = IA_PREFIX + "/program";
+const ADSB_PATH = "/live/adsb";
 const SNAPSHOT_TTL_SECONDS = 60;
+const ADSB_TTL_SECONDS = 10;
+const ADSB_USER_AGENT = "Afterglow/1.7 (+https://github.com/esfsfestgfse/Archivetv)";
 const IA_SEARCH_TTL_SECONDS = 21600;
 /* Bump this when the normalized search response changes so an older edge
    entry cannot be mistaken for the current program-director result. */
@@ -131,6 +134,137 @@ async function cachedArchiveJson(cacheKey, ttlSeconds, load, ctx) {
   if (ctx) ctx.waitUntil(write);
   else await write;
   return payload;
+}
+
+/* Live ADS-B edge relay -----------------------------------------------------
+   Browser requests to the community ADS-B providers are commonly rejected by
+   CORS even though the same public feed works server-side. Keep this endpoint
+   deliberately narrow: latitude, longitude and radius only; no arbitrary URL
+   proxying. A ten-second edge cache is fresh enough for a television radar
+   while allowing many viewers in one area to share the same upstream sample. */
+async function timedJsonFetch(url, timeoutMs = 4200) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: { "Accept": "application/json", "User-Agent": ADSB_USER_AGENT },
+    });
+    if (!response.ok) {
+      const retryAfter = response.headers.get("Retry-After");
+      throw new Error("upstream " + response.status + (retryAfter ? " retry " + retryAfter : ""));
+    }
+    return response.json();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function normalizeOpenSky(states) {
+  return (states || []).map((state) => {
+    if (!Array.isArray(state) || state[8] || state[6] == null || state[5] == null) return null;
+    return {
+      hex: String(state[0] || ""),
+      flight: String(state[1] || state[0] || "").trim(),
+      lon: state[5],
+      lat: state[6],
+      alt_baro: state[7] == null ? null : Math.round(Number(state[7]) * 3.28084),
+      gs: state[9] == null ? null : Number(state[9]) * 1.94384,
+      track: state[10],
+      baro_rate: state[11] == null ? null : Math.round(Number(state[11]) * 196.85),
+      t: "",
+    };
+  }).filter(Boolean);
+}
+
+async function getAdsbSnapshot(url, ctx) {
+  const lat = Number(url.searchParams.get("lat"));
+  const lon = Number(url.searchParams.get("lon"));
+  const radius = Math.max(1, Math.min(250, Math.round(Number(url.searchParams.get("radius")) || 45)));
+  if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+    return json({ error: "invalid ADS-B coordinates" }, 400);
+  }
+  const latKey = lat.toFixed(2), lonKey = lon.toFixed(2);
+  const cacheKey = new Request(url.origin + ADSB_PATH + "/cache/" + latKey + "/" + lonKey + "/" + radius);
+  const cache = caches.default, cached = await cache.match(cacheKey);
+  if (cached) {
+    const headers = new Headers(cached.headers);
+    Object.entries(corsHeaders()).forEach(([key, value]) => headers.set(key, value));
+    headers.set("X-Afterglow-Cache", "hit");
+    return new Response(cached.body, { status: cached.status, headers });
+  }
+
+  let source = "adsb.lol", aircraft = null;
+  const attempts = [];
+  const recordFailure = (name, error) => {
+    const message = String(error && (error.message || error.name) || error || "unknown").replace(/[^a-z0-9 .:_-]/gi, "").slice(0, 140);
+    attempts.push(name + ":" + message);
+  };
+  const primaryUrl = "https://api.adsb.lol/v2/point/" + lat.toFixed(3) + "/" + lon.toFixed(3) + "/" + radius;
+  try {
+    const data = await timedJsonFetch(primaryUrl);
+    if (data && Array.isArray(data.ac)) aircraft = data.ac;
+    else throw new Error("ADS-B payload missing aircraft array");
+  } catch (primaryError) {
+    recordFailure("adsb.lol", primaryError);
+    if (/429/.test(String(primaryError && primaryError.message || primaryError))) {
+      await new Promise((resolve) => setTimeout(resolve, 1100));
+      try {
+        const retry = await timedJsonFetch(primaryUrl);
+        if (retry && Array.isArray(retry.ac)) aircraft = retry.ac;
+        else throw new Error("ADS-B retry payload missing aircraft array");
+      } catch (retryError) {
+        recordFailure("adsb.lol retry", retryError);
+      }
+    }
+    const adsbFiUrl = "https://opendata.adsb.fi/api/v3/lat/" + lat.toFixed(3) + "/lon/" + lon.toFixed(3) + "/dist/" + radius;
+    const mirrors = [
+      { name: "adsb.fi relay", url: "https://api.cors.syrins.tech/?url=" + encodeURIComponent(adsbFiUrl) },
+      { name: "adsb.one", url: "https://api.adsb.one/v2/point/" + lat.toFixed(3) + "/" + lon.toFixed(3) + "/" + radius },
+      { name: "adsb.fi", url: adsbFiUrl },
+    ];
+    for (const mirror of mirrors) {
+      if (aircraft) break;
+      try {
+        const data = await timedJsonFetch(mirror.url);
+        const rows = data && (Array.isArray(data.ac) ? data.ac : data.aircraft);
+        if (!Array.isArray(rows)) throw new Error("mirror payload missing aircraft array");
+        source = mirror.name;
+        aircraft = rows;
+        break;
+      } catch (mirrorError) {
+        recordFailure(mirror.name, mirrorError);
+      }
+    }
+  }
+  if (!aircraft) {
+    source = "opensky";
+    try {
+      const nauticalMilesPerDegree = 60;
+      const latDelta = radius / nauticalMilesPerDegree;
+      const lonDelta = Math.min(20, latDelta / Math.max(0.18, Math.cos(lat * Math.PI / 180)));
+      const openSkyUrl = "https://opensky-network.org/api/states/all?lamin=" + Math.max(-90, lat - latDelta).toFixed(3) +
+        "&lomin=" + Math.max(-180, lon - lonDelta).toFixed(3) + "&lamax=" + Math.min(90, lat + latDelta).toFixed(3) +
+        "&lomax=" + Math.min(180, lon + lonDelta).toFixed(3);
+      const data = await timedJsonFetch(openSkyUrl, 5200);
+      if (data && Array.isArray(data.states)) aircraft = normalizeOpenSky(data.states);
+      else throw new Error("OpenSky payload missing states array");
+    } catch (openSkyError) {
+      recordFailure("opensky", openSkyError);
+      console.warn(JSON.stringify({ event: "adsb-providers-unavailable", attempts }));
+      return json({ error: "ADS-B providers unavailable", attempts }, 502);
+    }
+  }
+
+  const response = json({ source, fetchedAt: new Date().toISOString(), ac: aircraft || [] }, 200, {
+    "Cache-Control": "public, max-age=" + ADSB_TTL_SECONDS + ", stale-while-revalidate=20",
+    "X-Afterglow-Source": source,
+    "X-Afterglow-Cache": "miss",
+  });
+  ctx.waitUntil(cache.put(cacheKey, response.clone()).catch((error) => {
+    console.warn(JSON.stringify({ event: "adsb-cache-write-failed", message: String(error && error.message || error) }));
+  }));
+  return response;
 }
 
 /* Internet Archive will occasionally leave a TCP request open for a very long
@@ -471,6 +605,10 @@ export default {
       return getKplerSnapshot(request, env, ctx);
     }
 
+    if (request.method === "GET" && url.pathname === ADSB_PATH) {
+      return getAdsbSnapshot(url, ctx);
+    }
+
     if (request.method === "GET" && url.pathname === IA_PREFIX + "/search") {
       return getIaSearch(url, ctx);
     }
@@ -493,6 +631,7 @@ export default {
         snapshotPath: SNAPSHOT_PATH,
         archiveQueuePath: IA_QUEUE_PATH,
         archiveProgramPath: IA_PROGRAM_PATH,
+        adsbPath: ADSB_PATH,
       });
     }
 

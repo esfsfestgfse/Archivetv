@@ -30,6 +30,15 @@ if (!/ready\.ready >= count \? IA_QUEUE_TTL_SECONDS : IA_PARTIAL_QUEUE_TTL_SECON
 if (!/hydrating: false, empty: true/.test(source)) issues.push('an empty discovery shelf must not masquerade as active hydration');
 if (!/"compatibility_date":\s*"2026-08-20"/.test(config)) issues.push('Wrangler compatibility date is stale');
 if (!/"compatibility_flags":\s*\["nodejs_compat"\]/.test(config)) issues.push('Wrangler must enable nodejs_compat');
+if (!/const ADSB_PATH = "\/live\/adsb"/.test(source)) issues.push('Sky Beacon needs the narrow ADS-B edge route');
+if (numericConstant('ADSB_TTL_SECONDS') !== 10) issues.push('ADS-B edge snapshots must use the ten-second live cache');
+if (!/const ADSB_USER_AGENT = "Afterglow\/.+github\.com\/esfsfestgfse\/Archivetv/.test(source)) issues.push('ADS-B requests must identify Afterglow and its contact URL');
+if (!/lat < -90 \|\| lat > 90 \|\| lon < -180 \|\| lon > 180/.test(source)) issues.push('ADS-B coordinates must be bounded before upstream fetches');
+if (!/Math\.min\(250, Math\.round\(Number\(url\.searchParams\.get\("radius"\)\)/.test(source)) issues.push('ADS-B radius must be capped');
+if (!/ctx\.waitUntil\(cache\.put\(cacheKey, response\.clone\(\)\)\.catch/.test(source)) issues.push('ADS-B cache writes must be backgrounded and observed');
+if (!/setTimeout\(resolve, 1100\)/.test(source) || !/adsb\.lol retry/.test(source)) issues.push('ADS-B relay must recover respectfully from a transient 429');
+if (!/api\.adsb\.one\/v2\/point/.test(source) || !/opendata\.adsb\.fi\/api\/v3\/lat/.test(source) || !/api\.cors\.syrins\.tech/.test(source)) issues.push('ADS-B relay needs independent community mirrors');
+if (!/source = "opensky"/.test(source) || !/normalizeOpenSky/.test(source)) issues.push('ADS-B relay needs a normalized OpenSky fallback');
 
 console.log(`Worker contract: ${issues.length ? 'FAILED' : 'passed'}`);
 for (const issue of issues) console.log(`P0 ${issue}`);

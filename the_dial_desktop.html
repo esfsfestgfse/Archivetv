@@ -1379,7 +1379,7 @@ body:not(.atv-powered) .cabinet-readout{opacity:.36!important}.glass-dock{positi
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.216-tropical-cache-hardening";
+window.__ATV_BUILD="1.7.7-desktop.217-gulf-marine-edge";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -8492,6 +8492,17 @@ async function tuneTides(ch,sl,my){
     if(my!==token||!powered)return;
     try{
       var loc=await getWxLocation(); if(my!==token)return;
+      /* The edge desk aggregates CO-OPS, NDBC and NWS once and gives this
+         channel a shared last-good snapshot. Keep the older direct NOAA path
+         below only as a narrow emergency fallback. */
+      try{
+        var marine=await withTO(fetch("https://ais-relay.tdy1990.workers.dev/live/marine?lat="+encodeURIComponent(loc.lat)+"&lon="+encodeURIComponent(loc.lon),{cache:"no-store"}).then(function(r){if(!r.ok)throw new Error("marine edge "+r.status);return r.json();}),15000);
+        if(my!==token)return;
+        if(marine&&marine.station&&Array.isArray(marine.predictions)&&marine.predictions.length){
+          var edgeNow=new Date(),edgeEvents=marine.predictions.map(function(p){return {t:new Date(p.time.replace(" ","T")),v:Number(p.heightFeet),hi:p.type==="HIGH"};}).filter(function(p){return !isNaN(p.t)&&isFinite(p.v);}),edgeNext=edgeEvents.find(function(p){return p.t>edgeNow;})||edgeEvents[0];
+          if(edgeNext){var edgeStats=edgeEvents.filter(function(p){return p.t>edgeNow;}).slice(0,4).map(function(p){return [(p.hi?"HIGH":"LOW")+" "+p.t.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}),p.v.toFixed(1)+" ft"];});var ec=marine.conditions||{},eb=marine.buoyObservation||{};if(ec.waterTempF!=null)edgeStats.push(["WATER TEMP",Math.round(ec.waterTempF)+"°F"]);if(ec.windKnots!=null)edgeStats.push(["STATION WIND",wxCompass(Number(ec.windDirection)||0)+" "+Math.round(Number(ec.windKnots)*1.15078)+" mph"]);if(eb.waveHeightMeters!=null)edgeStats.push(["WAVE HEIGHT",(Number(eb.waveHeightMeters)*3.28084).toFixed(1)+" ft"]);if(eb.dominantPeriodSeconds!=null)edgeStats.push(["WAVE PERIOD",eb.dominantPeriodSeconds+" sec"]);if(eb.waterTempC!=null)edgeStats.push(["BUOY WATER",Math.round(Number(eb.waterTempC)*9/5+32)+"°F"]);var edgeExtra='<div style="font-weight:700;color:#9fd6a6;margin-bottom:4px">NEXT TIDE WINDOWS</div>'+edgeEvents.slice(0,8).map(function(p){return '<div style="display:flex;gap:8px;padding:2px 0;border-bottom:1px solid rgba(255,255,255,.05)"><span style="color:'+(p.hi?'#7fb4ff':'#67ff86')+';min-width:36px;font-weight:700">'+(p.hi?'HIGH':'LOW')+'</span><span>'+esch(p.t.toLocaleDateString([],{month:"short",day:"numeric"}))+' '+esch(p.t.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}))+'</span><span style="color:#9fd6a6;margin-left:auto">'+p.v.toFixed(1)+' ft</span></div>';}).join('');if(marine.buoy)edgeExtra+='<div style="font-weight:700;color:#9fd6a6;margin-top:8px">OFFSHORE WAVE BUOY</div><div style="color:#cfe0ff;font-size:11px">'+esch(marine.buoy.name)+' · '+esch(marine.buoy.id)+' · '+Math.round(marine.buoy.distanceMiles||0)+' mi</div>';setChanStatus(ch.num,(edgeNext.hi?"HIGH":"LOW")+" tide "+edgeNext.t.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})+(eb.waveHeightMeters!=null?" · "+(Number(eb.waveHeightMeters)*3.28084).toFixed(1)+"ft waves":""));renderDcBody({title:"GULF MARINE / "+esch(marine.station.name.toUpperCase()),hero:(edgeNext.hi?"HIGH":"LOW")+" "+edgeNext.t.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}),sub:esch(marine.station.name)+" · "+Math.round(marine.station.distanceMiles||0)+" mi · NOAA LIVE",stats:edgeStats,extra:edgeExtra,ticker:marine.forecast?'<span class="wx-tk-in">'+esch("COASTAL FORECAST — "+marine.forecast.name+": "+marine.forecast.summary)+'</span>':"NOAA CO-OPS + NDBC LIVE MARINE DESK · LAST-GOOD CACHE READY"});return;}
+        }
+      }catch(marineError){nlog("gulfmarine",false,"edge: "+((marineError&&marineError.message)||marineError));}
       var st=TIDE_STATIONS.map(function(x){ return {id:x[0],name:x[1],lat:x[2],lon:x[3],
         dist:haversineKm(loc.lat,loc.lon,x[2],x[3])*0.621371}; }).sort(function(a,b){return a.dist-b.dist;});
       function ymd(d){ return d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0"); }

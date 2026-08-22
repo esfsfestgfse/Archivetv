@@ -74,6 +74,10 @@ if (!/WFIGS_Incident_Locations_Current/.test(source) || !/WFIGS_FIELDS/.test(sou
 if (!/api\.weather\.gov\/alerts\/active\?point=/.test(source) || !/normalizeWildfireAlerts/.test(source)) issues.push('Wildfire route must include bounded local NWS fire-weather alerts');
 if (!/Math\.min\(500, Math\.round\(Number\(url\.searchParams\.get\("radius"\)\)/.test(source)) issues.push('Wildfire coordinates and radius must be bounded');
 if (!/WILDFIRE_PATH \+ "\/cache\/v1\//.test(source) || !/stale-while-revalidate=900/.test(source)) issues.push('Wildfire route needs a location-bucketed resilient edge cache');
+if (!/const MARINE_PATH = "\/live\/marine"/.test(source)) issues.push('Gulf Marine needs a narrow edge-data route');
+if (numericConstant('MARINE_TTL_SECONDS') !== 300) issues.push('Gulf Marine snapshots must use a five-minute live cache');
+if (!/GULF_TIDE_STATIONS/.test(source) || !/GULF_BUOYS/.test(source) || !/api\.tidesandcurrents\.noaa\.gov/.test(source) || !/data\/realtime2/.test(source)) issues.push('Gulf Marine must aggregate bounded CO-OPS tide data and NDBC buoy observations');
+if (!/MARINE_PATH \+ "\/cache\/" \+ MARINE_CACHE_VERSION/.test(source) || !/getMarineSnapshot/.test(source)) issues.push('Gulf Marine needs a versioned edge cache and normalized snapshot');
 if (!/Access-Control-Expose-Headers.*X-Afterglow-Source, X-Afterglow-Cache/.test(source)) issues.push('Browser diagnostics must be able to read safe Worker source and cache headers');
 
 console.log(`Worker contract: ${issues.length ? 'FAILED' : 'passed'}`);

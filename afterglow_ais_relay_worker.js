@@ -43,6 +43,7 @@ const WATER_PATH = "/live/water";
 const TROPICAL_PATH = "/live/tropical";
 const TROPICAL_IMAGE_PATH = TROPICAL_PATH + "/image";
 const WILDFIRE_PATH = "/live/wildfire";
+const MARINE_PATH = "/live/marine";
 const SNAPSHOT_TTL_SECONDS = 60;
 const ADSB_TTL_SECONDS = 10;
 const SPACE_TTL_SECONDS = 900;
@@ -51,6 +52,8 @@ const TROPICAL_TTL_SECONDS = 300;
 const TROPICAL_IMAGE_TTL_SECONDS = 300;
 const TROPICAL_CACHE_VERSION = "v7";
 const WILDFIRE_TTL_SECONDS = 300;
+const MARINE_TTL_SECONDS = 300;
+const MARINE_CACHE_VERSION = "v1";
 const ADSB_USER_AGENT = "Afterglow/1.7 (+https://github.com/esfsfestgfse/Archivetv)";
 const IA_SEARCH_TTL_SECONDS = 21600;
 /* Bump this when the normalized search response changes so an older edge
@@ -64,6 +67,17 @@ const GULF_FILTER = "BBOX(geometry,-98,18,-80,31)";
 const KPLER_FIELDS = "mmsi,longitude,latitude,posDt,sog,vesselName,heading,cog,navStatus,destination,vesselType";
 const WFIGS_INCIDENTS_URL = "https://services3.arcgis.com/T4QMspbfLg3qTGWY/arcgis/rest/services/WFIGS_Incident_Locations_Current/FeatureServer/0/query";
 const WFIGS_FIELDS = ["IncidentName", "IncidentSize", "PercentContained", "FireDiscoveryDateTime", "POOState", "POOCounty", "IncidentTypeCategory", "FireBehaviorGeneral", "FireCauseGeneral", "FireMgmtComplexity", "EstimatedCostToDate", "IncidentManagementOrganization"].join(",");
+const GULF_TIDE_STATIONS = [
+  ["8771450", "Galveston Pier 21, TX", 29.310, -94.793], ["8770570", "Sabine Pass, TX", 29.728, -93.870],
+  ["8774770", "Rockport, TX", 28.022, -97.047], ["8779770", "Port Isabel, TX", 26.061, -97.215],
+  ["8761724", "Grand Isle, LA", 29.263, -89.957], ["8735180", "Dauphin Island, AL", 30.250, -88.075],
+  ["8729840", "Pensacola, FL", 30.404, -87.211], ["8728690", "Apalachicola, FL", 29.727, -84.981],
+  ["8726724", "Clearwater Beach, FL", 27.978, -82.832], ["8724580", "Key West, FL", 24.551, -81.808],
+];
+const GULF_BUOYS = [
+  ["42035", "Galveston", 29.212, -94.207], ["42019", "Freeport", 27.910, -95.353], ["42020", "Corpus Christi", 26.968, -96.695],
+  ["42002", "Gulf of Mexico", 25.170, -94.420], ["42040", "Louisiana Offshore", 29.213, -88.207], ["42012", "Orange Beach", 30.060, -87.550],
+];
 
 function corsHeaders() {
   return {
@@ -887,6 +901,66 @@ async function getTropicalSnapshot(url, ctx) {
   return response;
 }
 
+/* Gulf Marine --------------------------------------------------------------
+   The client used to make four unrelated NOAA requests per tune.  The edge
+   owns that fan-out now: one bounded marine snapshot is much faster to paint,
+   never exposes NOAA's inconsistent endpoint behaviour to the UI, and gives
+   the channel a shared five-minute last-good cache. */
+function marineDistanceMiles(aLat, aLon, bLat, bLon) {
+  const radians = Math.PI / 180, dLat = (bLat - aLat) * radians, dLon = (bLon - aLon) * radians;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(aLat * radians) * Math.cos(bLat * radians) * Math.sin(dLon / 2) ** 2;
+  return 3958.7613 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+}
+function nearestMarineStation(list, lat, lon) {
+  return list.map(([id, name, stationLat, stationLon]) => ({ id, name, lat: stationLat, lon: stationLon, distanceMiles: marineDistanceMiles(lat, lon, stationLat, stationLon) }))
+    .sort((a, b) => a.distanceMiles - b.distanceMiles)[0];
+}
+function marineValue(payload, field) {
+  const row = payload && Array.isArray(payload.data) ? payload.data[0] : null;
+  const value = row && Number(row[field]); return Number.isFinite(value) ? value : null;
+}
+function parseBuoyObservation(text) {
+  const line = String(text || "").split(/\r?\n/).find((row) => row.trim() && !row.trim().startsWith("#"));
+  if (!line) return null;
+  const fields = line.trim().split(/\s+/), value = (index) => { const number = Number(fields[index]); return Number.isFinite(number) && fields[index] !== "MM" ? number : null; };
+  return { observedAt: fields.slice(0, 5).join(" "), windDirection: value(5), windKnots: value(6), waveHeightMeters: value(8), dominantPeriodSeconds: value(9), pressureMb: value(12), airTempC: value(13), waterTempC: value(14) };
+}
+function marineDate(value) { return new Date(value).toISOString().slice(0, 10).replace(/-/g, ""); }
+async function getMarineSnapshot(url, ctx) {
+  const requestedLat = Number(url.searchParams.get("lat")), requestedLon = Number(url.searchParams.get("lon"));
+  const lat = Number.isFinite(requestedLat) && requestedLat >= 18 && requestedLat <= 32 ? requestedLat : 31.55;
+  const lon = Number.isFinite(requestedLon) && requestedLon >= -99 && requestedLon <= -80 ? requestedLon : -97.15;
+  const cacheKey = new Request(url.origin + MARINE_PATH + "/cache/" + MARINE_CACHE_VERSION + "/" + lat.toFixed(1) + "/" + lon.toFixed(1));
+  const cache = caches.default, cached = await cache.match(cacheKey);
+  if (cached) { const headers = new Headers(cached.headers); Object.entries(corsHeaders()).forEach(([key, value]) => headers.set(key, value)); headers.set("X-Afterglow-Cache", "hit"); return new Response(cached.body, { status: cached.status, headers }); }
+  const station = nearestMarineStation(GULF_TIDE_STATIONS, lat, lon), buoy = nearestMarineStation(GULF_BUOYS, lat, lon);
+  const today = new Date(), tomorrow = new Date(Date.now() + 86400000), base = "https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?application=afterglow&time_zone=lst_ldt&units=english&format=json&station=" + encodeURIComponent(station.id);
+  const predictionsUrl = base + "&product=predictions&datum=MLLW&interval=hilo&begin_date=" + marineDate(today) + "&end_date=" + marineDate(tomorrow);
+  const waterUrl = base + "&product=water_temperature&date=latest";
+  const windUrl = base + "&product=wind&date=latest";
+  const forecastPointUrl = "https://api.weather.gov/points/" + station.lat.toFixed(3) + "," + station.lon.toFixed(3);
+  const results = await Promise.allSettled([timedJsonFetch(predictionsUrl, 7000), timedJsonFetch(waterUrl, 6000), timedJsonFetch(windUrl, 6000), timedTextFetch("https://www.ndbc.noaa.gov/data/realtime2/" + encodeURIComponent(buoy.id) + ".txt", 7000), timedJsonFetch(forecastPointUrl, 6000)]);
+  const failures = [];
+  const predictionsPayload = results[0].status === "fulfilled" ? results[0].value : null;
+  const predictions = (predictionsPayload && predictionsPayload.predictions || []).map((item) => ({ time: item.t, heightFeet: finiteNumber(item.v), type: item.type === "H" ? "HIGH" : "LOW" })).filter((item) => item.time && item.heightFeet != null);
+  if (!predictions.length) failures.push("tides");
+  const point = results[4].status === "fulfilled" ? results[4].value : null;
+  let forecast = null;
+  if (point && point.properties && point.properties.forecast) {
+    try { const forecastPayload = await timedJsonFetch(point.properties.forecast, 6500); const period = forecastPayload && forecastPayload.properties && forecastPayload.properties.periods && forecastPayload.properties.periods[0]; if (period) forecast = { name: cleanText(period.name, 60), summary: cleanText(period.detailedForecast, 650) }; } catch { failures.push("coastal-forecast"); }
+  } else failures.push("coastal-forecast");
+  const windPayload = results[2].status === "fulfilled" ? results[2].value : null;
+  const payload = {
+    source: "NOAA CO-OPS + NDBC + NWS", fetchedAt: new Date().toISOString(), station, buoy,
+    predictions: predictions.slice(0, 10), conditions: { waterTempF: marineValue(results[1].status === "fulfilled" ? results[1].value : null, "v"), windKnots: marineValue(windPayload, "s"), windDirection: marineValue(windPayload, "d") },
+    buoyObservation: results[3].status === "fulfilled" ? parseBuoyObservation(results[3].value) : null, forecast, failures,
+  };
+  if (!predictions.length && !payload.buoyObservation) return json({ error: "marine data unavailable", failures }, 502);
+  const response = json(payload, 200, { "Cache-Control": "public, max-age=" + MARINE_TTL_SECONDS + ", stale-while-revalidate=900", "X-Afterglow-Source": "noaa-marine-operations", "X-Afterglow-Cache": "miss" });
+  ctx.waitUntil(cache.put(cacheKey, response.clone()).catch((error) => console.warn(JSON.stringify({ event: "marine-cache-write-failed", message: String(error && error.message || error) }))));
+  return response;
+}
+
 /* Wildfire Watch ------------------------------------------------------------
    WFIGS is the authoritative interagency incident layer.  The browser used to
    query ArcGIS directly on every tune, which made the channel vulnerable to
@@ -1310,6 +1384,10 @@ export default {
       return getWildfireSnapshot(url, ctx);
     }
 
+    if (request.method === "GET" && url.pathname === MARINE_PATH) {
+      return getMarineSnapshot(url, ctx);
+    }
+
     if (request.method === "GET" && url.pathname === IA_PREFIX + "/search") {
       return getIaSearch(url, ctx);
     }
@@ -1338,6 +1416,7 @@ export default {
         tropicalPath: TROPICAL_PATH,
         tropicalImagePath: TROPICAL_IMAGE_PATH,
         wildfirePath: WILDFIRE_PATH,
+        marinePath: MARINE_PATH,
       });
     }
 

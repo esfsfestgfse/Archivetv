@@ -950,6 +950,25 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
   .iss-screen{grid-template-rows:auto minmax(0,1fr);padding:3px 4px 25px}.iss-head-source,.iss-ticker{display:none}.iss-main{grid-template-columns:62% 38%}.iss-map-key{display:none}.iss-side{grid-template-rows:auto minmax(0,1fr)}.iss-tabs{display:none}.iss-metric:nth-child(n+3){display:none}.iss-panel{display:block}.iss-row:nth-child(n+4),.iss-timeline{display:none}
 }
 
+/* ============ NASA Picture of the Day / seven-day visual desk ============ */
+.apod-screen{width:100%;height:100%;overflow:hidden;box-sizing:border-box;position:relative;display:grid;grid-template-rows:auto minmax(0,1fr) auto auto;gap:clamp(4px,.65vmin,7px);padding:clamp(7px,1vmin,12px) clamp(8px,1.2vmin,14px) 33px;color:#edf4ff;background:radial-gradient(90% 70% at 12% -10%,rgba(69,75,159,.42),transparent 70%),linear-gradient(155deg,#070817,#03040a 68%,#0b0b15)}
+.apod-screen::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.18;background-image:radial-gradient(circle at 15% 28%,#fff 0 1px,transparent 1.3px),radial-gradient(circle at 78% 14%,#fff 0 1px,transparent 1.3px),radial-gradient(circle at 48% 82%,#fff 0 1px,transparent 1.3px);background-size:149px 117px,197px 163px,229px 191px}
+.apod-head{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:center;gap:9px;min-width:0;color:#b8b9ff;font:900 clamp(10px,1.5vmin,15px)/1 monospace;letter-spacing:1.5px}.apod-head-source{min-width:0;color:#8589a9;font:700 clamp(7px,1.05vmin,10px)/1 monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right}
+.apod-main{position:relative;z-index:1;min-height:0;display:grid;grid-template-columns:minmax(0,1.7fr) minmax(200px,.72fr);gap:7px}
+.apod-hero{position:relative;min-width:0;min-height:0;overflow:hidden;border:1px solid rgba(184,185,255,.19);border-radius:9px;background:#000;box-shadow:inset 0 0 60px rgba(0,0,0,.65)}.apod-media{position:absolute;inset:0;display:grid;place-items:center}.apod-media img,.apod-media video,.apod-media iframe{width:100%;height:100%;border:0;object-fit:contain;background:#000}.apod-video-badge{position:absolute;right:8px;top:8px;padding:5px 7px;border:1px solid rgba(255,255,255,.24);border-radius:999px;background:rgba(0,0,0,.7);color:#fff;font:800 8px/1 monospace;letter-spacing:.7px}.apod-hero-shade{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:30px 12px 10px;background:linear-gradient(0deg,rgba(0,0,0,.88),transparent);pointer-events:none}.apod-hero-date{color:#b8b9ff;font:800 clamp(7px,1.05vmin,10px)/1 monospace;letter-spacing:1px}.apod-hero-title{margin-top:4px;color:#fff;font:900 clamp(13px,2.3vmin,24px)/1.08 system-ui,sans-serif;text-shadow:0 2px 5px #000}
+.apod-story{min-width:0;min-height:0;display:grid;grid-template-rows:auto auto minmax(0,1fr) auto;gap:6px;padding:8px;border:1px solid rgba(184,185,255,.15);border-radius:9px;background:linear-gradient(155deg,rgba(24,25,54,.92),rgba(5,6,14,.95))}.apod-kicker{color:#8a8db3;font:800 clamp(7px,1vmin,9px)/1 monospace;letter-spacing:1px}.apod-title{color:#f1f1ff;font:900 clamp(13px,2vmin,21px)/1.08 system-ui,sans-serif}.apod-explanation{min-height:0;overflow:auto;color:#ccd1e7;font:600 clamp(9px,1.25vmin,12px)/1.45 system-ui,sans-serif}.apod-credit{padding-top:5px;border-top:1px solid rgba(184,185,255,.1);color:#8f92ad;font:700 clamp(7px,1vmin,9px)/1.25 monospace}
+.apod-strip{position:relative;z-index:1;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;min-height:52px}.apod-day{appearance:none;position:relative;min-width:0;height:clamp(48px,8vmin,78px);overflow:hidden;padding:0;border:1px solid rgba(184,185,255,.14);border-radius:6px;background:#090a13;cursor:pointer}.apod-day img{width:100%;height:100%;object-fit:cover;opacity:.56;transition:opacity .15s,transform .2s}.apod-day:hover img{opacity:.85;transform:scale(1.035)}.apod-day.on{border-color:#b8b9ff;box-shadow:0 0 0 1px rgba(184,185,255,.4)}.apod-day.on img{opacity:.9}.apod-day span{position:absolute;left:3px;right:3px;bottom:3px;padding:2px 3px;border-radius:3px;background:rgba(0,0,0,.72);color:#f0f0ff;font:800 clamp(6px,.95vmin,9px)/1 monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.apod-day:focus-visible{outline:2px solid #c7c8ff;outline-offset:1px}
+.apod-ticker{position:relative;z-index:1;min-width:0;padding:4px 8px;border:1px solid rgba(184,185,255,.12);border-radius:6px;background:rgba(0,0,0,.38);color:#999dbd;font:700 clamp(7px,1.05vmin,10px)/1.2 monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.apod-empty{display:grid;place-items:center;height:100%;padding:14px;color:#9ca0c4;text-align:center;font:800 10px/1.5 monospace;box-sizing:border-box}
+@container (max-height:430px){
+  .apod-screen{gap:3px;padding:5px 6px 28px}.apod-head{font-size:8px}.apod-head-source{font-size:6px}.apod-main{grid-template-columns:minmax(0,1.55fr) minmax(130px,.7fr);gap:4px}.apod-story{gap:3px;padding:5px}
+  .apod-kicker,.apod-credit{font-size:6px}.apod-title{font-size:10px}.apod-explanation{font-size:7px;line-height:1.3}.apod-hero-shade{padding:18px 7px 6px}.apod-hero-title{font-size:11px}.apod-hero-date{font-size:6px}
+  .apod-strip{gap:2px;min-height:30px}.apod-day{height:34px}.apod-day span{font-size:5px}.apod-ticker{font-size:6px;padding:2px 4px}
+}
+@container (max-height:220px){
+  .apod-screen{grid-template-rows:auto minmax(0,1fr);padding:3px 4px 25px}.apod-head-source,.apod-strip,.apod-ticker{display:none}.apod-main{grid-template-columns:65% 35%}.apod-story{grid-template-rows:auto minmax(0,1fr)}.apod-kicker,.apod-credit{display:none}.apod-title{font-size:8px}.apod-explanation{font-size:6px}.apod-hero-title{font-size:9px}
+}
+
 /* ============ v14: ident flash (station idents feature) ============ */
 /* QA FIX (audit 5A): was z:29, same as .buff-ov. Both fire on every channel change; .buff-ov's
    35% black backdrop killed the intended phosphor flash. Bumped to z:30 so the CRT ident wins. */
@@ -1308,7 +1327,7 @@ body:not(.atv-powered) .cabinet-readout{opacity:.36!important}.glass-dock{positi
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.207-iss-mission";
+window.__ATV_BUILD="1.7.7-desktop.208-apod-gallery";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1345,7 +1364,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.207 · ISS Mission</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.208 · APOD Gallery</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">AFTERGLOW · THE DIAL</div>
@@ -2119,6 +2138,7 @@ const CHANNEL_META={
 "Aurora & Space Weather":{desc:"LIVE: NOAA Kp observations and 72-hour forecast, OVATION aurora oval, solar-wind speed, IMF Bz/Bt, location-aware visibility estimate, and current SWPC notices.",best:"anytime",rel:["Solar Dashboard","ISS Tracker"]},
 "Ham Radio":{desc:"LIVE: worldwide WSPR beacon paths with corrected amateur bands, exact frequencies, transmitter power, Maidenhead grids, path distance, and NOAA propagation conditions.",best:"anytime",rel:["Aurora & Space Weather","Live Radio"]},
 "ISS Tracker":{desc:"LIVE: International Space Station ground position, orbital track, altitude, velocity, visibility footprint, viewer-relative distance, future orbit samples, and current CelesTrak elements.",best:"anytime",rel:["Aurora & Space Weather","NASA Live"]},
+"NASA Picture of the Day":{desc:"LIVE: NASA’s current Astronomy Picture of the Day plus a seven-day visual gallery, in-channel video support, explanations, credits, instant cache, and official NASA fallback sources.",best:"anytime",rel:["ISS Tracker","NASA Live"]},
 "Sky Beacon Live":{desc:"LIVE: international flight tracker — starts at your local airspace then cycles every 90 s through the world's busiest hubs (JFK, Heathrow, CDG, DXB, HND, Singapore, LAX, Sydney). Real ADS-B via adsb.lol + airplanes.live + OpenSky fallback.",best:"anytime",rel:["Weather Watch","ISS Tracker"]},
 "Seismic Watch":{desc:"LIVE: elevated volcanoes and global earthquakes, on rotation.",best:"anytime",rel:["Weather Watch","Wildfire Watch"]},
 "News, News, News":{desc:"Newsreels, federal films and historic footage \u2014 the week\u2019s news, decades late.",best:"anytime",rel:["Live News","Historic Waco"]},
@@ -13530,7 +13550,122 @@ async function tuneBuoy_RETIRED(ch,sl,my){
   };
   run(); buoyTimer=rtInterval(run,10*60*1000); /* buoys report roughly hourly, this is plenty frequent */
 }
+function apodNormalize(item){
+  if(!item)return null;
+  var media=String(item.media_type||"image").toLowerCase(),url=String(item.url||""),hd=String(item.hdurl||"");
+  if(!url&&!hd&&!item.thumbnail_url)return null;
+  return {date:String(item.date||"").slice(0,10),title:String(item.title||"Untitled NASA image"),explanation:String(item.explanation||item.description||"").replace(/\s+/g," ").trim(),copyright:String(item.copyright||item.credit||"NASA").replace(/\s+/g," ").trim(),media_type:media,url:url,hdurl:hd,thumbnail_url:String(item.thumbnail_url||""),source:String(item.source||"NASA APOD")};
+}
+function apodAbsolute(url){
+  try{return new URL(String(url||""),"https://apod.nasa.gov/apod/").href;}catch(e){return String(url||"");}
+}
+function apodParseHtml(html){
+  var doc=new DOMParser().parseFromString(String(html||""),"text/html"),body=String(doc.body&&doc.body.textContent||"").replace(/\s+/g," ");
+  var dateMatch=/(\d{4})\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{1,2})/i.exec(body),date="";
+  if(dateMatch){var parsed=new Date(dateMatch[2]+" "+dateMatch[3]+", "+dateMatch[1]+" UTC");if(!isNaN(parsed.getTime()))date=parsed.toISOString().slice(0,10);}
+  var bolds=Array.from(doc.querySelectorAll("center b,b")).map(function(b){return String(b.textContent||"").replace(/\s+/g," ").trim();}).filter(Boolean);
+  var title=bolds.find(function(t){return !/^(Explanation|Image Credit|Video Credit|Credit|Tomorrow|Authors?)/i.test(t)&&t.length>3&&t.length<180;})||"NASA Astronomy Picture of the Day";
+  var explanation="",credit="NASA";
+  Array.from(doc.querySelectorAll("b")).forEach(function(b){
+    var label=String(b.textContent||"").trim(),parent=b.parentElement;if(!parent)return;
+    if(/^Explanation/i.test(label)&&!explanation)explanation=String(parent.textContent||"").replace(label,"").replace(/\s+/g," ").trim();
+    if(/^(?:Image|Video)?\s*Credit/i.test(label)&&credit==="NASA")credit=String(parent.textContent||"").replace(label,"").replace(/\s+/g," ").trim().slice(0,220)||"NASA";
+  });
+  var image=Array.from(doc.images||[]).find(function(img){var src=String(img.getAttribute("src")||"");return /(?:image\/|\.jpe?g|\.png|\.webp)/i.test(src)&&!/apod\.gif|logo/i.test(src);});
+  var frame=doc.querySelector("iframe[src]"),video=doc.querySelector("video source[src],video[src]");
+  var mediaUrl=frame?frame.getAttribute("src"):(video?video.getAttribute("src"):(image?image.getAttribute("src"):""));
+  if(!mediaUrl)return null;
+  var media=(frame||video)?"video":"image",thumb=image?apodAbsolute(image.getAttribute("src")):"";
+  return apodNormalize({date:date,title:title,explanation:explanation,copyright:credit,media_type:media,url:apodAbsolute(mediaUrl),hdurl:media==="image"?apodAbsolute((image.closest("a")&&image.closest("a").getAttribute("href"))||mediaUrl):"",thumbnail_url:thumb,source:"NASA APOD SITE"});
+}
+function apodYoutubeId(url){
+  var m=/(?:youtube(?:-nocookie)?\.com\/(?:embed\/|watch\?v=)|youtu\.be\/)([A-Za-z0-9_-]{6,})/.exec(String(url||""));return m?m[1]:"";
+}
+function apodDateLabel(date){
+  var d=new Date(String(date||"")+"T12:00:00Z");return isNaN(d.getTime())?String(date||"NASA"):d.toLocaleDateString([],{weekday:"short",month:"short",day:"numeric"});
+}
 async function tuneAPOD(ch,sl,my){
+  if(my!==token)return;hideOv();setSig("live","ON AIR");showNow(ch,sl,"NASA Picture of the Day","");
+  if(screenArea)screenArea.innerHTML=
+    '<div class="apod-screen" id="apodScreen">'+
+      '<div class="apod-head"><span>NASA · ASTRONOMY PICTURE OF THE DAY</span><span class="apod-head-source" id="apodFresh">OPENING THE NASA VISUAL DESK…</span></div>'+
+      '<div class="apod-main">'+
+        '<section class="apod-hero"><div class="apod-media" id="apodMedia"><div class="apod-empty">ACQUIRING TODAY’S IMAGE…</div></div><div class="apod-hero-shade"><div class="apod-hero-date" id="apodHeroDate">TODAY</div><div class="apod-hero-title" id="apodHeroTitle">NASA APOD</div></div></section>'+
+        '<aside class="apod-story"><div class="apod-kicker" id="apodKicker">NASA SCIENCE EDITORIAL</div><div class="apod-title" id="apodTitle">Building today’s astronomy story…</div><div class="apod-explanation" id="apodExplanation">The channel is tuned. NASA imagery will appear automatically.</div><div class="apod-credit" id="apodCredit">NASA · APOD</div></aside>'+
+      '</div>'+
+      '<div class="apod-strip" id="apodStrip"></div>'+
+      '<div class="apod-ticker" id="apodTicker">NASA APOD · seven-day visual archive · NEXT moves through recent days</div>'+
+    '</div>';
+  var apodBug=mountChanBug("apodScreen",{ident:"NASA APOD"}),gallery=[],active=0,sourceLabel="NASA APOD",stale=false,loading=false;
+  clearInterval(apodTimer);startIAJazz("gmelectro");
+  function mediaThumb(item){return item.media_type==="image"?(item.url||item.hdurl):(item.thumbnail_url||"");}
+  function renderMedia(item){
+    var host=$("apodMedia");if(!host)return;var url=item.hdurl||item.url,yt=apodYoutubeId(item.url);
+    if(item.media_type==="image"&&url){
+      host.innerHTML='<img id="apodHeroImage" src="'+esch(url)+'" alt="'+esch(item.title)+'">';
+      var image=$("apodHeroImage");if(image&&item.url&&item.url!==url)image.onerror=function(){this.onerror=null;this.src=item.url;};
+    }else if(yt){
+      host.innerHTML='<iframe title="'+esch(item.title)+'" src="https://www.youtube-nocookie.com/embed/'+esch(yt)+'?autoplay=1&mute=1&controls=1&rel=0" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe><span class="apod-video-badge">VIDEO APOD · MUTED</span>';
+    }else if(/\.(?:mp4|webm)(?:$|\?)/i.test(item.url)){
+      host.innerHTML='<video src="'+esch(item.url)+'" autoplay muted loop playsinline controls></video><span class="apod-video-badge">VIDEO APOD · MUTED</span>';
+    }else if(item.thumbnail_url){
+      host.innerHTML='<img src="'+esch(item.thumbnail_url)+'" alt="'+esch(item.title)+'"><span class="apod-video-badge">VIDEO APOD · OPEN CONTROLS UNAVAILABLE</span>';
+    }else host.innerHTML='<div class="apod-empty">TODAY’S APOD IS A VIDEO<br>NASA’S EMBED IS TEMPORARILY UNAVAILABLE</div>';
+  }
+  function renderStrip(){
+    var strip=$("apodStrip");if(!strip)return;
+    strip.innerHTML=gallery.slice(0,7).map(function(item,index){var thumb=mediaThumb(item);return '<button class="apod-day'+(index===active?" on":"")+'" type="button" data-apod-index="'+index+'" title="'+esch(item.title)+'">'+(thumb?'<img src="'+esch(thumb)+'" alt="">':'')+'<span>'+esch(apodDateLabel(item.date))+'</span></button>';}).join("");
+    strip.querySelectorAll("[data-apod-index]").forEach(function(button){button.addEventListener("click",function(){active=Number(button.dataset.apodIndex)||0;renderItem();});});
+  }
+  function renderItem(){
+    var item=gallery[active];if(!item)return;
+    renderMedia(item);
+    var dateLabel=apodDateLabel(item.date),heroDate=$("apodHeroDate"),heroTitle=$("apodHeroTitle"),kicker=$("apodKicker"),title=$("apodTitle"),text=$("apodExplanation"),credit=$("apodCredit"),fresh=$("apodFresh"),ticker=$("apodTicker");
+    if(heroDate)heroDate.textContent=dateLabel.toUpperCase()+(item.media_type==="video"?" · VIDEO":" · IMAGE");if(heroTitle)heroTitle.textContent=item.title;if(kicker)kicker.textContent=(item.source||sourceLabel).toUpperCase()+" · "+(item.date||"CURRENT");
+    if(title)title.textContent=item.title;if(text)text.textContent=item.explanation||"NASA has not supplied an explanation for this image.";if(credit)credit.textContent="CREDIT · "+(item.copyright||"NASA");
+    if(fresh)fresh.textContent=(stale?"CACHED · ":"")+sourceLabel+" · "+(item.date||"CURRENT");if(ticker)ticker.textContent=(stale?"CACHED GALLERY · RECONNECTING · ":"")+sourceLabel+" · "+(active+1)+" OF "+gallery.length+" · "+item.title+" · NEXT moves through recent days";
+    if(apodBug)apodBug.update(item.date||"NASA",item.title.toUpperCase().slice(0,42));setChanStatus(ch.num,(item.date?item.date+" · ":"")+item.title);renderStrip();
+  }
+  function setGallery(items,source,isStale){
+    var seen={};gallery=(items||[]).map(apodNormalize).filter(Boolean).sort(function(a,b){return String(b.date).localeCompare(String(a.date));}).filter(function(item){var key=item.date+"|"+item.title.toLowerCase();if(seen[key])return false;seen[key]=1;return true;}).slice(0,7);
+    if(!gallery.length)throw new Error("NASA gallery contained no usable media");
+    sourceLabel=source||"NASA APOD";stale=!!isStale;active=Math.min(active,gallery.length-1);renderItem();
+  }
+  function nasaLibraryItems(data){
+    var items=data&&data.collection&&data.collection.items;return (Array.isArray(items)?items:[]).map(function(item){var meta=item&&item.data&&item.data[0],links=item&&item.links||[],image=links.find(function(link){return link&&link.href;});if(!meta||!image)return null;return apodNormalize({date:String(meta.date_created||"").slice(0,10),title:meta.title,explanation:meta.description||meta.description_508,copyright:meta.center||"NASA",media_type:"image",url:image.href,hdurl:image.href,source:"NASA IMAGE LIBRARY"});}).filter(Boolean);
+  }
+  var load=async function(){
+    if(my!==token||!powered||loading)return;loading=true;
+    try{
+      var end=new Date(),start=new Date(Date.now()-7*86400000),url="https://api.nasa.gov/planetary/apod?start_date="+start.toISOString().slice(0,10)+"&end_date="+end.toISOString().slice(0,10)+"&thumbs=true&api_key=DEMO_KEY";
+      var data=await fetchJSONResilient(url,"apod-range");if(my!==token)return;
+      var items=Array.isArray(data)?data:[data];setGallery(items,"NASA APOD API",false);store.set("apodGalleryCache",{at:Date.now(),items:gallery,source:"NASA APOD API"});nlog("apod",true,gallery.length+" recent entries");
+    }catch(apiError){
+      nlog("apod",false,"API: "+((apiError&&apiError.message)||apiError));
+      try{
+        var html=await fetchTextResilient("https://apod.nasa.gov/apod/astropix.html","apod-site");if(my!==token)return;
+        var today=apodParseHtml(html);if(!today)throw new Error("official APOD page contained no media");
+        var combined=[today].concat(gallery.filter(function(item){return item.date!==today.date;}));setGallery(combined,"NASA APOD SITE",false);store.set("apodGalleryCache",{at:Date.now(),items:gallery,source:"NASA APOD SITE"});nlog("apod-site",true,today.title);
+      }catch(siteError){
+        nlog("apod-site",false,(siteError&&siteError.message)||siteError);
+        if(gallery.length){stale=true;renderItem();}
+        else{
+          try{
+            var year=new Date().getUTCFullYear(),library=await fetchJSONResilient("https://images-api.nasa.gov/search?q=space%20telescope&media_type=image&year_start="+(year-1)+"&page_size=12","nasa-library");if(my!==token)return;
+            var fallback=nasaLibraryItems(library);setGallery(fallback,"NASA IMAGE LIBRARY FALLBACK",false);store.set("apodGalleryCache",{at:Date.now(),items:gallery,source:"NASA IMAGE LIBRARY FALLBACK"});
+          }catch(libraryError){nlog("apod-library",false,(libraryError&&libraryError.message)||libraryError);var fresh=$("apodFresh");if(fresh)fresh.textContent="NASA VISUAL DESK RECONNECTING · CHANNEL STAYS TUNED";}
+        }
+      }
+    }finally{loading=false;}
+  };
+  var cached=store.get("apodGalleryCache",null);
+  if(cached&&Array.isArray(cached.items)&&Date.now()-Number(cached.at)<7*86400000){try{setGallery(cached.items,cached.source||"NASA APOD",true);}catch(_){}}
+  window.__apodNext=function(){if(!gallery.length){quickBanner("NASA APOD · GALLERY BUILDING");return;}active=(active+1)%gallery.length;renderItem();quickBanner("NASA APOD · "+apodDateLabel(gallery[active].date).toUpperCase());};
+  window.__apodRefresh=load;
+  load();apodTimer=rtInterval(load,60*60*1000);
+}
+
+async function tuneAPODLegacy(ch,sl,my){
   if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"NASA Picture of the Day","");
   if(screenArea) screenArea.innerHTML='<div class="dc-screen" id="dcScreen">'+
     '<div class="dc-media show" id="apodMedia" style="flex:1 1 62%;height:auto;min-height:0;background:#000;position:relative;overflow:hidden"><div class="dc-media-cap">FETCHING TODAY\u2019S IMAGE\u2026</div></div>'+
@@ -14155,6 +14290,7 @@ async function playBumper(ch,sl,my){
 /* ===== v10.1: skip — next item on the same channel, on demand ===== */
 function skipOne(){ if(!powered){quickBanner("TURN THE TV ON FIRST");return;}
   var sc=byNum(curNum);
+  if(sc&&sc.source==="apod"&&typeof window.__apodNext==="function"){window.__apodNext();return;}
   if(sc&&sc.source==="iss"&&typeof window.__issNext==="function"){window.__issNext();return;}
   if(sc&&sc.source==="hf"&&typeof window.__hfNext==="function"){window.__hfNext();return;}
   if(sc&&sc.source==="aurora"&&typeof window.__auroraNext==="function"){window.__auroraNext();return;}

@@ -31,7 +31,7 @@ async def main():
             pass
 
         if IS_DESKTOP:
-            await pg.click("#rPow", timeout=3000)
+            await pg.get_by_role("button", name="Turn television on or off").click(timeout=3000)
         else:
             await pg.click("#mTab", timeout=2000)
             await pg.wait_for_timeout(160)
@@ -60,7 +60,7 @@ async def main():
 
         # 4. Guide opens
         if IS_DESKTOP:
-            await pg.click("#rGuide", timeout=2000)
+            await pg.get_by_role("button", name="GUIDE", exact=True).click(timeout=2000)
         else:
             # Mobile: guide button is in the bottom bar
             try:

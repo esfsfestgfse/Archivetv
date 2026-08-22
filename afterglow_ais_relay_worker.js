@@ -44,7 +44,8 @@ const IA_SEARCH_TTL_SECONDS = 21600;
 const IA_SEARCH_CACHE_VERSION = "v4";
 const IA_METADATA_TTL_SECONDS = 86400;
 const IA_QUEUE_TTL_SECONDS = 21600;
-const IA_QUEUE_CACHE_VERSION = "v5";
+const IA_PARTIAL_QUEUE_TTL_SECONDS = 90;
+const IA_QUEUE_CACHE_VERSION = "v8";
 const GULF_FILTER = "BBOX(geometry,-98,18,-80,31)";
 const KPLER_FIELDS = "mmsi,longitude,latitude,posDt,sog,vesselName,heading,cog,navStatus,destination,vesselType";
 
@@ -224,7 +225,7 @@ function queueFileUrls(id, payload, name) {
   return bases.map((base) => base + encoded).filter((url, index, all) => all.indexOf(url) === index);
 }
 
-async function queuePlayable(id, cacheOrigin, ctx) {
+async function queuePlayable(id, cacheOrigin, ctx, attempt = 0) {
   try {
     const cacheKey = new Request(cacheOrigin + IA_PREFIX + "/cache/metadata/" + id);
     const payload = await cachedArchiveJson(cacheKey, IA_METADATA_TTL_SECONDS, async () => {
@@ -245,8 +246,26 @@ async function queuePlayable(id, cacheOrigin, ctx) {
     const urls = queueFileUrls(id, payload, chosen.name);
     return urls.length ? { type: video[0] ? "video" : "audio", url: urls[0], alts: urls.slice(1, 8) } : null;
   } catch {
+    if (attempt < 1) {
+      await new Promise((resolve) => setTimeout(resolve, 180));
+      return queuePlayable(id, cacheOrigin, ctx, attempt + 1);
+    }
     return null;
   }
+}
+
+async function mapQueueCandidates(items, limit, fn) {
+  const results = Array(items.length);
+  let cursor = 0;
+  async function worker() {
+    while (true) {
+      const index = cursor++;
+      if (index >= items.length) return;
+      results[index] = await fn(items[index]);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return results;
 }
 
 async function buildIaQueue(channel, queries, count, cacheOrigin, ctx) {
@@ -255,9 +274,11 @@ async function buildIaQueue(channel, queries, count, cacheOrigin, ctx) {
      sample from each lane in parallel, then take one from every lane before
      taking a second: a five-item buffer spans eras/topics instead of becoming
      five nearly identical top-download results. */
-  /* Three lanes are enough to build a diverse five-program buffer. More lanes
-     used to mean one stalled Archive request could hold the whole channel. */
-  const lanes = await Promise.all(queries.slice(0, Math.min(3, count)).map(async (query) => {
+  /* The app sends up to eight deliberately separated rails: permanent/full-era,
+     current rotation, opposite ends of the era range, and narrow editorial
+     rails. Resolve all of them in parallel. Restricting discovery to only the
+     first three made sparse channels look as if they were hydrating forever. */
+  const lanes = await Promise.all(queries.slice(0, Math.min(8, queries.length)).map(async (query) => {
     try {
       const result = await cachedSearchArchive(cacheOrigin, query, Math.min(24, Math.max(12, count * 3)), 1, "downloads desc", ctx);
       return (result.docs || []).filter((doc) => doc && safeIaId(doc.identifier));
@@ -291,13 +312,14 @@ async function hydrateIaQueue(payload, requestedCount, cacheOrigin, ctx) {
      occasionally have no browser-playable derivative; filtering those here
      means the viewer receives five actual media URLs instead of five names
      that each need another network trip in the browser. */
-  const enriched = await Promise.all(payload.items.map(async (item) => ({ ...item, media: await queuePlayable(item.identifier, cacheOrigin, ctx) })));
+  const enriched = await mapQueueCandidates(payload.items, 5, async (item) => ({ ...item, media: await queuePlayable(item.identifier, cacheOrigin, ctx) }));
   const ready = enriched.filter((item) => item.media).slice(0, requestedCount);
   return {
     ...payload,
     items: ready,
     candidates: payload.items.length,
     ready: ready.length,
+    partial: ready.length < requestedCount,
     hydrating: false,
   };
 }
@@ -329,8 +351,18 @@ async function getIaQueue(request, url, ctx) {
   try {
     const cache = caches.default, cached = await cache.match(cacheKey);
     if (cached) return cached;
-    const candidateCount = Math.min(10, Math.max(count, count * 2));
+    const candidateCount = Math.min(15, Math.max(count, count * 3));
     const payload = await buildIaQueue(channel, queries, candidateCount, url.origin, ctx);
+    if (!payload.items.length) {
+      /* No candidate exists yet, so this is not hydration. Be truthful and let
+         the client immediately try its direct/search fallbacks, then retry the
+         director on its bounded backoff instead of polling a phantom job. */
+      return cacheableJson(
+        { ...payload, ready: 0, hydrating: false, empty: true },
+        15,
+        { "X-Afterglow-Source": "program-director", "X-Afterglow-Queue-Ready": "0" },
+      );
+    }
     const hydration = hydrateIaQueue(payload, count, url.origin, ctx);
     /* A cold channel gets one short, bounded chance to receive ready media.
        If Archive is slow, return the discovery shelf immediately and finish
@@ -338,7 +370,8 @@ async function getIaQueue(request, url, ctx) {
        those identifiers without turning a channel change into a long wait. */
     const hydrated = await timeboxQueueHydration(hydration, 4800);
     if (hydrated && hydrated.items.length) {
-      const response = cacheableJson(hydrated, IA_QUEUE_TTL_SECONDS, {
+      const queueTtl = hydrated.ready >= count ? IA_QUEUE_TTL_SECONDS : IA_PARTIAL_QUEUE_TTL_SECONDS;
+      const response = cacheableJson(hydrated, queueTtl, {
         "X-Afterglow-Source": "program-director",
         "X-Afterglow-Queue-Ready": String(hydrated.ready),
       });
@@ -350,12 +383,14 @@ async function getIaQueue(request, url, ctx) {
     const initial = { ...payload, items: payload.items.slice(0, count), ready: 0, hydrating: true };
     ctx.waitUntil(
       hydration
-        .then((ready) => ready && ready.items.length
-          ? cache.put(cacheKey, cacheableJson(ready, IA_QUEUE_TTL_SECONDS, {
+        .then((ready) => {
+          if (!ready || !ready.items.length) return undefined;
+          const queueTtl = ready.ready >= count ? IA_QUEUE_TTL_SECONDS : IA_PARTIAL_QUEUE_TTL_SECONDS;
+          return cache.put(cacheKey, cacheableJson(ready, queueTtl, {
             "X-Afterglow-Source": "program-director",
             "X-Afterglow-Queue-Ready": String(ready.ready),
-          }))
-          : undefined)
+          }));
+        })
         .catch(() => {})
     );
     return cacheableJson(initial, 20, { "X-Afterglow-Source": "program-director", "X-Afterglow-Queue-Ready": "0" });

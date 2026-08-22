@@ -48,11 +48,25 @@ for (const match of programBlock.matchAll(/^\s*"([^"]+)":\s*\{([\s\S]*?)(?=^\s*"
 if (!/fl\[\]=subject/.test(source) || !/fl\[\]=runtime/.test(source)) issues.push('IA advanced search must request subject and runtime for PROGRAM filters');
 if (!/&fields=identifier,title,year,subject,runtime/.test(source)) issues.push('IA scrape search must request subject and runtime for PROGRAM filters');
 if (!/var globalQs = \[\]/.test(source) || !/qs\.concat\(globalQs\)/.test(source)) issues.push('PROGRAM global subject fallback must remain after collection-scoped rails');
+if (!/var permanentEra=prog\.era\|\|\[/.test(source) || !/var permanentSubjects=/.test(source)) issues.push('every PROGRAM channel needs a permanent full-era fast rail');
+if (/const NS=|const PROFILES=/.test(source)) issues.push('retired clock vocabulary and profiles must not remain in the app bundle');
 if (!/IA_MEDIA_WARM_MAX=6/.test(source)) issues.push('first-frame shelf must stay bounded to six media elements');
 if (!/primeIACompanions\(ch,sl\)/.test(source)) issues.push('channel tuning must prioritize the active and neighboring IA queues');
 if (!/takeIAMediaWarmer\(ch,it\)/.test(source)) issues.push('playback must adopt a staged first-frame media element');
 if (!/v\.readyState>=2\)setTimeout\(function\(\)\{fin\(true\);\},0\)/.test(source)) issues.push('staged media must clear tuning even when readiness predates listeners');
 if (!/if\(prog\)\{buildProgramQueries\(prog,ch,false\)/.test(source)) issues.push('marathon mode must preserve PROGRAM channel constraints');
+
+const slotBlock = blockAfter('function slotFor(', '{', '}');
+if (/getHours|names\s*\[|PROFILES|seasonalProfileName/.test(slotBlock)) issues.push('slotFor must never select programming from the clock or a seasonal profile');
+if (!/show:prog\.show\|\|ch\.nm/.test(slotBlock) || !/show:ch\.nm, source:ch\.source/.test(slotBlock)) issues.push('channel and PROGRAM names must be the permanent on-air labels');
+if (/id="setPlan"|function buildPlan\(|function planKey\(|stationMgr\?/.test(source)) issues.push('clock-bound Station Manager appointments must remain retired');
+if (/barsText\.textContent=\(hour/.test(source)) issues.push('color bars must not sign off according to the clock');
+const naraBlock = blockAfter('async function tuneNARA(', '{', '}');
+if (/getHours|\bh\s*>=|Late Night Declassified/.test(naraBlock)) issues.push('National Archives programming must expose every editorial lane at every hour');
+if (!/var labels=\["NOW","NEXT","LATER","AFTER"\]/.test(source)) issues.push('TV guide must describe queue order instead of hourly programming gates');
+if (!/window\.__atvTimelessAudit=function\(\)/.test(source)) issues.push('runtime timeless-programming audit hook is missing');
+if (!/window\.__atvIAManifest=function\(\)/.test(source)) issues.push('runtime IA queue manifest hook is missing');
+if (!/queries:iaQueueQueries\(sl\)/.test(source) || !/var qs=iaQueueQueries\(sl\)/.test(source)) issues.push('the IA soak manifest must exercise the exact production queue rails');
 
 const sportsSuite = [
   'Sports Center','Hard Count','The Octagon','Sports Vault','Auto Racing','Roller Derby & Wrestling',

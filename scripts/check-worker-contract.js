@@ -39,6 +39,16 @@ if (!/ctx\.waitUntil\(cache\.put\(cacheKey, response\.clone\(\)\)\.catch/.test(s
 if (!/setTimeout\(resolve, 1100\)/.test(source) || !/adsb\.lol retry/.test(source)) issues.push('ADS-B relay must recover respectfully from a transient 429');
 if (!/api\.adsb\.one\/v2\/point/.test(source) || !/opendata\.adsb\.fi\/api\/v3\/lat/.test(source) || !/api\.cors\.syrins\.tech/.test(source)) issues.push('ADS-B relay needs independent community mirrors');
 if (!/source = "opensky"/.test(source) || !/normalizeOpenSky/.test(source)) issues.push('ADS-B relay needs a normalized OpenSky fallback');
+if (!/const SPACE_PATH = "\/live\/space"/.test(source)) issues.push('Space needs a narrow edge-data route');
+if (numericConstant('SPACE_TTL_SECONDS') !== 900) issues.push('Space edge snapshot must respect the anonymous launch-data rate limit');
+if (!/const path = "\/2\.3\.0\/launches\/upcoming/.test(source) || !/ll\.thespacedevs\.com/.test(source)) issues.push('Space route needs the supported Launch Library 2.3 feed');
+if (!/ssd-api\.jpl\.nasa\.gov\/cad\.api/.test(source) || !/ssd-api\.jpl\.nasa\.gov\/fireball\.api/.test(source)) issues.push('Space route needs both JPL close-approach and fireball feeds');
+if (!/images-api\.nasa\.gov\/search/.test(source)) issues.push('Space route needs the NASA mission-imagery feed');
+if (!/new Request\(url\.origin \+ SPACE_PATH \+ "\/cache\/v3"\)/.test(source)) issues.push('Space route must use one fixed edge-cache key');
+if (!/lldev\.thespacedevs\.com/.test(source) || !/launch-library-mirror/.test(source)) issues.push('Space launch board needs the provider mirror when the anonymous live pool returns 429');
+if (!/thespacedevs-dev\.nyc3\.digitaloceanspaces\.com/.test(source) || !/thespacedevs-prod\.nyc3\.digitaloceanspaces\.com/.test(source)) issues.push('Launch mirror image URLs must resolve against the production media bucket');
+if (!/Promise\.allSettled\(\[/.test(source) || !/failures, launchSource:.*launches, approaches, fireballs, imagery/.test(source)) issues.push('Space route must survive individual provider failures');
+if (!/ctx\.waitUntil\(cache\.put\(cacheKey, response\.clone\(\)\)\.catch/.test(source)) issues.push('Space cache writes must be backgrounded and observed');
 
 console.log(`Worker contract: ${issues.length ? 'FAILED' : 'passed'}`);
 for (const issue of issues) console.log(`P0 ${issue}`);

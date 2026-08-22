@@ -948,6 +948,23 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
 @container (max-height:430px){.seismic-head{padding:3px 6px;font-size:7px}.seismic-main{gap:3px}.seismic-side{padding:3px}.seismic-stat{padding:3px 2px}.seismic-stat span{margin-top:2px;font-size:9px}.seismic-tab{padding:4px 1px;font-size:6px}.seismic-row{padding:4px 2px;font-size:7px}.seismic-ticker{padding:2px 5px;font-size:6px}.seismic-map-card{padding:3px 5px;font-size:6px}.seismic-activity{display:none}.seismic-mapbox{grid-template-rows:minmax(0,1fr)}.seismic-map{height:100%;aspect-ratio:auto;max-height:none}}
 @container (max-height:220px){.seismic-screen{grid-template-rows:auto minmax(0,1fr);padding:3px 4px 24px}.seismic-fresh,.seismic-ticker{display:none}.seismic-main{grid-template-columns:60% 40%}.seismic-side{grid-template-rows:auto auto minmax(0,1fr)}.seismic-stat:nth-child(n+3){display:none}.seismic-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.seismic-map-card{display:none}.seismic-row:nth-child(n+5){display:none}}
 
+/* ============ Space Operations / launches, NEOs, fireballs and NASA missions ============ */
+.space-screen{container-type:size;position:relative;width:100%;height:100%;display:grid;grid-template-rows:auto auto minmax(0,1fr) auto;gap:5px;padding:7px 8px 30px;box-sizing:border-box;overflow:hidden;background:radial-gradient(95% 75% at 16% 5%,rgba(40,77,154,.42),transparent 68%),radial-gradient(75% 80% at 86% 82%,rgba(90,38,126,.25),transparent 72%),linear-gradient(155deg,#030814,#02040a 66%,#070310);color:#e9f4ff;font-family:ui-monospace,SFMono-Regular,Consolas,monospace}
+.space-screen::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.17;background-image:radial-gradient(circle at 13% 22%,#fff 0 1px,transparent 1.2px),radial-gradient(circle at 71% 38%,#9fcfff 0 1px,transparent 1.2px),radial-gradient(circle at 44% 81%,#fff 0 1px,transparent 1.2px);background-size:127px 91px,181px 143px,223px 177px}
+.space-head{position:relative;z-index:2;display:flex;justify-content:space-between;align-items:center;gap:8px;min-width:0;padding:5px 8px;border:1px solid rgba(113,176,255,.25);border-radius:6px;background:linear-gradient(90deg,rgba(42,105,193,.19),rgba(0,0,0,.36));font:900 clamp(8px,1.2vmin,11px)/1 monospace;letter-spacing:1.1px;color:#8fc8ff}.space-live{display:inline-block;width:6px;height:6px;margin-right:7px;border-radius:50%;background:#62a9ff;box-shadow:0 0 9px #62a9ff;animation:wxBugPulse 1.35s ease-in-out infinite}.space-fresh{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#8da9c6;font-size:.82em;text-align:right}
+.space-stats{position:relative;z-index:2;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}.space-stat{min-width:0;padding:5px 6px;border:1px solid rgba(113,176,255,.13);border-radius:5px;background:rgba(35,82,143,.09)}.space-stat b{display:block;color:#708eab;font:800 clamp(5px,.8vmin,7px)/1 monospace;letter-spacing:.65px}.space-stat span{display:block;margin-top:4px;color:#a9d5ff;font:900 clamp(9px,1.45vmin,14px)/1 monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.space-main{position:relative;z-index:1;min-height:0;display:grid;grid-template-columns:minmax(0,1.52fr) minmax(220px,.82fr);gap:6px}.space-stage{position:relative;min-width:0;min-height:0;overflow:hidden;border:1px solid rgba(113,176,255,.22);border-radius:9px;background:radial-gradient(circle at 50% 45%,#101e39,#02050c 76%);box-shadow:inset 0 0 38px rgba(0,0,0,.72)}
+.space-side{min-width:0;min-height:0;display:grid;grid-template-rows:auto minmax(0,1fr);gap:4px;padding:5px;border:1px solid rgba(113,176,255,.17);border-radius:8px;background:rgba(3,8,18,.72);overflow:hidden}.space-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3px}.space-tab{appearance:none;min-width:0;padding:6px 2px;border:1px solid rgba(113,176,255,.16);border-radius:5px;background:rgba(0,0,0,.34);color:#7895b0;font:900 clamp(6px,.9vmin,8px)/1 monospace;cursor:pointer;overflow:hidden;text-overflow:ellipsis}.space-tab.on{color:#d3eaff;border-color:#62a9ff;background:rgba(46,116,209,.2);box-shadow:inset 0 0 8px rgba(70,148,255,.12)}.space-tab:focus-visible,.space-row:focus-visible{outline:2px solid #8bc7ff;outline-offset:1px}.space-panel{min-height:0;overflow:auto;border-top:1px solid rgba(113,176,255,.09)}
+.space-row{appearance:none;width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px;align-items:center;padding:7px 5px;border:0;border-bottom:1px solid rgba(255,255,255,.055);background:transparent;color:inherit;text-align:left;font:700 clamp(7px,1.05vmin,10px)/1.22 monospace;cursor:pointer}.space-row:hover,.space-row.on{background:rgba(73,145,244,.1)}.space-row-main{min-width:0}.space-row-main b{display:block;color:#e4f2ff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.space-row-main small{display:block;margin-top:3px;color:#7892aa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.space-row-value{color:#8bc7ff;text-align:right;white-space:nowrap}.space-detail{grid-column:1/3;margin-top:1px;padding:6px 7px;border:1px solid rgba(113,176,255,.13);border-radius:5px;background:rgba(43,100,176,.07);color:#9eb7cf;font-size:.92em;line-height:1.36}.space-detail b{color:#bdddff}.space-detail a{color:#8bc7ff}.space-empty{display:grid;place-items:center;height:100%;min-height:58px;padding:12px;box-sizing:border-box;color:#71879d;text-align:center;font:700 9px/1.45 monospace}
+.space-launch{position:absolute;inset:0;background:#02050c}.space-launch-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.76;filter:saturate(.86) contrast(1.08)}.space-launch-shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(2,5,12,.12),rgba(2,5,12,.2) 34%,rgba(2,5,12,.94) 100%),linear-gradient(90deg,rgba(2,5,12,.58),transparent 65%)}.space-launch-copy{position:absolute;left:clamp(9px,2vmin,18px);right:clamp(9px,2vmin,18px);bottom:clamp(9px,2vmin,18px);z-index:2}.space-kicker{color:#8bc7ff;font:900 clamp(7px,1vmin,10px)/1 monospace;letter-spacing:1.3px}.space-countdown{margin-top:5px;color:#f4f8ff;font:900 clamp(25px,5.4vmin,52px)/.95 monospace;letter-spacing:-1px;text-shadow:0 0 18px rgba(85,158,255,.5)}.space-launch-name{margin-top:7px;max-width:94%;color:#ddebff;font:900 clamp(11px,1.8vmin,18px)/1.15 monospace}.space-launch-meta{margin-top:5px;color:#91abc5;font:700 clamp(7px,1vmin,10px)/1.35 monospace}.space-launch-credit{position:absolute;right:7px;top:6px;z-index:2;padding:3px 5px;border-radius:4px;background:rgba(0,0,0,.58);color:#718aa1;font:700 6px/1 monospace}
+.space-radar{position:absolute;inset:0;overflow:hidden;background:radial-gradient(circle at 50% 50%,rgba(39,93,164,.26),transparent 64%)}.space-radar-grid{position:absolute;left:50%;top:50%;width:min(78%,78vh);aspect-ratio:1;transform:translate(-50%,-50%);border:1px solid rgba(110,175,255,.2);border-radius:50%;box-shadow:0 0 0 15cqw rgba(48,110,190,.025),inset 0 0 50px rgba(59,132,224,.1)}.space-orbit{position:absolute;left:50%;top:50%;border:1px solid rgba(111,177,255,.18);border-radius:50%;transform:translate(-50%,-50%)}.space-orbit.o1{width:28%;height:28%}.space-orbit.o2{width:55%;height:55%}.space-orbit.o3{width:82%;height:82%}.space-earth{position:absolute;left:50%;top:50%;width:36px;height:36px;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle at 32% 28%,#bceaff,#3a83ca 38%,#173a70 70%,#07142c);box-shadow:0 0 22px rgba(76,159,255,.65)}.space-moon{position:absolute;left:64%;top:48%;width:8px;height:8px;border-radius:50%;background:#dce3ea;box-shadow:0 0 5px #fff}.space-rock{appearance:none;position:absolute;width:var(--s,8px);height:var(--s,8px);margin:calc(var(--s,8px)/-2);padding:0;border:1px solid rgba(255,255,255,.72);border-radius:50%;background:#f0ba72;box-shadow:0 0 8px #d9823f;cursor:pointer}.space-rock.near{background:#ff785e;box-shadow:0 0 11px #ff553e}.space-rock.on{z-index:3;border-color:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.22),0 0 16px #ff9b66}.space-stage-label{position:absolute;left:7px;top:6px;z-index:4;padding:4px 6px;border-radius:4px;background:rgba(0,0,0,.62);color:#9acbff;font:900 clamp(6px,.95vmin,9px)/1 monospace;letter-spacing:.75px}.space-stage-card{position:absolute;left:7px;right:7px;bottom:6px;z-index:4;min-width:0;padding:6px 8px;border-left:3px solid #62a9ff;border-radius:4px;background:rgba(2,5,12,.84);color:#adc5dc;font:700 clamp(7px,1vmin,10px)/1.3 monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.space-stage-card b{color:#d5eaff}
+.space-world{position:absolute;inset:0;background:#040913}.space-world-img{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;filter:invert(.75) sepia(.3) saturate(1.5) hue-rotate(168deg) brightness(.38) contrast(1.45);opacity:.82}.space-world-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(105,169,240,.075) 1px,transparent 1px),linear-gradient(90deg,rgba(105,169,240,.075) 1px,transparent 1px);background-size:12.5% 25%}.space-fire{appearance:none;position:absolute;width:var(--s,9px);height:var(--s,9px);margin:calc(var(--s,9px)/-2);padding:0;border:1px solid #fff7;border-radius:50%;background:#ffbf5f;box-shadow:0 0 9px #ff723d;cursor:pointer;animation:seisPulse 2.1s ease-out infinite}.space-fire.hot{background:#ff654f;box-shadow:0 0 13px 3px #ff472f}.space-fire.on{z-index:3;animation:none;box-shadow:0 0 0 3px #fff3,0 0 17px 5px #ff6749}
+.space-gallery{position:absolute;inset:0;background:#02040a}.space-gallery-img{width:100%;height:100%;object-fit:cover;opacity:.85}.space-gallery-shade{position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,rgba(1,3,9,.95) 100%)}.space-gallery-copy{position:absolute;left:10px;right:10px;bottom:9px}.space-gallery-copy b{display:block;color:#e8f3ff;font:900 clamp(10px,1.7vmin,17px)/1.2 monospace}.space-gallery-copy span{display:block;margin-top:4px;color:#93aac0;font:700 clamp(7px,1vmin,10px)/1.3 monospace;max-height:2.7em;overflow:hidden}.space-gallery-copy small{display:block;margin-top:4px;color:#6f8baa;font:700 7px/1 monospace;letter-spacing:.6px}
+.space-ticker{position:relative;z-index:2;min-width:0;padding:4px 8px;border:1px solid rgba(113,176,255,.15);border-radius:6px;background:rgba(0,0,0,.42);color:#7f9bb5;font:700 clamp(7px,1vmin,9px)/1.2 monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.space-ticker a{color:#8bc7ff;text-decoration:none}.space-ticker a:hover{text-decoration:underline}
+@container (max-width:650px){.space-screen{gap:3px;padding:4px 5px 27px}.space-head{padding:4px 6px}.space-stat{padding:3px}.space-stat b{font-size:5px}.space-stat span{font-size:8px}.space-main{grid-template-columns:minmax(0,58%) minmax(0,42%);gap:3px}.space-side{padding:3px;gap:2px}.space-tab{padding:4px 1px;font-size:5px}.space-row{padding:4px 2px;font-size:6px;gap:3px}.space-detail{padding:4px;font-size:5.5px}.space-row:nth-child(n+7){display:none}.space-launch-name{font-size:9px}.space-countdown{font-size:20px}.space-launch-meta{font-size:6px}.space-stage-card{font-size:6px;padding:4px 5px}.space-earth{width:22px;height:22px}.space-moon{width:5px;height:5px}}
+@container (max-height:430px){.space-screen{grid-template-rows:auto auto minmax(0,1fr);padding-bottom:25px}.space-head{padding:3px 6px;font-size:7px}.space-stat{padding:3px}.space-stat span{margin-top:2px;font-size:8px}.space-main{gap:3px}.space-side{padding:3px}.space-row{padding:4px 2px;font-size:6px}.space-tab{padding:4px 1px;font-size:6px}.space-ticker{display:none}.space-countdown{font-size:24px}.space-launch-copy{bottom:7px}.space-gallery-copy span{display:none}}
+@container (max-height:220px){.space-stats{display:none}.space-screen{grid-template-rows:auto minmax(0,1fr)}.space-fresh{display:none}.space-main{grid-template-columns:60% 40%}.space-row:nth-child(n+5){display:none}.space-stage-card{display:none}}
+
 /* ============ v14: ident flash (station idents feature) ============ */
 /* QA FIX (audit 5A): was z:29, same as .buff-ov. Both fire on every channel change; .buff-ov's
    35% black backdrop killed the intended phosphor flash. Bumped to z:30 so the CRT ident wins. */
@@ -1419,7 +1436,7 @@ html.mob .console::before,html.mob .speaker,html.mob .console-legs{display:none!
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.231-seismic-watch";
+window.__ATV_BUILD="1.7.7-mobile.232-space-operations";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1456,7 +1473,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.231 · Seismic Watch</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.232 · Space Operations</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -9558,10 +9575,7 @@ async function tuneNasaImagery(ch,sl,my){
   await refill(); if(my!==token)return;
   showNext(); nasaTimer=rtInterval(showNext,15000);
 }
-function tuneSpaceHub(ch,sl,my){ return tuneRotator(ch,sl,my,[
-  function(m){ return tuneSpace(ch,sl,m); },
-  function(m){ return tuneNasaImagery(ch,sl,m); }
-],24); }
+function tuneSpaceHub(ch,sl,my){ return tuneSpace(ch,sl,my); }
 
 /* ---------- Public Domain Art: rotating gallery from The Met Open Access (keyless, CORS-open) ---------- */
 var ART_THEMES=["painting","portrait","landscape","still life","impressionism","japanese woodblock print","sculpture","american painting","flowers","seascape","dutch golden age","mythology","drawing","watercolor"];
@@ -12250,7 +12264,7 @@ function dcSkeletonWithBug(title,ident){
 
 /* ---------- Space & Sky: rotates every 2 min through 3 live pages, refreshes data every 5 min ---------- */
 var spaceTimer=null, spaceRotateTimer=null, spacePage=0, spaceData={};
-async function tuneSpace(ch,sl,my){
+async function tuneSpaceLegacy(ch,sl,my){
   if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Space & Sky","");
   spacePage=0; if(screenArea) screenArea.innerHTML=dcSkeleton("SPACE WEATHER");
   clearInterval(spaceTimer); clearInterval(spaceRotateTimer);
@@ -12339,6 +12353,110 @@ function renderSpacePage(){
         '</div>',
       ticker:(d.loc?esch(d.loc.label):"")+" \u00b7 next: Space Weather"});
   }
+}
+
+var spaceOpsTimer=null,spaceCountdownTimer=null;
+async function tuneSpace(ch,sl,my){
+  if(my!==token)return;hideOv();setSig("live","ON AIR");showNow(ch,sl,"Space Operations","");
+  if(screenArea)screenArea.innerHTML=
+    '<div class="space-screen" id="spaceScreen">'+
+      '<div class="space-head"><span><i class="space-live"></i>SPACE OPERATIONS · LAUNCH + DEEP-SPACE DESK</span><span class="space-fresh" id="spaceFresh">OPENING EDGE FEEDS…</span></div>'+
+      '<div class="space-stats" id="spaceStats"><div class="space-stat"><b>NEXT LAUNCH</b><span>--</span></div><div class="space-stat"><b>CLOSEST NEO</b><span>--</span></div><div class="space-stat"><b>FIREBALL LOG</b><span>--</span></div><div class="space-stat"><b>MISSION IMAGES</b><span>--</span></div></div>'+
+      '<div class="space-main"><section class="space-stage" id="spaceStage"><div class="space-empty">ACQUIRING SPACE OPERATIONS DATA…</div></section>'+
+        '<aside class="space-side"><div class="space-tabs"><button class="space-tab on" type="button" data-space-view="0">LAUNCHES</button><button class="space-tab" type="button" data-space-view="1">NEAR EARTH</button><button class="space-tab" type="button" data-space-view="2">FIREBALLS</button><button class="space-tab" type="button" data-space-view="3">MISSIONS</button></div><div class="space-panel" id="spacePanel"><div class="space-empty">BUILDING OPERATIONS BOARD…</div></div></aside>'+
+      '</div><div class="space-ticker" id="spaceTicker">NEXT cycles four continuous live desks · no timed page changes</div>'+
+    '</div>';
+  var deskBug=mountChanBug("spaceScreen",{ident:"SPACE OPS"}),viewIndex=0,selected=[0,0,0,0],stale=true,degraded=[];
+  var model={launches:[],approaches:[],fireballs:[],imagery:[],fetchedAt:0};
+  var SPACE_LIVE_URL="https://ais-relay.tdy1990.workers.dev/live/space";
+  startIAJazz("gmelectro");
+  function number(value){var n=Number(value);return isFinite(n)?n:null;}
+  function utcDate(value){var s=String(value||"");if(/^\d{4}-\d\d-\d\d \d\d:\d\d/.test(s))s=s.replace(" ","T")+"Z";var d=new Date(s);return isNaN(d.getTime())?null:d;}
+  function shortDate(value){var d=utcDate(value);return d?d.toLocaleString([],{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}):String(value||"--").replace(/^\d{4}-/,"");}
+  function countdown(value){
+    var d=utcDate(value);if(!d)return "--";var delta=d.getTime()-Date.now(),past=delta<0,sec=Math.max(0,Math.floor(Math.abs(delta)/1000));
+    var days=Math.floor(sec/86400),hours=Math.floor(sec%86400/3600),mins=Math.floor(sec%3600/60),secs=sec%60;
+    if(past&&sec>21600)return "LAUNCHED";
+    return (past?"T+ ":"T− ")+(days?days+"D ":"")+String(hours).padStart(2,"0")+":"+String(mins).padStart(2,"0")+":"+String(secs).padStart(2,"0");
+  }
+  function sizeLabel(km,estimated){km=number(km);if(km==null)return "SIZE UNKNOWN";var out=km<1?Math.max(1,Math.round(km*1000))+" M":km.toFixed(km<10?2:1)+" KM";return (estimated?"EST. ":"")+out;}
+  function ageLabel(value){var d=utcDate(value);if(!d)return "--";var sec=Math.max(0,Math.round((Date.now()-d.getTime())/1000));if(sec<3600)return Math.max(1,Math.round(sec/60))+" MIN AGO";if(sec<86400)return Math.round(sec/3600)+" HR AGO";return Math.round(sec/86400)+" DAY AGO";}
+  function currentRows(){return [model.launches,model.approaches,model.fireballs,model.imagery][viewIndex]||[];}
+  function current(){var rows=currentRows();if(!rows.length)return null;selected[viewIndex]=Math.max(0,Math.min(rows.length-1,selected[viewIndex]||0));return rows[selected[viewIndex]];}
+  function renderTabs(){document.querySelectorAll("[data-space-view]").forEach(function(tab){tab.classList.toggle("on",Number(tab.dataset.spaceView)===viewIndex);});}
+  function renderStats(){
+    var spans=document.querySelectorAll("#spaceStats span"),next=model.launches.find(function(item){var d=utcDate(item.net);return d&&d.getTime()>Date.now()-21600000;})||model.launches[0];
+    var closest=model.approaches.reduce(function(best,item){return !best||number(item.lunarDistance)<number(best.lunarDistance)?item:best;},null);
+    var values=[next?countdown(next.net):"--",closest&&number(closest.lunarDistance)!=null?number(closest.lunarDistance).toFixed(1)+" LD":"--",model.fireballs.length+" RECENT",model.imagery.length+" LIVE"];
+    spans.forEach(function(span,index){span.textContent=values[index]||"--";});
+  }
+  function renderHeader(){
+    var fresh=$("spaceFresh"),ticker=$("spaceTicker"),next=model.launches[0],label=stale?"CACHED · RECONNECTING":degraded.length?"EDGE LIVE · PARTIAL":"EDGE LIVE";
+    if(fresh)fresh.textContent=label+(model.fetchedAt?" · "+guideUpdatedLabel(model.fetchedAt):" · ACQUIRING");
+    if(ticker)ticker.innerHTML=(stale?"LAST-GOOD SPACE DESK · RECONNECTING · ":"")+
+      (next?("NEXT "+esch(next.name)+" · "+countdown(next.net)+" · "):"")+
+      "NEXT cycles four desks · <a href=\"https://thespacedevs.com/llapi\" target=\"_blank\" rel=\"noopener\">Launch Library</a> · <a href=\"https://ssd-api.jpl.nasa.gov/doc/cad.html\" target=\"_blank\" rel=\"noopener\">NASA/JPL CNEOS</a> · <a href=\"https://images.nasa.gov/\" target=\"_blank\" rel=\"noopener\">NASA Images</a>";
+    var status=(next?countdown(next.net)+" "+next.name.slice(0,34):model.approaches.length+" near-Earth approaches")+" · "+model.approaches.length+" NEOs / 30d";
+    setChanStatus(ch.num,status);if(deskBug)deskBug.update(next?countdown(next.net):(model.approaches.length+" NEOs"),next?next.name.slice(0,28):"SPACE OPERATIONS");
+  }
+  function launchDetail(item){var bits=[item.status,item.providerAbbrev||item.provider,item.pad,item.location,item.orbit].filter(Boolean).join(" · ");return '<div class="space-detail"><b>'+esch(bits||"UPCOMING ORBITAL LAUNCH")+'</b>'+(item.description?("<br>"+esch(item.description)):"")+(item.url?('<br><a href="'+esch(item.url)+'" target="_blank" rel="noopener">OPEN LAUNCH RECORD</a>'):"")+'</div>';}
+  function approachDetail(item){var diameter=number(item.diameterKm),estimated=false;if(diameter==null){diameter=number(item.estimatedDiameterKm);estimated=true;}var bits=[shortDate(item.date),number(item.distanceMiles)!=null?Math.round(number(item.distanceMiles)).toLocaleString()+" MI":"",number(item.velocityKps)!=null?number(item.velocityKps).toFixed(1)+" KM/S":"",sizeLabel(diameter,estimated),item.uncertainty?("TIME σ "+item.uncertainty):""].filter(Boolean);return '<div class="space-detail"><b>'+esch(bits.join(" · "))+'</b><br>Nominal JPL close approach; distance is from Earth center.<br><a href="https://ssd.jpl.nasa.gov/tools/sbdb_lookup.html#/?sstr='+encodeURIComponent(item.id||item.name)+'" target="_blank" rel="noopener">OPEN JPL SMALL-BODY RECORD</a></div>';}
+  function fireballDetail(item){var bits=[shortDate(item.date),number(item.altitudeKm)!=null?number(item.altitudeKm).toFixed(1)+" KM ALT":"",number(item.velocityKps)!=null?number(item.velocityKps).toFixed(1)+" KM/S":"",number(item.energy)!=null?number(item.energy).toFixed(1)+" ×10¹⁰ J RADIATED":""].filter(Boolean);return '<div class="space-detail"><b>'+esch(bits.join(" · "))+'</b><br>Atmospheric impact energy: '+(number(item.impactKt)!=null?number(item.impactKt).toFixed(2)+" kilotons TNT":"not reported")+'.</div>';}
+  function imageDetail(item){return '<div class="space-detail"><b>'+esch([item.center,item.credit,shortDate(item.date)].filter(Boolean).join(" · "))+'</b>'+(item.description?("<br>"+esch(item.description)):"")+(item.id?('<br><a href="https://images.nasa.gov/details/'+encodeURIComponent(item.id)+'" target="_blank" rel="noopener">OPEN NASA IMAGE RECORD</a>'):"")+'</div>';}
+  function renderPanel(){
+    var panel=$("spacePanel");if(!panel)return;var rows=currentRows();if(!rows.length){panel.innerHTML='<div class="space-empty">THIS SOURCE IS RECONNECTING<br>OTHER SPACE DESKS REMAIN LIVE</div>';return;}
+    panel.innerHTML=rows.slice(0,18).map(function(item,index){var on=index===selected[viewIndex],main="",sub="",value="",detail="";
+      if(viewIndex===0){main=item.name;sub=[shortDate(item.net),item.providerAbbrev||item.provider,item.location].filter(Boolean).join(" · ");value=countdown(item.net);detail=launchDetail(item);}
+      else if(viewIndex===1){main=item.name;sub=[shortDate(item.date),number(item.velocityKps)!=null?number(item.velocityKps).toFixed(1)+" km/s":"",sizeLabel(item.diameterKm!=null?item.diameterKm:item.estimatedDiameterKm,item.diameterKm==null)].filter(Boolean).join(" · ");value=number(item.lunarDistance)!=null?number(item.lunarDistance).toFixed(1)+" LD":"--";detail=approachDetail(item);}
+      else if(viewIndex===2){main=shortDate(item.date);sub=number(item.lat)!=null&&number(item.lon)!=null?Math.abs(number(item.lat)).toFixed(1)+"°"+(number(item.lat)<0?"S":"N")+" · "+Math.abs(number(item.lon)).toFixed(1)+"°"+(number(item.lon)<0?"W":"E"):"LOCATION UNAVAILABLE";value=number(item.impactKt)!=null?number(item.impactKt).toFixed(2)+" KT":"--";detail=fireballDetail(item);}
+      else{main=item.title;sub=[item.center,item.credit,shortDate(item.date)].filter(Boolean).join(" · ");value="NASA";detail=imageDetail(item);}
+      return '<div class="space-row'+(on?" on":"")+'" tabindex="0" role="button" data-space-index="'+index+'"><span class="space-row-main"><b>'+esch(main||"UNTITLED")+'</b><small>'+esch(sub||"LIVE SOURCE")+'</small></span><span class="space-row-value">'+esch(value)+'</span>'+(on?detail:"")+'</div>';
+    }).join("");
+    panel.querySelectorAll("[data-space-index]").forEach(function(row){function choose(){selected[viewIndex]=Number(row.dataset.spaceIndex)||0;renderPanel();renderStage();}row.addEventListener("click",choose);row.addEventListener("keydown",function(event){if(event.key==="Enter"||event.key===" "){event.preventDefault();choose();}});});
+    panel.querySelectorAll("a").forEach(function(link){link.addEventListener("click",function(event){event.stopPropagation();});});
+  }
+  function renderLaunch(stage,item){
+    if(!item){stage.innerHTML='<div class="space-empty">LAUNCH SCHEDULE RECONNECTING…</div>';return;}
+    var galleryFallback=model.imagery[0]||{},heroUrl=item.image||galleryFallback.image||"",heroAlt=item.thumbnail||galleryFallback.thumbnail||"";
+    stage.innerHTML='<div class="space-launch">'+(heroUrl?('<img class="space-launch-img" src="'+esch(heroUrl)+'" data-alt="'+esch(heroAlt)+'" alt="">'):"")+'<div class="space-launch-shade"></div><div class="space-launch-credit">'+esch(item.credit?("IMAGE "+item.credit):galleryFallback.credit?("IMAGE "+galleryFallback.credit):"LIVE LAUNCH SCHEDULE")+'</div><div class="space-launch-copy"><div class="space-kicker">'+esch(item.status||"UPCOMING LAUNCH")+' · '+esch(shortDate(item.net))+'</div><div class="space-countdown" id="spaceCountdown">'+countdown(item.net)+'</div><div class="space-launch-name">'+esch(item.name)+'</div><div class="space-launch-meta">'+esch([item.provider,item.pad,item.location,item.missionType,item.orbit].filter(Boolean).join(" · "))+'</div></div></div>';
+    var hero=stage.querySelector(".space-launch-img");if(hero)hero.addEventListener("error",function(){var alt=hero.dataset.alt;if(alt&&hero.src!==alt){hero.src=alt;hero.dataset.alt="";}else hero.style.display="none";});
+  }
+  function renderApproach(stage,item){
+    if(!model.approaches.length){stage.innerHTML='<div class="space-empty">JPL CLOSE-APPROACH FEED RECONNECTING…</div>';return;}
+    var html='<div class="space-radar"><div class="space-radar-grid"><i class="space-orbit o1"></i><i class="space-orbit o2"></i><i class="space-orbit o3"></i><i class="space-earth"></i><i class="space-moon"></i></div>';
+    model.approaches.slice(0,24).forEach(function(rock,index){var ld=Math.max(.05,number(rock.lunarDistance)||20),radius=8+Math.min(39,Math.sqrt(ld/20)*39),angle=(index*137.508+(number(rock.jd)||0)%360)*Math.PI/180,x=50+Math.cos(angle)*radius,y=50+Math.sin(angle)*radius*.82,size=Math.max(5,Math.min(13,12-Math.log10(Math.max(.1,ld))*3));html+='<button type="button" class="space-rock'+(ld<3?" near":"")+(index===selected[1]?" on":"")+'" data-space-rock="'+index+'" title="'+esch(rock.name)+' · '+ld.toFixed(1)+' lunar distances" style="left:'+x.toFixed(2)+'%;top:'+y.toFixed(2)+'%;--s:'+size.toFixed(1)+'px"></button>';});
+    html+='<div class="space-stage-label">EARTH CENTER · MOON ORBIT REFERENCE · NEXT 30 DAYS</div><div class="space-stage-card">'+(item?('<b>'+esch(item.name)+' · '+number(item.lunarDistance).toFixed(2)+' LD</b> · '+esch(shortDate(item.date))+' · '+esch(number(item.velocityKps).toFixed(1)+" km/s")):"SELECT AN APPROACH")+'</div></div>';stage.innerHTML=html;
+    stage.querySelectorAll("[data-space-rock]").forEach(function(dot){dot.addEventListener("click",function(){selected[1]=Number(dot.dataset.spaceRock)||0;renderStage();renderPanel();});});
+  }
+  function renderFireballs(stage,item){
+    if(!model.fireballs.length){stage.innerHTML='<div class="space-empty">JPL FIREBALL FEED RECONNECTING…</div>';return;}
+    var html='<div class="space-world"><img class="space-world-img" src="https://upload.wikimedia.org/wikipedia/commons/8/83/Equirectangular_projection_SW.jpg" alt="World map"><div class="space-world-grid"></div>';
+    model.fireballs.slice(0,20).forEach(function(ball,index){if(number(ball.lat)==null||number(ball.lon)==null)return;var x=(number(ball.lon)+180)/360*100,y=(90-number(ball.lat))/180*100,kt=number(ball.impactKt)||0,size=Math.max(6,Math.min(17,7+Math.sqrt(kt)*5));html+='<button type="button" class="space-fire'+(kt>=1?" hot":"")+(index===selected[2]?" on":"")+'" data-space-fire="'+index+'" title="'+esch(shortDate(ball.date))+' · '+kt.toFixed(2)+' kt" style="left:'+x.toFixed(3)+'%;top:'+y.toFixed(3)+'%;--s:'+size.toFixed(1)+'px"></button>';});
+    html+='<div class="space-stage-label">NASA/JPL CNEOS · ATMOSPHERIC FIREBALL SENSOR LOG</div><div class="space-stage-card">'+(item?('<b>'+esch(shortDate(item.date))+' · '+(number(item.impactKt)!=null?number(item.impactKt).toFixed(2)+" KT":"ENERGY --")+'</b> · '+esch(ageLabel(item.date))+' · '+esch(number(item.altitudeKm)!=null?number(item.altitudeKm).toFixed(1)+" km altitude":"altitude unknown")):"SELECT A FIREBALL")+'</div></div>';stage.innerHTML=html;
+    stage.querySelectorAll("[data-space-fire]").forEach(function(dot){dot.addEventListener("click",function(){selected[2]=Number(dot.dataset.spaceFire)||0;renderStage();renderPanel();});});
+  }
+  function renderImage(stage,item){
+    if(!item){stage.innerHTML='<div class="space-empty">NASA MISSION LIBRARY RECONNECTING…</div>';return;}
+    stage.innerHTML='<div class="space-gallery"><img class="space-gallery-img" src="'+esch(item.image)+'" alt="'+esch(item.title)+'"><div class="space-gallery-shade"></div><div class="space-gallery-copy"><b>'+esch(item.title)+'</b><span>'+esch(item.description||"NASA mission imagery")+'</span><small>'+esch([item.center,item.credit,shortDate(item.date)].filter(Boolean).join(" · "))+'</small></div></div>';
+  }
+  function renderStage(){var stage=$("spaceStage");if(!stage)return;var item=current();if(viewIndex===0)renderLaunch(stage,item);else if(viewIndex===1)renderApproach(stage,item);else if(viewIndex===2)renderFireballs(stage,item);else renderImage(stage,item);}
+  function renderAll(){renderTabs();renderStats();renderPanel();renderStage();renderHeader();}
+  function setView(index,announce){viewIndex=((Number(index)||0)%4+4)%4;renderAll();if(announce)quickBanner("SPACE OPERATIONS · "+["LAUNCHES","NEAR EARTH","FIREBALLS","NASA MISSIONS"][viewIndex]);}
+  function nextView(){setView(viewIndex+1,true);}
+  function save(){store.set("spaceOpsCache",{model:model,at:Date.now()});}
+  async function refresh(){
+    try{
+      var response=await withTO(fetch(SPACE_LIVE_URL,{mode:"cors",cache:"no-store"}).then(function(r){if(!r.ok)throw new Error("space edge "+r.status);return r.json();}),14000);if(my!==token)return;
+      var next={launches:Array.isArray(response.launches)?response.launches:[],approaches:Array.isArray(response.approaches)?response.approaches:[],fireballs:Array.isArray(response.fireballs)?response.fireballs:[],imagery:Array.isArray(response.imagery)?response.imagery:[],fetchedAt:Date.parse(response.fetchedAt)||Date.now()};
+      if(!next.launches.length&&!next.approaches.length&&!next.fireballs.length&&!next.imagery.length)throw new Error("space edge returned no desks");
+      model=next;degraded=Array.isArray(response.failures)?response.failures:[];stale=false;save();renderAll();nlog("space-ops",true,model.launches.length+" launches · "+model.approaches.length+" approaches · "+model.fireballs.length+" fireballs · "+model.imagery.length+" images");
+    }catch(error){if(my!==token)return;stale=true;renderAll();nlog("space-ops",false,(error&&error.message)||error);}
+  }
+  var cached=store.get("spaceOpsCache",null);
+  if(cached&&cached.model&&Date.now()-Number(cached.at||0)<48*3600000){model=cached.model;model.fetchedAt=Number(model.fetchedAt)||Number(cached.at)||0;stale=true;renderAll();}
+  window.__spaceNext=nextView;window.__spaceRefresh=refresh;
+  document.querySelectorAll("[data-space-view]").forEach(function(tab){tab.addEventListener("click",function(){setView(Number(tab.dataset.spaceView),false);});});
+  refresh();spaceOpsTimer=rtInterval(refresh,5*60*1000);spaceCountdownTimer=rtInterval(function(){if(my!==token)return;renderStats();renderHeader();if(viewIndex===0){var item=current(),el=$("spaceCountdown");if(item&&el)el.textContent=countdown(item.net);}},1000);
 }
 
 /* ---------- River & Lake Watch (CYCLE-12 rebuild): NOAA NWPS primary ----------
@@ -14819,6 +14937,7 @@ async function playBumper(ch,sl,my){
 /* ===== v10.1: skip — next item on the same channel, on demand ===== */
 function skipOne(){ if(!powered){quickBanner("TURN THE TV ON FIRST");return;}
   var sc=byNum(curNum);
+  if(sc&&sc.source==="space"&&typeof window.__spaceNext==="function"){window.__spaceNext();return;}
   if(sc&&sc.source==="seismic"&&typeof window.__seismicNext==="function"){window.__seismicNext();return;}
   if(sc&&sc.source==="airtraffic"&&typeof window.__skyBeaconNext==="function"){window.__skyBeaconNext();return;}
   if(sc&&sc.source==="apod"&&typeof window.__apodNext==="function"){window.__apodNext();return;}

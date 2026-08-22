@@ -38,8 +38,10 @@ const IA_PREFIX = "/ia";
 const IA_QUEUE_PATH = IA_PREFIX + "/queue";
 const IA_PROGRAM_PATH = IA_PREFIX + "/program";
 const ADSB_PATH = "/live/adsb";
+const SPACE_PATH = "/live/space";
 const SNAPSHOT_TTL_SECONDS = 60;
 const ADSB_TTL_SECONDS = 10;
+const SPACE_TTL_SECONDS = 900;
 const ADSB_USER_AGENT = "Afterglow/1.7 (+https://github.com/esfsfestgfse/Archivetv)";
 const IA_SEARCH_TTL_SECONDS = 21600;
 /* Bump this when the normalized search response changes so an older edge
@@ -263,6 +265,180 @@ async function getAdsbSnapshot(url, ctx) {
   });
   ctx.waitUntil(cache.put(cacheKey, response.clone()).catch((error) => {
     console.warn(JSON.stringify({ event: "adsb-cache-write-failed", message: String(error && error.message || error) }));
+  }));
+  return response;
+}
+
+/* Live space operations desk ------------------------------------------------
+   Launch Library's anonymous tier is deliberately modest (15 requests/hour),
+   while the JPL endpoints do not send browser CORS headers consistently. One
+   fixed, fifteen-minute edge snapshot keeps those sources off the tune path,
+   shares a single upstream request among viewers, and prevents this public
+   endpoint from becoming an arbitrary proxy. Every provider is normalized to
+   the small subset CH957 actually renders. */
+function rowObject(payload, row) {
+  const out = {};
+  (payload && payload.fields || []).forEach((field, index) => { out[field] = row && row[index]; });
+  return out;
+}
+
+function finiteNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function cleanText(value, max = 320) {
+  return String(value || "").replace(/\s+/g, " ").trim().slice(0, max);
+}
+
+function safeImageUrl(value) {
+  try {
+    const url = new URL(String(value || ""));
+    if (url.hostname === "thespacedevs-dev.nyc3.digitaloceanspaces.com") {
+      url.hostname = "thespacedevs-prod.nyc3.digitaloceanspaces.com";
+    }
+    return url.protocol === "https:" ? url.toString() : "";
+  } catch {
+    return "";
+  }
+}
+
+function normalizeSpaceLaunch(launch) {
+  const pad = launch && launch.pad || {}, location = pad.location || {};
+  const provider = launch && launch.launch_service_provider || {}, mission = launch && launch.mission || {};
+  const image = launch && launch.image || mission.image || pad.image || {};
+  return {
+    id: cleanText(launch && launch.id, 80),
+    name: cleanText(launch && launch.name, 180),
+    net: cleanText(launch && launch.net, 40),
+    status: cleanText(launch && launch.status && (launch.status.abbrev || launch.status.name), 40),
+    statusDescription: cleanText(launch && launch.status && launch.status.description, 220),
+    provider: cleanText(provider.name || provider.abbrev, 100),
+    providerAbbrev: cleanText(provider.abbrev, 20),
+    pad: cleanText(pad.name, 80),
+    location: cleanText(location.name || pad.location && pad.location.name, 140),
+    country: cleanText(location.country && location.country.name || pad.country && pad.country.name, 60),
+    lat: finiteNumber(pad.latitude != null ? pad.latitude : location.latitude),
+    lon: finiteNumber(pad.longitude != null ? pad.longitude : location.longitude),
+    mission: cleanText(mission.name, 120),
+    missionType: cleanText(mission.type, 60),
+    description: cleanText(mission.description, 420),
+    orbit: cleanText(mission.orbit && (mission.orbit.name || mission.orbit.abbrev), 60),
+    image: safeImageUrl(image.image_url || image.thumbnail_url),
+    thumbnail: safeImageUrl(image.thumbnail_url || image.image_url),
+    credit: cleanText(image.credit, 80),
+    webcastLive: Boolean(launch && launch.webcast_live),
+    url: /^https:\/\/ll\.thespacedevs\.com\//.test(String(launch && launch.url || "")) ? launch.url : "",
+  };
+}
+
+function normalizeCloseApproach(payload, row) {
+  const item = rowObject(payload, row), au = finiteNumber(item.dist), h = finiteNumber(item.h);
+  const diameter = finiteNumber(item.diameter);
+  return {
+    id: cleanText(item.des, 60),
+    name: cleanText(item.fullname || item.des, 120).replace(/^\s+/, ""),
+    date: cleanText(item.cd, 40),
+    jd: finiteNumber(item.jd),
+    distanceAu: au,
+    lunarDistance: au == null ? null : au * 389.1724,
+    distanceMiles: au == null ? null : au * 92955807.3,
+    velocityKps: finiteNumber(item.v_rel),
+    magnitudeH: h,
+    diameterKm: diameter,
+    estimatedDiameterKm: diameter == null && h != null ? 1329 / Math.sqrt(0.14) * Math.pow(10, -h / 5) : null,
+    uncertainty: cleanText(item.t_sigma_f, 24),
+  };
+}
+
+function normalizeFireball(payload, row) {
+  const item = rowObject(payload, row);
+  let lat = finiteNumber(item.lat), lon = finiteNumber(item.lon);
+  if (lat != null && String(item["lat-dir"] || "").toUpperCase() === "S") lat *= -1;
+  if (lon != null && String(item["lon-dir"] || "").toUpperCase() === "W") lon *= -1;
+  return {
+    date: cleanText(item.date, 40),
+    energy: finiteNumber(item.energy),
+    impactKt: finiteNumber(item["impact-e"]),
+    lat,
+    lon,
+    altitudeKm: finiteNumber(item.alt),
+    velocityKps: finiteNumber(item.vel),
+  };
+}
+
+function normalizeNasaImage(item) {
+  const data = item && item.data && item.data[0] || {}, links = item && item.links || [];
+  const image = links.find((link) => link && link.render === "image" && /~medium\./i.test(link.href || "")) ||
+    links.find((link) => link && link.render === "image" && /~large\./i.test(link.href || "")) ||
+    links.find((link) => link && link.render === "image");
+  const thumb = links.find((link) => link && link.render === "image" && (link.rel === "preview" || /~thumb\./i.test(link.href || ""))) || image;
+  return {
+    id: cleanText(data.nasa_id, 80),
+    title: cleanText(data.title, 180),
+    description: cleanText(data.description_508 || data.description, 420),
+    center: cleanText(data.center, 40),
+    date: cleanText(data.date_created, 40),
+    credit: cleanText(data.secondary_creator, 100),
+    image: safeImageUrl(image && image.href),
+    thumbnail: safeImageUrl(thumb && thumb.href),
+  };
+}
+
+async function fetchUpcomingLaunches() {
+  const path = "/2.3.0/launches/upcoming/?limit=10&ordering=net&hide_recent_previous=true";
+  try {
+    return { payload: await timedJsonFetch("https://ll.thespacedevs.com" + path, 7600), source: "launch-library-live" };
+  } catch (error) {
+    /* The anonymous production pool can answer 429 even when this Worker's
+       fifteen-minute cache is behaving, because the quota is shared upstream.
+       The provider explicitly offers lldev for unthrottled development use;
+       it is slightly stale but schema-compatible and vastly better than an
+       empty launch board. The next edge-cache miss retries production first. */
+    const payload = await timedJsonFetch("https://lldev.thespacedevs.com" + path, 7600);
+    return { payload, source: "launch-library-mirror" };
+  }
+}
+
+async function getSpaceSnapshot(url, ctx) {
+  const cacheKey = new Request(url.origin + SPACE_PATH + "/cache/v3");
+  const cache = caches.default, cached = await cache.match(cacheKey);
+  if (cached) {
+    const headers = new Headers(cached.headers);
+    Object.entries(corsHeaders()).forEach(([key, value]) => headers.set(key, value));
+    headers.set("X-Afterglow-Cache", "hit");
+    return new Response(cached.body, { status: cached.status, headers });
+  }
+
+  const year = new Date().getUTCFullYear();
+  const sources = await Promise.allSettled([
+    fetchUpcomingLaunches(),
+    timedJsonFetch("https://ssd-api.jpl.nasa.gov/cad.api?date-min=now&date-max=%2B30&dist-max=20LD&diameter=true&fullname=true&limit=24&sort=date", 6200),
+    timedJsonFetch("https://ssd-api.jpl.nasa.gov/fireball.api?limit=20&req-loc=true", 6200),
+    timedJsonFetch("https://images-api.nasa.gov/search?q=deep%20space%20mission&media_type=image&page_size=12&year_start=" + (year - 1), 7600),
+  ]);
+  const failures = [], value = (index, name) => {
+    if (sources[index].status === "fulfilled") return sources[index].value;
+    failures.push(name);
+    return null;
+  };
+  const launchResult = value(0, "launches"), launchData = launchResult && launchResult.payload, cadData = value(1, "approaches");
+  const fireballData = value(2, "fireballs"), nasaData = value(3, "imagery");
+  const launches = (launchData && launchData.results || []).map(normalizeSpaceLaunch).filter((item) => item.name && item.net);
+  const approaches = (cadData && cadData.data || []).map((row) => normalizeCloseApproach(cadData, row)).filter((item) => item.name && item.distanceAu != null);
+  const fireballs = (fireballData && fireballData.data || []).map((row) => normalizeFireball(fireballData, row)).filter((item) => item.date);
+  const imagery = (nasaData && nasaData.collection && nasaData.collection.items || []).map(normalizeNasaImage).filter((item) => item.title && item.image);
+  if (!launches.length && !approaches.length && !fireballs.length && !imagery.length) {
+    return json({ error: "space data providers unavailable", failures }, 502);
+  }
+  const payload = { source: "Afterglow Space Desk", fetchedAt: new Date().toISOString(), failures, launchSource: launchResult && launchResult.source || "unavailable", launches, approaches, fireballs, imagery };
+  const response = json(payload, 200, {
+    "Cache-Control": "public, max-age=" + SPACE_TTL_SECONDS + ", stale-while-revalidate=3600",
+    "X-Afterglow-Source": "space-edge-desk",
+    "X-Afterglow-Cache": "miss",
+  });
+  ctx.waitUntil(cache.put(cacheKey, response.clone()).catch((error) => {
+    console.warn(JSON.stringify({ event: "space-cache-write-failed", message: String(error && error.message || error) }));
   }));
   return response;
 }
@@ -609,6 +785,10 @@ export default {
       return getAdsbSnapshot(url, ctx);
     }
 
+    if (request.method === "GET" && url.pathname === SPACE_PATH) {
+      return getSpaceSnapshot(url, ctx);
+    }
+
     if (request.method === "GET" && url.pathname === IA_PREFIX + "/search") {
       return getIaSearch(url, ctx);
     }
@@ -632,6 +812,7 @@ export default {
         archiveQueuePath: IA_QUEUE_PATH,
         archiveProgramPath: IA_PROGRAM_PATH,
         adsbPath: ADSB_PATH,
+        spacePath: SPACE_PATH,
       });
     }
 

@@ -57,6 +57,18 @@ if (!/WATER_PATH \+ "\/cache\/v2\/"/.test(source)) issues.push('Water route must
 if (!/candidates\.length < 8/.test(source) || !/downsampleWaterSeries/.test(source)) issues.push('Water hydration must stay bounded and downsample 72-hour series');
 if (!/stale-while-revalidate=900/.test(source)) issues.push('Water route needs stale-while-revalidate resilience');
 if (!/value == null \|\| value === ""/.test(source)) issues.push('Water normalization must preserve missing readings instead of coercing them to zero');
+if (!/const TROPICAL_PATH = "\/live\/tropical"/.test(source)) issues.push('Tropical Watch needs a narrow NHC operations route');
+if (numericConstant('TROPICAL_TTL_SECONDS') !== 300) issues.push('Tropical snapshots must use a five-minute live cache');
+if (!/CurrentStorms\.json/.test(source) || !/MIATWOAT\.shtml/.test(source) || !/MIATWOEP\.shtml/.test(source) || !/HFOTWOCP\.shtml/.test(source)) issues.push('Tropical route must combine active storms with all three NHC basin outlooks');
+if (!/parseNhcForecast/.test(source) || !/FORECAST\|OUTLOOK/.test(source)) issues.push('Tropical route must normalize official forecast positions and winds');
+if (!/parseNhcGraphics/.test(source) || !/_5day_cone_with_line_and_wind/.test(source) || !/_5day_cone_sm/.test(source)) issues.push('Tropical route must prefer full-resolution NHC cones with a discovered small-product fallback');
+if (!/GOES19/.test(source) || !/GOES18/.test(source) || !/900x540\.jpg/.test(source)) issues.push('Tropical route must publish verified, bandwidth-bounded GOES imagery');
+if (!/TROPICAL_PATH \+ "\/cache\/v6"/.test(source) || !/stale-while-revalidate=900/.test(source)) issues.push('Tropical route needs the current edge cache and stale resilience');
+if (!/const TROPICAL_IMAGE_PATH = TROPICAL_PATH \+ "\/image"/.test(source)) issues.push('Tropical Watch needs a narrow image relay route');
+if (!/safeTropicalImageSource/.test(source) || !/storm_graphics\|xgtwo/.test(source) || !/cdn\.star\.nesdis\.noaa\.gov/.test(source)) issues.push('Tropical image relay must allow-list only NHC products and bounded GOES sectors');
+if (!/relayedTropicalProducts/.test(source) || !/tropicalImageRelayUrl/.test(source)) issues.push('Tropical JSON must publish edge-relayed imagery instead of browser hotlinks');
+if (!/Cross-Origin-Resource-Policy/.test(source) || numericConstant('TROPICAL_IMAGE_TTL_SECONDS') !== 300) issues.push('Tropical image relay needs cross-origin headers and a five-minute cache');
+if (!/Access-Control-Expose-Headers.*X-Afterglow-Source, X-Afterglow-Cache/.test(source)) issues.push('Browser diagnostics must be able to read safe Worker source and cache headers');
 
 console.log(`Worker contract: ${issues.length ? 'FAILED' : 'passed'}`);
 for (const issue of issues) console.log(`P0 ${issue}`);

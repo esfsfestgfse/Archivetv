@@ -40,10 +40,14 @@ const IA_PROGRAM_PATH = IA_PREFIX + "/program";
 const ADSB_PATH = "/live/adsb";
 const SPACE_PATH = "/live/space";
 const WATER_PATH = "/live/water";
+const TROPICAL_PATH = "/live/tropical";
+const TROPICAL_IMAGE_PATH = TROPICAL_PATH + "/image";
 const SNAPSHOT_TTL_SECONDS = 60;
 const ADSB_TTL_SECONDS = 10;
 const SPACE_TTL_SECONDS = 900;
 const WATER_TTL_SECONDS = 300;
+const TROPICAL_TTL_SECONDS = 300;
+const TROPICAL_IMAGE_TTL_SECONDS = 300;
 const ADSB_USER_AGENT = "Afterglow/1.7 (+https://github.com/esfsfestgfse/Archivetv)";
 const IA_SEARCH_TTL_SECONDS = 21600;
 /* Bump this when the normalized search response changes so an older edge
@@ -61,6 +65,7 @@ function corsHeaders() {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Expose-Headers": "X-Afterglow-Source, X-Afterglow-Cache",
     "Vary": "Origin",
   };
 }
@@ -146,6 +151,16 @@ async function cachedArchiveJson(cacheKey, ttlSeconds, load, ctx) {
    deliberately narrow: latitude, longitude and radius only; no arbitrary URL
    proxying. A ten-second edge cache is fresh enough for a television radar
    while allowing many viewers in one area to share the same upstream sample. */
+async function timedFetch(url, init = {}, timeoutMs = 4200) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function timedJsonFetch(url, timeoutMs = 4200) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -159,6 +174,21 @@ async function timedJsonFetch(url, timeoutMs = 4200) {
       throw new Error("upstream " + response.status + (retryAfter ? " retry " + retryAfter : ""));
     }
     return response.json();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function timedTextFetch(url, timeoutMs = 6200) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: { "Accept": "text/html,text/plain,application/xml;q=0.8,*/*;q=0.2", "User-Agent": ADSB_USER_AGENT },
+    });
+    if (!response.ok) throw new Error("upstream " + response.status);
+    return response.text();
   } finally {
     clearTimeout(timer);
   }
@@ -617,6 +647,241 @@ async function getWaterSnapshot(url, ctx) {
   return response;
 }
 
+/* Tropical operations edge desk -------------------------------------------
+   NHC's active-storm JSON is excellent, but the forecast track, public text
+   and current graphics are linked documents. Resolve and normalize those
+   official products once at the edge so the television never guesses a cone
+   URL or asks the browser to scrape cross-origin advisory pages. */
+const NHC_BASE = "https://www.nhc.noaa.gov";
+const NHC_OUTLOOKS = [
+  { code: "AL", name: "ATLANTIC", text: NHC_BASE + "/text/MIATWOAT.shtml", image2d: NHC_BASE + "/xgtwo/two_atl_2d0.png", image7d: NHC_BASE + "/xgtwo/two_atl_7d0.png" },
+  { code: "EP", name: "EASTERN PACIFIC", text: NHC_BASE + "/text/MIATWOEP.shtml", image2d: NHC_BASE + "/xgtwo/two_pac_2d0.png", image7d: NHC_BASE + "/xgtwo/two_pac_7d0.png" },
+  { code: "CP", name: "CENTRAL PACIFIC", text: NHC_BASE + "/text/HFOTWOCP.shtml", image2d: NHC_BASE + "/xgtwo/two_cpac_2d0.png", image7d: NHC_BASE + "/xgtwo/two_cpac_7d0.png" },
+];
+const TROPICAL_SATELLITES = [
+  { code: "ATL", name: "TROPICAL ATLANTIC", image: "https://cdn.star.nesdis.noaa.gov/GOES19/ABI/SECTOR/taw/GEOCOLOR/900x540.jpg", source: "NOAA GOES-19 GEOCOLOR" },
+  { code: "CAR", name: "CARIBBEAN", image: "https://cdn.star.nesdis.noaa.gov/GOES19/ABI/SECTOR/car/GEOCOLOR/900x540.jpg", source: "NOAA GOES-19 GEOCOLOR" },
+  { code: "MEX", name: "MEXICO / GULF", image: "https://cdn.star.nesdis.noaa.gov/GOES19/ABI/SECTOR/mex/GEOCOLOR/900x540.jpg", source: "NOAA GOES-19 GEOCOLOR" },
+  { code: "PAC", name: "TROPICAL PACIFIC", image: "https://cdn.star.nesdis.noaa.gov/GOES18/ABI/SECTOR/tpw/GEOCOLOR/900x540.jpg", source: "NOAA GOES-18 GEOCOLOR" },
+];
+
+function nhcPreText(html) {
+  const source = String(html || ""), match = source.match(/<pre[^>]*>([\s\S]*?)<\/pre>/i);
+  return String(match ? match[1] : source)
+    .replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;|&#160;/gi, " ").replace(/&amp;/gi, "&").replace(/&quot;/gi, '"').replace(/&#39;|&apos;/gi, "'")
+    .replace(/\r/g, "").replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
+function nhcSection(text, start, end) {
+  const source = String(text || ""), begin = source.search(start);
+  if (begin < 0) return "";
+  const tail = source.slice(begin), stop = end ? tail.search(end) : -1;
+  return cleanText(stop > 0 ? tail.slice(0, stop) : tail, 1800);
+}
+
+function nhcCoordinate(number, hemisphere) {
+  const value = finiteNumber(number);
+  return value == null ? null : /[SW]/i.test(hemisphere) ? -Math.abs(value) : Math.abs(value);
+}
+
+function nhcForecastTime(token, baseValue) {
+  const match = String(token || "").match(/(\d{2})\/(\d{2})(\d{2})Z/), base = new Date(baseValue || Date.now());
+  if (!match || Number.isNaN(base.getTime())) return "";
+  let value = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth(), Number(match[1]), Number(match[2]), Number(match[3])));
+  if (value.getTime() < base.getTime() - 15 * 86400000) value = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth() + 1, Number(match[1]), Number(match[2]), Number(match[3])));
+  if (value.getTime() > base.getTime() + 20 * 86400000) value = new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth() - 1, Number(match[1]), Number(match[2]), Number(match[3])));
+  return value.toISOString();
+}
+
+function parseNhcForecast(text, lastUpdate) {
+  const points = [], pattern = /(FORECAST|OUTLOOK) VALID\s+(\d{2}\/\d{4}Z)\s+(\d+(?:\.\d+)?)([NS])\s+(\d+(?:\.\d+)?)([EW])[\s\S]*?MAX WIND\s+(\d+)\s+KT(?:\.\.\.GUSTS\s+(\d+)\s+KT)?/gi;
+  let match;
+  while ((match = pattern.exec(String(text || ""))) && points.length < 10) {
+    points.push({
+      kind: match[1].toUpperCase(), validTime: nhcForecastTime(match[2], lastUpdate), label: match[2],
+      lat: nhcCoordinate(match[3], match[4]), lon: nhcCoordinate(match[5], match[6]),
+      windKt: finiteNumber(match[7]), gustKt: finiteNumber(match[8]),
+    });
+  }
+  return points;
+}
+
+function nhcGraphicUrl(path) {
+  try {
+    const url = new URL(String(path || "").replace(/&amp;/g, "&"), NHC_BASE);
+    return url.protocol === "https:" && url.hostname === "www.nhc.noaa.gov" ? url.toString() : "";
+  } catch { return ""; }
+}
+
+function parseNhcGraphics(html) {
+  const urls = Array.from(String(html || "").matchAll(/(?:src|href)=["']([^"']+(?:png|gif|jpe?g)[^"']*)["']/gi), (match) => nhcGraphicUrl(match[1])).filter(Boolean);
+  const pick = (needle) => urls.find((url) => url.toLowerCase().includes(needle)) || "";
+  return {
+    cone: pick("_5day_cone_with_line_and_wind") || pick("_5day_cone_no_line_and_wind") || pick("_5day_cone_sm"), experimentalCone: pick("_5day_expcone_sm"),
+    windProbabilities: pick("_wind_probs_34_f120_sm"), arrivalTime: pick("_earliest_reasonable_toa_no_wsp_34_sm"),
+    windHistory: pick("_wind_history_sm"), currentWind: pick("_current_wind_sm"),
+  };
+}
+
+function tropicalImageRelayUrl(origin, source) {
+  return source ? origin + TROPICAL_IMAGE_PATH + "?src=" + encodeURIComponent(source) : "";
+}
+
+function relayedTropicalProducts(origin, storms, outlooks, satellites) {
+  return {
+    storms: storms.map((storm) => ({
+      ...storm,
+      graphics: Object.fromEntries(Object.entries(storm.graphics || {}).map(([name, source]) => [name, tropicalImageRelayUrl(origin, source)])),
+    })),
+    outlooks: outlooks.map((outlook) => ({
+      ...outlook,
+      image2d: tropicalImageRelayUrl(origin, outlook.image2d),
+      image7d: tropicalImageRelayUrl(origin, outlook.image7d),
+    })),
+    satellites: satellites.map((satellite) => ({ ...satellite, image: tropicalImageRelayUrl(origin, satellite.image) })),
+  };
+}
+
+function safeTropicalImageSource(url) {
+  const raw = String(url.searchParams.get("src") || "");
+  if (!raw || raw.length > 700) return null;
+  try {
+    const source = new URL(raw);
+    if (source.protocol !== "https:" || source.username || source.password) return null;
+    const path = source.pathname;
+    const nhc = source.hostname === "www.nhc.noaa.gov" && /^\/(?:storm_graphics|xgtwo)\//.test(path) && /(?:\.png|\.gif|\.jpe?g)$/i.test(path);
+    const goes = source.hostname === "cdn.star.nesdis.noaa.gov" && /^\/GOES(?:18|19)\/ABI\/SECTOR\/(?:taw|car|mex|tpw)\/GEOCOLOR\/900x540\.jpg$/i.test(path);
+    if (!nhc && !goes) return null;
+    source.hash = "";
+    return source;
+  } catch { return null; }
+}
+
+async function getTropicalImage(url, ctx) {
+  const source = safeTropicalImageSource(url);
+  if (!source) return json({ error: "unsupported tropical image" }, 400);
+  const cacheKey = new Request(url.origin + TROPICAL_IMAGE_PATH + "?src=" + encodeURIComponent(source.toString()));
+  const cache = caches.default, cached = await cache.match(cacheKey);
+  if (cached) {
+    const headers = new Headers(cached.headers);
+    Object.entries(corsHeaders()).forEach(([key, value]) => headers.set(key, value));
+    headers.set("X-Afterglow-Cache", "hit");
+    return new Response(cached.body, { status: cached.status, headers });
+  }
+  let upstream;
+  try {
+    upstream = await timedFetch(source.toString(), {
+      headers: {
+        Accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
+        Referer: source.hostname === "www.nhc.noaa.gov" ? NHC_BASE + "/" : "https://www.star.nesdis.noaa.gov/",
+        "User-Agent": ADSB_USER_AGENT,
+      },
+    }, 8500);
+  } catch (error) {
+    return json({ error: "tropical image upstream unavailable", detail: cleanText(error && error.message || error, 120) }, 502);
+  }
+  const contentType = String(upstream.headers.get("Content-Type") || "").toLowerCase();
+  if (!upstream.ok || !contentType.startsWith("image/")) return json({ error: "tropical image upstream rejected", status: upstream.status }, 502);
+  const headers = new Headers({
+    "Content-Type": contentType,
+    "Cache-Control": "public, max-age=" + TROPICAL_IMAGE_TTL_SECONDS + ", stale-while-revalidate=900",
+    "Cross-Origin-Resource-Policy": "cross-origin",
+    "X-Content-Type-Options": "nosniff",
+    "X-Afterglow-Source": source.hostname === "www.nhc.noaa.gov" ? "nhc-image-relay" : "goes-image-relay",
+    "X-Afterglow-Cache": "miss",
+    ...corsHeaders(),
+  });
+  for (const name of ["ETag", "Last-Modified"]) {
+    const value = upstream.headers.get(name);
+    if (value) headers.set(name, value);
+  }
+  const response = new Response(upstream.body, { status: 200, headers });
+  ctx.waitUntil(cache.put(cacheKey, response.clone()).catch((error) => console.warn(JSON.stringify({ event: "tropical-image-cache-write-failed", message: String(error && error.message || error) }))));
+  return response;
+}
+
+function stormCategory(windKt, classification) {
+  const wind = Number(windKt) || 0, cls = cleanText(classification, 12).toUpperCase();
+  if (wind >= 137) return "CATEGORY 5";
+  if (wind >= 113) return "CATEGORY 4";
+  if (wind >= 96) return "CATEGORY 3";
+  if (wind >= 83) return "CATEGORY 2";
+  if (wind >= 64 || cls === "HU") return "CATEGORY 1";
+  if (wind >= 34 || /TS|SS/.test(cls)) return "TROPICAL STORM";
+  if (/PT|POST/.test(cls)) return "POST-TROPICAL";
+  return "TROPICAL DEPRESSION";
+}
+
+function normalizeNhcOutlook(definition, html) {
+  const text = nhcPreText(html), areas = [];
+  text.split(/\n\s*\n/).forEach((block) => {
+    const lines = block.split("\n").map((line) => line.trim()).filter(Boolean), title = lines[0] || "";
+    const chance48 = block.match(/48 hours\.\.\.[^\n.]*\.\.\.(?:near\s*)?(\d+)\s*percent/i);
+    const chance7 = block.match(/7 days\.\.\.[^\n.]*\.\.\.(?:near\s*)?(\d+)\s*percent/i);
+    if (!/:$/.test(title) || !chance48 || !chance7) return;
+    areas.push({ name: cleanText(title.replace(/:$/, ""), 100), description: cleanText(block.split("*")[0].replace(title, ""), 420), chance48h: Number(chance48[1]), chance7d: Number(chance7[1]) });
+  });
+  const issue = text.match(/\b\d{1,4}\s+[AP]M\s+[A-Z]{2,4}\s+[^\n]+\s+\d{4}\b/i);
+  return { ...definition, issued: cleanText(issue && issue[0], 80), quiet: /formation is not expected during the next 7 days/i.test(text), areas: areas.slice(0, 12), text: cleanText(text, 1800) };
+}
+
+async function enrichNhcStorm(storm) {
+  const graphicsUrl = storm && storm.forecastGraphics && storm.forecastGraphics.url;
+  const forecastUrl = storm && storm.forecastAdvisory && storm.forecastAdvisory.url;
+  const publicUrl = storm && storm.publicAdvisory && storm.publicAdvisory.url;
+  const discussionUrl = storm && storm.forecastDiscussion && storm.forecastDiscussion.url;
+  const results = await Promise.allSettled([
+    graphicsUrl ? timedTextFetch(graphicsUrl, 6800) : Promise.resolve(""),
+    forecastUrl ? timedTextFetch(forecastUrl, 6800) : Promise.resolve(""),
+    publicUrl ? timedTextFetch(publicUrl, 6800) : Promise.resolve(""),
+    discussionUrl ? timedTextFetch(discussionUrl, 6800) : Promise.resolve(""),
+  ]);
+  const graphicsHtml = results[0].status === "fulfilled" ? results[0].value : "";
+  const forecastText = nhcPreText(results[1].status === "fulfilled" ? results[1].value : "");
+  const publicText = nhcPreText(results[2].status === "fulfilled" ? results[2].value : "");
+  const discussionText = nhcPreText(results[3].status === "fulfilled" ? results[3].value : "");
+  const windKt = finiteNumber(storm && storm.intensity), basinCode = cleanText(storm && storm.id, 20).slice(0, 2).toUpperCase();
+  return {
+    id: cleanText(storm && storm.id, 24).toUpperCase(), bin: cleanText(storm && storm.binNumber, 12).toUpperCase(),
+    name: cleanText(storm && storm.name, 80), classification: cleanText(storm && storm.classification, 20).toUpperCase(), category: stormCategory(windKt, storm && storm.classification),
+    basinCode, basin: ({ AL: "ATLANTIC", EP: "EASTERN PACIFIC", CP: "CENTRAL PACIFIC" })[basinCode] || basinCode,
+    windKt, windMph: windKt == null ? null : Math.round(windKt * 1.15078), pressureMb: finiteNumber(storm && storm.pressure),
+    lat: finiteNumber(storm && storm.latitudeNumeric), lon: finiteNumber(storm && storm.longitudeNumeric),
+    movementDeg: finiteNumber(storm && storm.movementDir), movementKt: finiteNumber(storm && storm.movementSpeed),
+    lastUpdate: cleanText(storm && storm.lastUpdate, 40), advisoryNumber: cleanText(storm && storm.publicAdvisory && storm.publicAdvisory.advNum, 16),
+    publicAdvisoryUrl: cleanText(publicUrl, 300), discussionUrl: cleanText(discussionUrl, 300), graphicsUrl: cleanText(graphicsUrl, 300),
+    graphics: parseNhcGraphics(graphicsHtml), forecast: parseNhcForecast(forecastText, storm && storm.lastUpdate),
+    summary: nhcSection(publicText, /SUMMARY OF .*? INFORMATION/i, /WATCHES AND WARNINGS|DISCUSSION AND OUTLOOK/i) || cleanText(publicText, 1100),
+    watchesWarnings: nhcSection(publicText, /WATCHES AND WARNINGS/i, /DISCUSSION AND OUTLOOK/i),
+    discussion: cleanText(discussionText, 1800),
+  };
+}
+
+async function getTropicalSnapshot(url, ctx) {
+  const cacheKey = new Request(url.origin + TROPICAL_PATH + "/cache/v6");
+  const cache = caches.default, cached = await cache.match(cacheKey);
+  if (cached) {
+    const headers = new Headers(cached.headers);Object.entries(corsHeaders()).forEach(([key, value]) => headers.set(key, value));headers.set("X-Afterglow-Cache", "hit");
+    return new Response(cached.body, { status: cached.status, headers });
+  }
+  const results = await Promise.allSettled([timedJsonFetch(NHC_BASE + "/CurrentStorms.json", 6800), ...NHC_OUTLOOKS.map((outlook) => timedTextFetch(outlook.text, 6800))]);
+  const failures = [], activePayload = results[0].status === "fulfilled" ? results[0].value : null;
+  if (!activePayload) failures.push("active-storms");
+  const rawStorms = activePayload && Array.isArray(activePayload.activeStorms) ? activePayload.activeStorms.slice(0, 8) : [];
+  const storms = await Promise.all(rawStorms.map(async (storm) => { try { return await enrichNhcStorm(storm); } catch { return null; } }));
+  const outlooks = NHC_OUTLOOKS.map((definition, index) => {
+    const result = results[index + 1];if (result.status !== "fulfilled") { failures.push("outlook-" + definition.code.toLowerCase());return { ...definition, issued: "", quiet: false, areas: [], text: "" }; }
+    return normalizeNhcOutlook(definition, result.value);
+  });
+  if (!activePayload && !outlooks.some((outlook) => outlook.text)) return json({ error: "NHC tropical products unavailable" }, 502);
+  const relayed = relayedTropicalProducts(url.origin, storms.filter(Boolean), outlooks, TROPICAL_SATELLITES);
+  const payload = { source: "NOAA National Hurricane Center", fetchedAt: new Date().toISOString(), ...relayed, failures };
+  const response = json(payload, 200, { "Cache-Control": "public, max-age=" + TROPICAL_TTL_SECONDS + ", stale-while-revalidate=900", "X-Afterglow-Source": "nhc-operations-desk", "X-Afterglow-Cache": "miss" });
+  ctx.waitUntil(cache.put(cacheKey, response.clone()).catch((error) => console.warn(JSON.stringify({ event: "tropical-cache-write-failed", message: String(error && error.message || error) }))));
+  return response;
+}
+
 /* Internet Archive will occasionally leave a TCP request open for a very long
    time. A television tune must never inherit that wait: abort the upstream
    request and let the caller use a cached or alternate lane instead. */
@@ -967,6 +1232,14 @@ export default {
       return getWaterSnapshot(url, ctx);
     }
 
+    if (request.method === "GET" && url.pathname === TROPICAL_PATH) {
+      return getTropicalSnapshot(url, ctx);
+    }
+
+    if (request.method === "GET" && url.pathname === TROPICAL_IMAGE_PATH) {
+      return getTropicalImage(url, ctx);
+    }
+
     if (request.method === "GET" && url.pathname === IA_PREFIX + "/search") {
       return getIaSearch(url, ctx);
     }
@@ -992,6 +1265,8 @@ export default {
         adsbPath: ADSB_PATH,
         spacePath: SPACE_PATH,
         waterPath: WATER_PATH,
+        tropicalPath: TROPICAL_PATH,
+        tropicalImagePath: TROPICAL_IMAGE_PATH,
       });
     }
 

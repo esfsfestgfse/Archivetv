@@ -63,7 +63,7 @@ if (!/CurrentStorms\.json/.test(source) || !/MIATWOAT\.shtml/.test(source) || !/
 if (!/parseNhcForecast/.test(source) || !/FORECAST\|OUTLOOK/.test(source)) issues.push('Tropical route must normalize official forecast positions and winds');
 if (!/parseNhcGraphics/.test(source) || !/_5day_cone_with_line_and_wind/.test(source) || !/_5day_cone_sm/.test(source)) issues.push('Tropical route must prefer full-resolution NHC cones with a discovered small-product fallback');
 if (!/GOES19/.test(source) || !/GOES18/.test(source) || !/900x540\.jpg/.test(source)) issues.push('Tropical route must publish verified, bandwidth-bounded GOES imagery');
-if (!/TROPICAL_PATH \+ "\/cache\/v6"/.test(source) || !/stale-while-revalidate=900/.test(source)) issues.push('Tropical route needs the current edge cache and stale resilience');
+if (!/TROPICAL_CACHE_VERSION\s*=\s*"v7"/.test(source) || !/TROPICAL_PATH \+ "\/cache\/" \+ TROPICAL_CACHE_VERSION/.test(source) || !/stale-while-revalidate=900/.test(source)) issues.push('Tropical route needs the current edge cache and stale resilience');
 if (!/const TROPICAL_IMAGE_PATH = TROPICAL_PATH \+ "\/image"/.test(source)) issues.push('Tropical Watch needs a narrow image relay route');
 if (!/safeTropicalImageSource/.test(source) || !/storm_graphics\|xgtwo/.test(source) || !/cdn\.star\.nesdis\.noaa\.gov/.test(source)) issues.push('Tropical image relay must allow-list only NHC products and bounded GOES sectors');
 if (!/relayedTropicalProducts/.test(source) || !/tropicalImageRelayUrl/.test(source)) issues.push('Tropical JSON must publish edge-relayed imagery instead of browser hotlinks');

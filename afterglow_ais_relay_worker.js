@@ -49,6 +49,7 @@ const SPACE_TTL_SECONDS = 900;
 const WATER_TTL_SECONDS = 300;
 const TROPICAL_TTL_SECONDS = 300;
 const TROPICAL_IMAGE_TTL_SECONDS = 300;
+const TROPICAL_CACHE_VERSION = "v7";
 const WILDFIRE_TTL_SECONDS = 300;
 const ADSB_USER_AGENT = "Afterglow/1.7 (+https://github.com/esfsfestgfse/Archivetv)";
 const IA_SEARCH_TTL_SECONDS = 21600;
@@ -863,7 +864,7 @@ async function enrichNhcStorm(storm) {
 }
 
 async function getTropicalSnapshot(url, ctx) {
-  const cacheKey = new Request(url.origin + TROPICAL_PATH + "/cache/v6");
+  const cacheKey = new Request(url.origin + TROPICAL_PATH + "/cache/" + TROPICAL_CACHE_VERSION);
   const cache = caches.default, cached = await cache.match(cacheKey);
   if (cached) {
     const headers = new Headers(cached.headers);Object.entries(corsHeaders()).forEach(([key, value]) => headers.set(key, value));headers.set("X-Afterglow-Cache", "hit");

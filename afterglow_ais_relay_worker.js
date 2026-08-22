@@ -42,12 +42,14 @@ const SPACE_PATH = "/live/space";
 const WATER_PATH = "/live/water";
 const TROPICAL_PATH = "/live/tropical";
 const TROPICAL_IMAGE_PATH = TROPICAL_PATH + "/image";
+const WILDFIRE_PATH = "/live/wildfire";
 const SNAPSHOT_TTL_SECONDS = 60;
 const ADSB_TTL_SECONDS = 10;
 const SPACE_TTL_SECONDS = 900;
 const WATER_TTL_SECONDS = 300;
 const TROPICAL_TTL_SECONDS = 300;
 const TROPICAL_IMAGE_TTL_SECONDS = 300;
+const WILDFIRE_TTL_SECONDS = 300;
 const ADSB_USER_AGENT = "Afterglow/1.7 (+https://github.com/esfsfestgfse/Archivetv)";
 const IA_SEARCH_TTL_SECONDS = 21600;
 /* Bump this when the normalized search response changes so an older edge
@@ -59,6 +61,8 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 90;
 const IA_QUEUE_CACHE_VERSION = "v8";
 const GULF_FILTER = "BBOX(geometry,-98,18,-80,31)";
 const KPLER_FIELDS = "mmsi,longitude,latitude,posDt,sog,vesselName,heading,cog,navStatus,destination,vesselType";
+const WFIGS_INCIDENTS_URL = "https://services3.arcgis.com/T4QMspbfLg3qTGWY/arcgis/rest/services/WFIGS_Incident_Locations_Current/FeatureServer/0/query";
+const WFIGS_FIELDS = ["IncidentName", "IncidentSize", "PercentContained", "FireDiscoveryDateTime", "POOState", "POOCounty", "IncidentTypeCategory", "FireBehaviorGeneral", "FireCauseGeneral", "FireMgmtComplexity", "EstimatedCostToDate", "IncidentManagementOrganization"].join(",");
 
 function corsHeaders() {
   return {
@@ -882,6 +886,67 @@ async function getTropicalSnapshot(url, ctx) {
   return response;
 }
 
+/* Wildfire Watch ------------------------------------------------------------
+   WFIGS is the authoritative interagency incident layer.  The browser used to
+   query ArcGIS directly on every tune, which made the channel vulnerable to
+   CORS, slow origin responses, and a blank national fallback map.  This route
+   keeps the request bounded, normalizes the useful operational fields, adds
+   local NWS fire-weather alerts, and shares a five-minute edge snapshot. */
+function wildfireNumber(value) { const number = Number(value); return Number.isFinite(number) ? number : null; }
+function wildfireDistanceMiles(aLat, aLon, bLat, bLon) {
+  const radians = Math.PI / 180, dLat = (bLat - aLat) * radians, dLon = (bLon - aLon) * radians;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(aLat * radians) * Math.cos(bLat * radians) * Math.sin(dLon / 2) ** 2;
+  return 3958.7613 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
+}
+function normalizeWildfireIncident(feature, center) {
+  const attributes = feature && feature.attributes || {}, geometry = feature && feature.geometry || {};
+  const lat = wildfireNumber(geometry.y), lon = wildfireNumber(geometry.x);
+  if (lat == null || lon == null) return null;
+  return {
+    name: cleanText(attributes.IncidentName, 110) || "Unnamed incident",
+    acres: wildfireNumber(attributes.IncidentSize), contained: wildfireNumber(attributes.PercentContained),
+    category: cleanText(attributes.IncidentTypeCategory, 20), state: cleanText(attributes.POOState, 18).replace(/^US-/, ""),
+    county: cleanText(attributes.POOCounty, 80), discovered: attributes.FireDiscoveryDateTime || null,
+    behavior: cleanText(attributes.FireBehaviorGeneral, 80), cause: cleanText(attributes.FireCauseGeneral, 80),
+    complexity: cleanText(attributes.FireMgmtComplexity, 80), costToDate: wildfireNumber(attributes.EstimatedCostToDate),
+    management: cleanText(attributes.IncidentManagementOrganization, 100), lat, lon,
+    distanceMiles: wildfireDistanceMiles(center.lat, center.lon, lat, lon),
+  };
+}
+function normalizeWildfireAlerts(payload) {
+  const allowed = new Set(["Red Flag Warning", "Fire Weather Watch", "Extreme Fire Danger", "Air Quality Alert", "Dense Smoke Advisory"]);
+  return (payload && payload.features || []).map((feature) => {
+    const properties = feature && feature.properties || {};
+    if (!allowed.has(properties.event)) return null;
+    return { event: cleanText(properties.event, 64), severity: cleanText(properties.severity, 20), urgency: cleanText(properties.urgency, 20),
+      headline: cleanText(properties.headline || properties.description, 240), area: cleanText(properties.areaDesc, 160),
+      effective: properties.effective || null, expires: properties.expires || null, id: cleanText(properties.id, 140) };
+  }).filter(Boolean).slice(0, 12);
+}
+async function getWildfireSnapshot(url, ctx) {
+  const lat = Number(url.searchParams.get("lat")), lon = Number(url.searchParams.get("lon"));
+  const radius = Math.max(50, Math.min(500, Math.round(Number(url.searchParams.get("radius")) || 250)));
+  if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) return json({ error: "invalid wildfire coordinates" }, 400);
+  const latKey = (Math.round(lat * 10) / 10).toFixed(1), lonKey = (Math.round(lon * 10) / 10).toFixed(1), radiusKey = Math.round(radius / 25) * 25;
+  const cacheKey = new Request(url.origin + WILDFIRE_PATH + "/cache/v1/" + latKey + "/" + lonKey + "/" + radiusKey);
+  const cache = caches.default, cached = await cache.match(cacheKey);
+  if (cached) { const headers = new Headers(cached.headers); Object.entries(corsHeaders()).forEach(([key, value]) => headers.set(key, value)); headers.set("X-Afterglow-Cache", "hit"); return new Response(cached.body, { status: cached.status, headers }); }
+  const incidentUrl = new URL(WFIGS_INCIDENTS_URL); incidentUrl.search = new URLSearchParams({ f: "json", where: "1=1", outFields: WFIGS_FIELDS, returnGeometry: "true", outSR: "4326", resultRecordCount: "160", orderByFields: "IncidentSize DESC" }).toString();
+  const alertsUrl = "https://api.weather.gov/alerts/active?point=" + lat.toFixed(3) + "," + lon.toFixed(3);
+  const results = await Promise.allSettled([timedJsonFetch(incidentUrl.toString(), 7500), timedJsonFetch(alertsUrl, 6000)]);
+  const failures = [], incidentPayload = results[0].status === "fulfilled" ? results[0].value : null;
+  if (!incidentPayload || incidentPayload.error) failures.push("wfigs");
+  const incidents = (incidentPayload && incidentPayload.features || []).map((feature) => normalizeWildfireIncident(feature, { lat, lon })).filter(Boolean)
+    .sort((a, b) => (b.acres || 0) - (a.acres || 0) || a.distanceMiles - b.distanceMiles);
+  if (!incidents.length && failures.includes("wfigs")) return json({ error: "wildfire incident data unavailable" }, 502);
+  if (results[1].status !== "fulfilled") failures.push("nws-alerts");
+  const nearby = incidents.filter((incident) => incident.distanceMiles <= radius).sort((a, b) => a.distanceMiles - b.distanceMiles).slice(0, 36);
+  const payload = { source: "NIFC WFIGS + NWS", fetchedAt: new Date().toISOString(), center: { lat, lon, radiusMiles: radius }, incidents: incidents.slice(0, 100), nearby, national: incidents.slice(0, 30), alerts: normalizeWildfireAlerts(results[1].status === "fulfilled" ? results[1].value : null), failures };
+  const response = json(payload, 200, { "Cache-Control": "public, max-age=" + WILDFIRE_TTL_SECONDS + ", stale-while-revalidate=900", "X-Afterglow-Source": "wfigs-nws-operations", "X-Afterglow-Cache": "miss" });
+  ctx.waitUntil(cache.put(cacheKey, response.clone()).catch((error) => console.warn(JSON.stringify({ event: "wildfire-cache-write-failed", message: String(error && error.message || error) }))));
+  return response;
+}
+
 /* Internet Archive will occasionally leave a TCP request open for a very long
    time. A television tune must never inherit that wait: abort the upstream
    request and let the caller use a cached or alternate lane instead. */
@@ -1240,6 +1305,10 @@ export default {
       return getTropicalImage(url, ctx);
     }
 
+    if (request.method === "GET" && url.pathname === WILDFIRE_PATH) {
+      return getWildfireSnapshot(url, ctx);
+    }
+
     if (request.method === "GET" && url.pathname === IA_PREFIX + "/search") {
       return getIaSearch(url, ctx);
     }
@@ -1267,6 +1336,7 @@ export default {
         waterPath: WATER_PATH,
         tropicalPath: TROPICAL_PATH,
         tropicalImagePath: TROPICAL_IMAGE_PATH,
+        wildfirePath: WILDFIRE_PATH,
       });
     }
 

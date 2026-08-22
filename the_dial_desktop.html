@@ -1379,7 +1379,7 @@ body:not(.atv-powered) .cabinet-readout{opacity:.36!important}.glass-dock{positi
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.214-world-clock-operations";
+window.__ATV_BUILD="1.7.7-desktop.215-wildfire-operations";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1416,7 +1416,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.212 · River &amp; Lake Watch</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.215 · Wildfire Watch</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">AFTERGLOW · THE DIAL</div>
@@ -8054,96 +8054,28 @@ async function tuneAirport(ch,sl,my){
   haz(); rtInterval(haz,900000);
 }
 
-/* ---------- Wildfire Watch (CYCLE-8 rebuild): regional fire plot + FIXED data layer ----------
-   ROOT CAUSE of the outage: the WFIGS layer has NO "DailyAcres" field — the real field is
-   "IncidentSize" (verified against the live service schema). Every query errored and the
-   channel showed nothing. Also now surfaces ArcGIS error objects instead of treating them
-   as empty results, tags prescribed burns (RX), and plots fires on a 200-mi map. */
+/* ---------- Wildfire Watch: WFIGS + NWS operations desk ---------- */
+var wildfireOpsTimer=null;
+function ensureWildfireOpsCSS(){if($("wildfireOpsCSS"))return;var st=document.createElement("style");st.id="wildfireOpsCSS";st.textContent=`
+.wfops{container-type:size;position:relative;box-sizing:border-box;width:100%;height:100%;display:grid;grid-template-rows:auto auto minmax(0,1fr) auto;gap:5px;padding:7px 8px 30px;overflow:hidden;color:#fff1d3;background:radial-gradient(90% 90% at 4% 0,rgba(141,48,9,.45),transparent 63%),radial-gradient(80% 100% at 100% 100%,rgba(92,17,7,.36),transparent 65%),linear-gradient(145deg,#160904,#090505 72%);font-family:ui-monospace,SFMono-Regular,Consolas,monospace}.wfops:before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.16;background:repeating-linear-gradient(0deg,transparent 0 25px,rgba(255,196,91,.08) 26px)}.wfops-head,.wfops-stats,.wfops-main,.wfops-ticker{position:relative;z-index:1}.wfops-head{display:flex;justify-content:space-between;gap:9px;padding:6px 9px;border:1px solid rgba(255,172,76,.3);border-radius:5px;background:rgba(30,10,4,.92);font-size:8px;letter-spacing:1px}.wfops-title{color:#ffc166;font-weight:900}.wfops-live{color:#7dffad}.wfops-live:before{content:"● ";color:#5dff8d}.wfops-live.stale{color:#ffd26d}.wfops-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}.wfops-stat{min-width:0;padding:6px 8px;border:1px solid rgba(255,161,72,.22);border-radius:5px;background:linear-gradient(180deg,rgba(72,25,8,.9),rgba(25,8,4,.92))}.wfops-stat b{display:block;color:#dca573;font-size:6px;letter-spacing:1px}.wfops-stat span{display:block;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#fff5dc;font-size:12px;font-weight:900}.wfops-stat.hot span{color:#ff7a39}.wfops-main{display:grid;grid-template-columns:minmax(0,66%) minmax(0,34%);gap:5px;min-height:0}.wfops-stage,.wfops-side{min-width:0;min-height:0;overflow:hidden;border:1px solid rgba(255,166,75,.28);border-radius:6px;background:#120804}.wfops-stage{position:relative}.wfops-side{display:grid;grid-template-rows:auto minmax(0,1fr);padding:5px}.wfops-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3px;margin-bottom:4px}.wfops-tab{padding:6px 1px;border:1px solid rgba(255,176,87,.22);border-radius:4px;background:#351305;color:#e8ae75;font:900 6px/1 monospace;cursor:pointer}.wfops-tab.active{border-color:#ffb35d;background:#7b2c08;color:#fff;box-shadow:inset 0 -2px #ffcb75}.wfops-panel{min-height:0;overflow:auto;scrollbar-width:thin}.wfops-row{display:grid;width:100%;grid-template-columns:48px minmax(0,1fr) auto;gap:5px;align-items:center;margin-bottom:3px;padding:6px;border:1px solid rgba(255,171,84,.15);border-radius:4px;background:rgba(54,18,5,.72);color:inherit;text-align:left;cursor:pointer}.wfops-row:hover,.wfops-row.selected{border-color:#ffb45f;background:rgba(113,37,7,.74)}.wfops-badge{padding:4px;border-radius:3px;background:#7e2b08;color:#fff3cb;text-align:center;font-size:6px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.wfops-badge.major{background:#a51a08}.wfops-copy{min-width:0}.wfops-copy b,.wfops-copy small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.wfops-copy b{font-size:7px}.wfops-copy small{margin-top:2px;color:#dca673;font-size:5px}.wfops-row strong{color:#ffcb78;font-size:8px;white-space:nowrap}.wfops-map{position:relative;width:100%;height:100%;overflow:hidden}.wfops-map .map-dyn{position:absolute;inset:0;pointer-events:none}.wfops-dot{position:absolute;border-radius:50%;background:#ff7634;border:1px solid #ffe5a1;box-shadow:0 0 10px #ff5a22;transform:translate(-50%,-50%)}.wfops-dot.selected{background:#fff1a3;box-shadow:0 0 13px #fff2a1}.wfops-dot i{position:absolute;left:8px;top:-4px;color:#fff2cf;font-style:normal;font-size:7px;white-space:nowrap;text-shadow:0 1px 2px #000}.wfops-you{position:absolute;left:50%;top:50%;width:8px;height:8px;border-radius:50%;background:#b9faff;box-shadow:0 0 8px #b9faff;transform:translate(-50%,-50%)}.wfops-map-label{position:absolute;left:8px;bottom:6px;color:#ffca7c;font-size:6px;letter-spacing:.8px}.wfops-alert-stage,.wfops-intel-stage{height:100%;overflow:auto;padding:10px;box-sizing:border-box}.wfops-alert{padding:9px;margin-bottom:5px;border-left:3px solid #ff7138;background:rgba(105,25,6,.42)}.wfops-alert b{display:block;color:#ffd174;font-size:8px}.wfops-alert span{display:block;margin-top:4px;color:#f2c496;font-size:7px;line-height:1.4}.wfops-quiet{display:grid;place-items:center;height:100%;padding:18px;box-sizing:border-box;text-align:center;color:#d9ae7c;font-size:9px;line-height:1.5}.wfops-ticker{overflow:hidden;padding:5px 8px;border:1px solid rgba(255,160,73,.2);border-radius:4px;background:rgba(27,8,3,.9);color:#d8a06c;font-size:7px;letter-spacing:.7px;white-space:nowrap;text-overflow:ellipsis}@container (max-width:650px){.wfops{gap:3px;padding:4px 5px 27px}.wfops-head{padding:4px 6px 4px 82px;font-size:6px}.wfops-stats{gap:3px}.wfops-stat{padding:3px 4px}.wfops-stat b{font-size:4px}.wfops-stat span{font-size:8px}.wfops-main{grid-template-columns:minmax(0,60%) minmax(0,40%);gap:3px}.wfops-side{padding:3px}.wfops-tab{font-size:4px;padding:4px 0}.wfops-row{grid-template-columns:35px minmax(0,1fr);padding:4px 3px;gap:3px}.wfops-row strong{grid-column:2;font-size:6px}.wfops-copy b{font-size:6px}.wfops-copy small{font-size:4px}.wfops-badge{font-size:5px}.wfops-dot i{font-size:5px}}
+`;document.head.appendChild(st);}
 async function tuneWildfire(ch,sl,my){
-  if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Wildfire Watch","");
-  if(screenArea) screenArea.innerHTML='<div class="wf-wrap" id="wfWrap">'+
-    '<div class="wf-map-box"><div class="wf-map" id="wfMap"><div class="wf-you"></div></div></div>'+
-    '<div class="wf-side"><div class="dc-top"><span id="wfTitle">WILDFIRE WATCH / LOCATING...</span></div>'+
-    '<div class="dc-list" id="dcList"></div>'+
-    '<div class="dc-ticker">NIFC WFIGS / dot size = acres / RX = prescribed burn / TAP MAP TO ZOOM</div></div></div>';
-  var rangeMi=200; /* CYCLE-9: click-to-zoom */
-  var wfBug=mountChanBug("wfWrap",{ident:"WILDFIRE WATCH"});
-  var mp0=$("wfMap"); if(mp0){ mp0.style.cursor="pointer"; mp0.title="Tap to toggle range";
-    mp0.addEventListener("click",function(){ rangeMi=(rangeMi===200?400:200); quickBanner("MAP RANGE: "+rangeMi+" MI"); run(); }); }
-  var BASE="https://services3.arcgis.com/T4QMspbfLg3qTGWY/arcgis/rest/services/WFIGS_Incident_Locations_Current/FeatureServer/0/query";
-  var FIELDS="IncidentName,IncidentSize,PercentContained,FireDiscoveryDateTime,POOState,POOCounty,IncidentTypeCategory";
-  function q(params){ return BASE+"?f=json&where=1%3D1&outFields="+encodeURIComponent(FIELDS)+"&returnGeometry=true&outSR=4326&"+params; }
-  function arc(d){ if(d&&d.error) throw new Error("ArcGIS: "+((d.error.message||d.error.code)||"query rejected")); return (d&&d.features)||[]; }
-  function buildMap(rows,loc,range){
-    var m=$("wfMap"); if(!m)return;
-    var mp=ensureMap(m,loc.lat,loc.lon,range,"dkamber"); /* CYCLE-13: real regional map */
-    var dyn=m.querySelector(".map-dyn");
-    if(!dyn){ dyn=document.createElement("div"); dyn.className="map-dyn"; m.appendChild(dyn); }
-    var html='<div class="wf-you"></div>'+
-      '<div class="sky-lbl" style="left:49%;top:2px;color:#caa06a">N</div>'+
-      '<div class="sky-lbl" style="left:5px;bottom:3px;color:#caa06a">'+(range*2)+' MI ACROSS / YOU AT CENTER</div>'+
-      '<div class="map-attrib">&#169; OpenStreetMap</div>';
-    var plotted=0;
-    rows.forEach(function(r){
-      if(r.lat==null||r.lon==null)return;
-      var dx=(r.lon-loc.lon)*Math.cos(loc.lat*Math.PI/180)*69.17, dy=(r.lat-loc.lat)*69.05;
-      if(Math.abs(dx)>range||Math.abs(dy)>range)return;
-      var lx,ly;
-      if(mp){ var pos=mp.project(r.lat,r.lon); lx="calc(50% + "+pos.x.toFixed(1)+"px)"; ly="calc(50% + "+pos.y.toFixed(1)+"px)"; }
-      else{ lx=(50+(dx/range)*50)+"%"; ly=(50-(dy/range)*50)+"%"; }
-      var sz=(r.ac||0)>=10000?20:(r.ac||0)>=1000?14:9;
-      html+='<div class="wf-dot" style="left:'+lx+';top:'+ly+';width:'+sz+'px;height:'+sz+'px;margin:-'+(sz/2)+'px 0 0 -'+(sz/2)+'px">'+(plotted<5?('<i>'+esch(r.n)+'</i>'):'')+'</div>';
-      plotted++;
-    });
-    if(!plotted) html+='<div class="sky-lbl" style="left:50%;top:47%;transform:translateX(-50%);font-size:10px;color:#7fb38f">NO FIRES IN RANGE / ALL QUIET</div>';
-    dyn.innerHTML=html;
-  }
-  var run=async function(){
-    if(my!==token||!powered)return;
-    var listEl=$("dcList"); if(!listEl)return;
-    try{
-      var loc=await getWxLocation(); var li=await resolveLocale(loc); if(my!==token)return;
-      var dgw=rangeMi/69*1.06;
-      var env={xmin:loc.lon-dgw,ymin:loc.lat-dgw,xmax:loc.lon+dgw,ymax:loc.lat+dgw,spatialReference:{wkid:4326}};
-      var feats=arc(await fetchJSONResilient(q("geometry="+encodeURIComponent(JSON.stringify(env))+"&geometryType=esriGeometryEnvelope&inSR=4326&spatialRel=esriSpatialRelIntersects&resultRecordCount=50"),"wildfire"));
-      var nearby=feats.length>0;
-      if(!nearby){
-        feats=arc(await fetchJSONResilient(q("orderByFields="+encodeURIComponent("IncidentSize DESC")+"&resultRecordCount=12"),"wildfire"));
-      }
-      if(my!==token)return;
-      var rows=feats.map(function(fe){ var a=fe.attributes||{}; var g=fe.geometry||{};
-        return {n:a.IncidentName||"Unnamed",ac:a.IncidentSize,pc:a.PercentContained,cat:String(a.IncidentTypeCategory||""),
-          st:String(a.POOState||"").replace("US-",""),county:a.POOCounty||"",disc:a.FireDiscoveryDateTime,
-          lat:(g.y!=null?g.y:null),lon:(g.x!=null?g.x:null),
-          dist:(g.y!=null&&g.x!=null)?haversineKm(loc.lat,loc.lon,g.y,g.x)*0.621371:null}; });
-      rows.sort(function(a,b){ return nearby?((a.dist!=null?a.dist:9e9)-(b.dist!=null?b.dist:9e9)):((b.ac||0)-(a.ac||0)); });
-      nlog("wildfire",true,rows.length+" incidents ("+(nearby?"regional":"national fallback")+")");
-      var t=$("wfTitle"); if(t)t.textContent=nearby?("FIRE ACTIVITY NEAR "+((li&&li.city)?li.city.toUpperCase():"YOU")):"NO FIRES NEAR YOU / LARGEST NATIONWIDE";
-      /* guide status: nearby count and the closest / largest headline */
-      if(rows.length){
-        var r0=rows[0], acres=r0.ac!=null?Math.round(r0.ac).toLocaleString()+"ac":"";
-        var statusTxt=(nearby?rows.length+" nearby · ":"nat'l: ")+(r0.n||"unnamed")+(acres?(" · "+acres):"");
-        setChanStatus(ch.num, statusTxt);
-        if(wfBug) wfBug.update(nearby?rows.length+" fire"+(rows.length===1?"":"s")+" nearby":(r0.n||"nationwide"), acres||(r0.pct!=null?(r0.pct+"% contained"):"active"));
-      } else { setChanStatus(ch.num, "all quiet"); if(wfBug) wfBug.update("All quiet","no active incidents"); }
-      buildMap(nearby?rows:[],loc,rangeMi);
-      if(!rows.length){ listEl.innerHTML='<div class="pop-empty">No active wildland fire incidents reported anywhere. Remarkable.</div>'; return; }
-      listEl.innerHTML=rows.slice(0,10).map(function(r){
-        var cls=(r.ac||0)>=10000?"dc-sev-high":(r.ac||0)>=1000?"dc-sev-mid":"dc-sev-low";
-        var acres=r.ac!=null?Math.round(r.ac).toLocaleString()+" ac":"size unk.";
-        var cont=r.pc!=null?Math.round(r.pc)+"% cont.":"cont. unk.";
-        var typ=r.cat==="RX"?" / RX BURN":(r.cat==="CX"?" / COMPLEX":"");
-        var where=[r.county,r.st].filter(Boolean).join(", ");
-        var disc=r.disc?new Date(r.disc).toLocaleDateString([],{month:"short",day:"numeric"}):"";
-        return '<div class="dc-row2"><div class="dc-row2-main"><span class="dc-mag '+cls+'">'+esch(acres)+'</span>'+
-          '<span class="dc-place">'+esch(r.n)+esch(typ)+'</span>'+
-          '<span class="dc-when">'+(r.dist!=null?r.dist.toFixed(0)+" mi":"")+'</span></div>'+
-          '<div class="dc-row2-sub">'+esch(cont)+(where?(" / "+esch(where)):"")+(disc?(" / disc. "+esch(disc)):"")+'</div></div>';
-      }).join("");
-    }catch(e){ nlog("wildfire",false,(e&&e.message)||e);
-      if(listEl)listEl.innerHTML='<div class="pop-empty">'+esch((e&&e.message)||"NIFC fire data unavailable")+' - will retry</div>'; }
-  };
-  run(); rtInterval(run,600000);
+  if(my!==token)return;hideOv();setSig("live","ON AIR");showNow(ch,sl,"Wildfire Watch","");ensureWildfireOpsCSS();clearInterval(wildfireOpsTimer);startIAJazz("gmcountry");
+  if(screenArea)screenArea.innerHTML='<div class="wfops" id="wildfireOps"><div class="wfops-head"><span class="wfops-title">WILDFIRE WATCH · INTERAGENCY OPERATIONS</span><span class="wfops-live stale" id="wfLive">LAST-GOOD SAFETY DESK</span><span id="wfFresh">CONNECTING…</span></div><div class="wfops-stats"><div class="wfops-stat hot"><b>NEARBY INCIDENTS</b><span id="wfNearby">--</span></div><div class="wfops-stat"><b>LARGEST ACTIVE</b><span id="wfLargest">--</span></div><div class="wfops-stat hot"><b>FIRE WEATHER ALERTS</b><span id="wfAlerts">--</span></div><div class="wfops-stat"><b>LOCAL COVERAGE</b><span id="wfRange">--</span></div></div><div class="wfops-main"><section class="wfops-stage" id="wfStage"></section><aside class="wfops-side"><div class="wfops-tabs" id="wfTabs"></div><div class="wfops-panel" id="wfPanel"></div></aside></div><div class="wfops-ticker" id="wfTicker">NIFC WFIGS + NWS · NEXT CHANGES DESK · NO AUTOMATIC ROTATION</div></div>';
+  var bug=mountChanBug("wildfireOps",{ident:"WILDFIRE WATCH"}),model={incidents:[],nearby:[],national:[],alerts:[],center:{lat:31.55,lon:-97.15,radiusMiles:250},fetchedAt:0},view=0,selected="",stale=true,place="YOUR AREA",views=["NEARBY","NATIONAL","THREATS","INTEL"];
+  function acres(x){return x&&x.acres!=null?Math.round(x.acres).toLocaleString()+" AC":"SIZE PENDING";}function where(x){return [x.county,x.state].filter(Boolean).join(", ")||"LOCATION PENDING";}function active(){return view===0?model.nearby:view===1?model.national:model.incidents;}
+  function current(){var rows=active();return rows.find(function(x){return x.name===selected;})||rows[0]||null;}
+  function renderTabs(){var host=$("wfTabs");if(!host)return;host.innerHTML=views.map(function(name,i){return '<button class="wfops-tab'+(i===view?' active':'')+'" data-wf-view="'+i+'">'+name+'</button>';}).join("");host.querySelectorAll("[data-wf-view]").forEach(function(b){b.onclick=function(){setView(Number(b.dataset.wfView),false);};});}
+  function renderMap(rows){var host=$("wfStage");if(!host)return;if(!rows.length){host.innerHTML='<div class="wfops-quiet">NO ACTIVE INCIDENTS IN THIS DESK<br><br>THE NATIONAL AND THREATS DESKS REMAIN AVAILABLE.</div>';return;}var focus=current()||rows[0],range=view===1?1500:Math.max(250,Number(model.center.radiusMiles)||250);host.innerHTML='<div class="wfops-map" id="wfMap"></div>';var map=$("wfMap"),mp=ensureMap(map,view===1?focus.lat:model.center.lat,view===1?focus.lon:model.center.lon,range,"dkamber"),dyn=document.createElement("div");dyn.className="map-dyn";map.appendChild(dyn);var origin=view===1?focus:model.center,html='<div class="wfops-you"></div><div class="wfops-map-label">'+esch(view===1?"NATIONAL FOCUS · "+where(focus):Math.round(range)+" MI FROM "+place)+'</div>';rows.slice(0,36).forEach(function(x,i){var dx=(x.lon-origin.lon)*Math.cos(origin.lat*Math.PI/180)*69.17,dy=(x.lat-origin.lat)*69.05;if(Math.abs(dx)>range||Math.abs(dy)>range)return;var pos=mp&&mp.project?mp.project(x.lat,x.lon):{x:(dx/range)*map.clientWidth/2,y:-(dy/range)*map.clientHeight/2},size=(x.acres||0)>=100000?20:(x.acres||0)>=10000?15:10,sel=x.name===focus.name;html+='<div class="wfops-dot'+(sel?' selected':'')+'" style="left:calc(50% + '+Number(pos.x||0).toFixed(1)+'px);top:calc(50% + '+Number(pos.y||0).toFixed(1)+'px);width:'+size+'px;height:'+size+'px">'+(i<5?'<i>'+esch(x.name)+'</i>':'')+'</div>';});dyn.innerHTML=html;}
+  function renderThreats(){var host=$("wfStage");if(!host)return;if(!model.alerts.length){host.innerHTML='<div class="wfops-quiet">NO ACTIVE NWS FIRE-WEATHER OR SMOKE ALERTS AT YOUR LOCATION.<br><br>INCIDENT TRACKING REMAINS LIVE.</div>';return;}host.innerHTML='<div class="wfops-alert-stage">'+model.alerts.map(function(a){return '<div class="wfops-alert"><b>'+esch(a.event)+' · '+esch(a.severity||"ACTIVE")+'</b><span>'+esch(a.headline||a.area||"NWS alert active")+'</span><span>'+esch(a.area||"")+'</span></div>';}).join("")+'</div>';}
+  function renderIntel(){var host=$("wfStage"),rows=model.incidents.slice(0,18);if(!host)return;host.innerHTML=rows.length?'<div class="wfops-intel-stage">'+rows.map(function(x){return '<div class="wfops-alert"><b>'+esch(x.name)+' · '+esch(acres(x))+'</b><span>'+esch([where(x),x.contained!=null?Math.round(x.contained)+"% contained":"containment pending",x.behavior,x.complexity].filter(Boolean).join(" · "))+'</span><span>'+esch([x.cause&&"cause: "+x.cause,x.management].filter(Boolean).join(" · "))+'</span></div>';}).join("")+'</div>':'<div class="wfops-quiet">INCIDENT INTELLIGENCE IS RECONNECTING…</div>';}
+  function renderPanel(){var host=$("wfPanel");if(!host)return;if(view===2){host.innerHTML=model.alerts.length?model.alerts.map(function(a){return '<div class="wfops-row"><span class="wfops-badge major">NWS</span><span class="wfops-copy"><b>'+esch(a.event)+'</b><small>'+esch(a.area||a.headline||"ACTIVE ALERT")+'</small></span><strong>'+esch(a.severity||"ACTIVE")+'</strong></div>';}).join(""):'<div class="wfops-quiet">NO LOCAL FIRE WEATHER ALERTS</div>';return;}var rows=active();host.innerHTML=rows.length?rows.slice(0,24).map(function(x){var rx=String(x.category||"").toUpperCase()==="RX";return '<button class="wfops-row'+(x.name===selected?' selected':'')+'" data-wf-incident="'+esch(x.name)+'"><span class="wfops-badge'+((x.acres||0)>=10000?' major':'')+'">'+esch(rx?"RX":acres(x))+'</span><span class="wfops-copy"><b>'+esch(x.name)+'</b><small>'+esch(where(x))+' · '+esch(x.contained!=null?Math.round(x.contained)+"% CONT.":"CONTAINMENT PENDING")+'</small></span><strong>'+Math.round(x.distanceMiles||0)+' MI</strong></button>';}).join(""):'<div class="wfops-quiet">ALL QUIET IN THIS COVERAGE AREA</div>';host.querySelectorAll("[data-wf-incident]").forEach(function(row){row.onclick=function(){selected=row.dataset.wfIncident;renderAll();};});}
+  function renderStats(){var top=model.national[0]||model.incidents[0],el=$("wfNearby");if(el)el.textContent=String(model.nearby.length);el=$("wfLargest");if(el)el.textContent=top?acres(top):"--";el=$("wfAlerts");if(el)el.textContent=String(model.alerts.length);el=$("wfRange");if(el)el.textContent=Math.round(model.center.radiusMiles||250)+" MI";el=$("wfLive");if(el){el.textContent=stale?"LAST-GOOD SAFETY DESK":"LIVE WFIGS + NWS";el.className="wfops-live"+(stale?" stale":"");}el=$("wfFresh");if(el)el.textContent=model.fetchedAt?new Date(model.fetchedAt).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}).toUpperCase():"ACQUIRING…";}
+  function renderAll(){renderTabs();renderStats();if(view===2)renderThreats();else if(view===3)renderIntel();else renderMap(active());renderPanel();var x=current(),tick=$("wfTicker");if(tick)tick.textContent=(stale?"LAST-GOOD WILDFIRE SNAPSHOT · ":"LIVE WFIGS + NWS · ")+(x?(x.name.toUpperCase()+" · "+acres(x)+" · "+where(x)):"ALL QUIET")+" · NEXT: "+views[(view+1)%4];if(x&&bug)bug.update(x.name,acres(x));}
+  function setView(index,announce){view=((Number(index)||0)%4+4)%4;selected="";renderAll();if(announce)quickBanner("WILDFIRE WATCH · "+views[view]);}
+  function save(){try{store.set("wildfireLiveCache",{model:model,at:Date.now(),place:place});}catch(e){}}
+  async function refresh(){try{var loc=await getWxLocation(),li=await resolveLocale(loc);if(my!==token)return;place=((li&&li.city)||loc.label||"YOUR AREA").toUpperCase();var u="https://ais-relay.tdy1990.workers.dev/live/wildfire?lat="+Number(loc.lat).toFixed(4)+"&lon="+Number(loc.lon).toFixed(4)+"&radius=250",res=await withTO(fetch(u,{mode:"cors",cache:"no-store"}).then(function(r){if(!r.ok)throw new Error("wildfire edge "+r.status);return r.json();}),15000);if(my!==token)return;if(!res||!Array.isArray(res.incidents)||!res.center)throw new Error("wildfire edge schema");model={incidents:res.incidents,nearby:res.nearby||[],national:res.national||[],alerts:res.alerts||[],center:res.center,fetchedAt:res.fetchedAt||new Date().toISOString()};stale=false;save();renderAll();var top=model.nearby[0]||model.national[0];setChanStatus(ch.num,model.nearby.length+" nearby · "+(top?top.name:"all quiet"));nlog("wildfire-ops",true,model.nearby.length+" nearby · "+model.alerts.length+" alerts");}catch(error){if(my!==token)return;stale=true;renderAll();setChanStatus(ch.num,model.incidents.length?"LAST-GOOD WILDFIRE DATA":"WILDFIRE EDGE RETRYING");nlog("wildfire-ops",false,(error&&error.message)||error);}}
+  var cached=store.get("wildfireLiveCache",null);if(cached&&cached.model&&Array.isArray(cached.model.incidents)&&Date.now()-Number(cached.at||0)<6*3600000){model=cached.model;place=cached.place||place;stale=true;renderAll();}window.__wildfireNext=function(){setView(view+1,true);};window.__wildfireRefresh=refresh;refresh();wildfireOpsTimer=rtInterval(refresh,5*60*1000);
 }
 
 /* ---------- Hometown History (1.4.2 REVAMP): narrated local television ----------
@@ -14930,6 +14862,7 @@ function skipOne(){ if(!powered){quickBanner("TURN THE TV ON FIRST");return;}
   var sc=byNum(curNum);
   if(sc&&sc.source==="worldclock"&&typeof window.__worldClockNext==="function"){window.__worldClockNext();return;}
   if(sc&&sc.source==="tropical"&&typeof window.__tropicalNext==="function"){window.__tropicalNext();return;}
+  if(sc&&sc.source==="wildfire"&&typeof window.__wildfireNext==="function"){window.__wildfireNext();return;}
   if(sc&&sc.source==="river"&&typeof window.__waterNext==="function"){window.__waterNext();return;}
   if(sc&&sc.source==="space"&&typeof window.__spaceNext==="function"){window.__spaceNext();return;}
   if(sc&&sc.source==="seismic"&&typeof window.__seismicNext==="function"){window.__seismicNext();return;}

@@ -68,6 +68,12 @@ if (!/const TROPICAL_IMAGE_PATH = TROPICAL_PATH \+ "\/image"/.test(source)) issu
 if (!/safeTropicalImageSource/.test(source) || !/storm_graphics\|xgtwo/.test(source) || !/cdn\.star\.nesdis\.noaa\.gov/.test(source)) issues.push('Tropical image relay must allow-list only NHC products and bounded GOES sectors');
 if (!/relayedTropicalProducts/.test(source) || !/tropicalImageRelayUrl/.test(source)) issues.push('Tropical JSON must publish edge-relayed imagery instead of browser hotlinks');
 if (!/Cross-Origin-Resource-Policy/.test(source) || numericConstant('TROPICAL_IMAGE_TTL_SECONDS') !== 300) issues.push('Tropical image relay needs cross-origin headers and a five-minute cache');
+if (!/const WILDFIRE_PATH = "\/live\/wildfire"/.test(source)) issues.push('Wildfire Watch needs a narrow edge-data route');
+if (numericConstant('WILDFIRE_TTL_SECONDS') !== 300) issues.push('Wildfire snapshots must use a five-minute live cache');
+if (!/WFIGS_Incident_Locations_Current/.test(source) || !/WFIGS_FIELDS/.test(source)) issues.push('Wildfire route must use the authoritative WFIGS incident layer');
+if (!/api\.weather\.gov\/alerts\/active\?point=/.test(source) || !/normalizeWildfireAlerts/.test(source)) issues.push('Wildfire route must include bounded local NWS fire-weather alerts');
+if (!/Math\.min\(500, Math\.round\(Number\(url\.searchParams\.get\("radius"\)\)/.test(source)) issues.push('Wildfire coordinates and radius must be bounded');
+if (!/WILDFIRE_PATH \+ "\/cache\/v1\//.test(source) || !/stale-while-revalidate=900/.test(source)) issues.push('Wildfire route needs a location-bucketed resilient edge cache');
 if (!/Access-Control-Expose-Headers.*X-Afterglow-Source, X-Afterglow-Cache/.test(source)) issues.push('Browser diagnostics must be able to read safe Worker source and cache headers');
 
 console.log(`Worker contract: ${issues.length ? 'FAILED' : 'passed'}`);

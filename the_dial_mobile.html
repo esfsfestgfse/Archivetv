@@ -932,6 +932,22 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
   .skybeacon-screen{grid-template-rows:auto minmax(0,1fr);padding:3px 4px 25px}.skybeacon-source,.skybeacon-regions,.skybeacon-ticker{display:none}.skybeacon-main{grid-template-columns:62% 38%}.skybeacon-range{display:none}.skybeacon-side{grid-template-rows:auto auto minmax(0,1fr)}.skybeacon-tabs{display:grid}.skybeacon-stat:nth-child(n+3){display:none}.skybeacon-row:nth-child(n+5),.skybeacon-wx:nth-child(n+5){display:none}
 }
 
++/* ============ Seismic Watch / unified USGS hazard desk ============ */
+.seismic-screen{container-type:size;position:relative;width:100%;height:100%;display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:5px;padding:7px 8px 30px;box-sizing:border-box;overflow:hidden;background:radial-gradient(120% 95% at 50% 10%,#1a1008 0%,#080707 57%,#030303 100%);color:#ffe7c7;font-family:ui-monospace,SFMono-Regular,Consolas,monospace}
+.seismic-head{position:relative;z-index:2;display:flex;justify-content:space-between;align-items:center;gap:8px;min-width:0;padding:5px 8px;border:1px solid rgba(255,151,61,.25);border-radius:6px;background:linear-gradient(90deg,rgba(255,92,45,.13),rgba(0,0,0,.35));font:900 clamp(8px,1.2vmin,11px)/1 monospace;letter-spacing:1.1px;color:#ffb46a}.seismic-live{display:inline-block;width:6px;height:6px;margin-right:7px;border-radius:50%;background:#ff4d35;box-shadow:0 0 8px #ff4d35;animation:wxBugPulse 1.35s ease-in-out infinite}.seismic-fresh{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#c5a98d;font-size:.82em;text-align:right}
+.seismic-main{min-height:0;display:grid;grid-template-columns:minmax(0,1.55fr) minmax(220px,.82fr);gap:6px}.seismic-mapbox{position:relative;min-width:0;min-height:0;display:grid;grid-template-rows:auto minmax(0,1fr);align-content:stretch;overflow:hidden;border:1px solid rgba(255,151,61,.22);border-radius:8px;background:radial-gradient(circle at 50% 45%,#25130c,#080707 74%);box-shadow:inset 0 0 34px rgba(0,0,0,.75)}
+.seismic-map{position:relative;width:100%;aspect-ratio:2/1;max-height:100%;overflow:hidden;background:#080d0f}.seismic-world{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;filter:sepia(.8) saturate(.55) hue-rotate(330deg) brightness(.38) contrast(1.25);opacity:.92}.seismic-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,173,95,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(255,173,95,.08) 1px,transparent 1px);background-size:12.5% 25%;pointer-events:none}
+.seismic-activity{min-width:0;min-height:0;display:grid;grid-template-columns:minmax(0,1.75fr) repeat(3,minmax(84px,.62fr));gap:5px;padding:7px;box-sizing:border-box;border-top:1px solid rgba(255,151,61,.18);background:linear-gradient(180deg,rgba(255,113,47,.055),rgba(0,0,0,.28));overflow:hidden}.seismic-bars{min-width:0;min-height:0;display:grid;grid-template-rows:auto minmax(35px,1fr) auto;gap:4px}.seismic-bars-head{display:flex;justify-content:space-between;gap:5px;color:#b39478;font:800 7px/1 monospace;letter-spacing:.7px}.seismic-barset{min-height:0;display:grid;grid-template-columns:repeat(24,minmax(2px,1fr));gap:2px;align-items:end}.seismic-bar{min-height:2px;border-radius:2px 2px 0 0;background:linear-gradient(#ffb15c,#8f321f);box-shadow:0 0 4px rgba(255,108,48,.35)}.seismic-bar.hot{background:linear-gradient(#ff5b3c,#a51017);box-shadow:0 0 7px rgba(255,54,39,.5)}.seismic-barlabels{display:flex;justify-content:space-between;color:#765f4d;font:700 6px/1 monospace}.seismic-readout{min-width:0;display:flex;flex-direction:column;justify-content:center;padding:7px;border:1px solid rgba(255,151,61,.1);border-radius:5px;background:rgba(0,0,0,.28)}.seismic-readout b{color:#94765f;font:800 6px/1 monospace;letter-spacing:.6px}.seismic-readout span{margin-top:5px;color:#ffc27e;font:900 clamp(9px,1.25vmin,12px)/1.15 monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.seismic-readout small{margin-top:4px;color:#8f7764;font:700 6px/1.2 monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.seis-dot{appearance:none;position:absolute;z-index:2;width:var(--s,8px);height:var(--s,8px);margin:calc(var(--s,8px)/-2);padding:0;border:1px solid rgba(255,255,255,.7);border-radius:50%;background:#ffd45c;box-shadow:0 0 6px #ff9b3d;cursor:pointer;animation:seisPulse 2s ease-out infinite}.seis-dot.mid{background:#ff8f3d;box-shadow:0 0 9px #ff6d2e}.seis-dot.high{background:#ff4135;box-shadow:0 0 12px 3px #ff3026}.seis-dot.tsunami{outline:2px solid #65d8ff;outline-offset:2px}.seis-dot.on{z-index:5;border-color:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.28),0 0 18px 7px currentColor;animation:none}.seis-volcano{appearance:none;position:absolute;z-index:3;width:0;height:0;margin:-8px 0 0 -8px;padding:0;border:0;border-left:8px solid transparent;border-right:8px solid transparent;border-bottom:15px solid #ff603d;background:transparent;filter:drop-shadow(0 0 5px #ff4c2f);cursor:pointer}.seis-volcano.on{border-bottom-color:#fff;filter:drop-shadow(0 0 8px #ff613e)}@keyframes seisPulse{0%{transform:scale(.7);opacity:.75}45%{transform:scale(1.25);opacity:1}100%{transform:scale(.72);opacity:.78}}
+.seismic-maplabels{position:absolute;inset:0;z-index:4;pointer-events:none}.seismic-map-title{position:absolute;left:7px;top:6px;padding:4px 6px;border-radius:4px;background:rgba(0,0,0,.62);color:#ffc07c;font:900 clamp(6px,.95vmin,9px)/1 monospace;letter-spacing:.8px}.seismic-map-card{position:absolute;left:7px;right:7px;bottom:6px;min-width:0;padding:6px 8px;border-left:3px solid #ff7a45;border-radius:4px;background:rgba(4,4,4,.82);box-shadow:0 4px 14px rgba(0,0,0,.45);color:#ead4bc;font:700 clamp(7px,1vmin,10px)/1.3 monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.seismic-map-card b{color:#ffbd75}.seismic-map-card small{color:#aa8f78}
+.seismic-side{min-width:0;min-height:0;display:grid;grid-template-rows:auto auto minmax(0,1fr);gap:4px;padding:5px;border:1px solid rgba(255,151,61,.17);border-radius:8px;background:rgba(5,5,5,.58);overflow:hidden}.seismic-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3px}.seismic-stat{min-width:0;padding:5px 3px;border:1px solid rgba(255,151,61,.12);border-radius:5px;background:rgba(255,103,45,.055);text-align:center}.seismic-stat b{display:block;color:#a98c70;font:800 clamp(5px,.8vmin,7px)/1 monospace;letter-spacing:.5px}.seismic-stat span{display:block;margin-top:4px;color:#ffbd75;font:900 clamp(10px,1.65vmin,15px)/1 monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.seismic-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3px}.seismic-tab{appearance:none;min-width:0;padding:6px 2px;border:1px solid rgba(255,151,61,.14);border-radius:5px;background:rgba(0,0,0,.34);color:#9f826a;font:900 clamp(6px,.9vmin,8px)/1 monospace;cursor:pointer;overflow:hidden;text-overflow:ellipsis}.seismic-tab.on{color:#ffd09a;border-color:#ff8b4c;background:rgba(255,103,45,.14)}.seismic-tab:focus-visible,.seismic-row:focus-visible{outline:2px solid #ffb166;outline-offset:1px}
+.seismic-panel{min-height:0;overflow:auto;border-top:1px solid rgba(255,151,61,.08)}.seismic-row{appearance:none;width:100%;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:7px;align-items:center;padding:6px 4px;border:0;border-bottom:1px solid rgba(255,255,255,.055);background:transparent;color:inherit;text-align:left;font:700 clamp(7px,1.05vmin,10px)/1.2 monospace;cursor:pointer}.seismic-row:hover,.seismic-row.on{background:rgba(255,129,63,.075)}.seismic-mag{display:grid;place-items:center;min-width:34px;height:25px;padding:0 4px;border:1px solid rgba(255,197,116,.23);border-radius:4px;background:rgba(255,181,82,.1);color:#ffd372;font-weight:900}.seismic-mag.mid{color:#ff9b53;border-color:#ff7c42}.seismic-mag.high{color:#ff5f4b;border-color:#ff4938}.seismic-place{min-width:0}.seismic-place b{display:block;color:#f6e4cf;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.seismic-place small{display:block;margin-top:3px;color:#9f8771;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.seismic-age{color:#c09a75;text-align:right;white-space:nowrap}.seismic-detail{grid-column:2/4;margin-top:2px;padding:5px 6px;border:1px solid rgba(255,151,61,.13);border-radius:5px;background:rgba(255,115,50,.055);color:#bfa891;font-size:.92em;line-height:1.35}.seismic-detail b{color:#ffbd75}.seismic-detail a{color:#8fd8ff}.seismic-empty{display:grid;place-items:center;height:100%;min-height:58px;padding:12px;color:#a08770;text-align:center;font:700 9px/1.45 monospace;box-sizing:border-box}
+.seismic-ticker{position:relative;z-index:2;min-width:0;padding:4px 8px;border:1px solid rgba(255,151,61,.15);border-radius:6px;background:rgba(0,0,0,.42);color:#a88c73;font:700 clamp(7px,1vmin,9px)/1.2 monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.seismic-ticker a{color:#8fd8ff;text-decoration:none}.seismic-ticker a:hover{text-decoration:underline}
+@container (max-width:650px){.seismic-main{grid-template-columns:minmax(0,58%) minmax(0,42%);gap:3px}.seismic-screen{gap:3px;padding:4px 5px 27px}.seismic-side{padding:3px;gap:2px}.seismic-stat{padding:3px 1px}.seismic-stat b{font-size:5px}.seismic-stat span{font-size:9px}.seismic-tab{padding:4px 1px;font-size:5px}.seismic-row{grid-template-columns:auto minmax(0,1fr);gap:4px;padding:4px 2px;font-size:6px}.seismic-age{display:none}.seismic-mag{min-width:27px;height:20px;padding:0 2px}.seismic-detail{grid-column:2}.seismic-map-card{font-size:6px;padding:4px 5px}.seismic-row:nth-child(n+7){display:none}.seismic-activity{display:none}.seismic-mapbox{grid-template-rows:minmax(0,1fr)}.seismic-map{height:100%;aspect-ratio:auto;max-height:none}}
+@container (max-height:430px){.seismic-head{padding:3px 6px;font-size:7px}.seismic-main{gap:3px}.seismic-side{padding:3px}.seismic-stat{padding:3px 2px}.seismic-stat span{margin-top:2px;font-size:9px}.seismic-tab{padding:4px 1px;font-size:6px}.seismic-row{padding:4px 2px;font-size:7px}.seismic-ticker{padding:2px 5px;font-size:6px}.seismic-map-card{padding:3px 5px;font-size:6px}.seismic-activity{display:none}.seismic-mapbox{grid-template-rows:minmax(0,1fr)}.seismic-map{height:100%;aspect-ratio:auto;max-height:none}}
+@container (max-height:220px){.seismic-screen{grid-template-rows:auto minmax(0,1fr);padding:3px 4px 24px}.seismic-fresh,.seismic-ticker{display:none}.seismic-main{grid-template-columns:60% 40%}.seismic-side{grid-template-rows:auto auto minmax(0,1fr)}.seismic-stat:nth-child(n+3){display:none}.seismic-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.seismic-map-card{display:none}.seismic-row:nth-child(n+5){display:none}}
+
 /* ============ v14: ident flash (station idents feature) ============ */
 /* QA FIX (audit 5A): was z:29, same as .buff-ov. Both fire on every channel change; .buff-ov's
    35% black backdrop killed the intended phosphor flash. Bumped to z:30 so the CRT ident wins. */
@@ -1403,7 +1419,7 @@ html.mob .console::before,html.mob .speaker,html.mob .console-legs{display:none!
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.230-sky-beacon";
+window.__ATV_BUILD="1.7.7-mobile.231-seismic-watch";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1440,7 +1456,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.230 · Sky Beacon</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.231 · Seismic Watch</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -2186,7 +2202,7 @@ const CHANNEL_META={
 "ISS Tracker":{desc:"LIVE: International Space Station ground position, orbital track, altitude, velocity, visibility footprint, viewer-relative distance, future orbit samples, and current CelesTrak elements.",best:"anytime",rel:["Aurora & Space Weather","NASA Live"]},
 "NASA Picture of the Day":{desc:"LIVE: NASA’s current Astronomy Picture of the Day plus a seven-day visual gallery, in-channel video support, explanations, credits, instant cache, and official NASA fallback sources.",best:"anytime",rel:["ISS Tracker","NASA Live"]},
 "Sky Beacon Live":{desc:"LIVE: edge-cached ADS-B radar for local airspace and eighteen world hubs, with moving aircraft, altitude/speed/track, route details, batched airport weather, last-good scope, and instant NEXT hub changes.",best:"anytime",rel:["Weather Watch","ISS Tracker"]},
-"Seismic Watch":{desc:"LIVE: elevated volcanoes and global earthquakes, on rotation.",best:"anytime",rel:["Weather Watch","Wildfire Watch"]},
+"Seismic Watch":{desc:"LIVE: every USGS earthquake from the past 24 hours plus current elevated U.S. volcanoes, with latest, nearby, significant and volcano desks, interactive global mapping, detail reports, and instant last-good startup.",best:"anytime",rel:["Weather Watch","Wildfire Watch"]},
 "News, News, News":{desc:"Newsreels, federal films and historic footage \u2014 the week\u2019s news, decades late.",best:"anytime",rel:["Live News","Historic Waco"]},
 "The Kitchen":{desc:"Julia Child's French Chef and other vintage cooking shows, chef demos and culinary how-tos.",best:"dinner hour",rel:["Home Economics","Prelinger Vault"]},
 "The Drive-In":{desc:"Grindhouse, exploitation and B-movie features — the drive-in era 1955-1975.",best:"after dark",rel:["Shock Theater","Sci-Fi Theater"]},
@@ -6216,7 +6232,7 @@ function mountChanBug(hostId,opts){
     if(sEl&&sub!=null) sEl.textContent=sub; } };
 }
 var liveGuideState=window.__atvLiveGuideState||{}; window.__atvLiveGuideState=liveGuideState;
-var LIVE_DATA_BEDS={weather:"gmjazz",stormcenter:"gmjazz",localradar:"gmjazz",tropical:"gmtropical",skytraffic:"gmelectro",airport:"gmelectro",airtraffic:"gmelectro",ships:"fieldrec",tides:"fieldrec",river:"fieldrec",space:"gmelectro",solar:"gmelectro",aurora:"gmelectro",iss:"gmelectro",apod:"gmelectro",seismic:"gmcountry",quake:"gmcountry",quakemap:"gmcountry",volcano:"gmcountry",wildfire:"gmcountry",grid:"gmjazz",gas:"gmjazz",sports:"gmjazz",wiki:"gmelectro",hf:"gmelectro",newsstand:"gmjazz"};
+var LIVE_DATA_BEDS={weather:"gmjazz",stormcenter:"gmjazz",localradar:"gmjazz",tropical:"gmtropical",skytraffic:"gmelectro",airport:"gmelectro",airtraffic:"gmelectro",ships:"fieldrec",tides:"fieldrec",river:"fieldrec",space:"gmelectro",solar:"gmelectro",aurora:"gmelectro",iss:"gmelectro",apod:"gmelectro",seismic:"gmelectro",quake:"gmcountry",quakemap:"gmcountry",volcano:"gmcountry",wildfire:"gmcountry",grid:"gmjazz",gas:"gmjazz",sports:"gmjazz",wiki:"gmelectro",hf:"gmelectro",newsstand:"gmjazz"};
 function guideDurationLabel(sec){sec=Math.max(0,Math.round(Number(sec)||0));var h=Math.floor(sec/3600),m=Math.max(0,Math.round((sec%3600)/60));return h?(h+"H "+m+"M"):(m+"M");}
 function guideUpdatedLabel(at){if(!at)return "WAITING FOR LIVE DATA";var age=Math.max(0,Math.round((Date.now()-at)/1000));return age<60?"UPDATED JUST NOW":("UPDATED "+guideDurationLabel(age)+" AGO");}
 function guideQueueNext(ch,sl){var q=(iaProgramQueues[iaQueueKey(ch)]||[]);for(var i=0;i<q.length;i++)if(iaProgramAllowed(q[i],sl))return q[i];return null;}
@@ -10659,10 +10675,154 @@ async function tuneAirTrafficLegacy(ch,sl,my){
       chrome(); paint(); poll(); }); }
   poll(); rtInterval(poll,8000); rtInterval(function(){ if(my===token&&powered)paint(); },600);
 }
-function tuneSeismic(ch,sl,my){ return tuneRotator(ch,sl,my,[
+function tuneSeismicLegacy(ch,sl,my){ return tuneRotator(ch,sl,my,[
   function(m){ return tuneVolcano(ch,sl,m); },
   function(m){ return tuneQuake(ch,sl,m); }
 ],26); }
+
+async function tuneSeismic(ch,sl,my){
+  if(my!==token)return;hideOv();setSig("live","ON AIR");showNow(ch,sl,"Seismic Watch","");
+  if(screenArea)screenArea.innerHTML=
+    '<div class="seismic-screen" id="seismicScreen">'+
+      '<div class="seismic-head"><span><i class="seismic-live"></i>USGS SEISMIC WATCH · GLOBAL HAZARD DESK</span><span class="seismic-fresh" id="seismicFresh">OPENING REAL-TIME FEEDS…</span></div>'+
+      '<div class="seismic-main">'+
+        '<section class="seismic-mapbox"><div class="seismic-map" id="seismicMap"><div class="seismic-empty">ACQUIRING GLOBAL SEISMIC NETWORK…</div></div><div class="seismic-activity" id="seismicActivity"><div class="seismic-empty">BUILDING 24-HOUR ACTIVITY PROFILE…</div></div></section>'+
+        '<aside class="seismic-side">'+
+          '<div class="seismic-stats" id="seismicStats"><div class="seismic-stat"><b>24 HOURS</b><span>--</span></div><div class="seismic-stat"><b>PAST HOUR</b><span>--</span></div><div class="seismic-stat"><b>LARGEST</b><span>--</span></div><div class="seismic-stat"><b>ELEVATED</b><span>--</span></div></div>'+
+          '<div class="seismic-tabs"><button class="seismic-tab on" type="button" data-seismic-view="0">LATEST</button><button class="seismic-tab" type="button" data-seismic-view="1">NEARBY</button><button class="seismic-tab" type="button" data-seismic-view="2">SIGNIFICANT</button><button class="seismic-tab" type="button" data-seismic-view="3">VOLCANOES</button></div>'+
+          '<div class="seismic-panel" id="seismicPanel"><div class="seismic-empty">LISTENING FOR USGS EVENTS…</div></div>'+
+        '</aside>'+
+      '</div>'+
+      '<div class="seismic-ticker" id="seismicTicker">USGS ANSS earthquakes update every minute · NEXT cycles latest, nearby, significant and elevated volcanoes</div>'+
+    '</div>';
+  var deskBug=mountChanBug("seismicScreen",{ident:"SEISMIC WATCH"}),viewIndex=0,selectedType="quake",selectedId="",quakeStale=false,volcanoStale=false;
+  var fallbackLoc={lat:31.5493,lon:-97.1467,label:"WACO TX"},storedLoc=store.get("seismicLastLoc",null);
+  var userLoc=storedLoc&&isFinite(Number(storedLoc.lat))&&isFinite(Number(storedLoc.lon))?storedLoc:fallbackLoc;
+  var model={quakes:[],volcanoes:[],quakeAt:0,volcanoAt:0,generated:0};
+  startIAJazz("gmelectro");
+  function ageLabel(at){
+    var sec=Math.max(0,Math.round((Date.now()-Number(at||0))/1000));if(sec<60)return sec<12?"NOW":sec+" SEC";
+    var min=Math.round(sec/60);if(min<60)return min+" MIN";var hr=Math.round(min/60);return hr<24?hr+" HR":Math.round(hr/24)+" DAY";
+  }
+  function distMi(lat,lon){return haversineKm(Number(userLoc.lat),Number(userLoc.lon),Number(lat),Number(lon))*.621371;}
+  function magClass(mag){return Number(mag)>=6?"high":Number(mag)>=4.5?"mid":"";}
+  function normQuake(feature){
+    var p=feature&&feature.properties||{},c=feature&&feature.geometry&&feature.geometry.coordinates||[];
+    if(c.length<2||!isFinite(Number(c[0]))||!isFinite(Number(c[1])))return null;
+    return {id:String(feature.id||p.code||Math.random()),mag:isFinite(Number(p.mag))?Number(p.mag):0,place:String(p.place||"Unknown location"),time:Number(p.time)||0,updated:Number(p.updated)||0,felt:Number(p.felt)||0,cdi:p.cdi==null?null:Number(p.cdi),mmi:p.mmi==null?null:Number(p.mmi),alert:String(p.alert||""),tsunami:Number(p.tsunami)||0,sig:Number(p.sig)||0,status:String(p.status||""),net:String(p.net||""),magType:String(p.magType||""),type:String(p.type||"earthquake"),lon:Number(c[0]),lat:Number(c[1]),depth:isFinite(Number(c[2]))?Number(c[2]):null,url:String(p.url||""),detail:String(p.detail||"")};
+  }
+  function normVolcano(v){
+    var lat=v.lat!=null?v.lat:v.latitude,lon=v.long!=null?v.long:v.longitude;
+    return {id:String(v.vnum||v.volcanoCd||v.vName||v.volcano_name||Math.random()),name:String(v.vName||v.volcano_name||v.name||"Unknown volcano"),lat:isFinite(Number(lat))?Number(lat):null,lon:isFinite(Number(lon))?Number(lon):null,alert:String(v.alertLevel||v.alert_level||"UNKNOWN").toUpperCase(),color:String(v.colorCode||v.color_code||"").toUpperCase(),threat:String(v.nvewsThreat||""),synopsis:String(v.noticeSynopsis||v.notice_synopsis||""),observatory:String(v.obs||v.obs_abbr||""),sent:String(v.sentUtc||v.sent_utc||v.alertDate||""),url:String(v.noticeUrl||v.notice_url||"")};
+  }
+  function quakeScore(q){return (q.tsunami?100000:0)+(q.alert?20000:0)+(q.sig||0)*8+(q.felt||0)+q.mag*100;}
+  function quakeDistance(q){return distMi(q.lat,q.lon);}
+  function selected(){
+    if(selectedType==="volcano")return model.volcanoes.find(function(v){return v.id===selectedId;})||null;
+    return model.quakes.find(function(q){return q.id===selectedId;})||null;
+  }
+  function viewRows(){
+    if(viewIndex===3)return model.volcanoes.slice().sort(function(a,b){var rank={RED:4,ORANGE:3,YELLOW:2,GREEN:1};return (rank[b.color]||0)-(rank[a.color]||0);});
+    var rows=model.quakes.slice();
+    if(viewIndex===0)rows.sort(function(a,b){return b.time-a.time;});
+    else if(viewIndex===1)rows.sort(function(a,b){return quakeDistance(a)-quakeDistance(b);});
+    else{rows=rows.filter(function(q){return q.mag>=4.5||q.sig>=400||q.felt||q.tsunami||q.alert;});rows.sort(function(a,b){return quakeScore(b)-quakeScore(a);});}
+    return rows;
+  }
+  function ensureSelection(){
+    var rows=viewRows();if(!rows.length){selectedId="";return;}
+    var type=viewIndex===3?"volcano":"quake";
+    if(selectedType!==type||!rows.some(function(row){return row.id===selectedId;})){selectedType=type;selectedId=rows[0].id;}
+  }
+  function renderActivity(){
+    var host=$("seismicActivity");if(!host)return;var now=Date.now(),bins=Array.from({length:24},function(){return {count:0,max:0};});
+    model.quakes.forEach(function(q){var age=Math.floor((now-q.time)/3600000);if(age>=0&&age<24){var bin=bins[23-age];bin.count++;bin.max=Math.max(bin.max,q.mag);}});
+    var maxCount=Math.max.apply(null,bins.map(function(bin){return bin.count;}))||1;
+    var nearest=model.quakes.reduce(function(best,q){var d=quakeDistance(q);return !best||d<best.d?{q:q,d:d}:best;},null);
+    var deepest=model.quakes.reduce(function(best,q){return q.depth!=null&&(!best||q.depth>best.depth)?q:best;},null);
+    var felt=model.quakes.reduce(function(total,q){return total+(q.felt||0);},0);
+    host.innerHTML='<div class="seismic-bars"><div class="seismic-bars-head"><span>EVENTS BY HOUR · USGS ANSS</span><span>24H TOTAL '+model.quakes.length+'</span></div><div class="seismic-barset">'+bins.map(function(bin,index){var height=Math.max(3,Math.round(bin.count/maxCount*100));return '<i class="seismic-bar'+(bin.max>=4.5?" hot":"")+'" title="'+bin.count+' events" style="height:'+height+'%"></i>';}).join("")+'</div><div class="seismic-barlabels"><span>24H AGO</span><span>18H</span><span>12H</span><span>6H</span><span>NOW</span></div></div>'+
+      '<div class="seismic-readout"><b>NEAREST TO YOU</b><span>'+(nearest?('M'+nearest.q.mag.toFixed(1)+' · '+Math.round(nearest.d).toLocaleString()+' MI'):"--")+'</span><small>'+esch(nearest?nearest.q.place:"locating viewer")+'</small></div>'+
+      '<div class="seismic-readout"><b>DEEPEST EVENT</b><span>'+(deepest?(deepest.depth.toFixed(1)+' KM'):"--")+'</span><small>'+esch(deepest?deepest.place:"waiting for feed")+'</small></div>'+
+      '<div class="seismic-readout"><b>FELT REPORTS</b><span>'+felt.toLocaleString()+'</span><small>community reports / 24h</small></div>';
+  }
+  function renderStats(){
+    var spans=document.querySelectorAll("#seismicStats span"),now=Date.now(),hour=model.quakes.filter(function(q){return now-q.time<=3600000;}).length;
+    var largest=model.quakes.reduce(function(best,q){return !best||q.mag>best.mag?q:best;},null);
+    var values=[model.quakes.length,hour,largest?("M"+largest.mag.toFixed(1)):"--",model.volcanoes.length];
+    spans.forEach(function(span,index){span.textContent=String(values[index]==null?"--":values[index]);});
+  }
+  function renderHeader(){
+    var fresh=$("seismicFresh"),ticker=$("seismicTicker"),latest=Math.max(model.quakeAt||0,model.volcanoAt||0),stale=quakeStale||volcanoStale;
+    if(fresh)fresh.textContent=(stale?"CACHED · RECONNECTING · ":"USGS LIVE · ")+(latest?guideUpdatedLabel(latest):"ACQUIRING");
+    var biggest=model.quakes.reduce(function(best,q){return !best||q.mag>best.mag?q:best;},null);
+    if(ticker)ticker.innerHTML=(stale?"LAST-GOOD DESK · RECONNECTING · ":"")+(biggest?("LARGEST M"+biggest.mag.toFixed(1)+" · "+esch(biggest.place)+" · "):"")+"NEXT cycles four live desks · <a href=\"https://earthquake.usgs.gov/earthquakes/feed/v1.0/\" target=\"_blank\" rel=\"noopener\">USGS ANSS</a> · <a href=\"https://volcanoes.usgs.gov/hans-public/\" target=\"_blank\" rel=\"noopener\">USGS VHP</a>";
+    setChanStatus(ch.num,model.quakes.length+" quakes · "+model.volcanoes.length+" elevated volcanoes");
+    if(deskBug)deskBug.update(biggest?("M"+biggest.mag.toFixed(1)+" "+biggest.place.slice(0,22)):(model.quakes.length+" EVENTS"),model.volcanoes.length+" ELEVATED VOLCANOES");
+  }
+  function renderMap(){
+    var map=$("seismicMap");if(!map)return;
+    if(!model.quakes.length&&!model.volcanoes.length){map.innerHTML='<div class="seismic-empty">USGS FEEDS ARE RECONNECTING<br>LAST-GOOD DATA WILL REMAIN HERE</div>';return;}
+    var sel=selected(),html='<img class="seismic-world" src="https://upload.wikimedia.org/wikipedia/commons/8/83/Equirectangular_projection_SW.jpg" alt="World map"><div class="seismic-grid"></div>';
+    model.quakes.slice().sort(function(a,b){return b.time-a.time;}).slice(0,180).forEach(function(q){
+      var x=(q.lon+180)/360*100,y=(90-q.lat)/180*100,size=Math.max(5,Math.min(17,5+q.mag*1.65));
+      html+='<button type="button" class="seis-dot '+magClass(q.mag)+(q.tsunami?" tsunami":"")+(selectedType==="quake"&&q.id===selectedId?" on":"")+'" data-seis-quake="'+esch(q.id)+'" title="M'+q.mag.toFixed(1)+' · '+esch(q.place)+'" style="left:'+x.toFixed(3)+'%;top:'+y.toFixed(3)+'%;--s:'+size.toFixed(1)+'px"></button>';
+    });
+    model.volcanoes.forEach(function(v){if(v.lat==null||v.lon==null)return;var x=(v.lon+180)/360*100,y=(90-v.lat)/180*100;html+='<button type="button" class="seis-volcano'+(selectedType==="volcano"&&v.id===selectedId?" on":"")+'" data-seis-volcano="'+esch(v.id)+'" title="'+esch(v.name)+' · '+esch(v.color+" "+v.alert)+'" style="left:'+x.toFixed(3)+'%;top:'+y.toFixed(3)+'%"></button>';});
+    var card="SELECT AN EVENT FOR DETAILS";
+    if(sel&&selectedType==="quake")card='<b>M'+sel.mag.toFixed(1)+' · '+esch(sel.place)+'</b> <small>· '+(sel.depth==null?"depth --":sel.depth.toFixed(1)+" km deep")+' · '+ageLabel(sel.time)+' ago'+(sel.tsunami?" · TSUNAMI FLAG":"")+'</small>';
+    if(sel&&selectedType==="volcano")card='<b>'+esch(sel.name)+' · '+esch(sel.color+" "+sel.alert)+'</b> <small>· '+esch(sel.synopsis||sel.threat||"USGS elevated status")+'</small>';
+    html+='<div class="seismic-maplabels"><div class="seismic-map-title">GLOBAL · '+model.quakes.length+' EVENTS / 24H · ▲ ELEVATED VOLCANO</div><div class="seismic-map-card">'+card+'</div></div>';
+    map.innerHTML=html;
+    map.querySelectorAll("[data-seis-quake]").forEach(function(dot){dot.addEventListener("click",function(){selectedType="quake";selectedId=dot.dataset.seisQuake;renderMap();renderPanel();});});
+    map.querySelectorAll("[data-seis-volcano]").forEach(function(dot){dot.addEventListener("click",function(){selectedType="volcano";selectedId=dot.dataset.seisVolcano;viewIndex=3;renderTabs();renderMap();renderPanel();});});
+  }
+  function quakeDetail(q){
+    var bits=[q.depth==null?"DEPTH --":"DEPTH "+q.depth.toFixed(1)+" KM",q.felt?q.felt.toLocaleString()+" FELT REPORTS":"NO FELT REPORTS",q.mmi!=null?"MMI "+q.mmi.toFixed(1):"",q.cdi!=null?"DYFI "+q.cdi.toFixed(1):"",q.status?String(q.status).toUpperCase():"",q.net?("NETWORK "+q.net.toUpperCase()):""].filter(Boolean);
+    return '<div class="seismic-detail"><b>'+bits.join(" · ")+'</b>'+(q.alert?("<br>PAGER "+esch(q.alert.toUpperCase())):"")+(q.tsunami?"<br>TSUNAMI FLAG SET · VERIFY WITH TSUNAMI.GOV":"")+(q.url?('<br><a href="'+esch(q.url)+'" target="_blank" rel="noopener">OPEN OFFICIAL USGS EVENT PAGE</a>'):"")+'</div>';
+  }
+  function volcanoDetail(v){
+    var bits=[v.threat,v.observatory?("OBS "+v.observatory.toUpperCase()):"",v.sent?("ISSUED "+v.sent):""].filter(Boolean);
+    return '<div class="seismic-detail"><b>'+esch(bits.join(" · ")||"USGS ELEVATED STATUS")+'</b>'+(v.synopsis?("<br>"+esch(v.synopsis)):"")+(v.url?('<br><a href="'+esch(v.url)+'" target="_blank" rel="noopener">OPEN OFFICIAL VOLCANO NOTICE</a>'):"")+'</div>';
+  }
+  function renderPanel(){
+    var panel=$("seismicPanel");if(!panel)return;ensureSelection();var rows=viewRows().slice(0,16);
+    if(!rows.length){panel.innerHTML='<div class="seismic-empty">'+(viewIndex===3?"NO U.S. VOLCANOES ARE CURRENTLY ELEVATED":"NO EVENTS MATCH THIS LIVE DESK")+'</div>';return;}
+    panel.innerHTML=rows.map(function(row){
+      var on=row.id===selectedId;
+      if(viewIndex===3){var cls=row.color==="RED"||row.alert==="WARNING"?"high":row.color==="ORANGE"||row.alert==="WATCH"?"mid":"";return '<div class="seismic-row'+(on?" on":"")+'" tabindex="0" data-seis-vrow="'+esch(row.id)+'"><span class="seismic-mag '+cls+'">'+esch(row.color||row.alert||"VHP")+'</span><span class="seismic-place"><b>'+esch(row.name)+'</b><small>'+esch(row.alert+(row.threat?" · "+row.threat:""))+'</small></span><span class="seismic-age">'+esch(row.sent?row.sent.slice(0,10):"ACTIVE")+'</span>'+(on?volcanoDetail(row):"")+'</div>';}
+      var distance=quakeDistance(row),sub=[row.depth==null?"DEPTH --":row.depth.toFixed(1)+" km deep",Math.round(distance).toLocaleString()+" mi from you",row.tsunami?"TSUNAMI FLAG":"",row.felt?row.felt.toLocaleString()+" felt":""].filter(Boolean).join(" · ");
+      return '<div class="seismic-row'+(on?" on":"")+'" tabindex="0" data-seis-qrow="'+esch(row.id)+'"><span class="seismic-mag '+magClass(row.mag)+'">M'+row.mag.toFixed(1)+'</span><span class="seismic-place"><b>'+esch(row.place)+'</b><small>'+esch(sub)+'</small></span><span class="seismic-age">'+ageLabel(row.time)+'</span>'+(on?quakeDetail(row):"")+'</div>';
+    }).join("");
+    function bind(selector,type){panel.querySelectorAll(selector).forEach(function(row){function choose(){selectedType=type;selectedId=type==="quake"?row.dataset.seisQrow:row.dataset.seisVrow;renderPanel();renderMap();}row.addEventListener("click",choose);row.addEventListener("keydown",function(event){if(event.key==="Enter"||event.key===" "){event.preventDefault();choose();}});});}
+    bind("[data-seis-qrow]","quake");bind("[data-seis-vrow]","volcano");panel.querySelectorAll("a").forEach(function(link){link.addEventListener("click",function(event){event.stopPropagation();});});
+  }
+  function renderTabs(){document.querySelectorAll("[data-seismic-view]").forEach(function(tab){tab.classList.toggle("on",Number(tab.dataset.seismicView)===viewIndex);});}
+  function renderAll(){ensureSelection();renderStats();renderActivity();renderTabs();renderPanel();renderMap();renderHeader();}
+  function save(){store.set("seismicLiveCache",{quakes:model.quakes,volcanoes:model.volcanoes,quakeAt:model.quakeAt,volcanoAt:model.volcanoAt,generated:model.generated});}
+  async function refreshQuakes(){
+    try{
+      var data=await fetchJSONResilient("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson","seismic-quakes");if(my!==token)return;
+      var quakes=((data&&data.features)||[]).map(normQuake).filter(Boolean);if(!quakes.length)throw new Error("USGS day feed returned no events");
+      model.quakes=quakes;model.generated=Number(data&&data.metadata&&data.metadata.generated)||Date.now();model.quakeAt=Date.now();quakeStale=false;save();renderAll();nlog("seismic-quakes",true,quakes.length+" events / 24h");
+    }catch(error){if(my!==token)return;quakeStale=true;renderAll();nlog("seismic-quakes",false,(error&&error.message)||error);}
+  }
+  async function refreshVolcanoes(){
+    try{
+      var data=await fetchJSONResilient("https://volcanoes.usgs.gov/vsc/api/volcanoApi/elevated","seismic-volcanoes");if(my!==token)return;
+      model.volcanoes=(Array.isArray(data)?data:[]).map(normVolcano);model.volcanoAt=Date.now();volcanoStale=false;save();renderAll();nlog("seismic-volcanoes",true,model.volcanoes.length+" elevated volcanoes");
+    }catch(error){if(my!==token)return;volcanoStale=true;renderAll();nlog("seismic-volcanoes",false,(error&&error.message)||error);}
+  }
+  function refreshAll(){quakeStale=true;volcanoStale=true;renderHeader();return Promise.allSettled([refreshQuakes(),refreshVolcanoes()]);}
+  function setView(index,announce){viewIndex=((Number(index)||0)%4+4)%4;selectedType=viewIndex===3?"volcano":"quake";selectedId="";renderAll();if(announce)quickBanner("SEISMIC WATCH · "+["LATEST","NEARBY","SIGNIFICANT","VOLCANOES"][viewIndex]);}
+  function nextView(){setView(viewIndex+1,true);}
+  var cached=store.get("seismicLiveCache",null);
+  if(cached&&Array.isArray(cached.quakes)&&Date.now()-Number(cached.quakeAt||0)<6*3600000){model={quakes:cached.quakes,volcanoes:Array.isArray(cached.volcanoes)?cached.volcanoes:[],quakeAt:Number(cached.quakeAt)||0,volcanoAt:Number(cached.volcanoAt)||0,generated:Number(cached.generated)||0};quakeStale=true;volcanoStale=true;renderAll();}
+  window.__seismicNext=nextView;window.__seismicRefresh=refreshAll;
+  document.querySelectorAll("[data-seismic-view]").forEach(function(tab){tab.addEventListener("click",function(){setView(Number(tab.dataset.seismicView),false);});});
+  getWxLocation().then(function(loc){if(my!==token||!loc)return;userLoc=loc;store.set("seismicLastLoc",loc);renderAll();resolveLocale(loc).then(function(place){if(my!==token||!place)return;if(place.city)userLoc.label=place.city;store.set("seismicLastLoc",userLoc);renderAll();}).catch(function(){});}).catch(function(){});
+  refreshAll();rtInterval(refreshQuakes,60000);rtInterval(refreshVolcanoes,10*60*1000);
+}
 
 /* ============================================================================================
    LIVE CAMS — rebuilt again 2026-08-06 (v4). Now supports THREE stream types:
@@ -14659,6 +14819,7 @@ async function playBumper(ch,sl,my){
 /* ===== v10.1: skip — next item on the same channel, on demand ===== */
 function skipOne(){ if(!powered){quickBanner("TURN THE TV ON FIRST");return;}
   var sc=byNum(curNum);
+  if(sc&&sc.source==="seismic"&&typeof window.__seismicNext==="function"){window.__seismicNext();return;}
   if(sc&&sc.source==="airtraffic"&&typeof window.__skyBeaconNext==="function"){window.__skyBeaconNext();return;}
   if(sc&&sc.source==="apod"&&typeof window.__apodNext==="function"){window.__apodNext();return;}
   if(sc&&sc.source==="iss"&&typeof window.__issNext==="function"){window.__issNext();return;}

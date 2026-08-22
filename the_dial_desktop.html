@@ -76,7 +76,7 @@ body{
 .scan{position:absolute;inset:0;z-index:28;pointer-events:none;mix-blend-mode:overlay;opacity:.45;
   background:repeating-linear-gradient(0deg,transparent 0 1px,rgba(0,0,0,.5) 1px 2px);animation:roll 9s linear infinite}
 @keyframes roll{from{background-position:0 0}to{background-position:0 120px}}
-.screen-area{position:absolute;inset:0;background:var(--screen)}
+.screen-area{position:absolute;inset:0;background:var(--screen);container-type:size}
 .screen-area iframe,.screen-area video{width:100%;height:100%;border:0;display:block;background:#000;object-fit:contain}
 
 /* overlays */
@@ -689,8 +689,10 @@ html.mob .gsearch-wrap{padding:0 12px 6px}
 .ver-chip{font-size:9px;letter-spacing:1.2px;color:#5a8a62;margin-left:8px;opacity:.75;font-family:monospace;user-select:none;font-weight:600}
 
 /* ============ v11: Weather Watch screen ============ */
-.wx-screen{width:100%;height:100%;overflow:hidden;display:flex;flex-direction:column;gap:0.9vmin;
-  background:linear-gradient(165deg,#0d1f5c 0%,#0a1740 45%,#061029 100%);color:#eaf2ff;padding:1.2vmin 1.5vmin calc(1.2vmin + 30px);box-sizing:border-box;position:relative}
+.wx-screen{width:100%;height:100%;overflow:hidden;display:grid;
+  grid-template-rows:auto minmax(0,1fr) auto auto auto auto;gap:clamp(4px,.7vmin,8px);
+  background:linear-gradient(165deg,#0d1f5c 0%,#0a1740 45%,#061029 100%);color:#eaf2ff;
+  padding:clamp(8px,1.2vmin,14px) clamp(10px,1.5vmin,18px) calc(clamp(8px,1.2vmin,14px) + 30px);box-sizing:border-box;position:relative}
 .wx-screen::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.09;
   background-image:linear-gradient(rgba(255,255,255,.5) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.5) 1px,transparent 1px);
   background-size:34px 34px}
@@ -739,30 +741,36 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
 .wx-top{display:flex;justify-content:space-between;align-items:baseline;font-size:clamp(12px,2vmin,22px);letter-spacing:2px;color:#ffd75e;flex:none;
   font-weight:bold;text-shadow:0 1px 0 rgba(0,0,0,.6);position:relative;z-index:1}
 .wx-upd{font-size:clamp(9px,1.5vmin,15px);letter-spacing:.5px;color:#8fb3ff}
-.wx-main{flex:1;min-height:0;display:flex;gap:1.4vmin;position:relative;z-index:1} /* 1.5: broadcast two-panel — conditions left, radar right */
-.wx-left{flex:0 0 34%;min-width:0;display:flex;flex-direction:column;gap:1.2vmin;justify-content:center}
-.wx-right{flex:1;min-width:0;display:flex;flex-direction:column;gap:0.5vmin}
-.wx-left .wx-stats{grid-template-columns:1fr;min-width:0;align-content:center;grid-auto-rows:min-content;gap:1vmin}
+.wx-main{min-height:0;display:grid;grid-template-columns:minmax(230px,32%) minmax(0,1fr);gap:clamp(8px,1.4vmin,16px);position:relative;z-index:1}
+.wx-left{min-width:0;min-height:0;display:grid;grid-template-rows:auto minmax(0,1fr);gap:clamp(8px,1.2vmin,14px);align-content:start;
+  padding:clamp(8px,1.1vmin,14px);border:1px solid rgba(255,255,255,.14);border-radius:7px;background:rgba(1,8,28,.28)}
+.wx-right{min-width:0;min-height:0;display:grid;grid-template-rows:auto minmax(0,1fr);gap:clamp(4px,.5vmin,7px)}
+.wx-left .wx-stats{grid-template-columns:repeat(2,minmax(0,1fr));min-width:0;min-height:0;align-content:start;grid-auto-rows:min-content;gap:clamp(5px,.8vmin,10px) clamp(10px,1.4vmin,18px)}
 .wx-now{display:flex;align-items:center;gap:2vmin;flex-wrap:wrap;flex:none;position:relative;z-index:1}
-.wx-now-main{display:flex;flex-direction:column;min-width:20vmin}
-.wx-temp{font-size:16vmin;font-weight:900;line-height:.95;color:#ffe27a;letter-spacing:-2px;
+.wx-now-main{display:flex;flex-direction:column;min-width:0}
+.wx-temp{font-size:clamp(44px,8.8vmin,88px);font-weight:900;line-height:.9;color:#ffe27a;letter-spacing:-2px;
   text-shadow:0 1px 0 #fff8,0 2px 2px rgba(0,0,0,.5),0 0 22px rgba(255,214,90,.35);font-family:Arial,sans-serif}
-.wx-fx{font-size:clamp(15px,3.1vmin,32px);color:#dfe9ff;margin-top:4px;font-weight:700;letter-spacing:.5px}
+.wx-fx{font-size:clamp(14px,2.2vmin,23px);color:#dfe9ff;margin-top:5px;font-weight:700;letter-spacing:.4px;min-width:0}
+.wx-fx-ic span{min-width:0;overflow:hidden;text-overflow:ellipsis}
 .wx-stats{flex:1;display:grid;grid-template-columns:repeat(2,1fr);gap:0.7vmin 2.2vmin;min-width:220px}
-.wx-stat{font-size:clamp(12px,2.2vmin,23px);color:#cfe0ff;display:flex;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.14);padding-bottom:2px}
-.wx-stat b{color:#8fb3ff;font-weight:normal;letter-spacing:.5px;font-size:clamp(10px,1.7vmin,17px)}
+.wx-stat{min-width:0;font-size:clamp(11px,1.65vmin,17px);color:#eef5ff;display:flex;justify-content:space-between;gap:8px;border-bottom:1px solid rgba(255,255,255,.14);padding:3px 0;white-space:nowrap}
+.wx-stat b{color:#8fb3ff;font-weight:700;letter-spacing:.5px;font-size:clamp(9px,1.3vmin,13px);overflow:hidden;text-overflow:ellipsis}
 .wx-section-label{font-size:clamp(10px,1.7vmin,17px);letter-spacing:2px;color:#8fb3ff;flex:none;line-height:1;font-weight:bold;position:relative;z-index:1}
-.wx-radar-wrap{border:1px solid rgba(255,255,255,.25);border-radius:6px;overflow:hidden;background:#000;line-height:0;flex:1 1 0;min-height:0;position:relative;z-index:1;box-shadow:0 0 0 1px rgba(0,0,0,.4),0 2px 8px rgba(0,0,0,.4)}
+.wx-radar-wrap{border:1px solid rgba(255,255,255,.25);border-radius:6px;overflow:hidden;background:#000;line-height:0;min-height:0;position:relative;z-index:1;box-shadow:0 0 0 1px rgba(0,0,0,.4),0 2px 8px rgba(0,0,0,.4)}
 .wx-radar{width:100%;height:100%;display:block;object-fit:cover;object-position:center}
-.wx-fcgrid{flex:none;display:flex;flex-direction:column;gap:0.8vmin;position:relative;z-index:1}
+.wx-radar-status{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:18px;text-align:center;line-height:1.45;
+  background:radial-gradient(circle at center,rgba(5,18,47,.8),rgba(0,0,0,.92));color:#cfe0ff;font-size:clamp(10px,1.5vmin,15px);letter-spacing:1.2px;z-index:2}
+.wx-radar-status.ready{display:none}
+.wx-fcgrid{height:clamp(126px,19vmin,184px);min-height:0;display:grid;grid-template-rows:minmax(0,.78fr) minmax(0,1.22fr);gap:clamp(4px,.7vmin,8px);position:relative;z-index:1;overflow:hidden}
 .wx-hourly{display:grid;grid-template-columns:repeat(8,1fr);gap:0.8vmin;overflow:hidden;flex:none}
 .wx-daily{display:grid;grid-template-columns:repeat(6,1fr);gap:0.8vmin;overflow:hidden;flex:none}
-.wx-hr,.wx-day{min-width:0;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.18);border-radius:6px;padding:0.7vmin 1vmin;text-align:center;position:relative;z-index:1;overflow:hidden}
+.wx-hr,.wx-day{min-width:0;min-height:0;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.18);border-radius:6px;padding:clamp(3px,.55vmin,7px) clamp(4px,.7vmin,9px);text-align:center;position:relative;z-index:1;overflow:hidden}
 .wx-day{text-align:left}
 .wx-hr-t,.wx-day-n{font-size:clamp(10px,1.7vmin,16px);letter-spacing:.5px;color:#8fb3ff;line-height:1.3}
 .wx-hr-deg,.wx-day-deg{font-size:clamp(15px,3vmin,28px);font-weight:bold;color:#ffe27a;line-height:1.3}
 .wx-hr-fx{display:none}
 .wx-day-fx{font-size:clamp(10px,1.7vmin,16px);color:#cfe0ff;line-height:1.25;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.wx-hr-meta,.wx-day-meta{font-size:clamp(8px,1.15vmin,12px);line-height:1.2;color:#9fc4ff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .wx-hourly::-webkit-scrollbar,.wx-daily::-webkit-scrollbar{display:none}
 .wx-hourly,.wx-daily{scrollbar-width:none}
 .wx-ticker{flex:none;font-size:clamp(12px,2.1vmin,21px);letter-spacing:.3px;color:#ffe27a;position:relative;z-index:1;
@@ -771,6 +779,31 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
 .wx-sev-high{color:#ff5a5a;font-weight:bold}
 .wx-sev-mid{color:#ffb84d}
 .wx-sev-low{color:#ffe08a}
+.wx-bug-alert{display:none;flex:none;padding:2px 5px;border:1px solid rgba(255,115,115,.75);border-radius:3px;color:#ffb0b0;font-size:clamp(8px,1.15vmin,11px);font-weight:900;letter-spacing:.6px}
+.wx-bug-alert.on{display:inline-block}
+@media (max-width:760px),(max-height:520px){
+  .wx-screen{gap:3px;padding:6px 7px 34px}
+  .wx-main{grid-template-columns:minmax(155px,38%) minmax(0,1fr);gap:6px}
+  .wx-left{padding:6px;gap:5px}.wx-left .wx-stats{grid-template-columns:1fr;gap:2px 8px}
+  .wx-temp{font-size:clamp(34px,9vmin,58px)}.wx-fx{font-size:clamp(10px,2.4vmin,16px)}
+  .wx-fcgrid{height:clamp(88px,22vmin,126px);gap:3px}
+  .wx-hourly{grid-template-columns:repeat(6,1fr);gap:3px}.wx-hourly .wx-hr:nth-child(n+7){display:none}
+  .wx-daily{grid-template-columns:repeat(4,1fr);gap:3px}.wx-daily .wx-day:nth-child(n+5){display:none}
+  .wx-day-fx{display:none}.wx-ticker{padding:3px 5px}
+}
+/* The mobile shell can make the physical picture tube extremely short in portrait. Adapt to the
+   actual tube, not the browser window: preserve live conditions/radar and collapse forecast rails. */
+@container (max-height:430px){
+  .wx-screen{grid-template-rows:auto minmax(0,1fr) auto;gap:2px;padding:3px 5px 25px}
+  .wx-top{font-size:9px;letter-spacing:.7px;line-height:1;min-width:0}.wx-loc{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .wx-upd{max-width:62%;font-size:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .wx-main{grid-template-columns:minmax(118px,42%) minmax(0,1fr);gap:4px}
+  .wx-left{padding:3px 5px;gap:2px}.wx-temp{font-size:clamp(28px,8vmin,42px)}.wx-fx{font-size:10px;margin-top:1px}
+  .wx-fx-ic{gap:3px}.wx-fx-ic .wx-ic{display:none}.wx-left .wx-stats{grid-template-columns:1fr;gap:0;overflow:hidden}
+  .wx-stat{font-size:9px;padding:1px 0;gap:3px}.wx-stat b{font-size:7px}.wx-stat:nth-child(n+4){display:none}
+  #wxFcLbl,.wx-fcgrid,.haz-ticker{display:none}.wx-section-label{font-size:8px;letter-spacing:.8px;line-height:1}
+  .wx-radar-status{font-size:8px;padding:5px}.wx-ticker{font-size:8px;padding:2px 4px}
+}
 .flip-row:focus-visible,.flip-chev:focus-visible{outline:2px solid var(--phos);outline-offset:-2px;opacity:1;background:rgba(255,255,255,.08)}
 .chcell:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
 .catchip:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
@@ -1160,7 +1193,7 @@ body:not(.atv-powered) .cabinet-readout{opacity:.36!important}.glass-dock{positi
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.203-timeless-ia";
+window.__ATV_BUILD="1.7.7-desktop.204-weather-watch";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1197,7 +1230,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.203 · timeless IA</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.204 · Weather Watch</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">AFTERGLOW · THE DIAL</div>
@@ -1967,7 +2000,7 @@ const CHANNEL_META={
 "Aviation":{desc:"Airplanes and flight \u2014 aviation history from biplanes to jets.",best:"afternoons",rel:["Auto Racing","Railroad"]},
 "Live Radio":{desc:"LIVE: real broadcast stations worldwide on a spinnable 3D globe (radio-browser) \u2014 drag the earth, click a dot.",best:"anytime",rel:["Public Domain Art","Live TV"]},
 "Public Domain Art":{desc:"A rotating gallery of public-domain masterworks from The Met Open Access, with a classical-music bed.",best:"anytime",rel:["Historic Waco","Deep Space Jazz"]},
-"Weather Watch":{desc:"LIVE: your local conditions, radar, forecast and alerts.",best:"mornings",rel:["Weather Watch","Tropical Watch"]},
+"Weather Watch":{desc:"LIVE: current station observations, three NWS radar layers, hourly and extended forecasts, local alerts, a national warning watchboard, and automatic Open-Meteo failover.",best:"anytime",rel:["Local Radar","Tropical Watch"]},
 "Sky Beacon Live":{desc:"LIVE: international flight tracker — starts at your local airspace then cycles every 90 s through the world's busiest hubs (JFK, Heathrow, CDG, DXB, HND, Singapore, LAX, Sydney). Real ADS-B via adsb.lol + airplanes.live + OpenSky fallback.",best:"anytime",rel:["Weather Watch","ISS Tracker"]},
 "Seismic Watch":{desc:"LIVE: elevated volcanoes and global earthquakes, on rotation.",best:"anytime",rel:["Weather Watch","Wildfire Watch"]},
 "News, News, News":{desc:"Newsreels, federal films and historic footage \u2014 the week\u2019s news, decades late.",best:"anytime",rel:["Live News","Historic Waco"]},
@@ -8389,11 +8422,9 @@ function startHazTicker(){
         return sev==="Extreme"||sev==="Severe"||/Warning/.test(ev); });
       nlog("hazticker",true,warnings.length+" active warnings nationwide ("+feats.length+" total alerts)");
       if(!warnings.length){ setHaz("NO ACTIVE WARNINGS NATIONWIDE / CONDITIONS NOMINAL"); return; }
-      var parts=warnings.slice(0,25).map(function(f){
-        var p=f.properties||{}; var area=(p.areaDesc||"").split(";")[0].split(",")[0];
-        return (p.event||"WARNING").toUpperCase()+(area?" \u2014 "+area:"");
-      });
-      setHaz("\u26a0 "+parts.join("   \u2022   "));
+      var counts={};warnings.forEach(function(f){var ev=String((f.properties&&f.properties.event)||"Weather Warning").toUpperCase();counts[ev]=(counts[ev]||0)+1;});
+      var parts=Object.keys(counts).sort(function(a,b){return counts[b]-counts[a];}).slice(0,6).map(function(ev){return counts[ev]+" "+ev;});
+      setHaz("\u26a0 NATIONAL WATCHBOARD \u00b7 "+warnings.length+" ACTIVE WARNING"+(warnings.length===1?"":"S")+" \u00b7 "+parts.join("   \u2022   "));
     }catch(e){ nlog("hazticker",false,(e&&e.message)||e); setHaz("NATIONWIDE HAZARD FEED UNAVAILABLE / will retry"); }
   };
   run(); hazTickerTimer=setInterval(run,480000);
@@ -11250,7 +11281,7 @@ async function tuneLocalRadar(ch,sl,my){
   } else {
     try{
       var loc=await getWxLocation(); if(my!==token) return;
-      var pt=await fetchJSON("https://api.weather.gov/points/"+loc.lat+","+loc.lon);
+      var pt=await fetchJSONResilient("https://api.weather.gov/points/"+loc.lat+","+loc.lon,"weather-points");
       if(my!==token) return;
       var rs=pt&&pt.properties&&pt.properties.radarStation;
       if(rs && /^[A-Z]{4}$/.test(rs)){ radarStation=rs; label=(loc.label||("near "+loc.lat.toFixed(2)+","+loc.lon.toFixed(2))); }
@@ -13658,7 +13689,9 @@ async function playBumper(ch,sl,my){
 
 /* ===== v10.1: skip — next item on the same channel, on demand ===== */
 function skipOne(){ if(!powered){quickBanner("TURN THE TV ON FIRST");return;}
-  var sc=byNum(curNum); if(sc)schedClear(sc); /* 1.2: SKIP = manual re-roll of the slot */
+  var sc=byNum(curNum);
+  if(sc&&sc.source==="weather"&&typeof window.__weatherNext==="function"){window.__weatherNext();return;}
+  if(sc)schedClear(sc); /* 1.2: SKIP = manual re-roll of the slot */
   if(curItem&&curItem.id){markSkipped(curItem.id);fastTuneDrop(curNum);}
   /* Promote a resolved program-director item before retuning. Unlike the normal
      preloader this is synchronous: SKIP can immediately consume a warm URL. */
@@ -13965,6 +13998,30 @@ function radarSector(lat,lon){ /* 1.4.2: NWS regional mosaic pick */
 function wxCompass(d){ if(d==null)return "--"; var dirs=["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
   return dirs[Math.round(d/22.5)%16]; }
 function wxHourLabel(iso){ try{ var d=new Date(iso); var h=d.getHours(); var ap=h>=12?"P":"A"; var h12=h%12; if(h12===0)h12=12; return h12+ap; }catch(e){ return "--"; } }
+function wxAgeLabel(iso){ try{var age=Math.max(0,Math.round((Date.now()-new Date(iso).getTime())/60000));if(!isFinite(age))return "LIVE";if(age<2)return "JUST NOW";if(age<60)return age+" MIN AGO";return Math.round(age/60)+" HR AGO";}catch(e){return "LIVE";} }
+function wxPopValue(p){var v=p&&p.probabilityOfPrecipitation&&p.probabilityOfPrecipitation.value;return v==null?null:Math.round(v);}
+function wxWmoText(code){code=Number(code);if(code===0)return "Clear";if(code===1)return "Mainly Clear";if(code===2)return "Partly Cloudy";if(code===3)return "Overcast";if(code===45||code===48)return "Fog";if(code>=51&&code<=57)return "Drizzle";if(code>=61&&code<=67)return "Rain";if(code>=71&&code<=77)return "Snow";if(code>=80&&code<=82)return "Rain Showers";if(code===85||code===86)return "Snow Showers";if(code>=95)return "Thunderstorms";return "Variable Clouds";}
+async function fetchOpenMeteoWeather(loc){
+  var url="https://api.open-meteo.com/v1/forecast?latitude="+encodeURIComponent(loc.lat)+"&longitude="+encodeURIComponent(loc.lon)+
+    "&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,weather_code,pressure_msl,wind_speed_10m,wind_direction_10m,visibility,dew_point_2m"+
+    "&hourly=temperature_2m,precipitation_probability,weather_code,wind_speed_10m,wind_direction_10m"+
+    "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max,wind_direction_10m_dominant&timezone=auto&forecast_days=7";
+  var d=await fetchJSONResilient(url,"weather-openmeteo"),c=d.current||{},h=d.hourly||{},dy=d.daily||{};
+  if(c.temperature_2m==null||!h.time||!dy.time)throw new Error("Open-Meteo returned incomplete weather data");
+  var apparent=c.apparent_temperature;
+  var op={timestamp:c.time,textDescription:wxWmoText(c.weather_code),temperature:{value:c.temperature_2m},
+    relativeHumidity:{value:c.relative_humidity_2m},windSpeed:{value:c.wind_speed_10m},windDirection:{value:c.wind_direction_10m},
+    barometricPressure:{value:c.pressure_msl==null?null:c.pressure_msl*100},dewpoint:{value:c.dew_point_2m},
+    heatIndex:{value:apparent},visibility:{value:c.visibility}};
+  var start=0,cut=Date.now()-1800000;while(start<h.time.length&&new Date(h.time[start]).getTime()<cut)start++;
+  var hours=h.time.slice(start,start+24).map(function(t,j){var i=start+j,ws=h.wind_speed_10m&&h.wind_speed_10m[i],wd=h.wind_direction_10m&&h.wind_direction_10m[i],hr=new Date(t).getHours();return {
+    startTime:t,temperature:wxC2F(h.temperature_2m&&h.temperature_2m[i]),shortForecast:wxWmoText(h.weather_code&&h.weather_code[i]),isDaytime:hr>=7&&hr<19,
+    probabilityOfPrecipitation:{value:h.precipitation_probability&&h.precipitation_probability[i]},windSpeed:ws==null?"":wxKmh2Mph(ws)+" mph",windDirection:wd==null?"":wxCompass(wd)};});
+  var periods=dy.time.slice(0,7).map(function(t,i){var hi=wxC2F(dy.temperature_2m_max&&dy.temperature_2m_max[i]),lo=wxC2F(dy.temperature_2m_min&&dy.temperature_2m_min[i]),ws=dy.wind_speed_10m_max&&dy.wind_speed_10m_max[i],wd=dy.wind_direction_10m_dominant&&dy.wind_direction_10m_dominant[i],desc=wxWmoText(dy.weather_code&&dy.weather_code[i]);return {
+    name:new Date(t+"T12:00:00").toLocaleDateString([],{weekday:"long"}),startTime:t,temperature:hi,isDaytime:true,shortForecast:desc+(lo==null?"":" \u00b7 Low "+lo+"\u00b0"),
+    probabilityOfPrecipitation:{value:dy.precipitation_probability_max&&dy.precipitation_probability_max[i]},windSpeed:ws==null?"":wxKmh2Mph(ws)+" mph",windDirection:wd==null?"":wxCompass(wd)};});
+  return {fc:{properties:{periods:periods}},hr:{properties:{periods:hours}},al:{features:[]},obs:{sid:"OPEN-METEO",p:op},source:"OPEN-METEO"};
+}
 
 /* 1.5.5: fancy inline SVG weather icons — replaces truncated condition text (no more "Monday Nig"). */
 function wxCat(s){ s=(s||"").toLowerCase();
@@ -14033,7 +14090,7 @@ async function tuneWeather(ch,sl,my){
         '</div>'+
         '<div class="wx-right">'+
           '<div class="wx-section-label" id="wxRadarLbl">RADAR</div>'+
-          '<div class="wx-radar-wrap"><img class="wx-radar" id="wxRadar" alt="radar loop"></div>'+
+          '<div class="wx-radar-wrap" id="wxRadarWrap"><img class="wx-radar" id="wxRadar" alt="Animated NWS radar loop"><div class="wx-radar-status" id="wxRadarStatus">LOADING LIVE RADAR\u2026</div></div>'+
         '</div>'+
       '</div>'+
       '<div class="wx-section-label" id="wxFcLbl">FORECAST</div>'+
@@ -14043,19 +14100,27 @@ async function tuneWeather(ch,sl,my){
       '<div class="wx-bug" id="wxBug">'+
         '<div class="wx-bug-id"><span class="wx-bug-dot"></span><span>AFTERGLOW WX</span></div>'+
         '<div class="wx-bug-mid"><span class="wx-bug-temp" id="wxBugTemp">--\u00b0</span>'+
-          '<span class="wx-bug-place" id="wxBugPlace">LOCATING\u2026</span></div>'+
+          '<span class="wx-bug-place" id="wxBugPlace">LOCATING\u2026</span><span class="wx-bug-alert" id="wxBugAlert"></span></div>'+
         '<div class="wx-bug-clock" id="wxBugClock">--:--</div>'+
       '</div>'+
     '</div>'; }
-  var radarMode=0; /* 1.4.2: tap the radar to cycle LOCAL -> REGIONAL -> NATIONAL */
+  var radarMode=0,radarChoices=[]; /* NEXT or a radar click cycles LOCAL -> REGIONAL -> NATIONAL without refetching the forecast. */
+  function paintRadar(){
+    if(!radarChoices.length){quickBanner("RADAR FEED WARMING");return;}
+    var rm=radarChoices[radarMode%radarChoices.length],rl=$("wxRadarLbl"),ri=$("wxRadar"),rs=$("wxRadarStatus");
+    if(rl)rl.textContent="LIVE RADAR / "+rm[0]+" / NEXT TO SWITCH";
+    if(rs){rs.classList.remove("ready");rs.textContent="LOADING "+rm[0]+" RADAR\u2026";}
+    if(ri){ri.onload=function(){if(rs)rs.classList.add("ready");};ri.onerror=function(){if(rs){rs.classList.remove("ready");rs.textContent=rm[0]+" RADAR IS TEMPORARILY UNAVAILABLE \u00b7 PRESS NEXT FOR ANOTHER LAYER";}};ri.src=rm[1]+"?_="+Date.now();}
+  }
+  window.__weatherNext=function(){radarMode=(radarMode+1)%Math.max(1,radarChoices.length);paintRadar();if(radarChoices.length)quickBanner("RADAR \u00b7 "+radarChoices[radarMode][0]);};
   var rw=screenArea?screenArea.querySelector(".wx-radar-wrap"):null;
-  if(rw){ rw.style.cursor="pointer"; rw.title="Tap to switch radar layer";
-    rw.addEventListener("click",function(){ radarMode=(radarMode+1)%3; run(); }); }
+  if(rw){ rw.style.cursor="pointer"; rw.title="Switch radar layer";rw.setAttribute("role","button");rw.setAttribute("tabindex","0");
+    rw.addEventListener("click",window.__weatherNext);rw.addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();window.__weatherNext();}}); }
   /* Keep desktop Weather Watch aligned with mobile's opt-in broadcast segment mode. */
   (function segmentCycle(){
     var SEGS=[{id:"current",label:"CURRENT CONDITIONS"},{id:"hourly",label:"HOUR BY HOUR"},{id:"radar",label:"LIVE RADAR"},{id:"extended",label:"EXTENDED FORECAST"}],idx=0,touched=0;
-    function showAll(){["wxMain","wxFcGrid","wxFcLbl","wxHourly","wxDaily"].forEach(function(i){var e=$(i);if(e)e.style.display="";});var l=document.querySelector(".wx-left"),r=document.querySelector(".wx-right");if(l)l.style.display="";if(r)r.style.display="";var x=$("wxSegLbl");if(x)x.style.display="none";}
-    function applySeg(){var s=SEGS[idx%SEGS.length],m=$("wxMain"),g=$("wxFcGrid"),f=$("wxFcLbl"),l=document.querySelector(".wx-left"),r=document.querySelector(".wx-right"),x=$("wxSegLbl");if(x){x.style.display="";x.textContent=s.label;}if(m)m.style.display=(s.id==="extended"||s.id==="hourly")?"none":"flex";if(l)l.style.display=s.id==="current"?"":"none";if(r)r.style.display=s.id==="radar"?"":"none";if(g)g.style.display=(s.id==="hourly"||s.id==="extended")?"":"none";if(f)f.style.display=(s.id==="hourly"||s.id==="extended")?"":"none";var h=$("wxHourly"),d=$("wxDaily");if(h)h.style.display=s.id==="hourly"?"":"none";if(d)d.style.display=s.id==="extended"?"":"none";}
+    function showAll(){["wxMain","wxFcGrid","wxFcLbl","wxHourly","wxDaily"].forEach(function(i){var e=$(i);if(e)e.style.display="";});var l=document.querySelector(".wx-left"),r=document.querySelector(".wx-right");if(l){l.style.display="";l.style.gridColumn="";}if(r){r.style.display="";r.style.gridColumn="";}var x=$("wxSegLbl");if(x)x.style.display="none";}
+    function applySeg(){var s=SEGS[idx%SEGS.length],m=$("wxMain"),g=$("wxFcGrid"),f=$("wxFcLbl"),l=document.querySelector(".wx-left"),r=document.querySelector(".wx-right"),x=$("wxSegLbl");if(x){x.style.display="";x.textContent=s.label;}if(m)m.style.display=(s.id==="extended"||s.id==="hourly")?"none":"grid";if(l){l.style.display=s.id==="current"?"":"none";l.style.gridColumn=s.id==="current"?"1 / -1":"";}if(r){r.style.display=s.id==="radar"?"":"none";r.style.gridColumn=s.id==="radar"?"1 / -1":"";}if(g)g.style.display=(s.id==="hourly"||s.id==="extended")?"":"none";if(f)f.style.display=(s.id==="hourly"||s.id==="extended")?"":"none";var h=$("wxHourly"),d=$("wxDaily");if(h)h.style.display=s.id==="hourly"?"":"none";if(d)d.style.display=s.id==="extended"?"":"none";}
     var sc=$("wxScreen");if(sc&&!$("wxSegLbl")){var x=document.createElement("div");x.id="wxSegLbl";x.className="wx-seg-lbl";x.style.display="none";sc.insertBefore(x,sc.firstChild);}if(sc)sc.addEventListener("click",function(){touched=Date.now();showAll();},true);rtInterval(function(){if(my!==token)return;if(!store.get("wxSegments",false)){showAll();return;}if(Date.now()-touched<60000)return;idx++;applySeg();},12000);if(store.get("wxSegments",false))applySeg();
   })();
   /* bug clock ticks independently of the 10-minute data refresh so it always reads live */
@@ -14066,7 +14131,7 @@ async function tuneWeather(ch,sl,my){
       c.textContent=hh+":"+String(d.getMinutes()).padStart(2,"0")+" "+ap; }
     tickBug(); rtInterval(tickBug,1000);
   })();
-  clearInterval(weatherTimer); startIAJazz(); startHazTicker(); // CHANGED: nationwide ticker now lives only on this channel, not globally
+  clearInterval(weatherTimer); startIAJazz("gmjazz"); startHazTicker(); // Weather Watch's dedicated atmospheric jazz bed + channel-only national crawl
   var run=async function(){
     if(my!==token || !powered){ clearInterval(weatherTimer); return; }
     var loc=await getWxLocation(); if(my!==token)return;
@@ -14074,40 +14139,45 @@ async function tuneWeather(ch,sl,my){
     var li=await resolveLocale(loc); if(my!==token)return;
     var radarSt=(li&&li.radar)||WX_RADAR_STATION;
     var rsec=radarSector(loc.lat,loc.lon);
-    var rmodes=[["LOCAL "+radarSt,"https://radar.weather.gov/ridge/standard/"+radarSt+"_loop.gif"],
+    radarChoices=[["LOCAL "+radarSt,"https://radar.weather.gov/ridge/standard/"+radarSt+"_loop.gif"],
                 ["REGIONAL "+rsec,"https://radar.weather.gov/ridge/standard/"+rsec+"_loop.gif"],
                 ["NATIONAL","https://radar.weather.gov/ridge/standard/CONUS_loop.gif"]];
-    var rm=rmodes[radarMode%3];
-    var rl=$("wxRadarLbl"); if(rl)rl.textContent="RADAR / "+rm[0]+" / TAP TO SWITCH";
-    var ri=$("wxRadar"); if(ri) ri.src=rm[1]+"?_="+Date.now(); /* 1.4.2: layer-aware, refreshes each poll */
+    paintRadar();
     try{
-      var pt=await fetchJSON("https://api.weather.gov/points/"+loc.lat+","+loc.lon);
-      var props=(pt&&pt.properties)||{};
-      var fcUrl=props.forecast, hrUrl=props.forecastHourly, stUrl=props.observationStations;
-      if(!fcUrl)throw new Error("no forecast url");
-
-      var fcP=fetchJSON(fcUrl).catch(function(){return null;});
-      var hrP=hrUrl?fetchJSON(hrUrl).catch(function(){return null;}):Promise.resolve(null);
-      var alP=fetchJSON("https://api.weather.gov/alerts/active?point="+loc.lat+","+loc.lon).catch(function(){return null;});
-      var obsP=(async function(){ // NEW: real current conditions from the nearest reporting station, not just a forecast period
-        try{ if(!stUrl)return null;
-          var stations=await fetchJSON(stUrl);
-          var first=stations&&stations.features&&stations.features[0];
-          var sid=first&&first.properties&&first.properties.stationIdentifier;
-          if(!sid)return null;
-          var obs=await fetchJSON("https://api.weather.gov/stations/"+sid+"/observations/latest");
-          return {sid:sid, p:(obs&&obs.properties)||null};
-        }catch(e){ return null; }
-      })();
-
-      var results=await Promise.all([fcP,hrP,alP,obsP]);
-      var fc=results[0], hr=results[1], al=results[2], obs=results[3];
+      var fc=null,hr=null,al=null,obs=null,weatherSource="NWS";
+      try{
+        var pt=await fetchJSONResilient("https://api.weather.gov/points/"+loc.lat+","+loc.lon,"weather-points");
+        var props=(pt&&pt.properties)||{};
+        var fcUrl=props.forecast, hrUrl=props.forecastHourly, stUrl=props.observationStations;
+        if(!fcUrl)throw new Error("no forecast url");
+        var fcP=fetchJSONResilient(fcUrl,"weather-forecast").catch(function(){return null;});
+        var hrP=hrUrl?fetchJSONResilient(hrUrl,"weather-hourly").catch(function(){return null;}):Promise.resolve(null);
+        var alP=fetchJSONResilient("https://api.weather.gov/alerts/active?point="+loc.lat+","+loc.lon,"weather-alerts").catch(function(){return null;});
+        var obsP=(async function(){
+          try{ if(!stUrl)return null;
+            var stations=await fetchJSONResilient(stUrl,"weather-stations");
+            var first=stations&&stations.features&&stations.features[0];
+            var sid=first&&first.properties&&first.properties.stationIdentifier;
+            if(!sid)return null;
+            var latest=await fetchJSONResilient("https://api.weather.gov/stations/"+sid+"/observations/latest","weather-observation");
+            return {sid:sid,p:(latest&&latest.properties)||null};
+          }catch(e){return null;}
+        })();
+        var results=await Promise.all([fcP,hrP,alP,obsP]);
+        fc=results[0];hr=results[1];al=results[2];obs=results[3];
+        if(!(fc&&fc.properties&&fc.properties.periods&&fc.properties.periods.length))throw new Error("NWS forecast unavailable");
+      }catch(nwsError){
+        nlog("weather-nws",false,((nwsError&&nwsError.message)||nwsError)+" \u00b7 switching to Open-Meteo");
+        var fallback=await fetchOpenMeteoWeather(loc);
+        fc=fallback.fc;hr=fallback.hr;al=fallback.al;obs=fallback.obs;weatherSource=fallback.source;
+      }
       if(my!==token)return;
-      nlog("weather",true,loc.label+(obs&&obs.sid?(" \u00b7 "+obs.sid):""));
+      nlog("weather",true,weatherSource+" \u00b7 "+loc.label+(obs&&obs.sid?(" \u00b7 "+obs.sid):""));
 
       var periods=(fc&&fc.properties&&fc.properties.periods)||[];
       var hours=(hr&&hr.properties&&hr.properties.periods)||[];
-      var feats=(al&&al.features)||[];
+      var feats=(al&&al.features)||[],alertSeen={};
+      var localAlerts=feats.filter(function(f){var p=f.properties||{},k=String(p.event||"")+"|"+String(p.expires||"");if(alertSeen[k])return false;alertSeen[k]=1;return true;});
       var op=obs&&obs.p;
       var per0=periods[0]||{};
       ensureWxIconCSS();
@@ -14115,7 +14185,7 @@ async function tuneWeather(ch,sl,my){
       var locEl=el.querySelector(".wx-loc"), updEl=$("wxUpd"), tEl=el.querySelector(".wx-temp"), fEl=el.querySelector(".wx-fx"),
           statsEl=$("wxStats"), hourlyEl=$("wxHourly"), dailyEl=$("wxDaily"), tk=el.querySelector(".wx-ticker");
       if(locEl)locEl.textContent=((li&&li.city)?(li.city+", "+(li.state||"")):(loc.label||"YOUR AREA")).toUpperCase();
-      if(updEl)updEl.textContent="Updated "+new Date().toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});
+      if(updEl){var refreshAt=new Date().toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});updEl.textContent=weatherSource+" \u00b7 "+(obs&&obs.sid?(obs.sid+" OBS "+wxAgeLabel(op&&op.timestamp)):"FORECAST")+" \u00b7 REFRESHED "+refreshAt;}
 
       /* current conditions: prefer the REAL observation, fall back to the forecast period if the station is unreachable */
       var curTempF = op&&op.temperature&&op.temperature.value!=null ? wxC2F(op.temperature.value) : per0.temperature;
@@ -14136,22 +14206,24 @@ async function tuneWeather(ch,sl,my){
           var dew=op.dewpoint&&op.dewpoint.value!=null?wxC2F(op.dewpoint.value)+"\u00b0F":"--";
           var feels=(op.heatIndex&&op.heatIndex.value!=null)?wxC2F(op.heatIndex.value):((op.windChill&&op.windChill.value!=null)?wxC2F(op.windChill.value):null);
           var visb=(op.visibility&&op.visibility.value!=null)?(op.visibility.value*0.000621371).toFixed(0)+" mi":null;
-          statsEl.innerHTML='<div class="wx-stat"><b>HUMIDITY</b>'+hum+'</div><div class="wx-stat"><b>WIND</b>'+wind+'</div>'+
-                             '<div class="wx-stat"><b>PRESSURE</b>'+pres+'</div><div class="wx-stat"><b>DEW POINT</b>'+dew+'</div>'+
-                             (feels!=null?('<div class="wx-stat"><b>FEELS LIKE</b>'+feels+'\u00b0F</div>'):'')+
-                             (visb?('<div class="wx-stat"><b>VISIBILITY</b>'+visb+'</div>'):'');
+          var statRows=[["HUMIDITY",hum],["WIND",wind],["PRESSURE",pres],["DEW POINT",dew]];
+          if(feels!=null)statRows.push(["FEELS LIKE",feels+"\u00b0F"]);if(visb)statRows.push(["VISIBILITY",visb]);
+          var pop0=wxPopValue(per0);if(statRows.length<6&&pop0!=null)statRows.push(["RAIN CHANCE",pop0+"%"]);
+          statsEl.innerHTML=statRows.slice(0,6).map(function(s){return '<div class="wx-stat"><b>'+s[0]+'</b>'+s[1]+'</div>';}).join("");
         } else { statsEl.innerHTML='<div class="wx-stat" style="grid-column:1/-1;opacity:.6">Live station data unavailable \u2014 showing forecast only</div>'; }
       }
       if(hourlyEl){
         hourlyEl.innerHTML = hours.slice(0,8).map(function(h){
-          return '<div class="wx-hr"><div class="wx-hr-t">'+wxHourLabel(h.startTime)+'</div><div class="wx-hr-deg">'+(h.temperature!=null?h.temperature+'\u00b0':'--')+'</div>'+
-                 '<div class="wx-hr-fx">'+wxIcon(h.shortForecast,h.isDaytime)+'</div></div>';
+          var hp=wxPopValue(h),hm=[];if(hp!=null)hm.push(hp+"% RAIN");if(h.windSpeed)hm.push(h.windSpeed+(h.windDirection?(" "+h.windDirection):""));
+          return '<div class="wx-hr" title="'+esch(h.shortForecast||"")+'"><div class="wx-hr-t">'+wxHourLabel(h.startTime)+'</div><div class="wx-hr-deg">'+(h.temperature!=null?h.temperature+'\u00b0':'--')+'</div>'+
+                 '<div class="wx-hr-meta">'+esch(hm.join(" \u00b7 ")||h.shortForecast||"")+'</div></div>';
         }).join("") || '<div class="pop-empty">Hourly data unavailable</div>';
       }
       if(dailyEl){
         dailyEl.innerHTML = periods.slice(0,6).map(function(p){
+          var dp=wxPopValue(p),dm=[];if(dp!=null)dm.push(dp+"% RAIN");if(p.windSpeed)dm.push(p.windSpeed+(p.windDirection?(" "+p.windDirection):""));
           return '<div class="wx-day" title="'+esch((p.name||'')+' \u2014 '+(p.shortForecast||''))+'"><div class="wx-day-n">'+esch(wxDayLabel(p.name))+'</div><div class="wx-day-deg">'+(p.temperature!=null?p.temperature+'\u00b0':'--')+'</div>'+
-                 wxIcon(p.shortForecast,p.isDaytime)+'<div class="wx-day-fx">'+esch(p.shortForecast||'')+'</div></div>';
+                 wxIcon(p.shortForecast,p.isDaytime)+'<div class="wx-day-fx">'+esch(p.shortForecast||'')+'</div><div class="wx-day-meta">'+esch(dm.join(" \u00b7 "))+'</div></div>';
         }).join("") || '<div class="pop-empty">Forecast unavailable</div>';
       }
       /* 1.6.6: short spoken recap (replaces the retired Storm Watch Radio AFD) — once per new forecast */
@@ -14164,8 +14236,9 @@ async function tuneWeather(ch,sl,my){
         }
       } }catch(e){}
       if(tk){
-        if(feats.length){
-          tk.innerHTML = '<span class="wx-tk-in">'+feats.map(function(f){ /* CYCLE-2: ticker scrolls now */
+        var alertBug=$("wxBugAlert");if(alertBug){alertBug.textContent=localAlerts.length?(localAlerts.length+" ALERT"+(localAlerts.length===1?"":"S")):"";alertBug.classList.toggle("on",!!localAlerts.length);}
+        if(localAlerts.length){
+          tk.innerHTML = '<span class="wx-tk-in">'+localAlerts.map(function(f){ /* CYCLE-2: ticker scrolls now */
             var pr=f.properties||{}; var sev=(pr.severity||"").toLowerCase();
             var cls = sev==="extreme"||sev==="severe" ? "wx-sev-high" : sev==="moderate" ? "wx-sev-mid" : "wx-sev-low";
             var exp = pr.expires ? " \u00b7 until "+new Date(pr.expires).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}) : "";
@@ -14181,8 +14254,9 @@ async function tuneWeather(ch,sl,my){
     }catch(e){
       nlog("weather",false,(e&&e.message)||e);
       var fEl2=el.querySelector(".wx-fx"), tk2=el.querySelector(".wx-ticker");
-      if(fEl2)fEl2.textContent="Weather service unavailable right now";
-      if(tk2)tk2.textContent="Check DIAG for details \u00b7 will retry";
+      var u2=$("wxUpd");if(u2)u2.textContent="NWS CONNECTION INTERRUPTED \u00b7 RETRYING";
+      if(fEl2&&!/\d/.test((el.querySelector(".wx-temp")||{}).textContent||""))fEl2.textContent="Weather service reconnecting\u2026";
+      if(tk2&&!tk2.querySelector(".wx-tk-in"))tk2.textContent="LIVE WEATHER FEED WILL RETRY AUTOMATICALLY";
     }
   };
   run(); weatherTimer=rtInterval(run,300000);

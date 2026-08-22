@@ -1160,7 +1160,7 @@ body:not(.atv-powered) .cabinet-readout{opacity:.36!important}.glass-dock{positi
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.200-sports-media";
+window.__ATV_BUILD="1.7.7-desktop.201-first-frame";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1197,7 +1197,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.200 · sports suite + media ads</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.201 · first-frame shelf</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">AFTERGLOW · THE DIAL</div>
@@ -5638,7 +5638,18 @@ function iaRelayMetadataURL(id){return IA_RELAY_BASE+"/metadata/"+encodeURICompo
    The browser still resolves media locally (so direct Archive CDN playback, captions and
    fallbacks stay intact), but discovery is no longer on the channel-change critical path. */
 var iaProgramQueues={}, iaProgramInflight={}, iaProgramMedia={}, iaQueueRetries={}, iaTuneRetries={};
+/* FIRST-FRAME SHELF: queue discovery alone still left the next Archive CDN
+   request until after a channel change. Keep one muted, preloading media element
+   for a small set of explicitly requested neighboring stations, then hand that
+   exact element to the player. Six is enough for channel surfing without turning
+   the dial into a background download farm. */
+var iaMediaWarmers={}, iaMediaWarmerOrder=[], iaMediaWarmByChannel={}, iaWarmWanted={}, IA_MEDIA_WARM_MAX=6;
 function iaQueueKey(ch){return String((ch&&ch.num)||((ch&&ch.nm)||""));}
+function iaMediaWarmKey(ch,item){return iaQueueKey(ch)+":"+String(item&&item.identifier||item&&item.id||"");}
+function releaseIAMediaWarmer(key,keepElement){var w=iaMediaWarmers[key];if(!w)return null;delete iaMediaWarmers[key];if(iaMediaWarmByChannel[w.channel]===key)delete iaMediaWarmByChannel[w.channel];clearTimeout(w.timer);var i=iaMediaWarmerOrder.indexOf(key);if(i>=0)iaMediaWarmerOrder.splice(i,1);if(!keepElement){try{w.el.pause();w.el.removeAttribute("src");w.el.load();}catch(e){}}return w.el;}
+function takeIAMediaWarmer(ch,item){return releaseIAMediaWarmer(iaMediaWarmKey(ch,item),true);}
+function stageIAMediaWarmer(ch,item,pl){var ck=iaQueueKey(ch);if(!pl||!pl.url||!iaWarmWanted[ck]||iaWarmWanted[ck]<Date.now())return;var key=iaMediaWarmKey(ch,item),prior=iaMediaWarmByChannel[ck];if(!key||iaMediaWarmers[key])return;if(prior&&prior!==key){var pw=iaMediaWarmers[prior];if(pw&&pw.el.readyState>=2)return;releaseIAMediaWarmer(prior,false);}try{var el=document.createElement(pl.type==="audio"?"audio":"video");el.preload="auto";el.muted=true;el.playsInline=true;el.src=pl.url;el.load();iaMediaWarmerOrder.push(key);iaMediaWarmByChannel[ck]=key;iaMediaWarmers[key]={el:el,channel:ck,timer:setTimeout(function(){releaseIAMediaWarmer(key,false);},90000)};while(iaMediaWarmerOrder.length>IA_MEDIA_WARM_MAX)releaseIAMediaWarmer(iaMediaWarmerOrder[0],false);nlog("first-frame",true,"staging CH "+ck);}catch(e){}}
+function warmIAQueueHead(ch){var q=iaProgramQueues[iaQueueKey(ch)]||[],item=null;for(var i=0;i<q.length;i++){var ready=iaProgramMedia[q[i].identifier];if(ready&&typeof ready.then!=="function"&&ready.url){item=q[i];break;}}item=item||q[0];if(!item)return;var pl=iaProgramMedia[item.identifier];if(pl&&typeof pl.then==="function")pl.then(function(ready){stageIAMediaWarmer(ch,item,ready);});else stageIAMediaWarmer(ch,item,pl);}
 function iaRuntimeSeconds(v){if(typeof v==="number")return v;var s=String(v||""),p=s.split(":");if(p.length===3)return (+p[0]||0)*3600+(+p[1]||0)*60+(+p[2]||0);if(p.length===2)return (+p[0]||0)*60+(+p[1]||0);var h=s.match(/(\d+(?:\.\d+)?)\s*(?:hours?|hrs?)/i),m=s.match(/(\d+(?:\.\d+)?)\s*(?:minutes?|mins?)/i);if(h||m)return Math.round(((h?+h[1]:0)*3600)+((m?+m[1]:0)*60));return parseFloat(s)||0;}
 function iaRuntimeLabel(v){var s=Math.round(iaRuntimeSeconds(v));if(!s)return "";return s>=3600?Math.floor(s/3600)+"h "+Math.round((s%3600)/60)+"m":Math.max(1,Math.round(s/60))+"m";}
 function iaProgramAllowed(item,sl){
@@ -5655,9 +5666,9 @@ async function iaQueueRequest(ch,sl,count){
     var out=((d&&d.items)||[]).filter(function(it){return iaProgramAllowed(it,sl);});out.hydrating=!!(d&&d.hydrating);return out;
   }catch(e){nlog("queue",false,"director unavailable: "+(e&&e.message||e));return [];}
 }
-function warmIAQueue(ch,sl,hydrating){var q=iaProgramQueues[iaQueueKey(ch)]||[];q.slice(0,5).forEach(function(it){if(!it||iaProgramMedia[it.identifier])return;if(it.media&&it.media.url){iaProgramMedia[it.identifier]={type:it.media.type||"video",url:it.media.url,alts:it.media.alts||[],id:it.identifier,captions:null,meta:{}};return;}/* Resolve locally while the Worker hydrates its cached copy too. */iaProgramMedia[it.identifier]=resolvePlayable(it.identifier).catch(function(){return null;});});}
+function warmIAQueue(ch,sl,hydrating){var q=iaProgramQueues[iaQueueKey(ch)]||[];q.slice(0,5).forEach(function(it){if(!it||iaProgramMedia[it.identifier])return;var id=it.identifier;if(it.media&&it.media.url){iaProgramMedia[id]={type:it.media.type||"video",url:it.media.url,alts:it.media.alts||[],id:id,captions:null,meta:{}};return;}/* Resolve all five in parallel and replace the Promise with its settled value so tuning can choose whichever candidate is actually ready. */var pending=resolvePlayable(id).then(function(pl){iaProgramMedia[id]=pl;warmIAQueueHead(ch);return pl;}).catch(function(){iaProgramMedia[id]=null;return null;});iaProgramMedia[id]=pending;});warmIAQueueHead(ch);}
 async function refillIAQueue(ch,sl){var k=iaQueueKey(ch);if(iaProgramInflight[k])return iaProgramInflight[k];iaProgramInflight[k]=iaQueueRequest(ch,sl,5).then(function(items){var old=iaProgramQueues[k]||[], byId={}, order=[];old.concat(items).forEach(function(it){if(!it||!it.identifier||!iaProgramAllowed(it,sl))return;if(!byId[it.identifier])order.push(it.identifier);if(!byId[it.identifier]||(it.media&&it.media.url&&!byId[it.identifier].media))byId[it.identifier]=it;});iaProgramQueues[k]=order.map(function(id){return byId[id];}).slice(0,5);warmIAQueue(ch,sl,items.hydrating);if(iaProgramQueues[k].length){iaQueueRetries[k]=0;if(items.hydrating)setTimeout(function(){refillIAQueue(ch,sl);},1200);}else{var retry=(iaQueueRetries[k]||0)+1;iaQueueRetries[k]=retry;if(retry<=3)setTimeout(function(){if(powered)refillIAQueue(ch,sl);},retry*4500);}nlog("queue",true,"CH "+k+" ready="+iaProgramQueues[k].length);if(gwrap&&gwrap.classList.contains("show"))renderRail();return iaProgramQueues[k];}).finally(function(){delete iaProgramInflight[k];});return iaProgramInflight[k];}
-function takeIAQueue(ch,sl){var k=iaQueueKey(ch), q=iaProgramQueues[k]||[];while(q.length){var it=q.shift();if(iaProgramAllowed(it,sl)){refillIAQueue(ch,sl);return it;}}refillIAQueue(ch,sl);return null;}
+function takeIAQueue(ch,sl){var k=iaQueueKey(ch),q=iaProgramQueues[k]||[],warmAt=-1,resolvedAt=-1,fallback=-1;for(var i=0;i<q.length;i++){var it=q[i];if(!iaProgramAllowed(it,sl))continue;if(fallback<0)fallback=i;var w=iaMediaWarmers[iaMediaWarmKey(ch,it)],pl=iaProgramMedia[it.identifier];if(w&&w.el.readyState>=2){warmAt=i;break;}if(resolvedAt<0&&pl&&typeof pl.then!=="function"&&pl.url)resolvedAt=i;}var at=warmAt>=0?warmAt:(resolvedAt>=0?resolvedAt:fallback);if(at>=0){var picked=q.splice(at,1)[0];warmIAQueueHead(ch);refillIAQueue(ch,sl);return picked;}refillIAQueue(ch,sl);return null;}
 /* Archive is blocked outright in some desktop browsers. Keep every discovery probe short so
    a dead route never holds a channel change hostage for 15+ seconds. */
 function iaFastJSON(url,ms){return withTO(fetch(url,{mode:"cors"}).then(r=>{if(!r.ok)throw new Error("http "+r.status);return r.json();}),ms||1800);}
@@ -6121,10 +6132,12 @@ async function tuneNum(n){
   if(n===-1 && customSlot){ return tuneCustomExec(); }
   const ch=byNum(n); if(!ch)return;
   const changedChannel=(curNum!==n)||justPowered; justPowered=false; // NEW: station bumper only on a real channel change
+  if(changedChannel)adQueue=0; /* a break belongs to one station; never leak it across a channel change */
   curNum=n; store.set("last",n); store.set("lastName",ch.nm); const my=++token; clearTimeout(retryTimer);
   renderRail(); chNum.textContent=String(n);
   const hour=new Date().getHours(); const sl=slotFor(ch,hour);
   if(marathonLock[ch.num] && sl.source==="ia"){ sl.queries=marathonQueryFor(marathonLock[ch.num],ch); sl.show="\ud83d\udd12 "+marathonLock[ch.num].label; } // NEW: marathon lock
+  if(!ch.source)primeIACompanions(ch,sl);
   nowName.textContent=ch.nm; nowMeta.textContent=sl.show; showBanner(ch,sl);
   bug.textContent=(isFav(n)?"★ ":"")+"CH "+n; bug.classList.add("hide"); lower.classList.add("fade");
   volHint.classList.remove("show");
@@ -6302,6 +6315,7 @@ async function preloadNext(ch,sl,my){
     if(!pl)return;
     pl.title=item.title||item.identifier; pl.year=item.year;
     preloadCache={chNum:ch.num,pl:pl,at:Date.now()};
+    iaWarmWanted[iaQueueKey(ch)]=Date.now()+120000;stageIAMediaWarmer(ch,item,pl);
     nlog("preload",true,'CH '+ch.num+' next: "'+String(pl.title).slice(0,40)+'"');
   }catch(e){ nlog("preload",false,(e&&e.message)||e); }
 }
@@ -6334,6 +6348,23 @@ function primeIAQueues(){
     while(active<limit&&cursor<all.length){(function(ch){active++;var sl=slotFor(ch,new Date().getHours(),{preview:true});refillIAQueue(ch,sl).catch(function(){}).finally(function(){active--;if(gwrap&&gwrap.classList.contains("show"))renderRail();setTimeout(pump,160);});})(all[cursor++]);}
   }
   pump();
+}
+
+/* A channel change explicitly prioritizes the station being tuned and the
+   neighboring IA stations a viewer is most likely to surf to next. Their five
+   identifiers resolve in parallel and only the queue head gets a media element. */
+function primeIACompanions(ch,activeSlot){
+  if(!powered||!ch||ch.source)return;
+  var all=CH.filter(function(c){return !c.source;}).sort(function(a,b){return a.num-b.num;}), at=all.indexOf(ch), targets=[ch];
+  for(var d=1;d<=3;d++){if(all[at+d])targets.push(all[at+d]);if(d<=2&&all[at-d])targets.push(all[at-d]);}
+  ++iaPrimeRun;clearTimeout(primeIACompanions._resume);Object.keys(iaWarmWanted).forEach(function(k){iaWarmWanted[k]=0;});
+  var targetSet={};targets.slice(0,IA_MEDIA_WARM_MAX).forEach(function(c){targetSet[iaQueueKey(c)]=1;});
+  Object.keys(iaMediaWarmers).forEach(function(key){var w=iaMediaWarmers[key];if(w&&!targetSet[w.channel])releaseIAMediaWarmer(key,false);});
+  targets.slice(0,IA_MEDIA_WARM_MAX).forEach(function(c,index){
+    var key=iaQueueKey(c);iaWarmWanted[key]=Date.now()+120000;
+    setTimeout(function(){if(!powered)return;var ss=(c===ch&&activeSlot)?activeSlot:slotFor(c,new Date().getHours(),{preview:true});refillIAQueue(c,ss).catch(function(){});},index*90);
+  });
+  primeIACompanions._resume=setTimeout(function(){if(powered)primeIAQueues();},15000);
 }
 
 async function tuneIA(ch,sl,my){
@@ -6461,13 +6492,17 @@ var AUTOPLAY_FREE=false; /* 1.2.4: probe BEFORE any user gesture — succeeds on
                           function(){nlog("audio",false,"autoplay policy RESTRICTED (plain browser)");});
 }catch(e){} })();
 var SILENT_WAV="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAIlYAAESsAAACABAAZGF0YQQAAAAAAA==";
-function acquireVideo(){
-  if(!theVideo) theVideo=document.createElement("video");
-  if(videoCtl){ try{videoCtl.abort();}catch(e){} }
-  videoCtl=(typeof AbortController!=="undefined")?new AbortController():null;
-  try{theVideo.pause();}catch(e){}
-  try{theVideo.removeAttribute("src");theVideo.load();}catch(e){}
-  return {v:theVideo, sig:videoCtl?videoCtl.signal:undefined};
+function acquireVideo(staged,preserveCurrent){
+  var previousVideo=theVideo,previousCtl=videoCtl;
+  var v=(staged&&staged.tagName)?staged:(preserveCurrent?document.createElement("video"):(theVideo||document.createElement("video")));
+  var ctl=(typeof AbortController!=="undefined")?new AbortController():null;
+  if(!preserveCurrent){
+    if(previousCtl){try{previousCtl.abort();}catch(e){}}
+    if(staged&&previousVideo&&previousVideo!==v){try{previousVideo.pause();previousVideo.removeAttribute("src");previousVideo.load();}catch(e){}}
+    theVideo=v;videoCtl=ctl;
+    if(!staged){try{v.pause();}catch(e){}try{v.removeAttribute("src");v.load();}catch(e){}}
+  }
+  return {v:v,sig:ctl?ctl.signal:undefined,commit:function(){if(!preserveCurrent)return;if(previousCtl){try{previousCtl.abort();}catch(e){}}theVideo=v;videoCtl=ctl;},rollback:function(){if(ctl){try{ctl.abort();}catch(e){}}if(v!==previousVideo){try{v.pause();v.removeAttribute("src");v.load();}catch(e){}try{v.remove();}catch(e){}}if(preserveCurrent){theVideo=previousVideo;videoCtl=previousCtl;}else if(videoCtl===ctl)videoCtl=null;}};
 }
 function unlockMedia(){ /* must be called from inside a real user gesture (power press) */
   try{ if(!theVideo) theVideo=document.createElement("video");
@@ -6484,9 +6519,12 @@ function unlockMedia(){ /* must be called from inside a real user gesture (power
 function playFile(it,ch,sl,my,isFallback){return new Promise(res=>{
   const isAudio = it.type==="audio" || ch.audio;
   soundBlocked=false; // flag only set if the muted fallback fires
-  killMedia(); screenArea.innerHTML="";              /* 1.1: clear the stage BEFORE reusing the element */
-  const av=acquireVideo(), v=av.v, sig=av.sig;       /* 1.1: the gesture-unlocked element, reused every program */
-  v.src=it.url; v.autoplay=true; v.controls=!isAudio; v.playsInline=true; v.setAttribute("playsinline","");v.setAttribute("webkit-playsinline","");
+  const staged=(!it.isAd&&!it.isSignoff&&ch&&ch.num>0)?takeIAMediaWarmer(ch,it):null;
+  const outgoing=(curVideo&&curVideo.tagName==="VIDEO"&&curVideo.parentNode===screenArea&&curVideo!==staged)?curVideo:null;
+  const preservePicture=!!outgoing;
+  if(!preservePicture){killMedia();screenArea.innerHTML="";}else{try{outgoing.muted=true;}catch(e){}}
+  const av=acquireVideo(staged,preservePicture), v=av.v, sig=av.sig; /* stage cold media behind the outgoing picture, then swap atomically */
+  if(!staged)v.src=it.url; v.autoplay=true; v.controls=!isAudio; v.playsInline=true; v.setAttribute("playsinline","");v.setAttribute("webkit-playsinline","");
   v.muted=muted||((Date.now()-lastGesture)>4000); /* 1.2.2: fresh gesture -> audible start; stale -> deliberate muted start, healed below */
   v.volume=vol;
   /* FIX err4: crossorigin attribute removed. It forced CORS-mode media loading, and any hop of
@@ -6494,7 +6532,7 @@ function playFile(it,ch,sl,my,isFallback){return new Promise(res=>{
      MEDIA_ERR_SRC_NOT_SUPPORTED (err 4) before touching the codec. Plain media loading just works. */
   /* A bad Archive derivative used to own the television for 22 seconds before
      the next ready program could try. Keep the screen responsive instead. */
-  let done=false; const to=setTimeout(()=>fin(false),(isFallback>0?5000:7000));
+  let done=false; const to=setTimeout(()=>fin(false),(it.isAd?4500:(isFallback>0?5000:7000)));
   function tryPlay(){ try{const p=v.play&&v.play();
     if(p&&p.catch)p.catch(()=>{ /* audible autoplay blocked -> mute & retry so the queue continues */
       try{ v.muted=true; needSound(true); const q=v.play&&v.play(); if(q&&q.catch)q.catch(()=>{});
@@ -6511,7 +6549,10 @@ function playFile(it,ch,sl,my,isFallback){return new Promise(res=>{
   }catch(e){} }
   function fin(ok){ if(done)return; done=true; clearTimeout(to);
     if(ok){
-      if(my!==token){ try{v.pause();}catch(e){} return res(true);} // superseded; report handled
+      if(my!==token){av.rollback();return res(true);} // superseded; keep the newer tune's picture intact
+      av.commit();
+      if(outgoing&&outgoing!==v){try{outgoing.pause();outgoing.removeAttribute("src");outgoing.load();}catch(e){}try{outgoing.remove();}catch(e){}}
+      v.style.position="";v.style.inset="";v.style.zIndex="";v.style.pointerEvents="";
       if(ch&&!ch.source)iaTuneRetries[String(ch.num||ch.nm||"")]=0;
       hideOv(); hideBuffer(); setSig("live", isAudio?"ON AIR ♪":"ON AIR");
       nlog("audio",!v.muted,(v.muted?"MUTED":"AUDIBLE")+" start / vol="+Math.round(v.volume*100)+(muted?" / GLOBAL MUTE ON":"")); /* 1.2.2: every program logs its audio state to DIAG */
@@ -6533,7 +6574,7 @@ function playFile(it,ch,sl,my,isFallback){return new Promise(res=>{
       showNow(ch,sl,it.title||ch.nm, it.year?("· "+it.year):(it.source||""));
       bug.classList.remove("hide");
       requestAnimationFrame(()=>{ requestAnimationFrame(()=>{ if(v)v.style.opacity="1"; }); }); // fade IN
-    }
+    } else av.rollback();
     res(ok);
   }
   v.addEventListener("loadeddata",()=>{ if(resumeSeekSec>0){ try{v.currentTime=resumeSeekSec;}catch(e){} resumeSeekSec=0; } fin(true); },{signal:sig});
@@ -6544,8 +6585,8 @@ function playFile(it,ch,sl,my,isFallback){return new Promise(res=>{
   v.addEventListener("ended",async ()=>{ if(token!==my) return; resetProgress();
     if(it.isSignoff){ try{signoffClipDone();}catch(e){} return; } // sign-off sequence drives its own next step
     if(!powered) return;
-    if(it.isAd){ if(adQueue>0){ await fadeOutCurrent(); if(await nextAd(ch,sl,my)) return; }
-      if(token===my&&powered){ await fadeOutCurrent(); tuneNum(curNum); } return; }
+    if(it.isAd){ if(adsOn&&adQueue>0){ if(await nextAd(ch,sl,my)) return; } else adQueue=0;
+      if(token===my&&powered)tuneNum(curNum); return; }
     /* Station bumper insertion — 40% chance on network-shaped channels. Preempts ad break so we
        don't chain (real TV was often bumper OR commercial, not both). Bumper's own onended re-enters
        here with isAd:true and adQueue:0, which cleanly falls through to tuneNum for next program. */
@@ -6556,7 +6597,7 @@ function playFile(it,ch,sl,my,isFallback){return new Promise(res=>{
     }
     /* Video stations get video spots; music/radio stations get audio-only spots.
        A commercial can never cross that media boundary. */
-    if(adsOn && !ch.source && ch.gl!=="commercials"){ await fadeOutCurrent(); if(await playAdBreak(ch,sl,my)) return; } // fade to black, then break
+    if(adsOn && !ch.source && ch.gl!=="commercials"){ if(await playAdBreak(ch,sl,my)) return; } // hold the last frame while the bounded ad lookup runs
     try{ if(curVideo&&isFinite(curVideo.duration)){ totalMs+=curVideo.duration*1000; store.set("totalMs",totalMs); } }catch(e){} // NEW: watch-stats tally
     fastTuneDrop(ch.num); /* An ended program must advance, never restart from the return-tune cache. */
     if(token===my&&powered) tuneNum(curNum); },{signal:sig}); // 'ended' is still the ONLY advance path
@@ -6569,11 +6610,13 @@ function playFile(it,ch,sl,my,isFallback){return new Promise(res=>{
   v.addEventListener("loadedmetadata",()=>{ if(my===token) onProgress(v); },{signal:sig});
   v.addEventListener("durationchange",()=>{ if(my===token&&!it.isAd&&!it.isSignoff&&isFinite(v.duration)) schedSet(ch,it,v.duration); },{signal:sig}); /* 1.2: put this program on the schedule */
   if(my!==token){ return res(false); }
-  v.style.opacity="0"; v.style.transition="opacity .35s ease"; screenArea.appendChild(v); /* 1.1: stage was cleared up top */ // fade transition (feature: commercial fade in/out)
+  if(preservePicture){v.style.position="absolute";v.style.inset="0";v.style.zIndex="0";v.style.pointerEvents="none";}
+  v.style.opacity="0"; v.style.transition="opacity .35s ease"; screenArea.appendChild(v); // outgoing picture remains until this candidate has a real frame
   v.classList.toggle("ff-glitch",!!ch.glitch); /* 1.1: reused element — toggle, don't accumulate */
   if(it.isAd){ setTimeout(()=>{ try{ if(my===token && curVideo===v && !v.ended && !v.paused) v.dispatchEvent(new Event("ended")); }catch(e){} },120000); } // ads capped at 2 min
   if(isAudio){ audioScreen.classList.remove("hide"); audioTitle.textContent=it.title||ch.nm; }
   tryPlay(); // FIX: was v.play().catch(()=>{}) — a swallowed rejection left the video paused forever
+  if(v.readyState>=2)setTimeout(function(){fin(true);},0); /* staged media may have loaded before listeners were attached */
 });}
 
 function showNow(ch,sl,title,extra){
@@ -13660,15 +13703,21 @@ function adQueries(ch){
   });
   return qs;
 }
-async function playAdBreak(ch,sl,my){ adQueue=(Math.random()<0.35?2:1); return nextAd(ch,sl,my); }
+async function playAdBreak(ch,sl,my){
+  if(!adsOn||my!==token){adQueue=0;return false;}
+  adQueue=(Math.random()<0.35?2:1);var played=await nextAd(ch,sl,my);if(!played)adQueue=0;return played;
+}
 async function nextAd(ch,sl,my){
-  while(adQueue>0){ if(my!==token) return false; adQueue--;
-    try{ const item=await pickFromQueries(adQueries(ch)); if(!item) break;
-      const kind=(ch&&ch.audio)?"audio":"video", pl=await resolvePlayable(item.identifier); if(!pl||pl.type!==kind) continue;
+  var deadline=Date.now()+4500;
+  while(adQueue>0){ if(my!==token||!adsOn){adQueue=0;return false;} adQueue--;
+    try{ var left=deadline-Date.now();if(left<400)break;
+      const item=await withTO(pickFromQueries(adQueries(ch).slice(0,8)),left); if(my!==token||!adsOn){adQueue=0;return false;}if(!item)break;
+      left=deadline-Date.now();if(left<400)break;
+      const kind=(ch&&ch.audio)?"audio":"video", pl=await withTO(resolvePlayable(item.identifier),left);if(my!==token||!adsOn){adQueue=0;return false;}if(!pl||pl.type!==kind)continue;
       pl.title=item.title||"Commercial"; pl.year=(pl.meta&&pl.meta.date)||item.year; pl.isAd=true;
       if(await playFile(pl,ch,{show:kind==="audio"?"AUDIO COMMERCIAL":"COMMERCIAL BREAK",isAd:true,genre:sl&&sl.genre,queries:sl&&sl.queries},my)) return true;
     }catch(e){} }
-  return false; }
+  adQueue=0;return false; }
 
 /* Station Bumpers (beta) — vintage broadcast/cable network idents ("HGTV 1998", "CBS Olympics",
    "CNN Station ID") pulled from classic_tv_commercials, played between programs on network-shaped
@@ -13725,10 +13774,10 @@ function marathonQueryFor(lock,ch){
      locked onto the same generic collection played identical content. The lock is now ANDed
      with the channel's own genre constraints first; the generic pool is the last resort. */
   var f=lock.kind==="collection" ? 'collection:"'+lock.value+'"' : 'creator:("'+lock.value+'")';
-  var qs=[];
-  if(ch&&ch.gl&&G[ch.gl]) buildQuery(ch.gl,ch.era).slice(0,3).forEach(function(q){ qs.push(f+" AND ("+q+")"); });
-  qs.push(f+" AND mediatype:movies");
-  qs.push("mediatype:movies AND "+f);
+  var qs=[],prog=ch&&PROGRAM[ch.nm],mt=(prog&&prog.mt)||((ch&&ch.audio)?"audio":"movies");
+  if(prog){buildProgramQueries(prog,ch,false).slice(0,8).forEach(function(q){qs.push(f+" AND ("+q+")");});return qs;}
+  if(ch&&ch.gl&&G[ch.gl]) buildQuery(ch.gl,ch.era).slice(0,5).forEach(function(q){ qs.push(f+" AND ("+q+")"); });
+  if(!qs.length){qs.push(f+" AND mediatype:"+mt);qs.push("mediatype:"+mt+" AND "+f);}
   return qs;
 }
 function marathonToggle(){

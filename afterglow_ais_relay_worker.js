@@ -38,13 +38,13 @@ const IA_PREFIX = "/ia";
 const IA_QUEUE_PATH = IA_PREFIX + "/queue";
 const IA_PROGRAM_PATH = IA_PREFIX + "/program";
 const SNAPSHOT_TTL_SECONDS = 60;
-const IA_SEARCH_TTL_SECONDS = 300;
+const IA_SEARCH_TTL_SECONDS = 21600;
 /* Bump this when the normalized search response changes so an older edge
    entry cannot be mistaken for the current program-director result. */
 const IA_SEARCH_CACHE_VERSION = "v4";
-const IA_METADATA_TTL_SECONDS = 3600;
-const IA_QUEUE_TTL_SECONDS = 300;
-const IA_QUEUE_CACHE_VERSION = "v4";
+const IA_METADATA_TTL_SECONDS = 86400;
+const IA_QUEUE_TTL_SECONDS = 21600;
+const IA_QUEUE_CACHE_VERSION = "v5";
 const GULF_FILTER = "BBOX(geometry,-98,18,-80,31)";
 const KPLER_FIELDS = "mmsi,longitude,latitude,posDt,sog,vesselName,heading,cog,navStatus,destination,vesselType";
 
@@ -118,13 +118,17 @@ async function stableKey(value) {
   return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-async function cachedArchiveJson(cacheKey, ttlSeconds, load) {
+async function cachedArchiveJson(cacheKey, ttlSeconds, load, ctx) {
   const cache = caches.default;
   const cached = await cache.match(cacheKey);
   if (cached) return cached.json();
   const payload = await load();
   const response = cacheableJson(payload, ttlSeconds, { "X-Afterglow-Cache": "miss" });
-  await cache.put(cacheKey, response.clone());
+  const write = cache.put(cacheKey, response.clone()).catch((error) => {
+    console.warn(JSON.stringify({ event: "archive-cache-write-failed", message: String(error && error.message || error) }));
+  });
+  if (ctx) ctx.waitUntil(write);
+  else await write;
   return payload;
 }
 
@@ -158,9 +162,9 @@ async function searchArchive(query, rows, page, sort) {
   return { ...(payload.response || { numFound: 0, docs: [] }), _afterglowSource: "advanced" };
 }
 
-async function cachedSearchArchive(cacheOrigin, query, rows, page, sort) {
+async function cachedSearchArchive(cacheOrigin, query, rows, page, sort, ctx) {
   const cacheKey = new Request(cacheOrigin + IA_PREFIX + "/cache/search/" + IA_SEARCH_CACHE_VERSION + "/" + await stableKey([query, rows, page, sort].join("|")));
-  return cachedArchiveJson(cacheKey, IA_SEARCH_TTL_SECONDS, () => searchArchive(query, rows, page, sort));
+  return cachedArchiveJson(cacheKey, IA_SEARCH_TTL_SECONDS, () => searchArchive(query, rows, page, sort), ctx);
 }
 
 async function getIaSearch(url, ctx) {
@@ -170,7 +174,7 @@ async function getIaSearch(url, ctx) {
   const page = Math.max(1, Math.min(10000, Number(url.searchParams.get("page")) || 1));
   const sort = (url.searchParams.get("sort") || "downloads desc").slice(0, 80);
   try {
-    const payload = await cachedSearchArchive(url.origin, q, rows, page, sort);
+    const payload = await cachedSearchArchive(url.origin, q, rows, page, sort, ctx);
     return cacheableJson(
       { response: payload },
       IA_SEARCH_TTL_SECONDS,
@@ -181,7 +185,7 @@ async function getIaSearch(url, ctx) {
   }
 }
 
-async function getIaMetadata(id, requestUrl) {
+async function getIaMetadata(id, requestUrl, ctx) {
   if (!safeIaId(id)) return json({ error: "invalid archive identifier" }, 400);
   const cacheKey = new Request(requestUrl.origin + IA_PREFIX + "/cache/metadata/" + id);
   try {
@@ -189,7 +193,7 @@ async function getIaMetadata(id, requestUrl) {
       const upstream = await archiveFetch("https://archive.org/metadata/" + encodeURIComponent(id), {}, 4200);
       if (!upstream.ok) throw new Error("archive metadata " + upstream.status);
       return upstream.json();
-    });
+    }, ctx);
     return cacheableJson(payload, IA_METADATA_TTL_SECONDS, { "X-Afterglow-Source": "internet-archive-cache" });
   } catch {
     return json({ error: "archive metadata unavailable" }, 502);
@@ -220,14 +224,14 @@ function queueFileUrls(id, payload, name) {
   return bases.map((base) => base + encoded).filter((url, index, all) => all.indexOf(url) === index);
 }
 
-async function queuePlayable(id, cacheOrigin) {
+async function queuePlayable(id, cacheOrigin, ctx) {
   try {
     const cacheKey = new Request(cacheOrigin + IA_PREFIX + "/cache/metadata/" + id);
     const payload = await cachedArchiveJson(cacheKey, IA_METADATA_TTL_SECONDS, async () => {
       const upstream = await archiveFetch("https://archive.org/metadata/" + encodeURIComponent(id), {}, 4200);
       if (!upstream.ok) throw new Error("archive metadata " + upstream.status);
       return upstream.json();
-    });
+    }, ctx);
     const files = payload.files || [];
     const format = (file) => String(file && file.format || "").toLowerCase();
     const video = files.filter((file) => file && file.name && (/\.mp4$|\.m4v$/i.test(file.name) || /\.webm$/i.test(file.name) || /\.ogv$/i.test(file.name)))
@@ -245,7 +249,7 @@ async function queuePlayable(id, cacheOrigin) {
   }
 }
 
-async function buildIaQueue(channel, queries, count, cacheOrigin) {
+async function buildIaQueue(channel, queries, count, cacheOrigin, ctx) {
   const items = [], seen = new Set(), seenTitles = new Set(), candidateLimit = count;
   /* Query lanes are already editorially ordered by the app. Fetch a small
      sample from each lane in parallel, then take one from every lane before
@@ -255,7 +259,7 @@ async function buildIaQueue(channel, queries, count, cacheOrigin) {
      used to mean one stalled Archive request could hold the whole channel. */
   const lanes = await Promise.all(queries.slice(0, Math.min(3, count)).map(async (query) => {
     try {
-      const result = await cachedSearchArchive(cacheOrigin, query, Math.min(24, Math.max(12, count * 3)), 1, "downloads desc");
+      const result = await cachedSearchArchive(cacheOrigin, query, Math.min(24, Math.max(12, count * 3)), 1, "downloads desc", ctx);
       return (result.docs || []).filter((doc) => doc && safeIaId(doc.identifier));
     } catch {
       return [];
@@ -282,12 +286,12 @@ async function buildIaQueue(channel, queries, count, cacheOrigin) {
   };
 }
 
-async function hydrateIaQueue(payload, requestedCount, cacheOrigin) {
+async function hydrateIaQueue(payload, requestedCount, cacheOrigin, ctx) {
   /* Keep a few extra candidates behind the five-program shelf. Archive items
      occasionally have no browser-playable derivative; filtering those here
      means the viewer receives five actual media URLs instead of five names
      that each need another network trip in the browser. */
-  const enriched = await Promise.all(payload.items.map(async (item) => ({ ...item, media: await queuePlayable(item.identifier, cacheOrigin) })));
+  const enriched = await Promise.all(payload.items.map(async (item) => ({ ...item, media: await queuePlayable(item.identifier, cacheOrigin, ctx) })));
   const ready = enriched.filter((item) => item.media).slice(0, requestedCount);
   return {
     ...payload,
@@ -326,8 +330,8 @@ async function getIaQueue(request, url, ctx) {
     const cache = caches.default, cached = await cache.match(cacheKey);
     if (cached) return cached;
     const candidateCount = Math.min(10, Math.max(count, count * 2));
-    const payload = await buildIaQueue(channel, queries, candidateCount, url.origin);
-    const hydration = hydrateIaQueue(payload, count, url.origin);
+    const payload = await buildIaQueue(channel, queries, candidateCount, url.origin, ctx);
+    const hydration = hydrateIaQueue(payload, count, url.origin, ctx);
     /* A cold channel gets one short, bounded chance to receive ready media.
        If Archive is slow, return the discovery shelf immediately and finish
        hydration in the background; the browser's own fallback can still use
@@ -338,7 +342,9 @@ async function getIaQueue(request, url, ctx) {
         "X-Afterglow-Source": "program-director",
         "X-Afterglow-Queue-Ready": String(hydrated.ready),
       });
-      await cache.put(cacheKey, response.clone());
+      ctx.waitUntil(cache.put(cacheKey, response.clone()).catch((error) => {
+        console.warn(JSON.stringify({ event: "queue-cache-write-failed", channel, message: String(error && error.message || error) }));
+      }));
       return response;
     }
     const initial = { ...payload, items: payload.items.slice(0, count), ready: 0, hydrating: true };
@@ -435,7 +441,7 @@ export default {
     }
 
     if (request.method === "GET" && url.pathname.startsWith(IA_PREFIX + "/metadata/")) {
-      return getIaMetadata(decodeURIComponent(url.pathname.slice((IA_PREFIX + "/metadata/").length)), url);
+      return getIaMetadata(decodeURIComponent(url.pathname.slice((IA_PREFIX + "/metadata/").length)), url, ctx);
     }
 
     if (request.method === "POST" && (url.pathname === IA_QUEUE_PATH || url.pathname === IA_PROGRAM_PATH)) {

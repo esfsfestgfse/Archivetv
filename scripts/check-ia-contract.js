@@ -48,6 +48,11 @@ for (const match of programBlock.matchAll(/^\s*"([^"]+)":\s*\{([\s\S]*?)(?=^\s*"
 if (!/fl\[\]=subject/.test(source) || !/fl\[\]=runtime/.test(source)) issues.push('IA advanced search must request subject and runtime for PROGRAM filters');
 if (!/&fields=identifier,title,year,subject,runtime/.test(source)) issues.push('IA scrape search must request subject and runtime for PROGRAM filters');
 if (!/var globalQs = \[\]/.test(source) || !/qs\.concat\(globalQs\)/.test(source)) issues.push('PROGRAM global subject fallback must remain after collection-scoped rails');
+if (!/IA_MEDIA_WARM_MAX=6/.test(source)) issues.push('first-frame shelf must stay bounded to six media elements');
+if (!/primeIACompanions\(ch,sl\)/.test(source)) issues.push('channel tuning must prioritize the active and neighboring IA queues');
+if (!/takeIAMediaWarmer\(ch,it\)/.test(source)) issues.push('playback must adopt a staged first-frame media element');
+if (!/v\.readyState>=2\)setTimeout\(function\(\)\{fin\(true\);\},0\)/.test(source)) issues.push('staged media must clear tuning even when readiness predates listeners');
+if (!/if\(prog\)\{buildProgramQueries\(prog,ch,false\)/.test(source)) issues.push('marathon mode must preserve PROGRAM channel constraints');
 
 const sportsSuite = [
   'Sports Center','Hard Count','The Octagon','Sports Vault','Auto Racing','Roller Derby & Wrestling',
@@ -71,7 +76,10 @@ else {
   if (!/\(ch&&ch\.audio\)\?"audio":"movies"/.test(commercialBlock)) issues.push('commercial searches must select audio only for audio channels');
   if (!/pl\.type!==kind/.test(commercialBlock)) issues.push('commercial playback must reject a mismatched media type');
   if (!/mediatype:"\+mt/.test(commercialBlock)) issues.push('commercial queries must declare an explicit media type');
+  if (!/deadline=Date\.now\(\)\+4500/.test(commercialBlock)) issues.push('commercial discovery must have a whole-break deadline');
+  if (!/adQueue=0;return false/.test(commercialBlock)) issues.push('failed or interrupted commercial breaks must clear their queue');
 }
+if (!/if\(adsOn&&adQueue>0\)/.test(source)) issues.push('queued ads must not play after commercials are disabled');
 
 console.log(`${path.basename(file)}: ${issues.length ? 'FAILED' : 'passed'} IA contract checks`);
 for (const issue of issues) console.log(`P0 ${issue}`);

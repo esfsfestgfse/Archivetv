@@ -835,6 +835,41 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
   .aur-kp-big{font-size:25px}.aur-status{font-size:7px}.aur-metric:nth-child(n+5){display:none}
 }
 
+/* ============ Ham Radio / worldwide WSPR propagation monitor ============ */
+.hf-screen{width:100%;height:100%;overflow:hidden;box-sizing:border-box;position:relative;display:grid;
+  grid-template-rows:auto auto auto auto minmax(0,1fr) auto;gap:clamp(4px,.65vmin,7px);padding:clamp(7px,1vmin,12px) clamp(8px,1.2vmin,14px) 33px;
+  color:#dcffe8;background:radial-gradient(90% 65% at 50% -10%,rgba(37,108,61,.34),transparent 70%),linear-gradient(160deg,#031009,#020806 60%,#070b08)}
+.hf-screen::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.1;background-image:linear-gradient(rgba(101,255,145,.3) 1px,transparent 1px),linear-gradient(90deg,rgba(101,255,145,.3) 1px,transparent 1px);background-size:28px 28px}
+.hf-head{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:center;gap:9px;min-width:0;color:#80ffa9;font:900 clamp(10px,1.5vmin,15px)/1 monospace;letter-spacing:1.5px}
+.hf-head-source{min-width:0;color:#75a383;font:700 clamp(7px,1.05vmin,10px)/1 monospace;letter-spacing:.6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right}
+.hf-prop{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1fr) minmax(100px,22%);gap:7px;padding:6px 8px;border:1px solid rgba(108,255,150,.15);border-radius:8px;background:rgba(0,0,0,.3)}
+.hf-indices{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}.hf-index{min-width:0;text-align:center;padding:4px;border-right:1px solid rgba(108,255,150,.1)}.hf-index:last-child{border-right:0}
+.hf-index b{display:block;color:#71927a;font:800 clamp(7px,1vmin,10px)/1 monospace;letter-spacing:.6px}.hf-index span{display:block;margin-top:4px;color:#8dffae;font:900 clamp(15px,2.7vmin,27px)/1 monospace}
+.hf-kp-chart{min-width:0;height:44px;align-self:center}.hf-kp-chart svg{width:100%;height:100%}
+.hf-band-conditions{position:relative;z-index:1;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}.hf-band-cond{min-width:0;text-align:center;padding:4px 3px;border:1px solid rgba(108,255,150,.14);border-radius:5px;background:rgba(255,255,255,.025)}
+.hf-band-cond b{display:block;color:#c9e8d2;font:800 clamp(7px,1.05vmin,10px)/1 monospace}.hf-band-cond span{display:block;margin-top:3px;font:900 clamp(7px,1.05vmin,10px)/1 monospace}
+.hf-toolbar{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:7px}.hf-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}.hf-summary-card{min-width:0;padding:4px 6px;border-left:2px solid rgba(108,255,150,.3);background:rgba(255,255,255,.025)}
+.hf-summary-card b{display:block;color:#71927a;font:800 clamp(6px,.95vmin,9px)/1 monospace;letter-spacing:.5px}.hf-summary-card span{display:block;margin-top:3px;color:#e1ffea;font:900 clamp(10px,1.6vmin,16px)/1 monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hf-filters{display:flex;gap:3px;max-width:48vw;overflow:auto}.hf-filter{appearance:none;flex:none;padding:5px 7px;border:1px solid rgba(108,255,150,.14);border-radius:5px;background:rgba(0,0,0,.32);color:#759b82;font:800 clamp(7px,1vmin,9px)/1 monospace;cursor:pointer}
+.hf-filter.on{color:#8dffae;border-color:#64e995;background:rgba(58,211,111,.12)}.hf-filter:focus-visible{outline:2px solid #8dffae;outline-offset:1px}
+.hf-list{position:relative;z-index:1;min-height:0;overflow:auto;border:1px solid rgba(108,255,150,.13);border-radius:7px;background:rgba(0,0,0,.47)}
+.hf-row{display:grid;grid-template-columns:58px minmax(130px,1.3fr) minmax(80px,.75fr) 55px 86px 64px 70px;gap:7px;align-items:center;padding:5px 7px;border-bottom:1px solid rgba(255,255,255,.045);font:700 clamp(8px,1.2vmin,12px)/1.15 monospace}
+.hf-row:last-child{border-bottom:0}.hf-row:hover{background:rgba(103,255,134,.045)}.hf-time{color:#6d9a7a}.hf-link{min-width:0;color:#dcffe8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.hf-link b{color:var(--hf-band,#8dffae)}.hf-grids{color:#7ca088;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hf-band{color:var(--hf-band,#8dffae);font-weight:900}.hf-freq{color:#a7cbb3}.hf-power{color:#d8e7dc}.hf-distance{text-align:right;color:#8dffae}.hf-row-head{position:sticky;top:0;z-index:2;background:#07110b;color:#668571;font-size:clamp(7px,1vmin,9px);letter-spacing:.5px}
+.hf-empty{display:grid;place-items:center;min-height:70px;height:100%;padding:12px;color:#759982;text-align:center;font:700 10px/1.45 monospace;box-sizing:border-box}
+.hf-ticker{position:relative;z-index:1;padding:3px 7px;border:1px solid rgba(108,255,150,.12);border-radius:5px;background:rgba(0,0,0,.34);color:#91b79d;font:700 clamp(7px,1.05vmin,10px)/1.2 monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@container (max-height:430px){
+  .hf-screen{gap:3px;padding:5px 6px 28px}.hf-head{font-size:8px}.hf-head-source{font-size:6px}.hf-prop{grid-template-columns:1fr;padding:4px}.hf-kp-chart{display:none}
+  .hf-index{padding:2px}.hf-index b{font-size:6px}.hf-index span{font-size:12px;margin-top:2px}.hf-band-cond{padding:3px 2px}.hf-band-cond b,.hf-band-cond span{font-size:6px}
+  .hf-toolbar{grid-template-columns:1fr;gap:3px}.hf-summary{grid-template-columns:repeat(4,minmax(0,1fr))}.hf-summary-card{padding:3px 4px}.hf-summary-card b{font-size:5px}.hf-summary-card span{font-size:8px}
+  .hf-filters{max-width:100%}.hf-filter{padding:3px 5px;font-size:6px}.hf-row{grid-template-columns:43px minmax(95px,1fr) 38px 61px;gap:4px;padding:4px 5px;font-size:8px}
+  .hf-grids,.hf-freq,.hf-power{display:none}.hf-row-head span:nth-child(3),.hf-row-head span:nth-child(5),.hf-row-head span:nth-child(6){display:none}.hf-ticker{font-size:6px;padding:2px 4px}
+}
+@container (max-height:220px){
+  .hf-screen{grid-template-rows:auto auto auto minmax(0,1fr);padding:3px 4px 25px}.hf-head-source,.hf-summary,.hf-ticker{display:none}.hf-prop{padding:2px}.hf-band-conditions{gap:2px}
+  .hf-toolbar{display:block}.hf-filters{padding-bottom:1px}.hf-row{grid-template-columns:38px minmax(85px,1fr) 34px 52px;padding:3px 4px;font-size:7px}
+}
+
 /* ============ v14: ident flash (station idents feature) ============ */
 /* QA FIX (audit 5A): was z:29, same as .buff-ov. Both fire on every channel change; .buff-ov's
    35% black backdrop killed the intended phosphor flash. Bumped to z:30 so the CRT ident wins. */
@@ -1306,7 +1341,7 @@ html.mob .console::before,html.mob .speaker,html.mob .console-legs{display:none!
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.226-aurora-live";
+window.__ATV_BUILD="1.7.7-mobile.227-ham-radio";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1343,7 +1378,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.226 · Aurora Live</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.227 · Ham Radio</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -2085,6 +2120,7 @@ const CHANNEL_META={
 "Public Domain Art":{desc:"A rotating gallery of public-domain masterworks from The Met Open Access, with a classical-music bed.",best:"anytime",rel:["Historic Waco","Deep Space Jazz"]},
 "Weather Watch":{desc:"LIVE: current station observations, three NWS radar layers, hourly and extended forecasts, local alerts, a national warning watchboard, and automatic Open-Meteo failover.",best:"anytime",rel:["Local Radar","Tropical Watch"]},
 "Aurora & Space Weather":{desc:"LIVE: NOAA Kp observations and 72-hour forecast, OVATION aurora oval, solar-wind speed, IMF Bz/Bt, location-aware visibility estimate, and current SWPC notices.",best:"anytime",rel:["Solar Dashboard","ISS Tracker"]},
+"Ham Radio":{desc:"LIVE: worldwide WSPR beacon paths with corrected amateur bands, exact frequencies, transmitter power, Maidenhead grids, path distance, and NOAA propagation conditions.",best:"anytime",rel:["Aurora & Space Weather","Live Radio"]},
 "Sky Beacon Live":{desc:"LIVE: international flight tracker — starts at your local airspace then cycles every 90 s through the world's busiest hubs (JFK, Heathrow, CDG, DXB, HND, Singapore, LAX, Sydney). Real ADS-B via adsb.lol + airplanes.live + OpenSky fallback.",best:"anytime",rel:["Weather Watch","ISS Tracker"]},
 "Seismic Watch":{desc:"LIVE: elevated volcanoes and global earthquakes, on rotation.",best:"anytime",rel:["Weather Watch","Wildfire Watch"]},
 "News, News, News":{desc:"Newsreels, federal films and historic footage \u2014 the week\u2019s news, decades late.",best:"anytime",rel:["Live News","Historic Waco"]},
@@ -13294,7 +13330,162 @@ function bandColor(b){
   if(b>=12) return "#ff5c4d";  /* 12m  */
   return "#ff5c9a";            /* 10m + */
 }
+function hfParseJsonLines(text){
+  var rows=[];
+  String(text||"").split(/\r?\n/).forEach(function(line){
+    line=line.trim();if(!line)return;
+    try{var parsed=JSON.parse(line);if(parsed&&typeof parsed==="object"&&!Array.isArray(parsed))rows.push(parsed);return;}catch(e){}
+    var f=line.split("\t");
+    if(f.length>=9)rows.push({time:f[0],tx_sign:f[1],rx_sign:f[2],band:f[3],power:f[4],tx_loc:f[5],rx_loc:f[6],distance:f[7],frequency:f[8]});
+  });
+  return rows;
+}
+function hfBandInfo(row){
+  var hz=Number(row&&row.frequency)||0,mhz=hz>100000?hz/1000000:Number(row&&row.band)||0;
+  var defs=[
+    [.13,.15,"2200m",2200],[.45,.5,"630m",630],[1.7,2.1,"160m",160],[3.3,4.1,"80m",80],
+    [5.1,5.5,"60m",60],[6.8,7.4,"40m",40],[9.9,10.3,"30m",30],[13.8,14.5,"20m",20],
+    [17.9,18.3,"17m",17],[20.8,21.6,"15m",15],[24.7,25.1,"12m",12],[27.8,30,"10m",10],
+    [49,54,"6m",6],[69,72,"4m",4],[143,149,"2m",2],[420,450,"70cm",.7],[1240,1320,"23cm",.23]
+  ];
+  for(var i=0;i<defs.length;i++)if(mhz>=defs[i][0]&&mhz<=defs[i][1])return {mhz:mhz,label:defs[i][2],meters:defs[i][3],color:bandColor(defs[i][3])};
+  var fallback=mhz?((mhz<1?mhz.toFixed(3):mhz.toFixed(mhz<10?3:2))+" MHz"):"UNKNOWN";
+  return {mhz:mhz,label:fallback,meters:0,color:"#67ff86"};
+}
+function hfPowerLabel(value){
+  var dbm=Number(value);if(!isFinite(dbm))return "--";
+  var watts=Math.pow(10,(dbm-30)/10),label;
+  if(watts>=10)label=Math.round(watts)+"W";
+  else if(watts>=1)label=watts.toFixed(1).replace(/\.0$/,"")+"W";
+  else label=Math.max(1,Math.round(watts*1000))+"mW";
+  return dbm.toFixed(0)+"dBm · "+label;
+}
+function hfSummaryFromRows(rows){
+  var tx={},rx={},maxKm=0;
+  rows.forEach(function(r){if(r.tx_sign)tx[r.tx_sign]=1;if(r.rx_sign)rx[r.rx_sign]=1;maxKm=Math.max(maxKm,Number(r.distance)||0);});
+  return {spots:rows.length,transmitters:Object.keys(tx).length,receivers:Object.keys(rx).length,max_km:maxKm};
+}
 async function tuneHF(ch,sl,my){
+  if(my!==token)return;hideOv();setSig("live","ON AIR");showNow(ch,sl,"Worldwide WSPR Monitor","");
+  if(screenArea)screenArea.innerHTML=
+    '<div class="hf-screen" id="hfScreen">'+
+      '<div class="hf-head"><span>● GLOBAL WSPR PROPAGATION MONITOR</span><span class="hf-head-source" id="hfFresh">OPENING LIVE RECEIVER NETWORK…</span></div>'+
+      '<section class="hf-prop">'+
+        '<div class="hf-indices"><div class="hf-index"><b>SOLAR FLUX</b><span id="hfFlux">--</span></div><div class="hf-index"><b>A-INDEX</b><span id="hfA">--</span></div><div class="hf-index"><b>K-INDEX</b><span id="hfK">--</span></div><div class="hf-index"><b>PLANETARY KP</b><span id="hfKp">--</span></div></div>'+
+        '<div class="hf-kp-chart" id="hfChart"></div>'+
+      '</section>'+
+      '<div class="hf-band-conditions" id="hfBands"><div class="hf-empty">CALCULATING HF PROPAGATION</div></div>'+
+      '<div class="hf-toolbar"><div class="hf-summary" id="hfSummary"><div class="hf-summary-card"><b>15-MIN SPOTS</b><span>--</span></div><div class="hf-summary-card"><b>TRANSMITTERS</b><span>--</span></div><div class="hf-summary-card"><b>RECEIVERS</b><span>--</span></div><div class="hf-summary-card"><b>LONGEST PATH</b><span>--</span></div></div><div class="hf-filters" id="hfFilters"><button class="hf-filter on" type="button">ALL BANDS</button></div></div>'+
+      '<div class="hf-list" id="hfSpots"><div class="hf-empty">LISTENING FOR WORLDWIDE BEACON REPORTS…</div></div>'+
+      '<div class="hf-ticker" id="hfTicker">NOAA SWPC SPACE WEATHER · db1.wspr.live WORLDWIDE BEACONS · NEXT cycles active bands</div>'+
+    '</div>';
+  var hfBug=mountChanBug("hfScreen",{ident:"HAM RADIO"}),hfRows=[],hfSummary={spots:0,transmitters:0,receivers:0,max_km:0};
+  var hfFilter="ALL",hfFilters=["ALL"],spotsBusy=false,hfNoaaModel=null,hfSpotsStale=false,hfNoaaStale=false;
+  clearInterval(hfTimer);startIAJazz("gmelectro");
+  function normalizeRows(rows){
+    return (rows||[]).map(function(r){
+      if(!r||!r.tx_sign||!r.rx_sign)return null;
+      var out={time:String(r.time||""),tx_sign:String(r.tx_sign||"?"),rx_sign:String(r.rx_sign||"?"),tx_loc:String(r.tx_loc||"--"),rx_loc:String(r.rx_loc||"--"),distance:Number(r.distance)||0,power:Number(r.power),frequency:Number(r.frequency)||0,band:r.band};
+      out._band=hfBandInfo(out);return out;
+    }).filter(Boolean);
+  }
+  function updateStatus(){
+    var total=Number(hfSummary.spots)||hfRows.length,parts=[total.toLocaleString()+" WSPR spots"];
+    if(hfNoaaModel&&isFinite(hfNoaaModel.sfi))parts.push("SFI "+hfNoaaModel.sfi);
+    if(hfNoaaModel&&isFinite(hfNoaaModel.k))parts.push("K"+hfNoaaModel.k);
+    setChanStatus(ch.num,parts.join(" · "));
+    if(hfBug)hfBug.update(total.toLocaleString()+" SPOTS",hfNoaaModel&&isFinite(hfNoaaModel.sfi)?("SFI "+hfNoaaModel.sfi+" · K"+(isFinite(hfNoaaModel.k)?hfNoaaModel.k:"--")):"WORLDWIDE WSPR");
+    var ticker=$("hfTicker");if(ticker)ticker.textContent=(hfSpotsStale||hfNoaaStale?"CACHED DATA IN USE · RECONNECTING · ":"")+"NOAA SWPC SPACE WEATHER · db1.wspr.live WORLDWIDE BEACONS · "+total.toLocaleString()+" reports in 15 minutes · NEXT cycles active bands";
+  }
+  function renderFilters(){
+    var seen={},available=[];
+    hfRows.forEach(function(r){var key=r._band.label;if(!seen[key]){seen[key]=1;available.push(r._band);}});
+    available.sort(function(a,b){return a.mhz-b.mhz;});
+    hfFilters=["ALL"].concat(available.map(function(b){return b.label;}));
+    if(hfFilters.indexOf(hfFilter)<0)hfFilter="ALL";
+    var host=$("hfFilters");if(!host)return;
+    host.innerHTML=hfFilters.map(function(name){return '<button class="hf-filter'+(name===hfFilter?" on":"")+'" type="button" data-hf-filter="'+esch(name)+'">'+(name==="ALL"?"ALL BANDS":esch(name))+'</button>';}).join("");
+    host.querySelectorAll("[data-hf-filter]").forEach(function(button){button.addEventListener("click",function(){hfFilter=button.dataset.hfFilter||"ALL";renderFilters();renderSpots();});});
+  }
+  function renderSpots(){
+    var host=$("hfSpots");if(!host)return;
+    var rows=hfFilter==="ALL"?hfRows:hfRows.filter(function(r){return r._band.label===hfFilter;});
+    if(!rows.length){host.innerHTML='<div class="hf-empty">NO '+esch(hfFilter==="ALL"?"WORLDWIDE":hfFilter.toUpperCase())+' REPORTS IN THE CURRENT 15-MINUTE WINDOW<br>THE RECEIVER NETWORK REMAINS LIVE</div>';return;}
+    host.innerHTML='<div class="hf-row hf-row-head"><span>UTC</span><span>TX → RX</span><span>GRIDS</span><span>BAND</span><span>FREQUENCY</span><span>POWER</span><span>DISTANCE</span></div>'+
+      rows.map(function(r){
+        var time=r.time.length>=19?r.time.slice(11,19):r.time||"--",mhz=r._band.mhz;
+        return '<div class="hf-row" data-hf-band="'+esch(r._band.label)+'" data-hf-mhz="'+(isFinite(mhz)?mhz.toFixed(6):"")+'" style="--hf-band:'+r._band.color+'">'+
+          '<span class="hf-time">'+esch(time)+'</span><span class="hf-link"><b>'+esch(r.tx_sign)+'</b> → '+esch(r.rx_sign)+'</span><span class="hf-grids">'+esch(r.tx_loc)+' → '+esch(r.rx_loc)+'</span><span class="hf-band">'+esch(r._band.label)+'</span>'+
+          '<span class="hf-freq">'+(mhz?mhz.toFixed(4)+" MHz":"--")+'</span><span class="hf-power">'+esch(hfPowerLabel(r.power))+'</span><span class="hf-distance">'+Math.round(r.distance).toLocaleString()+' km</span></div>';
+      }).join("");
+  }
+  function renderSpotModel(rows,summary,stale){
+    hfRows=normalizeRows(rows);if(!hfRows.length)throw new Error("WSPR returned no usable reports");
+    hfSummary=summary||hfSummaryFromRows(hfRows);hfSpotsStale=!!stale;
+    var cards=[["15-MIN SPOTS",(Number(hfSummary.spots)||hfRows.length).toLocaleString()],["TRANSMITTERS",(Number(hfSummary.transmitters)||0).toLocaleString()],["RECEIVERS",(Number(hfSummary.receivers)||0).toLocaleString()],["LONGEST PATH",Math.round(Number(hfSummary.max_km)||0).toLocaleString()+" km"]];
+    var summaryHost=$("hfSummary");if(summaryHost)summaryHost.innerHTML=cards.map(function(card){return '<div class="hf-summary-card"><b>'+card[0]+'</b><span>'+card[1]+'</span></div>';}).join("");
+    var fresh=$("hfFresh");if(fresh)fresh.textContent=(stale?"CACHED · ":"")+"WSPR "+aurAgeLabel(hfRows[0].time)+" · "+hfRows.length+" paths displayed";
+    renderFilters();renderSpots();updateStatus();
+  }
+  function parseSummary(text,rows){
+    var rec=hfParseJsonLines(text)[0]||{},fallback=hfSummaryFromRows(rows);
+    return {spots:Number(rec.spots)||fallback.spots,transmitters:Number(rec.transmitters)||fallback.transmitters,receivers:Number(rec.receivers)||fallback.receivers,max_km:Number(rec.max_km)||fallback.max_km};
+  }
+  var loadSpots=async function(){
+    if(my!==token||!powered||spotsBusy)return;spotsBusy=true;
+    try{
+      var rowSql="SELECT time,tx_sign,rx_sign,band,power,tx_loc,rx_loc,distance,frequency FROM wspr.rx WHERE time > now()-INTERVAL 15 MINUTE ORDER BY time DESC LIMIT 80 FORMAT JSONEachRow";
+      var sumSql="SELECT count() AS spots,uniqExact(tx_sign) AS transmitters,uniqExact(rx_sign) AS receivers,max(distance) AS max_km FROM wspr.rx WHERE time > now()-INTERVAL 15 MINUTE FORMAT JSONEachRow";
+      var base="https://db1.wspr.live/?query=",result=await Promise.all([
+        fetchTextResilient(base+encodeURIComponent(rowSql),"wspr-spots"),
+        fetchTextResilient(base+encodeURIComponent(sumSql),"wspr-summary").catch(function(){return "";})
+      ]);
+      if(my!==token)return;
+      var rawRows=hfParseJsonLines(result[0]);if(!rawRows.length)throw new Error("empty WSPR response");
+      var summary=parseSummary(result[1],rawRows),cache={at:Date.now(),rows:rawRows,summary:summary};
+      store.set("hfSpotCache",cache);renderSpotModel(rawRows,summary,false);nlog("wspr",true,summary.spots+" live reports");
+    }catch(e){
+      nlog("wspr",false,(e&&e.message)||e);
+      var cache=store.get("hfSpotCache",null);
+      if(cache&&cache.rows&&Date.now()-Number(cache.at)<10*60*1000){try{renderSpotModel(cache.rows,cache.summary,true);}catch(_){}}
+      else{var fresh=$("hfFresh");if(fresh)fresh.textContent="WSPR NETWORK RECONNECTING · SCREEN STAYS TUNED";var empty=$("hfSpots");if(empty&&!hfRows.length)empty.innerHTML='<div class="hf-empty">WORLDWIDE RECEIVER NETWORK IS RECONNECTING<br>THIS CHANNEL WILL POPULATE AUTOMATICALLY</div>';hfSpotsStale=true;updateStatus();}
+    }finally{spotsBusy=false;}
+  };
+  function renderNoaa(model,stale){
+    hfNoaaModel=model;hfNoaaStale=!!stale;
+    var flux=$("hfFlux"),aEl=$("hfA"),kEl=$("hfK"),kpEl=$("hfKp");
+    if(flux)flux.textContent=isFinite(model.sfi)?model.sfi:"--";if(aEl)aEl.textContent=isFinite(model.a)?model.a:"--";if(kEl)kEl.textContent=isFinite(model.k)?model.k:"--";if(kpEl)kpEl.textContent=isFinite(model.kp)?model.kp.toFixed(1):"--";
+    var chart=$("hfChart");if(chart&&model.series.length)chart.innerHTML=svgBarChart(model.series,function(v){return v<4?"#67ff86":v<6?"#ffd34d":"#ff5c4d";},180,44);
+    var bands=$("hfBands"),conditions=estimateBandConditions(model.sfi,isFinite(model.k)?model.k:model.kp);
+    if(bands&&conditions)bands.innerHTML=conditions.map(function(b){var c=b.level==="GOOD"?"#67ff86":b.level==="FAIR"?"#ffd34d":"#ff5c4d";return '<div class="hf-band-cond" style="border-color:'+c+'55"><b>'+b.name+'</b><span style="color:'+c+'">'+b.level+'</span></div>';}).join("");
+    updateStatus();
+  }
+  var runNoaa=async function(){
+    if(my!==token||!powered){clearInterval(hfTimer);return;}
+    try{
+      var result=await Promise.all([
+        fetchJSONResilient("https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json","hf-kp").catch(function(){return null;}),
+        fetchTextResilient("https://services.swpc.noaa.gov/text/wwv.txt","hf-wwv").catch(function(){return "";})
+      ]);if(my!==token)return;
+      var kpRows=Array.isArray(result[0])?result[0]:[],usable=kpRows.filter(function(r){return isFinite(aurKpValue(r));}),series=usable.map(aurKpValue).filter(isFinite).slice(-16);
+      var txt=String(result[1]||""),sf=/Solar flux\s+(\d+)/i.exec(txt),ai=/planetary A-index[^\d]*(\d+)/i.exec(txt),ki=/K-index[\s\S]*?was\s+([\d.]+)/i.exec(txt),forecast=/predicted to be\s+([a-z]+)/i.exec(txt);
+      var model={at:Date.now(),sfi:sf?Number(sf[1]):NaN,a:ai?Number(ai[1]):NaN,k:ki?Number(ki[1]):NaN,kp:series.length?series[series.length-1]:NaN,series:series,forecast:forecast?forecast[1].toUpperCase():"CURRENT"};
+      if(!isFinite(model.sfi)&&!isFinite(model.k)&&!isFinite(model.kp))throw new Error("NOAA returned no usable propagation indices");
+      store.set("hfNoaaCache",model);renderNoaa(model,false);nlog("hf",true,"SFI "+model.sfi+" K "+model.k);
+    }catch(e){
+      nlog("hf",false,(e&&e.message)||e);var cache=store.get("hfNoaaCache",null);
+      if(cache&&Date.now()-Number(cache.at)<6*60*60*1000)renderNoaa(cache,true);
+      else{hfNoaaStale=true;updateStatus();}
+    }
+  };
+  var initialSpots=store.get("hfSpotCache",null);if(initialSpots&&initialSpots.rows&&Date.now()-Number(initialSpots.at)<10*60*1000){try{renderSpotModel(initialSpots.rows,initialSpots.summary,true);}catch(_){}}
+  var initialNoaa=store.get("hfNoaaCache",null);if(initialNoaa&&Date.now()-Number(initialNoaa.at)<6*60*60*1000)renderNoaa(initialNoaa,true);
+  window.__hfNext=function(){if(hfFilters.length<2){quickBanner("HAM RADIO · WAITING FOR ACTIVE BANDS");return;}var at=hfFilters.indexOf(hfFilter);hfFilter=hfFilters[(at+1)%hfFilters.length];renderFilters();renderSpots();quickBanner("HAM RADIO · "+(hfFilter==="ALL"?"ALL BANDS":hfFilter));};
+  window.__hfRefresh=loadSpots;
+  loadSpots();rtInterval(loadSpots,30000);runNoaa();hfTimer=rtInterval(runNoaa,15*60*1000);
+}
+
+async function tuneHFLegacy(ch,sl,my){
   if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Ham Radio","");
   if(screenArea) screenArea.innerHTML='<div class="dc-screen" id="dcScreen" style="flex-direction:column">'+
     '<div id="hfMedia" style="flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 8px;border-bottom:1px solid rgba(103,255,134,.15)">'+
@@ -13980,6 +14171,7 @@ async function playBumper(ch,sl,my){
 /* ===== v10.1: skip — next item on the same channel, on demand ===== */
 function skipOne(){ if(!powered){quickBanner("TURN THE TV ON FIRST");return;}
   var sc=byNum(curNum);
+  if(sc&&sc.source==="hf"&&typeof window.__hfNext==="function"){window.__hfNext();return;}
   if(sc&&sc.source==="aurora"&&typeof window.__auroraNext==="function"){window.__auroraNext();return;}
   if(sc&&sc.source==="weather"&&typeof window.__weatherNext==="function"){window.__weatherNext();return;}
   if(sc)schedClear(sc); /* 1.2: SKIP = manual re-roll of the slot */

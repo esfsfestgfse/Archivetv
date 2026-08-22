@@ -49,6 +49,14 @@ if (!/lldev\.thespacedevs\.com/.test(source) || !/launch-library-mirror/.test(so
 if (!/thespacedevs-dev\.nyc3\.digitaloceanspaces\.com/.test(source) || !/thespacedevs-prod\.nyc3\.digitaloceanspaces\.com/.test(source)) issues.push('Launch mirror image URLs must resolve against the production media bucket');
 if (!/Promise\.allSettled\(\[/.test(source) || !/failures, launchSource:.*launches, approaches, fireballs, imagery/.test(source)) issues.push('Space route must survive individual provider failures');
 if (!/ctx\.waitUntil\(cache\.put\(cacheKey, response\.clone\(\)\)\.catch/.test(source)) issues.push('Space cache writes must be backgrounded and observed');
+if (!/const WATER_PATH = "\/live\/water"/.test(source)) issues.push('River & Lake Watch needs a narrow edge-data route');
+if (numericConstant('WATER_TTL_SECONDS') !== 300) issues.push('Water snapshots must use a five-minute live cache');
+if (!/api\.water\.noaa\.gov\/nwps\/v1\/gauges/.test(source) || !/\/stageflow"/.test(source)) issues.push('Water route needs NWPS gauge metadata and stageflow history');
+if (!/lat < -90 \|\| lat > 90 \|\| lon < -180 \|\| lon > 180/.test(source) || !/Math\.min\(120/.test(source)) issues.push('Water coordinates and radius must be bounded');
+if (!/WATER_PATH \+ "\/cache\/v2\/"/.test(source)) issues.push('Water route must use the current location-bucketed edge cache schema');
+if (!/candidates\.length < 8/.test(source) || !/downsampleWaterSeries/.test(source)) issues.push('Water hydration must stay bounded and downsample 72-hour series');
+if (!/stale-while-revalidate=900/.test(source)) issues.push('Water route needs stale-while-revalidate resilience');
+if (!/value == null \|\| value === ""/.test(source)) issues.push('Water normalization must preserve missing readings instead of coercing them to zero');
 
 console.log(`Worker contract: ${issues.length ? 'FAILED' : 'passed'}`);
 for (const issue of issues) console.log(`P0 ${issue}`);

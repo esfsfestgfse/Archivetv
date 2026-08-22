@@ -1379,7 +1379,7 @@ body:not(.atv-powered) .cabinet-readout{opacity:.36!important}.glass-dock{positi
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.211-space-operations";
+window.__ATV_BUILD="1.7.7-desktop.212-river-lake-watch";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1416,7 +1416,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.211 · Space Operations</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.212 · River &amp; Lake Watch</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">AFTERGLOW · THE DIAL</div>
@@ -5699,7 +5699,11 @@ function slotFor(ch,_ignoredHour,opts){
   if(PROGRAM[ch.nm]){
     var prog=PROGRAM[ch.nm];
     var pq=buildProgramQueries(prog,ch,advance);
-    return {show:prog.show||ch.nm, genre:prog.genre||ch.gl, era:prog.era||ch.era, source:"ia", queries:pq, program:prog};
+    /* The station identity is permanent. PROGRAM.show used to carry daypart
+       labels such as "The Late Late Show" into unrelated channels, even after
+       the clock scheduler itself was retired. Editorial lanes may shape the
+       search, but they can never rename the channel on air. */
+    return {show:ch.nm, genre:prog.genre||ch.gl, era:prog.era||ch.era, source:"ia", queries:pq, program:prog};
   }
   const g=ch.gl; let era=ch.era||(G[g]&&G[g].era);
   if(ch.nm==="Sports Vault"&&sportsEra!=="all") era=SPORTS_ERAS[sportsEra]||era; /* 1.4.2 */
@@ -5715,9 +5719,10 @@ window.__atvTimelessAudit=function(){
   var rows=CH.filter(function(ch){return !ch.source;}).map(function(ch){
     var variants={};
     hours.forEach(function(hour){var sl=slotFor(ch,hour,{preview:true});variants[[sl.show,sl.genre,JSON.stringify(sl.era),sl.source,JSON.stringify(iaQueueQueries(sl))].join("|")]=1;});
-    return {num:ch.num,name:ch.nm,variants:Object.keys(variants).length,show:slotFor(ch,0,{preview:true}).show};
+    var permanentShow=slotFor(ch,0,{preview:true}).show;
+    return {num:ch.num,name:ch.nm,variants:Object.keys(variants).length,show:permanentShow,identity:permanentShow===ch.nm};
   });
-  return {ok:rows.every(function(row){return row.variants===1;}),channels:rows.length,failures:rows.filter(function(row){return row.variants!==1;}),channel10:rows.filter(function(row){return row.num===10;})[0]||null};
+  return {ok:rows.every(function(row){return row.variants===1&&row.identity;}),channels:rows.length,failures:rows.filter(function(row){return row.variants!==1||!row.identity;}),channel10:rows.filter(function(row){return row.num===10;})[0]||null};
 };
 window.__atvIAManifest=function(){
   return CH.filter(function(ch){return !ch.source;}).map(function(ch){var sl=slotFor(ch,0,{preview:true});return {channel:String(ch.num),name:ch.nm,queries:iaQueueQueries(sl)};});
@@ -6427,6 +6432,15 @@ async function tuneNum(n){
    clear the slot (manual re-roll). Keyed by channel name; survives power-off. */
 var schedMap=store.get("sched",{});
 var skipUntil=store.get("skipUntil",{}), SKIP_COOLDOWN=2*60*60*1000;
+/* One-time upgrade fence. Saved appointments and rapid-tune entries created by
+   clock-scheduled builds can otherwise survive for hours and make the new
+   timeless engine appear scheduled. Clear only those legacy playback pointers;
+   favorites, history, settings and skip cooldowns are preserved. */
+var IA_TIMELESS_IDENTITY_VERSION=2;
+try{if(Number(store.get("iaTimelessIdentityVersion",0))<IA_TIMELESS_IDENTITY_VERSION){
+  schedMap={};store.set("sched",{});store.set("fastTune",{});store.set("plan",{});store.set("stationMgr",false);
+  store.set("iaTimelessIdentityVersion",IA_TIMELESS_IDENTITY_VERSION);
+}}catch(e){}
 function isTemporarilySkipped(id){var until=skipUntil[id]||0;if(until&&until<=Date.now()){delete skipUntil[id];store.set("skipUntil",skipUntil);return false;}return until>Date.now();}
 function markSkipped(id){if(!id)return;skipUntil[id]=Date.now()+SKIP_COOLDOWN;var ks=Object.keys(skipUntil);if(ks.length>200){ks.sort(function(a,b){return skipUntil[a]-skipUntil[b];});while(ks.length>200)delete skipUntil[ks.shift()];}store.set("skipUntil",skipUntil);}
 var lastMeta=null; /* 1.3: programming flow memory */
@@ -6969,7 +6983,8 @@ function showInfo(){if(!infoPanel||!powered)return;const ch=byNum(curNum);if(!ch
    ((im.identifier||im.id)?'<div class="ip-row"><b>SRC</b><span><a href="https://archive.org/details/'+esch(String(im.identifier||im.id))+'" target="_blank" rel="noopener" style="color:var(--phos);text-decoration:underline">'+esch(String(im.identifier||im.id))+'</a></span></div>':"")+
    '<div class="ip-row"><b>NEXT</b><span>'+esch(nextLabel)+'</span></div>'+
    (cm.desc?'<div class="ip-row"><b>ABOUT</b><span>'+esch(cm.desc)+'</span></div>':"")+
-   (cm.best?'<div class="ip-row"><b>BEST</b><span>'+esch(cm.best)+'</span></div>':"")+
+   /* Retired the old BEST TIME recommendation. It looked like a daypart gate
+      even though every channel is now available in full around the clock. */
    ((cm.rel&&cm.rel.length)?'<div class="ip-row"><b>ALSO</b><span>'+esch(cm.rel.map(function(n){var c2=CH.find(function(x){return x.nm===n;});return (c2?("CH "+c2.num+" "):"")+n;}).join("  \u00b7  "))+'</span></div>':"")+
    ((curItem&&curItem.onThisDay)?('<div class="ip-row" style="display:block"><b>ON THIS DAY</b><div>'+esch(curItem.onThisDay)+'</div></div>'):"");
   infoPanel.classList.remove("hide");clearTimeout(infoTimer);infoTimer=setTimeout(()=>infoPanel.classList.add("hide"),10000);}
@@ -7670,26 +7685,33 @@ async function fetchSkyLegacy(loc,nm,quiet){
 function mercY(lat){ var r=lat*Math.PI/180; return (1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2; }
 function ensureMap(container,lat,lon,rangeMi,theme){
   if(!container)return null;
-  var key=[lat.toFixed(2),lon.toFixed(2),rangeMi,theme].join("|");
+  var mapW=Math.max(1,container.clientWidth||300),mapH=Math.max(1,container.clientHeight||300);
+  var key=[lat.toFixed(2),lon.toFixed(2),rangeMi,theme,Math.round(mapW),Math.round(mapH)].join("|");
   if(container._mapKey===key&&container._mapProj) return container._mapProj;
   var old=container.querySelector(".map-tiles"); if(old)old.remove();
   var z=Math.max(3,Math.min(12,Math.round(Math.log2(3*Math.cos(lat*Math.PI/180)*24901/(2*rangeMi)))));
   var n=Math.pow(2,z);
   var xt=(lon+180)/360*n, yt=mercY(lat)*n;
   var x0=Math.floor(xt), y0=Math.floor(yt);
-  var offX=(xt-x0)*256+512, offY=(yt-y0)*256+512; /* center point inside the 5x5 grid */
   var milesPerTile=Math.cos(lat*Math.PI/180)*24901/n;
   var rangePx=rangeMi/milesPerTile*256;
-  var half=(Math.min(container.clientWidth||0,container.clientHeight||0)||300)/2;
+  var half=Math.min(mapW,mapH)/2;
   var k=half/rangePx;
+  /* The old fixed 5x5 grid exposed blank bands in wide dashboard panes. Keep
+     the same range/zoom projection, but request enough columns and rows to
+     cover this container's real aspect ratio (bounded to protect OSM). */
+  var spanX=Math.max(2,Math.min(6,Math.ceil((mapW/2)/(256*k))));
+  var spanY=Math.max(2,Math.min(6,Math.ceil((mapH/2)/(256*k))));
+  var offX=(xt-x0)*256+spanX*256,offY=(yt-y0)*256+spanY*256;
   var wrap=document.createElement("div"); wrap.className="map-tiles"+(theme?(" "+theme):"");
+  wrap.style.width=((spanX*2+1)*256)+"px";wrap.style.height=((spanY*2+1)*256)+"px";
   wrap.style.left="calc(50% - "+offX+"px)"; wrap.style.top="calc(50% - "+offY+"px)";
   wrap.style.transformOrigin=offX+"px "+offY+"px";
   wrap.style.transform="scale("+k.toFixed(4)+")";
-  for(var dy=-2;dy<=2;dy++)for(var dx=-2;dx<=2;dx++){
+  for(var dy=-spanY;dy<=spanY;dy++)for(var dx=-spanX;dx<=spanX;dx++){
     var im=document.createElement("img"); im.alt="";
     im.src="https://tile.openstreetmap.org/"+z+"/"+(((x0+dx)%n+n)%n)+"/"+Math.max(0,Math.min(n-1,(y0+dy)))+".png";
-    im.style.left=((dx+2)*256)+"px"; im.style.top=((dy+2)*256)+"px";
+    im.style.left=((dx+spanX)*256)+"px"; im.style.top=((dy+spanY)*256)+"px";
     wrap.appendChild(im);
   }
   container.insertBefore(wrap,container.firstChild);
@@ -12316,7 +12338,7 @@ function ensureRiverCSS(){ if($("rlwCSS"))return; var st=document.createElement(
     "#dcList .dc-row.sel{background:rgba(127,212,255,.14)}";
   document.head.appendChild(st);
 }
-async function tuneRiver(ch,sl,my){
+async function tuneRiverLegacy(ch,sl,my){
   if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"River & Lake Watch","");
   ensureRiverCSS();
   if(screenArea) screenArea.innerHTML='<div class="dc-screen" id="dcScreen">'+
@@ -12424,6 +12446,66 @@ async function tuneRiver(ch,sl,my){
     }
   };
   run(); riverTimer=rtInterval(run,300000);
+}
+
+/* ---------- River & Lake Watch 2.0: persistent hydrology operations desk ----------
+   One edge snapshot feeds a nearby-gauge map, 72-hour hydrographs, official flood
+   thresholds, impacts, crests and lake pools. NEXT changes desks; the clock never
+   changes programming and an outage keeps the most recent six-hour snapshot visible. */
+function ensureWaterWatchCSS(){if($("waterWatchCSS"))return;var st=document.createElement("style");st.id="waterWatchCSS";st.textContent=`
+.water-screen{container-type:size;position:relative;width:100%;height:100%;box-sizing:border-box;display:grid;grid-template-rows:auto auto minmax(0,1fr) auto;gap:5px;padding:7px 8px 30px;overflow:hidden;color:#dffaff;background:radial-gradient(100% 90% at 8% 8%,rgba(0,116,151,.3),transparent 65%),radial-gradient(80% 80% at 94% 94%,rgba(0,78,91,.35),transparent 65%),linear-gradient(145deg,#02121a,#020a10 62%,#00161b);font-family:ui-monospace,SFMono-Regular,Consolas,monospace}
+.water-screen:before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.14;background-image:linear-gradient(rgba(79,222,255,.16) 1px,transparent 1px),linear-gradient(90deg,rgba(79,222,255,.12) 1px,transparent 1px);background-size:38px 38px}
+.water-head,.water-stats,.water-main,.water-ticker{position:relative;z-index:1}.water-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 9px;border:1px solid rgba(91,225,255,.28);border-radius:5px;background:rgba(1,19,28,.88);font-size:9px;letter-spacing:1.25px}.water-title{font-weight:900;color:#7eeaff}.water-live{display:inline-flex;align-items:center;gap:6px;color:#7fffb6}.water-live:before{content:"";width:6px;height:6px;border-radius:50%;background:#54ffa0;box-shadow:0 0 8px #54ffa0}.water-live.stale{color:#ffd36b}.water-live.stale:before{background:#ffd36b;box-shadow:0 0 8px #ffd36b}.water-fresh{opacity:.72;white-space:nowrap}
+.water-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}.water-stat{min-width:0;padding:6px 8px;border:1px solid rgba(76,191,222,.22);border-radius:5px;background:linear-gradient(180deg,rgba(6,34,46,.94),rgba(2,18,26,.92))}.water-stat b{display:block;color:#73b9cc;font-size:6px;letter-spacing:1px}.water-stat span{display:block;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#f3feff;font-size:12px;font-weight:900}.water-stat.warn span{color:#ffd36b}.water-stat.rise span{color:#ff9b79}.water-stat.fall span{color:#76d8ff}
+.water-main{display:grid;grid-template-columns:minmax(0,61%) minmax(0,39%);gap:5px;min-height:0}.water-left{display:grid;grid-template-rows:minmax(0,56%) minmax(0,44%);gap:5px;min-width:0;min-height:0}.water-mapbox,.water-chartbox,.water-side{position:relative;min-width:0;min-height:0;overflow:hidden;border:1px solid rgba(86,207,234,.27);border-radius:6px;background:rgba(1,15,22,.93);box-shadow:inset 0 0 28px rgba(0,83,106,.12)}.water-map{position:absolute;inset:0;overflow:hidden}.water-map .map-tiles{filter:grayscale(.35) sepia(.2) hue-rotate(135deg) saturate(.8) brightness(.42) contrast(1.2)}.water-map-dyn{position:absolute;inset:0;z-index:3;pointer-events:none}.water-home{position:absolute;left:50%;top:50%;width:9px;height:9px;border:2px solid #fff;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 0 4px rgba(90,232,255,.22),0 0 12px #5ae8ff}.water-marker{pointer-events:auto;position:absolute;width:10px;height:10px;padding:0;border:1px solid rgba(255,255,255,.75);border-radius:50%;transform:translate(-50%,-50%);background:#53dfff;box-shadow:0 0 6px currentColor;cursor:pointer}.water-marker.lake{border-radius:2px;transform:translate(-50%,-50%) rotate(45deg);background:#6ca8ff}.water-marker.watch{background:#ffd25f}.water-marker.minor{background:#ff9a55}.water-marker.moderate,.water-marker.major{background:#ff4e64}.water-marker.selected{width:15px;height:15px;border:2px solid #fff;z-index:5;box-shadow:0 0 0 4px rgba(92,239,255,.25),0 0 15px currentColor}.water-marker span{display:none;position:absolute;left:14px;top:-5px;max-width:155px;padding:3px 5px;border:1px solid rgba(94,225,255,.35);border-radius:3px;background:rgba(0,12,18,.92);color:#eaffff;font:700 7px/1.2 ui-monospace,monospace;white-space:nowrap;transform:rotate(-45deg)}.water-marker:not(.lake) span{transform:none}.water-marker.selected span{display:block}.water-map-label{position:absolute;z-index:4;left:7px;top:6px;padding:4px 6px;border-radius:3px;background:rgba(0,12,18,.74);font-size:7px;letter-spacing:1px;color:#a9eaff}.water-legend{position:absolute;z-index:4;right:7px;bottom:6px;display:flex;gap:7px;padding:4px 6px;border-radius:3px;background:rgba(0,12,18,.78);font-size:6px;color:#b9dce3}.water-legend i{display:inline-block;width:6px;height:6px;margin-right:3px;border-radius:50%;background:#53dfff}.water-legend .risk{background:#ff755f}.water-legend .pool{border-radius:1px;background:#6ca8ff}
+.water-chartbox{display:grid;grid-template-rows:auto minmax(0,1fr) auto;padding:6px 8px}.water-chart-head{display:flex;justify-content:space-between;gap:8px;color:#dffaff;font-size:8px}.water-chart-head b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#8feaff}.water-chart-head span{white-space:nowrap;color:#eefcff}.water-chart{min-height:0}.water-chart svg{display:block;width:100%;height:100%;overflow:visible}.water-gridline{stroke:rgba(120,222,240,.13);stroke-width:1}.water-axis{fill:#79aeb9;font-size:13px}.water-observed-line{fill:none;stroke:#4ce7ff;stroke-width:4;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 3px rgba(76,231,255,.75))}.water-forecast-line{fill:none;stroke:#ffd36b;stroke-width:4;stroke-dasharray:10 7;stroke-linecap:round}.water-threshold{stroke-width:2;stroke-dasharray:6 6;opacity:.78}.water-threshold.action{stroke:#ffd95e}.water-threshold.minor{stroke:#ff9c52}.water-threshold.moderate{stroke:#ff665d}.water-threshold.major{stroke:#ff395d}.water-chart-empty{height:100%;display:grid;place-items:center;text-align:center;color:#77a9b5;font-size:8px;letter-spacing:1px}.water-thresholds{display:flex;gap:4px;min-height:15px;overflow:hidden}.water-thresholds span{padding:3px 5px;border:1px solid rgba(255,211,107,.24);border-radius:3px;background:rgba(255,211,107,.07);font-size:6px;white-space:nowrap;color:#d7edf2}
+.water-side{display:grid;grid-template-rows:auto minmax(0,1fr);padding:5px}.water-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3px;margin-bottom:4px}.water-tab{padding:6px 2px;border:1px solid rgba(94,200,224,.25);border-radius:4px;background:#071c25;color:#7fb4c0;font:800 7px/1 ui-monospace,monospace;letter-spacing:.4px;cursor:pointer}.water-tab.active{border-color:#62eaff;background:rgba(26,125,149,.28);color:#eaffff;box-shadow:inset 0 -2px #62eaff}.water-list{min-height:0;overflow:auto;scrollbar-width:thin}.water-row{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:6px;align-items:center;margin-bottom:3px;padding:6px;border:1px solid rgba(79,174,198,.16);border-radius:4px;background:rgba(4,28,38,.72);cursor:pointer}.water-row:hover,.water-row.selected{border-color:rgba(90,232,255,.52);background:rgba(15,69,82,.7)}.water-kind{padding:3px 2px;border-radius:2px;text-align:center;background:#0b5163;color:#c9f8ff;font-size:5.5px;font-weight:900;letter-spacing:.5px}.water-kind.lake{background:#274d89}.water-row-copy{min-width:0}.water-row-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#eaffff;font-size:7.5px;font-weight:900}.water-row-meta{margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#77aeb9;font-size:6px}.water-row-value{text-align:right;color:#7feaff;font-size:8px;font-weight:900;white-space:nowrap}.water-row-value.risk{color:#ffae6e}.water-expanded{grid-column:1/-1;display:grid;gap:3px;padding:5px 6px;border-left:2px solid #54deff;background:rgba(0,12,18,.55);color:#b8dce4;font-size:6px;line-height:1.35}.water-expanded strong{color:#fff}.water-expanded a{color:#70e7ff}.water-empty{display:grid;place-items:center;height:100%;padding:14px;text-align:center;color:#7da6af;font-size:8px;letter-spacing:1px}.water-ticker{overflow:hidden;padding:5px 8px;border:1px solid rgba(84,203,231,.2);border-radius:4px;background:rgba(0,16,23,.88);color:#81c3d1;font-size:7px;letter-spacing:.8px;white-space:nowrap;text-overflow:ellipsis}
+@container (max-width:650px){.water-screen{gap:3px;padding:4px 5px 27px}.water-head{padding:4px 6px;font-size:7px}.water-stat{padding:3px 4px}.water-stat b{font-size:5px}.water-stat span{font-size:8px}.water-main{grid-template-columns:minmax(0,57%) minmax(0,43%);gap:3px}.water-left{gap:3px}.water-side{padding:3px}.water-tab{padding:4px 1px;font-size:5px}.water-row{grid-template-columns:28px minmax(0,1fr) auto;gap:3px;padding:4px 3px}.water-row-name{font-size:6px}.water-row-meta,.water-expanded{font-size:5px}.water-row-value{font-size:6px}.water-chartbox{padding:4px}.water-chart-head{font-size:6px}.water-marker span{display:none!important}.water-thresholds span:nth-child(n+4){display:none}}
+@container (max-height:430px){.water-screen{grid-template-rows:auto auto minmax(0,1fr);padding-bottom:25px}.water-head{padding:3px 6px}.water-stat{padding:3px}.water-stat span{font-size:8px}.water-main{gap:3px}.water-left{grid-template-rows:minmax(0,58%) minmax(0,42%);gap:3px}.water-side{padding:3px}.water-row{padding:3px}.water-row:nth-child(n+8){display:none}.water-expanded{display:none}.water-ticker{display:none}.water-chartbox{padding:3px 5px}}
+@container (max-height:240px){.water-stats{display:none}.water-screen{grid-template-rows:auto minmax(0,1fr)}.water-left{grid-template-rows:1fr}.water-chartbox{display:none}.water-row:nth-child(n+5){display:none}.water-fresh{display:none}}
+`;document.head.appendChild(st);}
+function waterRiskRank(g){var c=String(g&&g.observed&&g.observed.category||"").toLowerCase();return /major/.test(c)?4:/moderate/.test(c)?3:/minor/.test(c)?2:/action/.test(c)?1:0;}
+function waterNumber(v){return v!=null&&isFinite(Number(v))?Number(v):null;}
+function waterCategoryLabel(g){var c=String(g&&g.observed&&g.observed.category||"").replace(/_/g," ").toUpperCase();return !c||c==="NOT DEFINED"||c==="FCST NOT CURRENT"?(g&&g.isLake?"POOL LEVEL":"NORMAL"):c;}
+function waterAgeLabel(at){var age=Math.max(0,Date.now()-(Date.parse(at)||Number(at)||0)),m=Math.floor(age/60000);return m<1?"JUST NOW":m<60?(m+"M AGO"):m<1440?(Math.floor(m/60)+"H AGO"):(Math.floor(m/1440)+"D AGO");}
+function waterValueLabel(g){var v=waterNumber(g&&g.observed&&g.observed.primary),u=g&&g.observed&&g.observed.primaryUnit||"ft";return v==null?"NO READING":v.toFixed(v>=100?2:2)+" "+u+(g&&g.isLake?" POOL":" STAGE");}
+function waterTrendLabel(g){var n=waterNumber(g&&g.trend24h);if(n==null)return "TREND PENDING";return (n>0?"▲ +":n<0?"▼ ":"■ ")+n.toFixed(2)+" "+((g.observed&&g.observed.primaryUnit)||"ft")+" / 24H";}
+async function tuneRiver(ch,sl,my){
+  if(my!==token)return;hideOv();setSig("live","ON AIR");showNow(ch,sl,"Water Operations","");ensureWaterWatchCSS();
+  clearInterval(riverTimer);clearInterval(riverMediaIv);startIAJazz("fieldrec");
+  if(screenArea)screenArea.innerHTML='<div class="water-screen" id="waterScreen">'+
+    '<div class="water-head"><span class="water-title" id="waterTitle">RIVER &amp; LAKE WATCH · LOCATING…</span><span class="water-live stale" id="waterLive">LAST-GOOD SAFETY DESK</span><span class="water-fresh" id="waterFresh">CONNECTING TO NOAA NWPS…</span></div>'+
+    '<div class="water-stats"><div class="water-stat"><b>REPORTING GAUGES</b><span id="waterGaugeCount">--</span></div><div class="water-stat warn"><b>ELEVATED / FLOOD</b><span id="waterElevated">--</span></div><div class="water-stat"><b>NEAREST WATER</b><span id="waterNearest">--</span></div><div class="water-stat" id="waterTrendStat"><b>SELECTED 24H TREND</b><span id="waterTrend">--</span></div></div>'+
+    '<div class="water-main"><div class="water-left"><section class="water-mapbox"><div class="water-map" id="waterMap"></div></section><section class="water-chartbox"><div class="water-chart-head"><b id="waterChartName">SELECT A GAUGE</b><span id="waterChartValue">--</span></div><div class="water-chart" id="waterChart"><div class="water-chart-empty">WAITING FOR HYDROGRAPH…</div></div><div class="water-thresholds" id="waterThresholds"></div></section></div><aside class="water-side"><div class="water-tabs" id="waterTabs"></div><div class="water-list" id="waterList"><div class="water-empty">ACQUIRING NEARBY RIVERS AND LAKES…</div></div></aside></div>'+
+    '<div class="water-ticker" id="waterTicker">NOAA NATIONAL WATER PREDICTION SERVICE · LIVE STAGE, FLOW, FLOOD IMPACTS AND LAKE POOLS · NEXT CHANGES DESK</div></div>';
+  var bug=mountChanBug("waterScreen",{ident:"RIVER & LAKE"}),model={gauges:[],center:null,fetchedAt:0},viewIndex=0,selectedLid="",stale=true,place="YOUR AREA";
+  var viewNames=["NEAREST","HIGH WATER","LAKES","TRENDS"];
+  function riskClass(g){var r=waterRiskRank(g);return r===4?"major":r===3?"moderate":r===2?"minor":r===1?"watch":"";}
+  function gaugeRatio(g){var v=waterNumber(g&&g.observed&&g.observed.primary),a=waterNumber(g&&g.thresholds&&g.thresholds.action);return v!=null&&a>0?v/a:0;}
+  function viewItems(index){var all=(model.gauges||[]).filter(function(g){return g&&g.lid;}).slice();
+    if(index===0)return all.sort(function(a,b){return (a.distanceMiles||9999)-(b.distanceMiles||9999);});
+    if(index===1)return all.sort(function(a,b){return waterRiskRank(b)-waterRiskRank(a)||gaugeRatio(b)-gaugeRatio(a)||(a.distanceMiles||9999)-(b.distanceMiles||9999);});
+    if(index===2){var lakes=all.filter(function(g){return g.isLake;});return (lakes.length?lakes:all).sort(function(a,b){return (a.distanceMiles||9999)-(b.distanceMiles||9999);});}
+    var trends=all.filter(function(g){return Array.isArray(g.observedSeries)&&g.observedSeries.length>1;});return (trends.length?trends:all).sort(function(a,b){return Math.abs(Number(b.trend24h)||0)-Math.abs(Number(a.trend24h)||0);});}
+  function selected(){var all=model.gauges||[];return all.filter(function(g){return g.lid===selectedLid;})[0]||all[0]||null;}
+  function ensureSelection(){var items=viewItems(viewIndex);if(!items.some(function(g){return g.lid===selectedLid;}))selectedLid=items[0]&&items[0].lid||"";return items;}
+  function renderTabs(){var el=$("waterTabs");if(!el)return;el.innerHTML=viewNames.map(function(n,i){return '<button class="water-tab'+(i===viewIndex?' active':'')+'" data-water-view="'+i+'">'+n+'</button>';}).join("");el.querySelectorAll("[data-water-view]").forEach(function(b){b.onclick=function(){setView(Number(b.dataset.waterView),false);};});}
+  function renderStats(){var all=model.gauges||[],near=all.slice().sort(function(a,b){return (a.distanceMiles||9999)-(b.distanceMiles||9999);})[0],g=selected(),elev=all.filter(function(x){return waterRiskRank(x)>0;}).length;
+    var e=$("waterGaugeCount");if(e)e.textContent=all.length?String(all.length):"CONNECTING";e=$("waterElevated");if(e)e.textContent=all.length?(elev+" ACTIVE"):"--";e=$("waterNearest");if(e)e.textContent=near?(near.name+" · "+Number(near.distanceMiles||0).toFixed(0)+" MI"):"--";e=$("waterTrend");if(e)e.textContent=g?waterTrendLabel(g):"--";var box=$("waterTrendStat"),t=g&&waterNumber(g.trend24h);if(box){box.classList.toggle("rise",t>0.05);box.classList.toggle("fall",t<-0.05);}}
+  function renderHeader(){var live=$("waterLive"),fresh=$("waterFresh"),title=$("waterTitle"),g=selected();if(title)title.textContent="RIVER & LAKE WATCH · "+place;if(live){live.textContent=stale?"LAST-GOOD SAFETY DESK":"LIVE NOAA DATA";live.classList.toggle("stale",stale);}if(fresh)fresh.textContent=(stale?"SNAPSHOT · ":"UPDATED · ")+waterAgeLabel(model.fetchedAt);if(g&&bug)bug.update(waterNumber(g.observed&&g.observed.primary)!=null?waterNumber(g.observed.primary).toFixed(2)+" "+(g.observed.primaryUnit||"ft"):"--",g.name.toUpperCase()+" · "+waterCategoryLabel(g));}
+  function renderMap(){var host=$("waterMap");if(!host)return;var c=model.center||{lat:31.55,lon:-97.15,radiusMiles:65},proj=ensureMap(host,Number(c.lat),Number(c.lon),Number(c.radiusMiles)||65,"dkblue");host.querySelectorAll(".water-map-dyn,.water-map-label,.water-legend,.map-attrib").forEach(function(x){x.remove();});var layer=document.createElement("div");layer.className="water-map-dyn";layer.innerHTML='<i class="water-home" title="Your location"></i>';
+    (model.gauges||[]).slice().sort(function(a,b){return (a.distanceMiles||9999)-(b.distanceMiles||9999);}).slice(0,32).forEach(function(g){if(!isFinite(g.lat)||!isFinite(g.lon))return;var p=proj.project(Number(g.lat),Number(g.lon)),b=document.createElement("button");b.className="water-marker "+(g.isLake?"lake ":"")+riskClass(g)+(g.lid===selectedLid?" selected":"");b.dataset.waterLid=g.lid;b.style.left="calc(50% + "+p.x.toFixed(1)+"px)";b.style.top="calc(50% + "+p.y.toFixed(1)+"px)";b.title=g.name+" · "+waterValueLabel(g);b.setAttribute("aria-label",b.title);b.innerHTML="<span>"+esch(g.name)+"</span>";b.onclick=function(){selectGauge(g.lid,true);};layer.appendChild(b);});host.appendChild(layer);var lab=document.createElement("div");lab.className="water-map-label";lab.textContent=(model.gauges||[]).length+" GAUGES · "+(Number(c.radiusMiles)||65)+" MI RADIUS";host.appendChild(lab);var attrib=document.createElement("div");attrib.className="map-attrib";attrib.style.right="auto";attrib.style.left="6px";attrib.textContent="© OpenStreetMap";host.appendChild(attrib);var legend=document.createElement("div");legend.className="water-legend";legend.innerHTML='<span><i></i> NORMAL</span><span><i class="risk"></i> ELEVATED</span><span><i class="pool"></i> LAKE</span>';host.appendChild(legend);}
+  function renderChart(){var host=$("waterChart"),name=$("waterChartName"),value=$("waterChartValue"),chips=$("waterThresholds"),g=selected();if(!host||!g){if(host)host.innerHTML='<div class="water-chart-empty">HYDROGRAPH DATA CONNECTING…</div>';return;}if(name)name.textContent=g.name.toUpperCase()+" · 72-HOUR OBSERVED";if(value)value.textContent=waterValueLabel(g)+" · "+waterTrendLabel(g);var obs=(g.observedSeries||[]).filter(function(p){return waterNumber(p.primary)!=null&&isFinite(Number(p.at));}),fc=(g.forecastSeries||[]).filter(function(p){return waterNumber(p.primary)!=null&&isFinite(Number(p.at));}),all=obs.concat(fc);var th=g.thresholds||{};if(chips)chips.innerHTML=["action","minor","moderate","major"].filter(function(k){return waterNumber(th[k])!=null;}).map(function(k){return '<span>'+k.toUpperCase()+" "+Number(th[k]).toFixed(1)+" "+(g.observed&&g.observed.primaryUnit||"ft")+'</span>';}).join("")||'<span>NO OFFICIAL FLOOD THRESHOLD FOR THIS GAUGE</span>';if(all.length<2){host.innerHTML='<div class="water-chart-empty">CURRENT READING IS LIVE<br>72-HOUR TREND IS NOT PUBLISHED FOR THIS GAUGE</div>';return;}
+    var x0=Math.min.apply(null,all.map(function(p){return Number(p.at);})),x1=Math.max.apply(null,all.map(function(p){return Number(p.at);}));if(x1<=x0)x1=x0+1;var vals=all.map(function(p){return Number(p.primary);}),y0=Math.min.apply(null,vals),y1=Math.max.apply(null,vals),spread=Math.max(.1,y1-y0),visibleThresholds=[];["action","minor","moderate","major"].forEach(function(k){var n=waterNumber(th[k]);if(n!=null&&n<=y1+spread*3&&n>=y0-spread)visibleThresholds.push({k:k,v:n});});visibleThresholds.forEach(function(t){y0=Math.min(y0,t.v);y1=Math.max(y1,t.v);});var pad=Math.max(.05,(y1-y0)*.14);y0-=pad;y1+=pad;var axisDigits=(y1-y0)<1?2:((y1-y0)<10?1:0),X=function(p){return 42+(Number(p.at)-x0)/(x1-x0)*736;},Y=function(v){return 196-(Number(v)-y0)/(y1-y0)*164;},path=function(arr){return arr.map(function(p,i){return (i?"L":"M")+X(p).toFixed(1)+" "+Y(p.primary).toFixed(1);}).join(" ");};var grid="",thresholdLines="";for(var i=0;i<4;i++){var yy=32+i*54.7;grid+='<line class="water-gridline" x1="42" x2="778" y1="'+yy+'" y2="'+yy+'"/><text class="water-axis" x="2" y="'+(yy+4)+'">'+(y1-(y1-y0)*i/3).toFixed(axisDigits)+'</text>';}visibleThresholds.forEach(function(t){var yy=Y(t.v);thresholdLines+='<line class="water-threshold '+t.k+'" x1="42" x2="778" y1="'+yy+'" y2="'+yy+'"/><text class="water-axis" x="682" y="'+(yy-4)+'">'+t.k.toUpperCase()+'</text>';});host.innerHTML='<svg viewBox="0 0 800 220" preserveAspectRatio="none" aria-label="72 hour hydrograph">'+grid+thresholdLines+(obs.length?'<path class="water-observed-line" data-points="'+obs.length+'" d="'+path(obs)+'"/>':'')+(fc.length?'<path class="water-forecast-line" data-points="'+fc.length+'" d="'+path(fc)+'"/>':'')+'<text class="water-axis" x="42" y="216">72H AGO</text><text class="water-axis" x="730" y="216">NOW / FCST</text></svg>';}
+  function renderList(){var host=$("waterList");if(!host)return;var items=ensureSelection().slice(0,12),g=selected();if(!items.length){host.innerHTML='<div class="water-empty">NO REPORTING GAUGES IN THIS VIEW<br>THE DESK WILL RETRY AUTOMATICALLY</div>';return;}host.innerHTML=items.map(function(r){var sel=r.lid===selectedLid,rank=waterRiskRank(r),flow=waterNumber(r.observed&&r.observed.flowCfs),impact=(r.impacts||[]).filter(function(x){return waterNumber(x.stage)!=null;})[0],crest=(r.crests||[])[0],details="";if(sel){details='<div class="water-expanded"><span><strong>'+waterCategoryLabel(r)+'</strong> · '+waterTrendLabel(r)+(flow!=null?(' · FLOW '+Math.round(flow).toLocaleString()+' CFS'):'')+'</span>'+(impact?('<span><strong>OFFICIAL IMPACT AT '+Number(impact.stage).toFixed(1)+' FT:</strong> '+esch(impact.statement)+'</span>'):'')+(crest?('<span>RECENT CREST '+Number(crest.stage).toFixed(2)+' FT · '+new Date(crest.time).toLocaleDateString()+'</span>'):'')+'<a href="https://water.noaa.gov/gauges/'+encodeURIComponent(r.lid.toLowerCase())+'" target="_blank" rel="noopener" onclick="event.stopPropagation()">OPEN OFFICIAL NOAA GAUGE →</a></div>';}
+      return '<div class="water-row'+(sel?' selected':'')+'" data-water-row="'+esch(r.lid)+'" role="button" tabindex="0"><span class="water-kind'+(r.isLake?' lake':'')+'">'+(r.isLake?'LAKE':'RIVER')+'</span><span class="water-row-copy"><span class="water-row-name">'+esch(r.name)+'</span><span class="water-row-meta">'+Number(r.distanceMiles||0).toFixed(1)+' MI · '+waterCategoryLabel(r)+' · '+waterTrendLabel(r)+'</span></span><span class="water-row-value'+(rank?' risk':'')+'">'+esch(waterValueLabel(r).replace(/ STAGE| POOL/,""))+'</span>'+details+'</div>';}).join("");host.querySelectorAll("[data-water-row]").forEach(function(row){row.onclick=function(){selectGauge(row.dataset.waterRow,true);};row.onkeydown=function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();selectGauge(row.dataset.waterRow,true);}};});}
+  function renderAll(){ensureSelection();renderTabs();renderStats();renderHeader();renderMap();renderChart();renderList();var t=$("waterTicker"),g=selected();if(t)t.textContent=(stale?"LAST-GOOD SNAPSHOT · ":"LIVE NOAA NWPS · ")+(g?(g.name.toUpperCase()+" · "+waterValueLabel(g)+" · "+waterCategoryLabel(g)):"ACQUIRING GAUGES")+" · NEXT: "+viewNames[(viewIndex+1)%4];}
+  function selectGauge(lid,announce){selectedLid=lid;renderAll();if(announce){var g=selected();if(g)quickBanner(g.name.toUpperCase()+" · "+waterValueLabel(g));}}
+  function setView(index,announce){viewIndex=((Number(index)||0)%4+4)%4;selectedLid="";renderAll();if(announce)quickBanner("WATER DESK · "+viewNames[viewIndex]);}
+  function save(){try{store.set("waterLiveCache",{model:model,at:Date.now(),place:place});}catch(e){}}
+  async function refresh(){try{var loc=await getWxLocation(),li=await resolveLocale(loc);if(my!==token)return;place=((li&&li.city)||loc.label||"YOUR AREA").toUpperCase();var url="https://ais-relay.tdy1990.workers.dev/live/water?lat="+Number(loc.lat).toFixed(4)+"&lon="+Number(loc.lon).toFixed(4)+"&radius=65";var response=await withTO(fetch(url,{mode:"cors",cache:"no-store"}).then(function(r){if(!r.ok)throw new Error("water edge "+r.status);return r.json();}),16000);if(my!==token)return;if(!response||!Array.isArray(response.gauges)||!response.gauges.length)throw new Error("water edge returned no gauges");model={gauges:response.gauges,center:response.center||{lat:loc.lat,lon:loc.lon,radiusMiles:65},fetchedAt:response.fetchedAt||new Date().toISOString(),source:response.source||"NOAA NWPS"};stale=false;if(!selectedLid)selectedLid=model.gauges[0].lid;save();renderAll();setChanStatus(ch.num,model.gauges.length+" GAUGES · "+place);nlog("water-watch",true,model.gauges.length+" gauges · "+model.gauges.filter(function(g){return (g.observedSeries||[]).length;}).length+" hydrographs");}catch(error){if(my!==token)return;stale=true;renderAll();setChanStatus(ch.num,(model.gauges||[]).length?"LAST-GOOD WATER DATA":"WATER EDGE RETRYING");nlog("water-watch",false,(error&&error.message)||error);}}
+  var cached=store.get("waterLiveCache",null);if(cached&&cached.model&&Array.isArray(cached.model.gauges)&&cached.model.gauges.length&&Date.now()-Number(cached.at||0)<6*3600000){model=cached.model;place=cached.place||place;stale=true;selectedLid=model.gauges[0].lid;renderAll();}
+  window.__waterNext=function(){setView(viewIndex+1,true);};window.__waterRefresh=refresh;refresh();riverTimer=rtInterval(refresh,5*60*1000);
 }
 
 /* ---------- Earthquake Bulletin (CYCLE-14 rebuild): dynamic map + list + newswire ----------
@@ -14747,6 +14829,7 @@ async function playBumper(ch,sl,my){
 /* ===== v10.1: skip — next item on the same channel, on demand ===== */
 function skipOne(){ if(!powered){quickBanner("TURN THE TV ON FIRST");return;}
   var sc=byNum(curNum);
+  if(sc&&sc.source==="river"&&typeof window.__waterNext==="function"){window.__waterNext();return;}
   if(sc&&sc.source==="space"&&typeof window.__spaceNext==="function"){window.__spaceNext();return;}
   if(sc&&sc.source==="seismic"&&typeof window.__seismicNext==="function"){window.__seismicNext();return;}
   if(sc&&sc.source==="airtraffic"&&typeof window.__skyBeaconNext==="function"){window.__skyBeaconNext();return;}
@@ -14803,12 +14886,14 @@ function marathonToggle(){
 
 /* NEW (feature: rolling-dial tune animation): briefly cycle the channel-number readouts
    through nearby digits before landing on the real one, like an old mechanical selector */
+var rollDialTimer=null;
 function rollDialTo(target){
+  clearInterval(rollDialTimer);
   var els=[chNum,bug].filter(Boolean); if(!els.length)return;
   var steps=[Math.max(2,target-2),Math.max(2,target-1),target]; var i=0;
-  var iv=setInterval(function(){
+  rollDialTimer=setInterval(function(){
     els.forEach(function(el){ if(el===bug) el.textContent=(isFav(target)?"\u2605 ":"")+"CH "+steps[i]; else el.textContent=String(steps[i]); });
-    i++; if(i>=steps.length){ clearInterval(iv);
+    i++; if(i>=steps.length){ clearInterval(rollDialTimer);rollDialTimer=null;
       els.forEach(function(el){ if(el===bug) el.textContent=(isFav(target)?"\u2605 ":"")+"CH "+target; else el.textContent=String(target); }); }
   },70);
 }

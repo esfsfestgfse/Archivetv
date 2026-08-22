@@ -39,9 +39,11 @@ const IA_QUEUE_PATH = IA_PREFIX + "/queue";
 const IA_PROGRAM_PATH = IA_PREFIX + "/program";
 const ADSB_PATH = "/live/adsb";
 const SPACE_PATH = "/live/space";
+const WATER_PATH = "/live/water";
 const SNAPSHOT_TTL_SECONDS = 60;
 const ADSB_TTL_SECONDS = 10;
 const SPACE_TTL_SECONDS = 900;
+const WATER_TTL_SECONDS = 300;
 const ADSB_USER_AGENT = "Afterglow/1.7 (+https://github.com/esfsfestgfse/Archivetv)";
 const IA_SEARCH_TTL_SECONDS = 21600;
 /* Bump this when the normalized search response changes so an older edge
@@ -443,6 +445,178 @@ async function getSpaceSnapshot(url, ctx) {
   return response;
 }
 
+/* River and lake edge desk --------------------------------------------------
+   NWPS publishes a fast nearby-gauge index, but each gauge's thresholds,
+   historic crests and 30-day stage/flow series live behind separate calls.
+   Hydrate a bounded set of useful gauges once at the edge, downsample to the
+   last 72 hours, and return a small television-ready payload. */
+function waterDistanceMiles(lat1, lon1, lat2, lon2) {
+  const rad = Math.PI / 180, dLat = (lat2 - lat1) * rad, dLon = (lon2 - lon1) * rad;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * rad) * Math.cos(lat2 * rad) * Math.sin(dLon / 2) ** 2;
+  return 3958.7613 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function validWaterValue(value) {
+  if (value == null || value === "") return null;
+  const number = finiteNumber(value);
+  return number != null && number > -900 ? number : null;
+}
+
+function waterCategoryRank(category) {
+  return ({ major: 5, moderate: 4, minor: 3, action: 2, no_flooding: 1 })[String(category || "").toLowerCase()] || 0;
+}
+
+function normalizeWaterGauge(gauge, lat, lon) {
+  const observed = gauge && gauge.status && gauge.status.observed || {};
+  const forecast = gauge && gauge.status && gauge.status.forecast || {};
+  const gaugeLat = finiteNumber(gauge && gauge.latitude), gaugeLon = finiteNumber(gauge && gauge.longitude);
+  const secondary = validWaterValue(observed.secondary), secondaryUnit = cleanText(observed.secondaryUnit, 12);
+  return {
+    lid: cleanText(gauge && gauge.lid, 12),
+    name: cleanText(gauge && gauge.name, 160).replace(/^North Texas Lakes at /i, ""),
+    state: cleanText(gauge && gauge.state && (gauge.state.abbreviation || gauge.state.name), 30),
+    rfc: cleanText(gauge && gauge.rfc && gauge.rfc.abbreviation, 12),
+    wfo: cleanText(gauge && gauge.wfo && gauge.wfo.abbreviation, 12),
+    lat: gaugeLat,
+    lon: gaugeLon,
+    distanceMiles: gaugeLat == null || gaugeLon == null ? null : waterDistanceMiles(lat, lon, gaugeLat, gaugeLon),
+    isLake: /^HP/i.test(cleanText(gauge && gauge.pedts && gauge.pedts.observed, 12)) || /\b(lake|reservoir|pool)\b/i.test(gauge && gauge.name || ""),
+    observed: {
+      primary: validWaterValue(observed.primary),
+      primaryUnit: cleanText(observed.primaryUnit || "ft", 12),
+      secondary,
+      secondaryUnit,
+      flowCfs: secondary == null ? null : /kcfs/i.test(secondaryUnit) ? secondary * 1000 : /cfs/i.test(secondaryUnit) ? secondary : null,
+      category: cleanText(observed.floodCategory, 30).toLowerCase(),
+      validTime: cleanText(observed.validTime, 40),
+    },
+    forecast: {
+      primary: validWaterValue(forecast.primary),
+      primaryUnit: cleanText(forecast.primaryUnit, 12),
+      category: cleanText(forecast.floodCategory, 30).toLowerCase(),
+      validTime: /^0001-/.test(String(forecast.validTime || "")) ? "" : cleanText(forecast.validTime, 40),
+    },
+  };
+}
+
+function downsampleWaterSeries(series, hours, maxPoints) {
+  const cutoff = Date.now() - hours * 3600000;
+  let rows = (series || []).map((point) => ({
+    time: cleanText(point && point.validTime, 40),
+    at: Date.parse(point && point.validTime),
+    primary: validWaterValue(point && point.primary),
+    secondary: validWaterValue(point && point.secondary),
+  })).filter((point) => point.primary != null && Number.isFinite(point.at) && point.at >= cutoff);
+  if (!rows.length) {
+    rows = (series || []).slice(-maxPoints).map((point) => ({
+      time: cleanText(point && point.validTime, 40),
+      at: Date.parse(point && point.validTime),
+      primary: validWaterValue(point && point.primary),
+      secondary: validWaterValue(point && point.secondary),
+    })).filter((point) => point.primary != null && Number.isFinite(point.at));
+  }
+  if (rows.length <= maxPoints) return rows;
+  const step = (rows.length - 1) / (maxPoints - 1);
+  return Array.from({ length: maxPoints }, (_, index) => rows[Math.round(index * step)]);
+}
+
+function normalizeFloodThresholds(detail) {
+  const categories = detail && detail.flood && detail.flood.categories || {}, out = {};
+  ["action", "minor", "moderate", "major"].forEach((name) => {
+    const stage = validWaterValue(categories[name] && categories[name].stage);
+    if (stage != null) out[name] = stage;
+  });
+  return out;
+}
+
+async function enrichWaterGauge(gauge) {
+  const lid = gauge.lid;
+  const [detailResult, seriesResult] = await Promise.allSettled([
+    timedJsonFetch("https://api.water.noaa.gov/nwps/v1/gauges/" + encodeURIComponent(lid), 6800),
+    timedJsonFetch("https://api.water.noaa.gov/nwps/v1/gauges/" + encodeURIComponent(lid) + "/stageflow", 7600),
+  ]);
+  const detail = detailResult.status === "fulfilled" ? detailResult.value : null;
+  const stageflow = seriesResult.status === "fulfilled" ? seriesResult.value : null;
+  const observed = downsampleWaterSeries(stageflow && stageflow.observed && stageflow.observed.data, 72, 96);
+  const forecast = downsampleWaterSeries(stageflow && stageflow.forecast && stageflow.forecast.data, 240, 120);
+  const last = observed[observed.length - 1], dayAgo = observed.reduce((best, point) => {
+    const delta = Math.abs(point.at - (Date.now() - 86400000));
+    return !best || delta < best.delta ? { point, delta } : best;
+  }, null);
+  const crests = detail && detail.flood && detail.flood.crests || {};
+  return {
+    ...gauge,
+    usgsId: cleanText(detail && detail.usgsId, 24),
+    county: cleanText(detail && detail.county, 80),
+    description: cleanText(detail && detail.description, 240),
+    thresholds: normalizeFloodThresholds(detail),
+    impacts: (detail && detail.flood && detail.flood.impacts || []).slice(0, 8).map((impact) => ({ stage: validWaterValue(impact.stage), statement: cleanText(impact.statement, 220) })),
+    crests: (crests.recent || crests.historic || []).slice(0, 8).map((crest) => ({ time: cleanText(crest.occurredTime, 40), stage: validWaterValue(crest.stage), flow: validWaterValue(crest.flow) })),
+    hydrograph: safeImageUrl(detail && detail.images && detail.images.hydrograph && detail.images.hydrograph.default),
+    observedSeries: observed,
+    forecastSeries: forecast,
+    trend24h: last && dayAgo ? last.primary - dayAgo.point.primary : null,
+    forecastPeak: forecast.reduce((peak, point) => peak == null || point.primary > peak ? point.primary : peak, null),
+    seriesPrimaryName: cleanText(stageflow && stageflow.observed && stageflow.observed.primaryName, 30),
+    seriesPrimaryUnit: cleanText(stageflow && stageflow.observed && stageflow.observed.primaryUnits, 12),
+  };
+}
+
+async function getWaterSnapshot(url, ctx) {
+  const lat = Number(url.searchParams.get("lat")), lon = Number(url.searchParams.get("lon"));
+  const radius = Math.max(20, Math.min(120, Math.round(Number(url.searchParams.get("radius")) || 65)));
+  if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+    return json({ error: "invalid water coordinates" }, 400);
+  }
+  const latKey = (Math.round(lat * 10) / 10).toFixed(1), lonKey = (Math.round(lon * 10) / 10).toFixed(1);
+  const radiusKey = Math.round(radius / 10) * 10;
+  const cacheKey = new Request(url.origin + WATER_PATH + "/cache/v2/" + latKey + "/" + lonKey + "/" + radiusKey);
+  const cache = caches.default, cached = await cache.match(cacheKey);
+  if (cached) {
+    const headers = new Headers(cached.headers);
+    Object.entries(corsHeaders()).forEach(([key, value]) => headers.set(key, value));
+    headers.set("X-Afterglow-Cache", "hit");
+    return new Response(cached.body, { status: cached.status, headers });
+  }
+  const latDelta = radius / 69, lonDelta = Math.min(10, latDelta / Math.max(.2, Math.cos(lat * Math.PI / 180)));
+  const upstream = new URL("https://api.water.noaa.gov/nwps/v1/gauges");
+  upstream.searchParams.set("bbox.xmin", (lon - lonDelta).toFixed(4));
+  upstream.searchParams.set("bbox.ymin", (lat - latDelta).toFixed(4));
+  upstream.searchParams.set("bbox.xmax", (lon + lonDelta).toFixed(4));
+  upstream.searchParams.set("bbox.ymax", (lat + latDelta).toFixed(4));
+  upstream.searchParams.set("srid", "EPSG_4326");
+  let list;
+  try {
+    list = await timedJsonFetch(upstream.toString(), 6800);
+  } catch {
+    return json({ error: "NWPS gauge index unavailable" }, 502);
+  }
+  const gauges = (list && list.gauges || []).map((gauge) => normalizeWaterGauge(gauge, lat, lon))
+    .filter((gauge) => gauge.lid && gauge.observed.primary != null && gauge.distanceMiles != null && gauge.distanceMiles <= radius * 1.15)
+    .sort((a, b) => a.distanceMiles - b.distanceMiles);
+  const candidates = [], seen = new Set(), add = (gauge) => {
+    if (gauge && !seen.has(gauge.lid) && candidates.length < 8) { seen.add(gauge.lid); candidates.push(gauge); }
+  };
+  gauges.slice(0, 6).forEach(add);
+  gauges.slice().sort((a, b) => waterCategoryRank(b.forecast.category || b.observed.category) - waterCategoryRank(a.forecast.category || a.observed.category)).slice(0, 4).forEach(add);
+  gauges.filter((gauge) => gauge.isLake).slice(0, 3).forEach(add);
+  const enriched = await Promise.all(candidates.map(async (gauge) => {
+    try { return await enrichWaterGauge(gauge); } catch { return gauge; }
+  }));
+  const byLid = new Map(enriched.map((gauge) => [gauge.lid, gauge]));
+  const merged = gauges.slice(0, 40).map((gauge) => byLid.get(gauge.lid) || gauge);
+  const payload = { source: "NOAA National Water Prediction Service", fetchedAt: new Date().toISOString(), center: { lat, lon, radiusMiles: radius }, gauges: merged };
+  const response = json(payload, 200, {
+    "Cache-Control": "public, max-age=" + WATER_TTL_SECONDS + ", stale-while-revalidate=900",
+    "X-Afterglow-Source": "nwps-edge-desk",
+    "X-Afterglow-Cache": "miss",
+  });
+  ctx.waitUntil(cache.put(cacheKey, response.clone()).catch((error) => {
+    console.warn(JSON.stringify({ event: "water-cache-write-failed", message: String(error && error.message || error) }));
+  }));
+  return response;
+}
+
 /* Internet Archive will occasionally leave a TCP request open for a very long
    time. A television tune must never inherit that wait: abort the upstream
    request and let the caller use a cached or alternate lane instead. */
@@ -789,6 +963,10 @@ export default {
       return getSpaceSnapshot(url, ctx);
     }
 
+    if (request.method === "GET" && url.pathname === WATER_PATH) {
+      return getWaterSnapshot(url, ctx);
+    }
+
     if (request.method === "GET" && url.pathname === IA_PREFIX + "/search") {
       return getIaSearch(url, ctx);
     }
@@ -813,6 +991,7 @@ export default {
         archiveProgramPath: IA_PROGRAM_PATH,
         adsbPath: ADSB_PATH,
         spacePath: SPACE_PATH,
+        waterPath: WATER_PATH,
       });
     }
 

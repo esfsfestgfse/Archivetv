@@ -58,13 +58,16 @@ if (!/if\(prog\)\{buildProgramQueries\(prog,ch,false\)/.test(source)) issues.pus
 
 const slotBlock = blockAfter('function slotFor(', '{', '}');
 if (/getHours|names\s*\[|PROFILES|seasonalProfileName/.test(slotBlock)) issues.push('slotFor must never select programming from the clock or a seasonal profile');
-if (!/show:prog\.show\|\|ch\.nm/.test(slotBlock) || !/show:ch\.nm, source:ch\.source/.test(slotBlock)) issues.push('channel and PROGRAM names must be the permanent on-air labels');
+if (!/return \{show:ch\.nm, genre:prog\.genre\|\|ch\.gl/.test(slotBlock) || !/show:ch\.nm, source:ch\.source/.test(slotBlock)) issues.push('every source and PROGRAM slot must use the permanent channel name on air');
+if (/show:prog\.show/.test(slotBlock)) issues.push('legacy PROGRAM show labels must never rename an IA channel');
 if (/id="setPlan"|function buildPlan\(|function planKey\(|stationMgr\?/.test(source)) issues.push('clock-bound Station Manager appointments must remain retired');
 if (/barsText\.textContent=\(hour/.test(source)) issues.push('color bars must not sign off according to the clock');
 const naraBlock = blockAfter('async function tuneNARA(', '{', '}');
 if (/getHours|\bh\s*>=|Late Night Declassified/.test(naraBlock)) issues.push('National Archives programming must expose every editorial lane at every hour');
 if (!/var labels=\["NOW","NEXT","LATER","AFTER"\]/.test(source)) issues.push('TV guide must describe queue order instead of hourly programming gates');
-if (!/window\.__atvTimelessAudit=function\(\)/.test(source)) issues.push('runtime timeless-programming audit hook is missing');
+if (!/window\.__atvTimelessAudit=function\(\)/.test(source) || !/identity:permanentShow===ch\.nm/.test(source)) issues.push('runtime timeless-programming identity audit is missing');
+if (!/IA_TIMELESS_IDENTITY_VERSION=2/.test(source) || !/store\.set\("sched",\{\}\)/.test(source) || !/store\.set\("fastTune",\{\}\)/.test(source)) issues.push('legacy clock-scheduled playback state must be cleared once on upgrade');
+if (/cm\.best\?'<div class="ip-row"><b>BEST<\/b>/.test(source)) issues.push('channel info must not advertise clock-based best-time windows');
 if (!/window\.__atvIAManifest=function\(\)/.test(source)) issues.push('runtime IA queue manifest hook is missing');
 if (!/queries:iaQueueQueries\(sl\)/.test(source) || !/var qs=iaQueueQueries\(sl\)/.test(source)) issues.push('the IA soak manifest must exercise the exact production queue rails');
 

@@ -835,6 +835,62 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
 .dc-sev-mid{color:#ffb84d}
 .dc-sev-low{color:#ffe08a}
 
+/* ============ Aurora & Space Weather broadcast desk ============ */
+.aur-screen{width:100%;height:100%;overflow:hidden;box-sizing:border-box;position:relative;display:grid;
+  grid-template-rows:auto minmax(0,1fr) auto;gap:clamp(5px,.8vmin,9px);padding:clamp(8px,1.2vmin,14px) clamp(9px,1.4vmin,16px) 34px;
+  color:#eafff5;background:radial-gradient(85% 75% at 14% 15%,rgba(28,115,92,.38),transparent 68%),radial-gradient(75% 70% at 90% 18%,rgba(105,43,145,.32),transparent 70%),linear-gradient(160deg,#041611,#040810 58%,#0b0512)}
+.aur-screen::before{content:"";position:absolute;inset:-25%;pointer-events:none;opacity:.16;filter:blur(26px);
+  background:conic-gradient(from 200deg at 50% 50%,transparent,#55ffb3,transparent,#b06cff,transparent);animation:aurGlow 18s linear infinite}
+@keyframes aurGlow{to{transform:rotate(360deg)}}
+.aur-head{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0;
+  color:#b8ffd8;font:800 clamp(10px,1.55vmin,15px)/1.1 monospace;letter-spacing:1.7px}
+.aur-head-source{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#90bda8;font-size:clamp(8px,1.15vmin,11px);letter-spacing:.7px;text-align:right}
+.aur-live-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;background:#5dff9b;box-shadow:0 0 9px #5dff9b}
+.aur-main{position:relative;z-index:1;min-height:0;display:grid;grid-template-columns:minmax(230px,42%) minmax(0,1fr);gap:clamp(7px,1.1vmin,13px)}
+.aur-card{min-width:0;min-height:0;border:1px solid rgba(150,255,205,.18);border-radius:10px;background:linear-gradient(145deg,rgba(6,29,23,.77),rgba(5,8,17,.84));box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 8px 22px rgba(0,0,0,.22);overflow:hidden}
+.aur-hero{display:grid;grid-template-rows:minmax(0,1fr) auto}
+.aur-oval-wrap{position:relative;min-height:0;overflow:hidden;background:radial-gradient(circle,#0d211d,#020707 72%)}
+.aur-oval{width:100%;height:100%;object-fit:contain;display:block;opacity:.83;filter:saturate(1.14) contrast(1.04)}
+.aur-oval-wrap.no-image .aur-oval{display:none}.aur-oval-wrap.no-image::after{content:"NOAA OVATION IMAGE UNAVAILABLE";position:absolute;inset:0;display:grid;place-items:center;color:#6f9e89;font:700 9px monospace;letter-spacing:1px}
+.aur-kp-overlay{position:absolute;left:clamp(7px,1.1vmin,13px);top:clamp(7px,1.1vmin,13px);right:clamp(7px,1.1vmin,13px);padding:clamp(7px,1vmin,12px);
+  border:1px solid rgba(151,255,204,.24);border-radius:8px;background:linear-gradient(135deg,rgba(0,15,12,.9),rgba(8,8,20,.74));backdrop-filter:blur(7px)}
+.aur-kp-line{display:flex;align-items:center;gap:9px}.aur-kp-big{font:900 clamp(31px,7.4vmin,72px)/.88 monospace;color:#72ffad;text-shadow:0 0 18px rgba(76,255,155,.5)}
+.aur-g-pill{padding:3px 7px;border:1px solid currentColor;border-radius:999px;font:900 clamp(10px,1.6vmin,16px)/1 monospace;letter-spacing:1px;color:#72ffad;background:rgba(0,0,0,.28)}
+.aur-g-pill.storm{color:#ffd15b}.aur-g-pill.major{color:#ff766d}
+.aur-status{margin-top:5px;color:#d9fff0;font:700 clamp(10px,1.55vmin,15px)/1.3 monospace}
+.aur-chart-wrap{height:clamp(72px,12.5vmin,118px);padding:7px 10px 5px;background:rgba(0,0,0,.25);border-top:1px solid rgba(150,255,205,.12);box-sizing:border-box}
+.aur-chart{height:calc(100% - 14px);display:flex;align-items:end}.aur-chart svg{width:100%;height:100%}
+.aur-chart-axis{display:flex;justify-content:space-between;color:#688f7c;font:700 8px/1 monospace;letter-spacing:.8px}
+.aur-detail{display:grid;grid-template-rows:auto auto auto minmax(0,1fr);gap:clamp(5px,.75vmin,9px);padding:clamp(8px,1.15vmin,14px)}
+.aur-location{padding:7px 9px;border-left:3px solid #6dffae;background:rgba(85,255,174,.06);color:#d9fff0;font:700 clamp(10px,1.55vmin,15px)/1.35 monospace}
+.aur-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}.aur-metric{min-width:0;padding:6px 7px;border:1px solid rgba(150,255,205,.12);border-radius:6px;background:rgba(255,255,255,.035)}
+.aur-metric b{display:block;color:#75a58f;font:800 clamp(7px,1.05vmin,10px)/1 monospace;letter-spacing:.8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.aur-metric span{display:block;margin-top:4px;color:#e7fff4;font:900 clamp(12px,2vmin,20px)/1 monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.aur-tabs{display:flex;gap:4px}.aur-tab{appearance:none;flex:1;min-width:0;padding:5px;border:1px solid rgba(150,255,205,.16);border-radius:5px;background:rgba(0,0,0,.24);color:#7cab94;font:800 clamp(7px,1.05vmin,10px)/1 monospace;letter-spacing:.6px;cursor:pointer}
+.aur-tab.on{color:#83ffb6;border-color:#69e99e;background:rgba(72,219,137,.12)}.aur-tab:focus-visible{outline:2px solid #83ffb6;outline-offset:1px}
+.aur-panel{min-height:0;overflow:auto}.aur-forecast{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;height:100%}
+.aur-fc{min-width:0;padding:8px;border:1px solid rgba(150,255,205,.14);border-radius:7px;background:linear-gradient(155deg,rgba(86,255,173,.08),rgba(89,50,125,.1));display:flex;flex-direction:column;justify-content:center;gap:3px}
+.aur-fc-day{color:#82b49c;font:800 clamp(8px,1.2vmin,12px)/1 monospace;letter-spacing:.7px}.aur-fc-kp{color:#7dffad;font:900 clamp(20px,4vmin,38px)/1 monospace}.aur-fc-sub{color:#d3eee0;font:700 clamp(8px,1.2vmin,12px)/1.3 monospace}
+.aur-fc.storm .aur-fc-kp{color:#ffd15b}.aur-fc.major .aur-fc-kp{color:#ff766d}
+.aur-notices{display:flex;flex-direction:column;gap:5px}.aur-notice{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:7px;align-items:center;padding:6px 8px;border:1px solid rgba(150,255,205,.12);border-radius:6px;background:rgba(255,255,255,.035);font:700 clamp(8px,1.25vmin,12px)/1.2 monospace}
+.aur-notice-tag{color:#ffd15b}.aur-notice-tag.warning{color:#ff766d}.aur-notice-msg{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#e8fff4}.aur-notice-time{color:#719582;font-size:.85em;white-space:nowrap}
+.aur-scale{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}.aur-scale-row{padding:6px 8px;border:1px solid rgba(150,255,205,.11);border-radius:6px;color:#cdeadd;font:700 clamp(8px,1.25vmin,12px)/1.3 monospace}.aur-scale-row b{color:#7dffad}
+.aur-empty{display:grid;place-items:center;height:100%;min-height:45px;color:#769887;text-align:center;font:700 10px/1.4 monospace}
+.aur-ticker{position:relative;z-index:1;min-width:0;padding:4px 8px;border:1px solid rgba(150,255,205,.12);border-radius:6px;background:rgba(0,0,0,.34);color:#a9d6c1;font:700 clamp(8px,1.15vmin,11px)/1.2 monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@container (max-height:430px){
+  .aur-screen{gap:3px;padding:5px 6px 28px}.aur-head{font-size:8px}.aur-head-source{font-size:6px}
+  .aur-main{grid-template-columns:minmax(125px,43%) minmax(0,1fr);gap:4px}.aur-card{border-radius:6px}.aur-chart-wrap{display:none}
+  .aur-kp-overlay{left:4px;right:4px;top:4px;padding:5px}.aur-kp-big{font-size:clamp(24px,8vmin,42px)}.aur-status{font-size:8px}
+  .aur-detail{padding:5px;gap:4px}.aur-location{font-size:8px;padding:4px 5px}.aur-metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:3px}
+  .aur-metric{padding:4px}.aur-metric b{font-size:6px}.aur-metric span{font-size:10px;margin-top:2px}.aur-tabs{gap:2px}.aur-tab{padding:3px;font-size:6px}
+  .aur-forecast{grid-template-columns:1fr;gap:3px}.aur-fc{padding:5px}.aur-fc-kp{font-size:17px}.aur-fc-day,.aur-fc-sub{font-size:7px}.aur-ticker{font-size:7px;padding:2px 4px}
+}
+@container (max-height:220px){
+  .aur-screen{grid-template-rows:auto minmax(0,1fr);padding:3px 4px 25px}.aur-head-source{max-width:55%}.aur-main{grid-template-columns:44% 56%}
+  .aur-location,.aur-tabs,.aur-panel,.aur-ticker{display:none}.aur-detail{display:block;padding:3px}.aur-metrics{height:100%;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr))}
+  .aur-kp-big{font-size:25px}.aur-status{font-size:7px}.aur-metric:nth-child(n+5){display:none}
+}
+
 /* ============ v14: ident flash (station idents feature) ============ */
 /* QA FIX (audit 5A): was z:29, same as .buff-ov. Both fire on every channel change; .buff-ov's
    35% black backdrop killed the intended phosphor flash. Bumped to z:30 so the CRT ident wins. */
@@ -1193,7 +1249,7 @@ body:not(.atv-powered) .cabinet-readout{opacity:.36!important}.glass-dock{positi
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.204-weather-watch";
+window.__ATV_BUILD="1.7.7-desktop.205-aurora-live";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1230,7 +1286,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.204 · Weather Watch</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.205 · Aurora Live</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">AFTERGLOW · THE DIAL</div>
@@ -2001,6 +2057,7 @@ const CHANNEL_META={
 "Live Radio":{desc:"LIVE: real broadcast stations worldwide on a spinnable 3D globe (radio-browser) \u2014 drag the earth, click a dot.",best:"anytime",rel:["Public Domain Art","Live TV"]},
 "Public Domain Art":{desc:"A rotating gallery of public-domain masterworks from The Met Open Access, with a classical-music bed.",best:"anytime",rel:["Historic Waco","Deep Space Jazz"]},
 "Weather Watch":{desc:"LIVE: current station observations, three NWS radar layers, hourly and extended forecasts, local alerts, a national warning watchboard, and automatic Open-Meteo failover.",best:"anytime",rel:["Local Radar","Tropical Watch"]},
+"Aurora & Space Weather":{desc:"LIVE: NOAA Kp observations and 72-hour forecast, OVATION aurora oval, solar-wind speed, IMF Bz/Bt, location-aware visibility estimate, and current SWPC notices.",best:"anytime",rel:["Solar Dashboard","ISS Tracker"]},
 "Sky Beacon Live":{desc:"LIVE: international flight tracker — starts at your local airspace then cycles every 90 s through the world's busiest hubs (JFK, Heathrow, CDG, DXB, HND, Singapore, LAX, Sydney). Real ADS-B via adsb.lol + airplanes.live + OpenSky fallback.",best:"anytime",rel:["Weather Watch","ISS Tracker"]},
 "Seismic Watch":{desc:"LIVE: elevated volcanoes and global earthquakes, on rotation.",best:"anytime",rel:["Weather Watch","Wildfire Watch"]},
 "News, News, News":{desc:"Newsreels, federal films and historic footage \u2014 the week\u2019s news, decades late.",best:"anytime",rel:["Live News","Historic Waco"]},
@@ -13431,80 +13488,123 @@ function kpDescribe(kp){
   if(kp<9) return "G4 Severe geomagnetic storm — aurora visible far from the poles";
   return "G5 Extreme geomagnetic storm — historic aurora event in progress";
 }
+function aurUtcDate(value){var s=String(value||"");if(s&&!/(?:Z|[+-]\d\d:\d\d)$/i.test(s))s+="Z";var d=new Date(s);return isNaN(d.getTime())?null:d;}
+function aurAgeLabel(value){var d=aurUtcDate(value);if(!d)return "AGE UNKNOWN";var min=Math.max(0,Math.round((Date.now()-d.getTime())/60000));if(min<2)return "JUST NOW";if(min<120)return min+" MIN AGO";return Math.round(min/60)+" HR AGO";}
+function aurKpValue(row){if(Array.isArray(row))return parseFloat(row[1]);if(!row)return NaN;var v=row.Kp!=null?row.Kp:(row.kp!=null?row.kp:(row.estimated_kp!=null?row.estimated_kp:row.kp_index));return parseFloat(v);}
+function aurKpTime(row){return Array.isArray(row)?row[0]:(row&&(row.time_tag||row.time))||"";}
+function aurGScale(kp){kp=Number(kp);if(kp>=9)return "G5";if(kp>=8)return "G4";if(kp>=7)return "G3";if(kp>=6)return "G2";if(kp>=5)return "G1";return "G0";}
+function aurVisibilityBand(kp){kp=Number(kp)||0;if(kp>=9)return 40;if(kp>=8)return 45;if(kp>=7)return 50;if(kp>=6)return 55;if(kp>=5)return 58;if(kp>=4)return 62;return 67;}
+function aurParseNotice(item){
+  var msg=String((item&&item.message)||""),lines=msg.split(/\r?\n/),past=false,summary="";
+  for(var i=0;i<lines.length;i++){var line=lines[i].trim();if(!past){if(!line)past=true;continue;}if(line){summary=line;break;}}
+  if(!summary)summary=(lines.find(function(line){return line.trim();})||"NOAA space-weather notice").trim();
+  summary=summary.replace(/^(?:(?:CONTINUED|EXTENDED|CANCEL)\s+)?(?:ALERT|WARNING|WATCH|SUMMARY)[:\s]*/i,"").trim();
+  var upper=msg.toUpperCase(),type=upper.indexOf("WARNING")>=0?"WARNING":upper.indexOf("ALERT")>=0?"ALERT":upper.indexOf("WATCH")>=0?"WATCH":"INFO";
+  return {type:type,summary:summary.slice(0,150),issued:(item&&item.issue_datetime)||""};
+}
 async function tuneAurora(ch,sl,my){
-  if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Aurora & Space Weather","");
-  if(screenArea) screenArea.innerHTML='<div class="dc-screen" id="dcScreen">'+
-    '<div class="dc-media show" id="auroraMedia" style="flex:1 1 58%;height:auto;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:8px">'+
-      '<div style="display:flex;align-items:baseline;gap:10px"><div id="auroraKpBig" style="font:800 clamp(30px,7vw,52px)/1 monospace;color:var(--phos)">Kp --</div><div id="auroraStatus" style="font-size:12px;color:#9fd6a6;max-width:180px">Loading NOAA data\u2026</div></div>'+
-      '<div id="auroraChart" style="width:100%;max-width:320px"></div>'+
-      '<div style="font-size:9px;color:rgba(159,214,166,.6);align-self:stretch;max-width:320px;display:flex;justify-content:space-between;padding:0 2px"><span>48 HOURS AGO</span><span>NOW</span></div>'+
-    '</div>'+
-    '<div class="dc-body" id="dcBody" style="flex:0 1 42%;justify-content:flex-start;gap:4px;overflow:hidden">'+
-      '<div class="dc-top"><span>AURORA &amp; SPACE WEATHER</span></div>'+
-      '<div class="dc-sub" id="auroraLoc"></div>'+
-      '<div class="dc-list" id="dcList" style="margin-bottom:30px"></div>'+
-      '<div class="dc-ticker" id="auroraTicker">NOAA SWPC \u00b7 real-time geomagnetic data \u00b7 updates every 5 min</div>'+
-    '</div></div>';
-  var auroraBug=mountChanBug("dcScreen",{ident:"AURORA WATCH"});
-  clearInterval(auroraTimer);
+  if(my!==token)return;hideOv();setSig("live","ON AIR");showNow(ch,sl,"Aurora & Space Weather","");
+  if(screenArea)screenArea.innerHTML=
+    '<div class="aur-screen" id="auroraScreen">'+
+      '<div class="aur-head"><span><i class="aur-live-dot"></i>NOAA SPACE WEATHER DESK</span><span class="aur-head-source" id="auroraFresh">CONNECTING TO SWPC\u2026</span></div>'+
+      '<div class="aur-main">'+
+        '<section class="aur-card aur-hero">'+
+          '<div class="aur-oval-wrap" id="auroraOvalWrap"><img class="aur-oval" id="auroraOval" alt="NOAA OVATION aurora oval forecast">'+
+            '<div class="aur-kp-overlay"><div class="aur-kp-line"><div class="aur-kp-big" id="auroraKpBig">Kp --</div><div class="aur-g-pill" id="auroraG">G-</div></div><div class="aur-status" id="auroraStatus">Loading geomagnetic conditions\u2026</div></div>'+
+          '</div>'+
+          '<div class="aur-chart-wrap"><div class="aur-chart" id="auroraChart"></div><div class="aur-chart-axis"><span id="auroraChartWindow">48 HOURS AGO</span><span>NOW</span></div></div>'+
+        '</section>'+
+        '<section class="aur-card aur-detail">'+
+          '<div class="aur-location" id="auroraLoc">Estimating your aurora visibility\u2026</div>'+
+          '<div class="aur-metrics" id="auroraMetrics">'+
+            '<div class="aur-metric"><b>SOLAR WIND</b><span>--</span></div><div class="aur-metric"><b>Bz GSM</b><span>--</span></div><div class="aur-metric"><b>FIELD Bt</b><span>--</span></div><div class="aur-metric"><b>72H MAX</b><span>--</span></div>'+
+          '</div>'+
+          '<div class="aur-tabs"><button class="aur-tab on" type="button" data-aur-page="0">72H FORECAST</button><button class="aur-tab" type="button" data-aur-page="1">NOAA NOTICES</button><button class="aur-tab" type="button" data-aur-page="2">KP SCALE</button></div>'+
+          '<div class="aur-panel" id="auroraPanel"><div class="aur-empty">Building the 72-hour outlook\u2026</div></div>'+
+        '</section>'+
+      '</div>'+
+      '<div class="aur-ticker" id="auroraTicker">NOAA SWPC \u00b7 live Kp, solar wind, interplanetary magnetic field and OVATION aurora model</div>'+
+    '</div>';
+  var auroraBug=mountChanBug("auroraScreen",{ident:"AURORA WATCH"}),panelIndex=0,auroraModel=null;
+  clearInterval(auroraTimer);startIAJazz("gmelectro");
+  function renderPanel(){
+    var panel=$("auroraPanel");if(!panel)return;
+    document.querySelectorAll("[data-aur-page]").forEach(function(b){b.classList.toggle("on",Number(b.dataset.aurPage)===panelIndex);});
+    if(!auroraModel){panel.innerHTML='<div class="aur-empty">WAITING FOR LIVE NOAA DATA</div>';return;}
+    if(panelIndex===0){
+      if(!auroraModel.days.length){panel.innerHTML='<div class="aur-empty">NOAA 72-HOUR KP FORECAST IS TEMPORARILY UNAVAILABLE</div>';return;}
+      panel.innerHTML='<div class="aur-forecast">'+auroraModel.days.map(function(day){var gs=aurGScale(day.max),cls=day.max>=7?" major":day.max>=5?" storm":"";return '<div class="aur-fc'+cls+'"><div class="aur-fc-day">'+esch(day.label.toUpperCase())+'</div><div class="aur-fc-kp">Kp '+day.max.toFixed(1)+'</div><div class="aur-fc-sub">'+gs+' MAX \u00b7 '+esch(kpDescribe(day.max))+'</div></div>';}).join("")+'</div>';
+    }else if(panelIndex===1){
+      if(!auroraModel.notices.length){panel.innerHTML='<div class="aur-empty">NO CURRENT NOAA WATCHES, WARNINGS OR ALERTS</div>';return;}
+      panel.innerHTML='<div class="aur-notices">'+auroraModel.notices.map(function(n){return '<div class="aur-notice"><span class="aur-notice-tag'+(n.type==="WARNING"?" warning":"")+'">'+esch(n.type)+'</span><span class="aur-notice-msg">'+esch(n.summary)+'</span><span class="aur-notice-time">'+esch(aurAgeLabel(n.issued))+'</span></div>';}).join("")+'</div>';
+    }else{
+      panel.innerHTML='<div class="aur-scale"><div class="aur-scale-row"><b>G0 \u00b7 Kp 0\u20134</b><br>Below storm level</div><div class="aur-scale-row"><b>G1 \u00b7 Kp 5</b><br>Minor storm</div><div class="aur-scale-row"><b>G2 \u00b7 Kp 6</b><br>Moderate storm</div><div class="aur-scale-row"><b>G3 \u00b7 Kp 7</b><br>Strong storm</div><div class="aur-scale-row"><b>G4 \u00b7 Kp 8</b><br>Severe storm</div><div class="aur-scale-row"><b>G5 \u00b7 Kp 9</b><br>Extreme storm</div></div>';
+    }
+  }
+  window.__auroraNext=function(){panelIndex=(panelIndex+1)%3;renderPanel();quickBanner(["AURORA \u00b7 72H FORECAST","AURORA \u00b7 NOAA NOTICES","AURORA \u00b7 KP SCALE"][panelIndex]);};
+  document.querySelectorAll("[data-aur-page]").forEach(function(button){button.addEventListener("click",function(){panelIndex=Number(button.dataset.aurPage)||0;renderPanel();});});
+  function renderModel(model,stale){
+    auroraModel=model;var kp=model.kp,gs=aurGScale(kp),kpEl=$("auroraKpBig"),gEl=$("auroraG"),statusEl=$("auroraStatus");
+    if(kpEl)kpEl.textContent="Kp "+kp.toFixed(1);
+    if(gEl){gEl.textContent=gs;gEl.className="aur-g-pill"+(kp>=7?" major":kp>=5?" storm":"");}
+    if(statusEl)statusEl.textContent=kpDescribe(kp);
+    var chart=$("auroraChart");if(chart&&model.series.length)chart.innerHTML=svgBarChart(model.series,function(v){return v<4?"#67ff86":v<6?"#ffd34d":"#ff5c4d";},320,86);
+    var cw=$("auroraChartWindow");if(cw)cw.textContent=model.chartWindow;
+    var fresh=$("auroraFresh");if(fresh)fresh.textContent=(stale?"CACHED \u00b7 ":"")+"NOAA "+model.source+" \u00b7 OBS "+aurAgeLabel(model.kpTime);
+    var oval=$("auroraOval"),wrap=$("auroraOvalWrap");
+    if(oval&&wrap){oval.onload=function(){wrap.classList.remove("no-image");};oval.onerror=function(){wrap.classList.add("no-image");};oval.src="https://services.swpc.noaa.gov/images/animations/ovation/"+model.hemisphere+"/latest.jpg?_="+Math.floor(Date.now()/300000);}
+    var locEl=$("auroraLoc");if(locEl)locEl.textContent=model.visibility;
+    var max72=model.days.length?Math.max.apply(null,model.days.map(function(d){return d.max;})):null;
+    var metrics=$("auroraMetrics");if(metrics)metrics.innerHTML=
+      '<div class="aur-metric"><b>SOLAR WIND</b><span>'+(model.wind==null?"--":Math.round(model.wind)+" km/s")+'</span></div>'+
+      '<div class="aur-metric"><b>Bz GSM</b><span>'+(model.bz==null?"--":(model.bz>0?"+":"")+model.bz.toFixed(1)+" nT")+'</span></div>'+
+      '<div class="aur-metric"><b>FIELD Bt</b><span>'+(model.bt==null?"--":model.bt.toFixed(1)+" nT")+'</span></div>'+
+      '<div class="aur-metric"><b>72H MAX</b><span>'+(max72==null?"--":("Kp "+max72.toFixed(1)))+'</span></div>';
+    var ticker=$("auroraTicker");if(ticker)ticker.textContent=(stale?"CACHED DATA \u00b7 RECONNECTING \u00b7 ":"")+"NOAA OVATION "+model.hemisphere.toUpperCase()+" \u00b7 Kp "+kp.toFixed(1)+" \u00b7 SOLAR WIND "+(model.wind==null?"--":Math.round(model.wind)+" km/s")+" \u00b7 Bz "+(model.bz==null?"--":(model.bz>0?"+":"")+model.bz.toFixed(1)+" nT")+" \u00b7 NEXT cycles forecast, notices and scale";
+    setChanStatus(ch.num,"Kp "+kp.toFixed(1)+" \u00b7 "+gs+(model.wind==null?"":(" \u00b7 SW "+Math.round(model.wind)+" km/s")));
+    if(auroraBug)auroraBug.update("Kp "+kp.toFixed(1)+" \u00b7 "+gs,(model.wind==null?"NOAA SWPC":("SW "+Math.round(model.wind)+" km/s"))+(model.bz==null?"":(" \u00b7 Bz "+(model.bz>0?"+":"")+model.bz.toFixed(1)+" nT")));
+    renderPanel();
+  }
   var run=async function(){
-    if(my!==token||!powered){ clearInterval(auroraTimer); return; }
+    if(my!==token||!powered){clearInterval(auroraTimer);return;}
     try{
-      var loc=await getWxLocation(); if(my!==token)return;
-      var kpData=await fetchJSON("https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json");
-      if(my!==token)return;
-      var rows=(kpData||[]).slice(1); /* every row is a real 3-hour reading, not just the latest one -- this is the actual history NOAA sends */
-      var kpSeries=rows.map(function(r){ var v=parseFloat(r[1]); return isNaN(v)?null:v; }).slice(-16); /* last ~48 hours at 3hr intervals */
-      var last=rows[rows.length-1]||[];
-      var kp=parseFloat(last[1]);
-      var kpEl=$("auroraKpBig"); if(kpEl) kpEl.textContent="Kp "+(isNaN(kp)?"--":kp.toFixed(1));
-      if(!isNaN(kp)) setChanStatus(ch.num,"Kp "+kp.toFixed(1));
-      if(auroraBug) auroraBug.update("Kp "+(isNaN(kp)?"--":kp.toFixed(1)), kpDescribe(kp));
-      var chartEl=$("auroraChart");
-      if(chartEl&&kpSeries.length){
-        chartEl.innerHTML=svgBarChart(kpSeries,function(v){return v<4?"#67ff86":v<6?"#ffd34d":"#ff5c4d";},320,86);
-      }
-      var statusEl=$("auroraStatus"); if(statusEl) statusEl.textContent=kpDescribe(kp);
-      /* rough visibility estimate -- geographic latitude used as a simplification for geomagnetic
-         latitude, which is close enough for a TV-channel-style estimate, not precision forecasting */
-      var absLat=Math.abs(loc.lat); var visThresh=67-(isNaN(kp)?0:kp*3);
-      var visible=!isNaN(kp)&&absLat>=visThresh;
-      var locEl=$("auroraLoc"); if(locEl) locEl.textContent=(loc.label||"Your area")+" \u2014 "+
-        (visible?"aurora MAY be visible tonight if skies are clear and dark":"aurora unlikely to be visible from here tonight");
-      var listEl=$("dcList");
-      var alerts=await fetchJSON("https://services.swpc.noaa.gov/products/alerts.json").catch(function(){return [];});
-      if(my!==token)return;
-      if(listEl){
-        var active=(alerts||[]).slice(-8).reverse();
-        listEl.innerHTML=active.length?active.map(function(a){
-          var msg=(a&&a.message)||"";
-          /* SWPC alerts have a machine-readable header (Code/Serial/Issue Time) followed by
-             a blank line, then the human-readable description. Parse past the header. */
-          var lines=msg.split("\n");
-          var pastHeader=false, summary="";
-          for(var li=0;li<lines.length;li++){
-            var ln=lines[li].trim();
-            if(!pastHeader){
-              if(ln==="") pastHeader=true; /* blank line = end of header block */
-              continue;
-            }
-            if(ln){ summary=ln; break; } /* first non-empty line after header */
-          }
-          if(!summary){ /* fallback: just grab the first non-empty line */
-            summary=lines.find(function(l){return l.trim();})||msg;
-          }
-          /* Strip common SWPC prefixes to keep it readable */
-          summary=summary.replace(/^(ALERT|WARNING|WATCH|SUMMARY|EXTENDED WARNING|CANCEL WATCH|CONTINUED WATCH)[:\s]*/i,"").trim();
-          var typeTag=msg.indexOf("WARNING")>=0?"WARNING":msg.indexOf("ALERT")>=0?"ALERT":msg.indexOf("WATCH")>=0?"WATCH":"INFO";
-          var tagCls=typeTag==="WARNING"?"dc-sev-high":typeTag==="ALERT"?"dc-sev-mid":"dc-sev-low";
-          return '<div class="dc-row2"><div class="dc-row2-main"><span class="dc-mag '+tagCls+'">'+typeTag+'</span><span class="dc-place">'+esch(summary.slice(0,100))+'</span></div></div>';
-        }).join(""):'<div class="pop-empty">No active geomagnetic storm watches or warnings right now.</div>';
-      }
-      nlog("aurora",true,"Kp "+(isNaN(kp)?"?":kp));
-    }catch(e){ nlog("aurora",false,(e&&e.message)||e);
-      var statusEl2=$("auroraStatus"); if(statusEl2)statusEl2.textContent="NOAA data unavailable right now \u2014 will retry."; }
+      var loc=await getWxLocation();if(my!==token)return;
+      var urls=[
+        ["https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json","aurora-kp"],
+        ["https://services.swpc.noaa.gov/products/noaa-planetary-k-index-forecast.json","aurora-forecast"],
+        ["https://services.swpc.noaa.gov/products/summary/solar-wind-speed.json","aurora-wind"],
+        ["https://services.swpc.noaa.gov/products/summary/solar-wind-mag-field.json","aurora-mag"],
+        ["https://services.swpc.noaa.gov/products/alerts.json","aurora-alerts"],
+        ["https://services.swpc.noaa.gov/json/planetary_k_index_1m.json","aurora-kp-backup"]
+      ];
+      var data=await Promise.all(urls.map(function(spec){return fetchJSONResilient(spec[0],spec[1]).catch(function(){return null;});}));if(my!==token)return;
+      var primary=Array.isArray(data[0])?data[0]:[],forecast=Array.isArray(data[1])?data[1]:[],oneMin=Array.isArray(data[5])?data[5]:[];
+      var history=primary.filter(function(r){return isFinite(aurKpValue(r));}),source="3-HOUR KP",chartWindow="48 HOURS AGO";
+      if(!history.length){history=forecast.filter(function(r){return String(r&&r.observed||"").toLowerCase()==="observed"&&isFinite(aurKpValue(r));});source="FORECAST OBS";}
+      if(!history.length){history=oneMin.filter(function(r){return isFinite(aurKpValue(r));});source="1-MIN KP";chartWindow="RECENT KP";}
+      if(!history.length)throw new Error("all NOAA Kp feeds returned no usable values");
+      var last=history[history.length-1],kp=aurKpValue(last),values=history.map(aurKpValue).filter(isFinite),series;
+      if(source==="1-MIN KP"&&values.length>16){var step=Math.max(1,Math.floor(values.length/16));series=values.filter(function(v,i){return i%step===0;}).slice(-16);}else series=values.slice(-16);
+      var now=Date.now()-3*3600000,groups={};
+      forecast.forEach(function(r){var value=aurKpValue(r),dt=aurUtcDate(aurKpTime(r));if(!isFinite(value)||!dt||dt.getTime()<now)return;var predicted=String(r.observed||"").toLowerCase()==="predicted"||dt.getTime()>Date.now();if(!predicted)return;var key=dt.toISOString().slice(0,10);if(!groups[key])groups[key]=[];groups[key].push(value);});
+      var days=Object.keys(groups).sort().slice(0,3).map(function(key){return {label:new Date(key+"T12:00:00Z").toLocaleDateString([],{weekday:"short",month:"short",day:"numeric"}),max:Math.max.apply(null,groups[key])};});
+      var windRow=Array.isArray(data[2])?data[2][0]:data[2],magRow=Array.isArray(data[3])?data[3][0]:data[3];
+      var wind=windRow&&parseFloat(windRow.proton_speed),bt=magRow&&parseFloat(magRow.bt),bz=magRow&&parseFloat(magRow.bz_gsm);
+      if(!isFinite(wind))wind=null;if(!isFinite(bt))bt=null;if(!isFinite(bz))bz=null;
+      var noticeSeen={},notices=(Array.isArray(data[4])?data[4]:[]).map(aurParseNotice).filter(function(n){var d=aurUtcDate(n.issued);return !d||Date.now()-d.getTime()<5*86400000;}).sort(function(a,b){var ad=aurUtcDate(a.issued),bd=aurUtcDate(b.issued);return (bd?bd.getTime():0)-(ad?ad.getTime():0);}).filter(function(n){var key=n.type+"|"+n.summary.toLowerCase();if(noticeSeen[key])return false;noticeSeen[key]=1;return true;}).slice(0,8);
+      var lat=Math.abs(Number(loc.lat)||0),band=aurVisibilityBand(kp),visible=lat>=band,required=null;
+      for(var requiredKp=0;requiredKp<=9;requiredKp++){if(lat>=aurVisibilityBand(requiredKp)){required=requiredKp;break;}}
+      var place=String(loc.label||"YOUR AREA").replace(/\s+/g," ").trim();
+      var visibility=place.toUpperCase()+" \u00b7 "+(visible?"AURORA MAY BE VISIBLE IF SKIES ARE DARK AND CLEAR":(required==null?"AURORA UNLIKELY \u00b7 exceptionally low-latitude event required":"AURORA UNLIKELY NOW \u00b7 roughly Kp "+required+" needed at this latitude"));
+      var model={at:Date.now(),kp:kp,kpTime:aurKpTime(last),source:source,chartWindow:chartWindow,series:series,days:days,notices:notices,wind:wind,bt:bt,bz:bz,hemisphere:(Number(loc.lat)<0?"south":"north"),visibility:visibility};
+      store.set("auroraLiveCache",model);renderModel(model,false);nlog("aurora",true,source+" \u00b7 Kp "+kp.toFixed(1)+" \u00b7 "+days.length+" forecast days");
+    }catch(e){
+      nlog("aurora",false,(e&&e.message)||e);var cached=store.get("auroraLiveCache",null);
+      if(cached&&cached.kp!=null&&Date.now()-Number(cached.at||0)<6*3600000){renderModel(cached,true);}
+      else{var status=$("auroraStatus"),fresh=$("auroraFresh");if(status)status.textContent="NOAA feeds unavailable \u2014 reconnecting automatically";if(fresh)fresh.textContent="SWPC CONNECTION INTERRUPTED \u00b7 RETRYING";setTimeout(function(){if(my===token)run();},30000);}
+    }
   };
-  run(); auroraTimer=rtInterval(run,5*60*1000);
+  run();auroraTimer=rtInterval(run,5*60*1000);
 }
 async function tuneQuake(ch,sl,my){
   if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Earthquake Bulletin","");
@@ -13690,6 +13790,7 @@ async function playBumper(ch,sl,my){
 /* ===== v10.1: skip — next item on the same channel, on demand ===== */
 function skipOne(){ if(!powered){quickBanner("TURN THE TV ON FIRST");return;}
   var sc=byNum(curNum);
+  if(sc&&sc.source==="aurora"&&typeof window.__auroraNext==="function"){window.__auroraNext();return;}
   if(sc&&sc.source==="weather"&&typeof window.__weatherNext==="function"){window.__weatherNext();return;}
   if(sc)schedClear(sc); /* 1.2: SKIP = manual re-roll of the slot */
   if(curItem&&curItem.id){markSkipped(curItem.id);fastTuneDrop(curNum);}

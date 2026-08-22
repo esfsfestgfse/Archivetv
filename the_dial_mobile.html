@@ -870,6 +870,30 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
   .hf-toolbar{display:block}.hf-filters{padding-bottom:1px}.hf-row{grid-template-columns:38px minmax(85px,1fr) 34px 52px;padding:3px 4px;font-size:7px}
 }
 
+/* ============ ISS Tracker / live orbital mission-control map ============ */
+.iss-screen{width:100%;height:100%;overflow:hidden;box-sizing:border-box;position:relative;display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:clamp(4px,.7vmin,8px);padding:clamp(7px,1vmin,12px) clamp(8px,1.2vmin,14px) 33px;color:#e6f7ff;background:radial-gradient(90% 70% at 30% -15%,rgba(42,112,177,.34),transparent 68%),linear-gradient(155deg,#020914,#03070d 64%,#071017)}
+.iss-screen::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.12;background-image:radial-gradient(circle at 14% 22%,#fff 0 1px,transparent 1.3px),radial-gradient(circle at 72% 31%,#fff 0 1px,transparent 1.3px),radial-gradient(circle at 47% 78%,#fff 0 1px,transparent 1.3px);background-size:137px 103px,173px 149px,211px 181px}
+.iss-head{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:9px;min-width:0;color:#7ed8ff;font:900 clamp(10px,1.5vmin,15px)/1 monospace;letter-spacing:1.5px}.iss-head-live{display:inline-block;width:7px;height:7px;margin-right:7px;border-radius:50%;background:#67ff86;box-shadow:0 0 9px #67ff86;animation:wxBugPulse 1.5s ease-in-out infinite}
+.iss-head-source{min-width:0;color:#7596ab;font:700 clamp(7px,1.05vmin,10px)/1 monospace;letter-spacing:.6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right}
+.iss-main{position:relative;z-index:1;min-height:0;display:grid;grid-template-columns:minmax(0,1.78fr) minmax(185px,.72fr);gap:7px}
+.iss-map{position:relative;min-width:0;min-height:0;overflow:hidden;border:1px solid rgba(126,216,255,.2);border-radius:9px;background:#04101b;box-shadow:inset 0 0 50px rgba(0,0,0,.48)}
+.iss-map-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:fill;opacity:.5;filter:invert(1) sepia(.2) saturate(2.2) hue-rotate(150deg) brightness(.55) contrast(1.5)}
+.iss-map-grid{position:absolute;inset:0;width:100%;height:100%}.iss-map-grid text{font-family:monospace}
+.iss-map-top{position:absolute;left:8px;right:8px;top:7px;z-index:2;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;pointer-events:none}.iss-position{min-width:0;padding:5px 7px;border:1px solid rgba(126,216,255,.23);border-radius:6px;background:rgba(0,8,15,.72);color:#e8f9ff;font:900 clamp(9px,1.35vmin,13px)/1.15 monospace;box-shadow:0 6px 20px rgba(0,0,0,.3)}.iss-position small{display:block;margin-top:3px;color:#80a8bc;font:700 .72em/1 monospace;letter-spacing:.6px}.iss-map-key{padding:5px 7px;border:1px solid rgba(126,216,255,.18);border-radius:6px;background:rgba(0,8,15,.7);color:#91b4c6;font:700 clamp(7px,1vmin,9px)/1.3 monospace;text-align:right;white-space:nowrap}.iss-map-key b{color:#67ff86}
+.iss-side{min-width:0;min-height:0;display:grid;grid-template-rows:auto auto minmax(0,1fr);gap:6px;padding:7px;border:1px solid rgba(126,216,255,.16);border-radius:9px;background:linear-gradient(160deg,rgba(9,28,43,.9),rgba(2,8,13,.94))}
+.iss-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}.iss-metric{min-width:0;padding:6px;border:1px solid rgba(126,216,255,.12);border-radius:6px;background:rgba(255,255,255,.025)}.iss-metric b{display:block;color:#6f95a8;font:800 clamp(6px,.95vmin,9px)/1 monospace;letter-spacing:.6px}.iss-metric span{display:block;margin-top:4px;color:#dff8ff;font:900 clamp(11px,1.8vmin,18px)/1 monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.iss-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px}.iss-tab{appearance:none;min-width:0;padding:6px 3px;border:1px solid rgba(126,216,255,.14);border-radius:5px;background:rgba(0,0,0,.28);color:#7396a7;font:800 clamp(6px,.95vmin,9px)/1 monospace;cursor:pointer}.iss-tab.on{color:#86e4ff;border-color:#5ccdf3;background:rgba(47,170,214,.13)}.iss-tab:focus-visible{outline:2px solid #86e4ff;outline-offset:1px}
+.iss-panel{min-height:0;overflow:auto;padding:1px}.iss-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px;align-items:center;padding:6px 5px;border-bottom:1px solid rgba(255,255,255,.055);font:700 clamp(8px,1.15vmin,11px)/1.2 monospace}.iss-row:last-child{border-bottom:0}.iss-row b{color:#789bad;letter-spacing:.5px}.iss-row span{color:#e3f7ff;text-align:right}.iss-callout{padding:8px;border:1px solid rgba(103,255,134,.2);border-radius:6px;background:rgba(31,115,72,.11);color:#caffd8;font:800 clamp(8px,1.2vmin,11px)/1.35 monospace}.iss-callout strong{display:block;color:#67ff86;font-size:1.25em;margin-bottom:3px}.iss-timeline{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px;margin-top:5px}.iss-waypoint{padding:5px 3px;border:1px solid rgba(126,216,255,.1);border-radius:5px;text-align:center;color:#86a9ba;font:700 clamp(6px,.9vmin,8px)/1.25 monospace}.iss-waypoint b{display:block;color:#dff8ff;font-size:1.2em;margin-bottom:2px}
+.iss-ticker{position:relative;z-index:1;min-width:0;padding:4px 8px;border:1px solid rgba(126,216,255,.13);border-radius:6px;background:rgba(0,0,0,.38);color:#92b4c4;font:700 clamp(7px,1.05vmin,10px)/1.2 monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@container (max-height:430px){
+  .iss-screen{gap:3px;padding:5px 6px 28px}.iss-head{font-size:8px}.iss-head-source{font-size:6px}.iss-main{grid-template-columns:minmax(0,1.6fr) minmax(130px,.75fr);gap:4px}
+  .iss-map-top{left:4px;right:4px;top:4px}.iss-position,.iss-map-key{padding:3px 4px;font-size:7px}.iss-side{gap:3px;padding:4px}.iss-metric{padding:4px}.iss-metric b{font-size:5px}.iss-metric span{font-size:9px;margin-top:2px}
+  .iss-tab{padding:4px 2px;font-size:6px}.iss-row{padding:4px 3px;font-size:7px}.iss-callout{padding:5px;font-size:7px}.iss-waypoint{padding:3px 2px;font-size:5px}.iss-ticker{font-size:6px;padding:2px 4px}
+}
+@container (max-height:220px){
+  .iss-screen{grid-template-rows:auto minmax(0,1fr);padding:3px 4px 25px}.iss-head-source,.iss-ticker{display:none}.iss-main{grid-template-columns:62% 38%}.iss-map-key{display:none}.iss-side{grid-template-rows:auto minmax(0,1fr)}.iss-tabs{display:none}.iss-metric:nth-child(n+3){display:none}.iss-panel{display:block}.iss-row:nth-child(n+4),.iss-timeline{display:none}
+}
+
 /* ============ v14: ident flash (station idents feature) ============ */
 /* QA FIX (audit 5A): was z:29, same as .buff-ov. Both fire on every channel change; .buff-ov's
    35% black backdrop killed the intended phosphor flash. Bumped to z:30 so the CRT ident wins. */
@@ -1341,7 +1365,7 @@ html.mob .console::before,html.mob .speaker,html.mob .console-legs{display:none!
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.227-ham-radio";
+window.__ATV_BUILD="1.7.7-mobile.228-iss-mission";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1378,7 +1402,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.227 · Ham Radio</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.228 · ISS Mission</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -2121,6 +2145,7 @@ const CHANNEL_META={
 "Weather Watch":{desc:"LIVE: current station observations, three NWS radar layers, hourly and extended forecasts, local alerts, a national warning watchboard, and automatic Open-Meteo failover.",best:"anytime",rel:["Local Radar","Tropical Watch"]},
 "Aurora & Space Weather":{desc:"LIVE: NOAA Kp observations and 72-hour forecast, OVATION aurora oval, solar-wind speed, IMF Bz/Bt, location-aware visibility estimate, and current SWPC notices.",best:"anytime",rel:["Solar Dashboard","ISS Tracker"]},
 "Ham Radio":{desc:"LIVE: worldwide WSPR beacon paths with corrected amateur bands, exact frequencies, transmitter power, Maidenhead grids, path distance, and NOAA propagation conditions.",best:"anytime",rel:["Aurora & Space Weather","Live Radio"]},
+"ISS Tracker":{desc:"LIVE: International Space Station ground position, orbital track, altitude, velocity, visibility footprint, viewer-relative distance, future orbit samples, and current CelesTrak elements.",best:"anytime",rel:["Aurora & Space Weather","NASA Live"]},
 "Sky Beacon Live":{desc:"LIVE: international flight tracker — starts at your local airspace then cycles every 90 s through the world's busiest hubs (JFK, Heathrow, CDG, DXB, HND, Singapore, LAX, Sydney). Real ADS-B via adsb.lol + airplanes.live + OpenSky fallback.",best:"anytime",rel:["Weather Watch","ISS Tracker"]},
 "Seismic Watch":{desc:"LIVE: elevated volcanoes and global earthquakes, on rotation.",best:"anytime",rel:["Weather Watch","Wildfire Watch"]},
 "News, News, News":{desc:"Newsreels, federal films and historic footage \u2014 the week\u2019s news, decades late.",best:"anytime",rel:["Live News","Historic Waco"]},
@@ -13728,7 +13753,156 @@ async function tuneAPOD(ch,sl,my){
   };
   run(); apodTimer=rtInterval(run,30*60*1000); /* the picture only changes once a day; no need to hammer it */
 }
+function issNormalizePosition(d){
+  if(!d)return null;
+  var lat=Number(d.latitude),lon=Number(d.longitude),alt=Number(d.altitude),vel=Number(d.velocity),stamp=Number(d.timestamp);
+  if(!isFinite(lat)||!isFinite(lon))return null;
+  return {latitude:lat,longitude:lon,altitude:isFinite(alt)?alt:null,velocity:isFinite(vel)?vel:null,visibility:String(d.visibility||"unknown"),footprint:isFinite(Number(d.footprint))?Number(d.footprint):null,timestamp:isFinite(stamp)?stamp:Math.floor(Date.now()/1000),daynum:isFinite(Number(d.daynum))?Number(d.daynum):null,solar_lat:isFinite(Number(d.solar_lat))?Number(d.solar_lat):null,solar_lon:isFinite(Number(d.solar_lon))?Number(d.solar_lon):null};
+}
+function issCoord(lat,lon){
+  return (lat>=0?Math.abs(lat).toFixed(2)+"°N":Math.abs(lat).toFixed(2)+"°S")+" · "+(lon>=0?Math.abs(lon).toFixed(2)+"°E":Math.abs(lon).toFixed(2)+"°W");
+}
+function issAgeLabel(timestamp){
+  var sec=Math.max(0,Math.round(Date.now()/1000-Number(timestamp||0)));if(sec<5)return "JUST NOW";if(sec<60)return sec+" SEC AGO";return Math.round(sec/60)+" MIN AGO";
+}
+function issHaversineKm(aLat,aLon,bLat,bLon){
+  var R=6371,dLat=(bLat-aLat)*Math.PI/180,dLon=(bLon-aLon)*Math.PI/180;
+  var a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(aLat*Math.PI/180)*Math.cos(bLat*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
+  return 2*R*Math.atan2(Math.sqrt(a),Math.sqrt(Math.max(0,1-a)));
+}
+function issBearing(aLat,aLon,bLat,bLon){
+  var y=Math.sin((bLon-aLon)*Math.PI/180)*Math.cos(bLat*Math.PI/180);
+  var x=Math.cos(aLat*Math.PI/180)*Math.sin(bLat*Math.PI/180)-Math.sin(aLat*Math.PI/180)*Math.cos(bLat*Math.PI/180)*Math.cos((bLon-aLon)*Math.PI/180);
+  return (Math.atan2(y,x)*180/Math.PI+360)%360;
+}
+function issCompass(deg){var dirs=["N","NE","E","SE","S","SW","W","NW"];return dirs[Math.round(Number(deg)/45)%8];}
+function issSvgPolyline(points,color,dash){
+  var segments=[],segment=[],previous=null;
+  (points||[]).forEach(function(p){
+    if(previous&&Math.abs(p.longitude-previous.longitude)>180){if(segment.length>1)segments.push(segment);segment=[];}
+    segment.push(p);previous=p;
+  });
+  if(segment.length>1)segments.push(segment);
+  return segments.map(function(seg){var pairs=seg.map(function(p){return (((p.longitude+180)/360)*1000).toFixed(1)+","+(((90-p.latitude)/180)*500).toFixed(1);}).join(" ");return '<polyline points="'+pairs+'" fill="none" stroke="'+color+'" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".88"'+(dash?' stroke-dasharray="'+dash+'"':"")+'/>';}).join("");
+}
 async function tuneISS(ch,sl,my){
+  if(my!==token)return;hideOv();setSig("live","ON AIR");showNow(ch,sl,"ISS Mission Control","");
+  if(screenArea)screenArea.innerHTML=
+    '<div class="iss-screen" id="issScreen">'+
+      '<div class="iss-head"><span><i class="iss-head-live"></i>ISS MISSION CONTROL · NORAD 25544</span><span class="iss-head-source" id="issFresh">ACQUIRING ORBITAL TELEMETRY…</span></div>'+
+      '<div class="iss-main">'+
+        '<section class="iss-map" id="issMap"><img class="iss-map-bg" alt="Equirectangular world map" src="https://commons.wikimedia.org/wiki/Special:Redirect/file/BlankMap-World-Equirectangular.svg?width=1440">'+
+          '<svg class="iss-map-grid" id="issMapSvg" viewBox="0 0 1000 500" preserveAspectRatio="none" aria-label="Live ISS ground track"></svg>'+
+          '<div class="iss-map-top"><div class="iss-position" id="issLatLon">LOCATING ISS…<small>LIVE GROUND POSITION</small></div><div class="iss-map-key"><b>● ISS NOW</b><br>— FUTURE · · PAST<br>◇ YOUR LOCATION</div></div>'+
+        '</section>'+
+        '<aside class="iss-side">'+
+          '<div class="iss-metrics"><div class="iss-metric"><b>ALTITUDE</b><span id="issAlt">--</span></div><div class="iss-metric"><b>VELOCITY</b><span id="issVel">--</span></div><div class="iss-metric"><b>VISIBILITY</b><span id="issVis">--</span></div><div class="iss-metric"><b>FOOTPRINT</b><span id="issFoot">--</span></div></div>'+
+          '<div class="iss-tabs"><button class="iss-tab on" type="button" data-iss-page="0">LIVE NOW</button><button class="iss-tab" type="button" data-iss-page="1">NEXT ORBIT</button><button class="iss-tab" type="button" data-iss-page="2">ORBIT DATA</button></div>'+
+          '<div class="iss-panel" id="issPanel"><div class="iss-callout">BUILDING THE LIVE ORBIT PICTURE…</div></div>'+
+        '</aside>'+
+      '</div>'+
+      '<div class="iss-ticker" id="issTicker">WHERETHEISS.AT · LIVE TELEMETRY EVERY 10 SECONDS · NEXT cycles mission-control panels</div>'+
+    '</div>';
+  var issBug=mountChanBug("issScreen",{ident:"ISS TRACKER"}),pageIndex=0,telemetryBusy=false,orbitBusy=false;
+  var model={current:null,track:[],orbit:null,orbitAt:0,loc:null,stale:false};
+  clearInterval(issTimer);startIAJazz("gmelectro");
+  function saveCache(){if(model.current)store.set("issLiveCache",{at:Date.now(),current:model.current,track:model.track,orbit:model.orbit,orbitAt:model.orbitAt});}
+  function currentDistance(){
+    if(!model.current||!model.loc)return null;
+    return issHaversineKm(Number(model.loc.lat),Number(model.loc.lon),model.current.latitude,model.current.longitude);
+  }
+  function closestFuture(){
+    if(!model.loc||!model.track.length)return null;
+    var now=Date.now()/1000,best=null;
+    model.track.filter(function(p){return p.timestamp>=now-60;}).forEach(function(p){var km=issHaversineKm(Number(model.loc.lat),Number(model.loc.lon),p.latitude,p.longitude);if(!best||km<best.km)best={point:p,km:km};});
+    return best;
+  }
+  function renderMap(){
+    var svg=$("issMapSvg");if(!svg)return;
+    var grid="";for(var lon=-150;lon<=150;lon+=30){var x=(lon+180)/360*1000;grid+='<line x1="'+x+'" y1="0" x2="'+x+'" y2="500" stroke="rgba(126,216,255,.12)" stroke-width="1"/>';}
+    for(var lat=-60;lat<=60;lat+=30){var y=(90-lat)/180*500;grid+='<line x1="0" y1="'+y+'" x2="1000" y2="'+y+'" stroke="rgba(126,216,255,.12)" stroke-width="1"/>';}
+    var now=model.current?model.current.timestamp:Date.now()/1000,past=model.track.filter(function(p){return p.timestamp<=now;}),future=model.track.filter(function(p){return p.timestamp>=now;});
+    var body=grid+issSvgPolyline(past,"rgba(126,216,255,.42)","4 7")+issSvgPolyline(future,"#65d9ff","");
+    model.track.forEach(function(p){var x=(p.longitude+180)/360*1000,y=(90-p.latitude)/180*500,futurePoint=p.timestamp>=now;body+='<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="3" fill="'+(futurePoint?"#65d9ff":"#52788a")+'" opacity="'+(futurePoint?".95":".6")+'"/>';});
+    if(model.current){
+      var c=model.current,cx=(c.longitude+180)/360*1000,cy=(90-c.latitude)/180*500;
+      if(c.footprint){var radius=(c.footprint/2/111.32)*(1000/360);body+='<circle cx="'+cx.toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="'+radius.toFixed(1)+'" fill="rgba(103,255,134,.08)" stroke="rgba(103,255,134,.32)" stroke-width="1.5"/>';}
+      body+='<g class="iss-current-dot"><circle cx="'+cx.toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="12" fill="rgba(103,255,134,.15)" stroke="#67ff86" stroke-width="2"/><circle cx="'+cx.toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="4.5" fill="#fff"/><text x="'+(cx+15).toFixed(1)+'" y="'+(cy-9).toFixed(1)+'" fill="#eafff0" font-size="15" font-weight="900">ISS</text></g>';
+    }
+    if(model.loc){var ux=(Number(model.loc.lon)+180)/360*1000,uy=(90-Number(model.loc.lat))/180*500;body+='<g class="iss-user-dot"><path d="M '+ux.toFixed(1)+' '+(uy-7).toFixed(1)+' L '+(ux+7).toFixed(1)+' '+uy.toFixed(1)+' L '+ux.toFixed(1)+' '+(uy+7).toFixed(1)+' L '+(ux-7).toFixed(1)+' '+uy.toFixed(1)+' Z" fill="#ffd15b" stroke="#fff" stroke-width="1.2"/><text x="'+(ux+11).toFixed(1)+'" y="'+(uy+4).toFixed(1)+'" fill="#ffe7a2" font-size="12" font-weight="800">YOU</text></g>';}
+    svg.innerHTML=body;
+  }
+  function orbitValue(key,fallback){var value=model.orbit&&model.orbit[key];return value==null?fallback:value;}
+  function renderPanel(){
+    var panel=$("issPanel");if(!panel)return;
+    document.querySelectorAll("[data-iss-page]").forEach(function(button){button.classList.toggle("on",Number(button.dataset.issPage)===pageIndex);});
+    if(!model.current){panel.innerHTML='<div class="iss-callout">THE CHANNEL IS TUNED.<br>WAITING FOR THE NEXT TELEMETRY PACKET.</div>';return;}
+    var c=model.current,dist=currentDistance();
+    if(pageIndex===0){
+      var bearing=dist!=null?issBearing(Number(model.loc.lat),Number(model.loc.lon),c.latitude,c.longitude):null;
+      panel.innerHTML='<div class="iss-callout"><strong>'+esch(String(c.visibility).toUpperCase())+'</strong>'+(dist==null?"LOCATING YOUR RECEIVER…":(Math.round(dist).toLocaleString()+" km from "+esch(model.loc.label||"your location")+" · bearing "+Math.round(bearing)+"° "+issCompass(bearing)))+'</div>'+
+        '<div class="iss-row"><b>LATITUDE</b><span>'+Math.abs(c.latitude).toFixed(3)+'° '+(c.latitude>=0?"N":"S")+'</span></div><div class="iss-row"><b>LONGITUDE</b><span>'+Math.abs(c.longitude).toFixed(3)+'° '+(c.longitude>=0?"E":"W")+'</span></div>'+
+        '<div class="iss-row"><b>TELEMETRY AGE</b><span>'+issAgeLabel(c.timestamp)+'</span></div><div class="iss-row"><b>SOLAR SUBPOINT</b><span>'+((c.solar_lat==null||c.solar_lon==null)?"--":issCoord(c.solar_lat,c.solar_lon))+'</span></div>';
+    }else if(pageIndex===1){
+      var closest=closestFuture(),future=model.track.filter(function(p){return p.timestamp>=Date.now()/1000-60;}).slice(0,6);
+      panel.innerHTML='<div class="iss-callout"><strong>'+(closest?("CLOSEST SAMPLE IN "+Math.max(0,Math.round((closest.point.timestamp-Date.now()/1000)/60))+" MIN"):"BUILDING NEXT ORBIT")+'</strong>'+
+        (closest?(Math.round(closest.km).toLocaleString()+" km from your location at "+issCoord(closest.point.latitude,closest.point.longitude)):"Future positions update every two minutes.")+'</div>'+
+        '<div class="iss-timeline">'+future.map(function(p){var eta=Math.max(0,Math.round((p.timestamp-Date.now()/1000)/60));return '<div class="iss-waypoint"><b>+'+eta+'m</b>'+Math.abs(p.latitude).toFixed(0)+'°'+(p.latitude>=0?"N":"S")+'<br>'+Math.abs(p.longitude).toFixed(0)+'°'+(p.longitude>=0?"E":"W")+'</div>';}).join("")+'</div>'+
+        '<div class="iss-row"><b>TRACK WINDOW</b><span>'+model.track.length+' orbital samples</span></div><div class="iss-row"><b>NOTE</b><span>Ground-track proximity, not a visibility promise</span></div>';
+    }else{
+      var meanMotion=Number(orbitValue("MEAN_MOTION",NaN)),period=isFinite(meanMotion)?1440/meanMotion:null;
+      panel.innerHTML='<div class="iss-callout"><strong>'+esch(String(orbitValue("OBJECT_NAME","ISS (ZARYA)")))+'</strong>CelesTrak general perturbations orbital elements</div>'+
+        '<div class="iss-row"><b>INCLINATION</b><span>'+Number(orbitValue("INCLINATION",51.64)).toFixed(2)+'°</span></div><div class="iss-row"><b>ORBITAL PERIOD</b><span>'+(period?period.toFixed(2):"~92.9")+' min</span></div>'+
+        '<div class="iss-row"><b>MEAN MOTION</b><span>'+(isFinite(meanMotion)?meanMotion.toFixed(6):"--")+' rev/day</span></div><div class="iss-row"><b>ELEMENT EPOCH</b><span>'+esch(String(orbitValue("EPOCH","UPDATING")).replace("T"," ").slice(0,19))+' UTC</span></div>'+
+        '<div class="iss-row"><b>REV AT EPOCH</b><span>'+esch(String(orbitValue("REV_AT_EPOCH","--")))+'</span></div>';
+    }
+  }
+  function renderAll(){
+    if(!model.current){renderPanel();return;}
+    var c=model.current,alt=$("issAlt"),vel=$("issVel"),vis=$("issVis"),foot=$("issFoot"),coords=$("issLatLon"),fresh=$("issFresh");
+    if(alt)alt.textContent=c.altitude==null?"--":Math.round(c.altitude)+" km";if(vel)vel.textContent=c.velocity==null?"--":Math.round(c.velocity).toLocaleString()+" km/h";if(vis)vis.textContent=String(c.visibility).toUpperCase();if(foot)foot.textContent=c.footprint==null?"--":Math.round(c.footprint).toLocaleString()+" km";
+    if(coords)coords.innerHTML=esch(issCoord(c.latitude,c.longitude))+'<small>LIVE GROUND POSITION · '+esch(issAgeLabel(c.timestamp))+'</small>';
+    if(fresh)fresh.textContent=(model.stale?"CACHED · RECONNECTING · ":"")+"WITA TELEMETRY "+issAgeLabel(c.timestamp);
+    var pos=(c.latitude>=0?c.latitude.toFixed(1)+"N":Math.abs(c.latitude).toFixed(1)+"S")+", "+(c.longitude>=0?c.longitude.toFixed(1)+"E":Math.abs(c.longitude).toFixed(1)+"W");
+    setChanStatus(ch.num,"ISS "+pos+(c.altitude==null?"":(" · "+Math.round(c.altitude)+" km")));
+    if(issBug)issBug.update(pos,(c.altitude==null?"ISS":Math.round(c.altitude)+" km")+" · "+String(c.visibility).toUpperCase());
+    var ticker=$("issTicker");if(ticker)ticker.textContent=(model.stale?"CACHED TELEMETRY · RECONNECTING · ":"")+"WHERETHEISS.AT · "+(c.velocity==null?"LIVE VELOCITY":Math.round(c.velocity).toLocaleString()+" km/h")+" · "+(c.altitude==null?"LIVE ALTITUDE":Math.round(c.altitude)+" km altitude")+" · NEXT cycles live, next-orbit and element panels";
+    renderMap();renderPanel();
+  }
+  var refreshTelemetry=async function(){
+    if(my!==token||!powered||telemetryBusy)return;telemetryBusy=true;
+    try{
+      var raw=await fetchJSONResilient("https://api.wheretheiss.at/v1/satellites/25544","iss-live");if(my!==token)return;
+      var current=issNormalizePosition(raw);if(!current)throw new Error("ISS telemetry contained no coordinates");
+      model.current=current;model.stale=false;saveCache();renderAll();nlog("iss",true,current.latitude.toFixed(1)+","+current.longitude.toFixed(1));
+    }catch(e){nlog("iss",false,(e&&e.message)||e);model.stale=true;renderAll();var fresh=$("issFresh");if(fresh&&!model.current)fresh.textContent="TELEMETRY RECONNECTING · CHANNEL STAYS TUNED";}finally{telemetryBusy=false;}
+  };
+  var refreshOrbit=async function(){
+    if(my!==token||!powered||orbitBusy)return;orbitBusy=true;
+    try{
+      var now=Math.floor(Date.now()/1000),timestamps=[];for(var i=-2;i<=7;i++)timestamps.push(now+i*600);
+      var needsOrbit=!model.orbit||Date.now()-Number(model.orbitAt)>6*60*60*1000;
+      var result=await Promise.all([
+        fetchJSONResilient("https://api.wheretheiss.at/v1/satellites/25544/positions?timestamps="+timestamps.join(",")+"&units=kilometers","iss-track").catch(function(){return null;}),
+        needsOrbit?fetchJSONResilient("https://celestrak.org/NORAD/elements/gp.php?CATNR=25544&FORMAT=JSON","iss-elements").catch(function(){return null;}):Promise.resolve(null)
+      ]);if(my!==token)return;
+      var track=Array.isArray(result[0])?result[0].map(issNormalizePosition).filter(Boolean):[];
+      if(track.length>=5)model.track=track;
+      if(Array.isArray(result[1])&&result[1][0]){model.orbit=result[1][0];model.orbitAt=Date.now();}
+      if(!model.track.length&&!model.orbit)throw new Error("orbit feeds returned no usable data");
+      saveCache();renderAll();nlog("iss-track",true,model.track.length+" positions");
+    }catch(e){nlog("iss-track",false,(e&&e.message)||e);renderAll();}finally{orbitBusy=false;}
+  };
+  var cached=store.get("issLiveCache",null);
+  if(cached&&cached.current&&Date.now()-Number(cached.at)<5*60*1000){model.current=issNormalizePosition(cached.current);model.track=(cached.track||[]).map(issNormalizePosition).filter(Boolean);model.orbit=cached.orbit||null;model.orbitAt=Number(cached.orbitAt)||0;model.stale=true;renderAll();}
+  getWxLocation().then(function(loc){if(my!==token)return;model.loc=loc;renderAll();}).catch(function(){});
+  window.__issNext=function(){pageIndex=(pageIndex+1)%3;renderPanel();quickBanner(["ISS · LIVE NOW","ISS · NEXT ORBIT","ISS · ORBIT DATA"][pageIndex]);};
+  window.__issRefresh=refreshTelemetry;window.__issRefreshOrbit=refreshOrbit;
+  document.querySelectorAll("[data-iss-page]").forEach(function(button){button.addEventListener("click",function(){pageIndex=Number(button.dataset.issPage)||0;renderPanel();});});
+  refreshTelemetry();refreshOrbit();issTimer=rtInterval(refreshTelemetry,10000);rtInterval(refreshOrbit,120000);
+}
+
+async function tuneISSLegacy(ch,sl,my){
   if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"ISS Tracker","");
   if(screenArea) screenArea.innerHTML='<div class="dc-screen" id="dcScreen">'+
     '<div class="dc-media show" id="issMedia" style="flex:1 1 55%;height:auto;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;position:relative;overflow:hidden;background:radial-gradient(120% 90% at 50% 30%,#04101c,#010509 75%)">'+
@@ -14171,6 +14345,7 @@ async function playBumper(ch,sl,my){
 /* ===== v10.1: skip — next item on the same channel, on demand ===== */
 function skipOne(){ if(!powered){quickBanner("TURN THE TV ON FIRST");return;}
   var sc=byNum(curNum);
+  if(sc&&sc.source==="iss"&&typeof window.__issNext==="function"){window.__issNext();return;}
   if(sc&&sc.source==="hf"&&typeof window.__hfNext==="function"){window.__hfNext();return;}
   if(sc&&sc.source==="aurora"&&typeof window.__auroraNext==="function"){window.__auroraNext();return;}
   if(sc&&sc.source==="weather"&&typeof window.__weatherNext==="function"){window.__weatherNext();return;}

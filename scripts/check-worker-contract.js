@@ -78,6 +78,10 @@ if (!/const MARINE_PATH = "\/live\/marine"/.test(source)) issues.push('Gulf Mari
 if (numericConstant('MARINE_TTL_SECONDS') !== 300) issues.push('Gulf Marine snapshots must use a five-minute live cache');
 if (!/GULF_TIDE_STATIONS/.test(source) || !/GULF_BUOYS/.test(source) || !/api\.tidesandcurrents\.noaa\.gov/.test(source) || !/data\/realtime2/.test(source)) issues.push('Gulf Marine must aggregate bounded CO-OPS tide data and NDBC buoy observations');
 if (!/MARINE_PATH \+ "\/cache\/" \+ MARINE_CACHE_VERSION/.test(source) || !/getMarineSnapshot/.test(source)) issues.push('Gulf Marine needs a versioned edge cache and normalized snapshot');
+if (!/const STORM_CENTER_PATH = "\/live\/storms"/.test(source) || !/const STORM_CENTER_IMAGE_PATH = STORM_CENTER_PATH \+ "\/image"/.test(source)) issues.push('Storm Center needs narrow data and image routes');
+if (numericConstant('STORM_CENTER_TTL_SECONDS') !== 300 || numericConstant('STORM_CENTER_IMAGE_TTL_SECONDS') !== 300) issues.push('Storm Center data and image snapshots must use five-minute caches');
+if (!/day1otlk\.txt/.test(source) || !/day1otlk\.png/.test(source) || !/stormRisk/.test(source)) issues.push('Storm Center must relay and normalize official SPC Day 1 products');
+if (!/STORM_CENTER_PATH \+ "\/cache\/" \+ STORM_CENTER_CACHE_VERSION/.test(source) || !/spc-day1-image-relay/.test(source)) issues.push('Storm Center needs versioned data and image cache contracts');
 if (!/Access-Control-Expose-Headers.*X-Afterglow-Source, X-Afterglow-Cache/.test(source)) issues.push('Browser diagnostics must be able to read safe Worker source and cache headers');
 
 console.log(`Worker contract: ${issues.length ? 'FAILED' : 'passed'}`);

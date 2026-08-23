@@ -1379,7 +1379,7 @@ body:not(.atv-powered) .cabinet-readout{opacity:.36!important}.glass-dock{positi
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.217-gulf-marine-edge";
+window.__ATV_BUILD="1.7.7-desktop.218-storm-center-edge";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -11707,19 +11707,12 @@ async function tuneStormCenter(ch,sl,my){
   var run=async function(){
     if(my!==token||!powered) return;
     var img=$("spcImg");
-    /* Categorical outlook is served as PNG (day1otlk.gif was retired). Cache-bust so a stale
-       proxy or CDN copy doesn't outlive an SPC re-issuance. */
-    if(img) img.innerHTML='<img src="https://www.spc.noaa.gov/products/outlook/day1otlk.png?ts='+Date.now()+'" style="max-width:100%;max-height:100%;object-fit:contain" onerror="this.parentNode.innerHTML=\'&lt;div class=&quot;dc-media-cap&quot;&gt;SPC outlook image unavailable&lt;/div&gt;\'">';
+    if(img) img.innerHTML='<img src="https://ais-relay.tdy1990.workers.dev/live/storms/image?ts='+Math.floor(Date.now()/300000)+'" style="max-width:100%;max-height:100%;object-fit:contain" onerror="this.parentNode.innerHTML=\'&lt;div class=&quot;dc-media-cap&quot;&gt;SPC outlook image updating — discussion remains live&lt;/div&gt;\'">';
     try{
-      var txt=await fetchTextResilient("https://www.spc.noaa.gov/products/outlook/day1otlk.txt","spc-day1");
+      var stormDesk=await withTO(fetch("https://ais-relay.tdy1990.workers.dev/live/storms",{cache:"no-store"}).then(function(r){if(!r.ok)throw new Error("storm edge "+r.status);return r.json();}),15000),txt=stormDesk.discussion||"";
       if(my!==token) return;
       var el=$("spcText"); if(el) el.textContent=String(txt||"").slice(0,4000);
-      var risk="none"; var t=String(txt||"").toUpperCase();
-      if(/\bHIGH\s+RISK\b/.test(t)) risk="HIGH";
-      else if(/\bMDT\b|\bMODERATE\s+RISK\b/.test(t)) risk="MODERATE";
-      else if(/\bENH\b|\bENHANCED\s+RISK\b/.test(t)) risk="ENHANCED";
-      else if(/\bSLGT\b|\bSLIGHT\s+RISK\b/.test(t)) risk="SLIGHT";
-      else if(/\bMRGL\b|\bMARGINAL\s+RISK\b/.test(t)) risk="MARGINAL";
+      var risk=stormDesk.risk||"GENERAL";
       setChanStatus(ch.num,"Day 1: "+risk);
       nlog("spc-day1",true,"risk="+risk);
     }catch(e){ nlog("spc-day1",false,(e&&e.message)||e); setChanStatus(ch.num,"SPC unreachable"); }

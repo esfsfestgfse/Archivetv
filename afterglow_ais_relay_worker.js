@@ -44,6 +44,8 @@ const TROPICAL_PATH = "/live/tropical";
 const TROPICAL_IMAGE_PATH = TROPICAL_PATH + "/image";
 const WILDFIRE_PATH = "/live/wildfire";
 const MARINE_PATH = "/live/marine";
+const STORM_CENTER_PATH = "/live/storms";
+const STORM_CENTER_IMAGE_PATH = STORM_CENTER_PATH + "/image";
 const SNAPSHOT_TTL_SECONDS = 60;
 const ADSB_TTL_SECONDS = 10;
 const SPACE_TTL_SECONDS = 900;
@@ -54,6 +56,9 @@ const TROPICAL_CACHE_VERSION = "v7";
 const WILDFIRE_TTL_SECONDS = 300;
 const MARINE_TTL_SECONDS = 300;
 const MARINE_CACHE_VERSION = "v1";
+const STORM_CENTER_TTL_SECONDS = 300;
+const STORM_CENTER_IMAGE_TTL_SECONDS = 300;
+const STORM_CENTER_CACHE_VERSION = "v1";
 const ADSB_USER_AGENT = "Afterglow/1.7 (+https://github.com/esfsfestgfse/Archivetv)";
 const IA_SEARCH_TTL_SECONDS = 21600;
 /* Bump this when the normalized search response changes so an older edge
@@ -961,6 +966,49 @@ async function getMarineSnapshot(url, ctx) {
   return response;
 }
 
+/* Storm Center -------------------------------------------------------------
+   SPC's product text has no browser CORS contract and the raw image can be
+   late or temporarily unavailable.  Keep the two official products together,
+   label the parsed risk, and relay the fixed image through the Worker so the
+   desk is always one small, cacheable request from the client. */
+const SPC_DAY1_TEXT_URL = "https://www.spc.noaa.gov/products/outlook/day1otlk.txt";
+const SPC_DAY1_IMAGE_URL = "https://www.spc.noaa.gov/products/outlook/day1otlk.png";
+function stormRisk(text) {
+  const source = String(text || "").toUpperCase();
+  if (/\bHIGH\s+RISK\b/.test(source)) return "HIGH";
+  if (/\bMDT\b|\bMODERATE\s+RISK\b/.test(source)) return "MODERATE";
+  if (/\bENH\b|\bENHANCED\s+RISK\b/.test(source)) return "ENHANCED";
+  if (/\bSLGT\b|\bSLIGHT\s+RISK\b/.test(source)) return "SLIGHT";
+  if (/\bMRGL\b|\bMARGINAL\s+RISK\b/.test(source)) return "MARGINAL";
+  return "GENERAL";
+}
+async function getStormCenterSnapshot(url, ctx) {
+  const cacheKey = new Request(url.origin + STORM_CENTER_PATH + "/cache/" + STORM_CENTER_CACHE_VERSION);
+  const cache = caches.default, cached = await cache.match(cacheKey);
+  if (cached) { const headers = new Headers(cached.headers); Object.entries(corsHeaders()).forEach(([key, value]) => headers.set(key, value)); headers.set("X-Afterglow-Cache", "hit"); return new Response(cached.body, { status: cached.status, headers }); }
+  try {
+    const text = await timedTextFetch(SPC_DAY1_TEXT_URL, 7000);
+    const discussion = cleanText(text, 6000);
+    if (!discussion) throw new Error("empty SPC discussion");
+    const response = json({ source: "NOAA Storm Prediction Center", fetchedAt: new Date().toISOString(), risk: stormRisk(discussion), discussion, image: url.origin + STORM_CENTER_IMAGE_PATH }, 200, { "Cache-Control": "public, max-age=" + STORM_CENTER_TTL_SECONDS + ", stale-while-revalidate=900", "X-Afterglow-Source": "spc-day1-operations", "X-Afterglow-Cache": "miss" });
+    ctx.waitUntil(cache.put(cacheKey, response.clone()).catch((error) => console.warn(JSON.stringify({ event: "storm-center-cache-write-failed", message: String(error && error.message || error) }))));
+    return response;
+  } catch { return json({ error: "SPC Day 1 outlook unavailable" }, 502); }
+}
+async function getStormCenterImage(url, ctx) {
+  const cacheKey = new Request(url.origin + STORM_CENTER_IMAGE_PATH + "/cache/v1");
+  const cache = caches.default, cached = await cache.match(cacheKey);
+  if (cached) { const headers = new Headers(cached.headers); Object.entries(corsHeaders()).forEach(([key, value]) => headers.set(key, value)); headers.set("X-Afterglow-Cache", "hit"); return new Response(cached.body, { status: cached.status, headers }); }
+  try {
+    const upstream = await fetch(SPC_DAY1_IMAGE_URL, { headers: { "User-Agent": ADSB_USER_AGENT, "Accept": "image/png,image/*;q=0.8" }, cf: { cacheTtl: STORM_CENTER_IMAGE_TTL_SECONDS, cacheEverything: true } });
+    const type = upstream.headers.get("content-type") || "";
+    if (!upstream.ok || !/^image\//i.test(type)) throw new Error("SPC image unavailable");
+    const response = new Response(upstream.body, { status: 200, headers: { "Content-Type": type, "Cache-Control": "public, max-age=" + STORM_CENTER_IMAGE_TTL_SECONDS, "X-Afterglow-Source": "spc-day1-image-relay", "X-Afterglow-Cache": "miss", "Cross-Origin-Resource-Policy": "cross-origin", ...corsHeaders() } });
+    ctx.waitUntil(cache.put(cacheKey, response.clone()).catch((error) => console.warn(JSON.stringify({ event: "storm-center-image-cache-write-failed", message: String(error && error.message || error) }))));
+    return response;
+  } catch { return json({ error: "SPC outlook image unavailable" }, 502); }
+}
+
 /* Wildfire Watch ------------------------------------------------------------
    WFIGS is the authoritative interagency incident layer.  The browser used to
    query ArcGIS directly on every tune, which made the channel vulnerable to
@@ -1388,6 +1436,14 @@ export default {
       return getMarineSnapshot(url, ctx);
     }
 
+    if (request.method === "GET" && url.pathname === STORM_CENTER_PATH) {
+      return getStormCenterSnapshot(url, ctx);
+    }
+
+    if (request.method === "GET" && url.pathname === STORM_CENTER_IMAGE_PATH) {
+      return getStormCenterImage(url, ctx);
+    }
+
     if (request.method === "GET" && url.pathname === IA_PREFIX + "/search") {
       return getIaSearch(url, ctx);
     }
@@ -1417,6 +1473,7 @@ export default {
         tropicalImagePath: TROPICAL_IMAGE_PATH,
         wildfirePath: WILDFIRE_PATH,
         marinePath: MARINE_PATH,
+        stormCenterPath: STORM_CENTER_PATH,
       });
     }
 

@@ -1379,7 +1379,7 @@ body:not(.atv-powered) .cabinet-readout{opacity:.36!important}.glass-dock{positi
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.223-weather-radar";
+window.__ATV_BUILD="1.7.7-desktop.224-ia-genre-lock";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1416,7 +1416,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.223 · Weather Radar Edge</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.224 · IA Genre Lock</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">AFTERGLOW · THE DIAL</div>
@@ -5854,17 +5854,21 @@ function stageIAMediaWarmer(ch,item,pl){var ck=iaQueueKey(ch);if(!pl||!pl.url||!
 function warmIAQueueHead(ch){var q=iaProgramQueues[iaQueueKey(ch)]||[],item=null;for(var i=0;i<q.length;i++){var ready=iaProgramMedia[q[i].identifier];if(ready&&typeof ready.then!=="function"&&ready.url){item=q[i];break;}}item=item||q[0];if(!item)return;var pl=iaProgramMedia[item.identifier];if(pl&&typeof pl.then==="function")pl.then(function(ready){stageIAMediaWarmer(ch,item,ready);});else stageIAMediaWarmer(ch,item,pl);}
 function iaRuntimeSeconds(v){if(typeof v==="number")return v;var s=String(v||""),p=s.split(":");if(p.length===3)return (+p[0]||0)*3600+(+p[1]||0)*60+(+p[2]||0);if(p.length===2)return (+p[0]||0)*60+(+p[1]||0);var h=s.match(/(\d+(?:\.\d+)?)\s*(?:hours?|hrs?)/i),m=s.match(/(\d+(?:\.\d+)?)\s*(?:minutes?|mins?)/i);if(h||m)return Math.round(((h?+h[1]:0)*3600)+((m?+m[1]:0)*60));return parseFloat(s)||0;}
 function iaRuntimeLabel(v){var s=Math.round(iaRuntimeSeconds(v));if(!s)return "";return s>=3600?Math.floor(s/3600)+"h "+Math.round((s%3600)/60)+"m":Math.max(1,Math.round(s/60))+"m";}
+function iaThemeText(v){return " "+String(Array.isArray(v)?v.join(" "):(v||"")).normalize("NFKD").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()+" ";}
+function iaProgramThemeTerms(sl){var p=sl&&sl.program,g=sl&&G[sl.genre],out=[],seen={};function add(v){String(v||"").trim()&&String(v).trim().length>=3&&!seen[String(v).toLowerCase()]&&(seen[String(v).toLowerCase()]=1,out.push(String(v).trim()));}if(p){(p.fastSubjects||[]).forEach(add);(p.topicBuckets||[]).forEach(function(bucket){(bucket||[]).forEach(add);});(p.providers||[]).forEach(function(provider){(provider.require_subj||[]).forEach(add);});}if(g)(g.subj||[]).forEach(add);return out.slice(0,256);}
+function iaThemeMatches(item,sl){var terms=iaProgramThemeTerms(sl);if(!terms.length)return true;var hay=iaThemeText(String(item&&item.title||"")+" "+String(item&&(item.subject||item.subjects)||""));return terms.some(function(term){return hay.indexOf(iaThemeText(term))>=0;});}
 function iaProgramAllowed(item,sl){
   if(!item||!item.identifier||banned.indexOf(item.identifier)>=0||isTemporarilySkipped(item.identifier)||blockedId(item.identifier))return false;
   var cur=(curItem&&typeof curItem==="object")?curItem.id:null;if(item.identifier===cur)return false;
-  if(!sl||!sl.program)return true;var p=sl.program, title=String(item.title||"").toLowerCase(), subj=String(item.subject||item.subjects||"").toLowerCase();
+  if(!sl)return true;var p=sl.program||{}, title=String(item.title||"").toLowerCase(), subj=String(item.subject||item.subjects||"").toLowerCase();
+  if(!iaThemeMatches(item,sl))return false;
   if(p.deny){if((p.deny.title||[]).some(function(x){return title.indexOf(String(x).toLowerCase())>=0;}))return false;if((p.deny.subject||[]).some(function(x){return subj.indexOf(String(x).toLowerCase())>=0;}))return false;}
   if(p.require&&p.require.title_any&&p.require.title_any.length&&!p.require.title_any.some(function(x){return title.indexOf(String(x).toLowerCase())>=0;}))return false;
   return !(p.require&&p.require.runtime_max_s&&item.runtime&&iaRuntimeSeconds(item.runtime)>p.require.runtime_max_s);
 }
 async function iaQueueRequest(ch,sl,count){
   var qs=iaQueueQueries(sl);if(!qs.length)return [];
-  try{var d=await withTO(fetch(IA_RELAY_BASE+"/queue",{method:"POST",mode:"cors",headers:{"content-type":"application/json"},body:JSON.stringify({channel:iaQueueKey(ch),queries:qs,count:Math.max(1,Math.min(5,count||5))})}).then(function(r){if(!r.ok)throw new Error("queue "+r.status);return r.json();}),28000);
+  try{var d=await withTO(fetch(IA_RELAY_BASE+"/queue",{method:"POST",mode:"cors",headers:{"content-type":"application/json"},body:JSON.stringify({channel:iaQueueKey(ch),queries:qs,themeTerms:iaProgramThemeTerms(sl),count:Math.max(1,Math.min(5,count||5))})}).then(function(r){if(!r.ok)throw new Error("queue "+r.status);return r.json();}),28000);
     var out=((d&&d.items)||[]).filter(function(it){return iaProgramAllowed(it,sl);});out.hydrating=!!(d&&d.hydrating);return out;
   }catch(e){nlog("queue",false,"director unavailable: "+(e&&e.message||e));return [];}
 }

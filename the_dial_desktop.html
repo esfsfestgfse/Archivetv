@@ -1379,7 +1379,7 @@ body:not(.atv-powered) .cabinet-readout{opacity:.36!important}.glass-dock{positi
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.222-radar-edge";
+window.__ATV_BUILD="1.7.7-desktop.223-weather-radar";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -15301,7 +15301,7 @@ async function tuneWeather(ch,sl,my){
     var rm=radarChoices[radarMode%radarChoices.length],rl=$("wxRadarLbl"),ri=$("wxRadar"),rs=$("wxRadarStatus");
     if(rl)rl.textContent="LIVE RADAR / "+rm[0]+" / NEXT TO SWITCH";
     if(rs){rs.classList.remove("ready");rs.textContent="LOADING "+rm[0]+" RADAR\u2026";}
-    if(ri){ri.onload=function(){if(rs)rs.classList.add("ready");};ri.onerror=function(){if(rs){rs.classList.remove("ready");rs.textContent=rm[0]+" RADAR IS TEMPORARILY UNAVAILABLE \u00b7 PRESS NEXT FOR ANOTHER LAYER";}};ri.src=rm[1]+"?_="+Date.now();}
+    if(ri){var hit=rm[1].match(/\/([^/]+)_loop\.gif$/),station=hit&&hit[1],pre=new Image();pre.onload=function(){if(my!==token)return;ri.onload=function(){if(rs)rs.classList.add("ready");};ri.src=pre.src;if(rs){rs.classList.add("ready");rs.textContent=rm[0]+" RADAR · LIVE";}};pre.onerror=function(){if(rs){rs.classList.remove("ready");rs.textContent=rm[0]+" RADAR DELAYED · HOLDING LAST SCAN";}};pre.src=station?"https://ais-relay.tdy1990.workers.dev/live/radar?station="+encodeURIComponent(station)+"&frame="+Math.floor(Date.now()/120000):rm[1]+"?_="+Date.now();}
   }
   window.__weatherNext=function(){radarMode=(radarMode+1)%Math.max(1,radarChoices.length);paintRadar();if(radarChoices.length)quickBanner("RADAR \u00b7 "+radarChoices[radarMode][0]);};
   var rw=screenArea?screenArea.querySelector(".wx-radar-wrap"):null;

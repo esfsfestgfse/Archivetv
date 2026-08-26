@@ -1379,7 +1379,7 @@ body:not(.atv-powered) .cabinet-readout{opacity:.36!important}.glass-dock{positi
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.230-ia-channel-locks";
+window.__ATV_BUILD="1.7.7-desktop.231-ia-channel-locks";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1416,7 +1416,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.230 · IA Channel Locks</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.231 · IA Channel Locks</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">AFTERGLOW · THE DIAL</div>
@@ -4955,7 +4955,7 @@ const PROGRAM = {
   /* News, News, News (ch 210) — Phase 3 overhaul 2026-08-08. Historical newsreels
      1920-1975 — Fox Movietone, Universal, Paramount, Hearst. */
   "News, News, News": {
-    genre: "newsarchive", era: [1920, 1975],
+    genre: "newsarchive", era: [1910, 2026],
     providers: [
       { collections: ["universal_newsreels", "movietonenews", "prelinger", "opensource_movies"], require_subj: [
         "fox movietone","fox movietone news","movietone","movietone news","universal newsreel","universal news",
@@ -5564,7 +5564,7 @@ const PROGRAM_EDITORIAL={
   "Court TV":{eraBuckets:[[1988,1999],[2000,2009],[2010,2019],[2020,2026]],topicBuckets:[["criminal trial"],["trial analysis"],["forensic analysis"],["case recap"]]},
   "Manufacturing Marvels":{eraBuckets:[[1930,1949],[1950,1969],[1970,1989],[1990,2026]],topicBuckets:[["steel","metallurgy"],["automobile manufacturing","assembly line"],["food processing","canning"],["energy production","power plant"],["aviation manufacturing","aircraft factory"],["textile manufacturing","textile mill"]]},
   "Home Economics":{eraBuckets:[[1930,1949],[1950,1969],[1970,1989],[1990,2026]],topicBuckets:[["cooking","meal planning"],["sewing","clothing construction"],["budgeting","consumer education"],["cleaning","housekeeping"],["childcare","child development"],["etiquette","home management"]]},
-  "News, News, News":{eraBuckets:[[1910,1919],[1920,1929],[1930,1939],[1940,1949],[1950,1959],[1960,1969],[1970,1979]],topicBuckets:[["world affairs newsreel","political newsreel"],["science newsreel","technology newsreel"],["sports newsreel","entertainment newsreel"],["fashion newsreel","culture newsreel"],["local newsreel","community newsreel"]]},
+  "News, News, News":{eraBuckets:[[1910,1919],[1920,1929],[1930,1939],[1940,1949],[1950,1959],[1960,1969],[1970,1979],[1980,1989],[1990,1999],[2000,2009],[2010,2019],[2020,2026]],topicBuckets:[["world affairs newsreel","political newsreel"],["science newsreel","technology newsreel"],["sports newsreel","entertainment newsreel"],["fashion newsreel","culture newsreel"],["local newsreel","community newsreel"]]},
   "The Kitchen":{eraBuckets:[[1930,1949],[1950,1969],[1970,1989],[1990,2009],[2010,2026]],topicBuckets:[["baking","pastry"],["regional cuisine","international cooking"],["television chef","cooking show"],["grilling","barbecue"],["preserving","canning"],["cooking technique","food instruction"]]},
   "Nature Channel":{eraBuckets:[[1930,1949],[1950,1969],[1970,1989],[1990,2009],[2010,2026]],topicBuckets:[["wildlife documentary","animal behavior"],["ocean documentary","marine life"],["national parks","wilderness"],["conservation","ecology"],["geology","earth science"]]},
   "NASA Marathon":{eraBuckets:[[1950,1961],[1962,1972],[1973,1989],[1990,2009],[2010,2026]],topicBuckets:[["Mercury program","Gemini program"],["Apollo program","moon landing"],["Space Shuttle","space station"],["robotic mission","planetary science"],["launch footage","mission briefing"]]},

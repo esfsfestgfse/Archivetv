@@ -41,6 +41,7 @@ const IA_PROGRAM_PATH = IA_PREFIX + "/program";
 const ADSB_PATH = "/live/adsb";
 const SPACE_PATH = "/live/space";
 const WATER_PATH = "/live/water";
+const AIR_PATH = "/live/air";
 const TROPICAL_PATH = "/live/tropical";
 const TROPICAL_IMAGE_PATH = TROPICAL_PATH + "/image";
 const WILDFIRE_PATH = "/live/wildfire";
@@ -51,6 +52,7 @@ const SNAPSHOT_TTL_SECONDS = 60;
 const ADSB_TTL_SECONDS = 10;
 const SPACE_TTL_SECONDS = 900;
 const WATER_TTL_SECONDS = 300;
+const AIR_TTL_SECONDS = 900;
 const TROPICAL_TTL_SECONDS = 300;
 const TROPICAL_IMAGE_TTL_SECONDS = 300;
 const TROPICAL_CACHE_VERSION = "v7";
@@ -234,6 +236,38 @@ function normalizeOpenSky(states) {
       t: "",
     };
   }).filter(Boolean);
+}
+
+async function getAirSnapshot(url, ctx) {
+  const lat = Number(url.searchParams.get("lat")), lon = Number(url.searchParams.get("lon"));
+  if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+    return json({ error: "invalid air-quality coordinates" }, 400);
+  }
+  const latKey = (Math.round(lat * 10) / 10).toFixed(1), lonKey = (Math.round(lon * 10) / 10).toFixed(1);
+  const cacheKey = new Request(url.origin + AIR_PATH + "/cache/v1/" + latKey + "/" + lonKey);
+  const cache = caches.default, cached = await cache.match(cacheKey);
+  if (cached) {
+    const headers = new Headers(cached.headers);
+    Object.entries(corsHeaders()).forEach(([key, value]) => headers.set(key, value));
+    headers.set("X-Afterglow-Cache", "hit");
+    return new Response(cached.body, { status: cached.status, headers });
+  }
+  try {
+    const upstreamUrl = "https://air-quality-api.open-meteo.com/v1/air-quality?latitude=" + encodeURIComponent(latKey) + "&longitude=" + encodeURIComponent(lonKey) + "&current=us_aqi,pm2_5,pm10,ozone,ragweed_pollen,grass_pollen,birch_pollen";
+    const upstream = await timedJsonFetch(upstreamUrl, 7000);
+    if (!upstream || !upstream.current || upstream.current.us_aqi == null) throw new Error("air-quality response incomplete");
+    const response = json({ source: "open-meteo-air-quality", fetchedAt: new Date().toISOString(), current: upstream.current }, 200, {
+      "Cache-Control": "public, max-age=" + AIR_TTL_SECONDS + ", stale-while-revalidate=3600",
+      "X-Afterglow-Source": "air-quality-edge",
+      "X-Afterglow-Cache": "miss",
+    });
+    ctx.waitUntil(cache.put(cacheKey, response.clone()).catch((error) => {
+      console.warn(JSON.stringify({ event: "air-cache-write-failed", message: String(error && error.message || error) }));
+    }));
+    return response;
+  } catch {
+    return json({ error: "air-quality provider unavailable" }, 502);
+  }
 }
 
 async function getAdsbSnapshot(url, ctx) {
@@ -1446,6 +1480,10 @@ export default {
 
     if (request.method === "GET" && url.pathname === ADSB_PATH) {
       return getAdsbSnapshot(url, ctx);
+    }
+
+    if (request.method === "GET" && url.pathname === AIR_PATH) {
+      return getAirSnapshot(url, ctx);
     }
 
     if (request.method === "GET" && url.pathname === SPACE_PATH) {

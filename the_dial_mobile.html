@@ -1444,7 +1444,7 @@ html.mob .curve{border-radius:0!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.249-ia-channel-locks";
+window.__ATV_BUILD="1.7.7-mobile.250-ia-channel-locks";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1481,7 +1481,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.249 · IA Channel Locks</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.250 · IA Channel Locks</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -4867,7 +4867,7 @@ const PROGRAM = {
      show-name subjects that IA uploaders actually tag. Every era bucket is enumerated
      so the picker doesn't get stuck in the 80s classic_tv slice. */
   "Modern Rerun TV": {
-    genre: "sitcommodern", era: [1970, 2026],
+    genre: "sitcommodern", era: [1980, 2026],
     providers: [
       { collections: ["classic_tv","classic_tv_1970s","classic_tv_1980s","classic_tv_1990s","classic_tv_2000s","television"], require_subj: [
         "sitcom","television comedy","television series","tv series","comedy series","situation comedy",

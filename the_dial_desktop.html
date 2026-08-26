@@ -1379,7 +1379,7 @@ body:not(.atv-powered) .cabinet-readout{opacity:.36!important}.glass-dock{positi
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.234-british-suite";
+window.__ATV_BUILD="1.7.7-desktop.235-channel-expansion";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1416,7 +1416,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.234 · British Suite</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.235 · Channel Expansion</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">AFTERGLOW · THE DIAL</div>
@@ -1935,6 +1935,7 @@ const CH=[
 
  {nm:"Classic Cartoons", num:150,        cat:"TOON", gl:"cartoon", era:[1930,1972], ns:"toon"}, // consolidated: was 4 overlapping era-slices of the same pool, now 1 broad + 1 postwar-skewed
  {nm:"Anime Alley", num:151,       cat:"TOON", gl:"anime",   era:[1950,2005], ns:"toon"},
+ {nm:"Saturday Morning", num:158,  cat:"TOON", gl:"satmorning", era:[1960,2005], ns:"toon"},
 
 
  {nm:"Sci-Fi Theater", num:100,    cat:"MOV", gl:"scifi",       era:[1950,1979], ns:"movie"},
@@ -1942,6 +1943,8 @@ const CH=[
  {nm:"Western Channel", num:102,   cat:"MOV", gl:"western",     era:[1935,1965], ns:"movie"},
  {nm:"Comedy Classics", num:103,   cat:"MOV", gl:"comedy",      era:[1930,1965], ns:"movie"},
  {nm:"Music Films", num:104,       cat:"MOV", gl:"musicfilm",   era:[1935,1969], ns:"movie"},
+ {nm:"Midnight Matinee", num:132,  cat:"MOV", gl:"midnightmatinee", era:[1940,2026], ns:"movie"},
+ {nm:"The Stage Door", num:133,    cat:"MOV", gl:"stagedoor", era:[1930,2026], ns:"movie"},
 
  {nm:"Classic Rerun TV", num:10,  cat:"TV", gl:"sitcom",       era:[1950,1969], ns:"tv"},
  {nm:"Modern Rerun TV", num:11,   cat:"TV", gl:"sitcommodern", era:[1980,2026], ns:"tv"},
@@ -2055,6 +2058,11 @@ const CH=[
  {nm:"Gear Head", num:227,        cat:"DOC", gl:"topgear",     era:[1990,2026], ns:"doc"}, /* Top Gear-like — car reviews, road tests, restoration, automotive culture */
  {nm:"Deadline", num:228, cat:"DOC", gl:"newsmagazine", era:[1968,2026], ns:"doc"}, /* Newsmagazine journalism — 60 Minutes, 20/20, Dateline, Nightline, Frontline */
  {nm:"The Chronicle", num:229, cat:"DOC", gl:"kenburns", era:[1980,2026], ns:"doc"}, /* Ken Burns documentary catalog */
+ {nm:"House Party", num:230, cat:"DOC", gl:"houseparty", era:[1930,2026], ns:"doc"},
+ {nm:"Motor City", num:231, cat:"DOC", gl:"motorcity", era:[1930,2026], ns:"doc"},
+ {nm:"Space Race", num:232, cat:"DOC", gl:"spacerace", era:[1950,2026], ns:"space"},
+ {nm:"Creature Comforts", num:233, cat:"DOC", gl:"creaturecomforts", era:[1930,2026], ns:"doc"},
+ {nm:"Disaster Desk", num:234, cat:"DOC", gl:"disasterdesk", era:[1920,2026], ns:"doc"},
  {nm:"Space", num:957,             cat:"LDATA", source:"space",   ns:"tv"},
  {nm:"River & Lake Watch", num:958,cat:"LDATA", source:"river",   ns:"tv"},
  {nm:"On This Day", num:504,       cat:"RETRO", source:"onthisday",ns:"movie"},
@@ -2095,6 +2103,8 @@ const CH=[
  {nm:"The Long Shot", num:507,     cat:"RETRO", gl:"slowtv",    era:[2000,2026], ns:"tv"}, /* Slow TV — NRK-style long-form: train rides, sunsets, ferry crossings, waterfalls */
  {nm:"Infomercial Insomnia", num:508, cat:"RETRO", gl:"infomercial", era:[1985,2010], ns:"tv"}, /* Late-night 90s infomercials — Ronco, Popeil, Ginsu, Ab Roller, Time-Life sets */
  {nm:"The Weather Loop", num:509, cat:"RETRO", gl:"weatherstar", era:[1985,2005], ns:"tv"}, /* WeatherStar 4000 nostalgia — TWC music beds + local-on-the-8s */
+ {nm:"The Game Room", num:510, cat:"RETRO", gl:"gameroom", era:[1970,2026], ns:"doc"},
+ {nm:"The Detective", num:511, cat:"RETRO", gl:"detective", era:[1940,2026], ns:"tv"},
 ];
 /* QA FIX (from Programmed Channels 2.0 audit, Phase 1): channel numbers used to be computed by
    the array's own order via a seen[c.cat] counter -- meaning if any two channels in the same
@@ -2185,6 +2195,16 @@ const CHANNEL_META={
 "Grand Prix":{desc:"Formula racing, Indy, endurance events and open-wheel speed.",best:"race weekends",rel:["Auto Racing","Stock Car Nation"]},
 "The Gymnasium":{desc:"Fitness, strength, bodybuilding and athletic conditioning.",best:"mornings",rel:["Coaches' Clinic","Women in Sport"]},
 "The Recreation Room":{desc:"Bowling, billiards, darts and the games that fill the room.",best:"late afternoons",rel:["Sports Vault","Racquet Club"]},
+"Saturday Morning":{desc:"The weekend-kids block: animation, puppets, educational TV and bright-eyed retro fun.",best:"anytime",rel:["Kids Hour","Classic Cartoons"]},
+"Midnight Matinee":{desc:"A late-night shelf of cult films, B-pictures, noir and strange cinema — available anytime.",best:"anytime",rel:["Albion After Dark","The Drive-In"]},
+"The Stage Door":{desc:"Stage and screen: theatre, dance, cabaret, concert performance and backstage history.",best:"anytime",rel:["Music Films","Mod & Pop"]},
+"House Party":{desc:"Home movies, celebrations, weddings, family gatherings and the social archive.",best:"anytime",rel:["Home Movies & Travelogues","Hometown History"]},
+"Motor City":{desc:"Detroit and the industrial road: automobiles, assembly lines, design and driving culture.",best:"anytime",rel:["Gear Head","Manufacturing Marvels"]},
+"Space Race":{desc:"From Sputnik to Artemis: launches, astronauts, mission films and the human spaceflight archive.",best:"anytime",rel:["NASA Marathon","Space"]},
+"Creature Comforts":{desc:"Animal companions, wildlife behavior, veterinary care and the gentler side of natural history.",best:"anytime",rel:["Nature Channel","Backyard Naturalist"]},
+"Disaster Desk":{desc:"Historic disasters, severe weather, earthquakes, fires, rescue and recovery — documentary context, not a live alert feed.",best:"anytime",rel:["Storm Chase Classics","Seismic Watch"]},
+"The Game Room":{desc:"Arcades, consoles, toys, game shows and the culture of play across the decades.",best:"anytime",rel:["Arcade Archive","Computer Chronicles"]},
+"The Detective":{desc:"Crime, mystery, procedurals and private eyes from the television and film archive.",best:"anytime",rel:["Cop Show Classic","Noir & Mystery"]},
 "Sunday Service":{desc:"Faith programming across every tradition - one per tune-in.",best:"Sunday mornings",rel:["Fallout Radio","Prelinger Vault"]},
 "VHS Vault":{desc:"Off-air tapes and home-video artifacts, 1980-99.",best:"late night",rel:["Modern Rerun TV","Found Footage Static"]},
 "Silent Cinema":{desc:"The silent era end to end \u2014 features, shorts and slapstick, 1905-1929.",best:"evenings",rel:["Classic Film","Comedy Classics"]},
@@ -4543,6 +4563,17 @@ const PROGRAM = {
   "The Crown & Country": {genre:"british",era:[1900,2026],queueTerms:["british monarchy","british royal family","british history","british coronation","queen elizabeth","king charles","commonwealth"],providers:[{collections:["opensource_movies","prelinger","classic_tv"],require_subj:["british monarchy","british royal family","british history","british coronation","queen elizabeth","king charles","commonwealth","royal visit"]}],deny:{title:["american","commercial"],subject:["american television","hollywood","commercial","cartoon","training film"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
   "The Footie Archive": {genre:"british",era:[1930,2026],queueTerms:["english football","british football","association football","fa cup","premier league","football league","england football","scotland football"],providers:[{collections:["opensource_movies","classic_tv","classic_tv_1970s","classic_tv_1980s","classic_tv_1990s","classic_tv_2000s"],require_subj:["english football","british football","association football","fa cup","premier league","football league","england football","scotland football","soccer match"]}],deny:{title:["video game","gameplay","fifa video game","commercial"],subject:["video game","gameplay","american football","commercial","cartoon","training film"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
   "Albion After Dark": {genre:"british",era:[1950,2026],queueTerms:["british cult film","british horror","british science fiction","hammer horror","british crime film","quatermass"],providers:[{collections:["SciFi_Horror","feature_films","feature_films_unsorted","opensource_movies"],require_subj:["british cult film","british horror","british science fiction","hammer horror","british crime film","quatermass","the prisoner","blake's 7"]}],deny:{title:["american horror","trailer","commercial"],subject:["american television","commercial","cartoon","training film"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
+
+  "Saturday Morning": {genre:"satmorning",era:[1960,2005],queueTerms:["children's television","kids television","educational television","puppet show","saturday morning cartoon","children's program"],fastSubjects:["children's television","educational television","puppet show"],fastCollections:["classic_tv","opensource_movies"],providers:[{collections:["classic_tv","classic_tv_1960s","classic_tv_1970s","classic_tv_1980s","classic_tv_1990s","classic_tv_2000s","opensource_movies"],require_subj:["children's television","kids television","educational television","puppet show","saturday morning cartoon","children's program","children's series"]}],deny:{title:["adult animation","commercial"],subject:["adult animation","horror","commercial","training film"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
+  "Midnight Matinee": {genre:"midnightmatinee",era:[1940,2026],queueTerms:["cult film","b movie","film noir","science fiction film","horror film","exploitation film"],fastSubjects:["cult film","b movie","film noir"],fastCollections:["SciFi_Horror","feature_films"],providers:[{collections:["SciFi_Horror","feature_films","feature_films_unsorted","opensource_movies"],require_subj:["cult film","b movie","film noir","science fiction film","horror film","exploitation film","drive-in film"]}],deny:{title:["trailer","commercial"],subject:["commercial","training film","cartoon"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
+  "The Stage Door": {genre:"stagedoor",era:[1930,2026],queueTerms:["theatre performance","stage performance","dance performance","cabaret","concert performance","musical theatre"],fastSubjects:["theatre performance","stage performance","dance performance"],fastCollections:["opensource_movies","classic_tv"],providers:[{collections:["opensource_movies","classic_tv","classic_tv_1960s","classic_tv_1970s","classic_tv_1980s","classic_tv_1990s"],require_subj:["theatre performance","stage performance","dance performance","cabaret","concert performance","musical theatre","ballet performance"]}],deny:{title:["audio only","commercial"],subject:["audio recording","commercial","training film","cartoon"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
+  "House Party": {genre:"houseparty",era:[1930,2026],queueTerms:["home movie","family film","wedding film","family vacation","birthday party","community celebration"],fastSubjects:["home movie","family film","wedding film"],fastCollections:["prelinger","opensource_movies"],providers:[{collections:["prelinger","opensource_movies","home_movies"],require_subj:["home movie","family film","wedding film","family vacation","birthday party","community celebration","family gathering"]}],deny:{title:["training film","commercial"],subject:["training film","commercial","cartoon"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
+  "Motor City": {genre:"motorcity",era:[1930,2026],queueTerms:["automobile industry","automobile manufacturing","detroit automobile","car design","assembly line","motor car"],fastSubjects:["automobile industry","automobile manufacturing","car design"],fastCollections:["prelinger","opensource_movies"],providers:[{collections:["prelinger","opensource_movies","FedFlix","classic_tv"],require_subj:["automobile industry","automobile manufacturing","detroit automobile","car design","assembly line","motor car","automotive history"]}],deny:{title:["video game","commercial"],subject:["video game","commercial","cartoon"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
+  "Space Race": {genre:"spacerace",era:[1950,2026],queueTerms:["space race","sputnik","mercury program","gemini program","apollo program","space shuttle","human spaceflight"],fastSubjects:["space race","apollo program","space shuttle"],fastCollections:["NASA","opensource_movies"],providers:[{collections:["NASA","opensource_movies","FedFlix","classic_tv"],require_subj:["space race","sputnik","mercury program","gemini program","apollo program","space shuttle","human spaceflight","nasa mission"]}],deny:{title:["video game","commercial"],subject:["video game","commercial","cartoon","science fiction film"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
+  "Creature Comforts": {genre:"creaturecomforts",era:[1930,2026],queueTerms:["animal behavior","pet care","veterinary","wildlife documentary","animal companion","zoology"],fastSubjects:["animal behavior","pet care","wildlife documentary"],fastCollections:["prelinger","opensource_movies"],providers:[{collections:["prelinger","opensource_movies","FedFlix","classic_tv"],require_subj:["animal behavior","pet care","veterinary","wildlife documentary","animal companion","zoology","animal training"]}],deny:{title:["cartoon","commercial"],subject:["cartoon","animated","commercial","training film"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
+  "Disaster Desk": {genre:"disasterdesk",era:[1920,2026],queueTerms:["natural disaster","disaster documentary","earthquake documentary","hurricane documentary","wildfire documentary","flood documentary","rescue operation"],fastSubjects:["natural disaster","earthquake documentary","hurricane documentary"],fastCollections:["prelinger","FedFlix"],providers:[{collections:["prelinger","FedFlix","opensource_movies","classic_tv"],require_subj:["natural disaster","disaster documentary","earthquake documentary","hurricane documentary","wildfire documentary","flood documentary","rescue operation","civil defense"]}],deny:{title:["live alert","commercial"],subject:["live alert","commercial","cartoon","training film"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
+  "The Game Room": {genre:"gameroom",era:[1970,2026],queueTerms:["video game history","arcade game","home video game","toy commercial","game show","game culture"],fastSubjects:["video game history","arcade game","home video game"],fastCollections:["opensource_movies","classic_tv"],providers:[{collections:["opensource_movies","classic_tv","classic_tv_1980s","classic_tv_1990s","classic_tv_2000s"],require_subj:["video game history","arcade game","home video game","toy commercial","game show","game culture","computer game"]}],deny:{title:["gameplay walkthrough","let's play","commercial compilation"],subject:["gameplay walkthrough","let's play","commercial compilation","training film"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
+  "The Detective": {genre:"detective",era:[1940,2026],queueTerms:["detective television","detective film","private eye","police procedural","mystery television","crime drama"],fastSubjects:["detective television","private eye","police procedural"],fastCollections:["classic_tv","feature_films"],providers:[{collections:["classic_tv","classic_tv_1960s","classic_tv_1970s","classic_tv_1980s","classic_tv_1990s","feature_films","opensource_movies"],require_subj:["detective television","detective film","private eye","police procedural","mystery television","crime drama","mystery series"]}],deny:{title:["true crime documentary","commercial"],subject:["true crime documentary","commercial","cartoon","training film"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
 
   /* Chanbara (ch 119, new 2026-08-08). Japanese samurai cinema — chanbara / jidaigeki
      genre. Kurosawa's ronin films, Zatoichi series, Lone Wolf & Cub, sword-fight epics.

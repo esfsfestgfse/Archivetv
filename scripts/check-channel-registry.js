@@ -20,7 +20,7 @@ function readRegistry(filename) {
   const orderMatch = source.match(/var CAT_ORDER=\[([^\]]+)\]/);
   if (!orderMatch) throw new Error(`${filename}: cannot find CAT_ORDER`);
   const channels = [...channelBlock.matchAll(/\{nm:"([^"]+)",\s*num:(\d+),\s*cat:"([^"]+)",\s*(?:gl:"([^"]+)"|source:"([^"]+)")/g)]
-    .map((match) => ({ name: match[1], number: Number(match[2]), category: match[3], identity: match[4] || match[5] }));
+    .map((match) => ({ name: match[1], number: Number(match[2]), category: match[3], identity: match[4] || match[5], kind: match[4] ? "ia" : "live" }));
   const categories = [...categoryBlock.matchAll(/([A-Z]+):"/g)].map((match) => match[1]);
   const order = [...orderMatch[1].matchAll(/"([A-Z]+)"/g)].map((match) => match[1]);
   const metadataNames = new Set([...metadataBlock.matchAll(/^"([^"]+)":\{/gm)].map((match) => match[1]));
@@ -51,13 +51,13 @@ for (const registry of registries) {
   for (const channel of registry.channels) {
     if (!registry.categories.includes(channel.category)) problems.push(`${registry.file}: ${channel.name} uses unknown category ${channel.category}`);
     if (!channel.identity) problems.push(`${registry.file}: ${channel.name} has no source or genre identity`);
+    if (channel.kind === "ia" && !registry.programNames.has(channel.name)) problems.push(`${registry.file}: IA channel ${channel.name} is missing a PROGRAM entry`);
   }
   for (const category of registry.categories) {
     if (!registry.order.includes(category)) problems.push(`${registry.file}: category ${category} is missing from CAT_ORDER`);
   }
   for (const channel of registry.channels.filter((entry) => entry.category === "BRIT")) {
     if (!registry.metadataNames.has(channel.name)) problems.push(`${registry.file}: British channel ${channel.name} is missing guide metadata`);
-    if (!registry.programNames.has(channel.name)) problems.push(`${registry.file}: British channel ${channel.name} is missing an IA program lock`);
   }
 }
 

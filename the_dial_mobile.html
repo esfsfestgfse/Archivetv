@@ -1444,7 +1444,7 @@ html.mob .curve{border-radius:0!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.241-air-edge";
+window.__ATV_BUILD="1.7.7-mobile.242-airport-board";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -8046,7 +8046,7 @@ async function tuneAirport(ch,sl,my){
         '<span class="apb-cell">'+esch(f.cs)+'</span>'+
         '<span class="apb-cell">'+esch(rt||(rt===undefined?"...":"--"))+'</span>'+
         '<span class="apb-cell">'+esch(f.ap)+'</span>'+
-        '<span class="apb-cell '+(f.st==="DEP"?"apb-cat-VFR":"apb-cat-MVFR")+'">'+(f.st==="DEP"?"DEPARTING":"ARRIVING")+'</span>'+
+        '<span class="apb-cell '+(f.st==="DEP"?"apb-cat-VFR":(f.st==="ARR"?"apb-cat-MVFR":""))+'">'+(f.st==="DEP"?"DEPARTING":(f.st==="ARR"?"ARRIVING":"ACTIVE"))+'</span>'+
         '<span class="apb-cell">'+(f.alt!=null?(Math.round(f.alt/100)*100):"--")+'</span></div>';
     }).join("");
     listEl.querySelectorAll(".apb-row").forEach(function(r){
@@ -8065,7 +8065,9 @@ async function tuneAirport(ch,sl,my){
           if(a.alt==null||a.alt>14000||!a.cs)return;
           var st=null;
           if(a.vr!=null&&a.vr>350)st="DEP"; else if(a.vr!=null&&a.vr<-350)st="ARR";
-          if(!st)return;
+          /* Keep actual nearby low/local traffic visible when a sweep has no
+             clear arrival/departure classification; never substitute fake rows. */
+          if(!st){ if(a.alt>5000&&a.spd>260)return; st="ACTIVE"; }
           flights[a.cs]={cs:a.cs,hex:a.hex||"",ap:ap[0],st:st,alt:a.alt,lat:a.lat,lon:a.lon,ts:Date.now()};
           found.push(flights[a.cs]);
         });

@@ -33,6 +33,7 @@
    "Fetch API cannot load" and returns 502 to the client. */
 const AISSTREAM_URL = "https://stream.aisstream.io/v0/stream";
 const KPLER_URL = "https://api.kpler.com/v2/maritime/ais-latest";
+const OPEN_WATERS_GULF_URL = "https://ais.openwaters.io/v1/vessels?bbox=18,-98,31,-80";
 const SNAPSHOT_PATH = "/snapshot";
 const IA_PREFIX = "/ia";
 const IA_QUEUE_PATH = IA_PREFIX + "/queue";
@@ -1337,13 +1338,8 @@ async function getIaQueue(request, url, ctx) {
 }
 
 async function getKplerSnapshot(request, env, ctx) {
-  if (!env.KPLER_API_KEY) {
-    return json({ error: "snapshot provider is not configured" }, 503);
-  }
-
-  // One fixed cache key prevents a public caller from varying the query and
-  // consuming paid Kpler quota. Cached results also keep an upstream blip from
-  // blanking the screen for every connected Afterglow client.
+  // One fixed cache key prevents public callers from varying the query and
+  // keeps either upstream provider from blanking every connected client.
   const url = new URL(request.url);
   const cacheKey = new Request(url.origin + SNAPSHOT_PATH);
   const cache = caches.default;
@@ -1351,50 +1347,90 @@ async function getKplerSnapshot(request, env, ctx) {
   if (cached) {
     const headers = new Headers(cached.headers);
     Object.entries(corsHeaders()).forEach(([key, value]) => headers.set(key, value));
-    headers.set("X-Afterglow-Source", "kpler-cache");
+    headers.set("X-Afterglow-Source", "ship-cache");
     return new Response(cached.body, { status: cached.status, headers });
   }
 
-  const query = new URLSearchParams({
-    filter: GULF_FILTER,
-    format: "json",
-    limit: "1000",
-    fields: KPLER_FIELDS,
-    sortBy: "posDt DESC",
-  });
-  let upstream;
-  try {
-    upstream = await fetch(KPLER_URL + "?" + query, {
-      headers: {
-        "Authorization": "Basic " + env.KPLER_API_KEY,
-        "Accept": "application/json",
-      },
+  if (env.KPLER_API_KEY) {
+    const query = new URLSearchParams({
+      filter: GULF_FILTER,
+      format: "json",
+      limit: "1000",
+      fields: KPLER_FIELDS,
+      sortBy: "posDt DESC",
     });
-  } catch {
-    return json({ error: "snapshot provider is unreachable" }, 502);
-  }
-  if (!upstream.ok) {
-    // Do not relay an upstream diagnostic: it can contain account or contract
-    // details that do not belong in a public client.
-    return json({ error: "snapshot provider rejected the request", status: upstream.status }, 502);
+    try {
+      const upstream = await fetch(KPLER_URL + "?" + query, {
+        headers: {
+          "Authorization": "Basic " + env.KPLER_API_KEY,
+          "Accept": "application/json",
+        },
+      });
+      if (upstream.ok) {
+        const payload = await upstream.json();
+        const response = json({
+          source: "kpler",
+          fetchedAt: new Date().toISOString(),
+          ...payload,
+        }, 200, {
+          "Cache-Control": "public, max-age=" + SNAPSHOT_TTL_SECONDS,
+          "X-Afterglow-Source": "kpler-live",
+        });
+        ctx.waitUntil(cache.put(cacheKey, response.clone()));
+        return response;
+      }
+    } catch {
+      // Continue to the keyless public fallback below. Provider errors are not
+      // exposed to the browser because they can include account diagnostics.
+    }
   }
 
-  let payload;
+  // Open Waters publishes an open, current GeoJSON snapshot. Normalize its
+  // vessel properties to the existing Kpler-shaped client contract so the TV
+  // channel can recover without a browser key or a provider-specific redraw.
   try {
-    payload = await upstream.json();
+    const fallback = await fetch(OPEN_WATERS_GULF_URL, {
+      headers: { "Accept": "application/geo+json, application/json" },
+    });
+    if (!fallback.ok) throw new Error("open waters " + fallback.status);
+    const payload = await fallback.json();
+    const features = Array.isArray(payload && payload.features) ? payload.features.slice(0, 1000) : [];
+    if (!features.length) throw new Error("open waters empty");
+    const normalized = features.map((feature) => {
+      const properties = feature && feature.properties ? feature.properties : {};
+      const coordinates = feature && feature.geometry && Array.isArray(feature.geometry.coordinates) ? feature.geometry.coordinates : [];
+      return {
+        type: "Feature",
+        geometry: { type: "Point", coordinates },
+        properties: {
+          mmsi: properties.mmsi,
+          longitude: coordinates[0],
+          latitude: coordinates[1],
+          posDt: properties.seen,
+          sog: properties.sog,
+          cog: properties.cog,
+          heading: properties.heading,
+          navStatus: properties.nav_status,
+          vesselName: properties.name,
+          vesselType: properties.type,
+        },
+      };
+    }).filter((feature) => feature.properties.mmsi != null && Number.isFinite(Number(feature.properties.latitude)) && Number.isFinite(Number(feature.properties.longitude)));
+    if (!normalized.length) throw new Error("open waters invalid");
+    const response = json({
+      source: "openwaters",
+      fetchedAt: new Date().toISOString(),
+      type: "FeatureCollection",
+      features: normalized,
+    }, 200, {
+      "Cache-Control": "public, max-age=" + SNAPSHOT_TTL_SECONDS,
+      "X-Afterglow-Source": "openwaters-live",
+    });
+    ctx.waitUntil(cache.put(cacheKey, response.clone()));
+    return response;
   } catch {
-    return json({ error: "snapshot provider returned invalid data" }, 502);
+    return json({ error: "ship snapshot is temporarily unavailable" }, 502);
   }
-  const response = json({
-    source: "kpler",
-    fetchedAt: new Date().toISOString(),
-    ...payload,
-  }, 200, {
-    "Cache-Control": "public, max-age=" + SNAPSHOT_TTL_SECONDS,
-    "X-Afterglow-Source": "kpler-live",
-  });
-  ctx.waitUntil(cache.put(cacheKey, response.clone()));
-  return response;
 }
 
 export default {

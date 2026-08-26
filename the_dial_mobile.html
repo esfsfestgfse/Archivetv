@@ -1444,7 +1444,7 @@ html.mob .curve{border-radius:0!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.242-airport-board";
+window.__ATV_BUILD="1.7.7-mobile.243-radar-edge";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -12000,13 +12000,13 @@ async function tuneLocalRadar(ch,sl,my){
   function paint(){
     if(my!==token||!powered) return;
     var inner=$("radarImgInner"); if(!inner) return;
-    inner.innerHTML='<img src="https://radar.weather.gov/ridge/standard/'+radarStation+'_loop.gif?ts='+Date.now()+'" style="max-width:100%;max-height:100%;object-fit:contain" onerror="this.parentNode.innerHTML=\'&lt;div class=&quot;dc-media-cap&quot;&gt;Radar loop unavailable — retrying&#8230;&lt;/div&gt;\'">';
-    lastPaintAt = Date.now();
-    var d = new Date();
-    var pad=function(n){n=String(n);return n.length<2?"0"+n:n;};
-    var stamp = pad(d.getUTCHours())+":"+pad(d.getUTCMinutes())+" UTC";
-    var lastEl = $("radarLast"); if(lastEl) lastEl.textContent = stamp;
-    var liveEl = $("radarLive"); if(liveEl) liveEl.style.display = "inline-flex";
+    /* Retain the current real loop until the edge-delivered replacement has
+       loaded, so a provider hiccup never turns the radar desk blank. */
+    var old=inner.querySelector("img"), img=new Image();
+    img.style.cssText="max-width:100%;max-height:100%;object-fit:contain";
+    img.onload=function(){ if(my!==token||!powered)return; inner.innerHTML=""; inner.appendChild(img); lastPaintAt=Date.now(); var d=new Date(),pad=function(n){n=String(n);return n.length<2?"0"+n:n;},lastEl=$("radarLast"),liveEl=$("radarLive"); if(lastEl)lastEl.textContent=pad(d.getUTCHours())+":"+pad(d.getUTCMinutes())+" UTC"; if(liveEl)liveEl.style.display="inline-flex"; };
+    img.onerror=function(){ nlog("localradar",false,"edge loop unavailable; holding prior scan"); if(!old)inner.innerHTML='<div class="dc-media-cap">Radar loop unavailable — retrying…</div>'; };
+    img.src="https://ais-relay.tdy1990.workers.dev/live/radar?station="+encodeURIComponent(radarStation)+"&frame="+Math.floor(Date.now()/REFRESH_MS);
   }
   paint();
   rtInterval(paint, REFRESH_MS);

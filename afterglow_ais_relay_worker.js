@@ -42,6 +42,7 @@ const ADSB_PATH = "/live/adsb";
 const SPACE_PATH = "/live/space";
 const WATER_PATH = "/live/water";
 const AIR_PATH = "/live/air";
+const RADAR_PATH = "/live/radar";
 const TROPICAL_PATH = "/live/tropical";
 const TROPICAL_IMAGE_PATH = TROPICAL_PATH + "/image";
 const WILDFIRE_PATH = "/live/wildfire";
@@ -53,6 +54,7 @@ const ADSB_TTL_SECONDS = 10;
 const SPACE_TTL_SECONDS = 900;
 const WATER_TTL_SECONDS = 300;
 const AIR_TTL_SECONDS = 900;
+const RADAR_TTL_SECONDS = 120;
 const TROPICAL_TTL_SECONDS = 300;
 const TROPICAL_IMAGE_TTL_SECONDS = 300;
 const TROPICAL_CACHE_VERSION = "v7";
@@ -267,6 +269,37 @@ async function getAirSnapshot(url, ctx) {
     return response;
   } catch {
     return json({ error: "air-quality provider unavailable" }, 502);
+  }
+}
+
+/* Local NEXRAD loop relay ---------------------------------------------------
+   The browser used to load radar.weather.gov GIFs directly, making a brief
+   origin/CORS/network problem replace the television picture with an empty
+   panel. This endpoint only permits known NEXRAD station identifiers and
+   streams the official animated loop through the edge cache. */
+async function getRadarLoop(url) {
+  const station = String(url.searchParams.get("station") || "").trim().toUpperCase();
+  if (!/^[A-Z]{4}$/.test(station)) return json({ error: "invalid radar station" }, 400);
+  const source = "https://radar.weather.gov/ridge/standard/" + station + "_loop.gif";
+  try {
+    const upstream = await timedFetch(source, {
+      headers: { "Accept": "image/gif,image/*;q=0.8,*/*;q=0.2", "User-Agent": ADSB_USER_AGENT },
+      cf: { cacheEverything: true, cacheTtl: RADAR_TTL_SECONDS },
+    }, 8500);
+    const contentType = String(upstream.headers.get("Content-Type") || "").toLowerCase();
+    if (!upstream.ok || !contentType.startsWith("image/")) throw new Error("radar loop unavailable");
+    return new Response(upstream.body, {
+      status: 200,
+      headers: {
+        "Content-Type": contentType,
+        "Cache-Control": "public, max-age=" + RADAR_TTL_SECONDS + ", stale-while-revalidate=600",
+        "X-Afterglow-Source": "nws-nexrad-edge",
+        ...corsHeaders(),
+      },
+    });
+  } catch (error) {
+    console.warn(JSON.stringify({ event: "radar-loop-unavailable", station, message: String(error && error.message || error) }));
+    return json({ error: "radar loop temporarily unavailable" }, 502);
   }
 }
 
@@ -1484,6 +1517,10 @@ export default {
 
     if (request.method === "GET" && url.pathname === AIR_PATH) {
       return getAirSnapshot(url, ctx);
+    }
+
+    if (request.method === "GET" && url.pathname === RADAR_PATH) {
+      return getRadarLoop(url);
     }
 
     if (request.method === "GET" && url.pathname === SPACE_PATH) {

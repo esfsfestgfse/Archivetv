@@ -1444,7 +1444,7 @@ html.mob .curve{border-radius:0!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.254-ia-channel-locks";
+window.__ATV_BUILD="1.7.7-mobile.255-british-suite";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1481,7 +1481,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.254 · IA Channel Locks</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.255 · British Suite</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -1929,8 +1929,8 @@ function buildQuery(genre,era){
 /* Clock/daypart vocabulary and profiles were removed. Every IA channel now
    exposes one permanent editorial identity at every hour. */
 /* ---------- category colors ---------- */
-const CAT={NET:"#ffe06a",TOON:"#7fd8ff",MOV:"#ff9ab0",TV:"#9affb0",SPORTS:"#8fff5c",MUS:"#ffbe7a",DOC:"#b9d8ff",LBRO:"#ff6b5c",LDATA:"#4dd9c0",RETRO:"#d4a373",HOL:"#ff8fa3"};
-const CATNAME={NET:"NETWORKS",TOON:"CARTOONS",MOV:"MOVIES",TV:"TELEVISION",SPORTS:"SPORTS SUITE",MUS:"MUSIC & RADIO",DOC:"NONFICTION",LBRO:"LIVE BROADCAST",LDATA:"LIVE DATA",RETRO:"RETRO ARCHIVE",HOL:"HOLIDAY"};
+const CAT={NET:"#ffe06a",TOON:"#7fd8ff",MOV:"#ff9ab0",TV:"#9affb0",SPORTS:"#8fff5c",MUS:"#ffbe7a",DOC:"#b9d8ff",LBRO:"#ff6b5c",LDATA:"#4dd9c0",RETRO:"#d4a373",HOL:"#ff8fa3",BRIT:"#d7b7ff"};
+const CATNAME={NET:"NETWORKS",TOON:"CARTOONS",MOV:"MOVIES",TV:"TELEVISION",SPORTS:"SPORTS SUITE",MUS:"MUSIC & RADIO",DOC:"NONFICTION",LBRO:"LIVE BROADCAST",LDATA:"LIVE DATA",RETRO:"RETRO ARCHIVE",HOL:"HOLIDAY",BRIT:"BRITISH SUITE"};
 
 /* ---------- the dial (~36 channels) ---------- */
 const CH=[
@@ -1979,7 +1979,7 @@ const CH=[
  {nm:"Music Films", num:104,       cat:"MOV", gl:"musicfilm",   era:[1935,1969], ns:"movie"},
 
  {nm:"Classic Rerun TV", num:10,  cat:"TV", gl:"sitcom",       era:[1950,1969], ns:"tv"},
- {nm:"Modern Rerun TV", num:11,   cat:"TV", gl:"sitcommodern", era:[1970,2026], ns:"tv"},
+ {nm:"Modern Rerun TV", num:11,   cat:"TV", gl:"sitcommodern", era:[1980,2026], ns:"tv"},
  {nm:"Game Show Channel", num:12, cat:"TV", gl:"gameshow",     era:[1950,2026], ns:"tv"},
  {nm:"Old Nick", num:19, cat:"TV", gl:"nickatnite", era:[1950,1985], ns:"tv"}, /* Nick at Nite era classic sitcoms — moved 13→19 to clear collision with Vintage Commercials */
  {nm:"The Court Room", num:20, cat:"TV", gl:"courtroom", era:[1980,2020], ns:"tv"}, /* Judge shows — People's Court, Judge Judy, Judge Wapner — moved 14→20 to clear Computer Chronicles collision */
@@ -2040,7 +2040,19 @@ const CH=[
  {nm:"Monster Island", num:115,   cat:"MOV", gl:"kaiju",       era:[1954,1995], ns:"movie"}, /* Godzilla, Gamera, Toho — Japanese giant-monster cinema */
  {nm:"Blaxploitation", num:116,   cat:"MOV", gl:"blaxploit",   era:[1970,1985], ns:"movie"}, /* 70s Black action cinema — Shaft, Foxy Brown, Superfly, Coffy, Cleopatra Jones */
  {nm:"The Festival Circuit", num:117, cat:"MOV", gl:"indiefilm", era:[1980,2026], ns:"movie"}, /* Sundance-adjacent indie features + short films from 80s-00s */
- {nm:"Blighty", num:118,           cat:"MOV", gl:"british",     era:[1945,2026], ns:"tv"}, /* British TV + cinema — Beeb sitcoms, Doctor Who, Monty Python, Ealing, Hammer, Carry On */
+ /* BRITISH SUITE · 118–131. One flagship plus distinct, non-overlapping editorial lanes. */
+ {nm:"Blighty", num:118,            cat:"BRIT", gl:"british",     era:[1945,2026], ns:"tv"}, /* British TV + cinema flagship */
+ {nm:"The Beeb", num:121,           cat:"BRIT", gl:"british",     era:[1930,2026], ns:"tv"},
+ {nm:"Britcom", num:122,            cat:"BRIT", gl:"british",     era:[1950,2026], ns:"tv"},
+ {nm:"The Telly", num:123,          cat:"BRIT", gl:"british",     era:[1950,2026], ns:"tv"},
+ {nm:"Hammer House", num:124,       cat:"BRIT", gl:"british",     era:[1950,2026], ns:"movie"},
+ {nm:"Ealing & Co.", num:125,       cat:"BRIT", gl:"british",     era:[1940,2026], ns:"movie"},
+ {nm:"The Sweeney", num:126,        cat:"BRIT", gl:"british",     era:[1955,2026], ns:"tv"},
+ {nm:"Mod & Pop", num:127,          cat:"BRIT", gl:"british",     era:[1960,2026], ns:"tv"},
+ {nm:"Britain on Film", num:128,    cat:"BRIT", gl:"british",     era:[1900,2026], ns:"doc"},
+ {nm:"The Crown & Country", num:129,cat:"BRIT", gl:"british",     era:[1900,2026], ns:"doc"},
+ {nm:"The Footie Archive", num:130, cat:"BRIT", gl:"british",     era:[1930,2026], ns:"doc"},
+ {nm:"Albion After Dark", num:131,  cat:"BRIT", gl:"british",     era:[1950,2026], ns:"movie"},
  {nm:"Chanbara", num:119, cat:"MOV", gl:"samurai", era:[1950,2000], ns:"movie"}, /* Samurai cinema — Kurosawa, Zatoichi, Lone Wolf & Cub, Mifune */
  {nm:"La Movida", num:120, cat:"MOV", gl:"hispanic", era:[1930,2020], ns:"movie"}, /* Spanish/Latin American cinema */
  {nm:"Modern Cartoons", num:153,   cat:"TOON",gl:"cartoonmodern",era:[1970,2026], ns:"toon"},
@@ -2145,7 +2157,7 @@ const CHANNEL_META={
 "Comedy Classics":{desc:"Screwball, slapstick and studio comedies.",best:"evenings",rel:["Silent Cinema","Classic Rerun TV"]},
 "Music Films":{desc:"Soundies, musical shorts and performance films.",best:"evenings",rel:["Live Concerts","Jukebox 78"]},
 "Classic Rerun TV":{desc:"1950s-60s television: sitcoms, anthologies, the rerun rotation.",best:"evenings",rel:["Modern Rerun TV","Game Show Channel"]},
-"Modern Rerun TV":{desc:"TV of the 70s through early 2000s, taped and syndicated.",best:"evenings",rel:["Classic Rerun TV","VHS Vault"]},
+"Modern Rerun TV":{desc:"TV from the 1980s through today, taped and syndicated.",best:"anytime",rel:["Classic Rerun TV","VHS Vault"]},
 "Old Nick":{desc:"Nick at Nite classic-sitcom vault — I Love Lucy, Bewitched, Dick Van Dyke, Andy Griffith, Brady Bunch, Odd Couple, Taxi, Happy Days, Get Smart, Beverly Hillbillies.",best:"evenings",rel:["Classic Rerun TV","Modern Rerun TV"]},
 "The Court Room":{desc:"Judge shows and small-claims TV — People's Court, Judge Judy, Judge Wapner, Divorce Court, Judge Mathis, Judge Joe Brown, Judge Alex.",best:"afternoons",rel:["Court TV","Old Nick"]},
 "Game Show Channel":{desc:"Panel shows, quizzes and game shows across every era.",best:"daytime",rel:["Classic Rerun TV"]},
@@ -2295,7 +2307,18 @@ const CHANNEL_META={
 "The Up-All-Night":{desc:"Late-night talk shows — Cavett, Snyder, Merv Griffin, Mike Douglas, Carson, Letterman. Guest interviews from the golden age.",best:"late night",rel:["Classic Rerun TV","Modern Rerun TV"]},
 "The ER":{desc:"Medical drama — Marcus Welby MD, Ben Casey, Dr. Kildare, Medical Center, Quincy ME, St. Elsewhere, ER, Chicago Hope, Grey's Anatomy, House MD, Scrubs.",best:"evenings",rel:["The Documentary Hour","Old Nick"]},
 "The Festival Circuit":{desc:"Indie cinema — Sundance / SXSW / Tribeca-adjacent features and shorts from the 80s through the 00s.",best:"evenings",rel:["World Cinema","Found Footage Static"]},
-"Blighty":{desc:"British TV and cinema — Monty Python, Fawlty Towers, Blackadder, Only Fools & Horses, Doctor Who, Red Dwarf, Ealing comedies, Hammer horror, Carry Ons, kitchen-sink drama.",best:"evenings",rel:["Joke Joint","Classic Rerun TV"]},
+"Blighty":{desc:"The British flagship: television and cinema across the decades — sitcoms, drama, Ealing, Hammer and more.",best:"anytime",rel:["The Beeb","Britcom","The Telly"]},
+"The Beeb":{desc:"Public-service Britain: BBC television, arts, history, science and landmark broadcasts.",best:"anytime",rel:["The Telly","Britain on Film"]},
+"Britcom":{desc:"British comedy across every era — sketch, sitcom and character comedy.",best:"anytime",rel:["Blighty","The Telly"]},
+"The Telly":{desc:"British television nostalgia: BBC, ITV, Channel 4 and regional TV from every decade.",best:"anytime",rel:["The Beeb","The Sweeney"]},
+"Hammer House":{desc:"British horror: Hammer, Amicus, Gothic chillers and cult creature features.",best:"anytime",rel:["Albion After Dark","Blighty"]},
+"Ealing & Co.":{desc:"British screen classics — Ealing comedy, Rank-era cinema and postwar character films.",best:"anytime",rel:["Blighty","Britain on Film"]},
+"The Sweeney":{desc:"British crime and mystery: police drama, detectives, spies and cases from the UK archive.",best:"anytime",rel:["The Telly","Albion After Dark"]},
+"Mod & Pop":{desc:"Britain plugged in: pop, rock, mod culture, music television and performance films.",best:"anytime",rel:["Britcom","Blighty"]},
+"Britain on Film":{desc:"Britain documented: news, travel, industry and everyday life on film from every decade.",best:"anytime",rel:["The Beeb","The Crown & Country"]},
+"The Crown & Country":{desc:"Royal, civic and historic Britain — coronations, public life and national history.",best:"anytime",rel:["Britain on Film","The Beeb"]},
+"The Footie Archive":{desc:"British football history — club culture, cup ties, national teams and the beautiful game.",best:"anytime",rel:["The Pitch","Sports Vault"]},
+"Albion After Dark":{desc:"British cult after dark — horror, sci-fi, crime and offbeat late-night cinema.",best:"anytime",rel:["Hammer House","The Sweeney"]},
 "Chanbara":{desc:"Samurai cinema — Kurosawa (Seven Samurai, Yojimbo, Sanjuro, Ran), Zatoichi, Lone Wolf & Cub, Sword of Doom, Sonny Chiba, Toshiro Mifune. Jidaigeki chanbara.",best:"evenings",rel:["The 36th Chamber","World Cinema"]},
 "La Movida":{desc:"Cine en español — Almodóvar, Buñuel, Cuarón, Del Toro, Iñárritu, Carlos Saura. Mexican, Spanish, Argentine, Cuban cinema. Cine mexicano, cine español, cine latinoamericano.",best:"evenings",rel:["World Cinema","The Festival Circuit"]},
 "After School":{desc:"Nick / Cartoon Network / Disney Channel / Kids' WB era — Toonami, Nicktoons, TGIF, late-90s and early-2000s kids TV.",best:"weekdays 3-5 PM",rel:["Modern Cartoons","Kids Hour"]},
@@ -4564,6 +4587,20 @@ const PROGRAM = {
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
+
+  /* British-suite lanes deliberately share the British archive vocabulary but each owns a
+     narrow theme lock. This prevents the broad Blighty pool from bleeding into every slot. */
+  "The Beeb": {genre:"british",era:[1930,2026],queueTerms:["bbc","british broadcasting corporation","bbc television","bbc documentary","bbc history","bbc science","bbc arts"],providers:[{collections:["classic_tv","classic_tv_1960s","classic_tv_1970s","classic_tv_1980s","classic_tv_1990s","classic_tv_2000s","opensource_movies"],require_subj:["bbc television","bbc documentary","british broadcasting corporation","bbc history","bbc science","bbc arts"]}],deny:{title:["american television","commercial"],subject:["american television","hollywood","commercial","cartoon","training film"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
+  "Britcom": {genre:"british",era:[1950,2026],queueTerms:["british sitcom","british comedy","monty python","fawlty towers","blackadder","only fools and horses","the young ones","red dwarf","mr bean"],providers:[{collections:["classic_tv","classic_tv_1960s","classic_tv_1970s","classic_tv_1980s","classic_tv_1990s","classic_tv_2000s","opensource_movies"],require_subj:["british sitcom","british comedy","monty python","fawlty towers","blackadder","only fools and horses","the young ones","red dwarf","mr bean","the two ronnies","morecambe and wise"]}],deny:{title:["american sitcom","commercial"],subject:["american television","hollywood","commercial","cartoon","training film"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
+  "The Telly": {genre:"british",era:[1950,2026],queueTerms:["british television","british tv","bbc television","itv television","channel 4 television","granada television","thames television"],providers:[{collections:["classic_tv","classic_tv_1960s","classic_tv_1970s","classic_tv_1980s","classic_tv_1990s","classic_tv_2000s"],require_subj:["british television","british tv","bbc television","itv television","channel 4 television","granada television","thames television","yorkshire television"]}],deny:{title:["american television","commercial"],subject:["american television","hollywood","commercial","cartoon","training film"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
+  "Hammer House": {genre:"british",era:[1950,2026],queueTerms:["hammer horror","hammer films","hammer film","amicus productions","british horror","christopher lee","peter cushing"],providers:[{collections:["SciFi_Horror","feature_films","feature_films_unsorted","opensource_movies"],require_subj:["hammer horror","hammer films","hammer film","amicus productions","british horror","christopher lee","peter cushing","gothic horror"]}],deny:{title:["american horror","trailer","commercial"],subject:["american television","commercial","cartoon","training film"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
+  "Ealing & Co.": {genre:"british",era:[1940,2026],queueTerms:["ealing studios","ealing comedy","ealing comedies","british cinema","british film","rank organisation","gainsborough pictures"],providers:[{collections:["feature_films","feature_films_unsorted","opensource_movies"],require_subj:["ealing studios","ealing comedy","ealing comedies","british cinema","british film","rank organisation","gainsborough pictures","michael powell","emeric pressburger"]}],deny:{title:["american film","trailer","commercial"],subject:["american television","hollywood","commercial","cartoon","training film"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
+  "The Sweeney": {genre:"british",era:[1955,2026],queueTerms:["the sweeney","british crime","british detective","british police drama","inspector morse","prime suspect","midsomer murders","the avengers"],providers:[{collections:["classic_tv","classic_tv_1960s","classic_tv_1970s","classic_tv_1980s","classic_tv_1990s","classic_tv_2000s","opensource_movies"],require_subj:["the sweeney","british crime","british detective","british police drama","inspector morse","prime suspect","midsomer murders","the avengers","the saint","minder","poirot"]}],deny:{title:["american crime","commercial"],subject:["american television","hollywood","commercial","cartoon","training film"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
+  "Mod & Pop": {genre:"british",era:[1960,2026],queueTerms:["british music","british pop","british rock","britpop","mod music","top of the pops","british music television"],providers:[{collections:["opensource_movies","classic_tv_1960s","classic_tv_1970s","classic_tv_1980s","classic_tv_1990s","classic_tv_2000s"],require_subj:["british music","british pop","british rock","britpop","mod music","top of the pops","british music television","rock music performance"]}],deny:{title:["audio only","commercial"],subject:["american television","commercial","cartoon","training film","audio recording"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
+  "Britain on Film": {genre:"british",era:[1900,2026],queueTerms:["british pathe","britain on film","british documentary","british travelogue","british industry","england documentary","scotland documentary","wales documentary"],providers:[{collections:["prelinger","opensource_movies","classic_tv"],require_subj:["british pathe","britain on film","british documentary","british travelogue","british industry","england documentary","scotland documentary","wales documentary","northern ireland documentary"]}],deny:{title:["american","commercial"],subject:["american television","hollywood","commercial","cartoon","training film"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
+  "The Crown & Country": {genre:"british",era:[1900,2026],queueTerms:["british monarchy","british royal family","british history","british coronation","queen elizabeth","king charles","commonwealth"],providers:[{collections:["opensource_movies","prelinger","classic_tv"],require_subj:["british monarchy","british royal family","british history","british coronation","queen elizabeth","king charles","commonwealth","royal visit"]}],deny:{title:["american","commercial"],subject:["american television","hollywood","commercial","cartoon","training film"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
+  "The Footie Archive": {genre:"british",era:[1930,2026],queueTerms:["english football","british football","association football","fa cup","premier league","football league","england football","scotland football"],providers:[{collections:["opensource_movies","classic_tv","classic_tv_1970s","classic_tv_1980s","classic_tv_1990s","classic_tv_2000s"],require_subj:["english football","british football","association football","fa cup","premier league","football league","england football","scotland football","soccer match"]}],deny:{title:["video game","gameplay","fifa video game","commercial"],subject:["video game","gameplay","american football","commercial","cartoon","training film"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
+  "Albion After Dark": {genre:"british",era:[1950,2026],queueTerms:["british cult film","british horror","british science fiction","hammer horror","british crime film","quatermass"],providers:[{collections:["SciFi_Horror","feature_films","feature_films_unsorted","opensource_movies"],require_subj:["british cult film","british horror","british science fiction","hammer horror","british crime film","quatermass","the prisoner","blake's 7"]}],deny:{title:["american horror","trailer","commercial"],subject:["american television","commercial","cartoon","training film"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
 
   /* Chanbara (ch 119, new 2026-08-08). Japanese samurai cinema — chanbara / jidaigeki
      genre. Kurosawa's ronin films, Zatoichi series, Lone Wolf & Cub, sword-fight epics.
@@ -7395,7 +7432,7 @@ function toggleClockFmt(){clk24=!clk24;store.set("clk24",clk24);updateClocks();
   if(typeof tick==="function"){try{tick();}catch(e){}} quickBanner(clk24?"CLOCK · 24-HOUR":"CLOCK · 12-HOUR");}
 
 /* ---------- category jump-nav ---------- */
-var CAT_ORDER=["NET","TV","SPORTS","MOV","TOON","DOC","LBRO","RETRO","HOL","MUS","LDATA"]; /* QA FIX: this used to be
+var CAT_ORDER=["NET","TV","SPORTS","MOV","BRIT","TOON","DOC","LBRO","RETRO","HOL","MUS","LDATA"]; /* QA FIX: this used to be
   derived from whatever order categories first appeared in the channel list, which drifted every time
   a new channel got added anywhere -- not a designed order, just an accident of editing history. Now
   it's deliberate: watchable entertainment first, the large Music category gets real priority instead

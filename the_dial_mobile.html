@@ -1444,7 +1444,7 @@ html.mob .curve{border-radius:0!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.250-ia-channel-locks";
+window.__ATV_BUILD="1.7.7-mobile.251-ia-channel-locks";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1481,7 +1481,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.250 · IA Channel Locks</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.251 · IA Channel Locks</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -2323,6 +2323,7 @@ const PROGRAM = {
   /* Vintage Commercials — Phase 3 overhaul 2026-08-08. 1948-1985 TV commercials. */
   "Vintage Commercials": {
     genre: "commercials", era: [1948, 1985],
+    queueTerms: ["commercial","tv commercial","television commercial","tv ad","advertising","vintage commercial","classic commercial","public service announcement","psa","commercial reel","commercial break"],
     providers: [
       { collections: ["vhscommercials", "classic_tv_commercials", "opensource_movies"], require_subj: [
         "commercial","tv commercial","television commercial","tv ad","tv advertisement","television advertisement",
@@ -3751,6 +3752,7 @@ const PROGRAM = {
      process films — how it's made / factories / heavy machinery / labor / mid-century industry. */
   "Manufacturing Marvels": {
     genre: "manufacturing", era: [1930, 2000],
+    queueTerms: ["manufacturing","industrial process","factory","assembly line","food processing","steel mill","automobile manufacturing","textile mill","power plant","aircraft manufacturing","shipbuilding"],
     providers: [
       { collections: ["prelinger", "avgeeks", "FedFlix", "opensource_movies"], require_subj: [
         "manufacturing","factory","industrial","industrial film","industry film","industrial process",
@@ -3885,6 +3887,7 @@ const PROGRAM = {
      Sesame Street/Electric Company/Mister Rogers era + PBS Kids catalog. */
   "Kids Hour": {
     genre: "kidshour", era: [1965, 2026],
+    queueTerms: ["sesame street","the electric company","mister rogers","children's television","kids tv","preschool television","educational children","pbs kids","nickelodeon jr","learning show"],
     providers: [
       { collections: ["classic_tv_1970s", "classic_tv_1980s", "classic_tv_1990s", "opensource_movies", "prelinger"], require_subj: [
         "sesame street","the electric company","mister rogers","mister rogers' neighborhood","fred rogers",
@@ -4161,6 +4164,7 @@ const PROGRAM = {
      parks + wildlife films. */
   "Nature Channel": {
     genre: "nature", era: [1935, 2026],
+    queueTerms: ["wildlife documentary","nature documentary","national park","conservation","ecology","natural history","wildlife","marine life","wilderness","animal behavior"],
     providers: [
       { collections: ["prelinger", "FedFlix", "opensource_movies", "avgeeks"], require_subj: [
         "national park","national parks","yellowstone","yosemite","grand canyon","glacier national park",
@@ -4631,6 +4635,7 @@ const PROGRAM = {
      documentary — Frontline, Nova, American Experience, POV, Independent Lens. */
   "The Documentary Hour": {
     genre: "pbsdocs", era: [1970, 2026],
+    queueTerms: ["documentary","documentary film","historical documentary","science documentary","investigative documentary","biography documentary","nature documentary","cultural documentary","direct cinema"],
     providers: [
       { collections: ["opensource_movies", "pbs_public_broadcasting_service", "prelinger"], require_subj: [
         "frontline","pbs frontline","frontline pbs","nova","nova pbs","nova science","science nova",
@@ -5244,6 +5249,7 @@ const PROGRAM = {
      — Fleischer, Warner Bros/Looney Tunes, MGM, UPA, Walter Lantz, Ub Iwerks, Van Beuren. */
   "Classic Cartoons": {
     genre: "cartoon", era: [1920, 1970],
+    queueTerms: ["looney tunes","merrie melodies","bugs bunny","daffy duck","popeye","tom and jerry","cartoon","animated short","classic animation","theatrical cartoon","golden age of animation"],
     providers: [
       { collections: ["classic_cartoons", "opensource_movies", "prelinger"], require_subj: [
         "looney tunes","merrie melodies","bugs bunny","daffy duck","porky pig","elmer fudd","tweety","sylvester",

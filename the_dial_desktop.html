@@ -1379,7 +1379,7 @@ body:not(.atv-powered) .cabinet-readout{opacity:.36!important}.glass-dock{positi
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.225-ia-identity-lock";
+window.__ATV_BUILD="1.7.7-desktop.227-ia-channel-locks";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1416,7 +1416,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.225 · IA Identity Lock</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.227 · IA Channel Locks</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">AFTERGLOW · THE DIAL</div>
@@ -3122,6 +3122,7 @@ const PROGRAM = {
      through jets + named aircraft + named aviators. */
   "Aviation": {
     genre: "aviationfilm", era: [1900, 2010],
+    queueTerms: ["aircraft","airplane","aeroplane","aeronautical","biplane","helicopter","airliner","airline","airport","glider","seaplane","airship","zeppelin","test flight","flight history"],
     providers: [
       { collections: ["prelinger", "FedFlix", "avgeeks", "opensource_movies"], require_subj: [
         "aviation","aviation history","aviation film","aeronautics","aeronautical","aeronautical film",
@@ -4290,6 +4291,7 @@ const PROGRAM = {
        shape of collision going forward. Era bumped to 2026 so newer cooking shows can
        surface once they hit IA. */
     genre: "kitchen", era: [1960, 2026],
+    queueTerms: ["cooking show","cooking demonstration","cooking technique","culinary arts","food preparation","recipe","baking","pastry","grilling","barbecue","canning","food instruction","julia child","the french chef"],
     providers: [
       { collections: ["opensource_movies"], require_subj: ["julia child", "the french chef", "cooking show", "cooking demonstration", "chef demo", "celebrity chef", "cuisine", "culinary arts", "food preparation"] },
       { collections: ["vhsvault", "vhsvault_inbox"], require_subj: ["julia child", "cooking", "cooking show", "culinary", "cuisine", "recipe", "baking"] },
@@ -4306,6 +4308,7 @@ const PROGRAM = {
      films — cooking, homemaking, sewing, budgeting, hygiene. */
   "Home Economics": {
     genre: "testkitchen", era: [1930, 1975],
+    queueTerms: ["home economics","home ec","domestic science","home management","meal planning","cooking class","sewing demonstration","clothing construction","housekeeping","household budget","consumer education","home decorating","etiquette"],
     providers: [
       { collections: ["prelinger", "FedFlix", "opensource_movies"], require_subj: [
         "home economics","home economics film","home ec","domestic science","domestic arts","household arts",
@@ -4343,6 +4346,7 @@ const PROGRAM = {
        spend every third pick on F1. Era bumped to 2026. deny.title now blocks "france 2"
        and "news journal" explicitly. */
     genre: "autoracing", era: [1930, 2026],
+    queueTerms: ["nascar","stock car racing","dirt track racing","sprint car racing","rally racing","drag racing","indycar","indianapolis 500","formula one","formula 1","grand prix racing","le mans","endurance racing","motocross","supercross"],
     providers: [
       { collections: ["opensource_movies", "sports"], require_subj: ["NASCAR", "NASCAR Cup", "Winston Cup", "Nextel Cup", "Sprint Cup", "Monster Energy Cup", "Daytona 500", "Talladega", "stock car racing", "stock car"] },
       { collections: ["opensource_movies", "feature_films_unsorted"], require_subj: ["dirt track", "dirt track racing", "sprint car", "sprint car racing", "midget racing", "midget car", "USAC", "World of Outlaws", "late model", "dirt late model"] },
@@ -4364,6 +4368,7 @@ const PROGRAM = {
      MMA, wrestling classics, muay thai, kickboxing. Deny powerlifting/gym demos. */
   "The Octagon": {
     genre: "combat", era: [1960, 2026],
+    queueTerms: ["boxing","boxing match","professional boxing","mma","mixed martial arts","ufc","kickboxing","muay thai","brazilian jiu jitsu","pride fc","bellator","combat sports","fight footage","fight film"],
     /* Stable umbrella tags lead the first tune; detailed fighter and promotion
        lanes below still provide the long-term editorial rotation. */
     fastSubjects: ["boxing","professional boxing","boxing match","mma","mixed martial arts","ufc","kickboxing","muay thai","martial arts"],
@@ -4394,8 +4399,8 @@ const PROGRAM = {
       ] }
     ],
     deny: {
-      title: ["gym demo","powerlifting","bodybuilding","commercial","cartoon","professional wrestling"],
-      subject: ["gym","powerlifting","bodybuilding","weightlifting","professional wrestling","wwe","wwf","commercial","cartoon","animated","children","fitness demo","exercise"]
+      title: ["gym demo","powerlifting","bodybuilding","commercial","cartoon","professional wrestling","wrestling","video game","gameplay","role-playing game"],
+      subject: ["gym","powerlifting","bodybuilding","weightlifting","professional wrestling","wrestling","wwe","wwf","commercial","cartoon","animated","children","fitness demo","exercise","video game","gameplay","role-playing game","rpg"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
@@ -4723,6 +4728,7 @@ const PROGRAM = {
      named railroads + rail heritage. */
   "Railroad": {
     genre: "railroad", era: [1900, 2010],
+    queueTerms: ["railroad","railway","locomotive","steam locomotive","diesel locomotive","electric locomotive","streamliner","freight train","passenger train","commuter rail","rail yard","rail transport"],
     providers: [
       { collections: ["prelinger", "FedFlix", "avgeeks", "opensource_movies"], require_subj: [
         "railroad","railway","train","locomotive","steam locomotive","steam engine","diesel locomotive",
@@ -4913,6 +4919,7 @@ const PROGRAM = {
      terms as a fallback. Broader collection list. */
   "Court TV": {
     genre: "realtrials", era: [1985, 2026],
+    queueTerms: ["court tv","court television","true crime","criminal trial","murder trial","trial coverage","courtroom coverage","forensic files","cold case files","unsolved mysteries","gavel to gavel","jury verdict","witness testimony","supreme court oral argument"],
     providers: [
       { collections: ["opensource_movies", "vhsvault", "classic_tv_1990s", "classic_tv_2000s"], require_subj: [
         "court tv","courttv","court television","true crime","true crime tv","true crime television",
@@ -5855,7 +5862,7 @@ function warmIAQueueHead(ch){var q=iaProgramQueues[iaQueueKey(ch)]||[],item=null
 function iaRuntimeSeconds(v){if(typeof v==="number")return v;var s=String(v||""),p=s.split(":");if(p.length===3)return (+p[0]||0)*3600+(+p[1]||0)*60+(+p[2]||0);if(p.length===2)return (+p[0]||0)*60+(+p[1]||0);var h=s.match(/(\d+(?:\.\d+)?)\s*(?:hours?|hrs?)/i),m=s.match(/(\d+(?:\.\d+)?)\s*(?:minutes?|mins?)/i);if(h||m)return Math.round(((h?+h[1]:0)*3600)+((m?+m[1]:0)*60));return parseFloat(s)||0;}
 function iaRuntimeLabel(v){var s=Math.round(iaRuntimeSeconds(v));if(!s)return "";return s>=3600?Math.floor(s/3600)+"h "+Math.round((s%3600)/60)+"m":Math.max(1,Math.round(s/60))+"m";}
 function iaThemeText(v){return " "+String(Array.isArray(v)?v.join(" "):(v||"")).normalize("NFKD").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()+" ";}
-function iaProgramThemeTerms(sl){var p=sl&&sl.program,g=sl&&G[sl.genre],out=[],seen={};function add(v){String(v||"").trim()&&String(v).trim().length>=3&&!seen[String(v).toLowerCase()]&&(seen[String(v).toLowerCase()]=1,out.push(String(v).trim()));}if(p){/* Use the station's concise identity vocabulary before its large provider catalog. Provider tags contain useful search synonyms, but treating every one as an on-air match let broad archive metadata bleed between channels. */(p.queueTerms||[]).forEach(add);(p.fastSubjects||[]).forEach(add);((p.require&&p.require.title_any)||[]).forEach(add);(p.topicBuckets||[]).forEach(function(bucket){(bucket||[]).forEach(add);});}if(g)(g.subj||[]).forEach(add);if(!out.length&&p)(p.providers||[]).forEach(function(provider){(provider.require_subj||[]).forEach(add);});return out.slice(0,256);}
+function iaProgramThemeTerms(sl){var p=sl&&sl.program,g=sl&&G[sl.genre],out=[],seen={},locked=!!(p&&Array.isArray(p.queueTerms)&&p.queueTerms.length);function add(v){String(v||"").trim()&&String(v).trim().length>=3&&!seen[String(v).toLowerCase()]&&(seen[String(v).toLowerCase()]=1,out.push(String(v).trim()));}if(p){/* queueTerms is an intentional hard identity lock. Without it, use the station's concise identity vocabulary before its large provider catalog. Provider tags contain useful search synonyms, but treating every one as an on-air match let broad archive metadata bleed between channels. */(p.queueTerms||[]).forEach(add);if(!locked){(p.fastSubjects||[]).forEach(add);((p.require&&p.require.title_any)||[]).forEach(add);(p.topicBuckets||[]).forEach(function(bucket){(bucket||[]).forEach(add);});}}if(!locked&&g)(g.subj||[]).forEach(add);if(!out.length&&p)(p.providers||[]).forEach(function(provider){(provider.require_subj||[]).forEach(add);});return out.slice(0,256);}
 function iaThemeMatches(item,sl){var terms=iaProgramThemeTerms(sl);if(!terms.length)return true;var hay=iaThemeText(String(item&&item.title||"")+" "+String(item&&(item.subject||item.subjects)||""));return terms.some(function(term){return hay.indexOf(iaThemeText(term))>=0;});}
 function iaProgramAllowed(item,sl){
   if(!item||!item.identifier||banned.indexOf(item.identifier)>=0||isTemporarilySkipped(item.identifier)||blockedId(item.identifier))return false;
@@ -5866,9 +5873,10 @@ function iaProgramAllowed(item,sl){
   if(p.require&&p.require.title_any&&p.require.title_any.length&&!p.require.title_any.some(function(x){return title.indexOf(String(x).toLowerCase())>=0;}))return false;
   return !(p.require&&p.require.runtime_max_s&&item.runtime&&iaRuntimeSeconds(item.runtime)>p.require.runtime_max_s);
 }
+function iaProgramDenyTerms(sl){var p=sl&&sl.program||{},out=[];["title","subject"].forEach(function(k){(p.deny&&p.deny[k]||[]).forEach(function(v){String(v||"").trim()&&out.push(String(v).trim());});});return out.slice(0,256);}
 async function iaQueueRequest(ch,sl,count){
   var qs=iaQueueQueries(sl);if(!qs.length)return [];
-  try{var d=await withTO(fetch(IA_RELAY_BASE+"/queue",{method:"POST",mode:"cors",headers:{"content-type":"application/json"},body:JSON.stringify({channel:iaQueueKey(ch),queries:qs,themeTerms:iaProgramThemeTerms(sl),count:Math.max(1,Math.min(5,count||5))})}).then(function(r){if(!r.ok)throw new Error("queue "+r.status);return r.json();}),28000);
+  try{var d=await withTO(fetch(IA_RELAY_BASE+"/queue",{method:"POST",mode:"cors",headers:{"content-type":"application/json"},body:JSON.stringify({channel:iaQueueKey(ch),queries:qs,themeTerms:iaProgramThemeTerms(sl),denyTerms:iaProgramDenyTerms(sl),count:Math.max(1,Math.min(5,count||5))})}).then(function(r){if(!r.ok)throw new Error("queue "+r.status);return r.json();}),28000);
     var out=((d&&d.items)||[]).filter(function(it){return iaProgramAllowed(it,sl);});out.hydrating=!!(d&&d.hydrating);return out;
   }catch(e){nlog("queue",false,"director unavailable: "+(e&&e.message||e));return [];}
 }

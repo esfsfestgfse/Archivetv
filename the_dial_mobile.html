@@ -1444,7 +1444,7 @@ html.mob .curve{border-radius:0!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.260-live-hardening";
+window.__ATV_BUILD="1.7.7-mobile.261-cache-refresh";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -16198,7 +16198,10 @@ window.__atvBootDone=true; /* app is up -- from here on, errors get logged, not 
   function tick(){ var c=byId("mClock"); if(!c)return; var t=new Date(),h=t.getHours(),m=t.getMinutes();
     c.textContent=(h<10?"0":"")+h+":"+(m<10?"0":"")+m; }
   setInterval(tick,1000); tick();
-  if("serviceWorker" in navigator){ navigator.serviceWorker.register("sw.js").catch(function(){}); }
+  if("serviceWorker" in navigator){
+    /* Do not let a browser HTTP cache delay a new service-worker build after a ship. */
+    navigator.serviceWorker.register("sw.js",{updateViaCache:"none"}).then(function(reg){return reg.update();}).catch(function(){});
+  }
   /* REBUILD v3: the remote is now a deliberate action, not ambient chrome. Tapping the edge tab
      opens the panel; it fades back out on its own after a few seconds, or immediately if you tap
      the picture (including station lists) to go back to watching. Nothing ever sits on top of the

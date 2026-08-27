@@ -1,7 +1,7 @@
-/* v3 (2026-08-06): bumped from v2 to force eviction of any stale shells cached before we added
-   HTML meta cache-control tags. Old browsers with archive-tv-v2 caches will drop them on next
-   visit (activate handler deletes anything not matching CACHE). No behavior change beyond that. */
-const CACHE = "archive-tv-v3";
+/* v4 (2026-08-27): force a one-time eviction of shells from the earlier cache generation.
+   The app has received substantial desktop/mobile changes since v3; a fresh cache name means
+   every installed copy takes the current shell on its next visit, while remaining offline-safe. */
+const CACHE = "archive-tv-v4";
 const SHELL = ["the_dial_mobile.html", "manifest.json", "icon-192.png", "icon-512.png"];
 
 self.addEventListener("install", (e) => {

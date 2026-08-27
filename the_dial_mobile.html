@@ -1444,7 +1444,7 @@ html.mob .curve{border-radius:0!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.263-fast-queues";
+window.__ATV_BUILD="1.7.7-mobile.264-timeless-meta";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -2349,6 +2349,11 @@ const CHANNEL_META={
 "Infomercial Insomnia":{desc:"Late-night 90s/00s infomercials — Ronco, Popeil, Ginsu, Ab Roller, Bowflex, Billy Mays, Time-Life sets.",best:"3 AM insomnia",rel:["Vintage Commercials","VHS Vault"]},
 "The Weather Loop":{desc:"WeatherStar 4000 nostalgia — recorded Weather Channel forecast loops from the smooth-jazz era. Local-on-the-8s, Trammell Starks compositions, that unmistakable pale-blue map.",best:"anytime",rel:["Weather Watch","Storm Chase Classics"]}
 };
+
+/* TIMELESS CHANNELS: legacy metadata may still contain editorial `best` labels
+   from the retired daypart scheduler. Keep descriptions and relationships, but
+   never expose or reuse clock-based recommendations in the live app. */
+Object.keys(CHANNEL_META).forEach(function(name){ delete CHANNEL_META[name].best; });
 
 
 /* =====================================================================

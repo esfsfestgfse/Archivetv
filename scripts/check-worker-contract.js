@@ -39,6 +39,12 @@ if (!/ctx\.waitUntil\(cache\.put\(cacheKey, response\.clone\(\)\)\.catch/.test(s
 if (!/setTimeout\(resolve, 1100\)/.test(source) || !/adsb\.lol retry/.test(source)) issues.push('ADS-B relay must recover respectfully from a transient 429');
 if (!/api\.adsb\.one\/v2\/point/.test(source) || !/opendata\.adsb\.fi\/api\/v3\/lat/.test(source) || !/api\.cors\.syrins\.tech/.test(source)) issues.push('ADS-B relay needs independent community mirrors');
 if (!/source = "opensky"/.test(source) || !/normalizeOpenSky/.test(source)) issues.push('ADS-B relay needs a normalized OpenSky fallback');
+if (!/const TEXAS_HIGHWAY_IMAGE_PATH = "\/live\/highways\/image"/.test(source)) issues.push('Highway Cams needs the narrow Texas image route');
+if (numericConstant('TEXAS_HIGHWAY_TTL_SECONDS') < 10 || numericConstant('TEXAS_HIGHWAY_TTL_SECONDS') > 60) issues.push('Texas camera snapshots need a short live cache');
+if (!/const TEXAS_HIGHWAY_CAMS = \[/.test(source) || !/TXDOT_CCTV_URL/.test(source) || !/getTexasHighwayImage/.test(source)) issues.push('Highway Cams must use the fixed TxDOT camera shelf');
+if (!/const WORLD_CAM_IMAGE_PATH = "\/live\/cams\/image"/.test(source)) issues.push('Live Cams needs the narrow international image route');
+if (numericConstant('WORLD_CAM_TTL_SECONDS') < 30 || numericConstant('WORLD_CAM_TTL_SECONDS') > 300) issues.push('International camera snapshots need a bounded cache');
+if (!/WORLD_CAM_CITIES/.test(source) || !/OPEN_EYE_CATALOG_URL/.test(source) || !/getWorldCamImage/.test(source)) issues.push('Live Cams must use the verified international camera shelf');
 if (!/const SPACE_PATH = "\/live\/space"/.test(source)) issues.push('Space needs a narrow edge-data route');
 if (numericConstant('SPACE_TTL_SECONDS') !== 900) issues.push('Space edge snapshot must respect the anonymous launch-data rate limit');
 if (!/const path = "\/2\.3\.0\/launches\/upcoming/.test(source) || !/ll\.thespacedevs\.com/.test(source)) issues.push('Space route needs the supported Launch Library 2.3 feed');

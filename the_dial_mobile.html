@@ -1462,7 +1462,7 @@ html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.267-realsignal-deck";
+window.__ATV_BUILD="1.7.7-mobile.268-realsignal-cams";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1499,7 +1499,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.267 · RealSignal</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.268 · RealSignal</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -2123,7 +2123,7 @@ const CH=[
  {nm:"Tropical Watch", num:959,    cat:"LDATA", source:"tropical",  ns:"tv"},
  {nm:"Live TV", num:300,          cat:"LBRO", source:"livetv",    ns:"tv"},
  {nm:"Live Cams", num:301,        cat:"LBRO", source:"livecams",  ns:"tv"},
- {nm:"Highway Cams", num:302,     cat:"LBRO", source:"highway",   ns:"tv"}, /* Caltrans direct JPG refresh pool — filtered subset of LIVECAMS_STREAMS */
+ {nm:"Highway Cams", num:302,     cat:"LBRO", source:"highway",   ns:"tv"}, /* TxDOT Texas camera shelf via the edge relay */
  {nm:"The Ranger", num:303,       cat:"LBRO", source:"ranger",    ns:"tv"}, /* NPS + wildlife live cams — Kruger safari, Katmai bears, condors, pandas, watering hole */
  {nm:"NASA Live", num:304,        cat:"LBRO", source:"nasalive",  ns:"tv"}, /* NASA TV live stream, SpaceX launches, Sen Earth-from-orbit */
  {nm:"Deep Space Jazz", num:925,   cat:"MUS", source:"spacejazz", ns:"tv"},
@@ -11011,22 +11011,36 @@ async function tuneSeismic(ch,sl,my){
    the ERROR path auto-advances rotation, so the channel never stalls.
    ============================================================================================ */
 var LIVECAMS_STREAMS=[
-  /* ---------- HIGHWAY (DOT traffic cams, jpg-refresh type — added 2026-08-14 after the YT purge) ----------
-     Caltrans publishes a public JPG endpoint per camera (also has HLS but many streams are gated by
-     hard-to-guess CDN routes). JPG refreshes every 5 sec — that's Caltrans's own updateFrequency.
-     Cache-busted per fetch via ?t=<epoch> so the browser doesn't serve a stale copy from an
-     upstream cache. All 8 URLs verified 200 with real image bytes as of the ship date. */
-  {type:"jpg-refresh", cat:"HIGHWAY", nm:"Oakland · I-580 West of SR-24",           url:"https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv102i580westofsr24/tv102i580westofsr24.jpg", src:"Caltrans D4", refreshSec:5},
-  {type:"jpg-refresh", cat:"HIGHWAY", nm:"Antioch · SR-4 at Lone Tree Way",         url:"https://cwwp2.dot.ca.gov/data/d4/cctv/image/tv224sr4lonetreeway/tv224sr4lonetreeway.jpg", src:"Caltrans D4", refreshSec:5},
-  {type:"jpg-refresh", cat:"HIGHWAY", nm:"San Diego · SR-163 at Friars",            url:"https://cwwp2.dot.ca.gov/data/d11/cctv/image/c348sr163friarsneb/c348sr163friarsneb.jpg", src:"Caltrans D11", refreshSec:5},
-  {type:"jpg-refresh", cat:"HIGHWAY", nm:"San Diego · SR-163 just S of I-8",        url:"https://cwwp2.dot.ca.gov/data/d11/cctv/image/c002sr163justsouthofi8/c002sr163justsouthofi8.jpg", src:"Caltrans D11", refreshSec:5},
-  {type:"jpg-refresh", cat:"HIGHWAY", nm:"San Diego · SR-163 at I-8",               url:"https://cwwp2.dot.ca.gov/data/d11/cctv/image/c003sr163i8/c003sr163i8.jpg", src:"Caltrans D11", refreshSec:5},
-  {type:"jpg-refresh", cat:"HIGHWAY", nm:"Anaheim · I-5 north of Magnolia",         url:"https://cwwp2.dot.ca.gov/data/d12/cctv/image/i51northofmagnoliaavenuesouthofsr91/i51northofmagnoliaavenuesouthofsr91.jpg", src:"Caltrans D12", refreshSec:5},
-  {type:"jpg-refresh", cat:"HIGHWAY", nm:"Buena Park · SR-91 at Beach Blvd",        url:"https://cwwp2.dot.ca.gov/data/d12/cctv/image/sr912beachboulevard/sr912beachboulevard.jpg", src:"Caltrans D12", refreshSec:5},
-  {type:"jpg-refresh", cat:"HIGHWAY", nm:"Orange · SR-57 at SR-22",                 url:"https://cwwp2.dot.ca.gov/data/d12/cctv/image/sr5712sr22/sr5712sr22.jpg", src:"Caltrans D12", refreshSec:5},
-  {type:"jpg-refresh", cat:"HIGHWAY", nm:"Lathrop · SB I-5 N/O Lathrop Rd",         url:"https://cwwp2.dot.ca.gov/data/d10/cctv/image/137sbi5nolathroprd/137sbi5nolathroprd.jpg", src:"Caltrans D10", refreshSec:5},
-  {type:"jpg-refresh", cat:"HIGHWAY", nm:"Lathrop · SB I-5 Junction SR-120",        url:"https://cwwp2.dot.ca.gov/data/d10/cctv/image/3sbi5junctionsr120/3sbi5junctionsr120.jpg", src:"Caltrans D10", refreshSec:5},
+  /* ---------- HIGHWAY (TxDOT-only, served through the narrow edge relay) ---------- */
+  {type:"jpg-refresh", cat:"HIGHWAY", nm:"Austin · FM 734 at US 290",                 url:"https://ais-relay.tdy1990.workers.dev/live/highways/image?cam=0",  src:"TxDOT", refreshSec:15},
+  {type:"jpg-refresh", cat:"HIGHWAY", nm:"Houston · Aldine Westfield at Treaschwig",  url:"https://ais-relay.tdy1990.workers.dev/live/highways/image?cam=1",  src:"TxDOT", refreshSec:15},
+  {type:"jpg-refresh", cat:"HIGHWAY", nm:"San Antonio · IH-10 at CR 217",             url:"https://ais-relay.tdy1990.workers.dev/live/highways/image?cam=2",  src:"TxDOT", refreshSec:15},
+  {type:"jpg-refresh", cat:"HIGHWAY", nm:"Corpus Christi · IH-37 at Buddy Lawrence",  url:"https://ais-relay.tdy1990.workers.dev/live/highways/image?cam=3",  src:"TxDOT", refreshSec:15},
+  {type:"jpg-refresh", cat:"HIGHWAY", nm:"Waco · I-35 at Leroy Parkway",              url:"https://ais-relay.tdy1990.workers.dev/live/highways/image?cam=4",  src:"TxDOT", refreshSec:15},
+  {type:"jpg-refresh", cat:"HIGHWAY", nm:"Fort Worth · Business 287 at Franklin",     url:"https://ais-relay.tdy1990.workers.dev/live/highways/image?cam=5",  src:"TxDOT", refreshSec:15},
+  {type:"jpg-refresh", cat:"HIGHWAY", nm:"Tyler · IH-20 at SH-149",                   url:"https://ais-relay.tdy1990.workers.dev/live/highways/image?cam=6",  src:"TxDOT", refreshSec:15},
+  {type:"jpg-refresh", cat:"HIGHWAY", nm:"Lubbock · IH-27 at 98th Street",            url:"https://ais-relay.tdy1990.workers.dev/live/highways/image?cam=7",  src:"TxDOT", refreshSec:15},
+  {type:"jpg-refresh", cat:"HIGHWAY", nm:"Amarillo · IH-27 at IH-40",                 url:"https://ais-relay.tdy1990.workers.dev/live/highways/image?cam=8",  src:"TxDOT", refreshSec:15},
+  {type:"jpg-refresh", cat:"HIGHWAY", nm:"Brazos Valley · IH-45 at FM-977",           url:"https://ais-relay.tdy1990.workers.dev/live/highways/image?cam=9",  src:"TxDOT", refreshSec:15},
+  {type:"jpg-refresh", cat:"HIGHWAY", nm:"El Paso District · IH-10 West at Chew",     url:"https://ais-relay.tdy1990.workers.dev/live/highways/image?cam=10", src:"TxDOT", refreshSec:15},
+  {type:"jpg-refresh", cat:"HIGHWAY", nm:"Dallas · IH-20 at the Tarrant line",        url:"https://ais-relay.tdy1990.workers.dev/live/highways/image?cam=11", src:"TxDOT", refreshSec:15},
 
+  /* Official direct webcams; these are real refreshed camera images, not a channel embed. */
+  {type:"jpg-refresh", cat:"MOUNTAIN", nm:"Lake Louise - Gondola Summit",      url:"https://cams.skilouise.com/cam1tv.jpg", src:"Lake Louise Ski Resort", refreshSec:60},
+  {type:"jpg-refresh", cat:"MOUNTAIN", nm:"Lake Louise - Base Area",           url:"https://cams.skilouise.com/cam2tv.jpg", src:"Lake Louise Ski Resort", refreshSec:60},
+  {type:"jpg-refresh", cat:"MOUNTAIN", nm:"Lake Louise - Ski Resort Base",     url:"https://cams.skilouise.com/cam6tv.jpg", src:"Lake Louise Ski Resort", refreshSec:60},
+  {type:"jpg-refresh", cat:"MOUNTAIN", nm:"Lake Louise - Paradise Summit",     url:"https://cams.skilouise.com/cam8tv.jpg", src:"Lake Louise Ski Resort", refreshSec:60},
+  {type:"jpg-refresh", cat:"MOUNTAIN", nm:"Lake Louise - Lake View",           url:"https://cams.skilouise.com/cam9tv.jpg", src:"Lake Louise Ski Resort", refreshSec:60},
+
+  /* International public camera desk. The Worker picks a verified free image source near each city. */
+  {type:"jpg-refresh", cat:"INTERNATIONAL", nm:"Paris, France",              url:"https://ais-relay.tdy1990.workers.dev/live/cams/image?cam=0", src:"OpenEye public camera", refreshSec:60},
+  {type:"jpg-refresh", cat:"INTERNATIONAL", nm:"Tokyo, Japan",               url:"https://ais-relay.tdy1990.workers.dev/live/cams/image?cam=1", src:"OpenEye public camera", refreshSec:60},
+  {type:"jpg-refresh", cat:"INTERNATIONAL", nm:"Sydney, Australia",          url:"https://ais-relay.tdy1990.workers.dev/live/cams/image?cam=2", src:"OpenEye public camera", refreshSec:60},
+  {type:"jpg-refresh", cat:"INTERNATIONAL", nm:"Cape Town, South Africa",    url:"https://ais-relay.tdy1990.workers.dev/live/cams/image?cam=3", src:"OpenEye public camera", refreshSec:60},
+  {type:"jpg-refresh", cat:"INTERNATIONAL", nm:"Buenos Aires, Argentina",    url:"https://ais-relay.tdy1990.workers.dev/live/cams/image?cam=4", src:"OpenEye public camera", refreshSec:60},
+  {type:"jpg-refresh", cat:"INTERNATIONAL", nm:"Reykjavik, Iceland",         url:"https://ais-relay.tdy1990.workers.dev/live/cams/image?cam=5", src:"OpenEye public camera", refreshSec:60},
+  {type:"jpg-refresh", cat:"INTERNATIONAL", nm:"Auckland, New Zealand",      url:"https://ais-relay.tdy1990.workers.dev/live/cams/image?cam=6", src:"OpenEye public camera", refreshSec:60},
+  {type:"jpg-refresh", cat:"INTERNATIONAL", nm:"Singapore",                  url:"https://ais-relay.tdy1990.workers.dev/live/cams/image?cam=7", src:"OpenEye public camera", refreshSec:60},
 
   /* ---------- BEACH (Wowza HLS from tripsmarter.com — Beach TV network + Palm Beaches) ---------- */
   {type:"hls", cat:"BEACH",   nm:"Beach TV \u00b7 Destin & Fort Walton",       url:"http://media4.tripsmarter.com:1935/LiveTV/DTVHD/playlist.m3u8", src:"Beach TV"},
@@ -11088,7 +11102,9 @@ function exploreEmbedUrl(view){
 async function tuneLiveCams(ch,sl,my,poolOverride,titleOverride,catsOverride){
   if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,titleOverride||"Live Cams","");
   tuneLiveCams_destroyHls();
-  var streams = poolOverride || LIVECAMS_STREAMS;
+  /* Live Cams is a true camera desk: still-image/IP camera views only. The
+     broadcast HLS pools remain available to their dedicated channels. */
+  var streams = poolOverride || LIVECAMS_STREAMS.filter(function(s){ return s.cat!=="HIGHWAY" && s.type==="jpg-refresh"; });
   /* 2026-08-14 empty-pool handling: after removing all YT+Explore entries some category-filtered
      pools (Highway, Space) now come out empty. Show a friendly "channel offline" screen instead
      of the "Loading first cam…" placeholder that would hang forever with idx modulo 0. */
@@ -11166,7 +11182,7 @@ async function tuneLiveCams(ch,sl,my,poolOverride,titleOverride,catsOverride){
         var loadOne = function(){
           if(my!==token) return;
           if(im){
-            var bust = "?t=" + Math.floor(Date.now()/1000);
+            var bust = (view.url.indexOf("?")>=0 ? "&" : "?") + "t=" + Math.floor(Date.now()/1000);
             im.src = view.url + bust;
           }
         };

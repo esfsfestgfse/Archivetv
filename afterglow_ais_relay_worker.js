@@ -49,6 +49,8 @@ const WILDFIRE_PATH = "/live/wildfire";
 const MARINE_PATH = "/live/marine";
 const STORM_CENTER_PATH = "/live/storms";
 const STORM_CENTER_IMAGE_PATH = STORM_CENTER_PATH + "/image";
+const TEXAS_HIGHWAY_IMAGE_PATH = "/live/highways/image";
+const WORLD_CAM_IMAGE_PATH = "/live/cams/image";
 const SNAPSHOT_TTL_SECONDS = 60;
 const ADSB_TTL_SECONDS = 10;
 const SPACE_TTL_SECONDS = 900;
@@ -64,6 +66,8 @@ const MARINE_CACHE_VERSION = "v1";
 const STORM_CENTER_TTL_SECONDS = 300;
 const STORM_CENTER_IMAGE_TTL_SECONDS = 300;
 const STORM_CENTER_CACHE_VERSION = "v1";
+const TEXAS_HIGHWAY_TTL_SECONDS = 15;
+const WORLD_CAM_TTL_SECONDS = 60;
 const ADSB_USER_AGENT = "Afterglow/1.7 (+https://github.com/esfsfestgfse/Archivetv)";
 const IA_SEARCH_TTL_SECONDS = 21600;
 /* Bump this when the normalized search response changes so an older edge
@@ -88,6 +92,34 @@ const GULF_BUOYS = [
   ["42035", "Galveston", 29.212, -94.207], ["42019", "Freeport", 27.910, -95.353], ["42020", "Corpus Christi", 26.968, -96.695],
   ["42002", "Gulf of Mexico", 25.170, -94.420], ["42040", "Louisiana Offshore", 29.213, -88.207], ["42012", "Orange Beach", 30.060, -87.550],
 ];
+/* Texas-only on-air camera shelf. Every entry below was checked against TxDOT's
+   individual snapshot endpoint before shipping. Keep this list fixed: callers
+   can choose a rotation slot but cannot make this Worker proxy arbitrary URLs. */
+const TEXAS_HIGHWAY_CAMS = [
+  ["AUS", "FM-734 @ US-290 EB", "Austin · FM 734 at US 290"],
+  ["HOU", "Aldine Westfield Rd @ Treaschwig Rd", "Houston · Aldine Westfield at Treaschwig"],
+  ["SAT", "IH 10 at CR 217 (MM 626)", "San Antonio · IH-10 at CR 217"],
+  ["CRP", "CRP-IH37 @ Buddy Lawrence", "Corpus Christi · IH-37 at Buddy Lawrence"],
+  ["WAC", "I35.LeroyPkwy-Waco", "Waco · I-35 at Leroy Parkway"],
+  ["FTW", "BU287 @ Franklin", "Fort Worth · Business 287 at Franklin"],
+  ["TYL", "TYL.IH20.SH149", "Tyler · IH-20 at SH-149"],
+  ["LBB", "LBB-IH27@98TH", "Lubbock · IH-27 at 98th Street"],
+  ["AMA", "AMA-IH27 @ IH40 South", "Amarillo · IH-27 at IH-40"],
+  ["BRY", "BRY-IH45@FM977", "Brazos Valley · IH-45 at FM-977"],
+  ["YKM", "IH-10 West @ Chew", "El Paso District · IH-10 West at Chew"],
+  ["DAL", "IH20 @ Dallas-Tarrant CL", "Dallas · IH-20 at the Dallas–Tarrant line"],
+];
+const TXDOT_CCTV_URL = "https://its.txdot.gov/its/DistrictIts/GetCctvSnapshotByIcdId";
+/* One nearby public camera search per world city. OpenEye only provides the
+   catalog/attribution; image bytes are fetched from each camera's disclosed
+   source URL and relayed as a bounded, cacheable image response. */
+const WORLD_CAM_CITIES = [
+  ["Paris, France", 48.8566, 2.3522], ["Tokyo, Japan", 35.6762, 139.6503],
+  ["Sydney, Australia", -33.8688, 151.2093], ["Cape Town, South Africa", -33.9249, 18.4241],
+  ["Buenos Aires, Argentina", -34.6037, -58.3816], ["Reykjavik, Iceland", 64.1466, -21.9426],
+  ["Auckland, New Zealand", -36.8509, 174.7645], ["Singapore", 1.3521, 103.8198],
+];
+const OPEN_EYE_CATALOG_URL = "https://api.openeye.cam/v1/catalog";
 
 function corsHeaders() {
   return {
@@ -251,6 +283,123 @@ async function timedJsonFetch(url, timeoutMs = 4200) {
     return response.json();
   } finally {
     clearTimeout(timer);
+  }
+}
+
+function cameraSlot(raw, count) {
+  if (!/^\d{1,3}$/.test(String(raw || ""))) return null;
+  const slot = Number(raw);
+  return Number.isInteger(slot) && slot >= 0 && slot < count ? slot : null;
+}
+
+function cachedCameraResponse(cached) {
+  const headers = new Headers(cached.headers);
+  Object.entries(corsHeaders()).forEach(([key, value]) => headers.set(key, value));
+  headers.set("X-Afterglow-Cache", "hit");
+  return new Response(cached.body, { status: cached.status, headers });
+}
+
+function base64Bytes(value) {
+  const decoded = atob(value);
+  const bytes = new Uint8Array(decoded.length);
+  for (let index = 0; index < decoded.length; index += 1) bytes[index] = decoded.charCodeAt(index);
+  return bytes;
+}
+
+/* Texas Highway Cams -------------------------------------------------------
+   TxDOT exposes current camera snapshots as JSON/base64 but does not send CORS
+   headers. This route deliberately serves only the fixed Texas shelf above;
+   it cannot be used as a generic image proxy. */
+async function getTexasHighwayImage(url, ctx) {
+  const slot = cameraSlot(url.searchParams.get("cam"), TEXAS_HIGHWAY_CAMS.length);
+  if (slot == null) return json({ error: "invalid Texas camera slot" }, 400);
+  const camera = TEXAS_HIGHWAY_CAMS[slot];
+  const cacheKey = new Request(url.origin + TEXAS_HIGHWAY_IMAGE_PATH + "/cache/v1/" + slot);
+  const cache = caches.default, cached = await cache.match(cacheKey);
+  if (cached) return cachedCameraResponse(cached);
+  try {
+    const upstreamUrl = new URL(TXDOT_CCTV_URL);
+    upstreamUrl.searchParams.set("districtCode", camera[0]);
+    upstreamUrl.searchParams.set("icdId", camera[1]);
+    const payload = await timedJsonFetch(upstreamUrl.toString(), 7200);
+    if (!payload || typeof payload.snippet !== "string" || payload.snippet.length < 500) throw new Error("TxDOT snapshot unavailable");
+    const response = new Response(base64Bytes(payload.snippet), {
+      status: 200,
+      headers: {
+        "Content-Type": "image/jpeg",
+        "Cache-Control": "public, max-age=" + TEXAS_HIGHWAY_TTL_SECONDS + ", stale-while-revalidate=60",
+        "Cross-Origin-Resource-Policy": "cross-origin",
+        "X-Content-Type-Options": "nosniff",
+        "X-Afterglow-Source": "txdot-live-camera",
+        "X-Afterglow-Cache": "miss",
+        ...corsHeaders(),
+      },
+    });
+    ctx.waitUntil(cache.put(cacheKey, response.clone()).catch((error) => console.warn(JSON.stringify({ event: "txdot-camera-cache-write-failed", slot, message: String(error && error.message || error) }))));
+    return response;
+  } catch (error) {
+    console.warn(JSON.stringify({ event: "txdot-camera-unavailable", slot, message: String(error && error.message || error) }));
+    return json({ error: "Texas camera temporarily unavailable" }, 502);
+  }
+}
+
+function worldCameraCandidates(items) {
+  return (Array.isArray(items) ? items : []).filter((item) => item
+    && Number(item.is_free) === 1
+    && item.state === "live"
+    && item.view && item.view.url_type === "image"
+    && typeof item.view.url === "string" && item.view.url.startsWith("https://")
+    && (!item.redistribution || item.redistribution.frame_reuse === "fetch-from-source" || item.redistribution.preview_embed === true)
+  ).sort((a, b) => (Number(b.reputation_score) || 0) - (Number(a.reputation_score) || 0));
+}
+
+/* International Live Cams --------------------------------------------------
+   OpenEye provides an anonymous, attributed catalog of public cameras. We use
+   the catalog only to discover free image sources near fixed world cities,
+   validate the image response, and cache the last successful frame. */
+async function getWorldCamImage(url, ctx) {
+  const slot = cameraSlot(url.searchParams.get("cam"), WORLD_CAM_CITIES.length);
+  if (slot == null) return json({ error: "invalid world camera slot" }, 400);
+  const city = WORLD_CAM_CITIES[slot];
+  const cacheKey = new Request(url.origin + WORLD_CAM_IMAGE_PATH + "/cache/v1/" + slot);
+  const cache = caches.default, cached = await cache.match(cacheKey);
+  if (cached) return cachedCameraResponse(cached);
+  try {
+    const catalogUrl = new URL(OPEN_EYE_CATALOG_URL);
+    catalogUrl.searchParams.set("near", city[1] + "," + city[2]);
+    catalogUrl.searchParams.set("radius_km", "80");
+    const catalog = await timedJsonFetch(catalogUrl.toString(), 7200);
+    const candidates = worldCameraCandidates(catalog && catalog.items).slice(0, 5);
+    let upstream = null, selected = null;
+    for (const candidate of candidates) {
+      try {
+        const attempt = await timedFetch(candidate.view.url, {
+          headers: { "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8", "User-Agent": ADSB_USER_AGENT },
+          redirect: "follow",
+        }, 7200);
+        const contentType = String(attempt.headers.get("Content-Type") || "").toLowerCase();
+        if (attempt.ok && contentType.startsWith("image/")) { upstream = attempt; selected = candidate; break; }
+      } catch { /* try the next approved public camera */ }
+    }
+    if (!upstream || !selected) throw new Error("no usable public camera frame");
+    const contentType = String(upstream.headers.get("Content-Type") || "image/jpeg").split(";")[0];
+    const response = new Response(upstream.body, {
+      status: 200,
+      headers: {
+        "Content-Type": contentType,
+        "Cache-Control": "public, max-age=" + WORLD_CAM_TTL_SECONDS + ", stale-while-revalidate=600",
+        "Cross-Origin-Resource-Policy": "cross-origin",
+        "X-Content-Type-Options": "nosniff",
+        "X-Afterglow-Source": "openeye-world-camera",
+        "X-Afterglow-Cache": "miss",
+        ...corsHeaders(),
+      },
+    });
+    ctx.waitUntil(cache.put(cacheKey, response.clone()).catch((error) => console.warn(JSON.stringify({ event: "world-camera-cache-write-failed", slot, message: String(error && error.message || error) }))));
+    return response;
+  } catch (error) {
+    console.warn(JSON.stringify({ event: "world-camera-unavailable", city: city[0], message: String(error && error.message || error) }));
+    return json({ error: "international camera temporarily unavailable" }, 502);
   }
 }
 
@@ -1572,6 +1721,14 @@ export default {
       return getRadarLoop(url);
     }
 
+    if (request.method === "GET" && url.pathname === TEXAS_HIGHWAY_IMAGE_PATH) {
+      return getTexasHighwayImage(url, ctx);
+    }
+
+    if (request.method === "GET" && url.pathname === WORLD_CAM_IMAGE_PATH) {
+      return getWorldCamImage(url, ctx);
+    }
+
     if (request.method === "GET" && url.pathname === SPACE_PATH) {
       return getSpaceSnapshot(url, ctx);
     }
@@ -1627,6 +1784,8 @@ export default {
         archiveQueuePath: IA_QUEUE_PATH,
         archiveProgramPath: IA_PROGRAM_PATH,
         adsbPath: ADSB_PATH,
+        texasHighwayImagePath: TEXAS_HIGHWAY_IMAGE_PATH,
+        worldCamImagePath: WORLD_CAM_IMAGE_PATH,
         spacePath: SPACE_PATH,
         waterPath: WATER_PATH,
         tropicalPath: TROPICAL_PATH,

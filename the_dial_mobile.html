@@ -1444,7 +1444,7 @@ html.mob .curve{border-radius:0!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.262-ia-polish";
+window.__ATV_BUILD="1.7.7-mobile.263-fast-queues";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -5061,6 +5061,7 @@ const PROGRAM = {
      terms as a fallback. Broader collection list. */
   "Court TV": {
     genre: "realtrials", era: [1985, 2026],
+    fastSubjects: ["court tv","criminal trial","true crime"], fastCollections: ["vhsvault","opensource_movies"],
     queueTerms: ["court tv","court television","true crime","criminal trial","murder trial","trial coverage","courtroom coverage","forensic files","cold case files","unsolved mysteries","gavel to gavel","jury verdict","witness testimony","supreme court oral argument"],
     providers: [
       { collections: ["opensource_movies", "vhsvault", "classic_tv_1990s", "classic_tv_2000s"], require_subj: [
@@ -5357,6 +5358,7 @@ const PROGRAM = {
   /* VHS Vault (ch 502) — Phase 3 overhaul 2026-08-08. Off-air VHS captures. */
   "VHS Vault": {
     genre: "vhsvault", era: [1978, 2003],
+    fastSubjects: ["vhs","vhs tape","off-air recording"], fastCollections: ["vhsvault","vhs"],
     providers: [
       { collections: ["vhsvault", "vhsvault_inbox", "vhs", "vhsdeath"], require_subj: [
         "vhs","vhs tape","vhs recording","vhs capture","vhs rip","vhs release","off-air recording",
@@ -5471,6 +5473,7 @@ const PROGRAM = {
      from every era + region. */
   "World Cinema": {
     genre: "worldcinema", era: [1930, 2010],
+    fastSubjects: ["foreign film","world cinema","international cinema"], fastCollections: ["feature_films","feature_films_unsorted"],
     providers: [
       { collections: ["feature_films", "feature_films_unsorted", "opensource_movies"], require_subj: [
         "ingmar bergman","federico fellini","michelangelo antonioni","luchino visconti","vittorio de sica",

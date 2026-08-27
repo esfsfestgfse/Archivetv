@@ -1444,7 +1444,7 @@ html.mob .curve{border-radius:0!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.257-queue-audit";
+window.__ATV_BUILD="1.7.7-mobile.258-ship-ready";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -12844,6 +12844,10 @@ async function tuneShips(ch,sl,my){
   var shipBug=mountChanBug("shipRoot",{ident:"SHIP TRACKER \u00b7 GULF"});
   if(shipSocket){ try{shipSocket.close();}catch(e){} shipSocket=null; }
   shipList={};
+  /* Keep a bounded last-good snapshot locally so a short provider or network hiccup never
+     starts this channel with an empty ocean. It is visibly marked as a snapshot until a
+     fresh relay response replaces it. */
+  var shipSnapshotCacheKey="afterglowShipTrackerSnapshotV1";
   var msgCount=0, firstMsgAt=null, lastMsgAt=null, snapshotAt=null, snapshotError=null, dirty=false;
   /* Gulf-centered map. Center ~27\u00b0N -89\u00b0W = middle of Gulf. Range 700mi covers Brownsville
      to Key West with room for outer shipping lanes. */
@@ -12897,6 +12901,19 @@ async function tuneShips(ch,sl,my){
     });
     return added;
   }
+  function restoreLastGoodSnapshot(){
+    try{
+      var cached=store.get(shipSnapshotCacheKey,null);
+      if(!cached||!cached.payload||!Array.isArray(cached.payload.features)||!cached.payload.features.length)return false;
+      /* Do not present maritime positions that are more than six hours old as a usable desk. */
+      if(Date.now()-Number(cached.at||0)>6*60*60*1000)return false;
+      var added=addSnapshot(cached.payload);
+      if(!added)return false;
+      snapshotAt=Number(cached.at)||Date.now(); dirty=true;
+      nlog("ais",true,"restored "+added+" vessels from last-good snapshot");
+      return true;
+    }catch(e){ return false; }
+  }
   async function refreshSnapshot(){
     if(my!==token)return;
     try{
@@ -12905,6 +12922,8 @@ async function tuneShips(ch,sl,my){
       var payload=await res.json(), added=addSnapshot(payload);
       if(!added)throw new Error("empty snapshot");
       snapshotAt=Date.now(); snapshotError=null; dirty=true;
+      /* Bound stored data so repeated snapshots cannot grow the browser cache indefinitely. */
+      try{ store.set(shipSnapshotCacheKey,{at:snapshotAt,payload:{source:payload.source||"relay",fetchedAt:payload.fetchedAt||null,type:"FeatureCollection",features:payload.features.slice(0,250)}}); }catch(e){}
       nlog("ais",true,"loaded "+added+" vessel snapshot via relay");
     }catch(e){
       snapshotError=(e&&e.message)||"snapshot unavailable";
@@ -12955,7 +12974,8 @@ async function tuneShips(ch,sl,my){
   ensureShipMap();
   var renderIv=rtInterval(function(){ if(dirty){ dirty=false; render(); } },2000);
   rtInterval(refreshSnapshot,60*1000);
-  setTimeout(refreshSnapshot,8000);
+  restoreLastGoodSnapshot();
+  refreshSnapshot();
   var pruneIv=rtInterval(function(){
     var cutoff=Date.now()-20*60*1000;
     Object.keys(shipList).forEach(function(k){

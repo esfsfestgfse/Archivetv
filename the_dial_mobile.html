@@ -14,9 +14,9 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Afterglow">
+<meta name="apple-mobile-web-app-title" content="RealSignal">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>AFTERGLOW · The Dial 1.7.7</title>
+<title>REALSIGNAL · The Dial 1.7.7</title>
 <style>
 :root{
   --pan1:#6b4626; --pan2:#5a3a1f; --pan3:#7d5530; --pan-line:#3c2614;
@@ -1444,7 +1444,7 @@ html.mob .curve{border-radius:0!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.264-timeless-meta";
+window.__ATV_BUILD="1.7.7-mobile.265-realsignal";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1458,7 +1458,7 @@ function __atvShowBootError(){
       "font:12px/1.5 monospace;padding:16px;overflow:auto;white-space:pre-wrap;box-sizing:border-box;";
     (document.body||document.documentElement).appendChild(el);
   }
-  el.textContent="AFTERGLOW failed to start.\n\nBuild: "+window.__ATV_BUILD+
+  el.textContent="REALSIGNAL failed to start.\n\nBuild: "+window.__ATV_BUILD+
     "\nURL scheme: "+location.protocol+"\nUA: "+navigator.userAgent+
     "\n\nError(s):\n"+window.__atvBootErrors.join("\n")+
     "\n\n(Screenshot this whole box and send it back — this is the real cause.)";
@@ -1481,7 +1481,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.257 · Queue Audit</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.265 · RealSignal</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -1508,7 +1508,7 @@ window.addEventListener("unhandledrejection",function(e){
 <div id="splashOv">
   <div id="splashCard">
     <div id="splashMark" aria-hidden="true"><svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><defs><radialGradient id="agHalo" cx="50%" cy="50%"><stop offset="0%" stop-color="#ff9d3d" stop-opacity=".9"/><stop offset="20%" stop-color="#ff9d3d" stop-opacity=".55"/><stop offset="50%" stop-color="#ff9d3d" stop-opacity=".12"/><stop offset="100%" stop-color="#ff9d3d" stop-opacity="0"/></radialGradient><radialGradient id="agCore" cx="50%" cy="50%"><stop offset="0%" stop-color="#ffefe0"/><stop offset="45%" stop-color="#ffd280"/><stop offset="100%" stop-color="#ff9d3d"/></radialGradient></defs><circle cx="50" cy="50" r="46" fill="url(#agHalo)"/><circle class="r" cx="50" cy="50" r="18" fill="none" stroke="#ff9d3d" stroke-opacity=".4" stroke-width=".8"/><circle class="r r2" cx="50" cy="50" r="18" fill="none" stroke="#ff9d3d" stroke-opacity=".4" stroke-width=".8"/><circle class="r r3" cx="50" cy="50" r="18" fill="none" stroke="#ff9d3d" stroke-opacity=".4" stroke-width=".8"/><circle cx="50" cy="50" r="5" fill="url(#agCore)"/></svg></div>
-    <div id="splashTitle">AFTERGLOW</div>
+    <div id="splashTitle">REALSIGNAL</div>
     <div id="splashSub">a quick tour before you dive in</div>
     <div class="splash-steps">
       <div class="splash-step"><span class="splash-num">1</span><div><b>Tap REMOTE</b> on the right edge to open the control panel \u2014 power, channels, volume, guide, everything lives there. It fades away on its own after a few seconds, or tap the picture to dismiss it instantly.</div></div>
@@ -1524,7 +1524,7 @@ window.addEventListener("unhandledrejection",function(e){
 
 <div class="room">
   <div class="lamp"></div>
-  <div class="marq-wall" id="wallClock">AFTERGLOW · THE DIAL</div>
+  <div class="marq-wall" id="wallClock">REALSIGNAL · THE DIAL</div>
 
   <div class="stage">
     <!-- console + tv -->
@@ -1542,7 +1542,7 @@ window.addEventListener("unhandledrejection",function(e){
           </div>
           <div class="ov" id="ov">
             <div class="snow"></div>
-            <div class="big" id="ovBig">AFTERGLOW</div>
+            <div class="big" id="ovBig">REALSIGNAL</div>
             <div class="standby" id="ovStandby">PRESS POWER</div>
             <div class="sub" id="ovSub">Grab the remote and hit the red button.</div>
           </div>
@@ -1586,7 +1586,7 @@ window.addEventListener("unhandledrejection",function(e){
     <!-- side table + remote -->
     <div class="sidetable">
       <div class="remote">
-        <div class="rtop"><span class="brandr">THE&nbsp;DIAL</span>
+        <div class="rtop"><span class="brandr">REALSIGNAL</span>
           <button class="rpow" id="rPow" title="Power" aria-label="Power">⏻</button></div>
         <div class="rlabel">CHANNEL</div>
         <div class="rgrid">
@@ -1632,7 +1632,7 @@ window.addEventListener("unhandledrejection",function(e){
 <div class="gwrap" id="gwrap">
   <div class="guide">
     <div class="gtop">
-      <span class="glogo"><span class="glogo-mark">▶</span> AFTERGLOW <span class="gsub">THE DIAL · PROGRAM GUIDE</span></span>
+      <span class="glogo"><span class="glogo-mark">▶</span> REALSIGNAL <span class="gsub">THE DIAL · PROGRAM GUIDE</span></span>
       <span class="gclock-wrap">
         <span id="gDate" class="gdate">--</span>
         <span id="gClock" class="gclock">--:--</span>
@@ -1655,7 +1655,7 @@ window.addEventListener("unhandledrejection",function(e){
     <div class="gsearch-wrap"><input id="gSearch" class="gsearch" placeholder="search channels, categories\u2026" autocomplete="off"><span class="gsearch-x" id="gSearchX">\u2715</span></div>
     <div class="catnav" id="catNav"></div>
     <div class="chlist" id="chList"></div>
-    <div class="gticker" aria-hidden="true"><div class="gticker-inner" id="gTickerInner">\u25b6 AFTERGLOW \u00b7 THE DIAL \u00b7 PRESS ANY NUMBER TO TUNE \u00b7 PRESS \u2605 TO FAVORITE \u00b7 900\u2013929 MUSIC \u00b7 950\u2013970 LIVE DATA \u00b7 500\u2013509 RETRO \u00b7 700\u2013703 HOLIDAY \u00b7</div></div>
+    <div class="gticker" aria-hidden="true"><div class="gticker-inner" id="gTickerInner">\u25b6 REALSIGNAL \u00b7 THE DIAL \u00b7 PRESS ANY NUMBER TO TUNE \u00b7 PRESS \u2605 TO FAVORITE \u00b7 900\u2013929 MUSIC \u00b7 950\u2013970 LIVE DATA \u00b7 500\u2013509 RETRO \u00b7 700\u2013703 HOLIDAY \u00b7</div></div>
   </div>
 </div>
 
@@ -6349,7 +6349,7 @@ function mountChanBug(hostId,opts){
   var host=$(hostId); if(!host) return null;
   var uid="cb"+Math.random().toString(36).slice(2,8);
   host.insertAdjacentHTML("beforeend",
-    '<div class="chan-bug"><div class="chan-bug-id"><span class="chan-bug-dot"></span><span>'+esch(opts.ident||"AFTERGLOW")+'</span></div>'+
+    '<div class="chan-bug"><div class="chan-bug-id"><span class="chan-bug-dot"></span><span>'+esch(opts.ident||"REALSIGNAL")+'</span></div>'+
     '<div class="chan-bug-mid"><span class="chan-bug-main" id="'+uid+'m">--</span><span class="chan-bug-sub" id="'+uid+'s">LOADING\u2026</span></div>'+
     '<div class="chan-bug-clock" id="'+uid+'c">--:--</div></div>');
   function tick(){ var c=$(uid+"c"); if(!c)return; var d=new Date(); var hh=d.getHours(),ap=hh>=12?"PM":"AM"; hh=hh%12; if(!hh)hh=12;
@@ -6490,7 +6490,7 @@ function guideRefreshTicker(){
     var t=document.getElementById("gTickerInner");
     if(!t) return;
     var chCount=(typeof CH!=="undefined" && CH && CH.length)?CH.length:"—";
-    var head="▶ AFTERGLOW · THE DIAL · "+chCount+" CHANNELS ";
+    var head="▶ REALSIGNAL · THE DIAL · "+chCount+" CHANNELS ";
     var body=_gTickerHints.map(function(h){return "· "+h+" "}).join("");
     /* pad to at least 3x length so the marquee always has content across the width */
     var s=head+body;
@@ -6588,7 +6588,7 @@ async function tuneNum(n){
   if(sl.source==="prevueguide"){ if(my!==token)return; return tunePrevueGuide(ch,sl,my); }
 
   if(sl.source==="static"){ if(my!==token)return; hideOv(); bars.style.display="flex";
-    barsText.textContent="AFTERGLOW · COLOR BARS";
+    barsText.textContent="REALSIGNAL · COLOR BARS";
     setSig("live","ON AIR"); showNow(ch,sl,"Test Pattern",""); bug.classList.remove("hide"); return; }
 
   if(sl.source==="nasa"){
@@ -7016,7 +7016,7 @@ function powerOn(){powered=true;justPowered=true;
   showShortcutHint(); /* audit-fix Ship B 2026-08-09: fade-in-and-out shortcut strip on power-on */
 }
 function powerOff(){powered=false;++token;stopClock();clearTimeout(retryTimer);releaseWake();tube.classList.add("off");
-  setTimeout(()=>{clearScreen();showOv("AFTERGLOW","PRESS POWER","Grab the remote and hit the red button.");tube.classList.remove("off");},470);
+  setTimeout(()=>{clearScreen();showOv("REALSIGNAL","PRESS POWER","Grab the remote and hit the red button.");tube.classList.remove("off");},470);
   bug.classList.add("hide");lower.classList.add("fade");volHint.classList.remove("show");
   if(banner)banner.classList.remove("show");if(infoPanel)infoPanel.classList.add("hide");
   if(flipBar)flipBar.classList.remove("show");if(clockBug)clockBug.classList.remove("show");
@@ -10470,7 +10470,7 @@ async function tuneAirTraffic(ch,sl,my){
           '<div class="skybeacon-panel" id="skyBeaconPanel"><div class="skybeacon-empty">LISTENING FOR ADS-B TRANSPONDERS…</div></div></aside>'+
       '</div>'+
       '<div class="skybeacon-regions" id="skyBeaconRegions"></div>'+
-      '<div class="skybeacon-ticker" id="skyBeaconTicker">AFTERGLOW EDGE ADS-B · NEXT moves to the next world hub · local scope refreshes every 8 seconds</div>'+
+      '<div class="skybeacon-ticker" id="skyBeaconTicker">REALSIGNAL EDGE ADS-B · NEXT moves to the next world hub · local scope refreshes every 8 seconds</div>'+
     '</div>';
   var skyBug=mountChanBug("skyBeaconScreen",{ident:"SKY BEACON"}),regions=[{name:"LOCAL AIRSPACE",local:true,mi:60}].concat(SKYBEACON_INTL_REGIONS);
   var storedLoc=store.get("skyBeaconLastLoc",null),fallback={lat:31.5493,lon:-97.1467,label:"Waco TX"};
@@ -11890,7 +11890,7 @@ async function tunePrevueGuide(ch,sl,my){
   if(screenArea) screenArea.innerHTML='<div id="pgWrap" style="position:absolute;inset:0;background:linear-gradient(180deg,#0a1a3a 0%,#1a0f4a 100%);color:#fff;font-family:Arial,sans-serif;overflow:hidden;display:flex;flex-direction:column">'+
     /* header bar — Prevue signature yellow */
     '<div style="background:linear-gradient(180deg,#ffcc00,#e6b000);color:#0a1a3a;font-weight:900;letter-spacing:.15em;padding:6px 12px;display:flex;justify-content:space-between;align-items:center;font-size:clamp(11px,2vw,14px);border-bottom:2px solid #0a1a3a">'+
-      '<span>\u25b6 AFTERGLOW PREVUE GUIDE</span>'+
+      '<span>\u25b6 REALSIGNAL PREVUE GUIDE</span>'+
       '<span id="pgClock">--:--</span>'+
     '</div>'+
     /* preview strip — where the "commercial" would go on real Prevue */
@@ -11952,7 +11952,7 @@ async function tunePrevueGuide(ch,sl,my){
       clearInterval(pgScrollTimer); clearInterval(pgClockTimer);
     });
   }
-  if(pgBug) pgBug.update(String(CH.length)+" CHANNELS", "AFTERGLOW PREVUE GUIDE");
+  if(pgBug) pgBug.update(String(CH.length)+" CHANNELS", "REALSIGNAL PREVUE GUIDE");
   setChanStatus(ch.num, CH.length+" channels \u00b7 autoscroll");
   nlog("prevueguide", true, "meta channel up");
 }
@@ -15614,7 +15614,7 @@ async function tuneWeather(ch,sl,my){
       '<div class="wx-ticker" id="wxTicker">NO ACTIVE ALERTS</div>'+
       '<div class="haz-ticker" id="hazTicker"><span id="hazTickerInner">NATIONWIDE HAZARDOUS WEATHER \u00b7 checking\u2026</span></div>'+
       '<div class="wx-bug" id="wxBug">'+
-        '<div class="wx-bug-id"><span class="wx-bug-dot"></span><span>AFTERGLOW WX</span></div>'+
+        '<div class="wx-bug-id"><span class="wx-bug-dot"></span><span>REALSIGNAL WX</span></div>'+
         '<div class="wx-bug-mid"><span class="wx-bug-temp" id="wxBugTemp">--\u00b0</span>'+
           '<span class="wx-bug-place" id="wxBugPlace">LOCATING\u2026</span><span class="wx-bug-alert" id="wxBugAlert"></span></div>'+
         '<div class="wx-bug-clock" id="wxBugClock">--:--</div>'+
@@ -15844,7 +15844,7 @@ function renderSaved(){ /* UPGRADED (feature: tape-shelf visual) — a shelf of 
 function toggleSaved(){ var o=$("savedOv"); if(!o){quickBanner("SAVED LIST UNAVAILABLE");return;} if(o.classList.contains("show"))o.classList.remove("show"); else{renderSaved();o.classList.add("show");} }
 function shareCurrent(){ if(!curItem||!curItem.id){quickBanner("NOTHING TO SHARE");return;}
   var url="https://archive.org/details/"+encodeURIComponent(curItem.id);
-  if(navigator.share){navigator.share({title:curItem.title||"Afterglow",url:url}).catch(function(){});}
+  if(navigator.share){navigator.share({title:curItem.title||"RealSignal",url:url}).catch(function(){});}
   else{ try{if(navigator.clipboard&&navigator.clipboard.writeText){var pr=navigator.clipboard.writeText(url);if(pr&&pr.catch)pr.catch(function(){});}}catch(e){} quickBanner("LINK COPIED"); } }
 
 
@@ -16172,7 +16172,7 @@ renderRail(); updateClocks();
   window.__getPhos = function(){ return (window.__phosTint||"green").toUpperCase(); };
   applyPhosphor();
 }catch(e){} })();
-showOv("AFTERGLOW","PRESS POWER","Grab the remote and hit the red button.");
+showOv("REALSIGNAL","PRESS POWER","Grab the remote and hit the red button.");
 setSig("","STANDBY");
 /* Populate the build-number chip beside STANDBY. Just the increment ("v128"), not the whole
    "1.7.7-mobile.141" — the small chip has room for a short tag and that's the part that changes. */

@@ -72,7 +72,7 @@ const IA_SEARCH_CACHE_VERSION = "v4";
 const IA_METADATA_TTL_SECONDS = 86400;
 const IA_QUEUE_TTL_SECONDS = 21600;
 const IA_PARTIAL_QUEUE_TTL_SECONDS = 90;
-const IA_QUEUE_CACHE_VERSION = "v10";
+const IA_QUEUE_CACHE_VERSION = "v11";
 const GULF_FILTER = "BBOX(geometry,-98,18,-80,31)";
 const KPLER_FIELDS = "mmsi,longitude,latitude,posDt,sog,vesselName,heading,cog,navStatus,destination,vesselType";
 const WFIGS_INCIDENTS_URL = "https://services3.arcgis.com/T4QMspbfLg3qTGWY/arcgis/rest/services/WFIGS_Incident_Locations_Current/FeatureServer/0/query";
@@ -174,6 +174,16 @@ function matchesTheme(doc, themeTerms) {
   if (!themeTerms.length) return true;
   const haystack = themeText(String(doc && doc.title || "") + " " + String(doc && doc.subject || ""));
   return themeTerms.some((term) => haystack.includes(themeText(term)));
+}
+
+function themeScore(doc, themeTerms) {
+  if (!themeTerms.length) return 0;
+  const title = themeText(String(doc && doc.title || ""));
+  const subject = themeText(String(doc && doc.subject || ""));
+  return themeTerms.reduce((score, term) => {
+    const needle = themeText(term);
+    return score + (title.includes(needle) ? 4 : subject.includes(needle) ? 1 : 0);
+  }, 0);
 }
 
 function matchesDeny(doc, denyTerms) {
@@ -1322,7 +1332,8 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, count, cach
   const lanes = await Promise.all(queries.slice(0, Math.min(8, queries.length)).map(async (query) => {
     try {
       const result = await cachedSearchArchive(cacheOrigin, query, Math.min(24, Math.max(12, count * 3)), 1, "downloads desc", ctx);
-      return (result.docs || []).filter((doc) => doc && safeIaId(doc.identifier));
+      return (result.docs || []).filter((doc) => doc && safeIaId(doc.identifier))
+        .sort((a, b) => themeScore(b, themeTerms) - themeScore(a, themeTerms));
     } catch {
       return [];
     }

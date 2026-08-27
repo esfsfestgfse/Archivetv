@@ -1379,7 +1379,7 @@ body:not(.atv-powered) .cabinet-readout{opacity:.36!important}.glass-dock{positi
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.238-ia-locks";
+window.__ATV_BUILD="1.7.7-desktop.239-live-hardening";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -6280,11 +6280,17 @@ var liveGuideState=window.__atvLiveGuideState||{}; window.__atvLiveGuideState=li
 var LIVE_DATA_BEDS={worldclock:"gmjazz",weather:"gmjazz",stormcenter:"gmjazz",localradar:"gmjazz",tropical:"gmtropical",skytraffic:"gmelectro",airport:"gmelectro",airtraffic:"gmelectro",ships:"fieldrec",tides:"fieldrec",river:"fieldrec",space:"gmelectro",solar:"gmelectro",aurora:"gmelectro",iss:"gmelectro",apod:"gmelectro",seismic:"gmelectro",quake:"gmcountry",quakemap:"gmcountry",volcano:"gmcountry",wildfire:"gmcountry",grid:"gmjazz",gas:"gmjazz",sports:"gmjazz",wiki:"gmelectro",hf:"gmelectro",newsstand:"gmjazz"};
 function guideDurationLabel(sec){sec=Math.max(0,Math.round(Number(sec)||0));var h=Math.floor(sec/3600),m=Math.max(0,Math.round((sec%3600)/60));return h?(h+"H "+m+"M"):(m+"M");}
 function guideUpdatedLabel(at){if(!at)return "WAITING FOR LIVE DATA";var age=Math.max(0,Math.round((Date.now()-at)/1000));return age<60?"UPDATED JUST NOW":("UPDATED "+guideDurationLabel(age)+" AGO");}
-function guideQueueNext(ch,sl){var q=(iaProgramQueues[iaQueueKey(ch)]||[]);for(var i=0;i<q.length;i++)if(iaProgramAllowed(q[i],sl))return q[i];return null;}
+function guideQueueItems(ch,sl,current){
+  var q=(iaProgramQueues[iaQueueKey(ch)]||[]).filter(function(item){return iaProgramAllowed(item,sl);});
+  if(!current)return q;
+  var currentId=String(current.identifier||current.id||""),currentTitle=String(current.title||"");
+  return q.filter(function(item){return !((currentId&&(String(item.identifier||item.id||"")===currentId))||(!currentId&&currentTitle&&String(item.title||"")===currentTitle));});
+}
+function guideQueueNext(ch,sl,current){return guideQueueItems(ch,sl,current)[0]||null;}
 function guideListing(ch){
   if(!ch)return {now:"OFF AIR",next:"TUNE A CHANNEL",detail:"STANDBY",live:false};
   if(ch.source){var live=liveGuideState[ch.num]||{},txt=String(live.text||window.__chanStatus[ch.num]||"CONNECTING LIVE DATA");return {now:"LIVE · "+txt,next:"CONTINUOUS LIVE DATA",detail:guideUpdatedLabel(live.at),live:true};}
-  var rec=typeof schedGet==="function"?schedGet(ch):null, sl=typeof slotFor==="function"?slotFor(ch,0,{preview:true}):null, next=guideQueueNext(ch,sl);
+  var rec=typeof schedGet==="function"?schedGet(ch):null, sl=typeof slotFor==="function"?slotFor(ch,0,{preview:true}):null, current=(ch.num===curNum&&curItem)?curItem:rec, next=guideQueueNext(ch,sl,current);
   if(rec){var remain=Math.max(0,Math.round(rec.dur-(Date.now()-rec.start)/1000));return {now:"NOW · "+(rec.title||ch.nm),next:next?("NEXT · "+(next.title||next.identifier)):"NEXT · BUFFER WARMING",detail:guideDurationLabel(remain)+" LEFT",live:false};}
   if(ch.num===curNum&&curItem&&curItem.title)return {now:"NOW · "+curItem.title,next:next?("NEXT · "+(next.title||next.identifier)):"NEXT · BUFFER WARMING",detail:"PROGRAM IN PROGRESS",live:false};
   if(next)return {now:"UP NEXT · "+(next.title||next.identifier),next:next.runtime?("RUNS "+iaRuntimeLabel(next.runtime)):"READY IN BUFFER",detail:"PROGRAM BUFFER READY",live:false};
@@ -7799,8 +7805,12 @@ function ensureMap(container,lat,lon,rangeMi,theme){
   wrap.style.transformOrigin=offX+"px "+offY+"px";
   wrap.style.transform="scale("+k.toFixed(4)+")";
   for(var dy=-spanY;dy<=spanY;dy++)for(var dx=-spanX;dx<=spanX;dx++){
-    var im=document.createElement("img"); im.alt="";
-    im.src="https://tile.openstreetmap.org/"+z+"/"+(((x0+dx)%n+n)%n)+"/"+Math.max(0,Math.min(n-1,(y0+dy)))+".png";
+    var im=document.createElement("img"),tx=((x0+dx)%n+n)%n,ty=Math.max(0,Math.min(n-1,(y0+dy)));
+    im.alt=""; im.decoding="async";
+    im.src="https://tile.openstreetmap.org/"+z+"/"+tx+"/"+ty+".png";
+    /* Keep a genuine geographic basemap visible if an OSM tile is briefly unavailable. */
+    im.dataset.fallbackSrc="https://a.basemaps.cartocdn.com/dark_all/"+z+"/"+tx+"/"+ty+".png";
+    im.onerror=function(){if(this.dataset.fallbackSrc){var fallback=this.dataset.fallbackSrc;delete this.dataset.fallbackSrc;this.src=fallback;}};
     im.style.left=((dx+spanX)*256)+"px"; im.style.top=((dy+spanY)*256)+"px";
     wrap.appendChild(im);
   }
@@ -15162,12 +15172,13 @@ function renderTVGuide(){
   var html='<div class="epg-row epg-head"><span class="epg-ch"></span>'+labels.map(function(label){return '<span class="epg-cell">'+label+'</span>';}).join("")+'</div>';
   CH.forEach(function(ch){
     var sl=slotFor(ch,0,{preview:true}), live=schedGet(ch), listing=guideListing(ch);
-    var queued=ch.source?[]:(iaProgramQueues[iaQueueKey(ch)]||[]).filter(function(item){return iaProgramAllowed(item,sl);}).slice(0,4);
+    var currentItem=(ch.num===curNum&&curItem)?curItem:live;
+    var queued=ch.source?[]:guideQueueItems(ch,sl,currentItem).slice(0,4);
     var cells=[];
     if(ch.source){
       cells=[listing.now,listing.next,listing.detail,"CONTINUOUS LIVE FEED"];
     }else{
-      var current=(ch.num===curNum&&curItem&&curItem.title)?curItem.title:(live&&live.title);
+      var current=currentItem&&currentItem.title;
       cells.push(current?("\u25b6 "+current+(live&&iaRuntimeLabel(live.dur)?(" · "+iaRuntimeLabel(live.dur)):"")):(queued[0]?("READY · "+(queued[0].title||queued[0].identifier)+(iaRuntimeLabel(queued[0].runtime)?(" · "+iaRuntimeLabel(queued[0].runtime)):"")):"BUFFER WARMING"));
       var start=current?0:1;
       for(var i=0;i<3;i++){

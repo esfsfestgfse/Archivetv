@@ -14,6 +14,7 @@ function numericConstant(name) {
 }
 
 if (numericConstant('IA_SEARCH_TTL_SECONDS') < 21600) issues.push('Archive searches must stay warm for at least six hours');
+if (!/IA_SEARCH_CACHE_VERSION\s*=\s*"v5"/.test(source) || !/"mediatype"\]\.forEach\(\(field\) => upstreamUrl\.searchParams\.append\("fl\[\]", field\)\)/.test(source)) issues.push('Archive discovery must request mediatype and invalidate shelves built without it');
 if (numericConstant('IA_METADATA_TTL_SECONDS') < 86400) issues.push('resolved media metadata must stay warm for at least one day');
 if (numericConstant('IA_QUEUE_TTL_SECONDS') < 21600) issues.push('five-show queues must stay warm for at least six hours');
 if (!/IA_QUEUE_CACHE_VERSION\s*=\s*"v14"/.test(source)) issues.push('queue cache version must invalidate pre-score-gate shelves');

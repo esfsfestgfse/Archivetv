@@ -72,7 +72,7 @@ const ADSB_USER_AGENT = "Afterglow/1.7 (+https://github.com/esfsfestgfse/Archive
 const IA_SEARCH_TTL_SECONDS = 21600;
 /* Bump this when the normalized search response changes so an older edge
    entry cannot be mistaken for the current program-director result. */
-const IA_SEARCH_CACHE_VERSION = "v4";
+const IA_SEARCH_CACHE_VERSION = "v5";
 const IA_METADATA_TTL_SECONDS = 86400;
 const IA_QUEUE_TTL_SECONDS = 21600;
 const IA_PARTIAL_QUEUE_TTL_SECONDS = 90;
@@ -1358,7 +1358,7 @@ async function archiveFetch(input, init = {}, timeoutMs = 3500) {
 async function searchArchive(query, rows, page, sort) {
   const upstreamUrl = new URL("https://archive.org/advancedsearch.php");
   upstreamUrl.searchParams.set("q", query);
-  ["identifier", "title", "year", "subject", "runtime", "downloads"].forEach((field) => upstreamUrl.searchParams.append("fl[]", field));
+  ["identifier", "title", "year", "subject", "runtime", "downloads", "mediatype"].forEach((field) => upstreamUrl.searchParams.append("fl[]", field));
   upstreamUrl.searchParams.append("sort[]", sort || "downloads desc");
   upstreamUrl.searchParams.set("rows", String(rows));
   upstreamUrl.searchParams.set("page", String(page));

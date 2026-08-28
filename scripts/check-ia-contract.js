@@ -51,6 +51,8 @@ if (!/var globalQs = \[\]/.test(source) || !/qs\.concat\(globalQs\)/.test(source
 if (!/var permanentEra=prog\.era\|\|\[/.test(source) || !/var permanentSubjects=/.test(source)) issues.push('every PROGRAM channel needs a permanent full-era fast rail');
 if (/const NS=|const PROFILES=/.test(source)) issues.push('retired clock vocabulary and profiles must not remain in the app bundle');
 if (!/IA_MEDIA_WARM_MAX=6/.test(source)) issues.push('first-frame shelf must stay bounded to six media elements');
+if (!/IA_PROGRAM_FAILURE_TTL=12\*60\*1000/.test(source) || !/function iaMarkProgramFailed\(id\)/.test(source) || !/iaProgramFailed\(item\.identifier\)/.test(source)) issues.push('failed archive items must be temporarily quarantined before another queue pick');
+if (!/for\(var queuedTry=0;queued&&queuedTry<5;queuedTry\+\+\)/.test(source) || !/iaMarkProgramFailed\(queued\.identifier\)/.test(source)) issues.push('a channel tune must exhaust its usable queue shelf before returning to discovery');
 if (!/primeIACompanions\(ch,sl\)/.test(source)) issues.push('channel tuning must prioritize the active and neighboring IA queues');
 if (!/takeIAMediaWarmer\(ch,it\)/.test(source)) issues.push('playback must adopt a staged first-frame media element');
 if (!/v\.readyState>=2\)setTimeout\(function\(\)\{fin\(true\);\},0\)/.test(source)) issues.push('staged media must clear tuning even when readiness predates listeners');

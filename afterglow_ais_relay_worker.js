@@ -76,7 +76,7 @@ const IA_SEARCH_CACHE_VERSION = "v5";
 const IA_METADATA_TTL_SECONDS = 86400;
 const IA_QUEUE_TTL_SECONDS = 21600;
 const IA_PARTIAL_QUEUE_TTL_SECONDS = 90;
-const IA_QUEUE_CACHE_VERSION = "v15";
+const IA_QUEUE_CACHE_VERSION = "v16";
 const GULF_FILTER = "BBOX(geometry,-98,18,-80,31)";
 const KPLER_FIELDS = "mmsi,longitude,latitude,posDt,sog,vesselName,heading,cog,navStatus,destination,vesselType";
 const WFIGS_INCIDENTS_URL = "https://services3.arcgis.com/T4QMspbfLg3qTGWY/arcgis/rest/services/WFIGS_Incident_Locations_Current/FeatureServer/0/query";
@@ -1439,7 +1439,7 @@ function queueFileUrls(id, payload, name) {
   return bases.map((base) => base + encoded).filter((url, index, all) => all.indexOf(url) === index);
 }
 
-async function queuePlayable(id, cacheOrigin, ctx, attempt = 0) {
+async function queuePlayable(id, cacheOrigin, ctx, mediaTypes = [], attempt = 0) {
   try {
     const cacheKey = new Request(cacheOrigin + IA_PREFIX + "/cache/metadata/" + id);
     const payload = await cachedArchiveJson(cacheKey, IA_METADATA_TTL_SECONDS, async () => {
@@ -1455,14 +1455,19 @@ async function queuePlayable(id, cacheOrigin, ctx, attempt = 0) {
         return score(a) - score(b);
       });
     const audio = files.find((file) => file && file.name && /\.mp3$|\.ogg$|\.m4a$|\.flac$/i.test(file.name));
-    const chosen = video[0] || audio;
+    /* Preserve the queue's declared media contract during hydration. A movie
+       catalog record can contain only an audio derivative; returning it to a
+       video channel made a seemingly healthy shelf fail at playback time. */
+    const wantsVideo = mediaTypes.includes("movies");
+    const wantsAudio = mediaTypes.includes("audio");
+    const chosen = wantsVideo ? video[0] : wantsAudio ? audio : (video[0] || audio);
     if (!chosen) return null;
     const urls = queueFileUrls(id, payload, chosen.name);
-    return urls.length ? { type: video[0] ? "video" : "audio", url: urls[0], alts: urls.slice(1, 8) } : null;
+    return urls.length ? { type: chosen === video[0] ? "video" : "audio", url: urls[0], alts: urls.slice(1, 8) } : null;
   } catch {
     if (attempt < 1) {
       await new Promise((resolve) => setTimeout(resolve, 180));
-      return queuePlayable(id, cacheOrigin, ctx, attempt + 1);
+      return queuePlayable(id, cacheOrigin, ctx, mediaTypes, attempt + 1);
     }
     return null;
   }
@@ -1525,12 +1530,12 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, mediaTypes,
   };
 }
 
-async function hydrateIaQueue(payload, requestedCount, cacheOrigin, ctx) {
+async function hydrateIaQueue(payload, requestedCount, cacheOrigin, ctx, mediaTypes) {
   /* Keep a few extra candidates behind the five-program shelf. Archive items
      occasionally have no browser-playable derivative; filtering those here
      means the viewer receives five actual media URLs instead of five names
      that each need another network trip in the browser. */
-  const enriched = await mapQueueCandidates(payload.items, 5, async (item) => ({ ...item, media: await queuePlayable(item.identifier, cacheOrigin, ctx) }));
+  const enriched = await mapQueueCandidates(payload.items, 5, async (item) => ({ ...item, media: await queuePlayable(item.identifier, cacheOrigin, ctx, mediaTypes) }));
   const ready = enriched.filter((item) => item.media).slice(0, requestedCount);
   return {
     ...payload,
@@ -1577,7 +1582,7 @@ async function getIaQueue(request, url, ctx) {
     // results. Give those channels a deeper candidate shelf before hydration so
     // a single unplayable item never turns into a visible No Signal screen.
     const strictQueue = themeMinScore > 1;
-    const candidateCount = Math.min(strictQueue ? 24 : 15, Math.max(count, count * (strictQueue ? 5 : 3)));
+    const candidateCount = Math.min(strictQueue ? 30 : 20, Math.max(count, count * (strictQueue ? 6 : 4)));
     const payload = await buildIaQueue(channel, queries, themeTerms, denyTerms, mediaTypes, themeMinScore, candidateCount, url.origin, ctx);
     if (!payload.items.length) {
       /* No candidate exists yet, so this is not hydration. Be truthful and let
@@ -1589,7 +1594,7 @@ async function getIaQueue(request, url, ctx) {
         { "X-Afterglow-Source": "program-director", "X-Afterglow-Queue-Ready": "0" },
       );
     }
-    const hydration = hydrateIaQueue(payload, count, url.origin, ctx);
+    const hydration = hydrateIaQueue(payload, count, url.origin, ctx, mediaTypes);
     /* A cold channel gets one short, bounded chance to receive ready media.
        If Archive is slow, return the discovery shelf immediately and finish
        hydration in the background; the browser's own fallback can still use

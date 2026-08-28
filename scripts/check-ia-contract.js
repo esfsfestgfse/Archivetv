@@ -73,7 +73,7 @@ if (!/queries:iaQueueQueries\(sl\)/.test(source) || !/var qs=iaQueueQueries\(sl\
 const guideListingBlock = blockAfter('function guideListing(', '{', '}');
 if (/schedGet/.test(guideListingBlock) || !/guideQueueNext\(ch,sl,current\)/.test(guideListingBlock)) issues.push('guide listings must use live playback or the current queue, never persisted clock records');
 if (!/function primeGuideQueues\(rows\)/.test(source) || !/queue=\(rows\|\|visibleChannels\(\)\)\.filter/.test(source) || !/primeGuideQueues\(CH\)/.test(source)) issues.push('both guide views must actively fill their IA queues');
-if (!/\.guide-directory\{[^}]*grid-template-columns:minmax\(0,1fr\)!important;[^}]*grid-template-areas:none!important/.test(source)) issues.push('the RealSignal directory must reset the legacy two-column guide grid');
+if (!/\.guide-directory\{[^}]*grid-template-columns:minmax\(0,1fr\)!important;[^}]*grid-template-areas:"top" "preview" "list" "ticker"!important/.test(source) || !/\.guide-directory \.guide-layout\{[^}]*grid-area:list!important/.test(source)) issues.push('the RealSignal directory must own a complete named grid instead of inheriting the legacy cable layout');
 if (!/\.guide-directory \.guide-main\{[^}]*flex:1 1 auto!important;[^}]*width:100%/.test(source) || !/\.guide-directory \.chlist\{[^}]*flex:1 1 auto!important;[^}]*width:100%!important/.test(source)) issues.push('the RealSignal directory main pane and channel list must fill their available width');
 
 const sportsSuite = [

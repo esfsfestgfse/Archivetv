@@ -1450,6 +1450,25 @@ html.mob #shipRoot>div:nth-child(1){grid-column:1!important;grid-row:1!important
 html.mob #shipRoot>div:nth-child(2){grid-column:1!important;grid-row:2!important}
 html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important;font-size:7px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
 </style>
+<style id="realsignal-guide-directory">
+/* REALSIGNAL DIRECTORY — a program-first guide, deliberately separate from the old cable-grid UI. */
+.gwrap{z-index:140!important;padding:clamp(12px,2vw,30px)!important;background:rgba(2,7,8,.8)!important;backdrop-filter:blur(18px) saturate(1.08);-webkit-backdrop-filter:blur(18px) saturate(1.08)}
+.guide-directory{width:min(1460px,100%)!important;height:min(900px,92vh)!important;max-height:none!important;display:grid!important;grid-template-rows:auto auto minmax(0,1fr) auto!important;background:linear-gradient(145deg,#0f1918 0%,#07100e 52%,#080b0c 100%)!important;border:1px solid rgba(181,239,207,.24)!important;border-radius:18px!important;box-shadow:0 34px 100px rgba(0,0,0,.76),inset 0 1px 0 rgba(255,255,255,.13)!important;overflow:hidden!important;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif!important}
+.guide-directory .guide-topbar{min-height:68px;padding:0 clamp(18px,2.4vw,34px)!important;background:linear-gradient(110deg,#113b2a,#0b1e18 44%,#101311)!important;border-bottom:1px solid rgba(180,240,207,.16)!important;box-shadow:none!important;text-shadow:none!important}
+.guide-directory .glogo{display:flex!important;align-items:center!important;gap:9px!important;color:#effff4!important;font:800 clamp(15px,1.5vw,20px)/1 "Courier New",monospace!important;letter-spacing:2.4px!important}.guide-directory .glogo-mark{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:#8effad!important;color:#0a1f12!important;font-size:14px!important;box-shadow:0 0 18px rgba(111,255,153,.48)!important}.guide-directory .gsub{padding:0 0 0 13px!important;border-left:1px solid rgba(204,255,222,.22)!important;color:rgba(218,255,229,.62)!important;font:700 10px/1 "Courier New",monospace!important;letter-spacing:1.7px!important}
+.guide-directory .gclock-wrap{gap:9px!important}.guide-directory .gdate,.guide-directory .gclock{background:rgba(0,0,0,.22)!important;border:1px solid rgba(191,255,214,.18)!important;border-radius:8px!important;color:#c9ffda!important;font:700 11px/1 "Courier New",monospace!important;letter-spacing:1px!important;text-shadow:none!important}.guide-directory .gclock{color:#9affb8!important}.guide-directory .x{appearance:none;cursor:pointer;background:rgba(255,255,255,.08)!important;border:1px solid rgba(255,255,255,.18)!important;border-radius:8px!important;color:#effff4!important;padding:8px 11px!important;font:800 10px/1 "Courier New",monospace!important;letter-spacing:1px!important}.guide-directory .x:hover{background:#dfffe9!important;color:#082012!important;box-shadow:none!important}
+.guide-directory .guide-now{margin:0!important;padding:14px clamp(18px,2.4vw,34px)!important;border:0!important;border-bottom:1px solid rgba(180,240,207,.13)!important;border-left:0!important;border-radius:0!important;background:linear-gradient(90deg,rgba(33,89,55,.32),rgba(8,18,14,.24) 58%,transparent)!important;box-shadow:none!important}.guide-directory .gpreview-label{top:10px!important;left:auto!important;right:clamp(18px,2.4vw,34px)!important;padding:0!important;border:0!important;background:transparent!important;color:rgba(206,255,221,.55)!important;font:700 9px/1 "Courier New",monospace!important;letter-spacing:1.8px!important}.guide-directory .gpreview-body{grid-template-columns:72px minmax(0,1fr) auto!important;gap:16px!important;min-height:44px!important}.guide-directory .gpreview-num{align-self:center;min-width:0!important;padding:0!important;border:0!important;background:transparent!important;color:#8effad!important;font:900 42px/.9 "Courier New",monospace!important;letter-spacing:-2px!important;text-shadow:0 0 15px rgba(112,255,155,.38)!important}.guide-directory .gpreview-name{color:#f1fff5!important;font-size:17px!important;letter-spacing:.2px!important;text-shadow:none!important}.guide-directory .gpreview-meta{color:rgba(200,248,215,.61)!important;font:600 11px/1.45 "Courier New",monospace!important;letter-spacing:.2px!important}.guide-directory .gpreview-status{align-self:center;padding:7px 10px!important;border:1px solid rgba(151,255,185,.32)!important;border-radius:999px!important;background:rgba(37,127,70,.16)!important;color:#a8ffc1!important;font:800 9px/1 "Courier New",monospace!important;letter-spacing:1px!important;text-shadow:none!important}
+.guide-directory .guide-layout{display:grid!important;grid-template-columns:225px minmax(0,1fr)!important;min-height:0!important;overflow:hidden!important}.guide-directory .guide-sidebar{display:flex;flex-direction:column;min-height:0;padding:22px 13px 14px;background:linear-gradient(180deg,rgba(6,13,11,.78),rgba(8,13,12,.42));border-right:1px solid rgba(183,241,208,.12)}.guide-sidebar-kicker{padding:0 9px 11px;color:rgba(205,255,222,.48);font:700 9px/1 "Courier New",monospace;letter-spacing:2px}.guide-directory .catnav{display:flex!important;flex-direction:column!important;flex-wrap:nowrap!important;align-items:stretch!important;gap:3px!important;overflow-y:auto!important;overflow-x:hidden!important;padding:0!important;border:0!important;background:transparent!important;mask:none!important;-webkit-mask-image:none!important}.guide-directory .catchip{width:100%;min-height:36px;text-align:left;border:1px solid transparent!important;border-radius:8px!important;background:transparent!important;color:rgba(229,255,238,.68)!important;padding:9px 10px!important;font:700 11px/1.05 Inter,ui-sans-serif,system-ui!important;letter-spacing:.1px!important;text-transform:none!important;box-shadow:none!important}.guide-directory .catchip::before{content:"";display:inline-block;width:6px;height:6px;margin:0 9px 1px 0;border-radius:50%;background:currentColor;opacity:.75;box-shadow:0 0 7px currentColor}.guide-directory .catchip:hover{transform:none!important;background:rgba(182,255,207,.08)!important;color:#effff4!important}.guide-directory .catchip.act{background:linear-gradient(90deg,rgba(102,255,151,.2),rgba(102,255,151,.035))!important;border-color:rgba(149,255,185,.28)!important;color:#c3ffd5!important;box-shadow:none!important}.guide-directory .guide-favorites{margin-top:14px!important;width:100%;border:1px solid rgba(244,217,125,.34)!important;border-radius:8px!important;background:rgba(242,203,85,.07)!important;color:#ffe39a!important;padding:10px!important;font:800 10px/1 "Courier New",monospace!important;letter-spacing:1px!important}.guide-directory .guide-favorites:hover{background:rgba(242,203,85,.18)!important;color:#fff0bf!important}.guide-sidebar-foot{margin-top:auto;padding:14px 9px 0;border-top:1px solid rgba(183,241,208,.12);display:flex;flex-direction:column;gap:5px;color:rgba(205,255,222,.42);font:700 8px/1.3 "Courier New",monospace;letter-spacing:1px}.guide-sidebar-foot strong{color:#aaffc1;font-size:11px;letter-spacing:.4px}
+.guide-directory .guide-main{display:flex;flex-direction:column;min-width:0;min-height:0;background:linear-gradient(180deg,rgba(15,29,23,.3),rgba(6,11,10,.28))}.guide-directory .guide-toolbar{display:flex;justify-content:space-between;align-items:center;gap:18px;padding:18px 22px 13px;border-bottom:1px solid rgba(183,241,208,.1)}.guide-directory .railhead{display:block!important;padding:0!important;border:0!important;background:transparent!important;color:#f3fff6!important;font:800 16px/1.1 Inter,ui-sans-serif,system-ui!important;letter-spacing:.1px!important}.guide-results{display:block;margin-top:4px;color:rgba(204,255,221,.5);font:700 9px/1 "Courier New",monospace;letter-spacing:1.25px}.guide-directory .gsearch-wrap{position:relative;flex:0 1 360px!important;width:100%;padding:0!important}.guide-directory .gsearch{width:100%!important;height:38px!important;padding:0 39px 0 13px!important;border:1px solid rgba(190,249,213,.18)!important;border-radius:9px!important;background:rgba(0,0,0,.2)!important;color:#effff4!important;font:600 12px/1 Inter,ui-sans-serif,system-ui!important;letter-spacing:.1px!important}.guide-directory .gsearch:focus{border-color:rgba(157,255,190,.65)!important;box-shadow:0 0 0 3px rgba(96,255,142,.1)!important}.guide-directory .gsearch-x{position:absolute;right:5px;top:5px;width:28px;height:28px;border:0;border-radius:6px;background:transparent;color:rgba(219,255,231,.55);cursor:pointer;font-size:15px}.guide-directory .gsearch-x:hover{background:rgba(255,255,255,.09);color:#fff}
+.guide-directory .guide-column-head{display:grid;grid-template-columns:64px 42px minmax(190px,250px) minmax(0,1fr) minmax(0,1fr) 24px;gap:12px;padding:9px 22px 9px 16px;border-bottom:1px solid rgba(183,241,208,.1);color:rgba(205,255,222,.42);font:700 9px/1 "Courier New",monospace;letter-spacing:1.4px}.guide-directory .guide-column-head span:first-child{grid-column:1/4}.guide-directory .guide-column-head span:nth-child(2){grid-column:4}.guide-directory .guide-column-head span:nth-child(3){grid-column:5}
+.guide-directory .chlist{display:flex!important;flex-direction:column!important;gap:0!important;min-height:0!important;overflow-y:auto!important;padding:0 0 12px!important;background:transparent!important;scrollbar-color:rgba(154,255,184,.45) transparent}.guide-directory .chlist::-webkit-scrollbar{width:10px}.guide-directory .chlist::-webkit-scrollbar-thumb{background:rgba(154,255,184,.32);border:3px solid transparent;border-radius:99px;background-clip:padding-box}.guide-directory .chsection{position:sticky!important;top:0!important;z-index:4!important;display:flex!important;align-items:center!important;gap:10px!important;padding:14px 22px 8px!important;border:0!important;background:linear-gradient(180deg,#10221b 72%,rgba(16,34,27,.88))!important;color:#a5ffbf!important;box-shadow:none!important;text-shadow:none!important;backdrop-filter:blur(10px)}.guide-directory .chsection::after{content:"";height:1px;flex:1;background:rgba(165,255,191,.16)}.guide-directory .chsection-label{font:800 10px/1 "Courier New",monospace!important;letter-spacing:1.7px!important}.guide-directory .chsection-sub{color:rgba(206,255,221,.48)!important;font:600 10px/1.1 Inter,ui-sans-serif,system-ui!important;letter-spacing:0!important;text-transform:none!important}
+.guide-directory .chcell{display:grid!important;grid-template-columns:5px 64px 42px minmax(190px,250px) minmax(0,1fr) minmax(0,1fr) 24px!important;gap:12px!important;align-items:center!important;min-height:67px!important;padding:8px 22px 8px 0!important;border:0!important;border-bottom:1px solid rgba(185,241,210,.08)!important;border-radius:0!important;background:transparent!important;color:#f0fff4!important;transition:background .15s ease!important}.guide-directory .chcell::before{grid-column:1!important;height:100%;align-self:stretch!important;box-shadow:none!important;opacity:.82}.guide-directory .chcell:hover{background:linear-gradient(90deg,rgba(151,255,188,.11),rgba(151,255,188,.025))!important}.guide-directory .chcell.on{background:linear-gradient(90deg,rgba(129,255,170,.28),rgba(129,255,170,.07))!important;color:#effff4!important}.guide-directory .chcell.on::before{background:#d8ff8a!important;box-shadow:0 0 12px rgba(216,255,138,.55)!important}.guide-directory .cc-n{grid-column:2!important;color:#baffcf!important;font:800 20px/1 "Courier New",monospace!important;letter-spacing:-1px!important;text-align:right!important;text-shadow:none!important}.guide-directory .cc-thumb{grid-column:3!important;width:36px!important;height:36px!important;border-radius:8px!important;border:1px solid rgba(203,255,222,.14)!important;background:rgba(113,255,155,.08)!important}.guide-directory .cc-thumb .cc-thumb-glyph{font-size:11px!important}.guide-directory .cc-identity{grid-column:4;min-width:0;display:flex;flex-direction:column;gap:4px}.guide-directory .cc-nm{display:block!important;max-width:none!important;color:#f4fff6!important;font:750 13px/1.12 Inter,ui-sans-serif,system-ui!important;letter-spacing:.05px!important;text-transform:none!important;white-space:nowrap!important}.guide-directory .cc-genre{color:rgba(204,255,220,.46);font:700 9px/1 "Courier New",monospace;letter-spacing:.9px;text-transform:uppercase}.guide-directory .cc-now-block,.guide-directory .cc-next-block{min-width:0;display:flex;flex-direction:column;gap:4px}.guide-directory .cc-now-block{grid-column:5}.guide-directory .cc-next-block{grid-column:6}.guide-directory .cc-now,.guide-directory .cc-next{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:650 11px/1.2 Inter,ui-sans-serif,system-ui!important;letter-spacing:0!important}.guide-directory .cc-now{color:#e7fff0!important}.guide-directory .cc-next{color:rgba(215,251,226,.56)!important}.guide-directory .cc-status{color:#9cffb8;font:700 8px/1 "Courier New",monospace;letter-spacing:.75px}.guide-directory .cc-f{grid-column:7!important;color:#ffe18d!important;font-size:15px!important;text-align:center!important}.guide-directory .chcell.on .cc-n,.guide-directory .chcell.on .cc-nm,.guide-directory .chcell.on .cc-now,.guide-directory .chcell.on .cc-next,.guide-directory .chcell.on .cc-status{color:#effff4!important;text-shadow:none!important}.guide-directory .chempty{margin:25px 22px!important;border:1px dashed rgba(181,239,207,.22)!important;border-radius:11px!important;background:rgba(151,255,188,.04)!important;color:rgba(220,255,232,.68)!important}
+.guide-directory .gticker{min-height:32px;padding:0!important;border-top:1px solid rgba(183,241,208,.12)!important;background:#07100d!important;color:#a5ffbf!important;font:700 9px/32px "Courier New",monospace!important;letter-spacing:1.4px!important;box-shadow:none!important}.guide-directory .gticker-inner{animation-duration:72s!important;text-shadow:none!important}
+@media(max-width:880px){html.mob .gwrap{padding:0!important;background:#06100c!important;backdrop-filter:none!important}html.mob .guide-directory{height:100dvh!important;width:100%!important;border:0!important;border-radius:0!important;grid-template-rows:auto auto minmax(0,1fr)!important}html.mob .guide-directory .guide-topbar{min-height:57px;padding:calc(env(safe-area-inset-top,0px) + 11px) 13px 11px!important}.guide-directory .glogo{gap:6px!important;font-size:13px!important;letter-spacing:1.4px!important}.guide-directory .glogo-mark{width:20px!important;height:20px!important;font-size:11px!important}.guide-directory .gsub,.guide-directory .gdate{display:none!important}.guide-directory .gclock{padding:7px 8px!important;font-size:10px!important}.guide-directory .x{padding:8px!important;font-size:9px!important}.guide-directory .guide-now{padding:12px 13px!important}.guide-directory .gpreview-label{right:13px!important;top:8px!important;font-size:8px!important}.guide-directory .gpreview-body{grid-template-columns:50px minmax(0,1fr) auto!important;gap:9px!important}.guide-directory .gpreview-num{font-size:30px!important}.guide-directory .gpreview-name{font-size:14px!important}.guide-directory .gpreview-meta{font-size:9px!important;line-height:1.25!important}.guide-directory .gpreview-status{padding:5px 7px!important;font-size:8px!important;max-width:84px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.guide-directory .guide-layout{display:flex!important;flex-direction:column!important;min-height:0!important}.guide-directory .guide-sidebar{flex:none;display:flex!important;align-items:center!important;flex-direction:row!important;gap:8px!important;min-height:0!important;padding:8px 10px!important;border-right:0!important;border-bottom:1px solid rgba(183,241,208,.12)!important}.guide-directory .guide-sidebar-kicker{display:none}.guide-directory .catnav{display:flex!important;flex:1!important;flex-direction:row!important;gap:6px!important;overflow-x:auto!important;overflow-y:hidden!important}.guide-directory .catchip{flex:0 0 auto!important;width:auto!important;min-height:31px!important;padding:8px 9px!important;font-size:10px!important}.guide-directory .catchip::before{width:5px!important;height:5px!important;margin-right:6px!important}.guide-directory .guide-favorites{flex:0 0 auto!important;width:auto!important;margin:0!important;padding:9px!important;font-size:0!important;border-radius:8px!important}.guide-directory .guide-favorites::after{content:"★";font-size:15px}.guide-directory .guide-sidebar-foot{display:none!important}.guide-directory .guide-main{flex:1!important;min-height:0!important}.guide-directory .guide-toolbar{padding:12px 13px 10px!important;gap:10px!important}.guide-directory .railhead{font-size:14px!important}.guide-results{font-size:8px!important;letter-spacing:.8px!important}.guide-directory .gsearch-wrap{max-width:45%;flex:0 1 180px!important}.guide-directory .gsearch{height:34px!important;padding-left:10px!important;font-size:11px!important}.guide-directory .gsearch::placeholder{font-size:0}.guide-directory .guide-column-head{display:none!important}.guide-directory .chlist{padding-bottom:14px!important}.guide-directory .chsection{padding:12px 13px 7px!important}.guide-directory .chsection-label{font-size:9px!important}.guide-directory .chsection-sub{font-size:9px!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.guide-directory .chcell{grid-template-columns:4px 42px minmax(0,1fr) 24px!important;grid-template-rows:auto auto auto!important;gap:3px 9px!important;min-height:94px!important;padding:10px 13px 10px 0!important}.guide-directory .chcell::before{grid-column:1!important;grid-row:1/-1!important}.guide-directory .cc-n{grid-column:2!important;grid-row:1!important;align-self:end!important;font-size:17px!important}.guide-directory .cc-thumb{grid-column:2!important;grid-row:2/4!important;align-self:start!important;width:34px!important;height:34px!important}.guide-directory .cc-identity{grid-column:3!important;grid-row:1!important}.guide-directory .cc-nm{font-size:12px!important}.guide-directory .cc-genre{font-size:8px!important}.guide-directory .cc-now-block{grid-column:3!important;grid-row:2!important}.guide-directory .cc-next-block{grid-column:3!important;grid-row:3!important}.guide-directory .cc-now,.guide-directory .cc-next{font-size:10px!important}.guide-directory .cc-status{font-size:7px!important}.guide-directory .cc-f{grid-column:4!important;grid-row:1!important;align-self:start!important}.guide-directory .gticker{display:none!important}}
+</style>
+<style id="realsignal-guide-accessibility">
+@media(max-width:880px){html.mob .guide-directory .gsearch::placeholder{font-size:11px!important}}
+</style>
 </head>
 <body>
 <script>
@@ -1462,7 +1481,7 @@ html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.269-realsignal-waco";
+window.__ATV_BUILD="1.7.7-mobile.270-realsignal-guide-directory";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1648,15 +1667,11 @@ window.addEventListener("unhandledrejection",function(e){
 
 <!-- guide grid modal -->
 <div class="gwrap" id="gwrap">
-  <div class="guide">
-    <div class="gtop">
-      <span class="glogo"><span class="glogo-mark">▶</span> REALSIGNAL <span class="gsub">THE DIAL · PROGRAM GUIDE</span></span>
-      <span class="gclock-wrap">
-        <span id="gDate" class="gdate">--</span>
-        <span id="gClock" class="gclock">--:--</span>
-        <span class="x" id="gClose" role="button" tabindex="0" aria-label="Close guide">CLOSE ✕</span>
-      </span>
-    </div>
+  <section class="guide guide-directory" role="dialog" aria-modal="true" aria-label="RealSignal program guide">
+    <header class="gtop guide-topbar">
+      <div class="glogo"><span class="glogo-mark">◉</span><span>REALSIGNAL</span><span class="gsub">THE DIAL / PROGRAM GUIDE</span></div>
+      <div class="gclock-wrap"><span id="gDate" class="gdate">--</span><span id="gClock" class="gclock">--:--</span><button class="x" id="gClose" type="button" aria-label="Close guide">CLOSE ✕</button></div>
+    </header>
     <div class="gpreview" id="gPreview" aria-live="polite">
       <div class="gpreview-label">NOW WATCHING</div>
       <div class="gpreview-body">
@@ -1668,13 +1683,12 @@ window.addEventListener("unhandledrejection",function(e){
         <div class="gpreview-status" id="gPreviewStatus">STANDBY</div>
       </div>
     </div>
-    <div class="railhead"><span id="railTitle">CHANNEL LINEUP</span>
-      <button class="btn" id="favFilter">★ Favorites</button></div>
-    <div class="gsearch-wrap"><input id="gSearch" class="gsearch" placeholder="search channels, categories\u2026" autocomplete="off"><span class="gsearch-x" id="gSearchX">\u2715</span></div>
-    <div class="catnav" id="catNav"></div>
-    <div class="chlist" id="chList"></div>
-    <div class="gticker" aria-hidden="true"><div class="gticker-inner" id="gTickerInner">\u25b6 REALSIGNAL \u00b7 THE DIAL \u00b7 PRESS ANY NUMBER TO TUNE \u00b7 PRESS \u2605 TO FAVORITE \u00b7 900\u2013929 MUSIC \u00b7 950\u2013970 LIVE DATA \u00b7 500\u2013509 RETRO \u00b7 700\u2013703 HOLIDAY \u00b7</div></div>
-  </div>
+    <div class="guide-layout">
+      <aside class="guide-sidebar" aria-label="Guide categories"><div class="guide-sidebar-kicker">BROWSE</div><div class="catnav" id="catNav"></div><button class="btn guide-favorites" id="favFilter" type="button">★ FAVORITES</button><div class="guide-sidebar-foot"><span>REALSIGNAL DIRECTORY</span><strong id="guideCount">-- CHANNELS</strong></div></aside>
+      <main class="guide-main"><div class="guide-toolbar"><div><span class="railhead" id="railTitle">ALL CHANNELS</span><span class="guide-results" id="guideResults">PROGRAM DIRECTORY</span></div><div class="gsearch-wrap"><input id="gSearch" class="gsearch" placeholder="Search channels, genres, programs…" autocomplete="off" aria-label="Search channels"><button class="gsearch-x" id="gSearchX" type="button" aria-label="Clear search">✕</button></div></div><div class="guide-column-head" aria-hidden="true"><span>CHANNEL</span><span>ON NOW</span><span>UP NEXT</span></div><div class="chlist" id="chList"></div></main>
+    </div>
+    <footer class="gticker" aria-hidden="true"><div class="gticker-inner" id="gTickerInner">REALSIGNAL · THE DIAL · PROGRAM DIRECTORY</div></footer>
+  </section>
 </div>
 
 <!-- picture controls -->
@@ -2159,6 +2173,23 @@ const CH=[
  {nm:"The Game Room", num:510, cat:"RETRO", gl:"gameroom", era:[1970,2026], ns:"doc"},
  {nm:"The Detective", num:511, cat:"RETRO", gl:"detective", era:[1940,2026], ns:"tv"},
 ];
+/* Human-facing guide taxonomy. Channel numbers remain the persistent tuning address;
+   this adds stable clean IDs plus a deliberately small set of browse destinations. */
+const GUIDE_CATEGORIES=[
+  {id:"all",label:"All channels",meta:"The complete RealSignal directory",color:"#baffcf"},
+  {id:"watch",label:"TV & film",meta:"Networks, series, movies and retro",color:"#8ee6ff",cats:["NET","TV","MOV","RETRO","HOL"]},
+  {id:"animation",label:"Animation & kids",meta:"Cartoons, anime and family viewing",color:"#9ab8ff",cats:["TOON"]},
+  {id:"sports",label:"Sports",meta:"Competition, archives and scoreboards",color:"#c8ff84",cats:["SPORTS"]},
+  {id:"archive",label:"Archive & ideas",meta:"History, science, culture and documentary",color:"#ffd590",cats:["DOC"]},
+  {id:"world",label:"World & culture",meta:"British television and global perspective",color:"#d7b7ff",cats:["BRIT"]},
+  {id:"music",label:"Music & audio",meta:"Concerts, radio and listening rooms",color:"#ffb4d0",cats:["MUS"]},
+  {id:"live",label:"Live & local",meta:"Cameras, maps, weather and real-time signals",color:"#73ffd2",cats:["LBRO","LDATA"]}
+];
+const GUIDE_CATEGORY_BY_ID=Object.fromEntries(GUIDE_CATEGORIES.map(function(group){return [group.id,group];}));
+const GUIDE_SUBGENRES={NET:"Network television",TV:"Television & reruns",MOV:"Movies",TOON:"Animation",SPORTS:"Sports",MUS:"Music & audio",DOC:"Archive & ideas",LBRO:"Live video",LDATA:"Live data",RETRO:"Retro archive",HOL:"Seasonal",BRIT:"World & culture"};
+function guideCategoryFor(ch){return GUIDE_CATEGORIES.find(function(group){return group.cats&&group.cats.indexOf(ch.cat)>-1;})||GUIDE_CATEGORY_BY_ID.all;}
+function guideChannelKey(ch){return "rs-"+String(ch.num).padStart(3,"0")+"-"+String(ch.nm).toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,"");}
+CH.forEach(function(ch){ch.guideGroup=guideCategoryFor(ch).id;ch.key=guideChannelKey(ch);});
 /* QA FIX (from Programmed Channels 2.0 audit, Phase 1): channel numbers used to be computed by
    the array's own order via a seen[c.cat] counter -- meaning if any two channels in the same
    category ever swapped position in the source array, every user's saved favorites and last
@@ -6327,9 +6358,9 @@ function sfxClick(){if(!soundOn||!audioCtx())return;const c=ac,t=c.currentTime;c
    RENDER rail + guide (with categories)
    ===================================================================== */
 function isFav(n){var c=byNum(n);return c?favs.includes(c.nm):false;}
-var catFilter=null; /* v9: chips filter the bank instead of yank-tuning the TV */
+var catFilter="all"; /* Guide category only; never changes the tuned channel. */
 function visibleChannels(){let l=favOnly?CH.filter(c=>isFav(c.num)):CH;
-  if(catFilter)l=l.filter(c=>c.cat===catFilter);
+  if(catFilter&&catFilter!=="all")l=l.filter(function(c){return c.guideGroup===catFilter;});
   /* Universal search. Matches channel name, its category label, its number, and whatever the
      dynamic status line currently says -- so "storm", "402", "hurricane" and "sports" all find
      something. When a query is active the category filter is ignored, because searching inside
@@ -6338,7 +6369,8 @@ function visibleChannels(){let l=favOnly?CH.filter(c=>isFav(c.num)):CH;
   if(q){
     l=(favOnly?CH.filter(c=>isFav(c.num)):CH).filter(function(c){
       var st=String((window.__chanStatus||{})[c.num]||"");
-      var hay=(c.nm+" "+(CATNAME[c.cat]||c.cat)+" "+c.num+" "+st+" "+
+      var group=guideCategoryFor(c);
+      var hay=(c.nm+" "+(CATNAME[c.cat]||c.cat)+" "+group.label+" "+group.meta+" "+(GUIDE_SUBGENRES[c.cat]||"")+" "+c.key+" "+c.num+" "+st+" "+
                ((CHANNEL_META[c.nm]&&CHANNEL_META[c.nm].desc)||"")).toLowerCase();
       return hay.indexOf(q)>-1;
     });
@@ -6350,9 +6382,9 @@ function visibleChannels(){let l=favOnly?CH.filter(c=>isFav(c.num)):CH;
      broken -- genres out of order, numbers jumping around -- despite the underlying data being
      fine. Sorted for display only: real category order first, channel number second within it.
      Nothing about CH itself changes, so tuning/search/everything else is unaffected. */
-  var catPos={}; CAT_ORDER.forEach(function(c,i){ catPos[c]=i; });
+  var catPos={}; GUIDE_CATEGORIES.forEach(function(c,i){catPos[c.id]=i;});
   l=l.slice().sort(function(a,b){
-    var pa=catPos[a.cat], pb=catPos[b.cat];
+    var pa=catPos[a.guideGroup], pb=catPos[b.guideGroup];
     if(pa==null) pa=999; if(pb==null) pb=999;
     if(pa!==pb) return pa-pb;
     return a.num-b.num;
@@ -6442,6 +6474,22 @@ function renderRail(){ /* v9: honest CHANNEL BANK grid — replaces the horizont
       if(window.closeSheets)window.closeSheets();                 // mobile: close the sheet on pick
       else if(typeof closeGuide==="function")closeGuide();};})(ch.num)); // desktop: close the bank
     chList.appendChild(r);
+  });
+}
+/* RealSignal guide-directory renderer: an intentional browse hierarchy and real queue data. */
+function renderRail(){
+  if(!chList||!gwrap||!gwrap.classList.contains("show"))return;
+  chList.innerHTML="";var list=visibleChannels(),active=GUIDE_CATEGORY_BY_ID[catFilter]||GUIDE_CATEGORY_BY_ID.all,query=String(window.__gQuery||"").trim();
+  var title=query?"SEARCH RESULTS":(favOnly?"FAVORITES":active.label.toUpperCase()),descriptor=query?('"'+query+'" · '+list.length+' matches'):(favOnly?list.length+" saved channels":active.meta);
+  var titleEl=$("railTitle"),resultsEl=$("guideResults"),countEl=$("guideCount");if(titleEl)titleEl.textContent=title;if(resultsEl)resultsEl.textContent=descriptor;if(countEl)countEl.textContent=list.length+" CHANNEL"+(list.length===1?"":"S");
+  if(!list.length){chList.innerHTML='<div class="chempty">No matching channels yet. Clear the search or choose another category.</div>';return;}
+  var previousGroup=null;
+  list.forEach(function(ch){var group=guideCategoryFor(ch);
+    if(group.id!==previousGroup){var divider=document.createElement("div");divider.className="chsection";divider.innerHTML='<span class="chsection-label">'+esch(group.label.toUpperCase())+'</span><span class="chsection-sub">'+esch(group.meta)+'</span>';chList.appendChild(divider);previousGroup=group.id;}
+    var row=document.createElement("button");row.type="button";row.dataset.channelKey=ch.key;row.title=ch.nm+((CHANNEL_META[ch.nm]&&CHANNEL_META[ch.nm].desc)?(" \\u2014 "+CHANNEL_META[ch.nm].desc):"");row.className="chcell"+(ch.num===curNum?" on":"");row.style.setProperty("--cat",CAT[ch.cat]||group.color);
+    var listing=guideListing(ch),lastId=(window.__chLastId||{})[ch.num],thumb=lastId?'<span class="cc-thumb"><img src="https://archive.org/services/img/'+esch(lastId)+'" alt="" loading="lazy" decoding="async"></span>':'<span class="cc-thumb"><span class="cc-thumb-glyph">'+ch.num+'</span></span>';
+    row.innerHTML='<span class="cc-n">'+ch.num+'</span>'+thumb+'<span class="cc-identity"><span class="cc-nm">'+esch(ch.nm)+'</span><span class="cc-genre">'+esch(GUIDE_SUBGENRES[ch.cat]||ch.cat)+'</span></span><span class="cc-now-block"><span class="cc-now">'+esch(listing.now)+'</span><span class="cc-status">'+esch(listing.detail)+'</span></span><span class="cc-next-block"><span class="cc-next">'+esch(listing.next)+'</span></span>'+(isFav(ch.num)?'<span class="cc-f">★</span>':'');
+    row.addEventListener("click",(function(num){return function(){tuneNum(num);if(window.closeSheets)window.closeSheets();else closeGuide();};})(ch.num));chList.appendChild(row);
   });
 }
 function renderGuide(){renderRail();updateClocks();guideUpdatePreview();guideRefreshTicker();}
@@ -7516,6 +7564,14 @@ function buildCatNav(){
       renderRail();
     });
     catNav.appendChild(b);
+  });
+}
+/* Guide-directory navigation: stable browsing groups, not raw implementation categories. */
+function buildCatNav(){
+  if(!catNav)return;catNav.innerHTML="";
+  GUIDE_CATEGORIES.forEach(function(group){
+    var button=document.createElement("button");button.type="button";button.className="catchip"+(catFilter===group.id?" act":"");button.textContent=group.label;button.style.color=group.color;button.title=group.meta;
+    button.addEventListener("click",function(){catFilter=group.id;catNav.querySelectorAll(".catchip").forEach(function(item){item.classList.remove("act");});button.classList.add("act");renderRail();});catNav.appendChild(button);
   });
 }
 

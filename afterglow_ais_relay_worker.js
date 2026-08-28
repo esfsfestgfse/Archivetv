@@ -76,7 +76,7 @@ const IA_SEARCH_CACHE_VERSION = "v5";
 const IA_METADATA_TTL_SECONDS = 86400;
 const IA_QUEUE_TTL_SECONDS = 21600;
 const IA_PARTIAL_QUEUE_TTL_SECONDS = 90;
-const IA_QUEUE_CACHE_VERSION = "v17";
+const IA_QUEUE_CACHE_VERSION = "v18";
 const GULF_FILTER = "BBOX(geometry,-98,18,-80,31)";
 const KPLER_FIELDS = "mmsi,longitude,latitude,posDt,sog,vesselName,heading,cog,navStatus,destination,vesselType";
 const WFIGS_INCIDENTS_URL = "https://services3.arcgis.com/T4QMspbfLg3qTGWY/arcgis/rest/services/WFIGS_Incident_Locations_Current/FeatureServer/0/query";
@@ -1591,13 +1591,24 @@ async function hydrateIaQueue(payload, requestedCount, cacheOrigin, ctx, mediaTy
   /* Keep a few extra candidates behind the five-program shelf. Archive items
      occasionally have no browser-playable derivative; filtering those here
      means the viewer receives five actual media URLs instead of five names
-     that each need another network trip in the browser. */
-  const enriched = await mapQueueCandidates(payload.items, 5, async (item) => ({ ...item, media: await queuePlayable(item.identifier, cacheOrigin, ctx, mediaTypes) }));
-  const ready = enriched.filter((item) => item.media).slice(0, requestedCount);
+     that each need another network trip in the browser. Stop as soon as the
+     requested shelf is playable: waiting for every reserve item's metadata
+     made a few slow Archive records hold an otherwise ready channel hostage. */
+  const ready = [], items = payload.items || [];
+  let cursor = 0;
+  async function worker() {
+    while (ready.length < requestedCount) {
+      const index = cursor++;
+      if (index >= items.length) return;
+      const item = items[index], media = await queuePlayable(item.identifier, cacheOrigin, ctx, mediaTypes);
+      if (media && ready.length < requestedCount) ready.push({ ...item, media });
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(5, items.length) }, worker));
   return {
     ...payload,
     items: ready,
-    candidates: payload.items.length,
+    candidates: items.length,
     ready: ready.length,
     partial: ready.length < requestedCount,
     hydrating: false,

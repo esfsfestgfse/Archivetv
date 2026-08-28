@@ -17,7 +17,7 @@ if (numericConstant('IA_SEARCH_TTL_SECONDS') < 21600) issues.push('Archive searc
 if (!/IA_SEARCH_CACHE_VERSION\s*=\s*"v5"/.test(source) || !/"mediatype"\]\.forEach\(\(field\) => upstreamUrl\.searchParams\.append\("fl\[\]", field\)\)/.test(source)) issues.push('Archive discovery must request mediatype and invalidate shelves built without it');
 if (numericConstant('IA_METADATA_TTL_SECONDS') < 86400) issues.push('resolved media metadata must stay warm for at least one day');
 if (numericConstant('IA_QUEUE_TTL_SECONDS') < 21600) issues.push('five-show queues must stay warm for at least six hours');
-if (!/IA_QUEUE_CACHE_VERSION\s*=\s*"v17"/.test(source)) issues.push('queue cache version must invalidate pre-diversity shelves');
+if (!/IA_QUEUE_CACHE_VERSION\s*=\s*"v18"/.test(source)) issues.push('queue cache version must invalidate pre-progressive shelves');
 if (!/"creator", "collection"/.test(source) || !/function safeDiversity\(value\)/.test(source)) issues.push('queue discovery must retain bounded creator and collection diversity metadata');
 if (!/safeThemeMinScore\(body && body\.themeMinScore\)/.test(source) || !/matchesTheme\(doc, themeTerms, themeMinScore\)/.test(source)) issues.push('queue worker must enforce the client editorial score gate before caching');
 if (!/cachedArchiveJson\(cacheKey, ttlSeconds, load, ctx\)/.test(source)) issues.push('Archive cache writes must receive the request context');
@@ -29,7 +29,8 @@ if (!/const strictQueue = themeMinScore > 1/.test(source) || !/Math\.min\(strict
 if (!/const diversity = safeDiversity\(body && body\.diversity\)/.test(source) || !/function diverseEnough\(candidate\)/.test(source) || !/for \(const candidate of deferred\)/.test(source)) issues.push('queue shelves must prefer varied approved lanes before relaxing repetition limits');
 if (!/String\(doc\.mediatype \|\| ""\)\.toLowerCase\(\) !== "collection"/.test(source)) issues.push('IA queues must reject Archive.org collection pages before hydration');
 if (!/safeMediaTypes\(body && body\.mediaTypes\)/.test(source) || !/mediaTypes\.includes\(String\(doc\.mediatype \|\| ""\)\.toLowerCase\(\)\)/.test(source)) issues.push('IA queues must enforce the requested video or audio mediatype before hydration');
-if (!/mapQueueCandidates\(payload\.items, 5,/.test(source)) issues.push('metadata hydration must cap Archive concurrency at five');
+if (!/Array\.from\(\{ length: Math\.min\(5, items\.length\) \}, worker\)/.test(source)) issues.push('metadata hydration must cap Archive concurrency at five');
+if (!/while \(ready\.length < requestedCount\)/.test(source) || !/ready\.push\(\{ \.\.\.item, media \}\)/.test(source)) issues.push('metadata hydration must return the ready shelf without waiting on slow reserve candidates');
 if (!/const chosen = wantsVideo \? video\[0\] : wantsAudio \? audio/.test(source) || !/queuePlayable\(item\.identifier, cacheOrigin, ctx, mediaTypes\)/.test(source)) issues.push('hydration must keep archive derivatives within the requested video or audio contract');
 if (!/type: chosen === video\[0\] \? "video" : "audio"/.test(source)) issues.push('queue media type must describe the selected derivative');
 if (!/attempt < 1/.test(source)) issues.push('metadata transport failures need one bounded retry');

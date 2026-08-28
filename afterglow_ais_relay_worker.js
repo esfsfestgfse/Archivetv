@@ -76,7 +76,7 @@ const IA_SEARCH_CACHE_VERSION = "v5";
 const IA_METADATA_TTL_SECONDS = 86400;
 const IA_QUEUE_TTL_SECONDS = 21600;
 const IA_PARTIAL_QUEUE_TTL_SECONDS = 90;
-const IA_QUEUE_CACHE_VERSION = "v16";
+const IA_QUEUE_CACHE_VERSION = "v17";
 const GULF_FILTER = "BBOX(geometry,-98,18,-80,31)";
 const KPLER_FIELDS = "mmsi,longitude,latitude,posDt,sog,vesselName,heading,cog,navStatus,destination,vesselType";
 const WFIGS_INCIDENTS_URL = "https://services3.arcgis.com/T4QMspbfLg3qTGWY/arcgis/rest/services/WFIGS_Incident_Locations_Current/FeatureServer/0/query";
@@ -210,6 +210,20 @@ function safeMediaTypes(types) {
 function safeThemeMinScore(value) {
   const score = Number(value);
   return Number.isInteger(score) && score >= 1 && score <= 12 ? score : 1;
+}
+
+/* Diversity is an editorial preference, never a content fallback. These
+   small, bounded caps help a five-show shelf span a channel's own approved
+   lanes without letting a sparse channel broaden beyond its genre contract. */
+function safeDiversity(value) {
+  const raw = value && typeof value === "object" ? value : {};
+  const cap = (key, fallback) => Math.max(1, Math.min(5, Math.round(Number(raw[key]) || fallback)));
+  return {
+    maxPerEra: cap("maxPerEra", 1),
+    maxPerLane: cap("maxPerLane", 1),
+    maxPerCreator: cap("maxPerCreator", 1),
+    maxPerCollection: cap("maxPerCollection", 2),
+  };
 }
 
 function themeText(value) {
@@ -1363,7 +1377,7 @@ async function archiveFetch(input, init = {}, timeoutMs = 3500) {
 async function searchArchive(query, rows, page, sort) {
   const upstreamUrl = new URL("https://archive.org/advancedsearch.php");
   upstreamUrl.searchParams.set("q", query);
-  ["identifier", "title", "year", "subject", "runtime", "downloads", "mediatype"].forEach((field) => upstreamUrl.searchParams.append("fl[]", field));
+  ["identifier", "title", "year", "subject", "runtime", "creator", "collection", "downloads", "mediatype"].forEach((field) => upstreamUrl.searchParams.append("fl[]", field));
   upstreamUrl.searchParams.append("sort[]", sort || "downloads desc");
   upstreamUrl.searchParams.set("rows", String(rows));
   upstreamUrl.searchParams.set("page", String(page));
@@ -1415,13 +1429,35 @@ async function getIaMetadata(id, requestUrl, ctx) {
   }
 }
 
-function queueItem(doc) {
+function queueItem(doc, lane) {
   return {
     identifier: doc.identifier,
     title: doc.title || doc.identifier,
     year: doc.year || null,
     runtime: doc.runtime || null,
     subject: doc.subject || null,
+    creator: doc.creator || null,
+    collection: doc.collection || null,
+    lane: Number.isInteger(lane) ? lane : null,
+  };
+}
+
+function queueKey(value) {
+  const raw = Array.isArray(value) ? value[0] : value;
+  return String(raw || "").normalize("NFKD").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+function queueEraKey(value) {
+  const match = String(value || "").match(/(?:18|19|20)\d{2}/);
+  return match ? String(Math.floor(Number(match[0]) / 10) * 10) : "";
+}
+
+function queueDiversityKeys(doc, lane) {
+  return {
+    lane: String(lane),
+    era: queueEraKey(doc && doc.year),
+    creator: queueKey(doc && doc.creator),
+    collection: queueKey(doc && doc.collection),
   };
 }
 
@@ -1487,8 +1523,9 @@ async function mapQueueCandidates(items, limit, fn) {
   return results;
 }
 
-async function buildIaQueue(channel, queries, themeTerms, denyTerms, mediaTypes, themeMinScore, count, cacheOrigin, ctx) {
-  const items = [], seen = new Set(), seenTitles = new Set(), candidateLimit = count;
+async function buildIaQueue(channel, queries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, cacheOrigin, ctx) {
+  const items = [], deferred = [], seen = new Set(), seenTitles = new Set(), candidateLimit = count;
+  const used = { lane: new Map(), era: new Map(), creator: new Map(), collection: new Map() };
   /* Query lanes are already editorially ordered by the app. Fetch a small
      sample from each lane in parallel, then take one from every lane before
      taking a second: a five-item buffer spans eras/topics instead of becoming
@@ -1497,29 +1534,49 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, mediaTypes,
      current rotation, opposite ends of the era range, and narrow editorial
      rails. Resolve all of them in parallel. Restricting discovery to only the
      first three made sparse channels look as if they were hydrating forever. */
-  const lanes = await Promise.all(queries.slice(0, Math.min(8, queries.length)).map(async (query) => {
+  const lanes = await Promise.all(queries.slice(0, Math.min(8, queries.length)).map(async (query, lane) => {
     try {
       const result = await cachedSearchArchive(cacheOrigin, query, Math.min(24, Math.max(12, count * 3)), 1, "downloads desc", ctx);
       // Archive.org collections are catalog pages, not programs. Keeping one in
       // a shelf guarantees a failed playback attempt, so reject them before
       // ranking, caching, or media hydration for every IA channel.
       return (result.docs || []).filter((doc) => doc && safeIaId(doc.identifier) && String(doc.mediatype || "").toLowerCase() !== "collection" && (!mediaTypes.length || mediaTypes.includes(String(doc.mediatype || "").toLowerCase())))
-        .sort((a, b) => themeScore(b, themeTerms) - themeScore(a, themeTerms));
+        .sort((a, b) => themeScore(b, themeTerms) - themeScore(a, themeTerms)).map((doc) => ({ doc, lane }));
     } catch {
       return [];
     }
   }));
   const laneDepth = Math.max(0, ...lanes.map((lane) => lane.length));
+  function underCap(key, value, cap) { return !value || (used[key].get(value) || 0) < cap; }
+  function add(candidate) {
+    const keys = queueDiversityKeys(candidate.doc, candidate.lane);
+    Object.keys(used).forEach((key) => { if (keys[key]) used[key].set(keys[key], (used[key].get(keys[key]) || 0) + 1); });
+    items.push(queueItem(candidate.doc, candidate.lane));
+  }
+  function diverseEnough(candidate) {
+    const keys = queueDiversityKeys(candidate.doc, candidate.lane);
+    return underCap("lane", keys.lane, diversity.maxPerLane) &&
+      underCap("era", keys.era, diversity.maxPerEra) &&
+      underCap("creator", keys.creator, diversity.maxPerCreator) &&
+      underCap("collection", keys.collection, diversity.maxPerCollection);
+  }
   for (let row = 0; row < laneDepth && items.length < candidateLimit; row += 1) {
     for (const lane of lanes) {
-      const doc = lane[row];
+      const candidate = lane[row], doc = candidate && candidate.doc;
       const titleKey = queueTitleKey(doc);
       if (!doc || !matchesTheme(doc, themeTerms, themeMinScore) || matchesDeny(doc, denyTerms) || seen.has(doc.identifier) || (titleKey && seenTitles.has(titleKey))) continue;
       seen.add(doc.identifier);
       if (titleKey) seenTitles.add(titleKey);
-      items.push(queueItem(doc));
+      if (diverseEnough(candidate)) add(candidate); else deferred.push(candidate);
       if (items.length >= candidateLimit) break;
     }
+  }
+  /* Sparse catalogues may not have five distinct decades or uploaders. Fill
+     the reserve shelf from the same already-approved candidates, preserving
+     hard genre checks and exact-title de-duplication above. */
+  for (const candidate of deferred) {
+    if (items.length >= candidateLimit) break;
+    add(candidate);
   }
   return {
     channel,
@@ -1572,9 +1629,10 @@ async function getIaQueue(request, url, ctx) {
   const denyTerms = safeDenyTerms(body && body.denyTerms);
   const mediaTypes = safeMediaTypes(body && body.mediaTypes);
   const themeMinScore = safeThemeMinScore(body && body.themeMinScore);
+  const diversity = safeDiversity(body && body.diversity);
   const count = Math.max(1, Math.min(5, Number(body && body.count) || 5));
   if (!safeChannel(channel) || !queries) return json({ error: "invalid queue request" }, 400);
-  const cacheKey = new Request(url.origin + IA_PREFIX + "/cache/queue/" + IA_QUEUE_CACHE_VERSION + "/" + await stableKey(JSON.stringify({ channel, queries, themeTerms, denyTerms, mediaTypes, themeMinScore, count })));
+  const cacheKey = new Request(url.origin + IA_PREFIX + "/cache/queue/" + IA_QUEUE_CACHE_VERSION + "/" + await stableKey(JSON.stringify({ channel, queries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count })));
   try {
     const cache = caches.default, cached = await cache.match(cacheKey);
     if (cached) return cached;
@@ -1583,7 +1641,7 @@ async function getIaQueue(request, url, ctx) {
     // a single unplayable item never turns into a visible No Signal screen.
     const strictQueue = themeMinScore > 1;
     const candidateCount = Math.min(strictQueue ? 30 : 20, Math.max(count, count * (strictQueue ? 6 : 4)));
-    const payload = await buildIaQueue(channel, queries, themeTerms, denyTerms, mediaTypes, themeMinScore, candidateCount, url.origin, ctx);
+    const payload = await buildIaQueue(channel, queries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, candidateCount, url.origin, ctx);
     if (!payload.items.length) {
       /* No candidate exists yet, so this is not hydration. Be truthful and let
          the client immediately try its direct/search fallbacks, then retry the

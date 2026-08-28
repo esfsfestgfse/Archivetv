@@ -34,6 +34,7 @@ function fingerprint(source, marker, open, close) {
 const sections = [
   ['genre definitions', '\nconst G={', '{', '}'],
   ['program definitions', '\nconst PROGRAM =', '{', '}'],
+  ['editorial lane overlays', '\nconst PROGRAM_EDITORIAL=', '{', '}'],
 ];
 let failures = 0;
 for (const [name, marker, open, close] of sections) {

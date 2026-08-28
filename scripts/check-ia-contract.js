@@ -72,7 +72,7 @@ if (!/window\.__atvIAManifest=function\(\)/.test(source)) issues.push('runtime I
 if (!/queries:iaQueueQueries\(sl\)/.test(source) || !/var qs=iaQueueQueries\(sl\)/.test(source) || !/themeMinScore:Math\.max\(1,Math\.min\(12,Number\(sl&&sl\.program&&sl\.program\.themeMinScore\)\|\|1\)\)/.test(source)) issues.push('the IA soak manifest must exercise the exact production queue rails and score gate');
 const guideListingBlock = blockAfter('function guideListing(', '{', '}');
 if (/schedGet/.test(guideListingBlock) || !/guideQueueNext\(ch,sl,current\)/.test(guideListingBlock)) issues.push('guide listings must use live playback or the current queue, never persisted clock records');
-if (!/function primeGuideQueues\(\)/.test(source) || !/rows=visibleChannels\(\)\.filter/.test(source)) issues.push('opening the guide must actively fill visible IA queues');
+if (!/function primeGuideQueues\(rows\)/.test(source) || !/queue=\(rows\|\|visibleChannels\(\)\)\.filter/.test(source) || !/primeGuideQueues\(CH\)/.test(source)) issues.push('both guide views must actively fill their IA queues');
 
 const sportsSuite = [
   'Sports Center','Hard Count','The Octagon','Sports Vault','Auto Racing','Roller Derby & Wrestling',

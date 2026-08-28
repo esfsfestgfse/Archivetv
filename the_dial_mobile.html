@@ -1481,7 +1481,7 @@ html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.273-ia-media-guard";
+window.__ATV_BUILD="1.7.7-mobile.274-guide-queues";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1518,7 +1518,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.273 · RealSignal</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.274 · RealSignal</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -6532,11 +6532,13 @@ function renderRail(){
 function renderGuide(){renderRail();updateClocks();guideUpdatePreview();guideRefreshTicker();}
 
 var guidePrimeRun=0;
-function primeGuideQueues(){
+function primeGuideQueues(rows){
   if(!powered)return;
-  var run=++guidePrimeRun,rows=visibleChannels().filter(function(ch){return !ch.source;}).slice(0,40),cursor=0,active=0;
-  function pump(){if(run!==guidePrimeRun||!gwrap||!gwrap.classList.contains("show"))return;
-    while(active<4&&cursor<rows.length){(function(ch){active++;refillIAQueue(ch,slotFor(ch,0,{preview:true})).catch(function(){}).finally(function(){active--;renderRail();setTimeout(pump,90);});})(rows[cursor++]);}}
+  var run=++guidePrimeRun,queue=(rows||visibleChannels()).filter(function(ch){return !ch.source;}),cursor=0,active=0;
+  function guideOpen(){var epg=$("tvgOv");return !!((gwrap&&gwrap.classList.contains("show"))||(epg&&epg.classList.contains("show")));}
+  function refresh(){if(gwrap&&gwrap.classList.contains("show"))renderRail();var epg=$("tvgOv");if(epg&&epg.classList.contains("show"))renderTVGuide();}
+  function pump(){if(run!==guidePrimeRun||!guideOpen())return;
+    while(active<4&&cursor<queue.length){(function(ch){active++;refillIAQueue(ch,slotFor(ch,0,{preview:true})).catch(function(){}).finally(function(){active--;refresh();setTimeout(pump,90);});})(queue[cursor++]);}}
   pump();
 }
 function openGuide(){gwrap.classList.add("show");renderGuide();primeGuideQueues();updateClocks();}
@@ -15535,7 +15537,7 @@ function renderTVGuide(){
     if(!powered)powerOn(); tuneNum(n); }); });
 }
 function toggleTVGuide(){ var o=$("tvgOv"); if(!o){quickBanner("TV GUIDE UNAVAILABLE");return;}
-  if(o.classList.contains("show"))o.classList.remove("show"); else{renderTVGuide();o.classList.add("show");} }
+  if(o.classList.contains("show"))o.classList.remove("show"); else{o.classList.add("show");renderTVGuide();primeGuideQueues(CH);} }
 
 /* Weather Watch channel (feature #5): live NWS conditions + alerts via api.weather.gov (keyless, CORS-enabled) */
 var weatherTimer=null;

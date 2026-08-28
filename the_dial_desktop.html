@@ -1397,7 +1397,7 @@ html,body{background:#040706!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.245-realsignal-cams";
+window.__ATV_BUILD="1.7.7-desktop.246-realsignal-waco";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1434,7 +1434,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.245 · RealSignal</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.246 · RealSignal</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">REALSIGNAL · THE DIAL</div>
@@ -2270,8 +2270,8 @@ const CHANNEL_META={
 "Local Radar":{desc:"LIVE: your nearest NEXRAD WSR-88D animated loop straight from radar.weather.gov, ragtime bed.",best:"anytime",rel:["Weather Watch","Storm Center"]},
 "Live News":{desc:"LIVE: 24/7 English news \u2014 DW, France 24, Al Jazeera, CGTN, NewsAsia, TRT, Arirang, NHK, CBS, Newsmax \u0026 Red Bull, via HLS + your proxy.",best:"anytime",rel:["Live TV","Live Radio"]},
 "Live TV":{desc:"LIVE: a genre grid of free TV channels (News/Sports/Weather/Movies/Kids\u2026) from iptv-org \u2014 add a free stream proxy to unlock most of them.",best:"anytime",rel:["Live News","Live Radio"]},
-"Live Cams":{desc:"LIVE: 20+ webcams worldwide \u2014 Katmai brown bears, Times Square, Kruger safari, Austrian Alps, ISS. Rotates every 90 sec, tap NEXT to skip.",best:"anytime",rel:["Highway Cams","Live TV"]},
-"Highway Cams":{desc:"LIVE: verified Caltrans highway cameras refreshed from direct JPG feeds \u2014 a focused traffic-watch rotation.",best:"rush hour",rel:["Live Cams","Live TV"]},
+"Live Cams":{desc:"LIVE: public image cameras from multiple continents plus Lake Louise \u2014 Paris, Tokyo, Sydney, Cape Town, Buenos Aires, Reykjavik, Auckland and Singapore. Rotates every 90 sec, tap NEXT to skip.",best:"anytime",rel:["Highway Cams","Live TV"]},
+"Highway Cams":{desc:"LIVE: 14 verified TxDOT highway cameras across Texas, including an expanded Waco/Bellmead desk, refreshed through the edge relay.",best:"rush hour",rel:["Live Cams","Live TV"]},
 "The Ranger":{desc:"LIVE: NPS + wildlife cams \u2014 Kruger safari, Katmai brown bears, Big Sur condors, African watering hole, panda cam, puppy playroom. Rotates every 90 sec.",best:"anytime",rel:["Live Cams","Nature Channel"]},
 "NASA Live":{desc:"LIVE: NASA TV main feed, SpaceX launch coverage, Sen Earth-from-orbit HLS. Space happenings as they happen.",best:"launch windows",rel:["NASA Picture of the Day","ISS Tracker"]},
 "The Grid":{desc:"LIVE: Texas power grid \u2014 ERCOT demand, net generation, forecast peak, 24-hour trend. Country music bed. Refreshes every 10 min.",best:"heatwaves + cold snaps",rel:["Gas Price Ticker","Weather Watch"]},
@@ -10898,6 +10898,8 @@ var LIVECAMS_STREAMS=[
   {type:"jpg-refresh", cat:"HIGHWAY", nm:"Brazos Valley · IH-45 at FM-977",           url:"https://ais-relay.tdy1990.workers.dev/live/highways/image?cam=9",  src:"TxDOT", refreshSec:15},
   {type:"jpg-refresh", cat:"HIGHWAY", nm:"El Paso District · IH-10 West at Chew",     url:"https://ais-relay.tdy1990.workers.dev/live/highways/image?cam=10", src:"TxDOT", refreshSec:15},
   {type:"jpg-refresh", cat:"HIGHWAY", nm:"Dallas · IH-20 at the Tarrant line",        url:"https://ais-relay.tdy1990.workers.dev/live/highways/image?cam=11", src:"TxDOT", refreshSec:15},
+  {type:"jpg-refresh", cat:"HIGHWAY", nm:"Waco · Loop 340 at Kendall Lane",           url:"https://ais-relay.tdy1990.workers.dev/live/highways/image?cam=12", src:"TxDOT", refreshSec:15},
+  {type:"jpg-refresh", cat:"HIGHWAY", nm:"Waco area · IH-14 at Connell, Belton",      url:"https://ais-relay.tdy1990.workers.dev/live/highways/image?cam=13", src:"TxDOT", refreshSec:15},
 
   /* Official direct webcams; these are real refreshed camera images, not a channel embed. */
   {type:"jpg-refresh", cat:"MOUNTAIN", nm:"Lake Louise - Gondola Summit",      url:"https://cams.skilouise.com/cam1tv.jpg", src:"Lake Louise Ski Resort", refreshSec:60},

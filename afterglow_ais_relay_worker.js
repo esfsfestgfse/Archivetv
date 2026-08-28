@@ -108,6 +108,8 @@ const TEXAS_HIGHWAY_CAMS = [
   ["BRY", "BRY-IH45@FM977", "Brazos Valley · IH-45 at FM-977"],
   ["YKM", "IH-10 West @ Chew", "El Paso District · IH-10 West at Chew"],
   ["DAL", "IH20 @ Dallas-Tarrant CL", "Dallas · IH-20 at the Dallas–Tarrant line"],
+  ["WAC", "LP340.KendallLane-Waco", "Waco · Loop 340 at Kendall Lane"],
+  ["WAC", "IH14.Connel.Belton", "Waco area · IH-14 at Connell, Belton"],
 ];
 const TXDOT_CCTV_URL = "https://its.txdot.gov/its/DistrictIts/GetCctvSnapshotByIcdId";
 /* One nearby public camera search per world city. OpenEye only provides the

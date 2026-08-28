@@ -16,7 +16,7 @@ function numericConstant(name) {
 if (numericConstant('IA_SEARCH_TTL_SECONDS') < 21600) issues.push('Archive searches must stay warm for at least six hours');
 if (numericConstant('IA_METADATA_TTL_SECONDS') < 86400) issues.push('resolved media metadata must stay warm for at least one day');
 if (numericConstant('IA_QUEUE_TTL_SECONDS') < 21600) issues.push('five-show queues must stay warm for at least six hours');
-if (!/IA_QUEUE_CACHE_VERSION\s*=\s*"v13"/.test(source)) issues.push('queue cache version must invalidate pre-score-gate shelves');
+if (!/IA_QUEUE_CACHE_VERSION\s*=\s*"v14"/.test(source)) issues.push('queue cache version must invalidate pre-score-gate shelves');
 if (!/safeThemeMinScore\(body && body\.themeMinScore\)/.test(source) || !/matchesTheme\(doc, themeTerms, themeMinScore\)/.test(source)) issues.push('queue worker must enforce the client editorial score gate before caching');
 if (!/cachedArchiveJson\(cacheKey, ttlSeconds, load, ctx\)/.test(source)) issues.push('Archive cache writes must receive the request context');
 if (!/if \(ctx\) ctx\.waitUntil\(write\)/.test(source)) issues.push('Archive cache writes must leave the response critical path');
@@ -24,6 +24,7 @@ if (!/ctx\.waitUntil\(cache\.put\(cacheKey, response\.clone\(\)\)\.catch/.test(s
 if (!/hydrateIaQueue\(payload, count, url\.origin, ctx\)/.test(source)) issues.push('queue hydration must propagate the request context');
 if (!/Math\.min\(8, queries\.length\)/.test(source)) issues.push('queue discovery must sample every app-supplied editorial rail');
 if (!/const strictQueue = themeMinScore > 1/.test(source) || !/Math\.min\(strictQueue \? 24 : 15, Math\.max\(count, count \* \(strictQueue \? 5 : 3\)\)\)/.test(source)) issues.push('hard-locked queues need a deeper candidate shelf before hydration');
+if (!/String\(doc\.mediatype \|\| ""\)\.toLowerCase\(\) !== "collection"/.test(source)) issues.push('IA queues must reject Archive.org collection pages before hydration');
 if (!/mapQueueCandidates\(payload\.items, 5,/.test(source)) issues.push('metadata hydration must cap Archive concurrency at five');
 if (!/attempt < 1/.test(source)) issues.push('metadata transport failures need one bounded retry');
 if (!numericConstant('IA_PARTIAL_QUEUE_TTL_SECONDS') || numericConstant('IA_PARTIAL_QUEUE_TTL_SECONDS') > 120) issues.push('partial shelves must be retried within two minutes');

@@ -76,7 +76,7 @@ const IA_SEARCH_CACHE_VERSION = "v4";
 const IA_METADATA_TTL_SECONDS = 86400;
 const IA_QUEUE_TTL_SECONDS = 21600;
 const IA_PARTIAL_QUEUE_TTL_SECONDS = 90;
-const IA_QUEUE_CACHE_VERSION = "v13";
+const IA_QUEUE_CACHE_VERSION = "v14";
 const GULF_FILTER = "BBOX(geometry,-98,18,-80,31)";
 const KPLER_FIELDS = "mmsi,longitude,latitude,posDt,sog,vesselName,heading,cog,navStatus,destination,vesselType";
 const WFIGS_INCIDENTS_URL = "https://services3.arcgis.com/T4QMspbfLg3qTGWY/arcgis/rest/services/WFIGS_Incident_Locations_Current/FeatureServer/0/query";
@@ -1490,7 +1490,10 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, themeMinSco
   const lanes = await Promise.all(queries.slice(0, Math.min(8, queries.length)).map(async (query) => {
     try {
       const result = await cachedSearchArchive(cacheOrigin, query, Math.min(24, Math.max(12, count * 3)), 1, "downloads desc", ctx);
-      return (result.docs || []).filter((doc) => doc && safeIaId(doc.identifier))
+      // Archive.org collections are catalog pages, not programs. Keeping one in
+      // a shelf guarantees a failed playback attempt, so reject them before
+      // ranking, caching, or media hydration for every IA channel.
+      return (result.docs || []).filter((doc) => doc && safeIaId(doc.identifier) && String(doc.mediatype || "").toLowerCase() !== "collection")
         .sort((a, b) => themeScore(b, themeTerms) - themeScore(a, themeTerms));
     } catch {
       return [];

@@ -76,7 +76,7 @@ const IA_SEARCH_CACHE_VERSION = "v4";
 const IA_METADATA_TTL_SECONDS = 86400;
 const IA_QUEUE_TTL_SECONDS = 21600;
 const IA_PARTIAL_QUEUE_TTL_SECONDS = 90;
-const IA_QUEUE_CACHE_VERSION = "v12";
+const IA_QUEUE_CACHE_VERSION = "v13";
 const GULF_FILTER = "BBOX(geometry,-98,18,-80,31)";
 const KPLER_FIELDS = "mmsi,longitude,latitude,posDt,sog,vesselName,heading,cog,navStatus,destination,vesselType";
 const WFIGS_INCIDENTS_URL = "https://services3.arcgis.com/T4QMspbfLg3qTGWY/arcgis/rest/services/WFIGS_Incident_Locations_Current/FeatureServer/0/query";
@@ -1564,7 +1564,11 @@ async function getIaQueue(request, url, ctx) {
   try {
     const cache = caches.default, cached = await cache.match(cacheKey);
     if (cached) return cached;
-    const candidateCount = Math.min(15, Math.max(count, count * 3));
+    // Hard-locked programming can reject many otherwise plausible Archive.org
+    // results. Give those channels a deeper candidate shelf before hydration so
+    // a single unplayable item never turns into a visible No Signal screen.
+    const strictQueue = themeMinScore > 1;
+    const candidateCount = Math.min(strictQueue ? 24 : 15, Math.max(count, count * (strictQueue ? 5 : 3)));
     const payload = await buildIaQueue(channel, queries, themeTerms, denyTerms, themeMinScore, candidateCount, url.origin, ctx);
     if (!payload.items.length) {
       /* No candidate exists yet, so this is not hydration. Be truthful and let

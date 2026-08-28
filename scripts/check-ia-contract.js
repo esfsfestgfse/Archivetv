@@ -54,6 +54,7 @@ if (!/IA_MEDIA_WARM_MAX=6/.test(source)) issues.push('first-frame shelf must sta
 if (!/IA_PROGRAM_FAILURE_TTL=12\*60\*1000/.test(source) || !/function iaMarkProgramFailed\(id\)/.test(source) || !/iaProgramFailed\(item\.identifier\)/.test(source)) issues.push('failed archive items must be temporarily quarantined before another queue pick');
 if (!/for\(var queuedTry=0;queued&&queuedTry<5;queuedTry\+\+\)/.test(source) || !/iaMarkProgramFailed\(queued\.identifier\)/.test(source)) issues.push('a channel tune must exhaust its usable queue shelf before returning to discovery');
 if (!/primeIACompanions\(ch,sl\)/.test(source)) issues.push('channel tuning must prioritize the active and neighboring IA queues');
+if (!/var warmDelay=index===0\?0:900\+\(index-1\)\*750/.test(source)) issues.push('companion queue warming must stagger behind the active station');
 if (!/takeIAMediaWarmer\(ch,it\)/.test(source)) issues.push('playback must adopt a staged first-frame media element');
 if (!/v\.readyState>=2\)setTimeout\(function\(\)\{fin\(true\);\},0\)/.test(source)) issues.push('staged media must clear tuning even when readiness predates listeners');
 if (!/if\(prog\)\{buildProgramQueries\(prog,ch,false\)/.test(source)) issues.push('marathon mode must preserve PROGRAM channel constraints');

@@ -37,7 +37,7 @@ vm.runInContext(source.slice(start, manifestEnd), context, { filename: path.base
 vm.runInContext(source.slice(filterStart, filterEnd), context, { filename: path.basename(file) });
 const manifest = vm.runInContext(`CH.filter(function(ch){return !ch.source;}).map(function(ch){
   var sl=slotFor(ch,0,{preview:true});
-  return {channel:String(ch.num),name:ch.nm,queries:iaQueueQueries(sl),themeTerms:iaProgramThemeTerms(sl),denyTerms:iaProgramDenyTerms(sl),themeMinScore:Math.max(1,Math.min(12,Number(sl&&sl.program&&sl.program.themeMinScore)||1))};
+  return {channel:String(ch.num),name:ch.nm,queries:iaQueueQueries(sl),themeTerms:iaProgramThemeTerms(sl),denyTerms:iaProgramDenyTerms(sl),mediaTypes:ch.audio?['audio']:['movies'],themeMinScore:Math.max(1,Math.min(12,Number(sl&&sl.program&&sl.program.themeMinScore)||1))};
 })`, context);
 const output = process.argv.indexOf("--out");
 const json = JSON.stringify(manifest, null, 2) + "\n";

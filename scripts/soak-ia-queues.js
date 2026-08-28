@@ -51,7 +51,7 @@ async function requestQueue(row, remainingMs) {
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ channel: String(row.channel), count, queries: row.queries, themeTerms: row.themeTerms || [], denyTerms: row.denyTerms || [], themeMinScore: row.themeMinScore || 1 }),
+      body: JSON.stringify({ channel: String(row.channel), count, queries: row.queries, themeTerms: row.themeTerms || [], denyTerms: row.denyTerms || [], mediaTypes: row.mediaTypes || ['movies'], themeMinScore: row.themeMinScore || 1 }),
       signal: controller.signal,
     });
     const body = await response.json();

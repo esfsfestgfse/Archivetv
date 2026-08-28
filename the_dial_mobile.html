@@ -1481,7 +1481,7 @@ html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.271-realsignal-archive-expansion";
+window.__ATV_BUILD="1.7.7-mobile.272-ia-quality-guide";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1518,7 +1518,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.271 · RealSignal</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.272 · RealSignal</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -5760,14 +5760,14 @@ const PROGRAM = {
   },
   /* Archive Expansion — queueTerms are hard identity locks. They prevent a broad
      collection match from making any of these eight channels drift into another lane. */
-  "Roadside America": {genre:"roadsideamerica",era:[1930,2026],queueTerms:["roadside attraction","roadside america","highway travel","motel","diner","tourist court","road trip","american highway"],fastSubjects:["roadside attraction","highway travel","american highway"],fastCollections:["prelinger","FedFlix"],providers:[{collections:["prelinger","FedFlix","opensource_movies"],require_subj:["roadside attraction","roadside america","highway travel","motel","diner","tourist court","road trip","american highway","automobile travel","tourism film"]}],deny:{title:["video game","commercial compilation","music video"],subject:["video game","commercial","cartoon","training manual"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
-  "Short Subject": {genre:"shortsubject",era:[1925,2026],queueTerms:["short film","short subject","one reel","theatrical short","soundie","educational short"],fastSubjects:["short film","short subject","theatrical short"],fastCollections:["prelinger","feature_films"],providers:[{collections:["prelinger","feature_films","opensource_movies"],require_subj:["short film","short subject","one reel","two reel","theatrical short","soundie","educational short","animated short"]}],deny:{title:["trailer","commercial compilation","feature length"],subject:["trailer","commercial","video game"]},require:{runtime_max_s:2700},subjRotate:true,subjRequired:true,noBlindFallback:true},
-  "Future Lab": {genre:"futurelab",era:[1945,2026],queueTerms:["future technology","science and technology","research laboratory","computer science","robotics","engineering"],fastSubjects:["science and technology","robotics","engineering"],fastCollections:["FedFlix","prelinger"],providers:[{collections:["prelinger","FedFlix","opensource_movies"],require_subj:["future technology","science and technology","research laboratory","computer science","robotics","engineering","automation","space technology","electronics"]}],deny:{title:["science fiction film","video game","commercial"],subject:["science fiction film","video game","cartoon","commercial"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
-  "The Reading Room": {genre:"readingroom",era:[1930,2026],queueTerms:["author interview","literature","book discussion","poetry reading","writer profile","literary documentary"],fastSubjects:["author interview","literature","poetry reading"],fastCollections:["opensource_movies","classic_tv"],providers:[{collections:["opensource_movies","classic_tv","FedFlix"],require_subj:["author interview","literature","book discussion","poetry reading","writer profile","literary documentary","book review","reading series"]}],deny:{title:["audiobook","podcast","commercial"],subject:["audiobook","podcast","music album","commercial"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
+  "Roadside America": {genre:"roadsideamerica",era:[1930,2026],themeMinScore:2,queueTerms:["roadside attraction","roadside america","highway travel","motel","diner","tourist court","road trip","american highway"],fastSubjects:["roadside attraction","highway travel","american highway"],fastCollections:["prelinger","FedFlix"],providers:[{collections:["prelinger","FedFlix","opensource_movies"],require_subj:["roadside attraction","roadside america","highway travel","motel","diner","tourist court","road trip","american highway","automobile travel","tourism film"]}],deny:{title:["video game","commercial compilation","music video","album","song"],subject:["video game","commercial","cartoon","training manual","music"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
+  "Short Subject": {genre:"shortsubject",era:[1925,2026],themeMinScore:2,queueTerms:["short film","short subject","one reel","theatrical short","soundie","educational short"],fastSubjects:["short film","short subject","theatrical short"],fastCollections:["prelinger","feature_films"],providers:[{collections:["prelinger","feature_films","opensource_movies"],require_subj:["short film","short subject","one reel","two reel","theatrical short","soundie","educational short","animated short"]}],deny:{title:["trailer","commercial compilation","feature length","sex","killing","horror","vhs"],subject:["trailer","commercial","video game","adult","sex","horror"]},require:{runtime_max_s:2700},subjRotate:true,subjRequired:true,noBlindFallback:true},
+  "Future Lab": {genre:"futurelab",era:[1945,2026],themeMinScore:2,queueTerms:["future technology","science and technology","research laboratory","computer science","robotics","engineering"],fastSubjects:["science and technology","robotics","engineering"],fastCollections:["FedFlix","prelinger"],providers:[{collections:["prelinger","FedFlix","opensource_movies"],require_subj:["future technology","science and technology","research laboratory","computer science","robotics","engineering","automation","space technology","electronics"]}],deny:{title:["science fiction film","video game","commercial","anime","doraemon","sex","adult","dvd"],subject:["science fiction film","video game","cartoon","commercial","anime","adult","sex"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
+  "The Reading Room": {genre:"readingroom",era:[1930,2026],themeMinScore:2,queueTerms:["author interview","literature","book discussion","poetry reading","writer profile","literary documentary"],fastSubjects:["author interview","literature","poetry reading"],fastCollections:["opensource_movies","classic_tv"],providers:[{collections:["opensource_movies","classic_tv","FedFlix"],require_subj:["author interview","literature","book discussion","poetry reading","writer profile","literary documentary","book review","reading series"]}],deny:{title:["audiobook","podcast","commercial","hysterical literature"],subject:["audiobook","podcast","music album","commercial","adult"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
   "Design & Architecture": {genre:"designarch",era:[1930,2026],queueTerms:["architecture","architectural design","urban planning","interior design","industrial design","modern architecture"],fastSubjects:["architecture","urban planning","industrial design"],fastCollections:["prelinger","FedFlix"],providers:[{collections:["prelinger","FedFlix","opensource_movies"],require_subj:["architecture","architectural design","urban planning","interior design","industrial design","modern architecture","landscape architecture","city planning"]}],deny:{title:["video game","commercial","real estate listing"],subject:["video game","commercial","real estate listing","cartoon"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
-  "Museum of Motion": {genre:"museumotion",era:[1900,2026],queueTerms:["animation history","film history","motion picture history","visual culture","movie making","cinema history"],fastSubjects:["film history","motion picture history","cinema history"],fastCollections:["prelinger","opensource_movies"],providers:[{collections:["prelinger","opensource_movies","feature_films"],require_subj:["animation history","film history","motion picture history","visual culture","movie making","cinema history","film preservation","movie museum"]}],deny:{title:["full feature film","trailer","commercial"],subject:["full feature film","trailer","commercial","video game"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
+  "Museum of Motion": {genre:"museumotion",era:[1900,2026],themeMinScore:2,queueTerms:["animation history","film history","motion picture history","visual culture","movie making","cinema history"],fastSubjects:["film history","motion picture history","cinema history"],fastCollections:["prelinger","opensource_movies"],providers:[{collections:["prelinger","opensource_movies","feature_films"],require_subj:["animation history","film history","motion picture history","visual culture","movie making","cinema history","film preservation","movie museum"]}],deny:{title:["full feature film","trailer","commercial","cartoon compilation","vhs compilation"],subject:["full feature film","trailer","commercial","video game","cartoon"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
   "Civic Cinema": {genre:"civiccinema",era:[1930,2026],queueTerms:["civic film","public affairs","city planning","public service","community development","municipal government"],fastSubjects:["civic film","public affairs","city planning"],fastCollections:["prelinger","FedFlix"],providers:[{collections:["prelinger","FedFlix","governmentdocuments"],require_subj:["civic film","public affairs","city planning","public service","community development","municipal government","public works","civil service"]}],deny:{title:["campaign advertisement","commercial","video game"],subject:["campaign advertisement","commercial","political campaign","video game"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
-  "Earth From Above": {genre:"earthfromabove",era:[1955,2026],queueTerms:["earth observation","satellite imagery","earth from space","remote sensing","planet earth","aerial photography"],fastSubjects:["earth observation","satellite imagery","earth from space"],fastCollections:["NASA","FedFlix"],providers:[{collections:["NASA","prelinger","FedFlix","opensource_movies"],require_subj:["earth observation","satellite imagery","earth from space","remote sensing","planet earth","aerial photography","earth science","environmental satellite"]}],deny:{title:["science fiction film","video game","commercial"],subject:["science fiction film","video game","cartoon","commercial"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
+  "Earth From Above": {genre:"earthfromabove",era:[1955,2026],themeMinScore:2,queueTerms:["earth observation","satellite imagery","earth from space","remote sensing","planet earth","aerial photography"],fastSubjects:["earth observation","satellite imagery","earth from space"],fastCollections:["NASA","FedFlix"],providers:[{collections:["NASA","prelinger","FedFlix","opensource_movies"],require_subj:["earth observation","satellite imagery","earth from space","remote sensing","planet earth","aerial photography","earth science","environmental satellite"]}],deny:{title:["science fiction film","video game","commercial","flat earth","conspiracy"],subject:["science fiction film","video game","cartoon","commercial","flat earth","conspiracy"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
   "Prelinger Vault": {
     genre:"industrial", era:[1930,1989], show:"Prelinger Vault",
     eraBuckets:[[1930,1944],[1945,1959],[1960,1974],[1975,1989]],
@@ -5973,7 +5973,7 @@ window.__atvTimelessAudit=function(){
   return {ok:rows.every(function(row){return row.variants===1&&row.identity;}),channels:rows.length,failures:rows.filter(function(row){return row.variants!==1||!row.identity;}),channel10:rows.filter(function(row){return row.num===10;})[0]||null};
 };
 window.__atvIAManifest=function(){
-  return CH.filter(function(ch){return !ch.source;}).map(function(ch){var sl=slotFor(ch,0,{preview:true});return {channel:String(ch.num),name:ch.nm,queries:iaQueueQueries(sl)};});
+  return CH.filter(function(ch){return !ch.source;}).map(function(ch){var sl=slotFor(ch,0,{preview:true});return {channel:String(ch.num),name:ch.nm,queries:iaQueueQueries(sl),themeTerms:iaProgramThemeTerms(sl),denyTerms:iaProgramDenyTerms(sl),themeMinScore:Math.max(1,Math.min(12,Number(sl&&sl.program&&sl.program.themeMinScore)||1))};});
 };
 if(new URLSearchParams(location.search).get("soak")==="1"){
   var iaSoakDump=document.createElement("script");iaSoakDump.type="application/json";iaSoakDump.id="atvIASoakManifest";
@@ -6104,7 +6104,8 @@ function iaRuntimeSeconds(v){if(typeof v==="number")return v;var s=String(v||"")
 function iaRuntimeLabel(v){var s=Math.round(iaRuntimeSeconds(v));if(!s)return "";return s>=3600?Math.floor(s/3600)+"h "+Math.round((s%3600)/60)+"m":Math.max(1,Math.round(s/60))+"m";}
 function iaThemeText(v){return " "+String(Array.isArray(v)?v.join(" "):(v||"")).normalize("NFKD").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()+" ";}
 function iaProgramThemeTerms(sl){var p=sl&&sl.program,g=sl&&G[sl.genre],out=[],seen={},locked=!!(p&&Array.isArray(p.queueTerms)&&p.queueTerms.length);function add(v){String(v||"").trim()&&String(v).trim().length>=3&&!seen[String(v).toLowerCase()]&&(seen[String(v).toLowerCase()]=1,out.push(String(v).trim()));}if(p){/* queueTerms is an intentional hard identity lock. Without it, use the station's concise identity vocabulary before its large provider catalog. Provider tags contain useful search synonyms, but treating every one as an on-air match let broad archive metadata bleed between channels. */(p.queueTerms||[]).forEach(add);if(!locked){(p.fastSubjects||[]).forEach(add);((p.require&&p.require.title_any)||[]).forEach(add);(p.topicBuckets||[]).forEach(function(bucket){(bucket||[]).forEach(add);});}}if(!locked&&g)(g.subj||[]).forEach(add);if(!out.length&&p)(p.providers||[]).forEach(function(provider){(provider.require_subj||[]).forEach(add);});return out.slice(0,256);}
-function iaThemeMatches(item,sl){var terms=iaProgramThemeTerms(sl);if(!terms.length)return true;var hay=iaThemeText(String(item&&item.title||"")+" "+String(item&&(item.subject||item.subjects)||""));return terms.some(function(term){return hay.indexOf(iaThemeText(term))>=0;});}
+function iaThemeScore(item,sl){var terms=iaProgramThemeTerms(sl);if(!terms.length)return 0;var title=iaThemeText(String(item&&item.title||"")),subj=iaThemeText(String(item&&(item.subject||item.subjects)||""));return terms.reduce(function(score,term){var needle=iaThemeText(term);return score+(title.indexOf(needle)>=0?4:subj.indexOf(needle)>=0?1:0);},0);}
+function iaThemeMatches(item,sl){var terms=iaProgramThemeTerms(sl);if(!terms.length)return true;var min=Math.max(1,Math.min(12,Number(sl&&sl.program&&sl.program.themeMinScore)||1));return iaThemeScore(item,sl)>=min;}
 function iaProgramAllowed(item,sl){
   if(!item||!item.identifier||banned.indexOf(item.identifier)>=0||isTemporarilySkipped(item.identifier)||blockedId(item.identifier))return false;
   var cur=(curItem&&typeof curItem==="object")?curItem.id:null;if(item.identifier===cur)return false;
@@ -6117,7 +6118,7 @@ function iaProgramAllowed(item,sl){
 function iaProgramDenyTerms(sl){var p=sl&&sl.program||{},g=sl&&G[sl.genre]||{},out=[];["title","subject"].forEach(function(k){(p.deny&&p.deny[k]||[]).forEach(function(v){String(v||"").trim()&&out.push(String(v).trim());});});(g.not||[]).forEach(function(v){String(v||"").trim()&&out.push(String(v).trim());});return out.slice(0,256);}
 async function iaQueueRequest(ch,sl,count){
   var qs=iaQueueQueries(sl);if(!qs.length)return [];
-  try{var d=await withTO(fetch(IA_RELAY_BASE+"/queue",{method:"POST",mode:"cors",headers:{"content-type":"application/json"},body:JSON.stringify({channel:iaQueueKey(ch),queries:qs,themeTerms:iaProgramThemeTerms(sl),denyTerms:iaProgramDenyTerms(sl),count:Math.max(1,Math.min(5,count||5))})}).then(function(r){if(!r.ok)throw new Error("queue "+r.status);return r.json();}),28000);
+  try{var d=await withTO(fetch(IA_RELAY_BASE+"/queue",{method:"POST",mode:"cors",headers:{"content-type":"application/json"},body:JSON.stringify({channel:iaQueueKey(ch),queries:qs,themeTerms:iaProgramThemeTerms(sl),denyTerms:iaProgramDenyTerms(sl),themeMinScore:Math.max(1,Math.min(12,Number(sl&&sl.program&&sl.program.themeMinScore)||1)),count:Math.max(1,Math.min(5,count||5))})}).then(function(r){if(!r.ok)throw new Error("queue "+r.status);return r.json();}),28000);
     var out=((d&&d.items)||[]).filter(function(it){return iaProgramAllowed(it,sl);});out.hydrating=!!(d&&d.hydrating);return out;
   }catch(e){nlog("queue",false,"director unavailable: "+(e&&e.message||e));return [];}
 }
@@ -6458,8 +6459,9 @@ function guideQueueNext(ch,sl,current){return guideQueueItems(ch,sl,current)[0]|
 function guideListing(ch){
   if(!ch)return {now:"OFF AIR",next:"TUNE A CHANNEL",detail:"STANDBY",live:false};
   if(ch.source){var live=liveGuideState[ch.num]||{},txt=String(live.text||window.__chanStatus[ch.num]||"CONNECTING LIVE DATA");return {now:"LIVE · "+txt,next:"CONTINUOUS LIVE DATA",detail:guideUpdatedLabel(live.at),live:true};}
-  var rec=typeof schedGet==="function"?schedGet(ch):null, sl=typeof slotFor==="function"?slotFor(ch,0,{preview:true}):null, current=(ch.num===curNum&&curItem)?curItem:rec, next=guideQueueNext(ch,sl,current);
-  if(rec){var remain=Math.max(0,Math.round(rec.dur-(Date.now()-rec.start)/1000));return {now:"NOW · "+(rec.title||ch.nm),next:next?("NEXT · "+(next.title||next.identifier)):"NEXT · BUFFER WARMING",detail:guideDurationLabel(remain)+" LEFT",live:false};}
+  /* Only the tuned channel is NOW. Older builds reused persisted play history for inactive
+     rows, producing stale clock-like listings instead of the actual preloaded queue. */
+  var sl=typeof slotFor==="function"?slotFor(ch,0,{preview:true}):null, current=(ch.num===curNum&&curItem)?curItem:null, next=guideQueueNext(ch,sl,current);
   if(ch.num===curNum&&curItem&&curItem.title)return {now:"NOW · "+curItem.title,next:next?("NEXT · "+(next.title||next.identifier)):"NEXT · BUFFER WARMING",detail:"PROGRAM IN PROGRESS",live:false};
   if(next)return {now:"UP NEXT · "+(next.title||next.identifier),next:next.runtime?("RUNS "+iaRuntimeLabel(next.runtime)):"READY IN BUFFER",detail:"PROGRAM BUFFER READY",live:false};
   return {now:"BUILDING PROGRAM LINEUP",next:"FIVE-SHOW BUFFER WARMING",detail:"ARCHIVE DIRECTOR",live:false};
@@ -6529,7 +6531,15 @@ function renderRail(){
 }
 function renderGuide(){renderRail();updateClocks();guideUpdatePreview();guideRefreshTicker();}
 
-function openGuide(){gwrap.classList.add("show");renderGuide();updateClocks();}
+var guidePrimeRun=0;
+function primeGuideQueues(){
+  if(!powered)return;
+  var run=++guidePrimeRun,rows=visibleChannels().filter(function(ch){return !ch.source;}).slice(0,40),cursor=0,active=0;
+  function pump(){if(run!==guidePrimeRun||!gwrap||!gwrap.classList.contains("show"))return;
+    while(active<4&&cursor<rows.length){(function(ch){active++;refillIAQueue(ch,slotFor(ch,0,{preview:true})).catch(function(){}).finally(function(){active--;renderRail();setTimeout(pump,90);});})(rows[cursor++]);}}
+  pump();
+}
+function openGuide(){gwrap.classList.add("show");renderGuide();primeGuideQueues();updateClocks();}
 function closeGuide(){gwrap.classList.remove("show");}
 
 /* ============ NOW WATCHING preview pane (Prevue-Guide reboot) ============
@@ -15502,15 +15512,15 @@ function renderTVGuide(){
   var labels=["NOW","NEXT","LATER","AFTER"];
   var html='<div class="epg-row epg-head"><span class="epg-ch"></span>'+labels.map(function(label){return '<span class="epg-cell">'+label+'</span>';}).join("")+'</div>';
   CH.forEach(function(ch){
-    var sl=slotFor(ch,0,{preview:true}), live=schedGet(ch), listing=guideListing(ch);
-    var currentItem=(ch.num===curNum&&curItem)?curItem:live;
+    var sl=slotFor(ch,0,{preview:true}), listing=guideListing(ch);
+    var currentItem=(ch.num===curNum&&curItem)?curItem:null;
     var queued=ch.source?[]:guideQueueItems(ch,sl,currentItem).slice(0,4);
     var cells=[];
     if(ch.source){
       cells=[listing.now,listing.next,listing.detail,"CONTINUOUS LIVE FEED"];
     }else{
       var current=currentItem&&currentItem.title;
-      cells.push(current?("\u25b6 "+current+(live&&iaRuntimeLabel(live.dur)?(" · "+iaRuntimeLabel(live.dur)):"")):(queued[0]?("READY · "+(queued[0].title||queued[0].identifier)+(iaRuntimeLabel(queued[0].runtime)?(" · "+iaRuntimeLabel(queued[0].runtime)):"")):"BUFFER WARMING"));
+      cells.push(current?("\u25b6 "+current+(iaRuntimeLabel(currentItem.runtime||currentItem.dur)?(" · "+iaRuntimeLabel(currentItem.runtime||currentItem.dur)):"")):(queued[0]?("READY · "+(queued[0].title||queued[0].identifier)+(iaRuntimeLabel(queued[0].runtime)?(" · "+iaRuntimeLabel(queued[0].runtime)):"")):"BUFFER WARMING"));
       var start=current?0:1;
       for(var i=0;i<3;i++){
         var item=queued[start+i];

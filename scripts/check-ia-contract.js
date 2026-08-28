@@ -69,7 +69,10 @@ if (!/window\.__atvTimelessAudit=function\(\)/.test(source) || !/identity:perman
 if (!/IA_TIMELESS_IDENTITY_VERSION=2/.test(source) || !/store\.set\("sched",\{\}\)/.test(source) || !/store\.set\("fastTune",\{\}\)/.test(source)) issues.push('legacy clock-scheduled playback state must be cleared once on upgrade');
 if (/cm\.best\?'<div class="ip-row"><b>BEST<\/b>/.test(source)) issues.push('channel info must not advertise clock-based best-time windows');
 if (!/window\.__atvIAManifest=function\(\)/.test(source)) issues.push('runtime IA queue manifest hook is missing');
-if (!/queries:iaQueueQueries\(sl\)/.test(source) || !/var qs=iaQueueQueries\(sl\)/.test(source)) issues.push('the IA soak manifest must exercise the exact production queue rails');
+if (!/queries:iaQueueQueries\(sl\)/.test(source) || !/var qs=iaQueueQueries\(sl\)/.test(source) || !/themeMinScore:Math\.max\(1,Math\.min\(12,Number\(sl&&sl\.program&&sl\.program\.themeMinScore\)\|\|1\)\)/.test(source)) issues.push('the IA soak manifest must exercise the exact production queue rails and score gate');
+const guideListingBlock = blockAfter('function guideListing(', '{', '}');
+if (/schedGet/.test(guideListingBlock) || !/guideQueueNext\(ch,sl,current\)/.test(guideListingBlock)) issues.push('guide listings must use live playback or the current queue, never persisted clock records');
+if (!/function primeGuideQueues\(\)/.test(source) || !/rows=visibleChannels\(\)\.filter/.test(source)) issues.push('opening the guide must actively fill visible IA queues');
 
 const sportsSuite = [
   'Sports Center','Hard Count','The Octagon','Sports Vault','Auto Racing','Roller Derby & Wrestling',

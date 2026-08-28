@@ -76,7 +76,7 @@ const IA_SEARCH_CACHE_VERSION = "v4";
 const IA_METADATA_TTL_SECONDS = 86400;
 const IA_QUEUE_TTL_SECONDS = 21600;
 const IA_PARTIAL_QUEUE_TTL_SECONDS = 90;
-const IA_QUEUE_CACHE_VERSION = "v11";
+const IA_QUEUE_CACHE_VERSION = "v12";
 const GULF_FILTER = "BBOX(geometry,-98,18,-80,31)";
 const KPLER_FIELDS = "mmsi,longitude,latitude,posDt,sog,vesselName,heading,cog,navStatus,destination,vesselType";
 const WFIGS_INCIDENTS_URL = "https://services3.arcgis.com/T4QMspbfLg3qTGWY/arcgis/rest/services/WFIGS_Incident_Locations_Current/FeatureServer/0/query";
@@ -199,15 +199,22 @@ function safeDenyTerms(terms) {
   return safeThemeTerms(terms);
 }
 
+/* A stronger editorial lane can require more than a single incidental subject
+   tag. Keep the value bounded because this endpoint is public; a client can
+   tighten its own shelf, but cannot turn a queue request into unbounded work. */
+function safeThemeMinScore(value) {
+  const score = Number(value);
+  return Number.isInteger(score) && score >= 1 && score <= 12 ? score : 1;
+}
+
 function themeText(value) {
   return " " + String(Array.isArray(value) ? value.join(" ") : value || "")
     .normalize("NFKD").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim() + " ";
 }
 
-function matchesTheme(doc, themeTerms) {
+function matchesTheme(doc, themeTerms, minScore = 1) {
   if (!themeTerms.length) return true;
-  const haystack = themeText(String(doc && doc.title || "") + " " + String(doc && doc.subject || ""));
-  return themeTerms.some((term) => haystack.includes(themeText(term)));
+  return themeScore(doc, themeTerms) >= minScore;
 }
 
 function themeScore(doc, themeTerms) {
@@ -1470,7 +1477,7 @@ async function mapQueueCandidates(items, limit, fn) {
   return results;
 }
 
-async function buildIaQueue(channel, queries, themeTerms, denyTerms, count, cacheOrigin, ctx) {
+async function buildIaQueue(channel, queries, themeTerms, denyTerms, themeMinScore, count, cacheOrigin, ctx) {
   const items = [], seen = new Set(), seenTitles = new Set(), candidateLimit = count;
   /* Query lanes are already editorially ordered by the app. Fetch a small
      sample from each lane in parallel, then take one from every lane before
@@ -1494,7 +1501,7 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, count, cach
     for (const lane of lanes) {
       const doc = lane[row];
       const titleKey = queueTitleKey(doc);
-      if (!doc || !matchesTheme(doc, themeTerms) || matchesDeny(doc, denyTerms) || seen.has(doc.identifier) || (titleKey && seenTitles.has(titleKey))) continue;
+      if (!doc || !matchesTheme(doc, themeTerms, themeMinScore) || matchesDeny(doc, denyTerms) || seen.has(doc.identifier) || (titleKey && seenTitles.has(titleKey))) continue;
       seen.add(doc.identifier);
       if (titleKey) seenTitles.add(titleKey);
       items.push(queueItem(doc));
@@ -1550,14 +1557,15 @@ async function getIaQueue(request, url, ctx) {
   const queries = safeQueries(body && body.queries);
   const themeTerms = safeThemeTerms(body && body.themeTerms);
   const denyTerms = safeDenyTerms(body && body.denyTerms);
+  const themeMinScore = safeThemeMinScore(body && body.themeMinScore);
   const count = Math.max(1, Math.min(5, Number(body && body.count) || 5));
   if (!safeChannel(channel) || !queries) return json({ error: "invalid queue request" }, 400);
-  const cacheKey = new Request(url.origin + IA_PREFIX + "/cache/queue/" + IA_QUEUE_CACHE_VERSION + "/" + await stableKey(JSON.stringify({ channel, queries, themeTerms, denyTerms, count })));
+  const cacheKey = new Request(url.origin + IA_PREFIX + "/cache/queue/" + IA_QUEUE_CACHE_VERSION + "/" + await stableKey(JSON.stringify({ channel, queries, themeTerms, denyTerms, themeMinScore, count })));
   try {
     const cache = caches.default, cached = await cache.match(cacheKey);
     if (cached) return cached;
     const candidateCount = Math.min(15, Math.max(count, count * 3));
-    const payload = await buildIaQueue(channel, queries, themeTerms, denyTerms, candidateCount, url.origin, ctx);
+    const payload = await buildIaQueue(channel, queries, themeTerms, denyTerms, themeMinScore, candidateCount, url.origin, ctx);
     if (!payload.items.length) {
       /* No candidate exists yet, so this is not hydration. Be truthful and let
          the client immediately try its direct/search fallbacks, then retry the

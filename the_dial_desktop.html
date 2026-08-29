@@ -1452,7 +1452,7 @@ html,body{background:#040706!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.262-ia-ready-shelf";
+window.__ATV_BUILD="1.7.7-desktop.263-fast-catalogs";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -9974,9 +9974,12 @@ var IPTV_TABS=[
  /* Service tabs first -- these match on the SOURCE a channel came from (c.src) rather than its
     genre, so each FAST provider gets its own browsable lineup the way a real box presents them.
     Genre tabs follow and still match on group-title. */
- {label:"FEATURED FAST",src:/^(Checked|Tubi|Roku|Pluto TV)$/i},
+ {label:"FEATURED FAST",src:/^(Checked|Tubi|Roku|Pluto TV|Samsung TV\+|Plex|Xumo|DistroTV|Local Now|TCL\+|LG Channels|Vizio WatchFree\+|VIDAA|Whale TV\+|Cineverse|Galaxy TV)$/i},
  {label:"ROKU",src:/^Roku$/i},{label:"PLUTO",src:/^Pluto TV$/i},{label:"TUBI",src:/^Tubi$/i},
- {label:"SAMSUNG",src:/^Samsung TV\+$/i},{label:"PLEX",src:/^Plex$/i},
+ {label:"SAMSUNG",src:/^Samsung TV\+$/i},{label:"PLEX",src:/^Plex$/i},{label:"XUMO",src:/^Xumo$/i},
+ {label:"DISTRO",src:/^DistroTV$/i},{label:"LOCAL NOW",src:/^Local Now$/i},{label:"TCL\+",src:/^TCL\+$/i},
+ {label:"LG CHANNELS",src:/^LG Channels$/i},{label:"VIZIO",src:/^Vizio WatchFree\+$/i},{label:"VIDAA",src:/^VIDAA$/i},
+ {label:"WHALE TV",src:/^Whale TV\+$/i},{label:"CINEVERSE",src:/^Cineverse$/i},{label:"GALAXY",src:/^Galaxy TV$/i},
  {label:"NEWS",re:/news/i},{label:"SPORTS",re:/sport/i},{label:"WEATHER",re:/weather/i},
  {label:"MOVIES",re:/movie|cinema|film/i},{label:"ENTERTAIN",re:/entertain|comedy|series|drama|classic/i},
  {label:"KIDS",re:/kids|animation|family|cartoon/i},{label:"MUSIC",re:/music/i},
@@ -10051,6 +10054,39 @@ async function fetchCheckedIPTV(){
   }
   return out;
 }
+/* Public FAST catalog inputs. These are playlist endpoints, not account or DRM
+   APIs. Every feed is optional: it gets its own timeout and a failed provider
+   cannot block the rest of Live TV from appearing. */
+var FAST_FEEDS=[
+  ["Tubi","https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/refs/heads/main/playlists/tubi_all.m3u"],
+  ["Roku","https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/refs/heads/main/playlists/roku_all.m3u"],
+  ["Pluto TV","https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/refs/heads/main/playlists/plutotv_us.m3u"],
+  ["Pluto TV","https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/refs/heads/main/playlists/plutotv_gb.m3u"],
+  ["Samsung TV+","https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/refs/heads/main/playlists/samsungtvplus_us.m3u"],
+  ["Samsung TV+","https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/refs/heads/main/playlists/samsungtvplus_gb.m3u"],
+  ["Plex","https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/refs/heads/main/playlists/plex_us.m3u"],
+  ["Plex","https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/refs/heads/main/playlists/plex_gb.m3u"],
+  ["Xumo","https://raw.githubusercontent.com/BuddyChewChew/xumo-playlist-generator/refs/heads/main/playlists/xumo_playlist.m3u"],
+  ["DistroTV","https://www.apsattv.com/distro.m3u"],
+  ["Local Now","https://www.apsattv.com/localnow.m3u"],
+  ["TCL+","https://www.apsattv.com/tclplus.m3u"],
+  ["LG Channels","https://www.apsattv.com/uslg.m3u"],
+  ["Vizio WatchFree+","https://www.apsattv.com/vizio.m3u"],
+  ["VIDAA","https://www.apsattv.com/vidaa.m3u"],
+  ["Whale TV+","https://www.apsattv.com/whaletvplus_us.m3u"],
+  ["Cineverse","https://www.apsattv.com/cineverse.m3u"],
+  ["Galaxy TV","https://www.apsattv.com/galxytv.m3u"]
+];
+async function fetchM3USource(label,url,filter){
+  try{
+    var response=await withTO(fetch(url,{cache:"no-store"}),12000);
+    if(!response.ok)throw new Error("http "+response.status);
+    var list=parseM3U(await response.text()).filter(filter||function(){return true;});
+    list.forEach(function(c){c.src=label;});
+    nlog("livetv",true,label+": "+list.length);
+    return list;
+  }catch(e){nlog("livetv",false,label+": "+((e&&e.message)||e));return [];}
+}
 async function fetchIPTV(){
   /* QA FIX + FEATURE: this function's definition was accidentally destroyed during an earlier
      wholesale block port (it was still being called from tuneLiveTV and the sports fallback,
@@ -10077,15 +10113,8 @@ async function fetchIPTV(){
      it lives on raw.githubusercontent.com (more reliable than the github.io pages host) and is
      substantially larger -- streams/us.m3u alone carries ~1,278 entries. */
   var COUNTRIES=[["US","us"],["UK","uk"],["Canada","ca"],["Australia","au"],["NZ","nz"],["Ireland","ie"]];
-  for(var ci=0; ci<COUNTRIES.length; ci++){
-    try{
-      var ct=await withTO(fetch("https://raw.githubusercontent.com/iptv-org/iptv/master/streams/"+COUNTRIES[ci][1]+".m3u",{cache:"no-store"}).then(function(r){return r.text();}),15000);
-      var cl=parseM3U(ct).filter(function(c){ return !looksNonEnglish(c.name); });
-      cl.forEach(function(c){ c.src="IPTV-org"; c.country=COUNTRIES[ci][0]; });
-      out=out.concat(cl);
-      nlog("livetv",true,"iptv-org "+COUNTRIES[ci][0]+": "+cl.length);
-    }catch(e){ nlog("livetv",false,"iptv-org "+COUNTRIES[ci][0]+": "+((e&&e.message)||e)); }
-  }
+  var countryLists=await Promise.all(COUNTRIES.map(function(country){return fetchM3USource("IPTV-org","https://raw.githubusercontent.com/iptv-org/iptv/master/streams/"+country[1]+".m3u",function(c){return !looksNonEnglish(c.name);}).then(function(list){list.forEach(function(c){c.country=country[0];});return list;});}));
+  countryLists.forEach(function(list){out=out.concat(list);});
   /* Roku and Pluto TV were dropped after a user report that none of their channels ever played.
      Cause: every URL in those two playlists is a jmp2.uk redirect link, not a real manifest --
      the generator's own docs say it routes them through that proxy "to ensure streams remain
@@ -10098,26 +10127,8 @@ async function fetchIPTV(){
      real CDN). An HLS-aware proxy that resolves against the POST-redirect URL handles them
      fine, so they are listed again. If the configured proxy can't cope, the dead-channel
      health system culls them automatically after two strikes -- no manual list needed. */
-  var FASTBASE="https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/refs/heads/main/playlists/";
-  var FASTALL=[
-    ["Tubi",       FASTBASE+"tubi_all.m3u"],
-    ["Roku",       FASTBASE+"roku_all.m3u"],
-    ["Pluto TV",   FASTBASE+"plutotv_us.m3u"],
-    ["Pluto TV",   FASTBASE+"plutotv_gb.m3u"],
-    ["Samsung TV+",FASTBASE+"samsungtvplus_us.m3u"],
-    ["Samsung TV+",FASTBASE+"samsungtvplus_gb.m3u"],
-    ["Plex",       FASTBASE+"plex_us.m3u"],
-    ["Plex",       FASTBASE+"plex_gb.m3u"]
-  ];
-  for(var fi=0; fi<FASTALL.length; fi++){
-    try{
-      var ftxt=await withTO(fetch(FASTALL[fi][1],{cache:"no-store"}).then(function(r){return r.text();}),15000);
-      var fl=parseM3U(ftxt).filter(function(c){ return !looksNonEnglish(c.name); });
-      fl.forEach(function(c){ c.src=FASTALL[fi][0]; });
-      out=out.concat(fl);
-      nlog("livetv",true,FASTALL[fi][0]+" (all genres): "+fl.length);
-    }catch(e){ nlog("livetv",false,FASTALL[fi][0]+": "+((e&&e.message)||e)); }
-  }
+  var fastLists=await Promise.all(FAST_FEEDS.map(function(feed){return fetchM3USource(feed[0],feed[1],function(c){return !looksNonEnglish(c.name);});}));
+  fastLists.forEach(function(list){out=out.concat(list);});
   var byName={};
   out.forEach(function(c){ if(isRedirectorUrl(c.url)) c.viaRedirect=true;
     var k=(c.name||"").toLowerCase().replace(/\s+/g," ").trim(); if(!k)return;
@@ -10214,22 +10225,8 @@ async function fetchSportsIPTV(){
      auth token. */
   /* see fetchIPTV: Roku/Pluto entries are jmp2.uk redirect links and cannot play through a
      browser CORS proxy. Tubi publishes direct manifests, so it stays. */
-  var FAST=[
-    ["Tubi","https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/refs/heads/main/playlists/tubi_all.m3u"],
-    ["Roku","https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/refs/heads/main/playlists/roku_all.m3u"],
-    ["Pluto TV","https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/refs/heads/main/playlists/plutotv_us.m3u"]
-  ];
-  for(var fi=0; fi<FAST.length; fi++){
-    try{
-      var ftxt=await withTO(fetch(FAST[fi][1],{cache:"no-store"}).then(function(r){return r.text();}),15000);
-      var fl=parseM3U(ftxt).filter(function(c){
-        return /sport|motorsport|fight|racing|golf|tennis|boxing|ufc|wwe|nfl|nba|mlb|nhl|soccer|football|outdoor/i.test((c.cat||"")+" "+(c.name||""));
-      }).filter(function(c){ return !looksNonEnglish(c.name); });
-      fl.forEach(function(c){ c.src=FAST[fi][0]; });
-      out=out.concat(fl);
-      nlog("sportstv",true,FAST[fi][0]+": "+fl.length+" sports");
-    }catch(e){ nlog("sportstv",false,FAST[fi][0]+": "+((e&&e.message)||e)); }
-  }
+  var fastSports=await Promise.all(FAST_FEEDS.map(function(feed){return fetchM3USource(feed[0],feed[1],function(c){return /sport|motorsport|fight|racing|golf|tennis|boxing|ufc|wwe|nfl|nba|mlb|nhl|soccer|football|outdoor/i.test((c.cat||"")+" "+(c.name||""))&&!looksNonEnglish(c.name);});}));
+  fastSports.forEach(function(list){out=out.concat(list);});
   try{
     var t2=await withTO(fetch("https://raw.githubusercontent.com/Free-TV/IPTV/master/playlist.m3u8",{cache:"no-store"}).then(function(r){return r.text();}),15000);
     var ft=parseM3U(t2).filter(function(c){ return /sport|football|soccer|basketball|cricket|rugby|tennis|golf|racing|motor|fight|boxing|wrestl/i.test((c.cat||"")+" "+(c.name||"")); });

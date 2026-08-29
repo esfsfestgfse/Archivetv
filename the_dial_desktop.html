@@ -1453,7 +1453,7 @@ html,body{background:#040706!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.269-guide-order";
+window.__ATV_BUILD="1.7.7-desktop.270-radio-overhaul";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1490,7 +1490,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.269 · RealSignal</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.270 · RealSignal</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">REALSIGNAL · THE DIAL</div>
@@ -6404,7 +6404,7 @@ function rtInterval(fn,ms){var id=setInterval(fn,ms);chanRT.timers.push(id);retu
 function rtTeardown(){chanRT.timers.forEach(clearInterval);chanRT.timers.length=0;}
 /* ---- CYCLE-1 FIX (real leak): a playing media element removed from the DOM keeps playing
    audio and downloading until GC. Every removal now pauses and detaches the source first. */
-function killMedia(){if(!screenArea)return;
+function killMedia(){try{if(typeof stopRadioHls==="function")stopRadioHls();}catch(e){}if(!screenArea)return;
   screenArea.querySelectorAll("video,audio").forEach(function(el){
     try{el.pause();el.removeAttribute("src");el.load();}catch(e){}});}
 /* FIX (structural, flagged many times): favorites and "last channel" used to be keyed by raw
@@ -9562,7 +9562,7 @@ function loadHlsLib(){ if(window.Hls)return Promise.resolve(window.Hls); if(hlsL
   return hlsLoading;
 }
 /* ---------- Live Radio: real stations (radio-browser.info) on a draggable 3D globe (Radio Garden style) ---------- */
-var RB_SERVERS=["https://de1.api.radio-browser.info","https://nl1.api.radio-browser.info","https://at1.api.radio-browser.info"];
+var RB_SERVERS=["https://de1.api.radio-browser.info","https://nl1.api.radio-browser.info","https://at1.api.radio-browser.info","https://us1.api.radio-browser.info"];
 var RB_CATS=[
  {k:"local",label:"NEAR YOU"},{k:"top",label:"POPULAR"},
  {k:"news",label:"NEWS/TALK",tag:"news"},{k:"classical",label:"CLASSICAL",tag:"classical"},
@@ -9582,14 +9582,21 @@ function rbLatLon(s){ var la=+((s&&s.geo_lat)), lo=+((s&&s.geo_long));
   var h=0,nm=(s&&(s.name||"")); for(var i=0;i<nm.length;i++){h=(h*31+nm.charCodeAt(i))>>>0;}
   var jx=((h%1000)/1000-0.5)*7, jy=(((h>>>10)%1000)/1000-0.5)*7;
   return {lat:c[0]+jy,lon:c[1]+jx}; }
+function rbStreamKind(s){ var u=(s&&(s.url_resolved||s.url))||""; return (/\.m3u8(?:\?|$)/i.test(u)||String(s&&s.codec||"").toUpperCase()==="HLS")?"hls":"audio"; }
 function rbPlayable(s){ var u=(s&&(s.url_resolved||s.url))||""; if(!u)return false;
-  if(/\.m3u8(\?|$)/i.test(u))return false; if(String(s.codec||"").toUpperCase()==="HLS")return false; return /^https?:/i.test(u); }
-async function rbSearch(qs){
-  for(var i=0;i<RB_SERVERS.length;i++){ try{
-    var d=await withTO(fetch(RB_SERVERS[i]+"/json/stations/search?hidebroken=true&"+qs,{cache:"no-store"}).then(function(r){return r.json();}),12000);
-    if(Array.isArray(d)) return d;
-  }catch(e){ nlog("radio",false,"server "+(i+1)+": "+((e&&e.message)||e)); } }
-  return [];
+  if(/\.(m3u|pls)(?:\?|$)/i.test(u))return false;
+  return /^https?:/i.test(u) && (!s.lastcheckok || String(s.lastcheckok)==="1") && !!String(s.codec||s.url_resolved||""); }
+async function rbSearch(qs,signal){
+  /* Directory hosts are independent. Query them concurrently, merge the healthy answers,
+     and cap the payload so switching a band never waits on a 10,000-station JSON response. */
+  var jobs=RB_SERVERS.map(function(base,i){
+    return withTO(fetch(base+"/json/stations/search?hidebroken=true&is_https=true&limit=250&"+qs,{cache:"no-store",signal:signal}).then(function(r){if(!r.ok)throw new Error("http "+r.status);return r.json();}),8000)
+      .then(function(d){return Array.isArray(d)?d:[];}).catch(function(e){nlog("radio",false,"server "+(i+1)+": "+((e&&e.message)||e));return [];});
+  });
+  var packs=await Promise.all(jobs), seen={}, out=[];
+  packs.forEach(function(pack){pack.forEach(function(s){var u=String((s&&s.stationuuid)||s.url_resolved||s.url||"");if(!u||seen[u])return;seen[u]=1;out.push(s);});});
+  out.sort(function(a,b){return (Number(b.lastcheckok||0)-Number(a.lastcheckok||0))||((b.clickcount||0)-(a.clickcount||0));});
+  return out.slice(0,400);
 }
 function ensureThree(){ if(window.THREE)return Promise.resolve(window.THREE); if(window.__threeP)return window.__threeP;
   window.__threeP=new Promise(function(res,rej){ var sc=document.createElement("script"); sc.src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js";
@@ -9675,16 +9682,39 @@ function ensureRadioCSS(){ if($("radioCSS"))return; var st=document.createElemen
     ".wr-band.sel{background:linear-gradient(180deg,#c8981a,#6a4a10);color:#f8e0a0;box-shadow:inset 0 2px 3px rgba(0,0,0,.55)}"+
     /* narrow-screen: smaller knobs, tighter bands */
     "@media (max-width:520px){.wr-knob{width:58px;height:58px}.wr-bands{left:82px;right:82px;gap:2px}.wr-band{padding:3px 6px;font-size:8px;letter-spacing:.6px}.wr-knob-lbl{width:74px;bottom:22px}}";
+  st.textContent +=
+    "#radioPane{background:radial-gradient(circle at 50% 0%,#46534a 0%,#1b2420 45%,#0b100e 100%)!important;padding:clamp(8px,2vmin,18px);box-sizing:border-box}"+
+    ".wr-cabinet{inset:clamp(8px,2vmin,20px)!important;padding:0!important;border-radius:18px!important;background:linear-gradient(145deg,#6f786b 0%,#3d493f 38%,#202a25 100%)!important;box-shadow:inset 0 0 0 2px #9a9d82,inset 0 0 0 5px #151b18,inset 0 -14px 24px rgba(0,0,0,.5),0 12px 30px rgba(0,0,0,.55)!important}"+
+    ".wr-head{position:absolute;left:8%;right:8%;top:3%;height:7%;display:flex;align-items:center;justify-content:space-between;color:#e2d9af;font:900 10px/1 monospace;letter-spacing:2px;text-shadow:0 1px 2px #000;z-index:4}"+
+    ".wr-brand{font-size:clamp(12px,2.4vmin,20px);letter-spacing:3px}.wr-model{opacity:.7;letter-spacing:1px}.wr-led{width:7px;height:7px;border-radius:50%;background:#e34d2b;box-shadow:0 0 8px #ff5c32}"+
+    ".wr-grille{left:8%!important;right:8%!important;top:11%!important;height:27%!important;border-radius:10px!important;background:repeating-linear-gradient(0deg,rgba(224,220,183,.2) 0 2px,rgba(15,20,17,.45) 2px 5px),repeating-linear-gradient(90deg,rgba(255,255,255,.08) 0 1px,transparent 1px 4px),#18211d!important;box-shadow:inset 0 0 0 2px #111814,inset 0 0 20px #000,0 3px 5px rgba(0,0,0,.45)!important}"+
+    ".wr-grille::after{content:'REAL SIGNAL  ·  AM / FM  ·  PORTABLE RECEIVER';position:absolute;left:0;right:0;bottom:8%;text-align:center;color:#c2b98b;font:700 9px monospace;letter-spacing:1.5px;text-shadow:0 1px 2px #000}"+
+    ".wr-shelf{display:none!important}"+
+    ".wr-now{left:12%!important;right:12%!important;top:14%!important;height:21%!important;justify-content:flex-end!important;padding-bottom:22px!important}"+
+    ".wr-now b{max-width:90%!important;color:#ffdf87!important;background:#171b13!important;border:1px solid #a28e4d!important;border-radius:3px!important;font-size:clamp(12px,2.2vmin,19px)!important;padding:5px 12px!important;text-shadow:0 0 8px rgba(255,208,86,.5)!important}"+
+    ".wr-now small{max-width:90%!important;color:#b9d69b!important;background:#111610!important;border:1px solid #596348!important;font-size:9px!important;letter-spacing:1px!important}"+
+    ".wr-dial{left:8%!important;right:8%!important;top:41%!important;height:25%!important;border-radius:8px!important;background:#111611!important;border:2px solid #8a875c!important;padding:4px!important;box-shadow:inset 0 0 12px #000,0 4px 8px rgba(0,0,0,.5)!important}"+
+    ".wr-dial-glass{inset:4px!important;border-radius:4px!important;background:linear-gradient(180deg,#92875b 0%,#d5b968 18%,#e8d58b 50%,#9c8b59 100%)!important;box-shadow:inset 0 0 14px rgba(0,0,0,.55)!important}"+
+    ".wr-dial-band-lbl{color:#182017!important}.wr-dial-band{color:#302a18!important}.wr-dial-tick,.wr-dial-tickN{color:#302a18!important;background:#302a18!important}.wr-needle{background:#bd2c23!important;box-shadow:0 0 6px #ff533a!important}"+
+    ".wr-strip-wrap{top:29%!important;height:42%!important}.wr-st-name{background:rgba(245,229,157,.72)!important;color:#202417!important}.wr-st-name.d0{background:#fff0a4!important;color:#47270d!important;box-shadow:0 0 8px rgba(255,241,143,.7)!important}"+
+    ".wr-knob{bottom:9%!important;width:clamp(48px,8vmin,70px)!important;height:clamp(48px,8vmin,70px)!important;background:radial-gradient(circle at 32% 24%,#d6d2ad 0%,#8e9271 42%,#4c5848 76%,#1c251f 100%)!important;border:2px solid #151b17!important}.wr-knob.left{left:7%!important}.wr-knob.right{right:7%!important}.wr-knob-lbl{bottom:5%!important;color:#e7dfb5!important;width:clamp(70px,12vmin,100px)!important}.wr-knob-lbl.left{left:4%!important}.wr-knob-lbl.right{right:4%!important}"+
+    ".wr-bands{left:25%!important;right:25%!important;bottom:10%!important;max-height:12%!important;overflow:hidden!important;background:#1a211c!important;border:1px solid #7d7b52!important;gap:3px!important;padding:4px!important}.wr-band{padding:4px 7px!important;background:linear-gradient(#dbd09c,#989368)!important;color:#202417!important;border-color:#303a2b!important;font-size:8px!important;letter-spacing:.7px!important}.wr-band.sel{background:#d7a73f!important;color:#2f1c09!important}"+
+    ".wr-nav{position:absolute;left:25%;right:25%;bottom:3%;display:flex;justify-content:center;gap:5px;z-index:8}.wr-nav button{cursor:pointer;border:1px solid #777b59;border-radius:3px;background:#252e28;color:#e8dfb1;font:700 8px monospace;letter-spacing:.8px;padding:4px 8px;box-shadow:inset 0 1px rgba(255,255,255,.12)}.wr-nav button:active{background:#bd9334;color:#171b13}"+
+    "@media (max-width:520px){.wr-grille::after{font-size:7px}.wr-band{padding:3px 5px!important}.wr-nav button{padding:4px 6px;font-size:7px}}";
   document.head.appendChild(st);
 }
 /* SomaFM channel directory. Verified endpoint via SomaFM's official API doc; stream URL pattern
    ice1.somafm.com/{id}-128-mp3 is documented and widely used by community projects. Cached at
    the module level so band-switching doesn't refetch. */
 var _somaCache=null, _somaCacheT=0;
-async function fetchSomaFM(){
+var RADIO_CURATED=[
+  {name:"KEXP · Seattle",url:"https://kexp.streamguys1.com/kexp160.aac",country:"US",state:"WA",codec:"AAC",bitrate:160,tags:"rock indie alternative pop",src:"KEXP"},
+  {name:"Radio Paradise · Main Mix",url:"https://stream.radioparadise.com/aac-320",country:"US",state:"CA",codec:"AAC",bitrate:320,tags:"rock pop alternative eclectic oldies",src:"Radio Paradise"}
+];
+async function fetchSomaFM(signal){
   if(_somaCache && (Date.now()-_somaCacheT)<600000) return _somaCache;
   try{
-    var r=await fetch("https://api.somafm.com/channels.json");
+    var r=await withTO(fetch("https://api.somafm.com/channels.json",{signal:signal}),7000);
     var j=await r.json();
     var out=(j.channels||[]).map(function(c){
       return { name: c.title||c.id, url_resolved: "https://ice1.somafm.com/"+c.id+"-128-mp3",
@@ -9695,6 +9725,11 @@ async function fetchSomaFM(){
     _somaCache=out; _somaCacheT=Date.now();
     return out;
   }catch(e){ nlog("somafm",false,(e&&e.message)||e); return []; }
+}
+function curatedRadioMatches(s,cat){
+  var t=String(s.tags||"").toLowerCase();
+  if(cat.k==="top"||cat.k==="rock"||cat.k==="pop") return true;
+  return cat.tag ? t.indexOf(String(cat.tag).toLowerCase())>=0 : false;
 }
 function somaMatchesCat(s, cat){
   var t=s.tags||"";
@@ -9715,6 +9750,8 @@ function somaMatchesCat(s, cat){
   return t.indexOf(tag)>=0;
 }
 function radioNormName(n){ return String(n||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim().replace(/\s+/g," "); }
+var radioHls=null;
+function stopRadioHls(){ if(!radioHls)return; try{radioHls.destroy();}catch(e){} radioHls=null; }
 
 async function tuneLiveRadio(ch,sl,my){
   if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Live Radio","");
@@ -9731,6 +9768,7 @@ async function tuneLiveRadio(ch,sl,my){
   }
   if(screenArea) screenArea.innerHTML='<div id="radioPane">'+
     '<div class="wr-cabinet">'+
+      '<div class="wr-head"><span class="wr-brand">REAL SIGNAL</span><span class="wr-model">TR-70 WORLD BAND</span><i class="wr-led"></i></div>'+
       '<div class="wr-grille"></div>'+
       '<div class="wr-shelf"></div>'+
       '<div class="wr-now" id="wrNow"><b>Live Radio</b><small>pick a band \u00b7 drag TUNING to scan</small></div>'+
@@ -9745,22 +9783,40 @@ async function tuneLiveRadio(ch,sl,my){
       '<div class="wr-bands" id="wrBands"></div>'+
       '<div class="wr-knob right" id="wrTune"><span class="wr-knob-tick"></span></div>'+
       '<span class="wr-knob-lbl right">TUNING</span>'+
+      '<div class="wr-nav"><button type="button" id="wrPrev" aria-label="Previous station">◀ SEEK</button><button type="button" id="wrNext" aria-label="Next station">SEEK ▶</button></div>'+
       '<audio id="raEl"></audio>'+
     '</div></div>';
 
   /* 7-slot ring: percentages from center of strip. Fixed by construction -- can't overlap. */
   var SLOTS=[{d:3,pct:3},{d:2,pct:15},{d:1,pct:30},{d:0,pct:50},{d:1,pct:70},{d:2,pct:85},{d:3,pct:97}];
-  var rbCurrent=[], curIdx=0, settleT=null;
+  var rbCurrent=[], curIdx=0, settleT=null, failureStreak=0, loadSeq=0, loadAbort=null, lastGood=[];
 
   var stateName=""; try{ var loc=await getWxLocation(); var li=await resolveLocale(loc); if(my!==token)return;
     var ab=(homeLoc&&homeLoc.state)||(li&&li.state)||""; stateName=STATE_NAMES[ab]||""; }catch(e){}
 
   function play(i){ var s=rbCurrent[i]; if(!s)return;
-    var au=$("raEl"); if(au){ au.src=s.url_resolved||s.url; au.volume=Math.min(1,vol); au.muted=muted;
-      au.onerror=function(){ var n=$("wrNow"); if(n&&my===token)n.innerHTML='<b>'+esch(s.name||"")+'</b><small>stream offline \u2014 tune another</small>'; };
-      try{ var pRa=au.play(); if(pRa&&pRa.catch)pRa.catch(function(){}); }catch(e){} }
+    var au=$("raEl"); if(!au)return; var attempt=Date.now()+":"+i, url=s.url_resolved||s.url, kind=rbStreamKind(s);
+    stopRadioHls(); try{au.pause();au.removeAttribute("src");au.load();}catch(e){}
     var now=$("wrNow"); if(now)now.innerHTML='<b>'+esch((s.name||"Unknown").replace(/\s+/g," ").trim())+'</b>'+
       '<small>'+esch([s.src||"radio",s.state,s.country,String(s.codec||"").toUpperCase()+(s.bitrate?(" "+s.bitrate+"k"):"")].filter(Boolean).join(" \u00b7 ").slice(0,80))+'</small>';
+    function failed(){ if(my!==token||attempt!==au.__radioAttempt)return; failureStreak++;
+      if(failureStreak<=3&&rbCurrent.length>1){ var n=$("wrNow"); if(n)n.innerHTML='<b>'+esch(s.name||"")+'</b><small>signal weak \u00b7 seeking next station</small>'; setTimeout(function(){if(my===token)tuneTo((i+1)%rbCurrent.length,true);},180); }
+      else { var n2=$("wrNow"); if(n2)n2.innerHTML='<b>'+esch(s.name||"")+'</b><small>station unavailable \u00b7 press SEEK to continue</small>'; }
+    }
+    au.__radioAttempt=attempt; au.volume=Math.min(1,vol); au.muted=muted; au.onerror=failed; au.onstalled=function(){setTimeout(function(){if(au.readyState<2)failed();},3500);};
+    au.onplaying=function(){ failureStreak=0; var n=$("wrNow"); if(n)n.innerHTML='<b>'+esch((s.name||"Unknown").replace(/\s+/g," ").trim())+'</b>'+
+      '<small>'+esch((s.songtitle||s.title||"LIVE BROADCAST")+" \u00b7 "+[s.src||"radio",s.country,String(s.codec||"").toUpperCase()+(s.bitrate?(" "+s.bitrate+"k"):"")].filter(Boolean).join(" \u00b7 ").slice(0,80))+'</small>'; };
+    function startAttached(){ try{var pRa=au.play();if(pRa&&pRa.catch)pRa.catch(function(){});}catch(e){failed();} }
+    function nativeStart(){ try{au.src=url;startAttached();}catch(e){failed();} }
+    if(kind==="hls"){
+      var H=window.Hls;
+      if(H&&H.isSupported&&H.isSupported()){
+        radioHls=new H({enableWorker:true,maxBufferLength:15,backBufferLength:0});
+        radioHls.on(H.Events.MANIFEST_PARSED,function(){if(my===token&&attempt===au.__radioAttempt)startAttached();});
+        radioHls.on(H.Events.ERROR,function(_,data){if(data&&data.fatal)failed();}); radioHls.loadSource(url); radioHls.attachMedia(au);
+      }else if(au.canPlayType&&au.canPlayType("application/vnd.apple.mpegurl")) nativeStart();
+      else loadHlsLib().then(function(){if(my!==token||attempt!==au.__radioAttempt)return;var HH=window.Hls;if(!HH||!HH.isSupported()){failed();return;}radioHls=new HH({enableWorker:true,maxBufferLength:15,backBufferLength:0});radioHls.on(HH.Events.MANIFEST_PARSED,function(){if(my===token&&attempt===au.__radioAttempt)startAttached();});radioHls.on(HH.Events.ERROR,function(_,data){if(data&&data.fatal)failed();});radioHls.loadSource(url);radioHls.attachMedia(au);}).catch(failed);
+    }else nativeStart();
     nlog("radio",true,(s.name||"?").slice(0,40));
   }
 
@@ -9823,32 +9879,41 @@ async function tuneLiveRadio(ch,sl,my){
 
   async function loadCat(cat){
     if(my!==token)return;
+    var request=++loadSeq; if(loadAbort)try{loadAbort.abort();}catch(e){}
+    loadAbort=(typeof AbortController!=="undefined")?new AbortController():null; var signal=loadAbort&&loadAbort.signal;
     var t=$("wrNow"); if(t)t.innerHTML='<b>Loading '+esch(cat.label.toLowerCase())+'\u2026</b><small>tuning receiver</small>';
     var qs;
-    if(cat.k==="local"&&stateName){ qs="countrycode=US&state="+encodeURIComponent(stateName)+"&order=clickcount&reverse=true&limit=10000"; }
-    else if(cat.k==="top"){ qs="order=clickcount&reverse=true&limit=10000"; }
-    else { qs="tag="+encodeURIComponent(cat.tag)+"&order=clickcount&reverse=true&limit=10000"; }
+    if(cat.k==="local"&&stateName){ qs="countrycode=US&state="+encodeURIComponent(stateName)+"&order=clickcount&reverse=true"; }
+    else if(cat.k==="top"){ qs="order=clickcount&reverse=true"; }
+    else { qs="tag="+encodeURIComponent(cat.tag)+"&order=clickcount&reverse=true"; }
     /* fetch radio-browser and SomaFM in parallel */
-    var pair=await Promise.all([rbSearch(qs), fetchSomaFM()]); if(my!==token)return;
+    var pair=await Promise.all([rbSearch(qs,signal), fetchSomaFM(signal)]); if(my!==token||request!==loadSeq)return;
     var rb=(pair[0]||[]).filter(rbPlayable).map(function(s){ s.src=s.src||"radio-browser"; return s; });
     var soma=(pair[1]||[]).filter(function(s){ return somaMatchesCat(s,cat); });
-    /* merge: soma first (curated, small set), then rb by clickcount. Dedupe by normalized name. */
+    var curated=(RADIO_CURATED||[]).filter(function(s){return curatedRadioMatches(s,cat);});
+    /* merge official stations first, then curated SomaFM, then the broad directory. Keep the
+       high station count, but dedupe it into an organized, varied station shelf. */
     var seen={}; var merged=[];
+    curated.forEach(function(s){var k=radioNormName(s.name);if(!seen[k]){seen[k]=1;merged.push(s);}});
     soma.forEach(function(s){ var k=radioNormName(s.name); if(!seen[k]){ seen[k]=1; merged.push(s); } });
     rb.sort(function(a,b){ return (b.clickcount||0)-(a.clickcount||0); });
     rb.forEach(function(s){ var k=radioNormName(s.name); if(!seen[k]){ seen[k]=1; merged.push(s); } });
+    if(merged.length)lastGood=merged.slice(); else merged=lastGood.slice();
     rbCurrent=merged;
-    if(!rbCurrent.length){ var t2=$("wrNow"); if(t2)t2.innerHTML='<b>No stations on this band</b><small>try another band</small>'; return; }
+    if(!rbCurrent.length){ var t2=$("wrNow"); if(t2)t2.innerHTML='<b>Receiver waiting</b><small>directory offline \u00b7 press the band again</small>'; return; }
     curIdx=0; renderStrip(); play(0);
-    setChanStatus(ch.num, rbCurrent.length+" stations \u00b7 "+cat.label.toLowerCase());
+    var sources={};rbCurrent.forEach(function(s){sources[s.src||"radio-browser"]=1;});
+    setChanStatus(ch.num, rbCurrent.length+" stations \u00b7 "+Object.keys(sources).length+" sources \u00b7 "+cat.label.toLowerCase());
   }
 
   attachTuning(); attachVolume();
   var bandsEl=$("wrBands");
-  if(bandsEl){ bandsEl.innerHTML=RB_CATS.map(function(c,i){return '<span class="wr-band" data-c="'+i+'">'+esch(c.label)+'</span>';}).join("");
+  if(bandsEl){ bandsEl.innerHTML=RB_CATS.map(function(c,i){return '<button type="button" class="wr-band" data-c="'+i+'" aria-label="Load '+esch(c.label)+' stations">'+esch(c.label)+'</button>';}).join("");
     bandsEl.querySelectorAll("[data-c]").forEach(function(el){ el.addEventListener("click",function(){
       bandsEl.querySelectorAll("[data-c]").forEach(function(x){x.classList.remove("sel");}); el.classList.add("sel"); loadCat(RB_CATS[+el.dataset.c]); }); });
   }
+  $("wrPrev")&&$("wrPrev").addEventListener("click",function(){tuneTo(curIdx-1,true);});
+  $("wrNext")&&$("wrNext").addEventListener("click",function(){tuneTo(curIdx+1,true);});
   var startIdx=stateName?0:1; var se=bandsEl&&bandsEl.querySelector('[data-c="'+startIdx+'"]'); if(se)se.classList.add("sel");
   loadCat(RB_CATS[startIdx]);
 }

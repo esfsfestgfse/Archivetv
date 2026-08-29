@@ -52,6 +52,9 @@ const STORM_CENTER_IMAGE_PATH = STORM_CENTER_PATH + "/image";
 const TEXAS_HIGHWAY_IMAGE_PATH = "/live/highways/image";
 const WORLD_CAM_IMAGE_PATH = "/live/cams/image";
 const SNAPSHOT_TTL_SECONDS = 60;
+/* Bump when the public snapshot contract changes so an older raw-provider
+   response cannot be served to a client that expects normalized GeoJSON. */
+const SNAPSHOT_CACHE_VERSION = "v2";
 const ADSB_TTL_SECONDS = 10;
 const SPACE_TTL_SECONDS = 900;
 const WATER_TTL_SECONDS = 300;
@@ -79,6 +82,50 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 90;
 const IA_QUEUE_CACHE_VERSION = "v19";
 const GULF_FILTER = "BBOX(geometry,-98,18,-80,31)";
 const KPLER_FIELDS = "mmsi,longitude,latitude,posDt,sog,vesselName,heading,cog,navStatus,destination,vesselType";
+
+function normalizeShipSnapshot(payload) {
+  /* Providers have used both FeatureCollection and tabular envelopes. Keep
+     that difference at the Worker boundary so the browser has one contract. */
+  let rows = [];
+  if (Array.isArray(payload)) rows = payload;
+  else if (payload && Array.isArray(payload.features)) rows = payload.features;
+  else if (payload && Array.isArray(payload.data)) rows = payload.data;
+  else if (payload && Array.isArray(payload.vessels)) rows = payload.vessels;
+  else if (payload && Array.isArray(payload.results)) rows = payload.results;
+  else if (payload && Array.isArray(payload.items)) rows = payload.items;
+  else if (payload && Array.isArray(payload.records)) rows = payload.records;
+
+  return rows.map((row) => {
+    const feature = row && row.geometry ? row : null;
+    const source = feature && feature.properties ? feature.properties : (row || {});
+    const coords = feature && feature.geometry && Array.isArray(feature.geometry.coordinates)
+      ? feature.geometry.coordinates : [];
+    const latitude = Number(source.latitude ?? source.lat ?? coords[1]);
+    const longitude = Number(source.longitude ?? source.lon ?? source.lng ?? coords[0]);
+    const mmsi = source.mmsi ?? source.MMSI ?? source.imo;
+    return {
+      type: "Feature",
+      geometry: { type: "Point", coordinates: [longitude, latitude] },
+      properties: {
+        mmsi,
+        longitude,
+        latitude,
+        posDt: source.posDt ?? source.positionTime ?? source.timestamp ?? source.seen,
+        sog: source.sog ?? source.speed,
+        cog: source.cog,
+        heading: source.heading,
+        navStatus: source.navStatus ?? source.nav_status,
+        destination: source.destination,
+        vesselName: source.vesselName ?? source.name ?? source.shipName,
+        vesselType: source.vesselType ?? source.type,
+      },
+    };
+  }).filter((feature) => {
+    const p = feature.properties;
+    return p.mmsi != null && Number.isFinite(p.latitude) && Number.isFinite(p.longitude)
+      && p.latitude >= -90 && p.latitude <= 90 && p.longitude >= -180 && p.longitude <= 180;
+  });
+}
 const WFIGS_INCIDENTS_URL = "https://services3.arcgis.com/T4QMspbfLg3qTGWY/arcgis/rest/services/WFIGS_Incident_Locations_Current/FeatureServer/0/query";
 const WFIGS_FIELDS = ["IncidentName", "IncidentSize", "PercentContained", "FireDiscoveryDateTime", "POOState", "POOCounty", "IncidentTypeCategory", "FireBehaviorGeneral", "FireCauseGeneral", "FireMgmtComplexity", "EstimatedCostToDate", "IncidentManagementOrganization"].join(",");
 const GULF_TIDE_STATIONS = [
@@ -1703,7 +1750,7 @@ async function getKplerSnapshot(request, env, ctx) {
   // One fixed cache key prevents public callers from varying the query and
   // keeps either upstream provider from blanking every connected client.
   const url = new URL(request.url);
-  const cacheKey = new Request(url.origin + SNAPSHOT_PATH);
+  const cacheKey = new Request(url.origin + SNAPSHOT_PATH + "?v=" + SNAPSHOT_CACHE_VERSION);
   const cache = caches.default;
   const cached = await cache.match(cacheKey);
   if (cached) {
@@ -1730,10 +1777,13 @@ async function getKplerSnapshot(request, env, ctx) {
       });
       if (upstream.ok) {
         const payload = await upstream.json();
+        const features = normalizeShipSnapshot(payload).slice(0, 1000);
+        if (!features.length) throw new Error("kpler empty or unrecognized");
         const response = json({
           source: "kpler",
           fetchedAt: new Date().toISOString(),
-          ...payload,
+          type: "FeatureCollection",
+          features,
         }, 200, {
           "Cache-Control": "public, max-age=" + SNAPSHOT_TTL_SECONDS,
           "X-Afterglow-Source": "kpler-live",
@@ -1756,34 +1806,13 @@ async function getKplerSnapshot(request, env, ctx) {
     });
     if (!fallback.ok) throw new Error("open waters " + fallback.status);
     const payload = await fallback.json();
-    const features = Array.isArray(payload && payload.features) ? payload.features.slice(0, 1000) : [];
+    const features = normalizeShipSnapshot(payload).slice(0, 1000);
     if (!features.length) throw new Error("open waters empty");
-    const normalized = features.map((feature) => {
-      const properties = feature && feature.properties ? feature.properties : {};
-      const coordinates = feature && feature.geometry && Array.isArray(feature.geometry.coordinates) ? feature.geometry.coordinates : [];
-      return {
-        type: "Feature",
-        geometry: { type: "Point", coordinates },
-        properties: {
-          mmsi: properties.mmsi,
-          longitude: coordinates[0],
-          latitude: coordinates[1],
-          posDt: properties.seen,
-          sog: properties.sog,
-          cog: properties.cog,
-          heading: properties.heading,
-          navStatus: properties.nav_status,
-          vesselName: properties.name,
-          vesselType: properties.type,
-        },
-      };
-    }).filter((feature) => feature.properties.mmsi != null && Number.isFinite(Number(feature.properties.latitude)) && Number.isFinite(Number(feature.properties.longitude)));
-    if (!normalized.length) throw new Error("open waters invalid");
     const response = json({
       source: "openwaters",
       fetchedAt: new Date().toISOString(),
       type: "FeatureCollection",
-      features: normalized,
+      features,
     }, 200, {
       "Cache-Control": "public, max-age=" + SNAPSHOT_TTL_SECONDS,
       "X-Afterglow-Source": "openwaters-live",

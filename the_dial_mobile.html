@@ -1623,7 +1623,7 @@ html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.8-mobile.308-map-basemaps";
+window.__ATV_BUILD="1.7.8-mobile.309-ship-tracker";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1660,7 +1660,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.8-mobile.308 · RealSignal</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.8-mobile.309 · RealSignal</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -13372,7 +13372,7 @@ async function tuneShips(ch,sl,my){
      starts this channel with an empty ocean. It is visibly marked as a snapshot until a
      fresh relay response replaces it. */
   var shipSnapshotCacheKey="afterglowShipTrackerSnapshotV1";
-  var msgCount=0, firstMsgAt=null, lastMsgAt=null, snapshotAt=null, snapshotError=null, dirty=false;
+  var msgCount=0, firstMsgAt=null, lastMsgAt=null, snapshotAt=null, snapshotError=null, snapshotSource="", retryTimer=null, dirty=false;
   /* Gulf-centered map. Center ~27\u00b0N -89\u00b0W = middle of Gulf. Range 700mi covers Brownsville
      to Key West with room for outer shipping lanes. */
   var mp=null;
@@ -13433,7 +13433,7 @@ async function tuneShips(ch,sl,my){
       if(Date.now()-Number(cached.at||0)>6*60*60*1000)return false;
       var added=addSnapshot(cached.payload);
       if(!added)return false;
-      snapshotAt=Number(cached.at)||Date.now(); dirty=true;
+      snapshotAt=Number(cached.at)||Date.now(); snapshotSource="cached snapshot"; dirty=true;
       nlog("ais",true,"restored "+added+" vessels from last-good snapshot");
       return true;
     }catch(e){ return false; }
@@ -13445,13 +13445,15 @@ async function tuneShips(ch,sl,my){
       if(!res.ok)throw new Error("snapshot "+res.status);
       var payload=await res.json(), added=addSnapshot(payload);
       if(!added)throw new Error("empty snapshot");
-      snapshotAt=Date.now(); snapshotError=null; dirty=true;
+      snapshotAt=Date.now(); snapshotSource=String(payload.source||"relay snapshot").toUpperCase(); snapshotError=null; dirty=true;
+      if(retryTimer){clearTimeout(retryTimer);retryTimer=null;}
       /* Bound stored data so repeated snapshots cannot grow the browser cache indefinitely. */
       try{ store.set(shipSnapshotCacheKey,{at:snapshotAt,payload:{source:payload.source||"relay",fetchedAt:payload.fetchedAt||null,type:"FeatureCollection",features:payload.features.slice(0,250)}}); }catch(e){}
       nlog("ais",true,"loaded "+added+" vessel snapshot via relay");
     }catch(e){
       snapshotError=(e&&e.message)||"snapshot unavailable";
       nlog("ais",false,"snapshot fallback unavailable: "+snapshotError);
+      if(!retryTimer) retryTimer=setTimeout(function(){retryTimer=null;refreshSnapshot();},15000);
     }
   }
   function renderList(){
@@ -13459,7 +13461,7 @@ async function tuneShips(ch,sl,my){
     var arr=Object.keys(shipList).map(function(k){return shipList[k];})
       .filter(function(s){return s.lat!=null||s.name;})
       .sort(function(a,b){return b.ts-a.ts;});
-    setChanStatus(ch.num,arr.length+" vessels \u00b7 "+msgCount+" stream msgs"+(snapshotAt?" \u00b7 snapshot":""));
+    setChanStatus(ch.num,arr.length+" vessels \u00b7 "+msgCount+" stream msgs"+(snapshotAt?" \u00b7 "+snapshotSource:""));
     if(shipBug) shipBug.update(String(arr.length),
       arr[0]?((arr[0].name||("MMSI "+arr[0].mmsi))+" \u00b7 "+(arr[0].sog!=null?Math.round(arr[0].sog)+"kn":"tracking")):"vessels in the Gulf");
     var top=arr.slice(0,20);
@@ -13483,7 +13485,7 @@ async function tuneShips(ch,sl,my){
       var elapsed=firstMsgAt?0:Math.floor((Date.now()-tuneStart)/1000);
       if(snapshotAt){
         var snapAgo=Math.floor((Date.now()-snapshotAt)/1000);
-        statusPill(snapAgo<90?"st-live":"st-waiting",Object.keys(shipList).length+" vessels \u00b7 snapshot "+snapAgo+"s ago");
+        statusPill(snapAgo<90?"st-live":"st-waiting",Object.keys(shipList).length+" vessels \u00b7 "+snapshotSource+" "+snapAgo+"s ago");
       } else if(elapsed<12) statusPill("st-connecting","connecting\u2026 "+elapsed+"s");
       else if(elapsed<35) statusPill("st-waiting","stream quiet \u00b7 loading fallback");
       else statusPill("st-down","provider unavailable \u00b7 retrying");
@@ -13504,7 +13506,8 @@ async function tuneShips(ch,sl,my){
     var cutoff=Date.now()-20*60*1000;
     Object.keys(shipList).forEach(function(k){
       var s=shipList[k];
-      if(s.ts<cutoff){ if(s._el&&s._el.remove)s._el.remove(); delete shipList[k]; }
+      var keepSnapshot=s.source==="snapshot" && s.ts>=Date.now()-6*60*60*1000;
+      if(!keepSnapshot && s.ts<cutoff){ if(s._el&&s._el.remove)s._el.remove(); delete shipList[k]; }
     });
     dirty=true;
   },5*60*1000);
@@ -13532,7 +13535,7 @@ async function tuneShips(ch,sl,my){
           var pr=msg.Message.PositionReport; rec.sog=pr.Sog; rec.lat=pr.Latitude; rec.lon=pr.Longitude;
         }
         if(msg.MetaData&&msg.MetaData.ShipName) rec.name=String(msg.MetaData.ShipName).trim();
-        rec.ts=Date.now(); shipList[mmsi]=rec; dirty=true;
+        rec.ts=Date.now(); rec.source="stream"; shipList[mmsi]=rec; dirty=true;
       }catch(e){}
     };
     sock.onerror=function(){ nlog("ais",false,"websocket error"); statusPill("st-waiting","stream error \u00b7 fallback loading"); };

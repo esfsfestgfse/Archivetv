@@ -1418,7 +1418,7 @@ html,body{background:#040706!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.258-outdoors-suite";
+window.__ATV_BUILD="1.7.7-desktop.259-guide-queue";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1455,7 +1455,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.258 · RealSignal</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.259 · RealSignal</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">REALSIGNAL · THE DIAL</div>
@@ -6419,6 +6419,8 @@ var liveGuideState=window.__atvLiveGuideState||{}; window.__atvLiveGuideState=li
 var LIVE_DATA_BEDS={worldclock:"gmjazz",weather:"gmjazz",stormcenter:"gmjazz",localradar:"gmjazz",tropical:"gmtropical",skytraffic:"gmelectro",airport:"gmelectro",airtraffic:"gmelectro",ships:"fieldrec",tides:"fieldrec",river:"fieldrec",space:"gmelectro",solar:"gmelectro",aurora:"gmelectro",iss:"gmelectro",apod:"gmelectro",seismic:"gmelectro",quake:"gmcountry",quakemap:"gmcountry",volcano:"gmcountry",wildfire:"gmcountry",grid:"gmjazz",gas:"gmjazz",sports:"gmjazz",wiki:"gmelectro",hf:"gmelectro",newsstand:"gmjazz"};
 function guideDurationLabel(sec){sec=Math.max(0,Math.round(Number(sec)||0));var h=Math.floor(sec/3600),m=Math.max(0,Math.round((sec%3600)/60));return h?(h+"H "+m+"M"):(m+"M");}
 function guideUpdatedLabel(at){if(!at)return "WAITING FOR LIVE DATA";var age=Math.max(0,Math.round((Date.now()-at)/1000));return age<60?"UPDATED JUST NOW":("UPDATED "+guideDurationLabel(age)+" AGO");}
+function guideItemTitle(item){return String(item&&(item.title||item.identifier||item.id)||"PROGRAM WARMING").replace(/\s+/g," ").trim();}
+function guideItemRuntime(item){var sec=item&&(item.runtime||item.duration||item.length);return Number(sec)>0?guideDurationLabel(sec):"RUNTIME PENDING";}
 function guideQueueItems(ch,sl,current){
   var q=(iaProgramQueues[iaQueueKey(ch)]||[]).filter(function(item){return iaProgramAllowed(item,sl);});
   if(!current)return q;
@@ -6427,15 +6429,18 @@ function guideQueueItems(ch,sl,current){
 }
 function guideQueueNext(ch,sl,current){return guideQueueItems(ch,sl,current)[0]||null;}
 function guideListing(ch){
-  if(!ch)return {now:"OFF AIR",next:"TUNE A CHANNEL",detail:"STANDBY",live:false};
-  if(ch.source){var live=liveGuideState[ch.num]||{},txt=String(live.text||window.__chanStatus[ch.num]||"CONNECTING LIVE DATA");return {now:"LIVE · "+txt,next:"CONTINUOUS LIVE DATA",detail:guideUpdatedLabel(live.at),live:true};}
-  /* Only the tuned channel is NOW. Older builds reused persisted play history for inactive
-     rows, producing stale clock-like listings instead of the actual preloaded queue. */
-  var sl=typeof slotFor==="function"?slotFor(ch,0,{preview:true}):null, current=(ch.num===curNum&&curItem)?curItem:null, next=guideQueueNext(ch,sl,current);
-  if(ch.num===curNum&&curItem&&curItem.title)return {now:"NOW · "+curItem.title,next:next?("NEXT · "+(next.title||next.identifier)):"NEXT · BUFFER WARMING",detail:"PROGRAM IN PROGRESS",live:false};
-  if(next)return {now:"UP NEXT · "+(next.title||next.identifier),next:next.runtime?("RUNS "+iaRuntimeLabel(next.runtime)):"READY IN BUFFER",detail:"PROGRAM BUFFER READY",live:false};
-  return {now:"BUILDING PROGRAM LINEUP",next:"FIVE-SHOW BUFFER WARMING",detail:"ARCHIVE DIRECTOR",live:false};
+  if(!ch)return {now:"OFF AIR",next:"TUNE A CHANNEL",detail:"STANDBY",state:"standby",live:false,ready:0,capacity:5};
+  if(ch.source){var live=liveGuideState[ch.num]||{},txt=String(live.text||window.__chanStatus[ch.num]||"CONNECTING LIVE DATA");return {now:"LIVE · "+txt,next:"CONTINUOUS LIVE DATA",detail:guideUpdatedLabel(live.at),state:"live",live:true,ready:null,capacity:null};}
+  /* The guide is queue-backed: it never invents clock/daypart listings. */
+  var sl=typeof slotFor==="function"?slotFor(ch,0,{preview:true}):null;
+  var current=(ch.num===curNum&&curItem&&curItem.title)?curItem:null;
+  var items=guideQueueItems(ch,sl,current),queuedNext=guideQueueNext(ch,sl,current),capacity=5,ready=Math.min(capacity,items.length+(current?1:0));
+  var nextItem=current?queuedNext:(items[1]||null),upItem=current?null:(items[0]||null);
+  if(current)return {now:"NOW · "+guideItemTitle(current),next:nextItem?("NEXT · "+guideItemTitle(nextItem)+" · "+guideItemRuntime(nextItem)):"NEXT · BUFFER WARMING",detail:ready+" / "+capacity+" READY · "+guideItemRuntime(current),state:"playing",live:false,ready:ready,capacity:capacity};
+  if(upItem)return {now:"UP NEXT · "+guideItemTitle(upItem),next:nextItem?("THEN · "+guideItemTitle(nextItem)+" · "+guideItemRuntime(nextItem)):"NEXT · BUFFER WARMING",detail:ready+" / "+capacity+" READY · PROGRAM QUEUE",state:"ready",live:false,ready:ready,capacity:capacity};
+  return {now:"BUILDING PROGRAM LINEUP",next:"FIVE-SHOW BUFFER WARMING",detail:"0 / "+capacity+" READY · ARCHIVE QUEUE",state:"warming",live:false,ready:0,capacity:capacity};
 }
+function guideProgramState(ch){return guideListing(ch);}
 function startLiveDataBed(ch,sl){if(!ch||ch.cat!=="LDATA")return;var source=(sl&&sl.source)||ch.source||"";if(/^(livetv|livecams|highway|liveradio)$/.test(source))return;try{if(typeof startIAJazz==="function")startIAJazz(LIVE_DATA_BEDS[source]||"gmjazz");}catch(e){}}
 function refreshGuideData(){try{if(gwrap&&gwrap.classList.contains("show")){guideUpdatePreview();renderRail();}}catch(e){}}
 function setChanStatus(num,text){ try{var status=String(text||"LIVE DATA");window.__chanStatus[num]=status;liveGuideState[num]={text:status,at:Date.now()};refreshGuideData();}catch(e){} }
@@ -6505,10 +6510,14 @@ var guidePrimeRun=0;
 function primeGuideQueues(rows){
   if(!powered)return;
   var run=++guidePrimeRun,queue=(rows||visibleChannels()).filter(function(ch){return !ch.source;}),cursor=0,active=0;
+  /* Browsing the guide must never compete with tuning. Warm the active/visible shelf
+     first and keep the background load deliberately small instead of bursting every IA lane. */
+  queue.sort(function(a,b){var aq=(a.num===curNum?0:1),bq=(b.num===curNum?0:1);return aq-bq||a.num-b.num;});
+  queue=queue.slice(0,48);
   function guideOpen(){var epg=$("tvgOv");return !!((gwrap&&gwrap.classList.contains("show"))||(epg&&epg.classList.contains("show")));}
   function refresh(){if(gwrap&&gwrap.classList.contains("show"))renderRail();var epg=$("tvgOv");if(epg&&epg.classList.contains("show"))renderTVGuide();}
   function pump(){if(run!==guidePrimeRun||!guideOpen())return;
-    while(active<4&&cursor<queue.length){(function(ch){active++;refillIAQueue(ch,slotFor(ch,0,{preview:true})).catch(function(){}).finally(function(){active--;refresh();setTimeout(pump,90);});})(queue[cursor++]);}}
+    while(active<2&&cursor<queue.length){(function(ch){active++;refillIAQueue(ch,slotFor(ch,0,{preview:true})).catch(function(){}).finally(function(){active--;refresh();setTimeout(pump,320);});})(queue[cursor++]);}}
   pump();
 }
 function openGuide(){gwrap.classList.add("show");renderGuide();primeGuideQueues();updateClocks();}
@@ -6556,7 +6565,7 @@ var _gTickerHints=[
   "950–970 LIVE DATA · REAL TIME",
   "500–509 RETRO · VHS + INFOMERCIAL",
   "700–703 HOLIDAY · SEASONAL LOOPS",
-  "50–79 SPORTS SUITE · LIVE + ARCHIVE",
+  "50–83 SPORTS + OUTDOORS · LIVE + ARCHIVE",
   "223–225 BLACK MEDIA VAULT",
   "TAP THE GUIDE TO SEARCH",
   "HOLD A CHANNEL NUMBER TO PIN"
@@ -7146,7 +7155,7 @@ $("rVolUp").addEventListener("click",()=>setVol(.1));
 $("rVolDn").addEventListener("click",()=>setVol(-.1));
 $("gClose").addEventListener("click",closeGuide);
 $("favFilter").addEventListener("click",()=>{favOnly=!favOnly;$("favFilter").style.background=favOnly?"linear-gradient(180deg,#ffd98a,#e0b052)":"";
-  $("railTitle").textContent=favOnly?"FAVORITES":"CHANNEL GUIDE";renderRail();});
+  $("railTitle").textContent=favOnly?"FAVORITES":"CHANNEL GUIDE";renderRail();primeGuideQueues(visibleChannels());});
 (function wireGuideSearch(){
   var inp=$("gSearch"), x=$("gSearchX");
   if(!inp)return;
@@ -7155,7 +7164,7 @@ $("favFilter").addEventListener("click",()=>{favOnly=!favOnly;$("favFilter").sty
     var t=$("railTitle");
     if(t) t.textContent = inp.value.trim() ? ("SEARCH: "+inp.value.trim().toUpperCase().slice(0,22))
                         : (favOnly?"FAVORITES":"CHANNEL GUIDE");
-    renderRail();
+    renderRail();primeGuideQueues(visibleChannels());
   }
   inp.addEventListener("input",function(){ clearTimeout(window.__gQT); window.__gQT=setTimeout(apply,140); });
   /* the app binds number keys and arrows for tuning -- stop them firing while typing */
@@ -7592,7 +7601,7 @@ function buildCatNav(){
   if(!catNav)return;catNav.innerHTML="";
   GUIDE_CATEGORIES.forEach(function(group){
     var button=document.createElement("button");button.type="button";button.className="catchip"+(catFilter===group.id?" act":"");button.textContent=group.label;button.style.color=group.color;button.title=group.meta;
-    button.addEventListener("click",function(){catFilter=group.id;catNav.querySelectorAll(".catchip").forEach(function(item){item.classList.remove("act");});button.classList.add("act");renderRail();});catNav.appendChild(button);
+    button.addEventListener("click",function(){catFilter=group.id;catNav.querySelectorAll(".catchip").forEach(function(item){item.classList.remove("act");});button.classList.add("act");renderRail();primeGuideQueues(visibleChannels());});catNav.appendChild(button);
   });
 }
 

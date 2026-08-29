@@ -1567,6 +1567,47 @@ html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important
   #sportsVideoPlayer{min-height:150px!important}
 }
 @media(prefers-reduced-motion:reduce){.tv3-list .dc-row2,.sports-live-card,#sportsVideoList .score-card{transition:none!important;transform:none!important}}
+/* 306: live sports desk refresh. Keep the retro phosphor palette, but give the scoreboard a
+   clear hierarchy: live first, then soon, with balanced sport cards instead of a flat wall. */
+.sports-brand{display:flex;align-items:center;gap:9px;min-width:0;flex:1}
+.sports-brand-mark{display:grid;place-items:center;width:25px;height:25px;border:1px solid #8fff5c;border-radius:50%;color:#ff5e5e;font-size:10px;box-shadow:0 0 12px rgba(143,255,92,.18)}
+.sports-brand div{display:flex;flex-direction:column;gap:2px;min-width:0}
+.sports-brand b{font:900 13px/1 system-ui,-apple-system,sans-serif;letter-spacing:1.6px;color:#edfff0}
+.sports-brand small{font:700 8px/1 monospace;letter-spacing:.7px;color:rgba(159,214,166,.68);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sports-toolbar .sports-dropdown{max-width:220px}
+.sports-today-head{display:flex;justify-content:space-between;align-items:flex-end;gap:14px;padding:10px 3px 11px;margin-bottom:8px;border-bottom:1px solid rgba(143,255,92,.16);background:linear-gradient(90deg,rgba(143,255,92,.05),transparent 65%)}
+.sports-today-eyebrow{font:900 8px monospace;letter-spacing:1.8px;color:#ff8175}
+.sports-today-head h2{margin:4px 0 3px;font:900 clamp(17px,2.3vw,24px)/1 system-ui,-apple-system,sans-serif;letter-spacing:.2px;color:#effff2}
+.sports-today-head p{margin:0;font:600 9px monospace;color:rgba(159,214,166,.68)}
+.sports-today-stats{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.sports-today-stats span{display:flex;flex-direction:column;align-items:center;min-width:55px;padding:6px 8px;border:1px solid rgba(143,255,92,.18);border-radius:6px;background:rgba(0,0,0,.22);font:800 8px monospace;letter-spacing:.8px;color:rgba(159,214,166,.7)}
+.sports-today-stats b{font:900 17px/1 monospace;color:#8fff5c;margin-bottom:3px}
+.sports-today-section{margin:0 0 10px}
+.sports-today-section-head{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:0 3px 5px;border-bottom:1px solid rgba(143,255,92,.12)}
+.sports-today-section-head b{font:900 10px monospace;letter-spacing:1.2px;color:#eaffed}
+.sports-today-section-head span{font:700 8px monospace;color:rgba(159,214,166,.58)}
+.sports-today-section.live .sports-today-section-head b::before{content:"";display:inline-block;width:7px;height:7px;margin-right:6px;border-radius:50%;background:#ff5e4d;box-shadow:0 0 9px rgba(255,94,77,.8)}
+.sports-today-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:6px;margin-top:6px}
+.sports-today-card{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:9px;min-width:0;padding:9px 10px;border:1px solid rgba(143,255,92,.14);border-left:3px solid rgba(143,255,92,.55);border-radius:7px;background:linear-gradient(110deg,rgba(13,34,18,.86),rgba(5,14,8,.8));color:#eaffed;text-align:left;cursor:pointer;transition:transform .12s ease,background .12s ease,border-color .12s ease}
+.sports-today-card:hover{transform:translateY(-1px);background:linear-gradient(110deg,rgba(29,72,36,.9),rgba(7,19,11,.86));border-color:rgba(143,255,92,.46)}
+.sports-today-card.live{border-left-color:#ff5e4d;background:linear-gradient(110deg,rgba(56,22,20,.72),rgba(17,10,9,.8))}
+.sports-today-card.final{opacity:.75;border-left-color:rgba(159,214,166,.38)}
+.sports-today-badge{font:900 8px monospace;letter-spacing:.5px;color:#8fff5c;white-space:nowrap}
+.sports-today-card.live .sports-today-badge{color:#ff8e82}.sports-today-card.final .sports-today-badge{color:rgba(159,214,166,.65)}
+.sports-today-main{display:flex;flex-direction:column;gap:4px;min-width:0}.sports-today-main b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:800 11px/1.1 system-ui,-apple-system,sans-serif;color:#edfff0}.sports-today-main small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:600 8px monospace;color:rgba(159,214,166,.62)}
+.sports-today-sport{max-width:88px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:900 8px monospace;letter-spacing:.6px;color:rgba(159,214,166,.66)}
+.sports-today-empty{padding:10px;border:1px dashed rgba(143,255,92,.15);border-radius:6px;margin-top:6px;font:600 9px monospace;color:rgba(159,214,166,.6)}
+.sports-today-empty.standalone{margin-top:10px}
+.sports-scoredeck-head{display:flex;justify-content:space-between;align-items:flex-end;gap:14px;padding:10px 3px 11px;margin-bottom:8px;border-bottom:1px solid rgba(143,255,92,.16);background:linear-gradient(90deg,rgba(143,255,92,.05),transparent 65%)}
+.sports-scoredeck-head h2{margin:4px 0 3px;font:900 clamp(17px,2.3vw,24px)/1 system-ui,-apple-system,sans-serif;color:#effff2}
+.sports-scoredeck-head p{margin:0;font:600 9px monospace;color:rgba(159,214,166,.68)}
+.sports-score-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:8px;align-items:start}
+.sports-score-grid .score-card{margin:0!important;height:100%;box-sizing:border-box;border-radius:8px;background:linear-gradient(115deg,rgba(13,34,18,.86),rgba(5,14,8,.8));transition:transform .12s ease,background .12s ease,border-color .12s ease}
+.sports-score-grid .score-card:hover{transform:translateY(-1px);background:linear-gradient(115deg,rgba(29,72,36,.88),rgba(7,19,11,.86))}
+@media(max-width:700px){
+  .sports-brand small{display:none}.sports-toolbar .sports-dropdown{max-width:none}.sports-today-head,.sports-scoredeck-head{align-items:flex-start;flex-direction:column;gap:8px}.sports-today-stats{width:100%;justify-content:stretch}.sports-today-stats span{flex:1}.sports-today-grid,.sports-score-grid{grid-template-columns:1fr}.sports-today-card{grid-template-columns:auto minmax(0,1fr);padding:9px 8px}.sports-today-sport{grid-column:2;grid-row:2;max-width:none}.sports-today-main{grid-row:1/3}
+}
+@media(prefers-reduced-motion:reduce){.sports-today-card{transition:none!important;transform:none!important}}
 </style>
 </head>
 <body>
@@ -1580,7 +1621,7 @@ html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.8-mobile.305-octagon-rescue";
+window.__ATV_BUILD="1.7.8-mobile.306-sports-overhaul";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1617,7 +1658,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.8-mobile.305 · RealSignal</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.8-mobile.306 · RealSignal</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -13636,7 +13677,7 @@ async function ytUploadsPlaylist(handle){
 async function tuneSports(ch,sl,my){
   if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Sports Center","");
   if(screenArea) screenArea.innerHTML='<div class="dc-screen" id="dcScreen" style="flex-direction:column">'+
-    '<div class="sports-toolbar"><span class="sports-toolbar-label">SPORT DESK</span><select id="sportsPicker" class="sports-dropdown" aria-label="Choose sport"></select></div>'+
+    '<div class="sports-toolbar"><div class="sports-brand"><span class="sports-brand-mark">●</span><div><b>SPORTS CENTER</b><small>LIVE SCOREBOARD · EVERY SPORT, ONE DESK</small></div></div><select id="sportsPicker" class="sports-dropdown" aria-label="Choose sport"></select></div>'+
     '<div id="sportsSubPicker" class="catnav" style="flex:0 0 auto;padding:0 8px 6px"></div>'+
     '<div id="sportsBody" style="flex:1 1 auto;min-height:0;overflow-y:auto;padding:2px 8px"></div>'+
     '<div class="dc-ticker" id="sportsTicker">ESPN &amp; TheSportsDB \u00b7 real highlights from official league YouTube channels \u00b7 tap a team in Standings to follow it</div>'+
@@ -13675,6 +13716,45 @@ async function tuneSports(ch,sl,my){
   function espnDateParam(off){
     var d=new Date(Date.now()+off*86400000);
     return d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0");
+  }
+  function todaySportKey(label){ return String(label||"sport").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")||"sport"; }
+  function todaySportFamily(label){
+    var s=todaySportKey(label);
+    if(/nfl|college-fb|football/.test(s))return "football";
+    if(/nba|wnba|college-bb|basketball/.test(s))return "basketball";
+    if(/mlb|college-baseball|baseball/.test(s))return "baseball";
+    if(/soccer|mls|world-cup/.test(s))return "soccer";
+    if(/tennis|wta|atp/.test(s))return "tennis";
+    if(/golf|lpga|pga/.test(s))return "golf";
+    if(/f1|nascar|indycar|formula-e|motogp|motorsport/.test(s))return "motorsport";
+    if(/mma|bellator|one-champ|boxing/.test(s))return "combat";
+    return s;
+  }
+  function balancedTodayRows(input, cap, perSport){
+    var buckets={};
+    input.forEach(function(row){ var k=todaySportFamily(row.sport); (buckets[k]||(buckets[k]=[])).push(row); });
+    var keys=Object.keys(buckets).sort(function(a,b){ return buckets[b].length-buckets[a].length || a.localeCompare(b); });
+    var out=[], active=true;
+    while(active&&out.length<cap){ active=false; keys.forEach(function(k){
+      var bucket=buckets[k]; if(!bucket.length)return;
+      var used=perSport==null?Infinity:perSport;
+      if(bucket._taken==null)bucket._taken=0;
+      if(bucket._taken>=used)return;
+      var row=bucket.shift(); bucket._taken++; out.push(row); active=true;
+    }); }
+    return out;
+  }
+  function todayCard(row){
+    var cls=row.state==="in"?"live":row.state==="post"?"final":"pre";
+    var tm=row.ts?new Date(row.ts).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}):"";
+    var badge=row.state==="in"?"LIVE":row.state==="post"?"FINAL":(tm||"SOON");
+    return '<button type="button" class="sports-today-card '+cls+'" data-sport-key="'+esch(todaySportKey(row.sport))+'">'+
+      '<span class="sports-today-badge">'+esch(badge)+'</span><span class="sports-today-main"><b>'+esch(row.label.slice(0,72))+'</b>'+
+      (row.detail?'<small>'+esch(row.detail.slice(0,42))+'</small>':'')+'</span><span class="sports-today-sport">'+esch(row.sport)+'</span></button>';
+  }
+  function todaySection(title, meta, rows, cls){
+    return '<section class="sports-today-section '+cls+'"><div class="sports-today-section-head"><b>'+title+'</b><span>'+meta+'</span></div>'+
+      (rows.length?'<div class="sports-today-grid">'+rows.map(todayCard).join("")+'</div>':'<div class="sports-today-empty">No '+title.toLowerCase()+' across the connected scoreboards.</div>')+'</section>';
   }
   async function renderOnToday(){
     var my2=token;
@@ -13734,7 +13814,7 @@ async function tuneSports(ch,sl,my){
        same title (seen live: "Palermo Ladies Open" listed twice). Key on sport+label+time. */
     var seenRow={};
     rows=rows.filter(function(r){
-      var k=r.sport+"|"+r.label+"|"+(r.detail||"");
+      var k=todaySportFamily(r.sport)+"|"+r.label+"|"+(r.detail||"");
       if(seenRow[k]) return false; seenRow[k]=1; return true;
     });
     rows.sort(function(a,b){
@@ -13745,29 +13825,27 @@ async function tuneSports(ch,sl,my){
     });
 
     if(my2!==token||sportsSubView!=="today")return;
-    var head='<div style="font:700 10px monospace;color:#9fd6a6;margin-bottom:6px">'+
-      dayLabel+' \u00b7 '+dObj.toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"})+
-      ' \u00b7 '+rows.length+' EVENT'+(rows.length===1?"":"S")+' ACROSS '+espnSports.length+' SPORTS</div>';
+    var liveRows=rows.filter(function(r){return r.state==="in";});
+    var soonRows=rows.filter(function(r){return r.state!=="in"&&r.state!=="post"&&(!r.ts||r.ts>=Date.now()-30*60*1000);});
+    var finalRows=rows.filter(function(r){return r.state==="post";});
+    var liveShown=onTodayOffset===0?balancedTodayRows(liveRows,24,3):[];
+    var soonShown=balancedTodayRows(soonRows,24,2);
+    var finalShown=balancedTodayRows(finalRows,12,1);
+    var sportCount={}; rows.forEach(function(r){sportCount[todaySportFamily(r.sport)]=1;});
+    var head='<div class="sports-today-head"><div><span class="sports-today-eyebrow">'+dayLabel+'</span><h2>'+dObj.toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric"})+'</h2><p>Verified scoreboard events · refreshed with the live sports feed</p></div><div class="sports-today-stats"><span><b>'+liveRows.length+'</b> LIVE</span><span><b>'+soonRows.length+'</b> SOON</span><span><b>'+Object.keys(sportCount).length+'</b> SPORTS</span></div></div>';
     if(!rows.length){
-      bodyEl.innerHTML=nav+head+'<div class="pop-empty">Nothing scheduled '+dayLabel.toLowerCase()+' across the sports we cover.</div>';
+      bodyEl.innerHTML=nav+head+'<div class="sports-today-empty standalone">Nothing scheduled '+dayLabel.toLowerCase()+' across the sports we cover.</div>';
       wireDayNav(); return;
     }
-    /* Compact single-line rows. The first build gave every event a full card with the detail on
-       its own padded line -- ~90px per event, so only 7 of 363 fit on screen. Everything now
-       sits on one line at ~30px, which is what a real schedule looks like. */
-    bodyEl.innerHTML=nav+head+'<div class="ot-list">'+rows.map(function(r){
-      var cls=r.state==="in"?"live":r.state==="post"?"final":"pre";
-      var tm=r.ts?new Date(r.ts).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}):"";
-      var badge=r.state==="in"?"LIVE":r.state==="post"?"FINAL":(tm||"SOON");
-      return '<div class="ot-row'+(r.state==="in"?" ot-live":"")+'">'+
-        '<span class="ot-badge '+cls+'">'+esch(badge)+'</span>'+
-        '<span class="ot-name">'+esch(r.label.slice(0,60))+'</span>'+
-        (r.detail?'<span class="ot-detail">'+esch(r.detail.slice(0,22))+'</span>':'')+
-        '<span class="ot-sport">'+esch(r.sport)+'</span>'+
-      '</div>';
-    }).join("")+'</div>';
+    bodyEl.innerHTML=nav+head+todaySection("LIVE NOW",liveShown.length+" of "+liveRows.length+" events",liveShown,"live")+
+      todaySection("STARTING SOON",soonShown.length+" of "+soonRows.length+" events",soonShown,"soon")+
+      (finalShown.length?todaySection("RECENT RESULTS",finalShown.length+" selected results",finalShown,"final"):"");
     wireDayNav();
-    nlog("sportstoday",true,rows.length+" events "+dayLabel);
+    bodyEl.querySelectorAll("[data-sport-key]").forEach(function(btn){ btn.addEventListener("click",function(){
+      var key=btn.dataset.sportKey, sp=SPORTS_LIST.find(function(x){return todaySportKey(x.label)===key;});
+      if(sp){ pickerEl.value=sp.k; sportsSubView="scores"; renderSubPicker(); loadSport(sp); }
+    }); });
+    nlog("sportstoday",true,rows.length+" events, "+liveShown.length+" live shown across "+Object.keys(sportCount).length+" sports "+dayLabel);
   }
   function wireDayNav(){
     bodyEl.querySelectorAll("[data-day]").forEach(function(btn){
@@ -13906,7 +13984,9 @@ async function tuneSports(ch,sl,my){
   function renderScores(){
     if(!curEvents.length){ bodyEl.innerHTML='<div class="pop-empty">No '+esch(curSport.label)+' events right now.</div>'; return; }
     var favs=getFavTeams();
-    bodyEl.innerHTML=curEvents.map(function(ev){
+    var liveCount=curEvents.filter(function(ev){return ev.status&&ev.status.type&&ev.status.type.state==="in";}).length;
+    var preCount=curEvents.filter(function(ev){return ev.status&&ev.status.type&&ev.status.type.state==="pre";}).length;
+    var scoreCards=curEvents.map(function(ev){
       var comp=ev.competitions&&ev.competitions[0]; var competitors=(comp&&comp.competitors)||[];
       if(!competitors.length) return "";
       /* three genuinely different shapes exist in ESPN's real data (verified via live API calls,
@@ -13921,6 +14001,7 @@ async function tuneSports(ch,sl,my){
       var isTeamBased=!!(competitors[0].team||(competitors[1]&&competitors[1].team));
       return isTeamBased?renderTeamCard(ev,comp,competitors,favs):renderAthleteMatchCard(ev,comp,competitors);
     }).join("");
+    bodyEl.innerHTML='<div class="sports-scoredeck"><div class="sports-scoredeck-head"><div><span class="sports-today-eyebrow">SCOREBOARD</span><h2>'+esch(curSport.label)+'</h2><p>Live status from the connected league feed · select a game for details</p></div><div class="sports-today-stats"><span><b>'+liveCount+'</b> LIVE</span><span><b>'+preCount+'</b> UPCOMING</span><span><b>'+curEvents.length+'</b> TOTAL</span></div></div><div class="sports-score-grid">'+scoreCards+'</div></div>';
     bodyEl.querySelectorAll("[data-eventid]").forEach(function(card){
       var eid=card.dataset.eventid; if(!eid)return;
       var pid=card.dataset.playerid;

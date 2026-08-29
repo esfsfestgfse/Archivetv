@@ -1556,7 +1556,7 @@ html,body{background:#040706!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.8-desktop.282-sports-directory";
+window.__ATV_BUILD="1.7.8-desktop.283-map-basemaps";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1593,7 +1593,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.8-desktop.282 · RealSignal</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.8-desktop.283 · RealSignal</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">REALSIGNAL · THE DIAL</div>
@@ -12085,6 +12085,9 @@ async function tuneQuakeMap(ch,sl,my){
       if(mapEl){
         var W=400, H=200;
         var svgParts=['<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;max-height:100%;filter:drop-shadow(0 0 8px rgba(103,255,134,.15))">'];
+        /* Use a real geographic basemap here too. The old view had only graticule lines, which
+           made a global data desk look like an abstract scatter plot instead of an Earth map. */
+        svgParts.push('<image href="https://upload.wikimedia.org/wikipedia/commons/8/83/Equirectangular_projection_SW.jpg" x="0" y="0" width="'+W+'" height="'+H+'" preserveAspectRatio="none" opacity=".58"/>');
         /* subtle graticule */
         for(var lat=-60;lat<=60;lat+=30){
           var y=(90-lat)/180*H;

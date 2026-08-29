@@ -1452,7 +1452,7 @@ html,body{background:#040706!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.263-fast-catalogs";
+window.__ATV_BUILD="1.7.7-desktop.265-pluto-iptv";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1489,7 +1489,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.263 · RealSignal</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.265 · RealSignal</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">REALSIGNAL · THE DIAL</div>
@@ -9974,7 +9974,7 @@ var IPTV_TABS=[
  /* Service tabs first -- these match on the SOURCE a channel came from (c.src) rather than its
     genre, so each FAST provider gets its own browsable lineup the way a real box presents them.
     Genre tabs follow and still match on group-title. */
- {label:"FEATURED FAST",src:/^(Checked|Tubi|Roku|Pluto TV|Samsung TV\+|Plex|Xumo|DistroTV|Local Now|TCL\+|LG Channels|Vizio WatchFree\+|VIDAA|Whale TV\+|Cineverse|Galaxy TV)$/i},
+ {label:"IPTV ORG",src:/^IPTV-org$/i},{label:"FEATURED FAST",src:/^(Checked|Tubi|Roku|Pluto TV|Samsung TV\+|Plex|Xumo|DistroTV|Local Now|TCL\+|LG Channels|Vizio WatchFree\+|VIDAA|Whale TV\+|Cineverse|Galaxy TV)$/i},
  {label:"ROKU",src:/^Roku$/i},{label:"PLUTO",src:/^Pluto TV$/i},{label:"TUBI",src:/^Tubi$/i},
  {label:"SAMSUNG",src:/^Samsung TV\+$/i},{label:"PLEX",src:/^Plex$/i},{label:"XUMO",src:/^Xumo$/i},
  {label:"DISTRO",src:/^DistroTV$/i},{label:"LOCAL NOW",src:/^Local Now$/i},{label:"TCL\+",src:/^TCL\+$/i},
@@ -10372,6 +10372,16 @@ async function playTV(c,my,list,idx,triedCount,proxyIdx){
        stay where its told to be"). Auto-advancing made sense while surfing, but when you pick a
        specific channel, silently hopping to a different one is wrong -- it should say what
        happened and stay put. Channel-hopping now only happens if explicitly requested. */
+    /* try the SAME channel through the next configured proxy before writing it off -- a stream
+       that fails on one proxy very often works on another (rate limits, blocked origins). Only
+       after every proxy has been tried do we move on to the next channel. */
+    if(proxyIdx+1<proxies.length){
+      nlog("livetv",false,c.name+": retrying via proxy "+(proxyIdx+2)+"/"+proxies.length);
+      setTimeout(function(){ if(my===token) playTV(c,my,list,idx,triedCount,proxyIdx+1); },400);
+      return;
+    }
+    /* Explicit picks stay on the selected channel, but only after every configured proxy has
+       had a chance. Pluto and Roku can fail on one edge while working on the next. */
     if(window.__tvNoAdvance){
       var pane0=$("tvPane");
       if(pane0) pane0.innerHTML='<div class="dc-media-cap">'+esch(String(c.name).toUpperCase())+
@@ -10379,14 +10389,6 @@ async function playTV(c,my,list,idx,triedCount,proxyIdx){
                         /codec|never decoded/i.test(m)?"unsupported video codec on this device":
                         /stalled/i.test(m)?"stream stalled":"failed to connect")+
         '<br><span style="opacity:.7">pick another channel from the list</span></div>';
-      return;
-    }
-    /* try the SAME channel through the next configured proxy before writing it off -- a stream
-       that fails on one proxy very often works on another (rate limits, blocked origins). Only
-       after every proxy has been tried do we move on to the next channel. */
-    if(proxyIdx+1<proxies.length){
-      nlog("livetv",false,c.name+": retrying via proxy "+(proxyIdx+2)+"/"+proxies.length);
-      setTimeout(function(){ if(my===token) playTV(c,my,list,idx,triedCount,proxyIdx+1); },400);
       return;
     }
     markTvFail(c);  /* every proxy exhausted -- genuinely didn't play on this device */

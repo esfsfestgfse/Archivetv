@@ -1580,7 +1580,7 @@ html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.8-mobile.302-guide-remote";
+window.__ATV_BUILD="1.7.8-mobile.303-fast-fallback";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1617,7 +1617,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.8-mobile.302 · RealSignal</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.8-mobile.303 · RealSignal</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -10340,7 +10340,8 @@ var FAST_FEEDS=[
   ["Whale TV+","https://www.apsattv.com/whaletvplus_us.m3u"],["Cineverse","https://www.apsattv.com/cineverse.m3u"],
   ["Galaxy TV","https://www.apsattv.com/galxytv.m3u"]
 ];
-async function fetchM3USource(label,url,filter){try{var response=await withTO(fetch(url,{cache:"no-store"}),12000);if(!response.ok)throw new Error("http "+response.status);var list=parseM3U(await response.text()).filter(filter||function(){return true;});list.forEach(function(c){c.src=label;});nlog("livetv",true,label+": "+list.length);return list;}catch(e){nlog("livetv",false,label+": "+((e&&e.message)||e));return [];}}
+function fetchM3UTextBounded(url){var request=function(u,ms){return withTO(fetch(u,{cache:"no-store"}).then(function(r){if(!r.ok)throw new Error("http "+r.status);return r.text();}),ms);};var attempts=[{tag:"m3u-direct",delay:0,run:function(){return request(url,6500);}}];CORS_RELAYS.forEach(function(make,i){attempts.push({tag:"m3u-relay-"+(i+1),delay:450+(i*450),run:function(){return request(make(url),7000);}});});return firstOk(attempts);}
+async function fetchM3USource(label,url,filter){try{ /* Some public FAST playlist hosts reject the browser/null origin. Use a bounded direct-first relay race so a blocked host can still populate its own source shelf without serial proxy failures delaying Live TV. */ var text=await fetchM3UTextBounded(url);var list=parseM3U(text).filter(filter||function(){return true;});list.forEach(function(c){c.src=label;});nlog("livetv",true,label+": "+list.length);return list;}catch(e){nlog("livetv",false,label+": "+((e&&e.message)||e));return [];}}
 async function fetchIPTV(){
   /* QA FIX + FEATURE: this function's definition was accidentally destroyed during an earlier
      wholesale block port (it was still being called from tuneLiveTV and the sports fallback,
@@ -10508,6 +10509,7 @@ async function loadTVCat(tab,my){
   var listEl=$("dcList"); if(!listEl||!tab)return;
   listEl.innerHTML='<div class="pop-empty">Loading channels…</div>';
   var all=await fetchIPTV(); if(my!==token)return;
+  if(window.__tvRefreshSources)window.__tvRefreshSources(all);
   if(!all.length){ listEl.innerHTML='<div class="pop-empty">Couldn’t reach the iptv-org list — will retry.</div>'; return; }
   /* QA FIX: this capped each genre at 60 channels, which truncated the list partway through the
      alphabet -- the Music tab visibly "stopped at M". No cap now, and sorted A-Z so the list is
@@ -10798,7 +10800,10 @@ async function tuneLiveTV(ch,sl,my){
   /* split the combined tab list into the two dropdowns */
   var TV_SRCS=IPTV_TABS.filter(function(t){return !!t.src;});
   var TV_GENS=IPTV_TABS.filter(function(t){return !t.src;});
+  var TV_SOURCE_MASTER=TV_SRCS.slice();
   var curSrc=TV_SRCS[0], curGen=null;
+  function refreshAvailableSources(all){var ss=$("tvSrcSel"),available={},prior=curSrc&&curSrc.label;(all||[]).forEach(function(c){if(c&&c.src)available[String(c.src)]=1;});var next=TV_SOURCE_MASTER.filter(function(t){if(t.label==="ALL")return true;return Object.keys(available).some(function(src){return t.src&&t.src.test(src);});});if(!next.length)next=[TV_SOURCE_MASTER[0]];TV_SRCS=next;curSrc=TV_SRCS.find(function(t){return t.label===prior;})||TV_SRCS[0];if(ss){ss.innerHTML=TV_SRCS.map(function(t,i){return '<option value="'+i+'">SOURCE · '+esch(t.label)+'</option>';}).join("");ss.value=String(Math.max(0,TV_SRCS.indexOf(curSrc)));}if(prior&&curSrc.label!==prior&&window.__tvReload)setTimeout(window.__tvReload,0);}
+  window.__tvRefreshSources=refreshAvailableSources;
   function currentTab(){
     /* genre wins when chosen; otherwise the source tab drives the list */
     if(curGen) return {label:curGen.label, re:curGen.re, src:(curSrc&&curSrc.label!=="ALL")?curSrc.src:null};

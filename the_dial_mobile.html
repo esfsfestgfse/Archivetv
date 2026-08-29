@@ -1520,7 +1520,7 @@ html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.294-radio-depth";
+window.__ATV_BUILD="1.7.7-mobile.295-radio-health";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1557,7 +1557,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.294 · RealSignal</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.295 · RealSignal</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -9847,8 +9847,13 @@ function somaMatchesCat(s, cat){
 function radioNormName(n){ return String(n||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim().replace(/\s+/g," "); }
 function radioStationId(s){return String((s&&s.stationuuid)||((s&&s.url_resolved)||s&&s.url)||"");}
 function radioPresetRecord(s){return s?{stationuuid:s.stationuuid||"",name:s.name||"Station",url_resolved:s.url_resolved||s.url||"",country:s.country||"",state:s.state||"",codec:s.codec||"",bitrate:s.bitrate||0,tags:s.tags||"",src:s.src||"radio"}:null;}
-function radioStoredPresets(){var p=store.get("radioPresets",[]),out=Array.isArray(p)?p.slice(0,6).map(function(s){return s&&s.url_resolved?radioPresetRecord(s):null;}):[];while(out.length<6)out.push(null);return out;}
+function radioStoredPresets(){var p=store.get("radioPresets",[]),out=Array.isArray(p)?p.slice(0,6).map(function(s){return s&&(s.url_resolved||s.url)?radioPresetRecord(s):null;}):[];while(out.length<6)out.push(null);return out;}
 function radioSavePresets(p){try{store.set("radioPresets",p.slice(0,6));}catch(e){}}
+var radioHealthState=(function(){var raw=store.get("radioHealth",{}),out={},now=Date.now();if(!raw||typeof raw!=="object")return out;Object.keys(raw).forEach(function(k){var v=raw[k];if(v&&Number(v.expires||0)>now-86400000)out[k]={fails:Number(v.fails||0),expires:Number(v.expires||0),last:Number(v.last||0)};});return out;})();
+function radioHealthId(s){return radioStationId(s);}
+function radioHealthSuppressed(s){var v=radioHealthState[radioHealthId(s)];return !!(v&&v.expires>Date.now());}
+function radioMarkFailure(s){var k=radioHealthId(s);if(!k)return;var v=radioHealthState[k]||{fails:0};v.fails=Number(v.fails||0)+1;v.last=Date.now();v.expires=v.last+Math.min(21600000,Math.max(600000,v.fails>=2?21600000:1800000));radioHealthState[k]=v;try{store.set("radioHealth",radioHealthState);}catch(e){}}
+function radioMarkHealthy(s){var k=radioHealthId(s);if(!k||!radioHealthState[k])return;delete radioHealthState[k];try{store.set("radioHealth",radioHealthState);}catch(e){}}
 var radioHls=null;
 function stopRadioHls(){ if(!radioHls)return; try{radioHls.destroy();}catch(e){} radioHls=null; }
 
@@ -9904,13 +9909,14 @@ async function tuneLiveRadio(ch,sl,my){
     stopRadioHls(); try{au.pause();au.removeAttribute("src");au.load();}catch(e){}
     var now=$("wrNow"); if(now)now.innerHTML='<b>'+esch((s.name||"Unknown").replace(/\s+/g," ").trim())+'</b>'+
       '<small>'+esch([s.src||"radio",s.state,s.country,String(s.codec||"").toUpperCase()+(s.bitrate?(" "+s.bitrate+"k"):"")].filter(Boolean).join(" \u00b7 ").slice(0,80))+'</small>';
-    function failed(){ if(my!==token||attempt!==au.__radioAttempt)return; failureStreak++;
+    function failed(){ if(my!==token||attempt!==au.__radioAttempt)return; failureStreak++; radioMarkFailure(s);
+      var deadIdx=rbCurrent.findIndex(function(x){return radioStationId(x)===radioStationId(s);}); if(deadIdx>=0){rbCurrent.splice(deadIdx,1);if(deadIdx<curIdx)curIdx--;if(curIdx>=rbCurrent.length)curIdx=0;renderStrip();var dg=$("wrGuide");if(dg&&dg.classList.contains("show"))renderGuide();}
       if(scanning){return;}
       if(failureStreak<=3&&rbCurrent.length>1){ var n=$("wrNow"); if(n)n.innerHTML='<b>'+esch(s.name||"")+'</b><small>signal weak \u00b7 seeking next station</small>'; setTimeout(function(){if(my===token)tuneTo((i+1)%rbCurrent.length,true);},180); }
       else { var n2=$("wrNow"); if(n2)n2.innerHTML='<b>'+esch(s.name||"")+'</b><small>station unavailable \u00b7 press SEEK to continue</small>'; }
     }
     au.__radioAttempt=attempt; au.volume=Math.min(1,vol); au.muted=muted; au.onerror=failed; au.onstalled=function(){setTimeout(function(){if(au.readyState<2)failed();},3500);};
-    au.onplaying=function(){ failureStreak=0; scanning=false; clearTimeout(scanTimer); var n=$("wrNow"); if(n)n.innerHTML='<b>'+esch((s.name||"Unknown").replace(/\s+/g," ").trim())+'</b>'+
+    au.onplaying=function(){ failureStreak=0; radioMarkHealthy(s); scanning=false; clearTimeout(scanTimer); var n=$("wrNow"); if(n)n.innerHTML='<b>'+esch((s.name||"Unknown").replace(/\s+/g," ").trim())+'</b>'+
       '<small>'+esch((s.songtitle||s.title||"LIVE BROADCAST")+" \u00b7 "+[s.src||"radio",s.country,String(s.codec||"").toUpperCase()+(s.bitrate?(" "+s.bitrate+"k"):"")].filter(Boolean).join(" \u00b7 ").slice(0,80))+'</small>'; };
     function startAttached(){ try{var pRa=au.play();if(pRa&&pRa.catch)pRa.catch(function(){});}catch(e){failed();} }
     function nativeStart(){ try{au.src=url;startAttached();}catch(e){failed();} }
@@ -9994,9 +10000,9 @@ async function tuneLiveRadio(ch,sl,my){
     else { qs="tag="+encodeURIComponent(cat.tag)+"&order=clickcount&reverse=true"; }
     /* fetch radio-browser and SomaFM in parallel */
     var pair=await Promise.all([rbSearch(qs,signal), fetchSomaFM(signal)]); if(my!==token||request!==loadSeq)return;
-    var rb=(pair[0]||[]).filter(rbPlayable).map(function(s){ s.src=s.src||"radio-browser"; return s; });
-    var soma=(pair[1]||[]).filter(function(s){ return somaMatchesCat(s,cat); });
-    var curated=(RADIO_CURATED||[]).filter(function(s){return curatedRadioMatches(s,cat);});
+    var rb=(pair[0]||[]).filter(function(s){return rbPlayable(s)&&!radioHealthSuppressed(s);}).map(function(s){ s.src=s.src||"radio-browser"; return s; });
+    var soma=(pair[1]||[]).filter(function(s){ return somaMatchesCat(s,cat)&&!radioHealthSuppressed(s); });
+    var curated=(RADIO_CURATED||[]).filter(function(s){return curatedRadioMatches(s,cat)&&!radioHealthSuppressed(s);});
     /* merge official stations first, then curated SomaFM, then the broad directory. Keep the
        high station count, but dedupe it into an organized, varied station shelf. */
     var seen={}; var merged=[];
@@ -10004,7 +10010,7 @@ async function tuneLiveRadio(ch,sl,my){
     soma.forEach(function(s){ var k=radioNormName(s.name); if(!seen[k]){ seen[k]=1; merged.push(s); } });
     rb.sort(function(a,b){ return (b.clickcount||0)-(a.clickcount||0); });
     rb.forEach(function(s){ var k=radioNormName(s.name); if(!seen[k]){ seen[k]=1; merged.push(s); } });
-    if(merged.length)lastGood=merged.slice(); else merged=lastGood.slice();
+    if(merged.length)lastGood=merged.slice(); else merged=lastGood.filter(function(s){return !radioHealthSuppressed(s);});
     activeCatLabel=cat.label; renderPresets();
     rbCurrent=merged;
     if(!rbCurrent.length){ var t2=$("wrNow"); if(t2)t2.innerHTML='<b>Receiver waiting</b><small>directory offline \u00b7 press the band again</small>'; return; }

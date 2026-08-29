@@ -1580,7 +1580,7 @@ html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.8-mobile.300-browse-polish";
+window.__ATV_BUILD="1.7.8-mobile.302-guide-remote";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1617,7 +1617,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.8-mobile.300 · RealSignal</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.8-mobile.302 · RealSignal</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -16645,7 +16645,14 @@ window.__atvBootDone=true; /* app is up -- from here on, errors get logged, not 
   function click(id){var e=byId(id); if(e)e.click();}
   var map={mPow:"rPow",mChUp:"rChUp",mChDn:"rChDn",mVolUp:"rVolUp",mVolDn:"rVolDn",mSurf:"rSurf",mMenu:"rMenu",mInfo:"rInfo",mSkip:"rSkip"};
   Object.keys(map).forEach(function(k){var b=byId(k); if(b)b.addEventListener("click",function(ev){ev.preventDefault();click(map[k]);});});
-  var gb=byId("mGuide"); if(gb)gb.addEventListener("click",function(ev){ev.preventDefault(); try{ if(typeof openGuide==="function"){openGuide();return;} }catch(e){} click("rGuide");});
+  var gb=byId("mGuide"); if(gb)gb.addEventListener("click",function(ev){ev.preventDefault();ev.stopPropagation();
+    /* Mobile Live TV has its own mini-guide. Make the remote's GUIDE button explicitly open
+       the full channel directory so the two guide surfaces cannot swallow each other. */
+    var full=byId("gwrap");
+    try{if(typeof openGuide==="function")openGuide();}catch(e){}
+    if(full&&!full.classList.contains("show")){full.classList.add("show");try{if(typeof renderGuide==="function")renderGuide();if(typeof primeGuideQueues==="function")primeGuideQueues();}catch(e){}}
+    if(!full||!full.classList.contains("show"))click("rGuide");
+  });
   var mb=byId("mMute"); if(mb)mb.addEventListener("click",function(ev){ev.preventDefault(); click("rMute");
     setTimeout(function(){ mb.classList.toggle("on"); mb.textContent=mb.classList.contains("on")?"MUTED":"MUTE"; },0); });
   function sync(){ try{

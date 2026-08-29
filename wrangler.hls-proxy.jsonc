@@ -1,0 +1,11 @@
+{
+  "$schema": "https://unpkg.com/wrangler/config-schema.json",
+  "name": "hls-proxy",
+  "main": "hls_proxy_worker.js",
+  "compatibility_date": "2026-08-29",
+  "workers_dev": true,
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 0.1
+  }
+}

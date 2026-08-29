@@ -9,9 +9,9 @@
  *   - WebSocket relay to aisstream.io for low-latency messages when available.
  *   - Cached HTTP snapshots from Kpler AIS when the stream is unavailable.
  * Both provider keys stay on the Cloudflare side and never enter the browser
- * bundle. The snapshot endpoint is intentionally fixed to the Gulf coverage
- * used by channel 965, so this public client cannot turn the Worker into an
- * arbitrary paid-data proxy.
+ * bundle. Snapshot navigation is limited to named world regions; only the
+ * original Gulf region can use the paid Kpler query, so this public client
+ * cannot turn the Worker into an arbitrary paid-data proxy.
  *
  * Deployment: see docs/AIS_RELAY_DEPLOY.md for one-time setup steps.
  *
@@ -34,6 +34,7 @@
 const AISSTREAM_URL = "https://stream.aisstream.io/v0/stream";
 const KPLER_URL = "https://api.kpler.com/v2/maritime/ais-latest";
 const OPEN_WATERS_GULF_URL = "https://ais.openwaters.io/v1/vessels?bbox=18,-98,31,-80";
+const OPEN_WATERS_URL = "https://ais.openwaters.io/v1/vessels?bbox=";
 const SNAPSHOT_PATH = "/snapshot";
 const IA_PREFIX = "/ia";
 const IA_QUEUE_PATH = IA_PREFIX + "/queue";
@@ -82,6 +83,41 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 90;
 const IA_QUEUE_CACHE_VERSION = "v19";
 const GULF_FILTER = "BBOX(geometry,-98,18,-80,31)";
 const KPLER_FIELDS = "mmsi,longitude,latitude,posDt,sog,vesselName,heading,cog,navStatus,destination,vesselType";
+/* Public navigation is intentionally limited to named regions. The Worker
+   never accepts an arbitrary upstream URL or arbitrary paid-data filter. */
+const SHIP_REGIONS = Object.freeze({
+  gulf: { bbox: "18,-98,31,-80" },
+  atlantic: { bbox: "0,-75,65,20" },
+  pacific: { bbox: "-55,120,55,-75" },
+  americas: { bbox: "-55,-135,65,-35" },
+  europe: { bbox: "30,-25,72,45" },
+  africa: { bbox: "-38,-20,38,55" },
+  indian: { bbox: "-40,40,30,115" },
+  asia: { bbox: "-15,90,65,180" },
+  world: { bbox: "-90,-180,90,180" },
+});
+
+function spreadShipFeatures(features, limit) {
+  if (features.length <= limit) return features;
+  const buckets = Array.from({ length: 24 }, () => []);
+  features.forEach((feature) => {
+    const lon = Number(feature && feature.geometry && feature.geometry.coordinates && feature.geometry.coordinates[0]);
+    const index = Number.isFinite(lon) ? Math.max(0, Math.min(23, Math.floor((lon + 180) / 15))) : 0;
+    buckets[index].push(feature);
+  });
+  const result = [];
+  let added = true;
+  while (result.length < limit && added) {
+    added = false;
+    for (const bucket of buckets) {
+      if (bucket.length && result.length < limit) {
+        result.push(bucket.shift());
+        added = true;
+      }
+    }
+  }
+  return result;
+}
 
 function normalizeShipSnapshot(payload) {
   /* Providers have used both FeatureCollection and tabular envelopes. Keep
@@ -1747,10 +1783,10 @@ async function getIaQueue(request, url, ctx) {
 }
 
 async function getKplerSnapshot(request, env, ctx) {
-  // One fixed cache key prevents public callers from varying the query and
-  // keeps either upstream provider from blanking every connected client.
   const url = new URL(request.url);
-  const cacheKey = new Request(url.origin + SNAPSHOT_PATH + "?v=" + SNAPSHOT_CACHE_VERSION);
+  const regionName = SHIP_REGIONS[url.searchParams.get("region")] ? url.searchParams.get("region") : "gulf";
+  const region = SHIP_REGIONS[regionName];
+  const cacheKey = new Request(url.origin + SNAPSHOT_PATH + "?v=" + SNAPSHOT_CACHE_VERSION + "&region=" + regionName);
   const cache = caches.default;
   const cached = await cache.match(cacheKey);
   if (cached) {
@@ -1760,7 +1796,10 @@ async function getKplerSnapshot(request, env, ctx) {
     return new Response(cached.body, { status: cached.status, headers });
   }
 
-  if (env.KPLER_API_KEY) {
+  /* Keep the paid Kpler query bounded to the original Gulf desk. Other named
+     regions use the public OpenWaters snapshot and still share the same
+     normalized browser contract. */
+  if (regionName === "gulf" && env.KPLER_API_KEY) {
     const query = new URLSearchParams({
       filter: GULF_FILTER,
       format: "json",
@@ -1783,6 +1822,7 @@ async function getKplerSnapshot(request, env, ctx) {
           source: "kpler",
           fetchedAt: new Date().toISOString(),
           type: "FeatureCollection",
+          region: regionName,
           features,
         }, 200, {
           "Cache-Control": "public, max-age=" + SNAPSHOT_TTL_SECONDS,
@@ -1801,17 +1841,18 @@ async function getKplerSnapshot(request, env, ctx) {
   // vessel properties to the existing Kpler-shaped client contract so the TV
   // channel can recover without a browser key or a provider-specific redraw.
   try {
-    const fallback = await fetch(OPEN_WATERS_GULF_URL, {
+    const fallback = await fetch(OPEN_WATERS_URL + encodeURIComponent(region.bbox), {
       headers: { "Accept": "application/geo+json, application/json" },
     });
     if (!fallback.ok) throw new Error("open waters " + fallback.status);
     const payload = await fallback.json();
-    const features = normalizeShipSnapshot(payload).slice(0, 1000);
+    const features = spreadShipFeatures(normalizeShipSnapshot(payload), regionName === "world" ? 500 : 1000);
     if (!features.length) throw new Error("open waters empty");
     const response = json({
       source: "openwaters",
       fetchedAt: new Date().toISOString(),
       type: "FeatureCollection",
+      region: regionName,
       features,
     }, 200, {
       "Cache-Control": "public, max-age=" + SNAPSHOT_TTL_SECONDS,
@@ -1907,6 +1948,7 @@ export default {
         stream: Boolean(env.AIS_API_KEY),
         snapshot: Boolean(env.KPLER_API_KEY),
         snapshotPath: SNAPSHOT_PATH,
+        shipRegions: Object.keys(SHIP_REGIONS),
         archiveQueuePath: IA_QUEUE_PATH,
         archiveProgramPath: IA_PROGRAM_PATH,
         adsbPath: ADSB_PATH,

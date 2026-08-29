@@ -1556,7 +1556,7 @@ html,body{background:#040706!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.8-desktop.285-tropical-map";
+window.__ATV_BUILD="1.7.8-desktop.287-ship-explorer-interactive";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1593,7 +1593,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.8-desktop.285 · RealSignal</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.8-desktop.286 · RealSignal</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">REALSIGNAL · THE DIAL</div>
@@ -13236,12 +13236,12 @@ async function tuneShips(ch,sl,my){
     '<div id="shipRoot" style="width:100%;height:100%;display:grid;grid-template-columns:minmax(0,60%) minmax(0,40%);grid-template-rows:1fr auto;gap:6px;padding:6px;box-sizing:border-box;background:radial-gradient(120% 80% at 50% 0%,#04140a,#020a06 70%);color:var(--phos);font-family:monospace;overflow:hidden">'+
     '<div style="grid-column:1;grid-row:1/span 2;display:flex;align-items:center;justify-content:center;min-height:0;min-width:0;background:#000;border-radius:6px;overflow:hidden;position:relative">'+
       '<div id="shipMap" style="width:100%;height:100%;position:relative;background:#0a1928">'+
-        '<div style="position:absolute;bottom:6px;left:8px;font:700 9px monospace;letter-spacing:1.5px;color:#9fc4ff;background:rgba(0,0,0,.6);padding:3px 8px;border-radius:3px;pointer-events:none;z-index:20">GULF OF MEXICO \u00b7 VESSEL TRACKER</div>'+
+        '<div style="position:absolute;bottom:6px;left:8px;font:700 9px monospace;letter-spacing:1.5px;color:#9fc4ff;background:rgba(0,0,0,.6);padding:3px 8px;border-radius:3px;pointer-events:none;z-index:20"><span id="shipMapLabel">GULF OF MEXICO</span> \u00b7 VESSEL TRACKER</div>'+
       '</div>'+
     '</div>'+
     '<div style="grid-column:2;grid-row:1;display:flex;flex-direction:column;min-height:0;background:rgba(3,10,6,.55);border:1px solid rgba(103,255,134,.15);border-radius:6px;overflow:hidden">'+
       '<div style="flex:none;padding:6px 8px;background:linear-gradient(180deg,rgba(103,255,134,.10),transparent);border-bottom:1px solid rgba(103,255,134,.15);display:flex;align-items:center;gap:8px">'+
-        '<span style="font:700 11px monospace;letter-spacing:1.5px">SHIP TRACKER \u00b7 GULF</span>'+
+        '<span style="font:700 11px monospace;letter-spacing:1.5px">SHIP TRACKER \u00b7 <span id="shipRegionLabel">GULF</span></span>'+
         '<span id="shipStatus" class="status-pill st-connecting" style="margin-left:auto"><span class="st-dot"></span><span id="shipStatusTxt">connecting\u2026</span></span>'+
       '</div>'+
       '<div id="shipList" style="flex:1;overflow-y:auto;padding:4px 6px">Connecting to vessel data\u2026</div>'+
@@ -13249,6 +13249,10 @@ async function tuneShips(ch,sl,my){
     '<div style="grid-column:2;grid-row:2;padding:5px 8px;font:700 9px monospace;letter-spacing:1.2px;color:#9fd6a6;border-top:1px solid rgba(103,255,134,.10);background:rgba(0,0,0,.25);text-align:center" id="shipTicker">AIS STREAM \u00b7 KPLER SNAPSHOT FALLBACK \u00b7 GALVESTON \u00b7 HOUSTON \u00b7 CORPUS CHRISTI \u00b7 PORT ARTHUR \u00b7 FREEPORT</div>'+
   '</div>';
   var shipBug=mountChanBug("shipRoot",{ident:"SHIP TRACKER \u00b7 GULF"});
+  var shipInteractiveCss=document.createElement("style");shipInteractiveCss.textContent='#shipRoot .ship-blip{pointer-events:auto;cursor:pointer} #shipRoot .ship-blip:hover{transform:scale(1.8);z-index:8} #shipRoot .ship-map-tools{position:absolute;top:8px;right:8px;z-index:25;display:grid;grid-template-columns:repeat(3,28px);gap:3px} #shipRoot .ship-map-tools button{height:25px;border:1px solid rgba(159,196,255,.45);border-radius:4px;background:rgba(2,13,23,.88);color:#cfe0ff;font:800 11px monospace;cursor:pointer} #shipRoot .ship-map-tools button:hover{border-color:#67ff86;color:#67ff86} #shipRoot .ship-map-tools .wide{grid-column:span 3;font-size:8px;letter-spacing:.7px} #shipRoot .ship-detail{flex:none;min-height:92px;padding:7px 8px;border-bottom:1px solid rgba(103,255,134,.15);background:linear-gradient(180deg,rgba(7,34,22,.72),rgba(3,10,6,.4));color:#cfe0ff;font:10px monospace} #shipRoot .ship-detail-empty{color:#78977f;font-size:9px;line-height:1.45} #shipRoot .ship-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:3px 9px;margin-top:5px;color:#9fd6a6;font-size:8.5px} #shipRoot .ship-detail-grid b{color:#e8fff0;font-weight:700} #shipRoot .ship-photo{float:right;width:112px;height:67px;object-fit:cover;border:1px solid rgba(159,196,255,.35);border-radius:3px;background:#06121d;margin-left:8px} #shipRoot .ship-row{cursor:pointer} #shipRoot .ship-row:hover{background:rgba(103,255,134,.08)}';document.head.appendChild(shipInteractiveCss);
+  var shipMapBox=$("shipMap"),shipListBox=$("shipList");
+  if(shipMapBox)shipMapBox.insertAdjacentHTML("beforeend",'<div class="ship-map-tools" aria-label="Map controls"><button type="button" data-ship-pan="up" title="Pan north">▲</button><button type="button" data-ship-home title="Return to Gulf">⌂</button><button type="button" data-ship-pan="down" title="Pan south">▼</button><button type="button" data-ship-pan="left" title="Pan west">◀</button><button type="button" data-ship-zoom="out" title="Zoom out">−</button><button type="button" data-ship-pan="right" title="Pan east">▶</button><button type="button" data-ship-zoom="in" class="wide" title="Zoom in">＋ ZOOM IN</button><button type="button" data-ship-world class="wide" title="Show world vessel overview">WORLD OVERVIEW</button></div>');
+  if(shipListBox)shipListBox.insertAdjacentHTML("beforebegin",'<div id="shipDetail" class="ship-detail"><div class="ship-detail-empty">SELECT A VESSEL FOR PHOTO, IDENTITY, COURSE, SPEED, DESTINATION, AND NAVIGATION STATUS.</div></div>');
   if(shipSocket){ try{shipSocket.close();}catch(e){} shipSocket=null; }
   shipList={};
   /* Keep a bounded last-good snapshot locally so a short provider or network hiccup never
@@ -13256,19 +13260,56 @@ async function tuneShips(ch,sl,my){
      fresh relay response replaces it. */
   var shipSnapshotCacheKey="afterglowShipTrackerSnapshotV1";
   var msgCount=0, firstMsgAt=null, lastMsgAt=null, snapshotAt=null, snapshotError=null, snapshotSource="", retryTimer=null, dirty=false;
-  var mp=null;
+  var mp=null,shipRegion="gulf",shipView={lat:27.5,lon:-89.0,range:700},selectedMmsi="",shipDrag=null;
+  var SHIP_REGION_LABELS={gulf:{map:"GULF OF MEXICO",short:"GULF"},atlantic:{map:"NORTH ATLANTIC",short:"ATLANTIC"},pacific:{map:"PACIFIC OCEAN",short:"PACIFIC"},americas:{map:"AMERICAS",short:"AMERICAS"},europe:{map:"EUROPE",short:"EUROPE"},africa:{map:"AFRICA",short:"AFRICA"},indian:{map:"INDIAN OCEAN",short:"INDIAN"},asia:{map:"ASIA-PACIFIC",short:"ASIA-PACIFIC"},world:{map:"WORLD OVERVIEW",short:"WORLD"}};
+  function updateShipChrome(){var meta=SHIP_REGION_LABELS[shipRegion]||SHIP_REGION_LABELS.world;var mapLabel=$("shipMapLabel"),regionLabel=$("shipRegionLabel");if(mapLabel)mapLabel.textContent=meta.map;if(regionLabel)regionLabel.textContent=meta.short;}
+  function shipRegionFor(lat,lon){
+    if(shipView.range>=12000)return "world";
+    if(lat>=15&&lat<=40&&lon>=-105&&lon<=-75)return "gulf";
+    if(lat>=-55&&lat<15&&lon>=-135&&lon<=-35)return "americas";
+    if(lat>=0&&lat<=65&&lon>-75&&lon<=20)return "atlantic";
+    if(lat>=30&&lat<=72&&lon>-25&&lon<=45)return "europe";
+    if(lat>=-38&&lat<38&&lon>-20&&lon<=55)return "africa";
+    if(lat>=-40&&lat<30&&lon>40&&lon<=115)return "indian";
+    if(lat>=-15&&lat<=65&&lon>90)return "asia";
+    return "pacific";
+  }
+  function clearShipData(){Object.keys(shipList).forEach(function(k){if(shipList[k]._el&&shipList[k]._el.remove)shipList[k]._el.remove();});shipList={};msgCount=0;firstMsgAt=null;lastMsgAt=null;snapshotAt=null;snapshotSource="";dirty=true;}
+  function setShipView(lat,lon,range,forceRegion){
+    shipView={lat:Math.max(-70,Math.min(70,Number(lat)||0)),lon:Math.max(-179.5,Math.min(179.5,Number(lon)||0)),range:Math.max(180,Math.min(20000,Number(range)||700))};
+    var nextRegion=forceRegion||shipRegionFor(shipView.lat,shipView.lon);
+    if(nextRegion!==shipRegion){shipRegion=nextRegion;clearShipData();refreshSnapshot();}
+    updateShipChrome();
+    mp=null;ensureShipMap();paint();renderList();
+  }
+  function shipPhotoLookup(vessel){
+    var detail=$("shipDetail");if(!detail)return;
+    var photo=$("shipPhoto");if(!photo)return;
+    photo.style.display="block";photo.removeAttribute("src");photo.alt="Searching for a public photo of "+(vessel.name||"this vessel");
+    var term=String(vessel.name||"").trim();if(!term){photo.style.display="none";return;}
+    fetch("https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch="+encodeURIComponent(term+" ship")+"&gsrnamespace=6&gsrlimit=1&prop=imageinfo&iiprop=url|mime&iiurlwidth=420&format=json&origin=*",{cache:"no-store"}).then(function(r){if(!r.ok)throw new Error("photo "+r.status);return r.json();}).then(function(data){var pages=data&&data.query&&data.query.pages?Object.keys(data.query.pages).map(function(k){return data.query.pages[k];}):[],info=pages[0]&&pages[0].imageinfo&&pages[0].imageinfo[0];if(!info||!/^(image\/jpeg|image\/png|image\/webp)$/i.test(info.mime||""))throw new Error("no public photo");photo.src=info.thumburl||info.url;photo.style.display="block";}).catch(function(){photo.style.display="none";var hint=$("shipPhotoHint");if(hint)hint.textContent="NO PUBLIC PHOTO FOUND · LIVE IDENTITY DATA STILL AVAILABLE";});
+  }
+  function selectShip(mmsi){
+    var vessel=shipList[mmsi],detail=$("shipDetail");if(!vessel||!detail)return;selectedMmsi=String(mmsi);
+    var sog=vessel.sog!=null?Math.round(Number(vessel.sog))+" kn":"--",cog=vessel.cog!=null?Math.round(Number(vessel.cog))+"°":"--",heading=vessel.heading!=null?Math.round(Number(vessel.heading))+"°":"--";
+    detail.innerHTML='<img id="shipPhoto" class="ship-photo" alt="Public vessel photo"><div style="color:#effff3;font-size:11px;font-weight:900;letter-spacing:.7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esch(vessel.name||("MMSI "+vessel.mmsi))+'</div><div id="shipPhotoHint" style="color:#79a6ff;font-size:8px;margin-top:2px">LOOKING UP PUBLIC PHOTO · '+esch(vessel.source||"AIS")+'</div><div class="ship-detail-grid"><span><b>MMSI</b> '+esch(String(vessel.mmsi||"--"))+'</span><span><b>TYPE</b> '+esch(vessel.vesselType||"--")+'</span><span><b>SPEED</b> '+esch(sog)+'</span><span><b>COURSE</b> '+esch(cog)+'</span><span><b>HEADING</b> '+esch(heading)+'</span><span><b>NAV</b> '+esch(vessel.navStatus||"--")+'</span><span><b>DEST</b> '+esch(vessel.destination||"--")+'</span><span><b>POS</b> '+(vessel.lat!=null?Number(vessel.lat).toFixed(3)+"°, "+Number(vessel.lon).toFixed(3)+"°":"--")+'</span></div>';
+    shipPhotoLookup(vessel);
+  }
+  function bindShipMapControls(){var mapBox=$("shipMap");if(!mapBox)return;mapBox.querySelectorAll("[data-ship-pan]").forEach(function(b){b.onclick=function(e){e.stopPropagation();var step=shipView.range*.45,dir=b.dataset.shipPan,lat=shipView.lat,lon=shipView.lon;if(dir==="up")lat+=step/69.05;if(dir==="down")lat-=step/69.05;if(dir==="left")lon-=step/(69.17*Math.max(.25,Math.cos(lat*Math.PI/180)));if(dir==="right")lon+=step/(69.17*Math.max(.25,Math.cos(lat*Math.PI/180)));if(lon>180)lon-=360;if(lon<-180)lon+=360;setShipView(lat,lon,shipView.range);};});mapBox.querySelectorAll("[data-ship-zoom]").forEach(function(b){b.onclick=function(e){e.stopPropagation();setShipView(shipView.lat,shipView.lon,shipView.range*(b.dataset.shipZoom==="in"?.55:1.8));};});var home=mapBox.querySelector("[data-ship-home]");if(home)home.onclick=function(e){e.stopPropagation();setShipView(27.5,-89,700,"gulf");};var world=mapBox.querySelector("[data-ship-world]");if(world)world.onclick=function(e){e.stopPropagation();setShipView(0,0,20000,"world");};if(!mapBox._shipDragBound){mapBox._shipDragBound=true;mapBox.addEventListener("pointerdown",function(e){if(e.target.closest&&e.target.closest("button,.ship-blip"))return;shipDrag={x:e.clientX,y:e.clientY};mapBox.setPointerCapture&&mapBox.setPointerCapture(e.pointerId);});mapBox.addEventListener("pointerup",function(e){if(!shipDrag)return;var dx=e.clientX-shipDrag.x,dy=e.clientY-shipDrag.y;shipDrag=null;if(Math.abs(dx)+Math.abs(dy)>8){var lat=shipView.lat+dy*shipView.range/Math.max(1,mapBox.clientHeight)/69.05*2,lon=shipView.lon-dx*shipView.range/Math.max(1,mapBox.clientWidth)/69.17/Math.max(.25,Math.cos(shipView.lat*Math.PI/180))*2;setShipView(lat,lon,shipView.range);}});}}
   function ensureShipMap(){
     var box=$("shipMap"); if(!box||mp)return;
     if(!box.clientWidth||!box.clientHeight){ setTimeout(ensureShipMap,120); return; }
-    mp=ensureMap(box,27.5,-89.0,700,"dkblue");
+    mp=ensureMap(box,shipView.lat,shipView.lon,shipView.range,"dkblue");
     var blips=box.querySelector(".ship-blips");
     if(!blips){ blips=document.createElement("div"); blips.className="map-dyn ship-blips"; box.appendChild(blips); }
+    bindShipMapControls();
   }
   function paint(){
     var box=$("shipMap"); if(!box||!mp)return;
     var blips=box.querySelector(".ship-blips"); if(!blips)return;
     Object.keys(shipList).forEach(function(mmsi){
       var s=shipList[mmsi];
+      if(s.region&&s.region!==shipRegion)return;
       if(s.lat==null||s.lon==null)return;
       var xy=mp.project(s.lat,s.lon); if(!xy)return;
       if(!s._el){
@@ -13278,6 +13319,7 @@ async function tuneShips(ch,sl,my){
         if(sog<0.5) cls+=" anchor"; else if(sog>15) cls+=" fast"; else if(sog>=5) cls+=""; else cls+=" slow";
         s._el.className=cls;
         s._el.title=(s.name||("MMSI "+mmsi))+(s.sog!=null?" \u00b7 "+Math.round(s.sog)+" kn":"");
+        s._el.addEventListener("click",function(e){e.stopPropagation();selectShip(mmsi);});
         blips.appendChild(s._el);
       }
       s._el.style.left="calc(50% + "+xy.x.toFixed(1)+"px)";
@@ -13301,13 +13343,16 @@ async function tuneShips(ch,sl,my){
       var rec=shipList[mmsi]||{mmsi:mmsi};
       rec.lat=lat; rec.lon=lon; rec.sog=p.sog!=null?Number(p.sog):rec.sog;
       if(p.vesselName)rec.name=String(p.vesselName).trim();
+      rec.cog=p.cog!=null?Number(p.cog):rec.cog; rec.heading=p.heading!=null?Number(p.heading):rec.heading;
+      rec.destination=p.destination||rec.destination; rec.navStatus=p.navStatus||rec.navStatus; rec.vesselType=p.vesselType||rec.vesselType; rec.imo=p.imo||rec.imo;
+      rec.region=payload.region||shipRegion;
       rec.ts=received; rec.source="snapshot"; shipList[mmsi]=rec; added++;
     });
     return added;
   }
   function restoreLastGoodSnapshot(){
     try{
-      var cached=store.get(shipSnapshotCacheKey,null);
+      var cached=store.get(shipSnapshotCacheKey+":"+shipRegion,null);
       if(!cached||!cached.payload||!Array.isArray(cached.payload.features)||!cached.payload.features.length)return false;
       /* Do not present maritime positions that are more than six hours old as a usable desk. */
       if(Date.now()-Number(cached.at||0)>6*60*60*1000)return false;
@@ -13321,14 +13366,14 @@ async function tuneShips(ch,sl,my){
   async function refreshSnapshot(){
     if(my!==token)return;
     try{
-      var res=await fetch(SHIP_SNAPSHOT_URL,{cache:"no-store"});
+      var res=await fetch(SHIP_SNAPSHOT_URL+"?region="+encodeURIComponent(shipRegion),{cache:"no-store"});
       if(!res.ok)throw new Error("snapshot "+res.status);
       var payload=await res.json(), added=addSnapshot(payload);
       if(!added)throw new Error("empty snapshot");
       snapshotAt=Date.now(); snapshotSource=String(payload.source||"relay snapshot").toUpperCase(); snapshotError=null; dirty=true;
       if(retryTimer){clearTimeout(retryTimer);retryTimer=null;}
       /* Bound stored data so repeated snapshots cannot grow the browser cache indefinitely. */
-      try{ store.set(shipSnapshotCacheKey,{at:snapshotAt,payload:{source:payload.source||"relay",fetchedAt:payload.fetchedAt||null,type:"FeatureCollection",features:payload.features.slice(0,250)}}); }catch(e){}
+      try{ store.set(shipSnapshotCacheKey+":"+shipRegion,{at:snapshotAt,payload:{source:payload.source||"relay",region:shipRegion,fetchedAt:payload.fetchedAt||null,type:"FeatureCollection",features:payload.features.slice(0,250)}}); }catch(e){}
       nlog("ais",true,"loaded "+added+" vessel snapshot via relay");
     }catch(e){
       snapshotError=(e&&e.message)||"snapshot unavailable";
@@ -13339,7 +13384,7 @@ async function tuneShips(ch,sl,my){
   function renderList(){
     var listEl=$("shipList"); if(!listEl)return;
     var arr=Object.keys(shipList).map(function(k){return shipList[k];})
-      .filter(function(s){return s.lat!=null||s.name;})
+      .filter(function(s){return (!s.region||s.region===shipRegion)&&(s.lat!=null||s.name);})
       .sort(function(a,b){return b.ts-a.ts;});
     setChanStatus(ch.num,arr.length+" vessels \u00b7 "+msgCount+" stream msgs"+(snapshotAt?" \u00b7 "+snapshotSource:""));
     if(shipBug) shipBug.update(String(arr.length),
@@ -13350,12 +13395,13 @@ async function tuneShips(ch,sl,my){
       var sog=s.sog!=null?s.sog:0;
       var col=sog<0.5?"#888":sog>15?"#ffd34d":sog>=5?"#67ff86":"#7fb4ff";
       var lbl=sog<0.5?"ANCHOR":sog>15?"FAST":sog>=5?"CRUISE":"SLOW";
-      return '<div style="display:grid;grid-template-columns:6px 1fr auto;gap:6px;align-items:center;padding:3px 4px 3px 0;border-bottom:1px solid rgba(255,255,255,.05)">'+
+      return '<div class="ship-row" data-ship-mmsi="'+esch(String(s.mmsi))+'" style="display:grid;grid-template-columns:6px 1fr auto;gap:6px;align-items:center;padding:3px 4px 3px 0;border-bottom:1px solid rgba(255,255,255,.05)">'+
         '<div style="background:'+col+';border-radius:2px;align-self:stretch;box-shadow:0 0 3px '+col+'88"></div>'+
         '<div><div style="color:#cfe0ff;font-size:11px;font-weight:700;letter-spacing:.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esch(s.name||("MMSI "+s.mmsi))+'</div>'+
         '<div style="color:#9fd6a6;font-size:9.5px;letter-spacing:.5px">'+lbl+' \u00b7 '+(s.sog!=null?Math.round(s.sog)+" kn":"\u2014")+(s.lat!=null?' \u00b7 '+s.lat.toFixed(2)+"\u00b0N "+Math.abs(s.lon).toFixed(2)+"\u00b0W":"")+'</div></div>'+
       '</div>';
     }).join("");
+    listEl.querySelectorAll("[data-ship-mmsi]").forEach(function(row){row.onclick=function(){selectShip(row.dataset.shipMmsi);};});
   }
   function render(){ paint(); renderList(); }
   var tuneStart=Date.now();
@@ -13377,6 +13423,7 @@ async function tuneShips(ch,sl,my){
     }
   },1000);
   ensureShipMap();
+  updateShipChrome();
   var renderIv=rtInterval(function(){ if(dirty){ dirty=false; render(); } },2000);
   rtInterval(refreshSnapshot,60*1000);
   restoreLastGoodSnapshot();
@@ -13410,8 +13457,11 @@ async function tuneShips(ch,sl,my){
         var rec=shipList[mmsi]||{mmsi:mmsi};
         if(msg.MessageType==="PositionReport"&&msg.Message&&msg.Message.PositionReport){
           var pr=msg.Message.PositionReport; rec.sog=pr.Sog; rec.lat=pr.Latitude; rec.lon=pr.Longitude;
+          rec.cog=pr.Cog; rec.heading=pr.TrueHeading!=null?pr.TrueHeading:rec.heading;
         }
         if(msg.MetaData&&msg.MetaData.ShipName) rec.name=String(msg.MetaData.ShipName).trim();
+        if(msg.MessageType==="ShipStaticData"&&msg.Message&&msg.Message.ShipStaticData){var st=msg.Message.ShipStaticData;rec.destination=st.Destination||rec.destination;rec.vesselType=st.Type!=null?String(st.Type):rec.vesselType;rec.imo=st.ImoNumber||rec.imo;}
+        rec.region="gulf";
         rec.ts=Date.now(); rec.source="stream"; shipList[mmsi]=rec; dirty=true;
       }catch(e){}
     };

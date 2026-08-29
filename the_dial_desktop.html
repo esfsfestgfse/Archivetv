@@ -1453,7 +1453,7 @@ html,body{background:#040706!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.270-radio-overhaul";
+window.__ATV_BUILD="1.7.7-desktop.271-radio-depth";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1490,7 +1490,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.270 · RealSignal</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.271 · RealSignal</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">REALSIGNAL · THE DIAL</div>
@@ -9700,6 +9700,8 @@ function ensureRadioCSS(){ if($("radioCSS"))return; var st=document.createElemen
     ".wr-knob{bottom:9%!important;width:clamp(48px,8vmin,70px)!important;height:clamp(48px,8vmin,70px)!important;background:radial-gradient(circle at 32% 24%,#d6d2ad 0%,#8e9271 42%,#4c5848 76%,#1c251f 100%)!important;border:2px solid #151b17!important}.wr-knob.left{left:7%!important}.wr-knob.right{right:7%!important}.wr-knob-lbl{bottom:5%!important;color:#e7dfb5!important;width:clamp(70px,12vmin,100px)!important}.wr-knob-lbl.left{left:4%!important}.wr-knob-lbl.right{right:4%!important}"+
     ".wr-bands{left:25%!important;right:25%!important;bottom:10%!important;max-height:12%!important;overflow:hidden!important;background:#1a211c!important;border:1px solid #7d7b52!important;gap:3px!important;padding:4px!important}.wr-band{padding:4px 7px!important;background:linear-gradient(#dbd09c,#989368)!important;color:#202417!important;border-color:#303a2b!important;font-size:8px!important;letter-spacing:.7px!important}.wr-band.sel{background:#d7a73f!important;color:#2f1c09!important}"+
     ".wr-nav{position:absolute;left:25%;right:25%;bottom:3%;display:flex;justify-content:center;gap:5px;z-index:8}.wr-nav button{cursor:pointer;border:1px solid #777b59;border-radius:3px;background:#252e28;color:#e8dfb1;font:700 8px monospace;letter-spacing:.8px;padding:4px 8px;box-shadow:inset 0 1px rgba(255,255,255,.12)}.wr-nav button:active{background:#bd9334;color:#171b13}"+
+    ".wr-presets{position:absolute;left:25%;right:25%;bottom:23%;display:flex;align-items:center;justify-content:center;gap:3px;z-index:8}.wr-preset{cursor:pointer;border:1px solid #677056;border-radius:2px;background:#202821;color:#d6d4a4;font:700 7px monospace;padding:3px 5px;max-width:19%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.wr-preset:hover{background:#59633f;color:#fff0a4}.wr-preset.empty{opacity:.45}"+
+    ".wr-guide{display:none;position:absolute;inset:8%;z-index:30;flex-direction:column;background:rgba(13,20,16,.97);border:2px solid #a79558;border-radius:8px;box-shadow:0 10px 28px #000,inset 0 0 18px rgba(0,0,0,.7);overflow:hidden}.wr-guide.show{display:flex}.wr-guide-head{display:flex;justify-content:space-between;align-items:center;padding:9px 12px;color:#ffe39a;font:900 11px monospace;letter-spacing:1.5px;border-bottom:1px solid #635d3d}.wr-guide-head button{cursor:pointer;background:#343b2d;border:1px solid #8a8458;color:#ffe39a;border-radius:3px;font:bold 12px monospace}.wr-guide-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;overflow:auto;padding:8px}.wr-guide-list button{cursor:pointer;text-align:left;background:#202b22;border:1px solid #475541;border-radius:3px;padding:6px;color:#d8d4a8;font:700 8px/1.25 monospace;overflow:hidden}.wr-guide-list button strong{display:block;color:#fff0a4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.wr-guide-list button small{display:block;color:#8eae91;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}"+
     "@media (max-width:520px){.wr-grille::after{font-size:7px}.wr-band{padding:3px 5px!important}.wr-nav button{padding:4px 6px;font-size:7px}}";
   document.head.appendChild(st);
 }
@@ -9750,6 +9752,10 @@ function somaMatchesCat(s, cat){
   return t.indexOf(tag)>=0;
 }
 function radioNormName(n){ return String(n||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim().replace(/\s+/g," "); }
+function radioStationId(s){return String((s&&s.stationuuid)||((s&&s.url_resolved)||s&&s.url)||"");}
+function radioPresetRecord(s){return s?{stationuuid:s.stationuuid||"",name:s.name||"Station",url_resolved:s.url_resolved||s.url||"",country:s.country||"",state:s.state||"",codec:s.codec||"",bitrate:s.bitrate||0,tags:s.tags||"",src:s.src||"radio"}:null;}
+function radioStoredPresets(){var p=store.get("radioPresets",[]),out=Array.isArray(p)?p.slice(0,6).map(function(s){return s&&s.url_resolved?radioPresetRecord(s):null;}):[];while(out.length<6)out.push(null);return out;}
+function radioSavePresets(p){try{store.set("radioPresets",p.slice(0,6));}catch(e){}}
 var radioHls=null;
 function stopRadioHls(){ if(!radioHls)return; try{radioHls.destroy();}catch(e){} radioHls=null; }
 
@@ -9781,30 +9787,37 @@ async function tuneLiveRadio(ch,sl,my){
       '<div class="wr-knob left" id="wrVol"><span class="wr-knob-tick"></span></div>'+
       '<span class="wr-knob-lbl left">VOLUME</span>'+
       '<div class="wr-bands" id="wrBands"></div>'+
+      '<div class="wr-presets" id="wrPresets"></div>'+
       '<div class="wr-knob right" id="wrTune"><span class="wr-knob-tick"></span></div>'+
       '<span class="wr-knob-lbl right">TUNING</span>'+
-      '<div class="wr-nav"><button type="button" id="wrPrev" aria-label="Previous station">◀ SEEK</button><button type="button" id="wrNext" aria-label="Next station">SEEK ▶</button></div>'+
+      '<div class="wr-nav"><button type="button" id="wrPrev" aria-label="Previous station">◀ SEEK</button><button type="button" id="wrScan" aria-label="Scan for next healthy station">SCAN</button><button type="button" id="wrMem" aria-label="Save current station to a preset">MEM</button><button type="button" id="wrGuideOpen" aria-label="Open station guide">LIST</button><button type="button" id="wrNext" aria-label="Next station">SEEK ▶</button></div>'+
+      '<div class="wr-guide" id="wrGuide"><div class="wr-guide-head"><span>STATION LOG · LIVE SOURCES</span><button type="button" id="wrGuideClose" aria-label="Close station guide">×</button></div><div class="wr-guide-list" id="wrGuideList"></div></div>'+
       '<audio id="raEl"></audio>'+
     '</div></div>';
 
   /* 7-slot ring: percentages from center of strip. Fixed by construction -- can't overlap. */
   var SLOTS=[{d:3,pct:3},{d:2,pct:15},{d:1,pct:30},{d:0,pct:50},{d:1,pct:70},{d:2,pct:85},{d:3,pct:97}];
-  var rbCurrent=[], curIdx=0, settleT=null, failureStreak=0, loadSeq=0, loadAbort=null, lastGood=[];
+  var rbCurrent=[], curIdx=0, settleT=null, failureStreak=0, loadSeq=0, loadAbort=null, lastGood=[], presets=radioStoredPresets(), activeCatLabel="POPULAR", scanning=false, scanTimer=null;
 
   var stateName=""; try{ var loc=await getWxLocation(); var li=await resolveLocale(loc); if(my!==token)return;
     var ab=(homeLoc&&homeLoc.state)||(li&&li.state)||""; stateName=STATE_NAMES[ab]||""; }catch(e){}
 
+  function renderPresets(){var el=$("wrPresets");if(!el)return;el.innerHTML=presets.map(function(s,i){return '<button type="button" class="wr-preset '+(s?"":"empty")+'" data-preset="'+i+'" aria-label="'+(s?"Tune preset "+(i+1)+" "+esch(s.name):"Empty preset "+(i+1))+'">P'+(i+1)+(s?" · "+esch(String(s.name).replace(/\s+/g," ").slice(0,14)):" · EMPTY")+'</button>';}).join("");el.querySelectorAll("[data-preset]").forEach(function(b){b.addEventListener("click",function(){var s=presets[+b.dataset.preset];if(!s)return;var id=radioStationId(s),idx=rbCurrent.findIndex(function(x){return radioStationId(x)===id;});if(idx<0){rbCurrent.unshift(s);idx=0;}tuneTo(idx,true);});});}
+  function renderGuide(){var el=$("wrGuideList");if(!el)return;el.innerHTML=rbCurrent.slice(0,80).map(function(s,i){return '<button type="button" data-guide-index="'+i+'"><strong>'+esch(String(s.name||"Station").replace(/\s+/g," ").slice(0,48))+'</strong><small>'+esch([s.src||"radio-browser",s.country||"",String(s.codec||"").toUpperCase(),s.bitrate?(s.bitrate+"k"):""].filter(Boolean).join(" · "))+'</small></button>';}).join("")||'<div style="grid-column:1/-1;color:#a7b494;padding:16px;text-align:center">No station list yet. Choose a band.</div>';el.querySelectorAll("[data-guide-index]").forEach(function(b){b.addEventListener("click",function(){var idx=+b.dataset.guideIndex;var g=$("wrGuide");if(g)g.classList.remove("show");tuneTo(idx,true);});});}
+  function savePreset(){var s=rbCurrent[curIdx];if(!s){quickBanner("NO STATION TO STORE");return;}var slot=presets.findIndex(function(x){return !x;});if(slot<0)slot=0;presets[slot]=radioPresetRecord(s);radioSavePresets(presets);renderPresets();quickBanner("MEMORY P"+(slot+1)+" · "+String(s.name||"STATION").slice(0,28));}
+  function scanStations(){if(!rbCurrent.length)return;scanning=true;var tries=0;function step(){if(my!==token||!powered||!scanning)return;if(tries++>=20){scanning=false;clearTimeout(scanTimer);quickBanner("SCAN COMPLETE · NO MORE HEALTHY STATIONS");return;}tuneTo((curIdx+1)%rbCurrent.length,true);clearTimeout(scanTimer);scanTimer=setTimeout(function(){var au=$("raEl");if(au&&au.readyState>=2&&!au.paused){scanning=false;return;}step();},1400);}step();}
   function play(i){ var s=rbCurrent[i]; if(!s)return;
     var au=$("raEl"); if(!au)return; var attempt=Date.now()+":"+i, url=s.url_resolved||s.url, kind=rbStreamKind(s);
     stopRadioHls(); try{au.pause();au.removeAttribute("src");au.load();}catch(e){}
     var now=$("wrNow"); if(now)now.innerHTML='<b>'+esch((s.name||"Unknown").replace(/\s+/g," ").trim())+'</b>'+
       '<small>'+esch([s.src||"radio",s.state,s.country,String(s.codec||"").toUpperCase()+(s.bitrate?(" "+s.bitrate+"k"):"")].filter(Boolean).join(" \u00b7 ").slice(0,80))+'</small>';
     function failed(){ if(my!==token||attempt!==au.__radioAttempt)return; failureStreak++;
+      if(scanning){return;}
       if(failureStreak<=3&&rbCurrent.length>1){ var n=$("wrNow"); if(n)n.innerHTML='<b>'+esch(s.name||"")+'</b><small>signal weak \u00b7 seeking next station</small>'; setTimeout(function(){if(my===token)tuneTo((i+1)%rbCurrent.length,true);},180); }
       else { var n2=$("wrNow"); if(n2)n2.innerHTML='<b>'+esch(s.name||"")+'</b><small>station unavailable \u00b7 press SEEK to continue</small>'; }
     }
     au.__radioAttempt=attempt; au.volume=Math.min(1,vol); au.muted=muted; au.onerror=failed; au.onstalled=function(){setTimeout(function(){if(au.readyState<2)failed();},3500);};
-    au.onplaying=function(){ failureStreak=0; var n=$("wrNow"); if(n)n.innerHTML='<b>'+esch((s.name||"Unknown").replace(/\s+/g," ").trim())+'</b>'+
+    au.onplaying=function(){ failureStreak=0; scanning=false; clearTimeout(scanTimer); var n=$("wrNow"); if(n)n.innerHTML='<b>'+esch((s.name||"Unknown").replace(/\s+/g," ").trim())+'</b>'+
       '<small>'+esch((s.songtitle||s.title||"LIVE BROADCAST")+" \u00b7 "+[s.src||"radio",s.country,String(s.codec||"").toUpperCase()+(s.bitrate?(" "+s.bitrate+"k"):"")].filter(Boolean).join(" \u00b7 ").slice(0,80))+'</small>'; };
     function startAttached(){ try{var pRa=au.play();if(pRa&&pRa.catch)pRa.catch(function(){});}catch(e){failed();} }
     function nativeStart(){ try{au.src=url;startAttached();}catch(e){failed();} }
@@ -9899,6 +9912,7 @@ async function tuneLiveRadio(ch,sl,my){
     rb.sort(function(a,b){ return (b.clickcount||0)-(a.clickcount||0); });
     rb.forEach(function(s){ var k=radioNormName(s.name); if(!seen[k]){ seen[k]=1; merged.push(s); } });
     if(merged.length)lastGood=merged.slice(); else merged=lastGood.slice();
+    activeCatLabel=cat.label; renderPresets();
     rbCurrent=merged;
     if(!rbCurrent.length){ var t2=$("wrNow"); if(t2)t2.innerHTML='<b>Receiver waiting</b><small>directory offline \u00b7 press the band again</small>'; return; }
     curIdx=0; renderStrip(); play(0);
@@ -9914,6 +9928,10 @@ async function tuneLiveRadio(ch,sl,my){
   }
   $("wrPrev")&&$("wrPrev").addEventListener("click",function(){tuneTo(curIdx-1,true);});
   $("wrNext")&&$("wrNext").addEventListener("click",function(){tuneTo(curIdx+1,true);});
+  $("wrMem")&&$("wrMem").addEventListener("click",savePreset);
+  $("wrScan")&&$("wrScan").addEventListener("click",function(){scanStations();});
+  $("wrGuideOpen")&&$("wrGuideOpen").addEventListener("click",function(){renderGuide();var g=$("wrGuide");if(g)g.classList.add("show");});
+  $("wrGuideClose")&&$("wrGuideClose").addEventListener("click",function(){var g=$("wrGuide");if(g)g.classList.remove("show");});
   var startIdx=stateName?0:1; var se=bandsEl&&bandsEl.querySelector('[data-c="'+startIdx+'"]'); if(se)se.classList.add("sel");
   loadCat(RB_CATS[startIdx]);
 }

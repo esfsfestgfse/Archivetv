@@ -1604,6 +1604,8 @@ html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important
 .sports-score-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:8px;align-items:start}
 .sports-score-grid .score-card{margin:0!important;height:100%;box-sizing:border-box;border-radius:8px;background:linear-gradient(115deg,rgba(13,34,18,.86),rgba(5,14,8,.8));transition:transform .12s ease,background .12s ease,border-color .12s ease}
 .sports-score-grid .score-card:hover{transform:translateY(-1px);background:linear-gradient(115deg,rgba(29,72,36,.88),rgba(7,19,11,.86))}
+.sports-feed-card{display:flex;flex-direction:column;align-items:stretch;gap:6px;text-align:left;padding:10px 11px!important}
+.sports-feed-top{display:flex;justify-content:space-between;align-items:center;gap:8px;min-width:0}.sports-feed-state{font:900 8px monospace;letter-spacing:.8px;color:rgba(159,214,166,.65)}.sports-feed-state.ready{color:#8fff5c}.sports-feed-state.candidate{color:#f2ca68}.sports-feed-card.onair{border-color:rgba(255,94,77,.5);border-left-color:#ff5e4d;background:linear-gradient(110deg,rgba(57,23,20,.82),rgba(12,9,8,.86))!important}.sports-feed-card.onair .sports-feed-state{color:#ff8e82}.sports-feed-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:850 13px/1.1 system-ui,-apple-system,sans-serif;color:#edfff0}.sports-feed-program{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:700 9px monospace;color:#8fff5c}
 @media(max-width:700px){
   .sports-brand small{display:none}.sports-toolbar .sports-dropdown{max-width:none}.sports-today-head,.sports-scoredeck-head{align-items:flex-start;flex-direction:column;gap:8px}.sports-today-stats{width:100%;justify-content:stretch}.sports-today-stats span{flex:1}.sports-today-grid,.sports-score-grid{grid-template-columns:1fr}.sports-today-card{grid-template-columns:auto minmax(0,1fr);padding:9px 8px}.sports-today-sport{grid-column:2;grid-row:2;max-width:none}.sports-today-main{grid-row:1/3}
 }
@@ -1621,7 +1623,7 @@ html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.8-mobile.306-sports-overhaul";
+window.__ATV_BUILD="1.7.8-mobile.307-sports-directory";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1658,7 +1660,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.8-mobile.306 · RealSignal</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.8-mobile.307 · RealSignal</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -13876,6 +13878,10 @@ async function tuneSports(ch,sl,my){
       });
       sortByHealthThenName(chans);
       var culledS=cullDead(chans); chans=culledS.list;
+      chans.sort(function(a,b){
+        var ar=(a.checked||a.verified)?0:1, br=(b.checked||b.verified)?0:1;
+        return ar-br || String(a.name||"").toLowerCase().localeCompare(String(b.name||"").toLowerCase());
+      });
       if(!chans.length){ bodyEl.innerHTML='<div class="pop-empty">No live sports channels available from iptv-org right now.</div>'; return; }
       /* the pane used to reserve a full 16:9 block even with nothing playing -- on a wide screen
          that is a ~600px black void that pushes the whole channel list off-screen. Starts
@@ -13892,11 +13898,11 @@ async function tuneSports(ch,sl,my){
         if(sportsCount) sportsCount.textContent=visible.length+" / "+chans.length;
         if(!sportsListEl)return;
         sportsListEl.innerHTML=visible.length?visible.map(function(c){ var i=chans.indexOf(c);
-          return '<button type="button" class="sports-live-card" data-ci="'+i+'" data-epg="'+esch(c.tvgId||"")+'">'+
-            '<div class="score-team-row"><span class="score-status '+((c.checked||c.verified)?"live":"pre")+'">'+(c.checked?"CHECKED":c.verified?"VERIFIED":"LIVE")+'</span>'+
-            '<span class="score-team-name">'+esch(String(c.name).slice(0,54))+'</span>'+
-            '<span class="sports-live-source">'+esch(String(c.src||c.cat||"").slice(0,18))+'</span></div>'+
-            '<div class="score-odds sports-epg" style="display:none"></div></button>';
+          return '<button type="button" class="sports-live-card sports-feed-card" data-ci="'+i+'" data-epg="'+esch(c.tvgId||"")+'">'+
+            '<div class="sports-feed-top"><span class="sports-feed-state '+((c.checked||c.verified)?"ready":"candidate")+'">'+(c.checked?"CHECKED":c.verified?"VERIFIED":"CATALOG")+'</span>'+
+            '<span class="sports-live-source">'+esch(String(c.src||c.cat||"").slice(0,24))+'</span></div>'+
+            '<div class="sports-feed-name">'+esch(String(c.name).slice(0,60))+'</div>'+
+            '<div class="sports-feed-program sports-epg" style="display:none"></div></button>';
         }).join(""):'<div class="pop-empty">No sports feeds match that search.</div>';
         wireSportsCards();
       }
@@ -13913,7 +13919,7 @@ async function tuneSports(ch,sl,my){
         bodyEl.querySelectorAll("[data-epg]").forEach(function(row){
           var id=row.dataset.epg; if(!id)return;
           var e=epgFor({tvgId:id}); var sub=row.querySelector(".sports-epg");
-          if(e&&sub){ sub.textContent="NOW: "+e.title+(e.left?("  \u00b7  "+e.left+" min left"):""); sub.style.display=""; }
+          if(e&&sub){ sub.textContent="ON AIR · "+e.title+(e.left?("  \u00b7  "+e.left+" min left"):""); sub.style.display=""; row.classList.add("onair"); var badge=row.querySelector(".sports-feed-state"); if(badge)badge.textContent="ON AIR"; }
         });
       });
       nlog("sportstv",true,chans.length+" sports channels");

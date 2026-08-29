@@ -4,12 +4,25 @@ on:
     paths:
       - 'the_dial_mobile.html'
       - 'the_dial_desktop.html'
+      - 'afterglow_ais_relay_worker.js'
+      - 'wrangler.jsonc'
       - 'ci/**'
       - 'scripts/**'
       - '.github/workflows/ci.yml'
   workflow_dispatch:
 
 jobs:
+  test-worker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate IA relay Worker contract
+        run: node scripts/check-worker-contract.js
+
   test-mobile:
     runs-on: ubuntu-latest
     timeout-minutes: 10

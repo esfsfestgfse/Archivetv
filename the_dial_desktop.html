@@ -1418,7 +1418,7 @@ html,body{background:#040706!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.259-guide-queue";
+window.__ATV_BUILD="1.7.7-desktop.260-ia-shelf";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1455,7 +1455,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.259 · RealSignal</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.260 · RealSignal</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">REALSIGNAL · THE DIAL</div>
@@ -5774,6 +5774,12 @@ Object.assign(PROGRAM["The Hunt"],{require:{title_any:["deer","turkey","waterfow
 Object.assign(PROGRAM["Tight Lines"],{require:{title_any:["fishing","angling","fly fishing","bass","trout","saltwater","freshwater"]}});
 Object.assign(PROGRAM["Camp & Trail"],{require:{title_any:["camping","camp","hiking","trail","backpacking","mountain","wilderness","outdoor"]}});
 Object.assign(PROGRAM["Range & Field"],{require:{title_any:["archery","bow hunting","bowhunting","sporting clays","trap shooting","skeet shooting","target shooting"]}});
+/* Shelf repair: these three lanes were already genre-accurate, but could not
+   consistently fill five programs. Add closely related archival vocabulary and
+   a modest collection cap—not a blind fallback—so every tune has a full shelf. */
+Object.assign(PROGRAM["Vintage Pop"],{queueTerms:["traditional pop","crooner","american songbook","standards","pop vocal","torch song","easy listening","tin pan alley"],fastSubjects:["traditional pop","crooner","standards","pop vocal","american songbook","vocal"],fastCollections:["78rpm","audio_music","georgeblood","opensource_audio","album_recordings"],diversity:{maxPerEra:2,maxPerLane:2,maxPerCreator:1,maxPerCollection:3}});
+Object.assign(PROGRAM["Mod & Pop"],{diversity:{maxPerEra:2,maxPerLane:2,maxPerCreator:1,maxPerCollection:3}});
+Object.assign(PROGRAM["The Reading Room"],{queueTerms:["author interview","writer interview","author reading","literature","writer profile","book discussion","book club","book talk","poetry reading","literary documentary","literary event","library program"],fastSubjects:["author interview","literature","writer profile","book discussion","book club","book talk","poetry reading","author reading"],fastCollections:["opensource_movies","classic_tv","FedFlix","americanarchiveofpublicbroadcasting","seattlemunicipalarchives"],diversity:{maxPerEra:2,maxPerLane:2,maxPerCreator:1,maxPerCollection:3}});
 /* Every IA station gets a compact editorial diversity policy. These caps shape
    a shelf of already-approved programs; they never relax the station's terms,
    era, media type, or deny list when Archive is sparse. */

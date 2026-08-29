@@ -76,7 +76,7 @@ const IA_SEARCH_CACHE_VERSION = "v5";
 const IA_METADATA_TTL_SECONDS = 86400;
 const IA_QUEUE_TTL_SECONDS = 21600;
 const IA_PARTIAL_QUEUE_TTL_SECONDS = 90;
-const IA_QUEUE_CACHE_VERSION = "v18";
+const IA_QUEUE_CACHE_VERSION = "v19";
 const GULF_FILTER = "BBOX(geometry,-98,18,-80,31)";
 const KPLER_FIELDS = "mmsi,longitude,latitude,posDt,sog,vesselName,heading,cog,navStatus,destination,vesselType";
 const WFIGS_INCIDENTS_URL = "https://services3.arcgis.com/T4QMspbfLg3qTGWY/arcgis/rest/services/WFIGS_Incident_Locations_Current/FeatureServer/0/query";
@@ -242,7 +242,7 @@ function themeScore(doc, themeTerms) {
   const subject = themeText(String(doc && doc.subject || ""));
   return themeTerms.reduce((score, term) => {
     const needle = themeText(term);
-    return score + (title.includes(needle) ? 4 : subject.includes(needle) ? 1 : 0);
+    return score + (title.includes(needle) ? 4 : subject.includes(needle) ? 2 : 0);
   }, 0);
 }
 

@@ -16,7 +16,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="RealSignal">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>REALSIGNAL · The Dial 1.7.7</title>
+<title>REALSIGNAL · The Dial 1.7.8</title>
 <style>
 :root{
   --pan1:#6b4626; --pan2:#5a3a1f; --pan3:#7d5530; --pan-line:#3c2614;
@@ -1520,7 +1520,7 @@ html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.295-radio-health";
+window.__ATV_BUILD="1.7.8-mobile.296-ia-reliability";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1557,7 +1557,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.295 · RealSignal</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.8-mobile.296 · RealSignal</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -5897,6 +5897,7 @@ Object.assign(PROGRAM["The Reading Room"],{queueTerms:["author interview","write
 const IA_EDITORIAL_DIVERSITY={maxPerEra:1,maxPerLane:1,maxPerCreator:1,maxPerCollection:2};
 Object.keys(PROGRAM).forEach(function(name){
   PROGRAM[name].diversity=Object.assign({},IA_EDITORIAL_DIVERSITY,PROGRAM[name].diversity||{});
+  if(!Number(PROGRAM[name].themeMinScore))PROGRAM[name].themeMinScore=2;
 });
 
 /* Build queries from a PROGRAM entry instead of from G. Same shape output as buildQuery
@@ -6220,7 +6221,7 @@ function iaRuntimeSeconds(v){if(typeof v==="number")return v;var s=String(v||"")
 function iaRuntimeLabel(v){var s=Math.round(iaRuntimeSeconds(v));if(!s)return "";return s>=3600?Math.floor(s/3600)+"h "+Math.round((s%3600)/60)+"m":Math.max(1,Math.round(s/60))+"m";}
 function iaThemeText(v){return " "+String(Array.isArray(v)?v.join(" "):(v||"")).normalize("NFKD").toLowerCase().replace(/[^a-z0-9]+/g," ").trim()+" ";}
 function iaProgramThemeTerms(sl){var p=sl&&sl.program,g=sl&&G[sl.genre],out=[],seen={},locked=!!(p&&Array.isArray(p.queueTerms)&&p.queueTerms.length);function add(v){String(v||"").trim()&&String(v).trim().length>=3&&!seen[String(v).toLowerCase()]&&(seen[String(v).toLowerCase()]=1,out.push(String(v).trim()));}if(p){/* queueTerms is an intentional hard identity lock. Without it, use the station's concise identity vocabulary before its large provider catalog. Provider tags contain useful search synonyms, but treating every one as an on-air match let broad archive metadata bleed between channels. */(p.queueTerms||[]).forEach(add);if(!locked){(p.fastSubjects||[]).forEach(add);((p.require&&p.require.title_any)||[]).forEach(add);(p.topicBuckets||[]).forEach(function(bucket){(bucket||[]).forEach(add);});}}if(!locked&&g)(g.subj||[]).forEach(add);if(!out.length&&p)(p.providers||[]).forEach(function(provider){(provider.require_subj||[]).forEach(add);});return out.slice(0,256);}
-function iaThemeScore(item,sl){var terms=iaProgramThemeTerms(sl);if(!terms.length)return 0;var title=iaThemeText(String(item&&item.title||"")),subj=iaThemeText(String(item&&(item.subject||item.subjects)||""));return terms.reduce(function(score,term){var needle=iaThemeText(term);return score+(title.indexOf(needle)>=0?4:subj.indexOf(needle)>=0?1:0);},0);}
+function iaThemeScore(item,sl){var terms=iaProgramThemeTerms(sl);if(!terms.length)return 0;var title=iaThemeText(String(item&&item.title||"")),subj=iaThemeText(String(item&&(item.subject||item.subjects)||""));return terms.reduce(function(score,term){var needle=iaThemeText(term);return score+(title.indexOf(needle)>=0?4:subj.indexOf(needle)>=0?2:0);},0);}
 function iaThemeMatches(item,sl){var terms=iaProgramThemeTerms(sl);if(!terms.length)return true;var min=Math.max(1,Math.min(12,Number(sl&&sl.program&&sl.program.themeMinScore)||1));return iaThemeScore(item,sl)>=min;}
 function iaProgramAllowed(item,sl){
   if(!item||!item.identifier||banned.indexOf(item.identifier)>=0||isTemporarilySkipped(item.identifier)||blockedId(item.identifier)||iaProgramFailed(item.identifier))return false;

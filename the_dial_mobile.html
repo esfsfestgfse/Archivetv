@@ -1483,7 +1483,7 @@ html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.279-ia-warmup-control";
+window.__ATV_BUILD="1.7.7-mobile.280-weather-loop-shelf";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -2188,7 +2188,7 @@ const CH=[
  {nm:"Test Pattern", num:506,      cat:"RETRO", source:"static", ns:"space"},
  {nm:"The Long Shot", num:507,     cat:"RETRO", gl:"slowtv",    era:[2000,2026], ns:"tv"}, /* Slow TV — NRK-style long-form: train rides, sunsets, ferry crossings, waterfalls */
  {nm:"Infomercial Insomnia", num:508, cat:"RETRO", gl:"infomercial", era:[1985,2010], ns:"tv"}, /* Late-night 90s infomercials — Ronco, Popeil, Ginsu, Ab Roller, Time-Life sets */
- {nm:"The Weather Loop", num:509, cat:"RETRO", gl:"weatherstar", era:[1985,2005], ns:"tv"}, /* WeatherStar 4000 nostalgia — TWC music beds + local-on-the-8s */
+ {nm:"The Weather Loop", num:509, cat:"RETRO", gl:"weatherstar", era:[1985,2026], ns:"tv"}, /* WeatherStar nostalgia — recorded TWC, WeatherScan and faithful WeatherStar broadcasts */
  {nm:"The Game Room", num:510, cat:"RETRO", gl:"gameroom", era:[1970,2026], ns:"doc"},
  {nm:"The Detective", num:511, cat:"RETRO", gl:"detective", era:[1940,2026], ns:"tv"},
 ];
@@ -4927,13 +4927,19 @@ const PROGRAM = {
      00s. IA has a substantial TWC music + WS4K archive tagged under "weather channel
      music" / "weatherstar" / "trammell starks". */
   "The Weather Loop": {
-    genre: "weatherstar", era: [1985, 2005],
+    genre: "weatherstar", era: [1985, 2026],
+    /* Archive has genuine Weather Channel, WeatherScan and WeatherStar recordings
+       outside the old opensource_movies shelf. Keep a deliberately narrow identity
+       lock, but let faithful later captures replenish the five-show buffer. */
+    queueTerms: ["weather channel", "weatherscan", "weatherstar", "weatherstar 4000", "weatherstar xl", "local on the 8s", "weather channel music", "weather channel recording"],
+    fastSubjects: ["weather channel", "weatherscan", "weatherstar", "weatherstar 4000", "weatherstar xl", "local on the 8s", "weather channel music", "weather channel recording", "local forecast"],
+    fastCollections: ["opensource_movies", "classic_tv"],
     providers: [
-      { collections: ["opensource_movies"], require_subj: ["weatherstar 4000", "weatherstar", "weatherstar 3000", "weather channel music", "the weather channel", "weather channel", "twc music", "trammell starks", "local on the 8s", "local on the 8's", "weather channel jazz", "twc jazz", "twc smooth jazz", "the weather channel jazz", "weather forecast loop", "weather channel forecast", "local forecast", "weather channel archive", "weather channel recording", "weather channel background music", "weather scan", "weatherscan", "twc archive", "classic weather channel"] }
+      { collections: ["opensource_movies", "classic_tv", "community"], require_subj: ["weather channel", "weatherscan", "weatherstar", "weatherstar 4000", "weatherstar 3000", "weatherstar xl", "intellistar", "local on the 8s", "weather channel music", "weather channel recording", "weather scan", "local forecast", "weather channel archive", "twc archive", "classic weather channel"] }
     ],
     deny: {
-      title: ["storm chaser", "tornado", "hurricane", "live weather"],
-      subject: ["storm chaser", "tornado outbreak", "cartoon", "commercial", "news"]
+      title: ["storm chaser", "tornado", "hurricane", "live weather", "emergency feed", "global warming", "climate change", "how to make", "tutorial", "intro", "clipchamp", "commercial"],
+      subject: ["storm chaser", "tornado outbreak", "cartoon", "commercial", "news", "climate change", "global warming", "tutorial", "emergency", "youtube"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },

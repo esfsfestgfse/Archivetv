@@ -571,6 +571,40 @@ html.mob .ot-detail{display:none}   /* phone: name + sport is enough, detail is 
 .tv3-close{flex:none;cursor:pointer;color:#9fc4ff;font-size:15px;padding:0 6px;line-height:1.9}
 .tv3-gmeta{flex:none;font:700 9px monospace;letter-spacing:1px;color:#7fb4ff;opacity:.8}
 .tv3-list{flex:1 1 auto;min-height:60px;overflow-y:auto;margin-right:26px}
+/* Live TV is picture-first. The directory is a proper side drawer on wide screens,
+   not a second full-screen layer that turns the player into a thin strip. */
+.tv3-guide-label{flex:none;font:800 9px/1 monospace;letter-spacing:1.3px;color:#dbeaff;padding:2px 1px 0}
+.tv3-guide{left:auto;right:0;top:0;bottom:0;width:min(440px,42%);padding:10px;
+  border-top:0;border-left:2px solid rgba(127,180,255,.5);background:rgba(4,10,22,.96);
+  box-shadow:-18px 0 38px rgba(0,0,0,.38)}
+.tv3-ghead{flex-wrap:wrap}.tv3-ghead .tv2-sel{flex:1 1 calc(50% - 20px);max-width:none;min-width:0}
+.tv3-ghead .tv2-search{flex:1 1 calc(100% - 32px)}
+.tv3-list{margin-right:0;padding-right:2px}
+/* Sports Center's free-TV directory uses compact cards and a real filter instead of
+   a wall of full-size score cards. The player stays collapsed until a feed is chosen. */
+.sports-toolbar{flex:none;display:flex;align-items:center;gap:8px;padding:8px 8px 4px}
+.sports-toolbar-label{flex:none;font:800 9px monospace;letter-spacing:1px;color:#9fd6a6;white-space:nowrap}
+.sports-toolbar .sports-dropdown{flex:1;min-width:0}
+.sports-live{min-height:100%;display:flex;flex-direction:column;gap:8px;padding-bottom:6px}
+.sports-live .tv-pane-live{flex:none;max-height:min(48vh,420px);margin-bottom:0}
+.sports-live-head{display:flex;justify-content:space-between;align-items:center;gap:8px;color:#9fd6a6}
+.sports-live-head b{font:800 10px monospace;letter-spacing:1px;color:#e8f5e6}
+.sports-live-meta{font:700 9px monospace;color:rgba(159,214,166,.68);text-align:right}
+.sports-live-tools{display:flex;gap:6px;align-items:center}
+.sports-live-search{flex:1;min-width:0;box-sizing:border-box;padding:7px 9px;border-radius:7px;
+  border:1px solid rgba(143,255,92,.3);background:rgba(8,20,9,.82);color:#e8f5e6;font:600 11px monospace}
+.sports-live-count{flex:none;font:800 9px monospace;letter-spacing:.6px;color:#8fff5c;white-space:nowrap}
+.sports-live-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(235px,1fr));gap:6px}
+.sports-live-card{cursor:pointer;min-width:0;padding:8px 10px;border:1px solid rgba(143,255,92,.16);
+  border-left:3px solid #8fff5c;border-radius:7px;background:rgba(255,255,255,.035);transition:background .12s ease}
+.sports-live-card:hover,.sports-live-card.sel{background:rgba(143,255,92,.13)}
+.sports-live-card .score-team-row{gap:7px;padding:0}.sports-live-card .score-status{font-size:8px;padding:3px 5px;margin:0}
+.sports-live-card .score-team-name{font-size:12px}.sports-live-source{flex:none;max-width:34%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:600 9px monospace;color:rgba(159,214,166,.68)}
+.sports-live-card .score-odds{margin-top:5px;padding-top:5px;font-size:9px}
+@media (max-width:700px){
+  .tv3-guide{left:0;width:auto;border-left:0;border-top:2px solid rgba(127,180,255,.5);box-shadow:none}
+  .sports-toolbar-label{display:none}.sports-live-grid{grid-template-columns:1fr}.sports-live-meta{display:none}
+}
 /* ---- rebuilt Live TV layout ---- */
 .tv2-pane{flex:0 0 34%;min-height:0;background:#000;position:relative;border-radius:6px;overflow:hidden;
   display:flex;align-items:center;justify-content:center}
@@ -1483,7 +1517,7 @@ html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.7-mobile.283-ia-shelf";
+window.__ATV_BUILD="1.7.7-mobile.284-live-surface";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1520,7 +1554,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.283 · RealSignal</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-mobile.284 · RealSignal</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -10546,10 +10580,11 @@ async function tuneLiveTV(ch,sl,my){
       '<span class="tv3-btn tv3-gear" id="tvProxyBtn">\u2699</span>'+
     '</div>'+
     '<div class="tv3-guide" id="tvGuide" style="display:none">'+
+      '<div class="tv3-guide-label">BROWSE LIVE TV</div>'+
       '<div class="tv3-ghead">'+
-        '<select id="tvSrcSel" class="tv2-sel"></select>'+
-        '<select id="tvGenSel" class="tv2-sel"></select>'+
-        '<input id="tvSearch" class="tv2-search" placeholder="search\u2026">'+
+        '<select id="tvSrcSel" class="tv2-sel" aria-label="Live TV source"></select>'+
+        '<select id="tvGenSel" class="tv2-sel" aria-label="Live TV genre"></select>'+
+        '<input id="tvSearch" class="tv2-search" aria-label="Search live TV channels" placeholder="SEARCH CHANNELS\u2026">'+
         '<span class="tv3-close" id="tvGuideClose">\u2715</span>'+
       '</div>'+
       '<div class="tv3-gmeta"><span id="tvTitle">LIVE TV</span></div>'+
@@ -13385,7 +13420,7 @@ async function ytUploadsPlaylist(handle){
 async function tuneSports(ch,sl,my){
   if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Sports Center","");
   if(screenArea) screenArea.innerHTML='<div class="dc-screen" id="dcScreen" style="flex-direction:column">'+
-    '<div style="flex:0 0 auto;padding:8px 8px 4px"><select id="sportsPicker" class="sports-dropdown"></select></div>'+
+    '<div class="sports-toolbar"><span class="sports-toolbar-label">SPORT DESK</span><select id="sportsPicker" class="sports-dropdown" aria-label="Choose sport"></select></div>'+
     '<div id="sportsSubPicker" class="catnav" style="flex:0 0 auto;padding:0 8px 6px"></div>'+
     '<div id="sportsBody" style="flex:1 1 auto;min-height:0;overflow-y:auto;padding:2px 8px"></div>'+
     '<div class="dc-ticker" id="sportsTicker">ESPN &amp; TheSportsDB \u00b7 real highlights from official league YouTube channels \u00b7 tap a team in Standings to follow it</div>'+
@@ -13539,37 +13574,52 @@ async function tuneSports(ch,sl,my){
       var byName={};
       all.forEach(function(c){ var k=(c.name||"").toLowerCase().replace(/\s+/g," ").trim(); if(!k)return;
         if(!byName[k]||(c.verified&&!byName[k].verified)) byName[k]=c; });
-      var chans=Object.keys(byName).map(function(k){ return byName[k]; });
+      var chans=Object.keys(byName).map(function(k){ return byName[k]; }).filter(function(c){
+        /* A few malformed community playlist rows carry a User-Agent value as the title.
+           They are not real channels and make the directory look broken, so omit only those
+           obvious parser artifacts while leaving legitimate low-information channel names alone. */
+        return !/\b(mozilla|applewebkit|chrome\/|safari\/|user-agent|referer)\b/i.test(String(c.name||""));
+      });
       sortByHealthThenName(chans);
       var culledS=cullDead(chans); chans=culledS.list;
       if(!chans.length){ bodyEl.innerHTML='<div class="pop-empty">No live sports channels available from iptv-org right now.</div>'; return; }
       /* the pane used to reserve a full 16:9 block even with nothing playing -- on a wide screen
          that is a ~600px black void that pushes the whole channel list off-screen. Starts
          collapsed and is expanded by playTV once a stream is actually selected. */
-      bodyEl.innerHTML='<div id="tvPane" class="tv-pane-idle"></div>'+
-        '<div style="font:700 10px monospace;color:#9fd6a6;margin-bottom:6px">'+chans.length+' ENGLISH LIVE SPORTS'+(culledS.hidden?(' \u00b7 '+culledS.hidden+' DEAD HIDDEN'):'')+'</div>'+
-        chans.map(function(c,i){
-          return '<div class="score-card" data-ci="'+i+'" data-epg="'+esch(c.tvgId||"")+'" style="cursor:pointer;padding:9px 12px;border-left-color:#8fff5c">'+
-            '<div class="score-team-row"><span class="score-status '+((c.checked||c.verified)?"live":"pre")+'" style="margin:0">'+(c.checked?"CHECKED":c.verified?"VERIFIED":"LIVE")+'</span>'+
-            '<span class="score-team-name">'+esch(String(c.name).slice(0,46))+'</span>'+
-            '<span style="font:600 10px monospace;color:rgba(159,214,166,.75)">'+esch(String(c.src||c.cat||"").slice(0,14))+'</span></div>'+
-            '<div class="score-odds sports-epg" style="display:none"></div></div>';
-        }).join("");
+      bodyEl.innerHTML='<section class="sports-live">'+
+        '<div id="tvPane" class="tv-pane-idle"></div>'+
+        '<div class="sports-live-head"><b>LIVE SPORTS FEEDS</b><span class="sports-live-meta">'+chans.length+' ENGLISH CHANNELS'+(culledS.hidden?(' \u00b7 '+culledS.hidden+' DEAD HIDDEN'):'')+'</span></div>'+
+        '<div class="sports-live-tools"><input id="sportsLiveSearch" class="sports-live-search" aria-label="Search live sports channels" placeholder="SEARCH LIVE SPORTS\u2026"><span id="sportsLiveCount" class="sports-live-count"></span></div>'+
+        '<div id="sportsLiveList" class="sports-live-grid"></div></section>';
+      var sportsListEl=$("sportsLiveList"), sportsSearch=$("sportsLiveSearch"), sportsCount=$("sportsLiveCount");
+      function renderSportsCards(query){
+        var q=String(query||"").toLowerCase().trim();
+        var visible=q?chans.filter(function(c){ return (String(c.name||"")+" "+String(c.cat||"")+" "+String(c.src||"")).toLowerCase().indexOf(q)>-1; }):chans;
+        if(sportsCount) sportsCount.textContent=visible.length+" / "+chans.length;
+        if(!sportsListEl)return;
+        sportsListEl.innerHTML=visible.length?visible.map(function(c){ var i=chans.indexOf(c);
+          return '<button type="button" class="sports-live-card" data-ci="'+i+'" data-epg="'+esch(c.tvgId||"")+'">'+
+            '<div class="score-team-row"><span class="score-status '+((c.checked||c.verified)?"live":"pre")+'">'+(c.checked?"CHECKED":c.verified?"VERIFIED":"LIVE")+'</span>'+
+            '<span class="score-team-name">'+esch(String(c.name).slice(0,54))+'</span>'+
+            '<span class="sports-live-source">'+esch(String(c.src||c.cat||"").slice(0,18))+'</span></div>'+
+            '<div class="score-odds sports-epg" style="display:none"></div></button>';
+        }).join(""):'<div class="pop-empty">No sports feeds match that search.</div>';
+        wireSportsCards();
+      }
+      function wireSportsCards(){ if(!sportsListEl)return;
+        sportsListEl.querySelectorAll("[data-ci]").forEach(function(el){ el.addEventListener("click",function(){
+          sportsListEl.querySelectorAll("[data-ci]").forEach(function(x){x.classList.remove("sel");}); el.classList.add("sel");
+          var i=+el.dataset.ci; window.__tvNoAdvance=true; playTV(chans[i],my,chans,i,1);
+          try{ bodyEl.scrollTop=0; }catch(e){}
+        }); });
+      }
+      renderSportsCards("");
+      if(sportsSearch){ sportsSearch.addEventListener("input",function(){ renderSportsCards(sportsSearch.value); }); sportsSearch.addEventListener("keydown",function(e){ e.stopPropagation(); }); }
       fetchEPG().then(function(){ if(my!==token||sportsSubView!=="livetv")return;
         bodyEl.querySelectorAll("[data-epg]").forEach(function(row){
           var id=row.dataset.epg; if(!id)return;
           var e=epgFor({tvgId:id}); var sub=row.querySelector(".sports-epg");
           if(e&&sub){ sub.textContent="NOW: "+e.title+(e.left?("  \u00b7  "+e.left+" min left"):""); sub.style.display=""; }
-        });
-      });
-      bodyEl.querySelectorAll("[data-ci]").forEach(function(el){
-        el.addEventListener("click",function(){
-          bodyEl.querySelectorAll("[data-ci]").forEach(function(x){x.style.background="";});
-          el.style.background="rgba(143,255,92,.14)";
-          var i=+el.dataset.ci;
-          window.__tvNoAdvance=true;   /* explicit pick -- stay on it */
-          playTV(chans[i],my,chans,i,1);
-          try{ bodyEl.scrollTop=0; }catch(e){}
         });
       });
       nlog("sportstv",true,chans.length+" sports channels");

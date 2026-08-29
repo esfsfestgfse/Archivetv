@@ -1452,7 +1452,7 @@ html,body{background:#040706!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.7-desktop.266-pluto-relay";
+window.__ATV_BUILD="1.7.7-desktop.267-pluto-health";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1489,7 +1489,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.266 · RealSignal</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.7-desktop.267 · RealSignal</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">REALSIGNAL · THE DIAL</div>
@@ -10364,9 +10364,11 @@ async function playTV(c,my,list,idx,triedCount,proxyIdx){
   pane.innerHTML=""; pane.appendChild(v);
   var cap=document.createElement("div");cap.className="dc-media-cap";cap.textContent="LIVE: "+String(c.name).toUpperCase()+(hasProxy?" · via your proxy":" · direct");pane.appendChild(cap);
   var proxies=streamProxyList();
-  /* Pluto/Roku playlist entries are redirector URLs. Always give the built-in
-     HLS-aware relay first chance, even when an older custom proxy is saved. */
-  if(isRedirectorUrl(c.url)&&/^(Pluto TV|Roku)$/i.test(String(c.src||""))){var hlsProxy="https://hls-proxy.tdy1990.workers.dev";if(proxies.indexOf(hlsProxy)<0)proxies.unshift(hlsProxy);}
+  /* Any short-link HLS entry can resolve to a playlist with relative child paths. Always give
+     the built-in HLS-aware relay first chance, even when an older custom proxy is saved or the
+     catalog mislabeled the provider. This is broader than a Pluto/Roku source-name check on
+     purpose: IPTV-org also carries Pluto channels, including duplicate Car Chase variants. */
+  if(isRedirectorUrl(c.url)){var hlsProxy="https://hls-proxy.tdy1990.workers.dev";if(proxies.indexOf(hlsProxy)<0)proxies.unshift(hlsProxy);}
   var src=proxies.length?proxiedVia(proxies[Math.min(proxyIdx,proxies.length-1)],c.url,{ua:c.ua,ref:c.ref}):c.url;
   function highlightRow(i){ var l=$("dcList"); if(!l)return; l.querySelectorAll("[data-ci]").forEach(function(x){x.classList.remove("sel");});
     var r=l.querySelector('[data-ci="'+i+'"]'); if(r)r.classList.add("sel"); }
@@ -10385,6 +10387,10 @@ async function playTV(c,my,list,idx,triedCount,proxyIdx){
     }
     /* Explicit picks stay on the selected channel, but only after every configured proxy has
        had a chance. Pluto and Roku can fail on one edge while working on the next. */
+    /* Record the exhausted entry even for an explicit pick. Strikes are temporary and only
+       lower the entry in the list; they are not a permanent ban. Without this, repeatedly
+       clicking one dead Pluto redirector could never teach the health sorter anything. */
+    markTvFail(c);
     if(window.__tvNoAdvance){
       var pane0=$("tvPane");
       if(pane0) pane0.innerHTML='<div class="dc-media-cap">'+esch(String(c.name).toUpperCase())+
@@ -10394,7 +10400,7 @@ async function playTV(c,my,list,idx,triedCount,proxyIdx){
         '<br><span style="opacity:.7">pick another channel from the list</span></div>';
       return;
     }
-    markTvFail(c);  /* every proxy exhausted -- genuinely didn't play on this device */
+    /* every proxy exhausted -- genuinely didn't play on this device */
     if(triedCount<Math.min(list.length,8)){ /* QA FIX: auto-advance instead of dead-ending -- iptv-org's
         own maintainers confirmed they no longer automatically verify stream health, so individual
         entries in the playlist can be stale; cap at 8 tries so a genuinely offline proxy doesn't spin forever */

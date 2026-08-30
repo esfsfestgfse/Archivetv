@@ -14,6 +14,10 @@ RealSignal's published, unlisted Custom Web Receiver is registered as
 Desktop and mobile builds include that receiver ID by default, so normal users
 do not need to perform Google developer-console setup or paste an ID.
 
+The Web Sender SDK supports Android Chrome and other Cast-supported web
+browsers. Google does not support casting from Chrome on iOS; use Safari if
+your iPhone presents Cast support there, or use Android Chrome/desktop Chrome.
+
 ## Connect it in RealSignal
 
 Press **CAST**, then choose a Chromecast or Cast-enabled TV on the same Wi-Fi
@@ -23,6 +27,14 @@ developer override for testing a different receiver ID.
 The receiver restores the active channel and follows later power and channel
 changes. A custom override, when supplied, is stored only in the browser's
 local RealSignal settings.
+
+## If a mobile device shows no receivers
+
+Open **MENU → SETTINGS** and read the Chromecast status line. RealSignal now
+reports whether the browser is unsupported, the page is not HTTPS, the SDK is
+still starting, or no devices were discovered. On Android, allow local-network
+access when prompted and verify the phone and Cast device are on the same Wi-Fi
+network with access-point isolation disabled.
 
 ## Why this is needed
 

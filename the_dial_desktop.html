@@ -10,8 +10,8 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>REALSIGNAL · The Dial 1.7.8</title>
-<!-- Google Cast sender: receiver ID is user-configured in Settings, never hard-coded here. -->
-<script>window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;if(available&&typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
+<!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
+<script>window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
 <style>
 :root{
@@ -1598,7 +1598,7 @@ html,body{background:#040706!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.9.6-desktop.009-published-cast";
+window.__ATV_BUILD="1.9.6-desktop.010-cast-discovery";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -1636,7 +1636,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.9.6-desktop.009-published-cast · RealSignal</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.9.6-desktop.010-cast-discovery · RealSignal</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">REALSIGNAL · THE DIAL</div>
@@ -1866,9 +1866,9 @@ window.addEventListener("unhandledrejection",function(e){
     <div class="settings-row"><span>Clock Format</span><button class="rbtn xs" id="setClock">12H</button></div>
     <div class="settings-row"><span>Cabinet Theme</span><button class="rbtn xs" id="setTheme">WALNUT</button></div>
     <div class="settings-sep"></div>
-    <div class="settings-label">CHROMECAST — one-time custom receiver setup</div>
+    <div class="settings-label">CHROMECAST — receiver discovery</div>
     <div class="settings-row"><input id="castReceiverIdInput" class="settings-input" type="text" placeholder="Google Cast receiver app ID" autocomplete="off"><button id="btnCastReceiverSave" class="rbtn xs">SAVE</button></div>
-    <div class="settings-row"><span id="castReceiverStatus">Receiver not connected</span><button class="rbtn xs" id="btnCastOpen">CAST →</button></div>
+    <div class="settings-row"><span id="castReceiverStatus" aria-live="polite">Receiver not connected</span><button class="rbtn xs" id="btnCastOpen">CAST →</button></div>
     <div class="settings-sep"></div>
     <div class="settings-row"><span>Picture Adjustment (CRT · brightness · color)</span><button class="rbtn xs" id="setPicLink">OPEN →</button></div>
     <div class="settings-sep"></div>
@@ -8175,7 +8175,7 @@ function renderSettings(){
   var bb=$("setBumpers"); if(bb) bb.textContent=bumperOn?"ON":"OFF";
   var t=$("setTheme"); if(t) t.textContent=THEMES[themeIdx].toUpperCase();
   var castId=$("castReceiverIdInput"); if(castId&&document.activeElement!==castId)castId.value=(typeof window.__rsCastReceiverId==="function"?window.__rsCastReceiverId():"");
-  var castStatus=$("castReceiverStatus"); if(castStatus)castStatus.textContent=(typeof window.__rsCastReceiverId==="function"&&window.__rsCastReceiverId())?"Receiver ready · select CAST":"Receiver ID required for full-screen casting";
+  var castStatus=$("castReceiverStatus"); if(castStatus)castStatus.textContent=(typeof window.__rsCastStatus==="function"?window.__rsCastStatus():((typeof window.__rsCastReceiverId==="function"&&window.__rsCastReceiverId())?"Receiver ready · select CAST":"Receiver ID required for full-screen casting"));
   var k=$("naraKeyInput"); if(k && !k.value) k.value=naraKey();
   var lm=$("setLocMode"); if(lm)lm.textContent=(locMode==="zip")?("HOME "+(homeLoc.zip||"ZIP")):"GPS";
   var hz=$("homeZipInput"); if(hz&&!hz.value)hz.value=homeLoc.zip||"";
@@ -16953,15 +16953,19 @@ window.__atvBootDone=true; /* app is up -- from here on, errors get logged, not 
    registered Custom Web Receiver, which loads the public desktop build and receives this compact
    state packet whenever the viewer powers on, tunes, or changes the channel. */
 (function(){
-  var NS="urn:x-cast:com.realsignal.dial",configuredId="",wired=false;
+  var NS="urn:x-cast:com.realsignal.dial",configuredId="",wired=false,castState="UNKNOWN",searchTimer=null;
   function receiverId(){return String((store.get("castReceiverId","")||window.REALSIGNAL_CAST_RECEIVER_ID||"")).trim();}
+  function platformIssue(){var ua=navigator.userAgent||"";if(/iPhone|iPad|iPod/i.test(ua)&&!/CriOS/i.test(ua))return "CAST UNAVAILABLE IN IOS BROWSER · USE ANDROID OR DESKTOP CHROME";if(/CriOS/i.test(ua))return "CAST UNSUPPORTED IN IOS CHROME · USE SAFARI, ANDROID, OR DESKTOP CHROME";if(location.protocol!=="https:"&&!/^(localhost|127\.0\.0\.1)$/i.test(location.hostname))return "CAST REQUIRES HTTPS";return "";}
+  function statusText(){var issue=platformIssue();if(issue)return issue;if(!window.__rsCastSdkReady||!window.cast||!cast.framework)return "CAST SERVICE NOT READY · RELOAD THIS PAGE";if(castState==="CONNECTED")return "CAST CONNECTED";if(castState==="CONNECTING")return "SEARCHING FOR CAST DEVICES…";if(castState==="NO_DEVICES_AVAILABLE")return "NO CAST DEVICES FOUND · CHECK WI-FI / LOCAL ACCESS";return receiverId()?"Receiver ready · select CAST":"Receiver ID required for full-screen casting";}
+  function refreshStatus(){try{if(typeof renderSettings==="function")renderSettings();}catch(e){}}
+  function setCastState(next){castState=String(next||"UNKNOWN");refreshStatus();}
   function publicAppUrl(){var fallback="https://esfsfestgfse.github.io/Archivetv/";try{if(location.protocol==="https:"&&location.hostname!=="localhost")return new URL("./",location.href).href;}catch(e){}return fallback;}
   function state(){return {type:"REALSIGNAL_STATE",appUrl:publicAppUrl(),channel:Number(curNum)||2,powered:!!powered,muted:!!muted,volume:Number(vol)||0.5,texture:(tube&&tube.dataset&&tube.dataset.glassScan)||"1",sentAt:Date.now()};}
   function sync(){try{if(!window.cast||!cast.framework)return;var session=cast.framework.CastContext.getInstance().getCurrentSession();if(session)session.sendMessage(NS,state()).catch(function(){});}catch(e){}}
-  function init(force){var id=receiverId();if(!window.__rsCastSdkReady||!window.cast||!cast.framework||!id)return false;if(!force&&wired&&configuredId===id)return true;try{var ctx=cast.framework.CastContext.getInstance();ctx.setOptions({receiverApplicationId:id,autoJoinPolicy:chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED});if(!wired){wired=true;ctx.addEventListener(cast.framework.CastContextEventType.SESSION_STATE_CHANGED,function(event){var active=event.sessionState===cast.framework.SessionState.SESSION_STARTED||event.sessionState===cast.framework.SessionState.SESSION_RESUMED;if(active){sync();quickBanner("CAST CONNECTED");}});}configuredId=id;return true;}catch(e){return false;}}
-  function request(){var id=receiverId();if(!id){quickBanner("CAST SETUP: MENU → SETTINGS → RECEIVER ID");return;}if(!init(true)){quickBanner("CAST SERVICE NOT READY");return;}try{cast.framework.CastContext.getInstance().requestSession().then(function(){sync();}).catch(function(){quickBanner("CAST CANCELLED");});}catch(e){quickBanner("CAST UNAVAILABLE IN THIS BROWSER");}}
+  function init(force){var id=receiverId(),issue=platformIssue();if(issue){setCastState("UNSUPPORTED");return false;}if(!window.__rsCastSdkReady||!window.cast||!cast.framework||!id){refreshStatus();return false;}if(!force&&wired&&configuredId===id)return true;try{var ctx=cast.framework.CastContext.getInstance();ctx.setOptions({receiverApplicationId:id,autoJoinPolicy:chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED});if(!wired){wired=true;if(cast.framework.CastContextEventType.CAST_STATE_CHANGED)ctx.addEventListener(cast.framework.CastContextEventType.CAST_STATE_CHANGED,function(event){setCastState(event.castState||"UNKNOWN");});ctx.addEventListener(cast.framework.CastContextEventType.SESSION_STATE_CHANGED,function(event){var active=event.sessionState===cast.framework.SessionState.SESSION_STARTED||event.sessionState===cast.framework.SessionState.SESSION_RESUMED;if(active){clearTimeout(searchTimer);setCastState("CONNECTED");sync();quickBanner("CAST CONNECTED");}else if(event.sessionState===cast.framework.SessionState.SESSION_START_FAILED){setCastState("NO_DEVICES_AVAILABLE");quickBanner("NO CAST DEVICES FOUND · CHECK WI-FI / LOCAL ACCESS");}});}configuredId=id;setCastState(ctx.getCastState?ctx.getCastState():"NOT_CONNECTED");return true;}catch(e){setCastState("ERROR");return false;}}
+  function request(){var id=receiverId(),issue=platformIssue();if(issue){quickBanner(issue);refreshStatus();return;}if(!id){quickBanner("CAST SETUP: MENU → SETTINGS → RECEIVER ID");return;}if(!init(true)){quickBanner(statusText());return;}try{setCastState("CONNECTING");clearTimeout(searchTimer);searchTimer=setTimeout(function(){if(castState==="CONNECTING"||castState==="NO_DEVICES_AVAILABLE"){setCastState("NO_DEVICES_AVAILABLE");quickBanner("NO CAST DEVICES FOUND · SAME WI-FI / LOCAL ACCESS");}},7000);cast.framework.CastContext.getInstance().requestSession().then(function(){clearTimeout(searchTimer);setCastState("CONNECTED");sync();}).catch(function(){clearTimeout(searchTimer);if(castState!=="CONNECTED")setCastState("NO_DEVICES_AVAILABLE");quickBanner("CAST CANCELLED · CHECK WI-FI / LOCAL ACCESS");});}catch(e){setCastState("ERROR");quickBanner("CAST UNAVAILABLE IN THIS BROWSER");}}
   function applyReceiverState(next){if(!next||next.type!=="REALSIGNAL_STATE")return;if(next.powered&&!powered)powerOn();if(!next.powered&&powered){powerOff();return;}var n=Number(next.channel);if(next.powered&&n&&byNum(n)&&n!==curNum)tuneNum(n);}
-  window.__rsCastReceiverId=receiverId;window.__rsCastInit=init;window.__rsCastRequest=request;window.__rsCastSync=sync;
+  window.__rsCastReceiverId=receiverId;window.__rsCastStatus=statusText;window.__rsCastInit=init;window.__rsCastRequest=request;window.__rsCastSync=sync;
   window.addEventListener("message",function(event){if(event.origin!==location.origin)return;applyReceiverState(event.data);});
   var query=new URLSearchParams(location.search);if(query.get("castReceiver")==="1"){var initial={type:"REALSIGNAL_STATE",powered:query.get("powered")!=="0",channel:Number(query.get("channel"))||2};setTimeout(function(){applyReceiverState(initial);},120);}
   if(window.__rsCastSdkReady)init();

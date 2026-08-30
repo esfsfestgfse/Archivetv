@@ -43,6 +43,8 @@ async function inspectWeather(page, label, expectedSource) {
       musicGenre: typeof iaJazzGenre === "string" ? iaJazzGenre : "",
       hourly: document.querySelectorAll(".wx-hr").length,
       daily: document.querySelectorAll(".wx-day").length,
+      pixelDaily: document.querySelectorAll(".wx-day .wx-pixel-art").length,
+      alertProbe: (typeof wxAlertChip === "function") ? wxAlertChip({event: "Flash Flood Warning", areaDesc: "McLennan TX", severity: "Severe"}) : "",
       screen,
       boxes,
       within
@@ -54,6 +56,8 @@ async function inspectWeather(page, label, expectedSource) {
   if (expectedSource && !result.update.startsWith(expectedSource + " \u00b7 ")) fail(label + ": expected " + expectedSource + " data, got " + result.update);
   if (result.hourly < 6) fail(label + ": expected at least six hourly periods");
   if (result.daily < 4) fail(label + ": expected at least four forecast periods");
+  if (result.pixelDaily !== result.daily) fail(label + ": every forecast card must have an 8-bit animation");
+  if (!/FLASH FLOOD/.test(result.alertProbe) || !/McLennan TX/.test(result.alertProbe)) fail(label + ": alert probe is missing typed location data");
   if (result.musicGenre !== "gmjazz") fail(label + ": thematic Weather Watch music bed was not selected");
   if (result.within.length) fail(label + ": elements escaped Weather Watch frame: " + result.within.join(", "));
   if (result.boxes["#wxMain"].height < result.screen.height * 0.25) fail(label + ": current/radar panel is too short (" + Math.round(result.boxes["#wxMain"].height) + " of " + Math.round(result.screen.height) + "px)");

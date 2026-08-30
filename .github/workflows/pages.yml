@@ -1,0 +1,57 @@
+name: Publish RealSignal
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'the_dial_desktop.html'
+      - 'the_dial_mobile.html'
+      - 'sw.js'
+      - 'manifest.json'
+      - 'icon-192.png'
+      - 'icon-512.png'
+      - 'assets/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Assemble public site
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p _site/assets
+          cp the_dial_desktop.html _site/index.html
+          cp the_dial_mobile.html _site/the_dial_mobile.html
+          cp sw.js manifest.json icon-192.png icon-512.png _site/
+          cp assets/* _site/assets/
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload site artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy site
+        id: deployment
+        uses: actions/deploy-pages@v4

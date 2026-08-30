@@ -1662,7 +1662,7 @@ html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.9.4-mobile.001-youtube-cleanup";
+window.__ATV_BUILD="1.9.5-mobile.001-rolling-youtube-queue";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1699,7 +1699,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.9.4-mobile.001 · RealSignal</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.9.5-mobile.001 · RealSignal</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -7017,6 +7017,10 @@ var v2PreviewInflight={},v2PreviewAdvance={};
 function v2Text(v){return String(Array.isArray(v)?v.join(" "):(v&&typeof v==="object"?Object.values(v).join(" "):v||"")).replace(/<[^>]+>/g," ").replace(/\s+/g," ").trim();}
 function v2Unique(items){var seen={};return items.filter(function(it){var k=String(it.id||it.url||it.title||"");if(!k||seen[k])return false;seen[k]=1;return true;});}
 function v2RoundRobin(buckets){var out=[],more=true,i=0;while(more){more=false;buckets.forEach(function(bucket){if(bucket&&bucket[i]){out.push(bucket[i]);more=true;}});i++;}return out;}
+function v2Shuffle(items){for(var i=items.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),tmp=items[i];items[i]=items[j];items[j]=tmp;}return items;}
+function v2Recent(key){var ids=store.get("v2recent:"+key,[]);return Array.isArray(ids)?ids:[];}
+function v2Remember(key,item){var id=String(item&&item.id||"");if(!id)return;var ids=v2Recent(key).filter(function(x){return x!==id;});ids.unshift(id);store.set("v2recent:"+key,ids.slice(0,24));}
+function v2CatalogOrder(key,items){var recent=v2Recent(key),fresh=[],played=[];items.forEach(function(item){(recent.indexOf(String(item.id||""))>=0?played:fresh).push(item);});return v2Shuffle(fresh).concat(v2Shuffle(played));}
 function v2YouTubeBlocked(item){return /\bhow[\s-]+to\b/i.test(v2Text([item.title,item.description,item.tags,item.subject,item.category]));}
 function v2Relevant(profile,item){var hay=v2Text([item.title,item.description,item.tags,item.subject,item.category,item.account]).toLowerCase();if(profile.deny.some(function(t){return hay.indexOf(t.toLowerCase())>=0;}))return false;return profile.match.some(function(t){return hay.indexOf(t.toLowerCase())>=0;});}
 async function v2PeerTube(profile){
@@ -7060,10 +7064,11 @@ async function v2Archive(profile){
 async function v2LoadProfile(ch,profile,my){
   var key=profile.name,state=v2PreviewState[ch.num]||(v2PreviewState[ch.num]={items:[],cursor:0,currentTitle:"",provider:"SOURCE PILOT"});
   if(v2PreviewInflight[key])return v2PreviewInflight[key];
-  var cached=store.get("v2source:"+key,null);if(cached&&Number(cached.version||0)===V2_SOURCE_CACHE_VERSION&&Array.isArray(cached.items)&&Date.now()-Number(cached.at||0)<30*60*1000&&!state.items.length){state.items=cached.items;state.cursor=0;state.provider="CACHED SOURCE CATALOG";refreshGuideData();}
+  var cached=store.get("v2source:"+key,null);if(cached&&Number(cached.version||0)===V2_SOURCE_CACHE_VERSION&&Array.isArray(cached.items)&&Date.now()-Number(cached.at||0)<30*60*1000&&!state.items.length){state.items=v2CatalogOrder(key,cached.items.slice());state.cursor=0;state.provider="CACHED SOURCE CATALOG";refreshGuideData();}
   v2PreviewInflight[key]=(async function(){
-    var lanes=await Promise.all(profile.providers.map(function(p){return p==="peertube"?v2PeerTube(profile):p==="youtube"?v2YouTube(profile):v2Archive(profile).catch(function(){return [];});})),items=v2Unique(lanes.flat()).slice(0,V2_SOURCE_CATALOG_SIZE);
-    if(items.length){state.items=items;state.cursor=Math.min(Number(state.cursor)||0,items.length-1);state.provider=items.map(function(x){return x.provider;}).filter(function(x,i,a){return a.indexOf(x)===i;}).join(" + ");store.set("v2source:"+key,{version:V2_SOURCE_CACHE_VERSION,at:Date.now(),items:items});}
+    var previousId=state.items.length?String(state.items[Number(state.cursor||0)%state.items.length].id||""):"";
+    var lanes=await Promise.all(profile.providers.map(function(p){return p==="peertube"?v2PeerTube(profile):p==="youtube"?v2YouTube(profile):v2Archive(profile).catch(function(){return [];});})),items=v2CatalogOrder(key,v2Unique(lanes.flat()).slice(0,V2_SOURCE_CATALOG_SIZE));
+    if(items.length){state.items=items;var nextIndex=items.findIndex(function(x){return String(x.id||"")===previousId;});state.cursor=nextIndex>=0?nextIndex:0;state.provider=items.map(function(x){return x.provider;}).filter(function(x,i,a){return a.indexOf(x)===i;}).join(" + ");store.set("v2source:"+key,{version:V2_SOURCE_CACHE_VERSION,at:Date.now(),items:items});}
     refreshGuideData();return state.items;
   })().catch(function(e){nlog("v2-preview",false,key+" "+((e&&e.message)||e));return state.items;}).finally(function(){delete v2PreviewInflight[key];});
   return v2PreviewInflight[key];
@@ -7074,7 +7079,7 @@ async function tuneV2Preview(ch,sl,my){
   if(!profile)return;
   if(!state.items.length){showOv("SOURCE SUITE","BUILDING QUEUE","Loading qualified sources for “"+ch.nm+"”…");setSig("tuning","BUILDING QUEUE");await withTO(v2LoadProfile(ch,profile,my),11000).catch(function(){});if(my!==token)return;}
   var attempts=0;
-  while(state.items.length&&attempts<Math.min(V2_SOURCE_READY_BUFFER+3,state.items.length)){if(my!==token)return;var item=state.items[state.cursor%state.items.length],pl=item.type==="archive"?await resolvePlayable(item.id):item;if(my!==token)return;if(pl){pl.title=item.title;pl.year=item.year;pl.id=pl.id||item.id;pl.meta=Object.assign({},pl.meta||{},item.meta||{source:item.provider});var played=item.type==="embed"?await playV2Embed(pl,ch,sl,my):await playFile(pl,ch,sl,my,false);if(played){state.currentTitle=item.title;state.provider=item.provider;refreshGuideData();setChanStatus(ch.num,"BUFFER "+Math.min(V2_SOURCE_READY_BUFFER,state.items.length)+" / "+state.items.length+" CATALOG · "+item.provider);return;}}state.cursor=(state.cursor+1)%state.items.length;attempts++;}
+  while(state.items.length&&attempts<Math.min(V2_SOURCE_READY_BUFFER+3,state.items.length)){if(my!==token)return;var item=state.items[state.cursor%state.items.length],pl=item.type==="archive"?await resolvePlayable(item.id):item;if(my!==token)return;if(pl){pl.title=item.title;pl.year=item.year;pl.id=pl.id||item.id;pl.meta=Object.assign({},pl.meta||{},item.meta||{source:item.provider});var played=item.type==="embed"?await playV2Embed(pl,ch,sl,my):await playFile(pl,ch,sl,my,false);if(played){v2Remember(profile.name,item);state.currentTitle=item.title;state.provider=item.provider;refreshGuideData();setChanStatus(ch.num,"BUFFER "+Math.min(V2_SOURCE_READY_BUFFER,state.items.length)+" / "+state.items.length+" CATALOG · "+item.provider);return;}}state.cursor=(state.cursor+1)%state.items.length;attempts++;}
   state.currentTitle="";setChanStatus(ch.num,state.items.length?"QUEUE RETRYING · BUFFER "+Math.min(V2_SOURCE_READY_BUFFER,state.items.length)+" / "+state.items.length+" CATALOG":"SOURCE CATALOG RETRYING");showOv("SOURCE SUITE","RECONNECTING","The source catalog is retrying — no permanent channel failure.");clearTimeout(retryTimer);retryTimer=setTimeout(function(){if(my===token&&powered)tuneNum(curNum);},2500);
 }
 window.__v2PreviewNext=function(){var ch=byNum(curNum),state=ch&&v2PreviewState[ch.num],profile=ch&&V2_PREVIEW_PROFILES[ch.previewKey];if(!ch||ch.source!=="v2preview")return false;if(!state||!state.items.length){quickBanner("SOURCE SUITE · QUEUE WARMING");return true;}state.cursor=(Number(state.cursor||0)+1)%state.items.length;state.currentTitle="";if(profile&&state.cursor>=Math.max(0,state.items.length-4))v2LoadProfile(ch,profile,token).catch(function(){});quickBanner("SOURCE SUITE · NEXT");tuneNum(curNum);return true;};

@@ -17139,7 +17139,7 @@ window.__atvBootDone=true; /* app is up -- from here on, errors get logged, not 
 (function(){
   var NS="urn:x-cast:com.realsignal.dial",configuredId="",wired=false,castState="UNKNOWN",searchTimer=null;
   function receiverId(){return String((store.get("castReceiverId","")||window.REALSIGNAL_CAST_RECEIVER_ID||"")).trim();}
-  function platformIssue(){var ua=navigator.userAgent||"";if(/iPhone|iPad|iPod/i.test(ua)&&!/CriOS/i.test(ua))return "CAST UNAVAILABLE IN IOS BROWSER · USE ANDROID OR DESKTOP CHROME";if(/CriOS/i.test(ua))return "CAST UNSUPPORTED IN IOS CHROME · USE SAFARI, ANDROID, OR DESKTOP CHROME";if(location.protocol!=="https:"&&!/^(localhost|127\.0\.0\.1)$/i.test(location.hostname))return "CAST REQUIRES HTTPS";return "";}
+  function platformIssue(){var ua=navigator.userAgent||"";if(/iPhone|iPad|iPod/i.test(ua))return "WEB CAST UNAVAILABLE ON IOS · USE ANDROID OR DESKTOP CHROME";if(location.protocol!=="https:"&&!/^(localhost|127\.0\.0\.1)$/i.test(location.hostname))return "CAST REQUIRES HTTPS";return "";}
   function statusText(){var issue=platformIssue();if(issue)return issue;if(!window.__rsCastSdkReady||!window.cast||!cast.framework)return "CAST SERVICE NOT READY · RELOAD THIS PAGE";if(castState==="CONNECTED")return "CAST CONNECTED";if(castState==="CONNECTING")return "SEARCHING FOR CAST DEVICES…";if(castState==="NO_DEVICES_AVAILABLE")return "NO CAST DEVICES FOUND · CHECK WI-FI / LOCAL ACCESS";return receiverId()?"Receiver ready · select CAST":"Receiver ID required for full-screen casting";}
   function refreshStatus(){try{if(typeof renderSettings==="function")renderSettings();}catch(e){}}
   function setCastState(next){castState=String(next||"UNKNOWN");refreshStatus();}

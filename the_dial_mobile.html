@@ -1662,7 +1662,7 @@ html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.9.6-mobile.001-youtube-language-filter";
+window.__ATV_BUILD="1.9.6-mobile.002-mass-channel-audit";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1699,7 +1699,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.9.6-mobile.001 · RealSignal</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.9.6-mobile.002 · RealSignal</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -2438,6 +2438,7 @@ const byNum=n=>_byNumMap.get(n);
    the flip preview both follow the stable numeric lineup. */
 const DIAL_ORDER=CH.slice().sort(function(a,b){return a.num-b.num||String(a.nm).localeCompare(String(b.nm));});
 const DIAL_INDEX=new Map(DIAL_ORDER.map(function(ch,i){return [ch.num,i];}));
+function orderedChannels(){return DIAL_ORDER.slice();}
 
 /* ===== 1.3 METADATA FOUNDATION: per-channel identity, driving INFO + guide + discovery ===== */
 const CHANNEL_META={
@@ -2691,9 +2692,9 @@ Object.keys(CHANNEL_META).forEach(function(name){ delete CHANNEL_META[name].best
    here so one edit updates all four. Gospel keeps its own curated shorter list. */
 const JAMBAND_DENY = ["jam","jamband","jam band","grateful dead","jerry garcia","phish","widespread panic","string cheese","cheese incident","ween","moe.","umphrey","disco biscuits","ratdog","leftover salmon","donna the buffalo","radiators","mr. blotto","maradeen","vince welnick"];
 const PROGRAM = {
-  /* Vintage Commercials — Phase 3 overhaul 2026-08-08. 1948-1985 TV commercials. */
+  /* Vintage Commercials — full-range video ad archive: early television through current public-service and brand spots. */
   "Vintage Commercials": {
-    genre: "commercials", era: [1948, 1985],
+    genre: "commercials", era: [1930, 2026],
     queueTerms: ["commercial","tv commercial","television commercial","tv ad","advertising","vintage commercial","classic commercial","public service announcement","psa","commercial reel","commercial break"],
     providers: [
       { collections: ["vhscommercials", "classic_tv_commercials", "opensource_movies"], require_subj: [
@@ -2711,6 +2712,10 @@ const PROGRAM = {
         "kellogg's commercial","general mills commercial","chevrolet commercial","ford commercial","dodge commercial",
         "atari commercial","nintendo commercial","apple commercial","ibm commercial","microsoft commercial",
         "kellogg commercial","procter and gamble commercial"
+      ] },
+      { collections: ["opensource_movies", "classic_tv_commercials"], require_subj: [
+        "1990s commercial","2000s commercial","2010s commercial","2020s commercial","video commercial",
+        "brand commercial","product commercial","public service announcement","commercial break","tv advertisement"
       ] }
     ],
     deny: {
@@ -6054,7 +6059,7 @@ const PROGRAM_EDITORIAL={
   "Classic Rerun TV":{eraBuckets:[[1950,1955],[1956,1962],[1963,1969],[1970,1975]],topicBuckets:[["family sitcom","situation comedy"],["variety show","comedy variety"],["anthology series","television drama"],["detective tv","crime tv"]]},
   "Modern Rerun TV":{eraBuckets:[[1976,1984],[1985,1992],[1993,1999],[2000,2026]],topicBuckets:[["family sitcom"],["workplace sitcom"],["ensemble sitcom"],["syndicated comedy"]]},
   "Game Show Channel":{eraBuckets:[[1950,1959],[1960,1969],[1970,1979],[1980,1989],[1990,1999],[2000,2026]],topicBuckets:[["panel show"],["quiz show"],["word game"],["pricing game"],["dating game"],["stunt game"]]},
-  "Vintage Commercials":{eraBuckets:[[1948,1959],[1960,1969],[1970,1979],[1980,1985]],topicBuckets:[["food commercial"],["automobile commercial"],["toy commercial"],["technology commercial"],["household commercial"],["public service announcement"]]},
+  "Vintage Commercials":{eraBuckets:[[1930,1949],[1950,1959],[1960,1969],[1970,1979],[1980,1989],[1990,1999],[2000,2009],[2010,2019],[2020,2026]],topicBuckets:[["food commercial"],["automobile commercial"],["toy commercial"],["technology commercial"],["household commercial"],["public service announcement"],["brand commercial"],["product commercial"],["commercial break"]]},
   "Computer Chronicles":{eraBuckets:[[1975,1982],[1983,1989],[1990,1995],[1996,2005]],topicBuckets:[["home computer"],["business pc"],["software"],["networking"],["early internet"],["computer television"]]},
   "Public Access TV":{eraBuckets:[[1975,1984],[1985,1994],[1995,2005],[2006,2015]],topicBuckets:[["civic meeting"],["local arts"],["call-in show"],["local performance"],["community affairs"]]},
   "Sports Vault":{eraBuckets:[[1920,1949],[1950,1969],[1970,1979],[1980,1999],[2000,2026]],topicBuckets:[["baseball"],["football"],["basketball"],["hockey"],["olympics"],["golf"],["tennis"]]},
@@ -6235,6 +6240,7 @@ function slotFor(ch,_ignoredHour,opts){
      non-migrated channels. */
   if(PROGRAM[ch.nm]){
     var prog=PROGRAM[ch.nm];
+    if(ch.nm==="Sports Vault"&&sportsEra!=="all"){var selectedSportsEra=SPORTS_ERAS[sportsEra]||prog.era;prog=Object.assign({},prog,{era:selectedSportsEra,eraBuckets:[selectedSportsEra]});}
     var pq=buildProgramQueries(prog,ch,advance);
     /* The station identity is permanent. PROGRAM.show used to carry daypart
        labels such as "The Late Late Show" into unrelated channels, even after
@@ -6381,10 +6387,11 @@ var iaProgramQueues={}, iaProgramInflight={}, iaProgramMedia={}, iaQueueRetries=
 var IA_READY_SHELF_TTL=6*60*60*1000, IA_READY_SHELF_MAX=32;
 var iaReadyShelves=null;
 function iaReadyShelfKey(ch){return String(ch&&ch.num||"");}
-function iaReadyShelfAllowed(item,sl){return item&&item.identifier&&item.media&&item.media.url&&iaProgramAllowed(item,sl);}
+function iaExpectedMedia(ch){return ch&&ch.audio?"audio":"video";}
+function iaReadyShelfAllowed(item,sl,ch){return item&&item.identifier&&item.media&&item.media.url&&(!ch||!item.media.type||item.media.type===iaExpectedMedia(ch))&&iaProgramAllowed(item,sl);}
 function iaReadyShelfSave(ch){
   if(!iaReadyShelves)iaReadyShelves=store.get("iaReadyShelves",{})||{};
-  var key=iaReadyShelfKey(ch),q=iaProgramQueues[key]||[],items=q.filter(function(it){return iaReadyShelfAllowed(it,null);}).slice(0,5);
+  var key=iaReadyShelfKey(ch),q=iaProgramQueues[key]||[],items=q.filter(function(it){return iaReadyShelfAllowed(it,null,ch);}).slice(0,5);
   if(!items.length)return;
   var compact=items.map(function(it){return {identifier:it.identifier,title:it.title||it.identifier,year:it.year||null,runtime:it.runtime||null,subject:it.subject||null,creator:it.creator||null,collection:it.collection||null,lane:it.lane==null?null:it.lane,media:{type:it.media.type||"video",url:it.media.url,alts:(it.media.alts||[]).slice(0,2)}};});
   iaReadyShelves[key]={at:Date.now(),items:compact};
@@ -6396,9 +6403,9 @@ function iaReadyShelfRestore(ch,sl){
   if(!iaReadyShelves)iaReadyShelves=store.get("iaReadyShelves",{})||{};
   var key=iaReadyShelfKey(ch),row=iaReadyShelves[key];
   if(!row||Date.now()-Number(row.at||0)>IA_READY_SHELF_TTL){if(row){delete iaReadyShelves[key];store.set("iaReadyShelves",iaReadyShelves);}return;}
-  var restored=(row.items||[]).filter(function(it){return iaReadyShelfAllowed(it,sl)&&!iaProgramMedia[it.identifier];});
+  var restored=(row.items||[]).filter(function(it){return iaReadyShelfAllowed(it,sl,ch)&&!iaProgramMedia[it.identifier];});
   if(!restored.length)return;
-  var old=iaProgramQueues[key]||[],byId={},order=[];old.concat(restored).forEach(function(it){if(!it||!it.identifier||!iaReadyShelfAllowed(it,sl)||byId[it.identifier])return;byId[it.identifier]=it;order.push(it.identifier);iaProgramMedia[it.identifier]=it.media;});
+  var old=iaProgramQueues[key]||[],byId={},order=[];old.concat(restored).forEach(function(it){if(!it||!it.identifier||!iaReadyShelfAllowed(it,sl,ch)||byId[it.identifier])return;byId[it.identifier]=it;order.push(it.identifier);iaProgramMedia[it.identifier]=it.media;});
   iaProgramQueues[key]=order.map(function(id){return byId[id];}).slice(0,5);
 }
 /* A catalog hit is not necessarily a playable file. Quarantine only the
@@ -6454,7 +6461,7 @@ async function iaQueueRequest(ch,sl,count){
     var out=((d&&d.items)||[]).filter(function(it){return iaProgramAllowed(it,sl);});out.hydrating=!!(d&&d.hydrating);return out;
   }catch(e){nlog("queue",false,"director unavailable: "+(e&&e.message||e)+"; using local shelf");return iaLocalQueueFallback(ch,sl);}
 }
-function warmIAQueue(ch,sl,hydrating){var q=iaProgramQueues[iaQueueKey(ch)]||[];q.slice(0,5).forEach(function(it){if(!it||iaProgramFailed(it.identifier)||iaProgramMedia[it.identifier])return;var id=it.identifier,editorial={identifier:id,creator:it.creator||"",collection:it.collection||"",subject:it.subject||"",lane:it.lane};if(it.media&&it.media.url){iaProgramMedia[id]={type:it.media.type||"video",url:it.media.url,alts:it.media.alts||[],id:id,captions:null,meta:editorial};return;}/* Resolve all five in parallel and replace the Promise with its settled value so tuning can choose whichever candidate is actually ready. */var pending=resolvePlayable(id).then(function(pl){if(!pl){iaMarkProgramFailed(id);setTimeout(function(){if(powered)refillIAQueue(ch,sl);},160);}if(pl){pl.meta=Object.assign({},pl.meta||{},editorial);var current=(iaProgramQueues[iaQueueKey(ch)]||[]).find(function(x){return x&&x.identifier===id;});if(current)current.media={type:pl.type||"video",url:pl.url,alts:pl.alts||[]};iaReadyShelfSave(ch);}iaProgramMedia[id]=pl;warmIAQueueHead(ch);return pl;}).catch(function(){iaMarkProgramFailed(id);iaProgramMedia[id]=null;setTimeout(function(){if(powered)refillIAQueue(ch,sl);},160);return null;});iaProgramMedia[id]=pending;});warmIAQueueHead(ch);}
+function warmIAQueue(ch,sl,hydrating){var q=iaProgramQueues[iaQueueKey(ch)]||[],expected=iaExpectedMedia(ch);q.slice(0,5).forEach(function(it){if(!it||iaProgramFailed(it.identifier)||iaProgramMedia[it.identifier])return;var id=it.identifier,editorial={identifier:id,creator:it.creator||"",collection:it.collection||"",subject:it.subject||"",lane:it.lane};if(it.media&&it.media.url){if(it.media.type&&it.media.type!==expected){iaMarkProgramFailed(id);return;}iaProgramMedia[id]={type:it.media.type||expected,url:it.media.url,alts:it.media.alts||[],id:id,captions:null,meta:editorial};return;}/* Resolve all five in parallel and replace the Promise with its settled value so tuning can choose whichever candidate is actually ready. */var pending=resolvePlayable(id,expected).then(function(pl){if(!pl){iaMarkProgramFailed(id);setTimeout(function(){if(powered)refillIAQueue(ch,sl);},160);}if(pl){pl.meta=Object.assign({},pl.meta||{},editorial);var current=(iaProgramQueues[iaQueueKey(ch)]||[]).find(function(x){return x&&x.identifier===id;});if(current)current.media={type:pl.type||expected,url:pl.url,alts:pl.alts||[]};iaReadyShelfSave(ch);}iaProgramMedia[id]=pl;warmIAQueueHead(ch);return pl;}).catch(function(){iaMarkProgramFailed(id);iaProgramMedia[id]=null;setTimeout(function(){if(powered)refillIAQueue(ch,sl);},160);return null;});iaProgramMedia[id]=pending;});warmIAQueueHead(ch);}
 async function refillIAQueue(ch,sl){var k=iaQueueKey(ch);iaReadyShelfRestore(ch,sl);if(iaProgramInflight[k])return iaProgramInflight[k];iaProgramInflight[k]=iaQueueRequest(ch,sl,5).then(function(items){var old=iaProgramQueues[k]||[], byId={}, order=[];old.concat(items).forEach(function(it){if(!it||!it.identifier||iaProgramFailed(it.identifier)||!iaProgramAllowed(it,sl))return;if(!byId[it.identifier])order.push(it.identifier);if(!byId[it.identifier]||(it.media&&it.media.url&&!byId[it.identifier].media))byId[it.identifier]=it;});iaProgramQueues[k]=order.map(function(id){return byId[id];}).slice(0,5);if(!iaProgramQueues[k].length)iaProgramQueues[k]=iaEmergencyItems(sl);warmIAQueue(ch,sl,items.hydrating);iaReadyShelfSave(ch);if(iaProgramQueues[k].length){iaQueueRetries[k]=0;if(items.hydrating)setTimeout(function(){refillIAQueue(ch,sl);},1200);}else{var retry=(iaQueueRetries[k]||0)+1;iaQueueRetries[k]=retry;if(retry<=3)setTimeout(function(){if(powered)refillIAQueue(ch,sl);},retry*4500);}nlog("queue",true,"CH "+k+" ready="+iaProgramQueues[k].length);if(gwrap&&gwrap.classList.contains("show"))renderRail();return iaProgramQueues[k];}).finally(function(){delete iaProgramInflight[k];});return iaProgramInflight[k];}
 function takeIAQueue(ch,sl){var k=iaQueueKey(ch),q=iaProgramQueues[k]||[],warmAt=-1,resolvedAt=-1,fallback=-1;for(var i=q.length-1;i>=0;i--){var bad=!iaProgramAllowed(q[i],sl)||iaProgramMedia[q[i].identifier]===null;if(bad)q.splice(i,1);}for(var j=0;j<q.length;j++){var it=q[j],w=iaMediaWarmers[iaMediaWarmKey(ch,it)],pl=iaProgramMedia[it.identifier];if(fallback<0)fallback=j;if(w&&w.el.readyState>=2){warmAt=j;break;}if(resolvedAt<0&&pl&&typeof pl.then!=="function"&&pl.url)resolvedAt=j;}var at=warmAt>=0?warmAt:(resolvedAt>=0?resolvedAt:fallback);if(at>=0){var picked=q.splice(at,1)[0];iaReadyShelfSave(ch);warmIAQueueHead(ch);refillIAQueue(ch,sl);return picked;}refillIAQueue(ch,sl);return null;}
 /* Archive is blocked outright in some desktop browsers. Keep every discovery probe short so
@@ -6564,7 +6571,7 @@ function choose(docs){
   if(!ok.length) ok=(docs||[]).filter(x=>x&&x.identifier&&x.identifier!==cur&&banned.indexOf(x.identifier)<0&&!isTemporarilySkipped(x.identifier));
   if(!ok.length) return null; /* Skip and Banish must never silently replay the rejected item. */
   const notDupeTitle=x=>recentTitles.indexOf(normTitle(x.title))<0;      // NEW: skip near-duplicate re-uploads of a film we just played
-  let fresh=ok.filter(x=>!blockedId(x.identifier)&&notDupeTitle(x));
+  let fresh=ok.filter(x=>!blockedId(x.identifier)&&!iaProgramFailed(x.identifier)&&notDupeTitle(x));
   if(!fresh.length) fresh=ok.filter(x=>!blockedId(x.identifier));        // if dedup ate the whole pool, fall back without it
   if(fresh.length) return fresh[Math.floor(Math.random()*fresh.length)];
   ok.sort((a,b)=>(seenMap[a.identifier]||0)-(seenMap[b.identifier]||0)); // thin channel: fall back to LEAST-recently-watched
@@ -6583,7 +6590,7 @@ async function pickFromQueriesFast(qs,lanes,offset,sl){var all=qs||[],from=Math.
 /* metadata -> a directly playable file (so volume + 'ended' work) */
 function mArr(x){return Array.isArray(x)?x.filter(Boolean):(x?[x]:[]);}
 function mStrip(s){return (s==null?"":String(s)).replace(/<[^>]+>/g," ").replace(/&[a-z]+;/gi," ").replace(/\s+/g," ").trim();}
-async function resolvePlayable(id){
+async function resolvePlayable(id,wantType){
   const mu="https://archive.org/metadata/"+encodeURIComponent(id);
   let m; try{m=await withTO(firstOk([
     {tag:"metadata:afterglow-relay",delay:0,run:()=>iaFastJSON(iaRelayMetadataURL(id))},
@@ -6626,11 +6633,11 @@ async function resolvePlayable(id){
     else if(/\.ogv$/i.test(n)) scored.push([IOS?9:3,n]); });
   const cand=scored.filter(x=>x[0]<9).sort((a,b)=>a[0]-b[0]).map(x=>x[1])
     .filter((n,i,arr)=>arr.indexOf(n)===i).slice(0,4);
-  if(cand.length){ const urls=mediaUrls(cand); return {type:"video", url:urls[0],
+  if(cand.length){ if(wantType&&wantType!=="video")return null; const urls=mediaUrls(cand); return {type:"video", url:urls[0],
     alts:urls.slice(1,8), // CDN hosts first, then alternate playable files
     id, captions:cap, meta}; }
   const aud = v(/\.mp3$/i)||v(/\.ogg$/i)||v(/\.m4a$/i)||v(/\.flac$/i);
-  if(aud){ const urls=mediaUrls([aud.name]); return {type:"audio", url:urls[0], alts:urls.slice(1,4), id, captions:cap, meta}; }
+  if(aud){ if(wantType&&wantType!=="audio")return null; const urls=mediaUrls([aud.name]); return {type:"audio", url:urls[0], alts:urls.slice(1,4), id, captions:cap, meta}; }
   nlog("files",false,"no playable file in "+id);
   return null;
 }
@@ -7067,7 +7074,7 @@ async function v2Archive(profile){
 async function v2LoadProfile(ch,profile,my){
   var key=profile.name,state=v2PreviewState[ch.num]||(v2PreviewState[ch.num]={items:[],cursor:0,currentTitle:"",provider:"SOURCE PILOT"});
   if(v2PreviewInflight[key])return v2PreviewInflight[key];
-  var cached=store.get("v2source:"+key,null);if(cached&&Number(cached.version||0)===V2_SOURCE_CACHE_VERSION&&Array.isArray(cached.items)&&Date.now()-Number(cached.at||0)<30*60*1000&&!state.items.length){state.items=v2CatalogOrder(key,cached.items.slice());state.cursor=0;state.provider="CACHED SOURCE CATALOG";refreshGuideData();}
+  var cached=store.get("v2source:"+key,null),cacheFresh=cached&&Number(cached.version||0)===V2_SOURCE_CACHE_VERSION&&Array.isArray(cached.items)&&Date.now()-Number(cached.at||0)<30*60*1000;if(cacheFresh&&!state.items.length){state.items=v2CatalogOrder(key,cached.items.slice());state.cursor=0;state.provider="CACHED SOURCE CATALOG";refreshGuideData();}if(cacheFresh)return Promise.resolve(state.items);
   v2PreviewInflight[key]=(async function(){
     var previousId=state.items.length?String(state.items[Number(state.cursor||0)%state.items.length].id||""):"";
     var lanes=await Promise.all(profile.providers.map(function(p){return p==="peertube"?v2PeerTube(profile):p==="youtube"?v2YouTube(profile):v2Archive(profile).catch(function(){return [];});})),items=v2CatalogOrder(key,v2Unique(lanes.flat()).slice(0,V2_SOURCE_CATALOG_SIZE));
@@ -7208,8 +7215,8 @@ var preloadCache=null; /* 1.4: the next program, resolved ahead of time */
    is reusable. Keep a deliberately small, expiring channel cache so power-on and return-tunes
    go straight to media rather than repeating search + metadata every time. */
 var fastTuneCache=store.get("fastTune",{}), FAST_TUNE_TTL=36*60*60*1000, FAST_TUNE_MAX=24;
-function fastTuneGet(chNum){var e=fastTuneCache[String(chNum)];
-  if(!e||!e.pl||!e.pl.url||Date.now()-e.at>FAST_TUNE_TTL||isTemporarilySkipped(e.pl.id)||(Array.isArray(banned)&&banned.indexOf(e.pl.id)>=0)){if(e){delete fastTuneCache[String(chNum)];store.set("fastTune",fastTuneCache);}return null;}
+function fastTuneGet(chNum){var e=fastTuneCache[String(chNum)],ch=typeof byNum==="function"?byNum(chNum):null,expected=iaExpectedMedia(ch);
+  if(!e||!e.pl||!e.pl.url||e.pl.type!==expected||Date.now()-e.at>FAST_TUNE_TTL||isTemporarilySkipped(e.pl.id)||iaProgramFailed(e.pl.id)||blockedId(e.pl.id)||(Array.isArray(banned)&&banned.indexOf(e.pl.id)>=0)){if(e){delete fastTuneCache[String(chNum)];store.set("fastTune",fastTuneCache);}return null;}
   return {type:e.pl.type,url:e.pl.url,alts:(e.pl.alts||[]).slice(),id:e.pl.id,captions:e.pl.captions||null,
     meta:e.pl.meta||{},title:e.pl.title||"",year:e.pl.year||""};}
 function fastTunePut(chNum,it){if(!it||!it.id||!it.url)return;
@@ -7222,7 +7229,7 @@ var rapidWarmVideo=null;
 function warmRapidTune(){ /* One quiet first-run warmup: last station only, never the whole lineup. */
   var ch=byNum(+store.get("last",curNum)); if(!ch||fastTuneGet(ch.num))return;
   var rec=schedMap[ch.nm]; if(!rec||!rec.id)return;
-  resolvePlayable(rec.id).then(function(pl){if(!pl)return;
+  resolvePlayable(rec.id,iaExpectedMedia(ch)).then(function(pl){if(!pl)return;
     pl.title=rec.title||pl.title; pl.year=rec.year||pl.year; fastTunePut(ch.num,pl);
     if(pl.type!=="video")return;
     try{rapidWarmVideo=document.createElement("video");rapidWarmVideo.preload="auto";rapidWarmVideo.muted=true;rapidWarmVideo.src=pl.url;rapidWarmVideo.load();
@@ -7243,7 +7250,7 @@ async function preloadNext(ch,sl,my){
   try{
     var item=takeIAQueue(ch,sl)||await pickFromQueriesFast(sl.queries,3);
     if(!item)return;
-    var pl=iaProgramMedia[item.identifier]; if(pl&&typeof pl.then==="function")pl=await pl; else if(!pl)pl=await resolvePlayable(item.identifier);
+    var pl=iaProgramMedia[item.identifier]; if(pl&&typeof pl.then==="function")pl=await pl; else if(!pl)pl=await resolvePlayable(item.identifier,iaExpectedMedia(ch));
     if(!pl)return;
     pl.title=item.title||item.identifier; pl.year=item.year;
     preloadCache={chNum:ch.num,pl:pl,at:Date.now()};
@@ -7273,7 +7280,7 @@ function primeIAQueues(){
   /* The active channel, nearby channels, and favorites get their five-show
      shelf first. The rest of the dial follows through four bounded lanes so
      every IA channel warms without turning power-on into an Archive flood. */
-  all.sort(function(a,b){var ap=(a.num===curNum?0:isFav(a.num)?1:2),bp=(b.num===curNum?0:isFav(b.num)?1:2);if(ap!==bp)return ap-bp;return Math.abs(CH.indexOf(a)-here)-Math.abs(CH.indexOf(b)-here);});
+  all.sort(function(a,b){var ap=(a.num===curNum?0:isFav(a.num)?1:2),bp=(b.num===curNum?0:isFav(b.num)?1:2),ci=DIAL_INDEX.get(curNum);if(ap!==bp)return ap-bp;return Math.abs((DIAL_INDEX.get(a.num)||0)-(ci==null?here:ci))-Math.abs((DIAL_INDEX.get(b.num)||0)-(ci==null?here:ci));});
   var cursor=0,active=0,limit=4;
   function pump(){
     if(run!==iaPrimeRun||!powered)return;
@@ -7352,8 +7359,10 @@ async function tuneIA(ch,sl,my){
   var queries=sl.queries;
   if(lastMeta&&lastMeta.chNum===ch.num&&Math.random()<0.35){ /* 1.3 PROGRAMMING FLOW: ~1 in 3 follow-ups stay on the thread — same creator or collection as what just ended, like a real programming block */
     var fq=[];
-    if(lastMeta.creator) fq.push('creator:("'+String(lastMeta.creator).replace(/"/g,"")+'") AND mediatype:movies');
-    if(lastMeta.collection&&!/^(feature_films|moviesandfilms)$/.test(lastMeta.collection)) fq.push('collection:'+lastMeta.collection+' AND mediatype:movies');
+    var flowType=ch&&ch.audio?"audio":"movies";
+    var flowScope=iaQueueQueries(sl).slice(0,2).join(" OR ");
+    if(lastMeta.creator) fq.push('creator:("'+String(lastMeta.creator).replace(/"/g,"")+'") AND mediatype:'+flowType+(flowScope?" AND ("+flowScope+")":""));
+    if(lastMeta.collection&&!/^(feature_films|moviesandfilms)$/.test(lastMeta.collection)) fq.push('collection:'+lastMeta.collection+' AND mediatype:'+flowType+(flowScope?" AND ("+flowScope+")":""));
     if(fq.length){ queries=fq.concat(queries); nlog("flow",true,"following "+(lastMeta.creator||lastMeta.collection)); }
   }
   var pc=preloadCache; /* 1.4: near-gapless cuts — the next program was resolved while the last one played */
@@ -7460,7 +7469,9 @@ function unlockMedia(){ /* must be called from inside a real user gesture (power
 
 /* play a direct media file in a <video> (audio uses it too) */
 function playFile(it,ch,sl,my,isFallback){return new Promise(res=>{
-  const isAudio = it.type==="audio" || ch.audio;
+  const expectedType=(ch&&ch.audio)?"audio":"video";
+  if(!it||!it.url||it.type!==expectedType){try{nlog("media",false,"rejected "+(it&&it.type||"unknown")+" for "+expectedType+" channel");}catch(e){}return res(false);}
+  const isAudio = it.type==="audio";
   soundBlocked=false; // flag only set if the muted fallback fires
   const staged=(!it.isAd&&!it.isSignoff&&ch&&ch.num>0)?takeIAMediaWarmer(ch,it):null;
   const outgoing=(curVideo&&curVideo.tagName==="VIDEO"&&curVideo.parentNode===screenArea&&curVideo!==staged)?curVideo:null;
@@ -7520,7 +7531,7 @@ function playFile(it,ch,sl,my,isFallback){return new Promise(res=>{
     } else av.rollback();
     res(ok);
   }
-  v.addEventListener("loadeddata",()=>{ if(resumeSeekSec>0){ try{v.currentTime=resumeSeekSec;}catch(e){} resumeSeekSec=0; } fin(true); },{signal:sig});
+  v.addEventListener("loadeddata",()=>{ if(resumeSeekSec>0){ try{v.currentTime=resumeSeekSec;}catch(e){} resumeSeekSec=0; } },{signal:sig});
   const altQ=(it.alts||(it.alt?[it.alt]:[])).slice(); // FIX err4: bad derivatives are skipped file-by-file within the same item
   v.addEventListener("error",()=>{try{nlog("video",false,"err"+((v.error&&v.error.code)||"?")+" "+((v.src||"").split("/").pop().slice(-40)));}catch(e){}
     if(!done && altQ.length){ const nx=altQ.shift(); try{nlog("video",true,"retrying with alternate file");}catch(e){} try{v.src=nx; v.load();}catch(e){} tryPlay(); return; }
@@ -7552,7 +7563,6 @@ function playFile(it,ch,sl,my,isFallback){return new Promise(res=>{
     audio-plays-but-picture-never-appears -- loadeddata/canplay hadn't fired on that phone's browser, so the TUNING
     overlay never lifted even though the video was genuinely playing. "playing" only fires once a real frame is on
     screen, so it's actually the most trustworthy signal here -- now it unlocks the overlay too, not just the spinner. */
-  v.addEventListener("canplay",()=>{ if(my===token){ fin(true); hideBuffer(); clearStall(); } },{signal:sig});
   v.addEventListener("timeupdate",()=>{ if(my===token) onProgress(v); },{signal:sig});
   v.addEventListener("loadedmetadata",()=>{ if(my===token) onProgress(v); },{signal:sig});
   v.addEventListener("durationchange",()=>{ if(my===token&&!it.isAd&&!it.isSignoff&&isFinite(v.duration)) schedSet(ch,it,v.duration); },{signal:sig}); /* 1.2: put this program on the schedule */
@@ -7563,7 +7573,6 @@ function playFile(it,ch,sl,my,isFallback){return new Promise(res=>{
   if(it.isAd){ setTimeout(()=>{ try{ if(my===token && curVideo===v && !v.ended && !v.paused) v.dispatchEvent(new Event("ended")); }catch(e){} },120000); } // ads capped at 2 min
   if(isAudio){ audioScreen.classList.remove("hide"); audioTitle.textContent=it.title||ch.nm; }
   tryPlay(); // FIX: was v.play().catch(()=>{}) — a swallowed rejection left the video paused forever
-  if(v.readyState>=2)setTimeout(function(){fin(true);},0); /* staged media may have loaded before listeners were attached */
 });}
 
 function showNow(ch,sl,title,extra){
@@ -7634,7 +7643,7 @@ function pressDigit(d){if(!powered)return;sfxClick();entryBuf+=d;entry.style.dis
   clearTimeout(entryTimer); if(entryBuf.length>=2)commitEntry(); else entryTimer=setTimeout(commitEntry,1500);}
 function commitEntry(){clearTimeout(entryTimer);const n=parseInt(entryBuf,10);entryBuf="";entry.style.display="none";
   if(byNum(n)){lastNum=curNum;tuneNum(n);}else{entry.style.display="block";entry.textContent="--";setTimeout(()=>entry.style.display="none",700);}}
-function toggleFav(){if(!powered)return;const n=curNum;const ch=byNum(n);if(!ch)return;
+function toggleFav(targetNum){if(!powered)return;const n=Number.isFinite(Number(targetNum))?Number(targetNum):curNum;const ch=byNum(n);if(!ch)return;
   if(isFav(n))favs=favs.filter(x=>x!==ch.nm);else favs.push(ch.nm);
   store.set("favs",favs);renderRail();bug.textContent=(isFav(n)?"★ ":"")+"CH "+n;}
 
@@ -9544,7 +9553,7 @@ wire("btnNaraSave", function(){ var el=$("naraKeyInput"); if(!el)return; store.s
 /* audit-fix Ship C 2026-08-09: Favorites Manager, Blocklist Manager, Export/Import/Reset handlers. */
 function renderFavMgr(){
   var el=$("favMgrList"); if(!el) return;
-  var list=(typeof CH!=="undefined"&&CH)?CH.filter(function(c){ try{return isFav(c.num);}catch(_){return false;} }):[];
+  var list=(typeof orderedChannels==="function")?orderedChannels().filter(function(c){ try{return isFav(c.num);}catch(_){return false;} }):[];
   if(!list.length){ el.innerHTML='<div class="hist-row" style="opacity:.6"><span class="hist-t">No favorites yet.</span><span class="hist-a">press ★ FAV while watching</span></div>'; return; }
   var html='';
   list.forEach(function(c){
@@ -16007,26 +16016,43 @@ async function tuneOnThisDay(ch,sl,my){
 
 nlog("boot",true,"engine v8.2 up · "+(fileMode?"file://":location.protocol));
 
-/* ===== commercial breaks: rotating era/category pools, strict media lanes =====
-   The old implementation cached one 1948–1989 search for an entire session. That
-   naturally kept returning the same old high-download spots. Every break now starts
-   with a different decade/category lane, falls through safely, and is type-locked:
-   movie stations can only resolve video ads; audio stations can only resolve audio ads. */
-var adsOn=store.get("ads",true), adQueue=0, adLaneCursor=0;
+/* ===== commercial breaks: rolling era/category pools, strict media lanes =====
+   Commercial discovery must not let the first successful Archive query dominate every
+   break. Pull one candidate from several era/category lanes, then choose from the merged
+   pool. Ads also have their own recent-history ledger because ordinary watch history skips
+   ads by design. Movie stations remain video-only; audio stations remain audio-only. */
+var adsOn=store.get("ads",true), adQueue=0, adLaneCursor=Number(store.get("adLaneCursor",0))||0, adRecent=store.get("adRecent",{}),adFailed=store.get("adFailed",{});if(!adRecent||typeof adRecent!=="object")adRecent={};if(!adFailed||typeof adFailed!=="object")adFailed={};
 var AD_LANES=[
-  {years:[1940,1959],topics:["television commercial","advertising","public service announcement","commercial reel"],collections:["classic_tv_commercials","prelinger"]},
-  {years:[1960,1969],topics:["television commercial","automobile commercial","food commercial","public service announcement"],collections:["vhscommercials","classic_tv_commercials","prelinger"]},
+  {years:[1930,1949],topics:["television commercial","advertising","public service announcement","commercial reel"],collections:["prelinger","classic_tv_commercials"]},
+  {years:[1950,1959],topics:["television commercial","sponsor commercial","food commercial","public service announcement"],collections:["classic_tv_commercials","prelinger"]},
+  {years:[1960,1969],topics:["television commercial","automobile commercial","food commercial","toy commercial"],collections:["vhscommercials","classic_tv_commercials","prelinger"]},
   {years:[1970,1979],topics:["television commercial","toy commercial","automobile commercial","household commercial"],collections:["vhscommercials","classic_tv_commercials"]},
   {years:[1980,1989],topics:["television commercial","technology commercial","toy commercial","fast food commercial"],collections:["vhscommercials","classic_tv_commercials","opensource_movies"]},
   {years:[1990,1999],topics:["television commercial","commercial break","tv advertisement","video commercial"],collections:["vhscommercials","classic_tv_commercials","opensource_movies"]},
-  {years:[2000,2026],topics:["television commercial","commercial break","tv advertisement","video commercial"],collections:["opensource_movies","classic_tv_commercials"]}
+  {years:[2000,2009],topics:["television commercial","commercial break","tv advertisement","product commercial"],collections:["opensource_movies","classic_tv_commercials"]},
+  {years:[2010,2019],topics:["television commercial","video commercial","public service announcement","brand commercial"],collections:["opensource_movies","classic_tv_commercials"]},
+  {years:[2020,2026],topics:["television commercial","video commercial","public service announcement","brand commercial"],collections:["opensource_movies","classic_tv_commercials"]}
 ];
 function adQueries(ch){
-  var mt=(ch&&ch.audio)?"audio":"movies", start=(adLaneCursor++%AD_LANES.length), lanes=AD_LANES.slice(start).concat(AD_LANES.slice(0,start)), qs=[];
+  var mt=(ch&&ch.audio)?"audio":"movies", start=(adLaneCursor%AD_LANES.length);adLaneCursor=(adLaneCursor+1)%AD_LANES.length;store.set("adLaneCursor",adLaneCursor);var lanes=AD_LANES.slice(start).concat(AD_LANES.slice(0,start)), qs=[];
   lanes.forEach(function(lane){var terms=lane.topics.map(programPhrase).join(" OR "), clause="(subject:("+terms+") OR title:("+terms+"))", base="mediatype:"+mt+" AND "+clause+" AND year:["+lane.years[0]+" TO "+lane.years[1]+"]";
     lane.collections.forEach(function(collection){qs.push("collection:"+collection+" AND "+base);});qs.push(base);
   });
   return qs;
+}
+function adPruneRecent(){var now=Date.now();Object.keys(adRecent||{}).forEach(function(id){if(now-Number(adRecent[id]||0)>24*3600e3)delete adRecent[id];});Object.keys(adFailed||{}).forEach(function(id){if(now-Number(adFailed[id]||0)>30*60e3)delete adFailed[id];});}
+function adRemember(id){if(!id)return;adPruneRecent();adRecent[id]=Date.now();store.set("adRecent",adRecent);}
+function adMarkFailed(id){if(!id)return;adPruneRecent();adFailed[id]=Date.now();store.set("adFailed",adFailed);}
+async function pickAdItem(ch,left){
+  adPruneRecent();
+  var qs=adQueries(ch).slice(0,24),pulls=await Promise.all(qs.map(function(q){return withTO(pickIA(q,true),Math.max(700,Math.min(2600,left||2600))).catch(function(){return null;});})),seen={},items=[];
+  pulls.forEach(function(item){var id=String(item&&item.identifier||"");if(id&&!seen[id]){seen[id]=1;items.push(item);}});
+  if(!items.length)return null;
+  var fresh=items.filter(function(item){return !adRecent[item.identifier]&&!adFailed[item.identifier];});
+  if(!fresh.length)fresh=items.filter(function(item){return !adFailed[item.identifier];});
+  if(fresh.length)return fresh[Math.floor(Math.random()*fresh.length)];
+  items.sort(function(a,b){return Number(adRecent[a.identifier]||0)-Number(adRecent[b.identifier]||0);});
+  return items[0];
 }
 async function playAdBreak(ch,sl,my){
   if(!adsOn||my!==token){adQueue=0;return false;}
@@ -16036,11 +16062,11 @@ async function nextAd(ch,sl,my){
   var deadline=Date.now()+4500;
   while(adQueue>0){ if(my!==token||!adsOn){adQueue=0;return false;} adQueue--;
     try{ var left=deadline-Date.now();if(left<400)break;
-      const item=await withTO(pickFromQueries(adQueries(ch).slice(0,8)),left); if(my!==token||!adsOn){adQueue=0;return false;}if(!item)break;
+      const item=await withTO(pickAdItem(ch,left),left); if(my!==token||!adsOn){adQueue=0;return false;}if(!item)break;
       left=deadline-Date.now();if(left<400)break;
-      const kind=(ch&&ch.audio)?"audio":"video", pl=await withTO(resolvePlayable(item.identifier),left);if(my!==token||!adsOn){adQueue=0;return false;}if(!pl||pl.type!==kind)continue;
+      const kind=(ch&&ch.audio)?"audio":"video", pl=await withTO(resolvePlayable(item.identifier),left);if(my!==token||!adsOn){adQueue=0;return false;}if(!pl||pl.type!==kind){adMarkFailed(item.identifier);continue;}
       pl.title=item.title||"Commercial"; pl.year=(pl.meta&&pl.meta.date)||item.year; pl.isAd=true;
-      if(await playFile(pl,ch,{show:kind==="audio"?"AUDIO COMMERCIAL":"COMMERCIAL BREAK",isAd:true,genre:sl&&sl.genre,queries:sl&&sl.queries},my)) return true;
+      if(await playFile(pl,ch,{show:kind==="audio"?"AUDIO COMMERCIAL":"COMMERCIAL BREAK",isAd:true,genre:sl&&sl.genre,queries:sl&&sl.queries},my)){adRemember(item.identifier);return true;}adMarkFailed(item.identifier);
     }catch(e){} }
   adQueue=0;return false; }
 
@@ -16255,7 +16281,7 @@ function renderTVGuide(){
   var el=$("tvgList"); if(!el)return;
   var labels=["NOW","NEXT","LATER","AFTER"];
   var html='<div class="epg-row epg-head"><span class="epg-ch"></span>'+labels.map(function(label){return '<span class="epg-cell">'+label+'</span>';}).join("")+'</div>';
-  CH.forEach(function(ch){
+  orderedChannels().forEach(function(ch){
     var sl=slotFor(ch,0,{preview:true}), listing=guideListing(ch);
     var currentItem=(ch.num===curNum&&curItem)?curItem:null;
     var queued=ch.source?[]:guideQueueItems(ch,sl,currentItem).slice(0,4);

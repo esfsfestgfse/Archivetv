@@ -57,7 +57,10 @@ if (!/primeIACompanions\(ch,sl\)/.test(source)) issues.push('channel tuning must
 if (!/var warmDelay=index===0\?0:1500\+\(index-1\)\*1500/.test(source)) issues.push('companion queue warming must stagger behind the active station');
 if (!/function iaLocalQueueFallback\(ch,sl\)/.test(source) || !/using local shelf/.test(source)) issues.push('IA queue must retain a strict local fallback when the relay is unavailable');
 if (!/takeIAMediaWarmer\(ch,it\)/.test(source)) issues.push('playback must adopt a staged first-frame media element');
-if (!/v\.readyState>=2\)setTimeout\(function\(\)\{fin\(true\);\},0\)/.test(source)) issues.push('staged media must clear tuning even when readiness predates listeners');
+if (!/v\.addEventListener\("playing",\(\)=>\{ if\(my===token\)\{ fin\(true\)/.test(source)) issues.push('direct media must clear tuning only after a real playing event');
+if (/addEventListener\("canplay",\(\)=>\{ if\(my===token\)\{ fin\(true\)/.test(source)) issues.push('canplay must not be treated as playback success');
+if (!/const expectedType=\(ch&&ch\.audio\)\?"audio":"video"/.test(source) || !/it\.type!==expectedType/.test(source)) issues.push('direct playback must enforce the channel media type');
+if (!/cacheFresh=.*V2_SOURCE_CACHE_VERSION/.test(source) || !/if\(cacheFresh\)return Promise\.resolve\(state\.items\)/.test(source)) issues.push('fresh source catalogs must be cache-first to protect upstream quota');
 if (!/if\(prog\)\{buildProgramQueries\(prog,ch,false\)/.test(source)) issues.push('marathon mode must preserve PROGRAM channel constraints');
 
 const slotBlock = blockAfter('function slotFor(', '{', '}');

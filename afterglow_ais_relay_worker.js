@@ -80,7 +80,7 @@ const IA_SEARCH_CACHE_VERSION = "v5";
 const IA_METADATA_TTL_SECONDS = 86400;
 const IA_QUEUE_TTL_SECONDS = 21600;
 const IA_PARTIAL_QUEUE_TTL_SECONDS = 90;
-const IA_QUEUE_CACHE_VERSION = "v19";
+const IA_QUEUE_CACHE_VERSION = "v20";
 const GULF_FILTER = "BBOX(geometry,-98,18,-80,31)";
 const KPLER_FIELDS = "mmsi,longitude,latitude,posDt,sog,vesselName,heading,cog,navStatus,destination,vesselType";
 /* Public navigation is intentionally limited to named regions. The Worker
@@ -1606,7 +1606,12 @@ async function mapQueueCandidates(items, limit, fn) {
   return results;
 }
 
-async function buildIaQueue(channel, queries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, cacheOrigin, ctx) {
+function queueRotationSort(rotation, lane) {
+  const modes = ["downloads desc", "date desc", "titleSorter asc", "week desc"];
+  return modes[(Number(rotation) + Number(lane)) % modes.length];
+}
+
+async function buildIaQueue(channel, queries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, cacheOrigin, ctx, rotation = 0) {
   const items = [], deferred = [], seen = new Set(), seenTitles = new Set(), candidateLimit = count;
   const used = { lane: new Map(), era: new Map(), creator: new Map(), collection: new Map() };
   /* Query lanes are already editorially ordered by the app. Fetch a small
@@ -1619,7 +1624,7 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, mediaTypes,
      first three made sparse channels look as if they were hydrating forever. */
   const lanes = await Promise.all(queries.slice(0, Math.min(8, queries.length)).map(async (query, lane) => {
     try {
-      const result = await cachedSearchArchive(cacheOrigin, query, Math.min(24, Math.max(12, count * 3)), 1, "downloads desc", ctx);
+      const result = await cachedSearchArchive(cacheOrigin, query, Math.min(24, Math.max(12, count * 3)), 1, queueRotationSort(rotation, lane), ctx);
       // Archive.org collections are catalog pages, not programs. Keeping one in
       // a shelf guarantees a failed playback attempt, so reject them before
       // ranking, caching, or media hydration for every IA channel.
@@ -1663,6 +1668,7 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, mediaTypes,
   }
   return {
     channel,
+    rotation: Number(rotation) || 0,
     generatedAt: new Date().toISOString(),
     ttlSeconds: IA_QUEUE_TTL_SECONDS,
     items: items.slice(0, count),
@@ -1726,7 +1732,8 @@ async function getIaQueue(request, url, ctx) {
   const diversity = safeDiversity(body && body.diversity);
   const count = Math.max(1, Math.min(5, Number(body && body.count) || 5));
   if (!safeChannel(channel) || !queries) return json({ error: "invalid queue request" }, 400);
-  const cacheKey = new Request(url.origin + IA_PREFIX + "/cache/queue/" + IA_QUEUE_CACHE_VERSION + "/" + await stableKey(JSON.stringify({ channel, queries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count })));
+  const rotation = Math.floor(Date.now() / (30 * 60 * 1000)) % 4;
+  const cacheKey = new Request(url.origin + IA_PREFIX + "/cache/queue/" + IA_QUEUE_CACHE_VERSION + "/" + await stableKey(JSON.stringify({ channel, queries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, rotation })));
   try {
     const cache = caches.default, cached = await cache.match(cacheKey);
     if (cached) return cached;
@@ -1735,7 +1742,7 @@ async function getIaQueue(request, url, ctx) {
     // a single unplayable item never turns into a visible No Signal screen.
     const strictQueue = themeMinScore > 1;
     const candidateCount = Math.min(strictQueue ? 30 : 20, Math.max(count, count * (strictQueue ? 6 : 4)));
-    const payload = await buildIaQueue(channel, queries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, candidateCount, url.origin, ctx);
+    const payload = await buildIaQueue(channel, queries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, candidateCount, url.origin, ctx, rotation);
     if (!payload.items.length) {
       /* No candidate exists yet, so this is not hydration. Be truthful and let
          the client immediately try its direct/search fallbacks, then retry the

@@ -1556,7 +1556,7 @@ html,body{background:#040706!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.8-desktop.287-ship-explorer-interactive";
+window.__ATV_BUILD="1.7.8-desktop.288-map-sweep";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -10883,10 +10883,11 @@ var SKYBEACON_INTL_REGIONS = [
 async function tuneAirTraffic(ch,sl,my){
   if(my!==token)return;hideOv();setSig("live","ON AIR");showNow(ch,sl,"Sky Beacon Live","");
   if(screenArea)screenArea.innerHTML=
+    '<style>.skybeacon-map-tools{position:absolute;top:8px;right:8px;z-index:20;display:grid;grid-template-columns:repeat(3,30px);gap:4px}.skybeacon-map-tools button{height:27px;border:1px solid rgba(159,214,166,.55);border-radius:4px;background:rgba(2,15,9,.88);color:#cfe0ff;font:900 13px monospace;cursor:pointer}.skybeacon-map-tools button:hover{border-color:#67ff86;color:#67ff86}.skybeacon-map-tools .wide{grid-column:span 3;font-size:8px;letter-spacing:.6px}</style>'+
     '<div class="skybeacon-screen" id="skyBeaconScreen">'+
       '<div class="skybeacon-head"><span><i class="skybeacon-live"></i>SKY BEACON · GLOBAL ADS-B</span><span class="skybeacon-source" id="skyBeaconFresh">WARMING LOCAL AIRSPACE…</span></div>'+
       '<div class="skybeacon-main">'+
-        '<section class="skybeacon-radar"><div class="sky-scope" id="skyBeaconScope"></div><div class="skybeacon-radar-top"><div class="skybeacon-loc" id="skyBeaconLoc">LOCAL AIRSPACE<small>LIVE AIRCRAFT POSITION</small></div><div class="skybeacon-range" id="skyBeaconRange">60 MI<br>RANGE</div></div></section>'+
+        '<section class="skybeacon-radar"><div class="sky-scope" id="skyBeaconScope"></div><div class="skybeacon-map-tools" id="skyBeaconMapTools" aria-label="Air traffic map controls"><button type="button" data-sky-map="up" title="Pan north">▲</button><button type="button" data-sky-map="home" title="Return to local airspace">⌂</button><button type="button" data-sky-map="down" title="Pan south">▼</button><button type="button" data-sky-map="left" title="Pan west">◀</button><button type="button" data-sky-map="zoom-out" title="Zoom out">−</button><button type="button" data-sky-map="right" title="Pan east">▶</button><button type="button" data-sky-map="zoom-in" class="wide" title="Zoom in">＋ ZOOM IN</button></div><div class="skybeacon-radar-top"><div class="skybeacon-loc" id="skyBeaconLoc">LOCAL AIRSPACE<small>LIVE AIRCRAFT POSITION</small></div><div class="skybeacon-range" id="skyBeaconRange">60 MI<br>RANGE</div></div></section>'+
         '<aside class="skybeacon-side"><div class="skybeacon-stats" id="skyBeaconStats"><div class="skybeacon-stat"><b>AIRBORNE</b><span>--</span></div><div class="skybeacon-stat"><b>NEAREST</b><span>--</span></div><div class="skybeacon-stat"><b>CLIMBING</b><span>--</span></div><div class="skybeacon-stat"><b>DESCENDING</b><span>--</span></div></div>'+
           '<div class="skybeacon-tabs"><button class="skybeacon-tab on" type="button" data-sky-view="0">AIRCRAFT</button><button class="skybeacon-tab" type="button" data-sky-view="1">FIELD WEATHER</button></div>'+
           '<div class="skybeacon-panel" id="skyBeaconPanel"><div class="skybeacon-empty">LISTENING FOR ADS-B TRANSPONDERS…</div></div></aside>'+
@@ -10997,6 +10998,17 @@ async function tuneAirTraffic(ch,sl,my){
     var cached=snapshotCache[regionKey()];if(cached&&Array.isArray(cached.aircraft)&&Date.now()-Number(cached.at)<3*60*1000)applyAircraft(cached.aircraft,true,cached.source||"CACHED ADS-B");
     poll();refreshWeather();if(announce)quickBanner("SKY BEACON · "+regionLabel);
   }
+  function moveScope(action){
+    if(action==="home"){setRegion(0,true);return;}
+    if(action==="zoom-in"||action==="zoom-out"){rangeMi=Math.max(10,Math.min(1000,rangeMi*(action==="zoom-in"?0.6:1.8)));clearScope();buildScope();renderHeader();renderPanel();poll();quickBanner("SKY BEACON · "+rangeMi+" MI RANGE");return;}
+    var step=rangeMi*.45,lat=Number(loc.lat),lon=Number(loc.lon);
+    if(action==="up")lat+=step/69.05;if(action==="down")lat-=step/69.05;
+    if(action==="left")lon-=step/(69.17*Math.max(.25,Math.cos(lat*Math.PI/180)));
+    if(action==="right")lon+=step/(69.17*Math.max(.25,Math.cos(lat*Math.PI/180)));
+    if(lon>180)lon-=360;if(lon<-180)lon+=360;loc={lat:Math.max(-70,Math.min(70,lat)),lon:lon};
+    clearScope();buildScope();renderHeader();poll();quickBanner("SKY BEACON · MAP MOVED");
+  }
+  document.querySelectorAll("[data-sky-map]").forEach(function(button){button.addEventListener("click",function(e){e.stopPropagation();moveScope(button.dataset.skyMap);});});
   function nextRegion(){setRegion((regionIndex+1)%regions.length,true);}
   window.__skyBeaconNext=nextRegion;window.__skyBeaconRefresh=poll;
   document.querySelectorAll("[data-sky-view]").forEach(function(button){button.addEventListener("click",function(){viewIndex=Number(button.dataset.skyView)||0;renderPanel();});});

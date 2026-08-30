@@ -157,6 +157,9 @@ function containsAny(value, terms) {
   const haystack = text(value).toLowerCase();
   return terms.some(term => haystack.includes(String(term).toLowerCase()));
 }
+function isHowTo(value) {
+  return /\bhow[\s-]+to\b/i.test(text(value));
+}
 function relevance(profile, item) {
   const haystack = text([item.title, item.description, item.subjects, item.tags]).toLowerCase();
   const hits = profile.queries.filter(query => query.split(/\s+/).filter(x => x.length > 3).some(term => haystack.includes(term.toLowerCase()))).length;
@@ -231,12 +234,12 @@ async function searchYouTube(profile) {
   if (!key) return { provider: "youtube", displayName: "YouTube", skipped: true, reason: "YOUTUBE_API_KEY not configured", candidates: [] };
   const candidates = [];
   for (const query of profile.queries.slice(0, maxQueries)) {
-    const url = "https://www.googleapis.com/youtube/v3/search?" + new URLSearchParams({ part: "snippet", type: "video", maxResults: "10", q: query, videoEmbeddable: "true", videoSyndicated: "true", safeSearch: "moderate", key });
+    const url = "https://www.googleapis.com/youtube/v3/search?" + new URLSearchParams({ part: "snippet", type: "video", maxResults: "50", q: query, videoEmbeddable: "true", videoSyndicated: "true", safeSearch: "moderate", key });
     try {
       const { body } = await jsonFetch(url);
       for (const item of body.items || []) {
         const id = item.id?.videoId;
-        if (id) candidates.push(candidate(item.snippet || {}, { source: "YouTube", id, title: item.snippet?.title, description: item.snippet?.description, year: item.snippet?.publishedAt, playbackUrl: `https://www.youtube.com/watch?v=${id}`, embedUrl: `https://www.youtube-nocookie.com/embed/${id}` }));
+        if (id && !isHowTo([item.snippet?.title, item.snippet?.description])) candidates.push(candidate(item.snippet || {}, { source: "YouTube", id, title: item.snippet?.title, description: item.snippet?.description, year: item.snippet?.publishedAt, playbackUrl: `https://www.youtube.com/watch?v=${id}`, embedUrl: `https://www.youtube-nocookie.com/embed/${id}` }));
       }
     } catch (error) { return { provider: "youtube", displayName: "YouTube", error: String(error), candidates: [] }; }
   }

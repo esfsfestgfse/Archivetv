@@ -1595,7 +1595,7 @@ html,body{background:#040706!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.9.3-desktop.001-source-expansion";
+window.__ATV_BUILD="1.9.4-desktop.001-youtube-cleanup";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1632,7 +1632,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.9.1-desktop.001 · RealSignal</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.9.4-desktop.001 · RealSignal</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">REALSIGNAL · THE DIAL</div>
@@ -6902,7 +6902,7 @@ function applyAV(){const el=screenArea.querySelector("video,audio");if(el){el.mu
    PeerTube and YouTube embeds for all three lanes. Vimeo, LOC, and the
    unneeded IA fallback remain unpromoted until their gates are repeatable.
    ===================================================================== */
-var V2_SOURCE_CATALOG_SIZE=48,V2_SOURCE_READY_BUFFER=5,V2_SOURCE_CACHE_VERSION=3;
+var V2_SOURCE_CATALOG_SIZE=64,V2_SOURCE_READY_BUFFER=5,V2_SOURCE_CACHE_VERSION=5;
 const V2_PREVIEW_PROFILES={
   "public-health-archive":{name:"Public Health Archive",providers:["peertube","youtube"],queries:["public health film","sanitation film","medical education film","hospital documentary","epidemiology film"],match:["public health","health","sanitation","medical","hospital","epidemiology","epidemic","medicine"],deny:["fictional","horror","music video","commercial","cartoon","gameplay","wedding"]},
   "signal-room":{name:"The Signal Room",providers:["peertube","youtube"],queries:["telegraph history film","telephone history film","radio engineering film","broadcasting history film","communications technology film"],match:["telegraph","telephone","radio","broadcast","communication","telecom","signal","engineering"],deny:["fictional","music video","commercial","cartoon","gameplay","podcast","sermon"]},
@@ -6938,6 +6938,8 @@ var v2PreviewState=window.__v2PreviewState||{};window.__v2PreviewState=v2Preview
 var v2PreviewInflight={},v2PreviewAdvance={};
 function v2Text(v){return String(Array.isArray(v)?v.join(" "):(v&&typeof v==="object"?Object.values(v).join(" "):v||"")).replace(/<[^>]+>/g," ").replace(/\s+/g," ").trim();}
 function v2Unique(items){var seen={};return items.filter(function(it){var k=String(it.id||it.url||it.title||"");if(!k||seen[k])return false;seen[k]=1;return true;});}
+function v2RoundRobin(buckets){var out=[],more=true,i=0;while(more){more=false;buckets.forEach(function(bucket){if(bucket&&bucket[i]){out.push(bucket[i]);more=true;}});i++;}return out;}
+function v2YouTubeBlocked(item){return /\bhow[\s-]+to\b/i.test(v2Text([item.title,item.description,item.tags,item.subject,item.category]));}
 function v2Relevant(profile,item){var hay=v2Text([item.title,item.description,item.tags,item.subject,item.category,item.account]).toLowerCase();if(profile.deny.some(function(t){return hay.indexOf(t.toLowerCase())>=0;}))return false;return profile.match.some(function(t){return hay.indexOf(t.toLowerCase())>=0;});}
 async function v2PeerTube(profile){
   var instances=["https://video.blender.org","https://framatube.org","https://peertube.uno","https://tilvids.com"],jobs=[];
@@ -6951,15 +6953,16 @@ async function v2PeerTube(profile){
 async function v2YouTube(profile){
   var key=typeof YOUTUBE_KEY==="string"?YOUTUBE_KEY:"";
   if(!key)return [];
-  var jobs=profile.queries.slice(0,Math.min(8,Number(profile.queryLimit)||5)).map(async function(query){
+  var queries=profile.queries.slice(0,Math.min(8,Number(profile.queryLimit)||5));
+  var jobs=queries.map(async function(query){
     try{
-      var u="https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=12&videoEmbeddable=true&videoSyndicated=true&safeSearch=moderate&q="+encodeURIComponent(query)+"&key="+encodeURIComponent(key);
+      var u="https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=50&videoEmbeddable=true&videoSyndicated=true&safeSearch=moderate&q="+encodeURIComponent(query)+"&key="+encodeURIComponent(key);
       var d=await withTO(fetch(u,{mode:"cors"}).then(function(r){if(!r.ok)throw new Error("http "+r.status);return r.json();}),8500);
       return (d.items||[]).map(function(x){return {id:String(x.id&&x.id.videoId||""),title:v2Text(x.snippet&&x.snippet.title),description:v2Text(x.snippet&&x.snippet.description),year:String(x.snippet&&x.snippet.publishedAt||"").slice(0,4),provider:"YouTube",embedUrl:"https://www.youtube-nocookie.com/embed/"+String(x.id&&x.id.videoId||"")};});
     }catch(e){return [];}
   });
-  var raw=(await Promise.all(jobs)).flat().filter(function(x){return x.id&&v2Relevant(profile,x);});
-  var ids=v2Unique(raw).map(function(x){return x.id;}).slice(0,40);
+  var raw=v2RoundRobin(await Promise.all(jobs)).filter(function(x){return x.id&&!v2YouTubeBlocked(x)&&v2Relevant(profile,x);});
+  var ids=v2Unique(raw).map(function(x){return x.id;}).slice(0,50);
   if(!ids.length)return [];
   try{
     var d=await withTO(fetch("https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,status&id="+ids.join(",")+"&key="+encodeURIComponent(key),{mode:"cors"}).then(function(r){if(!r.ok)throw new Error("detail "+r.status);return r.json();}),8500),by={};
@@ -6968,7 +6971,7 @@ async function v2YouTube(profile){
       var f=by[x.id]||{};
       if(!f.status||f.status.embeddable!==true||!f.contentDetails||!f.contentDetails.duration)return null;
       return {id:"yt:"+x.id,title:v2Text(f.snippet&&f.snippet.title||x.title),description:v2Text(f.snippet&&f.snippet.description||x.description),year:String(f.snippet&&f.snippet.publishedAt||x.year||"").slice(0,4),rights:"Standard YouTube license",url:x.embedUrl,type:"embed",embedded:true,duration:v2IsoDuration(f.contentDetails.duration),provider:"YouTube",meta:{source:"YouTube",license:"Standard YouTube license"}};
-    }).filter(Boolean).slice(0,32);
+    }).filter(Boolean).slice(0,48);
   }catch(e){return [];}
 }
 function v2IsoDuration(value){var m=String(value||"").match(/^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/i);return m?(Number(m[1]||0)*3600+Number(m[2]||0)*60+Number(m[3]||0)):0;}

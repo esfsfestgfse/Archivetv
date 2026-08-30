@@ -4,6 +4,10 @@ RealSignal now includes a Custom Web Receiver and a **CAST** control on desktop
 and mobile. The receiver lets the television run the public RealSignal desktop
 experience, while the phone or computer remains the remote.
 
+The sender also retries a delayed Cast SDK load automatically and keeps Android's
+device picker open for the normal discovery window. The Settings status reports
+the browser/platform state and the Cast error code when Google returns one.
+
 ## Published receiver
 
 RealSignal's published, unlisted Custom Web Receiver is registered as
@@ -32,9 +36,11 @@ local RealSignal settings.
 
 Open **MENU → SETTINGS** and read the Chromecast status line. RealSignal now
 reports whether the browser is unsupported, the page is not HTTPS, the SDK is
-still starting, or no devices were discovered. On Android, allow local-network
-access when prompted and verify the phone and Cast device are on the same Wi-Fi
-network with access-point isolation disabled.
+still starting, or no devices were discovered. If the app reports that Cast
+needs a Chrome tab, the installed Android/PWA window does not expose Chrome's
+Web Sender API; open the same HTTPS page in a normal Chrome tab. On Android,
+allow local-network access when prompted and verify the phone and Cast device
+are on the same Wi-Fi network with access-point isolation disabled.
 
 ## Why this is needed
 

@@ -15,7 +15,10 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
     ['castReceiverIdInput', 'must expose one-time receiver ID setup'],
     ['REALSIGNAL_STATE', 'must send a normalized receiver state packet'],
     ['A0A5CD01', 'must carry the published RealSignal receiver ID'],
-    ['.010-cast-discovery', 'must carry the Cast discovery diagnostics build stamp'],
+    ['.011-android-cast-recovery', 'must carry the Android Cast recovery build stamp'],
+    ['__rsCastSdkRetryCount', 'must support recovery when the Cast SDK is delayed'],
+    ['rsRetry=', 'must retry a failed Cast SDK load'],
+    ['display-mode: standalone', 'must diagnose Android standalone/PWA Cast limitations'],
     ['CAST_STATE_CHANGED', 'must report Cast discovery state'],
     ['NO CAST DEVICES FOUND', 'must explain a discovery failure'],
   ]) if (!source.includes(token)) issues.push(`${file}: ${reason}`);

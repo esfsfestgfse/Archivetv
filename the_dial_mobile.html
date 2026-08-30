@@ -1662,7 +1662,7 @@ html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.9.2-mobile.001-weather-desk";
+window.__ATV_BUILD="1.9.3-mobile.001-source-expansion";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -2344,6 +2344,21 @@ const CH=[
  {nm:"The Workshop", num:522, cat:"SOURCE", source:"v2preview", ns:"doc", previewKey:"workshop"},
  {nm:"Field Notes", num:523, cat:"SOURCE", source:"v2preview", ns:"doc", previewKey:"field-notes"},
  {nm:"The Classroom", num:524, cat:"SOURCE", source:"v2preview", ns:"doc", previewKey:"classroom"},
+ {nm:"Newsreel Exchange", num:525, cat:"SOURCE", source:"v2preview", ns:"doc", previewKey:"newsreel-exchange"},
+ {nm:"Foodways", num:526, cat:"SOURCE", source:"v2preview", ns:"doc", previewKey:"foodways"},
+ {nm:"Wild Earth Desk", num:527, cat:"SOURCE", source:"v2preview", ns:"doc", previewKey:"wild-earth-desk"},
+ {nm:"Mission Control", num:528, cat:"SOURCE", source:"v2preview", ns:"space", previewKey:"mission-control"},
+ {nm:"Backroad Journal", num:529, cat:"SOURCE", source:"v2preview", ns:"doc", previewKey:"backroad-journal"},
+ {nm:"Storm Lab", num:530, cat:"SOURCE", source:"v2preview", ns:"doc", previewKey:"storm-lab"},
+ {nm:"Atomic Age Files", num:531, cat:"SOURCE", source:"v2preview", ns:"doc", previewKey:"atomic-age-files"},
+ {nm:"Lesson Reel", num:532, cat:"SOURCE", source:"v2preview", ns:"doc", previewKey:"lesson-reel"},
+ {nm:"Local Signal", num:533, cat:"SOURCE", source:"v2preview", ns:"doc", previewKey:"local-signal"},
+ {nm:"Comfort Television", num:534, cat:"SOURCE", source:"v2preview", ns:"doc", previewKey:"comfort-television"},
+ {nm:"Comedy Circuit", num:535, cat:"SOURCE", source:"v2preview", ns:"doc", previewKey:"comedy-circuit"},
+ {nm:"Rhythm Archives", num:536, cat:"SOURCE", source:"v2preview", ns:"tv", previewKey:"rhythm-archives"},
+ {nm:"Freedom Stories", num:537, cat:"SOURCE", source:"v2preview", ns:"doc", previewKey:"freedom-stories"},
+ {nm:"Black Stage", num:538, cat:"SOURCE", source:"v2preview", ns:"tv", previewKey:"black-stage"},
+ {nm:"Documentary Desk", num:539, cat:"SOURCE", source:"v2preview", ns:"doc", previewKey:"documentary-desk"},
  {nm:"Space", num:957,             cat:"LDATA", source:"space",   ns:"tv"},
  {nm:"River & Lake Watch", num:958,cat:"LDATA", source:"river",   ns:"tv"},
  {nm:"On This Day", num:504,       cat:"RETRO", source:"onthisday",ns:"movie"},
@@ -2438,6 +2453,21 @@ const CHANNEL_META={
 "The Workshop":{desc:"SOURCE SUITE · tools, machine shops, fabrication, making and craft technique from verified video sources.",rel:["Manufacturing Marvels","Restoration Row"]},
 "Field Notes":{desc:"SOURCE SUITE · field biology, ecology, wildlife research and natural-history methods with tightly screened topics.",rel:["The Map Room","Earth From Above"]},
 "The Classroom":{desc:"SOURCE SUITE · science, civics and classroom instructional films from qualified public and independent archives.",rel:["Public Health Archive","The Chronicle"]},
+"Newsreel Exchange":{desc:"SOURCE SUITE · historic news footage, archival journalism and world events across the moving-image record.",rel:["News, News, News","The Chronicle"]},
+"Foodways":{desc:"SOURCE SUITE · cooking history, regional cuisine, food culture and culinary traditions without ad-first programming.",rel:["The Kitchen","Home Economics"]},
+"Wild Earth Desk":{desc:"SOURCE SUITE · wildlife fieldwork, ecology, conservation science and natural-history expeditions.",rel:["Nature Channel","Field Notes"]},
+"Mission Control":{desc:"SOURCE SUITE · astronauts, rockets, orbital flight and planetary missions from independent video hosts.",rel:["NASA Marathon","Space Race"]},
+"Backroad Journal":{desc:"SOURCE SUITE · rural life, small towns, roadside travelogues and farm-country history.",rel:["Country Roads","Roadside America"]},
+"Storm Lab":{desc:"SOURCE SUITE · meteorology, storm research, forecasting history and the science behind severe weather.",rel:["Storm Chase Classics","Weather Watch"]},
+"Atomic Age Files":{desc:"SOURCE SUITE · Cold War history, civil defense, fallout shelters and the atomic-age public record.",rel:["Cold War Cinema","Military Archive"]},
+"Lesson Reel":{desc:"SOURCE SUITE · classroom instruction, science lessons, civics and vocational films screened for educational intent.",rel:["The Classroom","Educational Filmstrip"]},
+"Local Signal":{desc:"SOURCE SUITE · community television, public access, municipal affairs and local media history.",rel:["Public Works","Hometown History"]},
+"Comfort Television":{desc:"SOURCE SUITE · calm craft, gardening, home projects and quiet lifestyle television for easy watching.",rel:["The Workshop","The Kitchen"]},
+"Comedy Circuit":{desc:"SOURCE SUITE · stand-up, sketch, club performance and comedy history - no prank or reaction filler.",rel:["Mic Night","Uptown Comedy"]},
+"Rhythm Archives":{desc:"SOURCE SUITE · music history, soul, jazz, rhythm and blues and preserved performance films.",rel:["Music Films","Soul Train Vault"]},
+"Freedom Stories":{desc:"SOURCE SUITE · civil rights, voting rights, labor movements and social-history documentaries.",rel:["Eyes on the Prize","Civic Cinema"]},
+"Black Stage":{desc:"SOURCE SUITE · Black performance, theatre, dance, comedy and African American arts history.",rel:["Uptown Comedy","The Cipher"]},
+"Documentary Desk":{desc:"SOURCE SUITE · public-media, investigative, history and science documentaries from independent video hosts.",rel:["The Documentary Hour","The Chronicle"]},
 "Channel 2 Network":{desc:"Full-service network affiliate: cartoons at dawn, matinees at noon, primetime at night.",best:"all day",rel:["Nite-Owl 3","Classic Rerun TV"]},
 "Nite-Owl 3":{desc:"The overnight-flavored sister station. Noir, mystery and late movies lean heavier here.",best:"late night",rel:["Channel 2 Network","Noir & Mystery"]},
 "Classic Cartoons":{desc:"Golden-age theatrical animation, 1930s-1972.",best:"mornings",rel:["Classic Cartoons","Anime Alley"]},
@@ -6950,7 +6980,7 @@ function applyAV(){const el=screenArea.querySelector("video,audio");if(el){el.mu
    PeerTube and YouTube embeds for all three lanes. Vimeo, LOC, and the
    unneeded IA fallback remain unpromoted until their gates are repeatable.
    ===================================================================== */
-var V2_SOURCE_CATALOG_SIZE=48,V2_SOURCE_READY_BUFFER=5,V2_SOURCE_CACHE_VERSION=2;
+var V2_SOURCE_CATALOG_SIZE=48,V2_SOURCE_READY_BUFFER=5,V2_SOURCE_CACHE_VERSION=3;
 const V2_PREVIEW_PROFILES={
   "public-health-archive":{name:"Public Health Archive",providers:["peertube","youtube"],queries:["public health film","sanitation film","medical education film","hospital documentary","epidemiology film"],match:["public health","health","sanitation","medical","hospital","epidemiology","epidemic","medicine"],deny:["fictional","horror","music video","commercial","cartoon","gameplay","wedding"]},
   "signal-room":{name:"The Signal Room",providers:["peertube","youtube"],queries:["telegraph history film","telephone history film","radio engineering film","broadcasting history film","communications technology film"],match:["telegraph","telephone","radio","broadcast","communication","telecom","signal","engineering"],deny:["fictional","music video","commercial","cartoon","gameplay","podcast","sermon"]},
@@ -6963,7 +6993,24 @@ const V2_PREVIEW_PROFILES={
   "sound-lab":{name:"The Sound Lab",providers:["peertube","youtube"],queries:["sound recording technology film","acoustics documentary","audio engineering film","radio studio technology film","recording studio history"],match:["sound recording","acoustics","audio engineering","radio studio","recording studio","audio technology"],deny:["fictional","music video","commercial","cartoon","gameplay","concert","live performance","song"]},
   "workshop":{name:"The Workshop",providers:["peertube","youtube"],queries:["workshop tools film","machine shop documentary","fabrication film","craft technique documentary","making things film"],match:["workshop","tools","machine shop","fabrication","craft technique","making things"],deny:["fictional","music video","commercial","cartoon","gameplay","unboxing","influencer","affiliate"]},
   "field-notes":{name:"Field Notes",providers:["peertube","youtube"],queries:["field biology film","ecology field study documentary","natural history field film","wildlife research film","environmental science documentary"],match:["field biology","ecology","natural history","wildlife research","environmental science","field study"],deny:["fictional","music video","commercial","cartoon","gameplay","hunting show","fishing show","reality show"]},
-  "classroom":{name:"The Classroom",providers:["peertube","youtube"],queries:["educational film classroom","science teaching film","civics educational film","school instructional film","educational documentary archive"],match:["educational film","classroom","science teaching","civics","school instructional","educational documentary"],deny:["fictional","music video","commercial","cartoon","gameplay","lecture advertisement","product training"]}
+  "classroom":{name:"The Classroom",providers:["peertube","youtube"],queries:["educational film classroom","science teaching film","civics educational film","school instructional film","educational documentary archive"],match:["educational film","classroom","science teaching","civics","school instructional","educational documentary"],deny:["fictional","music video","commercial","cartoon","gameplay","lecture advertisement","product training"]},
+  /* 1.9.3 SOURCE EXPANSION: these lanes intentionally use the independent-video source suite
+     (PeerTube + embeddable YouTube), not the Internet Archive-backed IA programming director. */
+  "newsreel-exchange":{name:"Newsreel Exchange",providers:["peertube","youtube"],queries:["historic news footage documentary","newsreel history","archival journalism film","world events documentary","television news history"],match:["newsreel","news footage","journalism","world events","news history","current affairs","archival news"],deny:["fictional","music video","commercial","cartoon","gameplay","movie trailer","opinion vlog"]},
+  "foodways":{name:"Foodways",providers:["peertube","youtube"],queries:["cooking history documentary","food culture documentary","regional cuisine film","kitchen history film","culinary traditions documentary"],match:["cooking history","food culture","regional cuisine","kitchen history","culinary tradition","foodways","food history"],deny:["fictional","music video","commercial","cartoon","gameplay","unboxing","influencer","affiliate"]},
+  "wild-earth-desk":{name:"Wild Earth Desk",providers:["peertube","youtube"],queries:["wildlife field research documentary","ecology fieldwork film","animal behavior documentary","conservation science film","natural history expedition"],match:["wildlife research","fieldwork","ecology","animal behavior","conservation science","natural history","expedition"],deny:["fictional","music video","commercial","cartoon","gameplay","hunting show","fishing show","pet influencer"]},
+  "mission-control":{name:"Mission Control",providers:["peertube","youtube"],queries:["space mission documentary","astronaut training film","rocket engineering documentary","spaceflight history","planetary mission film"],match:["space mission","astronaut","rocket engineering","spaceflight","planetary mission","orbital","launch vehicle"],deny:["fictional","music video","commercial","cartoon","gameplay","science fiction","flat earth","conspiracy"]},
+  "backroad-journal":{name:"Backroad Journal",providers:["peertube","youtube"],queries:["rural life documentary","roadside travel film","small town documentary","farm life history film","American road documentary"],match:["rural life","roadside","small town","farm life","road documentary","backroad","travelogue"],deny:["fictional","music video","commercial","cartoon","gameplay","real estate","luxury resort","influencer"]},
+  "storm-lab":{name:"Storm Lab",providers:["peertube","youtube"],queries:["meteorology documentary","storm research film","hurricane science documentary","tornado science film","weather instrument history"],match:["meteorology","storm research","hurricane science","tornado science","weather instrument","atmospheric science","forecasting history"],deny:["fictional","music video","commercial","cartoon","gameplay","weather prank","conspiracy","storm chaser vlog"]},
+  "atomic-age-files":{name:"Atomic Age Files",providers:["peertube","youtube"],queries:["cold war civil defense film","atomic age documentary","nuclear history film","air raid preparedness film","space race cold war history"],match:["cold war","civil defense","atomic age","nuclear history","air raid","fallout shelter","arms race"],deny:["fictional","music video","commercial","cartoon","gameplay","science fiction","conspiracy","recruitment ad"]},
+  "lesson-reel":{name:"Lesson Reel",providers:["peertube","youtube"],queries:["classroom instructional film","science lesson documentary","civics education film","vocational training film","teaching history documentary"],match:["classroom instructional","science lesson","civics education","vocational training","teaching history","instructional film","educational documentary"],deny:["fictional","music video","commercial","cartoon","gameplay","lecture advertisement","product training","webinar"]},
+  "local-signal":{name:"Local Signal",providers:["peertube","youtube"],queries:["community television documentary","public access television history","local cable access film","community media project","municipal public affairs video"],match:["community television","public access","local cable","community media","public affairs","municipal","community documentary"],deny:["fictional","music video","commercial","cartoon","gameplay","campaign ad","real estate","influencer"]},
+  "comfort-television":{name:"Comfort Television",providers:["peertube","youtube"],queries:["craft demonstration television","home improvement history film","gardening television documentary","quiet making documentary","public television lifestyle"],match:["craft demonstration","home improvement","gardening television","quiet making","lifestyle television","home workshop","public television"],deny:["fictional","music video","commercial","cartoon","gameplay","unboxing","influencer","affiliate","reality dating"]},
+  "comedy-circuit":{name:"Comedy Circuit",providers:["peertube","youtube"],queries:["stand up comedy history","comedy performance documentary","comedy club film","sketch comedy archive","comic interview documentary"],match:["stand up comedy","comedy performance","comedy club","sketch comedy","comic interview","comedy history","comedian"],deny:["fictional","music video","commercial","cartoon","gameplay","prank","reaction","podcast"]},
+  "rhythm-archives":{name:"Rhythm Archives",providers:["peertube","youtube"],queries:["music history documentary","live soul performance archive","jazz performance film","rhythm and blues documentary","recording artist profile"],match:["music history","soul performance","jazz performance","rhythm and blues","artist profile","music documentary","concert archive"],deny:["fictional","commercial","cartoon","gameplay","reaction","lyrics video","fan edit"]},
+  "freedom-stories":{name:"Freedom Stories",providers:["peertube","youtube"],queries:["civil rights documentary","social movement history film","human rights archive","labor movement documentary","voting rights history"],match:["civil rights","social movement","human rights","labor movement","voting rights","freedom struggle","activism history"],deny:["fictional","music video","commercial","cartoon","gameplay","campaign ad","conspiracy","opinion vlog"]},
+  "black-stage":{name:"Black Stage",providers:["peertube","youtube"],queries:["Black performance history documentary","African American theatre film","Black comedy archive","Black dance documentary","soul performance history"],match:["Black performance","African American theatre","Black comedy","Black dance","soul performance","Black arts","African American culture"],deny:["fictional","commercial","cartoon","gameplay","reaction","fan edit","lyrics video"]},
+  "documentary-desk":{name:"Documentary Desk",providers:["peertube","youtube"],queries:["public media documentary","investigative documentary film","science documentary television","history documentary program","independent documentary"],match:["public media documentary","investigative documentary","science documentary","history documentary","independent documentary","documentary film"],deny:["fictional","music video","commercial","cartoon","gameplay","trailer","reaction","vlog"]}
 };
 var v2PreviewState=window.__v2PreviewState||{};window.__v2PreviewState=v2PreviewState;
 var v2PreviewInflight={},v2PreviewAdvance={};

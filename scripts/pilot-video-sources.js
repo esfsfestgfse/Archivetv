@@ -99,6 +99,23 @@ const CHANNELS = [
     queries: ["educational film classroom", "science teaching film", "civics educational film", "school instructional film", "educational documentary archive"],
     deny: ["fictional", "music video", "commercial", "cartoon", "gameplay", "lecture advertisement", "product training"],
   },
+  /* 1.9.3 source expansion: same editorial discipline as IA lanes, but restricted to
+     independent-video providers so these profiles never promote an Internet Archive item. */
+  { key: "newsreel-exchange", name: "Newsreel Exchange", providers: ["peertube", "youtube"], queries: ["historic news footage documentary", "newsreel history", "archival journalism film", "world events documentary", "television news history"], deny: ["fictional", "music video", "commercial", "cartoon", "gameplay", "movie trailer", "opinion vlog"] },
+  { key: "foodways", name: "Foodways", providers: ["peertube", "youtube"], queries: ["cooking history documentary", "food culture documentary", "regional cuisine film", "kitchen history film", "culinary traditions documentary"], deny: ["fictional", "music video", "commercial", "cartoon", "gameplay", "unboxing", "influencer", "affiliate"] },
+  { key: "wild-earth-desk", name: "Wild Earth Desk", providers: ["peertube", "youtube"], queries: ["wildlife field research documentary", "ecology fieldwork film", "animal behavior documentary", "conservation science film", "natural history expedition"], deny: ["fictional", "music video", "commercial", "cartoon", "gameplay", "hunting show", "fishing show", "pet influencer"] },
+  { key: "mission-control", name: "Mission Control", providers: ["peertube", "youtube"], queries: ["space mission documentary", "astronaut training film", "rocket engineering documentary", "spaceflight history", "planetary mission film"], deny: ["fictional", "music video", "commercial", "cartoon", "gameplay", "science fiction", "flat earth", "conspiracy"] },
+  { key: "backroad-journal", name: "Backroad Journal", providers: ["peertube", "youtube"], queries: ["rural life documentary", "roadside travel film", "small town documentary", "farm life history film", "American road documentary"], deny: ["fictional", "music video", "commercial", "cartoon", "gameplay", "real estate", "luxury resort", "influencer"] },
+  { key: "storm-lab", name: "Storm Lab", providers: ["peertube", "youtube"], queries: ["meteorology documentary", "storm research film", "hurricane science documentary", "tornado science film", "weather instrument history"], deny: ["fictional", "music video", "commercial", "cartoon", "gameplay", "weather prank", "conspiracy", "storm chaser vlog"] },
+  { key: "atomic-age-files", name: "Atomic Age Files", providers: ["peertube", "youtube"], queries: ["cold war civil defense film", "atomic age documentary", "nuclear history film", "air raid preparedness film", "space race cold war history"], deny: ["fictional", "music video", "commercial", "cartoon", "gameplay", "science fiction", "conspiracy", "recruitment ad"] },
+  { key: "lesson-reel", name: "Lesson Reel", providers: ["peertube", "youtube"], queries: ["classroom instructional film", "science lesson documentary", "civics education film", "vocational training film", "teaching history documentary"], deny: ["fictional", "music video", "commercial", "cartoon", "gameplay", "lecture advertisement", "product training", "webinar"] },
+  { key: "local-signal", name: "Local Signal", providers: ["peertube", "youtube"], queries: ["community television documentary", "public access television history", "local cable access film", "community media project", "municipal public affairs video"], deny: ["fictional", "music video", "commercial", "cartoon", "gameplay", "campaign ad", "real estate", "influencer"] },
+  { key: "comfort-television", name: "Comfort Television", providers: ["peertube", "youtube"], queries: ["craft demonstration television", "home improvement history film", "gardening television documentary", "quiet making documentary", "public television lifestyle"], deny: ["fictional", "music video", "commercial", "cartoon", "gameplay", "unboxing", "influencer", "affiliate", "reality dating"] },
+  { key: "comedy-circuit", name: "Comedy Circuit", providers: ["peertube", "youtube"], queries: ["stand up comedy history", "comedy performance documentary", "comedy club film", "sketch comedy archive", "comic interview documentary"], deny: ["fictional", "music video", "commercial", "cartoon", "gameplay", "prank", "reaction", "podcast"] },
+  { key: "rhythm-archives", name: "Rhythm Archives", providers: ["peertube", "youtube"], queries: ["music history documentary", "live soul performance archive", "jazz performance film", "rhythm and blues documentary", "recording artist profile"], deny: ["fictional", "commercial", "cartoon", "gameplay", "reaction", "lyrics video", "fan edit"] },
+  { key: "freedom-stories", name: "Freedom Stories", providers: ["peertube", "youtube"], queries: ["civil rights documentary", "social movement history film", "human rights archive", "labor movement documentary", "voting rights history"], deny: ["fictional", "music video", "commercial", "cartoon", "gameplay", "campaign ad", "conspiracy", "opinion vlog"] },
+  { key: "black-stage", name: "Black Stage", providers: ["peertube", "youtube"], queries: ["Black performance history documentary", "African American theatre film", "Black comedy archive", "Black dance documentary", "soul performance history"], deny: ["fictional", "commercial", "cartoon", "gameplay", "reaction", "fan edit", "lyrics video"] },
+  { key: "documentary-desk", name: "Documentary Desk", providers: ["peertube", "youtube"], queries: ["public media documentary", "investigative documentary film", "science documentary television", "history documentary program", "independent documentary"], deny: ["fictional", "music video", "commercial", "cartoon", "gameplay", "trailer", "reaction", "vlog"] },
 ];
 
 const providerFilter = name => !requestedProviders.length || requestedProviders.includes(name);
@@ -340,7 +357,8 @@ async function main() {
   const channels = [];
   for (const profile of CHANNELS) {
     const results = {};
-    for (const provider of providers) {
+    const profileProviders = (profile.providers || providers).filter(providerFilter);
+    for (const provider of profileProviders) {
       results[provider] = await testProvider(profile, provider);
       console.log(`${profile.name} · ${results[provider].displayName}: ${results[provider].qualified ? "QUALIFIED" : results[provider].skipped ? "SKIPPED" : "not qualified"}`);
       await sleep(150);

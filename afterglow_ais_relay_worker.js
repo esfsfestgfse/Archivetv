@@ -80,7 +80,8 @@ const IA_SEARCH_CACHE_VERSION = "v5";
 const IA_METADATA_TTL_SECONDS = 86400;
 const IA_QUEUE_TTL_SECONDS = 21600;
 const IA_PARTIAL_QUEUE_TTL_SECONDS = 90;
-const IA_QUEUE_CACHE_VERSION = "v20";
+const IA_QUEUE_CACHE_VERSION = "v21";
+const IA_FIRST_READY_TIMEOUT_MS = 3600;
 const GULF_FILTER = "BBOX(geometry,-98,18,-80,31)";
 const KPLER_FIELDS = "mmsi,longitude,latitude,posDt,sog,vesselName,heading,cog,navStatus,destination,vesselType";
 /* Public navigation is intentionally limited to named regions. The Worker
@@ -1676,7 +1677,7 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, mediaTypes,
   };
 }
 
-async function hydrateIaQueue(payload, requestedCount, cacheOrigin, ctx, mediaTypes) {
+async function hydrateIaQueue(payload, requestedCount, cacheOrigin, ctx, mediaTypes, onReady) {
   /* Keep a few extra candidates behind the five-program shelf. Archive items
      occasionally have no browser-playable derivative; filtering those here
      means the viewer receives five actual media URLs instead of five names
@@ -1690,7 +1691,11 @@ async function hydrateIaQueue(payload, requestedCount, cacheOrigin, ctx, mediaTy
       const index = cursor++;
       if (index >= items.length) return;
       const item = items[index], media = await queuePlayable(item.identifier, cacheOrigin, ctx, mediaTypes);
-      if (media && ready.length < requestedCount) ready.push({ ...item, media });
+      if (media && ready.length < requestedCount) {
+        const hydratedItem = { ...item, media };
+        ready.push(hydratedItem);
+        if (typeof onReady === "function") onReady(hydratedItem, ready.length);
+      }
     }
   }
   await Promise.all(Array.from({ length: Math.min(5, items.length) }, worker));
@@ -1753,13 +1758,40 @@ async function getIaQueue(request, url, ctx) {
         { "X-Afterglow-Source": "program-director", "X-Afterglow-Queue-Ready": "0" },
       );
     }
-    const hydration = hydrateIaQueue(payload, count, url.origin, ctx, mediaTypes);
-    /* A cold channel gets one short, bounded chance to receive ready media.
-       If Archive is slow, return the discovery shelf immediately and finish
-       hydration in the background; the browser's own fallback can still use
-       those identifiers without turning a channel change into a long wait. */
-    const hydrated = await timeboxQueueHydration(hydration, 4800);
+    let firstReadyResolve;
+    const firstReady = new Promise((resolve) => { firstReadyResolve = resolve; });
+    const hydration = hydrateIaQueue(payload, count, url.origin, ctx, mediaTypes, (item, readyCount) => {
+      if (!firstReadyResolve) return;
+      const resolveFirst = firstReadyResolve;
+      firstReadyResolve = null;
+      resolveFirst({ ...payload, items: [item], candidates: payload.items.length, ready: readyCount, partial: true, hydrating: true });
+    });
+    /* A cold channel gets one short, bounded chance to receive its first
+       verified program. The remaining four may still be resolving; making
+       the viewer wait for all five was the source of the apparent dead air.
+       The full hydration promise continues under waitUntil and populates the
+       edge shelf for the next skip or channel change. */
+    const hydrated = await timeboxQueueHydration(Promise.race([hydration, firstReady]), IA_FIRST_READY_TIMEOUT_MS);
     if (hydrated && hydrated.items.length) {
+      if (hydrated.hydrating) {
+        ctx.waitUntil(
+          hydration
+            .then((ready) => {
+              if (!ready || !ready.items.length) return undefined;
+              const queueTtl = ready.ready >= count ? IA_QUEUE_TTL_SECONDS : IA_PARTIAL_QUEUE_TTL_SECONDS;
+              return cache.put(cacheKey, cacheableJson(ready, queueTtl, {
+                "X-Afterglow-Source": "program-director",
+                "X-Afterglow-Queue-Ready": String(ready.ready),
+              }));
+            })
+            .catch(() => {})
+        );
+        return cacheableJson(hydrated, 5, {
+          "X-Afterglow-Source": "program-director",
+          "X-Afterglow-Queue-Ready": String(hydrated.ready),
+          "X-Afterglow-Queue-Partial": "1",
+        });
+      }
       const queueTtl = hydrated.ready >= count ? IA_QUEUE_TTL_SECONDS : IA_PARTIAL_QUEUE_TTL_SECONDS;
       const response = cacheableJson(hydrated, queueTtl, {
         "X-Afterglow-Source": "program-director",

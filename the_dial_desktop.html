@@ -1544,6 +1544,14 @@ html,body{background:#040706!important}
   .sports-brand small{display:none}.sports-toolbar .sports-dropdown{max-width:none}.sports-today-head,.sports-scoredeck-head{align-items:flex-start;flex-direction:column;gap:8px}.sports-today-stats{width:100%;justify-content:stretch}.sports-today-stats span{flex:1}.sports-today-grid,.sports-score-grid{grid-template-columns:1fr}.sports-today-card{grid-template-columns:auto minmax(0,1fr);padding:9px 8px}.sports-today-sport{grid-column:2;grid-row:2;max-width:none}.sports-today-main{grid-row:1/3}
 }
 @media(prefers-reduced-motion:reduce){.sports-today-card{transition:none!important;transform:none!important}}
+/* 1.7.9 live-channel finish: explicit refresh affordances, touch-sized map controls, and
+   readable single-column live desks on narrow screens. */
+.sports-refresh{appearance:none;flex:none;min-height:30px;padding:0 10px;border:1px solid rgba(143,255,92,.3);border-radius:6px;background:rgba(143,255,92,.06);color:#aaffbd;font:900 9px/1 monospace;letter-spacing:.8px;cursor:pointer}.sports-refresh:hover,.sports-refresh:focus-visible{border-color:#8fff5c;background:rgba(143,255,92,.16);color:#effff2;outline:none}.sports-refresh.busy{color:#ffd36d;border-color:rgba(255,211,109,.45);cursor:wait}.eq-map-tools{position:absolute;z-index:12;right:7px;top:7px;display:grid;grid-template-columns:repeat(3,30px);gap:4px}.eq-map-tools button{height:28px;border:1px solid rgba(159,196,255,.5);border-radius:4px;background:rgba(2,13,23,.9);color:#d8e9ff;font:900 13px monospace;cursor:pointer}.eq-map-tools button:hover,.eq-map-tools button:focus-visible{border-color:#67ff86;color:#67ff86;outline:none}.eq-map-tools .wide{grid-column:span 3;font-size:8px;letter-spacing:.6px}.ship-map-tools button:focus-visible,.water-map-tools button:focus-visible,.skybeacon-map-tools button:focus-visible{outline:2px solid #8fff5c;outline-offset:1px}
+#shipRoot #shipMap,#eqMap,.water-map,.skybeacon-radar .sky-scope{touch-action:none}
+@media(max-width:700px){
+  html.mob .sports-toolbar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px;padding:8px!important}.sports-toolbar .sports-brand{grid-column:1/-1}.sports-toolbar .sports-dropdown{grid-column:1;max-width:none!important}.sports-refresh{grid-column:2;min-width:78px;min-height:36px}.eq-map-tools{grid-template-columns:repeat(3,34px);gap:4px;right:5px;top:5px}.eq-map-tools button{height:32px}.eq-map-tools .wide{font-size:7px}.ship-map-tools button,.water-map-tools button,.skybeacon-map-tools button{min-width:34px;min-height:34px}.ship-map-tools{transform:scale(.92);transform-origin:top right}
+  html.mob .skybeacon-main,html.mob .water-main,html.mob .tropical-main{grid-template-columns:1fr!important;grid-template-rows:minmax(190px,52%) minmax(0,1fr)!important;gap:5px!important}.skybeacon-side,.water-side,.tropical-side{min-height:0}.skybeacon-radar,.water-mapbox,.tropical-stage{min-height:0}.skybeacon-panel,.water-list,.tropical-panel{overscroll-behavior:contain}
+}
 </style>
 </head>
 <body>
@@ -1556,7 +1564,7 @@ html,body{background:#040706!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.7.8-desktop.289-map-sweep";
+window.__ATV_BUILD="1.7.9-desktop.291-live-polish";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1593,7 +1601,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.8-desktop.289 · RealSignal</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.9-desktop.291 · RealSignal</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">REALSIGNAL · THE DIAL</div>
@@ -13267,7 +13275,7 @@ async function tuneShips(ch,sl,my){
   var shipBug=mountChanBug("shipRoot",{ident:"SHIP TRACKER \u00b7 GULF"});
   var shipInteractiveCss=document.createElement("style");shipInteractiveCss.textContent='#shipRoot .ship-blip{pointer-events:auto;cursor:pointer} #shipRoot .ship-blip:hover{transform:scale(1.8);z-index:8} #shipRoot .ship-map-tools{position:absolute;top:8px;right:8px;z-index:25;display:grid;grid-template-columns:repeat(3,28px);gap:3px} #shipRoot .ship-map-tools button{height:25px;border:1px solid rgba(159,196,255,.45);border-radius:4px;background:rgba(2,13,23,.88);color:#cfe0ff;font:800 11px monospace;cursor:pointer} #shipRoot .ship-map-tools button:hover{border-color:#67ff86;color:#67ff86} #shipRoot .ship-map-tools .wide{grid-column:span 3;font-size:8px;letter-spacing:.7px} #shipRoot .ship-detail{flex:none;min-height:92px;padding:7px 8px;border-bottom:1px solid rgba(103,255,134,.15);background:linear-gradient(180deg,rgba(7,34,22,.72),rgba(3,10,6,.4));color:#cfe0ff;font:10px monospace} #shipRoot .ship-detail-empty{color:#78977f;font-size:9px;line-height:1.45} #shipRoot .ship-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:3px 9px;margin-top:5px;color:#9fd6a6;font-size:8.5px} #shipRoot .ship-detail-grid b{color:#e8fff0;font-weight:700} #shipRoot .ship-photo{float:right;width:112px;height:67px;object-fit:cover;border:1px solid rgba(159,196,255,.35);border-radius:3px;background:#06121d;margin-left:8px} #shipRoot .ship-row{cursor:pointer} #shipRoot .ship-row:hover{background:rgba(103,255,134,.08)}';document.head.appendChild(shipInteractiveCss);
   var shipMapBox=$("shipMap"),shipListBox=$("shipList");
-  if(shipMapBox)shipMapBox.insertAdjacentHTML("beforeend",'<div class="ship-map-tools" aria-label="Map controls"><button type="button" data-ship-pan="up" title="Pan north">▲</button><button type="button" data-ship-home title="Return to Gulf">⌂</button><button type="button" data-ship-pan="down" title="Pan south">▼</button><button type="button" data-ship-pan="left" title="Pan west">◀</button><button type="button" data-ship-zoom="out" title="Zoom out">−</button><button type="button" data-ship-pan="right" title="Pan east">▶</button><button type="button" data-ship-zoom="in" class="wide" title="Zoom in">＋ ZOOM IN</button><button type="button" data-ship-world class="wide" title="Show world vessel overview">WORLD OVERVIEW</button></div>');
+  if(shipMapBox)shipMapBox.insertAdjacentHTML("beforeend",'<div class="ship-map-tools" aria-label="Map controls"><button type="button" data-ship-pan="up" title="Pan north">▲</button><button type="button" data-ship-home title="Return to Gulf">⌂</button><button type="button" data-ship-pan="down" title="Pan south">▼</button><button type="button" data-ship-pan="left" title="Pan west">◀</button><button type="button" data-ship-zoom="out" title="Zoom out">−</button><button type="button" data-ship-pan="right" title="Pan east">▶</button><button type="button" data-ship-zoom="in" class="wide" title="Zoom in">＋ ZOOM IN</button><button type="button" data-ship-world class="wide" title="Show world vessel overview">WORLD OVERVIEW</button><button type="button" data-ship-center class="wide" title="Center the selected vessel">CENTER SELECTED VESSEL</button></div>');
   if(shipListBox)shipListBox.insertAdjacentHTML("beforebegin",'<div id="shipDetail" class="ship-detail"><div class="ship-detail-empty">SELECT A VESSEL FOR PHOTO, IDENTITY, COURSE, SPEED, DESTINATION, AND NAVIGATION STATUS.</div></div>');
   if(shipSocket){ try{shipSocket.close();}catch(e){} shipSocket=null; }
   shipList={};
@@ -13311,7 +13319,7 @@ async function tuneShips(ch,sl,my){
     detail.innerHTML='<img id="shipPhoto" class="ship-photo" alt="Public vessel photo"><div style="color:#effff3;font-size:11px;font-weight:900;letter-spacing:.7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esch(vessel.name||("MMSI "+vessel.mmsi))+'</div><div id="shipPhotoHint" style="color:#79a6ff;font-size:8px;margin-top:2px">LOOKING UP PUBLIC PHOTO · '+esch(vessel.source||"AIS")+'</div><div class="ship-detail-grid"><span><b>MMSI</b> '+esch(String(vessel.mmsi||"--"))+'</span><span><b>TYPE</b> '+esch(vessel.vesselType||"--")+'</span><span><b>SPEED</b> '+esch(sog)+'</span><span><b>COURSE</b> '+esch(cog)+'</span><span><b>HEADING</b> '+esch(heading)+'</span><span><b>NAV</b> '+esch(vessel.navStatus||"--")+'</span><span><b>DEST</b> '+esch(vessel.destination||"--")+'</span><span><b>POS</b> '+(vessel.lat!=null?Number(vessel.lat).toFixed(3)+"°, "+Number(vessel.lon).toFixed(3)+"°":"--")+'</span></div>';
     shipPhotoLookup(vessel);
   }
-  function bindShipMapControls(){var mapBox=$("shipMap");if(!mapBox)return;mapBox.querySelectorAll("[data-ship-pan]").forEach(function(b){b.onclick=function(e){e.stopPropagation();var step=shipView.range*.45,dir=b.dataset.shipPan,lat=shipView.lat,lon=shipView.lon;if(dir==="up")lat+=step/69.05;if(dir==="down")lat-=step/69.05;if(dir==="left")lon-=step/(69.17*Math.max(.25,Math.cos(lat*Math.PI/180)));if(dir==="right")lon+=step/(69.17*Math.max(.25,Math.cos(lat*Math.PI/180)));if(lon>180)lon-=360;if(lon<-180)lon+=360;setShipView(lat,lon,shipView.range);};});mapBox.querySelectorAll("[data-ship-zoom]").forEach(function(b){b.onclick=function(e){e.stopPropagation();setShipView(shipView.lat,shipView.lon,shipView.range*(b.dataset.shipZoom==="in"?.55:1.8));};});var home=mapBox.querySelector("[data-ship-home]");if(home)home.onclick=function(e){e.stopPropagation();setShipView(27.5,-89,700,"gulf");};var world=mapBox.querySelector("[data-ship-world]");if(world)world.onclick=function(e){e.stopPropagation();setShipView(0,0,20000,"world");};if(!mapBox._shipDragBound){mapBox._shipDragBound=true;mapBox.addEventListener("pointerdown",function(e){if(e.target.closest&&e.target.closest("button,.ship-blip"))return;shipDrag={x:e.clientX,y:e.clientY};mapBox.setPointerCapture&&mapBox.setPointerCapture(e.pointerId);});mapBox.addEventListener("pointerup",function(e){if(!shipDrag)return;var dx=e.clientX-shipDrag.x,dy=e.clientY-shipDrag.y;shipDrag=null;if(Math.abs(dx)+Math.abs(dy)>8){var lat=shipView.lat+dy*shipView.range/Math.max(1,mapBox.clientHeight)/69.05*2,lon=shipView.lon-dx*shipView.range/Math.max(1,mapBox.clientWidth)/69.17/Math.max(.25,Math.cos(shipView.lat*Math.PI/180))*2;setShipView(lat,lon,shipView.range);}});}}
+  function bindShipMapControls(){var mapBox=$("shipMap");if(!mapBox)return;mapBox.querySelectorAll("[data-ship-pan]").forEach(function(b){b.onclick=function(e){e.stopPropagation();var step=shipView.range*.45,dir=b.dataset.shipPan,lat=shipView.lat,lon=shipView.lon;if(dir==="up")lat+=step/69.05;if(dir==="down")lat-=step/69.05;if(dir==="left")lon-=step/(69.17*Math.max(.25,Math.cos(lat*Math.PI/180)));if(dir==="right")lon+=step/(69.17*Math.max(.25,Math.cos(lat*Math.PI/180)));if(lon>180)lon-=360;if(lon<-180)lon+=360;setShipView(lat,lon,shipView.range);};});mapBox.querySelectorAll("[data-ship-zoom]").forEach(function(b){b.onclick=function(e){e.stopPropagation();setShipView(shipView.lat,shipView.lon,shipView.range*(b.dataset.shipZoom==="in"?.55:1.8));};});var home=mapBox.querySelector("[data-ship-home]");if(home)home.onclick=function(e){e.stopPropagation();setShipView(27.5,-89,700,"gulf");};var world=mapBox.querySelector("[data-ship-world]");if(world)world.onclick=function(e){e.stopPropagation();setShipView(0,0,20000,"world");};var center=mapBox.querySelector("[data-ship-center]");if(center)center.onclick=function(e){e.stopPropagation();var vessel=shipList[selectedMmsi];if(!vessel||vessel.lat==null||vessel.lon==null){quickBanner("SELECT A VESSEL FIRST");return;}setShipView(Number(vessel.lat),Number(vessel.lon),Math.max(180,Math.min(shipView.range,500)),shipRegion);selectShip(selectedMmsi);quickBanner("CENTERED ON "+String(vessel.name||("MMSI "+vessel.mmsi)).slice(0,28));};if(!mapBox._shipDragBound){mapBox._shipDragBound=true;mapBox.addEventListener("pointerdown",function(e){if(e.target.closest&&e.target.closest("button,.ship-blip"))return;shipDrag={x:e.clientX,y:e.clientY};mapBox.setPointerCapture&&mapBox.setPointerCapture(e.pointerId);});mapBox.addEventListener("pointerup",function(e){if(!shipDrag)return;var dx=e.clientX-shipDrag.x,dy=e.clientY-shipDrag.y;shipDrag=null;if(Math.abs(dx)+Math.abs(dy)>8){var lat=shipView.lat+dy*shipView.range/Math.max(1,mapBox.clientHeight)/69.05*2,lon=shipView.lon-dx*shipView.range/Math.max(1,mapBox.clientWidth)/69.17/Math.max(.25,Math.cos(shipView.lat*Math.PI/180))*2;setShipView(lat,lon,shipView.range);}});mapBox.addEventListener("pointercancel",function(){shipDrag=null;});}}
   function ensureShipMap(){
     var box=$("shipMap"); if(!box||mp)return;
     if(!box.clientWidth||!box.clientHeight){ setTimeout(ensureShipMap,120); return; }
@@ -13627,12 +13635,12 @@ async function ytUploadsPlaylist(handle){
 async function tuneSports(ch,sl,my){
   if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Sports Center","");
   if(screenArea) screenArea.innerHTML='<div class="dc-screen" id="dcScreen" style="flex-direction:column">'+
-    '<div class="sports-toolbar"><div class="sports-brand"><span class="sports-brand-mark">●</span><div><b>SPORTS CENTER</b><small>LIVE SCOREBOARD · EVERY SPORT, ONE DESK</small></div></div><select id="sportsPicker" class="sports-dropdown" aria-label="Choose sport"></select></div>'+
+    '<div class="sports-toolbar"><div class="sports-brand"><span class="sports-brand-mark">●</span><div><b>SPORTS CENTER</b><small>LIVE SCOREBOARD · EVERY SPORT, ONE DESK</small></div></div><select id="sportsPicker" class="sports-dropdown" aria-label="Choose sport"></select><button type="button" id="sportsRefreshBtn" class="sports-refresh" aria-label="Refresh sports data">REFRESH</button></div>'+
     '<div id="sportsSubPicker" class="catnav" style="flex:0 0 auto;padding:0 8px 6px"></div>'+
     '<div id="sportsBody" style="flex:1 1 auto;min-height:0;overflow-y:auto;padding:2px 8px"></div>'+
     '<div class="dc-ticker" id="sportsTicker">ESPN &amp; TheSportsDB \u00b7 real highlights from official league YouTube channels \u00b7 tap a team in Standings to follow it</div>'+
     '</div>';
-  var pickerEl=$("sportsPicker"), subPickerEl=$("sportsSubPicker"), bodyEl=$("sportsBody");
+  var pickerEl=$("sportsPicker"), subPickerEl=$("sportsSubPicker"), bodyEl=$("sportsBody"), sportsRefreshEl=$("sportsRefreshBtn");
   var curSport=SPORTS_LIST[0]; var curEvents=[];
   clearInterval(sportsTimer);
 
@@ -14502,6 +14510,12 @@ async function tuneSports(ch,sl,my){
   })();
   pickerEl.addEventListener("change",function(){ window.__sportsTouch=Date.now();
     var sp=SPORTS_LIST.find(function(s){return s.k===pickerEl.value;}); if(sp)loadSport(sp);
+  });
+  if(sportsRefreshEl)sportsRefreshEl.addEventListener("click",function(){
+    if(sportsRefreshEl.disabled)return;
+    window.__sportsTouch=Date.now();sportsRefreshEl.disabled=true;sportsRefreshEl.classList.add("busy");sportsRefreshEl.textContent="UPDATING";
+    var task=sportsSubView==="today"?renderOnToday():sportsSubView==="livetv"?renderSportsTV():loadSport(curSport);
+    Promise.resolve(task).finally(function(){if(my===token){sportsRefreshEl.disabled=false;sportsRefreshEl.classList.remove("busy");sportsRefreshEl.textContent="REFRESH";}});
   });
   renderSubPicker();
   loadSport(SPORTS_LIST[0]);
@@ -15504,12 +15518,12 @@ async function tuneAurora(ch,sl,my){
 async function tuneQuake(ch,sl,my){
   if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Earthquake Bulletin","");
   if(screenArea) screenArea.innerHTML='<div class="wf-wrap" id="eqWrap" style="background:radial-gradient(120% 80% at 50% 0%,#04101c,#020810 70%);color:#cfe0ff">'+
-    '<div class="wf-map-box"><div class="wf-map" id="eqMap" style="border-color:#1f3a5a"></div></div>'+
+    '<div class="wf-map-box"><div class="wf-map" id="eqMap" style="border-color:#1f3a5a"><div class="eq-map-tools" aria-label="Earthquake map controls"><button type="button" data-eq-map="up" title="Pan north">▲</button><button type="button" data-eq-map="home" title="Return to selected quake">⌂</button><button type="button" data-eq-map="down" title="Pan south">▼</button><button type="button" data-eq-map="left" title="Pan west">◀</button><button type="button" data-eq-map="zoom-out" title="Zoom out">−</button><button type="button" data-eq-map="right" title="Pan east">▶</button><button type="button" data-eq-map="zoom-in" class="wide" title="Zoom in">＋ ZOOM IN</button><button type="button" data-eq-map="world" class="wide" title="Show all earthquakes worldwide">WORLD VIEW</button></div></div></div>'+
     '<div class="wf-side"><div class="dc-top"><span>EARTHQUAKE BULLETIN / M2.5+ / TAP A QUAKE TO RECENTER</span></div>'+
     '<div class="dc-list" id="dcList"></div>'+
     '<div class="dc-news" id="quakeNews" style="display:none"></div></div></div>';
   var eqBug=mountChanBug("eqWrap",{ident:"EARTHQUAKE BULLETIN"});
-  clearInterval(quakeTimer); var autoNews=false, eqFeats=[], eqRange=300, eqSel=0;
+  clearInterval(quakeTimer); var autoNews=false, eqFeats=[], eqRange=300, eqSel=0, eqCenter=null;
   function buildEqMap(){
     var m=$("eqMap"); if(!m||!eqFeats.length)return;
     if(eqRange==="world"){ /* 1.3: WORLD VIEW — every quake on one equirectangular map */
@@ -15528,7 +15542,7 @@ async function tuneQuake(ch,sl,my){
       dynW.innerHTML=wh; return;
     }
     var c=eqFeats[Math.min(eqSel,eqFeats.length-1)]; if(!c)return;
-    var clat=c.geometry.coordinates[1], clon=c.geometry.coordinates[0];
+    var clat=eqCenter?eqCenter.lat:c.geometry.coordinates[1], clon=eqCenter?eqCenter.lon:c.geometry.coordinates[0];
     var mp=ensureMap(m,clat,clon,eqRange,"dkblue");
     var dyn=m.querySelector(".map-dyn");
     if(!dyn){ dyn=document.createElement("div"); dyn.className="map-dyn"; m.appendChild(dyn); }
@@ -15545,6 +15559,17 @@ async function tuneQuake(ch,sl,my){
     });
     dyn.innerHTML=html;
   }
+  function moveEqMap(action){
+    if(action==="home"){eqRange=300;eqCenter=null;buildEqMap();quickBanner("EARTHQUAKE MAP · SELECTED EVENT");return;}
+    if(action==="world"){eqRange="world";eqCenter=null;buildEqMap();quickBanner("EARTHQUAKE MAP · WORLD VIEW");return;}
+    if(action==="zoom-in"){eqRange=eqRange==="world"?1200:(eqRange===1200?300:150);buildEqMap();quickBanner("EARTHQUAKE MAP · ZOOM IN");return;}
+    if(action==="zoom-out"){eqRange=eqRange==="world"?"world":(eqRange===150?300:(eqRange===300?1200:"world"));buildEqMap();quickBanner("EARTHQUAKE MAP · ZOOM OUT");return;}
+    if(eqRange==="world")return;
+    var c=eqCenter||eqFeats[Math.min(eqSel,eqFeats.length-1)];if(!c)return;var p=c.geometry&&c.geometry.coordinates||[];var step=eqRange*.45,lat=eqCenter?eqCenter.lat:p[1],lon=eqCenter?eqCenter.lon:p[0],dir=action;
+    if(dir==="up")lat+=step/69.05;if(dir==="down")lat-=step/69.05;if(dir==="left")lon-=step/(69.17*Math.max(.25,Math.cos(lat*Math.PI/180)));if(dir==="right")lon+=step/(69.17*Math.max(.25,Math.cos(lat*Math.PI/180)));
+    if(lon>180)lon-=360;if(lon<-180)lon+=360;eqCenter={lat:Math.max(-70,Math.min(70,lat)),lon:lon};buildEqMap();quickBanner("EARTHQUAKE MAP · MAP MOVED");
+  }
+  document.querySelectorAll("[data-eq-map]").forEach(function(button){button.addEventListener("click",function(e){e.stopPropagation();moveEqMap(button.dataset.eqMap);});});
   var m0=$("eqMap"); if(m0){ m0.style.cursor="pointer"; m0.title="Tap to toggle zoom";
     m0.addEventListener("click",function(){ eqRange=(eqRange===300?1200:(eqRange===1200?"world":300)); buildEqMap();
       quickBanner(eqRange==="world"?"QUAKE MAP: WORLD VIEW":"QUAKE MAP: "+(eqRange*2)+" MI ACROSS"); }); }
@@ -15569,7 +15594,7 @@ async function tuneQuake(ch,sl,my){
           '<span class="dc-when">'+fmtLocalTime(pp.time)+(pp.felt?(" / "+pp.felt+" felt"):"")+(pp.mmi!=null?(" / MMI "+Math.round(pp.mmi)):"")+'</span></div>';
       }).join("");
       listEl.querySelectorAll(".dc-row").forEach(function(r){ r.style.cursor="pointer";
-        r.addEventListener("click",function(){ eqSel=+r.dataset.i;
+        r.addEventListener("click",function(){ eqSel=+r.dataset.i;eqCenter=null;
           listEl.querySelectorAll(".dc-row").forEach(function(x){x.classList.remove("sel");}); r.classList.add("sel");
           buildEqMap(); loadQuakeNews(r.dataset.mag,r.dataset.place,my); }); });
       buildEqMap();

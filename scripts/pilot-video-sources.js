@@ -25,6 +25,7 @@ const timeoutMs = Math.max(3000, Number(args.get("--timeout-ms") || 9000));
 const maxQueries = Math.max(1, Math.min(5, Number(args.get("--queries") || 3)));
 const maxCandidates = Math.max(5, Math.min(10, Number(args.get("--candidates") || 5)));
 const requestedProviders = String(args.get("--providers") || "").split(",").map(x => x.trim().toLowerCase()).filter(Boolean);
+const requestedChannels = String(args.get("--channels") || "").split(",").map(x => x.trim().toLowerCase()).filter(Boolean);
 
 const CHANNELS = [
   {
@@ -378,7 +379,7 @@ async function main() {
   const started = Date.now();
   const providers = Object.keys(SEARCHERS).filter(providerFilter);
   const channels = [];
-  for (const profile of CHANNELS) {
+  for (const profile of CHANNELS.filter(profile => !requestedChannels.length || requestedChannels.includes(profile.key))) {
     const results = {};
     const profileProviders = (profile.providers || providers).filter(providerFilter);
     for (const provider of profileProviders) {

@@ -31,6 +31,7 @@ const context = {
   Set,
   Map,
   console,
+  sportsEra: "all",
 };
 vm.createContext(context);
 vm.runInContext(source.slice(start, manifestEnd), context, { filename: path.basename(file) });

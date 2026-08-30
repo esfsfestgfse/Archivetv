@@ -79,8 +79,8 @@ const IA_SEARCH_TTL_SECONDS = 21600;
 const IA_SEARCH_CACHE_VERSION = "v5";
 const IA_METADATA_TTL_SECONDS = 86400;
 const IA_QUEUE_TTL_SECONDS = 21600;
-const IA_PARTIAL_QUEUE_TTL_SECONDS = 90;
-const IA_QUEUE_CACHE_VERSION = "v21";
+const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
+const IA_QUEUE_CACHE_VERSION = "v23";
 const IA_FIRST_READY_TIMEOUT_MS = 3600;
 const GULF_FILTER = "BBOX(geometry,-98,18,-80,31)";
 const KPLER_FIELDS = "mmsi,longitude,latitude,posDt,sog,vesselName,heading,cog,navStatus,destination,vesselType";
@@ -286,6 +286,24 @@ function safeDenyTerms(terms) {
 function safeMediaTypes(types) {
   if (!Array.isArray(types)) return [];
   return [...new Set(types.map((type) => String(type || "").trim().toLowerCase()).filter((type) => type === "movies" || type === "audio"))];
+}
+
+/* A few editorial channels are correctly strict but have Archive queries that
+   are too specific for the index to return anything. Broaden only the search
+   shape—not the approved vocabulary—so the final theme/deny gates still make
+   the genre decision. This is a rescue lane for sparse shelves, never a blind
+   cross-genre fallback. */
+function iaFallbackQueries(themeTerms, denyTerms, mediaTypes) {
+  const clean = (value) => String(value || "").replace(/[()"\\]/g, " ").replace(/\s+/g, " ").trim();
+  const terms = themeTerms.map(clean).filter(Boolean).slice(0, 18).map((term) => '"' + term + '"').join(" OR ");
+  if (!terms) return [];
+  const denied = denyTerms.map(clean).filter(Boolean).slice(0, 24).map((term) => '"' + term + '"').join(" OR ");
+  const type = mediaTypes.includes("audio") && !mediaTypes.includes("movies") ? "audio" : "movies";
+  const suffix = denied ? " AND NOT subject:(" + denied + ") AND NOT title:(" + denied + ")" : "";
+  return [
+    "mediatype:" + type + " AND (title:(" + terms + ") OR subject:(" + terms + "))" + suffix,
+    "mediatype:" + type + " AND subject:(" + terms + ")" + suffix,
+  ];
 }
 
 /* A stronger editorial lane can require more than a single incidental subject
@@ -1747,7 +1765,20 @@ async function getIaQueue(request, url, ctx) {
     // a single unplayable item never turns into a visible No Signal screen.
     const strictQueue = themeMinScore > 1;
     const candidateCount = Math.min(strictQueue ? 30 : 20, Math.max(count, count * (strictQueue ? 6 : 4)));
-    const payload = await buildIaQueue(channel, queries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, candidateCount, url.origin, ctx, rotation);
+    let payload = await buildIaQueue(channel, queries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, candidateCount, url.origin, ctx, rotation);
+    if (payload.items.length < Math.min(candidateCount, 8)) {
+      const fallbackQueries = iaFallbackQueries(themeTerms, denyTerms, mediaTypes);
+      if (fallbackQueries.length) {
+        const rescue = await buildIaQueue(channel, fallbackQueries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, candidateCount, url.origin, ctx, rotation);
+        const seen = new Set(), merged = [];
+        for (const item of [...payload.items, ...rescue.items]) {
+          if (!item || seen.has(item.identifier)) continue;
+          seen.add(item.identifier); merged.push(item);
+          if (merged.length >= candidateCount) break;
+        }
+        payload = { ...payload, items: merged, candidates: merged.length, rescue: true };
+      }
+    }
     if (!payload.items.length) {
       /* No candidate exists yet, so this is not hydration. Be truthful and let
          the client immediately try its direct/search fallbacks, then retry the

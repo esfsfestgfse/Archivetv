@@ -14,7 +14,8 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
     ['window.__rsCastSync=sync', 'must expose live state synchronization'],
     ['castReceiverIdInput', 'must expose one-time receiver ID setup'],
     ['REALSIGNAL_STATE', 'must send a normalized receiver state packet'],
-    ['.008-chromecast', 'must carry the Chromecast build stamp'],
+    ['A0A5CD01', 'must carry the published RealSignal receiver ID'],
+    ['.009-published-cast', 'must carry the published Chromecast build stamp'],
   ]) if (!source.includes(token)) issues.push(`${file}: ${reason}`);
 }
 const receiver = fs.readFileSync(path.join(repo, 'realsignal_cast_receiver.html'), 'utf8');

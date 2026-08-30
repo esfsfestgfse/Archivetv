@@ -1598,7 +1598,8 @@ html,body{background:#040706!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.9.6-desktop.008-chromecast";
+window.__ATV_BUILD="1.9.6-desktop.009-published-cast";
+window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1635,7 +1636,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.9.6-desktop.006 · RealSignal</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.9.6-desktop.009-published-cast · RealSignal</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">REALSIGNAL · THE DIAL</div>
@@ -16953,7 +16954,7 @@ window.__atvBootDone=true; /* app is up -- from here on, errors get logged, not 
    state packet whenever the viewer powers on, tunes, or changes the channel. */
 (function(){
   var NS="urn:x-cast:com.realsignal.dial",configuredId="",wired=false;
-  function receiverId(){return String((window.REALSIGNAL_CAST_RECEIVER_ID||store.get("castReceiverId","")||"")).trim();}
+  function receiverId(){return String((store.get("castReceiverId","")||window.REALSIGNAL_CAST_RECEIVER_ID||"")).trim();}
   function publicAppUrl(){var fallback="https://esfsfestgfse.github.io/Archivetv/";try{if(location.protocol==="https:"&&location.hostname!=="localhost")return new URL("./",location.href).href;}catch(e){}return fallback;}
   function state(){return {type:"REALSIGNAL_STATE",appUrl:publicAppUrl(),channel:Number(curNum)||2,powered:!!powered,muted:!!muted,volume:Number(vol)||0.5,texture:(tube&&tube.dataset&&tube.dataset.glassScan)||"1",sentAt:Date.now()};}
   function sync(){try{if(!window.cast||!cast.framework)return;var session=cast.framework.CastContext.getInstance().getCurrentSession();if(session)session.sendMessage(NS,state()).catch(function(){});}catch(e){}}

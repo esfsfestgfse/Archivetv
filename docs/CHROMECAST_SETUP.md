@@ -4,25 +4,25 @@ RealSignal now includes a Custom Web Receiver and a **CAST** control on desktop
 and mobile. The receiver lets the television run the public RealSignal desktop
 experience, while the phone or computer remains the remote.
 
-## One-time Google registration
+## Published receiver
 
-1. Open the [Google Cast SDK Developer Console](https://cast.google.com/publish/)
-   with the Google account that owns the receiver registration.
-2. Register a **Custom Web Receiver**.
-3. Set its receiver URL to:
+RealSignal's published, unlisted Custom Web Receiver is registered as
+`A0A5CD01`. Its receiver URL is:
 
-   `https://esfsfestgfse.github.io/Archivetv/realsignal_cast_receiver.html`
+`https://esfsfestgfse.github.io/Archivetv/realsignal_cast_receiver.html`
 
-4. Copy the receiver application ID that Google gives you.
+Desktop and mobile builds include that receiver ID by default, so normal users
+do not need to perform Google developer-console setup or paste an ID.
 
 ## Connect it in RealSignal
 
-Open **MENU → SETTINGS**, paste that ID in **Chromecast Receiver**, press
-**SAVE**, then press **CAST**. Choose a Chromecast or Cast-enabled TV on the
-same Wi-Fi network.
+Press **CAST**, then choose a Chromecast or Cast-enabled TV on the same Wi-Fi
+network. **MENU → SETTINGS → Chromecast Receiver** remains available as a
+developer override for testing a different receiver ID.
 
 The receiver restores the active channel and follows later power and channel
-changes. The ID is stored only in the browser's local RealSignal settings.
+changes. A custom override, when supplied, is stored only in the browser's
+local RealSignal settings.
 
 ## Why this is needed
 

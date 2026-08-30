@@ -160,6 +160,24 @@ function containsAny(value, terms) {
 function isHowTo(value) {
   return /\bhow[\s-]+to\b/i.test(text(value));
 }
+function isYouTubeShort(value, duration = 0) {
+  const haystack = text(value);
+  return /(?:^|[\s|[(])#shorts?\b|(?:^|[\s|[(])shorts\b|(?:^|[|[(])shorts?\s+(?:video|reel)\b/i.test(haystack) || (Number(duration) > 0 && Number(duration) <= 180);
+}
+function secondsFromIso(value) {
+  const match = String(value || "").match(/^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/i);
+  return match ? Number(match[1] || 0) * 3600 + Number(match[2] || 0) * 60 + Number(match[3] || 0) : 0;
+}
+function isEnglishYouTube(item) {
+  const declared = text([item.defaultAudioLanguage, item.defaultLanguage, item.language]).toLowerCase();
+  if (declared && !/^en(?:[-_]|$)/i.test(declared)) return false;
+  const sample = text([item.title, item.description]).replace(/https?:\/\/\S+/g, " ");
+  if (/[\u0400-\u04ff\u0600-\u06ff\u0900-\u097f\u1100-\u11ff\u3040-\u30ff\u3130-\u318f\u3400-\u9fff\uac00-\ud7af\u0590-\u05ff\u0e00-\u0e7f\u0370-\u03ff]/.test(sample)) return false;
+  const lower = sample.toLowerCase();
+  const foreign = (lower.match(/\b(el|los|las|una|unos|unas|para|por|con|del|que|des|der|die|das|und|ein|eine|den|dem|auf|nicht|ist|che|gli|della|delle|per|dei|van|het|een|voor|met)\b/g) || []).length;
+  const english = (lower.match(/\b(the|and|for|with|from|this|that|how|what|when|where|history|documentary|film|archive|channel)\b/g) || []).length;
+  return foreign < 2 || english >= foreign;
+}
 function relevance(profile, item) {
   const haystack = text([item.title, item.description, item.subjects, item.tags]).toLowerCase();
   const hits = profile.queries.filter(query => query.split(/\s+/).filter(x => x.length > 3).some(term => haystack.includes(term.toLowerCase()))).length;
@@ -234,12 +252,12 @@ async function searchYouTube(profile) {
   if (!key) return { provider: "youtube", displayName: "YouTube", skipped: true, reason: "YOUTUBE_API_KEY not configured", candidates: [] };
   const candidates = [];
   for (const query of profile.queries.slice(0, maxQueries)) {
-    const url = "https://www.googleapis.com/youtube/v3/search?" + new URLSearchParams({ part: "snippet", type: "video", maxResults: "50", q: query, videoEmbeddable: "true", videoSyndicated: "true", safeSearch: "moderate", key });
+    const url = "https://www.googleapis.com/youtube/v3/search?" + new URLSearchParams({ part: "snippet", type: "video", maxResults: "50", q: query, relevanceLanguage: "en", regionCode: "US", videoEmbeddable: "true", videoSyndicated: "true", safeSearch: "moderate", key });
     try {
       const { body } = await jsonFetch(url);
       for (const item of body.items || []) {
         const id = item.id?.videoId;
-        if (id && !isHowTo([item.snippet?.title, item.snippet?.description])) candidates.push(candidate(item.snippet || {}, { source: "YouTube", id, title: item.snippet?.title, description: item.snippet?.description, year: item.snippet?.publishedAt, playbackUrl: `https://www.youtube.com/watch?v=${id}`, embedUrl: `https://www.youtube-nocookie.com/embed/${id}` }));
+        if (id && !isHowTo([item.snippet?.title, item.snippet?.description]) && !isYouTubeShort([item.snippet?.title, item.snippet?.description]) && isEnglishYouTube({ title: item.snippet?.title, description: item.snippet?.description })) candidates.push(candidate(item.snippet || {}, { source: "YouTube", id, title: item.snippet?.title, description: item.snippet?.description, year: item.snippet?.publishedAt, playbackUrl: `https://www.youtube.com/watch?v=${id}`, embedUrl: `https://www.youtube-nocookie.com/embed/${id}` }));
       }
     } catch (error) { return { provider: "youtube", displayName: "YouTube", error: String(error), candidates: [] }; }
   }
@@ -249,8 +267,10 @@ async function searchYouTube(profile) {
     const byId = new Map((body.items || []).map(item => [item.id, item]));
     return { provider: "youtube", displayName: "YouTube", candidates: unique(candidates).map(item => {
       const full = byId.get(item.id) || {};
-      return { ...item, rights: full.snippet?.license || "standard YouTube license", metadataOk: Boolean(full.snippet?.title && full.contentDetails?.duration), embeddable: full.status?.embeddable === true, playbackUrl: `https://www.youtube.com/watch?v=${item.id}`, embedUrl: `https://www.youtube-nocookie.com/embed/${item.id}` };
-    }) };
+      const duration = full.contentDetails?.duration ? secondsFromIso(full.contentDetails.duration) : 0;
+      const enriched = { ...item, rights: full.snippet?.license || "standard YouTube license", metadataOk: Boolean(full.snippet?.title && full.contentDetails?.duration), embeddable: full.status?.embeddable === true, playbackUrl: `https://www.youtube.com/watch?v=${item.id}`, embedUrl: `https://www.youtube-nocookie.com/embed/${item.id}`, duration, defaultAudioLanguage: full.snippet?.defaultAudioLanguage, defaultLanguage: full.snippet?.defaultLanguage };
+      return enriched.metadataOk && enriched.embeddable && !isYouTubeShort(enriched, duration) && isEnglishYouTube(enriched) ? enriched : null;
+    }).filter(Boolean) };
   } catch (error) { return { provider: "youtube", displayName: "YouTube", error: String(error), candidates: [] }; }
 }
 

@@ -1662,7 +1662,7 @@ html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.9.5-mobile.001-rolling-youtube-queue";
+window.__ATV_BUILD="1.9.6-mobile.001-youtube-language-filter";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1699,7 +1699,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.9.5-mobile.001 · RealSignal</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.9.6-mobile.001 · RealSignal</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -6980,7 +6980,7 @@ function applyAV(){const el=screenArea.querySelector("video,audio");if(el){el.mu
    PeerTube and YouTube embeds for all three lanes. Vimeo, LOC, and the
    unneeded IA fallback remain unpromoted until their gates are repeatable.
    ===================================================================== */
-var V2_SOURCE_CATALOG_SIZE=64,V2_SOURCE_READY_BUFFER=5,V2_SOURCE_CACHE_VERSION=5;
+var V2_SOURCE_CATALOG_SIZE=64,V2_SOURCE_READY_BUFFER=5,V2_SOURCE_CACHE_VERSION=6;
 const V2_PREVIEW_PROFILES={
   "public-health-archive":{name:"Public Health Archive",providers:["peertube","youtube"],queries:["public health film","sanitation film","medical education film","hospital documentary","epidemiology film"],match:["public health","health","sanitation","medical","hospital","epidemiology","epidemic","medicine"],deny:["fictional","horror","music video","commercial","cartoon","gameplay","wedding"]},
   "signal-room":{name:"The Signal Room",providers:["peertube","youtube"],queries:["telegraph history film","telephone history film","radio engineering film","broadcasting history film","communications technology film"],match:["telegraph","telephone","radio","broadcast","communication","telecom","signal","engineering"],deny:["fictional","music video","commercial","cartoon","gameplay","podcast","sermon"]},
@@ -7021,7 +7021,9 @@ function v2Shuffle(items){for(var i=items.length-1;i>0;i--){var j=Math.floor(Mat
 function v2Recent(key){var ids=store.get("v2recent:"+key,[]);return Array.isArray(ids)?ids:[];}
 function v2Remember(key,item){var id=String(item&&item.id||"");if(!id)return;var ids=v2Recent(key).filter(function(x){return x!==id;});ids.unshift(id);store.set("v2recent:"+key,ids.slice(0,24));}
 function v2CatalogOrder(key,items){var recent=v2Recent(key),fresh=[],played=[];items.forEach(function(item){(recent.indexOf(String(item.id||""))>=0?played:fresh).push(item);});return v2Shuffle(fresh).concat(v2Shuffle(played));}
-function v2YouTubeBlocked(item){return /\bhow[\s-]+to\b/i.test(v2Text([item.title,item.description,item.tags,item.subject,item.category]));}
+function v2YouTubeShort(item){var hay=v2Text([item.title,item.description,item.tags,item.category]);return /(?:^|[\s|[(])#shorts?\b|(?:^|[\s|[(])shorts\b|(?:^|[|[(])shorts?\s+(?:video|reel)\b/i.test(hay)||(Number(item.duration)>0&&Number(item.duration)<=180);}
+function v2YouTubeEnglish(item){var declared=v2Text([item.defaultAudioLanguage,item.defaultLanguage,item.language]).toLowerCase();if(declared&&!/^en(?:[-_]|$)/i.test(declared))return false;var sample=v2Text([item.title,item.description]).replace(/https?:\/\/\S+/g," ");if(/[\u0400-\u04ff\u0600-\u06ff\u0900-\u097f\u1100-\u11ff\u3040-\u30ff\u3130-\u318f\u3400-\u9fff\uac00-\ud7af\u0590-\u05ff\u0e00-\u0e7f\u0370-\u03ff]/.test(sample))return false;var lower=sample.toLowerCase(),foreign=(lower.match(/\b(el|los|las|una|unos|unas|para|por|con|del|que|una|des|der|die|das|und|ein|eine|den|dem|auf|nicht|ist|che|gli|della|delle|una|per|con|dei|van|het|een|voor|met)\b/g)||[]).length,english=(lower.match(/\b(the|and|for|with|from|this|that|how|what|when|where|history|documentary|film|archive|channel)\b/g)||[]).length;return foreign<2||english>=foreign;}
+function v2YouTubeBlocked(item){return /\bhow[\s-]+to\b/i.test(v2Text([item.title,item.description,item.tags,item.subject,item.category]))||v2YouTubeShort(item)||!v2YouTubeEnglish(item);}
 function v2Relevant(profile,item){var hay=v2Text([item.title,item.description,item.tags,item.subject,item.category,item.account]).toLowerCase();if(profile.deny.some(function(t){return hay.indexOf(t.toLowerCase())>=0;}))return false;return profile.match.some(function(t){return hay.indexOf(t.toLowerCase())>=0;});}
 async function v2PeerTube(profile){
   var instances=["https://video.blender.org","https://framatube.org","https://peertube.uno","https://tilvids.com"],jobs=[];
@@ -7038,7 +7040,7 @@ async function v2YouTube(profile){
   var queries=profile.queries.slice(0,Math.min(8,Number(profile.queryLimit)||5));
   var jobs=queries.map(async function(query){
     try{
-      var u="https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=50&videoEmbeddable=true&videoSyndicated=true&safeSearch=moderate&q="+encodeURIComponent(query)+"&key="+encodeURIComponent(key);
+      var u="https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=50&relevanceLanguage=en&regionCode=US&videoEmbeddable=true&videoSyndicated=true&safeSearch=moderate&q="+encodeURIComponent(query)+"&key="+encodeURIComponent(key);
       var d=await withTO(fetch(u,{mode:"cors"}).then(function(r){if(!r.ok)throw new Error("http "+r.status);return r.json();}),8500);
       return (d.items||[]).map(function(x){return {id:String(x.id&&x.id.videoId||""),title:v2Text(x.snippet&&x.snippet.title),description:v2Text(x.snippet&&x.snippet.description),year:String(x.snippet&&x.snippet.publishedAt||"").slice(0,4),provider:"YouTube",embedUrl:"https://www.youtube-nocookie.com/embed/"+String(x.id&&x.id.videoId||"")};});
     }catch(e){return [];}
@@ -7050,9 +7052,10 @@ async function v2YouTube(profile){
     var d=await withTO(fetch("https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,status&id="+ids.join(",")+"&key="+encodeURIComponent(key),{mode:"cors"}).then(function(r){if(!r.ok)throw new Error("detail "+r.status);return r.json();}),8500),by={};
     (d.items||[]).forEach(function(x){by[x.id]=x;});
     return v2Unique(raw).map(function(x){
-      var f=by[x.id]||{};
+      var f=by[x.id]||{},metadata=Object.assign({},x,{title:v2Text(f.snippet&&f.snippet.title||x.title),description:v2Text(f.snippet&&f.snippet.description||x.description),duration:v2IsoDuration(f.contentDetails&&f.contentDetails.duration),defaultAudioLanguage:f.snippet&&f.snippet.defaultAudioLanguage,defaultLanguage:f.snippet&&f.snippet.defaultLanguage});
       if(!f.status||f.status.embeddable!==true||!f.contentDetails||!f.contentDetails.duration)return null;
-      return {id:"yt:"+x.id,title:v2Text(f.snippet&&f.snippet.title||x.title),description:v2Text(f.snippet&&f.snippet.description||x.description),year:String(f.snippet&&f.snippet.publishedAt||x.year||"").slice(0,4),rights:"Standard YouTube license",url:x.embedUrl,type:"embed",embedded:true,duration:v2IsoDuration(f.contentDetails.duration),provider:"YouTube",meta:{source:"YouTube",license:"Standard YouTube license"}};
+      if(v2YouTubeBlocked(metadata))return null;
+      return {id:"yt:"+x.id,title:metadata.title,description:metadata.description,year:String(f.snippet&&f.snippet.publishedAt||x.year||"").slice(0,4),rights:"Standard YouTube license",url:x.embedUrl,type:"embed",embedded:true,duration:metadata.duration,provider:"YouTube",meta:{source:"YouTube",license:"Standard YouTube license"}};
     }).filter(Boolean).slice(0,48);
   }catch(e){return [];}
 }

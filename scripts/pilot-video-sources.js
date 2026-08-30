@@ -48,8 +48,8 @@ const CHANNELS = [
   {
     key: "restoration-row",
     name: "Restoration Row",
-    queries: ["film restoration documentary", "historic preservation film", "conservation restoration film", "museum conservation film", "building restoration documentary"],
-    deny: ["fictional", "music video", "commercial", "cartoon", "gameplay", "restoration gameplay"],
+    queries: ["art restoration documentary", "furniture restoration documentary", "car restoration documentary", "building restoration documentary", "book restoration documentary", "museum conservation film", "tool restoration", "film restoration documentary"],
+    deny: ["fictional", "music video", "commercial", "cartoon", "gameplay", "restoration gameplay", "restoration video game"],
   },
   {
     key: "consumer-report",

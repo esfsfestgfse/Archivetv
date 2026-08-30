@@ -45,6 +45,60 @@ const CHANNELS = [
     queries: ["photography film", "darkroom film processing", "camera history film", "photographic technique film", "cinematography film"],
     deny: ["fictional", "music video", "commercial", "cartoon", "gameplay", "wedding photography service"],
   },
+  {
+    key: "restoration-row",
+    name: "Restoration Row",
+    queries: ["film restoration documentary", "historic preservation film", "conservation restoration film", "museum conservation film", "building restoration documentary"],
+    deny: ["fictional", "music video", "commercial", "cartoon", "gameplay", "restoration gameplay"],
+  },
+  {
+    key: "consumer-report",
+    name: "Consumer Report",
+    queries: ["consumer education film", "product safety film", "consumer testing documentary", "household buying guide film", "consumer rights film"],
+    deny: ["fictional", "music video", "commercial", "cartoon", "gameplay", "unboxing", "influencer", "affiliate"],
+  },
+  {
+    key: "map-room",
+    name: "The Map Room",
+    queries: ["cartography film", "map making documentary", "geography film", "surveying film", "map history documentary"],
+    deny: ["fictional", "music video", "commercial", "cartoon", "gameplay", "map mod", "game map"],
+  },
+  {
+    key: "military-archive",
+    name: "Military Archive",
+    queries: ["military history film", "armed forces history documentary", "military training film archive", "wartime documentary film", "military technology history"],
+    deny: ["fictional", "music video", "commercial", "cartoon", "gameplay", "airsoft", "paintball", "recruitment ad"],
+  },
+  {
+    key: "public-works",
+    name: "Public Works",
+    queries: ["public works documentary", "civil engineering film", "municipal infrastructure film", "transit construction documentary", "water utility film"],
+    deny: ["fictional", "music video", "commercial", "cartoon", "gameplay", "real estate ad", "product ad"],
+  },
+  {
+    key: "sound-lab",
+    name: "The Sound Lab",
+    queries: ["sound recording technology film", "acoustics documentary", "audio engineering film", "radio studio technology film", "recording studio history"],
+    deny: ["fictional", "music video", "commercial", "cartoon", "gameplay", "concert", "live performance", "song"],
+  },
+  {
+    key: "workshop",
+    name: "The Workshop",
+    queries: ["workshop tools film", "machine shop documentary", "fabrication film", "craft technique documentary", "making things film"],
+    deny: ["fictional", "music video", "commercial", "cartoon", "gameplay", "unboxing", "influencer", "affiliate"],
+  },
+  {
+    key: "field-notes",
+    name: "Field Notes",
+    queries: ["field biology film", "ecology field study documentary", "natural history field film", "wildlife research film", "environmental science documentary"],
+    deny: ["fictional", "music video", "commercial", "cartoon", "gameplay", "hunting show", "fishing show", "reality show"],
+  },
+  {
+    key: "classroom",
+    name: "The Classroom",
+    queries: ["educational film classroom", "science teaching film", "civics educational film", "school instructional film", "educational documentary archive"],
+    deny: ["fictional", "music video", "commercial", "cartoon", "gameplay", "lecture advertisement", "product training"],
+  },
 ];
 
 const providerFilter = name => !requestedProviders.length || requestedProviders.includes(name);

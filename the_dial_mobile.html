@@ -1631,7 +1631,7 @@ html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.8.0-mobile.001-v2-preview";
+window.__ATV_BUILD="1.9.0-mobile.001-source-suite";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1668,7 +1668,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.8.0-mobile.001 · RealSignal</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.9.0-mobile.001 · RealSignal</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -2119,8 +2119,8 @@ function buildQuery(genre,era){
 /* Clock/daypart vocabulary and profiles were removed. Every IA channel now
    exposes one permanent editorial identity at every hour. */
 /* ---------- category colors ---------- */
-const CAT={NET:"#ffe06a",TOON:"#7fd8ff",MOV:"#ff9ab0",TV:"#9affb0",SPORTS:"#8fff5c",MUS:"#ffbe7a",DOC:"#b9d8ff",LBRO:"#ff6b5c",LDATA:"#4dd9c0",RETRO:"#d4a373",HOL:"#ff8fa3",BRIT:"#d7b7ff"};
-const CATNAME={NET:"NETWORKS",TOON:"CARTOONS",MOV:"MOVIES",TV:"TELEVISION",SPORTS:"SPORTS SUITE",MUS:"MUSIC & RADIO",DOC:"NONFICTION",LBRO:"LIVE BROADCAST",LDATA:"LIVE DATA",RETRO:"RETRO ARCHIVE",HOL:"HOLIDAY",BRIT:"BRITISH SUITE"};
+const CAT={NET:"#ffe06a",TOON:"#7fd8ff",MOV:"#ff9ab0",TV:"#9affb0",SPORTS:"#8fff5c",MUS:"#ffbe7a",DOC:"#b9d8ff",SOURCE:"#ffd590",LBRO:"#ff6b5c",LDATA:"#4dd9c0",RETRO:"#d4a373",HOL:"#ff8fa3",BRIT:"#d7b7ff"};
+const CATNAME={NET:"NETWORKS",TOON:"CARTOONS",MOV:"MOVIES",TV:"TELEVISION",SPORTS:"SPORTS SUITE",MUS:"MUSIC & RADIO",DOC:"NONFICTION",SOURCE:"SOURCE SUITE",LBRO:"LIVE BROADCAST",LDATA:"LIVE DATA",RETRO:"RETRO ARCHIVE",HOL:"HOLIDAY",BRIT:"BRITISH SUITE"};
 
 /* ---------- the dial (~36 channels) ---------- */
 const CH=[
@@ -2301,9 +2301,18 @@ const CH=[
  {nm:"Museum of Motion", num:240, cat:"DOC", gl:"museumotion", era:[1900,2026], ns:"doc"},
  {nm:"Civic Cinema", num:241, cat:"DOC", gl:"civiccinema", era:[1930,2026], ns:"doc"},
  {nm:"Earth From Above", num:242, cat:"DOC", gl:"earthfromabove", era:[1955,2026], ns:"space"},
- {nm:"Public Health Archive", num:513, cat:"DOC", source:"v2preview", ns:"doc", previewKey:"public-health-archive"},
- {nm:"The Signal Room", num:514, cat:"DOC", source:"v2preview", ns:"doc", previewKey:"signal-room"},
- {nm:"The Darkroom", num:515, cat:"DOC", source:"v2preview", ns:"doc", previewKey:"darkroom"},
+ {nm:"Public Health Archive", num:513, cat:"SOURCE", source:"v2preview", ns:"doc", previewKey:"public-health-archive"},
+ {nm:"The Signal Room", num:514, cat:"SOURCE", source:"v2preview", ns:"doc", previewKey:"signal-room"},
+ {nm:"The Darkroom", num:515, cat:"SOURCE", source:"v2preview", ns:"doc", previewKey:"darkroom"},
+ {nm:"Restoration Row", num:516, cat:"SOURCE", source:"v2preview", ns:"doc", previewKey:"restoration-row"},
+ {nm:"Consumer Report", num:517, cat:"SOURCE", source:"v2preview", ns:"doc", previewKey:"consumer-report"},
+ {nm:"The Map Room", num:518, cat:"SOURCE", source:"v2preview", ns:"doc", previewKey:"map-room"},
+ {nm:"Military Archive", num:519, cat:"SOURCE", source:"v2preview", ns:"doc", previewKey:"military-archive"},
+ {nm:"Public Works", num:520, cat:"SOURCE", source:"v2preview", ns:"doc", previewKey:"public-works"},
+ {nm:"The Sound Lab", num:521, cat:"SOURCE", source:"v2preview", ns:"doc", previewKey:"sound-lab"},
+ {nm:"The Workshop", num:522, cat:"SOURCE", source:"v2preview", ns:"doc", previewKey:"workshop"},
+ {nm:"Field Notes", num:523, cat:"SOURCE", source:"v2preview", ns:"doc", previewKey:"field-notes"},
+ {nm:"The Classroom", num:524, cat:"SOURCE", source:"v2preview", ns:"doc", previewKey:"classroom"},
  {nm:"Space", num:957,             cat:"LDATA", source:"space",   ns:"tv"},
  {nm:"River & Lake Watch", num:958,cat:"LDATA", source:"river",   ns:"tv"},
  {nm:"On This Day", num:504,       cat:"RETRO", source:"onthisday",ns:"movie"},
@@ -2355,12 +2364,13 @@ const GUIDE_CATEGORIES=[
   {id:"animation",label:"Animation & kids",meta:"Cartoons, anime and family viewing",color:"#9ab8ff",cats:["TOON"]},
   {id:"sports",label:"Sports",meta:"Competition, archives and scoreboards",color:"#c8ff84",cats:["SPORTS"]},
   {id:"archive",label:"Archive & ideas",meta:"History, science, culture and documentary",color:"#ffd590",cats:["DOC"]},
+  {id:"source",label:"Source suite",meta:"Verified programming from independent video archives and hosts",color:"#ffcf75",cats:["SOURCE"]},
   {id:"world",label:"World & culture",meta:"British television and global perspective",color:"#d7b7ff",cats:["BRIT"]},
   {id:"music",label:"Music & audio",meta:"Concerts, radio and listening rooms",color:"#ffb4d0",cats:["MUS"]},
   {id:"live",label:"Live & local",meta:"Cameras, maps, weather and real-time signals",color:"#73ffd2",cats:["LBRO","LDATA"]}
 ];
 const GUIDE_CATEGORY_BY_ID=Object.fromEntries(GUIDE_CATEGORIES.map(function(group){return [group.id,group];}));
-const GUIDE_SUBGENRES={NET:"Network television",TV:"Television & reruns",MOV:"Movies",TOON:"Animation",SPORTS:"Sports",MUS:"Music & audio",DOC:"Archive & ideas",LBRO:"Live video",LDATA:"Live data",RETRO:"Retro archive",HOL:"Seasonal",BRIT:"World & culture"};
+const GUIDE_SUBGENRES={NET:"Network television",TV:"Television & reruns",MOV:"Movies",TOON:"Animation",SPORTS:"Sports",MUS:"Music & audio",DOC:"Archive & ideas",SOURCE:"Source suite",LBRO:"Live video",LDATA:"Live data",RETRO:"Retro archive",HOL:"Seasonal",BRIT:"World & culture"};
 function guideCategoryFor(ch){return GUIDE_CATEGORIES.find(function(group){return group.cats&&group.cats.indexOf(ch.cat)>-1;})||GUIDE_CATEGORY_BY_ID.all;}
 function guideChannelKey(ch){return "rs-"+String(ch.num).padStart(3,"0")+"-"+String(ch.nm).toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,"");}
 CH.forEach(function(ch){ch.guideGroup=guideCategoryFor(ch).id;ch.key=guideChannelKey(ch);});
@@ -2385,9 +2395,18 @@ const DIAL_INDEX=new Map(DIAL_ORDER.map(function(ch,i){return [ch.num,i];}));
 
 /* ===== 1.3 METADATA FOUNDATION: per-channel identity, driving INFO + guide + discovery ===== */
 const CHANNEL_META={
-"Public Health Archive":{desc:"V2 Preview · public-health, sanitation, medical education and hospital films from qualified PeerTube sources.",rel:["The Signal Room","The Documentary Hour"]},
-"The Signal Room":{desc:"V2 Preview · telegraph, telephone, radio, broadcasting and communications history from qualified PeerTube and Internet Archive sources.",rel:["Public Health Archive","Computer Chronicles"]},
-"The Darkroom":{desc:"V2 Preview · photography, camera history, darkroom technique and cinematography films from qualified PeerTube sources.",rel:["The Signal Room","Design & Architecture"]},
+"Public Health Archive":{desc:"SOURCE SUITE · public-health, sanitation, medical education and hospital films from qualified video hosts.",rel:["The Signal Room","The Classroom"]},
+"The Signal Room":{desc:"SOURCE SUITE · telegraph, telephone, radio, broadcasting and communications history from qualified video hosts.",rel:["Public Health Archive","The Sound Lab"]},
+"The Darkroom":{desc:"SOURCE SUITE · photography, camera history, darkroom technique and cinematography films from qualified PeerTube and YouTube sources.",rel:["The Signal Room","Design & Architecture"]},
+"Restoration Row":{desc:"SOURCE SUITE · film, artifact, museum and building preservation with restoration demonstrations and history.",rel:["The Darkroom","The Workshop"]},
+"Consumer Report":{desc:"SOURCE SUITE · consumer education, product safety, testing and household buying guidance — no ad-first programming.",rel:["Home Economics","Public Works"]},
+"The Map Room":{desc:"SOURCE SUITE · cartography, map making, geography, surveying and the history of how we map the world.",rel:["Field Notes","Earth From Above"]},
+"Military Archive":{desc:"SOURCE SUITE · military history, public-domain training films, wartime documentation and technology history.",rel:["The Chronicle","Public Works"]},
+"Public Works":{desc:"SOURCE SUITE · civil engineering, municipal infrastructure, transit, utilities and the systems cities depend on.",rel:["Manufacturing Marvels","The Map Room"]},
+"The Sound Lab":{desc:"SOURCE SUITE · recording technology, acoustics, audio engineering and radio studio history — not music performances.",rel:["The Signal Room","Computer Chronicles"]},
+"The Workshop":{desc:"SOURCE SUITE · tools, machine shops, fabrication, making and craft technique from verified video sources.",rel:["Manufacturing Marvels","Restoration Row"]},
+"Field Notes":{desc:"SOURCE SUITE · field biology, ecology, wildlife research and natural-history methods with tightly screened topics.",rel:["The Map Room","Earth From Above"]},
+"The Classroom":{desc:"SOURCE SUITE · science, civics and classroom instructional films from qualified public and independent archives.",rel:["Public Health Archive","The Chronicle"]},
 "Channel 2 Network":{desc:"Full-service network affiliate: cartoons at dawn, matinees at noon, primetime at night.",best:"all day",rel:["Nite-Owl 3","Classic Rerun TV"]},
 "Nite-Owl 3":{desc:"The overnight-flavored sister station. Noir, mystery and late movies lean heavier here.",best:"late night",rel:["Channel 2 Network","Noir & Mystery"]},
 "Classic Cartoons":{desc:"Golden-age theatrical animation, 1930s-1972.",best:"mornings",rel:["Classic Cartoons","Anime Alley"]},
@@ -6717,7 +6736,7 @@ function guideListing(ch){
   if(!ch)return {now:"OFF AIR",next:"TUNE A CHANNEL",detail:"STANDBY",state:"standby",live:false,ready:0,capacity:5};
   if(ch.source==="v2preview"){
     var pv=(window.__v2PreviewState||{})[ch.num]||{},items=Array.isArray(pv.items)?pv.items:[],ready=Math.min(5,items.length),current=pv.currentTitle?String(pv.currentTitle):"";
-    return {now:current?("NOW · "+current):("V2 PREVIEW · "+(ready?"QUEUE READY":"WARMING SOURCE")),next:ready>1?("NEXT · "+String(items[(Number(pv.cursor||0)+1)%items.length].title||"PROGRAM")):"NEXT · FIVE-ITEM BUFFER WARMING",detail:ready+" / 5 READY · "+(pv.provider||"SOURCE PILOT"),state:ready?"ready":"warming",live:false,ready:ready,capacity:5};
+    return {now:current?("NOW · "+current):("SOURCE SUITE · "+(ready?"QUEUE READY":"WARMING SOURCE")),next:ready>1?("NEXT · "+String(items[(Number(pv.cursor||0)+1)%items.length].title||"PROGRAM")):"NEXT · FIVE-ITEM BUFFER WARMING",detail:ready+" / 5 READY · "+(pv.provider||"SOURCE PILOT"),state:ready?"ready":"warming",live:false,ready:ready,capacity:5};
   }
   if(ch.source){var live=liveGuideState[ch.num]||{},txt=String(live.text||window.__chanStatus[ch.num]||"CONNECTING LIVE DATA");return {now:"LIVE · "+txt,next:"CONTINUOUS LIVE DATA",detail:guideUpdatedLabel(live.at),state:"live",live:true,ready:null,capacity:null};}
   /* The guide is queue-backed: it never invents clock/daypart listings. */
@@ -6742,7 +6761,7 @@ function renderRail(){ /* v9: honest CHANNEL BANK grid — replaces the horizont
      list. LDATA gets an extra-loud amber treatment because the user asked for a real
      visual break between normal channels and the live-data cluster. */
   var _prevGuideCat=null;
-  var _sectionSubtitles={"LDATA":"real-time feeds · government + open APIs","MUS":"audio only · music library","SPORTS":"live scoreboard + 29 archive networks","HOL":"seasonal loops","RETRO":"found footage + vhs + infomercial","NET":"live streaming networks","TV":"television series + reruns","MOV":"feature films","TOON":"cartoons + animation","DOC":"documentaries + culture","LBRO":"library + civic feeds"};
+  var _sectionSubtitles={"LDATA":"real-time feeds · government + open APIs","MUS":"audio only · music library","SPORTS":"live scoreboard + 29 archive networks","HOL":"seasonal loops","RETRO":"found footage + vhs + infomercial","NET":"live streaming networks","TV":"television series + reruns","MOV":"feature films","TOON":"cartoons + animation","DOC":"documentaries + culture","SOURCE":"verified video hosts · five-item queues","LBRO":"library + civic feeds"};
   list.forEach(ch=>{
     if(ch.cat!==_prevGuideCat){
       var _d=document.createElement("div");
@@ -6903,7 +6922,16 @@ function applyAV(){const el=screenArea.querySelector("video,audio");if(el){el.mu
 const V2_PREVIEW_PROFILES={
   "public-health-archive":{name:"Public Health Archive",providers:["peertube","youtube"],queries:["public health film","sanitation film","medical education film","hospital documentary","epidemiology film"],match:["public health","health","sanitation","medical","hospital","epidemiology","epidemic","medicine"],deny:["fictional","horror","music video","commercial","cartoon","gameplay","wedding"]},
   "signal-room":{name:"The Signal Room",providers:["peertube","youtube"],queries:["telegraph history film","telephone history film","radio engineering film","broadcasting history film","communications technology film"],match:["telegraph","telephone","radio","broadcast","communication","telecom","signal","engineering"],deny:["fictional","music video","commercial","cartoon","gameplay","podcast","sermon"]},
-  "darkroom":{name:"The Darkroom",providers:["peertube","youtube"],queries:["photography film","darkroom film processing","camera history film","photographic technique film","cinematography film"],match:["photo","photograph","photography","darkroom","camera","cinema","cinematography","film processing"],deny:["fictional","music video","commercial","cartoon","gameplay","wedding photography service","wedding"]}
+  "darkroom":{name:"The Darkroom",providers:["peertube","youtube"],queries:["photography film","darkroom film processing","camera history film","photographic technique film","cinematography film"],match:["photo","photograph","photography","darkroom","camera","cinema","cinematography","film processing"],deny:["fictional","music video","commercial","cartoon","gameplay","wedding photography service","wedding"]},
+  "restoration-row":{name:"Restoration Row",providers:["peertube","youtube"],queries:["film restoration documentary","historic preservation film","conservation restoration film","museum conservation film","building restoration documentary"],match:["restoration","preservation","conservation","museum","artifact","historic building"],deny:["fictional","music video","commercial","cartoon","gameplay","restoration gameplay"]},
+  "consumer-report":{name:"Consumer Report",providers:["peertube","youtube"],queries:["consumer education film","product safety film","consumer testing documentary","household buying guide film","consumer rights film"],match:["consumer","product safety","testing","household","buying","consumer rights"],deny:["fictional","music video","commercial","cartoon","gameplay","unboxing","influencer","affiliate"]},
+  "map-room":{name:"The Map Room",providers:["peertube","youtube"],queries:["cartography film","map making documentary","geography film","surveying film","map history documentary"],match:["cartography","cartographic","map making","geography","surveying","map history"],deny:["fictional","music video","commercial","cartoon","gameplay","map mod","game map"]},
+  "military-archive":{name:"Military Archive",providers:["peertube","youtube"],queries:["military history film","armed forces history documentary","military training film archive","wartime documentary film","military technology history"],match:["military history","armed forces","military training","wartime","military technology","army","navy","air force"],deny:["fictional","music video","commercial","cartoon","gameplay","airsoft","paintball","recruitment ad"]},
+  "public-works":{name:"Public Works",providers:["peertube","youtube"],queries:["public works documentary","civil engineering film","municipal infrastructure film","transit construction documentary","water utility film"],match:["public works","civil engineering","municipal","infrastructure","transit construction","water utility"],deny:["fictional","music video","commercial","cartoon","gameplay","real estate ad","product ad"]},
+  "sound-lab":{name:"The Sound Lab",providers:["peertube","youtube"],queries:["sound recording technology film","acoustics documentary","audio engineering film","radio studio technology film","recording studio history"],match:["sound recording","acoustics","audio engineering","radio studio","recording studio","audio technology"],deny:["fictional","music video","commercial","cartoon","gameplay","concert","live performance","song"]},
+  "workshop":{name:"The Workshop",providers:["peertube","youtube"],queries:["workshop tools film","machine shop documentary","fabrication film","craft technique documentary","making things film"],match:["workshop","tools","machine shop","fabrication","craft technique","making things"],deny:["fictional","music video","commercial","cartoon","gameplay","unboxing","influencer","affiliate"]},
+  "field-notes":{name:"Field Notes",providers:["peertube","youtube"],queries:["field biology film","ecology field study documentary","natural history field film","wildlife research film","environmental science documentary"],match:["field biology","ecology","natural history","wildlife research","environmental science","field study"],deny:["fictional","music video","commercial","cartoon","gameplay","hunting show","fishing show","reality show"]},
+  "classroom":{name:"The Classroom",providers:["peertube","youtube"],queries:["educational film classroom","science teaching film","civics educational film","school instructional film","educational documentary archive"],match:["educational film","classroom","science teaching","civics","school instructional","educational documentary"],deny:["fictional","music video","commercial","cartoon","gameplay","lecture advertisement","product training"]}
 };
 var v2PreviewState=window.__v2PreviewState||{};window.__v2PreviewState=v2PreviewState;
 var v2PreviewInflight={},v2PreviewAdvance={};
@@ -6962,12 +6990,12 @@ function playV2Embed(item,ch,sl,my){return new Promise(function(resolve){if(my!=
 async function tuneV2Preview(ch,sl,my){
   var profile=V2_PREVIEW_PROFILES[ch.previewKey],state=v2PreviewState[ch.num]||(v2PreviewState[ch.num]={items:[],cursor:0,currentTitle:"",provider:"SOURCE PILOT"});
   if(!profile)return;
-  if(!state.items.length){showOv("V2 PREVIEW","BUILDING QUEUE","Loading qualified sources for “"+ch.nm+"”…");setSig("tuning","BUILDING QUEUE");await withTO(v2LoadProfile(ch,profile,my),11000).catch(function(){});if(my!==token)return;}
+  if(!state.items.length){showOv("SOURCE SUITE","BUILDING QUEUE","Loading qualified sources for “"+ch.nm+"”…");setSig("tuning","BUILDING QUEUE");await withTO(v2LoadProfile(ch,profile,my),11000).catch(function(){});if(my!==token)return;}
   var attempts=0;
   while(state.items.length&&attempts<Math.min(5,state.items.length)){if(my!==token)return;var item=state.items[state.cursor%state.items.length],pl=item.type==="archive"?await resolvePlayable(item.id):item;if(my!==token)return;if(pl){pl.title=item.title;pl.year=item.year;pl.id=pl.id||item.id;pl.meta=Object.assign({},pl.meta||{},item.meta||{source:item.provider});var played=item.type==="embed"?await playV2Embed(pl,ch,sl,my):await playFile(pl,ch,sl,my,false);if(played){state.currentTitle=item.title;state.provider=item.provider;refreshGuideData();setChanStatus(ch.num,(state.cursor+1)+" / "+state.items.length+" READY · "+item.provider);return;}}state.cursor=(state.cursor+1)%state.items.length;attempts++;}
-  state.currentTitle="";setChanStatus(ch.num,state.items.length?"QUEUE RETRYING · "+state.items.length+" READY":"SOURCE PILOT RETRYING");showOv("V2 PREVIEW","RECONNECTING","The qualified source queue is retrying — no permanent channel failure.");clearTimeout(retryTimer);retryTimer=setTimeout(function(){if(my===token&&powered)tuneNum(curNum);},2500);
+  state.currentTitle="";setChanStatus(ch.num,state.items.length?"QUEUE RETRYING · "+state.items.length+" READY":"SOURCE PILOT RETRYING");showOv("SOURCE SUITE","RECONNECTING","The qualified source queue is retrying — no permanent channel failure.");clearTimeout(retryTimer);retryTimer=setTimeout(function(){if(my===token&&powered)tuneNum(curNum);},2500);
 }
-window.__v2PreviewNext=function(){var ch=byNum(curNum),state=ch&&v2PreviewState[ch.num];if(!ch||ch.source!=="v2preview")return false;if(!state||!state.items.length){quickBanner("V2 PREVIEW · QUEUE WARMING");return true;}state.cursor=(Number(state.cursor||0)+1)%state.items.length;state.currentTitle="";quickBanner("V2 PREVIEW · NEXT");tuneNum(curNum);return true;};
+window.__v2PreviewNext=function(){var ch=byNum(curNum),state=ch&&v2PreviewState[ch.num];if(!ch||ch.source!=="v2preview")return false;if(!state||!state.items.length){quickBanner("SOURCE SUITE · QUEUE WARMING");return true;}state.cursor=(Number(state.cursor||0)+1)%state.items.length;state.currentTitle="";quickBanner("SOURCE SUITE · NEXT");tuneNum(curNum);return true;};
 
 async function tuneNum(n){
   if(!powered)return;
@@ -7959,7 +7987,7 @@ function toggleClockFmt(){clk24=!clk24;store.set("clk24",clk24);updateClocks();
   if(typeof tick==="function"){try{tick();}catch(e){}} quickBanner(clk24?"CLOCK · 24-HOUR":"CLOCK · 12-HOUR");}
 
 /* ---------- category jump-nav ---------- */
-var CAT_ORDER=["NET","TV","SPORTS","MOV","BRIT","TOON","DOC","LBRO","RETRO","HOL","MUS","LDATA"]; /* QA FIX: this used to be
+var CAT_ORDER=["NET","TV","SPORTS","MOV","BRIT","TOON","DOC","SOURCE","LBRO","RETRO","HOL","MUS","LDATA"]; /* QA FIX: this used to be
   derived from whatever order categories first appeared in the channel list, which drifted every time
   a new channel got added anywhere -- not a designed order, just an accident of editing history. Now
   it's deliberate: watchable entertainment first, the large Music category gets real priority instead

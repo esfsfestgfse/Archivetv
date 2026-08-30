@@ -1631,7 +1631,7 @@ html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.7.9-mobile.316-live-polish";
+window.__ATV_BUILD="1.8.0-mobile.001-v2-preview";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1668,7 +1668,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.7.9-mobile.316 · RealSignal</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.8.0-mobile.001 · RealSignal</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -2301,6 +2301,9 @@ const CH=[
  {nm:"Museum of Motion", num:240, cat:"DOC", gl:"museumotion", era:[1900,2026], ns:"doc"},
  {nm:"Civic Cinema", num:241, cat:"DOC", gl:"civiccinema", era:[1930,2026], ns:"doc"},
  {nm:"Earth From Above", num:242, cat:"DOC", gl:"earthfromabove", era:[1955,2026], ns:"space"},
+ {nm:"Public Health Archive", num:513, cat:"DOC", source:"v2preview", ns:"doc", previewKey:"public-health-archive"},
+ {nm:"The Signal Room", num:514, cat:"DOC", source:"v2preview", ns:"doc", previewKey:"signal-room"},
+ {nm:"The Darkroom", num:515, cat:"DOC", source:"v2preview", ns:"doc", previewKey:"darkroom"},
  {nm:"Space", num:957,             cat:"LDATA", source:"space",   ns:"tv"},
  {nm:"River & Lake Watch", num:958,cat:"LDATA", source:"river",   ns:"tv"},
  {nm:"On This Day", num:504,       cat:"RETRO", source:"onthisday",ns:"movie"},
@@ -2382,6 +2385,9 @@ const DIAL_INDEX=new Map(DIAL_ORDER.map(function(ch,i){return [ch.num,i];}));
 
 /* ===== 1.3 METADATA FOUNDATION: per-channel identity, driving INFO + guide + discovery ===== */
 const CHANNEL_META={
+"Public Health Archive":{desc:"V2 Preview · public-health, sanitation, medical education and hospital films from qualified PeerTube sources.",rel:["The Signal Room","The Documentary Hour"]},
+"The Signal Room":{desc:"V2 Preview · telegraph, telephone, radio, broadcasting and communications history from qualified PeerTube and Internet Archive sources.",rel:["Public Health Archive","Computer Chronicles"]},
+"The Darkroom":{desc:"V2 Preview · photography, camera history, darkroom technique and cinematography films from qualified PeerTube sources.",rel:["The Signal Room","Design & Architecture"]},
 "Channel 2 Network":{desc:"Full-service network affiliate: cartoons at dawn, matinees at noon, primetime at night.",best:"all day",rel:["Nite-Owl 3","Classic Rerun TV"]},
 "Nite-Owl 3":{desc:"The overnight-flavored sister station. Noir, mystery and late movies lean heavier here.",best:"late night",rel:["Channel 2 Network","Noir & Mystery"]},
 "Classic Cartoons":{desc:"Golden-age theatrical animation, 1930s-1972.",best:"mornings",rel:["Classic Cartoons","Anime Alley"]},
@@ -6709,6 +6715,10 @@ function guideQueueItems(ch,sl,current){
 function guideQueueNext(ch,sl,current){return guideQueueItems(ch,sl,current)[0]||null;}
 function guideListing(ch){
   if(!ch)return {now:"OFF AIR",next:"TUNE A CHANNEL",detail:"STANDBY",state:"standby",live:false,ready:0,capacity:5};
+  if(ch.source==="v2preview"){
+    var pv=(window.__v2PreviewState||{})[ch.num]||{},items=Array.isArray(pv.items)?pv.items:[],ready=Math.min(5,items.length),current=pv.currentTitle?String(pv.currentTitle):"";
+    return {now:current?("NOW · "+current):("V2 PREVIEW · "+(ready?"QUEUE READY":"WARMING SOURCE")),next:ready>1?("NEXT · "+String(items[(Number(pv.cursor||0)+1)%items.length].title||"PROGRAM")):"NEXT · FIVE-ITEM BUFFER WARMING",detail:ready+" / 5 READY · "+(pv.provider||"SOURCE PILOT"),state:ready?"ready":"warming",live:false,ready:ready,capacity:5};
+  }
   if(ch.source){var live=liveGuideState[ch.num]||{},txt=String(live.text||window.__chanStatus[ch.num]||"CONNECTING LIVE DATA");return {now:"LIVE · "+txt,next:"CONTINUOUS LIVE DATA",detail:guideUpdatedLabel(live.at),state:"live",live:true,ready:null,capacity:null};}
   /* The guide is queue-backed: it never invents clock/daypart listings. */
   var sl=typeof slotFor==="function"?slotFor(ch,0,{preview:true}):null;
@@ -6884,6 +6894,81 @@ function clearScreen(keepMedia){if(!keepMedia){killMedia();screenArea.innerHTML=
 function applyAV(){const el=screenArea.querySelector("video,audio");if(el){el.muted=muted;el.volume=vol;}
   if(iaJazzEl){iaJazzEl.muted=muted;iaJazzEl.volume=vol*0.5;}}
 
+/* =====================================================================
+   VERSION 2 VIDEO SOURCE PILOT — three visible, queue-backed preview lanes.
+   Only source/provider pairs that passed the read-only pilot gate are enabled:
+   PeerTube and YouTube embeds for all three lanes. Vimeo, LOC, and the
+   unneeded IA fallback remain unpromoted until their gates are repeatable.
+   ===================================================================== */
+const V2_PREVIEW_PROFILES={
+  "public-health-archive":{name:"Public Health Archive",providers:["peertube","youtube"],queries:["public health film","sanitation film","medical education film","hospital documentary","epidemiology film"],match:["public health","health","sanitation","medical","hospital","epidemiology","epidemic","medicine"],deny:["fictional","horror","music video","commercial","cartoon","gameplay","wedding"]},
+  "signal-room":{name:"The Signal Room",providers:["peertube","youtube"],queries:["telegraph history film","telephone history film","radio engineering film","broadcasting history film","communications technology film"],match:["telegraph","telephone","radio","broadcast","communication","telecom","signal","engineering"],deny:["fictional","music video","commercial","cartoon","gameplay","podcast","sermon"]},
+  "darkroom":{name:"The Darkroom",providers:["peertube","youtube"],queries:["photography film","darkroom film processing","camera history film","photographic technique film","cinematography film"],match:["photo","photograph","photography","darkroom","camera","cinema","cinematography","film processing"],deny:["fictional","music video","commercial","cartoon","gameplay","wedding photography service","wedding"]}
+};
+var v2PreviewState=window.__v2PreviewState||{};window.__v2PreviewState=v2PreviewState;
+var v2PreviewInflight={},v2PreviewAdvance={};
+function v2Text(v){return String(Array.isArray(v)?v.join(" "):(v&&typeof v==="object"?Object.values(v).join(" "):v||"")).replace(/<[^>]+>/g," ").replace(/\s+/g," ").trim();}
+function v2Unique(items){var seen={};return items.filter(function(it){var k=String(it.id||it.url||it.title||"");if(!k||seen[k])return false;seen[k]=1;return true;});}
+function v2Relevant(profile,item){var hay=v2Text([item.title,item.description,item.tags,item.subject,item.category,item.account]).toLowerCase();if(profile.deny.some(function(t){return hay.indexOf(t.toLowerCase())>=0;}))return false;return profile.match.some(function(t){return hay.indexOf(t.toLowerCase())>=0;});}
+async function v2PeerTube(profile){
+  var instances=["https://video.blender.org","https://framatube.org","https://peertube.uno","https://tilvids.com"],jobs=[];
+  instances.forEach(function(instance){profile.queries.slice(0,2).forEach(function(query){jobs.push((async function(){try{var u=instance+"/api/v1/search/videos?search="+encodeURIComponent(query)+"&count=12&sort=-match",d=await withTO(fetch(u,{mode:"cors"}).then(function(r){if(!r.ok)throw new Error("http "+r.status);return r.json();}),8500);return (d.data||[]).map(function(x){var host="";try{host=new URL(x.url||instance).origin;}catch(e){host=instance;}return {provider:"PeerTube",host:host,uuid:String(x.uuid||x.id||""),title:v2Text(x.name||x.title||"Untitled"),description:v2Text(x.description||x.truncatedDescription||""),tags:v2Text(x.tags||[]),category:v2Text(x.category&&x.category.label),account:v2Text(x.account&&x.account.displayName),rights:v2Text(x.licence&&x.licence.label),embedUrl:x.embedPath?host+x.embedPath:host+"/videos/embed/"+String(x.uuid||""),duration:Number(x.duration)||0};});}catch(e){return [];}})());});});
+  var raw=(await Promise.all(jobs)).flat().filter(function(x){return x.uuid&&v2Relevant(profile,x)&&!/unknown|all rights reserved/i.test(x.rights);});
+  raw=v2Unique(raw).sort(function(a,b){return (b.duration>0?1:0)-(a.duration>0?1:0);}).slice(0,16);
+  raw=raw.filter(function(x){return !!x.rights;});
+  var detailed=await Promise.all(raw.map(async function(x){try{var d=await withTO(fetch(x.host+"/api/v1/videos/"+encodeURIComponent(x.uuid),{mode:"cors"}).then(function(r){if(!r.ok)throw new Error("detail "+r.status);return r.json();}),7000),files=(d.files||[]).filter(function(f){return f&&f.fileUrl&&f.hasVideo!==false&&/\.mp4(?:[?#]|$)/i.test(f.fileUrl);}).sort(function(a,b){return Math.abs(Number(a.resolution&&a.resolution.id||720)-720)-Math.abs(Number(b.resolution&&b.resolution.id||720)-720);}),file=files[0],license=v2Text(d.licence&&d.licence.label)||x.rights;if(!/unknown|all rights reserved/i.test(license))return null;return {id:"pt:"+x.host+"/"+x.uuid,title:v2Text(d.name||x.title),description:v2Text(d.description||x.description),year:String(d.publishedAt||"").slice(0,4),rights:license,url:file?file.fileUrl:x.embedUrl,type:file?"video":"embed",embedded:!file,duration:Number(d.duration||x.duration)||0,provider:"PeerTube · "+x.host.replace(/^https?:\/\//,""),meta:{source:"PeerTube",license:license,thumbnail:(d.thumbnails&&d.thumbnails[0]&&d.thumbnails[0].fileUrl)||""}};}catch(e){return null;}}));
+  return detailed.filter(Boolean);
+}
+async function v2YouTube(profile){
+  var key=typeof YOUTUBE_KEY==="string"?YOUTUBE_KEY:"";
+  if(!key)return [];
+  var jobs=profile.queries.slice(0,2).map(async function(query){
+    try{
+      var u="https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=12&videoEmbeddable=true&videoSyndicated=true&safeSearch=moderate&q="+encodeURIComponent(query)+"&key="+encodeURIComponent(key);
+      var d=await withTO(fetch(u,{mode:"cors"}).then(function(r){if(!r.ok)throw new Error("http "+r.status);return r.json();}),8500);
+      return (d.items||[]).map(function(x){return {id:String(x.id&&x.id.videoId||""),title:v2Text(x.snippet&&x.snippet.title),description:v2Text(x.snippet&&x.snippet.description),year:String(x.snippet&&x.snippet.publishedAt||"").slice(0,4),provider:"YouTube",embedUrl:"https://www.youtube-nocookie.com/embed/"+String(x.id&&x.id.videoId||"")};});
+    }catch(e){return [];}
+  });
+  var raw=(await Promise.all(jobs)).flat().filter(function(x){return x.id&&v2Relevant(profile,x);});
+  var ids=v2Unique(raw).map(function(x){return x.id;}).slice(0,40);
+  if(!ids.length)return [];
+  try{
+    var d=await withTO(fetch("https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,status&id="+ids.join(",")+"&key="+encodeURIComponent(key),{mode:"cors"}).then(function(r){if(!r.ok)throw new Error("detail "+r.status);return r.json();}),8500),by={};
+    (d.items||[]).forEach(function(x){by[x.id]=x;});
+    return v2Unique(raw).map(function(x){
+      var f=by[x.id]||{};
+      if(!f.status||f.status.embeddable!==true||!f.contentDetails||!f.contentDetails.duration)return null;
+      return {id:"yt:"+x.id,title:v2Text(f.snippet&&f.snippet.title||x.title),description:v2Text(f.snippet&&f.snippet.description||x.description),year:String(f.snippet&&f.snippet.publishedAt||x.year||"").slice(0,4),rights:"Standard YouTube license",url:x.embedUrl,type:"embed",embedded:true,duration:v2IsoDuration(f.contentDetails.duration),provider:"YouTube",meta:{source:"YouTube",license:"Standard YouTube license"}};
+    }).filter(Boolean).slice(0,12);
+  }catch(e){return [];}
+}
+function v2IsoDuration(value){var m=String(value||"").match(/^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/i);return m?(Number(m[1]||0)*3600+Number(m[2]||0)*60+Number(m[3]||0)):0;}
+async function v2Archive(profile){
+  var terms=profile.queries.slice(0,3).map(function(q){return "(title:("+q+") OR subject:("+q+"))";}).join(" OR "),u=iaURL("mediatype:movies AND ("+terms+")",40,1),d=await fetchJSONResilient(u,"v2-ia"),docs=(d&&d.response&&d.response.docs)||[];
+  return v2Unique(docs.filter(function(x){return v2Relevant(profile,x);}).map(function(x){return {id:String(x.identifier||""),title:v2Text(x.title||x.identifier),description:v2Text(x.description||""),year:String(x.year||"").slice(0,4),rights:"Internet Archive metadata",type:"archive",provider:"Internet Archive",duration:iaRuntimeSeconds(x.runtime||0)};})).slice(0,12);
+}
+async function v2LoadProfile(ch,profile,my){
+  var key=profile.name,state=v2PreviewState[ch.num]||(v2PreviewState[ch.num]={items:[],cursor:0,currentTitle:"",provider:"SOURCE PILOT"});
+  if(v2PreviewInflight[key])return v2PreviewInflight[key];
+  var cached=store.get("v2preview:"+key,null);if(cached&&Array.isArray(cached.items)&&Date.now()-Number(cached.at||0)<30*60*1000&&!state.items.length){state.items=cached.items;state.cursor=0;state.provider="CACHED PILOT";refreshGuideData();}
+  v2PreviewInflight[key]=(async function(){
+    var lanes=await Promise.all(profile.providers.map(function(p){return p==="peertube"?v2PeerTube(profile):p==="youtube"?v2YouTube(profile):v2Archive(profile).catch(function(){return [];});})),items=v2Unique(lanes.flat()).slice(0,5);
+    if(items.length){state.items=items;state.cursor=Math.min(Number(state.cursor)||0,items.length-1);state.provider=items.map(function(x){return x.provider;}).filter(function(x,i,a){return a.indexOf(x)===i;}).join(" + ");store.set("v2preview:"+key,{at:Date.now(),items:items});}
+    refreshGuideData();return state.items;
+  })().catch(function(e){nlog("v2-preview",false,key+" "+((e&&e.message)||e));return state.items;}).finally(function(){delete v2PreviewInflight[key];});
+  return v2PreviewInflight[key];
+}
+function playV2Embed(item,ch,sl,my){return new Promise(function(resolve){if(my!==token)return resolve(false);killMedia();screenArea.innerHTML="";var frame=document.createElement("iframe");frame.title=item.title||ch.nm;frame.src=item.url+(item.url.indexOf("?")>=0?"&":"?")+"autoplay=1&controls=1&muted=1";frame.allow="autoplay; encrypted-media; picture-in-picture; fullscreen";frame.allowFullscreen=true;frame.referrerPolicy="strict-origin-when-cross-origin";frame.style.opacity="0";frame.style.transition="opacity .35s ease";screenArea.appendChild(frame);var done=false,tm=setTimeout(function(){if(done)return;done=true;resolve(false);},8500);frame.onload=function(){if(done)return;done=true;clearTimeout(tm);if(my!==token){try{frame.remove();}catch(e){}return resolve(false);}frame.style.opacity="1";hideOv();hideBuffer();setSig("live","ON AIR");curVideo=null;setCurItem(Object.assign({},item,{embedded:true,type:"video",url:item.url}),ch,sl);showNow(ch,sl,item.title,item.provider);bug.classList.remove("hide");if(Number(item.duration)>20){var started=Date.now();rtInterval(function(){if(my===token&&powered&&Date.now()-started>=Number(item.duration)*1000-1500&&typeof window.__v2PreviewNext==="function")window.__v2PreviewNext();},1000);}resolve(true);};});}
+async function tuneV2Preview(ch,sl,my){
+  var profile=V2_PREVIEW_PROFILES[ch.previewKey],state=v2PreviewState[ch.num]||(v2PreviewState[ch.num]={items:[],cursor:0,currentTitle:"",provider:"SOURCE PILOT"});
+  if(!profile)return;
+  if(!state.items.length){showOv("V2 PREVIEW","BUILDING QUEUE","Loading qualified sources for “"+ch.nm+"”…");setSig("tuning","BUILDING QUEUE");await withTO(v2LoadProfile(ch,profile,my),11000).catch(function(){});if(my!==token)return;}
+  var attempts=0;
+  while(state.items.length&&attempts<Math.min(5,state.items.length)){if(my!==token)return;var item=state.items[state.cursor%state.items.length],pl=item.type==="archive"?await resolvePlayable(item.id):item;if(my!==token)return;if(pl){pl.title=item.title;pl.year=item.year;pl.id=pl.id||item.id;pl.meta=Object.assign({},pl.meta||{},item.meta||{source:item.provider});var played=item.type==="embed"?await playV2Embed(pl,ch,sl,my):await playFile(pl,ch,sl,my,false);if(played){state.currentTitle=item.title;state.provider=item.provider;refreshGuideData();setChanStatus(ch.num,(state.cursor+1)+" / "+state.items.length+" READY · "+item.provider);return;}}state.cursor=(state.cursor+1)%state.items.length;attempts++;}
+  state.currentTitle="";setChanStatus(ch.num,state.items.length?"QUEUE RETRYING · "+state.items.length+" READY":"SOURCE PILOT RETRYING");showOv("V2 PREVIEW","RECONNECTING","The qualified source queue is retrying — no permanent channel failure.");clearTimeout(retryTimer);retryTimer=setTimeout(function(){if(my===token&&powered)tuneNum(curNum);},2500);
+}
+window.__v2PreviewNext=function(){var ch=byNum(curNum),state=ch&&v2PreviewState[ch.num];if(!ch||ch.source!=="v2preview")return false;if(!state||!state.items.length){quickBanner("V2 PREVIEW · QUEUE WARMING");return true;}state.cursor=(Number(state.cursor||0)+1)%state.items.length;state.currentTitle="";quickBanner("V2 PREVIEW · NEXT");tuneNum(curNum);return true;};
+
 async function tuneNum(n){
   if(!powered)return;
   if(n===-1 && customSlot){ return tuneCustomExec(); }
@@ -6913,6 +6998,7 @@ async function tuneNum(n){
   /* QA FIX: data channels (source-based) never set lastMeta, so it retained whatever the last
      content channel wrote — contaminating every subsequent soak sample with stale metadata. */
   if(sl.source){ lastMeta=null; if(ch.cat==="LDATA")startLiveDataBed(ch,sl); }
+  if(sl.source==="v2preview"){ if(my!==token)return; return tuneV2Preview(ch,sl,my); }
   if(sl.source==="weather"){ if(my!==token)return; return tuneWeather(ch,sl,my); }
   if(sl.source==="space"){ if(my!==token)return; return tuneSpaceHub(ch,sl,my); }
   if(sl.source==="river"){ if(my!==token)return; return tuneRiver(ch,sl,my); }
@@ -7323,6 +7409,7 @@ function playFile(it,ch,sl,my,isFallback){return new Promise(res=>{
     fin(false);},{signal:sig});
   v.addEventListener("ended",async ()=>{ if(token!==my) return; resetProgress();
     if(it.isSignoff){ try{signoffClipDone();}catch(e){} return; } // sign-off sequence drives its own next step
+    if(ch&&ch.source==="v2preview"){ if(token===my&&powered){ var v2s=v2PreviewState[ch.num]; if(v2s&&v2s.items.length){v2s.cursor=(Number(v2s.cursor||0)+1)%v2s.items.length;v2s.currentTitle="";tuneNum(curNum);} } return; }
     if(!powered) return;
     if(it.isAd){ if(adsOn&&adQueue>0){ if(await nextAd(ch,sl,my)) return; } else adQueue=0;
       if(token===my&&powered)tuneNum(curNum); return; }
@@ -15869,6 +15956,7 @@ async function playBumper(ch,sl,my){
 /* ===== v10.1: skip — next item on the same channel, on demand ===== */
 function skipOne(){ if(!powered){quickBanner("TURN THE TV ON FIRST");return;}
   var sc=byNum(curNum);
+  if(sc&&sc.source==="v2preview"&&typeof window.__v2PreviewNext==="function"){window.__v2PreviewNext();return;}
   if(sc&&sc.source==="worldclock"&&typeof window.__worldClockNext==="function"){window.__worldClockNext();return;}
   if(sc&&sc.source==="tropical"&&typeof window.__tropicalNext==="function"){window.__tropicalNext();return;}
   if(sc&&sc.source==="wildfire"&&typeof window.__wildfireNext==="function"){window.__wildfireNext();return;}

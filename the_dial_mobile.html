@@ -17,6 +17,9 @@
 <meta name="apple-mobile-web-app-title" content="RealSignal">
 <link rel="apple-touch-icon" href="icon-192.png">
 <title>REALSIGNAL · The Dial 1.7.8</title>
+<!-- Google Cast sender: receiver ID is user-configured in Settings, never hard-coded here. -->
+<script>window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;if(available&&typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
+<script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
 <style>
 :root{
   --pan1:#6b4626; --pan2:#5a3a1f; --pan3:#7d5530; --pan-line:#3c2614;
@@ -1662,7 +1665,7 @@ html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.9.6-mobile.007-source-soak";
+window.__ATV_BUILD="1.9.6-mobile.008-chromecast";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
 function __atvIsBenign(msg){ return /play\(\) request was interrupted/i.test(msg); }
@@ -1719,6 +1722,7 @@ window.addEventListener("unhandledrejection",function(e){
     <button id="mSkip">&#9197; SKIP</button>
     <button id="mSurf">SURF</button>
     <button id="mMenu">MENU</button>
+    <button id="mCast" aria-label="Cast RealSignal to a television">CAST</button>
     <button id="mInfo">INFO</button>
   </div>
 </div>
@@ -1895,6 +1899,10 @@ window.addEventListener("unhandledrejection",function(e){
     <div class="settings-row"><span>Station Bumpers (vintage broadcast idents between programs)</span><button class="rbtn xs" id="setBumpers">ON</button></div>
     <div class="settings-row"><span>Clock Format</span><button class="rbtn xs" id="setClock">12H</button></div>
     <div class="settings-row"><span>Cabinet Theme</span><button class="rbtn xs" id="setTheme">WALNUT</button></div>
+    <div class="settings-sep"></div>
+    <div class="settings-label">CHROMECAST — one-time custom receiver setup</div>
+    <div class="settings-row"><input id="castReceiverIdInput" class="settings-input" type="text" placeholder="Google Cast receiver app ID" autocomplete="off"><button id="btnCastReceiverSave" class="rbtn xs">SAVE</button></div>
+    <div class="settings-row"><span id="castReceiverStatus">Receiver not connected</span><button class="rbtn xs" id="btnCastOpen">CAST →</button></div>
     <div class="settings-sep"></div>
     <div class="settings-row"><span>Picture Adjustment (CRT · brightness · color)</span><button class="rbtn xs" id="setPicLink">OPEN →</button></div>
     <div class="settings-sep"></div>
@@ -7111,7 +7119,7 @@ async function tuneNum(n){
   const ch=byNum(n); if(!ch)return;
   const changedChannel=(curNum!==n)||justPowered; justPowered=false; // NEW: station bumper only on a real channel change
   if(changedChannel)adQueue=0; /* a break belongs to one station; never leak it across a channel change */
-  curNum=n; store.set("last",n); store.set("lastName",ch.nm); const my=++token; clearTimeout(retryTimer);
+  curNum=n; store.set("last",n); store.set("lastName",ch.nm); if(typeof window.__rsCastSync==="function")window.__rsCastSync(); const my=++token; clearTimeout(retryTimer);
   renderRail(); chNum.textContent=String(n);
   const sl=slotFor(ch,0);
   if(marathonLock[ch.num] && sl.source==="ia"){ sl.queries=marathonQueryFor(marathonLock[ch.num],ch); sl.show="\ud83d\udd12 "+marathonLock[ch.num].label; } // NEW: marathon lock
@@ -7635,7 +7643,7 @@ function powerOn(){powered=true;justPowered=true;
   primeIAQueues(); /* current station plus four likely destinations enter the five-show buffer */
   showShortcutHint(); /* audit-fix Ship B 2026-08-09: fade-in-and-out shortcut strip on power-on */
 }
-function powerOff(){powered=false;++token;stopClock();clearTimeout(retryTimer);releaseWake();tube.classList.add("off");
+function powerOff(){powered=false;if(typeof window.__rsCastSync==="function")window.__rsCastSync();++token;stopClock();clearTimeout(retryTimer);releaseWake();tube.classList.add("off");
   setTimeout(()=>{clearScreen();showOv("REALSIGNAL","PRESS POWER","Grab the remote and hit the red button.");tube.classList.remove("off");},470);
   bug.classList.add("hide");lower.classList.add("fade");volHint.classList.remove("show");
   if(banner)banner.classList.remove("show");if(infoPanel)infoPanel.classList.add("hide");
@@ -8251,6 +8259,8 @@ function renderSettings(){
   var cr=$("setCRT"); if(cr) cr.textContent=(["OFF","SUBTLE","MEDIUM","FULL"])[window.__crtLevel||0];
   var bb=$("setBumpers"); if(bb) bb.textContent=bumperOn?"ON":"OFF";
   var t=$("setTheme"); if(t) t.textContent=THEMES[themeIdx].toUpperCase();
+  var castId=$("castReceiverIdInput"); if(castId&&document.activeElement!==castId)castId.value=(typeof window.__rsCastReceiverId==="function"?window.__rsCastReceiverId():"");
+  var castStatus=$("castReceiverStatus"); if(castStatus)castStatus.textContent=(typeof window.__rsCastReceiverId==="function"&&window.__rsCastReceiverId())?"Receiver ready · select CAST":"Receiver ID required for full-screen casting";
   var k=$("naraKeyInput"); if(k && !k.value) k.value=naraKey();
   var lm=$("setLocMode"); if(lm)lm.textContent=(locMode==="zip")?("HOME "+(homeLoc.zip||"ZIP")):"GPS";
   var hz=$("homeZipInput"); if(hz&&!hz.value)hz.value=homeLoc.zip||"";
@@ -8277,6 +8287,8 @@ wire("setBumpers",function(){ bumperOn=!bumperOn; store.set("bumpers",bumperOn);
 wire("setAds",function(){ var b=$("btnAds"); if(b) b.click(); else { adsOn=!adsOn; store.set("ads",adsOn); } renderSettings(); });
 wire("setClock",function(){ toggleClockFmt(); renderSettings(); });
 wire("setTheme",function(){ cycleTheme(); renderSettings(); });
+wire("btnCastReceiverSave",function(){var input=$("castReceiverIdInput"),id=String(input&&input.value||"").trim();if(!id){quickBanner("ENTER A CAST RECEIVER ID");return;}store.set("castReceiverId",id);if(typeof window.__rsCastInit==="function")window.__rsCastInit(true);renderSettings();quickBanner("CHROMECAST RECEIVER SAVED");});
+wire("btnCastOpen",function(){if(typeof window.__rsCastRequest==="function")window.__rsCastRequest();});
 wire("setPicLink",function(){ toggleSettings(); togglePic(); });
 wire("setDiagLink",function(){ toggleSettings(); toggleDiag(); });
 
@@ -17119,6 +17131,25 @@ setSig("","STANDBY");
 }catch(e){} })();
 window.__atvBootDone=true; /* app is up -- from here on, errors get logged, not blacked out over */
 
+/* ===================== Chromecast sender + receiver handoff =====================
+   A Cast device cannot receive a browser tab programmatically. RealSignal therefore uses a
+   registered Custom Web Receiver, which loads the public desktop build and receives this compact
+   state packet whenever the viewer powers on, tunes, or changes the channel. */
+(function(){
+  var NS="urn:x-cast:com.realsignal.dial",configuredId="",wired=false;
+  function receiverId(){return String((window.REALSIGNAL_CAST_RECEIVER_ID||store.get("castReceiverId","")||"")).trim();}
+  function publicAppUrl(){var fallback="https://esfsfestgfse.github.io/Archivetv/";try{if(location.protocol==="https:"&&location.hostname!=="localhost")return new URL("./",location.href).href;}catch(e){}return fallback;}
+  function state(){return {type:"REALSIGNAL_STATE",appUrl:publicAppUrl(),channel:Number(curNum)||2,powered:!!powered,muted:!!muted,volume:Number(vol)||0.5,texture:(tube&&tube.dataset&&tube.dataset.glassScan)||"1",sentAt:Date.now()};}
+  function sync(){try{if(!window.cast||!cast.framework)return;var session=cast.framework.CastContext.getInstance().getCurrentSession();if(session)session.sendMessage(NS,state()).catch(function(){});}catch(e){}}
+  function init(force){var id=receiverId();if(!window.__rsCastSdkReady||!window.cast||!cast.framework||!id)return false;if(!force&&wired&&configuredId===id)return true;try{var ctx=cast.framework.CastContext.getInstance();ctx.setOptions({receiverApplicationId:id,autoJoinPolicy:chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED});if(!wired){wired=true;ctx.addEventListener(cast.framework.CastContextEventType.SESSION_STATE_CHANGED,function(event){var active=event.sessionState===cast.framework.SessionState.SESSION_STARTED||event.sessionState===cast.framework.SessionState.SESSION_RESUMED;if(active){sync();quickBanner("CAST CONNECTED");}});}configuredId=id;return true;}catch(e){return false;}}
+  function request(){var id=receiverId();if(!id){quickBanner("CAST SETUP: MENU → SETTINGS → RECEIVER ID");return;}if(!init(true)){quickBanner("CAST SERVICE NOT READY");return;}try{cast.framework.CastContext.getInstance().requestSession().then(function(){sync();}).catch(function(){quickBanner("CAST CANCELLED");});}catch(e){quickBanner("CAST UNAVAILABLE IN THIS BROWSER");}}
+  function applyReceiverState(next){if(!next||next.type!=="REALSIGNAL_STATE")return;if(next.powered&&!powered)powerOn();if(!next.powered&&powered){powerOff();return;}var n=Number(next.channel);if(next.powered&&n&&byNum(n)&&n!==curNum)tuneNum(n);}
+  window.__rsCastReceiverId=receiverId;window.__rsCastInit=init;window.__rsCastRequest=request;window.__rsCastSync=sync;
+  window.addEventListener("message",function(event){if(event.origin!==location.origin)return;applyReceiverState(event.data);});
+  var query=new URLSearchParams(location.search);if(query.get("castReceiver")==="1"){var initial={type:"REALSIGNAL_STATE",powered:query.get("powered")!=="0",channel:Number(query.get("channel"))||2};setTimeout(function(){applyReceiverState(initial);},120);}
+  if(window.__rsCastSdkReady)init();
+})();
+
 </script>
 <script>
 (function(){
@@ -17137,6 +17168,7 @@ window.__atvBootDone=true; /* app is up -- from here on, errors get logged, not 
   });
   var mb=byId("mMute"); if(mb)mb.addEventListener("click",function(ev){ev.preventDefault(); click("rMute");
     setTimeout(function(){ mb.classList.toggle("on"); mb.textContent=mb.classList.contains("on")?"MUTED":"MUTE"; },0); });
+  var castButton=byId("mCast"); if(castButton)castButton.addEventListener("click",function(ev){ev.preventDefault();if(typeof window.__rsCastRequest==="function")window.__rsCastRequest();});
   function sync(){ try{
     var cn=byId("chNum"),nm=byId("nowName"),st=byId("sigText"),led=byId("led");
     var mc=byId("mCh"),mn=byId("mName"),ms=byId("mSig"),ml=byId("mLed");

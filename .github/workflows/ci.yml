@@ -22,6 +22,8 @@ jobs:
           node-version: '22'
       - name: Validate IA relay Worker contract
         run: node scripts/check-worker-contract.js
+      - name: Validate Chromecast sender and receiver contract
+        run: node scripts/check-cast-contract.js
 
   test-mobile:
     runs-on: ubuntu-latest

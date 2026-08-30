@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>RealSignal on Cast</title>
+  <script src="https://www.gstatic.com/cast/sdk/libs/caf_receiver/v3/cast_receiver_framework.js"></script>
+  <style>
+    html,body,#app{width:100%;height:100%;margin:0;background:#030706;color:#91ffad;font-family:ui-monospace,Menlo,monospace;overflow:hidden}
+    #app{position:relative} #screen{width:100%;height:100%;border:0;background:#000}
+    #standby{position:absolute;inset:0;display:grid;place-items:center;text-align:center;background:radial-gradient(circle at 50% 40%,#113526 0,#030706 58%)}
+    #standby strong{display:block;font-size:34px;letter-spacing:8px;text-shadow:0 0 22px #4cff7b} #standby span{display:block;margin-top:14px;color:#c6edd0;font-size:15px;letter-spacing:3px}
+  </style>
+</head>
+<body>
+  <main id="app"><iframe id="screen" title="RealSignal"></iframe><div id="standby"><div><strong>REALSIGNAL</strong><span>WAITING FOR THE DIAL</span></div></div></main>
+  <script>
+  (function(){
+    const NS='urn:x-cast:com.realsignal.dial';
+    const context=cast.framework.CastReceiverContext.getInstance();
+    const screen=document.getElementById('screen'),standby=document.getElementById('standby');
+    let loadedOrigin='',loadedUrl='';
+    function allowedUrl(value){try{const url=new URL(String(value||''));return url.protocol==='https:'?url:null;}catch(_){return null;}}
+    function receiverUrl(state){const url=allowedUrl(state.appUrl)||new URL('https://esfsfestgfse.github.io/Archivetv/the_dial_desktop.html');url.searchParams.set('castReceiver','1');url.searchParams.set('channel',String(Number(state.channel)||2));url.searchParams.set('powered',state.powered===false?'0':'1');return url;}
+    function apply(state){
+      if(!state||state.type!=='REALSIGNAL_STATE')return;
+      const url=receiverUrl(state),key=url.href;
+      standby.style.display='none';
+      context.setApplicationState('RealSignal · Channel '+(Number(state.channel)||2));
+      if(key!==loadedUrl){loadedUrl=key;loadedOrigin=url.origin;screen.src=key;return;}
+      try{screen.contentWindow.postMessage(state,loadedOrigin);}catch(_){}
+    }
+    context.addCustomMessageListener(NS,event=>apply(event.data));
+    context.start();
+  })();
+  </script>
+</body>
+</html>

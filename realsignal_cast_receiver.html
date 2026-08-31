@@ -36,7 +36,12 @@
       try{screen.contentWindow.postMessage(data,loadedOrigin);}catch(_){}
     }
     context.addCustomMessageListener(NS,event=>{const data=decode(event.data);if(data&&data.type==='REALSIGNAL_STATE')apply(data);else command(data);});
-    context.start();
+    /* RealSignal is an interactive receiver: the TV program runs inside the app iframe rather
+       than CAF's built-in media element. Without this flag CAF treats visible playback as idle
+       and returns the device to Ambient mode after its normal idle window. */
+    const options=new cast.framework.CastReceiverOptions();
+    options.disableIdleTimeout=true;
+    context.start(options);
   })();
   </script>
 </body>

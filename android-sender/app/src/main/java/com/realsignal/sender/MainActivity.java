@@ -119,6 +119,11 @@ public final class MainActivity extends AppCompatActivity {
         bindCommand(R.id.volume_down_button, "VOLUME_DOWN");
         bindCommand(R.id.volume_up_button, "VOLUME_UP");
         bindCommand(R.id.back_button, "BACK");
+        bindCommand(R.id.nav_up_button, "NAV_UP");
+        bindCommand(R.id.nav_down_button, "NAV_DOWN");
+        bindCommand(R.id.nav_left_button, "NAV_LEFT");
+        bindCommand(R.id.nav_right_button, "NAV_RIGHT");
+        bindCommand(R.id.nav_select_button, "NAV_SELECT");
         openWeb.setOnClickListener(view -> startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(getString(R.string.web_app_url)))));
 
         setStatus("Ready · tap the Cast icon to search your local network");

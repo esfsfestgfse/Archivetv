@@ -22,6 +22,7 @@
     let loadedOrigin='',loadedUrl='';
     function allowedUrl(value){try{const url=new URL(String(value||''));return url.protocol==='https:'?url:null;}catch(_){return null;}}
     function receiverUrl(state){const url=allowedUrl(state.appUrl)||new URL('https://esfsfestgfse.github.io/Archivetv/the_dial_desktop.html');url.searchParams.set('castReceiver','1');url.searchParams.set('channel',String(Number(state.channel)||2));url.searchParams.set('powered',state.powered===false?'0':'1');return url;}
+    function decode(data){if(typeof data!=='string')return data;try{return JSON.parse(data);}catch(_){return null;}}
     function apply(state){
       if(!state||state.type!=='REALSIGNAL_STATE')return;
       const url=receiverUrl(state),key=url.href;
@@ -30,7 +31,11 @@
       if(key!==loadedUrl){loadedUrl=key;loadedOrigin=url.origin;screen.src=key;return;}
       try{screen.contentWindow.postMessage(state,loadedOrigin);}catch(_){}
     }
-    context.addCustomMessageListener(NS,event=>apply(event.data));
+    function command(data){
+      if(!data||data.type!=='REALSIGNAL_COMMAND'||!loadedOrigin)return;
+      try{screen.contentWindow.postMessage(data,loadedOrigin);}catch(_){}
+    }
+    context.addCustomMessageListener(NS,event=>{const data=decode(event.data);if(data&&data.type==='REALSIGNAL_STATE')apply(data);else command(data);});
     context.start();
   })();
   </script>

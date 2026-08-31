@@ -107,11 +107,18 @@ public final class MainActivity extends AppCompatActivity {
         Button openWeb = findViewById(R.id.open_web_button);
 
         sendButton.setOnClickListener(view -> sendState());
-        powerToggle.setOnCheckedChangeListener((button, checked) -> {
-            setStatus(checked ? "Power on · tap Send state to update receiver" : "Power off · tap Send state to blank receiver");
-        });
-        channelDown.setOnClickListener(view -> stepChannel(-1));
-        channelUp.setOnClickListener(view -> stepChannel(1));
+        powerToggle.setOnCheckedChangeListener((button, checked) -> sendState());
+        channelDown.setOnClickListener(view -> sendCommand("CHANNEL_DOWN"));
+        channelUp.setOnClickListener(view -> sendCommand("CHANNEL_UP"));
+        bindCommand(R.id.guide_button, "GUIDE");
+        bindCommand(R.id.menu_button, "MENU");
+        bindCommand(R.id.next_button, "NEXT");
+        bindCommand(R.id.surf_button, "SURF");
+        bindCommand(R.id.last_button, "LAST");
+        bindCommand(R.id.mute_button, "MUTE");
+        bindCommand(R.id.volume_down_button, "VOLUME_DOWN");
+        bindCommand(R.id.volume_up_button, "VOLUME_UP");
+        bindCommand(R.id.back_button, "BACK");
         openWeb.setOnClickListener(view -> startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(getString(R.string.web_app_url)))));
 
         setStatus("Ready · tap the Cast icon to search your local network");
@@ -146,12 +153,9 @@ public final class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void stepChannel(int delta) {
-        int channel = readChannel();
-        channel = Math.max(MIN_CHANNEL, Math.min(MAX_CHANNEL, channel + delta));
-        channelInput.setText(String.valueOf(channel));
-        channelInput.setSelection(channelInput.length());
-        sendState();
+    private void bindCommand(int viewId, String action) {
+        Button button = findViewById(viewId);
+        button.setOnClickListener(view -> sendCommand(action));
     }
 
     private int readChannel() {
@@ -189,6 +193,28 @@ public final class MainActivity extends AppCompatActivity {
             setStatus("State sent · channel " + readChannel() + (powerToggle.isChecked() ? " · on" : " · off"));
         } catch (JSONException error) {
             setStatus("Could not create Cast state packet");
+        }
+    }
+
+    private void sendCommand(String action) {
+        if (sessionManager == null) {
+            setStatus("Cast framework is not ready");
+            return;
+        }
+        CastSession session = sessionManager.getCurrentCastSession();
+        if (session == null || !session.isConnected()) {
+            setStatus("No Cast session · choose a device first");
+            return;
+        }
+        try {
+            JSONObject command = new JSONObject();
+            command.put("type", "REALSIGNAL_COMMAND");
+            command.put("action", action);
+            command.put("sentAt", System.currentTimeMillis());
+            session.sendMessage(CUSTOM_NAMESPACE, command.toString());
+            setStatus("Sent · " + action.replace('_', ' '));
+        } catch (JSONException error) {
+            setStatus("Could not create Cast command");
         }
     }
 

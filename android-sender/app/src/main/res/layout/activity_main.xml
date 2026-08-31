@@ -106,12 +106,59 @@
                 android:textAllCaps="false" />
         </LinearLayout>
 
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="TV REMOTE"
+            android:textColor="@color/real_text_muted"
+            android:textSize="12sp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal">
+
+            <Button android:id="@+id/guide_button" android:layout_width="0dp" android:layout_height="52dp" android:layout_weight="1" android:text="GUIDE" android:textAllCaps="false" />
+            <Space android:layout_width="8dp" android:layout_height="1dp" />
+            <Button android:id="@+id/menu_button" android:layout_width="0dp" android:layout_height="52dp" android:layout_weight="1" android:text="MENU" android:textAllCaps="false" />
+            <Space android:layout_width="8dp" android:layout_height="1dp" />
+            <Button android:id="@+id/back_button" android:layout_width="0dp" android:layout_height="52dp" android:layout_weight="1" android:text="BACK" android:textAllCaps="false" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal">
+
+            <Button android:id="@+id/next_button" android:layout_width="0dp" android:layout_height="52dp" android:layout_weight="1" android:text="NEXT" android:textAllCaps="false" />
+            <Space android:layout_width="8dp" android:layout_height="1dp" />
+            <Button android:id="@+id/surf_button" android:layout_width="0dp" android:layout_height="52dp" android:layout_weight="1" android:text="SURF" android:textAllCaps="false" />
+            <Space android:layout_width="8dp" android:layout_height="1dp" />
+            <Button android:id="@+id/last_button" android:layout_width="0dp" android:layout_height="52dp" android:layout_weight="1" android:text="LAST" android:textAllCaps="false" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal">
+
+            <Button android:id="@+id/volume_down_button" android:layout_width="0dp" android:layout_height="52dp" android:layout_weight="1" android:text="VOL −" android:textAllCaps="false" />
+            <Space android:layout_width="8dp" android:layout_height="1dp" />
+            <Button android:id="@+id/mute_button" android:layout_width="0dp" android:layout_height="52dp" android:layout_weight="1" android:text="MUTE" android:textAllCaps="false" />
+            <Space android:layout_width="8dp" android:layout_height="1dp" />
+            <Button android:id="@+id/volume_up_button" android:layout_width="0dp" android:layout_height="52dp" android:layout_weight="1" android:text="VOL +" android:textAllCaps="false" />
+        </LinearLayout>
+
         <Button
             android:id="@+id/send_state_button"
             android:layout_width="match_parent"
             android:layout_height="56dp"
             android:layout_marginTop="12dp"
-            android:text="SEND TO TV"
+            android:text="TUNE CHANNEL ON TV"
             android:textAllCaps="false" />
 
         <Button
@@ -132,4 +179,3 @@
 
     </LinearLayout>
 </ScrollView>
-

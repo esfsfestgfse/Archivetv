@@ -1,8 +1,11 @@
 package com.realsignal.sender;
 
+import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Build;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -24,6 +27,7 @@ import org.json.JSONObject;
 /** Native RealSignal remote with Android-owned Cast discovery. */
 public final class MainActivity extends AppCompatActivity {
     public static final String CUSTOM_NAMESPACE = "urn:x-cast:com.realsignal.dial";
+    private static final int DISCOVERY_PERMISSION_REQUEST = 2401;
     private static final int MIN_CHANNEL = 1;
     private static final int MAX_CHANNEL = 999;
 
@@ -111,6 +115,35 @@ public final class MainActivity extends AppCompatActivity {
         openWeb.setOnClickListener(view -> startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(getString(R.string.web_app_url)))));
 
         setStatus("Ready · tap the Cast icon to search your local network");
+        requestDiscoveryPermissionIfNeeded();
+    }
+
+    /** Android 13+ gates nearby Wi-Fi discovery behind a runtime permission. */
+    private void requestDiscoveryPermissionIfNeeded() {
+        String permission = null;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            permission = Manifest.permission.NEARBY_WIFI_DEVICES;
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            permission = Manifest.permission.ACCESS_FINE_LOCATION;
+        }
+        if (permission == null || checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+        requestPermissions(new String[]{permission}, DISCOVERY_PERMISSION_REQUEST);
+        setStatus("Allow Nearby devices so Android can discover Cast receivers");
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode != DISCOVERY_PERMISSION_REQUEST) {
+            return;
+        }
+        if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            setStatus("Nearby devices allowed · tap the Cast icon to search again");
+        } else {
+            setStatus("Nearby devices denied · Cast discovery may show no devices");
+        }
     }
 
     private void stepChannel(int delta) {

@@ -17,6 +17,8 @@ This is a native Android companion sender for RealSignal. It uses Google's Andro
 - A physical Android device with Google Play services for the discovery test.
 - The receiver app `A0A5CD01` must remain published in the Google Cast Developer Console.
 
+On Android 13 and newer, the first launch asks for the Nearby devices permission. Allow it; Android uses that permission for local Wi-Fi media-casting discovery. On Android 12 and older, allow the compatibility location prompt and keep Location turned on while testing discovery.
+
 The current Codex workstation has Java 8 but does not have Android Studio, the Android SDK, or Gradle installed, so the project is source-complete but still needs an Android build environment for an APK build.
 
 ## Build
@@ -30,4 +32,3 @@ Open this `android-sender` directory in Android Studio, allow Gradle sync, then 
 3. Select the receiver from the native Cast dialog.
 4. Leave Power on and tap Send state. The receiver should load RealSignal and show the selected channel.
 5. Change the channel and tap Send state again. The receiver should receive the new channel without another discovery step.
-

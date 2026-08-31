@@ -19,27 +19,31 @@
     const NS='urn:x-cast:com.realsignal.dial';
     const context=cast.framework.CastReceiverContext.getInstance();
     const screen=document.getElementById('screen'),standby=document.getElementById('standby');
-    let loadedOrigin='',loadedUrl='';
+    let loadedOrigin='',loadedUrl='',appReady=false,pendingCommands=[];
     function allowedUrl(value){try{const url=new URL(String(value||''));return url.protocol==='https:'?url:null;}catch(_){return null;}}
     function receiverUrl(state){const url=allowedUrl(state.appUrl)||new URL('https://esfsfestgfse.github.io/Archivetv/the_dial_desktop.html');url.searchParams.set('castReceiver','1');url.searchParams.set('channel',String(Number(state.channel)||2));url.searchParams.set('powered',state.powered===false?'0':'1');return url;}
     function decode(data){if(typeof data!=='string')return data;try{return JSON.parse(data);}catch(_){return null;}}
+    function postToApp(data){if(!loadedOrigin||!appReady)return false;try{screen.contentWindow.postMessage(data,loadedOrigin);return true;}catch(_){return false;}}
+    screen.addEventListener('load',()=>{appReady=true;const queued=pendingCommands.splice(0);queued.forEach(postToApp);});
     function apply(state){
       if(!state||state.type!=='REALSIGNAL_STATE')return;
       const url=receiverUrl(state),key=url.href;
       standby.style.display='none';
       context.setApplicationState('RealSignal · Channel '+(Number(state.channel)||2));
-      if(key!==loadedUrl){loadedUrl=key;loadedOrigin=url.origin;screen.src=key;return;}
-      try{screen.contentWindow.postMessage(state,loadedOrigin);}catch(_){}
+      if(key!==loadedUrl){loadedUrl=key;loadedOrigin=url.origin;appReady=false;screen.src=key;return;}
+      postToApp(state);
     }
     function command(data){
-      if(!data||data.type!=='REALSIGNAL_COMMAND'||!loadedOrigin)return;
-      try{screen.contentWindow.postMessage(data,loadedOrigin);}catch(_){}
+      if(!data||data.type!=='REALSIGNAL_COMMAND')return;
+      if(!postToApp(data))pendingCommands.push(data);
     }
     context.addCustomMessageListener(NS,event=>{const data=decode(event.data);if(data&&data.type==='REALSIGNAL_STATE')apply(data);else command(data);});
     /* RealSignal is an interactive receiver: the TV program runs inside the app iframe rather
        than CAF's built-in media element. Without this flag CAF treats visible playback as idle
        and returns the device to Ambient mode after its normal idle window. */
     const options=new cast.framework.CastReceiverOptions();
+    options.customNamespaces={};
+    options.customNamespaces[NS]=cast.framework.system.MessageType.JSON;
     options.disableIdleTimeout=true;
     context.start(options);
   })();

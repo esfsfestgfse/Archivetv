@@ -108,8 +108,8 @@ public final class MainActivity extends AppCompatActivity {
 
         sendButton.setOnClickListener(view -> sendState());
         powerToggle.setOnCheckedChangeListener((button, checked) -> sendState());
-        channelDown.setOnClickListener(view -> sendCommand("CHANNEL_DOWN"));
-        channelUp.setOnClickListener(view -> sendCommand("CHANNEL_UP"));
+        channelDown.setOnClickListener(view -> stepChannel(-1));
+        channelUp.setOnClickListener(view -> stepChannel(1));
         bindCommand(R.id.guide_button, "GUIDE");
         bindCommand(R.id.menu_button, "MENU");
         bindCommand(R.id.next_button, "NEXT");
@@ -156,6 +156,14 @@ public final class MainActivity extends AppCompatActivity {
     private void bindCommand(int viewId, String action) {
         Button button = findViewById(viewId);
         button.setOnClickListener(view -> sendCommand(action));
+    }
+
+    private void stepChannel(int delta) {
+        int channel = readChannel();
+        channel = Math.max(MIN_CHANNEL, Math.min(MAX_CHANNEL, channel + delta));
+        channelInput.setText(String.valueOf(channel));
+        channelInput.setSelection(channelInput.length());
+        sendState();
     }
 
     private int readChannel() {

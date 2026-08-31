@@ -1613,7 +1613,7 @@ body.cast-receiver .guide-directory .chcell.cast-focus .cc-n{color:#b9ffd0!impor
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.9.6-desktop.011-android-cast-recovery";
+window.__ATV_BUILD="1.9.6-desktop.012-ia-fail-forward";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -1651,7 +1651,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.9.6-desktop.011-android-cast-recovery · RealSignal</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.9.6-desktop.012-ia-fail-forward · RealSignal</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">REALSIGNAL · THE DIAL</div>
@@ -6333,7 +6333,7 @@ function iaRelayMetadataURL(id){return IA_RELAY_BASE+"/metadata/"+encodeURICompo
 /* PROGRAM DIRECTOR QUEUE: the Worker picks and caches the next five identifiers per channel.
    The browser still resolves media locally (so direct Archive CDN playback, captions and
    fallbacks stay intact), but discovery is no longer on the channel-change critical path. */
-var iaProgramQueues={}, iaProgramInflight={}, iaProgramMedia={}, iaQueueRetries={}, iaTuneRetries={};
+var iaProgramQueues={}, iaProgramInflight={}, iaProgramMedia={}, iaProgramPendingAt={}, iaQueueRetries={}, iaTuneRetries={};
 /* PERSISTENT READY SHELF: the in-memory queue is fast during one visit, but a
    reload used to throw away every resolved media URL and force the first tune
    back through Archive metadata. Keep only playable queue entries, expire them
@@ -6404,7 +6404,10 @@ async function iaLocalQueueFallback(ch,sl){
      exact PROGRAM queries through the browser's existing Archive routes when
      the Worker is unavailable, keeping the same strict client-side gate. */
   var qs=iaQueueQueries(sl),out=[],seen={};
-  for(var offset=0;offset<qs.length&&out.length<5;offset+=2){
+  /* This is a circuit-breaker path, not a second full catalog crawl.  A down
+     director must not leave an old tab with dozens of slow browser searches
+     competing with the next channel change. */
+  for(var offset=0;offset<Math.min(qs.length,4)&&out.length<5;offset+=2){
     var lane=qs.slice(offset,offset+2),found=await Promise.all(lane.map(function(q){return withTO(pickIA(q,true),6500).catch(function(){return null;});}));
     found.forEach(function(it){if(!it||!it.identifier||seen[it.identifier]||!iaProgramAllowed(it,sl))return;seen[it.identifier]=1;out.push(it);});
   }
@@ -6416,9 +6419,11 @@ async function iaQueueRequest(ch,sl,count){
     var out=((d&&d.items)||[]).filter(function(it){return iaProgramAllowed(it,sl);});out.hydrating=!!(d&&d.hydrating);out.partial=!!(d&&d.partial)||Number(d&&d.ready||0)<Math.max(1,Math.min(5,count||5));out.ready=Number(d&&d.ready)||out.length;out.candidates=Number(d&&d.candidates)||out.length;return out;
   }catch(e){nlog("queue",false,"director unavailable: "+(e&&e.message||e)+"; using local shelf");return iaLocalQueueFallback(ch,sl);}
 }
-function warmIAQueue(ch,sl,hydrating){var q=iaProgramQueues[iaQueueKey(ch)]||[],expected=iaExpectedMedia(ch);q.slice(0,5).forEach(function(it){if(!it||iaProgramFailed(it.identifier)||iaProgramMedia[it.identifier])return;var id=it.identifier,editorial={identifier:id,creator:it.creator||"",collection:it.collection||"",subject:it.subject||"",lane:it.lane};if(it.media&&it.media.url){if(it.media.type&&it.media.type!==expected){iaMarkProgramFailed(id);return;}iaProgramMedia[id]={type:it.media.type||expected,url:it.media.url,alts:it.media.alts||[],id:id,captions:null,meta:editorial};return;}/* Resolve all five in parallel and replace the Promise with its settled value so tuning can choose whichever candidate is actually ready. */var pending=resolvePlayable(id,expected).then(function(pl){if(!pl){iaMarkProgramFailed(id);setTimeout(function(){if(powered)refillIAQueue(ch,sl);},160);}if(pl){pl.meta=Object.assign({},pl.meta||{},editorial);var current=(iaProgramQueues[iaQueueKey(ch)]||[]).find(function(x){return x&&x.identifier===id;});if(current)current.media={type:pl.type||expected,url:pl.url,alts:pl.alts||[]};iaReadyShelfSave(ch);}iaProgramMedia[id]=pl;warmIAQueueHead(ch);return pl;}).catch(function(){iaMarkProgramFailed(id);iaProgramMedia[id]=null;setTimeout(function(){if(powered)refillIAQueue(ch,sl);},160);return null;});iaProgramMedia[id]=pending;});warmIAQueueHead(ch);}
-async function refillIAQueue(ch,sl){var k=iaQueueKey(ch);iaReadyShelfRestore(ch,sl);if(iaProgramInflight[k])return iaProgramInflight[k];iaProgramInflight[k]=iaQueueRequest(ch,sl,5).then(function(items){var old=iaProgramQueues[k]||[], byId={}, order=[];old.concat(items).forEach(function(it){if(!it||!it.identifier||iaProgramFailed(it.identifier)||!iaProgramAllowed(it,sl))return;if(!byId[it.identifier])order.push(it.identifier);if(!byId[it.identifier]||(it.media&&it.media.url&&!byId[it.identifier].media))byId[it.identifier]=it;});iaProgramQueues[k]=order.map(function(id){return byId[id];}).slice(0,5);if(!iaProgramQueues[k].length)iaProgramQueues[k]=iaEmergencyItems(sl);warmIAQueue(ch,sl,items.hydrating);iaReadyShelfSave(ch);var needsMore=!!items.hydrating||!!items.partial||(iaProgramQueues[k].length<5&&Number(items.candidates)>iaProgramQueues[k].length);if(iaProgramQueues[k].length){iaQueueRetries[k]=0;if(needsMore)setTimeout(function(){if(powered)refillIAQueue(ch,sl);},items.hydrating?1200:2200);}else{var retry=(iaQueueRetries[k]||0)+1;iaQueueRetries[k]=retry;if(retry<=3)setTimeout(function(){if(powered)refillIAQueue(ch,sl);},retry*4500);}nlog("queue",true,"CH "+k+" ready="+iaProgramQueues[k].length+(needsMore?" · topping up":""));if(gwrap&&gwrap.classList.contains("show"))renderRail();return iaProgramQueues[k];}).finally(function(){delete iaProgramInflight[k];});return iaProgramInflight[k];}
-function takeIAQueue(ch,sl){var k=iaQueueKey(ch),q=iaProgramQueues[k]||[],warmAt=-1,resolvedAt=-1,fallback=-1;for(var i=q.length-1;i>=0;i--){var bad=!iaProgramAllowed(q[i],sl)||iaProgramMedia[q[i].identifier]===null;if(bad)q.splice(i,1);}for(var j=0;j<q.length;j++){var it=q[j],w=iaMediaWarmers[iaMediaWarmKey(ch,it)],pl=iaProgramMedia[it.identifier];if(fallback<0)fallback=j;if(w&&w.el.readyState>=2){warmAt=j;break;}if(resolvedAt<0&&pl&&typeof pl.then!=="function"&&pl.url)resolvedAt=j;}var at=warmAt>=0?warmAt:(resolvedAt>=0?resolvedAt:fallback);if(at>=0){var picked=q.splice(at,1)[0];iaReadyShelfSave(ch);warmIAQueueHead(ch);refillIAQueue(ch,sl);return picked;}refillIAQueue(ch,sl);return null;}
+function warmIAQueue(ch,sl,hydrating){var q=iaProgramQueues[iaQueueKey(ch)]||[],expected=iaExpectedMedia(ch);q.slice(0,5).forEach(function(it){if(!it||iaProgramFailed(it.identifier)||iaProgramMedia[it.identifier])return;var id=it.identifier,editorial={identifier:id,creator:it.creator||"",collection:it.collection||"",subject:it.subject||"",lane:it.lane};if(it.media&&it.media.url){if(it.media.type&&it.media.type!==expected){iaMarkProgramFailed(id);return;}iaProgramMedia[id]={type:it.media.type||expected,url:it.media.url,alts:it.media.alts||[],id:id,captions:null,meta:editorial};return;}/* Resolve all five in parallel and replace the Promise with its settled value so tuning can choose whichever candidate is actually ready. */iaProgramPendingAt[id]=Date.now();var pending=resolvePlayable(id,expected).then(function(pl){delete iaProgramPendingAt[id];if(!pl){iaMarkProgramFailed(id);setTimeout(function(){if(powered)refillIAQueue(ch,sl);},160);}if(pl){pl.meta=Object.assign({},pl.meta||{},editorial);var current=(iaProgramQueues[iaQueueKey(ch)]||[]).find(function(x){return x&&x.identifier===id;});if(current)current.media={type:pl.type||expected,url:pl.url,alts:pl.alts||[]};iaReadyShelfSave(ch);}iaProgramMedia[id]=pl;warmIAQueueHead(ch);return pl;}).catch(function(){delete iaProgramPendingAt[id];iaMarkProgramFailed(id);iaProgramMedia[id]=null;setTimeout(function(){if(powered)refillIAQueue(ch,sl);},160);return null;});iaProgramMedia[id]=pending;});warmIAQueueHead(ch);}
+function iaQueueHasReadyProgram(ch){var q=iaProgramQueues[iaQueueKey(ch)]||[];return q.some(function(it){var pl=it&&iaProgramMedia[it.identifier],w=it&&iaMediaWarmers[iaMediaWarmKey(ch,it)];return !!((w&&w.el.readyState>=2)||(pl&&typeof pl.then!=="function"&&pl.url));});}
+function iaPendingTooLong(id){return !!(iaProgramPendingAt[id]&&Date.now()-iaProgramPendingAt[id]>8500);}
+async function refillIAQueue(ch,sl){var k=iaQueueKey(ch);iaReadyShelfRestore(ch,sl);if(iaProgramInflight[k])return iaProgramInflight[k];iaProgramInflight[k]=iaQueueRequest(ch,sl,5).then(function(items){var old=iaProgramQueues[k]||[], byId={}, order=[];old.concat(items).forEach(function(it){var id=it&&it.identifier;if(!it||!id||iaProgramFailed(id)||iaPendingTooLong(id)||!iaProgramAllowed(it,sl))return;if(!byId[id])order.push(id);if(!byId[id]||(it.media&&it.media.url&&!byId[id].media))byId[id]=it;});iaProgramQueues[k]=order.map(function(id){return byId[id];}).slice(0,5);if(!iaProgramQueues[k].length)iaProgramQueues[k]=iaEmergencyItems(sl);warmIAQueue(ch,sl,items.hydrating);iaReadyShelfSave(ch);var needsMore=!!items.hydrating||!!items.partial||(iaProgramQueues[k].length<5&&Number(items.candidates)>iaProgramQueues[k].length);if(iaProgramQueues[k].length){iaQueueRetries[k]=0;if(needsMore)setTimeout(function(){if(powered)refillIAQueue(ch,sl);},items.hydrating?1200:2200);}else{var retry=(iaQueueRetries[k]||0)+1;iaQueueRetries[k]=retry;if(retry<=3)setTimeout(function(){if(powered)refillIAQueue(ch,sl);},retry*4500);}nlog("queue",true,"CH "+k+" ready="+iaProgramQueues[k].length+(needsMore?" · topping up":""));if(gwrap&&gwrap.classList.contains("show"))renderRail();return iaProgramQueues[k];}).finally(function(){delete iaProgramInflight[k];});return iaProgramInflight[k];}
+function takeIAQueue(ch,sl){var k=iaQueueKey(ch),q=iaProgramQueues[k]||[],warmAt=-1,resolvedAt=-1,fallback=-1;for(var i=q.length-1;i>=0;i--){var id=q[i]&&q[i].identifier,bad=!iaProgramAllowed(q[i],sl)||iaProgramMedia[id]===null||iaPendingTooLong(id);if(bad){delete iaProgramPendingAt[id];q.splice(i,1);}}for(var j=0;j<q.length;j++){var it=q[j],w=iaMediaWarmers[iaMediaWarmKey(ch,it)],pl=iaProgramMedia[it.identifier];if(fallback<0)fallback=j;if(w&&w.el.readyState>=2){warmAt=j;break;}if(resolvedAt<0&&pl&&typeof pl.then!=="function"&&pl.url)resolvedAt=j;}var at=warmAt>=0?warmAt:(resolvedAt>=0?resolvedAt:fallback);if(at>=0){var picked=q.splice(at,1)[0];iaReadyShelfSave(ch);warmIAQueueHead(ch);refillIAQueue(ch,sl);return picked;}refillIAQueue(ch,sl);return null;}
 /* Archive is blocked outright in some desktop browsers. Keep every discovery probe short so
    a dead route never holds a channel change hostage for 15+ seconds. */
 function iaFastJSON(url,ms){return withTO(fetch(url,{mode:"cors"}).then(r=>{if(!r.ok)throw new Error("http "+r.status);return r.json();}),ms||1800);}
@@ -7279,13 +7284,16 @@ async function tuneIA(ch,sl,my){
      reaches the normal bounded retry path. */
   var tuneDeadline=setTimeout(function(){
     if(my!==token)return;
-    var queueKey=iaQueueKey(ch),queue=iaProgramQueues[queueKey]||[];
-    if(iaProgramInflight[queueKey]||queue.length){
-      nlog("tune",true,"CH "+ch.num+" queue active; preserving tune");
+    /* A shelf with five identifiers is not progress. Only preserve a tune if
+       one candidate has a media URL (or its first frame is actually warm).
+       Otherwise the old tune could remain on its spinner forever while five
+       Archive metadata requests quietly stalled. */
+    if(iaQueueHasReadyProgram(ch)){
+      nlog("tune",true,"CH "+ch.num+" playable queue active; preserving tune");
       return;
     }
-    var rescue=++token;nlog("tune",false,"CH "+ch.num+" deadline");iaRetry(ch,rescue);
-  },12000);
+    var rescue=++token;nlog("tune",false,"CH "+ch.num+" no playable queue at deadline");iaRetry(ch,rescue);
+  },14000);
   try{
   iaReadyShelfRestore(ch,sl); /* survive a reload with the last known playable shelf */
   var queuePending=refillIAQueue(ch,sl); /* refresh in the background while the persistent shelf handles the instant path */
@@ -7332,7 +7340,7 @@ async function tuneIA(ch,sl,my){
      parallel. This is the fast path after a channel has been visited once. */
   var queued=takeIAQueue(ch,sl);
   if(!queued){ /* A cold channel gets one short chance to receive its buffer, never an endless spinner. */
-    try{await withTO(queuePending,2800);}catch(e){}
+    try{await withTO(queuePending,4200);}catch(e){}
     if(my!==token)return;
     queued=takeIAQueue(ch,sl);
   }
@@ -7340,8 +7348,8 @@ async function tuneIA(ch,sl,my){
      One dead metadata record or CDN file must never consume the whole tune. */
   for(var queuedTry=0;queued&&queuedTry<5;queuedTry++){
     var qpl=iaProgramMedia[queued.identifier];
-    if(qpl&&typeof qpl.then==="function")qpl=await qpl;
-    else if(!qpl)qpl=await resolvePlayable(queued.identifier);
+    if(qpl&&typeof qpl.then==="function")qpl=await withTO(qpl,3200).catch(function(){return null;});
+    else if(!qpl)qpl=await withTO(resolvePlayable(queued.identifier),3200).catch(function(){return null;});
     if(my!==token)return;
     if(qpl){qpl.title=queued.title||queued.identifier;qpl.year=queued.year;if(await playFile(qpl,ch,sl,my,0))return;}
     iaMarkProgramFailed(queued.identifier);iaProgramMedia[queued.identifier]=null;

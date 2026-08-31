@@ -80,8 +80,12 @@ const IA_SEARCH_CACHE_VERSION = "v5";
 const IA_METADATA_TTL_SECONDS = 86400;
 const IA_QUEUE_TTL_SECONDS = 21600;
 const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
-const IA_QUEUE_CACHE_VERSION = "v23";
-const IA_FIRST_READY_TIMEOUT_MS = 3600;
+const IA_QUEUE_CACHE_VERSION = "v24";
+/* The queue endpoint is part of channel-change critical path.  Archive can
+   hydrate a richer shelf after the response, but a cold request must hand the
+   browser viable identifiers quickly enough for its own direct resolver to
+   race the edge cache rather than presenting a long spinner. */
+const IA_FIRST_READY_TIMEOUT_MS = 2400;
 const GULF_FILTER = "BBOX(geometry,-98,18,-80,31)";
 const KPLER_FIELDS = "mmsi,longitude,latitude,posDt,sog,vesselName,heading,cog,navStatus,destination,vesselType";
 /* Public navigation is intentionally limited to named regions. The Worker
@@ -1487,7 +1491,7 @@ async function searchArchive(query, rows, page, sort) {
   /* Archive's scrape endpoint does not honor advancedsearch's field grammar
      (for example `subject:boxing` becomes an empty result). Keep one precise
      backend here: a fast wrong answer is worse than an alternate lane. */
-  const upstream = await archiveFetch(upstreamUrl.toString(), { cache: "no-store" }, 5200);
+  const upstream = await archiveFetch(upstreamUrl.toString(), { cache: "no-store" }, 3200);
   if (!upstream.ok) throw new Error("archive advanced search " + upstream.status);
   const payload = await upstream.json();
   return { ...(payload.response || { numFound: 0, docs: [] }), _afterglowSource: "advanced" };
@@ -1833,7 +1837,19 @@ async function getIaQueue(request, url, ctx) {
       }));
       return response;
     }
-    const initial = { ...payload, items: payload.items.slice(0, count), ready: 0, hydrating: true };
+    /* Do not send an empty shelf just because Archive metadata is slow. The
+       identifiers have already passed the strict editorial filter, and the
+       browser can resolve them directly while the Worker keeps hydrating and
+       caching the richer five-program shelf in the background. */
+    const initial = { ...payload, items: payload.items.slice(0, Math.min(count, 3)), ready: 0, partial: true, hydrating: true, fallback: true };
+    const initialResponse = cacheableJson(initial, 10, {
+      "X-Afterglow-Source": "program-director",
+      "X-Afterglow-Queue-Ready": "0",
+      "X-Afterglow-Queue-Fallback": "1",
+    });
+    ctx.waitUntil(cache.put(cacheKey, initialResponse.clone()).catch((error) => {
+      console.warn(JSON.stringify({ event: "queue-fallback-cache-write-failed", channel, message: String(error && error.message || error) }));
+    }));
     ctx.waitUntil(
       hydration
         .then((ready) => {
@@ -1846,7 +1862,7 @@ async function getIaQueue(request, url, ctx) {
         })
         .catch(() => {})
     );
-    return cacheableJson(initial, 20, { "X-Afterglow-Source": "program-director", "X-Afterglow-Queue-Ready": "0" });
+    return initialResponse;
   } catch {
     return json({ error: "archive queue unavailable" }, 502);
   }

@@ -1665,7 +1665,7 @@ html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.9.6-mobile.012-ia-fail-forward";
+window.__ATV_BUILD="1.9.6-mobile.013-ia-prime-cap";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -1703,7 +1703,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.9.6-mobile.012-ia-fail-forward · RealSignal</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.9.6-mobile.013-ia-prime-cap · RealSignal</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -7301,14 +7301,16 @@ function schedClear(ch){ if(ch&&ch.nm&&schedMap[ch.nm]){ delete schedMap[ch.nm];
 var iaPrimeRun=0;
 function primeIAQueues(){
   var run=++iaPrimeRun, here=CH.findIndex(function(c){return c.num===curNum;}), all=CH.filter(function(c){return !c.source;});
-  /* The active channel, nearby channels, and favorites get their five-show
-     shelf first. The rest of the dial follows through four bounded lanes so
-     every IA channel warms without turning power-on into an Archive flood. */
+  /* Never prewarm the whole dial. 169 Archive shelves turn a power-on into a
+     sustained request flood that starves the channel the viewer actually
+     selected. Keep a compact local neighborhood; channel changes expand this
+     set through primeIACompanions as the viewer surfs. */
   all.sort(function(a,b){var ap=(a.num===curNum?0:isFav(a.num)?1:2),bp=(b.num===curNum?0:isFav(b.num)?1:2),ci=DIAL_INDEX.get(curNum);if(ap!==bp)return ap-bp;return Math.abs((DIAL_INDEX.get(a.num)||0)-(ci==null?here:ci))-Math.abs((DIAL_INDEX.get(b.num)||0)-(ci==null?here:ci));});
-  var cursor=0,active=0,limit=4;
+  all=all.slice(0,8);
+  var cursor=0,active=0,limit=2;
   function pump(){
     if(run!==iaPrimeRun||!powered)return;
-    while(active<limit&&cursor<all.length){(function(ch){active++;var sl=slotFor(ch,0,{preview:true});refillIAQueue(ch,sl).catch(function(){}).finally(function(){active--;if(gwrap&&gwrap.classList.contains("show"))renderRail();setTimeout(pump,160);});})(all[cursor++]);}
+    while(active<limit&&cursor<all.length){(function(ch){active++;var sl=slotFor(ch,0,{preview:true});refillIAQueue(ch,sl).catch(function(){}).finally(function(){active--;if(gwrap&&gwrap.classList.contains("show"))renderRail();setTimeout(pump,700);});})(all[cursor++]);}
   }
   pump();
 }

@@ -33,7 +33,7 @@
     const context=cast.framework.CastReceiverContext.getInstance();
     const app=document.getElementById('app'),screen=document.getElementById('screen'),standby=document.getElementById('standby'),guide=document.getElementById('guide'),guideList=document.getElementById('guideList'),channel=document.getElementById('channel'),program=document.getElementById('program'),status=document.getElementById('status'),guideNow=document.getElementById('guideNow');
     const playerManager=context.getPlayerManager();
-    let loadedOrigin='',loadedUrl='',appReady=false,pendingCommands=[],loadedMediaUrl='',mediaAttempt=0,desiredChannel=0;
+    let loadedOrigin='',loadedUrl='',appReady=false,pendingCommands=[],loadedMediaUrl='',mediaAttempt=0,desiredChannel=0,senderId='';
     function allowedUrl(value){try{const url=new URL(String(value||''));return url.protocol==='https:'?url:null;}catch(_){return null;}}
     function receiverUrl(state){const url=allowedUrl(state.appUrl)||new URL('https://esfsfestgfse.github.io/Archivetv/the_dial_desktop.html');url.searchParams.set('castReceiver','1');url.searchParams.set('channel',String(Number(state.channel)||2));url.searchParams.set('powered',state.powered===false?'0':'1');return url;}
     function decode(data){if(typeof data!=='string')return data;try{return JSON.parse(data);}catch(_){return null;}}
@@ -41,6 +41,7 @@
     function showDirector(open){app.classList.toggle('director-open',!!open);}
     screen.addEventListener('load',()=>{appReady=true;const queued=pendingCommands.splice(0);queued.forEach(postToApp);});
     function playableUrl(value){try{const url=new URL(String(value||''));return url.protocol==='https:'?url.href:'';}catch(_){return '';}}
+    function notifySender(packet){if(!senderId||!context.sendCustomMessage)return;try{const sent=context.sendCustomMessage(NS,senderId,packet);if(sent&&sent.catch)sent.catch(function(){});}catch(_){}}
     function mediaContentType(media,url){
       if(media&&media.contentType)return String(media.contentType);
       if(media&&media.type==='audio')return /\.ogg(?:[?#]|$)/i.test(url)?'audio/ogg':/\.m4a(?:[?#]|$)/i.test(url)?'audio/mp4':'audio/mpeg';
@@ -63,11 +64,11 @@
       meta.title=String(media.title||'RealSignal'); meta.subtitle=String(media.subtitle||''); info.metadata=meta;
       info.customData={realsignal:true,alternates:(media.alts||[]).map(playableUrl).filter(Boolean)};
       const request=new cast.framework.messages.LoadRequestData(); request.media=info; request.autoplay=true;
-      playerManager.load(request).then(()=>{context.setApplicationState('RealSignal · '+meta.title);}).catch(()=>tryAlternate(info));
+      playerManager.load(request).then(()=>{context.setApplicationState('RealSignal · '+meta.title);notifySender({type:'REALSIGNAL_CAST_OK',channel:desiredChannel,title:meta.title});}).catch(()=>tryAlternate(info));
     }
     function tryAlternate(info){
       const alts=(info&&info.customData&&info.customData.alternates)||[];
-      const next=alts[mediaAttempt++]; if(!next){status.textContent='SOURCE UNAVAILABLE · TRY ANOTHER CHANNEL';return;}
+      const next=alts[mediaAttempt++]; if(!next){status.textContent='SOURCE UNAVAILABLE · ADVANCING';notifySender({type:'REALSIGNAL_CAST_ERROR',channel:desiredChannel,reason:'all media candidates rejected'});return;}
       loadedMediaUrl=''; loadMedia({media:{url:next,type:info.contentType.indexOf('audio/')===0?'audio':'video',contentType:mediaContentType({type:info.contentType.indexOf('audio/')===0?'audio':'video'},next),title:info.metadata&&info.metadata.title,alts:alts.slice(mediaAttempt)}});
     }
     playerManager.addEventListener(cast.framework.events.EventType.ERROR,event=>{const info=playerManager.getMediaInformation&&playerManager.getMediaInformation();if(info)tryAlternate(info);});
@@ -99,7 +100,7 @@
          forwarding or application reload occurs on the receiver. */
       if(action==='BACK')guide.classList.remove('open');
     }
-    context.addCustomMessageListener(NS,event=>{const data=decode(event.data);if(!data)return;if(data.type==='REALSIGNAL_TUNE'){apply(data.state);loadMedia({channel:data.channel,media:data.media});}else if(data.type==='REALSIGNAL_STATE')apply(data);else if(data.type==='REALSIGNAL_MEDIA')loadMedia(data);else if(data.type==='REALSIGNAL_GUIDE')applyGuide(data);else command(data);});
+    context.addCustomMessageListener(NS,event=>{senderId=event.senderId||senderId;const data=decode(event.data);if(!data)return;if(data.type==='REALSIGNAL_TUNE'){apply(data.state);loadMedia({channel:data.channel,media:data.media});}else if(data.type==='REALSIGNAL_STATE'){apply(data);notifySender({type:'REALSIGNAL_CAST_READY',channel:desiredChannel});}else if(data.type==='REALSIGNAL_MEDIA')loadMedia(data);else if(data.type==='REALSIGNAL_GUIDE')applyGuide(data);else command(data);});
     /* Keep the interactive receiver session alive while the director is
        finding the next item; actual audio/video is loaded through CAF above. */
     const options=new cast.framework.CastReceiverOptions();

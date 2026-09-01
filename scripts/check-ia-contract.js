@@ -6,6 +6,9 @@ const path = require('node:path');
 const file = process.argv[2] || path.join(__dirname, '..', 'the_dial_mobile.html');
 const source = fs.readFileSync(file, 'utf8');
 const issues = [];
+const storeBootstrap = source.indexOf('const store=');
+const queueRotationRestore = source.indexOf('iaQueueRotation=store.get("iaQueueRotation",{})||{};');
+if (queueRotationRestore < storeBootstrap) issues.push('queue rotation storage must initialize after the storage adapter exists');
 
 function blockAfter(marker, open, close) {
   const start = source.indexOf(marker);

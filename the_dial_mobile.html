@@ -1665,7 +1665,7 @@ html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.9.6-mobile.018-edge-queue-hotfix";
+window.__ATV_BUILD="1.9.6-mobile.019-cast-startup-hotfix";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -1703,7 +1703,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.9.6-mobile.018-edge-queue-hotfix · RealSignal</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.9.6-mobile.019-cast-startup-hotfix · RealSignal</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -6397,7 +6397,7 @@ function iaRelayMetadataURL(id){return IA_RELAY_BASE+"/metadata/"+encodeURICompo
 /* PROGRAM DIRECTOR QUEUE: the Worker picks and caches the next five identifiers per channel.
    The browser still resolves media locally (so direct Archive CDN playback, captions and
    fallbacks stay intact), but discovery is no longer on the channel-change critical path. */
-var iaProgramQueues={}, iaProgramInflight={}, iaProgramMedia={}, iaProgramPendingAt={}, iaQueueRetries={}, iaTuneRetries={},iaQueueRotation=store.get("iaQueueRotation",{})||{};
+var iaProgramQueues={}, iaProgramInflight={}, iaProgramMedia={}, iaProgramPendingAt={}, iaQueueRetries={}, iaTuneRetries={},iaQueueRotation={};
 /* PERSISTENT READY SHELF: keep only playable queue entries across reloads. */
 var IA_READY_SHELF_TTL=24*60*60*1000, IA_READY_SHELF_MAX=96;
 var iaReadyShelves=null;
@@ -6706,6 +6706,9 @@ const audioScreen=$("audioScreen"),audioTitle=$("audioTitle"),volOsd=$("volOsd")
 
 const store={get(k,d){try{const v=localStorage.getItem("atv:"+k);return v==null?d:JSON.parse(v);}catch(e){return d;}},
   set(k,v){try{localStorage.setItem("atv:"+k,JSON.stringify(v));}catch(e){}}};
+/* Queue code is declared above the UI bootstrap, but persistent state is only
+   safe to read after this storage adapter exists (especially on Cast). */
+iaQueueRotation=store.get("iaQueueRotation",{})||{};
 
 /* ---- CYCLE-1 REFACTOR: channel runtime registry ----
    Every per-channel interval registers itself via rtInterval(); rtTeardown() (called from

@@ -99,7 +99,7 @@
          forwarding or application reload occurs on the receiver. */
       if(action==='BACK')guide.classList.remove('open');
     }
-    context.addCustomMessageListener(NS,event=>{const data=decode(event.data);if(!data)return;if(data.type==='REALSIGNAL_STATE')apply(data);else if(data.type==='REALSIGNAL_MEDIA')loadMedia(data);else if(data.type==='REALSIGNAL_GUIDE')applyGuide(data);else command(data);});
+    context.addCustomMessageListener(NS,event=>{const data=decode(event.data);if(!data)return;if(data.type==='REALSIGNAL_TUNE'){apply(data.state);loadMedia({channel:data.channel,media:data.media});}else if(data.type==='REALSIGNAL_STATE')apply(data);else if(data.type==='REALSIGNAL_MEDIA')loadMedia(data);else if(data.type==='REALSIGNAL_GUIDE')applyGuide(data);else command(data);});
     /* Keep the interactive receiver session alive while the director is
        finding the next item; actual audio/video is loaded through CAF above. */
     const options=new cast.framework.CastReceiverOptions();

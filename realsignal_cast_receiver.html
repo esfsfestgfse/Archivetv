@@ -70,7 +70,12 @@
     playerManager.addEventListener(cast.framework.events.EventType.ERROR,event=>{const info=playerManager.getMediaInformation&&playerManager.getMediaInformation();if(info)tryAlternate(info);});
     window.addEventListener('message',event=>{
       if(!loadedOrigin||event.origin!==loadedOrigin||event.source!==screen.contentWindow)return;
-      const data=decode(event.data); if(data&&data.type==='REALSIGNAL_MEDIA')loadMedia(data);
+      const data=decode(event.data);
+      if(data&&data.type==='REALSIGNAL_MEDIA')loadMedia(data);
+      /* Do not cover video with the director until its guide has actually
+         rendered. Android TV otherwise shows a blank, seemingly frozen frame. */
+      if(data&&data.type==='REALSIGNAL_GUIDE_READY')showDirector(true);
+      if(data&&data.type==='REALSIGNAL_GUIDE_CLOSED')showDirector(false);
     });
     function apply(state){
       if(!state||state.type!=='REALSIGNAL_STATE')return;
@@ -87,10 +92,8 @@
     function command(data){
       if(!data||data.type!=='REALSIGNAL_COMMAND')return;
       const action=String(data.action||'').toUpperCase();
-      /* CAF owns playback, but GUIDE must reveal the interactive app rather than
-         forwarding a command into an invisible one-pixel director iframe. */
-      if(action==='GUIDE')showDirector(true);
-      if(action==='BACK')setTimeout(()=>showDirector(false),180);
+      /* GUIDE is revealed only after the director reports that it rendered.
+         This prevents a slow guide build from replacing the active picture. */
       if(!postToApp(data))pendingCommands.push(data);
     }
     context.addCustomMessageListener(NS,event=>{const data=decode(event.data);if(data&&data.type==='REALSIGNAL_STATE')apply(data);else command(data);});

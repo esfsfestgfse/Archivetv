@@ -54,7 +54,7 @@ if (!/IA_MEDIA_WARM_MAX=6/.test(source)) issues.push('first-frame shelf must sta
 if (!/IA_PROGRAM_FAILURE_TTL=12\*60\*1000/.test(source) || !/function iaMarkProgramFailed\(id\)/.test(source) || !/iaProgramFailed\(item\.identifier\)/.test(source)) issues.push('failed archive items must be temporarily quarantined before another queue pick');
 if (!/for\(var queuedTry=0;queued&&queuedTry<3;queuedTry\+\+\)/.test(source) || !/iaMarkProgramFailed\(queued\.identifier\)/.test(source)) issues.push('a channel tune must exhaust three bounded queue candidates before returning to discovery');
 if (!/primeIACompanions\(ch,sl\)/.test(source)) issues.push('channel tuning must prioritize the active and neighboring IA queues');
-if (!/var warmDelay=index===0\?0:1500\+\(index-1\)\*1500/.test(source)) issues.push('companion queue warming must stagger behind the active station');
+if (!/var companionRun=iaPrimeRun/.test(source) || !/companionRun!==iaPrimeRun/.test(source) || !/var warmDelay=index===0\?0:900\+\(index-1\)\*900/.test(source)) issues.push('companion queue warming must stagger behind the active station and cancel stale surfs');
 if (!/function iaLocalQueueFallback\(ch,sl\)/.test(source) || !/using local shelf/.test(source)) issues.push('IA queue must retain a strict local fallback when the relay is unavailable');
 if (!/takeIAMediaWarmer\(ch,it\)/.test(source)) issues.push('playback must adopt a staged first-frame media element');
 if (!/v\.addEventListener\("playing",\(\)=>\{ if\(my===token\)\{ fin\(true\)/.test(source)) issues.push('direct media must clear tuning only after a real playing event');

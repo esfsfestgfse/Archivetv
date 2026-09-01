@@ -78,9 +78,10 @@ const IA_SEARCH_TTL_SECONDS = 21600;
    entry cannot be mistaken for the current program-director result. */
 const IA_SEARCH_CACHE_VERSION = "v5";
 const IA_METADATA_TTL_SECONDS = 86400;
-const IA_QUEUE_TTL_SECONDS = 21600;
+const IA_QUEUE_TTL_SECONDS = 86400;
 const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
-const IA_QUEUE_CACHE_VERSION = "v24";
+const IA_QUEUE_CACHE_VERSION = "v25";
+const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
 /* The queue endpoint is part of channel-change critical path.  Archive can
    hydrate a richer shelf after the response, but a cold request must hand the
    browser viable identifiers quickly enough for its own direct resolver to
@@ -258,6 +259,29 @@ function cacheableJson(body, ttlSeconds, extraHeaders = {}) {
   });
 }
 
+/* Cache API is extremely fast but local to the serving edge.  The dial needs a
+   second, shared shelf so a ready program found on one device is immediately
+   useful to another device (or after the viewer moves between networks). */
+async function sharedQueueGet(env, key) {
+  if (!env || !env.REALSIGNAL_QUEUE) return null;
+  try {
+    return await env.REALSIGNAL_QUEUE.get(key, { type: "json" });
+  } catch (error) {
+    console.warn(JSON.stringify({ event: "shared-queue-read-failed", message: String(error && error.message || error) }));
+    return null;
+  }
+}
+
+function sharedQueuePut(env, key, payload, ttlSeconds, ctx) {
+  if (!env || !env.REALSIGNAL_QUEUE || !payload || !Array.isArray(payload.items) || !payload.items.length) return;
+  const write = env.REALSIGNAL_QUEUE.put(key, JSON.stringify(payload), {
+    expirationTtl: Math.max(60, Math.min(86400, Number(ttlSeconds) || IA_QUEUE_TTL_SECONDS)),
+  }).catch((error) => {
+    console.warn(JSON.stringify({ event: "shared-queue-write-failed", message: String(error && error.message || error) }));
+  });
+  if (ctx) ctx.waitUntil(write);
+}
+
 function safeChannel(channel) {
   return /^[A-Za-z0-9._ -]{1,80}$/.test(channel || "");
 }
@@ -290,6 +314,11 @@ function safeDenyTerms(terms) {
 function safeMediaTypes(types) {
   if (!Array.isArray(types)) return [];
   return [...new Set(types.map((type) => String(type || "").trim().toLowerCase()).filter((type) => type === "movies" || type === "audio"))];
+}
+
+function safeQueueRotation(value) {
+  const rotation = Number(value);
+  return Number.isInteger(rotation) && rotation >= 0 && rotation <= 127 ? rotation : 0;
 }
 
 /* A few editorial channels are correctly strict but have Archive queries that
@@ -1743,7 +1772,7 @@ async function timeboxQueueHydration(hydration, timeoutMs) {
   }
 }
 
-async function getIaQueue(request, url, ctx) {
+async function getIaQueue(request, url, env, ctx) {
   let body;
   try {
     body = await request.json();
@@ -1759,11 +1788,30 @@ async function getIaQueue(request, url, ctx) {
   const diversity = safeDiversity(body && body.diversity);
   const count = Math.max(1, Math.min(5, Number(body && body.count) || 5));
   if (!safeChannel(channel) || !queries) return json({ error: "invalid queue request" }, 400);
-  const rotation = Math.floor(Date.now() / (30 * 60 * 1000)) % 4;
-  const cacheKey = new Request(url.origin + IA_PREFIX + "/cache/queue/" + IA_QUEUE_CACHE_VERSION + "/" + await stableKey(JSON.stringify({ channel, queries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, rotation })));
+  /* The app owns a bounded carousel revision. Revision zero is the common,
+     globally prewarmed shelf; later revisions are requested only after a
+     viewer has actually consumed a queue, which keeps fresh programming from
+     putting first tune back on the Archive critical path. */
+  const rotation = safeQueueRotation(body && body.rotation);
+  const fingerprint = JSON.stringify({ channel, queries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, rotation });
+  const digest = await stableKey(fingerprint);
+  const cacheKey = new Request(url.origin + IA_PREFIX + "/cache/queue/" + IA_QUEUE_CACHE_VERSION + "/" + digest);
+  const sharedKey = IA_QUEUE_KV_PREFIX + IA_QUEUE_CACHE_VERSION + ":" + digest;
   try {
     const cache = caches.default, cached = await cache.match(cacheKey);
     if (cached) return cached;
+    const shared = await sharedQueueGet(env, sharedKey);
+    if (shared && Array.isArray(shared.items) && Number(shared.ready) >= count) {
+      const response = cacheableJson(shared, IA_QUEUE_TTL_SECONDS, {
+        "X-Afterglow-Source": "program-director-shared",
+        "X-Afterglow-Cache": "shared",
+        "X-Afterglow-Queue-Ready": String(shared.ready),
+      });
+      ctx.waitUntil(cache.put(cacheKey, response.clone()).catch((error) => {
+        console.warn(JSON.stringify({ event: "shared-queue-edge-write-failed", channel, message: String(error && error.message || error) }));
+      }));
+      return response;
+    }
     // Hard-locked programming can reject many otherwise plausible Archive.org
     // results. Give those channels a deeper candidate shelf before hydration so
     // a single unplayable item never turns into a visible No Signal screen.
@@ -1814,6 +1862,7 @@ async function getIaQueue(request, url, ctx) {
             .then((ready) => {
               if (!ready || !ready.items.length) return undefined;
               const queueTtl = ready.ready >= count ? IA_QUEUE_TTL_SECONDS : IA_PARTIAL_QUEUE_TTL_SECONDS;
+              if (ready.ready >= count) sharedQueuePut(env, sharedKey, ready, queueTtl, ctx);
               return cache.put(cacheKey, cacheableJson(ready, queueTtl, {
                 "X-Afterglow-Source": "program-director",
                 "X-Afterglow-Queue-Ready": String(ready.ready),
@@ -1835,6 +1884,7 @@ async function getIaQueue(request, url, ctx) {
       ctx.waitUntil(cache.put(cacheKey, response.clone()).catch((error) => {
         console.warn(JSON.stringify({ event: "queue-cache-write-failed", channel, message: String(error && error.message || error) }));
       }));
+      if (hydrated.ready >= count) sharedQueuePut(env, sharedKey, hydrated, queueTtl, ctx);
       return response;
     }
     /* Do not send an empty shelf just because Archive metadata is slow. The
@@ -1855,6 +1905,7 @@ async function getIaQueue(request, url, ctx) {
         .then((ready) => {
           if (!ready || !ready.items.length) return undefined;
           const queueTtl = ready.ready >= count ? IA_QUEUE_TTL_SECONDS : IA_PARTIAL_QUEUE_TTL_SECONDS;
+          if (ready.ready >= count) sharedQueuePut(env, sharedKey, ready, queueTtl, ctx);
           return cache.put(cacheKey, cacheableJson(ready, queueTtl, {
             "X-Afterglow-Source": "program-director",
             "X-Afterglow-Queue-Ready": String(ready.ready),
@@ -2023,7 +2074,7 @@ export default {
     }
 
     if (request.method === "POST" && (url.pathname === IA_QUEUE_PATH || url.pathname === IA_PROGRAM_PATH)) {
-      return getIaQueue(request, url, ctx);
+      return getIaQueue(request, url, env, ctx);
     }
 
     // Anything other than a WebSocket upgrade gets a useful health response.

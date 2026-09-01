@@ -8,7 +8,7 @@ on:
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -18,6 +18,10 @@ jobs:
         run: node scripts/probe-ia-genres.js --strict --out artifacts/ia-genre-health.json
       - name: Probe PROGRAM provider rails
         run: node scripts/probe-ia-programs.js --strict --out artifacts/ia-program-health.json
+      - name: Refresh the shared ready-to-play channel shelf
+        run: |
+          node scripts/export-ia-manifest.js the_dial_desktop.html --out artifacts/ia-queue-manifest.json
+          node scripts/soak-ia-queues.js --manifest artifacts/ia-queue-manifest.json --count 5 --require-ready 1 --concurrency 2 --timeout-ms 30000 --poll-ms 1000 --out artifacts/ia-ready-shelf-warm.json
       - name: Upload probe reports
         if: always()
         uses: actions/upload-artifact@v4

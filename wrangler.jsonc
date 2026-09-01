@@ -8,5 +8,11 @@
   "observability": {
     "enabled": true,
     "head_sampling_rate": 0.1
-  }
+  },
+  "kv_namespaces": [
+    {
+      "binding": "REALSIGNAL_QUEUE",
+      "id": "8404a49b4d75470baeaab6e32fb99489"
+    }
+  ]
 }

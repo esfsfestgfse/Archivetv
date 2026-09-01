@@ -1613,7 +1613,7 @@ body.cast-receiver .guide-directory .chcell.cast-focus .cc-n{color:#b9ffd0!impor
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.9.6-desktop.016-cast-guide-fast-switch";
+window.__ATV_BUILD="1.9.6-desktop.017-edge-queue-architecture";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -1651,7 +1651,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.9.6-desktop.016-cast-guide-fast-switch · RealSignal</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.9.6-desktop.017-edge-queue-architecture · RealSignal</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">REALSIGNAL · THE DIAL</div>
@@ -6333,13 +6333,13 @@ function iaRelayMetadataURL(id){return IA_RELAY_BASE+"/metadata/"+encodeURICompo
 /* PROGRAM DIRECTOR QUEUE: the Worker picks and caches the next five identifiers per channel.
    The browser still resolves media locally (so direct Archive CDN playback, captions and
    fallbacks stay intact), but discovery is no longer on the channel-change critical path. */
-var iaProgramQueues={}, iaProgramInflight={}, iaProgramMedia={}, iaProgramPendingAt={}, iaQueueRetries={}, iaTuneRetries={};
+var iaProgramQueues={}, iaProgramInflight={}, iaProgramMedia={}, iaProgramPendingAt={}, iaQueueRetries={}, iaTuneRetries={},iaQueueRotation=store.get("iaQueueRotation",{})||{};
 /* PERSISTENT READY SHELF: the in-memory queue is fast during one visit, but a
    reload used to throw away every resolved media URL and force the first tune
    back through Archive metadata. Keep only playable queue entries, expire them
    after six hours, and cap the store so this remains a small cache—not a copy
    of the catalog. The Worker remains the authority and refreshes this shelf. */
-var IA_READY_SHELF_TTL=6*60*60*1000, IA_READY_SHELF_MAX=32;
+var IA_READY_SHELF_TTL=24*60*60*1000, IA_READY_SHELF_MAX=96;
 var iaReadyShelves=null;
 function iaReadyShelfKey(ch){return String(ch&&ch.num||"");}
 function iaExpectedMedia(ch){return ch&&ch.audio?"audio":"video";}
@@ -6349,7 +6349,7 @@ function iaReadyShelfSave(ch){
   var key=iaReadyShelfKey(ch),q=iaProgramQueues[key]||[],items=q.filter(function(it){return iaReadyShelfAllowed(it,null,ch);}).slice(0,5);
   if(!items.length)return;
   var compact=items.map(function(it){return {identifier:it.identifier,title:it.title||it.identifier,year:it.year||null,runtime:it.runtime||null,subject:it.subject||null,creator:it.creator||null,collection:it.collection||null,lane:it.lane==null?null:it.lane,media:{type:it.media.type||"video",url:it.media.url,alts:(it.media.alts||[]).slice(0,2)}};});
-  iaReadyShelves[key]={at:Date.now(),items:compact};
+  iaReadyShelves[key]={at:Date.now(),rotation:iaQueueRotationFor(ch),items:compact};
   var keys=Object.keys(iaReadyShelves).sort(function(a,b){return Number(iaReadyShelves[b].at||0)-Number(iaReadyShelves[a].at||0);});
   keys.slice(IA_READY_SHELF_MAX).forEach(function(k){delete iaReadyShelves[k];});
   store.set("iaReadyShelves",iaReadyShelves);
@@ -6357,7 +6357,7 @@ function iaReadyShelfSave(ch){
 function iaReadyShelfRestore(ch,sl){
   if(!iaReadyShelves)iaReadyShelves=store.get("iaReadyShelves",{})||{};
   var key=iaReadyShelfKey(ch),row=iaReadyShelves[key];
-  if(!row||Date.now()-Number(row.at||0)>IA_READY_SHELF_TTL){if(row){delete iaReadyShelves[key];store.set("iaReadyShelves",iaReadyShelves);}return;}
+  if(!row||Date.now()-Number(row.at||0)>IA_READY_SHELF_TTL||Number(row.rotation||0)!==iaQueueRotationFor(ch)){if(row){delete iaReadyShelves[key];store.set("iaReadyShelves",iaReadyShelves);}return;}
   var restored=(row.items||[]).filter(function(it){return iaReadyShelfAllowed(it,sl,ch)&&!iaProgramMedia[it.identifier];});
   if(!restored.length)return;
   var old=iaProgramQueues[key]||[],byId={},order=[];old.concat(restored).forEach(function(it){if(!it||!it.identifier||!iaReadyShelfAllowed(it,sl,ch)||byId[it.identifier])return;byId[it.identifier]=it;order.push(it.identifier);iaProgramMedia[it.identifier]=it.media;});
@@ -6376,6 +6376,8 @@ function iaMarkProgramFailed(id){if(id)iaProgramFailures[id]=Date.now()+IA_PROGR
    the dial into a background download farm. */
 var iaMediaWarmers={}, iaMediaWarmerOrder=[], iaMediaWarmByChannel={}, iaWarmWanted={}, IA_MEDIA_WARM_MAX=6;
 function iaQueueKey(ch){return String((ch&&ch.num)||((ch&&ch.nm)||""));}
+function iaQueueRotationFor(ch){return Math.max(0,Math.min(127,Math.floor(Number(iaQueueRotation[iaQueueKey(ch)])||0)));}
+function iaAdvanceQueueRotation(ch){var key=iaQueueKey(ch);iaQueueRotation[key]=Math.min(127,iaQueueRotationFor(ch)+1);store.set("iaQueueRotation",iaQueueRotation);}
 function iaMediaWarmKey(ch,item){return iaQueueKey(ch)+":"+String(item&&item.identifier||item&&item.id||"");}
 function releaseIAMediaWarmer(key,keepElement){var w=iaMediaWarmers[key];if(!w)return null;delete iaMediaWarmers[key];if(iaMediaWarmByChannel[w.channel]===key)delete iaMediaWarmByChannel[w.channel];clearTimeout(w.timer);var i=iaMediaWarmerOrder.indexOf(key);if(i>=0)iaMediaWarmerOrder.splice(i,1);if(!keepElement){try{w.el.pause();w.el.removeAttribute("src");w.el.load();}catch(e){}}return w.el;}
 function takeIAMediaWarmer(ch,item){return releaseIAMediaWarmer(iaMediaWarmKey(ch,item),true);}
@@ -6415,7 +6417,7 @@ async function iaLocalQueueFallback(ch,sl){
 }
 async function iaQueueRequest(ch,sl,count){
   var qs=iaQueueQueries(sl);if(!qs.length)return [];
-  try{var d=await withTO(fetch(IA_RELAY_BASE+"/queue",{method:"POST",mode:"cors",headers:{"content-type":"application/json"},body:JSON.stringify({channel:iaQueueKey(ch),queries:qs,themeTerms:iaProgramThemeTerms(sl),denyTerms:iaProgramDenyTerms(sl),diversity:iaQueueDiversity(sl),mediaTypes:ch&&ch.audio?["audio"]:["movies"],themeMinScore:Math.max(1,Math.min(12,Number(sl&&sl.program&&sl.program.themeMinScore)||1)),count:Math.max(1,Math.min(5,count||5))})}).then(function(r){if(!r.ok)throw new Error("queue "+r.status);return r.json();}),9000);
+  try{var d=await withTO(fetch(IA_RELAY_BASE+"/queue",{method:"POST",mode:"cors",headers:{"content-type":"application/json"},body:JSON.stringify({channel:iaQueueKey(ch),rotation:iaQueueRotationFor(ch),queries:qs,themeTerms:iaProgramThemeTerms(sl),denyTerms:iaProgramDenyTerms(sl),diversity:iaQueueDiversity(sl),mediaTypes:ch&&ch.audio?["audio"]:["movies"],themeMinScore:Math.max(1,Math.min(12,Number(sl&&sl.program&&sl.program.themeMinScore)||1)),count:Math.max(1,Math.min(5,count||5))})}).then(function(r){if(!r.ok)throw new Error("queue "+r.status);return r.json();}),5200);
     var out=((d&&d.items)||[]).filter(function(it){return iaProgramAllowed(it,sl);});out.hydrating=!!(d&&d.hydrating);out.partial=!!(d&&d.partial)||Number(d&&d.ready||0)<Math.max(1,Math.min(5,count||5));out.ready=Number(d&&d.ready)||out.length;out.candidates=Number(d&&d.candidates)||out.length;return out;
   }catch(e){nlog("queue",false,"director unavailable: "+(e&&e.message||e)+"; using local shelf");return iaLocalQueueFallback(ch,sl);}
 }
@@ -6423,7 +6425,7 @@ function warmIAQueue(ch,sl,hydrating){var q=iaProgramQueues[iaQueueKey(ch)]||[],
 function iaQueueHasReadyProgram(ch){var q=iaProgramQueues[iaQueueKey(ch)]||[];return q.some(function(it){var pl=it&&iaProgramMedia[it.identifier],w=it&&iaMediaWarmers[iaMediaWarmKey(ch,it)];return !!((w&&w.el.readyState>=2)||(pl&&typeof pl.then!=="function"&&pl.url));});}
 function iaPendingTooLong(id){return !!(iaProgramPendingAt[id]&&Date.now()-iaProgramPendingAt[id]>8500);}
 async function refillIAQueue(ch,sl){var k=iaQueueKey(ch);iaReadyShelfRestore(ch,sl);if(iaProgramInflight[k])return iaProgramInflight[k];iaProgramInflight[k]=iaQueueRequest(ch,sl,5).then(function(items){var old=iaProgramQueues[k]||[], byId={}, order=[];old.concat(items).forEach(function(it){var id=it&&it.identifier;if(!it||!id||iaProgramFailed(id)||iaPendingTooLong(id)||!iaProgramAllowed(it,sl))return;if(!byId[id])order.push(id);if(!byId[id]||(it.media&&it.media.url&&!byId[id].media))byId[id]=it;});iaProgramQueues[k]=order.map(function(id){return byId[id];}).slice(0,5);if(!iaProgramQueues[k].length)iaProgramQueues[k]=iaEmergencyItems(sl);warmIAQueue(ch,sl,items.hydrating);iaReadyShelfSave(ch);var needsMore=!!items.hydrating||!!items.partial||(iaProgramQueues[k].length<5&&Number(items.candidates)>iaProgramQueues[k].length);if(iaProgramQueues[k].length){iaQueueRetries[k]=0;if(needsMore)setTimeout(function(){if(powered)refillIAQueue(ch,sl);},items.hydrating?1200:2200);}else{var retry=(iaQueueRetries[k]||0)+1;iaQueueRetries[k]=retry;if(retry<=3)setTimeout(function(){if(powered)refillIAQueue(ch,sl);},retry*4500);}nlog("queue",true,"CH "+k+" ready="+iaProgramQueues[k].length+(needsMore?" · topping up":""));if(gwrap&&gwrap.classList.contains("show"))renderRail();return iaProgramQueues[k];}).finally(function(){delete iaProgramInflight[k];});return iaProgramInflight[k];}
-function takeIAQueue(ch,sl){var k=iaQueueKey(ch),q=iaProgramQueues[k]||[],warmAt=-1,resolvedAt=-1,fallback=-1;for(var i=q.length-1;i>=0;i--){var id=q[i]&&q[i].identifier,bad=!iaProgramAllowed(q[i],sl)||iaProgramMedia[id]===null||iaPendingTooLong(id);if(bad){delete iaProgramPendingAt[id];q.splice(i,1);}}for(var j=0;j<q.length;j++){var it=q[j],w=iaMediaWarmers[iaMediaWarmKey(ch,it)],pl=iaProgramMedia[it.identifier];if(fallback<0)fallback=j;if(w&&w.el.readyState>=2){warmAt=j;break;}if(resolvedAt<0&&pl&&typeof pl.then!=="function"&&pl.url)resolvedAt=j;}var at=warmAt>=0?warmAt:(resolvedAt>=0?resolvedAt:fallback);if(at>=0){var picked=q.splice(at,1)[0];iaReadyShelfSave(ch);warmIAQueueHead(ch);refillIAQueue(ch,sl);return picked;}refillIAQueue(ch,sl);return null;}
+function takeIAQueue(ch,sl){var k=iaQueueKey(ch),q=iaProgramQueues[k]||[],warmAt=-1,resolvedAt=-1,fallback=-1;for(var i=q.length-1;i>=0;i--){var id=q[i]&&q[i].identifier,bad=!iaProgramAllowed(q[i],sl)||iaProgramMedia[id]===null||iaPendingTooLong(id);if(bad){delete iaProgramPendingAt[id];q.splice(i,1);}}for(var j=0;j<q.length;j++){var it=q[j],w=iaMediaWarmers[iaMediaWarmKey(ch,it)],pl=iaProgramMedia[it.identifier];if(fallback<0)fallback=j;if(w&&w.el.readyState>=2){warmAt=j;break;}if(resolvedAt<0&&pl&&typeof pl.then!=="function"&&pl.url)resolvedAt=j;}var at=warmAt>=0?warmAt:(resolvedAt>=0?resolvedAt:fallback);if(at>=0){var picked=q.splice(at,1)[0];iaReadyShelfSave(ch);if(q.length<=1)iaAdvanceQueueRotation(ch);warmIAQueueHead(ch);refillIAQueue(ch,sl);return picked;}refillIAQueue(ch,sl);return null;}
 /* Archive is blocked outright in some desktop browsers. Keep every discovery probe short so
    a dead route never holds a channel change hostage for 15+ seconds. */
 function iaFastJSON(url,ms){return withTO(fetch(url,{mode:"cors"}).then(r=>{if(!r.ok)throw new Error("http "+r.status);return r.json();}),ms||1800);}
@@ -6827,14 +6829,17 @@ function renderRail(){
   var title=query?"SEARCH RESULTS":(favOnly?"FAVORITES":active.label.toUpperCase()),descriptor=query?('"'+query+'" · '+list.length+' matches'):(favOnly?list.length+" saved channels":active.meta+" · NUMBER ORDER");
   var titleEl=$("railTitle"),resultsEl=$("guideResults"),countEl=$("guideCount");if(titleEl)titleEl.textContent=title;if(resultsEl)resultsEl.textContent=descriptor;if(countEl)countEl.textContent=list.length+" CHANNEL"+(list.length===1?"":"S");
   if(!list.length){chList.innerHTML='<div class="chempty">No matching channels yet. Clear the search or choose another category.</div>';return;}
-  var previousGroup=null;
+  /* Build off-DOM. Rendering two hundred channel rows one append at a time was
+     forcing repeated layout work precisely when the viewer asked to browse. */
+  var previousGroup=null,fragment=document.createDocumentFragment();
   list.forEach(function(ch){var group=guideCategoryFor(ch);
-    if(group.id!==previousGroup){var divider=document.createElement("div");divider.className="chsection";divider.innerHTML='<span class="chsection-label">'+esch(group.label.toUpperCase())+'</span><span class="chsection-sub">'+esch(group.meta)+'</span>';chList.appendChild(divider);previousGroup=group.id;}
+    if(group.id!==previousGroup){var divider=document.createElement("div");divider.className="chsection";divider.innerHTML='<span class="chsection-label">'+esch(group.label.toUpperCase())+'</span><span class="chsection-sub">'+esch(group.meta)+'</span>';fragment.appendChild(divider);previousGroup=group.id;}
     var row=document.createElement("button");row.type="button";row.dataset.channelKey=ch.key;row.title=ch.nm+((CHANNEL_META[ch.nm]&&CHANNEL_META[ch.nm].desc)?(" \\u2014 "+CHANNEL_META[ch.nm].desc):"");row.className="chcell"+(ch.num===curNum?" on":"");row.style.setProperty("--cat",CAT[ch.cat]||group.color);
     var listing=guideListing(ch),lastId=(window.__chLastId||{})[ch.num],thumb=lastId?'<span class="cc-thumb"><img src="https://archive.org/services/img/'+esch(lastId)+'" alt="" loading="lazy" decoding="async"></span>':'<span class="cc-thumb"><span class="cc-thumb-glyph">'+ch.num+'</span></span>';
     row.innerHTML='<span class="cc-n">'+ch.num+'</span>'+thumb+'<span class="cc-identity"><span class="cc-nm">'+esch(ch.nm)+'</span><span class="cc-genre">'+esch(GUIDE_SUBGENRES[ch.cat]||ch.cat)+'</span></span><span class="cc-now-block"><span class="cc-now">'+esch(listing.now)+'</span><span class="cc-status">'+esch(listing.detail)+'</span></span><span class="cc-next-block"><span class="cc-next">'+esch(listing.next)+'</span></span>'+(isFav(ch.num)?'<span class="cc-f">★</span>':'');
-    row.addEventListener("click",(function(num){return function(){tuneNum(num);if(window.closeSheets)window.closeSheets();else closeGuide();};})(ch.num));chList.appendChild(row);
+    row.addEventListener("click",(function(num){return function(){tuneNum(num);if(window.closeSheets)window.closeSheets();else closeGuide();};})(ch.num));fragment.appendChild(row);
   });
+  chList.appendChild(fragment);
 }
 function renderGuide(){renderRail();updateClocks();guideUpdatePreview();guideRefreshTicker();}
 
@@ -7261,10 +7266,11 @@ function primeIAQueues(){
 function primeIACompanions(ch,activeSlot){
   if(!powered||!ch||ch.source)return;
   var all=CH.filter(function(c){return !c.source;}).sort(function(a,b){return a.num-b.num;}), at=all.indexOf(ch), targets=[ch];
-  for(var d=1;d<=3;d++){if(all[at+d])targets.push(all[at+d]);if(d<=2&&all[at-d])targets.push(all[at-d]);}
+  if(all[at+1])targets.push(all[at+1]);if(all[at-1])targets.push(all[at-1]);
   ++iaPrimeRun;clearTimeout(primeIACompanions._resume);Object.keys(iaWarmWanted).forEach(function(k){iaWarmWanted[k]=0;});
   var targetSet={};targets.slice(0,IA_MEDIA_WARM_MAX).forEach(function(c){targetSet[iaQueueKey(c)]=1;});
   Object.keys(iaMediaWarmers).forEach(function(key){var w=iaMediaWarmers[key];if(w&&!targetSet[w.channel])releaseIAMediaWarmer(key,false);});
+  var companionRun=iaPrimeRun;
   targets.slice(0,IA_MEDIA_WARM_MAX).forEach(function(c,index){
     var key=iaQueueKey(c);iaWarmWanted[key]=Date.now()+120000;
     /* Tune the requested station first. Neighbors are still warmed, but a
@@ -7272,8 +7278,8 @@ function primeIACompanions(ch,activeSlot){
        once, which was starving otherwise healthy niche channels. */
     // Keep the active queue immediate, but spread neighboring shelves so a
     // channel change cannot fan out into a relay burst.
-    var warmDelay=index===0?0:1500+(index-1)*1500;
-    setTimeout(function(){if(!powered)return;var ss=(c===ch&&activeSlot)?activeSlot:slotFor(c,0,{preview:true});refillIAQueue(c,ss).catch(function(){});},warmDelay);
+    var warmDelay=index===0?0:900+(index-1)*900;
+    setTimeout(function(){if(!powered||companionRun!==iaPrimeRun)return;var ss=(c===ch&&activeSlot)?activeSlot:slotFor(c,0,{preview:true});refillIAQueue(c,ss).catch(function(){});},warmDelay);
   });
   primeIACompanions._resume=setTimeout(function(){if(powered)primeIAQueues();},15000);
 }

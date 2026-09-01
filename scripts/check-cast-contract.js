@@ -15,7 +15,7 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
     ['castReceiverIdInput', 'must expose one-time receiver ID setup'],
     ['REALSIGNAL_STATE', 'must send a normalized receiver state packet'],
     ['A0A5CD01', 'must carry the published RealSignal receiver ID'],
-    ['.016-cast-guide-fast-switch', 'must carry the current Cast guide and fast-switch build stamp'],
+    ['.017-edge-queue-architecture', 'must carry the current edge queue architecture build stamp'],
     ['__rsCastSdkRetryCount', 'must support recovery when the Cast SDK is delayed'],
     ['rsRetry=', 'must retry a failed Cast SDK load'],
     ['display-mode: standalone', 'must diagnose Android standalone/PWA Cast limitations'],

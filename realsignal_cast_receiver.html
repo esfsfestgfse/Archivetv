@@ -7,24 +7,53 @@
   <script src="https://www.gstatic.com/cast/sdk/libs/caf_receiver/v3/cast_receiver_framework.js"></script>
   <style>
     html,body,#app{width:100%;height:100%;margin:0;background:#030706;color:#91ffad;font-family:ui-monospace,Menlo,monospace;overflow:hidden}
-    #app{position:relative} #screen{width:100%;height:100%;border:0;background:#000}
+    #app{position:relative} cast-media-player{position:absolute;inset:0;width:100%;height:100%;background:#000;z-index:2}
+    /* The iframe remains the channel director and receives phone commands;
+       video itself belongs to CAF's native player, which is substantially more
+       reliable on Chromecast hardware than a nested browser video element. */
+    #screen{position:absolute;left:-2px;top:-2px;width:1px;height:1px;opacity:0;border:0;pointer-events:none}
     #standby{position:absolute;inset:0;display:grid;place-items:center;text-align:center;background:radial-gradient(circle at 50% 40%,#113526 0,#030706 58%)}
     #standby strong{display:block;font-size:34px;letter-spacing:8px;text-shadow:0 0 22px #4cff7b} #standby span{display:block;margin-top:14px;color:#c6edd0;font-size:15px;letter-spacing:3px}
   </style>
 </head>
 <body>
-  <main id="app"><iframe id="screen" title="RealSignal"></iframe><div id="standby"><div><strong>REALSIGNAL</strong><span>WAITING FOR THE DIAL</span></div></div></main>
+  <main id="app"><cast-media-player id="player"></cast-media-player><iframe id="screen" title="RealSignal director"></iframe><div id="standby"><div><strong>REALSIGNAL</strong><span>WAITING FOR THE DIAL</span></div></div></main>
   <script>
   (function(){
     const NS='urn:x-cast:com.realsignal.dial';
     const context=cast.framework.CastReceiverContext.getInstance();
     const screen=document.getElementById('screen'),standby=document.getElementById('standby');
-    let loadedOrigin='',loadedUrl='',appReady=false,pendingCommands=[];
+    const playerManager=context.getPlayerManager();
+    let loadedOrigin='',loadedUrl='',appReady=false,pendingCommands=[],loadedMediaUrl='',mediaAttempt=0;
     function allowedUrl(value){try{const url=new URL(String(value||''));return url.protocol==='https:'?url:null;}catch(_){return null;}}
     function receiverUrl(state){const url=allowedUrl(state.appUrl)||new URL('https://esfsfestgfse.github.io/Archivetv/the_dial_desktop.html');url.searchParams.set('castReceiver','1');url.searchParams.set('channel',String(Number(state.channel)||2));url.searchParams.set('powered',state.powered===false?'0':'1');return url;}
     function decode(data){if(typeof data!=='string')return data;try{return JSON.parse(data);}catch(_){return null;}}
     function postToApp(data){if(!loadedOrigin||!appReady)return false;try{screen.contentWindow.postMessage(data,loadedOrigin);return true;}catch(_){return false;}}
     screen.addEventListener('load',()=>{appReady=true;const queued=pendingCommands.splice(0);queued.forEach(postToApp);});
+    function playableUrl(value){try{const url=new URL(String(value||''));return url.protocol==='https:'?url.href:'';}catch(_){return '';}}
+    function loadMedia(packet){
+      const media=packet&&packet.media||{},url=playableUrl(media.url);
+      if(!url||url===loadedMediaUrl)return;
+      loadedMediaUrl=url; mediaAttempt=0; standby.style.display='none';
+      const info=new cast.framework.messages.MediaInformation();
+      info.contentId=url; info.contentUrl=url; info.contentType=media.type==='audio'?'audio/mpeg':'video/mp4';
+      info.streamType=cast.framework.messages.StreamType.BUFFERED;
+      const meta=new cast.framework.messages.GenericMediaMetadata();
+      meta.title=String(media.title||'RealSignal'); meta.subtitle=String(media.subtitle||''); info.metadata=meta;
+      info.customData={realsignal:true,alternates:(media.alts||[]).map(playableUrl).filter(Boolean)};
+      const request=new cast.framework.messages.LoadRequestData(); request.media=info; request.autoplay=true;
+      playerManager.load(request).then(()=>{context.setApplicationState('RealSignal · '+meta.title);}).catch(()=>tryAlternate(info));
+    }
+    function tryAlternate(info){
+      const alts=(info&&info.customData&&info.customData.alternates)||[];
+      const next=alts[mediaAttempt++]; if(!next)return;
+      loadedMediaUrl=''; loadMedia({media:{url:next,type:info.contentType.indexOf('audio/')===0?'audio':'video',title:info.metadata&&info.metadata.title,alts:alts.slice(mediaAttempt)}});
+    }
+    playerManager.addEventListener(cast.framework.events.EventType.ERROR,event=>{const info=playerManager.getMediaInformation&&playerManager.getMediaInformation();if(info)tryAlternate(info);});
+    window.addEventListener('message',event=>{
+      if(!loadedOrigin||event.origin!==loadedOrigin||event.source!==screen.contentWindow)return;
+      const data=decode(event.data); if(data&&data.type==='REALSIGNAL_MEDIA')loadMedia(data);
+    });
     function apply(state){
       if(!state||state.type!=='REALSIGNAL_STATE')return;
       const url=receiverUrl(state),key=url.href;
@@ -38,9 +67,8 @@
       if(!postToApp(data))pendingCommands.push(data);
     }
     context.addCustomMessageListener(NS,event=>{const data=decode(event.data);if(data&&data.type==='REALSIGNAL_STATE')apply(data);else command(data);});
-    /* RealSignal is an interactive receiver: the TV program runs inside the app iframe rather
-       than CAF's built-in media element. Without this flag CAF treats visible playback as idle
-       and returns the device to Ambient mode after its normal idle window. */
+    /* Keep the interactive receiver session alive while the director is
+       finding the next item; actual audio/video is loaded through CAF above. */
     const options=new cast.framework.CastReceiverOptions();
     options.customNamespaces={};
     options.customNamespaces[NS]=cast.framework.system.MessageType.JSON;

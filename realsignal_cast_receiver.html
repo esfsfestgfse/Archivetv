@@ -30,7 +30,7 @@
     const context=cast.framework.CastReceiverContext.getInstance();
     const app=document.getElementById('app'),screen=document.getElementById('screen'),standby=document.getElementById('standby');
     const playerManager=context.getPlayerManager();
-    let loadedOrigin='',loadedUrl='',appReady=false,pendingCommands=[],loadedMediaUrl='',mediaAttempt=0;
+    let loadedOrigin='',loadedUrl='',appReady=false,pendingCommands=[],loadedMediaUrl='',mediaAttempt=0,desiredChannel=0;
     function allowedUrl(value){try{const url=new URL(String(value||''));return url.protocol==='https:'?url:null;}catch(_){return null;}}
     function receiverUrl(state){const url=allowedUrl(state.appUrl)||new URL('https://esfsfestgfse.github.io/Archivetv/the_dial_desktop.html');url.searchParams.set('castReceiver','1');url.searchParams.set('channel',String(Number(state.channel)||2));url.searchParams.set('powered',state.powered===false?'0':'1');return url;}
     function decode(data){if(typeof data!=='string')return data;try{return JSON.parse(data);}catch(_){return null;}}
@@ -48,6 +48,9 @@
     }
     function loadMedia(packet){
       const media=packet&&packet.media||{},url=playableUrl(media.url);
+      /* A director can finish an old tune while a new channel is selected.
+         Never let that delayed update replace the currently selected picture. */
+      if(packet&&packet.channel&&desiredChannel&&Number(packet.channel)!==desiredChannel)return;
       if(!url||url===loadedMediaUrl)return;
       loadedMediaUrl=url; mediaAttempt=0; standby.style.display='none'; showDirector(false);
       const info=new cast.framework.messages.MediaInformation();
@@ -71,7 +74,11 @@
     });
     function apply(state){
       if(!state||state.type!=='REALSIGNAL_STATE')return;
-      const url=receiverUrl(state),key=url.href;
+      const url=receiverUrl(state);
+      /* Channel selection is state inside one director document. Recreating
+         the iframe per tune boots its default channel and races CAF playback. */
+      const key=url.origin+url.pathname+'?castReceiver=1';
+      desiredChannel=Number(state.channel)||0;
       standby.style.display='none';
       context.setApplicationState('RealSignal · Channel '+(Number(state.channel)||2));
       if(key!==loadedUrl){loadedUrl=key;loadedOrigin=url.origin;appReady=false;showDirector(true);screen.src=key;return;}

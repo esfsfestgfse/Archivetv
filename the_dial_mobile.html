@@ -1665,7 +1665,7 @@ html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.9.6-mobile.020-cast-video-surface";
+window.__ATV_BUILD="1.9.6-mobile.021-cast-tune-sync";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -1703,7 +1703,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.9.6-mobile.020-cast-video-surface · RealSignal</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.9.6-mobile.021-cast-tune-sync · RealSignal</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -17176,7 +17176,7 @@ window.__atvBootDone=true; /* app is up -- from here on, errors get logged, not 
   function refreshStatus(){try{if(typeof renderSettings==="function")renderSettings();}catch(e){}}
   function setCastState(next,error){castState=String(next||"UNKNOWN");if(error)lastError=String(error.code||error.message||error);refreshStatus();}
   function retrySdk(){if(window.__rsCastSdkReady||window.cast&&cast.framework||window.__rsCastSdkRetryCount>=2)return;if(!document.head)return;window.__rsCastSdkRetryCount++;var s=document.createElement("script");s.async=true;s.src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1&rsRetry="+window.__rsCastSdkRetryCount;s.onload=function(){if(window.__rsCastSdkReady)init();};s.onerror=function(){refreshStatus();};document.head.appendChild(s);}
-  function publicAppUrl(){var fallback="https://esfsfestgfse.github.io/Archivetv/";try{if(location.protocol==="https:"&&location.hostname!=="localhost")return new URL("./",location.href).href;}catch(e){}return fallback;}
+  function publicAppUrl(){var fallback="https://esfsfestgfse.github.io/Archivetv/the_dial_desktop.html";try{if(location.protocol==="https:"&&location.hostname!=="localhost")return new URL("the_dial_desktop.html",location.href).href;}catch(e){}return fallback;}
   function state(){return {type:"REALSIGNAL_STATE",appUrl:publicAppUrl(),channel:Number(curNum)||2,powered:!!powered,muted:!!muted,volume:Number(vol)||0.5,texture:(tube&&tube.dataset&&tube.dataset.glassScan)||"1",sentAt:Date.now()};}
   function sync(){try{if(!window.cast||!cast.framework)return;var session=cast.framework.CastContext.getInstance().getCurrentSession();if(session)session.sendMessage(NS,state()).catch(function(){});}catch(e){}}
   function init(force){var id=receiverId(),issue=platformIssue();if(issue){setCastState("UNSUPPORTED");return false;}if(!window.__rsCastSdkReady||!window.cast||!cast.framework||!id){refreshStatus();return false;}if(!force&&wired&&configuredId===id)return true;try{var ctx=cast.framework.CastContext.getInstance();ctx.setOptions({receiverApplicationId:id,autoJoinPolicy:chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED});if(!wired){wired=true;if(cast.framework.CastContextEventType.CAST_STATE_CHANGED)ctx.addEventListener(cast.framework.CastContextEventType.CAST_STATE_CHANGED,function(event){setCastState(event.castState||"UNKNOWN");});ctx.addEventListener(cast.framework.CastContextEventType.SESSION_STATE_CHANGED,function(event){var active=event.sessionState===cast.framework.SessionState.SESSION_STARTED||event.sessionState===cast.framework.SessionState.SESSION_RESUMED;if(active){clearTimeout(searchTimer);setCastState("CONNECTED");sync();quickBanner("CAST CONNECTED");}else if(event.sessionState===cast.framework.SessionState.SESSION_START_FAILED){setCastState("NO_DEVICES_AVAILABLE");quickBanner("NO CAST DEVICES FOUND · CHECK WI-FI / LOCAL ACCESS");}});}configuredId=id;setCastState(ctx.getCastState?ctx.getCastState():"NOT_CONNECTED");return true;}catch(e){setCastState("ERROR");return false;}}

@@ -12,6 +12,10 @@
        video itself belongs to CAF's native player, which is substantially more
        reliable on Chromecast hardware than a nested browser video element. */
     #screen{position:absolute;left:-2px;top:-2px;width:1px;height:1px;opacity:0;border:0;pointer-events:none}
+    /* The director normally stays invisible while CAF renders native video.  It
+       becomes the full screen only for interactive app surfaces such as Guide. */
+    #app.director-open cast-media-player{display:none}
+    #app.director-open #screen{left:0;top:0;width:100%;height:100%;opacity:1;pointer-events:auto;z-index:5;background:#030706}
     #standby{position:absolute;inset:0;display:grid;place-items:center;text-align:center;background:radial-gradient(circle at 50% 40%,#113526 0,#030706 58%)}
     #standby strong{display:block;font-size:34px;letter-spacing:8px;text-shadow:0 0 22px #4cff7b} #standby span{display:block;margin-top:14px;color:#c6edd0;font-size:15px;letter-spacing:3px}
   </style>
@@ -22,19 +26,20 @@
   (function(){
     const NS='urn:x-cast:com.realsignal.dial';
     const context=cast.framework.CastReceiverContext.getInstance();
-    const screen=document.getElementById('screen'),standby=document.getElementById('standby');
+    const app=document.getElementById('app'),screen=document.getElementById('screen'),standby=document.getElementById('standby');
     const playerManager=context.getPlayerManager();
     let loadedOrigin='',loadedUrl='',appReady=false,pendingCommands=[],loadedMediaUrl='',mediaAttempt=0;
     function allowedUrl(value){try{const url=new URL(String(value||''));return url.protocol==='https:'?url:null;}catch(_){return null;}}
     function receiverUrl(state){const url=allowedUrl(state.appUrl)||new URL('https://esfsfestgfse.github.io/Archivetv/the_dial_desktop.html');url.searchParams.set('castReceiver','1');url.searchParams.set('channel',String(Number(state.channel)||2));url.searchParams.set('powered',state.powered===false?'0':'1');return url;}
     function decode(data){if(typeof data!=='string')return data;try{return JSON.parse(data);}catch(_){return null;}}
     function postToApp(data){if(!loadedOrigin||!appReady)return false;try{screen.contentWindow.postMessage(data,loadedOrigin);return true;}catch(_){return false;}}
+    function showDirector(open){app.classList.toggle('director-open',!!open);}
     screen.addEventListener('load',()=>{appReady=true;const queued=pendingCommands.splice(0);queued.forEach(postToApp);});
     function playableUrl(value){try{const url=new URL(String(value||''));return url.protocol==='https:'?url.href:'';}catch(_){return '';}}
     function loadMedia(packet){
       const media=packet&&packet.media||{},url=playableUrl(media.url);
       if(!url||url===loadedMediaUrl)return;
-      loadedMediaUrl=url; mediaAttempt=0; standby.style.display='none';
+      loadedMediaUrl=url; mediaAttempt=0; standby.style.display='none'; showDirector(false);
       const info=new cast.framework.messages.MediaInformation();
       info.contentId=url; info.contentUrl=url; info.contentType=media.type==='audio'?'audio/mpeg':'video/mp4';
       info.streamType=cast.framework.messages.StreamType.BUFFERED;
@@ -46,7 +51,7 @@
     }
     function tryAlternate(info){
       const alts=(info&&info.customData&&info.customData.alternates)||[];
-      const next=alts[mediaAttempt++]; if(!next)return;
+      const next=alts[mediaAttempt++]; if(!next){showDirector(true);return;}
       loadedMediaUrl=''; loadMedia({media:{url:next,type:info.contentType.indexOf('audio/')===0?'audio':'video',title:info.metadata&&info.metadata.title,alts:alts.slice(mediaAttempt)}});
     }
     playerManager.addEventListener(cast.framework.events.EventType.ERROR,event=>{const info=playerManager.getMediaInformation&&playerManager.getMediaInformation();if(info)tryAlternate(info);});
@@ -59,11 +64,16 @@
       const url=receiverUrl(state),key=url.href;
       standby.style.display='none';
       context.setApplicationState('RealSignal · Channel '+(Number(state.channel)||2));
-      if(key!==loadedUrl){loadedUrl=key;loadedOrigin=url.origin;appReady=false;screen.src=key;return;}
+      if(key!==loadedUrl){loadedUrl=key;loadedOrigin=url.origin;appReady=false;showDirector(true);screen.src=key;return;}
       postToApp(state);
     }
     function command(data){
       if(!data||data.type!=='REALSIGNAL_COMMAND')return;
+      const action=String(data.action||'').toUpperCase();
+      /* CAF owns playback, but GUIDE must reveal the interactive app rather than
+         forwarding a command into an invisible one-pixel director iframe. */
+      if(action==='GUIDE')showDirector(true);
+      if(action==='BACK')setTimeout(()=>showDirector(false),180);
       if(!postToApp(data))pendingCommands.push(data);
     }
     context.addCustomMessageListener(NS,event=>{const data=decode(event.data);if(data&&data.type==='REALSIGNAL_STATE')apply(data);else command(data);});

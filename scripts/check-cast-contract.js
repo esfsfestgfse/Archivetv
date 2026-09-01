@@ -15,7 +15,7 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
     ['castReceiverIdInput', 'must expose one-time receiver ID setup'],
     ['REALSIGNAL_STATE', 'must send a normalized receiver state packet'],
     ['A0A5CD01', 'must carry the published RealSignal receiver ID'],
-    ['.019-cast-startup-hotfix', 'must carry the current Cast startup hotfix build stamp'],
+    ['.020-cast-video-surface', 'must carry the current Cast video-surface build stamp'],
     ['__rsCastSdkRetryCount', 'must support recovery when the Cast SDK is delayed'],
     ['rsRetry=', 'must retry a failed Cast SDK load'],
     ['display-mode: standalone', 'must diagnose Android standalone/PWA Cast limitations'],
@@ -24,7 +24,8 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
   ]) if (!source.includes(token)) issues.push(`${file}: ${reason}`);
 }
 const receiver = fs.readFileSync(path.join(repo, 'realsignal_cast_receiver.html'), 'utf8');
-for (const token of ['cast_receiver_framework.js', 'addCustomMessageListener', 'REALSIGNAL_STATE', 'REALSIGNAL_MEDIA', 'cast-media-player', 'getPlayerManager', 'castReceiver']) if (!receiver.includes(token)) issues.push(`receiver: missing ${token}`);
+for (const token of ['cast_receiver_framework.js', 'addCustomMessageListener', 'REALSIGNAL_STATE', 'REALSIGNAL_MEDIA', 'cast-media-player', 'getPlayerManager', 'mediaContentType', 'castReceiver']) if (!receiver.includes(token)) issues.push(`receiver: missing ${token}`);
+if (/director-open cast-media-player\{display:none/.test(receiver)) issues.push('receiver: guide must not remove the native video surface from Android TV layout');
 const pages = fs.readFileSync(path.join(repo, '.github/workflows/pages.yml'), 'utf8');
 if (!pages.includes('cp realsignal_cast_receiver.html')) issues.push('pages workflow: receiver is not published');
 console.log(`cast contract: ${issues.length ? 'FAILED' : 'passed'}`);

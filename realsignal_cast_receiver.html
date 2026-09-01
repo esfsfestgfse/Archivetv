@@ -14,7 +14,9 @@
     #screen{position:absolute;left:-2px;top:-2px;width:1px;height:1px;opacity:0;border:0;pointer-events:none}
     /* The director normally stays invisible while CAF renders native video.  It
        becomes the full screen only for interactive app surfaces such as Guide. */
-    #app.director-open cast-media-player{display:none}
+    /* Never remove CAF's surface from layout. Some Android TV receivers keep
+       audio alive but lose their video compositor after display:none. The
+       director iframe simply covers it while the Guide is open. */
     #app.director-open #screen{left:0;top:0;width:100%;height:100%;opacity:1;pointer-events:auto;z-index:5;background:#030706}
     #standby{position:absolute;inset:0;display:grid;place-items:center;text-align:center;background:radial-gradient(circle at 50% 40%,#113526 0,#030706 58%)}
     #standby strong{display:block;font-size:34px;letter-spacing:8px;text-shadow:0 0 22px #4cff7b} #standby span{display:block;margin-top:14px;color:#c6edd0;font-size:15px;letter-spacing:3px}
@@ -36,12 +38,20 @@
     function showDirector(open){app.classList.toggle('director-open',!!open);}
     screen.addEventListener('load',()=>{appReady=true;const queued=pendingCommands.splice(0);queued.forEach(postToApp);});
     function playableUrl(value){try{const url=new URL(String(value||''));return url.protocol==='https:'?url.href:'';}catch(_){return '';}}
+    function mediaContentType(media,url){
+      if(media&&media.contentType)return String(media.contentType);
+      if(media&&media.type==='audio')return /\.ogg(?:[?#]|$)/i.test(url)?'audio/ogg':/\.m4a(?:[?#]|$)/i.test(url)?'audio/mp4':'audio/mpeg';
+      if(/\.webm(?:[?#]|$)/i.test(url))return 'video/webm';
+      if(/\.ogv(?:[?#]|$)/i.test(url))return 'video/ogg';
+      if(/\.m3u8(?:[?#]|$)/i.test(url))return 'application/x-mpegurl';
+      return 'video/mp4';
+    }
     function loadMedia(packet){
       const media=packet&&packet.media||{},url=playableUrl(media.url);
       if(!url||url===loadedMediaUrl)return;
       loadedMediaUrl=url; mediaAttempt=0; standby.style.display='none'; showDirector(false);
       const info=new cast.framework.messages.MediaInformation();
-      info.contentId=url; info.contentUrl=url; info.contentType=media.type==='audio'?'audio/mpeg':'video/mp4';
+      info.contentId=url; info.contentUrl=url; info.contentType=mediaContentType(media,url);
       info.streamType=cast.framework.messages.StreamType.BUFFERED;
       const meta=new cast.framework.messages.GenericMediaMetadata();
       meta.title=String(media.title||'RealSignal'); meta.subtitle=String(media.subtitle||''); info.metadata=meta;
@@ -52,7 +62,7 @@
     function tryAlternate(info){
       const alts=(info&&info.customData&&info.customData.alternates)||[];
       const next=alts[mediaAttempt++]; if(!next){showDirector(true);return;}
-      loadedMediaUrl=''; loadMedia({media:{url:next,type:info.contentType.indexOf('audio/')===0?'audio':'video',title:info.metadata&&info.metadata.title,alts:alts.slice(mediaAttempt)}});
+      loadedMediaUrl=''; loadMedia({media:{url:next,type:info.contentType.indexOf('audio/')===0?'audio':'video',contentType:mediaContentType({type:info.contentType.indexOf('audio/')===0?'audio':'video'},next),title:info.metadata&&info.metadata.title,alts:alts.slice(mediaAttempt)}});
     }
     playerManager.addEventListener(cast.framework.events.EventType.ERROR,event=>{const info=playerManager.getMediaInformation&&playerManager.getMediaInformation();if(info)tryAlternate(info);});
     window.addEventListener('message',event=>{

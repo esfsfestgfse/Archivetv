@@ -18,17 +18,20 @@
        audio alive but lose their video compositor after display:none. The
        director iframe simply covers it while the Guide is open. */
     #app.director-open #screen{left:0;top:0;width:100%;height:100%;opacity:1;pointer-events:auto;z-index:5;background:#030706}
-    #standby{position:absolute;inset:0;display:grid;place-items:center;text-align:center;background:radial-gradient(circle at 50% 40%,#113526 0,#030706 58%)}
+    #hud{position:absolute;left:0;right:0;bottom:0;z-index:3;display:flex;align-items:end;justify-content:space-between;gap:24px;padding:26px 34px 22px;background:linear-gradient(transparent,rgba(1,8,5,.9));pointer-events:none}
+    #channel{font-size:clamp(36px,5vw,72px);font-weight:900;letter-spacing:3px;color:#76ff9b;text-shadow:0 0 20px rgba(90,255,137,.75)}#program{font-size:clamp(14px,1.7vw,24px);font-weight:800;letter-spacing:1.5px;text-transform:uppercase}#status{margin-top:8px;color:#9ac9a8;font-size:12px;letter-spacing:2px}
+    #guide{position:absolute;inset:0;z-index:5;display:none;grid-template-rows:auto minmax(0,1fr) auto;background:rgba(3,12,9,.97)}#guide.open{display:grid}#guideHead{display:flex;justify-content:space-between;align-items:center;padding:24px 32px;border-bottom:1px solid rgba(151,255,183,.25);background:linear-gradient(90deg,#123b29,#081711)}#guideHead b{font-size:22px;letter-spacing:4px;color:#a7ffbd}#guideHead span{font-size:13px;letter-spacing:2px;color:#b9d7c1}#guideList{overflow:hidden;padding:12px 32px 18px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:minmax(48px,1fr);column-gap:24px;align-content:start}.row{display:grid;grid-template-columns:58px minmax(0,1fr);gap:14px;align-items:center;padding:9px 12px;border-bottom:1px solid rgba(176,244,199,.1)}.row.on{background:linear-gradient(90deg,rgba(80,255,127,.24),transparent)}.n{font-size:22px;font-weight:900;color:#82ffab;text-align:right}.name{font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.meta{margin-top:4px;color:#9ab6a1;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#guideFoot{padding:15px 32px;border-top:1px solid rgba(151,255,183,.18);color:#a9cdb2;font-size:12px;letter-spacing:2px}
+    #standby{position:absolute;inset:0;z-index:4;display:grid;place-items:center;text-align:center;background:radial-gradient(circle at 50% 40%,#113526 0,#030706 58%)}
     #standby strong{display:block;font-size:34px;letter-spacing:8px;text-shadow:0 0 22px #4cff7b} #standby span{display:block;margin-top:14px;color:#c6edd0;font-size:15px;letter-spacing:3px}
   </style>
 </head>
 <body>
-  <main id="app"><cast-media-player id="player"></cast-media-player><iframe id="screen" title="RealSignal director"></iframe><div id="standby"><div><strong>REALSIGNAL</strong><span>WAITING FOR THE DIAL</span></div></div></main>
+  <main id="app"><cast-media-player id="player"></cast-media-player><iframe id="screen" title="RealSignal director"></iframe><div id="hud"><div><div id="channel">--</div><div id="status">CONNECTING TO THE DIAL</div></div><div id="program">REALSIGNAL</div></div><section id="guide" aria-label="Program guide"><header id="guideHead"><b>REALSIGNAL · GUIDE</b><span id="guideNow">CHANNEL --</span></header><div id="guideList"></div><footer id="guideFoot">CONTROL REALSIGNAL FROM YOUR PHONE · SELECT A CHANNEL TO TUNE</footer></section><div id="standby"><div><strong>REALSIGNAL</strong><span>WAITING FOR THE DIAL</span></div></div></main>
   <script>
   (function(){
     const NS='urn:x-cast:com.realsignal.dial';
     const context=cast.framework.CastReceiverContext.getInstance();
-    const app=document.getElementById('app'),screen=document.getElementById('screen'),standby=document.getElementById('standby');
+    const app=document.getElementById('app'),screen=document.getElementById('screen'),standby=document.getElementById('standby'),guide=document.getElementById('guide'),guideList=document.getElementById('guideList'),channel=document.getElementById('channel'),program=document.getElementById('program'),status=document.getElementById('status'),guideNow=document.getElementById('guideNow');
     const playerManager=context.getPlayerManager();
     let loadedOrigin='',loadedUrl='',appReady=false,pendingCommands=[],loadedMediaUrl='',mediaAttempt=0,desiredChannel=0;
     function allowedUrl(value){try{const url=new URL(String(value||''));return url.protocol==='https:'?url:null;}catch(_){return null;}}
@@ -52,7 +55,7 @@
          Never let that delayed update replace the currently selected picture. */
       if(packet&&packet.channel&&desiredChannel&&Number(packet.channel)!==desiredChannel)return;
       if(!url||url===loadedMediaUrl)return;
-      loadedMediaUrl=url; mediaAttempt=0; standby.style.display='none'; showDirector(false);
+      loadedMediaUrl=url; mediaAttempt=0; standby.style.display='none'; showDirector(false); guide.classList.remove('open');program.textContent=String(media.title||'RealSignal');status.textContent='CH '+(packet.channel||desiredChannel||'--')+' · ON AIR';
       const info=new cast.framework.messages.MediaInformation();
       info.contentId=url; info.contentUrl=url; info.contentType=mediaContentType(media,url);
       info.streamType=cast.framework.messages.StreamType.BUFFERED;
@@ -64,7 +67,7 @@
     }
     function tryAlternate(info){
       const alts=(info&&info.customData&&info.customData.alternates)||[];
-      const next=alts[mediaAttempt++]; if(!next){showDirector(true);return;}
+      const next=alts[mediaAttempt++]; if(!next){status.textContent='SOURCE UNAVAILABLE · TRY ANOTHER CHANNEL';return;}
       loadedMediaUrl=''; loadMedia({media:{url:next,type:info.contentType.indexOf('audio/')===0?'audio':'video',contentType:mediaContentType({type:info.contentType.indexOf('audio/')===0?'audio':'video'},next),title:info.metadata&&info.metadata.title,alts:alts.slice(mediaAttempt)}});
     }
     playerManager.addEventListener(cast.framework.events.EventType.ERROR,event=>{const info=playerManager.getMediaInformation&&playerManager.getMediaInformation();if(info)tryAlternate(info);});
@@ -77,26 +80,26 @@
       if(data&&data.type==='REALSIGNAL_GUIDE_READY')showDirector(true);
       if(data&&data.type==='REALSIGNAL_GUIDE_CLOSED')showDirector(false);
     });
+    function renderGuide(items){guideList.textContent='';const fragment=document.createDocumentFragment();items.slice(0,72).forEach(function(item){const row=document.createElement('div');row.className='row'+(Number(item.num)===desiredChannel?' on':'');row.innerHTML='<div class="n"></div><div><div class="name"></div><div class="meta"></div></div>';row.querySelector('.n').textContent=String(item.num||'').padStart(2,'0');row.querySelector('.name').textContent=String(item.name||'Channel');row.querySelector('.meta').textContent=String(item.now||item.category||'Ready');fragment.appendChild(row);});guideList.appendChild(fragment);}
+    function applyGuide(packet){if(!packet||packet.type!=='REALSIGNAL_GUIDE')return;renderGuide(Array.isArray(packet.items)?packet.items:[]);guide.classList.toggle('open',packet.open!==false);}
     function apply(state){
       if(!state||state.type!=='REALSIGNAL_STATE')return;
-      const url=receiverUrl(state);
-      /* Channel selection is state inside one director document. Recreating
-         the iframe per tune boots its default channel and races CAF playback. */
-      const key=url.origin+url.pathname+'?castReceiver=1';
       desiredChannel=Number(state.channel)||0;
+      channel.textContent=desiredChannel?String(desiredChannel).padStart(2,'0'):'--';guideNow.textContent='CHANNEL '+(desiredChannel||'--');status.textContent=state.powered===false?'STANDBY · CONTROL FROM PHONE':'READY · CONTROL FROM PHONE';
       standby.style.display='none';
       context.setApplicationState('RealSignal · Channel '+(Number(state.channel)||2));
-      if(key!==loadedUrl){loadedUrl=key;loadedOrigin=url.origin;appReady=false;showDirector(true);screen.src=key;return;}
-      postToApp(state);
+      /* Receiver-first architecture: the sender provides resolved media
+         directly. No hidden copy of the full web app is ever booted on TV. */
+      if(state.powered===false){standby.style.display='grid';guide.classList.remove('open');try{playerManager.stop();}catch(_){}}else standby.style.display='none';
     }
     function command(data){
       if(!data||data.type!=='REALSIGNAL_COMMAND')return;
       const action=String(data.action||'').toUpperCase();
-      /* GUIDE is revealed only after the director reports that it rendered.
-         This prevents a slow guide build from replacing the active picture. */
-      if(!postToApp(data))pendingCommands.push(data);
+      /* The sender renders a compact native guide packet; no iframe command
+         forwarding or application reload occurs on the receiver. */
+      if(action==='BACK')guide.classList.remove('open');
     }
-    context.addCustomMessageListener(NS,event=>{const data=decode(event.data);if(data&&data.type==='REALSIGNAL_STATE')apply(data);else command(data);});
+    context.addCustomMessageListener(NS,event=>{const data=decode(event.data);if(!data)return;if(data.type==='REALSIGNAL_STATE')apply(data);else if(data.type==='REALSIGNAL_MEDIA')loadMedia(data);else if(data.type==='REALSIGNAL_GUIDE')applyGuide(data);else command(data);});
     /* Keep the interactive receiver session alive while the director is
        finding the next item; actual audio/video is loaded through CAF above. */
     const options=new cast.framework.CastReceiverOptions();

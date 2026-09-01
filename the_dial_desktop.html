@@ -1613,7 +1613,7 @@ body.cast-receiver .guide-directory .chcell.cast-focus .cc-n{color:#b9ffd0!impor
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.9.6-desktop.022-cast-guide-handshake";
+window.__ATV_BUILD="1.9.6-desktop.023-cast-receiver-first";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -1651,7 +1651,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.9.6-desktop.022-cast-guide-handshake · RealSignal</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.9.6-desktop.023-cast-receiver-first · RealSignal</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">REALSIGNAL · THE DIAL</div>
@@ -6868,9 +6868,8 @@ function primeGuideQueues(rows){
     while(active<1&&cursor<queue.length){(function(ch){active++;refillIAQueue(ch,slotFor(ch,0,{preview:true})).catch(function(){}).finally(function(){active--;refresh();setTimeout(pump,450);});})(queue[cursor++]);}}
   pump();
 }
-function castDirectorEvent(type){try{if(document.body.classList.contains("cast-receiver")&&window.parent!==window)window.parent.postMessage({type:type,channel:Number(curNum)||0},"*");}catch(e){}}
-function openGuide(){gwrap.classList.add("show");renderGuide();primeGuideQueues();updateClocks();requestAnimationFrame(function(){castDirectorEvent("REALSIGNAL_GUIDE_READY");});}
-function closeGuide(){guidePrimeRun++;gwrap.classList.remove("show");castDirectorEvent("REALSIGNAL_GUIDE_CLOSED");}
+function openGuide(){gwrap.classList.add("show");renderGuide();primeGuideQueues();updateClocks();if(typeof window.__rsCastGuideSync==="function")window.__rsCastGuideSync(true);}
+function closeGuide(){guidePrimeRun++;gwrap.classList.remove("show");if(typeof window.__rsCastGuideSync==="function")window.__rsCastGuideSync(false);}
 
 /* NOW WATCHING preview pane — mirrors tube readout inside the guide. See mobile build. */
 function guideUpdatePreview(){
@@ -7469,7 +7468,7 @@ function playFile(it,ch,sl,my,isFallback){return new Promise(res=>{
   const castReceiverMode=document.body.classList.contains("cast-receiver");
   v.muted=castReceiverMode||muted||((Date.now()-lastGesture)>4000); /* The hidden director stays muted on TV; CAF owns the audible/video output. */
   v.volume=castReceiverMode?0:vol;
-  if(castReceiverMode&&typeof window.__rsCastReceiverMedia==="function")window.__rsCastReceiverMedia(it,ch);
+  if(typeof window.__rsCastPublishMedia==="function")window.__rsCastPublishMedia(it,ch);
   /* FIX err4: crossorigin attribute removed. It forced CORS-mode media loading, and any hop of
      the archive.org download redirect chain without CORS headers made Chrome reject the file as
      MEDIA_ERR_SRC_NOT_SUPPORTED (err 4) before touching the codec. Plain media loading just works. */
@@ -17014,12 +17013,11 @@ window.__atvBootDone=true; /* app is up -- from here on, errors get logged, not 
   function setCastState(next,error){castState=String(next||"UNKNOWN");if(error)lastError=String(error.code||error.message||error);refreshStatus();}
   function retrySdk(){if(window.__rsCastSdkReady||window.cast&&cast.framework||window.__rsCastSdkRetryCount>=2)return;if(!document.head)return;window.__rsCastSdkRetryCount++;var s=document.createElement("script");s.async=true;s.src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1&rsRetry="+window.__rsCastSdkRetryCount;s.onload=function(){if(window.__rsCastSdkReady)init();};s.onerror=function(){refreshStatus();};document.head.appendChild(s);}
   function publicAppUrl(){var fallback="https://esfsfestgfse.github.io/Archivetv/the_dial_desktop.html";try{if(location.protocol==="https:"&&location.hostname!=="localhost")return new URL("the_dial_desktop.html",location.href).href;}catch(e){}return fallback;}
-  function publishReceiverMedia(it,ch){
-    if(window.parent===window||!it||!it.url)return;
-    try{window.parent.postMessage({type:"REALSIGNAL_MEDIA",channel:Number(ch&&ch.num)||Number(curNum)||0,media:{url:it.url,alts:(it.alts||[]).slice(0,6),type:it.type==="audio"?"audio":"video",title:it.title||ch&&ch.nm||"RealSignal",subtitle:"CH "+(ch&&ch.num||"")}},"*");}catch(e){}
-  }
+  function sendPacket(packet){try{if(!window.cast||!cast.framework)return false;var session=cast.framework.CastContext.getInstance().getCurrentSession();if(session){session.sendMessage(NS,packet).catch(function(){});return true;}}catch(e){}return false;}
+  function publishReceiverMedia(it,ch){if(!it||!it.url)return false;return sendPacket({type:"REALSIGNAL_MEDIA",channel:Number(ch&&ch.num)||Number(curNum)||0,media:{url:it.url,alts:(it.alts||[]).slice(0,6),type:it.type==="audio"?"audio":"video",title:it.title||ch&&ch.nm||"RealSignal",subtitle:"CH "+(ch&&ch.num||"")}});}
+  function guideSync(open){var items=CH.map(function(ch){return {num:ch.num,name:ch.nm,category:ch.cat,now:ch.num===curNum&&curItem?String(curItem.title||"ON AIR"):""};});return sendPacket({type:"REALSIGNAL_GUIDE",open:!!open,items:items});}
   function state(){return {type:"REALSIGNAL_STATE",appUrl:publicAppUrl(),channel:Number(curNum)||2,powered:!!powered,muted:!!muted,volume:Number(vol)||0.5,texture:(tube&&tube.dataset&&tube.dataset.glassScan)||"1",sentAt:Date.now()};}
-  function sync(){try{if(!window.cast||!cast.framework)return;var session=cast.framework.CastContext.getInstance().getCurrentSession();if(session)session.sendMessage(NS,state()).catch(function(){});}catch(e){}}
+  function sync(){if(sendPacket(state())&&curItem)publishReceiverMedia(curItem,byNum(curNum));}
   function init(force){var id=receiverId(),issue=platformIssue();if(issue){setCastState("UNSUPPORTED");return false;}if(!window.__rsCastSdkReady||!window.cast||!cast.framework||!id){refreshStatus();return false;}if(!force&&wired&&configuredId===id)return true;try{var ctx=cast.framework.CastContext.getInstance();ctx.setOptions({receiverApplicationId:id,autoJoinPolicy:chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED});if(!wired){wired=true;if(cast.framework.CastContextEventType.CAST_STATE_CHANGED)ctx.addEventListener(cast.framework.CastContextEventType.CAST_STATE_CHANGED,function(event){setCastState(event.castState||"UNKNOWN");});ctx.addEventListener(cast.framework.CastContextEventType.SESSION_STATE_CHANGED,function(event){var active=event.sessionState===cast.framework.SessionState.SESSION_STARTED||event.sessionState===cast.framework.SessionState.SESSION_RESUMED;if(active){clearTimeout(searchTimer);setCastState("CONNECTED");sync();quickBanner("CAST CONNECTED");}else if(event.sessionState===cast.framework.SessionState.SESSION_START_FAILED){setCastState("NO_DEVICES_AVAILABLE");quickBanner("NO CAST DEVICES FOUND · CHECK WI-FI / LOCAL ACCESS");}});}configuredId=id;setCastState(ctx.getCastState?ctx.getCastState():"NOT_CONNECTED");return true;}catch(e){setCastState("ERROR");return false;}}
   function request(){var id=receiverId(),issue=platformIssue();if(issue){quickBanner(issue);refreshStatus();return;}if(!id){quickBanner("CAST SETUP: MENU → SETTINGS → RECEIVER ID");return;}if(!init(true)){retrySdk();quickBanner(statusText());return;}try{setCastState("CONNECTING");clearTimeout(searchTimer);searchTimer=setTimeout(function(){if(castState==="CONNECTING"||castState==="NO_DEVICES_AVAILABLE"){setCastState("NO_DEVICES_AVAILABLE");quickBanner("NO CAST DEVICES FOUND · SAME WI-FI / LOCAL ACCESS");}},20000);cast.framework.CastContext.getInstance().requestSession().then(function(){clearTimeout(searchTimer);setCastState("CONNECTED");sync();}).catch(function(error){clearTimeout(searchTimer);if(castState!=="CONNECTED")setCastState("NO_DEVICES_AVAILABLE",error);quickBanner("CAST FAILED · "+(error&&error.code?error.code:"CHECK WI-FI / LOCAL ACCESS"));});}catch(e){setCastState("ERROR",e);quickBanner("CAST UNAVAILABLE IN THIS BROWSER");}}
   function applyReceiverState(next){if(!next||next.type!=="REALSIGNAL_STATE")return;if(next.powered&&!powered)powerOn();if(!next.powered&&powered){powerOff();return;}var n=Number(next.channel);if(next.powered&&n&&byNum(n)&&n!==curNum)tuneNum(n);}
@@ -17030,7 +17028,7 @@ window.__atvBootDone=true; /* app is up -- from here on, errors get logged, not 
   function castGuideCategory(delta){var chips=Array.prototype.slice.call(document.querySelectorAll("#catNav .catchip"));if(!chips.length)return;var active=chips.findIndex(function(chip){return chip.classList.contains("act");});chips[(active+delta+chips.length)%chips.length].click();castGuideIndex=0;setTimeout(function(){castGuideFocus(0);},0);}
   function castNavigate(action){var guideOpen=gwrap&&gwrap.classList.contains("show");if(action==="SELECT"){if(!guideOpen){openGuide();castGuideIndex=0;setTimeout(function(){castGuideFocus(0);},0);return;}var rows=castGuideRows();if(rows[castGuideIndex])rows[castGuideIndex].click();return;}if(action==="UP"){if(guideOpen)castGuideMove(-1);else step(1);return;}if(action==="DOWN"){if(guideOpen)castGuideMove(1);else step(-1);return;}if(action==="LEFT"){if(guideOpen)castGuideCategory(-1);else step(-1);return;}if(action==="RIGHT"){if(guideOpen)castGuideCategory(1);else step(1);}}
   function applyReceiverCommand(next){if(!next||next.type!=="REALSIGNAL_COMMAND")return;var action=String(next.action||"").toUpperCase();if(action==="CHANNEL_UP")step(1);else if(action==="CHANNEL_DOWN")step(-1);else if(action==="NEXT")skipOne();else if(action==="SURF")surf();else if(action==="LAST")goLast();else if(action==="GUIDE"){openGuide();castGuideIndex=0;setTimeout(function(){castGuideFocus(0);},0);}else if(action==="MENU")toggleOsd();else if(action==="BACK"){closeGuide();closeOsd();}else if(action==="MUTE")toggleMute();else if(action==="VOLUME_UP")setVol(.1);else if(action==="VOLUME_DOWN")setVol(-.1);else if(action.indexOf("NAV_")===0)castNavigate(action.slice(4));}
-  window.__rsCastReceiverId=receiverId;window.__rsCastStatus=statusText;window.__rsCastInit=init;window.__rsCastRequest=request;window.__rsCastSync=sync;window.__rsCastReceiverMedia=publishReceiverMedia;
+  window.__rsCastReceiverId=receiverId;window.__rsCastStatus=statusText;window.__rsCastInit=init;window.__rsCastRequest=request;window.__rsCastSync=sync;window.__rsCastPublishMedia=publishReceiverMedia;window.__rsCastGuideSync=guideSync;
   window.addEventListener("message",function(event){if(event.origin!==location.origin)return;applyReceiverState(event.data);applyReceiverCommand(event.data);});
   var query=new URLSearchParams(location.search);if(query.get("castReceiver")==="1"){document.body.classList.add("cast-receiver");var initial={type:"REALSIGNAL_STATE",powered:query.get("powered")!=="0",channel:Number(query.get("channel"))||2};setTimeout(function(){applyReceiverState(initial);},120);}
   if(window.__rsCastSdkReady)init();else sdkRetryTimer=setTimeout(function(){if(!window.__rsCastSdkReady)retrySdk();},1800);

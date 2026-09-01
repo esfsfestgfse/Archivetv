@@ -1665,7 +1665,7 @@ html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.9.6-mobile.013-ia-prime-cap";
+window.__ATV_BUILD="1.9.6-mobile.014-ia-fast-start";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -1703,7 +1703,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.9.6-mobile.013-ia-prime-cap · RealSignal</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.9.6-mobile.014-ia-fast-start · RealSignal</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -7366,7 +7366,11 @@ async function tuneIA(ch,sl,my){
     if(my!==token)return;
   }
   /* 1.2: if this channel has a program on the air right now, rejoin it in progress */
-  var rec=schedGet(ch);
+  /* A saved schedule is a nice continuity feature, but it must never stand
+     between a channel change and a program that is already ready in the
+     queue. Cold metadata rejoin lookups were the largest avoidable pause on
+     revisits. Only rejoin when the shelf has no work left to do. */
+  var rec=iaQueueHasReadyProgram(ch)?schedGet(ch):null;
   if(rec){
     var rj=null; try{ rj=await resolvePlayable(rec.id); }catch(e){}
     if(my!==token)return;
@@ -7408,10 +7412,10 @@ async function tuneIA(ch,sl,my){
   }
   /* A shelf is useful only if several candidates can actually take the air.
      One dead metadata record or CDN file must never consume the whole tune. */
-  for(var queuedTry=0;queued&&queuedTry<5;queuedTry++){
+  for(var queuedTry=0;queued&&queuedTry<3;queuedTry++){
     var qpl=iaProgramMedia[queued.identifier];
-    if(qpl&&typeof qpl.then==="function")qpl=await withTO(qpl,3200).catch(function(){return null;});
-    else if(!qpl)qpl=await withTO(resolvePlayable(queued.identifier),3200).catch(function(){return null;});
+    if(qpl&&typeof qpl.then==="function")qpl=await withTO(qpl,2200).catch(function(){return null;});
+    else if(!qpl)qpl=await withTO(resolvePlayable(queued.identifier),2200).catch(function(){return null;});
     if(my!==token)return;
     if(qpl){qpl.title=queued.title||queued.identifier;qpl.year=queued.year;if(await playFile(qpl,ch,sl,my,0))return;}
     iaMarkProgramFailed(queued.identifier);iaProgramMedia[queued.identifier]=null;
@@ -7513,7 +7517,10 @@ function playFile(it,ch,sl,my,isFallback){return new Promise(res=>{
      MEDIA_ERR_SRC_NOT_SUPPORTED (err 4) before touching the codec. Plain media loading just works. */
   /* A bad Archive derivative used to own the television for 22 seconds before
      the next ready program could try. Keep the screen responsive instead. */
-  let done=false; const to=setTimeout(()=>fin(false),(it.isAd?4500:(isFallback>0?5000:7000)));
+  /* A direct Archive CDN file that has not begun within four seconds is not a
+     television-quality candidate. Move to its alternate or the next queued
+     program instead of holding the viewer on the tuner for seven seconds. */
+  let done=false; const to=setTimeout(()=>fin(false),(it.isAd?4000:(isFallback>0?3200:4200)));
   function tryPlay(){ try{const p=v.play&&v.play();
     if(p&&p.catch)p.catch(()=>{ /* audible autoplay blocked -> mute & retry so the queue continues */
       try{ v.muted=true; needSound(true); const q=v.play&&v.play(); if(q&&q.catch)q.catch(()=>{});

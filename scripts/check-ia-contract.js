@@ -52,7 +52,7 @@ if (!/var permanentEra=prog\.era\|\|\[/.test(source) || !/var permanentSubjects=
 if (/const NS=|const PROFILES=/.test(source)) issues.push('retired clock vocabulary and profiles must not remain in the app bundle');
 if (!/IA_MEDIA_WARM_MAX=6/.test(source)) issues.push('first-frame shelf must stay bounded to six media elements');
 if (!/IA_PROGRAM_FAILURE_TTL=12\*60\*1000/.test(source) || !/function iaMarkProgramFailed\(id\)/.test(source) || !/iaProgramFailed\(item\.identifier\)/.test(source)) issues.push('failed archive items must be temporarily quarantined before another queue pick');
-if (!/for\(var queuedTry=0;queued&&queuedTry<5;queuedTry\+\+\)/.test(source) || !/iaMarkProgramFailed\(queued\.identifier\)/.test(source)) issues.push('a channel tune must exhaust its usable queue shelf before returning to discovery');
+if (!/for\(var queuedTry=0;queued&&queuedTry<3;queuedTry\+\+\)/.test(source) || !/iaMarkProgramFailed\(queued\.identifier\)/.test(source)) issues.push('a channel tune must exhaust three bounded queue candidates before returning to discovery');
 if (!/primeIACompanions\(ch,sl\)/.test(source)) issues.push('channel tuning must prioritize the active and neighboring IA queues');
 if (!/var warmDelay=index===0\?0:1500\+\(index-1\)\*1500/.test(source)) issues.push('companion queue warming must stagger behind the active station');
 if (!/function iaLocalQueueFallback\(ch,sl\)/.test(source) || !/using local shelf/.test(source)) issues.push('IA queue must retain a strict local fallback when the relay is unavailable');

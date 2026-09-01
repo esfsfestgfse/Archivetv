@@ -1665,7 +1665,7 @@ html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.9.6-mobile.017-edge-queue-architecture";
+window.__ATV_BUILD="1.9.6-mobile.018-edge-queue-hotfix";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -1703,7 +1703,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.9.6-mobile.017-edge-queue-architecture · RealSignal</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.9.6-mobile.018-edge-queue-hotfix · RealSignal</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -3520,6 +3520,12 @@ const PROGRAM = {
      hymns, sermons, gospel radio, sacred music. */
   "Sunday Service": {
     genre: "faith", era: [1930, 2010],
+    /* The old faith genre vocabulary and the actual hymn/sermon search rails
+       barely overlapped, so perfectly valid sacred programming was discarded
+       after discovery. Keep this channel strict, but score against the words
+       the editorial rails are intentionally seeking. */
+    queueTerms: ["hymn","gospel","choir","worship","sermon","religious broadcast","religious service","radio church","spirituality","religion"],
+    themeMinScore: 1,
     providers: [
       { collections: ["feature_films", "prelinger", "classic_tv", "opensource_movies"], require_subj: [
         "hymn","hymns","sacred music","sacred song","spiritual","spirituals","gospel","gospel music",
@@ -3542,7 +3548,7 @@ const PROGRAM = {
       ] }
     ],
     deny: {
-      title: ["fundraising","donation","commercial","dance","rock band"],
+      title: ["fundraising","donation","commercial","dance","rock band","sex","drugs"],
       subject: ["commercial","fundraising","dance","rock band","hip hop","rap","electronic dance","punk","metal"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true

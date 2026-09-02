@@ -44,10 +44,10 @@
     function notifySender(packet){if(!senderId||!context.sendCustomMessage)return;try{const sent=context.sendCustomMessage(NS,senderId,packet);if(sent&&sent.catch)sent.catch(function(){});}catch(_){}}
     function mediaContentType(media,url){
       if(media&&media.contentType)return String(media.contentType);
+      if(/\.m3u8(?:[?#]|$)/i.test(url))return 'application/x-mpegurl';
       if(media&&media.type==='audio')return /\.ogg(?:[?#]|$)/i.test(url)?'audio/ogg':/\.m4a(?:[?#]|$)/i.test(url)?'audio/mp4':'audio/mpeg';
       if(/\.webm(?:[?#]|$)/i.test(url))return 'video/webm';
       if(/\.ogv(?:[?#]|$)/i.test(url))return 'video/ogg';
-      if(/\.m3u8(?:[?#]|$)/i.test(url))return 'application/x-mpegurl';
       return 'video/mp4';
     }
     function loadMedia(packet){

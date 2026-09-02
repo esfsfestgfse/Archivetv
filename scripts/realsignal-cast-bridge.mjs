@@ -32,19 +32,21 @@ function stopActive() {
   try { active.proc?.kill('SIGTERM'); } catch (_) {}
   active = null;
 }
-function start(source) {
-  if (active?.source === source) return active;
+function start(source, mode = 'video') {
+  if (active?.source === source && active?.mode === mode && !active.exit) return active;
   stopActive();
   const id = `${Date.now()}-${crypto.randomBytes(3).toString('hex')}`;
   const dir = path.join(root, id); fs.mkdirSync(dir, { recursive: true });
   const playlist = path.join(dir, 'live.m3u8');
   const segment = path.join(dir, 'seg-%05d.ts');
-  const args = ['-hide_banner', '-loglevel', 'warning', '-nostdin', '-y', '-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '4', '-i', source,
-    '-map', '0:v:0?', '-map', '0:a:0?', '-c:v', 'libx264', '-preset', 'veryfast', '-tune', 'zerolatency', '-pix_fmt', 'yuv420p', '-profile:v', 'main', '-level', '4.0', '-r', '30',
-    '-c:a', 'aac', '-b:a', '128k', '-ar', '48000', '-ac', '2', '-f', 'hls', '-hls_time', '2', '-hls_list_size', '6', '-hls_flags', 'delete_segments+independent_segments', '-hls_segment_filename', segment, playlist];
+  const args = ['-hide_banner', '-loglevel', 'warning', '-nostdin', '-y', '-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '4', '-i', source];
+  if (mode === 'audio') args.push('-map', '0:a:0', '-vn', '-c:a', 'aac', '-b:a', '128k', '-ar', '48000', '-ac', '2');
+  else args.push('-map', '0:V:0', '-map', '0:a:0?', '-c:v', 'libx264', '-preset', 'veryfast', '-tune', 'zerolatency', '-pix_fmt', 'yuv420p', '-profile:v', 'main', '-level', '4.0', '-r', '30', '-c:a', 'aac', '-b:a', '128k', '-ar', '48000', '-ac', '2');
+  args.push('-f', 'hls', '-hls_time', '2', '-hls_list_size', '6', '-hls_flags', 'delete_segments+independent_segments', '-hls_segment_filename', segment, playlist);
   const proc = spawn(FFMPEG, args, { windowsHide: true });
-  active = { id, source, dir, playlist, proc, startedAt: Date.now(), error: '' };
+  active = { id, source, mode, dir, playlist, proc, startedAt: Date.now(), error: '' };
   proc.stderr?.on('data', chunk => { active && (active.error = String(chunk).trim().slice(-500)); });
+  proc.on('error', error => { if (active?.id === id) { active.error = error.message; active.exit = { code: null, error: error.code || 'spawn_error' }; } });
   proc.on('exit', (code, signal) => { if (active?.id === id) active.exit = { code, signal }; });
   return active;
 }
@@ -63,17 +65,18 @@ function serveFile(res, file) {
   const safe = path.resolve(file); if (!safe.startsWith(path.resolve(active.dir) + path.sep)) return res.writeHead(403).end();
   if (!fs.existsSync(safe)) return res.writeHead(404).end();
   const type = safe.endsWith('.m3u8') ? 'application/vnd.apple.mpegurl' : 'video/mp2t';
-  res.writeHead(200, { 'Content-Type': type, 'Cache-Control': 'no-store', 'Access-Control-Allow-Origin': '*' }); fs.createReadStream(safe).pipe(res);
+  res.writeHead(200, { 'Content-Type': type + (type.includes('mpegurl') ? '; charset=utf-8' : ''), 'Cache-Control': 'no-store', 'Access-Control-Allow-Origin': '*' }); fs.createReadStream(safe).pipe(res);
 }
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   if (req.method === 'OPTIONS') return res.writeHead(204, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET,OPTIONS', 'Access-Control-Allow-Headers': '*' }).end();
-  if (url.pathname === '/health') return json(res, 200, { ok: true, port: PORT, active: active ? { source: active.source, startedAt: active.startedAt, exit: active.exit || null, error: active.error } : null, urls: lanAddresses() });
+  if (url.pathname === '/health') return json(res, 200, { ok: true, port: PORT, active: active ? { source: active.source, mode: active.mode, startedAt: active.startedAt, exit: active.exit || null, error: active.error } : null, urls: lanAddresses() });
   if (url.pathname === '/stop') { stopActive(); return json(res, 200, { ok: true }); }
   if (url.pathname === '/live.m3u8') {
     const source = validSource(url.searchParams.get('source') || '');
     if (!source) return json(res, 400, { ok: false, error: 'source must be an HTTP(S) URL' });
-    const job = start(source); if (!await waitFor(job.playlist)) return json(res, 503, { ok: false, retry: true, error: job.error || 'transcoder has not produced a playlist yet' });
+    const mode = url.searchParams.get('mode') === 'audio' ? 'audio' : 'video';
+    const job = start(source, mode); if (!await waitFor(job.playlist)) return json(res, 503, { ok: false, retry: true, error: job.error || 'transcoder has not produced a playlist yet' });
     return serveFile(res, job.playlist);
   }
   if (active && /^\/seg-\d+\.ts$/.test(url.pathname)) return serveFile(res, path.join(active.dir, path.basename(url.pathname)));

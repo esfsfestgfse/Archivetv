@@ -1665,7 +1665,7 @@ html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.9.6-mobile.026-local-cast-bridge";
+window.__ATV_BUILD="1.9.6-mobile.027-auto-local-bridge";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -1703,7 +1703,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.9.6-mobile.026-local-cast-bridge · RealSignal</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.9.6-mobile.027-auto-local-bridge · RealSignal</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -8294,7 +8294,7 @@ function renderSettings(){
   var bb=$("setBumpers"); if(bb) bb.textContent=bumperOn?"ON":"OFF";
   var t=$("setTheme"); if(t) t.textContent=THEMES[themeIdx].toUpperCase();
   var castId=$("castReceiverIdInput"); if(castId&&document.activeElement!==castId)castId.value=(typeof window.__rsCastReceiverId==="function"?window.__rsCastReceiverId():"");
-  var castBridge=$("castBridgeUrlInput"); if(castBridge&&document.activeElement!==castBridge)castBridge.value=store.get("castBridgeUrl","")||"";
+  var castBridge=$("castBridgeUrlInput"); if(castBridge&&document.activeElement!==castBridge)castBridge.value=store.get("castBridgeUrl","http://192.168.1.67:8788")||"";
   var castStatus=$("castReceiverStatus"); if(castStatus)castStatus.textContent=(typeof window.__rsCastStatus==="function"?window.__rsCastStatus():((typeof window.__rsCastReceiverId==="function"&&window.__rsCastReceiverId())?"Receiver ready · select CAST":"Receiver ID required for full-screen casting"));
   var k=$("naraKeyInput"); if(k && !k.value) k.value=naraKey();
   var lm=$("setLocMode"); if(lm)lm.textContent=(locMode==="zip")?("HOME "+(homeLoc.zip||"ZIP")):"GPS";
@@ -17182,7 +17182,7 @@ window.__atvBootDone=true; /* app is up -- from here on, errors get logged, not 
   function retrySdk(){if(window.__rsCastSdkReady||window.cast&&cast.framework||window.__rsCastSdkRetryCount>=2)return;if(!document.head)return;window.__rsCastSdkRetryCount++;var s=document.createElement("script");s.async=true;s.src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1&rsRetry="+window.__rsCastSdkRetryCount;s.onload=function(){if(window.__rsCastSdkReady)init();};s.onerror=function(){refreshStatus();};document.head.appendChild(s);}
   function publicAppUrl(){var fallback="https://esfsfestgfse.github.io/Archivetv/the_dial_desktop.html";try{if(location.protocol==="https:"&&location.hostname!=="localhost")return new URL("the_dial_desktop.html",location.href).href;}catch(e){}return fallback;}
   function sendPacket(packet){try{if(!window.cast||!cast.framework)return false;var session=cast.framework.CastContext.getInstance().getCurrentSession();if(session){session.sendMessage(NS,packet).catch(function(){});return true;}}catch(e){}return false;}
-  function castSource(url){var bridge=String(store.get("castBridgeUrl","")||"").trim().replace(/\/$/,"");if(!bridge||!url)return url;try{var out=new URL(bridge+"/live.m3u8");out.searchParams.set("source",url);return out.href;}catch(e){return url;}}
+  function castSource(url){var bridge=String(store.get("castBridgeUrl","http://192.168.1.67:8788")||"").trim().replace(/\/$/,"");if(!bridge||!url)return url;try{var out=new URL(bridge+"/live.m3u8");out.searchParams.set("source",url);return out.href;}catch(e){return url;}}
   function publishReceiverMedia(it,ch){if(!it||!it.url)return false;var num=Number(ch&&ch.num)||Number(curNum)||0,media={url:castSource(it.url),alts:(it.alts||[]).slice(0,6).map(castSource),type:it.type==="audio"?"audio":"video",title:it.title||ch&&ch.nm||"RealSignal",subtitle:"CH "+num};return sendPacket({type:"REALSIGNAL_TUNE",channel:num,state:state(),media:media});}
   function guideSync(open){var ordered=CH.slice().sort(function(a,b){return a.num-b.num;}),at=Math.max(0,ordered.findIndex(function(ch){return ch.num===curNum;})-18),items=ordered.slice(at,at+72).map(function(ch){return {num:ch.num,name:ch.nm,category:ch.cat,now:ch.num===curNum&&curItem?String(curItem.title||"ON AIR"):""};});return sendPacket({type:"REALSIGNAL_GUIDE",open:!!open,items:items});}
   function state(){return {type:"REALSIGNAL_STATE",appUrl:publicAppUrl(),channel:Number(curNum)||2,powered:!!powered,muted:!!muted,volume:Number(vol)||0.5,texture:(tube&&tube.dataset&&tube.dataset.glassScan)||"1",sentAt:Date.now()};}

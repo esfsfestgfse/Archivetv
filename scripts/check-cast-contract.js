@@ -16,7 +16,7 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
     ['castBridgeUrlInput', 'must expose optional local FFmpeg bridge setup'],
     ['REALSIGNAL_STATE', 'must send a normalized receiver state packet'],
     ['A0A5CD01', 'must carry the published RealSignal receiver ID'],
-    ['.032-audio-direct-cast', 'must carry the direct audio Cast build stamp'],
+    ['.034-cast-realtime-bridge', 'must carry the real-time Cast bridge build stamp'],
     ['__rsCastSdkRetryCount', 'must support recovery when the Cast SDK is delayed'],
     ['rsRetry=', 'must retry a failed Cast SDK load'],
     ['display-mode: standalone', 'must diagnose Android standalone/PWA Cast limitations'],
@@ -34,7 +34,9 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
 }
 const bridge = fs.readFileSync(path.join(repo, 'scripts', 'realsignal-cast-bridge.mjs'), 'utf8');
 for (const token of ["/health", "/live.m3u8", "libx264", "-c:a', 'aac"]) if (!bridge.includes(token)) issues.push(`bridge: missing ${token}`);
-for (const token of ["mode === 'audio'", "0:V:0", "!active.exit"]) if (!bridge.includes(token)) issues.push(`bridge: missing media safety ${token}`);
+for (const token of ["mode === 'audio'", "0:V:0", "!old.exit", "/hls/", "playlistReady", "'-re'"]) if (!bridge.includes(token)) issues.push(`bridge: missing media safety ${token}`);
+for (const token of ['loadTimer', 'force:true', 'SOURCE UNAVAILABLE']) if (!receiver.includes(token)) issues.push(`receiver: missing load recovery ${token}`);
+for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) for (const token of ['castSessionFor', 'session+"_a"']) if (!fs.readFileSync(path.join(repo, file), 'utf8').includes(token)) issues.push(`${file}: missing isolated Cast session ${token}`);
 const pages = fs.readFileSync(path.join(repo, '.github/workflows/pages.yml'), 'utf8');
 if (!pages.includes('cp realsignal_cast_receiver.html')) issues.push('pages workflow: receiver is not published');
 console.log(`cast contract: ${issues.length ? 'FAILED' : 'passed'}`);

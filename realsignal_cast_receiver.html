@@ -75,6 +75,7 @@
       clearTimeout(loadTimer); loadToken++;
       const alts=(info&&info.customData&&info.customData.alternates)||[];
       const next=alts[mediaAttempt++]; if(!next){loadedMediaUrl='';status.textContent='SOURCE UNAVAILABLE · ADVANCING';notifySender({type:'REALSIGNAL_CAST_ERROR',channel:desiredChannel,reason:'all media candidates rejected'});return;}
+      status.textContent=/\/live\.m3u8(?:[?#]|$)/i.test(next)?'CONVERTING SOURCE · PLEASE STAND BY':'TRYING BACKUP SOURCE';
       loadedMediaUrl=''; loadMedia({force:true,media:{url:next,type:info.contentType.indexOf('audio/')===0?'audio':'video',contentType:mediaContentType({type:info.contentType.indexOf('audio/')===0?'audio':'video'},next),title:info.metadata&&info.metadata.title,alts:alts.slice(mediaAttempt)}});
     }
     playerManager.addEventListener(cast.framework.events.EventType.ERROR,event=>{const info=playerManager.getMediaInformation&&playerManager.getMediaInformation();if(info)tryAlternate(info);});

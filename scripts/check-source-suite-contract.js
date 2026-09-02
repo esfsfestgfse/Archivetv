@@ -12,7 +12,7 @@ for (const file of files) {
   const source = fs.readFileSync(path.join(repo, file), 'utf8');
   const name = file;
   const required = [
-    [/V2_SOURCE_CACHE_VERSION=8/, 'source catalog cache version must be bumped'],
+    [/V2_SOURCE_CACHE_VERSION=9/, 'source catalog cache version must be bumped'],
     [/V2_SOURCE_CACHE_TTL=12\*60\*1000/, 'source catalog cache must expire quickly enough to rotate'],
     [/function v2MapLimit\(/, 'provider fan-out must be concurrency bounded'],
     [/function v2Verified\(/, 'items must carry a common verification envelope'],
@@ -22,8 +22,15 @@ for (const file of files) {
     [/v2LoadProfile\(ch,profile,token,true\)/, 'near-exhausted catalogs must force a rolling refresh'],
     [/V2_SOURCE_MIN_CATALOG=12/, 'underfilled catalogs must bypass stale five-item shelves'],
     [/function v2Shelf\(/, 'catalog ordering must persist the last on-air shelf'],
+    [/function v2Hash\(/, 'source rotation must have a stable per-lane hash'],
+    [/function v2NextRotation\(/, 'source refreshes must advance a persisted rotation counter'],
+    [/function v2QueryWindow\(/, 'provider queries must rotate through the full lane query pool'],
+    [/sortModes=\["-match","-publishedAt","-views","-likes"\]/, 'PeerTube discovery must rotate result ordering'],
+    [/orders=\["relevance","date","viewCount","rating"\]/, 'YouTube discovery must rotate result ordering'],
+    [/function v2TuneRefreshed\(/, 'sparse queues must wait for a genuinely different next item'],
+    [/state\.items\.length<=V2_SOURCE_READY_BUFFER/, 'small queues must refresh before replaying a program'],
     [/cached\.items\.length>=V2_SOURCE_MIN_CATALOG/, 'small cached catalogs must be refreshed instead of replayed'],
-    [/\.slice\(0,4\),queries=profile\.queries\.slice\(0,Math\.min\(5/, 'PeerTube discovery must use all approved instances and five query lanes'],
+    [/\.slice\(0,4\),queries=v2QueryWindow\(profile,"peertube"/, 'PeerTube discovery must use all approved instances and rotating query lanes'],
     [/Math\.min\(24,V2_SOURCE_MAX_DETAIL\)/, 'PeerTube detail hydration must retain a deeper catalog'],
     [/store\.set\("v2source:"\+key,\{version:V2_SOURCE_CACHE_VERSION,at:Date\.now\(\),items:items,health:state\.health\}\)/, 'catalog cache must retain provider health'],
     [/fl\[\]=license.*fl\[\]=rights/, 'Archive discovery must request rights metadata'],
@@ -42,7 +49,7 @@ for (const file of files) {
   if (!/embed-eligible/.test(youtube) || !/v2YouTubeBlocked/.test(youtube)) issues.push(`${name}: YouTube must preserve embed eligibility and Shorts/language/how-to filtering`);
 
   const stamps = [...source.matchAll(/window\.__ATV_BUILD\s*=\s*"([^"]+)"/g)].map(match => match[1]);
-  if (stamps.length !== 1 || !/\.038-source-entertainment-lanes$/.test(stamps[0] || '')) issues.push(`${name}: source-suite build stamp is missing or stale`);
+  if (stamps.length !== 1 || !/\.039-source-rolling-random$/.test(stamps[0] || '')) issues.push(`${name}: source-suite build stamp is missing or stale`);
 }
 
 const desktop = fs.readFileSync(path.join(repo, files[0]), 'utf8');

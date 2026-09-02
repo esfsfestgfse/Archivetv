@@ -1665,7 +1665,7 @@ html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.9.6-mobile.037-source-entertainment-suite";
+window.__ATV_BUILD="1.9.6-mobile.038-source-entertainment-lanes";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -1703,7 +1703,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.9.6-mobile.037-source-entertainment-suite · RealSignal</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.9.6-mobile.038-source-entertainment-lanes · RealSignal</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -2394,6 +2394,16 @@ const CH=[
  {nm:"Screen Test", num:562, cat:"SOURCE", source:"v2preview", ns:"doc", previewKey:"screen-test"},
  {nm:"Classic Sitcom Room", num:563, cat:"SOURCE", source:"v2preview", ns:"tv", previewKey:"classic-sitcom-room"},
  {nm:"Film Noir Desk", num:564, cat:"SOURCE", source:"v2preview", ns:"movie", previewKey:"film-noir-desk"},
+ {nm:"Horror House", num:565, cat:"SOURCE", source:"v2preview", ns:"movie", previewKey:"horror-house"},
+ {nm:"Western Screen", num:566, cat:"SOURCE", source:"v2preview", ns:"movie", previewKey:"western-screen"},
+ {nm:"Sci-Fi Signal", num:567, cat:"SOURCE", source:"v2preview", ns:"movie", previewKey:"sci-fi-signal"},
+ {nm:"Game Show Archive", num:568, cat:"SOURCE", source:"v2preview", ns:"tv", previewKey:"game-show-archive"},
+ {nm:"Variety Hour", num:569, cat:"SOURCE", source:"v2preview", ns:"tv", previewKey:"variety-hour"},
+ {nm:"Talk Show Archive", num:570, cat:"SOURCE", source:"v2preview", ns:"tv", previewKey:"talk-show-archive"},
+ {nm:"Travel Reel", num:571, cat:"SOURCE", source:"v2preview", ns:"doc", previewKey:"travel-reel"},
+ {nm:"Family TV Club", num:572, cat:"SOURCE", source:"v2preview", ns:"tv", previewKey:"family-tv-club"},
+ {nm:"Sports Film Room", num:573, cat:"SOURCE", source:"v2preview", ns:"tv", previewKey:"sports-film-room"},
+ {nm:"Jukebox Television", num:574, cat:"SOURCE", source:"v2preview", ns:"tv", previewKey:"jukebox-television"},
  {nm:"Space", num:957,             cat:"LDATA", source:"space",   ns:"tv"},
  {nm:"River & Lake Watch", num:958,cat:"LDATA", source:"river",   ns:"tv"},
  {nm:"On This Day", num:504,       cat:"RETRO", source:"onthisday",ns:"movie"},
@@ -2529,6 +2539,16 @@ const CHANNEL_META={
 "Screen Test":{desc:"SOURCE SUITE · cinematography, editing, production design and the craft history of filmmaking.",rel:["Movie House","The Darkroom"]},
 "Classic Sitcom Room":{desc:"SOURCE SUITE · sitcom history, television comedy, production retrospectives and classic TV archives.",rel:["Classic Rerun TV","TV Time Machine"]},
 "Film Noir Desk":{desc:"SOURCE SUITE · film noir history, detective cinema, black-and-white crime film and noir cinematography.",rel:["The Detective","Movie House"]},
+"Horror House":{desc:"SOURCE SUITE · horror film history, classic monsters, genre cinema and preservation retrospectives.",rel:["Film Noir Desk","Movie House"]},
+"Western Screen":{desc:"SOURCE SUITE · Western film history, cowboy cinema, frontier television and preservation.",rel:["Movie House","Film Noir Desk"]},
+"Sci-Fi Signal":{desc:"SOURCE SUITE · science-fiction cinema, television history, space productions and genre preservation.",rel:["Mission Control","Movie House"]},
+"Game Show Archive":{desc:"SOURCE SUITE · television game-show history, quiz formats, hosts and production archives.",rel:["TV Time Machine","Variety Hour"]},
+"Variety Hour":{desc:"SOURCE SUITE · variety television, vaudeville, stage revues and broadcast entertainment history.",rel:["TV Time Machine","Talk Show Archive"]},
+"Talk Show Archive":{desc:"SOURCE SUITE · television interviews, late-night formats, hosts and broadcast conversation history.",rel:["TV Time Machine","Variety Hour"]},
+"Travel Reel":{desc:"SOURCE SUITE · travel films, destination documentaries, tourism history and cultural journeys.",rel:["Backroad Journal","The Map Room"]},
+"Family TV Club":{desc:"SOURCE SUITE · family programming, children’s television, educational kids’ shows and public TV history.",rel:["Cartoon Time Machine","TV Time Machine"]},
+"Sports Film Room":{desc:"SOURCE SUITE · sports documentaries, athlete profiles, sports television and competition history.",rel:["Sports Center","TV Time Machine"]},
+"Jukebox Television":{desc:"SOURCE SUITE · music television, concert broadcasts, jukebox history and performance archives.",rel:["Rhythm Archives","Variety Hour"]},
 "Channel 2 Network":{desc:"Full-service network affiliate: cartoons at dawn, matinees at noon, primetime at night.",best:"all day",rel:["Nite-Owl 3","Classic Rerun TV"]},
 "Nite-Owl 3":{desc:"The overnight-flavored sister station. Noir, mystery and late movies lean heavier here.",best:"late night",rel:["Channel 2 Network","Noir & Mystery"]},
 "Classic Cartoons":{desc:"Golden-age theatrical animation, 1930s-1972.",best:"mornings",rel:["Classic Cartoons","Anime Alley"]},
@@ -7121,7 +7141,17 @@ const V2_PREVIEW_PROFILES={
   "animation-desk":{name:"Animation Desk",queryLimit:8,providers:["peertube","youtube"],queries:["animation history documentary","stop motion history film","animated film production documentary","animation studio history","experimental animation archive"],match:["animation history","stop motion history","animated film production","animation studio history","experimental animation","animation archive"],deny:["fictional","music video","commercial","gameplay","reaction","fan edit","shorts","anime opening","lyrics video"]},
   "screen-test":{name:"Screen Test",queryLimit:8,providers:["peertube","youtube"],queries:["cinematography documentary","film editing history","film studio history documentary","production design cinema film","documentary about filmmaking"],match:["cinematography","film editing","film studio history","production design","filmmaking documentary","film production"],deny:["fictional","music video","commercial","cartoon","gameplay","trailer","reaction","movie recap","fan edit","shorts"]},
   "classic-sitcom-room":{name:"Classic Sitcom Room",queryLimit:8,providers:["peertube","youtube"],queries:["classic sitcom history documentary","television comedy history","classic TV comedy archive","sitcom production documentary","television comedy retrospective"],match:["classic sitcom history","television comedy history","classic tv comedy","sitcom production","comedy retrospective","sitcom archive"],deny:["fictional","music video","commercial","cartoon","gameplay","reaction","episode recap","fan edit","shorts"]},
-  "film-noir-desk":{name:"Film Noir Desk",queryLimit:8,providers:["peertube","youtube"],queries:["film noir documentary","film noir history","detective cinema history","black and white crime film history","noir cinematography documentary"],match:["film noir","noir history","detective cinema","black and white crime film","noir cinematography","noir documentary"],deny:["fictional","music video","commercial","cartoon","gameplay","trailer","reaction","movie recap","fan edit","shorts"]}
+  "film-noir-desk":{name:"Film Noir Desk",queryLimit:8,providers:["peertube","youtube"],queries:["film noir documentary","film noir history","detective cinema history","black and white crime film history","noir cinematography documentary"],match:["film noir","noir history","detective cinema","black and white crime film","noir cinematography","noir documentary"],deny:["fictional","music video","commercial","cartoon","gameplay","trailer","reaction","movie recap","fan edit","shorts"]},
+  "horror-house":{name:"Horror House",queryLimit:8,providers:["peertube","youtube"],queries:["horror film history documentary","classic horror cinema documentary","monster movie history film","horror film preservation","horror director retrospective"],match:["horror film history","classic horror cinema","monster movie history","horror film preservation","horror director retrospective","horror cinema"],deny:["fictional","music video","commercial","cartoon","gameplay","trailer","reaction","movie recap","fan film","shorts"]},
+  "western-screen":{name:"Western Screen",queryLimit:8,providers:["peertube","youtube"],queries:["western film history documentary","classic western cinema","cowboy film history","frontier television history","western film preservation"],match:["western film history","classic western cinema","cowboy film history","frontier television","western film preservation","western cinema"],deny:["fictional","music video","commercial","cartoon","gameplay","trailer","reaction","movie recap","fan film","shorts"]},
+  "sci-fi-signal":{name:"Sci-Fi Signal",queryLimit:8,providers:["peertube","youtube"],queries:["science fiction film history documentary","classic sci-fi cinema","science fiction television history","space movie production documentary","science fiction film preservation"],match:["science fiction film history","classic sci-fi cinema","science fiction television","space movie production","science fiction film preservation","sci-fi cinema"],deny:["fictional","music video","commercial","cartoon","gameplay","trailer","reaction","movie recap","fan film","shorts"]},
+  "game-show-archive":{name:"Game Show Archive",queryLimit:8,providers:["peertube","youtube"],queries:["game show history documentary","classic television game show","quiz show television archive","game show host retrospective","television game show production"],match:["game show history","classic television game show","quiz show television","game show host","television game show production","game show archive"],deny:["fictional","music video","commercial","cartoon","gameplay","video game","esports","reaction","episode recap","shorts"]},
+  "variety-hour":{name:"Variety Hour",queryLimit:8,providers:["peertube","youtube"],queries:["television variety show history","classic variety television archive","vaudeville television documentary","stage revue history film","variety show production documentary"],match:["television variety show","classic variety television","vaudeville television","stage revue","variety show production","variety show history"],deny:["fictional","music video","commercial","cartoon","gameplay","reaction","fan edit","podcast","shorts"]},
+  "talk-show-archive":{name:"Talk Show Archive",queryLimit:8,providers:["peertube","youtube"],queries:["television talk show history","classic interview program archive","late night television history","television host retrospective","broadcast interview history"],match:["television talk show","classic interview program","late night television","television host retrospective","broadcast interview history","talk show archive"],deny:["fictional","music video","commercial","cartoon","gameplay","podcast","opinion vlog","reaction","shorts"]},
+  "travel-reel":{name:"Travel Reel",queryLimit:8,providers:["peertube","youtube"],queries:["travel film history documentary","destination documentary film","tourism film archive","travel television history","cultural travel documentary"],match:["travel film history","destination documentary","tourism film","travel television","cultural travel documentary","travel film archive"],deny:["fictional","music video","commercial","cartoon","gameplay","influencer","travel vlog","hotel advertisement","shorts"]},
+  "family-tv-club":{name:"Family TV Club",queryLimit:8,providers:["peertube","youtube"],queries:["family television history documentary","children's television archive","educational kids television history","family programming documentary","public television children's shows"],match:["family television","children's television","educational kids television","family programming","public television children's","kids television history"],deny:["fictional","music video","commercial","gameplay","horror","prank","reaction","unboxing","shorts"]},
+  "sports-film-room":{name:"Sports Film Room",queryLimit:8,providers:["peertube","youtube"],queries:["sports documentary history","athlete profile documentary","sports television history","baseball history film","football history documentary"],match:["sports documentary","athlete profile","sports television history","baseball history","football history","sports film"],deny:["fictional","music video","commercial","cartoon","gameplay","esports","sports betting","reaction","how to","shorts"]},
+  "jukebox-television":{name:"Jukebox Television",queryLimit:8,providers:["peertube","youtube"],queries:["music television history documentary","live music performance archive","jukebox history film","concert television history","music variety show archive"],match:["music television history","live music performance","jukebox history","concert television","music variety show","music performance archive"],deny:["fictional","commercial","cartoon","gameplay","reaction","lyrics video","fan edit","shorts"]}
 };
 var v2PreviewState=window.__v2PreviewState||{};window.__v2PreviewState=v2PreviewState;
 var v2PreviewInflight={},v2PreviewAdvance={};

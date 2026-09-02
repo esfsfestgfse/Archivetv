@@ -42,7 +42,7 @@ for (const file of files) {
   if (!/embed-eligible/.test(youtube) || !/v2YouTubeBlocked/.test(youtube)) issues.push(`${name}: YouTube must preserve embed eligibility and Shorts/language/how-to filtering`);
 
   const stamps = [...source.matchAll(/window\.__ATV_BUILD\s*=\s*"([^"]+)"/g)].map(match => match[1]);
-  if (stamps.length !== 1 || !/\.037-source-entertainment-suite$/.test(stamps[0] || '')) issues.push(`${name}: source-suite build stamp is missing or stale`);
+  if (stamps.length !== 1 || !/\.038-source-entertainment-lanes$/.test(stamps[0] || '')) issues.push(`${name}: source-suite build stamp is missing or stale`);
 }
 
 const desktop = fs.readFileSync(path.join(repo, files[0]), 'utf8');

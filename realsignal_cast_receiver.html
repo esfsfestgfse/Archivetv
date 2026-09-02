@@ -40,7 +40,7 @@
     function postToApp(data){if(!loadedOrigin||!appReady)return false;try{screen.contentWindow.postMessage(data,loadedOrigin);return true;}catch(_){return false;}}
     function showDirector(open){app.classList.toggle('director-open',!!open);}
     screen.addEventListener('load',()=>{appReady=true;const queued=pendingCommands.splice(0);queued.forEach(postToApp);});
-    function playableUrl(value){try{const url=new URL(String(value||''));return url.protocol==='https:'?url.href:'';}catch(_){return '';}}
+    function playableUrl(value){try{const url=new URL(String(value||''));const localHttp=url.protocol==='http:'&&(/^(localhost|127\.0\.0\.1|192\.168\.|10\.|172\.(1[6-9]|2\d|3[0-1])\.)/.test(url.hostname)||url.hostname.endsWith('.local'));return url.protocol==='https:'||localHttp?url.href:'';}catch(_){return '';}}
     function notifySender(packet){if(!senderId||!context.sendCustomMessage)return;try{const sent=context.sendCustomMessage(NS,senderId,packet);if(sent&&sent.catch)sent.catch(function(){});}catch(_){}}
     function mediaContentType(media,url){
       if(media&&media.contentType)return String(media.contentType);

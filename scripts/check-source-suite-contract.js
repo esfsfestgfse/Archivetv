@@ -12,7 +12,7 @@ for (const file of files) {
   const source = fs.readFileSync(path.join(repo, file), 'utf8');
   const name = file;
   const required = [
-    [/V2_SOURCE_CACHE_VERSION=7/, 'source catalog cache version must be bumped'],
+    [/V2_SOURCE_CACHE_VERSION=8/, 'source catalog cache version must be bumped'],
     [/V2_SOURCE_CACHE_TTL=12\*60\*1000/, 'source catalog cache must expire quickly enough to rotate'],
     [/function v2MapLimit\(/, 'provider fan-out must be concurrency bounded'],
     [/function v2Verified\(/, 'items must carry a common verification envelope'],
@@ -20,6 +20,11 @@ for (const file of files) {
     [/function v2Loc\(/, 'Library of Congress must have a runtime lane'],
     [/p==="youtube"\|\|p==="peertube"/, 'source-suite runtime must restrict providers to YouTube and PeerTube'],
     [/v2LoadProfile\(ch,profile,token,true\)/, 'near-exhausted catalogs must force a rolling refresh'],
+    [/V2_SOURCE_MIN_CATALOG=12/, 'underfilled catalogs must bypass stale five-item shelves'],
+    [/function v2Shelf\(/, 'catalog ordering must persist the last on-air shelf'],
+    [/cached\.items\.length>=V2_SOURCE_MIN_CATALOG/, 'small cached catalogs must be refreshed instead of replayed'],
+    [/\.slice\(0,4\),queries=profile\.queries\.slice\(0,Math\.min\(5/, 'PeerTube discovery must use all approved instances and five query lanes'],
+    [/Math\.min\(24,V2_SOURCE_MAX_DETAIL\)/, 'PeerTube detail hydration must retain a deeper catalog'],
     [/store\.set\("v2source:"\+key,\{version:V2_SOURCE_CACHE_VERSION,at:Date\.now\(\),items:items,health:state\.health\}\)/, 'catalog cache must retain provider health'],
     [/fl\[\]=license.*fl\[\]=rights/, 'Archive discovery must request rights metadata'],
   ];
@@ -37,7 +42,7 @@ for (const file of files) {
   if (!/embed-eligible/.test(youtube) || !/v2YouTubeBlocked/.test(youtube)) issues.push(`${name}: YouTube must preserve embed eligibility and Shorts/language/how-to filtering`);
 
   const stamps = [...source.matchAll(/window\.__ATV_BUILD\s*=\s*"([^"]+)"/g)].map(match => match[1]);
-  if (stamps.length !== 1 || !/\.011-android-cast-recovery$/.test(stamps[0] || '')) issues.push(`${name}: source-suite build stamp is missing or stale`);
+  if (stamps.length !== 1 || !/\.036-source-suite-expansion$/.test(stamps[0] || '')) issues.push(`${name}: source-suite build stamp is missing or stale`);
 }
 
 const desktop = fs.readFileSync(path.join(repo, files[0]), 'utf8');

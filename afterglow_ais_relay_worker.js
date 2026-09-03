@@ -80,7 +80,7 @@ const IA_SEARCH_CACHE_VERSION = "v5";
 const IA_METADATA_TTL_SECONDS = 86400;
 const IA_QUEUE_TTL_SECONDS = 86400;
 const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
-const IA_QUEUE_CACHE_VERSION = "v29";
+const IA_QUEUE_CACHE_VERSION = "v30";
 const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
 /* The queue endpoint is part of channel-change critical path.  Archive can
    hydrate a richer shelf after the response, but a cold request must hand the
@@ -1780,7 +1780,9 @@ async function hydrateIaQueue(payload, requestedCount, cacheOrigin, ctx, mediaTy
     while (ready.length < requestedCount) {
       const index = cursor++;
       if (index >= items.length) return;
-      const item = items[index], media = await queuePlayable(item.identifier, cacheOrigin, ctx, mediaTypes);
+      const item = items[index];
+      const mediaContractMatches = item && item.media && item.media.url && (!mediaTypes.length || (mediaTypes.includes("movies") && item.media.type === "video") || (mediaTypes.includes("audio") && item.media.type === "audio"));
+      const media = mediaContractMatches ? item.media : await queuePlayable(item.identifier, cacheOrigin, ctx, mediaTypes);
       if (media && ready.length < requestedCount) {
         const hydratedItem = { ...item, media };
         ready.push(hydratedItem);
@@ -1821,6 +1823,15 @@ async function expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, c
   });
   await caches.default.put(cacheKey, response);
   return hydrated;
+}
+
+function scheduleIaReplenishment(ready, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, rotation) {
+  if (!ready || !ready.items || !ready.items.length || ready.ready >= count) return;
+  const seed = { ...ready, items: ready.items.slice(0, count), candidates: ready.items.length };
+  ctx.waitUntil(
+    expandAndCacheIaQueue(seed, reserveQueries.slice(0, Math.min(2, reserveQueries.length)), fallbackQueries.slice(0, 1), channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, rotation)
+      .catch((error) => console.warn(JSON.stringify({ event: "ia-background-replenishment-failed", channel, message: String(error && error.message || error) })))
+  );
 }
 
 async function timeboxQueueHydration(hydration, timeoutMs) {
@@ -1887,7 +1898,7 @@ async function getIaQueue(request, url, env, ctx) {
        the broader catalog for refill and later rotations. */
     const fastQueries = queries.slice(0, Math.min(3, queries.length));
     const reserveQueries = queries.slice(fastQueries.length, Math.min(8, queries.length));
-    let payload = await buildIaQueue(channel, fastQueries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, candidateCount, url.origin, ctx, rotation, IA_FAST_SEARCH_TIMEOUT_MS);
+    let payload = await buildIaQueue(channel, fastQueries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, candidateCount, url.origin, ctx, rotation, IA_FAST_SEARCH_TIMEOUT_MS, true);
     const fallbackQueries = iaFallbackQueries(themeTerms, denyTerms, mediaTypes);
     const needsExpansion = payload.items.length === 0;
     /* Reserve and rescue lanes are valuable for diversity but must never sit
@@ -1928,9 +1939,10 @@ async function getIaQueue(request, url, env, ctx) {
     if (hydrated && hydrated.items.length) {
       if (hydrated.hydrating) {
         ctx.waitUntil(
-          hydration
+            hydration
             .then((ready) => {
               if (!ready || !ready.items.length) return undefined;
+              scheduleIaReplenishment(ready, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, url.origin, cacheKey, sharedKey, env, ctx, rotation);
               const queueTtl = ready.ready >= count ? IA_QUEUE_TTL_SECONDS : IA_PARTIAL_QUEUE_TTL_SECONDS;
               if (ready.ready >= count) sharedQueuePut(env, sharedKey, ready, queueTtl, ctx);
               return cache.put(cacheKey, cacheableJson(ready, queueTtl, {
@@ -1947,6 +1959,7 @@ async function getIaQueue(request, url, env, ctx) {
         });
       }
       const queueTtl = hydrated.ready >= count ? IA_QUEUE_TTL_SECONDS : IA_PARTIAL_QUEUE_TTL_SECONDS;
+      scheduleIaReplenishment(hydrated, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, url.origin, cacheKey, sharedKey, env, ctx, rotation);
       const response = cacheableJson(hydrated, queueTtl, {
         "X-Afterglow-Source": "program-director",
         "X-Afterglow-Queue-Ready": String(hydrated.ready),
@@ -1974,6 +1987,7 @@ async function getIaQueue(request, url, env, ctx) {
       hydration
         .then((ready) => {
           if (!ready || !ready.items.length) return undefined;
+          scheduleIaReplenishment(ready, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, url.origin, cacheKey, sharedKey, env, ctx, rotation);
           const queueTtl = ready.ready >= count ? IA_QUEUE_TTL_SECONDS : IA_PARTIAL_QUEUE_TTL_SECONDS;
           if (ready.ready >= count) sharedQueuePut(env, sharedKey, ready, queueTtl, ctx);
           return cache.put(cacheKey, cacheableJson(ready, queueTtl, {

@@ -17,7 +17,7 @@ if (numericConstant('IA_SEARCH_TTL_SECONDS') < 21600) issues.push('Archive searc
 if (!/IA_SEARCH_CACHE_VERSION\s*=\s*"v5"/.test(source) || !/"mediatype"\]\.forEach\(\(field\) => upstreamUrl\.searchParams\.append\("fl\[\]", field\)\)/.test(source)) issues.push('Archive discovery must request mediatype and invalidate shelves built without it');
 if (numericConstant('IA_METADATA_TTL_SECONDS') < 86400) issues.push('resolved media metadata must stay warm for at least one day');
 if (numericConstant('IA_QUEUE_TTL_SECONDS') < 86400) issues.push('five-show queues must stay warm for at least one day');
-if (!/IA_QUEUE_CACHE_VERSION\s*=\s*"v29"/.test(source)) issues.push('queue cache version must invalidate pre-shared-shelf IA queues');
+if (!/IA_QUEUE_CACHE_VERSION\s*=\s*"v30"/.test(source)) issues.push('queue cache version must invalidate pre-shared-shelf IA queues');
 if (!/REALSIGNAL_QUEUE/.test(source) || !/sharedQueueGet\(env, sharedKey\)/.test(source) || !/sharedQueuePut\(env, sharedKey, hydrated, queueTtl, ctx\)/.test(source)) issues.push('queue path must use the shared KV ready shelf before cold Archive work');
 if (!/"creator", "collection"/.test(source) || !/function safeDiversity\(value\)/.test(source)) issues.push('queue discovery must retain bounded creator and collection diversity metadata');
 if (!/safeThemeMinScore\(body && body\.themeMinScore\)/.test(source) || !/matchesTheme\(doc, themeTerms, themeMinScore\)/.test(source)) issues.push('queue worker must enforce the client editorial score gate before caching');
@@ -35,6 +35,7 @@ if (!/Array\.from\(\{ length: Math\.min\(5, items\.length\) \}, worker\)/.test(s
 if (!/while \(ready\.length < requestedCount\)/.test(source) || !/ready\.push\(hydratedItem\)/.test(source)) issues.push('metadata hydration must return the ready shelf without waiting on slow reserve candidates');
 if (!/Promise\.race\(\[hydration, firstReady\]\)/.test(source) || !/IA_FIRST_READY_TIMEOUT_MS/.test(source)) issues.push('queue hydration must return the first verified program before the full five-item shelf is ready');
 if (!/const lanePromises =/.test(source) || !/Promise\.allSettled\(lanePromises\)/.test(source) || !/firstApprovedLane/.test(source)) issues.push('cold queue discovery must return the first approved lane without waiting for every Archive rail');
+if (!/function scheduleIaReplenishment\(/.test(source) || !/ia-background-replenishment-failed/.test(source)) issues.push('underfilled hydrated shelves need a bounded background replenishment path');
 if (!/const chosen = wantsVideo \? video\[0\] : wantsAudio \? audio/.test(source) || !/queuePlayable\(item\.identifier, cacheOrigin, ctx, mediaTypes\)/.test(source)) issues.push('hydration must keep archive derivatives within the requested video or audio contract');
 if (!/type: chosen === video\[0\] \? "video" : "audio"/.test(source)) issues.push('queue media type must describe the selected derivative');
 if (!/attempt < 1/.test(source)) issues.push('metadata transport failures need one bounded retry');

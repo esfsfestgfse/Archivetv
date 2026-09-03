@@ -25,6 +25,7 @@ for (const file of files) {
     [/function v2Hash\(/, 'source rotation must have a stable per-lane hash'],
     [/function v2NextRotation\(/, 'source refreshes must advance a persisted rotation counter'],
     [/function v2QueryWindow\(/, 'provider queries must rotate through the full lane query pool'],
+    [/function v2SourceTokens\(/, 'genre qualification must share a tokenized focus vocabulary'],
     [/sortModes=\["-match","-publishedAt","-views","-likes"\]/, 'PeerTube discovery must rotate result ordering'],
     [/orders=\["relevance","date","viewCount","rating"\]/, 'YouTube discovery must rotate result ordering'],
     [/function v2TuneRefreshed\(/, 'sparse queues must wait for a genuinely different next item'],

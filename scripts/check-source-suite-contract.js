@@ -12,7 +12,7 @@ for (const file of files) {
   const source = fs.readFileSync(path.join(repo, file), 'utf8');
   const name = file;
   const required = [
-    [/V2_SOURCE_CACHE_VERSION=11/, 'source catalog cache version must be bumped'],
+    [/V2_SOURCE_CACHE_VERSION=12/, 'source catalog cache version must be bumped'],
     [/V2_SOURCE_CACHE_TTL=12\*60\*1000/, 'source catalog cache must expire quickly enough to rotate'],
     [/function v2MapLimit\(/, 'provider fan-out must be concurrency bounded'],
     [/function v2Verified\(/, 'items must carry a common verification envelope'],
@@ -54,6 +54,7 @@ for (const file of files) {
     [/Math\.min\(24,V2_SOURCE_MAX_DETAIL\)/, 'PeerTube detail hydration must retain a deeper catalog'],
     [/aspect=v2AspectRatio\(d\)\|\|v2AspectRatio\(x\)/, 'PeerTube must verify the source aspect ratio'],
     [/!v2Relevant\(profile,candidate\)/, 'PeerTube candidates must pass strict qualification after full metadata hydration'],
+    [/item\.account,item\.query/, 'hydrated qualification must retain the provider search query as editorial evidence'],
     [/part=snippet,contentDetails,status,player&maxWidth=1280/, 'YouTube must request public player dimensions'],
     [/verification:\{metadata:true,rights:true,landscape:true/, 'verified source items must record landscape proof'],
     [/store\.set\("v2source:"\+key,\{version:V2_SOURCE_CACHE_VERSION,at:Date\.now\(\),items:items,health:state\.health\}\)/, 'catalog cache must retain provider health'],

@@ -80,13 +80,16 @@ const IA_SEARCH_CACHE_VERSION = "v5";
 const IA_METADATA_TTL_SECONDS = 86400;
 const IA_QUEUE_TTL_SECONDS = 86400;
 const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
-const IA_QUEUE_CACHE_VERSION = "v27";
+const IA_QUEUE_CACHE_VERSION = "v28";
 const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
 /* The queue endpoint is part of channel-change critical path.  Archive can
    hydrate a richer shelf after the response, but a cold request must hand the
    browser viable identifiers quickly enough for its own direct resolver to
    race the edge cache rather than presenting a long spinner. */
 const IA_FIRST_READY_TIMEOUT_MS = 2400;
+/* Discovery has its own shorter budget.  A slow Archive search must not be
+   allowed to consume the time reserved for first-item metadata hydration. */
+const IA_FAST_SEARCH_TIMEOUT_MS = 1500;
 const GULF_FILTER = "BBOX(geometry,-98,18,-80,31)";
 const KPLER_FIELDS = "mmsi,longitude,latitude,posDt,sog,vesselName,heading,cog,navStatus,destination,vesselType";
 /* Public navigation is intentionally limited to named regions. The Worker
@@ -1509,7 +1512,7 @@ async function archiveFetch(input, init = {}, timeoutMs = 3500) {
   }
 }
 
-async function searchArchive(query, rows, page, sort) {
+async function searchArchive(query, rows, page, sort, timeoutMs = 3200) {
   const upstreamUrl = new URL("https://archive.org/advancedsearch.php");
   upstreamUrl.searchParams.set("q", query);
   ["identifier", "title", "year", "subject", "runtime", "creator", "collection", "downloads", "mediatype"].forEach((field) => upstreamUrl.searchParams.append("fl[]", field));
@@ -1520,15 +1523,15 @@ async function searchArchive(query, rows, page, sort) {
   /* Archive's scrape endpoint does not honor advancedsearch's field grammar
      (for example `subject:boxing` becomes an empty result). Keep one precise
      backend here: a fast wrong answer is worse than an alternate lane. */
-  const upstream = await archiveFetch(upstreamUrl.toString(), { cache: "no-store" }, 3200);
+  const upstream = await archiveFetch(upstreamUrl.toString(), { cache: "no-store" }, timeoutMs);
   if (!upstream.ok) throw new Error("archive advanced search " + upstream.status);
   const payload = await upstream.json();
   return { ...(payload.response || { numFound: 0, docs: [] }), _afterglowSource: "advanced" };
 }
 
-async function cachedSearchArchive(cacheOrigin, query, rows, page, sort, ctx) {
+async function cachedSearchArchive(cacheOrigin, query, rows, page, sort, ctx, timeoutMs = 3200) {
   const cacheKey = new Request(cacheOrigin + IA_PREFIX + "/cache/search/" + IA_SEARCH_CACHE_VERSION + "/" + await stableKey([query, rows, page, sort].join("|")));
-  return cachedArchiveJson(cacheKey, IA_SEARCH_TTL_SECONDS, () => searchArchive(query, rows, page, sort), ctx);
+  return cachedArchiveJson(cacheKey, IA_SEARCH_TTL_SECONDS, () => searchArchive(query, rows, page, sort, timeoutMs), ctx);
 }
 
 async function getIaSearch(url, ctx) {
@@ -1663,7 +1666,7 @@ function queueRotationSort(rotation, lane) {
   return modes[(Number(rotation) + Number(lane)) % modes.length];
 }
 
-async function buildIaQueue(channel, queries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, cacheOrigin, ctx, rotation = 0) {
+async function buildIaQueue(channel, queries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, cacheOrigin, ctx, rotation = 0, searchTimeoutMs = 3200) {
   const items = [], deferred = [], seen = new Set(), seenTitles = new Set(), candidateLimit = count;
   const used = { lane: new Map(), era: new Map(), creator: new Map(), collection: new Map() };
   /* Query lanes are already editorially ordered by the app. Fetch a small
@@ -1676,7 +1679,7 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, mediaTypes,
      first three made sparse channels look as if they were hydrating forever. */
   const lanes = await Promise.all(queries.slice(0, Math.min(8, queries.length)).map(async (query, lane) => {
     try {
-      const result = await cachedSearchArchive(cacheOrigin, query, Math.min(36, Math.max(18, count * 4)), 1, queueRotationSort(rotation, lane), ctx);
+      const result = await cachedSearchArchive(cacheOrigin, query, Math.min(36, Math.max(18, count * 4)), 1, queueRotationSort(rotation, lane), ctx, searchTimeoutMs);
       // Archive.org collections are catalog pages, not programs. Keeping one in
       // a shelf guarantees a failed playback attempt, so reject them before
       // ranking, caching, or media hydration for every IA channel.
@@ -1728,6 +1731,17 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, mediaTypes,
   };
 }
 
+function mergeIaQueuePayload(primary, secondary, candidateCount, flags = {}) {
+  const seen = new Set(), merged = [];
+  for (const item of [...((primary && primary.items) || []), ...((secondary && secondary.items) || [])]) {
+    if (!item || !item.identifier || seen.has(item.identifier)) continue;
+    seen.add(item.identifier);
+    merged.push(item);
+    if (merged.length >= candidateCount) break;
+  }
+  return { ...(primary || {}), items: merged, candidates: merged.length, ...flags };
+}
+
 async function hydrateIaQueue(payload, requestedCount, cacheOrigin, ctx, mediaTypes, onReady) {
   /* Keep a few extra candidates behind the five-program shelf. Archive items
      occasionally have no browser-playable derivative; filtering those here
@@ -1758,6 +1772,30 @@ async function hydrateIaQueue(payload, requestedCount, cacheOrigin, ctx, mediaTy
     partial: ready.length < requestedCount,
     hydrating: false,
   };
+}
+
+async function expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, rotation) {
+  let expanded = payload;
+  const threshold = Math.min(candidateCount, 8);
+  if (expanded.items.length < threshold && reserveQueries.length) {
+    const reserve = await buildIaQueue(channel, reserveQueries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, candidateCount, cacheOrigin, ctx, rotation);
+    expanded = mergeIaQueuePayload(expanded, reserve, candidateCount, { reserve: true });
+  }
+  if (expanded.items.length < threshold && fallbackQueries.length) {
+    const rescue = await buildIaQueue(channel, fallbackQueries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, candidateCount, cacheOrigin, ctx, rotation);
+    expanded = mergeIaQueuePayload(expanded, rescue, candidateCount, { rescue: true });
+  }
+  if (!expanded.items.length) return null;
+  const hydrated = await hydrateIaQueue(expanded, count, cacheOrigin, ctx, mediaTypes);
+  if (!hydrated || !hydrated.items.length) return null;
+  const queueTtl = hydrated.ready >= count ? IA_QUEUE_TTL_SECONDS : IA_PARTIAL_QUEUE_TTL_SECONDS;
+  if (hydrated.ready >= count) sharedQueuePut(env, sharedKey, hydrated, queueTtl, ctx);
+  const response = cacheableJson(hydrated, queueTtl, {
+    "X-Afterglow-Source": "program-director-background",
+    "X-Afterglow-Queue-Ready": String(hydrated.ready),
+  });
+  await caches.default.put(cacheKey, response);
+  return hydrated;
 }
 
 async function timeboxQueueHydration(hydration, timeoutMs) {
@@ -1824,29 +1862,19 @@ async function getIaQueue(request, url, env, ctx) {
        the broader catalog for refill and later rotations. */
     const fastQueries = queries.slice(0, Math.min(3, queries.length));
     const reserveQueries = queries.slice(fastQueries.length, Math.min(8, queries.length));
-    let payload = await buildIaQueue(channel, fastQueries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, candidateCount, url.origin, ctx, rotation);
-    if (payload.items.length < Math.min(candidateCount, 8) && reserveQueries.length) {
-      const reserve = await buildIaQueue(channel, reserveQueries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, candidateCount, url.origin, ctx, rotation);
-      const seen = new Set(), merged = [];
-      for (const item of [...payload.items, ...reserve.items]) {
-        if (!item || seen.has(item.identifier)) continue;
-        seen.add(item.identifier); merged.push(item);
-        if (merged.length >= candidateCount) break;
-      }
-      payload = { ...payload, items: merged, candidates: merged.length, reserve: true };
-    }
-    if (payload.items.length < Math.min(candidateCount, 8)) {
-      const fallbackQueries = iaFallbackQueries(themeTerms, denyTerms, mediaTypes);
-      if (fallbackQueries.length) {
-        const rescue = await buildIaQueue(channel, fallbackQueries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, candidateCount, url.origin, ctx, rotation);
-        const seen = new Set(), merged = [];
-        for (const item of [...payload.items, ...rescue.items]) {
-          if (!item || seen.has(item.identifier)) continue;
-          seen.add(item.identifier); merged.push(item);
-          if (merged.length >= candidateCount) break;
-        }
-        payload = { ...payload, items: merged, candidates: merged.length, rescue: true };
-      }
+    let payload = await buildIaQueue(channel, fastQueries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, candidateCount, url.origin, ctx, rotation, IA_FAST_SEARCH_TIMEOUT_MS);
+    const fallbackQueries = iaFallbackQueries(themeTerms, denyTerms, mediaTypes);
+    const needsExpansion = payload.items.length < Math.min(candidateCount, 8);
+    /* Reserve and rescue lanes are valuable for diversity but must never sit
+       in front of first tune. Start them as observed background work; the
+       first three subject-locked rails below can already hydrate and return a
+       verified program. A successful background pass overwrites the short
+       partial cache and fills the shared ready shelf for the next request. */
+    if (needsExpansion) {
+      ctx.waitUntil(
+        expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, url.origin, cacheKey, sharedKey, env, ctx, rotation)
+          .catch((error) => console.warn(JSON.stringify({ event: "ia-background-expansion-failed", channel, message: String(error && error.message || error) })))
+      );
     }
     if (!payload.items.length) {
       /* No candidate exists yet, so this is not hydration. Be truthful and let

@@ -20,7 +20,7 @@ for (const file of files) {
     [/function v2Loc\(/, 'Library of Congress must have a runtime lane'],
     [/p==="youtube"\|\|p==="peertube"/, 'source-suite runtime must restrict providers to YouTube and PeerTube'],
     [/v2LoadProfile\(ch,profile,token,true\)/, 'near-exhausted catalogs must force a rolling refresh'],
-    [/V2_SOURCE_MIN_CATALOG=12/, 'underfilled catalogs must bypass stale five-item shelves'],
+    [/V2_SOURCE_MIN_CATALOG=5/, 'five-item catalogs must be eligible for a warm shelf'],
     [/function v2Shelf\(/, 'catalog ordering must persist the last on-air shelf'],
     [/function v2Hash\(/, 'source rotation must have a stable per-lane hash'],
     [/function v2NextRotation\(/, 'source refreshes must advance a persisted rotation counter'],

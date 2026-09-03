@@ -16,7 +16,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="RealSignal">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>REALSIGNAL · The Dial 1.7.8</title>
+<title>REALSIGNAL · The Dial 1.7.9</title>
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
@@ -1665,7 +1665,7 @@ html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.9.6-mobile.043-cartoon-era";
+window.__ATV_BUILD="1.9.7-mobile.044-reliability-wave";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -17468,6 +17468,49 @@ window.__atvBootDone=true; /* app is up -- from here on, errors get logged, not 
       if(seconds&&(isTelevision?seconds<600:(!isClassicShort&&seconds<600)))return false;
     }
     return true;
+  };
+})();
+</script>
+<script>
+/* RELIABILITY WAVE 044: make guide navigation immediate and keep background
+   queue/status work from repainting a guide after it has been closed. */
+(function(){
+  var baseTune=window.tuneNum, statusTimer=0;
+  window.closeGuide=function(){
+    guidePrimeRun=(Number(guidePrimeRun)||0)+1;
+    if(gwrap)gwrap.classList.remove("show");
+    if(typeof window.__rsCastGuideSync==="function")window.__rsCastGuideSync(false);
+  };
+  window.openGuide=function(){
+    if(!gwrap)return;
+    gwrap.classList.add("show");
+    renderGuide();
+    updateClocks();
+    if(typeof window.__rsCastGuideSync==="function")window.__rsCastGuideSync(true);
+    var run=guidePrimeRun;
+    setTimeout(function(){
+      if(!gwrap.classList.contains("show")||run!==guidePrimeRun)return;
+      try{primeGuideQueues();}catch(e){}
+    },0);
+  };
+  window.tuneNum=async function(n){
+    if(gwrap&&gwrap.classList.contains("show"))window.closeGuide();
+    return baseTune.apply(this,arguments);
+  };
+  window.setChanStatus=function(num,text){
+    try{
+      var status=String(text||"LIVE DATA");
+      window.__chanStatus[num]=status;
+      liveGuideState[num]={text:status,at:Date.now()};
+      clearTimeout(statusTimer);
+      if(gwrap&&gwrap.classList.contains("show")){
+        var run=guidePrimeRun;
+        statusTimer=setTimeout(function(){
+          if(run!==guidePrimeRun||!gwrap.classList.contains("show"))return;
+          try{guideUpdatePreview();renderRail();}catch(e){}
+        },120);
+      }
+    }catch(e){}
   };
 })();
 </script>

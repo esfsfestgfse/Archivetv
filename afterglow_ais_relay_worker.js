@@ -80,7 +80,7 @@ const IA_SEARCH_CACHE_VERSION = "v5";
 const IA_METADATA_TTL_SECONDS = 86400;
 const IA_QUEUE_TTL_SECONDS = 86400;
 const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
-const IA_QUEUE_CACHE_VERSION = "v25";
+const IA_QUEUE_CACHE_VERSION = "v26";
 const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
 /* The queue endpoint is part of channel-change critical path.  Archive can
    hydrate a richer shelf after the response, but a cold request must hand the
@@ -1676,7 +1676,7 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, mediaTypes,
      first three made sparse channels look as if they were hydrating forever. */
   const lanes = await Promise.all(queries.slice(0, Math.min(8, queries.length)).map(async (query, lane) => {
     try {
-      const result = await cachedSearchArchive(cacheOrigin, query, Math.min(24, Math.max(12, count * 3)), 1, queueRotationSort(rotation, lane), ctx);
+      const result = await cachedSearchArchive(cacheOrigin, query, Math.min(36, Math.max(18, count * 4)), 1, queueRotationSort(rotation, lane), ctx);
       // Archive.org collections are catalog pages, not programs. Keeping one in
       // a shelf guarantees a failed playback attempt, so reject them before
       // ranking, caching, or media hydration for every IA channel.

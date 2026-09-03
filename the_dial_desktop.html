@@ -1613,7 +1613,7 @@ body.cast-receiver .guide-directory .chcell.cast-focus .cc-n{color:#b9ffd0!impor
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.9.7-desktop.045-ia-soak";
+window.__ATV_BUILD="1.9.7-desktop.046-ia-reliability";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -1651,7 +1651,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
- <div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.9.7-desktop.045-ia-soak · RealSignal</div>
+ <div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.9.7-desktop.046-ia-reliability · RealSignal</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">REALSIGNAL · THE DIAL</div>
@@ -3040,7 +3040,10 @@ const PROGRAM = {
   /* Funk & Soul (ch 907) — Phase 1 overhaul 2026-08-08. Motown / Stax / Philly /
      P-Funk / New Orleans traditions with named artists. */
   "Funk & Soul": {
-    genre: "gmfunk", era: [1960, 1990],
+    genre: "gmfunk", era: [1960, 2026],
+    fastSubjects: ["funk", "soul", "soul music", "rhythm and blues", "r&b", "motown", "stax", "disco", "boogie", "p-funk", "new orleans funk", "memphis soul", "philly soul"],
+    fastCollections: ["audio_music", "opensource_audio", "netlabels"],
+    wideCollections: ["audio_music", "opensource_audio", "netlabels", "78rpm"],
     providers: [
       { collections: ["audio_music", "78rpm", "opensource_audio"], require_subj: [
         "james brown","aretha franklin","otis redding","sam cooke","ray charles","stevie wonder",
@@ -3352,6 +3355,9 @@ const PROGRAM = {
      them), (3) region + era tags, (4) film titles that catalog directly. */
   "The Cipher": {
     genre: "hiphopvault", era: [1978, 2026],
+    fastSubjects: ["hip hop", "hip-hop", "hiphop", "rap", "rap music", "breaking", "b-boy", "graffiti", "turntablism", "freestyle", "cypher", "old school hip hop"],
+    fastCollections: ["opensource_movies", "feature_films_unsorted", "vhsvault"],
+    wideCollections: ["opensource_movies", "feature_films_unsorted", "vhsvault"],
     providers: [
       { collections: ["opensource_movies", "feature_films_unsorted", "vhsvault"], require_subj: [
         "hip hop", "hip-hop", "hiphop", "rap", "rap music", "rap video", "hip hop history",
@@ -3566,7 +3572,10 @@ const PROGRAM = {
        barely overlapped, so perfectly valid sacred programming was discarded
        after discovery. Keep this channel strict, but score against the words
        the editorial rails are intentionally seeking. */
-    queueTerms: ["hymn","gospel","choir","worship","sermon","religious broadcast","religious service","radio church","spirituality","religion"],
+    queueTerms: ["hymn","gospel","choir","worship","sermon","religious broadcast","religious service","radio church","sacred music","bible study","revival meeting"],
+    fastSubjects: ["hymn", "gospel", "choir", "worship", "sermon", "religious broadcast", "religious service", "radio church", "sacred music", "bible study", "revival meeting"],
+    fastCollections: ["spiritualityandreligion", "prelinger", "classic_tv"],
+    wideCollections: ["spiritualityandreligion", "prelinger", "classic_tv", "opensource_movies"],
     themeMinScore: 1,
     providers: [
       { collections: ["feature_films", "prelinger", "classic_tv", "opensource_movies"], require_subj: [
@@ -3591,7 +3600,7 @@ const PROGRAM = {
     ],
     deny: {
       title: ["fundraising","donation","commercial","dance","rock band","sex","drugs"],
-      subject: ["commercial","fundraising","dance","rock band","hip hop","rap","electronic dance","punk","metal"]
+      subject: ["commercial","fundraising","dance","rock band","hip hop","rap","electronic dance","punk","metal","socialism","socialist","communism","communist","godless","revolution","political campaign","politics"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
@@ -3859,7 +3868,10 @@ const PROGRAM = {
   },
 
   "Classical": {
-    genre: "gmclassical", era: [1900, 2010],
+    genre: "gmclassical", era: [1900, 2026],
+    fastSubjects: ["classical", "orchestra", "symphony", "concerto", "sonata", "chamber music", "baroque", "opera", "ballet", "composer", "piano recital", "string quartet"],
+    fastCollections: ["78rpm", "opensource_audio", "audio_music"],
+    wideCollections: ["78rpm", "opensource_audio", "audio_music", "album_recordings"],
     providers: [
       {"collections": ["78rpm", "album_recordings"], "require_subj": ["classical", "orchestra", "symphony", "concerto", "sonata", "opera", "chamber music", "baroque"]},
       {"collections": ["opensource_audio", "audio_music"], "require_subj": ["classical", "orchestra", "symphony", "concerto", "sonata", "opera"]}
@@ -5667,6 +5679,9 @@ const PROGRAM = {
      named stars + studio identifiers. IA has a substantial silent vault. */
   "Silent Cinema": {
     genre: "silentcinema", era: [1895, 1929],
+    fastSubjects: ["silent film", "silent movie", "silent cinema", "silent era", "silent comedy", "silent drama", "silent western", "slapstick", "keystone", "buster keaton", "charlie chaplin", "harold lloyd"],
+    fastCollections: ["silent_films", "feature_films", "opensource_movies"],
+    wideCollections: ["silent_films", "feature_films", "opensource_movies"],
     providers: [
       { collections: ["silent_films", "feature_films", "opensource_movies"], require_subj: [
         "charlie chaplin","buster keaton","harold lloyd","fatty arbuckle","roscoe arbuckle","harry langdon",
@@ -6064,12 +6079,12 @@ const PROGRAM = {
   /* Archive Expansion — queueTerms are hard identity locks. They prevent a broad
      collection match from making any of these eight channels drift into another lane. */
   "Roadside America": {genre:"roadsideamerica",era:[1930,2026],themeMinScore:2,queueTerms:["highway travel","motel","diner","tourist court","road trip","american highway","automobile travel","tourism film","travel film"],fastSubjects:["roadside attraction","highway travel","american highway","automobile travel","tourism film","travel film"],fastCollections:["prelinger","FedFlix"],providers:[{collections:["prelinger","FedFlix","opensource_movies"],require_subj:["roadside attraction","roadside america","highway travel","motel","diner","tourist court","road trip","american highway","automobile travel","tourism film","travel film"]}],deny:{title:["video game","commercial compilation","music video","album","song","concert","live at","roughie","exploitation","punk","rock band","ghouls","lovers wind"],subject:["video game","commercial","cartoon","training manual","music","concert","exploitation","ghouls","lovers wind"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
-  "Short Subject": {genre:"shortsubject",era:[1925,2026],themeMinScore:2,queueTerms:["short film","short subject","one reel","theatrical short","soundie","educational short"],fastSubjects:["short film","short subject","theatrical short"],fastCollections:["prelinger","feature_films"],providers:[{collections:["prelinger","feature_films","opensource_movies"],require_subj:["short film","short subject","one reel","two reel","theatrical short","soundie","educational short","animated short"]}],deny:{title:["trailer","commercial compilation","feature length","sex","killing","horror","vhs","soccer","crushes","stepmom","eats the team","bob's burgers","michael jackson","ghosts"],subject:["trailer","commercial","video game","adult","sex","horror","soccer","crushes","stepmom","bob's burgers","michael jackson"]},require:{runtime_max_s:2700},subjRotate:true,subjRequired:true,noBlindFallback:true},
+  "Short Subject": {genre:"shortsubject",era:[1925,2026],themeMinScore:2,queueTerms:["short film","short subject","one reel","theatrical short","soundie","educational short"],fastSubjects:["short film","short subject","one reel","two reel","theatrical short","soundie","educational short","animated short","industrial short","travel film","safety film"],fastCollections:["prelinger","feature_films","opensource_movies"],wideCollections:["prelinger","feature_films","opensource_movies"],providers:[{collections:["prelinger","feature_films","opensource_movies"],require_subj:["short film","short subject","one reel","two reel","theatrical short","soundie","educational short","animated short","industrial short","travel film","safety film"]}],deny:{title:["trailer","commercial compilation","feature length","sex","killing","horror","vhs","soccer","crushes","stepmom","eats the team","bob's burgers","michael jackson","ghosts"],subject:["trailer","commercial","video game","adult","sex","horror","soccer","crushes","stepmom","bob's burgers","michael jackson"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
   "Future Lab": {genre:"futurelab",era:[1945,2026],themeMinScore:2,queueTerms:["future technology","science and technology","research laboratory","computer science","robotics","engineering"],fastSubjects:["science and technology","robotics","engineering"],fastCollections:["FedFlix","prelinger"],providers:[{collections:["prelinger","FedFlix","opensource_movies"],require_subj:["future technology","science and technology","research laboratory","computer science","robotics","engineering","automation","space technology","electronics"]}],deny:{title:["science fiction film","video game","commercial","anime","doraemon","sex","adult","dvd","fighter group","lunchroom","manners","responsibility"],subject:["science fiction film","video game","cartoon","commercial","anime","adult","sex","fighter group","lunchroom","manners","responsibility"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
   "The Reading Room": {genre:"readingroom",era:[1930,2026],themeMinScore:2,queueTerms:["author interview","literature","book discussion","poetry reading","writer profile","literary documentary"],fastSubjects:["author interview","literature","poetry reading"],fastCollections:["opensource_movies","classic_tv"],providers:[{collections:["opensource_movies","classic_tv","FedFlix"],require_subj:["author interview","literature","book discussion","poetry reading","writer profile","literary documentary","book review","reading series"]}],deny:{title:["audiobook","podcast","commercial","hysterical literature"],subject:["audiobook","podcast","music album","commercial","adult"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
   "Design & Architecture": {genre:"designarch",era:[1930,2026],themeMinScore:2,queueTerms:["architecture","architectural design","urban planning","interior design","industrial design","modern architecture"],fastSubjects:["architecture","urban planning","industrial design"],fastCollections:["prelinger","FedFlix"],providers:[{collections:["prelinger","FedFlix","opensource_movies"],require_subj:["architecture","architectural design","urban planning","interior design","industrial design","modern architecture","landscape architecture","city planning"]}],deny:{title:["video game","commercial","real estate listing"],subject:["video game","commercial","real estate listing","cartoon"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
   "Museum of Motion": {genre:"museumotion",era:[1900,2026],themeMinScore:2,queueTerms:["animation history","film history","motion picture history","visual culture","movie making","cinema history"],fastSubjects:["film history","motion picture history","cinema history"],fastCollections:["prelinger","opensource_movies"],providers:[{collections:["prelinger","opensource_movies","feature_films"],require_subj:["animation history","film history","motion picture history","visual culture","movie making","cinema history","film preservation","movie museum"]}],deny:{title:["full feature film","trailer","commercial","cartoon compilation","vhs compilation","avatar","nickelodeon","promo"],subject:["full feature film","trailer","commercial","video game","cartoon","avatar","nickelodeon","promo"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
-  "Civic Cinema": {genre:"civiccinema",era:[1930,2026],themeMinScore:2,queueTerms:["civic film","public affairs","city planning","public service","community development","municipal government"],fastSubjects:["civic film","public affairs","city planning"],fastCollections:["prelinger","FedFlix"],providers:[{collections:["prelinger","FedFlix","governmentdocuments"],require_subj:["civic film","public affairs","city planning","public service","community development","municipal government","public works","civil service"]}],deny:{title:["campaign advertisement","commercial","video game"],subject:["campaign advertisement","commercial","political campaign","video game"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
+  "Civic Cinema": {genre:"civiccinema",era:[1930,2026],themeMinScore:2,queueTerms:["civic film","public affairs","city planning","public service","community development","municipal government","public works","civil defense","local government","urban planning","city government","community","government film"],fastSubjects:["civic film","public affairs","city planning","public service","community development","municipal government","public works","civil defense","local government","urban planning","city government","community","government film"],fastCollections:["prelinger","FedFlix","governmentdocuments"],wideCollections:["prelinger","FedFlix","governmentdocuments","opensource_movies"],providers:[{collections:["prelinger","FedFlix","governmentdocuments","opensource_movies"],require_subj:["civic film","public affairs","city planning","public service","community development","municipal government","public works","civil defense","local government","urban planning","city government","community","government film"]}],deny:{title:["campaign advertisement","commercial","video game"],subject:["campaign advertisement","commercial","political campaign","video game"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
   "Earth From Above": {genre:"earthfromabove",era:[1955,2026],themeMinScore:2,queueTerms:["earth observation","satellite imagery","earth from space","remote sensing","planet earth","aerial photography"],fastSubjects:["earth observation","satellite imagery","earth from space"],fastCollections:["NASA","FedFlix"],providers:[{collections:["NASA","prelinger","FedFlix","opensource_movies"],require_subj:["earth observation","satellite imagery","earth from space","remote sensing","planet earth","aerial photography","earth science","environmental satellite"]}],deny:{title:["science fiction film","video game","commercial","flat earth","conspiracy"],subject:["science fiction film","video game","cartoon","commercial","flat earth","conspiracy"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
   "Prelinger Vault": {
     genre:"industrial", era:[1930,1989], show:"Prelinger Vault",
@@ -6200,7 +6215,7 @@ function buildProgramQueries(prog,ch,advance) {
             (denyTitle ? (" AND NOT title:(" + denyTitle + ")") : "");
   /* A compact, broad lane gets the first tune; full editorial rotation then
      fills the buffer without making the viewer wait on sparse metadata. */
-  var fastQs=[], primaryProvider=(prog.providers||[])[0]||{};
+  var fastQs=[], wideQs=[], primaryProvider=(prog.providers||[])[0]||{};
   /* Every channel leads with permanent, full-range rescue rails assembled
      from that channel's own approved vocabulary. They are intentionally not
      tied to an hour or daypart: a cold tune may start in any era, while the
@@ -6223,6 +6238,13 @@ function buildProgramQueries(prog,ch,advance) {
       var fastBase="mediatype:"+mt+" AND "+fastClause+titleClause+" AND year:["+era[0]+" TO "+era[1]+"]"+NOT;
       fastQs.push(fastBase);
       (prog.fastCollections||[]).slice(0,2).forEach(function(collection){fastQs.push("collection:"+collection+" AND "+fastBase);});
+    });
+  }
+  /* Collection-wide rescue lanes are opt-in and remain subject-gated by the
+     relay/client editorial checks. They cover Archive records with sparse tags. */
+  if(Array.isArray(prog.wideCollections)&&prog.wideCollections.length){
+    prog.wideCollections.slice(0,4).forEach(function(collection){
+      wideQs.push("collection:"+collection+" AND mediatype:"+mt+" AND year:["+permanentEra[0]+" TO "+permanentEra[1]+"]"+NOT);
     });
   }
   var providers=(prog.providers||[]).map(function(prov,index){return {prov:prov,index:index};});
@@ -6256,7 +6278,7 @@ function buildProgramQueries(prog,ch,advance) {
     });
   });
   var editorialQs=prog.collectionOnly?qs:qs.concat(globalQs);
-  return fastQs.concat(editorialQs);
+  return fastQs.concat(editorialQs).concat(wideQs);
 }
 
 /* Permanent channel programming. The legacy hour argument remains accepted so
@@ -6282,7 +6304,7 @@ function slotFor(ch,_ignoredHour,opts){
 }
 function iaQueueQueries(sl){
   var all=(sl&&sl.queries||[]);if(all.length<=8)return all.slice();
-  var last=all.length-1, indexes=[0,1,last,last-1,2,3,Math.floor(last/2),Math.min(last,Math.floor(last/2)+1)], seen={};
+  var last=all.length-1, indexes=[0,1,2,last,last-1,last-2,last-3,Math.floor(last/2)], seen={};
   return indexes.filter(function(index){if(seen[index])return false;seen[index]=1;return true;}).map(function(index){return all[index];});
 }
 window.__atvTimelessAudit=function(){

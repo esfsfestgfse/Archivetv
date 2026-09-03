@@ -12,7 +12,7 @@ for (const file of files) {
   const source = fs.readFileSync(path.join(repo, file), 'utf8');
   const name = file;
   const required = [
-    [/V2_SOURCE_CACHE_VERSION=12/, 'source catalog cache version must be bumped'],
+    [/V2_SOURCE_CACHE_VERSION=13/, 'source catalog cache version must invalidate the pre-cartoon-era catalog'],
     [/V2_SOURCE_CACHE_TTL=12\*60\*1000/, 'source catalog cache must expire quickly enough to rotate'],
     [/function v2MapLimit\(/, 'provider fan-out must be concurrency bounded'],
     [/function v2Verified\(/, 'items must carry a common verification envelope'],
@@ -55,6 +55,13 @@ for (const file of files) {
     [/aspect=v2AspectRatio\(d\)\|\|v2AspectRatio\(x\)/, 'PeerTube must verify the source aspect ratio'],
     [/!v2Relevant\(profile,candidate\)/, 'PeerTube candidates must pass strict qualification after full metadata hydration'],
     [/item\.account,item\.query/, 'hydrated qualification must retain the provider search query as editorial evidence'],
+    [/1990s cartoon full episode/, 'Cartoon Time Machine must include 1990s full-episode discovery'],
+    [/2000s cartoon full episode/, 'Cartoon Time Machine must include 2000s full-episode discovery'],
+    [/full animated TV episode/, 'Cartoon Time Machine must prioritize television-format animation'],
+    [/currentProfile\.profileKey===\"cartoon-time-machine\"/, 'Cartoon Time Machine must have channel-specific qualification'],
+    [/experimental animation.*student film.*thesis film/, 'Cartoon Time Machine must reject artsy and production-short bleed'],
+    [/full\\s\+\(\?:cartoon\|episode\|episode\[s\]\?\)/, 'Cartoon Time Machine must require episode or special program-form evidence'],
+    [/seconds&&\(isTelevision\?seconds<600/, 'Cartoon Time Machine must reject undersized TV results without capping long cartoon blocks'],
     [/part=snippet,contentDetails,status,player&maxWidth=1280/, 'YouTube must request public player dimensions'],
     [/verification:\{metadata:true,rights:true,landscape:true/, 'verified source items must record landscape proof'],
     [/store\.set\("v2source:"\+key,\{version:V2_SOURCE_CACHE_VERSION,at:Date\.now\(\),items:items,health:state\.health\}\)/, 'catalog cache must retain provider health'],
@@ -92,7 +99,7 @@ for (const file of files) {
   }
   if (new Set(topicKeys).size !== topicKeys.length) issues.push(`${name}: duplicate source topic definitions found`);
 
-  if (stamps.length !== 1 || !/\.042-source-programming$/.test(stamps[0] || '')) issues.push(`${name}: source-suite build stamp is missing or stale`);
+  if (stamps.length !== 1 || !/\.043-cartoon-era$/.test(stamps[0] || '')) issues.push(`${name}: source-suite build stamp is missing or stale`);
 }
 
 const desktop = fs.readFileSync(path.join(repo, files[0]), 'utf8');

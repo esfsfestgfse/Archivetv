@@ -1665,7 +1665,7 @@ html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.9.6-mobile.042-source-programming";
+window.__ATV_BUILD="1.9.6-mobile.043-cartoon-era";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -1703,7 +1703,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.9.6-mobile.042-source-programming · RealSignal</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.9.6-mobile.043-cartoon-era · RealSignal</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -2529,7 +2529,7 @@ const CHANNEL_META={
 "Stage Door":{desc:"SOURCE SUITE · complete stage plays, theatre performances, drama and dance theatre.",rel:["Black Stage","Comedy Circuit"]},
 "The Print Shop":{desc:"SOURCE SUITE · printing, typography, letterpress, publishing and book arts history.",rel:["The Reading Room","The Darkroom"]},
 "Memory Bank":{desc:"SOURCE SUITE · oral history, community memory, memoir, public history and personal archives.",rel:["Local Signal","Freedom Stories"]},
-"Cartoon Time Machine":{desc:"SOURCE SUITE · actual full cartoons, animated episodes and landscape theatrical shorts — no animation seminars.",rel:["Classic Cartoons","Animation Desk"]},
+  "Cartoon Time Machine":{desc:"SOURCE SUITE · 1930s–2000s cartoons, full animated TV episodes and classic specials — no animation production shorts.",rel:["Classic Cartoons","Animation Desk"]},
 "Movie House":{desc:"SOURCE SUITE · complete feature films, independent movies and landscape short films.",rel:["The Documentary Hour","Screen Test"]},
 "TV Time Machine":{desc:"SOURCE SUITE · complete classic, retro and vintage television episodes.",rel:["Classic Rerun TV","Prime Time Archive"]},
 "The Cook's Table":{desc:"SOURCE SUITE · complete cooking shows, chef programs, recipe demonstrations and regional cuisine.",rel:["The Kitchen","Foodways"]},
@@ -7086,7 +7086,7 @@ function applyAV(){const el=screenArea.querySelector("video,audio");if(el){el.mu
    Every catalog item carries provenance, rights evidence, metadata proof, and a
    playable-file or embeddable proof level before it reaches the rotation.
    ===================================================================== */
-var V2_SOURCE_CATALOG_SIZE=96,V2_SOURCE_READY_BUFFER=5,V2_SOURCE_MIN_CATALOG=5,V2_SOURCE_CACHE_VERSION=12,V2_SOURCE_CACHE_TTL=12*60*1000,V2_SOURCE_MAX_DETAIL=24,V2_SOURCE_MAX_CONCURRENCY=8;
+var V2_SOURCE_CATALOG_SIZE=96,V2_SOURCE_READY_BUFFER=5,V2_SOURCE_MIN_CATALOG=5,V2_SOURCE_CACHE_VERSION=13,V2_SOURCE_CACHE_TTL=12*60*1000,V2_SOURCE_MAX_DETAIL=24,V2_SOURCE_MAX_CONCURRENCY=8;
 const V2_PREVIEW_PROFILES={
   "public-health-archive":{name:"Public Health Archive",providers:["peertube","youtube"],queries:["public health film","sanitation film","medical education film","hospital documentary","epidemiology film"],match:["public health","health","sanitation","medical","hospital","epidemiology","epidemic","medicine"],deny:["fictional","horror","music video","commercial","cartoon","gameplay","wedding"]},
   "signal-room":{name:"The Signal Room",providers:["peertube","youtube"],queries:["telegraph history film","telephone history film","radio engineering film","broadcasting history film","communications technology film"],match:["telegraph","telephone","radio","broadcast","communication","telecom","signal","engineering"],deny:["fictional","music video","commercial","cartoon","gameplay","podcast","sermon"]},
@@ -17436,6 +17436,39 @@ window.__atvBootDone=true; /* app is up -- from here on, errors get logged, not 
     return true;
   }
   install();
+})();
+</script>
+<script>
+/* CARTOON TIME MACHINE ERA PROGRAMMING: keep the retro-cartoon lane on actual
+   television cartoons and specials while leaving Animation Desk free to explore
+   independent and experimental animation. */
+(function(){
+  var profile=V2_PREVIEW_PROFILES["cartoon-time-machine"];
+  if(profile){
+    profile.queries=["1990s cartoon full episode","2000s cartoon full episode","1980s cartoon full episode","1970s cartoon full episode","classic cartoon full episode","Saturday morning cartoon full episode","retro animated TV series episode","classic animated series full episode","vintage cartoon compilation"];
+    profile.match=["1990s cartoon","2000s cartoon","1980s cartoon","1970s cartoon","classic cartoon","Saturday morning cartoon","animated TV series","cartoon episode","classic animated series","vintage cartoon","cartoon special"];
+    profile.profileKey="cartoon-time-machine";
+  }
+  V2_SOURCE_TOPIC_OVERRIDES["cartoon-time-machine"]=["1990s cartoon","2000s cartoon","1980s cartoon","1970s cartoon","classic cartoon","Saturday morning cartoon","animated TV series","cartoon episode","classic animated series","vintage cartoon"];
+  V2_SOURCE_QUERY_SUFFIXES.animation=["full cartoon episode","complete cartoon episode","full animated TV episode","classic cartoon episode","Saturday morning cartoon","animated series episode","cartoon compilation","animated short film"];
+  var baseTitleDeny=v2ProgramTitleDeny;
+  window.v2ProgramTitleDeny=v2ProgramTitleDeny=function(currentProfile){
+    var denied=baseTitleDeny(currentProfile)||[];
+    if(currentProfile&&currentProfile.profileKey==="cartoon-time-machine") denied=denied.concat(["experimental animation","experimental animated","abstract animation","art animation","gallery animation","visual poem","motion graphics","student film","thesis film","festival animation","independent animation short","animated art","animation reel","showreel","demo reel","music visualizer","animated music video","top 10","top ten","countdown","watch again","you should watch","recommended cartoons","best cartoons","cartoon ranking","cartoon list","cartoon facts","cartoon trivia","nostalgia list","nostalgia video","why you should","what happened to"]);
+    return denied;
+  };
+  var baseRelevant=v2Relevant;
+  window.v2Relevant=v2Relevant=function(currentProfile,item){
+    if(!baseRelevant(currentProfile,item))return false;
+    if(currentProfile&&currentProfile.profileKey==="cartoon-time-machine"){
+      var identity=v2Text([item&&item.title,item&&item.tags,item&&item.subject,item&&item.category,item&&item.account]).toLowerCase();
+      if(!/(?:full\s+(?:cartoon|episode|episode[s]?)|complete\s+(?:cartoon|episode|episode[s]?)|(?:cartoon|animated|television|tv)\s+(?:episode|series|special|compilation)|episode\s*\d+|season\s*\d+|series\s+episode|tv\s+special|television\s+special)/i.test(identity))return false;
+      var seconds=Number(item&&item.duration)||0,isTelevision=/(?:episode|series|season|tv|television|special)/i.test(identity),isClassicShort=/(?:classic cartoon|vintage cartoon|cartoon compilation)/i.test(identity);
+      if(seconds&&seconds<180)return false;
+      if(seconds&&(isTelevision?seconds<600:(!isClassicShort&&seconds<600)))return false;
+    }
+    return true;
+  };
 })();
 </script>
 </body>

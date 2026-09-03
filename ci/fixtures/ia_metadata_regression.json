@@ -1,0 +1,64 @@
+{
+  "items": {
+    "fixture-valid-h264": {
+      "metadata": {
+        "creator": ["Ada Lovelace", "Charles Babbage"],
+        "description": "<p>Archive reel &amp; restoration notes.</p>",
+        "date": ["1954-06-01"],
+        "collection": ["movies", "prelinger"],
+        "subject": ["newsreel", "science", "restoration"]
+      },
+      "files": [
+        {"name": "clip-low.mp4", "format": "MPEG-4"},
+        {"name": "reels/clip-main.mp4", "format": "MPEG-4 H.264"},
+        {"name": "captions.vtt", "format": "WebVTT"}
+      ]
+    },
+    "fixture-non-english": {
+      "metadata": {
+        "title": "東京のニュース映画 — Año nuevo",
+        "creator": "Miyazaki Studio",
+        "date": "1962",
+        "collection": "feature_films",
+        "subject": ["ニュース映画", "cine"]
+      },
+      "files": [
+        {"name": "世界/短編.mp4", "format": "MPEG-4 H.264"}
+      ]
+    },
+    "fixture-short": {
+      "metadata": {
+        "creator": "Station Archive",
+        "date": "1971",
+        "runtime": "00:00:12",
+        "collection": "prelinger",
+        "subject": ["station identification"]
+      },
+      "files": [
+        {"name": "short-ident.mp4", "format": "MPEG-4 H.264"}
+      ]
+    },
+    "fixture-trailer": {
+      "metadata": {
+        "title": "Festival Trailer",
+        "date": "1988",
+        "runtime": "00:02:00",
+        "collection": "feature_films"
+      },
+      "files": [
+        {"name": "trailer.mp4", "format": "MPEG-4 H.264"}
+      ]
+    },
+    "fixture-long": {
+      "metadata": {
+        "title": "The Long Feature",
+        "date": "1948",
+        "runtime": "01:20:00",
+        "collection": "feature_films"
+      },
+      "files": [
+        {"name": "long-feature.mp4", "format": "MPEG-4 H.264"}
+      ]
+    }
+  }
+}

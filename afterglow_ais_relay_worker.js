@@ -80,7 +80,7 @@ const IA_SEARCH_CACHE_VERSION = "v5";
 const IA_METADATA_TTL_SECONDS = 86400;
 const IA_QUEUE_TTL_SECONDS = 86400;
 const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
-const IA_QUEUE_CACHE_VERSION = "v26";
+const IA_QUEUE_CACHE_VERSION = "v27";
 const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
 /* The queue endpoint is part of channel-change critical path.  Archive can
    hydrate a richer shelf after the response, but a cold request must hand the
@@ -1817,7 +1817,24 @@ async function getIaQueue(request, url, env, ctx) {
     // a single unplayable item never turns into a visible No Signal screen.
     const strictQueue = themeMinScore > 1;
     const candidateCount = Math.min(strictQueue ? 30 : 20, Math.max(count, count * (strictQueue ? 6 : 4)));
-    let payload = await buildIaQueue(channel, queries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, candidateCount, url.origin, ctx, rotation);
+    /* Cold channel changes must not wait for every diversity rail. The first
+       three queries are the app's fast, subject-locked rails; wide collection
+       rescue lanes are deliberately deferred until the fast shelf is sparse.
+       This keeps the first playable item on the short path while preserving
+       the broader catalog for refill and later rotations. */
+    const fastQueries = queries.slice(0, Math.min(3, queries.length));
+    const reserveQueries = queries.slice(fastQueries.length, Math.min(8, queries.length));
+    let payload = await buildIaQueue(channel, fastQueries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, candidateCount, url.origin, ctx, rotation);
+    if (payload.items.length < Math.min(candidateCount, 8) && reserveQueries.length) {
+      const reserve = await buildIaQueue(channel, reserveQueries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, candidateCount, url.origin, ctx, rotation);
+      const seen = new Set(), merged = [];
+      for (const item of [...payload.items, ...reserve.items]) {
+        if (!item || seen.has(item.identifier)) continue;
+        seen.add(item.identifier); merged.push(item);
+        if (merged.length >= candidateCount) break;
+      }
+      payload = { ...payload, items: merged, candidates: merged.length, reserve: true };
+    }
     if (payload.items.length < Math.min(candidateCount, 8)) {
       const fallbackQueries = iaFallbackQueries(themeTerms, denyTerms, mediaTypes);
       if (fallbackQueries.length) {

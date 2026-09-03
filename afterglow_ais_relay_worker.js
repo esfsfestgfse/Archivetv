@@ -80,7 +80,7 @@ const IA_SEARCH_CACHE_VERSION = "v5";
 const IA_METADATA_TTL_SECONDS = 86400;
 const IA_QUEUE_TTL_SECONDS = 86400;
 const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
-const IA_QUEUE_CACHE_VERSION = "v28";
+const IA_QUEUE_CACHE_VERSION = "v29";
 const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
 /* The queue endpoint is part of channel-change critical path.  Archive can
    hydrate a richer shelf after the response, but a cold request must hand the
@@ -1666,7 +1666,7 @@ function queueRotationSort(rotation, lane) {
   return modes[(Number(rotation) + Number(lane)) % modes.length];
 }
 
-async function buildIaQueue(channel, queries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, cacheOrigin, ctx, rotation = 0, searchTimeoutMs = 3200) {
+async function buildIaQueue(channel, queries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, cacheOrigin, ctx, rotation = 0, searchTimeoutMs = 3200, firstApprovedLane = false) {
   const items = [], deferred = [], seen = new Set(), seenTitles = new Set(), candidateLimit = count;
   const used = { lane: new Map(), era: new Map(), creator: new Map(), collection: new Map() };
   /* Query lanes are already editorially ordered by the app. Fetch a small
@@ -1677,18 +1677,43 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, mediaTypes,
      current rotation, opposite ends of the era range, and narrow editorial
      rails. Resolve all of them in parallel. Restricting discovery to only the
      first three made sparse channels look as if they were hydrating forever. */
-  const lanes = await Promise.all(queries.slice(0, Math.min(8, queries.length)).map(async (query, lane) => {
+  const lanePromises = queries.slice(0, Math.min(8, queries.length)).map(async (query, lane) => {
     try {
       const result = await cachedSearchArchive(cacheOrigin, query, Math.min(36, Math.max(18, count * 4)), 1, queueRotationSort(rotation, lane), ctx, searchTimeoutMs);
       // Archive.org collections are catalog pages, not programs. Keeping one in
       // a shelf guarantees a failed playback attempt, so reject them before
       // ranking, caching, or media hydration for every IA channel.
       return (result.docs || []).filter((doc) => doc && safeIaId(doc.identifier) && String(doc.mediatype || "").toLowerCase() !== "collection" && (!mediaTypes.length || mediaTypes.includes(String(doc.mediatype || "").toLowerCase())))
-        .sort((a, b) => themeScore(b, themeTerms) - themeScore(a, themeTerms)).map((doc) => ({ doc, lane }));
+        .sort((a, b) => themeScore(b, themeTerms) - themeScore(a, themeTerms)).map((doc) => ({ doc, lane }))
+        .filter((candidate) => matchesTheme(candidate.doc, themeTerms, themeMinScore) && !matchesDeny(candidate.doc, denyTerms));
     } catch {
       return [];
     }
-  }));
+  });
+  let lanes;
+  if (firstApprovedLane) {
+    /* Cold tuning only needs one approved editorial rail to begin hydration.
+       Keep the other fast rails observed under waitUntil so they can still
+       warm the search cache, but do not make the viewer wait for their slowest
+       response. */
+    let pending = lanePromises.length;
+    const firstLane = await new Promise((resolve, reject) => {
+      if (!pending) { reject(new Error("no Archive lanes")); return; }
+      lanePromises.forEach((lanePromise) => lanePromise.then((lane) => {
+        if (lane.length) { resolve(lane); return; }
+        pending -= 1;
+        if (!pending) reject(new Error("no approved Archive lane"));
+      }).catch(() => {
+        pending -= 1;
+        if (!pending) reject(new Error("no approved Archive lane"));
+      }));
+    }).catch(() => []);
+    if (ctx) ctx.waitUntil(Promise.allSettled(lanePromises));
+    else await Promise.allSettled(lanePromises);
+    lanes = firstLane.length ? [firstLane] : [];
+  } else {
+    lanes = await Promise.all(lanePromises);
+  }
   const laneDepth = Math.max(0, ...lanes.map((lane) => lane.length));
   function underCap(key, value, cap) { return !value || (used[key].get(value) || 0) < cap; }
   function add(candidate) {
@@ -1864,7 +1889,7 @@ async function getIaQueue(request, url, env, ctx) {
     const reserveQueries = queries.slice(fastQueries.length, Math.min(8, queries.length));
     let payload = await buildIaQueue(channel, fastQueries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, candidateCount, url.origin, ctx, rotation, IA_FAST_SEARCH_TIMEOUT_MS);
     const fallbackQueries = iaFallbackQueries(themeTerms, denyTerms, mediaTypes);
-    const needsExpansion = payload.items.length < Math.min(candidateCount, 8);
+    const needsExpansion = payload.items.length === 0;
     /* Reserve and rescue lanes are valuable for diversity but must never sit
        in front of first tune. Start them as observed background work; the
        first three subject-locked rails below can already hydrate and return a
@@ -1872,7 +1897,7 @@ async function getIaQueue(request, url, env, ctx) {
        partial cache and fills the shared ready shelf for the next request. */
     if (needsExpansion) {
       ctx.waitUntil(
-        expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, url.origin, cacheKey, sharedKey, env, ctx, rotation)
+        expandAndCacheIaQueue(payload, reserveQueries.slice(0, Math.min(2, reserveQueries.length)), fallbackQueries.slice(0, 1), channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, url.origin, cacheKey, sharedKey, env, ctx, rotation)
           .catch((error) => console.warn(JSON.stringify({ event: "ia-background-expansion-failed", channel, message: String(error && error.message || error) })))
       );
     }

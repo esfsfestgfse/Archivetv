@@ -84,7 +84,7 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
-const IA_QUEUE_CACHE_VERSION = "v35";
+const IA_QUEUE_CACHE_VERSION = "v36";
 const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
 /* The queue endpoint is part of channel-change critical path.  Archive can
    hydrate a richer shelf after the response, but a cold request must hand the
@@ -1876,11 +1876,16 @@ function scheduleCachedIaHydration(payload, requestedCount, cacheOrigin, cacheKe
 async function expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, rotation) {
   let expanded = payload;
   const threshold = Math.min(candidateCount, 8);
-  if (expanded.items.length < threshold && reserveQueries.length) {
+  /* A large candidate list is not the same thing as a deep playable shelf:
+     Archive records can lack a browser-playable derivative. Widen whenever
+     the hydrated depth is below the requested shelf, even if discovery found
+     eight or more names already. */
+  const needsPlayableDepth = Number(expanded && expanded.ready || 0) < count;
+  if ((expanded.items.length < threshold || needsPlayableDepth) && reserveQueries.length) {
     const reserve = await buildIaQueue(channel, reserveQueries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, candidateCount, cacheOrigin, ctx, rotation);
     expanded = mergeIaQueuePayload(expanded, reserve, candidateCount, { reserve: true });
   }
-  if (expanded.items.length < threshold && fallbackQueries.length) {
+  if ((expanded.items.length < threshold || needsPlayableDepth) && fallbackQueries.length) {
     const rescue = await buildIaQueue(channel, fallbackQueries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, candidateCount, cacheOrigin, ctx, rotation);
     expanded = mergeIaQueuePayload(expanded, rescue, candidateCount, { rescue: true });
   }

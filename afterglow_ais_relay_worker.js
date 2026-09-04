@@ -144,6 +144,20 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "UniversalNewsreelVolume35Release3905-10-1962", title: "Universal Newsreel Volume 35, Release 39, 05/10/1962", subject: "newsreel current events", year: 1962 },
     { identifier: "UniversalNewsreelVolume35Release6007-23-1962", title: "Universal Newsreel Volume 35, Release 60, 07/23/1962", subject: "newsreel television news", year: 1962 },
   ],
+  "118": [
+    { identifier: "blackadder-s02", title: "Blackadder - Season 2 (1986)", subject: "british television british sitcom british comedy", year: 1986 },
+    { identifier: "blackadder.-s-01-e-01.-the.-foretelling.-1080p.-blu-ray.-eac-3.2.0.1080p.x-265-i-vy", title: "Blackadder - Season 1 (1983)", subject: "british television british sitcom british comedy", year: 1983 },
+    { identifier: "LDFT7579", title: "Fawlty Towers Complete", subject: "british television british sitcom british comedy", year: 1975 },
+    { identifier: "keeping-up-appearances_202402", title: "1990 Keeping Up Appearances Complete Series", subject: "british television british sitcom british comedy", year: 1990 },
+    { identifier: "monty-pythons-flying-circus-ntsc-dvd-set", title: "Monty Python's Flying Circus (1969-1974)", subject: "british television british comedy", year: 1969 },
+  ],
+  "211": [
+    { identifier: "IGM167InternetItunes", title: "I've Got Munchies- Takes A Bite Out Of Elvis Quesadillas", subject: "cooking show cooking demonstration recipe food preparation", year: 2019 },
+    { identifier: "IGM165InternetItunes", title: "I've Got Munchies- Takes A Bite Out Of Snickers Croissants", subject: "cooking show cooking demonstration recipe baking pastry", year: 2019 },
+    { identifier: "IGM163InternetIphone", title: "I've Got Munchies- Takes A Bite Out Of Stuffed Strawberries", subject: "cooking show cooking demonstration recipe food preparation", year: 2019 },
+    { identifier: "IGM160InternetItunes", title: "I've Got Munchies- Takes A Bite Out Of Pull Apart Cheesy Garlic Bread", subject: "cooking show cooking demonstration recipe baking", year: 2019 },
+    { identifier: "igm171internetdevice", title: "I've Got Munchies- Takes A Bite Out Of Oatmeal Cream Pies with Jam and Toasted Pecans", subject: "cooking show cooking demonstration recipe baking pastry", year: 2019 },
+  ],
   "702": [
     { identifier: "veggietales-madame-blueberry-1998-fanmade-vhs-thanksgiving-special_202511", title: "VeggieTales Madame Blueberry (Thanksgiving Special)", subject: "thanksgiving special", year: 1998 },
     { identifier: "macys-thanksgiving-day-parade-cat-in-the-hat-theme-1994-1997", title: "The Cat in the Hat Balloon Theme (Macy's Thanksgiving Day Parade)", subject: "thanksgiving parade", year: 1997 },

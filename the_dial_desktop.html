@@ -1613,7 +1613,7 @@ body.cast-receiver .guide-directory .chcell.cast-focus .cc-n{color:#b9ffd0!impor
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.9.7-desktop.064-space-lastgood";
+window.__ATV_BUILD="1.9.7-desktop.065-hometown-resilient";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -9146,7 +9146,7 @@ async function tuneHometown(ch,sl,my){
     var a=arts[Math.floor(slide/1)%arts.length];
     try{
       var sum=cache[a.title];
-      if(!sum){ sum=await withTO(fetchJSON("https://en.wikipedia.org/api/rest_v1/page/summary/"+encodeURIComponent(a.title.replace(/ /g,"_"))),12000); cache[a.title]=sum; }
+      if(!sum){ sum=await withTO(fetchJSONResilient("https://en.wikipedia.org/api/rest_v1/page/summary/"+encodeURIComponent(a.title.replace(/ /g,"_")),"hometown-summary"),12000); cache[a.title]=sum; }
       if(my!==token)return;
       var vid=vidCache[a.title];
       if(vid===undefined&&Math.random()<0.4){ /* hunt footage for some landmarks; cache misses too */
@@ -9172,12 +9172,16 @@ async function tuneHometown(ch,sl,my){
     var loc=await getWxLocation(); var li=await resolveLocale(loc); if(my!==token)return;
     cityName=(li&&li.city)||homeLoc.city||"your town";
     var t=$("hhTitle"); if(t)t.textContent="HOMETOWN HISTORY / "+cityName.toUpperCase();
-    var d=await fetchJSON("https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&list=geosearch&gscoord="+loc.lat+"%7C"+loc.lon+"&gsradius=10000&gslimit=50");
+    var hhCacheKey="hometownHistory:"+cityName.toLowerCase().replace(/[^a-z0-9]+/g,"-");
+    var hhCached=store.get(hhCacheKey,null);
+    if(hhCached&&Array.isArray(hhCached.arts)&&Date.now()-Number(hhCached.at||0)<24*3600000){arts=hhCached.arts;}
+    var d=await fetchJSONResilient("https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&list=geosearch&gscoord="+loc.lat+"%7C"+loc.lon+"&gsradius=10000&gslimit=50","hometown-geosearch");
     var gs=(d&&d.query&&d.query.geosearch)||[];
     if(my!==token)return;
     nlog("hometown",true,gs.length+" landmarks near "+cityName);
     arts=gs.map(function(g){ return {title:g.title,dist:(g.dist!=null?g.dist*0.000621371:null)}; });
     arts.sort(function(){return Math.random()-0.5;});
+    store.set(hhCacheKey,{at:Date.now(),arts:arts.slice(0,50)});
     commonsImages(cityName+" "+(li&&li.state||""),16).then(function(im){ photos=im||[]; nlog("hometown",true,photos.length+" local photos pooled"); });
     (async function(){ /* HAPPENINGS AROUND TOWN — live local headlines */
       try{
@@ -9197,7 +9201,7 @@ async function tuneHometown(ch,sl,my){
       var tx2=$("hhText"); if(tx2)tx2.textContent="Wikipedia has no geotagged articles within about 6 miles of this location."; return; }
     showNext(); rtInterval(showNext,24000);
   }catch(e){ nlog("hometown",false,(e&&e.message)||e);
-    var tx3=$("hhText"); if(tx3)tx3.textContent="Wikipedia geosearch unavailable right now - will retry when you tune back."; }
+    var tx3=$("hhText"); if(arts.length){if(tx3)tx3.textContent="LAST-GOOD LANDMARK INDEX · reconnecting to Wikipedia for fresh local history.";showNext();rtInterval(showNext,24000);}else if(tx3)tx3.textContent="Wikipedia geosearch unavailable right now - will retry when you tune back."; }
 }
 
 

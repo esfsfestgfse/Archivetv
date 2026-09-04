@@ -84,7 +84,7 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
-const IA_QUEUE_CACHE_VERSION = "v36";
+const IA_QUEUE_CACHE_VERSION = "v37";
 const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
 /* The queue endpoint is part of channel-change critical path.  Archive can
    hydrate a richer shelf after the response, but a cold request must hand the
@@ -1849,22 +1849,17 @@ async function hydrateIaQueue(payload, requestedCount, cacheOrigin, ctx, mediaTy
   };
 }
 
-function scheduleCachedIaHydration(payload, requestedCount, cacheOrigin, cacheKey, sharedKey, env, ctx, mediaTypes) {
+function scheduleCachedIaHydration(payload, requestedCount, cacheOrigin, cacheKey, sharedKey, env, ctx, mediaTypes, channel, themeTerms, denyTerms, diversity, themeMinScore, candidateCount, queries) {
   const items = Array.isArray(payload && payload.items) ? payload.items : [];
   const candidates = Array.isArray(payload && payload.candidateItems) ? payload.candidateItems : [];
   if (!candidates.length || candidates.length <= items.length) return;
   const key = cacheKey.url;
   if (iaQueueHydrationInflight.has(key)) return;
-  const task = hydrateIaQueue(payload, requestedCount, cacheOrigin, ctx, mediaTypes)
-    .then((hydrated) => {
-      if (!hydrated || !hydrated.items.length) return undefined;
-      const queueTtl = hydrated.ready >= requestedCount ? IA_QUEUE_TTL_SECONDS : IA_PARTIAL_QUEUE_TTL_SECONDS;
-      if (hydrated.ready >= requestedCount) sharedQueuePut(env, sharedKey, hydrated, queueTtl, ctx);
-      return caches.default.put(cacheKey, cacheableJson(hydrated, queueTtl, {
-        "X-Afterglow-Source": "program-director-cache-rehydrate",
-        "X-Afterglow-Queue-Ready": String(hydrated.ready),
-      }));
-    })
+  const fastQueryCount = Math.min(2, queries.length);
+  const reserveQueries = queries.slice(Math.max(1, fastQueryCount - 1), Math.min(8, queries.length));
+  const fallbackQueries = iaFallbackQueries(themeTerms, denyTerms, mediaTypes);
+  const seed = { ...payload, items: candidates.slice(0, candidateCount), candidateItems: candidates, candidates: candidates.length };
+  const task = expandAndCacheIaQueue(seed, reserveQueries.slice(0, Math.min(2, reserveQueries.length)), fallbackQueries.slice(0, 1), channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, requestedCount, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, Number(payload.rotation) || 0)
     .catch((error) => {
       console.warn(JSON.stringify({ event: "ia-cached-rehydration-failed", message: String(error && error.message || error) }));
     })
@@ -1963,7 +1958,9 @@ async function getIaQueue(request, url, env, ctx) {
           await cache.delete(cacheKey).catch(() => false);
         } else {
           if (cachedPayload.partial && Array.isArray(cachedPayload.candidateItems)) {
-            scheduleCachedIaHydration(cachedPayload, count, url.origin, cacheKey, sharedKey, env, ctx, mediaTypes);
+            const strictQueue = themeMinScore > 1;
+            const candidateCount = Math.min(strictQueue ? 30 : 20, Math.max(count, count * (strictQueue ? 6 : 4)));
+            scheduleCachedIaHydration(cachedPayload, count, url.origin, cacheKey, sharedKey, env, ctx, mediaTypes, channel, themeTerms, denyTerms, diversity, themeMinScore, candidateCount, queries);
           }
           return cached;
         }

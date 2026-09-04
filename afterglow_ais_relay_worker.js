@@ -99,6 +99,33 @@ const IA_FAST_SEARCH_TIMEOUT_MS = 3200;
    same editorial query is healthy on the stable first page. Retry only these
    observed lanes against page 1; never broaden their terms or disable gates. */
 const IA_STABLE_RESCUE_CHANNELS = new Set(["132", "210", "702"]);
+/* Last-resort, already-observed playable records for those same sparse lanes.
+   These are not a permanent catalog: they are used only when discovery returns
+   no candidate at all, are passed through normal media hydration, and are
+   immediately followed by a background search for fresher material. */
+const IA_EMERGENCY_SEEDS = Object.freeze({
+  "132": [
+    { identifier: "TerrorToonsKillCount", title: "Terror Toons (2002) - Kill Count S02", subject: "cult film horror film", year: 2002 },
+    { identifier: "videoplayback-8_202604", title: "(Adventures Of The) Purple Lin Kwei", subject: "b movie cult film", year: 1970 },
+    { identifier: "case-file-the-blackwood-hollow-curfew", title: "CASE FILE THE BLACKWOOD HOLLOW CURFEW", subject: "horror film independent film", year: 2024 },
+    { identifier: "criaturas-hediondas", title: "Criaturas Hediondas", subject: "horror film exploitation film", year: 1993 },
+    { identifier: "Weird-o-ramaWeird-cast1-Part1TheScreamingSkull", title: "Weird-O-Rama: The Screaming Skull", subject: "cult film horror film", year: 1956 },
+  ],
+  "210": [
+    { identifier: "UniversalNewsreelVolume35Release201-01-1962", title: "Universal Newsreel Volume 35, Release 2, 01/01/1962", subject: "newsreel news reel", year: 1962 },
+    { identifier: "UniversalNewsreelVolume34Issue801-23-1961", title: "Universal Newsreel Volume 34, Issue 8, 01/23/1961", subject: "newsreel historical newsreel", year: 1961 },
+    { identifier: "200-UN-35-53", title: "Universal Newsreel", subject: "newsreel news broadcast", year: 1962 },
+    { identifier: "UniversalNewsreelVolume35Release3905-10-1962", title: "Universal Newsreel Volume 35, Release 39, 05/10/1962", subject: "newsreel current events", year: 1962 },
+    { identifier: "UniversalNewsreelVolume35Release6007-23-1962", title: "Universal Newsreel Volume 35, Release 60, 07/23/1962", subject: "newsreel television news", year: 1962 },
+  ],
+  "702": [
+    { identifier: "veggietales-madame-blueberry-1998-fanmade-vhs-thanksgiving-special_202511", title: "VeggieTales Madame Blueberry (Thanksgiving Special)", subject: "thanksgiving special", year: 1998 },
+    { identifier: "macys-thanksgiving-day-parade-cat-in-the-hat-theme-1994-1997", title: "The Cat in the Hat Balloon Theme (Macy's Thanksgiving Day Parade)", subject: "thanksgiving parade", year: 1997 },
+    { identifier: "SesameStreetPress1993", title: "Sesame Street Press 1993", subject: "thanksgiving special children's television", year: 1993 },
+    { identifier: "DayofTha1951", title: "Day of Thanksgiving, A", subject: "thanksgiving film", year: 1951 },
+    { identifier: "blues-clues-macys-thanksgiving-day-parade-specials", title: "Blue's Clues Macy's Thanksgiving Day Parade Specials", subject: "thanksgiving parade thanksgiving special", year: 2000 },
+  ],
+});
 /* Keep a single cold tune from opening three identical Archive requests while
    several viewers or the soak harness hit the same rail together. This map is
    intentionally process-local and ephemeral; the durable result remains in
@@ -2047,7 +2074,26 @@ async function getIaQueue(request, url, env, ctx) {
         if (rescue.items.length) payload = mergeIaQueuePayload(payload, rescue, candidateCount, { rescue: true });
       }
     }
-    const needsExpansion = payload.items.length === 0;
+    if (!payload.items.length && IA_EMERGENCY_SEEDS[channel] && IA_EMERGENCY_SEEDS[channel].length) {
+      /* A verified shelf keeps the television usable during a true cold-source
+         miss. Rotate the seed order so the emergency path is not a fixed
+         five-item loop, then let the normal background expansion replace it. */
+      const seeds = IA_EMERGENCY_SEEDS[channel];
+      const offset = Math.abs(rotation) % seeds.length;
+      const orderedSeeds = seeds.slice(offset).concat(seeds.slice(0, offset));
+      payload = {
+        channel,
+        rotation,
+        generatedAt: new Date().toISOString(),
+        ttlSeconds: IA_QUEUE_TTL_SECONDS,
+        items: orderedSeeds.slice(0, count),
+        candidateItems: orderedSeeds,
+        candidates: orderedSeeds.length,
+        ready: 0,
+        emergency: true,
+      };
+    }
+    const needsExpansion = payload.items.length === 0 || payload.emergency === true;
     /* Reserve and rescue lanes are valuable for diversity but must never sit
        in front of first tune. Start them as observed background work; the
        first three subject-locked rails below can already hydrate and return a

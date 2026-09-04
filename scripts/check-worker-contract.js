@@ -107,7 +107,8 @@ if (!/const STORM_CENTER_PATH = "\/live\/storms"/.test(source) || !/const STORM_
 if (numericConstant('STORM_CENTER_TTL_SECONDS') !== 300 || numericConstant('STORM_CENTER_IMAGE_TTL_SECONDS') !== 300) issues.push('Storm Center data and image snapshots must use five-minute caches');
 if (!/day1otlk\.txt/.test(source) || !/day1otlk\.png/.test(source) || !/stormRisk/.test(source)) issues.push('Storm Center must relay and normalize official SPC Day 1 products');
 if (!/STORM_CENTER_PATH \+ "\/cache\/" \+ STORM_CENTER_CACHE_VERSION/.test(source) || !/spc-day1-image-relay/.test(source)) issues.push('Storm Center needs versioned data and image cache contracts');
-if (!/Access-Control-Expose-Headers.*X-Afterglow-Source, X-Afterglow-Cache/.test(source)) issues.push('Browser diagnostics must be able to read safe Worker source and cache headers');
+if (!/Access-Control-Expose-Headers.*X-Afterglow-Source, X-Afterglow-Cache, X-Afterglow-Queue-Ready, X-Afterglow-Queue-Partial, X-Afterglow-Queue-Fallback/.test(source)) issues.push('Browser diagnostics must be able to read safe Worker source, cache, and queue phase headers');
+if (!/const iaMetadataInflight = new Map\(\)/.test(source) || !/iaMetadataInflight\.get\(inflightKey\)/.test(source) || !/iaMetadataInflight\.set\(inflightKey, metadata\)/.test(source)) issues.push('queue hydration must coalesce concurrent Archive metadata lookups');
 
 console.log(`Worker contract: ${issues.length ? 'FAILED' : 'passed'}`);
 for (const issue of issues) console.log(`P0 ${issue}`);

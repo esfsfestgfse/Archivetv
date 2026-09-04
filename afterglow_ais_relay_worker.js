@@ -152,6 +152,10 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
    intentionally process-local and ephemeral; the durable result remains in
    Cache API/KV below. */
 const iaSearchInflight = new Map();
+/* TV, phone, and guide requests can hydrate the same queue at once. Share the
+   metadata promise for an identifier so a burst does not fan out into three
+   identical Archive metadata requests before the edge cache write is visible. */
+const iaMetadataInflight = new Map();
 /* A partial queue can be served immediately while its approved candidates are
    rehydrated in the background. Keep that repair single-flight per edge key so
    a fast channel-surfing client cannot open duplicate metadata storms. */
@@ -288,7 +292,7 @@ function corsHeaders() {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
-    "Access-Control-Expose-Headers": "X-Afterglow-Source, X-Afterglow-Cache",
+    "Access-Control-Expose-Headers": "X-Afterglow-Source, X-Afterglow-Cache, X-Afterglow-Queue-Ready, X-Afterglow-Queue-Partial, X-Afterglow-Queue-Fallback",
     "Vary": "Origin",
   };
 }
@@ -1736,11 +1740,19 @@ function queueFileUrls(id, payload, name) {
 async function queuePlayable(id, cacheOrigin, ctx, mediaTypes = [], attempt = 0) {
   try {
     const cacheKey = new Request(cacheOrigin + IA_PREFIX + "/cache/metadata/" + id);
-    const payload = await cachedArchiveJson(cacheKey, IA_METADATA_TTL_SECONDS, async () => {
-      const upstream = await archiveFetch("https://archive.org/metadata/" + encodeURIComponent(id), {}, 4200);
-      if (!upstream.ok) throw new Error("archive metadata " + upstream.status);
-      return upstream.json();
-    }, ctx);
+    const inflightKey = cacheKey.url;
+    let metadata = iaMetadataInflight.get(inflightKey);
+    if (!metadata) {
+      metadata = cachedArchiveJson(cacheKey, IA_METADATA_TTL_SECONDS, async () => {
+        const upstream = await archiveFetch("https://archive.org/metadata/" + encodeURIComponent(id), {}, 4200);
+        if (!upstream.ok) throw new Error("archive metadata " + upstream.status);
+        return upstream.json();
+      }, ctx).finally(() => {
+        if (iaMetadataInflight.get(inflightKey) === metadata) iaMetadataInflight.delete(inflightKey);
+      });
+      iaMetadataInflight.set(inflightKey, metadata);
+    }
+    const payload = await metadata;
     const files = payload.files || [];
     const format = (file) => String(file && file.format || "").toLowerCase();
     const video = files.filter((file) => file && file.name && (/\.mp4$|\.m4v$/i.test(file.name) || /\.webm$/i.test(file.name) || /\.ogv$/i.test(file.name)))

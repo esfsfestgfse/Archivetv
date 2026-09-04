@@ -70,6 +70,7 @@ async function requestQueue(row, remainingMs, rotationOffset) {
 async function probeRotation(row, rotationOffset) {
   const started = Date.now();
   let attempts = 0, lastStatus = 0, lastBody = null, lastError = null;
+  let lastSource = '', lastCache = '', lastReadyHeader = '', lastPartial = '', lastFallback = '';
   let firstReadyLatencyMs = null, bestReady = 0, bestItems = [];
   while (Date.now() - started < timeoutMs) {
     attempts++;
@@ -77,6 +78,11 @@ async function probeRotation(row, rotationOffset) {
       const { response, body } = await requestQueue(row, timeoutMs - (Date.now() - started), rotationOffset);
       lastStatus = response.status;
       lastBody = body;
+      lastSource = response.headers.get('x-afterglow-source') || '';
+      lastCache = response.headers.get('x-afterglow-cache') || '';
+      lastReadyHeader = response.headers.get('x-afterglow-queue-ready') || '';
+      lastPartial = response.headers.get('x-afterglow-queue-partial') || '';
+      lastFallback = response.headers.get('x-afterglow-queue-fallback') || '';
       const items = Array.isArray(body.items) ? body.items : [];
       const readyCount = Number(body.ready) || items.length;
       if (readyCount > bestReady || (readyCount === bestReady && items.length > bestItems.length)) {
@@ -91,6 +97,8 @@ async function probeRotation(row, rotationOffset) {
           channel: Number(row.channel), name: row.name, ok: true, status: response.status,
           ready: readyCount, items: items.length, attempts,
           elapsedMs: Date.now() - started, firstPlayLatencyMs: firstReadyLatencyMs,
+          source: lastSource, cache: lastCache, readyHeader: lastReadyHeader,
+          partial: lastPartial === '1', fallback: lastFallback === '1',
           timedOut: false,
           depthTimedOut: false,
           itemIds: items.map(item => String(item && (item.identifier || item.id || item.title || '')).trim()).filter(Boolean),
@@ -116,6 +124,8 @@ async function probeRotation(row, rotationOffset) {
     ready, items: items.length, attempts,
     elapsedMs: Date.now() - started,
     firstPlayLatencyMs: firstReadyLatencyMs,
+    source: lastSource, cache: lastCache, readyHeader: lastReadyHeader,
+    partial: lastPartial === '1', fallback: lastFallback === '1',
     timedOut: !hasRequiredReady && Date.now() - started >= timeoutMs,
     depthTimedOut: ready < count,
     itemIds: items.map(item => String(item && (item.identifier || item.id || item.title || '')).trim()).filter(Boolean),
@@ -167,6 +177,8 @@ async function probe(row) {
     timeoutCount: timeouts,
     timedOut: timeouts > 0,
     hydrating: rotationResults.some(result => result.hydrating),
+    sources: [...new Set(rotationResults.map(result => result.source).filter(Boolean))],
+    caches: [...new Set(rotationResults.map(result => result.cache).filter(Boolean))],
     error: rotationResults.find(result => !result.ok)?.error,
     samples: [...new Set(rotationResults.flatMap(result => result.samples || []))].slice(0, 6),
     rotations: rotationResults.map((result, index) => ({
@@ -174,6 +186,8 @@ async function probe(row) {
       ok: result.ok, status: result.status, ready: result.ready, items: result.items,
       attempts: result.attempts, elapsedMs: result.elapsedMs,
       firstPlayLatencyMs: result.firstPlayLatencyMs, timedOut: result.timedOut,
+      source: result.source, cache: result.cache, readyHeader: result.readyHeader,
+      partial: result.partial, fallback: result.fallback,
       itemIds: result.itemIds || [], samples: result.samples || [], error: result.error,
     })),
   };
@@ -207,6 +221,12 @@ async function main() {
   const depthUnderfilled = results.reduce((sum, result) => sum + (result.depthUnderfilled ? 1 : 0), 0);
   const fullDepthChannels = results.filter(result => (result.fiveItemDepth || 0) >= rotations).length;
   const playableLatencies = results.map(result => result.firstPlayLatencyMs).filter(value => Number.isFinite(value));
+  const sourceCounts = {};
+  const cacheCounts = {};
+  results.flatMap(result => result.rotations || []).forEach(result => {
+    if (result.source) sourceCounts[result.source] = (sourceCounts[result.source] || 0) + 1;
+    if (result.cache) cacheCounts[result.cache] = (cacheCounts[result.cache] || 0) + 1;
+  });
   const slowest = results.slice().sort((a, b) => b.elapsedMs - a.elapsedMs).slice(0, 10);
   const report = {
     generatedAt: new Date().toISOString(), endpoint, count, requiredReady, concurrency, rotationBase, rotations,
@@ -216,6 +236,7 @@ async function main() {
       measuredRotations, fiveItemDepth: results.reduce((sum, result) => sum + (result.fiveItemDepth || 0), 0),
       fullDepthChannels, depthUnderfilled,
       timeouts: timeoutCount, duplicateItems,
+      responseSources: sourceCounts, responseCaches: cacheCounts,
       firstPlayLatencyMs: playableLatencies.length ? {
         min: Math.min(...playableLatencies), max: Math.max(...playableLatencies),
         average: Math.round(playableLatencies.reduce((sum, value) => sum + value, 0) / playableLatencies.length),

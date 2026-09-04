@@ -1665,7 +1665,7 @@ html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.9.7-mobile.063-ia-shelf-fastpath";
+window.__ATV_BUILD="1.9.7-mobile.064-space-lastgood";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -13669,8 +13669,14 @@ async function tuneSpace(ch,sl,my){
     try{
       var response=await withTO(fetch(SPACE_LIVE_URL,{mode:"cors",cache:"no-store"}).then(function(r){if(!r.ok)throw new Error("space edge "+r.status);return r.json();}),14000);if(my!==token)return;
       var next={launches:Array.isArray(response.launches)?response.launches:[],approaches:Array.isArray(response.approaches)?response.approaches:[],fireballs:Array.isArray(response.fireballs)?response.fireballs:[],imagery:Array.isArray(response.imagery)?response.imagery:[],fetchedAt:Date.parse(response.fetchedAt)||Date.now()};
+      var retained=[];
+      ["launches","approaches","fireballs","imagery"].forEach(function(key){
+        /* A partial edge response must not erase a previously verified desk. Keep
+           only the affected desk and expose the degraded state in the header. */
+        if(!next[key].length&&Array.isArray(model[key])&&model[key].length){next[key]=model[key];retained.push(key);}
+      });
       if(!next.launches.length&&!next.approaches.length&&!next.fireballs.length&&!next.imagery.length)throw new Error("space edge returned no desks");
-      model=next;degraded=Array.isArray(response.failures)?response.failures:[];stale=false;save();renderAll();nlog("space-ops",true,model.launches.length+" launches · "+model.approaches.length+" approaches · "+model.fireballs.length+" fireballs · "+model.imagery.length+" images");
+      model=next;degraded=(Array.isArray(response.failures)?response.failures:[]).concat(retained.map(function(key){return key+" cached";}));stale=false;save();renderAll();nlog("space-ops",true,model.launches.length+" launches · "+model.approaches.length+" approaches · "+model.fireballs.length+" fireballs · "+model.imagery.length+" images"+(retained.length?" · "+retained.length+" desk(s) held last-good":""));
     }catch(error){if(my!==token)return;stale=true;renderAll();nlog("space-ops",false,(error&&error.message)||error);}
   }
   var cached=store.get("spaceOpsCache",null);

@@ -2103,6 +2103,11 @@ async function getIaQueue(request, url, env, ctx) {
     const hydrated = await timeboxQueueHydration(Promise.race([hydration, firstReady]), IA_FIRST_READY_TIMEOUT_MS);
     if (hydrated && hydrated.items.length) {
       if (hydrated.hydrating) {
+        /* Persist the first verified program immediately. The full hydration
+           callback below may still be resolving the remaining slots, but a
+           channel change can happen before it finishes; seeding last-good here
+           closes that race without making the viewer wait. */
+        if (hydrated.ready > 0) sharedQueuePut(env, sharedKey, hydrated, IA_PARTIAL_QUEUE_TTL_SECONDS, ctx);
         ctx.waitUntil(
             hydration
             .then((ready) => {

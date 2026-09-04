@@ -92,6 +92,10 @@ const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
    bridges the small window before an edge cache write becomes visible. */
 const IA_QUEUE_MEMORY_TTL_SECONDS = 20;
 const IA_QUEUE_MEMORY_MAX = 64;
+/* KV is a durability layer, never permission to hold a channel change. A
+   transient edge read must yield to the bounded Archive discovery path so the
+   viewer can still receive a verified program or the last-good shelf. */
+const IA_SHARED_QUEUE_READ_TIMEOUT_MS = 700;
 const iaQueueMemory = new Map();
 function iaQueueMemoryGet(key) {
   const entry = iaQueueMemory.get(key);
@@ -339,11 +343,18 @@ function cacheableJson(body, ttlSeconds, extraHeaders = {}) {
    useful to another device (or after the viewer moves between networks). */
 async function sharedQueueGet(env, key) {
   if (!env || !env.REALSIGNAL_QUEUE) return null;
+  let timer;
   try {
-    return await env.REALSIGNAL_QUEUE.get(key, { type: "json" });
+    const read = env.REALSIGNAL_QUEUE.get(key, { type: "json" });
+    return await Promise.race([
+      read,
+      new Promise((resolve) => { timer = setTimeout(() => resolve(null), IA_SHARED_QUEUE_READ_TIMEOUT_MS); }),
+    ]);
   } catch (error) {
     console.warn(JSON.stringify({ event: "shared-queue-read-failed", message: String(error && error.message || error) }));
     return null;
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -2143,10 +2154,16 @@ async function getIaQueue(request, url, env, ctx) {
       /* A rotated fast rail can be empty even while the channel has approved
          material in its next editorial rail. Give that case one bounded,
          vocabulary-preserving rescue race before returning an empty shelf. */
-      const rescueSource = IA_STABLE_RESCUE_CHANNELS.has(channel) ? fastQueries : reserveQueries;
+      /* A rotated page is a freshness hint, not a reliable first-page
+         replacement. Sparse Archive queries frequently have a healthy page 1
+         and an empty or unplayable page 2/3. Retry the channel's own fast rails
+         against page 1 for every rotated cold miss; this stays inside the
+         editorial vocabulary and avoids turning freshness into No Signal. */
+      const stableRescue = rotation > 0 || IA_STABLE_RESCUE_CHANNELS.has(channel);
+      const rescueSource = stableRescue ? fastQueries : reserveQueries;
       const rescueQueries = rescueSource.slice(0, Math.min(2, rescueSource.length)).concat(fallbackQueries.slice(0, 1));
       if (rescueQueries.length) {
-        const rescueRotation = IA_STABLE_RESCUE_CHANNELS.has(channel) ? 0 : rotation;
+        const rescueRotation = stableRescue ? 0 : rotation;
         const rescue = await buildIaQueue(channel, rescueQueries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, candidateCount, url.origin, ctx, rescueRotation, IA_FAST_SEARCH_TIMEOUT_MS, true);
         if (rescue.items.length) payload = mergeIaQueuePayload(payload, rescue, candidateCount, { rescue: true });
       }

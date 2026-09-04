@@ -123,6 +123,12 @@ const IA_FIRST_READY_TIMEOUT_MS = 4200;
 /* Discovery has its own shorter budget.  A slow Archive search must not be
    allowed to consume the time reserved for first-item metadata hydration. */
 const IA_FAST_SEARCH_TIMEOUT_MS = 3200;
+/* Background refill is intentionally smaller than the full editorial manifest.
+   The first tune already races two subject-locked rails; launching every
+   reserve rail for every cold channel at once can make Archive throttle the
+   whole catalog during a channel-surfing burst. Later polls can widen again. */
+const IA_BACKGROUND_RESERVE_LANES = 3;
+const IA_BACKGROUND_FALLBACK_LANES = 1;
 /* A few sparse lanes still have a cold-page failure mode: a rotated Archive
    page can time out before returning the first approved record even though the
    same editorial query is healthy on the stable first page. Retry only these
@@ -1986,7 +1992,7 @@ function scheduleCachedIaHydration(payload, requestedCount, cacheOrigin, cacheKe
   const reserveQueries = queries.slice(Math.max(1, fastQueryCount - 1), Math.min(8, queries.length));
   const fallbackQueries = iaFallbackQueries(themeTerms, denyTerms, mediaTypes);
   const seed = { ...payload, items: candidates.slice(0, candidateCount), candidateItems: candidates, candidates: candidates.length };
-  const task = expandAndCacheIaQueue(seed, reserveQueries.slice(0, Math.min(4, reserveQueries.length)), fallbackQueries.slice(0, Math.min(2, fallbackQueries.length)), channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, requestedCount, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, Number(payload.rotation) || 0)
+  const task = expandAndCacheIaQueue(seed, reserveQueries.slice(0, Math.min(IA_BACKGROUND_RESERVE_LANES, reserveQueries.length)), fallbackQueries.slice(0, Math.min(IA_BACKGROUND_FALLBACK_LANES, fallbackQueries.length)), channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, requestedCount, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, Number(payload.rotation) || 0)
     .catch((error) => {
       console.warn(JSON.stringify({ event: "ia-cached-rehydration-failed", message: String(error && error.message || error) }));
     })
@@ -2047,7 +2053,7 @@ function scheduleIaReplenishment(ready, reserveQueries, fallbackQueries, channel
     ? ready.candidateItems
     : (Array.isArray(ready.items) ? ready.items : []);
   const seed = { ...ready, items: candidateItems.slice(0, candidateCount), candidateItems, candidates: candidateItems.length };
-  scheduleIaExpansion(seed, reserveQueries.slice(0, Math.min(4, reserveQueries.length)), fallbackQueries.slice(0, Math.min(2, fallbackQueries.length)), channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, rotation);
+  scheduleIaExpansion(seed, reserveQueries.slice(0, Math.min(IA_BACKGROUND_RESERVE_LANES, reserveQueries.length)), fallbackQueries.slice(0, Math.min(IA_BACKGROUND_FALLBACK_LANES, fallbackQueries.length)), channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, rotation);
 }
 
 async function timeboxQueueHydration(hydration, timeoutMs) {
@@ -2230,7 +2236,7 @@ async function getIaQueue(request, url, env, ctx) {
        verified program. A successful background pass overwrites the short
        partial cache and fills the shared ready shelf for the next request. */
     if (needsExpansion) {
-      scheduleIaExpansion(payload, reserveQueries.slice(0, Math.min(4, reserveQueries.length)), fallbackQueries.slice(0, Math.min(2, fallbackQueries.length)), channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, url.origin, cacheKey, sharedKey, env, ctx, rotation);
+      scheduleIaExpansion(payload, reserveQueries.slice(0, Math.min(IA_BACKGROUND_RESERVE_LANES, reserveQueries.length)), fallbackQueries.slice(0, Math.min(IA_BACKGROUND_FALLBACK_LANES, fallbackQueries.length)), channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, url.origin, cacheKey, sharedKey, env, ctx, rotation);
     }
     if (!payload.items.length) {
       /* A cold Archive miss is not a programming decision. If this channel has

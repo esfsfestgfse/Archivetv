@@ -84,7 +84,7 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
-const IA_QUEUE_CACHE_VERSION = "v38";
+const IA_QUEUE_CACHE_VERSION = "v39";
 const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
 /* The queue endpoint is part of channel-change critical path.  Archive can
    hydrate a richer shelf after the response, but a cold request must hand the
@@ -1537,7 +1537,12 @@ async function searchArchive(query, rows, page, sort, timeoutMs = 3200) {
      (for example `subject:boxing` becomes an empty result). Keep one precise
      backend here: a fast wrong answer is worse than an alternate lane. */
   let lastError = new Error("archive advanced search unavailable");
-  for (let attempt = 0; attempt < 2; attempt += 1) {
+  /* The cold tune path deliberately passes the short fast-search budget. A
+     second attempt would consume the entire television startup budget before
+     the next approved rail can win. Background replenishment keeps the normal
+     two-attempt retry for resilience once a playable item is already on air. */
+  const maxAttempts = timeoutMs <= IA_FAST_SEARCH_TIMEOUT_MS ? 1 : 2;
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     let upstream;
     try {
       upstream = await archiveFetch(upstreamUrl.toString(), { cache: "no-store" }, timeoutMs);

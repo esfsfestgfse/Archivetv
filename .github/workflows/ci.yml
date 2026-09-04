@@ -16,10 +16,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
+          package-manager-cache: false
       - name: Validate IA relay Worker contract
         run: node scripts/check-worker-contract.js
       - name: Validate Chromecast sender and receiver contract
@@ -29,11 +30,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
-      - uses: actions/setup-python@v5
+          package-manager-cache: false
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
       - name: Install Playwright
@@ -56,18 +58,19 @@ jobs:
           sleep 2
       - name: Run tune-all (all discovered channels, zero page errors)
         run: python ci/test_tune_all.py http://localhost:8799/the_dial_mobile.html
-      - name: Run regression (8-point functional check)
+      - name: Run regression (10-point functional check)
         run: python ci/test_regression.py http://localhost:8799/the_dial_mobile.html
 
   test-desktop:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
-      - uses: actions/setup-python@v5
+          package-manager-cache: false
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
       - name: Install Playwright

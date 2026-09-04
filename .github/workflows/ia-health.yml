@@ -10,10 +10,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
+          package-manager-cache: false
       # G is retained as a historical diagnostic table. It includes a few
       # archive-only lanes that are intentionally not authoritative for the
       # current PROGRAM/relay catalog, so a zero-result legacy rail must not

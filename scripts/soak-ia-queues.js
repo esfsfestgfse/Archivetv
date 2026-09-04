@@ -5,6 +5,9 @@
  * The manifest is exported by window.__atvIAManifest() in either app build.
  * This script intentionally polls queues that are still hydrating so a cold
  * cache is measured as cold-cache latency instead of being reported as empty.
+ * The probe records first play immediately, then keeps polling briefly so the
+ * report also measures whether the background shelf reaches its five-item
+ * target.
  */
 const fs = require('node:fs');
 const path = require('node:path');
@@ -25,6 +28,7 @@ const count = Math.max(1, Math.min(5, Number(option('--count', '3')) || 3));
 const requiredReady = Math.max(1, Math.min(count, Number(option('--require-ready', '1')) || 1));
 const concurrency = Math.max(1, Math.min(12, Number(option('--concurrency', '6')) || 6));
 const timeoutMs = Math.max(5000, Number(option('--timeout-ms', '35000')) || 35000);
+const depthTimeoutMs = Math.max(1000, Math.min(timeoutMs, Number(option('--depth-timeout-ms', '8000')) || 8000));
 const pollMs = Math.max(250, Number(option('--poll-ms', '1250')) || 1250);
 const rotationBase = Math.max(0, Math.min(127, Number(option('--rotation-base', '0')) || 0));
 const rotations = Math.max(1, Math.min(3, Number(option('--rotations', '1')) || 1));
@@ -66,6 +70,7 @@ async function requestQueue(row, remainingMs, rotationOffset) {
 async function probeRotation(row, rotationOffset) {
   const started = Date.now();
   let attempts = 0, lastStatus = 0, lastBody = null, lastError = null;
+  let firstReadyLatencyMs = null, bestReady = 0, bestItems = [];
   while (Date.now() - started < timeoutMs) {
     attempts++;
     try {
@@ -74,33 +79,50 @@ async function probeRotation(row, rotationOffset) {
       lastBody = body;
       const items = Array.isArray(body.items) ? body.items : [];
       const readyCount = Number(body.ready) || items.length;
-      if (response.ok && readyCount >= requiredReady) {
+      if (readyCount > bestReady || (readyCount === bestReady && items.length > bestItems.length)) {
+        bestReady = readyCount;
+        bestItems = items;
+      }
+      if (firstReadyLatencyMs == null && response.ok && readyCount > 0) {
+        firstReadyLatencyMs = Date.now() - started;
+      }
+      if (response.ok && readyCount >= count) {
         return {
           channel: Number(row.channel), name: row.name, ok: true, status: response.status,
           ready: readyCount, items: items.length, attempts,
-          elapsedMs: Date.now() - started, firstPlayLatencyMs: Date.now() - started,
+          elapsedMs: Date.now() - started, firstPlayLatencyMs: firstReadyLatencyMs,
           timedOut: false,
+          depthTimedOut: false,
           itemIds: items.map(item => String(item && (item.identifier || item.id || item.title || '')).trim()).filter(Boolean),
           samples: items.slice(0, 3).map(item => item.title || item.identifier || item.id).filter(Boolean),
         };
       }
-      if (response.ok && !body.hydrating && readyCount > 0) break;
-      if (!response.ok && !body.hydrating) break;
+      /* Once first play exists, give the edge background hydrator a short,
+         bounded window to fill the remaining slots. Do not let a partial
+         shelf consume the full no-signal timeout. */
+      const budget = firstReadyLatencyMs == null ? timeoutMs : depthTimeoutMs;
+      if (Date.now() - started >= budget) break;
     } catch (error) {
       lastError = String(error && error.message || error);
+      if (firstReadyLatencyMs != null && Date.now() - started >= depthTimeoutMs) break;
     }
     await sleep(pollMs);
   }
-  const items = Array.isArray(lastBody && lastBody.items) ? lastBody.items : [];
+  const items = bestItems.length ? bestItems : (Array.isArray(lastBody && lastBody.items) ? lastBody.items : []);
+  const ready = bestReady || Number(lastBody && lastBody.ready) || items.length;
+  const hasRequiredReady = ready >= requiredReady;
   return {
-    channel: Number(row.channel), name: row.name, ok: false, status: lastStatus,
-    ready: Number(lastBody && lastBody.ready) || 0, items: items.length, attempts,
+    channel: Number(row.channel), name: row.name, ok: hasRequiredReady, status: lastStatus,
+    ready, items: items.length, attempts,
     elapsedMs: Date.now() - started,
-    firstPlayLatencyMs: null,
-    timedOut: Date.now() - started >= timeoutMs,
+    firstPlayLatencyMs: firstReadyLatencyMs,
+    timedOut: !hasRequiredReady && Date.now() - started >= timeoutMs,
+    depthTimedOut: ready < count,
     itemIds: items.map(item => String(item && (item.identifier || item.id || item.title || '')).trim()).filter(Boolean),
     hydrating: Boolean(lastBody && lastBody.hydrating),
-    error: lastError || (lastBody && lastBody.error) || `queue ready ${Number(lastBody && lastBody.ready) || items.length}/${requiredReady}`,
+    error: hasRequiredReady
+      ? `queue depth ${ready}/${count}`
+      : lastError || (lastBody && lastBody.error) || `queue ready ${ready}/${requiredReady}`,
   };
 }
 
@@ -139,6 +161,7 @@ async function probe(row) {
     readyDepths: rotationResults.map(result => result.ready || 0),
     itemDepths: rotationResults.map(result => result.items || 0),
     fiveItemDepth: rotationResults.filter(result => (result.ready || 0) >= count).length,
+    depthUnderfilled: rotationResults.some(result => result.depthTimedOut),
     uniqueItems: seen.size,
     duplicateItems,
     timeoutCount: timeouts,
@@ -181,6 +204,8 @@ async function main() {
   const measuredRotations = results.reduce((sum, result) => sum + (result.rotations?.length || 0), 0);
   const timeoutCount = results.reduce((sum, result) => sum + (result.timeoutCount || 0), 0);
   const duplicateItems = results.reduce((sum, result) => sum + (result.duplicateItems || 0), 0);
+  const depthUnderfilled = results.reduce((sum, result) => sum + (result.depthUnderfilled ? 1 : 0), 0);
+  const fullDepthChannels = results.filter(result => (result.fiveItemDepth || 0) >= rotations).length;
   const playableLatencies = results.map(result => result.firstPlayLatencyMs).filter(value => Number.isFinite(value));
   const slowest = results.slice().sort((a, b) => b.elapsedMs - a.elapsedMs).slice(0, 10);
   const report = {
@@ -189,6 +214,7 @@ async function main() {
     totals: {
       channels: results.length, ready: results.length - failures.length, empty: failures.length,
       measuredRotations, fiveItemDepth: results.reduce((sum, result) => sum + (result.fiveItemDepth || 0), 0),
+      fullDepthChannels, depthUnderfilled,
       timeouts: timeoutCount, duplicateItems,
       firstPlayLatencyMs: playableLatencies.length ? {
         min: Math.min(...playableLatencies), max: Math.max(...playableLatencies),
@@ -197,7 +223,8 @@ async function main() {
     },
     failures, slowest, results,
   };
-  console.log(`IA queue health: ${report.totals.ready}/${report.totals.channels} ready; ${failures.length} underfilled; ${report.totals.duplicateItems} duplicate items; ${timeoutCount} timeouts`);
+  console.log(`IA queue health: ${report.totals.ready}/${report.totals.channels} first-play ready; ${failures.length} no-signal lanes; ${report.totals.fullDepthChannels}/${report.totals.channels} full-depth; ${report.totals.duplicateItems} duplicate items; ${timeoutCount} timeouts`);
+  console.log(`Five-item depth: ${report.totals.fiveItemDepth}/${report.totals.measuredRotations} rotations; ${report.totals.depthUnderfilled} channels still underfilled after ${depthTimeoutMs}ms depth window`);
   if (report.totals.firstPlayLatencyMs) console.log(`First-play latency: ${report.totals.firstPlayLatencyMs.average}ms average (${report.totals.firstPlayLatencyMs.min}-${report.totals.firstPlayLatencyMs.max}ms)`);
   for (const failure of failures) {
     console.log(`UNDERFILLED CH ${failure.channel} ${failure.name}: ${failure.error || 'rotation did not reach the required depth'}; depths=${failure.readyDepths.join('/')} (${failure.elapsedMs}ms)`);

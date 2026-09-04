@@ -302,9 +302,15 @@ function sharedQueuePut(env, key, payload, ttlSeconds, ctx) {
      channel number (which is unique in the manifest), so a slow Archive search
      cannot turn an otherwise healthy television lane into No Signal. */
   const fallbackKey = sharedQueueFallbackKey(payload.channel);
+  const fallbackOptions = {
+    /* A partial shelf is still a verified playable program. Keep it available
+       for a full day so a later cold rotation can avoid No Signal while the
+       background replenishment searches for the remaining slots. */
+    expirationTtl: Math.max(60, Math.min(86400, IA_QUEUE_TTL_SECONDS)),
+  };
   const write = Promise.all([
     env.REALSIGNAL_QUEUE.put(key, JSON.stringify(payload), options),
-    env.REALSIGNAL_QUEUE.put(fallbackKey, JSON.stringify(payload), options),
+    env.REALSIGNAL_QUEUE.put(fallbackKey, JSON.stringify({ ...payload, lastGood: true }), fallbackOptions),
   ]).catch((error) => {
     console.warn(JSON.stringify({ event: "shared-queue-write-failed", message: String(error && error.message || error) }));
   });
@@ -2103,7 +2109,7 @@ async function getIaQueue(request, url, env, ctx) {
               if (!ready || !ready.items.length) return undefined;
               scheduleIaReplenishment(ready, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, url.origin, cacheKey, sharedKey, env, ctx, rotation);
               const queueTtl = ready.ready >= count ? IA_QUEUE_TTL_SECONDS : IA_PARTIAL_QUEUE_TTL_SECONDS;
-              if (ready.ready >= count) sharedQueuePut(env, sharedKey, ready, queueTtl, ctx);
+              if (ready.ready > 0) sharedQueuePut(env, sharedKey, ready, queueTtl, ctx);
               return cache.put(cacheKey, cacheableJson(ready, queueTtl, {
                 "X-Afterglow-Source": "program-director",
                 "X-Afterglow-Queue-Ready": String(ready.ready),
@@ -2126,7 +2132,7 @@ async function getIaQueue(request, url, env, ctx) {
       ctx.waitUntil(cache.put(cacheKey, response.clone()).catch((error) => {
         console.warn(JSON.stringify({ event: "queue-cache-write-failed", channel, message: String(error && error.message || error) }));
       }));
-      if (hydrated.ready >= count) sharedQueuePut(env, sharedKey, hydrated, queueTtl, ctx);
+      if (hydrated.ready > 0) sharedQueuePut(env, sharedKey, hydrated, queueTtl, ctx);
       return response;
     }
     /* Do not send an empty shelf just because Archive metadata is slow. The
@@ -2169,7 +2175,7 @@ async function getIaQueue(request, url, env, ctx) {
           if (!ready || !ready.items.length) return undefined;
           scheduleIaReplenishment(ready, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, url.origin, cacheKey, sharedKey, env, ctx, rotation);
           const queueTtl = ready.ready >= count ? IA_QUEUE_TTL_SECONDS : IA_PARTIAL_QUEUE_TTL_SECONDS;
-          if (ready.ready >= count) sharedQueuePut(env, sharedKey, ready, queueTtl, ctx);
+          if (ready.ready > 0) sharedQueuePut(env, sharedKey, ready, queueTtl, ctx);
           return cache.put(cacheKey, cacheableJson(ready, queueTtl, {
             "X-Afterglow-Source": "program-director",
             "X-Afterglow-Queue-Ready": String(ready.ready),

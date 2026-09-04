@@ -6536,7 +6536,10 @@ function iaReadyShelfSave(ch){
 function iaReadyShelfRestore(ch,sl){
   if(!iaReadyShelves)iaReadyShelves=store.get("iaReadyShelves",{})||{};
   var key=iaReadyShelfKey(ch),row=iaReadyShelves[key];
-  if(!row||Date.now()-Number(row.at||0)>IA_READY_SHELF_TTL||Number(row.rotation||0)!==iaQueueRotationFor(ch)){if(row){delete iaReadyShelves[key];store.set("iaReadyShelves",iaReadyShelves);}return;}
+  /* Keep a last verified shelf across rotations. A rotation is a freshness
+     hint, not permission to blank the television while the next Archive rail
+     is slow; a fresh response replaces this shelf as soon as it arrives. */
+  if(!row||Date.now()-Number(row.at||0)>IA_READY_SHELF_TTL){if(row){delete iaReadyShelves[key];store.set("iaReadyShelves",iaReadyShelves);}return;}
   var restored=(row.items||[]).filter(function(it){return iaReadyShelfAllowed(it,sl,ch)&&!iaProgramMedia[it.identifier];});
   if(!restored.length)return;
   var old=iaProgramQueues[key]||[],byId={},order=[];old.concat(restored).forEach(function(it){if(!it||!it.identifier||!iaReadyShelfAllowed(it,sl,ch)||byId[it.identifier])return;byId[it.identifier]=it;order.push(it.identifier);iaProgramMedia[it.identifier]=it.media;});
@@ -6595,7 +6598,7 @@ async function iaLocalQueueFallback(ch,sl){
 }
 async function iaQueueRequest(ch,sl,count){
   var qs=iaQueueQueries(sl);if(!qs.length)return [];
-  try{var d=await withTO(fetch(IA_RELAY_BASE+"/queue",{method:"POST",mode:"cors",headers:{"content-type":"application/json"},body:JSON.stringify({channel:iaQueueKey(ch),rotation:iaQueueRotationFor(ch),queries:qs,themeTerms:iaProgramThemeTerms(sl),denyTerms:iaProgramDenyTerms(sl),diversity:iaQueueDiversity(sl),mediaTypes:ch&&ch.audio?["audio"]:["movies"],themeMinScore:Math.max(1,Math.min(12,Number(sl&&sl.program&&sl.program.themeMinScore)||1)),count:Math.max(1,Math.min(5,count||5))})}).then(function(r){if(!r.ok)throw new Error("queue "+r.status);return r.json();}),3500);
+  try{var d=await withTO(fetch(IA_RELAY_BASE+"/queue",{method:"POST",mode:"cors",headers:{"content-type":"application/json"},body:JSON.stringify({channel:iaQueueKey(ch),rotation:iaQueueRotationFor(ch),queries:qs,themeTerms:iaProgramThemeTerms(sl),denyTerms:iaProgramDenyTerms(sl),diversity:iaQueueDiversity(sl),mediaTypes:ch&&ch.audio?["audio"]:["movies"],themeMinScore:Math.max(1,Math.min(12,Number(sl&&sl.program&&sl.program.themeMinScore)||1)),count:Math.max(1,Math.min(5,count||5))})}).then(function(r){if(!r.ok)throw new Error("queue "+r.status);return r.json();}),6500);
     var out=((d&&d.items)||[]).filter(function(it){return iaProgramAllowed(it,sl);});
     /* A 200/empty response is not proof that the rail is empty. The Worker can
        be hydrating a cold IA shard, and rescue mode can mean its first search

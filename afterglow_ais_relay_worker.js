@@ -90,10 +90,10 @@ const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
    hydrate a richer shelf after the response, but a cold request must hand the
    browser viable identifiers quickly enough for its own direct resolver to
    race the edge cache rather than presenting a long spinner. */
-const IA_FIRST_READY_TIMEOUT_MS = 2400;
+const IA_FIRST_READY_TIMEOUT_MS = 4200;
 /* Discovery has its own shorter budget.  A slow Archive search must not be
    allowed to consume the time reserved for first-item metadata hydration. */
-const IA_FAST_SEARCH_TIMEOUT_MS = 1500;
+const IA_FAST_SEARCH_TIMEOUT_MS = 3200;
 /* Keep a single cold tune from opening three identical Archive requests while
    several viewers or the soak harness hit the same rail together. This map is
    intentionally process-local and ephemeral; the durable result remains in
@@ -288,11 +288,24 @@ async function sharedQueueGet(env, key) {
   }
 }
 
+function sharedQueueFallbackKey(channel) {
+  return IA_QUEUE_KV_PREFIX + IA_QUEUE_CACHE_VERSION + ":last-good:" + encodeURIComponent(String(channel || "").trim());
+}
+
 function sharedQueuePut(env, key, payload, ttlSeconds, ctx) {
   if (!env || !env.REALSIGNAL_QUEUE || !payload || !Array.isArray(payload.items) || !payload.items.length) return;
-  const write = env.REALSIGNAL_QUEUE.put(key, JSON.stringify(payload), {
+  const options = {
     expirationTtl: Math.max(60, Math.min(86400, Number(ttlSeconds) || IA_QUEUE_TTL_SECONDS)),
-  }).catch((error) => {
+  };
+  /* Keep the exact rotation cache for fresh programming, plus one last-good
+     verified shelf per channel. The latter is intentionally keyed only by the
+     channel number (which is unique in the manifest), so a slow Archive search
+     cannot turn an otherwise healthy television lane into No Signal. */
+  const fallbackKey = sharedQueueFallbackKey(payload.channel);
+  const write = Promise.all([
+    env.REALSIGNAL_QUEUE.put(key, JSON.stringify(payload), options),
+    env.REALSIGNAL_QUEUE.put(fallbackKey, JSON.stringify(payload), options),
+  ]).catch((error) => {
     console.warn(JSON.stringify({ event: "shared-queue-write-failed", message: String(error && error.message || error) }));
   });
   if (ctx) ctx.waitUntil(write);
@@ -1712,6 +1725,13 @@ function queueRotationSort(rotation, lane) {
   return modes[(Number(rotation) + Number(lane)) % modes.length];
 }
 
+function queueRotationPage(rotation, lane) {
+  /* Adjacent channel rotations deliberately sample adjacent Archive pages. A
+     sort change alone often returns the same top records, which made a fresh
+     rotation look like a repeat even when the catalog had more depth. */
+  return 1 + (Math.abs(Number(rotation) || 0) + Number(lane || 0)) % 3;
+}
+
 async function buildIaQueue(channel, queries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, cacheOrigin, ctx, rotation = 0, searchTimeoutMs = 3200, firstApprovedLane = false) {
   const items = [], deferred = [], seen = new Set(), seenTitles = new Set(), candidateLimit = count;
   const used = { lane: new Map(), era: new Map(), creator: new Map(), collection: new Map() };
@@ -1725,7 +1745,7 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, mediaTypes,
      first three made sparse channels look as if they were hydrating forever. */
   const lanePromises = queries.slice(0, Math.min(8, queries.length)).map(async (query, lane) => {
     try {
-      const result = await cachedSearchArchive(cacheOrigin, query, Math.min(36, Math.max(18, count * 4)), 1, queueRotationSort(rotation, lane), ctx, searchTimeoutMs);
+      const result = await cachedSearchArchive(cacheOrigin, query, Math.min(36, Math.max(18, count * 4)), queueRotationPage(rotation, lane), queueRotationSort(rotation, lane), ctx, searchTimeoutMs);
       // Archive.org collections are catalog pages, not programs. Keeping one in
       // a shelf guarantees a failed playback attempt, so reject them before
       // ranking, caching, or media hydration for every IA channel.
@@ -1951,6 +1971,7 @@ async function getIaQueue(request, url, env, ctx) {
   const digest = await stableKey(fingerprint);
   const cacheKey = new Request(url.origin + IA_PREFIX + "/cache/queue/" + IA_QUEUE_CACHE_VERSION + "/" + digest);
   const sharedKey = IA_QUEUE_KV_PREFIX + IA_QUEUE_CACHE_VERSION + ":" + digest;
+  const lastGoodKey = sharedQueueFallbackKey(channel);
   try {
     const cache = caches.default, cached = await cache.match(cacheKey);
     if (cached) {
@@ -2026,6 +2047,31 @@ async function getIaQueue(request, url, env, ctx) {
       );
     }
     if (!payload.items.length) {
+      /* A cold Archive miss is not a programming decision. If this channel has
+         a previously verified shelf, serve it immediately while the next
+         request retries discovery. The shelf contains hydrated media URLs and
+         has already passed the channel's strict theme/deny contract. */
+      const lastGood = await sharedQueueGet(env, lastGoodKey);
+      if (lastGood && Array.isArray(lastGood.items) && lastGood.items.length) {
+        const fallback = {
+          ...lastGood,
+          rotation,
+          fallback: true,
+          stale: true,
+          fallbackRotation: Number(lastGood.rotation) || 0,
+          generatedAt: new Date().toISOString(),
+        };
+        const fallbackResponse = cacheableJson(fallback, 5, {
+          "X-Afterglow-Source": "program-director-last-good",
+          "X-Afterglow-Cache": "shared-last-good",
+          "X-Afterglow-Queue-Ready": String(fallback.ready || fallback.items.length),
+          "X-Afterglow-Queue-Fallback": "1",
+        });
+        ctx.waitUntil(cache.put(cacheKey, fallbackResponse.clone()).catch((error) => {
+          console.warn(JSON.stringify({ event: "last-good-queue-edge-write-failed", channel, message: String(error && error.message || error) }));
+        }));
+        return fallbackResponse;
+      }
       /* No candidate exists yet, so this is not hydration. Be truthful and let
          the client immediately try its direct/search fallbacks, then retry the
          director on its bounded backoff instead of polling a phantom job. */
@@ -2087,6 +2133,27 @@ async function getIaQueue(request, url, env, ctx) {
        identifiers have already passed the strict editorial filter, and the
        browser can resolve them directly while the Worker keeps hydrating and
        caching the richer five-program shelf in the background. */
+    const lastGood = await sharedQueueGet(env, lastGoodKey);
+    if (lastGood && Array.isArray(lastGood.items) && lastGood.items.length) {
+      const fallback = {
+        ...lastGood,
+        rotation,
+        fallback: true,
+        stale: true,
+        fallbackRotation: Number(lastGood.rotation) || 0,
+        generatedAt: new Date().toISOString(),
+      };
+      const fallbackResponse = cacheableJson(fallback, 5, {
+        "X-Afterglow-Source": "program-director-last-good",
+        "X-Afterglow-Cache": "shared-last-good",
+        "X-Afterglow-Queue-Ready": String(fallback.ready || fallback.items.length),
+        "X-Afterglow-Queue-Fallback": "1",
+      });
+      ctx.waitUntil(cache.put(cacheKey, fallbackResponse.clone()).catch((error) => {
+        console.warn(JSON.stringify({ event: "last-good-queue-edge-write-failed", channel, message: String(error && error.message || error) }));
+      }));
+      return fallbackResponse;
+    }
     const initial = { ...payload, items: payload.items.slice(0, Math.min(count, 3)), ready: 0, partial: true, hydrating: true, fallback: true };
     const initialResponse = cacheableJson(initial, 10, {
       "X-Afterglow-Source": "program-director",

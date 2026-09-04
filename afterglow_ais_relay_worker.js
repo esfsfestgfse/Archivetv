@@ -142,7 +142,9 @@ const KPLER_FIELDS = "mmsi,longitude,latitude,posDt,sog,vesselName,heading,cog,n
 const SHIP_REGIONS = Object.freeze({
   gulf: { bbox: "18,-98,31,-80" },
   atlantic: { bbox: "0,-75,65,20" },
-  pacific: { bbox: "-55,120,55,-75" },
+  /* OpenWaters treats a west-to-east box that crosses the date line as empty.
+     Keep the user-facing Pacific desk intact, but query its two valid halves. */
+  pacific: { bboxes: ["-55,120,55,180", "-55,-180,55,-75"] },
   americas: { bbox: "-55,-135,65,-35" },
   europe: { bbox: "30,-25,72,45" },
   africa: { bbox: "-38,-20,38,55" },
@@ -2306,12 +2308,19 @@ async function getKplerSnapshot(request, env, ctx) {
   // vessel properties to the existing Kpler-shaped client contract so the TV
   // channel can recover without a browser key or a provider-specific redraw.
   try {
-    const fallback = await fetch(OPEN_WATERS_URL + encodeURIComponent(region.bbox), {
-      headers: { "Accept": "application/geo+json, application/json" },
-    });
-    if (!fallback.ok) throw new Error("open waters " + fallback.status);
-    const payload = await fallback.json();
-    const features = spreadShipFeatures(normalizeShipSnapshot(payload), regionName === "world" ? 500 : 1000);
+    const bboxes = Array.isArray(region.bboxes) ? region.bboxes : [region.bbox];
+    const payloads = await Promise.all(bboxes.map(async (bbox) => {
+      try {
+        const fallback = await fetch(OPEN_WATERS_URL + encodeURIComponent(bbox), {
+          headers: { "Accept": "application/geo+json, application/json" },
+        });
+        if (!fallback.ok) return null;
+        return fallback.json();
+      } catch {
+        return null;
+      }
+    }));
+    const features = spreadShipFeatures(payloads.filter(Boolean).flatMap(normalizeShipSnapshot), regionName === "world" ? 500 : 1000);
     if (!features.length) throw new Error("open waters empty");
     const response = json({
       source: "openwaters",

@@ -77,13 +77,14 @@ const IA_SEARCH_TTL_SECONDS = 21600;
 /* Bump this when the normalized search response changes so an older edge
    entry cannot be mistaken for the current program-director result. */
 const IA_SEARCH_CACHE_VERSION = "v5";
+const IA_ARCHIVE_RETRY_DELAY_MS = 180;
 const IA_METADATA_TTL_SECONDS = 86400;
 const IA_QUEUE_TTL_SECONDS = 86400;
 const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
-const IA_QUEUE_CACHE_VERSION = "v32";
+const IA_QUEUE_CACHE_VERSION = "v33";
 const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
 /* The queue endpoint is part of channel-change critical path.  Archive can
    hydrate a richer shelf after the response, but a cold request must hand the
@@ -93,6 +94,11 @@ const IA_FIRST_READY_TIMEOUT_MS = 2400;
 /* Discovery has its own shorter budget.  A slow Archive search must not be
    allowed to consume the time reserved for first-item metadata hydration. */
 const IA_FAST_SEARCH_TIMEOUT_MS = 1500;
+/* Keep a single cold tune from opening three identical Archive requests while
+   several viewers or the soak harness hit the same rail together. This map is
+   intentionally process-local and ephemeral; the durable result remains in
+   Cache API/KV below. */
+const iaSearchInflight = new Map();
 const GULF_FILTER = "BBOX(geometry,-98,18,-80,31)";
 const KPLER_FIELDS = "mmsi,longitude,latitude,posDt,sog,vesselName,heading,cog,navStatus,destination,vesselType";
 /* Public navigation is intentionally limited to named regions. The Worker
@@ -1526,15 +1532,43 @@ async function searchArchive(query, rows, page, sort, timeoutMs = 3200) {
   /* Archive's scrape endpoint does not honor advancedsearch's field grammar
      (for example `subject:boxing` becomes an empty result). Keep one precise
      backend here: a fast wrong answer is worse than an alternate lane. */
-  const upstream = await archiveFetch(upstreamUrl.toString(), { cache: "no-store" }, timeoutMs);
-  if (!upstream.ok) throw new Error("archive advanced search " + upstream.status);
-  const payload = await upstream.json();
-  return { ...(payload.response || { numFound: 0, docs: [] }), _afterglowSource: "advanced" };
+  let lastError = new Error("archive advanced search unavailable");
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    let upstream;
+    try {
+      upstream = await archiveFetch(upstreamUrl.toString(), { cache: "no-store" }, timeoutMs);
+      const raw = await upstream.text();
+      if (!upstream.ok) throw new Error("archive advanced search " + upstream.status);
+      let payload;
+      try {
+        payload = JSON.parse(raw);
+      } catch {
+        throw new Error("archive advanced search returned non-JSON");
+      }
+      return { ...(payload.response || { numFound: 0, docs: [] }), _afterglowSource: "advanced" };
+    } catch (error) {
+      lastError = error;
+      if (attempt === 0) {
+        const retryAfter = upstream && Number(upstream.headers.get("retry-after"));
+        const delay = Number.isFinite(retryAfter) && retryAfter > 0
+          ? Math.min(750, Math.max(80, retryAfter * 1000))
+          : IA_ARCHIVE_RETRY_DELAY_MS;
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+  }
+  throw lastError;
 }
 
 async function cachedSearchArchive(cacheOrigin, query, rows, page, sort, ctx, timeoutMs = 3200) {
   const cacheKey = new Request(cacheOrigin + IA_PREFIX + "/cache/search/" + IA_SEARCH_CACHE_VERSION + "/" + await stableKey([query, rows, page, sort].join("|")));
-  return cachedArchiveJson(cacheKey, IA_SEARCH_TTL_SECONDS, () => searchArchive(query, rows, page, sort, timeoutMs), ctx);
+  const inflightKey = cacheKey.url;
+  const existing = iaSearchInflight.get(inflightKey);
+  if (existing) return existing;
+  const pending = cachedArchiveJson(cacheKey, IA_SEARCH_TTL_SECONDS, () => searchArchive(query, rows, page, sort, timeoutMs), ctx)
+    .finally(() => { if (iaSearchInflight.get(inflightKey) === pending) iaSearchInflight.delete(inflightKey); });
+  iaSearchInflight.set(inflightKey, pending);
+  return pending;
 }
 
 async function getIaSearch(url, ctx) {
@@ -1913,7 +1947,7 @@ async function getIaQueue(request, url, env, ctx) {
        rescue lanes are deliberately deferred until the fast shelf is sparse.
        This keeps the first playable item on the short path while preserving
        the broader catalog for refill and later rotations. */
-    const fastQueries = queries.slice(0, Math.min(3, queries.length));
+    const fastQueries = queries.slice(0, Math.min(2, queries.length));
     const reserveQueries = queries.slice(fastQueries.length, Math.min(8, queries.length));
     let payload = await buildIaQueue(channel, fastQueries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, candidateCount, url.origin, ctx, rotation, IA_FAST_SEARCH_TIMEOUT_MS, true);
     const fallbackQueries = iaFallbackQueries(themeTerms, denyTerms, mediaTypes);

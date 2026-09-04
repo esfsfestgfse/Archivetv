@@ -94,6 +94,11 @@ const IA_FIRST_READY_TIMEOUT_MS = 4200;
 /* Discovery has its own shorter budget.  A slow Archive search must not be
    allowed to consume the time reserved for first-item metadata hydration. */
 const IA_FAST_SEARCH_TIMEOUT_MS = 3200;
+/* A few sparse lanes still have a cold-page failure mode: a rotated Archive
+   page can time out before returning the first approved record even though the
+   same editorial query is healthy on the stable first page. Retry only these
+   observed lanes against page 1; never broaden their terms or disable gates. */
+const IA_STABLE_RESCUE_CHANNELS = new Set(["132", "210", "702"]);
 /* Keep a single cold tune from opening three identical Archive requests while
    several viewers or the soak harness hit the same rail together. This map is
    intentionally process-local and ephemeral; the durable result remains in
@@ -2034,9 +2039,11 @@ async function getIaQueue(request, url, env, ctx) {
       /* A rotated fast rail can be empty even while the channel has approved
          material in its next editorial rail. Give that case one bounded,
          vocabulary-preserving rescue race before returning an empty shelf. */
-      const rescueQueries = reserveQueries.slice(0, Math.min(2, reserveQueries.length)).concat(fallbackQueries.slice(0, 1));
+      const rescueSource = IA_STABLE_RESCUE_CHANNELS.has(channel) ? fastQueries : reserveQueries;
+      const rescueQueries = rescueSource.slice(0, Math.min(2, rescueSource.length)).concat(fallbackQueries.slice(0, 1));
       if (rescueQueries.length) {
-        const rescue = await buildIaQueue(channel, rescueQueries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, candidateCount, url.origin, ctx, rotation, IA_FAST_SEARCH_TIMEOUT_MS, true);
+        const rescueRotation = IA_STABLE_RESCUE_CHANNELS.has(channel) ? 0 : rotation;
+        const rescue = await buildIaQueue(channel, rescueQueries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, candidateCount, url.origin, ctx, rescueRotation, IA_FAST_SEARCH_TIMEOUT_MS, true);
         if (rescue.items.length) payload = mergeIaQueuePayload(payload, rescue, candidateCount, { rescue: true });
       }
     }

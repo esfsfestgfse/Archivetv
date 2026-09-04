@@ -1665,7 +1665,7 @@ html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.9.7-mobile.059-ia-fast-search-budget";
+window.__ATV_BUILD="1.9.7-mobile.060-ia-client-cutover";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -1703,7 +1703,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.9.7-mobile.059-ia-fast-search-budget · RealSignal</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.9.7-mobile.060-ia-client-cutover · RealSignal</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -6588,14 +6588,14 @@ async function iaLocalQueueFallback(ch,sl){
   /* This is a circuit-breaker path, not a second full catalog crawl. A down
      director must not leave old browser searches competing with a new tune. */
   for(var offset=0;offset<Math.min(qs.length,4)&&out.length<5;offset+=2){
-    var lane=qs.slice(offset,offset+2),found=await Promise.all(lane.map(function(q){return withTO(pickIA(q,true),6500).catch(function(){return null;});}));
+    var lane=qs.slice(offset,offset+2),found=await Promise.all(lane.map(function(q){return withTO(pickIA(q,true),4200).catch(function(){return null;});}));
     found.forEach(function(it){if(!it||!it.identifier||seen[it.identifier]||!iaProgramAllowed(it,sl))return;seen[it.identifier]=1;out.push(it);});
   }
   out.hydrating=false;return out;
 }
 async function iaQueueRequest(ch,sl,count){
   var qs=iaQueueQueries(sl);if(!qs.length)return [];
-  try{var d=await withTO(fetch(IA_RELAY_BASE+"/queue",{method:"POST",mode:"cors",headers:{"content-type":"application/json"},body:JSON.stringify({channel:iaQueueKey(ch),rotation:iaQueueRotationFor(ch),queries:qs,themeTerms:iaProgramThemeTerms(sl),denyTerms:iaProgramDenyTerms(sl),diversity:iaQueueDiversity(sl),mediaTypes:ch&&ch.audio?["audio"]:["movies"],themeMinScore:Math.max(1,Math.min(12,Number(sl&&sl.program&&sl.program.themeMinScore)||1)),count:Math.max(1,Math.min(5,count||5))})}).then(function(r){if(!r.ok)throw new Error("queue "+r.status);return r.json();}),5200);
+  try{var d=await withTO(fetch(IA_RELAY_BASE+"/queue",{method:"POST",mode:"cors",headers:{"content-type":"application/json"},body:JSON.stringify({channel:iaQueueKey(ch),rotation:iaQueueRotationFor(ch),queries:qs,themeTerms:iaProgramThemeTerms(sl),denyTerms:iaProgramDenyTerms(sl),diversity:iaQueueDiversity(sl),mediaTypes:ch&&ch.audio?["audio"]:["movies"],themeMinScore:Math.max(1,Math.min(12,Number(sl&&sl.program&&sl.program.themeMinScore)||1)),count:Math.max(1,Math.min(5,count||5))})}).then(function(r){if(!r.ok)throw new Error("queue "+r.status);return r.json();}),3500);
     var out=((d&&d.items)||[]).filter(function(it){return iaProgramAllowed(it,sl);});
     /* A 200/empty response is not proof that the rail is empty. The Worker can
        be hydrating a cold IA shard, and rescue mode can mean its first search

@@ -26,7 +26,50 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  validate-ia:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # A fast release gate for first-play availability. The scheduled IA
+      # workflow remains the authoritative full-depth/all-channel soak.
+      - name: Build release smoke manifest
+        run: |
+          mkdir -p artifacts
+          node scripts/export-ia-manifest.js the_dial_desktop.html --out artifacts/ia-queue-manifest.json
+
+      - name: Smoke representative IA lanes
+        run: >-
+          node scripts/soak-ia-queues.js
+          --manifest artifacts/ia-queue-manifest.json
+          --channels 132,150,206,208,210,212,227,239
+          --count 3
+          --rotations 1
+          --require-ready 1
+          --concurrency 8
+          --timeout-ms 15000
+          --depth-timeout-ms 3500
+          --poll-ms 500
+          --strict
+          --out artifacts/ia-release-smoke.json
+
+      - name: Upload IA smoke report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ia-release-smoke-${{ github.run_id }}
+          path: artifacts/
+          if-no-files-found: warn
+
   deploy:
+    needs: validate-ia
     runs-on: ubuntu-latest
     environment:
       name: github-pages

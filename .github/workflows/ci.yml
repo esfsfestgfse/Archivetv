@@ -47,6 +47,9 @@ jobs:
           node scripts/audit-ia-channels.js the_dial_mobile.html
           node scripts/check-ia-contract.js the_dial_mobile.html
           node scripts/check-ia-parity.js
+          node scripts/check-channel-registry.js
+          node scripts/check-source-suite-contract.js
+          node scripts/check-cast-contract.js
       - name: Serve app
         run: |
           python -m http.server 8799 &

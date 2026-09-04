@@ -32,6 +32,10 @@ try {
 
   & $node 'scripts/check-html-syntax.js'
   if ($LASTEXITCODE -ne 0) { throw 'HTML validation failed.' }
+  foreach ($contract in @('check-channel-registry.js', 'check-source-suite-contract.js', 'check-cast-contract.js')) {
+    & $node (Join-Path 'scripts' $contract)
+    if ($LASTEXITCODE -ne 0) { throw "Release contract failed: $contract" }
+  }
 
   foreach ($file in @('the_dial_mobile.html', 'the_dial_desktop.html')) {
     $current = Get-Stamp (Get-Content -LiteralPath $file -Raw)

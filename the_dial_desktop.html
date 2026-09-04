@@ -1613,7 +1613,7 @@ body.cast-receiver .guide-directory .chcell.cast-focus .cc-n{color:#b9ffd0!impor
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.9.7-desktop.057-ia-sparse-lane-fast-rails";
+window.__ATV_BUILD="1.9.7-desktop.058-ia-partial-rail-fast-paths";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -1651,7 +1651,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
- <div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.9.7-desktop.057-ia-sparse-lane-fast-rails · RealSignal</div>
+ <div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.9.7-desktop.058-ia-partial-rail-fast-paths · RealSignal</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">REALSIGNAL · THE DIAL</div>
@@ -6156,6 +6156,19 @@ Object.assign(PROGRAM["Range & Field"],{require:{title_any:["archery","bow hunti
 Object.assign(PROGRAM["Vintage Pop"],{queueTerms:["traditional pop","crooner","american songbook","standards","pop vocal","torch song","easy listening","tin pan alley"],fastSubjects:["traditional pop","crooner","standards","pop vocal","american songbook","vocal"],fastCollections:["78rpm","audio_music","georgeblood","opensource_audio","album_recordings"],diversity:{maxPerEra:2,maxPerLane:2,maxPerCreator:1,maxPerCollection:3}});
 Object.assign(PROGRAM["Mod & Pop"],{diversity:{maxPerEra:2,maxPerLane:2,maxPerCreator:1,maxPerCollection:3}});
 Object.assign(PROGRAM["The Reading Room"],{queueTerms:["author interview","writer interview","author reading","literature","writer profile","book discussion","book club","book talk","poetry reading","literary documentary","literary event","library program"],fastSubjects:["author interview","literature","writer profile","book discussion","book club","book talk","poetry reading","author reading"],fastCollections:["opensource_movies","classic_tv","FedFlix","americanarchiveofpublicbroadcasting","seattlemunicipalarchives"],diversity:{maxPerEra:2,maxPerLane:2,maxPerCreator:1,maxPerCollection:3}});
+/* Sparse-lane rescue: preserve each station's existing require/deny contract,
+   but put a productive, genre-specific query rail first on cold tune. */
+Object.assign(PROGRAM["The Court Room"],{fastSubjects:["judge show","court show","people's court","divorce court","judge judy","small claims court","judge wapner","judge mathis"],fastCollections:["classic_tv_1990s","classic_tv_2000s","vhsvault"]});
+Object.assign(PROGRAM["Action & Serials"],{fastSubjects:["movie serial","film serial","chapter play","cliffhanger serial","flash gordon","buck rogers","zorro","the phantom"],fastCollections:["feature_films","feature_films_unsorted","opensource_movies"]});
+Object.assign(PROGRAM["La Movida"],{fastSubjects:["spanish cinema","mexican cinema","cine español","cine mexicano","latin american film","pedro almodovar","luis bunuel","carlos saura"],fastCollections:["feature_films_unsorted","feature_films","opensource_movies"]});
+Object.assign(PROGRAM["Latin"],{fastSubjects:["salsa","mambo","son cubano","bolero","bossa nova","tango","samba","latin music"],fastCollections:["audio_music","78rpm","opensource_audio"]});
+Object.assign(PROGRAM["Modern Country"],{fastSubjects:["country music","modern country","outlaw country","americana","texas country","red dirt","bluegrass","honky tonk"],fastCollections:["audio_music","opensource_audio","netlabels"]});
+Object.assign(PROGRAM["Comedy Classics"],{fastSubjects:["classic comedy","screwball comedy","slapstick","comedy film","marx brothers","abbott and costello","laurel and hardy","three stooges"],fastCollections:["Comedy_Films","feature_films","feature_films_unsorted"]});
+Object.assign(PROGRAM["Adult Animation"],{fastSubjects:["adult animation","adult cartoon","ralph bakshi","heavy metal film","liquid television","beavis and butt-head","futurama","adult swim"],fastCollections:["animationandcartoons","vhsvault","opensource_movies"]});
+Object.assign(PROGRAM["Found Footage Static"],{fastSubjects:["found footage","vintage vhs","home movie","public access weird","lost media","raw footage","camcorder footage","orphaned footage"],fastCollections:["opensource_movies","vhsvault","home_movies"]});
+Object.assign(PROGRAM["Thanksgiving Channel"],{fastSubjects:["thanksgiving","thanksgiving special","thanksgiving parade","harvest festival","thanksgiving film","thanksgiving day","macy's thanksgiving day parade","pilgrims"],fastCollections:["prelinger","classic_tv","opensource_movies"]});
+Object.assign(PROGRAM["Sci-Fi Theater"],{fastSubjects:["science fiction film","atomic age sci-fi","1950s sci-fi","monster movie","alien invasion","space travel","time travel","creature feature"],fastCollections:["SciFi_Horror","feature_films","feature_films_unsorted"]});
+Object.assign(PROGRAM["Black Cinema"],{fastSubjects:["black cinema","african american cinema","race films","oscar micheaux","spike lee","black-directed","black-led","african american film"],fastCollections:["feature_films","feature_films_unsorted","opensource_movies"]});
 /* Every IA station gets a compact editorial diversity policy. These caps shape
    a shelf of already-approved programs; they never relax the station's terms,
    era, media type, or deny list when Archive is sparse. */

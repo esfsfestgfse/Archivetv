@@ -167,6 +167,13 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "IGM160InternetItunes", title: "I've Got Munchies- Takes A Bite Out Of Pull Apart Cheesy Garlic Bread", subject: "cooking show cooking demonstration recipe baking", year: 2019 },
     { identifier: "igm171internetdevice", title: "I've Got Munchies- Takes A Bite Out Of Oatmeal Cream Pies with Jam and Toasted Pecans", subject: "cooking show cooking demonstration recipe baking pastry", year: 2019 },
   ],
+  "914": [
+    { identifier: "19MAY2018LOS4ELEMENTOSDELHIPHOP", title: "Los 4 Elementos del Hip Hop", subject: "hip hop rap turntablism", year: 2018 },
+    { identifier: "33-multiple-drum-sounds", title: "Multiple Drum Sounds", subject: "hip hop beat rap turntablism", year: 2018 },
+    { identifier: "dedication-2-lil-wayne", title: "Dedication 2 - Lil Wayne", subject: "hip hop rap mixtape", year: 2006 },
+    { identifier: "Future_Pluto_Hndrxx-MixtapePlutoSlowed", title: "Future - Pluto x Hndrxx / Mixtape Pluto", subject: "hip hop rap", year: 2024 },
+    { identifier: "YungMcChickenFilesVol1", title: "The Yung McChicken Files Vol. 1", subject: "hip hop rap", year: 2018 },
+  ],
   "702": [
     { identifier: "veggietales-madame-blueberry-1998-fanmade-vhs-thanksgiving-special_202511", title: "VeggieTales Madame Blueberry (Thanksgiving Special)", subject: "thanksgiving special", year: 1998 },
     { identifier: "macys-thanksgiving-day-parade-cat-in-the-hat-theme-1994-1997", title: "The Cat in the Hat Balloon Theme (Macy's Thanksgiving Day Parade)", subject: "thanksgiving parade", year: 1997 },

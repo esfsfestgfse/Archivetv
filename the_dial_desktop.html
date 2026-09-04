@@ -7533,7 +7533,15 @@ async function tuneIA(ch,sl,my){
   var rapid=fastTuneGet(ch.num);
   if(rapid){
     nlog("rapid-tune",true,"CH "+ch.num+" cached media");
-    if(await playFile(rapid,ch,sl,my,0))return;
+    if(await playFile(rapid,ch,sl,my,0)){
+      /* A shelf-promoted item has now taken the air. Remove its queue copy so
+         the next program advances instead of replaying the same cached item. */
+      var rapidQueue=iaProgramQueues[iaQueueKey(ch)]||[];
+      for(var ri=rapidQueue.length-1;ri>=0;ri--)if(rapidQueue[ri]&&rapidQueue[ri].identifier===rapid.id){rapidQueue.splice(ri,1);break;}
+      delete iaProgramMedia[rapid.id]; iaReadyShelfSave(ch); warmIAQueueHead(ch); refillIAQueue(ch,sl);
+      return;
+    }
+    fastTuneDrop(ch.num);
     if(my!==token)return;
   }
   /* 1.2: if this channel has a program on the air right now, rejoin it in progress */

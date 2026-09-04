@@ -99,6 +99,7 @@ async function probeRotation(row, rotationOffset) {
           elapsedMs: Date.now() - started, firstPlayLatencyMs: firstReadyLatencyMs,
           source: lastSource, cache: lastCache, readyHeader: lastReadyHeader,
           partial: lastPartial === '1', fallback: lastFallback === '1',
+          transportFailure: false, httpFailure: false,
           timedOut: false,
           depthTimedOut: false,
           itemIds: items.map(item => String(item && (item.identifier || item.id || item.title || '')).trim()).filter(Boolean),
@@ -126,6 +127,8 @@ async function probeRotation(row, rotationOffset) {
     firstPlayLatencyMs: firstReadyLatencyMs,
     source: lastSource, cache: lastCache, readyHeader: lastReadyHeader,
     partial: lastPartial === '1', fallback: lastFallback === '1',
+    transportFailure: !hasRequiredReady && lastStatus === 0 && Boolean(lastError),
+    httpFailure: !hasRequiredReady && lastStatus >= 400,
     timedOut: !hasRequiredReady && Date.now() - started >= timeoutMs,
     depthTimedOut: ready < count,
     itemIds: items.map(item => String(item && (item.identifier || item.id || item.title || '')).trim()).filter(Boolean),
@@ -159,6 +162,8 @@ async function probe(row) {
     else seen.add(id);
   }
   const timeouts = rotationResults.filter(result => result.timedOut).length;
+  const transportFailures = rotationResults.filter(result => result.transportFailure).length;
+  const httpFailures = rotationResults.filter(result => result.httpFailure).length;
   const last = rotationResults[rotationResults.length - 1] || {};
   return {
     channel: Number(row.channel), name: row.name,
@@ -175,6 +180,8 @@ async function probe(row) {
     uniqueItems: seen.size,
     duplicateItems,
     timeoutCount: timeouts,
+    transportFailures,
+    httpFailures,
     timedOut: timeouts > 0,
     hydrating: rotationResults.some(result => result.hydrating),
     sources: [...new Set(rotationResults.map(result => result.source).filter(Boolean))],
@@ -188,6 +195,7 @@ async function probe(row) {
       firstPlayLatencyMs: result.firstPlayLatencyMs, timedOut: result.timedOut,
       source: result.source, cache: result.cache, readyHeader: result.readyHeader,
       partial: result.partial, fallback: result.fallback,
+      transportFailure: result.transportFailure, httpFailure: result.httpFailure,
       itemIds: result.itemIds || [], samples: result.samples || [], error: result.error,
     })),
   };
@@ -217,6 +225,8 @@ async function main() {
   const failures = results.filter(result => !result.ok);
   const measuredRotations = results.reduce((sum, result) => sum + (result.rotations?.length || 0), 0);
   const timeoutCount = results.reduce((sum, result) => sum + (result.timeoutCount || 0), 0);
+  const transportFailures = results.reduce((sum, result) => sum + (result.transportFailures || 0), 0);
+  const httpFailures = results.reduce((sum, result) => sum + (result.httpFailures || 0), 0);
   const duplicateItems = results.reduce((sum, result) => sum + (result.duplicateItems || 0), 0);
   const depthUnderfilled = results.reduce((sum, result) => sum + (result.depthUnderfilled ? 1 : 0), 0);
   const fullDepthChannels = results.filter(result => (result.fiveItemDepth || 0) >= rotations).length;
@@ -236,6 +246,7 @@ async function main() {
       measuredRotations, fiveItemDepth: results.reduce((sum, result) => sum + (result.fiveItemDepth || 0), 0),
       fullDepthChannels, depthUnderfilled,
       timeouts: timeoutCount, duplicateItems,
+      transportFailures, httpFailures,
       responseSources: sourceCounts, responseCaches: cacheCounts,
       firstPlayLatencyMs: playableLatencies.length ? {
         min: Math.min(...playableLatencies), max: Math.max(...playableLatencies),
@@ -245,6 +256,7 @@ async function main() {
     failures, slowest, results,
   };
   console.log(`IA queue health: ${report.totals.ready}/${report.totals.channels} first-play ready; ${failures.length} no-signal lanes; ${report.totals.fullDepthChannels}/${report.totals.channels} full-depth; ${report.totals.duplicateItems} duplicate items; ${timeoutCount} timeouts`);
+  console.log(`Failure classes: ${transportFailures} transport failures; ${httpFailures} HTTP failures; ${Math.max(0, failures.length - transportFailures - httpFailures)} queue/underfill failures`);
   console.log(`Five-item depth: ${report.totals.fiveItemDepth}/${report.totals.measuredRotations} rotations; ${report.totals.depthUnderfilled} channels still underfilled after ${depthTimeoutMs}ms depth window`);
   if (report.totals.firstPlayLatencyMs) console.log(`First-play latency: ${report.totals.firstPlayLatencyMs.average}ms average (${report.totals.firstPlayLatencyMs.min}-${report.totals.firstPlayLatencyMs.max}ms)`);
   for (const failure of failures) {

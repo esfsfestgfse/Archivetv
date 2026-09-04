@@ -84,7 +84,7 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
-const IA_QUEUE_CACHE_VERSION = "v33";
+const IA_QUEUE_CACHE_VERSION = "v34";
 const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
 /* The queue endpoint is part of channel-change critical path.  Archive can
    hydrate a richer shelf after the response, but a cold request must hand the
@@ -99,6 +99,10 @@ const IA_FAST_SEARCH_TIMEOUT_MS = 1500;
    intentionally process-local and ephemeral; the durable result remains in
    Cache API/KV below. */
 const iaSearchInflight = new Map();
+/* A partial queue can be served immediately while its approved candidates are
+   rehydrated in the background. Keep that repair single-flight per edge key so
+   a fast channel-surfing client cannot open duplicate metadata storms. */
+const iaQueueHydrationInflight = new Map();
 const GULF_FILTER = "BBOX(geometry,-98,18,-80,31)";
 const KPLER_FIELDS = "mmsi,longitude,latitude,posDt,sog,vesselName,heading,cog,navStatus,destination,vesselType";
 /* Public navigation is intentionally limited to named regions. The Worker
@@ -1789,19 +1793,23 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, mediaTypes,
     generatedAt: new Date().toISOString(),
     ttlSeconds: IA_QUEUE_TTL_SECONDS,
     items: items.slice(0, count),
+    candidateItems: items.slice(0, count),
     ready: Math.min(items.length, count),
   };
 }
 
 function mergeIaQueuePayload(primary, secondary, candidateCount, flags = {}) {
   const seen = new Set(), merged = [];
-  for (const item of [...((primary && primary.items) || []), ...((secondary && secondary.items) || [])]) {
+  const candidates = (payload) => Array.isArray(payload && payload.candidateItems)
+    ? payload.candidateItems
+    : ((payload && payload.items) || []);
+  for (const item of [...candidates(primary), ...candidates(secondary)]) {
     if (!item || !item.identifier || seen.has(item.identifier)) continue;
     seen.add(item.identifier);
     merged.push(item);
     if (merged.length >= candidateCount) break;
   }
-  return { ...(primary || {}), items: merged, candidates: merged.length, ...flags };
+  return { ...(primary || {}), items: merged, candidateItems: merged, candidates: merged.length, ...flags };
 }
 
 async function hydrateIaQueue(payload, requestedCount, cacheOrigin, ctx, mediaTypes, onReady) {
@@ -1811,7 +1819,9 @@ async function hydrateIaQueue(payload, requestedCount, cacheOrigin, ctx, mediaTy
      that each need another network trip in the browser. Stop as soon as the
      requested shelf is playable: waiting for every reserve item's metadata
      made a few slow Archive records hold an otherwise ready channel hostage. */
-  const ready = [], items = payload.items || [];
+  const ready = [], items = Array.isArray(payload && payload.candidateItems) && payload.candidateItems.length
+    ? payload.candidateItems
+    : ((payload && payload.items) || []);
   let cursor = 0;
   async function worker() {
     while (ready.length < requestedCount) {
@@ -1831,11 +1841,36 @@ async function hydrateIaQueue(payload, requestedCount, cacheOrigin, ctx, mediaTy
   return {
     ...payload,
     items: ready,
+    candidateItems: items,
     candidates: items.length,
     ready: ready.length,
     partial: ready.length < requestedCount,
     hydrating: false,
   };
+}
+
+function scheduleCachedIaHydration(payload, requestedCount, cacheOrigin, cacheKey, sharedKey, env, ctx, mediaTypes) {
+  const items = Array.isArray(payload && payload.items) ? payload.items : [];
+  const candidates = Array.isArray(payload && payload.candidateItems) ? payload.candidateItems : [];
+  if (!candidates.length || candidates.length <= items.length) return;
+  const key = cacheKey.url;
+  if (iaQueueHydrationInflight.has(key)) return;
+  const task = hydrateIaQueue(payload, requestedCount, cacheOrigin, ctx, mediaTypes)
+    .then((hydrated) => {
+      if (!hydrated || !hydrated.items.length) return undefined;
+      const queueTtl = hydrated.ready >= requestedCount ? IA_QUEUE_TTL_SECONDS : IA_PARTIAL_QUEUE_TTL_SECONDS;
+      if (hydrated.ready >= requestedCount) sharedQueuePut(env, sharedKey, hydrated, queueTtl, ctx);
+      return caches.default.put(cacheKey, cacheableJson(hydrated, queueTtl, {
+        "X-Afterglow-Source": "program-director-cache-rehydrate",
+        "X-Afterglow-Queue-Ready": String(hydrated.ready),
+      }));
+    })
+    .catch((error) => {
+      console.warn(JSON.stringify({ event: "ia-cached-rehydration-failed", message: String(error && error.message || error) }));
+    })
+    .finally(() => iaQueueHydrationInflight.delete(key));
+  iaQueueHydrationInflight.set(key, task);
+  ctx.waitUntil(task);
 }
 
 async function expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, rotation) {
@@ -1864,7 +1899,10 @@ async function expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, c
 
 function scheduleIaReplenishment(ready, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, rotation) {
   if (!ready || ready.ready >= count) return;
-  const seed = { ...ready, items: Array.isArray(ready.items) ? ready.items.slice(0, count) : [], candidates: Array.isArray(ready.items) ? ready.items.length : 0 };
+  const candidateItems = Array.isArray(ready.candidateItems) && ready.candidateItems.length
+    ? ready.candidateItems
+    : (Array.isArray(ready.items) ? ready.items : []);
+  const seed = { ...ready, items: candidateItems.slice(0, candidateCount), candidateItems, candidates: candidateItems.length };
   ctx.waitUntil(
     expandAndCacheIaQueue(seed, reserveQueries.slice(0, Math.min(2, reserveQueries.length)), fallbackQueries.slice(0, 1), channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, rotation)
       .catch((error) => console.warn(JSON.stringify({ event: "ia-background-replenishment-failed", channel, message: String(error && error.message || error) })))
@@ -1919,6 +1957,9 @@ async function getIaQueue(request, url, env, ctx) {
         if (!cachedPayload || cachedPayload.empty || (!Array.isArray(cachedPayload.items) || !cachedPayload.items.length) && !cachedPayload.hydrating) {
           await cache.delete(cacheKey).catch(() => false);
         } else {
+          if (cachedPayload.partial && Array.isArray(cachedPayload.candidateItems)) {
+            scheduleCachedIaHydration(cachedPayload, count, url.origin, cacheKey, sharedKey, env, ctx, mediaTypes);
+          }
           return cached;
         }
       } catch {

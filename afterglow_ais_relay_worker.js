@@ -84,7 +84,7 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
-const IA_QUEUE_CACHE_VERSION = "v34";
+const IA_QUEUE_CACHE_VERSION = "v35";
 const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
 /* The queue endpoint is part of channel-change critical path.  Archive can
    hydrate a richer shelf after the response, but a cold request must hand the
@@ -1989,7 +1989,11 @@ async function getIaQueue(request, url, env, ctx) {
        This keeps the first playable item on the short path while preserving
        the broader catalog for refill and later rotations. */
     const fastQueries = queries.slice(0, Math.min(2, queries.length));
-    const reserveQueries = queries.slice(fastQueries.length, Math.min(8, queries.length));
+    /* The first-approved cold race intentionally starts with only the first
+       rail. Keep the second fast rail at the front of the reserve list so a
+       sparse winner can widen into the app's next approved lane immediately;
+       otherwise that rail was launched, observed, and then discarded. */
+    const reserveQueries = queries.slice(Math.max(1, fastQueries.length - 1), Math.min(8, queries.length));
     let payload = await buildIaQueue(channel, fastQueries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, candidateCount, url.origin, ctx, rotation, IA_FAST_SEARCH_TIMEOUT_MS, true);
     const fallbackQueries = iaFallbackQueries(themeTerms, denyTerms, mediaTypes);
     if (!payload.items.length) {

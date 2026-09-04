@@ -1613,7 +1613,7 @@ body.cast-receiver .guide-directory .chcell.cast-focus .cc-n{color:#b9ffd0!impor
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.9.7-desktop.056-ia-nature-fast-rails";
+window.__ATV_BUILD="1.9.7-desktop.057-ia-sparse-lane-fast-rails";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -1651,7 +1651,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
- <div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.9.7-desktop.056-ia-nature-fast-rails · RealSignal</div>
+ <div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.9.7-desktop.057-ia-sparse-lane-fast-rails · RealSignal</div>
 <div class="room">
   <div class="lamp"></div>
   <div class="marq-wall" id="wallClock">REALSIGNAL · THE DIAL</div>
@@ -3175,6 +3175,8 @@ const PROGRAM = {
      Godzilla, Gamera, Ultraman, Toho, Daiei, Tsuburaya. */
   "Monster Island": {
     genre: "kaiju", era: [1950, 2020],
+    fastSubjects: ["godzilla","gamera","kaiju","kaiju film","japanese monster movie","tokusatsu","ultraman","toho monster"],
+    fastCollections: ["SciFi_Horror","feature_films_unsorted","opensource_movies"],
     providers: [
       { collections: ["SciFi_Horror", "feature_films_unsorted", "opensource_movies", "feature_films"], require_subj: [
         "godzilla","godzilla king of the monsters","gojira","gojira 1954","godzilla vs king kong","godzilla vs mothra",
@@ -5012,7 +5014,7 @@ const PROGRAM = {
 
   /* British-suite lanes deliberately share the British archive vocabulary but each owns a
      narrow theme lock. This prevents the broad Blighty pool from bleeding into every slot. */
-  "The Beeb": {genre:"british",era:[1930,2026],queueTerms:["bbc","british broadcasting corporation","bbc television","bbc documentary","bbc history","bbc science","bbc arts"],providers:[{collections:["classic_tv","classic_tv_1960s","classic_tv_1970s","classic_tv_1980s","classic_tv_1990s","classic_tv_2000s","opensource_movies"],require_subj:["bbc television","bbc documentary","british broadcasting corporation","bbc history","bbc science","bbc arts"]}],deny:{title:["american television","commercial"],subject:["american television","hollywood","commercial","cartoon","training film"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
+  "The Beeb": {genre:"british",era:[1930,2026],queueTerms:["bbc","british broadcasting corporation","bbc television","bbc documentary","bbc history","bbc science","bbc arts"],fastSubjects:["bbc television","bbc documentary","bbc history","bbc science","bbc arts","bbc natural history","bbc current affairs","bbc archive"],fastCollections:["classic_tv","classic_tv_1960s","classic_tv_1970s","opensource_movies"],providers:[{collections:["classic_tv","classic_tv_1960s","classic_tv_1970s","classic_tv_1980s","classic_tv_1990s","classic_tv_2000s","opensource_movies"],require_subj:["bbc television","bbc documentary","british broadcasting corporation","bbc history","bbc science","bbc arts"]}],deny:{title:["american television","commercial"],subject:["american television","hollywood","commercial","cartoon","training film"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
   "Britcom": {genre:"british",era:[1950,2026],queueTerms:["british sitcom","british comedy","monty python","fawlty towers","blackadder","only fools and horses","the young ones","red dwarf","mr bean"],providers:[{collections:["classic_tv","classic_tv_1960s","classic_tv_1970s","classic_tv_1980s","classic_tv_1990s","classic_tv_2000s","opensource_movies"],require_subj:["british sitcom","british comedy","monty python","fawlty towers","blackadder","only fools and horses","the young ones","red dwarf","mr bean","the two ronnies","morecambe and wise"]}],deny:{title:["american sitcom","commercial"],subject:["american television","hollywood","commercial","cartoon","training film"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
   "The Telly": {genre:"british",era:[1950,2026],queueTerms:["british television","british tv","bbc television","itv television","channel 4 television","granada television","thames television"],providers:[{collections:["classic_tv","classic_tv_1960s","classic_tv_1970s","classic_tv_1980s","classic_tv_1990s","classic_tv_2000s"],require_subj:["british television","british tv","bbc television","itv television","channel 4 television","granada television","thames television","yorkshire television"]}],deny:{title:["american television","commercial"],subject:["american television","hollywood","commercial","cartoon","training film"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
   "Hammer House": {genre:"british",era:[1950,2026],queueTerms:["hammer horror","hammer films","hammer film","amicus productions","british horror","christopher lee","peter cushing"],providers:[{collections:["SciFi_Horror","feature_films","feature_films_unsorted","opensource_movies"],require_subj:["hammer horror","hammer films","hammer film","amicus productions","british horror","christopher lee","peter cushing","gothic horror"]}],deny:{title:["american horror","trailer","commercial"],subject:["american television","commercial","cartoon","training film"]},subjRotate:true,subjRequired:true,noBlindFallback:true},

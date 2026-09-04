@@ -37,8 +37,13 @@ try {
     $current = Get-Stamp (Get-Content -LiteralPath $file -Raw)
     $previous = Get-Stamp ((git @gitArgs show "HEAD:$file") -join "`n")
     if (-not $current -or -not $previous) { throw "Could not read build stamp for $file." }
-    $currentNumber = [int]($current.Split('.')[-1])
-    $previousNumber = [int]($previous.Split('.')[-1])
+    $currentMatch = [regex]::Match($current, '\.(\d+)(?:-[^.]+)*$')
+    $previousMatch = [regex]::Match($previous, '\.(\d+)(?:-[^.]+)*$')
+    if (-not $currentMatch.Success -or -not $previousMatch.Success) {
+      throw "Could not parse numeric build stamp for $file ($previous -> $current)."
+    }
+    $currentNumber = [int]$currentMatch.Groups[1].Value
+    $previousNumber = [int]$previousMatch.Groups[1].Value
     $changed = @(git @gitArgs diff --name-only -- $file)
     if ($changed -and $currentNumber -le $previousNumber) {
       throw "$file changed without a build-stamp bump ($previous -> $current)."

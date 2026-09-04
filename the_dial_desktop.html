@@ -17217,7 +17217,7 @@ setSig("","STANDBY");
 /* Populate the build-number chip beside STANDBY. Just the increment ("v95"), not the whole
    "1.7.7-desktop.108" — the small chip has room for a short tag and that's the part that changes. */
 (function(){ try{
-  var b=String(window.__ATV_BUILD||""); var v=b.split(".").pop();
+    var b=String(window.__ATV_BUILD||""); var m=b.match(/\.(\d+)(?:-[^.]+)*$/); var v=m ? m[1] : "";
   if(!v) return;
   var el=document.getElementById("verChip"); if(el) el.textContent="v"+v;
 }catch(e){} })();

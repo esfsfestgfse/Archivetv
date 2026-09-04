@@ -18,6 +18,8 @@ if (!/IA_SEARCH_CACHE_VERSION\s*=\s*"v5"/.test(source) || !/"mediatype"\]\.forEa
 if (numericConstant('IA_METADATA_TTL_SECONDS') < 86400) issues.push('resolved media metadata must stay warm for at least one day');
 if (numericConstant('IA_QUEUE_TTL_SECONDS') < 86400) issues.push('five-show queues must stay warm for at least one day');
 if (!/IA_QUEUE_CACHE_VERSION\s*=\s*"v40"/.test(source)) issues.push('queue cache version must invalidate pre-shared-shelf IA queues');
+if (!/IA_QUEUE_MEMORY_TTL_SECONDS\s*=\s*20/.test(source) || !/IA_QUEUE_MEMORY_MAX\s*=\s*64/.test(source) || !/function iaQueueMemoryGet\(key\)/.test(source) || !/function iaQueueMemoryPut\(key, payload, ttlSeconds\)/.test(source)) issues.push('queue path must coalesce only short-lived, bounded per-edge bursts');
+if (!/const memory = iaQueueMemoryGet\(cacheKey\.url\)/.test(source) || !/program-director-memory/.test(source)) issues.push('queue path must read the per-edge burst coalescer before starting duplicate Archive work');
 if (!/REALSIGNAL_QUEUE/.test(source) || !/sharedQueueGet\(env, sharedKey\)/.test(source) || !/sharedQueuePut\(env, sharedKey, hydrated, queueTtl, ctx\)/.test(source)) issues.push('queue path must use the shared KV ready shelf before cold Archive work');
 if (!/"creator", "collection"/.test(source) || !/function safeDiversity\(value\)/.test(source)) issues.push('queue discovery must retain bounded creator and collection diversity metadata');
 if (!/safeThemeMinScore\(body && body\.themeMinScore\)/.test(source) || !/matchesTheme\(doc, themeTerms, themeMinScore\)/.test(source)) issues.push('queue worker must enforce the client editorial score gate before caching');

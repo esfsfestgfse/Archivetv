@@ -86,6 +86,27 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
    path below is deliberately no-store. */
 const IA_QUEUE_CACHE_VERSION = "v40";
 const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
+/* A short per-isolate burst cache absorbs repeat requests from a TV, phone,
+   and guide opened in quick succession. It is intentionally tiny and
+   short-lived: Cache API/KV remain the durable shelves, while this map only
+   bridges the small window before an edge cache write becomes visible. */
+const IA_QUEUE_MEMORY_TTL_SECONDS = 20;
+const IA_QUEUE_MEMORY_MAX = 64;
+const iaQueueMemory = new Map();
+function iaQueueMemoryGet(key) {
+  const entry = iaQueueMemory.get(key);
+  if (!entry || entry.expiresAt <= Date.now()) {
+    if (entry) iaQueueMemory.delete(key);
+    return null;
+  }
+  return entry;
+}
+function iaQueueMemoryPut(key, payload, ttlSeconds) {
+  if (!key || !payload || !Array.isArray(payload.items) || !payload.items.length) return;
+  const ttl = Math.max(1, Math.min(IA_QUEUE_MEMORY_TTL_SECONDS, Number(ttlSeconds) || IA_QUEUE_MEMORY_TTL_SECONDS));
+  iaQueueMemory.set(key, { payload, ttlSeconds: ttl, expiresAt: Date.now() + ttl * 1000 });
+  while (iaQueueMemory.size > IA_QUEUE_MEMORY_MAX) iaQueueMemory.delete(iaQueueMemory.keys().next().value);
+}
 /* The queue endpoint is part of channel-change critical path.  Archive can
    hydrate a richer shelf after the response, but a cold request must hand the
    browser viable identifiers quickly enough for its own direct resolver to
@@ -2034,8 +2055,17 @@ async function getIaQueue(request, url, env, ctx) {
         return cached;
       }
     }
+    const memory = iaQueueMemoryGet(cacheKey.url);
+    if (memory) {
+      return cacheableJson(memory.payload, memory.ttlSeconds, {
+        "X-Afterglow-Source": "program-director-memory",
+        "X-Afterglow-Cache": "memory-burst",
+        "X-Afterglow-Queue-Ready": String(memory.payload.ready || memory.payload.items.length),
+      });
+    }
     const shared = await sharedQueueGet(env, sharedKey);
     if (shared && Array.isArray(shared.items) && Number(shared.ready) >= count) {
+      iaQueueMemoryPut(cacheKey.url, shared, IA_QUEUE_MEMORY_TTL_SECONDS);
       const response = cacheableJson(shared, IA_QUEUE_TTL_SECONDS, {
         "X-Afterglow-Source": "program-director-shared",
         "X-Afterglow-Cache": "shared",
@@ -2128,6 +2158,7 @@ async function getIaQueue(request, url, env, ctx) {
           "X-Afterglow-Queue-Ready": String(fallback.ready || fallback.items.length),
           "X-Afterglow-Queue-Fallback": "1",
         });
+        iaQueueMemoryPut(cacheKey.url, fallback, 5);
         ctx.waitUntil(cache.put(cacheKey, fallbackResponse.clone()).catch((error) => {
           console.warn(JSON.stringify({ event: "last-good-queue-edge-write-failed", channel, message: String(error && error.message || error) }));
         }));
@@ -2163,6 +2194,7 @@ async function getIaQueue(request, url, env, ctx) {
            channel change can happen before it finishes; seeding last-good here
            closes that race without making the viewer wait. */
         if (hydrated.ready > 0) sharedQueuePut(env, sharedKey, hydrated, IA_PARTIAL_QUEUE_TTL_SECONDS, ctx);
+        iaQueueMemoryPut(cacheKey.url, hydrated, 5);
         ctx.waitUntil(
             hydration
             .then((ready) => {
@@ -2189,6 +2221,7 @@ async function getIaQueue(request, url, env, ctx) {
         "X-Afterglow-Source": "program-director",
         "X-Afterglow-Queue-Ready": String(hydrated.ready),
       });
+      iaQueueMemoryPut(cacheKey.url, hydrated, queueTtl);
       ctx.waitUntil(cache.put(cacheKey, response.clone()).catch((error) => {
         console.warn(JSON.stringify({ event: "queue-cache-write-failed", channel, message: String(error && error.message || error) }));
       }));
@@ -2215,6 +2248,7 @@ async function getIaQueue(request, url, env, ctx) {
         "X-Afterglow-Queue-Ready": String(fallback.ready || fallback.items.length),
         "X-Afterglow-Queue-Fallback": "1",
       });
+      iaQueueMemoryPut(cacheKey.url, fallback, 5);
       ctx.waitUntil(cache.put(cacheKey, fallbackResponse.clone()).catch((error) => {
         console.warn(JSON.stringify({ event: "last-good-queue-edge-write-failed", channel, message: String(error && error.message || error) }));
       }));

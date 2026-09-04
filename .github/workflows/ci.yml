@@ -81,11 +81,14 @@ jobs:
           node scripts/audit-ia-channels.js the_dial_desktop.html
           node scripts/check-ia-contract.js the_dial_desktop.html
           node scripts/check-ia-parity.js
+          node scripts/check-channel-registry.js
+          node scripts/check-source-suite-contract.js
+          node scripts/check-cast-contract.js
       - name: Serve app
         run: |
           python -m http.server 8800 &
           sleep 2
       - name: Run tune-all (all discovered channels, zero page errors)
         run: python ci/test_tune_all.py http://localhost:8800/the_dial_desktop.html
-      - name: Run regression (8-point functional check)
+      - name: Run regression (10-point functional check)
         run: python ci/test_regression.py http://localhost:8800/the_dial_desktop.html

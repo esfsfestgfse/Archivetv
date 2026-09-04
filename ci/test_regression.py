@@ -1,4 +1,4 @@
-"""CI: 8-point functional regression covering core channel-switching and panel behavior."""
+"""CI: 10-point functional regression covering core channel-switching and panel behavior."""
 import asyncio, sys
 from playwright.async_api import async_playwright
 
@@ -79,18 +79,31 @@ async def main():
         cur_after = await pg.evaluate("()=>curNum")
         check("6. Channel unchanged after guide open", cur_after == 50)
 
-        # 7. Tune a different channel
+        # 7. Guide closes without changing the tuned channel
+        await pg.evaluate("()=>{if(typeof closeGuide==='function')closeGuide();}")
+        await pg.wait_for_timeout(120)
+        guide_closed = await pg.evaluate("()=>{var g=document.getElementById('gwrap');return g&&!g.classList.contains('show');}")
+        check("7. Guide closes cleanly", guide_closed)
+
+        # 8. Tune a different channel
         await pg.evaluate("()=>{ tuneNum(2); }")  # Channel 2 Network
         await pg.wait_for_timeout(1000)
         cur2 = await pg.evaluate("()=>curNum")
-        check("7. tuneNum(2) works", cur2 == 2)
+        check("8. tuneNum(2) works", cur2 == 2)
 
-        # 8. No page errors throughout
-        check("8. Zero page errors", len(errors) == 0)
+        # 9. The user-visible stamp must identify the exact runtime build.
+        runtime_build = await pg.evaluate("()=>String(window.__ATV_BUILD||'')")
+        visible_build = await pg.evaluate("()=>{var e=document.getElementById('atv-build-stamp-value');return e?e.textContent.trim():'';}")
+        version_chip = await pg.evaluate("()=>{var e=document.getElementById('verChip');return e?e.textContent.trim():'';}")
+        version_is_numeric = version_chip.startswith("v") and version_chip[1:].isdigit()
+        check("9. Visible build stamp matches runtime build", bool(runtime_build and visible_build == runtime_build and version_is_numeric))
+
+        # 10. No page errors throughout
+        check("10. Zero page errors", len(errors) == 0)
 
         await b.close()
 
-    print(f"\n=== {len(failures)} failures out of 8 checks ===")
+    print(f"\n=== {len(failures)} failures out of 10 checks ===")
     if errors:
         print(f"Page errors: {errors[:3]}")
     if failures:

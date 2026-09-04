@@ -97,6 +97,7 @@ const IA_QUEUE_MEMORY_MAX = 64;
    viewer can still receive a verified program or the last-good shelf. */
 const IA_SHARED_QUEUE_READ_TIMEOUT_MS = 700;
 const iaQueueMemory = new Map();
+const iaQueueExpansionInflight = new Map();
 function iaQueueMemoryGet(key) {
   const entry = iaQueueMemory.get(key);
   if (!entry || entry.expiresAt <= Date.now()) {
@@ -2006,16 +2007,30 @@ async function expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, c
   return hydrated;
 }
 
+/* A first-approved rail is intentionally allowed to return a partial candidate
+   shelf so first tune stays fast. Keep only one wider expansion per exact
+   rotation in flight, though: the foreground hydration and a later poll can
+   both discover that the shelf needs help, and duplicate expansions just
+   compete for the same Archive budget. */
+function scheduleIaExpansion(seed, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, rotation) {
+  const key = cacheKey && cacheKey.url;
+  if (!key || !ctx || iaQueueExpansionInflight.has(key)) return;
+  const task = expandAndCacheIaQueue(seed, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, rotation)
+    .catch((error) => {
+      console.warn(JSON.stringify({ event: "ia-background-replenishment-failed", channel, message: String(error && error.message || error) }));
+    })
+    .finally(() => iaQueueExpansionInflight.delete(key));
+  iaQueueExpansionInflight.set(key, task);
+  ctx.waitUntil(task);
+}
+
 function scheduleIaReplenishment(ready, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, rotation) {
   if (!ready || ready.ready >= count) return;
   const candidateItems = Array.isArray(ready.candidateItems) && ready.candidateItems.length
     ? ready.candidateItems
     : (Array.isArray(ready.items) ? ready.items : []);
   const seed = { ...ready, items: candidateItems.slice(0, candidateCount), candidateItems, candidates: candidateItems.length };
-  ctx.waitUntil(
-    expandAndCacheIaQueue(seed, reserveQueries.slice(0, Math.min(4, reserveQueries.length)), fallbackQueries.slice(0, Math.min(2, fallbackQueries.length)), channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, rotation)
-      .catch((error) => console.warn(JSON.stringify({ event: "ia-background-replenishment-failed", channel, message: String(error && error.message || error) })))
-  );
+  scheduleIaExpansion(seed, reserveQueries.slice(0, Math.min(4, reserveQueries.length)), fallbackQueries.slice(0, Math.min(2, fallbackQueries.length)), channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, rotation);
 }
 
 async function timeboxQueueHydration(hydration, timeoutMs) {
@@ -2187,17 +2202,18 @@ async function getIaQueue(request, url, env, ctx) {
         emergency: true,
       };
     }
-    const needsExpansion = payload.items.length === 0 || payload.emergency === true;
+    /* A first-approved rail may return one to four candidates even when the
+       channel has more approved material in its reserve lanes. Start widening
+       any sub-five shelf immediately in the background; waiting until the
+       first hydrate completes made rotated channels look permanently shallow. */
+    const needsExpansion = payload.items.length < count || payload.emergency === true;
     /* Reserve and rescue lanes are valuable for diversity but must never sit
        in front of first tune. Start them as observed background work; the
        first three subject-locked rails below can already hydrate and return a
        verified program. A successful background pass overwrites the short
        partial cache and fills the shared ready shelf for the next request. */
     if (needsExpansion) {
-      ctx.waitUntil(
-        expandAndCacheIaQueue(payload, reserveQueries.slice(0, Math.min(4, reserveQueries.length)), fallbackQueries.slice(0, Math.min(2, fallbackQueries.length)), channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, url.origin, cacheKey, sharedKey, env, ctx, rotation)
-          .catch((error) => console.warn(JSON.stringify({ event: "ia-background-expansion-failed", channel, message: String(error && error.message || error) })))
-      );
+      scheduleIaExpansion(payload, reserveQueries.slice(0, Math.min(4, reserveQueries.length)), fallbackQueries.slice(0, Math.min(2, fallbackQueries.length)), channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, url.origin, cacheKey, sharedKey, env, ctx, rotation);
     }
     if (!payload.items.length) {
       /* A cold Archive miss is not a programming decision. If this channel has

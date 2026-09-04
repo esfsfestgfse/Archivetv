@@ -83,7 +83,7 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
-const IA_QUEUE_CACHE_VERSION = "v31";
+const IA_QUEUE_CACHE_VERSION = "v32";
 const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
 /* The queue endpoint is part of channel-change critical path.  Archive can
    hydrate a richer shelf after the response, but a cold request must hand the
@@ -1917,6 +1917,16 @@ async function getIaQueue(request, url, env, ctx) {
     const reserveQueries = queries.slice(fastQueries.length, Math.min(8, queries.length));
     let payload = await buildIaQueue(channel, fastQueries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, candidateCount, url.origin, ctx, rotation, IA_FAST_SEARCH_TIMEOUT_MS, true);
     const fallbackQueries = iaFallbackQueries(themeTerms, denyTerms, mediaTypes);
+    if (!payload.items.length) {
+      /* A rotated fast rail can be empty even while the channel has approved
+         material in its next editorial rail. Give that case one bounded,
+         vocabulary-preserving rescue race before returning an empty shelf. */
+      const rescueQueries = reserveQueries.slice(0, Math.min(2, reserveQueries.length)).concat(fallbackQueries.slice(0, 1));
+      if (rescueQueries.length) {
+        const rescue = await buildIaQueue(channel, rescueQueries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, candidateCount, url.origin, ctx, rotation, IA_FAST_SEARCH_TIMEOUT_MS, true);
+        if (rescue.items.length) payload = mergeIaQueuePayload(payload, rescue, candidateCount, { rescue: true });
+      }
+    }
     const needsExpansion = payload.items.length === 0;
     /* Reserve and rescue lanes are valuable for diversity but must never sit
        in front of first tune. Start them as observed background work; the

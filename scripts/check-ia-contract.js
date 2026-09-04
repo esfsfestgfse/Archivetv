@@ -60,6 +60,8 @@ if (!/primeIACompanions\(ch,sl\)/.test(source)) issues.push('channel tuning must
 if (!/var companionRun=iaPrimeRun/.test(source) || !/companionRun!==iaPrimeRun/.test(source) || !/var warmDelay=index===0\?0:900\+\(index-1\)\*900/.test(source)) issues.push('companion queue warming must stagger behind the active station and cancel stale surfs');
 if (!/function iaLocalQueueFallback\(ch,sl\)/.test(source) || !/using local shelf/.test(source)) issues.push('IA queue must retain a strict local fallback when the relay is unavailable');
 if (!/takeIAMediaWarmer\(ch,it\)/.test(source)) issues.push('playback must adopt a staged first-frame media element');
+if (!/if\(!fastTuneGet\(ch\.num\)\)fastTunePut\(ch\.num,inline\)/.test(source) || !/if\(!fastTuneGet\(ch\.num\)\)fastTunePut\(ch\.num,Object\.assign\(\{},pl,\{type:pl\.type\|\|expected\}\)\)/.test(source)) issues.push('resolved IA shelf items must promote one valid candidate into the rapid-tune cache');
+if (!/delete iaProgramMedia\[rapid\.id\]; iaReadyShelfSave\(ch\); warmIAQueueHead\(ch\); refillIAQueue\(ch,sl\);/.test(source)) issues.push('rapid-tune playback must remove its shelf copy before the next program');
 if (!/v\.addEventListener\("playing",\(\)=>\{ if\(my===token\)\{ fin\(true\)/.test(source)) issues.push('direct media must clear tuning only after a real playing event');
 if (/addEventListener\("canplay",\(\)=>\{ if\(my===token\)\{ fin\(true\)/.test(source)) issues.push('canplay must not be treated as playback success');
 if (!/const expectedType=\(ch&&ch\.audio\)\?"audio":"video"/.test(source) || !/it\.type!==expectedType/.test(source)) issues.push('direct playback must enforce the channel media type');

@@ -71,8 +71,8 @@ for i,s in enumerate(re.findall(r'<script[^>]*>(.*?)</script>',h,re.S)):
 
 ## Test suite
 CI scripts in `ci/` directory:
-- `ci/test_tune_all.py` — tunes all 94 channels, asserts zero page errors
-- `ci/test_regression.py` — 8-point functional check
+- `ci/test_tune_all.py` — tunes every channel discovered from the live registry, asserts zero page errors
+- `ci/test_regression.py` — 10-point functional check covering power, tuning, guide open/close, build identity, and page errors
 
 Run locally:
 ```bash

@@ -107,7 +107,10 @@ function iaQueueMemoryGet(key) {
   return entry;
 }
 function iaQueueMemoryPut(key, payload, ttlSeconds) {
-  if (!key || !payload || !Array.isArray(payload.items) || !payload.items.length) return;
+  /* A hydrating response is a first-play handoff, not a shelf. Caching it in
+     the per-isolate burst map made quick polls keep receiving one item even
+     after the background worker had filled the durable five-item queue. */
+  if (!key || !payload || payload.hydrating || payload.partial || !Array.isArray(payload.items) || !payload.items.length) return;
   const ttl = Math.max(1, Math.min(IA_QUEUE_MEMORY_TTL_SECONDS, Number(ttlSeconds) || IA_QUEUE_MEMORY_TTL_SECONDS));
   iaQueueMemory.set(key, { payload, ttlSeconds: ttl, expiresAt: Date.now() + ttl * 1000 });
   while (iaQueueMemory.size > IA_QUEUE_MEMORY_MAX) iaQueueMemory.delete(iaQueueMemory.keys().next().value);

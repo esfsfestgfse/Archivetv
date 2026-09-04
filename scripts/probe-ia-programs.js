@@ -13,6 +13,16 @@ function blockAfter(marker, open, close) {
   const start = source.indexOf(marker);
   if (start < 0) throw new Error(`Missing ${marker}`);
   const bodyStart = source.indexOf(open, start) + open.length;
+  if (bodyStart <= open.length - 1) throw new Error(`Missing opening ${open} for ${marker}`);
+
+  /* PROGRAM is a data table whose entries contain nested provider objects.
+   * Avoid treating braces inside comments/template strings as structure; the
+   * table always ends at the first standalone `};` before the next section. */
+  if (marker === 'const PROGRAM =') {
+    const tail = source.slice(bodyStart);
+    const match = tail.match(/\r?\n};\s*\/\*/);
+    if (match && match.index != null) return tail.slice(0, match.index);
+  }
   let depth = 1, quote = null, escaped = false;
   for (let i = bodyStart; i < source.length; i++) {
     const c = source[i];

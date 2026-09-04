@@ -10,16 +10,21 @@ const source = fs.readFileSync(file, 'utf8');
 function objectBlock(marker) {
   const start = source.indexOf(marker);
   if (start < 0) throw new Error(`Missing ${marker}`);
-  const open = source.indexOf('{', start), begin = open + 1;
-  let depth = 1, quote = null, escaped = false;
-  for (let i = begin; i < source.length; i++) {
-    const c = source[i];
-    if (quote) { if (escaped) escaped = false; else if (c === '\\') escaped = true; else if (c === quote) quote = null; continue; }
-    if (c === '"' || c === "'" || c === '`') { quote = c; continue; }
-    if (c === '{') depth++;
-    if (c === '}' && --depth === 0) return source.slice(begin, i);
-  }
-  throw new Error(`Unclosed ${marker}`);
+  const open = source.indexOf('{', start);
+  if (open < 0) throw new Error(`Missing opening brace for ${marker}`);
+
+  /*
+   * G is a legacy data table followed by executable helpers. The old scanner
+   * counted braces inside comments and template literals in those helpers,
+   * so a harmless query-building comment could make the nightly probe report
+   * an "Unclosed" table even though the app itself loaded normally. Anchor the
+   * extraction to G's explicit table terminator instead of scanning the rest
+   * of the script as JavaScript.
+   */
+  const tail = source.slice(open + 1);
+  const close = tail.search(/\r?\n\s*};\s*\/\* ordered most-specific/);
+  if (close < 0) throw new Error(`Unclosed ${marker}`);
+  return tail.slice(0, close);
 }
 function list(body, key) { const m=body.match(new RegExp(`${key}\\s*:\\s*\\[([^\\]]*)\\]`)); return m?[...m[1].matchAll(/"([^"]*)"/g)].map(x=>x[1]):[]; }
 function nums(body, key) { const m=body.match(new RegExp(`${key}\\s*:\\s*\\[([^\\]]*)\\]`)); return m?[...m[1].matchAll(/-?\d+/g)].map(x=>+x[0]):null; }

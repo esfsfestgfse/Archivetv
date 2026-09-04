@@ -16,7 +16,7 @@ function option(name, fallback) {
 
 const manifestPath = option('--manifest');
 if (!manifestPath) {
-  console.error('Usage: node scripts/soak-ia-queues.js --manifest <json> [--strict]');
+  console.error('Usage: node scripts/soak-ia-queues.js --manifest <json> [--rotations 2] [--strict]');
   process.exit(2);
 }
 
@@ -27,6 +27,7 @@ const concurrency = Math.max(1, Math.min(12, Number(option('--concurrency', '6')
 const timeoutMs = Math.max(5000, Number(option('--timeout-ms', '35000')) || 35000);
 const pollMs = Math.max(250, Number(option('--poll-ms', '1250')) || 1250);
 const rotationBase = Math.max(0, Math.min(127, Number(option('--rotation-base', '0')) || 0));
+const rotations = Math.max(1, Math.min(3, Number(option('--rotations', '1')) || 1));
 const outputPath = option('--out');
 const requestedChannels = new Set(String(option('--channels', '')).split(',').map(value => value.trim()).filter(Boolean));
 const completeManifest = JSON.parse(fs.readFileSync(path.resolve(manifestPath), 'utf8'));
@@ -45,14 +46,14 @@ if (requestedChannels.size && manifest.length !== requestedChannels.size) {
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-async function requestQueue(row, remainingMs) {
+async function requestQueue(row, remainingMs, rotationOffset) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), Math.max(1000, Math.min(18000, remainingMs)));
   try {
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ channel: String(row.channel), count, rotation: (rotationBase + (Number(row.channel) || 0)) % 128, queries: row.queries, themeTerms: row.themeTerms || [], denyTerms: row.denyTerms || [], diversity: row.diversity || {}, mediaTypes: row.mediaTypes || ['movies'], themeMinScore: row.themeMinScore || 1 }),
+      body: JSON.stringify({ channel: String(row.channel), count, rotation: (rotationBase + (Number(row.channel) || 0) + rotationOffset) % 128, queries: row.queries, themeTerms: row.themeTerms || [], denyTerms: row.denyTerms || [], diversity: row.diversity || {}, mediaTypes: row.mediaTypes || ['movies'], themeMinScore: row.themeMinScore || 1 }),
       signal: controller.signal,
     });
     const body = await response.json();
@@ -62,13 +63,13 @@ async function requestQueue(row, remainingMs) {
   }
 }
 
-async function probe(row) {
+async function probeRotation(row, rotationOffset) {
   const started = Date.now();
   let attempts = 0, lastStatus = 0, lastBody = null, lastError = null;
   while (Date.now() - started < timeoutMs) {
     attempts++;
     try {
-      const { response, body } = await requestQueue(row, timeoutMs - (Date.now() - started));
+      const { response, body } = await requestQueue(row, timeoutMs - (Date.now() - started), rotationOffset);
       lastStatus = response.status;
       lastBody = body;
       const items = Array.isArray(body.items) ? body.items : [];
@@ -77,7 +78,9 @@ async function probe(row) {
         return {
           channel: Number(row.channel), name: row.name, ok: true, status: response.status,
           ready: readyCount, items: items.length, attempts,
-          elapsedMs: Date.now() - started,
+          elapsedMs: Date.now() - started, firstPlayLatencyMs: Date.now() - started,
+          timedOut: false,
+          itemIds: items.map(item => String(item && (item.identifier || item.id || item.title || '')).trim()).filter(Boolean),
           samples: items.slice(0, 3).map(item => item.title || item.identifier || item.id).filter(Boolean),
         };
       }
@@ -93,8 +96,63 @@ async function probe(row) {
     channel: Number(row.channel), name: row.name, ok: false, status: lastStatus,
     ready: Number(lastBody && lastBody.ready) || 0, items: items.length, attempts,
     elapsedMs: Date.now() - started,
+    firstPlayLatencyMs: null,
+    timedOut: Date.now() - started >= timeoutMs,
+    itemIds: items.map(item => String(item && (item.identifier || item.id || item.title || '')).trim()).filter(Boolean),
     hydrating: Boolean(lastBody && lastBody.hydrating),
     error: lastError || (lastBody && lastBody.error) || `queue ready ${Number(lastBody && lastBody.ready) || items.length}/${requiredReady}`,
+  };
+}
+
+/* A single queue response is not enough to prove a channel feels like TV.
+ * Run adjacent persisted rotations and retain the measurements that matter to
+ * the player: time to first ready item, depth, repeated identifiers, and
+ * timeout/underfill events. */
+async function probe(row) {
+  const rotationResults = [];
+  let elapsedMs = 0;
+  let firstPlayLatencyMs = null;
+  for (let rotation = 0; rotation < rotations; rotation++) {
+    const result = await probeRotation(row, rotation);
+    rotationResults.push(result);
+    elapsedMs += result.elapsedMs;
+    if (firstPlayLatencyMs == null && result.ok) firstPlayLatencyMs = elapsedMs - result.elapsedMs + result.firstPlayLatencyMs;
+  }
+
+  const ids = rotationResults.flatMap(result => result.itemIds || []);
+  const seen = new Set();
+  let duplicateItems = 0;
+  for (const id of ids) {
+    if (seen.has(id)) duplicateItems++;
+    else seen.add(id);
+  }
+  const timeouts = rotationResults.filter(result => result.timedOut).length;
+  const last = rotationResults[rotationResults.length - 1] || {};
+  return {
+    channel: Number(row.channel), name: row.name,
+    ok: rotationResults.length === rotations && rotationResults.every(result => result.ok),
+    status: last.status || 0,
+    ready: last.ready || 0,
+    items: last.items || 0,
+    attempts: rotationResults.reduce((sum, result) => sum + (result.attempts || 0), 0),
+    elapsedMs, firstPlayLatencyMs,
+    readyDepths: rotationResults.map(result => result.ready || 0),
+    itemDepths: rotationResults.map(result => result.items || 0),
+    fiveItemDepth: rotationResults.filter(result => (result.ready || 0) >= count).length,
+    uniqueItems: seen.size,
+    duplicateItems,
+    timeoutCount: timeouts,
+    timedOut: timeouts > 0,
+    hydrating: rotationResults.some(result => result.hydrating),
+    error: rotationResults.find(result => !result.ok)?.error,
+    samples: [...new Set(rotationResults.flatMap(result => result.samples || []))].slice(0, 6),
+    rotations: rotationResults.map((result, index) => ({
+      rotation: index,
+      ok: result.ok, status: result.status, ready: result.ready, items: result.items,
+      attempts: result.attempts, elapsedMs: result.elapsedMs,
+      firstPlayLatencyMs: result.firstPlayLatencyMs, timedOut: result.timedOut,
+      itemIds: result.itemIds || [], samples: result.samples || [], error: result.error,
+    })),
   };
 }
 
@@ -120,16 +178,29 @@ async function main() {
   const started = Date.now();
   const results = await mapConcurrent(manifest, concurrency, probe);
   const failures = results.filter(result => !result.ok);
+  const measuredRotations = results.reduce((sum, result) => sum + (result.rotations?.length || 0), 0);
+  const timeoutCount = results.reduce((sum, result) => sum + (result.timeoutCount || 0), 0);
+  const duplicateItems = results.reduce((sum, result) => sum + (result.duplicateItems || 0), 0);
+  const playableLatencies = results.map(result => result.firstPlayLatencyMs).filter(value => Number.isFinite(value));
   const slowest = results.slice().sort((a, b) => b.elapsedMs - a.elapsedMs).slice(0, 10);
   const report = {
-    generatedAt: new Date().toISOString(), endpoint, count, requiredReady, concurrency, rotationBase,
+    generatedAt: new Date().toISOString(), endpoint, count, requiredReady, concurrency, rotationBase, rotations,
     elapsedMs: Date.now() - started,
-    totals: { channels: results.length, ready: results.length - failures.length, empty: failures.length },
+    totals: {
+      channels: results.length, ready: results.length - failures.length, empty: failures.length,
+      measuredRotations, fiveItemDepth: results.reduce((sum, result) => sum + (result.fiveItemDepth || 0), 0),
+      timeouts: timeoutCount, duplicateItems,
+      firstPlayLatencyMs: playableLatencies.length ? {
+        min: Math.min(...playableLatencies), max: Math.max(...playableLatencies),
+        average: Math.round(playableLatencies.reduce((sum, value) => sum + value, 0) / playableLatencies.length),
+      } : null,
+    },
     failures, slowest, results,
   };
-  console.log(`IA queue health: ${report.totals.ready}/${report.totals.channels} ready; ${failures.length} empty`);
+  console.log(`IA queue health: ${report.totals.ready}/${report.totals.channels} ready; ${failures.length} underfilled; ${report.totals.duplicateItems} duplicate items; ${timeoutCount} timeouts`);
+  if (report.totals.firstPlayLatencyMs) console.log(`First-play latency: ${report.totals.firstPlayLatencyMs.average}ms average (${report.totals.firstPlayLatencyMs.min}-${report.totals.firstPlayLatencyMs.max}ms)`);
   for (const failure of failures) {
-    console.log(`EMPTY CH ${failure.channel} ${failure.name}: ${failure.error} (${failure.elapsedMs}ms)`);
+    console.log(`UNDERFILLED CH ${failure.channel} ${failure.name}: ${failure.error || 'rotation did not reach the required depth'}; depths=${failure.readyDepths.join('/')} (${failure.elapsedMs}ms)`);
   }
   if (outputPath) {
     const resolved = path.resolve(outputPath);

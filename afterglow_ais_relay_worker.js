@@ -80,7 +80,10 @@ const IA_SEARCH_CACHE_VERSION = "v5";
 const IA_METADATA_TTL_SECONDS = 86400;
 const IA_QUEUE_TTL_SECONDS = 86400;
 const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
-const IA_QUEUE_CACHE_VERSION = "v30";
+/* A queue with zero playable items is never a useful cache result. Keep the
+   queue namespace separate from the previous release while the empty result
+   path below is deliberately no-store. */
+const IA_QUEUE_CACHE_VERSION = "v31";
 const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
 /* The queue endpoint is part of channel-change critical path.  Archive can
    hydrate a richer shelf after the response, but a cold request must hand the
@@ -1826,8 +1829,8 @@ async function expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, c
 }
 
 function scheduleIaReplenishment(ready, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, rotation) {
-  if (!ready || !ready.items || !ready.items.length || ready.ready >= count) return;
-  const seed = { ...ready, items: ready.items.slice(0, count), candidates: ready.items.length };
+  if (!ready || ready.ready >= count) return;
+  const seed = { ...ready, items: Array.isArray(ready.items) ? ready.items.slice(0, count) : [], candidates: Array.isArray(ready.items) ? ready.items.length : 0 };
   ctx.waitUntil(
     expandAndCacheIaQueue(seed, reserveQueries.slice(0, Math.min(2, reserveQueries.length)), fallbackQueries.slice(0, 1), channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, rotation)
       .catch((error) => console.warn(JSON.stringify({ event: "ia-background-replenishment-failed", channel, message: String(error && error.message || error) })))
@@ -1873,7 +1876,21 @@ async function getIaQueue(request, url, env, ctx) {
   const sharedKey = IA_QUEUE_KV_PREFIX + IA_QUEUE_CACHE_VERSION + ":" + digest;
   try {
     const cache = caches.default, cached = await cache.match(cacheKey);
-    if (cached) return cached;
+    if (cached) {
+      /* A negative queue result is a transport hint, not programming. Never
+         let a cached empty response turn into fifteen seconds of dead air;
+         re-enter discovery so the next approved rail can win. */
+      try {
+        const cachedPayload = await cached.clone().json();
+        if (!cachedPayload || cachedPayload.empty || (!Array.isArray(cachedPayload.items) || !cachedPayload.items.length) && !cachedPayload.hydrating) {
+          await cache.delete(cacheKey).catch(() => false);
+        } else {
+          return cached;
+        }
+      } catch {
+        return cached;
+      }
+    }
     const shared = await sharedQueueGet(env, sharedKey);
     if (shared && Array.isArray(shared.items) && Number(shared.ready) >= count) {
       const response = cacheableJson(shared, IA_QUEUE_TTL_SECONDS, {
@@ -1916,9 +1933,9 @@ async function getIaQueue(request, url, env, ctx) {
       /* No candidate exists yet, so this is not hydration. Be truthful and let
          the client immediately try its direct/search fallbacks, then retry the
          director on its bounded backoff instead of polling a phantom job. */
-      return cacheableJson(
+      return json(
         { ...payload, ready: 0, hydrating: false, empty: true },
-        15,
+        200,
         { "X-Afterglow-Source": "program-director", "X-Afterglow-Queue-Ready": "0" },
       );
     }

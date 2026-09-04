@@ -26,6 +26,7 @@ const requiredReady = Math.max(1, Math.min(count, Number(option('--require-ready
 const concurrency = Math.max(1, Math.min(12, Number(option('--concurrency', '6')) || 6));
 const timeoutMs = Math.max(5000, Number(option('--timeout-ms', '35000')) || 35000);
 const pollMs = Math.max(250, Number(option('--poll-ms', '1250')) || 1250);
+const rotationBase = Math.max(0, Math.min(127, Number(option('--rotation-base', '0')) || 0));
 const outputPath = option('--out');
 const requestedChannels = new Set(String(option('--channels', '')).split(',').map(value => value.trim()).filter(Boolean));
 const completeManifest = JSON.parse(fs.readFileSync(path.resolve(manifestPath), 'utf8'));
@@ -51,7 +52,7 @@ async function requestQueue(row, remainingMs) {
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ channel: String(row.channel), count, queries: row.queries, themeTerms: row.themeTerms || [], denyTerms: row.denyTerms || [], diversity: row.diversity || {}, mediaTypes: row.mediaTypes || ['movies'], themeMinScore: row.themeMinScore || 1 }),
+      body: JSON.stringify({ channel: String(row.channel), count, rotation: (rotationBase + (Number(row.channel) || 0)) % 128, queries: row.queries, themeTerms: row.themeTerms || [], denyTerms: row.denyTerms || [], diversity: row.diversity || {}, mediaTypes: row.mediaTypes || ['movies'], themeMinScore: row.themeMinScore || 1 }),
       signal: controller.signal,
     });
     const body = await response.json();
@@ -121,7 +122,7 @@ async function main() {
   const failures = results.filter(result => !result.ok);
   const slowest = results.slice().sort((a, b) => b.elapsedMs - a.elapsedMs).slice(0, 10);
   const report = {
-    generatedAt: new Date().toISOString(), endpoint, count, requiredReady, concurrency,
+    generatedAt: new Date().toISOString(), endpoint, count, requiredReady, concurrency, rotationBase,
     elapsedMs: Date.now() - started,
     totals: { channels: results.length, ready: results.length - failures.length, empty: failures.length },
     failures, slowest, results,

@@ -1665,7 +1665,7 @@ html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.9.7-mobile.060-ia-client-cutover";
+window.__ATV_BUILD="1.9.7-mobile.061-ia-depth-repair";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -1703,7 +1703,7 @@ window.addEventListener("unhandledrejection",function(e){
 <!-- QA FIX (audit 5A): stamp was at z:999998, above every modal including splash (z:200), guide (z:100),
      pop (z:110) — build text bled through modal cards at bottom-left. Dropped to z:50 (above app
      content, below all modals). Boot-error catcher at z:999999 still wins over everything. -->
-<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.9.7-mobile.060-ia-client-cutover · RealSignal</div>
+<div id="atv-build-stamp" style="position:fixed;left:4px;bottom:2px;z-index:50;font:9px monospace;color:#2a3a2a;pointer-events:none;user-select:none;">build 1.9.7-mobile.061-ia-depth-repair · RealSignal</div>
 <div id="mTab" aria-label="Remote" role="button" tabindex="0">REMOTE</div>
 <div id="mPanel">
   <div class="mp-status">
@@ -6225,6 +6225,13 @@ Object.assign(PROGRAM["Found Footage Static"],{fastSubjects:["found footage","vi
 Object.assign(PROGRAM["Thanksgiving Channel"],{fastSubjects:["thanksgiving","thanksgiving special","thanksgiving parade","harvest festival","thanksgiving film","thanksgiving day","macy's thanksgiving day parade","pilgrims"],fastCollections:["prelinger","classic_tv","opensource_movies"]});
 Object.assign(PROGRAM["Sci-Fi Theater"],{fastSubjects:["science fiction film","atomic age sci-fi","1950s sci-fi","monster movie","alien invasion","space travel","time travel","creature feature"],fastCollections:["SciFi_Horror","feature_films","feature_films_unsorted"]});
 Object.assign(PROGRAM["Black Cinema"],{fastSubjects:["black cinema","african american cinema","race films","oscar micheaux","spike lee","black-directed","black-led","african american film"],fastCollections:["feature_films","feature_films_unsorted","opensource_movies"]});
+/* Targeted depth repairs from the two-rotation soak. These lanes keep their
+   existing strict deny/theme contracts; the added rails only make the first
+   cold query match the material each station is explicitly meant to carry. */
+Object.assign(PROGRAM["Midnight Matinee"],{fastSubjects:["cult film","b movie","film noir","horror film","exploitation film","drive-in film","midnight movie","underground film","independent film"],fastCollections:["SciFi_Horror","feature_films","feature_films_unsorted","opensource_movies"]});
+Object.assign(PROGRAM["News, News, News"],{fastSubjects:["newsreel","news reel","cinema newsreel","theatrical newsreel","historical newsreel","vintage newsreel","television news","news broadcast","newscast","news report","current events"],fastCollections:["universal_newsreels","movietonenews","prelinger","classic_tv_1980s","classic_tv_1990s","opensource_movies"]});
+Object.assign(PROGRAM["Design & Architecture"],{fastSubjects:["architecture","architectural design","urban planning","industrial design","landscape architecture","city planning","interior design","building design","design history","modern architecture"],fastCollections:["prelinger","FedFlix","opensource_movies","classic_tv"]});
+Object.assign(PROGRAM["Thanksgiving Channel"],{fastSubjects:["thanksgiving","thanksgiving day","thanksgiving film","thanksgiving movie","thanksgiving special","thanksgiving tv special","thanksgiving parade","macy's thanksgiving day parade","pilgrims","harvest festival","harvest","turkey day","thanksgiving dinner","thanksgiving football","national dog show"],fastCollections:["prelinger","feature_films","classic_tv","opensource_movies"]});
 /* Every IA station gets a compact editorial diversity policy. These caps shape
    a shelf of already-approved programs; they never relax the station's terms,
    era, media type, or deny list when Archive is sparse. */

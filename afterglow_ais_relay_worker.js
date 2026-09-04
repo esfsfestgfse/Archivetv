@@ -84,7 +84,7 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
-const IA_QUEUE_CACHE_VERSION = "v37";
+const IA_QUEUE_CACHE_VERSION = "v38";
 const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
 /* The queue endpoint is part of channel-change critical path.  Archive can
    hydrate a richer shelf after the response, but a cold request must hand the
@@ -1859,7 +1859,7 @@ function scheduleCachedIaHydration(payload, requestedCount, cacheOrigin, cacheKe
   const reserveQueries = queries.slice(Math.max(1, fastQueryCount - 1), Math.min(8, queries.length));
   const fallbackQueries = iaFallbackQueries(themeTerms, denyTerms, mediaTypes);
   const seed = { ...payload, items: candidates.slice(0, candidateCount), candidateItems: candidates, candidates: candidates.length };
-  const task = expandAndCacheIaQueue(seed, reserveQueries.slice(0, Math.min(2, reserveQueries.length)), fallbackQueries.slice(0, 1), channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, requestedCount, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, Number(payload.rotation) || 0)
+  const task = expandAndCacheIaQueue(seed, reserveQueries.slice(0, Math.min(4, reserveQueries.length)), fallbackQueries.slice(0, Math.min(2, fallbackQueries.length)), channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, requestedCount, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, Number(payload.rotation) || 0)
     .catch((error) => {
       console.warn(JSON.stringify({ event: "ia-cached-rehydration-failed", message: String(error && error.message || error) }));
     })
@@ -1904,7 +1904,7 @@ function scheduleIaReplenishment(ready, reserveQueries, fallbackQueries, channel
     : (Array.isArray(ready.items) ? ready.items : []);
   const seed = { ...ready, items: candidateItems.slice(0, candidateCount), candidateItems, candidates: candidateItems.length };
   ctx.waitUntil(
-    expandAndCacheIaQueue(seed, reserveQueries.slice(0, Math.min(2, reserveQueries.length)), fallbackQueries.slice(0, 1), channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, rotation)
+    expandAndCacheIaQueue(seed, reserveQueries.slice(0, Math.min(4, reserveQueries.length)), fallbackQueries.slice(0, Math.min(2, fallbackQueries.length)), channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, rotation)
       .catch((error) => console.warn(JSON.stringify({ event: "ia-background-replenishment-failed", channel, message: String(error && error.message || error) })))
   );
 }
@@ -2016,7 +2016,7 @@ async function getIaQueue(request, url, env, ctx) {
        partial cache and fills the shared ready shelf for the next request. */
     if (needsExpansion) {
       ctx.waitUntil(
-        expandAndCacheIaQueue(payload, reserveQueries.slice(0, Math.min(2, reserveQueries.length)), fallbackQueries.slice(0, 1), channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, url.origin, cacheKey, sharedKey, env, ctx, rotation)
+        expandAndCacheIaQueue(payload, reserveQueries.slice(0, Math.min(4, reserveQueries.length)), fallbackQueries.slice(0, Math.min(2, fallbackQueries.length)), channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, url.origin, cacheKey, sharedKey, env, ctx, rotation)
           .catch((error) => console.warn(JSON.stringify({ event: "ia-background-expansion-failed", channel, message: String(error && error.message || error) })))
       );
     }

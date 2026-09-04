@@ -16,7 +16,7 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
     ['castBridgeUrlInput', 'must expose optional local FFmpeg bridge setup'],
     ['REALSIGNAL_STATE', 'must send a normalized receiver state packet'],
     ['A0A5CD01', 'must carry the published RealSignal receiver ID'],
-    ['.054-ia-cached-expansion', 'must carry the current Source Suite programming build stamp'],
+    ['.055-ia-reserve-depth', 'must carry the current Source Suite programming build stamp'],
     ['__rsCastSdkRetryCount', 'must support recovery when the Cast SDK is delayed'],
     ['rsRetry=', 'must retry a failed Cast SDK load'],
     ['display-mode: standalone', 'must diagnose Android standalone/PWA Cast limitations'],

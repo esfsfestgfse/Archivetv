@@ -2064,17 +2064,50 @@ async function getIaQueue(request, url, env, ctx) {
       });
     }
     const shared = await sharedQueueGet(env, sharedKey);
-    if (shared && Array.isArray(shared.items) && Number(shared.ready) >= count) {
-      iaQueueMemoryPut(cacheKey.url, shared, IA_QUEUE_MEMORY_TTL_SECONDS);
-      const response = cacheableJson(shared, IA_QUEUE_TTL_SECONDS, {
+    if (shared && Array.isArray(shared.items) && shared.items.length && Number(shared.ready) > 0) {
+      const sharedReady = Number(shared.ready) >= count;
+      if (!sharedReady && shared.partial && Array.isArray(shared.candidateItems)) {
+        const strictQueue = themeMinScore > 1;
+        const candidateCount = Math.min(strictQueue ? 30 : 20, Math.max(count, count * (strictQueue ? 6 : 4)));
+        scheduleCachedIaHydration(shared, count, url.origin, cacheKey, sharedKey, env, ctx, mediaTypes, channel, themeTerms, denyTerms, diversity, themeMinScore, candidateCount, queries);
+      }
+      iaQueueMemoryPut(cacheKey.url, shared, sharedReady ? IA_QUEUE_MEMORY_TTL_SECONDS : 5);
+      const response = cacheableJson(shared, sharedReady ? IA_QUEUE_TTL_SECONDS : 5, {
         "X-Afterglow-Source": "program-director-shared",
         "X-Afterglow-Cache": "shared",
         "X-Afterglow-Queue-Ready": String(shared.ready),
+        ...(sharedReady ? {} : { "X-Afterglow-Queue-Partial": "1" }),
       });
       ctx.waitUntil(cache.put(cacheKey, response.clone()).catch((error) => {
         console.warn(JSON.stringify({ event: "shared-queue-edge-write-failed", channel, message: String(error && error.message || error) }));
       }));
       return response;
+    }
+    /* A reload or companion device can arrive after the exact rotation cache
+       expires but before the next approved rail is ready. If the last-good
+       shelf belongs to this same rotation, serve it as the warm start instead
+       of making the viewer wait through a fresh Archive search. A changed
+       rotation still goes through normal discovery so freshness wins. */
+    const warmLastGood = await sharedQueueGet(env, lastGoodKey);
+    if (warmLastGood && Array.isArray(warmLastGood.items) && warmLastGood.items.length && Number(warmLastGood.ready) > 0 && Number(warmLastGood.rotation || 0) === rotation) {
+      const warmFallback = {
+        ...warmLastGood,
+        rotation,
+        fallback: true,
+        stale: true,
+        generatedAt: new Date().toISOString(),
+      };
+      const warmResponse = cacheableJson(warmFallback, 5, {
+        "X-Afterglow-Source": "program-director-warm-start",
+        "X-Afterglow-Cache": "shared-last-good",
+        "X-Afterglow-Queue-Ready": String(warmFallback.ready || warmFallback.items.length),
+        "X-Afterglow-Queue-Fallback": "1",
+      });
+      iaQueueMemoryPut(cacheKey.url, warmFallback, 5);
+      ctx.waitUntil(cache.put(cacheKey, warmResponse.clone()).catch((error) => {
+        console.warn(JSON.stringify({ event: "warm-start-queue-edge-write-failed", channel, message: String(error && error.message || error) }));
+      }));
+      return warmResponse;
     }
     // Hard-locked programming can reject many otherwise plausible Archive.org
     // results. Give those channels a deeper candidate shelf before hydration so

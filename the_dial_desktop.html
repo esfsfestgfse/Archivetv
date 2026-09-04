@@ -1613,7 +1613,7 @@ body.cast-receiver .guide-directory .chcell.cast-focus .cc-n{color:#b9ffd0!impor
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.9.7-desktop.061-ia-depth-repair";
+window.__ATV_BUILD="1.9.7-desktop.062-ship-tracker-polish";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -13787,7 +13787,7 @@ async function tuneShips(ch,sl,my){
      starts this channel with an empty ocean. It is visibly marked as a snapshot until a
      fresh relay response replaces it. */
   var shipSnapshotCacheKey="afterglowShipTrackerSnapshotV1";
-  var msgCount=0, firstMsgAt=null, lastMsgAt=null, snapshotAt=null, snapshotError=null, snapshotSource="", retryTimer=null, dirty=false;
+  var msgCount=0, firstMsgAt=null, lastMsgAt=null, snapshotAt=null, snapshotError=null, snapshotSource="", retryTimer=null, dirty=false, snapshotRequest=0, snapshotController=null;
   var mp=null,shipRegion="gulf",shipView={lat:27.5,lon:-89.0,range:700},selectedMmsi="",shipDrag=null;
   var SHIP_REGION_LABELS={gulf:{map:"GULF OF MEXICO",short:"GULF"},atlantic:{map:"NORTH ATLANTIC",short:"ATLANTIC"},pacific:{map:"PACIFIC OCEAN",short:"PACIFIC"},americas:{map:"AMERICAS",short:"AMERICAS"},europe:{map:"EUROPE",short:"EUROPE"},africa:{map:"AFRICA",short:"AFRICA"},indian:{map:"INDIAN OCEAN",short:"INDIAN"},asia:{map:"ASIA-PACIFIC",short:"ASIA-PACIFIC"},world:{map:"WORLD OVERVIEW",short:"WORLD"}};
   function updateShipChrome(){var meta=SHIP_REGION_LABELS[shipRegion]||SHIP_REGION_LABELS.world;var mapLabel=$("shipMapLabel"),regionLabel=$("shipRegionLabel");if(mapLabel)mapLabel.textContent=meta.map;if(regionLabel)regionLabel.textContent=meta.short;}
@@ -13802,7 +13802,7 @@ async function tuneShips(ch,sl,my){
     if(lat>=-15&&lat<=65&&lon>90)return "asia";
     return "pacific";
   }
-  function clearShipData(){Object.keys(shipList).forEach(function(k){if(shipList[k]._el&&shipList[k]._el.remove)shipList[k]._el.remove();});shipList={};msgCount=0;firstMsgAt=null;lastMsgAt=null;snapshotAt=null;snapshotSource="";dirty=true;}
+  function clearShipData(){snapshotRequest++;if(snapshotController){try{snapshotController.abort();}catch(e){}snapshotController=null;}Object.keys(shipList).forEach(function(k){if(shipList[k]._el&&shipList[k]._el.remove)shipList[k]._el.remove();});shipList={};msgCount=0;firstMsgAt=null;lastMsgAt=null;snapshotAt=null;snapshotSource="";dirty=true;}
   function setShipView(lat,lon,range,forceRegion){
     shipView={lat:Math.max(-70,Math.min(70,Number(lat)||0)),lon:Math.max(-179.5,Math.min(179.5,Number(lon)||0)),range:Math.max(180,Math.min(20000,Number(range)||700))};
     var nextRegion=forceRegion||shipRegionFor(shipView.lat,shipView.lon);
@@ -13893,8 +13893,14 @@ async function tuneShips(ch,sl,my){
   }
   async function refreshSnapshot(){
     if(my!==token)return;
+    var regionAtStart=shipRegion, requestId=++snapshotRequest, controller=typeof AbortController==="function"?new AbortController():null;
+    if(snapshotController){try{snapshotController.abort();}catch(e){}}
+    snapshotController=controller;
+    var timeoutId=setTimeout(function(){if(controller){try{controller.abort();}catch(e){}}},9000);
     try{
-      var res=await fetch(SHIP_SNAPSHOT_URL+"?region="+encodeURIComponent(shipRegion),{cache:"no-store"});
+      var fetchOptions={cache:"no-store"};if(controller)fetchOptions.signal=controller.signal;
+      var res=await withTO(fetch(SHIP_SNAPSHOT_URL+"?region="+encodeURIComponent(regionAtStart),fetchOptions),9000);
+      if(my!==token||requestId!==snapshotRequest||regionAtStart!==shipRegion)return;
       if(!res.ok)throw new Error("snapshot "+res.status);
       var payload=await res.json(), added=addSnapshot(payload);
       if(!added)throw new Error("empty snapshot");
@@ -13904,10 +13910,11 @@ async function tuneShips(ch,sl,my){
       try{ store.set(shipSnapshotCacheKey+":"+shipRegion,{at:snapshotAt,payload:{source:payload.source||"relay",region:shipRegion,fetchedAt:payload.fetchedAt||null,type:"FeatureCollection",features:payload.features.slice(0,250)}}); }catch(e){}
       nlog("ais",true,"loaded "+added+" vessel snapshot via relay");
     }catch(e){
+      if(my!==token||requestId!==snapshotRequest||regionAtStart!==shipRegion)return;
       snapshotError=(e&&e.message)||"snapshot unavailable";
       nlog("ais",false,"snapshot fallback unavailable: "+snapshotError);
       if(!retryTimer) retryTimer=setTimeout(function(){retryTimer=null;refreshSnapshot();},15000);
-    }
+    }finally{clearTimeout(timeoutId);if(snapshotController===controller)snapshotController=null;}
   }
   function renderList(){
     var listEl=$("shipList"); if(!listEl)return;

@@ -25,7 +25,7 @@ jobs:
       - name: Refresh the shared ready-to-play channel shelf
         run: |
           node scripts/export-ia-manifest.js the_dial_desktop.html --out artifacts/ia-queue-manifest.json
-          node scripts/soak-ia-queues.js --manifest artifacts/ia-queue-manifest.json --count 5 --rotations 2 --require-ready 1 --concurrency 6 --timeout-ms 30000 --poll-ms 1000 --strict --out artifacts/ia-ready-shelf-warm.json
+          node scripts/soak-ia-queues.js --manifest artifacts/ia-queue-manifest.json --count 5 --rotations 2 --require-ready 1 --concurrency 12 --timeout-ms 30000 --poll-ms 1000 --strict --out artifacts/ia-ready-shelf-warm.json
       - name: Upload probe reports
         if: always()
         uses: actions/upload-artifact@v4

@@ -1665,7 +1665,7 @@ html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.9.7-mobile.065-hometown-resilient";
+window.__ATV_BUILD="1.9.7-mobile.066-live-data-resilient";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -12625,7 +12625,7 @@ async function tuneSolar(ch,sl,my){
     if(my!==token || !powered) return;
     try{
       /* GOES primary X-ray flux, last 6 hours at 1-min cadence. Grab the most recent short-channel flux. */
-      var xray=await fetchJSON("https://services.swpc.noaa.gov/json/goes/primary/xrays-6-hour.json");
+      var xray=await fetchJSONResilient("https://services.swpc.noaa.gov/json/goes/primary/xrays-6-hour.json","solar-xray");
       if(my!==token) return;
       var short=(xray||[]).filter(function(r){ return r.energy==="0.1-0.8nm"; }); /* short-channel = flare class */
       var latest=short[short.length-1] || null;
@@ -12637,7 +12637,7 @@ async function tuneSolar(ch,sl,my){
 
       /* Kp forecast (next 24 hours) — for the stats table only */
       var kpData=null;
-      try{ kpData=await fetchJSON("https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json"); }catch(_){}
+      try{ kpData=await fetchJSONResilient("https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json","solar-kp"); }catch(_){}
       var kpLast="--";
       if(kpData && kpData.length>1){
         var lastRow=kpData[kpData.length-1];
@@ -12648,7 +12648,7 @@ async function tuneSolar(ch,sl,my){
       /* F10.7 solar radio flux (daily) */
       var f107="--", ssn="--";
       try{
-        var fData=await fetchJSON("https://services.swpc.noaa.gov/json/f107_cm_flux.json");
+        var fData=await fetchJSONResilient("https://services.swpc.noaa.gov/json/f107_cm_flux.json","solar-f107");
         if(fData && fData.length){
           var fLast=fData[fData.length-1];
           f107=(fLast && (fLast.flux || fLast.observed_flux || fLast.f10_7)) || "--";
@@ -12656,7 +12656,7 @@ async function tuneSolar(ch,sl,my){
         }
       }catch(_){}
       try{
-        var cyc=await fetchJSON("https://services.swpc.noaa.gov/json/solar-cycle/observed-solar-cycle-indices.json");
+        var cyc=await fetchJSONResilient("https://services.swpc.noaa.gov/json/solar-cycle/observed-solar-cycle-indices.json","solar-cycle");
         if(cyc && cyc.length){
           var cLast=cyc[cyc.length-1];
           if(cLast && cLast.ssn!=null) ssn=Math.round(parseFloat(cLast.ssn)).toString();
@@ -12720,7 +12720,7 @@ async function tuneQuakeMap(ch,sl,my){
   async function refresh(){
     if(my!==token || !powered) return;
     try{
-      var d=await fetchJSON("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson");
+      var d=await fetchJSONResilient("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson","seismic-quakes");
       if(my!==token) return;
       var feats=(d && d.features)||[];
       /* keep meaningful magnitudes only; the raw feed includes many M1.x noise */
@@ -13173,7 +13173,7 @@ async function tuneVolcano(ch,sl,my){
     if(my!==token||!powered){clearInterval(volcanoTimer);return;}
     var listEl=$("dcList"); if(!listEl)return;
     try{
-      var d=await withTO(fetchJSON("https://volcanoes.usgs.gov/vsc/api/volcanoApi/elevated"),15000);
+      var d=await withTO(fetchJSONResilient("https://volcanoes.usgs.gov/vsc/api/volcanoApi/elevated","volcano"),15000);
       // FIX: verified the real live response directly — it's a flat array, and the name field
       // is "vName", not "volcanoName" as originally guessed. Every entry was rendering as
       // "Unknown volcano" because of this mismatch (alert level/color code names were correct).
@@ -13751,7 +13751,7 @@ async function tuneRiverLegacy(ch,sl,my){
       var half=0.6;
       var url="https://api.water.noaa.gov/nwps/v1/gauges?bbox.xmin="+(loc.lon-half).toFixed(3)+"&bbox.ymin="+(loc.lat-half).toFixed(3)+
               "&bbox.xmax="+(loc.lon+half).toFixed(3)+"&bbox.ymax="+(loc.lat+half).toFixed(3)+"&srid=EPSG_4326";
-      var d=await fetchJSON(url); var gs=(d&&d.gauges)||[]; if(my!==token)return;
+      var d=await fetchJSONResilient(url,"riverlake"); var gs=(d&&d.gauges)||[]; if(my!==token)return;
       if(!gs.length) throw new Error("NWPS returned no gauges nearby");
       nlog("riverlake",true,gs.length+" NWPS gauges near "+((li&&li.city)||"you"));
       var rows=gs.map(function(g){

@@ -1613,7 +1613,7 @@ body.cast-receiver .guide-directory .chcell.cast-focus .cc-n{color:#b9ffd0!impor
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.9.7-desktop.070-ia-rotation-recovery";
+window.__ATV_BUILD="1.9.7-desktop.071-playback-guide-stability";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -6559,7 +6559,7 @@ async function iaQueueRequest(ch,sl,count){
 function warmIAQueue(ch,sl,hydrating){var q=iaProgramQueues[iaQueueKey(ch)]||[],expected=iaExpectedMedia(ch);q.slice(0,5).forEach(function(it){if(!it||iaProgramFailed(it.identifier)||iaProgramMedia[it.identifier])return;var id=it.identifier,editorial={identifier:id,creator:it.creator||"",collection:it.collection||"",subject:it.subject||"",lane:it.lane};if(it.media&&it.media.url){if(it.media.type&&it.media.type!==expected){iaMarkProgramFailed(id);return;}var inline={type:it.media.type||expected,url:it.media.url,alts:it.media.alts||[],id:id,captions:null,meta:editorial};iaProgramMedia[id]=inline;if(!fastTuneGet(ch.num))fastTunePut(ch.num,inline);return;}/* Resolve all five in parallel and replace the Promise with its settled value so tuning can choose whichever candidate is actually ready. */iaProgramPendingAt[id]=Date.now();var pending=resolvePlayable(id,expected).then(function(pl){delete iaProgramPendingAt[id];if(!pl){iaMarkProgramFailed(id);setTimeout(function(){if(powered)refillIAQueue(ch,sl);},160);}if(pl){pl.meta=Object.assign({},pl.meta||{},editorial);var current=(iaProgramQueues[iaQueueKey(ch)]||[]).find(function(x){return x&&x.identifier===id;});if(current)current.media={type:pl.type||expected,url:pl.url,alts:pl.alts||[]};if(!fastTuneGet(ch.num))fastTunePut(ch.num,Object.assign({},pl,{type:pl.type||expected}));iaReadyShelfSave(ch);}iaProgramMedia[id]=pl;warmIAQueueHead(ch);return pl;}).catch(function(){delete iaProgramPendingAt[id];iaMarkProgramFailed(id);iaProgramMedia[id]=null;setTimeout(function(){if(powered)refillIAQueue(ch,sl);},160);return null;});iaProgramMedia[id]=pending;});warmIAQueueHead(ch);}
 function iaQueueHasReadyProgram(ch){var q=iaProgramQueues[iaQueueKey(ch)]||[];return q.some(function(it){var pl=it&&iaProgramMedia[it.identifier],w=it&&iaMediaWarmers[iaMediaWarmKey(ch,it)];return !!((w&&w.el.readyState>=2)||(pl&&typeof pl.then!=="function"&&pl.url));});}
 function iaPendingTooLong(id){return !!(iaProgramPendingAt[id]&&Date.now()-iaProgramPendingAt[id]>8500);}
-async function refillIAQueue(ch,sl){var k=iaQueueKey(ch);iaReadyShelfRestore(ch,sl);if(iaProgramInflight[k])return iaProgramInflight[k];iaProgramInflight[k]=iaQueueRequest(ch,sl,5).then(function(items){var old=iaProgramQueues[k]||[], byId={}, order=[];old.concat(items).forEach(function(it){var id=it&&it.identifier;if(!it||!id||iaProgramFailed(id)||iaPendingTooLong(id)||!iaProgramAllowed(it,sl))return;if(!byId[id])order.push(id);if(!byId[id]||(it.media&&it.media.url&&!byId[id].media))byId[id]=it;});iaProgramQueues[k]=order.map(function(id){return byId[id];}).slice(0,5);if(!iaProgramQueues[k].length)iaProgramQueues[k]=iaEmergencyItems(sl);warmIAQueue(ch,sl,items.hydrating);iaReadyShelfSave(ch);var needsMore=!!items.hydrating||!!items.partial||(iaProgramQueues[k].length<5&&Number(items.candidates)>iaProgramQueues[k].length);if(iaProgramQueues[k].length){var retry=items.localFallback?(iaQueueRetries[k]||0)+1:0;iaQueueRetries[k]=retry;if(needsMore&&(!items.localFallback||retry<=3))setTimeout(function(){if(powered)refillIAQueue(ch,sl);},items.localFallback?5000*Math.pow(2,retry-1):(items.hydrating?1200:2200));}else{var retry=(iaQueueRetries[k]||0)+1;iaQueueRetries[k]=retry;/* Cold IA shards may legitimately take longer than three polls. Keep retrying only while the relay says it is hydrating, with a hard cap so a dead rail never loops forever. */var maxRetry=items.hydrating?12:3;if(retry<=maxRetry)setTimeout(function(){if(powered)refillIAQueue(ch,sl);},items.hydrating?Math.min(8000,1400*retry):retry*4500);}nlog("queue",true,"CH "+k+" ready="+iaProgramQueues[k].length+(needsMore?" · topping up":""));if(gwrap&&gwrap.classList.contains("show"))renderRail();return iaProgramQueues[k];}).finally(function(){delete iaProgramInflight[k];});return iaProgramInflight[k];}
+async function refillIAQueue(ch,sl){var k=iaQueueKey(ch);iaReadyShelfRestore(ch,sl);if(iaProgramInflight[k])return iaProgramInflight[k];iaProgramInflight[k]=iaQueueRequest(ch,sl,5).then(function(items){var old=iaProgramQueues[k]||[], byId={}, order=[];old.concat(items).forEach(function(it){var id=it&&it.identifier;if(!it||!id||iaProgramFailed(id)||iaPendingTooLong(id)||!iaProgramAllowed(it,sl))return;if(!byId[id])order.push(id);if(!byId[id]||(it.media&&it.media.url&&!byId[id].media))byId[id]=it;});iaProgramQueues[k]=order.map(function(id){return byId[id];}).slice(0,5);if(!iaProgramQueues[k].length)iaProgramQueues[k]=iaEmergencyItems(sl);warmIAQueue(ch,sl,items.hydrating);iaReadyShelfSave(ch);var needsMore=!!items.hydrating||!!items.partial||(iaProgramQueues[k].length<5&&Number(items.candidates)>iaProgramQueues[k].length);if(iaProgramQueues[k].length){var retry=items.localFallback?(iaQueueRetries[k]||0)+1:0;iaQueueRetries[k]=retry;if(needsMore&&(!items.localFallback||retry<=3))setTimeout(function(){if(powered)refillIAQueue(ch,sl);},items.localFallback?5000*Math.pow(2,retry-1):(items.hydrating?1200:2200));}else{var retry=(iaQueueRetries[k]||0)+1;iaQueueRetries[k]=retry;/* Cold IA shards may legitimately take longer than three polls. Keep retrying only while the relay says it is hydrating, with a hard cap so a dead rail never loops forever. */var maxRetry=items.hydrating?12:3;if(retry<=maxRetry)setTimeout(function(){if(powered)refillIAQueue(ch,sl);},items.hydrating?Math.min(8000,1400*retry):retry*4500);}nlog("queue",true,"CH "+k+" ready="+iaProgramQueues[k].length+(needsMore?" · topping up":""));if(gwrap&&gwrap.classList.contains("show"))refreshGuideRows();return iaProgramQueues[k];}).finally(function(){delete iaProgramInflight[k];});return iaProgramInflight[k];}
 function takeIAQueue(ch,sl){var k=iaQueueKey(ch),q=iaProgramQueues[k]||[],warmAt=-1,resolvedAt=-1,fallback=-1;for(var i=q.length-1;i>=0;i--){var id=q[i]&&q[i].identifier,bad=!iaProgramAllowed(q[i],sl)||iaProgramMedia[id]===null||iaPendingTooLong(id);if(bad){delete iaProgramPendingAt[id];q.splice(i,1);}}for(var j=0;j<q.length;j++){var it=q[j],w=iaMediaWarmers[iaMediaWarmKey(ch,it)],pl=iaProgramMedia[it.identifier];if(fallback<0)fallback=j;if(w&&w.el.readyState>=2){warmAt=j;break;}if(resolvedAt<0&&pl&&typeof pl.then!=="function"&&pl.url)resolvedAt=j;}var at=warmAt>=0?warmAt:(resolvedAt>=0?resolvedAt:fallback);if(at>=0){var picked=q.splice(at,1)[0];iaReadyShelfSave(ch);if(q.length<=1)iaAdvanceQueueRotation(ch);warmIAQueueHead(ch);refillIAQueue(ch,sl);return picked;}refillIAQueue(ch,sl);return null;}
 /* Archive is blocked outright in some desktop browsers. Keep every discovery probe short so
    a dead route never holds a channel change hostage for 15+ seconds. */
@@ -6914,7 +6914,7 @@ function guideListing(ch){
 }
 function guideProgramState(ch){return guideListing(ch);}
 function startLiveDataBed(ch,sl){if(!ch||ch.cat!=="LDATA")return;var source=(sl&&sl.source)||ch.source||"";if(/^(livetv|livecams|highway|liveradio)$/.test(source))return;try{if(typeof startIAJazz==="function")startIAJazz(LIVE_DATA_BEDS[source]||"gmjazz");}catch(e){}}
-function refreshGuideData(){try{if(gwrap&&gwrap.classList.contains("show")){guideUpdatePreview();renderRail();}}catch(e){}}
+function refreshGuideData(){try{if(gwrap&&gwrap.classList.contains("show")){guideUpdatePreview();refreshGuideRows();}}catch(e){}}
 function setChanStatus(num,text){ try{var status=String(text||"LIVE DATA");window.__chanStatus[num]=status;liveGuideState[num]={text:status,at:Date.now()};refreshGuideData();}catch(e){} }
 function renderRail(){ /* v9: honest CHANNEL BANK grid — replaces the horizontal scroll rail */
   if(!chList)return;
@@ -6972,12 +6972,24 @@ function renderRail(){
   var previousGroup=null,fragment=document.createDocumentFragment();
   list.forEach(function(ch){var group=guideCategoryFor(ch);
     if(group.id!==previousGroup){var divider=document.createElement("div");divider.className="chsection";divider.innerHTML='<span class="chsection-label">'+esch(group.label.toUpperCase())+'</span><span class="chsection-sub">'+esch(group.meta)+'</span>';fragment.appendChild(divider);previousGroup=group.id;}
-    var row=document.createElement("button");row.type="button";row.dataset.channelKey=ch.key;row.title=ch.nm+((CHANNEL_META[ch.nm]&&CHANNEL_META[ch.nm].desc)?(" \\u2014 "+CHANNEL_META[ch.nm].desc):"");row.className="chcell"+(ch.num===curNum?" on":"");row.style.setProperty("--cat",CAT[ch.cat]||group.color);
+    var row=document.createElement("button");row.type="button";row.dataset.channelKey=ch.key;row.dataset.channelNum=ch.num;row.title=ch.nm+((CHANNEL_META[ch.nm]&&CHANNEL_META[ch.nm].desc)?(" \\u2014 "+CHANNEL_META[ch.nm].desc):"");row.className="chcell"+(ch.num===curNum?" on":"");row.style.setProperty("--cat",CAT[ch.cat]||group.color);
     var listing=guideListing(ch),lastId=(window.__chLastId||{})[ch.num],thumb=lastId?'<span class="cc-thumb"><img src="https://archive.org/services/img/'+esch(lastId)+'" alt="" loading="lazy" decoding="async"></span>':'<span class="cc-thumb"><span class="cc-thumb-glyph">'+ch.num+'</span></span>';
     row.innerHTML='<span class="cc-n">'+ch.num+'</span>'+thumb+'<span class="cc-identity"><span class="cc-nm">'+esch(ch.nm)+'</span><span class="cc-genre">'+esch(GUIDE_SUBGENRES[ch.cat]||ch.cat)+'</span></span><span class="cc-now-block"><span class="cc-now">'+esch(listing.now)+'</span><span class="cc-status">'+esch(listing.detail)+'</span></span><span class="cc-next-block"><span class="cc-next">'+esch(listing.next)+'</span></span>'+(isFav(ch.num)?'<span class="cc-f">★</span>':'');
     row.addEventListener("click",(function(num){return function(){tuneNum(num);if(window.closeSheets)window.closeSheets();else closeGuide();};})(ch.num));fragment.appendChild(row);
   });
   chList.appendChild(fragment);
+}
+/* Queue warming runs while this panel is open. Keep the clicked row connected
+   while its background metadata changes; rebuilding 271 buttons made a real
+   guide selection intermittently disappear between pointer-down and click. */
+function refreshGuideRows(){
+  if(!chList||!gwrap||!gwrap.classList.contains("show"))return;
+  chList.querySelectorAll("button.chcell[data-channel-num]").forEach(function(row){
+    var ch=byNum(Number(row.dataset.channelNum));if(!ch)return;
+    var listing=guideListing(ch);row.classList.toggle("on",ch.num===curNum);
+    var now=row.querySelector(".cc-now"),status=row.querySelector(".cc-status"),next=row.querySelector(".cc-next");
+    if(now)now.textContent=listing.now;if(status)status.textContent=listing.detail;if(next)next.textContent=listing.next;
+  });
 }
 function renderGuide(){renderRail();updateClocks();guideUpdatePreview();guideRefreshTicker();}
 
@@ -6992,13 +7004,13 @@ function primeGuideQueues(rows){
      opening it never steals the network from the channel the viewer just chose. */
   queue=queue.slice(0,12);
   function guideOpen(){var epg=$("tvgOv");return !!((gwrap&&gwrap.classList.contains("show"))||(epg&&epg.classList.contains("show")));}
-  function refresh(){if(gwrap&&gwrap.classList.contains("show"))renderRail();var epg=$("tvgOv");if(epg&&epg.classList.contains("show"))renderTVGuide();}
+  function refresh(){if(gwrap&&gwrap.classList.contains("show"))refreshGuideRows();var epg=$("tvgOv");if(epg&&epg.classList.contains("show"))renderTVGuide();}
   function pump(){if(run!==guidePrimeRun||!guideOpen())return;
     while(active<1&&cursor<queue.length){(function(ch){active++;refillIAQueue(ch,slotFor(ch,0,{preview:true})).catch(function(){}).finally(function(){active--;refresh();setTimeout(pump,450);});})(queue[cursor++]);}}
   pump();
 }
-function openGuide(){gwrap.classList.add("show");renderGuide();primeGuideQueues();updateClocks();if(typeof window.__rsCastGuideSync==="function")window.__rsCastGuideSync(true);}
-function closeGuide(){guidePrimeRun++;gwrap.classList.remove("show");if(typeof window.__rsCastGuideSync==="function")window.__rsCastGuideSync(false);}
+function openGuide(){if(window.__rsPlaybackAudit)window.__rsPlaybackAudit.control("guide-open");gwrap.classList.add("show");renderGuide();primeGuideQueues();updateClocks();if(typeof window.__rsCastGuideSync==="function")window.__rsCastGuideSync(true);}
+function closeGuide(){if(window.__rsPlaybackAudit)window.__rsPlaybackAudit.control("guide-close");guidePrimeRun++;gwrap.classList.remove("show");if(typeof window.__rsCastGuideSync==="function")window.__rsCastGuideSync(false);}
 
 /* NOW WATCHING preview pane — mirrors tube readout inside the guide. See mobile build. */
 function guideUpdatePreview(){
@@ -7290,6 +7302,7 @@ async function tuneNum(n){
   if(!powered)return;
   if(n===-1 && customSlot){ return tuneCustomExec(); }
   const ch=byNum(n); if(!ch)return;
+  if(window.__rsPlaybackAudit)window.__rsPlaybackAudit.begin(n);
   const changedChannel=(curNum!==n)||justPowered; justPowered=false; // NEW: station bumper only on a real channel change
   if(changedChannel)adQueue=0; /* a break belongs to one station; never leak it across a channel change */
   curNum=n; store.set("last",n); store.set("lastName",ch.nm); if(typeof window.__rsCastSync==="function")window.__rsCastSync(); const my=++token; clearTimeout(retryTimer);
@@ -7478,7 +7491,7 @@ function primeIAQueues(){
   var cursor=0,active=0,limit=2;
   function pump(){
     if(run!==iaPrimeRun||!powered)return;
-    while(active<limit&&cursor<all.length){(function(ch){active++;var sl=slotFor(ch,0,{preview:true});refillIAQueue(ch,sl).catch(function(){}).finally(function(){active--;if(gwrap&&gwrap.classList.contains("show"))renderRail();setTimeout(pump,700);});})(all[cursor++]);}
+    while(active<limit&&cursor<all.length){(function(ch){active++;var sl=slotFor(ch,0,{preview:true});refillIAQueue(ch,sl).catch(function(){}).finally(function(){active--;if(gwrap&&gwrap.classList.contains("show"))refreshGuideRows();setTimeout(pump,700);});})(all[cursor++]);}
   }
   pump();
 }
@@ -7778,7 +7791,7 @@ function playFile(it,ch,sl,my,isFallback){return new Promise(res=>{
   v.addEventListener("durationchange",()=>{ if(my===token&&!it.isAd&&!it.isSignoff&&isFinite(v.duration)) schedSet(ch,it,v.duration); },{signal:sig}); /* 1.2: put this program on the schedule */
   if(my!==token){ return res(false); }
   if(preservePicture){v.style.position="absolute";v.style.inset="0";v.style.zIndex="0";v.style.pointerEvents="none";}
-  v.style.opacity="0"; v.style.transition="opacity .35s ease"; screenArea.appendChild(v); // outgoing picture remains until this candidate has a real frame
+  v.style.opacity="0"; v.style.transition="opacity .35s ease"; screenArea.appendChild(v); if(window.__rsPlaybackAudit)window.__rsPlaybackAudit.watch(v,it); // outgoing picture remains until this candidate has a real frame
   v.classList.toggle("ff-glitch",!!ch.glitch); /* 1.1: reused element — toggle, don't accumulate */
   if(it.isAd){ setTimeout(()=>{ try{ if(my===token && curVideo===v && !v.ended && !v.paused) v.dispatchEvent(new Event("ended")); }catch(e){} },120000); } // ads capped at 2 min
   if(isAudio){ audioScreen.classList.remove("hide"); audioTitle.textContent=it.title||ch.nm; }
@@ -17402,12 +17415,13 @@ window.__atvBootDone=true; /* app is up -- from here on, errors get logged, not 
         var run=guidePrimeRun;
         statusTimer=setTimeout(function(){
           if(run!==guidePrimeRun||!gwrap.classList.contains("show"))return;
-          try{guideUpdatePreview();renderRail();}catch(e){}
+          try{guideUpdatePreview();refreshGuideRows();}catch(e){}
         },120);
       }
     }catch(e){}
   };
 })();
 </script>
+<script src="assets/playback-audit.js"></script>
 </body>
 </html>

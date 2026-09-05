@@ -36,6 +36,8 @@ jobs:
         run: node scripts/test-ia-rotation.js
       - name: Test delayed live-data callbacks across channel changes
         run: node scripts/test-live-data-lifecycle.js
+      - name: Guard guide row stability during background queue warming
+        run: node scripts/test-guide-row-stability.js
 
   test-mobile:
     runs-on: ubuntu-latest
@@ -63,6 +65,7 @@ jobs:
           node scripts/check-channel-registry.js
           node scripts/check-source-suite-contract.js
           node scripts/check-cast-contract.js
+          node scripts/test-guide-row-stability.js
       - name: Serve app
         run: |
           python -m http.server 8799 &
@@ -98,6 +101,7 @@ jobs:
           node scripts/check-channel-registry.js
           node scripts/check-source-suite-contract.js
           node scripts/check-cast-contract.js
+          node scripts/test-guide-row-stability.js
       - name: Serve app
         run: |
           python -m http.server 8800 &

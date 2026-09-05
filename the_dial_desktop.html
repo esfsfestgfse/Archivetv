@@ -1613,7 +1613,7 @@ body.cast-receiver .guide-directory .chcell.cast-focus .cc-n{color:#b9ffd0!impor
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.9.7-desktop.072-ia-buffer-recovery";
+window.__ATV_BUILD="1.9.7-desktop.073-rerun-editorial-lock";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -5358,8 +5358,11 @@ const PROGRAM = {
       { collections: ["vhsvault","opensource_movies","avgeeks"], require_subj: ["sitcom","television comedy","complete series","tv series","syndicated"] }
     ],
     deny: {
-      title: ["news","newscast","commercial","advertisement","c-span","cnn","weather"],
-      subject: ["news","newscast","newsreel","commercial","advertising","documentary","public service","educational"]
+      /* General rerun TV is intentionally broad, but children's television has
+         its own dedicated lanes. Keep the adult/family rerun shelf from using
+         children's metadata merely because it is tagged as a TV series. */
+      title: ["news","newscast","commercial","advertisement","c-span","cnn","weather","dragon tales","barney","dora the explorer","blues clues","teletubbies","caillou","little bear","sesame street","arthur","bear in the big blue house"],
+      subject: ["news","newscast","newsreel","commercial","advertising","documentary","public service","educational","cartoon","animated","animation","children","children's television","kids television","preschool","nick jr","disney junior","pbs kids"]
     },
     subjRequired: true, noBlindFallback: true
   },

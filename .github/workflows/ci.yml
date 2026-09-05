@@ -28,6 +28,10 @@ jobs:
         run: node scripts/check-cast-contract.js
       - name: Test Cast channel changes, guide, and recovery
         run: node scripts/test-cast-runtime.js
+      - name: Test IA audit measurements
+        run: node scripts/test-ia-soak-measurements.js
+      - name: Test IA local fallback recovery
+        run: node scripts/test-ia-fallback-refill.js
       - name: Test delayed live-data callbacks across channel changes
         run: node scripts/test-live-data-lifecycle.js
 

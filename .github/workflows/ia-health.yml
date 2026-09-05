@@ -24,6 +24,7 @@ jobs:
       - name: Probe PROGRAM provider rails
         run: node scripts/probe-ia-programs.js --strict --out artifacts/ia-program-health.json
       - name: Refresh the shared ready-to-play channel shelf
+        if: ${{ !cancelled() }}
         run: |
           node scripts/export-ia-manifest.js the_dial_desktop.html --out artifacts/ia-queue-manifest.json
           # Probe one fresh rotation per lane each night. The relay continues

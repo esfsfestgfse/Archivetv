@@ -75,7 +75,8 @@ async function probeRotation(row, rotationOffset) {
   while (Date.now() - started < timeoutMs) {
     attempts++;
     try {
-      const { response, body } = await requestQueue(row, timeoutMs - (Date.now() - started), rotationOffset);
+      const deadline = firstReadyLatencyMs == null ? timeoutMs : Math.min(timeoutMs, firstReadyLatencyMs + depthTimeoutMs);
+      const { response, body } = await requestQueue(row, deadline - (Date.now() - started), rotationOffset);
       lastStatus = response.status;
       lastBody = body;
       lastSource = response.headers.get('x-afterglow-source') || '';
@@ -83,8 +84,8 @@ async function probeRotation(row, rotationOffset) {
       lastReadyHeader = response.headers.get('x-afterglow-queue-ready') || '';
       lastPartial = response.headers.get('x-afterglow-queue-partial') || '';
       lastFallback = response.headers.get('x-afterglow-queue-fallback') || '';
-      const items = Array.isArray(body.items) ? body.items : [];
-      const readyCount = Number(body.ready) || items.length;
+      const items = response.ok && Array.isArray(body.items) ? body.items : [];
+      const readyCount = response.ok ? (Number(body.ready) || items.length) : 0;
       if (readyCount > bestReady || (readyCount === bestReady && items.length > bestItems.length)) {
         bestReady = readyCount;
         bestItems = items;
@@ -109,16 +110,16 @@ async function probeRotation(row, rotationOffset) {
       /* Once first play exists, give the edge background hydrator a short,
          bounded window to fill the remaining slots. Do not let a partial
          shelf consume the full no-signal timeout. */
-      const budget = firstReadyLatencyMs == null ? timeoutMs : depthTimeoutMs;
+      const budget = firstReadyLatencyMs == null ? timeoutMs : Math.min(timeoutMs, firstReadyLatencyMs + depthTimeoutMs);
       if (Date.now() - started >= budget) break;
     } catch (error) {
       lastError = String(error && error.message || error);
-      if (firstReadyLatencyMs != null && Date.now() - started >= depthTimeoutMs) break;
+      if (firstReadyLatencyMs != null && Date.now() - started >= firstReadyLatencyMs + depthTimeoutMs) break;
     }
     await sleep(pollMs);
   }
-  const items = bestItems.length ? bestItems : (Array.isArray(lastBody && lastBody.items) ? lastBody.items : []);
-  const ready = bestReady || Number(lastBody && lastBody.ready) || items.length;
+  const items = bestItems;
+  const ready = bestReady;
   const hasRequiredReady = ready >= requiredReady;
   return {
     channel: Number(row.channel), name: row.name, ok: hasRequiredReady, status: lastStatus,

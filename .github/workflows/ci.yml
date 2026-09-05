@@ -4,6 +4,7 @@ on:
     paths:
       - 'the_dial_mobile.html'
       - 'the_dial_desktop.html'
+      - 'realsignal_cast_receiver.html'
       - 'afterglow_ais_relay_worker.js'
       - 'wrangler.jsonc'
       - 'ci/**'
@@ -25,6 +26,8 @@ jobs:
         run: node scripts/check-worker-contract.js
       - name: Validate Chromecast sender and receiver contract
         run: node scripts/check-cast-contract.js
+      - name: Test Cast channel changes, guide, and recovery
+        run: node scripts/test-cast-runtime.js
       - name: Test delayed live-data callbacks across channel changes
         run: node scripts/test-live-data-lifecycle.js
 

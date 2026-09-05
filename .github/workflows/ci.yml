@@ -66,6 +66,7 @@ jobs:
           node scripts/check-source-suite-contract.js
           node scripts/check-cast-contract.js
           node scripts/test-guide-row-stability.js
+          node scripts/test-modern-cartoons-lock.js
       - name: Serve app
         run: |
           python -m http.server 8799 &
@@ -102,6 +103,7 @@ jobs:
           node scripts/check-source-suite-contract.js
           node scripts/check-cast-contract.js
           node scripts/test-guide-row-stability.js
+          node scripts/test-modern-cartoons-lock.js
       - name: Serve app
         run: |
           python -m http.server 8800 &

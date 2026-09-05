@@ -1665,7 +1665,7 @@ html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.9.7-mobile.071-playback-guide-stability";
+window.__ATV_BUILD="1.9.7-mobile.072-ia-buffer-recovery";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -6221,6 +6221,10 @@ Object.assign(PROGRAM["Latin"],{fastSubjects:["salsa","mambo","son cubano","bole
 Object.assign(PROGRAM["Modern Country"],{fastSubjects:["country music","modern country","outlaw country","americana","texas country","red dirt","bluegrass","honky tonk"],fastCollections:["audio_music","opensource_audio","netlabels"]});
 Object.assign(PROGRAM["Comedy Classics"],{fastSubjects:["classic comedy","screwball comedy","slapstick","comedy film","marx brothers","abbott and costello","laurel and hardy","three stooges"],fastCollections:["Comedy_Films","feature_films","feature_films_unsorted"]});
 Object.assign(PROGRAM["Adult Animation"],{fastSubjects:["adult animation","adult cartoon","ralph bakshi","heavy metal film","liquid television","beavis and butt-head","futurama","adult swim"],fastCollections:["animationandcartoons","vhsvault","opensource_movies"]});
+/* Modern Cartoons must stay a television-animation lane. The broad Archive
+   `cartoon` tag also catches unrelated foreign story clips, so use program
+   format and known broadcast-era signals as the channel's queue identity. */
+Object.assign(PROGRAM["Modern Cartoons"],{themeMinScore:2,queueTerms:["television cartoon","animated television","animated tv series","saturday morning cartoon","cartoon network","nickelodeon cartoon","disney afternoon","hanna barbera","warner bros animation","1980s cartoon","1990s cartoon","2000s cartoon","cartoon episode"],fastSubjects:["television cartoon","animated television","saturday morning cartoon","cartoon network","nickelodeon cartoon","hanna barbera"],fastCollections:["animationandcartoons","classic_tv_1980s","classic_tv_1990s","classic_tv_2000s","vhsvault"],require:{title_any:["episode","cartoon network","nickelodeon","hanna-barbera","hanna barbera","scooby","smurfs","he-man","transformers","voltron","ducktales","darkwing duck","ghostbusters","turtles","tmnt","captain planet","animaniacs","batman","powerpuff","dexter","johnny bravo","ed edd","courage","rocko","rugrats","hey arnold","spongebob","kim possible","recess","pinky and the brain","tiny toon","freakazoid","reboot","beast wars"]},deny:{title:["anime","commercial","trailer","adult animation","live action","live-action","hindi","kahani","moral stories","fairy tales","vtuber","meme","out of context"],subject:["anime","commercial","trailer","adult swim","live action","live-action","training film","hindi","moral story","fairy tale","vtuber","meme"]}});
 Object.assign(PROGRAM["Found Footage Static"],{fastSubjects:["found footage","vintage vhs","home movie","public access weird","lost media","raw footage","camcorder footage","orphaned footage"],fastCollections:["opensource_movies","vhsvault","home_movies"]});
 Object.assign(PROGRAM["Thanksgiving Channel"],{fastSubjects:["thanksgiving","thanksgiving special","thanksgiving parade","harvest festival","thanksgiving film","thanksgiving day","macy's thanksgiving day parade","pilgrims"],fastCollections:["prelinger","classic_tv","opensource_movies"]});
 Object.assign(PROGRAM["Sci-Fi Theater"],{fastSubjects:["science fiction film","atomic age sci-fi","1950s sci-fi","monster movie","alien invasion","space travel","time travel","creature feature"],fastCollections:["SciFi_Horror","feature_films","feature_films_unsorted"]});

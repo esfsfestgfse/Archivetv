@@ -84,7 +84,10 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
-const IA_QUEUE_CACHE_VERSION = "v40";
+/* v42 keeps a five-program last-good shelf tied to the channel's editorial
+   identity. A channel that tightens its approved vocabulary must never inherit
+   a complete but now-disallowed shelf from an older definition. */
+const IA_QUEUE_CACHE_VERSION = "v42";
 const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
 /* A short per-isolate burst cache absorbs repeat requests from a TV, phone,
    and guide opened in quick succession. It is intentionally tiny and
@@ -389,8 +392,8 @@ async function sharedQueueGet(env, key) {
   }
 }
 
-function sharedQueueFallbackKey(channel) {
-  return IA_QUEUE_KV_PREFIX + IA_QUEUE_CACHE_VERSION + ":last-good:" + encodeURIComponent(String(channel || "").trim());
+function sharedQueueFallbackKey(identity) {
+  return IA_QUEUE_KV_PREFIX + IA_QUEUE_CACHE_VERSION + ":last-good:" + encodeURIComponent(String(identity || "").trim());
 }
 
 function sharedQueuePut(env, key, payload, ttlSeconds, ctx) {
@@ -403,16 +406,15 @@ function sharedQueuePut(env, key, payload, ttlSeconds, ctx) {
      channel number (which is unique in the manifest), so a slow Archive search
      cannot turn an otherwise healthy television lane into No Signal. */
   const fallbackKey = sharedQueueFallbackKey(payload.channel);
-  const fallbackOptions = {
-    /* A partial shelf is still a verified playable program. Keep it available
-       for a full day so a later cold rotation can avoid No Signal while the
-       background replenishment searches for the remaining slots. */
+  const fullShelf = Number(payload.ready || payload.items.length) >= 5;
+  const writes = [env.REALSIGNAL_QUEUE.put(key, JSON.stringify(payload), options)];
+  /* Preserve the last complete five-show shelf. A one-item first-frame handoff
+     may live briefly at its exact rotation key, but must never replace the
+     recovery shelf and turn later tunes into a permanent 1/5 loop. */
+  if (fullShelf) writes.push(env.REALSIGNAL_QUEUE.put(fallbackKey, JSON.stringify({ ...payload, lastGood: true }), {
     expirationTtl: Math.max(60, Math.min(86400, IA_QUEUE_TTL_SECONDS)),
-  };
-  const write = Promise.all([
-    env.REALSIGNAL_QUEUE.put(key, JSON.stringify(payload), options),
-    env.REALSIGNAL_QUEUE.put(fallbackKey, JSON.stringify({ ...payload, lastGood: true }), fallbackOptions),
-  ]).catch((error) => {
+  }));
+  const write = Promise.all(writes).catch((error) => {
     console.warn(JSON.stringify({ event: "shared-queue-write-failed", message: String(error && error.message || error) }));
   });
   if (ctx) ctx.waitUntil(write);
@@ -2096,11 +2098,15 @@ async function getIaQueue(request, url, env, ctx) {
      viewer has actually consumed a queue, which keeps fresh programming from
      putting first tune back on the Archive critical path. */
   const rotation = safeQueueRotation(body && body.rotation);
+  /* The five-show recovery shelf spans rotations, but never editorial rules.
+     That avoids stale genre bleed after a channel's source contract changes. */
+  const familyFingerprint = JSON.stringify({ channel, queries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count });
+  const lastGoodDigest = await stableKey(familyFingerprint);
   const fingerprint = JSON.stringify({ channel, queries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, rotation });
   const digest = await stableKey(fingerprint);
   const cacheKey = new Request(url.origin + IA_PREFIX + "/cache/queue/" + IA_QUEUE_CACHE_VERSION + "/" + digest);
   const sharedKey = IA_QUEUE_KV_PREFIX + IA_QUEUE_CACHE_VERSION + ":" + digest;
-  const lastGoodKey = sharedQueueFallbackKey(channel);
+  const lastGoodKey = sharedQueueFallbackKey(lastGoodDigest);
   try {
     const cache = caches.default, cached = await cache.match(cacheKey);
     if (cached) {
@@ -2134,17 +2140,35 @@ async function getIaQueue(request, url, env, ctx) {
     const shared = await sharedQueueGet(env, sharedKey);
     if (shared && Array.isArray(shared.items) && shared.items.length && Number(shared.ready) > 0) {
       const sharedReady = Number(shared.ready) >= count;
+      let sharedFallback = null;
       if (!sharedReady && shared.partial && Array.isArray(shared.candidateItems)) {
         const strictQueue = themeMinScore > 1;
         const candidateCount = Math.min(strictQueue ? 30 : 20, Math.max(count, count * (strictQueue ? 6 : 4)));
         scheduleCachedIaHydration(shared, count, url.origin, cacheKey, sharedKey, env, ctx, mediaTypes, channel, themeTerms, denyTerms, diversity, themeMinScore, candidateCount, queries);
+        /* A partial exact-rotation shelf should start the background refill,
+           but it should not force the viewer to live on one program. Serve a
+           rotated full last-good shelf while the current rotation finishes. */
+        const lastGood = await sharedQueueGet(env, lastGoodKey);
+        if (lastGood && Array.isArray(lastGood.items) && lastGood.items.length >= count && Number(lastGood.ready) >= count) {
+          const offset = Math.abs(Number(rotation) || 0) % lastGood.items.length;
+          sharedFallback = {
+            ...lastGood,
+            items: lastGood.items.slice(offset).concat(lastGood.items.slice(0, offset)),
+            rotation,
+            fallback: true,
+            stale: true,
+            fallbackRotation: Number(lastGood.rotation) || 0,
+            generatedAt: new Date().toISOString(),
+          };
+        }
       }
-      iaQueueMemoryPut(cacheKey.url, shared, sharedReady ? IA_QUEUE_MEMORY_TTL_SECONDS : 5);
-      const response = cacheableJson(shared, sharedReady ? IA_QUEUE_TTL_SECONDS : 5, {
-        "X-Afterglow-Source": "program-director-shared",
-        "X-Afterglow-Cache": "shared",
-        "X-Afterglow-Queue-Ready": String(shared.ready),
-        ...(sharedReady ? {} : { "X-Afterglow-Queue-Partial": "1" }),
+      const served = sharedFallback || shared;
+      iaQueueMemoryPut(cacheKey.url, served, sharedReady || sharedFallback ? IA_QUEUE_MEMORY_TTL_SECONDS : 5);
+      const response = cacheableJson(served, sharedReady || sharedFallback ? IA_QUEUE_TTL_SECONDS : 5, {
+        "X-Afterglow-Source": sharedFallback ? "program-director-last-good" : "program-director-shared",
+        "X-Afterglow-Cache": sharedFallback ? "shared-last-good" : "shared",
+        "X-Afterglow-Queue-Ready": String(served.ready),
+        ...(sharedFallback ? { "X-Afterglow-Queue-Fallback": "1" } : sharedReady ? {} : { "X-Afterglow-Queue-Partial": "1" }),
       });
       ctx.waitUntil(cache.put(cacheKey, response.clone()).catch((error) => {
         console.warn(JSON.stringify({ event: "shared-queue-edge-write-failed", channel, message: String(error && error.message || error) }));
@@ -2157,7 +2181,7 @@ async function getIaQueue(request, url, env, ctx) {
        of making the viewer wait through a fresh Archive search. A changed
        rotation still goes through normal discovery so freshness wins. */
     const warmLastGood = await sharedQueueGet(env, lastGoodKey);
-    if (warmLastGood && Array.isArray(warmLastGood.items) && warmLastGood.items.length && Number(warmLastGood.ready) > 0 && Number(warmLastGood.rotation || 0) === rotation) {
+    if (warmLastGood && Array.isArray(warmLastGood.items) && warmLastGood.items.length >= count && Number(warmLastGood.ready) >= count && Number(warmLastGood.rotation || 0) === rotation) {
       const warmFallback = {
         ...warmLastGood,
         rotation,
@@ -2251,7 +2275,7 @@ async function getIaQueue(request, url, env, ctx) {
          request retries discovery. The shelf contains hydrated media URLs and
          has already passed the channel's strict theme/deny contract. */
       const lastGood = await sharedQueueGet(env, lastGoodKey);
-      if (lastGood && Array.isArray(lastGood.items) && lastGood.items.length) {
+      if (lastGood && Array.isArray(lastGood.items) && lastGood.items.length >= count && Number(lastGood.ready) >= count) {
         const fallback = {
           ...lastGood,
           rotation,
@@ -2325,6 +2349,36 @@ async function getIaQueue(request, url, env, ctx) {
       }
       const queueTtl = hydrated.ready >= count ? IA_QUEUE_TTL_SECONDS : IA_PARTIAL_QUEUE_TTL_SECONDS;
       scheduleIaReplenishment(hydrated, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, url.origin, cacheKey, sharedKey, env, ctx, rotation);
+      /* A fresh search can verify one to four programs before its wider refill
+         completes. Do not replace an already proven five-show buffer with that
+         shallow result: use the rotated full shelf for playback while the new
+         rotation continues filling in the background. */
+      if (hydrated.ready < count) {
+        const underfilledLastGood = await sharedQueueGet(env, lastGoodKey);
+        if (underfilledLastGood && Array.isArray(underfilledLastGood.items) && underfilledLastGood.items.length >= count && Number(underfilledLastGood.ready) >= count) {
+          const offset = Math.abs(Number(rotation) || 0) % underfilledLastGood.items.length;
+          const fallback = {
+            ...underfilledLastGood,
+            items: underfilledLastGood.items.slice(offset).concat(underfilledLastGood.items.slice(0, offset)),
+            rotation,
+            fallback: true,
+            stale: true,
+            fallbackRotation: Number(underfilledLastGood.rotation) || 0,
+            generatedAt: new Date().toISOString(),
+          };
+          const fallbackResponse = cacheableJson(fallback, 5, {
+            "X-Afterglow-Source": "program-director-last-good",
+            "X-Afterglow-Cache": "shared-last-good",
+            "X-Afterglow-Queue-Ready": String(fallback.ready),
+            "X-Afterglow-Queue-Fallback": "1",
+          });
+          iaQueueMemoryPut(cacheKey.url, fallback, 5);
+          ctx.waitUntil(cache.put(cacheKey, fallbackResponse.clone()).catch((error) => {
+            console.warn(JSON.stringify({ event: "underfilled-last-good-cache-write-failed", channel, message: String(error && error.message || error) }));
+          }));
+          return fallbackResponse;
+        }
+      }
       const response = cacheableJson(hydrated, queueTtl, {
         "X-Afterglow-Source": "program-director",
         "X-Afterglow-Queue-Ready": String(hydrated.ready),
@@ -2341,7 +2395,7 @@ async function getIaQueue(request, url, env, ctx) {
        browser can resolve them directly while the Worker keeps hydrating and
        caching the richer five-program shelf in the background. */
     const lastGood = await sharedQueueGet(env, lastGoodKey);
-    if (lastGood && Array.isArray(lastGood.items) && lastGood.items.length) {
+    if (lastGood && Array.isArray(lastGood.items) && lastGood.items.length >= count && Number(lastGood.ready) >= count) {
       const fallback = {
         ...lastGood,
         rotation,

@@ -1665,7 +1665,7 @@ html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.9.7-mobile.069-ia-fallback-refill";
+window.__ATV_BUILD="1.9.7-mobile.070-ia-rotation-recovery";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -6566,7 +6566,7 @@ function iaMarkProgramFailed(id){if(id)iaProgramFailures[id]=Date.now()+IA_PROGR
 var iaMediaWarmers={}, iaMediaWarmerOrder=[], iaMediaWarmByChannel={}, iaWarmWanted={}, IA_MEDIA_WARM_MAX=6;
 function iaQueueKey(ch){return String((ch&&ch.num)||((ch&&ch.nm)||""));}
 function iaQueueRotationFor(ch){return Math.max(0,Math.min(127,Math.floor(Number(iaQueueRotation[iaQueueKey(ch)])||0)));}
-function iaAdvanceQueueRotation(ch){var key=iaQueueKey(ch);iaQueueRotation[key]=Math.min(127,iaQueueRotationFor(ch)+1);store.set("iaQueueRotation",iaQueueRotation);}
+function iaAdvanceQueueRotation(ch){var key=iaQueueKey(ch);iaQueueRotation[key]=(iaQueueRotationFor(ch)+1)%128;store.set("iaQueueRotation",iaQueueRotation);}
 function iaMediaWarmKey(ch,item){return iaQueueKey(ch)+":"+String(item&&item.identifier||item&&item.id||"");}
 function releaseIAMediaWarmer(key,keepElement){var w=iaMediaWarmers[key];if(!w)return null;delete iaMediaWarmers[key];if(iaMediaWarmByChannel[w.channel]===key)delete iaMediaWarmByChannel[w.channel];clearTimeout(w.timer);var i=iaMediaWarmerOrder.indexOf(key);if(i>=0)iaMediaWarmerOrder.splice(i,1);if(!keepElement){try{w.el.pause();w.el.removeAttribute("src");w.el.load();}catch(e){}}return w.el;}
 function takeIAMediaWarmer(ch,item){return releaseIAMediaWarmer(iaMediaWarmKey(ch,item),true);}
@@ -6616,7 +6616,7 @@ async function iaQueueRequest(ch,sl,count){
       if(local&&local.length){local.hydrating=!!(d&&d.hydrating);local.partial=true;local.ready=local.length;local.candidates=Math.max(local.length,Number(d&&d.candidates)||0);return local;}
     }
     out.hydrating=!!(d&&d.hydrating);out.partial=!!(d&&d.partial)||Number(d&&d.ready||0)<Math.max(1,Math.min(5,count||5));out.ready=Number(d&&d.ready)||out.length;out.candidates=Number(d&&d.candidates)||out.length;return out;
-  }catch(e){nlog("queue",false,"director unavailable: "+(e&&e.message||e)+"; using local shelf");var fallback=iaLocalQueueFallback(ch,sl);fallback.localFallback=true;fallback.partial=true;return fallback;}
+  }catch(e){nlog("queue",false,"director unavailable: "+(e&&e.message||e)+"; using local shelf");var fallback=await iaLocalQueueFallback(ch,sl);fallback.localFallback=true;fallback.partial=true;return fallback;}
 }
 function warmIAQueue(ch,sl,hydrating){var q=iaProgramQueues[iaQueueKey(ch)]||[],expected=iaExpectedMedia(ch);q.slice(0,5).forEach(function(it){if(!it||iaProgramFailed(it.identifier)||iaProgramMedia[it.identifier])return;var id=it.identifier,editorial={identifier:id,creator:it.creator||"",collection:it.collection||"",subject:it.subject||"",lane:it.lane};if(it.media&&it.media.url){if(it.media.type&&it.media.type!==expected){iaMarkProgramFailed(id);return;}var inline={type:it.media.type||expected,url:it.media.url,alts:it.media.alts||[],id:id,captions:null,meta:editorial};iaProgramMedia[id]=inline;if(!fastTuneGet(ch.num))fastTunePut(ch.num,inline);return;}iaProgramPendingAt[id]=Date.now();var pending=resolvePlayable(id,expected).then(function(pl){delete iaProgramPendingAt[id];if(!pl){iaMarkProgramFailed(id);setTimeout(function(){if(powered)refillIAQueue(ch,sl);},160);}if(pl){pl.meta=Object.assign({},pl.meta||{},editorial);var current=(iaProgramQueues[iaQueueKey(ch)]||[]).find(function(x){return x&&x.identifier===id;});if(current)current.media={type:pl.type||expected,url:pl.url,alts:pl.alts||[]};if(!fastTuneGet(ch.num))fastTunePut(ch.num,Object.assign({},pl,{type:pl.type||expected}));iaReadyShelfSave(ch);}iaProgramMedia[id]=pl;warmIAQueueHead(ch);return pl;}).catch(function(){delete iaProgramPendingAt[id];iaMarkProgramFailed(id);iaProgramMedia[id]=null;setTimeout(function(){if(powered)refillIAQueue(ch,sl);},160);return null;});iaProgramMedia[id]=pending;});warmIAQueueHead(ch);}
 function iaQueueHasReadyProgram(ch){var q=iaProgramQueues[iaQueueKey(ch)]||[];return q.some(function(it){var pl=it&&iaProgramMedia[it.identifier],w=it&&iaMediaWarmers[iaMediaWarmKey(ch,it)];return !!((w&&w.el.readyState>=2)||(pl&&typeof pl.then!=="function"&&pl.url));});}

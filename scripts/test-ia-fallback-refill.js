@@ -5,18 +5,19 @@ const vm = require('node:vm');
 async function test(file) {
   const source = fs.readFileSync(path.join(__dirname, '..', file), 'utf8').replace(/\r\n/g, '\n');
   const request = source.slice(source.indexOf('async function iaQueueRequest('), source.indexOf('\nfunction warmIAQueue('));
+  const local = source.slice(source.indexOf('async function iaLocalQueueFallback('), source.indexOf('async function iaQueueRequest('));
   const refill = source.slice(source.indexOf('async function refillIAQueue('), source.indexOf('\nfunction takeIAQueue('));
   const timers = [], item = {identifier:'on-genre', media:{url:'https://example.com/video.mp4'}};
   const s = {console, powered:true, IA_RELAY_BASE:'https://example.com',
     fetch:async()=>{throw Error('timeout');}, withTO:p=>p, nlog(){},
     iaQueueQueries:()=>['genre'], iaQueueKey:()=> '12', iaQueueRotationFor:()=>0,
     iaProgramThemeTerms:()=>[], iaProgramDenyTerms:()=>[], iaQueueDiversity:()=>({}),
-    iaProgramAllowed:()=>true, iaLocalQueueFallback:()=>[item],
+    iaProgramAllowed:()=>true, pickIA:async()=>item,
     iaReadyShelfRestore(){}, iaProgramInflight:{}, iaProgramQueues:{}, iaQueueRetries:{},
     iaProgramFailed:()=>false, iaPendingTooLong:()=>false, iaEmergencyItems:()=>[],
     warmIAQueue(){}, iaReadyShelfSave(){}, gwrap:null,
     setTimeout(fn,ms){timers.push({fn,ms});}};
-  vm.createContext(s); vm.runInContext(request+'\n'+refill,s);
+  vm.createContext(s); vm.runInContext(local+'\n'+request+'\n'+refill,s);
   const fallback = await vm.runInContext('iaQueueRequest({num:12},{},5)',s);
   assert.equal(fallback.localFallback,true, file+': fallback must be identified');
   assert.equal(fallback.partial,true, file+': local shelf needs background recovery');

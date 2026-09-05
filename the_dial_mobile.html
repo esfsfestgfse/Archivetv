@@ -1665,7 +1665,7 @@ html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.9.7-mobile.066-live-data-resilient";
+window.__ATV_BUILD="1.9.7-mobile.067-live-data-lifecycle";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -9282,7 +9282,7 @@ async function tuneHometown(ch,sl,my){
     if(!arts.length){ var m=$("hhMedia"); if(m)m.innerHTML='<div class="dc-media-cap">NO MAPPED LANDMARKS FOUND NEARBY</div>';
       var tx2=$("hhText"); if(tx2)tx2.textContent="Wikipedia has no geotagged articles within about 6 miles of this location."; return; }
     showNext(); rtInterval(showNext,24000);
-  }catch(e){ nlog("hometown",false,(e&&e.message)||e);
+  }catch(e){ if(my!==token||!powered)return; nlog("hometown",false,(e&&e.message)||e);
     var tx3=$("hhText"); if(arts.length){if(tx3)tx3.textContent="LAST-GOOD LANDMARK INDEX · reconnecting to Wikipedia for fresh local history.";showNext();rtInterval(showNext,24000);}else if(tx3)tx3.textContent="Wikipedia geosearch unavailable right now - will retry when you tune back."; }
 }
 
@@ -12663,6 +12663,7 @@ async function tuneSolar(ch,sl,my){
         }
       }catch(_){}
 
+      if(my!==token||!powered)return;
       var listEl=document.getElementById("dcList");
       if(listEl){
         var rows=[
@@ -12676,12 +12677,14 @@ async function tuneSolar(ch,sl,my){
       }
       nlog("solar",true,xc.letter+xc.number);
     }catch(e){
+      if(my!==token||!powered)return;
       nlog("solar",false,(e&&e.message)||"stats fetch failed");
       var classEl=document.getElementById("solarClass"); if(classEl) classEl.textContent="--";
       var classTxt=document.getElementById("solarClassText"); if(classTxt) classTxt.textContent="SWPC unavailable \u2014 will retry";
     }
   }
   rotateImg(); await fetchStats();
+  if(my!==token||!powered)return;
   solarImgTimer=rtInterval(rotateImg, 15000);      /* rotate SDO view every 15 sec */
   solarStatsTimer=rtInterval(fetchStats, 5*60*1000); /* refresh stats every 5 min */
   if(chanRT && chanRT.teardowns) chanRT.teardowns.push(function(){

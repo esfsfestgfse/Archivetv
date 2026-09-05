@@ -25,6 +25,8 @@ jobs:
         run: node scripts/check-worker-contract.js
       - name: Validate Chromecast sender and receiver contract
         run: node scripts/check-cast-contract.js
+      - name: Test delayed live-data callbacks across channel changes
+        run: node scripts/test-live-data-lifecycle.js
 
   test-mobile:
     runs-on: ubuntu-latest

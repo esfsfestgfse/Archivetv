@@ -1613,7 +1613,7 @@ body.cast-receiver .guide-directory .chcell.cast-focus .cc-n{color:#b9ffd0!impor
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.9.7-desktop.073-rerun-editorial-lock";
+window.__ATV_BUILD="1.9.7-desktop.074-darcys-playground";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -2193,6 +2193,7 @@ const CH=[
  {nm:"Music Films", num:104,       cat:"MOV", gl:"musicfilm",   era:[1935,1969], ns:"movie"},
  {nm:"Midnight Matinee", num:132,  cat:"MOV", gl:"midnightmatinee", era:[1940,2026], ns:"movie"},
  {nm:"The Stage Door", num:133,    cat:"MOV", gl:"stagedoor", era:[1930,2026], ns:"movie"},
+ {nm:"Darcys Playground", num:134, cat:"MOV", gl:"darcysplayground", era:[1970,2026], ns:"movie"},
 
  {nm:"Classic Rerun TV", num:10,  cat:"TV", gl:"sitcom",       era:[1950,1969], ns:"tv"},
  {nm:"Modern Rerun TV", num:11,   cat:"TV", gl:"sitcommodern", era:[1980,2026], ns:"tv"},
@@ -2533,6 +2534,7 @@ const CHANNEL_META={
 "Anime Alley":{desc:"Japanese animation from early classics to the VHS-dub era.",best:"evenings",rel:["Classic Cartoons","VHS Vault"]},
 "Sci-Fi Theater":{desc:"Atomic-age science fiction, 1950-79.",best:"late night",rel:["Shock Theater","Space"]},
 "Shock Theater":{desc:"Horror hosted the old way - creature features and grindhouse chills.",best:"after dark",rel:["Sci-Fi Theater","Found Footage Static"]},
+"Darcys Playground":{desc:"Internet Archive drive-in horror-host television: Joe Bob Briggs, MonsterVision, hosted creature features and cult movie-night ephemera.",best:"anytime",rel:["Shock Theater","The Drive-In","Midnight Matinee"]},
 "Western Channel":{desc:"B-westerns, singing cowboys and frontier serials.",best:"afternoons",rel:["Action & Serials"]},
 "Comedy Classics":{desc:"Screwball, slapstick and studio comedies.",best:"evenings",rel:["Silent Cinema","Classic Rerun TV"]},
 "Music Films":{desc:"Soundies, musical shorts and performance films.",best:"evenings",rel:["Live Concerts","Jukebox 78"]},
@@ -6102,6 +6104,21 @@ const PROGRAM = {
   "Museum of Motion": {genre:"museumotion",era:[1900,2026],themeMinScore:2,queueTerms:["animation history","film history","motion picture history","visual culture","movie making","cinema history"],fastSubjects:["film history","motion picture history","cinema history"],fastCollections:["prelinger","opensource_movies"],providers:[{collections:["prelinger","opensource_movies","feature_films"],require_subj:["animation history","film history","motion picture history","visual culture","movie making","cinema history","film preservation","movie museum"]}],deny:{title:["full feature film","trailer","commercial","cartoon compilation","vhs compilation","avatar","nickelodeon","promo"],subject:["full feature film","trailer","commercial","video game","cartoon","avatar","nickelodeon","promo"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
   "Civic Cinema": {genre:"civiccinema",era:[1930,2026],themeMinScore:2,queueTerms:["civic film","public affairs","city planning","public service","community development","municipal government","public works","civil defense","local government","urban planning","city government","government film","public information film","public information","public housing","urban renewal","municipal services","public transportation","traffic safety","water conservation","fire prevention","community planning","town planning","city government film","sanitation film"],fastSubjects:["civic film","public affairs","city planning","public service","community development","municipal government","public works","civil defense","local government","urban planning","city government","government film","public information film","public information","public housing","urban renewal","municipal services","public transportation","traffic safety","water conservation","fire prevention","community planning","town planning","city government film","sanitation film"],fastCollections:["prelinger","FedFlix","governmentdocuments"],wideCollections:["prelinger","FedFlix","governmentdocuments"],providers:[{collections:["prelinger","FedFlix","governmentdocuments"],require_subj:["civic film","public affairs","city planning","public service","community development","municipal government","public works","civil defense","local government","urban planning","city government","government film","public information film","public information","public housing","urban renewal","municipal services","public transportation","traffic safety","water conservation","fire prevention","community planning","town planning","city government film","sanitation film"]}],deny:{title:["campaign advertisement","commercial","video game","reupload","suicide","self harm","self-harm","gun trigger warning","trigger warning","chrysophobia","gore","porn","pornography","erotic","sexual","music video","gameplay","anime","meme"],subject:["campaign advertisement","commercial","political campaign","video game","reupload","suicide","self harm","self-harm","gun","weapon","trigger warning","chrysophobia","gore","porn","pornography","erotic","sexual","music video","gameplay","anime","meme"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
   "Earth From Above": {genre:"earthfromabove",era:[1955,2026],themeMinScore:2,queueTerms:["earth observation","satellite imagery","earth from space","remote sensing","planet earth","aerial photography"],fastSubjects:["earth observation","satellite imagery","earth from space"],fastCollections:["NASA","FedFlix"],providers:[{collections:["NASA","prelinger","FedFlix","opensource_movies"],require_subj:["earth observation","satellite imagery","earth from space","remote sensing","planet earth","aerial photography","earth science","environmental satellite"]}],deny:{title:["science fiction film","video game","commercial","flat earth","conspiracy"],subject:["science fiction film","video game","cartoon","commercial","flat earth","conspiracy"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
+  /* Darcys Playground (ch 134) — a hard-locked host-culture lane. This deliberately
+     excludes generic horror features: the show is the host, the bumper, and the
+     drive-in-TV atmosphere, not a second copy of Shock Theater. */
+  "Darcys Playground": {
+    genre:"darcysplayground", era:[1970,2026], themeMinScore:2,
+    queueTerms:["joe bob briggs","monstervision","tnt monstervision","the last drive-in","last drive in","joe bob's drive-in theater","joe bob drive-in theater","joe bob tcm","joe bob family reunion"],
+    fastSubjects:["joe bob briggs","monstervision","tnt monstervision","joe bob's drive-in theater","hosted creature feature"],
+    fastCollections:["classic_tv","vhsvault","opensource_movies","SciFi_Horror"],
+    providers:[
+      {collections:["classic_tv","classic_tv_1980s","classic_tv_1990s","classic_tv_2000s","vhsvault","opensource_movies"],require_subj:["joe bob briggs","monstervision","tnt monstervision","the last drive-in","last drive in","joe bob's drive-in theater","joe bob drive-in theater","joe bob tcm","joe bob family reunion"]},
+      {collections:["SciFi_Horror","classic_tv","vhsvault","opensource_movies"],require_subj:["joe bob briggs","monstervision","tnt monstervision","the last drive-in","last drive in","joe bob's drive-in theater","joe bob drive-in theater"]}
+    ],
+    deny:{title:["full movie","feature film","trailer","commercial","reaction","review","podcast","fan edit","fan-made","gameplay","music video","horror game","wrestling movie"],subject:["feature film","trailer","commercial","reaction","review","podcast","fan edit","gameplay","music video","horror game","wrestling"]},
+    subjRotate:true,subjRequired:true,noBlindFallback:true
+  },
   "Prelinger Vault": {
     genre:"industrial", era:[1930,1989], show:"Prelinger Vault",
     eraBuckets:[[1930,1944],[1945,1959],[1960,1974],[1975,1989]],

@@ -68,6 +68,7 @@ jobs:
           node scripts/test-guide-row-stability.js
           node scripts/test-modern-cartoons-lock.js
           node scripts/test-modern-rerun-lock.js
+          node scripts/test-darcys-playground-lock.js
       - name: Serve app
         run: |
           python -m http.server 8799 &
@@ -106,6 +107,7 @@ jobs:
           node scripts/test-guide-row-stability.js
           node scripts/test-modern-cartoons-lock.js
           node scripts/test-modern-rerun-lock.js
+          node scripts/test-darcys-playground-lock.js
       - name: Serve app
         run: |
           python -m http.server 8800 &

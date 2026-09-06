@@ -12,7 +12,7 @@ for (const file of files) {
   const source = fs.readFileSync(path.join(repo, file), 'utf8');
   const name = file;
   const required = [
-    [/V2_SOURCE_CACHE_VERSION=13/, 'source catalog cache version must invalidate the pre-cartoon-era catalog'],
+    [/V2_SOURCE_CACHE_VERSION=14/, 'source catalog cache version must invalidate the pre-retention catalog'],
     [/V2_SOURCE_CACHE_TTL=12\*60\*1000/, 'source catalog cache must expire quickly enough to rotate'],
     [/function v2MapLimit\(/, 'provider fan-out must be concurrency bounded'],
     [/function v2Verified\(/, 'items must carry a common verification envelope'],
@@ -44,7 +44,7 @@ for (const file of files) {
     [/sortModes=\["-match","-publishedAt","-views","-likes"\]/, 'PeerTube discovery must rotate result ordering'],
     [/orders=\["relevance","date","viewCount","rating"\]/, 'YouTube discovery must rotate result ordering'],
     [/function v2TuneRefreshed\(/, 'sparse queues must wait for a genuinely different next item'],
-    [/merged=force\?v2Unique\(state\.items\.slice\(\)\.concat\(discovered\)\)/, 'rolling refreshes must accumulate verified programs instead of replacing the shelf'],
+    [/prior=v2Unique\(cachedItems\.concat\(state\.items\|\|\[\]\)\),merged=v2Unique\(prior\.concat\(discovered\)\)/, 'rolling refreshes must retain and extend verified programs instead of replacing the shelf'],
     [/state\.items\.length<=V2_SOURCE_READY_BUFFER/, 'small queues must refresh before replaying a program'],
     [/cachedItems\.length>=V2_SOURCE_MIN_CATALOG/, 'small cached catalogs must be refreshed instead of replayed'],
     [/\.slice\(0,4\),queries=v2DiscoveryQueries\(profile,"peertube"/, 'PeerTube discovery must use all approved instances and anchored rotating query lanes'],

@@ -16,6 +16,8 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
     ['locks MonsterVision material', block.includes('"monstervision"')],
     ['keeps Last Drive-In as a discovery signal', block.includes('"the last drive-in"')],
     ['requires two matching identity signals', block.includes('themeMinScore:2')],
+    ['requires an on-title Joe Bob or MonsterVision signal', block.includes('require:{title_any:[')],
+    ['rotates through real host-show eras', source.includes('"Darcys Playground":{eraBuckets:')],
     ['rejects generic full features', block.includes('"feature film"')],
     ['never broad-falls back', block.includes('noBlindFallback:true')],
   ];

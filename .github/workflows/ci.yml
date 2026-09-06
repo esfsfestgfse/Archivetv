@@ -70,6 +70,7 @@ jobs:
           node scripts/test-modern-rerun-lock.js
           node scripts/test-darcys-playground-lock.js
           node scripts/test-source-suite-catalog-retention.js
+          node scripts/test-animation-lane-locks.js
       - name: Serve app
         run: |
           python -m http.server 8799 &
@@ -110,6 +111,7 @@ jobs:
           node scripts/test-modern-rerun-lock.js
           node scripts/test-darcys-playground-lock.js
           node scripts/test-source-suite-catalog-retention.js
+          node scripts/test-animation-lane-locks.js
       - name: Serve app
         run: |
           python -m http.server 8800 &

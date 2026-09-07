@@ -84,10 +84,15 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
-/* v44 keeps a five-program last-good shelf tied to the channel's editorial
-   identity. A channel that tightens its approved vocabulary must never inherit
-   a complete but now-disallowed shelf from an older definition. */
-const IA_QUEUE_CACHE_VERSION = "v44";
+/* v45 separates the first-frame path from deep catalog work. A cold tune now
+   discovers only a small approved shelf, returns the first playable item, and
+   leaves complete-series expansion plus five-item refill to bounded background
+   work. */
+const IA_QUEUE_CACHE_VERSION = "v45";
+/* Last-good shelves share the v45 namespace because their key contract was
+   corrected here as well. This keeps a prior channel-number-only recovery
+   shelf from leaking into a newer editorial identity. */
+const IA_LAST_GOOD_CACHE_VERSION = "v45";
 const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
 /* A short per-isolate burst cache absorbs repeat requests from a TV, phone,
    and guide opened in quick succession. It is intentionally tiny and
@@ -130,8 +135,13 @@ const IA_FAST_SEARCH_TIMEOUT_MS = 3200;
    The first tune already races two subject-locked rails; launching every
    reserve rail for every cold channel at once can make Archive throttle the
    whole catalog during a channel-surfing burst. Later polls can widen again. */
-const IA_BACKGROUND_RESERVE_LANES = 3;
+const IA_BACKGROUND_RESERVE_LANES = 2;
 const IA_BACKGROUND_FALLBACK_LANES = 1;
+/* Container manifests can be large. They are valuable for episode variety but
+   are never permitted to multiply the work of a foreground channel change. */
+const IA_FOREGROUND_CONTAINER_EXPANSIONS = 0;
+const IA_BACKGROUND_CONTAINER_EXPANSIONS = 2;
+const IA_CONTAINER_EXPANSION_CONCURRENCY = 2;
 /* A few sparse lanes still have a cold-page failure mode: a rotated Archive
    page can time out before returning the first approved record even though the
    same editorial query is healthy on the stable first page. Retry only these
@@ -393,7 +403,7 @@ async function sharedQueueGet(env, key) {
 }
 
 function sharedQueueFallbackKey(identity) {
-  return IA_QUEUE_KV_PREFIX + IA_QUEUE_CACHE_VERSION + ":last-good:" + encodeURIComponent(String(identity || "").trim());
+  return IA_QUEUE_KV_PREFIX + IA_LAST_GOOD_CACHE_VERSION + ":last-good:" + encodeURIComponent(String(identity || "").trim());
 }
 
 function sharedQueuePut(env, key, payload, ttlSeconds, ctx) {
@@ -402,10 +412,10 @@ function sharedQueuePut(env, key, payload, ttlSeconds, ctx) {
     expirationTtl: Math.max(60, Math.min(86400, Number(ttlSeconds) || IA_QUEUE_TTL_SECONDS)),
   };
   /* Keep the exact rotation cache for fresh programming, plus one last-good
-     verified shelf per channel. The latter is intentionally keyed only by the
-     channel number (which is unique in the manifest), so a slow Archive search
-     cannot turn an otherwise healthy television lane into No Signal. */
-  const fallbackKey = sharedQueueFallbackKey(payload.channel);
+     verified shelf for this exact editorial family. The foreground request
+     supplies its stable identity; falling back to a channel number only keeps
+     backwards compatibility for an old shelf and never mixes genre contracts. */
+  const fallbackKey = payload.lastGoodKey || sharedQueueFallbackKey(payload.channel);
   const fullShelf = Number(payload.ready || payload.items.length) >= 5;
   const writes = [env.REALSIGNAL_QUEUE.put(key, JSON.stringify(payload), options)];
   /* Preserve the last complete five-show shelf. A one-item first-frame handoff
@@ -1897,9 +1907,10 @@ function queueRotationPage(rotation, lane) {
   return 1 + (Math.abs(Number(rotation) || 0) + Number(lane || 0)) % 3;
 }
 
-async function buildIaQueue(channel, queries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, cacheOrigin, ctx, rotation = 0, searchTimeoutMs = 3200, firstApprovedLane = false) {
+async function buildIaQueue(channel, queries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, cacheOrigin, ctx, rotation = 0, searchTimeoutMs = 3200, firstApprovedLane = false, expandContainers = !firstApprovedLane) {
   const items = [], deferred = [], seen = new Set(), seenTitles = new Set(), candidateLimit = count;
   const used = { lane: new Map(), era: new Map(), creator: new Map(), collection: new Map() };
+  let deferredContainerExpansion = false;
   /* Query lanes are already editorially ordered by the app. Fetch a small
      sample from each lane in parallel, then take one from every lane before
      taking a second: a five-item buffer spans eras/topics instead of becoming
@@ -1917,13 +1928,18 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, mediaTypes,
       const docs = (result.docs || []).filter((doc) => doc && safeIaId(doc.identifier) && String(doc.mediatype || "").toLowerCase() !== "collection" && (!mediaTypes.length || mediaTypes.includes(String(doc.mediatype || "").toLowerCase())))
         .sort((a, b) => themeScore(b, themeTerms) - themeScore(a, themeTerms));
       const approved = docs.filter((doc) => matchesTheme(doc, themeTerms, themeMinScore) && !matchesDeny(doc, denyTerms));
-      const expanded = [];
-      for (const doc of approved.slice(0, 6)) {
+      if (firstApprovedLane && approved.some((doc) => /(?:complete|全集|full\s+series|full\s+serial|season\s*\d|series\s*\d|serial)/i.test(String(doc && doc.title || "")))) deferredContainerExpansion = true;
+      /* The old foreground race expanded up to six complete-series manifests
+         per search lane before it could even begin metadata hydration. A fast
+         channel tune needs a verified program, not a season index. Keep that
+         expensive diversity work behind the first frame and cap it even during
+         background refill so channel surfing cannot stampede Archive. */
+      const expansionLimit = firstApprovedLane ? IA_FOREGROUND_CONTAINER_EXPANSIONS : IA_BACKGROUND_CONTAINER_EXPANSIONS;
+      const expandedSets = await mapQueueCandidates(approved.slice(0, expansionLimit), IA_CONTAINER_EXPANSION_CONCURRENCY, async (doc) => {
         const episodes = await expandArchiveContainer(doc, cacheOrigin, ctx);
-        for (const episode of episodes) {
-          if (matchesTheme(episode, themeTerms, themeMinScore) && !matchesDeny(episode, denyTerms)) expanded.push(episode);
-        }
-      }
+        return episodes.filter((episode) => matchesTheme(episode, themeTerms, themeMinScore) && !matchesDeny(episode, denyTerms));
+      });
+      const expanded = expandedSets.flat();
       return [...expanded, ...approved].map((doc) => ({ doc, lane }));
     } catch {
       return [];
@@ -1993,6 +2009,7 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, mediaTypes,
     items: items.slice(0, count),
     candidateItems: items.slice(0, count),
     ready: Math.min(items.length, count),
+    deferredContainerExpansion,
   };
 }
 
@@ -2047,16 +2064,19 @@ async function hydrateIaQueue(payload, requestedCount, cacheOrigin, ctx, mediaTy
   };
 }
 
-function scheduleCachedIaHydration(payload, requestedCount, cacheOrigin, cacheKey, sharedKey, env, ctx, mediaTypes, channel, themeTerms, denyTerms, diversity, themeMinScore, candidateCount, queries) {
+function scheduleCachedIaHydration(payload, requestedCount, cacheOrigin, cacheKey, sharedKey, lastGoodKey, env, ctx, mediaTypes, channel, themeTerms, denyTerms, diversity, themeMinScore, candidateCount, queries) {
   const items = Array.isArray(payload && payload.items) ? payload.items : [];
   const candidates = Array.isArray(payload && payload.candidateItems) ? payload.candidateItems : [];
   if (!candidates.length || candidates.length <= items.length) return;
   const key = cacheKey.url;
   if (iaQueueHydrationInflight.has(key)) return;
-  const fastQueryCount = Math.min(2, queries.length);
-  const reserveQueries = queries.slice(Math.max(1, fastQueryCount - 1), Math.min(8, queries.length));
+  /* A partial cache may have been created by the foreground path before it
+     was allowed to expand a complete-series parent. Revisit the first rail as
+     part of background repair; starting at rail two left that parent stranded
+     forever as a one-program shelf. */
+  const reserveQueries = queries.slice(0, Math.min(8, queries.length));
   const fallbackQueries = iaFallbackQueries(themeTerms, denyTerms, mediaTypes);
-  const seed = { ...payload, items: candidates.slice(0, candidateCount), candidateItems: candidates, candidates: candidates.length };
+  const seed = { ...payload, lastGoodKey, items: candidates.slice(0, candidateCount), candidateItems: candidates, candidates: candidates.length };
   const task = expandAndCacheIaQueue(seed, reserveQueries.slice(0, Math.min(IA_BACKGROUND_RESERVE_LANES, reserveQueries.length)), fallbackQueries.slice(0, Math.min(IA_BACKGROUND_FALLBACK_LANES, fallbackQueries.length)), channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, requestedCount, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, Number(payload.rotation) || 0)
     .catch((error) => {
       console.warn(JSON.stringify({ event: "ia-cached-rehydration-failed", message: String(error && error.message || error) }));
@@ -2066,7 +2086,7 @@ function scheduleCachedIaHydration(payload, requestedCount, cacheOrigin, cacheKe
   ctx.waitUntil(task);
 }
 
-async function expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, rotation) {
+async function expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, rotation, forceDiscovery = false) {
   let expanded = payload;
   const threshold = Math.min(candidateCount, 8);
   /* A large candidate list is not the same thing as a deep playable shelf:
@@ -2074,13 +2094,17 @@ async function expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, c
      the hydrated depth is below the requested shelf, even if discovery found
      eight or more names already. */
   const needsPlayableDepth = Number(expanded && expanded.ready || 0) < count;
-  if ((expanded.items.length < threshold || needsPlayableDepth) && reserveQueries.length) {
+  if ((forceDiscovery || expanded.items.length < threshold || needsPlayableDepth) && reserveQueries.length) {
     const reserve = await buildIaQueue(channel, reserveQueries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, candidateCount, cacheOrigin, ctx, rotation);
-    expanded = mergeIaQueuePayload(expanded, reserve, candidateCount, { reserve: true });
+    expanded = forceDiscovery
+      ? mergeIaQueuePayload(reserve, expanded, candidateCount, { reserve: true, refreshed: true })
+      : mergeIaQueuePayload(expanded, reserve, candidateCount, { reserve: true });
   }
-  if ((expanded.items.length < threshold || needsPlayableDepth) && fallbackQueries.length) {
+  if ((forceDiscovery || expanded.items.length < threshold || needsPlayableDepth) && fallbackQueries.length) {
     const rescue = await buildIaQueue(channel, fallbackQueries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, candidateCount, cacheOrigin, ctx, rotation);
-    expanded = mergeIaQueuePayload(expanded, rescue, candidateCount, { rescue: true });
+    expanded = forceDiscovery
+      ? mergeIaQueuePayload(rescue, expanded, candidateCount, { rescue: true, refreshed: true })
+      : mergeIaQueuePayload(expanded, rescue, candidateCount, { rescue: true });
   }
   if (!expanded.items.length) return null;
   const hydrated = await hydrateIaQueue(expanded, count, cacheOrigin, ctx, mediaTypes);
@@ -2100,10 +2124,10 @@ async function expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, c
    rotation in flight, though: the foreground hydration and a later poll can
    both discover that the shelf needs help, and duplicate expansions just
    compete for the same Archive budget. */
-function scheduleIaExpansion(seed, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, rotation) {
+function scheduleIaExpansion(seed, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, rotation, forceDiscovery = false) {
   const key = cacheKey && cacheKey.url;
   if (!key || !ctx || iaQueueExpansionInflight.has(key)) return;
-  const task = expandAndCacheIaQueue(seed, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, rotation)
+  const task = expandAndCacheIaQueue(seed, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, rotation, forceDiscovery)
     .catch((error) => {
       console.warn(JSON.stringify({ event: "ia-background-replenishment-failed", channel, message: String(error && error.message || error) }));
     })
@@ -2177,7 +2201,7 @@ async function getIaQueue(request, url, env, ctx) {
           if (cachedPayload.partial && Array.isArray(cachedPayload.candidateItems)) {
             const strictQueue = themeMinScore > 1;
             const candidateCount = Math.min(strictQueue ? 30 : 20, Math.max(count, count * (strictQueue ? 6 : 4)));
-            scheduleCachedIaHydration(cachedPayload, count, url.origin, cacheKey, sharedKey, env, ctx, mediaTypes, channel, themeTerms, denyTerms, diversity, themeMinScore, candidateCount, queries);
+            scheduleCachedIaHydration(cachedPayload, count, url.origin, cacheKey, sharedKey, lastGoodKey, env, ctx, mediaTypes, channel, themeTerms, denyTerms, diversity, themeMinScore, candidateCount, queries);
           }
           return cached;
         }
@@ -2200,7 +2224,7 @@ async function getIaQueue(request, url, env, ctx) {
       if (!sharedReady && shared.partial && Array.isArray(shared.candidateItems)) {
         const strictQueue = themeMinScore > 1;
         const candidateCount = Math.min(strictQueue ? 30 : 20, Math.max(count, count * (strictQueue ? 6 : 4)));
-        scheduleCachedIaHydration(shared, count, url.origin, cacheKey, sharedKey, env, ctx, mediaTypes, channel, themeTerms, denyTerms, diversity, themeMinScore, candidateCount, queries);
+        scheduleCachedIaHydration(shared, count, url.origin, cacheKey, sharedKey, lastGoodKey, env, ctx, mediaTypes, channel, themeTerms, denyTerms, diversity, themeMinScore, candidateCount, queries);
         /* A partial exact-rotation shelf should start the background refill,
            but it should not force the viewer to live on one program. Serve a
            rotated full last-good shelf while the current rotation finishes. */
@@ -2232,19 +2256,35 @@ async function getIaQueue(request, url, env, ctx) {
       return response;
     }
     /* A reload or companion device can arrive after the exact rotation cache
-       expires but before the next approved rail is ready. If the last-good
-       shelf belongs to this same rotation, serve it as the warm start instead
-       of making the viewer wait through a fresh Archive search. A changed
-       rotation still goes through normal discovery so freshness wins. */
+       expires but before the next approved rail is ready. A full shelf from
+       this exact editorial family is always safer than dead air. On a new
+       rotation we rotate it immediately, then rebuild that rotation behind the
+       response so the next poll receives fresh programming rather than a
+       permanent five-item loop. */
     const warmLastGood = await sharedQueueGet(env, lastGoodKey);
-    if (warmLastGood && Array.isArray(warmLastGood.items) && warmLastGood.items.length >= count && Number(warmLastGood.ready) >= count && Number(warmLastGood.rotation || 0) === rotation) {
+    if (warmLastGood && Array.isArray(warmLastGood.items) && warmLastGood.items.length >= count && Number(warmLastGood.ready) >= count) {
+      const sameRotation = Number(warmLastGood.rotation || 0) === rotation;
+      const offset = sameRotation ? 0 : Math.abs(Number(rotation) || 0) % warmLastGood.items.length;
       const warmFallback = {
         ...warmLastGood,
+        items: warmLastGood.items.slice(offset).concat(warmLastGood.items.slice(0, offset)),
         rotation,
         fallback: true,
         stale: true,
+        fallbackRotation: Number(warmLastGood.rotation) || 0,
         generatedAt: new Date().toISOString(),
       };
+      if (!sameRotation) {
+        const warmStrictQueue = themeMinScore > 1;
+        const warmCandidateCount = Math.min(warmStrictQueue ? 30 : 20, Math.max(count, count * (warmStrictQueue ? 6 : 4)));
+        const warmCandidates = Array.isArray(warmLastGood.candidateItems) && warmLastGood.candidateItems.length
+          ? warmLastGood.candidateItems
+          : warmLastGood.items;
+        const warmSeed = { ...warmLastGood, lastGoodKey, rotation, items: warmCandidates.slice(0, warmCandidateCount), candidateItems: warmCandidates, candidates: warmCandidates.length };
+        const warmReserveQueries = queries.slice(0, Math.min(IA_BACKGROUND_RESERVE_LANES, queries.length));
+        const warmFallbackQueries = iaFallbackQueries(themeTerms, denyTerms, mediaTypes).slice(0, IA_BACKGROUND_FALLBACK_LANES);
+        scheduleIaExpansion(warmSeed, warmReserveQueries, warmFallbackQueries, channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, warmCandidateCount, url.origin, cacheKey, sharedKey, env, ctx, rotation, true);
+      }
       const warmResponse = cacheableJson(warmFallback, 5, {
         "X-Afterglow-Source": "program-director-warm-start",
         "X-Afterglow-Cache": "shared-last-good",
@@ -2272,7 +2312,7 @@ async function getIaQueue(request, url, env, ctx) {
        rail. Keep the second fast rail at the front of the reserve list so a
        sparse winner can widen into the app's next approved lane immediately;
        otherwise that rail was launched, observed, and then discarded. */
-    const reserveQueries = queries.slice(Math.max(1, fastQueries.length - 1), Math.min(8, queries.length));
+    const reserveQueries = queries.slice(0, Math.min(8, queries.length));
     let payload = await buildIaQueue(channel, fastQueries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, candidateCount, url.origin, ctx, rotation, IA_FAST_SEARCH_TIMEOUT_MS, true);
     const fallbackQueries = iaFallbackQueries(themeTerms, denyTerms, mediaTypes);
     if (!payload.items.length) {
@@ -2312,11 +2352,12 @@ async function getIaQueue(request, url, env, ctx) {
         emergency: true,
       };
     }
+    payload = { ...payload, lastGoodKey };
     /* A first-approved rail may return one to four candidates even when the
        channel has more approved material in its reserve lanes. Start widening
        any sub-five shelf immediately in the background; waiting until the
        first hydrate completes made rotated channels look permanently shallow. */
-    const needsExpansion = payload.items.length < count || payload.emergency === true;
+    const needsExpansion = payload.items.length < count || payload.emergency === true || payload.deferredContainerExpansion === true;
     /* Reserve and rescue lanes are valuable for diversity but must never sit
        in front of first tune. Start them as observed background work; the
        first three subject-locked rails below can already hydrate and return a

@@ -84,10 +84,10 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
-/* v42 keeps a five-program last-good shelf tied to the channel's editorial
+/* v43 keeps a five-program last-good shelf tied to the channel's editorial
    identity. A channel that tightens its approved vocabulary must never inherit
    a complete but now-disallowed shelf from an older definition. */
-const IA_QUEUE_CACHE_VERSION = "v42";
+const IA_QUEUE_CACHE_VERSION = "v43";
 const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
 /* A short per-isolate burst cache absorbs repeat requests from a TV, phone,
    and guide opened in quick succession. It is intentionally tiny and
@@ -1738,6 +1738,8 @@ async function getIaMetadata(id, requestUrl, ctx) {
 function queueItem(doc, lane) {
   return {
     identifier: doc.identifier,
+    sourceIdentifier: doc.sourceIdentifier || doc.identifier,
+    fileName: doc.fileName || null,
     title: doc.title || doc.identifier,
     year: doc.year || null,
     runtime: doc.runtime || null,
@@ -1746,6 +1748,39 @@ function queueItem(doc, lane) {
     collection: doc.collection || null,
     lane: Number.isInteger(lane) ? lane : null,
   };
+}
+
+/* IA often stores an entire season/serial as one item with many independently
+   playable files. Expand that manifest into episode candidates before ranking;
+   the player still receives one direct file URL per candidate. */
+async function expandArchiveContainer(doc, cacheOrigin, ctx) {
+  const label = String(doc && doc.title || "");
+  if (!doc || !doc.identifier || !/(?:complete|全集|full\s+series|full\s+serial|season\s*\d|series\s*\d|serial)/i.test(label)) return [];
+  try {
+    const key = new Request(cacheOrigin + IA_PREFIX + "/cache/metadata/" + encodeURIComponent(doc.identifier));
+    const payload = await cachedArchiveJson(key, IA_METADATA_TTL_SECONDS, async () => {
+      const upstream = await archiveFetch("https://archive.org/metadata/" + encodeURIComponent(doc.identifier), {}, 4200);
+      if (!upstream.ok) throw new Error("archive metadata " + upstream.status);
+      return upstream.json();
+    }, ctx);
+    const files = Array.isArray(payload && payload.files) ? payload.files : [];
+    const video = files.filter((file) => file && file.name && /\.mp4$|\.m4v$|\.webm$|\.ogv$/i.test(file.name)
+      && !/(?:thumb|sample|trailer|preview|cover|poster|torrent|\.txt$|\.xml$)/i.test(file.name));
+    if (video.length < 2 || video.length > 240) return [];
+    const md = payload.metadata || {};
+    const base = String(doc.title || doc.identifier).replace(/\s+/g, " ").trim();
+    return video.map((file) => {
+      const fileTitle = String(file.name).split("/").pop().replace(/\.[^.]+$/, "").replace(/[._]+/g, " ").replace(/\s+/g, " ").trim();
+      const title = fileTitle && fileTitle.toLowerCase() !== base.toLowerCase() ? fileTitle : base + " · " + file.name;
+      const seasonEpisode = fileTitle.match(/\bS(\d{1,2})E(\d{1,3})\b/i) || fileTitle.match(/\b(?:Ch|Chapter|Ep|Episode)[ _-]?(\d{1,3})\b/i);
+      return { ...doc, identifier: doc.identifier + "::" + file.name, sourceIdentifier: doc.identifier,
+        fileName: file.name, title, season: seasonEpisode ? Number(seasonEpisode[1]) : null,
+        episode: seasonEpisode ? Number(seasonEpisode[2]) : null, runtime: file.length || doc.runtime,
+        collection: Array.isArray(md.collection) ? (md.collection[0] || doc.collection) : (md.collection || doc.collection) };
+    });
+  } catch {
+    return [];
+  }
 }
 
 function queueKey(value) {
@@ -1783,12 +1818,16 @@ function queueFileUrls(id, payload, name) {
 
 async function queuePlayable(id, cacheOrigin, ctx, mediaTypes = [], attempt = 0) {
   try {
-    const cacheKey = new Request(cacheOrigin + IA_PREFIX + "/cache/metadata/" + id);
+    const rawId = String(id || "");
+    const separator = rawId.indexOf("::");
+    const sourceId = separator >= 0 ? rawId.slice(0, separator) : rawId;
+    const requestedFile = separator >= 0 ? rawId.slice(separator + 2) : "";
+    const cacheKey = new Request(cacheOrigin + IA_PREFIX + "/cache/metadata/" + encodeURIComponent(sourceId));
     const inflightKey = cacheKey.url;
     let metadata = iaMetadataInflight.get(inflightKey);
     if (!metadata) {
       metadata = cachedArchiveJson(cacheKey, IA_METADATA_TTL_SECONDS, async () => {
-        const upstream = await archiveFetch("https://archive.org/metadata/" + encodeURIComponent(id), {}, 4200);
+        const upstream = await archiveFetch("https://archive.org/metadata/" + encodeURIComponent(sourceId), {}, 4200);
         if (!upstream.ok) throw new Error("archive metadata " + upstream.status);
         return upstream.json();
       }, ctx).finally(() => {
@@ -1810,10 +1849,11 @@ async function queuePlayable(id, cacheOrigin, ctx, mediaTypes = [], attempt = 0)
        video channel made a seemingly healthy shelf fail at playback time. */
     const wantsVideo = mediaTypes.includes("movies");
     const wantsAudio = mediaTypes.includes("audio");
-    const chosen = wantsVideo ? video[0] : wantsAudio ? audio : (video[0] || audio);
+    const requested = requestedFile && files.find((file) => file && file.name === requestedFile);
+    const chosen = requested || (wantsVideo ? video[0] : wantsAudio ? audio : (video[0] || audio));
     if (!chosen) return null;
     const urls = queueFileUrls(id, payload, chosen.name);
-    return urls.length ? { type: chosen === video[0] ? "video" : "audio", url: urls[0], alts: urls.slice(1, 8) } : null;
+    return urls.length ? { type: video.includes(chosen) ? "video" : "audio", url: urls[0], alts: urls.slice(1, 8) } : null;
   } catch {
     if (attempt < 1) {
       await new Promise((resolve) => setTimeout(resolve, 180));
@@ -1866,9 +1906,17 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, mediaTypes,
       // Archive.org collections are catalog pages, not programs. Keeping one in
       // a shelf guarantees a failed playback attempt, so reject them before
       // ranking, caching, or media hydration for every IA channel.
-      return (result.docs || []).filter((doc) => doc && safeIaId(doc.identifier) && String(doc.mediatype || "").toLowerCase() !== "collection" && (!mediaTypes.length || mediaTypes.includes(String(doc.mediatype || "").toLowerCase())))
-        .sort((a, b) => themeScore(b, themeTerms) - themeScore(a, themeTerms)).map((doc) => ({ doc, lane }))
-        .filter((candidate) => matchesTheme(candidate.doc, themeTerms, themeMinScore) && !matchesDeny(candidate.doc, denyTerms));
+      const docs = (result.docs || []).filter((doc) => doc && safeIaId(doc.identifier) && String(doc.mediatype || "").toLowerCase() !== "collection" && (!mediaTypes.length || mediaTypes.includes(String(doc.mediatype || "").toLowerCase())))
+        .sort((a, b) => themeScore(b, themeTerms) - themeScore(a, themeTerms));
+      const approved = docs.filter((doc) => matchesTheme(doc, themeTerms, themeMinScore) && !matchesDeny(doc, denyTerms));
+      const expanded = [];
+      for (const doc of approved.slice(0, 6)) {
+        const episodes = await expandArchiveContainer(doc, cacheOrigin, ctx);
+        for (const episode of episodes) {
+          if (matchesTheme(episode, themeTerms, themeMinScore) && !matchesDeny(episode, denyTerms)) expanded.push(episode);
+        }
+      }
+      return [...expanded, ...approved].map((doc) => ({ doc, lane }));
     } catch {
       return [];
     }

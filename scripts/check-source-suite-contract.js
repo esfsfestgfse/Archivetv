@@ -12,7 +12,7 @@ for (const file of files) {
   const source = fs.readFileSync(path.join(repo, file), 'utf8');
   const name = file;
   const required = [
-    [/V2_SOURCE_CACHE_VERSION=15/, 'source catalog cache version must invalidate old language-filtered catalogs'],
+    [/V2_SOURCE_CACHE_VERSION=16/, 'source catalog cache version must invalidate thin language-filtered catalogs'],
     [/cacheValid=!!cached&&Number\(cached\.version\|\|0\)===V2_SOURCE_CACHE_VERSION/, 'only a current source catalog cache may seed a new rotation'],
     [/item\.account,item\.channelTitle/, 'YouTube language screening must inspect channel identity'],
     [/V2_SOURCE_CACHE_TTL=12\*60\*1000/, 'source catalog cache must expire quickly enough to rotate'],
@@ -52,7 +52,8 @@ for (const file of files) {
     [/\.slice\(0,4\),queries=v2DiscoveryQueries\(profile,"peertube"/, 'PeerTube discovery must use all approved instances and anchored rotating query lanes'],
     [/V2_SOURCE_MAX_CONCURRENCY=8/, 'PeerTube discovery must complete its first pass with bounded parallel fan-out'],
     [/queries=v2DiscoveryQueries\(profile,"peertube",rotation,Math\.min\(4,/, 'PeerTube discovery must use an anchored four-query first pass'],
-    [/if\(raw\.length<3\)/, 'PeerTube fallback must be reserved for genuinely sparse first passes'],
+    [/profile\.profileKey==="cartoon-time-machine"\)limit=Math\.max\(Number\(limit\)\|\|0,Number\(profile\.queryLimit\)\|\|8\)/, 'Cartoon Time Machine must use its full declared YouTube discovery pool'],
+    [/19\[3-9\]\\d\|200\\d\|classic\|vintage\|retro\|golden age\|saturday morning/, 'Cartoon Time Machine must reject modern animation bleed without an era signal'],
     [/Math\.min\(24,V2_SOURCE_MAX_DETAIL\)/, 'PeerTube detail hydration must retain a deeper catalog'],
     [/aspect=v2AspectRatio\(d\)\|\|v2AspectRatio\(x\)/, 'PeerTube must verify the source aspect ratio'],
     [/!v2Relevant\(profile,candidate\)/, 'PeerTube candidates must pass strict qualification after full metadata hydration'],

@@ -8,7 +8,7 @@ let failures = 0;
 for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
   const source = fs.readFileSync(path.join(root, file), 'utf8');
   const checks = [
-    ['invalidates prior narrow source caches', source.includes('V2_SOURCE_CACHE_VERSION=15')],
+    ['invalidates prior narrow source caches', source.includes('V2_SOURCE_CACHE_VERSION=16')],
     ['retains cached verified catalog items', source.includes('prior=v2Unique(cachedItems.concat(state.items||[]))')],
     ['mixes retained and newly discovered items', source.includes('merged=v2Unique(prior.concat(discovered))')],
     ['keeps the 96-item catalog ceiling', source.includes('V2_SOURCE_CATALOG_SIZE=96')],

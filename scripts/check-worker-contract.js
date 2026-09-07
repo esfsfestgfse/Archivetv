@@ -17,7 +17,7 @@ if (numericConstant('IA_SEARCH_TTL_SECONDS') < 21600) issues.push('Archive searc
 if (!/IA_SEARCH_CACHE_VERSION\s*=\s*"v5"/.test(source) || !/"mediatype"\]\.forEach\(\(field\) => upstreamUrl\.searchParams\.append\("fl\[\]", field\)\)/.test(source)) issues.push('Archive discovery must request mediatype and invalidate shelves built without it');
 if (numericConstant('IA_METADATA_TTL_SECONDS') < 86400) issues.push('resolved media metadata must stay warm for at least one day');
 if (numericConstant('IA_QUEUE_TTL_SECONDS') < 86400) issues.push('five-show queues must stay warm for at least one day');
-if (!/IA_QUEUE_CACHE_VERSION\s*=\s*"v43"/.test(source)) issues.push('queue cache version must invalidate stale last-good shelves');
+if (!/IA_QUEUE_CACHE_VERSION\s*=\s*"v44"/.test(source)) issues.push('queue cache version must invalidate stale last-good shelves');
 if (!/IA_QUEUE_MEMORY_TTL_SECONDS\s*=\s*20/.test(source) || !/IA_QUEUE_MEMORY_MAX\s*=\s*64/.test(source) || !/function iaQueueMemoryGet\(key\)/.test(source) || !/function iaQueueMemoryPut\(key, payload, ttlSeconds\)/.test(source)) issues.push('queue path must coalesce only short-lived, bounded per-edge bursts');
 if (!/IA_SHARED_QUEUE_READ_TIMEOUT_MS\s*=\s*700/.test(source) || !/Promise\.race\(\[/.test(source) || !/IA_SHARED_QUEUE_READ_TIMEOUT_MS\)/.test(source)) issues.push('shared queue reads must be bounded so a KV edge delay cannot stall channel changes');
 if (!/const memory = iaQueueMemoryGet\(cacheKey\.url\)/.test(source) || !/program-director-memory/.test(source)) issues.push('queue path must read the per-edge burst coalescer before starting duplicate Archive work');
@@ -49,6 +49,7 @@ if (!/const chosen = requested \|\| \(wantsVideo \? video\[0\] : wantsAudio \? a
 if (!/type: video\.includes\(chosen\) \? "video" : "audio"/.test(source)) issues.push('queue media type must describe the selected derivative');
 if (!/async function expandArchiveContainer\(doc, cacheOrigin, ctx\)/.test(source) || !/sourceIdentifier: doc\.identifier/.test(source) || !/fileName: file\.name/.test(source)) issues.push('complete-series IA items must expand their individual video files with parent provenance');
 if (!/identifier: doc\.identifier \+ "::" \+ file\.name/.test(source) || !/const requestedFile = separator >= 0/.test(source)) issues.push('expanded IA episode identifiers must select the requested file without collapsing sibling episodes');
+if (!/const videoByEpisode = new Map\(\)/.test(source) || !/videoByEpisode\.set\(key, file\)/.test(source)) issues.push('complete-series expansion must collapse duplicate encodes into one episode candidate');
 if (!/attempt < 1/.test(source)) issues.push('metadata transport failures need one bounded retry');
 if (numericConstant('IA_PARTIAL_QUEUE_TTL_SECONDS') !== 15) issues.push('partial shelves must be retried on a short fifteen-second cadence');
 if (!/ready\.ready >= count \? IA_QUEUE_TTL_SECONDS : IA_PARTIAL_QUEUE_TTL_SECONDS/.test(source)) issues.push('underfilled shelves must not receive the full queue TTL');

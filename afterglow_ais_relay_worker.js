@@ -84,10 +84,10 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
-/* v43 keeps a five-program last-good shelf tied to the channel's editorial
+/* v44 keeps a five-program last-good shelf tied to the channel's editorial
    identity. A channel that tightens its approved vocabulary must never inherit
    a complete but now-disallowed shelf from an older definition. */
-const IA_QUEUE_CACHE_VERSION = "v43";
+const IA_QUEUE_CACHE_VERSION = "v44";
 const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
 /* A short per-isolate burst cache absorbs repeat requests from a TV, phone,
    and guide opened in quick succession. It is intentionally tiny and
@@ -1764,8 +1764,16 @@ async function expandArchiveContainer(doc, cacheOrigin, ctx) {
       return upstream.json();
     }, ctx);
     const files = Array.isArray(payload && payload.files) ? payload.files : [];
-    const video = files.filter((file) => file && file.name && /\.mp4$|\.m4v$|\.webm$|\.ogv$/i.test(file.name)
+    const videoCandidates = files.filter((file) => file && file.name && /\.mp4$|\.m4v$|\.webm$|\.ogv$/i.test(file.name)
       && !/(?:thumb|sample|trailer|preview|cover|poster|torrent|\.txt$|\.xml$)/i.test(file.name));
+    const videoByEpisode = new Map();
+    for (const file of videoCandidates) {
+      const key = String(file.name).replace(/\.[^.]+$/, "").replace(/(?:[._ -](?:ia|mpeg4|h264|x264|webm|ogv))$/i, "").toLowerCase();
+      const previous = videoByEpisode.get(key);
+      const score = (candidate) => /h\.?264/i.test(String(candidate && candidate.format || "")) ? 0 : /\.mp4$|\.m4v$/i.test(candidate.name) ? 1 : 2;
+      if (!previous || score(file) < score(previous)) videoByEpisode.set(key, file);
+    }
+    const video = [...videoByEpisode.values()];
     if (video.length < 2 || video.length > 240) return [];
     const md = payload.metadata || {};
     const base = String(doc.title || doc.identifier).replace(/\s+/g, " ").trim();

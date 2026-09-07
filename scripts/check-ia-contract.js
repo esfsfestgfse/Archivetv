@@ -65,7 +65,7 @@ if (!/delete iaProgramMedia\[rapid\.id\]; iaReadyShelfSave\(ch\); warmIAQueueHea
 if (!/v\.addEventListener\("playing",\(\)=>\{ if\(my===token\)\{ fin\(true\)/.test(source)) issues.push('direct media must clear tuning only after a real playing event');
 if (/addEventListener\("canplay",\(\)=>\{ if\(my===token\)\{ fin\(true\)/.test(source)) issues.push('canplay must not be treated as playback success');
 if (!/const expectedType=\(ch&&ch\.audio\)\?"audio":"video"/.test(source) || !/it\.type!==expectedType/.test(source)) issues.push('direct playback must enforce the channel media type');
-if (!/cacheFresh=.*V2_SOURCE_CACHE_VERSION/.test(source) || !/if\(cacheFresh\)return Promise\.resolve\(state\.items\)/.test(source)) issues.push('fresh source catalogs must be cache-first to protect upstream quota');
+if (!/cacheValid=!!cached&&Number\(cached\.version\|\|0\)===V2_SOURCE_CACHE_VERSION/.test(source) || !/if\(cacheFresh\)return Promise\.resolve\(state\.items\)/.test(source)) issues.push('fresh source catalogs must be cache-first to protect upstream quota');
 if (!/if\(prog\)\{buildProgramQueries\(prog,ch,false\)/.test(source)) issues.push('marathon mode must preserve PROGRAM channel constraints');
 
 const slotBlock = blockAfter('function slotFor(', '{', '}');

@@ -12,7 +12,9 @@ for (const file of files) {
   const source = fs.readFileSync(path.join(repo, file), 'utf8');
   const name = file;
   const required = [
-    [/V2_SOURCE_CACHE_VERSION=14/, 'source catalog cache version must invalidate the pre-retention catalog'],
+    [/V2_SOURCE_CACHE_VERSION=15/, 'source catalog cache version must invalidate old language-filtered catalogs'],
+    [/cacheValid=!!cached&&Number\(cached\.version\|\|0\)===V2_SOURCE_CACHE_VERSION/, 'only a current source catalog cache may seed a new rotation'],
+    [/item\.account,item\.channelTitle/, 'YouTube language screening must inspect channel identity'],
     [/V2_SOURCE_CACHE_TTL=12\*60\*1000/, 'source catalog cache must expire quickly enough to rotate'],
     [/function v2MapLimit\(/, 'provider fan-out must be concurrency bounded'],
     [/function v2Verified\(/, 'items must carry a common verification envelope'],

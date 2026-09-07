@@ -1613,7 +1613,7 @@ body.cast-receiver .guide-directory .chcell.cast-focus .cc-n{color:#b9ffd0!impor
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.9.7-desktop.082-ia-episode-expansion";
+window.__ATV_BUILD="1.9.7-desktop.083-drivein-commercial-line";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -7805,6 +7805,14 @@ function playFile(it,ch,sl,my,isFallback){return new Promise(res=>{
     if(!powered) return;
     if(it.isAd){ if(adsOn&&adQueue>0){ if(await nextAd(ch,sl,my)) return; } else adQueue=0;
       if(token===my&&powered)tuneNum(curNum); return; }
+    /* Drive-In commercial line: use the dedicated bumper/intermission pool for this station.
+       These are video-only interstitials and never become ordinary program items. Keep this
+       before the generic bumper/ad path so The Drive-In gets its own identity. */
+    if(bumperOn && ch && ch.nm==="The Drive-In" && !ch.audio && Math.random()<0.55){
+      await fadeOutCurrent();
+      if(await playDriveInBumper(ch,sl,my)) return;
+      /* No matching bumper: continue to the normal video commercial path. */
+    }
     /* Station bumper insertion — 40% chance on network-shaped channels. Preempts ad break so we
        don't chain (real TV was often bumper OR commercial, not both). Bumper's own onended re-enters
        here with isAd:true and adQueue:0, which cleanly falls through to tuneNum for next program. */
@@ -16288,12 +16296,37 @@ async function nextAd(ch,sl,my){
    Verified content source: classic_tv_commercials + subject:"station identification" returns
    ~15+ stable items last checked (HGTV, A&E, CBS, CNN, Fox News idents). */
 var bumperOn=store.get("bumpers",true), BUMPER_Q=null;
+var DRIVE_IN_BUMPER_Q=null;
 function bumperQueries(){
   if(!BUMPER_Q) BUMPER_Q=[
     'collection:classic_tv_commercials AND (subject:"station identification" OR subject:"network ident" OR subject:"station id")',
     'collection:classic_tv_commercials AND (title:"station id" OR title:"network ident" OR title:"sign off")'
   ];
   return BUMPER_Q;
+}
+function driveInBumperQueries(){
+  if(!DRIVE_IN_BUMPER_Q) DRIVE_IN_BUMPER_Q=[
+    /* The first lanes prioritize actual bumpers/ids and short intermission material. */
+    'mediatype:movies AND (title:("drive-in bumper" OR "drive in bumper" OR "drive-in intermission" OR "drive in intermission" OR "drive-in theater bumper" OR "drive in theater bumper") OR subject:("drive-in bumper" OR "drive in bumper" OR "drive-in intermission" OR "drive in intermission"))',
+    'mediatype:movies AND (title:("drive-in" OR "drive in") AND ("station identification" OR "station id" OR "coming attractions" OR "intermission" OR "snack bar" OR "eat at the" OR "refreshment"))',
+    'collection:classic_tv_commercials AND mediatype:movies AND (subject:("drive-in" OR "drive in" OR "movie theater" OR "coming attractions") OR title:("drive-in" OR "drive in" OR "coming attractions"))',
+    'collection:vhscommercials AND mediatype:movies AND (subject:("drive-in" OR "drive in" OR "movie theater" OR "intermission") OR title:("drive-in" OR "drive in" OR "intermission"))',
+    'mediatype:movies AND (subject:("drive-in theater" OR "drive-in movie" OR "drive in movie" OR "drive-in culture") AND (bumper OR intermission OR "coming attractions" OR "snack bar"))'
+  ];
+  return DRIVE_IN_BUMPER_Q;
+}
+async function playDriveInBumper(ch,sl,my){
+  if(my!==token) return false;
+  try{
+    var item=await pickFromQueries(driveInBumperQueries());
+    if(!item) return false;
+    var pl=await resolvePlayable(item.identifier);
+    /* Never allow an audio-only derivative into a video station's commercial line. */
+    if(!pl||pl.type!=="video") return false;
+    pl.title=item.title||"Drive-In Intermission";
+    pl.isAd=true; pl.isBumper=true; pl.isDriveInBumper=true;
+    return await playFile(pl,ch,{show:"DRIVE-IN COMMERCIAL LINE",isAd:true,isBumper:true,isDriveInBumper:true,genre:"drivein",queries:sl&&sl.queries},my);
+  }catch(e){ nlog("drivein-bumper",false,(e&&e.message)||e); return false; }
 }
 async function playBumper(ch,sl,my){
   if(my!==token) return false;

@@ -1670,7 +1670,7 @@ html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.9.7-mobile.093-fresh-queue-handoff";
+window.__ATV_BUILD="1.9.7-mobile.094-commercial-context";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -16447,9 +16447,38 @@ var AD_LANES=[
   {years:[2010,2019],topics:["television commercial","video commercial","public service announcement","brand commercial"],collections:["opensource_movies","classic_tv_commercials"]},
   {years:[2020,2026],topics:["television commercial","video commercial","public service announcement","brand commercial"],collections:["opensource_movies","classic_tv_commercials"]}
 ];
+/* Radio ads belong only on radio stations. The video lanes above intentionally
+   never search this vocabulary, so a radio spot cannot interrupt television. */
+var AD_AUDIO_LANES=[
+  {years:[1920,1969],topics:["radio commercial","radio advertisement","sponsor message","public service announcement"],collections:[]},
+  {years:[1970,1989],topics:["radio spot","sponsor message","station commercial","public service announcement"],collections:[]},
+  {years:[1990,2009],topics:["radio commercial","radio advertisement","radio spot","sponsor message"],collections:[]},
+  {years:[2010,2026],topics:["radio commercial","radio advertisement","station commercial","public service announcement"],collections:[]}
+];
+/* A break should feel like it belongs between the programs around it. These
+   are weighting hints, never genre gates: an exact era lane can still supply a
+   usable vintage spot if Archive's metadata is thin. */
+var AD_CONTEXT_TOPICS={
+  TOON:["toy commercial","cereal commercial","candy commercial","family entertainment commercial"],
+  SPORTS:["automobile commercial","sporting goods commercial","sports drink commercial","snack commercial"],
+  MOV:["movie theater commercial","home video commercial","automobile commercial","snack commercial"],
+  TV:["television commercial","network promo","household commercial","food commercial"],
+  DOC:["public service announcement","automobile commercial","household commercial","travel commercial"],
+  RETRO:["vintage commercial","home video commercial","electronics commercial","television commercial"],
+  HOL:["holiday commercial","toy commercial","food commercial","department store commercial"],
+  SOURCE:["public service announcement","book commercial","technology commercial","household commercial"],
+  MUS:["record store commercial","stereo commercial","automobile commercial","beverage commercial"]
+};
+function adContextTopics(ch){
+  if(ch&&ch.audio)return ["radio commercial","radio advertisement","sponsor message","radio spot"];
+  var name=String(ch&&ch.nm||"").toLowerCase();
+  if(/hunt|tight lines|camp|range|sporting life|conservation/.test(name))return ["outdoor gear commercial","fishing gear commercial","hunting gear commercial","truck commercial"];
+  if(/auto|racing|motor|gear head|railroad|aviation/.test(name))return ["automobile commercial","motor oil commercial","tire commercial","truck commercial"];
+  return (AD_CONTEXT_TOPICS[String(ch&&ch.cat||"").toUpperCase()]||AD_CONTEXT_TOPICS.TV).slice();
+}
 function adQueries(ch){
-  var mt=(ch&&ch.audio)?"audio":"movies", start=(adLaneCursor%AD_LANES.length);adLaneCursor=(adLaneCursor+1)%AD_LANES.length;store.set("adLaneCursor",adLaneCursor);var lanes=AD_LANES.slice(start).concat(AD_LANES.slice(0,start)), qs=[];
-  lanes.forEach(function(lane){var terms=lane.topics.map(programPhrase).join(" OR "), clause="(subject:("+terms+") OR title:("+terms+"))", base="mediatype:"+mt+" AND "+clause+" AND year:["+lane.years[0]+" TO "+lane.years[1]+"]";
+  var mt=(ch&&ch.audio)?"audio":"movies",isAudio=mt==="audio", sourceLanes=isAudio?AD_AUDIO_LANES:AD_LANES,start=(adLaneCursor%sourceLanes.length);adLaneCursor=(adLaneCursor+1)%sourceLanes.length;store.set("adLaneCursor",adLaneCursor);var lanes=sourceLanes.slice(start).concat(sourceLanes.slice(0,start)),context=adContextTopics(ch),qs=[];
+  lanes.forEach(function(lane,index){var offset=context.length?(start+index)%context.length:0,matched=context.slice(offset).concat(context.slice(0,offset)).slice(0,2),terms=lane.topics.concat(matched).map(programPhrase).join(" OR "),clause="(subject:("+terms+") OR title:("+terms+"))",videoDeny=isAudio?"":" AND NOT (subject:(\"audio only\" OR \"radio commercial\" OR \"radio advertisement\" OR \"audio commercial\") OR title:(\"audio only\" OR \"radio commercial\" OR \"radio advertisement\" OR \"audio commercial\"))",audioDeny=isAudio?" AND NOT (subject:podcast OR title:podcast OR collection:podcasts)":"",yearClause=isAudio?"":" AND year:["+lane.years[0]+" TO "+lane.years[1]+"]",base="mediatype:"+mt+" AND "+clause+yearClause+videoDeny+audioDeny;
     lane.collections.forEach(function(collection){qs.push("collection:"+collection+" AND "+base);});qs.push(base);
   });
   return qs;

@@ -1670,7 +1670,7 @@ html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.9.7-mobile.094-commercial-context";
+window.__ATV_BUILD="1.9.7-mobile.095-commercial-playback";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -16476,9 +16476,22 @@ function adContextTopics(ch){
   if(/auto|racing|motor|gear head|railroad|aviation/.test(name))return ["automobile commercial","motor oil commercial","tire commercial","truck commercial"];
   return (AD_CONTEXT_TOPICS[String(ch&&ch.cat||"").toUpperCase()]||AD_CONTEXT_TOPICS.TV).slice();
 }
+function adItemContextScore(item,ch){
+  if(ch&&ch.audio)return 1;
+  var text=(String(item&&item.title||"")+" "+String(item&&(item.subject||item.subjects)||"")).toLowerCase(),name=String(ch&&ch.nm||"").toLowerCase(),outdoor=/hunt|tight lines|camp|range|sporting life|conservation/.test(name),sports=!outdoor&&String(ch&&ch.cat||"").toUpperCase()==="SPORTS",score=0;
+  adContextTopics(ch).forEach(function(term){var words=String(term||"").toLowerCase().match(/[a-z0-9]+/g)||[],hits=words.filter(function(word){return text.indexOf(word)>=0;}).length,weight=8;if(sports){if(/sports drink|sporting goods/.test(term))weight=12;else if(/automobile/.test(term))weight=8;else if(/snack/.test(term))weight=2;}if(outdoor){if(/fishing|hunting/.test(term))weight=12;else if(/outdoor gear/.test(term))weight=9;else if(/truck/.test(term))weight=2;}if(hits===words.length&&hits)score+=weight;else if(hits>=Math.min(2,words.length))score+=2;});if(outdoor&&/(?:kids?|toy|matchbox|hot wheels|construction equipment)/.test(text))score=Math.max(0,score-8);if(outdoor&&/(?:dodge|ford|chevrolet|chevy|ram truck|pickup|jeep|gmc)/.test(text))score+=6;
+  return score;
+}
 function adQueries(ch){
   var mt=(ch&&ch.audio)?"audio":"movies",isAudio=mt==="audio", sourceLanes=isAudio?AD_AUDIO_LANES:AD_LANES,start=(adLaneCursor%sourceLanes.length);adLaneCursor=(adLaneCursor+1)%sourceLanes.length;store.set("adLaneCursor",adLaneCursor);var lanes=sourceLanes.slice(start).concat(sourceLanes.slice(0,start)),context=adContextTopics(ch),qs=[];
-  lanes.forEach(function(lane,index){var offset=context.length?(start+index)%context.length:0,matched=context.slice(offset).concat(context.slice(0,offset)).slice(0,2),terms=lane.topics.concat(matched).map(programPhrase).join(" OR "),clause="(subject:("+terms+") OR title:("+terms+"))",videoDeny=isAudio?"":" AND NOT (subject:(\"audio only\" OR \"radio commercial\" OR \"radio advertisement\" OR \"audio commercial\") OR title:(\"audio only\" OR \"radio commercial\" OR \"radio advertisement\" OR \"audio commercial\"))",audioDeny=isAudio?" AND NOT (subject:podcast OR title:podcast OR collection:podcasts)":"",yearClause=isAudio?"":" AND year:["+lane.years[0]+" TO "+lane.years[1]+"]",base="mediatype:"+mt+" AND "+clause+yearClause+videoDeny+audioDeny;
+  /* Archive frequently omits year metadata on otherwise excellent product ads.
+     Start video stations with one undated, station-matched rail; the dated
+     lanes below still determine variety and remain the fallback backbone. */
+  if(!isAudio&&context.length){var evergreenTerms=context.map(programPhrase).join(" OR "),evergreenClause="(subject:("+evergreenTerms+") OR title:("+evergreenTerms+"))",evergreenDeny=" AND NOT (subject:(\"audio only\" OR \"radio commercial\" OR \"radio advertisement\" OR \"audio commercial\") OR title:(\"audio only\" OR \"radio commercial\" OR \"radio advertisement\" OR \"audio commercial\"))";qs.push("mediatype:movies AND "+evergreenClause+evergreenDeny);}
+  lanes.forEach(function(lane,index){var offset=context.length?(start+index)%context.length:0,matched=context.slice(offset).concat(context.slice(0,offset)).slice(0,2),laneTerms=lane.topics.map(programPhrase).join(" OR "),contextTerms=matched.map(programPhrase).join(" OR "),laneClause="(subject:("+laneTerms+") OR title:("+laneTerms+"))",contextClause="(subject:("+contextTerms+") OR title:("+contextTerms+"))",videoDeny=isAudio?"":" AND NOT (subject:(\"audio only\" OR \"radio commercial\" OR \"radio advertisement\" OR \"audio commercial\") OR title:(\"audio only\" OR \"radio commercial\" OR \"radio advertisement\" OR \"audio commercial\"))",audioDeny=isAudio?" AND NOT (subject:podcast OR title:podcast OR collection:podcasts)":"",yearClause=isAudio?"":" AND year:["+lane.years[0]+" TO "+lane.years[1]+"]",base="mediatype:"+mt+" AND "+laneClause+yearClause+videoDeny+audioDeny,contextBase=base+(isAudio?"":" AND "+contextClause);
+    /* Context-first queries make a sports or outdoor break feel intentional.
+       The ordinary era rail stays immediately behind them as a bounded fallback. */
+    if(!isAudio&&matched.length){if(lane.collections[0])qs.push("collection:"+lane.collections[0]+" AND "+contextBase);qs.push(contextBase);}
     lane.collections.forEach(function(collection){qs.push("collection:"+collection+" AND "+base);});qs.push(base);
   });
   return qs;
@@ -16493,6 +16506,10 @@ async function pickAdItem(ch,left){
   if(!items.length)return null;
   var fresh=items.filter(function(item){return !adRecent[item.identifier]&&!adFailed[item.identifier];});
   if(!fresh.length)fresh=items.filter(function(item){return !adFailed[item.identifier];});
+  /* Keep broad era queries as the no-signal safety net, but never choose one
+     over a catalog item whose title/subjects actually match this station. */
+  var contextual=fresh.filter(function(item){return adItemContextScore(item,ch)>0;});
+  if(contextual.length)fresh=contextual;
   if(fresh.length)return fresh[Math.floor(Math.random()*fresh.length)];
   items.sort(function(a,b){return Number(adRecent[a.identifier]||0)-Number(adRecent[b.identifier]||0);});
   return items[0];

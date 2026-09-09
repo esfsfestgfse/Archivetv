@@ -1618,7 +1618,7 @@ body.cast-receiver .guide-directory .chcell.cast-focus .cc-n{color:#b9ffd0!impor
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.9.7-desktop.087-source-suite-fast-start";
+window.__ATV_BUILD="1.9.7-desktop.089-archive-episode-expansion";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -6742,13 +6742,18 @@ async function pickFromQueriesFast(qs,lanes,offset,sl){var all=qs||[],from=Math.
 function mArr(x){return Array.isArray(x)?x.filter(Boolean):(x?[x]:[]);}
 function mStrip(s){return (s==null?"":String(s)).replace(/<[^>]+>/g," ").replace(/&[a-z]+;/gi," ").replace(/\s+/g," ").trim();}
 async function resolvePlayable(id,wantType){
-  const mu="https://archive.org/metadata/"+encodeURIComponent(id);
+  /* Queue expansion uses a stable synthetic identifier (`parent::file`) so
+     every episode can be deduped and scheduled independently. Archive's
+     metadata and download endpoints only understand the parent identifier. */
+  const rawId=String(id||""),separator=rawId.indexOf("::"),sourceId=separator>=0?rawId.slice(0,separator):rawId,requestedFile=separator>=0?rawId.slice(separator+2):"";
+  if(!sourceId)return null;
+  const mu="https://archive.org/metadata/"+encodeURIComponent(sourceId);
   let m; try{m=await withTO(firstOk([
-    {tag:"metadata:afterglow-relay",delay:0,run:()=>iaFastJSON(iaRelayMetadataURL(id))},
+    {tag:"metadata:afterglow-relay",delay:0,run:()=>iaFastJSON(iaRelayMetadataURL(sourceId))},
     {tag:"metadata:cors",delay:180,run:()=>iaFastJSON(mu)},
     {tag:"metadata:proxy",delay:360,run:()=>iaFastProxy(mu)}
   ]),4200);}catch(e){nlog("metadata",false,id+" "+(e&&e.message||e));return null;}
-  const files=(m&&m.files)||[]; const md=(m&&m.metadata)||{}; const archiveBase="https://archive.org/download/"+encodeURIComponent(id)+"/";
+  const files=(m&&m.files)||[]; const md=(m&&m.metadata)||{}; const archiveBase="https://archive.org/download/"+encodeURIComponent(sourceId)+"/";
   const dt=mArr(md.date)[0]||mArr(md.year)[0]||"";
   /* NEW: captured for Marathon Mode (collection) and More Like This (subjects) */
   const meta={creator:mArr(md.creator).slice(0,2).join(", "),
@@ -6784,11 +6789,14 @@ async function resolvePlayable(id,wantType){
     else if(/\.ogv$/i.test(n)) scored.push([IOS?9:3,n]); });
   const cand=scored.filter(x=>x[0]<9).sort((a,b)=>a[0]-b[0]).map(x=>x[1])
     .filter((n,i,arr)=>arr.indexOf(n)===i).slice(0,4);
+  const exactVideo=requestedFile&&cand.indexOf(requestedFile)>=0?[requestedFile]:null;
+  if(exactVideo){if(wantType&&wantType!=="video")return null;const urls=mediaUrls(exactVideo);return {type:"video",url:urls[0],alts:urls.slice(1,8),id,captions:cap,meta};}
+  const aud = requestedFile?files.find(f=>f&&f.name===requestedFile&&/\.mp3$|\.ogg$|\.m4a$|\.flac$/i.test(f.name)):(v(/\.mp3$/i)||v(/\.ogg$/i)||v(/\.m4a$/i)||v(/\.flac$/i));
+  if(aud){ if(wantType&&wantType!=="audio")return null; const urls=mediaUrls([aud.name]); return {type:"audio", url:urls[0], alts:urls.slice(1,4), id, captions:cap, meta}; }
+  if(requestedFile){nlog("files",false,"requested file missing in "+sourceId);return null;}
   if(cand.length){ if(wantType&&wantType!=="video")return null; const urls=mediaUrls(cand); return {type:"video", url:urls[0],
     alts:urls.slice(1,8), // CDN hosts first, then alternate playable files
     id, captions:cap, meta}; }
-  const aud = v(/\.mp3$/i)||v(/\.ogg$/i)||v(/\.m4a$/i)||v(/\.flac$/i);
-  if(aud){ if(wantType&&wantType!=="audio")return null; const urls=mediaUrls([aud.name]); return {type:"audio", url:urls[0], alts:urls.slice(1,4), id, captions:cap, meta}; }
   nlog("files",false,"no playable file in "+id);
   return null;
 }

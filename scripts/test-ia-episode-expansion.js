@@ -54,6 +54,12 @@ vm.runInContext(sourceBetween('function queueFileUrls', '\nasync function mapQue
   assert.ok(episodes.every((episode) => episode.runtime === '25:00'), 'Archive byte size must never be mistaken for runtime seconds');
   assert.notEqual(episodes[0].identifier, episodes[1].identifier, 'rotated episode records must remain distinct');
 
+  const unlabelledEpisodes = await context.expandArchiveContainer({
+    identifier: 'unlabelled-multi-file-program', title: 'Saturday Night Film Cabinet', runtime: '25:00', collection: 'classic_tv',
+  }, 'https://relay.example', null, 5, 9);
+  assert.equal(unlabelledEpisodes.length, 3, 'a genuine multi-file item must expand even when its title lacks collection wording');
+  assert.ok(unlabelledEpisodes.every((episode) => episode.media && episode.media.url), 'expanded files must carry ready direct media URLs from the manifest');
+
   const playable = await context.queuePlayable('benson-complete-series-1979-1986::Season 1/Benson_S01E02_Trust Me.mp4', 'https://relay.example', null, ['movies']);
   assert.equal(playable.type, 'video');
   assert.match(playable.url, /\/download\/benson-complete-series-1979-1986\/Season%201\/Benson_S01E02_Trust%20Me\.mp4$/);
@@ -61,6 +67,8 @@ vm.runInContext(sourceBetween('function queueFileUrls', '\nasync function mapQue
   assert.match(worker, /async function expandSeedArchiveContainers\(/, 'the background refill must expand the parent already found by the fast rail');
   assert.match(worker, /const seedEpisodes = await expandSeedArchiveContainers\(/, 'the exact foreground parent must feed the expanded queue before rotated rediscovery');
   assert.match(worker, /\(episodes \|\| \[\]\)\.slice\(0, 2\)/, 'one collection may contribute at most two episodes to a shelf');
+  assert.match(worker, /const minimumFiles = archiveContainerHint\(doc\) \? 2 : 3/, 'unlabelled multi-file records need a conservative manifest threshold, not a title-only rejection');
+  assert.match(worker, /program-director-container-seed/, 'the direct episode shelf must publish before the slow reserve rebuild');
 
   for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
     const app = fs.readFileSync(path.join(root, file), 'utf8');

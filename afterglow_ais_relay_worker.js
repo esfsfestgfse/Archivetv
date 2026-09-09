@@ -84,15 +84,15 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
-/* v47 fixes Archive multi-file programs. A cold tune still returns a verified
+/* v50 promotes Archive multi-file programs. A cold tune still returns a verified
    parent program immediately, while the background shelf expands collection
    items into their individual playable episode files. Cache this separately
-   from v46: v46 only retried a rotated search rail, which could miss the exact
-   parent it had already found and leave the episode expansion invisible. */
-const IA_QUEUE_CACHE_VERSION = "v47";
-/* Last-good shelves share the v47 namespace so a cached v46 parent-only shelf
+   from v49: episode data waited behind reserve rebuilding and could expire
+   before the small, already-resolved container shelf was written. */
+const IA_QUEUE_CACHE_VERSION = "v50";
+/* Last-good shelves share the v50 namespace so a cached v49 shallow shelf
    never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v47";
+const IA_LAST_GOOD_CACHE_VERSION = "v50";
 const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
 /* A short per-isolate burst cache absorbs repeat requests from a TV, phone,
    and guide opened in quick succession. It is intentionally tiny and
@@ -1756,6 +1756,14 @@ function queueItem(doc, lane) {
     subject: doc.subject || null,
     creator: doc.creator || null,
     collection: doc.collection || null,
+    /* Expanded file entries already have a direct Archive CDN URL from the
+       manifest we just fetched. Preserve it so the browser never has to turn
+       around and fetch the same parent metadata a second time. */
+    media: doc.media && doc.media.url ? {
+      type: doc.media.type || "video",
+      url: doc.media.url,
+      alts: Array.isArray(doc.media.alts) ? doc.media.alts.slice(0, 7) : [],
+    } : null,
     lane: Number.isInteger(lane) ? lane : null,
   };
 }
@@ -1800,11 +1808,14 @@ function archiveEpisodeRotation(files, rotation, salt) {
    playable files. Expand that manifest into episode candidates before ranking;
    the player receives one direct file URL per candidate. */
 async function expandArchiveContainer(doc, cacheOrigin, ctx, rotation = 0, salt = 0) {
-  if (!doc || !doc.identifier || !archiveContainerHint(doc)) return [];
+  if (!doc || !doc.identifier) return [];
   try {
     const key = new Request(cacheOrigin + IA_PREFIX + "/cache/metadata/" + encodeURIComponent(doc.identifier));
     const payload = await cachedArchiveJson(key, IA_METADATA_TTL_SECONDS, async () => {
-      const upstream = await archiveFetch("https://archive.org/metadata/" + encodeURIComponent(doc.identifier), {}, 4200);
+      /* This runs only after first tune has already returned. Let a large but
+         valid Archive manifest finish rather than borrowing the 4.2s
+         first-frame deadline and silently losing its episode files. */
+      const upstream = await archiveFetch("https://archive.org/metadata/" + encodeURIComponent(doc.identifier), {}, 8000);
       if (!upstream.ok) throw new Error("archive metadata " + upstream.status);
       return upstream.json();
     }, ctx);
@@ -1820,10 +1831,13 @@ async function expandArchiveContainer(doc, cacheOrigin, ctx, rotation = 0, salt 
       if (!previous || score(file) < score(previous)) videoByEpisode.set(key, file);
     }
     const video = archiveEpisodeRotation([...videoByEpisode.values()], rotation, salt);
-    /* A film with alternate encodes is not a series. Very large raw dumps are
-       skipped; normal long-running collections such as Benson (182 files)
-       remain eligible. */
-    if (video.length < 2 || video.length > 360) return [];
+    /* A film with alternate encodes is not a series. Labelled containers may
+       legitimately have two files; an unlabelled item needs three distinct
+       media files before it joins the episode catalog. That catches ordinary
+       Archive uploads whose title does not say “complete series” while keeping
+       a two-file movie/alternate encode from being split accidentally. */
+    const minimumFiles = archiveContainerHint(doc) ? 2 : 3;
+    if (video.length < minimumFiles || video.length > 360) return [];
     const md = payload.metadata || {};
     const base = String(doc.title || doc.identifier).replace(/\s+/g, " ").trim();
     return video.map((file) => {
@@ -1835,9 +1849,14 @@ async function expandArchiveContainer(doc, cacheOrigin, ctx, rotation = 0, salt 
         /* Archive `file.length` is byte size, not duration. Feeding it to
            runtime gates rejected valid episodes as millions of seconds long. */
         runtime: file.duration || file.runtime || doc.runtime,
+        media: (function() {
+          const urls = queueFileUrls(doc.identifier, payload, file.name);
+          return urls.length ? { type: "video", url: urls[0], alts: urls.slice(1, 8) } : null;
+        })(),
         collection: Array.isArray(md.collection) ? (md.collection[0] || doc.collection) : (md.collection || doc.collection) };
     });
-  } catch {
+  } catch (error) {
+    console.warn(JSON.stringify({ event: "ia-container-expansion-failed", identifier: doc.identifier, message: String(error && error.message || error) }));
     return [];
   }
 }
@@ -1976,16 +1995,24 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, mediaTypes,
       const docs = (result.docs || []).filter((doc) => doc && safeIaId(doc.identifier) && String(doc.mediatype || "").toLowerCase() !== "collection" && (!mediaTypes.length || mediaTypes.includes(String(doc.mediatype || "").toLowerCase())))
         .sort((a, b) => themeScore(b, themeTerms) - themeScore(a, themeTerms));
       const approved = docs.filter((doc) => matchesTheme(doc, themeTerms, themeMinScore) && !matchesDeny(doc, denyTerms));
-      if (firstApprovedLane && approved.some(archiveContainerHint)) deferredContainerExpansion = true;
+      /* The first rail is returned before metadata expansion for speed. Every
+         approved cold shelf gets a bounded background probe: Archive authors
+         often omit words like “collection” even when an item contains a full
+         season of distinct video files. */
+      const catalogWantsVideo = !mediaTypes.length || mediaTypes.includes("movies");
+      if (firstApprovedLane && approved.length && catalogWantsVideo) deferredContainerExpansion = true;
       /* The old foreground race expanded up to six complete-series manifests
          per search lane before it could even begin metadata hydration. A fast
          channel tune needs a verified program, not a season index. Keep that
          expensive diversity work behind the first frame and cap it even during
          background refill so channel surfing cannot stampede Archive. */
       const expansionLimit = firstApprovedLane ? IA_FOREGROUND_CONTAINER_EXPANSIONS : IA_BACKGROUND_CONTAINER_EXPANSIONS;
-      /* Strong container signals are promoted above ordinary records so a
-         complete series several rows down is not permanently skipped. */
-      const expansionSeeds = approved.slice().sort((a, b) => Number(archiveContainerHint(b)) - Number(archiveContainerHint(a))).slice(0, expansionLimit);
+      /* Strong container signals are promoted first, with one generic
+         multi-file probe behind them. The file manifest—not title wording—has
+         the final say about whether an ordinary Archive record is a series. */
+      const hintedSeeds = catalogWantsVideo ? approved.filter(archiveContainerHint) : [];
+      const genericSeeds = catalogWantsVideo ? approved.filter((doc) => !archiveContainerHint(doc)).slice(0, 1) : [];
+      const expansionSeeds = hintedSeeds.concat(genericSeeds).slice(0, expansionLimit);
       const expandedSets = await mapQueueCandidates(expansionSeeds, IA_CONTAINER_EXPANSION_CONCURRENCY, async (doc, expansionIndex) => {
         const episodes = await expandArchiveContainer(doc, cacheOrigin, ctx, rotation, lane * 31 + expansionIndex);
         return episodes.filter((episode) => matchesTheme(episode, themeTerms, themeMinScore) && !matchesDeny(episode, denyTerms));
@@ -2148,14 +2175,15 @@ function scheduleCachedIaHydration(payload, requestedCount, cacheOrigin, cacheKe
    empty and used to make episode expansion silently disappear. Two files per
    parent are enough to introduce episode variety without letting one season
    fill the television's entire five-show buffer. */
-async function expandSeedArchiveContainers(payload, cacheOrigin, ctx, themeTerms, denyTerms, themeMinScore, rotation) {
+async function expandSeedArchiveContainers(payload, cacheOrigin, ctx, themeTerms, denyTerms, mediaTypes, themeMinScore, rotation) {
+  if (mediaTypes.length && !mediaTypes.includes("movies")) return [];
   const candidates = Array.isArray(payload && payload.candidateItems) && payload.candidateItems.length
     ? payload.candidateItems
     : ((payload && payload.items) || []);
   const seenParents = new Set();
-  const parents = candidates.filter((item) => {
+  const parents = candidates.slice().sort((a, b) => Number(archiveContainerHint(b)) - Number(archiveContainerHint(a))).filter((item) => {
     const sourceId = String(item && (item.sourceIdentifier || item.identifier) || "");
-    if (!sourceId || seenParents.has(sourceId) || !archiveContainerHint(item)) return false;
+    if (!sourceId || seenParents.has(sourceId)) return false;
     seenParents.add(sourceId);
     return true;
   }).slice(0, IA_BACKGROUND_CONTAINER_EXPANSIONS);
@@ -2171,14 +2199,51 @@ async function expandSeedArchiveContainers(payload, cacheOrigin, ctx, themeTerms
   return expanded;
 }
 
+function queueEpisodeDepth(payload) {
+  const candidates = Array.isArray(payload && payload.candidateItems) ? payload.candidateItems : [];
+  return candidates.reduce((count, item) => count + (String(item && item.identifier || "").includes("::") ? 1 : 0), 0);
+}
+
+/* The foreground handoff and the background expansion run concurrently. Once
+   a richer episode shelf is cached, an older one-program hydration result must
+   never overwrite it just because its metadata request happened to finish
+   later. */
+async function cacheIaQueueIfRicher(cacheKey, payload, ttlSeconds, headers = {}) {
+  const cache = caches.default;
+  try {
+    const prior = await cache.match(cacheKey);
+    if (prior) {
+      const priorPayload = await prior.clone().json();
+      const priorEpisodes = queueEpisodeDepth(priorPayload), nextEpisodes = queueEpisodeDepth(payload);
+      const priorReady = Number(priorPayload && priorPayload.ready || 0), nextReady = Number(payload && payload.ready || 0);
+      if (priorEpisodes > nextEpisodes || (priorEpisodes === nextEpisodes && priorReady > nextReady)) return false;
+    }
+  } catch {}
+  await cache.put(cacheKey, cacheableJson(payload, ttlSeconds, headers));
+  return true;
+}
+
 async function expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, rotation, forceDiscovery = false) {
   let expanded = payload;
   /* Start with collection files from the exact foreground result. This keeps
      the richer episode catalog tied to the same genre-checked parent instead
      of betting the repair on a later rotated search page returning it again. */
-  const seedEpisodes = await expandSeedArchiveContainers(expanded, cacheOrigin, ctx, themeTerms, denyTerms, themeMinScore, rotation);
+  const seedEpisodes = await expandSeedArchiveContainers(expanded, cacheOrigin, ctx, themeTerms, denyTerms, mediaTypes, themeMinScore, rotation);
   if (seedEpisodes.length) {
     expanded = mergeIaQueuePayload({ ...expanded, items: seedEpisodes, candidateItems: seedEpisodes }, expanded, candidateCount, { containerExpanded: true });
+    /* Write the exact parent’s ready episode files immediately. Reserve-query
+       expansion can take longer, but these direct URLs are already verified
+       and are enough for the next tune/skip to stop repeating one parent. */
+    const seeded = await hydrateIaQueue(expanded, Math.min(count, seedEpisodes.length), cacheOrigin, ctx, mediaTypes);
+    if (seeded && seeded.items.length) {
+      const seedPayload = { ...seeded, partial: seeded.ready < count, hydrating: seeded.ready < count, containerExpanded: true };
+      if (seedPayload.ready > 0) sharedQueuePut(env, sharedKey, seedPayload, IA_PARTIAL_QUEUE_TTL_SECONDS, ctx);
+      await cacheIaQueueIfRicher(cacheKey, seedPayload, IA_PARTIAL_QUEUE_TTL_SECONDS, {
+        "X-Afterglow-Source": "program-director-container-seed",
+        "X-Afterglow-Queue-Ready": String(seedPayload.ready),
+        "X-Afterglow-Queue-Partial": "1",
+      });
+    }
   }
   const threshold = Math.min(candidateCount, 8);
   /* A large candidate list is not the same thing as a deep playable shelf:
@@ -2203,11 +2268,10 @@ async function expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, c
   if (!hydrated || !hydrated.items.length) return null;
   const queueTtl = hydrated.ready >= count ? IA_QUEUE_TTL_SECONDS : IA_PARTIAL_QUEUE_TTL_SECONDS;
   if (hydrated.ready >= count) sharedQueuePut(env, sharedKey, hydrated, queueTtl, ctx);
-  const response = cacheableJson(hydrated, queueTtl, {
+  await cacheIaQueueIfRicher(cacheKey, hydrated, queueTtl, {
     "X-Afterglow-Source": "program-director-background",
     "X-Afterglow-Queue-Ready": String(hydrated.ready),
   });
-  await caches.default.put(cacheKey, response);
   return hydrated;
 }
 
@@ -2523,10 +2587,10 @@ async function getIaQueue(request, url, env, ctx) {
               scheduleIaReplenishment(ready, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, url.origin, cacheKey, sharedKey, env, ctx, rotation);
               const queueTtl = ready.ready >= count ? IA_QUEUE_TTL_SECONDS : IA_PARTIAL_QUEUE_TTL_SECONDS;
               if (ready.ready > 0) sharedQueuePut(env, sharedKey, ready, queueTtl, ctx);
-              return cache.put(cacheKey, cacheableJson(ready, queueTtl, {
+              return cacheIaQueueIfRicher(cacheKey, ready, queueTtl, {
                 "X-Afterglow-Source": "program-director",
                 "X-Afterglow-Queue-Ready": String(ready.ready),
-              }));
+              });
             })
             .catch(() => {})
         );
@@ -2621,10 +2685,10 @@ async function getIaQueue(request, url, env, ctx) {
           scheduleIaReplenishment(ready, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, url.origin, cacheKey, sharedKey, env, ctx, rotation);
           const queueTtl = ready.ready >= count ? IA_QUEUE_TTL_SECONDS : IA_PARTIAL_QUEUE_TTL_SECONDS;
           if (ready.ready > 0) sharedQueuePut(env, sharedKey, ready, queueTtl, ctx);
-          return cache.put(cacheKey, cacheableJson(ready, queueTtl, {
+          return cacheIaQueueIfRicher(cacheKey, ready, queueTtl, {
             "X-Afterglow-Source": "program-director",
             "X-Afterglow-Queue-Ready": String(ready.ready),
-          }));
+          });
         })
         .catch(() => {})
     );

@@ -41,6 +41,7 @@ for (const file of files) {
     [/function v2ProgramQueries\(/, 'source discovery must generate program-form queries'],
     [/suffixes\.forEach\(function\(suffix\)\{topics\.forEach/, 'each provider pass must stripe queries across channel topics'],
     [/function v2ProgramDeny\(/, 'source discovery must reject commentary and seminar filler'],
+    [/profileDeny=Array\.isArray\(profile&&profile\.deny\)\?profile\.deny:\[\]/, 'each Source Suite channel must enforce its declared deny list'],
     [/function v2ProgramTitleDeny\(/, 'animation discovery must reject production-talk titles without poisoning film descriptions'],
     [/function v2ProgramCategoryOkay\(/, 'animation discovery must reject unrelated provider categories'],
     [/function v2CandidateRelevant\(/, 'provider summaries must use a coarse candidate gate before full metadata arrives'],

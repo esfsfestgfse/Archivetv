@@ -1670,7 +1670,7 @@ html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.9.7-mobile.110-mobile-boot-diagnostic";
+window.__ATV_BUILD="1.9.7-mobile.111-mobile-init-trace";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -8068,6 +8068,7 @@ function setVol(dv){vol=Math.max(0,Math.min(1,Math.round((vol+dv)*100)/100));sto
   if(volHint){ if(muted){ volHint.textContent="MUTED - PRESS MUTE TO RESTORE"; volHint.classList.add("show"); } else if(!soundBlocked){ volHint.classList.remove("show"); } } /* 1.2.2: mute is never invisible again */}
 
 $("rPow").addEventListener("click",togglePower);
+document.documentElement.setAttribute("data-atv-core-init","ready");
 /* Mobile controls must be wired in this core scope. The mobile shell cannot
    safely depend on synthetic clicks against the hidden desktop remote. */
 function __rsWireMobile(id,fn){var el=$(id);if(!el||el.__rsCoreWired)return;if(typeof fn!=="function")return;el.__rsCoreWired=true;el.addEventListener("click",function(ev){ev.preventDefault();fn(ev);});}
@@ -17703,6 +17704,7 @@ window.__atvBootDone=true; /* app is up -- from here on, errors get logged, not 
 <script>
 (function(){
   if(!document.documentElement.classList.contains("mob"))return;
+  document.documentElement.setAttribute("data-atv-mobile-shell-init","ready");
   var d=document, byId=function(id){return d.getElementById(id);};
   function click(id){if(id==="rPow"&&typeof window.__rsTogglePower==="function"){window.__rsTogglePower();return;}var e=byId(id); if(e)e.click();}
   var map={mPow:"rPow",mChUp:"rChUp",mChDn:"rChDn",mVolUp:"rVolUp",mVolDn:"rVolDn",mSurf:"rSurf",mMenu:"rMenu",mInfo:"rInfo",mSkip:"rSkip"};

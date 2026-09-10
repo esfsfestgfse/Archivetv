@@ -1670,7 +1670,7 @@ html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.9.7-mobile.111-mobile-init-trace";
+window.__ATV_BUILD="1.9.7-mobile.112-mobile-action-trace";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -8071,7 +8071,7 @@ $("rPow").addEventListener("click",togglePower);
 document.documentElement.setAttribute("data-atv-core-init","ready");
 /* Mobile controls must be wired in this core scope. The mobile shell cannot
    safely depend on synthetic clicks against the hidden desktop remote. */
-function __rsWireMobile(id,fn){var el=$(id);if(!el||el.__rsCoreWired)return;if(typeof fn!=="function")return;el.__rsCoreWired=true;el.addEventListener("click",function(ev){ev.preventDefault();fn(ev);});}
+function __rsWireMobile(id,fn){var el=$(id);if(!el||el.__rsCoreWired)return;if(typeof fn!=="function")return;el.__rsCoreWired=true;el.addEventListener("click",function(ev){ev.preventDefault();try{fn(ev);document.documentElement.setAttribute("data-atv-last-mobile-action",id);}catch(err){try{document.documentElement.setAttribute("data-atv-mobile-action-error",id+": "+String(err&&err.message||err));}catch(_){ }throw err;}});}
 __rsWireMobile("mPow",togglePower);
 __rsWireMobile("mChUp",function(){step(1);});
 __rsWireMobile("mChDn",function(){step(-1);});

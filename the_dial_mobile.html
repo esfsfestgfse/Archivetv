@@ -1670,7 +1670,7 @@ html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.9.7-mobile.109-mobile-remote-init";
+window.__ATV_BUILD="1.9.7-mobile.110-mobile-boot-diagnostic";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -1692,6 +1692,7 @@ function __atvShowBootError(){
 }
 window.addEventListener("error",function(e){
   var msg=(e.message||String(e.error||"unknown error"))+" @ "+(e.filename||"?")+":"+(e.lineno||"?")+":"+(e.colno||"?");
+  try{document.documentElement.setAttribute("data-atv-last-error",msg);}catch(_){ }
   if(__atvIsBenign(msg))return;
   if(window.__atvBootDone){ console.error("[ATV post-boot error]",msg); return; }
   window.__atvBootErrors.push(msg);
@@ -1699,6 +1700,7 @@ window.addEventListener("error",function(e){
 });
 window.addEventListener("unhandledrejection",function(e){
   var r=e.reason, msg="Unhandled promise rejection: "+(r&&r.message?r.message:String(r));
+  try{document.documentElement.setAttribute("data-atv-last-error",msg);}catch(_){ }
   if(__atvIsBenign(msg)){ e.preventDefault(); return; }
   if(window.__atvBootDone){ console.error("[ATV post-boot rejection]",msg); return; }
   window.__atvBootErrors.push(msg);

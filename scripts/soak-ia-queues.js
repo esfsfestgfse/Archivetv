@@ -32,6 +32,10 @@ const depthTimeoutMs = Math.max(1000, Math.min(timeoutMs, Number(option('--depth
 const pollMs = Math.max(250, Number(option('--poll-ms', '1250')) || 1250);
 const rotationBase = Math.max(0, Math.min(127, Number(option('--rotation-base', '0')) || 0));
 const rotations = Math.max(1, Math.min(3, Number(option('--rotations', '1')) || 1));
+/* Mirror the browser's stale-shelf refresh window when investigating whether
+   a warm fallback actually turns into a fresh rotation. Defaults to zero so
+   the regular health sweep remains fast. */
+const rotationDelayMs = Math.max(0, Math.min(15000, Number(option('--rotation-delay-ms', '0')) || 0));
 const outputPath = option('--out');
 const requestedChannels = new Set(String(option('--channels', '')).split(',').map(value => value.trim()).filter(Boolean));
 const completeManifest = JSON.parse(fs.readFileSync(path.resolve(manifestPath), 'utf8'));
@@ -57,7 +61,7 @@ async function requestQueue(row, remainingMs, rotationOffset) {
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ channel: String(row.channel), count, rotation: (rotationBase + (Number(row.channel) || 0) + rotationOffset) % 128, queries: row.queries, themeTerms: row.themeTerms || [], denyTerms: row.denyTerms || [], diversity: row.diversity || {}, mediaTypes: row.mediaTypes || ['movies'], themeMinScore: row.themeMinScore || 1 }),
+      body: JSON.stringify({ channel: String(row.channel), count, rotation: (rotationBase + (Number(row.channel) || 0) + rotationOffset) % 128, queries: row.queries, themeTerms: row.themeTerms || [], denyTerms: row.denyTerms || [], requiredTitleTerms: row.requiredTitleTerms || [], diversity: row.diversity || {}, mediaTypes: row.mediaTypes || ['movies'], themeMinScore: row.themeMinScore || 1 }),
       signal: controller.signal,
     });
     const body = await response.json();
@@ -70,7 +74,7 @@ async function requestQueue(row, remainingMs, rotationOffset) {
 async function probeRotation(row, rotationOffset) {
   const started = Date.now();
   let attempts = 0, lastStatus = 0, lastBody = null, lastError = null;
-  let lastSource = '', lastCache = '', lastReadyHeader = '', lastPartial = '', lastFallback = '';
+  let lastSource = '', lastCache = '', lastReadyHeader = '', lastPartial = '', lastFallback = '', sawWarmFallback = false;
   let firstReadyLatencyMs = null, bestReady = 0, bestItems = [];
   while (Date.now() - started < timeoutMs) {
     attempts++;
@@ -84,8 +88,13 @@ async function probeRotation(row, rotationOffset) {
       lastReadyHeader = response.headers.get('x-afterglow-queue-ready') || '';
       lastPartial = response.headers.get('x-afterglow-queue-partial') || '';
       lastFallback = response.headers.get('x-afterglow-queue-fallback') || '';
-      const items = response.ok && Array.isArray(body.items) ? body.items : [];
-      const readyCount = response.ok ? (Number(body.ready) || items.length) : 0;
+      const responseWasWarmFallback = lastFallback === '1' || Boolean(body && body.stale);
+      if (responseWasWarmFallback) sawWarmFallback = true;
+      const items = response.ok && Array.isArray(body.items) ? body.items.filter(item => {
+        const terms = row.requiredTitleTerms || [];
+        return !terms.length || terms.some(term => String(item.title || '').toLowerCase().includes(String(term).toLowerCase()));
+      }) : [];
+      const readyCount = Math.min(items.length, Math.max(0, Number(body && body.ready) || 0));
       if (readyCount > bestReady || (readyCount === bestReady && items.length > bestItems.length)) {
         bestReady = readyCount;
         bestItems = items;
@@ -93,13 +102,17 @@ async function probeRotation(row, rotationOffset) {
       if (firstReadyLatencyMs == null && response.ok && readyCount > 0) {
         firstReadyLatencyMs = Date.now() - started;
       }
-      if (response.ok && readyCount >= count) {
+      /* A full last-good shelf is excellent for instant playback, but it is
+         not evidence that the requested rotation refreshed. Keep polling it
+         through the bounded depth window so a stale handoff is measured as
+         the browser experiences it, not mislabeled as fresh diversity. */
+      if (response.ok && readyCount >= count && !responseWasWarmFallback) {
         return {
           channel: Number(row.channel), name: row.name, ok: true, status: response.status,
           ready: readyCount, items: items.length, attempts,
           elapsedMs: Date.now() - started, firstPlayLatencyMs: firstReadyLatencyMs,
           source: lastSource, cache: lastCache, readyHeader: lastReadyHeader,
-          partial: lastPartial === '1', fallback: lastFallback === '1',
+          partial: lastPartial === '1', fallback: lastFallback === '1', warmHandoff: sawWarmFallback,
           transportFailure: false, httpFailure: false,
           timedOut: false,
           depthTimedOut: false,
@@ -127,7 +140,7 @@ async function probeRotation(row, rotationOffset) {
     elapsedMs: Date.now() - started,
     firstPlayLatencyMs: firstReadyLatencyMs,
     source: lastSource, cache: lastCache, readyHeader: lastReadyHeader,
-    partial: lastPartial === '1', fallback: lastFallback === '1',
+    partial: lastPartial === '1', fallback: lastFallback === '1', warmHandoff: sawWarmFallback,
     transportFailure: !hasRequiredReady && lastStatus === 0 && Boolean(lastError),
     httpFailure: !hasRequiredReady && lastStatus >= 400,
     timedOut: !hasRequiredReady && Date.now() - started >= timeoutMs,
@@ -153,6 +166,7 @@ async function probe(row) {
     rotationResults.push(result);
     elapsedMs += result.elapsedMs;
     if (firstPlayLatencyMs == null && result.ok) firstPlayLatencyMs = elapsedMs - result.elapsedMs + result.firstPlayLatencyMs;
+    if (rotationDelayMs && rotation + 1 < rotations) await sleep(rotationDelayMs);
   }
 
   const ids = rotationResults.flatMap(result => result.itemIds || []);
@@ -195,7 +209,7 @@ async function probe(row) {
       attempts: result.attempts, elapsedMs: result.elapsedMs,
       firstPlayLatencyMs: result.firstPlayLatencyMs, timedOut: result.timedOut,
       source: result.source, cache: result.cache, readyHeader: result.readyHeader,
-      partial: result.partial, fallback: result.fallback,
+      partial: result.partial, fallback: result.fallback, warmHandoff: result.warmHandoff,
       transportFailure: result.transportFailure, httpFailure: result.httpFailure,
       itemIds: result.itemIds || [], samples: result.samples || [], error: result.error,
     })),
@@ -240,7 +254,7 @@ async function main() {
   });
   const slowest = results.slice().sort((a, b) => b.elapsedMs - a.elapsedMs).slice(0, 10);
   const report = {
-    generatedAt: new Date().toISOString(), endpoint, count, requiredReady, concurrency, rotationBase, rotations,
+    generatedAt: new Date().toISOString(), endpoint, count, requiredReady, concurrency, rotationBase, rotations, rotationDelayMs,
     elapsedMs: Date.now() - started,
     totals: {
       channels: results.length, ready: results.length - failures.length, empty: failures.length,

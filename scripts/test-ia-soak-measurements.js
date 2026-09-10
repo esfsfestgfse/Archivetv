@@ -12,8 +12,8 @@ async function measure(responses) {
     setTimeout(fn, ms) {now += ms; fn();},
     nextResponse() {
       const entry = responses[Math.min(calls++, responses.length - 1)]; now += entry.ms;
-      return {response: {ok: entry.status === 200, status: entry.status, headers: {get: () => ''}},
-        body: {ready: entry.ready, items: Array.from({length: entry.ready}, (_, i) => ({id: String(i)}))}};
+      return {response: {ok: entry.status === 200, status: entry.status, headers: {get: key => key === 'x-afterglow-queue-fallback' && entry.fallback ? '1' : ''}},
+        body: {ready: entry.ready, stale: Boolean(entry.fallback), items: Array.from({length: entry.items ?? entry.ready}, (_, i) => ({id: String(i)}))}};
     }
   };
   vm.createContext(sandbox);
@@ -25,11 +25,16 @@ async function measure(responses) {
   const late = await measure([{status:200,ready:1,ms:7000},{status:200,ready:5,ms:1000}]);
   assert.equal(late.result.ready, 5, 'a late first item must still get a refill observation window');
   assert.equal(late.result.firstPlayLatencyMs, 7000);
+  const pending = await measure([{status:200,ready:0,items:5,ms:12000}]);
+  assert.equal(pending.result.ready, 0, 'unresolved candidates are not playback-ready');
   const failed = await measure([{status:503,ready:5,ms:12000}]);
   assert.equal(failed.result.ok, false, 'error response bodies must never count as ready');
   assert.equal(failed.result.ready, 0);
   assert.equal(failed.result.httpFailure, true);
   const retained = await measure([{status:200,ready:1,ms:7000},{status:503,ready:5,ms:7000}]);
   assert.equal(retained.result.ready, 1, 'retain only successfully observed readiness');
+  const handoff = await measure([{status:200,ready:5,ms:100,fallback:true},{status:200,ready:5,ms:100,fallback:false}]);
+  assert.equal(handoff.calls, 2, 'a full warm fallback must be rechecked before it passes the soak');
+  assert.equal(handoff.result.warmHandoff, true, 'the soak must record a warm handoff even after it refreshes');
   console.log('IA soak measurements: refill timing and HTTP readiness passed.');
 })().catch(error => {console.error(error); process.exitCode = 1;});

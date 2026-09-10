@@ -1670,7 +1670,7 @@ html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.9.7-mobile.095-commercial-playback";
+window.__ATV_BUILD="1.9.7-mobile.096-queue-media-contract";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -6276,6 +6276,11 @@ Object.assign(PROGRAM["Thanksgiving Channel"],{fastSubjects:["thanksgiving","tha
 Object.assign(PROGRAM["Kids Hour"],{themeMinScore:1,queueTerms:["sesame street","the electric company","mister rogers","captain kangaroo","romper room","the friendly giant","howdy doody","kukla fran and ollie","lamb chop","between the lions","reading rainbow","3-2-1 contact","square one television","zoom","schoolhouse rock"],fastSubjects:["sesame street","the electric company","mister rogers","captain kangaroo","romper room","the friendly giant","howdy doody","kukla fran and ollie","lamb chop","between the lions","reading rainbow","3-2-1 contact","square one television","zoom","schoolhouse rock"],fastCollections:["classic_tv","classic_tv_1970s","classic_tv_1980s","classic_tv_1990s","vhsvault","opensource_movies","animationandcartoons"],deny:{title:["commercial","trailer","adult","horror","action figure","toy ad","toy commercial","review","reaction","compilation review"],subject:["commercial","trailer","adult","horror","action figure","toy commercial","training film","review","reaction"]}});
 Object.assign(PROGRAM["Tight Lines"],{themeMinScore:1,queueTerms:["fishing","sport fishing","angling","fly fishing","bass fishing","trout fishing","saltwater fishing","freshwater fishing","fishing tournament","fishing show","fishing documentary","fishing television"],fastSubjects:["fishing","sport fishing","angling","fly fishing","bass fishing","trout fishing","saltwater fishing","freshwater fishing","fishing tournament","fishing show","fishing documentary","fishing television"],fastCollections:["sports","sportstelevision","vhssports","opensource_movies","FedFlix","prelinger"],require:{title_any:["fishing","angling","fly fishing","bass","trout","saltwater","freshwater"]},deny:{title:["video game","horror","commercial","fish processing","industrial fishing","aquarium","cooking fish","recipe"],subject:["video game","horror","commercial","industrial fishing","fish processing","aquarium","seafood processing","fish recipe"]}});
 Object.assign(PROGRAM["Modern Rerun TV"],{themeMinScore:1,queueTerms:["sitcom","television comedy","television series","tv series","comedy series","situation comedy","syndicated comedy","family sitcom","workplace sitcom","ensemble sitcom"],fastSubjects:["sitcom","television comedy","television series","tv series","comedy series","situation comedy","syndicated comedy","family sitcom","workplace sitcom","ensemble sitcom"],fastCollections:["classic_tv","classic_tv_1980s","classic_tv_1990s","classic_tv_2000s","vhsvault","opensource_movies"],require:{title_any:["sitcom","television series","tv series","comedy series","situation comedy","cheers","frasier","seinfeld","friends","home improvement","fresh prince","family matters","roseanne","married with children","everybody loves raymond","king of queens","drew carey","3rd rock","the nanny","wings","night court","living single","martin","sister sister","step by step","boy meets world","spin city","dharma","will and grace","malcolm in the middle","scrubs","30 rock","arrested development","king of the hill"]},deny:{title:["news","newscast","commercial","advertisement","c-span","cnn","weather","dragon tales","barney","dora the explorer","blues clues","teletubbies","caillou","little bear","sesame street","arthur","bear in the big blue house","lolita","movie review","film review","film analysis","cinema analysis","video essay","podcast"],subject:["news","newscast","newsreel","commercial","advertising","documentary","public service","educational","cartoon","animated","animation","children","children's television","kids television","preschool","nick jr","disney junior","pbs kids","film review","movie review","podcast"]}});
+/* Reproduced genre collisions: sports anime and fishing-themed music are not broadcasts. */
+[["Sports Vault",["anime","animation","animated","cartoon","apache yakyugun","apache baseball academy"]],["Tight Lines",["original song","music video","vocaloid","synthesizer v","song collaboration"]]].forEach(function(entry){
+  var p=PROGRAM[entry[0]];if(!p)return;p.deny=p.deny||{};
+  ["title","subject"].forEach(function(key){p.deny[key]=Array.from(new Set((p.deny[key]||[]).concat(entry[1])));});
+});
 /* Keep each signed queue request within the Worker safety ceiling. The short
    title rail still has enough flagship series to reject film-analysis bleed. */
 Object.assign(PROGRAM["Modern Rerun TV"],{require:{title_any:["sitcom","television series","tv series","comedy series","situation comedy","cheers","frasier","seinfeld","friends","home improvement","fresh prince","family matters","roseanne","everybody loves raymond","king of queens","drew carey","the nanny","night court","living single","martin","scrubs","30 rock","king of the hill"]},deny:{title:["news","newscast","commercial","advertisement","c-span","cnn","weather","dragon tales","barney","dora the explorer","blues clues","teletubbies","caillou","little bear","sesame street","arthur","bear in the big blue house","lolita","movie review","film review","film analysis","cinema analysis","video essay","podcast"],subject:["news","newscast","newsreel","commercial","advertising","documentary","public service","educational","cartoon","animated","animation","children","children's television","kids television","preschool","nick jr","disney junior","pbs kids","film review","movie review","podcast"]}});
@@ -6659,7 +6664,7 @@ async function iaLocalQueueFallback(ch,sl){
 }
 async function iaQueueRequest(ch,sl,count){
   var qs=iaQueueQueries(sl);if(!qs.length)return [];
-  try{var d=await withTO(fetch(IA_RELAY_BASE+"/queue",{method:"POST",mode:"cors",headers:{"content-type":"application/json"},body:JSON.stringify({channel:iaQueueKey(ch),rotation:iaQueueRotationFor(ch),queries:qs,themeTerms:iaProgramThemeTerms(sl),denyTerms:iaProgramDenyTerms(sl),diversity:iaQueueDiversity(sl),mediaTypes:ch&&ch.audio?["audio"]:["movies"],themeMinScore:Math.max(1,Math.min(12,Number(sl&&sl.program&&sl.program.themeMinScore)||1)),count:Math.max(1,Math.min(5,count||5))})}).then(function(r){if(!r.ok)throw new Error("queue "+r.status);return r.json();}),6500);
+  try{var d=await withTO(fetch(IA_RELAY_BASE+"/queue",{method:"POST",mode:"cors",headers:{"content-type":"application/json"},body:JSON.stringify({channel:iaQueueKey(ch),rotation:iaQueueRotationFor(ch),queries:qs,themeTerms:iaProgramThemeTerms(sl),denyTerms:iaProgramDenyTerms(sl),requiredTitleTerms:(sl&&sl.program&&sl.program.require&&sl.program.require.title_any)||[],diversity:iaQueueDiversity(sl),mediaTypes:ch&&ch.audio?["audio"]:["movies"],themeMinScore:Math.max(1,Math.min(12,Number(sl&&sl.program&&sl.program.themeMinScore)||1)),count:Math.max(1,Math.min(5,count||5))})}).then(function(r){if(!r.ok)throw new Error("queue "+r.status);return r.json();}),6500);
     var out=((d&&d.items)||[]).filter(function(it){return iaProgramAllowed(it,sl);});
     /* A 200/empty response is not proof that the rail is empty. The Worker can
        be hydrating a cold IA shard, and rescue mode can mean its first search
@@ -6851,10 +6856,10 @@ async function resolvePlayable(id,wantType){
     else if(/\.ogv$/i.test(n)) scored.push([IOS?9:3,n]); });
   const cand=scored.filter(x=>x[0]<9).sort((a,b)=>a[0]-b[0]).map(x=>x[1])
     .filter((n,i,arr)=>arr.indexOf(n)===i).slice(0,4);
-  const exactVideo=requestedFile&&cand.indexOf(requestedFile)>=0?[requestedFile]:null;
+  const exactVideo=requestedFile&&scored.some(x=>x[0]<9&&x[1]===requestedFile)?[requestedFile]:null;
   if(exactVideo){if(wantType&&wantType!=="video")return null;const urls=mediaUrls(exactVideo);return {type:"video",url:urls[0],alts:urls.slice(1,8),id,captions:cap,meta};}
   const aud = requestedFile?files.find(f=>f&&f.name===requestedFile&&/\.mp3$|\.ogg$|\.m4a$|\.flac$/i.test(f.name)):(v(/\.mp3$/i)||v(/\.ogg$/i)||v(/\.m4a$/i)||v(/\.flac$/i));
-  if(aud){ if(wantType&&wantType!=="audio")return null; const urls=mediaUrls([aud.name]); return {type:"audio", url:urls[0], alts:urls.slice(1,4), id, captions:cap, meta}; }
+  if(aud&&wantType!=="video"){ const urls=mediaUrls([aud.name]); return {type:"audio", url:urls[0], alts:urls.slice(1,4), id, captions:cap, meta}; }
   if(requestedFile){nlog("files",false,"requested file missing in "+sourceId);return null;}
   if(cand.length){ if(wantType&&wantType!=="video")return null; const urls=mediaUrls(cand); return {type:"video", url:urls[0],
     alts:urls.slice(1,8), // CDN hosts first, then alternate playable files
@@ -16524,7 +16529,7 @@ async function nextAd(ch,sl,my){
     try{ var left=deadline-Date.now();if(left<400)break;
       const item=await withTO(pickAdItem(ch,left),left); if(my!==token||!adsOn){adQueue=0;return false;}if(!item)break;
       left=deadline-Date.now();if(left<400)break;
-      const kind=(ch&&ch.audio)?"audio":"video", pl=await withTO(resolvePlayable(item.identifier),left);if(my!==token||!adsOn){adQueue=0;return false;}if(!pl||pl.type!==kind){adMarkFailed(item.identifier);continue;}
+      const kind=(ch&&ch.audio)?"audio":"video", pl=await withTO(resolvePlayable(item.identifier,kind),left);if(my!==token||!adsOn){adQueue=0;return false;}if(!pl||pl.type!==kind){adMarkFailed(item.identifier);continue;}
       pl.title=item.title||"Commercial"; pl.year=(pl.meta&&pl.meta.date)||item.year; pl.isAd=true;
       if(await playFile(pl,ch,{show:kind==="audio"?"AUDIO COMMERCIAL":"COMMERCIAL BREAK",isAd:true,genre:sl&&sl.genre,queries:sl&&sl.queries},my)){adRemember(item.identifier);return true;}adMarkFailed(item.identifier);
     }catch(e){} }

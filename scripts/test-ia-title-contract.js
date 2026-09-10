@@ -1,0 +1,16 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const vm = require('node:vm');
+const path = require('node:path');
+const source = fs.readFileSync(path.join(__dirname, '..', 'afterglow_ais_relay_worker.js'), 'utf8');
+const context = vm.createContext({});
+vm.runInContext(source.slice(source.indexOf('function themeText('), source.indexOf('function queueTitleKey(')), context);
+const tags = ['animated television'];
+assert.equal(context.matchesTheme({title:'Educational Disney: Stresses and Strains', subject:tags},tags,2,['scooby','episode']),false);
+assert.equal(context.matchesTheme({title:'Scooby Doo Complete Series — Episode 3',subject:tags},tags,2,['scooby','episode']),true);
+assert.equal(context.matchesTheme({title:'Other show',subject:tags},tags,2,[]),true);
+assert.equal(context.matchesTheme({title:'Scooby Doo',subject:[]},tags,2,['scooby']),false);
+vm.runInContext(source.slice(source.indexOf('function iaFallbackQueries('), source.indexOf('function safeThemeMinScore(')), context);
+const fallback=context.iaFallbackQueries(tags,[],['scooby','episode'],['movies']);
+assert(fallback.every(query=>query.includes('AND title:("scooby" OR "episode")')));
+console.log('IA title contract: rejects incidental tags, retains series episodes, preserves fallback title rules');

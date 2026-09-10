@@ -75,7 +75,7 @@ vm.runInContext(sourceBetween('function queueFileUrls', '\nasync function mapQue
     assert.match(app, /sourceId=separator>=0\?rawId\.slice\(0,separator\):rawId/);
     assert.match(app, /requestedFile=separator>=0\?rawId\.slice\(separator\+2\):""/);
     assert.match(app, /archiveBase="https:\/\/archive\.org\/download\/"\+encodeURIComponent\(sourceId\)\+"\/"/);
-    assert.match(app, /exactVideo=requestedFile&&cand\.indexOf\(requestedFile\)>=0/);
+    assert.ok(app.includes('exactVideo=requestedFile&&scored.some(x=>x[0]<9&&x[1]===requestedFile)'), 'explicit episodes must be selected from all supported files');
   }
 
   console.log('IA episode expansion: passed');

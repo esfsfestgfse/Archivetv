@@ -474,13 +474,14 @@ function safeQueueRotation(value) {
    shape—not the approved vocabulary—so the final theme/deny gates still make
    the genre decision. This is a rescue lane for sparse shelves, never a blind
    cross-genre fallback. */
-function iaFallbackQueries(themeTerms, denyTerms, mediaTypes) {
+function iaFallbackQueries(themeTerms, denyTerms, requiredTitleTerms, mediaTypes) {
   const clean = (value) => String(value || "").replace(/[()"\\]/g, " ").replace(/\s+/g, " ").trim();
   const terms = themeTerms.map(clean).filter(Boolean).slice(0, 18).map((term) => '"' + term + '"').join(" OR ");
   if (!terms) return [];
   const denied = denyTerms.map(clean).filter(Boolean).slice(0, 24).map((term) => '"' + term + '"').join(" OR ");
   const type = mediaTypes.includes("audio") && !mediaTypes.includes("movies") ? "audio" : "movies";
-  const suffix = denied ? " AND NOT subject:(" + denied + ") AND NOT title:(" + denied + ")" : "";
+  const titles = requiredTitleTerms.map(clean).filter(Boolean).map(term => '"' + term + '"').join(" OR ");
+  const suffix = (denied ? " AND NOT subject:(" + denied + ") AND NOT title:(" + denied + ")" : "") + (titles ? " AND title:(" + titles + ")" : "");
   return [
     "mediatype:" + type + " AND (title:(" + terms + ") OR subject:(" + terms + "))" + suffix,
     "mediatype:" + type + " AND subject:(" + terms + ")" + suffix,
@@ -514,7 +515,9 @@ function themeText(value) {
     .normalize("NFKD").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim() + " ";
 }
 
-function matchesTheme(doc, themeTerms, minScore = 1) {
+function matchesTheme(doc, themeTerms, minScore = 1, requiredTitleTerms = []) {
+  const title = String(doc && doc.title || "").toLowerCase();
+  if (requiredTitleTerms.length && !requiredTitleTerms.some(term => title.includes(String(term).toLowerCase()))) return false;
   if (!themeTerms.length) return true;
   return themeScore(doc, themeTerms) >= minScore;
 }
@@ -1974,7 +1977,7 @@ function queueRotationPage(rotation, lane) {
   return 1 + (Math.abs(Number(rotation) || 0) + Number(lane || 0)) % 3;
 }
 
-async function buildIaQueue(channel, queries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, cacheOrigin, ctx, rotation = 0, searchTimeoutMs = 3200, firstApprovedLane = false, expandContainers = !firstApprovedLane) {
+async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, cacheOrigin, ctx, rotation = 0, searchTimeoutMs = 3200, firstApprovedLane = false, expandContainers = !firstApprovedLane) {
   const items = [], deferred = [], seen = new Set(), seenTitles = new Set(), candidateLimit = count;
   const used = { lane: new Map(), era: new Map(), creator: new Map(), collection: new Map(), source: new Map() };
   let deferredContainerExpansion = false;
@@ -1994,7 +1997,7 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, mediaTypes,
       // ranking, caching, or media hydration for every IA channel.
       const docs = (result.docs || []).filter((doc) => doc && safeIaId(doc.identifier) && String(doc.mediatype || "").toLowerCase() !== "collection" && (!mediaTypes.length || mediaTypes.includes(String(doc.mediatype || "").toLowerCase())))
         .sort((a, b) => themeScore(b, themeTerms) - themeScore(a, themeTerms));
-      const approved = docs.filter((doc) => matchesTheme(doc, themeTerms, themeMinScore) && !matchesDeny(doc, denyTerms));
+      const approved = docs.filter((doc) => matchesTheme(doc, themeTerms, themeMinScore, requiredTitleTerms) && !matchesDeny(doc, denyTerms));
       /* The first rail is returned before metadata expansion for speed. Every
          approved cold shelf gets a bounded background probe: Archive authors
          often omit words like “collection” even when an item contains a full
@@ -2015,7 +2018,7 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, mediaTypes,
       const expansionSeeds = hintedSeeds.concat(genericSeeds).slice(0, expansionLimit);
       const expandedSets = await mapQueueCandidates(expansionSeeds, IA_CONTAINER_EXPANSION_CONCURRENCY, async (doc, expansionIndex) => {
         const episodes = await expandArchiveContainer(doc, cacheOrigin, ctx, rotation, lane * 31 + expansionIndex);
-        return episodes.filter((episode) => matchesTheme(episode, themeTerms, themeMinScore) && !matchesDeny(episode, denyTerms));
+        return episodes.filter((episode) => matchesTheme(episode, themeTerms, themeMinScore, requiredTitleTerms) && !matchesDeny(episode, denyTerms));
       });
       const expanded = expandedSets.flat();
       return [...expanded, ...approved].map((doc) => ({ doc, lane }));
@@ -2066,7 +2069,7 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, mediaTypes,
     for (const lane of lanes) {
       const candidate = lane[row], doc = candidate && candidate.doc;
       const titleKey = queueTitleKey(doc);
-      if (!doc || !matchesTheme(doc, themeTerms, themeMinScore) || matchesDeny(doc, denyTerms) || seen.has(doc.identifier) || (titleKey && seenTitles.has(titleKey))) continue;
+      if (!doc || !matchesTheme(doc, themeTerms, themeMinScore, requiredTitleTerms) || matchesDeny(doc, denyTerms) || seen.has(doc.identifier) || (titleKey && seenTitles.has(titleKey))) continue;
       seen.add(doc.identifier);
       if (titleKey) seenTitles.add(titleKey);
       if (diverseEnough(candidate)) add(candidate); else deferred.push(candidate);
@@ -2147,7 +2150,7 @@ async function hydrateIaQueue(payload, requestedCount, cacheOrigin, ctx, mediaTy
   };
 }
 
-function scheduleCachedIaHydration(payload, requestedCount, cacheOrigin, cacheKey, sharedKey, lastGoodKey, env, ctx, mediaTypes, channel, themeTerms, denyTerms, diversity, themeMinScore, candidateCount, queries) {
+function scheduleCachedIaHydration(payload, requestedCount, cacheOrigin, cacheKey, sharedKey, lastGoodKey, env, ctx, mediaTypes, channel, themeTerms, denyTerms, requiredTitleTerms, diversity, themeMinScore, candidateCount, queries) {
   const items = Array.isArray(payload && payload.items) ? payload.items : [];
   const candidates = Array.isArray(payload && payload.candidateItems) ? payload.candidateItems : [];
   if (!candidates.length || candidates.length <= items.length) return;
@@ -2158,9 +2161,9 @@ function scheduleCachedIaHydration(payload, requestedCount, cacheOrigin, cacheKe
      part of background repair; starting at rail two left that parent stranded
      forever as a one-program shelf. */
   const reserveQueries = queries.slice(0, Math.min(8, queries.length));
-  const fallbackQueries = iaFallbackQueries(themeTerms, denyTerms, mediaTypes);
+  const fallbackQueries = iaFallbackQueries(themeTerms, denyTerms, requiredTitleTerms, mediaTypes);
   const seed = { ...payload, lastGoodKey, items: candidates.slice(0, candidateCount), candidateItems: candidates, candidates: candidates.length };
-  const task = expandAndCacheIaQueue(seed, reserveQueries.slice(0, Math.min(IA_BACKGROUND_RESERVE_LANES, reserveQueries.length)), fallbackQueries.slice(0, Math.min(IA_BACKGROUND_FALLBACK_LANES, fallbackQueries.length)), channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, requestedCount, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, Number(payload.rotation) || 0)
+  const task = expandAndCacheIaQueue(seed, reserveQueries.slice(0, Math.min(IA_BACKGROUND_RESERVE_LANES, reserveQueries.length)), fallbackQueries.slice(0, Math.min(IA_BACKGROUND_FALLBACK_LANES, fallbackQueries.length)), channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, requestedCount, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, Number(payload.rotation) || 0)
     .catch((error) => {
       console.warn(JSON.stringify({ event: "ia-cached-rehydration-failed", message: String(error && error.message || error) }));
     })
@@ -2175,7 +2178,7 @@ function scheduleCachedIaHydration(payload, requestedCount, cacheOrigin, cacheKe
    empty and used to make episode expansion silently disappear. Two files per
    parent are enough to introduce episode variety without letting one season
    fill the television's entire five-show buffer. */
-async function expandSeedArchiveContainers(payload, cacheOrigin, ctx, themeTerms, denyTerms, mediaTypes, themeMinScore, rotation) {
+async function expandSeedArchiveContainers(payload, cacheOrigin, ctx, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, rotation) {
   if (mediaTypes.length && !mediaTypes.includes("movies")) return [];
   const candidates = Array.isArray(payload && payload.candidateItems) && payload.candidateItems.length
     ? payload.candidateItems
@@ -2190,7 +2193,7 @@ async function expandSeedArchiveContainers(payload, cacheOrigin, ctx, themeTerms
   if (!parents.length) return [];
   const episodeSets = await mapQueueCandidates(parents, IA_CONTAINER_EXPANSION_CONCURRENCY, async (parent, index) => {
     const episodes = await expandArchiveContainer({ ...parent, identifier: parent.sourceIdentifier || parent.identifier }, cacheOrigin, ctx, rotation, index * 47);
-    return episodes.filter((episode) => matchesTheme(episode, themeTerms, themeMinScore) && !matchesDeny(episode, denyTerms));
+    return episodes.filter((episode) => matchesTheme(episode, themeTerms, themeMinScore, requiredTitleTerms) && !matchesDeny(episode, denyTerms));
   });
   const expanded = [];
   episodeSets.forEach((episodes, lane) => {
@@ -2223,12 +2226,12 @@ async function cacheIaQueueIfRicher(cacheKey, payload, ttlSeconds, headers = {})
   return true;
 }
 
-async function expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, rotation, forceDiscovery = false) {
+async function expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, rotation, forceDiscovery = false) {
   let expanded = payload;
   /* Start with collection files from the exact foreground result. This keeps
      the richer episode catalog tied to the same genre-checked parent instead
      of betting the repair on a later rotated search page returning it again. */
-  const seedEpisodes = await expandSeedArchiveContainers(expanded, cacheOrigin, ctx, themeTerms, denyTerms, mediaTypes, themeMinScore, rotation);
+  const seedEpisodes = await expandSeedArchiveContainers(expanded, cacheOrigin, ctx, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, rotation);
   if (seedEpisodes.length) {
     expanded = mergeIaQueuePayload({ ...expanded, items: seedEpisodes, candidateItems: seedEpisodes }, expanded, candidateCount, { containerExpanded: true });
     /* Write the exact parent’s ready episode files immediately. Reserve-query
@@ -2252,13 +2255,13 @@ async function expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, c
      eight or more names already. */
   const needsPlayableDepth = Number(expanded && expanded.ready || 0) < count;
   if ((forceDiscovery || expanded.items.length < threshold || needsPlayableDepth) && reserveQueries.length) {
-    const reserve = await buildIaQueue(channel, reserveQueries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, candidateCount, cacheOrigin, ctx, rotation);
+    const reserve = await buildIaQueue(channel, reserveQueries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, candidateCount, cacheOrigin, ctx, rotation);
     expanded = forceDiscovery
       ? mergeIaQueuePayload(reserve, expanded, candidateCount, { reserve: true, refreshed: true })
       : mergeIaQueuePayload(expanded, reserve, candidateCount, { reserve: true });
   }
   if ((forceDiscovery || expanded.items.length < threshold || needsPlayableDepth) && fallbackQueries.length) {
-    const rescue = await buildIaQueue(channel, fallbackQueries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, candidateCount, cacheOrigin, ctx, rotation);
+    const rescue = await buildIaQueue(channel, fallbackQueries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, candidateCount, cacheOrigin, ctx, rotation);
     expanded = forceDiscovery
       ? mergeIaQueuePayload(rescue, expanded, candidateCount, { rescue: true, refreshed: true })
       : mergeIaQueuePayload(expanded, rescue, candidateCount, { rescue: true });
@@ -2280,10 +2283,10 @@ async function expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, c
    rotation in flight, though: the foreground hydration and a later poll can
    both discover that the shelf needs help, and duplicate expansions just
    compete for the same Archive budget. */
-function scheduleIaExpansion(seed, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, rotation, forceDiscovery = false) {
+function scheduleIaExpansion(seed, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, rotation, forceDiscovery = false) {
   const key = cacheKey && cacheKey.url;
   if (!key || !ctx || iaQueueExpansionInflight.has(key)) return;
-  const task = expandAndCacheIaQueue(seed, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, rotation, forceDiscovery)
+  const task = expandAndCacheIaQueue(seed, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, rotation, forceDiscovery)
     .catch((error) => {
       console.warn(JSON.stringify({ event: "ia-background-replenishment-failed", channel, message: String(error && error.message || error) }));
     })
@@ -2292,13 +2295,13 @@ function scheduleIaExpansion(seed, reserveQueries, fallbackQueries, channel, the
   ctx.waitUntil(task);
 }
 
-function scheduleIaReplenishment(ready, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, rotation) {
+function scheduleIaReplenishment(ready, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, rotation) {
   if (!ready || ready.ready >= count) return;
   const candidateItems = Array.isArray(ready.candidateItems) && ready.candidateItems.length
     ? ready.candidateItems
     : (Array.isArray(ready.items) ? ready.items : []);
   const seed = { ...ready, items: candidateItems.slice(0, candidateCount), candidateItems, candidates: candidateItems.length };
-  scheduleIaExpansion(seed, reserveQueries.slice(0, Math.min(IA_BACKGROUND_RESERVE_LANES, reserveQueries.length)), fallbackQueries.slice(0, Math.min(IA_BACKGROUND_FALLBACK_LANES, fallbackQueries.length)), channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, rotation);
+  scheduleIaExpansion(seed, reserveQueries.slice(0, Math.min(IA_BACKGROUND_RESERVE_LANES, reserveQueries.length)), fallbackQueries.slice(0, Math.min(IA_BACKGROUND_FALLBACK_LANES, fallbackQueries.length)), channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, rotation);
 }
 
 async function timeboxQueueHydration(hydration, timeoutMs) {
@@ -2321,14 +2324,19 @@ async function getIaQueue(request, url, env, ctx) {
     return json({ error: "queue payload must be JSON" }, 400);
   }
   const channel = String(body && body.channel || "").trim();
-  const queries = safeQueries(body && body.queries);
+  let queries = safeQueries(body && body.queries);
   const themeTerms = safeThemeTerms(body && body.themeTerms);
   const denyTerms = safeDenyTerms(body && body.denyTerms);
+  const requiredTitleTerms = safeThemeTerms(body && body.requiredTitleTerms);
   const mediaTypes = safeMediaTypes(body && body.mediaTypes);
   const themeMinScore = safeThemeMinScore(body && body.themeMinScore);
   const diversity = safeDiversity(body && body.diversity);
   const count = Math.max(1, Math.min(5, Number(body && body.count) || 5));
   if (!safeChannel(channel) || !queries) return json({ error: "invalid queue request" }, 400);
+  if (requiredTitleTerms.length) {
+    const titles = requiredTitleTerms.map(term => '"' + term.replace(/[()"\\]/g, " ") + '"').join(" OR ");
+    queries = queries.map(query => "(" + query + ") AND title:(" + titles + ")");
+  }
   /* The app owns a bounded carousel revision. Revision zero is the common,
      globally prewarmed shelf; later revisions are requested only after a
      viewer has actually consumed a queue, which keeps fresh programming from
@@ -2336,9 +2344,9 @@ async function getIaQueue(request, url, env, ctx) {
   const rotation = safeQueueRotation(body && body.rotation);
   /* The five-show recovery shelf spans rotations, but never editorial rules.
      That avoids stale genre bleed after a channel's source contract changes. */
-  const familyFingerprint = JSON.stringify({ channel, queries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count });
+  const familyFingerprint = JSON.stringify({ channel, queries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count });
   const lastGoodDigest = await stableKey(familyFingerprint);
-  const fingerprint = JSON.stringify({ channel, queries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, rotation });
+  const fingerprint = JSON.stringify({ channel, queries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, rotation });
   const digest = await stableKey(fingerprint);
   const cacheKey = new Request(url.origin + IA_PREFIX + "/cache/queue/" + IA_QUEUE_CACHE_VERSION + "/" + digest);
   const sharedKey = IA_QUEUE_KV_PREFIX + IA_QUEUE_CACHE_VERSION + ":" + digest;
@@ -2357,7 +2365,7 @@ async function getIaQueue(request, url, env, ctx) {
           if (cachedPayload.partial && Array.isArray(cachedPayload.candidateItems)) {
             const strictQueue = themeMinScore > 1;
             const candidateCount = Math.min(strictQueue ? 30 : 20, Math.max(count, count * (strictQueue ? 6 : 4)));
-            scheduleCachedIaHydration(cachedPayload, count, url.origin, cacheKey, sharedKey, lastGoodKey, env, ctx, mediaTypes, channel, themeTerms, denyTerms, diversity, themeMinScore, candidateCount, queries);
+            scheduleCachedIaHydration(cachedPayload, count, url.origin, cacheKey, sharedKey, lastGoodKey, env, ctx, mediaTypes, channel, themeTerms, denyTerms, requiredTitleTerms, diversity, themeMinScore, candidateCount, queries);
           }
           return cached;
         }
@@ -2380,7 +2388,7 @@ async function getIaQueue(request, url, env, ctx) {
       if (!sharedReady && shared.partial && Array.isArray(shared.candidateItems)) {
         const strictQueue = themeMinScore > 1;
         const candidateCount = Math.min(strictQueue ? 30 : 20, Math.max(count, count * (strictQueue ? 6 : 4)));
-        scheduleCachedIaHydration(shared, count, url.origin, cacheKey, sharedKey, lastGoodKey, env, ctx, mediaTypes, channel, themeTerms, denyTerms, diversity, themeMinScore, candidateCount, queries);
+        scheduleCachedIaHydration(shared, count, url.origin, cacheKey, sharedKey, lastGoodKey, env, ctx, mediaTypes, channel, themeTerms, denyTerms, requiredTitleTerms, diversity, themeMinScore, candidateCount, queries);
         /* A partial exact-rotation shelf should start the background refill,
            but it should not force the viewer to live on one program. Serve a
            rotated full last-good shelf while the current rotation finishes. */
@@ -2438,8 +2446,8 @@ async function getIaQueue(request, url, env, ctx) {
           : warmLastGood.items;
         const warmSeed = { ...warmLastGood, lastGoodKey, rotation, items: warmCandidates.slice(0, warmCandidateCount), candidateItems: warmCandidates, candidates: warmCandidates.length };
         const warmReserveQueries = queries.slice(0, Math.min(IA_BACKGROUND_RESERVE_LANES, queries.length));
-        const warmFallbackQueries = iaFallbackQueries(themeTerms, denyTerms, mediaTypes).slice(0, IA_BACKGROUND_FALLBACK_LANES);
-        scheduleIaExpansion(warmSeed, warmReserveQueries, warmFallbackQueries, channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, warmCandidateCount, url.origin, cacheKey, sharedKey, env, ctx, rotation, true);
+        const warmFallbackQueries = iaFallbackQueries(themeTerms, denyTerms, requiredTitleTerms, mediaTypes).slice(0, IA_BACKGROUND_FALLBACK_LANES);
+        scheduleIaExpansion(warmSeed, warmReserveQueries, warmFallbackQueries, channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, warmCandidateCount, url.origin, cacheKey, sharedKey, env, ctx, rotation, true);
       }
       const warmResponse = cacheableJson(warmFallback, 5, {
         "X-Afterglow-Source": "program-director-warm-start",
@@ -2469,8 +2477,8 @@ async function getIaQueue(request, url, env, ctx) {
        sparse winner can widen into the app's next approved lane immediately;
        otherwise that rail was launched, observed, and then discarded. */
     const reserveQueries = queries.slice(0, Math.min(8, queries.length));
-    let payload = await buildIaQueue(channel, fastQueries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, candidateCount, url.origin, ctx, rotation, IA_FAST_SEARCH_TIMEOUT_MS, true);
-    const fallbackQueries = iaFallbackQueries(themeTerms, denyTerms, mediaTypes);
+    let payload = await buildIaQueue(channel, fastQueries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, candidateCount, url.origin, ctx, rotation, IA_FAST_SEARCH_TIMEOUT_MS, true);
+    const fallbackQueries = iaFallbackQueries(themeTerms, denyTerms, requiredTitleTerms, mediaTypes);
     if (!payload.items.length) {
       /* A rotated fast rail can be empty even while the channel has approved
          material in its next editorial rail. Give that case one bounded,
@@ -2485,7 +2493,7 @@ async function getIaQueue(request, url, env, ctx) {
       const rescueQueries = rescueSource.slice(0, Math.min(2, rescueSource.length)).concat(fallbackQueries.slice(0, 1));
       if (rescueQueries.length) {
         const rescueRotation = stableRescue ? 0 : rotation;
-        const rescue = await buildIaQueue(channel, rescueQueries, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, candidateCount, url.origin, ctx, rescueRotation, IA_FAST_SEARCH_TIMEOUT_MS, true);
+        const rescue = await buildIaQueue(channel, rescueQueries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, candidateCount, url.origin, ctx, rescueRotation, IA_FAST_SEARCH_TIMEOUT_MS, true);
         if (rescue.items.length) payload = mergeIaQueuePayload(payload, rescue, candidateCount, { rescue: true });
       }
     }
@@ -2520,7 +2528,7 @@ async function getIaQueue(request, url, env, ctx) {
        verified program. A successful background pass overwrites the short
        partial cache and fills the shared ready shelf for the next request. */
     if (needsExpansion) {
-      scheduleIaExpansion(payload, reserveQueries.slice(0, Math.min(IA_BACKGROUND_RESERVE_LANES, reserveQueries.length)), fallbackQueries.slice(0, Math.min(IA_BACKGROUND_FALLBACK_LANES, fallbackQueries.length)), channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, url.origin, cacheKey, sharedKey, env, ctx, rotation);
+      scheduleIaExpansion(payload, reserveQueries.slice(0, Math.min(IA_BACKGROUND_RESERVE_LANES, reserveQueries.length)), fallbackQueries.slice(0, Math.min(IA_BACKGROUND_FALLBACK_LANES, fallbackQueries.length)), channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, url.origin, cacheKey, sharedKey, env, ctx, rotation);
     }
     if (!payload.items.length) {
       /* A cold Archive miss is not a programming decision. If this channel has
@@ -2584,7 +2592,7 @@ async function getIaQueue(request, url, env, ctx) {
             hydration
             .then((ready) => {
               if (!ready || !ready.items.length) return undefined;
-              scheduleIaReplenishment(ready, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, url.origin, cacheKey, sharedKey, env, ctx, rotation);
+              scheduleIaReplenishment(ready, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, url.origin, cacheKey, sharedKey, env, ctx, rotation);
               const queueTtl = ready.ready >= count ? IA_QUEUE_TTL_SECONDS : IA_PARTIAL_QUEUE_TTL_SECONDS;
               if (ready.ready > 0) sharedQueuePut(env, sharedKey, ready, queueTtl, ctx);
               return cacheIaQueueIfRicher(cacheKey, ready, queueTtl, {
@@ -2601,7 +2609,7 @@ async function getIaQueue(request, url, env, ctx) {
         });
       }
       const queueTtl = hydrated.ready >= count ? IA_QUEUE_TTL_SECONDS : IA_PARTIAL_QUEUE_TTL_SECONDS;
-      scheduleIaReplenishment(hydrated, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, url.origin, cacheKey, sharedKey, env, ctx, rotation);
+      scheduleIaReplenishment(hydrated, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, url.origin, cacheKey, sharedKey, env, ctx, rotation);
       /* A fresh search can verify one to four programs before its wider refill
          completes. Do not replace an already proven five-show buffer with that
          shallow result: use the rotated full shelf for playback while the new
@@ -2682,7 +2690,7 @@ async function getIaQueue(request, url, env, ctx) {
       hydration
         .then((ready) => {
           if (!ready || !ready.items.length) return undefined;
-          scheduleIaReplenishment(ready, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, url.origin, cacheKey, sharedKey, env, ctx, rotation);
+          scheduleIaReplenishment(ready, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, url.origin, cacheKey, sharedKey, env, ctx, rotation);
           const queueTtl = ready.ready >= count ? IA_QUEUE_TTL_SECONDS : IA_PARTIAL_QUEUE_TTL_SECONDS;
           if (ready.ready > 0) sharedQueuePut(env, sharedKey, ready, queueTtl, ctx);
           return cacheIaQueueIfRicher(cacheKey, ready, queueTtl, {

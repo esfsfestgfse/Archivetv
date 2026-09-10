@@ -22,16 +22,26 @@ const server = http.createServer((req,res)=>{
    const row=await page.evaluate(async num=>{
     powered=true;document.body.classList.add('atv-powered');
     const began=performance.now();void tuneNum(num);
-    let frame=null;
+    let frame=null,embedStart=null;
     for(let i=0;i<100;i++){
      await new Promise(r=>setTimeout(r,200));
      const v=document.querySelector('#screenArea video');
-     if(v&&v.videoWidth>0&&v.currentTime>0&&!v.paused&&getComputedStyle(v).opacity!=='0'){frame=Math.round(performance.now()-began);break;}
+     if(v&&v.currentTime>0&&!v.paused&&(byNum(num).audio||v.videoWidth>0)&&getComputedStyle(v).opacity!=='0'){frame=Math.round(performance.now()-began);break;}
+     const embedded=document.querySelector('#screenArea iframe');
+     if(embedded&&getComputedStyle(embedded).opacity!=='1')continue;
+     if(embedded){embedStart=Math.round(performance.now()-began);break;}
     }
     const ch=byNum(num),v=curVideo;
-    const result={channel:num,name:ch&&ch.nm,visibleStartMs:frame,media:v?{time:v.currentTime,width:v.videoWidth||0,paused:v.paused}:null,queue:(iaProgramQueues[String(num)]||[]).length,sourceCatalog:(v2PreviewState[num]||{}).items?.length||0};
+    const sourceState=v2PreviewState[num]||{};
+    const frameEl=document.querySelector('#screenArea iframe');
+    const result={channel:num,name:ch&&ch.nm,visibleStartMs:frame,embedStartMs:embedStart,media:v?{time:v.currentTime,width:v.videoWidth||0,paused:v.paused}:null,queue:(iaProgramQueues[String(num)]||[]).length,sourceCatalog:sourceState.items?.length||0,sourceHealth:sourceState.health||null,sourceTitles:(sourceState.items||[]).slice(0,5).map(item=>item.title),embed:frameEl?{src:frameEl.src,opacity:getComputedStyle(frameEl).opacity}:null,current:curItem&&{title:curItem.title,embedded:curItem.embedded},status:(document.querySelector('#chanStatus')||{}).textContent||'',screenText:(document.querySelector('#screenArea')||{}).innerText||''};
     const before=performance.now();openGuide();closeGuide();result.guideMs=Math.round(performance.now()-before);
-    if(ch&&!ch.source){const my=++token;adQueue=0;adsOn=true;const started=performance.now();result.adStarted=await playAdBreak(ch,slotFor(ch,0),my);result.adMs=Math.round(performance.now()-started);result.adTitle=curItem&&curItem.title;
+    if(ch&&!ch.source){
+     /* Breaks occur after a program has been airing; give its background ad
+        warmer the same short window before measuring the transition. */
+     for(let i=0;i<65;i++){const warm=adWarm[adWarmKey(ch)];if(warm&&warm.item&&warm.playable)break;await new Promise(r=>setTimeout(r,200));}
+     result.adWarmReady=!!(adWarm[adWarmKey(ch)]&&adWarm[adWarmKey(ch)].playable);
+     const my=++token;adQueue=0;adsOn=true;const started=performance.now();result.adStarted=await playAdBreak(ch,slotFor(ch,0),my);result.adMs=Math.round(performance.now()-started);result.adTitle=curItem&&curItem.title;
      result.adDecoded=false;
      if(result.adStarted)for(let i=0;i<50;i++){
       await new Promise(r=>setTimeout(r,200));

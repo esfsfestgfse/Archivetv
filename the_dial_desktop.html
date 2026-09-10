@@ -1618,7 +1618,7 @@ body.cast-receiver .guide-directory .chcell.cast-focus .cc-n{color:#b9ffd0!impor
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.9.7-desktop.096-queue-media-contract";
+window.__ATV_BUILD="1.9.7-desktop.098-visible-breaks-source-handoff";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -7161,7 +7161,7 @@ function applyAV(){const el=screenArea.querySelector("video,audio");if(el){el.mu
    Every catalog item carries provenance, rights evidence, metadata proof, and a
    playable-file or embeddable proof level before it reaches the rotation.
    ===================================================================== */
-var V2_SOURCE_CATALOG_SIZE=96,V2_SOURCE_READY_BUFFER=5,V2_SOURCE_MIN_CATALOG=5,V2_SOURCE_CACHE_VERSION=16,V2_SOURCE_CACHE_TTL=12*60*1000,V2_SOURCE_MAX_DETAIL=24,V2_SOURCE_MAX_CONCURRENCY=8;
+var V2_SOURCE_CATALOG_SIZE=96,V2_SOURCE_READY_BUFFER=5,V2_SOURCE_MIN_CATALOG=2,V2_SOURCE_CACHE_VERSION=16,V2_SOURCE_CACHE_TTL=12*60*1000,V2_SOURCE_MAX_DETAIL=24,V2_SOURCE_MAX_CONCURRENCY=8;
 const V2_PREVIEW_PROFILES={
   "public-health-archive":{name:"Public Health Archive",providers:["peertube","youtube"],queries:["public health film","sanitation film","medical education film","hospital documentary","epidemiology film"],match:["public health","health","sanitation","medical","hospital","epidemiology","epidemic","medicine"],deny:["fictional","horror","music video","commercial","cartoon","gameplay","wedding"]},
   "signal-room":{name:"The Signal Room",providers:["peertube","youtube"],queries:["telegraph history film","telephone history film","radio engineering film","broadcasting history film","communications technology film"],match:["telegraph","telephone","radio","broadcast","communication","telecom","signal","engineering"],deny:["fictional","music video","commercial","cartoon","gameplay","podcast","sermon"]},
@@ -7278,7 +7278,7 @@ function v2CatalogOrder(key,items){var recent=v2Recent(key),rejected=v2Rejected(
 async function v2MapLimit(list,limit,fn){var out=new Array(list.length),next=0,workers=[];async function worker(){while(next<list.length){var i=next++;try{out[i]=await fn(list[i],i);}catch(e){out[i]=null;}}}for(var i=0;i<Math.min(Math.max(1,limit||1),list.length);i++)workers.push(worker());await Promise.all(workers);return out;}
 function v2RightsOkay(value,provider){var s=v2Text(value).toLowerCase();if(provider==="YouTube")return true;if(!s||/unknown|all rights reserved/i.test(s))return false;return /creative commons|public domain|no known copyright|not aware of any.*copyright restriction|no known restriction|cc[- ]?(by|0|nc|sa)|attribution|free culture|unlicense|government work|copyright free/i.test(s);}
 function v2CollectMedia(value,base,out){out=out||[];if(typeof value==="string"){var u=value;try{u=new URL(value,base||location.href).href;}catch(e){}if(/\.(?:mp4|m4v|webm|ogv|m3u8)(?:[?#]|$)/i.test(u)&&out.indexOf(u)<0)out.push(u);}else if(Array.isArray(value))value.forEach(function(x){v2CollectMedia(x,base,out);});else if(value&&typeof value==="object")Object.keys(value).forEach(function(k){v2CollectMedia(value[k],base,out);});return out;}
-function v2AspectRatio(value){if(value==null)return 0;if(Array.isArray(value)){for(var i=0;i<value.length;i++){var found=v2AspectRatio(value[i]);if(found)return found;}return 0;}if(typeof value==="number")return isFinite(value)&&value>0?value:0;if(typeof value==="string"){var pair=value.match(/(\d+(?:\.\d+)?)\s*[:x\/]\s*(\d+(?:\.\d+)?)/i);if(pair&&Number(pair[2]))return Number(pair[1])/Number(pair[2]);var numeric=Number(value);return isFinite(numeric)&&numeric>0?numeric:0;}if(typeof value==="object"){var direct=v2AspectRatio(value.aspectRatio);if(direct)return direct;var width=Number(value.width||value.embedWidth||0),height=Number(value.height||value.embedHeight||0);if(width>0&&height>0)return width/height;var fileRatio=v2AspectRatio(value.files);if(fileRatio)return fileRatio;var playlistRatio=v2AspectRatio(value.streamingPlaylists);if(playlistRatio)return playlistRatio;var thumb=value.thumbnails&&value.thumbnails[0];if(thumb)return v2AspectRatio(thumb);}return 0;}
+function v2AspectRatio(value){if(value==null)return 0;if(Array.isArray(value)){for(var i=0;i<value.length;i++){var found=v2AspectRatio(value[i]);if(found)return found;}return 0;}if(typeof value==="number")return isFinite(value)&&value>0?value:0;if(typeof value==="string"){var pair=value.match(/(\d+(?:\.\d+)?)\s*[:x\/]\s*(\d+(?:\.\d+)?)/i);if(pair&&Number(pair[2]))return Number(pair[1])/Number(pair[2]);var widthAttr=value.match(/\bwidth\s*=\s*["']?(\d+(?:\.\d+)?)/i),heightAttr=value.match(/\bheight\s*=\s*["']?(\d+(?:\.\d+)?)/i);if(widthAttr&&heightAttr&&Number(heightAttr[1]))return Number(widthAttr[1])/Number(heightAttr[1]);var numeric=Number(value);return isFinite(numeric)&&numeric>0?numeric:0;}if(typeof value==="object"){var direct=v2AspectRatio(value.aspectRatio);if(direct)return direct;var width=Number(value.width||value.embedWidth||0),height=Number(value.height||value.embedHeight||0);if(width>0&&height>0)return width/height;var embedded=v2AspectRatio(value.embedHtml||value.html);if(embedded)return embedded;var fileRatio=v2AspectRatio(value.files);if(fileRatio)return fileRatio;var playlistRatio=v2AspectRatio(value.streamingPlaylists);if(playlistRatio)return playlistRatio;var thumb=value.thumbnails&&value.thumbnails[0];if(thumb)return v2AspectRatio(thumb);}return 0;}
 function v2Landscape(item){return v2AspectRatio(item)>=1.2;}
 function v2Verified(item,provider,query,level){var title=v2Text(item&&item.title),rights=v2Text(item&&item.rights),url=String(item&&item.url||"");if(!title||!item.id||!v2RightsOkay(rights,provider)||!url||!v2Landscape(item))return null;item.provider=provider;item.meta=Object.assign({},item.meta||{}, {source:provider,license:rights,orientation:"landscape",provenance:{provider:provider,query:query||"",sourceUrl:String(item.sourceUrl||item.embedUrl||url),checkedAt:Date.now()},verification:{metadata:true,rights:true,landscape:true,playback:level||"url-present",checkedAt:Date.now()}});return item;}
 function v2SourceHealth(key,lanes){var health={};lanes.forEach(function(lane){if(!lane)return;health[lane.provider]=Object.assign({at:Date.now(),count:0},lane.health||{}, {count:Array.isArray(lane.items)?lane.items.length:0});});return health;}
@@ -7308,7 +7308,7 @@ async function v2PeerTube(profile){
 async function v2YouTube(profile){
   var key=typeof YOUTUBE_KEY==="string"?YOUTUBE_KEY:"",rotation=arguments[1]||0,onFirst=typeof arguments[2]==="function"?arguments[2]:null;
   if(!key)return {provider:"YouTube",items:[],health:{skipped:true,reason:"YOUTUBE_KEY missing"}};
-  var orders=["relevance","date","viewCount","rating"],order=orders[Number(rotation)%orders.length],queries=v2DiscoveryQueries(profile,"youtube",rotation,Math.min(4,Number(profile.queryLimit)||4));
+  var orders=["relevance","date","viewCount","rating"],order=orders[Number(rotation)%orders.length],queryCap=profile.profileKey==="cartoon-time-machine"?8:4,queries=v2DiscoveryQueries(profile,"youtube",rotation,Math.min(queryCap,Number(profile.queryLimit)||queryCap));
   var cooldownKey="v2youtube-cooldown:"+profile.name,cooldownUntil=Number(store.get(cooldownKey,0))||0;if(cooldownUntil>Date.now())return {provider:"YouTube",items:[],health:{skipped:true,reason:"rate-limited",retryAt:cooldownUntil}};
   /* A cold tune used to wait for every search response, then a full 50-item
      metadata batch. Verify the first productive query as soon as it lands;
@@ -7356,7 +7356,12 @@ async function v2Provider(name,profile){var rotation=arguments[2]||0,onFirst=typ
 async function v2LoadProfile(ch,profile,my){
   var key=profile.name,state=v2PreviewState[ch.num]||(v2PreviewState[ch.num]={items:[],cursor:0,currentTitle:"",provider:"SOURCE PILOT"});
   if(v2PreviewInflight[key])return v2PreviewFirstReady[key]||v2PreviewInflight[key];
-  var force=arguments[3]===true,cached=store.get("v2source:"+key,null),cacheValid=!!cached&&Number(cached.version||0)===V2_SOURCE_CACHE_VERSION,retainedItems=Array.isArray(cached&&cached.items)?cached.items.filter(function(item){return v2Relevant(profile,item)&&v2Landscape(item);}):[],cachedItems=retainedItems,cacheFresh=!force&&cacheValid&&cachedItems.length>=V2_SOURCE_MIN_CATALOG&&Date.now()-Number(cached.at||0)<V2_SOURCE_CACHE_TTL;if(cacheFresh&&!state.items.length){state.items=v2CatalogOrder(key,cachedItems.slice());state.cursor=0;state.health=cached.health||{};state.provider="CACHED VERIFIED CATALOG";refreshGuideData();}if(cacheFresh)return Promise.resolve(state.items);
+  var force=arguments[3]===true,cached=store.get("v2source:"+key,null),cacheValid=!!cached&&Number(cached.version||0)===V2_SOURCE_CACHE_VERSION,retainedItems=Array.isArray(cached&&cached.items)?cached.items.filter(function(item){return v2Relevant(profile,item)&&v2Landscape(item);}):[],cachedItems=retainedItems,cacheFresh=!force&&cacheValid&&cachedItems.length>=V2_SOURCE_MIN_CATALOG&&Date.now()-Number(cached.at||0)<V2_SOURCE_CACHE_TTL;
+  /* A verified catalog is still playable after its rotation timer expires.
+     Take the air from that shelf immediately, then refresh it in the
+     background. A timer is a freshness signal, never a reason to blank TV. */
+  if(cacheValid&&cachedItems.length>=V2_SOURCE_MIN_CATALOG&&!state.items.length){state.items=v2CatalogOrder(key,cachedItems.slice());state.cursor=0;state.health=cached.health||{};state.provider=cacheFresh?"CACHED VERIFIED CATALOG":"CACHED CATALOG · REFRESHING";refreshGuideData();}
+  if(!force&&state.items.length){if(!cacheFresh)setTimeout(function(){v2LoadProfile(ch,profile,my,true).catch(function(){});},40);return Promise.resolve(state.items);}
   var readyResolve,readyReject;v2PreviewFirstReady[key]=new Promise(function(resolve,reject){readyResolve=resolve;readyReject=reject;});
   v2PreviewInflight[key]=(async function(){
      var rotation=v2NextRotation(key),previousId=state.items.length?String(state.items[Number(state.cursor||0)%state.items.length].id||""):"";
@@ -7826,6 +7831,7 @@ function playFile(it,ch,sl,my,isFallback){return new Promise(res=>{
       if(ch&&!ch.source)iaTuneRetries[String(ch.num||ch.nm||"")]=0;
       hideOv(); hideBuffer(); setSig("live", isAudio?"ON AIR ♪":"ON AIR");
       nlog("audio",!v.muted,(v.muted?"MUTED":"AUDIBLE")+" start / vol="+Math.round(v.volume*100)+(muted?" / GLOBAL MUTE ON":"")); /* 1.2.2: every program logs its audio state to DIAG */
+      if(!it.isAd&&!it.isSignoff&&ch&&!ch.source)warmAd(ch); /* resolve the next station-matched break while this program is on-air */
       if(!it.isAd&&!it.isSignoff&&ch&&ch.num>0&&sl&&sl.queries){ /* resolve the NEXT program before a viewer can hit SKIP */
         clearTimeout(preloadNext._t);
         preloadNext._t=setTimeout(function(){ preloadNext(ch,sl,my); },2500);
@@ -7883,7 +7889,13 @@ function playFile(it,ch,sl,my,isFallback){return new Promise(res=>{
   /* buffering / stall handling — show spinner, auto-recover if a feed hangs */
   v.addEventListener("waiting",()=>{ if(my===token&&curVideo===v){ showBuffer(); armStall(my); } },{signal:sig});
   v.addEventListener("stalled",()=>{ if(my===token&&curVideo===v){ showBuffer(); armStall(my); } },{signal:sig});
-  v.addEventListener("playing",()=>{ if(my===token){ fin(true); hideBuffer(); clearStall(); } },{signal:sig});
+  v.addEventListener("playing",()=>{ if(my===token){
+    /* Some Archive MP4 derivatives carry audio only. A TV channel may only
+       commit after the decoder exposes a picture; otherwise let the bounded
+       fallback chain try the next candidate instead of leaving audio on black. */
+    if(!isAudio&&!(v.videoWidth>0)){setTimeout(function(){if(!done&&my===token){if(v.videoWidth>0){fin(true);hideBuffer();clearStall();}else fin(false);}},500);return;}
+    fin(true); hideBuffer(); clearStall();
+  } },{signal:sig});
   v.addEventListener("timeupdate",()=>{ if(my===token) onProgress(v); },{signal:sig});
   v.addEventListener("loadedmetadata",()=>{ if(my===token) onProgress(v); },{signal:sig});
   v.addEventListener("durationchange",()=>{ if(my===token&&!it.isAd&&!it.isSignoff&&isFinite(v.duration)) schedSet(ch,it,v.duration); },{signal:sig}); /* 1.2: put this program on the schedule */
@@ -16293,7 +16305,7 @@ nlog("boot",true,"engine v8.2 up · "+(fileMode?"file://":location.protocol));
    break. Pull one candidate from several era/category lanes, then choose from the merged
    pool. Ads also have their own recent-history ledger because ordinary watch history skips
    ads by design. Movie stations remain video-only; audio stations remain audio-only. */
-var adsOn=store.get("ads",true), adQueue=0, adLaneCursor=Number(store.get("adLaneCursor",0))||0, adRecent=store.get("adRecent",{}),adFailed=store.get("adFailed",{});if(!adRecent||typeof adRecent!=="object")adRecent={};if(!adFailed||typeof adFailed!=="object")adFailed={};
+var adsOn=store.get("ads",true), adQueue=0, adLaneCursor=Number(store.get("adLaneCursor",0))||0, adRecent=store.get("adRecent",{}),adFailed=store.get("adFailed",{}),adWarm={},adWarmMiss={};if(!adRecent||typeof adRecent!=="object")adRecent={};if(!adFailed||typeof adFailed!=="object")adFailed={};
 var AD_LANES=[
   {years:[1930,1949],topics:["television commercial","advertising","public service announcement","commercial reel"],collections:["prelinger","classic_tv_commercials"]},
   {years:[1950,1959],topics:["television commercial","sponsor commercial","food commercial","public service announcement"],collections:["classic_tv_commercials","prelinger"]},
@@ -16368,23 +16380,45 @@ async function pickAdItem(ch,left){
      over a catalog item whose title/subjects actually match this station. */
   var contextual=fresh.filter(function(item){return adItemContextScore(item,ch)>0;});
   if(contextual.length)fresh=contextual;
-  if(fresh.length)return fresh[Math.floor(Math.random()*fresh.length)];
+  if(fresh.length){
+    /* Pick from the strongest station-matched band, but rotate inside that
+       band so a reliable shelf does not become the same commercial forever. */
+    var scored=fresh.map(function(item){return {item:item,score:adItemContextScore(item,ch),seen:Number(adRecent[item.identifier]||0)};}).sort(function(a,b){return b.score-a.score||a.seen-b.seen;}),top=scored[0].score,band=scored.filter(function(row){return row.score===top;}).slice(0,6);
+    return band[Math.floor(Math.random()*band.length)].item;
+  }
   items.sort(function(a,b){return Number(adRecent[a.identifier]||0)-Number(adRecent[b.identifier]||0);});
   return items[0];
+}
+function adWarmKey(ch){return String(ch&&ch.audio?"audio":"video")+":"+String(ch&&ch.cat||"TV")+":"+String(ch&&ch.nm||"");}
+function warmAd(ch){
+  if(!adsOn||!ch)return Promise.resolve(null);
+  var key=adWarmKey(ch),existing=adWarm[key];
+  if(existing&&existing.promise)return existing.promise;
+  if(existing&&existing.item&&existing.playable&&!adFailed[existing.item.identifier])return Promise.resolve(existing);
+  var row={item:null,playable:null,promise:null,at:Date.now()};adWarm[key]=row;
+  var misses=Number(adWarmMiss[key]||0);
+  row.promise=(async function(){
+    var item=await pickAdItem(ch,5200);if(!item)throw new Error("no commercial candidate");
+    var playable=await resolvePlayable(item.identifier,ch.audio?"audio":"video");
+    if(!playable)throw new Error("commercial has no matching playable media");
+    row.item=item;row.playable=playable;row.at=Date.now();delete adWarmMiss[key];return row;
+  })().catch(function(){if(adWarm[key]===row)delete adWarm[key];adWarmMiss[key]=misses+1;if(misses<2)setTimeout(function(){warmAd(ch);},1200+misses*900);return null;}).finally(function(){delete row.promise;});
+  return row.promise;
 }
 async function playAdBreak(ch,sl,my){
   if(!adsOn||my!==token){adQueue=0;return false;}
   adQueue=(Math.random()<0.35?2:1);var played=await nextAd(ch,sl,my);if(!played)adQueue=0;return played;
 }
 async function nextAd(ch,sl,my){
-  var deadline=Date.now()+4500;
-  while(adQueue>0){ if(my!==token||!adsOn){adQueue=0;return false;} adQueue--;
+  var deadline=Date.now()+4500,attempts=0;
+  while(adQueue>0&&attempts<4){ if(my!==token||!adsOn){adQueue=0;return false;} adQueue--;attempts++;
     try{ var left=deadline-Date.now();if(left<400)break;
-      const item=await withTO(pickAdItem(ch,left),left); if(my!==token||!adsOn){adQueue=0;return false;}if(!item)break;
+      const kind=(ch&&ch.audio)?"audio":"video",warm=adWarm[adWarmKey(ch)],ready=warm&&warm.item&&warm.playable&&!adFailed[warm.item.identifier]?warm:null;
+      const item=ready?ready.item:await withTO(pickAdItem(ch,left),left); if(my!==token||!adsOn){adQueue=0;return false;}if(!item)break;
       left=deadline-Date.now();if(left<400)break;
-      const kind=(ch&&ch.audio)?"audio":"video", pl=await withTO(resolvePlayable(item.identifier,kind),left);if(my!==token||!adsOn){adQueue=0;return false;}if(!pl||pl.type!==kind){adMarkFailed(item.identifier);continue;}
+      const pl=ready?ready.playable:await withTO(resolvePlayable(item.identifier,kind),left);if(my!==token||!adsOn){adQueue=0;return false;}if(!pl||pl.type!==kind){adMarkFailed(item.identifier);delete adWarm[adWarmKey(ch)];if(attempts<4)adQueue++;continue;}
       pl.title=item.title||"Commercial"; pl.year=(pl.meta&&pl.meta.date)||item.year; pl.isAd=true;
-      if(await playFile(pl,ch,{show:kind==="audio"?"AUDIO COMMERCIAL":"COMMERCIAL BREAK",isAd:true,genre:sl&&sl.genre,queries:sl&&sl.queries},my)){adRemember(item.identifier);return true;}adMarkFailed(item.identifier);
+      if(await playFile(pl,ch,{show:kind==="audio"?"AUDIO COMMERCIAL":"COMMERCIAL BREAK",isAd:true,genre:sl&&sl.genre,queries:sl&&sl.queries},my)){adRemember(item.identifier);delete adWarm[adWarmKey(ch)];warmAd(ch);return true;}adMarkFailed(item.identifier);delete adWarm[adWarmKey(ch)];if(attempts<4)adQueue++;
     }catch(e){} }
   adQueue=0;return false; }
 

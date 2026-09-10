@@ -96,7 +96,7 @@ for (const file of files) {
   const archiveStart = source.indexOf('async function v2Archive(', youtubeStart);
   const youtube = youtubeStart >= 0 && archiveStart > youtubeStart ? source.slice(youtubeStart, archiveStart) : '';
   if (!/embed-eligible/.test(youtube) || !/v2YouTubeBlocked/.test(youtube)) issues.push(`${name}: YouTube must preserve embed eligibility and Shorts/language/how-to filtering`);
-  if (!/v2CandidateRelevant\(profile,x\)/.test(youtube) || !/!v2Relevant\(profile,metadata\)/.test(youtube)) issues.push(`${name}: YouTube must use candidate and hydrated qualification gates`);
+  if (!/v2CandidateRelevant\(profile,x\)/.test(youtube) || !/!v2Relevant\(profile,metadata\)/.test(youtube) || !/!v2ProgramRuntimeOkay\(metadata\)/.test(youtube)) issues.push(`${name}: YouTube must use candidate, hydrated, and television-runtime qualification gates`);
   if (!/tags:metadata\.tags,category:metadata\.category,account:metadata\.account/.test(youtube)) issues.push(`${name}: YouTube catalogs must preserve qualification metadata across cache restores`);
 
   const stamps = [...source.matchAll(/window\.__ATV_BUILD\s*=\s*"([^"]+)"/g)].map(match => match[1]);

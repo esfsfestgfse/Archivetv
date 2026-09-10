@@ -38,6 +38,7 @@ async function run(file) {
     v2YouTubeBlocked: () => false,
     v2CandidateRelevant: () => true,
     v2Relevant: () => true,
+    v2ProgramRuntimeOkay: item => Number(item?.duration || 0) >= 15 * 60,
     v2Text: value => String(value || ''),
     v2AspectRatio: () => 16 / 9,
     v2IsoDuration: () => 22 * 60,

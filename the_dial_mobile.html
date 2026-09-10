@@ -1670,7 +1670,7 @@ html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.9.7-mobile.114-device-sweep";
+window.__ATV_BUILD="1.9.7-mobile.115-source-runtime-gate";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -7396,7 +7396,7 @@ async function v2YouTube(profile){
       var items=raw.map(function(x){
         var f=by[x.id]||{},aspect=v2AspectRatio(f.player),metadata=Object.assign({},x,{title:v2Text(f.snippet&&f.snippet.title||x.title),description:v2Text(f.snippet&&f.snippet.description||x.description),tags:v2Text(f.snippet&&f.snippet.tags||x.tags||[]),category:v2Text(f.snippet&&f.snippet.categoryId||x.category),account:v2Text(f.snippet&&f.snippet.channelTitle||x.account),duration:v2IsoDuration(f.contentDetails&&f.contentDetails.duration),defaultAudioLanguage:f.snippet&&f.snippet.defaultAudioLanguage,defaultLanguage:f.snippet&&f.snippet.defaultLanguage,aspectRatio:aspect});
         if(!f.status||f.status.embeddable!==true||!f.contentDetails||!f.contentDetails.duration||aspect<1.2)return null;
-        if(v2YouTubeBlocked(metadata)||!v2Relevant(profile,metadata))return null;
+        if(v2YouTubeBlocked(metadata)||!v2Relevant(profile,metadata)||!v2ProgramRuntimeOkay(metadata))return null;
         return v2Verified({id:"yt:"+x.id,title:metadata.title,description:metadata.description,tags:metadata.tags,category:metadata.category,account:metadata.account,year:String(f.snippet&&f.snippet.publishedAt||x.year||"").slice(0,4),rights:"Standard YouTube license",url:x.embedUrl,type:"embed",embedded:true,duration:metadata.duration,aspectRatio:aspect,sourceUrl:"https://www.youtube.com/watch?v="+x.id},"YouTube",x.query,"embed-eligible");
       }).filter(Boolean).slice(0,limit||48);
       return {items:items,details:ids.length};

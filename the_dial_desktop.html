@@ -599,6 +599,8 @@ html.mob .ot-detail{display:none}   /* phone: name + sport is enough, detail is 
   box-shadow:-18px 0 38px rgba(0,0,0,.38)}
 .tv3-ghead{flex-wrap:wrap}.tv3-ghead .tv2-sel{flex:1 1 calc(50% - 20px);max-width:none;min-width:0}
 .tv3-ghead .tv2-search{flex:1 1 calc(100% - 32px)}
+.tv3-ghead .tv2-sel{font-weight:800;letter-spacing:.7px;box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
+.tv3-ghead .tv2-sel:focus,.tv3-ghead .tv2-search:focus{outline:2px solid rgba(143,255,92,.55);outline-offset:1px}
 .tv3-list{margin-right:0;padding-right:2px}
 /* Sports Center's free-TV directory uses compact cards and a real filter instead of
    a wall of full-size score cards. The player stays collapsed until a feed is chosen. */
@@ -1618,7 +1620,7 @@ body.cast-receiver .guide-directory .chcell.cast-focus .cc-n{color:#b9ffd0!impor
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.9.7-desktop.117-ship-map-resilience";
+window.__ATV_BUILD="1.9.7-desktop.118-sports-live-polish";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -11234,7 +11236,13 @@ function tvHideDead(){ return store.get("tvHideDead",true)!==false; }
 function cullDead(arr){
   if(!tvHideDead()) return {list:arr,hidden:0};
   var h=tvHealthAll(), kept=[], hidden=0;
-  arr.forEach(function(c){ if(tvStrikes(c,h)>=2){hidden++;} else kept.push(c); });
+  /* Two observed failures are enough to hide a stream, and explicit provider dead/offline
+     flags are never useful in a playable directory. This is temporary UI culling only:
+     SHOW DEAD CHANNELS and the seven-day expiry preserve recovery. */
+  arr.forEach(function(c){
+    var flagged=/(?:dead|offline|broken|unavailable)/i.test(String(c&&((c.status||"")+" "+(c.health||""))));
+    if(tvStrikes(c,h)>=2||flagged){hidden++;} else kept.push(c);
+  });
   return {list:kept,hidden:hidden};
 }
 function sortByHealthThenName(arr){
@@ -14419,7 +14427,13 @@ async function tuneSports(ch,sl,my){
   function balancedTodayRows(input, cap, perSport){
     var buckets={};
     input.forEach(function(row){ var k=todaySportFamily(row.sport); (buckets[k]||(buckets[k]=[])).push(row); });
-    var keys=Object.keys(buckets).sort(function(a,b){ return buckets[b].length-buckets[a].length || a.localeCompare(b); });
+    /* Give every sport a fair first look. Sorting by bucket size made the busiest sport
+       dominate LIVE NOW; freshest event first, then round-robin the sport families. */
+    var keys=Object.keys(buckets).sort(function(a,b){
+      var at=buckets[a].reduce(function(max,row){return Math.max(max,Number(row.ts)||0);},0);
+      var bt=buckets[b].reduce(function(max,row){return Math.max(max,Number(row.ts)||0);},0);
+      return bt-at || buckets[b].length-buckets[a].length || a.localeCompare(b);
+    });
     var out=[], active=true;
     while(active&&out.length<cap){ active=false; keys.forEach(function(k){
       var bucket=buckets[k]; if(!bucket.length)return;
@@ -14514,7 +14528,9 @@ async function tuneSports(ch,sl,my){
     var liveRows=rows.filter(function(r){return r.state==="in";});
     var soonRows=rows.filter(function(r){return r.state!=="in"&&r.state!=="post"&&(!r.ts||r.ts>=Date.now()-30*60*1000);});
     var finalRows=rows.filter(function(r){return r.state==="post";});
-    var liveShown=onTodayOffset===0?balancedTodayRows(liveRows,24,3):[];
+    /* Two cards per family keeps LIVE NOW representative instead of becoming a
+       football/baseball wall when one scoreboard has a large slate. */
+    var liveShown=onTodayOffset===0?balancedTodayRows(liveRows,24,2):[];
     var soonShown=balancedTodayRows(soonRows,24,2);
     var finalShown=balancedTodayRows(finalRows,12,1);
     var sportCount={}; rows.forEach(function(r){sportCount[todaySportFamily(r.sport)]=1;});
@@ -14606,11 +14622,26 @@ async function tuneSports(ch,sl,my){
       renderSportsCards("");
       if(sportsSearch){ sportsSearch.addEventListener("input",function(){ renderSportsCards(sportsSearch.value); }); sportsSearch.addEventListener("keydown",function(e){ e.stopPropagation(); }); }
       fetchEPG().then(function(){ if(my!==token||sportsSubView!=="livetv")return;
+        var onAirById={};
         bodyEl.querySelectorAll("[data-epg]").forEach(function(row){
           var id=row.dataset.epg; if(!id)return;
           var e=epgFor({tvgId:id}); var sub=row.querySelector(".sports-epg");
           if(e&&sub){ sub.textContent="ON AIR · "+e.title+(e.left?("  \u00b7  "+e.left+" min left"):""); sub.style.display=""; row.classList.add("onair"); var badge=row.querySelector(".sports-feed-state"); if(badge)badge.textContent="ON AIR"; }
         });
+        /* EPG is the reliable live-now signal. Re-sort after it arrives so the directory
+           opens on actual ON AIR feeds instead of alphabetic catalog entries. */
+        chans.sort(function(a,b){
+          var ae=onAirById[String(a.tvgId||"")],be=onAirById[String(b.tvgId||"")];
+          if(!!ae!==!!be)return be?1:-1;
+          if(ae&&be){
+            var at=Number(ae.start||0),bt=Number(be.start||0);
+            if(at!==bt)return bt-at;
+          }
+          if((a._strikes||0)!==(b._strikes||0))return (a._strikes||0)-(b._strikes||0);
+          if((a._trust||0)!==(b._trust||0))return (b._trust||0)-(a._trust||0);
+          return String(a.name||"").toLowerCase().localeCompare(String(b.name||"").toLowerCase());
+        });
+        renderSportsCards(sportsSearch?sportsSearch.value:"");
       });
       nlog("sportstv",true,chans.length+" sports channels");
     }catch(e){ nlog("sportstv",false,(e&&e.message)||e);

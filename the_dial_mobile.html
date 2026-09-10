@@ -1670,7 +1670,7 @@ html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.9.7-mobile.103-map-touch-controls";
+window.__ATV_BUILD="1.9.7-mobile.104-sports-stream-quality";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -14628,7 +14628,9 @@ async function tuneSports(ch,sl,my){
          one source we keep the copy most likely to actually play */
       var byName={};
       all.forEach(function(c){ var k=(c.name||"").toLowerCase().replace(/\s+/g," ").trim(); if(!k)return;
-        if(!byName[k]||(c.verified&&!byName[k].verified)) byName[k]=c; });
+        /* Prefer a stream that has actually passed this device's playback check;
+           then prefer an editorially verified catalog row over an unchecked row. */
+        if(!byName[k]||(c.checked&&!byName[k].checked)||(c.verified&&!byName[k].verified&&!byName[k].checked)) byName[k]=c; });
       var chans=Object.keys(byName).map(function(k){ return byName[k]; }).filter(function(c){
         /* A few malformed community playlist rows carry a User-Agent value as the title.
            They are not real channels and make the directory look broken, so omit only those

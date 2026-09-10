@@ -13,6 +13,7 @@ function check(ok, message) {
 
 check(runtime.includes('window.__rsRelease2Telemetry'), 'Release 2 telemetry API exists');
 check(runtime.includes('first-visible-frame'), 'First visible frame measurement exists');
+check(runtime.includes('uniquePrograms') && runtime.includes("type==='repeat'"), 'Repeat and unique-program measurement exists');
 check(runtime.includes('source-recovery'), 'Source recovery measurement exists');
 check(runtime.includes("addEventListener('online'"), 'Online recovery hook exists');
 

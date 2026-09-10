@@ -6,7 +6,7 @@
   'use strict';
   var telemetryOn=new URLSearchParams(location.search).get('r2Telemetry')==='1';
   var report={version:2,startedAt:Date.now(),events:[],notes:['local-only','no network reporting']};
-  var activeTune=null,recoveryTimer=0;
+  var activeTune=null,recoveryTimer=0,tuneSeq=0,seenPrograms=[];
   function stamp(){return Math.round(performance.now());}
   function push(event){
     report.events.push(Object.assign({at:stamp()},event||{}));
@@ -18,9 +18,10 @@
   function summary(){
     var tunes=report.events.filter(function(e){return e.type==='tune-complete'&&Number.isFinite(e.ms);}).map(function(e){return e.ms;}).sort(function(a,b){return a-b;}),
         frames=report.events.filter(function(e){return e.type==='first-visible-frame'&&Number.isFinite(e.ms);}).map(function(e){return e.ms;}).sort(function(a,b){return a-b;});
-    return {version:2,events:report.events.length,tunes:tunes.length,frames:frames.length,tuneP50:percentile(tunes,.5),tuneP95:percentile(tunes,.95),frameP50:percentile(frames,.5),frameP95:percentile(frames,.95),timeouts:report.events.filter(function(e){return e.type==='startup-timeout';}).length,stalls:report.events.filter(function(e){return e.type==='stall';}).length,errors:report.events.filter(function(e){return e.type==='media-error';}).length};
+    return {version:2,events:report.events.length,tunes:tunes.length,frames:frames.length,uniquePrograms:seenPrograms.length,repeats:report.events.filter(function(e){return e.type==='repeat';}).length,tuneP50:percentile(tunes,.5),tuneP95:percentile(tunes,.95),frameP50:percentile(frames,.5),frameP95:percentile(frames,.95),timeouts:report.events.filter(function(e){return e.type==='startup-timeout';}).length,stalls:report.events.filter(function(e){return e.type==='stall';}).length,errors:report.events.filter(function(e){return e.type==='media-error';}).length};
   }
   function currentChannel(){try{if(typeof curNum!=='undefined'&&typeof byNum==='function')return byNum(curNum);}catch(_){ }return null;}
+  function currentProgramKey(){try{var item=typeof curItem!=='undefined'?curItem:null,ch=currentChannel(),key=item&&(item.id||item.url||item.src||item.title);return String(key||(ch&&((ch.num||0)+'|'+(ch.nm||'')))||'');}catch(_){return '';}}
   function recoverSource(reason){
     try{
       var ch=currentChannel();
@@ -35,7 +36,7 @@
   function observeMedia(node){
     if(!telemetryOn||!node||node.dataset.release2Observed)return;
     node.dataset.release2Observed='1';var started=activeTune?activeTune.at:stamp(),first=false;
-    function frame(){if(first)return;if(node.tagName==='VIDEO'&&(!node.videoWidth||node.readyState<2))return;first=true;push({type:'first-visible-frame',channel:activeTune&&activeTune.channel||0,media:node.tagName.toLowerCase(),ms:Math.max(0,stamp()-started)});}
+    function frame(){if(first)return;if(node.tagName==='VIDEO'&&(!node.videoWidth||node.readyState<2))return;first=true;var key=currentProgramKey(),prior=false;if(key){prior=seenPrograms.some(function(entry){return entry.key===key&&entry.tune!==((activeTune&&activeTune.seq)||0);});if(!seenPrograms.some(function(entry){return entry.key===key&&entry.tune===((activeTune&&activeTune.seq)||0);}))seenPrograms.push({key:key,tune:(activeTune&&activeTune.seq)||0});if(seenPrograms.length>250)seenPrograms.shift();}push({type:'first-visible-frame',channel:activeTune&&activeTune.channel||0,media:node.tagName.toLowerCase(),ms:Math.max(0,stamp()-started),programKey:key,repeat:prior});if(prior)push({type:'repeat',channel:activeTune&&activeTune.channel||0,programKey:key});}
     ['playing','loadeddata','load'].forEach(function(type){node.addEventListener(type,frame,{passive:true});});
     node.addEventListener('stalled',function(){push({type:'stall',channel:activeTune&&activeTune.channel||0,media:node.tagName.toLowerCase()});},{passive:true});
     node.addEventListener('error',function(){push({type:'media-error',channel:activeTune&&activeTune.channel||0,media:node.tagName.toLowerCase()});},{passive:true});
@@ -47,7 +48,7 @@
     if(typeof window.tuneNum==='function'){
       var baseTune=window.tuneNum;
       window.tuneNum=function(channel){
-        var row={channel:Number(channel)||0,at:stamp()};activeTune=row;push({type:'tune-start',channel:row.channel});
+        var row={channel:Number(channel)||0,at:stamp(),seq:++tuneSeq};activeTune=row;push({type:'tune-start',channel:row.channel,seq:row.seq});
         var result;try{result=baseTune.apply(this,arguments);}catch(error){push({type:'tune-error',channel:row.channel,error:String(error&&error.message||error)});throw error;}
         return Promise.resolve(result).then(function(value){row.ms=Math.max(0,stamp()-row.at);push({type:'tune-complete',channel:row.channel,ms:row.ms});return value;},function(error){row.ms=Math.max(0,stamp()-row.at);push({type:'tune-failed',channel:row.channel,ms:row.ms,error:String(error&&error.message||error)});throw error;});
       };

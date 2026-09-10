@@ -340,7 +340,7 @@ function corsHeaders() {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
-    "Access-Control-Expose-Headers": "X-Afterglow-Source, X-Afterglow-Cache, X-Afterglow-Queue-Ready, X-Afterglow-Queue-Partial, X-Afterglow-Queue-Fallback",
+    "Access-Control-Expose-Headers": "X-Afterglow-Source, X-Afterglow-Cache, X-Afterglow-Queue-Ready, X-Afterglow-Queue-Partial, X-Afterglow-Queue-Fallback, X-Afterglow-Ship-Diagnostics",
     "Vary": "Origin",
   };
 }
@@ -2710,6 +2710,7 @@ async function getKplerSnapshot(request, env, ctx) {
   const url = new URL(request.url);
   const regionName = SHIP_REGIONS[url.searchParams.get("region")] ? url.searchParams.get("region") : "gulf";
   const region = SHIP_REGIONS[regionName];
+  const shipDiagnostics = [];
   const cacheKey = new Request(url.origin + SNAPSHOT_PATH + "?v=" + SNAPSHOT_CACHE_VERSION + "&region=" + regionName);
   const cache = caches.default;
   const cached = await cache.match(cacheKey);
@@ -2724,24 +2725,42 @@ async function getKplerSnapshot(request, env, ctx) {
      regions use the public OpenWaters snapshot and still share the same
      normalized browser contract. */
   if (regionName === "gulf" && env.KPLER_API_KEY) {
-    const query = new URLSearchParams({
-      filter: GULF_FILTER,
-      format: "json",
-      limit: "1000",
-      fields: KPLER_FIELDS,
-      sortBy: "posDt DESC",
-    });
-    try {
-      const upstream = await fetch(KPLER_URL + "?" + query, {
-        headers: {
-          "Authorization": "Basic " + env.KPLER_API_KEY,
-          "Accept": "application/json",
-        },
+    /* Kpler deployments have accepted both the OGC filter and a bbox query
+       depending on their AIS gateway revision. Probe only this fixed, bounded
+       set for the cached Gulf desk; it prevents a request-shape change from
+       blanking the channel without allowing arbitrary upstream parameters. */
+    const spatialVariants = [
+      { filter: GULF_FILTER },
+      { bbox: "-98,18,-80,31" },
+      { filter: "BBOX(geometry,-98,18,-80,31)" },
+    ];
+    for (const spatial of spatialVariants) {
+      const query = new URLSearchParams({
+        ...spatial,
+        format: "json",
+        limit: "1000",
+        fields: KPLER_FIELDS,
+        sortBy: "posDt DESC",
       });
-      if (upstream.ok) {
+      try {
+        const upstream = await fetch(KPLER_URL + "?" + query, {
+          headers: {
+            "Authorization": "Basic " + env.KPLER_API_KEY,
+            "Accept": "application/json",
+          },
+        });
+        if (!upstream.ok) {
+          shipDiagnostics.push("kpler-" + Object.keys(spatial)[0] + "-" + upstream.status);
+          console.warn(JSON.stringify({ event: "ship-kpler-miss", region: regionName, variant: Object.keys(spatial)[0], status: upstream.status }));
+          continue;
+        }
         const payload = await upstream.json();
         const features = normalizeShipSnapshot(payload).slice(0, 1000);
-        if (!features.length) throw new Error("kpler empty or unrecognized");
+        if (!features.length) {
+          shipDiagnostics.push("kpler-" + Object.keys(spatial)[0] + "-empty");
+          console.warn(JSON.stringify({ event: "ship-kpler-empty", region: regionName, variant: Object.keys(spatial)[0] }));
+          continue;
+        }
         const response = json({
           source: "kpler",
           fetchedAt: new Date().toISOString(),
@@ -2754,10 +2773,11 @@ async function getKplerSnapshot(request, env, ctx) {
         });
         ctx.waitUntil(cache.put(cacheKey, response.clone()));
         return response;
+      } catch (error) {
+        shipDiagnostics.push("kpler-" + Object.keys(spatial)[0] + "-error");
+        console.warn(JSON.stringify({ event: "ship-kpler-error", region: regionName, variant: Object.keys(spatial)[0], message: String(error && error.message || error).slice(0, 160) }));
+        // Try the next fixed syntax, then continue to the public fallback.
       }
-    } catch {
-      // Continue to the keyless public fallback below. Provider errors are not
-      // exposed to the browser because they can include account diagnostics.
     }
   }
 
@@ -2791,8 +2811,12 @@ async function getKplerSnapshot(request, env, ctx) {
     });
     ctx.waitUntil(cache.put(cacheKey, response.clone()));
     return response;
-  } catch {
-    return json({ error: "ship snapshot is temporarily unavailable" }, 502);
+  } catch (error) {
+    shipDiagnostics.push("openwaters-error");
+    console.warn(JSON.stringify({ event: "ship-openwaters-error", region: regionName, message: String(error && error.message || error).slice(0, 160) }));
+    return json({ error: "ship snapshot is temporarily unavailable" }, 502, {
+      "X-Afterglow-Ship-Diagnostics": shipDiagnostics.slice(0, 4).join(","),
+    });
   }
 }
 

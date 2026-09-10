@@ -1670,7 +1670,7 @@ html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.9.7-mobile.115-source-runtime-gate";
+window.__ATV_BUILD="1.9.7-mobile.116-source-cache-gate";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -7430,7 +7430,7 @@ async function v2Provider(name,profile){var rotation=arguments[2]||0,onFirst=typ
 async function v2LoadProfile(ch,profile,my){
   var key=profile.name,state=v2PreviewState[ch.num]||(v2PreviewState[ch.num]={items:[],cursor:0,currentTitle:"",provider:"SOURCE PILOT"});
   if(v2PreviewInflight[key])return v2PreviewFirstReady[key]||v2PreviewInflight[key];
-  var force=arguments[3]===true,cached=store.get("v2source:"+key,null),cacheValid=!!cached&&Number(cached.version||0)===V2_SOURCE_CACHE_VERSION,retainedItems=Array.isArray(cached&&cached.items)?cached.items.filter(function(item){return v2Relevant(profile,item)&&v2Landscape(item);}):[],cachedItems=retainedItems,cacheFresh=!force&&cacheValid&&cachedItems.length>=V2_SOURCE_MIN_CATALOG&&Date.now()-Number(cached.at||0)<V2_SOURCE_CACHE_TTL;
+  var force=arguments[3]===true,cached=store.get("v2source:"+key,null),cacheValid=!!cached&&Number(cached.version||0)===V2_SOURCE_CACHE_VERSION,retainedItems=Array.isArray(cached&&cached.items)?cached.items.filter(function(item){return v2Relevant(profile,item)&&v2Landscape(item)&&v2ProgramRuntimeOkay(item);}):[],cachedItems=retainedItems,cacheFresh=!force&&cacheValid&&cachedItems.length>=V2_SOURCE_MIN_CATALOG&&Date.now()-Number(cached.at||0)<V2_SOURCE_CACHE_TTL;
   /* A verified catalog is still playable after its rotation timer expires.
      Take the air from that shelf immediately, then refresh it in the
      background. A timer is a freshness signal, never a reason to blank TV. */

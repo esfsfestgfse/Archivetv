@@ -20,7 +20,7 @@ check(runtime.includes("addEventListener('online'"), 'Online recovery hook exist
 for (const file of builds) {
   const html = fs.readFileSync(path.join(repo, file), 'utf8');
   check(html.includes('assets/release2-runtime.js'), `${file}: Release 2 runtime loaded`);
-  check(html.includes('1.9.7-' + (file.includes('mobile') ? 'mobile' : 'desktop') + '.121-release2-freshness'), `${file}: build stamp is 121 freshness`);
+  check(html.includes('1.9.7-' + (file.includes('mobile') ? 'mobile' : 'desktop') + '.122-release2-next-recovery'), `${file}: build stamp is 122 next recovery`);
   check(html.includes('AD_RECENT_TTL=7*24*3600e3'), `${file}: extended ad freshness ledger`);
   check(html.includes('runtime>=45*60'), `${file}: long-program ad budget`);
 }

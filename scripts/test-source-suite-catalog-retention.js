@@ -17,6 +17,7 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
     ['IA skip history is enforced before queue selection', source.includes('iaProgramMedia[id]===null||iaPendingTooLong(id)||(id&&isTemporarilySkipped(id))')],
     ['Source Suite refresh does not fall back to a played item', source.includes('function v2TuneRefreshed') && !source.includes('if(next<0)next=state.items.findIndex(function(item){return String(item&&item.id||"")!==currentId;});')],
     ['Source Suite Next does not replay a played item when the shelf is exhausted', source.includes('window.__v2PreviewNext=function') && !source.includes('if(next<0)next=state.items.findIndex(function(item){return String(item&&item.id||"")!==currentId;});')],
+    ['manual Source Suite Next has an available-item recovery path', source.includes('window.__v2PreviewNext=function(manual)') && source.includes('SOURCE SUITE · NEXT AVAILABLE PROGRAM')],
   ];
   for (const [label, pass] of checks) {
     console.log(`${file}: ${label}: ${pass ? 'ok' : 'FAIL'}`);

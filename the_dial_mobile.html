@@ -1672,7 +1672,7 @@ html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.9.7-mobile.121-release2-freshness";
+window.__ATV_BUILD="1.9.7-mobile.122-release2-next-recovery";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -7468,7 +7468,7 @@ async function tuneV2Preview(ch,sl,my){
   state.currentTitle="";setChanStatus(ch.num,state.items.length?"QUEUE RETRYING · BUFFER "+Math.min(V2_SOURCE_READY_BUFFER,state.items.length)+" / "+state.items.length+" CATALOG":"SOURCE CATALOG RETRYING");showOv("SOURCE SUITE","RECONNECTING","The source catalog is retrying — no permanent channel failure.");clearTimeout(retryTimer);retryTimer=setTimeout(function(){if(my===token&&powered)tuneNum(curNum);},2500);
 }
 function v2TuneRefreshed(ch,state,profile,currentId,my){var key=profile.name;if(v2PreviewAdvance[key])return v2PreviewAdvance[key];var load=v2LoadProfile(ch,profile,my,true),settled=v2PreviewInflight[key]||load,run=settled.then(function(){if(my!==token||!powered||curNum!==ch.num)return;var recent=v2Recent(profile.name),next=state.items.findIndex(function(item){var id=String(item&&item.id||"");return id&&id!==currentId&&recent.indexOf(id)<0;});if(next<0){quickBanner("SOURCE SUITE · STILL FINDING NEXT PROGRAM");clearTimeout(retryTimer);retryTimer=setTimeout(function(){if(my===token&&powered&&curNum===ch.num)v2TuneRefreshed(ch,state,profile,currentId,my).catch(function(){});},2500);return;}state.cursor=next;state.currentTitle="";quickBanner("SOURCE SUITE · NEXT");tuneNum(curNum);});v2PreviewAdvance[key]=run.finally(function(){delete v2PreviewAdvance[key];});return v2PreviewAdvance[key];}
-window.__v2PreviewNext=function(){var ch=byNum(curNum),state=ch&&v2PreviewState[ch.num],profile=ch&&V2_PREVIEW_PROFILES[ch.previewKey];if(!ch||ch.source!=="v2preview")return false;if(!state||!state.items.length){quickBanner("SOURCE SUITE · QUEUE WARMING");if(profile)v2LoadProfile(ch,profile,token,true).catch(function(){});return true;}var currentId=String(state.items[Number(state.cursor||0)%state.items.length].id||""),recent=profile?v2Recent(profile.name):[],next=state.items.findIndex(function(item){var id=String(item&&item.id||"");return id&&id!==currentId&&recent.indexOf(id)<0;});if(next>=0){state.cursor=next;state.currentTitle="";if(profile&&state.items.length<=V2_SOURCE_READY_BUFFER)v2LoadProfile(ch,profile,token,true).catch(function(){});quickBanner("SOURCE SUITE · NEXT");tuneNum(curNum);return true;}if(profile){quickBanner("SOURCE SUITE · FINDING NEXT PROGRAM");v2TuneRefreshed(ch,state,profile,currentId,token).catch(function(){});}return true;};
+window.__v2PreviewNext=function(manual){var ch=byNum(curNum),state=ch&&v2PreviewState[ch.num],profile=ch&&V2_PREVIEW_PROFILES[ch.previewKey];if(!ch||ch.source!=="v2preview")return false;if(!state||!state.items.length){quickBanner("SOURCE SUITE · QUEUE WARMING");if(profile)v2LoadProfile(ch,profile,token,true).catch(function(){});return true;}var currentId=String(state.items[Number(state.cursor||0)%state.items.length].id||""),recent=profile?v2Recent(profile.name):[],next=state.items.findIndex(function(item){var id=String(item&&item.id||"");return id&&id!==currentId&&recent.indexOf(id)<0;});if(next<0&&manual){var oldestRank=-1;next=state.items.reduce(function(best,item,index){var id=String(item&&item.id||"");if(!id||id===currentId)return best;var rank=recent.indexOf(id);if(rank>oldestRank){oldestRank=rank;return index;}return best;},-1);if(next>=0){state.cursor=next;state.currentTitle="";if(profile)v2LoadProfile(ch,profile,token,true).catch(function(){});quickBanner("SOURCE SUITE · NEXT AVAILABLE PROGRAM");tuneNum(curNum);return true;}}if(next>=0){state.cursor=next;state.currentTitle="";if(profile&&state.items.length<=V2_SOURCE_READY_BUFFER)v2LoadProfile(ch,profile,token,true).catch(function(){});quickBanner("SOURCE SUITE · NEXT");tuneNum(curNum);return true;}if(profile){quickBanner("SOURCE SUITE · FINDING NEXT PROGRAM");v2TuneRefreshed(ch,state,profile,currentId,token).catch(function(){});}return true;};
 
 async function tuneNum(n){
   if(!powered)return;
@@ -16741,7 +16741,7 @@ async function playBumper(ch,sl,my){
 /* ===== v10.1: skip — next item on the same channel, on demand ===== */
 function skipOne(){ if(!powered){quickBanner("TURN THE TV ON FIRST");return;}
   var sc=byNum(curNum);
-  if(sc&&sc.source==="v2preview"&&typeof window.__v2PreviewNext==="function"){window.__v2PreviewNext();return;}
+  if(sc&&sc.source==="v2preview"&&typeof window.__v2PreviewNext==="function"){window.__v2PreviewNext(true);return;}
   if(sc&&sc.source==="worldclock"&&typeof window.__worldClockNext==="function"){window.__worldClockNext();return;}
   if(sc&&sc.source==="tropical"&&typeof window.__tropicalNext==="function"){window.__tropicalNext();return;}
   if(sc&&sc.source==="wildfire"&&typeof window.__wildfireNext==="function"){window.__wildfireNext();return;}

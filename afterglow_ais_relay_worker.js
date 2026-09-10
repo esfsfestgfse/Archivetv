@@ -213,7 +213,10 @@ const KPLER_FIELDS = "mmsi,longitude,latitude,posDt,sog,vesselName,heading,cog,n
 /* Public navigation is intentionally limited to named regions. The Worker
    never accepts an arbitrary upstream URL or arbitrary paid-data filter. */
 const SHIP_REGIONS = Object.freeze({
-  gulf: { bbox: "18,-98,31,-80" },
+  /* Open Waters limits anonymous snapshots to roughly 100 square degrees.
+     Split the Gulf into four bounded tiles so a provider fallback cannot turn
+     a valid regional desk into an empty response. */
+  gulf: { bboxes: ["18,-98,28,-89", "28,-98,31,-89", "18,-89,28,-80", "28,-89,31,-80"] },
   atlantic: { bbox: "0,-75,65,20" },
   /* OpenWaters treats a west-to-east box that crosses the date line as empty.
      Keep the user-facing Pacific desk intact, but query its two valid halves. */

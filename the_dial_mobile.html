@@ -16,7 +16,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="RealSignal">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>REALSIGNAL · The Dial 1.7.9</title>
+<title>REALSIGNAL · The Dial 1.7.10</title>
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
@@ -1670,7 +1670,7 @@ html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.9.7-mobile.116-source-cache-gate";
+window.__ATV_BUILD="1.9.7-mobile.117-ship-map-resilience";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -14045,6 +14045,10 @@ var shipSocket=null, shipList={};
 /* The relay exposes a cached Kpler snapshot here when AISStream is quiet.
    No provider credential is ever present in this public browser client. */
 var SHIP_SNAPSHOT_URL="https://ais-relay.tdy1990.workers.dev/snapshot";
+/* Open Waters is a bounded public fallback: its anonymous HTTP contract caps
+   a request at about 100 square degrees, so follow the current map viewport
+   instead of asking the browser for an entire ocean. */
+var SHIP_PUBLIC_SNAPSHOT_URL="https://ais.openwaters.io/v1/vessels?bbox=";
 /* Ship Tracker rebuilt 2026-08-07: Gulf-of-Mexico map on the left, live vessel list on the
    right, connection-status pill at the top-right. Ships plot as blips on the map using the
    same ensureMap() infrastructure as Air Traffic / Seismic. Clear visible status: green
@@ -14118,7 +14122,7 @@ async function tuneShips(ch,sl,my){
     detail.innerHTML='<img id="shipPhoto" class="ship-photo" alt="Public vessel photo"><div style="color:#effff3;font-size:11px;font-weight:900;letter-spacing:.7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esch(vessel.name||("MMSI "+vessel.mmsi))+'</div><div id="shipPhotoHint" style="color:#79a6ff;font-size:8px;margin-top:2px">LOOKING UP PUBLIC PHOTO · '+esch(vessel.source||"AIS")+'</div><div class="ship-detail-grid"><span><b>MMSI</b> '+esch(String(vessel.mmsi||"--"))+'</span><span><b>TYPE</b> '+esch(vessel.vesselType||"--")+'</span><span><b>SPEED</b> '+esch(sog)+'</span><span><b>COURSE</b> '+esch(cog)+'</span><span><b>HEADING</b> '+esch(heading)+'</span><span><b>NAV</b> '+esch(vessel.navStatus||"--")+'</span><span><b>DEST</b> '+esch(vessel.destination||"--")+'</span><span><b>POS</b> '+(vessel.lat!=null?Number(vessel.lat).toFixed(3)+"°, "+Number(vessel.lon).toFixed(3)+"°":"--")+'</span></div>';
     shipPhotoLookup(vessel);
   }
-  function bindShipMapControls(){var mapBox=$("shipMap");if(!mapBox)return;mapBox.querySelectorAll("[data-ship-pan]").forEach(function(b){b.onclick=function(e){e.stopPropagation();var step=shipView.range*.45,dir=b.dataset.shipPan,lat=shipView.lat,lon=shipView.lon;if(dir==="up")lat+=step/69.05;if(dir==="down")lat-=step/69.05;if(dir==="left")lon-=step/(69.17*Math.max(.25,Math.cos(lat*Math.PI/180)));if(dir==="right")lon+=step/(69.17*Math.max(.25,Math.cos(lat*Math.PI/180)));if(lon>180)lon-=360;if(lon<-180)lon+=360;setShipView(lat,lon,shipView.range);};});mapBox.querySelectorAll("[data-ship-zoom]").forEach(function(b){b.onclick=function(e){e.stopPropagation();setShipView(shipView.lat,shipView.lon,shipView.range*(b.dataset.shipZoom==="in"?.55:1.8));};});var home=mapBox.querySelector("[data-ship-home]");if(home)home.onclick=function(e){e.stopPropagation();setShipView(27.5,-89,700,"gulf");};var world=mapBox.querySelector("[data-ship-world]");if(world)world.onclick=function(e){e.stopPropagation();setShipView(0,0,20000,"world");};var center=mapBox.querySelector("[data-ship-center]");if(center)center.onclick=function(e){e.stopPropagation();var vessel=shipList[selectedMmsi];if(!vessel||vessel.lat==null||vessel.lon==null){quickBanner("SELECT A VESSEL FIRST");return;}setShipView(Number(vessel.lat),Number(vessel.lon),Math.max(180,Math.min(shipView.range,500)),shipRegion);selectShip(selectedMmsi);quickBanner("CENTERED ON "+String(vessel.name||("MMSI "+vessel.mmsi)).slice(0,28));};if(!mapBox._shipDragBound){mapBox._shipDragBound=true;mapBox.addEventListener("pointerdown",function(e){if(e.target.closest&&e.target.closest("button,.ship-blip"))return;shipDrag={x:e.clientX,y:e.clientY};mapBox.setPointerCapture&&mapBox.setPointerCapture(e.pointerId);});mapBox.addEventListener("pointerup",function(e){if(!shipDrag)return;var dx=e.clientX-shipDrag.x,dy=e.clientY-shipDrag.y;shipDrag=null;if(Math.abs(dx)+Math.abs(dy)>8){var lat=shipView.lat+dy*shipView.range/Math.max(1,mapBox.clientHeight)/69.05*2,lon=shipView.lon-dx*shipView.range/Math.max(1,mapBox.clientWidth)/69.17/Math.max(.25,Math.cos(shipView.lat*Math.PI/180))*2;setShipView(lat,lon,shipView.range);}});mapBox.addEventListener("pointercancel",function(){shipDrag=null;});}}
+  function bindShipMapControls(){var mapBox=$("shipMap");if(!mapBox)return;mapBox.querySelectorAll("[data-ship-pan]").forEach(function(b){b.onclick=function(e){e.stopPropagation();var step=shipView.range*.45,dir=b.dataset.shipPan,lat=shipView.lat,lon=shipView.lon;if(dir==="up")lat+=step/69.05;if(dir==="down")lat-=step/69.05;if(dir==="left")lon-=step/(69.17*Math.max(.25,Math.cos(lat*Math.PI/180)));if(dir==="right")lon+=step/(69.17*Math.max(.25,Math.cos(lat*Math.PI/180)));if(lon>180)lon-=360;if(lon<-180)lon+=360;setShipView(lat,lon,shipView.range);};});mapBox.querySelectorAll("[data-ship-zoom]").forEach(function(b){b.onclick=function(e){e.stopPropagation();setShipView(shipView.lat,shipView.lon,shipView.range*(b.dataset.shipZoom==="in"?.55:1.8));};});var home=mapBox.querySelector("[data-ship-home]");if(home)home.onclick=function(e){e.stopPropagation();setShipView(27.5,-89,700,"gulf");};var world=mapBox.querySelector("[data-ship-world]");if(world)world.onclick=function(e){e.stopPropagation();setShipView(0,0,20000,"world");};var center=mapBox.querySelector("[data-ship-center]");if(center)center.onclick=function(e){e.stopPropagation();var vessel=shipList[selectedMmsi];if(!vessel||vessel.lat==null||vessel.lon==null){quickBanner("SELECT A VESSEL FIRST");return;}setShipView(Number(vessel.lat),Number(vessel.lon),Math.max(180,Math.min(shipView.range,500)),shipRegion);selectShip(selectedMmsi);quickBanner("CENTERED ON "+String(vessel.name||("MMSI "+vessel.mmsi)).slice(0,28));};if(!mapBox._shipDragBound){mapBox._shipDragBound=true;mapBox.tabIndex=0;mapBox.setAttribute("role","application");mapBox.setAttribute("aria-label","Interactive vessel map. Use arrow keys to pan, plus and minus to zoom.");mapBox.style.touchAction="none";mapBox.addEventListener("wheel",function(e){if(e.target.closest&&e.target.closest("button,.ship-blip"))return;e.preventDefault();setShipView(shipView.lat,shipView.lon,shipView.range*(e.deltaY>0?1.35:.74));},{passive:false});mapBox.addEventListener("keydown",function(e){var k=e.key;if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","+","=","-","_","Home"].indexOf(k)<0)return;e.preventDefault();if(k==="Home"){setShipView(27.5,-89,700,"gulf");return;}if(k==="+"||k==="="){setShipView(shipView.lat,shipView.lon,shipView.range*.74);return;}if(k==="-"||k==="_"){setShipView(shipView.lat,shipView.lon,shipView.range*1.35);return;}var step=shipView.range*.45,lat=shipView.lat,lon=shipView.lon;if(k==="ArrowUp")lat+=step/69.05;if(k==="ArrowDown")lat-=step/69.05;if(k==="ArrowLeft")lon-=step/(69.17*Math.max(.25,Math.cos(lat*Math.PI/180)));if(k==="ArrowRight")lon+=step/(69.17*Math.max(.25,Math.cos(lat*Math.PI/180)));setShipView(lat,lon,shipView.range);});mapBox.addEventListener("pointerdown",function(e){if(e.target.closest&&e.target.closest("button,.ship-blip"))return;shipDrag={x:e.clientX,y:e.clientY};mapBox.focus();mapBox.setPointerCapture&&mapBox.setPointerCapture(e.pointerId);});mapBox.addEventListener("pointerup",function(e){if(!shipDrag)return;var dx=e.clientX-shipDrag.x,dy=e.clientY-shipDrag.y;shipDrag=null;if(Math.abs(dx)+Math.abs(dy)>8){var lat=shipView.lat+dy*shipView.range/Math.max(1,mapBox.clientHeight)/69.05*2,lon=shipView.lon-dx*shipView.range/Math.max(1,mapBox.clientWidth)/69.17/Math.max(.25,Math.cos(shipView.lat*Math.PI/180))*2;setShipView(lat,lon,shipView.range);}});mapBox.addEventListener("pointercancel",function(){shipDrag=null;});window.addEventListener("resize",function(){if($("shipMap")===mapBox){mp=null;ensureShipMap();paint();}});}}
   function ensureShipMap(){
     var box=$("shipMap"); if(!box||mp)return;
     /* wait for layout: ensureMap needs a non-zero container size to compute scale */
@@ -14174,6 +14178,23 @@ async function tuneShips(ch,sl,my){
     });
     return added;
   }
+  function normalizePublicShipSnapshot(payload){
+    var rows=payload&&Array.isArray(payload.features)?payload.features:(Array.isArray(payload)?payload:[]),features=[];
+    rows.forEach(function(row){
+      var p=row&&row.properties||row||{},coords=row&&row.geometry&&row.geometry.coordinates||[],lat=Number(p.latitude!=null?p.latitude:(p.lat!=null?p.lat:coords[1])),lon=Number(p.longitude!=null?p.longitude:(p.lon!=null?p.lon:(p.lng!=null?p.lng:coords[0]))),mmsi=p.mmsi!=null?p.mmsi:(row&&row.id);
+      if(!isFinite(lat)||!isFinite(lon)||mmsi==null)return;
+      features.push({type:"Feature",geometry:{type:"Point",coordinates:[lon,lat]},properties:{mmsi:mmsi,latitude:lat,longitude:lon,sog:p.sog,cog:p.cog,heading:p.heading,navStatus:p.navStatus!=null?p.navStatus:p.nav_status,vesselName:p.vesselName||p.name,vesselType:p.vesselType!=null?p.vesselType:p.type,destination:p.destination,imo:p.imo}});
+    });
+    return {source:"openwaters-direct",fetchedAt:new Date().toISOString(),type:"FeatureCollection",region:shipRegion,features:features.slice(0,250)};
+  }
+  function publicShipViewport(){
+    var latSpan=Math.max(2.5,Math.min(4.5,shipView.range/69.05/2)),cos=Math.max(.45,Math.cos(shipView.lat*Math.PI/180)),lonSpan=Math.max(2.5,Math.min(4.5,latSpan/cos)),minLat=Math.max(-89,shipView.lat-latSpan),maxLat=Math.min(89,shipView.lat+latSpan),minLon=Math.max(-179,shipView.lon-lonSpan),maxLon=Math.min(179,shipView.lon+lonSpan);
+    return [minLat.toFixed(4),minLon.toFixed(4),maxLat.toFixed(4),maxLon.toFixed(4)].join(",");
+  }
+  async function fetchPublicShipSnapshot(){
+    var controller=typeof AbortController==="function"?new AbortController():null,timeoutId=setTimeout(function(){if(controller){try{controller.abort();}catch(e){}}},5000),options={cache:"no-store"};if(controller)options.signal=controller.signal;
+    try{var res=await fetch(SHIP_PUBLIC_SNAPSHOT_URL+encodeURIComponent(publicShipViewport()),options);if(!res.ok)throw new Error("Open Waters "+res.status);var payload=normalizePublicShipSnapshot(await res.json());if(!payload.features.length)throw new Error("Open Waters empty viewport");return payload;}finally{clearTimeout(timeoutId);}
+  }
   function restoreLastGoodSnapshot(){
     try{
       var cached=store.get(shipSnapshotCacheKey+":"+shipRegion,null);
@@ -14195,7 +14216,7 @@ async function tuneShips(ch,sl,my){
     var timeoutId=setTimeout(function(){if(controller){try{controller.abort();}catch(e){}}},9000);
     try{
       var fetchOptions={cache:"no-store"};if(controller)fetchOptions.signal=controller.signal;
-      var res=await withTO(fetch(SHIP_SNAPSHOT_URL+"?region="+encodeURIComponent(regionAtStart),fetchOptions),9000);
+      var res=await withTO(fetch(SHIP_SNAPSHOT_URL+"?region="+encodeURIComponent(regionAtStart),fetchOptions),6500);
       if(my!==token||requestId!==snapshotRequest||regionAtStart!==shipRegion)return;
       if(!res.ok){
         var shipDiag=res.headers&&res.headers.get?res.headers.get("X-Afterglow-Ship-Diagnostics"):"";
@@ -14213,9 +14234,23 @@ async function tuneShips(ch,sl,my){
       nlog("ais",true,"loaded "+added+" vessel snapshot via relay");
     }catch(e){
       if(my!==token||requestId!==snapshotRequest||regionAtStart!==shipRegion)return;
-      snapshotError=(e&&e.message)||"snapshot unavailable";
-      nlog("ais",false,"snapshot fallback unavailable: "+snapshotError);
-      if(!retryTimer) retryTimer=setTimeout(function(){retryTimer=null;refreshSnapshot();},15000);
+      /* The relay is the preferred path, but Open Waters can fill the current
+         viewport directly without a credential. This keeps the map useful
+         during a Worker outage and never asks the public API for a huge ocean. */
+      try{
+        var direct=await fetchPublicShipSnapshot();
+        if(my!==token||requestId!==snapshotRequest||regionAtStart!==shipRegion)return;
+        var directAdded=addSnapshot(direct);
+        if(!directAdded)throw new Error("empty direct snapshot");
+        snapshotAt=Date.now(); snapshotSource="OPENWATERS DIRECT"; snapshotError=null; dirty=true;
+        if(retryTimer){clearTimeout(retryTimer);retryTimer=null;}
+        try{store.set(shipSnapshotCacheKey+":"+shipRegion,{at:snapshotAt,payload:{source:direct.source,region:shipRegion,fetchedAt:direct.fetchedAt,type:"FeatureCollection",features:direct.features}});}catch(e2){}
+        nlog("ais",true,"loaded "+directAdded+" vessel snapshot via direct Open Waters viewport fallback");
+      }catch(directError){
+        snapshotError=((e&&e.message)||"relay unavailable")+"; "+((directError&&directError.message)||"direct fallback unavailable");
+        nlog("ais",false,"snapshot fallback unavailable: "+snapshotError);
+        if(!retryTimer) retryTimer=setTimeout(function(){retryTimer=null;refreshSnapshot();},15000);
+      }
     }finally{clearTimeout(timeoutId);if(snapshotController===controller)snapshotController=null;}
   }
   function renderList(){

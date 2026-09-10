@@ -1670,7 +1670,7 @@ html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.9.7-mobile.112-mobile-action-trace";
+window.__ATV_BUILD="1.9.7-mobile.113-mobile-power-fallback";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -1723,7 +1723,7 @@ window.addEventListener("unhandledrejection",function(e){
     <button id="mChUp">CH &#9650;</button>
     <button id="mChDn">CH &#9660;</button>
     <button class="b-guide" id="mGuide">GUIDE</button>
-    <button class="mpow" id="mPow" aria-label="Power"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 2.5v8"/><path d="M7 5.2a8 8 0 1 0 10 0"/></svg></button>
+    <button class="mpow" id="mPow" aria-label="Power" onclick="var powerButton=document.getElementById('rPow');if(powerButton)powerButton.click();"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 2.5v8"/><path d="M7 5.2a8 8 0 1 0 10 0"/></svg></button>
     <button id="mVolUp">VOL +</button>
     <button id="mVolDn">VOL &minus;</button>
     <button class="b-mute" id="mMute">MUTE</button>
@@ -8072,7 +8072,6 @@ document.documentElement.setAttribute("data-atv-core-init","ready");
 /* Mobile controls must be wired in this core scope. The mobile shell cannot
    safely depend on synthetic clicks against the hidden desktop remote. */
 function __rsWireMobile(id,fn){var el=$(id);if(!el||el.__rsCoreWired)return;if(typeof fn!=="function")return;el.__rsCoreWired=true;el.addEventListener("click",function(ev){ev.preventDefault();try{fn(ev);document.documentElement.setAttribute("data-atv-last-mobile-action",id);}catch(err){try{document.documentElement.setAttribute("data-atv-mobile-action-error",id+": "+String(err&&err.message||err));}catch(_){ }throw err;}});}
-__rsWireMobile("mPow",togglePower);
 __rsWireMobile("mChUp",function(){step(1);});
 __rsWireMobile("mChDn",function(){step(-1);});
 __rsWireMobile("mGuide",openGuide);
@@ -17707,7 +17706,7 @@ window.__atvBootDone=true; /* app is up -- from here on, errors get logged, not 
   document.documentElement.setAttribute("data-atv-mobile-shell-init","ready");
   var d=document, byId=function(id){return d.getElementById(id);};
   function click(id){if(id==="rPow"&&typeof window.__rsTogglePower==="function"){window.__rsTogglePower();return;}var e=byId(id); if(e)e.click();}
-  var map={mPow:"rPow",mChUp:"rChUp",mChDn:"rChDn",mVolUp:"rVolUp",mVolDn:"rVolDn",mSurf:"rSurf",mMenu:"rMenu",mInfo:"rInfo",mSkip:"rSkip"};
+  var map={mChUp:"rChUp",mChDn:"rChDn",mVolUp:"rVolUp",mVolDn:"rVolDn",mSurf:"rSurf",mMenu:"rMenu",mInfo:"rInfo",mSkip:"rSkip"};
   Object.keys(map).forEach(function(k){var b=byId(k); if(b&&!b.__rsCoreWired)b.addEventListener("click",function(ev){ev.preventDefault();click(map[k]);});});
   var gb=byId("mGuide"); if(gb&&!gb.__rsCoreWired)gb.addEventListener("click",function(ev){ev.preventDefault();ev.stopPropagation();
     /* Mobile Live TV has its own mini-guide. Make the remote's GUIDE button explicitly open

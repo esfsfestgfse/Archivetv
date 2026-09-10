@@ -13949,7 +13949,7 @@ async function tuneShips(ch,sl,my){
      starts this channel with an empty ocean. It is visibly marked as a snapshot until a
      fresh relay response replaces it. */
   var shipSnapshotCacheKey="afterglowShipTrackerSnapshotV1";
-  var msgCount=0, firstMsgAt=null, lastMsgAt=null, snapshotAt=null, snapshotError=null, snapshotSource="", retryTimer=null, dirty=false, snapshotRequest=0, snapshotController=null;
+  var msgCount=0, firstMsgAt=null, lastMsgAt=null, snapshotAt=null, snapshotError=null, snapshotSource="", retryTimer=null, publicViewTimer=0, dirty=false, snapshotRequest=0, snapshotController=null;
   var mp=null,shipRegion="gulf",shipView={lat:27.5,lon:-89.0,range:700},selectedMmsi="",shipDrag=null;
   var SHIP_REGION_LABELS={gulf:{map:"GULF OF MEXICO",short:"GULF"},atlantic:{map:"NORTH ATLANTIC",short:"ATLANTIC"},pacific:{map:"PACIFIC OCEAN",short:"PACIFIC"},americas:{map:"AMERICAS",short:"AMERICAS"},europe:{map:"EUROPE",short:"EUROPE"},africa:{map:"AFRICA",short:"AFRICA"},indian:{map:"INDIAN OCEAN",short:"INDIAN"},asia:{map:"ASIA-PACIFIC",short:"ASIA-PACIFIC"},world:{map:"WORLD OVERVIEW",short:"WORLD"}};
   function updateShipChrome(){var meta=SHIP_REGION_LABELS[shipRegion]||SHIP_REGION_LABELS.world;var mapLabel=$("shipMapLabel"),regionLabel=$("shipRegionLabel");if(mapLabel)mapLabel.textContent=meta.map;if(regionLabel)regionLabel.textContent=meta.short;}
@@ -13967,10 +13967,11 @@ async function tuneShips(ch,sl,my){
   function clearShipData(){snapshotRequest++;if(snapshotController){try{snapshotController.abort();}catch(e){}snapshotController=null;}Object.keys(shipList).forEach(function(k){if(shipList[k]._el&&shipList[k]._el.remove)shipList[k]._el.remove();});shipList={};msgCount=0;firstMsgAt=null;lastMsgAt=null;snapshotAt=null;snapshotSource="";dirty=true;}
   function setShipView(lat,lon,range,forceRegion){
     shipView={lat:Math.max(-70,Math.min(70,Number(lat)||0)),lon:Math.max(-179.5,Math.min(179.5,Number(lon)||0)),range:Math.max(180,Math.min(20000,Number(range)||700))};
-    var nextRegion=forceRegion||shipRegionFor(shipView.lat,shipView.lon);
+    var nextRegion=forceRegion||shipRegionFor(shipView.lat,shipView.lon),regionChanged=nextRegion!==shipRegion;
     if(nextRegion!==shipRegion){shipRegion=nextRegion;clearShipData();refreshSnapshot();}
     updateShipChrome();
     mp=null;ensureShipMap();paint();renderList();
+    if(!regionChanged)schedulePublicViewportRefresh();
   }
   function shipPhotoLookup(vessel){
     var detail=$("shipDetail");if(!detail)return;
@@ -14056,6 +14057,23 @@ async function tuneShips(ch,sl,my){
   async function fetchPublicShipSnapshot(){
     var controller=typeof AbortController==="function"?new AbortController():null,timeoutId=setTimeout(function(){if(controller){try{controller.abort();}catch(e){}}},5000),options={cache:"no-store"};if(controller)options.signal=controller.signal;
     try{var res=await fetch(SHIP_PUBLIC_SNAPSHOT_URL+encodeURIComponent(publicShipViewport()),options);if(!res.ok)throw new Error("Open Waters "+res.status);var payload=normalizePublicShipSnapshot(await res.json());if(!payload.features.length)throw new Error("Open Waters empty viewport");return payload;}finally{clearTimeout(timeoutId);}
+  }
+  function schedulePublicViewportRefresh(){
+    if(!(snapshotSource==="OPENWATERS DIRECT"||snapshotError||msgCount===0))return;
+    clearTimeout(publicViewTimer);
+    var regionAtStart=shipRegion,requestId=++snapshotRequest;
+    publicViewTimer=setTimeout(async function(){
+      if(my!==token||regionAtStart!==shipRegion||requestId!==snapshotRequest)return;
+      try{
+        var direct=await fetchPublicShipSnapshot();
+        if(my!==token||regionAtStart!==shipRegion||requestId!==snapshotRequest)return;
+        Object.keys(shipList).forEach(function(k){if(shipList[k].source==="snapshot"){if(shipList[k]._el&&shipList[k]._el.remove)shipList[k]._el.remove();delete shipList[k];}});
+        var added=addSnapshot(direct);if(!added)throw new Error("empty direct viewport");
+        snapshotAt=Date.now();snapshotSource="OPENWATERS DIRECT";snapshotError=null;dirty=true;
+        try{store.set(shipSnapshotCacheKey+":"+shipRegion,{at:snapshotAt,payload:{source:direct.source,region:shipRegion,fetchedAt:direct.fetchedAt,type:"FeatureCollection",features:direct.features}});}catch(e){}
+        nlog("ais",true,"refreshed "+added+" vessels for moved map viewport");
+      }catch(e){nlog("ais",false,"viewport refresh unavailable: "+((e&&e.message)||e));}
+    },350);
   }
   function restoreLastGoodSnapshot(){
     try{

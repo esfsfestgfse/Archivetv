@@ -12,7 +12,7 @@ for (const file of files) {
   const source = fs.readFileSync(path.join(repo, file), 'utf8');
   const name = file;
   const required = [
-    [/V2_SOURCE_CACHE_VERSION=16/, 'source catalog cache version must invalidate thin language-filtered catalogs'],
+    [/V2_SOURCE_CACHE_VERSION=17/, 'source catalog cache version must invalidate short-form catalogs'],
     [/retainedItems=Array\.isArray\(cached&&cached\.items\)\?cached\.items\.filter/, 'previously verified source items must survive provider outages after requalification'],
     [/cacheValid=!!cached&&Number\(cached\.version\|\|0\)===V2_SOURCE_CACHE_VERSION/, 'only a current source catalog cache may be treated as fresh'],
     [/item\.account,item\.channelTitle/, 'YouTube language screening must inspect channel identity'],
@@ -25,6 +25,10 @@ for (const file of files) {
     [/install\(results\.filter\(Boolean\),true,false\)/, 'partial cold-start catalogs must not replace the persisted full catalog'],
     [/href="https:\/\/www\.youtube-nocookie\.com"/, 'the YouTube embed origin must be preconnected for cold starts'],
     [/function v2Verified\(/, 'items must carry a common verification envelope'],
+    [/V2_SOURCE_MIN_RUNTIME=8\*60/, 'Source Suite programming must reject short-form clips'],
+    [/function v2ProgramRuntimeOkay\(/, 'every source item must pass the shared television-runtime gate'],
+    [/!v2Landscape\(item\)\|\|!v2ProgramRuntimeOkay\(item\)/, 'runtime qualification must be enforced at verification time'],
+    [/Number\(data\.info\)===0\)advance\(\)/, 'YouTube embeds must advance immediately on their ended signal'],
     [/function v2SourceHealth\(/, 'provider health must be persisted'],
     [/function v2Loc\(/, 'Library of Congress must have a runtime lane'],
     [/p==="youtube"\|\|p==="peertube"/, 'source-suite runtime must restrict providers to YouTube and PeerTube'],
@@ -76,6 +80,7 @@ for (const file of files) {
     [/seconds&&\(isTelevision\?seconds<600/, 'Cartoon Time Machine must reject undersized TV results without capping long cartoon blocks'],
     [/part=snippet,contentDetails,status,player&maxWidth=1280/, 'YouTube must request public player dimensions'],
     [/verification:\{metadata:true,rights:true,landscape:true/, 'verified source items must record landscape proof'],
+    [/runtime:true/, 'verified source items must record runtime proof'],
     [/store\.set\("v2source:"\+key,\{version:V2_SOURCE_CACHE_VERSION,at:Date\.now\(\),items:items,health:state\.health\}\)/, 'catalog cache must retain provider health'],
     [/fl\[\]=license.*fl\[\]=rights/, 'Archive discovery must request rights metadata'],
   ];

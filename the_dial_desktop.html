@@ -1618,7 +1618,7 @@ body.cast-receiver .guide-directory .chcell.cast-focus .cc-n{color:#b9ffd0!impor
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.9.7-desktop.100-cross-app-reliability";
+window.__ATV_BUILD="1.9.7-desktop.101-source-suite-programming";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -7161,7 +7161,9 @@ function applyAV(){const el=screenArea.querySelector("video,audio");if(el){el.mu
    Every catalog item carries provenance, rights evidence, metadata proof, and a
    playable-file or embeddable proof level before it reaches the rotation.
    ===================================================================== */
-var V2_SOURCE_CATALOG_SIZE=96,V2_SOURCE_READY_BUFFER=5,V2_SOURCE_MIN_CATALOG=2,V2_SOURCE_CACHE_VERSION=16,V2_SOURCE_CACHE_TTL=12*60*1000,V2_SOURCE_MAX_DETAIL=24,V2_SOURCE_MAX_CONCURRENCY=8;
+/* Source Suite is television programming, not a feed of clips.  Eight minutes
+   is the floor for every lane; individual programs may of course run for hours. */
+var V2_SOURCE_CATALOG_SIZE=96,V2_SOURCE_READY_BUFFER=5,V2_SOURCE_MIN_CATALOG=2,V2_SOURCE_CACHE_VERSION=17,V2_SOURCE_CACHE_TTL=12*60*1000,V2_SOURCE_MAX_DETAIL=24,V2_SOURCE_MAX_CONCURRENCY=8,V2_SOURCE_MIN_RUNTIME=8*60;
 const V2_PREVIEW_PROFILES={
   "public-health-archive":{name:"Public Health Archive",providers:["peertube","youtube"],queries:["public health film","sanitation film","medical education film","hospital documentary","epidemiology film"],match:["public health","health","sanitation","medical","hospital","epidemiology","epidemic","medicine"],deny:["fictional","horror","music video","commercial","cartoon","gameplay","wedding"]},
   "signal-room":{name:"The Signal Room",providers:["peertube","youtube"],queries:["telegraph history film","telephone history film","radio engineering film","broadcasting history film","communications technology film"],match:["telegraph","telephone","radio","broadcast","communication","telecom","signal","engineering"],deny:["fictional","music video","commercial","cartoon","gameplay","podcast","sermon"]},
@@ -7280,7 +7282,8 @@ function v2RightsOkay(value,provider){var s=v2Text(value).toLowerCase();if(provi
 function v2CollectMedia(value,base,out){out=out||[];if(typeof value==="string"){var u=value;try{u=new URL(value,base||location.href).href;}catch(e){}if(/\.(?:mp4|m4v|webm|ogv|m3u8)(?:[?#]|$)/i.test(u)&&out.indexOf(u)<0)out.push(u);}else if(Array.isArray(value))value.forEach(function(x){v2CollectMedia(x,base,out);});else if(value&&typeof value==="object")Object.keys(value).forEach(function(k){v2CollectMedia(value[k],base,out);});return out;}
 function v2AspectRatio(value){if(value==null)return 0;if(Array.isArray(value)){for(var i=0;i<value.length;i++){var found=v2AspectRatio(value[i]);if(found)return found;}return 0;}if(typeof value==="number")return isFinite(value)&&value>0?value:0;if(typeof value==="string"){var pair=value.match(/(\d+(?:\.\d+)?)\s*[:x\/]\s*(\d+(?:\.\d+)?)/i);if(pair&&Number(pair[2]))return Number(pair[1])/Number(pair[2]);var widthAttr=value.match(/\bwidth\s*=\s*["']?(\d+(?:\.\d+)?)/i),heightAttr=value.match(/\bheight\s*=\s*["']?(\d+(?:\.\d+)?)/i);if(widthAttr&&heightAttr&&Number(heightAttr[1]))return Number(widthAttr[1])/Number(heightAttr[1]);var numeric=Number(value);return isFinite(numeric)&&numeric>0?numeric:0;}if(typeof value==="object"){var direct=v2AspectRatio(value.aspectRatio);if(direct)return direct;var width=Number(value.width||value.embedWidth||0),height=Number(value.height||value.embedHeight||0);if(width>0&&height>0)return width/height;var embedded=v2AspectRatio(value.embedHtml||value.html);if(embedded)return embedded;var fileRatio=v2AspectRatio(value.files);if(fileRatio)return fileRatio;var playlistRatio=v2AspectRatio(value.streamingPlaylists);if(playlistRatio)return playlistRatio;var thumb=value.thumbnails&&value.thumbnails[0];if(thumb)return v2AspectRatio(thumb);}return 0;}
 function v2Landscape(item){return v2AspectRatio(item)>=1.2;}
-function v2Verified(item,provider,query,level){var title=v2Text(item&&item.title),rights=v2Text(item&&item.rights),url=String(item&&item.url||"");if(!title||!item.id||!v2RightsOkay(rights,provider)||!url||!v2Landscape(item))return null;item.provider=provider;item.meta=Object.assign({},item.meta||{}, {source:provider,license:rights,orientation:"landscape",provenance:{provider:provider,query:query||"",sourceUrl:String(item.sourceUrl||item.embedUrl||url),checkedAt:Date.now()},verification:{metadata:true,rights:true,landscape:true,playback:level||"url-present",checkedAt:Date.now()}});return item;}
+function v2ProgramRuntimeOkay(item){var seconds=Number(item&&item.duration)||0;return seconds>=V2_SOURCE_MIN_RUNTIME;}
+function v2Verified(item,provider,query,level){var title=v2Text(item&&item.title),rights=v2Text(item&&item.rights),url=String(item&&item.url||"");if(!title||!item.id||!v2RightsOkay(rights,provider)||!url||!v2Landscape(item)||!v2ProgramRuntimeOkay(item))return null;item.provider=provider;item.meta=Object.assign({},item.meta||{}, {source:provider,license:rights,orientation:"landscape",runtime:Number(item.duration)||0,provenance:{provider:provider,query:query||"",sourceUrl:String(item.sourceUrl||item.embedUrl||url),checkedAt:Date.now()},verification:{metadata:true,rights:true,landscape:true,runtime:true,playback:level||"url-present",checkedAt:Date.now()}});return item;}
 function v2SourceHealth(key,lanes){var health={};lanes.forEach(function(lane){if(!lane)return;health[lane.provider]=Object.assign({at:Date.now(),count:0},lane.health||{}, {count:Array.isArray(lane.items)?lane.items.length:0});});return health;}
 function v2YouTubeShort(item){var hay=v2Text([item.title,item.description,item.tags,item.category]);return /(?:^|[\s|[(])#shorts?\b|(?:^|[\s|[(])shorts\b|(?:^|[|[(])shorts?\s+(?:video|reel)\b/i.test(hay)||(Number(item.duration)>0&&Number(item.duration)<=180);}
 /* YouTube's defaultAudioLanguage is frequently absent, even for dubbed uploads.
@@ -7381,7 +7384,7 @@ function playV2Embed(item,ch,sl,my){return new Promise(function(resolve){if(my!=
 /* Source Suite playback verifier: reveal the embed only after the player reports
    a playing state, with a short loaded-player fallback for browsers that do not
    forward YouTube postMessage events. */
-function playV2Embed(item,ch,sl,my){return new Promise(function(resolve){if(my!==token){resolve(false);return;}killMedia();screenArea.innerHTML="";var frame=document.createElement("iframe"),done=false,rejected=false,tm;function cleanup(){clearTimeout(tm);window.removeEventListener("message",onMessage);}function start(){if(done||rejected)return;done=true;cleanup();if(my!==token){try{frame.remove();}catch(e){}resolve(false);return;}frame.style.opacity="1";hideOv();hideBuffer();setSig("live","ON AIR");curVideo=null;setCurItem(Object.assign({},item,{embedded:true,type:"video",url:item.url}),ch,sl);showNow(ch,sl,item.title,item.provider);bug.classList.remove("hide");if(Number(item.duration)>20){var started=Date.now();rtInterval(function(){if(my===token&&powered&&Date.now()-started>=Number(item.duration)*1000-1500&&typeof window.__v2PreviewNext==="function")window.__v2PreviewNext();},1000);}resolve(true);}function reject(){if(rejected)return;rejected=true;cleanup();try{frame.remove();}catch(e){}if(!done){done=true;resolve(false);return;}v2RejectEmbed(item,ch,my);}function onMessage(event){if(event.source!==frame.contentWindow||!/^https:\/\/www\.youtube(?:-nocookie)?\.com$/.test(String(event.origin||"")))return;var data=event.data;try{if(typeof data==="string")data=JSON.parse(data);}catch(e){return;}if(data&&data.event==="onError")reject();if(data&&data.event==="onStateChange"&&Number(data.info)===1)start();}window.addEventListener("message",onMessage);frame.title=item.title||ch.nm;frame.src=item.url+(item.url.indexOf("?")>=0?"&":"?")+"autoplay=1&controls=1&muted=1&enablejsapi=1&origin="+encodeURIComponent(location.origin);frame.allow="autoplay; encrypted-media; picture-in-picture; fullscreen";frame.allowFullscreen=true;frame.referrerPolicy="strict-origin-when-cross-origin";frame.style.opacity="0";frame.style.transition="opacity .35s ease";screenArea.appendChild(frame);tm=setTimeout(function(){if(!done)reject();},8500);frame.onload=function(){if(rejected||done)return;try{frame.contentWindow.postMessage(JSON.stringify({event:"listening",id:"v2player"}),"*");frame.contentWindow.postMessage(JSON.stringify({event:"command",func:"addEventListener",args:["onError"]}),"*");frame.contentWindow.postMessage(JSON.stringify({event:"command",func:"addEventListener",args:["onStateChange"]}),"*");}catch(e){}clearTimeout(tm);tm=setTimeout(function(){if(!done)start();},3500);};});}
+function playV2Embed(item,ch,sl,my){return new Promise(function(resolve){if(my!==token){resolve(false);return;}killMedia();screenArea.innerHTML="";var frame=document.createElement("iframe"),done=false,rejected=false,advanced=false,tm;function cleanup(){clearTimeout(tm);window.removeEventListener("message",onMessage);}function advance(){if(advanced||!done||my!==token||!powered||curNum!==ch.num)return;advanced=true;if(typeof window.__v2PreviewNext==="function")window.__v2PreviewNext();}function start(){if(done||rejected)return;done=true;clearTimeout(tm);if(my!==token){cleanup();try{frame.remove();}catch(e){}resolve(false);return;}frame.style.opacity="1";hideOv();hideBuffer();setSig("live","ON AIR");curVideo=null;setCurItem(Object.assign({},item,{embedded:true,type:"video",url:item.url}),ch,sl);showNow(ch,sl,item.title,item.provider);bug.classList.remove("hide");if(Number(item.duration)>20){var started=Date.now();rtInterval(function(){if(my===token&&powered&&Date.now()-started>=Number(item.duration)*1000-1500)advance();},1000);}resolve(true);}function reject(){if(rejected)return;rejected=true;cleanup();try{frame.remove();}catch(e){}if(!done){done=true;resolve(false);return;}v2RejectEmbed(item,ch,my);}function onMessage(event){if(event.source!==frame.contentWindow||!/^https:\/\/www\.youtube(?:-nocookie)?\.com$/.test(String(event.origin||"")))return;var data=event.data;try{if(typeof data==="string")data=JSON.parse(data);}catch(e){return;}if(data&&data.event==="onError")reject();if(data&&data.event==="onStateChange"){if(Number(data.info)===1)start();else if(Number(data.info)===0)advance();}}window.addEventListener("message",onMessage);frame.title=item.title||ch.nm;frame.src=item.url+(item.url.indexOf("?")>=0?"&":"?")+"autoplay=1&controls=1&muted=1&enablejsapi=1&origin="+encodeURIComponent(location.origin);frame.allow="autoplay; encrypted-media; picture-in-picture; fullscreen";frame.allowFullscreen=true;frame.referrerPolicy="strict-origin-when-cross-origin";frame.style.opacity="0";frame.style.transition="opacity .35s ease";screenArea.appendChild(frame);tm=setTimeout(function(){if(!done)reject();},8500);frame.onload=function(){if(rejected||done)return;try{frame.contentWindow.postMessage(JSON.stringify({event:"listening",id:"v2player"}),"*");frame.contentWindow.postMessage(JSON.stringify({event:"command",func:"addEventListener",args:["onError"]}),"*");frame.contentWindow.postMessage(JSON.stringify({event:"command",func:"addEventListener",args:["onStateChange"]}),"*");}catch(e){}clearTimeout(tm);tm=setTimeout(function(){if(!done)start();},3500);};});}
 async function tuneV2Preview(ch,sl,my){
   var profile=V2_PREVIEW_PROFILES[ch.previewKey],state=v2PreviewState[ch.num]||(v2PreviewState[ch.num]={items:[],cursor:0,currentTitle:"",provider:"SOURCE PILOT"});
   if(!profile)return;
@@ -11235,9 +11238,16 @@ function cullDead(arr){
 }
 function sortByHealthThenName(arr){
   var h=tvHealthAll();
-  arr.forEach(function(c){ c._strikes=tvStrikes(c,h); });
+  /* Prefer sources that have either been probe-checked or explicitly marked as
+     verified.  A catalog entry is still available, but it no longer crowds the
+     front of the directory ahead of a source with an actual playback signal. */
+  arr.forEach(function(c){
+    c._strikes=tvStrikes(c,h);
+    c._trust=c.checked?3:(c.verified?2:(c.tvgId?1:0));
+  });
   arr.sort(function(a,b){
     if(a._strikes!==b._strikes) return a._strikes-b._strikes;   /* healthy first */
+    if(a._trust!==b._trust) return b._trust-a._trust;             /* playable first */
     return String(a.name||"").toLowerCase().localeCompare(String(b.name||"").toLowerCase());
   });
   return arr;
@@ -14497,8 +14507,12 @@ async function tuneSports(ch,sl,my){
       sortByHealthThenName(chans);
       var culledS=cullDead(chans); chans=culledS.list;
       chans.sort(function(a,b){
-        var ar=(a.checked||a.verified)?0:1, br=(b.checked||b.verified)?0:1;
-        return ar-br || String(a.name||"").toLowerCase().localeCompare(String(b.name||"").toLowerCase());
+        /* Keep the health ordering from the shared live-TV directory. The old
+           second sort accidentally moved previously failing streams back to the
+           top whenever they happened to be marked verified. */
+        if((a._strikes||0)!==(b._strikes||0)) return (a._strikes||0)-(b._strikes||0);
+        if((a._trust||0)!==(b._trust||0)) return (b._trust||0)-(a._trust||0);
+        return String(a.name||"").toLowerCase().localeCompare(String(b.name||"").toLowerCase());
       });
       if(!chans.length){ bodyEl.innerHTML='<div class="pop-empty">No live sports channels available from iptv-org right now.</div>'; return; }
       /* the pane used to reserve a full 16:9 block even with nothing playing -- on a wide screen

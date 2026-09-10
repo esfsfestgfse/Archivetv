@@ -1670,7 +1670,7 @@ html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.9.7-mobile.101-source-suite-programming";
+window.__ATV_BUILD="1.9.7-mobile.102-source-suite-tv-floor";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -7232,9 +7232,9 @@ function applyAV(){const el=screenArea.querySelector("video,audio");if(el){el.mu
    Every catalog item carries provenance, rights evidence, metadata proof, and a
    playable-file or embeddable proof level before it reaches the rotation.
    ===================================================================== */
-/* Source Suite is television programming, not a feed of clips.  Eight minutes
+/* Source Suite is television programming, not a feed of clips.  Fifteen minutes
    is the floor for every lane; individual programs may of course run for hours. */
-var V2_SOURCE_CATALOG_SIZE=96,V2_SOURCE_READY_BUFFER=5,V2_SOURCE_MIN_CATALOG=2,V2_SOURCE_CACHE_VERSION=17,V2_SOURCE_CACHE_TTL=12*60*1000,V2_SOURCE_MAX_DETAIL=24,V2_SOURCE_MAX_CONCURRENCY=8,V2_SOURCE_MIN_RUNTIME=8*60;
+var V2_SOURCE_CATALOG_SIZE=96,V2_SOURCE_READY_BUFFER=5,V2_SOURCE_MIN_CATALOG=2,V2_SOURCE_CACHE_VERSION=18,V2_SOURCE_CACHE_TTL=12*60*1000,V2_SOURCE_MAX_DETAIL=24,V2_SOURCE_MAX_CONCURRENCY=8,V2_SOURCE_MIN_RUNTIME=15*60;
 const V2_PREVIEW_PROFILES={
   "public-health-archive":{name:"Public Health Archive",providers:["peertube","youtube"],queries:["public health film","sanitation film","medical education film","hospital documentary","epidemiology film"],match:["public health","health","sanitation","medical","hospital","epidemiology","epidemic","medicine"],deny:["fictional","horror","music video","commercial","cartoon","gameplay","wedding"]},
   "signal-room":{name:"The Signal Room",providers:["peertube","youtube"],queries:["telegraph history film","telephone history film","radio engineering film","broadcasting history film","communications technology film"],match:["telegraph","telephone","radio","broadcast","communication","telecom","signal","engineering"],deny:["fictional","music video","commercial","cartoon","gameplay","podcast","sermon"]},

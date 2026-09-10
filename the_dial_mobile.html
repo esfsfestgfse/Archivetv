@@ -1672,7 +1672,7 @@ html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.9.7-mobile.119-live-data-device-sweep";
+window.__ATV_BUILD="1.9.7-mobile.120-release2-reliability";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -16576,6 +16576,7 @@ nlog("boot",true,"engine v8.2 up · "+(fileMode?"file://":location.protocol));
    pool. Ads also have their own recent-history ledger because ordinary watch history skips
    ads by design. Movie stations remain video-only; audio stations remain audio-only. */
 var adsOn=store.get("ads",true), adQueue=0, adLaneCursor=Number(store.get("adLaneCursor",0))||0, adRecent=store.get("adRecent",{}),adFailed=store.get("adFailed",{}),adWarm={},adWarmMiss={};if(!adRecent||typeof adRecent!=="object")adRecent={};if(!adFailed||typeof adFailed!=="object")adFailed={};
+var AD_RECENT_TTL=7*24*3600e3,AD_FAILED_TTL=45*60e3;
 var AD_LANES=[
   {years:[1930,1949],topics:["television commercial","advertising","public service announcement","commercial reel"],collections:["prelinger","classic_tv_commercials"]},
   {years:[1950,1959],topics:["television commercial","sponsor commercial","food commercial","public service announcement"],collections:["classic_tv_commercials","prelinger"]},
@@ -16636,7 +16637,7 @@ function adQueries(ch){
   });
   return qs;
 }
-function adPruneRecent(){var now=Date.now();Object.keys(adRecent||{}).forEach(function(id){if(now-Number(adRecent[id]||0)>24*3600e3)delete adRecent[id];});Object.keys(adFailed||{}).forEach(function(id){if(now-Number(adFailed[id]||0)>30*60e3)delete adFailed[id];});}
+function adPruneRecent(){var now=Date.now();Object.keys(adRecent||{}).forEach(function(id){if(now-Number(adRecent[id]||0)>AD_RECENT_TTL)delete adRecent[id];});Object.keys(adFailed||{}).forEach(function(id){if(now-Number(adFailed[id]||0)>AD_FAILED_TTL)delete adFailed[id];});}
 function adRemember(id){if(!id)return;adPruneRecent();adRecent[id]=Date.now();store.set("adRecent",adRecent);}
 function adMarkFailed(id){if(!id)return;adPruneRecent();adFailed[id]=Date.now();store.set("adFailed",adFailed);}
 async function pickAdItem(ch,left){
@@ -16677,7 +16678,7 @@ function warmAd(ch){
 }
 async function playAdBreak(ch,sl,my){
   if(!adsOn||my!==token){adQueue=0;return false;}
-  adQueue=(Math.random()<0.35?2:1);var played=await nextAd(ch,sl,my);if(!played)adQueue=0;return played;
+  var runtime=Number(curVideo&&curVideo.duration)||0;adQueue=(runtime>=45*60&&Math.random()<0.55?2:1);var played=await nextAd(ch,sl,my);if(!played)adQueue=0;return played;
 }
 async function nextAd(ch,sl,my){
   var deadline=Date.now()+4500,attempts=0;
@@ -17964,5 +17965,6 @@ window.__atvBootDone=true; /* app is up -- from here on, errors get logged, not 
 })();
 </script>
 <script src="assets/playback-audit.js"></script>
+<script src="assets/release2-runtime.js"></script>
 </body>
 </html>

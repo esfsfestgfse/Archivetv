@@ -90,10 +90,10 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
    items into their individual playable episode files. Cache this separately
    from v49: episode data waited behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v56";
+const IA_QUEUE_CACHE_VERSION = "v57";
 /* Last-good shelves share the v51 namespace so a cached v50 shallow shelf
    never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v56";
+const IA_LAST_GOOD_CACHE_VERSION = "v57";
 const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
 /* A short per-isolate burst cache absorbs repeat requests from a TV, phone,
    and guide opened in quick succession. It is intentionally tiny and
@@ -2176,6 +2176,25 @@ function mergeIaQueuePayload(primary, secondary, candidateCount, flags = {}) {
   return { ...(primary || {}), items: merged, candidateItems: merged, candidates: merged.length, ...flags };
 }
 
+function rotatePlayableIaShelf(payload, rotation, count) {
+  const requested = Math.max(1, Number(count) || 5);
+  const playableCandidates = Array.isArray(payload && payload.candidateItems)
+    ? payload.candidateItems.filter((item) => item && item.identifier && item.media && item.media.url)
+    : [];
+  const source = playableCandidates.length >= requested
+    ? playableCandidates
+    : (Array.isArray(payload && payload.items) ? payload.items : []);
+  if (!source.length) return { ...(payload || {}), items: [] };
+  const offset = source.length > 1 ? Math.abs(Number(rotation) || 0) % source.length : 0;
+  const rotated = source.slice(offset).concat(source.slice(0, offset));
+  return {
+    ...(payload || {}),
+    items: rotated.slice(0, requested),
+    ...(playableCandidates.length >= requested ? { candidateItems: rotated, candidates: rotated.length } : {}),
+    ready: Math.min(requested, rotated.length),
+  };
+}
+
 async function hydrateIaQueue(payload, requestedCount, cacheOrigin, ctx, mediaTypes, onReady, concurrency = 5) {
   /* Keep a few extra candidates behind the five-program shelf. Archive items
      occasionally have no browser-playable derivative; filtering those here
@@ -2335,7 +2354,16 @@ async function expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, c
       : mergeIaQueuePayload(expanded, rescue, candidateCount, { rescue: true });
   }
   if (!expanded.items.length) return null;
-  const hydrated = await hydrateIaQueue(expanded, count, cacheOrigin, ctx, mediaTypes);
+  /* Background repair is the only place allowed to spend extra metadata
+     budget. Persist a dozen verified playable candidates—not just their raw
+     identifiers—so a later rotation can serve a fresh shelf immediately even
+     when Archive discovery is briefly slow. The public `items` field remains
+     the normal five-program contract. */
+  const backgroundTarget = Math.min(candidateCount, Math.max(count, 12));
+  const deepHydrated = await hydrateIaQueue(expanded, backgroundTarget, cacheOrigin, ctx, mediaTypes);
+  const hydrated = deepHydrated && deepHydrated.items.length
+    ? { ...deepHydrated, items: deepHydrated.items.slice(0, count), candidateItems: deepHydrated.items, candidates: deepHydrated.items.length, ready: Math.min(count, deepHydrated.items.length), partial: deepHydrated.items.length < count, hydrating: false }
+    : null;
   if (!hydrated || !hydrated.items.length) return null;
   const queueTtl = hydrated.ready >= count ? IA_QUEUE_TTL_SECONDS : IA_PARTIAL_QUEUE_TTL_SECONDS;
   if (hydrated.ready >= count) sharedQueuePut(env, sharedKey, hydrated, queueTtl, ctx);
@@ -2462,10 +2490,8 @@ async function getIaQueue(request, url, env, ctx) {
            rotated full last-good shelf while the current rotation finishes. */
         const lastGood = await sharedQueueGet(env, lastGoodKey);
         if (lastGood && Array.isArray(lastGood.items) && lastGood.items.length >= count && Number(lastGood.ready) >= count) {
-          const offset = Math.abs(Number(rotation) || 0) % lastGood.items.length;
           sharedFallback = {
-            ...lastGood,
-            items: lastGood.items.slice(offset).concat(lastGood.items.slice(0, offset)),
+            ...rotatePlayableIaShelf(lastGood, rotation, count),
             rotation,
             fallback: true,
             stale: true,
@@ -2496,10 +2522,8 @@ async function getIaQueue(request, url, env, ctx) {
     const warmLastGood = await sharedQueueGet(env, lastGoodKey);
     if (warmLastGood && Array.isArray(warmLastGood.items) && warmLastGood.items.length >= count && Number(warmLastGood.ready) >= count) {
       const sameRotation = Number(warmLastGood.rotation || 0) === rotation;
-      const offset = sameRotation ? 0 : Math.abs(Number(rotation) || 0) % warmLastGood.items.length;
       const warmFallback = {
-        ...warmLastGood,
-        items: warmLastGood.items.slice(offset).concat(warmLastGood.items.slice(0, offset)),
+        ...rotatePlayableIaShelf(warmLastGood, sameRotation ? 0 : rotation, count),
         rotation,
         fallback: true,
         stale: true,
@@ -2608,7 +2632,7 @@ async function getIaQueue(request, url, env, ctx) {
       const lastGood = await sharedQueueGet(env, lastGoodKey);
       if (lastGood && Array.isArray(lastGood.items) && lastGood.items.length >= count && Number(lastGood.ready) >= count) {
         const fallback = {
-          ...lastGood,
+          ...rotatePlayableIaShelf(lastGood, rotation, count),
           rotation,
           fallback: true,
           stale: true,
@@ -2689,8 +2713,7 @@ async function getIaQueue(request, url, env, ctx) {
         if (underfilledLastGood && Array.isArray(underfilledLastGood.items) && underfilledLastGood.items.length >= count && Number(underfilledLastGood.ready) >= count) {
           const offset = Math.abs(Number(rotation) || 0) % underfilledLastGood.items.length;
           const fallback = {
-            ...underfilledLastGood,
-            items: underfilledLastGood.items.slice(offset).concat(underfilledLastGood.items.slice(0, offset)),
+            ...rotatePlayableIaShelf(underfilledLastGood, rotation, count),
             rotation,
             fallback: true,
             stale: true,
@@ -2728,7 +2751,7 @@ async function getIaQueue(request, url, env, ctx) {
     const lastGood = await sharedQueueGet(env, lastGoodKey);
     if (lastGood && Array.isArray(lastGood.items) && lastGood.items.length >= count && Number(lastGood.ready) >= count) {
       const fallback = {
-        ...lastGood,
+        ...rotatePlayableIaShelf(lastGood, rotation, count),
         rotation,
         fallback: true,
         stale: true,

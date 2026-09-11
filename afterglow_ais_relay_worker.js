@@ -2261,6 +2261,23 @@ function rotatePlayableIaShelf(payload, rotation, count) {
   };
 }
 
+function iaCatalogCandidateBudget(themeMinScore, count) {
+  const requested = Math.max(1, Number(count) || 5);
+  const strict = Number(themeMinScore) > 1;
+  return Math.min(strict ? IA_STRICT_CATALOG_CANDIDATE_MAX : IA_CATALOG_CANDIDATE_MAX, Math.max(requested, requested * (strict ? 12 : 8)));
+}
+
+function iaNeedsCatalogDepth(payload, count, candidateCount) {
+  const requested = Math.max(1, Number(count) || 5);
+  const candidates = Array.isArray(payload && payload.candidateItems) && payload.candidateItems.length
+    ? payload.candidateItems
+    : ((payload && payload.items) || []);
+  /* Two complete shelves is the minimum useful depth for a channel change.
+     Prefer the larger background target when the catalog budget allows it. */
+  const minimum = Math.min(Number(candidateCount) || requested, Math.max(requested * 2, 12));
+  return candidates.length < minimum;
+}
+
 async function hydrateIaQueue(payload, requestedCount, cacheOrigin, ctx, mediaTypes, onReady, concurrency = 5) {
   /* Keep a few extra candidates behind the five-program shelf. Archive items
      occasionally have no browser-playable derivative; filtering those here
@@ -2524,6 +2541,22 @@ async function getIaQueue(request, url, env, ctx) {
         if (!cachedPayload || cachedPayload.empty || (!Array.isArray(cachedPayload.items) || !cachedPayload.items.length) && !cachedPayload.hydrating) {
           await cache.delete(cacheKey).catch(() => false);
         } else {
+          const cachedCandidateCount = iaCatalogCandidateBudget(themeMinScore, count);
+          const cachedCandidates = Array.isArray(cachedPayload.candidateItems) && cachedPayload.candidateItems.length
+            ? cachedPayload.candidateItems
+            : ((cachedPayload.items) || []);
+          /* A valid exact-rotation response can still be an old five-item
+             shelf. Keep serving it immediately, but use that request to
+             launch the same bounded catalog refill used by a cold tune. */
+          if (cachedPayload.items && cachedPayload.items.length && iaNeedsCatalogDepth(cachedPayload, count, cachedCandidateCount)) {
+            scheduleIaExpansion(
+              { ...cachedPayload, lastGoodKey, items: cachedCandidates.slice(0, cachedCandidateCount), candidateItems: cachedCandidates, candidates: cachedCandidates.length },
+              queries.slice(0, Math.min(IA_BACKGROUND_RESERVE_LANES, queries.length)),
+              iaFallbackQueries(themeTerms, denyTerms, requiredTitleTerms, mediaTypes).slice(0, IA_BACKGROUND_FALLBACK_LANES),
+              channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity,
+              count, cachedCandidateCount, url.origin, cacheKey, sharedKey, env, ctx, rotation, true
+            );
+          }
           const cachedShelf = Array.isArray(cachedPayload.candidateItems) && cachedPayload.candidateItems.length > (Array.isArray(cachedPayload.items) ? cachedPayload.items.length : 0)
             ? rotatePlayableIaShelf(cachedPayload, rotation, count)
             : cachedPayload;
@@ -2560,10 +2593,26 @@ async function getIaQueue(request, url, env, ctx) {
       : shared;
     if (sharedShelf && Array.isArray(sharedShelf.items) && sharedShelf.items.length && Number(sharedShelf.ready) > 0) {
       const sharedReady = Number(sharedShelf.ready) >= count;
+      const sharedCandidateCount = iaCatalogCandidateBudget(themeMinScore, count);
+      const sharedCandidates = Array.isArray(shared.candidateItems) && shared.candidateItems.length
+        ? shared.candidateItems
+        : ((shared.items) || []);
+      const sharedNeedsExpansion = iaNeedsCatalogDepth(shared, count, sharedCandidateCount);
+      if (sharedNeedsExpansion) {
+        /* Do not wait for a complete-series expansion here. The current shelf
+           is already playable; replenish it behind the response so the next
+           skip/channel change sees a second, non-overlapping shelf. */
+        scheduleIaExpansion(
+          { ...shared, lastGoodKey, items: sharedCandidates.slice(0, sharedCandidateCount), candidateItems: sharedCandidates, candidates: sharedCandidates.length },
+          queries.slice(0, Math.min(IA_BACKGROUND_RESERVE_LANES, queries.length)),
+          iaFallbackQueries(themeTerms, denyTerms, requiredTitleTerms, mediaTypes).slice(0, IA_BACKGROUND_FALLBACK_LANES),
+          channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity,
+          count, sharedCandidateCount, url.origin, cacheKey, sharedKey, env, ctx, rotation, true
+        );
+      }
       let sharedFallback = null;
-      if (!sharedReady && sharedShelf.partial && Array.isArray(sharedShelf.candidateItems)) {
-        const strictQueue = themeMinScore > 1;
-        const candidateCount = Math.min(strictQueue ? IA_STRICT_CATALOG_CANDIDATE_MAX : IA_CATALOG_CANDIDATE_MAX, Math.max(count, count * (strictQueue ? 12 : 8)));
+      if (!sharedReady && sharedShelf.partial && Array.isArray(sharedShelf.candidateItems) && !sharedNeedsExpansion) {
+        const candidateCount = iaCatalogCandidateBudget(themeMinScore, count);
         scheduleCachedIaHydration(shared, count, url.origin, cacheKey, sharedKey, lastGoodKey, env, ctx, mediaTypes, channel, themeTerms, denyTerms, requiredTitleTerms, diversity, themeMinScore, candidateCount, queries);
         /* A partial exact-rotation shelf should start the background refill,
            but it should not force the viewer to live on one program. Serve a
@@ -2602,6 +2651,11 @@ async function getIaQueue(request, url, env, ctx) {
     const warmLastGood = await sharedQueueGet(env, lastGoodKey);
     if (warmLastGood && Array.isArray(warmLastGood.items) && warmLastGood.items.length >= count && Number(warmLastGood.ready) >= count) {
       const sameRotation = Number(warmLastGood.rotation || 0) === rotation;
+      const warmCandidateCount = iaCatalogCandidateBudget(themeMinScore, count);
+      const warmCandidates = Array.isArray(warmLastGood.candidateItems) && warmLastGood.candidateItems.length
+        ? warmLastGood.candidateItems
+        : warmLastGood.items;
+      const warmNeedsExpansion = iaNeedsCatalogDepth(warmLastGood, count, warmCandidateCount);
       const warmFallback = {
         ...rotatePlayableIaShelf(warmLastGood, sameRotation ? 0 : rotation, count),
         rotation,
@@ -2610,12 +2664,7 @@ async function getIaQueue(request, url, env, ctx) {
         fallbackRotation: Number(warmLastGood.rotation) || 0,
         generatedAt: new Date().toISOString(),
       };
-      if (!sameRotation) {
-        const warmStrictQueue = themeMinScore > 1;
-        const warmCandidateCount = Math.min(warmStrictQueue ? IA_STRICT_CATALOG_CANDIDATE_MAX : IA_CATALOG_CANDIDATE_MAX, Math.max(count, count * (warmStrictQueue ? 12 : 8)));
-        const warmCandidates = Array.isArray(warmLastGood.candidateItems) && warmLastGood.candidateItems.length
-          ? warmLastGood.candidateItems
-          : warmLastGood.items;
+      if (!sameRotation || warmNeedsExpansion) {
         const warmSeed = { ...warmLastGood, lastGoodKey, rotation, items: warmCandidates.slice(0, warmCandidateCount), candidateItems: warmCandidates, candidates: warmCandidates.length };
         const warmReserveQueries = queries.slice(0, Math.min(IA_BACKGROUND_RESERVE_LANES, queries.length));
         const warmFallbackQueries = iaFallbackQueries(themeTerms, denyTerms, requiredTitleTerms, mediaTypes).slice(0, IA_BACKGROUND_FALLBACK_LANES);

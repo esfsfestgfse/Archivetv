@@ -20,7 +20,8 @@ check(runtime.includes("addEventListener('online'"), 'Online recovery hook exist
 for (const file of builds) {
   const html = fs.readFileSync(path.join(repo, file), 'utf8');
   check(html.includes('assets/release2-runtime.js'), `${file}: Release 2 runtime loaded`);
-  check(html.includes('1.9.7-' + (file.includes('mobile') ? 'mobile' : 'desktop') + '.126-release2-ia-priority'), `${file}: build stamp is 126 IA priority`);
+  check(html.includes('1.9.7-' + (file.includes('mobile') ? 'mobile' : 'desktop') + '.127-release2-sports-epg-live-order'), `${file}: build stamp is 127 sports EPG live order`);
+  check(/var onAirById=\{\};[\s\S]*?if\(e\)\{ onAirById\[String\(id\)\]=e; \}/.test(html), `${file}: sports EPG live-now index is populated before sorting`);
   check(html.includes('var queuePending=refillIAQueue(ch,sl,1)'), `${file}: active IA tune requests one candidate first`);
   check(html.includes('setTimeout(function(){if(powered)primeIAQueues();},12000)'), `${file}: broad IA warmup is deferred`);
   check(html.includes('all=all.filter(function(c){return c.num!==curNum;}).slice(0,8)'), `${file}: background warmup excludes active channel`);

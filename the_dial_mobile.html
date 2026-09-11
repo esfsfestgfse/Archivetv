@@ -1672,7 +1672,7 @@ html.mob #shipRoot>div:nth-child(3){grid-column:1!important;grid-row:3!important
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.9.7-mobile.126-release2-ia-priority";
+window.__ATV_BUILD="1.9.7-mobile.127-release2-sports-epg-live-order";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -14788,6 +14788,7 @@ async function tuneSports(ch,sl,my){
         bodyEl.querySelectorAll("[data-epg]").forEach(function(row){
           var id=row.dataset.epg; if(!id)return;
           var e=epgFor({tvgId:id}); var sub=row.querySelector(".sports-epg");
+          if(e){ onAirById[String(id)]=e; }
           if(e&&sub){ sub.textContent="ON AIR · "+e.title+(e.left?("  \u00b7  "+e.left+" min left"):""); sub.style.display=""; row.classList.add("onair"); var badge=row.querySelector(".sports-feed-state"); if(badge)badge.textContent="ON AIR"; }
         });
         /* EPG is the reliable live-now signal. Re-sort after it arrives so the directory

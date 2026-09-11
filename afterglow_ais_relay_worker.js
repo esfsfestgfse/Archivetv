@@ -2438,6 +2438,19 @@ async function cacheIaQueueIfRicher(cacheKey, payload, ttlSeconds, headers = {})
 
 async function expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, rotation, forceDiscovery = false) {
   let expanded = payload;
+  /* Exact rotation caches can be hydrated by separate requests. Pull the
+     family shelf into this refill first so those caches inherit the union of
+     verified candidates instead of persisting another shallow, overlapping
+     rotation. This read stays entirely in the background expansion path. */
+  if (payload && payload.lastGoodKey) {
+    const family = await sharedQueueGet(env, payload.lastGoodKey);
+    if (family && Array.isArray(family.items) && family.items.length) {
+      const familyCandidates = mergeIaFallbackCandidates(family, expanded);
+      if (familyCandidates.length > (Array.isArray(expanded.candidateItems) ? expanded.candidateItems.length : 0)) {
+        expanded = { ...expanded, items: familyCandidates.slice(0, candidateCount), candidateItems: familyCandidates, candidates: familyCandidates.length };
+      }
+    }
+  }
   /* A warm five-item shelf may have bypassed the cold emergency branch. Add
      the channel's verified recovery records to the background catalog before
      probing broader Archive rails, so stale caches can deepen immediately. */

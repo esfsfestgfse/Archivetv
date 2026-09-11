@@ -60,6 +60,7 @@ check(/const emergencyDepth = Math\.min\(candidateCount, Math\.max\(count, 8\)\)
 check(/IA_BACKGROUND_CONTAINER_EXPANSIONS\s*=\s*4/.test(relay), 'Background collection expansion covers four parent records per lane');
 check(/function orderedIaEmergencySeeds\(/.test(relay) && /emergencySeedsMerged: true/.test(relay), 'Warm emergency shelves join background depth repair');
 check(/function mergeIaFallbackCandidates\(/.test(relay) && /\[\.\.\.current, \.\.\.prior\]/.test(relay), 'Last-good IA shelves accumulate verified candidates across rotations');
+check(/if \(payload && payload\.lastGoodKey\)/.test(relay) && /familyCandidates = mergeIaFallbackCandidates\(family, expanded\)/.test(relay), 'Exact IA rotation refills inherit the accumulated family catalog');
 check(/const cachedShelf =/.test(relay) && /const sharedShelf =/.test(relay), 'Cached and shared IA shelves rotate their deeper playable candidates');
 check(/\* requested\) % source\.length/.test(relay), 'Shelf rotation advances by a full public window');
 

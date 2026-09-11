@@ -24,6 +24,10 @@ if (!manifestPath) {
 }
 
 const endpoint = option('--endpoint', 'https://ais-relay.tdy1990.workers.dev/ia/queue');
+const relayRoot = (() => {
+  try { return new URL(endpoint).origin + '/'; }
+  catch { return ''; }
+})();
 const count = Math.max(1, Math.min(5, Number(option('--count', '3')) || 3));
 const requiredReady = Math.max(1, Math.min(count, Number(option('--require-ready', '1')) || 1));
 const concurrency = Math.max(1, Math.min(12, Number(option('--concurrency', '6')) || 6));
@@ -36,6 +40,7 @@ const rotations = Math.max(1, Math.min(3, Number(option('--rotations', '1')) || 
    a warm fallback actually turns into a fresh rotation. Defaults to zero so
    the regular health sweep remains fast. */
 const rotationDelayMs = Math.max(0, Math.min(15000, Number(option('--rotation-delay-ms', '0')) || 0));
+const relayHealthTimeoutMs = Math.max(2000, Math.min(15000, Number(option('--relay-health-timeout-ms', '8000')) || 8000));
 const outputPath = option('--out');
 const requestedChannels = new Set(String(option('--channels', '')).split(',').map(value => value.trim()).filter(Boolean));
 const completeManifest = JSON.parse(fs.readFileSync(path.resolve(manifestPath), 'utf8'));
@@ -53,6 +58,41 @@ if (requestedChannels.size && manifest.length !== requestedChannels.size) {
 }
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+/* Fail fast when the shared relay itself is unavailable. Without this
+ * preflight, one DNS/TLS/edge outage is reported as hundreds of unrelated
+ * channel failures and burns the entire soak window. The queue route check
+ * intentionally sends an invalid body: a fast 400 proves the route is alive
+ * without starting Archive discovery or spending upstream quota. */
+async function relayPreflight() {
+  if (!relayRoot) throw new Error(`invalid relay endpoint: ${endpoint}`);
+  let lastError = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), relayHealthTimeoutMs);
+    try {
+      const health = await fetch(relayRoot, { headers: { accept: 'application/json' }, cache: 'no-store', signal: controller.signal });
+      if (!health.ok) throw new Error(`health HTTP ${health.status}`);
+      const body = await health.json();
+      if (!body || body.service !== 'afterglow-ais-relay') throw new Error('health response is not the Afterglow relay');
+      const queue = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', accept: 'application/json' },
+        body: '{}',
+        cache: 'no-store',
+        signal: controller.signal,
+      });
+      if (queue.status !== 400) throw new Error(`queue route HTTP ${queue.status}`);
+      clearTimeout(timer);
+      return { healthStatus: health.status, queueStatus: queue.status, attempts: attempt + 1 };
+    } catch (error) {
+      clearTimeout(timer);
+      lastError = error;
+      if (attempt < 2) await sleep(350 * (attempt + 1));
+    }
+  }
+  throw new Error(`relay preflight failed after 3 attempts: ${lastError && lastError.message || lastError}`);
+}
 
 async function requestQueue(row, remainingMs, rotationOffset) {
   const controller = new AbortController();
@@ -236,6 +276,15 @@ async function mapConcurrent(rows, limit, fn) {
 
 async function main() {
   const started = Date.now();
+  let preflight;
+  try {
+    preflight = await relayPreflight();
+    console.log(`Relay preflight: HTTP ${preflight.healthStatus} health / HTTP ${preflight.queueStatus} queue validation (${preflight.attempts} attempt${preflight.attempts === 1 ? '' : 's'})`);
+  } catch (error) {
+    console.error(`RELAY UNREACHABLE: ${error.message}`);
+    process.exitCode = 2;
+    return;
+  }
   const results = await mapConcurrent(manifest, concurrency, probe);
   const failures = results.filter(result => !result.ok);
   const measuredRotations = results.reduce((sum, result) => sum + (result.rotations?.length || 0), 0);
@@ -254,7 +303,7 @@ async function main() {
   });
   const slowest = results.slice().sort((a, b) => b.elapsedMs - a.elapsedMs).slice(0, 10);
   const report = {
-    generatedAt: new Date().toISOString(), endpoint, count, requiredReady, concurrency, rotationBase, rotations, rotationDelayMs,
+    generatedAt: new Date().toISOString(), endpoint, relayPreflight: preflight, count, requiredReady, concurrency, rotationBase, rotations, rotationDelayMs,
     elapsedMs: Date.now() - started,
     totals: {
       channels: results.length, ready: results.length - failures.length, empty: failures.length,

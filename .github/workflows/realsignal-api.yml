@@ -41,17 +41,27 @@ jobs:
     needs: validate
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    # The repository must provide these two encrypted secrets. Keeping the
-    # condition explicit makes a missing CI credential visible instead of
-    # silently attempting an unauthenticated deployment.
-    if: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v5
         with:
           node-version: '22'
           package-manager-cache: false
+      - name: Check deployment credentials
+        id: credentials
+        shell: bash
+        env:
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [[ -n "$CF_API_TOKEN" && -n "$CF_ACCOUNT_ID" ]]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "Cloudflare deployment skipped: repository secrets are not configured."
+          fi
       - name: Deploy V2 API Worker
+        if: steps.credentials.outputs.configured == 'true'
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}

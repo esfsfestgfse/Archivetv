@@ -90,10 +90,10 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
    items into their individual playable episode files. Cache this separately
    from v49: episode data waited behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v53";
+const IA_QUEUE_CACHE_VERSION = "v54";
 /* Last-good shelves share the v51 namespace so a cached v50 shallow shelf
    never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v53";
+const IA_LAST_GOOD_CACHE_VERSION = "v54";
 const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
 /* A short per-isolate burst cache absorbs repeat requests from a TV, phone,
    and guide opened in quick succession. It is intentionally tiny and
@@ -217,6 +217,15 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "whatsmyline7October1956", title: "What's My Line? — October 7, 1956", subject: "classic television game show panel show", year: 1956, media: { type: "video", url: "https://archive.org/download/whatsmyline7October1956/whatsmyline7October1956.mp4" } },
     { identifier: "totellthetruth16July1957", title: "To Tell the Truth — July 16, 1957", subject: "classic television game show panel show", year: 1957, media: { type: "video", url: "https://archive.org/download/totellthetruth16July1957/totellthetruth16July1957.mp4" } },
     { identifier: "concentration13September1963", title: "Concentration — September 13, 1963", subject: "classic television game show quiz show", year: 1963, media: { type: "video", url: "https://archive.org/download/Concentration13September1963/Concentration13September1963.mp4" } },
+    { identifier: "ive-got-a-secret-17-january-1966", title: "I've Got a Secret — January 17, 1966", subject: "classic television game show panel show", year: 1966, media: { type: "video", url: "https://archive.org/download/ive-got-a-secret-17-january-1966/I've%20Got%20a%20Secret%20-%2017%20January%201966.mp4" } },
+    { identifier: "Yet_More_Lucy", title: "What's My Line? with Lucille Ball — February 21, 1954", subject: "classic television game show panel show", year: 1954, media: { type: "video", url: "https://archive.org/download/Yet_More_Lucy/WhatsMyLine21February1954.mp4" } },
+    { identifier: "Tic-tac-doughapril31958", title: "Tic-Tac-Dough — April 3, 1958", subject: "classic television game show quiz show", year: 1958, media: { type: "video", url: "https://archive.org/download/Tic-tac-doughapril31958/Tic-tac-dough-1958.mp4" } },
+    { identifier: "whats-my-line-2-october-1955", title: "What's My Line? — October 2, 1955", subject: "classic television game show panel show", year: 1955, media: { type: "video", url: "https://archive.org/download/whats-my-line-2-october-1955/What%27s%20My%20Line%20-%202%20October%201955.mp4" } },
+    { identifier: "BeatTheClock13October1951", title: "Beat the Clock — October 13, 1951", subject: "classic television game show stunt game", year: 1951, media: { type: "video", url: "https://archive.org/download/BeatTheClock13October1951/beattheclock13October1951.mp4" } },
+    { identifier: "totellthetruth21january1958", title: "To Tell the Truth — January 21, 1958", subject: "classic television game show panel show", year: 1958, media: { type: "video", url: "https://archive.org/download/totellthetruth21january1958/totellthetruth21january1958.mp4" } },
+    { identifier: "whatsmyline26August1956", title: "What's My Line? — August 26, 1956", subject: "classic television game show panel show", year: 1956, media: { type: "video", url: "https://archive.org/download/whatsmyline26August1956/whatsmyline26August1956.mp4" } },
+    { identifier: "totellthetruth14May1957", title: "To Tell the Truth — May 14, 1957", subject: "classic television game show panel show", year: 1957, media: { type: "video", url: "https://archive.org/download/totellthetruth14May1957/totellthetruth14May1957.mp4" } },
+    { identifier: "Price_Is-Right_1957", title: "The Price Is Right — 1957 episode", subject: "classic television game show pricing game", year: 1957, media: { type: "video", url: "https://archive.org/download/Price_Is-Right_1957/PriceIsRight1957.mp4" } },
   ],
 });
 /* Keep a single cold tune from opening three identical Archive requests while

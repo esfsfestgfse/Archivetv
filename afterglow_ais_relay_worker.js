@@ -90,10 +90,10 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
    items into their individual playable episode files. Cache this separately
    from v49: episode data waited behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v57";
+const IA_QUEUE_CACHE_VERSION = "v58";
 /* Last-good shelves share the v51 namespace so a cached v50 shallow shelf
    never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v57";
+const IA_LAST_GOOD_CACHE_VERSION = "v58";
 const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
 /* A short per-isolate burst cache absorbs repeat requests from a TV, phone,
    and guide opened in quick succession. It is intentionally tiny and
@@ -2589,7 +2589,8 @@ async function getIaQueue(request, url, env, ctx) {
         if (rescue.items.length) payload = mergeIaQueuePayload(payload, rescue, candidateCount, { rescue: true });
       }
     }
-    if (IA_EMERGENCY_SEEDS[channel] && IA_EMERGENCY_SEEDS[channel].length && payload.items.length < count) {
+    const emergencyDepth = Math.min(candidateCount, Math.max(count, 8));
+    if (IA_EMERGENCY_SEEDS[channel] && IA_EMERGENCY_SEEDS[channel].length && payload.items.length < emergencyDepth) {
       /* A verified shelf keeps the television usable during a true cold-source
          miss or a partially hydrated result. Preserve any approved discovery
          candidates, then append direct, already-observed fallback media so a
@@ -2711,7 +2712,6 @@ async function getIaQueue(request, url, env, ctx) {
       if (hydrated.ready < count) {
         const underfilledLastGood = await sharedQueueGet(env, lastGoodKey);
         if (underfilledLastGood && Array.isArray(underfilledLastGood.items) && underfilledLastGood.items.length >= count && Number(underfilledLastGood.ready) >= count) {
-          const offset = Math.abs(Number(rotation) || 0) % underfilledLastGood.items.length;
           const fallback = {
             ...rotatePlayableIaShelf(underfilledLastGood, rotation, count),
             rotation,

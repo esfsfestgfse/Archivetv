@@ -39,7 +39,7 @@ for (const [channel, collection] of Object.entries(expectedRails)) {
 }
 
 const relay = fs.readFileSync(path.join(root, 'afterglow_ais_relay_worker.js'), 'utf8');
-check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v59"/.test(relay), 'Relay cache namespace is v59');
+check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v60"/.test(relay), 'Relay cache namespace is v60');
 check(/"12": \[/.test(relay) && /whatsmyline5September1954/.test(relay) && /Price_Is-Right_1957/.test(relay), 'Game Show Channel has a rotating verified temporary fallback shelf');
 check(/candidateLimit = Math\.max\(count, Math\.min\(30, Number\(count\) \|\| 5\)\)/.test(relay), 'Relay retains the deep candidate budget');
 check(/const expandedSources = new Set\(expanded\.map/.test(relay) && /const approvedPrograms = approved\.filter/.test(relay), 'Relay drops parent indexes after episode expansion');
@@ -50,6 +50,7 @@ check(/const backgroundTarget = Math\.min\(candidateCount, Math\.max\(count, 12\
 check(/function rotatePlayableIaShelf\(/.test(relay) && /rotatePlayableIaShelf\(lastGood/.test(relay), 'Relay rotates hydrated last-good shelves instead of repeating the same five items');
 check(/const emergencyDepth = Math\.min\(candidateCount, Math\.max\(count, 8\)\)/.test(relay), 'Sparse emergency lanes widen before accepting a shallow five-item shelf');
 check(/const cachedShelf =/.test(relay) && /const sharedShelf =/.test(relay), 'Cached and shared IA shelves rotate their deeper playable candidates');
+check(/\* requested\) % source\.length/.test(relay), 'Shelf rotation advances by a full public window');
 
 if (failures) process.exitCode = 1;
 else console.log('IA collection-depth contract passed.');

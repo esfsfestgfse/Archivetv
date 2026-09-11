@@ -90,10 +90,10 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
    items into their individual playable episode files. Cache this separately
    from v49: episode data waited behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v59";
+const IA_QUEUE_CACHE_VERSION = "v60";
 /* Last-good shelves share the v51 namespace so a cached v50 shallow shelf
    never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v59";
+const IA_LAST_GOOD_CACHE_VERSION = "v60";
 const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
 /* A short per-isolate burst cache absorbs repeat requests from a TV, phone,
    and guide opened in quick succession. It is intentionally tiny and
@@ -2185,7 +2185,10 @@ function rotatePlayableIaShelf(payload, rotation, count) {
     ? playableCandidates
     : (Array.isArray(payload && payload.items) ? payload.items : []);
   if (!source.length) return { ...(payload || {}), items: [] };
-  const offset = source.length > 1 ? Math.abs(Number(rotation) || 0) % source.length : 0;
+  /* A rotation represents consuming the public shelf, not advancing one
+     record. Step by a full requested shelf so the next tune does not replay
+     four of the same five programs when a deeper catalog is available. */
+  const offset = source.length > 1 ? (Math.abs(Number(rotation) || 0) * requested) % source.length : 0;
   const rotated = source.slice(offset).concat(source.slice(0, offset));
   return {
     ...(payload || {}),

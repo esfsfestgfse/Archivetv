@@ -124,6 +124,7 @@ if (!/STORM_CENTER_PATH \+ "\/cache\/" \+ STORM_CENTER_CACHE_VERSION/.test(sourc
 if (!/Access-Control-Expose-Headers.*X-Afterglow-Source, X-Afterglow-Cache, X-Afterglow-Queue-Ready, X-Afterglow-Queue-Partial, X-Afterglow-Queue-Fallback/.test(source)) issues.push('Browser diagnostics must be able to read safe Worker source, cache, and queue phase headers');
 if (!/const iaMetadataInflight = new Map\(\)/.test(source) || !/iaMetadataInflight\.get\(inflightKey\)/.test(source) || !/iaMetadataInflight\.set\(inflightKey, metadata\)/.test(source)) issues.push('queue hydration must coalesce concurrent Archive metadata lookups');
 if (!/IA_FOREGROUND_DISCOVERY_LANES\s*=\s*1/.test(source) || !/const fastQueries = queries\.slice\(0, Math\.min\(IA_FOREGROUND_DISCOVERY_LANES, queries\.length\)\)/.test(source)) issues.push('cold queue discovery must use one foreground Archive rail and defer the rest');
+if (!/"905": \[[\s\S]*MuddyWaters-FolkSinger[\s\S]*LegacyBluesLighninHopkins1[\s\S]*CountryBluesLightninHopkins1/.test(source)) issues.push('Blues needs verified public audio fallback seeds for a true cold-source miss');
 
 console.log(`Worker contract: ${issues.length ? 'FAILED' : 'passed'}`);
 for (const issue of issues) console.log(`P0 ${issue}`);

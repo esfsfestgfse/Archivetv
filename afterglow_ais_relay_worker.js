@@ -196,6 +196,13 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "Future_Pluto_Hndrxx-MixtapePlutoSlowed", title: "Future - Pluto x Hndrxx / Mixtape Pluto", subject: "hip hop rap", year: 2024 },
     { identifier: "YungMcChickenFilesVol1", title: "The Yung McChicken Files Vol. 1", subject: "hip hop rap", year: 2018 },
   ],
+  "905": [
+    { identifier: "MuddyWaters-FolkSinger", title: "Muddy Waters - Folk Singer", subject: "blues chicago blues", year: 1964 },
+    { identifier: "LegacyBluesLighninHopkins1", title: "Legacy Of The Blues Vol. 12 - Lightnin' Hopkins", subject: "blues texas blues country blues", year: 1974 },
+    { identifier: "CountryBluesLightninHopkins1", title: "Lightnin' Hopkins - Country Blues", subject: "blues country blues texas blues", year: 1960 },
+    { identifier: "BlindLemonJefferson-MatchboxBlues-1927Classic", title: "Blind Lemon Jefferson - Matchbox Blues", subject: "blues delta blues country blues", year: 1927 },
+    { identifier: "howlinwolfsmokestacklightningthecompletechessmasters19511960disc1", title: "Howlin' Wolf - Smokestack Lightning - Chess Masters, Disc 1", subject: "blues chicago blues electric blues", year: 1951 },
+  ],
   "702": [
     { identifier: "veggietales-madame-blueberry-1998-fanmade-vhs-thanksgiving-special_202511", title: "VeggieTales Madame Blueberry (Thanksgiving Special)", subject: "thanksgiving special", year: 1998 },
     { identifier: "macys-thanksgiving-day-parade-cat-in-the-hat-theme-1994-1997", title: "The Cat in the Hat Balloon Theme (Macy's Thanksgiving Day Parade)", subject: "thanksgiving parade", year: 1997 },

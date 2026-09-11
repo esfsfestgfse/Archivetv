@@ -1,7 +1,7 @@
 {
   "$schema": "https://unpkg.com/wrangler/config-schema.json",
   "name": "realsignal-api",
-  "main": "realsignal_api_worker.js",
+  "main": "realsignal_api_v2_worker.js",
   "compatibility_date": "2026-09-10",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
@@ -14,5 +14,34 @@
       "binding": "RELAY",
       "service": "ais-relay"
     }
-  ]
+  ],
+  "d1_databases": [
+    {
+      "binding": "realsignal_catalog",
+      "database_name": "realsignal-catalog",
+      "database_id": "e5f35fc6-145a-42b4-ad0f-bb815be5f9ef",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      { "name": "ROTATION", "class_name": "SessionRotation" }
+    ]
+  },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["SessionRotation"] }
+  ],
+  "queues": {
+    "producers": [
+      { "binding": "realsignal_catalog_refresh", "queue": "realsignal-catalog-refresh" }
+    ],
+    "consumers": [
+      {
+        "queue": "realsignal-catalog-refresh",
+        "max_batch_size": 10,
+        "max_batch_timeout": 10,
+        "max_retries": 3
+      }
+    ]
+  }
 }

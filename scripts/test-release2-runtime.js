@@ -20,7 +20,7 @@ check(runtime.includes("addEventListener('online'"), 'Online recovery hook exist
 for (const file of builds) {
   const html = fs.readFileSync(path.join(repo, file), 'utf8');
   check(html.includes('assets/release2-runtime.js'), `${file}: Release 2 runtime loaded`);
-  check(html.includes('1.9.7-' + (file.includes('mobile') ? 'mobile' : 'desktop') + '.131-cast-handoff'), `${file}: build stamp is 131 Cast handoff`);
+  check(html.includes('1.9.7-' + (file.includes('mobile') ? 'mobile' : 'desktop') + '.132-v2-api-rotation'), `${file}: build stamp is 132 V2 API rotation`);
   check(/var onAirById=\{\};[\s\S]*?if\(e\)\{ onAirById\[String\(id\)\]=e; \}/.test(html), `${file}: sports EPG live-now index is populated before sorting`);
   check(html.includes('var queuePending=refillIAQueue(ch,sl,1)'), `${file}: active IA tune requests one candidate first`);
   check(html.includes('var IA_READY_TARGET=3'), `${file}: rolling IA shelf keeps one active plus two hot replacements`);
@@ -30,6 +30,8 @@ for (const file of builds) {
   check(html.includes('all=all.filter(function(c){return c.num!==curNum;}).slice(0,8)'), `${file}: background warmup excludes active channel`);
   check(html.includes('q.slice(0,limit===undefined?5:Math.max(0,Number(limit)||0))'), `${file}: IA media resolver fan-out is bounded`);
   check(html.includes('ask===1?1:((typeof curNum!=="undefined"&&ch.num===curNum)?2:1)'), `${file}: active IA gets priority over companion media warmup`);
+  check(html.includes('realsignal-api.tdy1990.workers.dev/api/v2'), `${file}: IA queue uses the V2 API boundary`);
+  check(html.includes('function iaQueueFetch(body)'), `${file}: IA queue keeps a direct-relay fallback`);
   check(html.includes('inlinePrimary=inlineUrls.find(function(u){return /archive\\.org\\/download\\//i.test(String(u));})'), `${file}: stable Archive download URL is preferred for inline queue media`);
   check(html.includes('AD_RECENT_TTL=7*24*3600e3'), `${file}: extended ad freshness ledger`);
   check(html.includes('runtime>=45*60'), `${file}: long-program ad budget`);

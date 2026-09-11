@@ -1675,7 +1675,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.9.7-mobile.131-cast-handoff";
+window.__ATV_BUILD="1.9.7-mobile.132-v2-api-rotation";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -6585,6 +6585,9 @@ function normSearch(d){ if(d&&d.response) return {numFound:(d.response.numFound|
   if(d&&d.items) return {numFound:(d.total||d.count||d.items.length||0), docs:d.items};
   throw new Error("unexpected response shape"); }
 var IA_RELAY_BASE="https://ais-relay.tdy1990.workers.dev/ia";
+var IA_API_BASE="https://realsignal-api.tdy1990.workers.dev/api/v2";
+function iaSessionId(){var key="realsignal:v2-session",value="";try{value=localStorage.getItem(key)||"";if(!value){value="s-"+(crypto&&crypto.randomUUID?crypto.randomUUID():Date.now()+"-"+Math.random().toString(36).slice(2));localStorage.setItem(key,value);}}catch(e){}return String(value||"anonymous").slice(0,80);}
+async function iaQueueFetch(body){var options={method:"POST",mode:"cors",headers:{"content-type":"application/json","x-realsignal-session":iaSessionId()},body:JSON.stringify({...body,sessionId:iaSessionId()})};try{var response=await fetch(IA_API_BASE+"/ia/queue",options);if(!response.ok)throw new Error("v2 queue "+response.status);return response.json();}catch(v2Error){var legacy=await fetch(IA_RELAY_BASE+"/queue",options);if(!legacy.ok)throw v2Error;return legacy.json();}}
 function iaRelaySearchURL(q,rows,page,sort){return IA_RELAY_BASE+"/search?"+[
   "q="+encodeURIComponent(q),"rows="+encodeURIComponent(rows),"page="+encodeURIComponent(page),"sort="+encodeURIComponent(sort||"downloads desc")].join("&");}
 function iaRelayMetadataURL(id){return IA_RELAY_BASE+"/metadata/"+encodeURIComponent(id);}
@@ -6677,7 +6680,7 @@ async function iaLocalQueueFallback(ch,sl){
 }
 async function iaQueueRequest(ch,sl,count){
   var qs=iaQueueQueries(sl);if(!qs.length)return [];
-  try{var d=await withTO(fetch(IA_RELAY_BASE+"/queue",{method:"POST",mode:"cors",headers:{"content-type":"application/json"},body:JSON.stringify({channel:iaQueueKey(ch),rotation:iaQueueRotationFor(ch),queries:qs,themeTerms:iaProgramThemeTerms(sl),denyTerms:iaProgramDenyTerms(sl),requiredTitleTerms:(sl&&sl.program&&sl.program.require&&sl.program.require.title_any)||[],diversity:iaQueueDiversity(sl),mediaTypes:ch&&ch.audio?["audio"]:["movies"],themeMinScore:Math.max(1,Math.min(12,Number(sl&&sl.program&&sl.program.themeMinScore)||1)),count:Math.max(1,Math.min(5,count||5))})}).then(function(r){if(!r.ok)throw new Error("queue "+r.status);return r.json();}),6500);
+  try{var d=await withTO(iaQueueFetch({channel:iaQueueKey(ch),rotation:iaQueueRotationFor(ch),queries:qs,themeTerms:iaProgramThemeTerms(sl),denyTerms:iaProgramDenyTerms(sl),requiredTitleTerms:(sl&&sl.program&&sl.program.require&&sl.program.require.title_any)||[],diversity:iaQueueDiversity(sl),mediaTypes:ch&&ch.audio?["audio"]:["movies"],themeMinScore:Math.max(1,Math.min(12,Number(sl&&sl.program&&sl.program.themeMinScore)||1)),count:Math.max(1,Math.min(5,count||5))}),6500);
     var out=((d&&d.items)||[]).filter(function(it){return iaProgramAllowed(it,sl);});
     /* A 200/empty response is not proof that the rail is empty. The Worker can
        be hydrating a cold IA shard, and rescue mode can mean its first search

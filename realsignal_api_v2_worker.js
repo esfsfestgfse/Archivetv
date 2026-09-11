@@ -1,0 +1,267 @@
+/* RealSignal Version 2 API.
+ *
+ * This is a safe parallel entrypoint. The old v1 façade remains in the repo
+ * as a rollback reference while V2 adds per-session rotation, background D1
+ * catalog writes, and a queue consumer around the proven ais-relay adapter.
+ */
+
+import { SessionRotation } from "./realsignal_api_rotation.js";
+
+const API_PREFIX = "/api/v2";
+const MAX_BODY_BYTES = 128 * 1024;
+const MAX_CATALOG_ITEMS = 12;
+const MAX_SESSION = 80;
+
+function corsHeaders(contentType = "application/json; charset=utf-8") {
+  return {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers": "Content-Type, X-RealSignal-Client, X-RealSignal-Session",
+    "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+    "Access-Control-Expose-Headers": "X-RealSignal-API, X-RealSignal-Request, X-RealSignal-Source, X-RealSignal-Queue",
+    "Content-Type": contentType,
+    "X-RealSignal-API": "v2",
+  };
+}
+
+function json(body, status = 200, extra = {}) {
+  return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders(), ...extra } });
+}
+
+function requestId() { return crypto.randomUUID(); }
+
+function safeSession(value) {
+  const normalized = String(value || "anonymous").replace(/[^a-zA-Z0-9._:-]/g, "_").slice(0, MAX_SESSION);
+  return normalized || "anonymous";
+}
+
+function routeFor(pathname) {
+  if (pathname === `${API_PREFIX}/health`) return { kind: "health" };
+  if (pathname === `${API_PREFIX}/ia/queue` || pathname === `${API_PREFIX}/ia/program`) return { kind: "queue" };
+  if (pathname === `${API_PREFIX}/ia/search`) return { kind: "relay", relayPath: "/ia/search" };
+  if (pathname.startsWith(`${API_PREFIX}/ia/metadata/`)) {
+    const id = pathname.slice(`${API_PREFIX}/ia/metadata/`.length);
+    return id ? { kind: "relay", relayPath: `/ia/metadata/${id}` } : null;
+  }
+  if (pathname === `${API_PREFIX}/catalog`) return { kind: "catalog" };
+  return null;
+}
+
+async function readBoundedJson(request) {
+  const advertised = Number(request.headers.get("content-length") || 0);
+  if (advertised > MAX_BODY_BYTES) throw new RangeError("request body exceeds 128 KiB");
+  if (!request.body) return {};
+  const reader = request.body.getReader();
+  const chunks = [];
+  let total = 0;
+  try {
+    while (true) {
+      const part = await reader.read();
+      if (part.done) break;
+      total += part.value.byteLength;
+      if (total > MAX_BODY_BYTES) {
+        try { await reader.cancel(); } catch (_) { /* best effort */ }
+        throw new RangeError("request body exceeds 128 KiB");
+      }
+      chunks.push(part.value);
+    }
+  } finally { reader.releaseLock(); }
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+  try { return JSON.parse(new TextDecoder().decode(bytes)); }
+  catch (_) { throw new SyntaxError("invalid JSON body"); }
+}
+
+function relayRequest(request, relayPath, body) {
+  const source = new URL(request.url);
+  const target = new URL(`https://relay.internal${relayPath}`);
+  target.search = source.search;
+  const headers = new Headers({ "content-type": "application/json" });
+  const client = request.headers.get("x-realsignal-client");
+  if (client) headers.set("x-realsignal-client", client.slice(0, 80));
+  return new Request(target, { method: body === undefined ? "GET" : "POST", headers, body: body === undefined ? undefined : JSON.stringify(body) });
+}
+
+async function forwardToRelay(request, env, relayPath, body, id) {
+  if (!env.RELAY || typeof env.RELAY.fetch !== "function") return json({ error: "relay binding is not configured", requestId: id }, 503, { "Cache-Control": "no-store" });
+  try {
+    const upstream = await env.RELAY.fetch(relayRequest(request, relayPath, body));
+    const headers = new Headers(upstream.headers);
+    for (const [key, value] of Object.entries(corsHeaders(headers.get("content-type") || "application/json; charset=utf-8"))) headers.set(key, value);
+    headers.set("X-RealSignal-API", "v2");
+    headers.set("X-RealSignal-Request", id);
+    headers.set("X-RealSignal-Source", "ais-relay");
+    return new Response(upstream.body, { status: upstream.status, headers });
+  } catch (error) {
+    console.error(JSON.stringify({ event: "v2-relay-forward-failed", requestId: id, route: relayPath, error: String(error).slice(0, 180) }));
+    return json({ error: "relay temporarily unavailable", requestId: id }, 503, { "Cache-Control": "no-store" });
+  }
+}
+
+function compactCatalogItem(item) {
+  const id = String(item && (item.identifier || item.id || (item.media && item.media.url)) || "").slice(0, 500);
+  if (!id) return null;
+  return {
+    id,
+    provider: String(item.provider || item.source || "internet-archive").slice(0, 60),
+    sourceIdentifier: String(item.sourceIdentifier || item.identifier || id).slice(0, 500),
+    title: String(item.title || "Untitled").slice(0, 500),
+    description: String(item.description || "").slice(0, 2000),
+    duration: Number(item.duration || item.runtime) || null,
+    aspectRatio: Number(item.aspectRatio) || null,
+    mediaType: String((item.media && item.media.type) || item.type || "video").slice(0, 30),
+    mediaUrl: String((item.media && item.media.url) || item.url || "").slice(0, 1500),
+    sourceUrl: String(item.sourceUrl || "").slice(0, 1500),
+    rights: String(item.rights || "").slice(0, 300),
+    year: String(item.year || "").slice(0, 20),
+  };
+}
+
+function catalogJob(body, payload) {
+  const items = (Array.isArray(payload && payload.items) ? payload.items : []).slice(0, MAX_CATALOG_ITEMS).map(compactCatalogItem).filter(Boolean);
+  if (!items.length) return null;
+  return {
+    type: "catalog-upsert",
+    channelKey: String(body.channel || "unknown").slice(0, 120),
+    rules: {
+      themeTerms: Array.isArray(body.themeTerms) ? body.themeTerms.slice(0, 40).map(String) : [],
+      denyTerms: Array.isArray(body.denyTerms) ? body.denyTerms.slice(0, 40).map(String) : [],
+      mediaTypes: Array.isArray(body.mediaTypes) ? body.mediaTypes.slice(0, 5).map(String) : [],
+    },
+    items,
+    queuedAt: Date.now(),
+  };
+}
+
+async function enqueueCatalog(env, body, payload) {
+  if (!env.realsignal_catalog_refresh || typeof env.realsignal_catalog_refresh.send !== "function") return;
+  const job = catalogJob(body, payload);
+  if (!job) return;
+  try { await env.realsignal_catalog_refresh.send(job, { contentType: "json" }); }
+  catch (error) { console.warn(JSON.stringify({ event: "catalog-job-not-queued", error: String(error).slice(0, 160) })); }
+}
+
+async function upsertCatalogJob(env, job) {
+  if (!env.realsignal_catalog || typeof env.realsignal_catalog.batch !== "function" || !job || !Array.isArray(job.items)) return;
+  const now = Date.now();
+  const statements = [];
+  for (const item of job.items.slice(0, MAX_CATALOG_ITEMS)) {
+    statements.push(env.realsignal_catalog.prepare(`INSERT INTO programs (id, provider, source_identifier, title, description, duration_seconds, aspect_ratio, media_type, media_url, source_url, rights, year, metadata_json, first_seen_at, last_seen_at, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active') ON CONFLICT(id) DO UPDATE SET provider=excluded.provider, source_identifier=excluded.source_identifier, title=excluded.title, description=excluded.description, duration_seconds=excluded.duration_seconds, aspect_ratio=excluded.aspect_ratio, media_type=excluded.media_type, media_url=excluded.media_url, source_url=excluded.source_url, rights=excluded.rights, year=excluded.year, last_seen_at=excluded.last_seen_at, status='active'`).bind(item.id, item.provider, item.sourceIdentifier, item.title, item.description, item.duration, item.aspectRatio, item.mediaType, item.mediaUrl, item.sourceUrl, item.rights, item.year, JSON.stringify(item), now, now));
+    statements.push(env.realsignal_catalog.prepare(`INSERT INTO channel_programs (channel_key, program_id, score, last_seen_at) VALUES (?, ?, ?, ?) ON CONFLICT(channel_key, program_id) DO UPDATE SET score=excluded.score, last_seen_at=excluded.last_seen_at`).bind(job.channelKey, item.id, 0, now));
+  }
+  if (job.rules) statements.push(env.realsignal_catalog.prepare(`INSERT INTO channel_rules (channel_key, rules_json, updated_at) VALUES (?, ?, ?) ON CONFLICT(channel_key) DO UPDATE SET rules_json=excluded.rules_json, updated_at=excluded.updated_at`).bind(job.channelKey, JSON.stringify(job.rules), now));
+  if (statements.length) await env.realsignal_catalog.batch(statements);
+}
+
+async function rotateShelf(env, body, payload) {
+  if (!env.ROTATION || typeof env.ROTATION.getByName !== "function") return { payload, rotation: { configured: false } };
+  const session = safeSession(body.sessionId || body.session || "anonymous");
+  const channel = safeSession(body.channel || "unknown");
+  const stub = env.ROTATION.getByName(`session:${session}:channel:${channel}`);
+  const response = await stub.fetch(new Request("https://rotation.internal/select", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ items: payload.items, count: Math.max(1, Math.min(5, Number(body.count) || 3)), rotation: Number(body.rotation) || 0 }) }));
+  if (!response.ok) throw new Error(`rotation ${response.status}`);
+  const selected = await response.json();
+  const upstreamReady = Number.isFinite(Number(payload.ready)) ? Number(payload.ready) : (Array.isArray(payload.items) ? payload.items.length : 0);
+  return { payload: { ...payload, items: selected.items || [], ready: Math.min(upstreamReady, (selected.items || []).length), v2: { sessionScoped: true, cursor: selected.cursor, cycleReset: !!selected.cycleReset } }, rotation: selected };
+}
+
+async function catalogFallback(env, body) {
+  if (!env.realsignal_catalog || typeof env.realsignal_catalog.prepare !== "function") return null;
+  const channel = String(body.channel || "").slice(0, 120);
+  const result = await env.realsignal_catalog.prepare(`SELECT p.* FROM programs p JOIN channel_programs cp ON cp.program_id=p.id WHERE cp.channel_key=? AND p.status='active' AND p.media_url IS NOT NULL ORDER BY cp.last_seen_at DESC LIMIT ?`).bind(channel, 12).all();
+  const items = (result.results || []).map((row) => ({
+    identifier: row.id,
+    sourceIdentifier: row.source_identifier || row.id,
+    title: row.title,
+    description: row.description || "",
+    provider: row.provider,
+    year: row.year || "",
+    runtime: Number(row.duration_seconds) || null,
+    media: { type: row.media_type || "video", url: row.media_url },
+    sourceUrl: row.source_url || "",
+    rights: row.rights || "",
+    staleCatalog: true,
+  }));
+  return items.length ? { items, ready: items.length, candidates: items.length, fallback: true, stale: true, catalogFallback: true, rotation: Number(body.rotation) || 0 } : null;
+}
+
+async function handleQueue(request, env, ctx, id) {
+  let body;
+  try { body = await readBoundedJson(request); }
+  catch (error) { return json({ error: error instanceof RangeError ? error.message : "invalid JSON body", requestId: id }, error instanceof RangeError ? 413 : 400); }
+  if (!body || typeof body !== "object" || Array.isArray(body)) return json({ error: "queue payload must be an object", requestId: id }, 400);
+  if (!String(body.channel || "").trim()) return json({ error: "channel is required", requestId: id }, 400);
+  const count = Math.max(1, Math.min(5, Number(body.count) || 3));
+  const upstreamBody = { ...body, count };
+  delete upstreamBody.sessionId;
+  delete upstreamBody.session;
+  const upstream = await forwardToRelay(request, env, "/ia/queue", upstreamBody, id);
+  let payload;
+  let catalogRecovery = false;
+  if (!upstream.ok) {
+    try { payload = await catalogFallback(env, body); catalogRecovery = !!payload; } catch (error) { console.warn(JSON.stringify({ event: "catalog-fallback-failed", requestId: id, error: String(error).slice(0, 160) })); }
+    if (!payload) return upstream;
+  } else {
+    try { payload = await upstream.clone().json(); } catch (_) { return upstream; }
+  }
+  let rotated;
+  try { rotated = await rotateShelf(env, body, payload); }
+  catch (error) {
+    console.warn(JSON.stringify({ event: "v2-rotation-fallback", requestId: id, error: String(error).slice(0, 160) }));
+    rotated = { payload, rotation: { configured: false, fallback: true } };
+  }
+  if (catalogJob(body, rotated.payload)) ctx.waitUntil(enqueueCatalog(env, body, rotated.payload));
+  const headers = new Headers(corsHeaders());
+  headers.set("X-RealSignal-API", "v2");
+  headers.set("X-RealSignal-Request", id);
+  headers.set("X-RealSignal-Source", catalogRecovery ? "d1-catalog+session-rotation" : "ais-relay+session-rotation");
+  headers.set("X-RealSignal-Queue", JSON.stringify({ ready: Number(rotated.payload.ready || (rotated.payload.items || []).length), background: !!rotated.payload.hydrating }));
+  return new Response(JSON.stringify({ ...rotated.payload, apiVersion: "v2" }), { status: upstream.status, headers });
+}
+
+async function handleCatalog(request, env) {
+  if (!env.realsignal_catalog || typeof env.realsignal_catalog.prepare !== "function") return json({ error: "catalog binding is not configured" }, 503);
+  const url = new URL(request.url);
+  const channel = String(url.searchParams.get("channel") || "").slice(0, 120);
+  if (!channel) return json({ error: "channel is required" }, 400);
+  const limit = Math.max(1, Math.min(50, Number(url.searchParams.get("limit")) || 20));
+  const result = await env.realsignal_catalog.prepare(`SELECT p.* FROM programs p JOIN channel_programs cp ON cp.program_id=p.id WHERE cp.channel_key=? AND p.status='active' ORDER BY cp.last_seen_at DESC LIMIT ?`).bind(channel, limit).all();
+  return json({ channel, items: result.results || [], source: "d1-catalog" }, 200, { "Cache-Control": "public, max-age=15, stale-while-revalidate=60" });
+}
+
+const worker = {
+  async fetch(request, env, ctx) {
+    const id = requestId();
+    if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders("text/plain; charset=utf-8") });
+    if (request.method !== "GET" && request.method !== "POST") return json({ error: "method not allowed", requestId: id }, 405, { Allow: "GET,POST,OPTIONS" });
+    const url = new URL(request.url);
+    const route = routeFor(url.pathname);
+    try {
+      if (route && route.kind === "health") return json({ service: "realsignal-api", apiVersion: "v2", status: "ready", capabilities: ["ia-search", "ia-metadata", "ia-queue", "session-rotation", "catalog-jobs"], bindings: { relay: !!env.RELAY, rotation: !!env.ROTATION, catalog: !!env.realsignal_catalog, refreshQueue: !!env.realsignal_catalog_refresh }, checkedAt: new Date().toISOString() }, 200, { "Cache-Control": "no-store", "X-RealSignal-Request": id });
+      if (route && route.kind === "catalog") {
+        if (request.method !== "GET") return json({ error: "method not allowed", requestId: id }, 405, { Allow: "GET,OPTIONS" });
+        return await handleCatalog(request, env);
+      }
+      if (!route) return json({ error: "not found", requestId: id }, 404);
+      if (route.kind === "queue") {
+        if (request.method !== "POST") return json({ error: "method not allowed", requestId: id }, 405, { Allow: "POST,OPTIONS" });
+        return await handleQueue(request, env, ctx, id);
+      }
+      if (request.method !== "GET") return json({ error: "method not allowed", requestId: id }, 405, { Allow: "GET,OPTIONS" });
+      return await forwardToRelay(request, env, route.relayPath, undefined, id);
+    } catch (error) {
+      console.error(JSON.stringify({ event: "v2-request-failed", requestId: id, path: url.pathname, error: String(error).slice(0, 200) }));
+      return json({ error: "internal server error", requestId: id }, 500, { "Cache-Control": "no-store" });
+    }
+  },
+
+  async queue(batch, env) {
+    for (const message of batch.messages) {
+      try { await upsertCatalogJob(env, message.body); message.ack(); }
+      catch (error) { console.error(JSON.stringify({ event: "catalog-upsert-failed", messageId: message.id, attempts: message.attempts, error: String(error).slice(0, 200) })); message.retry({ delaySeconds: Math.min(300, Math.max(5, Number(message.attempts || 1) * 15)) }); }
+    }
+  },
+};
+
+export { SessionRotation };
+export default worker;

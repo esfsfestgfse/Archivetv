@@ -2,39 +2,42 @@
 
 ## Current slice
 
-`realsignal_api_worker.js` is the first stable API boundary for Version 2. It
-exposes a versioned contract without changing the live browser clients:
+`realsignal_api_v2_worker.js` is the first usable Version 2 service. The
+previous `realsignal_api_worker.js` remains as a v1 rollback reference. The V2
+service exposes a versioned contract and is now used by the IA queue callers in
+both browser builds:
 
 | Endpoint | Method | Purpose |
 | --- | --- | --- |
-| `/api/v1/health` | GET | API health and capability probe |
-| `/api/v1/ia/search` | GET | IA discovery search |
-| `/api/v1/ia/metadata/:id` | GET | IA metadata and file resolution |
-| `/api/v1/ia/queue` | POST | Verified IA shelf construction |
-| `/api/v1/ia/program` | POST | Program-director queue construction |
+| `/api/v2/health` | GET | API health and binding capability probe |
+| `/api/v2/ia/search` | GET | IA discovery search through the relay |
+| `/api/v2/ia/metadata/:id` | GET | IA metadata and file resolution |
+| `/api/v2/ia/queue` | POST | Relay shelf plus per-session repeat suppression |
+| `/api/v2/ia/program` | POST | Program-director queue compatibility route |
+| `/api/v2/catalog?channel=...` | GET | Read normalized D1 catalog records |
 
 The API Worker calls `ais-relay` through the `RELAY` Service Binding. It does
-not call the public relay URL, and it does not yet own catalog state. The
-existing relay remains the source of truth during this migration slice.
+not call the public relay URL. Each session+channel is routed to its own
+Durable Object, which persists the offered identifier history and prevents
+rapid Next actions from replaying the same shelf. The request returns without
+waiting for catalog persistence: a compact shelf job is sent to the
+`realsignal-catalog-refresh` Queue and written to the `realsignal-catalog` D1
+database by the consumer.
 
 ## Safe cutover order
 
-1. Deploy `ais-relay` and `realsignal-api` in the same Cloudflare account.
-2. Probe `/api/v1/health` and verify the Service Binding in a staging client.
-3. Move IA search/metadata callers to the versioned API first.
-4. Move queue callers behind a feature flag, keeping the current relay as a
-   bounded fallback during the canary.
-5. Add D1 catalog tables and background ingestion before moving discovery out
-   of the relay.
-6. Add Durable Object channel rotation and Queues/Workflows for background
-   hydration and health checks.
-7. Remove the compatibility fallback only after a full desktop/mobile/Cast
-   soak passes.
+1. Deploy the API and apply the D1 migration in the same Cloudflare account.
+2. Probe `/api/v2/health` and verify all four bindings.
+3. Keep the browser's bounded direct-relay fallback during the canary.
+4. Confirm queue writes and D1 catalog reads after the first live IA requests.
+5. Add scheduled source health/refresh workflows only after measured traffic
+   justifies them; do not turn every viewer request into discovery work.
+6. Remove the direct fallback only after a full desktop/mobile/Cast soak passes.
 
 ## Next backend slice
 
-Add a D1 schema for normalized programs, source records, collection members,
-channel rules, and health observations. The API contract should remain stable
-while the relay-backed implementation is replaced by D1-backed reads. No
-client should need to know whether a result came from the old relay, D1, or a
-future source adapter.
+The D1 migration in `migrations/0001_realsignal_catalog.sql` provides
+normalized programs, channel membership/rules, source health, and indexes.
+The API contract remains stable while relay-backed discovery is gradually
+replaced by D1-backed reads; clients do not need to know which adapter served
+an item.

@@ -1,0 +1,59 @@
+name: Deploy RealSignal V2 API
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'realsignal_api_v2_worker.js'
+      - 'realsignal_api_rotation.js'
+      - 'wrangler.api.jsonc'
+      - 'migrations/**'
+      - 'scripts/test-v2-api-worker.js'
+      - 'scripts/check-v2-api-contract.js'
+      - '.github/workflows/realsignal-api.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: realsignal-api-production
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Validate V2 boundary
+        run: |
+          node scripts/check-v2-api-contract.js
+          node scripts/test-v2-api-worker.js
+          node --check realsignal_api_v2_worker.js
+          node --check realsignal_api_rotation.js
+
+  deploy:
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # The repository must provide these two encrypted secrets. Keeping the
+    # condition explicit makes a missing CI credential visible instead of
+    # silently attempting an unauthenticated deployment.
+    if: ${{ secrets.CLOUDFLARE_API_TOKEN != '' && secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Deploy V2 API Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --config wrangler.api.jsonc

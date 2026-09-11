@@ -90,10 +90,10 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
    items into their individual playable episode files. Cache this separately
    from v49: episode data waited behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v58";
+const IA_QUEUE_CACHE_VERSION = "v59";
 /* Last-good shelves share the v51 namespace so a cached v50 shallow shelf
    never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v58";
+const IA_LAST_GOOD_CACHE_VERSION = "v59";
 const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
 /* A short per-isolate burst cache absorbs repeat requests from a TV, phone,
    and guide opened in quick succession. It is intentionally tiny and
@@ -2458,6 +2458,17 @@ async function getIaQueue(request, url, env, ctx) {
         if (!cachedPayload || cachedPayload.empty || (!Array.isArray(cachedPayload.items) || !cachedPayload.items.length) && !cachedPayload.hydrating) {
           await cache.delete(cacheKey).catch(() => false);
         } else {
+          const cachedShelf = Array.isArray(cachedPayload.candidateItems) && cachedPayload.candidateItems.length > (Array.isArray(cachedPayload.items) ? cachedPayload.items.length : 0)
+            ? rotatePlayableIaShelf(cachedPayload, rotation, count)
+            : cachedPayload;
+          if (cachedShelf !== cachedPayload) {
+            const rotatedResponse = cacheableJson(cachedShelf, 5, {
+              "X-Afterglow-Source": "program-director-cache-rotation",
+              "X-Afterglow-Cache": "edge-rotated",
+              "X-Afterglow-Queue-Ready": String(cachedShelf.ready || cachedShelf.items.length),
+            });
+            return rotatedResponse;
+          }
           if (cachedPayload.partial && Array.isArray(cachedPayload.candidateItems)) {
             const strictQueue = themeMinScore > 1;
             const candidateCount = Math.min(strictQueue ? 30 : 20, Math.max(count, count * (strictQueue ? 6 : 4)));
@@ -2478,10 +2489,13 @@ async function getIaQueue(request, url, env, ctx) {
       });
     }
     const shared = await sharedQueueGet(env, sharedKey);
-    if (shared && Array.isArray(shared.items) && shared.items.length && Number(shared.ready) > 0) {
-      const sharedReady = Number(shared.ready) >= count;
+    const sharedShelf = shared && Array.isArray(shared.candidateItems) && shared.candidateItems.length > (Array.isArray(shared.items) ? shared.items.length : 0)
+      ? rotatePlayableIaShelf(shared, rotation, count)
+      : shared;
+    if (sharedShelf && Array.isArray(sharedShelf.items) && sharedShelf.items.length && Number(sharedShelf.ready) > 0) {
+      const sharedReady = Number(sharedShelf.ready) >= count;
       let sharedFallback = null;
-      if (!sharedReady && shared.partial && Array.isArray(shared.candidateItems)) {
+      if (!sharedReady && sharedShelf.partial && Array.isArray(sharedShelf.candidateItems)) {
         const strictQueue = themeMinScore > 1;
         const candidateCount = Math.min(strictQueue ? 30 : 20, Math.max(count, count * (strictQueue ? 6 : 4)));
         scheduleCachedIaHydration(shared, count, url.origin, cacheKey, sharedKey, lastGoodKey, env, ctx, mediaTypes, channel, themeTerms, denyTerms, requiredTitleTerms, diversity, themeMinScore, candidateCount, queries);
@@ -2500,7 +2514,7 @@ async function getIaQueue(request, url, env, ctx) {
           };
         }
       }
-      const served = sharedFallback || shared;
+      const served = sharedFallback || sharedShelf;
       iaQueueMemoryPut(cacheKey.url, served, sharedReady || sharedFallback ? IA_QUEUE_MEMORY_TTL_SECONDS : 5);
       const response = cacheableJson(served, sharedReady || sharedFallback ? IA_QUEUE_TTL_SECONDS : 5, {
         "X-Afterglow-Source": sharedFallback ? "program-director-last-good" : "program-director-shared",

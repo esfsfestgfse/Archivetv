@@ -2041,7 +2041,11 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTit
          the final say about whether an ordinary Archive record is a series. */
       const hintedSeeds = catalogWantsVideo ? approved.filter(archiveContainerHint) : [];
       const genericSeeds = catalogWantsVideo ? approved.filter((doc) => !archiveContainerHint(doc)).slice(0, 1) : [];
-      const expansionSeeds = hintedSeeds.concat(genericSeeds).slice(0, expansionLimit);
+      /* The foreground lane must never wait on Archive manifests. The exact
+         approved parent is enough to hydrate a first frame; the request-level
+         background expansion below revisits that parent and turns its files
+         into episode candidates after the viewer is already watching. */
+      const expansionSeeds = firstApprovedLane ? [] : hintedSeeds.concat(genericSeeds).slice(0, expansionLimit);
       const expandedSets = await mapQueueCandidates(expansionSeeds, IA_CONTAINER_EXPANSION_CONCURRENCY, async (doc, expansionIndex) => {
         const episodes = await expandArchiveContainer(doc, cacheOrigin, ctx, rotation, lane * 31 + expansionIndex);
         return episodes.filter((episode) => matchesTheme(episode, themeTerms, themeMinScore, requiredTitleTerms) && !matchesDeny(episode, denyTerms));
@@ -2081,6 +2085,16 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTit
   } else {
     lanes = await Promise.all(lanePromises);
   }
+  /* A parent can be returned by one editorial rail while its expanded files
+     arrive from another. Remove those cross-lane parents before the diversity
+     pass too; otherwise a complete-series index can still consume one slot
+     beside its own episode files. */
+  const expandedParents = new Set();
+  lanes.flat().forEach((candidate) => {
+    const doc = candidate && candidate.doc;
+    const source = String(doc && doc.sourceIdentifier || "");
+    if (source && String(doc.identifier || "") !== source) expandedParents.add(source);
+  });
   const laneDepth = Math.max(0, ...lanes.map((lane) => lane.length));
   function underCap(key, value, cap) { return !value || (used[key].get(value) || 0) < cap; }
   function add(candidate) {
@@ -2100,7 +2114,7 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTit
     for (const lane of lanes) {
       const candidate = lane[row], doc = candidate && candidate.doc;
       const titleKey = queueTitleKey(doc);
-      if (!doc || !matchesTheme(doc, themeTerms, themeMinScore, requiredTitleTerms) || matchesDeny(doc, denyTerms) || seen.has(doc.identifier) || (titleKey && seenTitles.has(titleKey))) continue;
+      if (!doc || expandedParents.has(String(doc.identifier || "")) || !matchesTheme(doc, themeTerms, themeMinScore, requiredTitleTerms) || matchesDeny(doc, denyTerms) || seen.has(doc.identifier) || (titleKey && seenTitles.has(titleKey))) continue;
       seen.add(doc.identifier);
       if (titleKey) seenTitles.add(titleKey);
       if (diverseEnough(candidate)) add(candidate); else deferred.push(candidate);

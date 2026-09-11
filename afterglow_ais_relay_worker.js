@@ -90,10 +90,10 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
    items into their individual playable episode files. Cache this separately
    from v49: episode data waited behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v51";
+const IA_QUEUE_CACHE_VERSION = "v53";
 /* Last-good shelves share the v51 namespace so a cached v50 shallow shelf
    never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v51";
+const IA_LAST_GOOD_CACHE_VERSION = "v53";
 const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
 /* A short per-isolate burst cache absorbs repeat requests from a TV, phone,
    and guide opened in quick succession. It is intentionally tiny and
@@ -210,6 +210,13 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "SesameStreetPress1993", title: "Sesame Street Press 1993", subject: "thanksgiving special children's television", year: 1993 },
     { identifier: "DayofTha1951", title: "Day of Thanksgiving, A", subject: "thanksgiving film", year: 1951 },
     { identifier: "blues-clues-macys-thanksgiving-day-parade-specials", title: "Blue's Clues Macy's Thanksgiving Day Parade Specials", subject: "thanksgiving parade thanksgiving special", year: 2000 },
+  ],
+  "12": [
+    { identifier: "whatsmyline5September1954", title: "What's My Line? — September 5, 1954", subject: "classic television game show panel show", year: 1954, media: { type: "video", url: "https://archive.org/download/whatsmyline5September1954/whatsmyline5September1954.mp4" } },
+    { identifier: "whatsmyline22August1954", title: "What's My Line? — August 22, 1954", subject: "classic television game show panel show", year: 1954, media: { type: "video", url: "https://archive.org/download/whatsmyline22August1954/whatsmyline22August1954.mp4" } },
+    { identifier: "whatsmyline7October1956", title: "What's My Line? — October 7, 1956", subject: "classic television game show panel show", year: 1956, media: { type: "video", url: "https://archive.org/download/whatsmyline7October1956/whatsmyline7October1956.mp4" } },
+    { identifier: "totellthetruth16July1957", title: "To Tell the Truth — July 16, 1957", subject: "classic television game show panel show", year: 1957, media: { type: "video", url: "https://archive.org/download/totellthetruth16July1957/totellthetruth16July1957.mp4" } },
+    { identifier: "concentration13September1963", title: "Concentration — September 13, 1963", subject: "classic television game show quiz show", year: 1963, media: { type: "video", url: "https://archive.org/download/Concentration13September1963/Concentration13September1963.mp4" } },
   ],
 });
 /* Keep a single cold tune from opening three identical Archive requests while
@@ -2545,21 +2552,23 @@ async function getIaQueue(request, url, env, ctx) {
         if (rescue.items.length) payload = mergeIaQueuePayload(payload, rescue, candidateCount, { rescue: true });
       }
     }
-    if (!payload.items.length && IA_EMERGENCY_SEEDS[channel] && IA_EMERGENCY_SEEDS[channel].length) {
+    if (IA_EMERGENCY_SEEDS[channel] && IA_EMERGENCY_SEEDS[channel].length && payload.items.length < count) {
       /* A verified shelf keeps the television usable during a true cold-source
-         miss. Rotate the seed order so the emergency path is not a fixed
-         five-item loop, then let the normal background expansion replace it. */
+         miss or a partially hydrated result. Preserve any approved discovery
+         candidates, then append direct, already-observed fallback media so a
+         one-item Game Show response cannot become No Signal. Rotate the seed
+         order so the emergency path is not a fixed five-item loop, and let the
+         normal background discovery replace it with fresher material. */
       const seeds = IA_EMERGENCY_SEEDS[channel];
       const offset = Math.abs(rotation) % seeds.length;
       const orderedSeeds = seeds.slice(offset).concat(seeds.slice(0, offset));
+      const discovered = Array.isArray(payload.items) ? payload.items : [];
+      const candidates = discovered.concat(orderedSeeds).slice(0, candidateCount);
       payload = {
-        channel,
-        rotation,
-        generatedAt: new Date().toISOString(),
-        ttlSeconds: IA_QUEUE_TTL_SECONDS,
-        items: orderedSeeds.slice(0, count),
-        candidateItems: orderedSeeds,
-        candidates: orderedSeeds.length,
+        ...payload,
+        items: discovered.length ? discovered : orderedSeeds.slice(0, count),
+        candidateItems: candidates,
+        candidates: candidates.length,
         ready: 0,
         emergency: true,
       };

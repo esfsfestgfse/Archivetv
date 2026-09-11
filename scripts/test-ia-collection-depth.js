@@ -39,7 +39,8 @@ for (const [channel, collection] of Object.entries(expectedRails)) {
 }
 
 const relay = fs.readFileSync(path.join(root, 'afterglow_ais_relay_worker.js'), 'utf8');
-check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v51"/.test(relay), 'Relay cache namespace is v51');
+check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v53"/.test(relay), 'Relay cache namespace is v53');
+check(/"12": \[/.test(relay) && /whatsmyline5September1954/.test(relay), 'Game Show Channel has a verified temporary fallback shelf');
 check(/candidateLimit = Math\.max\(count, Math\.min\(30, Number\(count\) \|\| 5\)\)/.test(relay), 'Relay retains the deep candidate budget');
 check(/const expandedSources = new Set\(expanded\.map/.test(relay) && /const approvedPrograms = approved\.filter/.test(relay), 'Relay drops parent indexes after episode expansion');
 check(/const expansionSeeds = firstApprovedLane \? \[\] : hintedSeeds\.concat\(genericSeeds\)/.test(relay), 'Relay keeps manifest expansion off the first-frame path');

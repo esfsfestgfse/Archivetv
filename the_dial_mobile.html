@@ -1675,7 +1675,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.9.7-mobile.132-v2-api-rotation";
+window.__ATV_BUILD="1.9.7-mobile.133-ia-depth";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -6296,6 +6296,17 @@ Object.assign(PROGRAM["Modern Rerun TV"],{require:{title_any:["sitcom","televisi
 Object.assign(PROGRAM["Arcade Archive"],{themeMinScore:1,queueTerms:["arcade","coin-op","coin op","atari","nintendo","sega","namco","capcom","mame","retro gaming","classic game","video game","8-bit","16-bit","gameplay","longplay","playthrough"],fastSubjects:["arcade","coin-op","atari","nintendo","sega","namco","capcom","mame","retro gaming","classic game","video game","gameplay","longplay","playthrough"],fastCollections:["game_replays","softwarelibrary","consolelivingroom","opensource_movies"],require:{title_any:["arcade","coin-op","coin op","atari","nintendo","sega","namco","capcom","mame","retro game","classic game","video game","gameplay","longplay","playthrough"]},deny:{title:["review","unboxing","haul","let's play","walkthrough","tutorial","tony hawk","skateboard","skateboarding","snowboard","surfing","bmx","extreme sports","football","baseball","basketball"],subject:["review","unboxing","podcast","talk show","let's play","walkthrough","tony hawk","skateboard","skateboarding","snowboard","surfing","bmx","extreme sports","sports"]}});
 Object.assign(PROGRAM["Cop Show Classic"],{themeMinScore:1,queueTerms:["dragnet","adam-12","highway patrol","the fbi","hawaii five-o","kojak","columbo","mannix","cannon","barnaby jones","rockford files","magnum p.i.","miami vice","hill street blues","cagney and lacey","police story","police woman","starsky and hutch","the mod squad","chips","t.j. hooker","streets of san francisco","quincy m.e.","the untouchables","peter gunn","richard diamond","perry mason","ironside","matlock","murder she wrote","hart to hart","charlie's angels","detective show","police procedural","cop show"],fastSubjects:["dragnet","adam-12","highway patrol","the fbi","hawaii five-o","kojak","columbo","mannix","cannon","barnaby jones","rockford files","magnum p.i.","miami vice","hill street blues","cagney and lacey","police story","police woman","starsky and hutch","the mod squad","chips","t.j. hooker","streets of san francisco","quincy m.e.","the untouchables","peter gunn","richard diamond","perry mason","ironside","matlock","murder she wrote","hart to hart","charlie's angels"],fastCollections:["classic_tv","classic_tv_1970s","classic_tv_1980s","vhsvault","opensource_movies"],require:{title_any:["dragnet","adam-12","adam 12","highway patrol","hawaii five-o","hawaii 5-0","kojak","columbo","mannix","cannon","barnaby jones","rockford","magnum","miami vice","hill street blues","cagney","law and order","police story","police woman","starsky","mod squad","chips","t.j. hooker","tj hooker","streets of san francisco","quincy","untouchables","peter gunn","richard diamond","perry mason","ironside","matlock","murder she wrote","hart to hart","charlie's angels","detective show","police procedural","cop show"]},deny:{title:["cartoon","commercial","training film","architecture","prison documentary","police-state","police state","civil defense","emergency management","public safety","nursing care","your vote","campaign","political","fema","mtv","music video","feature presentation","guest vj"],subject:["cartoon","animated","children","commercial","training film","architecture","prison documentary","documentary about","police-state","police state","civil defense","emergency management","public safety","political","fema","mtv","music video","feature presentation","guest vj"]}});
 Object.assign(PROGRAM["Cop Show Classic"].deny,{title:PROGRAM["Cop Show Classic"].deny.title.concat(["doctor who","loose cannon","reconstruction"]),subject:PROGRAM["Cop Show Classic"].deny.subject.concat(["doctor who","loose cannon","reconstruction"])});
+/* IA DEPTH PASS (v2.0): collection families are discovery roots, not single
+   programs. These late rails are title-gated and still subject to the strict
+   station filters, but they expose the breadth already present in Archive's
+   episode-heavy collections. */
+Object.assign(PROGRAM["Saturday Morning"],{deepCollections:["saturdaymorningcartoons","vhskids","vhsvault","animationandcartoons"],deepTitleTerms:["saturday morning cartoon","saturday morning","cartoon","cartoons","animated series","full episode","full episodes","broadcast","fox kids","kids wb","toonami","nickelodeon","disney afternoon","schoolhouse rock","puppet show"]});
+Object.assign(PROGRAM["Classic Cartoons"],{deepCollections:["classic_cartoons","animationandcartoons","opensource_movies","prelinger"],deepTitleTerms:["cartoon","cartoons","animated","animation","animated series","animated short","theatrical cartoon","looney tunes","popeye","bugs bunny","tom and jerry","fleischer","woody woodpecker","mickey mouse","donald duck","saturday morning"]});
+Object.assign(PROGRAM["Modern Cartoons"],{deepCollections:["animationandcartoons","saturdaymorningcartoons","vhskids","vhsvault"],deepTitleTerms:["cartoon","cartoons","animated series","animated tv","episode","full episode","saturday morning","fox kids","kids wb","toonami","nickelodeon","disney afternoon","hanna barbera","transformers","scooby","ducktales","thundercats","x-men","batman animated"]});
+Object.assign(PROGRAM["Classic Rerun TV"],{deepCollections:["classic_tv","television","classic_tv_1950s","classic_tv_1960s"],deepTitleTerms:["complete series","complete","episode","episodes","sitcom","television series","tv series","classic television","variety show","anthology","show","season"]});
+Object.assign(PROGRAM["Modern Rerun TV"],{deepCollections:["classic_tv","television","vhsvault","classic_tv_1990s"],deepTitleTerms:["complete series","complete","episode","episodes","sitcom","television series","tv series","comedy series","situation comedy","syndicated","season","show"]});
+Object.assign(PROGRAM["Game Show Channel"],{deepCollections:["classic_tv_1950s","classic_tv_1960s","classic_tv_1970s","classic_tv_1980s"],deepTitleTerms:["game show","quiz show","panel show","episode","episodes","complete series","jeopardy","price is right","family feud","match game","password","pyramid","newlywed game","hollywood squares","let's make a deal","what's my line","press your luck","double dare","millionaire"]});
+
 /* Commercials are their own video station, never an audio interruption. Rotate
    deliberately across decades and product lanes so a tune never becomes one
    narrow VHS-era reel. */
@@ -6402,6 +6413,19 @@ function buildProgramQueries(prog,ch,advance) {
   if(Array.isArray(prog.wideCollections)&&prog.wideCollections.length){
     prog.wideCollections.slice(0,4).forEach(function(collection){
       wideQs.push("collection:"+collection+" AND mediatype:"+mt+" AND year:["+permanentEra[0]+" TO "+permanentEra[1]+"]"+NOT);
+    });
+  }
+  /* Deep collection rails are explicit file/episode discovery lanes for
+     families whose Archive records are much richer than their subject tags.
+     They remain title-gated and still pass the relay's theme/deny checks, but
+     let a large collection contribute its individual programs instead of one
+     popular parent record. Keep them late in the query list so they expand
+     behind the first playable program rather than blocking cold tune. */
+  if(Array.isArray(prog.deepCollections)&&prog.deepCollections.length){
+    var deepTerms=(prog.deepTitleTerms||[]).map(programPhrase).join(" OR ");
+    var deepTitleClause=deepTerms?(" AND title:("+deepTerms+")"):"";
+    prog.deepCollections.slice(0,4).forEach(function(collection){
+      wideQs.push("collection:"+collection+" AND mediatype:"+mt+deepTitleClause+" AND year:["+permanentEra[0]+" TO "+permanentEra[1]+"]"+NOT);
     });
   }
   var providers=(prog.providers||[]).map(function(prov,index){return {prov:prov,index:index};});

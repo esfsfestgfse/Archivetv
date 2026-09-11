@@ -84,15 +84,16 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
-/* v50 promotes Archive multi-file programs. A cold tune still returns a verified
+/* v51 keeps Archive multi-file programs and their sibling episodes in the
+   candidate shelf. A cold tune still returns a verified
    parent program immediately, while the background shelf expands collection
    items into their individual playable episode files. Cache this separately
    from v49: episode data waited behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v50";
-/* Last-good shelves share the v50 namespace so a cached v49 shallow shelf
+const IA_QUEUE_CACHE_VERSION = "v51";
+/* Last-good shelves share the v51 namespace so a cached v50 shallow shelf
    never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v50";
+const IA_LAST_GOOD_CACHE_VERSION = "v51";
 const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
 /* A short per-isolate burst cache absorbs repeat requests from a TV, phone,
    and guide opened in quick succession. It is intentionally tiny and
@@ -1997,7 +1998,13 @@ function queueRotationPage(rotation, lane) {
 }
 
 async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, cacheOrigin, ctx, rotation = 0, searchTimeoutMs = 3200, firstApprovedLane = false, expandContainers = !firstApprovedLane) {
-  const items = [], deferred = [], seen = new Set(), seenTitles = new Set(), candidateLimit = count;
+  /* `count` is the number of programs the viewer needs immediately. The
+     caller also passes a larger candidate budget for strict lanes. The old
+     builder accidentally used `count` for both, throwing away the wider
+     catalog before metadata hydration could select playable files. Keep the
+     wider candidate shelf intact; hydrate only the requested foreground
+     count, then let background refill and later rotations consume the rest. */
+  const items = [], deferred = [], seen = new Set(), seenTitles = new Set(), candidateLimit = Math.max(count, Math.min(30, Number(count) || 5));
   const used = { lane: new Map(), era: new Map(), creator: new Map(), collection: new Map(), source: new Map() };
   let deferredContainerExpansion = false;
   /* Query lanes are already editorially ordered by the app. Fetch a small
@@ -2040,7 +2047,12 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTit
         return episodes.filter((episode) => matchesTheme(episode, themeTerms, themeMinScore, requiredTitleTerms) && !matchesDeny(episode, denyTerms));
       });
       const expanded = expandedSets.flat();
-      return [...expanded, ...approved].map((doc) => ({ doc, lane }));
+      /* Once a parent has yielded independently playable files, the parent is
+         only a container index. Keeping it beside its children made a shelf
+         look populated while wasting a slot on a duplicate series record. */
+      const expandedSources = new Set(expanded.map((doc) => String(doc && (doc.sourceIdentifier || doc.identifier) || "")));
+      const approvedPrograms = approved.filter((doc) => !expandedSources.has(String(doc.identifier || "")));
+      return [...expanded, ...approvedPrograms].map((doc) => ({ doc, lane }));
     } catch {
       return [];
     }
@@ -2112,7 +2124,9 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTit
     generatedAt: new Date().toISOString(),
     ttlSeconds: IA_QUEUE_TTL_SECONDS,
     items: items.slice(0, count),
-    candidateItems: items.slice(0, count),
+    /* Keep all approved candidates in the serialized payload. `items` is the
+       small public shelf; `candidateItems` is the rolling catalog behind it. */
+    candidateItems: items.slice(0, candidateLimit),
     ready: Math.min(items.length, count),
     deferredContainerExpansion,
   };

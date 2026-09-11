@@ -24,6 +24,8 @@ jobs:
           package-manager-cache: false
       - name: Validate IA relay Worker contract
         run: node scripts/check-worker-contract.js
+      - name: Validate IA collection-depth rails
+        run: node scripts/test-ia-collection-depth.js
       - name: Validate Chromecast sender and receiver contract
         run: node scripts/check-cast-contract.js
       - name: Test Cast channel changes, guide, and recovery

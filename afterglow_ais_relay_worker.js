@@ -90,10 +90,10 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
    items into their individual playable episode files. Cache this separately
    from v49: episode data waited behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v54";
+const IA_QUEUE_CACHE_VERSION = "v55";
 /* Last-good shelves share the v51 namespace so a cached v50 shallow shelf
    never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v54";
+const IA_LAST_GOOD_CACHE_VERSION = "v55";
 const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
 /* A short per-isolate burst cache absorbs repeat requests from a TV, phone,
    and guide opened in quick succession. It is intentionally tiny and
@@ -2249,6 +2249,10 @@ async function expandSeedArchiveContainers(payload, cacheOrigin, ctx, themeTerms
     : ((payload && payload.items) || []);
   const seenParents = new Set();
   const parents = candidates.slice().sort((a, b) => Number(archiveContainerHint(b)) - Number(archiveContainerHint(a))).filter((item) => {
+    /* Direct-ready emergency items are already a single playable program.
+       Re-expanding them turns one fallback slot into several encodes from the
+       same parent and defeats the rotating shelf's diversity guarantee. */
+    if (item && item.media && item.media.url) return false;
     const sourceId = String(item && (item.sourceIdentifier || item.identifier) || "");
     if (!sourceId || seenParents.has(sourceId)) return false;
     seenParents.add(sourceId);

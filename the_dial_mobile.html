@@ -1675,7 +1675,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.9.7-mobile.136-ia-depth-fallback";
+window.__ATV_BUILD="1.9.7-mobile.137-ia-depth-fallback";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -6306,6 +6306,11 @@ Object.assign(PROGRAM["Modern Cartoons"],{deepCollections:["animationandcartoons
 Object.assign(PROGRAM["Classic Rerun TV"],{deepCollections:["classic_tv","television","classic_tv_1950s","classic_tv_1960s"],deepTitleTerms:["complete series","complete","episode","episodes","sitcom","television series","tv series","classic television","variety show","anthology","show","season"]});
 Object.assign(PROGRAM["Modern Rerun TV"],{deepCollections:["classic_tv","television","vhsvault","classic_tv_1990s"],deepTitleTerms:["complete series","complete","episode","episodes","sitcom","television series","tv series","comedy series","situation comedy","syndicated","season","show"]});
 Object.assign(PROGRAM["Game Show Channel"],{deepCollections:["classic_tv_1950s","classic_tv_1960s","classic_tv_1970s","classic_tv_1980s"],deepTitleTerms:["game show","quiz show","panel show","episode","episodes","complete series","jeopardy","price is right","family feud","match game","password","pyramid","newlywed game","hollywood squares","let's make a deal","what's my line","press your luck","double dare","millionaire"]});
+/* Rerun TV has many legitimate Archive files whose title is an episode or
+   season filename rather than the parent show's subject label. Keep the
+   existing sitcom/TV vocabulary and deny list, but let those file-level
+   records through so complete-series expansion can actually deepen the lane. */
+PROGRAM["Modern Rerun TV"].require.title_any=PROGRAM["Modern Rerun TV"].require.title_any.concat(["complete","season","episode","episodes"]);
 
 /* Archive uploads often call a station break a promo, advert, bumper, or
    continuity reel instead of a commercial. Those are useful for the separate

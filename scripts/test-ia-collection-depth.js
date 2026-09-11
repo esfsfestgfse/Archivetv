@@ -39,7 +39,7 @@ for (const [channel, collection] of Object.entries(expectedRails)) {
 }
 
 const relay = fs.readFileSync(path.join(root, 'afterglow_ais_relay_worker.js'), 'utf8');
-check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v55"/.test(relay), 'Relay cache namespace is v55');
+check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v56"/.test(relay), 'Relay cache namespace is v56');
 check(/"12": \[/.test(relay) && /whatsmyline5September1954/.test(relay) && /Price_Is-Right_1957/.test(relay), 'Game Show Channel has a rotating verified temporary fallback shelf');
 check(/candidateLimit = Math\.max\(count, Math\.min\(30, Number\(count\) \|\| 5\)\)/.test(relay), 'Relay retains the deep candidate budget');
 check(/const expandedSources = new Set\(expanded\.map/.test(relay) && /const approvedPrograms = approved\.filter/.test(relay), 'Relay drops parent indexes after episode expansion');

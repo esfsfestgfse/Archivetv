@@ -90,10 +90,10 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
    items into their individual playable episode files. Cache this separately
    from v49: episode data waited behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v55";
+const IA_QUEUE_CACHE_VERSION = "v56";
 /* Last-good shelves share the v51 namespace so a cached v50 shallow shelf
    never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v55";
+const IA_LAST_GOOD_CACHE_VERSION = "v56";
 const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
 /* A short per-isolate burst cache absorbs repeat requests from a TV, phone,
    and guide opened in quick succession. It is intentionally tiny and
@@ -2598,7 +2598,7 @@ async function getIaQueue(request, url, env, ctx) {
        verified program. A successful background pass overwrites the short
        partial cache and fills the shared ready shelf for the next request. */
     if (needsExpansion) {
-      scheduleIaExpansion(payload, reserveQueries.slice(0, Math.min(IA_BACKGROUND_RESERVE_LANES, reserveQueries.length)), fallbackQueries.slice(0, Math.min(IA_BACKGROUND_FALLBACK_LANES, fallbackQueries.length)), channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, url.origin, cacheKey, sharedKey, env, ctx, rotation);
+      scheduleIaExpansion(payload, reserveQueries.slice(0, Math.min(IA_BACKGROUND_RESERVE_LANES, reserveQueries.length)), fallbackQueries.slice(0, Math.min(IA_BACKGROUND_FALLBACK_LANES, fallbackQueries.length)), channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, url.origin, cacheKey, sharedKey, env, ctx, rotation, payload.emergency === true);
     }
     if (!payload.items.length) {
       /* A cold Archive miss is not a programming decision. If this channel has

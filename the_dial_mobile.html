@@ -1675,7 +1675,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="1.9.7-mobile.142-ia-depth-fallback";
+window.__ATV_BUILD="1.9.7-mobile.143-ia-depth-fallback";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -6321,6 +6321,17 @@ PROGRAM["Modern Rerun TV"].require.title_any=PROGRAM["Modern Rerun TV"].require.
   p.deny.title=(p.deny.title||[]).concat(["advert","adverts","advertisement","advertising","promo","promos","bumper","bumpers","continuity","network ident","station ident"]);
   p.deny.subject=(p.deny.subject||[]).concat(["advert","adverts","advertisement","advertising","promo","promos","bumper","bumpers","continuity","network ident","station ident"]);
 });
+/* The Modern Cartoons override above is intentionally last-mile strict: IA
+   animation tags also contain talks, rankings, conference recordings, and
+   network sign-off material. Keep those out without excluding actual episodes
+   or long cartoon marathons. */
+var MODERN_CARTOON_EDITORIAL_REJECTS=["ranking","ranked","analysis","video essay","lecture","seminar","conference","presentation","panel discussion","design day","behind the scenes","closedown","shutdown","showreel"];
+var MODERN_CARTOON_PROGRAM=PROGRAM["Modern Cartoons"];
+if(MODERN_CARTOON_PROGRAM){
+  MODERN_CARTOON_PROGRAM.deny=MODERN_CARTOON_PROGRAM.deny||{};
+  MODERN_CARTOON_PROGRAM.deny.title=(MODERN_CARTOON_PROGRAM.deny.title||[]).concat(MODERN_CARTOON_EDITORIAL_REJECTS);
+  MODERN_CARTOON_PROGRAM.deny.subject=(MODERN_CARTOON_PROGRAM.deny.subject||[]).concat(MODERN_CARTOON_EDITORIAL_REJECTS);
+}
 
 /* Commercials are their own video station, never an audio interruption. Rotate
    deliberately across decades and product lanes so a tune never becomes one

@@ -109,6 +109,7 @@
     });
     function renderGuide(items){guideList.textContent='';const fragment=document.createDocumentFragment();items.slice(0,72).forEach(function(item){const row=document.createElement('div');row.className='row'+(Number(item.num)===desiredChannel?' on':'');row.innerHTML='<div class="n"></div><div><div class="name"></div><div class="meta"></div></div>';row.querySelector('.n').textContent=String(item.num||'').padStart(2,'0');row.querySelector('.name').textContent=String(item.name||'Channel');row.querySelector('.meta').textContent=String(item.now||item.category||'Ready');fragment.appendChild(row);});guideList.appendChild(fragment);}
     function applyGuide(packet){if(!packet||packet.type!=='REALSIGNAL_GUIDE')return;renderGuide(Array.isArray(packet.items)?packet.items:[]);guide.classList.toggle('open',packet.open!==false);}
+    function embedCommand(func,args){if(loadedMode!=='embed'||!screen.contentWindow)return false;try{screen.contentWindow.postMessage(JSON.stringify({event:'command',func:func,args:args||[]}),'*');return true;}catch(_){return false;}}
     function apply(state){
       if(!state||state.type!=='REALSIGNAL_STATE')return;
       const nextChannel=Number(state.channel)||0;
@@ -131,8 +132,8 @@
          locally and never asks the sender to render a second player. */
       if(action==='BACK')guide.classList.remove('open');
       else if(action==='GUIDE')guide.classList.add('open');
-      else if(action==='PAUSE')try{playerManager.pause();}catch(_){}
-      else if(action==='PLAY')try{playerManager.play();}catch(_){}
+      else if(action==='PAUSE'){if(!embedCommand('pauseVideo'))try{playerManager.pause();}catch(_){} }
+      else if(action==='PLAY'){if(!embedCommand('playVideo'))try{playerManager.play();}catch(_){} }
       else if(action==='MUTE'&&typeof context.setSystemVolume==='function')try{context.setSystemVolume({muted:!!data.muted});}catch(_){}
       else if(action==='VOLUME'&&typeof context.setSystemVolume==='function')try{context.setSystemVolume({level:Math.max(0,Math.min(1,Number(data.level)||0)),muted:!!data.muted});}catch(_){}
       else if(action==='CHANNEL_UP'||action==='CHANNEL_DOWN'||action==='TUNE'||action==='NEXT')status.textContent='TUNING · CONTROL FROM PHONE';

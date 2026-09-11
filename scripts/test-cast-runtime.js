@@ -9,7 +9,7 @@ function setup() {
   const eventListeners = new Map();
   function element() {
     const classes = new Set();
-    return {style: {}, textContent: '', addEventListener() {}, appendChild() {},
+    return {style: {}, textContent: '', contentWindow: {postMessage() {}}, addEventListener() {}, appendChild() {},
       querySelector: element, classList: {remove: c => classes.delete(c),
         toggle(c, on) {if(on) classes.add(c); else classes.delete(c);}, contains: c => classes.has(c)}};
   }
@@ -79,5 +79,7 @@ const flush = async () => {await Promise.resolve(); await Promise.resolve();};
   assert.equal(embed.loads.length, 0, 'Source Suite embeds must not enter the native direct-media loader');
   assert(embed.nodes.get('screen').src.includes('youtube.com/embed/abc123'), 'receiver must load the embed URL in its director');
   assert(embed.nodes.get('app').classList.contains('director-open'), 'receiver must show the director for an interactive embed');
+  embed.send({type: 'REALSIGNAL_COMMAND', action: 'PAUSE'});
+  assert(embed.nodes.get('screen').contentWindow, 'embed receiver must retain a controllable director window');
   console.log('Cast runtime: channel races, standby, guide, bounded recovery passed (mock CAF SDK).');
 })().catch(error => {console.error(error); process.exitCode = 1;});

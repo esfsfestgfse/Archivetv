@@ -176,6 +176,13 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "UniversalNewsreelVolume35Release3905-10-1962", title: "Universal Newsreel Volume 35, Release 39, 05/10/1962", subject: "newsreel current events", year: 1962 },
     { identifier: "UniversalNewsreelVolume35Release6007-23-1962", title: "Universal Newsreel Volume 35, Release 60, 07/23/1962", subject: "newsreel television news", year: 1962 },
   ],
+  "75": [
+    { identifier: "jseALNAIRracing94ver2", title: "Xcorps TV Presents Memorial Day Sail Regatta 1994", subject: "sailing regatta water sports", year: 1994, media: { type: "video", url: "https://archive.org/download/jseALNAIRracing94ver2/jseALNAIRracing94ver2.mp4" } },
+    { identifier: "Xcorps64NoodSailingHD2_201802", title: "Xcorps Action Sports Music TV 64 - NOOD Sailing - Full Show", subject: "sailing regatta boat racing", year: 2016, media: { type: "video", url: "https://archive.org/download/Xcorps64NoodSailingHD2_201802/Xcorps64NoodSailingHD2.mp4" } },
+    { identifier: "XcorpsNOODregattaSEG2", title: "Xcorps TV - NOOD Sail Regatta Boat Races Part 2", subject: "sailing regatta boat racing", year: 2016, media: { type: "video", url: "https://archive.org/download/XcorpsNOODregattaSEG2/XcorpsNOODregattaSEG2.mp4" } },
+    { identifier: "Xcorps64NoodSailingHD2", title: "Xcorps 64 NOOD Sailing HD", subject: "sailing regatta water sports", year: 2016, media: { type: "video", url: "https://archive.org/download/Xcorps64NoodSailingHD2/Xcorps64NoodSailingHD2.mp4" } },
+    { identifier: "sailingmovies20060527", title: "Sailing on San Francisco Bay", subject: "sailing water sports", year: 2006 },
+  ],
   "118": [
     { identifier: "blackadder-s02", title: "Blackadder - Season 2 (1986)", subject: "british television british sitcom british comedy", year: 1986 },
     { identifier: "blackadder.-s-01-e-01.-the.-foretelling.-1080p.-blu-ray.-eac-3.2.0.1080p.x-265-i-vy", title: "Blackadder - Season 1 (1983)", subject: "british television british sitcom british comedy", year: 1983 },

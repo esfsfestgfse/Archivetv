@@ -1,0 +1,18 @@
+{
+  "$schema": "https://unpkg.com/wrangler/config-schema.json",
+  "name": "realsignal-api",
+  "main": "realsignal_api_worker.js",
+  "compatibility_date": "2026-09-10",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 0.1
+  },
+  "services": [
+    {
+      "binding": "RELAY",
+      "service": "ais-relay"
+    }
+  ]
+}

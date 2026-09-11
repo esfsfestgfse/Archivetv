@@ -1623,7 +1623,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.9.7-desktop.143-ia-depth-fallback";
+window.__ATV_BUILD="1.9.7-desktop.144-ia-catalog-depth";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -6249,6 +6249,13 @@ Object.assign(PROGRAM["Modern Cartoons"],{deepCollections:["animationandcartoons
 Object.assign(PROGRAM["Classic Rerun TV"],{deepCollections:["classic_tv","television","classic_tv_1950s","classic_tv_1960s"],deepTitleTerms:["complete series","complete","episode","episodes","sitcom","television series","tv series","classic television","variety show","anthology","show","season"]});
 Object.assign(PROGRAM["Modern Rerun TV"],{deepCollections:["classic_tv","television","vhsvault","classic_tv_1990s"],deepTitleTerms:["complete series","complete","episode","episodes","sitcom","television series","tv series","comedy series","situation comedy","syndicated","season","show"]});
 Object.assign(PROGRAM["Game Show Channel"],{deepCollections:["classic_tv_1950s","classic_tv_1960s","classic_tv_1970s","classic_tv_1980s"],deepTitleTerms:["game show","quiz show","panel show","episode","episodes","complete series","jeopardy","price is right","family feud","match game","password","pyramid","newlywed game","hollywood squares","let's make a deal","what's my line","press your luck","double dare","millionaire"]});
+/* Every IA PROGRAM gets the same collection-depth treatment. The six stations
+   above have hand-curated roots; the rest inherit a bounded set of their own
+   provider collections and approved title vocabulary. This is catalog
+   expansion, not a genre fallback: the relay still applies the station's
+   theme, deny, required-title, era, and media-type gates before playback. */
+function iaDepthUnique(values,limit){var seen={},out=[];(values||[]).forEach(function(value){var clean=String(value||"").trim();if(clean.length<3||clean.length>96)return;var key=clean.toLowerCase();if(seen[key])return;seen[key]=1;out.push(clean);});return out.slice(0,limit||4);}
+Object.keys(PROGRAM).forEach(function(name){var p=PROGRAM[name]||{},providers=p.providers||[],collections=(p.deepCollections||[]).concat(p.fastCollections||[],p.wideCollections||[]),titles=(p.deepTitleTerms||[]).concat(p.require&&p.require.title_any||[],p.fastSubjects||[],p.queueTerms||[]);providers.forEach(function(provider){collections=collections.concat(provider.collections||[]);titles=titles.concat(provider.require_subj||[]);});if(!Array.isArray(p.deepCollections)||!p.deepCollections.length)p.deepCollections=iaDepthUnique(collections,4);if(!Array.isArray(p.deepTitleTerms)||!p.deepTitleTerms.length)p.deepTitleTerms=iaDepthUnique(titles,32);});
 /* Rerun TV has many legitimate Archive files whose title is an episode or
    season filename rather than the parent show's subject label. Keep the
    existing sitcom/TV vocabulary and deny list, but let those file-level

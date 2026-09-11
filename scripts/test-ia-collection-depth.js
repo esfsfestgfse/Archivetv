@@ -20,10 +20,12 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
   check(source.includes('adverts') && source.includes('station ident'), `${file}: animation lanes reject ad-break and station-ident uploads`);
 }
 
-const exported = spawnSync(process.execPath, [path.join(root, 'scripts', 'export-ia-manifest.js'), path.join(root, 'the_dial_desktop.html')], { encoding: 'utf8' });
+const exported = spawnSync(process.execPath, [path.join(root, 'scripts', 'export-ia-manifest.js'), path.join(root, 'the_dial_desktop.html')], { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024 });
 check(exported.status === 0, 'IA manifest export succeeds after depth overlay');
 let manifest = [];
 try { manifest = JSON.parse(exported.stdout || '[]'); } catch (error) { check(false, `IA manifest JSON parses: ${error.message}`); }
+const depthRows = manifest.filter(item => item.queries.some(query => query.includes('collection:') && query.includes('title:')));
+check(depthRows.length === manifest.length, `All ${manifest.length} IA stations expose a bounded collection/title depth rail`);
 const expectedRails = {
   '150': 'classic_cartoons',
   '153': 'animationandcartoons',

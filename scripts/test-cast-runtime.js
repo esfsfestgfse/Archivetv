@@ -5,7 +5,8 @@ const path = require('node:path');
 const html = fs.readFileSync(path.join(__dirname, '../realsignal_cast_receiver.html'), 'utf8');
 function setup() {
   const nodes = new Map(), loads = [], messages = [], timers = new Map();
-  let listener, errorListener, current, stops = 0, timerId = 0;
+  let listener, errorListener, current, stops = 0, pauses = 0, plays = 0, systemVolume = null, timerId = 0;
+  const eventListeners = new Map();
   function element() {
     const classes = new Set();
     return {style: {}, textContent: '', addEventListener() {}, appendChild() {},
@@ -14,9 +15,10 @@ function setup() {
   }
   const player = {load(request) {current = request.media;
     return new Promise((resolve, reject) => loads.push({request, resolve, reject}));},
-    stop() {stops++;}, getMediaInformation: () => current,
-    addEventListener(type, callback) {errorListener = callback;}};
+    stop() {stops++;}, pause() {pauses++;}, play() {plays++;}, getMediaInformation: () => current,
+    addEventListener(type, callback) {eventListeners.set(type, callback);if(type === 'ERROR') errorListener = callback;}};
   const context = {getPlayerManager: () => player, setApplicationState() {}, start() {},
+    setSystemVolume(value) {systemVolume = value;},
     sendCustomMessage(ns, id, packet) {messages.push(packet);},
     addCustomMessageListener(ns, callback) {listener = callback;}};
   const sandbox = {URL, document: {getElementById(id) {if(!nodes.has(id)) nodes.set(id, element()); return nodes.get(id);},
@@ -24,10 +26,11 @@ function setup() {
     setTimeout(fn) {timers.set(++timerId, fn); return timerId;}, clearTimeout: id => timers.delete(id),
     cast: {framework: {CastReceiverContext: {getInstance: () => context}, CastReceiverOptions: function(){},
       messages: {MediaInformation: function(){}, GenericMediaMetadata: function(){}, LoadRequestData: function(){}, StreamType: {BUFFERED: 'BUFFERED'}},
-      events: {EventType: {ERROR: 'ERROR'}}, system: {MessageType: {JSON: 'JSON'}}}}};
+      events: {EventType: {ERROR: 'ERROR', MEDIA_FINISHED: 'MEDIA_FINISHED'}}, system: {MessageType: {JSON: 'JSON'}}}}};
   vm.runInNewContext(html.match(/<script>\s*([\s\S]*?)<\/script>/)[1], sandbox);
   const send = data => listener({senderId: 'phone', data});
-  return {loads, messages, timers, nodes, send, stops: () => stops,
+  return {loads, messages, timers, nodes, send, stops: () => stops, pauses: () => pauses, plays: () => plays,
+    systemVolume: () => systemVolume,
     error(info) {current = info; errorListener({});},
     state(channel, powered = true) {send({type: 'REALSIGNAL_STATE', channel, powered});},
     media(channel, name = 'main') {send({type: 'REALSIGNAL_MEDIA', channel,
@@ -63,5 +66,18 @@ const flush = async () => {await Promise.resolve(); await Promise.resolve();};
   r.loads[1].reject(); await flush();
   assert.equal(r.messages.filter(m => m.type === 'REALSIGNAL_CAST_ERROR').length, 1);
   assert.equal(r.timers.size, 0);
+  const controls = setup(); controls.state(7); controls.media(7, 'controls');
+  controls.send({type: 'REALSIGNAL_COMMAND', action: 'PAUSE'});
+  controls.send({type: 'REALSIGNAL_COMMAND', action: 'PLAY'});
+  controls.send({type: 'REALSIGNAL_COMMAND', action: 'VOLUME', level: 0.35, muted: false});
+  assert.equal(controls.pauses(), 1, 'receiver must pause native CAF playback');
+  assert.equal(controls.plays(), 1, 'receiver must resume native CAF playback');
+  assert.equal(controls.systemVolume().level, 0.35, 'receiver must accept volume level commands');
+  assert.equal(controls.systemVolume().muted, false, 'receiver must accept volume mute state');
+  const embed = setup(); embed.state(12);
+  embed.send({type: 'REALSIGNAL_TUNE', channel: 12, media: {url: 'https://www.youtube.com/embed/abc123', playback: 'embed', embedUrl: 'https://www.youtube.com/embed/abc123', title: 'Source Suite'}});
+  assert.equal(embed.loads.length, 0, 'Source Suite embeds must not enter the native direct-media loader');
+  assert(embed.nodes.get('screen').src.includes('youtube.com/embed/abc123'), 'receiver must load the embed URL in its director');
+  assert(embed.nodes.get('app').classList.contains('director-open'), 'receiver must show the director for an interactive embed');
   console.log('Cast runtime: channel races, standby, guide, bounded recovery passed (mock CAF SDK).');
 })().catch(error => {console.error(error); process.exitCode = 1;});

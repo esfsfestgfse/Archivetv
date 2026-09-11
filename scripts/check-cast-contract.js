@@ -21,12 +21,22 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
     ['display-mode: standalone', 'must diagnose Android standalone/PWA Cast limitations'],
     ['CAST_STATE_CHANGED', 'must report Cast discovery state'],
     ['NO CAST DEVICES FOUND', 'must explain a discovery failure'],
+    ['cast-remote-mode', 'must hide the sender player during a Cast session'],
+    ['__rsCastIsConnected', 'must expose Cast ownership to playback paths'],
+    ['__rsCastCommand', 'must expose receiver remote commands'],
+    ['SESSION_ENDED', 'must restore local playback after Cast ends'],
+    ['SESSION_STARTED', 'must enter remote mode when Cast starts'],
+    ['castEmbed', 'must identify Source Suite embeds for the receiver'],
+    ['embedUrl', 'must carry Source Suite embed URLs to the receiver'],
+    ['setVolume', 'must control receiver volume from the sender'],
+    ['setMute', 'must control receiver mute from the sender'],
+    ['REALSIGNAL_COMMAND', 'must use the receiver remote-control protocol'],
   ]) if (!source.includes(token)) issues.push(`${file}: ${reason}`);
   const stamp = (source.match(/window\.__ATV_BUILD\s*=\s*"([^"]+)"/) || [])[1];
   if (!/^1\.9\.7-(desktop|mobile)\.\d+-[a-z0-9-]+$/.test(stamp || '')) issues.push(`${file}: must carry a current release build stamp`);
 }
 const receiver = fs.readFileSync(path.join(repo, 'realsignal_cast_receiver.html'), 'utf8');
-for (const token of ['cast_receiver_framework.js', 'addCustomMessageListener', 'REALSIGNAL_STATE', 'REALSIGNAL_TUNE', 'REALSIGNAL_GUIDE', 'REALSIGNAL_CAST_ERROR', 'sendCustomMessage', 'desiredChannel', 'cast-media-player', 'getPlayerManager', 'mediaContentType', 'renderGuide']) if (!receiver.includes(token)) issues.push(`receiver: missing ${token}`);
+for (const token of ['cast_receiver_framework.js', 'addCustomMessageListener', 'REALSIGNAL_STATE', 'REALSIGNAL_TUNE', 'REALSIGNAL_GUIDE', 'REALSIGNAL_CAST_ERROR', 'REALSIGNAL_CAST_ENDED', 'sendCustomMessage', 'desiredChannel', 'cast-media-player', 'getPlayerManager', 'mediaContentType', 'renderGuide', 'playableEmbedUrl', 'loadEmbed', 'MEDIA_FINISHED', 'PAUSE', 'VOLUME']) if (!receiver.includes(token)) issues.push(`receiver: missing ${token}`);
 if (/director-open cast-media-player\{display:none/.test(receiver)) issues.push('receiver: guide must not remove the native video surface from Android TV layout');
 if (/const key=url\.href/.test(receiver)) issues.push('receiver: channel changes must not recreate the director iframe');
 for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {

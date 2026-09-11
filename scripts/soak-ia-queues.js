@@ -30,7 +30,11 @@ const relayRoot = (() => {
 })();
 const count = Math.max(1, Math.min(5, Number(option('--count', '3')) || 3));
 const requiredReady = Math.max(1, Math.min(count, Number(option('--require-ready', '1')) || 1));
-const concurrency = Math.max(1, Math.min(12, Number(option('--concurrency', '6')) || 6));
+/* Six-wide probes amplify a cold Archive burst and can turn upstream
+   saturation into false "dead channel" reports. Two concurrent probes still
+   exercises simultaneous channel demand while matching the relay's bounded
+   foreground fan-out. Pass --concurrency explicitly when stress-testing. */
+const concurrency = Math.max(1, Math.min(12, Number(option('--concurrency', '2')) || 2));
 const timeoutMs = Math.max(5000, Number(option('--timeout-ms', '35000')) || 35000);
 const depthTimeoutMs = Math.max(1000, Math.min(timeoutMs, Number(option('--depth-timeout-ms', '8000')) || 8000));
 const pollMs = Math.max(250, Number(option('--poll-ms', '1250')) || 1250);

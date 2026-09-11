@@ -36,7 +36,7 @@ if (!/const diversity = safeDiversity\(body && body\.diversity\)/.test(source) |
 if (!/String\(doc\.mediatype \|\| ""\)\.toLowerCase\(\) !== "collection"/.test(source)) issues.push('IA queues must reject Archive.org collection pages before hydration');
 if (!/safeMediaTypes\(body && body\.mediaTypes\)/.test(source) || !/mediaTypes\.includes\(String\(doc\.mediatype \|\| ""\)\.toLowerCase\(\)\)/.test(source)) issues.push('IA queues must enforce the requested video or audio mediatype before hydration');
 if (!/function iaFallbackQueries\(themeTerms, denyTerms, requiredTitleTerms, mediaTypes\)/.test(source) || !/const threshold = Math\.min\(candidateCount, 8\)/.test(source)) issues.push('sparse IA shelves need a bounded vocabulary-preserving rescue lane');
-if (!/Array\.from\(\{ length: Math\.min\(5, items\.length\) \}, worker\)/.test(source)) issues.push('metadata hydration must cap Archive concurrency at five');
+if (!/const workerCount = Math\.max\(1, Math\.min\(5, Number\(concurrency\) \|\| 5, items\.length\)\)/.test(source) || !/IA_FOREGROUND_HYDRATION_CONCURRENCY\s*=\s*2/.test(source) || !/\}, IA_FOREGROUND_HYDRATION_CONCURRENCY\)/.test(source)) issues.push('metadata hydration must cap cold bursts at two while retaining a five-worker background ceiling');
 if (!/while \(ready\.length < requestedCount\)/.test(source) || !/ready\.push\(hydratedItem\)/.test(source)) issues.push('metadata hydration must return the ready shelf without waiting on slow reserve candidates');
 if (!/Promise\.race\(\[hydration, firstReady\]\)/.test(source) || !/IA_FIRST_READY_TIMEOUT_MS/.test(source)) issues.push('queue hydration must return the first verified program before the full five-item shelf is ready');
 if (!/const fullShelf = Number\(payload\.ready \|\| payload\.items\.length\) >= 5/.test(source) || !/if \(fullShelf\) writes\.push\(env\.REALSIGNAL_QUEUE\.put\(fallbackKey/.test(source)) issues.push('only a full five-show shelf may replace the durable last-good buffer');
@@ -123,6 +123,7 @@ if (!/day1otlk\.txt/.test(source) || !/day1otlk\.png/.test(source) || !/stormRis
 if (!/STORM_CENTER_PATH \+ "\/cache\/" \+ STORM_CENTER_CACHE_VERSION/.test(source) || !/spc-day1-image-relay/.test(source)) issues.push('Storm Center needs versioned data and image cache contracts');
 if (!/Access-Control-Expose-Headers.*X-Afterglow-Source, X-Afterglow-Cache, X-Afterglow-Queue-Ready, X-Afterglow-Queue-Partial, X-Afterglow-Queue-Fallback/.test(source)) issues.push('Browser diagnostics must be able to read safe Worker source, cache, and queue phase headers');
 if (!/const iaMetadataInflight = new Map\(\)/.test(source) || !/iaMetadataInflight\.get\(inflightKey\)/.test(source) || !/iaMetadataInflight\.set\(inflightKey, metadata\)/.test(source)) issues.push('queue hydration must coalesce concurrent Archive metadata lookups');
+if (!/IA_FOREGROUND_DISCOVERY_LANES\s*=\s*1/.test(source) || !/const fastQueries = queries\.slice\(0, Math\.min\(IA_FOREGROUND_DISCOVERY_LANES, queries\.length\)\)/.test(source)) issues.push('cold queue discovery must use one foreground Archive rail and defer the rest');
 
 console.log(`Worker contract: ${issues.length ? 'FAILED' : 'passed'}`);
 for (const issue of issues) console.log(`P0 ${issue}`);

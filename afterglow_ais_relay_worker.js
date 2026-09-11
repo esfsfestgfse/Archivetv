@@ -142,6 +142,15 @@ const IA_BACKGROUND_FALLBACK_LANES = 1;
 const IA_FOREGROUND_CONTAINER_EXPANSIONS = 0;
 const IA_BACKGROUND_CONTAINER_EXPANSIONS = 2;
 const IA_CONTAINER_EXPANSION_CONCURRENCY = 2;
+/* A full-directory tune burst can arrive when a guide, television, and phone
+   all ask for cold shelves together. Keep the foreground path to one Archive
+   discovery rail; reserve rails still run behind the first frame. */
+const IA_FOREGROUND_DISCOVERY_LANES = 1;
+/* Metadata is the expensive part of a cold shelf: five candidates per channel
+   would turn a 169-channel burst into hundreds of Archive requests. Two keeps
+   first-frame fallback available while leaving the remaining shelf to the
+   existing background replenishment path. */
+const IA_FOREGROUND_HYDRATION_CONCURRENCY = 2;
 /* A few sparse lanes still have a cold-page failure mode: a rotated Archive
    page can time out before returning the first approved record even though the
    same editorial query is healthy on the stable first page. Retry only these
@@ -2116,7 +2125,7 @@ function mergeIaQueuePayload(primary, secondary, candidateCount, flags = {}) {
   return { ...(primary || {}), items: merged, candidateItems: merged, candidates: merged.length, ...flags };
 }
 
-async function hydrateIaQueue(payload, requestedCount, cacheOrigin, ctx, mediaTypes, onReady) {
+async function hydrateIaQueue(payload, requestedCount, cacheOrigin, ctx, mediaTypes, onReady, concurrency = 5) {
   /* Keep a few extra candidates behind the five-program shelf. Archive items
      occasionally have no browser-playable derivative; filtering those here
      means the viewer receives five actual media URLs instead of five names
@@ -2141,7 +2150,8 @@ async function hydrateIaQueue(payload, requestedCount, cacheOrigin, ctx, mediaTy
       }
     }
   }
-  await Promise.all(Array.from({ length: Math.min(5, items.length) }, worker));
+  const workerCount = Math.max(1, Math.min(5, Number(concurrency) || 5, items.length));
+  await Promise.all(Array.from({ length: workerCount }, worker));
   return {
     ...payload,
     items: ready,
@@ -2474,7 +2484,7 @@ async function getIaQueue(request, url, env, ctx) {
        rescue lanes are deliberately deferred until the fast shelf is sparse.
        This keeps the first playable item on the short path while preserving
        the broader catalog for refill and later rotations. */
-    const fastQueries = queries.slice(0, Math.min(2, queries.length));
+    const fastQueries = queries.slice(0, Math.min(IA_FOREGROUND_DISCOVERY_LANES, queries.length));
     /* The first-approved cold race intentionally starts with only the first
        rail. Keep the second fast rail at the front of the reserve list so a
        sparse winner can widen into the app's next approved lane immediately;
@@ -2576,7 +2586,7 @@ async function getIaQueue(request, url, env, ctx) {
       const resolveFirst = firstReadyResolve;
       firstReadyResolve = null;
       resolveFirst({ ...payload, items: [item], candidates: payload.items.length, ready: readyCount, partial: true, hydrating: true });
-    });
+    }, IA_FOREGROUND_HYDRATION_CONCURRENCY);
     /* A cold channel gets one short, bounded chance to receive its first
        verified program. The remaining four may still be resolving; making
        the viewer wait for all five was the source of the apparent dead air.

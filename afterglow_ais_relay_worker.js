@@ -505,6 +505,27 @@ function sharedQueueFallbackKey(identity) {
   return IA_QUEUE_KV_PREFIX + IA_LAST_GOOD_CACHE_VERSION + ":last-good:" + encodeURIComponent(String(identity || "").trim());
 }
 
+function mergeIaFallbackCandidates(previous, payload) {
+  const prior = Array.isArray(previous && previous.candidateItems) && previous.candidateItems.length
+    ? previous.candidateItems
+    : ((previous && previous.items) || []);
+  const current = Array.isArray(payload && payload.candidateItems) && payload.candidateItems.length
+    ? payload.candidateItems
+    : ((payload && payload.items) || []);
+  const merged = [], seen = new Set();
+  /* Put the newest verified catalog first so a same-rotation warm handoff
+     still opens on the shelf that just proved playable, then retain older
+     candidates as the rolling depth behind it. */
+  for (const item of [...current, ...prior]) {
+    const identifier = String(item && item.identifier || "");
+    if (!identifier || seen.has(identifier)) continue;
+    seen.add(identifier);
+    merged.push(item);
+    if (merged.length >= IA_STRICT_CATALOG_CANDIDATE_MAX) break;
+  }
+  return merged;
+}
+
 function sharedQueuePut(env, key, payload, ttlSeconds, ctx) {
   if (!env || !env.REALSIGNAL_QUEUE || !payload || !Array.isArray(payload.items) || !payload.items.length) return;
   const options = {
@@ -520,9 +541,21 @@ function sharedQueuePut(env, key, payload, ttlSeconds, ctx) {
   /* Preserve the last complete five-show shelf. A one-item first-frame handoff
      may live briefly at its exact rotation key, but must never replace the
      recovery shelf and turn later tunes into a permanent 1/5 loop. */
-  if (fullShelf) writes.push(env.REALSIGNAL_QUEUE.put(fallbackKey, JSON.stringify({ ...payload, lastGood: true }), {
-    expirationTtl: Math.max(60, Math.min(86400, IA_QUEUE_TTL_SECONDS)),
-  }));
+  if (fullShelf) {
+    writes.push((async () => {
+      let previous = null;
+      try { previous = await env.REALSIGNAL_QUEUE.get(fallbackKey, { type: "json" }); } catch {}
+      const candidateItems = mergeIaFallbackCandidates(previous, payload);
+      return env.REALSIGNAL_QUEUE.put(fallbackKey, JSON.stringify({
+        ...payload,
+        lastGood: true,
+        candidateItems,
+        candidates: candidateItems.length,
+      }), {
+        expirationTtl: Math.max(60, Math.min(86400, IA_QUEUE_TTL_SECONDS)),
+      });
+    })());
+  }
   const write = Promise.all(writes).catch((error) => {
     console.warn(JSON.stringify({ event: "shared-queue-write-failed", message: String(error && error.message || error) }));
   });

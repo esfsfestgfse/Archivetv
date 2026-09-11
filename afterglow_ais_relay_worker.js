@@ -81,6 +81,14 @@ const IA_ARCHIVE_RETRY_DELAY_MS = 180;
 const IA_METADATA_TTL_SECONDS = 86400;
 const IA_QUEUE_TTL_SECONDS = 86400;
 const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
+/* The public shelf is still five playable programs, but the rolling catalog
+   behind it must be large enough to represent real Archive collections. Keep
+   the larger strict budget for named/genre-locked stations and a smaller one
+   for broad stations so depth grows without bringing the old synchronous
+   warmup back onto the channel-change path. */
+const IA_STRICT_CATALOG_CANDIDATE_MAX = 72;
+const IA_CATALOG_CANDIDATE_MAX = 48;
+const IA_CATALOG_BUDGET_VERSION = "catalog-72-48";
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
@@ -141,7 +149,7 @@ const IA_BACKGROUND_FALLBACK_LANES = 1;
 /* Container manifests can be large. They are valuable for episode variety but
    are never permitted to multiply the work of a foreground channel change. */
 const IA_FOREGROUND_CONTAINER_EXPANSIONS = 0;
-const IA_BACKGROUND_CONTAINER_EXPANSIONS = 2;
+const IA_BACKGROUND_CONTAINER_EXPANSIONS = 4;
 const IA_CONTAINER_EXPANSION_CONCURRENCY = 2;
 /* A full-directory tune burst can arrive when a guide, television, and phone
    all ask for cold shelves together. Keep the foreground path to one Archive
@@ -217,6 +225,34 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "SesameStreetPress1993", title: "Sesame Street Press 1993", subject: "thanksgiving special children's television", year: 1993 },
     { identifier: "DayofTha1951", title: "Day of Thanksgiving, A", subject: "thanksgiving film", year: 1951 },
     { identifier: "blues-clues-macys-thanksgiving-day-parade-specials", title: "Blue's Clues Macy's Thanksgiving Day Parade Specials", subject: "thanksgiving parade thanksgiving special", year: 2000 },
+  ],
+  "115": [
+    { identifier: "1989gojirataibiorante.720p.ac3.cg", title: "Godzilla vs. Biollante (1989)", subject: "kaiju godzilla japanese monster movie", year: 1989 },
+    { identifier: "1992gojirataimosura.720p.ac3.cg", title: "Godzilla vs. Mothra (1992)", subject: "kaiju godzilla mothra japanese monster movie", year: 1992 },
+    { identifier: "thereturnofgodzilla1984", title: "The Return of Godzilla (1984)", subject: "kaiju godzilla japanese monster movie", year: 1984 },
+    { identifier: "GodzillaThingRedMenace", title: "Godzilla vs. the Thing (1964)", subject: "kaiju godzilla mothra japanese monster movie", year: 1964 },
+    { identifier: "ultraman-monster-movie-feature-1967", title: "Ultraman: Monster Movie Feature (1967)", subject: "tokusatsu kaiju ultraman japanese monster movie", year: 1967 },
+  ],
+  "154": [
+    { identifier: "DragnetEpisode18TheBigSeventeenwcommercials", title: "Dragnet — Episode 18: The Big Seventeen", subject: "dragnet classic television police procedural detective show", year: 1952 },
+    { identifier: "DragnetS01E05TheBigCast", title: "Dragnet — Season 1, Episode 5: The Big Cast", subject: "dragnet classic television police procedural detective show", year: 1952 },
+    { identifier: "DragnetTheBigHitRunKiller", title: "Dragnet — The Big Hit-Run Killer", subject: "dragnet classic television police procedural detective show", year: 1954 },
+    { identifier: "hawaii-five-o-S2E3-480p", title: "Hawaii Five-O — Season 2, Episode 3", subject: "hawaii five-o classic television police procedural detective show", year: 1968 },
+    { identifier: "columbo-pilot-episodes", title: "Columbo — Pilot Episodes", subject: "columbo classic television police procedural detective show", year: 1968 },
+  ],
+  "157": [
+    { identifier: "CCF-2000", title: "Cartoon Cartoon Fridays — 2000 Full Broadcast", subject: "cartoon network kids television animated television", year: 2000 },
+    { identifier: "powerpuff-girls-complete-series", title: "The Powerpuff Girls — Complete Series", subject: "cartoon network kids television animated television", year: 1998 },
+    { identifier: "mlattr", title: "My Life as a Teenage Robot", subject: "nickelodeon kids television animated television", year: 2003 },
+    { identifier: "courage-the-cowardly-dog-1080p-ai-upscale", title: "Courage the Cowardly Dog — Complete Cartoon Episodes", subject: "cartoon network kids television animated television", year: 1999 },
+    { identifier: "StarWarsCloneWars2003", title: "Star Wars: Clone Wars (2003)", subject: "cartoon network kids television animated television", year: 2003 },
+  ],
+  "228": [
+    { identifier: "George_Soros_1998_60_Minutes_Interview", title: "60 Minutes — George Soros Interview (1998)", subject: "60 minutes television newsmagazine investigative journalism", year: 1998 },
+    { identifier: "WETA_20131009_140000_Frontline", title: "Frontline — WETA Broadcast (October 9, 2013)", subject: "frontline television newsmagazine investigative journalism", year: 2013 },
+    { identifier: "WETA_20130926_090000_Frontline", title: "Frontline — WETA Broadcast (September 26, 2013)", subject: "frontline television newsmagazine investigative journalism", year: 2013 },
+    { identifier: "KQED_20140514_040000_Frontline", title: "Frontline — KQED Broadcast (May 13, 2014)", subject: "frontline television newsmagazine investigative journalism", year: 2014 },
+    { identifier: "KYW_20141012_230000_60_Minutes", title: "60 Minutes — KYW Broadcast (October 12, 2014)", subject: "60 minutes television newsmagazine investigative journalism", year: 2014 },
   ],
   "12": [
     { identifier: "whatsmyline5September1954", title: "What's My Line? — September 5, 1954", subject: "classic television game show panel show", year: 1954, media: { type: "video", url: "https://archive.org/download/whatsmyline5September1954/whatsmyline5September1954.mp4" } },
@@ -2027,7 +2063,7 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTit
      catalog before metadata hydration could select playable files. Keep the
      wider candidate shelf intact; hydrate only the requested foreground
      count, then let background refill and later rotations consume the rest. */
-  const items = [], deferred = [], seen = new Set(), seenTitles = new Set(), candidateLimit = Math.max(count, Math.min(30, Number(count) || 5));
+  const items = [], deferred = [], seen = new Set(), seenTitles = new Set(), candidateLimit = Math.max(count, Math.min(IA_STRICT_CATALOG_CANDIDATE_MAX, Number(count) || 5));
   const used = { lane: new Map(), era: new Map(), creator: new Map(), collection: new Map(), source: new Map() };
   let deferredContainerExpansion = false;
   /* Query lanes are already editorially ordered by the app. Fetch a small
@@ -2452,7 +2488,7 @@ async function getIaQueue(request, url, env, ctx) {
      That avoids stale genre bleed after a channel's source contract changes. */
   const familyFingerprint = JSON.stringify({ channel, queries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count });
   const lastGoodDigest = await stableKey(familyFingerprint);
-  const fingerprint = JSON.stringify({ channel, queries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, rotation });
+  const fingerprint = JSON.stringify({ channel, queries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, rotation, catalogBudget: IA_CATALOG_BUDGET_VERSION });
   const digest = await stableKey(fingerprint);
   const cacheKey = new Request(url.origin + IA_PREFIX + "/cache/queue/" + IA_QUEUE_CACHE_VERSION + "/" + digest);
   const sharedKey = IA_QUEUE_KV_PREFIX + IA_QUEUE_CACHE_VERSION + ":" + digest;
@@ -2481,7 +2517,7 @@ async function getIaQueue(request, url, env, ctx) {
           }
           if (cachedPayload.partial && Array.isArray(cachedPayload.candidateItems)) {
             const strictQueue = themeMinScore > 1;
-            const candidateCount = Math.min(strictQueue ? 30 : 20, Math.max(count, count * (strictQueue ? 6 : 4)));
+            const candidateCount = Math.min(strictQueue ? IA_STRICT_CATALOG_CANDIDATE_MAX : IA_CATALOG_CANDIDATE_MAX, Math.max(count, count * (strictQueue ? 12 : 8)));
             scheduleCachedIaHydration(cachedPayload, count, url.origin, cacheKey, sharedKey, lastGoodKey, env, ctx, mediaTypes, channel, themeTerms, denyTerms, requiredTitleTerms, diversity, themeMinScore, candidateCount, queries);
           }
           return cached;
@@ -2507,7 +2543,7 @@ async function getIaQueue(request, url, env, ctx) {
       let sharedFallback = null;
       if (!sharedReady && sharedShelf.partial && Array.isArray(sharedShelf.candidateItems)) {
         const strictQueue = themeMinScore > 1;
-        const candidateCount = Math.min(strictQueue ? 30 : 20, Math.max(count, count * (strictQueue ? 6 : 4)));
+        const candidateCount = Math.min(strictQueue ? IA_STRICT_CATALOG_CANDIDATE_MAX : IA_CATALOG_CANDIDATE_MAX, Math.max(count, count * (strictQueue ? 12 : 8)));
         scheduleCachedIaHydration(shared, count, url.origin, cacheKey, sharedKey, lastGoodKey, env, ctx, mediaTypes, channel, themeTerms, denyTerms, requiredTitleTerms, diversity, themeMinScore, candidateCount, queries);
         /* A partial exact-rotation shelf should start the background refill,
            but it should not force the viewer to live on one program. Serve a
@@ -2556,7 +2592,7 @@ async function getIaQueue(request, url, env, ctx) {
       };
       if (!sameRotation) {
         const warmStrictQueue = themeMinScore > 1;
-        const warmCandidateCount = Math.min(warmStrictQueue ? 30 : 20, Math.max(count, count * (warmStrictQueue ? 6 : 4)));
+        const warmCandidateCount = Math.min(warmStrictQueue ? IA_STRICT_CATALOG_CANDIDATE_MAX : IA_CATALOG_CANDIDATE_MAX, Math.max(count, count * (warmStrictQueue ? 12 : 8)));
         const warmCandidates = Array.isArray(warmLastGood.candidateItems) && warmLastGood.candidateItems.length
           ? warmLastGood.candidateItems
           : warmLastGood.items;
@@ -2581,7 +2617,7 @@ async function getIaQueue(request, url, env, ctx) {
     // results. Give those channels a deeper candidate shelf before hydration so
     // a single unplayable item never turns into a visible No Signal screen.
     const strictQueue = themeMinScore > 1;
-    const candidateCount = Math.min(strictQueue ? 30 : 20, Math.max(count, count * (strictQueue ? 6 : 4)));
+    const candidateCount = Math.min(strictQueue ? IA_STRICT_CATALOG_CANDIDATE_MAX : IA_CATALOG_CANDIDATE_MAX, Math.max(count, count * (strictQueue ? 12 : 8)));
     /* Cold channel changes must not wait for every diversity rail. The first
        three queries are the app's fast, subject-locked rails; wide collection
        rescue lanes are deliberately deferred until the fast shelf is sparse.

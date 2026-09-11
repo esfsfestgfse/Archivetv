@@ -43,8 +43,13 @@ for (const [channel, collection] of Object.entries(expectedRails)) {
 const relay = fs.readFileSync(path.join(root, 'afterglow_ais_relay_worker.js'), 'utf8');
 check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v60"/.test(relay), 'Relay cache namespace is v60');
 check(/"12": \[/.test(relay) && /whatsmyline5September1954/.test(relay) && /Price_Is-Right_1957/.test(relay), 'Game Show Channel has a rotating verified temporary fallback shelf');
+check(/"115": \[/.test(relay) && /1989gojirataibiorante/.test(relay) && /thereturnofgodzilla1984/.test(relay), 'Monster Island has verified kaiju recovery media');
+check(/"154": \[/.test(relay) && /DragnetEpisode18TheBigSeventeenwcommercials/.test(relay) && /hawaii-five-o-S2E3-480p/.test(relay), 'Cop Show Classic has verified police-procedural recovery media');
+check(/"157": \[/.test(relay) && /powerpuff-girls-complete-series/.test(relay) && /StarWarsCloneWars2003/.test(relay), 'After School has verified kids-animation recovery media');
+check(/"228": \[/.test(relay) && /WETA_20131009_140000_Frontline/.test(relay) && /KYW_20141012_230000_60_Minutes/.test(relay), 'Deadline has verified newsmagazine recovery media');
 check(/"75": \[/.test(relay) && /XcorpsNOODregattaSEG2/.test(relay) && /jseALNAIRracing94ver2/.test(relay), 'Regatta has real IA water-sports recovery media');
-check(/candidateLimit = Math\.max\(count, Math\.min\(30, Number\(count\) \|\| 5\)\)/.test(relay), 'Relay retains the deep candidate budget');
+check(/IA_STRICT_CATALOG_CANDIDATE_MAX\s*=\s*72/.test(relay) && /IA_CATALOG_CANDIDATE_MAX\s*=\s*48/.test(relay), 'Relay retains the expanded rolling catalog budgets');
+check(/candidateLimit = Math\.max\(count, Math\.min\(IA_STRICT_CATALOG_CANDIDATE_MAX/.test(relay), 'Relay builds the candidate shelf from the expanded budget');
 check(/const expandedSources = new Set\(expanded\.map/.test(relay) && /const approvedPrograms = approved\.filter/.test(relay), 'Relay drops parent indexes after episode expansion');
 check(/const expansionSeeds = firstApprovedLane \? \[\] : hintedSeeds\.concat\(genericSeeds\)/.test(relay), 'Relay keeps manifest expansion off the first-frame path');
 check(/const expandedParents = new Set\(\)/.test(relay), 'Relay removes expanded parents across editorial rails');
@@ -52,6 +57,7 @@ check(/candidateItems: items\.slice\(0, candidateLimit\)/.test(relay), 'Relay se
 check(/const backgroundTarget = Math\.min\(candidateCount, Math\.max\(count, 12\)\)/.test(relay), 'Relay hydrates a deeper background playable shelf');
 check(/function rotatePlayableIaShelf\(/.test(relay) && /rotatePlayableIaShelf\(lastGood/.test(relay), 'Relay rotates hydrated last-good shelves instead of repeating the same five items');
 check(/const emergencyDepth = Math\.min\(candidateCount, Math\.max\(count, 8\)\)/.test(relay), 'Sparse emergency lanes widen before accepting a shallow five-item shelf');
+check(/IA_BACKGROUND_CONTAINER_EXPANSIONS\s*=\s*4/.test(relay), 'Background collection expansion covers four parent records per lane');
 check(/const cachedShelf =/.test(relay) && /const sharedShelf =/.test(relay), 'Cached and shared IA shelves rotate their deeper playable candidates');
 check(/\* requested\) % source\.length/.test(relay), 'Shelf rotation advances by a full public window');
 

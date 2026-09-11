@@ -2278,6 +2278,13 @@ function iaNeedsCatalogDepth(payload, count, candidateCount) {
   return candidates.length < minimum;
 }
 
+function orderedIaEmergencySeeds(channel, rotation) {
+  const seeds = IA_EMERGENCY_SEEDS[String(channel)] || [];
+  if (!seeds.length) return [];
+  const offset = Math.abs(Number(rotation) || 0) % seeds.length;
+  return seeds.slice(offset).concat(seeds.slice(0, offset));
+}
+
 async function hydrateIaQueue(payload, requestedCount, cacheOrigin, ctx, mediaTypes, onReady, concurrency = 5) {
   /* Keep a few extra candidates behind the five-program shelf. Archive items
      occasionally have no browser-playable derivative; filtering those here
@@ -2398,6 +2405,13 @@ async function cacheIaQueueIfRicher(cacheKey, payload, ttlSeconds, headers = {})
 
 async function expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, rotation, forceDiscovery = false) {
   let expanded = payload;
+  /* A warm five-item shelf may have bypassed the cold emergency branch. Add
+     the channel's verified recovery records to the background catalog before
+     probing broader Archive rails, so stale caches can deepen immediately. */
+  const emergencySeeds = orderedIaEmergencySeeds(channel, rotation);
+  if (emergencySeeds.length && iaNeedsCatalogDepth(expanded, count, candidateCount)) {
+    expanded = mergeIaQueuePayload(expanded, { items: emergencySeeds, candidateItems: emergencySeeds }, candidateCount, { emergencySeedsMerged: true });
+  }
   /* Start with collection files from the exact foreground result. This keeps
      the richer episode catalog tied to the same genre-checked parent instead
      of betting the repair on a later rotated search page returning it again. */
@@ -2726,9 +2740,7 @@ async function getIaQueue(request, url, env, ctx) {
          one-item Game Show response cannot become No Signal. Rotate the seed
          order so the emergency path is not a fixed five-item loop, and let the
          normal background discovery replace it with fresher material. */
-      const seeds = IA_EMERGENCY_SEEDS[channel];
-      const offset = Math.abs(rotation) % seeds.length;
-      const orderedSeeds = seeds.slice(offset).concat(seeds.slice(0, offset));
+      const orderedSeeds = orderedIaEmergencySeeds(channel, rotation);
       const discovered = Array.isArray(payload.items) ? payload.items : [];
       const candidates = discovered.concat(orderedSeeds).slice(0, candidateCount);
       payload = {

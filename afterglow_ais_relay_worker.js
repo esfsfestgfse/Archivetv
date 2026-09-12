@@ -92,7 +92,7 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-72-48-depth-recovery";
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
-/* v68 keeps Archive multi-file programs and their sibling episodes in the
+/* v72 keeps Archive multi-file programs and their sibling episodes in the
    candidate shelf. A cold tune still returns a verified
    parent program immediately, while the background shelf expands collection
    items into their individual playable episode files. The depth-recovery
@@ -100,10 +100,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-72-48-depth-recovery";
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v68";
-/* Last-good shelves share the v68 namespace so an older shallow shelf
+const IA_QUEUE_CACHE_VERSION = "v74";
+/* Last-good shelves share the v72 namespace so an older shallow shelf
    never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v68";
+const IA_LAST_GOOD_CACHE_VERSION = "v74";
 const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
 /* A short per-isolate burst cache absorbs repeat requests from a TV, phone,
    and guide opened in quick succession. It is intentionally tiny and
@@ -167,11 +167,27 @@ const IA_FOREGROUND_HYDRATION_CONCURRENCY = 2;
    same editorial query is healthy on the stable first page. Retry only these
    observed lanes against page 1; never broaden their terms or disable gates. */
 const IA_STABLE_RESCUE_CHANNELS = new Set(["17", "19", "74", "82", "106", "107", "113", "129", "130", "131", "132", "204", "206", "214", "238", "702", "906", "915"]);
+/* v160's full 171-lane soak identified these cold or intermittently empty
+   lanes. They get a second, channel-owned editorial rail on the foreground
+   path only; the rail still passes the same theme, deny, title, media, and
+   diversity gates. This is deliberately an allowlist so healthy lanes keep
+   the one-rail fast path. */
+const IA_COLD_RESCUE_CHANNELS = new Set([
+  "2", "3", "11", "12", "15", "76", "101", "105", "110", "115", "116", "119", "120", "128", "130", "131", "132", "153", "154", "155", "156",
+  "208", "209", "210", "211", "212", "213", "214", "215", "216", "217", "219", "222", "223", "224", "225", "226", "227", "229", "230", "232", "233", "234", "235", "236", "237", "238", "239", "240", "241", "242",
+  "507", "508", "509", "510", "511", "575", "700", "701", "703", "900", "906", "926", "927", "928",
+  /* v164's full soak isolated these additional cold lanes. Keep their verified
+     shelves narrow and channel-owned; healthy lanes do not pay this cost. */
+  "14", "15", "56", "63", "68", "72", "73", "77", "83", "102", "104", "109", "122", "200", "202", "901", "911", "916"
+]);
+function iaColdRescueEnabled(channel) {
+  return IA_COLD_RESCUE_CHANNELS.has(String(channel));
+}
 /* These lanes were observed either reusing a five-item last-good shelf or
    underfilling when the Archive index rotated. Give only these proven weak
-   lanes more background search rails and a wider page window. The foreground
-   path stays unchanged, so healthy channel changes do not pay for the repair. */
-const IA_DEPTH_RECOVERY_CHANNELS = new Set(["13", "18", "21", "66", "70", "74", "81", "102", "105", "106", "107", "108", "128", "129", "130", "131", "203", "501", "502", "921"]);
+   lanes more background search rails and a wider page window. Healthy channel
+   changes keep the original one-rail fast path and do not pay for the repair. */
+const IA_DEPTH_RECOVERY_CHANNELS = new Set(["13", "18", "21", "60", "61", "64", "66", "70", "74", "75", "77", "81", "102", "105", "106", "107", "108", "115", "117", "118", "126", "127", "128", "129", "130", "131", "154", "202", "203", "214", "220", "228", "231", "501", "502", "702", "901", "906", "914", "921", "923"]);
 function iaDepthRecoveryEnabled(channel) {
   return IA_DEPTH_RECOVERY_CHANNELS.has(String(channel));
 }
@@ -188,6 +204,95 @@ function iaBackgroundFallbackQueries(channel, queries) {
    no candidate at all, are passed through normal media hydration, and are
    immediately followed by a background search for fresher material. */
 const IA_EMERGENCY_SEEDS = Object.freeze({
+  "11": [
+    { identifier: "freakylinks-complete-series-2000", title: "FreakyLinks (2000) · Complete TV Series", subject: "television series sitcom mystery", year: 2000 },
+    { identifier: "everythings-relative-1999-sitcom", title: "Everything's Relative (1999) · Sitcom", subject: "television series sitcom family comedy", year: 1999 },
+    { identifier: "partners-1995-96", title: "Partners (1995–96) · Sitcom", subject: "television series sitcom comedy", year: 1995 },
+    { identifier: "first-time-out-1995", title: "First Time Out (1995) · Sitcom", subject: "television series sitcom comedy", year: 1995 },
+  ],
+  "208": [
+    { identifier: "santa-fe-atsf-teamwork-and-technology", title: "Santa Fe · Teamwork and Technology", subject: "railroad railway locomotive rail transport", year: 1994 },
+    { identifier: "videoplayback-2021-08-28-t-212139.465", title: "Ski Train to Winter Park · 2006", subject: "railroad railway train passenger train", year: 2006 },
+    { identifier: "the-british-railway-series-episode-6-goodbye-stephen-the-green-engine", title: "The British Railway Series · Episode 6", subject: "railway railroad train rail transport", year: 2007 },
+    { identifier: "ThisIsMy1940", title: "This Is My Railroad · Part I", subject: "railroad railway locomotive rail transport", year: 1940 },
+  ],
+  "116": [
+    { identifier: "The_Brother_from_Another_Planet_1984", title: "The Brother from Another Planet (1984)", subject: "blaxploitation black cinema independent film", year: 1984, media: { type: "video", url: "https://archive.org/download/The_Brother_from_Another_Planet_1984/videoplayback%20%281%29.mp4" } },
+    { identifier: "Fighting_Mad_MPEG", title: "Fighting Mad (1978)", subject: "blaxploitation black action film crime film", year: 1978, media: { type: "video", url: "https://archive.org/download/Fighting_Mad_MPEG/Fighting%20Mad.mp4" } },
+    { identifier: "foxy-brown-1974", title: "Foxy Brown (1974)", subject: "blaxploitation black action film crime film", year: 1974, media: { type: "video", url: "https://archive.org/download/foxy-brown-1974/Foxy%20Brown%20%201974.mp4" } },
+    { identifier: "trouble-man_1972", title: "Trouble Man (1972)", subject: "blaxploitation black action film crime film", year: 1972, media: { type: "video", url: "https://archive.org/download/trouble-man_1972/trouble-man_1972.mp4" } },
+    { identifier: "lord.-shango.-1975.720p.-blu-ray.x-264.-aac-yts.-mx", title: "Lord Shango (1975)", subject: "blaxploitation black action film crime film", year: 1975, media: { type: "video", url: "https://archive.org/download/lord.-shango.-1975.720p.-blu-ray.x-264.-aac-yts.-mx/Lord.Shango.1975.720p.BluRay.x264.AAC-%5BYTS.MX%5D.mp4" } },
+  ],
+  "213": [
+    { identifier: "nasa_tv-Japanese_Cargo_Ship_Arrives_at_the_International_Space_Station", title: "NASA · Japanese Cargo Ship Arrives at the International Space Station", subject: "nasa space station mission footage", year: 2016, media: { type: "video", url: "https://archive.org/download/nasa_tv-Japanese_Cargo_Ship_Arrives_at_the_International_Space_Station/Japanese_Cargo_Ship_Arrives_at_the_International_Space_Station.mp4" } },
+    { identifier: "nasa_tv-ISS_Program_Honored_A_Call_to_Action_and_Martian_Touchdown_Test_on_This_Week_at_NASA", title: "NASA · ISS Program and Martian Touchdown Test", subject: "nasa space station planetary science mission briefing", year: 2010, media: { type: "video", url: "https://archive.org/download/nasa_tv-ISS_Program_Honored_A_Call_to_Action_and_Martian_Touchdown_Test_on_This_Week_at_NASA/ISS_Program_Honored_A_Call_to_Action_and_Martian_Touchdown_Test_on_This_Week_at_NASA.mp4" } },
+    { identifier: "NasaDestinationTomorrow-Dt12-FlightPioneers", title: "NASA Destination Tomorrow · Flight Pioneers", subject: "nasa aviation space history mission briefing", year: 2004, media: { type: "video", url: "https://archive.org/download/NasaDestinationTomorrow-Dt12-FlightPioneers/NASADT12-FlightPioneers.mp4" } },
+    { identifier: "NasaDestinationTomorrow-Dt18-RoboticMissions", title: "NASA Destination Tomorrow · Robotic Missions", subject: "nasa robotic mission planetary science", year: 2005, media: { type: "video", url: "https://archive.org/download/NasaDestinationTomorrow-Dt18-RoboticMissions/NASADT18-RoboticMissions.mp4" } },
+    { identifier: "nasa_tv-Suni_s_Shoutout_for_NASA-TV", title: "NASA TV · Suni's Shoutout", subject: "nasa space station mission footage", year: 2013, media: { type: "video", url: "https://archive.org/download/nasa_tv-Suni_s_Shoutout_for_NASA-TV/Suni_s_Shoutout_for_NASA-TV.mp4" } },
+  ],
+  "219": [
+    { identifier: "wwl-eyewitness-news-martin-luther-king-day-1992", title: "WWL Eyewitness News · Martin Luther King Day (1992)", subject: "local news local newscast television news", year: 1992, media: { type: "video", url: "https://archive.org/download/wwl-eyewitness-news-martin-luther-king-day-1992/WWL%20Eyewitness%20News%20martin%20luther%20king%20day%201992.mp4" } },
+    { identifier: "wbng-action-news-weekend-report-1998", title: "WBNG Action News · Weekend Report (1998)", subject: "local news local newscast television news", year: 1998, media: { type: "video", url: "https://archive.org/download/wbng-action-news-weekend-report-1998/WBNG%20Action%20News%20Weekend%20Report%201998.mp4" } },
+    { identifier: "wbrz-eyewitness-news-nightdesk-feb-22-1995", title: "WBRZ Eyewitness News Nightdesk (1995)", subject: "local news local newscast television news", year: 1995, media: { type: "video", url: "https://archive.org/download/wbrz-eyewitness-news-nightdesk-feb-22-1995/WBRZ%20Eyewitness%20News%20Nightdesk%20Feb%2022%201995.mp4" } },
+    { identifier: "wcax-channel-3-the-late-news-jan-23-1991", title: "WCAX Channel 3 · The Late News (1991)", subject: "local news local newscast television news", year: 1991, media: { type: "video", url: "https://archive.org/download/wcax-channel-3-the-late-news-jan-23-1991/WCAX%20Channel%203%20The%20Late%20News%201991.mp4" } },
+    { identifier: "whbf-news-1993", title: "WHBF News (1993)", subject: "local news local newscast television news", year: 1993, media: { type: "video", url: "https://archive.org/download/whbf-news-1993/WHBF%20News-02.7.1993.mp4" } },
+  ],
+  "229": [
+    { identifier: "TheDoomsdayAsteroid", title: "NOVA · The Doomsday Asteroid (1995)", subject: "documentary science history television documentary", year: 1995, media: { type: "video", url: "https://archive.org/download/TheDoomsdayAsteroid/NOVA.S22E12.The.Doomsday.Asteroid.1995.VHSRip.AAC2.0.x264-astro.mp4" } },
+    { identifier: "american-experience-george-h.-w.-bush-part-1", title: "American Experience · George H. W. Bush", subject: "historical documentary television documentary", year: 2021, media: { type: "video", url: "https://archive.org/download/american-experience-george-h.-w.-bush-part-1/American%20Experience%20George%20H.W.%20Bush%20Part%201.mp4" } },
+    { identifier: "WETA_20131009_140000_Frontline", title: "Frontline · WETA Broadcast (2013)", subject: "documentary series investigative journalism", year: 2013, media: { type: "video", url: "https://archive.org/download/WETA_20131009_140000_Frontline/WETA_20131009_140000_Frontline.mp4" } },
+    { identifier: "KQED_20140514_040000_Frontline", title: "Frontline · KQED Broadcast (2014)", subject: "documentary series investigative journalism", year: 2014, media: { type: "video", url: "https://archive.org/download/KQED_20140514_040000_Frontline/KQED_20140514_040000_Frontline.mp4" } },
+    { identifier: "KYW_20141012_230000_60_Minutes", title: "60 Minutes · KYW Broadcast (2014)", subject: "documentary series investigative journalism television newsmagazine", year: 2014, media: { type: "video", url: "https://archive.org/download/KYW_20141012_230000_60_Minutes/KYW_20141012_230000_60_Minutes.mp4" } },
+  ],
+  "230": [
+    { identifier: "6333HMVacation1966Reel201343904", title: "Home Movies · Vacation 1966, Reel 2", subject: "home movie family film vacation travel", year: 1966, media: { type: "video", url: "https://archive.org/download/6333HMVacation1966Reel201343904/6333_HM_Vacation_1966_Reel_2_01_34_39_04.mp4" } },
+    { identifier: "6416HMCroftCollectionCan44TripToHoughtonMichiganAugust19501234814", title: "Home Movies · Trip to Houghton, Michigan (1955)", subject: "home movie family film vacation travel", year: 1955, media: { type: "video", url: "https://archive.org/download/6416HMCroftCollectionCan44TripToHoughtonMichiganAugust19501234814/6416_HM_Croft_Collection_Can_44_Trip_to_Houghton_Michigan_August_195_01_23_48_14.mp4" } },
+    { identifier: "7christmas1969", title: "Les Hunter Home Movies · Christmas 1969", subject: "home movie family film family gathering", year: 1969, media: { type: "video", url: "https://archive.org/download/7christmas1969/7_Christmas_1969.mp4" } },
+    { identifier: "sf-02-014-being-silly-1984", title: "Steinback Family · Being Silly (1984)", subject: "home movie family film family gathering", year: 1984, media: { type: "video", url: "https://archive.org/download/sf-02-014-being-silly-1984/SF_02_014_BeingSilly_1984.mp4" } },
+    { identifier: "cua_000025", title: "Home Movies · Shasta County and Lake County", subject: "home movie family film vacation travel", year: 1937, media: { type: "video", url: "https://archive.org/download/cua_000025/cua_000025_r1_access.HD.mp4" } },
+  ],
+  "236": [
+    { identifier: "SoundieK", title: "Soundie · Got To Be This or That", subject: "theatrical short soundie music short", year: 1945, media: { type: "video", url: "https://archive.org/download/SoundieK/SoundieK.mp4" } },
+    { identifier: "SoundieP", title: "Soundie · Once In A While", subject: "theatrical short soundie music short", year: 1941, media: { type: "video", url: "https://archive.org/download/SoundieP/SoundieP.mp4" } },
+    { identifier: "SoundieH", title: "Soundie · Beyond The Blue Horizon", subject: "theatrical short soundie music short", year: 1944, media: { type: "video", url: "https://archive.org/download/SoundieH/SoundieH.mp4" } },
+    { identifier: "SoundieM", title: "Soundie · Ten Pretty Girls / I'll Make You Mine", subject: "theatrical short soundie music short", year: 1930, media: { type: "video", url: "https://archive.org/download/SoundieM/SoundieM.mp4" } },
+    { identifier: "SoundieF", title: "Soundie · Reg Kehoe and his Marimba Queens", subject: "theatrical short soundie music short", year: 1940, media: { type: "video", url: "https://archive.org/download/SoundieF/SoundieF.mp4" } },
+  ],
+  "239": [
+    { identifier: "DynamicA1956", title: "Dynamic American City · Part I", subject: "architecture urban planning city design film", year: 1956, media: { type: "video", url: "https://archive.org/download/DynamicA1956/DynamicA1956.mp4" } },
+    { identifier: "CityTheP1939", title: "The City · Part I", subject: "architecture urban planning city design film", year: 1939, media: { type: "video", url: "https://archive.org/download/CityTheP1939/CityTheP1939.mp4" } },
+    { identifier: "203365_Bunker_Hill_1956", title: "Bunker Hill (1956)", subject: "architecture urban planning city design film", year: 1956, media: { type: "video", url: "https://archive.org/download/203365_Bunker_Hill_1956/203365_Bunker_Hill_1956_master.intros.mp4" } },
+    { identifier: "0545_City_The", title: "The City (1939)", subject: "architecture urban planning city design film", year: 1939, media: { type: "video", url: "https://archive.org/download/0545_City_The/0545_City_The_22_00_58_19_3mb.mp4" } },
+    { identifier: "OpenRoadB", title: "Open Road B", subject: "architecture urban planning city design film", year: 1951, media: { type: "video", url: "https://archive.org/download/OpenRoadB/OpenRoadB.mp4" } },
+  ],
+  "240": [
+    { identifier: "wcftr-scanning-film-and-tv-history", title: "WCFTR · Scanning Film and TV History", subject: "film history motion picture history film preservation", year: 2021, media: { type: "video", url: "https://archive.org/download/wcftr-scanning-film-and-tv-history/WCFTR%20Documentary%20-%20Scanning%20Film%20and%20TV%20History.mp4" } },
+    { identifier: "geofiggs_BadSeed", title: "George Figgs on The Bad Seed", subject: "film history cinema history film criticism", year: 2017, media: { type: "video", url: "https://archive.org/download/geofiggs_BadSeed/geofiggs_badseed720p.mp4" } },
+    { identifier: "cmf-2008_ron-cobb-interview", title: "Creative Masters Forum · Ron Cobb", subject: "film history movie making visual culture", year: 2008, media: { type: "video", url: "https://archive.org/download/cmf-2008_ron-cobb-interview/CMF%20Ron%20Cobb%20Conf%20Ed.mp4" } },
+    { identifier: "video-ts_202406", title: "Mary Pickford · The Muse of the Movies", subject: "film history motion picture history cinema history", year: 2008, media: { type: "video", url: "https://archive.org/download/video-ts_202406/VTS_01_1.mp4" } },
+    { identifier: "1912-kinemacolor-venice", title: "Kinemacolor Venice (1912)", subject: "film history motion picture history early cinema", year: 1912, media: { type: "video", url: "https://archive.org/download/1912-kinemacolor-venice/1912%20Kinemacolor%20Venice.mp4" } },
+  ],
+  "927": [
+    { identifier: "soul-train-season-2-episode-16", title: "Soul Train · Season 2, Episode 16", subject: "soul train funk performance soul music television", year: 1973, media: { type: "video", url: "https://archive.org/download/soul-train-season-2-episode-16/Soul%20Train%20%28Season%202%2C%20Episode%2016%29.mp4" } },
+    { identifier: "SoulTrain-Episode15WithChampaignDeBarge-5141983", title: "Soul Train · Champaign and DeBarge", subject: "soul train R&B performance funk performance", year: 1983, media: { type: "video", url: "https://archive.org/download/SoulTrain-Episode15WithChampaignDeBarge-5141983/Soul%20Train%20with%20Champaign%20DeBarge.mp4" } },
+    { identifier: "SoulTrain1977WithTheEmotionsAndMaze", title: "Soul Train · The Emotions and Maze (1977)", subject: "soul train soul music funk performance", year: 1977, media: { type: "video", url: "https://archive.org/download/SoulTrain1977WithTheEmotionsAndMaze/Soul%20Train%201977%20with%20The%20Emotions%20and%20Maze.mp4" } },
+    { identifier: "soul-train-season-4-episode-30-my-q-2-airing", title: "Soul Train · Season 4, Episode 30", subject: "soul train disco performance R&B performance", year: 1975, media: { type: "video", url: "https://archive.org/download/soul-train-season-4-episode-30-my-q-2-airing/Soul%20Train%20%28Season%204%2C%20Episode%2030%29%28MyQ2%20Airing%29.mp4" } },
+    { identifier: "soul-train-season-2-episode-5", title: "Soul Train · Season 2, Episode 5", subject: "soul train disco performance R&B performance", year: 1972, media: { type: "video", url: "https://archive.org/download/soul-train-season-2-episode-5/Soul%20Train%20%28Season%202%2C%20Episode%205%29.mp4" } },
+  ],
+  "700": [
+    { identifier: "holiday-inn-1942_202412", title: "Holiday Inn (1942)", subject: "christmas film christmas movie holiday film", year: 1942, media: { type: "video", url: "https://archive.org/download/holiday-inn-1942_202412/HolidayInn1942.mp4" } },
+    { identifier: "scrooge_ipod", title: "Scrooge (1935)", subject: "christmas film christmas carol holiday film", year: 1935, media: { type: "video", url: "https://archive.org/download/scrooge_ipod/Scrooge_1935.mp4" } },
+    { identifier: "AChristmasCarol", title: "A Christmas Carol (1910)", subject: "christmas film christmas carol holiday film", year: 1910, media: { type: "video", url: "https://archive.org/download/AChristmasCarol/AChristmasCarol.mp4" } },
+    { identifier: "Beyond_Tomorrow", title: "Beyond Tomorrow (1940)", subject: "christmas film christmas movie holiday film", year: 1940, media: { type: "video", url: "https://archive.org/download/Beyond_Tomorrow/Beyond_Tomorrow.mp4" } },
+    { identifier: "christmas-comes-but-once-a-year-1936_202501", title: "Christmas Comes But Once a Year (1936)", subject: "christmas film christmas special holiday animation", year: 1936, media: { type: "video", url: "https://archive.org/download/christmas-comes-but-once-a-year-1936_202501/Christmas%20Comes%20But%20Once%20a%20Year%20%281936%29.mp4" } },
+  ],
+  "703": [
+    { identifier: "tamutx-Reveille_By_The_Fireplace_One_Hour_Yule_Log-20191220", title: "Reveille by the Fireplace · One Hour Yule Log", subject: "yule log fireplace video ambience", year: 2019, media: { type: "video", url: "https://archive.org/download/tamutx-Reveille_By_The_Fireplace_One_Hour_Yule_Log-20191220/Reveille_By_The_Fireplace_One_Hour_Yule_Log-20191220.mp4" } },
+    { identifier: "youtube-7suJVVEWt9g", title: "9th Street Italian Market Burn Barrel · Two Hours", subject: "fireplace video yule log ambience", year: 2023, media: { type: "video", url: "https://archive.org/download/youtube-7suJVVEWt9g/7suJVVEWt9g.mp4" } },
+    { identifier: "wpix-yule-log-1966", title: "WPIX 11 · Yule Log (1966 Restored)", subject: "yule log fireplace broadcast video", year: 1966, media: { type: "video", url: "https://archive.org/download/wpix-yule-log-1966/avc_20251225235800_Yule_Log.mp4" } },
+    { identifier: "your_christmas_yule_log_fireplace", title: "Christmas Yule Log Fireplace (1987)", subject: "yule log fireplace video ambience", year: 1987, media: { type: "video", url: "https://archive.org/download/your_christmas_yule_log_fireplace/Your%20Christmas%20Yule%20Log%20Fireplace%20%281987%29.mp4" } },
+    { identifier: "wrokmi-The_Fire_Place", title: "The Fire Place", subject: "fireplace video yule log ambience", year: 2010, media: { type: "video", url: "https://archive.org/download/wrokmi-The_Fire_Place/The_Fire_Place.mp4" } },
+  ],
   "132": [
     { identifier: "TerrorToonsKillCount", title: "Terror Toons (2002) - Kill Count S02", subject: "cult film horror film", year: 2002 },
     { identifier: "videoplayback-8_202604", title: "(Adventures Of The) Purple Lin Kwei", subject: "b movie cult film", year: 1970 },
@@ -459,6 +564,139 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "WhatsMyLine19July1953", title: "What's My Line? — July 19, 1953", subject: "classic television game show panel show", year: 1953 },
     { identifier: "beattheclock1956", title: "Beat the Clock — circa August 1956", subject: "classic television game show stunt game", year: 1956 },
     { identifier: "thePriceIsRight-19july1957", title: "The Price Is Right — July 19, 1957", subject: "classic television game show pricing game", year: 1957 },
+  ],
+  "14": [
+    { identifier: "AtariKeepingInTouch", title: "Atari Keeping In Touch", subject: "computer chronicles personal computer technology television", year: 1983, media: { type: "video", url: "https://archive.org/download/AtariKeepingInTouch/Atari%20Keeping%20In%20Touch.mp4" } },
+    { identifier: "engineering6_microcomputer_interface", title: "The Technology of Microcomputer Interfaces", subject: "computer chronicles microcomputer technology computing television", year: 2004, media: { type: "video", url: "https://archive.org/download/engineering6_microcomputer_interface/2.ogv" } },
+    { identifier: "john-brandstetter-aka-johnny-turbo", title: "Johnny Turbo on Computer Chronicles", subject: "computer chronicles video games personal computer technology television", year: 1993, media: { type: "video", url: "https://archive.org/download/john-brandstetter-aka-johnny-turbo/John%20Brandstetter%20AKA%20Johnny%20Turbo%20%282%29.mp4" } },
+    { identifier: "CC1337", title: "Computer Chronicles — Computer Bowl VIII", subject: "computer chronicles personal computer technology television", year: 1996, media: { type: "video", url: "https://archive.org/download/CC1337/CC1337.mp4" } },
+    { identifier: "CC1339", title: "Computer Chronicles — E3 Special", subject: "computer chronicles video games computing technology television", year: 1996, media: { type: "video", url: "https://archive.org/download/CC1339/CC1339.mp4" } },
+  ],
+  "15": [
+    { identifier: "wmcmwi-Afternoon_Delight_4-1-14", title: "Afternoon Delight", subject: "public access television community television local programming variety", year: 2014, media: { type: "video", url: "https://archive.org/download/wmcmwi-Afternoon_Delight_4-1-14/Afternoon_Delight_4-1-14.mp4" } },
+    { identifier: "bptvpa-PGH_Sportsline_8", title: "PGH Sportsline #8", subject: "public access television community television local sports programming", year: 2011, media: { type: "video", url: "https://archive.org/download/bptvpa-PGH_Sportsline_8/PGH_Sportsline_8.mp4" } },
+    { identifier: "wmcmwi-Profile_11_02_10_PART_2", title: "Profile", subject: "public access television community television local interview programming", year: 2010, media: { type: "video", url: "https://archive.org/download/wmcmwi-Profile_11_02_10_PART_2/Profile_11_02_10_PART_2.mp4" } },
+    { identifier: "This_Week_at_AIM_6_5_10", title: "This Week at AIM", subject: "public access television community television local news magazine programming", year: 2010, media: { type: "video", url: "https://archive.org/download/This_Week_at_AIM_6_5_10/This_Week_at_AIM_6_5_10.mp4" } },
+    { identifier: "Homeworks1Pilot", title: "Homeworks — Pilot", subject: "public access television community television local home and lifestyle programming", year: 1987, media: { type: "video", url: "https://archive.org/download/Homeworks1Pilot/Homeworks%201%20%28Pilot%29.mp4" } },
+  ],
+  "56": [
+    { identifier: "JackDempseyVersusTommyGibbons", title: "Jack Dempsey vs Tommy Gibbons", subject: "boxing fight sports archive", year: 1923, media: { type: "video", url: "https://archive.org/download/JackDempseyVersusTommyGibbons/JackDempseyVersusTommyGibbons_512kb.mp4" } },
+    { identifier: "FloydPattersonVersusJerryQuarry", title: "Floyd Patterson vs Jerry Quarry", subject: "boxing fight sports archive", year: 1967, media: { type: "video", url: "https://archive.org/download/FloydPattersonVersusJerryQuarry/FloydPattersonVersusJerryQuarry_512kb.mp4" } },
+    { identifier: "FloydPattersonVsWillieTroy", title: "Floyd Patterson vs Willie Troy", subject: "boxing fight sports archive", year: 1964, media: { type: "video", url: "https://archive.org/download/FloydPattersonVsWillieTroy/FloydPattersonVsWillieTroy_512kb.mp4" } },
+    { identifier: "SonnyListonVsCassiusClay", title: "Sonny Liston vs Cassius Clay", subject: "boxing fight sports archive", year: 1964, media: { type: "video", url: "https://archive.org/download/SonnyListonVsCassiusClay/SonnyListonVsCassiusClay_512kb.mp4" } },
+    { identifier: "JamesBraddockInTraining", title: "James Braddock in Training", subject: "boxing training fight sports archive", year: 1936, media: { type: "video", url: "https://archive.org/download/JamesBraddockInTraining/JamesBraddockInTraining_512kb.mp4" } },
+  ],
+  "63": [
+    { identifier: "etvmn-Eagan_High_School_Girls_Soccer_vs._Rosemount_9-14-2017", title: "Eagan Girls Soccer vs Rosemount", subject: "soccer football match sports archive", year: 2017, media: { type: "video", url: "https://archive.org/download/etvmn-Eagan_High_School_Girls_Soccer_vs._Rosemount_9-14-2017/Eagan_High_School_Girls_Soccer_vs._Rosemount_9-14-2017.mp4" } },
+    { identifier: "etvmn-Eagan_High_School_Boys_Soccer_vs_Woodbury", title: "Eagan Boys Soccer vs Woodbury", subject: "soccer football match sports archive", year: 2017, media: { type: "video", url: "https://archive.org/download/etvmn-Eagan_High_School_Boys_Soccer_vs_Woodbury/Eagan_High_School_Boys_Soccer_vs_Woodbury.mp4" } },
+    { identifier: "HU_Boys_Soccer_10-11-19", title: "HU Boys Soccer", subject: "soccer football match sports archive", year: 2019, media: { type: "video", url: "https://archive.org/download/HU_Boys_Soccer_10-11-19/HU_Boys_Soccer_10-11-19.mp4" } },
+    { identifier: "HU_Boys_Soccer_10-19-19", title: "HU Boys Soccer — October 19", subject: "soccer football match sports archive", year: 2019, media: { type: "video", url: "https://archive.org/download/HU_Boys_Soccer_10-19-19/HU_Boys_Soccer_10-19-19.mp4" } },
+    { identifier: "2019-10-30-liverpool-vs-arsenal", title: "Liverpool vs Arsenal", subject: "soccer football match sports archive", year: 2019, media: { type: "video", url: "https://archive.org/download/2019-10-30-liverpool-vs-arsenal/game.ia.mp4" } },
+  ],
+  "68": [
+    { identifier: "unccnc-The_Courtside_Clinician_-_Head_Men_s_Basketball_Athletic_Trainer_Adam_Jordan", title: "The Courtside Clinician", subject: "sports coaching athletic training basketball clinic", year: 2020, media: { type: "video", url: "https://archive.org/download/unccnc-The_Courtside_Clinician_-_Head_Men_s_Basketball_Athletic_Trainer_Adam_Jordan/The_Courtside_Clinician_-_Head_Men_s_Basketball_Athletic_Trainer_Adam_Jordan.mp4" } },
+    { identifier: "unccnc-Kinesiology_101", title: "Kinesiology 101", subject: "sports coaching athletic training kinesiology clinic", year: 2020, media: { type: "video", url: "https://archive.org/download/unccnc-Kinesiology_101/Kinesiology_101.mp4" } },
+    { identifier: "cowomn-Woodbury_s_Rec_Zone_May_2016", title: "Woodbury's Rec Zone", subject: "sports coaching athletic training recreation clinic", year: 2016, media: { type: "video", url: "https://archive.org/download/cowomn-Woodbury_s_Rec_Zone_May_2016/Woodbury_s_Rec_Zone_May_2016.mp4" } },
+    { identifier: "kstuks-K-State_School_of_Health_Sciences", title: "K-State School of Health Sciences", subject: "sports coaching athletic training kinesiology clinic", year: 2018, media: { type: "video", url: "https://archive.org/download/kstuks-K-State_School_of_Health_Sciences/K-State_School_of_Health_Sciences.mp4" } },
+    { identifier: "kstuks-Training_the_next_generation_of_health_leaders_KState", title: "Training the Next Generation of Health Leaders", subject: "sports coaching athletic training kinesiology clinic", year: 2018, media: { type: "video", url: "https://archive.org/download/kstuks-Training_the_next_generation_of_health_leaders_KState/Training_the_next_generation_of_health_leaders_KState.mp4" } },
+  ],
+  "72": [
+    { identifier: "tweakers004852", title: "Grand Slam Tennis 2", subject: "tennis racquet sports match archive", year: 2012, media: { type: "video", url: "https://archive.org/download/tweakers004852/tweakers004852.mp4" } },
+    { identifier: "ccmcmd-CMSportsNet_Post-Match_Interview_-_Century_s_Bella_Filippi", title: "CMSportsNet Tennis Post-Match Interview", subject: "tennis racquet sports match interview", year: 2024, media: { type: "video", url: "https://archive.org/download/ccmcmd-CMSportsNet_Post-Match_Interview_-_Century_s_Bella_Filippi/CMSportsNet_Post-Match_Interview_-_Century_s_Bella_Filippi.mp4" } },
+    { identifier: "USTA_Pro_Circuit_Men_s_Tournament_Opening_Day_-_Palm_Coast_FL", title: "USTA Pro Circuit — Opening Day", subject: "tennis racquet sports tournament", year: 2017, media: { type: "video", url: "https://archive.org/download/USTA_Pro_Circuit_Men_s_Tournament_Opening_Day_-_Palm_Coast_FL/USTA_Pro_Circuit_Men_s_Tournament_Opening_Day_-_Palm_Coast_FL.mp4" } },
+    { identifier: "wimbledon-wilandermcenroe-19890705", title: "Wimbledon — Wilander vs McEnroe", subject: "tennis racquet sports tournament match", year: 1989, media: { type: "video", url: "https://archive.org/download/wimbledon-wilandermcenroe-19890705/14%20-%20Wimbledon%20-%20McEnroe%20v%20Wilander%20%281st%20segment%29.mp4" } },
+    { identifier: "andre-agassi-tennis-sega-mega-drive-pal-gameplay-full-game-longplay-single-match", title: "Andre Agassi Tennis — Full Match", subject: "tennis racquet sports video game match", year: 1993, media: { type: "video", url: "https://archive.org/download/andre-agassi-tennis-sega-mega-drive-pal-gameplay-full-game-longplay-single-match/Andre%20Agassi%20Tennis%20Sega%20Mega%20Drive%20PAL%20Gameplay%20%28Full%20Demostration%29.mp4" } },
+  ],
+  "73": [
+    { identifier: "Inside_Sports_-_Mayland_Horse_Racing_Pt.1", title: "Inside Sports — Maryland Horse Racing", subject: "horse racing equestrian thoroughbred sports", year: 1980, media: { type: "video", url: "https://archive.org/download/Inside_Sports_-_Mayland_Horse_Racing_Pt.1/Inside_Sports_-_Mayland_Horse_Racing_Pt.1.mp4" } },
+    { identifier: "1977jamaica", title: "1977 Jamaica Handicap", subject: "horse racing equestrian thoroughbred sports", year: 1977, media: { type: "video", url: "https://archive.org/download/1977jamaica/1977%20JAMAICA_1.mp4" } },
+    { identifier: "youtube-TbNCqPMbA0o", title: "Winx — Turnbull Stakes", subject: "horse racing equestrian thoroughbred sports", year: 2018, media: { type: "video", url: "https://archive.org/download/youtube-TbNCqPMbA0o/TbNCqPMbA0o.mp4" } },
+    { identifier: "New_Simulcast_Agreement_at_Running_Aces", title: "Running Aces Simulcast", subject: "horse racing equestrian thoroughbred sports", year: 2015, media: { type: "video", url: "https://archive.org/download/New_Simulcast_Agreement_at_Running_Aces/New_Simulcast_Agreement_at_Running_Aces.mp4" } },
+    { identifier: "action-news-sports-4-4-1992", title: "Action News Sports — Horse Racing", subject: "horse racing equestrian thoroughbred sports broadcast", year: 1992, media: { type: "video", url: "https://archive.org/download/action-news-sports-4-4-1992/Action%20News%20Sports%20-%204-4-1992.mp4" } },
+  ],
+  "77": [
+    { identifier: "f1-1983-highlights-reviews-grand-prix", title: "Formula One — 1983 Austrian Grand Prix", subject: "formula one grand prix motorsport racing", year: 1983, media: { type: "video", url: "https://archive.org/download/f1-1983-highlights-reviews-grand-prix/S1983E01%20-%201983%20Austrian%20Grand%20Prix%20-%20Highlights.ia.mp4" } },
+    { identifier: "f1-1985-highlights-and-reviews", title: "Formula One — 1985 Portuguese Grand Prix", subject: "formula one grand prix motorsport racing", year: 1985, media: { type: "video", url: "https://archive.org/download/f1-1985-highlights-and-reviews/S1985E01%20-%201985%20Portuguese%20Grand%20Prix%20-%20Highlights.ia.mp4" } },
+    { identifier: "f1-2000-full-race-replys-grand-prix-highlights-and-reviews", title: "Formula One — 2000 British Grand Prix", subject: "formula one grand prix motorsport racing", year: 2000, media: { type: "video", url: "https://archive.org/download/f1-2000-full-race-replys-grand-prix-highlights-and-reviews/S2000E10%20-%202000%20In%20Review%20British%20Grand%20Prix.ia.mp4" } },
+    { identifier: "f1-2001-full-race-replys-grand-prix-highlights-and-reviews", title: "Formula One — 2001 San Marino Grand Prix", subject: "formula one grand prix motorsport racing", year: 2001, media: { type: "video", url: "https://archive.org/download/f1-2001-full-race-replys-grand-prix-highlights-and-reviews/S1E04%20-%20F1%20San%20Marino%20GP%202001.ia.mp4" } },
+    { identifier: "formula-italian-grand-prix-2023", title: "Formula One — 2023 Italian Grand Prix", subject: "formula one grand prix motorsport racing", year: 2023, media: { type: "video", url: "https://archive.org/download/formula-italian-grand-prix-2023/Formula%20Italian%20Grand%20Prix%202023.mp4" } },
+  ],
+  "83": [
+    { identifier: "whhisc-843TV_Sporting_Clays_at_Spring_Island_1-19-2018", title: "Sporting Clays at Spring Island", subject: "archery shooting range field sports outdoors", year: 2018, media: { type: "video", url: "https://archive.org/download/whhisc-843TV_Sporting_Clays_at_Spring_Island_1-19-2018/843TV_Sporting_Clays_at_Spring_Island_1-19-2018.mp4" } },
+    { identifier: "colwfl-Archery_Tag_-_Lake_Worth_Beach", title: "Archery Tag — Lake Worth Beach", subject: "archery shooting range field sports outdoors", year: 2015, media: { type: "video", url: "https://archive.org/download/colwfl-Archery_Tag_-_Lake_Worth_Beach/Archery_Tag_-_Lake_Worth_Beach.mp4" } },
+    { identifier: "prkcitut-Youth_World_Archery_Championships", title: "Youth World Archery Championships", subject: "archery shooting range field sports outdoors", year: 2019, media: { type: "video", url: "https://archive.org/download/prkcitut-Youth_World_Archery_Championships/Youth_World_Archery_Championships.mp4" } },
+    { identifier: "Experience_the_Mountain_-_Archery", title: "Experience the Mountain — Archery", subject: "archery shooting range field sports outdoors", year: 2016, media: { type: "video", url: "https://archive.org/download/Experience_the_Mountain_-_Archery/Experience_the_Mountain_-_Archery.mp4" } },
+    { identifier: "Irving_PAL_Archery", title: "Irving PAL Archery", subject: "archery shooting range field sports outdoors", year: 2014, media: { type: "video", url: "https://archive.org/download/Irving_PAL_Archery/Irving_PAL_Archery.mp4" } },
+  ],
+  "102": [
+    { identifier: "RageatDawn", title: "Rage at Dawn", subject: "classic western cowboy frontier movie", year: 1955, media: { type: "video", url: "https://archive.org/download/RageatDawn/RageatDawn.mp4" } },
+    { identifier: "TheDesertTrail", title: "The Desert Trail", subject: "classic western cowboy frontier movie", year: 1935, media: { type: "video", url: "https://archive.org/download/TheDesertTrail/TheDesertTrail.mp4" } },
+    { identifier: "TheDawnRider", title: "The Dawn Rider", subject: "classic western cowboy frontier movie", year: 1935, media: { type: "video", url: "https://archive.org/download/TheDawnRider/TheDawnRider.mp4" } },
+    { identifier: "WarOfTheWildcats-JohnWayne1943", title: "War of the Wildcats", subject: "classic western cowboy frontier movie", year: 1943, media: { type: "video", url: "https://archive.org/download/WarOfTheWildcats-JohnWayne1943/JohnWayne-WarOfTheWildcats1943.mp4" } },
+    { identifier: "FrontierHorizon", title: "Frontier Horizon", subject: "classic western cowboy frontier movie", year: 1939, media: { type: "video", url: "https://archive.org/download/FrontierHorizon/FrontierHorizon.mp4" } },
+  ],
+  "104": [
+    { identifier: "2006-04-jackson-a-musical-thriller", title: "Jackson — A Musical Thriller", subject: "music film concert performance live music", year: 2006, media: { type: "video", url: "https://archive.org/download/2006-04-jackson-a-musical-thriller/2006-04%20Jackson%20-%20A%20Musical%20Thriller.mp4" } },
+    { identifier: "The_Whigs_So_Lonely_Live_at_KDHX_4_22_10_HD", title: "The Whigs — So Lonely Live", subject: "music film concert performance live music", year: 2010, media: { type: "video", url: "https://archive.org/download/The_Whigs_So_Lonely_Live_at_KDHX_4_22_10_HD/The_Whigs_So_Lonely_Live_at_KDHX_4_22_10_HD.mp4" } },
+    { identifier: "White_Mountain_Symphony_Orchestra", title: "White Mountain Symphony Orchestra", subject: "music film concert performance orchestra live music", year: 2015, media: { type: "video", url: "https://archive.org/download/White_Mountain_Symphony_Orchestra/White_Mountain_Symphony_Orchestra.mp4" } },
+    { identifier: "North_Reading_Youth_Services_Presents_-_Battle_of_the_Bands_2014", title: "Battle of the Bands", subject: "music film concert performance live music", year: 2014, media: { type: "video", url: "https://archive.org/download/North_Reading_Youth_Services_Presents_-_Battle_of_the_Bands_2014/North_Reading_Youth_Services_Presents_-_Battle_of_the_Bands_2014.mp4" } },
+    { identifier: "ectpa-Electric_City_Steel_Drum_Project_July_25_2020", title: "Electric City Steel Drum Project", subject: "music film concert performance live music", year: 2020, media: { type: "video", url: "https://archive.org/download/ectpa-Electric_City_Steel_Drum_Project_July_25_2020/Electric_City_Steel_Drum_Project_July_25_2020.mp4" } },
+  ],
+  "109": [
+    { identifier: "flash_gordon11", title: "Flash Gordon — Chapter 11", subject: "action serial cliffhanger adventure movie", year: 1940, media: { type: "video", url: "https://archive.org/download/flash_gordon11/chapter11_512kb.mp4" } },
+    { identifier: "flaming-frontiers", title: "Flaming Frontiers — Chapter 1", subject: "action serial cliffhanger western adventure movie", year: 1938, media: { type: "video", url: "https://archive.org/download/flaming-frontiers/01%20The%20River%20Runs%20Red.mp4" } },
+    { identifier: "drums-of-fu-manchu", title: "Drums of Fu Manchu — Chapter 1", subject: "action serial cliffhanger adventure movie", year: 1940, media: { type: "video", url: "https://archive.org/download/drums-of-fu-manchu/01%20Fu%20Manchu%20Strikes.mp4" } },
+    { identifier: "zorro_rides_again_ep5", title: "Zorro Rides Again — Chapter 5", subject: "action serial cliffhanger western adventure movie", year: 1937, media: { type: "video", url: "https://archive.org/download/zorro_rides_again_ep5/ep5.mp4" } },
+    { identifier: "winners-of-the-west-1940", title: "Winners of the West — Chapter 1", subject: "action serial cliffhanger western adventure movie", year: 1940, media: { type: "video", url: "https://archive.org/download/winners-of-the-west-1940/01%20Redskins%20Ride%20Again.mp4" } },
+  ],
+  "122": [
+    { identifier: "the-young-ones-oil-boring-flood...", title: "The Young Ones — Oil, Boring, Flood", subject: "british television british sitcom british comedy", year: 1988, media: { type: "video", url: "https://archive.org/download/the-young-ones-oil-boring-flood.../The%20Young%20Ones%20-%20Oil%2C%20Boring%2C%20Flood....mp4" } },
+    { identifier: "vid-20231215-105800", title: "Red Dwarf — Back in the Red", subject: "british television british sitcom science fiction comedy", year: 1999, media: { type: "video", url: "https://archive.org/download/vid-20231215-105800/VID_20231215_105800.mp4" } },
+    { identifier: "RedDwarfUSPilot1992", title: "Red Dwarf — US Pilot", subject: "british television british sitcom science fiction comedy", year: 1992, media: { type: "video", url: "https://archive.org/download/RedDwarfUSPilot1992/Red%20Dwarf%20US%20Pilot%20%281992%29.mp4" } },
+    { identifier: "red_dwarf_tv_series_pilot", title: "Red Dwarf — Series Pilot", subject: "british television british sitcom science fiction comedy", year: 1988, media: { type: "video", url: "https://archive.org/download/red_dwarf_tv_series_pilot/Red_Dwarf-s01e01.mp4" } },
+    { identifier: "monty-pythons-flying-circus-ntsc-dvd-set", title: "Monty Python's Flying Circus — Episode 1", subject: "british television british sketch comedy television", year: 1969, media: { type: "video", url: "https://archive.org/download/monty-pythons-flying-circus-ntsc-dvd-set/Monty%20Python%27s%20Flying%20Circus%20%281969-1974%29%20%5BRAW%5D/Series%201%20%281969-1970%29/01.%20Whither%20Canada_.mp4" } },
+  ],
+  "200": [
+    { identifier: "ABetterWayMerckAutomateLiquidPackaging", title: "A Better Way — Automated Liquid Packaging", subject: "manufacturing industry factory engineering industrial film", year: 1978, media: { type: "video", url: "https://archive.org/download/ABetterWayMerckAutomateLiquidPackaging/A%20Better%20Way%20-%20Merck%20Automate%20Liquid%20Packaging.mp4" } },
+    { identifier: "Mode-Art_Can_2489", title: "Mode-Art Can 2489 — Production Unit", subject: "manufacturing industry factory engineering industrial film", year: 1965, media: { type: "video", url: "https://archive.org/download/Mode-Art_Can_2489/Mode-Art_Can_2489_master.intros.mp4" } },
+    { identifier: "shell-film-unit-springs-1938-colorized", title: "Shell Film Unit — Springs", subject: "manufacturing industry factory engineering industrial film", year: 1938, media: { type: "video", url: "https://archive.org/download/shell-film-unit-springs-1938-colorized/Shell%20Film%20Unit%20-%20Springs%20%281938%29%20%28colorized%29.mp4" } },
+    { identifier: "NJY-008_1628-3439", title: "Chrysler Advantages — Car Manufacturing", subject: "manufacturing industry factory engineering industrial film", year: 1991, media: { type: "video", url: "https://archive.org/download/NJY-008_1628-3439/1628_Chrysler-Advantages-Car-Manufacturing-Promo-CBS-WCBS-2_1991-10-25.ia.mp4" } },
+    { identifier: "fc-fc-2701", title: "Ford V-8 Exhibit — Industrial Design", subject: "manufacturing industry factory engineering automotive industrial film", year: 1932, media: { type: "video", url: "https://archive.org/download/fc-fc-2701/fc-fc-2701.mp4" } },
+  ],
+  "202": [
+    { identifier: "pryor_202009", title: "Richard Pryor — Stand-Up", subject: "stand-up comedy comedy special live comedy", year: 1980, media: { type: "video", url: "https://archive.org/download/pryor_202009/RICHARD_PRYOR/VIDEO_TS/VTS_01_1.mp4" } },
+    { identifier: "lee-evans-collection", title: "Lee Evans — Live at Her Majesty's Theatre", subject: "stand-up comedy comedy special live comedy", year: 1994, media: { type: "video", url: "https://archive.org/download/lee-evans-collection/1.%20Live%20At%20Her%20Majesty%27s%20Theatre%20%281994%29.mp4" } },
+    { identifier: "01-just-for-laughs", title: "Just for Laughs — Stand-Up", subject: "stand-up comedy comedy special live comedy", year: 2010, media: { type: "video", url: "https://archive.org/download/01-just-for-laughs/01%20JUST%20FOR%20LAUGHS.mp4" } },
+    { identifier: "words-words-words-hd_2010", title: "Bo Burnham — Words Words Words", subject: "stand-up comedy comedy special live comedy", year: 2010, media: { type: "video", url: "https://archive.org/download/words-words-words-hd_2010/Words%20Words%20Words%20%28HD%29.mp4" } },
+    { identifier: "richard-pryor-live", title: "Richard Pryor Live", subject: "stand-up comedy comedy special live comedy", year: 1979, media: { type: "video", url: "https://archive.org/download/richard-pryor-live/richard%20pryor%20live.mp4" } },
+  ],
+  "901": [
+    { identifier: "PinkFloydLiveAtWembley", title: "Pink Floyd — Live at Wembley", subject: "rock music concert live music radio", year: 1974, media: { type: "audio", url: "https://archive.org/download/PinkFloydLiveAtWembley/1974-11-16%20Pink%20Floyd%20Live%20At%20Wembley.mp3" } },
+    { identifier: "elvis-presley-the-jan.-27th-1971-midnight-show-in-stereo", title: "Elvis Presley — Midnight Show", subject: "rock and roll music concert live music radio", year: 1971, media: { type: "audio", url: "https://archive.org/download/elvis-presley-the-jan.-27th-1971-midnight-show-in-stereo/Elvis%20Presley-The%20Jan.27th%2C1971%20midnight%20show%20in%20stereo.mp3" } },
+    { identifier: "the-beatles-its-all-too-much", title: "The Beatles — It's All Too Much", subject: "rock music classic rock radio", year: 1969, media: { type: "audio", url: "https://archive.org/download/the-beatles-its-all-too-much/Its_All_Too_Much.mp3" } },
+    { identifier: "elvis-presley-elvis-golden-records-vol.-2-front-lp-cover", title: "Elvis Presley — Golden Records Vol. 2", subject: "rock and roll music classic rock radio", year: 1958, media: { type: "audio", url: "https://archive.org/download/elvis-presley-elvis-golden-records-vol.-2-front-lp-cover/Elvis%20Presley-Elvis%20Gold%20Records%20Vol.2%20in%20stere%28e%29.mp3" } },
+    { identifier: "elvis-presley-gold-records-vol.-4-1968-warm-lp-sound", title: "Elvis Presley — Gold Records Vol. 4", subject: "rock and roll music classic rock radio", year: 1968, media: { type: "audio", url: "https://archive.org/download/elvis-presley-gold-records-vol.-4-1968-warm-lp-sound/Elvis%20Presley-Gold%20Records%20Vol.4%201968%20warm%20LP%20sound.mp3" } },
+  ],
+  "911": [
+    { identifier: "cusb_col_a5772_01_37476_03", title: "St. Louis Blues — W.C. Handy", subject: "ragtime jazz early recording piano music", year: 1915, media: { type: "audio", url: "https://archive.org/download/cusb_col_a5772_01_37476_03/cusb_col_a5772_01_37476_03d.mp3" } },
+    { identifier: "Europes_Society_Orch-Castle_Rag", title: "James Reese Europe — Castle House Rag", subject: "ragtime jazz early recording dance band", year: 1914, media: { type: "audio", url: "https://archive.org/download/Europes_Society_Orch-Castle_Rag/Europes_Society_Orch-Castle_House_Rag-Victor-35372.mp3" } },
+    { identifier: "Joseph_Moskowitz-Panama_Pacific_Drag", title: "Joseph Moskowitz — Panama Pacific Drag", subject: "ragtime jazz early recording piano music", year: 1916, media: { type: "audio", url: "https://archive.org/download/Joseph_Moskowitz-Panama_Pacific_Drag/Joseph_Moskowitiz-Panama-Pacific_Drag.mp3" } },
+    { identifier: "78_come-on-down-to-ragtime-town_louis-winsch-hubbell_gbia0433883a", title: "Come On Down to Ragtime Town", subject: "ragtime jazz early recording piano music", year: 1917, media: { type: "audio", url: "https://archive.org/download/78_come-on-down-to-ragtime-town_louis-winsch-hubbell_gbia0433883a/Come%20On%20Down%20To%20Ragtime%20Town%20-%20LOUIS%20WINSCH.mp3" } },
+    { identifier: "CharlesDornbergerHisOrchestraTigerRag", title: "Charles Dornberger — Tiger Rag", subject: "ragtime jazz early recording dance band", year: 1927, media: { type: "audio", url: "https://archive.org/download/CharlesDornbergerHisOrchestraTigerRag/Charles%20Dornberger%20%20His%20Orchestra%20%20%20Tiger%20Rag.mp3" } },
+  ],
+  "916": [
+    { identifier: "inside-wers-live-wire-radio-documentary-emerson-college-spring-1991", title: "Inside WERS Live Wire", subject: "punk alternative rock live music radio", year: 1991, media: { type: "audio", url: "https://archive.org/download/inside-wers-live-wire-radio-documentary-emerson-college-spring-1991/_Inside%20WERS_%20Live%20Wire%20Radio%20Documentary%20Emerson%20College%20Spring%201991.mp3" } },
+    { identifier: "DNALOUNGE-2007-10-06", title: "New Wave City — Joy Division Tribute", subject: "punk alternative rock live music radio", year: 2007, media: { type: "audio", url: "https://archive.org/download/DNALOUNGE-2007-10-06/2007-10-06.mp3" } },
+    { identifier: "blackmarketclash.2019-12-28.AKGCK63.Flac16", title: "Black Market Clash — Live", subject: "punk alternative rock live music radio", year: 2019, media: { type: "audio", url: "https://archive.org/download/blackmarketclash.2019-12-28.AKGCK63.Flac16/BlackMarketClash2019-12-28-16Bit-t-01.mp3" } },
+    { identifier: "EVIL016", title: "Blu E Wire", subject: "punk alternative rock electronic music radio", year: 2007, media: { type: "audio", url: "https://archive.org/download/EVIL016/The_Last_Knob_Corporation_-_Emu-2-Break.mp3" } },
+    { identifier: "a-witchy-music-tribute-to-siouxsie", title: "A Witchy Music Tribute to Siouxsie", subject: "punk post-punk alternative rock music radio", year: 2022, media: { type: "audio", url: "https://archive.org/download/a-witchy-music-tribute-to-siouxsie/03%20-%20Aura%20en%20el%20espejo%20-%20Arabian%20Nights%20%28Feat%20Arkana%29.mp3" } },
+  ],
+  "74": [
+    { identifier: "youtube-skxxmAAQuI4", title: "Ski Better Faster — Ice Skating", subject: "winter sports skiing ice skating winter games", year: 2019, media: { type: "video", url: "https://archive.org/download/youtube-skxxmAAQuI4/skxxmAAQuI4.mp4" } },
+    { identifier: "skiing-scenes-with-franz-klammer", title: "Skiing Scenes With Franz Klammer", subject: "winter sports skiing alpine winter games", year: 1980, media: { type: "video", url: "https://archive.org/download/skiing-scenes-with-franz-klammer/skiing%20scenes%20with%20franz%20klammer.mp4" } },
+    { identifier: "Ski_With_A_Ranger_FDRD_Breck_Ski_Resort", title: "Ski With a Ranger — Breck Ski Resort", subject: "winter sports skiing alpine winter games", year: 2016, media: { type: "video", url: "https://archive.org/download/Ski_With_A_Ranger_FDRD_Breck_Ski_Resort/Ski_With_A_Ranger_FDRD_Breck_Ski_Resort.mp4" } },
+    { identifier: "Let_s_Skate_Ice_on_Main_Opening_Day_2014", title: "Let's Skate — Ice on Main", subject: "winter sports ice skating winter games", year: 2014, media: { type: "video", url: "https://archive.org/download/Let_s_Skate_Ice_on_Main_Opening_Day_2014/Let_s_Skate_Ice_on_Main_Opening_Day_2014.mp4" } },
+    { identifier: "PrimeProductions_FlyingPenguinJibFest_Snowboarding_2005", title: "Flying Penguin — Snowboarding", subject: "winter sports snowboarding winter games", year: 2005, media: { type: "video", url: "https://archive.org/download/PrimeProductions_FlyingPenguinJibFest_Snowboarding_2005/FlyingPenguin2005_512kb.mp4" } },
   ],
 });
 /* Keep a single cold tune from opening three identical Archive requests while
@@ -2409,8 +2647,9 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTit
      rails. Resolve all of them in parallel. Restricting discovery to only the
      first three made sparse channels look as if they were hydrating forever. */
   const searchQueries = uniqueIaQueries(queries, 8);
-  const laneLimit = firstApprovedLane
-    ? Math.min(IA_FOREGROUND_DISCOVERY_LANES, searchQueries.length)
+   const foregroundLaneLimit = firstApprovedLane && iaColdRescueEnabled(channel) ? 2 : IA_FOREGROUND_DISCOVERY_LANES;
+   const laneLimit = firstApprovedLane
+     ? Math.min(foregroundLaneLimit, searchQueries.length)
     : Math.min(8, searchQueries.length);
   const lanePromises = searchQueries.slice(0, laneLimit).map(async (query, lane) => {
     try {
@@ -2442,7 +2681,7 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTit
          approved parent is enough to hydrate a first frame; the request-level
          background expansion below revisits that parent and turns its files
          into episode candidates after the viewer is already watching. */
-      const expansionSeeds = firstApprovedLane ? [] : hintedSeeds.concat(genericSeeds).slice(0, expansionLimit);
+       const expansionSeeds = (firstApprovedLane || !expandContainers) ? [] : hintedSeeds.concat(genericSeeds).slice(0, expansionLimit);
       const expandedSets = await mapQueueCandidates(expansionSeeds, IA_CONTAINER_EXPANSION_CONCURRENCY, async (doc, expansionIndex) => {
         const episodes = await expandArchiveContainer(doc, cacheOrigin, ctx, rotation, lane * 31 + expansionIndex, mediaTypes);
         return episodes.filter((episode) => matchesTheme(episode, themeTerms, themeMinScore, requiredTitleTerms) && !matchesDeny(episode, denyTerms));
@@ -3064,15 +3303,36 @@ async function getIaQueue(request, url, env, ctx) {
        This keeps the first playable item on the short path while preserving
        the broader catalog for refill and later rotations. */
     const orderedQueries = uniqueIaQueries(queries, 8);
-    const fastQueries = orderedQueries.slice(0, Math.min(IA_FOREGROUND_DISCOVERY_LANES, orderedQueries.length));
+     const fastLaneCount = iaColdRescueEnabled(channel) ? Math.min(2, orderedQueries.length) : IA_FOREGROUND_DISCOVERY_LANES;
+     const fastQueries = orderedQueries.slice(0, fastLaneCount);
     /* The first-approved cold race intentionally starts with only the first
        rail. Keep the second fast rail at the front of the reserve list so a
        sparse winner can widen into the app's next approved lane immediately;
        otherwise that rail was launched, observed, and then discarded. */
-    const reserveQueries = orderedQueries;
-    let payload = await buildIaQueue(channel, fastQueries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, candidateCount, url.origin, ctx, rotation, IA_FAST_SEARCH_TIMEOUT_MS, true);
+     const reserveQueries = orderedQueries;
+     /* Observed underfill lanes have a verified direct-media shelf. Hand that
+        shelf to the foreground immediately and let fresh Archive discovery
+        continue in the background; waiting on a known-bad search rail defeats
+        the television startup contract. Healthy lanes retain the normal fast
+        discovery path. */
+     const orderedEmergencySeeds = orderedIaEmergencySeeds(channel, rotation);
+     const directEmergencyStart = iaColdRescueEnabled(channel) && orderedEmergencySeeds.some((item) => item && item.media && item.media.url);
+     let payload = directEmergencyStart
+       ? {
+           channel,
+           rotation,
+           items: orderedEmergencySeeds,
+           candidateItems: orderedEmergencySeeds,
+           candidates: orderedEmergencySeeds.length,
+           ready: 0,
+           partial: true,
+           hydrating: false,
+           emergency: true,
+           deferredContainerExpansion: true,
+         }
+       : await buildIaQueue(channel, fastQueries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, candidateCount, url.origin, ctx, rotation, IA_FAST_SEARCH_TIMEOUT_MS, true);
     const fallbackQueries = iaFallbackQueries(themeTerms, denyTerms, requiredTitleTerms, mediaTypes);
-    if (!payload.items.length) {
+     if (!payload.items.length || (iaColdRescueEnabled(channel) && payload.items.length < count)) {
       /* A rotated fast rail can be empty even while the channel has approved
          material in its next editorial rail. Give that case one bounded,
          vocabulary-preserving rescue race before returning an empty shelf. */
@@ -3086,7 +3346,10 @@ async function getIaQueue(request, url, env, ctx) {
       const rescueQueries = rescueSource.slice(0, Math.min(2, rescueSource.length)).concat(fallbackQueries.slice(0, 1));
       if (rescueQueries.length) {
         const rescueRotation = stableRescue ? 0 : rotation;
-        const rescue = await buildIaQueue(channel, rescueQueries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, candidateCount, url.origin, ctx, rescueRotation, IA_FAST_SEARCH_TIMEOUT_MS, true);
+         /* Weak lanes get a bounded race across the two rescue rails. Keep
+            container expansion out of this recovery race; episode expansion
+            remains background work and cannot delay the first playable URL. */
+         const rescue = await buildIaQueue(channel, rescueQueries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, candidateCount, url.origin, ctx, rescueRotation, IA_FAST_SEARCH_TIMEOUT_MS, iaColdRescueEnabled(channel), !iaColdRescueEnabled(channel));
         if (rescue.items.length) payload = mergeIaQueuePayload(payload, rescue, candidateCount, { rescue: true });
       }
     }

@@ -41,8 +41,10 @@ for (const [channel, collection] of Object.entries(expectedRails)) {
 }
 
 const relay = fs.readFileSync(path.join(root, 'afterglow_ais_relay_worker.js'), 'utf8');
-check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v68"/.test(relay), 'Relay cache namespace is v68');
+check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v74"/.test(relay), 'Relay cache namespace is v74');
 check(/"206": \[/.test(relay) && /090-aahma-watermarked/.test(relay) && /amateur_west_1940_1/.test(relay), 'Home Movies has verified sparse-lane recovery media');
+check(/"11": \[/.test(relay) && /freakylinks-complete-series-2000/.test(relay) && /partners-1995-96/.test(relay), 'Modern Rerun TV has verified sitcom recovery media');
+check(/"208": \[/.test(relay) && /santa-fe-atsf-teamwork-and-technology/.test(relay) && /ThisIsMy1940/.test(relay), 'Railroad has verified railway recovery media');
 check(/"12": \[/.test(relay) && /whatsmyline5September1954/.test(relay) && /Price_Is-Right_1957/.test(relay), 'Game Show Channel has a rotating verified temporary fallback shelf');
 check(/"115": \[/.test(relay) && /1989gojirataibiorante/.test(relay) && /thereturnofgodzilla1984/.test(relay), 'Monster Island has verified kaiju recovery media');
 check(/"154": \[/.test(relay) && /DragnetEpisode18TheBigSeventeenwcommercials/.test(relay) && /hawaii-five-o-S2E3-480p/.test(relay), 'Cop Show Classic has verified police-procedural recovery media');
@@ -52,7 +54,7 @@ check(/"75": \[/.test(relay) && /XcorpsNOODregattaSEG2/.test(relay) && /jseALNAI
 check(/IA_STRICT_CATALOG_CANDIDATE_MAX\s*=\s*72/.test(relay) && /IA_CATALOG_CANDIDATE_MAX\s*=\s*48/.test(relay), 'Relay retains the expanded rolling catalog budgets');
 check(/candidateLimit = Math\.max\(count, Math\.min\(IA_STRICT_CATALOG_CANDIDATE_MAX/.test(relay), 'Relay builds the candidate shelf from the expanded budget');
 check(/const expandedSources = new Set\(expanded\.map/.test(relay) && /const approvedPrograms = approved\.filter/.test(relay), 'Relay drops parent indexes after episode expansion');
-check(/const expansionSeeds = firstApprovedLane \? \[\] : hintedSeeds\.concat\(genericSeeds\)/.test(relay), 'Relay keeps manifest expansion off the first-frame path');
+check(/const expansionSeeds = \(firstApprovedLane \|\| !expandContainers\) \? \[\] : hintedSeeds\.concat\(genericSeeds\)/.test(relay), 'Relay keeps manifest expansion off the first-frame and bounded rescue paths');
 check(/const expandedParents = new Set\(\)/.test(relay), 'Relay removes expanded parents across editorial rails');
 check(/candidateItems: items\.slice\(0, candidateLimit\)/.test(relay), 'Relay serializes the rolling candidate shelf');
 check(/const backgroundTarget = Math\.min\(candidateCount, Math\.max\(count, iaDepthRecoveryEnabled\(channel\) \? 18 : 15\)\)/.test(relay), 'Relay hydrates a deeper background playable shelf');

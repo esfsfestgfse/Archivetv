@@ -100,10 +100,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-72-48-depth-recovery";
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v78";
+const IA_QUEUE_CACHE_VERSION = "v79";
 /* Last-good shelves share the v72 namespace so an older shallow shelf
    never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v78";
+const IA_LAST_GOOD_CACHE_VERSION = "v79";
 const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
 /* A short per-isolate burst cache absorbs repeat requests from a TV, phone,
    and guide opened in quick succession. It is intentionally tiny and
@@ -520,11 +520,11 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "FoodforF1943", title: "Food for Fighters", subject: "agriculture farming rural america food production", year: 1943 },
   ],
   "238": [
-    { identifier: "book-talk-data-cartels", title: "Book Talk: Data Cartels", subject: "author interview book talk literature", year: 2022 },
-    { identifier: "book-talk-the-catalogue-of-shipwrecked-books", title: "Book Talk: The Catalogue of Shipwrecked Books", subject: "author interview book talk literature", year: 2022 },
-    { identifier: "the-library-a-fragile-history", title: "Book Talk: The Library: A Fragile History", subject: "author interview book talk literature library program", year: 2022 },
-    { identifier: "book-talk-walled-culture", title: "Book Talk: Walled Culture", subject: "author interview book talk literature", year: 2022 },
-    { identifier: "athena-unbound", title: "Book Talk: Athena Unbound", subject: "author interview book talk literature", year: 2023 },
+    { identifier: "book-talk-data-cartels", title: "Book Talk: Data Cartels", subject: "author interview book talk literature", year: 2022, media: { type: "video", url: "https://archive.org/download/book-talk-data-cartels/Book%20Talk%20Data%20Cartels.mp4" } },
+    { identifier: "book-talk-the-catalogue-of-shipwrecked-books", title: "Book Talk: The Catalogue of Shipwrecked Books", subject: "author interview book talk literature", year: 2022, media: { type: "video", url: "https://archive.org/download/book-talk-the-catalogue-of-shipwrecked-books/Book%20Talk%20The%20Catalogue%20of%20Shipwrecked%20Books.mp4" } },
+    { identifier: "the-library-a-fragile-history", title: "Book Talk: The Library: A Fragile History", subject: "author interview book talk literature library program", year: 2022, media: { type: "video", url: "https://archive.org/download/the-library-a-fragile-history/The%20Library%20A%20Fragile%20History.mp4" } },
+    { identifier: "book-talk-walled-culture", title: "Book Talk: Walled Culture", subject: "author interview book talk literature", year: 2022, media: { type: "video", url: "https://archive.org/download/book-talk-walled-culture/Walled%20Culture.mp4" } },
+    { identifier: "athena-unbound", title: "Book Talk: Athena Unbound", subject: "author interview book talk literature", year: 2023, media: { type: "video", url: "https://archive.org/download/athena-unbound/Athena%20Unbound.mp4" } },
     { identifier: "CSPAN2_20140511_060400_Book_Discussion_on_Game_Plan", title: "C-SPAN2 · Book Discussion on Game Plan", subject: "author interview book discussion literature book talk", year: 2014, media: { type: "video", url: "https://archive.org/download/CSPAN2_20140511_060400_Book_Discussion_on_Game_Plan/CSPAN2_20140511_060400_Book_Discussion_on_Game_Plan.mp4" } },
     { identifier: "dni.ncaa.IGNCA-818-VHS", title: "Memorial Lecture on Acharya Hazari Prasad Dwivedi", subject: "literature author lecture book discussion", year: 1994, media: { type: "video", url: "https://archive.org/download/dni.ncaa.IGNCA-818-VHS/IGNCA-818-VHS.ia.mp4" } },
     { identifier: "f8_2007-08-16_longenbach_read", title: "BLWC · James Longenbach Reading", subject: "author reading poetry reading literature", year: 2007, media: { type: "video", url: "https://archive.org/download/f8_2007-08-16_longenbach_read/f8_2007-08-16_longenbach_read.mp4" } },

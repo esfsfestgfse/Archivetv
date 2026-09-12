@@ -1,6 +1,6 @@
 # RealSignal 2.0 readiness
 
-Build under test: `1.9.7-desktop.170-ia-long-tail` and `1.9.7-mobile.170-ia-long-tail`.
+Build under test: `1.9.7-desktop.171-ia-long-tail` and `1.9.7-mobile.171-ia-long-tail`.
 
 Worker release: v166 is the current production baseline; v167 is the long-tail IA release in this document.
 
@@ -46,7 +46,7 @@ Before calling 2.0 production-ready, run the telemetry-enabled build in a normal
 
 The next engineering action is a real-network telemetry capture. If provider results remain empty there, investigate relay credentials, upstream availability, and browser/network policy before changing channel ranking or queue logic.
 
-## Focused long-tail IA pass — v170
+## Focused long-tail IA pass — v171
 
 This pass is intentionally selective. It changes only lanes that reproduced underfill or repeat-heavy rotation in the v166 long-tail soak.
 
@@ -86,8 +86,8 @@ Direct media entries are only promoted when byte-range probing returns a playabl
 Run after the Worker deploy and record the resulting JSON alongside this document:
 
 ```powershell
-node scripts\soak-ia-queues.js --manifest C:\Users\tdy19\Documents\Codex\ia-manifest-153.json --channels 12,63,77,101,102,103,105,117,122,202,238,239,240,508,510,700,702,901,915,927 --count 5 --require-ready 1 --rotations 3 --rotation-delay-ms 3000 --concurrency 1 --timeout-ms 15000 --depth-timeout-ms 6000 --poll-ms 1000 --out C:\Users\tdy19\Documents\Codex\2026-08-14\can\ia-long-tail-v170-pass1.json
-node scripts\analyze-ia-soak.js C:\Users\tdy19\Documents\Codex\2026-08-14\can\ia-long-tail-v170-pass1.json C:\Users\tdy19\Documents\Codex\ia-manifest-153.json
+node scripts\soak-ia-queues.js --manifest C:\Users\tdy19\Documents\Codex\ia-manifest-153.json --channels 12,63,77,101,102,103,105,117,122,202,238,239,240,508,510,700,702,901,915,927 --count 5 --require-ready 1 --rotations 3 --rotation-delay-ms 3000 --concurrency 1 --timeout-ms 15000 --depth-timeout-ms 6000 --poll-ms 1000 --out C:\Users\tdy19\Documents\Codex\2026-08-14\can\ia-long-tail-v171-pass1.json
+node scripts\analyze-ia-soak.js C:\Users\tdy19\Documents\Codex\2026-08-14\can\ia-long-tail-v171-pass1.json C:\Users\tdy19\Documents\Codex\ia-manifest-153.json
 ```
 
 The release gate is: no timeout, no underfilled shelf, distinct rotation shelves for the repaired lanes, and no newly introduced failure in the measured clean lanes. Queue readiness is not the same as a visible DOM frame; the latter still requires a real browser/device telemetry run.
@@ -109,8 +109,8 @@ Monitor these signals: first visible frame, tune latency, ready depth, full item
 
 ## v2 release record
 
-- Client stamps: desktop/mobile `1.9.7.*.170-ia-long-tail`.
-- IA cache namespace: queue and last-good `v78`.
-- Production Worker before this release: v169, version ID `01f0dc66-3137-483f-b62f-6a029cd67c8a`.
-- Post-deploy Worker v170 version ID and post-patch soak totals must be recorded here before the release is called complete.
+- Client stamps: desktop/mobile `1.9.7.*.171-ia-long-tail`.
+- IA cache namespace: queue and last-good `v79`.
+- Production Worker before this release: v170, version ID `89ce6dd6-52df-4dcf-9a7b-4e0dbc3f9037`.
+- Post-deploy Worker v171 version ID and post-patch soak totals must be recorded here before the release is called complete.
 - Keep the nightly IA health sweep as the regression guard; it should alert on underfill, repeat concentration, timeout, or provider-health changes and remain quiet when the state is unchanged.

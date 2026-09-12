@@ -1623,7 +1623,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.9.7-desktop.152-ia-family-cache";
+window.__ATV_BUILD="1.9.7-desktop.153-ia-family-diversity";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -6251,6 +6251,7 @@ Object.assign(PROGRAM["Saturday Morning"],{deepCollections:["saturdaymorningcart
 Object.assign(PROGRAM["Classic Cartoons"],{deepCollections:["classic_cartoons","animationandcartoons","opensource_movies","prelinger"],deepTitleTerms:["cartoon","cartoons","animated","animation","animated series","animated short","theatrical cartoon","looney tunes","popeye","bugs bunny","tom and jerry","fleischer","woody woodpecker","mickey mouse","donald duck","saturday morning"]});
 Object.assign(PROGRAM["Modern Cartoons"],{deepCollections:["animationandcartoons","saturdaymorningcartoons","vhskids","vhsvault"],deepTitleTerms:["cartoon","cartoons","animated series","animated tv","episode","full episode","saturday morning","fox kids","kids wb","toonami","nickelodeon","disney afternoon","hanna barbera","transformers","scooby","ducktales","thundercats","x-men","batman animated"]});
 Object.assign(PROGRAM["Classic Rerun TV"],{deepCollections:["classic_tv","television","classic_tv_1950s","classic_tv_1960s"],deepTitleTerms:["complete series","complete","episode","episodes","sitcom","television series","tv series","classic television","variety show","anthology","show","season"]});
+Object.assign(PROGRAM["Classic Rerun TV"],{themeMinScore:2,queueTerms:["i love lucy","the honeymooners","jack benny","burns and allen","george burns","gracie allen","dick van dyke","mary tyler moore","andy griffith","mayberry","phil silvers","sgt bilko","ed sullivan","red skelton","jackie gleason","milton berle","leave it to beaver","beverly hillbillies","green acres","petticoat junction","the addams family","the munsters","bewitched","i dream of jeannie","mr ed","mister ed","hogan's heroes","gomer pyle","f troop","get smart","twilight zone","outer limits","alfred hitchcock","one step beyond","night gallery","classic television","golden age of television","sitcom","television comedy","variety show","anthology series"],fastSubjects:["i love lucy","the honeymooners","jack benny","burns and allen","dick van dyke","mary tyler moore","andy griffith","phil silvers","ed sullivan","red skelton","classic television","golden age of television"],fastCollections:["classic_tv","classic_tv_1950s","classic_tv_1960s","classic_tv_1970s","television"],diversity:{maxPerEra:2,maxPerLane:2,maxPerCreator:1,maxPerCollection:2,maxPerFamily:1}});
 Object.assign(PROGRAM["Modern Rerun TV"],{deepCollections:["classic_tv","television","vhsvault","classic_tv_1990s"],deepTitleTerms:["complete series","complete","episode","episodes","sitcom","television series","tv series","comedy series","situation comedy","syndicated","season","show"]});
 Object.assign(PROGRAM["Game Show Channel"],{deepCollections:["classic_tv_1950s","classic_tv_1960s","classic_tv_1970s","classic_tv_1980s"],deepTitleTerms:["game show","quiz show","panel show","episode","episodes","complete series","jeopardy","price is right","family feud","match game","password","pyramid","newlywed game","hollywood squares","let's make a deal","what's my line","press your luck","double dare","millionaire"]});
 /* Every IA PROGRAM gets the same collection-depth treatment. The six stations
@@ -6300,7 +6301,7 @@ Object.assign(PROGRAM["Vintage Commercials"],{themeMinScore:1,queueTerms:["telev
 /* Every IA station gets a compact editorial diversity policy. These caps shape
    a shelf of already-approved programs; they never relax the station's terms,
    era, media type, or deny list when Archive is sparse. */
-const IA_EDITORIAL_DIVERSITY={maxPerEra:1,maxPerLane:1,maxPerCreator:1,maxPerCollection:2};
+const IA_EDITORIAL_DIVERSITY={maxPerEra:1,maxPerLane:1,maxPerCreator:1,maxPerCollection:2,maxPerFamily:1};
 Object.keys(PROGRAM).forEach(function(name){
   PROGRAM[name].diversity=Object.assign({},IA_EDITORIAL_DIVERSITY,PROGRAM[name].diversity||{});
   if(!Number(PROGRAM[name].themeMinScore))PROGRAM[name].themeMinScore=2;
@@ -6675,7 +6676,7 @@ function iaProgramAllowed(item,sl){
   return !(p.require&&p.require.runtime_max_s&&item.runtime&&iaRuntimeSeconds(item.runtime)>p.require.runtime_max_s);
 }
 function iaProgramDenyTerms(sl){var p=sl&&sl.program||{},g=sl&&G[sl.genre]||{},out=[];["title","subject"].forEach(function(k){(p.deny&&p.deny[k]||[]).forEach(function(v){String(v||"").trim()&&out.push(String(v).trim());});});(g.not||[]).forEach(function(v){String(v||"").trim()&&out.push(String(v).trim());});return out.slice(0,256);}
-function iaQueueDiversity(sl){var d=sl&&sl.program&&sl.program.diversity||{},cap=function(key,fallback){return Math.max(1,Math.min(5,Math.round(Number(d[key])||fallback)));};return {maxPerEra:cap("maxPerEra",1),maxPerLane:cap("maxPerLane",1),maxPerCreator:cap("maxPerCreator",1),maxPerCollection:cap("maxPerCollection",2)};}
+function iaQueueDiversity(sl){var d=sl&&sl.program&&sl.program.diversity||{},cap=function(key,fallback){return Math.max(1,Math.min(5,Math.round(Number(d[key])||fallback)));};return {maxPerEra:cap("maxPerEra",1),maxPerLane:cap("maxPerLane",1),maxPerCreator:cap("maxPerCreator",1),maxPerCollection:cap("maxPerCollection",2),maxPerFamily:cap("maxPerFamily",1)};}
 function iaEmergencyItems(sl){var items=sl&&sl.program&&sl.program.emergencyItems;return Array.isArray(items)?items.filter(function(item){return item&&item.identifier&&item.media&&item.media.url;}).slice(0,5):[];}
 async function iaLocalQueueFallback(ch,sl){
   /* The relay is the fast path, not a single point of failure. Reuse the

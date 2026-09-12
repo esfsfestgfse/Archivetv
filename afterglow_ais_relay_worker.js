@@ -98,10 +98,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-72-48";
    items into their individual playable episode files. Cache this separately
    from v49: episode data waited behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v60";
+const IA_QUEUE_CACHE_VERSION = "v61";
 /* Last-good shelves share the v51 namespace so a cached v50 shallow shelf
    never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v60";
+const IA_LAST_GOOD_CACHE_VERSION = "v61";
 const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
 /* A short per-isolate burst cache absorbs repeat requests from a TV, phone,
    and guide opened in quick succession. It is intentionally tiny and
@@ -639,6 +639,7 @@ function safeDiversity(value) {
     maxPerLane: cap("maxPerLane", 1),
     maxPerCreator: cap("maxPerCreator", 1),
     maxPerCollection: cap("maxPerCollection", 2),
+    maxPerFamily: cap("maxPerFamily", 1),
   };
 }
 
@@ -2001,6 +2002,61 @@ function queueKey(value) {
   return String(raw || "").normalize("NFKD").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
 
+/* Archive uploads frequently split one television series across several
+   identifiers and uploader labels. Creator/collection caps cannot recognize
+   that collision, which is how one popular show can crowd a five-item shelf
+   even when the rolling catalog contains many other programs. Normalize the
+   common series aliases first, then fall back to a conservative title stem so
+   episode markers and alternate encode labels do not become separate families. */
+const IA_TITLE_FAMILY_ALIASES = Object.freeze([
+  ["burns and allen", ["burns and allen", "george burns", "gracie allen"]],
+  ["i love lucy", ["i love lucy", "lucille ball"]],
+  ["the honeymooners", ["the honeymooners", "ralph kramden"]],
+  ["jack benny", ["jack benny"]],
+  ["dick van dyke", ["dick van dyke"]],
+  ["mary tyler moore", ["mary tyler moore"]],
+  ["andy griffith", ["andy griffith", "mayberry"]],
+  ["phil silvers", ["phil silvers", "sgt bilko", "sergeant bilko"]],
+  ["ed sullivan", ["ed sullivan"]],
+  ["red skelton", ["red skelton"]],
+  ["jackie gleason", ["jackie gleason"]],
+  ["milton berle", ["milton berle"]],
+  ["leave it to beaver", ["leave it to beaver"]],
+  ["beverly hillbillies", ["beverly hillbillies"]],
+  ["green acres", ["green acres"]],
+  ["petticoat junction", ["petticoat junction"]],
+  ["the addams family", ["the addams family"]],
+  ["the munsters", ["the munsters"]],
+  ["bewitched", ["bewitched"]],
+  ["i dream of jeannie", ["i dream of jeannie"]],
+  ["mr ed", ["mr ed", "mister ed"]],
+  ["hogan's heroes", ["hogan's heroes", "hogans heroes"]],
+  ["gomer pyle", ["gomer pyle"]],
+  ["f troop", ["f troop"]],
+  ["get smart", ["get smart"]],
+  ["twilight zone", ["twilight zone"]],
+  ["outer limits", ["outer limits"]],
+  ["alfred hitchcock", ["alfred hitchcock"]],
+  ["one step beyond", ["one step beyond"]],
+  ["night gallery", ["night gallery"]],
+]);
+
+function queueTitleFamily(doc) {
+  const title = queueKey(doc && doc.title);
+  if (!title) return queueKey(doc && (doc.sourceIdentifier || doc.identifier));
+  for (const [family, aliases] of IA_TITLE_FAMILY_ALIASES) {
+    if (aliases.some((alias) => title.includes(queueKey(alias)))) return family;
+  }
+  const stem = title
+    .replace(/\b(?:episode|ep|chapter|part)\s*(?:title\s*)?(?:\d+|[a-z])?.*$/i, "")
+    .replace(/\b(?:s\d{1,2}e\d{1,3}|season\s*\d+|series\s*\d+)\b.*$/i, "")
+    .replace(/\b(?:complete(?:\s+series|\s+collection)?|full\s+series|box\s*set)\b/gi, "")
+    .replace(/\b(?:19|20)\d{2}\b/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  return stem.slice(0, 120) || title.slice(0, 120);
+}
+
 function queueEraKey(value) {
   const match = String(value || "").match(/(?:18|19|20)\d{2}/);
   return match ? String(Math.floor(Number(match[0]) / 10) * 10) : "";
@@ -2012,6 +2068,7 @@ function queueDiversityKeys(doc, lane) {
     era: queueEraKey(doc && doc.year),
     creator: queueKey(doc && doc.creator),
     collection: queueKey(doc && doc.collection),
+    family: queueTitleFamily(doc),
     /* Files expanded from one Archive item are distinct programs, but one
        complete season still must not occupy the entire five-program shelf. */
     source: queueKey(doc && (doc.sourceIdentifier || doc.identifier)),
@@ -2117,7 +2174,7 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTit
      wider candidate shelf intact; hydrate only the requested foreground
      count, then let background refill and later rotations consume the rest. */
   const items = [], deferred = [], seen = new Set(), seenTitles = new Set(), candidateLimit = Math.max(count, Math.min(IA_STRICT_CATALOG_CANDIDATE_MAX, Number(count) || 5));
-  const used = { lane: new Map(), era: new Map(), creator: new Map(), collection: new Map(), source: new Map() };
+  const used = { lane: new Map(), era: new Map(), creator: new Map(), collection: new Map(), family: new Map(), source: new Map() };
   let deferredContainerExpansion = false;
   /* Query lanes are already editorially ordered by the app. Fetch a small
      sample from each lane in parallel, then take one from every lane before
@@ -2220,6 +2277,7 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTit
       underCap("era", keys.era, diversity.maxPerEra) &&
       underCap("creator", keys.creator, diversity.maxPerCreator) &&
       underCap("collection", keys.collection, diversity.maxPerCollection) &&
+      underCap("family", keys.family, diversity.maxPerFamily) &&
       underCap("source", keys.source, 2);
   }
   for (let row = 0; row < laneDepth && items.length < candidateLimit; row += 1) {
@@ -2238,10 +2296,11 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTit
      hard genre checks and exact-title de-duplication above. */
   for (const candidate of deferred) {
     if (items.length >= candidateLimit) break;
-    /* Relaxing the editorial diversity caps may rescue a sparse channel, but
-       it must never turn one complete-series parent into the whole station. */
+    /* Relaxing era/lane caps may rescue a sparse channel, but family diversity
+       remains hard for the public catalog: a deep collection must not turn one
+       television series into the whole station. */
     const keys = queueDiversityKeys(candidate.doc, candidate.lane);
-    if (!underCap("source", keys.source, 2)) continue;
+    if (!underCap("source", keys.source, 2) || !underCap("family", keys.family, diversity.maxPerFamily)) continue;
     add(candidate);
   }
   return {

@@ -2,7 +2,7 @@
 
 Build under test: `1.9.7-desktop.171-ia-long-tail` and `1.9.7-mobile.171-ia-long-tail`.
 
-Worker release: v166 is the current production baseline; v167 is the long-tail IA release in this document.
+Current production Worker: v171 (`a2289cb3-d0b1-466d-af73-59038a337860`). This document records the cumulative v167–v171 long-tail IA hardening chain and its final v171 acceptance result.
 
 ## What is covered
 
@@ -44,7 +44,7 @@ Before calling 2.0 production-ready, run the telemetry-enabled build in a normal
 - `scripts/`: deterministic contracts plus the visible-frame probe.
 - `docs/`: deployment and operational runbooks.
 
-The next engineering action is a real-network telemetry capture. If provider results remain empty there, investigate relay credentials, upstream availability, and browser/network policy before changing channel ranking or queue logic.
+The remaining release gate is a real-network telemetry capture. If provider results remain empty there, investigate relay credentials, upstream availability, and browser/network policy before changing channel ranking or queue logic.
 
 ## Focused long-tail IA pass — v171
 
@@ -79,9 +79,9 @@ The delayed retest reproduced the repeat loop on Festival Circuit (117), Museum 
 
 The v168 acceptance run then identified a separate repeat cluster. v169 added direct media for additional Britcom episodes (`122`), comedy sketch/stand-up entries (`202`), and reggae/dub audio items (`915`). v170 completes Game Show's fallback bank with byte-range-verified episodes and adds three verified Britcom programs. No changes were made to lanes that only had a single transient timeout or that improved to distinct 15-item rotation shelves.
 
-Direct media entries are only promoted when byte-range probing returns a playable response; ID-only candidates remain eligible for the normal Internet Archive file resolver. The ten lanes above now have wider candidate banks without changing the channel rules for any clean lane. Channels `63`, `101`, `103`, `105`, `122`, `238`, `508`, `510`, `702`, and `915` were measured but left unchanged unless their evidence crossed the patch threshold.
+Direct media entries are only promoted when byte-range probing returns a playable response; ID-only candidates remain eligible for the normal Internet Archive file resolver. The eleven lanes above now have wider candidate banks without changing the channel rules for any clean lane. Channels `63`, `101`, `103`, `105`, `508`, `510`, and `702` were measured but left unchanged because their evidence did not reproduce a persistent underfill or repeat failure in the focused pass.
 
-### v167 acceptance evidence
+### v171 acceptance sweep command
 
 Run after the Worker deploy and record the resulting JSON alongside this document:
 
@@ -110,7 +110,7 @@ The analyzer reports 15 unique items across the three rotations for Reading Room
 
 ## Monitoring and repair runbook
 
-Use the same commands for nightly or pre-release checks. Keep reports timestamped and do not treat a single provider outage as a channel-ranking regression.
+Use the same commands for nightly or pre-release checks. The scheduled guard is `.github/workflows/ia-health.yml` (one paced run nightly, plus manual dispatch). Keep reports timestamped and do not treat a single provider outage as a channel-ranking regression.
 
 ```powershell
 node scripts\check-worker-contract.js

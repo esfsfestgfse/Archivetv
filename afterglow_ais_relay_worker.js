@@ -100,10 +100,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-72-48-depth-recovery";
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v76";
+const IA_QUEUE_CACHE_VERSION = "v77";
 /* Last-good shelves share the v72 namespace so an older shallow shelf
    never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v76";
+const IA_LAST_GOOD_CACHE_VERSION = "v77";
 const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
 /* A short per-isolate burst cache absorbs repeat requests from a TV, phone,
    and guide opened in quick succession. It is intentionally tiny and
@@ -469,6 +469,13 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "bigyouthhittheroadjack", title: "Big Youth — Hit the Road Jack", subject: "reggae roots reggae dub", year: 1970 },
     { identifier: "Reggaeska", title: "Reggae SKA", subject: "reggae ska roots reggae", year: 2010 },
     { identifier: "OldSkoolTagalogReggaeClassicsSongs2019ChocolateFactoryTropicalDepressionBlakdyak", title: "Old Skool Tagalog Reggae Classics", subject: "reggae ska roots reggae", year: 2019 },
+    { identifier: "ReggaeFindTheOnesWorthSufferingForJoaoTacanhoEQ", title: "Reggae · Find the Ones Worth Suffering For", subject: "reggae roots reggae dub radio", year: 2016, media: { type: "audio", url: "https://archive.org/download/ReggaeFindTheOnesWorthSufferingForJoaoTacanhoEQ/Reggae%20Find%20The%20Ones%20Worth%20Suffering%20For%20Joao%20Tacanho%20EQ.mp3" } },
+    { identifier: "ForeverLovingJahVersion2", title: "Forever Loving Jah", subject: "reggae roots reggae dub music", year: 2013, media: { type: "audio", url: "https://archive.org/download/ForeverLovingJahVersion2/Forever%20Loving%20Jah_Version2.mp3" } },
+    { identifier: "BurningSpear2007-01-03.fob-schoeps-mk21.stone.83206.flac1644::t01", title: "Burning Spear · Live at Jam Cruise 5", subject: "reggae roots reggae live music radio", year: 2007, media: { type: "audio", url: "https://archive.org/download/BurningSpear2007-01-03.fob-schoeps-mk21.stone.83206.flac1644/bspear2007-01-03t01.mp3" } },
+    { identifier: "bmatwuprs180558979::01", title: "Bob Marley & The Wailers · Uprising", subject: "reggae roots reggae music radio", year: 1980, media: { type: "audio", url: "https://archive.org/download/bmatwuprs180558979/01.%20Coming%20In%20From%20The%20Cold.mp3" } },
+    { identifier: "jcliff1992-08.22::03", title: "Jimmy Cliff · War A Africa", subject: "reggae roots reggae live music radio", year: 1992, media: { type: "audio", url: "https://archive.org/download/jcliff1992-08.22/JimmyCliff1992-08-22t03_War%20A%20Africa.mp3" } },
+    { identifier: "ziggymarley2014-04-11.vwmule::t01", title: "Ziggy Marley · Live at Wanee", subject: "reggae roots reggae live music radio", year: 2014, media: { type: "audio", url: "https://archive.org/download/ziggymarley2014-04-11.vwmule/ziggymarley2014-04-11.vwmule.t01.mp3" } },
+    { identifier: "toots2011-07-24.480-ck3.ua5::d1t02", title: "Toots & The Maytals · Live at Gathering of the Vibes", subject: "reggae ska roots reggae live music radio", year: 2011, media: { type: "audio", url: "https://archive.org/download/toots2011-07-24.480-ck3.ua5/toots2011-07-24.480-ck3.ua5.d1t02.mp3" } },
   ],
   "204": [
     { identifier: "Doctorin1946", title: "Doctor in Industry (Part I)", subject: "public health educational film industrial film sponsored film", year: 1946 },
@@ -733,6 +740,11 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "RedDwarfUSPilot1992", title: "Red Dwarf — US Pilot", subject: "british television british sitcom science fiction comedy", year: 1992, media: { type: "video", url: "https://archive.org/download/RedDwarfUSPilot1992/Red%20Dwarf%20US%20Pilot%20%281992%29.mp4" } },
     { identifier: "red_dwarf_tv_series_pilot", title: "Red Dwarf — Series Pilot", subject: "british television british sitcom science fiction comedy", year: 1988, media: { type: "video", url: "https://archive.org/download/red_dwarf_tv_series_pilot/Red_Dwarf-s01e01.mp4" } },
     { identifier: "monty-pythons-flying-circus-ntsc-dvd-set", title: "Monty Python's Flying Circus — Episode 1", subject: "british television british sketch comedy television", year: 1969, media: { type: "video", url: "https://archive.org/download/monty-pythons-flying-circus-ntsc-dvd-set/Monty%20Python%27s%20Flying%20Circus%20%281969-1974%29%20%5BRAW%5D/Series%201%20%281969-1970%29/01.%20Whither%20Canada_.mp4" } },
+    { identifier: "mr-bean-unseen-bean-1995", title: "Mr Bean · Unseen Bean", subject: "british television british sitcom british comedy", year: 1995, media: { type: "video", url: "https://archive.org/download/mr-bean-unseen-bean-1995/Mr%20Bean%20-%20Unseen%20Bean%20%281995%29.mp4" } },
+    { identifier: "LDFT7579", title: "Fawlty Towers · Complete Collection", subject: "british television british sitcom british comedy", year: 1975, media: { type: "video", url: "https://archive.org/download/LDFT7579/Fawlty%20Towers.ia.mp4" } },
+    { identifier: "montypythonflyingcircus::S1E2", title: "Monty Python's Flying Circus · Sex and Violence", subject: "british television british sketch comedy television", year: 1969, media: { type: "video", url: "https://archive.org/download/montypythonflyingcircus/Monty%20Python%27s%20Flying%20Circus%20%5BRAW%5D/Series%201%20%281969-1970%29/002.%20Sex%20and%20Violence.mp4" } },
+    { identifier: "the-young-ones-s-01-ep-04-bomb", title: "The Young Ones · Bomb", subject: "british television british sitcom british comedy", year: 1982, media: { type: "video", url: "https://archive.org/download/the-young-ones-s-01-ep-04-bomb/The%20Young%20Ones%20-%20S01EP04%20Bomb.ia.mp4" } },
+    { identifier: "monty-pythons-flying-circus-ntsc-dvd-set::S1E2", title: "Monty Python's Flying Circus · Sex and Violence", subject: "british television british sketch comedy television", year: 1969, media: { type: "video", url: "https://archive.org/download/monty-pythons-flying-circus-ntsc-dvd-set/Monty%20Python%27s%20Flying%20Circus%20%281969-1974%29%20%5BRAW%5D/Series%201%20%281969-1970%29/02.%20Sex%20And%20Violence.mp4" } },
   ],
   "200": [
     { identifier: "ABetterWayMerckAutomateLiquidPackaging", title: "A Better Way — Automated Liquid Packaging", subject: "manufacturing industry factory engineering industrial film", year: 1978, media: { type: "video", url: "https://archive.org/download/ABetterWayMerckAutomateLiquidPackaging/A%20Better%20Way%20-%20Merck%20Automate%20Liquid%20Packaging.mp4" } },
@@ -757,6 +769,11 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "TheNewRainbowHour180924", title: "The New Rainbow Hour", subject: "comedy variety sketch television", year: 2018 },
     { identifier: "indigen-episode-274", title: "Indigen — Episode 274", subject: "comedy variety television comedy", year: 2002 },
     { identifier: "funny_or_die_video_a02d5054c2", title: "Funny or Die — Office Christmas Party", subject: "sketch comedy comedy television comedy", year: 2007 },
+    { identifier: "SCTV_Holiday_Greetings_2013", title: "SCTV · Holiday Greetings", subject: "sketch comedy comedy television comedy", year: 2013, media: { type: "video", url: "https://archive.org/download/SCTV_Holiday_Greetings_2013/SCTV_Holiday_Greetings_2013.mp4" } },
+    { identifier: "mastmwa-Late_Knight_Season_9_Episode_2", title: "Late Knight · Season 9, Episode 2", subject: "sketch comedy comedy television comedy", year: 2023, media: { type: "video", url: "https://archive.org/download/mastmwa-Late_Knight_Season_9_Episode_2/Late_Knight_Season_9_Episode_2.mp4" } },
+    { identifier: "Kathy_Mills", title: "Kathy Mills · Comedy Performance", subject: "stand-up comedy comedy television live comedy", year: 2017, media: { type: "video", url: "https://archive.org/download/Kathy_Mills/Kathy_Mills.mp4" } },
+    { identifier: "snl-nfts", title: "SNL · NFTs", subject: "sketch comedy comedy television comedy", year: 2021, media: { type: "video", url: "https://archive.org/download/snl-nfts/NFTs%20-%20SNL-mrNOYudaMAc.mp4" } },
+    { identifier: "wayne-and-garth-snl-music-a-go-go", title: "Wayne and Garth · SNL Music a Go Go", subject: "sketch comedy comedy television comedy", year: 1993, media: { type: "video", url: "https://archive.org/download/wayne-and-garth-snl-music-a-go-go/Wayne%20and%20Garth%20SNL%20Music%20a%20Go%20Go.ia.mp4" } },
   ],
   "901": [
     { identifier: "PinkFloydLiveAtWembley", title: "Pink Floyd — Live at Wembley", subject: "rock music concert live music radio", year: 1974, media: { type: "audio", url: "https://archive.org/download/PinkFloydLiveAtWembley/1974-11-16%20Pink%20Floyd%20Live%20At%20Wembley.mp3" } },

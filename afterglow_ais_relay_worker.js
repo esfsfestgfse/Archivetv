@@ -100,10 +100,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-72-48-depth-recovery";
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v77";
+const IA_QUEUE_CACHE_VERSION = "v78";
 /* Last-good shelves share the v72 namespace so an older shallow shelf
    never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v77";
+const IA_LAST_GOOD_CACHE_VERSION = "v78";
 const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
 /* A short per-isolate burst cache absorbs repeat requests from a TV, phone,
    and guide opened in quick succession. It is intentionally tiny and
@@ -620,16 +620,16 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "whatsmyline26August1956", title: "What's My Line? — August 26, 1956", subject: "classic television game show panel show", year: 1956, media: { type: "video", url: "https://archive.org/download/whatsmyline26August1956/whatsmyline26August1956.mp4" } },
     { identifier: "totellthetruth14May1957", title: "To Tell the Truth — May 14, 1957", subject: "classic television game show panel show", year: 1957, media: { type: "video", url: "https://archive.org/download/totellthetruth14May1957/totellthetruth14May1957.mp4" } },
     { identifier: "Price_Is-Right_1957", title: "The Price Is Right — 1957 episode", subject: "classic television game show pricing game", year: 1957, media: { type: "video", url: "https://archive.org/download/Price_Is-Right_1957/PriceIsRight1957.mp4" } },
-    { identifier: "Beat_The_Clock", title: "Beat the Clock — 1950s game show", subject: "classic television game show stunt game", year: 1955 },
-    { identifier: "whatsMyLine", title: "What's My Line? — classic game show episode", subject: "classic television game show panel show", year: 1955 },
-    { identifier: "The64000Question-dateToBeAdded", title: "The $64,000 Question — September 18, 1956", subject: "classic television game show quiz show", year: 1956 },
-    { identifier: "strikeItRich-26August1955", title: "Strike It Rich — August 26, 1955", subject: "classic television game show quiz show", year: 1955 },
-    { identifier: "TruthConsequences1955", title: "Truth or Consequences — circa 1956", subject: "classic television game show panel show", year: 1956 },
-    { identifier: "Treasure_Hunt", title: "Treasure Hunt — 1950s game show", subject: "classic television game show quiz show", year: 1955 },
-    { identifier: "WhatsMyLine18October1953", title: "What's My Line? — October 18, 1953", subject: "classic television game show panel show", year: 1953 },
-    { identifier: "WhatsMyLine19July1953", title: "What's My Line? — July 19, 1953", subject: "classic television game show panel show", year: 1953 },
-    { identifier: "beattheclock1956", title: "Beat the Clock — circa August 1956", subject: "classic television game show stunt game", year: 1956 },
-    { identifier: "thePriceIsRight-19july1957", title: "The Price Is Right — July 19, 1957", subject: "classic television game show pricing game", year: 1957 },
+    { identifier: "Beat_The_Clock", title: "Beat the Clock — 1950s game show", subject: "classic television game show stunt game", year: 1955, media: { type: "video", url: "https://archive.org/download/Beat_The_Clock/Beat_The_Clock.ia.mp4" } },
+    { identifier: "whatsMyLine", title: "What's My Line? — classic game show episode", subject: "classic television game show panel show", year: 1955, media: { type: "video", url: "https://archive.org/download/whatsMyLine/Whats_my_line_Oct_5_1952.ia.mp4" } },
+    { identifier: "The64000Question-dateToBeAdded", title: "The $64,000 Question — September 18, 1956", subject: "classic television game show quiz show", year: 1956, media: { type: "video", url: "https://archive.org/download/The64000Question-dateToBeAdded/The64000Question1956.mp4" } },
+    { identifier: "strikeItRich-26August1955", title: "Strike It Rich — August 26, 1955", subject: "classic television game show quiz show", year: 1955, media: { type: "video", url: "https://archive.org/download/strikeItRich-26August1955/StrikeItRich26August1955.mp4" } },
+    { identifier: "TruthConsequences1955", title: "Truth or Consequences — circa 1956", subject: "classic television game show panel show", year: 1956, media: { type: "video", url: "https://archive.org/download/TruthConsequences1955/truthorconsequences1955.mp4" } },
+    { identifier: "Treasure_Hunt", title: "Treasure Hunt — 1950s game show", subject: "classic television game show quiz show", year: 1955, media: { type: "video", url: "https://archive.org/download/Treasure_Hunt/Treasure_Hunt.ia.mp4" } },
+    { identifier: "WhatsMyLine18October1953", title: "What's My Line? — October 18, 1953", subject: "classic television game show panel show", year: 1953, media: { type: "video", url: "https://archive.org/download/WhatsMyLine18October1953/whatsmyline13october1953.mp4" } },
+    { identifier: "WhatsMyLine19July1953", title: "What's My Line? — July 19, 1953", subject: "classic television game show panel show", year: 1953, media: { type: "video", url: "https://archive.org/download/WhatsMyLine19July1953/whatsmyline19July1953.mp4" } },
+    { identifier: "beattheclock1956", title: "Beat the Clock — circa August 1956", subject: "classic television game show stunt game", year: 1956, media: { type: "video", url: "https://archive.org/download/beattheclock1956/beattheclock1956flash.mp4" } },
+    { identifier: "thePriceIsRight-19july1957", title: "The Price Is Right — July 19, 1957", subject: "classic television game show pricing game", year: 1957, media: { type: "video", url: "https://archive.org/download/thePriceIsRight-19july1957/ThePriceIsRight1957-Misc2.mp4" } },
   ],
   "14": [
     { identifier: "AtariKeepingInTouch", title: "Atari Keeping In Touch", subject: "computer chronicles personal computer technology television", year: 1983, media: { type: "video", url: "https://archive.org/download/AtariKeepingInTouch/Atari%20Keeping%20In%20Touch.mp4" } },
@@ -745,6 +745,9 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "montypythonflyingcircus::S1E2", title: "Monty Python's Flying Circus · Sex and Violence", subject: "british television british sketch comedy television", year: 1969, media: { type: "video", url: "https://archive.org/download/montypythonflyingcircus/Monty%20Python%27s%20Flying%20Circus%20%5BRAW%5D/Series%201%20%281969-1970%29/002.%20Sex%20and%20Violence.mp4" } },
     { identifier: "the-young-ones-s-01-ep-04-bomb", title: "The Young Ones · Bomb", subject: "british television british sitcom british comedy", year: 1982, media: { type: "video", url: "https://archive.org/download/the-young-ones-s-01-ep-04-bomb/The%20Young%20Ones%20-%20S01EP04%20Bomb.ia.mp4" } },
     { identifier: "monty-pythons-flying-circus-ntsc-dvd-set::S1E2", title: "Monty Python's Flying Circus · Sex and Violence", subject: "british television british sketch comedy television", year: 1969, media: { type: "video", url: "https://archive.org/download/monty-pythons-flying-circus-ntsc-dvd-set/Monty%20Python%27s%20Flying%20Circus%20%281969-1974%29%20%5BRAW%5D/Series%201%20%281969-1970%29/02.%20Sex%20And%20Violence.mp4" } },
+    { identifier: "youtube-7ovD21KbSDM", title: "Stephen Fry · Carpool", subject: "british television british comedy interview comedy", year: 2010, media: { type: "video", url: "https://archive.org/download/youtube-7ovD21KbSDM/7ovD21KbSDM.mp4" } },
+    { identifier: "youtube-0HALqLi5_RU", title: "Ashens & Nerdcubed · Advent Calendars", subject: "british television british comedy comedy variety", year: 2023, media: { type: "video", url: "https://archive.org/download/youtube-0HALqLi5_RU/Advent%20Calendars%202023%20Day%2010%20%EF%BD%9C%20Ashens%20%26%20Nerdcubed%20-%200HALqLi5_RU.mp4" } },
+    { identifier: "william-pattisons-bloodbath-theatre-episode-62-scaretober-h-g-wells-films", title: "William Pattison's Bloodbath Theatre · Episode 62", subject: "british television british comedy horror comedy television", year: 2021, media: { type: "video", url: "https://archive.org/download/william-pattisons-bloodbath-theatre-episode-62-scaretober-h-g-wells-films/William%20Pattison%27s%20Bloodbath%20Theatre%20Episode%2062_%20Scaretober_%20H%20G%20Wells%20Films.mp4" } },
   ],
   "200": [
     { identifier: "ABetterWayMerckAutomateLiquidPackaging", title: "A Better Way — Automated Liquid Packaging", subject: "manufacturing industry factory engineering industrial film", year: 1978, media: { type: "video", url: "https://archive.org/download/ABetterWayMerckAutomateLiquidPackaging/A%20Better%20Way%20-%20Merck%20Automate%20Liquid%20Packaging.mp4" } },

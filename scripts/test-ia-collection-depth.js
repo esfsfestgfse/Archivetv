@@ -41,7 +41,7 @@ for (const [channel, collection] of Object.entries(expectedRails)) {
 }
 
 const relay = fs.readFileSync(path.join(root, 'afterglow_ais_relay_worker.js'), 'utf8');
-check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v67"/.test(relay), 'Relay cache namespace is v67');
+check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v68"/.test(relay), 'Relay cache namespace is v68');
 check(/"206": \[/.test(relay) && /090-aahma-watermarked/.test(relay) && /amateur_west_1940_1/.test(relay), 'Home Movies has verified sparse-lane recovery media');
 check(/"12": \[/.test(relay) && /whatsmyline5September1954/.test(relay) && /Price_Is-Right_1957/.test(relay), 'Game Show Channel has a rotating verified temporary fallback shelf');
 check(/"115": \[/.test(relay) && /1989gojirataibiorante/.test(relay) && /thereturnofgodzilla1984/.test(relay), 'Monster Island has verified kaiju recovery media');
@@ -55,7 +55,7 @@ check(/const expandedSources = new Set\(expanded\.map/.test(relay) && /const app
 check(/const expansionSeeds = firstApprovedLane \? \[\] : hintedSeeds\.concat\(genericSeeds\)/.test(relay), 'Relay keeps manifest expansion off the first-frame path');
 check(/const expandedParents = new Set\(\)/.test(relay), 'Relay removes expanded parents across editorial rails');
 check(/candidateItems: items\.slice\(0, candidateLimit\)/.test(relay), 'Relay serializes the rolling candidate shelf');
-check(/const backgroundTarget = Math\.min\(candidateCount, Math\.max\(count, 15\)\)/.test(relay), 'Relay hydrates a deeper background playable shelf');
+check(/const backgroundTarget = Math\.min\(candidateCount, Math\.max\(count, iaDepthRecoveryEnabled\(channel\) \? 18 : 15\)\)/.test(relay), 'Relay hydrates a deeper background playable shelf');
 check(/function rotatePlayableIaShelf\(/.test(relay) && /rotatePlayableIaShelf\(lastGood/.test(relay), 'Relay rotates hydrated last-good shelves instead of repeating the same five items');
 check(/const emergencyDepth = Math\.min\(candidateCount, Math\.max\(count, 8\)\)/.test(relay), 'Sparse emergency lanes widen before accepting a shallow five-item shelf');
 check(/IA_BACKGROUND_CONTAINER_EXPANSIONS\s*=\s*4/.test(relay), 'Background collection expansion covers four parent records per lane');

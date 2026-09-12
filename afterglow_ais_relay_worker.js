@@ -88,20 +88,22 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
    warmup back onto the channel-change path. */
 const IA_STRICT_CATALOG_CANDIDATE_MAX = 72;
 const IA_CATALOG_CANDIDATE_MAX = 48;
-const IA_CATALOG_BUDGET_VERSION = "catalog-72-48";
+const IA_CATALOG_BUDGET_VERSION = "catalog-72-48-depth-recovery";
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
-/* v67 keeps Archive multi-file programs and their sibling episodes in the
+/* v68 keeps Archive multi-file programs and their sibling episodes in the
    candidate shelf. A cold tune still returns a verified
    parent program immediately, while the background shelf expands collection
-   items into their individual playable episode files. Cache this separately
-   from v49: episode data waited behind reserve rebuilding and could expire
+   items into their individual playable episode files. The depth-recovery
+   namespace also prevents old five-item shelves from masking the wider
+   rotation rails below. Cache this separately from v49: episode data waited
+   behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v67";
-/* Last-good shelves share the v67 namespace so an older shallow shelf
+const IA_QUEUE_CACHE_VERSION = "v68";
+/* Last-good shelves share the v68 namespace so an older shallow shelf
    never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v67";
+const IA_LAST_GOOD_CACHE_VERSION = "v68";
 const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
 /* A short per-isolate burst cache absorbs repeat requests from a TV, phone,
    and guide opened in quick succession. It is intentionally tiny and
@@ -164,7 +166,23 @@ const IA_FOREGROUND_HYDRATION_CONCURRENCY = 2;
    page can time out before returning the first approved record even though the
    same editorial query is healthy on the stable first page. Retry only these
    observed lanes against page 1; never broaden their terms or disable gates. */
-const IA_STABLE_RESCUE_CHANNELS = new Set(["17", "19", "82", "106", "113", "132", "204", "206", "214", "238", "702", "906", "915"]);
+const IA_STABLE_RESCUE_CHANNELS = new Set(["17", "19", "74", "82", "106", "107", "113", "129", "130", "131", "132", "204", "206", "214", "238", "702", "906", "915"]);
+/* These lanes were observed either reusing a five-item last-good shelf or
+   underfilling when the Archive index rotated. Give only these proven weak
+   lanes more background search rails and a wider page window. The foreground
+   path stays unchanged, so healthy channel changes do not pay for the repair. */
+const IA_DEPTH_RECOVERY_CHANNELS = new Set(["13", "18", "21", "66", "70", "74", "81", "102", "105", "106", "107", "108", "128", "129", "130", "131", "203", "501", "502", "921"]);
+function iaDepthRecoveryEnabled(channel) {
+  return IA_DEPTH_RECOVERY_CHANNELS.has(String(channel));
+}
+function iaBackgroundReserveQueries(channel, queries) {
+  const limit = iaDepthRecoveryEnabled(channel) ? Math.min(6, queries.length) : Math.min(IA_BACKGROUND_RESERVE_LANES, queries.length);
+  return queries.slice(0, limit);
+}
+function iaBackgroundFallbackQueries(channel, queries) {
+  const limit = iaDepthRecoveryEnabled(channel) ? Math.min(2, queries.length) : Math.min(IA_BACKGROUND_FALLBACK_LANES, queries.length);
+  return queries.slice(0, limit);
+}
 /* Last-resort, already-observed playable records for those same sparse lanes.
    These are not a permanent catalog: they are used only when discovery returns
    no candidate at all, are passed through normal media hydration, and are
@@ -2362,11 +2380,14 @@ function queueRotationSort(rotation, lane) {
   return modes[(Number(rotation) + Number(lane)) % modes.length];
 }
 
-function queueRotationPage(rotation, lane) {
+function queueRotationPage(rotation, lane, channel = "") {
   /* Adjacent channel rotations deliberately sample adjacent Archive pages. A
      sort change alone often returns the same top records, which made a fresh
-     rotation look like a repeat even when the catalog had more depth. */
-  return 1 + (Math.abs(Number(rotation) || 0) + Number(lane || 0)) % 3;
+     rotation look like a repeat even when the catalog had more depth. Proven
+     repeat-heavy lanes get six pages during background repair; ordinary lanes
+     retain the smaller three-page window to keep Archive bursts bounded. */
+  const pageCount = iaDepthRecoveryEnabled(channel) ? 6 : 3;
+  return 1 + (Math.abs(Number(rotation) || 0) + Number(lane || 0)) % pageCount;
 }
 
 async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, cacheOrigin, ctx, rotation = 0, searchTimeoutMs = 3200, firstApprovedLane = false, expandContainers = !firstApprovedLane) {
@@ -2393,7 +2414,7 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTit
     : Math.min(8, searchQueries.length);
   const lanePromises = searchQueries.slice(0, laneLimit).map(async (query, lane) => {
     try {
-      const result = await cachedSearchArchive(cacheOrigin, query, Math.min(36, Math.max(18, count * 4)), queueRotationPage(rotation, lane), queueRotationSort(rotation, lane), ctx, searchTimeoutMs);
+      const result = await cachedSearchArchive(cacheOrigin, query, Math.min(36, Math.max(18, count * 4)), queueRotationPage(rotation, lane, channel), queueRotationSort(rotation, lane), ctx, searchTimeoutMs);
       // Archive.org collections are catalog pages, not programs. Keeping one in
       // a shelf guarantees a failed playback attempt, so reject them before
       // ranking, caching, or media hydration for every IA channel.
@@ -2635,7 +2656,7 @@ function scheduleCachedIaHydration(payload, requestedCount, cacheOrigin, cacheKe
   const reserveQueries = queries.slice(0, Math.min(8, queries.length));
   const fallbackQueries = iaFallbackQueries(themeTerms, denyTerms, requiredTitleTerms, mediaTypes);
   const seed = { ...payload, lastGoodKey, items: candidates.slice(0, candidateCount), candidateItems: candidates, candidates: candidates.length };
-  const task = expandAndCacheIaQueue(seed, reserveQueries.slice(0, Math.min(IA_BACKGROUND_RESERVE_LANES, reserveQueries.length)), fallbackQueries.slice(0, Math.min(IA_BACKGROUND_FALLBACK_LANES, fallbackQueries.length)), channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, requestedCount, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, Number(payload.rotation) || 0)
+  const task = expandAndCacheIaQueue(seed, iaBackgroundReserveQueries(channel, reserveQueries), iaBackgroundFallbackQueries(channel, fallbackQueries), channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, requestedCount, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, Number(payload.rotation) || 0)
     .catch((error) => {
       console.warn(JSON.stringify({ event: "ia-cached-rehydration-failed", message: String(error && error.message || error) }));
     })
@@ -2783,7 +2804,7 @@ async function expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, c
      avoid wrapping back into the same shelf while a viewer surfs. Keep this
      work entirely behind the first frame; cold tuning still hydrates only the
      requested public shelf. */
-  const backgroundTarget = Math.min(candidateCount, Math.max(count, 15));
+  const backgroundTarget = Math.min(candidateCount, Math.max(count, iaDepthRecoveryEnabled(channel) ? 18 : 15));
   const deepHydrated = await hydrateIaQueue(expanded, backgroundTarget, cacheOrigin, ctx, mediaTypes);
   const hydrated = deepHydrated && deepHydrated.items.length
     ? { ...deepHydrated, items: deepHydrated.items.slice(0, count), candidateItems: deepHydrated.items, candidates: deepHydrated.items.length, ready: Math.min(count, deepHydrated.items.length), partial: deepHydrated.items.length < count, hydrating: false }
@@ -2829,7 +2850,7 @@ function scheduleIaReplenishment(ready, reserveQueries, fallbackQueries, channel
   const needsPlayableDepth = candidateItems.length > readyItems.length || playableCandidates < Math.min(candidateCount, Math.max(count, 12));
   if (ready.ready >= count && !needsPlayableDepth) return;
   const seed = { ...ready, items: candidateItems.slice(0, candidateCount), candidateItems, candidates: candidateItems.length };
-  scheduleIaExpansion(seed, reserveQueries.slice(0, Math.min(IA_BACKGROUND_RESERVE_LANES, reserveQueries.length)), fallbackQueries.slice(0, Math.min(IA_BACKGROUND_FALLBACK_LANES, fallbackQueries.length)), channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, rotation);
+  scheduleIaExpansion(seed, iaBackgroundReserveQueries(channel, reserveQueries), iaBackgroundFallbackQueries(channel, fallbackQueries), channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, rotation);
 }
 
 async function timeboxQueueHydration(hydration, timeoutMs) {
@@ -2901,8 +2922,8 @@ async function getIaQueue(request, url, env, ctx) {
           if (cachedPayload.items && cachedPayload.items.length && (cachedNeedsFreshRotation || iaNeedsCatalogDepth(cachedPayload, count, cachedCandidateCount))) {
             scheduleIaExpansion(
               { ...cachedPayload, lastGoodKey, items: cachedCandidates.slice(0, cachedCandidateCount), candidateItems: cachedCandidates, candidates: cachedCandidates.length },
-              queries.slice(0, Math.min(IA_BACKGROUND_RESERVE_LANES, queries.length)),
-              iaFallbackQueries(themeTerms, denyTerms, requiredTitleTerms, mediaTypes).slice(0, IA_BACKGROUND_FALLBACK_LANES),
+              iaBackgroundReserveQueries(channel, queries),
+              iaBackgroundFallbackQueries(channel, iaFallbackQueries(themeTerms, denyTerms, requiredTitleTerms, mediaTypes)),
               channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity,
               count, cachedCandidateCount, url.origin, cacheKey, sharedKey, env, ctx, rotation, true
             );
@@ -2954,8 +2975,8 @@ async function getIaQueue(request, url, env, ctx) {
            skip/channel change sees a second, non-overlapping shelf. */
         scheduleIaExpansion(
           { ...shared, lastGoodKey, items: sharedCandidates.slice(0, sharedCandidateCount), candidateItems: sharedCandidates, candidates: sharedCandidates.length },
-          queries.slice(0, Math.min(IA_BACKGROUND_RESERVE_LANES, queries.length)),
-          iaFallbackQueries(themeTerms, denyTerms, requiredTitleTerms, mediaTypes).slice(0, IA_BACKGROUND_FALLBACK_LANES),
+          iaBackgroundReserveQueries(channel, queries),
+          iaBackgroundFallbackQueries(channel, iaFallbackQueries(themeTerms, denyTerms, requiredTitleTerms, mediaTypes)),
           channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity,
           count, sharedCandidateCount, url.origin, cacheKey, sharedKey, env, ctx, rotation, true
         );
@@ -3016,8 +3037,8 @@ async function getIaQueue(request, url, env, ctx) {
       };
       if (!sameRotation || warmNeedsExpansion) {
         const warmSeed = { ...warmLastGood, lastGoodKey, rotation, items: warmCandidates.slice(0, warmCandidateCount), candidateItems: warmCandidates, candidates: warmCandidates.length };
-        const warmReserveQueries = queries.slice(0, Math.min(IA_BACKGROUND_RESERVE_LANES, queries.length));
-        const warmFallbackQueries = iaFallbackQueries(themeTerms, denyTerms, requiredTitleTerms, mediaTypes).slice(0, IA_BACKGROUND_FALLBACK_LANES);
+        const warmReserveQueries = iaBackgroundReserveQueries(channel, queries);
+        const warmFallbackQueries = iaBackgroundFallbackQueries(channel, iaFallbackQueries(themeTerms, denyTerms, requiredTitleTerms, mediaTypes));
         scheduleIaExpansion(warmSeed, warmReserveQueries, warmFallbackQueries, channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, warmCandidateCount, url.origin, cacheKey, sharedKey, env, ctx, rotation, true);
       }
       const warmResponse = cacheableJson(warmFallback, 5, {
@@ -3101,7 +3122,7 @@ async function getIaQueue(request, url, env, ctx) {
        verified program. A successful background pass overwrites the short
        partial cache and fills the shared ready shelf for the next request. */
     if (needsExpansion) {
-      scheduleIaExpansion(payload, reserveQueries.slice(0, Math.min(IA_BACKGROUND_RESERVE_LANES, reserveQueries.length)), fallbackQueries.slice(0, Math.min(IA_BACKGROUND_FALLBACK_LANES, fallbackQueries.length)), channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, url.origin, cacheKey, sharedKey, env, ctx, rotation, payload.emergency === true);
+      scheduleIaExpansion(payload, iaBackgroundReserveQueries(channel, reserveQueries), iaBackgroundFallbackQueries(channel, fallbackQueries), channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, url.origin, cacheKey, sharedKey, env, ctx, rotation, payload.emergency === true);
     }
     if (!payload.items.length) {
       /* A cold Archive miss is not a programming decision. If this channel has

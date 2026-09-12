@@ -92,16 +92,16 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-72-48";
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
-/* v66 keeps Archive multi-file programs and their sibling episodes in the
+/* v67 keeps Archive multi-file programs and their sibling episodes in the
    candidate shelf. A cold tune still returns a verified
    parent program immediately, while the background shelf expands collection
    items into their individual playable episode files. Cache this separately
    from v49: episode data waited behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v66";
-/* Last-good shelves share the v66 namespace so an older shallow shelf
+const IA_QUEUE_CACHE_VERSION = "v67";
+/* Last-good shelves share the v67 namespace so an older shallow shelf
    never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v66";
+const IA_LAST_GOOD_CACHE_VERSION = "v67";
 const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
 /* A short per-isolate burst cache absorbs repeat requests from a TV, phone,
    and guide opened in quick succession. It is intentionally tiny and
@@ -164,7 +164,7 @@ const IA_FOREGROUND_HYDRATION_CONCURRENCY = 2;
    page can time out before returning the first approved record even though the
    same editorial query is healthy on the stable first page. Retry only these
    observed lanes against page 1; never broaden their terms or disable gates. */
-const IA_STABLE_RESCUE_CHANNELS = new Set(["17", "19", "82", "106", "113", "132", "204", "214", "238", "702", "906", "915"]);
+const IA_STABLE_RESCUE_CHANNELS = new Set(["17", "19", "82", "106", "113", "132", "204", "206", "214", "238", "702", "906", "915"]);
 /* Last-resort, already-observed playable records for those same sparse lanes.
    These are not a permanent catalog: they are used only when discovery returns
    no candidate at all, are passed through normal media hydration, and are
@@ -313,6 +313,13 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "Sleepfor1950", title: "Sleep for Health", subject: "public health educational film classroom film", year: 1950 },
     { identifier: "EatforHe1954", title: "Eat for Health", subject: "public health educational film consumer culture", year: 1954 },
     { identifier: "Careofth1949", title: "Care of the Skin", subject: "public health educational film sponsored film", year: 1949 },
+  ],
+  "206": [
+    { identifier: "090-aahma-watermarked", title: "090_AAHMA Home Movie", subject: "home movie amateur film super 8 family life travel road trip", year: 1970 },
+    { identifier: "IICADOM_0905", title: "Gerardmer '51 — Grand Ballon d'Alsace", subject: "home movie amateur film 8mm travel France", year: 1951 },
+    { identifier: "ALCFJamesKilgoreClip5221", title: "James Kilgore Films — 1982 World's Fair", subject: "home movie amateur film travel tourism family film 1980s", year: 1982 },
+    { identifier: "10942_brt40con133_hm_travel_san_francisco", title: "Home Movie — Travel, San Francisco", subject: "home movie amateur film travelogue San Francisco", year: 1960 },
+    { identifier: "amateur_west_1940_1", title: "Amateur Film — West 1940", subject: "amateur film home movie travelogue Grand Canyon Colorado River", year: 1940 },
   ],
   "106": [
     { identifier: "DasKabinettdesDoktorCaligariTheCabinetofDrCaligari", title: "The Cabinet of Dr. Caligari", subject: "world cinema foreign film German cinema international cinema", year: 1919 },

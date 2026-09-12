@@ -41,7 +41,8 @@ for (const [channel, collection] of Object.entries(expectedRails)) {
 }
 
 const relay = fs.readFileSync(path.join(root, 'afterglow_ais_relay_worker.js'), 'utf8');
-check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v66"/.test(relay), 'Relay cache namespace is v66');
+check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v67"/.test(relay), 'Relay cache namespace is v67');
+check(/"206": \[/.test(relay) && /090-aahma-watermarked/.test(relay) && /amateur_west_1940_1/.test(relay), 'Home Movies has verified sparse-lane recovery media');
 check(/"12": \[/.test(relay) && /whatsmyline5September1954/.test(relay) && /Price_Is-Right_1957/.test(relay), 'Game Show Channel has a rotating verified temporary fallback shelf');
 check(/"115": \[/.test(relay) && /1989gojirataibiorante/.test(relay) && /thereturnofgodzilla1984/.test(relay), 'Monster Island has verified kaiju recovery media');
 check(/"154": \[/.test(relay) && /DragnetEpisode18TheBigSeventeenwcommercials/.test(relay) && /hawaii-five-o-S2E3-480p/.test(relay), 'Cop Show Classic has verified police-procedural recovery media');

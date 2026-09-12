@@ -92,6 +92,22 @@ node scripts\analyze-ia-soak.js C:\Users\tdy19\Documents\Codex\2026-08-14\can\ia
 
 The release gate is: no timeout, no underfilled shelf, distinct rotation shelves for the repaired lanes, and no newly introduced failure in the measured clean lanes. Queue readiness is not the same as a visible DOM frame; the latter still requires a real browser/device telemetry run.
 
+### v171 final focused result
+
+Report: `C:\Users\tdy19\Documents\Codex\2026-08-14\can\ia-long-tail-v171-focus.json`.
+
+| Measure | Result |
+| --- | ---: |
+| First-play ready | 6/6 |
+| Full-depth rotations | 18/18 |
+| Underfilled lanes | 0 |
+| No-signal lanes | 0 |
+| Timeouts | 0 |
+| Duplicate items | 6 |
+| Average first-play readiness | 194 ms (149–287 ms) |
+
+The analyzer reports 15 unique items across the three rotations for Reading Room (`238`), Design & Architecture (`239`), and Reggae & Dub (`915`). Game Show (`12`), Britcom (`122`), and Joke Joint (`202`) each provide 13 unique items across the 15 observed slots; the remaining two repeats are normal shelf wraparound, with no underfill or failed start. All six repaired lanes reached five ready items on every rotation.
+
 ## Monitoring and repair runbook
 
 Use the same commands for nightly or pre-release checks. Keep reports timestamped and do not treat a single provider outage as a channel-ranking regression.
@@ -112,5 +128,6 @@ Monitor these signals: first visible frame, tune latency, ready depth, full item
 - Client stamps: desktop/mobile `1.9.7.*.171-ia-long-tail`.
 - IA cache namespace: queue and last-good `v79`.
 - Production Worker before this release: v170, version ID `89ce6dd6-52df-4dcf-9a7b-4e0dbc3f9037`.
-- Post-deploy Worker v171 version ID and post-patch soak totals must be recorded here before the release is called complete.
+- Current production Worker: v171, version ID `a2289cb3-d0b1-466d-af73-59038a337860`.
+- v171 post-deploy soak: 6/6 first-play ready, 18/18 full-depth rotations, 0 underfilled lanes, 0 no-signal lanes, 0 timeouts.
 - Keep the nightly IA health sweep as the regression guard; it should alert on underfill, repeat concentration, timeout, or provider-health changes and remain quiet when the state is unchanged.

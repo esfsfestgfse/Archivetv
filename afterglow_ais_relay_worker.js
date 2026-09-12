@@ -92,16 +92,16 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-72-48";
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
-/* v64 keeps Archive multi-file programs and their sibling episodes in the
+/* v65 keeps Archive multi-file programs and their sibling episodes in the
    candidate shelf. A cold tune still returns a verified
    parent program immediately, while the background shelf expands collection
    items into their individual playable episode files. Cache this separately
    from v49: episode data waited behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v64";
-/* Last-good shelves share the v64 namespace so an older shallow shelf
+const IA_QUEUE_CACHE_VERSION = "v65";
+/* Last-good shelves share the v65 namespace so an older shallow shelf
    never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v64";
+const IA_LAST_GOOD_CACHE_VERSION = "v65";
 const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
 /* A short per-isolate burst cache absorbs repeat requests from a TV, phone,
    and guide opened in quick succession. It is intentionally tiny and
@@ -164,7 +164,7 @@ const IA_FOREGROUND_HYDRATION_CONCURRENCY = 2;
    page can time out before returning the first approved record even though the
    same editorial query is healthy on the stable first page. Retry only these
    observed lanes against page 1; never broaden their terms or disable gates. */
-const IA_STABLE_RESCUE_CHANNELS = new Set(["132", "210", "702"]);
+const IA_STABLE_RESCUE_CHANNELS = new Set(["17", "19", "82", "106", "113", "132", "204", "214", "238", "702", "906", "915"]);
 /* Last-resort, already-observed playable records for those same sparse lanes.
    These are not a permanent catalog: they are used only when discovery returns
    no candidate at all, are passed through normal media hydration, and are
@@ -278,6 +278,76 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "AbeLymanCollection1925-1934", title: "Abe Lyman Collection 1925–1935", subject: "78rpm early recording dance band", year: 1925 },
     { identifier: "PaulWhiteman1920-1935CompleteCollection", title: "Paul Whiteman Collection 1920–1935", subject: "78rpm early recording jazz dance band", year: 1920 },
     { identifier: "TedLewisCollection1919-1934", title: "Ted Lewis Collection 1919–1934", subject: "78rpm early recording jazz dance band", year: 1919 },
+  ],
+  "82": [
+    { identifier: "RoadstoR1950_2", title: "Roads to Romance: The Santa Cruz Trail and Land of the Giant Cactus", subject: "camping hiking trail wilderness travel outdoor recreation travel film", year: 1950 },
+    { identifier: "0901_New_Oregon_Trail_The_01_36_49_27", title: "The New Oregon Trail", subject: "trail hiking wilderness travel outdoor recreation", year: 1950 },
+    { identifier: "HMEmmausBoysCampW98617", title: "Emmaus Boys Camp, Wesco, Missouri", subject: "camping outdoor recreation wilderness travel", year: 1934 },
+    { identifier: "amateur_film_ice_harvest_camp_minisi_1921", title: "Ice Harvest at Camp Minsi", subject: "camping outdoor recreation winter travel", year: 1921 },
+    { identifier: "diary_of_a_mountain_girl_1927-1939", title: "Diary of a Mountain Girl", subject: "mountain hiking wilderness travel outdoor recreation", year: 1930 },
+  ],
+  "19": [
+    { identifier: "The_Beverly_Hillbillies", title: "The Beverly Hillbillies — Granny's Garden", subject: "classic television family sitcom domestic sitcom", year: 1962 },
+    { identifier: "TLS_Lucy_Gets_A_Roommate", title: "The Lucy Show — Lucy Gets a Roommate", subject: "classic television family sitcom domestic sitcom", year: 1963 },
+    { identifier: "Andy_Griffith_A_Wife_For_Andy", title: "The Andy Griffith Show — A Wife for Andy", subject: "classic television family sitcom domestic sitcom", year: 1963 },
+    { identifier: "Andy-Griffith-Show_Andy-Discovers-America", title: "The Andy Griffith Show — Andy Discovers America", subject: "classic television family sitcom domestic sitcom", year: 1961 },
+    { identifier: "Beverly_Hillbillies_Ep03_Meanwhile_Back_At_The_Cabin", title: "The Beverly Hillbillies — Meanwhile Back at the Cabin", subject: "classic television family sitcom domestic sitcom", year: 1962 },
+  ],
+  "906": [
+    { identifier: "buddy-guy-srv-1986-lone-star-cafe-nyc", title: "Buddy Guy & Stevie Ray Vaughan — Lone Star Cafe, 1986", subject: "contemporary blues electric blues blues rock live music", year: 1986 },
+    { identifier: "buddy-guy-the-sting-new-britain-ct-1992", title: "Buddy Guy — The Sting, New Britain, 1992", subject: "contemporary blues electric blues live music", year: 1992 },
+    { identifier: "otis-rush-buddy-guy-chicago-blues-fest-1988", title: "Otis Rush & Buddy Guy — Chicago Blues Fest, 1988", subject: "contemporary blues chicago blues electric blues live music", year: 1988 },
+    { identifier: "buddy-guy-stone-crazy", title: "Buddy Guy — Stone Crazy", subject: "contemporary blues electric blues chicago blues", year: 1981 },
+    { identifier: "LegacyBluesLighninHopkins1", title: "Lightnin' Hopkins — Legacy of the Blues", subject: "contemporary blues texas blues electric blues", year: 1974 },
+  ],
+  "915": [
+    { identifier: "FinnTheGiantMeetsSandmonkNewDubOrder", title: "Finn the Giant Meets Sandmonk — New Dub Order", subject: "reggae dub roots reggae instrumental music", year: 2007 },
+    { identifier: "Brass_Islands_of_Dub", title: "Mikuś — Brass Islands of Dub", subject: "reggae dub instrumental music", year: 2011 },
+    { identifier: "bigyouthhittheroadjack", title: "Big Youth — Hit the Road Jack", subject: "reggae roots reggae dub", year: 1970 },
+    { identifier: "Reggaeska", title: "Reggae SKA", subject: "reggae ska roots reggae", year: 2010 },
+    { identifier: "OldSkoolTagalogReggaeClassicsSongs2019ChocolateFactoryTropicalDepressionBlakdyak", title: "Old Skool Tagalog Reggae Classics", subject: "reggae ska roots reggae", year: 2019 },
+  ],
+  "204": [
+    { identifier: "Doctorin1946", title: "Doctor in Industry (Part I)", subject: "public health educational film industrial film sponsored film", year: 1946 },
+    { identifier: "HealthYo1953", title: "Health: Your Posture", subject: "public health educational film safety film", year: 1953 },
+    { identifier: "Sleepfor1950", title: "Sleep for Health", subject: "public health educational film classroom film", year: 1950 },
+    { identifier: "EatforHe1954", title: "Eat for Health", subject: "public health educational film consumer culture", year: 1954 },
+    { identifier: "Careofth1949", title: "Care of the Skin", subject: "public health educational film sponsored film", year: 1949 },
+  ],
+  "106": [
+    { identifier: "DasKabinettdesDoktorCaligariTheCabinetofDrCaligari", title: "The Cabinet of Dr. Caligari", subject: "world cinema foreign film German cinema international cinema", year: 1919 },
+    { identifier: "WarOfTheRobots", title: "War of the Robots", subject: "world cinema foreign film Italian cinema international cinema", year: 1978 },
+    { identifier: "BattleOfTheWorldsWidesceen", title: "Battle of the Worlds", subject: "world cinema foreign film Italian cinema international cinema", year: 1961 },
+    { identifier: "AtomAgeVampire", title: "Atom Age Vampire", subject: "world cinema foreign film Italian cinema international cinema", year: 1960 },
+    { identifier: "StarOdysseyitalianStarWars1979", title: "Star Odyssey", subject: "world cinema foreign film Italian cinema international cinema", year: 1979 },
+  ],
+  "17": [
+    { identifier: "the-tonight-show-starring-johnny-carson::1954-09-27 - NBC Tonight Starring Steve Allen - S01E01 - 'Tonight!' National Premiere (September 27, 1954).mp4", sourceIdentifier: "the-tonight-show-starring-johnny-carson", title: "Tonight! — National Premiere", subject: "late night talk show variety interview television", year: 1954 },
+    { identifier: "the-tonight-show-starring-johnny-carson::1954-12-09 - NBC Tonight Starring Steve Allen - S01E51 - Zsa Zsa Gabor, Jose Ferrer, Jerome Hines, Sandor Glancz (December 9, 1954).mp4", sourceIdentifier: "the-tonight-show-starring-johnny-carson", title: "Tonight! — Zsa Zsa Gabor and Jose Ferrer", subject: "late night talk show variety interview television", year: 1954 },
+    { identifier: "the-tonight-show-starring-johnny-carson::1962-11-19 - The Tonight ShowStarring Johnny Carson - S01E35 - Patricia Morison, Jack Douglas and wife Reiko (November 19, 1962).mp4", sourceIdentifier: "the-tonight-show-starring-johnny-carson", title: "The Tonight Show — Patricia Morison and Jack Douglas", subject: "late night talk show variety interview television", year: 1962 },
+    { identifier: "the-tonight-show-starring-johnny-carson::1963-12-03 - The Tonight ShowStarring Johnny Carson - S02E22 - Henny Youngman, Don Stewart, Ivan Sanderson, Annie Fargé (December 3, 1963).mp4", sourceIdentifier: "the-tonight-show-starring-johnny-carson", title: "The Tonight Show — Henny Youngman and Don Stewart", subject: "late night talk show variety interview television", year: 1963 },
+    { identifier: "the-tonight-show-starring-johnny-carson::1964-04-22 - The Tonight ShowStarring Johnny Carson - S02E122 - Arlene Dahl, Henry Morgan, Jake Ehrlich (April 22, 1964).mp4", sourceIdentifier: "the-tonight-show-starring-johnny-carson", title: "The Tonight Show — Arlene Dahl and Henry Morgan", subject: "late night talk show variety interview television", year: 1964 },
+  ],
+  "113": [
+    { identifier: "TheScreamingSkullHD1958", title: "The Screaming Skull", subject: "cult horror b movie drive-in film", year: 1958 },
+    { identifier: "plan-9-from-outer-space_202009", title: "Plan 9 from Outer Space", subject: "cult horror b movie drive-in science fiction film", year: 1959 },
+    { identifier: "WickedKittyHosts-RogerCormansAttackOfTheCrabMonsters", title: "Attack of the Crab Monsters — Hosted Feature", subject: "cult horror b movie drive-in horror host film", year: 1957 },
+    { identifier: "Weird-o-ramaWeird-cast1-Part1TheScreamingSkull", title: "Weird-O-Rama — The Screaming Skull", subject: "cult horror b movie horror host film", year: 2011 },
+    { identifier: "robot-monster-1953", title: "Robot Monster", subject: "cult horror b movie drive-in science fiction film", year: 1953 },
+  ],
+  "214": [
+    { identifier: "TexasFar1952", title: "Texas Farm Family", subject: "farm farming agriculture rural life rural america", year: 1952 },
+    { identifier: "AboutBan1935", title: "About Bananas", subject: "agriculture farm food industry rural life", year: 1935 },
+    { identifier: "FromtheG1954", title: "From the Ground Up", subject: "agriculture farm food industry rural life", year: 1954 },
+    { identifier: "Chickeno1948", title: "The Chicken of Tomorrow", subject: "farm farming agriculture rural life", year: 1948 },
+    { identifier: "FoodforF1943", title: "Food for Fighters", subject: "agriculture farming rural america food production", year: 1943 },
+  ],
+  "238": [
+    { identifier: "book-talk-data-cartels", title: "Book Talk: Data Cartels", subject: "author interview book talk literature", year: 2022 },
+    { identifier: "book-talk-the-catalogue-of-shipwrecked-books", title: "Book Talk: The Catalogue of Shipwrecked Books", subject: "author interview book talk literature", year: 2022 },
+    { identifier: "the-library-a-fragile-history", title: "Book Talk: The Library: A Fragile History", subject: "author interview book talk literature library program", year: 2022 },
+    { identifier: "book-talk-walled-culture", title: "Book Talk: Walled Culture", subject: "author interview book talk literature", year: 2022 },
+    { identifier: "athena-unbound", title: "Book Talk: Athena Unbound", subject: "author interview book talk literature", year: 2023 },
   ],
   "205": [
     { identifier: "sight-sound-queen-esther-small-file", title: "Sight & Sound — Jesus / Queen Esther", subject: "hymn gospel worship religious service", year: 2013 },
@@ -702,6 +772,24 @@ function safeMediaTypes(types) {
 function safeQueueRotation(value) {
   const rotation = Number(value);
   return Number.isInteger(rotation) && rotation >= 0 && rotation <= 127 ? rotation : 0;
+}
+
+/* Several IA channel manifests intentionally repeat a collection rail with a
+   slightly different era/sort clause. Keep the editorial order, but do not
+   spend a foreground Archive request twice on the same normalized query. This
+   reduces cold-start burst pressure while leaving all distinct rails available
+   to the background depth refill. */
+function uniqueIaQueries(queries, limit = 8) {
+  const seen = new Set(), result = [];
+  for (const value of Array.isArray(queries) ? queries : []) {
+    const query = String(value || "").replace(/\s+/g, " ").trim();
+    const key = query.toLowerCase();
+    if (!query || seen.has(key)) continue;
+    seen.add(key);
+    result.push(query);
+    if (result.length >= Math.max(1, Number(limit) || 8)) break;
+  }
+  return result;
 }
 
 /* A few editorial channels are correctly strict but have Archive queries that
@@ -2292,10 +2380,11 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTit
      current rotation, opposite ends of the era range, and narrow editorial
      rails. Resolve all of them in parallel. Restricting discovery to only the
      first three made sparse channels look as if they were hydrating forever. */
+  const searchQueries = uniqueIaQueries(queries, 8);
   const laneLimit = firstApprovedLane
-    ? Math.min(IA_FOREGROUND_DISCOVERY_LANES, queries.length)
-    : Math.min(8, queries.length);
-  const lanePromises = queries.slice(0, laneLimit).map(async (query, lane) => {
+    ? Math.min(IA_FOREGROUND_DISCOVERY_LANES, searchQueries.length)
+    : Math.min(8, searchQueries.length);
+  const lanePromises = searchQueries.slice(0, laneLimit).map(async (query, lane) => {
     try {
       const result = await cachedSearchArchive(cacheOrigin, query, Math.min(36, Math.max(18, count * 4)), queueRotationPage(rotation, lane), queueRotationSort(rotation, lane), ctx, searchTimeoutMs);
       // Archive.org collections are catalog pages, not programs. Keeping one in
@@ -2941,12 +3030,13 @@ async function getIaQueue(request, url, env, ctx) {
        rescue lanes are deliberately deferred until the fast shelf is sparse.
        This keeps the first playable item on the short path while preserving
        the broader catalog for refill and later rotations. */
-    const fastQueries = queries.slice(0, Math.min(IA_FOREGROUND_DISCOVERY_LANES, queries.length));
+    const orderedQueries = uniqueIaQueries(queries, 8);
+    const fastQueries = orderedQueries.slice(0, Math.min(IA_FOREGROUND_DISCOVERY_LANES, orderedQueries.length));
     /* The first-approved cold race intentionally starts with only the first
        rail. Keep the second fast rail at the front of the reserve list so a
        sparse winner can widen into the app's next approved lane immediately;
        otherwise that rail was launched, observed, and then discarded. */
-    const reserveQueries = queries.slice(0, Math.min(8, queries.length));
+    const reserveQueries = orderedQueries;
     let payload = await buildIaQueue(channel, fastQueries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, candidateCount, url.origin, ctx, rotation, IA_FAST_SEARCH_TIMEOUT_MS, true);
     const fallbackQueries = iaFallbackQueries(themeTerms, denyTerms, requiredTitleTerms, mediaTypes);
     if (!payload.items.length) {

@@ -92,16 +92,16 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-72-48";
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
-/* v65 keeps Archive multi-file programs and their sibling episodes in the
+/* v66 keeps Archive multi-file programs and their sibling episodes in the
    candidate shelf. A cold tune still returns a verified
    parent program immediately, while the background shelf expands collection
    items into their individual playable episode files. Cache this separately
    from v49: episode data waited behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v65";
-/* Last-good shelves share the v65 namespace so an older shallow shelf
+const IA_QUEUE_CACHE_VERSION = "v66";
+/* Last-good shelves share the v66 namespace so an older shallow shelf
    never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v65";
+const IA_LAST_GOOD_CACHE_VERSION = "v66";
 const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
 /* A short per-isolate burst cache absorbs repeat requests from a TV, phone,
    and guide opened in quick succession. It is intentionally tiny and
@@ -2772,7 +2772,11 @@ async function expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, c
      identifiers—so a later rotation can serve a fresh shelf immediately even
      when Archive discovery is briefly slow. The public `items` field remains
      the normal five-program contract. */
-  const backgroundTarget = Math.min(candidateCount, Math.max(count, 12));
+  /* Three five-item rotations need at least fifteen verified candidates to
+     avoid wrapping back into the same shelf while a viewer surfs. Keep this
+     work entirely behind the first frame; cold tuning still hydrates only the
+     requested public shelf. */
+  const backgroundTarget = Math.min(candidateCount, Math.max(count, 15));
   const deepHydrated = await hydrateIaQueue(expanded, backgroundTarget, cacheOrigin, ctx, mediaTypes);
   const hydrated = deepHydrated && deepHydrated.items.length
     ? { ...deepHydrated, items: deepHydrated.items.slice(0, count), candidateItems: deepHydrated.items, candidates: deepHydrated.items.length, ready: Math.min(count, deepHydrated.items.length), partial: deepHydrated.items.length < count, hydrating: false }
@@ -2886,7 +2890,8 @@ async function getIaQueue(request, url, env, ctx) {
           /* A valid exact-rotation response can still be an old five-item
              shelf. Keep serving it immediately, but use that request to
              launch the same bounded catalog refill used by a cold tune. */
-          if (cachedPayload.items && cachedPayload.items.length && iaNeedsCatalogDepth(cachedPayload, count, cachedCandidateCount)) {
+          const cachedNeedsFreshRotation = cachedPayload.fallback === true || cachedPayload.stale === true;
+          if (cachedPayload.items && cachedPayload.items.length && (cachedNeedsFreshRotation || iaNeedsCatalogDepth(cachedPayload, count, cachedCandidateCount))) {
             scheduleIaExpansion(
               { ...cachedPayload, lastGoodKey, items: cachedCandidates.slice(0, cachedCandidateCount), candidateItems: cachedCandidates, candidates: cachedCandidates.length },
               queries.slice(0, Math.min(IA_BACKGROUND_RESERVE_LANES, queries.length)),

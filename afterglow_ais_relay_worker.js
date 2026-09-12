@@ -92,16 +92,16 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-72-48";
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
-/* v51 keeps Archive multi-file programs and their sibling episodes in the
+/* v63 keeps Archive multi-file programs and their sibling episodes in the
    candidate shelf. A cold tune still returns a verified
    parent program immediately, while the background shelf expands collection
    items into their individual playable episode files. Cache this separately
    from v49: episode data waited behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v62";
-/* Last-good shelves share the v51 namespace so a cached v50 shallow shelf
+const IA_QUEUE_CACHE_VERSION = "v63";
+/* Last-good shelves share the v63 namespace so an older shallow shelf
    never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v62";
+const IA_LAST_GOOD_CACHE_VERSION = "v63";
 const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
 /* A short per-isolate burst cache absorbs repeat requests from a TV, phone,
    and guide opened in quick succession. It is intentionally tiny and
@@ -251,6 +251,81 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "incredible-hulk-1994-complete-series", title: "The Incredible Hulk — Animated Series (1994–1996)", subject: "animated television kids show superhero cartoon", year: 1996 },
     { identifier: "SittingDucks", title: "Sitting Ducks — Animated Series (2001–2003)", subject: "animated television kids show cartoon", year: 2001 },
     { identifier: "spongebob-squarepants_20250716", title: "SpongeBob SquarePants — Animated Series", subject: "nickelodeon kids television animated television", year: 1999 },
+  ],
+  "62": [
+    { identifier: "ncaamm2016-wvu-sfa", title: "NCAA Men's Basketball Tournament — West Virginia vs. Stephen F. Austin (2016)", subject: "college basketball ncaa tournament college sports", year: 2016 },
+    { identifier: "DavidJThomas2005LyonCollegeVolleyball", title: "2005 Lyon College Volleyball", subject: "college volleyball college sports athletics", year: 2005 },
+    { identifier: "HBU_TVShow1_0", title: "HBU Huskies College Sports", subject: "college sports athletics university", year: 2010 },
+    { identifier: "IntheGameFilm", title: "In the Game — Stanford Women's Basketball (1994)", subject: "college basketball college sports athletics documentary", year: 1994 },
+  ],
+  "904": [
+    { identifier: "001netlabel-jazz-01-recorcholis", title: "001 Records Netlabel — Chilean Jazz", subject: "jazz contemporary jazz free music", year: 2010 },
+    { identifier: "ca200_cjazz", title: "Various — Clinical Jazz", subject: "jazz free jazz avant-garde contemporary jazz", year: 2008 },
+    { identifier: "Aestrid_144", title: "Aestrid — Smooth Jazz", subject: "jazz smooth jazz contemporary jazz instrumental", year: 2007 },
+    { identifier: "Sorrow-Line259", title: "Sorrow — Line 259", subject: "jazz contemporary jazz", year: 2010 },
+    { identifier: "MIXG032", title: "Retrovision — Free Jazz, Blues & Lo-Fi", subject: "jazz contemporary jazz free music", year: 2013 },
+  ],
+  "908": [
+    { identifier: "clubdelcountry", title: "Club del Country", subject: "country music bluegrass honky tonk americana", year: 2006 },
+    { identifier: "diymAR06", title: "Across Town — Alt-Country", subject: "country music alt-country acoustic folk", year: 2011 },
+    { identifier: "townhousewoodshardcountry", title: "Townhouse Woods — Hard Country", subject: "country music hard country", year: 2010 },
+    { identifier: "redneck-28-spirit-of-the-south-bonus", title: "Spirit of the South", subject: "country music bluegrass outlaw country", year: 2010 },
+    { identifier: "david-allan-coe-underground-album-1982", title: "David Allan Coe — Underground Album (1982)", subject: "country music outlaw country country rock", year: 1982 },
+  ],
+  "920": [
+    { identifier: "78_house-of-the-rising-sun_josh-white-and-his-guitar_gbia0001628b", title: "House of the Rising Sun — 78rpm Recording", subject: "78rpm early recording folk blues", year: 1942 },
+    { identifier: "TheColumbiansCollection1924-1929DirectedByBenSelvin", title: "The Columbians Collection 1924–1929", subject: "78rpm early recording dance band", year: 1924 },
+    { identifier: "AbeLymanCollection1925-1934", title: "Abe Lyman Collection 1925–1935", subject: "78rpm early recording dance band", year: 1925 },
+    { identifier: "PaulWhiteman1920-1935CompleteCollection", title: "Paul Whiteman Collection 1920–1935", subject: "78rpm early recording jazz dance band", year: 1920 },
+    { identifier: "TedLewisCollection1919-1934", title: "Ted Lewis Collection 1919–1934", subject: "78rpm early recording jazz dance band", year: 1919 },
+  ],
+  "205": [
+    { identifier: "sight-sound-queen-esther-small-file", title: "Sight & Sound — Jesus / Queen Esther", subject: "hymn gospel worship religious service", year: 2013 },
+    { identifier: "BillAndGloria", title: "Seventh Day Adventist Christian Hymn", subject: "hymn gospel worship sacred music", year: 2008 },
+    { identifier: "RobertWynnePaperThinHymn", title: "Paper Thin Hymn", subject: "hymn gospel sacred music", year: 2010 },
+    { identifier: "one-hour-of-praise-worship-on-piano-17-contemporary-christian-songs-with-lyrics-", title: "Piano Hymns With Lyrics", subject: "hymn gospel worship sacred music", year: 2015 },
+    { identifier: "pilgrims-progress-02-christiana-360p-30fps-h-264-128kbit-aac_202212", title: "Pilgrim's Progress — Christian & Christiana", subject: "religious film worship christian gospel", year: 2022 },
+  ],
+  "111": [
+    { identifier: "sex_madness", title: "Sex Madness (1938)", subject: "drive-in exploitation cult film grindhouse", year: 1938 },
+    { identifier: "reefer_madness1938", title: "Reefer Madness (1938)", subject: "drive-in exploitation cult film grindhouse", year: 1938 },
+    { identifier: "DoubleFeatureHell2theGrindhouseExperience", title: "Double Feature Hell 2 — The Grindhouse Experience", subject: "drive-in exploitation grindhouse cult film", year: 2010 },
+    { identifier: "Rent-a-girl1965ExploitationRoughie", title: "Rent-A-Girl (1965)", subject: "drive-in exploitation b-movie grindhouse", year: 1965 },
+    { identifier: "Night_Of_The_Living_Dead_raw_HD_WS", title: "Night of the Living Dead (1968)", subject: "drive-in horror cult film independent film", year: 1968 },
+  ],
+  "117": [
+    { identifier: "pinkflamingos1972_202211", title: "Pink Flamingos (1972)", subject: "independent film underground cinema film festival", year: 1972 },
+    { identifier: "StarWreckInThePirkining", title: "Star Wreck: In the Pirkining (2005)", subject: "independent film film festival cult cinema", year: 2005 },
+    { identifier: "DeadManDrinking", title: "Dead Man Drinking", subject: "independent film australian cinema", year: 2008 },
+    { identifier: "EvelKnievel", title: "Evel Knievel (1971)", subject: "independent film american cinema", year: 1971 },
+    { identifier: "nasty-girls", title: "Nasty Girls (1998)", subject: "independent film rare film underground cinema", year: 1998 },
+  ],
+  "220": [
+    { identifier: "BobRossTheHappyPainter", title: "Bob Ross: The Happy Painter", subject: "bob ross the joy of painting painting show comfort television", year: 2011 },
+    { identifier: "TomFrankStudiosJacobPaintswithBobRoss", title: "Jacob Paints with Bob Ross", subject: "bob ross the joy of painting painting show", year: 2013 },
+    { identifier: "youtube-aOJsKNzO3i8", title: "Bob Ross — Ebony Sea", subject: "bob ross the joy of painting painting show", year: 2015 },
+    { identifier: "william-alexander-bob-ross-and-me", title: "William Alexander, Bob Ross, and Me", subject: "bob ross painting show comfort television", year: 2000 },
+    { identifier: "ReadingRainbowTVSeries", title: "Reading Rainbow — TV Series", subject: "reading rainbow comfort television educational television", year: 1983 },
+  ],
+  "222": [
+    { identifier: "pryor_202009", title: "Richard Pryor — Stand-Up", subject: "stand-up comedy comedy special live comedy", year: 1980 },
+    { identifier: "lee-evans-collection", title: "Lee Evans — Complete Live Collection", subject: "stand-up comedy comedy special live comedy", year: 1994 },
+    { identifier: "01-just-for-laughs", title: "Just for Laughs — Stand-Up Comedy", subject: "stand-up comedy comedy club live comedy", year: 2010 },
+    { identifier: "words-words-words-hd_2010", title: "Bo Burnham — Words Words Words", subject: "stand-up comedy comedy special live comedy", year: 2010 },
+  ],
+  "231": [
+    { identifier: "Automoti1940", title: "Automotive Service (1940)", subject: "automobile automotive car culture service and repair", year: 1940 },
+    { identifier: "Signal301959", title: "Signal 30 — Automotive Safety (1959)", subject: "automotive car culture automobile safety", year: 1959 },
+    { identifier: "RoadRunn1952", title: "Road Runners — Hot Rods & Car Culture", subject: "automotive car culture hot rods automobiles", year: 1952 },
+    { identifier: "MasterHa1936", title: "Master Hands — Automobile Manufacturing", subject: "automobile manufacturing automotive industry car design", year: 1936 },
+    { identifier: "styling_and_the_experimental_car", title: "Styling and the Experimental Car", subject: "automotive car design automobile industry", year: 1964 },
+  ],
+  "510": [
+    { identifier: "retro-core-volume-1", title: "Retro Core — Volume 1", subject: "arcade game video game history retro gaming", year: 2004 },
+    { identifier: "FinalFantasy2_356", title: "Final Fantasy II — SNES Longplay", subject: "video game arcade game retro gaming", year: 2005 },
+    { identifier: "BanjoTooie_100p_45413", title: "Banjo-Tooie — N64 Longplay", subject: "video game retro gaming home video game", year: 2005 },
+    { identifier: "ZeldaMajorasMask_100p_655", title: "The Legend of Zelda: Majora's Mask — N64 Longplay", subject: "video game retro gaming home video game", year: 2005 },
+    { identifier: "ChronoTrigger_456", title: "Chrono Trigger — SNES Longplay", subject: "video game retro gaming home video game", year: 2005 },
   ],
   "228": [
     { identifier: "George_Soros_1998_60_Minutes_Interview", title: "60 Minutes — George Soros Interview (1998)", subject: "60 minutes television newsmagazine investigative journalism", year: 1998 },

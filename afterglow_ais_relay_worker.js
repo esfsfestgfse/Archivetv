@@ -98,10 +98,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-72-48";
    items into their individual playable episode files. Cache this separately
    from v49: episode data waited behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v61";
+const IA_QUEUE_CACHE_VERSION = "v62";
 /* Last-good shelves share the v51 namespace so a cached v50 shallow shelf
    never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v61";
+const IA_LAST_GOOD_CACHE_VERSION = "v62";
 const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
 /* A short per-isolate burst cache absorbs repeat requests from a TV, phone,
    and guide opened in quick succession. It is intentionally tiny and
@@ -506,23 +506,51 @@ function sharedQueueFallbackKey(identity) {
 }
 
 function mergeIaFallbackCandidates(previous, payload) {
-  const prior = Array.isArray(previous && previous.candidateItems) && previous.candidateItems.length
-    ? previous.candidateItems
-    : ((previous && previous.items) || []);
-  const current = Array.isArray(payload && payload.candidateItems) && payload.candidateItems.length
-    ? payload.candidateItems
-    : ((payload && payload.items) || []);
-  const merged = [], seen = new Set();
+  const sourceItems = (value) => {
+    const candidates = Array.isArray(value && value.candidateItems) && value.candidateItems.length
+      ? value.candidateItems
+      : ((value && value.items) || []);
+    /* The last-good shelf is a playback fallback, not a metadata catalog.
+       Keeping raw identifiers here made an old shallow response look deep
+       while every later rotation still had to rediscover its media. */
+    return candidates.filter((item) => item && item.identifier && item.media && item.media.url);
+  };
+  const prior = sourceItems(previous), current = sourceItems(payload);
+  const diversity = (payload && payload.diversity) || (previous && previous.diversity) || {};
+  const cap = (value, fallback) => Math.max(1, Math.min(5, Math.round(Number(value) || fallback)));
+  const limits = {
+    family: cap(diversity.maxPerFamily, 1),
+    creator: cap(diversity.maxPerCreator, 1),
+    collection: cap(diversity.maxPerCollection, 2),
+    source: 2,
+  };
+  const ordered = [...current, ...prior], merged = [], seen = new Set();
+  const counts = { family: new Map(), creator: new Map(), collection: new Map(), source: new Map() };
+  const canAdd = (item, relaxed) => {
+    if (!item || !item.identifier || seen.has(item.identifier)) return false;
+    if (relaxed) return true;
+    const keys = queueDiversityKeys(item, item.lane);
+    return (!keys.family || (counts.family.get(keys.family) || 0) < limits.family) &&
+      (!keys.creator || (counts.creator.get(keys.creator) || 0) < limits.creator) &&
+      (!keys.collection || (counts.collection.get(keys.collection) || 0) < limits.collection) &&
+      (!keys.source || (counts.source.get(keys.source) || 0) < limits.source);
+  };
+  const add = (item) => {
+    const keys = queueDiversityKeys(item, item.lane);
+    seen.add(item.identifier);
+    merged.push(item);
+    Object.keys(counts).forEach((key) => {
+      if (keys[key]) counts[key].set(keys[key], (counts[key].get(keys[key]) || 0) + 1);
+    });
+  };
   /* Put the newest verified catalog first so a same-rotation warm handoff
      still opens on the shelf that just proved playable, then retain older
      candidates as the rolling depth behind it. */
-  for (const item of [...current, ...prior]) {
-    const identifier = String(item && item.identifier || "");
-    if (!identifier || seen.has(identifier)) continue;
-    seen.add(identifier);
-    merged.push(item);
-    if (merged.length >= IA_STRICT_CATALOG_CANDIDATE_MAX) break;
-  }
+  for (const item of ordered) if (canAdd(item, false)) { add(item); if (merged.length >= IA_STRICT_CATALOG_CANDIDATE_MAX) return merged; }
+  /* A genuinely sparse lane may have fewer distinct title families than the
+     editorial caps allow. Preserve a usable fallback shelf in that case, but
+     only after exhausting every diverse verified candidate first. */
+  for (const item of ordered) if (canAdd(item, true)) { add(item); if (merged.length >= IA_STRICT_CATALOG_CANDIDATE_MAX) break; }
   return merged;
 }
 
@@ -2184,7 +2212,10 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTit
      current rotation, opposite ends of the era range, and narrow editorial
      rails. Resolve all of them in parallel. Restricting discovery to only the
      first three made sparse channels look as if they were hydrating forever. */
-  const lanePromises = queries.slice(0, Math.min(8, queries.length)).map(async (query, lane) => {
+  const laneLimit = firstApprovedLane
+    ? Math.min(IA_FOREGROUND_DISCOVERY_LANES, queries.length)
+    : Math.min(8, queries.length);
+  const lanePromises = queries.slice(0, laneLimit).map(async (query, lane) => {
     try {
       const result = await cachedSearchArchive(cacheOrigin, query, Math.min(36, Math.max(18, count * 4)), queueRotationPage(rotation, lane), queueRotationSort(rotation, lane), ctx, searchTimeoutMs);
       // Archive.org collections are catalog pages, not programs. Keeping one in
@@ -2488,7 +2519,19 @@ async function cacheIaQueueIfRicher(cacheKey, payload, ttlSeconds, headers = {})
       const priorPayload = await prior.clone().json();
       const priorEpisodes = queueEpisodeDepth(priorPayload), nextEpisodes = queueEpisodeDepth(payload);
       const priorReady = Number(priorPayload && priorPayload.ready || 0), nextReady = Number(payload && payload.ready || 0);
-      if (priorEpisodes > nextEpisodes || (priorEpisodes === nextEpisodes && priorReady > nextReady)) return false;
+      const playableCount = (value) => {
+        const candidates = Array.isArray(value && value.candidateItems) && value.candidateItems.length
+          ? value.candidateItems
+          : ((value && value.items) || []);
+        return candidates.filter((item) => item && item.identifier && item.media && item.media.url).length;
+      };
+      const priorPlayable = playableCount(priorPayload), nextPlayable = playableCount(payload);
+      /* A fast foreground handoff can contain five ready items plus dozens of
+         unhydrated candidates. Never let that shallow response overwrite the
+         richer playable shelf that its background refill just produced. */
+      if (priorEpisodes > nextEpisodes ||
+          (priorEpisodes === nextEpisodes && priorPlayable > nextPlayable) ||
+          (priorEpisodes === nextEpisodes && priorPlayable === nextPlayable && priorReady > nextReady)) return false;
     }
   } catch {}
   await cache.put(cacheKey, cacheableJson(payload, ttlSeconds, headers));
@@ -2594,10 +2637,18 @@ function scheduleIaExpansion(seed, reserveQueries, fallbackQueries, channel, the
 }
 
 function scheduleIaReplenishment(ready, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, rotation) {
-  if (!ready || ready.ready >= count) return;
+  if (!ready) return;
   const candidateItems = Array.isArray(ready.candidateItems) && ready.candidateItems.length
     ? ready.candidateItems
     : (Array.isArray(ready.items) ? ready.items : []);
+  const readyItems = Array.isArray(ready.items) ? ready.items : [];
+  const playableCandidates = candidateItems.filter((item) => item && item.identifier && item.media && item.media.url).length;
+  /* A complete foreground shelf is still shallow when its candidate catalog
+     contains unresolved records. Hydrate a rolling depth in the background
+     even when ready already equals the requested five; otherwise the next
+     rotation can fall back to the same five forever. */
+  const needsPlayableDepth = candidateItems.length > readyItems.length || playableCandidates < Math.min(candidateCount, Math.max(count, 12));
+  if (ready.ready >= count && !needsPlayableDepth) return;
   const seed = { ...ready, items: candidateItems.slice(0, candidateCount), candidateItems, candidates: candidateItems.length };
   scheduleIaExpansion(seed, reserveQueries.slice(0, Math.min(IA_BACKGROUND_RESERVE_LANES, reserveQueries.length)), fallbackQueries.slice(0, Math.min(IA_BACKGROUND_FALLBACK_LANES, fallbackQueries.length)), channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, rotation);
 }

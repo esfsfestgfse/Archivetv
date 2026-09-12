@@ -41,7 +41,7 @@ for (const [channel, collection] of Object.entries(expectedRails)) {
 }
 
 const relay = fs.readFileSync(path.join(root, 'afterglow_ais_relay_worker.js'), 'utf8');
-check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v74"/.test(relay), 'Relay cache namespace is v74');
+check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v75"/.test(relay), 'Relay cache namespace is v75');
 check(/"206": \[/.test(relay) && /090-aahma-watermarked/.test(relay) && /amateur_west_1940_1/.test(relay), 'Home Movies has verified sparse-lane recovery media');
 check(/"11": \[/.test(relay) && /freakylinks-complete-series-2000/.test(relay) && /partners-1995-96/.test(relay), 'Modern Rerun TV has verified sitcom recovery media');
 check(/"208": \[/.test(relay) && /santa-fe-atsf-teamwork-and-technology/.test(relay) && /ThisIsMy1940/.test(relay), 'Railroad has verified railway recovery media');

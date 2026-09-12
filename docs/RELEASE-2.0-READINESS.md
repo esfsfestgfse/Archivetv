@@ -1,6 +1,8 @@
 # RealSignal 2.0 readiness
 
-Build under test: `1.9.7-desktop.120-release2-reliability` and `1.9.7-mobile.120-release2-reliability`.
+Build under test: `1.9.7-desktop.167-ia-long-tail` and `1.9.7-mobile.167-ia-long-tail`.
+
+Worker release: v166 is the current production baseline; v167 is the long-tail IA release in this document.
 
 ## What is covered
 
@@ -43,3 +45,69 @@ Before calling 2.0 production-ready, run the telemetry-enabled build in a normal
 - `docs/`: deployment and operational runbooks.
 
 The next engineering action is a real-network telemetry capture. If provider results remain empty there, investigate relay credentials, upstream availability, and browser/network policy before changing channel ranking or queue logic.
+
+## Focused long-tail IA pass — v167
+
+This pass is intentionally selective. It changes only lanes that reproduced underfill or repeat-heavy rotation in the v166 long-tail soak.
+
+Pre-patch evidence from 20 sampled lanes, three five-item rotations, serial load:
+
+| Measure | Result |
+| --- | ---: |
+| First-play ready | 20/20 |
+| Full-depth lanes | 19/20 |
+| Full-depth rotations | 58/60 |
+| Duplicate items | 116 |
+| Timeouts | 0 |
+| Average queue readiness | 67 ms (27–196 ms) |
+
+The delayed retest reproduced the repeat loop on Festival Circuit (117), Museum of Motion (240), Christmas Channel (700), and Soul Train Vault (927): each filled its shelf but retained the same emergency five across later rotations. Game Show (12) also reproduced a four-item shelf in one rotation. These are real catalog/shelf problems, not relay timeouts.
+
+### Lanes changed
+
+- `12` Game Show Channel — removed the invalid Concentration direct URL that returned 404; the remaining verified game-show shelf is allowed to hydrate normally.
+- `77` Grand Prix — expanded the emergency shelf with distinct Formula One races/highlights across 1985–2001.
+- `102` Western Channel — expanded with additional verified western films and runtime-hydrated candidates.
+- `117` The Festival Circuit — added distinct festival and independent-film candidates.
+- `202` Joke Joint — added distinct comedy specials/sketch candidates, including episode-level collection entries.
+- `239` Design & Architecture — expanded with architecture, preservation, landscape, and public-works candidates.
+- `240` Museum of Motion — replaced the unauthorized/invalid direct WCFTR item with a runtime-hydrated candidate and added verified early-cinema/film-preservation items.
+- `700` Christmas Channel — replaced the unauthorized/invalid Funny or Die direct item with a runtime-hydrated candidate and added holiday films/specials across eras.
+- `901` Rock — added a broader runtime-hydrated music shelf across classic rock, live performance, radio, and newer recordings.
+- `927` Soul Train Vault — expanded with distinct episode-level Soul Train entries from the 1970s and 1980s.
+
+Direct media entries are only promoted when byte-range probing returns a playable response; ID-only candidates remain eligible for the normal Internet Archive file resolver. The ten lanes above now have wider candidate banks without changing the channel rules for any clean lane. Channels `63`, `101`, `103`, `105`, `122`, `238`, `508`, `510`, `702`, and `915` were measured but left unchanged unless their evidence crossed the patch threshold.
+
+### v167 acceptance evidence
+
+Run after the Worker deploy and record the resulting JSON alongside this document:
+
+```powershell
+node scripts\soak-ia-queues.js --manifest C:\Users\tdy19\Documents\Codex\ia-manifest-153.json --channels 12,63,77,101,102,103,105,117,122,202,238,239,240,508,510,700,702,901,915,927 --count 5 --require-ready 1 --rotations 3 --rotation-delay-ms 3000 --concurrency 1 --timeout-ms 15000 --depth-timeout-ms 6000 --poll-ms 1000 --out C:\Users\tdy19\Documents\Codex\afterglow-repo\ia-long-tail-v167-pass1.json
+node scripts\analyze-ia-soak.js C:\Users\tdy19\Documents\Codex\afterglow-repo\ia-long-tail-v167-pass1.json C:\Users\tdy19\Documents\Codex\ia-manifest-153.json
+```
+
+The release gate is: no timeout, no underfilled shelf, distinct rotation shelves for the repaired lanes, and no newly introduced failure in the measured clean lanes. Queue readiness is not the same as a visible DOM frame; the latter still requires a real browser/device telemetry run.
+
+## Monitoring and repair runbook
+
+Use the same commands for nightly or pre-release checks. Keep reports timestamped and do not treat a single provider outage as a channel-ranking regression.
+
+```powershell
+node scripts\check-worker-contract.js
+node scripts\test-ia-collection-depth.js
+node scripts\test-release2-runtime.js
+node scripts\probe-emergency-urls.js <identifier> ...
+node scripts\soak-ia-queues.js --manifest C:\Users\tdy19\Documents\Codex\ia-manifest-153.json --channels <comma-separated-lanes> --count 5 --require-ready 1 --rotations 3 --concurrency 1 --timeout-ms 15000 --depth-timeout-ms 6000 --poll-ms 1000 --out <report.json>
+node scripts\analyze-ia-soak.js <report.json> C:\Users\tdy19\Documents\Codex\ia-manifest-153.json
+```
+
+Monitor these signals: first visible frame, tune latency, ready depth, full item depth, duplicate count, media errors, stalls, provider response status, and no-signal recovery. Patch only a lane that fails twice under separate rotations or fails a direct-media probe; retain short cooldowns and the last-good shelf for transient upstream outages.
+
+## v2 release record
+
+- Client stamps: desktop/mobile `1.9.7.*.167-ia-long-tail`.
+- IA cache namespace: queue and last-good `v75`.
+- Production Worker before this release: v166, version ID `c23d9710-7461-474d-9f02-4e3ed02b798f`.
+- Post-deploy Worker version ID and post-patch soak totals must be recorded here before the release is called complete.
+- Keep the nightly IA health sweep as the regression guard; it should alert on underfill, repeat concentration, timeout, or provider-health changes and remain quiet when the state is unchanged.

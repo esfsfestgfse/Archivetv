@@ -92,16 +92,16 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-72-48";
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
-/* v63 keeps Archive multi-file programs and their sibling episodes in the
+/* v64 keeps Archive multi-file programs and their sibling episodes in the
    candidate shelf. A cold tune still returns a verified
    parent program immediately, while the background shelf expands collection
    items into their individual playable episode files. Cache this separately
    from v49: episode data waited behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v63";
-/* Last-good shelves share the v63 namespace so an older shallow shelf
+const IA_QUEUE_CACHE_VERSION = "v64";
+/* Last-good shelves share the v64 namespace so an older shallow shelf
    never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v63";
+const IA_LAST_GOOD_CACHE_VERSION = "v64";
 const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
 /* A short per-isolate burst cache absorbs repeat requests from a TV, phone,
    and guide opened in quick succession. It is intentionally tiny and
@@ -2046,7 +2046,7 @@ function archiveEpisodeRotation(files, rotation, salt) {
 /* IA often stores an entire season/serial as one item with many independently
    playable files. Expand that manifest into episode candidates before ranking;
    the player receives one direct file URL per candidate. */
-async function expandArchiveContainer(doc, cacheOrigin, ctx, rotation = 0, salt = 0) {
+async function expandArchiveContainer(doc, cacheOrigin, ctx, rotation = 0, salt = 0, mediaTypes = []) {
   if (!doc || !doc.identifier) return [];
   try {
     const key = new Request(cacheOrigin + IA_PREFIX + "/cache/metadata/" + encodeURIComponent(doc.identifier));
@@ -2059,27 +2059,32 @@ async function expandArchiveContainer(doc, cacheOrigin, ctx, rotation = 0, salt 
       return upstream.json();
     }, ctx);
     const files = Array.isArray(payload && payload.files) ? payload.files : [];
-    const videoCandidates = files.filter((file) => file && file.name && /\.mp4$|\.m4v$|\.webm$|\.ogv$/i.test(file.name)
+    const wantsAudio = mediaTypes.includes("audio") && !mediaTypes.includes("movies");
+    const playableCandidates = files.filter((file) => file && file.name && (wantsAudio
+      ? /\.mp3$|\.ogg$|\.m4a$|\.flac$/i.test(file.name)
+      : /\.mp4$|\.m4v$|\.webm$|\.ogv$/i.test(file.name))
       && !/(?:thumb|sample|trailer|preview|cover|poster|torrent|\.txt$|\.xml$|_files$|_meta$|_archive$)/i.test(file.name));
-    const videoByEpisode = new Map();
-    for (const file of videoCandidates) {
+    const byEpisode = new Map();
+    for (const file of playableCandidates) {
       const key = archiveEpisodeKey(file);
       if (!key) continue;
-      const previous = videoByEpisode.get(key);
-      const score = (candidate) => /h\.?264/i.test(String(candidate && candidate.format || "")) ? 0 : /\.mp4$|\.m4v$/i.test(candidate.name) ? 1 : 2;
-      if (!previous || score(file) < score(previous)) videoByEpisode.set(key, file);
+      const previous = byEpisode.get(key);
+      const score = (candidate) => wantsAudio
+        ? (/\.mp3$/i.test(candidate.name) ? 0 : 1)
+        : (/h\.?264/i.test(String(candidate && candidate.format || "")) ? 0 : /\.mp4$|\.m4v$/i.test(candidate.name) ? 1 : 2);
+      if (!previous || score(file) < score(previous)) byEpisode.set(key, file);
     }
-    const video = archiveEpisodeRotation([...videoByEpisode.values()], rotation, salt);
+    const playable = archiveEpisodeRotation([...byEpisode.values()], rotation, salt);
     /* A film with alternate encodes is not a series. Labelled containers may
        legitimately have two files; an unlabelled item needs three distinct
        media files before it joins the episode catalog. That catches ordinary
        Archive uploads whose title does not say “complete series” while keeping
        a two-file movie/alternate encode from being split accidentally. */
     const minimumFiles = archiveContainerHint(doc) ? 2 : 3;
-    if (video.length < minimumFiles || video.length > 360) return [];
+    if (playable.length < minimumFiles || playable.length > 360) return [];
     const md = payload.metadata || {};
     const base = String(doc.title || doc.identifier).replace(/\s+/g, " ").trim();
-    return video.map((file) => {
+    return playable.map((file) => {
       const title = archiveEpisodeTitle(file, base);
       const seasonEpisode = title.match(/\bS(\d{1,2})E(\d{1,3})\b/i) || title.match(/\b(?:Ch|Chapter|Ep|Episode)[ _-]?(\d{1,3})\b/i);
       return { ...doc, identifier: doc.identifier + "::" + file.name, sourceIdentifier: doc.identifier,
@@ -2090,7 +2095,7 @@ async function expandArchiveContainer(doc, cacheOrigin, ctx, rotation = 0, salt 
         runtime: file.duration || file.runtime || doc.runtime,
         media: (function() {
           const urls = queueFileUrls(doc.identifier, payload, file.name);
-          return urls.length ? { type: "video", url: urls[0], alts: urls.slice(1, 8) } : null;
+          return urls.length ? { type: wantsAudio ? "audio" : "video", url: urls[0], alts: urls.slice(1, 8) } : null;
         })(),
         collection: Array.isArray(md.collection) ? (md.collection[0] || doc.collection) : (md.collection || doc.collection) };
     });
@@ -2303,8 +2308,8 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTit
          approved cold shelf gets a bounded background probe: Archive authors
          often omit words like “collection” even when an item contains a full
          season of distinct video files. */
-      const catalogWantsVideo = !mediaTypes.length || mediaTypes.includes("movies");
-      if (firstApprovedLane && approved.length && catalogWantsVideo) deferredContainerExpansion = true;
+      const catalogCanExpand = !mediaTypes.length || mediaTypes.includes("movies") || mediaTypes.includes("audio");
+      if (firstApprovedLane && approved.length && catalogCanExpand) deferredContainerExpansion = true;
       /* The old foreground race expanded up to six complete-series manifests
          per search lane before it could even begin metadata hydration. A fast
          channel tune needs a verified program, not a season index. Keep that
@@ -2314,15 +2319,15 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTit
       /* Strong container signals are promoted first, with one generic
          multi-file probe behind them. The file manifest—not title wording—has
          the final say about whether an ordinary Archive record is a series. */
-      const hintedSeeds = catalogWantsVideo ? approved.filter(archiveContainerHint) : [];
-      const genericSeeds = catalogWantsVideo ? approved.filter((doc) => !archiveContainerHint(doc)).slice(0, 1) : [];
+      const hintedSeeds = catalogCanExpand ? approved.filter(archiveContainerHint) : [];
+      const genericSeeds = catalogCanExpand ? approved.filter((doc) => !archiveContainerHint(doc)).slice(0, 1) : [];
       /* The foreground lane must never wait on Archive manifests. The exact
          approved parent is enough to hydrate a first frame; the request-level
          background expansion below revisits that parent and turns its files
          into episode candidates after the viewer is already watching. */
       const expansionSeeds = firstApprovedLane ? [] : hintedSeeds.concat(genericSeeds).slice(0, expansionLimit);
       const expandedSets = await mapQueueCandidates(expansionSeeds, IA_CONTAINER_EXPANSION_CONCURRENCY, async (doc, expansionIndex) => {
-        const episodes = await expandArchiveContainer(doc, cacheOrigin, ctx, rotation, lane * 31 + expansionIndex);
+        const episodes = await expandArchiveContainer(doc, cacheOrigin, ctx, rotation, lane * 31 + expansionIndex, mediaTypes);
         return episodes.filter((episode) => matchesTheme(episode, themeTerms, themeMinScore, requiredTitleTerms) && !matchesDeny(episode, denyTerms));
       });
       const expanded = expandedSets.flat();
@@ -2550,7 +2555,6 @@ function scheduleCachedIaHydration(payload, requestedCount, cacheOrigin, cacheKe
    parent are enough to introduce episode variety without letting one season
    fill the television's entire five-show buffer. */
 async function expandSeedArchiveContainers(payload, cacheOrigin, ctx, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, rotation) {
-  if (mediaTypes.length && !mediaTypes.includes("movies")) return [];
   const candidates = Array.isArray(payload && payload.candidateItems) && payload.candidateItems.length
     ? payload.candidateItems
     : ((payload && payload.items) || []);
@@ -2567,7 +2571,7 @@ async function expandSeedArchiveContainers(payload, cacheOrigin, ctx, themeTerms
   }).slice(0, IA_BACKGROUND_CONTAINER_EXPANSIONS);
   if (!parents.length) return [];
   const episodeSets = await mapQueueCandidates(parents, IA_CONTAINER_EXPANSION_CONCURRENCY, async (parent, index) => {
-    const episodes = await expandArchiveContainer({ ...parent, identifier: parent.sourceIdentifier || parent.identifier }, cacheOrigin, ctx, rotation, index * 47);
+    const episodes = await expandArchiveContainer({ ...parent, identifier: parent.sourceIdentifier || parent.identifier }, cacheOrigin, ctx, rotation, index * 47, mediaTypes);
     return episodes.filter((episode) => matchesTheme(episode, themeTerms, themeMinScore, requiredTitleTerms) && !matchesDeny(episode, denyTerms));
   });
   const expanded = [];

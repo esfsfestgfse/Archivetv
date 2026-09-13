@@ -20,7 +20,12 @@ check(runtime.includes("addEventListener('online'"), 'Online recovery hook exist
 for (const file of builds) {
   const html = fs.readFileSync(path.join(repo, file), 'utf8');
   check(html.includes('assets/release2-runtime.js'), `${file}: Release 2 runtime loaded`);
-  check(html.includes('1.9.7-' + (file.includes('mobile') ? 'mobile' : 'desktop') + '.175-source-runtime-floor'), `${file}: build stamp is 175 Source runtime floor`);
+  check(html.includes('1.9.7-' + (file.includes('mobile') ? 'mobile' : 'desktop') + '.176-gear-head-jay-leno'), `${file}: build stamp is 176 Gear Head Jay Leno automotive filter`);
+  const gearHeadStart = html.indexOf('"Gear Head": {');
+  const gearHeadEnd = html.indexOf('\n  /* Deadline', gearHeadStart);
+  const gearHead = gearHeadStart >= 0 && gearHeadEnd > gearHeadStart ? html.slice(gearHeadStart, gearHeadEnd) : '';
+  check(gearHead.includes("jay leno's garage") && gearHead.includes('jay leno car show') && gearHead.includes("leno's garage"), `${file}: Gear Head prioritizes Jay Leno automotive programming`);
+  check(gearHead.includes('the tonight show') && gearHead.includes('talk show') && gearHead.includes('monologue'), `${file}: Gear Head rejects Jay Leno late-night/talk-show bleed`);
   check(/var onAirById=\{\};[\s\S]*?if\(e\)\{ onAirById\[String\(id\)\]=e; \}/.test(html), `${file}: sports EPG live-now index is populated before sorting`);
   check(html.includes('var queuePending=refillIAQueue(ch,sl,1)'), `${file}: active IA tune requests one candidate first`);
   check(html.includes('var IA_READY_TARGET=3'), `${file}: rolling IA shelf keeps one active plus two hot replacements`);

@@ -11,6 +11,7 @@ const required = [
   '"manufacturing process"',
   '"factory tour"',
   '"assembly line"',
+  '"packaging"',
   '"leapfrog"',
   '"cartoon"',
   'iaCachedProgramAllowed',

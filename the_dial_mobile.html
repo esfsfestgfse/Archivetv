@@ -6377,6 +6377,16 @@ Object.assign(PROGRAM["Manufacturing Marvels"],{
   deny:{title:["commercial","home movie","training film","genetically modified","gmo","organic food","gm food","modified food","to live in darkness","leapfrog","preschool","children","kids","cartoon","animation","animated","nursery rhyme","learning video","educational video","storybook","story time","toy review","toy unboxing","gameplay","video game","music video","lyrics","sing along","classroom","school lesson","lecture","seminar","webinar","podcast","vlog","reaction","review","unboxing","how to make","diy","craft tutorial","recipe","cooking"],subject:["commercial","animated","home movie","amateur","military combat","genetic modification","gmo","genetically modified","food safety news","blindness","leapfrog","preschool","children","kids","cartoon","animation","nursery rhyme","learning video","educational video","storybook","story time","toy review","toy unboxing","gameplay","video game","music video","lyrics","sing along","classroom","school lesson","lecture","seminar","webinar","podcast","vlog","reaction","review","unboxing","how to make","diy","craft tutorial","recipe","cooking"]},
   diversity:{maxPerEra:2,maxPerLane:1,maxPerCreator:1,maxPerCollection:2,maxPerFamily:1}
 });
+/* Keep the factory gate strict while covering the vocabulary used by real
+   plant/process records. Archive often names the finished operation (for
+   example, liquid packaging or bottling) instead of saying "manufacturing"
+   in the title. These are still production-floor terms, not generic education
+   or children's-content rescue words. */
+Object.assign(PROGRAM["Manufacturing Marvels"],{
+  queueTerms:PROGRAM["Manufacturing Marvels"].queueTerms.concat(["packaging","liquid packaging","bottling","bottle manufacturing","processing plant","food plant","plant operations","plant tour","production process","factory workers","industrial automation","industrial documentary","manufacturing documentary","metalworking","metal fabrication","electronics assembly","semiconductor manufacturing","cement plant","lumber mill","paper manufacturing","glass plant","tire manufacturing","rubber manufacturing","sugar refinery"]),
+  fastSubjects:PROGRAM["Manufacturing Marvels"].fastSubjects.concat(["packaging","liquid packaging","bottling","processing plant","food plant","plant tour","production process","factory workers","industrial automation","industrial documentary","manufacturing documentary","metalworking","metal fabrication","electronics assembly","semiconductor manufacturing","cement plant","lumber mill","paper manufacturing","glass plant","tire manufacturing","rubber manufacturing","sugar refinery"]),
+  require:Object.assign({},PROGRAM["Manufacturing Marvels"].require,{title_any:PROGRAM["Manufacturing Marvels"].require.title_any.concat(["packaging","liquid packaging","bottling","bottle manufacturing","processing plant","food plant","plant operations","plant tour","production process","factory workers","industrial automation","industrial documentary","manufacturing documentary","metalworking","metal fabrication","electronics assembly","semiconductor manufacturing","cement plant","lumber mill","paper manufacturing","glass plant","tire manufacturing","rubber manufacturing","sugar refinery"])})
+});
 
 /* Commercials are their own video station, never an audio interruption. Rotate
    deliberately across decades and product lanes so a tune never becomes one
@@ -7687,7 +7697,7 @@ var fastTuneCache=store.get("fastTune",{}), FAST_TUNE_TTL=36*60*60*1000, FAST_TU
 /* Editorial identity changed for CH 200. Drop only its old direct-media cache;
    other stations keep their fast-start shelf intact. Bump this fence whenever
    the factory-only contract changes again. */
-try{if(Number(store.get("manufacturingMarvelsGateVersion",0))<1){delete fastTuneCache["200"];store.set("fastTune",fastTuneCache);store.set("manufacturingMarvelsGateVersion",1);}}catch(e){}
+try{if(Number(store.get("manufacturingMarvelsGateVersion",0))<2){delete fastTuneCache["200"];store.set("fastTune",fastTuneCache);store.set("manufacturingMarvelsGateVersion",2);}}catch(e){}
 function fastTuneGet(chNum){var e=fastTuneCache[String(chNum)],ch=typeof byNum==="function"?byNum(chNum):null,expected=iaExpectedMedia(ch);
   if(!e||!e.pl||!e.pl.url||e.pl.type!==expected||!iaCachedProgramAllowed(ch,e.pl)||Date.now()-e.at>FAST_TUNE_TTL||isTemporarilySkipped(e.pl.id)||iaProgramFailed(e.pl.id)||blockedId(e.pl.id)||(Array.isArray(banned)&&banned.indexOf(e.pl.id)>=0)){if(e){delete fastTuneCache[String(chNum)];store.set("fastTune",fastTuneCache);}return null;}
   return {type:e.pl.type,url:e.pl.url,alts:(e.pl.alts||[]).slice(),id:e.pl.id,captions:e.pl.captions||null,

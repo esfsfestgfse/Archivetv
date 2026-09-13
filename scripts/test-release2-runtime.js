@@ -20,7 +20,7 @@ check(runtime.includes("addEventListener('online'"), 'Online recovery hook exist
 for (const file of builds) {
   const html = fs.readFileSync(path.join(repo, file), 'utf8');
   check(html.includes('assets/release2-runtime.js'), `${file}: Release 2 runtime loaded`);
-  check(html.includes('1.9.7-' + (file.includes('mobile') ? 'mobile' : 'desktop') + '.177-live-data-lifecycle'), `${file}: build stamp is 177 live-data lifecycle polish`);
+  check(html.includes('1.9.7-' + (file.includes('mobile') ? 'mobile' : 'desktop') + '.178-r2-shadow-boot'), `${file}: build stamp is 178 shadow telemetry boot fix`);
   check(html.includes('var chanRT={timers:[],teardowns:[]};') && html.includes('chanRT.teardowns.splice(0)'), `${file}: live-channel teardown callbacks are executed`);
   check(html.includes('shipSocket.close()') && html.includes('clearTimeout(publicViewTimer)'), `${file}: Ship Tracker closes sockets and pending viewport retries on channel change`);
   const gearHeadStart = html.indexOf('"Gear Head": {');

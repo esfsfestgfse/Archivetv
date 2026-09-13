@@ -58,5 +58,17 @@
   }
   window.addEventListener('online',function(){clearTimeout(recoveryTimer);recoveryTimer=setTimeout(function(){recoverSource('online');},250);});
   document.addEventListener('visibilitychange',function(){if(!document.hidden)recoverSource('visibility');});
-  if(telemetryOn&&document.body)installTelemetry();
+  function bootTelemetry(){
+    if(!telemetryOn||window.__rsRelease2Telemetry||!document.body)return;
+    installTelemetry();
+  }
+  /* The asset is normally loaded at the end of the document, but Cast and some
+     embedded browsers can evaluate it while the body is still being assembled.
+     Shadow mode must not silently disappear in that race. */
+  if(telemetryOn){
+    if(document.readyState==='loading'){
+      document.addEventListener('DOMContentLoaded',bootTelemetry,{once:true});
+      window.addEventListener('load',bootTelemetry,{once:true});
+    } else bootTelemetry();
+  }
 })();

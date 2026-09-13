@@ -12,6 +12,7 @@ const SOURCE_MAX_ITEMS = 48;
 const SOURCE_MAX_QUERIES = 8;
 const SOURCE_MAX_CONCURRENCY = 4;
 const SOURCE_TIMEOUT_MS = 7000;
+const SOURCE_FIRST_LANE_TIMEOUT_MS = 6500;
 const SOURCE_DEFAULT_INSTANCES = [
   "https://video.blender.org",
   "https://framatube.org",
@@ -19,6 +20,7 @@ const SOURCE_DEFAULT_INSTANCES = [
   "https://tilvids.com",
   "https://peertube.doesstuff.social",
   "https://peertube.dngr.us",
+  "https://search.joinpeertube.org",
 ];
 
 function text(value, limit = 500) {
@@ -260,29 +262,46 @@ async function peerTube(profile, rotation, env) {
   const queries = youtubeQueries(profile, rotation).slice(0, 4);
   const sortModes = ["-match", "-publishedAt", "-views", "-likes"];
   const sort = sortModes[(Number(rotation) || 0) % sortModes.length];
-  const jobs = instances.flatMap((instance) => queries.map((query) => ({ instance, query })));
-  const searched = await mapLimit(jobs, SOURCE_MAX_CONCURRENCY, async ({ instance, query }) => {
-    const url = `${instance}/api/v1/search/videos?${new URLSearchParams({ search: query, count: "12", sort })}`;
-    const data = await fetchJson(url);
-    return (data.data || []).map((item) => {
-      let host = instance;
-      try { host = new URL(item.url || instance).origin; } catch (_) { /* retain configured host */ }
-      return {
-      instance: host,
-      query,
-      uuid: text(item.uuid || item.id, 140),
-      title: text(item.name || item.title || "Untitled"),
-      description: text(item.description || item.truncatedDescription, 1800),
-      tags: text(item.tags, 600),
-      category: text(item.category && item.category.label, 120),
-      account: text(item.account && item.account.displayName, 180),
-      rights: text(item.licence && (item.licence.label || item.licence.name), 240),
-      duration: Number(item.duration) || 0,
-      aspectRatio: Number(item.aspectRatio) || 0,
-      sourceUrl: text(item.url || `${host}/videos/watch/${item.uuid || item.id}`, 1400),
-    }; }).filter((item) => item.uuid);
-  });
-  const raw = unique(searched.flat()).filter((item) => accepted(profile, item, "PeerTube", false)).slice(0, 32);
+  async function search(querySet) {
+    const jobs = instances.flatMap((instance) => querySet.map((query) => ({ instance, query })));
+    const searched = await mapLimit(jobs, SOURCE_MAX_CONCURRENCY, async ({ instance, query }) => {
+      const url = `${instance}/api/v1/search/videos?${new URLSearchParams({ search: query, count: "12", sort })}`;
+      const data = await fetchJson(url);
+      return (data.data || []).map((item) => {
+        let host = instance;
+        try { host = new URL(item.url || instance).origin; } catch (_) { /* retain configured host */ }
+        return {
+          instance: host,
+          query,
+          uuid: text(item.uuid || item.id, 140),
+          title: text(item.name || item.title || "Untitled"),
+          description: text(item.description || item.truncatedDescription, 1800),
+          tags: text(item.tags, 600),
+          category: text(item.category && item.category.label, 120),
+          account: text(item.account && item.account.displayName, 180),
+          rights: text(item.licence && (item.licence.label || item.licence.name), 240),
+          duration: Number(item.duration) || 0,
+          aspectRatio: Number(item.aspectRatio) || 0,
+          sourceUrl: text(item.url || `${host}/videos/watch/${item.uuid || item.id}`, 1400),
+        };
+      }).filter((item) => item.uuid);
+    });
+    return { jobs: jobs.length, items: searched.flat() };
+  }
+  const initial = await search(queries);
+  let searchedJobs = initial.jobs;
+  let raw = unique(initial.items).filter((item) => accepted(profile, item, "PeerTube", false));
+  if (raw.length < 3) {
+    const used = new Set(queries.map((query) => query.toLowerCase()));
+    const fallbackQueries = unique(profile.match.concat(profile.queries).map((query) => text(query, 180)))
+      .filter((query) => !used.has(query.toLowerCase())).slice(0, 4);
+    if (fallbackQueries.length) {
+      const fallback = await search(fallbackQueries);
+      searchedJobs += fallback.jobs;
+      raw = unique(raw.concat(fallback.items)).filter((item) => accepted(profile, item, "PeerTube", false));
+    }
+  }
+  raw = raw.slice(0, 32);
   const detailed = await mapLimit(raw, SOURCE_MAX_CONCURRENCY, async (item) => {
     const detail = await fetchJson(`${item.instance}/api/v1/videos/${encodeURIComponent(item.uuid)}`);
     const file = peerTubeFile(detail);
@@ -299,7 +318,7 @@ async function peerTube(profile, rotation, env) {
     };
     return accepted(profile, hydrated, "PeerTube") ? normalized(hydrated, "PeerTube", item.query) : null;
   });
-  return { provider: "PeerTube", items: unique(detailed.filter(Boolean)).slice(0, SOURCE_MAX_ITEMS), health: { searched: jobs.length, candidates: raw.length, details: detailed.filter(Boolean).length, instances: instances.length } };
+  return { provider: "PeerTube", items: unique(detailed.filter(Boolean)).slice(0, SOURCE_MAX_ITEMS), health: { searched: searchedJobs, candidates: raw.length, details: detailed.filter(Boolean).length, instances: instances.length } };
 }
 
 function providers(profile, rotation, env) {
@@ -327,4 +346,4 @@ export function mergeSourceLanes(profileKey, lanes) {
   return { profileKey, items, ready: items.length, candidates: items.length, catalogVersion: "source-server-1", source: "server-source-catalog" };
 }
 
-export const SOURCE_LIMITS = { SOURCE_MIN_RUNTIME, SOURCE_MAX_ITEMS, SOURCE_MAX_QUERIES };
+export const SOURCE_LIMITS = { SOURCE_MIN_RUNTIME, SOURCE_MAX_ITEMS, SOURCE_MAX_QUERIES, SOURCE_FIRST_LANE_TIMEOUT_MS };

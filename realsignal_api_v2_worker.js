@@ -294,7 +294,13 @@ async function handleSourceCatalog(request, env, ctx, id) {
     return json({ ...cached, profileKey: profile.profileKey, catalogVersion: "source-server-1", source: "d1-source-catalog", hydrating: false, providerAvailability: { youtube: !!env.YOUTUBE_API_KEY, peertube: true }, apiVersion: "v2" }, 200, { "Cache-Control": "public, max-age=10, stale-while-revalidate=60", "X-RealSignal-Request": id, "X-RealSignal-Source": "d1-source-catalog" });
   }
   const { profile: normalized, tasks } = sourceCatalogTasks(body, env, rotation);
-  const first = await firstSourceLane(tasks);
+  let firstTimer;
+  const first = await Promise.race([
+    firstSourceLane(tasks),
+    new Promise((resolve) => {
+      firstTimer = setTimeout(() => resolve({ items: [], lanes: [], ready: 0, candidates: 0, hydrating: true, timedOut: true }), SOURCE_LIMITS.SOURCE_FIRST_LANE_TIMEOUT_MS);
+    }),
+  ]).finally(() => clearTimeout(firstTimer));
   const background = Promise.all(tasks.map((task) => Promise.resolve(task).catch((error) => ({ provider: "unknown", items: [], health: { error: String(error).slice(0, 160) } })))).then((lanes) => persistSourceLanes(env, normalized, lanes)).catch((error) => {
     console.error(JSON.stringify({ event: "source-catalog-persist-failed", requestId: id, profileKey: normalized.profileKey, error: String(error).slice(0, 200) }));
   });

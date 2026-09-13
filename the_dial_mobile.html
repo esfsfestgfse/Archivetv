@@ -673,6 +673,8 @@ html.mob .gsearch-wrap{padding:0 12px 6px}
 /* Build-number chip beside STANDBY so you can see at a glance whether the visible page is the
    latest deploy. Populated from window.__ATV_BUILD at boot. Tiny, low-contrast, non-interactive. */
 .ver-chip{font-size:9px;letter-spacing:1.2px;color:#5a8a62;margin-left:8px;opacity:.75;font-family:monospace;user-select:none;font-weight:600}
+.rs-health-panel{margin:8px 12px 4px;padding:9px;border:1px solid rgba(103,255,134,.2);border-radius:6px;background:linear-gradient(135deg,rgba(8,24,13,.9),rgba(4,11,7,.82));color:#dfffe7;font-family:monospace}
+.rs-health-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:7px}.rs-health-head>div:first-child{min-width:0;display:flex;flex-direction:column;gap:3px}.rs-health-head b{font-size:10px;letter-spacing:1.4px;color:#8fff5c}.rs-health-head small{font-size:8px;letter-spacing:.5px;color:rgba(159,214,166,.68);white-space:nowrap}.rs-health-actions{display:flex;align-items:center;gap:5px;flex:none}.rs-health-surface{font-size:8px;letter-spacing:.5px;color:#ffd36d;white-space:nowrap}.rs-health-btn{appearance:none;min-height:24px;padding:0 7px;border:1px solid rgba(143,255,92,.28);border-radius:4px;background:rgba(143,255,92,.06);color:#aaffbd;font:900 8px monospace;letter-spacing:.5px;cursor:pointer}.rs-health-btn:hover,.rs-health-btn:focus-visible{border-color:#8fff5c;background:rgba(143,255,92,.15);outline:none}.rs-health-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}.rs-health-card{min-width:0;padding:6px 5px;border:1px solid rgba(143,255,92,.12);border-radius:4px;background:rgba(0,0,0,.18)}.rs-health-card b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:900 13px/1.1 monospace;color:#effff2}.rs-health-card span{display:block;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:700 7px/1 monospace;letter-spacing:.45px;color:rgba(159,214,166,.65)}.rs-health-note{margin-top:7px;padding-top:6px;border-top:1px solid rgba(143,255,92,.11);font:700 8px/1.25 monospace;color:rgba(159,214,166,.68)}.rs-health-events{font-weight:700;color:#8fff5c}.rs-health-panel+.hist-list{margin-top:0}@media(max-width:700px){.rs-health-head{align-items:flex-start;flex-direction:column}.rs-health-actions{width:100%;justify-content:space-between}.rs-health-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.rs-health-card b{font-size:12px}.rs-health-head small{white-space:normal}}
 
 /* ============ v11: Weather Watch screen ============ */
 .wx-screen{width:100%;height:100%;overflow:hidden;display:grid;
@@ -1675,7 +1677,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="2.0.0-mobile.200-verified-live-television";
+window.__ATV_BUILD="2.0.1-mobile.201-health-telemetry";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -1958,6 +1960,14 @@ window.addEventListener("unhandledrejection",function(e){
 <div class="pop" id="diagOv" role="dialog" aria-label="Network diagnostics">
   <div class="pop-h">SIGNAL DIAGNOSTICS <span class="pop-x" data-close="diagOv" role="button" tabindex="0" aria-label="Close">✕</span></div>
   <div style="padding:10px 12px 4px"><button id="diagTest" class="rbtn xs" style="width:100%">TEST CONNECTION</button></div>
+  <section class="rs-health-panel" id="rsHealthPanel" aria-label="Playback health">
+    <div class="rs-health-head"><div><b>APP HEALTH</b><small>LOCAL TELEMETRY · NOTHING LEAVES THIS DEVICE</small></div><div class="rs-health-actions"><span class="rs-health-surface" id="rsHealthSurface">LOCAL · MOBILE</span><button class="rs-health-btn" id="rsHealthRefresh" type="button">REFRESH</button><button class="rs-health-btn" id="rsHealthClear" type="button">RESET</button></div></div>
+    <div class="rs-health-grid">
+      <div class="rs-health-card"><b id="rsHealthFrame">—</b><span>FIRST FRAME P50</span></div><div class="rs-health-card"><b id="rsHealthSwitch">—</b><span>CHANNEL SWITCH P50</span></div><div class="rs-health-card"><b id="rsHealthGuide">—</b><span>GUIDE OPEN / CLOSE</span></div><div class="rs-health-card"><b id="rsHealthQueue">—</b><span>QUEUE DEPTH</span></div>
+      <div class="rs-health-card"><b id="rsHealthRepeats">0</b><span>REPEATS</span></div><div class="rs-health-card"><b id="rsHealthSkips">0</b><span>SKIPS</span></div><div class="rs-health-card"><b id="rsHealthFailures">0</b><span>SOURCE FAILURES</span></div><div class="rs-health-card"><b id="rsHealthRecovery">0</b><span>RECOVERIES</span></div>
+    </div>
+    <div class="rs-health-note"><span class="rs-health-events" id="rsHealthEvents">0 local events</span> · <span id="rsHealthNote">Use the app to collect playback measurements.</span></div>
+  </section>
   <!-- F(2026-08-14): Feed Health chip strip. Renders aggregated per-tag health from NETLOG:
        green = at least one recent success, no recent failures; amber = mixed; red = only failures. -->
   <div style="padding:8px 12px 0"><div style="font-size:10px;color:#7fb38f;letter-spacing:.15em;margin-bottom:6px">FEED HEALTH</div><div id="diagHealth" style="display:flex;flex-wrap:wrap;gap:4px"></div></div>

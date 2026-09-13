@@ -15,12 +15,18 @@ check(runtime.includes('window.__rsRelease2Telemetry'), 'Release 2 telemetry API
 check(runtime.includes('first-visible-frame'), 'First visible frame measurement exists');
 check(runtime.includes('uniquePrograms') && runtime.includes("type==='repeat'"), 'Repeat and unique-program measurement exists');
 check(runtime.includes('source-recovery'), 'Source recovery measurement exists');
+check(runtime.includes('guideOpenP50') && runtime.includes('guideCloseP50'), 'Guide open/close measurement exists');
+check(runtime.includes('queue-sample') && runtime.includes('queueCurrent'), 'Queue depth measurement exists');
+check(runtime.includes("action==='skip'") && runtime.includes('skips:'), 'Skip measurement exists');
+check(runtime.includes('sourceFailures') && runtime.includes('sourceRecoveries'), 'Source failure/recovery summary exists');
+check(runtime.includes('statusLabel') && runtime.includes('__rsCastIsConnected'), 'Mobile/Cast status measurement exists');
 check(runtime.includes("addEventListener('online'"), 'Online recovery hook exists');
 
 for (const file of builds) {
   const html = fs.readFileSync(path.join(repo, file), 'utf8');
   check(html.includes('assets/release2-runtime.js'), `${file}: Release 2 runtime loaded`);
-  check(html.includes('2.0.0-' + (file.includes('mobile') ? 'mobile' : 'desktop') + '.200-verified-live-television'), `${file}: build stamp is RealSignal 2.0 — Verified Live Television`);
+  check(html.includes('rsHealthPanel') && html.includes('rsHealthFrame'), `${file}: APP HEALTH panel is present`);
+  check(html.includes('2.0.1-' + (file.includes('mobile') ? 'mobile' : 'desktop') + '.201-health-telemetry'), `${file}: build stamp is RealSignal 2.0.1 — health telemetry`);
   check(html.includes('var chanRT={timers:[],teardowns:[]};') && html.includes('chanRT.teardowns.splice(0)'), `${file}: live-channel teardown callbacks are executed`);
   check(html.includes('shipSocket.close()') && html.includes('clearTimeout(publicViewTimer)'), `${file}: Ship Tracker closes sockets and pending viewport retries on channel change`);
   const gearHeadStart = html.indexOf('"Gear Head": {');

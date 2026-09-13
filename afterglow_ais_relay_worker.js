@@ -817,6 +817,257 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "PrimeProductions_FlyingPenguinJibFest_Snowboarding_2005", title: "Flying Penguin — Snowboarding", subject: "winter sports snowboarding winter games", year: 2005, media: { type: "video", url: "https://archive.org/download/PrimeProductions_FlyingPenguinJibFest_Snowboarding_2005/FlyingPenguin2005_512kb.mp4" } },
   ],
 });
+/* v171 long-tail recovery bank. These are real Internet Archive identifiers
+   collected from the affected lane queries, kept separate from the small
+   emergency bank above so a repeated five-item fallback cannot become the
+   channel's permanent catalog. They still pass the normal theme, deny,
+   media-type, title, and metadata hydration gates before playback. */
+const IA_LONG_TAIL_EXPANSIONS = Object.freeze({
+  "72": [
+    { identifier: "USTA_Pro_Circuit_Men_s_Futures_Tennis_Tournament_2017_-_Palm_Coast", title: "USTA Pro Circuit — Futures Tennis Tournament", subject: "tennis racquet sports tournament", year: 2017 },
+    { identifier: "bctvpa-PIAA_State_Championships_5-20-19", title: "PIAA State Tennis Championships", subject: "tennis racquet sports championship", year: 2019 },
+    { identifier: "Lynn_MA_Sportscast_Season_2_Episode_8_5_13_2015", title: "Lynn MA Sportscast — Tennis", subject: "tennis racquet sports sports broadcast", year: 2015 },
+    { identifier: "du-pont-wtt-smash-hits-tennis-1999", title: "DuPont WTT Smash Hits Tennis", subject: "tennis racquet sports tournament match", year: 1999 },
+    { identifier: "Teen_Sports_Chatter_4th_Show", title: "Teen Sports Chatter — Episode 4", subject: "tennis racquet sports sports television", year: 2015 },
+    { identifier: "Teen_Sports_Chatter_Episode_7", title: "Teen Sports Chatter — Episode 7", subject: "tennis racquet sports sports television", year: 2015 },
+    { identifier: "Teen_Sports_Chatter_Episode_8", title: "Teen Sports Chatter — Episode 8", subject: "tennis racquet sports sports television", year: 2015 },
+    { identifier: "ttval-TSN_Review_week_of_4_11_16", title: "TSN Tennis Review — April 2016", subject: "tennis racquet sports sports review", year: 2016 },
+  ],
+  "73": [
+    { identifier: "tv-saitama-urawa-keiba-chukei", title: "Urawa Keiba — Horse Racing Broadcast", subject: "horse racing equestrian thoroughbred sports", year: 2024 },
+    { identifier: "americanpharoah1", title: "American Pharoah — Arrival at Shizunai", subject: "horse racing thoroughbred equestrian sports", year: 2025 },
+    { identifier: "one-with-everything-horse-racing-poetry-to-doug-rhodehammel-art-by-joe-pasquale-", title: "Horse Racing at Stardust Video and Film", subject: "horse racing equestrian sports culture", year: 2024 },
+  ],
+  "74": [
+    { identifier: "Powdercats_profile", title: "Powdercats Profile", subject: "winter sports skiing snowboarding winter games", year: 2011 },
+    { identifier: "prkcitut-Weekend_Show_Park_City_Television_Powder_Mountain_Segment_1", title: "Weekend Show — Powder Mountain", subject: "winter sports skiing snowboarding winter games", year: 2017 },
+    { identifier: "valdezhelicamps.com", title: "Heliskiing in Valdez, Alaska", subject: "winter sports skiing alpine winter games", year: 1999 },
+    { identifier: "StLouisSki", title: "St. Louis Ski", subject: "winter sports skiing winter games", year: 2005 },
+    { identifier: "Silvertongetsitdone", title: "42 Fresh on Colorado", subject: "winter sports skiing snowboarding winter games", year: 2007 },
+    { identifier: "StephenFlip", title: "Stephen Trick Skiing", subject: "winter sports skiing winter games", year: 2005 },
+    { identifier: "skiSunday_1987WorldChampionships", title: "Ski Sunday — 1987 World Championships", subject: "winter sports skiing winter games sports broadcast", year: 1987 },
+    { identifier: "cammlsmh_000061", title: "Skiing at Mammoth and Hot Creek", subject: "winter sports skiing winter games", year: 1959 },
+  ],
+  "75": [
+    { identifier: "youtube-F8mWrEDUrgs", title: "WYC Peanut Regatta — October 2019", subject: "sailing regatta water sports", year: 2019 },
+    { identifier: "youtube-G7qFvL5A9U4", title: "WYC Peanut Regatta — May 2019", subject: "sailing regatta water sports", year: 2019 },
+    { identifier: "youtube--_MDjbRl6aU", title: "Noxontown Regatta — Girls Varsity", subject: "rowing regatta water sports", year: 2014 },
+    { identifier: "youtube-3QyyKJaiD2Q", title: "Noxontown Regatta — Girls Varsity 8", subject: "rowing regatta water sports", year: 2014 },
+    { identifier: "youtube-B8uXEA9qfBk", title: "Walter Mess Regatta — Men's V8", subject: "rowing regatta water sports", year: 2019 },
+    { identifier: "youtube-KOx3lmwL0ps", title: "WYC Peanut Regatta — Galveston Bay", subject: "sailing regatta water sports", year: 2019 },
+    { identifier: "youtube-IRIldROcDjM", title: "Noxontown Regatta — Girls Varsity 8", subject: "rowing regatta water sports", year: 2013 },
+    { identifier: "youtube-4nSPQEO8z3I", title: "UW vs WSU Regatta — Women's Varsity 8", subject: "rowing regatta water sports", year: 2010 },
+    { identifier: "ualrar-UA_Little_Rock_2022_Cardboard_Boat_Regatta", title: "UA Little Rock Cardboard Boat Regatta", subject: "boat regatta water sports", year: 2022 },
+    { identifier: "Xcorps64NoodSailingHD2", title: "NOOD Sailing — Full Show", subject: "sailing regatta water sports", year: 2016 },
+  ],
+  "104": [
+    { identifier: "htvtx-Press_Pass_to_the_City_-_Two_Stars_of_Motown_-_The_Musical", title: "Two Stars of Motown — The Musical", subject: "music film concert performance live music", year: 2015 },
+    { identifier: "tacmmi-Picnic_at_the_Opera_episode_5_season_3", title: "Picnic at the Opera — Episode 5", subject: "music film opera concert performance", year: 2015 },
+    { identifier: "The_Infamous_Stringdusters_Time_to_Part_Live_at_KDHX_3_17_14", title: "The Infamous Stringdusters — Live", subject: "music film concert performance live music", year: 2014 },
+    { identifier: "The_Whigs_In_The_Dark_Live_at_KDHX_4_22_10_HD", title: "The Whigs — In the Dark Live", subject: "music film concert performance live music", year: 2010 },
+    { identifier: "wrokmi-Ferndale_HS_Marching_Band_at_the_2012_Holiday_Magic_Parade.", title: "Ferndale High Marching Band — Holiday Parade", subject: "music film marching band live performance", year: 2012 },
+    { identifier: "youtube-4bf1NwOj4NQ", title: "Dangerous Toys — Live in Austin", subject: "music film concert performance live music", year: 2015 },
+    { identifier: "youtube-i7XC7di2Ck0", title: "Crystal Shit — Live in San Antonio", subject: "music film concert performance live music", year: 2015 },
+    { identifier: "youtube-I_4IiJ79bgQ", title: "Johnny Goudie — Live in Austin", subject: "music film concert performance live music", year: 2014 },
+    { identifier: "youtube-QI-AtDRaK-k", title: "Burn Ban — Live in Austin", subject: "music film concert performance live music", year: 2013 },
+  ],
+  "109": [
+    { identifier: "flash_gordon9", title: "Flash Gordon — Chapter 9", subject: "action serial cliffhanger adventure movie", year: 1940 },
+    { identifier: "spiders-web", title: "The Spider's Web", subject: "action serial cliffhanger adventure movie", year: 1938 },
+    { identifier: "mandrake-the-magician-serial", title: "Mandrake the Magician", subject: "action serial cliffhanger adventure movie", year: 1939 },
+    { identifier: "phantom-rider-1936", title: "The Phantom Rider", subject: "action serial cliffhanger western adventure movie", year: 1936 },
+    { identifier: "the-phantom-rocket-1933", title: "The Phantom Rocket", subject: "action serial cliffhanger science fiction adventure movie", year: 1933 },
+    { identifier: "ghost-of-zorro", title: "Ghost of Zorro", subject: "action serial cliffhanger western adventure movie", year: 1949 },
+    { identifier: "flash-gordon-1936", title: "Flash Gordon", subject: "action serial cliffhanger science fiction adventure movie", year: 1936 },
+    { identifier: "planet_outlaws_ipod", title: "Planet Outlaws", subject: "action serial science fiction adventure movie", year: 1953 },
+    { identifier: "zorro_rides_again_ep6", title: "Zorro Rides Again — Chapter 6", subject: "action serial cliffhanger western adventure movie", year: 1937 },
+    { identifier: "panther-girl-of-the-kongo", title: "Panther Girl of the Kongo", subject: "action serial cliffhanger adventure movie", year: 1955 },
+    { identifier: "great-adventures-of-wild-bill-hickok", title: "Great Adventures of Wild Bill Hickok", subject: "action serial cliffhanger western adventure movie", year: 1938 },
+    { identifier: "red-barry", title: "Red Barry", subject: "action serial cliffhanger adventure movie", year: 1938 },
+  ],
+  "116": [
+    { identifier: "the-soul-of-black-charley-1080p", title: "The Soul of Black Charley", subject: "blaxploitation black action film crime film", year: 1973 },
+    { identifier: "fight-for-your-life-1977", title: "Fight for Your Life", subject: "blaxploitation black action film crime film", year: 1977 },
+    { identifier: "abby-1974_202605", title: "Abby", subject: "blaxploitation black horror film crime film", year: 1974 },
+    { identifier: "blacula_202511", title: "Blacula", subject: "blaxploitation black horror film crime film", year: 1972 },
+    { identifier: "the-human-tornado-1976", title: "The Human Tornado", subject: "blaxploitation black action film comedy film", year: 1976 },
+    { identifier: "BlackFistMPEG", title: "Black Fist", subject: "blaxploitation black action film crime film", year: 1974 },
+    { identifier: "the-legend-of-black-charley-1972-sdtv-h-265", title: "The Legend of Black Charley", subject: "blaxploitation black western action film", year: 1972 },
+    { identifier: "cleopatra-jones-1973-vhs-transfer", title: "Cleopatra Jones", subject: "blaxploitation black action film crime film", year: 1973 },
+    { identifier: "dr.-black-mr.-hyde", title: "Dr. Black, Mr. Hyde", subject: "blaxploitation black horror film crime film", year: 1976 },
+    { identifier: "thomasine-and-bushrod-1974", title: "Thomasine & Bushrod", subject: "blaxploitation black western action film", year: 1974 },
+    { identifier: "the-education-of-sonny-carson-1974-dvd-rip", title: "The Education of Sonny Carson", subject: "blaxploitation black crime film drama", year: 1974 },
+  ],
+  "200": [
+    { identifier: "MasterHa1936_3", title: "Master Hands — Part III", subject: "manufacturing industry factory engineering industrial film", year: 1936 },
+    { identifier: "VisittoW1950", title: "Visit to Wurlitzer", subject: "manufacturing industry factory engineering industrial film", year: 1950 },
+    { identifier: "Aluminum1956_2", title: "Aluminum on the March — Part II", subject: "manufacturing industry factory engineering industrial film", year: 1956 },
+    { identifier: "Crystals_Go_To_War", title: "Crystals Go to War", subject: "manufacturing industry factory engineering industrial film", year: 1943 },
+    { identifier: "MasterHa1936_2", title: "Master Hands — Part II", subject: "manufacturing industry factory engineering industrial film", year: 1936 },
+    { identifier: "MasterHa1936_4", title: "Master Hands — Part IV", subject: "manufacturing industry factory engineering industrial film", year: 1936 },
+    { identifier: "Oldsmobi1941", title: "Oldsmobile Presents Motoring's Magic Carpet", subject: "manufacturing industry automotive engineering industrial film", year: 1941 },
+    { identifier: "American1958_2", title: "American Look — Part II", subject: "manufacturing industry industrial design engineering film", year: 1958 },
+    { identifier: "DefenseC1941", title: "Defense Comes First with Oldsmobile", subject: "manufacturing industry automotive engineering industrial film", year: 1941 },
+    { identifier: "CurtissW1944", title: "Curtiss-Wright Shorts", subject: "manufacturing industry aircraft engineering industrial film", year: 1944 },
+  ],
+  "206": [
+    { identifier: "CAAM_David_Lei_Linda_Shen_Wedding_1974", title: "Home Movie — David Lei and Linda Shen Wedding", subject: "home movie family film travelogue", year: 1974 },
+    { identifier: "cubanc_000117", title: "Butano Redwoods — Trip with Herbert Hoover", subject: "home movie family film travelogue outdoors", year: 1938 },
+    { identifier: "CAAM_00190", title: "Home Movie — Takemoto Family Anniversary", subject: "home movie family film family gathering", year: 1968 },
+    { identifier: "ViajeCaminoDeSantiagoNoviembre1989", title: "Camino de Santiago — November 1989", subject: "home movie travelogue family film travel", year: 1989 },
+    { identifier: "xmas-hong-kong-robin-bday-1971", title: "Hong Kong Christmas Home Movie", subject: "home movie family film travelogue", year: 1971 },
+    { identifier: "HMGoldenGateInterna10343", title: "Golden Gate International Exposition", subject: "home movie travelogue family film", year: 1940 },
+    { identifier: "HMJapanHongKongT98636", title: "Japan, Hong Kong, Thailand, Norway", subject: "home movie travelogue family film", year: 1957 },
+    { identifier: "HMMichiganandDetroi97320", title: "Michigan and Detroit Area", subject: "home movie travelogue family film", year: 1947 },
+    { identifier: "HMBryceandZionLos11024", title: "Bryce and Zion, Los Angeles", subject: "home movie travelogue family film outdoors", year: 1954 },
+    { identifier: "HMCaliforniaTrip98673", title: "California Trip", subject: "home movie travelogue family film", year: 1951 },
+    { identifier: "HMUSTravels98680", title: "U.S. Travels", subject: "home movie travelogue family film", year: 1950 },
+    { identifier: "HOF0421930AlaTrip5", title: "Alaska Trip", subject: "home movie travelogue family film outdoors", year: 1930 },
+  ],
+  "208": [
+    { identifier: "Passenge1955", title: "The Passenger Train", subject: "railroad railway train passenger rail transport", year: 1955 },
+    { identifier: "GreatRai1942", title: "A Great Railroad at Work — Part I", subject: "railroad railway locomotive rail transport", year: 1942 },
+    { identifier: "GreatRai1942_3", title: "A Great Railroad at Work — Part III", subject: "railroad railway locomotive rail transport", year: 1942 },
+    { identifier: "BigTrain1950", title: "The Big Train — Part I", subject: "railroad railway locomotive rail transport", year: 1950 },
+    { identifier: "BigTrain1950_2", title: "The Big Train — Part II", subject: "railroad railway locomotive rail transport", year: 1950 },
+    { identifier: "BigTrain1955", title: "Big Trains Rolling", subject: "railroad railway locomotive rail transport", year: 1955 },
+    { identifier: "Wheelsof1950", title: "Wheels of Progress", subject: "railroad railway locomotive rail transport", year: 1950 },
+    { identifier: "DesertEm1948_2", title: "Desert Empire — Part II", subject: "railroad railway train rail transport", year: 1948 },
+    { identifier: "Completi1914_2", title: "Completion of Northwestern Pacific Railroad — Part II", subject: "railroad railway train rail transport", year: 1914 },
+    { identifier: "AtThisMo1954", title: "At This Moment — Part I", subject: "railroad railway train rail transport", year: 1954 },
+    { identifier: "AtThisMo1954_2", title: "At This Moment — Part II", subject: "railroad railway train rail transport", year: 1954 },
+    { identifier: "NewHoriz1948", title: "New Horizons", subject: "railroad railway train rail transport", year: 1948 },
+  ],
+  "219": [
+    { identifier: "wbng-action-news-12-feb-18-1993", title: "WBNG Action News — February 18, 1993", subject: "local news local newscast television news", year: 1993 },
+    { identifier: "wapt-eyewitness-news-16-1997", title: "WAPT 16 Eyewitness News", subject: "local news local newscast television news", year: 1997 },
+    { identifier: "wbng-tv-12-action-news-feb-19-1993", title: "WBNG Action News — February 19, 1993", subject: "local news local newscast television news", year: 1993 },
+    { identifier: "wwl-eyewitness-news-1991", title: "WWL Eyewitness News", subject: "local news local newscast television news", year: 1992 },
+    { identifier: "wcax-late-news-start-feb-6-1992", title: "WCAX Late News — February 6, 1992", subject: "local news local newscast television news", year: 1992 },
+    { identifier: "wapt-16-eyewitness-news-episode-1993", title: "WAPT 16 Eyewitness News — 1993", subject: "local news local newscast television news", year: 1993 },
+    { identifier: "WNYWFox5NewsAt10June29th1994", title: "WNYW Fox 5 News at 10", subject: "local news local newscast television news", year: 1994 },
+    { identifier: "wwl-eyewitness-news-at-noon-july-1996", title: "WWL Eyewitness News at Noon", subject: "local news local newscast television news", year: 1996 },
+    { identifier: "wbrz-eyewitness-news-1994-full-cast", title: "WBRZ Eyewitness News", subject: "local news local newscast television news", year: 1994 },
+    { identifier: "wwl-eyewitness-news-at-10-pm-feb-6-1990-b", title: "WWL Eyewitness News at 10 PM", subject: "local news local newscast television news", year: 1990 },
+  ],
+  "228": [
+    { identifier: "msnbc.com-video-2006-10-08", title: "MSNBC News Video — October 2006", subject: "news television newsmagazine current affairs", year: 2006 },
+    { identifier: "BBCNEWS_20190106_113000_Dateline_London", title: "Dateline London", subject: "news television newsmagazine current affairs", year: 2019 },
+    { identifier: "WRC_20131028_072000_Dateline_NBC", title: "Dateline NBC", subject: "news television newsmagazine investigative journalism", year: 2013 },
+    { identifier: "msnbc.com-video-2003-11-04", title: "MSNBC News Video — November 2003", subject: "news television newsmagazine current affairs", year: 2003 },
+    { identifier: "msnbc.com-video-2003-05-14", title: "MSNBC News Video — May 2003", subject: "news television newsmagazine current affairs", year: 2003 },
+    { identifier: "nightline-april-26-1999", title: "Nightline — April 26, 1999", subject: "news television newsmagazine current affairs", year: 1999 },
+    { identifier: "wvue-2-4-94-2", title: "ABC News and WVUE News — February 1994", subject: "news television newsmagazine current affairs", year: 1994 },
+    { identifier: "abc-news-nightline-june-20-1986", title: "ABC News Nightline — June 20, 1986", subject: "news television newsmagazine current affairs", year: 1986 },
+    { identifier: "nightline-the-hajj", title: "Nightline — The Hajj", subject: "news television newsmagazine current affairs", year: 1997 },
+    { identifier: "james-randi-on-dateline-1995", title: "James Randi on Dateline", subject: "news television newsmagazine investigative journalism", year: 1995 },
+  ],
+  "229": [
+    { identifier: "20220107-105032", title: "CBS 60 Minutes — Full Episode", subject: "documentary television documentary investigative journalism", year: 1998 },
+    { identifier: "20220107-172111_20260728", title: "MTV 120 Minutes and AMP — Full Tape", subject: "documentary television music documentary culture", year: 1998 },
+    { identifier: "iVillage_60_Minutes", title: "60 Minutes", subject: "documentary television documentary investigative journalism", year: 1998 },
+    { identifier: "nightline-the-hajj", title: "Nightline — The Hajj", subject: "documentary television documentary current affairs", year: 1997 },
+    { identifier: "james-randi-on-dateline-1995", title: "James Randi on Dateline", subject: "documentary television documentary investigative journalism", year: 1995 },
+    { identifier: "wto-60-minutes-explores-anarchists-and-battle-of-seattle", title: "60 Minutes — Battle of Seattle", subject: "documentary television documentary investigative journalism", year: 2000 },
+    { identifier: "WRC_20131028_072000_Dateline_NBC", title: "Dateline NBC", subject: "documentary television documentary investigative journalism", year: 2013 },
+    { identifier: "BBCNEWS_20190106_113000_Dateline_London", title: "Dateline London", subject: "documentary television documentary current affairs", year: 2019 },
+    { identifier: "msnbc.com-video-2003-11-04", title: "MSNBC News Documentary Video", subject: "documentary television documentary current affairs", year: 2003 },
+    { identifier: "msnbc.com-video-2003-05-14", title: "MSNBC News Documentary Video", subject: "documentary television documentary current affairs", year: 2003 },
+  ],
+  "236": [
+    { identifier: "SoundieO", title: "Soundie — I Can't Give You Anything but Love", subject: "theatrical short soundie music short", year: 1941 },
+    { identifier: "Havana-Madri_2", title: "Soundie — Havana-Madrid Show", subject: "theatrical short soundie music short", year: 1941 },
+    { identifier: "WhosYourHoot", title: "Soundie — Who's Yehudi?", subject: "theatrical short soundie comedy short", year: 1942 },
+    { identifier: "soundie_12", title: "Soundie — Hollywood Boogie", subject: "theatrical short soundie music short", year: 1946 },
+    { identifier: "SoundieD", title: "Soundie — Zig Me Baby with a Gentle Zag", subject: "theatrical short soundie music short", year: 1941 },
+    { identifier: "SoundieQ", title: "Soundie — Chime Bells", subject: "theatrical short soundie music short", year: 1943 },
+    { identifier: "SoundieE", title: "Soundie — What This Country Needs", subject: "theatrical short soundie music short", year: 1941 },
+    { identifier: "SoundieI", title: "Soundie — In a Shanty in Old Shanty Town", subject: "theatrical short soundie music short", year: 1940 },
+    { identifier: "soundie_5", title: "Soundie — Hawaiian Hula Song", subject: "theatrical short soundie music short", year: 1940 },
+    { identifier: "soundie_6", title: "Soundie — Heaven Help a Sailor", subject: "theatrical short soundie music short", year: 1940 },
+    { identifier: "SoundieN", title: "Soundie — One Look at You", subject: "theatrical short soundie music short", year: 1940 },
+    { identifier: "soundie_2", title: "Soundie — Our Teacher", subject: "theatrical short soundie educational short", year: 1943 },
+  ],
+  "910": [
+    { identifier: "territorio-salsero_202109", title: "Territorio Salsero", subject: "latin salsa latin music radio", year: 2021 },
+    { identifier: "tona-la-negra-cassette-completo", title: "Tona la Negra — Cassette Completo", subject: "latin bolero latin music radio", year: 2000 },
+    { identifier: "trio-los-panchos-sin-un-amor-columbia-6297-x-co-40140", title: "Trio Los Panchos — Sin Un Amor", subject: "latin bolero latin music radio", year: 1948 },
+    { identifier: "lp_the-best-mambos-of-the-fabulous-fifties_ralph-font-and-his-orchestra-bill-diablo-a_0", title: "The Best Mambos of the Fabulous Fifties", subject: "latin mambo latin music radio", year: 1957 },
+    { identifier: "lp_an-evening-at-la-margarita-vol1_carlos-barradas-the-trio-veracruz", title: "An Evening at La Margarita", subject: "latin mariachi latin music radio", year: 1971 },
+    { identifier: "lp_new-beat-bossa-nova-means-the-samba-swings_zoot-sims-and-his-orchestra", title: "New Beat Bossa Nova", subject: "latin bossa nova latin music radio", year: 1962 },
+    { identifier: "mc-partland-marian-1963-bossa-nova-plus-soul-blp-cr-01", title: "Marian McPartland — Bossa Nova Plus Soul", subject: "latin bossa nova latin music radio", year: 1963 },
+    { identifier: "gaby-daltas-nosotros-peerless-2026", title: "Nosotros", subject: "latin bolero latin music radio", year: 1943 },
+    { identifier: "enric-madriguera-and-his-orchestra-moon-in-the-sea-rca-victor-27487-a", title: "Moon in the Sea", subject: "latin tango latin music radio", year: 1941 },
+    { identifier: "78_amor-ciego-blind-love_hermanas-hernandez-carmen-laura-r-hernandez_gbia0508662b", title: "Amor Ciego (Blind Love)", subject: "latin bolero latin music radio", year: 1945 },
+    { identifier: "florian-zabach-jalousie-decca-80606-27509", title: "Jalousie", subject: "latin tango latin music radio", year: 1951 },
+    { identifier: "stephane-grappelli-baden-powell-la-grande-reunion", title: "La Grande Réunion", subject: "latin bossa nova latin music radio", year: 1975 },
+  ],
+  "923": [
+    { identifier: "aporee_72706_84885", title: "Bells at 3 PM — Belgium", subject: "field recording soundscape ambient environmental audio", year: 2026 },
+    { identifier: "cartografia-sonora-19102024-camouhan-ridge-insectos-nos-arrozais", title: "Camouhan Ridge — Insects in the Rice Fields", subject: "field recording soundscape ambient environmental audio", year: 2024 },
+    { identifier: "cartografia-sonora-26102024-amed-facendo-o-parvo-e-creando-sons-asmr", title: "Amed — Creating Sounds", subject: "field recording soundscape ambient environmental audio", year: 2024 },
+    { identifier: "cartografia-sonora-03112024-taman-nasional-gunung-leuser-preparando-a-comida-2", title: "Gunung Leuser — Preparing Food", subject: "field recording soundscape ambient environmental audio", year: 2024 },
+    { identifier: "cartografia-sonora-13112024-porto-de-pulau-weh-o-aparato-de-musica-averiado-soando-en-repe", title: "Pulau Weh — Harbour Soundscape", subject: "field recording soundscape ambient environmental audio", year: 2024 },
+    { identifier: "cartografia-sonora-17112024-kampot-o-son-das-andurinas-no-solpor", title: "Kampot — Swallows at Sunset", subject: "field recording soundscape birds ambient environmental audio", year: 2024 },
+    { identifier: "aporee_40198_45909", title: "Marseille — Rain Shelter Acoustics", subject: "field recording soundscape ambient environmental audio", year: 2018 },
+    { identifier: "aporee_35382_40641", title: "Pärnu County — River and Nightingale", subject: "field recording soundscape birds ambient environmental audio", year: 2012 },
+    { identifier: "aporee_47226_82987", title: "Kaohsiung — Traditional Market", subject: "field recording soundscape market city ambience audio", year: 2025 },
+    { identifier: "aporee_49843_56824", title: "Keelung Harbour — Waterfront Ambience", subject: "field recording soundscape harbour city ambience audio", year: 2020 },
+    { identifier: "aporee_50265_57341", title: "Taitung Coast — Waves", subject: "field recording soundscape ocean waves environmental audio", year: 2020 },
+    { identifier: "aporee_71101_82922", title: "Taichung — In the Woods", subject: "field recording soundscape forest birds environmental audio", year: 2025 },
+    { identifier: "aporee_71036_82847", title: "Pingtung — Morning in the Woods", subject: "field recording soundscape forest birds environmental audio", year: 2025 },
+    { identifier: "aporee_71453_83365", title: "Bremnes Fort — WWII Bunker Island", subject: "field recording soundscape historical site environmental audio", year: 2024 },
+    { identifier: "tomas-senkyrik-dawn-chorus-from-floodplain-forest", title: "Dawn Chorus from Floodplain Forest", subject: "field recording soundscape birds environmental audio", year: 2023 },
+  ],
+});
+/* These file names were verified against the IA metadata endpoint during the
+   v172 soak. Carrying the known playable derivative with the recovery record
+   prevents a warm five-item shelf from waiting on another metadata roundtrip
+   before the background rotation can deepen. */
+const IA_LONG_TAIL_MEDIA_FILES = Object.freeze({
+  "youtube-F8mWrEDUrgs": "WYC_Peanut_Regatta_-_10_27_2019_Photos_Taken_from_S_V_Alive_and_Free-F8mWrEDUrgs.mp4",
+  "youtube-G7qFvL5A9U4": "WYC_Peanut_Regatta_05_26_2019_taken_from_S_V_Selah-G7qFvL5A9U4.mp4",
+  "youtube--_MDjbRl6aU": "-_MDjbRl6aU.mp4",
+  "youtube-3QyyKJaiD2Q": "3QyyKJaiD2Q.mp4",
+  "youtube-B8uXEA9qfBk": "B8uXEA9qfBk.mp4",
+  "youtube-KOx3lmwL0ps": "WYC_Peanut_Regatta_-_June_9th_2019_-_Galveston_Bay_Texas-KOx3lmwL0ps.mp4",
+  "youtube-IRIldROcDjM": "IRIldROcDjM.mp4",
+  "youtube-4nSPQEO8z3I": "4nSPQEO8z3I.mp4",
+  "ualrar-UA_Little_Rock_2022_Cardboard_Boat_Regatta": "UA_Little_Rock_2022_Cardboard_Boat_Regatta.mp4",
+  "Xcorps64NoodSailingHD2": "Xcorps64NoodSailingHD2.mp4",
+  "htvtx-Press_Pass_to_the_City_-_Two_Stars_of_Motown_-_The_Musical": "Press_Pass_to_the_City_-_Two_Stars_of_Motown_-_The_Musical.mp4",
+  "tacmmi-Picnic_at_the_Opera_episode_5_season_3": "Picnic_at_the_Opera_episode_5_season_3.mp4",
+  "The_Infamous_Stringdusters_Time_to_Part_Live_at_KDHX_3_17_14": "The_Infamous_Stringdusters_Time_to_Part_Live_at_KDHX_3_17_14.mp4",
+  "The_Whigs_In_The_Dark_Live_at_KDHX_4_22_10_HD": "The_Whigs_In_The_Dark_Live_at_KDHX_4_22_10_HD.mp4",
+  "wrokmi-Ferndale_HS_Marching_Band_at_the_2012_Holiday_Magic_Parade.": "Ferndale_HS_Marching_Band_at_the_2012_Holiday_Magic_Parade..mp4",
+  "youtube-4bf1NwOj4NQ": "4bf1NwOj4NQ.mp4",
+  "youtube-i7XC7di2Ck0": "i7XC7di2Ck0.mp4",
+  "youtube-I_4IiJ79bgQ": "I_4IiJ79bgQ.mp4",
+  "youtube-QI-AtDRaK-k": "QI-AtDRaK-k.mp4",
+  "wbng-action-news-12-feb-18-1993": "WBNG Action News 12 Feb 18 1993.ia.mp4",
+  "wapt-eyewitness-news-16-1997": "WAPT Eyewitness News 16 1997.ia.mp4",
+  "wbng-tv-12-action-news-feb-19-1993": "WBNG TV 12 Action News Feb 19 1993.ia.mp4",
+  "wwl-eyewitness-news-1991": "WWL Eyewitness News at 10 PM 1991.ia.mp4",
+  "wcax-late-news-start-feb-6-1992": "WCAX Late News start Feb 6 1992.mp4",
+  "wapt-16-eyewitness-news-episode-1993": "WAPT 16 Eyewitness News episode 1993.ia.mp4",
+  "WNYWFox5NewsAt10June29th1994": "WNYW - Fox 5 News at 10, June 29th 1994.mp4",
+  "wwl-eyewitness-news-at-noon-july-1996": "WWL Eyewitness News at Noon July 1996.ia.mp4",
+  "wbrz-eyewitness-news-1994-full-cast": "WBRZ Eyewitness News 1994 full cast.ia.mp4",
+  "wwl-eyewitness-news-at-10-pm-feb-6-1990-b": "WWL Eyewitness news at 10 PM Feb 6 1990 b.mp4",
+  "msnbc.com-video-2006-10-08": "mtp_netcast_061008.mp4",
+  "BBCNEWS_20190106_113000_Dateline_London": "BBCNEWS_20190106_113000_Dateline_London.mp4",
+  "WRC_20131028_072000_Dateline_NBC": "WRC_20131028_072000_Dateline_NBC.mp4",
+  "msnbc.com-video-2003-11-04": "n_online_cheat_031104.mp4",
+  "msnbc.com-video-2003-05-14": "nn_myers_terror_030514.mp4",
+  "nightline-april-26-1999": "DVD Video Recording_Title19.mp4",
+  "abc-news-nightline-june-20-1986": "ABC News Nightline (June 20, 1986).mp4",
+  "nightline-the-hajj": "Nightline The Hajj.mp4",
+  "james-randi-on-dateline-1995": "James Randi on Dateline, 1995.ia.mp4",
+  "20220107-105032": "20220107_105032.mp4",
+  "20220107-172111_20260728": "20220107_172111.mp4",
+  "iVillage_60_Minutes": "iVillage_60_Minutes.mp4",
+  "wto-60-minutes-explores-anarchists-and-battle-of-seattle": "WTO - 60 Minutes Explores Anarchists and Battle of Seattle.mp4",
+});
 /* Keep a single cold tune from opening three identical Archive requests while
    several viewers or the soak harness hit the same rail together. This map is
    intentionally process-local and ephemeral; the durable result remains in
@@ -2949,14 +3200,23 @@ function iaNeedsCatalogDepth(payload, count, candidateCount) {
   const candidates = Array.isArray(payload && payload.candidateItems) && payload.candidateItems.length
     ? payload.candidateItems
     : ((payload && payload.items) || []);
+  const playable = candidates.filter((item) => item && item.identifier && item.media && item.media.url).length;
   /* Two complete shelves is the minimum useful depth for a channel change.
-     Prefer the larger background target when the catalog budget allows it. */
+     Prefer the larger background target when the catalog budget allows it.
+     A warm cache can contain many unresolved identifiers while still having
+     only the same five playable programs. Count both dimensions so a shallow
+     playable shelf cannot suppress the lane's recovery bank. */
   const minimum = Math.min(Number(candidateCount) || requested, Math.max(requested * 2, 12));
-  return candidates.length < minimum;
+  return candidates.length < minimum || playable < Math.min(Number(candidateCount) || requested, Math.max(requested * 2, 12));
 }
 
 function orderedIaEmergencySeeds(channel, rotation) {
-  const seeds = IA_EMERGENCY_SEEDS[String(channel)] || [];
+  const seeds = (IA_EMERGENCY_SEEDS[String(channel)] || []).concat(IA_LONG_TAIL_EXPANSIONS[String(channel)] || []).map((item) => {
+    const fileName = IA_LONG_TAIL_MEDIA_FILES[String(item && item.identifier || "")];
+    if (!fileName || (item && item.media && item.media.url)) return item;
+    const url = queueFileUrls(item.identifier, {}, fileName)[0];
+    return url ? { ...item, media: { type: "video", url } } : item;
+  });
   if (!seeds.length) return [];
   const offset = Math.abs(Number(rotation) || 0) % seeds.length;
   return seeds.slice(offset).concat(seeds.slice(0, offset));
@@ -3137,8 +3397,14 @@ async function expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, c
   /* A large candidate list is not the same thing as a deep playable shelf:
      Archive records can lack a browser-playable derivative. Widen whenever
      the hydrated depth is below the requested shelf, even if discovery found
-     eight or more names already. */
-  const needsPlayableDepth = Number(expanded && expanded.ready || 0) < count;
+     eight or more names already. The `ready` field belongs to the small public
+     shelf and can remain at five after emergency identifiers are appended;
+     count verified media URLs in the rolling catalog instead. */
+  const expandedCandidates = Array.isArray(expanded && expanded.candidateItems) && expanded.candidateItems.length
+    ? expanded.candidateItems
+    : ((expanded && expanded.items) || []);
+  const expandedPlayable = expandedCandidates.filter((item) => item && item.identifier && item.media && item.media.url).length;
+  const needsPlayableDepth = expandedPlayable < Math.min(candidateCount, Math.max(count, iaDepthRecoveryEnabled(channel) ? 18 : 15));
   if ((forceDiscovery || expanded.items.length < threshold || needsPlayableDepth) && reserveQueries.length) {
     const reserve = await buildIaQueue(channel, reserveQueries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, candidateCount, cacheOrigin, ctx, rotation);
     expanded = forceDiscovery

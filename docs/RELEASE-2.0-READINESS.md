@@ -1,8 +1,8 @@
 # RealSignal 2.0 readiness
 
-Build under test: `1.9.7-desktop.171-ia-long-tail` and `1.9.7-mobile.171-ia-long-tail`.
+Build under test: `1.9.7-desktop.174-source-suite-depth` and `1.9.7-mobile.174-source-suite-depth`.
 
-Current production Worker: v171 (`a2289cb3-d0b1-466d-af73-59038a337860`). This document records the cumulative v167–v171 long-tail IA hardening chain and its final v171 acceptance result.
+Current production Worker: v172 (`64d89292-9dd0-4b8b-87f4-b586c720074c`). This document records the cumulative v167–v172 long-tail IA hardening chain plus the v174 Source Suite depth repair. The client stamp is 174 for the shared desktop/mobile Source Suite build.
 
 ## What is covered
 
@@ -15,16 +15,17 @@ Current production Worker: v171 (`a2289cb3-d0b1-466d-af73-59038a337860`). This d
 
 ## Measured results in this pass
 
-The deterministic regression suite passed across desktop and mobile. Source Suite hydration measured:
+The deterministic regression suite passed across desktop and mobile. The v172 Source Suite browser proof measured:
 
 | Surface | First program | Full catalog |
 | --- | ---: | ---: |
 | Desktop | 34 ms | 102 ms |
 | Mobile | 10 ms | 98 ms |
+| Cartoon Time Machine browser catalog | 13 verified items | 10 YouTube + 3 PeerTube |
 
 Guide open/close completed in under 30 ms in the visible-playback harness for the sampled lanes.
 
-The headless visible-frame probe did not receive provider-backed media in this environment. IA and Source Suite returned zero playable items, and Source Suite reported zero results from both PeerTube and YouTube. That is recorded as an external provider/network gate, not treated as a code fix without a real provider response.
+The focused Chrome visible-frame probe reached a first visible frame on all five sampled IA/Source lanes (`12,75,104,219,555`) with no browser errors. Cold starts were approximately 2.28 seconds at the median across that earlier sample; one warm shelf promoted a frame in 5 ms. The queue soak and browser frame are recorded separately because queue readiness is not proof that a media element has painted.
 
 ## Release gates
 
@@ -44,7 +45,7 @@ Before calling 2.0 production-ready, run the telemetry-enabled build in a normal
 - `scripts/`: deterministic contracts plus the visible-frame probe.
 - `docs/`: deployment and operational runbooks.
 
-The remaining release gate is a real-network telemetry capture. If provider results remain empty there, investigate relay credentials, upstream availability, and browser/network policy before changing channel ranking or queue logic.
+The remaining release gate is the full scheduled IA workflow plus a longer Source Suite freshness run. If provider results remain empty there, investigate relay credentials, upstream availability, and browser/network policy before changing channel ranking or queue logic.
 
 ## Focused long-tail IA pass — v171
 
@@ -123,11 +124,40 @@ node scripts\analyze-ia-soak.js <report.json> C:\Users\tdy19\Documents\Codex\ia-
 
 Monitor these signals: first visible frame, tune latency, ready depth, full item depth, duplicate count, media errors, stalls, provider response status, and no-signal recovery. Patch only a lane that fails twice under separate rotations or fails a direct-media probe; retain short cooldowns and the last-good shelf for transient upstream outages.
 
+## v172 selective long-tail acceptance
+
+The v172 relay repair changed two narrow failure points: playable depth is now counted from hydrated media URLs rather than unresolved identifiers, and the five repeat-heavy recovery lanes carry verified IA derivatives into the background shelf. No other IA lane was changed from the overloaded full sweep.
+
+The seven-lane proof (`74,75,104,219,228,229,236`) reached 7/7 first-play ready, 21/21 full-depth rotations, 0 timeouts, and 214 ms average first-play readiness before the final derivative refinement. The final five-lane proof (`75,104,219,228,229`) reached 5/5 first-play ready, 15/15 full-depth rotations, 0 no-signal lanes, 0 timeouts, 6 duplicate items across 15 rotations, and 237 ms average first-play readiness (188–336 ms). Regatta, Vintage Local News, and Deadline produced 15 unique items each; Music Films and The Chronicle produced 11 and 13 unique items respectively.
+
+Reports:
+
+- `C:\Users\tdy19\Documents\Codex\2026-08-14\can\ia-repeat-cluster-v172-final.json`
+- `C:\Users\tdy19\Documents\Codex\2026-08-14\can\ia-repeat-cluster-v172-final3.json`
+
+The full 171-channel run remains a saturation diagnostic: it measured first-play readiness and queue depth under simultaneous load, while the serial v172 proofs determine whether a lane defect is reproducible. Queue readiness is still distinct from a visible browser frame; the nightly workflow records the former, and `release2-runtime.js` records the latter when run in a real browser/device session.
+
+## v174 Source Suite depth and freshness pass
+
+The Source Suite cold-start probe reproduced the original shallow-catalog failure on Cartoon Time Machine and a separate false-positive/underfill pattern on Cook's Table: the client was treating a two-item cache as healthy, the final metadata gate was rejecting valid long-form provider records, and practical queries were allowing unrelated PeerTube science/technology records through. The fix is shared by desktop and mobile:
+
+- source caches now require five qualified catalog items before they are considered fresh;
+- the cache namespace advanced from v18 through v21 so old shallow shelves are discarded;
+- hydrated YouTube and PeerTube records use the same coarse candidate gate as discovery, preserving strict runtime, landscape, language, and deny-list checks without rejecting records solely because a provider category is missing;
+- the cartoon lane rejects educational, instructional, informational, PSA, safety, training, and classroom records that were reproducibly bleeding into entertainment programming.
+- Cook's Table now applies a title/tag/category/account cooking gate instead of trusting the search query alone, and rejects hardware, software, laboratory, gaming, and other false positives;
+- the seeded Source Suite shelf carries six bounded, rights-checked long-form cooking records, with the cold path verifying them concurrently and yielding the first shelf before the broader provider refresh begins;
+- verified PeerTube direct files receive a Source Suite-only 15-second first-frame window because several public instances expose their first decoded frame well after metadata is available; IA and non-Source playback keep their existing timers.
+
+The post-fix browser probe returned 13 verified long-form items for Cartoon Time Machine: 10 embeddable YouTube items and 3 direct-file PeerTube items. The focused Cook's Table run retained five verified long-form items after strict filtering and produced a visible frame in the browser harness; provider latency remained variable, so it is tracked as a Source Suite provider-latency concern rather than hidden as an application success. The catalog remained above the five-item floor instead of settling on the original repeated shelf. The long tail still needs continued measurement; no claim is made that one short probe exhausts the available YouTube or PeerTube universe.
+
 ## v2 release record
 
-- Client stamps: desktop/mobile `1.9.7.*.171-ia-long-tail`.
+- Client stamps: desktop/mobile `1.9.7.*.174-source-suite-depth`.
 - IA cache namespace: queue and last-good `v79`.
+- Source Suite cache namespace: `v21` with a five-item verified-catalog floor.
 - Production Worker before this release: v170, version ID `89ce6dd6-52df-4dcf-9a7b-4e0dbc3f9037`.
-- Current production Worker: v171, version ID `a2289cb3-d0b1-466d-af73-59038a337860`.
+- Current production Worker: v172, version ID `64d89292-9dd0-4b8b-87f4-b586c720074c`.
+- v172 selective long-tail proof: 5/5 first-play ready, 15/15 full-depth rotations, 0 no-signal lanes, 0 timeouts, 6 duplicate items, 237 ms average first-play readiness.
 - v171 post-deploy soak: 6/6 first-play ready, 18/18 full-depth rotations, 0 underfilled lanes, 0 no-signal lanes, 0 timeouts.
 - Keep the nightly IA health sweep as the regression guard; it should alert on underfill, repeat concentration, timeout, or provider-health changes and remain quiet when the state is unchanged.

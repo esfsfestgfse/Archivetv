@@ -12,7 +12,7 @@ for (const file of files) {
   const source = fs.readFileSync(path.join(repo, file), 'utf8');
   const name = file;
   const required = [
-    [/V2_SOURCE_CACHE_VERSION=18/, 'source catalog cache version must invalidate short-form catalogs'],
+    [/V2_SOURCE_CACHE_VERSION=21/, 'source catalog cache version must invalidate short-form catalogs'],
     [/retainedItems=Array\.isArray\(cached&&cached\.items\)\?cached\.items\.filter/, 'previously verified source items must survive provider outages after requalification'],
     [/cacheValid=!!cached&&Number\(cached\.version\|\|0\)===V2_SOURCE_CACHE_VERSION/, 'only a current source catalog cache may be treated as fresh'],
     [/item\.account,item\.channelTitle/, 'YouTube language screening must inspect channel identity'],
@@ -36,7 +36,7 @@ for (const file of files) {
     [/p==="youtube"\|\|p==="peertube"/, 'source-suite runtime must restrict providers to YouTube and PeerTube'],
     [/v2LoadProfile\(ch,profile,token,true\)/, 'near-exhausted catalogs must force a rolling refresh'],
     [/V2_SOURCE_READY_BUFFER=5/, 'the source suite must keep a five-program target buffer'],
-    [/V2_SOURCE_MIN_CATALOG=2/, 'a verified two-program shelf must be eligible for instant playback while it refills'],
+    [/V2_SOURCE_MIN_CATALOG=5/, 'a verified five-program catalog must be required before a source shelf is treated as healthy'],
     [/function v2Shelf\(/, 'catalog ordering must persist the last on-air shelf'],
     [/function v2Hash\(/, 'source rotation must have a stable per-lane hash'],
     [/function v2NextRotation\(/, 'source refreshes must advance a persisted rotation counter'],
@@ -52,7 +52,7 @@ for (const file of files) {
     [/function v2ProgramCategoryOkay\(/, 'animation discovery must reject unrelated provider categories'],
     [/function v2CandidateRelevant\(/, 'provider summaries must use a coarse candidate gate before full metadata arrives'],
     [/"workshop","masterclass","recap"/, 'entertainment lanes must reject workshop, masterclass and recap filler'],
-    [/if\(strict\)return topicEvidence&&formatEvidence&&formatIdentity/, 'entertainment lanes must require positive program-form evidence'],
+    [/if\(strict\)return \(topicEvidence&&formatEvidence&&formatIdentity\)/, 'entertainment lanes must require positive program-form evidence'],
     [/function v2AspectRatio\(/, 'source items must expose an orientation check'],
     [/fileRatio=v2AspectRatio\(value\.files\)/, 'PeerTube landscape checks must fall back to rendition dimensions'],
     [/playlistRatio=v2AspectRatio\(value\.streamingPlaylists\)/, 'PeerTube landscape checks must understand playlist renditions'],
@@ -71,7 +71,7 @@ for (const file of files) {
     [/19\[3-9\]\\d\|20\\d\\d\|classic\|vintage\|retro\|golden age\|saturday morning/, 'Cartoon Time Machine must reject modern animation bleed without an era signal'],
     [/Math\.min\(24,V2_SOURCE_MAX_DETAIL\)/, 'PeerTube detail hydration must retain a deeper catalog'],
     [/aspect=v2AspectRatio\(d\)\|\|v2AspectRatio\(x\)\|\|v2AspectRatio\(file\)/, 'PeerTube must verify the source aspect ratio'],
-    [/!v2Relevant\(profile,candidate\)/, 'PeerTube candidates must pass strict qualification after full metadata hydration'],
+    [/!v2CandidateRelevant\(profile,candidate\)/, 'PeerTube candidates must pass strict qualification after full metadata hydration'],
     [/item\.account,item\.query/, 'hydrated qualification must retain the provider search query as editorial evidence'],
     [/1990s cartoon full episode/, 'Cartoon Time Machine must include 1990s full-episode discovery'],
     [/2000s cartoon full episode/, 'Cartoon Time Machine must include 2000s full-episode discovery'],
@@ -98,7 +98,7 @@ for (const file of files) {
   const archiveStart = source.indexOf('async function v2Archive(', youtubeStart);
   const youtube = youtubeStart >= 0 && archiveStart > youtubeStart ? source.slice(youtubeStart, archiveStart) : '';
   if (!/embed-eligible/.test(youtube) || !/v2YouTubeBlocked/.test(youtube)) issues.push(`${name}: YouTube must preserve embed eligibility and Shorts/language/how-to filtering`);
-  if (!/v2CandidateRelevant\(profile,x\)/.test(youtube) || !/!v2Relevant\(profile,metadata\)/.test(youtube) || !/!v2ProgramRuntimeOkay\(metadata\)/.test(youtube)) issues.push(`${name}: YouTube must use candidate, hydrated, and television-runtime qualification gates`);
+  if (!/v2CandidateRelevant\(profile,x\)/.test(youtube) || !/!v2CandidateRelevant\(profile,metadata\)/.test(youtube) || !/!v2ProgramRuntimeOkay\(metadata\)/.test(youtube)) issues.push(`${name}: YouTube must use candidate, hydrated, and television-runtime qualification gates`);
   if (!/tags:metadata\.tags,category:metadata\.category,account:metadata\.account/.test(youtube)) issues.push(`${name}: YouTube catalogs must preserve qualification metadata across cache restores`);
 
   const stamps = [...source.matchAll(/window\.__ATV_BUILD\s*=\s*"([^"]+)"/g)].map(match => match[1]);

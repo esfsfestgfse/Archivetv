@@ -182,7 +182,16 @@ async function youtube(profile, rotation, env) {
   const orders = ["relevance", "date", "viewCount"];
   const order = orders[(Number(rotation) || 0) % orders.length];
   const jobs = queries.map(async (query) => {
-    const searchUrl = "https://www.googleapis.com/youtube/v3/search?" + new URLSearchParams({ part: "snippet", type: "video", maxResults: "25", order, q: query, key });
+    const searchUrl = "https://www.googleapis.com/youtube/v3/search?" + new URLSearchParams({
+      part: "snippet",
+      type: "video",
+      videoDuration: "long",
+      videoEmbeddable: "true",
+      maxResults: "25",
+      order,
+      q: query,
+      key,
+    });
     const data = await fetchJson(searchUrl);
     return (data.items || []).map((item) => ({
       id: `yt:${text(item.id && item.id.videoId, 120)}`,
@@ -204,7 +213,10 @@ async function youtube(profile, rotation, env) {
   const items = candidates.map((candidate) => {
     const item = byId.get(candidate.rawId);
     if (!item || item.status && item.status.embeddable !== true) return null;
-    const ratio = aspectRatio(item.player);
+    // YouTube may omit player dimensions even for a normal landscape video.
+    // The long-form search gate prevents Shorts and short clips while this
+    // fallback keeps valid TV-length videos from being discarded as unknown.
+    const ratio = aspectRatio(item.player) || 16 / 9;
     const hydrated = {
       ...candidate,
       title: text(item.snippet && item.snippet.title) || candidate.title,

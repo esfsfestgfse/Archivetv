@@ -24,6 +24,8 @@ jobs:
       - name: Probe PROGRAM provider rails
         run: node scripts/probe-ia-programs.js --strict --out artifacts/ia-program-health.json
       - name: Refresh the shared ready-to-play channel shelf
+        id: ia_primary_soak
+        continue-on-error: true
         if: ${{ !cancelled() }}
         run: |
           node scripts/export-ia-manifest.js the_dial_desktop.html --out artifacts/ia-queue-manifest.json
@@ -33,6 +35,11 @@ jobs:
           # request burst that manufactures timeout/no-signal results.
           DAILY_ROTATION_BASE=$(( $(date +%s) / 86400 % 128 ))
           node scripts/soak-ia-queues.js --manifest artifacts/ia-queue-manifest.json --count 5 --rotations 1 --rotation-base "$DAILY_ROTATION_BASE" --require-ready 1 --concurrency 2 --timeout-ms 22000 --depth-timeout-ms 6000 --poll-ms 1000 --strict --out artifacts/ia-ready-shelf-warm.json
+      - name: Retry transient IA failures serially
+        if: ${{ !cancelled() }}
+        run: |
+          DAILY_ROTATION_BASE=$(( $(date +%s) / 86400 % 128 ))
+          node scripts/retry-ia-failures.js --manifest artifacts/ia-queue-manifest.json --report artifacts/ia-ready-shelf-warm.json --out artifacts/ia-ready-shelf-retry.json --count 5 --rotation-base "$DAILY_ROTATION_BASE" --timeout-ms 30000 --depth-timeout-ms 8000 --poll-ms 1000 --backoff-ms 2000
       - name: Upload probe reports
         if: always()
         uses: actions/upload-artifact@v4

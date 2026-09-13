@@ -40,8 +40,9 @@ catch (error) {
   process.exit(1);
 }
 
+const rotations = Math.max(1, Math.min(3, Number(primary.rotations) || 1));
 const candidates = [...new Set((primary.results || [])
-  .filter(result => result && (!result.ok || result.depthUnderfilled))
+  .filter(result => result && (!result.ok || result.depthUnderfilled || Number(result.duplicateItems || 0) > 0))
   .map(result => String(result.channel || '').trim())
   .filter(Boolean))];
 
@@ -50,6 +51,7 @@ if (!candidates.length) {
     generatedAt: new Date().toISOString(),
     source: 'selective-retry',
     primaryReport: path.basename(reportPath),
+    rotations,
     candidates: [],
     retried: false,
     recovered: [],
@@ -72,7 +74,7 @@ console.log(`Selective IA retry: ${candidates.length} lane${candidates.length ==
     '--count', String(count),
     '--require-ready', '1',
     '--concurrency', '1',
-    '--rotations', '1',
+    '--rotations', String(rotations),
     '--rotation-base', String(rotationBase),
     '--timeout-ms', String(timeoutMs),
     '--depth-timeout-ms', String(depthTimeoutMs),
@@ -98,7 +100,7 @@ console.log(`Selective IA retry: ${candidates.length} lane${candidates.length ==
     process.exitCode = 1;
     return;
   }
-  const failures = (retry.results || []).filter(result => result && (!result.ok || result.depthUnderfilled));
+  const failures = (retry.results || []).filter(result => result && (!result.ok || result.depthUnderfilled || Number(result.duplicateItems || 0) > 0));
   if (failures.length) {
     console.error(`Selective IA retry: ${failures.length} lane${failures.length === 1 ? '' : 's'} still failed`);
     process.exitCode = 1;

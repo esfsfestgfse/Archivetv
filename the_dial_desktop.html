@@ -1623,7 +1623,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="1.9.7-desktop.176-gear-head-jay-leno";
+window.__ATV_BUILD="1.9.7-desktop.177-live-data-lifecycle";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -6941,9 +6941,9 @@ iaQueueRotation=store.get("iaQueueRotation",{})||{};
    Every per-channel interval registers itself via rtInterval(); rtTeardown() (called from
    clearScreen) kills them all in one place. This retires the hand-maintained list of 12+
    individual timer vars in clearScreen — the app's single most recurring bug class. */
-var chanRT={timers:[]};
+var chanRT={timers:[],teardowns:[]};
 function rtInterval(fn,ms){var id=setInterval(fn,ms);chanRT.timers.push(id);return id;}
-function rtTeardown(){chanRT.timers.forEach(clearInterval);chanRT.timers.length=0;}
+function rtTeardown(){chanRT.timers.forEach(clearInterval);chanRT.timers.length=0;var clean=chanRT.teardowns.splice(0);clean.forEach(function(fn){try{fn();}catch(e){}});}
 /* ---- CYCLE-1 FIX (real leak): a playing media element removed from the DOM keeps playing
    audio and downloading until GC. Every removal now pauses and detaches the source first. */
 function killMedia(){try{if(typeof stopRadioHls==="function")stopRadioHls();}catch(e){}if(!screenArea)return;
@@ -14102,6 +14102,11 @@ async function tuneShips(ch,sl,my){
      fresh relay response replaces it. */
   var shipSnapshotCacheKey="afterglowShipTrackerSnapshotV1";
   var msgCount=0, firstMsgAt=null, lastMsgAt=null, snapshotAt=null, snapshotError=null, snapshotSource="", retryTimer=null, publicViewTimer=0, dirty=false, snapshotRequest=0, snapshotController=null;
+  if(chanRT && chanRT.teardowns) chanRT.teardowns.push(function(){
+    if(shipSocket){try{shipSocket.close();}catch(e){}shipSocket=null;}
+    if(snapshotController){try{snapshotController.abort();}catch(e){}snapshotController=null;}
+    clearTimeout(retryTimer); retryTimer=null; clearTimeout(publicViewTimer); publicViewTimer=0;
+  });
   var mp=null,shipRegion="gulf",shipView={lat:27.5,lon:-89.0,range:700},selectedMmsi="",shipDrag=null;
   var SHIP_REGION_LABELS={gulf:{map:"GULF OF MEXICO",short:"GULF"},atlantic:{map:"NORTH ATLANTIC",short:"ATLANTIC"},pacific:{map:"PACIFIC OCEAN",short:"PACIFIC"},americas:{map:"AMERICAS",short:"AMERICAS"},europe:{map:"EUROPE",short:"EUROPE"},africa:{map:"AFRICA",short:"AFRICA"},indian:{map:"INDIAN OCEAN",short:"INDIAN"},asia:{map:"ASIA-PACIFIC",short:"ASIA-PACIFIC"},world:{map:"WORLD OVERVIEW",short:"WORLD"}};
   function updateShipChrome(){var meta=SHIP_REGION_LABELS[shipRegion]||SHIP_REGION_LABELS.world;var mapLabel=$("shipMapLabel"),regionLabel=$("shipRegionLabel");if(mapLabel)mapLabel.textContent=meta.map;if(regionLabel)regionLabel.textContent=meta.short;}

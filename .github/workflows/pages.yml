@@ -51,6 +51,7 @@ jobs:
         run: >-
           node scripts/soak-ia-queues.js
           --manifest artifacts/ia-queue-manifest.json
+          --endpoint https://realsignal-api.tdy1990.workers.dev/api/v2/ia/queue
           --channels 10,12,50,63,75,104,117,122,132,150,153,158,202,206,208,210,212,227,239,555
           --count 3
           --rotations 1

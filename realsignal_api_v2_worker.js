@@ -244,28 +244,68 @@ function rotateCatalogItems(items, rotation) {
   return items.slice(offset).concat(items.slice(0, offset));
 }
 
+function catalogFallbackAllowed(item, body) {
+  const title = String(item && item.title || "").toLowerCase();
+  const description = String(item && item.description || "").toLowerCase();
+  const subject = String(item && (item.subject || item.subjects) || "").toLowerCase();
+  const haystack = `${title} ${description} ${subject}`;
+  const denyTerms = Array.isArray(body && body.denyTerms) ? body.denyTerms : [];
+  if (denyTerms.some((term) => {
+    const needle = String(term || "").trim().toLowerCase();
+    return needle && haystack.includes(needle);
+  })) return false;
+  const requiredTitleTerms = Array.isArray(body && body.requiredTitleTerms) ? body.requiredTitleTerms : [];
+  if (requiredTitleTerms.length && !requiredTitleTerms.some((term) => {
+    const needle = String(term || "").trim().toLowerCase();
+    return needle && title.includes(needle);
+  })) return false;
+  const themeTerms = Array.isArray(body && body.themeTerms) ? body.themeTerms : [];
+  if (themeTerms.length) {
+    let score = 0;
+    for (const term of themeTerms) {
+      const needle = String(term || "").trim().toLowerCase();
+      if (!needle) continue;
+      if (title.includes(needle)) score += 4;
+      else if (subject.includes(needle) || haystack.includes(needle)) score += 2;
+    }
+    const minimum = Math.max(1, Math.min(12, Number(body && body.themeMinScore) || 1));
+    if (score < minimum) return false;
+  }
+  const mediaTypes = Array.isArray(body && body.mediaTypes) ? body.mediaTypes.map((value) => String(value).toLowerCase()) : [];
+  const mediaType = String(item && (item.mediaType || item.type) || "video").toLowerCase();
+  const audio = mediaType === "audio" || mediaType === "audio/mpeg" || mediaType === "audio/mp3";
+  if (mediaTypes.length === 1 && mediaTypes[0] === "audio" && !audio) return false;
+  if (mediaTypes.length && mediaTypes.indexOf("audio") < 0 && audio) return false;
+  return true;
+}
+
 async function catalogFallback(env, body, requestedLimit = 12) {
   if (!env.realsignal_catalog || typeof env.realsignal_catalog.prepare !== "function") return null;
   const channel = String(body.channel || "").slice(0, 120);
   const limit = Math.max(1, Math.min(SOURCE_LIMITS.SOURCE_MAX_ITEMS, Number(requestedLimit) || 12));
   const result = await env.realsignal_catalog.prepare(`SELECT p.* FROM programs p JOIN channel_programs cp ON cp.program_id=p.id WHERE cp.channel_key=? AND p.status='active' AND p.media_url IS NOT NULL ORDER BY cp.last_seen_at DESC LIMIT ?`).bind(channel, limit).all();
-  const items = (result.results || []).map((row) => ({
-    id: row.id,
-    identifier: row.id,
-    sourceIdentifier: row.source_identifier || row.id,
-    title: row.title,
-    description: row.description || "",
-    provider: row.provider,
-    year: row.year || "",
-    runtime: Number(row.duration_seconds) || null,
-    media: { type: row.media_type || "video", url: row.media_url },
-    type: row.media_type === "embed" ? "embed" : "video",
-    url: row.media_url,
-    embedUrl: row.media_type === "embed" ? row.media_url : "",
-    sourceUrl: row.source_url || "",
-    rights: row.rights || "",
-    staleCatalog: true,
-  }));
+  const items = (result.results || []).map((row) => {
+    let metadata = {};
+    try { metadata = row.metadata_json ? JSON.parse(row.metadata_json) : {}; } catch (_) { /* tolerate old rows */ }
+    return {
+      id: row.id,
+      identifier: row.id,
+      sourceIdentifier: row.source_identifier || row.id,
+      title: row.title,
+      description: row.description || "",
+      subject: metadata.subject || metadata.subjects || "",
+      provider: row.provider,
+      year: row.year || "",
+      runtime: Number(row.duration_seconds) || null,
+      media: { type: row.media_type || "video", url: row.media_url },
+      type: row.media_type === "embed" ? "embed" : "video",
+      url: row.media_url,
+      embedUrl: row.media_type === "embed" ? row.media_url : "",
+      sourceUrl: row.source_url || "",
+      rights: row.rights || "",
+      staleCatalog: true,
+    };
+  }).filter((item) => catalogFallbackAllowed(item, body));
   return items.length ? { items: rotateCatalogItems(items, body.rotation), ready: items.length, candidates: items.length, fallback: true, stale: true, catalogFallback: true, rotation: Number(body.rotation) || 0 } : null;
 }
 
@@ -300,7 +340,10 @@ async function handleQueue(request, env, ctx, id) {
   headers.set("X-RealSignal-Request", id);
   headers.set("X-RealSignal-Source", catalogRecovery ? "d1-catalog+session-rotation" : "ais-relay+session-rotation");
   headers.set("X-RealSignal-Queue", JSON.stringify({ ready: Number(rotated.payload.ready || (rotated.payload.items || []).length), background: !!rotated.payload.hydrating }));
-  return new Response(JSON.stringify({ ...rotated.payload, apiVersion: "v2" }), { status: upstream.status, headers });
+  /* A catalog recovery is a successful queue response. Returning the relay's
+     original 4xx/5xx here made the browser discard the valid D1 shelf and
+     retry the same dead upstream path. */
+  return new Response(JSON.stringify({ ...rotated.payload, apiVersion: "v2" }), { status: catalogRecovery ? 200 : upstream.status, headers });
 }
 
 async function handleCatalog(request, env) {

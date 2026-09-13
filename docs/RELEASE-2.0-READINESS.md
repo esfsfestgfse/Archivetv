@@ -1,6 +1,6 @@
 # RealSignal 2.0 readiness
 
-Build under test: `2.1.0-desktop.210-guide-overhaul` and `2.1.0-mobile.210-guide-overhaul`.
+Build under test: `2.1.1-desktop.211-queue-recovery` and `2.1.1-mobile.211-queue-recovery`.
 
 This document is a historical readiness record. The active Worker deployment
 revision must be verified from the corresponding GitHub Actions run; it must

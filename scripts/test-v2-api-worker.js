@@ -91,6 +91,28 @@ const { pathToFileURL } = require('node:url');
   const otherViewer = await worker.fetch(new Request('https://api.example/api/v2/ia/queue', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...payload, sessionId: 'viewer-b' }) }), env, ctx);
   assert.deepEqual((await otherViewer.json()).items.map(item => item.identifier), ['ia-1', 'ia-2', 'ia-3']);
 
+  const fallbackEnv = {
+    ...env,
+    RELAY: { async fetch() { return new Response(JSON.stringify({ error: 'relay unavailable' }), { status: 503, headers: { 'content-type': 'application/json' } }); } },
+    realsignal_catalog: {
+      prepare() {
+        return {
+          bind() {
+            return {
+              async all() {
+                return { results: [{ id: 'factory-1', source_identifier: 'factory-1', title: 'Factory Packaging Line', description: 'A verified production floor program.', provider: 'internet-archive', duration_seconds: 1800, aspect_ratio: 1.78, media_type: 'video', media_url: 'https://archive.org/download/factory-1/factory-1.mp4', source_url: 'https://archive.org/details/factory-1', rights: 'public domain', year: '1980', metadata_json: '{}' }] };
+              },
+            };
+          },
+        };
+      },
+    },
+  };
+  const recovered = await worker.fetch(new Request('https://api.example/api/v2/ia/queue', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ channel: '200', sessionId: 'fallback-viewer', rotation: 0, count: 1, themeTerms: ['factory'], requiredTitleTerms: ['factory'], denyTerms: ['cartoon'], mediaTypes: ['movies'], themeMinScore: 1 }) }), fallbackEnv, ctx);
+  assert.equal(recovered.status, 200);
+  assert.match(recovered.headers.get('X-RealSignal-Source'), /d1-catalog/);
+  assert.equal((await recovered.json()).items[0].title, 'Factory Packaging Line');
+
   const search = await worker.fetch(new Request('https://api.example/api/v2/ia/search?q=cartoons'), env, ctx);
   assert.equal(search.status, 200);
   assert.equal(calls.at(-1).url, 'https://relay.internal/ia/search?q=cartoons');

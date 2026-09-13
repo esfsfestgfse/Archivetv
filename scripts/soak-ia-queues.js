@@ -28,6 +28,7 @@ const relayRoot = (() => {
   try { return new URL(endpoint).origin + '/'; }
   catch { return ''; }
 })();
+const isV2Endpoint = /\/api\/v2\/ia\/queue(?:$|\?)/i.test(endpoint);
 const count = Math.max(1, Math.min(5, Number(option('--count', '3')) || 3));
 const requiredReady = Math.max(1, Math.min(count, Number(option('--require-ready', '1')) || 1));
 /* Six-wide probes amplify a cold Archive burst and can turn upstream
@@ -70,15 +71,18 @@ const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
  * without starting Archive discovery or spending upstream quota. */
 async function relayPreflight() {
   if (!relayRoot) throw new Error(`invalid relay endpoint: ${endpoint}`);
+  const healthUrl = isV2Endpoint ? `${relayRoot}api/v2/health` : relayRoot;
   let lastError = null;
   for (let attempt = 0; attempt < 3; attempt++) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), relayHealthTimeoutMs);
     try {
-      const health = await fetch(relayRoot, { headers: { accept: 'application/json' }, cache: 'no-store', signal: controller.signal });
+      const health = await fetch(healthUrl, { headers: { accept: 'application/json' }, cache: 'no-store', signal: controller.signal });
       if (!health.ok) throw new Error(`health HTTP ${health.status}`);
       const body = await health.json();
-      if (!body || body.service !== 'afterglow-ais-relay') throw new Error('health response is not the Afterglow relay');
+      if (isV2Endpoint) {
+        if (!body || body.service !== 'realsignal-api' || body.apiVersion !== 'v2') throw new Error('health response is not the RealSignal v2 API');
+      } else if (!body || body.service !== 'afterglow-ais-relay') throw new Error('health response is not the Afterglow relay');
       const queue = await fetch(endpoint, {
         method: 'POST',
         headers: { 'content-type': 'application/json', accept: 'application/json' },
@@ -127,9 +131,9 @@ async function probeRotation(row, rotationOffset) {
       const { response, body } = await requestQueue(row, deadline - (Date.now() - started), rotationOffset);
       lastStatus = response.status;
       lastBody = body;
-      lastSource = response.headers.get('x-afterglow-source') || '';
-      lastCache = response.headers.get('x-afterglow-cache') || '';
-      lastReadyHeader = response.headers.get('x-afterglow-queue-ready') || '';
+      lastSource = response.headers.get('x-realsignal-source') || response.headers.get('x-afterglow-source') || '';
+      lastCache = response.headers.get('x-realsignal-cache') || response.headers.get('x-afterglow-cache') || '';
+      lastReadyHeader = response.headers.get('x-realsignal-queue') || response.headers.get('x-afterglow-queue-ready') || '';
       lastPartial = response.headers.get('x-afterglow-queue-partial') || '';
       lastFallback = response.headers.get('x-afterglow-queue-fallback') || '';
       const responseWasWarmFallback = lastFallback === '1' || Boolean(body && body.stale);

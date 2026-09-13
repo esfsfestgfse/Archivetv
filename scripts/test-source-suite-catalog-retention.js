@@ -9,7 +9,7 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
   const source = fs.readFileSync(path.join(root, file), 'utf8');
   const checks = [
     ['requalifies prior source caches during provider outages', source.includes('retainedItems=Array.isArray(cached&&cached.items)?cached.items.filter')],
-    ['invalidates prior short-form source caches for freshness', source.includes('V2_SOURCE_CACHE_VERSION=18')],
+    ['invalidates prior short-form source caches for freshness', source.includes('V2_SOURCE_CACHE_VERSION=21')],
     ['retains cached verified catalog items', source.includes('prior=v2Unique(cachedItems.concat(state.items||[]))')],
     ['mixes retained and newly discovered items', source.includes('merged=v2Unique(prior.concat(discovered))')],
     ['keeps the 96-item catalog ceiling', source.includes('V2_SOURCE_CATALOG_SIZE=96')],

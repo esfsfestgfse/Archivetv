@@ -6,6 +6,7 @@
  */
 
 import { SessionRotation } from "./realsignal_api_rotation.js";
+import { mergeSourceLanes, sourceCatalogTasks, sourceProfile, SOURCE_LIMITS } from "./realsignal_source_catalog.js";
 
 const API_PREFIX = "/api/v2";
 const MAX_BODY_BYTES = 128 * 1024;
@@ -42,6 +43,7 @@ function routeFor(pathname) {
     const id = pathname.slice(`${API_PREFIX}/ia/metadata/`.length);
     return id ? { kind: "relay", relayPath: `/ia/metadata/${id}` } : null;
   }
+  if (pathname === `${API_PREFIX}/source/catalog`) return { kind: "source-catalog" };
   if (pathname === `${API_PREFIX}/catalog`) return { kind: "catalog" };
   return null;
 }
@@ -165,11 +167,19 @@ async function rotateShelf(env, body, payload) {
   return { payload: { ...payload, items: selected.items || [], ready: Math.min(upstreamReady, (selected.items || []).length), v2: { sessionScoped: true, cursor: selected.cursor, cycleReset: !!selected.cycleReset } }, rotation: selected };
 }
 
-async function catalogFallback(env, body) {
+function rotateCatalogItems(items, rotation) {
+  if (!Array.isArray(items) || !items.length) return [];
+  const offset = ((Number(rotation) || 0) % items.length + items.length) % items.length;
+  return items.slice(offset).concat(items.slice(0, offset));
+}
+
+async function catalogFallback(env, body, requestedLimit = 12) {
   if (!env.realsignal_catalog || typeof env.realsignal_catalog.prepare !== "function") return null;
   const channel = String(body.channel || "").slice(0, 120);
-  const result = await env.realsignal_catalog.prepare(`SELECT p.* FROM programs p JOIN channel_programs cp ON cp.program_id=p.id WHERE cp.channel_key=? AND p.status='active' AND p.media_url IS NOT NULL ORDER BY cp.last_seen_at DESC LIMIT ?`).bind(channel, 12).all();
+  const limit = Math.max(1, Math.min(SOURCE_LIMITS.SOURCE_MAX_ITEMS, Number(requestedLimit) || 12));
+  const result = await env.realsignal_catalog.prepare(`SELECT p.* FROM programs p JOIN channel_programs cp ON cp.program_id=p.id WHERE cp.channel_key=? AND p.status='active' AND p.media_url IS NOT NULL ORDER BY cp.last_seen_at DESC LIMIT ?`).bind(channel, limit).all();
   const items = (result.results || []).map((row) => ({
+    id: row.id,
     identifier: row.id,
     sourceIdentifier: row.source_identifier || row.id,
     title: row.title,
@@ -178,11 +188,14 @@ async function catalogFallback(env, body) {
     year: row.year || "",
     runtime: Number(row.duration_seconds) || null,
     media: { type: row.media_type || "video", url: row.media_url },
+    type: row.media_type === "embed" ? "embed" : "video",
+    url: row.media_url,
+    embedUrl: row.media_type === "embed" ? row.media_url : "",
     sourceUrl: row.source_url || "",
     rights: row.rights || "",
     staleCatalog: true,
   }));
-  return items.length ? { items, ready: items.length, candidates: items.length, fallback: true, stale: true, catalogFallback: true, rotation: Number(body.rotation) || 0 } : null;
+  return items.length ? { items: rotateCatalogItems(items, body.rotation), ready: items.length, candidates: items.length, fallback: true, stale: true, catalogFallback: true, rotation: Number(body.rotation) || 0 } : null;
 }
 
 async function handleQueue(request, env, ctx, id) {
@@ -229,6 +242,66 @@ async function handleCatalog(request, env) {
   return json({ channel, items: result.results || [], source: "d1-catalog" }, 200, { "Cache-Control": "public, max-age=15, stale-while-revalidate=60" });
 }
 
+async function firstSourceLane(tasks) {
+  return new Promise((resolve) => {
+    let remaining = tasks.length;
+    let settled = false;
+    if (!remaining) return resolve({ items: [], lanes: [], ready: 0 });
+    tasks.forEach((task) => {
+      Promise.resolve(task).then((lane) => {
+        const items = Array.isArray(lane && lane.items) ? lane.items : [];
+        if (!settled && items.length) {
+          settled = true;
+          resolve({ items, lanes: [lane], ready: items.length, candidates: items.length, hydrating: true });
+        }
+        remaining -= 1;
+        if (!remaining && !settled) resolve({ items: [], lanes: [], ready: 0, candidates: 0, hydrating: false });
+      }).catch(() => {
+        remaining -= 1;
+        if (!remaining && !settled) resolve({ items: [], lanes: [], ready: 0, candidates: 0, hydrating: false });
+      });
+    });
+  });
+}
+
+async function persistSourceLanes(env, profile, lanes) {
+  const merged = mergeSourceLanes(profile.profileKey, lanes);
+  const job = catalogJob({ channel: profile.profileKey, themeTerms: profile.match, denyTerms: profile.deny, mediaTypes: ["video", "embed"] }, merged);
+  if (!job) return merged;
+  if (env.realsignal_catalog_refresh && typeof env.realsignal_catalog_refresh.send === "function") {
+    await env.realsignal_catalog_refresh.send(job, { contentType: "json" });
+  } else {
+    await upsertCatalogJob(env, job);
+  }
+  return merged;
+}
+
+async function handleSourceCatalog(request, env, ctx, id) {
+  let body;
+  try { body = await readBoundedJson(request); }
+  catch (error) { return json({ error: error instanceof RangeError ? error.message : "invalid JSON body", requestId: id }, error instanceof RangeError ? 413 : 400); }
+  if (!body || typeof body !== "object" || Array.isArray(body)) return json({ error: "source catalog payload must be an object", requestId: id }, 400);
+  const profile = sourceProfile(body);
+  if (!profile.profileKey) return json({ error: "profileKey is required", requestId: id }, 400);
+  if (!profile.queries.length) return json({ error: "at least one discovery query is required", requestId: id }, 400);
+  const rotation = Number(body.rotation) || 0;
+  const cached = await catalogFallback(env, { channel: profile.profileKey, rotation }, SOURCE_LIMITS.SOURCE_MAX_ITEMS).catch((error) => {
+    console.warn(JSON.stringify({ event: "source-catalog-read-failed", requestId: id, error: String(error).slice(0, 160) }));
+    return null;
+  });
+  const minimumReady = Math.max(1, Math.min(5, Number(body.minimumReady) || 2));
+  if (cached && Array.isArray(cached.items) && cached.items.length >= minimumReady && body.refresh !== true) {
+    return json({ ...cached, profileKey: profile.profileKey, catalogVersion: "source-server-1", source: "d1-source-catalog", hydrating: false, providerAvailability: { youtube: !!env.YOUTUBE_API_KEY, peertube: true }, apiVersion: "v2" }, 200, { "Cache-Control": "public, max-age=10, stale-while-revalidate=60", "X-RealSignal-Request": id, "X-RealSignal-Source": "d1-source-catalog" });
+  }
+  const { profile: normalized, tasks } = sourceCatalogTasks(body, env, rotation);
+  const first = await firstSourceLane(tasks);
+  const background = Promise.all(tasks.map((task) => Promise.resolve(task).catch((error) => ({ provider: "unknown", items: [], health: { error: String(error).slice(0, 160) } })))).then((lanes) => persistSourceLanes(env, normalized, lanes)).catch((error) => {
+    console.error(JSON.stringify({ event: "source-catalog-persist-failed", requestId: id, profileKey: normalized.profileKey, error: String(error).slice(0, 200) }));
+  });
+  ctx.waitUntil(background);
+  return json({ profileKey: normalized.profileKey, items: first.items, ready: first.ready, candidates: first.candidates, lanes: first.lanes, hydrating: true, catalogVersion: "source-server-1", source: "server-source-catalog", providerAvailability: { youtube: !!env.YOUTUBE_API_KEY, peertube: true }, limits: SOURCE_LIMITS, apiVersion: "v2" }, first.items.length ? 200 : 503, { "Cache-Control": "no-store", "X-RealSignal-Request": id, "X-RealSignal-Source": "server-source-catalog" });
+}
+
 const worker = {
   async fetch(request, env, ctx) {
     const id = requestId();
@@ -237,7 +310,11 @@ const worker = {
     const url = new URL(request.url);
     const route = routeFor(url.pathname);
     try {
-      if (route && route.kind === "health") return json({ service: "realsignal-api", apiVersion: "v2", status: "ready", capabilities: ["ia-search", "ia-metadata", "ia-queue", "session-rotation", "catalog-jobs"], bindings: { relay: !!env.RELAY, rotation: !!env.ROTATION, catalog: !!env.realsignal_catalog, refreshQueue: !!env.realsignal_catalog_refresh }, checkedAt: new Date().toISOString() }, 200, { "Cache-Control": "no-store", "X-RealSignal-Request": id });
+      if (route && route.kind === "health") return json({ service: "realsignal-api", apiVersion: "v2", status: "ready", capabilities: ["ia-search", "ia-metadata", "ia-queue", "session-rotation", "catalog-jobs", "source-catalog"], bindings: { relay: !!env.RELAY, rotation: !!env.ROTATION, catalog: !!env.realsignal_catalog, refreshQueue: !!env.realsignal_catalog_refresh }, checkedAt: new Date().toISOString() }, 200, { "Cache-Control": "no-store", "X-RealSignal-Request": id });
+      if (route && route.kind === "source-catalog") {
+        if (request.method !== "POST") return json({ error: "method not allowed", requestId: id }, 405, { Allow: "POST,OPTIONS" });
+        return await handleSourceCatalog(request, env, ctx, id);
+      }
       if (route && route.kind === "catalog") {
         if (request.method !== "GET") return json({ error: "method not allowed", requestId: id }, 405, { Allow: "GET,OPTIONS" });
         return await handleCatalog(request, env);

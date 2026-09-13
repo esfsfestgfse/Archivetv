@@ -7,6 +7,8 @@ const path = require('node:path');
 const repo = path.resolve(__dirname, '..');
 const files = ['the_dial_desktop.html', 'the_dial_mobile.html'];
 const issues = [];
+const bridge = fs.readFileSync(path.join(repo, 'assets', 'source-catalog-client.js'), 'utf8');
+if (!bridge.includes('IA_API_BASE + "/source/catalog"') || !bridge.includes('serverCatalog')) issues.push('server catalog bridge must be present and marked as the preferred Source Suite path');
 
 for (const file of files) {
   const source = fs.readFileSync(path.join(repo, file), 'utf8');
@@ -86,6 +88,7 @@ for (const file of files) {
     [/runtime:true/, 'verified source items must record runtime proof'],
     [/store\.set\("v2source:"\+key,\{version:V2_SOURCE_CACHE_VERSION,at:Date\.now\(\),items:items,health:state\.health\}\)/, 'catalog cache must retain provider health'],
     [/fl\[\]=license.*fl\[\]=rights/, 'Archive discovery must request rights metadata'],
+    [/assets\/source-catalog-client\.js/, 'the browser must prefer the server-side Source Suite catalog bridge'],
   ];
   for (const [pattern, message] of required) if (!pattern.test(source)) issues.push(`${name}: ${message}`);
 
@@ -119,7 +122,7 @@ for (const file of files) {
   }
   if (new Set(topicKeys).size !== topicKeys.length) issues.push(`${name}: duplicate source topic definitions found`);
 
-  if (stamps.length !== 1 || !/^2\.0\.1-(desktop|mobile)\.\d+-health-telemetry$/.test(stamps[0] || '')) issues.push(`${name}: source-suite build stamp is missing or stale`);
+  if (stamps.length !== 1 || !/^2\.1\.0-(desktop|mobile)\.\d+-guide-overhaul$/.test(stamps[0] || '')) issues.push(`${name}: source-suite build stamp is missing or stale`);
 }
 
 const desktop = fs.readFileSync(path.join(repo, files[0]), 'utf8');

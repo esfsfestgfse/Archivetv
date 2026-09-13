@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const root = path.join(__dirname, '..');
 const worker = fs.readFileSync(path.join(root, 'realsignal_api_v2_worker.js'), 'utf8');
+const source = fs.readFileSync(path.join(root, 'realsignal_source_catalog.js'), 'utf8');
 const rotation = fs.readFileSync(path.join(root, 'realsignal_api_rotation.js'), 'utf8');
 const config = fs.readFileSync(path.join(root, 'wrangler.api.jsonc'), 'utf8');
 const migration = fs.readFileSync(path.join(root, 'migrations', '0001_realsignal_catalog.sql'), 'utf8');
@@ -15,6 +16,10 @@ const checks = [
   [rotation.includes('await this.ctx.storage.put("rotation", next)'), 'persisted rotation state'],
   [worker.includes('env.realsignal_catalog_refresh.send') && worker.includes('async queue(batch, env)'), 'asynchronous catalog ingestion'],
   [worker.includes('env.realsignal_catalog.batch') && worker.includes('catalogFallback'), 'D1 catalog write and playback fallback'],
+  [worker.includes('sourceCatalogTasks') && worker.includes('handleSourceCatalog') && worker.includes('/source/catalog'), 'server-side source catalog route'],
+  [source.includes('SOURCE_MIN_RUNTIME = 15 * 60') && source.includes('function accepted') && source.includes('function peerTube'), 'server source adapter runtime and genre gates'],
+  [source.includes('YOUTUBE_API_KEY') && source.includes('youtube-nocookie.com/embed'), 'server YouTube adapter uses a Worker secret and embed-safe output'],
+  [source.includes('ctx') === false, 'source adapter stays independent of request context'],
   [config.includes('"d1_databases"') && config.includes('"durable_objects"') && config.includes('"queues"'), 'production bindings'],
   [migration.includes('CREATE TABLE IF NOT EXISTS programs') && migration.includes('channel_programs'), 'normalized catalog schema'],
 ];

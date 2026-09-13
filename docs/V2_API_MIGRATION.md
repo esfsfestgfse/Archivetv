@@ -15,6 +15,7 @@ both browser builds:
 | `/api/v2/ia/queue` | POST | Relay shelf plus per-session repeat suppression |
 | `/api/v2/ia/program` | POST | Program-director queue compatibility route |
 | `/api/v2/catalog?channel=...` | GET | Read normalized D1 catalog records |
+| `/api/v2/source/catalog` | POST | Server-side YouTube/PeerTube Source Suite discovery and manifest hydration |
 
 The API Worker calls `ais-relay` through the `RELAY` Service Binding. It does
 not call the public relay URL. Each session+channel is routed to its own
@@ -41,3 +42,9 @@ normalized programs, channel membership/rules, source health, and indexes.
 The API contract remains stable while relay-backed discovery is gradually
 replaced by D1-backed reads; clients do not need to know which adapter served
 an item.
+
+Source Suite now follows the same boundary. A cold request returns the first
+verified long-form lane and continues full provider hydration in the
+background; later requests read the durable D1 manifest. See
+`docs/SOURCE_CATALOG_ARCHITECTURE.md` for the qualification and fallback
+contract.

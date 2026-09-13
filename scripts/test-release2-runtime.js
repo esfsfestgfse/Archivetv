@@ -3,6 +3,7 @@ const path = require('node:path');
 
 const repo = path.resolve(__dirname, '..');
 const runtime = fs.readFileSync(path.join(repo, 'assets', 'release2-runtime.js'), 'utf8');
+const guide = fs.readFileSync(path.join(repo, 'assets', 'guide-overhaul.js'), 'utf8');
 const builds = ['the_dial_desktop.html', 'the_dial_mobile.html'];
 let failures = 0;
 
@@ -21,13 +22,17 @@ check(runtime.includes("action==='skip'") && runtime.includes('skips:'), 'Skip m
 check(runtime.includes('sourceFailures') && runtime.includes('sourceRecoveries'), 'Source failure/recovery summary exists');
 check(runtime.includes('statusLabel') && runtime.includes('__rsCastIsConnected'), 'Mobile/Cast status measurement exists');
 check(runtime.includes("addEventListener('online'"), 'Online recovery hook exists');
+check(guide.includes('realsignal:guide-recent') && guide.includes('rsGuideRecentOnly'), 'Guide recently-watched view exists');
+check(guide.includes('rsGuideRecentSort') && guide.includes('CHANNEL ORDER'), 'Guide order control exists');
+check(fs.existsSync(path.join(repo, 'assets', 'source-catalog-client.js')), 'Server catalog bridge asset exists');
 
 for (const file of builds) {
   const html = fs.readFileSync(path.join(repo, file), 'utf8');
   check(html.includes('assets/release2-runtime.js'), `${file}: Release 2 runtime loaded`);
+  check(html.includes('assets/guide-overhaul.css') && html.includes('assets/guide-overhaul.js'), `${file}: shared guide overhaul assets loaded`);
   check(html.includes('rsHealthPanel') && html.includes('rsHealthFrame'), `${file}: APP HEALTH panel is present`);
   check(html.includes('currentDuration') && html.includes('guideItemRuntime(nextItem)'), `${file}: guide exposes Source Suite current/next runtime data`);
-  check(html.includes('2.0.1-' + (file.includes('mobile') ? 'mobile' : 'desktop') + '.201-health-telemetry'), `${file}: build stamp is RealSignal 2.0.1 — health telemetry`);
+  check(html.includes('2.1.0-' + (file.includes('mobile') ? 'mobile' : 'desktop') + '.210-guide-overhaul'), `${file}: build stamp is RealSignal 2.1.0 — guide overhaul`);
   check(html.includes('var chanRT={timers:[],teardowns:[]};') && html.includes('chanRT.teardowns.splice(0)'), `${file}: live-channel teardown callbacks are executed`);
   check(html.includes('shipSocket.close()') && html.includes('clearTimeout(publicViewTimer)'), `${file}: Ship Tracker closes sockets and pending viewport retries on channel change`);
   const gearHeadStart = html.indexOf('"Gear Head": {');

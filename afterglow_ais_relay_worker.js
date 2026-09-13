@@ -178,7 +178,7 @@ const IA_COLD_RESCUE_CHANNELS = new Set([
   "507", "508", "509", "510", "511", "575", "700", "701", "703", "900", "906", "926", "927", "928",
   /* v164's full soak isolated these additional cold lanes. Keep their verified
      shelves narrow and channel-owned; healthy lanes do not pay this cost. */
-  "14", "15", "56", "63", "68", "72", "73", "77", "83", "102", "104", "109", "122", "200", "202", "901", "911", "916"
+  "14", "15", "18", "56", "63", "68", "72", "73", "77", "83", "102", "104", "109", "122", "200", "202", "901", "911", "916"
 ]);
 function iaColdRescueEnabled(channel) {
   return IA_COLD_RESCUE_CHANNELS.has(String(channel));
@@ -823,6 +823,38 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
    channel's permanent catalog. They still pass the normal theme, deny,
    media-type, title, and metadata hydration gates before playback. */
 const IA_LONG_TAIL_EXPANSIONS = Object.freeze({
+  /* v178 targeted first-frame recovery. These are already-observed IA files
+     for the four lanes that remained empty after relay/cache repair. Keeping
+     the media derivative on the seed avoids another metadata roundtrip during
+     a cold tune; normal editorial discovery still owns later rotation depth. */
+  "18": [
+    { identifier: "emergency-call-glendale-fd-1991", title: "Emergency Call — Glendale FD (1991)", subject: "medical drama hospital drama medical series television", year: 1991, media: { type: "video", url: "https://archive.org/download/emergency-call-glendale-fd-1991/Emergency%20Call%20-%20Glendale%20FD%20-%201991.ia.mp4" } },
+    { identifier: "doogie-s02e07-academia-nuts", title: "Doogie Howser, M.D. — Academia Nuts", subject: "medical drama hospital drama medical series television", year: 1990, media: { type: "video", url: "https://archive.org/download/doogie-howser-m.d.-season-2-of-4-xvid-avi/Doogie%20Howser%2C%20M.D.%20-%20S02E07%20-%20Academia%20Nuts.mp4" } },
+    { identifier: "doogie-s02e04-cest-la-vinnie", title: "Doogie Howser, M.D. — C'est La Vinnie", subject: "medical drama hospital drama medical series television", year: 1990, media: { type: "video", url: "https://archive.org/download/doogie-howser-m.d.-season-2-of-4-xvid-avi/Doogie%20Howser%2C%20M.D.%20-%20S02E04%20-%20C%27est%20La%20Vinnie.mp4" } },
+    { identifier: "doogie-s04e12-fishing-trips", title: "Doogie Howser, M.D. — The Mother of All Fishing Trips", subject: "medical drama hospital drama medical series television", year: 1992, media: { type: "video", url: "https://archive.org/download/doogie-howser-m.d.-season-4-of-4-xvid-avi/Doogie%20Howser%2C%20M.D.%20-%20S04E12%20-%20The%20Mother%20of%20All%20Fishing%20Trips.mp4" } },
+    { identifier: "doogie-s04e05-patient-in-spite", title: "Doogie Howser, M.D. — The Patient in Spite of Himself", subject: "medical drama hospital drama medical series television", year: 1992, media: { type: "video", url: "https://archive.org/download/doogie-howser-m.d.-season-4-of-4-xvid-avi/Doogie%20Howser%2C%20M.D.%20-%20S04E05%20-%20The%20Patient%20in%20Spite%20of%20Himself.mp4" } }
+  ],
+  "209": [
+    { identifier: "NasaDestinationTomorrow-Dt12-FlightPioneers", title: "NASA Destination Tomorrow — Flight Pioneers", subject: "aviation aircraft airplane flight aerospace documentary", year: 2004, media: { type: "video", url: "https://archive.org/download/NasaDestinationTomorrow-Dt12-FlightPioneers/NASADT12-FlightPioneers.mp4" } },
+    { identifier: "NasaDestinationTomorrow-Dt9-QuietAircraftTechnology", title: "NASA Destination Tomorrow — Quiet Aircraft Technology", subject: "aviation aircraft airplane flight aerospace documentary", year: 2004, media: { type: "video", url: "https://archive.org/download/NasaDestinationTomorrow-Dt9-QuietAircraftTechnology/NASADT9-QuietAircraftTechnology.mp4" } },
+    { identifier: "KayStins1917", title: "Kay Stinson, Aviator (1917)", subject: "aviation aircraft airplane pilot flight history film", year: 1917, media: { type: "video", url: "https://archive.org/download/KayStins1917/KayStins1917.mp4" } },
+    { identifier: "Helicopt1953", title: "The Helicopter (1953)", subject: "aviation aircraft airplane helicopter flight engineering film", year: 1953, media: { type: "video", url: "https://archive.org/download/Helicopt1953/Helicopt1953.mp4" } },
+    { identifier: "MissionA1942", title: "Mission Accomplished — The Story of the Flying Fortress", subject: "aviation aircraft airplane bomber flight history film", year: 1942, media: { type: "video", url: "https://archive.org/download/MissionA1942/MissionA1942.mp4" } }
+  ],
+  "235": [
+    { identifier: "colorado-rmnp-1987-interlaced", title: "Rocky Mountain National Park Tour (1987)", subject: "roadside travel road trip tourism film highway travel", year: 1987, media: { type: "video", url: "https://archive.org/download/colorado-rmnp-1987-interlaced/Colorado-RMNP-1987-deinterlaced.mp4" } },
+    { identifier: "rough_road_to_panama", title: "Rough Road to Panama", subject: "roadside travel road trip highway travel tourism film", year: 1947, media: { type: "video", url: "https://archive.org/download/rough_road_to_panama/rough_road_to_panama_512kb.mp4" } },
+    { identifier: "kentucky-travel-film-1965", title: "Kentucky Travel Film (1965)", subject: "roadside travel road trip tourism film highway travel", year: 1965, media: { type: "video", url: "https://archive.org/download/kentucky-travel-film-1965/Kentucky%20Travel%20Film%20%281965%29.mp4" } },
+    { identifier: "capsdf_000033", title: "Gold Rush Trip — Vacation Film (1961)", subject: "roadside travel road trip tourism film vacation highway travel", year: 1961, media: { type: "video", url: "https://archive.org/download/capsdf_000033/capsdf_000033_access.mp4" } },
+    { identifier: "capsdf_000028", title: "Murphys & Angels Camp Road Trip (1973)", subject: "roadside travel road trip tourism film vacation highway travel", year: 1973, media: { type: "video", url: "https://archive.org/download/capsdf_000028/capsdf_000028_access.mp4" } }
+  ],
+  "507": [
+    { identifier: "all-aboard-the-potomac-eagle_202603", title: "All Aboard the Potomac Eagle — A Scenic Train Ride", subject: "slow tv long form train journey scenic ride ambient travel video", year: 2005, media: { type: "video", url: "https://archive.org/download/all-aboard-the-potomac-eagle_202603/A1_t00.mp4" } },
+    { identifier: "Norway_Train_Ride", title: "Norway Train Ride", subject: "slow tv long form train journey scenic ride ambient travel video", year: 2015, media: { type: "video", url: "https://archive.org/download/Norway_Train_Ride/Norway_Train_Ride.mp4" } },
+    { identifier: "New_Zealand_Christchurch-Greymouth_-_Cab_Ride_2012", title: "New Zealand Christchurch–Greymouth Cab Ride (2012)", subject: "slow tv long form train journey cab ride scenic ride ambient travel video", year: 2012, media: { type: "video", url: "https://archive.org/download/New_Zealand_Christchurch-Greymouth_-_Cab_Ride_2012/New%20Zealand%20Christchurch-Greymouth%20-%20Cab%20Ride%20%282012%29.mp4" } },
+    { identifier: "cab-ride-along-the-santa-fe-trail-part-1", title: "Cab Ride Along the Santa Fe Trail — Part 1", subject: "slow tv long form train journey cab ride scenic ride ambient travel video", year: 1998, media: { type: "video", url: "https://archive.org/download/cab-ride-along-the-santa-fe-trail-part-1/Cab%20Ride%20Along%20The%20Santa%20Fe%20Trail%20Part%201.mp4" } },
+    { identifier: "train-journey-across-the-usa-bb-glj-b-4ik-ts", title: "Train Journey Across the USA", subject: "slow tv long form train journey scenic ride ambient travel video", year: 2015, media: { type: "video", url: "https://archive.org/download/train-journey-across-the-usa-bb-glj-b-4ik-ts/Train%20Journey%20across%20the%20USA%20%5BBbGljB4ikTs%5D.mp4" } }
+  ],
   "72": [
     { identifier: "USTA_Pro_Circuit_Men_s_Futures_Tennis_Tournament_2017_-_Palm_Coast", title: "USTA Pro Circuit — Futures Tennis Tournament", subject: "tennis racquet sports tournament", year: 2017 },
     { identifier: "bctvpa-PIAA_State_Championships_5-20-19", title: "PIAA State Tennis Championships", subject: "tennis racquet sports championship", year: 2019 },
@@ -1025,6 +1057,13 @@ const IA_LONG_TAIL_EXPANSIONS = Object.freeze({
    prevents a warm five-item shelf from waiting on another metadata roundtrip
    before the background rotation can deepen. */
 const IA_LONG_TAIL_MEDIA_FILES = Object.freeze({
+  /* Existing Monster Island recovery IDs were valid Archive records but had
+     no derivative map, so cold hydration still had to rediscover metadata. */
+  "1989gojirataibiorante.720p.ac3.cg": "1989 Gojira tai Biorante.720p.ac3.CG.mp4",
+  "1992gojirataimosura.720p.ac3.cg": "1992 Gojira tai Mosura.720p.ac3.CG.mp4",
+  "thereturnofgodzilla1984": "THE RETURN OF GODZILLA (1984) Japanese version (HD).mp4",
+  "GodzillaThingRedMenace": "Godzilla vs. the Thing - Red Menace Reconstruction.mp4",
+  "ultraman-monster-movie-feature-1967": "Ultraman Monster Movie Feature (1967).ia.mp4",
   "youtube-F8mWrEDUrgs": "WYC_Peanut_Regatta_-_10_27_2019_Photos_Taken_from_S_V_Alive_and_Free-F8mWrEDUrgs.mp4",
   "youtube-G7qFvL5A9U4": "WYC_Peanut_Regatta_05_26_2019_taken_from_S_V_Selah-G7qFvL5A9U4.mp4",
   "youtube--_MDjbRl6aU": "-_MDjbRl6aU.mp4",
@@ -3531,7 +3570,15 @@ async function getIaQueue(request, url, env, ctx) {
          re-enter discovery so the next approved rail can win. */
       try {
         const cachedPayload = await cached.clone().json();
-        if (!cachedPayload || cachedPayload.empty || (!Array.isArray(cachedPayload.items) || !cachedPayload.items.length) && !cachedPayload.hydrating) {
+        /* A zero-ready response is a handoff while Archive metadata is still
+           resolving, not a playable shelf. Older deploys cached that handoff
+           for ten seconds, so every poll received the same spinner even after
+           a later request could have verified the first media URL. Treat any
+           zero-ready exact-rotation entry as stale and re-enter the bounded
+           foreground path. Ready partial shelves remain valid: they already
+           contain at least one verified program and can hydrate in background. */
+        const cachedReady = Number(cachedPayload && cachedPayload.ready) || 0;
+        if (!cachedPayload || cachedPayload.empty || cachedReady < 1 || !Array.isArray(cachedPayload.items) || !cachedPayload.items.length) {
           await cache.delete(cacheKey).catch(() => false);
         } else {
           const cachedCandidateCount = iaCatalogCandidateBudget(themeMinScore, count);
@@ -3917,14 +3964,15 @@ async function getIaQueue(request, url, env, ctx) {
       return fallbackResponse;
     }
     const initial = { ...payload, items: payload.items.slice(0, Math.min(count, 3)), ready: 0, partial: true, hydrating: true, fallback: true };
-    const initialResponse = cacheableJson(initial, 10, {
+    /* Never edge-cache a zero-ready handoff. It is useful to the current
+       browser only as a bounded candidate hint; caching it turns a temporary
+       metadata delay into a deterministic no-signal loop for every poll. */
+    const initialResponse = json(initial, 200, {
+      "Cache-Control": "no-store",
       "X-Afterglow-Source": "program-director",
       "X-Afterglow-Queue-Ready": "0",
       "X-Afterglow-Queue-Fallback": "1",
     });
-    ctx.waitUntil(cache.put(cacheKey, initialResponse.clone()).catch((error) => {
-      console.warn(JSON.stringify({ event: "queue-fallback-cache-write-failed", channel, message: String(error && error.message || error) }));
-    }));
     ctx.waitUntil(
       hydration
         .then((ready) => {

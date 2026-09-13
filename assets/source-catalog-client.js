@@ -1,9 +1,10 @@
 /* RealSignal server-catalog client bridge.
  *
- * Source Suite discovery is attempted at the API boundary first. The legacy
- * browser adapters remain the canary fallback when the API is unavailable or
- * has no verified item yet. This bridge deliberately claims one provider lane
- * so the two client adapters do not duplicate the same server result.
+ * Source Suite discovery is attempted at the API boundary first. PeerTube is
+ * retained as a bounded canary fallback when the API is unavailable; YouTube
+ * stays server-only so no browser credential or direct Data API call returns.
+ * This bridge deliberately claims one provider lane so client adapters do not
+ * duplicate the same server result.
  */
 (function () {
   var originalProvider = window.v2Provider;
@@ -17,13 +18,11 @@
     if (inFlight[key]) return inFlight[key];
     var controller = typeof AbortController === "function" ? new AbortController() : null;
     var timeout = setTimeout(function () { if (controller) controller.abort(); }, 8500);
+    /* The Worker owns the approved descriptor. Sending only the stable key
+       prevents a modified browser profile from changing provider queries or
+       persistence rules at the API boundary. */
     var body = {
       profileKey: profileKey,
-      name: String(profile && profile.name || "").slice(0, 160),
-      queries: Array.isArray(profile && profile.queries) ? profile.queries.slice(0, 8) : [],
-      match: Array.isArray(profile && profile.match) ? profile.match.slice(0, 40) : [],
-      deny: Array.isArray(profile && profile.deny) ? profile.deny.slice(0, 48) : [],
-      providers: Array.isArray(profile && profile.providers) ? profile.providers.slice(0, 2) : ["peertube", "youtube"],
       rotation: Number(rotation) || 0,
       minimumReady: 2
     };
@@ -47,7 +46,7 @@
     var key = profileKey + "|" + String(Number(rotation) || 0);
     var server = await request(profile, rotation);
     if (server && Array.isArray(server.items) && server.items.length) {
-      if (name === "youtube" && server.providerAvailability && server.providerAvailability.youtube === false) return originalProvider.apply(this, arguments);
+      if (name === "youtube" && server.providerAvailability && server.providerAvailability.youtube === false) return { provider: "YouTube", items: [], health: { serverCatalog: true, skipped: "youtube-provider-unconfigured" } };
       if (!claimed[key]) {
         claimed[key] = true;
         var lane = { provider: "Server Catalog", items: server.items, health: server.lanes || server.health || {}, serverCatalog: true };
@@ -56,6 +55,7 @@
       }
       return { provider: name, items: [], health: { serverCatalog: true, skipped: "shared-server-lane" } };
     }
+    if (name === "youtube") return { provider: "YouTube", items: [], health: { serverCatalog: true, skipped: "server-catalog-unavailable" } };
     return originalProvider.apply(this, arguments);
   };
 })();

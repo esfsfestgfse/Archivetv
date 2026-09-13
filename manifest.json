@@ -1,7 +1,7 @@
 {
-  "name": "Archive TV",
-  "short_name": "Archive TV",
-  "description": "Retro CRT-styled channel dial for Internet Archive video, live weather, and data channels",
+  "name": "RealSignal",
+  "short_name": "RealSignal",
+  "description": "Retro-styled live television dial for Internet Archive video, live weather, and data channels",
   "start_url": "the_dial_mobile.html",
   "scope": ".",
   "display": "standalone",

@@ -33,15 +33,15 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
     ['REALSIGNAL_COMMAND', 'must use the receiver remote-control protocol'],
   ]) if (!source.includes(token)) issues.push(`${file}: ${reason}`);
   const stamp = (source.match(/window\.__ATV_BUILD\s*=\s*"([^"]+)"/) || [])[1];
-  if (!/^1\.9\.7-(desktop|mobile)\.\d+-[a-z0-9-]+$/.test(stamp || '')) issues.push(`${file}: must carry a current release build stamp`);
+  if (!/^2\.\d+\.\d+-(desktop|mobile)\.\d+-[a-z0-9-]+$/.test(stamp || '')) issues.push(`${file}: must carry a current release build stamp`);
 }
 const receiver = fs.readFileSync(path.join(repo, 'realsignal_cast_receiver.html'), 'utf8');
-for (const token of ['cast_receiver_framework.js', 'addCustomMessageListener', 'REALSIGNAL_STATE', 'REALSIGNAL_TUNE', 'REALSIGNAL_GUIDE', 'REALSIGNAL_CAST_ERROR', 'REALSIGNAL_CAST_ENDED', 'sendCustomMessage', 'desiredChannel', 'cast-media-player', 'getPlayerManager', 'mediaContentType', 'renderGuide', 'playableEmbedUrl', 'loadEmbed', 'embedCommand', 'pauseVideo', 'playVideo', 'MEDIA_FINISHED', 'PAUSE', 'VOLUME']) if (!receiver.includes(token)) issues.push(`receiver: missing ${token}`);
+for (const token of ['cast_receiver_framework.js', 'addCustomMessageListener', 'REALSIGNAL_STATE', 'REALSIGNAL_TUNE', 'REALSIGNAL_GUIDE', 'REALSIGNAL_CAST_ERROR', 'REALSIGNAL_CAST_ENDED', 'sendCustomMessage', 'desiredChannel', 'cast-media-player', 'getPlayerManager', 'mediaContentType', 'renderGuide', 'playableEmbedUrl', 'loadEmbed', 'embedCommand', 'pauseVideo', 'playVideo', 'MEDIA_FINISHED', 'PAUSE', 'VOLUME', 'ensureDirector', 'directorActive', 'pendingState', 'postToApp(data)']) if (!receiver.includes(token)) issues.push(`receiver: missing ${token}`);
 if (/director-open cast-media-player\{display:none/.test(receiver)) issues.push('receiver: guide must not remove the native video surface from Android TV layout');
 if (/const key=url\.href/.test(receiver)) issues.push('receiver: channel changes must not recreate the director iframe');
 for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
   const source = fs.readFileSync(path.join(repo, file), 'utf8');
-  for (const token of ['__rsCastPublishMedia', '__rsCastGuideSync', 'REALSIGNAL_TUNE', 'REALSIGNAL_GUIDE']) if (!source.includes(token)) issues.push(`${file}: must use the direct receiver protocol (${token})`);
+  for (const token of ['__rsCastPublishMedia', '__rsCastGuideSync', 'REALSIGNAL_TUNE', 'REALSIGNAL_GUIDE', 'castReceiverFrame', 'postToCastReceiver']) if (!source.includes(token)) issues.push(`${file}: must use the direct receiver protocol (${token})`);
 }
 const bridge = fs.readFileSync(path.join(repo, 'scripts', 'realsignal-cast-bridge.mjs'), 'utf8');
 for (const token of ["/health", "/live.m3u8", "libx264", "-c:a', 'aac"]) if (!bridge.includes(token)) issues.push(`bridge: missing ${token}`);

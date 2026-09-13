@@ -39,8 +39,9 @@ jobs:
           node-version: '22'
           package-manager-cache: false
 
-      # A fast release gate for first-play availability. The scheduled IA
-      # workflow remains the authoritative full-depth/all-channel soak.
+      # A fast release gate for first-play availability across representative
+      # eras, animation, sports, live-data, and long-tail IA lanes. The
+      # scheduled IA workflow remains the authoritative full-depth/all-channel soak.
       - name: Build release smoke manifest
         run: |
           mkdir -p artifacts
@@ -50,11 +51,11 @@ jobs:
         run: >-
           node scripts/soak-ia-queues.js
           --manifest artifacts/ia-queue-manifest.json
-          --channels 132,150,206,208,210,212,227,239
+          --channels 10,12,50,63,75,104,117,122,132,150,153,158,202,206,208,210,212,227,239,555
           --count 3
           --rotations 1
           --require-ready 1
-          --concurrency 8
+          --concurrency 4
           --timeout-ms 15000
           --depth-timeout-ms 3500
           --poll-ms 500

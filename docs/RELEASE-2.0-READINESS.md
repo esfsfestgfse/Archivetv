@@ -1,8 +1,10 @@
 # RealSignal 2.0 readiness
 
-Build under test: `1.9.7-desktop.174-source-suite-depth` and `1.9.7-mobile.174-source-suite-depth`.
+Build under test: `2.1.0-desktop.210-guide-overhaul` and `2.1.0-mobile.210-guide-overhaul`.
 
-Current production Worker: v172 (`64d89292-9dd0-4b8b-87f4-b586c720074c`). This document records the cumulative v167–v172 long-tail IA hardening chain plus the v174 Source Suite depth repair. The client stamp is 174 for the shared desktop/mobile Source Suite build.
+This document is a historical readiness record. The active Worker deployment
+revision must be verified from the corresponding GitHub Actions run; it must
+not be inferred from the older v172 identifier recorded in earlier notes.
 
 ## What is covered
 

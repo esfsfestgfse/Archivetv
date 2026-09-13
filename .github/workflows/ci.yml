@@ -6,6 +6,16 @@ on:
       - 'the_dial_desktop.html'
       - 'realsignal_cast_receiver.html'
       - 'afterglow_ais_relay_worker.js'
+      - 'realsignal_api_v2_worker.js'
+      - 'realsignal_api_rotation.js'
+      - 'realsignal_source_catalog.js'
+      - 'source_suite_profile_registry.js'
+      - 'wrangler.api.jsonc'
+      - 'migrations/**'
+      - 'assets/source-catalog-client.js'
+      - 'sw.js'
+      - 'manifest.json'
+      - 'android-sender/**'
       - 'wrangler.jsonc'
       - 'ci/**'
       - 'scripts/**'
@@ -72,8 +82,9 @@ jobs:
           node scripts/test-modern-rerun-lock.js
           node scripts/test-darcys-playground-lock.js
           node scripts/test-source-suite-catalog-retention.js
-          node scripts/test-source-suite-language-lock.js
-          node scripts/test-animation-lane-locks.js
+           node scripts/test-source-suite-language-lock.js
+           node scripts/test-animation-lane-locks.js
+           node scripts/test-manufacturing-marvels-contract.js
       - name: Serve app
         run: |
           python -m http.server 8799 &
@@ -114,8 +125,9 @@ jobs:
           node scripts/test-modern-rerun-lock.js
           node scripts/test-darcys-playground-lock.js
           node scripts/test-source-suite-catalog-retention.js
-          node scripts/test-source-suite-language-lock.js
-          node scripts/test-animation-lane-locks.js
+           node scripts/test-source-suite-language-lock.js
+           node scripts/test-animation-lane-locks.js
+           node scripts/test-manufacturing-marvels-contract.js
       - name: Serve app
         run: |
           python -m http.server 8800 &

@@ -9,9 +9,11 @@ function setup() {
   const eventListeners = new Map();
   function element() {
     const classes = new Set();
-    return {style: {}, textContent: '', contentWindow: {postMessage() {}}, addEventListener() {}, appendChild() {},
+    const node = {style: {}, textContent: '', posts: [], listeners: {}, contentWindow: null, addEventListener(type, callback) {node.listeners[type] = callback;}, appendChild() {},
       querySelector: element, classList: {remove: c => classes.delete(c),
         toggle(c, on) {if(on) classes.add(c); else classes.delete(c);}, contains: c => classes.has(c)}};
+    node.contentWindow = {postMessage(packet, origin) {node.posts.push({packet, origin});}};
+    return node;
   }
   const player = {load(request) {current = request.media;
     return new Promise((resolve, reject) => loads.push({request, resolve, reject}));},
@@ -67,6 +69,12 @@ const flush = async () => {await Promise.resolve(); await Promise.resolve();};
   assert.equal(r.messages.filter(m => m.type === 'REALSIGNAL_CAST_ERROR').length, 1);
   assert.equal(r.timers.size, 0);
   const controls = setup(); controls.state(7); controls.media(7, 'controls');
+  assert(controls.nodes.get('director').src.includes('castReceiver=1'), 'receiver must boot a hidden channel director for native sender control');
+  controls.send({type: 'REALSIGNAL_COMMAND', action: 'NEXT'});
+  controls.nodes.get('director').listeners.load();
+  const directorPosts = controls.nodes.get('director').posts;
+  assert(directorPosts.some(entry => entry.packet && entry.packet.type === 'REALSIGNAL_COMMAND' && entry.packet.action === 'NEXT'), 'receiver must queue commands until the director is ready');
+  assert(directorPosts.findIndex(entry => entry.packet && entry.packet.type === 'REALSIGNAL_STATE') < directorPosts.findIndex(entry => entry.packet && entry.packet.type === 'REALSIGNAL_COMMAND'), 'receiver must apply initial state before replaying queued commands');
   controls.send({type: 'REALSIGNAL_COMMAND', action: 'PAUSE'});
   controls.send({type: 'REALSIGNAL_COMMAND', action: 'PLAY'});
   controls.send({type: 'REALSIGNAL_COMMAND', action: 'VOLUME', level: 0.35, muted: false});

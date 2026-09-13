@@ -22,9 +22,6 @@ for (const file of files) {
     [/function v2MapLimit\(/, 'provider fan-out must be concurrency bounded'],
     [/if\(name===\"peertube\"\)return v2PeerTubeCold\(profile,rotation,onFirst\)/, 'PeerTube must receive the early verified-results callback'],
     [/async function v2PeerTubeCold\(/, 'PeerTube must have a dedicated cold-start lane'],
-    [/onFirst=typeof arguments\[2\]==="function"\?arguments\[2\]:null/, 'YouTube must expose a verified early-results callback'],
-    [/jobs\.forEach\(function\(job\)\{job\.then\(primeFirst\);\}\)/, 'the first completed YouTube search must seed cold-start verification'],
-    [/hydrate\(fastPools\.shift\(\),18\)/, 'cold starts must verify a small qualified set before the full catalog'],
     [/function publishFirst\(index,result\)/, 'the catalog loader must release the early verified lane to playback'],
     [/install\(results\.filter\(Boolean\),true,false\)/, 'partial cold-start catalogs must not replace the persisted full catalog'],
     [/href="https:\/\/www\.youtube-nocookie\.com"/, 'the YouTube embed origin must be preconnected for cold starts'],
@@ -62,7 +59,6 @@ for (const file of files) {
     [/function v2Landscape\(/, 'source items must be landscape-only'],
     [/function v2SourceTokens\(/, 'genre qualification must share a tokenized focus vocabulary'],
     [/sortModes=\["-match","-publishedAt","-views","-likes"\]/, 'PeerTube discovery must rotate result ordering'],
-    [/orders=\["relevance","date","viewCount","rating"\]/, 'YouTube discovery must rotate result ordering'],
     [/function v2TuneRefreshed\(/, 'sparse queues must wait for a genuinely different next item'],
     [/prior=v2Unique\(cachedItems\.concat\(state\.items\|\|\[\]\)\),merged=v2Unique\(prior\.concat\(discovered\)\)/, 'rolling refreshes must retain and extend verified programs instead of replacing the shelf'],
     [/state\.items\.length<=V2_SOURCE_READY_BUFFER/, 'small queues must refresh before replaying a program'],
@@ -70,7 +66,6 @@ for (const file of files) {
     [/\.slice\(0,[45]\),queries=v2DiscoveryQueries\(profile,"peertube"/, 'PeerTube discovery must use all approved instances and anchored rotating query lanes'],
     [/V2_SOURCE_MAX_CONCURRENCY=8/, 'PeerTube discovery must complete its first pass with bounded parallel fan-out'],
     [/queries=v2DiscoveryQueries\(profile,"peertube",rotation,Math\.min\(4,/, 'PeerTube discovery must use an anchored four-query first pass'],
-    [/queryCap=profile\.profileKey==="cartoon-time-machine"\?8:4/, 'Cartoon Time Machine must use its full declared YouTube discovery pool'],
     [/19\[3-9\]\\d\|20\\d\\d\|classic\|vintage\|retro\|golden age\|saturday morning/, 'Cartoon Time Machine must reject modern animation bleed without an era signal'],
     [/Math\.min\(24,V2_SOURCE_MAX_DETAIL\)/, 'PeerTube detail hydration must retain a deeper catalog'],
     [/aspect=v2AspectRatio\(d\)\|\|v2AspectRatio\(x\)\|\|v2AspectRatio\(file\)/, 'PeerTube must verify the source aspect ratio'],
@@ -83,7 +78,6 @@ for (const file of files) {
     [/experimental animation.*student film.*thesis film/, 'Cartoon Time Machine must reject artsy and production-short bleed'],
     [/full\\s\+\(\?:cartoon\|episode\|episode\[s\]\?\)/, 'Cartoon Time Machine must require episode or special program-form evidence'],
     [/seconds&&\(isTelevision\?seconds<600/, 'Cartoon Time Machine must reject undersized TV results without capping long cartoon blocks'],
-    [/part=snippet,contentDetails,status,player&maxWidth=1280/, 'YouTube must request public player dimensions'],
     [/verification:\{metadata:true,rights:true,landscape:true/, 'verified source items must record landscape proof'],
     [/runtime:true/, 'verified source items must record runtime proof'],
     [/store\.set\("v2source:"\+key,\{version:V2_SOURCE_CACHE_VERSION,at:Date\.now\(\),items:items,health:state\.health\}\)/, 'catalog cache must retain provider health'],
@@ -101,9 +95,10 @@ for (const file of files) {
   const youtubeStart = source.indexOf('async function v2YouTube(');
   const archiveStart = source.indexOf('async function v2Archive(', youtubeStart);
   const youtube = youtubeStart >= 0 && archiveStart > youtubeStart ? source.slice(youtubeStart, archiveStart) : '';
-  if (!/embed-eligible/.test(youtube) || !/v2YouTubeBlocked/.test(youtube)) issues.push(`${name}: YouTube must preserve embed eligibility and Shorts/language/how-to filtering`);
-  if (!/v2CandidateRelevant\(profile,x\)/.test(youtube) || !/!v2CandidateRelevant\(profile,metadata\)/.test(youtube) || !/!v2ProgramRuntimeOkay\(metadata\)/.test(youtube)) issues.push(`${name}: YouTube must use candidate, hydrated, and television-runtime qualification gates`);
-  if (!/tags:metadata\.tags,category:metadata\.category,account:metadata\.account/.test(youtube)) issues.push(`${name}: YouTube catalogs must preserve qualification metadata across cache restores`);
+  if (!/server catalog required/.test(youtube) || /YOUTUBE_KEY|youtube\/v3/.test(youtube)) issues.push(`${name}: browser YouTube discovery must be disabled in favor of the server catalog`);
+  if (!/function v2YouTubeBlocked\(/.test(source) || !/function v2YouTubeEnglish\(/.test(source) || !/function v2ProgramRuntimeOkay\(/.test(source)) issues.push(`${name}: server-returned YouTube items must retain Shorts, language, how-to, and runtime gates`);
+  if (!/tags:metadata\.tags,category:metadata\.category,account:metadata\.account/.test(source) && !/verification:\{metadata:true,rights:true,landscape:true/.test(source)) issues.push(`${name}: YouTube catalogs must preserve qualification metadata across cache restores`);
+  if (/YOUTUBE_KEY|https:\/\/www\.googleapis\.com\/youtube\/v3/.test(source)) issues.push(`${name}: browser must not contain a direct YouTube API credential or endpoint`);
 
   const stamps = [...source.matchAll(/window\.__ATV_BUILD\s*=\s*"([^"]+)"/g)].map(match => match[1]);
   const profileStart = source.indexOf('const V2_PREVIEW_PROFILES={');

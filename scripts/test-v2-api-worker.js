@@ -37,21 +37,29 @@ const { pathToFileURL } = require('node:url');
   const nativeFetch = global.fetch;
   global.fetch = async request => {
     const url = String(request);
+    if (url.includes('youtube/v3/channels?part=contentDetails&forHandle=')) {
+      return new Response(JSON.stringify({ items: [{ contentDetails: { relatedPlaylists: { uploads: 'uploads-sports' } } }] }), { headers: { 'content-type': 'application/json' } });
+    }
+    if (url.includes('youtube/v3/playlistItems?part=snippet&playlistId=uploads-sports')) {
+      return new Response(JSON.stringify({ items: [{ snippet: { title: 'Game Highlights', resourceId: { videoId: 'sports-1' } } }] }), { headers: { 'content-type': 'application/json' } });
+    }
     if (url.startsWith('https://www.googleapis.com/youtube/v3/search')) {
-      return new Response(JSON.stringify({ items: [{ id: { videoId: 'source-1' }, snippet: { title: 'The Game Show 1975 Full Episode', description: 'A full television game show episode.', channelTitle: 'Archive TV', publishedAt: '1975-01-01T00:00:00Z' } }] }), { headers: { 'content-type': 'application/json' } });
+      return new Response(JSON.stringify({ items: [{ id: { videoId: 'source-1' }, snippet: { title: 'Classic Television Game Show Archive 1975 Full Episode', description: 'A full classic television game show archive episode.', channelTitle: 'Archive TV', publishedAt: '1975-01-01T00:00:00Z' } }] }), { headers: { 'content-type': 'application/json' } });
     }
     if (url.startsWith('https://www.googleapis.com/youtube/v3/videos')) {
-      return new Response(JSON.stringify({ items: [{ id: 'source-1', snippet: { title: 'The Game Show 1975 Full Episode', description: 'A full television game show episode.', channelTitle: 'Archive TV', publishedAt: '1975-01-01T00:00:00Z' }, contentDetails: { duration: 'PT20M' }, status: { embeddable: true }, player: { embedWidth: 1280, embedHeight: 720 } }] }), { headers: { 'content-type': 'application/json' } });
+      return new Response(JSON.stringify({ items: [{ id: 'source-1', snippet: { title: 'Classic Television Game Show Archive 1975 Full Episode', description: 'A full classic television game show archive episode.', channelTitle: 'Archive TV', publishedAt: '1975-01-01T00:00:00Z' }, contentDetails: { duration: 'PT20M' }, status: { embeddable: true }, player: { embedWidth: 1280, embedHeight: 720 } }] }), { headers: { 'content-type': 'application/json' } });
     }
     if (url.includes('/api/v1/search/videos')) {
-      return new Response(JSON.stringify({ data: [{ uuid: 'pt-source-1', url: 'https://tube.example/videos/watch/pt-source-1', name: 'The Game Show 1975 Full Episode', truncatedDescription: 'A public game show episode.', category: { label: 'Entertainment' }, licence: { label: 'Attribution' }, duration: 1200 }] }), { headers: { 'content-type': 'application/json' } });
+      return new Response(JSON.stringify({ data: [{ uuid: 'pt-source-1', url: 'https://tube.example/videos/watch/pt-source-1', name: 'Classic Television Game Show Archive 1975 Full Episode', truncatedDescription: 'A public classic television game show archive episode.', category: { label: 'Entertainment' }, licence: { label: 'Attribution' }, duration: 1200 }] }), { headers: { 'content-type': 'application/json' } });
     }
     if (url.includes('tube.example/api/v1/videos/')) {
       return new Response(JSON.stringify({ duration: 1200, licence: { label: 'Attribution' }, files: [{ fileUrl: 'https://tube.example/static/game-show.mp4', hasVideo: true, mimetype: 'video/mp4', width: 1280, height: 720 }] }), { headers: { 'content-type': 'application/json' } });
     }
     throw new Error(`unexpected source test fetch ${url}`);
   };
-  const source = await worker.fetch(new Request('https://api.example/api/v2/source/catalog', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ profileKey: 'game-show-archive', providers: ['youtube'], queries: ['game show full episode'], match: ['game show'], deny: [], rotation: 0 }) }), { ...env, YOUTUBE_API_KEY: 'unit-test-key' }, ctx);
+  const unknownProfile = await worker.fetch(new Request('https://api.example/api/v2/source/catalog', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ profileKey: 'caller-invented-channel', providers: ['youtube'], queries: ['anything'], match: ['anything'], deny: [], rotation: 0 }) }), { ...env, YOUTUBE_API_KEY: 'unit-test-key' }, ctx);
+  assert.equal(unknownProfile.status, 404);
+  const source = await worker.fetch(new Request('https://api.example/api/v2/source/catalog', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ profileKey: 'game-show-archive', providers: ['youtube'], queries: ['caller cannot replace these'], match: ['caller cannot replace these'], deny: [''], rotation: 0 }) }), { ...env, YOUTUBE_API_KEY: 'unit-test-key' }, ctx);
   assert.equal(source.status, 200);
   const sourceBody = await source.json();
   assert.equal(sourceBody.source, 'server-source-catalog');
@@ -62,6 +70,11 @@ const { pathToFileURL } = require('node:url');
   const peerTubeBody = await peerTube.json();
   assert.equal(peerTubeBody.items[0].provider, 'PeerTube');
   assert.equal(peerTubeBody.items[0].url, 'https://tube.example/static/game-show.mp4');
+  const sportsHighlights = await worker.fetch(new Request('https://api.example/api/v2/youtube/uploads?handle=NBA'), { ...env, YOUTUBE_API_KEY: 'unit-test-key' }, ctx);
+  assert.equal(sportsHighlights.status, 200);
+  assert.equal((await sportsHighlights.json()).items[0].snippet.resourceId.videoId, 'sports-1');
+  const unapprovedYouTube = await worker.fetch(new Request('https://api.example/api/v2/youtube/uploads?handle=unapproved'), { ...env, YOUTUBE_API_KEY: 'unit-test-key' }, ctx);
+  assert.equal(unapprovedYouTube.status, 404);
   global.fetch = nativeFetch;
   assert.equal(queueMessages.length, 2);
 
@@ -87,6 +100,17 @@ const { pathToFileURL } = require('node:url');
   assert.equal(tooLarge.status, 413);
   const badJson = await worker.fetch(new Request('https://api.example/api/v2/ia/queue', { method: 'POST', body: '{' }), env, ctx);
   assert.equal(badJson.status, 400);
+
+  let limited;
+  for (let attempt = 0; attempt < 31; attempt += 1) {
+    limited = await worker.fetch(new Request('https://api.example/api/v2/source/catalog', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'CF-Connecting-IP': '198.51.100.7' },
+      body: JSON.stringify({ profileKey: 'caller-invented-channel', rotation: attempt }),
+    }), env, ctx);
+  }
+  assert.equal(limited.status, 429);
+  assert.ok(Number(limited.headers.get('Retry-After')) >= 1);
 
   console.log('V2 API contract passed: bounded input, relay forwarding, session isolation, rotation, and queue enqueue.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

@@ -1,11 +1,13 @@
 /* RealSignal server-side Source Suite adapters.
  *
- * The browser sends a built-in channel profile; this module owns provider
- * discovery, television-length filtering, landscape validation, and the
- * normalized item shape returned to every client surface. YouTube uses the
- * optional YOUTUBE_API_KEY Worker secret. PeerTube uses its public API and
- * direct media renditions, never unverifiable embeds.
+ * The browser sends only a stable profile key. This module owns the approved
+ * provider queries, discovery, television-length filtering, landscape
+ * validation, and the normalized item shape returned to every client surface.
+ * YouTube uses the optional YOUTUBE_API_KEY Worker secret. PeerTube uses its
+ * public API and direct media renditions, never unverifiable embeds.
  */
+
+import { SOURCE_PROFILE_REGISTRY } from "./source_suite_profile_registry.js";
 
 const SOURCE_MIN_RUNTIME = 15 * 60;
 const SOURCE_MAX_ITEMS = 48;
@@ -82,16 +84,15 @@ async function fetchJson(url, options = {}) {
 
 function normalizedProfile(body) {
   const profileKey = text(body && (body.profileKey || body.channel || body.name), 120).toLowerCase().replace(/[^a-z0-9._:-]+/g, "-");
-  const queries = list(body && body.queries);
-  const match = list(body && body.match, 40);
-  const deny = list(body && body.deny, 48);
-  const providers = list(body && body.providers, 2).map((value) => value.toLowerCase()).filter((value, index, values) => (value === "youtube" || value === "peertube") && values.indexOf(value) === index);
+  const approved = SOURCE_PROFILE_REGISTRY[profileKey];
+  if (!approved) return null;
   return {
     profileKey,
-    queries,
-    match,
-    deny,
-    providers: providers.length ? providers : ["peertube", "youtube"],
+    name: approved.name,
+    queries: list(approved.queries),
+    match: list(approved.match, 40),
+    deny: list(approved.deny, 48),
+    providers: list(approved.providers, 2).map((value) => value.toLowerCase()),
   };
 }
 
@@ -331,6 +332,7 @@ export function sourceProfile(body) {
 
 export async function discoverSourceCatalog(body, env, rotation = 0) {
   const profile = normalizedProfile(body);
+  if (!profile) return { profileKey: "", items: [], lanes: [], ready: 0, candidates: 0, catalogVersion: "source-server-1", source: "server-source-catalog", error: "unknown source profile" };
   const lanes = await Promise.all(providers(profile, rotation, env).map((task) => task.catch((error) => ({ provider: "unknown", items: [], health: { error: text(error, 160) } }))));
   const items = unique(lanes.flatMap((lane) => lane.items || [])).slice(0, SOURCE_MAX_ITEMS);
   return { profileKey: profile.profileKey, items, lanes, ready: items.length, candidates: items.length, catalogVersion: "source-server-1", source: "server-source-catalog" };
@@ -338,6 +340,7 @@ export async function discoverSourceCatalog(body, env, rotation = 0) {
 
 export function sourceCatalogTasks(body, env, rotation = 0) {
   const profile = normalizedProfile(body);
+  if (!profile) return { profile: null, tasks: [] };
   return { profile, tasks: providers(profile, rotation, env) };
 }
 

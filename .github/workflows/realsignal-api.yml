@@ -6,6 +6,8 @@ on:
     paths:
       - 'realsignal_api_v2_worker.js'
       - 'realsignal_api_rotation.js'
+      - 'realsignal_source_catalog.js'
+      - 'source_suite_profile_registry.js'
       - 'wrangler.api.jsonc'
       - 'migrations/**'
       - 'scripts/test-v2-api-worker.js'
@@ -34,8 +36,11 @@ jobs:
         run: |
           node scripts/check-v2-api-contract.js
           node scripts/test-v2-api-worker.js
+          node scripts/test-source-catalog-bridge.js
           node --check realsignal_api_v2_worker.js
           node --check realsignal_api_rotation.js
+          node --check realsignal_source_catalog.js
+          node --check source_suite_profile_registry.js
 
   deploy:
     needs: validate

@@ -10,8 +10,11 @@ const config = fs.readFileSync(path.join(root, 'wrangler.api.jsonc'), 'utf8');
 const migration = fs.readFileSync(path.join(root, 'migrations', '0001_realsignal_catalog.sql'), 'utf8');
 const checks = [
   [worker.includes('const API_PREFIX = "/api/v2"'), 'versioned V2 route'],
+  [worker.includes('const RATE_LIMITS =') && worker.includes('function rateLimit('), 'expensive public routes have an edge request budget'],
+  [worker.includes('Retry-After'), 'rate-limited clients receive retry guidance'],
   [worker.includes('readBoundedJson') && worker.includes('MAX_BODY_BYTES'), 'bounded JSON input'],
   [worker.includes('env.RELAY.fetch') && worker.includes('relay.internal'), 'internal relay service binding'],
+  [worker.includes('x-realsignal-session') && worker.includes('ip-${requestClientKey(request)}'), 'anonymous viewers must not share one global rotation bucket'],
   [worker.includes('env.ROTATION.getByName') && worker.includes('session:${session}:channel:${channel}'), 'per-session channel sharding'],
   [rotation.includes('await this.ctx.storage.put("rotation", next)'), 'persisted rotation state'],
   [worker.includes('env.realsignal_catalog_refresh.send') && worker.includes('async queue(batch, env)'), 'asynchronous catalog ingestion'],

@@ -1,5 +1,7 @@
 const ALLOWED_PROTOCOLS = new Set(["http:", "https:"]);
 const ALLOWED_HOSTS = ["jmp2.uk", "pluto.tv", "plutotv.net"];
+const MAX_UPSTREAM_REDIRECTS = 3;
+const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
 
 function isAllowedHost(hostname) {
   const host = hostname.toLowerCase();
@@ -67,14 +69,26 @@ function rewriteManifest(manifest, baseUrl, requestUrl) {
 }
 
 async function fetchUpstream(targetUrl, request) {
-  return fetch(targetUrl, {
-    method: request.method === "HEAD" ? "HEAD" : "GET",
-    redirect: "follow",
-    headers: {
-      Accept: "*/*",
-      "User-Agent": "RealSignal HLS relay/1.0",
-    },
-  });
+  let current = new URL(targetUrl);
+  for (let hop = 0; hop <= MAX_UPSTREAM_REDIRECTS; hop += 1) {
+    if (!ALLOWED_PROTOCOLS.has(current.protocol) || !isAllowedHost(current.hostname)) {
+      throw new Error("upstream redirect escaped the relay allowlist");
+    }
+    const response = await fetch(current.toString(), {
+      method: request.method === "HEAD" ? "HEAD" : "GET",
+      redirect: "manual",
+      headers: {
+        Accept: "*/*",
+        "User-Agent": "RealSignal HLS relay/1.0",
+      },
+    });
+    if (!REDIRECT_STATUSES.has(response.status)) return { response, url: current.toString() };
+    if (hop === MAX_UPSTREAM_REDIRECTS) throw new Error("upstream redirect limit exceeded");
+    const location = response.headers.get("location");
+    if (!location) throw new Error("upstream redirect missing location");
+    current = new URL(location, current);
+  }
+  throw new Error("upstream redirect limit exceeded");
 }
 
 export default {
@@ -109,17 +123,18 @@ export default {
       return errorResponse("upstream fetch failed", 502);
     }
 
-    const finalUrl = upstream.url || target.toString();
-    const contentType = upstream.headers.get("content-type") || "";
+    const response = upstream.response;
+    const finalUrl = upstream.url;
+    const contentType = response.headers.get("content-type") || "";
 
     // Pluto sometimes labels AES-128 keys as application/vnd.apple.mpegurl.
     // A key is always binary; never read or rewrite it as playlist text.
     if (isKeyUrl(finalUrl) || isKeyUrl(target.toString())) {
       const headers = new Headers(corsHeaders("application/octet-stream", "no-store"));
-      const length = upstream.headers.get("content-length");
+      const length = response.headers.get("content-length");
       if (length) headers.set("Content-Length", length);
-      return new Response(request.method === "HEAD" ? null : upstream.body, {
-        status: upstream.status,
+      return new Response(request.method === "HEAD" ? null : response.body, {
+        status: response.status,
         headers,
       });
     }
@@ -127,20 +142,20 @@ export default {
     if (isManifestUrl(finalUrl, contentType)) {
       let body;
       try {
-        body = await upstream.text();
+        body = await response.text();
       } catch (_) {
         return errorResponse("upstream manifest read failed", 502);
       }
       const rewritten = rewriteManifest(body, finalUrl, request.url);
       return new Response(request.method === "HEAD" ? null : rewritten, {
-        status: upstream.status,
+        status: response.status,
         headers: corsHeaders("application/vnd.apple.mpegurl; charset=utf-8", "no-store"),
       });
     }
 
     const passthroughType = contentType || "application/octet-stream";
-    return new Response(request.method === "HEAD" ? null : upstream.body, {
-      status: upstream.status,
+    return new Response(request.method === "HEAD" ? null : response.body, {
+      status: response.status,
       headers: corsHeaders(passthroughType, "public, max-age=5"),
     });
   },

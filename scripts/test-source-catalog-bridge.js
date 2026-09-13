@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-/* Proves the browser bridge prefers the server catalog and leaves the
-   existing YouTube fallback active when the Worker reports no YouTube secret. */
+/* Proves the browser bridge prefers the server catalog and does not fall back
+   to direct YouTube calls when the Worker reports no YouTube secret. */
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -24,11 +24,13 @@ vm.createContext(context);
 vm.runInContext(source, context);
 
 (async () => {
-  const profile = { profileKey: 'test-lane', name: 'Test Lane', providers: ['peertube', 'youtube'], queries: ['full episode'], match: ['episode'], deny: [] };
+  const profile = { profileKey: 'game-show-archive', name: 'Game Show Archive', providers: ['peertube', 'youtube'], queries: ['full episode'], match: ['episode'], deny: [] };
   const serverLane = await context.window.v2Provider('peertube', profile, 0, null);
   assert.equal(serverLane.items[0].id, 'server-item');
   const youtubeLane = await context.window.v2Provider('youtube', profile, 0, null);
-  assert.equal(youtubeLane.items[0].id, 'client-fallback');
+  assert.equal(youtubeLane.items.length, 0);
+  assert.equal(youtubeLane.health.skipped, 'youtube-provider-unconfigured');
   assert.equal(calls.length, 1);
-  console.log('Source catalog bridge passed: server preference and YouTube fallback.');
+  assert.deepEqual(JSON.parse(calls[0].options.body), { profileKey: 'game-show-archive', rotation: 0, minimumReady: 2 });
+  console.log('Source catalog bridge passed: server preference and server-only YouTube handling.');
 })().catch(error => { console.error(error.stack || error); process.exitCode = 1; });

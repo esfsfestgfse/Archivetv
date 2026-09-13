@@ -6363,6 +6363,21 @@ if(MODERN_CARTOON_PROGRAM){
   MODERN_CARTOON_PROGRAM.deny.subject=(MODERN_CARTOON_PROGRAM.deny.subject||[]).concat(MODERN_CARTOON_EDITORIAL_REJECTS);
 }
 
+/* Manufacturing Marvels is a factory/process lane, not a general education
+   shelf. Archive's broad industrial collections contain unrelated classroom
+   and children's uploads (including LeapFrog). Require an explicit factory,
+   plant, production, materials, or industrial-process signal in the title and
+   reject the known false-positive families before any file is hydrated. */
+Object.assign(PROGRAM["Manufacturing Marvels"],{
+  era:[1930,2026],
+  themeMinScore:4,
+  queueTerms:["manufacturing","industrial","manufacturing process","industrial process","industrial film","factory","factory tour","inside the factory","assembly line","assembly plant","production line","mass production","food processing","food manufacturing","steel mill","steel industry","foundry","metallurgy","machine shop","machining","fabrication","textile mill","paper mill","power plant","power station","oil refinery","chemical plant","aircraft factory","aircraft manufacturing","shipyard","shipbuilding","canning","brewery","dairy processing","meatpacking","automobile manufacturing","auto plant","industrial workers","workplace safety","quality control","time and motion","coal mining","iron mining","copper mining","construction industry","building construction","furniture manufacturing","glass manufacturing","electronics manufacturing","printing plant","tool and die","how it's made","how its made","how it is made","how things are made"],
+  fastSubjects:["manufacturing","industrial","industrial process","factory","assembly line","food processing","steel mill","automobile manufacturing","textile mill","power plant","aircraft manufacturing","shipbuilding","foundry","metallurgy","machine shop","fabrication"],
+  require:{title_any:["manufacturing","industrial","manufacturing process","industrial process","industrial film","factory","factory tour","inside the factory","assembly line","assembly plant","production line","mass production","food processing","food manufacturing","steel mill","steel industry","foundry","metallurgy","machine shop","machining","fabrication","textile mill","paper mill","power plant","power station","oil refinery","chemical plant","aircraft factory","aircraft manufacturing","shipyard","shipbuilding","canning","brewery","dairy processing","meatpacking","automobile manufacturing","auto plant","industrial workers","workplace safety","quality control","time and motion","coal mining","iron mining","copper mining","construction industry","building construction","furniture manufacturing","glass manufacturing","electronics manufacturing","printing plant","tool and die"]},
+  deny:{title:["commercial","home movie","training film","genetically modified","gmo","organic food","gm food","modified food","to live in darkness","leapfrog","preschool","children","kids","cartoon","animation","animated","nursery rhyme","learning video","educational video","storybook","story time","toy review","toy unboxing","gameplay","video game","music video","lyrics","sing along","classroom","school lesson","lecture","seminar","webinar","podcast","vlog","reaction","review","unboxing","how to make","diy","craft tutorial","recipe","cooking"],subject:["commercial","animated","home movie","amateur","military combat","genetic modification","gmo","genetically modified","food safety news","blindness","leapfrog","preschool","children","kids","cartoon","animation","nursery rhyme","learning video","educational video","storybook","story time","toy review","toy unboxing","gameplay","video game","music video","lyrics","sing along","classroom","school lesson","lecture","seminar","webinar","podcast","vlog","reaction","review","unboxing","how to make","diy","craft tutorial","recipe","cooking"]},
+  diversity:{maxPerEra:2,maxPerLane:1,maxPerCreator:1,maxPerCollection:2,maxPerFamily:1}
+});
+
 /* Commercials are their own video station, never an audio interruption. Rotate
    deliberately across decades and product lanes so a tune never becomes one
    narrow VHS-era reel. */
@@ -6741,6 +6756,11 @@ function iaProgramAllowed(item,sl){
   if(p.deny){if((p.deny.title||[]).some(function(x){return title.indexOf(String(x).toLowerCase())>=0;}))return false;if((p.deny.subject||[]).some(function(x){return subj.indexOf(String(x).toLowerCase())>=0;}))return false;}
   if(p.require&&p.require.title_any&&p.require.title_any.length&&!p.require.title_any.some(function(x){return title.indexOf(String(x).toLowerCase())>=0;}))return false;
   return !(p.require&&p.require.runtime_max_s&&item.runtime&&iaRuntimeSeconds(item.runtime)>p.require.runtime_max_s);
+}
+function iaCachedProgramAllowed(ch,pl,sl){
+  if(!ch||ch.nm!=="Manufacturing Marvels")return true;
+  var meta=pl&&pl.meta||{},currentSl=sl||(typeof slotFor==="function"?slotFor(ch,0,{preview:true}):null);
+  return !!(pl&&pl.id&&iaProgramAllowed({identifier:pl.id,title:pl.title||"",subject:meta.subject||meta.subjects||"",year:pl.year||meta.year||""},currentSl));
 }
 function iaProgramDenyTerms(sl){var p=sl&&sl.program||{},g=sl&&G[sl.genre]||{},out=[];["title","subject"].forEach(function(k){(p.deny&&p.deny[k]||[]).forEach(function(v){String(v||"").trim()&&out.push(String(v).trim());});});(g.not||[]).forEach(function(v){String(v||"").trim()&&out.push(String(v).trim());});return out.slice(0,256);}
 function iaQueueDiversity(sl){var d=sl&&sl.program&&sl.program.diversity||{},cap=function(key,fallback){return Math.max(1,Math.min(5,Math.round(Number(d[key])||fallback)));};return {maxPerEra:cap("maxPerEra",1),maxPerLane:cap("maxPerLane",1),maxPerCreator:cap("maxPerCreator",1),maxPerCollection:cap("maxPerCollection",2),maxPerFamily:cap("maxPerFamily",1)};}
@@ -7490,48 +7510,10 @@ async function v2PeerTubeCold(profile){
   if(fast.length>=V2_SOURCE_MIN_CATALOG)await new Promise(function(resolve){setTimeout(resolve,1200);});
   var full=await v2PeerTube(profile,rotation),items=v2Unique(fast.concat(full.items||[]));return {provider:"PeerTube",items:items,health:{searched:queries.length+Number(full.health&&full.health.searched||0),details:items.length,fastStart:!!fast.length}};
 }
-async function v2YouTube(profile){
-  var key=typeof YOUTUBE_KEY==="string"?YOUTUBE_KEY:"",rotation=arguments[1]||0,onFirst=typeof arguments[2]==="function"?arguments[2]:null;
-  if(!key)return {provider:"YouTube",items:[],health:{skipped:true,reason:"YOUTUBE_KEY missing"}};
-  var orders=["relevance","date","viewCount","rating"],order=orders[Number(rotation)%orders.length],queryCap=profile.profileKey==="cartoon-time-machine"?8:4,queries=v2DiscoveryQueries(profile,"youtube",rotation,Math.min(queryCap,Number(profile.queryLimit)||queryCap));
-  var cooldownKey="v2youtube-cooldown:"+profile.name,cooldownUntil=Number(store.get(cooldownKey,0))||0;if(cooldownUntil>Date.now())return {provider:"YouTube",items:[],health:{skipped:true,reason:"rate-limited",retryAt:cooldownUntil}};
-  /* A cold tune used to wait for every search response, then a full 50-item
-     metadata batch. Verify the first productive query as soon as it lands;
-     the complete, rotating catalog still finishes in the background below. */
-  async function hydrate(candidates,limit){
-    var raw=v2Unique(candidates||[]).filter(function(x){return x&&x.id&&!v2YouTubeBlocked(x)&&v2CandidateRelevant(profile,x);}),ids=raw.map(function(x){return x.id;}).slice(0,limit||50);
-    if(!ids.length)return {items:[],details:0};
-    try{
-      var d=await withTO(fetch("https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,status,player&maxWidth=1280&id="+ids.join(",")+"&key="+encodeURIComponent(key),{mode:"cors"}).then(function(r){if(!r.ok)throw new Error("detail "+r.status);return r.json();}),8500),by={};
-      (d.items||[]).forEach(function(x){by[x.id]=x;});
-      var items=raw.map(function(x){
-        var f=by[x.id]||{},aspect=v2AspectRatio(f.player),metadata=Object.assign({},x,{title:v2Text(f.snippet&&f.snippet.title||x.title),description:v2Text(f.snippet&&f.snippet.description||x.description),tags:v2Text(f.snippet&&f.snippet.tags||x.tags||[]),category:v2Text(f.snippet&&f.snippet.categoryId||x.category),account:v2Text(f.snippet&&f.snippet.channelTitle||x.account),duration:v2IsoDuration(f.contentDetails&&f.contentDetails.duration),defaultAudioLanguage:f.snippet&&f.snippet.defaultAudioLanguage,defaultLanguage:f.snippet&&f.snippet.defaultLanguage,aspectRatio:aspect});
-        if(!f.status||f.status.embeddable!==true||!f.contentDetails||!f.contentDetails.duration||aspect<1.2)return null;
-        if(v2YouTubeBlocked(metadata)||!v2CandidateRelevant(profile,metadata)||!v2ProgramRuntimeOkay(metadata))return null;
-        return v2Verified({id:"yt:"+x.id,title:metadata.title,description:metadata.description,tags:metadata.tags,category:metadata.category,account:metadata.account,year:String(f.snippet&&f.snippet.publishedAt||x.year||"").slice(0,4),rights:"Standard YouTube license",url:x.embedUrl,type:"embed",embedded:true,duration:metadata.duration,aspectRatio:aspect,sourceUrl:"https://www.youtube.com/watch?v="+x.id},"YouTube",x.query,"embed-eligible");
-      }).filter(Boolean).slice(0,limit||48);
-      return {items:items,details:ids.length};
-    }catch(e){if(/429|quota|rate.?limit/i.test(String(e&&e.message||e)))store.set(cooldownKey,Date.now()+15*60*1000);return {items:[],details:ids.length};}
-  }
-  var fastPools=[],fastLoading=false,fastDelivered=false;
-  function primeFirst(rows){
-    if(!onFirst||fastDelivered||!rows||!rows.length)return;
-    fastPools.push(rows);
-    if(fastLoading)return;
-    fastLoading=true;
-    (async function(){while(!fastDelivered&&fastPools.length){var quick=await hydrate(fastPools.shift(),18);if(quick.items.length){fastDelivered=true;try{onFirst({provider:"YouTube",items:quick.items,health:{searched:1,details:quick.details,fastStart:true}});}catch(e){}break;}}fastLoading=false;})().catch(function(){fastLoading=false;});
-  }
-  var jobs=queries.map(async function(query){
-    try{
-      var u="https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=50&order="+encodeURIComponent(order)+"&relevanceLanguage=en&regionCode=US&videoEmbeddable=true&videoSyndicated=true&safeSearch=moderate&q="+encodeURIComponent(query)+"&key="+encodeURIComponent(key);
-      var d=await withTO(fetch(u,{mode:"cors"}).then(function(r){if(!r.ok)throw new Error("http "+r.status);return r.json();}),8500);
-      return (d.items||[]).map(function(x){return {id:String(x.id&&x.id.videoId||""),query:query,title:v2Text(x.snippet&&x.snippet.title),description:v2Text(x.snippet&&x.snippet.description),year:String(x.snippet&&x.snippet.publishedAt||"").slice(0,4),provider:"YouTube",embedUrl:"https://www.youtube-nocookie.com/embed/"+String(x.id&&x.id.videoId||"")};});
-    }catch(e){if(/429|quota|rate.?limit/i.test(String(e&&e.message||e)))store.set(cooldownKey,Date.now()+15*60*1000);return [];}
-  });
-  jobs.forEach(function(job){job.then(primeFirst);});
-  var raw=v2RoundRobin(await Promise.all(jobs)).filter(function(x){return x.id&&!v2YouTubeBlocked(x)&&v2CandidateRelevant(profile,x);}),full=await hydrate(raw,50);
-  return {provider:"YouTube",items:full.items,health:{searched:queries.length,details:full.details}};
- }
+/* YouTube discovery belongs to the API Worker. Keeping provider resolution out
+   of the browser prevents credential leakage and makes Source Suite rotation
+   consistent across desktop, mobile, and Cast. */
+async function v2YouTube(profile){return {provider:"YouTube",items:[],health:{skipped:true,reason:"server catalog required"}};}
 function v2IsoDuration(value){var m=String(value||"").match(/^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/i);return m?(Number(m[1]||0)*3600+Number(m[2]||0)*60+Number(m[3]||0)):0;}
 async function v2Archive(profile){
   try{var terms=profile.queries.slice(0,3).map(function(q){return "(title:("+q+") OR subject:("+q+"))";}).join(" OR "),u=iaURL("mediatype:movies AND ("+terms+")",32,1),d=await fetchJSONResilient(u,"v2-ia"),docs=(d&&d.response&&d.response.docs)||[],items=v2Unique(docs.filter(function(x){return v2Relevant(profile,x)&&v2RightsOkay(x.license||x.rights,"Internet Archive");}).map(function(x){return {id:String(x.identifier||""),title:v2Text(x.title||x.identifier),description:v2Text(x.description||""),year:String(x.year||"").slice(0,4),rights:v2Text(x.license||x.rights),type:"archive",provider:"Internet Archive",duration:iaRuntimeSeconds(x.runtime||0)};})).slice(0,12);var hydrated=await v2MapLimit(items,3,async function(x){try{var pl=await resolvePlayable(x.id,"video");return pl&&pl.url?v2Verified(Object.assign({},x,pl,{id:x.id,type:"video",sourceUrl:"https://archive.org/details/"+x.id}),"Internet Archive","archive","resolved-file"):null;}catch(e){return null;}});return {provider:"Internet Archive",items:hydrated.filter(Boolean),health:{searched:docs.length,details:items.length}};}catch(e){return {provider:"Internet Archive",items:[],health:{error:String(e)}};}
@@ -7702,8 +7684,12 @@ var preloadCache=null; /* 1.4: the next program, resolved ahead of time */
    is reusable. Keep a deliberately small, expiring channel cache so power-on and return-tunes
    go straight to media rather than repeating search + metadata every time. */
 var fastTuneCache=store.get("fastTune",{}), FAST_TUNE_TTL=36*60*60*1000, FAST_TUNE_MAX=24;
+/* Editorial identity changed for CH 200. Drop only its old direct-media cache;
+   other stations keep their fast-start shelf intact. Bump this fence whenever
+   the factory-only contract changes again. */
+try{if(Number(store.get("manufacturingMarvelsGateVersion",0))<1){delete fastTuneCache["200"];store.set("fastTune",fastTuneCache);store.set("manufacturingMarvelsGateVersion",1);}}catch(e){}
 function fastTuneGet(chNum){var e=fastTuneCache[String(chNum)],ch=typeof byNum==="function"?byNum(chNum):null,expected=iaExpectedMedia(ch);
-  if(!e||!e.pl||!e.pl.url||e.pl.type!==expected||Date.now()-e.at>FAST_TUNE_TTL||isTemporarilySkipped(e.pl.id)||iaProgramFailed(e.pl.id)||blockedId(e.pl.id)||(Array.isArray(banned)&&banned.indexOf(e.pl.id)>=0)){if(e){delete fastTuneCache[String(chNum)];store.set("fastTune",fastTuneCache);}return null;}
+  if(!e||!e.pl||!e.pl.url||e.pl.type!==expected||!iaCachedProgramAllowed(ch,e.pl)||Date.now()-e.at>FAST_TUNE_TTL||isTemporarilySkipped(e.pl.id)||iaProgramFailed(e.pl.id)||blockedId(e.pl.id)||(Array.isArray(banned)&&banned.indexOf(e.pl.id)>=0)){if(e){delete fastTuneCache[String(chNum)];store.set("fastTune",fastTuneCache);}return null;}
   return {type:e.pl.type,url:e.pl.url,alts:(e.pl.alts||[]).slice(),id:e.pl.id,captions:e.pl.captions||null,
     meta:e.pl.meta||{},title:e.pl.title||"",year:e.pl.year||""};}
 function fastTunePut(chNum,it){if(!it||!it.id||!it.url)return;
@@ -7846,6 +7832,7 @@ async function tuneIA(ch,sl,my){
      queue. Cold metadata rejoin lookups were the largest avoidable pause on
      revisits. Only rejoin when the shelf has no work left to do. */
   var rec=iaQueueHasReadyProgram(ch)?schedGet(ch):null;
+  if(rec&&!iaCachedProgramAllowed(ch,{id:rec.id,title:rec.title||"",year:rec.year||""},sl)){schedClear(ch);rec=null;}
   if(rec){
     var rj=null; try{ rj=await resolvePlayable(rec.id); }catch(e){}
     if(my!==token)return;
@@ -7872,7 +7859,7 @@ async function tuneIA(ch,sl,my){
     if(fq.length){ queries=fq.concat(queries); nlog("flow",true,"following "+(lastMeta.creator||lastMeta.collection)); }
   }
   var pc=preloadCache; /* 1.4: near-gapless cuts — the next program was resolved while the last one played */
-  if(pc&&pc.chNum===ch.num&&pc.pl&&(Date.now()-pc.at)<1800000&&banned.indexOf(pc.pl.id)<0&&!isTemporarilySkipped(pc.pl.id)){
+  if(pc&&pc.chNum===ch.num&&pc.pl&&iaCachedProgramAllowed(ch,pc.pl,sl)&&(Date.now()-pc.at)<1800000&&banned.indexOf(pc.pl.id)<0&&!isTemporarilySkipped(pc.pl.id)){
     preloadCache=null;
     nlog("preload",true,"instant start from preload");
     if(await playFile(pc.pl,ch,sl,my,0)) return;
@@ -14615,7 +14602,6 @@ var issTimer=null;
 var apodTimer=null;
 var buoyTimer=null, ndbcStationCache=null;
 var hfTimer=null;
-var YOUTUBE_KEY="AIzaSyBdN1eHQHXorjPqHaUJBrtQkvdyYAhH6nI";
 var sportsTimer=null;
 var ytChannelCache={}; /* handle -> uploads playlist id, resolved once per session and reused */
 var sportsSubView="scores"; var favTeamsCache=null;
@@ -14665,13 +14651,12 @@ var SPORTS_LIST=[
   {k:"darts", label:"DARTS",       cat:"Individual", sdb:"4554",                                   yt:"PDCTV"},
   {k:"snooker",label:"SNOOKER",    cat:"Individual", sdb:"4555",                                   yt:"WorldSnooker"}
 ];
-async function ytUploadsPlaylist(handle){
+async function ytUploads(handle){
   if(ytChannelCache[handle]) return ytChannelCache[handle];
-  var d=await fetchJSON("https://www.googleapis.com/youtube/v3/channels?part=contentDetails&forHandle="+encodeURIComponent(handle)+"&key="+YOUTUBE_KEY);
-  var item=d&&d.items&&d.items[0];
-  var pl=item&&item.contentDetails&&item.contentDetails.relatedPlaylists&&item.contentDetails.relatedPlaylists.uploads;
-  if(pl) ytChannelCache[handle]=pl;
-  return pl||null;
+  var d=await fetchJSON(IA_API_BASE+"/youtube/uploads?handle="+encodeURIComponent(handle));
+  var items=Array.isArray(d&&d.items)?d.items:[];
+  if(items.length) ytChannelCache[handle]=items;
+  return items;
 }
 async function tuneSports(ch,sl,my){
   if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Sports Center","");
@@ -15361,12 +15346,9 @@ async function tuneSports(ch,sl,my){
   async function renderHighlights(){
     bodyEl.innerHTML='<div class="pop-empty">Loading highlights\u2026</div>';
     try{
-      var plId=await ytUploadsPlaylist(curSport.yt);
+      var items=await ytUploads(curSport.yt);
       if(my!==token||sportsSubView!=="highlights")return;
-      if(!plId) throw new Error("could not resolve @"+curSport.yt+" channel");
-      var vids=await fetchJSON("https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId="+plId+"&maxResults=12&key="+YOUTUBE_KEY);
-      if(my!==token||sportsSubView!=="highlights")return;
-      var items=(vids&&vids.items)||[];
+      if(!items.length) throw new Error("no videos found for @"+curSport.yt+" channel");
       /* prefer titles that actually read like highlights/recaps over just "whatever posted most
          recently", which could be a press conference, a promo, anything */
       var scored=items.map(function(it){
@@ -17922,6 +17904,8 @@ window.__atvBootDone=true; /* app is up -- from here on, errors get logged, not 
 (function(){
   var NS="urn:x-cast:com.realsignal.dial",configuredId="",wired=false,castState="UNKNOWN",searchTimer=null,lastError="",sdkRetryTimer=null,castSeq=0,castSessionIdentity="",castSessionKey="",castSessionActive=false,castPaused=false,lifecycleWired=false,castMessageSession="";
   function receiverId(){return String((store.get("castReceiverId","")||window.REALSIGNAL_CAST_RECEIVER_ID||"")).trim();}
+  function castReceiverFrame(){try{return new URLSearchParams(location.search).get("castReceiver")==="1"&&window.parent!==window;}catch(e){return false;}}
+  function postToCastReceiver(packet){if(!castReceiverFrame())return false;try{window.parent.postMessage(packet,"*");return true;}catch(e){return false;}}
   function standalone(){try{return !!((window.matchMedia&&window.matchMedia("(display-mode: standalone)").matches)||navigator.standalone===true);}catch(e){return false;}}
   function platformIssue(){var ua=navigator.userAgent||"";if(/iPhone|iPad|iPod/i.test(ua))return "WEB CAST UNAVAILABLE ON IOS · USE ANDROID OR DESKTOP CHROME";if(/Android/i.test(ua)&&standalone())return "CAST NEEDS A CHROME TAB · OPEN THE WEB PAGE IN CHROME";if(location.protocol!=="https:"&&!/^(localhost|127\.0\.0\.1)$/i.test(location.hostname))return "CAST REQUIRES HTTPS";return "";}
   function statusText(){var issue=platformIssue();if(issue)return issue;if(!window.__rsCastSdkReady||!window.cast||!cast.framework)return window.__rsCastSdkRetryCount<2?"CAST SERVICE STARTING · CHECKING CHROMECAST":"CAST SERVICE UNAVAILABLE · CHECK CHROME NETWORK ACCESS";if(castState==="CONNECTED")return "CAST CONNECTED";if(castState==="CONNECTING")return "SEARCHING FOR CAST DEVICES…";if(castState==="NO_DEVICES_AVAILABLE")return "NO CAST DEVICES FOUND · CHECK WI-FI / LOCAL ACCESS"+(lastError?" · "+lastError:"");return receiverId()?"Receiver ready · select CAST":"Receiver ID required for full-screen casting";}
@@ -17938,10 +17922,10 @@ window.__atvBootDone=true; /* app is up -- from here on, errors get logged, not 
   function toggleRemotePlayback(){if(!castSessionActive)return false;castPaused=!castPaused;command(castPaused?"PAUSE":"PLAY");return true;}
   function castSessionFor(it,ch){var identity=String(Number(ch&&ch.num)||Number(curNum)||0)+"|"+String(it&&it.id||it&&it.url||"");if(identity!==castSessionIdentity){castSessionIdentity=identity;castSessionKey="t"+Date.now().toString(36)+"_"+(++castSeq);}return castSessionKey;}
   function castSource(url,mode,session){if(mode==="audio")return url;var bridge=String(store.get("castBridgeUrl","http://192.168.1.67:8788")||"").trim().replace(/\/$/,"");if(!bridge||!url)return url;try{var out=new URL(bridge+"/live.m3u8");out.searchParams.set("source",url);out.searchParams.set("mode",mode||"video");if(session)out.searchParams.set("session",session);return out.href;}catch(e){return url;}}
-  function publishReceiverMedia(it,ch){if(!it||!it.url)return false;var num=Number(ch&&ch.num)||Number(curNum)||0,isAudio=!!(it.isAudio||(ch&&ch.audio)),mode=isAudio?"audio":"video",session=castSessionFor(it,ch),directAlts=(it.alts||[]).slice(0,6),fallbackAlts=mode==="video"&&!it.castEmbed?[castSource(it.url,mode,session)].concat(directAlts.map(function(url,i){return castSource(url,mode,session+"_a"+i);})):[],media={url:it.url,alts:directAlts.concat(fallbackAlts),type:isAudio?"audio":"video",playback:it.castEmbed?"embed":"direct",embedUrl:it.castEmbed?it.url:"",title:it.title||ch&&ch.nm||"RealSignal",subtitle:"CH "+num};return sendPacket({type:"REALSIGNAL_TUNE",channel:num,state:state(),media:media});}
-  function guideSync(open){var ordered=CH.slice().sort(function(a,b){return a.num-b.num;}),at=Math.max(0,ordered.findIndex(function(ch){return ch.num===curNum;})-18),items=ordered.slice(at,at+72).map(function(ch){return {num:ch.num,name:ch.nm,category:ch.cat,now:ch.num===curNum&&curItem?String(curItem.title||"ON AIR"):""};});return sendPacket({type:"REALSIGNAL_GUIDE",open:!!open,items:items});}
+  function publishReceiverMedia(it,ch){if(!it||!it.url)return false;var num=Number(ch&&ch.num)||Number(curNum)||0,isAudio=!!(it.isAudio||(ch&&ch.audio)),mode=isAudio?"audio":"video",session=castSessionFor(it,ch),directAlts=(it.alts||[]).slice(0,6),fallbackAlts=mode==="video"&&!it.castEmbed?[castSource(it.url,mode,session)].concat(directAlts.map(function(url,i){return castSource(url,mode,session+"_a"+i);})):[],media={url:it.url,alts:directAlts.concat(fallbackAlts),type:isAudio?"audio":"video",playback:it.castEmbed?"embed":"direct",embedUrl:it.castEmbed?it.url:"",title:it.title||ch&&ch.nm||"RealSignal",subtitle:"CH "+num},packet={type:"REALSIGNAL_TUNE",channel:num,state:state(),media:media};return castReceiverFrame()?postToCastReceiver(packet):sendPacket(packet);}
+  function guideSync(open){var ordered=CH.slice().sort(function(a,b){return a.num-b.num;}),at=Math.max(0,ordered.findIndex(function(ch){return ch.num===curNum;})-18),items=ordered.slice(at,at+72).map(function(ch){return {num:ch.num,name:ch.nm,category:ch.cat,now:ch.num===curNum&&curItem?String(curItem.title||"ON AIR"):""};}),packet={type:"REALSIGNAL_GUIDE",open:!!open,items:items};return castReceiverFrame()?postToCastReceiver(packet):sendPacket(packet);}
   function state(){return {type:"REALSIGNAL_STATE",appUrl:publicAppUrl(),channel:Number(curNum)||2,powered:!!powered,muted:!!muted,volume:Number(vol)||0.5,texture:(tube&&tube.dataset&&tube.dataset.glassScan)||"1",sentAt:Date.now()};}
-  function sync(){if(curItem)publishReceiverMedia(curItem,byNum(curNum));else sendPacket(state());}
+  function sync(){if(curItem)publishReceiverMedia(curItem,byNum(curNum));else {var packet=state();return castReceiverFrame()?postToCastReceiver(packet):sendPacket(packet);}}
   function bindEndMessages(session){if(!session)return;var sid="";try{sid=String(session.getSessionId&&session.getSessionId()||"");}catch(e){}if(!sid||sid===castMessageSession)return;castMessageSession=sid;try{session.addMessageListener(NS,function(_,msg){if(!msg||msg.type!=="REALSIGNAL_CAST_ENDED"||Number(msg.channel)!==Number(curNum))return;setTimeout(function(){if(castSessionActive&&powered&&Number(curNum)===Number(msg.channel))skipOne();},0);});}catch(e){}}
   function bindLifecycle(ctx){if(lifecycleWired)return;lifecycleWired=true;var et=cast.framework.CastContextEventType&&cast.framework.CastContextEventType.SESSION_STATE_CHANGED;if(!et)return;ctx.addEventListener(et,function(event){var ss=event&&event.sessionState;if(ss===cast.framework.SessionState.SESSION_ENDED){endRemoteMode();quickBanner("CAST ENDED · LOCAL PLAYBACK RESTORING");}else if(ss===cast.framework.SessionState.SESSION_STARTED||ss===cast.framework.SessionState.SESSION_RESUMED){beginRemoteMode();bindEndMessages(ctx.getCurrentSession&&ctx.getCurrentSession());sync();}});try{var current=ctx.getCurrentSession&&ctx.getCurrentSession(),state=current&&current.getSessionState&&current.getSessionState();if(state===cast.framework.SessionState.SESSION_STARTED||state===cast.framework.SessionState.SESSION_RESUMED){beginRemoteMode();bindEndMessages(current);setTimeout(sync,0);}}catch(e){}}
   function init(force){var id=receiverId(),issue=platformIssue();if(issue){setCastState("UNSUPPORTED");return false;}if(!window.__rsCastSdkReady||!window.cast||!cast.framework||!id){refreshStatus();return false;}if(!force&&wired&&configuredId===id)return true;try{var ctx=cast.framework.CastContext.getInstance();ctx.setOptions({receiverApplicationId:id,autoJoinPolicy:chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED});if(!wired){wired=true;if(cast.framework.CastContextEventType.CAST_STATE_CHANGED)ctx.addEventListener(cast.framework.CastContextEventType.CAST_STATE_CHANGED,function(event){setCastState(event.castState||"UNKNOWN");});ctx.addEventListener(cast.framework.CastContextEventType.SESSION_STATE_CHANGED,function(event){var active=event.sessionState===cast.framework.SessionState.SESSION_STARTED||event.sessionState===cast.framework.SessionState.SESSION_RESUMED;if(active){clearTimeout(searchTimer);setCastState("CONNECTED");try{var s=ctx.getCurrentSession();if(s)s.addMessageListener(NS,function(_,msg){if(msg&&msg.type==="REALSIGNAL_CAST_ERROR"&&Number(msg.channel)===Number(curNum)){quickBanner("CAST SOURCE FAILED · MOVING TO NEXT PROGRAM");setTimeout(function(){if(powered&&Number(curNum)===Number(msg.channel))skipOne();},150);}});}catch(e){}sync();quickBanner("CAST CONNECTED");}else if(event.sessionState===cast.framework.SessionState.SESSION_START_FAILED){setCastState("NO_DEVICES_AVAILABLE");quickBanner("NO CAST DEVICES FOUND · CHECK WI-FI / LOCAL ACCESS");}});}configuredId=id;setCastState(ctx.getCastState?ctx.getCastState():"NOT_CONNECTED");return true;}catch(e){setCastState("ERROR");return false;}}
@@ -17950,7 +17934,7 @@ window.__atvBootDone=true; /* app is up -- from here on, errors get logged, not 
   function pollLifecycle(){try{if(!lifecycleWired&&window.cast&&cast.framework)bindLifecycle(cast.framework.CastContext.getInstance());}catch(e){}if(!lifecycleWired)setTimeout(pollLifecycle,750);}
   pollLifecycle();
   window.__rsCastReceiverId=receiverId;window.__rsCastStatus=statusText;window.__rsCastInit=init;window.__rsCastRequest=request;window.__rsCastSync=sync;window.__rsCastPublishMedia=publishReceiverMedia;window.__rsCastGuideSync=guideSync;window.__rsCastIsConnected=isConnected;window.__rsCastCommand=command;window.__rsCastTogglePlayback=toggleRemotePlayback;
-  window.addEventListener("message",function(event){if(event.origin!==location.origin)return;applyReceiverState(event.data);});
+  window.addEventListener("message",function(event){if(castReceiverFrame()?event.source!==window.parent:event.origin!==location.origin)return;applyReceiverState(event.data);});
   var query=new URLSearchParams(location.search);if(query.get("castReceiver")==="1"){var initial={type:"REALSIGNAL_STATE",powered:query.get("powered")!=="0",channel:Number(query.get("channel"))||2};setTimeout(function(){applyReceiverState(initial);},120);}
   if(window.__rsCastSdkReady)init();else sdkRetryTimer=setTimeout(function(){if(!window.__rsCastSdkReady)retrySdk();},1800);
 })();

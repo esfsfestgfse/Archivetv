@@ -174,7 +174,7 @@ const IA_STABLE_RESCUE_CHANNELS = new Set(["17", "19", "74", "82", "106", "107",
    the one-rail fast path. */
 const IA_COLD_RESCUE_CHANNELS = new Set([
   "2", "3", "11", "12", "15", "76", "101", "105", "110", "115", "116", "119", "120", "128", "130", "131", "132", "153", "154", "155", "156",
-  "208", "209", "210", "211", "212", "213", "214", "215", "216", "217", "219", "222", "223", "224", "225", "226", "227", "229", "230", "232", "233", "234", "235", "236", "237", "238", "239", "240", "241", "242",
+  "208", "209", "210", "211", "212", "213", "214", "215", "216", "217", "219", "222", "223", "224", "225", "226", "227", "229", "230", "231", "232", "233", "234", "235", "236", "237", "238", "239", "240", "241", "242",
   "507", "508", "509", "510", "511", "575", "700", "701", "703", "900", "906", "926", "927", "928",
   /* v164's full soak isolated these additional cold lanes. Keep their verified
      shelves narrow and channel-owned; healthy lanes do not pay this cost. */
@@ -1064,6 +1064,14 @@ const IA_LONG_TAIL_MEDIA_FILES = Object.freeze({
   "thereturnofgodzilla1984": "THE RETURN OF GODZILLA (1984) Japanese version (HD).mp4",
   "GodzillaThingRedMenace": "Godzilla vs. the Thing - Red Menace Reconstruction.mp4",
   "ultraman-monster-movie-feature-1967": "Ultraman Monster Movie Feature (1967).ia.mp4",
+  /* Motor City uses the same targeted recovery path: the records are real,
+     but explicit derivatives let the second hot item promote without a
+     metadata roundtrip during a cold or burst-loaded tune. */
+  "Automoti1940": "Automoti1940.mp4",
+  "Signal301959": "Signal301959.mp4",
+  "RoadRunn1952": "RoadRunn1952.mp4",
+  "MasterHa1936": "MasterHa1936.mp4",
+  "styling_and_the_experimental_car": "styling_and_the_experimental_car.mp4",
   "youtube-F8mWrEDUrgs": "WYC_Peanut_Regatta_-_10_27_2019_Photos_Taken_from_S_V_Alive_and_Free-F8mWrEDUrgs.mp4",
   "youtube-G7qFvL5A9U4": "WYC_Peanut_Regatta_05_26_2019_taken_from_S_V_Selah-G7qFvL5A9U4.mp4",
   "youtube--_MDjbRl6aU": "-_MDjbRl6aU.mp4",

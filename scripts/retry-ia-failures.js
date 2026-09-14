@@ -15,6 +15,7 @@ function option(name, fallback) {
 const manifestPath = option('--manifest');
 const reportPath = option('--report');
 const outPath = option('--out');
+const endpoint = option('--endpoint', 'https://ais-relay.tdy1990.workers.dev/ia/queue');
 const backoffMs = Math.max(0, Math.min(15000, Number(option('--backoff-ms', '2000')) || 2000));
 const count = Math.max(1, Math.min(5, Number(option('--count', '5')) || 5));
 const timeoutMs = Math.max(5000, Number(option('--timeout-ms', '30000')) || 30000);
@@ -70,6 +71,7 @@ console.log(`Selective IA retry: ${candidates.length} lane${candidates.length ==
   const args = [
     path.join(__dirname, 'soak-ia-queues.js'),
     '--manifest', path.resolve(manifestPath),
+    '--endpoint', endpoint,
     '--channels', candidates.join(','),
     '--count', String(count),
     '--require-ready', '1',

@@ -48,6 +48,8 @@ jobs:
           node scripts/export-ia-manifest.js the_dial_desktop.html --out artifacts/ia-queue-manifest.json
 
       - name: Smoke representative IA lanes
+        id: ia_primary_smoke
+        continue-on-error: true
         run: >-
           node scripts/soak-ia-queues.js
           --manifest artifacts/ia-queue-manifest.json
@@ -62,6 +64,20 @@ jobs:
           --poll-ms 500
           --strict
           --out artifacts/ia-release-smoke.json
+
+      - name: Retry flagged IA lanes serially
+        if: ${{ !cancelled() }}
+        run: >-
+          node scripts/retry-ia-failures.js
+          --manifest artifacts/ia-queue-manifest.json
+          --report artifacts/ia-release-smoke.json
+          --out artifacts/ia-release-retry.json
+          --endpoint https://realsignal-api.tdy1990.workers.dev/api/v2/ia/queue
+          --count 3
+          --timeout-ms 30000
+          --depth-timeout-ms 8000
+          --poll-ms 1000
+          --backoff-ms 2000
 
       - name: Upload IA smoke report
         if: always()

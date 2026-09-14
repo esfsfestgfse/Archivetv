@@ -276,6 +276,13 @@ function catalogFallbackAllowed(item, body) {
   const audio = mediaType === "audio" || mediaType === "audio/mpeg" || mediaType === "audio/mp3";
   if (mediaTypes.length === 1 && mediaTypes[0] === "audio" && !audio) return false;
   if (mediaTypes.length && mediaTypes.indexOf("audio") < 0 && audio) return false;
+  if (body && body.sourceCatalog === true) {
+    const runtime = Number(item && (item.duration || item.runtime)) || 0;
+    const ratio = Number(item && item.aspectRatio) || 0;
+    if (runtime < SOURCE_LIMITS.SOURCE_MIN_RUNTIME) return false;
+    if (ratio < SOURCE_LIMITS.SOURCE_MIN_ASPECT_RATIO) return false;
+    if (audio || (mediaType !== "video" && mediaType !== "embed")) return false;
+  }
   return true;
 }
 
@@ -296,7 +303,10 @@ async function catalogFallback(env, body, requestedLimit = 12) {
       subject: metadata.subject || metadata.subjects || "",
       provider: row.provider,
       year: row.year || "",
-      runtime: Number(row.duration_seconds) || null,
+      duration: Number(row.duration_seconds || metadata.duration || metadata.runtime) || null,
+      runtime: Number(row.duration_seconds || metadata.duration || metadata.runtime) || null,
+      aspectRatio: Number(row.aspect_ratio || metadata.aspectRatio || metadata.aspect_ratio || metadata.ratio) || null,
+      mediaType: row.media_type || "video",
       media: { type: row.media_type || "video", url: row.media_url },
       type: row.media_type === "embed" ? "embed" : "video",
       url: row.media_url,
@@ -399,7 +409,7 @@ async function handleSourceCatalog(request, env, ctx, id) {
   if (!profile) return json({ error: "unknown source profile", requestId: id }, 404);
   if (!profile.queries.length) return json({ error: "source profile has no discovery queries", requestId: id }, 503);
   const rotation = Number(body.rotation) || 0;
-  const cached = await catalogFallback(env, { channel: profile.profileKey, rotation }, SOURCE_LIMITS.SOURCE_MAX_ITEMS).catch((error) => {
+  const cached = await catalogFallback(env, { channel: profile.profileKey, rotation, sourceCatalog: true }, SOURCE_LIMITS.SOURCE_MAX_ITEMS).catch((error) => {
     console.warn(JSON.stringify({ event: "source-catalog-read-failed", requestId: id, error: String(error).slice(0, 160) }));
     return null;
   });

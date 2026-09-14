@@ -10,6 +10,7 @@
 import { SOURCE_PROFILE_REGISTRY } from "./source_suite_profile_registry.js";
 
 const SOURCE_MIN_RUNTIME = 15 * 60;
+const SOURCE_MIN_ASPECT_RATIO = 1.2;
 const SOURCE_MAX_ITEMS = 48;
 const SOURCE_MAX_QUERIES = 8;
 const SOURCE_MAX_CONCURRENCY = 4;
@@ -124,7 +125,7 @@ function accepted(profile, item, provider, checkAspect = true) {
   const duration = Number(item && item.duration) || 0;
   const ratio = aspectRatio(item);
   const source = provider || text(item && item.provider, 60);
-  if (!item || !(item.id || item.uuid || item.rawId) || !title || duration < SOURCE_MIN_RUNTIME || (checkAspect && ratio < 1.2)) return false;
+  if (!item || !(item.id || item.uuid || item.rawId) || !title || duration < SOURCE_MIN_RUNTIME || (checkAspect && ratio < SOURCE_MIN_ASPECT_RATIO)) return false;
   if (/(?:#?shorts?\b|vertical\s+video|how[ -]+to|tutorial|reaction|trailer|teaser|promo|advertisement|commercial|fan\s+edit|lyrics\s+video)/i.test(haystack)) return false;
   if (profile.deny.some((term) => haystack.includes(text(term, 180).toLowerCase()))) return false;
   if (!rightsOkay(item.rights, source)) return false;
@@ -349,4 +350,4 @@ export function mergeSourceLanes(profileKey, lanes) {
   return { profileKey, items, ready: items.length, candidates: items.length, catalogVersion: "source-server-1", source: "server-source-catalog" };
 }
 
-export const SOURCE_LIMITS = { SOURCE_MIN_RUNTIME, SOURCE_MAX_ITEMS, SOURCE_MAX_QUERIES, SOURCE_FIRST_LANE_TIMEOUT_MS };
+export const SOURCE_LIMITS = { SOURCE_MIN_RUNTIME, SOURCE_MIN_ASPECT_RATIO, SOURCE_MAX_ITEMS, SOURCE_MAX_QUERIES, SOURCE_FIRST_LANE_TIMEOUT_MS };

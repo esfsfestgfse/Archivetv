@@ -70,6 +70,29 @@ const { pathToFileURL } = require('node:url');
   const peerTubeBody = await peerTube.json();
   assert.equal(peerTubeBody.items[0].provider, 'PeerTube');
   assert.equal(peerTubeBody.items[0].url, 'https://tube.example/static/game-show.mp4');
+
+  const staleSourceCatalogEnv = {
+    ...env,
+    realsignal_catalog: {
+      prepare() {
+        return {
+          bind() {
+            return {
+              async all() {
+                return { results: [{ id: 'stale-source-1', source_identifier: 'stale-source-1', title: 'Stale Short Cache Row', description: 'Missing hydrated playback metadata.', provider: 'YouTube', duration_seconds: 0, aspect_ratio: 0, media_type: 'embed', media_url: 'https://www.youtube-nocookie.com/embed/stale-source-1', source_url: 'https://youtube.com/watch?v=stale-source-1', rights: 'Standard YouTube license', year: '2026', metadata_json: '{}' }] };
+              },
+            };
+          },
+        };
+      },
+    },
+  };
+  const sourceFetch = global.fetch;
+  global.fetch = async () => { throw new Error('source providers unavailable'); };
+  const staleSourceCatalog = await worker.fetch(new Request('https://api.example/api/v2/source/catalog', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ profileKey: 'game-show-archive', rotation: 0, minimumReady: 2 }) }), staleSourceCatalogEnv, ctx);
+  global.fetch = sourceFetch;
+  assert.equal(staleSourceCatalog.status, 503);
+
   const sportsHighlights = await worker.fetch(new Request('https://api.example/api/v2/youtube/uploads?handle=NBA'), { ...env, YOUTUBE_API_KEY: 'unit-test-key' }, ctx);
   assert.equal(sportsHighlights.status, 200);
   assert.equal((await sportsHighlights.json()).items[0].snippet.resourceId.videoId, 'sports-1');

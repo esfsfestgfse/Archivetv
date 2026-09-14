@@ -1463,7 +1463,15 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "lecture",
       "studio history",
       "animation history",
-      "explained"
+      "explained",
+      "industrial film",
+      "sponsored film",
+      "shell oil",
+      "gasoline",
+      "oil field",
+      "chamber of commerce",
+      "post-wwii prosperity",
+      "for better performance"
     ]
   },
   "movie-house": {

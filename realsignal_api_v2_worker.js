@@ -337,6 +337,21 @@ async function handleQueue(request, env, ctx, id) {
     if (!payload) return upstream;
   } else {
     try { payload = await upstream.clone().json(); } catch (_) { return upstream; }
+    const upstreamItems = Array.isArray(payload && payload.items) ? payload.items : [];
+    if (upstreamItems.length < count) {
+      try {
+        const fallback = await catalogFallback(env, body, Math.max(MAX_CATALOG_ITEMS, count));
+        const seen = new Set(upstreamItems.map((item) => String(item && (item.identifier || item.id || (item.media && item.media.url)) || "").trim()).filter(Boolean));
+        const additions = fallback ? fallback.items.filter((item) => {
+          const key = String(item && (item.identifier || item.id || (item.media && item.media.url)) || "").trim();
+          return key && !seen.has(key);
+        }) : [];
+        if (additions.length) {
+          payload = { ...payload, items: upstreamItems.concat(additions), ready: upstreamItems.length + additions.length, candidates: Math.max(Number(payload.candidates) || 0, upstreamItems.length + additions.length), catalogRecovery: true };
+          catalogRecovery = true;
+        }
+      } catch (error) { console.warn(JSON.stringify({ event: "catalog-shallow-recovery-failed", requestId: id, error: String(error).slice(0, 160) })); }
+    }
   }
   let rotated;
   try { rotated = await rotateShelf(env, body, payload, request); }

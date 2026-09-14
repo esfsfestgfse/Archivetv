@@ -139,6 +139,15 @@ const { pathToFileURL } = require('node:url');
   assert.match(recovered.headers.get('X-RealSignal-Source'), /d1-catalog/);
   assert.equal((await recovered.json()).items[0].title, 'Factory Packaging Line');
 
+  const shallowRecoveryEnv = {
+    ...fallbackEnv,
+    RELAY: { async fetch() { return new Response(JSON.stringify({ ready: 0, items: [] }), { status: 200, headers: { 'content-type': 'application/json' } }); } },
+  };
+  const shallowRecovered = await worker.fetch(new Request('https://api.example/api/v2/ia/queue', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ channel: '200', sessionId: 'shallow-fallback-viewer', rotation: 0, count: 1, themeTerms: ['factory'], requiredTitleTerms: ['factory'], denyTerms: ['cartoon'], mediaTypes: ['movies'], themeMinScore: 1 }) }), shallowRecoveryEnv, ctx);
+  assert.equal(shallowRecovered.status, 200);
+  assert.match(shallowRecovered.headers.get('X-RealSignal-Source'), /d1-catalog/);
+  assert.equal((await shallowRecovered.json()).items[0].title, 'Factory Packaging Line');
+
   const search = await worker.fetch(new Request('https://api.example/api/v2/ia/search?q=cartoons'), env, ctx);
   assert.equal(search.status, 200);
   assert.equal(calls.at(-1).url, 'https://relay.internal/ia/search?q=cartoons');

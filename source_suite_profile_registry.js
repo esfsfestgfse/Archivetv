@@ -1421,24 +1421,24 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "youtube"
     ],
     "queries": [
-      "cartoon history documentary",
-      "theatrical animation shorts archive",
-      "classic animation television history",
-      "animated film archive",
-      "cartoon compilation public domain",
-      "animated television history",
-      "public domain cartoon archive",
-      "animation studio history"
+      "classic cartoons full episodes",
+      "Saturday morning cartoons full episodes",
+      "90s animated series full episodes",
+      "1980s animated series full episodes",
+      "theatrical cartoons full compilation",
+      "public domain cartoons full episodes",
+      "animated feature film full",
+      "cartoon television special full"
     ],
     "match": [
-      "cartoon history",
-      "theatrical animation",
-      "classic animation",
+      "cartoon",
+      "cartoons",
+      "animated",
+      "animation",
+      "saturday morning",
+      "animated series",
       "animated film",
-      "animation archive",
-      "cartoon archive",
-      "animated television",
-      "animation studio"
+      "cartoon compilation"
     ],
     "deny": [
       "fictional",
@@ -1458,7 +1458,12 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "psa",
       "safety film",
       "training",
-      "classroom"
+      "classroom",
+      "documentary",
+      "lecture",
+      "studio history",
+      "animation history",
+      "explained"
     ]
   },
   "movie-house": {

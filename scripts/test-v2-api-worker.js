@@ -79,7 +79,10 @@ const { pathToFileURL } = require('node:url');
           bind() {
             return {
               async all() {
-                return { results: [{ id: 'stale-source-1', source_identifier: 'stale-source-1', title: 'Stale Short Cache Row', description: 'Missing hydrated playback metadata.', provider: 'YouTube', duration_seconds: 0, aspect_ratio: 0, media_type: 'embed', media_url: 'https://www.youtube-nocookie.com/embed/stale-source-1', source_url: 'https://youtube.com/watch?v=stale-source-1', rights: 'Standard YouTube license', year: '2026', metadata_json: '{}' }] };
+                return { results: [
+                  { id: 'stale-source-1', source_identifier: 'stale-source-1', title: 'Stale Short Cache Row', description: 'Missing hydrated playback metadata.', provider: 'YouTube', duration_seconds: 0, aspect_ratio: 0, media_type: 'embed', media_url: 'https://www.youtube-nocookie.com/embed/stale-source-1', source_url: 'https://youtube.com/watch?v=stale-source-1', rights: 'Standard YouTube license', year: '2026', metadata_json: '{}' },
+                  { id: 'wrong-source-2', source_identifier: 'wrong-source-2', title: 'Unrelated Nature Documentary', description: 'A valid-length item from the wrong genre.', provider: 'YouTube', duration_seconds: 1800, aspect_ratio: 1.78, media_type: 'embed', media_url: 'https://www.youtube-nocookie.com/embed/wrong-source-2', source_url: 'https://youtube.com/watch?v=wrong-source-2', rights: 'Standard YouTube license', year: '2026', metadata_json: '{}' },
+                ] };
               },
             };
           },

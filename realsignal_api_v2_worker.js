@@ -409,7 +409,14 @@ async function handleSourceCatalog(request, env, ctx, id) {
   if (!profile) return json({ error: "unknown source profile", requestId: id }, 404);
   if (!profile.queries.length) return json({ error: "source profile has no discovery queries", requestId: id }, 503);
   const rotation = Number(body.rotation) || 0;
-  const cached = await catalogFallback(env, { channel: profile.profileKey, rotation, sourceCatalog: true }, SOURCE_LIMITS.SOURCE_MAX_ITEMS).catch((error) => {
+  const cached = await catalogFallback(env, {
+    channel: profile.profileKey,
+    rotation,
+    sourceCatalog: true,
+    denyTerms: profile.deny,
+    themeTerms: profile.match,
+    themeMinScore: 1,
+  }, SOURCE_LIMITS.SOURCE_MAX_ITEMS).catch((error) => {
     console.warn(JSON.stringify({ event: "source-catalog-read-failed", requestId: id, error: String(error).slice(0, 160) }));
     return null;
   });

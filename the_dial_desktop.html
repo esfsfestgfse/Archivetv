@@ -1626,7 +1626,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="2.1.2-desktop.212-ia-source-recovery";
+window.__ATV_BUILD="2.1.3-desktop.213-live-data-polish";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -6665,6 +6665,10 @@ function iaReadyShelfSave(ch){
   keys.slice(IA_READY_SHELF_MAX).forEach(function(k){delete iaReadyShelves[k];});
   store.set("iaReadyShelves",iaReadyShelves);
 }
+async function fetchSkyMetar(url){
+  try{return await fetchJSON(url);}
+  catch(e){nlog("sky-metar",false,"direct METAR blocked; using project CORS relay");return fetchJSON("https://api.cors.syrins.tech/?url="+encodeURIComponent(url));}
+}
 function iaReadyShelfRestore(ch,sl){
   if(!iaReadyShelves)iaReadyShelves=store.get("iaReadyShelves",{})||{};
   var key=iaReadyShelfKey(ch),row=iaReadyShelves[key];
@@ -11700,6 +11704,29 @@ var SKYBEACON_INTL_REGIONS = [
   {name:"SEOUL · ICN",           lat: 37.4602, lon:  126.4407, mi:100},
   {name:"DELHI · DEL",           lat: 28.5562, lon:   77.1000, mi:100},
 ];
+/* Fast METAR fallback shelf. The global airport CSV is useful for enrichment but too large to
+   sit on the critical path for a small field-weather panel. These are public airport codes only;
+   the optional nearby-airport lookup can still refine the shelf after the first paint. */
+var SKYBEACON_METAR_FALLBACKS={
+  "NEW YORK · JFK":[["KJFK","JFK",40.6413,-73.7781],["KLGA","LaGuardia",40.7769,-73.8740],["KEWR","Newark",40.6895,-74.1745]],
+  "LONDON · HEATHROW":[["EGLL","Heathrow",51.4700,-0.4543],["EGLC","London City",51.5053,0.0553],["EGKK","Gatwick",51.1537,-0.1821]],
+  "PARIS · CDG":[["LFPG","Charles de Gaulle",49.0097,2.5479],["LFPO","Orly",48.7233,2.3794],["LFPB","Le Bourget",48.9694,2.4414]],
+  "FRANKFURT · FRA":[["EDDF","Frankfurt",50.0379,8.5622],["EDDK","Cologne Bonn",50.8659,7.1427],["EDDL","Dusseldorf",51.2895,6.7668]],
+  "DUBAI · DXB":[["OMDB","Dubai",25.2532,55.3657],["OMDW","Al Maktoum",24.8967,55.1614],["OMSJ","Sharjah",25.3286,55.5172]],
+  "SINGAPORE · SIN":[["WSSS","Changi",1.3644,103.9915],["WMKK","Kuala Lumpur",2.7456,101.7099],["WSSL","Seletar",1.4169,103.8677]],
+  "TOKYO · HND":[["RJTT","Haneda",35.5494,139.7798],["RJAA","Narita",35.7647,140.3864],["RJAH","Hyakuri",36.1811,140.4154]],
+  "SYDNEY · SYD":[["YSSY","Sydney",-33.9399,151.1753],["YBBN","Brisbane",-27.3842,153.1175],["YMML","Melbourne",-37.6733,144.8433]],
+  "LOS ANGELES · LAX":[["KLAX","Los Angeles",33.9425,-118.4081],["KBUR","Burbank",34.2007,-118.3587],["KSNA","Orange County",33.6757,-117.8682]],
+  "CHICAGO · ORD":[["KORD","O'Hare",41.9742,-87.9073],["KMDW","Midway",41.7859,-87.7522],["KPWK","Chicago Executive",42.1142,-87.9015]],
+  "ATLANTA · ATL":[["KATL","Atlanta",33.6407,-84.4277],["KPDK","DeKalb Peachtree",33.8756,-84.3020],["KFTY","Fulton County",33.7791,-84.5214]],
+  "HONG KONG · HKG":[["VHHH","Hong Kong",22.3080,113.9185],["VMMC","Macau",22.1496,113.5916],["VHHX","Kai Tak",22.3090,114.2130]],
+  "AMSTERDAM · AMS":[["EHAM","Schiphol",52.3086,4.7639],["EHRD","Rotterdam",51.9569,4.4372],["EBBR","Brussels",50.9014,4.4844]],
+  "ISTANBUL · IST":[["LTFM","Istanbul",41.2753,28.7519],["LTBA","Ataturk",40.9769,28.8146],["LTFJ","Sabiha Gokcen",40.8986,29.3092]],
+  "SAO PAULO · GRU":[["SBGR","Guarulhos",-23.4356,-46.4731],["SBSP","Congonhas",-23.6261,-46.6564],["SBKP","Viracopos",-23.0074,-47.1345]],
+  "JOHANNESBURG · JNB":[["FAOR","O.R. Tambo",-26.1367,28.2411],["FALA","Lanseria",-25.9385,27.9261],["FAWB","Wonderboom",-25.6539,28.2242]],
+  "SEOUL · ICN":[["RKSI","Incheon",37.4602,126.4407],["RKSS","Gimpo",37.5583,126.7906],["RKPU","Ulsan",35.5935,129.3517]],
+  "DELHI · DEL":[["VIDP","Delhi",28.5562,77.1000],["VILK","Lucknow",26.7606,80.8893],["VIBK","Bikaner",28.0706,73.2072]]
+};
 
 async function tuneAirTraffic(ch,sl,my){
   if(my!==token)return;hideOv();setSig("live","ON AIR");showNow(ch,sl,"Sky Beacon Live","");
@@ -11798,11 +11825,10 @@ async function tuneAirTraffic(ch,sl,my){
   async function refreshWeather(){
     var seq=++wxSeq,atLoc={lat:Number(loc.lat),lon:Number(loc.lon)};
     try{
-      var near=await nearbyAirports(atLoc,7);if(seq!==wxSeq||my!==token)return;
-      var fields=(near&&near.length?near:TX_AIRPORTS).slice(0,7),codes=fields.map(function(field){var code=Array.isArray(field)?field[0]:(field.icao||"");return code.length===3?"K"+code:code;}).filter(Boolean);
-      var data=await fetchJSONResilient("https://aviationweather.gov/api/data/metar?ids="+encodeURIComponent(codes.join(","))+"&format=json","sky-metar");if(seq!==wxSeq||my!==token)return;
+      var region=regions[regionIndex]||{},fallback=regionIndex===0?TX_AIRPORTS:(SKYBEACON_METAR_FALLBACKS[region.name]||[["KACT","Waco Rgnl",31.611,-97.230]]),fields=fallback.slice(0,7),codes=fields.map(function(field){var code=Array.isArray(field)?field[0]:(field.icao||"");return code.length===3?"K"+code:code;}).filter(Boolean);
+      var data=await fetchSkyMetar("https://aviationweather.gov/api/data/metar?ids="+encodeURIComponent(codes.join(","))+"&format=json");if(seq!==wxSeq||my!==token)return;
       var byCode={};(Array.isArray(data)?data:[]).forEach(function(m){var code=String(m.icaoId||m.icao||m.station_id||"").toUpperCase();if(code)byCode[code]=m;});
-      weather=codes.map(function(code){var m=byCode[code]||{},cat=String(m.fltcat||"--"),wind=m.wspd!=null?(wxCompass(m.wdir)+" "+m.wspd+" kt"):"CALM",temp=m.temp!=null?Math.round(m.temp*9/5+32)+"°F":"--",visibility=m.visib!=null?m.visib+" mi":"--";return {icao:code,cat:cat,wind:wind,vis:visibility,temp:temp};});if(viewIndex===1)renderPanel();
+      weather=codes.map(function(code){var m=byCode[code]||{},cat=String(m.fltCat||m.fltcat||"--"),wind=m.wspd!=null?(wxCompass(m.wdir)+" "+m.wspd+" kt"):"CALM",temp=m.temp!=null?Math.round(m.temp*9/5+32)+"°F":"--",visibility=m.visib!=null?m.visib+" mi":"--";return {icao:code,cat:cat,wind:wind,vis:visibility,temp:temp};});if(viewIndex===1)renderPanel();
     }catch(e){nlog("sky-metar",false,(e&&e.message)||e);}
   }
   async function poll(){

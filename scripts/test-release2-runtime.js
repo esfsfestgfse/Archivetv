@@ -32,10 +32,11 @@ for (const file of builds) {
   check(html.includes('assets/guide-overhaul.css') && html.includes('assets/guide-overhaul.js'), `${file}: shared guide overhaul assets loaded`);
   check(html.includes('rsHealthPanel') && html.includes('rsHealthFrame'), `${file}: APP HEALTH panel is present`);
   check(html.includes('currentDuration') && html.includes('guideItemRuntime(nextItem)'), `${file}: guide exposes Source Suite current/next runtime data`);
-  check(html.includes('2.1.2-' + (file.includes('mobile') ? 'mobile' : 'desktop') + '.212-ia-source-recovery'), `${file}: build stamp is RealSignal 2.1.2 — IA & Source Recovery`);
+  check(html.includes('2.1.3-' + (file.includes('mobile') ? 'mobile' : 'desktop') + '.213-live-data-polish'), `${file}: build stamp is RealSignal 2.1.3 — Live Data Polish`);
   check(html.includes('var chanRT={timers:[],teardowns:[]};') && html.includes('chanRT.teardowns.splice(0)'), `${file}: live-channel teardown callbacks are executed`);
   check(html.includes('shipSocket.close()') && html.includes('clearTimeout(publicViewTimer)'), `${file}: Ship Tracker closes sockets and pending viewport retries on channel change`);
   check(/function clearShipData\(\)\{[\s\S]*?selectedMmsi=""[\s\S]*?ship-detail-empty/.test(html), `${file}: Ship Tracker clears stale vessel selection when the map region changes`);
+  check(html.includes('function fetchSkyMetar') && html.includes('api.cors.syrins.tech/?url='), `${file}: Sky Beacon uses the dedicated METAR relay fallback`);
   const gearHeadStart = html.indexOf('"Gear Head": {');
   const gearHeadEnd = html.indexOf('\n  /* Deadline', gearHeadStart);
   const gearHead = gearHeadStart >= 0 && gearHeadEnd > gearHeadStart ? html.slice(gearHeadStart, gearHeadEnd) : '';

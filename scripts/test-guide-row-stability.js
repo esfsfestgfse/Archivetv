@@ -25,6 +25,7 @@ function functionBody(source, signature) {
 
 for (const name of files) {
   const source = fs.readFileSync(path.join(root, name), 'utf8');
+  const guideListingBody = functionBody(source, 'function guideListing(ch)');
   const checks = [
     ['guide rows carry a stable channel number', source.includes('row.dataset.channelNum=ch.num')],
     ['incremental guide refresh exists', source.includes('function refreshGuideRows()')],
@@ -32,6 +33,8 @@ for (const name of files) {
     ['queue refill uses incremental guide refresh', functionBody(source, 'async function refillIAQueue(').includes('refreshGuideRows()')],
     ['guide warming uses incremental guide refresh', functionBody(source, 'function primeGuideQueues(').includes('refreshGuideRows()')],
     ['initial guide render still builds the rows', functionBody(source, 'function renderGuide()').includes('renderRail()')],
+    ['IA guide reports the rolling hot shelf', guideListingBody.includes('IA_READY_TARGET') && guideListingBody.includes('HOT SHELF')],
+    ['IA guide has no stale five-show warming promise', !guideListingBody.includes('FIVE-SHOW BUFFER WARMING')],
   ];
   for (const [label, passed] of checks) {
     console.log(`${name}: ${label}: ${passed ? 'ok' : 'FAIL'}`);

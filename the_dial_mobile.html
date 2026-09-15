@@ -7165,11 +7165,13 @@ function guideListing(ch){
   /* The guide is queue-backed: it never invents clock/daypart listings. */
   var sl=typeof slotFor==="function"?slotFor(ch,0,{preview:true}):null;
   var current=(ch.num===curNum&&curItem&&curItem.title)?curItem:null;
-  var items=guideQueueItems(ch,sl,current),queuedNext=guideQueueNext(ch,sl,current),capacity=5,ready=Math.min(capacity,items.length+(current?1:0));
+  /* IA uses the released rolling shelf: one playing item plus two hot replacements.
+     The wider catalog remains in the background and should not be reported as ready media. */
+  var items=guideQueueItems(ch,sl,current),queuedNext=guideQueueNext(ch,sl,current),capacity=Math.max(1,Number(typeof IA_READY_TARGET!=="undefined"?IA_READY_TARGET:3)||3),ready=Math.min(capacity,items.length+(current?1:0));
   var nextItem=current?queuedNext:(items[1]||null),upItem=current?null:(items[0]||null);
   if(current)return {now:"NOW · "+guideItemTitle(current),next:nextItem?("NEXT · "+guideItemTitle(nextItem)+" · "+guideItemRuntime(nextItem)):"NEXT · BUFFER WARMING",detail:ready+" / "+capacity+" READY · "+guideItemRuntime(current),state:"playing",live:false,ready:ready,capacity:capacity};
   if(upItem)return {now:"UP NEXT · "+guideItemTitle(upItem),next:nextItem?("THEN · "+guideItemTitle(nextItem)+" · "+guideItemRuntime(nextItem)):"NEXT · BUFFER WARMING",detail:ready+" / "+capacity+" READY · PROGRAM QUEUE",state:"ready",live:false,ready:ready,capacity:capacity};
-  return {now:"BUILDING PROGRAM LINEUP",next:"FIVE-SHOW BUFFER WARMING",detail:"0 / "+capacity+" READY · ARCHIVE QUEUE",state:"warming",live:false,ready:0,capacity:capacity};
+  return {now:"BUILDING PROGRAM LINEUP",next:"HOT SHELF WARMING",detail:"0 / "+capacity+" HOT SHELF · BACKGROUND CANDIDATES",state:"warming",live:false,ready:0,capacity:capacity};
 }
 function guideProgramState(ch){return guideListing(ch);}
 function startLiveDataBed(ch,sl){if(!ch||ch.cat!=="LDATA")return;var source=(sl&&sl.source)||ch.source||"";if(/^(livetv|livecams|highway|liveradio)$/.test(source))return;try{if(typeof startIAJazz==="function")startIAJazz(LIVE_DATA_BEDS[source]||"gmjazz");}catch(e){}}

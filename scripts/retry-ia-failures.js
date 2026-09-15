@@ -1,7 +1,9 @@
 #!/usr/bin/env node
-/* Retry only IA lanes that failed first-play or depth in the primary soak.
- * A successful serial retry classifies a cold burst as transient; a second
- * failure remains blocking so the nightly guard cannot hide a real regression.
+/* Retry IA lanes that failed first-play, depth, or freshness in the primary
+ * soak. A successful serial retry classifies a cold burst as transient. Depth
+ * and duplicate observations remain in the report for the nightly health
+ * guard, but release publishing is blocked only by an actual no-signal,
+ * timeout, transport, or HTTP failure.
  */
 const fs = require('node:fs');
 const path = require('node:path');
@@ -22,6 +24,10 @@ const timeoutMs = Math.max(5000, Number(option('--timeout-ms', '30000')) || 3000
 const depthTimeoutMs = Math.max(1000, Math.min(timeoutMs, Number(option('--depth-timeout-ms', '8000')) || 8000));
 const pollMs = Math.max(250, Number(option('--poll-ms', '1000')) || 1000);
 const rotationBase = Math.max(0, Math.min(127, Number(option('--rotation-base', '0')) || 0));
+
+function blockingFailure(result) {
+  return result && (!result.ok || Number(result.timeoutCount || 0) > 0 || result.timedOut || result.transportFailure || result.httpFailure);
+}
 
 if (!manifestPath || !reportPath || !outPath) {
   console.error('Usage: node scripts/retry-ia-failures.js --manifest <json> --report <json> --out <json>');
@@ -102,12 +108,13 @@ console.log(`Selective IA retry: ${candidates.length} lane${candidates.length ==
     process.exitCode = 1;
     return;
   }
-  const failures = (retry.results || []).filter(result => result && (!result.ok || result.depthUnderfilled || Number(result.duplicateItems || 0) > 0));
+  const failures = (retry.results || []).filter(blockingFailure);
   if (failures.length) {
-    console.error(`Selective IA retry: ${failures.length} lane${failures.length === 1 ? '' : 's'} still failed`);
+    console.error(`Selective IA retry: ${failures.length} lane${failures.length === 1 ? '' : 's'} still have blocking playback failures`);
     process.exitCode = 1;
     return;
   }
-  console.log(`Selective IA retry: all ${candidates.length} flagged lane${candidates.length === 1 ? '' : 's'} recovered`);
+  const advisory = (retry.results || []).filter(result => result && (result.depthUnderfilled || Number(result.duplicateItems || 0) > 0));
+  console.log(`Selective IA retry: all ${candidates.length} flagged lane${candidates.length === 1 ? '' : 's'} playable; ${advisory.length} advisory depth/freshness result${advisory.length === 1 ? '' : 's'} retained for nightly health`);
   process.exitCode = 0;
 })().catch(error => { console.error(error.stack || error); process.exitCode = 1; });

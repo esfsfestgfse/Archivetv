@@ -167,6 +167,25 @@ const { pathToFileURL } = require('node:url');
   assert.equal(collectionRecovered.status, 200);
   assert.equal((await collectionRecovered.json()).items.length, 5);
 
+  const aliasFallbackRows = [
+    ['the-soul-of-black-charley-1080p', 'The Soul of Black Charley'],
+    ['fight-for-your-life-1977', 'Fight for Your Life'],
+    ['abby-1974_202605', 'Abby'],
+    ['The_Brother_from_Another_Planet_1984', 'The Brother from Another Planet (1984)'],
+    ['Fighting_Mad_MPEG', 'Fighting Mad (1978)'],
+  ].map(([id, title]) => ({ id, source_identifier: id, title, description: '', provider: 'internet-archive', media_type: 'video', media_url: `https://archive.org/download/film/${encodeURIComponent(id)}.mp4`, metadata_json: '{}' }));
+  const aliasFallbackEnv = {
+    ...shallowRecoveryEnv,
+    realsignal_catalog: {
+      prepare() {
+        return { bind() { return { async all() { return { results: aliasFallbackRows }; } }; } };
+      },
+    },
+  };
+  const aliasRecovered = await worker.fetch(new Request('https://api.example/api/v2/ia/queue', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ channel: '116', sessionId: 'blaxploitation-viewer', rotation: 0, count: 5, themeTerms: ['blaxploitation'], mediaTypes: ['movies'], themeMinScore: 2 }) }), aliasFallbackEnv, ctx);
+  assert.equal(aliasRecovered.status, 200);
+  assert.equal((await aliasRecovered.json()).items.length, 5);
+
   const search = await worker.fetch(new Request('https://api.example/api/v2/ia/search?q=cartoons'), env, ctx);
   assert.equal(search.status, 200);
   assert.equal(calls.at(-1).url, 'https://relay.internal/ia/search?q=cartoons');

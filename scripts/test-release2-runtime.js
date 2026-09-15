@@ -35,6 +35,7 @@ for (const file of builds) {
   check(html.includes('2.1.2-' + (file.includes('mobile') ? 'mobile' : 'desktop') + '.212-ia-source-recovery'), `${file}: build stamp is RealSignal 2.1.2 — IA & Source Recovery`);
   check(html.includes('var chanRT={timers:[],teardowns:[]};') && html.includes('chanRT.teardowns.splice(0)'), `${file}: live-channel teardown callbacks are executed`);
   check(html.includes('shipSocket.close()') && html.includes('clearTimeout(publicViewTimer)'), `${file}: Ship Tracker closes sockets and pending viewport retries on channel change`);
+  check(/function clearShipData\(\)\{[\s\S]*?selectedMmsi=""[\s\S]*?ship-detail-empty/.test(html), `${file}: Ship Tracker clears stale vessel selection when the map region changes`);
   const gearHeadStart = html.indexOf('"Gear Head": {');
   const gearHeadEnd = html.indexOf('\n  /* Deadline', gearHeadStart);
   const gearHead = gearHeadStart >= 0 && gearHeadEnd > gearHeadStart ? html.slice(gearHeadStart, gearHeadEnd) : '';

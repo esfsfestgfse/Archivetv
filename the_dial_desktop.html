@@ -14131,7 +14131,7 @@ async function tuneShips(ch,sl,my){
     if(lat>=-15&&lat<=65&&lon>90)return "asia";
     return "pacific";
   }
-  function clearShipData(){snapshotRequest++;if(snapshotController){try{snapshotController.abort();}catch(e){}snapshotController=null;}Object.keys(shipList).forEach(function(k){if(shipList[k]._el&&shipList[k]._el.remove)shipList[k]._el.remove();});shipList={};msgCount=0;firstMsgAt=null;lastMsgAt=null;snapshotAt=null;snapshotSource="";dirty=true;}
+  function clearShipData(){snapshotRequest++;if(snapshotController){try{snapshotController.abort();}catch(e){}snapshotController=null;}Object.keys(shipList).forEach(function(k){if(shipList[k]._el&&shipList[k]._el.remove)shipList[k]._el.remove();});shipList={};selectedMmsi="";var detail=$("shipDetail");if(detail)detail.innerHTML='<div class="ship-detail-empty">SELECT A VESSEL FOR PHOTO, IDENTITY, COURSE, SPEED, DESTINATION, AND NAVIGATION STATUS.</div>';msgCount=0;firstMsgAt=null;lastMsgAt=null;snapshotAt=null;snapshotSource="";dirty=true;}
   function setShipView(lat,lon,range,forceRegion){
     shipView={lat:Math.max(-70,Math.min(70,Number(lat)||0)),lon:Math.max(-179.5,Math.min(179.5,Number(lon)||0)),range:Math.max(180,Math.min(20000,Number(range)||700))};
     var nextRegion=forceRegion||shipRegionFor(shipView.lat,shipView.lon),regionChanged=nextRegion!==shipRegion;

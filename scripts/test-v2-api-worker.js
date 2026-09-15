@@ -148,6 +148,25 @@ const { pathToFileURL } = require('node:url');
   assert.match(shallowRecovered.headers.get('X-RealSignal-Source'), /d1-catalog/);
   assert.equal((await shallowRecovered.json()).items[0].title, 'Factory Packaging Line');
 
+  const collectionEpisodeRows = [
+    ['metallica-collection::track-01', 'Kill Em All · 01 Hit the Lights'],
+    ['black-sabbath-metal-collection::track-02', 'Paranoid · 02 War Pigs'],
+    ['ozzy-metal-collection::track-03', 'Live Archive · 03 Crazy Train'],
+    ['motorhead-metal-collection::track-04', '1916 · 04 Going to Brazil'],
+    ['slayer-metal-collection::track-05', 'Reign in Blood · 05 Altar of Sacrifice'],
+  ].map(([id, title]) => ({ id, source_identifier: id.split('::')[0], title, description: '', provider: 'internet-archive', duration_seconds: null, aspect_ratio: null, media_type: 'audio', media_url: `https://archive.org/download/metal/${encodeURIComponent(id)}.mp3`, metadata_json: '{}' }));
+  const collectionFallbackEnv = {
+    ...shallowRecoveryEnv,
+    realsignal_catalog: {
+      prepare() {
+        return { bind() { return { async all() { return { results: collectionEpisodeRows }; } }; } };
+      },
+    },
+  };
+  const collectionRecovered = await worker.fetch(new Request('https://api.example/api/v2/ia/queue', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ channel: '917', sessionId: 'metal-collection-viewer', rotation: 0, count: 5, themeTerms: ['metal'], mediaTypes: ['audio'], themeMinScore: 2 }) }), collectionFallbackEnv, ctx);
+  assert.equal(collectionRecovered.status, 200);
+  assert.equal((await collectionRecovered.json()).items.length, 5);
+
   const search = await worker.fetch(new Request('https://api.example/api/v2/ia/search?q=cartoons'), env, ctx);
   assert.equal(search.status, 200);
   assert.equal(calls.at(-1).url, 'https://relay.internal/ia/search?q=cartoons');

@@ -248,7 +248,13 @@ function catalogFallbackAllowed(item, body) {
   const title = String(item && item.title || "").toLowerCase();
   const description = String(item && item.description || "").toLowerCase();
   const subject = String(item && (item.subject || item.subjects) || "").toLowerCase();
-  const haystack = `${title} ${description} ${subject}`;
+  /* Collection-expanded episode/file rows often inherit the genre only in
+     their archive identifier while the individual filename is generic. Keep
+     that signal in the strict fallback filter so a valid episode is not
+     discarded merely because its child title omits the parent collection. */
+  const sourceIdentifier = String(item && (item.sourceIdentifier || item.source_identifier || item.identifier || item.id) || "").toLowerCase();
+  const normalizedSourceIdentifier = sourceIdentifier.replace(/[-_:.]+/g, " ");
+  const haystack = `${title} ${description} ${subject} ${sourceIdentifier} ${normalizedSourceIdentifier}`;
   const denyTerms = Array.isArray(body && body.denyTerms) ? body.denyTerms : [];
   if (denyTerms.some((term) => {
     const needle = String(term || "").trim().toLowerCase();
@@ -259,7 +265,10 @@ function catalogFallbackAllowed(item, body) {
     const needle = String(term || "").trim().toLowerCase();
     return needle && title.includes(needle);
   })) return false;
-  const themeTerms = Array.isArray(body && body.themeTerms) ? body.themeTerms : [];
+  const laneAliases = String(body && body.channel || "") === "917"
+    ? ["metallica", "black sabbath", "ozzy osbourne", "motorhead", "motörhead", "judas priest", "iron maiden", "slayer"]
+    : [];
+  const themeTerms = Array.isArray(body && body.themeTerms) ? body.themeTerms.concat(laneAliases) : laneAliases;
   if (themeTerms.length) {
     let score = 0;
     for (const term of themeTerms) {

@@ -100,10 +100,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-72-48-depth-recovery";
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v79";
+const IA_QUEUE_CACHE_VERSION = "v80";
 /* Last-good shelves share the v72 namespace so an older shallow shelf
    never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v79";
+const IA_LAST_GOOD_CACHE_VERSION = "v80";
 const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
 /* A short per-isolate burst cache absorbs repeat requests from a TV, phone,
    and guide opened in quick succession. It is intentionally tiny and

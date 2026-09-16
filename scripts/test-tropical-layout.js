@@ -165,8 +165,8 @@ async function inspectTropical(page, label, testCache) {
         blockedStatus: blockedResponse.status
       };
     });
-    if (relayContract.imageStatus !== 200 || !/^image\//.test(relayContract.imageType) || !/goes-image-relay/.test(relayContract.imageSource)) {
-      fail(label + ": bounded GOES image relay contract failed: " + JSON.stringify(relayContract));
+    if (relayContract.imageStatus !== 200 || !/^image\//.test(relayContract.imageType) || !/^(?:goes|nhc)-image-relay$/.test(relayContract.imageSource)) {
+      fail(label + ": bounded official Tropical Watch image relay contract failed: " + JSON.stringify(relayContract));
     }
     if (relayContract.blockedStatus !== 400) fail(label + ": tropical image relay accepted a non-NOAA host");
   }

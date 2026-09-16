@@ -39,6 +39,7 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
     ['Cop Show Classic rejects the observed Loose Cannon false positive', source.includes('PROGRAM["Cop Show Classic"].deny') && source.includes('"loose cannon"')],
     ['Commercials rotate by decade and product lane', commercials.includes('"1940s commercial"') && commercials.includes('"2020s commercial"') && commercials.includes('"automobile commercial"')],
     ['Commercials remain video-only', commercials.includes('"audio only"') && commercials.includes('"radio commercial"')],
+    ['IA clients reject interstitial media files', source.includes('function iaInterstitialMedia(value)') && source.includes('if(iaInterstitialMedia(inlinePrimary)){iaMarkProgramFailed(id);return;}')],
   ];
   for (const [label, pass] of checks) {
     console.log(`${file}: ${label}: ${pass ? 'ok' : 'FAIL'}`);

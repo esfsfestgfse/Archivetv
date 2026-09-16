@@ -117,7 +117,7 @@ for (const file of files) {
   }
   if (new Set(topicKeys).size !== topicKeys.length) issues.push(`${name}: duplicate source topic definitions found`);
 
-  if (stamps.length !== 1 || !/^2\.2\.0-(desktop|mobile)\.\d+-health-telemetry$/.test(stamps[0] || '')) issues.push(`${name}: source-suite build stamp is missing or stale`);
+  if (stamps.length !== 1 || !/^2\.2\.1-(desktop|mobile)\.\d+-ia-weak-lane-recovery$/.test(stamps[0] || '')) issues.push(`${name}: source-suite build stamp is missing or stale`);
 }
 
 const desktop = fs.readFileSync(path.join(repo, files[0]), 'utf8');

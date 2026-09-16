@@ -178,7 +178,7 @@ const IA_COLD_RESCUE_CHANNELS = new Set([
   "507", "508", "509", "510", "511", "575", "700", "701", "703", "900", "906", "926", "927", "928",
   /* v164's full soak isolated these additional cold lanes. Keep their verified
      shelves narrow and channel-owned; healthy lanes do not pay this cost. */
-  "14", "15", "18", "56", "63", "68", "72", "73", "77", "83", "102", "104", "109", "122", "200", "202", "901", "911", "916"
+  "14", "15", "18", "56", "63", "68", "72", "73", "77", "83", "102", "104", "109", "122", "158", "200", "202", "901", "911", "916"
 ]);
 function iaColdRescueEnabled(channel) {
   return IA_COLD_RESCUE_CHANNELS.has(String(channel));
@@ -750,11 +750,11 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "william-pattisons-bloodbath-theatre-episode-62-scaretober-h-g-wells-films", title: "William Pattison's Bloodbath Theatre · Episode 62", subject: "british television british comedy horror comedy television", year: 2021, media: { type: "video", url: "https://archive.org/download/william-pattisons-bloodbath-theatre-episode-62-scaretober-h-g-wells-films/William%20Pattison%27s%20Bloodbath%20Theatre%20Episode%2062_%20Scaretober_%20H%20G%20Wells%20Films.mp4" } },
   ],
   "200": [
-    { identifier: "ABetterWayMerckAutomateLiquidPackaging", title: "A Better Way — Automated Liquid Packaging", subject: "manufacturing industry factory engineering industrial film", year: 1978, media: { type: "video", url: "https://archive.org/download/ABetterWayMerckAutomateLiquidPackaging/A%20Better%20Way%20-%20Merck%20Automate%20Liquid%20Packaging.mp4" } },
-    { identifier: "Mode-Art_Can_2489", title: "Mode-Art Can 2489 — Production Unit", subject: "manufacturing industry factory engineering industrial film", year: 1965, media: { type: "video", url: "https://archive.org/download/Mode-Art_Can_2489/Mode-Art_Can_2489_master.intros.mp4" } },
-    { identifier: "shell-film-unit-springs-1938-colorized", title: "Shell Film Unit — Springs", subject: "manufacturing industry factory engineering industrial film", year: 1938, media: { type: "video", url: "https://archive.org/download/shell-film-unit-springs-1938-colorized/Shell%20Film%20Unit%20-%20Springs%20%281938%29%20%28colorized%29.mp4" } },
-    { identifier: "NJY-008_1628-3439", title: "Chrysler Advantages — Car Manufacturing", subject: "manufacturing industry factory engineering industrial film", year: 1991, media: { type: "video", url: "https://archive.org/download/NJY-008_1628-3439/1628_Chrysler-Advantages-Car-Manufacturing-Promo-CBS-WCBS-2_1991-10-25.ia.mp4" } },
-    { identifier: "fc-fc-2701", title: "Ford V-8 Exhibit — Industrial Design", subject: "manufacturing industry factory engineering automotive industrial film", year: 1932, media: { type: "video", url: "https://archive.org/download/fc-fc-2701/fc-fc-2701.mp4" } },
+    { identifier: "ABetterWayMerckAutomateLiquidPackaging", title: "A Better Way — Automated Liquid Packaging", subject: "manufacturing industry factory engineering industrial film", year: 1978, media: { type: "video", url: "https://dn600203.us.archive.org/0/items/ABetterWayMerckAutomateLiquidPackaging/A%20Better%20Way%20-%20Merck%20Automate%20Liquid%20Packaging.mp4" } },
+    { identifier: "MasterHa1936_3", title: "Master Hands — Part III", subject: "manufacturing industry factory engineering industrial film", year: 1936, media: { type: "video", url: "https://dn801201.us.archive.org/0/items/MasterHa1936_3/MasterHa1936_3.mp4" } },
+    { identifier: "shell-film-unit-springs-1938-colorized", title: "Shell Film Unit — Springs", subject: "manufacturing industry factory engineering industrial film", year: 1938, media: { type: "video", url: "https://ia801607.us.archive.org/0/items/shell-film-unit-springs-1938-colorized/Shell%20Film%20Unit%20-%20Springs%20%281938%29%20%28colorized%29.mp4" } },
+    { identifier: "NJY-008_1628-3439", title: "Chrysler Advantages — Car Manufacturing", subject: "manufacturing industry factory engineering industrial film", year: 1991, media: { type: "video", url: "https://dn601203.us.archive.org/0/items/NJY-008_1628-3439/1628_Chrysler-Advantages-Car-Manufacturing-Promo-CBS-WCBS-2_1991-10-25.ia.mp4" } },
+    { identifier: "fc-fc-2701", title: "Ford V-8 Exhibit — Industrial Design", subject: "manufacturing industry factory engineering automotive industrial film", year: 1932, media: { type: "video", url: "https://dn800301.us.archive.org/0/items/fc-fc-2701/fc-fc-2701.mp4" } },
   ],
   "202": [
     { identifier: "pryor_202009", title: "Richard Pryor — Stand-Up", subject: "stand-up comedy comedy special live comedy", year: 1980, media: { type: "video", url: "https://archive.org/download/pryor_202009/RICHARD_PRYOR/VIDEO_TS/VTS_01_1.mp4" } },
@@ -833,6 +833,17 @@ const IA_LONG_TAIL_EXPANSIONS = Object.freeze({
     { identifier: "doogie-s02e04-cest-la-vinnie", title: "Doogie Howser, M.D. — C'est La Vinnie", subject: "medical drama hospital drama medical series television", year: 1990, media: { type: "video", url: "https://archive.org/download/doogie-howser-m.d.-season-2-of-4-xvid-avi/Doogie%20Howser%2C%20M.D.%20-%20S02E04%20-%20C%27est%20La%20Vinnie.mp4" } },
     { identifier: "doogie-s04e12-fishing-trips", title: "Doogie Howser, M.D. — The Mother of All Fishing Trips", subject: "medical drama hospital drama medical series television", year: 1992, media: { type: "video", url: "https://archive.org/download/doogie-howser-m.d.-season-4-of-4-xvid-avi/Doogie%20Howser%2C%20M.D.%20-%20S04E12%20-%20The%20Mother%20of%20All%20Fishing%20Trips.mp4" } },
     { identifier: "doogie-s04e05-patient-in-spite", title: "Doogie Howser, M.D. — The Patient in Spite of Himself", subject: "medical drama hospital drama medical series television", year: 1992, media: { type: "video", url: "https://archive.org/download/doogie-howser-m.d.-season-4-of-4-xvid-avi/Doogie%20Howser%2C%20M.D.%20-%20S04E05%20-%20The%20Patient%20in%20Spite%20of%20Himself.mp4" } }
+  ],
+  /* v2.2 focused cold-start repair for Saturday Morning. These are five
+     distinct episode files from the observed Pingu season shelf, all on the
+     Archive delivery host, while broader Saturday discovery continues in the
+     background. */
+  "158": [
+    { identifier: "Pingu_Season_1to6::aaf-pingu.s01e01.pingu.is.introduced.dvdrip.xvid.mp4", title: "Pingu · Is Introduced", subject: "children's television kids television saturday morning cartoon animated series", year: 1990, media: { type: "video", url: "https://dn800203.us.archive.org/0/items/Pingu_Season_1to6/aaf-pingu.s01e01.pingu.is.introduced.dvdrip.xvid.mp4" } },
+    { identifier: "Pingu_Season_1to6::aaf-pingu.s01e02.pingu.helps.to.deliver.the.mail.dvdrip.xvid.mp4", title: "Pingu · Helps to Deliver the Mail", subject: "children's television kids television saturday morning cartoon animated series", year: 1990, media: { type: "video", url: "https://dn800203.us.archive.org/0/items/Pingu_Season_1to6/aaf-pingu.s01e02.pingu.helps.to.deliver.the.mail.dvdrip.xvid.mp4" } },
+    { identifier: "Pingu_Season_1to6::aaf-pingu.s01e03.pingu.helps.with.incubating.dvdrip.xvid.mp4", title: "Pingu · Helps with Incubating", subject: "children's television kids television saturday morning cartoon animated series", year: 1990, media: { type: "video", url: "https://dn800203.us.archive.org/0/items/Pingu_Season_1to6/aaf-pingu.s01e03.pingu.helps.with.incubating.dvdrip.xvid.mp4" } },
+    { identifier: "Pingu_Season_1to6::aaf-pingu.s01e04.pingu.is.born.dvdrip.xvid.mp4", title: "Pingu · Is Born", subject: "children's television kids television saturday morning cartoon animated series", year: 1990, media: { type: "video", url: "https://dn800203.us.archive.org/0/items/Pingu_Season_1to6/aaf-pingu.s01e04.pingu.is.born.dvdrip.xvid.mp4" } },
+    { identifier: "Pingu_Season_1to6::aaf-pingu.s01e05.pingu.goes.fishing.dvdrip.xvid.mp4", title: "Pingu · Goes Fishing", subject: "children's television kids television saturday morning cartoon animated series", year: 1990, media: { type: "video", url: "https://dn800203.us.archive.org/0/items/Pingu_Season_1to6/aaf-pingu.s01e05.pingu.goes.fishing.dvdrip.xvid.mp4" } }
   ],
   "209": [
     { identifier: "NasaDestinationTomorrow-Dt12-FlightPioneers", title: "NASA Destination Tomorrow — Flight Pioneers", subject: "aviation aircraft airplane flight aerospace documentary", year: 2004, media: { type: "video", url: "https://archive.org/download/NasaDestinationTomorrow-Dt12-FlightPioneers/NASADT12-FlightPioneers.mp4" } },
@@ -2800,6 +2811,15 @@ function archiveEpisodeTitle(file, parentTitle) {
     : String(parentTitle || "Archive program");
 }
 
+/* Archive collections frequently expose title cards, intros, previews, and
+   sample derivatives beside the real program. They are valid files, but not
+   television programs: promoting one to the hot shelf causes a silent stall
+   or a few seconds of slate. Keep this predicate shared by discovery and
+   hydration so a bad derivative cannot re-enter through a later path. */
+function archiveInterstitialFile(name) {
+  return /(?:^|[._ -])(?:intro|intros|titlecard|title-card|trailer|preview|sample|thumb|thumbnail|poster|logo)(?:[._ -]|$)/i.test(String(name || ""));
+}
+
 function archiveEpisodeRotation(files, rotation, salt) {
   const ordered = files.slice().sort((a, b) => String(a.name).localeCompare(String(b.name), undefined, { numeric: true, sensitivity: "base" }));
   if (ordered.length < 2) return ordered;
@@ -2830,7 +2850,8 @@ async function expandArchiveContainer(doc, cacheOrigin, ctx, rotation = 0, salt 
     const playableCandidates = files.filter((file) => file && file.name && (wantsAudio
       ? /\.mp3$|\.ogg$|\.m4a$|\.flac$/i.test(file.name)
       : /\.mp4$|\.m4v$|\.webm$|\.ogv$/i.test(file.name))
-      && !/(?:thumb|sample|trailer|preview|cover|poster|torrent|\.txt$|\.xml$|_files$|_meta$|_archive$)/i.test(file.name));
+      && !archiveInterstitialFile(file.name)
+      && !/(?:cover|torrent|\.txt$|\.xml$|_files$|_meta$|_archive$)/i.test(file.name));
     const byEpisode = new Map();
     for (const file of playableCandidates) {
       const key = archiveEpisodeKey(file);
@@ -2986,18 +3007,20 @@ async function queuePlayable(id, cacheOrigin, ctx, mediaTypes = [], attempt = 0)
     const payload = await metadata;
     const files = payload.files || [];
     const format = (file) => String(file && file.format || "").toLowerCase();
-    const video = files.filter((file) => file && file.name && (/\.mp4$|\.m4v$/i.test(file.name) || /\.webm$/i.test(file.name) || /\.ogv$/i.test(file.name)))
+    const video = files.filter((file) => file && file.name && !archiveInterstitialFile(file.name) && (/\.mp4$|\.m4v$/i.test(file.name) || /\.webm$/i.test(file.name) || /\.ogv$/i.test(file.name)))
       .sort((a, b) => {
         const score = (file) => /h\.?264/.test(format(file)) ? 0 : /\.mp4$|\.m4v$/i.test(file.name) ? 1 : /\.webm$/i.test(file.name) ? 2 : 3;
         return score(a) - score(b);
       });
-    const audio = files.find((file) => file && file.name && /\.mp3$|\.ogg$|\.m4a$|\.flac$/i.test(file.name));
+    const audio = files.find((file) => file && file.name && !archiveInterstitialFile(file.name) && /\.mp3$|\.ogg$|\.m4a$|\.flac$/i.test(file.name));
     /* Preserve the queue's declared media contract during hydration. A movie
        catalog record can contain only an audio derivative; returning it to a
        video channel made a seemingly healthy shelf fail at playback time. */
     const wantsVideo = mediaTypes.includes("movies");
     const wantsAudio = mediaTypes.includes("audio");
-    const requested = requestedFile && files.find((file) => file && file.name === requestedFile);
+    const requested = requestedFile && files.find((file) => file && file.name === requestedFile && !archiveInterstitialFile(file.name) && (wantsAudio
+      ? /\.mp3$|\.ogg$|\.m4a$|\.flac$/i.test(file.name)
+      : /\.mp4$|\.m4v$|\.webm$|\.ogv$/i.test(file.name)));
     const chosen = requested || (wantsVideo ? video[0] : wantsAudio ? audio : (video[0] || audio));
     if (!chosen) return null;
     /* `id` may be synthetic (`parent::file`). URLs must use the real Archive

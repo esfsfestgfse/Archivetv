@@ -21,6 +21,7 @@ check(runtime.includes('queue-sample') && runtime.includes('queueCurrent'), 'Que
 check(runtime.includes("action==='skip'") && runtime.includes('skips:'), 'Skip measurement exists');
 check(runtime.includes('sourceFailures') && runtime.includes('sourceRecoveries'), 'Source failure/recovery summary exists');
 check(runtime.includes('channelStats') && runtime.includes('laneRows'), 'Per-channel health scorecard exists');
+check(runtime.includes('unframed') && runtime.includes('visualLane'), 'Unframed visual-lane failures are scored');
 check(runtime.includes('localStorage') && runtime.includes('realsignal:health:v2'), 'Bounded local telemetry persistence exists');
 check(runtime.includes('rsHealthExport') && runtime.includes('rsHealthLanes'), 'Health dashboard export and weak-lane controls exist');
 check(runtime.includes('statusLabel') && runtime.includes('__rsCastIsConnected'), 'Mobile/Cast status measurement exists');
@@ -35,7 +36,7 @@ for (const file of builds) {
   check(html.includes('assets/guide-overhaul.css') && html.includes('assets/guide-overhaul.js'), `${file}: shared guide overhaul assets loaded`);
   check(html.includes('rsHealthPanel') && html.includes('rsHealthFrame'), `${file}: APP HEALTH panel is present`);
   check(html.includes('currentDuration') && html.includes('guideItemRuntime(nextItem)'), `${file}: guide exposes Source Suite current/next runtime data`);
-  check(html.includes('2.2.0-' + (file.includes('mobile') ? 'mobile' : 'desktop') + '.220-health-telemetry'), `${file}: build stamp is RealSignal 2.2.0 — Health & Telemetry`);
+  check(html.includes('2.2.1-' + (file.includes('mobile') ? 'mobile' : 'desktop') + '.221-ia-weak-lane-recovery'), `${file}: build stamp is RealSignal 2.2.1 — IA Weak-Lane Recovery`);
   check(html.includes('var chanRT={timers:[],teardowns:[]};') && html.includes('chanRT.teardowns.splice(0)'), `${file}: live-channel teardown callbacks are executed`);
   check(html.includes('shipSocket.close()') && html.includes('clearTimeout(publicViewTimer)'), `${file}: Ship Tracker closes sockets and pending viewport retries on channel change`);
   check(/function clearShipData\(\)\{[\s\S]*?selectedMmsi=""[\s\S]*?ship-detail-empty/.test(html), `${file}: Ship Tracker clears stale vessel selection when the map region changes`);

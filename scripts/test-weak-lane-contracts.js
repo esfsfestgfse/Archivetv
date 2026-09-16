@@ -7,10 +7,17 @@ let failures = 0;
 
 function assignment(source, channel) {
   const marker = `Object.assign(PROGRAM["${channel}"],`;
-  const start = source.lastIndexOf(marker);
-  if (start < 0) return '';
-  const end = source.indexOf('\n', start);
-  return source.slice(start, end < 0 ? source.length : end);
+  const chunks = source.split('\n').filter(line => line.includes(marker));
+  /* Newer lanes are declared inline in PROGRAM rather than patched with
+     Object.assign. Keep this guard format-agnostic so it tests the active
+     production contract instead of a retired declaration style. */
+  const inline = `"${channel}": {`;
+  const inlineStart = source.lastIndexOf(inline);
+  if (inlineStart >= 0) {
+    const inlineEnd = source.indexOf('\n  },', inlineStart);
+    chunks.push(source.slice(inlineStart, inlineEnd < 0 ? source.length : inlineEnd));
+  }
+  return chunks.join('\n');
 }
 
 for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {

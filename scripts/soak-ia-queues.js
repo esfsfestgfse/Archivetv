@@ -49,6 +49,10 @@ const relayHealthTimeoutMs = Math.max(2000, Math.min(15000, Number(option('--rel
 const outputPath = option('--out');
 const requestedChannels = new Set(String(option('--channels', '')).split(',').map(value => value.trim()).filter(Boolean));
 const completeManifest = JSON.parse(fs.readFileSync(path.resolve(manifestPath), 'utf8'));
+/* Use a fresh persisted session for each soak. The browser does this with its
+ * local session id; using anonymous here made repeated audits inherit the
+ * previous Durable Object seen-set and falsely report shallow/repeated lanes. */
+const soakSessionId = `soak-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 const manifest = requestedChannels.size
   ? completeManifest.filter(row => requestedChannels.has(String(row.channel)))
   : completeManifest;
@@ -108,8 +112,8 @@ async function requestQueue(row, remainingMs, rotationOffset) {
   try {
     const response = await fetch(endpoint, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ channel: String(row.channel), count, rotation: (rotationBase + (Number(row.channel) || 0) + rotationOffset) % 128, queries: row.queries, themeTerms: row.themeTerms || [], denyTerms: row.denyTerms || [], requiredTitleTerms: row.requiredTitleTerms || [], diversity: row.diversity || {}, mediaTypes: row.mediaTypes || ['movies'], themeMinScore: row.themeMinScore || 1 }),
+      headers: { 'content-type': 'application/json', ...(isV2Endpoint ? { 'x-realsignal-session': soakSessionId } : {}) },
+      body: JSON.stringify({ channel: String(row.channel), count, rotation: (rotationBase + (Number(row.channel) || 0) + rotationOffset) % 128, queries: row.queries, themeTerms: row.themeTerms || [], denyTerms: row.denyTerms || [], requiredTitleTerms: row.requiredTitleTerms || [], diversity: row.diversity || {}, mediaTypes: row.mediaTypes || ['movies'], themeMinScore: row.themeMinScore || 1, ...(isV2Endpoint ? { sessionId: soakSessionId } : {}) }),
       signal: controller.signal,
     });
     const body = await response.json();
@@ -123,7 +127,7 @@ async function probeRotation(row, rotationOffset) {
   const started = Date.now();
   let attempts = 0, lastStatus = 0, lastBody = null, lastError = null;
   let lastSource = '', lastCache = '', lastReadyHeader = '', lastPartial = '', lastFallback = '', sawWarmFallback = false;
-  let firstReadyLatencyMs = null, bestReady = 0, bestItems = [];
+  let firstReadyLatencyMs = null, bestReady = 0, bestItems = [], bestCatalogDepth = 0;
   while (Date.now() - started < timeoutMs) {
     attempts++;
     try {
@@ -142,8 +146,11 @@ async function probeRotation(row, rotationOffset) {
         const terms = row.requiredTitleTerms || [];
         return !terms.length || terms.some(term => String(item.title || '').toLowerCase().includes(String(term).toLowerCase()));
       }) : [];
+      const catalogDepth = response.ok && Array.isArray(body.candidateItems) ? body.candidateItems.length : items.length;
       const readyCount = Math.min(items.length, Math.max(0, Number(body && body.ready) || 0));
-      if (readyCount > bestReady || (readyCount === bestReady && items.length > bestItems.length)) {
+      const shouldReplaceBest = readyCount > bestReady || (readyCount === bestReady && (items.length > bestItems.length || catalogDepth > bestCatalogDepth));
+      if (catalogDepth > bestCatalogDepth) bestCatalogDepth = catalogDepth;
+      if (shouldReplaceBest) {
         bestReady = readyCount;
         bestItems = items;
       }
@@ -158,6 +165,7 @@ async function probeRotation(row, rotationOffset) {
         return {
           channel: Number(row.channel), name: row.name, ok: true, status: response.status,
           ready: readyCount, items: items.length, attempts,
+          catalogDepth,
           elapsedMs: Date.now() - started, firstPlayLatencyMs: firstReadyLatencyMs,
           source: lastSource, cache: lastCache, readyHeader: lastReadyHeader,
           partial: lastPartial === '1', fallback: lastFallback === '1', warmHandoff: sawWarmFallback,
@@ -185,6 +193,7 @@ async function probeRotation(row, rotationOffset) {
   return {
     channel: Number(row.channel), name: row.name, ok: hasRequiredReady, status: lastStatus,
     ready, items: items.length, attempts,
+    catalogDepth: bestCatalogDepth,
     elapsedMs: Date.now() - started,
     firstPlayLatencyMs: firstReadyLatencyMs,
     source: lastSource, cache: lastCache, readyHeader: lastReadyHeader,
@@ -240,6 +249,7 @@ async function probe(row) {
     elapsedMs, firstPlayLatencyMs,
     readyDepths: rotationResults.map(result => result.ready || 0),
     itemDepths: rotationResults.map(result => result.items || 0),
+    catalogDepths: rotationResults.map(result => result.catalogDepth || 0),
     fiveItemDepth: rotationResults.filter(result => (result.ready || 0) >= count).length,
     depthUnderfilled: rotationResults.some(result => result.depthTimedOut),
     uniqueItems: seen.size,

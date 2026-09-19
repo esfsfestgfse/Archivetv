@@ -100,10 +100,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-72-48-depth-recovery";
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v85";
+const IA_QUEUE_CACHE_VERSION = "v86";
 /* Last-good shelves share the v84 namespace so an older shallow shelf
    never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v85";
+const IA_LAST_GOOD_CACHE_VERSION = "v86";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    three shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -208,7 +208,7 @@ function iaStrictRecoveryEnabled(channel) {
 const IA_DEPTH_RECOVERY_CHANNELS = new Set([
   "3", "10", "13", "14", "17", "18", "19", "21", "60", "61", "62", "64", "66", "68", "70", "74", "75", "76", "77", "81",
   "100", "101", "102", "105", "106", "107", "108", "111", "114", "115", "117", "118", "120", "124", "125", "126", "127", "128", "129", "130", "131", "132", "154",
-  "202", "203", "204", "206", "209", "211", "212", "213", "214", "220", "223", "224", "228", "231", "235", "239", "240", "501", "502", "511", "700", "702", "703", "901", "906", "907", "909", "914", "916", "918", "920", "921", "923", "927", "929"
+  "72", "83", "104", "122", "202", "203", "204", "206", "209", "211", "212", "213", "214", "220", "223", "224", "228", "231", "235", "239", "240", "501", "502", "511", "700", "702", "703", "901", "906", "907", "909", "914", "916", "918", "920", "921", "923", "927", "929"
 ].filter(Boolean));
 function iaDepthRecoveryEnabled(channel) {
   return IA_DEPTH_RECOVERY_CHANNELS.has(String(channel));

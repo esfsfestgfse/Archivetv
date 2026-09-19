@@ -3312,7 +3312,12 @@ function orderedIaEmergencySeeds(channel, rotation) {
 }
 
 function strictRecoveryQueue(channel, rotation, count, themeTerms, denyTerms, requiredTitleTerms, mediaTypes) {
-  const bank = orderedIaEmergencySeeds(channel, 0);
+  const seen = new Set();
+  const bank = orderedIaEmergencySeeds(channel, 0).filter((item) => {
+    if (!item || !item.identifier || !item.media || !item.media.url || seen.has(item.identifier)) return false;
+    seen.add(item.identifier);
+    return true;
+  });
   const offset = bank.length > count ? (Math.abs(Number(rotation) || 0) * count) % bank.length : 0;
   const rotated = bank.slice(offset).concat(bank.slice(0, offset));
   const candidates = rotated.filter((item) => {

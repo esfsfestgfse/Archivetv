@@ -1627,7 +1627,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="2.2.1-desktop.230-ia-long-tail-freshness";
+window.__ATV_BUILD="2.2.1-desktop.231-ia-rail-chunking";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -6443,11 +6443,19 @@ function buildProgramQueries(prog,ch,advance) {
   ];
   var permanentSubjects=(Array.isArray(prog.fastSubjects)&&prog.fastSubjects.length?prog.fastSubjects:(primaryProvider.require_subj||[])).slice(0,16);
   var permanentCollections=(Array.isArray(prog.fastCollections)&&prog.fastCollections.length?prog.fastCollections:(primaryProvider.collections||[])).slice(0,3);
+  /* Archive search becomes unreliable when a cold query carries a very large
+     OR list. Split approved vocabulary into small rails: this keeps the first
+     frame fast while letting sparse lanes reach every topic family instead of
+     falling back to the same old five catalog rows. */
   if(permanentSubjects.length){
-    var permanentClause="subject:("+permanentSubjects.map(programPhrase).join(" OR ")+")";
-    var permanentBase="mediatype:"+mt+" AND "+permanentClause+titleClause+" AND year:["+permanentEra[0]+" TO "+permanentEra[1]+"]"+NOT;
-    if(!prog.collectionOnly)fastQs.push(permanentBase);
-    permanentCollections.forEach(function(collection){fastQs.push("collection:"+collection+" AND "+permanentBase);});
+    var permanentChunks=[];
+    for(var chunkAt=0;chunkAt<permanentSubjects.length;chunkAt+=6)permanentChunks.push(permanentSubjects.slice(chunkAt,chunkAt+6));
+    permanentChunks.forEach(function(chunk){
+      var permanentClause="subject:("+chunk.map(programPhrase).join(" OR ")+")";
+      var permanentBase="mediatype:"+mt+" AND "+permanentClause+titleClause+" AND year:["+permanentEra[0]+" TO "+permanentEra[1]+"]"+NOT;
+      if(!prog.collectionOnly)fastQs.push(permanentBase);
+      permanentCollections.forEach(function(collection){fastQs.push("collection:"+collection+" AND "+permanentBase);});
+    });
   }
   if(Array.isArray(prog.fastSubjects)&&prog.fastSubjects.length){
     var fastClause="subject:("+prog.fastSubjects.map(programPhrase).join(" OR ")+")";

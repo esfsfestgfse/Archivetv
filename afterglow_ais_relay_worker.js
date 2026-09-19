@@ -183,6 +183,15 @@ const IA_COLD_RESCUE_CHANNELS = new Set([
 function iaColdRescueEnabled(channel) {
   return IA_COLD_RESCUE_CHANNELS.has(String(channel));
 }
+/* Channel 200 exposed a distinct failure mode in real production rotation:
+   high rotation values could surface a contaminated shared shelf even though
+   its verified recovery bank was healthy. Keep only this proven lane on its
+   own direct-ready bank until discovery has a larger, independently verified
+   manufacturing catalog. This is intentionally not a global cache bypass. */
+const IA_STRICT_RECOVERY_CHANNELS = new Set(["200"]);
+function iaStrictRecoveryEnabled(channel) {
+  return IA_STRICT_RECOVERY_CHANNELS.has(String(channel));
+}
 /* These lanes were observed either reusing a five-item last-good shelf or
    underfilling when the Archive index rotated. Give only these proven weak
    lanes more background search rails and a wider page window. Healthy channel
@@ -3302,6 +3311,28 @@ function orderedIaEmergencySeeds(channel, rotation) {
   return seeds.slice(offset).concat(seeds.slice(0, offset));
 }
 
+function strictRecoveryQueue(channel, rotation, count, themeTerms, denyTerms, requiredTitleTerms, mediaTypes) {
+  const candidates = orderedIaEmergencySeeds(channel, rotation).filter((item) => {
+    if (!item || !item.identifier || !item.media || !item.media.url) return false;
+    if (mediaTypes.length && mediaTypes.includes("movies") && item.media.type !== "video") return false;
+    if (mediaTypes.length && mediaTypes.includes("audio") && item.media.type !== "audio") return false;
+    return matchesTheme(item, themeTerms, 1, requiredTitleTerms) && !matchesDeny(item, denyTerms);
+  });
+  return {
+    channel,
+    rotation,
+    generatedAt: new Date().toISOString(),
+    ttlSeconds: 60,
+    items: candidates.slice(0, count),
+    candidateItems: candidates,
+    candidates: candidates.length,
+    ready: Math.min(count, candidates.length),
+    partial: candidates.length < count,
+    hydrating: false,
+    strictRecovery: true,
+  };
+}
+
 async function hydrateIaQueue(payload, requestedCount, cacheOrigin, ctx, mediaTypes, onReady, concurrency = 5) {
   /* Keep a few extra candidates behind the five-program shelf. Archive items
      occasionally have no browser-playable derivative; filtering those here
@@ -3603,6 +3634,19 @@ async function getIaQueue(request, url, env, ctx) {
   const cacheKey = new Request(url.origin + IA_PREFIX + "/cache/queue/" + IA_QUEUE_CACHE_VERSION + "/" + digest);
   const sharedKey = IA_QUEUE_KV_PREFIX + IA_QUEUE_CACHE_VERSION + ":" + digest;
   const lastGoodKey = sharedQueueFallbackKey(lastGoodDigest);
+  /* Do not let a contaminated shared shelf outrank a verified, lane-owned
+     recovery bank for the one channel that reproduced this defect. The bank
+     is already direct-playable, so this remains a zero-network fast path. */
+  if (iaStrictRecoveryEnabled(channel)) {
+    const strict = strictRecoveryQueue(channel, rotation, count, themeTerms, denyTerms, requiredTitleTerms, mediaTypes);
+    if (strict.ready >= count) {
+      return cacheableJson(strict, 60, {
+        "X-Afterglow-Source": "program-director-strict-recovery",
+        "X-Afterglow-Queue-Ready": String(strict.ready),
+        "X-Afterglow-Queue-Strict": "1",
+      });
+    }
+  }
   try {
     const cache = caches.default, cached = await cache.match(cacheKey);
     if (cached) {

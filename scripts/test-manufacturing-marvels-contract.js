@@ -4,6 +4,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const root = path.join(__dirname, '..');
+const relay = fs.readFileSync(path.join(root, 'afterglow_ais_relay_worker.js'), 'utf8');
+let failures = 0;
 const required = [
   'themeMinScore:4',
   'era:[1930,2026]',
@@ -17,8 +19,12 @@ const required = [
   'iaCachedProgramAllowed',
   'manufacturingMarvelsGateVersion',
 ];
+for (const token of ['IA_STRICT_RECOVERY_CHANNELS', 'new Set(["200"])', 'strictRecoveryQueue', 'program-director-strict-recovery']) {
+  const pass = relay.includes(token);
+  console.log(`relay: ${token}: ${pass ? 'ok' : 'FAIL'}`);
+  if (!pass) failures++;
+}
 
-let failures = 0;
 for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
   const source = fs.readFileSync(path.join(root, file), 'utf8');
   const start = source.indexOf('Object.assign(PROGRAM["Manufacturing Marvels"],{');

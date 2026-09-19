@@ -1,8 +1,11 @@
 /* Per-session rotation state for the Version 2 API. A session+channel is the
  * coordination atom; one viewer's Next action cannot consume another's. */
 
-const MAX_SEEN = 256;
-const MAX_ITEMS = 24;
+/* Keep enough verified candidates in the session shelf that a fresh tune is
+ * not forced back onto the same five rows. The public player still receives a
+ * small immediate shelf; this is only the hidden rotation window. */
+const MAX_SEEN = 512;
+const MAX_ITEMS = 48;
 
 function itemId(item) {
   const value = item && (item.identifier || item.id || (item.media && item.media.url));

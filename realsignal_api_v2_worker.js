@@ -197,6 +197,7 @@ function compactCatalogItem(item) {
     sourceUrl: String(item.sourceUrl || "").slice(0, 1500),
     rights: String(item.rights || "").slice(0, 300),
     year: String(item.year || "").slice(0, 20),
+    genreVerified: item.genreVerified === true,
   };
 }
 
@@ -306,7 +307,11 @@ function catalogFallbackAllowed(item, body) {
     ? ["metallica", "black sabbath", "ozzy osbourne", "motorhead", "motörhead", "judas priest", "iron maiden", "slayer"].concat(channelAliases)
     : channelAliases;
   const themeTerms = Array.isArray(body && body.themeTerms) ? body.themeTerms.concat(laneAliases) : laneAliases;
-  if (themeTerms.length) {
+  /* Relay items have already passed the strict Archive genre/deny gates. Keep
+     that provenance when V2 sees an expanded episode whose child filename does
+     not repeat the parent topic. */
+  const relayVerified = item && item.genreVerified === true;
+  if (themeTerms.length && !relayVerified) {
     let score = 0;
     for (const term of themeTerms) {
       const needle = String(term || "").trim().toLowerCase();
@@ -318,7 +323,8 @@ function catalogFallbackAllowed(item, body) {
     if (score < minimum) return false;
   }
   const mediaTypes = Array.isArray(body && body.mediaTypes) ? body.mediaTypes.map((value) => String(value).toLowerCase()) : [];
-  const mediaType = String(item && (item.mediaType || item.type) || "video").toLowerCase();
+  /* Audio lanes declare their type in media.type on relay responses. */
+  const mediaType = String(item && (item.mediaType || item.type || (item.media && item.media.type)) || "video").toLowerCase();
   const audio = mediaType === "audio" || mediaType === "audio/mpeg" || mediaType === "audio/mp3";
   if (mediaTypes.length === 1 && mediaTypes[0] === "audio" && !audio) return false;
   if (mediaTypes.length && mediaTypes.indexOf("audio") < 0 && audio) return false;
@@ -347,6 +353,7 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
       title: row.title,
       description: row.description || "",
       subject: metadata.subject || metadata.subjects || "",
+      genreVerified: metadata.genreVerified === true,
       provider: row.provider,
       year: row.year || "",
       duration: Number(row.duration_seconds || metadata.duration || metadata.runtime) || null,

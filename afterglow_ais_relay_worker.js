@@ -100,10 +100,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-72-48-depth-recovery";
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v88";
+const IA_QUEUE_CACHE_VERSION = "v89";
 /* Last-good shelves share the v84 namespace so an older shallow shelf
    never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v88";
+const IA_LAST_GOOD_CACHE_VERSION = "v89";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    three shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -197,7 +197,7 @@ function iaColdRescueEnabled(channel) {
    its verified recovery bank was healthy. Keep only this proven lane on its
    own direct-ready bank until discovery has a larger, independently verified
    manufacturing catalog. This is intentionally not a global cache bypass. */
-const IA_STRICT_RECOVERY_CHANNELS = new Set(["19", "200"]);
+const IA_STRICT_RECOVERY_CHANNELS = new Set(["19", "200", "920"]);
 function iaStrictRecoveryEnabled(channel) {
   return IA_STRICT_RECOVERY_CHANNELS.has(String(channel));
 }

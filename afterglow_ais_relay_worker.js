@@ -3312,7 +3312,10 @@ function orderedIaEmergencySeeds(channel, rotation) {
 }
 
 function strictRecoveryQueue(channel, rotation, count, themeTerms, denyTerms, requiredTitleTerms, mediaTypes) {
-  const candidates = orderedIaEmergencySeeds(channel, rotation).filter((item) => {
+  const bank = orderedIaEmergencySeeds(channel, 0);
+  const offset = bank.length > count ? (Math.abs(Number(rotation) || 0) * count) % bank.length : 0;
+  const rotated = bank.slice(offset).concat(bank.slice(0, offset));
+  const candidates = rotated.filter((item) => {
     if (!item || !item.identifier || !item.media || !item.media.url) return false;
     if (mediaTypes.length && mediaTypes.includes("movies") && item.media.type !== "video") return false;
     if (mediaTypes.length && mediaTypes.includes("audio") && item.media.type !== "audio") return false;

@@ -100,10 +100,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-72-48-depth-recovery";
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v86";
+const IA_QUEUE_CACHE_VERSION = "v87";
 /* Last-good shelves share the v84 namespace so an older shallow shelf
    never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v86";
+const IA_LAST_GOOD_CACHE_VERSION = "v87";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    three shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -263,11 +263,11 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "whbf-news-1993", title: "WHBF News (1993)", subject: "local news local newscast television news", year: 1993, media: { type: "video", url: "https://archive.org/download/whbf-news-1993/WHBF%20News-02.7.1993.mp4" } },
   ],
   "229": [
-    { identifier: "TheDoomsdayAsteroid", title: "NOVA · The Doomsday Asteroid (1995)", subject: "documentary science history television documentary", year: 1995, media: { type: "video", url: "https://archive.org/download/TheDoomsdayAsteroid/NOVA.S22E12.The.Doomsday.Asteroid.1995.VHSRip.AAC2.0.x264-astro.mp4" } },
-    { identifier: "american-experience-george-h.-w.-bush-part-1", title: "American Experience · George H. W. Bush", subject: "historical documentary television documentary", year: 2021, media: { type: "video", url: "https://archive.org/download/american-experience-george-h.-w.-bush-part-1/American%20Experience%20George%20H.W.%20Bush%20Part%201.mp4" } },
-    { identifier: "WETA_20131009_140000_Frontline", title: "Frontline · WETA Broadcast (2013)", subject: "documentary series investigative journalism", year: 2013, media: { type: "video", url: "https://archive.org/download/WETA_20131009_140000_Frontline/WETA_20131009_140000_Frontline.mp4" } },
-    { identifier: "KQED_20140514_040000_Frontline", title: "Frontline · KQED Broadcast (2014)", subject: "documentary series investigative journalism", year: 2014, media: { type: "video", url: "https://archive.org/download/KQED_20140514_040000_Frontline/KQED_20140514_040000_Frontline.mp4" } },
-    { identifier: "KYW_20141012_230000_60_Minutes", title: "60 Minutes · KYW Broadcast (2014)", subject: "documentary series investigative journalism television newsmagazine", year: 2014, media: { type: "video", url: "https://archive.org/download/KYW_20141012_230000_60_Minutes/KYW_20141012_230000_60_Minutes.mp4" } },
+    { identifier: "TheDoomsdayAsteroid", title: "NOVA · The Doomsday Asteroid (1995)", subject: "pbs documentary nova science history television documentary", year: 1995, media: { type: "video", url: "https://archive.org/download/TheDoomsdayAsteroid/NOVA.S22E12.The.Doomsday.Asteroid.1995.VHSRip.AAC2.0.x264-astro.mp4" } },
+    { identifier: "american-experience-george-h.-w.-bush-part-1", title: "American Experience · George H. W. Bush", subject: "public television historical documentary american experience", year: 2021, media: { type: "video", url: "https://archive.org/download/american-experience-george-h.-w.-bush-part-1/American%20Experience%20George%20H.W.%20Bush%20Part%201.mp4" } },
+    { identifier: "WETA_20131009_140000_Frontline", title: "Frontline · WETA Broadcast (2013)", subject: "public television documentary series frontline investigative journalism", year: 2013, media: { type: "video", url: "https://archive.org/download/WETA_20131009_140000_Frontline/WETA_20131009_140000_Frontline.mp4" } },
+    { identifier: "KQED_20140514_040000_Frontline", title: "Frontline · KQED Broadcast (2014)", subject: "public television documentary series frontline investigative journalism", year: 2014, media: { type: "video", url: "https://archive.org/download/KQED_20140514_040000_Frontline/KQED_20140514_040000_Frontline.mp4" } },
+    { identifier: "KYW_20141012_230000_60_Minutes", title: "60 Minutes · KYW Broadcast (2014)", subject: "public television documentary series investigative journalism television newsmagazine", year: 2014, media: { type: "video", url: "https://archive.org/download/KYW_20141012_230000_60_Minutes/KYW_20141012_230000_60_Minutes.mp4" } },
   ],
   "230": [
     { identifier: "6333HMVacation1966Reel201343904", title: "Home Movies · Vacation 1966, Reel 2", subject: "home movie family film vacation travel", year: 1966, media: { type: "video", url: "https://archive.org/download/6333HMVacation1966Reel201343904/6333_HM_Vacation_1966_Reel_2_01_34_39_04.mp4" } },
@@ -427,6 +427,17 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "DragnetTheBigHitRunKiller", title: "Dragnet — The Big Hit-Run Killer", subject: "dragnet classic television police procedural detective show", year: 1954 },
     { identifier: "hawaii-five-o-S2E3-480p", title: "Hawaii Five-O — Season 2, Episode 3", subject: "hawaii five-o classic television police procedural detective show", year: 1968 },
     { identifier: "columbo-pilot-episodes", title: "Columbo — Pilot Episodes", subject: "columbo classic television police procedural detective show", year: 1968 },
+  ],
+  /* The Detective is a separate lane from Cop Show Classic. Give it the same
+     proven public-domain procedural records, but with explicit detective
+     vocabulary so the relay can hydrate them instead of falling into a
+     generic one-item D1 fallback. */
+  "511": [
+    { identifier: "DragnetEpisode18TheBigSeventeenwcommercials", title: "Dragnet — Episode 18: The Big Seventeen", subject: "detective television dragnet classic television police procedural detective show", year: 1952 },
+    { identifier: "DragnetS01E05TheBigCast", title: "Dragnet — Season 1, Episode 5: The Big Cast", subject: "detective television dragnet classic television police procedural detective show", year: 1952 },
+    { identifier: "DragnetTheBigHitRunKiller", title: "Dragnet — The Big Hit-Run Killer", subject: "detective television dragnet classic television police procedural detective show", year: 1954 },
+    { identifier: "hawaii-five-o-S2E3-480p", title: "Hawaii Five-O — Season 2, Episode 3", subject: "detective television hawaii five-o classic television police procedural detective show", year: 1968 },
+    { identifier: "columbo-pilot-episodes", title: "Columbo — Pilot Episodes", subject: "detective television columbo classic television police procedural detective show", year: 1968 },
   ],
   "157": [
     { identifier: "CCF-2000", title: "Cartoon Cartoon Fridays — 2000 Full Broadcast", subject: "cartoon network kids television animated television", year: 2000 },
@@ -966,6 +977,17 @@ const IA_LONG_TAIL_EXPANSIONS = Object.freeze({
     { identifier: "thomasine-and-bushrod-1974", title: "Thomasine & Bushrod", subject: "blaxploitation black western action film", year: 1974 },
     { identifier: "the-education-of-sonny-carson-1974-dvd-rip", title: "The Education of Sonny Carson", subject: "blaxploitation black crime film drama", year: 1974 },
   ],
+  /* Black Cinema needs its own recovery shelf. Reusing only the 70s
+     Blaxploitation lane left this broader channel at one stale D1 row. These
+     are public, already-playable feature records and remain inside the
+     channel's Black-cinema contract. */
+  "105": [
+    { identifier: "The_Brother_from_Another_Planet_1984", title: "The Brother from Another Planet (1984)", subject: "black cinema blaxploitation black independent film", year: 1984, media: { type: "video", url: "https://archive.org/download/The_Brother_from_Another_Planet_1984/videoplayback%20%281%29.mp4" } },
+    { identifier: "Fighting_Mad_MPEG", title: "Fighting Mad (1978)", subject: "black cinema blaxploitation black action film crime film", year: 1978, media: { type: "video", url: "https://archive.org/download/Fighting_Mad_MPEG/Fighting%20Mad.mp4" } },
+    { identifier: "foxy-brown-1974", title: "Foxy Brown (1974)", subject: "black cinema blaxploitation black action film crime film", year: 1974, media: { type: "video", url: "https://archive.org/download/foxy-brown-1974/Foxy%20Brown%20%201974.mp4" } },
+    { identifier: "trouble-man_1972", title: "Trouble Man (1972)", subject: "black cinema blaxploitation black action film crime film", year: 1972, media: { type: "video", url: "https://archive.org/download/trouble-man_1972/trouble-man_1972.mp4" } },
+    { identifier: "lord.-shango.-1975.720p.-ac3", title: "Lord Shango (1975)", subject: "black cinema blaxploitation black action film crime film", year: 1975, media: { type: "video", url: "https://archive.org/download/lord.-shango.-1975.720p.-blu-ray.x-264.-aac-yts.-mx/Lord.Shango.1975.720p.BluRay.x264.AAC-%5BYTS.MX%5D.mp4" } },
+  ],
   "200": [
     { identifier: "MasterHa1936_3", title: "Master Hands — Part III", subject: "manufacturing industry factory engineering industrial film", year: 1936 },
     { identifier: "VisittoW1950", title: "Visit to Wurlitzer", subject: "manufacturing industry factory engineering industrial film", year: 1950 },
@@ -1033,8 +1055,8 @@ const IA_LONG_TAIL_EXPANSIONS = Object.freeze({
     { identifier: "james-randi-on-dateline-1995", title: "James Randi on Dateline", subject: "news television newsmagazine investigative journalism", year: 1995 },
   ],
   "229": [
-    { identifier: "20220107-105032", title: "CBS 60 Minutes — Full Episode", subject: "documentary television documentary investigative journalism", year: 1998 },
-    { identifier: "20220107-172111_20260728", title: "MTV 120 Minutes and AMP — Full Tape", subject: "documentary television music documentary culture", year: 1998 },
+    { identifier: "20220107-105032", title: "CBS 60 Minutes — Full Episode", subject: "pbs documentary documentary television documentary investigative journalism", year: 1998 },
+    { identifier: "20220107-172111_20260728", title: "MTV 120 Minutes and AMP — Full Tape", subject: "public television documentary television music documentary culture", year: 1998 },
     { identifier: "iVillage_60_Minutes", title: "60 Minutes", subject: "documentary television documentary investigative journalism", year: 1998 },
     { identifier: "nightline-the-hajj", title: "Nightline — The Hajj", subject: "documentary television documentary current affairs", year: 1997 },
     { identifier: "james-randi-on-dateline-1995", title: "James Randi on Dateline", subject: "documentary television documentary investigative journalism", year: 1995 },

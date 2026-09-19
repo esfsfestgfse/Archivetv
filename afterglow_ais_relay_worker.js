@@ -100,10 +100,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-72-48-depth-recovery";
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v87";
+const IA_QUEUE_CACHE_VERSION = "v88";
 /* Last-good shelves share the v84 namespace so an older shallow shelf
    never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v87";
+const IA_LAST_GOOD_CACHE_VERSION = "v88";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    three shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -197,7 +197,7 @@ function iaColdRescueEnabled(channel) {
    its verified recovery bank was healthy. Keep only this proven lane on its
    own direct-ready bank until discovery has a larger, independently verified
    manufacturing catalog. This is intentionally not a global cache bypass. */
-const IA_STRICT_RECOVERY_CHANNELS = new Set(["200"]);
+const IA_STRICT_RECOVERY_CHANNELS = new Set(["19", "200"]);
 function iaStrictRecoveryEnabled(channel) {
   return IA_STRICT_RECOVERY_CHANNELS.has(String(channel));
 }
@@ -822,6 +822,15 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "PaulWhiteman1920-1935CompleteCollection::A_Bench_In_The_Park_1930", title: "Paul Whiteman — A Bench in the Park", subject: "78rpm early recording jazz dance band jukebox", year: 1930, media: { type: "audio", url: "https://archive.org/download/PaulWhiteman1920-1935CompleteCollection/ABenchInThePark1930.mp3" } },
     { identifier: "PaulWhiteman1920-1935CompleteCollection::A_Big_Bouquet_For_You", title: "Paul Whiteman — A Big Bouquet for You", subject: "78rpm early recording jazz dance band jukebox", year: 1930, media: { type: "audio", url: "https://archive.org/download/PaulWhiteman1920-1935CompleteCollection/ABigBouquetForYou.mp3" } },
     { identifier: "TedLewisCollection1919-1934::12th_Street_Rag", title: "Ted Lewis — 12th Street Rag", subject: "78rpm early recording jazz dance band ragtime jukebox", year: 1930, media: { type: "audio", url: "https://archive.org/download/TedLewisCollection1919-1934/12thStreetRag.mp3" } },
+  ],
+  "19": [
+    { identifier: "The_Beverly_Hillbillies::GRANNYS_GARDEN", title: "The Beverly Hillbillies — Granny's Garden", subject: "classic television family sitcom domestic sitcom", year: 1962, media: { type: "video", url: "https://archive.org/download/The_Beverly_Hillbillies/GRANNYS_GARDEN.mp4" } },
+    { identifier: "The_Beverly_Hillbillies::Getting_Settled", title: "The Beverly Hillbillies — Getting Settled", subject: "classic television family sitcom domestic sitcom", year: 1962, media: { type: "video", url: "https://archive.org/download/The_Beverly_Hillbillies/Getting_Settled.mp4" } },
+    { identifier: "The_Beverly_Hillbillies::The_Clampets_Strike_Oil", title: "The Beverly Hillbillies — The Clampetts Strike Oil", subject: "classic television family sitcom domestic sitcom", year: 1962, media: { type: "video", url: "https://archive.org/download/The_Beverly_Hillbillies/The_Clampets_Strike_Oil.mp4" } },
+    { identifier: "TLS_Lucy_Gets_A_Roommate::episode", title: "The Lucy Show — Lucy Gets a Roommate", subject: "classic television family sitcom domestic sitcom", year: 1963, media: { type: "video", url: "https://archive.org/download/TLS_Lucy_Gets_A_Roommate/TLS_Lucy_Gets_A_Roommate_512kb.mp4" } },
+    { identifier: "Andy_Griffith_A_Wife_For_Andy::episode", title: "The Andy Griffith Show — A Wife for Andy", subject: "classic television family sitcom domestic sitcom", year: 1961, media: { type: "video", url: "https://archive.org/download/Andy_Griffith_A_Wife_For_Andy/WIFE_512kb.mp4" } },
+    { identifier: "Andy-Griffith-Show_Andy-Discovers-America::episode", title: "The Andy Griffith Show — Andy Discovers America", subject: "classic television family sitcom domestic sitcom", year: 1961, media: { type: "video", url: "https://archive.org/download/Andy-Griffith-Show_Andy-Discovers-America/AndyGriffithShow_AndyDiscoversAmerica_512kb.mp4" } },
+    { identifier: "Beverly_Hillbillies_Ep03_Meanwhile_Back_At_The_Cabin::episode", title: "The Beverly Hillbillies — Meanwhile Back at the Cabin", subject: "classic television family sitcom domestic sitcom", year: 1962, media: { type: "video", url: "https://archive.org/download/Beverly_Hillbillies_Ep03_Meanwhile_Back_At_The_Cabin/BH03_Meanwhile_Back_At_The_Cabin_512kb.mp4" } },
   ],
   "901": [
     { identifier: "PinkFloydLiveAtWembley", title: "Pink Floyd — Live at Wembley", subject: "rock music concert live music radio", year: 1974, media: { type: "audio", url: "https://archive.org/download/PinkFloydLiveAtWembley/1974-11-16%20Pink%20Floyd%20Live%20At%20Wembley.mp3" } },

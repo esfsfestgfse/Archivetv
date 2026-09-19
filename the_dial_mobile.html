@@ -1679,7 +1679,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="2.2.1-mobile.235-ia-all-lane-freshness";
+window.__ATV_BUILD="2.2.1-mobile.236-ia-all-lane-freshness";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -5501,10 +5501,10 @@ const PROGRAM = {
       { collections: ["classic_tv", "classic_tv_1950s", "classic_tv_1960s", "classic_tv_1970s", "television"], require_subj: ["nick at nite", "nick-at-nite", "i love lucy", "the honeymooners", "the dick van dyke show", "bewitched", "i dream of jeannie", "the andy griffith show", "mayberry", "the beverly hillbillies", "green acres", "petticoat junction", "the munsters", "the addams family", "gilligan's island", "the brady bunch", "the partridge family", "my three sons", "leave it to beaver", "donna reed", "father knows best", "dobie gillis", "car 54", "mister ed", "mr. ed", "the mary tyler moore show", "the bob newhart show", "taxi", "the odd couple", "barney miller", "happy days", "laverne and shirley", "mork and mindy", "get smart", "that girl"] }
     ],
     deny: {
-      title: ["news", "commercial", "advertisement", "c-span", "cnn", "weather", "cartoon"],
-      subject: ["news", "newscast", "cartoon", "animated", "children", "commercial", "advertising", "documentary", "training film", "game show"]
+      title: ["news", "commercial", "advertisement", "c-span", "cnn", "weather", "cartoon", "video game", "gaming", "crazy taxi", "sign off", "network ident"],
+      subject: ["news", "newscast", "cartoon", "animated", "children", "commercial", "advertising", "documentary", "training film", "game show", "video game", "gaming", "sign off", "network ident"]
     },
-    subjRotate: true, subjRequired: true, noBlindFallback: true
+    themeMinScore: 2, subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
   /* The Court Room (ch 14, new 2026-08-08). TV judge shows — small-claims cases,

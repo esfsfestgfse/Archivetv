@@ -1679,7 +1679,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="2.2.1-mobile.237-ia-all-lane-freshness";
+window.__ATV_BUILD="2.2.1-mobile.238-ia-decade-balance";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -2246,7 +2246,7 @@ const CH=[
 
  {nm:"Classic Rerun TV", num:10,  cat:"TV", gl:"sitcom",       era:[1950,1969], ns:"tv"},
  {nm:"Modern Rerun TV", num:11,   cat:"TV", gl:"sitcommodern", era:[1980,2026], ns:"tv"},
- {nm:"Game Show Channel", num:12, cat:"TV", gl:"gameshow",     era:[1950,2026], ns:"tv"},
+ {nm:"Game Show Channel", num:12, cat:"TV", gl:"gameshow",     era:[1940,2026], ns:"tv"},
  {nm:"Old Nick", num:19, cat:"TV", gl:"nickatnite", era:[1950,1985], ns:"tv"}, /* Nick at Nite era classic sitcoms — moved 13→19 to clear collision with Vintage Commercials */
  {nm:"The Court Room", num:20, cat:"TV", gl:"courtroom", era:[1980,2020], ns:"tv"}, /* Judge shows — People's Court, Judge Judy, Judge Wapner — moved 14→20 to clear Computer Chronicles collision */
  {nm:"Vintage Commercials", num:13,cat:"TV",gl:"commercials",  era:[1948,1985], ns:"tv"},
@@ -2288,7 +2288,7 @@ const CH=[
  {nm:"Prelinger Vault", num:204,   cat:"DOC", gl:"industrial", era:[1940,1985], ns:"doc"}, // consolidated: was 3 channels drawing from the same prelinger/educational/industrial pool
 
  {nm:"Trailer Park", num:501,      cat:"RETRO", gl:"trailer", era:[1940,1985], ns:"movie"},
- {nm:"World Cinema", num:106,      cat:"MOV", gl:"worldcinema",era:[1930,1970], ns:"movie"},
+ {nm:"World Cinema", num:106,      cat:"MOV", gl:"worldcinema",era:[1930,2026], ns:"movie"},
  {nm:"Public Access TV", num:15,  cat:"TV",  gl:"publicaccess",era:[1975,2005], ns:"doc"},
  {nm:"Court TV", num:21, cat:"TV", gl:"realtrials", era:[1985,2020], ns:"tv"}, /* Real trial coverage — OJ, Menendez, Casey Anthony — moved 16→21 to clear Sports Vault collision */
  {nm:"The Up-All-Night", num:17, cat:"TV",  gl:"latenight",   era:[1962,2005], ns:"tv"}, /* Late-night talk-show clips — Cavett, Snyder, Merv Griffin, Mike Douglas, Carson, Letterman */
@@ -2299,11 +2299,11 @@ const CH=[
  {nm:"Noir & Mystery", num:108,    cat:"MOV", gl:"noirmystery",  era:[1940,1965], ns:"movie"},
  {nm:"Action & Serials", num:109,  cat:"MOV", gl:"actionserials",era:[1935,1965], ns:"movie"},
  {nm:"Classic Film", num:110,      cat:"MOV", gl:"classicmovie", era:[1930,1965], ns:"movie"},
- {nm:"The Drive-In", num:111,      cat:"MOV", gl:"drivein",     era:[1955,1975], ns:"movie"}, /* grindhouse/exploitation features */
- {nm:"Sunday Matinee", num:112,    cat:"MOV", gl:"sundaymatinee", era:[1935,1959], ns:"movie"}, /* 30s-50s musicals + romantic comedies */
- {nm:"The Late Late Show", num:113,cat:"MOV", gl:"latelate",    era:[1940,1975], ns:"movie"}, /* auteur / foreign / arthouse public-domain films */
- {nm:"The 36th Chamber", num:114, cat:"MOV", gl:"kungfu",      era:[1965,2000], ns:"movie"}, /* Shaw Brothers / Golden Harvest / chopsocky kung fu theater */
- {nm:"Monster Island", num:115,   cat:"MOV", gl:"kaiju",       era:[1954,1995], ns:"movie"}, /* Godzilla, Gamera, Toho — Japanese giant-monster cinema */
+ {nm:"The Drive-In", num:111,      cat:"MOV", gl:"drivein",     era:[1955,2026], ns:"movie"}, /* grindhouse/exploitation features */
+ {nm:"Sunday Matinee", num:112,    cat:"MOV", gl:"sundaymatinee", era:[1935,2026], ns:"movie"}, /* family matinee features across eras */
+ {nm:"The Late Late Show", num:113,cat:"MOV", gl:"latelate",    era:[1940,2026], ns:"movie"}, /* auteur / foreign / arthouse cinema */
+ {nm:"The 36th Chamber", num:114, cat:"MOV", gl:"kungfu",      era:[1965,2026], ns:"movie"}, /* Shaw Brothers through modern martial-arts cinema */
+ {nm:"Monster Island", num:115,   cat:"MOV", gl:"kaiju",       era:[1954,2026], ns:"movie"}, /* Godzilla, Gamera, Toho — Japanese giant-monster cinema */
  {nm:"Blaxploitation", num:116,   cat:"MOV", gl:"blaxploit",   era:[1970,1985], ns:"movie"}, /* 70s Black action cinema — Shaft, Foxy Brown, Superfly, Coffy, Cleopatra Jones */
  {nm:"The Festival Circuit", num:117, cat:"MOV", gl:"indiefilm", era:[1980,2026], ns:"movie"}, /* Sundance-adjacent indie features + short films from 80s-00s */
  /* BRITISH SUITE · 118–131. One flagship plus distinct, non-overlapping editorial lanes. */
@@ -6388,6 +6388,140 @@ Object.assign(PROGRAM["Modern Rerun TV"],{
   deepCollections:rsAppendProgramTerms(PROGRAM["Modern Rerun TV"].deepCollections,["classic_tv_1970s","classic_tv_1980s","classic_tv_2000s","classic_tv_2010s"])
 });
 
+/* DECADE BALANCE PASS: broad entertainment lanes should feel like television,
+   not a museum shelf. Keep specialty identities (Silent Cinema, Classic Film,
+   Noir & Mystery, Blaxploitation) intentionally period-specific, but make the
+   broad movie lanes explicitly rotate across their full historical span. The
+   relay enforces these era/lane caps while still relaxing them only when a
+   sparse source would otherwise leave the viewer with no signal. */
+function rsApplyEraMix(name,range,buckets,topics,subjects,collections,deepCollections,deepTitleTerms){
+  var p=PROGRAM[name];if(!p)return;
+  p.era=range;p.eraBuckets=buckets;p.topicBuckets=topics||p.topicBuckets||[];
+  p.fastSubjects=Array.from(new Set((p.fastSubjects||[]).concat(subjects||[]))).slice(0,24);
+  p.fastCollections=Array.from(new Set((p.fastCollections||[]).concat(collections||[]))).slice(0,6);
+  if(deepCollections&&deepCollections.length)p.deepCollections=deepCollections;
+  if(deepTitleTerms&&deepTitleTerms.length)p.deepTitleTerms=deepTitleTerms;
+  p.diversity=Object.assign({},p.diversity||{},{maxPerEra:1,maxPerLane:1,maxPerCreator:1,maxPerCollection:2,maxPerFamily:1});
+}
+rsApplyEraMix("Game Show Channel",[1940,2026],
+  [[1940,1949],[1950,1959],[1960,1969],[1970,1979],[1980,1989],[1990,1999],[2000,2009],[2010,2019],[2020,2026]],
+  [["panel show"],["quiz show"],["word game"],["pricing game"],["dating game"],["stunt game"],["celebrity game"],["reality competition"],["modern game show"]],
+  ["wheel of fortune","who wants to be a millionaire","deal or no deal","the chase","the wall","beat shazam","supermarket sweep","press your luck","card sharks","to tell the truth","family feud","jeopardy","double dare","legends of the hidden temple","nick arcade","fear factor","american gladiators","survivor","the weakest link","cash cab","minute to win it","million second quiz","hollywood game night"],
+  ["classic_tv","classic_tv_1950s","classic_tv_1960s","classic_tv_1970s","classic_tv_1980s","classic_tv_1990s"],
+  ["classic_tv_1980s","classic_tv_1990s","classic_tv_2000s","television"],
+  ["game show","quiz show","panel show","episode","episodes","complete series","jeopardy","price is right","family feud","match game","password","pyramid","newlywed game","hollywood squares","let's make a deal","press your luck","double dare","millionaire","deal or no deal","cash cab","weakest link","the chase","game night"]);
+PROGRAM["Game Show Channel"].themeMinScore=2;
+rsApplyEraMix("World Cinema",[1930,2026],
+  [[1930,1939],[1940,1949],[1950,1959],[1960,1969],[1970,1979],[1980,1989],[1990,1999],[2000,2009],[2010,2019],[2020,2026]],
+  [["European cinema"],["Asian cinema"],["Latin American cinema"],["African cinema"],["Middle Eastern cinema"],["international drama"],["arthouse film"],["festival film"],["contemporary world cinema"]],
+  ["world cinema","foreign film","international film","non-English film","arthouse film","festival film","contemporary world cinema","asian cinema","korean cinema","japanese cinema","hong kong cinema","chinese cinema","indian cinema","iranian cinema","french cinema","italian cinema","spanish cinema","mexican cinema","african cinema","wong kar-wai","park chan-wook","bong joon-ho","hayao miyazaki","asghar farhadi"],
+  ["feature_films","feature_films_unsorted","opensource_movies","films"],
+  ["feature_films","feature_films_unsorted","opensource_movies","classic_tv"],
+  ["foreign film","world cinema","international film","feature film","arthouse","festival film","non-English film","contemporary cinema"]);
+rsApplyEraMix("Midnight Matinee",[1940,2026],
+  [[1940,1949],[1950,1959],[1960,1969],[1970,1979],[1980,1989],[1990,1999],[2000,2009],[2010,2019],[2020,2026]],
+  [["cult film"],["b movie"],["film noir"],["horror film"],["science fiction film"],["exploitation film"],["independent film"],["neo-noir"],["contemporary cult film"]],
+  ["cult film","b movie","film noir","horror film","science fiction film","exploitation film","independent film","neo-noir","contemporary cult film","modern horror","retro horror","midnight movie"],
+  ["SciFi_Horror","feature_films","feature_films_unsorted","opensource_movies"],
+  ["SciFi_Horror","feature_films","feature_films_unsorted","opensource_movies"],
+  ["cult film","b movie","film noir","horror film","science fiction film","exploitation film","midnight movie","independent film"]);
+rsApplyEraMix("The Drive-In",[1955,2026],
+  [[1955,1969],[1970,1979],[1980,1989],[1990,1999],[2000,2009],[2010,2019],[2020,2026]],
+  [["drive-in film"],["grindhouse"],["exploitation film"],["biker film"],["slasher film"],["retro horror"],["neo-grindhouse"]],
+  ["drive-in film","grindhouse","exploitation film","biker film","road movie","slasher film","cult horror","retro horror","neo-grindhouse","independent horror","low budget horror"],
+  ["feature_films","feature_films_unsorted","SciFi_Horror","opensource_movies"],
+  ["feature_films","feature_films_unsorted","SciFi_Horror","opensource_movies"],
+  ["drive-in film","grindhouse","exploitation film","biker film","slasher film","cult horror","neo-grindhouse"]);
+rsApplyEraMix("Sunday Matinee",[1935,2026],
+  [[1935,1949],[1950,1959],[1960,1969],[1970,1979],[1980,1989],[1990,1999],[2000,2009],[2010,2019],[2020,2026]],
+  [["family film"],["musical film"],["family adventure"],["screwball comedy"],["romantic comedy"],["children's film"],["holiday film"],["animated feature"],["modern family film"]],
+  ["family film","family adventure","children's film","musical film","screwball comedy","romantic comedy","holiday film","animated feature","modern family film","family comedy"],
+  ["feature_films","feature_films_unsorted","classic_tv","opensource_movies"],
+  ["feature_films","feature_films_unsorted","classic_tv","opensource_movies"],
+  ["family film","family adventure","children's film","musical film","screwball comedy","romantic comedy","holiday film","modern family film"]);
+rsApplyEraMix("The Late Late Show",[1940,2026],
+  [[1940,1949],[1950,1959],[1960,1969],[1970,1979],[1980,1989],[1990,1999],[2000,2009],[2010,2019],[2020,2026]],
+  [["foreign film"],["arthouse film"],["auteur cinema"],["cult film"],["film noir"],["international drama"],["independent film"],["festival film"],["contemporary arthouse"]],
+  ["foreign film","arthouse film","auteur cinema","cult film","film noir","international drama","independent film","festival film","contemporary arthouse","world cinema","modern foreign film"],
+  ["feature_films","feature_films_unsorted","opensource_movies","films"],
+  ["feature_films","feature_films_unsorted","opensource_movies","classic_tv"],
+  ["foreign film","arthouse film","auteur cinema","cult film","film noir","international drama","festival film","contemporary arthouse"]);
+rsApplyEraMix("The 36th Chamber",[1965,2026],
+  [[1965,1979],[1980,1989],[1990,1999],[2000,2009],[2010,2019],[2020,2026]],
+  [["shaw brothers"],["golden harvest"],["wuxia"],["kung fu"],["martial arts"],["modern martial arts"]],
+  ["shaw brothers","golden harvest","wuxia","kung fu","martial arts","hong kong action","modern martial arts","martial arts film","chinese action","japanese action","indonesian martial arts"],
+  ["feature_films","feature_films_unsorted","opensource_movies","kungfu"],
+  ["feature_films","feature_films_unsorted","opensource_movies","kungfu"],
+  ["kung fu","wuxia","martial arts","shaw brothers","golden harvest","hong kong action","modern martial arts"]);
+rsApplyEraMix("Monster Island",[1954,2026],
+  [[1954,1969],[1970,1979],[1980,1989],[1990,1999],[2000,2009],[2010,2019],[2020,2026]],
+  [["showa kaiju"],["heisei kaiju"],["millennium kaiju"],["rewa kaiju"],["godzilla"],["gamera"],["ultraman"]],
+  ["kaiju","giant monster","godzilla","gamera","toho","daiei","ultraman","showa kaiju","heisei kaiju","millennium kaiju","rewa kaiju","modern kaiju","monster movie"],
+  ["feature_films","feature_films_unsorted","SciFi_Horror","opensource_movies"],
+  ["feature_films","feature_films_unsorted","SciFi_Horror","opensource_movies"],
+  ["kaiju","giant monster","godzilla","gamera","toho","ultraman","showa kaiju","heisei kaiju","millennium kaiju","rewa kaiju","modern kaiju"]);
+rsApplyEraMix("Black Cinema",[1915,2026],
+  [[1915,1929],[1930,1949],[1950,1969],[1970,1979],[1980,1989],[1990,1999],[2000,2009],[2010,2019],[2020,2026]],
+  [["race film"],["black independent cinema"],["blaxploitation"],["black drama"],["black comedy"],["black documentary"],["contemporary black cinema"]],
+  ["black cinema","african american cinema","race films","black independent film","black-directed","black-led","contemporary black cinema","black drama","black comedy","black documentary","spike lee","julie dash","charles burnett","barry jenkins","ryan coogler","jordan peele"],
+  ["feature_films","feature_films_unsorted","opensource_movies"],
+  ["feature_films","feature_films_unsorted","opensource_movies","classic_tv"],
+  ["black cinema","african american cinema","race film","black independent film","black-directed","black-led","contemporary black cinema"]);
+rsApplyEraMix("Sci-Fi Theater",[1950,2026],
+  [[1950,1959],[1960,1969],[1970,1979],[1980,1989],[1990,1999],[2000,2009],[2010,2019],[2020,2026]],
+  [["atomic age sci-fi"],["space opera"],["creature feature"],["dystopian science fiction"],["cyberpunk"],["time travel"],["modern science fiction"],["alien invasion"]],
+  ["science fiction film","atomic age sci-fi","space opera","creature feature","dystopian science fiction","cyberpunk","time travel","modern science fiction","alien invasion","monster movie","science fiction theater"],
+  ["SciFi_Horror","feature_films","feature_films_unsorted","opensource_movies"],
+  ["SciFi_Horror","feature_films","feature_films_unsorted","opensource_movies"],
+  ["science fiction film","atomic age sci-fi","space opera","creature feature","dystopian science fiction","cyberpunk","time travel","modern science fiction","alien invasion"]);
+/* Targeted movie cleanup from the first decade-balance soak. Archive's film
+   collections also contain interviews, promos, reviews, and red-carpet clips;
+   those are not programs for a movie station. Keep the new decade coverage,
+   but remove those false positives before media hydration. */
+function rsAddProgramDeny(name,key,terms){var p=PROGRAM[name];if(!p)return;p.deny=p.deny||{};p.deny[key]=Array.from(new Set((p.deny[key]||[]).concat(terms||[])));}
+var RS_MOVIE_NONPROGRAM_TITLE=["news","newscast","interview","talk show","red carpet","review","trailer","promo","promotional","behind the scenes","podcast","music video","concert","press conference","panel discussion"];
+var RS_MOVIE_NONPROGRAM_SUBJECT=["news","newscast","interview","talk show","red carpet","review","trailer","promo","promotional","behind the scenes","podcast","music video","concert","press conference","panel discussion","celebrity interview"];
+["World Cinema","The Late Late Show","The Festival Circuit"].forEach(function(name){rsAddProgramDeny(name,"title",RS_MOVIE_NONPROGRAM_TITLE);rsAddProgramDeny(name,"subject",RS_MOVIE_NONPROGRAM_SUBJECT);});
+["Black Cinema"].forEach(function(name){rsAddProgramDeny(name,"title",["the view","entertainment tonight","talk show","interview","news","red carpet","review"]);rsAddProgramDeny(name,"subject",["talk show","interview","news","red carpet","review","panel discussion","entertainment news"]);});
+Object.assign(PROGRAM["Sunday Matinee"],{
+  themeMinScore:1,
+  fastSubjects:rsAppendProgramTerms(PROGRAM["Sunday Matinee"].fastSubjects,["feature film","family movie","family entertainment","family classic","afternoon movie","movie musical","holiday movie"]),
+  fastCollections:["feature_films","feature_films_unsorted","opensource_movies","classic_tv"]
+});
+rsAddProgramDeny("World Cinema","title",["euromaxx","lifestyle","rt :","news broadcast","current affairs","episode","featurette","parade","fancam","performance"]);
+rsAddProgramDeny("World Cinema","subject",["euromaxx","lifestyle","news broadcast","current affairs","television news","newsreel","episode","featurette","parade","fancam","performance","documentary"]);
+rsAddProgramDeny("The Late Late Show","title",["episode","featurette","preview","fancam","performance","news"]);
+rsAddProgramDeny("The Late Late Show","subject",["episode","featurette","preview","fancam","performance","news","television"]);
+rsAddProgramDeny("The Festival Circuit","title",["fancam","parade","performance","red carpet","news","interview","review","podcast"]);
+rsAddProgramDeny("The Festival Circuit","subject",["fancam","parade","performance","red carpet","news","interview","review","podcast","music video"]);
+rsAddProgramDeny("Sunday Matinee","title",["documentary","anime","episode","season","take two","project","short film","parade","performance","television"]);
+rsAddProgramDeny("Sunday Matinee","subject",["documentary","anime","episode","season","take two","project","short film","parade","performance","television"]);
+rsAddProgramDeny("The 36th Chamber","title",["kung fu panda","panda","dreamworks","pixar","animation","cartoon","featurette","trailer"]);
+rsAddProgramDeny("The 36th Chamber","subject",["animation","animated","cartoon","children","featurette","trailer"]);
+["World Cinema","The Drive-In","Sunday Matinee","The Late Late Show","The 36th Chamber","Monster Island","Black Cinema","The Festival Circuit","Sci-Fi Theater"].forEach(function(name){if(PROGRAM[name])PROGRAM[name].themeMinScore=2;});
+rsAddProgramDeny("The Drive-In","title",["music video","concert","performance","review","trailer","promo","hustler squad","superchick"]);
+rsAddProgramDeny("The Drive-In","subject",["music video","concert","performance","review","trailer","promo"]);
+rsAddProgramDeny("Sunday Matinee","title",["inside the movies","read along","rock n learn","learn to read","review","analysis"]);
+rsAddProgramDeny("Sunday Matinee","subject",["read along","educational","learning","review","analysis"]);
+rsAddProgramDeny("The Late Late Show","title",["q&a","q and a","george figgs","featurette","behind the scenes"]);
+rsAddProgramDeny("The Late Late Show","subject",["q&a","q and a","interview","behind the scenes","featurette"]);
+rsAddProgramDeny("The 36th Chamber","title",["preview","previews","blu-ray extra","behind the scenes"]);
+rsAddProgramDeny("The 36th Chamber","subject",["preview","previews","blu-ray extra","behind the scenes"]);
+rsAddProgramDeny("The Drive-In","title",["custom disc","vhs disclaimer","disclaimer"]);
+rsAddProgramDeny("Sunday Matinee","title",["inside the movies","read along","rock n learn","learn to read","review","analysis"]);
+rsAddProgramDeny("Sunday Matinee","subject",["read along","educational","learning","review","analysis"]);
+rsAddProgramDeny("Sunday Matinee","title",["post-screening discussion","discussion","panel","talkback"]);
+rsAddProgramDeny("Sunday Matinee","subject",["post-screening discussion","discussion","panel","talkback"]);
+rsAddProgramDeny("The Late Late Show","title",["q&a","q and a","george figgs","featurette","behind the scenes"]);
+rsAddProgramDeny("The Late Late Show","subject",["q&a","q and a","interview","behind the scenes","featurette"]);
+rsAddProgramDeny("The Late Late Show","title",["#foreignfilmsmatter","intro","bonus edition","extra edition","at rest stop"]);
+rsAddProgramDeny("The Late Late Show","subject",["#foreignfilmsmatter","intro","bonus edition","extra edition","at rest stop"]);
+rsAddProgramDeny("The 36th Chamber","title",["preview","previews","blu-ray extra","behind the scenes"]);
+rsAddProgramDeny("The 36th Chamber","subject",["preview","previews","blu-ray extra","behind the scenes"]);
+rsAddProgramDeny("Black Cinema","title",["brass eye","meat the carvers","bonus features","deleted scene","release bonus","complete series","season","short"]);
+rsAddProgramDeny("Black Cinema","subject",["brass eye","meat the carvers","bonus features","deleted scene","release bonus","complete series","season","short"]);
+rsAddProgramDeny("World Cinema","title",["film crews tour","religious guys","comic con","geekstorm","wolverine","open mic","lifestyle europe"]);
+rsAddProgramDeny("World Cinema","subject",["film crews tour","religious guys","comic con","geekstorm","wolverine","open mic","lifestyle europe"]);
 /* Manufacturing Marvels is a factory/process lane, not a general education
    shelf. Archive's broad industrial collections contain unrelated classroom
    and children's uploads (including LeapFrog). Require an explicit factory,

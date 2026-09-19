@@ -10,7 +10,10 @@ import { mergeSourceLanes, sourceCatalogTasks, sourceProfile, SOURCE_LIMITS } fr
 
 const API_PREFIX = "/api/v2";
 const MAX_BODY_BYTES = 128 * 1024;
-const MAX_CATALOG_ITEMS = 12;
+/* D1 is a rolling catalog, not a second five-item shelf. Persist enough
+   verified candidates for three public rotations so API fallback does not
+   collapse every IA lane back to the same warm-up set. */
+const MAX_CATALOG_ITEMS = 48;
 const MAX_SESSION = 80;
 /* Some IA collections store the genre in the series/film title rather than
    the child filename. These are deliberately lane-specific aliases for the
@@ -198,7 +201,10 @@ function compactCatalogItem(item) {
 }
 
 function catalogJob(body, payload) {
-  const items = (Array.isArray(payload && payload.items) ? payload.items : []).slice(0, MAX_CATALOG_ITEMS).map(compactCatalogItem).filter(Boolean);
+  const sourceItems = Array.isArray(payload && payload.candidateItems) && payload.candidateItems.length
+    ? payload.candidateItems
+    : (Array.isArray(payload && payload.items) ? payload.items : []);
+  const items = sourceItems.slice(0, MAX_CATALOG_ITEMS).map(compactCatalogItem).filter(Boolean);
   if (!items.length) return null;
   return {
     type: "catalog-upsert",
@@ -239,11 +245,14 @@ async function rotateShelf(env, body, payload, request) {
   const session = safeSession(body.sessionId || body.session || sessionHeader || `ip-${requestClientKey(request)}`);
   const channel = safeSession(body.channel || "unknown");
   const stub = env.ROTATION.getByName(`session:${session}:channel:${channel}`);
-  const response = await stub.fetch(new Request("https://rotation.internal/select", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ items: payload.items, count: Math.max(1, Math.min(5, Number(body.count) || 3)), rotation: Number(body.rotation) || 0 }) }));
+  const candidates = Array.isArray(payload && payload.candidateItems) && payload.candidateItems.length
+    ? payload.candidateItems
+    : ((payload && payload.items) || []);
+  const response = await stub.fetch(new Request("https://rotation.internal/select", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ items: candidates, count: Math.max(1, Math.min(5, Number(body.count) || 3)), rotation: Number(body.rotation) || 0 }) }));
   if (!response.ok) throw new Error(`rotation ${response.status}`);
   const selected = await response.json();
   const upstreamReady = Number.isFinite(Number(payload.ready)) ? Number(payload.ready) : (Array.isArray(payload.items) ? payload.items.length : 0);
-  return { payload: { ...payload, items: selected.items || [], ready: Math.min(upstreamReady, (selected.items || []).length), v2: { sessionScoped: true, cursor: selected.cursor, cycleReset: !!selected.cycleReset } }, rotation: selected };
+  return { payload: { ...payload, items: selected.items || [], candidateItems: candidates, candidates: candidates.length, ready: Math.min(upstreamReady, (selected.items || []).length), v2: { sessionScoped: true, cursor: selected.cursor, cycleReset: !!selected.cycleReset } }, rotation: selected };
 }
 
 function rotateCatalogItems(items, rotation) {
@@ -304,10 +313,10 @@ function catalogFallbackAllowed(item, body) {
   return true;
 }
 
-async function catalogFallback(env, body, requestedLimit = 12) {
+async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_MAX_ITEMS) {
   if (!env.realsignal_catalog || typeof env.realsignal_catalog.prepare !== "function") return null;
   const channel = String(body.channel || "").slice(0, 120);
-  const limit = Math.max(1, Math.min(SOURCE_LIMITS.SOURCE_MAX_ITEMS, Number(requestedLimit) || 12));
+  const limit = Math.max(1, Math.min(SOURCE_LIMITS.SOURCE_MAX_ITEMS, Number(requestedLimit) || SOURCE_LIMITS.SOURCE_MAX_ITEMS));
   const result = await env.realsignal_catalog.prepare(`SELECT p.* FROM programs p JOIN channel_programs cp ON cp.program_id=p.id WHERE cp.channel_key=? AND p.status='active' AND p.media_url IS NOT NULL ORDER BY cp.last_seen_at DESC LIMIT ?`).bind(channel, limit).all();
   const items = (result.results || []).map((row) => {
     let metadata = {};
@@ -334,7 +343,7 @@ async function catalogFallback(env, body, requestedLimit = 12) {
       staleCatalog: true,
     };
   }).filter((item) => catalogFallbackAllowed(item, body));
-  return items.length ? { items: rotateCatalogItems(items, body.rotation), ready: items.length, candidates: items.length, fallback: true, stale: true, catalogFallback: true, rotation: Number(body.rotation) || 0 } : null;
+  return items.length ? { items: rotateCatalogItems(items, body.rotation), candidateItems: items, ready: items.length, candidates: items.length, fallback: true, stale: true, catalogFallback: true, rotation: Number(body.rotation) || 0 } : null;
 }
 
 async function handleQueue(request, env, ctx, id) {
@@ -360,12 +369,18 @@ async function handleQueue(request, env, ctx, id) {
       try {
         const fallback = await catalogFallback(env, body, Math.max(MAX_CATALOG_ITEMS, count));
         const seen = new Set(upstreamItems.map((item) => String(item && (item.identifier || item.id || (item.media && item.media.url)) || "").trim()).filter(Boolean));
-        const additions = fallback ? fallback.items.filter((item) => {
+        const fallbackItems = fallback && Array.isArray(fallback.candidateItems) && fallback.candidateItems.length ? fallback.candidateItems : (fallback ? fallback.items : []);
+        const additions = fallbackItems.filter((item) => {
           const key = String(item && (item.identifier || item.id || (item.media && item.media.url)) || "").trim();
           return key && !seen.has(key);
-        }) : [];
+        });
         if (additions.length) {
-          payload = { ...payload, items: upstreamItems.concat(additions), ready: upstreamItems.length + additions.length, candidates: Math.max(Number(payload.candidates) || 0, upstreamItems.length + additions.length), catalogRecovery: true };
+          const currentCandidates = Array.isArray(payload.candidateItems) && payload.candidateItems.length ? payload.candidateItems : upstreamItems;
+          const mergedCandidates = [...currentCandidates, ...fallbackItems].filter((item, index, all) => {
+            const key = String(item && (item.identifier || item.id || (item.media && item.media.url)) || "").trim();
+            return key && all.findIndex((candidate) => String(candidate && (candidate.identifier || candidate.id || (candidate.media && candidate.media.url)) || "").trim() === key) === index;
+          }).slice(0, MAX_CATALOG_ITEMS);
+          payload = { ...payload, items: upstreamItems.concat(additions), candidateItems: mergedCandidates, ready: upstreamItems.length + additions.length, candidates: mergedCandidates.length, catalogRecovery: true };
           catalogRecovery = true;
         }
       } catch (error) { console.warn(JSON.stringify({ event: "catalog-shallow-recovery-failed", requestId: id, error: String(error).slice(0, 160) })); }

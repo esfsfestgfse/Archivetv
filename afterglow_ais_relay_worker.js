@@ -100,10 +100,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-72-48-depth-recovery";
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v80";
+const IA_QUEUE_CACHE_VERSION = "v81";
 /* Last-good shelves share the v72 namespace so an older shallow shelf
    never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v80";
+const IA_LAST_GOOD_CACHE_VERSION = "v81";
 const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
 /* A short per-isolate burst cache absorbs repeat requests from a TV, phone,
    and guide opened in quick succession. It is intentionally tiny and
@@ -952,6 +952,7 @@ const IA_LONG_TAIL_EXPANSIONS = Object.freeze({
     { identifier: "American1958_2", title: "American Look — Part II", subject: "manufacturing industry industrial design engineering film", year: 1958 },
     { identifier: "DefenseC1941", title: "Defense Comes First with Oldsmobile", subject: "manufacturing industry automotive engineering industrial film", year: 1941 },
     { identifier: "CurtissW1944", title: "Curtiss-Wright Shorts", subject: "manufacturing industry aircraft engineering industrial film", year: 1944 },
+    { identifier: "MasterHa1936", title: "Master Hands — Automobile Manufacturing", subject: "manufacturing industry automotive engineering industrial film", year: 1936 },
   ],
   "206": [
     { identifier: "CAAM_David_Lei_Linda_Shen_Wedding_1974", title: "Home Movie — David Lei and Linda Shen Wedding", subject: "home movie family film travelogue", year: 1974 },
@@ -1082,6 +1083,15 @@ const IA_LONG_TAIL_MEDIA_FILES = Object.freeze({
   "Signal301959": "Signal301959.mp4",
   "RoadRunn1952": "RoadRunn1952.mp4",
   "MasterHa1936": "MasterHa1936.mp4",
+  "MasterHa1936_3": "MasterHa1936_3.mp4",
+  "VisittoW1950": "VisittoW1950.mp4",
+  "Aluminum1956_2": "Aluminum1956_2.mp4",
+  "MasterHa1936_2": "MasterHa1936_2.mp4",
+  "MasterHa1936_4": "MasterHa1936_4.mp4",
+  "Oldsmobi1941": "Oldsmobi1941.mp4",
+  "American1958_2": "American1958_2.mp4",
+  "DefenseC1941": "DefenseC1941.mp4",
+  "CurtissW1944": "CurtissW1944.mp4",
   "styling_and_the_experimental_car": "styling_and_the_experimental_car.mp4",
   "youtube-F8mWrEDUrgs": "WYC_Peanut_Regatta_-_10_27_2019_Photos_Taken_from_S_V_Alive_and_Free-F8mWrEDUrgs.mp4",
   "youtube-G7qFvL5A9U4": "WYC_Peanut_Regatta_05_26_2019_taken_from_S_V_Selah-G7qFvL5A9U4.mp4",

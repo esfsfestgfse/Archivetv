@@ -100,10 +100,15 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-72-48-depth-recovery";
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v82";
-/* Last-good shelves share the v72 namespace so an older shallow shelf
+const IA_QUEUE_CACHE_VERSION = "v83";
+/* Last-good shelves share the v83 namespace so an older shallow shelf
    never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v82";
+const IA_LAST_GOOD_CACHE_VERSION = "v83";
+/* Five playable items are the on-air shelf, not the catalog. Keep at least
+   three shelves of distinct, verified media behind it so a warm tune or skip
+   does not keep replaying the same five records while Archive discovery is
+   still catching up. */
+const IA_FRESHNESS_CANDIDATE_FLOOR = 15;
 const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
 /* A short per-isolate burst cache absorbs repeat requests from a TV, phone,
    and guide opened in quick succession. It is intentionally tiny and
@@ -129,7 +134,11 @@ function iaQueueMemoryPut(key, payload, ttlSeconds) {
   /* A hydrating response is a first-play handoff, not a shelf. Caching it in
      the per-isolate burst map made quick polls keep receiving one item even
      after the background worker had filled the durable five-item queue. */
-  if (!key || !payload || payload.hydrating || payload.partial || !Array.isArray(payload.items) || !payload.items.length) return;
+  const candidates = Array.isArray(payload && payload.candidateItems) && payload.candidateItems.length
+    ? payload.candidateItems
+    : ((payload && payload.items) || []);
+  const playableCandidates = candidates.filter((item) => item && item.identifier && item.media && item.media.url).length;
+  if (!key || !payload || payload.hydrating || payload.partial || !Array.isArray(payload.items) || !payload.items.length || playableCandidates < IA_FRESHNESS_CANDIDATE_FLOOR) return;
   const ttl = Math.max(1, Math.min(IA_QUEUE_MEMORY_TTL_SECONDS, Number(ttlSeconds) || IA_QUEUE_MEMORY_TTL_SECONDS));
   iaQueueMemory.set(key, { payload, ttlSeconds: ttl, expiresAt: Date.now() + ttl * 1000 });
   while (iaQueueMemory.size > IA_QUEUE_MEMORY_MAX) iaQueueMemory.delete(iaQueueMemory.keys().next().value);
@@ -196,7 +205,11 @@ function iaStrictRecoveryEnabled(channel) {
    underfilling when the Archive index rotated. Give only these proven weak
    lanes more background search rails and a wider page window. Healthy channel
    changes keep the original one-rail fast path and do not pay for the repair. */
-const IA_DEPTH_RECOVERY_CHANNELS = new Set(["13", "18", "21", "60", "61", "64", "66", "70", "74", "75", "77", "81", "102", "105", "106", "107", "108", "115", "117", "118", "126", "127", "128", "129", "130", "131", "154", "202", "203", "214", "220", "228", "231", "239", "240", "501", "502", "700", "702", "901", "906", "914", "921", "923", "927"]);
+const IA_DEPTH_RECOVERY_CHANNELS = new Set([
+  "10", "13", "18", "21", "60", "61", "64", "66", "70", "74", "75", "76", "77", "81",
+  "100", "101", "102", "105", "106", "107", "108", "114", "115", "117", "118", "120", "124", "126", "127", "128", "129", "130", "131", "132", "154",
+  "202", "203", "204", "212", "214", "220", "224", "228", "231", "239", "240", "501", "502", "511", "700", "702", "901", "906", "907", "909", "914", "918", "920", "921", "923", "927"
+].filter(Boolean));
 function iaDepthRecoveryEnabled(channel) {
   return IA_DEPTH_RECOVERY_CHANNELS.has(String(channel));
 }
@@ -1420,7 +1433,11 @@ function sharedQueuePut(env, key, payload, ttlSeconds, ctx) {
      supplies its stable identity; falling back to a channel number only keeps
      backwards compatibility for an old shelf and never mixes genre contracts. */
   const fallbackKey = payload.lastGoodKey || sharedQueueFallbackKey(payload.channel);
-  const fullShelf = Number(payload.ready || payload.items.length) >= 5;
+  const payloadCandidates = Array.isArray(payload.candidateItems) && payload.candidateItems.length
+    ? payload.candidateItems
+    : payload.items;
+  const playableCandidateCount = payloadCandidates.filter((item) => item && item.identifier && item.media && item.media.url).length;
+  const fullShelf = Number(payload.ready || payload.items.length) >= 5 && playableCandidateCount >= IA_FRESHNESS_CANDIDATE_FLOOR;
   const writes = [env.REALSIGNAL_QUEUE.put(key, JSON.stringify(payload), options)];
   /* Preserve the last complete five-show shelf. A one-item first-frame handoff
      may live briefly at its exact rotation key, but must never replace the
@@ -3292,13 +3309,23 @@ function iaNeedsCatalogDepth(payload, count, candidateCount) {
     ? payload.candidateItems
     : ((payload && payload.items) || []);
   const playable = candidates.filter((item) => item && item.identifier && item.media && item.media.url).length;
-  /* Two complete shelves is the minimum useful depth for a channel change.
+  /* Three complete shelves is the minimum useful depth for a channel change.
      Prefer the larger background target when the catalog budget allows it.
      A warm cache can contain many unresolved identifiers while still having
      only the same five playable programs. Count both dimensions so a shallow
      playable shelf cannot suppress the lane's recovery bank. */
-  const minimum = Math.min(Number(candidateCount) || requested, Math.max(requested * 2, 12));
-  return candidates.length < minimum || playable < Math.min(Number(candidateCount) || requested, Math.max(requested * 2, 12));
+  const minimum = Math.min(Number(candidateCount) || requested, Math.max(requested * 3, IA_FRESHNESS_CANDIDATE_FLOOR));
+  return candidates.length < minimum || playable < minimum;
+}
+
+function iaShouldBypassShallowRotation(payload, rotation, count, candidateCount) {
+  /* A shallow exact-rotation cache is useful for the first frame, but it is
+     actively harmful on a later tune: rotating five records only changes
+     their order and makes the viewer see the same shelf forever. Let the
+     request fall through to bounded discovery when a non-zero revision still
+     lacks the three-shelf freshness floor. A verified last-good fallback is
+     still available at the bottom of getIaQueue if discovery misses. */
+  return Math.abs(Number(rotation) || 0) > 0 && iaNeedsCatalogDepth(payload, count, candidateCount);
 }
 
 function orderedIaEmergencySeeds(channel, rotation) {
@@ -3548,7 +3575,7 @@ async function expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, c
      avoid wrapping back into the same shelf while a viewer surfs. Keep this
      work entirely behind the first frame; cold tuning still hydrates only the
      requested public shelf. */
-  const backgroundTarget = Math.min(candidateCount, Math.max(count, iaDepthRecoveryEnabled(channel) ? 18 : 15));
+  const backgroundTarget = Math.min(candidateCount, Math.max(count * 3, iaDepthRecoveryEnabled(channel) ? 18 : IA_FRESHNESS_CANDIDATE_FLOOR));
   const deepHydrated = await hydrateIaQueue(expanded, backgroundTarget, cacheOrigin, ctx, mediaTypes);
   const hydrated = deepHydrated && deepHydrated.items.length
     ? { ...deepHydrated, items: deepHydrated.items.slice(0, count), candidateItems: deepHydrated.items, candidates: deepHydrated.items.length, ready: Math.min(count, deepHydrated.items.length), partial: deepHydrated.items.length < count, hydrating: false }
@@ -3591,7 +3618,7 @@ function scheduleIaReplenishment(ready, reserveQueries, fallbackQueries, channel
      contains unresolved records. Hydrate a rolling depth in the background
      even when ready already equals the requested five; otherwise the next
      rotation can fall back to the same five forever. */
-  const needsPlayableDepth = candidateItems.length > readyItems.length || playableCandidates < Math.min(candidateCount, Math.max(count, 12));
+  const needsPlayableDepth = candidateItems.length > readyItems.length || playableCandidates < Math.min(candidateCount, Math.max(count * 3, IA_FRESHNESS_CANDIDATE_FLOOR));
   if (ready.ready >= count && !needsPlayableDepth) return;
   const seed = { ...ready, items: candidateItems.slice(0, candidateCount), candidateItems, candidates: candidateItems.length };
   scheduleIaExpansion(seed, iaBackgroundReserveQueries(channel, reserveQueries), iaBackgroundFallbackQueries(channel, fallbackQueries), channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, rotation);
@@ -3681,10 +3708,13 @@ async function getIaQueue(request, url, env, ctx) {
             ? cachedPayload.candidateItems
             : ((cachedPayload.items) || []);
           /* A valid exact-rotation response can still be an old five-item
-             shelf. Keep serving it immediately, but use that request to
-             launch the same bounded catalog refill used by a cold tune. */
+             shelf. Keep serving it immediately on the first frame, but use
+             later revisions to force bounded discovery until the rolling
+             catalog has the full three-shelf freshness floor. */
           const cachedNeedsFreshRotation = cachedPayload.fallback === true || cachedPayload.stale === true;
-          if (cachedPayload.items && cachedPayload.items.length && (cachedNeedsFreshRotation || iaNeedsCatalogDepth(cachedPayload, count, cachedCandidateCount))) {
+          const cachedNeedsCatalogDepth = iaNeedsCatalogDepth(cachedPayload, count, cachedCandidateCount);
+          const bypassShallowRotation = iaShouldBypassShallowRotation(cachedPayload, rotation, count, cachedCandidateCount);
+          if (cachedPayload.items && cachedPayload.items.length && (cachedNeedsFreshRotation || cachedNeedsCatalogDepth)) {
             scheduleIaExpansion(
               { ...cachedPayload, lastGoodKey, items: cachedCandidates.slice(0, cachedCandidateCount), candidateItems: cachedCandidates, candidates: cachedCandidates.length },
               iaBackgroundReserveQueries(channel, queries),
@@ -3693,23 +3723,25 @@ async function getIaQueue(request, url, env, ctx) {
               count, cachedCandidateCount, url.origin, cacheKey, sharedKey, env, ctx, rotation, true
             );
           }
-          const cachedShelf = Array.isArray(cachedPayload.candidateItems) && cachedPayload.candidateItems.length > (Array.isArray(cachedPayload.items) ? cachedPayload.items.length : 0)
-            ? rotatePlayableIaShelf(cachedPayload, rotation, count)
-            : cachedPayload;
-          if (cachedShelf !== cachedPayload) {
-            const rotatedResponse = cacheableJson(cachedShelf, 5, {
-              "X-Afterglow-Source": "program-director-cache-rotation",
-              "X-Afterglow-Cache": "edge-rotated",
-              "X-Afterglow-Queue-Ready": String(cachedShelf.ready || cachedShelf.items.length),
-            });
-            return rotatedResponse;
+          if (!bypassShallowRotation) {
+            const cachedShelf = Array.isArray(cachedPayload.candidateItems) && cachedPayload.candidateItems.length > (Array.isArray(cachedPayload.items) ? cachedPayload.items.length : 0)
+              ? rotatePlayableIaShelf(cachedPayload, rotation, count)
+              : cachedPayload;
+            if (cachedShelf !== cachedPayload) {
+              const rotatedResponse = cacheableJson(cachedShelf, 5, {
+                "X-Afterglow-Source": "program-director-cache-rotation",
+                "X-Afterglow-Cache": "edge-rotated",
+                "X-Afterglow-Queue-Ready": String(cachedShelf.ready || cachedShelf.items.length),
+              });
+              return rotatedResponse;
+            }
+            if (cachedPayload.partial && Array.isArray(cachedPayload.candidateItems)) {
+              const strictQueue = themeMinScore > 1;
+              const candidateCount = Math.min(strictQueue ? IA_STRICT_CATALOG_CANDIDATE_MAX : IA_CATALOG_CANDIDATE_MAX, Math.max(count, count * (strictQueue ? 12 : 8)));
+              scheduleCachedIaHydration(cachedPayload, count, url.origin, cacheKey, sharedKey, lastGoodKey, env, ctx, mediaTypes, channel, themeTerms, denyTerms, requiredTitleTerms, diversity, themeMinScore, candidateCount, queries);
+            }
+            return cached;
           }
-          if (cachedPayload.partial && Array.isArray(cachedPayload.candidateItems)) {
-            const strictQueue = themeMinScore > 1;
-            const candidateCount = Math.min(strictQueue ? IA_STRICT_CATALOG_CANDIDATE_MAX : IA_CATALOG_CANDIDATE_MAX, Math.max(count, count * (strictQueue ? 12 : 8)));
-            scheduleCachedIaHydration(cachedPayload, count, url.origin, cacheKey, sharedKey, lastGoodKey, env, ctx, mediaTypes, channel, themeTerms, denyTerms, requiredTitleTerms, diversity, themeMinScore, candidateCount, queries);
-          }
-          return cached;
         }
       } catch {
         return cached;
@@ -3734,6 +3766,7 @@ async function getIaQueue(request, url, env, ctx) {
         ? shared.candidateItems
         : ((shared.items) || []);
       const sharedNeedsExpansion = iaNeedsCatalogDepth(shared, count, sharedCandidateCount);
+      const bypassSharedShallow = iaShouldBypassShallowRotation(shared, rotation, count, sharedCandidateCount);
       if (sharedNeedsExpansion) {
         /* Do not wait for a complete-series expansion here. The current shelf
            is already playable; replenish it behind the response so the next
@@ -3746,6 +3779,7 @@ async function getIaQueue(request, url, env, ctx) {
           count, sharedCandidateCount, url.origin, cacheKey, sharedKey, env, ctx, rotation, true
         );
       }
+      if (!bypassSharedShallow) {
       let sharedFallback = null;
       if (!sharedReady && sharedShelf.partial && Array.isArray(sharedShelf.candidateItems) && !sharedNeedsExpansion) {
         const candidateCount = iaCatalogCandidateBudget(themeMinScore, count);
@@ -3777,6 +3811,7 @@ async function getIaQueue(request, url, env, ctx) {
         console.warn(JSON.stringify({ event: "shared-queue-edge-write-failed", channel, message: String(error && error.message || error) }));
       }));
       return response;
+      }
     }
     /* A reload or companion device can arrive after the exact rotation cache
        expires but before the next approved rail is ready. A full shelf from

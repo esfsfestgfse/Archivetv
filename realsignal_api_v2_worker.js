@@ -200,11 +200,29 @@ function compactCatalogItem(item) {
   };
 }
 
+function queueItemKey(item) {
+  return String(item && (item.identifier || item.id || (item.media && item.media.url) || item.url) || "").trim();
+}
+
+function uniqueQueueItems(items, body, limit = MAX_CATALOG_ITEMS) {
+  if (!Array.isArray(items)) return [];
+  const seen = new Set();
+  const out = [];
+  for (const item of items) {
+    const key = queueItemKey(item);
+    if (!key || seen.has(key) || !catalogFallbackAllowed(item, body)) continue;
+    seen.add(key);
+    out.push(item);
+    if (out.length >= limit) break;
+  }
+  return out;
+}
+
 function catalogJob(body, payload) {
   const sourceItems = Array.isArray(payload && payload.candidateItems) && payload.candidateItems.length
     ? payload.candidateItems
     : (Array.isArray(payload && payload.items) ? payload.items : []);
-  const items = sourceItems.slice(0, MAX_CATALOG_ITEMS).map(compactCatalogItem).filter(Boolean);
+  const items = uniqueQueueItems(sourceItems, body).map(compactCatalogItem).filter(Boolean);
   if (!items.length) return null;
   return {
     type: "catalog-upsert",
@@ -245,9 +263,10 @@ async function rotateShelf(env, body, payload, request) {
   const session = safeSession(body.sessionId || body.session || sessionHeader || `ip-${requestClientKey(request)}`);
   const channel = safeSession(body.channel || "unknown");
   const stub = env.ROTATION.getByName(`session:${session}:channel:${channel}`);
-  const candidates = Array.isArray(payload && payload.candidateItems) && payload.candidateItems.length
+  const rawCandidates = Array.isArray(payload && payload.candidateItems) && payload.candidateItems.length
     ? payload.candidateItems
     : ((payload && payload.items) || []);
+  const candidates = uniqueQueueItems(rawCandidates, body);
   const response = await stub.fetch(new Request("https://rotation.internal/select", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ items: candidates, count: Math.max(1, Math.min(5, Number(body.count) || 3)), rotation: Number(body.rotation) || 0 }) }));
   if (!response.ok) throw new Error(`rotation ${response.status}`);
   const selected = await response.json();
@@ -342,8 +361,9 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
       rights: row.rights || "",
       staleCatalog: true,
     };
-  }).filter((item) => catalogFallbackAllowed(item, body));
-  return items.length ? { items: rotateCatalogItems(items, body.rotation), candidateItems: items, ready: items.length, candidates: items.length, fallback: true, stale: true, catalogFallback: true, rotation: Number(body.rotation) || 0 } : null;
+  });
+  const filtered = uniqueQueueItems(items, body);
+  return filtered.length ? { items: rotateCatalogItems(filtered, body.rotation), candidateItems: filtered, ready: filtered.length, candidates: filtered.length, fallback: true, stale: true, catalogFallback: true, rotation: Number(body.rotation) || 0 } : null;
 }
 
 async function handleQueue(request, env, ctx, id) {
@@ -364,23 +384,28 @@ async function handleQueue(request, env, ctx, id) {
     if (!payload) return upstream;
   } else {
     try { payload = await upstream.clone().json(); } catch (_) { return upstream; }
-    const upstreamItems = Array.isArray(payload && payload.items) ? payload.items : [];
+    /* Treat the relay as a source adapter, not as the final catalog authority.
+       Re-apply the lane contract here before anything reaches D1 or the
+       session rotation. This removes stale/contaminated rows already present
+       in older catalogs and collapses duplicate collection/file records. */
+    const upstreamItems = uniqueQueueItems(Array.isArray(payload && payload.items) ? payload.items : [], body, MAX_CATALOG_ITEMS);
+    const upstreamCandidates = uniqueQueueItems(
+      Array.isArray(payload && payload.candidateItems) && payload.candidateItems.length ? payload.candidateItems : upstreamItems,
+      body,
+      MAX_CATALOG_ITEMS,
+    );
+    payload = { ...payload, items: upstreamItems, candidateItems: upstreamCandidates, candidates: upstreamCandidates.length, ready: Math.min(Number(payload && payload.ready) || upstreamItems.length, upstreamItems.length) };
     if (upstreamItems.length < count) {
       try {
         const fallback = await catalogFallback(env, body, Math.max(MAX_CATALOG_ITEMS, count));
-        const seen = new Set(upstreamItems.map((item) => String(item && (item.identifier || item.id || (item.media && item.media.url)) || "").trim()).filter(Boolean));
         const fallbackItems = fallback && Array.isArray(fallback.candidateItems) && fallback.candidateItems.length ? fallback.candidateItems : (fallback ? fallback.items : []);
-        const additions = fallbackItems.filter((item) => {
-          const key = String(item && (item.identifier || item.id || (item.media && item.media.url)) || "").trim();
-          return key && !seen.has(key);
-        });
+        const seen = new Set(upstreamCandidates.map(queueItemKey));
+        const additions = uniqueQueueItems(fallbackItems, body).filter((item) => !seen.has(queueItemKey(item)));
         if (additions.length) {
           const currentCandidates = Array.isArray(payload.candidateItems) && payload.candidateItems.length ? payload.candidateItems : upstreamItems;
-          const mergedCandidates = [...currentCandidates, ...fallbackItems].filter((item, index, all) => {
-            const key = String(item && (item.identifier || item.id || (item.media && item.media.url)) || "").trim();
-            return key && all.findIndex((candidate) => String(candidate && (candidate.identifier || candidate.id || (candidate.media && candidate.media.url)) || "").trim() === key) === index;
-          }).slice(0, MAX_CATALOG_ITEMS);
-          payload = { ...payload, items: upstreamItems.concat(additions), candidateItems: mergedCandidates, ready: upstreamItems.length + additions.length, candidates: mergedCandidates.length, catalogRecovery: true };
+          const mergedCandidates = uniqueQueueItems([...currentCandidates, ...fallbackItems], body, MAX_CATALOG_ITEMS);
+          const mergedItems = uniqueQueueItems([...upstreamItems, ...additions], body, MAX_CATALOG_ITEMS);
+          payload = { ...payload, items: mergedItems, candidateItems: mergedCandidates, ready: Math.min(mergedItems.length, count), candidates: mergedCandidates.length, catalogRecovery: true };
           catalogRecovery = true;
         }
       } catch (error) { console.warn(JSON.stringify({ event: "catalog-shallow-recovery-failed", requestId: id, error: String(error).slice(0, 160) })); }

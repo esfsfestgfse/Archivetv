@@ -13,7 +13,7 @@ const { pathToFileURL } = require('node:url');
   const env = {
     RELAY: { async fetch(request) {
       calls.push({ url: request.url, method: request.method, body: request.method === 'POST' ? await request.text() : '' });
-      return new Response(JSON.stringify({ ready: 5, items: [1, 2, 3, 4, 5].map(id => ({ identifier: `ia-${id}`, title: `Program ${id}`, media: { url: `https://archive.org/download/x/${id}.mp4`, type: 'video' } })) }), { headers: { 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ ready: 5, items: [1, 2, 3, 4, 5].map(id => ({ identifier: `ia-${id}`, title: `Game Show Program ${id}`, media: { url: `https://archive.org/download/x/${id}.mp4`, type: 'video' } })) }), { headers: { 'Content-Type': 'application/json' } });
     } },
     ROTATION: { getByName(name) {
       if (!rotations.has(name)) {

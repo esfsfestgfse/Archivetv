@@ -29,11 +29,12 @@ jobs:
         if: ${{ !cancelled() }}
         run: |
           node scripts/export-ia-manifest.js the_dial_desktop.html --out artifacts/ia-queue-manifest.json
-          # Probe two fresh rotations per lane each night. The second rotation
-          # measures long-tail freshness and repeats; concurrency stays low so
-          # the audit does not manufacture timeout/no-signal results.
+          # Probe three fresh rotations per lane each night. This measures
+          # long-tail freshness and repeats instead of treating a five-item
+          # warm shelf as a healthy catalog; concurrency stays low so the
+          # audit does not manufacture timeout/no-signal results.
           DAILY_ROTATION_BASE=$(( $(date +%s) / 86400 % 128 ))
-          node scripts/soak-ia-queues.js --manifest artifacts/ia-queue-manifest.json --count 5 --rotations 2 --rotation-base "$DAILY_ROTATION_BASE" --require-ready 1 --concurrency 2 --timeout-ms 22000 --depth-timeout-ms 6000 --poll-ms 1000 --strict --out artifacts/ia-ready-shelf-warm.json
+          node scripts/soak-ia-queues.js --manifest artifacts/ia-queue-manifest.json --count 5 --rotations 3 --rotation-base "$DAILY_ROTATION_BASE" --require-ready 1 --concurrency 2 --timeout-ms 22000 --depth-timeout-ms 6000 --poll-ms 1000 --strict --out artifacts/ia-ready-shelf-warm.json
       - name: Retry transient IA failures serially
         if: ${{ !cancelled() }}
         run: |

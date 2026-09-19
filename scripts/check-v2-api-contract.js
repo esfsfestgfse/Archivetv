@@ -20,6 +20,7 @@ const checks = [
   [worker.includes('env.realsignal_catalog_refresh.send') && worker.includes('async queue(batch, env)'), 'asynchronous catalog ingestion'],
   [worker.includes('env.realsignal_catalog.batch') && worker.includes('catalogFallback'), 'D1 catalog write and playback fallback'],
   [worker.includes('const MAX_CATALOG_ITEMS = 48') && worker.includes('payload.candidateItems') && worker.includes('candidateItems: candidates'), 'IA fallback preserves a deep candidate catalog instead of only the public shelf'],
+  [worker.includes('function uniqueQueueItems(') && worker.includes('catalogFallbackAllowed(item, body)') && worker.includes('const upstreamCandidates = uniqueQueueItems'), 'V2 re-applies genre gates and de-duplicates upstream IA candidates before rotation and D1'],
   [worker.includes('sourceCatalogTasks') && worker.includes('handleSourceCatalog') && worker.includes('/source/catalog'), 'server-side source catalog route'],
   [source.includes('SOURCE_MIN_RUNTIME = 15 * 60') && source.includes('function accepted') && source.includes('function peerTube'), 'server source adapter runtime and genre gates'],
   [source.includes('YOUTUBE_API_KEY') && source.includes('youtube-nocookie.com/embed'), 'server YouTube adapter uses a Worker secret and embed-safe output'],

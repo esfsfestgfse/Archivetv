@@ -100,10 +100,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-72-48-depth-recovery";
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v83";
-/* Last-good shelves share the v83 namespace so an older shallow shelf
+const IA_QUEUE_CACHE_VERSION = "v84";
+/* Last-good shelves share the v84 namespace so an older shallow shelf
    never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v83";
+const IA_LAST_GOOD_CACHE_VERSION = "v84";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    three shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -206,19 +206,22 @@ function iaStrictRecoveryEnabled(channel) {
    lanes more background search rails and a wider page window. Healthy channel
    changes keep the original one-rail fast path and do not pay for the repair. */
 const IA_DEPTH_RECOVERY_CHANNELS = new Set([
-  "10", "13", "18", "21", "60", "61", "64", "66", "70", "74", "75", "76", "77", "81",
-  "100", "101", "102", "105", "106", "107", "108", "114", "115", "117", "118", "120", "124", "126", "127", "128", "129", "130", "131", "132", "154",
-  "202", "203", "204", "212", "214", "220", "224", "228", "231", "239", "240", "501", "502", "511", "700", "702", "901", "906", "907", "909", "914", "918", "920", "921", "923", "927"
+  "3", "10", "13", "14", "17", "18", "19", "21", "60", "61", "62", "64", "66", "68", "70", "74", "75", "76", "77", "81",
+  "100", "101", "102", "105", "106", "107", "108", "111", "114", "115", "117", "118", "120", "124", "125", "126", "127", "128", "129", "130", "131", "132", "154",
+  "202", "203", "204", "206", "209", "211", "212", "213", "214", "220", "223", "224", "228", "231", "235", "239", "240", "501", "502", "511", "700", "702", "703", "901", "906", "907", "909", "914", "916", "918", "920", "921", "923", "927", "929"
 ].filter(Boolean));
 function iaDepthRecoveryEnabled(channel) {
   return IA_DEPTH_RECOVERY_CHANNELS.has(String(channel));
 }
-function iaBackgroundReserveQueries(channel, queries) {
-  const limit = iaDepthRecoveryEnabled(channel) ? Math.min(6, queries.length) : Math.min(IA_BACKGROUND_RESERVE_LANES, queries.length);
+function iaBackgroundReserveQueries(channel, queries, deep = false) {
+  /* A lane is allowed to widen itself when its verified candidate shelf is
+     shallow. This keeps neglected long-tail channels from depending on a
+     hand-maintained allowlist while preserving the one-rail first-frame path. */
+  const limit = iaDepthRecoveryEnabled(channel) || deep ? Math.min(6, queries.length) : Math.min(IA_BACKGROUND_RESERVE_LANES, queries.length);
   return queries.slice(0, limit);
 }
-function iaBackgroundFallbackQueries(channel, queries) {
-  const limit = iaDepthRecoveryEnabled(channel) ? Math.min(2, queries.length) : Math.min(IA_BACKGROUND_FALLBACK_LANES, queries.length);
+function iaBackgroundFallbackQueries(channel, queries, deep = false) {
+  const limit = iaDepthRecoveryEnabled(channel) || deep ? Math.min(2, queries.length) : Math.min(IA_BACKGROUND_FALLBACK_LANES, queries.length);
   return queries.slice(0, limit);
 }
 /* Last-resort, already-observed playable records for those same sparse lanes.
@@ -3421,7 +3424,7 @@ function scheduleCachedIaHydration(payload, requestedCount, cacheOrigin, cacheKe
   const reserveQueries = queries.slice(0, Math.min(8, queries.length));
   const fallbackQueries = iaFallbackQueries(themeTerms, denyTerms, requiredTitleTerms, mediaTypes);
   const seed = { ...payload, lastGoodKey, items: candidates.slice(0, candidateCount), candidateItems: candidates, candidates: candidates.length };
-  const task = expandAndCacheIaQueue(seed, iaBackgroundReserveQueries(channel, reserveQueries), iaBackgroundFallbackQueries(channel, fallbackQueries), channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, requestedCount, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, Number(payload.rotation) || 0)
+  const task = expandAndCacheIaQueue(seed, iaBackgroundReserveQueries(channel, reserveQueries, true), iaBackgroundFallbackQueries(channel, fallbackQueries, true), channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, requestedCount, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, Number(payload.rotation) || 0)
     .catch((error) => {
       console.warn(JSON.stringify({ event: "ia-cached-rehydration-failed", message: String(error && error.message || error) }));
     })
@@ -3621,7 +3624,7 @@ function scheduleIaReplenishment(ready, reserveQueries, fallbackQueries, channel
   const needsPlayableDepth = candidateItems.length > readyItems.length || playableCandidates < Math.min(candidateCount, Math.max(count * 3, IA_FRESHNESS_CANDIDATE_FLOOR));
   if (ready.ready >= count && !needsPlayableDepth) return;
   const seed = { ...ready, items: candidateItems.slice(0, candidateCount), candidateItems, candidates: candidateItems.length };
-  scheduleIaExpansion(seed, iaBackgroundReserveQueries(channel, reserveQueries), iaBackgroundFallbackQueries(channel, fallbackQueries), channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, rotation);
+  scheduleIaExpansion(seed, iaBackgroundReserveQueries(channel, reserveQueries, needsPlayableDepth), iaBackgroundFallbackQueries(channel, fallbackQueries, needsPlayableDepth), channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, rotation);
 }
 
 async function timeboxQueueHydration(hydration, timeoutMs) {
@@ -3717,8 +3720,8 @@ async function getIaQueue(request, url, env, ctx) {
           if (cachedPayload.items && cachedPayload.items.length && (cachedNeedsFreshRotation || cachedNeedsCatalogDepth)) {
             scheduleIaExpansion(
               { ...cachedPayload, lastGoodKey, items: cachedCandidates.slice(0, cachedCandidateCount), candidateItems: cachedCandidates, candidates: cachedCandidates.length },
-              iaBackgroundReserveQueries(channel, queries),
-              iaBackgroundFallbackQueries(channel, iaFallbackQueries(themeTerms, denyTerms, requiredTitleTerms, mediaTypes)),
+              iaBackgroundReserveQueries(channel, queries, cachedNeedsCatalogDepth || cachedNeedsFreshRotation),
+              iaBackgroundFallbackQueries(channel, iaFallbackQueries(themeTerms, denyTerms, requiredTitleTerms, mediaTypes), cachedNeedsCatalogDepth || cachedNeedsFreshRotation),
               channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity,
               count, cachedCandidateCount, url.origin, cacheKey, sharedKey, env, ctx, rotation, true
             );
@@ -3773,8 +3776,8 @@ async function getIaQueue(request, url, env, ctx) {
            skip/channel change sees a second, non-overlapping shelf. */
         scheduleIaExpansion(
           { ...shared, lastGoodKey, items: sharedCandidates.slice(0, sharedCandidateCount), candidateItems: sharedCandidates, candidates: sharedCandidates.length },
-          iaBackgroundReserveQueries(channel, queries),
-          iaBackgroundFallbackQueries(channel, iaFallbackQueries(themeTerms, denyTerms, requiredTitleTerms, mediaTypes)),
+          iaBackgroundReserveQueries(channel, queries, sharedNeedsExpansion),
+          iaBackgroundFallbackQueries(channel, iaFallbackQueries(themeTerms, denyTerms, requiredTitleTerms, mediaTypes), sharedNeedsExpansion),
           channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity,
           count, sharedCandidateCount, url.origin, cacheKey, sharedKey, env, ctx, rotation, true
         );
@@ -3837,8 +3840,8 @@ async function getIaQueue(request, url, env, ctx) {
       };
       if (!sameRotation || warmNeedsExpansion) {
         const warmSeed = { ...warmLastGood, lastGoodKey, rotation, items: warmCandidates.slice(0, warmCandidateCount), candidateItems: warmCandidates, candidates: warmCandidates.length };
-        const warmReserveQueries = iaBackgroundReserveQueries(channel, queries);
-        const warmFallbackQueries = iaBackgroundFallbackQueries(channel, iaFallbackQueries(themeTerms, denyTerms, requiredTitleTerms, mediaTypes));
+        const warmReserveQueries = iaBackgroundReserveQueries(channel, queries, true);
+        const warmFallbackQueries = iaBackgroundFallbackQueries(channel, iaFallbackQueries(themeTerms, denyTerms, requiredTitleTerms, mediaTypes), true);
         scheduleIaExpansion(warmSeed, warmReserveQueries, warmFallbackQueries, channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, warmCandidateCount, url.origin, cacheKey, sharedKey, env, ctx, rotation, true);
       }
       const warmResponse = cacheableJson(warmFallback, 5, {
@@ -3946,7 +3949,7 @@ async function getIaQueue(request, url, env, ctx) {
        verified program. A successful background pass overwrites the short
        partial cache and fills the shared ready shelf for the next request. */
     if (needsExpansion) {
-      scheduleIaExpansion(payload, iaBackgroundReserveQueries(channel, reserveQueries), iaBackgroundFallbackQueries(channel, fallbackQueries), channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, url.origin, cacheKey, sharedKey, env, ctx, rotation, payload.emergency === true);
+      scheduleIaExpansion(payload, iaBackgroundReserveQueries(channel, reserveQueries, payload.emergency === true), iaBackgroundFallbackQueries(channel, fallbackQueries, payload.emergency === true), channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, url.origin, cacheKey, sharedKey, env, ctx, rotation, payload.emergency === true);
     }
     if (!payload.items.length) {
       /* A cold Archive miss is not a programming decision. If this channel has

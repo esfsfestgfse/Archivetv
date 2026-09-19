@@ -228,6 +228,8 @@ async function probe(row) {
   const transportFailures = rotationResults.filter(result => result.transportFailure).length;
   const httpFailures = rotationResults.filter(result => result.httpFailure).length;
   const last = rotationResults[rotationResults.length - 1] || {};
+  const observedItems = ids.length;
+  const freshItems = Math.max(0, observedItems - duplicateItems);
   return {
     channel: Number(row.channel), name: row.name,
     ok: rotationResults.length === rotations && rotationResults.every(result => result.ok),
@@ -242,6 +244,7 @@ async function probe(row) {
     depthUnderfilled: rotationResults.some(result => result.depthTimedOut),
     uniqueItems: seen.size,
     duplicateItems,
+    freshnessRatio: observedItems ? Number((freshItems / observedItems).toFixed(3)) : 0,
     timeoutCount: timeouts,
     transportFailures,
     httpFailures,
@@ -302,6 +305,9 @@ async function main() {
   const duplicateItems = results.reduce((sum, result) => sum + (result.duplicateItems || 0), 0);
   const depthUnderfilled = results.reduce((sum, result) => sum + (result.depthUnderfilled ? 1 : 0), 0);
   const fullDepthChannels = results.filter(result => (result.fiveItemDepth || 0) >= rotations).length;
+  const observedItems = results.reduce((sum, result) => sum + (result.rotations || []).reduce((count, rotation) => count + (rotation.itemIds || []).length, 0), 0);
+  const freshItems = Math.max(0, observedItems - duplicateItems);
+  const staleLanes = results.filter(result => Number(result.duplicateItems || 0) > 0 || Number(result.freshnessRatio || 0) < 0.75).length;
   const playableLatencies = results.map(result => result.firstPlayLatencyMs).filter(value => Number.isFinite(value));
   const sourceCounts = {};
   const cacheCounts = {};
@@ -318,6 +324,13 @@ async function main() {
       measuredRotations, fiveItemDepth: results.reduce((sum, result) => sum + (result.fiveItemDepth || 0), 0),
       fullDepthChannels, depthUnderfilled,
       timeouts: timeoutCount, duplicateItems,
+      freshness: {
+        observedItems,
+        freshItems,
+        duplicateItems,
+        uniqueCoverage: observedItems ? Number((freshItems / observedItems).toFixed(3)) : 0,
+        staleLanes,
+      },
       transportFailures, httpFailures,
       responseSources: sourceCounts, responseCaches: cacheCounts,
       firstPlayLatencyMs: playableLatencies.length ? {
@@ -330,6 +343,7 @@ async function main() {
   console.log(`IA queue health: ${report.totals.ready}/${report.totals.channels} first-play ready; ${failures.length} no-signal lanes; ${report.totals.fullDepthChannels}/${report.totals.channels} full-depth; ${report.totals.duplicateItems} duplicate items; ${timeoutCount} timeouts`);
   console.log(`Failure classes: ${transportFailures} transport failures; ${httpFailures} HTTP failures; ${Math.max(0, failures.length - transportFailures - httpFailures)} queue/underfill failures`);
   console.log(`Five-item depth: ${report.totals.fiveItemDepth}/${report.totals.measuredRotations} rotations; ${report.totals.depthUnderfilled} channels still underfilled after ${depthTimeoutMs}ms depth window`);
+  console.log(`Freshness: ${report.totals.freshness.uniqueCoverage * 100}% unique item coverage; ${report.totals.freshness.duplicateItems} repeats across ${report.totals.freshness.observedItems} observed slots; ${report.totals.freshness.staleLanes} stale/repeat-heavy lanes`);
   if (report.totals.firstPlayLatencyMs) console.log(`First-play latency: ${report.totals.firstPlayLatencyMs.average}ms average (${report.totals.firstPlayLatencyMs.min}-${report.totals.firstPlayLatencyMs.max}ms)`);
   for (const failure of failures) {
     console.log(`UNDERFILLED CH ${failure.channel} ${failure.name}: ${failure.error || 'rotation did not reach the required depth'}; depths=${failure.readyDepths.join('/')} (${failure.elapsedMs}ms)`);

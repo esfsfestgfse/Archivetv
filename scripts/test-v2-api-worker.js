@@ -148,6 +148,38 @@ const { pathToFileURL } = require('node:url');
   assert.match(shallowRecovered.headers.get('X-RealSignal-Source'), /d1-catalog/);
   assert.equal((await shallowRecovered.json()).items[0].title, 'Factory Packaging Line');
 
+  let fastLaneRelayCalls = 0;
+  const fastLaneEnv = {
+    ...fallbackEnv,
+    RELAY: { async fetch() { fastLaneRelayCalls += 1; return new Response(JSON.stringify({ ready: 0, items: [] }), { status: 503, headers: { 'content-type': 'application/json' } }); } },
+  };
+  const fastLane = await worker.fetch(new Request('https://api.example/api/v2/ia/queue', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ channel: '64', sessionId: 'fast-lane-viewer', rotation: 0, count: 1, themeTerms: ['factory'], requiredTitleTerms: ['factory'], denyTerms: ['cartoon'], mediaTypes: ['movies'], themeMinScore: 1 }) }), fastLaneEnv, ctx);
+  assert.equal(fastLane.status, 200);
+  assert.match(fastLane.headers.get('X-RealSignal-Source'), /d1-catalog-fast-lane/);
+  assert.equal(fastLaneRelayCalls, 0);
+  assert.equal((await fastLane.json()).items[0].title, 'Factory Packaging Line');
+
+  const shallowSourceRows = [
+    { id: 'source-stale-1', source_identifier: 'source-stale-1', title: 'Game Show Archive Full Episode', description: 'A verified long-form game show.', provider: 'YouTube', duration_seconds: 1500, aspect_ratio: 1.78, media_type: 'embed', media_url: 'https://www.youtube-nocookie.com/embed/source-stale-1', source_url: 'https://youtube.com/watch?v=source-stale-1', rights: 'Standard YouTube license', year: '1978', metadata_json: '{"genreVerified":true}' },
+    { id: 'source-stale-2', source_identifier: 'source-stale-2', title: 'Game Show Archive Special', description: 'A second verified long-form game show.', provider: 'YouTube', duration_seconds: 1800, aspect_ratio: 1.78, media_type: 'embed', media_url: 'https://www.youtube-nocookie.com/embed/source-stale-2', source_url: 'https://youtube.com/watch?v=source-stale-2', rights: 'Standard YouTube license', year: '1984', metadata_json: '{"genreVerified":true}' },
+  ];
+  const queuedSourceRefreshes = [];
+  const shallowSourceEnv = {
+    ...env,
+    realsignal_catalog: { prepare() { return { bind() { return { async all() { return { results: shallowSourceRows }; } }; } }; } },
+  };
+  const shallowSourceCtx = { waitUntil(promise) { queuedSourceRefreshes.push(promise); } };
+  const sourceFetchAfterStale = global.fetch;
+  global.fetch = async () => { throw new Error('source providers unavailable'); };
+  const shallowSource = await worker.fetch(new Request('https://api.example/api/v2/source/catalog', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ profileKey: 'game-show-archive', rotation: 0, minimumReady: 12 }) }), shallowSourceEnv, shallowSourceCtx);
+  global.fetch = sourceFetchAfterStale;
+  assert.equal(shallowSource.status, 200);
+  const shallowSourceBody = await shallowSource.json();
+  assert.equal(shallowSourceBody.items.length, 2);
+  assert.equal(shallowSourceBody.hydrating, true);
+  assert.equal(shallowSourceBody.staleCatalog, true);
+  assert.equal(queuedSourceRefreshes.length, 1);
+
   const collectionEpisodeRows = [
     ['metallica-collection::track-01', 'Kill Em All · 01 Hit the Lights'],
     ['black-sabbath-metal-collection::track-02', 'Paranoid · 02 War Pigs'],

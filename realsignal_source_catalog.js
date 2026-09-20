@@ -12,6 +12,10 @@ import { SOURCE_PROFILE_REGISTRY } from "./source_suite_profile_registry.js";
 const SOURCE_MIN_RUNTIME = 15 * 60;
 const SOURCE_MIN_ASPECT_RATIO = 1.2;
 const SOURCE_MAX_ITEMS = 48;
+/* A source shelf is not considered deep merely because one or two playable
+   embeds exist. Keep the playback path stale-first, but make twelve verified
+   items the refill target so the catalog can rotate instead of repeating. */
+const SOURCE_MIN_READY = 12;
 const SOURCE_MAX_QUERIES = 8;
 const SOURCE_MAX_CONCURRENCY = 4;
 const SOURCE_TIMEOUT_MS = 7000;
@@ -350,4 +354,4 @@ export function mergeSourceLanes(profileKey, lanes) {
   return { profileKey, items, ready: items.length, candidates: items.length, catalogVersion: "source-server-1", source: "server-source-catalog" };
 }
 
-export const SOURCE_LIMITS = { SOURCE_MIN_RUNTIME, SOURCE_MIN_ASPECT_RATIO, SOURCE_MAX_ITEMS, SOURCE_MAX_QUERIES, SOURCE_FIRST_LANE_TIMEOUT_MS };
+export const SOURCE_LIMITS = { SOURCE_MIN_RUNTIME, SOURCE_MIN_ASPECT_RATIO, SOURCE_MAX_ITEMS, SOURCE_MIN_READY, SOURCE_MAX_QUERIES, SOURCE_FIRST_LANE_TIMEOUT_MS };

@@ -14,7 +14,7 @@ for (const file of files) {
   const source = fs.readFileSync(path.join(repo, file), 'utf8');
   const name = file;
   const required = [
-    [/V2_SOURCE_CACHE_VERSION=22/, 'source catalog cache version must invalidate short-form catalogs'],
+    [/V2_SOURCE_CACHE_VERSION=23/, 'source catalog cache version must invalidate short-form catalogs'],
     [/retainedItems=Array\.isArray\(cached&&cached\.items\)\?cached\.items\.filter/, 'previously verified source items must survive provider outages after requalification'],
     [/cacheValid=!!cached&&Number\(cached\.version\|\|0\)===V2_SOURCE_CACHE_VERSION/, 'only a current source catalog cache may be treated as fresh'],
     [/item\.account,item\.channelTitle/, 'YouTube language screening must inspect channel identity'],
@@ -36,7 +36,7 @@ for (const file of files) {
     [/p==="youtube"\|\|p==="peertube"/, 'source-suite runtime must restrict providers to YouTube and PeerTube'],
     [/v2LoadProfile\(ch,profile,token,true\)/, 'near-exhausted catalogs must force a rolling refresh'],
     [/V2_SOURCE_READY_BUFFER=5/, 'the source suite must keep a five-program target buffer'],
-    [/V2_SOURCE_MIN_CATALOG=5/, 'a verified five-program catalog must be required before a source shelf is treated as healthy'],
+    [/V2_SOURCE_MIN_CATALOG=12/, 'a twelve-program catalog must be required before a source shelf is treated as healthy'],
     [/function v2Shelf\(/, 'catalog ordering must persist the last on-air shelf'],
     [/function v2Hash\(/, 'source rotation must have a stable per-lane hash'],
     [/function v2NextRotation\(/, 'source refreshes must advance a persisted rotation counter'],
@@ -117,7 +117,7 @@ for (const file of files) {
   }
   if (new Set(topicKeys).size !== topicKeys.length) issues.push(`${name}: duplicate source topic definitions found`);
 
-  if (stamps.length !== 1 || !/^2\.2\.1-(desktop|mobile)\.\d+-ia-[a-z0-9-]+$/.test(stamps[0] || '')) issues.push(`${name}: source-suite build stamp is missing or stale`);
+  if (stamps.length !== 1 || !/^2\.2\.2-(desktop|mobile)\.\d+-[a-z0-9-]+$/.test(stamps[0] || '')) issues.push(`${name}: source-suite build stamp is missing or stale`);
 }
 
 const desktop = fs.readFileSync(path.join(repo, files[0]), 'utf8');

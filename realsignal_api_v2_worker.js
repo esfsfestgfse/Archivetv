@@ -15,6 +15,10 @@ const MAX_BODY_BYTES = 128 * 1024;
    collapse every IA lane back to the same warm-up set. */
 const MAX_CATALOG_ITEMS = 48;
 const MAX_SESSION = 80;
+/* These lanes were repeatedly slow even when D1 already held verified
+   playback rows. Serve the catalog first for them; relay discovery remains
+   the background repair path when D1 has no usable row. */
+const IA_FAST_CATALOG_LANES = new Set(["64", "154", "205", "222", "922"]);
 /* Some IA collections store the genre in the series/film title rather than
    the child filename. These are deliberately lane-specific aliases for the
    two long-tail lanes that failed the serial certification when their relay
@@ -393,6 +397,27 @@ async function handleQueue(request, env, ctx, id) {
   const upstreamBody = { ...body, count };
   delete upstreamBody.sessionId;
   delete upstreamBody.session;
+  if (IA_FAST_CATALOG_LANES.has(String(body.channel))) {
+    try {
+      const fastCatalog = await catalogFallback(env, body, MAX_CATALOG_ITEMS);
+      if (fastCatalog && Array.isArray(fastCatalog.items) && fastCatalog.items.length) {
+        let fastRotated;
+        try { fastRotated = await rotateShelf(env, body, fastCatalog, request); }
+        catch (error) {
+          console.warn(JSON.stringify({ event: "fast-catalog-rotation-fallback", requestId: id, channel: String(body.channel), error: String(error).slice(0, 160) }));
+          fastRotated = { payload: fastCatalog, rotation: { configured: false, fallback: true } };
+        }
+        const headers = new Headers(corsHeaders());
+        headers.set("X-RealSignal-API", "v2");
+        headers.set("X-RealSignal-Request", id);
+        headers.set("X-RealSignal-Source", "d1-catalog-fast-lane+session-rotation");
+        headers.set("X-RealSignal-Queue", JSON.stringify({ ready: Number(fastRotated.payload.ready || (fastRotated.payload.items || []).length), background: false, fastCatalogLane: true }));
+        return new Response(JSON.stringify({ ...fastRotated.payload, apiVersion: "v2", fastCatalogLane: true }), { status: 200, headers });
+      }
+    } catch (error) {
+      console.warn(JSON.stringify({ event: "fast-catalog-read-failed", requestId: id, channel: String(body.channel), error: String(error).slice(0, 160) }));
+    }
+  }
   const upstream = await forwardToRelay(request, env, "/ia/queue", upstreamBody, id);
   let payload;
   let catalogRecovery = false;
@@ -490,6 +515,14 @@ async function persistSourceLanes(env, profile, lanes) {
   return merged;
 }
 
+function scheduleSourceRefresh(env, ctx, normalized, tasks, requestId) {
+  const background = Promise.all(tasks.map((task) => Promise.resolve(task).catch((error) => ({ provider: "unknown", items: [], health: { error: String(error).slice(0, 160) } })))).then((lanes) => persistSourceLanes(env, normalized, lanes)).catch((error) => {
+    console.error(JSON.stringify({ event: "source-catalog-persist-failed", requestId, profileKey: normalized.profileKey, error: String(error).slice(0, 200) }));
+  });
+  if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(background);
+  return background;
+}
+
 async function handleSourceCatalog(request, env, ctx, id) {
   let body;
   try { body = await readBoundedJson(request); }
@@ -510,9 +543,18 @@ async function handleSourceCatalog(request, env, ctx, id) {
     console.warn(JSON.stringify({ event: "source-catalog-read-failed", requestId: id, error: String(error).slice(0, 160) }));
     return null;
   });
-  const minimumReady = Math.max(1, Math.min(5, Number(body.minimumReady) || 2));
-  if (cached && Array.isArray(cached.items) && cached.items.length >= minimumReady && body.refresh !== true) {
-    return json({ ...cached, profileKey: profile.profileKey, catalogVersion: "source-server-1", source: "d1-source-catalog", hydrating: false, providerAvailability: { youtube: !!env.YOUTUBE_API_KEY, peertube: true }, apiVersion: "v2" }, 200, { "Cache-Control": "public, max-age=10, stale-while-revalidate=60", "X-RealSignal-Request": id, "X-RealSignal-Source": "d1-source-catalog" });
+  const minimumReady = Math.max(1, Math.min(SOURCE_LIMITS.SOURCE_MIN_READY, Number(body.minimumReady) || SOURCE_LIMITS.SOURCE_MIN_READY));
+  /* Never make a viewer wait for a full refill when D1 already has playable
+     rows. A shallow shelf is served immediately and refilled in the
+     background; a deep shelf is served as a normal cache hit. */
+  const staleReady = Math.max(1, Math.min(3, Number(body.staleReady) || 2));
+  if (cached && Array.isArray(cached.items) && cached.items.length >= staleReady && body.refresh !== true) {
+    if (cached.items.length < minimumReady) {
+      const { profile: normalized, tasks } = sourceCatalogTasks(body, env, rotation);
+      scheduleSourceRefresh(env, ctx, normalized, tasks, id);
+    }
+    const hydrating = cached.items.length < minimumReady;
+    return json({ ...cached, profileKey: profile.profileKey, catalogVersion: "source-server-1", source: "d1-source-catalog", hydrating, staleCatalog: hydrating, providerAvailability: { youtube: !!env.YOUTUBE_API_KEY, peertube: true }, apiVersion: "v2" }, 200, { "Cache-Control": "public, max-age=10, stale-while-revalidate=60", "X-RealSignal-Request": id, "X-RealSignal-Source": "d1-source-catalog" });
   }
   const { profile: normalized, tasks } = sourceCatalogTasks(body, env, rotation);
   let firstTimer;
@@ -522,10 +564,7 @@ async function handleSourceCatalog(request, env, ctx, id) {
       firstTimer = setTimeout(() => resolve({ items: [], lanes: [], ready: 0, candidates: 0, hydrating: true, timedOut: true }), SOURCE_LIMITS.SOURCE_FIRST_LANE_TIMEOUT_MS);
     }),
   ]).finally(() => clearTimeout(firstTimer));
-  const background = Promise.all(tasks.map((task) => Promise.resolve(task).catch((error) => ({ provider: "unknown", items: [], health: { error: String(error).slice(0, 160) } })))).then((lanes) => persistSourceLanes(env, normalized, lanes)).catch((error) => {
-    console.error(JSON.stringify({ event: "source-catalog-persist-failed", requestId: id, profileKey: normalized.profileKey, error: String(error).slice(0, 200) }));
-  });
-  ctx.waitUntil(background);
+  scheduleSourceRefresh(env, ctx, normalized, tasks, id);
   return json({ profileKey: normalized.profileKey, items: first.items, ready: first.ready, candidates: first.candidates, lanes: first.lanes, hydrating: true, catalogVersion: "source-server-1", source: "server-source-catalog", providerAvailability: { youtube: !!env.YOUTUBE_API_KEY, peertube: true }, limits: SOURCE_LIMITS, apiVersion: "v2" }, first.items.length ? 200 : 503, { "Cache-Control": "no-store", "X-RealSignal-Request": id, "X-RealSignal-Source": "server-source-catalog" });
 }
 

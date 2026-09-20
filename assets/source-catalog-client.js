@@ -24,7 +24,10 @@
     var body = {
       profileKey: profileKey,
       rotation: Number(rotation) || 0,
-      minimumReady: 2
+      /* The API may still return a smaller stale shelf immediately. This
+         target tells the server to refill it instead of declaring two items
+         a healthy catalog. */
+      minimumReady: 12
     };
     inFlight[key] = fetch(IA_API_BASE + "/source/catalog", {
       method: "POST",

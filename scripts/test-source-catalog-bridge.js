@@ -31,6 +31,6 @@ vm.runInContext(source, context);
   assert.equal(youtubeLane.items.length, 0);
   assert.equal(youtubeLane.health.skipped, 'youtube-provider-unconfigured');
   assert.equal(calls.length, 1);
-  assert.deepEqual(JSON.parse(calls[0].options.body), { profileKey: 'game-show-archive', rotation: 0, minimumReady: 2 });
+  assert.deepEqual(JSON.parse(calls[0].options.body), { profileKey: 'game-show-archive', rotation: 0, minimumReady: 12 });
   console.log('Source catalog bridge passed: server preference and server-only YouTube handling.');
 })().catch(error => { console.error(error.stack || error); process.exitCode = 1; });

@@ -100,22 +100,32 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-72-48-depth-recovery";
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v89";
+const IA_QUEUE_CACHE_VERSION = "v90";
 /* Last-good shelves share the v84 namespace so an older shallow shelf
    never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v89";
+const IA_LAST_GOOD_CACHE_VERSION = "v90";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    three shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
    still catching up. */
 const IA_FRESHNESS_CANDIDATE_FLOOR = 15;
 const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
+/* The queue is allowed to be warm, but the opening program must not be warm
+   forever. Keep a small durable history per channel so a reload, second
+   device, or new rotation cannot reopen on the same five records. This is an
+   issued-shelf ledger (not a permanent ban): once the unseen catalog is
+   exhausted, the selection helper deliberately relaxes the exclusion. */
+const IA_FRESHNESS_LEDGER_VERSION = "v1";
+const IA_FRESHNESS_LEDGER_MAX = 20;
+const IA_FRESHNESS_LEDGER_TTL_SECONDS = 30 * 24 * 60 * 60;
+const IA_FRESHNESS_MEMORY_TTL_MS = 60 * 1000;
 /* A short per-isolate burst cache absorbs repeat requests from a TV, phone,
    and guide opened in quick succession. It is intentionally tiny and
    short-lived: Cache API/KV remain the durable shelves, while this map only
    bridges the small window before an edge cache write becomes visible. */
 const IA_QUEUE_MEMORY_TTL_SECONDS = 20;
 const IA_QUEUE_MEMORY_MAX = 64;
+const iaFreshnessMemory = new Map();
 /* KV is a durability layer, never permission to hold a channel change. A
    transient edge read must yield to the bounded Archive discovery path so the
    viewer can still receive a verified program or the last-good shelf. */
@@ -3054,6 +3064,160 @@ function queueDiversityKeys(doc, lane) {
   };
 }
 
+function iaFreshnessLedgerKey(channel) {
+  return IA_QUEUE_KV_PREFIX + "freshness:" + IA_FRESHNESS_LEDGER_VERSION + ":" + encodeURIComponent(String(channel || "").trim());
+}
+
+function iaFreshnessRecord(item) {
+  if (!item || !item.identifier) return null;
+  const keys = queueDiversityKeys(item, item.lane);
+  return {
+    id: String(item.identifier),
+    era: keys.era || "",
+    collection: keys.collection || "",
+    lane: keys.lane || "",
+    issuedAt: Date.now(),
+  };
+}
+
+function normalizeIaFreshnessLedger(value) {
+  const raw = Array.isArray(value) ? value : (value && Array.isArray(value.items) ? value.items : []);
+  const seen = new Set();
+  const items = raw.map((entry) => {
+    if (typeof entry === "string") return { id: entry, era: "", collection: "", lane: "", issuedAt: 0 };
+    if (!entry || !entry.id) return null;
+    return {
+      id: String(entry.id).slice(0, 240),
+      era: String(entry.era || "").slice(0, 12),
+      collection: String(entry.collection || "").slice(0, 160),
+      lane: String(entry.lane || "").slice(0, 24),
+      issuedAt: Number(entry.issuedAt) || 0,
+    };
+  }).filter((entry) => entry && entry.id && !seen.has(entry.id) && seen.add(entry.id));
+  return items.slice(-IA_FRESHNESS_LEDGER_MAX);
+}
+
+async function loadIaFreshnessLedger(env, channel) {
+  if (!env || !env.REALSIGNAL_QUEUE || !channel) return [];
+  const key = iaFreshnessLedgerKey(channel);
+  const local = iaFreshnessMemory.get(key);
+  if (local && local.expiresAt > Date.now()) return local.items;
+  if (local) iaFreshnessMemory.delete(key);
+  try {
+    const payload = await sharedQueueGet(env, key);
+    const items = normalizeIaFreshnessLedger(payload);
+    iaFreshnessMemory.set(key, { items, expiresAt: Date.now() + IA_FRESHNESS_MEMORY_TTL_MS });
+    return items;
+  } catch (error) {
+    console.warn(JSON.stringify({ event: "ia-freshness-ledger-read-failed", channel, message: String(error && error.message || error) }));
+    return [];
+  }
+}
+
+function queueFreshnessDiffers(item, previous) {
+  if (!previous) return true;
+  const current = iaFreshnessRecord(item);
+  if (!current) return false;
+  /* Prefer a different decade or collection on the next opening. When IA
+     omits both fields, a different editorial lane is still a meaningful
+     change; otherwise keep the candidate eligible instead of starving a
+     sparse channel. */
+  if (current.era && previous.era && current.era !== previous.era) return true;
+  if (current.collection && previous.collection && current.collection !== previous.collection) return true;
+  if (current.lane && previous.lane && current.lane !== previous.lane) return true;
+  return !current.era && !current.collection && !current.lane;
+}
+
+function applyIaFreshness(payload, ledger, count) {
+  const history = normalizeIaFreshnessLedger(ledger);
+  const excluded = new Set(history.map((entry) => entry.id));
+  const candidates = Array.isArray(payload && payload.candidateItems) && payload.candidateItems.length
+    ? payload.candidateItems
+    : ((payload && payload.items) || []);
+  if (!candidates.length) return { payload, issued: [], freshCount: 0, excludedCount: 0 };
+  const unique = [];
+  const seen = new Set();
+  for (const item of candidates) {
+    if (!item || !item.identifier || seen.has(item.identifier)) continue;
+    seen.add(item.identifier);
+    unique.push(item);
+  }
+  const requested = Math.max(1, Number(count) || 1);
+  const playable = unique.filter((item) => item.media && item.media.url);
+  const publicItems = Array.isArray(payload && payload.items) && payload.items.length ? payload.items : unique;
+  /* A hydrated response keeps unresolved catalog candidates in
+     candidateItems. Never promote those into the public shelf just because
+     the freshness pass is reordering it; use the already-ready items until
+     the background refill supplies more playable depth. */
+  const source = playable.length >= requested ? playable : publicItems;
+  const fresh = source.filter((item) => !excluded.has(String(item.identifier)));
+  /* Repeats are only permitted after the channel has exhausted its unseen
+     shelf. Prefer fresh media first, then use the oldest/reasonably rotated
+     history as the emergency tail. */
+  const eligible = fresh.length >= requested
+    ? fresh
+    : fresh.concat(source.filter((item) => excluded.has(String(item.identifier))));
+  const previous = history.length ? history[history.length - 1] : null;
+  let firstIndex = eligible.findIndex((item) => !excluded.has(String(item.identifier)) && queueFreshnessDiffers(item, previous));
+  if (firstIndex < 0) firstIndex = eligible.findIndex((item) => !excluded.has(String(item.identifier)));
+  if (firstIndex < 0) firstIndex = 0;
+  const ordered = firstIndex > 0 ? [eligible[firstIndex], ...eligible.slice(0, firstIndex), ...eligible.slice(firstIndex + 1)] : eligible;
+  const orderedCandidates = fresh.length
+    ? fresh.concat(unique.filter((item) => !fresh.includes(item)))
+    : unique;
+  const items = ordered.slice(0, requested);
+  const issued = items.map(iaFreshnessRecord).filter(Boolean);
+  return {
+    payload: {
+      ...(payload || {}),
+      items,
+      candidateItems: orderedCandidates,
+      candidates: orderedCandidates.length,
+      ready: Math.min(Math.max(Number(payload && payload.ready) || 0, items.length), requested),
+      freshness: {
+        ledgerSize: history.length,
+        freshCount: fresh.length,
+        excludedCount: Math.min(history.length, unique.length),
+        repeatedFallback: fresh.length < Math.max(1, Number(count) || 1),
+      },
+    },
+    issued,
+    freshCount: fresh.length,
+    excludedCount: Math.min(history.length, unique.length),
+  };
+}
+
+function rememberIaFreshness(env, channel, records, ctx) {
+  const incoming = normalizeIaFreshnessLedger(records);
+  if (!env || !env.REALSIGNAL_QUEUE || !channel || !incoming.length) return;
+  const key = iaFreshnessLedgerKey(channel);
+  const local = iaFreshnessMemory.get(key);
+  const optimistic = normalizeIaFreshnessLedger({
+    items: (local && local.expiresAt > Date.now() ? local.items : []).concat(incoming),
+  });
+  iaFreshnessMemory.set(key, { items: optimistic, expiresAt: Date.now() + IA_FRESHNESS_MEMORY_TTL_MS });
+  const work = (async () => {
+    try {
+      /* Re-read immediately before writing so two devices that tune the same
+         channel close together merge their issued shelves instead of one
+         request erasing the other request's history. */
+      const current = normalizeIaFreshnessLedger(await sharedQueueGet(env, key));
+      const merged = normalizeIaFreshnessLedger({ items: current.concat(optimistic).concat(incoming) });
+      iaFreshnessMemory.set(key, { items: merged, expiresAt: Date.now() + IA_FRESHNESS_MEMORY_TTL_MS });
+      await env.REALSIGNAL_QUEUE.put(key, JSON.stringify({
+        version: IA_FRESHNESS_LEDGER_VERSION,
+        channel: String(channel),
+        items: merged,
+        updatedAt: Date.now(),
+      }), { expirationTtl: IA_FRESHNESS_LEDGER_TTL_SECONDS });
+    } catch (error) {
+      console.warn(JSON.stringify({ event: "ia-freshness-ledger-write-failed", channel, message: String(error && error.message || error) }));
+    }
+  })();
+  if (ctx) ctx.waitUntil(work);
+  else return work;
+}
+
 /* Resolve a queue candidate to a direct Archive CDN URL while it is still in
    the Worker cache. The browser receives a ready-to-play URL, not a metadata
    chore it must perform after the viewer has already pressed SKIP. */
@@ -3150,14 +3314,15 @@ function queueRotationPage(rotation, lane, channel = "") {
   return 1 + (Math.abs(Number(rotation) || 0) + Number(lane || 0)) % pageCount;
 }
 
-async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, cacheOrigin, ctx, rotation = 0, searchTimeoutMs = 3200, firstApprovedLane = false, expandContainers = !firstApprovedLane) {
+async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, cacheOrigin, ctx, rotation = 0, searchTimeoutMs = 3200, firstApprovedLane = false, expandContainers = !firstApprovedLane, freshnessExcludedIds = null) {
   /* `count` is the number of programs the viewer needs immediately. The
      caller also passes a larger candidate budget for strict lanes. The old
      builder accidentally used `count` for both, throwing away the wider
      catalog before metadata hydration could select playable files. Keep the
      wider candidate shelf intact; hydrate only the requested foreground
      count, then let background refill and later rotations consume the rest. */
-  const items = [], deferred = [], seen = new Set(), seenTitles = new Set(), candidateLimit = Math.max(count, Math.min(IA_STRICT_CATALOG_CANDIDATE_MAX, Number(count) || 5));
+  const items = [], deferred = [], freshnessDeferred = [], seen = new Set(), seenTitles = new Set(), candidateLimit = Math.max(count, Math.min(IA_STRICT_CATALOG_CANDIDATE_MAX, Number(count) || 5));
+  const freshnessExcluded = new Set(Array.isArray(freshnessExcludedIds) ? freshnessExcludedIds.map(String) : []);
   const used = { lane: new Map(), era: new Map(), creator: new Map(), collection: new Map(), family: new Map(), source: new Map() };
   let deferredContainerExpansion = false;
   /* Query lanes are already editorially ordered by the app. Fetch a small
@@ -3276,6 +3441,14 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTit
       if (!doc || expandedParents.has(String(doc.identifier || "")) || !matchesTheme(doc, themeTerms, themeMinScore, requiredTitleTerms) || matchesDeny(doc, denyTerms) || seen.has(doc.identifier) || (titleKey && seenTitles.has(titleKey))) continue;
       seen.add(doc.identifier);
       if (titleKey) seenTitles.add(titleKey);
+      /* Keep previously issued programs as an emergency tail. Fresh records
+         still get first access to the candidate budget, so the next queue
+         cannot reopen on the same five items while sparse lanes retain a
+         verified fallback instead of going dark. */
+      if (freshnessExcluded.has(String(doc.identifier))) {
+        freshnessDeferred.push(candidate);
+        continue;
+      }
       if (diverseEnough(candidate)) add(candidate); else deferred.push(candidate);
       if (items.length >= candidateLimit) break;
     }
@@ -3288,6 +3461,14 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTit
     /* Relaxing era/lane caps may rescue a sparse channel, but family diversity
        remains hard for the public catalog: a deep collection must not turn one
        television series into the whole station. */
+    const keys = queueDiversityKeys(candidate.doc, candidate.lane);
+    if (!underCap("source", keys.source, 2) || !underCap("family", keys.family, diversity.maxPerFamily)) continue;
+    add(candidate);
+  }
+  /* Only use a recent repeat after every unseen candidate that survived the
+     editorial and diversity gates has been exhausted. */
+  for (const candidate of freshnessDeferred) {
+    if (items.length >= candidateLimit) break;
     const keys = queueDiversityKeys(candidate.doc, candidate.lane);
     if (!underCap("source", keys.source, 2) || !underCap("family", keys.family, diversity.maxPerFamily)) continue;
     add(candidate);
@@ -3716,27 +3897,38 @@ async function getIaQueue(request, url, env, ctx) {
   const cacheKey = new Request(url.origin + IA_PREFIX + "/cache/queue/" + IA_QUEUE_CACHE_VERSION + "/" + digest);
   const sharedKey = IA_QUEUE_KV_PREFIX + IA_QUEUE_CACHE_VERSION + ":" + digest;
   const lastGoodKey = sharedQueueFallbackKey(lastGoodDigest);
+  /* Read the durable ledger in parallel with the normal cache path. KV is a
+     small control-plane read; it must never become a second Archive search. */
+  const freshnessLedgerPromise = loadIaFreshnessLedger(env, channel);
+  const edgeCache = caches.default;
+  const edgeCachePromise = edgeCache.match(cacheKey);
+  const freshnessLedger = await freshnessLedgerPromise;
   /* Do not let a contaminated shared shelf outrank a verified, lane-owned
      recovery bank for the one channel that reproduced this defect. The bank
      is already direct-playable, so this remains a zero-network fast path. */
   if (iaStrictRecoveryEnabled(channel)) {
     const strict = strictRecoveryQueue(channel, rotation, count, themeTerms, denyTerms, requiredTitleTerms, mediaTypes);
     if (strict.ready >= count) {
-      return cacheableJson(strict, 60, {
+      const freshStrict = applyIaFreshness(strict, freshnessLedger, count);
+      rememberIaFreshness(env, channel, freshStrict.issued, ctx);
+      return cacheableJson(freshStrict.payload, 60, {
         "X-Afterglow-Source": "program-director-strict-recovery",
-        "X-Afterglow-Queue-Ready": String(strict.ready),
+        "X-Afterglow-Queue-Ready": String(freshStrict.payload.ready),
         "X-Afterglow-Queue-Strict": "1",
       });
     }
   }
   try {
-    const cache = caches.default, cached = await cache.match(cacheKey);
+    const cache = edgeCache, cached = await edgeCachePromise;
     if (cached) {
       /* A negative queue result is a transport hint, not programming. Never
          let a cached empty response turn into fifteen seconds of dead air;
          re-enter discovery so the next approved rail can win. */
       try {
-        const cachedPayload = await cached.clone().json();
+        let cachedPayload = await cached.clone().json();
+        const freshCached = applyIaFreshness(cachedPayload, freshnessLedger, count);
+        cachedPayload = freshCached.payload;
+        rememberIaFreshness(env, channel, freshCached.issued, ctx);
         /* A zero-ready response is a handoff while Archive metadata is still
            resolving, not a playable shelf. Older deploys cached that handoff
            for ten seconds, so every poll received the same spinner even after
@@ -3769,10 +3961,14 @@ async function getIaQueue(request, url, env, ctx) {
             );
           }
           if (!bypassShallowRotation) {
-            const cachedShelf = Array.isArray(cachedPayload.candidateItems) && cachedPayload.candidateItems.length > (Array.isArray(cachedPayload.items) ? cachedPayload.items.length : 0)
+            const cachedWasRotated = Array.isArray(cachedPayload.candidateItems) && cachedPayload.candidateItems.length > (Array.isArray(cachedPayload.items) ? cachedPayload.items.length : 0);
+            const cachedShelfBase = cachedWasRotated
               ? rotatePlayableIaShelf(cachedPayload, rotation, count)
               : cachedPayload;
-            if (cachedShelf !== cachedPayload) {
+            const freshCachedShelf = applyIaFreshness(cachedShelfBase, freshnessLedger, count);
+            const cachedShelf = freshCachedShelf.payload;
+            rememberIaFreshness(env, channel, freshCachedShelf.issued, ctx);
+            if (cachedWasRotated) {
               const rotatedResponse = cacheableJson(cachedShelf, 5, {
                 "X-Afterglow-Source": "program-director-cache-rotation",
                 "X-Afterglow-Cache": "edge-rotated",
@@ -3794,16 +3990,21 @@ async function getIaQueue(request, url, env, ctx) {
     }
     const memory = iaQueueMemoryGet(cacheKey.url);
     if (memory) {
-      return cacheableJson(memory.payload, memory.ttlSeconds, {
+      const freshMemory = applyIaFreshness(memory.payload, freshnessLedger, count);
+      rememberIaFreshness(env, channel, freshMemory.issued, ctx);
+      return cacheableJson(freshMemory.payload, memory.ttlSeconds, {
         "X-Afterglow-Source": "program-director-memory",
         "X-Afterglow-Cache": "memory-burst",
-        "X-Afterglow-Queue-Ready": String(memory.payload.ready || memory.payload.items.length),
+        "X-Afterglow-Queue-Ready": String(freshMemory.payload.ready || freshMemory.payload.items.length),
       });
     }
     const shared = await sharedQueueGet(env, sharedKey);
-    const sharedShelf = shared && Array.isArray(shared.candidateItems) && shared.candidateItems.length > (Array.isArray(shared.items) ? shared.items.length : 0)
-      ? rotatePlayableIaShelf(shared, rotation, count)
-      : shared;
+    const freshShared = shared ? applyIaFreshness(shared, freshnessLedger, count) : { payload: shared, issued: [] };
+    rememberIaFreshness(env, channel, freshShared.issued, ctx);
+    const freshSharedPayload = freshShared.payload;
+    const sharedShelf = freshSharedPayload && Array.isArray(freshSharedPayload.candidateItems) && freshSharedPayload.candidateItems.length > (Array.isArray(freshSharedPayload.items) ? freshSharedPayload.items.length : 0)
+      ? rotatePlayableIaShelf(freshSharedPayload, rotation, count)
+      : freshSharedPayload;
     if (sharedShelf && Array.isArray(sharedShelf.items) && sharedShelf.items.length && Number(sharedShelf.ready) > 0) {
       const sharedReady = Number(sharedShelf.ready) >= count;
       const sharedCandidateCount = iaCatalogCandidateBudget(themeMinScore, count);
@@ -3844,7 +4045,9 @@ async function getIaQueue(request, url, env, ctx) {
           };
         }
       }
-      const served = sharedFallback || sharedShelf;
+      const freshServed = applyIaFreshness(sharedFallback || sharedShelf, freshnessLedger, count);
+      rememberIaFreshness(env, channel, freshServed.issued, ctx);
+      const served = freshServed.payload;
       iaQueueMemoryPut(cacheKey.url, served, sharedReady || sharedFallback ? IA_QUEUE_MEMORY_TTL_SECONDS : 5);
       const response = cacheableJson(served, sharedReady || sharedFallback ? IA_QUEUE_TTL_SECONDS : 5, {
         "X-Afterglow-Source": sharedFallback ? "program-director-last-good" : "program-director-shared",
@@ -3872,14 +4075,19 @@ async function getIaQueue(request, url, env, ctx) {
         ? warmLastGood.candidateItems
         : warmLastGood.items;
       const warmNeedsExpansion = iaNeedsCatalogDepth(warmLastGood, count, warmCandidateCount);
-      const warmFallback = {
-        ...rotatePlayableIaShelf(warmLastGood, sameRotation ? 0 : rotation, count),
+      const freshWarm = applyIaFreshness(warmLastGood, freshnessLedger, count);
+      rememberIaFreshness(env, channel, freshWarm.issued, ctx);
+      let warmFallback = {
+        ...rotatePlayableIaShelf(freshWarm.payload, sameRotation ? 0 : rotation, count),
         rotation,
         fallback: true,
         stale: true,
         fallbackRotation: Number(warmLastGood.rotation) || 0,
         generatedAt: new Date().toISOString(),
       };
+      const freshWarmFallback = applyIaFreshness(warmFallback, freshnessLedger, count);
+      warmFallback = freshWarmFallback.payload;
+      rememberIaFreshness(env, channel, freshWarmFallback.issued, ctx);
       if (!sameRotation || warmNeedsExpansion) {
         const warmSeed = { ...warmLastGood, lastGoodKey, rotation, items: warmCandidates.slice(0, warmCandidateCount), candidateItems: warmCandidates, candidates: warmCandidates.length };
         const warmReserveQueries = iaBackgroundReserveQueries(channel, queries, true);
@@ -3936,7 +4144,7 @@ async function getIaQueue(request, url, env, ctx) {
            emergency: true,
            deferredContainerExpansion: true,
          }
-       : await buildIaQueue(channel, fastQueries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, candidateCount, url.origin, ctx, rotation, IA_FAST_SEARCH_TIMEOUT_MS, true);
+       : await buildIaQueue(channel, fastQueries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, candidateCount, url.origin, ctx, rotation, IA_FAST_SEARCH_TIMEOUT_MS, true, true, freshnessLedger.map((entry) => entry.id));
     const fallbackQueries = iaFallbackQueries(themeTerms, denyTerms, requiredTitleTerms, mediaTypes);
      if (!payload.items.length || (iaColdRescueEnabled(channel) && payload.items.length < count)) {
       /* A rotated fast rail can be empty even while the channel has approved
@@ -3955,7 +4163,7 @@ async function getIaQueue(request, url, env, ctx) {
          /* Weak lanes get a bounded race across the two rescue rails. Keep
             container expansion out of this recovery race; episode expansion
             remains background work and cannot delay the first playable URL. */
-         const rescue = await buildIaQueue(channel, rescueQueries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, candidateCount, url.origin, ctx, rescueRotation, IA_FAST_SEARCH_TIMEOUT_MS, iaColdRescueEnabled(channel), !iaColdRescueEnabled(channel));
+         const rescue = await buildIaQueue(channel, rescueQueries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, candidateCount, url.origin, ctx, rescueRotation, IA_FAST_SEARCH_TIMEOUT_MS, iaColdRescueEnabled(channel), !iaColdRescueEnabled(channel), freshnessLedger.map((entry) => entry.id));
         if (rescue.items.length) payload = mergeIaQueuePayload(payload, rescue, candidateCount, { rescue: true });
       }
     }
@@ -3979,6 +4187,11 @@ async function getIaQueue(request, url, env, ctx) {
         emergency: true,
       };
     }
+    /* Freshness is applied before hydration as well as at the response edge,
+       so the foreground metadata probes spend their budget on unseen items.
+       Do not write the ledger yet: only verified/returned shelf items count as
+       issued, and the hydration callback below records those. */
+    payload = applyIaFreshness(payload, freshnessLedger, count).payload;
     payload = { ...payload, lastGoodKey };
     /* A first-approved rail may return one to four candidates even when the
        channel has more approved material in its reserve lanes. Start widening
@@ -4000,7 +4213,7 @@ async function getIaQueue(request, url, env, ctx) {
          has already passed the channel's strict theme/deny contract. */
       const lastGood = await sharedQueueGet(env, lastGoodKey);
       if (lastGood && Array.isArray(lastGood.items) && lastGood.items.length >= count && Number(lastGood.ready) >= count) {
-        const fallback = {
+        let fallback = {
           ...rotatePlayableIaShelf(lastGood, rotation, count),
           rotation,
           fallback: true,
@@ -4008,6 +4221,9 @@ async function getIaQueue(request, url, env, ctx) {
           fallbackRotation: Number(lastGood.rotation) || 0,
           generatedAt: new Date().toISOString(),
         };
+        const freshFallback = applyIaFreshness(fallback, freshnessLedger, count);
+        fallback = freshFallback.payload;
+        rememberIaFreshness(env, channel, freshFallback.issued, ctx);
         const fallbackResponse = cacheableJson(fallback, 5, {
           "X-Afterglow-Source": "program-director-last-good",
           "X-Afterglow-Cache": "shared-last-good",
@@ -4042,8 +4258,11 @@ async function getIaQueue(request, url, env, ctx) {
        the viewer wait for all five was the source of the apparent dead air.
        The full hydration promise continues under waitUntil and populates the
        edge shelf for the next skip or channel change. */
-    const hydrated = await timeboxQueueHydration(Promise.race([hydration, firstReady]), IA_FIRST_READY_TIMEOUT_MS);
+    let hydrated = await timeboxQueueHydration(Promise.race([hydration, firstReady]), IA_FIRST_READY_TIMEOUT_MS);
     if (hydrated && hydrated.items.length) {
+      const freshHydrated = applyIaFreshness(hydrated, freshnessLedger, count);
+      hydrated = freshHydrated.payload;
+      rememberIaFreshness(env, channel, freshHydrated.issued, ctx);
       if (hydrated.hydrating) {
         /* Persist the first verified program immediately. The full hydration
            callback below may still be resolving the remaining slots, but a
@@ -4080,7 +4299,7 @@ async function getIaQueue(request, url, env, ctx) {
       if (hydrated.ready < count) {
         const underfilledLastGood = await sharedQueueGet(env, lastGoodKey);
         if (underfilledLastGood && Array.isArray(underfilledLastGood.items) && underfilledLastGood.items.length >= count && Number(underfilledLastGood.ready) >= count) {
-          const fallback = {
+          let fallback = {
             ...rotatePlayableIaShelf(underfilledLastGood, rotation, count),
             rotation,
             fallback: true,
@@ -4088,6 +4307,9 @@ async function getIaQueue(request, url, env, ctx) {
             fallbackRotation: Number(underfilledLastGood.rotation) || 0,
             generatedAt: new Date().toISOString(),
           };
+          const freshFallback = applyIaFreshness(fallback, freshnessLedger, count);
+          fallback = freshFallback.payload;
+          rememberIaFreshness(env, channel, freshFallback.issued, ctx);
           const fallbackResponse = cacheableJson(fallback, 5, {
             "X-Afterglow-Source": "program-director-last-good",
             "X-Afterglow-Cache": "shared-last-good",
@@ -4118,7 +4340,7 @@ async function getIaQueue(request, url, env, ctx) {
        caching the richer five-program shelf in the background. */
     const lastGood = await sharedQueueGet(env, lastGoodKey);
     if (lastGood && Array.isArray(lastGood.items) && lastGood.items.length >= count && Number(lastGood.ready) >= count) {
-      const fallback = {
+      let fallback = {
         ...rotatePlayableIaShelf(lastGood, rotation, count),
         rotation,
         fallback: true,
@@ -4126,6 +4348,9 @@ async function getIaQueue(request, url, env, ctx) {
         fallbackRotation: Number(lastGood.rotation) || 0,
         generatedAt: new Date().toISOString(),
       };
+      const freshFallback = applyIaFreshness(fallback, freshnessLedger, count);
+      fallback = freshFallback.payload;
+      rememberIaFreshness(env, channel, freshFallback.issued, ctx);
       const fallbackResponse = cacheableJson(fallback, 5, {
         "X-Afterglow-Source": "program-director-last-good",
         "X-Afterglow-Cache": "shared-last-good",

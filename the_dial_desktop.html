@@ -2453,6 +2453,25 @@ const CH=[
  {nm:"The Game Room", num:510, cat:"RETRO", gl:"gameroom", era:[1970,2026], ns:"doc"},
  {nm:"The Detective", num:511, cat:"RETRO", gl:"detective", era:[1940,2026], ns:"tv"},
 ];
+/* V3 CHANNEL HEALTH POLICY: the scorecard is now an executable lineup policy.
+   Keep all verified lanes in the public dial; keep repair lanes addressable for
+   diagnostics while they are rebuilt; remove retired/blocked lanes from the
+   guide, surf order, and cast guide until their evidence changes. */
+const CHANNEL_HEALTH_BY_NUM=Object.freeze({
+  506:{state:"retire",reason:"diagnostic test pattern retired from the normal lineup"},
+  965:{state:"hide",reason:"AIS upstream unavailable; restore after a healthy vessel-feed soak"}
+});
+const CHANNEL_REPAIR_IA_NUMS=new Set([64,154,205,222,922]);
+function channelHealth(ch){
+  if(!ch)return {state:"unknown",reason:"channel record missing"};
+  var explicit=CHANNEL_HEALTH_BY_NUM[ch.num];
+  if(explicit)return explicit;
+  if(ch.cat==="SOURCE")return {state:"repair",reason:"Source Suite depth/freshness repair gate"};
+  if(CHANNEL_REPAIR_IA_NUMS.has(Number(ch.num)))return {state:"repair",reason:"IA long-tail latency/freshness repair gate"};
+  return {state:"keep",reason:"passes current lineup baseline"};
+}
+function isPublicLineupChannel(ch){var state=channelHealth(ch).state;return state!=="hide"&&state!=="retire";}
+function publicLineupChannels(){return CH.filter(isPublicLineupChannel);}
 /* Human-facing guide taxonomy. Channel numbers remain the persistent tuning address;
    this adds stable clean IDs plus a deliberately small set of browse destinations. */
 const GUIDE_CATEGORIES=[
@@ -2470,7 +2489,7 @@ const GUIDE_CATEGORY_BY_ID=Object.fromEntries(GUIDE_CATEGORIES.map(function(grou
 const GUIDE_SUBGENRES={NET:"Network television",TV:"Television & reruns",MOV:"Movies",TOON:"Animation",SPORTS:"Sports",MUS:"Music & audio",DOC:"Archive & ideas",SOURCE:"Source suite",LBRO:"Live video",LDATA:"Live data",RETRO:"Retro archive",HOL:"Seasonal",BRIT:"World & culture"};
 function guideCategoryFor(ch){return GUIDE_CATEGORIES.find(function(group){return group.cats&&group.cats.indexOf(ch.cat)>-1;})||GUIDE_CATEGORY_BY_ID.all;}
 function guideChannelKey(ch){return "rs-"+String(ch.num).padStart(3,"0")+"-"+String(ch.nm).toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,"");}
-CH.forEach(function(ch){ch.guideGroup=guideCategoryFor(ch).id;ch.key=guideChannelKey(ch);});
+CH.forEach(function(ch){var health=channelHealth(ch);ch.healthState=health.state;ch.healthReason=health.reason;ch.guideGroup=guideCategoryFor(ch).id;ch.key=guideChannelKey(ch);});
 /* QA FIX (from Programmed Channels 2.0 audit, Phase 1): channel numbers used to be computed by
    the array's own order via a seen[c.cat] counter -- meaning if any two channels in the same
    category ever swapped position in the source array, every user's saved favorites and last
@@ -2487,7 +2506,7 @@ const byNum=n=>_byNumMap.get(n);
 /* One canonical dial sequence. The source array is editorial data and has accumulated
    additions over time; it must never define CH ▲/▼ order. Physical channel changes and
    the flip preview both follow the stable numeric lineup. */
-const DIAL_ORDER=CH.slice().sort(function(a,b){return a.num-b.num||String(a.nm).localeCompare(String(b.nm));});
+const DIAL_ORDER=publicLineupChannels().sort(function(a,b){return a.num-b.num||String(a.nm).localeCompare(String(b.nm));});
 const DIAL_INDEX=new Map(DIAL_ORDER.map(function(ch,i){return [ch.num,i];}));
 function orderedChannels(){return DIAL_ORDER.slice();}
 
@@ -7259,7 +7278,7 @@ function sfxClick(){if(!soundOn||!audioCtx())return;const c=ac,t=c.currentTime;c
    ===================================================================== */
 function isFav(n){var c=byNum(n);return c?favs.includes(c.nm):false;}
 var catFilter="all"; /* Guide category only; never changes the tuned channel. */
-function visibleChannels(){let l=favOnly?CH.filter(c=>isFav(c.num)):CH;
+function visibleChannels(){let l=favOnly?publicLineupChannels().filter(c=>isFav(c.num)):publicLineupChannels();
   if(catFilter&&catFilter!=="all")l=l.filter(function(c){return c.guideGroup===catFilter;});
   /* Universal search. Matches channel name, its category label, its number, and whatever the
      dynamic status line currently says -- so "storm", "402", "hurricane" and "sports" all find
@@ -7267,7 +7286,7 @@ function visibleChannels(){let l=favOnly?CH.filter(c=>isFav(c.num)):CH;
      one category is almost never what someone means when they type. */
   var q=String(window.__gQuery||"").toLowerCase().trim();
   if(q){
-    l=(favOnly?CH.filter(c=>isFav(c.num)):CH).filter(function(c){
+    l=(favOnly?publicLineupChannels().filter(c=>isFav(c.num)):publicLineupChannels()).filter(function(c){
       var st=String((window.__chanStatus||{})[c.num]||"");
       var group=guideCategoryFor(c);
       var hay=(c.nm+" "+(CATNAME[c.cat]||c.cat)+" "+group.label+" "+group.meta+" "+(GUIDE_SUBGENRES[c.cat]||"")+" "+c.key+" "+c.num+" "+st+" "+
@@ -7490,7 +7509,7 @@ function guideRefreshTicker(){
   try{
     var t=document.getElementById("gTickerInner");
     if(!t) return;
-    var chCount=(typeof CH!=="undefined" && CH && CH.length)?CH.length:"—";
+    var chCount=(typeof publicLineupChannels==="function")?publicLineupChannels().length:"—";
     var head="▶ REALSIGNAL · THE DIAL · "+chCount+" CHANNELS ";
     var body=_gTickerHints.map(function(h){return "· "+h+" "}).join("");
     var s=head+body;
@@ -8324,7 +8343,7 @@ window.__rsTogglePower=togglePower;
 
 function step(dir){if(!powered)return;let i=DIAL_INDEX.get(curNum);if(i==null)i=0;i=(i+dir+DIAL_ORDER.length)%DIAL_ORDER.length;
   lastNum=curNum;if(typeof window.__rsCastIsConnected==="function"&&window.__rsCastIsConnected()&&typeof window.__rsCastCommand==="function")window.__rsCastCommand(dir>0?"CHANNEL_UP":"CHANNEL_DOWN",{channel:DIAL_ORDER[i].num});showFlip(DIAL_ORDER[i].num);tuneNum(DIAL_ORDER[i].num);}
-function surf(){if(!powered)return;lastNum=curNum;if(typeof window.__rsCastIsConnected==="function"&&window.__rsCastIsConnected()&&typeof window.__rsCastCommand==="function")window.__rsCastCommand("SURF");tuneNum(CH[Math.floor(Math.random()*CH.length)].num);}
+function surf(){if(!powered)return;lastNum=curNum;if(typeof window.__rsCastIsConnected==="function"&&window.__rsCastIsConnected()&&typeof window.__rsCastCommand==="function")window.__rsCastCommand("SURF");var lineup=publicLineupChannels();if(lineup.length)tuneNum(lineup[Math.floor(Math.random()*lineup.length)].num);}
 function goLast(){if(!powered)return;const t=lastNum;lastNum=curNum;if(typeof window.__rsCastIsConnected==="function"&&window.__rsCastIsConnected()&&typeof window.__rsCastCommand==="function")window.__rsCastCommand("LAST",{channel:t});tuneNum(t);}
 function pressDigit(d){if(!powered)return;sfxClick();entryBuf+=d;entry.style.display="block";entry.textContent=entryBuf.padStart(2,"·");
   clearTimeout(entryTimer); if(entryBuf.length>=2)commitEntry(); else entryTimer=setTimeout(commitEntry,1500);}
@@ -8830,7 +8849,7 @@ function buildCatNav(){
 function buildCatNav(){
   if(!catNav)return;catNav.innerHTML="";
   GUIDE_CATEGORIES.forEach(function(group){
-    var count=group.id==="all"?CH.length:CH.filter(function(ch){return group.cats&&group.cats.indexOf(ch.cat)>-1;}).length;
+    var count=group.id==="all"?publicLineupChannels().length:publicLineupChannels().filter(function(ch){return group.cats&&group.cats.indexOf(ch.cat)>-1;}).length;
     var button=document.createElement("button");button.type="button";button.className="catchip"+(catFilter===group.id?" act":"");button.innerHTML='<span class="guide-cat-label">'+esch(group.label)+'</span><span class="guide-cat-count">'+count+'</span>';button.style.color=group.color;button.title=group.meta+" · "+count+" channels";button.setAttribute("aria-label",group.label+" ("+count+" channels)");
     button.addEventListener("click",function(){catFilter=group.id;catNav.querySelectorAll(".catchip").forEach(function(item){item.classList.remove("act");});button.classList.add("act");renderRail();primeGuideQueues(visibleChannels());});catNav.appendChild(button);
   });
@@ -13377,7 +13396,7 @@ async function tunePrevueGuide(ch,sl,my){
   /* build the channel wall — 3 columns like real Prevue: ch#, name, tagline/category */
   var scrollEl=document.getElementById("pgScroll");
   if(scrollEl){
-    var order=CH.slice().sort(function(a,b){ return a.num-b.num; });
+    var order=publicLineupChannels().slice().sort(function(a,b){ return a.num-b.num; });
     var rowH=32;
     var rows=order.map(function(c,i){
       var catNm=(typeof CATNAME!=="undefined" && CATNAME[c.cat])||c.cat;
@@ -13419,8 +13438,8 @@ async function tunePrevueGuide(ch,sl,my){
       clearInterval(pgScrollTimer); clearInterval(pgClockTimer);
     });
   }
-  if(pgBug) pgBug.update(String(CH.length)+" CHANNELS", "REALSIGNAL PREVUE GUIDE");
-  setChanStatus(ch.num, CH.length+" channels \u00b7 autoscroll");
+  if(pgBug) pgBug.update(String(publicLineupChannels().length)+" CHANNELS", "REALSIGNAL PREVUE GUIDE");
+  setChanStatus(ch.num, publicLineupChannels().length+" channels \u00b7 autoscroll");
   nlog("prevueguide", true, "meta channel up");
 }
 
@@ -18008,7 +18027,7 @@ window.__atvBootDone=true; /* app is up -- from here on, errors get logged, not 
   function castSessionFor(it,ch){var identity=String(Number(ch&&ch.num)||Number(curNum)||0)+"|"+String(it&&it.id||it&&it.url||"");if(identity!==castSessionIdentity){castSessionIdentity=identity;castSessionKey="t"+Date.now().toString(36)+"_"+(++castSeq);}return castSessionKey;}
   function castSource(url,mode,session){if(mode==="audio")return url;var bridge=String(store.get("castBridgeUrl","http://192.168.1.67:8788")||"").trim().replace(/\/$/,"");if(!bridge||!url)return url;try{var out=new URL(bridge+"/live.m3u8");out.searchParams.set("source",url);out.searchParams.set("mode",mode||"video");if(session)out.searchParams.set("session",session);return out.href;}catch(e){return url;}}
   function publishReceiverMedia(it,ch){if(!it||!it.url)return false;var num=Number(ch&&ch.num)||Number(curNum)||0,isAudio=!!(it.isAudio||(ch&&ch.audio)),mode=isAudio?"audio":"video",session=castSessionFor(it,ch),directAlts=(it.alts||[]).slice(0,6),fallbackAlts=mode==="video"&&!it.castEmbed?[castSource(it.url,mode,session)].concat(directAlts.map(function(url,i){return castSource(url,mode,session+"_a"+i);})):[],media={url:it.url,alts:directAlts.concat(fallbackAlts),type:isAudio?"audio":"video",playback:it.castEmbed?"embed":"direct",embedUrl:it.castEmbed?it.url:"",title:it.title||ch&&ch.nm||"RealSignal",subtitle:"CH "+num},packet={type:"REALSIGNAL_TUNE",channel:num,state:state(),media:media};return castReceiverFrame()?postToCastReceiver(packet):sendPacket(packet);}
-  function guideSync(open){var ordered=CH.slice().sort(function(a,b){return a.num-b.num;}),at=Math.max(0,ordered.findIndex(function(ch){return ch.num===curNum;})-18),items=ordered.slice(at,at+72).map(function(ch){return {num:ch.num,name:ch.nm,category:ch.cat,now:ch.num===curNum&&curItem?String(curItem.title||"ON AIR"):""};}),packet={type:"REALSIGNAL_GUIDE",open:!!open,items:items};return castReceiverFrame()?postToCastReceiver(packet):sendPacket(packet);}
+  function guideSync(open){var ordered=publicLineupChannels().slice().sort(function(a,b){return a.num-b.num;}),at=Math.max(0,ordered.findIndex(function(ch){return ch.num===curNum;})-18),items=ordered.slice(at,at+72).map(function(ch){return {num:ch.num,name:ch.nm,category:ch.cat,now:ch.num===curNum&&curItem?String(curItem.title||"ON AIR"):""};}),packet={type:"REALSIGNAL_GUIDE",open:!!open,items:items};return castReceiverFrame()?postToCastReceiver(packet):sendPacket(packet);}
   function state(){return {type:"REALSIGNAL_STATE",appUrl:publicAppUrl(),channel:Number(curNum)||2,powered:!!powered,muted:!!muted,volume:Number(vol)||0.5,texture:(tube&&tube.dataset&&tube.dataset.glassScan)||"1",sentAt:Date.now()};}
   function sync(){if(curItem)publishReceiverMedia(curItem,byNum(curNum));else {var packet=state();return castReceiverFrame()?postToCastReceiver(packet):sendPacket(packet);}}
   function bindEndMessages(session){if(!session)return;var sid="";try{sid=String(session.getSessionId&&session.getSessionId()||"");}catch(e){}if(!sid||sid===castMessageSession)return;castMessageSession=sid;try{session.addMessageListener(NS,function(_,msg){if(!msg||msg.type!=="REALSIGNAL_CAST_ENDED"||Number(msg.channel)!==Number(curNum))return;setTimeout(function(){if(castSessionActive&&powered&&Number(curNum)===Number(msg.channel))skipOne();},0);});}catch(e){}}

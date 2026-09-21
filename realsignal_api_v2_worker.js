@@ -20,7 +20,9 @@ const MAX_SESSION = 80;
 /* These lanes were repeatedly slow even when D1 already held verified
    playback rows. Serve the catalog first for them; relay discovery remains
    the background repair path when D1 has no usable row. */
-const IA_FAST_CATALOG_LANES = new Set(["64", "154", "205", "222", "922"]);
+/* V3 telemetry can promote a lane here only after production evidence shows
+   repeated fallback/slow switching while D1 already has verified media. */
+const IA_FAST_CATALOG_LANES = new Set(["56", "64", "154", "205", "222", "922"]);
 /* Some IA collections store the genre in the series/film title rather than
    the child filename. These are deliberately lane-specific aliases for the
    two long-tail lanes that failed the serial certification when their relay

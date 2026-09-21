@@ -7,7 +7,7 @@ const path = require('node:path');
     const html = fs.readFileSync(path.join(__dirname,'..',file),'utf8');
     const fn = html.slice(html.indexOf('async function resolvePlayable('), html.indexOf('/* NASA video */'));
     const files = [{name:'sound.mp3'}, ...Array.from({length:8},(_,i)=>({name:`episode-${i+1}.mp4`,format:'h.264'}))];
-    const context = {IOS:false,mArr:v=>v?[v]:[],mStrip:v=>String(v||''),nlog(){},withTO:p=>p,firstOk:async()=>({files,metadata:{}})};
+    const context = {IOS:false,mArr:v=>v?[v]:[],mStrip:v=>String(v||''),iaInterstitialMedia:v=>/(?:^|[._/?-])(?:intro|intros|titlecard|title-card|trailer|preview|sample|thumb|thumbnail|poster|logo)(?:[._/?% -]|$)/i.test(String(v||'')),nlog(){},withTO:p=>p,firstOk:async()=>({files,metadata:{}})};
     vm.createContext(context);vm.runInContext(fn,context);
     assert.equal((await context.resolvePlayable('mixed','video')).type,'video');
     assert.equal((await context.resolvePlayable('mixed','audio')).type,'audio');

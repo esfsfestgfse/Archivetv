@@ -9,6 +9,8 @@ import { SessionRotation } from "./realsignal_api_rotation.js";
 import { mergeSourceLanes, sourceCatalogTasks, sourceProfile, SOURCE_LIMITS } from "./realsignal_source_catalog.js";
 
 const API_PREFIX = "/api/v2";
+const V3_PREFIX = "/api/v3";
+const V3_RELEASE = "3.0.0-rc1";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -50,7 +52,7 @@ function corsHeaders(contentType = "application/json; charset=utf-8") {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "Content-Type, X-RealSignal-Client, X-RealSignal-Session",
     "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-    "Access-Control-Expose-Headers": "X-RealSignal-API, X-RealSignal-Request, X-RealSignal-Source, X-RealSignal-Queue",
+    "Access-Control-Expose-Headers": "X-RealSignal-API, X-RealSignal-Release, X-RealSignal-Request, X-RealSignal-Source, X-RealSignal-Queue",
     "Content-Type": contentType,
     "X-RealSignal-API": "v2",
   };
@@ -91,16 +93,21 @@ function rateLimit(request, kind) {
 }
 
 function routeFor(pathname) {
-  if (pathname === `${API_PREFIX}/health`) return { kind: "health" };
-  if (pathname === `${API_PREFIX}/youtube/uploads`) return { kind: "youtube-uploads" };
-  if (pathname === `${API_PREFIX}/ia/queue` || pathname === `${API_PREFIX}/ia/program`) return { kind: "queue" };
-  if (pathname === `${API_PREFIX}/ia/search`) return { kind: "relay", relayPath: "/ia/search" };
-  if (pathname.startsWith(`${API_PREFIX}/ia/metadata/`)) {
-    const id = pathname.slice(`${API_PREFIX}/ia/metadata/`.length);
-    return id ? { kind: "relay", relayPath: `/ia/metadata/${id}` } : null;
+  for (const [prefix, apiVersion] of [[API_PREFIX, "v2"], [V3_PREFIX, "v3"]]) {
+    if (pathname === `${prefix}/health`) return { kind: "health", apiVersion };
+    if (pathname === `${prefix}/youtube/uploads`) return { kind: "youtube-uploads", apiVersion };
+    if (pathname === `${prefix}/telemetry`) return { kind: "telemetry", apiVersion };
+    if (pathname === `${prefix}/health/channels`) return { kind: "channel-health", apiVersion };
+    if (pathname === `${prefix}/guide`) return { kind: "guide", apiVersion };
+    if (pathname === `${prefix}/ia/queue` || pathname === `${prefix}/ia/program`) return { kind: "queue", apiVersion, prefix };
+    if (pathname === `${prefix}/ia/search`) return { kind: "relay", relayPath: "/ia/search", apiVersion };
+    if (pathname.startsWith(`${prefix}/ia/metadata/`)) {
+      const id = pathname.slice(`${prefix}/ia/metadata/`.length);
+      return id ? { kind: "relay", relayPath: `/ia/metadata/${id}`, apiVersion } : null;
+    }
+    if (pathname === `${prefix}/source/catalog`) return { kind: "source-catalog", apiVersion };
+    if (pathname === `${prefix}/catalog`) return { kind: "catalog", apiVersion };
   }
-  if (pathname === `${API_PREFIX}/source/catalog`) return { kind: "source-catalog" };
-  if (pathname === `${API_PREFIX}/catalog`) return { kind: "catalog" };
   return null;
 }
 
@@ -393,6 +400,7 @@ async function handleQueue(request, env, ctx, id) {
   catch (error) { return json({ error: error instanceof RangeError ? error.message : "invalid JSON body", requestId: id }, error instanceof RangeError ? 413 : 400); }
   if (!body || typeof body !== "object" || Array.isArray(body)) return json({ error: "queue payload must be an object", requestId: id }, 400);
   if (!String(body.channel || "").trim()) return json({ error: "channel is required", requestId: id }, 400);
+  const apiVersion = new URL(request.url).pathname.startsWith(V3_PREFIX) ? "v3" : "v2";
   const count = Math.max(1, Math.min(5, Number(body.count) || 3));
   const upstreamBody = { ...body, count };
   delete upstreamBody.sessionId;
@@ -408,11 +416,12 @@ async function handleQueue(request, env, ctx, id) {
           fastRotated = { payload: fastCatalog, rotation: { configured: false, fallback: true } };
         }
         const headers = new Headers(corsHeaders());
-        headers.set("X-RealSignal-API", "v2");
+        headers.set("X-RealSignal-API", apiVersion);
+        if (apiVersion === "v3") headers.set("X-RealSignal-Release", V3_RELEASE);
         headers.set("X-RealSignal-Request", id);
         headers.set("X-RealSignal-Source", "d1-catalog-fast-lane+session-rotation");
         headers.set("X-RealSignal-Queue", JSON.stringify({ ready: Number(fastRotated.payload.ready || (fastRotated.payload.items || []).length), background: false, fastCatalogLane: true }));
-        return new Response(JSON.stringify({ ...fastRotated.payload, apiVersion: "v2", fastCatalogLane: true }), { status: 200, headers });
+        return new Response(JSON.stringify({ ...fastRotated.payload, apiVersion, release: apiVersion === "v3" ? V3_RELEASE : undefined, fastCatalogLane: true }), { status: 200, headers });
       }
     } catch (error) {
       console.warn(JSON.stringify({ event: "fast-catalog-read-failed", requestId: id, channel: String(body.channel), error: String(error).slice(0, 160) }));
@@ -461,14 +470,15 @@ async function handleQueue(request, env, ctx, id) {
   }
   if (catalogJob(body, rotated.payload)) ctx.waitUntil(enqueueCatalog(env, body, rotated.payload));
   const headers = new Headers(corsHeaders());
-  headers.set("X-RealSignal-API", "v2");
+  headers.set("X-RealSignal-API", apiVersion);
+  if (apiVersion === "v3") headers.set("X-RealSignal-Release", V3_RELEASE);
   headers.set("X-RealSignal-Request", id);
   headers.set("X-RealSignal-Source", catalogRecovery ? "d1-catalog+session-rotation" : "ais-relay+session-rotation");
   headers.set("X-RealSignal-Queue", JSON.stringify({ ready: Number(rotated.payload.ready || (rotated.payload.items || []).length), background: !!rotated.payload.hydrating }));
   /* A catalog recovery is a successful queue response. Returning the relay's
      original 4xx/5xx here made the browser discard the valid D1 shelf and
      retry the same dead upstream path. */
-  return new Response(JSON.stringify({ ...rotated.payload, apiVersion: "v2" }), { status: catalogRecovery ? 200 : upstream.status, headers });
+  return new Response(JSON.stringify({ ...rotated.payload, apiVersion, release: apiVersion === "v3" ? V3_RELEASE : undefined }), { status: catalogRecovery ? 200 : upstream.status, headers });
 }
 
 async function handleCatalog(request, env) {
@@ -479,6 +489,115 @@ async function handleCatalog(request, env) {
   const limit = Math.max(1, Math.min(50, Number(url.searchParams.get("limit")) || 20));
   const result = await env.realsignal_catalog.prepare(`SELECT p.* FROM programs p JOIN channel_programs cp ON cp.program_id=p.id WHERE cp.channel_key=? AND p.status='active' ORDER BY cp.last_seen_at DESC LIMIT ?`).bind(channel, limit).all();
   return json({ channel, items: result.results || [], source: "d1-catalog" }, 200, { "Cache-Control": "public, max-age=15, stale-while-revalidate=60" });
+}
+
+const V3_EVENT_TYPES = new Set([
+  "tune-complete", "first-visible-frame", "guide-open", "guide-close", "queue-sample",
+  "repeat", "control", "stall", "media-error", "tune-failed", "startup-timeout",
+  "source-recovery", "source-recovery-failed", "source-success", "source-failure",
+]);
+
+function finiteMetric(value, min = 0, max = 86_400_000) {
+  const number = Number(value);
+  return Number.isFinite(number) && number >= min && number <= max ? number : null;
+}
+
+function telemetryEvents(body) {
+  const source = Array.isArray(body && body.events) ? body.events : [body];
+  return source.slice(0, 40).map((event) => {
+    const type = String(event && event.type || "").slice(0, 48);
+    if (!V3_EVENT_TYPES.has(type)) return null;
+    const channel = String(event && (event.channel || event.channelKey) || "").replace(/[^a-zA-Z0-9._:-]/g, "").slice(0, 120);
+    if (!channel) return null;
+    return {
+      type,
+      channel,
+      surface: String(event && event.surface || body && body.surface || "unknown").slice(0, 24),
+      castConnected: event && event.castConnected === true || body && body.castConnected === true ? 1 : 0,
+      valueMs: finiteMetric(event && (event.ms != null ? event.ms : event.valueMs)),
+      queueDepth: finiteMetric(event && (event.depth != null ? event.depth : event.queueDepth), 0, 1000),
+      programId: String(event && (event.programKey || event.programId) || "").slice(0, 500),
+      sourceKey: String(event && (event.source || event.sourceKey) || "").slice(0, 120),
+      status: String(event && event.status || "").slice(0, 80),
+      metadata: JSON.stringify({ reason: String(event && event.reason || "").slice(0, 120) }),
+    };
+  }).filter(Boolean);
+}
+
+function telemetryDeltas(event) {
+  const value = event.valueMs == null ? 0 : event.valueMs;
+  const hasValue = event.valueMs != null ? 1 : 0;
+  return {
+    samples: 1,
+    firstCount: event.type === "first-visible-frame" && hasValue ? 1 : 0,
+    firstTotal: event.type === "first-visible-frame" ? value : 0,
+    firstLast: event.type === "first-visible-frame" ? event.valueMs : null,
+    switchCount: event.type === "tune-complete" && hasValue ? 1 : 0,
+    switchTotal: event.type === "tune-complete" ? value : 0,
+    switchLast: event.type === "tune-complete" ? event.valueMs : null,
+    guideCount: (event.type === "guide-open" || event.type === "guide-close") && hasValue ? 1 : 0,
+    guideTotal: (event.type === "guide-open" || event.type === "guide-close") ? value : 0,
+    guideLast: (event.type === "guide-open" || event.type === "guide-close") ? event.valueMs : null,
+    queueCount: event.type === "queue-sample" && event.queueDepth != null ? 1 : 0,
+    queueTotal: event.type === "queue-sample" && event.queueDepth != null ? event.queueDepth : 0,
+    queueLast: event.type === "queue-sample" ? event.queueDepth : null,
+    repeats: event.type === "repeat" ? 1 : 0,
+    skips: event.type === "control" ? 1 : 0,
+    stalls: event.type === "stall" ? 1 : 0,
+    failures: ["media-error", "tune-failed", "startup-timeout", "source-recovery-failed"].includes(event.type) ? 1 : 0,
+    recoveries: ["source-recovery", "source-success"].includes(event.type) ? 1 : 0,
+  };
+}
+
+async function persistTelemetry(env, events, clientKey) {
+  if (!events.length || !env.realsignal_catalog || typeof env.realsignal_catalog.batch !== "function") return;
+  const now = Date.now();
+  const statements = [];
+  for (const event of events) {
+    const id = `${now.toString(36)}-${crypto.randomUUID()}`;
+    statements.push(env.realsignal_catalog.prepare(`INSERT INTO playback_events (id, channel_key, client_key, surface, cast_connected, event_type, value_ms, queue_depth, program_id, source_key, created_at, metadata_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(id, event.channel, clientKey, event.surface, event.castConnected, event.type, event.valueMs, event.queueDepth, event.programId, event.sourceKey, now, event.metadata));
+    const d = telemetryDeltas(event);
+    statements.push(env.realsignal_catalog.prepare(`INSERT INTO channel_health (channel_key, samples, first_frame_count, first_frame_total_ms, first_frame_last_ms, switch_count, switch_total_ms, switch_last_ms, guide_count, guide_total_ms, guide_last_ms, queue_samples, queue_total_depth, queue_last_depth, repeats, skips, stalls, failures, recoveries, last_status, last_seen_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(channel_key) DO UPDATE SET samples=channel_health.samples+excluded.samples, first_frame_count=channel_health.first_frame_count+excluded.first_frame_count, first_frame_total_ms=channel_health.first_frame_total_ms+excluded.first_frame_total_ms, first_frame_last_ms=COALESCE(excluded.first_frame_last_ms, channel_health.first_frame_last_ms), switch_count=channel_health.switch_count+excluded.switch_count, switch_total_ms=channel_health.switch_total_ms+excluded.switch_total_ms, switch_last_ms=COALESCE(excluded.switch_last_ms, channel_health.switch_last_ms), guide_count=channel_health.guide_count+excluded.guide_count, guide_total_ms=channel_health.guide_total_ms+excluded.guide_total_ms, guide_last_ms=COALESCE(excluded.guide_last_ms, channel_health.guide_last_ms), queue_samples=channel_health.queue_samples+excluded.queue_samples, queue_total_depth=channel_health.queue_total_depth+excluded.queue_total_depth, queue_last_depth=COALESCE(excluded.queue_last_depth, channel_health.queue_last_depth), repeats=channel_health.repeats+excluded.repeats, skips=channel_health.skips+excluded.skips, stalls=channel_health.stalls+excluded.stalls, failures=channel_health.failures+excluded.failures, recoveries=channel_health.recoveries+excluded.recoveries, last_status=COALESCE(NULLIF(excluded.last_status, ''), channel_health.last_status), last_seen_at=excluded.last_seen_at`).bind(event.channel, d.samples, d.firstCount, d.firstTotal, d.firstLast, d.switchCount, d.switchTotal, d.switchLast, d.guideCount, d.guideTotal, d.guideLast, d.queueCount, d.queueTotal, d.queueLast, d.repeats, d.skips, d.stalls, d.failures, d.recoveries, event.status, now));
+    if (event.sourceKey && (event.type === "source-success" || event.type === "source-failure")) {
+      const successes = event.type === "source-success" ? 1 : 0;
+      const failures = event.type === "source-failure" ? 1 : 0;
+      const cooldown = event.type === "source-failure" ? now + 5 * 60 * 1000 : 0;
+      statements.push(env.realsignal_catalog.prepare(`INSERT INTO source_health (source_key, successes, failures, cooldown_until, last_error, updated_at) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(source_key) DO UPDATE SET successes=source_health.successes+excluded.successes, failures=source_health.failures+excluded.failures, cooldown_until=CASE WHEN excluded.failures>0 THEN excluded.cooldown_until ELSE 0 END, last_error=CASE WHEN excluded.failures>0 THEN excluded.last_error ELSE source_health.last_error END, updated_at=excluded.updated_at`).bind(event.sourceKey, successes, failures, cooldown, event.type === "source-failure" ? event.status || "provider failure" : "", now));
+    }
+  }
+  await env.realsignal_catalog.batch(statements);
+}
+
+async function handleTelemetry(request, env, ctx, id) {
+  let body;
+  try { body = await readBoundedJson(request); }
+  catch (error) { return json({ error: error instanceof RangeError ? error.message : "invalid JSON body", requestId: id }, error instanceof RangeError ? 413 : 400); }
+  const events = telemetryEvents(body);
+  if (!events.length) return json({ error: "no valid telemetry events", requestId: id }, 400);
+  const clientKey = requestClientKey(request);
+  const work = persistTelemetry(env, events, clientKey).catch((error) => {
+    console.warn(JSON.stringify({ event: "v3-telemetry-write-failed", requestId: id, error: String(error).slice(0, 180) }));
+  });
+  if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(work); else await work;
+  return json({ accepted: events.length, apiVersion: "v3", release: V3_RELEASE, requestId: id }, 202, { "Cache-Control": "no-store", "X-RealSignal-Release": V3_RELEASE });
+}
+
+async function handleChannelHealth(request, env) {
+  if (!env.realsignal_catalog || typeof env.realsignal_catalog.prepare !== "function") return json({ error: "catalog binding is not configured" }, 503);
+  const limit = Math.max(1, Math.min(100, Number(new URL(request.url).searchParams.get("limit")) || 30));
+  const result = await env.realsignal_catalog.prepare(`SELECT channel_key, samples, first_frame_count, CASE WHEN first_frame_count>0 THEN ROUND(first_frame_total_ms/first_frame_count) ELSE NULL END AS first_frame_avg_ms, first_frame_last_ms, switch_count, CASE WHEN switch_count>0 THEN ROUND(switch_total_ms/switch_count) ELSE NULL END AS switch_avg_ms, switch_last_ms, guide_count, CASE WHEN guide_count>0 THEN ROUND(guide_total_ms/guide_count) ELSE NULL END AS guide_avg_ms, queue_samples, CASE WHEN queue_samples>0 THEN ROUND(queue_total_depth/queue_samples) ELSE NULL END AS queue_avg_depth, queue_last_depth, repeats, skips, stalls, failures, recoveries, last_status, last_seen_at FROM channel_health ORDER BY failures DESC, stalls DESC, repeats DESC, last_seen_at DESC LIMIT ?`).bind(limit).all();
+  return json({ apiVersion: "v3", release: V3_RELEASE, channels: result.results || [] }, 200, { "Cache-Control": "public, max-age=15, stale-while-revalidate=60", "X-RealSignal-Release": V3_RELEASE });
+}
+
+async function handleGuide(request, env) {
+  if (!env.realsignal_catalog || typeof env.realsignal_catalog.prepare !== "function") return json({ error: "catalog binding is not configured" }, 503);
+  const url = new URL(request.url);
+  const channel = String(url.searchParams.get("channel") || "").replace(/[^a-zA-Z0-9._:-]/g, "").slice(0, 120);
+  if (!channel) return json({ error: "channel is required" }, 400);
+  const limit = Math.max(2, Math.min(20, Number(url.searchParams.get("limit")) || 8));
+  const result = await env.realsignal_catalog.prepare(`SELECT p.id, p.title, p.description, p.duration_seconds, p.media_type, p.media_url, p.source_url, p.rights, p.year, cp.last_seen_at FROM programs p JOIN channel_programs cp ON cp.program_id=p.id WHERE cp.channel_key=? AND p.status='active' AND p.media_url IS NOT NULL ORDER BY cp.last_seen_at DESC LIMIT ?`).bind(channel, limit).all();
+  const items = result.results || [];
+  return json({ apiVersion: "v3", release: V3_RELEASE, channel, current: items[0] || null, next: items[1] || null, items, verified: true, source: "d1-verified-catalog" }, 200, { "Cache-Control": "public, max-age=10, stale-while-revalidate=30", "X-RealSignal-Release": V3_RELEASE });
 }
 
 async function firstSourceLane(tasks) {
@@ -531,6 +650,7 @@ async function handleSourceCatalog(request, env, ctx, id) {
   const profile = sourceProfile(body);
   if (!profile) return json({ error: "unknown source profile", requestId: id }, 404);
   if (!profile.queries.length) return json({ error: "source profile has no discovery queries", requestId: id }, 503);
+  const apiVersion = new URL(request.url).pathname.startsWith(V3_PREFIX) ? "v3" : "v2";
   const rotation = Number(body.rotation) || 0;
   const cached = await catalogFallback(env, {
     channel: profile.profileKey,
@@ -554,7 +674,7 @@ async function handleSourceCatalog(request, env, ctx, id) {
       scheduleSourceRefresh(env, ctx, normalized, tasks, id);
     }
     const hydrating = cached.items.length < minimumReady;
-    return json({ ...cached, profileKey: profile.profileKey, catalogVersion: "source-server-1", source: "d1-source-catalog", hydrating, staleCatalog: hydrating, providerAvailability: { youtube: !!env.YOUTUBE_API_KEY, peertube: true }, apiVersion: "v2" }, 200, { "Cache-Control": "public, max-age=10, stale-while-revalidate=60", "X-RealSignal-Request": id, "X-RealSignal-Source": "d1-source-catalog" });
+    return json({ ...cached, profileKey: profile.profileKey, catalogVersion: "source-server-1", source: "d1-source-catalog", hydrating, staleCatalog: hydrating, providerAvailability: { youtube: !!env.YOUTUBE_API_KEY, peertube: true }, apiVersion, release: apiVersion === "v3" ? V3_RELEASE : undefined }, 200, { "Cache-Control": "public, max-age=10, stale-while-revalidate=60", "X-RealSignal-Request": id, "X-RealSignal-Source": "d1-source-catalog", "X-RealSignal-Release": apiVersion === "v3" ? V3_RELEASE : "2.2.2" });
   }
   const { profile: normalized, tasks } = sourceCatalogTasks(body, env, rotation);
   let firstTimer;
@@ -565,7 +685,7 @@ async function handleSourceCatalog(request, env, ctx, id) {
     }),
   ]).finally(() => clearTimeout(firstTimer));
   scheduleSourceRefresh(env, ctx, normalized, tasks, id);
-  return json({ profileKey: normalized.profileKey, items: first.items, ready: first.ready, candidates: first.candidates, lanes: first.lanes, hydrating: true, catalogVersion: "source-server-1", source: "server-source-catalog", providerAvailability: { youtube: !!env.YOUTUBE_API_KEY, peertube: true }, limits: SOURCE_LIMITS, apiVersion: "v2" }, first.items.length ? 200 : 503, { "Cache-Control": "no-store", "X-RealSignal-Request": id, "X-RealSignal-Source": "server-source-catalog" });
+  return json({ profileKey: normalized.profileKey, items: first.items, ready: first.ready, candidates: first.candidates, lanes: first.lanes, hydrating: true, catalogVersion: "source-server-1", source: "server-source-catalog", providerAvailability: { youtube: !!env.YOUTUBE_API_KEY, peertube: true }, limits: SOURCE_LIMITS, apiVersion, release: apiVersion === "v3" ? V3_RELEASE : undefined }, first.items.length ? 200 : 503, { "Cache-Control": "no-store", "X-RealSignal-Request": id, "X-RealSignal-Source": "server-source-catalog", "X-RealSignal-Release": apiVersion === "v3" ? V3_RELEASE : "2.2.2" });
 }
 
 const worker = {
@@ -576,7 +696,24 @@ const worker = {
     const url = new URL(request.url);
     const route = routeFor(url.pathname);
     try {
-      if (route && route.kind === "health") return json({ service: "realsignal-api", apiVersion: "v2", status: "ready", capabilities: ["ia-search", "ia-metadata", "ia-queue", "session-rotation", "catalog-jobs", "source-catalog", "youtube-sports"], bindings: { relay: !!env.RELAY, rotation: !!env.ROTATION, catalog: !!env.realsignal_catalog, refreshQueue: !!env.realsignal_catalog_refresh }, checkedAt: new Date().toISOString() }, 200, { "Cache-Control": "no-store", "X-RealSignal-Request": id });
+      if (route && route.kind === "health") {
+        const v3 = route.apiVersion === "v3";
+        return json({ service: "realsignal-api", apiVersion: v3 ? "v3" : "v2", release: v3 ? V3_RELEASE : "2.2.2", status: "ready", capabilities: ["ia-search", "ia-metadata", "ia-queue", "session-rotation", "catalog-jobs", "source-catalog", ...(v3 ? ["verified-guide", "server-telemetry", "source-health"] : []), "youtube-sports"], bindings: { relay: !!env.RELAY, rotation: !!env.ROTATION, catalog: !!env.realsignal_catalog, refreshQueue: !!env.realsignal_catalog_refresh }, checkedAt: new Date().toISOString() }, 200, { "Cache-Control": "no-store", "X-RealSignal-Request": id, "X-RealSignal-Release": v3 ? V3_RELEASE : "2.2.2" });
+      }
+      if (route && route.kind === "telemetry") {
+        if (request.method !== "POST") return json({ error: "method not allowed", requestId: id }, 405, { Allow: "POST,OPTIONS" });
+        const limited = rateLimit(request, "queue");
+        if (limited) return limited;
+        return await handleTelemetry(request, env, ctx, id);
+      }
+      if (route && route.kind === "channel-health") {
+        if (request.method !== "GET") return json({ error: "method not allowed", requestId: id }, 405, { Allow: "GET,OPTIONS" });
+        return await handleChannelHealth(request, env);
+      }
+      if (route && route.kind === "guide") {
+        if (request.method !== "GET") return json({ error: "method not allowed", requestId: id }, 405, { Allow: "GET,OPTIONS" });
+        return await handleGuide(request, env);
+      }
       if (route && route.kind === "youtube-uploads") {
         if (request.method !== "GET") return json({ error: "method not allowed", requestId: id }, 405, { Allow: "GET,OPTIONS" });
         const limited = rateLimit(request, route.kind);
@@ -603,7 +740,7 @@ const worker = {
       if (request.method !== "GET") return json({ error: "method not allowed", requestId: id }, 405, { Allow: "GET,OPTIONS" });
       return await forwardToRelay(request, env, route.relayPath, undefined, id);
     } catch (error) {
-      console.error(JSON.stringify({ event: "v2-request-failed", requestId: id, path: url.pathname, error: String(error).slice(0, 200) }));
+      console.error(JSON.stringify({ event: "api-request-failed", requestId: id, path: url.pathname, error: String(error).slice(0, 200) }));
       return json({ error: "internal server error", requestId: id }, 500, { "Cache-Control": "no-store" });
     }
   },

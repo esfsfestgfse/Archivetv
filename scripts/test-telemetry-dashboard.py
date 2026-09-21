@@ -54,7 +54,7 @@ async def main():
         build = await page.evaluate("() => window.__ATV_BUILD")
         summary = await page.evaluate("() => window.__rsRelease2Telemetry.summary()")
         lanes = page.locator(".rs-health-lane")
-        assert build.startswith("2.2.1-"), build
+        assert build.startswith(("2.2.1-", "2.2.2-", "3.0.0-rc1")), build
         assert summary["sessions"] == 3, summary
         assert await lanes.count() == 2
         assert await lanes.nth(0).get_attribute("data-rs-channel") == "11"

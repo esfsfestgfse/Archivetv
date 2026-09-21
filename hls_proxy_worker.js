@@ -1,5 +1,9 @@
 const ALLOWED_PROTOCOLS = new Set(["http:", "https:"]);
-const ALLOWED_HOSTS = ["jmp2.uk", "pluto.tv", "plutotv.net"];
+// FAST redirectors hand off to their media CDN after the first playlist. Keep
+// this allowlist deliberate: CloudFront is required for the Samsung TV Plus
+// child manifests observed in production, while arbitrary upstream hosts stay
+// blocked to avoid turning the relay into an open proxy.
+const ALLOWED_HOSTS = ["jmp2.uk", "pluto.tv", "plutotv.net", "samsungtv.plus", "cloudfront.net", "akamaized.net"];
 const MAX_UPSTREAM_REDIRECTS = 3;
 const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
 

@@ -11423,11 +11423,32 @@ async function fetchIPTV(){
      health system culls them automatically after two strikes -- no manual list needed. */
   var fastLists=await Promise.all(FAST_FEEDS.map(function(feed){return fetchM3USource(feed[0],feed[1],function(c){return !looksNonEnglish(c.name);});}));
   fastLists.forEach(function(list){out=out.concat(list);});
+  /* Keep one visible row per channel name, but retain the other provider URLs
+     behind it. FAST catalogs commonly publish the same channel through Pluto,
+     Roku, Samsung, and IPTV-org; throwing those duplicates away made one dead
+     or unsupported provider look like the whole channel was dead. */
   var byName={};
   out.forEach(function(c){ if(isRedirectorUrl(c.url)) c.viaRedirect=true;
     var k=(c.name||"").toLowerCase().replace(/\s+/g," ").trim(); if(!k)return;
-    if(!byName[k]||(c.checked&&!byName[k].checked)) byName[k]=c; });
-  out=Object.keys(byName).map(function(k){ return byName[k]; });
+    if(!byName[k]){ c.alternates=[]; byName[k]=c; return; }
+    var primary=byName[k];
+    if(String(primary.url||"")===String(c.url||""))return;
+    if(!Array.isArray(primary.alternates))primary.alternates=[];
+    primary.alternates.push(c);
+    /* A checked/verified source is a better primary, but never discard the
+       displaced source: it becomes the recovery candidate. */
+    var trust=function(x){return (x.checked?30:0)+(x.verified?20:0)+(x.tvgId?5:0)+(x.src==="Tubi"?8:0)+(x.src==="Pluto TV"?7:0)+(x.src==="Roku"?6:0)+(x.src==="Xumo"?5:0)-(x.src==="Samsung TV+"?2:0);};
+    if(trust(c)>trust(primary)){ c.alternates=(primary.alternates||[]).concat([primary]); byName[k]=c; }
+  });
+  out=Object.keys(byName).map(function(k){
+    var c=byName[k];
+    c.alternates=(c.alternates||[]).filter(function(a,i,arr){return a&&a.url&&arr.findIndex(function(x){return String(x.url)===String(a.url);})===i;});
+    c.alternates.sort(function(a,b){
+      var score=function(x){return (x.checked?30:0)+(x.verified?20:0)+(x.tvgId?5:0)+(x.src==="Tubi"?8:0)+(x.src==="Pluto TV"?7:0)+(x.src==="Roku"?6:0)+(x.src==="Xumo"?5:0)-(x.src==="Samsung TV+"?2:0);};
+      return score(b)-score(a);
+    });
+    return c;
+  });
   iptvCache=out; return out;
 }
 /* ---------- EPG "now playing" ----------
@@ -11659,17 +11680,23 @@ function sortByHealthThenName(arr){
   });
   return arr;
 }
-async function playTV(c,my,list,idx,triedCount,proxyIdx){
+async function playTV(c,my,list,idx,triedCount,proxyIdx,altIdx){
   var pane=$("tvPane"); if(!pane||!c)return;
   /* pane starts collapsed (tv-pane-idle) so an empty black box doesn't push the channel list
      off-screen; expand it now that a channel has actually been chosen */
   try{ pane.classList.remove("tv-pane-idle"); pane.classList.add("tv-pane-live"); }catch(e){}
-  list=list||[c]; idx=idx==null?0:idx; triedCount=triedCount||1; proxyIdx=proxyIdx||0;
+  list=list||[c]; idx=idx==null?0:idx; triedCount=triedCount||1; proxyIdx=proxyIdx||0; altIdx=altIdx||0;
+  /* A FAST title can have several legal provider URLs. Keep the channel name
+     fixed while walking those URLs, so a bad edge or codec does not strand an
+     otherwise playable selection or silently jump to a different channel. */
+  var rootC=c, sourceAlternates=[rootC].concat(Array.isArray(rootC.alternates)?rootC.alternates:[]);
+  c=sourceAlternates[altIdx]||rootC;
   if(typeof window.__rsCastIsConnected==="function"&&window.__rsCastIsConnected()){
     var castProxies=streamProxyList();
     if(isRedirectorUrl(c.url)){var castHlsProxy="https://hls-proxy.tdy1990.workers.dev";if(castProxies.indexOf(castHlsProxy)<0)castProxies.unshift(castHlsProxy);}
     var castSrc=castProxies.length?proxiedVia(castProxies[Math.min(proxyIdx,castProxies.length-1)],c.url,{ua:c.ua,ref:c.ref}):c.url;
-    var castCh=byNum(curNum),castItem={id:"fast:"+tvHealthKey(c),url:castSrc,type:"video",title:c.name,alts:castProxies.map(function(p){return proxiedVia(p,c.url,{ua:c.ua,ref:c.ref});})};
+    var castAlts=[]; sourceAlternates.forEach(function(a){castProxies.forEach(function(p){castAlts.push(proxiedVia(p,a.url,{ua:a.ua,ref:a.ref}));});});
+    var castCh=byNum(curNum),castItem={id:"fast:"+tvHealthKey(c),url:castSrc,type:"video",title:c.name,alts:castAlts};
     if(typeof window.__rsCastPublishMedia==="function")window.__rsCastPublishMedia(castItem,castCh);
     pane.innerHTML='<div class="dc-media-cap">CASTING: '+esch(String(c.name).toUpperCase())+' · CONTROL FROM PHONE</div>';
     return;
@@ -11699,7 +11726,14 @@ async function playTV(c,my,list,idx,triedCount,proxyIdx){
        after every proxy has been tried do we move on to the next channel. */
     if(proxyIdx+1<proxies.length){
       nlog("livetv",false,c.name+": retrying via proxy "+(proxyIdx+2)+"/"+proxies.length);
-      setTimeout(function(){ if(my===token) playTV(c,my,list,idx,triedCount,proxyIdx+1); },400);
+      setTimeout(function(){ if(my===token) playTV(rootC,my,list,idx,triedCount,proxyIdx+1,altIdx); },400);
+      return;
+    }
+    /* Keep the requested title, but try its next provider before declaring it
+       dead. This distinguishes a dead URL from a dead FAST channel name. */
+    if(altIdx+1<sourceAlternates.length){
+      nlog("livetv",false,c.name+": retrying alternate provider "+(altIdx+2)+"/"+sourceAlternates.length);
+      setTimeout(function(){ if(my===token) playTV(rootC,my,list,idx,triedCount,0,altIdx+1); },400);
       return;
     }
     /* Explicit picks stay on the selected channel, but only after every configured proxy has
@@ -11777,6 +11811,15 @@ async function playTV(c,my,list,idx,triedCount,proxyIdx){
     },secs*1000);
   }
 
+  function manifestNeedsUnsupportedCodec(data){
+    var levels=(data&&data.levels)||(tvHls&&tvHls.levels)||[];
+    var codecs=levels.map(function(level){return String(level&&level.codecs||"").toLowerCase();}).filter(Boolean);
+    if(!codecs.length)return false;
+    var videoCodecs=codecs.map(function(value){return value.split(",")[0].trim();}).filter(Boolean);
+    var onlyHevc=videoCodecs.length>0&&videoCodecs.every(function(codec){return /^(hvc1|hev1|hevc)/i.test(codec);});
+    return onlyHevc&&!v.canPlayType('video/mp4; codecs="hvc1.1.6.L93.B0"');
+  }
+
   /* hls.js FIRST, native second. Android Chrome reports it can play HLS natively, so the old
      order took the native path and returned early -- meaning on the actual target device none
      of the recovery logic (startLoad / recoverMediaError) or detailed error reporting ever ran,
@@ -11798,7 +11841,12 @@ async function playTV(c,my,list,idx,triedCount,proxyIdx){
       tvHls=new Hls({liveDurationInfinity:true});
       tvHls.loadSource(src); tvHls.attachMedia(v);
       var netRecover=0, medRecover=0;
-      tvHls.on(Hls.Events.MANIFEST_PARSED,function(){
+      tvHls.on(Hls.Events.MANIFEST_PARSED,function(_,data){
+        if(manifestNeedsUnsupportedCodec(data)){
+          try{tvHls.destroy();}catch(e){} tvHls=null;
+          fail("unsupported video codec");
+          return;
+        }
         try{var pT2=v.play(); if(pT2&&pT2.catch)pT2.catch(function(){});}catch(e){}
         startWatch(15);   /* manifest is only the promise -- frames are the proof */
       });

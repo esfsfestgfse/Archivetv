@@ -19,11 +19,14 @@ const required = [
   'iaCachedProgramAllowed',
   'manufacturingMarvelsGateVersion',
 ];
-for (const token of ['IA_STRICT_RECOVERY_CHANNELS', 'new Set(["200"])', 'strictRecoveryQueue', 'program-director-strict-recovery']) {
+for (const token of ['IA_STRICT_RECOVERY_CHANNELS', 'strictRecoveryQueue', 'program-director-strict-recovery']) {
   const pass = relay.includes(token);
   console.log(`relay: ${token}: ${pass ? 'ok' : 'FAIL'}`);
   if (!pass) failures++;
 }
+const strictRecoveryKeepsManufacturing = /IA_STRICT_RECOVERY_CHANNELS\s*=\s*new Set\(\[[^\]]*"200"/.test(relay);
+console.log(`relay: strict recovery retains channel 200: ${strictRecoveryKeepsManufacturing ? 'ok' : 'FAIL'}`);
+if (!strictRecoveryKeepsManufacturing) failures++;
 
 for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
   const source = fs.readFileSync(path.join(root, file), 'utf8');

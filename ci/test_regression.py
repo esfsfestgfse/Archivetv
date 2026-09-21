@@ -1,5 +1,5 @@
 """CI: 10-point functional regression covering core channel-switching and panel behavior."""
-import asyncio, sys
+import asyncio, re, sys
 from playwright.async_api import async_playwright
 
 TARGET = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:8799/the_dial_mobile.html"
@@ -95,7 +95,10 @@ async def main():
         runtime_build = await pg.evaluate("()=>String(window.__ATV_BUILD||'')")
         visible_build = await pg.evaluate("()=>{var e=document.getElementById('atv-build-stamp-value');return e?e.textContent.trim():'';}")
         version_chip = await pg.evaluate("()=>{var e=document.getElementById('verChip');return e?e.textContent.trim():'';}")
-        version_is_numeric = version_chip.startswith("v") and version_chip[1:].isdigit()
+        # Current builds use semantic release chips (for example v3.0.0), while
+        # older builds used a single integer (for example v159). Accept both
+        # formats, but keep the check strict enough to reject an empty/stale UI.
+        version_is_numeric = bool(re.fullmatch(r"v\d+(?:\.\d+){0,2}", version_chip))
         check("9. Visible build stamp matches runtime build", bool(runtime_build and visible_build == runtime_build and version_is_numeric))
 
         # 10. No page errors throughout

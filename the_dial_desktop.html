@@ -6864,7 +6864,8 @@ function normSearch(d){ if(d&&d.response) return {numFound:(d.response.numFound|
   if(d&&d.items) return {numFound:(d.total||d.count||d.items.length||0), docs:d.items};
   throw new Error("unexpected response shape"); }
 var IA_RELAY_BASE="https://ais-relay.tdy1990.workers.dev/ia";
-var IA_API_BASE="https://realsignal-api.tdy1990.workers.dev/api/v2";
+var RS_V3_CANARY=new URLSearchParams(location.search).get('v3')==='1';
+var IA_API_BASE=RS_V3_CANARY?"https://realsignal-api.tdy1990.workers.dev/api/v3":"https://realsignal-api.tdy1990.workers.dev/api/v2";
 function iaSessionId(){var key="realsignal:v2-session",value="";try{value=localStorage.getItem(key)||"";if(!value){value="s-"+(crypto&&crypto.randomUUID?crypto.randomUUID():Date.now()+"-"+Math.random().toString(36).slice(2));localStorage.setItem(key,value);}}catch(e){}return String(value||"anonymous").slice(0,80);}
 async function iaQueueFetch(body){var options={method:"POST",mode:"cors",headers:{"content-type":"application/json","x-realsignal-session":iaSessionId()},body:JSON.stringify({...body,sessionId:iaSessionId()})},v2Payload=null,v2Error=null;try{var response=await fetch(IA_API_BASE+"/ia/queue",options);if(response.ok){v2Payload=await response.json();if(v2Payload&&Array.isArray(v2Payload.items)&&v2Payload.items.length)return v2Payload;}else v2Error=new Error("v2 queue "+response.status);}catch(e){v2Error=e;}try{var legacy=await fetch(IA_RELAY_BASE+"/queue",options);if(legacy.ok){var legacyPayload=await legacy.json();if(legacyPayload&&Array.isArray(legacyPayload.items)&&legacyPayload.items.length)return legacyPayload;if(!v2Payload)return legacyPayload;}}catch(e){}if(v2Payload)return v2Payload;throw v2Error||new Error("queue unavailable");}
 function iaRelaySearchURL(q,rows,page,sort){return IA_RELAY_BASE+"/search?"+[

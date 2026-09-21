@@ -25,9 +25,10 @@ release gates below pass.
 1. **Baseline freeze** — run the full IA soak, Source Suite qualification,
    FAST, radio, guide, desktop, mobile, and Cast regression. Save the reports
    as release artifacts.
-2. **Shadow mode** — enable `?v3Telemetry=1` only for canary sessions. The
-   bridge sends bounded playback measurements; it never sends titles, URLs,
-   account data, or media content.
+2. **Shadow mode** — enable `?v3=1&v3Telemetry=1` only for canary sessions.
+   The client uses the V3 API only with the explicit `v3=1` flag; V2 remains
+   the default rollback path. The telemetry bridge sends bounded playback
+   measurements; it never sends titles, URLs, account data, or media content.
 3. **Canary** — exercise IA, Source Suite, FAST, radio, live data, guide,
    Next, rapid channel changes, and cast handoff on desktop and mobile.
 4. **Full soak** — require zero dead-signal regressions, zero HTTP failures,

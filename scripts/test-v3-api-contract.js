@@ -34,7 +34,7 @@ const { pathToFileURL } = require('node:url');
   assert.equal(health.status, 200);
   const healthBody = await health.json();
   assert.equal(healthBody.apiVersion, 'v3');
-  assert.equal(healthBody.release, '3.0.0-rc1');
+  assert.equal(healthBody.release, '3.1.0-rc1');
   assert.ok(healthBody.capabilities.includes('server-telemetry'));
   assert.ok(healthBody.capabilities.includes('verified-guide'));
 
@@ -60,6 +60,14 @@ const { pathToFileURL } = require('node:url');
   const scorecard = await worker.fetch(new Request('https://api.example/api/v3/health/channels?limit=10'), env, ctx);
   assert.equal(scorecard.status, 200);
   assert.equal((await scorecard.json()).channels[0].channel_key, '12');
+
+  const summary = await worker.fetch(new Request('https://api.example/api/v3/health/summary?hours=24&limit=10'), env, ctx);
+  assert.equal(summary.status, 200);
+  const summaryBody = await summary.json();
+  assert.equal(summaryBody.apiVersion, 'v3');
+  assert.equal(summaryBody.channels[0].score, 100);
+  assert.ok(Array.isArray(summaryBody.sources));
+  assert.ok(Array.isArray(summaryBody.surfaces));
 
   const tooLarge = await worker.fetch(new Request('https://api.example/api/v3/telemetry', { method: 'POST', body: JSON.stringify({ events: [{ type: 'stall', channel: 12, padding: 'x'.repeat(140000) }] }) }), env, ctx);
   assert.equal(tooLarge.status, 413);

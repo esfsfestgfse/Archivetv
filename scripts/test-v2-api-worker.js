@@ -179,6 +179,9 @@ const { pathToFileURL } = require('node:url');
   assert.equal(shallowSourceBody.hydrating, true);
   assert.equal(shallowSourceBody.staleCatalog, true);
   assert.equal(queuedSourceRefreshes.length, 1);
+  const freshSource = await worker.fetch(new Request('https://api.example/api/v2/source/catalog', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ profileKey: 'game-show-archive', rotation: 0, minimumReady: 12, recentIds: ['source-stale-1'] }) }), shallowSourceEnv, shallowSourceCtx);
+  assert.equal(freshSource.status, 200);
+  assert.equal((await freshSource.json()).items[0].id, 'source-stale-2');
 
   const collectionEpisodeRows = [
     ['metallica-collection::track-01', 'Kill Em All · 01 Hit the Lights'],

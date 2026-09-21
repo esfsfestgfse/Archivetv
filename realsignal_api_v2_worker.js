@@ -10,7 +10,7 @@ import { mergeSourceLanes, sourceCatalogTasks, sourceProfile, SOURCE_LIMITS } fr
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "3.0.0-rc1";
+const V3_RELEASE = "3.1.0-rc1";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -98,6 +98,7 @@ function routeFor(pathname) {
     if (pathname === `${prefix}/youtube/uploads`) return { kind: "youtube-uploads", apiVersion };
     if (pathname === `${prefix}/telemetry`) return { kind: "telemetry", apiVersion };
     if (pathname === `${prefix}/health/channels`) return { kind: "channel-health", apiVersion };
+    if (pathname === `${prefix}/health/summary`) return { kind: "health-summary", apiVersion };
     if (pathname === `${prefix}/guide`) return { kind: "guide", apiVersion };
     if (pathname === `${prefix}/ia/queue` || pathname === `${prefix}/ia/program`) return { kind: "queue", apiVersion, prefix };
     if (pathname === `${prefix}/ia/search`) return { kind: "relay", relayPath: "/ia/search", apiVersion };
@@ -279,7 +280,7 @@ async function rotateShelf(env, body, payload, request) {
     ? payload.candidateItems
     : ((payload && payload.items) || []);
   const candidates = uniqueQueueItems(rawCandidates, body);
-  const response = await stub.fetch(new Request("https://rotation.internal/select", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ items: candidates, count: Math.max(1, Math.min(5, Number(body.count) || 3)), rotation: Number(body.rotation) || 0 }) }));
+  const response = await stub.fetch(new Request("https://rotation.internal/select", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ items: candidates, recentIds: Array.isArray(body.recentIds) ? body.recentIds.slice(0, 48) : [], count: Math.max(1, Math.min(5, Number(body.count) || 3)), rotation: Number(body.rotation) || 0 }) }));
   if (!response.ok) throw new Error(`rotation ${response.status}`);
   const selected = await response.json();
   const upstreamReady = Number.isFinite(Number(payload.ready)) ? Number(payload.ready) : (Array.isArray(payload.items) ? payload.items.length : 0);
@@ -359,6 +360,24 @@ function catalogFallbackAllowed(item, body) {
   return true;
 }
 
+function recentCatalogIds(body) {
+  return new Set((Array.isArray(body && body.recentIds) ? body.recentIds : [])
+    .map((value) => String(value || "").trim().slice(0, 500))
+    .filter(Boolean)
+    .slice(-48));
+}
+
+/* Freshness is a preference, not a hard ban. If a catalog has new material,
+   exclude the client's recent shelf. If it does not, return the last-good
+   catalog rather than turning a healthy channel into No Signal. */
+function applyFreshness(items, body) {
+  if (!Array.isArray(items) || !items.length) return [];
+  const recent = recentCatalogIds(body);
+  if (!recent.size) return items;
+  const fresh = items.filter((item) => !recent.has(queueItemKey(item)));
+  return fresh.length ? fresh : items;
+}
+
 async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_MAX_ITEMS) {
   if (!env.realsignal_catalog || typeof env.realsignal_catalog.prepare !== "function") return null;
   const channel = String(body.channel || "").slice(0, 120);
@@ -391,7 +410,8 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
     };
   });
   const filtered = uniqueQueueItems(items, body);
-  return filtered.length ? { items: rotateCatalogItems(filtered, body.rotation), candidateItems: filtered, ready: filtered.length, candidates: filtered.length, fallback: true, stale: true, catalogFallback: true, rotation: Number(body.rotation) || 0 } : null;
+  const fresh = applyFreshness(filtered, body);
+  return fresh.length ? { items: rotateCatalogItems(fresh, body.rotation), candidateItems: fresh, ready: fresh.length, candidates: fresh.length, fallback: true, stale: true, catalogFallback: true, freshnessExcluded: Math.max(0, filtered.length - fresh.length), freshnessWindow: recentCatalogIds(body).size, rotation: Number(body.rotation) || 0 } : null;
 }
 
 async function handleQueue(request, env, ctx, id) {
@@ -589,6 +609,43 @@ async function handleChannelHealth(request, env) {
   return json({ apiVersion: "v3", release: V3_RELEASE, channels: result.results || [] }, 200, { "Cache-Control": "public, max-age=15, stale-while-revalidate=60", "X-RealSignal-Release": V3_RELEASE });
 }
 
+function channelHealthScore(row) {
+  const failures = Number(row.failures || 0);
+  const stalls = Number(row.stalls || 0);
+  const repeats = Number(row.repeats || 0);
+  const firstFrame = Number(row.first_frame_avg_ms || 0);
+  const switchMs = Number(row.switch_avg_ms || 0);
+  let score = 100;
+  score -= Math.min(42, failures * 12);
+  score -= Math.min(24, stalls * 8);
+  score -= Math.min(20, repeats * 4);
+  if (firstFrame > 3000) score -= Math.min(18, Math.round((firstFrame - 3000) / 500));
+  if (switchMs > 1500) score -= Math.min(12, Math.round((switchMs - 1500) / 500));
+  return Math.max(0, Math.min(100, Math.round(score)));
+}
+
+async function handleHealthSummary(request, env) {
+  if (!env.realsignal_catalog || typeof env.realsignal_catalog.prepare !== "function") return json({ error: "catalog binding is not configured" }, 503);
+  const url = new URL(request.url);
+  const limit = Math.max(1, Math.min(100, Number(url.searchParams.get("limit")) || 40));
+  const hours = Math.max(1, Math.min(168, Number(url.searchParams.get("hours")) || 24));
+  const since = Date.now() - (hours * 60 * 60 * 1000);
+  const channelQuery = env.realsignal_catalog.prepare(`SELECT channel_key, samples, first_frame_count, CASE WHEN first_frame_count>0 THEN ROUND(first_frame_total_ms/first_frame_count) ELSE NULL END AS first_frame_avg_ms, first_frame_last_ms, switch_count, CASE WHEN switch_count>0 THEN ROUND(switch_total_ms/switch_count) ELSE NULL END AS switch_avg_ms, switch_last_ms, guide_count, CASE WHEN guide_count>0 THEN ROUND(guide_total_ms/guide_count) ELSE NULL END AS guide_avg_ms, queue_samples, CASE WHEN queue_samples>0 THEN ROUND(queue_total_depth/queue_samples) ELSE NULL END AS queue_avg_depth, queue_last_depth, repeats, skips, stalls, failures, recoveries, last_status, last_seen_at FROM channel_health WHERE last_seen_at>=? ORDER BY failures DESC, stalls DESC, repeats DESC, last_seen_at DESC LIMIT ?`).bind(since, limit).all();
+  const sourceQuery = env.realsignal_catalog.prepare(`SELECT source_key, successes, failures, cooldown_until, last_error, updated_at FROM source_health WHERE updated_at>=? ORDER BY failures DESC, successes DESC, updated_at DESC LIMIT 100`).bind(since).all();
+  const surfaceQuery = env.realsignal_catalog.prepare(`SELECT surface, cast_connected, COUNT(*) AS events, SUM(CASE WHEN event_type='first-visible-frame' THEN 1 ELSE 0 END) AS frames, SUM(CASE WHEN event_type IN ('media-error','tune-failed','startup-timeout','source-recovery-failed') THEN 1 ELSE 0 END) AS failures FROM playback_events WHERE created_at>=? GROUP BY surface, cast_connected ORDER BY events DESC`).bind(since).all();
+  const totalsQuery = env.realsignal_catalog.prepare(`SELECT COUNT(*) AS events, SUM(CASE WHEN event_type='first-visible-frame' THEN 1 ELSE 0 END) AS frames, SUM(CASE WHEN event_type IN ('media-error','tune-failed','startup-timeout','source-recovery-failed') THEN 1 ELSE 0 END) AS failures, SUM(CASE WHEN event_type='repeat' THEN 1 ELSE 0 END) AS repeats, SUM(CASE WHEN event_type='stall' THEN 1 ELSE 0 END) AS stalls, SUM(CASE WHEN event_type='source-recovery' THEN 1 ELSE 0 END) AS recoveries FROM playback_events WHERE created_at>=?`).bind(since).first();
+  const [channels, sources, surfaces, totals] = await Promise.all([channelQuery, sourceQuery, surfaceQuery, totalsQuery]);
+  const channelRows = (channels.results || []).map((row) => {
+    const score = channelHealthScore(row);
+    return { ...row, score, band: score >= 85 ? "healthy" : score >= 65 ? "watch" : "repair" };
+  });
+  const sourceRows = (sources.results || []).map((row) => ({ ...row, cooldownActive: Number(row.cooldown_until || 0) > Date.now() }));
+  const totalRows = totals || {};
+  const scores = channelRows.map((row) => row.score);
+  const overallScore = scores.length ? Math.round(scores.reduce((sum, value) => sum + value, 0) / scores.length) : null;
+  return json({ apiVersion: "v3", release: V3_RELEASE, windowHours: hours, generatedAt: new Date().toISOString(), overallScore, status: overallScore == null ? "waiting" : overallScore >= 85 ? "healthy" : overallScore >= 65 ? "watch" : "repair", totals: { events: Number(totalRows.events || 0), frames: Number(totalRows.frames || 0), failures: Number(totalRows.failures || 0), repeats: Number(totalRows.repeats || 0), stalls: Number(totalRows.stalls || 0), recoveries: Number(totalRows.recoveries || 0) }, channels: channelRows, sources: sourceRows, surfaces: surfaces.results || [] }, 200, { "Cache-Control": "public, max-age=15, stale-while-revalidate=60", "X-RealSignal-Release": V3_RELEASE });
+}
+
 async function handleGuide(request, env) {
   if (!env.realsignal_catalog || typeof env.realsignal_catalog.prepare !== "function") return json({ error: "catalog binding is not configured" }, 503);
   const url = new URL(request.url);
@@ -659,6 +716,7 @@ async function handleSourceCatalog(request, env, ctx, id) {
     denyTerms: profile.deny,
     themeTerms: profile.match,
     themeMinScore: 1,
+    recentIds: Array.isArray(body.recentIds) ? body.recentIds.slice(-48) : [],
   }, SOURCE_LIMITS.SOURCE_MAX_ITEMS).catch((error) => {
     console.warn(JSON.stringify({ event: "source-catalog-read-failed", requestId: id, error: String(error).slice(0, 160) }));
     return null;
@@ -668,13 +726,14 @@ async function handleSourceCatalog(request, env, ctx, id) {
      rows. A shallow shelf is served immediately and refilled in the
      background; a deep shelf is served as a normal cache hit. */
   const staleReady = Math.max(1, Math.min(3, Number(body.staleReady) || 2));
-  if (cached && Array.isArray(cached.items) && cached.items.length >= staleReady && body.refresh !== true) {
+  const hasFreshFallback = cached && Array.isArray(cached.items) && cached.items.length > 0 && recentCatalogIds(body).size > 0;
+  if (cached && Array.isArray(cached.items) && (cached.items.length >= staleReady || hasFreshFallback) && body.refresh !== true) {
     if (cached.items.length < minimumReady) {
       const { profile: normalized, tasks } = sourceCatalogTasks(body, env, rotation);
       scheduleSourceRefresh(env, ctx, normalized, tasks, id);
     }
     const hydrating = cached.items.length < minimumReady;
-    return json({ ...cached, profileKey: profile.profileKey, catalogVersion: "source-server-1", source: "d1-source-catalog", hydrating, staleCatalog: hydrating, providerAvailability: { youtube: !!env.YOUTUBE_API_KEY, peertube: true }, apiVersion, release: apiVersion === "v3" ? V3_RELEASE : undefined }, 200, { "Cache-Control": "public, max-age=10, stale-while-revalidate=60", "X-RealSignal-Request": id, "X-RealSignal-Source": "d1-source-catalog", "X-RealSignal-Release": apiVersion === "v3" ? V3_RELEASE : "2.2.2" });
+    return json({ ...cached, profileKey: profile.profileKey, catalogVersion: "source-server-1", source: "d1-source-catalog", hydrating, staleCatalog: hydrating, adaptiveFreshness: true, providerAvailability: { youtube: !!env.YOUTUBE_API_KEY, peertube: true }, apiVersion, release: apiVersion === "v3" ? V3_RELEASE : undefined }, 200, { "Cache-Control": "public, max-age=10, stale-while-revalidate=60", "X-RealSignal-Request": id, "X-RealSignal-Source": "d1-source-catalog", "X-RealSignal-Release": apiVersion === "v3" ? V3_RELEASE : "2.2.2" });
   }
   const { profile: normalized, tasks } = sourceCatalogTasks(body, env, rotation);
   let firstTimer;
@@ -685,7 +744,8 @@ async function handleSourceCatalog(request, env, ctx, id) {
     }),
   ]).finally(() => clearTimeout(firstTimer));
   scheduleSourceRefresh(env, ctx, normalized, tasks, id);
-  return json({ profileKey: normalized.profileKey, items: first.items, ready: first.ready, candidates: first.candidates, lanes: first.lanes, hydrating: true, catalogVersion: "source-server-1", source: "server-source-catalog", providerAvailability: { youtube: !!env.YOUTUBE_API_KEY, peertube: true }, limits: SOURCE_LIMITS, apiVersion, release: apiVersion === "v3" ? V3_RELEASE : undefined }, first.items.length ? 200 : 503, { "Cache-Control": "no-store", "X-RealSignal-Request": id, "X-RealSignal-Source": "server-source-catalog", "X-RealSignal-Release": apiVersion === "v3" ? V3_RELEASE : "2.2.2" });
+  const freshFirstItems = applyFreshness(first.items, body);
+  return json({ profileKey: normalized.profileKey, items: freshFirstItems, ready: freshFirstItems.length, candidates: freshFirstItems.length, lanes: first.lanes, hydrating: true, adaptiveFreshness: true, freshnessExcluded: Math.max(0, first.items.length - freshFirstItems.length), freshnessWindow: recentCatalogIds(body).size, catalogVersion: "source-server-1", source: "server-source-catalog", providerAvailability: { youtube: !!env.YOUTUBE_API_KEY, peertube: true }, limits: SOURCE_LIMITS, apiVersion, release: apiVersion === "v3" ? V3_RELEASE : undefined }, freshFirstItems.length ? 200 : 503, { "Cache-Control": "no-store", "X-RealSignal-Request": id, "X-RealSignal-Source": "server-source-catalog", "X-RealSignal-Release": apiVersion === "v3" ? V3_RELEASE : "2.2.2" });
 }
 
 const worker = {
@@ -709,6 +769,10 @@ const worker = {
       if (route && route.kind === "channel-health") {
         if (request.method !== "GET") return json({ error: "method not allowed", requestId: id }, 405, { Allow: "GET,OPTIONS" });
         return await handleChannelHealth(request, env);
+      }
+      if (route && route.kind === "health-summary") {
+        if (request.method !== "GET") return json({ error: "method not allowed", requestId: id }, 405, { Allow: "GET,OPTIONS" });
+        return await handleHealthSummary(request, env);
       }
       if (route && route.kind === "guide") {
         if (request.method !== "GET") return json({ error: "method not allowed", requestId: id }, 405, { Allow: "GET,OPTIONS" });

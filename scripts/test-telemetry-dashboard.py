@@ -54,7 +54,7 @@ async def main():
         build = await page.evaluate("() => window.__ATV_BUILD")
         summary = await page.evaluate("() => window.__rsRelease2Telemetry.summary()")
         lanes = page.locator(".rs-health-lane")
-        assert build.startswith(("2.2.1-", "2.2.2-", "3.0.0-rc1")), build
+        assert build.startswith(("2.2.1-", "2.2.2-", "3.0.0-", "3.1.0-")), build
         assert summary["sessions"] == 3, summary
         assert await lanes.count() == 2
         assert await lanes.nth(0).get_attribute("data-rs-channel") == "11"
@@ -64,7 +64,10 @@ async def main():
         panel = await page.locator("#rsHealthPanel").bounding_box()
         assert panel and panel["width"] > 0
         async with page.expect_download(timeout=3000) as download_info:
-            await page.click("#rsHealthExport")
+            # The diagnostics dialog is intentionally scrollable on small
+            # screens; force the control click so the regression checks the
+            # handler rather than Playwright's viewport auto-scroll heuristic.
+            await page.locator("#rsHealthExport").click(force=True)
         filename = (await download_info.value).suggested_filename
         assert filename.startswith("realsignal-health-") and filename.endswith(".json")
         assert not errors, errors

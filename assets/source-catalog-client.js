@@ -11,6 +11,31 @@
   if (typeof originalProvider !== "function" || typeof window.fetch !== "function") return;
   var inFlight = Object.create(null);
   var claimed = Object.create(null);
+  var FRESHNESS_KEY = 'realsignal:source-freshness:v1';
+
+  function readFreshness() {
+    try { var value = JSON.parse(localStorage.getItem(FRESHNESS_KEY) || '{}'); return value && typeof value === 'object' ? value : {}; }
+    catch (_) { return {}; }
+  }
+
+  function itemKey(item) {
+    return String(item && (item.id || item.identifier || item.sourceIdentifier || (item.media && item.media.url) || item.url) || '').trim().slice(0, 500);
+  }
+
+  function recentFor(profileKey) {
+    var all = readFreshness();
+    return Array.isArray(all[profileKey]) ? all[profileKey].slice(-48) : [];
+  }
+
+  function remember(profileKey, items) {
+    var ids = (Array.isArray(items) ? items : []).map(itemKey).filter(Boolean);
+    if (!ids.length) return;
+    var all = readFreshness();
+    var next = (Array.isArray(all[profileKey]) ? all[profileKey] : []).concat(ids);
+    var seen = Object.create(null);
+    all[profileKey] = next.filter(function (id) { if (seen[id]) return false; seen[id] = true; return true; }).slice(-48);
+    try { localStorage.setItem(FRESHNESS_KEY, JSON.stringify(all)); } catch (_) { /* storage is an optimization */ }
+  }
 
   function request(profile, rotation) {
     var profileKey = String(profile && (profile.profileKey || profile.name) || "").toLowerCase().replace(/[^a-z0-9._:-]+/g, "-");
@@ -27,7 +52,8 @@
       /* The API may still return a smaller stale shelf immediately. This
          target tells the server to refill it instead of declaring two items
          a healthy catalog. */
-      minimumReady: 12
+      minimumReady: 12,
+      recentIds: recentFor(profileKey)
     };
     inFlight[key] = fetch(IA_API_BASE + "/source/catalog", {
       method: "POST",
@@ -37,7 +63,10 @@
       signal: controller ? controller.signal : undefined
     }).then(function (response) {
       if (!response.ok) throw new Error("server catalog " + response.status);
-      return response.json();
+      return response.json().then(function (value) {
+        if (value && Array.isArray(value.items)) remember(profileKey, value.items);
+        return value;
+      });
     }).catch(function () { return null; }).finally(function () { clearTimeout(timeout); });
     setTimeout(function () { delete inFlight[key]; delete claimed[key]; }, 30000);
     return inFlight[key];

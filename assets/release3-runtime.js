@@ -1,4 +1,4 @@
-/* RealSignal 3.0 telemetry bridge.
+/* RealSignal 3.1 telemetry bridge.
  *
  * Playback remains local by default. A canary can opt in with
  * ?v3Telemetry=1; only bounded playback measurements are sent to the V3 API

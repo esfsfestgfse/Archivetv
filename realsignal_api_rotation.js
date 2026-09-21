@@ -44,7 +44,13 @@ export class SessionRotation {
     if (request.method !== "POST") return new Response("Method Not Allowed", { status: 405 });
     let body;
     try { body = await request.json(); } catch (_) { return Response.json({ error: "invalid rotation payload" }, { status: 400 }); }
-    const candidates = cleanItems(body && body.items);
+    const rawCandidates = cleanItems(body && body.items);
+    const recent = new Set((Array.isArray(body && body.recentIds) ? body.recentIds : [])
+      .map((value) => String(value || "").trim().slice(0, 500))
+      .filter(Boolean)
+      .slice(-48));
+    const freshCandidates = recent.size ? rawCandidates.filter((item) => !recent.has(itemId(item))) : rawCandidates;
+    const candidates = freshCandidates.length ? freshCandidates : rawCandidates;
     const current = await this.state();
     const prior = new Set(current.seen);
     let fresh = candidates.filter((item) => !prior.has(itemId(item)));

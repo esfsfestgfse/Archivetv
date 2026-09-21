@@ -443,7 +443,21 @@ async function handleQueue(request, env, ctx, id) {
         headers.set("X-RealSignal-Request", id);
         headers.set("X-RealSignal-Source", "d1-catalog-fast-lane+session-rotation");
         headers.set("X-RealSignal-Queue", JSON.stringify({ ready: Number(fastRotated.payload.ready || (fastRotated.payload.items || []).length), background: false, fastCatalogLane: true }));
-        return new Response(JSON.stringify({ ...fastRotated.payload, apiVersion, release: apiVersion === "v3" ? V3_RELEASE : undefined, fastCatalogLane: true }), { status: 200, headers });
+        /* The D1 fast lane is already the verified playback shelf. Leaving the
+           generic catalog-fallback flags on it makes clients immediately start
+           another hydration loop, which showed up in telemetry as stalls and
+           duplicate queue work on the proven weak lane. */
+        const fastPayload = {
+          ...fastRotated.payload,
+          fallback: false,
+          stale: false,
+          catalogFallback: false,
+          staleCatalog: false,
+          apiVersion,
+          release: apiVersion === "v3" ? V3_RELEASE : undefined,
+          fastCatalogLane: true,
+        };
+        return new Response(JSON.stringify(fastPayload), { status: 200, headers });
       }
     } catch (error) {
       console.warn(JSON.stringify({ event: "fast-catalog-read-failed", requestId: id, channel: String(body.channel), error: String(error).slice(0, 160) }));

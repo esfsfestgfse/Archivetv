@@ -194,7 +194,7 @@ const IA_STABLE_RESCUE_CHANNELS = new Set(["17", "19", "74", "82", "106", "107",
 const IA_COLD_RESCUE_CHANNELS = new Set([
   "2", "3", "11", "12", "15", "64", "76", "101", "105", "110", "115", "116", "119", "120", "128", "130", "131", "132", "153", "154", "155", "156",
   "205", "208", "209", "210", "211", "212", "213", "214", "215", "216", "217", "219", "222", "223", "224", "225", "226", "227", "229", "230", "231", "232", "233", "234", "235", "236", "237", "238", "239", "240", "241", "242",
-  "507", "508", "509", "510", "511", "575", "700", "701", "703", "900", "906", "926", "927", "928",
+  "507", "508", "509", "510", "511", "575", "700", "701", "703", "900", "906", "922", "926", "927", "928",
   /* v164's full soak isolated these additional cold lanes. Keep their verified
      shelves narrow and channel-owned; healthy lanes do not pay this cost. */
   "14", "15", "18", "56", "63", "68", "72", "73", "77", "83", "102", "104", "109", "122", "158", "200", "202", "901", "911", "916"
@@ -432,11 +432,11 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "ultraman-monster-movie-feature-1967", title: "Ultraman: Monster Movie Feature (1967)", subject: "tokusatsu kaiju ultraman japanese monster movie", year: 1967 },
   ],
   "154": [
-    { identifier: "DragnetEpisode18TheBigSeventeenwcommercials", title: "Dragnet — Episode 18: The Big Seventeen", subject: "dragnet classic television police procedural detective show", year: 1952 },
-    { identifier: "DragnetS01E05TheBigCast", title: "Dragnet — Season 1, Episode 5: The Big Cast", subject: "dragnet classic television police procedural detective show", year: 1952 },
-    { identifier: "DragnetTheBigHitRunKiller", title: "Dragnet — The Big Hit-Run Killer", subject: "dragnet classic television police procedural detective show", year: 1954 },
-    { identifier: "hawaii-five-o-S2E3-480p", title: "Hawaii Five-O — Season 2, Episode 3", subject: "hawaii five-o classic television police procedural detective show", year: 1968 },
-    { identifier: "columbo-pilot-episodes", title: "Columbo — Pilot Episodes", subject: "columbo classic television police procedural detective show", year: 1968 },
+    { identifier: "DragnetEpisode18TheBigSeventeenwcommercials", title: "Dragnet — Episode 18: The Big Seventeen", subject: "dragnet classic television police procedural detective show", year: 1952, media: { type: "video", url: "https://archive.org/download/DragnetEpisode18TheBigSeventeenwcommercials/dragnet_bigseventeen.mp4" } },
+    { identifier: "DragnetS01E05TheBigCast", title: "Dragnet — Season 1, Episode 5: The Big Cast", subject: "dragnet classic television police procedural detective show", year: 1952, media: { type: "video", url: "https://archive.org/download/DragnetS01E05TheBigCast/Dragnet%20S01E05%20The%20Big%20Cast%20-%20Watch%20Crime%20Series%20Online.mp4" } },
+    { identifier: "DragnetTheBigHitRunKiller", title: "Dragnet — The Big Hit-Run Killer", subject: "dragnet classic television police procedural detective show", year: 1954, media: { type: "video", url: "https://archive.org/download/DragnetTheBigHitRunKiller/DragnetTheBigHitRunKiller.mp4" } },
+    { identifier: "hawaii-five-o-S2E3-480p", title: "Hawaii Five-O — Season 2, Episode 3", subject: "hawaii five-o classic television police procedural detective show", year: 1968, media: { type: "video", url: "https://archive.org/download/hawaii-five-o-S2E3-480p/hawaii-five-o-S2E3-480p.mp4" } },
+    { identifier: "columbo-pilot-episodes::prescription-murder", title: "Columbo — Prescription Murder", subject: "columbo classic television police procedural detective show", year: 1968, media: { type: "video", url: "https://archive.org/download/columbo-pilot-episodes/1%20-%20Prescription%20Murder.ia.mp4" } },
   ],
   /* The Detective is a separate lane from Cop Show Classic. Give it the same
      proven public-domain procedural records, but with explicit detective
@@ -621,10 +621,18 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "ReadingRainbowTVSeries", title: "Reading Rainbow — TV Series", subject: "reading rainbow comfort television educational television", year: 1983 },
   ],
   "222": [
-    { identifier: "pryor_202009", title: "Richard Pryor — Stand-Up", subject: "stand-up comedy comedy special live comedy", year: 1980 },
-    { identifier: "lee-evans-collection", title: "Lee Evans — Complete Live Collection", subject: "stand-up comedy comedy special live comedy", year: 1994 },
-    { identifier: "01-just-for-laughs", title: "Just for Laughs — Stand-Up Comedy", subject: "stand-up comedy comedy club live comedy", year: 2010 },
-    { identifier: "words-words-words-hd_2010", title: "Bo Burnham — Words Words Words", subject: "stand-up comedy comedy special live comedy", year: 2010 },
+    { identifier: "pryor_202009", title: "Richard Pryor — Stand-Up", subject: "stand-up comedy comedy special live comedy", year: 1980, media: { type: "video", url: "https://archive.org/download/pryor_202009/RICHARD_PRYOR/VIDEO_TS/VTS_01_1.mp4" } },
+    { identifier: "lee-evans-collection::1994", title: "Lee Evans — Live at Her Majesty's Theatre", subject: "stand-up comedy comedy special live comedy", year: 1994, media: { type: "video", url: "https://archive.org/download/lee-evans-collection/1.%20Live%20At%20Her%20Majesty%27s%20Theatre%20%281994%29.mp4" } },
+    { identifier: "01-just-for-laughs", title: "Just for Laughs — Stand-Up Comedy", subject: "stand-up comedy comedy club live comedy", year: 2010, media: { type: "video", url: "https://archive.org/download/01-just-for-laughs/01%20JUST%20FOR%20LAUGHS.ia.mp4" } },
+    { identifier: "words-words-words-hd_2010", title: "Bo Burnham — Words Words Words", subject: "stand-up comedy comedy special live comedy", year: 2010, media: { type: "video", url: "https://archive.org/download/words-words-words-hd_2010/Words%20Words%20Words%20%28HD%29.ia.mp4" } },
+    { identifier: "richard-pryor-live", title: "Richard Pryor Live", subject: "stand-up comedy comedy special live comedy", year: 1979, media: { type: "video", url: "https://archive.org/download/richard-pryor-live/richard%20pryor%20live.mp4" } },
+  ],
+  "922": [
+    { identifier: "clubdelcountry::2006-01-29", title: "Club del Country — January 29, 2006", subject: "country music americana honky tonk radio", year: 2006, media: { type: "audio", url: "https://archive.org/download/clubdelcountry/2006/2006-01-29.mp3" } },
+    { identifier: "clubdelcountry::2006-08-14", title: "Club del Country — August 14, 2006", subject: "country music americana honky tonk radio", year: 2006, media: { type: "audio", url: "https://archive.org/download/clubdelcountry/2006/2006-08-14.mp3" } },
+    { identifier: "townhousewoodshardcountry", title: "Townhouse Woods — Hard Country", subject: "country music hard country americana radio", year: 2010, media: { type: "audio", url: "https://archive.org/download/townhousewoodshardcountry/Townhouse_Woods_-_Hard_Country.mp3" } },
+    { identifier: "diymAR06::01", title: "Derek Clegg — The River", subject: "country music alt-country acoustic folk radio", year: 2011, media: { type: "audio", url: "https://archive.org/download/diymAR06/01-Derek_Clegg-The_River.mp3" } },
+    { identifier: "david-allan-coe-underground-album-1982::01", title: "David Allan Coe — Rock & Roll Fever", subject: "country music outlaw country country rock radio", year: 1982, media: { type: "audio", url: "https://archive.org/download/david-allan-coe-underground-album-1982/01.%20Rock%20%26%20Roll%20Fever.mp3" } },
   ],
   "231": [
     { identifier: "Automoti1940", title: "Automotive Service (1940)", subject: "automobile automotive car culture service and repair", year: 1940 },

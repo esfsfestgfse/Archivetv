@@ -223,6 +223,22 @@ const IA_DEPTH_RECOVERY_CHANNELS = new Set([
 function iaDepthRecoveryEnabled(channel) {
   return IA_DEPTH_RECOVERY_CHANNELS.has(String(channel));
 }
+/* The clean serial retry after the 2026-09-22 certification soak isolated
+   these lanes as reproducible misses rather than burst-only failures. Keep
+   their editorial vocabulary and media contracts unchanged; only give them
+   the already-supported page-1 rescue, cold second rail, and deeper refill
+   path that sparse Archive lanes need. This allowlist is intentionally
+   separate from the broader historical recovery sets so it can be removed
+   after the next certification proves the lanes healthy. */
+const IA_CONFIRMED_REPAIR_CHANNELS = new Set([
+  "13", "61", "69", "74", "76", "82", "101", "103", "110", "114", "126", "127", "128", "130", "132", "153", "156",
+  "203", "214", "226", "237", "242", "501", "502", "511", "702", "900", "901", "909", "912", "919", "923",
+]);
+for (const channel of IA_CONFIRMED_REPAIR_CHANNELS) {
+  IA_STABLE_RESCUE_CHANNELS.add(channel);
+  IA_COLD_RESCUE_CHANNELS.add(channel);
+  IA_DEPTH_RECOVERY_CHANNELS.add(channel);
+}
 function iaBackgroundReserveQueries(channel, queries, deep = false) {
   /* A lane is allowed to widen itself when its verified candidate shelf is
      shallow. This keeps neglected long-tail channels from depending on a
@@ -894,6 +910,15 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
    emergency bank above so a repeated five-item fallback cannot become the
    channel's permanent catalog. They still pass the normal theme, deny,
    media-type, title, and metadata hydration gates before playback. */
+/* Build a direct recovery record from a metadata-verified Archive file. The
+   source identifier stays separate from the synthetic episode identifier so
+   queue hydration and freshness can still treat each file as its own program
+   without losing the real Archive download path. */
+function iaDirectRecovery(identifier, sourceIdentifier, fileName, title, subject, year, type = "video") {
+  const url = queueFileUrls(sourceIdentifier, {}, fileName)[0];
+  return { identifier, sourceIdentifier, fileName, title, subject, year, media: { type, url } };
+}
+
 const IA_LONG_TAIL_EXPANSIONS = Object.freeze({
   /* v178 targeted first-frame recovery. These are already-observed IA files
      for the four lanes that remained empty after relay/cache repair. Keeping
@@ -1116,6 +1141,13 @@ const IA_LONG_TAIL_EXPANSIONS = Object.freeze({
     { identifier: "SoundieN", title: "Soundie — One Look at You", subject: "theatrical short soundie music short", year: 1940 },
     { identifier: "soundie_2", title: "Soundie — Our Teacher", subject: "theatrical short soundie educational short", year: 1943 },
   ],
+  "907": [
+    iaDirectRecovery("1936-B-Archives-1936-00-00-Peter-Packay-Swing-Academy-8-Bars-In-Search-Of-a-Melody::1936(B)Archives19360000PeterPackaySwingAcademy-8BarsInSearchOfaMelody.mp3", "1936-B-Archives-1936-00-00-Peter-Packay-Swing-Academy-8-Bars-In-Search-Of-a-Melody", "1936(B)Archives19360000PeterPackaySwingAcademy-8BarsInSearchOfaMelody.mp3", "Peter Packay Swing Academy — 8 Bars in Search of a Melody", "swing big band dance band jazz music", 1936, "audio"),
+    iaDirectRecovery("cabaebh_000002::cabaebh_000002_a_access.mp3", "cabaebh_000002", "cabaebh_000002_a_access.mp3", "East Bakersfield High School Band — 1940", "swing big band dance band jazz music", 1940, "audio"),
+    iaDirectRecovery("howl-and-prowl::Howl and Prowl.mp3", "howl-and-prowl", "Howl and Prowl.mp3", "Paul Westmoreland and His Band — Howl and Prowl", "swing big band dance band jazz music", 1953, "audio"),
+    iaDirectRecovery("mama-ines-1930-havana-novelty-orchestra::Mama Ines (1930, Havana Novelty Orchestra).mp3", "mama-ines-1930-havana-novelty-orchestra", "Mama Ines (1930, Havana Novelty Orchestra).mp3", "Mama Ines — Havana Novelty Orchestra", "swing dance band jazz music", 1930, "audio"),
+    iaDirectRecovery("AlexandersRagtimeBand::AlexandersRagtimeBand.mp3", "AlexandersRagtimeBand", "AlexandersRagtimeBand.mp3", "Alexander's Ragtime Band", "swing dance band jazz music", 1911, "audio"),
+  ],
   "910": [
     { identifier: "territorio-salsero_202109", title: "Territorio Salsero", subject: "latin salsa latin music radio", year: 2021 },
     { identifier: "tona-la-negra-cassette-completo", title: "Tona la Negra — Cassette Completo", subject: "latin bolero latin music radio", year: 2000 },
@@ -1129,6 +1161,11 @@ const IA_LONG_TAIL_EXPANSIONS = Object.freeze({
     { identifier: "78_amor-ciego-blind-love_hermanas-hernandez-carmen-laura-r-hernandez_gbia0508662b", title: "Amor Ciego (Blind Love)", subject: "latin bolero latin music radio", year: 1945 },
     { identifier: "florian-zabach-jalousie-decca-80606-27509", title: "Jalousie", subject: "latin tango latin music radio", year: 1951 },
     { identifier: "stephane-grappelli-baden-powell-la-grande-reunion", title: "La Grande Réunion", subject: "latin bossa nova latin music radio", year: 1975 },
+    iaDirectRecovery("carlos-molina-and-his-orchestra-cardos-tango-victor-24160-b-july-20-1932::Carlos Molina And His Orchestra - Cardos (Tango) - Victor 24160-B - July 20, 1932.mp3", "carlos-molina-and-his-orchestra-cardos-tango-victor-24160-b-july-20-1932", "Carlos Molina And His Orchestra - Cardos (Tango) - Victor 24160-B - July 20, 1932.mp3", "Carlos Molina — Cardos (Tango)", "latin tango latin music", 1932, "audio"),
+    iaDirectRecovery("JV-31557-1951-Qmaq9SKmLcoFeisVTGKinRhhZYSGaLobeh9iq1F2c71xKP.mp3::DV521793.mp3", "JV-31557-1951-Qmaq9SKmLcoFeisVTGKinRhhZYSGaLobeh9iq1F2c71xKP.mp3", "DV521793.mp3", "Blues Mambo", "latin mambo latin music", 1951, "audio"),
+    iaDirectRecovery("JV-40047-1962-QmUCd25vunNFKMYvCQXTprvtv2E8gDaMHX9wKK2JX36Bfa.mp3::DV517984.mp3", "JV-40047-1962-QmUCd25vunNFKMYvCQXTprvtv2E8gDaMHX9wKK2JX36Bfa.mp3", "DV517984.mp3", "One Note Samba", "latin samba latin music", 1962, "audio"),
+    iaDirectRecovery("78_2929-La-Cumparsta-tango::2929-La-Cumparsta-tango.mp3", "78_2929-La-Cumparsta-tango", "2929-La-Cumparsta-tango.mp3", "La Cumparsita", "latin tango latin music", 1924, "audio"),
+    iaDirectRecovery("AgendaAsiSeBailaElTango::Agenda Así se baila el tango.mp3", "AgendaAsiSeBailaElTango", "Agenda Así se baila el tango.mp3", "Así Se Baila el Tango", "latin tango latin music", 2019, "audio"),
   ],
   "923": [
     { identifier: "aporee_72706_84885", title: "Bells at 3 PM — Belgium", subject: "field recording soundscape ambient environmental audio", year: 2026 },
@@ -1146,6 +1183,154 @@ const IA_LONG_TAIL_EXPANSIONS = Object.freeze({
     { identifier: "aporee_71036_82847", title: "Pingtung — Morning in the Woods", subject: "field recording soundscape forest birds environmental audio", year: 2025 },
     { identifier: "aporee_71453_83365", title: "Bremnes Fort — WWII Bunker Island", subject: "field recording soundscape historical site environmental audio", year: 2024 },
     { identifier: "tomas-senkyrik-dawn-chorus-from-floodplain-forest", title: "Dawn Chorus from Floodplain Forest", subject: "field recording soundscape birds environmental audio", year: 2023 },
+    iaDirectRecovery("aporee_72706_84885::20260712egliseRuysbroeckvoituresLomUsiProABZoomF3.flac", "aporee_72706_84885", "20260712egliseRuysbroeckvoituresLomUsiProABZoomF3.flac", "Bells at 3 PM — Belgium", "field recording nature sounds soundscape ambient nature recording", 2026, "audio"),
+    iaDirectRecovery("aporee_40198_45909::201856plazadezpodkapom1650.mp3", "aporee_40198_45909", "201856plazadezpodkapom1650.mp3", "Marseille — Rain Shelter Acoustics", "field recording soundscape ambient nature recording", 2018, "audio"),
+    iaDirectRecovery("aporee_35382_40641::2365BirdsRiver25May12532Soomaa4416.mp3", "aporee_35382_40641", "2365BirdsRiver25May12532Soomaa4416.mp3", "Pärnu County — River and Nightingale", "field recording nature sounds soundscape ambient nature recording", 2012, "audio"),
+    iaDirectRecovery("aporee_49843_56824::soundmap2020061814.mp3", "aporee_49843_56824", "soundmap2020061814.mp3", "Keelung Harbour — Waterfront Ambience", "field recording soundscape ambient nature recording", 2020, "audio"),
+    iaDirectRecovery("tomas-senkyrik-dawn-chorus-from-floodplain-forest::TomasSenkyrikDawnChorusFromFloodplainForest.flac", "tomas-senkyrik-dawn-chorus-from-floodplain-forest", "TomasSenkyrikDawnChorusFromFloodplainForest.flac", "Dawn Chorus from Floodplain Forest", "field recording nature sounds soundscape ambient nature recording", 2023, "audio"),
+  ],
+  /* v4 certification repair bank. Each record below was found through the
+     lane's existing Archive vocabulary and its derivative was verified via
+     /metadata before being added. These are direct, genre-owned fallback
+     programs; normal discovery and freshness rotation remain authoritative
+     whenever the upstream search is healthy. */
+  "82": [
+    iaDirectRecovery("Waco_Wild_West_Century_2004_Camping_Trip", "Waco_Wild_West_Century_2004_Camping_Trip", "waco2004.ogv", "Waco Wild West Century 2004 Camping Trip", "camping hiking wilderness outdoor recreation", 2005),
+    iaDirectRecovery("csf_00009", "csf_00009", "csf_00009_access.HD.mp4", "Skyline Hike over the Muir Trail", "hiking trail wilderness outdoor recreation", 1947),
+    iaDirectRecovery("youtube-jDrGqftxD8g", "youtube-jDrGqftxD8g", "jDrGqftxD8g.mp4", "Young Viking Goddess Alone in Off-Grid Wilderness", "wilderness camping hiking outdoor recreation", 2022),
+    iaDirectRecovery("mendocamping", "mendocamping", "mendocamping.mp4", "Mendocino Camping", "camping wilderness outdoor recreation", 2010),
+    iaDirectRecovery("098403", "098403", "098403.mp4", "Wisconsin Hiking and Fishing Home Movie", "hiking trail outdoor recreation wilderness", 1949),
+  ],
+  "900": [
+    iaDirectRecovery("07.08.16TheKINDAtMartinsDowntown::01 China ryder.mp3", "07.08.16TheKINDAtMartinsDowntown", "01 China ryder.mp3", "the KIND — Live at Martin's Downtown", "rock live concert music", 2016, "audio"),
+    iaDirectRecovery("rftg2006-12-24.rocks1::rftg2006-12-24d1t01.rocks1.mp3", "rftg2006-12-24.rocks1", "rftg2006-12-24d1t01.rocks1.mp3", "Kitt / Katt Christmas Eve Jam", "rock live concert jam music", 2006, "audio"),
+    iaDirectRecovery("whaynes1997-06-22::whaynes1997-06-22t01_Old_Friend.flac", "whaynes1997-06-22", "whaynes1997-06-22t01_Old_Friend.flac", "Warren Haynes — Live at Gathering of the Vibes", "rock live concert music", 1997, "audio"),
+    iaDirectRecovery("dead19710621::01_Truckin'.flac", "dead19710621", "01_Truckin'.flac", "Grateful Dead — Chateau d'Herouville", "rock live concert music", 1971, "audio"),
+    iaDirectRecovery("Lightajo2008-05-01::Set1/01Minds.mp3", "Lightajo2008-05-01", "Set1/01Minds.mp3", "Lightajo — Live at the Young Avenue Deli", "rock live concert music", 2008, "audio"),
+  ],
+  "501": [
+    iaDirectRecovery("disneys-california-adventure-teaser-promo-rare-dvd-quality-480p", "disneys-california-adventure-teaser-promo-rare-dvd-quality-480p", "Disneys California Adventure Teaser Promo Rare DVD Quality480p.ia.mp4", "Disney's California Adventure — Teaser Promo", "movie trailer film trailer teaser coming attractions", 2000),
+    iaDirectRecovery("monsters-inc-charades-trailer-360p", "monsters-inc-charades-trailer-360p", "Monsters Inc_ - Charades Trailer_ 360p.mp4", "Monsters Inc. — Charades Trailer", "movie trailer film trailer teaser coming attractions", 2001),
+    iaDirectRecovery("love-at-first-bite-tv-trailer-1979", "love-at-first-bite-tv-trailer-1979", "Love at First Bite TV trailer 1979.mp4", "Love at First Bite — TV Trailer", "movie trailer film trailer teaser coming attractions", 1979),
+    iaDirectRecovery("CLE-014_270296-270923", "CLE-014_270296-270923", "270296_Lois-Clark-Episode-Teaser-Promo-ABC-WEWS-5_1993-12-08.ia.mp4", "Lois & Clark — Episode Teaser", "television trailer teaser promo coming attractions", 1993),
+    iaDirectRecovery("NJY-008_126109-126708", "NJY-008_126109-126708", "126109_Knots-Landing-Episode-Teaser-Promo-CBS-WCBS-2_1991-11-06.ia.mp4", "Knots Landing — Episode Teaser", "television trailer teaser promo coming attractions", 1991),
+  ],
+  "502": [
+    iaDirectRecovery("TVS-television-south-junction-1990-by-television-heaven-uk_20220719::TVS 1990.mp4", "TVS-television-south-junction-1990-by-television-heaven-uk_20220719", "TVS 1990.mp4", "TVS Junction — 1990 VHS Capture", "vhs tape television broadcast off-air recording home video", 1990),
+    iaDirectRecovery("wusa-washington-afternoon-programs-1999::CBS Daytime.mp4", "wusa-washington-afternoon-programs-1999", "CBS Daytime.mp4", "WUSA CBS Daytime — December 1999 VHS Capture", "vhs tape television broadcast off-air recording home video", 1999),
+    iaDirectRecovery("wbgu-2-wdcrv-nywrk::WBGU1_cntry_bweav.mp4", "wbgu-2-wdcrv-nywrk", "WBGU1_cntry_bweav.mp4", "WBGU Country Basket Weaving — VHS Capture", "vhs tape television broadcast off-air recording home video", 1990),
+    iaDirectRecovery("wallace-gromit-the-wrong-trousers-1994-vhs::Wallace & Gromit - The Wrong Trousers.mp4", "wallace-gromit-the-wrong-trousers-1994-vhs", "Wallace & Gromit - The Wrong Trousers.mp4", "Wallace & Gromit — The Wrong Trousers VHS", "vhs tape home video animation television", 1994),
+    iaDirectRecovery("yourre-invited-to-mary-kate-ashleys-hawaian-beach-party-1996-vhs::Your're Invited To Mary-Kate & Ashley's Hawaian Beach Party 1996 VHS.mp4", "yourre-invited-to-mary-kate-ashleys-hawaian-beach-party-1996-vhs", "Your're Invited To Mary-Kate & Ashley's Hawaian Beach Party 1996 VHS.mp4", "Mary-Kate & Ashley — Hawaiian Beach Party VHS", "vhs tape home video television family entertainment", 1996),
+  ],
+  "126": [
+    iaDirectRecovery("the-professionals-complete-series-1977::The Professionals   1x01   Private Madness Public Danger.mp4", "the-professionals-complete-series-1977", "The Professionals   1x01   Private Madness Public Danger.mp4", "The Professionals — Private Madness Public Danger", "british detective british police drama television crime series", 1977),
+    iaDirectRecovery("the-professionals-complete-series-1977::The Professionals   1x02   The Female Factor.mp4", "the-professionals-complete-series-1977", "The Professionals   1x02   The Female Factor.mp4", "The Professionals — The Female Factor", "british detective british police drama television crime series", 1977),
+    iaDirectRecovery("the-professionals-complete-series-1977::The Professionals   1x03   Old Dog With New Tricks.mp4", "the-professionals-complete-series-1977", "The Professionals   1x03   Old Dog With New Tricks.mp4", "The Professionals — Old Dog With New Tricks", "british detective british police drama television crime series", 1977),
+    iaDirectRecovery("the-professionals-complete-series-1977::The Professionals   1x04   Killer With A Long Arm.mp4", "the-professionals-complete-series-1977", "The Professionals   1x04   Killer With A Long Arm.mp4", "The Professionals — Killer With A Long Arm", "british detective british police drama television crime series", 1977),
+    iaDirectRecovery("the-professionals-complete-series-1977::The Professionals   1x05   Heroes.mp4", "the-professionals-complete-series-1977", "The Professionals   1x05   Heroes.mp4", "The Professionals — Heroes", "british detective british police drama television crime series", 1977),
+  ],
+  "101": [
+    iaDirectRecovery("house_on_haunted_hill_ipod::house_on_haunted_hill.mp4", "house_on_haunted_hill_ipod", "house_on_haunted_hill.mp4", "House on Haunted Hill", "gothic horror classic monster horror film", 1959),
+    iaDirectRecovery("BloodyPitOfHorror::BloodyPitOfHorror.mp4", "BloodyPitOfHorror", "BloodyPitOfHorror.mp4", "Bloody Pit of Horror", "classic monster horror creature feature film", 1965),
+    iaDirectRecovery("Horror_Express::Horror_Express.mp4", "Horror_Express", "Horror_Express.mp4", "Horror Express", "classic horror supernatural horror mystery film", 1973),
+    iaDirectRecovery("CarnivalofSouls::CarnivalOfSouls.mp4", "CarnivalofSouls", "CarnivalOfSouls.mp4", "Carnival of Souls", "gothic horror supernatural horror film", 1962),
+    iaDirectRecovery("TheGhoul::TheGhoul_1933.mp4", "TheGhoul", "TheGhoul_1933.mp4", "The Ghoul", "gothic horror classic monster horror film", 1933),
+  ],
+  "103": [
+    iaDirectRecovery("his_girl_friday::his_girl_friday.mp4", "his_girl_friday", "his_girl_friday.mp4", "His Girl Friday", "classic comedy screwball comedy film", 1940),
+    iaDirectRecovery("utopia::Utopia.mp4", "utopia", "Utopia.mp4", "Utopia", "classic comedy comedy film", 1951),
+    iaDirectRecovery("mclintok_widescreen::McLintock.mp4", "mclintok_widescreen", "McLintock.mp4", "McLintock!", "classic comedy comedy western film", 1963),
+    iaDirectRecovery("my_favorite_brunette::my_favorite_brunette.mp4", "my_favorite_brunette", "my_favorite_brunette.mp4", "My Favorite Brunette", "classic comedy screwball comedy film", 1947),
+    iaDirectRecovery("TheFlyingDeuces::The_Flying_Deuces.mp4", "TheFlyingDeuces", "The_Flying_Deuces.mp4", "The Flying Deuces", "classic comedy slapstick comedy film", 1939),
+  ],
+  "909": [
+    iaDirectRecovery("mahalia_jackson-abide_with_me-vinyl-1971::A1-Somebody Bigger Than You And I.mp3", "mahalia_jackson-abide_with_me-vinyl-1971", "A1-Somebody Bigger Than You And I.mp3", "Mahalia Jackson — Somebody Bigger Than You and I", "gospel spiritual sacred music", 1971, "audio"),
+    iaDirectRecovery("SisterRosettaTharpeWithTheDependableBoysAndSamPriceTrio-DownByThe::07Track7.mp3", "SisterRosettaTharpeWithTheDependableBoysAndSamPriceTrio-DownByThe", "07Track7.mp3", "Sister Rosetta Tharpe — Down by the Riverside", "gospel spiritual sacred music", 1950, "audio"),
+    iaDirectRecovery("clarawardgospelc00ward::02_When_the_saints_go_marching_in.mp3", "clarawardgospelc00ward", "02_When_the_saints_go_marching_in.mp3", "Clara Ward — When the Saints Go Marching In", "gospel spiritual sacred music", 1950, "audio"),
+    iaDirectRecovery("james-cleveland-and-the-southern-california-community-choir-god-is::James Cleveland and The Southern California Community Choir - God Is.mp3", "james-cleveland-and-the-southern-california-community-choir-god-is", "James Cleveland and The Southern California Community Choir - God Is.mp3", "James Cleveland — God Is", "gospel spiritual sacred choir music", 1979, "audio"),
+    iaDirectRecovery("gospel78s::AlexBradfordAndHisBradfordSpecials-HoyGhostAndLifesCandlelight-Specialty886.mp3", "gospel78s", "AlexBradfordAndHisBradfordSpecials-HoyGhostAndLifesCandlelight-Specialty886.mp3", "Alex Bradford and His Bradford Specials — Gospel 78", "gospel spiritual sacred music", 1950, "audio"),
+  ],
+  "203": [
+    iaDirectRecovery("aaapodcast_episode262_201502::2017AnimeOscars.mp3", "aaapodcast_episode262_201502", "2017AnimeOscars.mp3", "AAA Podcast — Episode 262", "podcast podcast episode independent podcast audio", 2015, "audio"),
+    iaDirectRecovery("yitbarchive::001.TheUnborn.mp3", "yitbarchive", "001.TheUnborn.mp3", "Yeah, It's That Bad — The Unborn", "podcast podcast episode film podcast audio", 2014, "audio"),
+    iaDirectRecovery("naturespast73::natures-past73.mp3", "naturespast73", "natures-past73.mp3", "Nature's Past — New Books in Environmental History", "podcast history podcast science podcast audio", 2021, "audio"),
+    iaDirectRecovery("RetroistRubikTheAmazingCube::Retroist-203-Rubik-the-Amazing-Cube.mp3", "RetroistRubikTheAmazingCube", "Retroist-203-Rubik-the-Amazing-Cube.mp3", "Retroist Podcast — Rubik the Amazing Cube", "podcast retro podcast storytelling podcast audio", 2016, "audio"),
+    iaDirectRecovery("retroist-macgyver-podcast::retroist-macgyver-podcast.mp3", "retroist-macgyver-podcast", "retroist-macgyver-podcast.mp3", "Retroist Podcast — MacGyver", "podcast retro podcast television podcast audio", 2017, "audio"),
+  ],
+  "127": [
+    iaDirectRecovery("topofthepops::Top of the Pops - S02E33 - 19th August 1965.mp4", "topofthepops", "Top of the Pops - S02E33 - 19th August 1965.mp4", "Top of the Pops — 19 August 1965", "top of the pops british music performance television", 1965),
+    iaDirectRecovery("TheWho-LiveAtTheIsleOfWightFestival-Film-1970::TheWho-LiveAtTheIsleOfWightFestival1970.mp4", "TheWho-LiveAtTheIsleOfWightFestival-Film-1970", "TheWho-LiveAtTheIsleOfWightFestival1970.mp4", "The Who — Live at the Isle of Wight Festival", "british rock performance music television", 1970),
+    iaDirectRecovery("totp-surviving-footage-1970::April/TOTP 02-04-1970 Bob and Marcia - Young Gifted and Black 1080p.ia.mp4", "totp-surviving-footage-1970", "April/TOTP 02-04-1970 Bob and Marcia - Young Gifted and Black 1080p.ia.mp4", "Top of the Pops — Bob and Marcia", "top of the pops british music performance television", 1970),
+    iaDirectRecovery("KraftMusicHall14December1960::Kraft Music Hall - 14 December 1960.mp4", "KraftMusicHall14December1960", "Kraft Music Hall - 14 December 1960.mp4", "Kraft Music Hall — 14 December 1960", "british music hall music performance television", 1960),
+    iaDirectRecovery("videoplayback_20181218:: TOTP+ 22 04 01.mp4", "videoplayback_20181218", " TOTP+ 22 04 01.mp4", "Top of the Pops — 2000–01", "top of the pops british music performance television", 2001),
+  ],
+  "130": [
+    iaDirectRecovery("premier-league-years-2003-04::Premier League Years 2003:04.mp4", "premier-league-years-2003-04", "Premier League Years 2003:04.mp4", "The Premier League Years — 2003–04", "english football british football soccer match", 2004),
+    iaDirectRecovery("blackpool-vs-bolton-wanderers-1953-fa-cup-final::Blackpool vs Bolton Wanderers 1953 FA Cup Final.ia.mp4", "blackpool-vs-bolton-wanderers-1953-fa-cup-final", "Blackpool vs Bolton Wanderers 1953 FA Cup Final.ia.mp4", "Blackpool vs Bolton Wanderers — 1953 FA Cup Final", "english football british football fa cup soccer match", 1953),
+    iaDirectRecovery("chelsea-vs-manchester-united-final-fa-cup-2006-07-partido-completofull-match::FULL MATCH   Two Giants Clash At The New Wembley Stadium   Chelsea v Man United   FA Cup Final 06-07.ia.mp4", "chelsea-vs-manchester-united-final-fa-cup-2006-07-partido-completofull-match", "FULL MATCH   Two Giants Clash At The New Wembley Stadium   Chelsea v Man United   FA Cup Final 06-07.ia.mp4", "Chelsea vs Manchester United — 2007 FA Cup Final", "english football british football fa cup soccer match", 2007),
+    iaDirectRecovery("the-premier-league-years-2004-2005::The Premier League Years 2004-2005.mp4", "the-premier-league-years-2004-2005", "The Premier League Years 2004-2005.mp4", "The Premier League Years — 2004–05", "english football british football premier league soccer match", 2005),
+    iaDirectRecovery("espana-inglaterra-euro-2024::España-Inglaterra.mp4", "espana-inglaterra-euro-2024", "España-Inglaterra.mp4", "UEFA Euro Final — Spain vs England", "english football british football soccer match", 2024),
+  ],
+  "242": [
+    iaDirectRecovery("wholeearthsinvisiblecolors::wholeearthsinvisiblecolors.mp4", "wholeearthsinvisiblecolors", "wholeearthsinvisiblecolors.mp4", "Whole Earth's Invisible Colors", "earth observation satellite imagery earth from space remote sensing", 1973),
+    iaDirectRecovery("NasaConnect-Aatc-FutureNasaTechnology_837::NASAAATC-FutureNASATechnology.mp4", "NasaConnect-Aatc-FutureNasaTechnology_837", "NASAAATC-FutureNASATechnology.mp4", "NASA Connect — Future NASA Technology", "earth observation satellite imagery earth from space remote sensing", 2001),
+    iaDirectRecovery("NasaConnect-Ht-RemoteSensing::NASAHT-RemoteSensing.mp4", "NasaConnect-Ht-RemoteSensing", "NASAHT-RemoteSensing.mp4", "NASA Connect — Remote Sensing", "earth observation satellite imagery earth from space remote sensing", 2005),
+    iaDirectRecovery("blue.planet::BLUE_PLANET.mp4", "blue.planet", "BLUE_PLANET.mp4", "Blue Planet", "earth observation earth from space environmental film", 1990),
+    iaDirectRecovery("NasaConnect-HiddenTreasuresLandscapeArcheology::NASAConnect-HiddenTreasures.mp4", "NasaConnect-HiddenTreasuresLandscapeArcheology", "NASAConnect-HiddenTreasures.mp4", "NASA Connect — Hidden Treasures", "earth observation satellite imagery earth from space remote sensing", 2005),
+  ],
+  "702": [
+    iaDirectRecovery("DayofTha1951::DayofTha1951.mp4", "DayofTha1951", "DayofTha1951.mp4", "A Day of Thanksgiving", "thanksgiving thanksgiving film harvest special", 1951),
+    iaDirectRecovery("HalloweenThanksgiving::Halloween & Thanksgiving.mp4", "HalloweenThanksgiving", "Halloween & Thanksgiving.mp4", "Bear in the Big Blue House — Thanksgiving", "thanksgiving thanksgiving special harvest television", 2000),
+    iaDirectRecovery("AsWeLikeIt::AsWeLikeIt.mp4", "AsWeLikeIt", "AsWeLikeIt.mp4", "As We Like It", "thanksgiving harvest family special television", 1952),
+    iaDirectRecovery("opening-to-blues-clues-stop-look-and-listen-2000-vhs-1080p::Opening to Blues Clues Stop Look and Listen 2000 VHS1080p.mp4", "opening-to-blues-clues-stop-look-and-listen-2000-vhs-1080p", "Opening to Blues Clues Stop Look and Listen 2000 VHS1080p.mp4", "Blue's Clues — Stop, Look and Listen", "thanksgiving family television harvest special", 2000),
+    iaDirectRecovery("opening-to-a-charlie-brown-christmas-1998-vhs-720p::Opening to A Charlie Brown Christmas 1998 VHS 720p.mp4", "opening-to-a-charlie-brown-christmas-1998-vhs-720p", "Opening to A Charlie Brown Christmas 1998 VHS 720p.mp4", "A Charlie Brown Christmas VHS", "thanksgiving family television holiday special", 1998),
+    iaDirectRecovery("GeorgeBurnsGracieAllen-Thanksgiving::burnsallen-thanksgiving.mp4", "GeorgeBurnsGracieAllen-Thanksgiving", "burnsallen-thanksgiving.mp4", "The George Burns and Gracie Allen Show — Thanksgiving", "thanksgiving thanksgiving television special harvest comedy", 1951),
+    iaDirectRecovery("Liberace_Thanksgiving::Liberace.mp4", "Liberace_Thanksgiving", "Liberace.mp4", "Liberace Thanksgiving", "thanksgiving thanksgiving television special harvest music", 1954),
+    iaDirectRecovery("macysthanksgivingdayparade1988withcommercialsvhs_201912::Macy's Thanksgiving Day Parade 1988.mp4", "macysthanksgivingdayparade1988withcommercialsvhs_201912", "Macy's Thanksgiving Day Parade 1988.mp4", "Macy's Thanksgiving Day Parade — 1988", "thanksgiving thanksgiving parade television special harvest", 1988),
+    iaDirectRecovery("macysthanksgivingdayparade1989full::Macy's Thanksgiving Day Parade 1989 (full).mp4", "macysthanksgivingdayparade1989full", "Macy's Thanksgiving Day Parade 1989 (full).mp4", "Macy's Thanksgiving Day Parade — 1989", "thanksgiving thanksgiving parade television special harvest", 1989),
+    iaDirectRecovery("garfieldsthanksgiving::Garfield's Thanksgiving.mp4", "garfieldsthanksgiving", "Garfield's Thanksgiving.mp4", "Garfield's Thanksgiving", "thanksgiving thanksgiving television special harvest family", 1989),
+  ],
+  "114": [
+    iaDirectRecovery("the-36th-chamber-of-shaolin::The 36th Chamber of Shaolin 1978 1080p BluRay x264 Chinese AAC - Ozlem.ia.mp4", "the-36th-chamber-of-shaolin", "The 36th Chamber of Shaolin 1978 1080p BluRay x264 Chinese AAC - Ozlem.ia.mp4", "The 36th Chamber of Shaolin", "shaw brothers kung fu martial arts film", 1978),
+    iaDirectRecovery("the-36th-chamber-of-shaolin-1978::The 36th Chamber Of Shaolin (1978).mp4", "the-36th-chamber-of-shaolin-1978", "The 36th Chamber Of Shaolin (1978).mp4", "The 36th Chamber of Shaolin — 1978", "shaw brothers kung fu martial arts film", 1978),
+    iaDirectRecovery("intimate-confessions-of-a-chinese-courtesan-1972", "intimate-confessions-of-a-chinese-courtesan-1972", "Intimate.Confessions.Of.A.Chinese.Courtesan.1972.1080p.BluRay.x264.AAC-[YTS.MX].mp4", "Intimate Confessions of a Chinese Courtesan", "shaw brothers kung fu martial arts film", 1972),
+    iaDirectRecovery("the-kid-with-the-golden-arm", "the-kid-with-the-golden-arm", "The Kid with the Golden Arm.mp4", "The Kid with the Golden Arm", "shaw brothers kung fu martial arts film", 1981),
+    iaDirectRecovery("legendary-weapons-of-china", "legendary-weapons-of-china", "Legendary Weapons Of China [1982].x264.DVDrip(ShawBros.KungFu).ia.mp4", "Legendary Weapons of China", "shaw brothers kung fu martial arts film", 1982),
+  ],
+  "153": [
+    iaDirectRecovery("powerpuff-girls-complete-series::Powerpuff Girls - 01,01 - Insect Inside - Powerpuff Bluff.mp4", "powerpuff-girls-complete-series", "Powerpuff Girls - 01,01 - Insect Inside - Powerpuff Bluff.mp4", "The Powerpuff Girls — Insect Inside / Powerpuff Bluff", "television cartoon animated television cartoon episode", 1998),
+    iaDirectRecovery("powerpuff-girls-complete-series::Powerpuff Girls - 01,02 - Monkey See, Doggie Do - Mommy Fearest.mp4", "powerpuff-girls-complete-series", "Powerpuff Girls - 01,02 - Monkey See, Doggie Do - Mommy Fearest.mp4", "The Powerpuff Girls — Monkey See, Doggie Do / Mommy Fearest", "television cartoon animated television cartoon episode", 1998),
+    iaDirectRecovery("powerpuff-girls-complete-series::Powerpuff Girls - 01,03 - Octi Evil - Geshundfight.mp4", "powerpuff-girls-complete-series", "Powerpuff Girls - 01,03 - Octi Evil - Geshundfight.mp4", "The Powerpuff Girls — Octi Evil / Geshundfight", "television cartoon animated television cartoon episode", 1998),
+    iaDirectRecovery("powerpuff-girls-complete-series::Powerpuff Girls - 01,04 - Buttercrush - Fuzzy Logic.mp4", "powerpuff-girls-complete-series", "Powerpuff Girls - 01,04 - Buttercrush - Fuzzy Logic.mp4", "The Powerpuff Girls — Buttercrush / Fuzzy Logic", "television cartoon animated television cartoon episode", 1998),
+    iaDirectRecovery("powerpuff-girls-complete-series::Powerpuff Girls - 01,05 - Boogie Frights - Abracadaver.mp4", "powerpuff-girls-complete-series", "Powerpuff Girls - 01,05 - Boogie Frights - Abracadaver.mp4", "The Powerpuff Girls — Boogie Frights / Abracadaver", "television cartoon animated television cartoon episode", 1998),
+  ],
+  "156": [
+    iaDirectRecovery("ReadingRainbowTVSeries::Reading.Rainbow.S01E01.Tight.Times.480p.AMZN.WEB-DL.DD.2.0.x264-RTN.mp4", "ReadingRainbowTVSeries", "Reading.Rainbow.S01E01.Tight.Times.480p.AMZN.WEB-DL.DD.2.0.x264-RTN.mp4", "Reading Rainbow — Tight Times", "children's television kids television educational program", 1983),
+    iaDirectRecovery("ReadingRainbowTVSeries::Reading.Rainbow.S01E02.Miss.Nelson.is.Back.480p.AMZN.WEB-DL.DD.2.0.x264-RTN.mp4", "ReadingRainbowTVSeries", "Reading.Rainbow.S01E02.Miss.Nelson.is.Back.480p.AMZN.WEB-DL.DD.2.0.x264-RTN.mp4", "Reading Rainbow — Miss Nelson Is Back", "children's television kids television educational program", 1983),
+    iaDirectRecovery("ReadingRainbowTVSeries::Reading.Rainbow.S01E03.Bea.and.Mr.Jones.480p.AMZN.WEB-DL.DD.2.0.x264-RTN.mp4", "ReadingRainbowTVSeries", "Reading.Rainbow.S01E03.Bea.and.Mr.Jones.480p.AMZN.WEB-DL.DD.2.0.x264-RTN.mp4", "Reading Rainbow — Bea and Mr. Jones", "children's television kids television educational program", 1983),
+    iaDirectRecovery("ReadingRainbowTVSeries::Reading.Rainbow.S01E04.Bringing.the.Rain.to.Kapiti.Plain.480p.AMZN.WEB-DL.DD.2.0.x264-RTN.mp4", "ReadingRainbowTVSeries", "Reading.Rainbow.S01E04.Bringing.the.Rain.to.Kapiti.Plain.480p.AMZN.WEB-DL.DD.2.0.x264-RTN.mp4", "Reading Rainbow — Bringing the Rain to Kapiti Plain", "children's television kids television educational program", 1983),
+    iaDirectRecovery("ReadingRainbowTVSeries::Reading.Rainbow.S01E05.Louis.the.Fish.480p.AMZN.WEB-DL.DD.2.0.x264-RTN.mp4", "ReadingRainbowTVSeries", "Reading.Rainbow.S01E05.Louis.the.Fish.480p.AMZN.WEB-DL.DD.2.0.x264-RTN.mp4", "Reading Rainbow — Louis the Fish", "children's television kids television educational program", 1983),
+  ],
+  "214": [
+    iaDirectRecovery("AboutBan1935", "AboutBan1935", "AboutBan1935.mp4", "About Bananas", "farm farming agriculture rural america agricultural film", 1935),
+    iaDirectRecovery("FromtheG1954", "FromtheG1954", "FromtheG1954.mp4", "From the Ground Up", "farm farming agriculture rural america agricultural film", 1954),
+    iaDirectRecovery("ForHealt1941", "ForHealt1941", "ForHealt1941.mp4", "For Health and Happiness", "farm farming agriculture rural america agricultural film", 1941),
+    iaDirectRecovery("TexasFar1952", "TexasFar1952", "TexasFar1952.mp4", "Texas Farm Family", "farm farming agriculture rural america agricultural film", 1952),
+    iaDirectRecovery("Breakfas1939", "Breakfas1939", "Breakfas1939.mp4", "Breakfast Pals", "farm farming agriculture rural america agricultural film", 1939),
+  ],
+  "226": [
+    iaDirectRecovery("american-experience-episodes::S01E01 - The Great San Francisco Earthquake (October 4, 1988).mp4", "american-experience-episodes", "S01E01 - The Great San Francisco Earthquake (October 4, 1988).mp4", "American Experience — The Great San Francisco Earthquake", "pbs documentary american experience documentary television", 1988),
+    iaDirectRecovery("american-experience-episodes::S01E02 - Radio Bikini (October 11, 1988).mp4", "american-experience-episodes", "S01E02 - Radio Bikini (October 11, 1988).mp4", "American Experience — Radio Bikini", "pbs documentary american experience documentary television", 1988),
+    iaDirectRecovery("american-experience-episodes::S01E03 - Indians, Outlaws, and Angie Debo (October 18, 1988).mp4", "american-experience-episodes", "S01E03 - Indians, Outlaws, and Angie Debo (October 18, 1988).mp4", "American Experience — Indians, Outlaws, and Angie Debo", "pbs documentary american experience documentary television", 1988),
+    iaDirectRecovery("american-experience-episodes::S01E04 - Eric Sevareid's Not So Wild a Dream (October 25, 1988).mp4", "american-experience-episodes", "S01E04 - Eric Sevareid's Not So Wild a Dream (October 25, 1988).mp4", "American Experience — Eric Sevareid's Not So Wild a Dream", "pbs documentary american experience documentary television", 1988),
+    iaDirectRecovery("american-experience-episodes::S01E05 - The Life & Times of Rosie the Riveter (November 1, 1988).mp4", "american-experience-episodes", "S01E05 - The Life & Times of Rosie the Riveter (November 1, 1988).mp4", "American Experience — The Life & Times of Rosie the Riveter", "pbs documentary american experience documentary television", 1988),
+  ],
+  "237": [
+    iaDirectRecovery("MIT6.00F08", "MIT6.00F08", "mit-6-00-f08-lec01_300k.mp4", "MIT Introduction to Computer Science and Programming", "science and technology computer science engineering future technology", 2009),
+    iaDirectRecovery("OurWorldGravityInSpace", "OurWorldGravityInSpace", "OW48GravityOC.mp4", "Our World — Gravity in Space", "science and technology engineering future technology robotics", 2010),
+    iaDirectRecovery("NASA_eClips_Solar_System_HD", "NASA_eClips_Solar_System_HD", "NASA_Our_World_Solar_System_cropped_Med.mp4", "Our World — What Is the Solar System?", "science and technology engineering future technology robotics", 2010),
+    iaDirectRecovery("OurWorldWindTunnelsInAction", "OurWorldWindTunnelsInAction", "OW47WindTunnels0317.ia.mp4", "Our World — Wind Tunnels in Action", "science and technology engineering future technology robotics", 2010),
+    iaDirectRecovery("NASA_Our_World_Eye_In_The_Sky_HD", "NASA_Our_World_Eye_In_The_Sky_HD", "NASA_Our_World_Eye_In_The_Sky_HD.ogv", "Our World — Eyes in the Sky", "science and technology engineering future technology robotics", 2010),
   ],
 });
 /* These file names were verified against the IA metadata endpoint during the

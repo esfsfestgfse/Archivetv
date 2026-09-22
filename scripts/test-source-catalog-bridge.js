@@ -36,5 +36,40 @@ vm.runInContext(source, context);
   assert.equal(requestBody.rotation, 0);
   assert.equal(requestBody.minimumReady, 12);
   assert.deepEqual(requestBody.recentIds, []);
+
+  /* A stale D1 shelf must not pin the active browser to the same small
+     response while the Worker is already hydrating a deeper catalog. */
+  const staleCalls = [];
+  let refreshedCount = 0;
+  const staleContext = {
+    window: { v2Provider: original },
+    IA_API_BASE: 'https://api.example/api/v2',
+    setTimeout: (fn, delay) => { if (delay === 120) fn(); return 0; },
+    clearTimeout: () => {},
+    fetch: async (url, options) => {
+      staleCalls.push({ url: String(url), options });
+      const request = JSON.parse(options.body);
+      const count = request.refresh ? 12 : 3;
+      return { ok: true, async json() {
+        return {
+          source: 'd1-source-catalog',
+          items: Array.from({ length: count }, (_, index) => ({ id: `shelf-${index}`, type: 'video', duration: 1200 })),
+          providerAvailability: { youtube: true, peertube: true },
+          hydrating: !request.refresh,
+          staleCatalog: !request.refresh,
+        };
+      } };
+    },
+  };
+  staleContext.window.fetch = staleContext.fetch;
+  vm.createContext(staleContext);
+  vm.runInContext(source, staleContext);
+  await staleContext.window.v2Provider('peertube', profile, 0, lane => {
+    if (lane && lane.backgroundRefresh) refreshedCount = lane.items.length;
+  });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(staleCalls.length, 2);
+  assert.equal(JSON.parse(staleCalls[1].options.body).refresh, true);
+  assert.equal(refreshedCount, 12);
   console.log('Source catalog bridge passed: server preference and server-only YouTube handling.');
 })().catch(error => { console.error(error.stack || error); process.exitCode = 1; });

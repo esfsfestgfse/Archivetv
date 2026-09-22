@@ -11,6 +11,7 @@
   if (typeof originalProvider !== "function" || typeof window.fetch !== "function") return;
   var inFlight = Object.create(null);
   var claimed = Object.create(null);
+  var refreshPending = Object.create(null);
   var FRESHNESS_KEY = 'realsignal:source-freshness:v1';
 
   function readFreshness() {
@@ -37,9 +38,10 @@
     try { localStorage.setItem(FRESHNESS_KEY, JSON.stringify(all)); } catch (_) { /* storage is an optimization */ }
   }
 
-  function request(profile, rotation) {
+  function request(profile, rotation, refresh) {
     var profileKey = String(profile && (profile.profileKey || profile.name) || "").toLowerCase().replace(/[^a-z0-9._:-]+/g, "-");
-    var key = profileKey + "|" + String(Number(rotation) || 0);
+    var refreshKey = refresh ? "|refresh" : "";
+    var key = profileKey + "|" + String(Number(rotation) || 0) + refreshKey;
     if (inFlight[key]) return inFlight[key];
     var controller = typeof AbortController === "function" ? new AbortController() : null;
     var timeout = setTimeout(function () { if (controller) controller.abort(); }, 8500);
@@ -49,6 +51,7 @@
     var body = {
       profileKey: profileKey,
       rotation: Number(rotation) || 0,
+      refresh: !!refresh,
       /* The API may still return a smaller stale shelf immediately. This
          target tells the server to refill it instead of declaring two items
          a healthy catalog. */
@@ -72,12 +75,40 @@
     return inFlight[key];
   }
 
+  function refreshStaleShelf(profile, rotation, stale, onFirst) {
+    if (!stale || !stale.hydrating || !Array.isArray(stale.items)) return;
+    var profileKey = String(profile && (profile.profileKey || profile.name) || "").toLowerCase().replace(/[^a-z0-9._:-]+/g, "-");
+    var key = profileKey + "|" + String(Number(rotation) || 0);
+    if (refreshPending[key]) return;
+    refreshPending[key] = true;
+    /* Do not hold up the first playable item. The Worker is already refreshing
+       D1 in the background; this second request lets the active browser adopt
+       the completed shelf as soon as it is available instead of reusing the
+       stale response held by the normal request coalescer. */
+    setTimeout(function () {
+      request(profile, rotation, true).then(function (fresh) {
+        if (!fresh || !Array.isArray(fresh.items) || fresh.items.length <= stale.items.length) return;
+        remember(profileKey, fresh.items);
+        if (typeof onFirst === "function") onFirst({
+          provider: "Server Catalog",
+          items: fresh.items,
+          health: fresh.lanes || fresh.health || {},
+          serverCatalog: true,
+          backgroundRefresh: true,
+        });
+      }).catch(function () { /* stale shelf remains the safe playback fallback */ }).finally(function () {
+        setTimeout(function () { delete refreshPending[key]; }, 30_000);
+      });
+    }, 120);
+  }
+
   window.v2Provider = async function (name, profile, rotation, onFirst) {
     if (!profile || !Array.isArray(profile.providers) || (profile.providers.indexOf("youtube") < 0 && profile.providers.indexOf("peertube") < 0)) return originalProvider.apply(this, arguments);
     var profileKey = String(profile.profileKey || profile.name || "").toLowerCase().replace(/[^a-z0-9._:-]+/g, "-");
     var key = profileKey + "|" + String(Number(rotation) || 0);
-    var server = await request(profile, rotation);
+    var server = await request(profile, rotation, false);
     if (server && Array.isArray(server.items) && server.items.length) {
+      refreshStaleShelf(profile, rotation, server, onFirst);
       if (name === "youtube" && server.providerAvailability && server.providerAvailability.youtube === false) return { provider: "YouTube", items: [], health: { serverCatalog: true, skipped: "youtube-provider-unconfigured" } };
       if (!claimed[key]) {
         claimed[key] = true;

@@ -1926,6 +1926,11 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "youtube"
     ],
     "queries": [
+      "game show full episode",
+      "classic game show full episode",
+      "quiz show full episode",
+      "television game show full episode",
+      "game show rewind",
       "game show history documentary",
       "classic television game show",
       "quiz show television archive",
@@ -1933,6 +1938,18 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "television game show production"
     ],
     "match": [
+      "game show",
+      "quiz show",
+      "full episode",
+      "game show rewind",
+      "price is right",
+      "newlywed game",
+      "family feud",
+      "jeopardy",
+      "wheel of fortune",
+      "match game",
+      "master minds",
+      "trivia",
       "game show history",
       "classic television game show",
       "quiz show television",

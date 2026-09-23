@@ -874,12 +874,15 @@ async function handleSourceCatalog(request, env, ctx, id) {
      background; a deep shelf is served as a normal cache hit. */
   const staleReady = Math.max(1, Math.min(3, Number(body.staleReady) || 2));
   const hasFreshFallback = cached && Array.isArray(cached.items) && cached.items.length > 0 && sourceRecentIds.length > 0;
-  if (cached && Array.isArray(cached.items) && (cached.items.length >= staleReady || hasFreshFallback) && body.refresh !== true) {
+  /* Refresh is a hint to refill, never permission to strand a viewer on a
+     503. If a verified shelf exists, serve it immediately and let the source
+     adapters replace it in the background. */
+  if (cached && Array.isArray(cached.items) && (cached.items.length >= staleReady || hasFreshFallback)) {
     if (cached.items.length < minimumReady) {
       const { profile: normalized, tasks } = sourceCatalogTasks(body, env, rotation, { disabledProviders });
       scheduleSourceRefresh(env, ctx, normalized, tasks, id);
     }
-    const hydrating = cached.items.length < minimumReady;
+    const hydrating = body.refresh === true || cached.items.length < minimumReady;
     rememberFreshness(env, profile.profileKey, cached.items.slice(0, 3), ctx);
     return json({ ...cached, profileKey: profile.profileKey, catalogVersion: "source-server-1", source: "d1-source-catalog", hydrating, staleCatalog: hydrating, adaptiveFreshness: true, freshnessLedger: true, providerAvailability: { youtube: !!env.YOUTUBE_API_KEY && !disabledProviders.has("youtube"), peertube: !disabledProviders.has("peertube"), cooldownProviders: Array.from(disabledProviders) }, apiVersion, release: apiVersion === "v3" ? V3_RELEASE : undefined }, 200, { "Cache-Control": "public, max-age=10, stale-while-revalidate=60", "X-RealSignal-Request": id, "X-RealSignal-Source": "d1-source-catalog", "X-RealSignal-Release": apiVersion === "v3" ? V3_RELEASE : "2.2.2" });
   }

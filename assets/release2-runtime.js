@@ -25,9 +25,11 @@
       .catch(function(){})
       .finally(function(){remoteInFlight=false;if(remoteQueue.length){clearTimeout(remoteTimer);remoteTimer=setTimeout(function(){remoteTimer=0;flushRemote();},1000);}});
   }
+  function currentTelemetryChannel(){try{var number=typeof curNum!=='undefined'?Number(curNum)||0:0;return number?String(number):'guide';}catch(_){return 'guide';}}
   function queueRemote(event){
-    if(!remoteTelemetryOn||!event||!REMOTE_TYPES[event.type]||!event.channel)return;
-    remoteQueue.push(event);
+    if(!remoteTelemetryOn||!event||!REMOTE_TYPES[event.type])return;
+    var remoteEvent=Object.assign({},event);if(!remoteEvent.channel)remoteEvent.channel=currentTelemetryChannel();
+    remoteQueue.push(remoteEvent);
     if(remoteQueue.length>=8){flushRemote();return;}
     if(!remoteTimer)remoteTimer=setTimeout(function(){remoteTimer=0;flushRemote();},2500);
   }

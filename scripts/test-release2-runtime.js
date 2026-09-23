@@ -26,6 +26,7 @@ check(runtime.includes('localStorage') && runtime.includes('realsignal:health:v2
 check(runtime.includes('REMOTE_ENDPOINT') && runtime.includes('/api/v3/telemetry'), 'Production telemetry endpoint is configured');
 check(runtime.includes('remoteTelemetry') && runtime.includes('REMOTE_TYPES'), 'Remote telemetry is opt-out and allowlisted');
 check(runtime.includes('keepalive:true') && runtime.includes('queueRemote') && runtime.includes('flushRemote'), 'Remote telemetry is batched and non-blocking');
+check(runtime.includes('currentTelemetryChannel') && runtime.includes('remoteEvent.channel'), 'Global guide events receive a valid telemetry channel');
 check(runtime.includes('rsHealthExport') && runtime.includes('rsHealthLanes'), 'Health dashboard export and weak-lane controls exist');
 check(runtime.includes('statusLabel') && runtime.includes('__rsCastIsConnected') && runtime.includes('castConnected'), 'Mobile/Cast status measurement exists');
 check(runtime.includes("addEventListener('online'"), 'Online recovery hook exists');

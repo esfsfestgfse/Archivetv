@@ -223,7 +223,7 @@ const IA_DEPTH_RECOVERY_CHANNELS = new Set([
 function iaDepthRecoveryEnabled(channel) {
   return IA_DEPTH_RECOVERY_CHANNELS.has(String(channel));
 }
-/* The clean serial retry after the 2026-09-22 certification soak isolated
+/* The clean serial retry after the 2026-09-23 v4 certification soak isolated
    these lanes as reproducible misses rather than burst-only failures. Keep
    their editorial vocabulary and media contracts unchanged; only give them
    the already-supported page-1 rescue, cold second rail, and deeper refill
@@ -233,6 +233,10 @@ function iaDepthRecoveryEnabled(channel) {
 const IA_CONFIRMED_REPAIR_CHANNELS = new Set([
   "13", "61", "69", "74", "76", "82", "101", "103", "110", "114", "126", "127", "128", "130", "132", "153", "156",
   "203", "214", "226", "237", "242", "501", "502", "511", "702", "900", "901", "909", "912", "919", "923",
+  /* v4 serial retry: these lanes failed first-play twice, so they receive the
+     same targeted recovery rails without changing healthy-channel behavior. */
+  "69", "76", "78", "20", "152", "910", "912", "918", "205", "107", "111", "123", "124", "120", "155", "225", "233", "508",
+  "81", "150", "13", "112", "217", "234", "241",
 ]);
 for (const channel of IA_CONFIRMED_REPAIR_CHANNELS) {
   IA_STABLE_RESCUE_CHANNELS.add(channel);
@@ -903,6 +907,164 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "Ski_With_A_Ranger_FDRD_Breck_Ski_Resort", title: "Ski With a Ranger — Breck Ski Resort", subject: "winter sports skiing alpine winter games", year: 2016, media: { type: "video", url: "https://archive.org/download/Ski_With_A_Ranger_FDRD_Breck_Ski_Resort/Ski_With_A_Ranger_FDRD_Breck_Ski_Resort.mp4" } },
     { identifier: "Let_s_Skate_Ice_on_Main_Opening_Day_2014", title: "Let's Skate — Ice on Main", subject: "winter sports ice skating winter games", year: 2014, media: { type: "video", url: "https://archive.org/download/Let_s_Skate_Ice_on_Main_Opening_Day_2014/Let_s_Skate_Ice_on_Main_Opening_Day_2014.mp4" } },
     { identifier: "PrimeProductions_FlyingPenguinJibFest_Snowboarding_2005", title: "Flying Penguin — Snowboarding", subject: "winter sports snowboarding winter games", year: 2005, media: { type: "video", url: "https://archive.org/download/PrimeProductions_FlyingPenguinJibFest_Snowboarding_2005/FlyingPenguin2005_512kb.mp4" } },
+  ],
+  /* v4 targeted repair bank. These records came from the affected lane
+     queries and stay inside each channel's existing editorial vocabulary.
+     They are emergency/first-play seeds only; normal discovery continues to
+     own the larger catalog and freshness rotation. */
+  "69": [
+    { identifier: "rg-84-film-1951-gt-3_202404", title: "RG 84 Film 1951 GT 3", subject: "sports newsreel athletics sports archive", year: 1951 },
+    { identifier: "cbb-auburn-v-lsu-reel-1-of-4-1-15-1972-film-auburn-720", title: "Auburn vs LSU — Basketball Reel", subject: "college basketball sports archive", year: 1972 },
+    { identifier: "cbb-vanderbilt-v-auburn-reel-4-of-5-1-15-1968-film-archive-auburn-720_202404", title: "Vanderbilt vs Auburn — Basketball Reel", subject: "college basketball sports archive", year: 1968 },
+    { identifier: "cfb-auburn-v-houston-10-26-1957-sd-archive", title: "Auburn vs Houston — Football (1957)", subject: "college football sports archive", year: 1957 },
+    { identifier: "1952-RollerDerby-TheChiefsVsTheJolters", title: "Roller Derby — The Chiefs vs The Jolters", subject: "roller derby sports newsreel athletics", year: 1952 },
+  ],
+  "76": [
+    { identifier: "01-1990-daytona-500-full-broadcast", title: "Daytona 500 — Full Broadcast (1990)", subject: "stock car racing nascar motorsports", year: 1990 },
+    { identifier: "Races_MPEG", title: "AMP Outlaw Winternationals — Racing", subject: "stock car racing motorsports drag racing", year: 2000 },
+    { identifier: "AMP_Races01", title: "AMP Races — Full Event", subject: "stock car racing motorsports drag racing", year: 2000 },
+    { identifier: "nascar-canadian-tire-series-chaudiere_20250409", title: "NASCAR Canadian Tire Series — Chaudière", subject: "nascar stock car racing motorsports", year: 2025 },
+    { identifier: "racing-dynamics", title: "Racing Dynamics (2002)", subject: "stock car racing motorsports race cars", year: 2002 },
+  ],
+  "78": [
+    { identifier: "pumping-iron-ii-the-women-side-2", title: "Pumping Iron II: The Women", subject: "fitness bodybuilding gym training exercise", year: 1985 },
+    { identifier: "the_comeback_1980", title: "The Comeback — Bodybuilding Documentary", subject: "fitness bodybuilding gym training exercise", year: 1980 },
+    { identifier: "O_FallonTV_-_RSC_Fitness_Classes_O_Fallon_MO", title: "RSC Fitness Classes", subject: "fitness exercise workout gym training", year: 2015 },
+    { identifier: "workout-with-helen", title: "Dance Workout with Helen", subject: "fitness exercise workout dance training", year: 2010 },
+    { identifier: "bodynarcissism", title: "Body Narcissism — Gym Rats and Bodybuilders", subject: "fitness bodybuilding gym training exercise", year: 2011 },
+  ],
+  "20": [
+    { identifier: "WSBK_20010917_213000_Judge_Judy", title: "Judge Judy — September 17, 2001", subject: "courtroom legal television judge court", year: 2001, media: { type: "video", url: "https://archive.org/download/WSBK_20010917_213000_Judge_Judy/WSBK_20010917_213000_Judge_Judy.mp4" } },
+    { identifier: "WSBK_20010911_210000_Judge_Judy", title: "Judge Judy — September 11, 2001", subject: "courtroom legal television judge court", year: 2001 },
+    { identifier: "WSBK_20010914_160000_Judge_Mathis", title: "Judge Mathis — September 14, 2001", subject: "courtroom legal television judge court", year: 2001 },
+    { identifier: "judge-judy-s-9-e-1.1", title: "Judge Judy — Season 9, Episode 1", subject: "courtroom legal television judge court", year: 2004 },
+    { identifier: "judge-judy-14th-season", title: "Judge Judy — Season 14", subject: "courtroom legal television judge court", year: 2009 },
+  ],
+  "152": [
+    { identifier: "galaxian-3-play-station-pal-gameplay-full-game-longplay-recorded-by-you-tube-all-stages", title: "Galaxian 3 — Full Game Longplay", subject: "arcade video games gameplay longplay", year: 1990 },
+    { identifier: "burning-force-sega-mega-drive-pal-gameplay-full-game-longplay", title: "Burning Force — Full Game Longplay", subject: "arcade video games gameplay longplay", year: 1990 },
+    { identifier: "cool-spot-nintendo-snes-pal-60-gameplay-full-game-longplay-recorded-by-archive", title: "Cool Spot — Full Game Longplay", subject: "arcade video games gameplay longplay", year: 1993 },
+    { identifier: "supercross-3-d-atari-jaguar-pal-gameplay-demostration-attract-mode-recorded-by-j", title: "Supercross 3D — Atari Jaguar Gameplay", subject: "arcade video games gameplay racing", year: 1994 },
+    { identifier: "worm-war-i-atari-2600-pal-gameplay-by-zeusdaz", title: "Worm War I — Atari 2600 Longplay", subject: "arcade video games gameplay longplay", year: 1978 },
+  ],
+  "912": [
+    { identifier: "DeshOrchestraAjitGhosh_201807", title: "Desh — Orchestra", subject: "classical music orchestra instrumental radio", year: 2018, media: { type: "audio", url: "https://archive.org/download/DeshOrchestraAjitGhosh_201807/Desh%20Orchestra-Ajit%20Ghosh.mp3" } },
+    { identifier: "CelloSquadron", title: "Cello Squadron", subject: "classical music cello orchestra instrumental radio", year: 2015 },
+    { identifier: "ZeroOrchestra", title: "Zero Orchestra", subject: "classical music orchestra instrumental radio", year: 2014 },
+    { identifier: "arno-schellenberg-preiser-lv-140-seite-a", title: "Arno Schellenberg — Preiser", subject: "classical music opera orchestra radio", year: 1950 },
+    { identifier: "CanadianOperaCompanyOpera101-NixoninChina_0", title: "Canadian Opera Company — Nixon in China", subject: "classical music opera orchestra radio", year: 2011 },
+  ],
+  "918": [
+    { identifier: "jamendo-592141", title: "The Ambient Music", subject: "electronic music ambient radio", year: 2015, media: { type: "audio", url: "https://archive.org/download/jamendo-592141/01-2229038-Sevennotes-The%20Ambient%20Music.mp3" } },
+    { identifier: "jamendo-593974", title: "Dark Cyberpunk Electro", subject: "electronic music synthwave radio", year: 2015 },
+    { identifier: "InZenSilence", title: "In Zen Silence", subject: "electronic music ambient experimental radio", year: 2014 },
+    { identifier: "mchnta-008", title: "C0D3 — freqout!", subject: "electronic music experimental ambient radio", year: 2013 },
+    { identifier: "jamendo-351740", title: "Oper-8 — Vectorized", subject: "electronic music techno experimental radio", year: 2013 },
+  ],
+  "107": [
+    { identifier: "BYTHESADSEAWAVESHaroldLloydSilentAbrAHalRoachComedy", title: "By the Sad Sea Waves — Harold Lloyd", subject: "silent cinema silent film comedy archive", year: 1917, media: { type: "video", url: "https://archive.org/download/BYTHESADSEAWAVESHaroldLloydSilentAbrAHalRoachComedy/BY%20THE%20SAD%20SEA%20WAVES-Harold%20Lloyd-silent-abr-A%20Hal%20Roach%20Comedy.mp4" } },
+    { identifier: "the-whole-dam-family", title: "The Whole Dam Family", subject: "silent cinema silent film comedy archive", year: 1914 },
+    { identifier: "HomeSweetHome1914", title: "Home Sweet Home", subject: "silent cinema silent film drama archive", year: 1914 },
+    { identifier: "FreanAndCo.sBiscuitWorks1906", title: "Frean and Co.'s Biscuit Works", subject: "silent cinema actuality film archive", year: 1906 },
+    { identifier: "GroneLaVeniseEspagnole", title: "La Venise Espagnole", subject: "silent cinema silent film travel archive", year: 1910 },
+  ],
+  "123": [
+    { identifier: "watermargin::the_water_margin_s01e01.mp4", sourceIdentifier: "watermargin", fileName: "the_water_margin_s01e01.mp4", title: "Water Margin — Episode 1", subject: "classic television drama series television", year: 1973, media: { type: "video", url: "https://archive.org/download/watermargin/the_water_margin_s01e01.mp4" } },
+    { identifier: "willies-last-stand-play-for-today", title: "Willie's Last Stand — Play for Today", subject: "television drama television play tv series", year: 1977 },
+    { identifier: "citv-programmes-from-june-and-july-1996-the-riddlers-wizadora-mollys-gang-old-bear-stories-and-more", title: "CITV Programmes — June and July 1996", subject: "television children's television tv series broadcast", year: 1996 },
+    { identifier: "the-prisoner", title: "The Prisoner", subject: "classic television science fiction television series", year: 1967 },
+    { identifier: "goodbye-play-for-today-1975", title: "Goodbye — Play for Today", subject: "television drama television play tv series", year: 1975 },
+  ],
+  "124": [
+    { identifier: "frankenstein-created-woman_202505", title: "Frankenstein Created Woman", subject: "hammer horror classic horror film gothic cinema", year: 1967 },
+    { identifier: "she-1965-68", title: "She", subject: "hammer films horror fantasy gothic cinema", year: 1965 },
+    { identifier: "shadow-of-the-cat-1961", title: "The Shadow of the Cat", subject: "hammer horror classic horror film gothic cinema", year: 1961 },
+    { identifier: "thequatermassxperiment", title: "The Quatermass Xperiment", subject: "hammer horror science fiction classic horror cinema", year: 1955 },
+    { identifier: "The_Body_Snatcher_1945", title: "The Body Snatcher", subject: "classic horror gothic cinema horror film", year: 1945 },
+  ],
+  "120": [
+    { identifier: "y-2-mate.is-nobleza-ranchera-1977-pelicula-mexicana-u-bg-1ye-qdri-8-720p-1650422060856", title: "Nobleza Ranchera", subject: "latin cinema mexican film spanish movie", year: 1977 },
+    { identifier: "NnLibroDelBuenAmorElElLibroDelBuenAmorComedia1975TomsAznarPatxiAndinBlancaEstradaEspaolEspaa", title: "El Libro del Buen Amor", subject: "latin cinema spanish film comedy movie", year: 1975 },
+    { identifier: "tragedia-en-waco-texas-ano-1993-jorge-reynoso-jorge-ortin-ana-luisa-peluffo-polo-ortin.", title: "Tragedia en Waco, Texas", subject: "latin cinema mexican film spanish movie drama", year: 1993 },
+    { identifier: "vicente-fernandez-sinverguenza...-pero-honrado-198520042008-dvd-completo", title: "Sinvergüenza, Pero Honrado", subject: "latin cinema mexican film spanish movie", year: 1985 },
+    { identifier: "viridiana.-1961.720p.-blu-ray.x-264.-aac-ve", title: "Viridiana", subject: "latin cinema spanish film classic movie", year: 1961 },
+  ],
+  "155": [
+    { identifier: "cosdaz-Heavy_Metal_-_Locomotive_11", title: "Heavy Metal — Locomotive", subject: "adult animation animated film cartoon television", year: 1981, media: { type: "video", url: "https://archive.org/download/cosdaz-Heavy_Metal_-_Locomotive_11/Heavy_Metal_-_Locomotive_11.mp4" } },
+    { identifier: "Beavis1228_-_Beavis_goes_Berserk_IV_Shaman_2009-09-18_4.51", title: "Beavis Goes Berserk", subject: "adult animation animated comedy cartoon television", year: 2009 },
+    { identifier: "futurama-s2ep5-workprint", title: "Futurama — Season 2 Episode 5", subject: "adult animation animated comedy science fiction television", year: 2000 },
+    { identifier: "cartoon-sushi-s-4-episode-64-sd-480p", title: "Cartoon Sushi — Episode 64", subject: "adult animation animated short cartoon television", year: 1998 },
+    { identifier: "twitch-vod-v514146619", title: "A Fox in Space — Animation Production", subject: "adult animation animated science fiction cartoon", year: 2019 },
+  ],
+  "225": [
+    { identifier: "damon-1.03", title: "Damon — Episode 1.03", subject: "stand-up comedy television comedy performance", year: 2000 },
+    { identifier: "hbo-def-comedy-jam-drew-fraser-lavelle-crawford-1995-most", title: "HBO Def Comedy Jam", subject: "stand-up comedy television comedy performance", year: 1995 },
+    { identifier: "Reminisce_Over_You_-_Episode_1", title: "Reminisce Over You — Episode 1", subject: "comedy television comedy performance", year: 2014 },
+    { identifier: "funny_or_die_video_ed5351e78f", title: "Ask a Sista — Comedy", subject: "comedy television comedy performance", year: 2010 },
+    { identifier: "funny_or_die_video_0e715ce0f4", title: "Marfa Stewart — Comedy", subject: "comedy television comedy performance", year: 2010 },
+  ],
+  "233": [
+    { identifier: "NaturalMysteriesAnimalsInAction", title: "Natural Mysteries — Animals in Action", subject: "wildlife animals nature documentary television", year: 1990, media: { type: "video", url: "https://archive.org/download/NaturalMysteriesAnimalsInAction/Nature.S01E08.The.Discovery.of%2CAnimal.Behavior.Natural.Mysteries.1982.VHSRip.AAC2.0.x264-rattera.mp4" } },
+    { identifier: "WhalesDolphinsMen", title: "Whales, Dolphins and Men", subject: "wildlife animals ocean nature documentary television", year: 1990 },
+    { identifier: "AnimalsBehavingBadly", title: "Animals Behaving Badly", subject: "wildlife animals nature documentary television", year: 2000 },
+    { identifier: "InPraiseOfGod", title: "In Praise of God — Animal Behavior", subject: "wildlife animals nature documentary television", year: 1990 },
+    { identifier: "KonradLorentzScienceofAnimalBehavior", title: "Konrad Lorenz — Science of Animal Behavior", subject: "wildlife animals nature documentary television", year: 1970 },
+  ],
+  "508": [
+    { identifier: "vegas-after-dark-infomercial-2002", title: "Vegas After Dark — Infomercial", subject: "infomercial television commercial retail product", year: 2002, media: { type: "video", url: "https://archive.org/download/vegas-after-dark-infomercial-2002/Vegas%20After%20Dark%20-%20Infomercial%20-%202002.ia.mp4" } },
+    { identifier: "ultimate-rock-ballads-collection", title: "Ultimate Rock Ballads Collection — Infomercial", subject: "infomercial television commercial retail product", year: 2000 },
+    { identifier: "virtuv-f10-infomercial", title: "VIRTUV F10 — Infomercial", subject: "infomercial television commercial retail product", year: 2000 },
+    { identifier: "sharper-image-ionic-breeze-infomercial-february-2004", title: "Sharper Image Ionic Breeze — Infomercial", subject: "infomercial television commercial retail product", year: 2004 },
+    { identifier: "billy-mays_202505", title: "Billy Mays — Product Presentation", subject: "infomercial television commercial retail product", year: 2000 },
+  ],
+  "81": [
+    { identifier: "wfktvme-Ice_Fishing_Long_Lake_2020", title: "Ice Fishing Long Lake", subject: "fishing sport fishing angling outdoor recreation", year: 2020, media: { type: "video", url: "https://archive.org/download/wfktvme-Ice_Fishing_Long_Lake_2020/Ice_Fishing_Long_Lake_2020.mp4" } },
+    { identifier: "Ice_Fishing_My_Favorite_Minnesota", title: "Ice Fishing — My Favorite Minnesota", subject: "fishing sport fishing angling outdoor recreation", year: 2009 },
+    { identifier: "upenn-f16-0503_Matto_Grosso_Fishing", title: "Matto Grosso Fishing", subject: "fishing sport fishing angling outdoor recreation travel", year: 1931 },
+    { identifier: "flyfishingjourneysvlog2icelandiceagebrowntroutchar", title: "Fly Fishing Journeys — Iceland Brown Trout", subject: "fishing fly fishing trout fishing outdoor recreation", year: 2019 },
+    { identifier: "O_FallonTV_-_Family_Fishing_Day_2013_O_Fallon_Missouri", title: "Family Fishing Day", subject: "fishing sport fishing angling outdoor recreation", year: 2013 },
+  ],
+  "150": [
+    { identifier: "merrie-melodies-quero-ser-marujo-i-wanna-be-a-sailor-1937-hd-pt-br", title: "Merrie Melodies — I Wanna Be a Sailor (1937)", subject: "classic cartoons looney tunes merrie melodies animation", year: 1937, media: { type: "video", url: "https://archive.org/download/merrie-melodies-quero-ser-marujo-i-wanna-be-a-sailor-1937-hd-pt-br/Merrie%20Melodies%20-%20Quero%20Ser%20Marujo%20%28I%20Wanna%20Be%20a%20Sailor%2C%201937%29%20HD%2C%20PT-BR.mp4" } },
+    { identifier: "walky-talky-hawky-1946", title: "Merrie Melodies — Walky Talky Hawky (1946)", subject: "classic cartoons looney tunes merrie melodies animation", year: 1946 },
+    { identifier: "the-wabbit-who-came-to-supper-1942_202605", title: "The Wabbit Who Came to Supper (1942)", subject: "classic cartoons looney tunes bugs bunny animation", year: 1942 },
+    { identifier: "merrie-melodies-a-day-at-the-zoo-1939", title: "Merrie Melodies — A Day at the Zoo (1939)", subject: "classic cartoons looney tunes merrie melodies animation", year: 1939 },
+    { identifier: "the-country-mouse-1935", title: "The Country Mouse (1935)", subject: "classic cartoons theatrical cartoon golden age animation", year: 1935 },
+  ],
+  "13": [
+    { identifier: "walls-french-coffee-ice-cream-ad", title: "Wall's French Coffee Ice Cream Ad", subject: "vintage television commercial video advertisement", year: 1960, media: { type: "video", url: "https://archive.org/download/walls-french-coffee-ice-cream-ad/Wall%27s%20French%20Coffee%20Ice%20Cream%20Ad.mp4" } },
+    { identifier: "wwl-tv-new-orleans-promos-3-25-1990", title: "WWL-TV New Orleans Promos (1990)", subject: "television commercial video advertisement vintage tv", year: 1990 },
+    { identifier: "funny_or_die_video_4f4622efba", title: "Sasquatch Safety Public Service Announcement", subject: "public service announcement television commercial video", year: 2008 },
+    { identifier: "csbtv20ca-Plastic_Bag_Recycling_PSA", title: "Plastic Bag Recycling PSA", subject: "public service announcement television commercial video", year: 2012 },
+    { identifier: "waste-food-ted-moult-1971", title: "Waste Food (1971)", subject: "public service announcement television commercial video", year: 1971 },
+  ],
+  "112": [
+    { identifier: "the-parent-trap-1961_202508", title: "The Parent Trap (1961)", subject: "family film sunday matinee classic movie", year: 1961, media: { type: "video", url: "https://archive.org/download/the-parent-trap-1961_202508/The%20Parent%20Trap.mp4" } },
+    { identifier: "mary-poppins-1964_202506", title: "Mary Poppins (1964)", subject: "family film sunday matinee classic movie musical", year: 1964 },
+    { identifier: "the-sound-of-music-movie", title: "The Sound of Music", subject: "family film sunday matinee classic movie musical", year: 1965 },
+    { identifier: "journey-back-to-oz-1972-family-home-entertainment-1983", title: "Journey Back to Oz", subject: "family film sunday matinee children's movie", year: 1972 },
+    { identifier: "the-wizard-of-oz-1933-greek-dub", title: "The Wizard of Oz (1933)", subject: "family film sunday matinee classic movie musical", year: 1933 },
+  ],
+  "217": [
+    { identifier: "thesea_202602", title: "The Sea", subject: "educational filmstrip classroom film narrated filmstrip", year: 1962, media: { type: "video", url: "https://archive.org/download/thesea_202602/thesea.mp4" } },
+    { identifier: "ordealofwoodrowwilson_202602", title: "Ordeal of Woodrow Wilson", subject: "educational filmstrip classroom film history film", year: 1961 },
+    { identifier: "thecommunity_201602_202603", title: "The Community", subject: "educational filmstrip classroom film social guidance", year: 1962 },
+    { identifier: "spaceprobesexploringoursolarsystem_202511", title: "Space Probes: Exploring Our Solar System", subject: "educational filmstrip classroom film science film", year: 1964 },
+    { identifier: "the-beginnings-of-exploration-1965-144p", title: "The Beginnings of Exploration", subject: "educational filmstrip classroom film geography film", year: 1965 },
+  ],
+  "234": [
+    { identifier: "wmaz-special-the-flood-10-years-later", title: "Special Report: The Flood 10 Years Later", subject: "natural disaster disaster documentary flood documentary television", year: 2004, media: { type: "video", url: "https://archive.org/download/wmaz-special-the-flood-10-years-later/2004%20Special%20-%20The%20Flood%2010%20Years%20Later.mp4" } },
+    { identifier: "wildfire-survivors-build-tent-city-outside-california-walmart", title: "Wildfire Survivors Build Tent City", subject: "natural disaster disaster documentary wildfire documentary television", year: 2018 },
+    { identifier: "youtube-suaN4KCUPU4", title: "Severe Flooding Hits New York City Subway Stations", subject: "natural disaster disaster documentary flood documentary television", year: 2023 },
+    { identifier: "codtx-Denton_Municipal_Electric_heads_to_Lakeland_Florida_after_Hurricane_Ian.", title: "Denton Municipal Electric After Hurricane Ian", subject: "natural disaster disaster documentary hurricane documentary rescue operation", year: 2022 },
+    { identifier: "youtube-xjdv_txlDjI", title: "Hurricane Matthew — A Preview of Storms to Come", subject: "natural disaster disaster documentary hurricane documentary television", year: 2016 },
+  ],
+  "241": [
+    { identifier: "SanFranc1963", title: "San Francisco: Story of a City", subject: "civic film public affairs city planning public information government film", year: 1963, media: { type: "video", url: "https://archive.org/download/SanFranc1963/27906.mp4" } },
+    { identifier: "Problems1944", title: "Problems of Housing", subject: "civic film public housing community development public affairs government film", year: 1944 },
+    { identifier: "StoryOfACity", title: "Story of a City: New York", subject: "civic film city planning public affairs government film", year: 1946 },
+    { identifier: "Rochester_A_City_of_Quality", title: "Rochester: A City of Quality", subject: "civic film city planning community development public affairs", year: 1963 },
+    { identifier: "DynamicA1956", title: "Dynamic American City", subject: "civic film city planning municipal government public information", year: 1956 },
   ],
 });
 /* v171 long-tail recovery bank. These are real Internet Archive identifiers
@@ -4452,6 +4614,26 @@ async function getIaQueue(request, url, env, ctx) {
        The full hydration promise continues under waitUntil and populates the
        edge shelf for the next skip or channel change. */
     let hydrated = await timeboxQueueHydration(Promise.race([hydration, firstReady]), IA_FIRST_READY_TIMEOUT_MS);
+    if (!hydrated || !hydrated.items || !hydrated.items.length) {
+      /* Discovery can return approved identifiers whose derivatives are
+         unavailable even though the lane owns a verified rescue bank. Retry
+         that bank once after the normal hydration path has truly produced no
+         playable item. This closes the old "metadata exists, video is dead"
+         hole without making healthy channels pay a second discovery pass. */
+      const rescueItems = orderedIaEmergencySeeds(channel, rotation).filter((item) => item && item.identifier);
+      if (rescueItems.length) {
+        const rescuePayload = {
+          ...payload,
+          items: rescueItems.slice(0, candidateCount),
+          candidateItems: rescueItems,
+          candidates: rescueItems.length,
+          emergency: true,
+          hydrating: false,
+        };
+        const rescueHydration = hydrateIaQueue(rescuePayload, count, url.origin, ctx, mediaTypes, undefined, IA_FOREGROUND_HYDRATION_CONCURRENCY);
+        hydrated = await timeboxQueueHydration(rescueHydration, IA_FIRST_READY_TIMEOUT_MS);
+      }
+    }
     if (hydrated && hydrated.items.length) {
       const freshHydrated = applyIaFreshness(hydrated, freshnessLedger, count);
       hydrated = freshHydrated.payload;

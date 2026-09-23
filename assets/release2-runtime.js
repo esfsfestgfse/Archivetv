@@ -1,22 +1,43 @@
 /* RealSignal Release 2.2 runtime health dashboard.
- * The default path records a tiny, bounded, local-only health report so the in-app
- * diagnostics card can show real playback evidence. Nothing is transmitted. Add
- * ?r2Telemetry=0 only when comparing a completely telemetry-free page.
+ * The default path records a tiny, bounded local report and, when enabled, sends
+ * an allowlisted batch of playback timings to the production v3 telemetry endpoint.
+ * Add ?r2Telemetry=0 to disable both local and remote telemetry for comparison.
  */
 (function(){
   'use strict';
-  var telemetryOn=new URLSearchParams(location.search).get('r2Telemetry')!=='0';
+  var params=new URLSearchParams(location.search);
+  var telemetryOn=params.get('r2Telemetry')!=='0';
+  var remoteTelemetryOn=telemetryOn&&params.get('remoteTelemetry')!=='0';
+  var REMOTE_ENDPOINT=String(window.__RS_REMOTE_TELEMETRY_ENDPOINT||'https://realsignal-api.tdy1990.workers.dev/api/v3/telemetry');
+  var REMOTE_TYPES={"tune-complete":1,"first-visible-frame":1,"guide-open":1,"guide-close":1,"queue-sample":1,"repeat":1,"control":1,"stall":1,"media-error":1,"tune-failed":1,"startup-timeout":1,"source-recovery":1,"source-recovery-failed":1,"source-success":1,"source-failure":1};
+  var remoteQueue=[],remoteTimer=0,remoteInFlight=false;
   var STORAGE_KEY='realsignal:health:v2',persistTimer=0,stored={};
   try{stored=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}')||{};}catch(_){stored={};}
-  var report={version:4,startedAt:Date.now(),events:Array.isArray(stored.events)?stored.events.slice(-500):[],channelStats:stored.channelStats&&typeof stored.channelStats==='object'?stored.channelStats:{},sessions:Number(stored.sessions||0)+1,notes:['local-only','no network reporting','bounded 500-event ring','bounded per-channel history']};
+  var report={version:4,startedAt:Date.now(),events:Array.isArray(stored.events)?stored.events.slice(-500):[],channelStats:stored.channelStats&&typeof stored.channelStats==='object'?stored.channelStats:{},sessions:Number(stored.sessions||0)+1,notes:['bounded local report','optional remote v3 telemetry','bounded 500-event ring','bounded per-channel history']};
   var activeTune=null,recoveryTimer=0,tuneSeq=0,seenPrograms=[],pendingGuide=null;
   function stamp(){return Math.round(performance.now());}
+  function remoteSurface(){var surface=document.documentElement&&document.documentElement.classList.contains('mob')?'mobile':'desktop',cast=false;try{cast=typeof window.__rsCastIsConnected==='function'&&!!window.__rsCastIsConnected();}catch(_){ }return {surface:surface,castConnected:cast};}
+  function flushRemote(){
+    if(!remoteTelemetryOn||remoteInFlight||!remoteQueue.length)return;
+    var batch=remoteQueue.splice(0,40),status=remoteSurface();
+    remoteInFlight=true;
+    fetch(REMOTE_ENDPOINT,{method:'POST',mode:'cors',cache:'no-store',keepalive:true,headers:{'content-type':'application/json'},body:JSON.stringify({events:batch.map(function(event){return Object.assign({},event,status,{sourceKey:event.sourceKey||event.source||''});})})})
+      .catch(function(){})
+      .finally(function(){remoteInFlight=false;if(remoteQueue.length){clearTimeout(remoteTimer);remoteTimer=setTimeout(function(){remoteTimer=0;flushRemote();},1000);}});
+  }
+  function queueRemote(event){
+    if(!remoteTelemetryOn||!event||!REMOTE_TYPES[event.type]||!event.channel)return;
+    remoteQueue.push(event);
+    if(remoteQueue.length>=8){flushRemote();return;}
+    if(!remoteTimer)remoteTimer=setTimeout(function(){remoteTimer=0;flushRemote();},2500);
+  }
   function push(event){
     event=Object.assign({at:stamp()},event||{});
     noteChannel(event);
     report.events.push(event);
     if(report.events.length>500)report.events.shift();
     schedulePersist();
+    queueRemote(event);
     var node=document.getElementById('rs-release2-telemetry');
     if(node)node.textContent=JSON.stringify(report);
     renderHealthView();

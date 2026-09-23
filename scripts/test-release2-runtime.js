@@ -23,8 +23,11 @@ check(runtime.includes('sourceFailures') && runtime.includes('sourceRecoveries')
 check(runtime.includes('channelStats') && runtime.includes('laneRows'), 'Per-channel health scorecard exists');
 check(runtime.includes('unframed') && runtime.includes('visualLane'), 'Unframed visual-lane failures are scored');
 check(runtime.includes('localStorage') && runtime.includes('realsignal:health:v2'), 'Bounded local telemetry persistence exists');
+check(runtime.includes('REMOTE_ENDPOINT') && runtime.includes('/api/v3/telemetry'), 'Production telemetry endpoint is configured');
+check(runtime.includes('remoteTelemetry') && runtime.includes('REMOTE_TYPES'), 'Remote telemetry is opt-out and allowlisted');
+check(runtime.includes('keepalive:true') && runtime.includes('queueRemote') && runtime.includes('flushRemote'), 'Remote telemetry is batched and non-blocking');
 check(runtime.includes('rsHealthExport') && runtime.includes('rsHealthLanes'), 'Health dashboard export and weak-lane controls exist');
-check(runtime.includes('statusLabel') && runtime.includes('__rsCastIsConnected'), 'Mobile/Cast status measurement exists');
+check(runtime.includes('statusLabel') && runtime.includes('__rsCastIsConnected') && runtime.includes('castConnected'), 'Mobile/Cast status measurement exists');
 check(runtime.includes("addEventListener('online'"), 'Online recovery hook exists');
 check(guide.includes('realsignal:guide-recent') && guide.includes('rsGuideRecentOnly'), 'Guide recently-watched view exists');
 check(guide.includes('rsGuideRecentSort') && guide.includes('CHANNEL ORDER'), 'Guide order control exists');

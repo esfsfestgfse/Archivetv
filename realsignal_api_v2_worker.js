@@ -15,7 +15,12 @@ const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
    collapse every IA lane back to the same warm-up set. */
-const MAX_CATALOG_ITEMS = 48;
+/* Keep a large server-side candidate window. Clients still receive a small
+   playable shelf, but discovery and rotation are no longer trapped inside the
+   same five rows at every cold start. */
+const MAX_CATALOG_ITEMS = 96;
+const FRESHNESS_LEDGER_LIMIT = 32;
+const FRESHNESS_CACHE_TTL_MS = 15_000;
 const MAX_SESSION = 80;
 /* These lanes were repeatedly slow even when D1 already held verified
    playback rows. Serve the catalog first for them; relay discovery remains
@@ -48,6 +53,7 @@ const RATE_LIMITS = Object.freeze({
    provider-triggering bursts in each Worker isolate while durable channel
    rotation remains independent. */
 const requestBuckets = new Map();
+const freshnessReadCache = new Map();
 
 function corsHeaders(contentType = "application/json; charset=utf-8") {
   return {
@@ -369,6 +375,69 @@ function recentCatalogIds(body) {
     .slice(-48));
 }
 
+function normalizedChannelKey(value) {
+  return String(value || "").replace(/[^a-zA-Z0-9._:-]/g, "").slice(0, 120);
+}
+
+async function readFreshnessIds(env, channel, limit = FRESHNESS_LEDGER_LIMIT) {
+  if (!env.realsignal_catalog || typeof env.realsignal_catalog.prepare !== "function") return [];
+  const channelKey = normalizedChannelKey(channel);
+  if (!channelKey) return [];
+  const now = Date.now();
+  const cached = freshnessReadCache.get(channelKey);
+  if (cached && now - cached.at < FRESHNESS_CACHE_TTL_MS) return cached.ids.slice(0, limit);
+  try {
+    const result = await env.realsignal_catalog.prepare("SELECT program_id FROM channel_freshness WHERE channel_key=? ORDER BY last_served_at DESC LIMIT ?").bind(channelKey, Math.max(1, Math.min(64, limit))).all();
+    const ids = (result.results || []).map((row) => String(row.program_id || "").trim().slice(0, 500)).filter(Boolean);
+    freshnessReadCache.set(channelKey, { at: now, ids });
+    return ids;
+  } catch (_) {
+    /* The API remains compatible during the migration window. A missing V4
+       table must never turn a playable queue into No Signal. */
+    freshnessReadCache.set(channelKey, { at: now, ids: [] });
+    return [];
+  }
+}
+
+async function withFreshnessLedger(env, body) {
+  const channel = normalizedChannelKey(body && body.channel);
+  if (!channel) return body;
+  const ledgerIds = await readFreshnessIds(env, channel);
+  if (!ledgerIds.length) return body;
+  const merged = [];
+  const seen = new Set();
+  for (const value of (Array.isArray(body.recentIds) ? body.recentIds : []).concat(ledgerIds)) {
+    const id = String(value || "").trim().slice(0, 500);
+    if (id && !seen.has(id)) { seen.add(id); merged.push(id); }
+  }
+  return { ...body, recentIds: merged.slice(-48), freshnessLedger: true };
+}
+
+async function rememberFreshness(env, channel, items, ctx) {
+  if (!env.realsignal_catalog || typeof env.realsignal_catalog.batch !== "function") return;
+  const channelKey = normalizedChannelKey(channel);
+  const ids = [];
+  const seen = new Set();
+  for (const item of Array.isArray(items) ? items : []) {
+    const id = queueItemKey(item).slice(0, 500);
+    if (id && !seen.has(id)) { seen.add(id); ids.push(id); }
+    if (ids.length >= 8) break;
+  }
+  if (!channelKey || !ids.length) return;
+  const now = Date.now();
+  const work = (async () => {
+    try {
+      const statements = ids.map((id) => env.realsignal_catalog.prepare("INSERT INTO channel_freshness (channel_key, program_id, last_served_at, play_count) VALUES (?, ?, ?, 1) ON CONFLICT(channel_key, program_id) DO UPDATE SET last_served_at=excluded.last_served_at, play_count=channel_freshness.play_count+1").bind(channelKey, id, now));
+      await env.realsignal_catalog.batch(statements);
+      freshnessReadCache.delete(channelKey);
+    } catch (_) {
+      /* V4 telemetry/freshness is additive; playback remains independent of a
+         not-yet-applied migration or a transient D1 write failure. */
+    }
+  })();
+  if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(work); else await work;
+}
+
 /* Freshness is a preference, not a hard ban. If a catalog has new material,
    exclude the client's recent shelf. If it does not, return the last-good
    catalog rather than turning a healthy channel into No Signal. */
@@ -382,7 +451,8 @@ function applyFreshness(items, body) {
 
 async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_MAX_ITEMS) {
   if (!env.realsignal_catalog || typeof env.realsignal_catalog.prepare !== "function") return null;
-  const channel = String(body.channel || "").slice(0, 120);
+  const effectiveBody = await withFreshnessLedger(env, body);
+  const channel = normalizedChannelKey(effectiveBody.channel);
   const limit = Math.max(1, Math.min(SOURCE_LIMITS.SOURCE_MAX_ITEMS, Number(requestedLimit) || SOURCE_LIMITS.SOURCE_MAX_ITEMS));
   const result = await env.realsignal_catalog.prepare(`SELECT p.* FROM programs p JOIN channel_programs cp ON cp.program_id=p.id WHERE cp.channel_key=? AND p.status='active' AND p.media_url IS NOT NULL ORDER BY cp.last_seen_at DESC LIMIT ?`).bind(channel, limit).all();
   const items = (result.results || []).map((row) => {
@@ -411,9 +481,9 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
       staleCatalog: true,
     };
   });
-  const filtered = uniqueQueueItems(items, body);
-  const fresh = applyFreshness(filtered, body);
-  return fresh.length ? { items: rotateCatalogItems(fresh, body.rotation), candidateItems: fresh, ready: fresh.length, candidates: fresh.length, fallback: true, stale: true, catalogFallback: true, freshnessExcluded: Math.max(0, filtered.length - fresh.length), freshnessWindow: recentCatalogIds(body).size, rotation: Number(body.rotation) || 0 } : null;
+  const filtered = uniqueQueueItems(items, effectiveBody);
+  const fresh = applyFreshness(filtered, effectiveBody);
+  return fresh.length ? { items: rotateCatalogItems(fresh, effectiveBody.rotation), candidateItems: fresh, ready: fresh.length, candidates: fresh.length, fallback: true, stale: true, catalogFallback: true, freshnessExcluded: Math.max(0, filtered.length - fresh.length), freshnessWindow: recentCatalogIds(effectiveBody).size, freshnessLedger: effectiveBody.freshnessLedger === true, rotation: Number(effectiveBody.rotation) || 0 } : null;
 }
 
 async function handleQueue(request, env, ctx, id) {
@@ -422,6 +492,7 @@ async function handleQueue(request, env, ctx, id) {
   catch (error) { return json({ error: error instanceof RangeError ? error.message : "invalid JSON body", requestId: id }, error instanceof RangeError ? 413 : 400); }
   if (!body || typeof body !== "object" || Array.isArray(body)) return json({ error: "queue payload must be an object", requestId: id }, 400);
   if (!String(body.channel || "").trim()) return json({ error: "channel is required", requestId: id }, 400);
+  body = await withFreshnessLedger(env, body);
   const apiVersion = new URL(request.url).pathname.startsWith(V3_PREFIX) ? "v3" : "v2";
   const count = Math.max(1, Math.min(5, Number(body.count) || 3));
   const upstreamBody = { ...body, count };
@@ -457,6 +528,7 @@ async function handleQueue(request, env, ctx, id) {
           release: apiVersion === "v3" ? V3_RELEASE : undefined,
           fastCatalogLane: true,
         };
+        rememberFreshness(env, body.channel, fastRotated.payload.items, ctx);
         return new Response(JSON.stringify(fastPayload), { status: 200, headers });
       }
     } catch (error) {
@@ -511,6 +583,7 @@ async function handleQueue(request, env, ctx, id) {
   headers.set("X-RealSignal-Request", id);
   headers.set("X-RealSignal-Source", catalogRecovery ? "d1-catalog+session-rotation" : "ais-relay+session-rotation");
   headers.set("X-RealSignal-Queue", JSON.stringify({ ready: Number(rotated.payload.ready || (rotated.payload.items || []).length), background: !!rotated.payload.hydrating }));
+  rememberFreshness(env, body.channel, rotated.payload.items, ctx);
   /* A catalog recovery is a successful queue response. Returning the relay's
      original 4xx/5xx here made the browser discard the valid D1 shelf and
      retry the same dead upstream path. */
@@ -522,7 +595,7 @@ async function handleCatalog(request, env) {
   const url = new URL(request.url);
   const channel = String(url.searchParams.get("channel") || "").slice(0, 120);
   if (!channel) return json({ error: "channel is required" }, 400);
-  const limit = Math.max(1, Math.min(50, Number(url.searchParams.get("limit")) || 20));
+  const limit = Math.max(1, Math.min(MAX_CATALOG_ITEMS, Number(url.searchParams.get("limit")) || 20));
   const result = await env.realsignal_catalog.prepare(`SELECT p.* FROM programs p JOIN channel_programs cp ON cp.program_id=p.id WHERE cp.channel_key=? AND p.status='active' ORDER BY cp.last_seen_at DESC LIMIT ?`).bind(channel, limit).all();
   return json({ channel, items: result.results || [], source: "d1-catalog" }, 200, { "Cache-Control": "public, max-age=15, stale-while-revalidate=60" });
 }
@@ -651,6 +724,11 @@ async function handleHealthSummary(request, env) {
   const surfaceQuery = env.realsignal_catalog.prepare(`SELECT surface, cast_connected, COUNT(*) AS events, SUM(CASE WHEN event_type='first-visible-frame' THEN 1 ELSE 0 END) AS frames, SUM(CASE WHEN event_type IN ('media-error','tune-failed','startup-timeout','source-recovery-failed') THEN 1 ELSE 0 END) AS failures FROM playback_events WHERE created_at>=? GROUP BY surface, cast_connected ORDER BY events DESC`).bind(since).all();
   const totalsQuery = env.realsignal_catalog.prepare(`SELECT COUNT(*) AS events, SUM(CASE WHEN event_type='first-visible-frame' THEN 1 ELSE 0 END) AS frames, SUM(CASE WHEN event_type IN ('media-error','tune-failed','startup-timeout','source-recovery-failed') THEN 1 ELSE 0 END) AS failures, SUM(CASE WHEN event_type='repeat' THEN 1 ELSE 0 END) AS repeats, SUM(CASE WHEN event_type='stall' THEN 1 ELSE 0 END) AS stalls, SUM(CASE WHEN event_type='source-recovery' THEN 1 ELSE 0 END) AS recoveries FROM playback_events WHERE created_at>=?`).bind(since).first();
   const [channels, sources, surfaces, totals] = await Promise.all([channelQuery, sourceQuery, surfaceQuery, totalsQuery]);
+  let freshness = [];
+  try {
+    const ledger = await env.realsignal_catalog.prepare(`SELECT channel_key, COUNT(*) AS ledger_items, MAX(last_served_at) AS last_served_at, SUM(play_count) AS plays FROM channel_freshness GROUP BY channel_key ORDER BY last_served_at DESC LIMIT 100`).all();
+    freshness = ledger.results || [];
+  } catch (_) { /* V4 migration may still be rolling through environments. */ }
   const channelRows = (channels.results || []).map((row) => {
     const score = channelHealthScore(row);
     return { ...row, score, band: score >= 85 ? "healthy" : score >= 65 ? "watch" : "repair" };
@@ -659,7 +737,7 @@ async function handleHealthSummary(request, env) {
   const totalRows = totals || {};
   const scores = channelRows.map((row) => row.score);
   const overallScore = scores.length ? Math.round(scores.reduce((sum, value) => sum + value, 0) / scores.length) : null;
-  return json({ apiVersion: "v3", release: V3_RELEASE, windowHours: hours, generatedAt: new Date().toISOString(), overallScore, status: overallScore == null ? "waiting" : overallScore >= 85 ? "healthy" : overallScore >= 65 ? "watch" : "repair", totals: { events: Number(totalRows.events || 0), frames: Number(totalRows.frames || 0), failures: Number(totalRows.failures || 0), repeats: Number(totalRows.repeats || 0), stalls: Number(totalRows.stalls || 0), recoveries: Number(totalRows.recoveries || 0) }, channels: channelRows, sources: sourceRows, surfaces: surfaces.results || [] }, 200, { "Cache-Control": "public, max-age=15, stale-while-revalidate=60", "X-RealSignal-Release": V3_RELEASE });
+  return json({ apiVersion: "v3", release: V3_RELEASE, windowHours: hours, generatedAt: new Date().toISOString(), overallScore, status: overallScore == null ? "waiting" : overallScore >= 85 ? "healthy" : overallScore >= 65 ? "watch" : "repair", totals: { events: Number(totalRows.events || 0), frames: Number(totalRows.frames || 0), failures: Number(totalRows.failures || 0), repeats: Number(totalRows.repeats || 0), stalls: Number(totalRows.stalls || 0), recoveries: Number(totalRows.recoveries || 0) }, channels: channelRows, sources: sourceRows, surfaces: surfaces.results || [], freshness }, 200, { "Cache-Control": "public, max-age=15, stale-while-revalidate=60", "X-RealSignal-Release": V3_RELEASE });
 }
 
 async function handleGuide(request, env) {
@@ -668,9 +746,16 @@ async function handleGuide(request, env) {
   const channel = String(url.searchParams.get("channel") || "").replace(/[^a-zA-Z0-9._:-]/g, "").slice(0, 120);
   if (!channel) return json({ error: "channel is required" }, 400);
   const limit = Math.max(2, Math.min(20, Number(url.searchParams.get("limit")) || 8));
-  const result = await env.realsignal_catalog.prepare(`SELECT p.id, p.title, p.description, p.duration_seconds, p.media_type, p.media_url, p.source_url, p.rights, p.year, cp.last_seen_at FROM programs p JOIN channel_programs cp ON cp.program_id=p.id WHERE cp.channel_key=? AND p.status='active' AND p.media_url IS NOT NULL ORDER BY cp.last_seen_at DESC LIMIT ?`).bind(channel, limit).all();
+  let result;
+  try {
+    result = await env.realsignal_catalog.prepare(`SELECT p.id, p.title, p.description, p.duration_seconds, p.media_type, p.media_url, p.source_url, p.rights, p.year, cp.last_seen_at, cf.last_served_at, cf.play_count FROM programs p JOIN channel_programs cp ON cp.program_id=p.id LEFT JOIN channel_freshness cf ON cf.channel_key=cp.channel_key AND cf.program_id=p.id WHERE cp.channel_key=? AND p.status='active' AND p.media_url IS NOT NULL ORDER BY CASE WHEN cf.last_served_at IS NULL THEN 0 ELSE 1 END, cf.last_served_at ASC, cp.last_seen_at DESC LIMIT ?`).bind(channel, limit).all();
+  } catch (_) {
+    /* Serve the verified guide during the short migration window before the
+       V4 freshness table has been applied in every environment. */
+    result = await env.realsignal_catalog.prepare(`SELECT p.id, p.title, p.description, p.duration_seconds, p.media_type, p.media_url, p.source_url, p.rights, p.year, cp.last_seen_at FROM programs p JOIN channel_programs cp ON cp.program_id=p.id WHERE cp.channel_key=? AND p.status='active' AND p.media_url IS NOT NULL ORDER BY cp.last_seen_at DESC LIMIT ?`).bind(channel, limit).all();
+  }
   const items = result.results || [];
-  return json({ apiVersion: "v3", release: V3_RELEASE, channel, current: items[0] || null, next: items[1] || null, items, verified: true, source: "d1-verified-catalog" }, 200, { "Cache-Control": "public, max-age=10, stale-while-revalidate=30", "X-RealSignal-Release": V3_RELEASE });
+  return json({ apiVersion: "v3", release: V3_RELEASE, channel, current: items[0] || null, next: items[1] || null, items, verified: true, queueModel: "rolling-1-plus-2", freshnessLedger: items.some((item) => item.last_served_at != null), source: "d1-verified-catalog" }, 200, { "Cache-Control": "public, max-age=10, stale-while-revalidate=30", "X-RealSignal-Release": V3_RELEASE });
 }
 
 async function firstSourceLane(tasks) {
@@ -695,8 +780,51 @@ async function firstSourceLane(tasks) {
   });
 }
 
+function sourceProviderKey(value) {
+  const normalized = String(value || "").toLowerCase();
+  if (normalized.includes("youtube")) return "youtube";
+  if (normalized.includes("peertube")) return "peertube";
+  return normalized.replace(/[^a-z0-9._-]+/g, "-").slice(0, 40) || "unknown";
+}
+
+async function readSourceCooldowns(env, profileKey) {
+  if (!env.realsignal_catalog || typeof env.realsignal_catalog.prepare !== "function") return new Set();
+  try {
+    const prefix = `${String(profileKey || "").slice(0, 100)}:%`;
+    const result = await env.realsignal_catalog.prepare("SELECT source_key, cooldown_until FROM source_health WHERE source_key LIKE ? AND cooldown_until>? ").bind(prefix, Date.now()).all();
+    return new Set((result.results || []).map((row) => sourceProviderKey(String(row.source_key || "").split(":").pop())));
+  } catch (_) { return new Set(); }
+}
+
+async function persistSourceHealth(env, profile, lanes) {
+  if (!env.realsignal_catalog || typeof env.realsignal_catalog.batch !== "function") return;
+  const now = Date.now();
+  const statements = [];
+  for (const lane of Array.isArray(lanes) ? lanes : []) {
+    const provider = sourceProviderKey(lane && lane.provider);
+    if (provider === "unknown") continue;
+    const health = lane && lane.health && typeof lane.health === "object" ? lane.health : {};
+    const items = Array.isArray(lane && lane.items) ? lane.items : [];
+    /* A missing optional YouTube secret is configuration, not provider health;
+       do not quarantine that lane and prevent later configuration from being
+       used. Empty PeerTube/YouTube results are real source failures. */
+    const skipped = health.skipped === true;
+    const failed = !skipped && (items.length === 0 || !!health.error);
+    const key = `${profile.profileKey}:${provider}`.slice(0, 120);
+    const successes = failed ? 0 : 1;
+    const failures = failed ? 1 : 0;
+    const cooldown = failed ? now + 5 * 60 * 1000 : 0;
+    const error = failed ? String(health.error || "no verified items").slice(0, 240) : "";
+    statements.push(env.realsignal_catalog.prepare("INSERT INTO source_health (source_key, successes, failures, cooldown_until, last_error, updated_at) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(source_key) DO UPDATE SET successes=source_health.successes+excluded.successes, failures=source_health.failures+excluded.failures, cooldown_until=CASE WHEN excluded.failures>0 THEN excluded.cooldown_until ELSE 0 END, last_error=CASE WHEN excluded.failures>0 THEN excluded.last_error ELSE source_health.last_error END, updated_at=excluded.updated_at").bind(key, successes, failures, cooldown, error, now));
+  }
+  if (statements.length) {
+    try { await env.realsignal_catalog.batch(statements); } catch (_) { /* source health cannot block playback */ }
+  }
+}
+
 async function persistSourceLanes(env, profile, lanes) {
   const merged = mergeSourceLanes(profile.profileKey, lanes);
+  await persistSourceHealth(env, profile, lanes);
   const job = catalogJob({ channel: profile.profileKey, themeTerms: profile.match, denyTerms: profile.deny, mediaTypes: ["video", "embed"] }, merged);
   if (!job) return merged;
   if (env.realsignal_catalog_refresh && typeof env.realsignal_catalog_refresh.send === "function") {
@@ -725,6 +853,9 @@ async function handleSourceCatalog(request, env, ctx, id) {
   if (!profile.queries.length) return json({ error: "source profile has no discovery queries", requestId: id }, 503);
   const apiVersion = new URL(request.url).pathname.startsWith(V3_PREFIX) ? "v3" : "v2";
   const rotation = Number(body.rotation) || 0;
+  const ledgerIds = await readFreshnessIds(env, profile.profileKey);
+  const sourceRecentIds = Array.from(new Set((Array.isArray(body.recentIds) ? body.recentIds : []).concat(ledgerIds))).slice(-48);
+  const disabledProviders = await readSourceCooldowns(env, profile.profileKey);
   const cached = await catalogFallback(env, {
     channel: profile.profileKey,
     rotation,
@@ -732,7 +863,7 @@ async function handleSourceCatalog(request, env, ctx, id) {
     denyTerms: profile.deny,
     themeTerms: profile.match,
     themeMinScore: 1,
-    recentIds: Array.isArray(body.recentIds) ? body.recentIds.slice(-48) : [],
+    recentIds: sourceRecentIds,
   }, SOURCE_LIMITS.SOURCE_MAX_ITEMS).catch((error) => {
     console.warn(JSON.stringify({ event: "source-catalog-read-failed", requestId: id, error: String(error).slice(0, 160) }));
     return null;
@@ -742,16 +873,17 @@ async function handleSourceCatalog(request, env, ctx, id) {
      rows. A shallow shelf is served immediately and refilled in the
      background; a deep shelf is served as a normal cache hit. */
   const staleReady = Math.max(1, Math.min(3, Number(body.staleReady) || 2));
-  const hasFreshFallback = cached && Array.isArray(cached.items) && cached.items.length > 0 && recentCatalogIds(body).size > 0;
+  const hasFreshFallback = cached && Array.isArray(cached.items) && cached.items.length > 0 && sourceRecentIds.length > 0;
   if (cached && Array.isArray(cached.items) && (cached.items.length >= staleReady || hasFreshFallback) && body.refresh !== true) {
     if (cached.items.length < minimumReady) {
-      const { profile: normalized, tasks } = sourceCatalogTasks(body, env, rotation);
+      const { profile: normalized, tasks } = sourceCatalogTasks(body, env, rotation, { disabledProviders });
       scheduleSourceRefresh(env, ctx, normalized, tasks, id);
     }
     const hydrating = cached.items.length < minimumReady;
-    return json({ ...cached, profileKey: profile.profileKey, catalogVersion: "source-server-1", source: "d1-source-catalog", hydrating, staleCatalog: hydrating, adaptiveFreshness: true, providerAvailability: { youtube: !!env.YOUTUBE_API_KEY, peertube: true }, apiVersion, release: apiVersion === "v3" ? V3_RELEASE : undefined }, 200, { "Cache-Control": "public, max-age=10, stale-while-revalidate=60", "X-RealSignal-Request": id, "X-RealSignal-Source": "d1-source-catalog", "X-RealSignal-Release": apiVersion === "v3" ? V3_RELEASE : "2.2.2" });
+    rememberFreshness(env, profile.profileKey, cached.items.slice(0, 3), ctx);
+    return json({ ...cached, profileKey: profile.profileKey, catalogVersion: "source-server-1", source: "d1-source-catalog", hydrating, staleCatalog: hydrating, adaptiveFreshness: true, freshnessLedger: true, providerAvailability: { youtube: !!env.YOUTUBE_API_KEY && !disabledProviders.has("youtube"), peertube: !disabledProviders.has("peertube"), cooldownProviders: Array.from(disabledProviders) }, apiVersion, release: apiVersion === "v3" ? V3_RELEASE : undefined }, 200, { "Cache-Control": "public, max-age=10, stale-while-revalidate=60", "X-RealSignal-Request": id, "X-RealSignal-Source": "d1-source-catalog", "X-RealSignal-Release": apiVersion === "v3" ? V3_RELEASE : "2.2.2" });
   }
-  const { profile: normalized, tasks } = sourceCatalogTasks(body, env, rotation);
+  const { profile: normalized, tasks } = sourceCatalogTasks(body, env, rotation, { disabledProviders });
   let firstTimer;
   const first = await Promise.race([
     firstSourceLane(tasks),
@@ -760,8 +892,10 @@ async function handleSourceCatalog(request, env, ctx, id) {
     }),
   ]).finally(() => clearTimeout(firstTimer));
   scheduleSourceRefresh(env, ctx, normalized, tasks, id);
-  const freshFirstItems = applyFreshness(first.items, body);
-  return json({ profileKey: normalized.profileKey, items: freshFirstItems, ready: freshFirstItems.length, candidates: freshFirstItems.length, lanes: first.lanes, hydrating: true, adaptiveFreshness: true, freshnessExcluded: Math.max(0, first.items.length - freshFirstItems.length), freshnessWindow: recentCatalogIds(body).size, catalogVersion: "source-server-1", source: "server-source-catalog", providerAvailability: { youtube: !!env.YOUTUBE_API_KEY, peertube: true }, limits: SOURCE_LIMITS, apiVersion, release: apiVersion === "v3" ? V3_RELEASE : undefined }, freshFirstItems.length ? 200 : 503, { "Cache-Control": "no-store", "X-RealSignal-Request": id, "X-RealSignal-Source": "server-source-catalog", "X-RealSignal-Release": apiVersion === "v3" ? V3_RELEASE : "2.2.2" });
+  const freshnessBody = { ...body, recentIds: sourceRecentIds };
+  const freshFirstItems = applyFreshness(first.items, freshnessBody);
+  rememberFreshness(env, normalized.profileKey, freshFirstItems.slice(0, 3), ctx);
+  return json({ profileKey: normalized.profileKey, items: freshFirstItems, ready: freshFirstItems.length, candidates: freshFirstItems.length, lanes: first.lanes, hydrating: true, adaptiveFreshness: true, freshnessLedger: true, freshnessExcluded: Math.max(0, first.items.length - freshFirstItems.length), freshnessWindow: recentCatalogIds(freshnessBody).size, catalogVersion: "source-server-1", source: "server-source-catalog", providerAvailability: { youtube: !!env.YOUTUBE_API_KEY && !disabledProviders.has("youtube"), peertube: !disabledProviders.has("peertube"), cooldownProviders: Array.from(disabledProviders) }, limits: SOURCE_LIMITS, apiVersion, release: apiVersion === "v3" ? V3_RELEASE : undefined }, freshFirstItems.length ? 200 : 503, { "Cache-Control": "no-store", "X-RealSignal-Request": id, "X-RealSignal-Source": "server-source-catalog", "X-RealSignal-Release": apiVersion === "v3" ? V3_RELEASE : "2.2.2" });
 }
 
 const worker = {
@@ -774,7 +908,7 @@ const worker = {
     try {
       if (route && route.kind === "health") {
         const v3 = route.apiVersion === "v3";
-        return json({ service: "realsignal-api", apiVersion: v3 ? "v3" : "v2", release: v3 ? V3_RELEASE : "2.2.2", status: "ready", capabilities: ["ia-search", "ia-metadata", "ia-queue", "session-rotation", "catalog-jobs", "source-catalog", ...(v3 ? ["verified-guide", "server-telemetry", "source-health"] : []), "youtube-sports"], bindings: { relay: !!env.RELAY, rotation: !!env.ROTATION, catalog: !!env.realsignal_catalog, refreshQueue: !!env.realsignal_catalog_refresh }, checkedAt: new Date().toISOString() }, 200, { "Cache-Control": "no-store", "X-RealSignal-Request": id, "X-RealSignal-Release": v3 ? V3_RELEASE : "2.2.2" });
+        return json({ service: "realsignal-api", apiVersion: v3 ? "v3" : "v2", release: v3 ? V3_RELEASE : "2.2.2", status: "ready", capabilities: ["ia-search", "ia-metadata", "ia-queue", "session-rotation", "catalog-jobs", "source-catalog", "adaptive-catalog", "freshness-ledger", ...(v3 ? ["verified-guide", "server-telemetry", "source-health"] : []), "youtube-sports"], bindings: { relay: !!env.RELAY, rotation: !!env.ROTATION, catalog: !!env.realsignal_catalog, refreshQueue: !!env.realsignal_catalog_refresh }, checkedAt: new Date().toISOString() }, 200, { "Cache-Control": "no-store", "X-RealSignal-Request": id, "X-RealSignal-Release": v3 ? V3_RELEASE : "2.2.2" });
       }
       if (route && route.kind === "telemetry") {
         if (request.method !== "POST") return json({ error: "method not allowed", requestId: id }, 405, { Allow: "POST,OPTIONS" });

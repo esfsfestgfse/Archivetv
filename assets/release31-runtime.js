@@ -86,7 +86,9 @@
     var data = state.data;
     var score = data.overallScore == null ? '—' : data.overallScore;
     var total = data.totals || {};
-    summary.innerHTML = '<strong class="rs31-score ' + (data.status || 'waiting') + '">' + score + '</strong><span><b>' + safe(String(data.status || 'WAITING').toUpperCase()) + '</b><small>' + Number(total.events || 0) + ' events · ' + Number(total.failures || 0) + ' failures · ' + Number(total.repeats || 0) + ' repeats · ' + safe(String(data.generatedAt || '').replace('T', ' ').replace('Z', '')) + '</small></span>';
+    var freshness = Array.isArray(data.freshness) ? data.freshness : [];
+    var ledgerItems = freshness.reduce(function (sum, row) { return sum + Number(row.ledger_items || 0); }, 0);
+    summary.innerHTML = '<strong class="rs31-score ' + (data.status || 'waiting') + '">' + score + '</strong><span><b>' + safe(String(data.status || 'WAITING').toUpperCase()) + '</b><small>' + Number(total.events || 0) + ' events · ' + Number(total.failures || 0) + ' failures · ' + Number(total.repeats || 0) + ' repeats · ' + freshness.length + ' freshness ledgers / ' + ledgerItems + ' served items · ' + safe(String(data.generatedAt || '').replace('T', ' ').replace('Z', '')) + '</small></span>';
     var rows = Array.isArray(data.channels) ? data.channels.slice().sort(function (a, b) { return Number(a.score || 0) - Number(b.score || 0); }).slice(0, 8) : [];
     channels.innerHTML = rows.length ? rows.map(function (row) {
       return '<button type="button" class="rs31-server-row ' + safe(row.band || 'watch') + '" data-rs31-channel="' + Number(row.channel_key || 0) + '"><span><b>' + String(Number(row.channel_key || 0)).padStart(3, '0') + '</b> ' + safe(row.last_status || 'CHANNEL') + '</span><em>' + Number(row.score || 0) + '</em><small>F ' + safe(row.first_frame_avg_ms == null ? '—' : Math.round(row.first_frame_avg_ms) + 'ms') + ' · ERR ' + Number(row.failures || 0) + ' · REP ' + Number(row.repeats || 0) + '</small></button>';

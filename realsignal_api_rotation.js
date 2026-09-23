@@ -4,8 +4,8 @@
 /* Keep enough verified candidates in the session shelf that a fresh tune is
  * not forced back onto the same five rows. The public player still receives a
  * small immediate shelf; this is only the hidden rotation window. */
-const MAX_SEEN = 512;
-const MAX_ITEMS = 48;
+const MAX_SEEN = 1024;
+const MAX_ITEMS = 96;
 
 function itemId(item) {
   const value = item && (item.identifier || item.id || (item.media && item.media.url));

@@ -11,7 +11,10 @@ import { SOURCE_PROFILE_REGISTRY } from "./source_suite_profile_registry.js";
 
 const SOURCE_MIN_RUNTIME = 15 * 60;
 const SOURCE_MIN_ASPECT_RATIO = 1.2;
-const SOURCE_MAX_ITEMS = 48;
+/* The client still promotes only a small hot shelf. The server keeps a much
+   larger verified window so a channel can rotate across real television-length
+   material instead of reopening the same five records. */
+const SOURCE_MAX_ITEMS = 96;
 /* A source shelf is not considered deep merely because one or two playable
    embeds exist. Keep the playback path stale-first, but make twelve verified
    items the refill target so the catalog can rotate instead of repeating. */
@@ -213,7 +216,7 @@ async function youtube(profile, rotation, env) {
     })).filter((item) => item.rawId);
   });
   const candidates = (await Promise.all(jobs)).flat();
-  const ids = unique(candidates).map((item) => item.rawId).slice(0, 50);
+  const ids = unique(candidates).map((item) => item.rawId).slice(0, 75);
   if (!ids.length) return { provider: "YouTube", items: [], health: { searched: queries.length, candidates: 0 } };
   const detailUrl = "https://www.googleapis.com/youtube/v3/videos?" + new URLSearchParams({ part: "snippet,contentDetails,status,player", id: ids.join(","), key });
   const detail = await fetchJson(detailUrl);
@@ -307,7 +310,7 @@ async function peerTube(profile, rotation, env) {
       raw = unique(raw.concat(fallback.items)).filter((item) => accepted(profile, item, "PeerTube", false));
     }
   }
-  raw = raw.slice(0, 32);
+  raw = raw.slice(0, 64);
   const detailed = await mapLimit(raw, SOURCE_MAX_CONCURRENCY, async (item) => {
     const detail = await fetchJson(`${item.instance}/api/v1/videos/${encodeURIComponent(item.uuid)}`);
     const file = peerTubeFile(detail);
@@ -327,8 +330,12 @@ async function peerTube(profile, rotation, env) {
   return { provider: "PeerTube", items: unique(detailed.filter(Boolean)).slice(0, SOURCE_MAX_ITEMS), health: { searched: searchedJobs, candidates: raw.length, details: detailed.filter(Boolean).length, instances: instances.length } };
 }
 
-function providers(profile, rotation, env) {
-  return profile.providers.map((provider) => provider === "youtube" ? youtube(profile, rotation, env) : peerTube(profile, rotation, env));
+function providers(profile, rotation, env, options = {}) {
+  const disabled = new Set((options.disabledProviders instanceof Set ? Array.from(options.disabledProviders) : (Array.isArray(options.disabledProviders) ? options.disabledProviders : []))
+    .map((value) => String(value || "").toLowerCase()));
+  return profile.providers
+    .filter((provider) => !disabled.has(String(provider).toLowerCase()))
+    .map((provider) => provider === "youtube" ? youtube(profile, rotation, env) : peerTube(profile, rotation, env));
 }
 
 export function sourceProfile(body) {
@@ -343,10 +350,10 @@ export async function discoverSourceCatalog(body, env, rotation = 0) {
   return { profileKey: profile.profileKey, items, lanes, ready: items.length, candidates: items.length, catalogVersion: "source-server-1", source: "server-source-catalog" };
 }
 
-export function sourceCatalogTasks(body, env, rotation = 0) {
+export function sourceCatalogTasks(body, env, rotation = 0, options = {}) {
   const profile = normalizedProfile(body);
   if (!profile) return { profile: null, tasks: [] };
-  return { profile, tasks: providers(profile, rotation, env) };
+  return { profile, tasks: providers(profile, rotation, env, options) };
 }
 
 export function mergeSourceLanes(profileKey, lanes) {

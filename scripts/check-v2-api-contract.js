@@ -19,7 +19,7 @@ const checks = [
   [rotation.includes('await this.ctx.storage.put("rotation", next)'), 'persisted rotation state'],
   [worker.includes('env.realsignal_catalog_refresh.send') && worker.includes('async queue(batch, env)'), 'asynchronous catalog ingestion'],
   [worker.includes('env.realsignal_catalog.batch') && worker.includes('catalogFallback'), 'D1 catalog write and playback fallback'],
-  [worker.includes('const MAX_CATALOG_ITEMS = 48') && worker.includes('payload.candidateItems') && worker.includes('candidateItems: candidates'), 'IA fallback preserves a deep candidate catalog instead of only the public shelf'],
+  [worker.includes('const MAX_CATALOG_ITEMS = 96') && worker.includes('payload.candidateItems') && worker.includes('candidateItems: candidates'), 'IA fallback preserves a larger server-side candidate catalog instead of only the public shelf'],
   [worker.includes('function uniqueQueueItems(') && worker.includes('catalogFallbackAllowed(item, body)') && worker.includes('const upstreamCandidates = uniqueQueueItems'), 'V2 re-applies genre gates and de-duplicates upstream IA candidates before rotation and D1'],
   [worker.includes('sourceCatalogTasks') && worker.includes('handleSourceCatalog') && worker.includes('/source/catalog'), 'server-side source catalog route'],
   [source.includes('SOURCE_MIN_RUNTIME = 15 * 60') && source.includes('function accepted') && source.includes('function peerTube'), 'server source adapter runtime and genre gates'],

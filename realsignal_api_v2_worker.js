@@ -228,6 +228,7 @@ function compactCatalogItem(item) {
     sourceIdentifier: String(item.sourceIdentifier || item.identifier || id).slice(0, 500),
     title: String(item.title || "Untitled").slice(0, 500),
     description: String(item.description || "").slice(0, 2000),
+    subject: String(item.subject || item.subjects || "").slice(0, 1200),
     duration: Number(item.duration || item.runtime) || null,
     aspectRatio: Number(item.aspectRatio) || null,
     mediaType: String((item.media && item.media.type) || item.type || "video").slice(0, 30),

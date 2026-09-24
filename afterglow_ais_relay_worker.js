@@ -1092,6 +1092,72 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "78_when-your-lover-has-gone_louis-armstrong-aho", title: "Louis Armstrong — When Your Lover Has Gone", subject: "jazz louis armstrong swing big band", year: 1931, media: { type: "audio", url: "https://archive.org/download/78_when-your-lover-has-gone_louis-armstrong-aho/when%20your%20lover%20has%20gone_louis%20armstrong%20aho_mono.mp3" } },
     { identifier: "1932-USA-Archives-1932-05-18-Duke-Ellington-Famous-Orch-Blue-Ramble", title: "Duke Ellington Famous Orchestra — Blue Ramble", subject: "jazz duke ellington swing big band", year: 1932 },
   ],
+  "67": [
+    { identifier: "a28-vi_hockey-women_nescac-championship_2005-03-06", title: "Middlebury Women's Hockey — NESCAC Championship", subject: "women's sports women athletes women's athletics hockey college sports", year: 2005, media: { type: "video", url: "https://archive.org/download/a28-vi_hockey-women_nescac-championship_2005-03-06/a28-vi_hockey-women_nescac-championship_2005-03-06.mp4" } },
+    { identifier: "a28-vi_hockey-women_ncaa-championship_2009-03-20", title: "Middlebury Women's Hockey — NCAA Championship", subject: "women's sports women athletes women's athletics hockey college sports", year: 2009 },
+    { identifier: "a28-vi_hockey-women_nescac-semifinal-final_2011-03-05", title: "Middlebury Women's Hockey — NESCAC Semifinal and Final", subject: "women's sports women athletes women's athletics hockey college sports", year: 2011 },
+    { identifier: "stltvmo-STL_TV_Star_of_the_Game_Rebecca_Harris_-_St_Louis_Surge_vs_Oklahoma_Outlaws_Game_-_June_12", title: "Rebecca Harris — St. Louis Surge Star of the Game", subject: "women's sports women athletes women's athletics basketball professional sports", year: 2021, media: { type: "video", url: "https://archive.org/download/stltvmo-STL_TV_Star_of_the_Game_Rebecca_Harris_-_St_Louis_Surge_vs_Oklahoma_Outlaws_Game_-_June_12/STL_TV_Star_of_the_Game_Rebecca_Harris_-_St_Louis_Surge_vs_Oklahoma_Outlaws_Game_-_June_12.mp4" } },
+    { identifier: "silverintogold_201705", title: "Silver into Gold", subject: "women's sports women athletes women's athletics sports documentary", year: 1986, media: { type: "video", url: "https://archive.org/download/silverintogold_201705/silverintogold_201705.mp4" } },
+  ],
+  "70": [
+    { identifier: "mesqtx-Mesquite_celebrates_champion_bull_rider_Chris_Villanueva", title: "Mesquite Celebrates Champion Bull Rider Chris Villanueva", subject: "rodeo bull riding barrel racing western sports rodeo", year: 2019, media: { type: "video", url: "https://archive.org/download/mesqtx-Mesquite_celebrates_champion_bull_rider_Chris_Villanueva/Mesquite_celebrates_champion_bull_rider_Chris_Villanueva.mp4" } },
+    { identifier: "StarMetro_Roadeo_2017", title: "StarMetro Roadeo — 2017", subject: "rodeo western sports driving competition rodeo", year: 2017, media: { type: "video", url: "https://archive.org/download/StarMetro_Roadeo_2017/StarMetro_Roadeo_2017.mp4" } },
+    { identifier: "prkcitut-Summit_County_Fair_Rodeo", title: "Summit County Fair Rodeo", subject: "rodeo bull riding barrel racing western sports", year: 2007, media: { type: "video", url: "https://archive.org/download/prkcitut-Summit_County_Fair_Rodeo/Summit_County_Fair_Rodeo.mp4" } },
+    { identifier: "cogptx-Grand_Prairie_Police_Motorcycle_Rodeo", title: "Grand Prairie Police Motorcycle Rodeo", subject: "rodeo western sports riding competition", year: 2011, media: { type: "video", url: "https://archive.org/download/cogptx-Grand_Prairie_Police_Motorcycle_Rodeo/Grand_Prairie_Police_Motorcycle_Rodeo.mp4" } },
+  ],
+  "3": [
+    { identifier: "privatehell361954_202001", title: "Private Hell 36", subject: "film noir crime drama mystery detective suspense thriller feature film", year: 1954, media: { type: "video", url: "https://archive.org/download/privatehell361954_202001/Private%20Hell%2036%20%281954%2C%20USA%29%20Featuring%20%20Ida%20Lupino%2C%20Steve%20Cochran%2C%20Howard%20Duff%20-%20Film%20Noir%20Full%20Movie.mp4" } },
+    { identifier: "the-lost-weekend-1945", title: "The Lost Weekend", subject: "film noir crime drama mystery detective suspense thriller feature film", year: 1945, media: { type: "video", url: "https://archive.org/download/the-lost-weekend-1945/The%20Lost%20Weekend%20%281945%29%20Billy%20Wilder%20%28Dir.%29%2C%20Ray%20Milland%2C%20Jane%20Wyman.ia.mp4" } },
+    { identifier: "detour_ipod", title: "Detour", subject: "film noir crime drama mystery detective suspense thriller feature film", year: 1945, media: { type: "video", url: "https://archive.org/download/detour_ipod/Detour.mp4" } },
+    { identifier: "shiw5344434", title: "Sherlock Holmes in Washington", subject: "film noir crime drama mystery detective suspense thriller feature film", year: 1943, media: { type: "video", url: "https://archive.org/download/shiw5344434/shiw5344434.mp4" } },
+  ],
+  "500": [
+    { identifier: "colorado-rmnp-1987-interlaced", title: "Rocky Mountain National Park Tour — 1987 VHS", subject: "found footage vintage vhs home movie lost media raw footage", year: 1987, media: { type: "video", url: "https://archive.org/download/colorado-rmnp-1987-interlaced/Colorado-RMNP-1987-interlaced.mp4" } },
+    { identifier: "chi_000062", title: "Trade Fair Store Opening Day", subject: "found footage vintage vhs home movie lost media raw footage", year: 1965, media: { type: "video", url: "https://archive.org/download/chi_000062/chi_000062_access.mp4" } },
+    { identifier: "cr6-clickable-reality-promo-video", title: "CR6 — Clickable Reality Promo", subject: "found footage vintage vhs lost media raw footage public access", year: 1997, media: { type: "video", url: "https://archive.org/download/cr6-clickable-reality-promo-video/CR6%20Promo.mp4" } },
+    { identifier: "amnesia-in-the-addams-familyder-gedachtnisschwund", title: "Amnesia in the Addams Family — Lost German Dub", subject: "found footage vintage vhs lost media television", year: 1970, media: { type: "video", url: "https://archive.org/download/amnesia-in-the-addams-familyder-gedachtnisschwund/AmnesiaAddamsGerman1970.mp4" } },
+  ],
+  "917": [
+    { identifier: "IFREpisode5a", title: "Iron Fist Radio — Black Sabbath Part One", subject: "metal heavy metal black sabbath rock music", year: 2016, media: { type: "audio", url: "https://archive.org/download/IFREpisode5a/IFREpisode5a.mp3" } },
+    { identifier: "nssjnewssinglesinglesingle_062817E", title: "Killradio — Metal Session", subject: "metal heavy metal rock music radio", year: 2017, media: { type: "audio", url: "https://archive.org/download/nssjnewssinglesinglesingle_062817E/nssjnewssinglesinglesingle_062817E.mp3" } },
+    { identifier: "777r-pigs", title: "Black Sabbath — Pittsburgh 1976", subject: "metal heavy metal black sabbath hard rock live music", year: 1976 },
+    { identifier: "dream-theater-awake-1994", title: "Dream Theater — Awake", subject: "metal progressive metal heavy metal rock music", year: 1994 },
+    { identifier: "diamond_head-a_lightning-to_the_nations-vinyl-1980", title: "Diamond Head — A Lightning to the Nations", subject: "metal heavy metal british metal rock music", year: 1980 },
+  ],
+  "919": [
+    { identifier: "djshaneasebackthemusicofthemeters", title: "DJ Shan — The Music of the Meters", subject: "funk soul rhythm and blues r&b motown music", year: 2019, media: { type: "audio", url: "https://archive.org/download/djshaneasebackthemusicofthemeters/DJ%20Shan%20-%20Ease%20Back%20-%20The%20music%20of%20the%20Meters.mp3" } },
+    { identifier: "eop_2016_05_14_second_set", title: "Electrorganic Projects — Second Set", subject: "funk soul rhythm and blues r&b music", year: 2016, media: { type: "audio", url: "https://archive.org/download/eop_2016_05_14_second_set/eop_2016_05_14_second_set.mp3" } },
+    { identifier: "kbfxnyayv0hz0pq8rly0de8p8hflawjjrda9p1bm", title: "Saturdays Soul — Lenno Muit", subject: "funk soul rhythm and blues r&b disco music", year: 2022 },
+    { identifier: "kjrxmhz1kdusfy6ap0n8hv7vevnjnn6khbrpwefj", title: "Modern Soul Session", subject: "funk soul rhythm and blues r&b rare groove music", year: 2023 },
+    { identifier: "nxgfzo15h5sgdaxgukysyh0hpsgg475m3gsjisnp", title: "Jamm FM — Funky Sunday", subject: "funk soul rhythm and blues r&b disco music", year: 2020 },
+  ],
+  "128": [
+    { identifier: "general-idi-amin-1973", title: "General Idi Amin", subject: "british pathe britain on film british newsreel british documentary", year: 1973, media: { type: "video", url: "https://archive.org/download/general-idi-amin-1973/General%20Idi%20Amin%20%281973%29.mp4" } },
+    { identifier: "youtube-WQngx21QZxo", title: "Zeppelins over Britain — Terror in the Skies", subject: "british pathe britain on film british newsreel british documentary", year: 2016 },
+    { identifier: "youtube-OAVqVut4g1k", title: "Night Combat — Tank Hunters", subject: "british pathe britain on film british newsreel british documentary", year: 2016 },
+    { identifier: "youtube-NLYz6aWz1cs", title: "The Forgotten War Heroine — Milunka Savic", subject: "british pathe britain on film british newsreel british documentary", year: 2015 },
+    { identifier: "youtube-rhElEp9ifvY", title: "The Ghost of the Lusitania", subject: "british pathe britain on film british newsreel british documentary", year: 2016 },
+  ],
+  "131": [
+    { identifier: "ghost-ship-1952", title: "Ghost Ship", subject: "british cult film british horror british science fiction hammer horror british crime film", year: 1952, media: { type: "video", url: "https://archive.org/download/ghost-ship-1952/Ghost%20Ship%20%281952%29.mp4" } },
+    { identifier: "TheQuatermassConclusion1979", title: "Quatermass IV — The Quatermass Conclusion", subject: "british cult film british horror british science fiction quatermass", year: 1979, media: { type: "video", url: "https://archive.org/download/TheQuatermassConclusion1979/The%20Quatermass%20Conclusion%201979%20chapter1%20Huffety%20Puffety%20Ringstone%20Round.mp4" } },
+    { identifier: "QuatermassAndThePit-Episode3", title: "Quatermass and the Pit — Episode 3", subject: "british cult film british horror british science fiction quatermass", year: 1958, media: { type: "video", url: "https://archive.org/download/QuatermassAndThePit-Episode3/QuatermassAndThePit-Episode3.mp4" } },
+    { identifier: "youtube-ivvilFdHMhI", title: "Nightmare — Hammer Horror", subject: "british cult film british horror hammer horror british science fiction", year: 1964, media: { type: "video", url: "https://archive.org/download/youtube-ivvilFdHMhI/ivvilFdHMhI.mp4" } },
+    { identifier: "the-kneale-tapes-2003", title: "The Kneale Tapes", subject: "british cult film british horror british science fiction quatermass", year: 2003, media: { type: "video", url: "https://archive.org/download/the-kneale-tapes-2003/The%20Kneale%20Tapes%20%28BBC%20Timeshift%2C%202003%29.mp4" } },
+  ],
+  "232": [
+    { identifier: "NASAKennedy-o1WcJDMlfCA", title: "Space Shuttle Era — Power Down", subject: "space race apollo program space shuttle NASA science documentary", year: 2012, media: { type: "video", url: "https://archive.org/download/NASAKennedy-o1WcJDMlfCA/NASAKennedy-o1WcJDMlfCA.mp4" } },
+    { identifier: "endeavour_then_and_now", title: "Voyage of Endeavour — Then and Now", subject: "space race apollo program space shuttle NASA science documentary", year: 1992, media: { type: "video", url: "https://archive.org/download/endeavour_then_and_now/endeavour_then_and_now.mp4" } },
+    { identifier: "HSF-mov-sts114fd1_fdh_a", title: "STS-114 — Space Shuttle Discovery", subject: "space race apollo program space shuttle NASA science documentary", year: 2005, media: { type: "video", url: "https://archive.org/download/HSF-mov-sts114fd1_fdh_a/sts114fd1_fdh_a.mp4" } },
+    { identifier: "challenger-disaster-coverage-assorted-day-of-and-later-x-264-flac", title: "Challenger Disaster — Television Coverage", subject: "space race apollo program space shuttle NASA science documentary news", year: 1986, media: { type: "video", url: "https://archive.org/download/challenger-disaster-coverage-assorted-day-of-and-later-x-264-flac/Challenger%20Disaster%20Coverage%20-%20Assorted%20-%20Day-of%20and%20Later%20-%20x264%20%2B%20flac.mp4" } },
+  ],
+  "509": [
+    { identifier: "barharborme00", title: "WeatherStar 3000 — Bar Harbor, Maine", subject: "weather channel weatherstar weatherstar 3000 local on the 8s forecast", year: 2025, media: { type: "video", url: "https://archive.org/download/barharborme00/1202.ia.mp4" } },
+    { identifier: "amarillotx00", title: "WeatherStar XL — Amarillo, Texas", subject: "weather channel weatherstar weatherstar xl local on the 8s forecast", year: 2025, media: { type: "video", url: "https://archive.org/download/amarillotx00/30%20Days%20of%20Emulations%20Day%204-30%20Amarillo%20TX.ia.mp4" } },
+    { identifier: "chicagoil00", title: "WeatherStar XL — Chicago, Illinois", subject: "weather channel weatherstar weatherstar xl local on the 8s forecast", year: 2025, media: { type: "video", url: "https://archive.org/download/chicagoil00/30%20Days%20of%20Emulations%20Day%205-30%20Chicago%20IL.ia.mp4" } },
+    { identifier: "devilslakend00", title: "WeatherStar 4000 — Devils Lake, North Dakota", subject: "weather channel weatherstar weatherstar 4000 local on the 8s forecast", year: 2025, media: { type: "video", url: "https://archive.org/download/devilslakend00/30%20Days%20Of%20Emulations%20Day%203%2030%20Devils%20Lake%2C%20ND.ia.mp4" } },
+    { identifier: "weather-star-xl-st-louis-mo-july-18-2025-made-with-clipchamp", title: "WeatherStar XL — St. Louis, Missouri", subject: "weather channel weatherstar weatherstar xl local on the 8s forecast", year: 2025, media: { type: "video", url: "https://archive.org/download/weather-star-xl-st-louis-mo-july-18-2025-made-with-clipchamp/WeatherStar%20XL%20-%20St%20Louis%20MO%20-%20July%2018%2C%202025%20-%20Made%20with%20Clipchamp.ia.mp4" } },
+  ],
 });
 /* v171 long-tail recovery bank. These are real Internet Archive identifiers
    collected from the affected lane queries, kept separate from the small
@@ -4575,14 +4641,15 @@ async function getIaQueue(request, url, env, ctx) {
       }
     }
     const emergencyDepth = Math.min(candidateCount, Math.max(count, 8));
-    if (IA_EMERGENCY_SEEDS[channel] && IA_EMERGENCY_SEEDS[channel].length && payload.items.length < emergencyDepth) {
+    const emergencyBank = orderedIaEmergencySeeds(channel, rotation);
+    if (emergencyBank.length && payload.items.length < emergencyDepth) {
       /* A verified shelf keeps the television usable during a true cold-source
          miss or a partially hydrated result. Preserve any approved discovery
          candidates, then append direct, already-observed fallback media so a
          one-item Game Show response cannot become No Signal. Rotate the seed
          order so the emergency path is not a fixed five-item loop, and let the
          normal background discovery replace it with fresher material. */
-      const orderedSeeds = orderedIaEmergencySeeds(channel, rotation);
+      const orderedSeeds = emergencyBank;
       const discovered = Array.isArray(payload.items) ? payload.items : [];
       const candidates = discovered.concat(orderedSeeds).slice(0, candidateCount);
       payload = {

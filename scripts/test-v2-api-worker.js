@@ -139,7 +139,7 @@ const { pathToFileURL } = require('node:url');
           bind() {
             return {
               async all() {
-                return { results: [{ id: 'factory-1', source_identifier: 'factory-1', title: 'Factory Packaging Line', description: 'A verified production floor program.', provider: 'internet-archive', duration_seconds: 1800, aspect_ratio: 1.78, media_type: 'video', media_url: 'https://archive.org/download/factory-1/factory-1.mp4', source_url: 'https://archive.org/details/factory-1', rights: 'public domain', year: '1980', metadata_json: '{}' }] };
+                return { results: [{ id: 'factory-1', source_identifier: 'factory-1', title: 'Factory Packaging Line', description: 'A verified production floor program.', provider: 'internet-archive', duration_seconds: 1800, aspect_ratio: 1.78, media_type: 'video', media_url: 'https://archive.org/download/factory-1/factory-1.mp4', source_url: 'https://archive.org/details/factory-1', rights: 'public domain', year: '1980', metadata_json: '{"subject":"manufacturing factory"}' }] };
               },
             };
           },

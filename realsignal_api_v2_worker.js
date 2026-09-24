@@ -43,7 +43,7 @@ const IA_MIN_ROLLING_CATALOG_DEPTH = 15;
 /* These lanes additionally need stale-row re-scoring because their measured
    D1 history contained old genreVerified flags from before the current rules. */
 const IA_DEPTH_REPAIR_LANES = new Set([
-  "15", "18", "21", "114", "203", "214", "501", "502", "507", "921",
+  "15", "18", "21", "114", "200", "203", "214", "501", "502", "507", "921",
 ]);
 /* Some IA collections store the genre in the series/film title rather than
    the child filename. These are deliberately lane-specific aliases for the
@@ -402,8 +402,14 @@ function catalogFallbackAllowed(item, body) {
      editorially correct but does not literally repeat the required phrase
      (for example, a factory film titled "Master Hands"). */
   const relayVerified = item && item.genreVerified === true && !IA_DEPTH_REPAIR_LANES.has(String(body && body.channel || ""));
+  const strictManufacturingLane = String(body && body.channel || "") === "200";
+  const manufacturingSubjectMatch = strictManufacturingLane && Array.isArray(body && body.themeTerms)
+    && body.themeTerms.some((term) => {
+      const needle = String(term || "").trim().toLowerCase();
+      return needle && subject.includes(needle);
+    });
   const requiredTitleTerms = Array.isArray(body && body.requiredTitleTerms) ? body.requiredTitleTerms : [];
-  if (requiredTitleTerms.length && !relayVerified && !requiredTitleTerms.some((term) => {
+  if (requiredTitleTerms.length && !relayVerified && !manufacturingSubjectMatch && !requiredTitleTerms.some((term) => {
     const needle = String(term || "").trim().toLowerCase();
     return needle && title.includes(needle);
   })) return false;
@@ -412,6 +418,7 @@ function catalogFallbackAllowed(item, body) {
     ? ["metallica", "black sabbath", "ozzy osbourne", "motorhead", "motörhead", "judas priest", "iron maiden", "slayer"].concat(channelAliases)
     : channelAliases;
   const themeTerms = Array.isArray(body && body.themeTerms) ? body.themeTerms.concat(laneAliases) : laneAliases;
+  if (strictManufacturingLane && !manufacturingSubjectMatch) return false;
   /* Relay items have already passed the strict Archive genre/deny gates. Keep
      that provenance when V2 sees an expanded episode whose child filename does
      not repeat the parent topic. */

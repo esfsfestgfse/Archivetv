@@ -238,6 +238,10 @@ const IA_CONFIRMED_REPAIR_CHANNELS = new Set([
      same targeted recovery rails without changing healthy-channel behavior. */
   "69", "76", "78", "20", "152", "910", "912", "918", "205", "107", "111", "123", "124", "120", "155", "225", "233", "508",
   "81", "150", "13", "112", "217", "234", "241",
+  /* v4.1 repeatability gate: these lanes failed in both the prior serial
+     certification and the current serial retry. They get the same bounded
+     rails; no broad emergency media is invented for them. */
+  "2", "60", "110", "119", "131", "200", "212", "216", "223", "232", "926", "928",
 ]);
 for (const channel of IA_CONFIRMED_REPAIR_CHANNELS) {
   IA_STABLE_RESCUE_CHANNELS.add(channel);
@@ -1897,7 +1901,11 @@ function safeChannel(channel) {
 function safeQueries(queries) {
   if (!Array.isArray(queries) || !queries.length || queries.length > 16) return null;
   const clean = queries.map((query) => String(query || "").trim()).filter(Boolean);
-  return clean.length && clean.every((query) => query.length <= 2400) ? clean : null;
+  /* Manufacturing Marvels has a deliberately strict factory vocabulary. Its
+     generated rails are longer than the old generic cap but remain bounded;
+     keep the guard finite without rejecting that approved channel before it
+     reaches Archive discovery. */
+  return clean.length && clean.every((query) => query.length <= 3600) ? clean : null;
 }
 
 /* A queue request carries the channel's approved editorial vocabulary. Search

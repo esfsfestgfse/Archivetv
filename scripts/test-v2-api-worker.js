@@ -34,6 +34,19 @@ const { pathToFileURL } = require('node:url');
   assert.equal(healthBody.bindings.rotation, true);
   assert.ok(healthBody.capabilities.includes('source-catalog'));
 
+  /* A persistent freshness window must not collapse a larger catalog into a
+   * permanent five-item loop once the first shelf is consumed. */
+  const freshnessCtx = { storage: { value: null, async get() { return this.value; }, async put(_key, value) { this.value = value; } } };
+  const freshnessRotation = new SessionRotation(freshnessCtx, {});
+  const freshnessItems = Array.from({ length: 16 }, (_, index) => ({ identifier: `fresh-${index + 1}`, title: `Freshness ${index + 1}` }));
+  const firstFreshness = await freshnessRotation.fetch(new Request('https://rotation.internal/select', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ items: freshnessItems, recentIds: freshnessItems.slice(0, 11).map(item => item.identifier), count: 5, rotation: 0 }) }));
+  const firstFreshnessIds = (await firstFreshness.json()).items.map(item => item.identifier);
+  assert.equal(firstFreshnessIds.length, 5);
+  const secondFreshness = await freshnessRotation.fetch(new Request('https://rotation.internal/select', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ items: freshnessItems, recentIds: freshnessItems.slice(0, 11).map(item => item.identifier), count: 5, rotation: 1 }) }));
+  const secondFreshnessIds = (await secondFreshness.json()).items.map(item => item.identifier);
+  assert.equal(secondFreshnessIds.length, 5);
+  assert.equal(secondFreshnessIds.some(item => firstFreshnessIds.includes(item)), false);
+
   const nativeFetch = global.fetch;
   global.fetch = async request => {
     const url = String(request);
@@ -156,7 +169,9 @@ const { pathToFileURL } = require('node:url');
   const fastLane = await worker.fetch(new Request('https://api.example/api/v2/ia/queue', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ channel: '64', sessionId: 'fast-lane-viewer', rotation: 0, count: 1, themeTerms: ['factory'], requiredTitleTerms: ['factory'], denyTerms: ['cartoon'], mediaTypes: ['movies'], themeMinScore: 1 }) }), fastLaneEnv, ctx);
   assert.equal(fastLane.status, 200);
   assert.match(fastLane.headers.get('X-RealSignal-Source'), /d1-catalog-fast-lane/);
-  assert.equal(fastLaneRelayCalls, 0);
+  /* A shallow fast lane still returns immediately from D1, but now schedules
+     one bounded relay refresh to grow its catalog for the next tune. */
+  assert.equal(fastLaneRelayCalls, 1);
   assert.equal((await fastLane.json()).items[0].title, 'Factory Packaging Line');
 
   const shallowSourceRows = [

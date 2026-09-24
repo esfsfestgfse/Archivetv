@@ -283,6 +283,28 @@ async function enqueueCatalog(env, body, payload) {
   catch (error) { console.warn(JSON.stringify({ event: "catalog-job-not-queued", error: String(error).slice(0, 160) })); }
 }
 
+async function refreshShallowFastCatalog(env, request, body, id, currentDepth) {
+  if (!env.RELAY || typeof env.RELAY.fetch !== "function") return;
+  if (!env.realsignal_catalog_refresh || typeof env.realsignal_catalog_refresh.send !== "function") return;
+  if (Number(currentDepth) >= IA_MIN_ROLLING_CATALOG_DEPTH) return;
+  const refreshBody = { ...body, count: 5, rotation: (Number(body.rotation) || 0) + 1 };
+  delete refreshBody.sessionId;
+  delete refreshBody.session;
+  try {
+    const upstream = await forwardToRelay(request, env, "/ia/queue", refreshBody, id);
+    if (!upstream.ok) return;
+    const payload = await upstream.json();
+    const sourceItems = Array.isArray(payload && payload.candidateItems) && payload.candidateItems.length
+      ? payload.candidateItems
+      : (Array.isArray(payload && payload.items) ? payload.items : []);
+    const items = uniqueQueueItems(sourceItems, body, MAX_CATALOG_ITEMS);
+    if (items.length <= Number(currentDepth)) return;
+    await enqueueCatalog(env, body, { ...payload, items, candidateItems: items });
+  } catch (error) {
+    console.warn(JSON.stringify({ event: "fast-catalog-refresh-failed", requestId: id, channel: String(body.channel), error: String(error).slice(0, 160) }));
+  }
+}
+
 async function upsertCatalogJob(env, job) {
   if (!env.realsignal_catalog || typeof env.realsignal_catalog.batch !== "function" || !job || !Array.isArray(job.items)) return;
   const now = Date.now();
@@ -480,9 +502,12 @@ function applyFreshness(items, body) {
   return fresh.length ? fresh : items;
 }
 
-async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_MAX_ITEMS) {
+async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_MAX_ITEMS, options = {}) {
   if (!env.realsignal_catalog || typeof env.realsignal_catalog.prepare !== "function") return null;
-  const effectiveBody = await withFreshnessLedger(env, body);
+  const ignoreFreshness = options && options.ignoreFreshness === true;
+  const effectiveBody = ignoreFreshness
+    ? { ...body, recentIds: [], freshnessLedger: false }
+    : await withFreshnessLedger(env, body);
   const channel = normalizedChannelKey(effectiveBody.channel);
   const limit = Math.max(1, Math.min(SOURCE_LIMITS.SOURCE_MAX_ITEMS, Number(requestedLimit) || SOURCE_LIMITS.SOURCE_MAX_ITEMS));
   const result = await env.realsignal_catalog.prepare(`SELECT p.* FROM programs p JOIN channel_programs cp ON cp.program_id=p.id WHERE cp.channel_key=? AND p.status='active' AND p.media_url IS NOT NULL ORDER BY cp.last_seen_at DESC LIMIT ?`).bind(channel, limit).all();
@@ -513,7 +538,7 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
     };
   });
   const filtered = uniqueQueueItems(items, effectiveBody);
-  const fresh = applyFreshness(filtered, effectiveBody);
+  const fresh = ignoreFreshness ? filtered : applyFreshness(filtered, effectiveBody);
   return fresh.length ? { items: rotateCatalogItems(fresh, effectiveBody.rotation), candidateItems: fresh, ready: fresh.length, candidates: fresh.length, fallback: true, stale: true, catalogFallback: true, freshnessExcluded: Math.max(0, filtered.length - fresh.length), freshnessWindow: recentCatalogIds(effectiveBody).size, freshnessLedger: effectiveBody.freshnessLedger === true, rotation: Number(effectiveBody.rotation) || 0 } : null;
 }
 
@@ -531,8 +556,17 @@ async function handleQueue(request, env, ctx, id) {
   delete upstreamBody.session;
   if (IA_FAST_CATALOG_LANES.has(String(body.channel))) {
     try {
-      const fastCatalog = await catalogFallback(env, body, MAX_CATALOG_ITEMS);
+      /* Feed the full verified D1 catalog into session rotation. The rotation
+         object applies the persistent freshness ledger for the opening pick,
+         then walks unseen rows from the larger catalog on later Next actions. */
+        const fastCatalog = await catalogFallback(env, body, MAX_CATALOG_ITEMS, { ignoreFreshness: true });
       if (fastCatalog && Array.isArray(fastCatalog.items) && fastCatalog.items.length) {
+        if (fastCatalog.candidateItems.length < IA_MIN_ROLLING_CATALOG_DEPTH) {
+          /* Keep the first frame on the local verified shelf. Refill a shallow
+             fast lane from the relay asynchronously so discovery never blocks
+             a tune and the next visit sees a wider rotation catalog. */
+          ctx.waitUntil(refreshShallowFastCatalog(env, request, body, id, fastCatalog.candidateItems.length));
+        }
         let fastRotated;
         try { fastRotated = await rotateShelf(env, body, fastCatalog, request); }
         catch (error) {

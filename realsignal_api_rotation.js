@@ -49,10 +49,16 @@ export class SessionRotation {
       .map((value) => String(value || "").trim().slice(0, 500))
       .filter(Boolean)
       .slice(-48));
-    const freshCandidates = recent.size ? rawCandidates.filter((item) => !recent.has(itemId(item))) : rawCandidates;
-    const candidates = freshCandidates.length ? freshCandidates : rawCandidates;
     const current = await this.state();
     const prior = new Set(current.seen);
+    const globallyFresh = recent.size ? rawCandidates.filter((item) => !recent.has(itemId(item))) : rawCandidates;
+    const sessionFresh = globallyFresh.filter((item) => !prior.has(itemId(item)));
+    /* The persistent ledger protects the opening pick, but it must not shrink
+       a larger catalog to the same five rows for every later Next action. If
+       the global-fresh subset is already exhausted by this session, continue
+       through unseen rows from the raw catalog before allowing a cycle reset. */
+    const alternateSessionFresh = rawCandidates.filter((item) => !prior.has(itemId(item)));
+    const candidates = cleanItems([...sessionFresh, ...alternateSessionFresh, ...rawCandidates]);
     let fresh = candidates.filter((item) => !prior.has(itemId(item)));
     let cycleReset = false;
     if (!fresh.length && candidates.length) { fresh = candidates; cycleReset = true; }

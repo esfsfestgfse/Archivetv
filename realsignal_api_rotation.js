@@ -60,6 +60,23 @@ export class SessionRotation {
     const ordered = rotate(fresh, Number.isFinite(suppliedRotation) ? suppliedRotation : current.cursor);
     const limit = Math.max(1, Math.min(5, Number(body && body.count) || 3));
     const selected = ordered.slice(0, limit);
+    /* A small catalog can have fewer unseen rows than a five-item TV shelf
+       after a previous rotation. Fill only the missing five-item slots from
+       candidates that are not in the current fresh set; because candidates
+       already excludes the bounded recent window, this preserves freshness
+       while avoiding a partial shelf and the resulting tuning delay. Keep
+       count<5 behavior unchanged for callers that intentionally request a
+       smaller shelf. */
+    if (limit === 5 && selected.length < limit) {
+      const selectedKeys = new Set(selected.map(itemId));
+      for (const item of rotate(candidates, current.cursor + 1)) {
+        const id = itemId(item);
+        if (!id || selectedKeys.has(id)) continue;
+        selected.push(item);
+        selectedKeys.add(id);
+        if (selected.length >= limit) break;
+      }
+    }
     const selectedIds = selected.map(itemId).filter(Boolean);
     const next = { version: 1, seen: (cycleReset ? selectedIds : current.seen.concat(selectedIds)).slice(-MAX_SEEN), cursor: current.cursor + 1, updatedAt: Date.now() };
     await this.ctx.storage.put("rotation", next);

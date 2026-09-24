@@ -19,9 +19,16 @@ const MAX_BODY_BYTES = 128 * 1024;
    playable shelf, but discovery and rotation are no longer trapped inside the
    same five rows at every cold start. */
 const MAX_CATALOG_ITEMS = 96;
-const FRESHNESS_LEDGER_LIMIT = 32;
+/* Keep the recent exclusion window large enough to prevent opening repeats,
+   but bounded so a smaller verified catalog can still produce the full
+   five-item shelf on a cold rotation. A 32-item window left lane 915 with
+   only four unseen rows from its 36-item catalog. */
+const FRESHNESS_LEDGER_LIMIT = 20;
 const FRESHNESS_CACHE_TTL_MS = 15_000;
 const MAX_SESSION = 80;
+/* Only the lane proven to return a four-item cold shelf gets a bounded
+   post-rotation refill. Healthy channels keep the one-pass fast path. */
+const IA_ROTATION_REFILL_LANES = new Set(["915"]);
 /* These lanes were repeatedly slow even when D1 already held verified
    playback rows. Serve the catalog first for them; relay discovery remains
    the background repair path when D1 has no usable row. */
@@ -298,7 +305,15 @@ async function rotateShelf(env, body, payload, request) {
     ? payload.candidateItems
     : ((payload && payload.items) || []);
   const candidates = uniqueQueueItems(rawCandidates, body);
-  const response = await stub.fetch(new Request("https://rotation.internal/select", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ items: candidates, recentIds: Array.isArray(body.recentIds) ? body.recentIds.slice(0, 48) : [], count: Math.max(1, Math.min(5, Number(body.count) || 3)), rotation: Number(body.rotation) || 0 }) }));
+  const count = Math.max(1, Math.min(5, Number(body.count) || 3));
+  /* Freshness is bounded by the available catalog. Excluding a recent window
+     larger than catalog size minus the requested shelf can leave the DO with
+     four unseen rows from a 21-item catalog. Reserve the full shelf first,
+     then apply the remaining recent history. */
+  const recentValues = Array.from(recentCatalogIds(body));
+  const recentLimit = candidates.length >= count ? Math.max(0, candidates.length - count) : recentValues.length;
+  const boundedRecentIds = recentLimit ? recentValues.slice(-recentLimit) : [];
+  const response = await stub.fetch(new Request("https://rotation.internal/select", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ items: candidates, recentIds: boundedRecentIds, count, rotation: Number(body.rotation) || 0 }) }));
   if (!response.ok) throw new Error(`rotation ${response.status}`);
   const selected = await response.json();
   const upstreamReady = Number.isFinite(Number(payload.ready)) ? Number(payload.ready) : (Array.isArray(payload.items) ? payload.items.length : 0);
@@ -456,9 +471,12 @@ async function rememberFreshness(env, channel, items, ctx) {
    catalog rather than turning a healthy channel into No Signal. */
 function applyFreshness(items, body) {
   if (!Array.isArray(items) || !items.length) return [];
-  const recent = recentCatalogIds(body);
-  if (!recent.size) return items;
-  const fresh = items.filter((item) => !recent.has(queueItemKey(item)));
+  const recent = Array.from(recentCatalogIds(body));
+  if (!recent.length) return items;
+  const requestedCount = Math.max(1, Math.min(5, Number(body && body.count) || 3));
+  const recentLimit = items.length >= requestedCount ? Math.max(0, items.length - requestedCount) : recent.length;
+  const boundedRecent = new Set(recentLimit ? recent.slice(-recentLimit) : []);
+  const fresh = items.filter((item) => !boundedRecent.has(queueItemKey(item)));
   return fresh.length ? fresh : items;
 }
 
@@ -596,6 +614,28 @@ async function handleQueue(request, env, ctx, id) {
   catch (error) {
     console.warn(JSON.stringify({ event: "v2-rotation-fallback", requestId: id, error: String(error).slice(0, 160) }));
     rotated = { payload, rotation: { configured: false, fallback: true } };
+  }
+  if (IA_ROTATION_REFILL_LANES.has(String(body.channel)) && Number(rotated.payload && rotated.payload.ready || 0) < count) {
+    /* The session DO has already recorded the first fresh selections. Add a
+       deeper D1 shelf and ask it once more for the missing unseen slot; this
+       preserves freshness while preventing a four-item cold shelf. */
+    try {
+      const refill = await catalogFallback(env, body, MAX_CATALOG_ITEMS);
+      const refillItems = refill && Array.isArray(refill.candidateItems) && refill.candidateItems.length
+        ? refill.candidateItems
+        : (refill && refill.items) || [];
+      const currentCandidates = Array.isArray(rotated.payload && rotated.payload.candidateItems) && rotated.payload.candidateItems.length
+        ? rotated.payload.candidateItems
+        : (rotated.payload && rotated.payload.items) || [];
+      const mergedCandidates = uniqueQueueItems([...currentCandidates, ...refillItems], body, MAX_CATALOG_ITEMS);
+      if (mergedCandidates.length > currentCandidates.length) {
+        const retryPayload = { ...rotated.payload, candidateItems: mergedCandidates, candidates: mergedCandidates.length };
+        const retry = await rotateShelf(env, { ...body, rotation: (Number(body.rotation) || 0) + 1 }, retryPayload, request);
+        if (Number(retry.payload && retry.payload.ready || 0) > Number(rotated.payload && rotated.payload.ready || 0)) rotated = retry;
+      }
+    } catch (error) {
+      console.warn(JSON.stringify({ event: "rotation-refill-failed", requestId: id, channel: String(body.channel), error: String(error).slice(0, 160) }));
+    }
   }
   if (catalogJob(body, rotated.payload)) ctx.waitUntil(enqueueCatalog(env, body, rotated.payload));
   const headers = new Headers(corsHeaders());

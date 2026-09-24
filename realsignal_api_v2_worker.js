@@ -71,6 +71,7 @@ const RATE_LIMITS = Object.freeze({
    rotation remains independent. */
 const requestBuckets = new Map();
 const freshnessReadCache = new Map();
+const shallowCatalogRefreshCache = new Map();
 
 function corsHeaders(contentType = "application/json; charset=utf-8") {
   return {
@@ -283,11 +284,32 @@ async function enqueueCatalog(env, body, payload) {
   catch (error) { console.warn(JSON.stringify({ event: "catalog-job-not-queued", error: String(error).slice(0, 160) })); }
 }
 
-async function refreshShallowFastCatalog(env, request, body, id, currentDepth) {
+function shouldRefreshShallowCatalog(channel) {
+  const key = normalizedChannelKey(channel);
+  if (!key) return false;
+  const now = Date.now();
+  const last = Number(shallowCatalogRefreshCache.get(key) || 0);
+  if (now - last < 30_000) return false;
+  shallowCatalogRefreshCache.set(key, now);
+  return true;
+}
+
+async function refreshShallowCatalog(env, request, body, id, currentDepth) {
   if (!env.RELAY || typeof env.RELAY.fetch !== "function") return;
   if (!env.realsignal_catalog_refresh || typeof env.realsignal_catalog_refresh.send !== "function") return;
   if (Number(currentDepth) >= IA_MIN_ROLLING_CATALOG_DEPTH) return;
-  const refreshBody = { ...body, count: 5, rotation: (Number(body.rotation) || 0) + 1 };
+  /* The foreground request only needs a playable five-item shelf. The
+     background repair must ask the adapter for the larger catalog, use a
+     different rotation seed, and ignore recent-play exclusions while writing
+     the durable catalog. Otherwise the freshness ledger can accidentally
+     prevent the very unseen candidates we need to persist. */
+  const refreshBody = {
+    ...body,
+    count: MAX_CATALOG_ITEMS,
+    rotation: (Number(body.rotation) || 0) + Math.max(17, IA_MIN_ROLLING_CATALOG_DEPTH),
+    recentIds: [],
+    freshnessLedger: false,
+  };
   delete refreshBody.sessionId;
   delete refreshBody.session;
   try {
@@ -297,11 +319,11 @@ async function refreshShallowFastCatalog(env, request, body, id, currentDepth) {
     const sourceItems = Array.isArray(payload && payload.candidateItems) && payload.candidateItems.length
       ? payload.candidateItems
       : (Array.isArray(payload && payload.items) ? payload.items : []);
-    const items = uniqueQueueItems(sourceItems, body, MAX_CATALOG_ITEMS);
+    const items = uniqueQueueItems(sourceItems, refreshBody, MAX_CATALOG_ITEMS);
     if (items.length <= Number(currentDepth)) return;
-    await enqueueCatalog(env, body, { ...payload, items, candidateItems: items });
+    await enqueueCatalog(env, refreshBody, { ...payload, items, candidateItems: items });
   } catch (error) {
-    console.warn(JSON.stringify({ event: "fast-catalog-refresh-failed", requestId: id, channel: String(body.channel), error: String(error).slice(0, 160) }));
+    console.warn(JSON.stringify({ event: "shallow-catalog-refresh-failed", requestId: id, channel: String(body.channel), error: String(error).slice(0, 160) }));
   }
 }
 
@@ -561,11 +583,11 @@ async function handleQueue(request, env, ctx, id) {
          then walks unseen rows from the larger catalog on later Next actions. */
         const fastCatalog = await catalogFallback(env, body, MAX_CATALOG_ITEMS, { ignoreFreshness: true });
       if (fastCatalog && Array.isArray(fastCatalog.items) && fastCatalog.items.length) {
-        if (fastCatalog.candidateItems.length < IA_MIN_ROLLING_CATALOG_DEPTH) {
+        if (fastCatalog.candidateItems.length < IA_MIN_ROLLING_CATALOG_DEPTH && shouldRefreshShallowCatalog(body.channel)) {
           /* Keep the first frame on the local verified shelf. Refill a shallow
              fast lane from the relay asynchronously so discovery never blocks
              a tune and the next visit sees a wider rotation catalog. */
-          ctx.waitUntil(refreshShallowFastCatalog(env, request, body, id, fastCatalog.candidateItems.length));
+          ctx.waitUntil(refreshShallowCatalog(env, request, body, id, fastCatalog.candidateItems.length));
         }
         let fastRotated;
         try { fastRotated = await rotateShelf(env, body, fastCatalog, request); }
@@ -642,6 +664,15 @@ async function handleQueue(request, env, ctx, id) {
         }
       } catch (error) { console.warn(JSON.stringify({ event: "catalog-shallow-recovery-failed", requestId: id, error: String(error).slice(0, 160) })); }
     }
+  }
+  const responseCandidateDepth = Array.isArray(payload && payload.candidateItems)
+    ? payload.candidateItems.length
+    : (Array.isArray(payload && payload.items) ? payload.items.length : 0);
+  if (responseCandidateDepth < IA_MIN_ROLLING_CATALOG_DEPTH && shouldRefreshShallowCatalog(body.channel)) {
+    /* Non-fast lanes get the same non-blocking catalog repair. The API still
+       returns the current playable shelf immediately; this only makes the
+       next request deeper and fresher. */
+    ctx.waitUntil(refreshShallowCatalog(env, request, body, id, responseCandidateDepth));
   }
   let rotated;
   try { rotated = await rotateShelf(env, body, payload, request); }

@@ -397,8 +397,13 @@ function catalogFallbackAllowed(item, body) {
     const needle = String(term || "").trim().toLowerCase();
     return needle && haystack.includes(needle);
   })) return false;
+  /* A relay-verified item has already passed the channel's full source-side
+     genre rules. Preserve that provenance when a child film title is
+     editorially correct but does not literally repeat the required phrase
+     (for example, a factory film titled "Master Hands"). */
+  const relayVerified = item && item.genreVerified === true && !IA_DEPTH_REPAIR_LANES.has(String(body && body.channel || ""));
   const requiredTitleTerms = Array.isArray(body && body.requiredTitleTerms) ? body.requiredTitleTerms : [];
-  if (requiredTitleTerms.length && !requiredTitleTerms.some((term) => {
+  if (requiredTitleTerms.length && !relayVerified && !requiredTitleTerms.some((term) => {
     const needle = String(term || "").trim().toLowerCase();
     return needle && title.includes(needle);
   })) return false;
@@ -413,7 +418,6 @@ function catalogFallbackAllowed(item, body) {
   /* Older catalog rows for the measured repair lanes were written with a
      stale genreVerified flag. Re-score those rows against today's channel
      vocabulary instead of allowing historical trust to preserve bleed. */
-  const relayVerified = item && item.genreVerified === true && !IA_DEPTH_REPAIR_LANES.has(String(body && body.channel || ""));
   if (themeTerms.length && !relayVerified) {
     let score = 0;
     for (const term of themeTerms) {

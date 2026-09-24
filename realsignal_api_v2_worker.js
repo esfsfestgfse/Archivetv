@@ -255,7 +255,18 @@ function uniqueQueueItems(items, body, limit = MAX_CATALOG_ITEMS) {
     out.push(item);
     if (out.length >= limit) break;
   }
-  return out;
+  /* Collection expansion produces a parent index plus direct child files.
+     Once a child is present, the parent is not another program and must not
+     consume a freshness slot or make the next rotation look repetitive. */
+  const expandedSources = new Set(out
+    .filter((item) => queueItemKey(item).includes("::"))
+    .map((item) => String(item && (item.sourceIdentifier || item.source_identifier || queueItemKey(item).split("::")[0]) || "").trim())
+    .filter(Boolean));
+  return out.filter((item) => {
+    const id = queueItemKey(item);
+    const source = String(item && (item.sourceIdentifier || item.source_identifier || id) || "").trim();
+    return !(id === source && expandedSources.has(source));
+  });
 }
 
 function catalogJob(body, payload) {

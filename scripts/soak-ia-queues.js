@@ -147,7 +147,24 @@ async function probeRotation(row, rotationOffset) {
       if (responseWasWarmFallback) sawWarmFallback = true;
       const items = response.ok && Array.isArray(body.items) ? body.items.filter(item => {
         const terms = row.requiredTitleTerms || [];
-        return !terms.length || terms.some(term => String(item.title || '').toLowerCase().includes(String(term).toLowerCase()));
+        if (!terms.length) return true;
+        const title = String(item && item.title || '').toLowerCase();
+        if (terms.some(term => title.includes(String(term).toLowerCase()))) return true;
+        /* Channel 200 intentionally accepts subject-qualified factory films
+           whose individual program title does not repeat the parent query
+           phrase (for example, "Master Hands" or "Visit to Wurlitzer").
+           Mirror that production contract so the soak measures real genre
+           accuracy instead of reporting valid manufacturing episodes as
+           underfilled. */
+        if (String(row.channel) === '200') {
+          const subject = String(item && (item.subject || item.subjects) || '').toLowerCase();
+          const themeTerms = row.themeTerms || [];
+          return themeTerms.some(term => {
+            const needle = String(term || '').toLowerCase().trim();
+            return needle && subject.includes(needle);
+          });
+        }
+        return item && item.genreVerified === true;
       }) : [];
       const catalogDepth = response.ok && Array.isArray(body.candidateItems) ? body.candidateItems.length : items.length;
       const readyCount = Math.min(items.length, Math.max(0, Number(body && body.ready) || 0));

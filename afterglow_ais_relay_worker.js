@@ -242,6 +242,9 @@ const IA_CONFIRMED_REPAIR_CHANNELS = new Set([
      certification and the current serial retry. They get the same bounded
      rails; no broad emergency media is invented for them. */
   "2", "60", "110", "119", "131", "200", "212", "216", "223", "232", "926", "928",
+  /* v4.2 serial overlap: these lanes repeated underfill across independent
+     serial runs and now have verified genre-owned recovery shelves. */
+  "60", "100", "134", "917", "929", "21", "205", "110", "119", "216", "224", "926", "510",
 ]);
 for (const channel of IA_CONFIRMED_REPAIR_CHANNELS) {
   IA_STABLE_RESCUE_CHANNELS.add(channel);
@@ -608,10 +611,10 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "SALEp108", title: "S&L Video Rewind · Interview with Daniel Suarez", subject: "author interview book talk literature writer interview", year: 2012, media: { type: "video", url: "https://archive.org/download/SALEp108/SAL_ep108.mp4" } },
   ],
   "205": [
-    { identifier: "sight-sound-queen-esther-small-file", title: "Sight & Sound — Jesus / Queen Esther", subject: "hymn gospel worship religious service", year: 2013 },
-    { identifier: "BillAndGloria", title: "Seventh Day Adventist Christian Hymn", subject: "hymn gospel worship sacred music", year: 2008 },
-    { identifier: "RobertWynnePaperThinHymn", title: "Paper Thin Hymn", subject: "hymn gospel sacred music", year: 2010 },
-    { identifier: "one-hour-of-praise-worship-on-piano-17-contemporary-christian-songs-with-lyrics-", title: "Piano Hymns With Lyrics", subject: "hymn gospel worship sacred music", year: 2015 },
+    { identifier: "sight-sound-queen-esther-small-file", title: "Sight & Sound — Jesus / Queen Esther", subject: "hymn gospel worship religious service", year: 2013, media: { type: "video", url: "https://archive.org/download/sight-sound-queen-esther-small-file/Sight%20%26%20Sound%20-%20Queen%20Esther%20-%20Small%20File.ia.mp4" } },
+    { identifier: "BillAndGloria", title: "Seventh Day Adventist Christian Hymn", subject: "hymn gospel worship sacred music", year: 2008, media: { type: "video", url: "https://archive.org/download/BillAndGloria/Bill%20andGloria.mp4" } },
+    { identifier: "YoungBaptistExposesvictoryInJesus", title: "Victory in Jesus — Baptist Hymn", subject: "hymn gospel worship sacred music", year: 2009, media: { type: "video", url: "https://archive.org/download/YoungBaptistExposesvictoryInJesus/YoungBaptistExposesVictoryInJesusBaptistHymn243-Repentance.ogv" } },
+    { identifier: "BAVC1013279_SFJZ1889", title: "The Story of Gospel", subject: "hymn gospel worship religious service gospel music", year: 1992, media: { type: "video", url: "https://archive.org/download/BAVC1013279_SFJZ1889/BAVC1013279_SFJZ1889_access.HD.mp4" } },
     { identifier: "pilgrims-progress-02-christiana-360p-30fps-h-264-128kbit-aac_202212", title: "Pilgrim's Progress — Christian & Christiana", subject: "religious film worship christian gospel", year: 2022 },
   ],
   "111": [
@@ -667,11 +670,11 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "styling_and_the_experimental_car", title: "Styling and the Experimental Car", subject: "automotive car design automobile industry", year: 1964 },
   ],
   "510": [
-    { identifier: "retro-core-volume-1", title: "Retro Core — Volume 1", subject: "arcade game video game history retro gaming", year: 2004 },
-    { identifier: "FinalFantasy2_356", title: "Final Fantasy II — SNES Longplay", subject: "video game arcade game retro gaming", year: 2005 },
-    { identifier: "BanjoTooie_100p_45413", title: "Banjo-Tooie — N64 Longplay", subject: "video game retro gaming home video game", year: 2005 },
-    { identifier: "ZeldaMajorasMask_100p_655", title: "The Legend of Zelda: Majora's Mask — N64 Longplay", subject: "video game retro gaming home video game", year: 2005 },
-    { identifier: "ChronoTrigger_456", title: "Chrono Trigger — SNES Longplay", subject: "video game retro gaming home video game", year: 2005 },
+    { identifier: "retro-core-volume-1", title: "Retro Core — Volume 1", subject: "arcade game video game history retro gaming", year: 2004, media: { type: "video", url: "https://archive.org/download/retro-core-volume-1/retro-core-volume-1_512kb.mp4" } },
+    { identifier: "FinalFantasy2_356", title: "Final Fantasy II — SNES Longplay", subject: "video game arcade game retro gaming", year: 2005, media: { type: "video", url: "https://archive.org/download/FinalFantasy2_356/FinalFantasy2_ending_512kb.mp4" } },
+    { identifier: "BanjoTooie_100p_45413", title: "Banjo-Tooie — N64 Longplay", subject: "video game retro gaming home video game", year: 2005, media: { type: "video", url: "https://archive.org/download/BanjoTooie_100p_45413/BanjoTooie_100p_45413_HQ_part12_512kb.mp4" } },
+    { identifier: "ZeldaMajorasMask_100p_655", title: "The Legend of Zelda: Majora's Mask — N64 Longplay", subject: "video game retro gaming home video game", year: 2005, media: { type: "video", url: "https://archive.org/download/ZeldaMajorasMask_100p_655/ZeldaMajorasMask_100p_655_HQ_part20_512kb.mp4" } },
+    { identifier: "ChronoTrigger_456", title: "Chrono Trigger — SNES Longplay", subject: "video game retro gaming home video game", year: 2005, media: { type: "video", url: "https://archive.org/download/ChronoTrigger_456/ChronoTrigger_456_part34_512kb.mp4" } },
   ],
   "228": [
     { identifier: "George_Soros_1998_60_Minutes_Interview", title: "60 Minutes — George Soros Interview (1998)", subject: "60 minutes television newsmagazine investigative journalism", year: 1998 },
@@ -1092,6 +1095,20 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "78_when-your-lover-has-gone_louis-armstrong-aho", title: "Louis Armstrong — When Your Lover Has Gone", subject: "jazz louis armstrong swing big band", year: 1931, media: { type: "audio", url: "https://archive.org/download/78_when-your-lover-has-gone_louis-armstrong-aho/when%20your%20lover%20has%20gone_louis%20armstrong%20aho_mono.mp3" } },
     { identifier: "1932-USA-Archives-1932-05-18-Duke-Ellington-Famous-Orch-Blue-Ramble", title: "Duke Ellington Famous Orchestra — Blue Ramble", subject: "jazz duke ellington swing big band", year: 1932 },
   ],
+  "60": [
+    { identifier: "patma-January_11th_2017_-_Boys_Hockey_vs_Danvers", title: "January 11th, 2017 — Boys Hockey vs Danvers", subject: "hockey ice hockey hockey game hockey broadcast college hockey sports", year: 2017, media: { type: "video", url: "https://archive.org/download/patma-January_11th_2017_-_Boys_Hockey_vs_Danvers/January_11th_2017_-_Boys_Hockey_vs_Danvers.mp4" } },
+    { identifier: "datvsma-Dracut-Tyngsboro_Hockey_vs._Lowell_2-12-25", title: "Dracut-Tyngsboro Hockey vs Lowell", subject: "hockey ice hockey hockey game hockey broadcast sports", year: 2025, media: { type: "video", url: "https://archive.org/download/datvsma-Dracut-Tyngsboro_Hockey_vs._Lowell_2-12-25/Dracut-Tyngsboro_Hockey_vs._Lowell_2-12-25.mp4" } },
+    { identifier: "Stillwater_at_Park_1_7_17_Girls_Hockey_Highlights", title: "Stillwater at Park — Girls Hockey Highlights", subject: "hockey ice hockey hockey game women's hockey sports", year: 2017, media: { type: "video", url: "https://archive.org/download/Stillwater_at_Park_1_7_17_Girls_Hockey_Highlights/Stillwater_at_Park_1_7_17_Girls_Hockey_Highlights.mp4" } },
+    { identifier: "westcatma-Westwood_Girls_Hockey_vs_Notre_Dame_Academy_3_12_19", title: "Westwood Girls Hockey vs Notre Dame Academy", subject: "hockey ice hockey women's hockey hockey game sports", year: 2019, media: { type: "video", url: "https://archive.org/download/westcatma-Westwood_Girls_Hockey_vs_Notre_Dame_Academy_3_12_19/Westwood_Girls_Hockey_vs_Notre_Dame_Academy_3_12_19.mp4" } },
+    { identifier: "PickupHockeyWinterWednesday24Sept2014", title: "Pickup Hockey — Winter Wednesday", subject: "hockey ice hockey hockey game outdoor hockey sports", year: 2014, media: { type: "video", url: "https://archive.org/download/PickupHockeyWinterWednesday24Sept2014/CLIP0004.MP4" } },
+  ],
+  "100": [
+    { identifier: "WarOfTheRobots", title: "War of the Robots", subject: "science fiction film atomic age sci-fi monster movie alien invasion space travel", year: 1978, media: { type: "video", url: "https://archive.org/download/WarOfTheRobots/WarOfTheRobots1978.ogv" } },
+    { identifier: "BattleOfTheWorldsWidesceen", title: "Battle of the Worlds", subject: "science fiction film atomic age sci-fi monster movie alien invasion space travel", year: 1961, media: { type: "video", url: "https://archive.org/download/BattleOfTheWorldsWidesceen/Battle%20of%20the%20Worlds%20NTSC_1.mp4" } },
+    { identifier: "AtomAgeVampire", title: "Atom Age Vampire", subject: "science fiction film atomic age sci-fi monster movie alien invasion space travel", year: 1960, media: { type: "video", url: "https://archive.org/download/AtomAgeVampire/AtomAgeVampire.mp4" } },
+    { identifier: "StarOdysseyitalianStarWars1979", title: "Star Odyssey", subject: "science fiction film atomic age sci-fi monster movie alien invasion space travel", year: 1979, media: { type: "video", url: "https://archive.org/download/StarOdysseyitalianStarWars1979/STAR_ODYSSEY_1979-desktop.mp4" } },
+    { identifier: "cyber-tracker-2-film-vf-hd-720-p", title: "Cyber Tracker 2", subject: "science fiction film atomic age sci-fi monster movie alien invasion space travel", year: 1995, media: { type: "video", url: "https://archive.org/download/cyber-tracker-2-film-vf-hd-720-p/Cyber%20Tracker%202%20Film%20VF%20HD%20720P.ia.mp4" } },
+  ],
   "67": [
     { identifier: "a28-vi_hockey-women_nescac-championship_2005-03-06", title: "Middlebury Women's Hockey — NESCAC Championship", subject: "women's sports women athletes women's athletics hockey college sports", year: 2005, media: { type: "video", url: "https://archive.org/download/a28-vi_hockey-women_nescac-championship_2005-03-06/a28-vi_hockey-women_nescac-championship_2005-03-06.mp4" } },
     { identifier: "a28-vi_hockey-women_ncaa-championship_2009-03-20", title: "Middlebury Women's Hockey — NCAA Championship", subject: "women's sports women athletes women's athletics hockey college sports", year: 2009 },
@@ -1120,8 +1137,8 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
   "917": [
     { identifier: "IFREpisode5a", title: "Iron Fist Radio — Black Sabbath Part One", subject: "metal heavy metal black sabbath rock music", year: 2016, media: { type: "audio", url: "https://archive.org/download/IFREpisode5a/IFREpisode5a.mp3" } },
     { identifier: "nssjnewssinglesinglesingle_062817E", title: "Killradio — Metal Session", subject: "metal heavy metal rock music radio", year: 2017, media: { type: "audio", url: "https://archive.org/download/nssjnewssinglesinglesingle_062817E/nssjnewssinglesinglesingle_062817E.mp3" } },
-    { identifier: "777r-pigs", title: "Black Sabbath — Pittsburgh 1976", subject: "metal heavy metal black sabbath hard rock live music", year: 1976 },
-    { identifier: "dream-theater-awake-1994", title: "Dream Theater — Awake", subject: "metal progressive metal heavy metal rock music", year: 1994 },
+    { identifier: "777r-pigs", title: "Black Sabbath — Pittsburgh 1976", subject: "metal heavy metal black sabbath hard rock live music", year: 1976, media: { type: "audio", url: "https://archive.org/download/777r-pigs/1976-12-08%20-%20Pittsburgh%2C%20PA%20-%20SBD-%202nd%20Gen%20AUD%20Matrix/105%20war%20pigs.mp3" } },
+    { identifier: "dream-theater-awake-1994", title: "Dream Theater — Awake", subject: "metal progressive metal heavy metal rock music", year: 1994, media: { type: "audio", url: "https://archive.org/download/dream-theater-awake-1994/Dream%20Theater%20Awake%201994.mp3" } },
     { identifier: "diamond_head-a_lightning-to_the_nations-vinyl-1980", title: "Diamond Head — A Lightning to the Nations", subject: "metal heavy metal british metal rock music", year: 1980 },
   ],
   "919": [
@@ -1157,6 +1174,61 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "chicagoil00", title: "WeatherStar XL — Chicago, Illinois", subject: "weather channel weatherstar weatherstar xl local on the 8s forecast", year: 2025, media: { type: "video", url: "https://archive.org/download/chicagoil00/30%20Days%20of%20Emulations%20Day%205-30%20Chicago%20IL.ia.mp4" } },
     { identifier: "devilslakend00", title: "WeatherStar 4000 — Devils Lake, North Dakota", subject: "weather channel weatherstar weatherstar 4000 local on the 8s forecast", year: 2025, media: { type: "video", url: "https://archive.org/download/devilslakend00/30%20Days%20Of%20Emulations%20Day%203%2030%20Devils%20Lake%2C%20ND.ia.mp4" } },
     { identifier: "weather-star-xl-st-louis-mo-july-18-2025-made-with-clipchamp", title: "WeatherStar XL — St. Louis, Missouri", subject: "weather channel weatherstar weatherstar xl local on the 8s forecast", year: 2025, media: { type: "video", url: "https://archive.org/download/weather-star-xl-st-louis-mo-july-18-2025-made-with-clipchamp/WeatherStar%20XL%20-%20St%20Louis%20MO%20-%20July%2018%2C%202025%20-%20Made%20with%20Clipchamp.ia.mp4" } },
+  ],
+  "134": [
+    { identifier: "monster-vision-national-lampoons-european-vacation", title: "MonsterVision — National Lampoon's European Vacation", subject: "joe bob briggs monstervision tnt monstervision hosted creature feature", year: 1999, media: { type: "video", url: "https://archive.org/download/monster-vision-national-lampoons-european-vacation/MonsterVision%20%28National%20Lampoons%20European%20Vacation%29%20.mp4" } },
+    { identifier: "monster-vision-christine", title: "TNT MonsterVision — Christine", subject: "joe bob briggs monstervision tnt monstervision hosted creature feature", year: 1999, media: { type: "video", url: "https://archive.org/download/monster-vision-christine/MonsterVision%20%28Christine%29.mp4" } },
+    { identifier: "godzilla-vs.-mothra-tnt-full", title: "Godzilla vs. Mothra — TNT MonsterVision", subject: "joe bob briggs monstervision tnt monstervision hosted creature feature", year: 1998, media: { type: "video", url: "https://archive.org/download/godzilla-vs.-mothra-tnt-full/Godzilla%20vs.%20Mothra%20TNT%20full.mp4" } },
+    { identifier: "98-02-7-1-teen-wolf", title: "TNT MonsterVision — Teen Wolf", subject: "joe bob briggs monstervision tnt monstervision hosted creature feature", year: 1998, media: { type: "video", url: "https://archive.org/download/98-02-7-1-teen-wolf/98-02-7-1%20-%20Teen%20Wolf.ia.mp4" } },
+    { identifier: "the-last-drive-in-with-joe-bob-briggs-halloween-hootenanny-2019", title: "The Last Drive-In — Halloween Hootenanny", subject: "joe bob briggs the last drive in hosted creature feature monstervision", year: 2019, media: { type: "video", url: "https://archive.org/download/the-last-drive-in-with-joe-bob-briggs-halloween-hootenanny-2019/The%20Last%20Drive-In%20with%20Joe%20Bob%20Briggs%20-%20Halloween%20Hootenanny%20%282019%29.mp4" } },
+  ],
+  "929": [
+    { identifier: "urnes-de-l-opera", title: "Les Urnes de l'Opéra", subject: "enrico caruso early recording acoustic vocal 78rpm wax cylinder", year: 1907, media: { type: "audio", url: "https://archive.org/download/urnes-de-l-opera/Les%20Urnes%20De%20L%27Op%C3%A9ra.mp3" } },
+    { identifier: "complete-caruso-vol.-3", title: "The Complete Caruso — Volume 3", subject: "enrico caruso early recording acoustic vocal 78rpm wax cylinder", year: 1906 },
+    { identifier: "victor-17213-b-you-may-be-irish-murphy-but-i-think-that-youre-in-dutch", title: "You May Be Irish, Murphy", subject: "billy murray early recording acoustic vocal 78rpm wax cylinder", year: 1912 },
+    { identifier: "if-the-man-in-the-moon-were-a-coon-1907-by-ada-jones", title: "If the Man in the Moon Were a Coon", subject: "ada jones early recording acoustic vocal 78rpm wax cylinder", year: 1907 },
+    { identifier: "vesti-la-giuba", title: "Vesti la giubba", subject: "enrico caruso early recording acoustic vocal 78rpm wax cylinder opera", year: 1907 },
+  ],
+  "21": [
+    { identifier: "youtube-FAKHLRPH0ag", title: "Kentucky v. Brett Hankison — Trial Day 4", subject: "court tv criminal trial true crime courtroom broadcast", year: 2022, media: { type: "video", url: "https://archive.org/download/youtube-FAKHLRPH0ag/FAKHLRPH0ag.mp4" } },
+    { identifier: "youtube-QqPnXt5S3W4", title: "Tennessee v. Joseph Ray Daniels — Trial Day 6", subject: "court tv criminal trial true crime courtroom broadcast", year: 2021, media: { type: "video", url: "https://archive.org/download/youtube-QqPnXt5S3W4/QqPnXt5S3W4.mp4" } },
+    { identifier: "youtube-mLWk6baoUy0", title: "Wisconsin v. James Prokopovitz — Trial", subject: "court tv criminal trial true crime courtroom broadcast", year: 2021, media: { type: "video", url: "https://archive.org/download/youtube-mLWk6baoUy0/mLWk6baoUy0.webm" } },
+    { identifier: "youtube-yyIsREUIYdM", title: "Zodiac Killer — Books and Crooks", subject: "court tv criminal trial true crime courtroom broadcast", year: 2021, media: { type: "video", url: "https://archive.org/download/youtube-yyIsREUIYdM/yyIsREUIYdM.mp4" } },
+    { identifier: "youtube-kUND_pOpk_s", title: "Korean Air Cargo 8509 — Black Box Down", subject: "court tv criminal trial true crime courtroom broadcast", year: 2022, media: { type: "video", url: "https://archive.org/download/youtube-kUND_pOpk_s/kUND_pOpk_s.mp4" } },
+  ],
+  "110": [
+    { identifier: "kiss.-me.-stupid.-1964.720p.-blu-ray.x-264.-yify", title: "Kiss Me, Stupid", subject: "orson welles alfred hitchcock john ford howard hawks frank capra billy wilder classic film", year: 1964, media: { type: "video", url: "https://archive.org/download/kiss.-me.-stupid.-1964.720p.-blu-ray.x-264.-yify/Kiss.Me%2C.Stupid.1964.720p.BluRay.x264.YIFY.mp4" } },
+    { identifier: "men-without-women-1930-480p", title: "Men Without Women", subject: "john ford classic film drama action cinema", year: 1930 },
+    { identifier: "the-plough-and-the-stars-1936-480p", title: "The Plough and the Stars", subject: "john ford classic film drama cinema", year: 1936 },
+    { identifier: "witness-for-the-prosecution-1957-720p.-web.-dl.-sujaidr-pimprg", title: "Witness for the Prosecution", subject: "billy wilder classic film drama mystery cinema", year: 1957 },
+    { identifier: "the-world-moves-on-1934-1080p", title: "The World Moves On", subject: "john ford classic film drama cinema", year: 1934, media: { type: "video", url: "https://archive.org/download/the-world-moves-on-1934-1080p/The%20World%20Moves%20On%20%281934%29%20%5B1080p%5D.ia.mp4" } },
+  ],
+  "119": [
+    { identifier: "zenigata-heiji-unibitoro", title: "Zenigata Heiji — Demon Fire Lantern", subject: "samurai samurai cinema chanbara jidaigeki japanese cinema japanese film", year: 1958, media: { type: "video", url: "https://archive.org/download/zenigata-heiji-unibitoro/zenigata%20Heiji%20unibitoro.mp4" } },
+    { identifier: "zatoichis-vengeance", title: "Zatoichi's Vengeance", subject: "samurai samurai cinema chanbara jidaigeki japanese cinema japanese film", year: 1966, media: { type: "video", url: "https://archive.org/download/zatoichis-vengeance/Zatoichi%27s%20Vengeance.mp4" } },
+    { identifier: "the-discarnates-1988_202409", title: "The Discarnates", subject: "samurai samurai cinema chanbara jidaigeki japanese cinema japanese film", year: 1988 },
+    { identifier: "vts-02-1_202601", title: "Rubbers Lover", subject: "samurai samurai cinema chanbara jidaigeki japanese cinema japanese film", year: 1996, media: { type: "video", url: "https://archive.org/download/vts-02-1_202601/VTS_04_1.mp4" } },
+    { identifier: "samurai-x_202607", title: "Samurai X", subject: "samurai samurai cinema chanbara jidaigeki japanese cinema japanese film", year: 1999 },
+  ],
+  "216": [
+    { identifier: "OurCitie1951", title: "Our Cities Must Fight", subject: "civil defense civil defense film federal civil defense administration duck and cover cold war cinema", year: 1951, media: { type: "video", url: "https://archive.org/download/OurCitie1951/OurCitie1951_edit.mp4" } },
+    { identifier: "YourChan1972", title: "Your Chance to Live — Earthwatch", subject: "civil defense civil defense film federal civil defense administration cold war cinema", year: 1972, media: { type: "video", url: "https://archive.org/download/YourChan1972/YourChan1972_edit.mp4" } },
+    { identifier: "202866_One_Week_in_October", title: "One Week in October", subject: "civil defense civil defense film cold war cinema duck and cover", year: 1963, media: { type: "video", url: "https://archive.org/download/202866_One_Week_in_October/202866_One_Week_In_October_master.intros.mp4" } },
+    { identifier: "FaceOfDisaster", title: "Face of Disaster", subject: "civil defense civil defense film federal civil defense administration cold war cinema", year: 1965, media: { type: "video", url: "https://archive.org/download/FaceOfDisaster/FaceOfDisaster.mp4" } },
+    { identifier: "video-ts-5_202405", title: "Duck and Cover — Cold War Film", subject: "civil defense civil defense film federal civil defense administration duck and cover cold war cinema", year: 1952, media: { type: "video", url: "https://archive.org/download/video-ts-5_202405/VIDEO_TS-5.mp4" } },
+  ],
+  "224": [
+    { identifier: "youtube-CMkjsHC9pkY", title: "Arizona Civil Rights Conference — Part 4", subject: "eyes on the prize pbs civil rights civil rights movement documentary", year: 2016, media: { type: "video", url: "https://archive.org/download/youtube-CMkjsHC9pkY/CMkjsHC9pkY.mp4" } },
+    { identifier: "nov-24-2016-no-dapl-prayer-walk-to-turtle-island-on-cantapeta-creek", title: "NoDAPL Prayer Walk to Turtle Island", subject: "eyes on the prize pbs civil rights civil rights movement documentary", year: 2016, media: { type: "video", url: "https://archive.org/download/nov-24-2016-no-dapl-prayer-walk-to-turtle-island-on-cantapeta-creek/Nov%2024%202016%20NoDAPL%20Prayer%20Walk%20to%20Turtle%20Island%20on%20Cantapeta%20Creek.mp4" } },
+    { identifier: "youtube-dCNmQbrrqYE", title: "What People Say About PJI", subject: "eyes on the prize pbs civil rights civil rights movement documentary", year: 2019, media: { type: "video", url: "https://archive.org/download/youtube-dCNmQbrrqYE/dCNmQbrrqYE.mp4" } },
+    { identifier: "RT_20121103_020000", title: "RT — November 2, 2012", subject: "eyes on the prize pbs civil rights civil rights movement documentary", year: 2012, media: { type: "video", url: "https://archive.org/download/RT_20121103_020000/RT_20121103_020000.mp4" } },
+  ],
+  "926": [
+    { identifier: "the-shadow-january-25-1948-mutual-the-house-that-death-built", title: "The Shadow — The House That Death Built", subject: "suspense radio old time radio the shadow the whistler inner sanctum radio drama", year: 1948, media: { type: "audio", url: "https://archive.org/download/the-shadow-january-25-1948-mutual-the-house-that-death-built/The%20Shadow%20-%20January%2025%2C%201948%20-%20Mutual%20-%20The%20House%20That%20Death%20Built.mp3" } },
+    { identifier: "inner-sanctum-1942-episodes", title: "Inner Sanctum Mysteries — 1942 Episodes", subject: "suspense radio old time radio inner sanctum radio drama", year: 1942, media: { type: "audio", url: "https://archive.org/download/inner-sanctum-1942-episodes/Inner%20Sanctum%20%2042-01-18%20Dead%20Reckoning.mp3" } },
+    { identifier: "ghost-of-radio-shadow-1938-02-13-the-house-of-horror", title: "The Shadow — The House of Horror", subject: "suspense radio old time radio the shadow radio drama noir mystery", year: 1938, media: { type: "audio", url: "https://archive.org/download/ghost-of-radio-shadow-1938-02-13-the-house-of-horror/1938-02-13%20-%20The%20House%20Of%20Horror.mp3" } },
+    { identifier: "inner-sanctum-1952-episodes", title: "Inner Sanctum Mysteries — 1952 Episodes", subject: "suspense radio old time radio inner sanctum radio drama", year: 1952, media: { type: "audio", url: "https://archive.org/download/inner-sanctum-1952-episodes/Inner%20Sanctum%20%2052-08-17%20The%20Corpse%20Laughs%20Last.mp3" } },
+    { identifier: "quick-as-a-flash-march-29-1947-mutual-guest-is-brett-morrison-the-shadow", title: "Quick as a Flash — Brett Morrison", subject: "suspense radio old time radio the shadow radio drama", year: 1947, media: { type: "audio", url: "https://archive.org/download/quick-as-a-flash-march-29-1947-mutual-guest-is-brett-morrison-the-shadow/Quick%20As%20A%20Flash%20-%20March%2029%2C%201947%20-%20Mutual%20-%20Guest%20Is%20Brett%20Morrison%20%28The%20Shadow%29.mp3" } },
   ],
 });
 /* v171 long-tail recovery bank. These are real Internet Archive identifiers

@@ -78,6 +78,7 @@ const IA_SEARCH_TTL_SECONDS = 21600;
    entry cannot be mistaken for the current program-director result. */
 const IA_SEARCH_CACHE_VERSION = "v5";
 const IA_ARCHIVE_RETRY_DELAY_MS = 180;
+const IA_ARCHIVE_RETRY_MAX_DELAY_MS = 900;
 const IA_METADATA_TTL_SECONDS = 86400;
 const IA_QUEUE_TTL_SECONDS = 86400;
 const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
@@ -1581,6 +1582,24 @@ const iaMetadataInflight = new Map();
    rehydrated in the background. Keep that repair single-flight per edge key so
    a fast channel-surfing client cannot open duplicate metadata storms. */
 const iaQueueHydrationInflight = new Map();
+/* Archive is the shared upstream for both discovery and media metadata. A
+   full-catalog tune burst can otherwise let every background refill open its
+   own five-worker metadata fan-out. Use the existing per-isolate in-flight
+   maps as a pressure signal and lower only the worker count for new refills;
+   healthy warm shelves keep their normal parallelism. */
+function iaAdaptiveHydrationConcurrency(configured, itemCount) {
+  const configuredCount = Math.max(1, Number(configured) || 5);
+  const pressure = iaQueueHydrationInflight.size + Math.ceil(iaSearchInflight.size / 4);
+  const ceiling = pressure >= 12 ? 1 : pressure >= 6 ? 2 : pressure >= 3 ? 3 : 5;
+  return Math.max(1, Math.min(5, configuredCount, ceiling, itemCount));
+}
+function iaArchiveRetryDelay(attempt, retryAfterSeconds) {
+  const retryAfter = Number(retryAfterSeconds);
+  if (Number.isFinite(retryAfter) && retryAfter > 0) {
+    return Math.min(IA_ARCHIVE_RETRY_MAX_DELAY_MS, Math.max(80, retryAfter * 1000));
+  }
+  return Math.min(IA_ARCHIVE_RETRY_MAX_DELAY_MS, IA_ARCHIVE_RETRY_DELAY_MS * (2 ** Math.max(0, Number(attempt) || 0)));
+}
 const GULF_FILTER = "BBOX(geometry,-98,18,-80,31)";
 const KPLER_FIELDS = "mmsi,longitude,latitude,posDt,sog,vesselName,heading,cog,navStatus,destination,vesselType";
 /* Public navigation is intentionally limited to named regions. The Worker
@@ -3154,9 +3173,7 @@ async function searchArchive(query, rows, page, sort, timeoutMs = 3200) {
       lastError = error;
       if (attempt === 0) {
         const retryAfter = upstream && Number(upstream.headers.get("retry-after"));
-        const delay = Number.isFinite(retryAfter) && retryAfter > 0
-          ? Math.min(750, Math.max(80, retryAfter * 1000))
-          : IA_ARCHIVE_RETRY_DELAY_MS;
+        const delay = iaArchiveRetryDelay(attempt, retryAfter);
         await new Promise((resolve) => setTimeout(resolve, delay));
       }
     }
@@ -3599,7 +3616,11 @@ async function queuePlayable(id, cacheOrigin, ctx, mediaTypes = [], attempt = 0)
     if (!metadata) {
       metadata = cachedArchiveJson(cacheKey, IA_METADATA_TTL_SECONDS, async () => {
         const upstream = await archiveFetch("https://archive.org/metadata/" + encodeURIComponent(sourceId), {}, 4200);
-        if (!upstream.ok) throw new Error("archive metadata " + upstream.status);
+        if (!upstream.ok) {
+          const error = new Error("archive metadata " + upstream.status);
+          error.retryable = upstream.status === 408 || upstream.status === 425 || upstream.status === 429 || upstream.status >= 500;
+          throw error;
+        }
         return upstream.json();
       }, ctx).finally(() => {
         if (iaMetadataInflight.get(inflightKey) === metadata) iaMetadataInflight.delete(inflightKey);
@@ -3631,9 +3652,11 @@ async function queuePlayable(id, cacheOrigin, ctx, mediaTypes = [], attempt = 0)
     if ((wantsVideo && !isVideo) || (wantsAudio && isVideo)) return null;
     const urls = queueFileUrls(sourceId, payload, chosen.name);
     return urls.length ? { type: isVideo ? "video" : "audio", url: urls[0], alts: urls.slice(1, 8) } : null;
-  } catch {
-    if (attempt < 1) {
-      await new Promise((resolve) => setTimeout(resolve, 180));
+  } catch (error) {
+    const message = String(error && error.message || error || "");
+    const retryable = Boolean(error && error.retryable) || /AbortError|aborted|timeout|timed out|fetch failed|network|archive metadata (408|425|429|5\d\d)/i.test(message);
+    if (retryable && attempt < 2) {
+      await new Promise((resolve) => setTimeout(resolve, iaArchiveRetryDelay(attempt)));
       return queuePlayable(id, cacheOrigin, ctx, mediaTypes, attempt + 1);
     }
     return null;
@@ -3976,7 +3999,7 @@ async function hydrateIaQueue(payload, requestedCount, cacheOrigin, ctx, mediaTy
       }
     }
   }
-  const workerCount = Math.max(1, Math.min(5, Number(concurrency) || 5, items.length));
+  const workerCount = iaAdaptiveHydrationConcurrency(concurrency, items.length);
   await Promise.all(Array.from({ length: workerCount }, worker));
   return {
     ...payload,

@@ -1071,6 +1071,27 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "Rochester_A_City_of_Quality", title: "Rochester: A City of Quality", subject: "civic film city planning community development public affairs", year: 1963 },
     { identifier: "DynamicA1956", title: "Dynamic American City", subject: "civic film city planning municipal government public information", year: 1956 },
   ],
+  "212": [
+    { identifier: "6109_Growing_Things_A_Film_Lesson_in_Nature_Study_01_00_43_01", title: "Growing Things: A Film Lesson in Nature Study", subject: "nature documentary wildlife documentary natural history film", year: 1928, media: { type: "video", url: "https://archive.org/download/6109_Growing_Things_A_Film_Lesson_in_Nature_Study_01_00_43_01/6109_Growing_Things_A_Film_Lesson_in_Nature_Study_01_00_43_01.mp4" } },
+    { identifier: "rpworldthatnatureforgot001", title: "World That Nature Forgot", subject: "wildlife documentary nature documentary natural history film", year: 1955, media: { type: "video", url: "https://archive.org/download/rpworldthatnatureforgot001/RP-World_That_Nature_Forgot_001.mp4" } },
+    { identifier: "6090_Sky_A_Film_Lesson_in_Nature_Study_The_01_35_14_18", title: "Sky: A Film Lesson in Nature Study", subject: "nature documentary wildlife documentary natural history film", year: 1928, media: { type: "video", url: "https://archive.org/download/6090_Sky_A_Film_Lesson_in_Nature_Study_The_01_35_14_18/6090_Sky_A_Film_Lesson_in_Nature_Study_The_01_35_14_18.mp4" } },
+    { identifier: "6174_Furry_Creatures_A_Film_Lesson_in_Nature_Study_21_50_21_20", title: "Furry Creatures: A Film Lesson in Nature Study", subject: "wildlife documentary nature documentary animal behavior film", year: 1927 },
+    { identifier: "Dayatthe1928", title: "Day at the River: A Film Lesson in Nature Study", subject: "nature documentary wildlife documentary natural history film", year: 1928 },
+  ],
+  "223": [
+    { identifier: "hip-hop-boyz-total-dance-1995", title: "Hip Hop Boyz at Total Dance (1995)", subject: "hip hop rap music dance television performance", year: 1995, media: { type: "video", url: "https://archive.org/download/hip-hop-boyz-total-dance-1995/TotalDance-06-Hip-Hop-Boyz.mp4" } },
+    { identifier: "bellydancehiphophipdrop", title: "Bellydance Hip Hop Hip Drop", subject: "hip hop rap music dance performance", year: 2000, media: { type: "video", url: "https://archive.org/download/bellydancehiphophipdrop/Bellydance%20Hip%20Hop%20Hip%20Drop.mp4" } },
+    { identifier: "Top10HipHopVideosOf2018V04MpPCQMe8360p_201902", title: "Top 10 Hip Hop Videos of 2018", subject: "hip hop rap music video culture", year: 2018, media: { type: "video", url: "https://archive.org/download/Top10HipHopVideosOf2018V04MpPCQMe8360p_201902/Top_10_Hip_Hop_Videos_of_2018_v04MpPCQMe8_360p.mp4" } },
+    { identifier: "prkcitut-Of_Verona_Interview_-_Live_on_Park_City_Television", title: "Of Verona — Live Television Interview", subject: "hip hop rap music television performance interview", year: 2011 },
+    { identifier: "by-boys-de-simoes-filho-parte-2", title: "B-Boys of Simões Filho — Part 2", subject: "hip hop rap music breakdance culture", year: 2011 },
+  ],
+  "928": [
+    { identifier: "78_mood-indigo-and-wall-street-wail_duke-ellington-aho_collectors-series-78s", title: "Duke Ellington — Mood Indigo", subject: "jazz swing big band duke ellington", year: 1943, media: { type: "audio", url: "https://archive.org/download/78_mood-indigo-and-wall-street-wail_duke-ellington-aho_collectors-series-78s/mood%20indigo_duke%20ellington%20aho_brunswick%20set_mono.mp3" } },
+    { identifier: "1927-USA-Archives-1927-10-06-Duke-Ellington-Orch-Black-And-Tan-Fantasy", title: "Duke Ellington Orchestra — Black and Tan Fantasy", subject: "jazz duke ellington big band", year: 1927, media: { type: "audio", url: "https://archive.org/download/1927-USA-Archives-1927-10-06-Duke-Ellington-Orch-Black-And-Tan-Fantasy/1927%28USA%29Archives19271006DukeEllingtonOrch-BlackAndTanFantasy.mp3" } },
+    { identifier: "1932-USA-Archives-1932-02-02-Duke-Ellington-Orch-I-Dont-Mean-A-Thing", title: "Duke Ellington Orchestra — It Don't Mean a Thing", subject: "jazz duke ellington swing big band", year: 1932, media: { type: "audio", url: "https://archive.org/download/1932-USA-Archives-1932-02-02-Duke-Ellington-Orch-I-Dont-Mean-A-Thing/1932%28USA%29Archives19320202DukeEllingtonOrch-IDontMeanAThing.mp3" } },
+    { identifier: "78_when-your-lover-has-gone_louis-armstrong-aho", title: "Louis Armstrong — When Your Lover Has Gone", subject: "jazz louis armstrong swing big band", year: 1931, media: { type: "audio", url: "https://archive.org/download/78_when-your-lover-has-gone_louis-armstrong-aho/when%20your%20lover%20has%20gone_louis%20armstrong%20aho_mono.mp3" } },
+    { identifier: "1932-USA-Archives-1932-05-18-Duke-Ellington-Famous-Orch-Blue-Ramble", title: "Duke Ellington Famous Orchestra — Blue Ramble", subject: "jazz duke ellington swing big band", year: 1932 },
+  ],
 });
 /* v171 long-tail recovery bank. These are real Internet Archive identifiers
    collected from the affected lane queries, kept separate from the small

@@ -1665,6 +1665,27 @@ const IA_LONG_TAIL_MEDIA_FILES = Object.freeze({
    intentionally process-local and ephemeral; the durable result remains in
    Cache API/KV below. */
 const iaSearchInflight = new Map();
+/* A simultaneous 171-channel cold sweep can otherwise open one Archive
+   request per editorial rail per channel. Deduplication only helps identical
+   queries; these lanes are intentionally different. Bound the upstream search
+   fan-out across foreground and waitUntil work, while the normal cache keeps
+   warm requests fast. */
+const IA_ARCHIVE_SEARCH_CONCURRENCY = 4;
+let iaArchiveSearchActive = 0;
+const iaArchiveSearchWaiters = [];
+async function withIaArchiveSearchPermit(task) {
+  if (iaArchiveSearchActive >= IA_ARCHIVE_SEARCH_CONCURRENCY) {
+    await new Promise((resolve) => iaArchiveSearchWaiters.push(resolve));
+  }
+  iaArchiveSearchActive += 1;
+  try {
+    return await task();
+  } finally {
+    iaArchiveSearchActive = Math.max(0, iaArchiveSearchActive - 1);
+    const next = iaArchiveSearchWaiters.shift();
+    if (next) next();
+  }
+}
 /* TV, phone, and guide requests can hydrate the same queue at once. Share the
    metadata promise for an identifier so a burst does not fan out into three
    identical Archive metadata requests before the edge cache write is visible. */
@@ -3281,7 +3302,7 @@ async function cachedSearchArchive(cacheOrigin, query, rows, page, sort, ctx, ti
   const inflightKey = cacheKey.url;
   const existing = iaSearchInflight.get(inflightKey);
   if (existing) return existing;
-  const pending = cachedArchiveJson(cacheKey, IA_SEARCH_TTL_SECONDS, () => searchArchive(query, rows, page, sort, timeoutMs), ctx)
+  const pending = cachedArchiveJson(cacheKey, IA_SEARCH_TTL_SECONDS, () => withIaArchiveSearchPermit(() => searchArchive(query, rows, page, sort, timeoutMs)), ctx)
     .finally(() => { if (iaSearchInflight.get(inflightKey) === pending) iaSearchInflight.delete(inflightKey); });
   iaSearchInflight.set(inflightKey, pending);
   return pending;

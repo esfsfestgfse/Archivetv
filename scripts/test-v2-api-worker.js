@@ -6,7 +6,7 @@ const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 
 (async () => {
-  const { default: worker, SessionRotation } = await import(pathToFileURL(path.join(__dirname, '..', 'realsignal_api_v2_worker.js')));
+  const { default: worker, SessionRotation, freshnessExclusionIds } = await import(pathToFileURL(path.join(__dirname, '..', 'realsignal_api_v2_worker.js')));
   const rotations = new Map();
   const calls = [];
   const queueMessages = [];
@@ -26,6 +26,13 @@ const { pathToFileURL } = require('node:url');
     realsignal_catalog_refresh: { async send(body) { queueMessages.push(body); } },
   };
   const ctx = { waitUntil(promise) { return promise; } };
+
+  /* D1 returns the freshness ledger newest-first. The queue must exclude the
+   * newest rows, not the oldest rows, or shallow lanes immediately replay the
+   * opening shelf even when more verified candidates exist. */
+  const newestFirst = { recentIds: ['freshest', 'recent', 'older'], freshnessLedger: true };
+  assert.deepEqual(freshnessExclusionIds(newestFirst, 2), ['freshest', 'recent']);
+  assert.deepEqual(freshnessExclusionIds({ recentIds: ['older', 'recent', 'freshest'] }, 2), ['recent', 'freshest']);
 
   const health = await worker.fetch(new Request('https://api.example/api/v2/health'), env, ctx);
   assert.equal(health.status, 200);

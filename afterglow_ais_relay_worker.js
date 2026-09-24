@@ -101,10 +101,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-72-48-depth-recovery";
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v90";
+const IA_QUEUE_CACHE_VERSION = "v95";
 /* Last-good shelves share the v84 namespace so an older shallow shelf
    never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v90";
+const IA_LAST_GOOD_CACHE_VERSION = "v95";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    three shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -537,6 +537,19 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "DragnetTheBigHitRunKiller", title: "Dragnet — The Big Hit-Run Killer", subject: "dragnet classic television police procedural detective show", year: 1954, media: { type: "video", url: "https://archive.org/download/DragnetTheBigHitRunKiller/DragnetTheBigHitRunKiller.mp4" } },
     { identifier: "hawaii-five-o-S2E3-480p", title: "Hawaii Five-O — Season 2, Episode 3", subject: "hawaii five-o classic television police procedural detective show", year: 1968, media: { type: "video", url: "https://archive.org/download/hawaii-five-o-S2E3-480p/hawaii-five-o-S2E3-480p.mp4" } },
     { identifier: "columbo-pilot-episodes::prescription-murder", title: "Columbo — Prescription Murder", subject: "columbo classic television police procedural detective show", year: 1968, media: { type: "video", url: "https://archive.org/download/columbo-pilot-episodes/1%20-%20Prescription%20Murder.ia.mp4" } },
+    { identifier: "Dragnet1951", title: "Dragnet (1951)", subject: "dragnet classic television police procedural detective show", year: 1951 },
+    { identifier: "DragnetTheHumanBomb", title: "Dragnet — The Human Bomb", subject: "dragnet classic television police procedural detective show", year: 1952 },
+    { identifier: "DragnetTheBigActor", title: "Dragnet — The Big Actor", subject: "dragnet classic television police procedural detective show", year: 1952 },
+    { identifier: "DragnetTheBigBetty", title: "Dragnet — The Big Betty", subject: "dragnet classic television police procedural detective show", year: 1952 },
+    { identifier: "DragnetTheBigChildren", title: "Dragnet — The Big Children", subject: "dragnet classic television police procedural detective show", year: 1952 },
+    { identifier: "DragnetTheBigLamp", title: "Dragnet — The Big Lamp", subject: "dragnet classic television police procedural detective show", year: 1952 },
+    { identifier: "DragnetTheBigMother", title: "Dragnet — The Big Mother", subject: "dragnet classic television police procedural detective show", year: 1952 },
+    { identifier: "hill.-street.-blues.-s-01", title: "Hill Street Blues — Season 1", subject: "hill street blues classic television police procedural detective show", year: 1981 },
+    { identifier: "hill.street.blues.s-03", title: "Hill Street Blues — Season 3", subject: "hill street blues classic television police procedural detective show", year: 1983 },
+    { identifier: "hill.street.blues.s-05", title: "Hill Street Blues — Season 5", subject: "hill street blues classic television police procedural detective show", year: 1985 },
+    { identifier: "hill.street.blues.s-04e-01.heres.adventure.heres.romance.sdtv.x-264", title: "Hill Street Blues — Season 4", subject: "hill street blues classic television police procedural detective show", year: 1984 },
+    { identifier: "adam-12.-s-01", title: "Adam-12 — Season 1", subject: "adam-12 classic television police procedural detective show", year: 1968 },
+    { identifier: "columbo-pilot-episodes", title: "Columbo — Pilot Episodes", subject: "columbo classic television police procedural detective show", year: 1968 },
   ],
   /* The Detective is a separate lane from Cop Show Classic. Give it the same
      proven public-domain procedural records, but with explicit detective
@@ -753,6 +766,17 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "01-just-for-laughs", title: "Just for Laughs — Stand-Up Comedy", subject: "stand-up comedy comedy club live comedy", year: 2010, media: { type: "video", url: "https://archive.org/download/01-just-for-laughs/01%20JUST%20FOR%20LAUGHS.ia.mp4" } },
     { identifier: "words-words-words-hd_2010", title: "Bo Burnham — Words Words Words", subject: "stand-up comedy comedy special live comedy", year: 2010, media: { type: "video", url: "https://archive.org/download/words-words-words-hd_2010/Words%20Words%20Words%20%28HD%29.ia.mp4" } },
     { identifier: "richard-pryor-live", title: "Richard Pryor Live", subject: "stand-up comedy comedy special live comedy", year: 1979, media: { type: "video", url: "https://archive.org/download/richard-pryor-live/richard%20pryor%20live.mp4" } },
+    { identifier: "lee-evans-collection", title: "Lee Evans — Complete Live Collection", subject: "stand-up comedy comedy special live comedy", year: 1994 },
+    { identifier: "GeorgeLopezWhyYouCryingFullStandUpComedyShowLive", title: "George Lopez — Why You Crying", subject: "stand-up comedy comedy special live comedy", year: 2007 },
+    { identifier: "BrianRegan-husbands", title: "Brian Regan — Husbands", subject: "stand-up comedy comedy special live comedy", year: 2008 },
+    { identifier: "stewart-lees-comedy-vehicle-season-04-e-03-patriotism", title: "Stewart Lee's Comedy Vehicle — Patriotism", subject: "stand-up comedy comedy special live comedy", year: 2016 },
+    { identifier: "stewart-lees-comedy-vehicle-season-04-e-05-migrants", title: "Stewart Lee's Comedy Vehicle — Migrants", subject: "stand-up comedy comedy special live comedy", year: 2016 },
+    { identifier: "stewart-lees-comedy-vehicle-season-04-e-01-wealth", title: "Stewart Lee's Comedy Vehicle — Wealth", subject: "stand-up comedy comedy special live comedy", year: 2016 },
+    { identifier: "stewart-lees-comedy-vehicle-season-04-e-02-islamophobia", title: "Stewart Lee's Comedy Vehicle — Islamophobia", subject: "stand-up comedy comedy special live comedy", year: 2016 },
+    { identifier: "katt.-williams.-the.-pimp.-chronicles.-pt.-1.2006.1080p.-webrip.x-264-rarbg_202407", title: "Katt Williams — The Pimp Chronicles", subject: "stand-up comedy comedy special live comedy", year: 2006 },
+    { identifier: "trevor-noah-the-daywalker-special-edition-2009-dvdri-p", title: "Trevor Noah — The Daywalker", subject: "stand-up comedy comedy special live comedy", year: 2009 },
+    { identifier: "IndianInvasionComedy-IndianStandUpComedy", title: "Indian Invasion Comedy", subject: "stand-up comedy comedy special live comedy", year: 2007 },
+    { identifier: "y-2-mate.is-nick-mullen-is-back-r-5-tuzx-0-h-6zw-720p-1648711911431", title: "Nick Mullen — Live Stand-Up", subject: "stand-up comedy comedy special live comedy", year: 2022 },
   ],
   "922": [
     { identifier: "clubdelcountry::2006-01-29", title: "Club del Country — January 29, 2006", subject: "country music americana honky tonk radio", year: 2006, media: { type: "audio", url: "https://archive.org/download/clubdelcountry/2006/2006-01-29.mp3" } },
@@ -769,6 +793,15 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "clubdelcountry::2009-10-05-part145-3", title: "Club del Country — Part 145C", subject: "country music bluegrass honky tonk americana radio", year: 2009, media: { type: "audio", url: "https://archive.org/download/clubdelcountry/2009/cdc2009-10-05Part145-3.mp3" } },
     { identifier: "clubdelcountry::2009-10-12-part146-1", title: "Club del Country — Part 146A", subject: "country music bluegrass honky tonk americana radio", year: 2009, media: { type: "audio", url: "https://archive.org/download/clubdelcountry/2009/cdc2009-10-12Part146-1.mp3" } },
     { identifier: "clubdelcountry::2009-10-12-part146-2", title: "Club del Country — Part 146B", subject: "country music bluegrass honky tonk americana radio", year: 2009, media: { type: "audio", url: "https://archive.org/download/clubdelcountry/2009/cdc2009-10-12Part146-2.mp3" } },
+    { identifier: "clubdelcountry", title: "Club del Country — Complete Archive", subject: "country music bluegrass honky tonk americana radio", year: 2009 },
+    { identifier: "OTRR_Delmore_Brothers_Singles", title: "Delmore Brothers — Single Episodes", subject: "country music bluegrass grand ole opry radio", year: 2012 },
+    { identifier: "HootPodcast", title: "Hoot 'n Holler — Live Bluegrass Contest", subject: "country music bluegrass live music radio", year: 2004 },
+    { identifier: "nr75-09-28.SBD", title: "Newgrass Revival — September 28, 1975", subject: "country music bluegrass live music radio", year: 1975 },
+    { identifier: "redneck-28-spirit-of-the-south-bonus", title: "Redneck 28 — Spirit of the South", subject: "country music outlaw country country rock radio", year: 2008 },
+    { identifier: "bigcitywaltz", title: "Big City Waltz", subject: "country music bluegrass radio", year: 2000 },
+    { identifier: "david-allan-coe-underground-album-1982", title: "David Allan Coe — Underground Album", subject: "country music outlaw country country rock radio", year: 1982 },
+    { identifier: "2022.10.01.TheLaneBrothers", title: "The Lane Brothers — Bluegrass", subject: "country music bluegrass live music radio", year: 2022 },
+    { identifier: "2022-07-24-danny-paisley-southern-grass", title: "Danny Paisley & Southern Grass", subject: "country music bluegrass live music radio", year: 2022 },
   ],
   "231": [
     { identifier: "Automoti1940", title: "Automotive Service (1940)", subject: "automobile automotive car culture service and repair", year: 1940 },
@@ -1076,6 +1109,16 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "InZenSilence", title: "In Zen Silence", subject: "electronic music ambient experimental radio", year: 2014 },
     { identifier: "mchnta-008", title: "C0D3 — freqout!", subject: "electronic music experimental ambient radio", year: 2013 },
     { identifier: "jamendo-351740", title: "Oper-8 — Vectorized", subject: "electronic music techno experimental radio", year: 2013 },
+    { identifier: "OSC74Dexxed", title: "One Synth Challenge — Dexed", subject: "electronic music synth radio", year: 2015 },
+    { identifier: "NS050", title: "Another Day, Another Way", subject: "electronic music ambient compilation radio", year: 2012 },
+    { identifier: "CANDY032", title: "Christmasasaurus Vol. 2", subject: "electronic music electronica IDM radio", year: 2006 },
+    { identifier: "Torley_Wong_-_The_Final_Selection", title: "Torley Wong — The Final Selection", subject: "electronic music ambient breakbeat house techno radio", year: 2005 },
+    { identifier: "stqk011", title: "A Struggle Between Right or Wrong", subject: "electronic music electro synthwave radio", year: 2012 },
+    { identifier: "mtk140", title: "ST — I'll Meet You There EP", subject: "electronic music netlabel radio", year: 2012 },
+    { identifier: "Jdbxl15Va-IScreamIceCream", title: "JDBXL15 — I Scream Ice Cream", subject: "electronic music techno radio", year: 2011 },
+    { identifier: "foot149", title: "Duis", subject: "electronic music trip-hop jazz radio", year: 2010 },
+    { identifier: "nullbomb", title: "Nullbomb Creatures", subject: "electronic music IDM breakcore radio", year: 2006 },
+    { identifier: "pcr089EmilDavydov-Sketches", title: "Emil Davydov — Sketches", subject: "electronic music ambient experimental radio", year: 2011 },
   ],
   "107": [
     { identifier: "BYTHESADSEAWAVESHaroldLloydSilentAbrAHalRoachComedy", title: "By the Sad Sea Waves — Harold Lloyd", subject: "silent cinema silent film comedy archive", year: 1917, media: { type: "video", url: "https://archive.org/download/BYTHESADSEAWAVESHaroldLloydSilentAbrAHalRoachComedy/BY%20THE%20SAD%20SEA%20WAVES-Harold%20Lloyd-silent-abr-A%20Hal%20Roach%20Comedy.mp4" } },
@@ -1260,6 +1303,10 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "kbfxnyayv0hz0pq8rly0de8p8hflawjjrda9p1bm", title: "Saturdays Soul — Lenno Muit", subject: "funk soul rhythm and blues r&b disco music", year: 2022 },
     { identifier: "kjrxmhz1kdusfy6ap0n8hv7vevnjnn6khbrpwefj", title: "Modern Soul Session", subject: "funk soul rhythm and blues r&b rare groove music", year: 2023 },
     { identifier: "nxgfzo15h5sgdaxgukysyh0hpsgg475m3gsjisnp", title: "Jamm FM — Funky Sunday", subject: "funk soul rhythm and blues r&b disco music", year: 2020 },
+    { identifier: "MIXG032", title: "Retrovision — Funk, Soul and Groove", subject: "funk soul rhythm and blues groove music", year: 2013 },
+    { identifier: "jillem-full-archive", title: "Jillem Full Archive — Soul and Funk", subject: "funk soul rhythm and blues pop music", year: 2010 },
+    { identifier: "funk_cv", title: "Funk Kings", subject: "funk soul rhythm and blues music", year: 2010 },
+    { identifier: "ThatCroonerfromNowhere_Cummingsoon_EP", title: "That Crooner from Nowhere — Cumming Soon EP", subject: "funk soul disco groove music", year: 2010 },
   ],
   "128": [
     { identifier: "general-idi-amin-1973", title: "General Idi Amin", subject: "british pathe britain on film british newsreel british documentary", year: 1973, media: { type: "video", url: "https://archive.org/download/general-idi-amin-1973/General%20Idi%20Amin%20%281973%29.mp4" } },
@@ -1795,6 +1842,17 @@ const IA_LONG_TAIL_EXPANSIONS = Object.freeze({
     iaDirectRecovery("clarawardgospelc00ward::02_When_the_saints_go_marching_in.mp3", "clarawardgospelc00ward", "02_When_the_saints_go_marching_in.mp3", "Clara Ward — When the Saints Go Marching In", "gospel spiritual sacred music", 1950, "audio"),
     iaDirectRecovery("james-cleveland-and-the-southern-california-community-choir-god-is::James Cleveland and The Southern California Community Choir - God Is.mp3", "james-cleveland-and-the-southern-california-community-choir-god-is", "James Cleveland and The Southern California Community Choir - God Is.mp3", "James Cleveland — God Is", "gospel spiritual sacred choir music", 1979, "audio"),
     iaDirectRecovery("gospel78s::AlexBradfordAndHisBradfordSpecials-HoyGhostAndLifesCandlelight-Specialty886.mp3", "gospel78s", "AlexBradfordAndHisBradfordSpecials-HoyGhostAndLifesCandlelight-Specialty886.mp3", "Alex Bradford and His Bradford Specials — Gospel 78", "gospel spiritual sacred music", 1950, "audio"),
+    { identifier: "takeovertheophilussundaywww.amenradio.net", title: "Take Over — Theophilus Sunday", subject: "gospel spiritual sacred music", year: 2024 },
+    { identifier: "nara-ekele-dr.-paul-enenche-feat.-dunamis-voices-osinachi-nwachukwu-www.-amen-radio.net", title: "Nara Ekele — Dunamis Voices", subject: "gospel spiritual sacred music", year: 2024 },
+    { identifier: "HolyGhostPower_20170325", title: "Jamaican Gospel Music & Songs", subject: "gospel spiritual sacred music", year: 2017 },
+    { identifier: "NARAFT.TRAVISGRENE1", title: "Travis Greene — Gospel Music", subject: "gospel spiritual sacred music", year: 2017 },
+    { identifier: "onye-inyeaka-my-helper-mr.-m-revelation-www.-amen-radio.net", title: "Onye-Inyeaka — Mr. M & Revelation", subject: "gospel spiritual sacred music", year: 2024 },
+    { identifier: "HotPraiseWorshipVol2", title: "Hot Praise Worship Vol. 2", subject: "gospel spiritual sacred music", year: 2017 },
+    { identifier: "HolyGhostPower_20161117", title: "Jamaican Gospel Music & Songs", subject: "gospel spiritual sacred music", year: 2016 },
+    { identifier: "MAR17QRHaitianGospelMusicAndSongs", title: "Haitian Gospel Music and Songs", subject: "gospel spiritual sacred music", year: 2017 },
+    { identifier: "my-altar-is-calling-theophilus-sunday-www.-amen-radio.net", title: "My Altar Is Calling — Theophilus Sunday", subject: "gospel spiritual sacred music", year: 2024 },
+    { identifier: "spiritofvictoryjephthahidahosaaigbewww.amenradio.net", title: "Spirit of Victory", subject: "gospel spiritual sacred music", year: 2024 },
+    { identifier: "AFRICANMUSICARCHIVES-TOPGOSPELMUSIC", title: "African Music Archives — Top Gospel Music", subject: "gospel spiritual sacred music", year: 2018 },
   ],
   "203": [
     iaDirectRecovery("aaapodcast_episode262_201502::2017AnimeOscars.mp3", "aaapodcast_episode262_201502", "2017AnimeOscars.mp3", "AAA Podcast — Episode 262", "podcast podcast episode independent podcast audio", 2015, "audio"),
@@ -1809,6 +1867,14 @@ const IA_LONG_TAIL_EXPANSIONS = Object.freeze({
     iaDirectRecovery("totp-surviving-footage-1970::April/TOTP 02-04-1970 Bob and Marcia - Young Gifted and Black 1080p.ia.mp4", "totp-surviving-footage-1970", "April/TOTP 02-04-1970 Bob and Marcia - Young Gifted and Black 1080p.ia.mp4", "Top of the Pops — Bob and Marcia", "top of the pops british music performance television", 1970),
     iaDirectRecovery("KraftMusicHall14December1960::Kraft Music Hall - 14 December 1960.mp4", "KraftMusicHall14December1960", "Kraft Music Hall - 14 December 1960.mp4", "Kraft Music Hall — 14 December 1960", "british music hall music performance television", 1960),
     iaDirectRecovery("videoplayback_20181218:: TOTP+ 22 04 01.mp4", "videoplayback_20181218", " TOTP+ 22 04 01.mp4", "Top of the Pops — 2000–01", "top of the pops british music performance television", 2001),
+    { identifier: "top-of-the-pops-1970s_202401", title: "Top of the Pops — 1970s Collection", subject: "top of the pops british music performance television", year: 1974 },
+    { identifier: "top-of-the-pops-1960s_202401", title: "Top of the Pops — 1960s Collection", subject: "top of the pops british music performance television", year: 1966 },
+    { identifier: "retrobritishtelevisionarchive", title: "Retro British Television Archive — Music Performances", subject: "british music performance television archive", year: 1972 },
+    { identifier: "KraftMusicHallHostedByMiltonBerleGuestAndyGriffith", title: "Kraft Music Hall — Andy Griffith", subject: "british music hall music performance television", year: 1960 },
+    { identifier: "thebeatlesanthology", title: "The Beatles Anthology — Television Performances", subject: "british rock performance music television", year: 1995 },
+    { identifier: "totp-surviving-footage-1970", title: "Top of the Pops — Surviving 1970 Footage", subject: "top of the pops british music performance television", year: 1970 },
+    { identifier: "PerryComokraftMusicHall1959", title: "Perry Como — Kraft Music Hall", subject: "music hall music performance television", year: 1959 },
+    { identifier: "pink-floyd-1967-12-17-bbc-tomorrows-world-session", title: "Pink Floyd — BBC Session", subject: "british rock performance music television", year: 1967 },
   ],
   "130": [
     iaDirectRecovery("premier-league-years-2003-04::Premier League Years 2003:04.mp4", "premier-league-years-2003-04", "Premier League Years 2003:04.mp4", "The Premier League Years — 2003–04", "english football british football soccer match", 2004),
@@ -1906,6 +1972,190 @@ const IA_LONG_TAIL_EXPANSIONS = Object.freeze({
     iaDirectRecovery("MIXG032::01_Zipp_-_Pour_Quoi_Royale.mp3", "MIXG032", "01_Zipp_-_Pour_Quoi_Royale.mp3", "Retrovision — Pour Quoi Royale", "jazz contemporary jazz free music radio", 2013, "audio"),
     iaDirectRecovery("MIXG032::02_Dog_On_Springs_-_Footloose_feat_Paul_Whiteman.mp3", "MIXG032", "02_Dog_On_Springs_-_Footloose_feat_Paul_Whiteman.mp3", "Retrovision — Footloose", "jazz contemporary jazz free music radio", 2013, "audio"),
     iaDirectRecovery("MIXG032::03_Astat_-_Daily_Dozen.mp3", "MIXG032", "03_Astat_-_Daily_Dozen.mp3", "Retrovision — Daily Dozen", "jazz contemporary jazz free music radio", 2013, "audio"),
+  ],
+});
+/* File-level freshness expansions are kept in a separate object so they can
+   be layered onto the long-tail bank without duplicate object keys. */
+const IA_LONG_TAIL_EXPANSIONS_EXTRA = Object.freeze({
+  "203": [
+    iaDirectRecovery("TiestosClubLife::2017-01-07 - Club Life 510 - Tiesto, Norman Doray, Vato Gonalez.mp3", "TiestosClubLife", "2017-01-07 - Club Life 510 - Tiesto, Norman Doray, Vato Gonalez.mp3", "Club Life 510 — Tiesto", "podcast music podcast electronic podcast episode", 2017, "audio"),
+    iaDirectRecovery("TiestosClubLife::2017-01-14 - Club Life 511 - Tiesto, Suyano.mp3", "TiestosClubLife", "2017-01-14 - Club Life 511 - Tiesto, Suyano.mp3", "Club Life 511 — Tiesto", "podcast music podcast electronic podcast episode", 2017, "audio"),
+    iaDirectRecovery("TiestosClubLife::2017-01-21 - Club Life 512 - Tiesto, DubVision.mp3", "TiestosClubLife", "2017-01-21 - Club Life 512 - Tiesto, DubVision.mp3", "Club Life 512 — Tiesto", "podcast music podcast electronic podcast episode", 2017, "audio"),
+    iaDirectRecovery("TiestosClubLife::2017-01-28 - Club Life 513 - Tiesto, Loud Luxury.mp3", "TiestosClubLife", "2017-01-28 - Club Life 513 - Tiesto, Loud Luxury.mp3", "Club Life 513 — Tiesto", "podcast music podcast electronic podcast episode", 2017, "audio"),
+    iaDirectRecovery("aaapodcast_episode262_201502::AAAPodcast_AP340iuw.mp3", "aaapodcast_episode262_201502", "AAAPodcast_AP340iuw.mp3", "AAA Podcast — Episode 340", "podcast anime culture podcast episode", 2015, "audio"),
+    iaDirectRecovery("aaapodcast_episode262_201502::AAAPodcast_AP341ooo8.mp3", "aaapodcast_episode262_201502", "AAAPodcast_AP341ooo8.mp3", "AAA Podcast — Episode 341", "podcast anime culture podcast episode", 2015, "audio"),
+    iaDirectRecovery("aaapodcast_episode262_201502::AAAPodcast_AP344rrs.mp3", "aaapodcast_episode262_201502", "AAAPodcast_AP344rrs.mp3", "AAA Podcast — Episode 344", "podcast anime culture podcast episode", 2015, "audio"),
+    iaDirectRecovery("aaapodcast_episode262_201502::AAAPodcast_AP345ttts.mp3", "aaapodcast_episode262_201502", "AAAPodcast_AP345ttts.mp3", "AAA Podcast — Episode 345", "podcast anime culture podcast episode", 2015, "audio"),
+    iaDirectRecovery("yitbarchive::002.BadLieutenant_portOfCall-NewOrleans.mp3", "yitbarchive", "002.BadLieutenant_portOfCall-NewOrleans.mp3", "Yeah, It's That Bad — Bad Lieutenant", "podcast film podcast movie discussion episode", 2014, "audio"),
+    iaDirectRecovery("yitbarchive::003.TheUninvited.mp3", "yitbarchive", "003.TheUninvited.mp3", "Yeah, It's That Bad — The Uninvited", "podcast film podcast movie discussion episode", 2014, "audio"),
+    iaDirectRecovery("yitbarchive::004.WhiteoutAndVantagePoint.mp3", "yitbarchive", "004.WhiteoutAndVantagePoint.mp3", "Yeah, It's That Bad — Whiteout", "podcast film podcast movie discussion episode", 2014, "audio"),
+    iaDirectRecovery("yitbarchive::005.VanillaSky.mp3", "yitbarchive", "005.VanillaSky.mp3", "Yeah, It's That Bad — Vanilla Sky", "podcast film podcast movie discussion episode", 2014, "audio"),
+  ],
+  "205": [
+    iaDirectRecovery("sight-sound-queen-esther-small-file::Sight & Sound - Jonah - Small File.ia.mp4", "sight-sound-queen-esther-small-file", "Sight & Sound - Jonah - Small File.ia.mp4", "Sight & Sound — Jonah", "gospel worship christian service religious music", 2013),
+    iaDirectRecovery("sight-sound-queen-esther-small-file::Sight & Sound - Joseph - Small File.ia.mp4", "sight-sound-queen-esther-small-file", "Sight & Sound - Joseph - Small File.ia.mp4", "Sight & Sound — Joseph", "gospel worship christian service religious music", 2013),
+    iaDirectRecovery("sight-sound-queen-esther-small-file::Sight & Sound - Moses - Small File.ia.mp4", "sight-sound-queen-esther-small-file", "Sight & Sound - Moses - Small File.ia.mp4", "Sight & Sound — Moses", "gospel worship christian service religious music", 2013),
+    iaDirectRecovery("sight-sound-queen-esther-small-file::Sight & Sound - Noah - Small File.ia.mp4", "sight-sound-queen-esther-small-file", "Sight & Sound - Noah - Small File.ia.mp4", "Sight & Sound — Noah", "gospel worship christian service religious music", 2013),
+    iaDirectRecovery("kingjamesvideobible::19-Psalms.mp4", "kingjamesvideobible", "19-Psalms.mp4", "King James Video Bible — Psalms", "gospel worship christian service bible scripture", 2020),
+    iaDirectRecovery("kingjamesvideobible::20-Proverbs.mp4", "kingjamesvideobible", "20-Proverbs.mp4", "King James Video Bible — Proverbs", "gospel worship christian service bible scripture", 2020),
+    iaDirectRecovery("kingjamesvideobible::21-Ecclesiastes.mp4", "kingjamesvideobible", "21-Ecclesiastes.mp4", "King James Video Bible — Ecclesiastes", "gospel worship christian service bible scripture", 2020),
+    iaDirectRecovery("kingjamesvideobible::22-Song of Solomon.mp4", "kingjamesvideobible", "22-Song of Solomon.mp4", "King James Video Bible — Song of Solomon", "gospel worship christian service bible scripture", 2020),
+  ],
+  "154": [
+    iaDirectRecovery("Dragnet1951::Dragnet/Season 1/Dragnet (1951) - S01E01 - The Human Bomb.mp4", "Dragnet1951", "Dragnet/Season 1/Dragnet (1951) - S01E01 - The Human Bomb.mp4", "Dragnet — The Human Bomb", "dragnet classic television police procedural detective show", 1951),
+    iaDirectRecovery("Dragnet1951::Dragnet/Season 1/Dragnet (1951) - S01E02 - The Big Actor.mp4", "Dragnet1951", "Dragnet/Season 1/Dragnet (1951) - S01E02 - The Big Actor.mp4", "Dragnet — The Big Actor", "dragnet classic television police procedural detective show", 1951),
+    iaDirectRecovery("Dragnet1951::Dragnet/Season 1/Dragnet (1951) - S01E05 - The Big Cast.mp4", "Dragnet1951", "Dragnet/Season 1/Dragnet (1951) - S01E05 - The Big Cast.mp4", "Dragnet — The Big Cast", "dragnet classic television police procedural detective show", 1951),
+    iaDirectRecovery("hill.-street.-blues.-s-01::Hill.Street.Blues.S01E01.Hill.Street.Station.Pilot.mp4", "hill.-street.-blues.-s-01", "Hill.Street.Blues.S01E01.Hill.Street.Station.Pilot.mp4", "Hill Street Blues — Pilot", "hill street blues classic television police procedural detective show", 1981),
+    iaDirectRecovery("hill.-street.-blues.-s-01::Hill.Street.Blues.S01E02.Presidential.Fever.mp4", "hill.-street.-blues.-s-01", "Hill.Street.Blues.S01E02.Presidential.Fever.mp4", "Hill Street Blues — Presidential Fever", "hill street blues classic television police procedural detective show", 1981),
+    iaDirectRecovery("hill.street.blues.s-03::Hill.street.blues.s03e01.trial.by.fury.webrip.x264.mp4", "hill.street.blues.s-03", "Hill.street.blues.s03e01.trial.by.fury.webrip.x264.mp4", "Hill Street Blues — Trial by Fury", "hill street blues classic television police procedural detective show", 1983),
+    iaDirectRecovery("hill.street.blues.s-05::Hill.street.blues.s05e01.mayo,.hold.the.pickle.sdtv.x264.mp4", "hill.street.blues.s-05", "Hill.street.blues.s05e01.mayo,.hold.the.pickle.sdtv.x264.mp4", "Hill Street Blues — Mayo, Hold the Pickle", "hill street blues classic television police procedural detective show", 1985),
+    iaDirectRecovery("adam-12.-s-01::Adam-12.S01E01.Log.001.The.Impossible.Mission.mp4", "adam-12.-s-01", "Adam-12.S01E01.Log.001.The.Impossible.Mission.mp4", "Adam-12 — The Impossible Mission", "adam-12 classic television police procedural detective show", 1968),
+    iaDirectRecovery("adam-12.-s-01::Adam-12.S01E02.Log.141.The.Color.TV.Bandit.mp4", "adam-12.-s-01", "Adam-12.S01E02.Log.141.The.Color.TV.Bandit.mp4", "Adam-12 — The Color TV Bandit", "adam-12 classic television police procedural detective show", 1968),
+    iaDirectRecovery("columbo-pilot-episodes::2 - Ransom For A Dead Man.mp4", "columbo-pilot-episodes", "2 - Ransom For A Dead Man.mp4", "Columbo — Ransom for a Dead Man", "columbo classic television police procedural detective show", 1971),
+  ],
+  "222": [
+    iaDirectRecovery("lee-evans-collection::1. Live At Her Majesty's Theatre (1994).mp4", "lee-evans-collection", "1. Live At Her Majesty's Theatre (1994).mp4", "Lee Evans — Live at Her Majesty's Theatre", "stand-up comedy comedy special live comedy", 1994),
+    iaDirectRecovery("lee-evans-collection::2. Live From The West End (1995).mp4", "lee-evans-collection", "2. Live From The West End (1995).mp4", "Lee Evans — Live from the West End", "stand-up comedy comedy special live comedy", 1995),
+    iaDirectRecovery("lee-evans-collection::3. Different Planet Tour (1996).mp4", "lee-evans-collection", "3. Different Planet Tour (1996).mp4", "Lee Evans — Different Planet Tour", "stand-up comedy comedy special live comedy", 1996),
+    iaDirectRecovery("GeorgeLopezWhyYouCryingFullStandUpComedyShowLive::George Lopez - Why You Crying (Full Stand Up Comedy Show Live).mp4", "GeorgeLopezWhyYouCryingFullStandUpComedyShowLive", "George Lopez - Why You Crying (Full Stand Up Comedy Show Live).mp4", "George Lopez — Why You Crying", "stand-up comedy comedy special live comedy", 2007),
+  ],
+  "909": [
+    iaDirectRecovery("takeovertheophilussundaywww.amenradio.net::Take Over - Theophilus Sunday [www.AmenRadio.net].mp3", "takeovertheophilussundaywww.amenradio.net", "Take Over - Theophilus Sunday [www.AmenRadio.net].mp3", "Take Over — Theophilus Sunday", "gospel spiritual sacred music", 2024, "audio"),
+    iaDirectRecovery("nara-ekele-dr.-paul-enenche-feat.-dunamis-voices-osinachi-nwachukwu-www.-amen-radio.net::Nara Ekele - Dr. Paul Enenche feat. Dunamis Voices & Osinachi Nwachukwu [www.AmenRadio.net].mp3", "nara-ekele-dr.-paul-enenche-feat.-dunamis-voices-osinachi-nwachukwu-www.-amen-radio.net", "Nara Ekele - Dr. Paul Enenche feat. Dunamis Voices & Osinachi Nwachukwu [www.AmenRadio.net].mp3", "Nara Ekele — Dunamis Voices", "gospel spiritual sacred music", 2024, "audio"),
+    iaDirectRecovery("HolyGhostPower_20170325::A Letter to Jesus.mp3", "HolyGhostPower_20170325", "A Letter to Jesus.mp3", "Jamaican Gospel Music — A Letter to Jesus", "gospel spiritual sacred music", 2017, "audio"),
+    iaDirectRecovery("HolyGhostPower_20170325::A Nuh One Prayer Mi.mp3", "HolyGhostPower_20170325", "A Nuh One Prayer Mi.mp3", "Jamaican Gospel Music — A Nuh One Prayer Mi", "gospel spiritual sacred music", 2017, "audio"),
+    iaDirectRecovery("HolyGhostPower_20161117::All to Jesus I Surrender.mp3", "HolyGhostPower_20161117", "All to Jesus I Surrender.mp3", "Jamaican Gospel Music — All to Jesus I Surrender", "gospel spiritual sacred music", 2016, "audio"),
+    iaDirectRecovery("HolyGhostPower_20161117::Amazing grace.mp3", "HolyGhostPower_20161117", "Amazing grace.mp3", "Jamaican Gospel Music — Amazing Grace", "gospel spiritual sacred music", 2016, "audio"),
+    iaDirectRecovery("HolyGhostPower_20161117::Ambassador for Christ.mp3", "HolyGhostPower_20161117", "Ambassador for Christ.mp3", "Jamaican Gospel Music — Ambassador for Christ", "gospel spiritual sacred music", 2016, "audio"),
+    iaDirectRecovery("HolyGhostPower_20161117::Around God's Throne.mp3", "HolyGhostPower_20161117", "Around God's Throne.mp3", "Jamaican Gospel Music — Around God's Throne", "gospel spiritual sacred music", 2016, "audio"),
+  ],
+  "918": [
+    iaDirectRecovery("OSC74Dexxed::aJasinski- How It All Falls To Pieces.mp3", "OSC74Dexxed", "aJasinski- How It All Falls To Pieces.mp3", "One Synth Challenge — How It All Falls to Pieces", "electronic music synth radio", 2015, "audio"),
+    iaDirectRecovery("OSC74Dexxed::bH-man - Within heart chasm.mp3", "OSC74Dexxed", "bH-man - Within heart chasm.mp3", "One Synth Challenge — Within Heart Chasm", "electronic music synth radio", 2015, "audio"),
+    iaDirectRecovery("NS050::01-NS050-Multi-Panel_Christmas-With-Mr-Rice.mp3", "NS050", "01-NS050-Multi-Panel_Christmas-With-Mr-Rice.mp3", "Another Day, Another Way — Multi-Panel", "electronic music ambient compilation radio", 2012, "audio"),
+    iaDirectRecovery("CANDY032::01Bubblyfish-SleighRide.mp3", "CANDY032", "01Bubblyfish-SleighRide.mp3", "Christmasasaurus — Bubblyfish", "electronic music electronica IDM radio", 2006, "audio"),
+    iaDirectRecovery("OSC74Dexxed::cbh9090 - the -kraviNGs- -badl- [Dexed OSC].mp3", "OSC74Dexxed", "cbh9090 - the -kraviNGs- -badl- [Dexed OSC].mp3", "One Synth Challenge — The KraviNGs", "electronic music synth radio", 2015, "audio"),
+    iaDirectRecovery("OSC74Dexxed::dkeith303_-_median.mp3", "OSC74Dexxed", "dkeith303_-_median.mp3", "One Synth Challenge — Median", "electronic music synth radio", 2015, "audio"),
+    iaDirectRecovery("NS050::03-NS050-Cocolixe_Swing-Low.mp3", "NS050", "03-NS050-Cocolixe_Swing-Low.mp3", "Another Day, Another Way — Swing Low", "electronic music ambient compilation radio", 2012, "audio"),
+    iaDirectRecovery("NS050::04-NS050-Tardiss_The-Light-Between.mp3", "NS050", "04-NS050-Tardiss_The-Light-Between.mp3", "Another Day, Another Way — The Light Between", "electronic music ambient compilation radio", 2012, "audio"),
+    iaDirectRecovery("Torley_Wong_-_The_Final_Selection::Torley_Wong-1981_A.D..mp3", "Torley_Wong_-_The_Final_Selection", "Torley_Wong-1981_A.D..mp3", "Torley Wong — 1981 A.D.", "electronic music ambient breakbeat house techno radio", 2005, "audio"),
+    iaDirectRecovery("Torley_Wong_-_The_Final_Selection::Torley_Wong-1_001_Dead_Snobs.mp3", "Torley_Wong_-_The_Final_Selection", "Torley_Wong-1_001_Dead_Snobs.mp3", "Torley Wong — Dead Snobs", "electronic music ambient breakbeat house techno radio", 2005, "audio"),
+    iaDirectRecovery("stqk011::STQK011_01_-_Zero_Call_-_A-40.mp3", "stqk011", "STQK011_01_-_Zero_Call_-_A-40.mp3", "Zero Call — A-40", "electronic music electro synthwave radio", 2012, "audio"),
+    iaDirectRecovery("stqk011::STQK011_02_-_Zero_Call_-_Battle_of_Young.mp3", "stqk011", "STQK011_02_-_Zero_Call_-_Battle_of_Young.mp3", "Zero Call — Battle of Young", "electronic music electro synthwave radio", 2012, "audio"),
+    iaDirectRecovery("OSC74Dexxed::eRichard Semper - 3am on a moonlit bay OSC.mp3", "OSC74Dexxed", "eRichard Semper - 3am on a moonlit bay OSC.mp3", "One Synth Challenge — 3AM on a Moonlit Bay", "electronic music synth ambient radio", 2015, "audio"),
+    iaDirectRecovery("OSC74Dexxed::fmcaitch - gone.mp3", "OSC74Dexxed", "fmcaitch - gone.mp3", "One Synth Challenge — Gone", "electronic music synth electronica radio", 2015, "audio"),
+    iaDirectRecovery("OSC74Dexxed::gz.prime - Waiting for Summer.mp3", "OSC74Dexxed", "gz.prime - Waiting for Summer.mp3", "One Synth Challenge — Waiting for Summer", "electronic music synth ambient radio", 2015, "audio"),
+    iaDirectRecovery("OSC74Dexxed::hJ.Ruegg - Anomaly.mp3", "OSC74Dexxed", "hJ.Ruegg - Anomaly.mp3", "One Synth Challenge — Anomaly", "electronic music synth electronica radio", 2015, "audio"),
+    iaDirectRecovery("NS050::05-NS050-pEACEFANg_Colonial-Builders-Master-For-Felsenmeer-v2.mp3", "NS050", "05-NS050-pEACEFANg_Colonial-Builders-Master-For-Felsenmeer-v2.mp3", "Another Day, Another Way — Colonial Builders", "electronic music ambient electronica radio", 2012, "audio"),
+    iaDirectRecovery("NS050::06-NS050-Limited-Taste_Full-Source_Daylights-Prior-To-Morning-Sun.mp3", "NS050", "06-NS050-Limited-Taste_Full-Source_Daylights-Prior-To-Morning-Sun.mp3", "Another Day, Another Way — Daylights", "electronic music ambient electronica radio", 2012, "audio"),
+  ],
+  "919": [
+    iaDirectRecovery("MIXG032::01_Zipp_-_Pour_Quoi_Royale.mp3", "MIXG032", "01_Zipp_-_Pour_Quoi_Royale.mp3", "Retrovision — Pour Quoi Royale", "funk soul rhythm and blues groove music", 2013, "audio"),
+    iaDirectRecovery("MIXG032::02_Dog_On_Springs_-_Footloose_feat_Paul_Whiteman.mp3", "MIXG032", "02_Dog_On_Springs_-_Footloose_feat_Paul_Whiteman.mp3", "Retrovision — Footloose", "funk soul rhythm and blues groove music", 2013, "audio"),
+    iaDirectRecovery("funk_cv::funk_ada.mp3", "funk_cv", "funk_ada.mp3", "Funk Kings — Funk Ada", "funk soul rhythm and blues music", 2010, "audio"),
+    iaDirectRecovery("funk_cv::funk_cv.mp3", "funk_cv", "funk_cv.mp3", "Funk Kings — Funk CV", "funk soul rhythm and blues music", 2010, "audio"),
+    iaDirectRecovery("funk_cv::funk_fdn.mp3", "funk_cv", "funk_fdn.mp3", "Funk Kings — Funk FDN", "funk soul rhythm and blues music", 2010, "audio"),
+    iaDirectRecovery("funk_cv::funk_pcc.mp3", "funk_cv", "funk_pcc.mp3", "Funk Kings — Funk PCC", "funk soul rhythm and blues music", 2010, "audio"),
+    iaDirectRecovery("MIXG032::03_Astat_-_Daily_Dozen.mp3", "MIXG032", "03_Astat_-_Daily_Dozen.mp3", "Retrovision — Daily Dozen", "funk soul rhythm and blues groove music", 2013, "audio"),
+    iaDirectRecovery("MIXG032::04_Fedorov_Mark_-_Bus_Driver.mp3", "MIXG032", "04_Fedorov_Mark_-_Bus_Driver.mp3", "Retrovision — Bus Driver", "funk soul rhythm and blues groove music", 2013, "audio"),
+    iaDirectRecovery("MIXG032::05_VAD_-_City_Woman.mp3", "MIXG032", "05_VAD_-_City_Woman.mp3", "Retrovision — City Woman", "funk soul rhythm and blues groove music", 2013, "audio"),
+    iaDirectRecovery("MIXG032::06_Zipp_-_Chocobeat.mp3", "MIXG032", "06_Zipp_-_Chocobeat.mp3", "Retrovision — Chocobeat", "funk soul rhythm and blues groove music", 2013, "audio"),
+    iaDirectRecovery("MIXG032::07_Igor_Leontyev_-_Remote_District.mp3", "MIXG032", "07_Igor_Leontyev_-_Remote_District.mp3", "Retrovision — Remote District", "funk soul rhythm and blues groove music", 2013, "audio"),
+    iaDirectRecovery("MIXG032::08_VAD_-_Night_City.mp3", "MIXG032", "08_VAD_-_Night_City.mp3", "Retrovision — Night City", "funk soul rhythm and blues groove music", 2013, "audio"),
+    iaDirectRecovery("MaraudazMusicV58MixedByDonRaySoundsFromTheUnderground::MarauderMusicV58MixedByDon-raySoundsFromTheUnderground.mp3", "MaraudazMusicV58MixedByDonRaySoundsFromTheUnderground", "MarauderMusicV58MixedByDon-raySoundsFromTheUnderground.mp3", "Maraudaz — Sounds from the Underground", "funk soul groove broken beat dance music radio", 2013, "audio"),
+    iaDirectRecovery("MidnightMaraudazNoirV57MixedByDonRayTheFutureSoulEpisode::MidnightMaraudazNoirV57MixedByDon-rayTheFutureSoulEpisode.mp3", "MidnightMaraudazNoirV57MixedByDonRayTheFutureSoulEpisode", "MidnightMaraudazNoirV57MixedByDon-rayTheFutureSoulEpisode.mp3", "Midnight Maraudaz — Future Soul", "funk soul groove broken beat dance music radio", 2013, "audio"),
+    iaDirectRecovery("BOLTDIGI008::01_uptown_funk.mp3", "BOLTDIGI008", "01_uptown_funk.mp3", "Bolt 008 — Uptown Funk", "funk soul electro groove music radio", 2010, "audio"),
+    iaDirectRecovery("fsz050::fsz050_16-chenard_walcker-i_ve_got_my_mojo_working.mp3", "fsz050", "fsz050_16-chenard_walcker-i_ve_got_my_mojo_working.mp3", "The Pusher — I've Got My Mojo Working", "funk soul blues groove music radio", 2006, "audio"),
+  ],
+  "922": [
+    iaDirectRecovery("clubdelcountry::2006/2006-08-14.mp3", "clubdelcountry", "2006/2006-08-14.mp3", "Club del Country — August 14, 2006", "country music americana honky tonk radio", 2006, "audio"),
+    iaDirectRecovery("clubdelcountry::2009/2009-09-28Part144-1.mp3", "clubdelcountry", "2009/2009-09-28Part144-1.mp3", "Club del Country — Part 144A", "country music bluegrass honky tonk americana radio", 2009, "audio"),
+    iaDirectRecovery("clubdelcountry::2009/2009-09-28Part144-2.mp3", "clubdelcountry", "2009/2009-09-28Part144-2.mp3", "Club del Country — Part 144B", "country music bluegrass honky tonk americana radio", 2009, "audio"),
+    iaDirectRecovery("clubdelcountry::2009/2009-09-28Part144-3.mp3", "clubdelcountry", "2009/2009-09-28Part144-3.mp3", "Club del Country — Part 144C", "country music bluegrass honky tonk americana radio", 2009, "audio"),
+    iaDirectRecovery("clubdelcountry::2009/cdc2009-10-19Part147-1.mp3", "clubdelcountry", "2009/cdc2009-10-19Part147-1.mp3", "Club del Country — Part 147A", "country music bluegrass honky tonk americana radio", 2009, "audio"),
+    iaDirectRecovery("clubdelcountry::2009/cdc2009-10-19Part147-2.mp3", "clubdelcountry", "2009/cdc2009-10-19Part147-2.mp3", "Club del Country — Part 147B", "country music bluegrass honky tonk americana radio", 2009, "audio"),
+    iaDirectRecovery("clubdelcountry::2009/cdc2009-10-26Part148-1.mp3", "clubdelcountry", "2009/cdc2009-10-26Part148-1.mp3", "Club del Country — Part 148A", "country music bluegrass honky tonk americana radio", 2009, "audio"),
+    iaDirectRecovery("clubdelcountry::2009/cdc2009-11-02Part149-1.mp3", "clubdelcountry", "2009/cdc2009-11-02Part149-1.mp3", "Club del Country — Part 149A", "country music bluegrass honky tonk americana radio", 2009, "audio"),
+    iaDirectRecovery("clubdelcountry::2009/cdc2009-12-07Part154-1.mp3", "clubdelcountry", "2009/cdc2009-12-07Part154-1.mp3", "Club del Country — Part 154A", "country music bluegrass honky tonk americana radio", 2009, "audio"),
+    iaDirectRecovery("clubdelcountry::2009/2009-09-21Part143-3.mp3", "clubdelcountry", "2009/2009-09-21Part143-3.mp3", "Club del Country — Part 143C", "country music bluegrass honky tonk americana radio", 2009, "audio"),
+    iaDirectRecovery("clubdelcountry::2009/cdc2009-10-05Part145-1.mp3", "clubdelcountry", "2009/cdc2009-10-05Part145-1.mp3", "Club del Country — Part 145A", "country music bluegrass honky tonk americana radio", 2009, "audio"),
+    iaDirectRecovery("clubdelcountry::2009/cdc2009-10-05Part145-2.mp3", "clubdelcountry", "2009/cdc2009-10-05Part145-2.mp3", "Club del Country — Part 145B", "country music bluegrass honky tonk americana radio", 2009, "audio"),
+    iaDirectRecovery("clubdelcountry::2009/cdc2009-10-05Part145-3.mp3", "clubdelcountry", "2009/cdc2009-10-05Part145-3.mp3", "Club del Country — Part 145C", "country music bluegrass honky tonk americana radio", 2009, "audio"),
+    iaDirectRecovery("clubdelcountry::2009/cdc2009-10-12Part146-1.mp3", "clubdelcountry", "2009/cdc2009-10-12Part146-1.mp3", "Club del Country — Part 146A", "country music bluegrass honky tonk americana radio", 2009, "audio"),
+    iaDirectRecovery("clubdelcountry::2009/cdc2009-10-12Part146-2.mp3", "clubdelcountry", "2009/cdc2009-10-12Part146-2.mp3", "Club del Country — Part 146B", "country music bluegrass honky tonk americana radio", 2009, "audio"),
+    iaDirectRecovery("clubdelcountry::2009/cdc2009-10-12Part146-3.mp3", "clubdelcountry", "2009/cdc2009-10-12Part146-3.mp3", "Club del Country — Part 146C", "country music bluegrass honky tonk americana radio", 2009, "audio"),
+    iaDirectRecovery("clubdelcountry::2009/cdc2009-10-19Part147-3.mp3", "clubdelcountry", "2009/cdc2009-10-19Part147-3.mp3", "Club del Country — Part 147C", "country music bluegrass honky tonk americana radio", 2009, "audio"),
+    iaDirectRecovery("clubdelcountry::2009/cdc2009-11-02Part149-2.mp3", "clubdelcountry", "2009/cdc2009-11-02Part149-2.mp3", "Club del Country — Part 149B", "country music bluegrass honky tonk americana radio", 2009, "audio"),
+    iaDirectRecovery("clubdelcountry::2009/cdc2009-11-02Part149-3.mp3", "clubdelcountry", "2009/cdc2009-11-02Part149-3.mp3", "Club del Country — Part 149C", "country music bluegrass honky tonk americana radio", 2009, "audio"),
+    iaDirectRecovery("clubdelcountry::2009/cdc2009-12-07Part154-2.mp3", "clubdelcountry", "2009/cdc2009-12-07Part154-2.mp3", "Club del Country — Part 154B", "country music bluegrass honky tonk americana radio", 2009, "audio"),
+  ],
+  "911": [
+    iaDirectRecovery("Free_20s_Jazz_Collection::Eubie_Blake-Charleston_Rag_11KHz.mp3", "Free_20s_Jazz_Collection", "Eubie_Blake-Charleston_Rag_11KHz.mp3", "Eubie Blake — Charleston Rag", "ragtime jazz early recording piano music", 1920, "audio"),
+    iaDirectRecovery("Free_20s_Jazz_Collection::Bennie_Motens_KC_Jazz_Band-South_1924.mp3", "Free_20s_Jazz_Collection", "Bennie_Motens_KC_Jazz_Band-South_1924.mp3", "Bennie Moten — South", "ragtime jazz early recording dance band music", 1924, "audio"),
+    iaDirectRecovery("Free_20s_Jazz_Collection::Ragtimers-Sister_Kate_11KHz.mp3", "Free_20s_Jazz_Collection", "Ragtimers-Sister_Kate_11KHz.mp3", "Ragtimers — Sister Kate", "ragtime jazz early recording dance band music", 1920, "audio"),
+    iaDirectRecovery("Free_20s_Jazz_Collection::Raderman_Jazz_Orch-Dardanella.mp3", "Free_20s_Jazz_Collection", "Raderman_Jazz_Orch-Dardanella.mp3", "Raderman Jazz Orchestra — Dardanella", "ragtime jazz early recording dance band music", 1920, "audio"),
+    iaDirectRecovery("TheColumbiansCollection1924-1929DirectedByBenSelvin::Aloma1925TheColumbians.mp3", "TheColumbiansCollection1924-1929DirectedByBenSelvin", "Aloma1925TheColumbians.mp3", "The Columbians — Aloma", "ragtime jazz early recording dance band music", 1925, "audio"),
+    iaDirectRecovery("TheColumbiansCollection1924-1929DirectedByBenSelvin::AlongTheOldLakeTrail-letsDoAndSayWeDidnt1924TheColumbians.mp3", "TheColumbiansCollection1924-1929DirectedByBenSelvin", "AlongTheOldLakeTrail-letsDoAndSayWeDidnt1924TheColumbians.mp3", "The Columbians — Along the Old Lake Trail", "ragtime jazz early recording dance band music", 1924, "audio"),
+    iaDirectRecovery("AbeLymanCollection1925-1934::AJazzHoliday1928AbeLyman.mp3", "AbeLymanCollection1925-1934", "AJazzHoliday1928AbeLyman.mp3", "Abe Lyman — A Jazz Holiday", "ragtime jazz early recording dance band music", 1928, "audio"),
+    iaDirectRecovery("AbeLymanCollection1925-1934::AThousandDreamsOfYou1927AbeLymanOrch.mp3", "AbeLymanCollection1925-1934", "AThousandDreamsOfYou1927AbeLymanOrch.mp3", "Abe Lyman — A Thousand Dreams of You", "ragtime jazz early recording dance band music", 1927, "audio"),
+    iaDirectRecovery("PaulWhiteman1920-1935CompleteCollection::ABenchInThePark1930.mp3", "PaulWhiteman1920-1935CompleteCollection", "ABenchInThePark1930.mp3", "Paul Whiteman — A Bench in the Park", "ragtime jazz early recording dance band music", 1930, "audio"),
+    iaDirectRecovery("TedLewisCollection1919-1934::12thStreetRag.mp3", "TedLewisCollection1919-1934", "12thStreetRag.mp3", "Ted Lewis — 12th Street Rag", "ragtime jazz early recording dance band music", 1920, "audio"),
+  ],
+  "202": [
+    iaDirectRecovery("funny_or_die_video_c448c08b43::funny_or_die_video_c448c08b43.mp4", "funny_or_die_video_c448c08b43", "funny_or_die_video_c448c08b43.mp4", "Funny or Die — Frank Caliendo as Robin Williams", "sketch comedy comedy television television comedy satire variety comedy", 2007),
+    iaDirectRecovery("funny_or_die_video_6fe300366c::funny_or_die_video_6fe300366c.mp4", "funny_or_die_video_6fe300366c", "funny_or_die_video_6fe300366c.mp4", "Funny or Die — The Struggle", "sketch comedy comedy television television comedy satire variety comedy", 2008),
+    iaDirectRecovery("funny_or_die_video_a4f0fc202c::funny_or_die_video_a4f0fc202c.mp4", "funny_or_die_video_a4f0fc202c", "funny_or_die_video_a4f0fc202c.mp4", "Funny or Die — Bone Boys", "sketch comedy comedy television television comedy satire variety comedy", 2007),
+    iaDirectRecovery("funny_or_die_video_ccf55d37d5::funny_or_die_video_ccf55d37d5.mp4", "funny_or_die_video_ccf55d37d5", "funny_or_die_video_ccf55d37d5.mp4", "Funny or Die — Barack Obama Parody", "sketch comedy comedy television television comedy satire variety comedy parody", 2008),
+    iaDirectRecovery("funny_or_die_video_23f31714f1::funny_or_die_video_23f31714f1.mp4", "funny_or_die_video_23f31714f1", "funny_or_die_video_23f31714f1.mp4", "Funny or Die — Puppet Master", "sketch comedy comedy television television comedy satire variety comedy parody", 2007),
+    iaDirectRecovery("funny_or_die_video_99dc26bea6::funny_or_die_video_99dc26bea6.mp4", "funny_or_die_video_99dc26bea6", "funny_or_die_video_99dc26bea6.mp4", "Funny or Die — Welcome Back, Mitter", "sketch comedy comedy television television comedy satire variety comedy", 2015),
+    iaDirectRecovery("funny_or_die_video_ffb28251cf::funny_or_die_video_ffb28251cf.mp4", "funny_or_die_video_ffb28251cf", "funny_or_die_video_ffb28251cf.mp4", "Funny or Die — Bamboo Shoot Charlie", "sketch comedy comedy television television comedy satire variety comedy", 2008),
+    iaDirectRecovery("funny_or_die_video_81fbe5d5e1::funny_or_die_video_81fbe5d5e1.mp4", "funny_or_die_video_81fbe5d5e1", "funny_or_die_video_81fbe5d5e1.mp4", "Funny or Die — Goblet of Fire Parody", "sketch comedy comedy television television comedy satire variety comedy parody", 2008),
+    iaDirectRecovery("funny_or_die_video_7a6a553d5c::funny_or_die_video_7a6a553d5c.mp4", "funny_or_die_video_7a6a553d5c", "funny_or_die_video_7a6a553d5c.mp4", "Funny or Die — Emily Panda Bear", "sketch comedy comedy television television comedy satire variety comedy", 2008),
+    iaDirectRecovery("funny_or_die_video_85b55a518d::funny_or_die_video_85b55a518d.mp4", "funny_or_die_video_85b55a518d", "funny_or_die_video_85b55a518d.mp4", "Funny or Die — Crumie Video Show", "sketch comedy comedy television television comedy satire variety comedy", 2008),
+    iaDirectRecovery("funny_or_die_video_3fb3b7813a::funny_or_die_video_3fb3b7813a.mp4", "funny_or_die_video_3fb3b7813a", "funny_or_die_video_3fb3b7813a.mp4", "Funny or Die — Human Stupidity Fun", "sketch comedy comedy television television comedy satire variety comedy", 2008),
+    iaDirectRecovery("funny_or_die_video_dd40ea255c::funny_or_die_video_dd40ea255c.mp4", "funny_or_die_video_dd40ea255c", "funny_or_die_video_dd40ea255c.mp4", "Funny or Die — Kiss Me, Gordon", "sketch comedy comedy television television comedy satire variety comedy", 2008),
+  ],
+  "923": [
+    iaDirectRecovery("aporee_47226_82987::soundmap202512173.mp3", "aporee_47226_82987", "soundmap202512173.mp3", "Aporee — Traditional Market Soundscape", "field recording soundscape urban soundscape environmental recording phonography", 2025, "audio"),
+    iaDirectRecovery("aporee_71036_82847::soundmap202512105.mp3", "aporee_71036_82847", "soundmap202512105.mp3", "Aporee — Morning in the Woods", "field recording soundscape nature sounds wildlife sounds environmental recording phonography", 2025, "audio"),
+    iaDirectRecovery("aporee_71453_83365::BremnesfortGermanWWIIbunkerisland.mp3", "aporee_71453_83365", "BremnesfortGermanWWIIbunkerisland.mp3", "Aporee — Bunker Island", "field recording soundscape environmental recording industrial soundscape phonography", 2024, "audio"),
+    iaDirectRecovery("aporee_71214_83066::soundmap2026021134.mp3", "aporee_71214_83066", "soundmap2026021134.mp3", "Aporee — Evening on the Riverbank", "field recording soundscape nature sounds wildlife sounds rural soundscape environmental recording", 2026, "audio"),
+    iaDirectRecovery("aporee_71311_83197::soundmap2025100510.mp3", "aporee_71311_83197", "soundmap2025100510.mp3", "Aporee — Beside the Tracks", "field recording soundscape industrial soundscape urban soundscape environmental recording", 2025, "audio"),
+    iaDirectRecovery("aporee_72730_84913::StSaviourswithhumedit.mp3", "aporee_72730_84913", "StSaviourswithhumedit.mp3", "Aporee — Bridge Vibrations", "field recording soundscape industrial soundscape environmental recording phonography", 2006, "audio"),
+  ],
+  "242": [
+    iaDirectRecovery("SPITZ-ssc2007-09v3::ssc2007-09v3_qt4.mp4", "SPITZ-ssc2007-09v3", "ssc2007-09v3_qt4.mp4", "Spitzer — Mapping a Distant Planet", "earth observation satellite imagery earth from space remote sensing planet earth aerial photography", 2007),
+    iaDirectRecovery("SPD-HUBBLE-STScI-2005-17a::low_quicktime.mp4", "SPD-HUBBLE-STScI-2005-17a", "low_quicktime.mp4", "Hubble — Deep Impact Collision", "earth observation satellite imagery earth from space remote sensing planet earth space science", 2005),
+    iaDirectRecovery("SPITZ-ssc2004-22v2::ssc2004-22v2_qt4.mp4", "SPITZ-ssc2004-22v2", "ssc2004-22v2_qt4.mp4", "Spitzer — Planet Forming Disk", "earth observation satellite imagery earth from space remote sensing planet earth space science", 2004),
+    iaDirectRecovery("OurWorldSnowflakes::OW37SnowflakesClean.mp4", "OurWorldSnowflakes", "OW37SnowflakesClean.mp4", "Our World — Snowflakes", "earth observation satellite imagery planet earth aerial photography earth science nature", 2010),
+    iaDirectRecovery("NASA_360_program2_HD::NASA_360_program2_HD.mp4", "NASA_360_program2_HD", "NASA_360_program2_HD.mp4", "NASA 360 — Earth and Space", "earth observation satellite imagery earth from space remote sensing planet earth space science", 2008),
+    iaDirectRecovery("expedition-28-crew-records-video-of-hurricane-irene-from-the-iss-fki5r9T6dZk::expedition-28-crew-records-video-of-hurricane-irene-from-the-iss-fki5r9T6dZk.mp4", "expedition-28-crew-records-video-of-hurricane-irene-from-the-iss-fki5r9T6dZk", "expedition-28-crew-records-video-of-hurricane-irene-from-the-iss-fki5r9T6dZk.mp4", "ISS — Hurricane Irene from Orbit", "earth observation satellite imagery earth from space remote sensing planet earth aerial photography weather", 2011),
+  ],
+  "904": [
+    iaDirectRecovery("ca200_cjazz::106_Infinitus_Ensemble__The_Pink_Shoes_Of_Marie_Antoinette.mp3", "ca200_cjazz", "106_Infinitus_Ensemble__The_Pink_Shoes_Of_Marie_Antoinette.mp3", "Clinical Archives — Infinitus Ensemble", "jazz contemporary jazz jazz fusion jazz improvisation", 2008, "audio"),
+    iaDirectRecovery("ca200_cjazz::107_Model_Of_The_Invisible__Bluffing_The_Archons.mp3", "ca200_cjazz", "107_Model_Of_The_Invisible__Bluffing_The_Archons.mp3", "Clinical Archives — Model of the Invisible", "jazz contemporary jazz jazz fusion jazz improvisation", 2008, "audio"),
+    iaDirectRecovery("ca200_cjazz::108_Broken_Quartet__Popsong.mp3", "ca200_cjazz", "108_Broken_Quartet__Popsong.mp3", "Clinical Archives — Broken Quartet", "jazz contemporary jazz jazz fusion jazz improvisation", 2008, "audio"),
+    iaDirectRecovery("ca200_cjazz::201_TMK__Les_Faiseurs_de_Zombi.mp3", "ca200_cjazz", "201_TMK__Les_Faiseurs_de_Zombi.mp3", "Clinical Archives — TMK", "jazz contemporary jazz jazz fusion jazz improvisation", 2008, "audio"),
+    iaDirectRecovery("ca200_cjazz::202_Benzolnye_Mertvecy__v_mast.mp3", "ca200_cjazz", "202_Benzolnye_Mertvecy__v_mast.mp3", "Clinical Archives — Benzolnye Mertvecy", "jazz contemporary jazz jazz fusion jazz improvisation", 2008, "audio"),
+    iaDirectRecovery("ca200_cjazz::203_BF__First_Meeting_Took_Place_In_A_Tram.mp3", "ca200_cjazz", "203_BF__First_Meeting_Took_Place_In_A_Tram.mp3", "Clinical Archives — First Meeting", "jazz contemporary jazz jazz fusion jazz improvisation", 2008, "audio"),
+    iaDirectRecovery("ca200_cjazz::204_Phlox__S6jajalgne.mp3", "ca200_cjazz", "204_Phlox__S6jajalgne.mp3", "Clinical Archives — Phlox", "jazz contemporary jazz jazz fusion jazz improvisation", 2008, "audio"),
+  ],
+  "920": [
+    iaDirectRecovery("AbeLymanCollection1925-1934::ACottageForSale1930AbeLymanOrch.vitaphoneSoundtrackV.PhilNeeley.mp3", "AbeLymanCollection1925-1934", "ACottageForSale1930AbeLymanOrch.vitaphoneSoundtrackV.PhilNeeley.mp3", "Abe Lyman — A Cottage for Sale", "78rpm shellac gramophone phonograph early recording dance band vaudeville", 1930, "audio"),
+    iaDirectRecovery("AbeLymanCollection1925-1934::AceInTheHole1926AbeLyman.mp3", "AbeLymanCollection1925-1934", "AceInTheHole1926AbeLyman.mp3", "Abe Lyman — Ace in the Hole", "78rpm shellac gramophone phonograph early recording dance band vaudeville", 1926, "audio"),
+    iaDirectRecovery("AbeLymanCollection1925-1934::AfterISayImSorry-1926vCkAbeLyman.mp3", "AbeLymanCollection1925-1934", "AfterISayImSorry-1926vCkAbeLyman.mp3", "Abe Lyman — After I Say I'm Sorry", "78rpm shellac gramophone phonograph early recording dance band vaudeville", 1926, "audio"),
+    iaDirectRecovery("AbeLymanCollection1925-1934::AintMisbehavin1929AbeLyman.mp3", "AbeLymanCollection1925-1934", "AintMisbehavin1929AbeLyman.mp3", "Abe Lyman — Ain't Misbehavin'", "78rpm shellac gramophone phonograph early recording dance band vaudeville", 1929, "audio"),
+    iaDirectRecovery("PaulWhiteman1920-1935CompleteCollection::ABigBouquetForYou.mp3", "PaulWhiteman1920-1935CompleteCollection", "ABigBouquetForYou.mp3", "Paul Whiteman — A Big Bouquet for You", "78rpm shellac gramophone phonograph early recording dance band vaudeville", 1929, "audio"),
+    iaDirectRecovery("PaulWhiteman1920-1935CompleteCollection::ABoyAndAGirlWereDancing.mp3", "PaulWhiteman1920-1935CompleteCollection", "ABoyAndAGirlWereDancing.mp3", "Paul Whiteman — A Boy and a Girl Were Dancing", "78rpm shellac gramophone phonograph early recording dance band vaudeville", 1928, "audio"),
+    iaDirectRecovery("PaulWhiteman1920-1935CompleteCollection::ABundleOfOldLoveLetters.mp3", "PaulWhiteman1920-1935CompleteCollection", "ABundleOfOldLoveLetters.mp3", "Paul Whiteman — A Bundle of Old Love Letters", "78rpm shellac gramophone phonograph early recording dance band vaudeville", 1930, "audio"),
+    iaDirectRecovery("PaulWhiteman1920-1935CompleteCollection::AFadedSummerLove.mp3", "PaulWhiteman1920-1935CompleteCollection", "AFadedSummerLove.mp3", "Paul Whiteman — A Faded Summer Love", "78rpm shellac gramophone phonograph early recording dance band vaudeville", 1930, "audio"),
+  ],
+  "127": [
+    iaDirectRecovery("top-of-the-pops-1970s_202401::Top of the Pops - E312 - Jimmy Saville - 29th January 1970.mp4", "top-of-the-pops-1970s_202401", "Top of the Pops - E312 - Jimmy Saville - 29th January 1970.mp4", "Top of the Pops — 29 January 1970", "top of the pops british music performance television", 1970),
+    iaDirectRecovery("top-of-the-pops-1970s_202401::Top of the Pops - E313 - Tony Blackburn - 5th Feburary 1970.mp4", "top-of-the-pops-1970s_202401", "Top of the Pops - E313 - Tony Blackburn - 5th Feburary 1970.mp4", "Top of the Pops — 5 February 1970", "top of the pops british music performance television", 1970),
+    iaDirectRecovery("top-of-the-pops-1970s_202401::Top of the Pops - E316 - Jimmy Saville - 26th Feburary 1970.mp4", "top-of-the-pops-1970s_202401", "Top of the Pops - E316 - Jimmy Saville - 26th Feburary 1970.mp4", "Top of the Pops — 26 February 1970", "top of the pops british music performance television", 1970),
+    iaDirectRecovery("top-of-the-pops-1960s_202401::Top of the Pops - E000 - Surviving Footage 1964.mp4", "top-of-the-pops-1960s_202401", "Top of the Pops - E000 - Surviving Footage 1964.mp4", "Top of the Pops — Surviving Footage 1964", "top of the pops british music performance television", 1964),
+    iaDirectRecovery("retrobritishtelevisionarchive::1970's Pop Promo Videos [X6y4vSl4mKE].mp4", "retrobritishtelevisionarchive", "1970's Pop Promo Videos [X6y4vSl4mKE].mp4", "Retro British Television — 1970s Pop Promos", "british music performance television archive", 1974),
   ],
 });
 /* These file names were verified against the IA metadata endpoint during the
@@ -4269,6 +4519,15 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTit
     if (source && String(doc.identifier || "") !== source) expandedParents.add(source);
   });
   const laneDepth = Math.max(0, ...lanes.map((lane) => lane.length));
+  /* A few measured long-tail lanes are backed by a single large, verified
+     Archive container (for example Club del Country or a complete radio
+     collection). The normal two-per-source ceiling is correct for ordinary
+     search results, but it artificially collapses those deep collections to
+     a shallow shelf. Widen only the proven depth-recovery lanes; every other
+     channel keeps the stricter source mix. */
+  const sourceCap = iaDepthRecoveryEnabled(channel) ? 4 : 2;
+  /* Healthy lanes retain the original underCap("source", keys.source, 2)
+     behavior; only measured depth-recovery lanes use the widened cap. */
   function underCap(key, value, cap) { return !value || (used[key].get(value) || 0) < cap; }
   function add(candidate) {
     const keys = queueDiversityKeys(candidate.doc, candidate.lane);
@@ -4282,7 +4541,7 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTit
       underCap("creator", keys.creator, diversity.maxPerCreator) &&
       underCap("collection", keys.collection, diversity.maxPerCollection) &&
       underCap("family", keys.family, diversity.maxPerFamily) &&
-      underCap("source", keys.source, 2);
+      underCap("source", keys.source, sourceCap);
   }
   for (let row = 0; row < laneDepth && items.length < candidateLimit; row += 1) {
     for (const lane of lanes) {
@@ -4312,7 +4571,7 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTit
        remains hard for the public catalog: a deep collection must not turn one
        television series into the whole station. */
     const keys = queueDiversityKeys(candidate.doc, candidate.lane);
-    if (!underCap("source", keys.source, 2) || !underCap("family", keys.family, diversity.maxPerFamily)) continue;
+    if (!underCap("source", keys.source, sourceCap) || !underCap("family", keys.family, diversity.maxPerFamily)) continue;
     add(candidate);
   }
   /* Only use a recent repeat after every unseen candidate that survived the
@@ -4320,7 +4579,7 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTit
   for (const candidate of freshnessDeferred) {
     if (items.length >= candidateLimit) break;
     const keys = queueDiversityKeys(candidate.doc, candidate.lane);
-    if (!underCap("source", keys.source, 2) || !underCap("family", keys.family, diversity.maxPerFamily)) continue;
+    if (!underCap("source", keys.source, sourceCap) || !underCap("family", keys.family, diversity.maxPerFamily)) continue;
     add(candidate);
   }
   return {
@@ -4405,7 +4664,10 @@ function iaShouldBypassShallowRotation(payload, rotation, count, candidateCount)
 }
 
 function orderedIaEmergencySeeds(channel, rotation) {
-  const seeds = (IA_EMERGENCY_SEEDS[String(channel)] || []).concat(IA_LONG_TAIL_EXPANSIONS[String(channel)] || []).map((item) => {
+  const seeds = (IA_EMERGENCY_SEEDS[String(channel)] || [])
+    .concat(IA_LONG_TAIL_EXPANSIONS[String(channel)] || [])
+    .concat(IA_LONG_TAIL_EXPANSIONS_EXTRA[String(channel)] || [])
+    .map((item) => {
     const fileName = IA_LONG_TAIL_MEDIA_FILES[String(item && item.identifier || "")];
     if (!fileName || (item && item.media && item.media.url)) return item;
     const url = queueFileUrls(item.identifier, {}, fileName)[0];

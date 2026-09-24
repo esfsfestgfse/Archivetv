@@ -368,7 +368,7 @@ async function rotateShelf(env, body, payload, request) {
      then apply the remaining recent history. */
   const recentValues = Array.from(recentCatalogIds(body));
   const recentLimit = candidates.length >= count ? Math.max(0, candidates.length - count) : recentValues.length;
-  const boundedRecentIds = recentLimit ? recentValues.slice(-recentLimit) : [];
+  const boundedRecentIds = freshnessExclusionIds(body, recentLimit);
   const response = await stub.fetch(new Request("https://rotation.internal/select", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ items: candidates, recentIds: boundedRecentIds, count, rotation: Number(body.rotation) || 0 }) }));
   if (!response.ok) throw new Error(`rotation ${response.status}`);
   const selected = await response.json();
@@ -470,6 +470,18 @@ function recentCatalogIds(body) {
     .slice(-48));
 }
 
+/* D1 freshness rows are read newest-first. Client-only requests historically
+   sent recentIds oldest-first, so keep the ordering explicit instead of using
+   one ambiguous slice direction for both paths. */
+function freshnessExclusionIds(body, limit) {
+  const recent = Array.from(recentCatalogIds(body));
+  const bounded = Math.max(0, Number(limit) || 0);
+  if (!bounded || !recent.length) return [];
+  return body && body.freshnessLedger === true
+    ? recent.slice(0, bounded)
+    : recent.slice(-bounded);
+}
+
 function normalizedChannelKey(value) {
   return String(value || "").replace(/[^a-zA-Z0-9._:-]/g, "").slice(0, 120);
 }
@@ -499,13 +511,16 @@ async function withFreshnessLedger(env, body) {
   if (!channel) return body;
   const ledgerIds = await readFreshnessIds(env, channel);
   if (!ledgerIds.length) return body;
+  const clientIds = Array.isArray(body.recentIds) ? body.recentIds : [];
   const merged = [];
   const seen = new Set();
-  for (const value of (Array.isArray(body.recentIds) ? body.recentIds : []).concat(ledgerIds)) {
+  /* Keep the D1 rows first because they are already newest-first. Client
+     history is appended only as a secondary exclusion source. */
+  for (const value of ledgerIds.concat(clientIds)) {
     const id = String(value || "").trim().slice(0, 500);
     if (id && !seen.has(id)) { seen.add(id); merged.push(id); }
   }
-  return { ...body, recentIds: merged.slice(-48), freshnessLedger: true };
+  return { ...body, recentIds: merged.slice(0, 48), freshnessLedger: true };
 }
 
 async function rememberFreshness(env, channel, items, ctx) {
@@ -538,11 +553,9 @@ async function rememberFreshness(env, channel, items, ctx) {
    catalog rather than turning a healthy channel into No Signal. */
 function applyFreshness(items, body) {
   if (!Array.isArray(items) || !items.length) return [];
-  const recent = Array.from(recentCatalogIds(body));
-  if (!recent.length) return items;
   const requestedCount = Math.max(1, Math.min(5, Number(body && body.count) || 3));
-  const recentLimit = items.length >= requestedCount ? Math.max(0, items.length - requestedCount) : recent.length;
-  const boundedRecent = new Set(recentLimit ? recent.slice(-recentLimit) : []);
+  const recentLimit = items.length >= requestedCount ? Math.max(0, items.length - requestedCount) : recentCatalogIds(body).size;
+  const boundedRecent = new Set(freshnessExclusionIds(body, recentLimit));
   const fresh = items.filter((item) => !boundedRecent.has(queueItemKey(item)));
   return fresh.length ? fresh : items;
 }
@@ -1119,5 +1132,5 @@ const worker = {
   },
 };
 
-export { SessionRotation };
+export { SessionRotation, freshnessExclusionIds };
 export default worker;

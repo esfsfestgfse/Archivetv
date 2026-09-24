@@ -1670,19 +1670,27 @@ const iaSearchInflight = new Map();
    queries; these lanes are intentionally different. Bound the upstream search
    fan-out across foreground and waitUntil work, while the normal cache keeps
    warm requests fast. */
-const IA_ARCHIVE_SEARCH_CONCURRENCY = 4;
+const IA_ARCHIVE_SEARCH_FOREGROUND_CONCURRENCY = 4;
+const IA_ARCHIVE_SEARCH_BACKGROUND_CONCURRENCY = 2;
 let iaArchiveSearchActive = 0;
-const iaArchiveSearchWaiters = [];
-async function withIaArchiveSearchPermit(task) {
-  if (iaArchiveSearchActive >= IA_ARCHIVE_SEARCH_CONCURRENCY) {
-    await new Promise((resolve) => iaArchiveSearchWaiters.push(resolve));
+let iaArchiveSearchForegroundActive = 0;
+const iaArchiveSearchForegroundWaiters = [];
+const iaArchiveSearchBackgroundWaiters = [];
+async function withIaArchiveSearchPermit(task, foreground = false) {
+  const canRun = () => foreground
+    ? iaArchiveSearchForegroundActive < IA_ARCHIVE_SEARCH_FOREGROUND_CONCURRENCY
+    : iaArchiveSearchActive < (IA_ARCHIVE_SEARCH_FOREGROUND_CONCURRENCY + IA_ARCHIVE_SEARCH_BACKGROUND_CONCURRENCY);
+  if (!canRun()) {
+    await new Promise((resolve) => (foreground ? iaArchiveSearchForegroundWaiters : iaArchiveSearchBackgroundWaiters).push(resolve));
   }
   iaArchiveSearchActive += 1;
+  if (foreground) iaArchiveSearchForegroundActive += 1;
   try {
     return await task();
   } finally {
     iaArchiveSearchActive = Math.max(0, iaArchiveSearchActive - 1);
-    const next = iaArchiveSearchWaiters.shift();
+    if (foreground) iaArchiveSearchForegroundActive = Math.max(0, iaArchiveSearchForegroundActive - 1);
+    const next = iaArchiveSearchForegroundWaiters.shift() || iaArchiveSearchBackgroundWaiters.shift();
     if (next) next();
   }
 }
@@ -3302,7 +3310,7 @@ async function cachedSearchArchive(cacheOrigin, query, rows, page, sort, ctx, ti
   const inflightKey = cacheKey.url;
   const existing = iaSearchInflight.get(inflightKey);
   if (existing) return existing;
-  const pending = cachedArchiveJson(cacheKey, IA_SEARCH_TTL_SECONDS, () => withIaArchiveSearchPermit(() => searchArchive(query, rows, page, sort, timeoutMs)), ctx)
+  const pending = cachedArchiveJson(cacheKey, IA_SEARCH_TTL_SECONDS, () => withIaArchiveSearchPermit(() => searchArchive(query, rows, page, sort, timeoutMs), timeoutMs <= IA_FAST_SEARCH_TIMEOUT_MS), ctx)
     .finally(() => { if (iaSearchInflight.get(inflightKey) === pending) iaSearchInflight.delete(inflightKey); });
   iaSearchInflight.set(inflightKey, pending);
   return pending;

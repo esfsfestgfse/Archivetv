@@ -2429,7 +2429,17 @@ function themeText(value) {
 
 function matchesTheme(doc, themeTerms, minScore = 1, requiredTitleTerms = []) {
   const title = String(doc && doc.title || "").toLowerCase();
-  if (requiredTitleTerms.length && !requiredTitleTerms.some(term => title.includes(String(term).toLowerCase()))) return false;
+  const subject = themeText(String(doc && doc.subject || ""));
+  const titleMatches = requiredTitleTerms.some(term => title.includes(String(term).toLowerCase()));
+  const subjectMatches = themeTerms.some(term => {
+    const needle = themeText(term);
+    return needle && subject.includes(needle);
+  });
+  /* Collection-expanded and direct recovery files often have an editorial
+     title that omits the channel phrase while their Archive subject carries
+     the exact genre classification. Keep the title gate strict unless the
+     subject independently matches the lane vocabulary. */
+  if (requiredTitleTerms.length && !titleMatches && !subjectMatches) return false;
   if (!themeTerms.length) return true;
   return themeScore(doc, themeTerms) >= minScore;
 }

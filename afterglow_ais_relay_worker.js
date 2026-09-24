@@ -177,6 +177,12 @@ const IA_CONTAINER_EXPANSION_CONCURRENCY = 2;
    all ask for cold shelves together. Keep the foreground path to one Archive
    discovery rail; reserve rails still run behind the first frame. */
 const IA_FOREGROUND_DISCOVERY_LANES = 1;
+/* Proven shallow/repeat-heavy lanes get a short supplemental discovery grace
+   after their first approved rail wins. This is deliberately bounded: the
+   first playable item still wins quickly, while a second cached/fast rail can
+   join the rolling catalog before the response is finalized. Healthy lanes
+   retain the one-rail critical path. */
+const IA_DEPTH_FOREGROUND_GRACE_MS = 900;
 /* Metadata is the expensive part of a cold shelf: five candidates per channel
    would turn a 169-channel burst into hundreds of Archive requests. Two keeps
    first-frame fallback available while leaving the remaining shelf to the
@@ -245,11 +251,45 @@ const IA_CONFIRMED_REPAIR_CHANNELS = new Set([
   /* v4.2 serial overlap: these lanes repeated underfill across independent
      serial runs and now have verified genre-owned recovery shelves. */
   "60", "100", "134", "917", "929", "21", "205", "110", "119", "216", "224", "926", "510",
+  /* v4.3 repeatable long-tail failures: verified collection/file shelves for
+     the lanes that failed again in the serial retry. */
+  "75", "132", "908", "106", "157", "575",
+  /* v4.4 repeatability gate: these lanes still returned shallow/repeating
+     shelves on the independent post-soak check. Give only them the short
+     supplemental discovery grace and deeper refill path. */
+  "15", "18", "21", "61", "79", "80", "114", "203", "214", "215", "225", "231", "501", "502", "507", "903", "904", "914", "915", "921", "929",
+  /* v4.5 full-soak repeatability: these lanes remained shallow after the
+     server-side catalog merge and need the same measured four-rail rescue. */
+  "213", "230", "236",
 ]);
 for (const channel of IA_CONFIRMED_REPAIR_CHANNELS) {
   IA_STABLE_RESCUE_CHANNELS.add(channel);
   IA_COLD_RESCUE_CHANNELS.add(channel);
   IA_DEPTH_RECOVERY_CHANNELS.add(channel);
+}
+/* A second, narrower allowlist for the v4 load-sensitive failures. These
+   lanes repeatedly collapsed to the same five records or returned fewer than
+   five playable items even after the four-rail recovery path. Let their
+   supplemental rails settle for a bounded extra window; every other channel
+   retains the 900ms fast path. */
+const IA_ADAPTIVE_DEPTH_GRACE_CHANNELS = new Set([
+  "15", "18", "21", "61", "114", "203", "213", "214", "230", "236", "501", "502", "507", "915", "921",
+]);
+const IA_ADAPTIVE_DEPTH_GRACE_MS = 2200;
+/* Reggae & Dub has a wide verified catalog but its secondary Archive rail is
+   consistently slower than the other sparse lanes. Give only its background
+   shelf the extra settling window; first-frame selection is unchanged. */
+const IA_DEPTH_GRACE_OVERRIDES = new Map([["915", 5000]]);
+const IA_HYDRATION_CONCURRENCY_OVERRIDES = new Map([["915", 5]]);
+function iaForegroundHydrationConcurrency(channel) {
+  return IA_HYDRATION_CONCURRENCY_OVERRIDES.get(String(channel)) || IA_FOREGROUND_HYDRATION_CONCURRENCY;
+}
+function iaDepthGraceMs(channel) {
+  const override = IA_DEPTH_GRACE_OVERRIDES.get(String(channel));
+  if (Number.isFinite(override)) return override;
+  return IA_ADAPTIVE_DEPTH_GRACE_CHANNELS.has(String(channel))
+    ? IA_ADAPTIVE_DEPTH_GRACE_MS
+    : IA_DEPTH_FOREGROUND_GRACE_MS;
 }
 function iaBackgroundReserveQueries(channel, queries, deep = false) {
   /* A lane is allowed to widen itself when its verified candidate shelf is
@@ -292,6 +332,11 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "NasaDestinationTomorrow-Dt12-FlightPioneers", title: "NASA Destination Tomorrow · Flight Pioneers", subject: "nasa aviation space history mission briefing", year: 2004, media: { type: "video", url: "https://archive.org/download/NasaDestinationTomorrow-Dt12-FlightPioneers/NASADT12-FlightPioneers.mp4" } },
     { identifier: "NasaDestinationTomorrow-Dt18-RoboticMissions", title: "NASA Destination Tomorrow · Robotic Missions", subject: "nasa robotic mission planetary science", year: 2005, media: { type: "video", url: "https://archive.org/download/NasaDestinationTomorrow-Dt18-RoboticMissions/NASADT18-RoboticMissions.mp4" } },
     { identifier: "nasa_tv-Suni_s_Shoutout_for_NASA-TV", title: "NASA TV · Suni's Shoutout", subject: "nasa space station mission footage", year: 2013, media: { type: "video", url: "https://archive.org/download/nasa_tv-Suni_s_Shoutout_for_NASA-TV/Suni_s_Shoutout_for_NASA-TV.mp4" } },
+    { identifier: "Expedition44BRoll150318720p_201503", title: "NASA · Expedition 44 B-Roll (2015)", subject: "nasa space station expedition mission footage", year: 2015, media: { type: "video", url: "https://archive.org/download/Expedition44BRoll150318720p_201503/Expedition_44_B-roll_150318_720p.mp4" } },
+    { identifier: "Expedition41CrewProfileVersion1140916720p", title: "NASA · Expedition 41 Crew Profile", subject: "nasa space station crew profile mission briefing", year: 2014, media: { type: "video", url: "https://archive.org/download/Expedition41CrewProfileVersion1140916720p/Expedition%2041CrewProfile_Version1_140916_720p.mp4" } },
+    { identifier: "Jack-Fischer_Action-Camera_EVA-May-12-2017_GP120023.MP4", title: "NASA · Jack Fischer EVA Action Camera", subject: "nasa spacewalk extravehicular activity space station mission footage", year: 2017, media: { type: "video", url: "https://archive.org/download/Jack-Fischer_Action-Camera_EVA-May-12-2017_GP120023.MP4/Jack-Fischer_Action-Camera_EVA-May-12-2017_GP120023.mp4" } },
+    { identifier: "Expedition_55_Post_Landing_Activities_June_4_2018_661449.mp4", title: "NASA · Expedition 55 Post-Landing Activities", subject: "nasa space station expedition crew mission briefing", year: 2018, media: { type: "video", url: "https://archive.org/download/Expedition_55_Post_Landing_Activities_June_4_2018_661449.mp4/Expedition_55_Post_Landing_Activities_June_4_2018_661449.ia.mp4" } },
+    { identifier: "Expedition_62_Inflight_with_Microsoft_Education_2020_0302", title: "NASA · Expedition 62 In-Flight Education", subject: "nasa space station science education mission footage", year: 2020, media: { type: "video", url: "https://archive.org/download/Expedition_62_Inflight_with_Microsoft_Education_2020_0302/Expedition_62_Inflight_with_Microsoft_Education_2020_0302_1308065.ia.mp4" } },
   ],
   "219": [
     { identifier: "wwl-eyewitness-news-martin-luther-king-day-1992", title: "WWL Eyewitness News · Martin Luther King Day (1992)", subject: "local news local newscast television news", year: 1992, media: { type: "video", url: "https://archive.org/download/wwl-eyewitness-news-martin-luther-king-day-1992/WWL%20Eyewitness%20News%20martin%20luther%20king%20day%201992.mp4" } },
@@ -313,6 +358,13 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "7christmas1969", title: "Les Hunter Home Movies · Christmas 1969", subject: "home movie family film family gathering", year: 1969, media: { type: "video", url: "https://archive.org/download/7christmas1969/7_Christmas_1969.mp4" } },
     { identifier: "sf-02-014-being-silly-1984", title: "Steinback Family · Being Silly (1984)", subject: "home movie family film family gathering", year: 1984, media: { type: "video", url: "https://archive.org/download/sf-02-014-being-silly-1984/SF_02_014_BeingSilly_1984.mp4" } },
     { identifier: "cua_000025", title: "Home Movies · Shasta County and Lake County", subject: "home movie family film vacation travel", year: 1937, media: { type: "video", url: "https://archive.org/download/cua_000025/cua_000025_r1_access.HD.mp4" } },
+    { identifier: "HMEaster98541", title: "Home Movie · Easter (1929)", subject: "home movie family film holiday family gathering", year: 1929, media: { type: "video", url: "https://archive.org/download/HMEaster98541/98541.mp4" } },
+    { identifier: "HMGoldenGateInterna10343", title: "Home Movie · Golden Gate International Exposition (1940)", subject: "home movie family film travel world fair", year: 1940, media: { type: "video", url: "https://archive.org/download/HMGoldenGateInterna10343/10343.mp4" } },
+    { identifier: "HMJapanHongKongT98636", title: "Home Movie · Japan, Hong Kong, Thailand, Norway (1957)", subject: "home movie family film vacation travel", year: 1957, media: { type: "video", url: "https://archive.org/download/HMJapanHongKongT98636/98636.mp4" } },
+    { identifier: "HMPackTripPrairie98553", title: "Home Movie · Pack Trip and Prairie Dog Shooting (1958)", subject: "home movie family film vacation outdoors travel", year: 1958, media: { type: "video", url: "https://archive.org/download/HMPackTripPrairie98553/98553.mp4" } },
+    { identifier: "HMMichiganandDetroi97320", title: "Home Movie · Michigan and Detroit Area (1947)", subject: "home movie family film travel community", year: 1947, media: { type: "video", url: "https://archive.org/download/HMMichiganandDetroi97320/97320.mp4" } },
+    { identifier: "HMCaliforniaTrip98673", title: "Home Movie · California Trip (1951)", subject: "home movie family film vacation travel", year: 1951, media: { type: "video", url: "https://archive.org/download/HMCaliforniaTrip98673/98673.mp4" } },
+    { identifier: "HMUSTravels98680", title: "Home Movie · U.S. Travels (1950)", subject: "home movie family film vacation travel", year: 1950, media: { type: "video", url: "https://archive.org/download/HMUSTravels98680/98680.mp4" } },
   ],
   "236": [
     { identifier: "SoundieK", title: "Soundie · Got To Be This or That", subject: "theatrical short soundie music short", year: 1945, media: { type: "video", url: "https://archive.org/download/SoundieK/SoundieK.mp4" } },
@@ -397,11 +449,21 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "wrokmi-The_Fire_Place", title: "The Fire Place", subject: "fireplace video yule log ambience", year: 2010, media: { type: "video", url: "https://archive.org/download/wrokmi-The_Fire_Place/The_Fire_Place.mp4" } },
   ],
   "132": [
-    { identifier: "TerrorToonsKillCount", title: "Terror Toons (2002) - Kill Count S02", subject: "cult film horror film", year: 2002 },
-    { identifier: "videoplayback-8_202604", title: "(Adventures Of The) Purple Lin Kwei", subject: "b movie cult film", year: 1970 },
-    { identifier: "case-file-the-blackwood-hollow-curfew", title: "CASE FILE THE BLACKWOOD HOLLOW CURFEW", subject: "horror film independent film", year: 2024 },
-    { identifier: "criaturas-hediondas", title: "Criaturas Hediondas", subject: "horror film exploitation film", year: 1993 },
-    { identifier: "Weird-o-ramaWeird-cast1-Part1TheScreamingSkull", title: "Weird-O-Rama: The Screaming Skull", subject: "cult film horror film", year: 1956 },
+    iaDirectRecovery("TerrorToonsKillCount::km_20260519_1080p_24f_20260519_234901.mp4", "TerrorToonsKillCount", "km_20260519_1080p_24f_20260519_234901.mp4", "Terror Toons (2002) — Midnight Matinee", "cult film horror film midnight matinee drive-in cinema", 2002),
+    iaDirectRecovery("videoplayback-8_202604::YouCut_20260402_214946664.ia.mp4", "videoplayback-8_202604", "YouCut_20260402_214946664.ia.mp4", "The Purple Lin Kwei — Midnight Matinee", "b movie cult film midnight matinee drive-in cinema", 1970),
+    iaDirectRecovery("case-file-the-blackwood-hollow-curfew::CASE FILE THE BLACKWOOD HOLLOW CURFEW.mp4", "case-file-the-blackwood-hollow-curfew", "CASE FILE THE BLACKWOOD HOLLOW CURFEW.mp4", "The Blackwood Hollow Curfew", "horror film independent film midnight matinee drive-in cinema", 2024),
+    iaDirectRecovery("criaturas-hediondas::Criaturas Hediondas.ia.mp4", "criaturas-hediondas", "Criaturas Hediondas.ia.mp4", "Criaturas Hediondas", "horror film exploitation film midnight matinee drive-in cinema", 1993),
+    iaDirectRecovery("Weird-o-ramaWeird-cast1-Part1TheScreamingSkull::WeirdCast_1_part1.mp4", "Weird-o-ramaWeird-cast1-Part1TheScreamingSkull", "WeirdCast_1_part1.mp4", "Weird-O-Rama — The Screaming Skull", "cult film horror film midnight matinee drive-in cinema", 1956),
+    iaDirectRecovery("TheScreamingSkullHD1958::TheScreamingSkullHD1958.mp4", "TheScreamingSkullHD1958", "TheScreamingSkullHD1958.mp4", "The Screaming Skull", "cult film horror film midnight matinee drive-in cinema", 1958),
+    iaDirectRecovery("plan-9-from-outer-space_202009::Plan 9 from Outer Space.mp4", "plan-9-from-outer-space_202009", "Plan 9 from Outer Space.mp4", "Plan 9 from Outer Space", "cult film horror film science fiction film midnight matinee drive-in cinema", 1959),
+    iaDirectRecovery("WickedKittyHosts-RogerCormansAttackOfTheCrabMonsters::WickedKittyPresentsAttackOfTheCrabMonsters.mp4", "WickedKittyHosts-RogerCormansAttackOfTheCrabMonsters", "WickedKittyPresentsAttackOfTheCrabMonsters.mp4", "Attack of the Crab Monsters — Hosted Feature", "cult film horror film drive-in film midnight matinee cinema", 1957),
+    iaDirectRecovery("robot-monster-1953::Robot Monster (1953).mp4", "robot-monster-1953", "Robot Monster (1953).mp4", "Robot Monster", "cult film horror film science fiction film midnight matinee drive-in cinema", 1953),
+    iaDirectRecovery("Popcornarchive-houseOnHauntedHill1959::Popcornarchive-houseOnHauntedHill1959.mp4", "Popcornarchive-houseOnHauntedHill1959", "Popcornarchive-houseOnHauntedHill1959.mp4", "House on Haunted Hill", "cult film horror film midnight matinee drive-in cinema", 1959),
+    iaDirectRecovery("carnivalofsouls_201907::Carnival of Souls.mp4", "carnivalofsouls_201907", "Carnival of Souls.mp4", "Carnival of Souls", "cult film horror film midnight matinee drive-in cinema", 1962),
+    iaDirectRecovery("Dementia13_201411::Dementia13.mp4", "Dementia13_201411", "Dementia13.mp4", "Dementia 13", "cult film horror film midnight matinee drive-in cinema", 1963),
+    iaDirectRecovery("TheBrainThatWouldntDie-ExtendedVersion1962::TheBrainThatWouldntDie-Ext.Ver.1962.mp4", "TheBrainThatWouldntDie-ExtendedVersion1962", "TheBrainThatWouldntDie-Ext.Ver.1962.mp4", "The Brain That Wouldn't Die", "cult film horror film midnight matinee drive-in cinema", 1962),
+    iaDirectRecovery("TheLittleShopOfHorrors1960_765::TheLittleShopOfHorrors1960.mp4", "TheLittleShopOfHorrors1960_765", "TheLittleShopOfHorrors1960.mp4", "The Little Shop of Horrors", "cult film horror film midnight matinee drive-in cinema", 1960),
+    iaDirectRecovery("devil-bat::Devil Bat.mp4", "devil-bat", "Devil Bat.mp4", "The Devil Bat", "cult film horror film midnight matinee drive-in cinema", 1940),
   ],
   "210": [
     { identifier: "UniversalNewsreelVolume35Release201-01-1962", title: "Universal Newsreel Volume 35, Release 2, 01/01/1962", subject: "newsreel news reel", year: 1962 },
@@ -415,7 +477,17 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "Xcorps64NoodSailingHD2_201802", title: "Xcorps Action Sports Music TV 64 - NOOD Sailing - Full Show", subject: "sailing regatta boat racing", year: 2016, media: { type: "video", url: "https://archive.org/download/Xcorps64NoodSailingHD2_201802/Xcorps64NoodSailingHD2.mp4" } },
     { identifier: "XcorpsNOODregattaSEG2", title: "Xcorps TV - NOOD Sail Regatta Boat Races Part 2", subject: "sailing regatta boat racing", year: 2016, media: { type: "video", url: "https://archive.org/download/XcorpsNOODregattaSEG2/XcorpsNOODregattaSEG2.mp4" } },
     { identifier: "Xcorps64NoodSailingHD2", title: "Xcorps 64 NOOD Sailing HD", subject: "sailing regatta water sports", year: 2016, media: { type: "video", url: "https://archive.org/download/Xcorps64NoodSailingHD2/Xcorps64NoodSailingHD2.mp4" } },
-    { identifier: "sailingmovies20060527", title: "Sailing on San Francisco Bay", subject: "sailing water sports", year: 2006 },
+    iaDirectRecovery("youtube-KOx3lmwL0ps::WYC_Peanut_Regatta_-_June_9th_2019_-_Galveston_Bay_Texas-KOx3lmwL0ps.mp4", "youtube-KOx3lmwL0ps", "WYC_Peanut_Regatta_-_June_9th_2019_-_Galveston_Bay_Texas-KOx3lmwL0ps.mp4", "WYC Peanut Regatta — Galveston Bay", "sailing regatta rowing boat racing water sports", 2019),
+    iaDirectRecovery("TwitchVod-2347042836::2347042836.ia.mp4", "TwitchVod-2347042836", "2347042836.ia.mp4", "Building a Boat and Sailing It", "sailing regatta boat racing water sports", 2025),
+    iaDirectRecovery("olympiakisat-lontoo-2012-naisten-purjehdus-elliot-match-race-6m-puoliväliera-ala::Olympiakisat Lontoo 2012 Naisten Purjehdus Elliot Match Race 6m Puolivälierä Alankomaat vs. Australia.MP4", "olympiakisat-lontoo-2012-naisten-purjehdus-elliot-match-race-6m-puoliväliera-ala", "Olympiakisat Lontoo 2012 Naisten Purjehdus Elliot Match Race 6m Puolivälierä Alankomaat vs. Australia.MP4", "Olympic Sailing — Elliot Match Race", "sailing regatta boat racing water sports", 2012),
+    iaDirectRecovery("youtube-rZ1c1h5qoRY::rZ1c1h5qoRY.mkv", "youtube-rZ1c1h5qoRY", "rZ1c1h5qoRY.mkv", "Forest Park Crew — Regatta Rowing Final", "rowing regatta crew racing water sports", 2022),
+    iaDirectRecovery("metvfl-Bradenton_Riverwalk_Regatta_2020_Vol._3::Bradenton_Riverwalk_Regatta_2020_Vol._3.mp4", "metvfl-Bradenton_Riverwalk_Regatta_2020_Vol._3", "Bradenton_Riverwalk_Regatta_2020_Vol._3.mp4", "Bradenton Riverwalk Regatta 2020", "sailing regatta water sports", 2020),
+    iaDirectRecovery("bbrtvmev-Sailing_on_Moosehead_Lake_Ice::Sailing_on_Moosehead_Lake_Ice.HD.mp4", "bbrtvmev-Sailing_on_Moosehead_Lake_Ice", "Sailing_on_Moosehead_Lake_Ice.HD.mp4", "Sailing on Moosehead Lake Ice", "sailing water sports outdoor sports", 2021),
+    iaDirectRecovery("youtube-M1ORQy3rH5c::M1ORQy3rH5c.ia.mp4", "youtube-M1ORQy3rH5c", "M1ORQy3rH5c.ia.mp4", "Women's Second Four — Regatta Rowing", "rowing regatta crew racing water sports", 2011),
+    iaDirectRecovery("youtube--O1X2WbNDp4::Peanut_Regatta_of_Waterford_5_17_2020_Taken_From_S_V_Sunspot_Baby--O1X2WbNDp4.mp4", "youtube--O1X2WbNDp4", "Peanut_Regatta_of_Waterford_5_17_2020_Taken_From_S_V_Sunspot_Baby--O1X2WbNDp4.mp4", "Peanut Regatta of Waterford", "sailing regatta water sports", 2020),
+    iaDirectRecovery("twitch-vod-v736813439::v736813439.mp4", "twitch-vod-v736813439", "v736813439.mp4", "Sailing the Mediterranean", "sailing water sports ocean racing", 2020),
+    iaDirectRecovery("soggy_laser::soggy_laser.mp4", "soggy_laser", "soggy_laser.mp4", "Soggy Laser — Sailing", "sailing water sports boat racing", 2020),
+    iaDirectRecovery("mhtvmav-Redd_s_Pond_Model_Sailboat_Regatta::Redd_s_Pond_Model_Sailboat_Regatta.mp4", "mhtvmav-Redd_s_Pond_Model_Sailboat_Regatta", "Redd_s_Pond_Model_Sailboat_Regatta.mp4", "Redd's Pond Model Sailboat Regatta", "sailing regatta water sports", 2023),
   ],
   "118": [
     { identifier: "blackadder-s02", title: "Blackadder - Season 2 (1986)", subject: "british television british sitcom british comedy", year: 1986 },
@@ -478,16 +550,20 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "columbo-pilot-episodes", title: "Columbo — Pilot Episodes", subject: "detective television columbo classic television police procedural detective show", year: 1968 },
   ],
   "157": [
-    { identifier: "CCF-2000", title: "Cartoon Cartoon Fridays — 2000 Full Broadcast", subject: "cartoon network kids television animated television", year: 2000 },
-    { identifier: "powerpuff-girls-complete-series", title: "The Powerpuff Girls — Complete Series", subject: "cartoon network kids television animated television", year: 1998 },
-    { identifier: "mlattr", title: "My Life as a Teenage Robot", subject: "nickelodeon kids television animated television", year: 2003 },
-    { identifier: "courage-the-cowardly-dog-1080p-ai-upscale", title: "Courage the Cowardly Dog — Complete Cartoon Episodes", subject: "cartoon network kids television animated television", year: 1999 },
-    { identifier: "StarWarsCloneWars2003", title: "Star Wars: Clone Wars (2003)", subject: "cartoon network kids television animated television", year: 2003 },
-    { identifier: "DragonTalesTVSeries", title: "Dragon Tales — TV Series (1999)", subject: "children's television animated television kids show", year: 1999 },
-    { identifier: "voltron_the_third_dimension-ep1", title: "Voltron: The Third Dimension (1998)", subject: "cartoon network kids television animated television", year: 1998 },
-    { identifier: "incredible-hulk-1994-complete-series", title: "The Incredible Hulk — Animated Series (1994–1996)", subject: "animated television kids show superhero cartoon", year: 1996 },
-    { identifier: "SittingDucks", title: "Sitting Ducks — Animated Series (2001–2003)", subject: "animated television kids show cartoon", year: 2001 },
-    { identifier: "spongebob-squarepants_20250716", title: "SpongeBob SquarePants — Animated Series", subject: "nickelodeon kids television animated television", year: 1999 },
+    iaDirectRecovery("CCF-2000::Cartoon Cartoon Fridays 2000 The Mayor Hosts/VIDEO_TS/VTS_01_1.mp4", "CCF-2000", "Cartoon Cartoon Fridays 2000 The Mayor Hosts/VIDEO_TS/VTS_01_1.mp4", "Cartoon Cartoon Fridays — 2000 Full Broadcast", "cartoon network kids television animated television after school", 2000),
+    iaDirectRecovery("powerpuff-girls-complete-series::Powerpuff Girls - 01,01 - Insect Inside - Powerpuff Bluff.mp4", "powerpuff-girls-complete-series", "Powerpuff Girls - 01,01 - Insect Inside - Powerpuff Bluff.mp4", "The Powerpuff Girls — Insect Inside / Powerpuff Bluff", "cartoon network kids television animated television after school", 1998),
+    iaDirectRecovery("mlattr::My Life as a Teenage Robot/Season 1/10_Speak_No_Evil_.ia.mp4", "mlattr", "My Life as a Teenage Robot/Season 1/10_Speak_No_Evil_.ia.mp4", "My Life as a Teenage Robot — Speak No Evil", "nickelodeon kids television animated television after school", 2003),
+    iaDirectRecovery("courage-the-cowardly-dog-1080p-ai-upscale::Courage the Cowardly Dog - 01x01 - A Night at the Katz Motel.mp4", "courage-the-cowardly-dog-1080p-ai-upscale", "Courage the Cowardly Dog - 01x01 - A Night at the Katz Motel.mp4", "Courage the Cowardly Dog — A Night at the Katz Motel", "cartoon network kids television animated television after school", 1999),
+    iaDirectRecovery("StarWarsCloneWars2003::Star Wars Clone Wars [2003]/Season 1-3/Star Wars Clone Wars Vol. 1 [2003].mp4", "StarWarsCloneWars2003", "Star Wars Clone Wars [2003]/Season 1-3/Star Wars Clone Wars Vol. 1 [2003].mp4", "Star Wars: Clone Wars — Volume 1", "cartoon network kids television animated television after school", 2003),
+    iaDirectRecovery("powerpuff-girls-complete-series::Powerpuff Girls - 01,02 - Monkey See, Doggie Do - Mommy Fearest.mp4", "powerpuff-girls-complete-series", "Powerpuff Girls - 01,02 - Monkey See, Doggie Do - Mommy Fearest.mp4", "The Powerpuff Girls — Monkey See / Mommy Fearest", "cartoon network kids television animated television after school", 1998),
+    iaDirectRecovery("powerpuff-girls-complete-series::Powerpuff Girls - 01,03 - Octi Evil - Geshundfight.mp4", "powerpuff-girls-complete-series", "Powerpuff Girls - 01,03 - Octi Evil - Geshundfight.mp4", "The Powerpuff Girls — Octi Evil / Geshundfight", "cartoon network kids television animated television after school", 1998),
+    iaDirectRecovery("powerpuff-girls-complete-series::Powerpuff Girls - 01,04 - Buttercrush - Fuzzy Logic.mp4", "powerpuff-girls-complete-series", "Powerpuff Girls - 01,04 - Buttercrush - Fuzzy Logic.mp4", "The Powerpuff Girls — Buttercrush / Fuzzy Logic", "cartoon network kids television animated television after school", 1998),
+    iaDirectRecovery("powerpuff-girls-complete-series::Powerpuff Girls - 01,05 - Boogie Frights - Abracadaver.mp4", "powerpuff-girls-complete-series", "Powerpuff Girls - 01,05 - Boogie Frights - Abracadaver.mp4", "The Powerpuff Girls — Boogie Frights / Abracadaver", "cartoon network kids television animated television after school", 1998),
+    iaDirectRecovery("mlattr::My Life as a Teenage Robot/Season 1/11_See_No_Evil_.ia.mp4", "mlattr", "My Life as a Teenage Robot/Season 1/11_See_No_Evil_.ia.mp4", "My Life as a Teenage Robot — See No Evil", "nickelodeon kids television animated television after school", 2003),
+    iaDirectRecovery("mlattr::My Life as a Teenage Robot/Season 1/12_The_Great_Unwashed_.ia.mp4", "mlattr", "My Life as a Teenage Robot/Season 1/12_The_Great_Unwashed_.ia.mp4", "My Life as a Teenage Robot — The Great Unwashed", "nickelodeon kids television animated television after school", 2003),
+    iaDirectRecovery("mlattr::My Life as a Teenage Robot/Season 1/13_The_Return_of_Raggedy_Android_.ia.mp4", "mlattr", "My Life as a Teenage Robot/Season 1/13_The_Return_of_Raggedy_Android_.ia.mp4", "My Life as a Teenage Robot — The Return of Raggedy Android", "nickelodeon kids television animated television after school", 2003),
+    iaDirectRecovery("courage-the-cowardly-dog-1080p-ai-upscale::Courage the Cowardly Dog - 01x02 - Cajun Granny Stew.mp4", "courage-the-cowardly-dog-1080p-ai-upscale", "Courage the Cowardly Dog - 01x02 - Cajun Granny Stew.mp4", "Courage the Cowardly Dog — Cajun Granny Stew", "cartoon network kids television animated television after school", 1999),
+    iaDirectRecovery("courage-the-cowardly-dog-1080p-ai-upscale::Courage the Cowardly Dog - 01x03 - The Shadow of Courage.mp4", "courage-the-cowardly-dog-1080p-ai-upscale", "Courage the Cowardly Dog - 01x03 - The Shadow of Courage.mp4", "Courage the Cowardly Dog — The Shadow of Courage", "cartoon network kids television animated television after school", 1999),
   ],
   "62": [
     { identifier: "ncaamm2016-wvu-sfa", title: "NCAA Men's Basketball Tournament — West Virginia vs. Stephen F. Austin (2016)", subject: "college basketball ncaa tournament college sports", year: 2016 },
@@ -503,11 +579,20 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "MIXG032", title: "Retrovision — Free Jazz, Blues & Lo-Fi", subject: "jazz contemporary jazz free music", year: 2013 },
   ],
   "908": [
-    { identifier: "clubdelcountry", title: "Club del Country", subject: "country music bluegrass honky tonk americana", year: 2006 },
-    { identifier: "diymAR06", title: "Across Town — Alt-Country", subject: "country music alt-country acoustic folk", year: 2011 },
-    { identifier: "townhousewoodshardcountry", title: "Townhouse Woods — Hard Country", subject: "country music hard country", year: 2010 },
-    { identifier: "redneck-28-spirit-of-the-south-bonus", title: "Spirit of the South", subject: "country music bluegrass outlaw country", year: 2010 },
-    { identifier: "david-allan-coe-underground-album-1982", title: "David Allan Coe — Underground Album (1982)", subject: "country music outlaw country country rock", year: 1982 },
+    iaDirectRecovery("clubdelcountry::2006/2006-01-29.mp3", "clubdelcountry", "2006/2006-01-29.mp3", "Club del Country — January 29, 2006", "country music bluegrass honky tonk americana", 2006, "audio"),
+    iaDirectRecovery("clubdelcountry::2006/2006-08-14.mp3", "clubdelcountry", "2006/2006-08-14.mp3", "Club del Country — August 14, 2006", "country music bluegrass honky tonk americana", 2006, "audio"),
+    iaDirectRecovery("clubdelcountry::2009/2009-09-21Part143-3.mp3", "clubdelcountry", "2009/2009-09-21Part143-3.mp3", "Club del Country — Part 143", "country music bluegrass honky tonk americana", 2009, "audio"),
+    iaDirectRecovery("clubdelcountry::2009/2009-09-28Part144-1.mp3", "clubdelcountry", "2009/2009-09-28Part144-1.mp3", "Club del Country — Part 144A", "country music bluegrass honky tonk americana", 2009, "audio"),
+    iaDirectRecovery("clubdelcountry::2009/2009-09-28Part144-2.mp3", "clubdelcountry", "2009/2009-09-28Part144-2.mp3", "Club del Country — Part 144B", "country music bluegrass honky tonk americana", 2009, "audio"),
+    iaDirectRecovery("clubdelcountry::2009/cdc2009-09-28Part144-3.mp3", "clubdelcountry", "2009/cdc2009-09-28Part144-3.mp3", "Club del Country — Part 144C", "country music bluegrass honky tonk americana", 2009, "audio"),
+    iaDirectRecovery("clubdelcountry::2009/cdc2009-10-05Part145-1.mp3", "clubdelcountry", "2009/cdc2009-10-05Part145-1.mp3", "Club del Country — Part 145A", "country music bluegrass honky tonk americana", 2009, "audio"),
+    iaDirectRecovery("clubdelcountry::2009/cdc2009-10-05Part145-2.mp3", "clubdelcountry", "2009/cdc2009-10-05Part145-2.mp3", "Club del Country — Part 145B", "country music bluegrass honky tonk americana", 2009, "audio"),
+    iaDirectRecovery("clubdelcountry::2009/cdc2009-10-05Part145-3.mp3", "clubdelcountry", "2009/cdc2009-10-05Part145-3.mp3", "Club del Country — Part 145C", "country music bluegrass honky tonk americana", 2009, "audio"),
+    iaDirectRecovery("clubdelcountry::2009/cdc2009-10-12Part146-1.mp3", "clubdelcountry", "2009/cdc2009-10-12Part146-1.mp3", "Club del Country — Part 146A", "country music bluegrass honky tonk americana", 2009, "audio"),
+    iaDirectRecovery("clubdelcountry::2009/cdc2009-10-12Part146-2.mp3", "clubdelcountry", "2009/cdc2009-10-12Part146-2.mp3", "Club del Country — Part 146B", "country music bluegrass honky tonk americana", 2009, "audio"),
+    iaDirectRecovery("clubdelcountry::2009/cdc2009-10-12Part146-3.mp3", "clubdelcountry", "2009/cdc2009-10-12Part146-3.mp3", "Club del Country — Part 146C", "country music bluegrass honky tonk americana", 2009, "audio"),
+    iaDirectRecovery("clubdelcountry::2009/cdc2009-10-19Part147-1.mp3", "clubdelcountry", "2009/cdc2009-10-19Part147-1.mp3", "Club del Country — Part 147A", "country music bluegrass honky tonk americana", 2009, "audio"),
+    iaDirectRecovery("clubdelcountry::2009/cdc2009-10-19Part147-2.mp3", "clubdelcountry", "2009/cdc2009-10-19Part147-2.mp3", "Club del Country — Part 147B", "country music bluegrass honky tonk americana", 2009, "audio"),
   ],
   "920": [
     { identifier: "78_house-of-the-rising-sun_josh-white-and-his-guitar_gbia0001628b", title: "House of the Rising Sun — 78rpm Recording", subject: "78rpm early recording folk blues", year: 1942 },
@@ -550,6 +635,10 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "jcliff1992-08.22::03", title: "Jimmy Cliff · War A Africa", subject: "reggae roots reggae live music radio", year: 1992, media: { type: "audio", url: "https://archive.org/download/jcliff1992-08.22/JimmyCliff1992-08-22t03_War%20A%20Africa.mp3" } },
     { identifier: "ziggymarley2014-04-11.vwmule::t01", title: "Ziggy Marley · Live at Wanee", subject: "reggae roots reggae live music radio", year: 2014, media: { type: "audio", url: "https://archive.org/download/ziggymarley2014-04-11.vwmule/ziggymarley2014-04-11.vwmule.t01.mp3" } },
     { identifier: "toots2011-07-24.480-ck3.ua5::d1t02", title: "Toots & The Maytals · Live at Gathering of the Vibes", subject: "reggae ska roots reggae live music radio", year: 2011, media: { type: "audio", url: "https://archive.org/download/toots2011-07-24.480-ck3.ua5/toots2011-07-24.480-ck3.ua5.d1t02.mp3" } },
+    { identifier: "twinklebrothersnevergetburn128k::track1", title: "Twinkle Brothers · Never Get Burn", subject: "reggae roots reggae ska music", year: 1980, media: { type: "audio", url: "https://archive.org/download/twinklebrothersnevergetburn128k/TWINKLE_BROTHERS_-_Never_Get_Burn%28128k%29.mp3" } },
+    { identifier: "rebel-reggae-radio-show-6", title: "Rebel Reggae Radio Show 6", subject: "reggae dub ska radio music", year: 2010, media: { type: "audio", url: "https://archive.org/download/rebel-reggae-radio-show-6/rebel%20reggae%20radio%20show%206.mp3" } },
+    { identifier: "more-fire-dennis-brown-2026", title: "Dennis Brown · More Fire (2026)", subject: "reggae roots reggae dub music", year: 2026, media: { type: "audio", url: "https://archive.org/download/more-fire-dennis-brown-2026/more%20fire%20Dennis%20%20Brown%20%202026.mp3" } },
+    { identifier: "sister-charmaine-wake-up-1988-vls::version", title: "Sister Charmaine · Wake Up Version", subject: "reggae roots reggae dub music", year: 1988, media: { type: "audio", url: "https://archive.org/download/sister-charmaine-wake-up-1988-vls/Sister%20Charmaine%20-%20Wake%20Up%20%5BVLS%5D%20%5BFLAC%5D/B%20-%20Wake%20Up%20%28Version%29.mp3" } },
   ],
   "204": [
     { identifier: "Doctorin1946", title: "Doctor in Industry (Part I)", subject: "public health educational film industrial film sponsored film", year: 1946 },
@@ -566,11 +655,21 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "amateur_west_1940_1", title: "Amateur Film — West 1940", subject: "amateur film home movie travelogue Grand Canyon Colorado River", year: 1940 },
   ],
   "106": [
-    { identifier: "DasKabinettdesDoktorCaligariTheCabinetofDrCaligari", title: "The Cabinet of Dr. Caligari", subject: "world cinema foreign film German cinema international cinema", year: 1919 },
-    { identifier: "WarOfTheRobots", title: "War of the Robots", subject: "world cinema foreign film Italian cinema international cinema", year: 1978 },
-    { identifier: "BattleOfTheWorldsWidesceen", title: "Battle of the Worlds", subject: "world cinema foreign film Italian cinema international cinema", year: 1961 },
-    { identifier: "AtomAgeVampire", title: "Atom Age Vampire", subject: "world cinema foreign film Italian cinema international cinema", year: 1960 },
-    { identifier: "StarOdysseyitalianStarWars1979", title: "Star Odyssey", subject: "world cinema foreign film Italian cinema international cinema", year: 1979 },
+    iaDirectRecovery("DasKabinettdesDoktorCaligariTheCabinetofDrCaligari::The_Cabinet_of_Dr._Caligari_512kb.mp4", "DasKabinettdesDoktorCaligariTheCabinetofDrCaligari", "The_Cabinet_of_Dr._Caligari_512kb.mp4", "The Cabinet of Dr. Caligari", "world cinema foreign film German cinema international cinema", 1919),
+    iaDirectRecovery("WarOfTheRobots::WarOfTheRobots1978.mp4", "WarOfTheRobots", "WarOfTheRobots1978.mp4", "War of the Robots", "world cinema foreign film Italian cinema international cinema", 1978),
+    iaDirectRecovery("BattleOfTheWorldsWidesceen::Battle of the Worlds NTSC_1.mp4", "BattleOfTheWorldsWidesceen", "Battle of the Worlds NTSC_1.mp4", "Battle of the Worlds", "world cinema foreign film Italian cinema international cinema", 1961),
+    iaDirectRecovery("AtomAgeVampire::AtomAgeVampire_512kb.mp4", "AtomAgeVampire", "AtomAgeVampire_512kb.mp4", "Atom Age Vampire", "world cinema foreign film Italian cinema international cinema", 1960),
+    iaDirectRecovery("StarOdysseyitalianStarWars1979::STAR_ODYSSEY_1979-desktop_512kb.mp4", "StarOdysseyitalianStarWars1979", "STAR_ODYSSEY_1979-desktop_512kb.mp4", "Star Odyssey", "world cinema foreign film Italian cinema international cinema", 1979),
+    iaDirectRecovery("the-shop-on-main-street::The Shop on Main Street.mp4", "the-shop-on-main-street", "The Shop on Main Street.mp4", "The Shop on Main Street", "world cinema foreign film Slovak cinema international cinema", 1965),
+    iaDirectRecovery("cadena.perpetua.1979::Cadena.perpetua.1979.Arturo.Ripstein.mp4", "cadena.perpetua.1979", "Cadena.perpetua.1979.Arturo.Ripstein.mp4", "Life Sentence", "world cinema foreign film Mexican cinema international cinema", 1979),
+    iaDirectRecovery("de.espaldas.a.la.puerta.-1959::De.espaldas.a.la.puerta.1959.SATRip.x264.AC3-mifune.mp4", "de.espaldas.a.la.puerta.-1959", "De.espaldas.a.la.puerta.1959.SATRip.x264.AC3-mifune.mp4", "Back to the Door", "world cinema foreign film Spanish cinema international cinema", 1959),
+    iaDirectRecovery("curse-of-the-oily-man::Curse of the Oily Man.mp4", "curse-of-the-oily-man", "Curse of the Oily Man.mp4", "Curse of the Oily Man", "world cinema foreign film international cinema arthouse film", 1958),
+    iaDirectRecovery("after.-the.-curfew.-1954.1080p.-blu-ray.x-264.-aac-yts.-mx::After.The.Curfew.1954.1080p.BluRay.x264.AAC-[YTS.MX].mp4", "after.-the.-curfew.-1954.1080p.-blu-ray.x-264.-aac-yts.-mx", "After.The.Curfew.1954.1080p.BluRay.x264.AAC-[YTS.MX].mp4", "After the Curfew", "world cinema foreign film Indonesian cinema international cinema", 1954),
+    iaDirectRecovery("mosfilms-adaptation-of-fyodor-dostoevskys-white-nights-1959-subtitled-in-literar::Mosfilm's Adaptation of Fyodor Dostoevsky's White Nights 1959 Subtitled in Literary Arabic Translations.ia.mp4", "mosfilms-adaptation-of-fyodor-dostoevskys-white-nights-1959-subtitled-in-literar", "Mosfilm's Adaptation of Fyodor Dostoevsky's White Nights 1959 Subtitled in Literary Arabic Translations.ia.mp4", "White Nights", "world cinema foreign film Russian cinema international cinema", 1959),
+    iaDirectRecovery("dien-bien-phu-1992-french-with-english-subs::Diên Biên Phú (1992) [Donald Pleasence; French w. Subs].ia.mp4", "dien-bien-phu-1992-french-with-english-subs", "Diên Biên Phú (1992) [Donald Pleasence; French w. English Subs].ia.mp4", "Diên Biên Phú", "world cinema foreign film French cinema international cinema", 1992),
+    iaDirectRecovery("absences-repetees::Absences repetees.mp4", "absences-repetees", "Absences repetees.mp4", "Repeated Absences", "world cinema foreign film French cinema arthouse film", 1972),
+    iaDirectRecovery("tiyanak-1988::Tiyanak 1988 stitch w open fix and full end cred.ia.mp4", "tiyanak-1988", "Tiyanak 1988 stitch w open fix and full end cred.ia.mp4", "Tiyanak", "world cinema foreign film Filipino cinema international cinema", 1988),
+    iaDirectRecovery("la_jument_vapeur_1978::834407697013.mp4", "la_jument_vapeur_1978", "834407697013.mp4", "Dirty Dishes", "world cinema foreign film French cinema international cinema", 1978),
   ],
   "17": [
     { identifier: "the-tonight-show-starring-johnny-carson::1954-09-27 - NBC Tonight Starring Steve Allen - S01E01 - 'Tonight!' National Premiere (September 27, 1954).mp4", sourceIdentifier: "the-tonight-show-starring-johnny-carson", title: "Tonight! — National Premiere", subject: "late night talk show variety interview television", year: 1954 },
@@ -1230,6 +1329,28 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "inner-sanctum-1952-episodes", title: "Inner Sanctum Mysteries — 1952 Episodes", subject: "suspense radio old time radio inner sanctum radio drama", year: 1952, media: { type: "audio", url: "https://archive.org/download/inner-sanctum-1952-episodes/Inner%20Sanctum%20%2052-08-17%20The%20Corpse%20Laughs%20Last.mp3" } },
     { identifier: "quick-as-a-flash-march-29-1947-mutual-guest-is-brett-morrison-the-shadow", title: "Quick as a Flash — Brett Morrison", subject: "suspense radio old time radio the shadow radio drama", year: 1947, media: { type: "audio", url: "https://archive.org/download/quick-as-a-flash-march-29-1947-mutual-guest-is-brett-morrison-the-shadow/Quick%20As%20A%20Flash%20-%20March%2029%2C%201947%20-%20Mutual%20-%20Guest%20Is%20Brett%20Morrison%20%28The%20Shadow%29.mp3" } },
   ],
+  "575": [
+    iaDirectRecovery("TheFrontPage4k::vns98bn_1_ahq12asdf.ia.mp4", "TheFrontPage4k", "vns98bn_1_ahq12asdf.ia.mp4", "The Front Page (1931) — 4K Restoration", "4k 4k restoration 1080p upscale restored film cinema", 1931),
+    iaDirectRecovery("foreign-road-tale-1981-russian-1080p::(Foreign) Road Tale (1981) (Russian) 1080p.ia.mp4", "foreign-road-tale-1981-russian-1080p", "(Foreign) Road Tale (1981) (Russian) 1080p.ia.mp4", "Road Tale (1981) — AI SuperRes 1080p", "1080p upscale restoration restored world cinema film", 1981),
+    iaDirectRecovery("the-super-vips-bozzetto::The SuperVips (Bozzetto).ia.mp4", "the-super-vips-bozzetto", "The SuperVips (Bozzetto).ia.mp4", "The SuperVips — 1080p HD Restoration", "1080p restoration restored classic animation film cinema", 1968),
+    iaDirectRecovery("full-film-john-fords-my-darling-clementine-1946-hq-sound-picture-1080p::Full film, John Ford's My Darling Clementine  1946  HQ sound & picture (1080p).ia.mp4", "full-film-john-fords-my-darling-clementine-1946-hq-sound-picture-1080p", "Full film, John Ford's My Darling Clementine  1946  HQ sound & picture (1080p).ia.mp4", "My Darling Clementine (1946) — 1080p Restoration", "1080p restoration restored classic film cinema western", 1946),
+    iaDirectRecovery("frosty-full-screen::frosty full screen.mp4", "frosty-full-screen", "frosty full screen.mp4", "Frosty the Snowman — Restored Full Screen", "restored 1080p restoration classic television film animation", 1970),
+    iaDirectRecovery("894_Dying_and_Sleeping_Same_Thing__qTXrykh5uGk__1080p_Cinema_restored_v2::894 Dying and Sleeping Same Thing [qTXrykh5uGk]_1080p_Cinema.ia.mp4", "894_Dying_and_Sleeping_Same_Thing__qTXrykh5uGk__1080p_Cinema_restored_v2", "894 Dying and Sleeping Same Thing [qTXrykh5uGk]_1080p_Cinema.ia.mp4", "Dying and Sleeping Same Thing — 1080p Cinema Restoration", "1080p restoration restored film cinema", 2024),
+    iaDirectRecovery("840_The_Eye_The_Sky_Revelation__HtXWLbbB8-I__1080p_Cinema_restored_v2::840 The Eye The Sky Revelation [HtXWLbbB8-I]_1080p_Cinema.ia.mp4", "840_The_Eye_The_Sky_Revelation__HtXWLbbB8-I__1080p_Cinema_restored_v2", "840 The Eye The Sky Revelation [HtXWLbbB8-I]_1080p_Cinema.ia.mp4", "The Eye, The Sky, Revelation — 1080p Restoration", "1080p restoration restored film cinema", 2024),
+    iaDirectRecovery("844_Zodiac__Cancer__7oq2LIfwH_c__1080p_Cinema_restored_v2::844 Zodiac  Cancer [7oq2LIfwH_c]_1080p_Cinema.ia.mp4", "844_Zodiac__Cancer__7oq2LIfwH_c__1080p_Cinema_restored_v2", "844 Zodiac  Cancer [7oq2LIfwH_c]_1080p_Cinema.ia.mp4", "Zodiac Cancer — 1080p Cinema Restoration", "1080p restoration restored film cinema", 2024),
+    iaDirectRecovery("855_Is_Old_Testament_God_Satan_Part_1__62QNG71djpA__1080p_Cinema_restored_v2::855 Is Old Testament God Satan Part 1 [62QNG71djpA]_1080p_Cinema.ia.mp4", "855_Is_Old_Testament_God_Satan_Part_1__62QNG71djpA__1080p_Cinema_restored_v2", "855 Is Old Testament God Satan Part 1 [62QNG71djpA]_1080p_Cinema.ia.mp4", "Is Old Testament God Satan — 1080p Restoration", "1080p restoration restored film cinema", 2024),
+    iaDirectRecovery("910_Universe_Mind__B8FLtHupcME__1080p_Cinema_restored_v2::910 Universe Mind [B8FLtHupcME]_1080p_Cinema.ia.mp4", "910_Universe_Mind__B8FLtHupcME__1080p_Cinema_restored_v2", "910 Universe Mind [B8FLtHupcME]_1080p_Cinema.ia.mp4", "Universe Mind — 1080p Restoration", "1080p restoration restored film cinema", 2024),
+    iaDirectRecovery("706_2012__The_Omega_Point__DflegKlT8H4__1080p_Cinema_restored_v2::706 2012  The Omega Point [DflegKlT8H4]_1080p_Cinema.ia.mp4", "706_2012__The_Omega_Point__DflegKlT8H4__1080p_Cinema_restored_v2", "706 2012  The Omega Point [DflegKlT8H4]_1080p_Cinema.ia.mp4", "The Omega Point — 1080p Cinema Restoration", "1080p restoration restored film cinema", 2012),
+    iaDirectRecovery("737_Quantum_You_and_the_Universe__GZ--TgpD0PI__1080p_Cinema_restored_v2::737 Quantum You and the Universe [GZ--TgpD0PI]_1080p_Cinema.ia.mp4", "737_Quantum_You_and_the_Universe__GZ--TgpD0PI__1080p_Cinema_restored_v2", "737 Quantum You and the Universe [GZ--TgpD0PI]_1080p_Cinema.ia.mp4", "Quantum, You and the Universe — 1080p Restoration", "1080p restoration restored film cinema", 2012),
+    iaDirectRecovery("760__The_Money_Changers__JJzfp0OyR8k__1080p_Cinema_restored_v2::760  The Money Changers [JJzfp0OyR8k]_1080p_Cinema.ia.mp4", "760__The_Money_Changers__JJzfp0OyR8k__1080p_Cinema_restored_v2", "760  The Money Changers [JJzfp0OyR8k]_1080p_Cinema.ia.mp4", "The Money Changers — 1080p Restoration", "1080p restoration restored film cinema", 2012),
+    iaDirectRecovery("808_Who_Are_We_Really__athYDKrZiAM__1080p_Cinema_restored_v2::808 Who Are We Really [athYDKrZiAM]_1080p_Cinema.ia.mp4", "808_Who_Are_We_Really__athYDKrZiAM__1080p_Cinema_restored_v2", "808 Who Are We Really [athYDKrZiAM]_1080p_Cinema.ia.mp4", "Who Are We Really — 1080p Restoration", "1080p restoration restored film cinema", 2012),
+    iaDirectRecovery("93_So_Long_Charles__A_Friend_Leaves__vEwIqzZDbUE__1080p_Cinema_restored_v2::93 So Long Charles, A Friend Leaves [vEwIqzZDbUE]_1080p_Cinema.ia.mp4", "93_So_Long_Charles__A_Friend_Leaves__vEwIqzZDbUE__1080p_Cinema_restored_v2", "93 So Long Charles, A Friend Leaves [vEwIqzZDbUE]_1080p_Cinema.ia.mp4", "So Long Charles, A Friend Leaves — 1080p Restoration", "1080p restoration restored film cinema", 2012),
+    iaDirectRecovery("651__Meditation_and_watchers_of_light__S9IybP6FYE0__1080p_Cinema_restored_v2::651  Meditation and watchers of light [S9IybP6FYE0]_1080p_Cinema.ia.mp4", "651__Meditation_and_watchers_of_light__S9IybP6FYE0__1080p_Cinema_restored_v2", "651  Meditation and watchers of light [S9IybP6FYE0]_1080p_Cinema.ia.mp4", "Meditation and Watchers of Light — 1080p Restoration", "1080p restoration restored film cinema", 2012),
+    iaDirectRecovery("699_Death_And_Transfiguration__SDNloTDPL6Q__1080p_Cinema_restored_v2::699 Death And Transfiguration [SDNloTDPL6Q]_1080p_Cinema.ia.mp4", "699_Death_And_Transfiguration__SDNloTDPL6Q__1080p_Cinema_restored_v2", "699 Death And Transfiguration [SDNloTDPL6Q]_1080p_Cinema.ia.mp4", "Death and Transfiguration — 1080p Restoration", "1080p restoration restored film cinema", 2012),
+    iaDirectRecovery("71_Buddha_Learning_Realization__Somebody_wake_up_Henry___vgpyyHKhFvg__1080p_Cinema_restored_v2::71 Buddha Learning Realization. Somebody wake up Henry⧸ [vgpyyHKhFvg]_1080p_Cinema.ia.mp4", "71_Buddha_Learning_Realization__Somebody_wake_up_Henry___vgpyyHKhFvg__1080p_Cinema_restored_v2", "71 Buddha Learning Realization. Somebody wake up Henry⧸ [vgpyyHKhFvg]_1080p_Cinema.ia.mp4", "Buddha Learning Realization — 1080p Restoration", "1080p restoration restored film cinema", 2012),
+    iaDirectRecovery("759_What_is_reality__Hg4S9mdgbJE__1080p_Cinema_restored_v2::759 What is reality [Hg4S9mdgbJE]_1080p_Cinema.ia.mp4", "759_What_is_reality__Hg4S9mdgbJE__1080p_Cinema_restored_v2", "759 What is reality [Hg4S9mdgbJE]_1080p_Cinema.ia.mp4", "What Is Reality — 1080p Restoration", "1080p restoration restored film cinema", 2012),
+    iaDirectRecovery("57B_Buddha_Hunger__otOs5Mr2Mxc__1080p_Cinema_restored_v2::57B Buddha Hunger [otOs5Mr2Mxc]_1080p_Cinema.ia.mp4", "57B_Buddha_Hunger__otOs5Mr2Mxc__1080p_Cinema_restored_v2", "57B Buddha Hunger [otOs5Mr2Mxc]_1080p_Cinema.ia.mp4", "Buddha Hunger — 1080p Restoration", "1080p restoration restored film cinema", 2012),
+  ],
 });
 /* v171 long-tail recovery bank. These are real Internet Archive identifiers
    collected from the affected lane queries, kept separate from the small
@@ -1287,7 +1408,18 @@ const IA_LONG_TAIL_EXPANSIONS = Object.freeze({
     { identifier: "Norway_Train_Ride", title: "Norway Train Ride", subject: "slow tv long form train journey scenic ride ambient travel video", year: 2015, media: { type: "video", url: "https://archive.org/download/Norway_Train_Ride/Norway_Train_Ride.mp4" } },
     { identifier: "New_Zealand_Christchurch-Greymouth_-_Cab_Ride_2012", title: "New Zealand Christchurch–Greymouth Cab Ride (2012)", subject: "slow tv long form train journey cab ride scenic ride ambient travel video", year: 2012, media: { type: "video", url: "https://archive.org/download/New_Zealand_Christchurch-Greymouth_-_Cab_Ride_2012/New%20Zealand%20Christchurch-Greymouth%20-%20Cab%20Ride%20%282012%29.mp4" } },
     { identifier: "cab-ride-along-the-santa-fe-trail-part-1", title: "Cab Ride Along the Santa Fe Trail — Part 1", subject: "slow tv long form train journey cab ride scenic ride ambient travel video", year: 1998, media: { type: "video", url: "https://archive.org/download/cab-ride-along-the-santa-fe-trail-part-1/Cab%20Ride%20Along%20The%20Santa%20Fe%20Trail%20Part%201.mp4" } },
-    { identifier: "train-journey-across-the-usa-bb-glj-b-4ik-ts", title: "Train Journey Across the USA", subject: "slow tv long form train journey scenic ride ambient travel video", year: 2015, media: { type: "video", url: "https://archive.org/download/train-journey-across-the-usa-bb-glj-b-4ik-ts/Train%20Journey%20across%20the%20USA%20%5BBbGljB4ikTs%5D.mp4" } }
+    { identifier: "train-journey-across-the-usa-bb-glj-b-4ik-ts", title: "Train Journey Across the USA", subject: "slow tv long form train journey scenic ride ambient travel video", year: 2015, media: { type: "video", url: "https://archive.org/download/train-journey-across-the-usa-bb-glj-b-4ik-ts/Train%20Journey%20across%20the%20USA%20%5BBbGljB4ikTs%5D.mp4" } },
+    { identifier: "cab-ride-on-ns-947-ols-special-8-17-11", title: "Cab Ride on NS 947 OLS Special", subject: "slow tv long form train journey cab ride scenic ride ambient travel video", year: 2011, media: { type: "video", url: "https://archive.org/download/cab-ride-on-ns-947-ols-special-8-17-11/Cab%20Ride%20on%20NS%20947%20OLS%20Special%20-%208_17_11.mp4" } },
+    { identifier: "cabride-on-the-nebraska-zephyr", title: "Cab Ride on the Nebraska Zephyr", subject: "slow tv long form train journey cab ride scenic ride ambient travel video", year: 2010, media: { type: "video", url: "https://archive.org/download/cabride-on-the-nebraska-zephyr/Cabride%20on%20the%20Nebraska%20Zephyr.mp4" } },
+    { identifier: "cajon-pass-cab-ride-dvd-rev-title-1", title: "Cajon Pass Cab Ride", subject: "slow tv long form train journey cab ride scenic ride ambient travel video", year: 2010, media: { type: "video", url: "https://archive.org/download/cajon-pass-cab-ride-dvd-rev-title-1/CAJON_PASS_CAB_RIDE_DVD_REV_Title_1.ia.mp4" } },
+    { identifier: "pacific-surfliner-head-end-trip", title: "Pacific Surfliner — Head-End Trip", subject: "slow tv long form train journey scenic ride ambient travel video", year: 2012, media: { type: "video", url: "https://archive.org/download/pacific-surfliner-head-end-trip/pacific_surfliner.ia.mp4" } },
+    { identifier: "videoplayback-2021-09-01-t-190131.611", title: "BN 5383 Cab Ride at the Illinois Railway Museum", subject: "slow tv long form train journey cab ride scenic ride ambient travel video", year: 2021, media: { type: "video", url: "https://archive.org/download/videoplayback-2021-09-01-t-190131.611/videoplayback%20-%202021-09-01T190131.611.mp4" } },
+    { identifier: "youtube-4DcMcAHrURw", title: "Samedan–Zernez–Landquart Freight Cab Ride", subject: "slow tv long form train journey cab ride scenic ride ambient travel video", year: 2021, media: { type: "video", url: "https://archive.org/download/youtube-4DcMcAHrURw/4DcMcAHrURw.mp4" } },
+    { identifier: "dreamscape-train-journey-3-hours-asmr", title: "Dreamscape Train Journey — 3 Hours", subject: "slow tv long form train journey scenic ride ambient travel video", year: 2020, media: { type: "video", url: "https://archive.org/download/dreamscape-train-journey-3-hours-asmr/Dreamscape%20Train%20Journey%203%20HOURS%20ASMR.ia.mp4" } },
+    { identifier: "youtube-czTQMB55hkY", title: "Netherlands Scenic Train Drive", subject: "slow tv long form train journey scenic ride ambient travel video", year: 2023, media: { type: "video", url: "https://archive.org/download/youtube-czTQMB55hkY/czTQMB55hkY.mp4" } },
+    { identifier: "youtube-fVJc0BRmZ28", title: "Overnight on the Arctic Circle Sleeper Train", subject: "slow tv long form train journey scenic ride ambient travel video", year: 2022, media: { type: "video", url: "https://archive.org/download/youtube-fVJc0BRmZ28/fVJc0BRmZ28.mp4" } },
+    { identifier: "youtube-NN4TqIN1qYQ", title: "Osceola & St. Croix Valley Railway Cab Ride", subject: "slow tv long form train journey cab ride scenic ride ambient travel video", year: 2022, media: { type: "video", url: "https://archive.org/download/youtube-NN4TqIN1qYQ/NN4TqIN1qYQ.mp4" } },
+    { identifier: "youtube-AWmqIIOWMiM", title: "Netherlands Driver-View Train Journey", subject: "slow tv long form train journey cab ride scenic ride ambient travel video", year: 2024, media: { type: "video", url: "https://archive.org/download/youtube-AWmqIIOWMiM/AWmqIIOWMiM.mp4" } }
   ],
   "72": [
     { identifier: "USTA_Pro_Circuit_Men_s_Futures_Tennis_Tournament_2017_-_Palm_Coast", title: "USTA Pro Circuit — Futures Tennis Tournament", subject: "tennis racquet sports tournament", year: 2017 },
@@ -3908,7 +4040,9 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTit
      rails. Resolve all of them in parallel. Restricting discovery to only the
      first three made sparse channels look as if they were hydrating forever. */
   const searchQueries = uniqueIaQueries(queries, 8);
-   const foregroundLaneLimit = firstApprovedLane && iaColdRescueEnabled(channel) ? 2 : IA_FOREGROUND_DISCOVERY_LANES;
+   const foregroundLaneLimit = firstApprovedLane && iaDepthRecoveryEnabled(channel)
+     ? Math.min(4, searchQueries.length)
+     : firstApprovedLane && iaColdRescueEnabled(channel) ? 2 : IA_FOREGROUND_DISCOVERY_LANES;
    const laneLimit = firstApprovedLane
      ? Math.min(foregroundLaneLimit, searchQueries.length)
     : Math.min(8, searchQueries.length);
@@ -3964,6 +4098,10 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTit
        Keep the other fast rails observed under waitUntil so they can still
        warm the search cache, but do not make the viewer wait for their slowest
        response. */
+    const settledLanes = Array(lanePromises.length);
+    lanePromises.forEach((lanePromise, index) => {
+      lanePromise.then((lane) => { settledLanes[index] = lane; }, () => { settledLanes[index] = []; });
+    });
     let pending = lanePromises.length;
     const firstLane = await new Promise((resolve, reject) => {
       if (!pending) { reject(new Error("no Archive lanes")); return; }
@@ -3976,9 +4114,20 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTit
         if (!pending) reject(new Error("no approved Archive lane"));
       }));
     }).catch(() => []);
+    /* A proven shallow/repeat-heavy lane gets a short grace period for a
+       second approved rail. This widens the candidate catalog before the
+       response when Archive is already warm, while the bounded waitUntil path
+       still finishes any slower rail without blocking healthy lanes. */
+    if (firstLane.length && iaDepthRecoveryEnabled(channel) && lanePromises.length > 1) {
+      await Promise.race([
+        Promise.allSettled(lanePromises),
+        new Promise((resolve) => setTimeout(resolve, iaDepthGraceMs(channel))),
+      ]);
+    }
     if (ctx) ctx.waitUntil(Promise.allSettled(lanePromises));
     else await Promise.allSettled(lanePromises);
-    lanes = firstLane.length ? [firstLane] : [];
+    const supplemental = settledLanes.filter((lane) => Array.isArray(lane) && lane.length && lane !== firstLane);
+    lanes = firstLane.length ? [firstLane, ...supplemental] : [];
   } else {
     lanes = await Promise.all(lanePromises);
   }
@@ -4524,7 +4673,8 @@ async function getIaQueue(request, url, env, ctx) {
              catalog has the full three-shelf freshness floor. */
           const cachedNeedsFreshRotation = cachedPayload.fallback === true || cachedPayload.stale === true;
           const cachedNeedsCatalogDepth = iaNeedsCatalogDepth(cachedPayload, count, cachedCandidateCount);
-          const bypassShallowRotation = iaShouldBypassShallowRotation(cachedPayload, rotation, count, cachedCandidateCount);
+          const bypassShallowRotation = (iaDepthRecoveryEnabled(channel) && cachedNeedsCatalogDepth)
+            || iaShouldBypassShallowRotation(cachedPayload, rotation, count, cachedCandidateCount);
           if (cachedPayload.items && cachedPayload.items.length && (cachedNeedsFreshRotation || cachedNeedsCatalogDepth)) {
             scheduleIaExpansion(
               { ...cachedPayload, lastGoodKey, items: cachedCandidates.slice(0, cachedCandidateCount), candidateItems: cachedCandidates, candidates: cachedCandidates.length },
@@ -4586,7 +4736,8 @@ async function getIaQueue(request, url, env, ctx) {
         ? shared.candidateItems
         : ((shared.items) || []);
       const sharedNeedsExpansion = iaNeedsCatalogDepth(shared, count, sharedCandidateCount);
-      const bypassSharedShallow = iaShouldBypassShallowRotation(shared, rotation, count, sharedCandidateCount);
+      const bypassSharedShallow = (iaDepthRecoveryEnabled(channel) && sharedNeedsExpansion)
+        || iaShouldBypassShallowRotation(shared, rotation, count, sharedCandidateCount);
       if (sharedNeedsExpansion) {
         /* Do not wait for a complete-series expansion here. The current shelf
            is already playable; replenish it behind the response so the next
@@ -4668,17 +4819,23 @@ async function getIaQueue(request, url, env, ctx) {
         const warmFallbackQueries = iaBackgroundFallbackQueries(channel, iaFallbackQueries(themeTerms, denyTerms, requiredTitleTerms, mediaTypes), true);
         scheduleIaExpansion(warmSeed, warmReserveQueries, warmFallbackQueries, channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, warmCandidateCount, url.origin, cacheKey, sharedKey, env, ctx, rotation, true);
       }
-      const warmResponse = cacheableJson(warmFallback, 5, {
-        "X-Afterglow-Source": "program-director-warm-start",
-        "X-Afterglow-Cache": "shared-last-good",
-        "X-Afterglow-Queue-Ready": String(warmFallback.ready || warmFallback.items.length),
-        "X-Afterglow-Queue-Fallback": "1",
-      });
-      iaQueueMemoryPut(cacheKey.url, warmFallback, 5);
-      ctx.waitUntil(cache.put(cacheKey, warmResponse.clone()).catch((error) => {
-        console.warn(JSON.stringify({ event: "warm-start-queue-edge-write-failed", channel, message: String(error && error.message || error) }));
-      }));
-      return warmResponse;
+      /* A shallow warm shelf is useful as an emergency fallback for healthy
+         lanes, but it is exactly what traps a proven repeat-heavy lane on the
+         same five items. Let those lanes re-enter their bounded discovery
+         path; the warm shelf remains available if that path returns empty. */
+      if (!(iaDepthRecoveryEnabled(channel) && warmNeedsExpansion)) {
+        const warmResponse = cacheableJson(warmFallback, 5, {
+          "X-Afterglow-Source": "program-director-warm-start",
+          "X-Afterglow-Cache": "shared-last-good",
+          "X-Afterglow-Queue-Ready": String(warmFallback.ready || warmFallback.items.length),
+          "X-Afterglow-Queue-Fallback": "1",
+        });
+        iaQueueMemoryPut(cacheKey.url, warmFallback, 5);
+        ctx.waitUntil(cache.put(cacheKey, warmResponse.clone()).catch((error) => {
+          console.warn(JSON.stringify({ event: "warm-start-queue-edge-write-failed", channel, message: String(error && error.message || error) }));
+        }));
+        return warmResponse;
+      }
     }
     // Hard-locked programming can reject many otherwise plausible Archive.org
     // results. Give those channels a deeper candidate shelf before hydration so
@@ -4691,7 +4848,9 @@ async function getIaQueue(request, url, env, ctx) {
        This keeps the first playable item on the short path while preserving
        the broader catalog for refill and later rotations. */
     const orderedQueries = uniqueIaQueries(queries, 8);
-     const fastLaneCount = iaColdRescueEnabled(channel) ? Math.min(2, orderedQueries.length) : IA_FOREGROUND_DISCOVERY_LANES;
+     const fastLaneCount = iaDepthRecoveryEnabled(channel)
+       ? Math.min(4, orderedQueries.length)
+       : iaColdRescueEnabled(channel) ? Math.min(2, orderedQueries.length) : IA_FOREGROUND_DISCOVERY_LANES;
      const fastQueries = orderedQueries.slice(0, fastLaneCount);
     /* The first-approved cold race intentionally starts with only the first
        rail. Keep the second fast rail at the front of the reserve list so a
@@ -4827,7 +4986,7 @@ async function getIaQueue(request, url, env, ctx) {
       const resolveFirst = firstReadyResolve;
       firstReadyResolve = null;
       resolveFirst({ ...payload, items: [item], candidates: payload.items.length, ready: readyCount, partial: true, hydrating: true });
-    }, IA_FOREGROUND_HYDRATION_CONCURRENCY);
+    }, iaForegroundHydrationConcurrency(channel));
     /* A cold channel gets one short, bounded chance to receive its first
        verified program. The remaining four may still be resolving; making
        the viewer wait for all five was the source of the apparent dead air.
@@ -4850,7 +5009,7 @@ async function getIaQueue(request, url, env, ctx) {
           emergency: true,
           hydrating: false,
         };
-        const rescueHydration = hydrateIaQueue(rescuePayload, count, url.origin, ctx, mediaTypes, undefined, IA_FOREGROUND_HYDRATION_CONCURRENCY);
+        const rescueHydration = hydrateIaQueue(rescuePayload, count, url.origin, ctx, mediaTypes, undefined, iaForegroundHydrationConcurrency(channel));
         hydrated = await timeboxQueueHydration(rescueHydration, IA_FIRST_READY_TIMEOUT_MS);
       }
     }

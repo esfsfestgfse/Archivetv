@@ -28,6 +28,16 @@ const MAX_SESSION = 80;
 /* V3 telemetry can promote a lane here only after production evidence shows
    repeated fallback/slow switching while D1 already has verified media. */
 const IA_FAST_CATALOG_LANES = new Set(["56", "64", "154", "205", "222", "922"]);
+/* A relay response can be playable while still being too shallow for a
+   rolling television catalog. Enrich any IA lane below the three-shelf floor
+   from D1; a healthy relay response that already carries enough candidates
+   keeps the fastest handoff and does not pay for the read. */
+const IA_MIN_ROLLING_CATALOG_DEPTH = 15;
+/* These lanes additionally need stale-row re-scoring because their measured
+   D1 history contained old genreVerified flags from before the current rules. */
+const IA_DEPTH_REPAIR_LANES = new Set([
+  "15", "18", "21", "114", "203", "214", "501", "502", "507", "921",
+]);
 /* Some IA collections store the genre in the series/film title rather than
    the child filename. These are deliberately lane-specific aliases for the
    two long-tail lanes that failed the serial certification when their relay
@@ -340,7 +350,10 @@ function catalogFallbackAllowed(item, body) {
   /* Relay items have already passed the strict Archive genre/deny gates. Keep
      that provenance when V2 sees an expanded episode whose child filename does
      not repeat the parent topic. */
-  const relayVerified = item && item.genreVerified === true;
+  /* Older catalog rows for the measured repair lanes were written with a
+     stale genreVerified flag. Re-score those rows against today's channel
+     vocabulary instead of allowing historical trust to preserve bleed. */
+  const relayVerified = item && item.genreVerified === true && !IA_DEPTH_REPAIR_LANES.has(String(body && body.channel || ""));
   if (themeTerms.length && !relayVerified) {
     let score = 0;
     for (const term of themeTerms) {
@@ -554,7 +567,15 @@ async function handleQueue(request, env, ctx, id) {
       MAX_CATALOG_ITEMS,
     );
     payload = { ...payload, items: upstreamItems, candidateItems: upstreamCandidates, candidates: upstreamCandidates.length, ready: Math.min(Number(payload && payload.ready) || upstreamItems.length, upstreamItems.length) };
-    if (upstreamItems.length < count) {
+    const upstreamCandidateDepth = upstreamCandidates.length;
+    const needsCatalogDepthRepair = upstreamCandidateDepth < IA_MIN_ROLLING_CATALOG_DEPTH;
+    /* A persistent freshness ledger can legitimately consume most of a small
+       upstream shelf. Refill from the deeper D1 catalog before rotation when
+       the remaining unseen window cannot satisfy the requested shelf; do not
+       relax freshness or recycle a recently served program just to reach five. */
+    const recentWindow = recentCatalogIds(body).size;
+    const needsFreshnessRefill = recentWindow >= count && upstreamCandidateDepth < Math.min(MAX_CATALOG_ITEMS, recentWindow + count);
+    if (upstreamItems.length < count || needsCatalogDepthRepair || needsFreshnessRefill) {
       try {
         const fallback = await catalogFallback(env, body, Math.max(MAX_CATALOG_ITEMS, count));
         const fallbackItems = fallback && Array.isArray(fallback.candidateItems) && fallback.candidateItems.length ? fallback.candidateItems : (fallback ? fallback.items : []);

@@ -150,20 +150,18 @@ async function probeRotation(row, rotationOffset) {
         if (!terms.length) return true;
         const title = String(item && item.title || '').toLowerCase();
         if (terms.some(term => title.includes(String(term).toLowerCase()))) return true;
-        /* Channel 200 intentionally accepts subject-qualified factory films
-           whose individual program title does not repeat the parent query
-           phrase (for example, "Master Hands" or "Visit to Wurlitzer").
-           Mirror that production contract so the soak measures real genre
-           accuracy instead of reporting valid manufacturing episodes as
-           underfilled. */
-        if (String(row.channel) === '200') {
-          const subject = String(item && (item.subject || item.subjects) || '').toLowerCase();
-          const themeTerms = row.themeTerms || [];
-          return themeTerms.some(term => {
-            const needle = String(term || '').toLowerCase().trim();
-            return needle && subject.includes(needle);
-          });
-        }
+        /* IA collection children and direct recovery files often carry the
+           editorial genre in subject instead of repeating it in the episode
+           title (for example, factory films titled "Master Hands" or punk
+           tracks titled only with an artist/song name). Mirror the relay/API
+           contract so the soak measures real genre accuracy instead of
+           reporting valid subject-qualified programs as repeats or gaps. */
+        const subject = String(item && (item.subject || item.subjects) || '').toLowerCase();
+        const themeTerms = row.themeTerms || [];
+        if (themeTerms.some(term => {
+          const needle = String(term || '').toLowerCase().trim();
+          return needle && subject.includes(needle);
+        })) return true;
         return item && item.genreVerified === true;
       }) : [];
       const catalogDepth = response.ok && Array.isArray(body.candidateItems) ? body.candidateItems.length : items.length;

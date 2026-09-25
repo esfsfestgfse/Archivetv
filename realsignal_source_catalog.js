@@ -20,6 +20,10 @@ const SOURCE_MAX_ITEMS = 96;
    items the refill target so the catalog can rotate instead of repeating. */
 const SOURCE_MIN_READY = 12;
 const SOURCE_MAX_QUERIES = 8;
+/* Search is quota-expensive and should deepen the durable catalog over time,
+   not fan every editorial query out on every tune. Each rotation advances a
+   bounded window; D1 retains the union from prior windows. */
+const SOURCE_QUERY_WINDOW = 4;
 const SOURCE_MAX_CONCURRENCY = 4;
 const SOURCE_TIMEOUT_MS = 7000;
 const SOURCE_FIRST_LANE_TIMEOUT_MS = 6500;
@@ -179,7 +183,7 @@ async function mapLimit(values, limit, fn) {
 }
 
 function youtubeQueries(profile, rotation) {
-  return rotate(profile.queries, rotation).slice(0, SOURCE_MAX_QUERIES);
+  return rotate(profile.queries, rotation).slice(0, SOURCE_QUERY_WINDOW);
 }
 
 function youtubeDuration(value) {
@@ -218,9 +222,14 @@ async function youtube(profile, rotation, env) {
   const candidates = (await Promise.all(jobs)).flat();
   const ids = unique(candidates).map((item) => item.rawId).slice(0, 75);
   if (!ids.length) return { provider: "YouTube", items: [], health: { searched: queries.length, candidates: 0 } };
-  const detailUrl = "https://www.googleapis.com/youtube/v3/videos?" + new URLSearchParams({ part: "snippet,contentDetails,status,player", id: ids.join(","), key });
-  const detail = await fetchJson(detailUrl);
-  const byId = new Map((detail.items || []).map((item) => [item.id, item]));
+  /* videos.list accepts at most 50 IDs. Chunking also means one oversized
+     discovery pass cannot invalidate an otherwise healthy YouTube lane. */
+  const detailBatches = await mapLimit(Array.from({ length: Math.ceil(ids.length / 50) }, (_, index) => ids.slice(index * 50, index * 50 + 50)), 2, async (batch) => {
+    const detailUrl = "https://www.googleapis.com/youtube/v3/videos?" + new URLSearchParams({ part: "snippet,contentDetails,status,player", id: batch.join(","), key });
+    return fetchJson(detailUrl);
+  });
+  const detailItems = detailBatches.filter(Boolean).flatMap((batch) => batch.items || []);
+  const byId = new Map(detailItems.map((item) => [item.id, item]));
   const items = candidates.map((candidate) => {
     const item = byId.get(candidate.rawId);
     if (!item || item.status && item.status.embeddable !== true) return null;
@@ -246,7 +255,7 @@ async function youtube(profile, rotation, env) {
     };
     return accepted(profile, hydrated, "YouTube") ? normalized(hydrated, "YouTube", candidate.query) : null;
   }).filter(Boolean);
-  return { provider: "YouTube", items: unique(items).slice(0, SOURCE_MAX_ITEMS), health: { searched: queries.length, candidates: candidates.length, details: detail.items ? detail.items.length : 0 } };
+  return { provider: "YouTube", items: unique(items).slice(0, SOURCE_MAX_ITEMS), health: { searched: queries.length, candidates: candidates.length, details: detailItems.length, detailBatches: detailBatches.length } };
 }
 
 function peerTubeInstances(env) {
@@ -268,11 +277,7 @@ function peerTubeFile(detail) {
 
 async function peerTube(profile, rotation, env) {
   const instances = peerTubeInstances(env);
-  /* Use the complete approved query window for the server catalog. The old
-     four-query cap made a valid but shallow PeerTube lane look healthy and
-     prevented the background catalog from reaching the twelve-item depth
-     target. */
-  const queries = youtubeQueries(profile, rotation).slice(0, SOURCE_MAX_QUERIES);
+  const queries = youtubeQueries(profile, rotation);
   const sortModes = ["-match", "-publishedAt", "-views", "-likes"];
   const sort = sortModes[(Number(rotation) || 0) % sortModes.length];
   async function search(querySet) {
@@ -309,8 +314,8 @@ async function peerTube(profile, rotation, env) {
      rows to start one video. */
   if (raw.length < SOURCE_MIN_READY) {
     const used = new Set(queries.map((query) => query.toLowerCase()));
-    const fallbackQueries = unique(profile.match.concat(profile.queries).map((query) => text(query, 180)))
-      .filter((query) => !used.has(query.toLowerCase())).slice(0, SOURCE_MAX_QUERIES);
+    const fallbackQueries = rotate(unique(profile.match.concat(profile.queries).map((query) => text(query, 180)))
+      .filter((query) => !used.has(query.toLowerCase())), rotation).slice(0, SOURCE_QUERY_WINDOW);
     if (fallbackQueries.length) {
       const fallback = await search(fallbackQueries);
       searchedJobs += fallback.jobs;
@@ -342,7 +347,12 @@ function providers(profile, rotation, env, options = {}) {
     .map((value) => String(value || "").toLowerCase()));
   return profile.providers
     .filter((provider) => !disabled.has(String(provider).toLowerCase()))
-    .map((provider) => provider === "youtube" ? youtube(profile, rotation, env) : peerTube(profile, rotation, env));
+    .map((provider) => {
+      const label = provider === "youtube" ? "YouTube" : "PeerTube";
+      return Promise.resolve()
+        .then(() => provider === "youtube" ? youtube(profile, rotation, env) : peerTube(profile, rotation, env))
+        .catch((error) => ({ provider: label, items: [], health: { error: text(error, 160) || "source failure" } }));
+    });
 }
 
 export function sourceProfile(body) {
@@ -368,4 +378,4 @@ export function mergeSourceLanes(profileKey, lanes) {
   return { profileKey, items, ready: items.length, candidates: items.length, catalogVersion: "source-server-1", source: "server-source-catalog" };
 }
 
-export const SOURCE_LIMITS = { SOURCE_MIN_RUNTIME, SOURCE_MIN_ASPECT_RATIO, SOURCE_MAX_ITEMS, SOURCE_MIN_READY, SOURCE_MAX_QUERIES, SOURCE_FIRST_LANE_TIMEOUT_MS };
+export const SOURCE_LIMITS = { SOURCE_MIN_RUNTIME, SOURCE_MIN_ASPECT_RATIO, SOURCE_MAX_ITEMS, SOURCE_MIN_READY, SOURCE_MAX_QUERIES, SOURCE_QUERY_WINDOW, SOURCE_FIRST_LANE_TIMEOUT_MS };

@@ -9,9 +9,17 @@ const vm = require('node:vm');
 const source = fs.readFileSync(path.join(__dirname, '..', 'assets', 'source-catalog-client.js'), 'utf8');
 const calls = [];
 const original = async name => ({ provider: name, items: [{ id: 'client-fallback' }] });
+function memoryStorage() {
+  const values = new Map();
+  return {
+    getItem(key) { return values.has(key) ? values.get(key) : null; },
+    setItem(key, value) { values.set(key, String(value)); },
+  };
+}
 const context = {
   window: { v2Provider: original },
   IA_API_BASE: 'https://api.example/api/v2',
+  localStorage: memoryStorage(),
   setTimeout: () => 0,
   clearTimeout: () => {},
   fetch: async (url, options) => {
@@ -36,6 +44,15 @@ vm.runInContext(source, context);
   assert.equal(requestBody.rotation, 0);
   assert.equal(requestBody.minimumReady, 12);
   assert.deepEqual(requestBody.recentIds, []);
+  assert.deepEqual(requestBody.playedIds, []);
+
+  context.window.__rsRecordSourcePlay('game-show-archive', { id: 'played-old' });
+  context.window.__rsRecordSourcePlay('game-show-archive', { id: 'played-new' });
+  context.window.__rsRecordSourcePlay('game-show-archive', { id: 'played-old' });
+  await context.window.v2Provider('peertube', profile, 1, null);
+  const rotatedBody = JSON.parse(calls[calls.length - 1].options.body);
+  assert.deepEqual(rotatedBody.recentIds, ['played-old', 'played-new']);
+  assert.deepEqual(rotatedBody.playedIds, ['played-old']);
 
   /* A stale D1 shelf must not pin the active browser to the same small
      response while the Worker is already hydrating a deeper catalog. */
@@ -44,6 +61,7 @@ vm.runInContext(source, context);
   const staleContext = {
     window: { v2Provider: original },
     IA_API_BASE: 'https://api.example/api/v2',
+    localStorage: memoryStorage(),
     setTimeout: (fn, delay) => { if (delay === 120) fn(); return 0; },
     clearTimeout: () => {},
     fetch: async (url, options) => {
@@ -71,5 +89,6 @@ vm.runInContext(source, context);
   assert.equal(staleCalls.length, 2);
   assert.equal(JSON.parse(staleCalls[1].options.body).refresh, true);
   assert.equal(refreshedCount, 12);
-  console.log('Source catalog bridge passed: server preference and server-only YouTube handling.');
+  assert.equal(staleContext.localStorage.getItem('realsignal:source-freshness:v3'), null, 'background catalog adoption must not mark fetched programs as watched');
+  console.log('Source catalog bridge passed: server preference, play-only freshness, and server-only YouTube handling.');
 })().catch(error => { console.error(error.stack || error); process.exitCode = 1; });

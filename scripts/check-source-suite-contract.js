@@ -9,9 +9,9 @@ const files = ['the_dial_desktop.html', 'the_dial_mobile.html'];
 const issues = [];
 const bridge = fs.readFileSync(path.join(repo, 'assets', 'source-catalog-client.js'), 'utf8');
 if (!bridge.includes('IA_API_BASE + "/source/catalog"') || !bridge.includes('serverCatalog')) issues.push('server catalog bridge must be present and marked as the preferred Source Suite path');
-if (!bridge.includes('realsignal:source-freshness:v2') || !bridge.includes('playedIds: recentFor(profileKey).slice(0, 1)') || !bridge.includes('__rsRecordSourcePlay')) issues.push('Source Suite freshness must record actual plays, not catalog fetches');
+if (!bridge.includes('realsignal:source-freshness:v3') || !bridge.includes('playedIds: recentFor(profileKey).slice(0, 1)') || !bridge.includes('__rsRecordSourcePlay') || bridge.includes('remember(profileKey, fresh.items)')) issues.push('Source Suite freshness must be newest-first and record actual plays, not catalog fetches');
 const serverCatalog = fs.readFileSync(path.join(repo, 'realsignal_source_catalog.js'), 'utf8');
-if (!serverCatalog.includes('if (raw.length < SOURCE_MIN_READY)') || !serverCatalog.includes('slice(0, SOURCE_MAX_QUERIES)')) issues.push('PeerTube discovery must expand shallow catalogs through the full approved query window');
+if (!serverCatalog.includes('if (raw.length < SOURCE_MIN_READY)') || !serverCatalog.includes('SOURCE_QUERY_WINDOW = 4') || !serverCatalog.includes('Math.ceil(ids.length / 50)')) issues.push('Source discovery must rotate a bounded query window and chunk YouTube detail hydration to 50 IDs');
 const api = fs.readFileSync(path.join(repo, 'realsignal_api_v2_worker.js'), 'utf8');
 if (!api.includes('const sourceRefreshCache = new Map()') || !api.includes('refresh already scheduled') || !api.includes('forceDeepRefresh') || !api.includes('server-source-catalog-refresh') || !api.includes('freshnessLedger: true')) issues.push('source refreshes must be deduplicated, deep refreshes must return the expanded union, and freshness filtering must preserve newest-first ledger order');
 
@@ -19,7 +19,7 @@ for (const file of files) {
   const source = fs.readFileSync(path.join(repo, file), 'utf8');
   const name = file;
   const required = [
-    [/V2_SOURCE_CACHE_VERSION=23/, 'source catalog cache version must invalidate short-form catalogs'],
+    [/V2_SOURCE_CACHE_VERSION=24/, 'source catalog cache version must invalidate poisoned freshness catalogs'],
     [/retainedItems=Array\.isArray\(cached&&cached\.items\)\?cached\.items\.filter/, 'previously verified source items must survive provider outages after requalification'],
     [/cacheValid=!!cached&&Number\(cached\.version\|\|0\)===V2_SOURCE_CACHE_VERSION/, 'only a current source catalog cache may be treated as fresh'],
     [/item\.account,item\.channelTitle/, 'YouTube language screening must inspect channel identity'],

@@ -653,7 +653,30 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
   });
   const filtered = uniqueQueueItems(items, effectiveBody);
   const fresh = ignoreFreshness ? filtered : applyFreshness(filtered, effectiveBody);
-  return fresh.length ? { items: rotateCatalogItems(fresh, effectiveBody.rotation), candidateItems: fresh, ready: fresh.length, candidates: fresh.length, fallback: true, stale: true, catalogFallback: true, freshnessExcluded: Math.max(0, filtered.length - fresh.length), freshnessWindow: recentCatalogIds(effectiveBody).size, freshnessLedger: effectiveBody.freshnessLedger === true, rotation: Number(effectiveBody.rotation) || 0 } : null;
+  /* Source Suite may legitimately exhaust a small catalog. Repeat only after
+     every verified row has appeared; never turn exhaustion into a 503 or hide
+     the real catalog depth from the guide. */
+  const exhausted = !ignoreFreshness && effectiveBody.sourceCatalog === true && filtered.length > 0 && fresh.length === 0;
+  const selected = exhausted ? filtered : fresh;
+  const seenCount = Math.max(0, filtered.length - fresh.length);
+  return selected.length ? {
+    items: rotateCatalogItems(selected, effectiveBody.rotation),
+    candidateItems: filtered,
+    ready: selected.length,
+    candidates: filtered.length,
+    catalogDepth: filtered.length,
+    unseenCatalogItems: fresh.length,
+    seenCatalogItems: seenCount,
+    catalogExhausted: exhausted,
+    repeatAllowed: exhausted,
+    fallback: true,
+    stale: true,
+    catalogFallback: true,
+    freshnessExcluded: seenCount,
+    freshnessWindow: recentCatalogIds(effectiveBody).size,
+    freshnessLedger: effectiveBody.freshnessLedger === true,
+    rotation: Number(effectiveBody.rotation) || 0,
+  } : null;
 }
 
 async function handleQueue(request, env, ctx, id) {
@@ -966,11 +989,11 @@ async function handleGuide(request, env) {
   const limit = Math.max(2, Math.min(20, Number(url.searchParams.get("limit")) || 8));
   let result;
   try {
-    result = await env.realsignal_catalog.prepare(`SELECT p.id, p.title, p.description, p.duration_seconds, p.media_type, p.media_url, p.source_url, p.rights, p.year, cp.last_seen_at, cf.last_served_at, cf.play_count FROM programs p JOIN channel_programs cp ON cp.program_id=p.id LEFT JOIN channel_freshness cf ON cf.channel_key=cp.channel_key AND cf.program_id=p.id WHERE cp.channel_key=? AND p.status='active' AND p.media_url IS NOT NULL ORDER BY CASE WHEN cf.last_served_at IS NULL THEN 0 ELSE 1 END, cf.last_served_at ASC, cp.last_seen_at DESC LIMIT ?`).bind(channel, limit).all();
+    result = await env.realsignal_catalog.prepare(`SELECT p.id, p.title, p.description, p.provider, p.duration_seconds, p.media_type, p.media_url, p.source_url, p.rights, p.year, cp.last_seen_at, cf.last_served_at, cf.play_count, COUNT(*) OVER () AS catalog_depth, SUM(CASE WHEN cf.last_served_at IS NULL THEN 1 ELSE 0 END) OVER () AS unseen_count FROM programs p JOIN channel_programs cp ON cp.program_id=p.id LEFT JOIN channel_freshness cf ON cf.channel_key=cp.channel_key AND cf.program_id=p.id WHERE cp.channel_key=? AND p.status='active' AND p.media_url IS NOT NULL ORDER BY CASE WHEN cf.last_served_at IS NULL THEN 0 ELSE 1 END, cf.last_served_at ASC, cp.last_seen_at DESC LIMIT ?`).bind(channel, limit).all();
   } catch (_) {
     /* Serve the verified guide during the short migration window before the
        V4 freshness table has been applied in every environment. */
-    result = await env.realsignal_catalog.prepare(`SELECT p.id, p.title, p.description, p.duration_seconds, p.media_type, p.media_url, p.source_url, p.rights, p.year, cp.last_seen_at FROM programs p JOIN channel_programs cp ON cp.program_id=p.id WHERE cp.channel_key=? AND p.status='active' AND p.media_url IS NOT NULL ORDER BY cp.last_seen_at DESC LIMIT ?`).bind(channel, limit).all();
+    result = await env.realsignal_catalog.prepare(`SELECT p.id, p.title, p.description, p.provider, p.duration_seconds, p.media_type, p.media_url, p.source_url, p.rights, p.year, cp.last_seen_at, COUNT(*) OVER () AS catalog_depth FROM programs p JOIN channel_programs cp ON cp.program_id=p.id WHERE cp.channel_key=? AND p.status='active' AND p.media_url IS NOT NULL ORDER BY cp.last_seen_at DESC LIMIT ?`).bind(channel, limit).all();
   }
   const items = (result.results || []).map((item) => ({
     ...item,
@@ -978,7 +1001,11 @@ async function handleGuide(request, env) {
     runtime: Number(item.duration_seconds || 0) || null,
     provider: item.provider || "verified catalog",
   }));
-  return json({ apiVersion: "v3", release: V3_RELEASE, channel, current: items[0] || null, next: items[1] || null, items, verified: true, queueModel: "rolling-1-plus-2", freshnessLedger: items.some((item) => item.last_served_at != null), generatedAt: new Date().toISOString(), source: "d1-verified-catalog" }, 200, { "Cache-Control": "public, max-age=10, stale-while-revalidate=30", "X-RealSignal-Release": V3_RELEASE });
+  const catalogDepth = Number(items[0] && items[0].catalog_depth) || items.length;
+  const unseenCount = Number.isFinite(Number(items[0] && items[0].unseen_count)) ? Number(items[0].unseen_count) : catalogDepth;
+  const seenCount = Math.max(0, catalogDepth - unseenCount);
+  const catalogExhausted = catalogDepth > 0 && unseenCount === 0;
+  return json({ apiVersion: "v3", release: V3_RELEASE, channel, current: items[0] || null, next: items[1] || null, items, verified: true, queueModel: "rolling-1-plus-2", catalogDepth, unseenCount, seenCount, catalogExhausted, repeatAllowed: catalogExhausted, freshnessLedger: items.some((item) => item.last_served_at != null), generatedAt: new Date().toISOString(), source: "d1-verified-catalog" }, 200, { "Cache-Control": "public, max-age=10, stale-while-revalidate=30", "X-RealSignal-Release": V3_RELEASE });
 }
 
 async function firstSourceLane(tasks) {
@@ -1152,9 +1179,11 @@ async function handleSourceCatalog(request, env, ctx, id) {
     ? uniqueQueueItems(cachedItems.concat(first.items || []), { ...body, sourceCatalog: true, denyTerms: profile.deny, themeTerms: profile.match, themeMinScore: 1 }, SOURCE_LIMITS.SOURCE_MAX_ITEMS)
     : first.items;
   const freshnessBody = { ...body, recentIds: sourceRecentIds, freshnessLedger: true };
-  const freshFirstItems = applyFreshness(discoveredItems, freshnessBody);
+  const unseenFirstItems = applyFreshness(discoveredItems, freshnessBody);
+  const catalogExhausted = discoveredItems.length > 0 && unseenFirstItems.length === 0;
+  const freshFirstItems = catalogExhausted ? discoveredItems : unseenFirstItems;
   if (playedIds.length) rememberFreshness(env, normalized.profileKey, playedIds, ctx);
-  return json({ profileKey: normalized.profileKey, items: freshFirstItems, ready: freshFirstItems.length, candidates: freshFirstItems.length, catalogDepth: discoveredItems.length, lanes: first.lanes, hydrating: true, adaptiveFreshness: true, freshnessLedger: true, freshnessExcluded: Math.max(0, discoveredItems.length - freshFirstItems.length), freshnessWindow: recentCatalogIds(freshnessBody).size, catalogVersion: "source-server-1", source: forceDeepRefresh ? "server-source-catalog-refresh" : "server-source-catalog", providerAvailability: { youtube: !!env.YOUTUBE_API_KEY && !disabledProviders.has("youtube"), peertube: !disabledProviders.has("peertube"), cooldownProviders: Array.from(disabledProviders) }, limits: SOURCE_LIMITS, apiVersion, release: apiVersion === "v3" ? V3_RELEASE : undefined }, freshFirstItems.length ? 200 : 503, { "Cache-Control": "no-store", "X-RealSignal-Request": id, "X-RealSignal-Source": "server-source-catalog", "X-RealSignal-Release": apiVersion === "v3" ? V3_RELEASE : "2.2.2" });
+  return json({ profileKey: normalized.profileKey, items: freshFirstItems, ready: freshFirstItems.length, candidates: discoveredItems.length, catalogDepth: discoveredItems.length, unseenCatalogItems: unseenFirstItems.length, seenCatalogItems: Math.max(0, discoveredItems.length - unseenFirstItems.length), catalogExhausted, repeatAllowed: catalogExhausted, lanes: first.lanes, hydrating: true, adaptiveFreshness: true, freshnessLedger: true, freshnessExcluded: Math.max(0, discoveredItems.length - unseenFirstItems.length), freshnessWindow: recentCatalogIds(freshnessBody).size, catalogVersion: "source-server-1", source: forceDeepRefresh ? "server-source-catalog-refresh" : "server-source-catalog", providerAvailability: { youtube: !!env.YOUTUBE_API_KEY && !disabledProviders.has("youtube"), peertube: !disabledProviders.has("peertube"), cooldownProviders: Array.from(disabledProviders) }, limits: SOURCE_LIMITS, apiVersion, release: apiVersion === "v3" ? V3_RELEASE : undefined }, freshFirstItems.length ? 200 : 503, { "Cache-Control": "no-store", "X-RealSignal-Request": id, "X-RealSignal-Source": "server-source-catalog", "X-RealSignal-Release": apiVersion === "v3" ? V3_RELEASE : "2.2.2" });
 }
 
 const worker = {

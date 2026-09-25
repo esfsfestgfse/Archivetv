@@ -17,7 +17,7 @@ const { pathToFileURL } = require('node:url');
             return {
               async all() {
                 if (/FROM channel_health/.test(sql)) return { results: [{ channel_key: '12', failures: 0, first_frame_avg_ms: 420, queue_avg_depth: 8 }] };
-                if (/FROM programs/.test(sql)) return { results: [{ id: 'p1', title: 'Verified Program', media_url: 'https://archive.org/download/p1/p1.mp4', last_seen_at: Date.now(), channel_key: args[0] }] };
+                if (/FROM programs/.test(sql)) return { results: [{ id: 'p1', title: 'Verified Program', provider: 'Internet Archive', media_url: 'https://archive.org/download/p1/p1.mp4', last_seen_at: Date.now(), channel_key: args[0], catalog_depth: 17, unseen_count: 12 }] };
                 return { results: [] };
               },
               async first() { return null; },
@@ -56,6 +56,11 @@ const { pathToFileURL } = require('node:url');
   const guideBody = await guide.json();
   assert.equal(guideBody.verified, true);
   assert.equal(guideBody.current.title, 'Verified Program');
+  assert.equal(guideBody.current.provider, 'Internet Archive');
+  assert.equal(guideBody.catalogDepth, 17);
+  assert.equal(guideBody.unseenCount, 12);
+  assert.equal(guideBody.seenCount, 5);
+  assert.equal(guideBody.catalogExhausted, false);
 
   const scorecard = await worker.fetch(new Request('https://api.example/api/v3/health/channels?limit=10'), env, ctx);
   assert.equal(scorecard.status, 200);

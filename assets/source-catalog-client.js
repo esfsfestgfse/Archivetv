@@ -14,7 +14,7 @@
   var refreshPending = Object.create(null);
   /* v1 recorded every fetched shelf as if it had been watched. Start a clean
      play-only ledger so catalog reads no longer poison the next opening. */
-  var FRESHNESS_KEY = 'realsignal:source-freshness:v2';
+  var FRESHNESS_KEY = 'realsignal:source-freshness:v3';
 
   function normalizeKey(value) {
     return String(value || '').toLowerCase().replace(/[^a-z0-9._:-]+/g, '-');
@@ -26,6 +26,7 @@
   }
 
   function itemKey(item) {
+    if (typeof item === 'string' || typeof item === 'number') return String(item).trim().slice(0, 500);
     return String(item && (item.id || item.identifier || item.sourceIdentifier || (item.media && item.media.url) || item.url) || '').trim().slice(0, 500);
   }
 
@@ -39,9 +40,13 @@
     var ids = (Array.isArray(items) ? items : []).map(itemKey).filter(Boolean);
     if (!ids.length) return;
     var all = readFreshness();
-    var next = (Array.isArray(all[profileKey]) ? all[profileKey] : []).concat(ids);
+    /* Newest plays belong at the front. Replaying an older item must move it
+       back to the head instead of leaving an obsolete first-play marker in
+       place forever. */
+    var existing = Array.isArray(all[profileKey]) ? all[profileKey] : [];
+    var next = ids.concat(existing.filter(function (id) { return ids.indexOf(id) < 0; }));
     var seen = Object.create(null);
-    all[profileKey] = next.filter(function (id) { if (seen[id]) return false; seen[id] = true; return true; }).slice(-48);
+    all[profileKey] = next.filter(function (id) { if (seen[id]) return false; seen[id] = true; return true; }).slice(0, 48);
     try { localStorage.setItem(FRESHNESS_KEY, JSON.stringify(all)); } catch (_) { /* storage is an optimization */ }
   }
 
@@ -97,7 +102,6 @@
     setTimeout(function () {
       request(profile, rotation, true).then(function (fresh) {
         if (!fresh || !Array.isArray(fresh.items) || fresh.items.length <= stale.items.length) return;
-        remember(profileKey, fresh.items);
         if (typeof onFirst === "function") onFirst({
           provider: "Server Catalog",
           items: fresh.items,

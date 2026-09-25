@@ -1059,7 +1059,10 @@ async function readSourceCooldowns(env, profileKey) {
   if (!env.realsignal_catalog || typeof env.realsignal_catalog.prepare !== "function") return new Set();
   try {
     const prefix = `${String(profileKey || "").slice(0, 100)}:%`;
-    const result = await env.realsignal_catalog.prepare("SELECT source_key, cooldown_until FROM source_health WHERE source_key LIKE ? AND cooldown_until>? ").bind(prefix, Date.now()).all();
+    /* Older releases wrote a cooldown for the harmless "no verified items"
+       case. Ignore those legacy rows immediately; real provider errors remain
+       eligible for their short recovery cooldown. */
+    const result = await env.realsignal_catalog.prepare("SELECT source_key, cooldown_until FROM source_health WHERE source_key LIKE ? AND cooldown_until>? AND COALESCE(last_error, '')<>'no verified items'").bind(prefix, Date.now()).all();
     return new Set((result.results || []).map((row) => sourceProviderKey(String(row.source_key || "").split(":").pop())));
   } catch (_) { return new Set(); }
 }

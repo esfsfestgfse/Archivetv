@@ -14,12 +14,17 @@ const output = process.argv.includes("--out")
   ? path.resolve(process.argv[process.argv.indexOf("--out") + 1])
   : path.join(root, "ia_canonical_pilot_manifest.js");
 const maxDocs = Math.max(12, Math.min(200, Number(process.env.IA_PILOT_MAX_DOCS || 100)));
-const maxMetadata = Math.max(12, Math.min(160, Number(process.env.IA_PILOT_MAX_METADATA || 80)));
+const maxMetadata = Math.max(12, Math.min(240, Number(process.env.IA_PILOT_MAX_METADATA || 80)));
 const maxFilesPerDoc = Math.max(1, Math.min(12, Number(process.env.IA_PILOT_MAX_FILES_PER_DOC || 8)));
 const timeoutMs = Math.max(1000, Math.min(12000, Number(process.env.IA_PILOT_TIMEOUT_MS || 7000)));
 const searchTimeoutMs = Math.max(timeoutMs, Math.min(20000, Number(process.env.IA_PILOT_SEARCH_TIMEOUT_MS || 12000)));
 const retryDelayMs = Math.max(100, Math.min(3000, Number(process.env.IA_PILOT_RETRY_DELAY_MS || 500)));
 const requestedProfiles = new Set(String(process.env.IA_PILOT_PROFILES || "").split(",").map((value) => value.trim()).filter(Boolean));
+const existingApi = String(process.env.IA_PILOT_EXISTING_API || "https://realsignal-api.tdy1990.workers.dev/api/v3").replace(/\/$/, "");
+const existingRelay = String(process.env.IA_PILOT_EXISTING_RELAY || "https://ais-relay.tdy1990.workers.dev/ia").replace(/\/$/, "");
+const existingRotations = Math.max(4, Math.min(24, Number(process.env.IA_PILOT_EXISTING_ROTATIONS || 12)));
+const useExistingApi = process.env.IA_PILOT_USE_EXISTING_API !== "0";
+const metadataCache = new Map();
 
 function withTimeout(promise, ms = timeoutMs) {
   const controller = new AbortController();
@@ -51,8 +56,19 @@ async function headPlayable(url) {
   }
 }
 
-function queryUrl(query, page = 1, sort = "downloads desc") {
-  const params = new URLSearchParams({ q: query, output: "json", rows: String(maxDocs), page: String(page), "sort[]": sort });
+async function postJson(url, body, timeout = searchTimeoutMs) {
+  const response = await withTimeout((signal) => fetch(url, {
+    method: "POST",
+    signal,
+    headers: { accept: "application/json", "content-type": "application/json" },
+    body: JSON.stringify(body),
+  }), timeout);
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  return response.json();
+}
+
+function queryUrl(query, page = 1, sort = "downloads desc", rows = maxDocs) {
+  const params = new URLSearchParams({ q: query, output: "json", rows: String(rows), page: String(page), "sort[]": sort });
   ["identifier", "title", "description", "year", "subject", "collection", "creator", "license", "rights"].forEach((field) => params.append("fl[]", field));
   return `https://archive.org/advancedsearch.php?${params.toString()}`;
 }
@@ -110,6 +126,110 @@ function buildSearches(profile) {
   return [...profile.searchQueries.map((query) => `${base} AND (${query})`), `${base} AND (${subject})`, ...titleQueries, ...collectionQueries];
 }
 
+function decodeUrlPart(value) {
+  try { return decodeURIComponent(String(value || "")); } catch (_) { return String(value || ""); }
+}
+
+function archiveParts(item) {
+  const source = String(item?.sourceIdentifier || item?.identifier || item?.id || "");
+  if (source.includes("::")) {
+    const [archiveId, ...fileParts] = source.split("::");
+    return { archiveId, file: fileParts.join("::") };
+  }
+  const mediaUrl = String(item?.mediaUrl || item?.url || item?.media?.url || "");
+  const match = mediaUrl.match(/\/items\/([^/]+)\/(.+)$/i) || mediaUrl.match(/\/download\/([^/]+)\/(.+)$/i);
+  return match ? { archiveId: decodeUrlPart(match[1]), file: decodeUrlPart(match[2]) } : { archiveId: source, file: "" };
+}
+
+async function archiveMetadata(identifier) {
+  const key = String(identifier || "").trim();
+  if (!key) return null;
+  if (metadataCache.has(key)) return metadataCache.get(key);
+  try {
+    const metadata = await getJson(`https://archive.org/metadata/${encodeURIComponent(key)}`);
+    metadataCache.set(key, metadata);
+    return metadata;
+  } catch (_) {
+    metadataCache.set(key, null);
+    return null;
+  }
+}
+
+async function collectExistingApi(profile) {
+  if (!useExistingApi) return [];
+  const candidates = new Map();
+  const addItems = (payload) => {
+    for (const item of [...(payload?.candidateItems || []), ...(payload?.items || [])]) {
+      const key = String(item?.id || item?.identifier || item?.url || "").trim();
+      if (key && !candidates.has(key)) candidates.set(key, item);
+    }
+  };
+  try {
+    for (let rotation = 0; rotation < existingRotations; rotation += 1) {
+      const payload = await postJson(`${existingApi}/ia/queue`, { channel: Number(profile.channel), count: 5, rotation, recentIds: [] });
+      addItems(payload);
+    }
+  } catch (error) {
+    console.warn(`${profile.profileKey}: existing API fallback failed: ${error.message}`);
+  }
+  /* The API may be serving a shallow/stale D1 shelf while the hardened relay
+     still has fresh Archive candidates. Only use the relay as an expansion
+     source; the normal API remains the first source of truth. */
+  if (existingRelay && candidates.size < Math.max(profile.minCatalog * 3, profile.targetCatalog * 2)) {
+    const rules = profile;
+    for (let rotation = 0; rotation < existingRotations; rotation += 1) {
+      try {
+        const payload = await postJson(`${existingRelay}/queue`, {
+          channel: Number(profile.channel),
+          count: 5,
+          rotation,
+          recentIds: [],
+          queries: rules.searchQueries,
+          themeTerms: rules.includeAny,
+          denyTerms: rules.excludeAny,
+          requiredTitleTerms: [],
+          mediaTypes: ["movies"],
+          themeMinScore: 1,
+        });
+        addItems(payload);
+      } catch (error) {
+        console.warn(`${profile.profileKey}: relay expansion rotation ${rotation} failed: ${error.message}`);
+      }
+    }
+  }
+  const hydrated = await mapLimit([...candidates.values()].slice(0, maxMetadata * 2), 4, async (item) => {
+    const mediaUrl = String(item?.mediaUrl || item?.url || item?.media?.url || "").trim();
+    if (!mediaUrl || !(await headPlayable(mediaUrl))) return null;
+    const parts = archiveParts(item);
+    if (!parts.archiveId) return null;
+    const metadata = await archiveMetadata(parts.archiveId);
+    const files = metadata ? pickFiles(metadata) : [];
+    const exactFile = parts.file && files.find((file) => decodeUrlPart(file.name) === parts.file || String(file.name) === parts.file);
+    const file = exactFile || files[0] || { name: parts.file };
+    const childTitle = fileStem(file.name || parts.file);
+    const parentTitle = String(item?.title || metadata?.metadata?.title || parts.archiveId);
+    return {
+      archiveId: parts.archiveId,
+      file: file.name || parts.file,
+      title: childTitle && childTitle.toLowerCase() !== parentTitle.toLowerCase() ? `${parentTitle} — ${childTitle}` : parentTitle,
+      description: item?.description || metadata?.metadata?.description || "",
+      /* Prefer the episode/file title over the Archive upload year. Large
+         collections are often uploaded recently even when the broadcast is
+         from the 1950s–1990s. */
+      year: inferYear(profile, childTitle, parentTitle, item?.year, metadata?.metadata?.year, metadata?.metadata?.date),
+      runtimeSeconds: parseRuntime(item?.duration || item?.runtime || file.length || file.runtime || metadata?.metadata?.runtime),
+      collection: metadata?.metadata?.collection || "",
+      subject: item?.subject || metadata?.metadata?.subject || "",
+      creator: metadata?.metadata?.creator || "",
+      rights: item?.rights || metadata?.metadata?.license || metadata?.metadata?.rights || "",
+      mediaUrl,
+      sourceUrl: `https://archive.org/details/${encodeURIComponent(parts.archiveId)}`,
+      playability: "header-verified",
+    };
+  });
+  return hydrated.filter(Boolean);
+}
+
 function pickFiles(metadata) {
   const files = Array.isArray(metadata?.files) ? metadata.files : [];
   return files
@@ -136,18 +256,28 @@ async function mapLimit(values, limit, mapper) {
 
 async function collectProfile(profile) {
   const docs = new Map();
-  const searchModes = ["downloads desc", "title asc"];
-  for (const query of buildSearches(profile)) {
-    for (const sort of searchModes) {
-      try {
-        const payload = await getJson(queryUrl(query, 1, sort), searchTimeoutMs);
-        for (const doc of payload?.response?.docs || []) if (doc?.identifier && !docs.has(doc.identifier)) docs.set(doc.identifier, doc);
-      } catch (error) {
-        console.warn(`${profile.profileKey}: search failed: ${error.message}`);
+  if (process.env.IA_PILOT_SKIP_SEARCH !== "1") {
+    const searchModes = ["downloads desc", "title asc"];
+    const searches = buildSearches(profile);
+    const requiredCount = Math.min(searches.length, (profile.requiredDecades || []).length);
+    const priorityRows = Math.max(12, Math.floor(maxDocs / Math.max(1, requiredCount)));
+    for (const [queryIndex, query] of searches.entries()) {
+      const priorityQuery = queryIndex < requiredCount;
+      /* Each required-decade query gets one bounded page. Running both sorts
+         before inspecting metadata would fill the cap with the first two
+         decades and starve the later ones. Generic searches still use both
+         sorts for breadth after coverage has been collected. */
+      for (const sort of (priorityQuery ? [searchModes[0]] : searchModes)) {
+        try {
+          const payload = await getJson(queryUrl(query, 1, sort, priorityQuery ? priorityRows : maxDocs), searchTimeoutMs);
+          for (const doc of payload?.response?.docs || []) if (doc?.identifier && !docs.has(doc.identifier)) docs.set(doc.identifier, doc);
+        } catch (error) {
+          console.warn(`${profile.profileKey}: search failed: ${error.message}`);
+        }
+        if (!priorityQuery && docs.size >= maxDocs) break;
       }
-      if (docs.size >= maxDocs) break;
+      if (!priorityQuery && docs.size >= maxDocs) break;
     }
-    if (docs.size >= maxDocs) break;
   }
   const metadataRows = await mapLimit([...docs.values()].slice(0, maxMetadata), 2, async (doc) => {
     try {
@@ -190,6 +320,16 @@ async function collectProfile(profile) {
     };
   });
   const raw = checked.filter(Boolean);
+  if (process.env.IA_PILOT_DEBUG === "1") {
+    const decadeCounts = {};
+    for (const item of raw) {
+      const year = Number(item?.year || 0);
+      const decade = year ? Math.floor(year / 10) * 10 : "unknown";
+      decadeCounts[decade] = (decadeCounts[decade] || 0) + 1;
+    }
+    console.log(`  raw candidates=${raw.length} decades=${JSON.stringify(decadeCounts)}`);
+  }
+  if (raw.length < profile.minCatalog) raw.push(...await collectExistingApi(profile));
   return buildCanonicalManifest(profile, raw);
 }
 
@@ -202,10 +342,26 @@ for (const profile of Object.values(IA_CANONICAL_PILOT_PROFILES).filter((candida
 
 let preserved = {};
 if (requestedProfiles.size && fs.existsSync(output)) {
-  try { preserved = (await import(`${pathToFileURL(output).href}?preserve=${Date.now()}`)).IA_CANONICAL_PILOT_MANIFESTS || {}; }
-  catch (_) { /* a partial rebuild may start from an empty generated file */ }
+  try {
+    /* Read the generated file as JSON instead of importing it. This avoids
+       module-cache and partial-write surprises when a targeted rebuild is
+       interrupted, while keeping the already-verified lanes intact. */
+    const source = fs.readFileSync(output, "utf8");
+    const start = source.indexOf("Object.freeze(") + "Object.freeze(".length;
+    const end = source.lastIndexOf(");");
+    if (start >= "Object.freeze(".length && end > start) preserved = JSON.parse(source.slice(start, end));
+  } catch (error) {
+    console.warn(`Unable to preserve existing pilot manifests: ${error.message}`);
+  }
 }
-const outputManifests = { ...preserved, ...manifests };
+const outputManifests = { ...preserved };
+for (const [profileKey, candidate] of Object.entries(manifests)) {
+  const previous = outputManifests[profileKey];
+  /* A transient provider outage must never replace a stronger verified
+     manifest with a shallow/unverified targeted rebuild. */
+  if (previous && previous.verified === true && (candidate.verified !== true || Number(candidate.catalogDepth || 0) < Number(previous.catalogDepth || 0))) continue;
+  outputManifests[profileKey] = candidate;
+}
 const body = `/* Generated by scripts/build-ia-canonical-pilot.mjs. */\nexport const IA_CANONICAL_PILOT_MANIFESTS = Object.freeze(${JSON.stringify(outputManifests, null, 2)});\n`;
 fs.writeFileSync(output, body);
 console.log(`Wrote ${output}`);

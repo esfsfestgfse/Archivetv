@@ -555,8 +555,10 @@ function canonicalPilotEnabled(env, channel) {
   const normalized = normalizedChannelKey(channel);
   const allowList = String(env && env.IA_CANONICAL_PILOT_CHANNELS || "").split(",").map((value) => normalizedChannelKey(value)).filter(Boolean);
   if (allowList.length && !allowList.includes(normalized)) return false;
-  const { manifest } = canonicalPilotProfile(normalized);
-  return !!(manifest && manifest.verified === true && Array.isArray(manifest.items) && manifest.items.length);
+  const { profile, manifest } = canonicalPilotProfile(normalized);
+  const decadeCounts = manifest && manifest.decadeCounts && typeof manifest.decadeCounts === "object" ? manifest.decadeCounts : {};
+  const balanced = !!(profile && (profile.requiredDecades || []).every((decade) => Number(decadeCounts[String(decade)] || 0) > 0));
+  return !!(manifest && profile && manifest.verified === true && Array.isArray(manifest.items) && manifest.items.length >= Number(profile.minCatalog || 0) && balanced);
 }
 
 function canonicalPilotPayload(manifest, profile, body, count) {

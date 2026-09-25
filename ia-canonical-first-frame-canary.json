@@ -1,0 +1,63 @@
+{
+  "generatedAt": "2026-09-25T21:43:54Z",
+  "samplesPerLane": 2,
+  "lanes": {
+    "classic-cartoons": {
+      "channel": "150",
+      "manifestVerified": false,
+      "canonical": [
+        {
+          "status": "loadeddata",
+          "ms": 2276,
+          "wallMs": 902,
+          "url": "https://archive.org/download/theravencartoonclassic/Moviecreator_3-8-2024_10642_PM.mp4"
+        },
+        {
+          "status": "loadeddata",
+          "ms": 3023,
+          "wallMs": 745,
+          "url": "https://archive.org/download/popeye_the_sailor_episode_1/Video%2028.mp4"
+        }
+      ],
+      "current": []
+    },
+    "game-shows": {
+      "channel": "12",
+      "manifestVerified": false,
+      "canonical": [
+        {
+          "status": "loadeddata",
+          "ms": 5122,
+          "wallMs": 889,
+          "url": "https://archive.org/download/everythingyoualwayswantedtoknowaboutsexbutwereafraidtoask1972originaltheatricalprintrecreation/Everything%20You%20Always%20Wanted%20to%20Know%20About%20Sex%20(But%20We're%20Afraid%20to%20Ask)%20(1972)%20-%20original%20theatrical%20print%20recreation.mp4"
+        },
+        {
+          "status": "loadeddata",
+          "ms": 6541,
+          "wallMs": 1422,
+          "url": "https://archive.org/download/0731_Wonderful_World_19_01_23_00/0731_Wonderful_World_19_01_23_00_3mb.mp4"
+        }
+      ],
+      "current": []
+    },
+    "classic-tv": {
+      "channel": "10",
+      "manifestVerified": true,
+      "canonical": [
+        {
+          "status": "loadeddata",
+          "ms": 8969,
+          "wallMs": 1237,
+          "url": "https://archive.org/download/on-the-buses-1969-73/ON%20THE%20BUSES%20(69-73)/101.On%20The%20Buses...The%20early%20shifts.mp4"
+        },
+        {
+          "status": "loadeddata",
+          "ms": 10583,
+          "wallMs": 1612,
+          "url": "https://archive.org/download/Space1999.Series1/Space%201999%20S01E03%20Collision%20Course.ia.mp4"
+        }
+      ],
+      "current": []
+    }
+  }
+}

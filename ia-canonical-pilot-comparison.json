@@ -1,8 +1,8 @@
 {
   "schemaVersion": "ia-canonical-comparison-1",
-  "generatedAt": "2026-09-25T15:49:23.901Z",
+  "generatedAt": "2026-09-25T21:44:31.158Z",
   "apiBase": "https://realsignal-api.tdy1990.workers.dev/api/v3",
-  "rotations": 3,
+  "rotations": 4,
   "lanes": {
     "classic-tv": {
       "channel": "10",
@@ -22,6 +22,14 @@
         "minCatalog": 12,
         "maxPerCollection": 3,
         "maxPerFamily": 3,
+        "minDecades": 3,
+        "maxDecadeShare": 0.5,
+        "requiredDecades": [
+          1950,
+          1960,
+          1970,
+          1980
+        ],
         "decadeTargets": {
           "1950": 0.25,
           "1960": 0.3,
@@ -72,40 +80,40 @@
         "catalogDepth": 96,
         "genreAccuracy": null,
         "genreEvaluatedItems": 0,
-        "genreUnscoredItems": 303,
+        "genreUnscoredItems": 404,
         "acceptedItems": 0,
         "averageRuntimeSeconds": null,
         "medianRuntimeSeconds": null,
-        "repeats": 207,
+        "repeats": 308,
         "uniqueDepth": 96,
         "queueResponseMs": {
-          "average": 252,
-          "median": 173,
-          "samples": 3
+          "average": 201,
+          "median": 142,
+          "samples": 4
         },
         "firstFrameMs": null,
         "firstFrameStatus": "requires-browser-canary",
         "errors": []
       },
       "canonical": {
-        "catalogDepth": 16,
+        "catalogDepth": 28,
         "genreAccuracy": 1,
-        "genreEvaluatedItems": 16,
+        "genreEvaluatedItems": 28,
         "genreUnscoredItems": 0,
-        "acceptedItems": 16,
-        "averageRuntimeSeconds": 3645,
-        "medianRuntimeSeconds": 3000,
+        "acceptedItems": 28,
+        "averageRuntimeSeconds": 2833,
+        "medianRuntimeSeconds": 1788,
         "repeats": 0,
-        "uniqueDepth": 16,
+        "uniqueDepth": 28,
         "verified": true,
         "firstFrameMs": null,
         "firstFrameStatus": "requires-browser-canary"
       },
       "delta": {
-        "catalogDepth": -80,
+        "catalogDepth": -68,
         "genreAccuracy": null,
-        "medianRuntimeSeconds": 3000,
-        "repeats": -207,
+        "medianRuntimeSeconds": 1788,
+        "repeats": -308,
         "queueResponseMs": null,
         "firstFrameMs": null
       }
@@ -128,6 +136,15 @@
         "minCatalog": 15,
         "maxPerCollection": 4,
         "maxPerFamily": 3,
+        "minDecades": 3,
+        "maxDecadeShare": 0.6,
+        "requiredDecades": [
+          1930,
+          1940,
+          1950,
+          1960,
+          1970
+        ],
         "decadeTargets": {
           "1930": 0.15,
           "1940": 0.25,
@@ -136,10 +153,19 @@
           "1970": 0.15
         },
         "searchQueries": [
+          "year:[1930 TO 1939] AND (title:(cartoon) OR subject:(cartoon) OR description:(cartoon))",
+          "year:[1940 TO 1949] AND (title:(cartoon) OR subject:(cartoon) OR description:(cartoon))",
+          "year:[1950 TO 1959] AND (title:(cartoon) OR subject:(cartoon) OR description:(cartoon))",
+          "year:[1960 TO 1969] AND (title:(cartoon) OR subject:(cartoon) OR description:(cartoon))",
+          "year:[1970 TO 1979] AND (title:(cartoon) OR subject:(cartoon) OR description:(cartoon))",
           "classic cartoon full episode",
           "golden age animation cartoon",
           "theatrical cartoon collection",
-          "classic animated television episode"
+          "classic animated television episode",
+          "saturday morning cartoon full episode",
+          "1960s cartoon television episode",
+          "1970s cartoon television episode",
+          "classic kids animation full episode"
         ],
         "includeAny": [
           "cartoon",
@@ -152,7 +178,12 @@
           "tom and jerry",
           "fleischer",
           "woody woodpecker",
-          "theatrical cartoon"
+          "theatrical cartoon",
+          "hanna barbera",
+          "filmation",
+          "jay ward",
+          "space ghost",
+          "scooby doo"
         ],
         "titleAny": [
           "cartoon",
@@ -192,43 +223,43 @@
         ]
       },
       "current": {
-        "catalogDepth": 95,
+        "catalogDepth": 96,
         "genreAccuracy": null,
         "genreEvaluatedItems": 0,
-        "genreUnscoredItems": 300,
+        "genreUnscoredItems": 404,
         "acceptedItems": 0,
         "averageRuntimeSeconds": null,
         "medianRuntimeSeconds": null,
-        "repeats": 205,
-        "uniqueDepth": 95,
+        "repeats": 308,
+        "uniqueDepth": 96,
         "queueResponseMs": {
-          "average": 160,
-          "median": 133,
-          "samples": 3
+          "average": 143,
+          "median": 150,
+          "samples": 4
         },
         "firstFrameMs": null,
         "firstFrameStatus": "requires-browser-canary",
         "errors": []
       },
       "canonical": {
-        "catalogDepth": 6,
+        "catalogDepth": 39,
         "genreAccuracy": 1,
-        "genreEvaluatedItems": 6,
+        "genreEvaluatedItems": 39,
         "genreUnscoredItems": 0,
-        "acceptedItems": 6,
-        "averageRuntimeSeconds": 962,
-        "medianRuntimeSeconds": 1345,
+        "acceptedItems": 39,
+        "averageRuntimeSeconds": 601,
+        "medianRuntimeSeconds": 459,
         "repeats": 0,
-        "uniqueDepth": 6,
+        "uniqueDepth": 39,
         "verified": false,
         "firstFrameMs": null,
         "firstFrameStatus": "requires-browser-canary"
       },
       "delta": {
-        "catalogDepth": -89,
+        "catalogDepth": -57,
         "genreAccuracy": null,
-        "medianRuntimeSeconds": 1345,
-        "repeats": -205,
+        "medianRuntimeSeconds": 459,
+        "repeats": -308,
         "queueResponseMs": null,
         "firstFrameMs": null
       }
@@ -251,6 +282,19 @@
         "minCatalog": 12,
         "maxPerCollection": 3,
         "maxPerFamily": 3,
+        "minDecades": 4,
+        "maxDecadeShare": 0.55,
+        "requiredDecades": [
+          1940,
+          1950,
+          1960,
+          1970,
+          1980,
+          1990,
+          2000,
+          2010,
+          2020
+        ],
         "decadeTargets": {
           "1940": 0.1,
           "1950": 0.2,
@@ -261,10 +305,28 @@
           "2000": 0.05
         },
         "searchQueries": [
+          "year:[1940 TO 1949] AND (title:(game) OR subject:(game) OR description:(game))",
+          "year:[1950 TO 1959] AND (title:(game) OR subject:(game) OR description:(game))",
+          "year:[1960 TO 1969] AND (title:(game) OR subject:(game) OR description:(game))",
+          "year:[1970 TO 1979] AND (title:(game) OR subject:(game) OR description:(game))",
+          "year:[1980 TO 1989] AND (title:(game) OR subject:(game) OR description:(game))",
+          "year:[1990 TO 1999] AND (title:(game) OR subject:(game) OR description:(game))",
+          "year:[2000 TO 2009] AND (title:(game) OR subject:(game) OR description:(game))",
+          "year:[2010 TO 2019] AND (title:(game) OR subject:(game) OR description:(game))",
+          "year:[2020 TO 2029] AND (title:(game) OR subject:(game) OR description:(game))",
           "classic television game show full episode",
           "quiz show full episode television",
           "panel show full episode television",
-          "game show complete episode"
+          "game show complete episode",
+          "1940s quiz show full episode",
+          "1950s game show full episode",
+          "1960s game show full episode",
+          "1970s game show full episode",
+          "1980s game show full episode",
+          "1990s game show full episode",
+          "2000s game show full episode",
+          "2010s game show full episode",
+          "2020s game show full episode"
         ],
         "includeAny": [
           "game show",
@@ -282,7 +344,13 @@
           "newlywed game",
           "hollywood squares",
           "let's make a deal",
-          "press your luck"
+          "press your luck",
+          "concentration",
+          "to tell the truth",
+          "what's my line",
+          "beat the clock",
+          "the $64,000 question",
+          "wheel of fortune"
         ],
         "titleAny": [],
         "excludeAny": [
@@ -320,40 +388,40 @@
         "catalogDepth": 66,
         "genreAccuracy": null,
         "genreEvaluatedItems": 0,
-        "genreUnscoredItems": 213,
+        "genreUnscoredItems": 284,
         "acceptedItems": 0,
         "averageRuntimeSeconds": null,
         "medianRuntimeSeconds": null,
-        "repeats": 147,
+        "repeats": 218,
         "uniqueDepth": 66,
         "queueResponseMs": {
-          "average": 151,
-          "median": 132,
-          "samples": 3
+          "average": 135,
+          "median": 127,
+          "samples": 4
         },
         "firstFrameMs": null,
         "firstFrameStatus": "requires-browser-canary",
         "errors": []
       },
       "canonical": {
-        "catalogDepth": 5,
+        "catalogDepth": 36,
         "genreAccuracy": 1,
-        "genreEvaluatedItems": 5,
+        "genreEvaluatedItems": 36,
         "genreUnscoredItems": 0,
-        "acceptedItems": 5,
-        "averageRuntimeSeconds": 1996,
-        "medianRuntimeSeconds": 1748,
+        "acceptedItems": 36,
+        "averageRuntimeSeconds": 1778,
+        "medianRuntimeSeconds": 1606,
         "repeats": 0,
-        "uniqueDepth": 5,
+        "uniqueDepth": 36,
         "verified": false,
         "firstFrameMs": null,
         "firstFrameStatus": "requires-browser-canary"
       },
       "delta": {
-        "catalogDepth": -61,
+        "catalogDepth": -30,
         "genreAccuracy": null,
-        "medianRuntimeSeconds": 1748,
-        "repeats": -147,
+        "medianRuntimeSeconds": 1606,
+        "repeats": -218,
         "queueResponseMs": null,
         "firstFrameMs": null
       }

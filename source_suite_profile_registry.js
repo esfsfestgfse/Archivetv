@@ -428,7 +428,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   },
   "newsreel-exchange": {
     "name": "Newsreel Exchange",
-    "queryLimit": 8,
+    "queryLimit": 12,
     "queryWindow": 6,
     "providers": [
       "peertube",
@@ -442,7 +442,13 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "television news history",
       "historic newsreel footage",
       "archival news film",
-      "world newsreel archive"
+      "world newsreel archive",
+      "newsreel full film",
+      "historic news footage full documentary",
+      "television newsreel full",
+      "archival broadcast news full",
+      "world events newsreel full",
+      "news archive film full"
     ],
     "match": [
       "newsreel",
@@ -669,7 +675,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   },
   "lesson-reel": {
     "name": "Lesson Reel",
-    "queryLimit": 8,
+    "queryLimit": 12,
     "queryWindow": 6,
     "providers": [
       "peertube",
@@ -683,7 +689,13 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "teaching history documentary",
       "educational film archive",
       "school film archive",
-      "instructional science film"
+      "instructional science film",
+      "public domain instructional film full",
+      "industrial training film",
+      "home economics instructional film",
+      "health education film",
+      "science classroom film",
+      "vocational education film"
     ],
     "match": [
       "classroom instructional",
@@ -707,7 +719,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   },
   "local-signal": {
     "name": "Local Signal",
-    "queryLimit": 8,
+    "queryLimit": 12,
     "queryWindow": 6,
     "providers": [
       "peertube",
@@ -721,7 +733,13 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "municipal public affairs video",
       "public access television program",
       "community television full program",
-      "local public affairs program"
+      "local public affairs program",
+      "public access show full episode",
+      "community television full episode",
+      "local government television full meeting",
+      "community media full documentary",
+      "public affairs tv full episode",
+      "cable access full program"
     ],
     "match": [
       "community television",
@@ -1424,7 +1442,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   },
   "memory-bank": {
     "name": "Memory Bank",
-    "queryLimit": 8,
+    "queryLimit": 12,
     "queryWindow": 6,
     "providers": [
       "peertube",
@@ -1438,7 +1456,13 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "public history documentary",
       "oral history full documentary",
       "personal history film",
-      "community voices documentary"
+      "community voices documentary",
+      "oral history full interview",
+      "first person history documentary",
+      "community oral history full",
+      "personal archive documentary",
+      "life story documentary full",
+      "local history oral history"
     ],
     "match": [
       "oral history",
@@ -1557,7 +1581,8 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   },
   "tv-time-machine": {
     "name": "TV Time Machine",
-    "queryLimit": 8,
+    "queryLimit": 12,
+    "queryWindow": 6,
     "providers": [
       "peertube",
       "youtube"
@@ -1567,7 +1592,14 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "broadcast television archive",
       "classic TV history film",
       "television production documentary",
-      "TV network history"
+      "TV network history",
+      "classic television program full episode",
+      "broadcast archive full program",
+      "television interview archive full",
+      "old tv program full",
+      "public domain television full episode",
+      "tv archive full show",
+      "television program archive full"
     ],
     "match": [
       "television history",
@@ -1689,7 +1721,12 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "cannabis social history film",
       "cannabis full film",
       "marijuana full documentary",
-      "hemp documentary full"
+      "hemp documentary full",
+      "cannabis culture full film",
+      "marijuana policy full documentary",
+      "cannabis medicine full documentary",
+      "cannabis cultivation history documentary",
+      "cannabis in america documentary"
     ],
     "match": [
       "cannabis history",
@@ -2167,7 +2204,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "intent": "performance",
     "topics": ["music performance", "concert", "music television", "live band"],
     "formats": ["full concert", "full performance", "complete show", "live set", "live music", "full episode"],
-    "queries": ["music television full episode", "classic concert full performance", "live band full concert", "music variety show complete episode", "television music special full", "classic live performance full show", "concert television full episode", "music program full performance", "MTV unplugged full episode", "Austin City Limits full episode", "concert film full", "music documentary full"],
+    "queries": ["music television full episode", "classic concert full performance", "live band full concert", "music variety show complete episode", "television music special full", "classic live performance full show", "concert television full episode", "music program full performance", "MTV unplugged full episode", "Austin City Limits full episode", "concert film full", "music documentary full", "The Midnight Special full episode", "Don Kirshner's Rock Concert full episode", "Soul Train full episode", "Top of the Pops full episode"],
     "match": ["music performance", "full concert", "live band", "music television", "music variety show", "full performance"],
     "deny": [
       "commercial",

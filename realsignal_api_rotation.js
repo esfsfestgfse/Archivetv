@@ -92,6 +92,9 @@ export class SessionRotation {
     const limit = Math.max(1, Math.min(5, Number(body && body.count) || 3));
     const selected = ordered.slice(0, limit);
     const selectedIds = selected.map(itemId).filter(Boolean);
+    const seenAfterSelection = new Set(cycleReset ? selectedIds : current.seen.concat(selectedIds));
+    const unseenAfterSelection = catalog.filter((item) => !seenAfterSelection.has(itemId(item))).length;
+    const seenInCatalog = catalog.length - unseenAfterSelection;
     const next = {
       version: 2,
       catalog,
@@ -100,7 +103,25 @@ export class SessionRotation {
       updatedAt: Date.now(),
     };
     await this.ctx.storage.put("rotation", next);
-    return Response.json({ items: selected, catalog, cursor: next.cursor, cycleReset, seen: next.seen.length, catalogSize: catalog.length, catalogAdded: Math.max(0, catalog.length - current.catalog.length), unseen: cycleReset ? 0 : fresh.length });
+    return Response.json({
+      items: selected,
+      catalog,
+      cursor: next.cursor,
+      cycleReset,
+      seen: next.seen.length,
+      catalogSize: catalog.length,
+      catalogAdded: Math.max(0, catalog.length - current.catalog.length),
+      unseen: unseenAfterSelection,
+      exhaustion: {
+        catalogSize: catalog.length,
+        seenInCatalog,
+        unseenBeforeSelection: cycleReset ? 0 : fresh.length,
+        unseenAfterSelection,
+        catalogExhausted: cycleReset,
+        cycleReset,
+        repeatAllowed: cycleReset,
+      },
+    });
   }
 }
 

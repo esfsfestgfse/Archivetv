@@ -130,7 +130,7 @@ async function probeRotation(row, rotationOffset) {
   const started = Date.now();
   let attempts = 0, lastStatus = 0, lastBody = null, lastError = null;
   let lastSource = '', lastCache = '', lastReadyHeader = '', lastPartial = '', lastFallback = '', sawWarmFallback = false;
-  let firstReadyLatencyMs = null, bestReady = 0, bestItems = [], bestCatalogDepth = 0;
+  let firstReadyLatencyMs = null, bestReady = 0, bestItems = [], bestCatalogDepth = 0, lastExhaustion = null;
   while (Date.now() - started < timeoutMs) {
     attempts++;
     try {
@@ -143,6 +143,15 @@ async function probeRotation(row, rotationOffset) {
       lastReadyHeader = response.headers.get('x-realsignal-queue') || response.headers.get('x-afterglow-queue-ready') || '';
       lastPartial = response.headers.get('x-afterglow-queue-partial') || '';
       lastFallback = response.headers.get('x-afterglow-queue-fallback') || '';
+      lastExhaustion = body && body.v2 && typeof body.v2 === 'object' ? {
+        catalogSize: Number(body.v2.catalogSize) || 0,
+        seenInCatalog: Number(body.v2.seenInCatalog) || 0,
+        unseenBeforeSelection: Number(body.v2.unseenBeforeSelection) || 0,
+        unseenAfterSelection: Number(body.v2.unseenAfterSelection) || 0,
+        catalogExhausted: Boolean(body.v2.catalogExhausted),
+        cycleReset: Boolean(body.v2.cycleReset),
+        repeatAllowed: Boolean(body.v2.repeatAllowed),
+      } : null;
       const responseWasWarmFallback = lastFallback === '1' || Boolean(body && body.stale);
       if (responseWasWarmFallback) sawWarmFallback = true;
       const items = response.ok && Array.isArray(body.items) ? body.items.filter(item => {
@@ -190,6 +199,7 @@ async function probeRotation(row, rotationOffset) {
           transportFailure: false, httpFailure: false,
           timedOut: false,
           depthTimedOut: false,
+          exhaustion: lastExhaustion,
           itemIds: items.map(item => String(item && (item.identifier || item.id || item.title || '')).trim()).filter(Boolean),
           samples: items.slice(0, 3).map(item => item.title || item.identifier || item.id).filter(Boolean),
         };
@@ -220,6 +230,7 @@ async function probeRotation(row, rotationOffset) {
     httpFailure: !hasRequiredReady && lastStatus >= 400,
     timedOut: !hasRequiredReady && Date.now() - started >= timeoutMs,
     depthTimedOut: ready < count,
+    exhaustion: lastExhaustion,
     itemIds: items.map(item => String(item && (item.identifier || item.id || item.title || '')).trim()).filter(Boolean),
     hydrating: Boolean(lastBody && lastBody.hydrating),
     error: hasRequiredReady
@@ -257,6 +268,15 @@ async function probe(row) {
   const last = rotationResults[rotationResults.length - 1] || {};
   const observedItems = ids.length;
   const freshItems = Math.max(0, observedItems - duplicateItems);
+  const prematureRepeatItems = [];
+  const seenIds = new Set();
+  for (const result of rotationResults) {
+    const repeatsAllowed = Boolean(result.exhaustion && result.exhaustion.repeatAllowed);
+    for (const id of result.itemIds || []) {
+      if (seenIds.has(id) && !repeatsAllowed) prematureRepeatItems.push(id);
+      seenIds.add(id);
+    }
+  }
   return {
     channel: Number(row.channel), name: row.name,
     ok: rotationResults.length === rotations && rotationResults.every(result => result.ok),
@@ -273,6 +293,9 @@ async function probe(row) {
     uniqueItems: seen.size,
     duplicateItems,
     freshnessRatio: observedItems ? Number((freshItems / observedItems).toFixed(3)) : 0,
+    exhaustionTelemetry: rotationResults.every(result => result.exhaustion !== null),
+    exhaustionEvents: rotationResults.filter(result => result.exhaustion && result.exhaustion.catalogExhausted).length,
+    prematureRepeatItems: [...new Set(prematureRepeatItems)],
     timeoutCount: timeouts,
     transportFailures,
     httpFailures,
@@ -290,6 +313,7 @@ async function probe(row) {
       source: result.source, cache: result.cache, readyHeader: result.readyHeader,
       partial: result.partial, fallback: result.fallback, warmHandoff: result.warmHandoff,
       transportFailure: result.transportFailure, httpFailure: result.httpFailure,
+      exhaustion: result.exhaustion || null,
       itemIds: result.itemIds || [], samples: result.samples || [], error: result.error,
     })),
   };

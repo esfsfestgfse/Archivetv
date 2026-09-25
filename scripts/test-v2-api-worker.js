@@ -67,10 +67,16 @@ const { pathToFileURL } = require('node:url');
   assert.equal(unionSecondBody.catalogSize, 7);
   assert.deepEqual(unionSecondBody.items.map(item => item.identifier).sort(), ['union-6', 'union-7']);
   assert.equal(unionSecondBody.cycleReset, false);
+  assert.equal(unionSecondBody.exhaustion.catalogExhausted, false);
+  assert.equal(unionSecondBody.exhaustion.repeatAllowed, false);
+  assert.equal(unionSecondBody.exhaustion.unseenBeforeSelection, 2);
+  assert.equal(unionSecondBody.exhaustion.unseenAfterSelection, 0);
   const unionThird = await unionRotation.fetch(new Request('https://rotation.internal/select', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ items: unionItems('union', 3, 7), count: 5 }) }));
   const unionThirdBody = await unionThird.json();
   assert.equal(unionThirdBody.catalogSize, 7);
   assert.equal(unionThirdBody.cycleReset, true);
+  assert.equal(unionThirdBody.exhaustion.catalogExhausted, true);
+  assert.equal(unionThirdBody.exhaustion.repeatAllowed, true);
 
   const nativeFetch = global.fetch;
   global.fetch = async request => {

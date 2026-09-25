@@ -1172,6 +1172,13 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "commercial",
       "cartoon",
       "gameplay",
+      "strange horticulture",
+      "gaming",
+      "video game",
+      "let's play",
+      "walkthrough",
+      "game stream",
+      "twitch",
       "product review",
       "influencer",
       "affiliate"
@@ -1212,6 +1219,9 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "commercial",
       "cartoon",
       "gameplay",
+      "team presentation",
+      "judging session",
+      "conference",
       "pet influencer",
       "pet prank",
       "hunting show"

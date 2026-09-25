@@ -42,6 +42,8 @@ for (const [key, terms] of Object.entries({
   'print-shop': ['"demo"', '"hands-on"', '"tutorial"'],
   'screen-test': ['"oil exploration"', '"petroleum"', '"drilling"'],
   'sound-lab': ['"ambient sounds"', '"slugtv"', '"podcast"'],
+  'animal-care': ['"team presentation"', '"judging session"'],
+  'garden-ledger': ['"strange horticulture"', '"video game"', '"walkthrough"'],
 })) {
   const start = sourceRegistry.indexOf(`"${key}":`);
   const next = sourceRegistry.indexOf('\n  },', start);

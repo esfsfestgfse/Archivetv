@@ -38,6 +38,16 @@ for (const key of ['print-shop', 'screen-test', 'sound-lab', 'stage-door', 'trav
   const section = sourceRegistry.slice(start, next >= 0 ? next + 5 : sourceRegistry.length);
   if (!section.includes('"queryLimit": 12')) issues.push(`${key} must retain the expanded query pool for serial source rotations`);
 }
+for (const [key, terms] of Object.entries({
+  'print-shop': ['"demo"', '"hands-on"', '"tutorial"'],
+  'screen-test': ['"oil exploration"', '"petroleum"', '"drilling"'],
+  'sound-lab': ['"ambient sounds"', '"slugtv"', '"podcast"'],
+})) {
+  const start = sourceRegistry.indexOf(`"${key}":`);
+  const next = sourceRegistry.indexOf('\n  },', start);
+  const section = sourceRegistry.slice(start, next >= 0 ? next + 5 : sourceRegistry.length);
+  for (const term of terms) if (!section.includes(term)) issues.push(`${key} must retain its lane-specific bleed guard ${term}`);
+}
 for (const key of ['classic-sitcom-room', 'family-tv-club', 'horror-house', 'western-screen', 'variety-hour', 'talk-show-archive', 'stage-door', 'jukebox-television']) {
   const start = sourceRegistry.indexOf(`"${key}":`);
   const next = sourceRegistry.indexOf('\n  },', start);

@@ -25,6 +25,25 @@ function cleanItems(items) {
   return out;
 }
 
+function mergeCatalog(existing, incoming, seenIds) {
+  const played = new Set(Array.isArray(seenIds) ? seenIds : []);
+  const merged = [];
+  const seen = new Set();
+  for (const item of [...(Array.isArray(existing) ? existing : []), ...(Array.isArray(incoming) ? incoming : [])]) {
+    const id = itemId(item);
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    merged.push(item);
+  }
+  if (merged.length <= MAX_ITEMS) return merged;
+  /* Keep the session catalog stable, but make room for newly discovered rows
+     by evicting played entries before unseen ones. This preserves the union
+     of the active upstream windows without letting the DO grow unbounded. */
+  const unseen = merged.filter((item) => !played.has(itemId(item)));
+  const playedItems = merged.filter((item) => played.has(itemId(item)));
+  return unseen.concat(playedItems).slice(0, MAX_ITEMS);
+}
+
 function rotate(items, offset) {
   if (items.length < 2) return items;
   const start = Math.abs(Number(offset) || 0) % items.length;
@@ -36,8 +55,14 @@ export class SessionRotation {
 
   async state() {
     const value = await this.ctx.storage.get("rotation");
-    if (!value || typeof value !== "object") return { version: 1, seen: [], cursor: 0, updatedAt: 0 };
-    return { version: 1, seen: Array.isArray(value.seen) ? value.seen.filter(Boolean).slice(-MAX_SEEN) : [], cursor: Number(value.cursor) || 0, updatedAt: Number(value.updatedAt) || 0 };
+    if (!value || typeof value !== "object") return { version: 2, catalog: [], seen: [], cursor: 0, updatedAt: 0 };
+    return {
+      version: 2,
+      catalog: cleanItems(value.catalog),
+      seen: Array.isArray(value.seen) ? value.seen.filter(Boolean).slice(-MAX_SEEN) : [],
+      cursor: Number(value.cursor) || 0,
+      updatedAt: Number(value.updatedAt) || 0,
+    };
   }
 
   async fetch(request) {
@@ -50,44 +75,33 @@ export class SessionRotation {
       .filter(Boolean)
       .slice(-48));
     const current = await this.state();
+    const catalog = mergeCatalog(current.catalog, rawCandidates, current.seen);
     const prior = new Set(current.seen);
-    const globallyFresh = recent.size ? rawCandidates.filter((item) => !recent.has(itemId(item))) : rawCandidates;
+    const globallyFresh = recent.size ? catalog.filter((item) => !recent.has(itemId(item))) : catalog;
     const sessionFresh = globallyFresh.filter((item) => !prior.has(itemId(item)));
-    /* The persistent ledger protects the opening pick, but it must not shrink
-       a larger catalog to the same five rows for every later Next action. If
-       the global-fresh subset is already exhausted by this session, continue
-       through unseen rows from the raw catalog before allowing a cycle reset. */
-    const alternateSessionFresh = rawCandidates.filter((item) => !prior.has(itemId(item)));
-    const candidates = cleanItems([...sessionFresh, ...alternateSessionFresh, ...rawCandidates]);
-    let fresh = candidates.filter((item) => !prior.has(itemId(item)));
+    /* Prefer rows outside the cross-session freshness window, but fall back to
+       any session-unseen row before resetting. The pool is the persisted union,
+       not the latest upstream shelf, so changing relay pages cannot replay an
+       item that this session has already consumed. */
+    const alternateSessionFresh = catalog.filter((item) => !prior.has(itemId(item)));
+    const candidates = cleanItems([...sessionFresh, ...alternateSessionFresh]);
+    let fresh = candidates;
     let cycleReset = false;
-    if (!fresh.length && candidates.length) { fresh = candidates; cycleReset = true; }
-    const suppliedRotation = Number(body && body.rotation);
-    const ordered = rotate(fresh, Number.isFinite(suppliedRotation) ? suppliedRotation : current.cursor);
+    if (!fresh.length && catalog.length) { fresh = catalog; cycleReset = true; }
+    const ordered = rotate(fresh, current.cursor);
     const limit = Math.max(1, Math.min(5, Number(body && body.count) || 3));
     const selected = ordered.slice(0, limit);
-    /* A small catalog can have fewer unseen rows than a five-item TV shelf
-       after a previous rotation. Fill only the missing five-item slots from
-       candidates that are not in the current fresh set; because candidates
-       already excludes the bounded recent window, this preserves freshness
-       while avoiding a partial shelf and the resulting tuning delay. Keep
-       count<5 behavior unchanged for callers that intentionally request a
-       smaller shelf. */
-    if (limit === 5 && selected.length < limit) {
-      const selectedKeys = new Set(selected.map(itemId));
-      for (const item of rotate(candidates, current.cursor + 1)) {
-        const id = itemId(item);
-        if (!id || selectedKeys.has(id)) continue;
-        selected.push(item);
-        selectedKeys.add(id);
-        if (selected.length >= limit) break;
-      }
-    }
     const selectedIds = selected.map(itemId).filter(Boolean);
-    const next = { version: 1, seen: (cycleReset ? selectedIds : current.seen.concat(selectedIds)).slice(-MAX_SEEN), cursor: current.cursor + 1, updatedAt: Date.now() };
+    const next = {
+      version: 2,
+      catalog,
+      seen: (cycleReset ? selectedIds : current.seen.concat(selectedIds)).slice(-MAX_SEEN),
+      cursor: current.cursor + 1,
+      updatedAt: Date.now(),
+    };
     await this.ctx.storage.put("rotation", next);
-    return Response.json({ items: selected, cursor: next.cursor, cycleReset, seen: next.seen.length });
+    return Response.json({ items: selected, catalog, cursor: next.cursor, cycleReset, seen: next.seen.length, catalogSize: catalog.length, catalogAdded: Math.max(0, catalog.length - current.catalog.length), unseen: cycleReset ? 0 : fresh.length });
   }
 }
 
-export { itemId, cleanItems };
+export { itemId, cleanItems, mergeCatalog };

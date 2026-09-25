@@ -54,6 +54,24 @@ const { pathToFileURL } = require('node:url');
   assert.equal(secondFreshnessIds.length, 5);
   assert.equal(secondFreshnessIds.some(item => firstFreshnessIds.includes(item)), false);
 
+  /* The Durable Object must retain the union of changing upstream windows.
+   * With only c-g arriving on the second request, f-g are still selected
+   * before any a-e repeat; a cycle reset is allowed only after a-g is spent. */
+  const unionCtx = { storage: { value: null, async get() { return this.value; }, async put(_key, value) { this.value = value; } } };
+  const unionRotation = new SessionRotation(unionCtx, {});
+  const unionItems = (prefix, start, end) => Array.from({ length: end - start + 1 }, (_, index) => ({ identifier: `${prefix}-${start + index}`, title: `${prefix} ${start + index}` }));
+  const unionFirst = await unionRotation.fetch(new Request('https://rotation.internal/select', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ items: unionItems('union', 1, 5), count: 5 }) }));
+  assert.deepEqual((await unionFirst.json()).items.map(item => item.identifier).sort(), ['union-1', 'union-2', 'union-3', 'union-4', 'union-5']);
+  const unionSecond = await unionRotation.fetch(new Request('https://rotation.internal/select', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ items: unionItems('union', 3, 7), count: 5 }) }));
+  const unionSecondBody = await unionSecond.json();
+  assert.equal(unionSecondBody.catalogSize, 7);
+  assert.deepEqual(unionSecondBody.items.map(item => item.identifier).sort(), ['union-6', 'union-7']);
+  assert.equal(unionSecondBody.cycleReset, false);
+  const unionThird = await unionRotation.fetch(new Request('https://rotation.internal/select', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ items: unionItems('union', 3, 7), count: 5 }) }));
+  const unionThirdBody = await unionThird.json();
+  assert.equal(unionThirdBody.catalogSize, 7);
+  assert.equal(unionThirdBody.cycleReset, true);
+
   const nativeFetch = global.fetch;
   global.fetch = async request => {
     const url = String(request);
@@ -132,7 +150,7 @@ const { pathToFileURL } = require('node:url');
   assert.equal(queueMessages.length, 3);
 
   const second = await worker.fetch(new Request('https://api.example/api/v2/ia/queue', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) }), env, ctx);
-  assert.deepEqual((await second.json()).items.map(item => item.identifier), ['ia-4', 'ia-5']);
+  assert.deepEqual((await second.json()).items.map(item => item.identifier).sort(), ['ia-4', 'ia-5']);
 
   const otherViewer = await worker.fetch(new Request('https://api.example/api/v2/ia/queue', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...payload, sessionId: 'viewer-b' }) }), env, ctx);
   assert.deepEqual((await otherViewer.json()).items.map(item => item.identifier), ['ia-1', 'ia-2', 'ia-3']);

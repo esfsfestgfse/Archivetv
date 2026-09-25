@@ -374,6 +374,7 @@ async function rotateShelf(env, body, payload, request) {
   const selected = await response.json();
   const upstreamReady = Number.isFinite(Number(payload.ready)) ? Number(payload.ready) : (Array.isArray(payload.items) ? payload.items.length : 0);
   const selectedItems = Array.isArray(selected.items) ? selected.items : [];
+  const selectedCatalog = Array.isArray(selected.catalog) && selected.catalog.length ? selected.catalog : candidates;
   /* The relay may intentionally return one verified first-frame item while
      its candidate catalog already carries additional direct media URLs. Once
      rotation selects those playable candidates, readiness must describe the
@@ -383,7 +384,7 @@ async function rotateShelf(env, body, payload, request) {
     return Boolean((media && media.url) || item && item.mediaUrl || item && item.url);
   }).length;
   const selectedReady = Math.max(upstreamReady, playableSelected);
-  return { payload: { ...payload, items: selectedItems, candidateItems: candidates, candidates: candidates.length, ready: Math.min(selectedReady, selectedItems.length), v2: { sessionScoped: true, cursor: selected.cursor, cycleReset: !!selected.cycleReset } }, rotation: selected };
+  return { payload: { ...payload, items: selectedItems, candidateItems: selectedCatalog, candidates: selectedCatalog.length, ready: Math.min(selectedReady, selectedItems.length), v2: { sessionScoped: true, cursor: selected.cursor, cycleReset: !!selected.cycleReset, catalogSize: Number(selected.catalogSize) || selectedCatalog.length, catalogAdded: Number(selected.catalogAdded) || 0, unseen: Number(selected.unseen) || 0 } }, rotation: selected };
 }
 
 function rotateCatalogItems(items, rotation) {

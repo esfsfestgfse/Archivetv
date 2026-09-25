@@ -7,6 +7,8 @@
 
 import { SessionRotation } from "./realsignal_api_rotation.js";
 import { mergeSourceLanes, sourceCatalogTasks, sourceProfile, SOURCE_LIMITS } from "./realsignal_source_catalog.js";
+import { IA_CANONICAL_PILOT_PROFILES, IA_CANONICAL_SCHEMA_VERSION, canonicalGuide, selectCanonicalItems } from "./ia_canonical_station.mjs";
+import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
@@ -35,6 +37,8 @@ const IA_ROTATION_REFILL_LANES = new Set(["915"]);
 /* V3 telemetry can promote a lane here only after production evidence shows
    repeated fallback/slow switching while D1 already has verified media. */
 const IA_FAST_CATALOG_LANES = new Set(["56", "64", "154", "205", "222", "922"]);
+const IA_CANONICAL_PILOT_VALUES = new Set(["1", "true", "on", "pilot"]);
+const IA_CANONICAL_PROFILE_BY_CHANNEL = new Map(Object.values(IA_CANONICAL_PILOT_PROFILES).map((profile) => [String(profile.channel), profile.profileKey]));
 /* A relay response can be playable while still being too shallow for a
    rolling television catalog. Enrich any IA lane below the three-shelf floor
    from D1; a healthy relay response that already carries enough candidates
@@ -539,6 +543,94 @@ function normalizedChannelKey(value) {
   return String(value || "").replace(/[^a-zA-Z0-9._:-]/g, "").slice(0, 120);
 }
 
+function canonicalPilotProfile(channel) {
+  const normalized = normalizedChannelKey(channel);
+  const profileKey = IA_CANONICAL_PROFILE_BY_CHANNEL.get(normalized);
+  return profileKey ? { profile: IA_CANONICAL_PILOT_PROFILES[profileKey], manifest: IA_CANONICAL_PILOT_MANIFESTS[profileKey] } : { profile: null, manifest: null };
+}
+
+function canonicalPilotEnabled(env, channel) {
+  const flag = String(env && env.IA_CANONICAL_PILOT || "").trim().toLowerCase();
+  if (!IA_CANONICAL_PILOT_VALUES.has(flag)) return false;
+  const normalized = normalizedChannelKey(channel);
+  const allowList = String(env && env.IA_CANONICAL_PILOT_CHANNELS || "").split(",").map((value) => normalizedChannelKey(value)).filter(Boolean);
+  if (allowList.length && !allowList.includes(normalized)) return false;
+  const { manifest } = canonicalPilotProfile(normalized);
+  return !!(manifest && manifest.verified === true && Array.isArray(manifest.items) && manifest.items.length);
+}
+
+function canonicalPilotPayload(manifest, profile, body, count) {
+  const selection = selectCanonicalItems(manifest, Array.isArray(body && body.recentIds) ? body.recentIds : [], count, Number(body && body.rotation) || 0);
+  if (!selection.items.length) return null;
+  return {
+    items: selection.items,
+    candidateItems: selection.candidateItems,
+    ready: selection.items.length,
+    candidates: selection.candidateItems.length,
+    catalogDepth: selection.catalogDepth,
+    unseenCatalogItems: selection.unseenCount,
+    seenCatalogItems: selection.seenCount,
+    catalogExhausted: selection.catalogExhausted,
+    repeatAllowed: selection.repeatAllowed,
+    freshnessExcluded: selection.seenCount,
+    freshnessWindow: Array.isArray(body && body.recentIds) ? body.recentIds.length : 0,
+    freshnessLedger: body && body.freshnessLedger === true,
+    fallback: false,
+    stale: false,
+    catalogFallback: false,
+    canonicalPilot: true,
+    canonicalSchemaVersion: IA_CANONICAL_SCHEMA_VERSION,
+    canonicalProfileKey: profile.profileKey,
+    canonicalGeneratedAt: manifest.generatedAt,
+    verified: true,
+    hydrating: false,
+    v2: {
+      sessionScoped: false,
+      selectionFallback: false,
+      cursor: selection.cursor,
+      cycleReset: selection.catalogExhausted,
+      catalogSize: selection.catalogDepth,
+      catalogAdded: 0,
+      unseen: selection.unseenCount,
+      seenInCatalog: selection.seenCount,
+      unseenAfterSelection: Math.max(0, selection.unseenCount - selection.items.length),
+      catalogExhausted: selection.catalogExhausted,
+      repeatAllowed: selection.repeatAllowed,
+      selectionRepeatIds: [],
+    },
+  };
+}
+
+function persistCanonicalPilotManifest(env, manifest, profile, ctx) {
+  if (!manifest || !profile || !env.realsignal_catalog || typeof env.realsignal_catalog.batch !== "function") return;
+  const now = Date.now();
+  const statements = [];
+  for (const item of Array.isArray(manifest.items) ? manifest.items : []) {
+    const metadata = JSON.stringify({
+      canonical: true,
+      schemaVersion: manifest.schemaVersion,
+      profileKey: profile.profileKey,
+      decade: item.decade,
+      collection: item.collection,
+      familyKey: item.familyKey,
+      subject: item.subject,
+      tags: item.tags,
+      playability: item.playability,
+    });
+    statements.push(env.realsignal_catalog.prepare("INSERT INTO programs (id, provider, source_identifier, title, description, duration_seconds, aspect_ratio, media_type, media_url, source_url, rights, year, metadata_json, first_seen_at, last_seen_at, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET provider=excluded.provider, source_identifier=excluded.source_identifier, title=excluded.title, description=excluded.description, duration_seconds=excluded.duration_seconds, media_url=excluded.media_url, source_url=excluded.source_url, rights=excluded.rights, year=excluded.year, metadata_json=excluded.metadata_json, last_seen_at=excluded.last_seen_at, status='active'").bind(item.programId, "Internet Archive", item.archiveId, item.title, item.description || "", item.runtimeSeconds || null, null, "video", item.mediaUrl, item.sourceUrl, item.rights || "", item.year || "", metadata, now, now, "active"));
+    statements.push(env.realsignal_catalog.prepare("INSERT INTO channel_programs (channel_key, program_id, score, last_seen_at) VALUES (?, ?, ?, ?) ON CONFLICT(channel_key, program_id) DO UPDATE SET score=excluded.score, last_seen_at=excluded.last_seen_at").bind(profile.channel, item.programId, 1, now));
+  }
+  if (!statements.length) return;
+  const work = (async () => {
+    try {
+      for (let index = 0; index < statements.length; index += 32) await env.realsignal_catalog.batch(statements.slice(index, index + 32));
+    } catch (error) {
+      console.warn(JSON.stringify({ event: "canonical-manifest-persist-failed", profile: profile.profileKey, error: String(error).slice(0, 180) }));
+    }
+  })();
+  if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(work); else work.catch(() => {});
+}
+
 async function readFreshnessIds(env, channel, limit = FRESHNESS_LEDGER_LIMIT) {
   if (!env.realsignal_catalog || typeof env.realsignal_catalog.prepare !== "function") return [];
   const channelKey = normalizedChannelKey(channel);
@@ -729,6 +821,21 @@ async function handleQueue(request, env, ctx, id) {
   const upstreamBody = { ...body, count };
   delete upstreamBody.sessionId;
   delete upstreamBody.session;
+  const canonical = canonicalPilotProfile(body.channel);
+  if (canonicalPilotEnabled(env, body.channel)) {
+    const canonicalPayload = canonicalPilotPayload(canonical.manifest, canonical.profile, body, count);
+    if (canonicalPayload) {
+      persistCanonicalPilotManifest(env, canonical.manifest, canonical.profile, ctx);
+      const headers = new Headers(corsHeaders());
+      headers.set("X-RealSignal-API", apiVersion);
+      if (apiVersion === "v3") headers.set("X-RealSignal-Release", V3_RELEASE);
+      headers.set("X-RealSignal-Request", id);
+      headers.set("X-RealSignal-Source", "ia-canonical-pilot");
+      headers.set("X-RealSignal-Queue", JSON.stringify({ ready: canonicalPayload.ready, background: false, canonicalPilot: true, catalogDepth: canonicalPayload.catalogDepth }));
+      rememberFreshness(env, body.channel, canonicalPayload.items, ctx);
+      return new Response(JSON.stringify({ ...canonicalPayload, apiVersion, release: apiVersion === "v3" ? V3_RELEASE : undefined }), { status: 200, headers });
+    }
+  }
   if (IA_FAST_CATALOG_LANES.has(String(body.channel))) {
     try {
       /* Feed the full verified D1 catalog into session rotation. The rotation
@@ -1020,11 +1127,31 @@ async function handleHealthSummary(request, env) {
 }
 
 async function handleGuide(request, env) {
-  if (!env.realsignal_catalog || typeof env.realsignal_catalog.prepare !== "function") return json({ error: "catalog binding is not configured" }, 503);
   const url = new URL(request.url);
   const channel = String(url.searchParams.get("channel") || "").replace(/[^a-zA-Z0-9._:-]/g, "").slice(0, 120);
   if (!channel) return json({ error: "channel is required" }, 400);
   const limit = Math.max(2, Math.min(20, Number(url.searchParams.get("limit")) || 8));
+  const canonical = canonicalPilotProfile(channel);
+  if (canonicalPilotEnabled(env, channel)) {
+    const recentIds = await readFreshnessIds(env, channel);
+    const guide = canonicalGuide(canonical.manifest, recentIds, limit);
+    return json({
+      apiVersion: "v3",
+      release: V3_RELEASE,
+      channel,
+      ...guide,
+      verified: true,
+      queueModel: "rolling-1-plus-2",
+      freshnessLedger: recentIds.length > 0,
+      source: "ia-canonical-manifest",
+      canonicalPilot: true,
+      canonicalSchemaVersion: IA_CANONICAL_SCHEMA_VERSION,
+      canonicalProfileKey: canonical.profile.profileKey,
+      canonicalGeneratedAt: canonical.manifest.generatedAt,
+      generatedAt: new Date().toISOString(),
+    }, 200, { "Cache-Control": "public, max-age=10, stale-while-revalidate=30", "X-RealSignal-Release": V3_RELEASE, "X-RealSignal-Source": "ia-canonical-pilot" });
+  }
+  if (!env.realsignal_catalog || typeof env.realsignal_catalog.prepare !== "function") return json({ error: "catalog binding is not configured" }, 503);
   let result;
   try {
     result = await env.realsignal_catalog.prepare(`SELECT p.id, p.title, p.description, p.provider, p.duration_seconds, p.media_type, p.media_url, p.source_url, p.rights, p.year, cp.last_seen_at, cf.last_served_at, cf.play_count, COUNT(*) OVER () AS catalog_depth, SUM(CASE WHEN cf.last_served_at IS NULL THEN 1 ELSE 0 END) OVER () AS unseen_count FROM programs p JOIN channel_programs cp ON cp.program_id=p.id LEFT JOIN channel_freshness cf ON cf.channel_key=cp.channel_key AND cf.program_id=p.id WHERE cp.channel_key=? AND p.status='active' AND p.media_url IS NOT NULL ORDER BY CASE WHEN cf.last_served_at IS NULL THEN 0 ELSE 1 END, cf.last_served_at ASC, cp.last_seen_at DESC LIMIT ?`).bind(channel, limit).all();
@@ -1329,7 +1456,7 @@ const worker = {
     try {
       if (route && route.kind === "health") {
         const v3 = route.apiVersion === "v3";
-        return json({ service: "realsignal-api", apiVersion: v3 ? "v3" : "v2", release: v3 ? V3_RELEASE : "2.2.2", status: "ready", capabilities: ["ia-search", "ia-metadata", "ia-queue", "session-rotation", "catalog-jobs", "source-catalog", "adaptive-catalog", "freshness-ledger", ...(v3 ? ["verified-guide", "server-telemetry", "source-health"] : []), "youtube-sports"], bindings: { relay: !!env.RELAY, rotation: !!env.ROTATION, catalog: !!env.realsignal_catalog, refreshQueue: !!env.realsignal_catalog_refresh }, checkedAt: new Date().toISOString() }, 200, { "Cache-Control": "no-store", "X-RealSignal-Request": id, "X-RealSignal-Release": v3 ? V3_RELEASE : "2.2.2" });
+        return json({ service: "realsignal-api", apiVersion: v3 ? "v3" : "v2", release: v3 ? V3_RELEASE : "2.2.2", status: "ready", capabilities: ["ia-search", "ia-metadata", "ia-queue", "session-rotation", "catalog-jobs", "source-catalog", "adaptive-catalog", "freshness-ledger", ...(v3 ? ["verified-guide", "server-telemetry", "source-health", ...(IA_CANONICAL_PILOT_VALUES.has(String(env.IA_CANONICAL_PILOT || "").trim().toLowerCase()) ? ["ia-canonical-pilot"] : [])] : []), "youtube-sports"], bindings: { relay: !!env.RELAY, rotation: !!env.ROTATION, catalog: !!env.realsignal_catalog, refreshQueue: !!env.realsignal_catalog_refresh }, checkedAt: new Date().toISOString() }, 200, { "Cache-Control": "no-store", "X-RealSignal-Request": id, "X-RealSignal-Release": v3 ? V3_RELEASE : "2.2.2" });
       }
       if (route && route.kind === "telemetry") {
         if (request.method !== "POST") return json({ error: "method not allowed", requestId: id }, 405, { Allow: "POST,OPTIONS" });

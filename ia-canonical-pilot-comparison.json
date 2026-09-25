@@ -1,0 +1,362 @@
+{
+  "schemaVersion": "ia-canonical-comparison-1",
+  "generatedAt": "2026-09-25T15:49:23.901Z",
+  "apiBase": "https://realsignal-api.tdy1990.workers.dev/api/v3",
+  "rotations": 3,
+  "lanes": {
+    "classic-tv": {
+      "channel": "10",
+      "name": "Classic Rerun TV",
+      "profile": {
+        "profileKey": "classic-tv",
+        "channel": "10",
+        "name": "Classic Rerun TV",
+        "source": "internet-archive",
+        "era": [
+          1950,
+          1989
+        ],
+        "minRuntimeSeconds": 900,
+        "maxRuntimeSeconds": 14400,
+        "targetCatalog": 36,
+        "minCatalog": 12,
+        "maxPerCollection": 3,
+        "maxPerFamily": 3,
+        "decadeTargets": {
+          "1950": 0.25,
+          "1960": 0.3,
+          "1970": 0.25,
+          "1980": 0.2
+        },
+        "searchQueries": [
+          "classic television full episode",
+          "classic sitcom television episode",
+          "classic television anthology full episode",
+          "classic television drama full episode"
+        ],
+        "includeAny": [
+          "television",
+          "sitcom",
+          "sitcoms",
+          "tv episode",
+          "television episode",
+          "anthology",
+          "comedy series",
+          "drama series"
+        ],
+        "titleAny": [],
+        "excludeAny": [
+          "trailer",
+          "preview",
+          "review",
+          "reaction",
+          "podcast",
+          "lecture",
+          "seminar",
+          "how to",
+          "commercial",
+          "music video",
+          "short film",
+          "radio only"
+        ],
+        "collections": [
+          "classic_tv",
+          "classic_tv_1950s",
+          "classic_tv_1960s",
+          "classic_tv_1970s",
+          "classic_tv_1980s",
+          "opensource_movies"
+        ]
+      },
+      "current": {
+        "catalogDepth": 96,
+        "genreAccuracy": null,
+        "genreEvaluatedItems": 0,
+        "genreUnscoredItems": 303,
+        "acceptedItems": 0,
+        "averageRuntimeSeconds": null,
+        "medianRuntimeSeconds": null,
+        "repeats": 207,
+        "uniqueDepth": 96,
+        "queueResponseMs": {
+          "average": 252,
+          "median": 173,
+          "samples": 3
+        },
+        "firstFrameMs": null,
+        "firstFrameStatus": "requires-browser-canary",
+        "errors": []
+      },
+      "canonical": {
+        "catalogDepth": 16,
+        "genreAccuracy": 1,
+        "genreEvaluatedItems": 16,
+        "genreUnscoredItems": 0,
+        "acceptedItems": 16,
+        "averageRuntimeSeconds": 3645,
+        "medianRuntimeSeconds": 3000,
+        "repeats": 0,
+        "uniqueDepth": 16,
+        "verified": true,
+        "firstFrameMs": null,
+        "firstFrameStatus": "requires-browser-canary"
+      },
+      "delta": {
+        "catalogDepth": -80,
+        "genreAccuracy": null,
+        "medianRuntimeSeconds": 3000,
+        "repeats": -207,
+        "queueResponseMs": null,
+        "firstFrameMs": null
+      }
+    },
+    "classic-cartoons": {
+      "channel": "150",
+      "name": "Classic Cartoons",
+      "profile": {
+        "profileKey": "classic-cartoons",
+        "channel": "150",
+        "name": "Classic Cartoons",
+        "source": "internet-archive",
+        "era": [
+          1930,
+          1979
+        ],
+        "minRuntimeSeconds": 180,
+        "maxRuntimeSeconds": 14400,
+        "targetCatalog": 48,
+        "minCatalog": 15,
+        "maxPerCollection": 4,
+        "maxPerFamily": 3,
+        "decadeTargets": {
+          "1930": 0.15,
+          "1940": 0.25,
+          "1950": 0.25,
+          "1960": 0.2,
+          "1970": 0.15
+        },
+        "searchQueries": [
+          "classic cartoon full episode",
+          "golden age animation cartoon",
+          "theatrical cartoon collection",
+          "classic animated television episode"
+        ],
+        "includeAny": [
+          "cartoon",
+          "cartoons",
+          "animated",
+          "animation",
+          "looney tunes",
+          "popeye",
+          "bugs bunny",
+          "tom and jerry",
+          "fleischer",
+          "woody woodpecker",
+          "theatrical cartoon"
+        ],
+        "titleAny": [
+          "cartoon",
+          "cartoons",
+          "animated",
+          "animation",
+          "looney",
+          "popeye",
+          "bugs",
+          "fleischer",
+          "woody woodpecker"
+        ],
+        "excludeAny": [
+          "trailer",
+          "preview",
+          "review",
+          "reaction",
+          "podcast",
+          "lecture",
+          "seminar",
+          "how to",
+          "tutorial",
+          "making of",
+          "behind the scenes",
+          "commercial",
+          "music video",
+          "anime opening",
+          "animation history documentary"
+        ],
+        "collections": [
+          "classic_cartoons",
+          "animationandcartoons",
+          "saturdaymorningcartoons",
+          "cartoons",
+          "vhskids",
+          "classic_tv"
+        ]
+      },
+      "current": {
+        "catalogDepth": 95,
+        "genreAccuracy": null,
+        "genreEvaluatedItems": 0,
+        "genreUnscoredItems": 300,
+        "acceptedItems": 0,
+        "averageRuntimeSeconds": null,
+        "medianRuntimeSeconds": null,
+        "repeats": 205,
+        "uniqueDepth": 95,
+        "queueResponseMs": {
+          "average": 160,
+          "median": 133,
+          "samples": 3
+        },
+        "firstFrameMs": null,
+        "firstFrameStatus": "requires-browser-canary",
+        "errors": []
+      },
+      "canonical": {
+        "catalogDepth": 6,
+        "genreAccuracy": 1,
+        "genreEvaluatedItems": 6,
+        "genreUnscoredItems": 0,
+        "acceptedItems": 6,
+        "averageRuntimeSeconds": 962,
+        "medianRuntimeSeconds": 1345,
+        "repeats": 0,
+        "uniqueDepth": 6,
+        "verified": false,
+        "firstFrameMs": null,
+        "firstFrameStatus": "requires-browser-canary"
+      },
+      "delta": {
+        "catalogDepth": -89,
+        "genreAccuracy": null,
+        "medianRuntimeSeconds": 1345,
+        "repeats": -205,
+        "queueResponseMs": null,
+        "firstFrameMs": null
+      }
+    },
+    "game-shows": {
+      "channel": "12",
+      "name": "Game Show Channel",
+      "profile": {
+        "profileKey": "game-shows",
+        "channel": "12",
+        "name": "Game Show Channel",
+        "source": "internet-archive",
+        "era": [
+          1940,
+          2026
+        ],
+        "minRuntimeSeconds": 900,
+        "maxRuntimeSeconds": 14400,
+        "targetCatalog": 36,
+        "minCatalog": 12,
+        "maxPerCollection": 3,
+        "maxPerFamily": 3,
+        "decadeTargets": {
+          "1940": 0.1,
+          "1950": 0.2,
+          "1960": 0.2,
+          "1970": 0.2,
+          "1980": 0.15,
+          "1990": 0.1,
+          "2000": 0.05
+        },
+        "searchQueries": [
+          "classic television game show full episode",
+          "quiz show full episode television",
+          "panel show full episode television",
+          "game show complete episode"
+        ],
+        "includeAny": [
+          "game show",
+          "game-show",
+          "quiz show",
+          "quiz-show",
+          "panel show",
+          "panel-show",
+          "match game",
+          "jeopardy",
+          "price is right",
+          "family feud",
+          "password",
+          "pyramid",
+          "newlywed game",
+          "hollywood squares",
+          "let's make a deal",
+          "press your luck"
+        ],
+        "titleAny": [],
+        "excludeAny": [
+          "trailer",
+          "preview",
+          "review",
+          "reaction",
+          "podcast",
+          "lecture",
+          "seminar",
+          "how to",
+          "commercial",
+          "music video",
+          "gameplay",
+          "video game",
+          "esports",
+          "retrospective",
+          "history of game shows"
+        ],
+        "collections": [
+          "gameshows",
+          "gameshows_miscellaneous",
+          "game_shows",
+          "buzzr",
+          "classic_tv",
+          "classic_tv_1950s",
+          "classic_tv_1960s",
+          "classic_tv_1970s",
+          "classic_tv_1980s",
+          "classic_tv_1990s",
+          "classic_tv_2000s"
+        ]
+      },
+      "current": {
+        "catalogDepth": 66,
+        "genreAccuracy": null,
+        "genreEvaluatedItems": 0,
+        "genreUnscoredItems": 213,
+        "acceptedItems": 0,
+        "averageRuntimeSeconds": null,
+        "medianRuntimeSeconds": null,
+        "repeats": 147,
+        "uniqueDepth": 66,
+        "queueResponseMs": {
+          "average": 151,
+          "median": 132,
+          "samples": 3
+        },
+        "firstFrameMs": null,
+        "firstFrameStatus": "requires-browser-canary",
+        "errors": []
+      },
+      "canonical": {
+        "catalogDepth": 5,
+        "genreAccuracy": 1,
+        "genreEvaluatedItems": 5,
+        "genreUnscoredItems": 0,
+        "acceptedItems": 5,
+        "averageRuntimeSeconds": 1996,
+        "medianRuntimeSeconds": 1748,
+        "repeats": 0,
+        "uniqueDepth": 5,
+        "verified": false,
+        "firstFrameMs": null,
+        "firstFrameStatus": "requires-browser-canary"
+      },
+      "delta": {
+        "catalogDepth": -61,
+        "genreAccuracy": null,
+        "medianRuntimeSeconds": 1748,
+        "repeats": -147,
+        "queueResponseMs": null,
+        "firstFrameMs": null
+      }
+    }
+  }
+}

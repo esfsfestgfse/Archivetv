@@ -104,6 +104,9 @@ function normalizedProfile(body) {
     queries: list(approved.queries),
     match: list(approved.match, 40),
     deny: list(approved.deny, 48),
+    intent: text(approved.intent, 40).toLowerCase(),
+    topics: list(approved.topics, 32),
+    formats: list(approved.formats, 24),
     providers: list(approved.providers, 2).map((value) => value.toLowerCase()),
   };
 }
@@ -132,7 +135,11 @@ function englishOkay(item) {
 
 function accepted(profile, item, provider, checkAspect = true) {
   const title = text(item && item.title, 500);
-  const haystack = text([title, item && item.description, item && item.tags, item && item.category, item && item.account].join(" "), 5000).toLowerCase();
+  /* Provider search phrases are editorial context, but television/film lanes
+     also require a program-form signal in the actual title. That prevents a
+     broad search from admitting an unrelated lecture or listicle. */
+  const haystack = text([title, item && item.description, item && item.tags, item && item.category, item && item.account, item && item.query].join(" "), 5000).toLowerCase();
+  const titleHaystack = title.toLowerCase();
   const duration = Number(item && item.duration) || 0;
   const ratio = aspectRatio(item);
   const source = provider || text(item && item.provider, 60);
@@ -141,6 +148,12 @@ function accepted(profile, item, provider, checkAspect = true) {
   if (profile.deny.some((term) => haystack.includes(text(term, 180).toLowerCase()))) return false;
   if (!rightsOkay(item.rights, source)) return false;
   if (source === "YouTube" && !englishOkay(item)) return false;
+  if (/^(?:television|film|performance)$/.test(profile.intent || "")) {
+    const programDeny = /(?:history of|documentary about|retrospective|video essay|analysis|explained|lecture|seminar|webinar|conference|panel discussion|making of|behind the scenes|demo reel|showreel|workshop|masterclass|recap|production reel|festival reel)/i;
+    if (programDeny.test(haystack)) return false;
+    if (profile.topics.length && !termsMatch(haystack, profile.topics)) return false;
+    if (profile.formats.length && !termsMatch(titleHaystack, profile.formats)) return false;
+  }
   const required = profile.match.length ? profile.match : profile.queries;
   return !required.length || termsMatch(haystack, required);
 }

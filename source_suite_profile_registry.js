@@ -1321,23 +1321,12 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "peertube",
       "youtube"
     ],
-    "queries": [
-      "theatre history documentary",
-      "stage performance archive",
-      "drama history film",
-      "dance theatre documentary",
-      "play production documentary"
-    ],
-    "match": [
-      "theatre history",
-      "theater history",
-      "stage performance",
-      "drama history",
-      "dance theatre",
-      "play production"
-    ],
+    "intent": "performance",
+    "topics": ["stage play", "theatre performance", "dance theatre", "live theatre"],
+    "formats": ["full performance", "complete performance", "full play", "complete play", "full show"],
+    "queries": ["stage play full performance", "theatre full play", "complete theatre performance", "dance theatre full performance", "live theatre complete show", "classic stage play full", "ballet full performance", "stage musical full performance"],
+    "match": ["stage play", "theatre performance", "theater performance", "dance theatre", "live theatre", "full performance", "complete play"],
     "deny": [
-      "fictional",
       "music video",
       "commercial",
       "cartoon",
@@ -1751,23 +1740,12 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "peertube",
       "youtube"
     ],
-    "queries": [
-      "classic sitcom history documentary",
-      "television comedy history",
-      "classic TV comedy archive",
-      "sitcom production documentary",
-      "television comedy retrospective"
-    ],
-    "match": [
-      "classic sitcom history",
-      "television comedy history",
-      "classic tv comedy",
-      "sitcom production",
-      "comedy retrospective",
-      "sitcom archive"
-    ],
+    "intent": "television",
+    "topics": ["classic sitcom", "sitcom episode", "television comedy", "comedy series"],
+    "formats": ["full episode", "complete episode", "television episode", "tv show", "sitcom episode"],
+    "queries": ["classic sitcom full episode", "vintage sitcom complete episode", "television comedy full episode", "classic TV comedy episode", "retro sitcom full show", "comedy series complete episode", "classic sitcom marathon", "public domain sitcom full episode"],
+    "match": ["classic sitcom", "sitcom", "television comedy", "tv comedy", "comedy series", "full episode", "complete episode"],
     "deny": [
-      "fictional",
       "music video",
       "commercial",
       "cartoon",
@@ -1820,23 +1798,12 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "peertube",
       "youtube"
     ],
-    "queries": [
-      "horror film history documentary",
-      "classic horror cinema documentary",
-      "monster movie history film",
-      "horror film preservation",
-      "horror director retrospective"
-    ],
-    "match": [
-      "horror film history",
-      "classic horror cinema",
-      "monster movie history",
-      "horror film preservation",
-      "horror director retrospective",
-      "horror cinema"
-    ],
+    "intent": "film",
+    "topics": ["horror movie", "horror film", "monster movie", "supernatural film"],
+    "formats": ["full movie", "full film", "feature film", "complete movie", "movie marathon"],
+    "queries": ["classic horror full movie", "public domain horror full movie", "monster movie full movie", "vintage horror feature film", "supernatural horror full film", "classic creature feature full movie", "horror movie marathon", "horror double feature full"],
+    "match": ["horror movie", "horror film", "monster movie", "creature feature", "supernatural horror", "full movie", "feature film"],
     "deny": [
-      "fictional",
       "music video",
       "commercial",
       "cartoon",
@@ -1855,23 +1822,12 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "peertube",
       "youtube"
     ],
-    "queries": [
-      "western film history documentary",
-      "classic western cinema",
-      "cowboy film history",
-      "frontier television history",
-      "western film preservation"
-    ],
-    "match": [
-      "western film history",
-      "classic western cinema",
-      "cowboy film history",
-      "frontier television",
-      "western film preservation",
-      "western cinema"
-    ],
+    "intent": "film",
+    "topics": ["western movie", "western film", "cowboy movie", "frontier film"],
+    "formats": ["full movie", "full film", "feature film", "complete movie", "movie marathon"],
+    "queries": ["classic western full movie", "public domain western full movie", "cowboy movie full film", "frontier western feature film", "vintage western full movie", "western movie marathon", "classic cowboy film full", "western double feature full"],
+    "match": ["western movie", "western film", "cowboy movie", "frontier western", "full movie", "feature film"],
     "deny": [
-      "fictional",
       "music video",
       "commercial",
       "cartoon",
@@ -1977,23 +1933,12 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "peertube",
       "youtube"
     ],
-    "queries": [
-      "television variety show history",
-      "classic variety television archive",
-      "vaudeville television documentary",
-      "stage revue history film",
-      "variety show production documentary"
-    ],
-    "match": [
-      "television variety show",
-      "classic variety television",
-      "vaudeville television",
-      "stage revue",
-      "variety show production",
-      "variety show history"
-    ],
+    "intent": "performance",
+    "topics": ["variety show", "vaudeville", "stage revue", "television variety"],
+    "formats": ["full episode", "complete show", "full show", "variety special", "full performance"],
+    "queries": ["classic variety show full episode", "television variety complete show", "vaudeville television full show", "variety special full episode", "classic stage revue full performance", "music comedy variety show full", "variety show marathon", "television variety archive full episode"],
+    "match": ["variety show", "television variety", "vaudeville", "stage revue", "full episode", "complete show"],
     "deny": [
-      "fictional",
       "music video",
       "commercial",
       "cartoon",
@@ -2011,23 +1956,12 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "peertube",
       "youtube"
     ],
-    "queries": [
-      "television talk show history",
-      "classic interview program archive",
-      "late night television history",
-      "television host retrospective",
-      "broadcast interview history"
-    ],
-    "match": [
-      "television talk show",
-      "classic interview program",
-      "late night television",
-      "television host retrospective",
-      "broadcast interview history",
-      "talk show archive"
-    ],
+    "intent": "performance",
+    "topics": ["talk show", "television interview", "late night show", "celebrity interview"],
+    "formats": ["full episode", "complete episode", "full interview", "complete show", "television interview"],
+    "queries": ["classic talk show full episode", "television interview full episode", "late night show full episode", "celebrity interview complete show", "vintage talk show full", "classic interview program full episode", "talk show archive full episode", "late night interview full show"],
+    "match": ["talk show", "television interview", "late night show", "celebrity interview", "full episode", "complete show"],
     "deny": [
-      "fictional",
       "music video",
       "commercial",
       "cartoon",
@@ -2079,24 +2013,11 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "peertube",
       "youtube"
     ],
-    "queries": [
-      "family television full episode",
-      "children's television full episode",
-      "classic family TV show full episode",
-      "public television children's program",
-      "kids television complete episode"
-    ],
-    "match": [
-      "family television",
-      "children's television",
-      "educational kids television",
-      "family programming",
-      "public television children's",
-      "kids television history",
-      "children's program",
-      "kids television",
-      "family show"
-    ],
+    "intent": "television",
+    "topics": ["family television", "children's program", "kids television", "educational kids show"],
+    "formats": ["full episode", "complete episode", "full show", "television program", "kids show"],
+    "queries": ["family television full episode", "children's television complete episode", "classic family TV show full episode", "public television kids full episode", "kids television full show", "children's program complete episode", "educational kids show full episode", "classic kids TV full episode"],
+    "match": ["family television", "children's television", "children's program", "kids television", "kids show", "full episode", "complete episode"],
     "deny": [
       "music video",
       "commercial",
@@ -2150,23 +2071,12 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "peertube",
       "youtube"
     ],
-    "queries": [
-      "music television history documentary",
-      "live music performance archive",
-      "jukebox history film",
-      "concert television history",
-      "music variety show archive"
-    ],
-    "match": [
-      "music television history",
-      "live music performance",
-      "jukebox history",
-      "concert television",
-      "music variety show",
-      "music performance archive"
-    ],
+    "intent": "performance",
+    "topics": ["music performance", "concert", "music television", "live band"],
+    "formats": ["full concert", "full performance", "complete show", "live set", "full episode"],
+    "queries": ["music television full episode", "classic concert full performance", "live band full concert", "music variety show complete episode", "television music special full", "classic live performance full show", "concert television full episode", "music program full performance"],
+    "match": ["music performance", "full concert", "live band", "music television", "music variety show", "full performance"],
     "deny": [
-      "fictional",
       "commercial",
       "cartoon",
       "gameplay",

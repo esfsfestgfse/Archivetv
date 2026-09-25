@@ -478,6 +478,24 @@ function catalogFallbackAllowed(item, body) {
     if (runtime < SOURCE_LIMITS.SOURCE_MIN_RUNTIME) return false;
     if (ratio < SOURCE_LIMITS.SOURCE_MIN_ASPECT_RATIO) return false;
     if (audio || (mediaType !== "video" && mediaType !== "embed")) return false;
+    /* Requalify persisted Source Suite rows whenever an entertainment lane
+       changes its editorial contract. Otherwise an older documentary entry
+       can survive indefinitely just because it happens to share one topic
+       word with the new TV/film lane. */
+    if (/^(?:television|film|performance)$/.test(String(body.intent || ""))) {
+      const programDeny = /(?:history of|documentary about|retrospective|video essay|analysis|explained|lecture|seminar|webinar|conference|panel discussion|making of|behind the scenes|demo reel|showreel|workshop|masterclass|recap|production reel|festival reel)/i;
+      const formats = Array.isArray(body.programFormats) ? body.programFormats : [];
+      const topics = Array.isArray(body.topics) ? body.topics : [];
+      if (programDeny.test(haystack)) return false;
+      if (topics.length && !topics.some((term) => {
+        const needle = String(term || "").trim().toLowerCase();
+        return needle && haystack.includes(needle);
+      })) return false;
+      if (formats.length && !formats.some((term) => {
+        const needle = String(term || "").trim().toLowerCase();
+        return needle && title.includes(needle);
+      })) return false;
+    }
   }
   return true;
 }
@@ -1125,6 +1143,9 @@ async function handleSourceCatalog(request, env, ctx, id) {
     sourceCatalog: true,
     denyTerms: profile.deny,
     themeTerms: profile.match,
+    intent: profile.intent,
+    topics: profile.topics,
+    programFormats: profile.formats,
     themeMinScore: 1,
     recentIds: sourceRecentIds,
     freshnessLedger: true,

@@ -12,6 +12,15 @@ if (!bridge.includes('IA_API_BASE + "/source/catalog"') || !bridge.includes('ser
 if (!bridge.includes('realsignal:source-freshness:v3') || !bridge.includes('playedIds: recentFor(profileKey).slice(0, 1)') || !bridge.includes('__rsRecordSourcePlay') || bridge.includes('remember(profileKey, fresh.items)')) issues.push('Source Suite freshness must be newest-first and record actual plays, not catalog fetches');
 const serverCatalog = fs.readFileSync(path.join(repo, 'realsignal_source_catalog.js'), 'utf8');
 if (!serverCatalog.includes('if (raw.length < SOURCE_MIN_READY)') || !serverCatalog.includes('SOURCE_QUERY_WINDOW = 4') || !serverCatalog.includes('Math.ceil(ids.length / 50)')) issues.push('Source discovery must rotate a bounded query window and chunk YouTube detail hydration to 50 IDs');
+if (!serverCatalog.includes('profile.formats') || !serverCatalog.includes('program-form signal in the actual title')) issues.push('Entertainment Source Suite lanes must require an actual full-program form, not merely a broad search match');
+const sourceRegistry = fs.readFileSync(path.join(repo, 'source_suite_profile_registry.js'), 'utf8');
+for (const key of ['classic-sitcom-room', 'family-tv-club', 'horror-house', 'western-screen', 'variety-hour', 'talk-show-archive', 'stage-door', 'jukebox-television']) {
+  const start = sourceRegistry.indexOf(`"${key}":`);
+  const next = sourceRegistry.indexOf('\n  },', start);
+  const end = next >= 0 ? next + 5 : sourceRegistry.indexOf('\n});', start);
+  const section = sourceRegistry.slice(start, end >= 0 ? end : sourceRegistry.length);
+  if (!section.includes('"intent"') || !section.includes('"formats"') || !/(?:full|complete) (?:episode|movie|performance|concert|play|show)/.test(section)) issues.push(`${key} must use program-form Source Suite discovery instead of history-only searches`);
+}
 const api = fs.readFileSync(path.join(repo, 'realsignal_api_v2_worker.js'), 'utf8');
 if (!api.includes('const sourceRefreshCache = new Map()') || !api.includes('refresh already scheduled') || !api.includes('forceDeepRefresh') || !api.includes('server-source-catalog-refresh') || !api.includes('freshnessLedger: true')) issues.push('source refreshes must be deduplicated, deep refreshes must return the expanded union, and freshness filtering must preserve newest-first ledger order');
 
@@ -19,7 +28,7 @@ for (const file of files) {
   const source = fs.readFileSync(path.join(repo, file), 'utf8');
   const name = file;
   const required = [
-    [/V2_SOURCE_CACHE_VERSION=24/, 'source catalog cache version must invalidate poisoned freshness catalogs'],
+    [/V2_SOURCE_CACHE_VERSION=25/, 'source catalog cache version must invalidate obsolete documentary shelves'],
     [/retainedItems=Array\.isArray\(cached&&cached\.items\)\?cached\.items\.filter/, 'previously verified source items must survive provider outages after requalification'],
     [/cacheValid=!!cached&&Number\(cached\.version\|\|0\)===V2_SOURCE_CACHE_VERSION/, 'only a current source catalog cache may be treated as fresh'],
     [/item\.account,item\.channelTitle/, 'YouTube language screening must inspect channel identity'],

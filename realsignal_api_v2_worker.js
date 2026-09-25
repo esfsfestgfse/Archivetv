@@ -429,8 +429,10 @@ function catalogFallbackAllowed(item, body) {
   const tags = String(item && (item.tags || item.tag) || "").toLowerCase();
   const category = String(item && item.category || "").toLowerCase();
   const account = String(item && (item.account || item.channelTitle) || "").toLowerCase();
-  const query = String(item && item.query || "").toLowerCase();
-  const haystack = `${title} ${description} ${subject} ${tags} ${category} ${account} ${query} ${sourceIdentifier} ${normalizedSourceIdentifier}`;
+  /* Query text is retained for provenance, never as a genre signal. A search
+     for “cannabis history” must not make an unrelated history upload look
+     like Green Culture after it is persisted. */
+  const haystack = `${title} ${description} ${subject} ${tags} ${category} ${account} ${sourceIdentifier} ${normalizedSourceIdentifier}`;
   const denyTerms = Array.isArray(body && body.denyTerms) ? body.denyTerms : [];
   if (denyTerms.some((term) => {
     const needle = String(term || "").trim().toLowerCase();

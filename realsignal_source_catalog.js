@@ -147,7 +147,11 @@ function accepted(profile, item, provider, checkAspect = true) {
   /* Provider search phrases are editorial context, but television/film lanes
      also require a program-form signal in the actual title. That prevents a
      broad search from admitting an unrelated lecture or listicle. */
-  const haystack = text([title, item && item.description, item && item.tags, item && item.category, item && item.account, item && item.query].join(" "), 5000).toLowerCase();
+  /* The search query is provenance, not evidence. Counting it here lets an
+     unrelated result pass merely because the provider echoed the requested
+     genre phrase. Editorial evidence must come from the returned item's own
+     title, description, tags, category, or channel identity. */
+  const haystack = text([title, item && item.description, item && item.tags, item && item.category, item && item.account].join(" "), 5000).toLowerCase();
   const titleHaystack = title.toLowerCase();
   const duration = Number(item && item.duration) || 0;
   const ratio = aspectRatio(item);

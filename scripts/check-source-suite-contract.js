@@ -11,9 +11,15 @@ const bridge = fs.readFileSync(path.join(repo, 'assets', 'source-catalog-client.
 if (!bridge.includes('IA_API_BASE + "/source/catalog"') || !bridge.includes('serverCatalog')) issues.push('server catalog bridge must be present and marked as the preferred Source Suite path');
 if (!bridge.includes('realsignal:source-freshness:v3') || !bridge.includes('playedIds: recentFor(profileKey).slice(0, 1)') || !bridge.includes('__rsRecordSourcePlay') || bridge.includes('remember(profileKey, fresh.items)')) issues.push('Source Suite freshness must be newest-first and record actual plays, not catalog fetches');
 const serverCatalog = fs.readFileSync(path.join(repo, 'realsignal_source_catalog.js'), 'utf8');
-if (!serverCatalog.includes('if (raw.length < SOURCE_MIN_READY)') || !serverCatalog.includes('SOURCE_QUERY_WINDOW = 4') || !serverCatalog.includes('Math.ceil(ids.length / 50)')) issues.push('Source discovery must rotate a bounded query window and chunk YouTube detail hydration to 50 IDs');
+if (!serverCatalog.includes('if (raw.length < SOURCE_MIN_READY)') || !serverCatalog.includes('SOURCE_QUERY_WINDOW = 4') || !serverCatalog.includes('SOURCE_MAX_QUERY_WINDOW = 6') || !serverCatalog.includes('profile.queryWindow || SOURCE_QUERY_WINDOW') || !serverCatalog.includes('Math.ceil(ids.length / 50)')) issues.push('Source discovery must rotate a bounded query window, allow only shallow lanes a capped expansion, and chunk YouTube detail hydration to 50 IDs');
 if (!serverCatalog.includes('profile.formats') || !serverCatalog.includes('program-form signal in the actual title')) issues.push('Entertainment Source Suite lanes must require an actual full-program form, not merely a broad search match');
 const sourceRegistry = fs.readFileSync(path.join(repo, 'source_suite_profile_registry.js'), 'utf8');
+for (const key of ['family-tv-club', 'garden-ledger', 'green-culture', 'lesson-reel', 'local-signal', 'memory-bank', 'newsreel-exchange']) {
+  const start = sourceRegistry.indexOf(`"${key}":`);
+  const next = sourceRegistry.indexOf('\n  },', start);
+  const section = sourceRegistry.slice(start, next >= 0 ? next + 5 : sourceRegistry.length);
+  if (!section.includes('"queryWindow": 6')) issues.push(`${key} must use the bounded six-query depth-repair window`);
+}
 for (const key of ['classic-sitcom-room', 'family-tv-club', 'horror-house', 'western-screen', 'variety-hour', 'talk-show-archive', 'stage-door', 'jukebox-television']) {
   const start = sourceRegistry.indexOf(`"${key}":`);
   const next = sourceRegistry.indexOf('\n  },', start);
@@ -28,7 +34,7 @@ for (const file of files) {
   const source = fs.readFileSync(path.join(repo, file), 'utf8');
   const name = file;
   const required = [
-    [/V2_SOURCE_CACHE_VERSION=26/, 'source catalog cache version must invalidate rejected title-bait shelves'],
+    [/V2_SOURCE_CACHE_VERSION=27/, 'source catalog cache version must invalidate shallow pre-repair shelves'],
     [/retainedItems=Array\.isArray\(cached&&cached\.items\)\?cached\.items\.filter/, 'previously verified source items must survive provider outages after requalification'],
     [/cacheValid=!!cached&&Number\(cached\.version\|\|0\)===V2_SOURCE_CACHE_VERSION/, 'only a current source catalog cache may be treated as fresh'],
     [/item\.account,item\.channelTitle/, 'YouTube language screening must inspect channel identity'],

@@ -411,6 +411,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   "newsreel-exchange": {
     "name": "Newsreel Exchange",
     "queryLimit": 8,
+    "queryWindow": 6,
     "providers": [
       "peertube",
       "youtube"
@@ -420,7 +421,10 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "newsreel history",
       "archival journalism film",
       "world events documentary",
-      "television news history"
+      "television news history",
+      "historic newsreel footage",
+      "archival news film",
+      "world newsreel archive"
     ],
     "match": [
       "newsreel",
@@ -648,6 +652,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   "lesson-reel": {
     "name": "Lesson Reel",
     "queryLimit": 8,
+    "queryWindow": 6,
     "providers": [
       "peertube",
       "youtube"
@@ -657,7 +662,10 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "science lesson documentary",
       "civics education film",
       "vocational training film",
-      "teaching history documentary"
+      "teaching history documentary",
+      "educational film archive",
+      "school film archive",
+      "instructional science film"
     ],
     "match": [
       "classroom instructional",
@@ -682,6 +690,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   "local-signal": {
     "name": "Local Signal",
     "queryLimit": 8,
+    "queryWindow": 6,
     "providers": [
       "peertube",
       "youtube"
@@ -691,7 +700,10 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "public access television history",
       "local cable access film",
       "community media project",
-      "municipal public affairs video"
+      "municipal public affairs video",
+      "public access television program",
+      "community television full program",
+      "local public affairs program"
     ],
     "match": [
       "community television",
@@ -1083,6 +1095,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   "garden-ledger": {
     "name": "Garden Ledger",
     "queryLimit": 8,
+    "queryWindow": 6,
     "providers": [
       "peertube",
       "youtube"
@@ -1092,7 +1105,10 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "botanical garden film",
       "garden history documentary",
       "landscape design film",
-      "plant science documentary"
+      "plant science documentary",
+      "botany documentary",
+      "garden design documentary",
+      "public garden film"
     ],
     "match": [
       "horticulture",
@@ -1372,6 +1388,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   "memory-bank": {
     "name": "Memory Bank",
     "queryLimit": 8,
+    "queryWindow": 6,
     "providers": [
       "peertube",
       "youtube"
@@ -1381,7 +1398,10 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "community history film",
       "memoir documentary",
       "personal archives film",
-      "public history documentary"
+      "public history documentary",
+      "oral history full documentary",
+      "personal history film",
+      "community voices documentary"
     ],
     "match": [
       "oral history",
@@ -1615,6 +1635,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   "green-culture": {
     "name": "Green Culture",
     "queryLimit": 8,
+    "queryWindow": 6,
     "providers": [
       "peertube",
       "youtube"
@@ -2015,6 +2036,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   "family-tv-club": {
     "name": "Family TV Club",
     "queryLimit": 8,
+    "queryWindow": 6,
     "providers": [
       "peertube",
       "youtube"

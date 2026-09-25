@@ -24,6 +24,10 @@ const SOURCE_MAX_QUERIES = 8;
    not fan every editorial query out on every tune. Each rotation advances a
    bounded window; D1 retains the union from prior windows. */
 const SOURCE_QUERY_WINDOW = 4;
+/* A small opt-in expansion for catalog lanes that have proved shallow in
+   production. Most lanes stay at four upstream searches; profiles marked
+   queryWindow: 6 get extra diversity during background catalog repair only. */
+const SOURCE_MAX_QUERY_WINDOW = 6;
 const SOURCE_MAX_CONCURRENCY = 4;
 const SOURCE_TIMEOUT_MS = 7000;
 const SOURCE_FIRST_LANE_TIMEOUT_MS = 6500;
@@ -102,6 +106,7 @@ function normalizedProfile(body) {
     profileKey,
     name: approved.name,
     queries: list(approved.queries),
+    queryWindow: Math.max(1, Math.min(SOURCE_MAX_QUERY_WINDOW, Number(approved.queryWindow) || SOURCE_QUERY_WINDOW)),
     match: list(approved.match, 40),
     deny: list(approved.deny, 48),
     intent: text(approved.intent, 40).toLowerCase(),
@@ -196,7 +201,7 @@ async function mapLimit(values, limit, fn) {
 }
 
 function youtubeQueries(profile, rotation) {
-  return rotate(profile.queries, rotation).slice(0, SOURCE_QUERY_WINDOW);
+  return rotate(profile.queries, rotation).slice(0, profile.queryWindow || SOURCE_QUERY_WINDOW);
 }
 
 function youtubeDuration(value) {

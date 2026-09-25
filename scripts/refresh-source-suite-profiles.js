@@ -28,7 +28,11 @@ async function mapLimit(values, limit, fn) {
 (async () => {
   const results = await mapLimit(keys, concurrency, async (profileKey, index) => {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 12000);
+    /* Maintenance mode waits for the complete YouTube + PeerTube union and
+       writes it directly; a normal viewer request remains fast and
+       non-blocking. Give this repair-only client enough time for bounded
+       provider search and media-detail hydration. */
+    const timer = setTimeout(() => controller.abort(), 35000);
     try {
       const response = await fetch(`${base}/source/catalog`, {
         method: 'POST',

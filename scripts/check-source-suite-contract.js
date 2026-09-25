@@ -29,6 +29,7 @@ for (const key of ['classic-sitcom-room', 'family-tv-club', 'horror-house', 'wes
 }
 const api = fs.readFileSync(path.join(repo, 'realsignal_api_v2_worker.js'), 'utf8');
 if (!api.includes('const sourceRefreshCache = new Map()') || !api.includes('refresh already scheduled') || !api.includes('forceDeepRefresh') || !api.includes('server-source-catalog-refresh') || !api.includes('freshnessLedger: true')) issues.push('source refreshes must be deduplicated, deep refreshes must return the expanded union, and freshness filtering must preserve newest-first ledger order');
+if (!api.includes('const failed = !skipped && !!health.error;')) issues.push('an empty Source Suite search must rotate to another query, not trigger a provider cooldown');
 
 for (const file of files) {
   const source = fs.readFileSync(path.join(repo, file), 'utf8');

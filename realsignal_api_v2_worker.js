@@ -1073,11 +1073,13 @@ async function persistSourceHealth(env, profile, lanes) {
     if (provider === "unknown") continue;
     const health = lane && lane.health && typeof lane.health === "object" ? lane.health : {};
     const items = Array.isArray(lane && lane.items) ? lane.items : [];
-    /* A missing optional YouTube secret is configuration, not provider health;
-       do not quarantine that lane and prevent later configuration from being
-       used. Empty PeerTube/YouTube results are real source failures. */
+    /* A missing optional YouTube secret is configuration, not provider health.
+       More importantly, an empty query is an editorial miss—not an outage.
+       Quarantining a healthy provider for five minutes after one sparse search
+       made shallow lanes stay shallow instead of advancing to their next
+       query window. Only transport/provider errors earn a cooldown. */
     const skipped = health.skipped === true;
-    const failed = !skipped && (items.length === 0 || !!health.error);
+    const failed = !skipped && !!health.error;
     const key = `${profile.profileKey}:${provider}`.slice(0, 120);
     const successes = failed ? 0 : 1;
     const failures = failed ? 1 : 0;

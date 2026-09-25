@@ -28,7 +28,7 @@ for (const file of files) {
   const source = fs.readFileSync(path.join(repo, file), 'utf8');
   const name = file;
   const required = [
-    [/V2_SOURCE_CACHE_VERSION=25/, 'source catalog cache version must invalidate obsolete documentary shelves'],
+    [/V2_SOURCE_CACHE_VERSION=26/, 'source catalog cache version must invalidate rejected title-bait shelves'],
     [/retainedItems=Array\.isArray\(cached&&cached\.items\)\?cached\.items\.filter/, 'previously verified source items must survive provider outages after requalification'],
     [/cacheValid=!!cached&&Number\(cached\.version\|\|0\)===V2_SOURCE_CACHE_VERSION/, 'only a current source catalog cache may be treated as fresh'],
     [/item\.account,item\.channelTitle/, 'YouTube language screening must inspect channel identity'],

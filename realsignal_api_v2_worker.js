@@ -575,6 +575,43 @@ function applyFreshness(items, body) {
   return fresh.length ? fresh : items;
 }
 
+function localRotationFallback(payload, body) {
+  const count = Math.max(1, Math.min(5, Number(body && body.count) || 3));
+  const candidateItems = uniqueQueueItems(
+    Array.isArray(payload && payload.candidateItems) && payload.candidateItems.length
+      ? payload.candidateItems
+      : ((payload && payload.items) || []),
+    body,
+    MAX_CATALOG_ITEMS,
+  );
+  const fresh = applyFreshness(candidateItems, body);
+  const items = rotateCatalogItems(fresh, Number(body && body.rotation) || 0).slice(0, count);
+  return {
+    ...payload,
+    items,
+    candidateItems,
+    candidates: candidateItems.length,
+    ready: items.length,
+    fallback: true,
+    v2: {
+      sessionScoped: false,
+      selectionFallback: true,
+      cursor: Number(body && body.rotation) || 0,
+      cycleReset: false,
+      catalogSize: candidateItems.length,
+      catalogAdded: 0,
+      unseen: Math.max(0, fresh.length - items.length),
+      seenInCatalog: 0,
+      seenInCatalogBeforeSelection: 0,
+      unseenBeforeSelection: fresh.length,
+      unseenAfterSelection: Math.max(0, fresh.length - items.length),
+      catalogExhausted: false,
+      repeatAllowed: false,
+      selectionRepeatIds: [],
+    },
+  };
+}
+
 async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_MAX_ITEMS, options = {}) {
   if (!env.realsignal_catalog || typeof env.realsignal_catalog.prepare !== "function") return null;
   const ignoreFreshness = options && options.ignoreFreshness === true;
@@ -644,7 +681,7 @@ async function handleQueue(request, env, ctx, id) {
         try { fastRotated = await rotateShelf(env, body, fastCatalog, request); }
         catch (error) {
           console.warn(JSON.stringify({ event: "fast-catalog-rotation-fallback", requestId: id, channel: String(body.channel), error: String(error).slice(0, 160) }));
-          fastRotated = { payload: fastCatalog, rotation: { configured: false, fallback: true } };
+          fastRotated = { payload: localRotationFallback(fastCatalog, body), rotation: { configured: false, fallback: true } };
         }
         const headers = new Headers(corsHeaders());
         headers.set("X-RealSignal-API", apiVersion);
@@ -729,7 +766,7 @@ async function handleQueue(request, env, ctx, id) {
   try { rotated = await rotateShelf(env, body, payload, request); }
   catch (error) {
     console.warn(JSON.stringify({ event: "v2-rotation-fallback", requestId: id, error: String(error).slice(0, 160) }));
-    rotated = { payload, rotation: { configured: false, fallback: true } };
+    rotated = { payload: localRotationFallback(payload, body), rotation: { configured: false, fallback: true } };
   }
   if (IA_ROTATION_REFILL_LANES.has(String(body.channel)) && Number(rotated.payload && rotated.payload.ready || 0) < count) {
     /* The session DO has already recorded the first fresh selections. Add a

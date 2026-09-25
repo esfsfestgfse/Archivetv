@@ -153,6 +153,7 @@ async function probeRotation(row, rotationOffset) {
         cycleReset: Boolean(body.v2.cycleReset),
         repeatAllowed: Boolean(body.v2.repeatAllowed),
         selectionRepeatIds: Array.isArray(body.v2.selectionRepeatIds) ? body.v2.selectionRepeatIds : [],
+        selectionFallback: Boolean(body.v2.selectionFallback),
       } : null;
       const responseWasWarmFallback = lastFallback === '1' || Boolean(body && body.stale);
       if (responseWasWarmFallback) sawWarmFallback = true;
@@ -297,6 +298,7 @@ async function probe(row) {
     freshnessRatio: observedItems ? Number((freshItems / observedItems).toFixed(3)) : 0,
     exhaustionTelemetry: rotationResults.every(result => result.exhaustion !== null),
     exhaustionEvents: rotationResults.filter(result => result.exhaustion && result.exhaustion.catalogExhausted).length,
+    selectionFallbacks: rotationResults.filter(result => result.exhaustion && result.exhaustion.selectionFallback).length,
     prematureRepeatItems: [...new Set(prematureRepeatItems)],
     timeoutCount: timeouts,
     transportFailures,

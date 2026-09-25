@@ -102,10 +102,11 @@ function normalizedProfile(body) {
   const profileKey = text(body && (body.profileKey || body.channel || body.name), 120).toLowerCase().replace(/[^a-z0-9._:-]+/g, "-");
   const approved = SOURCE_PROFILE_REGISTRY[profileKey];
   if (!approved) return null;
+  const queryLimit = Math.max(SOURCE_MAX_QUERIES, Math.min(16, Number(approved.queryLimit) || SOURCE_MAX_QUERIES));
   return {
     profileKey,
     name: approved.name,
-    queries: list(approved.queries),
+    queries: list(approved.queries, queryLimit),
     queryWindow: Math.max(1, Math.min(SOURCE_MAX_QUERY_WINDOW, Number(approved.queryWindow) || SOURCE_QUERY_WINDOW)),
     match: list(approved.match, 40),
     deny: list(approved.deny, 48),

@@ -1634,7 +1634,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   },
   "green-culture": {
     "name": "Green Culture",
-    "queryLimit": 8,
+    "queryLimit": 12,
     "queryWindow": 6,
     "persistedMatch": ["cannabis", "marijuana", "hemp"],
     "providers": [
@@ -1649,7 +1649,10 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "cannabis policy documentary",
       "hemp history film",
       "medical cannabis history documentary",
-      "cannabis social history film"
+      "cannabis social history film",
+      "cannabis full film",
+      "marijuana full documentary",
+      "hemp documentary full"
     ],
     "match": [
       "cannabis history",
@@ -2097,7 +2100,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   },
   "jukebox-television": {
     "name": "Jukebox Television",
-    "queryLimit": 8,
+    "queryLimit": 12,
     "persistedRelaxed": true,
     "persistedMatch": ["concert", "live music", "music television", "music documentary"],
     "providers": [
@@ -2107,7 +2110,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "intent": "performance",
     "topics": ["music performance", "concert", "music television", "live band"],
     "formats": ["full concert", "full performance", "complete show", "live set", "live music", "full episode"],
-    "queries": ["music television full episode", "classic concert full performance", "live band full concert", "music variety show complete episode", "television music special full", "classic live performance full show", "concert television full episode", "music program full performance"],
+    "queries": ["music television full episode", "classic concert full performance", "live band full concert", "music variety show complete episode", "television music special full", "classic live performance full show", "concert television full episode", "music program full performance", "MTV unplugged full episode", "Austin City Limits full episode", "concert film full", "music documentary full"],
     "match": ["music performance", "full concert", "live band", "music television", "music variety show", "full performance"],
     "deny": [
       "commercial",

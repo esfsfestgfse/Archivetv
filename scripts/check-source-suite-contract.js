@@ -26,6 +26,12 @@ for (const key of ['family-tv-club', 'green-culture', 'jukebox-television']) {
   const section = sourceRegistry.slice(start, next >= 0 ? next + 5 : sourceRegistry.length);
   if (!section.includes('"persistedMatch"')) issues.push(`${key} must retain a narrow persisted-catalog genre signal`);
 }
+for (const key of ['green-culture', 'jukebox-television']) {
+  const start = sourceRegistry.indexOf(`"${key}":`);
+  const next = sourceRegistry.indexOf('\n  },', start);
+  const section = sourceRegistry.slice(start, next >= 0 ? next + 5 : sourceRegistry.length);
+  if (!section.includes('"queryLimit": 12')) issues.push(`${key} must retain the expanded query pool for serial source rotations`);
+}
 for (const key of ['classic-sitcom-room', 'family-tv-club', 'horror-house', 'western-screen', 'variety-hour', 'talk-show-archive', 'stage-door', 'jukebox-television']) {
   const start = sourceRegistry.indexOf(`"${key}":`);
   const next = sourceRegistry.indexOf('\n  },', start);

@@ -13,7 +13,7 @@ if (!bridge.includes('realsignal:source-freshness:v2') || !bridge.includes('play
 const serverCatalog = fs.readFileSync(path.join(repo, 'realsignal_source_catalog.js'), 'utf8');
 if (!serverCatalog.includes('if (raw.length < SOURCE_MIN_READY)') || !serverCatalog.includes('slice(0, SOURCE_MAX_QUERIES)')) issues.push('PeerTube discovery must expand shallow catalogs through the full approved query window');
 const api = fs.readFileSync(path.join(repo, 'realsignal_api_v2_worker.js'), 'utf8');
-if (!api.includes('const sourceRefreshCache = new Map()') || !api.includes('refresh already scheduled') || !api.includes('freshnessLedger: true')) issues.push('source refreshes must be deduplicated and freshness filtering must preserve newest-first ledger order');
+if (!api.includes('const sourceRefreshCache = new Map()') || !api.includes('refresh already scheduled') || !api.includes('forceDeepRefresh') || !api.includes('server-source-catalog-refresh') || !api.includes('freshnessLedger: true')) issues.push('source refreshes must be deduplicated, deep refreshes must return the expanded union, and freshness filtering must preserve newest-first ledger order');
 
 for (const file of files) {
   const source = fs.readFileSync(path.join(repo, file), 'utf8');

@@ -1058,11 +1058,11 @@ async function persistSourceLanes(env, profile, lanes) {
   return merged;
 }
 
-function scheduleSourceRefresh(env, ctx, normalized, tasks, requestId) {
+function scheduleSourceRefresh(env, ctx, normalized, tasks, requestId, force = false) {
   const refreshKey = String(normalized && normalized.profileKey || "");
   const now = Date.now();
   const previous = sourceRefreshCache.get(refreshKey) || 0;
-  if (!refreshKey || now - previous < 15_000) return Promise.resolve({ skipped: true, reason: "refresh already scheduled" });
+  if (!refreshKey || (!force && now - previous < 15_000)) return Promise.resolve({ skipped: true, reason: "refresh already scheduled" });
   sourceRefreshCache.set(refreshKey, now);
   if (sourceRefreshCache.size > 512) {
     for (const [key, at] of sourceRefreshCache) if (now - at >= 15_000) sourceRefreshCache.delete(key);
@@ -1111,10 +1111,11 @@ async function handleSourceCatalog(request, env, ctx, id) {
      background; a deep shelf is served as a normal cache hit. */
   const staleReady = Math.max(1, Math.min(3, Number(body.staleReady) || 2));
   const hasFreshFallback = cached && Array.isArray(cached.items) && cached.items.length > 0 && sourceRecentIds.length > 0;
+  const forceDeepRefresh = body.refresh === true && cached && Array.isArray(cached.items) && cached.items.length < minimumReady;
   /* Refresh is a hint to refill, never permission to strand a viewer on a
      503. If a verified shelf exists, serve it immediately and let the source
      adapters replace it in the background. */
-  if (cached && Array.isArray(cached.items) && (cached.items.length >= staleReady || hasFreshFallback)) {
+  if (cached && Array.isArray(cached.items) && (cached.items.length >= staleReady || hasFreshFallback) && !forceDeepRefresh) {
     if (cached.items.length < minimumReady) {
       const { profile: normalized, tasks } = sourceCatalogTasks(body, env, rotation, { disabledProviders });
       scheduleSourceRefresh(env, ctx, normalized, tasks, id);
@@ -1125,17 +1126,30 @@ async function handleSourceCatalog(request, env, ctx, id) {
   }
   const { profile: normalized, tasks } = sourceCatalogTasks(body, env, rotation, { disabledProviders });
   let firstTimer;
-  const first = await Promise.race([
-    firstSourceLane(tasks),
-    new Promise((resolve) => {
-      firstTimer = setTimeout(() => resolve({ items: [], lanes: [], ready: 0, candidates: 0, hydrating: true, timedOut: true }), SOURCE_LIMITS.SOURCE_FIRST_LANE_TIMEOUT_MS);
-    }),
-  ]).finally(() => clearTimeout(firstTimer));
-  scheduleSourceRefresh(env, ctx, normalized, tasks, id);
+  let first;
+  if (forceDeepRefresh) {
+    /* This request was launched by the already-playing client as a background
+       refill. Let both approved providers finish so a shallow D1 shelf can be
+       replaced by the full verified union without delaying first playback. */
+    const lanes = await Promise.all(tasks.map((task) => Promise.resolve(task).catch((error) => ({ provider: "unknown", items: [], health: { error: String(error).slice(0, 160) } }))));
+    first = { items: lanes.flatMap((lane) => Array.isArray(lane && lane.items) ? lane.items : []), lanes, hydrating: false };
+  } else {
+    first = await Promise.race([
+      firstSourceLane(tasks),
+      new Promise((resolve) => {
+        firstTimer = setTimeout(() => resolve({ items: [], lanes: [], ready: 0, candidates: 0, hydrating: true, timedOut: true }), SOURCE_LIMITS.SOURCE_FIRST_LANE_TIMEOUT_MS);
+      }),
+    ]).finally(() => clearTimeout(firstTimer));
+  }
+  scheduleSourceRefresh(env, ctx, normalized, tasks, id, forceDeepRefresh);
+  const cachedItems = forceDeepRefresh && cached && Array.isArray(cached.candidateItems) ? cached.candidateItems : (forceDeepRefresh && cached && Array.isArray(cached.items) ? cached.items : []);
+  const discoveredItems = forceDeepRefresh
+    ? uniqueQueueItems(cachedItems.concat(first.items || []), { ...body, sourceCatalog: true, denyTerms: profile.deny, themeTerms: profile.match, themeMinScore: 1 }, SOURCE_LIMITS.SOURCE_MAX_ITEMS)
+    : first.items;
   const freshnessBody = { ...body, recentIds: sourceRecentIds, freshnessLedger: true };
-  const freshFirstItems = applyFreshness(first.items, freshnessBody);
+  const freshFirstItems = applyFreshness(discoveredItems, freshnessBody);
   if (playedIds.length) rememberFreshness(env, normalized.profileKey, playedIds, ctx);
-  return json({ profileKey: normalized.profileKey, items: freshFirstItems, ready: freshFirstItems.length, candidates: freshFirstItems.length, lanes: first.lanes, hydrating: true, adaptiveFreshness: true, freshnessLedger: true, freshnessExcluded: Math.max(0, first.items.length - freshFirstItems.length), freshnessWindow: recentCatalogIds(freshnessBody).size, catalogVersion: "source-server-1", source: "server-source-catalog", providerAvailability: { youtube: !!env.YOUTUBE_API_KEY && !disabledProviders.has("youtube"), peertube: !disabledProviders.has("peertube"), cooldownProviders: Array.from(disabledProviders) }, limits: SOURCE_LIMITS, apiVersion, release: apiVersion === "v3" ? V3_RELEASE : undefined }, freshFirstItems.length ? 200 : 503, { "Cache-Control": "no-store", "X-RealSignal-Request": id, "X-RealSignal-Source": "server-source-catalog", "X-RealSignal-Release": apiVersion === "v3" ? V3_RELEASE : "2.2.2" });
+  return json({ profileKey: normalized.profileKey, items: freshFirstItems, ready: freshFirstItems.length, candidates: freshFirstItems.length, catalogDepth: discoveredItems.length, lanes: first.lanes, hydrating: !forceDeepRefresh, adaptiveFreshness: true, freshnessLedger: true, freshnessExcluded: Math.max(0, discoveredItems.length - freshFirstItems.length), freshnessWindow: recentCatalogIds(freshnessBody).size, catalogVersion: "source-server-1", source: forceDeepRefresh ? "server-source-catalog-refresh" : "server-source-catalog", providerAvailability: { youtube: !!env.YOUTUBE_API_KEY && !disabledProviders.has("youtube"), peertube: !disabledProviders.has("peertube"), cooldownProviders: Array.from(disabledProviders) }, limits: SOURCE_LIMITS, apiVersion, release: apiVersion === "v3" ? V3_RELEASE : undefined }, freshFirstItems.length ? 200 : 503, { "Cache-Control": "no-store", "X-RealSignal-Request": id, "X-RealSignal-Source": "server-source-catalog", "X-RealSignal-Release": apiVersion === "v3" ? V3_RELEASE : "2.2.2" });
 }
 
 const worker = {

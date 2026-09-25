@@ -55,6 +55,16 @@ for (const key of ['classic-sitcom-room', 'family-tv-club', 'horror-house', 'wes
   const section = sourceRegistry.slice(start, end >= 0 ? end : sourceRegistry.length);
   if (!section.includes('"intent"') || !section.includes('"formats"') || !/(?:full|complete) (?:episode|movie|performance|concert|play|show)/.test(section)) issues.push(`${key} must use program-form Source Suite discovery instead of history-only searches`);
 }
+for (const [key, terms] of Object.entries({
+  'stage-door': ['"full production"', '"complete opera"'],
+  'variety-hour': ['"full special"', '"complete variety"'],
+  'western-screen': ['"western full film"', '"full-length western"'],
+})) {
+  const start = sourceRegistry.indexOf(`"${key}":`);
+  const next = sourceRegistry.indexOf('\n  },', start);
+  const section = sourceRegistry.slice(start, next >= 0 ? next + 5 : sourceRegistry.length);
+  for (const term of terms) if (!section.includes(term)) issues.push(`${key} must retain its expanded full-program forms`);
+}
 const api = fs.readFileSync(path.join(repo, 'realsignal_api_v2_worker.js'), 'utf8');
 if (!api.includes('const sourceRefreshCache = new Map()') || !api.includes('refresh already scheduled') || !api.includes('forceDeepRefresh') || !api.includes('server-source-catalog-refresh') || !api.includes('freshnessLedger: true')) issues.push('source refreshes must be deduplicated, deep refreshes must return the expanded union, and freshness filtering must preserve newest-first ledger order');
 if (!api.includes('const failed = !skipped && !!health.error;') || !api.includes("COALESCE(last_error, '')<>'no verified items'")) issues.push('an empty Source Suite search must rotate to another query, not trigger or retain a provider cooldown');

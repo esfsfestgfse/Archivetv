@@ -1382,7 +1382,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     ],
     "intent": "performance",
     "topics": ["stage play", "theatre performance", "dance theatre", "live theatre"],
-    "formats": ["full performance", "complete performance", "full play", "complete play", "full show"],
+    "formats": ["full performance", "complete performance", "full play", "complete play", "full show", "full musical", "full production", "full-length play", "entire performance", "complete opera", "full ballet"],
     "queries": ["stage play full performance", "theatre full play", "complete theatre performance", "dance theatre full performance", "live theatre complete show", "classic stage play full", "ballet full performance", "stage musical full performance", "public domain stage play full", "full Broadway musical", "complete opera performance", "full stage production"],
     "match": ["stage play", "theatre performance", "theater performance", "dance theatre", "live theatre", "full performance", "complete play"],
     "deny": [
@@ -1913,7 +1913,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     ],
     "intent": "film",
     "topics": ["horror movie", "horror film", "monster movie", "supernatural film"],
-    "formats": ["full movie", "full film", "feature film", "complete movie", "movie marathon"],
+    "formats": ["full movie", "full film", "feature film", "complete movie", "movie marathon", "full western", "western full film", "full-length western", "complete western", "feature western"],
     "queries": ["classic horror full movie", "public domain horror full movie", "monster movie full movie", "vintage horror feature film", "supernatural horror full film", "classic creature feature full movie", "horror movie marathon", "horror double feature full"],
     "match": ["horror movie", "horror film", "monster movie", "creature feature", "supernatural horror", "full movie", "feature film"],
     "deny": [
@@ -1940,7 +1940,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     ],
     "intent": "film",
     "topics": ["western movie", "western film", "cowboy movie", "frontier film"],
-    "formats": ["full movie", "full film", "feature film", "complete movie", "movie marathon"],
+    "formats": ["full movie", "full film", "feature film", "complete movie", "movie marathon", "full western", "western full film", "full-length western", "complete western", "feature western"],
     "queries": ["classic western full movie", "public domain western full movie", "cowboy movie full film", "frontier western feature film", "vintage western full movie", "western movie marathon", "classic cowboy film full", "western double feature full", "spaghetti western full movie", "silent western full movie", "classic western feature film", "western television movie full"],
     "match": ["western movie", "western film", "cowboy movie", "frontier western", "full movie", "feature film"],
     "deny": [
@@ -2052,7 +2052,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     ],
     "intent": "performance",
     "topics": ["variety show", "vaudeville", "stage revue", "television variety"],
-    "formats": ["full episode", "complete show", "full show", "variety special", "full performance"],
+    "formats": ["full episode", "complete show", "full show", "variety special", "full performance", "full special", "complete variety", "full revue", "complete revue", "full program"],
     "queries": ["classic variety show full episode", "television variety complete show", "vaudeville television full show", "variety special full episode", "classic stage revue full performance", "music comedy variety show full", "variety show marathon", "television variety archive full episode", "family variety show full episode", "classic television special full show", "comedy variety show full episode", "international variety show full"],
     "match": ["variety show", "television variety", "vaudeville", "stage revue", "full episode", "complete show"],
     "deny": [

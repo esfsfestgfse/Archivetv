@@ -28,6 +28,7 @@ const SOURCE_QUERY_WINDOW = 4;
    production. Most lanes stay at four upstream searches; profiles marked
    queryWindow: 6 get extra diversity during background catalog repair only. */
 const SOURCE_MAX_QUERY_WINDOW = 6;
+const SOURCE_YOUTUBE_QUERY_CONCURRENCY = 2;
 const SOURCE_MAX_CONCURRENCY = 4;
 const SOURCE_TIMEOUT_MS = 7000;
 const SOURCE_FIRST_LANE_TIMEOUT_MS = 6500;
@@ -226,7 +227,7 @@ async function youtube(profile, rotation, env) {
   const queries = youtubeQueries(profile, rotation);
   const orders = ["relevance", "date", "viewCount"];
   const order = orders[(Number(rotation) || 0) % orders.length];
-  const jobs = queries.map(async (query) => {
+  const jobs = queries.map((query) => async () => {
     const searchUrl = "https://www.googleapis.com/youtube/v3/search?" + new URLSearchParams({
       part: "snippet",
       type: "video",
@@ -249,7 +250,7 @@ async function youtube(profile, rotation, env) {
       language: text(item.snippet && (item.snippet.defaultAudioLanguage || item.snippet.defaultLanguage), 40),
     })).filter((item) => item.rawId);
   });
-  const candidates = (await Promise.all(jobs)).flat();
+  const candidates = (await mapLimit(jobs, SOURCE_YOUTUBE_QUERY_CONCURRENCY, (job) => job())).flat();
   const ids = unique(candidates).map((item) => item.rawId).slice(0, 75);
   if (!ids.length) return { provider: "YouTube", items: [], health: { searched: queries.length, candidates: 0 } };
   /* videos.list accepts at most 50 IDs. Chunking also means one oversized

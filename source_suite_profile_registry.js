@@ -279,7 +279,8 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   },
   "sound-lab": {
     "name": "The Sound Lab",
-    "queryLimit": 8,
+    "queryLimit": 12,
+    "queryWindow": 6,
     "providers": [
       "peertube",
       "youtube"
@@ -289,7 +290,12 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "acoustics documentary",
       "audio engineering film",
       "radio studio technology film",
-      "recording studio history"
+      "recording studio history",
+      "audio engineering documentary",
+      "recording studio documentary",
+      "radio engineering film",
+      "acoustics film",
+      "sound design documentary"
     ],
     "match": [
       "sound recording",
@@ -1332,7 +1338,8 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   },
   "stage-door": {
     "name": "Stage Door",
-    "queryLimit": 8,
+    "queryLimit": 12,
+    "queryWindow": 6,
     "providers": [
       "peertube",
       "youtube"
@@ -1340,7 +1347,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "intent": "performance",
     "topics": ["stage play", "theatre performance", "dance theatre", "live theatre"],
     "formats": ["full performance", "complete performance", "full play", "complete play", "full show"],
-    "queries": ["stage play full performance", "theatre full play", "complete theatre performance", "dance theatre full performance", "live theatre complete show", "classic stage play full", "ballet full performance", "stage musical full performance"],
+    "queries": ["stage play full performance", "theatre full play", "complete theatre performance", "dance theatre full performance", "live theatre complete show", "classic stage play full", "ballet full performance", "stage musical full performance", "public domain stage play full", "full Broadway musical", "complete opera performance", "full stage production"],
     "match": ["stage play", "theatre performance", "theater performance", "dance theatre", "live theatre", "full performance", "complete play"],
     "deny": [
       "music video",
@@ -1354,7 +1361,8 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   },
   "print-shop": {
     "name": "The Print Shop",
-    "queryLimit": 8,
+    "queryLimit": 12,
+    "queryWindow": 6,
     "providers": [
       "peertube",
       "youtube"
@@ -1364,7 +1372,12 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "typography history film",
       "publishing history documentary",
       "book arts film",
-      "letterpress documentary"
+      "letterpress documentary",
+      "letterpress full documentary",
+      "printing factory documentary",
+      "bookbinding documentary",
+      "typesetting film",
+      "newspaper printing film"
     ],
     "match": [
       "printing history",
@@ -1725,7 +1738,8 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   },
   "screen-test": {
     "name": "Screen Test",
-    "queryLimit": 8,
+    "queryLimit": 12,
+    "queryWindow": 6,
     "providers": [
       "peertube",
       "youtube"
@@ -1735,7 +1749,12 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "film editing history",
       "film studio history documentary",
       "production design cinema film",
-      "documentary about filmmaking"
+      "documentary about filmmaking",
+      "film production documentary full",
+      "cinematography full documentary",
+      "film editing documentary",
+      "production design documentary",
+      "camera film technology documentary"
     ],
     "match": [
       "cinematography",
@@ -1846,7 +1865,8 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   },
   "western-screen": {
     "name": "Western Screen",
-    "queryLimit": 8,
+    "queryLimit": 12,
+    "queryWindow": 6,
     "providers": [
       "peertube",
       "youtube"
@@ -1854,7 +1874,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "intent": "film",
     "topics": ["western movie", "western film", "cowboy movie", "frontier film"],
     "formats": ["full movie", "full film", "feature film", "complete movie", "movie marathon"],
-    "queries": ["classic western full movie", "public domain western full movie", "cowboy movie full film", "frontier western feature film", "vintage western full movie", "western movie marathon", "classic cowboy film full", "western double feature full"],
+    "queries": ["classic western full movie", "public domain western full movie", "cowboy movie full film", "frontier western feature film", "vintage western full movie", "western movie marathon", "classic cowboy film full", "western double feature full", "spaghetti western full movie", "silent western full movie", "classic western feature film", "western television movie full"],
     "match": ["western movie", "western film", "cowboy movie", "frontier western", "full movie", "feature film"],
     "deny": [
       "music video",
@@ -1957,7 +1977,8 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   },
   "variety-hour": {
     "name": "Variety Hour",
-    "queryLimit": 8,
+    "queryLimit": 12,
+    "queryWindow": 6,
     "providers": [
       "peertube",
       "youtube"
@@ -1965,7 +1986,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "intent": "performance",
     "topics": ["variety show", "vaudeville", "stage revue", "television variety"],
     "formats": ["full episode", "complete show", "full show", "variety special", "full performance"],
-    "queries": ["classic variety show full episode", "television variety complete show", "vaudeville television full show", "variety special full episode", "classic stage revue full performance", "music comedy variety show full", "variety show marathon", "television variety archive full episode"],
+    "queries": ["classic variety show full episode", "television variety complete show", "vaudeville television full show", "variety special full episode", "classic stage revue full performance", "music comedy variety show full", "variety show marathon", "television variety archive full episode", "family variety show full episode", "classic television special full show", "comedy variety show full episode", "international variety show full"],
     "match": ["variety show", "television variety", "vaudeville", "stage revue", "full episode", "complete show"],
     "deny": [
       "music video",
@@ -2005,7 +2026,8 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   },
   "travel-reel": {
     "name": "Travel Reel",
-    "queryLimit": 8,
+    "queryLimit": 12,
+    "queryWindow": 6,
     "providers": [
       "peertube",
       "youtube"
@@ -2015,7 +2037,12 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "destination documentary film",
       "tourism film archive",
       "travel television history",
-      "cultural travel documentary"
+      "cultural travel documentary",
+      "travel documentary full",
+      "classic travel film",
+      "world travel documentary full",
+      "railway travel film",
+      "national parks travel film"
     ],
     "match": [
       "travel film history",

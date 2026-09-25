@@ -448,7 +448,8 @@ function catalogFallbackAllowed(item, body) {
   const laneAliases = String(body && body.channel || "") === "917"
     ? ["metallica", "black sabbath", "ozzy osbourne", "motorhead", "motörhead", "judas priest", "iron maiden", "slayer"].concat(channelAliases)
     : channelAliases;
-  const themeTerms = Array.isArray(body && body.themeTerms) ? body.themeTerms.concat(laneAliases) : laneAliases;
+  const persistedMatch = Array.isArray(body && body.persistedMatch) ? body.persistedMatch : [];
+  const themeTerms = Array.isArray(body && body.themeTerms) ? body.themeTerms.concat(persistedMatch, laneAliases) : persistedMatch.concat(laneAliases);
   if (strictManufacturingLane && !manufacturingSubjectMatch) return false;
   /* Relay items have already passed the strict Archive genre/deny gates. Keep
      that provenance when V2 sees an expanded episode whose child filename does
@@ -488,10 +489,14 @@ function catalogFallbackAllowed(item, body) {
       const formats = Array.isArray(body.programFormats) ? body.programFormats : [];
       const topics = Array.isArray(body.topics) ? body.topics : [];
       if (programDeny.test(haystack)) return false;
+      const persistedSignal = persistedMatch.some((term) => {
+        const needle = String(term || "").trim().toLowerCase();
+        return needle && haystack.includes(needle);
+      });
       if (topics.length && !topics.some((term) => {
         const needle = String(term || "").trim().toLowerCase();
         return needle && haystack.includes(needle);
-      })) return false;
+      }) && !(body.persistedRelaxed === true && persistedSignal)) return false;
       if (formats.length && !formats.some((term) => {
         const needle = String(term || "").trim().toLowerCase();
         return needle && title.includes(needle);
@@ -1085,6 +1090,8 @@ async function handleSourceStatus(request, env) {
     intent: profile.intent,
     topics: profile.topics,
     programFormats: profile.formats,
+    persistedRelaxed: profile.persistedRelaxed,
+    persistedMatch: profile.persistedMatch,
     themeMinScore: 1,
   }, SOURCE_LIMITS.SOURCE_MAX_ITEMS, { ignoreFreshness: true });
   const cooldowns = await readSourceCooldowns(env, profile.profileKey);
@@ -1187,6 +1194,8 @@ async function handleSourceCatalog(request, env, ctx, id) {
     intent: profile.intent,
     topics: profile.topics,
     programFormats: profile.formats,
+    persistedRelaxed: profile.persistedRelaxed,
+    persistedMatch: profile.persistedMatch,
     themeMinScore: 1,
     recentIds: sourceRecentIds,
     freshnessLedger: true,

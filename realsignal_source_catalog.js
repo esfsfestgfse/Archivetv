@@ -112,6 +112,8 @@ function normalizedProfile(body) {
     intent: text(approved.intent, 40).toLowerCase(),
     topics: list(approved.topics, 32),
     formats: list(approved.formats, 24),
+    persistedRelaxed: approved.persistedRelaxed === true,
+    persistedMatch: list(approved.persistedMatch, 24),
     providers: list(approved.providers, 2).map((value) => value.toLowerCase()),
   };
 }

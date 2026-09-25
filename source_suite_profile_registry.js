@@ -1636,6 +1636,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "name": "Green Culture",
     "queryLimit": 8,
     "queryWindow": 6,
+    "persistedMatch": ["cannabis", "marijuana", "hemp"],
     "providers": [
       "peertube",
       "youtube"
@@ -2037,6 +2038,8 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "name": "Family TV Club",
     "queryLimit": 8,
     "queryWindow": 6,
+    "persistedRelaxed": true,
+    "persistedMatch": ["full episode", "complete episode", "full show", "television program"],
     "providers": [
       "peertube",
       "youtube"
@@ -2095,13 +2098,15 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   "jukebox-television": {
     "name": "Jukebox Television",
     "queryLimit": 8,
+    "persistedRelaxed": true,
+    "persistedMatch": ["concert", "live music", "music television", "music documentary"],
     "providers": [
       "peertube",
       "youtube"
     ],
     "intent": "performance",
     "topics": ["music performance", "concert", "music television", "live band"],
-    "formats": ["full concert", "full performance", "complete show", "live set", "full episode"],
+    "formats": ["full concert", "full performance", "complete show", "live set", "live music", "full episode"],
     "queries": ["music television full episode", "classic concert full performance", "live band full concert", "music variety show complete episode", "television music special full", "classic live performance full show", "concert television full episode", "music program full performance"],
     "match": ["music performance", "full concert", "live band", "music television", "music variety show", "full performance"],
     "deny": [

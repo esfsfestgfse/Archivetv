@@ -208,6 +208,15 @@ function youtubeDuration(value) {
   return isoDuration(value);
 }
 
+function youtubeSearchDuration(rotation) {
+  /* YouTube's API defines “long” as over twenty minutes, while RealSignal's
+     television floor is fifteen. Alternate the API buckets across catalog
+     rotations, then retain the shared >=15-minute verifier below. This grows
+     the catalog with valid 15–20 minute programs without doubling search
+     quota or admitting short-form video. */
+  return Math.abs(Number(rotation) || 0) % 2 ? "medium" : "long";
+}
+
 async function youtube(profile, rotation, env) {
   const key = text(env && env.YOUTUBE_API_KEY, 180);
   if (!key) return { provider: "YouTube", items: [], health: { skipped: true, reason: "YOUTUBE_API_KEY not configured" } };
@@ -218,7 +227,7 @@ async function youtube(profile, rotation, env) {
     const searchUrl = "https://www.googleapis.com/youtube/v3/search?" + new URLSearchParams({
       part: "snippet",
       type: "video",
-      videoDuration: "long",
+      videoDuration: youtubeSearchDuration(rotation),
       videoEmbeddable: "true",
       maxResults: "25",
       order,

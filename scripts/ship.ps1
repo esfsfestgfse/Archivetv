@@ -32,7 +32,7 @@ try {
 
   & $node 'scripts/check-html-syntax.js'
   if ($LASTEXITCODE -ne 0) { throw 'HTML validation failed.' }
-  foreach ($contract in @('check-channel-registry.js', 'check-source-suite-contract.js', 'check-cast-contract.js')) {
+  foreach ($contract in @('check-channel-registry.js', 'check-source-suite-contract.js', 'check-cast-contract.js', 'test-ia-hybrid-lineup.js')) {
     & $node (Join-Path 'scripts' $contract)
     if ($LASTEXITCODE -ne 0) { throw "Release contract failed: $contract" }
   }
@@ -41,15 +41,15 @@ try {
     $current = Get-Stamp (Get-Content -LiteralPath $file -Raw)
     $previous = Get-Stamp ((git @gitArgs show "HEAD:$file") -join "`n")
     if (-not $current -or -not $previous) { throw "Could not read build stamp for $file." }
-    $currentMatch = [regex]::Match($current, '\.(\d+)(?:-[^.]+)*$')
-    $previousMatch = [regex]::Match($previous, '\.(\d+)(?:-[^.]+)*$')
+    $currentMatch = [regex]::Match($current, '^(\d+\.\d+\.\d+)')
+    $previousMatch = [regex]::Match($previous, '^(\d+\.\d+\.\d+)')
     if (-not $currentMatch.Success -or -not $previousMatch.Success) {
       throw "Could not parse numeric build stamp for $file ($previous -> $current)."
     }
-    $currentNumber = [int]$currentMatch.Groups[1].Value
-    $previousNumber = [int]$previousMatch.Groups[1].Value
+    $currentVersion = [version]$currentMatch.Groups[1].Value
+    $previousVersion = [version]$previousMatch.Groups[1].Value
     $changed = @(git @gitArgs diff --name-only -- $file)
-    if ($changed -and $currentNumber -le $previousNumber) {
+    if ($changed -and $currentVersion -le $previousVersion) {
       throw "$file changed without a build-stamp bump ($previous -> $current)."
     }
   }

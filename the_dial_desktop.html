@@ -1627,7 +1627,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="3.1.4-desktop.source-strict-catalog";
+window.__ATV_BUILD="4.0.0-desktop-hybrid-lineup";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -2029,9 +2029,27 @@ const G={
  action:     {mt:"movies",col:[],                       fcol:["feature_films"],subj:["adventure","serial"],       era:[1935,1965]},
  mystery:    {mt:"movies",col:[],                       fcol:["feature_films"],subj:["mystery","detective"],      era:[1940,1965]},
  musicfilm:  {mt:"movies",col:["artsandmusicvideos"],   fcol:["feature_films"],subj:["musical","music"],          era:[1935,1969],subjRequired:true,noBlindFallback:true},
- sitcom:     {mt:"movies",col:["classic_tv"],           fcol:["feature_films"],subj:["sitcom","television comedy"],era:[1950,1969]},
- sitcommodern:{mt:"movies",col:["classic_tv","television"],fcol:["vhsvault"],   subj:["sitcom","television comedy","television series","tv series"],era:[1970,2003]}, /* CYCLE-10: VHS Vault fallback tier (subject-scoped) for the thin post-85 years */
- gameshow:   {mt:"movies",col:["classic_tv","television"],fcol:["vhsvault"],     subj:["game show","quiz show","panel show","game shows"],not:FNOT,era:[1950,2026],subjRequired:true,noBlindFallback:true}, /* CYCLE-14: ONLY game shows, every era */
+ sitcom:     {mt:"movies",col:["classic_tv"],           fcol:["feature_films"],subj:["sitcom","television comedy"],era:[1930,1989]},
+ sitcommodern:{mt:"movies",col:["classic_tv","television"],fcol:["vhsvault"],   subj:["sitcom","television comedy","television series","tv series"],era:[1980,2026]}, /* Modern station: 1980s through today. */
+ gameshow:   {mt:"movies",col:["classic_tv","television"],fcol:["vhsvault"],     subj:["game show","quiz show","panel show","game shows"],not:FNOT,era:[1940,2026],subjRequired:true,noBlindFallback:true}, /* CYCLE-14: ONLY game shows, every era */
+ /* Version 4 era stations: strict decade lanes, grouped early years, no blind fallback. */
+ tv_early:   {mt:"movies",col:["classic_tv","television"],fcol:[],subj:[],era:[1930,1949],noBlindFallback:true,not:FNOT},
+ tv_1950s:   {mt:"movies",col:["classic_tv","television"],fcol:[],subj:[],era:[1950,1959],noBlindFallback:true,not:FNOT},
+ tv_1960s:   {mt:"movies",col:["classic_tv","television"],fcol:[],subj:[],era:[1960,1969],noBlindFallback:true,not:FNOT},
+ tv_1970s:   {mt:"movies",col:["classic_tv","television"],fcol:[],subj:[],era:[1970,1979],noBlindFallback:true,not:FNOT},
+ tv_1980s:   {mt:"movies",col:["classic_tv","television"],fcol:[],subj:[],era:[1980,1989],noBlindFallback:true,not:FNOT},
+ tv_1990s:   {mt:"movies",col:["classic_tv","television"],fcol:[],subj:[],era:[1990,1999],noBlindFallback:true,not:FNOT},
+ tv_2000s:   {mt:"movies",col:["classic_tv","television"],fcol:[],subj:[],era:[2000,2009],noBlindFallback:true,not:FNOT},
+ tv_2010s:   {mt:"movies",col:["classic_tv","television"],fcol:[],subj:[],era:[2010,2026],noBlindFallback:true,not:FNOT},
+ movie_early:{mt:"movies",col:[],fcol:["feature_films","feature_films_unsorted","opensource_movies"],subj:[],era:[1900,1949],noBlindFallback:true,not:FNOT},
+ movie_1950s:{mt:"movies",col:[],fcol:["feature_films","feature_films_unsorted","opensource_movies"],subj:[],era:[1950,1959],noBlindFallback:true,not:FNOT},
+ movie_1960s:{mt:"movies",col:[],fcol:["feature_films","feature_films_unsorted","opensource_movies"],subj:[],era:[1960,1969],noBlindFallback:true,not:FNOT},
+ movie_1970s:{mt:"movies",col:[],fcol:["feature_films","feature_films_unsorted","opensource_movies"],subj:[],era:[1970,1979],noBlindFallback:true,not:FNOT},
+ movie_1980s:{mt:"movies",col:[],fcol:["feature_films","feature_films_unsorted","opensource_movies"],subj:[],era:[1980,1989],noBlindFallback:true,not:FNOT},
+ movie_1990s:{mt:"movies",col:[],fcol:["feature_films","feature_films_unsorted","opensource_movies"],subj:[],era:[1990,1999],noBlindFallback:true,not:FNOT},
+ movie_2000s:{mt:"movies",col:[],fcol:["feature_films","feature_films_unsorted","opensource_movies"],subj:[],era:[2000,2009],noBlindFallback:true,not:FNOT},
+ movie_2010s:{mt:"movies",col:[],fcol:["feature_films","feature_films_unsorted","opensource_movies"],subj:[],era:[2010,2019],noBlindFallback:true,not:FNOT},
+ movie_2020s:{mt:"movies",col:[],fcol:["feature_films","feature_films_unsorted","opensource_movies"],subj:[],era:[2020,2026],noBlindFallback:true,not:FNOT},
  computer:   {mt:"movies",col:["computerchronicles"],   fcol:[],               subj:[],                           era:[1983,2002]},
  commercials:{mt:"movies",col:["classic_tv","prelinger"],fcol:[],              subj:["television commercials","advertising","toy commercial","toy advertisement","commercial","commercials","vintage commercial","retro commercial","classic commercial","tv commercial"],era:[1948,1995]},
  blackcinema:{mt:"movies",col:[],                       fcol:["feature_films"],       subj:["race film","black cinema","oscar micheaux","all black cast","african american film","spike lee","john singleton","julie dash","charles burnett","ava duvernay","barry jenkins","ryan coogler","jordan peele","denzel washington","sidney poitier","morgan freeman"],not:FNOT,era:[1915,2026]},
@@ -2220,10 +2238,27 @@ const CH=[
  {nm:"Midnight Matinee", num:132,  cat:"MOV", gl:"midnightmatinee", era:[1940,2026], ns:"movie"},
  {nm:"The Stage Door", num:133,    cat:"MOV", gl:"stagedoor", era:[1930,2026], ns:"movie"},
  {nm:"Darcys Playground", num:134, cat:"MOV", gl:"darcysplayground", era:[1970,2026], ns:"movie"},
+ {nm:"Early Cinema", num:260, cat:"MOV", gl:"movie_early", era:[1900,1949], ns:"movie", station:"era"},
+ {nm:"1950s Movies", num:261, cat:"MOV", gl:"movie_1950s", era:[1950,1959], ns:"movie", station:"era"},
+ {nm:"1960s Movies", num:262, cat:"MOV", gl:"movie_1960s", era:[1960,1969], ns:"movie", station:"era"},
+ {nm:"1970s Movies", num:263, cat:"MOV", gl:"movie_1970s", era:[1970,1979], ns:"movie", station:"era"},
+ {nm:"1980s Movies", num:264, cat:"MOV", gl:"movie_1980s", era:[1980,1989], ns:"movie", station:"era"},
+ {nm:"1990s Movies", num:265, cat:"MOV", gl:"movie_1990s", era:[1990,1999], ns:"movie", station:"era"},
+ {nm:"2000s Movies", num:266, cat:"MOV", gl:"movie_2000s", era:[2000,2009], ns:"movie", station:"era"},
+ {nm:"2010s Movies", num:267, cat:"MOV", gl:"movie_2010s", era:[2010,2019], ns:"movie", station:"era"},
+ {nm:"2020s Movies", num:268, cat:"MOV", gl:"movie_2020s", era:[2020,2026], ns:"movie", station:"era"},
 
- {nm:"Classic Rerun TV", num:10,  cat:"TV", gl:"sitcom",       era:[1950,1969], ns:"tv"},
+ {nm:"Classic Rerun TV", num:10,  cat:"TV", gl:"sitcom",       era:[1930,1989], ns:"tv"},
  {nm:"Modern Rerun TV", num:11,   cat:"TV", gl:"sitcommodern", era:[1980,2026], ns:"tv"},
  {nm:"Game Show Channel", num:12, cat:"TV", gl:"gameshow",     era:[1940,2026], ns:"tv"},
+ {nm:"Early Television", num:243, cat:"TV", gl:"tv_early", era:[1930,1949], ns:"tv", station:"era"},
+ {nm:"1950s Television", num:244, cat:"TV", gl:"tv_1950s", era:[1950,1959], ns:"tv", station:"era"},
+ {nm:"1960s Television", num:245, cat:"TV", gl:"tv_1960s", era:[1960,1969], ns:"tv", station:"era"},
+ {nm:"1970s Television", num:246, cat:"TV", gl:"tv_1970s", era:[1970,1979], ns:"tv", station:"era"},
+ {nm:"1980s Television", num:247, cat:"TV", gl:"tv_1980s", era:[1980,1989], ns:"tv", station:"era"},
+ {nm:"1990s Television", num:248, cat:"TV", gl:"tv_1990s", era:[1990,1999], ns:"tv", station:"era"},
+ {nm:"2000s Television", num:249, cat:"TV", gl:"tv_2000s", era:[2000,2009], ns:"tv", station:"era"},
+ {nm:"2010s & Now Television", num:250, cat:"TV", gl:"tv_2010s", era:[2010,2026], ns:"tv", station:"era"},
  {nm:"Old Nick", num:19, cat:"TV", gl:"nickatnite", era:[1950,1985], ns:"tv"}, /* Nick at Nite era classic sitcoms — moved 13→19 to clear collision with Vintage Commercials */
  {nm:"The Court Room", num:20, cat:"TV", gl:"courtroom", era:[1980,2020], ns:"tv"}, /* Judge shows — People's Court, Judge Judy, Judge Wapner — moved 14→20 to clear Computer Chronicles collision */
  {nm:"Vintage Commercials", num:13,cat:"TV",gl:"commercials",  era:[1948,1985], ns:"tv"},
@@ -5363,7 +5398,7 @@ const PROGRAM = {
   /* Classic Rerun TV (ch 10) — Phase 3 overhaul 2026-08-08. 1950s-60s TV canon
      including anthologies, live-drama, variety-show era. */
   "Classic Rerun TV": {
-    genre: "sitcom", era: [1948, 1975],
+    genre: "sitcom", era: [1930, 1989],
     providers: [
       { collections: ["classic_tv", "classic_tv_1950s", "classic_tv_1960s", "classic_tv_1970s", "television"], require_subj: [
         "i love lucy","the honeymooners","the jack benny show","the jack benny program","jack benny",
@@ -6173,6 +6208,25 @@ const PROGRAM = {
     deny:{title:["full movie","feature film","trailer","commercial","reaction","review","podcast","fan edit","fan-made","gameplay","music video","horror game","wrestling movie"],subject:["feature film","trailer","commercial","reaction","review","podcast","fan edit","gameplay","music video","horror game","wrestling"]},
     subjRotate:true,subjRequired:true,noBlindFallback:true
   },
+  /* Version 4 era stations use collection-wide, exact-year rails. Their
+     catalog health is measured separately from broad genre stations. */
+  "Early Television": {genre:"tv_early",era:[1930,1949],wideCollections:["classic_tv","television"],deny:{title:["commercial","trailer","cartoon","radio"],subject:["commercial","trailer","cartoon","radio"]},noBlindFallback:true},
+  "1950s Television": {genre:"tv_1950s",era:[1950,1959],wideCollections:["classic_tv","television"],deny:{title:["commercial","trailer","cartoon","radio"],subject:["commercial","trailer","cartoon","radio"]},noBlindFallback:true},
+  "1960s Television": {genre:"tv_1960s",era:[1960,1969],wideCollections:["classic_tv","television"],deny:{title:["commercial","trailer","cartoon","radio"],subject:["commercial","trailer","cartoon","radio"]},noBlindFallback:true},
+  "1970s Television": {genre:"tv_1970s",era:[1970,1979],wideCollections:["classic_tv","television"],deny:{title:["commercial","trailer","cartoon","radio"],subject:["commercial","trailer","cartoon","radio"]},noBlindFallback:true},
+  "1980s Television": {genre:"tv_1980s",era:[1980,1989],wideCollections:["classic_tv","television"],deny:{title:["commercial","trailer","cartoon","radio"],subject:["commercial","trailer","cartoon","radio"]},noBlindFallback:true},
+  "1990s Television": {genre:"tv_1990s",era:[1990,1999],wideCollections:["classic_tv","television"],deny:{title:["commercial","trailer","cartoon","radio"],subject:["commercial","trailer","cartoon","radio"]},noBlindFallback:true},
+  "2000s Television": {genre:"tv_2000s",era:[2000,2009],wideCollections:["classic_tv","television"],deny:{title:["commercial","trailer","cartoon","radio"],subject:["commercial","trailer","cartoon","radio"]},noBlindFallback:true},
+  "2010s & Now Television": {genre:"tv_2010s",era:[2010,2026],wideCollections:["classic_tv","television"],deny:{title:["commercial","trailer","cartoon","radio"],subject:["commercial","trailer","cartoon","radio"]},noBlindFallback:true},
+  "Early Cinema": {genre:"movie_early",era:[1900,1949],wideCollections:["feature_films","feature_films_unsorted","opensource_movies"],deny:{title:["trailer","commercial","cartoon compilation"],subject:["trailer","commercial","television episode"]},noBlindFallback:true},
+  "1950s Movies": {genre:"movie_1950s",era:[1950,1959],wideCollections:["feature_films","feature_films_unsorted","opensource_movies"],deny:{title:["trailer","commercial","cartoon compilation"],subject:["trailer","commercial","television episode"]},noBlindFallback:true},
+  "1960s Movies": {genre:"movie_1960s",era:[1960,1969],wideCollections:["feature_films","feature_films_unsorted","opensource_movies"],deny:{title:["trailer","commercial","cartoon compilation"],subject:["trailer","commercial","television episode"]},noBlindFallback:true},
+  "1970s Movies": {genre:"movie_1970s",era:[1970,1979],wideCollections:["feature_films","feature_films_unsorted","opensource_movies"],deny:{title:["trailer","commercial","cartoon compilation"],subject:["trailer","commercial","television episode"]},noBlindFallback:true},
+  "1980s Movies": {genre:"movie_1980s",era:[1980,1989],wideCollections:["feature_films","feature_films_unsorted","opensource_movies"],deny:{title:["trailer","commercial","cartoon compilation"],subject:["trailer","commercial","television episode"]},noBlindFallback:true},
+  "1990s Movies": {genre:"movie_1990s",era:[1990,1999],wideCollections:["feature_films","feature_films_unsorted","opensource_movies"],deny:{title:["trailer","commercial","cartoon compilation"],subject:["trailer","commercial","television episode"]},noBlindFallback:true},
+  "2000s Movies": {genre:"movie_2000s",era:[2000,2009],wideCollections:["feature_films","feature_films_unsorted","opensource_movies"],deny:{title:["trailer","commercial","cartoon compilation"],subject:["trailer","commercial","television episode"]},noBlindFallback:true},
+  "2010s Movies": {genre:"movie_2010s",era:[2010,2019],wideCollections:["feature_films","feature_films_unsorted","opensource_movies"],deny:{title:["trailer","commercial","cartoon compilation"],subject:["trailer","commercial","television episode"]},noBlindFallback:true},
+  "2020s Movies": {genre:"movie_2020s",era:[2020,2026],wideCollections:["feature_films","feature_films_unsorted","opensource_movies"],deny:{title:["trailer","commercial","cartoon compilation"],subject:["trailer","commercial","television episode"]},noBlindFallback:true},
   "Prelinger Vault": {
     genre:"industrial", era:[1930,1989], show:"Prelinger Vault",
     eraBuckets:[[1930,1944],[1945,1959],[1960,1974],[1975,1989]],
@@ -6189,9 +6243,9 @@ const PROGRAM = {
    Provider/deny definitions above remain the authority for channel identity. */
 const PROGRAM_EDITORIAL={
   "Darcys Playground":{eraBuckets:[[1984,1989],[1990,1995],[1996,2000],[2012,2018],[2019,2026]],topicBuckets:[["joe bob's drive-in theater"],["tnt monstervision","monstervision"],["joe bob briggs","monstervision"],["the last drive-in","last drive in"],["joe bob family reunion","joe bob tcm"]]},
-  "Classic Rerun TV":{eraBuckets:[[1950,1955],[1956,1962],[1963,1969],[1970,1975]],topicBuckets:[["family sitcom","situation comedy"],["variety show","comedy variety"],["anthology series","television drama"],["detective tv","crime tv"]]},
-  "Modern Rerun TV":{eraBuckets:[[1976,1984],[1985,1992],[1993,1999],[2000,2026]],topicBuckets:[["family sitcom"],["workplace sitcom"],["ensemble sitcom"],["syndicated comedy"]]},
-  "Game Show Channel":{eraBuckets:[[1950,1959],[1960,1969],[1970,1979],[1980,1989],[1990,1999],[2000,2026]],topicBuckets:[["panel show"],["quiz show"],["word game"],["pricing game"],["dating game"],["stunt game"]]},
+  "Classic Rerun TV":{eraBuckets:[[1930,1939],[1940,1949],[1950,1959],[1960,1969],[1970,1979],[1980,1989]],topicBuckets:[["variety show","comedy variety"],["anthology series","television drama"],["family sitcom","situation comedy"],["detective tv","crime tv"],["variety show","comedy series"],["television comedy","television series"]]},
+  "Modern Rerun TV":{eraBuckets:[[1980,1989],[1990,1999],[2000,2009],[2010,2026]],topicBuckets:[["family sitcom"],["workplace sitcom"],["ensemble sitcom"],["syndicated comedy"]]},
+  "Game Show Channel":{eraBuckets:[[1940,1949],[1950,1959],[1960,1969],[1970,1979],[1980,1989],[1990,1999],[2000,2026]],topicBuckets:[["panel show"],["quiz show"],["word game"],["pricing game"],["dating game"],["stunt game"],["game show","quiz show"]]},
   "Vintage Commercials":{eraBuckets:[[1930,1949],[1950,1959],[1960,1969],[1970,1979],[1980,1989],[1990,1999],[2000,2009],[2010,2019],[2020,2026]],topicBuckets:[["food commercial"],["automobile commercial"],["toy commercial"],["technology commercial"],["household commercial"],["public service announcement"],["brand commercial"],["product commercial"],["commercial break"]]},
   "Computer Chronicles":{eraBuckets:[[1975,1982],[1983,1989],[1990,1995],[1996,2005]],topicBuckets:[["home computer"],["business pc"],["software"],["networking"],["early internet"],["computer television"]]},
   "Public Access TV":{eraBuckets:[[1975,1984],[1985,1994],[1995,2005],[2006,2015]],topicBuckets:[["civic meeting"],["local arts"],["call-in show"],["local performance"],["community affairs"]]},

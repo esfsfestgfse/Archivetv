@@ -33,7 +33,7 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
     ['REALSIGNAL_COMMAND', 'must use the receiver remote-control protocol'],
   ]) if (!source.includes(token)) issues.push(`${file}: ${reason}`);
   const stamp = (source.match(/window\.__ATV_BUILD\s*=\s*"([^"]+)"/) || [])[1];
-  if (!/^3\.\d+\.\d+-(desktop|mobile)\.[a-z0-9-]+$/.test(stamp || '')) issues.push(`${file}: must carry a current release build stamp`);
+  if (!/^(?:3|4)\.\d+\.\d+-(desktop|mobile)[.-][a-z0-9-]+$/.test(stamp || '')) issues.push(`${file}: must carry a current release build stamp`);
 }
 const receiver = fs.readFileSync(path.join(repo, 'realsignal_cast_receiver.html'), 'utf8');
 for (const token of ['cast_receiver_framework.js', 'addCustomMessageListener', 'REALSIGNAL_STATE', 'REALSIGNAL_TUNE', 'REALSIGNAL_GUIDE', 'REALSIGNAL_CAST_ERROR', 'REALSIGNAL_CAST_ENDED', 'sendCustomMessage', 'desiredChannel', 'cast-media-player', 'getPlayerManager', 'mediaContentType', 'renderGuide', 'playableEmbedUrl', 'loadEmbed', 'embedCommand', 'pauseVideo', 'playVideo', 'MEDIA_FINISHED', 'PAUSE', 'VOLUME', 'ensureDirector', 'directorActive', 'pendingState', 'postToApp(data)']) if (!receiver.includes(token)) issues.push(`receiver: missing ${token}`);

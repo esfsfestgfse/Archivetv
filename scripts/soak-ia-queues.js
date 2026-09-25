@@ -146,11 +146,13 @@ async function probeRotation(row, rotationOffset) {
       lastExhaustion = body && body.v2 && typeof body.v2 === 'object' ? {
         catalogSize: Number(body.v2.catalogSize) || 0,
         seenInCatalog: Number(body.v2.seenInCatalog) || 0,
+        seenInCatalogBeforeSelection: Number(body.v2.seenInCatalogBeforeSelection) || 0,
         unseenBeforeSelection: Number(body.v2.unseenBeforeSelection) || 0,
         unseenAfterSelection: Number(body.v2.unseenAfterSelection) || 0,
         catalogExhausted: Boolean(body.v2.catalogExhausted),
         cycleReset: Boolean(body.v2.cycleReset),
         repeatAllowed: Boolean(body.v2.repeatAllowed),
+        selectionRepeatIds: Array.isArray(body.v2.selectionRepeatIds) ? body.v2.selectionRepeatIds : [],
       } : null;
       const responseWasWarmFallback = lastFallback === '1' || Boolean(body && body.stale);
       if (responseWasWarmFallback) sawWarmFallback = true;

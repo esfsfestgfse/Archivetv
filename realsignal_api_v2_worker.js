@@ -384,8 +384,21 @@ async function rotateShelf(env, body, payload, request) {
     return Boolean((media && media.url) || item && item.mediaUrl || item && item.url);
   }).length;
   const selectedReady = Math.max(upstreamReady, playableSelected);
+  /* A loaded catalog must never return a previously seen item while the DO
+     still reports unseen material. A rare stale/racing shelf can violate that
+     invariant when the upstream candidate window changes during a burst. Ask
+     the same DO once more; it now has the first selection in its seen ledger
+     and will advance to the remaining unseen rows. A true exhausted cycle is
+     still allowed to repeat and is reported explicitly. */
+  if (!selected.cycleReset && Array.isArray(selected.selectionRepeatIds) && selected.selectionRepeatIds.length) {
+    const retry = await stub.fetch(new Request("https://rotation.internal/select", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ items: candidates, recentIds: boundedRecentIds.concat(selected.selectionRepeatIds), count, rotation: Number(selected.cursor) || 0 }) }));
+    if (retry.ok) {
+      const retrySelected = await retry.json();
+      if (retrySelected && (!Array.isArray(retrySelected.selectionRepeatIds) || !retrySelected.selectionRepeatIds.length || retrySelected.cycleReset)) Object.assign(selected, retrySelected);
+    }
+  }
   const exhaustion = selected && selected.exhaustion && typeof selected.exhaustion === 'object' ? selected.exhaustion : {};
-  return { payload: { ...payload, items: selectedItems, candidateItems: selectedCatalog, candidates: selectedCatalog.length, ready: Math.min(selectedReady, selectedItems.length), v2: { sessionScoped: true, cursor: selected.cursor, cycleReset: !!selected.cycleReset, catalogSize: Number(selected.catalogSize) || selectedCatalog.length, catalogAdded: Number(selected.catalogAdded) || 0, unseen: Number(selected.unseen) || 0, seenInCatalog: Number(exhaustion.seenInCatalog) || 0, unseenBeforeSelection: Number(exhaustion.unseenBeforeSelection) || 0, unseenAfterSelection: Number(exhaustion.unseenAfterSelection) || 0, catalogExhausted: !!exhaustion.catalogExhausted, repeatAllowed: !!exhaustion.repeatAllowed } }, rotation: selected };
+  return { payload: { ...payload, items: selectedItems, candidateItems: selectedCatalog, candidates: selectedCatalog.length, ready: Math.min(selectedReady, selectedItems.length), v2: { sessionScoped: true, cursor: selected.cursor, cycleReset: !!selected.cycleReset, catalogSize: Number(selected.catalogSize) || selectedCatalog.length, catalogAdded: Number(selected.catalogAdded) || 0, unseen: Number(selected.unseen) || 0, seenInCatalog: Number(exhaustion.seenInCatalog) || 0, seenInCatalogBeforeSelection: Number(exhaustion.seenInCatalogBeforeSelection) || 0, unseenBeforeSelection: Number(exhaustion.unseenBeforeSelection) || 0, unseenAfterSelection: Number(exhaustion.unseenAfterSelection) || 0, catalogExhausted: !!exhaustion.catalogExhausted, repeatAllowed: !!exhaustion.repeatAllowed, selectionRepeatIds: Array.isArray(selected.selectionRepeatIds) ? selected.selectionRepeatIds : [] } }, rotation: selected };
 }
 
 function rotateCatalogItems(items, rotation) {

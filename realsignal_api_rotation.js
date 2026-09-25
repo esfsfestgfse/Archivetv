@@ -92,7 +92,9 @@ export class SessionRotation {
     const limit = Math.max(1, Math.min(5, Number(body && body.count) || 3));
     const selected = ordered.slice(0, limit);
     const selectedIds = selected.map(itemId).filter(Boolean);
+    const selectionRepeatIds = cycleReset ? [] : selectedIds.filter((id) => prior.has(id));
     const seenAfterSelection = new Set(cycleReset ? selectedIds : current.seen.concat(selectedIds));
+    const seenInCatalogBeforeSelection = catalog.filter((item) => prior.has(itemId(item))).length;
     const unseenAfterSelection = catalog.filter((item) => !seenAfterSelection.has(itemId(item))).length;
     const seenInCatalog = catalog.length - unseenAfterSelection;
     const next = {
@@ -115,12 +117,14 @@ export class SessionRotation {
       exhaustion: {
         catalogSize: catalog.length,
         seenInCatalog,
+        seenInCatalogBeforeSelection,
         unseenBeforeSelection: cycleReset ? 0 : fresh.length,
         unseenAfterSelection,
         catalogExhausted: cycleReset,
         cycleReset,
         repeatAllowed: cycleReset,
       },
+      selectionRepeatIds,
     });
   }
 }

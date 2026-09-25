@@ -62,7 +62,10 @@ const YOUTUBE_SPORT_HANDLES = new Set([
 ]);
 const YOUTUBE_TIMEOUT_MS = 6500;
 const RATE_LIMITS = Object.freeze({
-  "source-catalog": Object.freeze({ windowMs: 60_000, max: 30 }),
+  /* A viewer can move through a large Source Suite without the edge guard
+     mistaking normal tuning for abuse. Provider work is still deduplicated
+     below and the upstream adapters remain bounded. */
+  "source-catalog": Object.freeze({ windowMs: 60_000, max: 60 }),
   queue: Object.freeze({ windowMs: 60_000, max: 60 }),
   "youtube-uploads": Object.freeze({ windowMs: 60_000, max: 30 }),
 });
@@ -72,6 +75,7 @@ const RATE_LIMITS = Object.freeze({
 const requestBuckets = new Map();
 const freshnessReadCache = new Map();
 const shallowCatalogRefreshCache = new Map();
+const sourceRefreshCache = new Map();
 
 function corsHeaders(contentType = "application/json; charset=utf-8") {
   return {
@@ -544,7 +548,7 @@ async function rememberFreshness(env, channel, items, ctx) {
   const ids = [];
   const seen = new Set();
   for (const item of Array.isArray(items) ? items : []) {
-    const id = queueItemKey(item).slice(0, 500);
+    const id = (typeof item === "string" ? item : queueItemKey(item)).trim().slice(0, 500);
     if (id && !seen.has(id)) { seen.add(id); ids.push(id); }
     if (ids.length >= 8) break;
   }
@@ -968,8 +972,13 @@ async function handleGuide(request, env) {
        V4 freshness table has been applied in every environment. */
     result = await env.realsignal_catalog.prepare(`SELECT p.id, p.title, p.description, p.duration_seconds, p.media_type, p.media_url, p.source_url, p.rights, p.year, cp.last_seen_at FROM programs p JOIN channel_programs cp ON cp.program_id=p.id WHERE cp.channel_key=? AND p.status='active' AND p.media_url IS NOT NULL ORDER BY cp.last_seen_at DESC LIMIT ?`).bind(channel, limit).all();
   }
-  const items = result.results || [];
-  return json({ apiVersion: "v3", release: V3_RELEASE, channel, current: items[0] || null, next: items[1] || null, items, verified: true, queueModel: "rolling-1-plus-2", freshnessLedger: items.some((item) => item.last_served_at != null), source: "d1-verified-catalog" }, 200, { "Cache-Control": "public, max-age=10, stale-while-revalidate=30", "X-RealSignal-Release": V3_RELEASE });
+  const items = (result.results || []).map((item) => ({
+    ...item,
+    duration: Number(item.duration_seconds || 0) || null,
+    runtime: Number(item.duration_seconds || 0) || null,
+    provider: item.provider || "verified catalog",
+  }));
+  return json({ apiVersion: "v3", release: V3_RELEASE, channel, current: items[0] || null, next: items[1] || null, items, verified: true, queueModel: "rolling-1-plus-2", freshnessLedger: items.some((item) => item.last_served_at != null), generatedAt: new Date().toISOString(), source: "d1-verified-catalog" }, 200, { "Cache-Control": "public, max-age=10, stale-while-revalidate=30", "X-RealSignal-Release": V3_RELEASE });
 }
 
 async function firstSourceLane(tasks) {
@@ -1050,6 +1059,14 @@ async function persistSourceLanes(env, profile, lanes) {
 }
 
 function scheduleSourceRefresh(env, ctx, normalized, tasks, requestId) {
+  const refreshKey = String(normalized && normalized.profileKey || "");
+  const now = Date.now();
+  const previous = sourceRefreshCache.get(refreshKey) || 0;
+  if (!refreshKey || now - previous < 15_000) return Promise.resolve({ skipped: true, reason: "refresh already scheduled" });
+  sourceRefreshCache.set(refreshKey, now);
+  if (sourceRefreshCache.size > 512) {
+    for (const [key, at] of sourceRefreshCache) if (now - at >= 15_000) sourceRefreshCache.delete(key);
+  }
   const background = Promise.all(tasks.map((task) => Promise.resolve(task).catch((error) => ({ provider: "unknown", items: [], health: { error: String(error).slice(0, 160) } })))).then((lanes) => persistSourceLanes(env, normalized, lanes)).catch((error) => {
     console.error(JSON.stringify({ event: "source-catalog-persist-failed", requestId, profileKey: normalized.profileKey, error: String(error).slice(0, 200) }));
   });
@@ -1068,7 +1085,12 @@ async function handleSourceCatalog(request, env, ctx, id) {
   const apiVersion = new URL(request.url).pathname.startsWith(V3_PREFIX) ? "v3" : "v2";
   const rotation = Number(body.rotation) || 0;
   const ledgerIds = await readFreshnessIds(env, profile.profileKey);
-  const sourceRecentIds = Array.from(new Set((Array.isArray(body.recentIds) ? body.recentIds : []).concat(ledgerIds))).slice(-48);
+  const playedIds = Array.from(new Set((Array.isArray(body.playedIds) ? body.playedIds : [])
+    .map((value) => String(value || "").trim().slice(0, 500)).filter(Boolean))).slice(0, 8);
+  /* Client history is newest-first. Keep the order intact so the freshness
+     filter excludes the newest played items first instead of accidentally
+     preferring the oldest part of the ledger. */
+  const sourceRecentIds = Array.from(new Set((Array.isArray(body.recentIds) ? body.recentIds : []).concat(ledgerIds))).slice(0, 48);
   const disabledProviders = await readSourceCooldowns(env, profile.profileKey);
   const cached = await catalogFallback(env, {
     channel: profile.profileKey,
@@ -1078,6 +1100,7 @@ async function handleSourceCatalog(request, env, ctx, id) {
     themeTerms: profile.match,
     themeMinScore: 1,
     recentIds: sourceRecentIds,
+    freshnessLedger: true,
   }, SOURCE_LIMITS.SOURCE_MAX_ITEMS).catch((error) => {
     console.warn(JSON.stringify({ event: "source-catalog-read-failed", requestId: id, error: String(error).slice(0, 160) }));
     return null;
@@ -1097,7 +1120,7 @@ async function handleSourceCatalog(request, env, ctx, id) {
       scheduleSourceRefresh(env, ctx, normalized, tasks, id);
     }
     const hydrating = body.refresh === true || cached.items.length < minimumReady;
-    rememberFreshness(env, profile.profileKey, cached.items.slice(0, 3), ctx);
+    if (playedIds.length) rememberFreshness(env, profile.profileKey, playedIds, ctx);
     return json({ ...cached, profileKey: profile.profileKey, catalogVersion: "source-server-1", source: "d1-source-catalog", hydrating, staleCatalog: hydrating, adaptiveFreshness: true, freshnessLedger: true, providerAvailability: { youtube: !!env.YOUTUBE_API_KEY && !disabledProviders.has("youtube"), peertube: !disabledProviders.has("peertube"), cooldownProviders: Array.from(disabledProviders) }, apiVersion, release: apiVersion === "v3" ? V3_RELEASE : undefined }, 200, { "Cache-Control": "public, max-age=10, stale-while-revalidate=60", "X-RealSignal-Request": id, "X-RealSignal-Source": "d1-source-catalog", "X-RealSignal-Release": apiVersion === "v3" ? V3_RELEASE : "2.2.2" });
   }
   const { profile: normalized, tasks } = sourceCatalogTasks(body, env, rotation, { disabledProviders });
@@ -1109,9 +1132,9 @@ async function handleSourceCatalog(request, env, ctx, id) {
     }),
   ]).finally(() => clearTimeout(firstTimer));
   scheduleSourceRefresh(env, ctx, normalized, tasks, id);
-  const freshnessBody = { ...body, recentIds: sourceRecentIds };
+  const freshnessBody = { ...body, recentIds: sourceRecentIds, freshnessLedger: true };
   const freshFirstItems = applyFreshness(first.items, freshnessBody);
-  rememberFreshness(env, normalized.profileKey, freshFirstItems.slice(0, 3), ctx);
+  if (playedIds.length) rememberFreshness(env, normalized.profileKey, playedIds, ctx);
   return json({ profileKey: normalized.profileKey, items: freshFirstItems, ready: freshFirstItems.length, candidates: freshFirstItems.length, lanes: first.lanes, hydrating: true, adaptiveFreshness: true, freshnessLedger: true, freshnessExcluded: Math.max(0, first.items.length - freshFirstItems.length), freshnessWindow: recentCatalogIds(freshnessBody).size, catalogVersion: "source-server-1", source: "server-source-catalog", providerAvailability: { youtube: !!env.YOUTUBE_API_KEY && !disabledProviders.has("youtube"), peertube: !disabledProviders.has("peertube"), cooldownProviders: Array.from(disabledProviders) }, limits: SOURCE_LIMITS, apiVersion, release: apiVersion === "v3" ? V3_RELEASE : undefined }, freshFirstItems.length ? 200 : 503, { "Cache-Control": "no-store", "X-RealSignal-Request": id, "X-RealSignal-Source": "server-source-catalog", "X-RealSignal-Release": apiVersion === "v3" ? V3_RELEASE : "2.2.2" });
 }
 

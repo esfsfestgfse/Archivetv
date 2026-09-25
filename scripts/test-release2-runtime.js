@@ -33,11 +33,14 @@ check(runtime.includes("addEventListener('online'"), 'Online recovery hook exist
 check(guide.includes('realsignal:guide-recent') && guide.includes('rsGuideRecentOnly'), 'Guide recently-watched view exists');
 check(guide.includes('rsGuideRecentSort') && guide.includes('CHANNEL ORDER'), 'Guide order control exists');
 check(fs.existsSync(path.join(repo, 'assets', 'source-catalog-client.js')), 'Server catalog bridge asset exists');
+const verifiedGuide = fs.readFileSync(path.join(repo, 'assets', 'verified-guide-client.js'), 'utf8');
+check(verifiedGuide.includes('/guide?channel=') && verifiedGuide.includes('__rsVerifiedGuide'), 'Verified current/next guide bridge exists');
 
 for (const file of builds) {
   const html = fs.readFileSync(path.join(repo, file), 'utf8');
   check(html.includes('assets/release2-runtime.js'), `${file}: Release 2 runtime loaded`);
   check(html.includes('assets/guide-overhaul.css') && html.includes('assets/guide-overhaul.js'), `${file}: shared guide overhaul assets loaded`);
+  check(html.includes('assets/verified-guide-client.js'), `${file}: verified guide bridge loaded`);
   check(html.includes('rsHealthPanel') && html.includes('rsHealthFrame'), `${file}: APP HEALTH panel is present`);
   check(html.includes('currentDuration') && html.includes('guideItemRuntime(nextItem)'), `${file}: guide exposes Source Suite current/next runtime data`);
   const surfaceStamp = file.includes('mobile') ? 'mobile' : 'desktop';

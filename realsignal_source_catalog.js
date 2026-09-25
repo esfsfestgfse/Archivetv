@@ -268,7 +268,11 @@ function peerTubeFile(detail) {
 
 async function peerTube(profile, rotation, env) {
   const instances = peerTubeInstances(env);
-  const queries = youtubeQueries(profile, rotation).slice(0, 4);
+  /* Use the complete approved query window for the server catalog. The old
+     four-query cap made a valid but shallow PeerTube lane look healthy and
+     prevented the background catalog from reaching the twelve-item depth
+     target. */
+  const queries = youtubeQueries(profile, rotation).slice(0, SOURCE_MAX_QUERIES);
   const sortModes = ["-match", "-publishedAt", "-views", "-likes"];
   const sort = sortModes[(Number(rotation) || 0) % sortModes.length];
   async function search(querySet) {
@@ -300,10 +304,13 @@ async function peerTube(profile, rotation, env) {
   const initial = await search(queries);
   let searchedJobs = initial.jobs;
   let raw = unique(initial.items).filter((item) => accepted(profile, item, "PeerTube", false));
-  if (raw.length < 3) {
+  /* A catalog with four or ten items is still shallow for television. Expand
+     until the verified shelf has a real rotation window, not merely enough
+     rows to start one video. */
+  if (raw.length < SOURCE_MIN_READY) {
     const used = new Set(queries.map((query) => query.toLowerCase()));
     const fallbackQueries = unique(profile.match.concat(profile.queries).map((query) => text(query, 180)))
-      .filter((query) => !used.has(query.toLowerCase())).slice(0, 4);
+      .filter((query) => !used.has(query.toLowerCase())).slice(0, SOURCE_MAX_QUERIES);
     if (fallbackQueries.length) {
       const fallback = await search(fallbackQueries);
       searchedJobs += fallback.jobs;

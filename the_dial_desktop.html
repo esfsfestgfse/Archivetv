@@ -1627,7 +1627,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="3.0.1-desktop.ia-recovery-v4-canary";
+window.__ATV_BUILD="3.0.1-desktop.source-freshness-guide";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -7346,6 +7346,12 @@ function guideListing(ch){
   if(!ch)return {now:"OFF AIR",next:"TUNE A CHANNEL",detail:"STANDBY",state:"standby",live:false,ready:0,capacity:5};
   if(ch.source==="v2preview"){
     var pv=(window.__v2PreviewState||{})[ch.num]||{},items=Array.isArray(pv.items)?pv.items:[],ready=Math.min(5,items.length),current=pv.currentTitle?String(pv.currentTitle):"",cursor=items.length?(Number(pv.cursor||0)%items.length):0,upItem=items[cursor],nextItem=items.length?items[(cursor+1)%items.length]:null;
+    var verified=(window.__rsVerifiedGuide||{})[String(ch.previewKey||ch.num)],verifiedCurrent=verified&&verified.current,verifiedNext=verified&&verified.next;
+    if(verified&&(verifiedCurrent||verifiedNext)){
+      var guideCurrent=current?{title:current,duration:Number(pv.currentDuration)||0,provider:pv.provider||"on air"}:verifiedCurrent;
+      var guideNext=verifiedNext||nextItem;
+      return {now:guideCurrent?("NOW · "+guideItemTitle(guideCurrent)+(guideCurrent.duration?(" · "+guideItemRuntime(guideCurrent)):"")):"SOURCE SUITE · QUEUE READY",next:guideNext?("NEXT · "+guideItemTitle(guideNext)+" · "+guideItemRuntime(guideNext)):"NEXT · VERIFIED QUEUE REFRESHING",detail:((verified.items&&verified.items.length)||items.length)+" VERIFIED PROGRAMS · "+(guideCurrent&&guideCurrent.provider||pv.provider||"SOURCE SUITE"),state:guideCurrent?"playing":"ready",live:false,ready:Math.min(5,((verified.items&&verified.items.length)||items.length)),capacity:5};
+    }
     return {now:current?("NOW · "+current+(Number(pv.currentDuration)>0?(" · "+guideDurationLabel(pv.currentDuration)):"")):(upItem?("UP NEXT · "+guideItemTitle(upItem)+" · "+guideItemRuntime(upItem)):"SOURCE SUITE · "+(ready?"QUEUE READY":"WARMING SOURCE")),next:current?(nextItem?("NEXT · "+guideItemTitle(nextItem)+" · "+guideItemRuntime(nextItem)):"NEXT · FIVE-ITEM BUFFER WARMING"):(nextItem?("THEN · "+guideItemTitle(nextItem)+" · "+guideItemRuntime(nextItem)):"NEXT · FIVE-ITEM BUFFER WARMING"),detail:ready+" / 5 BUFFER · "+items.length+" CATALOG · "+(pv.provider||"SOURCE SUITE"),state:ready?"ready":"warming",live:false,ready:ready,capacity:5};
   }
   if(ch.source){var live=liveGuideState[ch.num]||{},txt=String(live.text||window.__chanStatus[ch.num]||"CONNECTING LIVE DATA");return {now:"LIVE · "+txt,next:"CONTINUOUS LIVE DATA",detail:guideUpdatedLabel(live.at),state:"live",live:true,ready:null,capacity:null};}
@@ -7653,7 +7659,7 @@ function v2NextRotation(key){var current=Number(store.get("v2rotation:"+key,0))|
 function v2QueryWindow(profile,provider,rotation,limit){var pool=v2ProgramQueries(profile),max=Math.min(Number(limit)||pool.length,pool.length);if(!pool.length)return [];var offset=(v2Hash(profile.name+"|"+provider)+Number(rotation||0))%pool.length;return pool.slice(offset).concat(pool.slice(0,offset)).slice(0,max);}
 function v2DiscoveryQueries(profile,provider,rotation,limit){var max=Math.max(1,Number(limit)||4),topics=v2ProgramTopics(profile),rotated=topics.length?topics.slice(Number(rotation||0)%topics.length).concat(topics.slice(0,Number(rotation||0)%topics.length)):[],anchors=topics.length?[topics[0],rotated[1]||rotated[0]]:[],formed=v2QueryWindow(profile,provider,rotation,max);return v2TextUnique(anchors.concat(formed)).slice(0,max);}
 function v2Recent(key){var ids=store.get("v2recent:"+key,[]);return Array.isArray(ids)?ids:[];}
-function v2Remember(key,item){var id=String(item&&item.id||"");if(!id)return;var ids=v2Recent(key).filter(function(x){return x!==id;});ids.unshift(id);store.set("v2recent:"+key,ids.slice(0,24));}
+function v2Remember(key,item){var id=String(item&&item.id||"");if(!id)return;var ids=v2Recent(key).filter(function(x){return x!==id;});ids.unshift(id);store.set("v2recent:"+key,ids.slice(0,24));if(typeof window.__rsRecordSourcePlay==="function"&&item&&/youtube|peertube/i.test(String(item.provider||"")))window.__rsRecordSourcePlay(key,item);}
 function v2Rejected(key){var cutoff=Date.now()-6*60*60*1000,rows=store.get("v2rejected:"+key,[]);rows=(Array.isArray(rows)?rows:[]).filter(function(row){return row&&row.id&&Number(row.at||0)>=cutoff;});store.set("v2rejected:"+key,rows);return rows.map(function(row){return String(row.id);});}
 function v2Reject(key,item){var id=String(item&&item.id||"");if(!id)return;var rows=v2Rejected(key).filter(function(row){return String(row.id)!==id;});rows.unshift({id:id,at:Date.now()});store.set("v2rejected:"+key,rows.slice(0,48));}
 function v2Shelf(key){var ids=store.get("v2shelf:"+key,[]);return Array.isArray(ids)?ids.map(String):[];}
@@ -18261,6 +18267,7 @@ window.__atvBootDone=true; /* app is up -- from here on, errors get logged, not 
 })();
 </script>
 <script src="assets/source-catalog-client.js"></script>
+<script src="assets/verified-guide-client.js"></script>
 <script src="assets/guide-overhaul.js"></script>
 <script src="assets/playback-audit.js"></script>
 <script src="assets/release2-runtime.js?v=06de3bf"></script>

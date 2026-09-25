@@ -12,7 +12,13 @@
   var inFlight = Object.create(null);
   var claimed = Object.create(null);
   var refreshPending = Object.create(null);
-  var FRESHNESS_KEY = 'realsignal:source-freshness:v1';
+  /* v1 recorded every fetched shelf as if it had been watched. Start a clean
+     play-only ledger so catalog reads no longer poison the next opening. */
+  var FRESHNESS_KEY = 'realsignal:source-freshness:v2';
+
+  function normalizeKey(value) {
+    return String(value || '').toLowerCase().replace(/[^a-z0-9._:-]+/g, '-');
+  }
 
   function readFreshness() {
     try { var value = JSON.parse(localStorage.getItem(FRESHNESS_KEY) || '{}'); return value && typeof value === 'object' ? value : {}; }
@@ -25,10 +31,11 @@
 
   function recentFor(profileKey) {
     var all = readFreshness();
-    return Array.isArray(all[profileKey]) ? all[profileKey].slice(-48) : [];
+    return Array.isArray(all[normalizeKey(profileKey)]) ? all[normalizeKey(profileKey)].slice(0, 48) : [];
   }
 
   function remember(profileKey, items) {
+    profileKey = normalizeKey(profileKey);
     var ids = (Array.isArray(items) ? items : []).map(itemKey).filter(Boolean);
     if (!ids.length) return;
     var all = readFreshness();
@@ -39,7 +46,7 @@
   }
 
   function request(profile, rotation, refresh) {
-    var profileKey = String(profile && (profile.profileKey || profile.name) || "").toLowerCase().replace(/[^a-z0-9._:-]+/g, "-");
+    var profileKey = normalizeKey(profile && (profile.profileKey || profile.name));
     var refreshKey = refresh ? "|refresh" : "";
     var key = profileKey + "|" + String(Number(rotation) || 0) + refreshKey;
     if (inFlight[key]) return inFlight[key];
@@ -56,7 +63,10 @@
          target tells the server to refill it instead of declaring two items
          a healthy catalog. */
       minimumReady: 12,
-      recentIds: recentFor(profileKey)
+      recentIds: recentFor(profileKey),
+      /* Only the newest locally recorded play is eligible for durable server
+         freshness. A fetched catalog is never a played catalog. */
+      playedIds: recentFor(profileKey).slice(0, 1)
     };
     inFlight[key] = fetch(IA_API_BASE + "/source/catalog", {
       method: "POST",
@@ -67,7 +77,6 @@
     }).then(function (response) {
       if (!response.ok) throw new Error("server catalog " + response.status);
       return response.json().then(function (value) {
-        if (value && Array.isArray(value.items)) remember(profileKey, value.items);
         return value;
       });
     }).catch(function () { return null; }).finally(function () { clearTimeout(timeout); });
@@ -120,5 +129,13 @@
     }
     if (name === "youtube") return { provider: "YouTube", items: [], health: { serverCatalog: true, skipped: "server-catalog-unavailable" } };
     return originalProvider.apply(this, arguments);
+  };
+
+  /* The player calls this only after a program has produced a playable frame.
+     Keeping it here lets desktop, mobile, and Cast share the same play ledger
+     without turning catalog discovery into a false freshness event. */
+  window.__rsRecordSourcePlay = function (profileKey, item) {
+    var id = itemKey(item);
+    if (id) remember(profileKey, [id]);
   };
 })();

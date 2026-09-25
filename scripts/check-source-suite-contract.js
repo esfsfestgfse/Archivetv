@@ -9,6 +9,11 @@ const files = ['the_dial_desktop.html', 'the_dial_mobile.html'];
 const issues = [];
 const bridge = fs.readFileSync(path.join(repo, 'assets', 'source-catalog-client.js'), 'utf8');
 if (!bridge.includes('IA_API_BASE + "/source/catalog"') || !bridge.includes('serverCatalog')) issues.push('server catalog bridge must be present and marked as the preferred Source Suite path');
+if (!bridge.includes('realsignal:source-freshness:v2') || !bridge.includes('playedIds: recentFor(profileKey).slice(0, 1)') || !bridge.includes('__rsRecordSourcePlay')) issues.push('Source Suite freshness must record actual plays, not catalog fetches');
+const serverCatalog = fs.readFileSync(path.join(repo, 'realsignal_source_catalog.js'), 'utf8');
+if (!serverCatalog.includes('if (raw.length < SOURCE_MIN_READY)') || !serverCatalog.includes('slice(0, SOURCE_MAX_QUERIES)')) issues.push('PeerTube discovery must expand shallow catalogs through the full approved query window');
+const api = fs.readFileSync(path.join(repo, 'realsignal_api_v2_worker.js'), 'utf8');
+if (!api.includes('const sourceRefreshCache = new Map()') || !api.includes('refresh already scheduled') || !api.includes('freshnessLedger: true')) issues.push('source refreshes must be deduplicated and freshness filtering must preserve newest-first ledger order');
 
 for (const file of files) {
   const source = fs.readFileSync(path.join(repo, file), 'utf8');
@@ -65,7 +70,7 @@ for (const file of files) {
     [/cachedItems\.length>=V2_SOURCE_MIN_CATALOG/, 'verified cached catalogs must be retained while a refresh expands them'],
     [/\.slice\(0,[45]\),queries=v2DiscoveryQueries\(profile,"peertube"/, 'PeerTube discovery must use all approved instances and anchored rotating query lanes'],
     [/V2_SOURCE_MAX_CONCURRENCY=8/, 'PeerTube discovery must complete its first pass with bounded parallel fan-out'],
-    [/queries=v2DiscoveryQueries\(profile,"peertube",rotation,Math\.min\(4,/, 'PeerTube discovery must use an anchored four-query first pass'],
+    [/queries=v2DiscoveryQueries\(profile,"peertube",rotation,Math\.min\(4,/, 'browser PeerTube fallback must retain its bounded first pass'],
     [/19\[3-9\]\\d\|20\\d\\d\|classic\|vintage\|retro\|golden age\|saturday morning/, 'Cartoon Time Machine must reject modern animation bleed without an era signal'],
     [/Math\.min\(24,V2_SOURCE_MAX_DETAIL\)/, 'PeerTube detail hydration must retain a deeper catalog'],
     [/aspect=v2AspectRatio\(d\)\|\|v2AspectRatio\(x\)\|\|v2AspectRatio\(file\)/, 'PeerTube must verify the source aspect ratio'],

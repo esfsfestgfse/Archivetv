@@ -146,14 +146,17 @@ const { pathToFileURL } = require('node:url');
   const unapprovedYouTube = await worker.fetch(new Request('https://api.example/api/v2/youtube/uploads?handle=unapproved'), { ...env, YOUTUBE_API_KEY: 'unit-test-key' }, ctx);
   assert.equal(unapprovedYouTube.status, 404);
   global.fetch = nativeFetch;
-  assert.equal(queueMessages.length, 2);
+  /* Source refreshes are intentionally deduplicated per profile during the
+     cooldown window. The YouTube and PeerTube requests above share the same
+     profile, so they should enqueue one refresh job, not one job per lane. */
+  assert.equal(queueMessages.length, 1);
 
   const payload = { channel: '12', sessionId: 'viewer-a', rotation: 0, count: 3, themeTerms: ['game show'], items: [] };
   const first = await worker.fetch(new Request('https://api.example/api/v2/ia/queue', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) }), env, ctx);
   assert.equal(first.status, 200);
   assert.deepEqual((await first.clone().json()).items.map(item => item.identifier), ['ia-1', 'ia-2', 'ia-3']);
   assert.match(first.headers.get('X-RealSignal-Source'), /session-rotation/);
-  assert.equal(queueMessages.length, 3);
+  assert.equal(queueMessages.length, 2);
 
   const second = await worker.fetch(new Request('https://api.example/api/v2/ia/queue', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) }), env, ctx);
   assert.deepEqual((await second.json()).items.map(item => item.identifier).sort(), ['ia-4', 'ia-5']);
@@ -206,8 +209,8 @@ const { pathToFileURL } = require('node:url');
   assert.equal((await fastLane.json()).items[0].title, 'Factory Packaging Line');
 
   const shallowSourceRows = [
-    { id: 'source-stale-1', source_identifier: 'source-stale-1', title: 'Game Show Archive Full Episode', description: 'A verified long-form game show.', provider: 'YouTube', duration_seconds: 1500, aspect_ratio: 1.78, media_type: 'embed', media_url: 'https://www.youtube-nocookie.com/embed/source-stale-1', source_url: 'https://youtube.com/watch?v=source-stale-1', rights: 'Standard YouTube license', year: '1978', metadata_json: '{"genreVerified":true}' },
-    { id: 'source-stale-2', source_identifier: 'source-stale-2', title: 'Game Show Archive Special', description: 'A second verified long-form game show.', provider: 'YouTube', duration_seconds: 1800, aspect_ratio: 1.78, media_type: 'embed', media_url: 'https://www.youtube-nocookie.com/embed/source-stale-2', source_url: 'https://youtube.com/watch?v=source-stale-2', rights: 'Standard YouTube license', year: '1984', metadata_json: '{"genreVerified":true}' },
+    { id: 'source-stale-1', source_identifier: 'source-stale-1', title: 'Field Biology Study Full Episode', description: 'A verified long-form ecology field study.', provider: 'YouTube', duration_seconds: 1500, aspect_ratio: 1.78, media_type: 'embed', media_url: 'https://www.youtube-nocookie.com/embed/source-stale-1', source_url: 'https://youtube.com/watch?v=source-stale-1', rights: 'Standard YouTube license', year: '1978', metadata_json: '{"genreVerified":true}' },
+    { id: 'source-stale-2', source_identifier: 'source-stale-2', title: 'Natural History Field Film', description: 'A second verified long-form wildlife research film.', provider: 'YouTube', duration_seconds: 1800, aspect_ratio: 1.78, media_type: 'embed', media_url: 'https://www.youtube-nocookie.com/embed/source-stale-2', source_url: 'https://youtube.com/watch?v=source-stale-2', rights: 'Standard YouTube license', year: '1984', metadata_json: '{"genreVerified":true}' },
   ];
   const queuedSourceRefreshes = [];
   const shallowSourceEnv = {
@@ -217,7 +220,7 @@ const { pathToFileURL } = require('node:url');
   const shallowSourceCtx = { waitUntil(promise) { queuedSourceRefreshes.push(promise); } };
   const sourceFetchAfterStale = global.fetch;
   global.fetch = async () => { throw new Error('source providers unavailable'); };
-  const shallowSource = await worker.fetch(new Request('https://api.example/api/v2/source/catalog', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ profileKey: 'game-show-archive', rotation: 0, minimumReady: 12 }) }), shallowSourceEnv, shallowSourceCtx);
+  const shallowSource = await worker.fetch(new Request('https://api.example/api/v2/source/catalog', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ profileKey: 'field-notes', rotation: 0, minimumReady: 12 }) }), shallowSourceEnv, shallowSourceCtx);
   global.fetch = sourceFetchAfterStale;
   assert.equal(shallowSource.status, 200);
   const shallowSourceBody = await shallowSource.json();
@@ -225,7 +228,7 @@ const { pathToFileURL } = require('node:url');
   assert.equal(shallowSourceBody.hydrating, true);
   assert.equal(shallowSourceBody.staleCatalog, true);
   assert.equal(queuedSourceRefreshes.length, 1);
-  const freshSource = await worker.fetch(new Request('https://api.example/api/v2/source/catalog', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ profileKey: 'game-show-archive', rotation: 0, minimumReady: 12, recentIds: ['source-stale-1'] }) }), shallowSourceEnv, shallowSourceCtx);
+  const freshSource = await worker.fetch(new Request('https://api.example/api/v2/source/catalog', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ profileKey: 'field-notes', rotation: 0, minimumReady: 12, recentIds: ['source-stale-1'] }) }), shallowSourceEnv, shallowSourceCtx);
   assert.equal(freshSource.status, 200);
   assert.equal((await freshSource.json()).items[0].id, 'source-stale-2');
 
@@ -278,7 +281,7 @@ const { pathToFileURL } = require('node:url');
   assert.equal(badJson.status, 400);
 
   let limited;
-  for (let attempt = 0; attempt < 31; attempt += 1) {
+  for (let attempt = 0; attempt < 61; attempt += 1) {
     limited = await worker.fetch(new Request('https://api.example/api/v2/source/catalog', {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'CF-Connecting-IP': '198.51.100.7' },

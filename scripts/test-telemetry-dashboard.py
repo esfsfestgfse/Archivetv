@@ -54,7 +54,11 @@ async def main():
         build = await page.evaluate("() => window.__ATV_BUILD")
         summary = await page.evaluate("() => window.__rsRelease2Telemetry.summary()")
         lanes = page.locator(".rs-health-lane")
-        assert build.startswith(("2.2.1-", "2.2.2-", "3.0.0-", "3.0.1-", "3.1.0-")), build
+        # The dashboard is shared across release trains.  Keep this as a
+        # compatibility guard for recognizable RealSignal stamps, not a
+        # one-release allowlist that turns a valid build-stamp bump into a
+        # false CI failure.
+        assert build.startswith(("2.2.1-", "2.2.2-", "3.0.0-", "3.0.1-", "3.1.")), build
         assert summary["sessions"] == 3, summary
         assert await lanes.count() == 2
         assert await lanes.nth(0).get_attribute("data-rs-channel") == "11"

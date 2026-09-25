@@ -60,6 +60,7 @@ if (!api.includes('const sourceRefreshCache = new Map()') || !api.includes('refr
 if (!api.includes('const failed = !skipped && !!health.error;') || !api.includes("COALESCE(last_error, '')<>'no verified items'")) issues.push('an empty Source Suite search must rotate to another query, not trigger or retain a provider cooldown');
 if (!api.includes('kind: "source-status"') || !api.includes('async function handleSourceStatus') || !api.includes('d1-requalified-source-catalog')) issues.push('Source Suite audits must have a read-only endpoint for the client-equivalent requalified catalog');
 if (!api.includes('body.maintenance === true') || !api.includes('server-source-catalog-maintenance') || !api.includes('options.direct === true')) issues.push('controlled Source Suite refreshes must persist the complete verified provider union before reporting depth');
+if (!api.includes('tags: String(item.tags || "")') || !api.includes('metadata.tags || ""') || !api.includes('const tags = String(item && (item.tags || item.tag) || "").toLowerCase()')) issues.push('persisted Source Suite rows must retain provider evidence used by requalification');
 const refresher = fs.readFileSync(path.join(repo, 'scripts', 'refresh-source-suite-profiles.js'), 'utf8');
 if (!refresher.includes('controller.abort(), 35000') || !refresher.includes('maintenance: true')) issues.push('the maintenance refresh runner must allow bounded two-provider hydration to finish');
 

@@ -234,6 +234,10 @@ function compactCatalogItem(item) {
     title: String(item.title || "Untitled").slice(0, 500),
     description: String(item.description || "").slice(0, 2000),
     subject: String(item.subject || item.subjects || "").slice(0, 1200),
+    tags: String(item.tags || "").slice(0, 1200),
+    category: String(item.category || "").slice(0, 240),
+    account: String(item.account || "").slice(0, 240),
+    query: String(item.query || "").slice(0, 240),
     duration: Number(item.duration || item.runtime) || null,
     aspectRatio: Number(item.aspectRatio) || null,
     mediaType: String((item.media && item.media.type) || item.type || "video").slice(0, 30),
@@ -422,7 +426,11 @@ function catalogFallbackAllowed(item, body) {
      discarded merely because its child title omits the parent collection. */
   const sourceIdentifier = String(item && (item.sourceIdentifier || item.source_identifier || item.identifier || item.id) || "").toLowerCase();
   const normalizedSourceIdentifier = sourceIdentifier.replace(/[-_:.]+/g, " ");
-  const haystack = `${title} ${description} ${subject} ${sourceIdentifier} ${normalizedSourceIdentifier}`;
+  const tags = String(item && (item.tags || item.tag) || "").toLowerCase();
+  const category = String(item && item.category || "").toLowerCase();
+  const account = String(item && (item.account || item.channelTitle) || "").toLowerCase();
+  const query = String(item && item.query || "").toLowerCase();
+  const haystack = `${title} ${description} ${subject} ${tags} ${category} ${account} ${query} ${sourceIdentifier} ${normalizedSourceIdentifier}`;
   const denyTerms = Array.isArray(body && body.denyTerms) ? body.denyTerms : [];
   if (denyTerms.some((term) => {
     const needle = String(term || "").trim().toLowerCase();
@@ -659,6 +667,10 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
       title: row.title,
       description: row.description || "",
       subject: metadata.subject || metadata.subjects || "",
+      tags: metadata.tags || "",
+      category: metadata.category || "",
+      account: metadata.account || "",
+      query: metadata.query || "",
       genreVerified: metadata.genreVerified === true,
       provider: row.provider,
       year: row.year || "",

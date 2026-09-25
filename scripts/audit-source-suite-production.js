@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 /* Read-only production audit for every approved Source Suite profile.
- * It measures durable depth, freshness/exhaustion, runtime violations,
- * duplicate IDs, provider mix, and verified guide coverage without forcing
- * a discovery refresh or spending upstream search quota. */
+ * It measures the same editorially requalified shelf a client can play:
+ * durable depth, freshness/exhaustion, runtime violations, duplicate IDs,
+ * provider mix, and verified guide coverage—without forcing discovery or
+ * spending upstream search quota. */
 const fs = require('node:fs');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
@@ -44,7 +45,7 @@ async function json(url) {
     const encoded = encodeURIComponent(key);
     const started = Date.now();
     const [catalog, guide] = await Promise.all([
-      json(`${base}/catalog?channel=${encoded}&limit=96`),
+      json(`${base}/source/status?profileKey=${encoded}`),
       json(`${base}/guide?channel=${encoded}&limit=8`),
     ]);
     const items = Array.isArray(catalog.items) ? catalog.items : [];

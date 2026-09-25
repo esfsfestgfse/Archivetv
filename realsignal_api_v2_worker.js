@@ -137,6 +137,7 @@ function routeFor(pathname) {
       return id ? { kind: "relay", relayPath: `/ia/metadata/${id}`, apiVersion } : null;
     }
     if (pathname === `${prefix}/source/catalog`) return { kind: "source-catalog", apiVersion };
+    if (pathname === `${prefix}/source/status`) return { kind: "source-status", apiVersion };
     if (pathname === `${prefix}/catalog`) return { kind: "catalog", apiVersion };
   }
   return null;
@@ -1067,6 +1068,41 @@ async function readSourceCooldowns(env, profileKey) {
   } catch (_) { return new Set(); }
 }
 
+/* Read-only, client-equivalent source catalog inspection.  Unlike
+   /source/catalog it never schedules provider discovery, so health audits can
+   inspect the editorially requalified D1 shelf without turning an audit into
+   a search burst. */
+async function handleSourceStatus(request, env) {
+  const url = new URL(request.url);
+  const profileKey = String(url.searchParams.get("profileKey") || url.searchParams.get("channel") || "").slice(0, 120);
+  const profile = sourceProfile({ profileKey });
+  if (!profile) return json({ error: "unknown source profile" }, 404);
+  const cached = await catalogFallback(env, {
+    channel: profile.profileKey,
+    sourceCatalog: true,
+    denyTerms: profile.deny,
+    themeTerms: profile.match,
+    intent: profile.intent,
+    topics: profile.topics,
+    programFormats: profile.formats,
+    themeMinScore: 1,
+  }, SOURCE_LIMITS.SOURCE_MAX_ITEMS, { ignoreFreshness: true });
+  const cooldowns = await readSourceCooldowns(env, profile.profileKey);
+  const items = cached && Array.isArray(cached.candidateItems) ? cached.candidateItems : [];
+  return json({
+    apiVersion: "v3",
+    release: V3_RELEASE,
+    profileKey: profile.profileKey,
+    name: profile.name,
+    items,
+    ready: items.length,
+    catalogDepth: Number(cached && cached.catalogDepth || items.length),
+    source: cached ? "d1-requalified-source-catalog" : "d1-requalified-source-catalog-empty",
+    providerAvailability: { youtube: !cooldowns.has("youtube"), peertube: !cooldowns.has("peertube"), cooldownProviders: Array.from(cooldowns) },
+    generatedAt: new Date().toISOString(),
+  }, 200, { "Cache-Control": "public, max-age=15, stale-while-revalidate=60", "X-RealSignal-Release": V3_RELEASE });
+}
+
 async function persistSourceHealth(env, profile, lanes) {
   if (!env.realsignal_catalog || typeof env.realsignal_catalog.batch !== "function") return;
   const now = Date.now();
@@ -1253,6 +1289,10 @@ const worker = {
         const limited = rateLimit(request, route.kind);
         if (limited) return limited;
         return await handleSourceCatalog(request, env, ctx, id);
+      }
+      if (route && route.kind === "source-status") {
+        if (request.method !== "GET") return json({ error: "method not allowed", requestId: id }, 405, { Allow: "GET,OPTIONS" });
+        return await handleSourceStatus(request, env);
       }
       if (route && route.kind === "catalog") {
         if (request.method !== "GET") return json({ error: "method not allowed", requestId: id }, 405, { Allow: "GET,OPTIONS" });

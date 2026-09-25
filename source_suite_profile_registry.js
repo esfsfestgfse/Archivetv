@@ -1136,7 +1136,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   },
   "garden-ledger": {
     "name": "Garden Ledger",
-    "queryLimit": 8,
+    "queryLimit": 12,
     "queryWindow": 6,
     "providers": [
       "peertube",
@@ -1150,7 +1150,13 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "plant science documentary",
       "botany documentary",
       "garden design documentary",
-      "public garden film"
+      "public garden film",
+      "botanical garden full documentary",
+      "horticulture full film",
+      "plant cultivation documentary",
+      "landscape architecture garden documentary",
+      "public garden tour documentary",
+      "garden restoration documentary"
     ],
     "match": [
       "horticulture",
@@ -1173,7 +1179,8 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   },
   "animal-care": {
     "name": "Animal Care",
-    "queryLimit": 8,
+    "queryLimit": 12,
+    "queryWindow": 6,
     "providers": [
       "peertube",
       "youtube"
@@ -1183,7 +1190,13 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "animal behavior research film",
       "wildlife rehabilitation documentary",
       "zoo history film",
-      "animal welfare documentary"
+      "animal welfare documentary",
+      "veterinary hospital documentary",
+      "animal rescue full documentary",
+      "wildlife conservation film",
+      "zoo documentary full",
+      "animal science documentary",
+      "veterinary medicine full film"
     ],
     "match": [
       "veterinary",
@@ -2195,6 +2208,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   "jukebox-television": {
     "name": "Jukebox Television",
     "queryLimit": 12,
+    "queryWindow": 6,
     "persistedRelaxed": true,
     "persistedMatch": ["concert", "live music", "music television", "music documentary"],
     "providers": [

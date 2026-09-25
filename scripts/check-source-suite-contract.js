@@ -49,6 +49,7 @@ const api = fs.readFileSync(path.join(repo, 'realsignal_api_v2_worker.js'), 'utf
 if (!api.includes('const sourceRefreshCache = new Map()') || !api.includes('refresh already scheduled') || !api.includes('forceDeepRefresh') || !api.includes('server-source-catalog-refresh') || !api.includes('freshnessLedger: true')) issues.push('source refreshes must be deduplicated, deep refreshes must return the expanded union, and freshness filtering must preserve newest-first ledger order');
 if (!api.includes('const failed = !skipped && !!health.error;') || !api.includes("COALESCE(last_error, '')<>'no verified items'")) issues.push('an empty Source Suite search must rotate to another query, not trigger or retain a provider cooldown');
 if (!api.includes('kind: "source-status"') || !api.includes('async function handleSourceStatus') || !api.includes('d1-requalified-source-catalog')) issues.push('Source Suite audits must have a read-only endpoint for the client-equivalent requalified catalog');
+if (!api.includes('body.maintenance === true') || !api.includes('server-source-catalog-maintenance') || !api.includes('options.direct === true')) issues.push('controlled Source Suite refreshes must persist the complete verified provider union before reporting depth');
 
 for (const file of files) {
   const source = fs.readFileSync(path.join(repo, file), 'utf8');

@@ -33,7 +33,7 @@ async function mapLimit(values, limit, fn) {
       const response = await fetch(`${base}/source/catalog`, {
         method: 'POST',
         headers: { 'content-type': 'application/json', 'x-realsignal-client': 'source-suite-controlled-refresh' },
-        body: JSON.stringify({ profileKey, refresh: true, rotation: rotation + index, minimumReady: 12 }),
+        body: JSON.stringify({ profileKey, refresh: true, maintenance: true, rotation: rotation + index, minimumReady: 12 }),
         signal: controller.signal,
       });
       const body = await response.json().catch(() => ({}));

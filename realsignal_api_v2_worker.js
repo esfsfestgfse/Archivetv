@@ -1138,12 +1138,17 @@ async function persistSourceHealth(env, profile, lanes) {
   }
 }
 
-async function persistSourceLanes(env, profile, lanes) {
+async function persistSourceLanes(env, profile, lanes, options = {}) {
   const merged = mergeSourceLanes(profile.profileKey, lanes);
   await persistSourceHealth(env, profile, lanes);
   const job = catalogJob({ channel: profile.profileKey, themeTerms: profile.match, denyTerms: profile.deny, mediaTypes: ["video", "embed"] }, merged);
   if (!job) return merged;
-  if (env.realsignal_catalog_refresh && typeof env.realsignal_catalog_refresh.send === "function") {
+  /* Viewer requests remain queue-backed and non-blocking. Controlled
+     maintenance refreshes need an honest depth result, so they write the
+     already-verified provider union directly before returning. */
+  if (options && options.direct === true) {
+    await upsertCatalogJob(env, job);
+  } else if (env.realsignal_catalog_refresh && typeof env.realsignal_catalog_refresh.send === "function") {
     await env.realsignal_catalog_refresh.send(job, { contentType: "json" });
   } else {
     await upsertCatalogJob(env, job);
@@ -1245,6 +1250,49 @@ async function handleSourceCatalog(request, env, ctx, id) {
     ]).finally(() => clearTimeout(firstTimer));
   }
   scheduleSourceRefresh(env, ctx, normalized, tasks, id, forceDeepRefresh);
+  if (body.maintenance === true) {
+    /* The normal path above deliberately returns the first verified lane so a
+       viewer never waits on both providers. A maintenance refresh is the
+       explicit exception: await the full provider union and persist it
+       synchronously so the returned depth is measurable and durable. */
+    const lanes = await Promise.all(tasks.map((task) => Promise.resolve(task).catch((error) => ({ provider: "unknown", items: [], health: { error: String(error).slice(0, 160) } }))));
+    const merged = await persistSourceLanes(env, normalized, lanes, { direct: true });
+    const maintenanceBody = {
+      channel: normalized.profileKey,
+      sourceCatalog: true,
+      denyTerms: normalized.deny,
+      themeTerms: normalized.match,
+      intent: normalized.intent,
+      topics: normalized.topics,
+      programFormats: normalized.formats,
+      persistedRelaxed: normalized.persistedRelaxed,
+      persistedMatch: normalized.persistedMatch,
+      themeMinScore: 1,
+    };
+    const verified = uniqueQueueItems(merged.items, maintenanceBody, SOURCE_LIMITS.SOURCE_MAX_ITEMS);
+    return json({
+      profileKey: normalized.profileKey,
+      items: verified,
+      ready: verified.length,
+      candidates: verified.length,
+      catalogDepth: verified.length,
+      unseenCatalogItems: verified.length,
+      seenCatalogItems: 0,
+      catalogExhausted: false,
+      repeatAllowed: false,
+      lanes,
+      hydrating: false,
+      maintenance: true,
+      adaptiveFreshness: true,
+      freshnessLedger: true,
+      catalogVersion: "source-server-1",
+      source: "server-source-catalog-maintenance",
+      providerAvailability: { youtube: !!env.YOUTUBE_API_KEY && !disabledProviders.has("youtube"), peertube: !disabledProviders.has("peertube"), cooldownProviders: Array.from(disabledProviders) },
+      limits: SOURCE_LIMITS,
+      apiVersion,
+      release: apiVersion === "v3" ? V3_RELEASE : undefined,
+    }, verified.length ? 200 : 503, { "Cache-Control": "no-store", "X-RealSignal-Request": id, "X-RealSignal-Source": "server-source-catalog-maintenance", "X-RealSignal-Release": apiVersion === "v3" ? V3_RELEASE : "2.2.2" });
+  }
   const cachedItems = forceDeepRefresh && cached && Array.isArray(cached.candidateItems) ? cached.candidateItems : (forceDeepRefresh && cached && Array.isArray(cached.items) ? cached.items : []);
   const discoveredItems = forceDeepRefresh
     ? uniqueQueueItems(cachedItems.concat(first.items || []), { ...body, sourceCatalog: true, denyTerms: profile.deny, themeTerms: profile.match, themeMinScore: 1 }, SOURCE_LIMITS.SOURCE_MAX_ITEMS)

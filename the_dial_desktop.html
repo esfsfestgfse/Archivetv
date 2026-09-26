@@ -1647,7 +1647,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="4.1.8-desktop-ia-parent-split";
+window.__ATV_BUILD="4.1.9-desktop-ia-holiday-depth";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -2494,6 +2494,9 @@ const CH=[
  {nm:"Christmas Channel", num:700, cat:"HOL", gl:"xmas",         era:[1930,1995], ns:"movie"},
  {nm:"Halloween Haunt", num:701,   cat:"HOL", gl:"halloween",    era:[1930,1995], ns:"movie"},
  {nm:"Thanksgiving Channel", num:702,cat:"HOL",gl:"thanksgiving", era:[1930,1990], ns:"tv"},
+ {nm:"Christmas Cartoons", num:704, cat:"HOL", gl:"xmascartoon", era:[1930,2026], ns:"toon"},
+ {nm:"Halloween Cartoons", num:705, cat:"HOL", gl:"halloweencartoon", era:[1930,2026], ns:"toon"},
+ {nm:"Thanksgiving Cartoons", num:706, cat:"HOL", gl:"thanksgivingcartoon", era:[1930,2026], ns:"toon"},
  {nm:"The Hearth", num:703,       cat:"HOL", gl:"yulelog",     era:[1900,2026], ns:"tv"}, /* Yule log fireplace loop with vintage Christmas music bed */
  {nm:"Test Pattern", num:506,      cat:"RETRO", source:"static", ns:"space"},
  {nm:"The Long Shot", num:507,     cat:"RETRO", gl:"slowtv",    era:[2000,2026], ns:"tv"}, /* Slow TV — NRK-style long-form: train rides, sunsets, ferry crossings, waterfalls */
@@ -2784,6 +2787,9 @@ const CHANNEL_META={
 "Christmas Channel":{desc:"Yuletide features, cartoons and TV specials - all year, unashamed.",best:"December evenings",rel:["Comedy Classics","Classic Rerun TV"]},
 "Halloween Haunt":{desc:"Ghosts, witches and haunted houses - the spooky shelf.",best:"October nights",rel:["Shock Theater","Sci-Fi Theater"]},
 "Thanksgiving Channel":{desc:"Harvest films, pilgrims and turkey-day television.",best:"late November",rel:["Home Economics","Classic Rerun TV"]},
+"Christmas Cartoons":{desc:"Animated Christmas specials, holiday cartoons and vintage kids blocks from the Archive.",best:"December mornings",rel:["Christmas Channel","Saturday Morning"]},
+"Halloween Cartoons":{desc:"Animated spooky specials, monster cartoons and Halloween kids programming.",best:"October afternoons",rel:["Halloween Haunt","Classic Cartoons"]},
+"Thanksgiving Cartoons":{desc:"Animated harvest specials, turkey-day cartoons and family holiday episodes.",best:"Thanksgiving morning",rel:["Thanksgiving Channel","Saturday Morning"]},
 "Historic Waco":{desc:"LIVE: a rolling archive of historical photographs of Waco \u0026 Central Texas \u2014 Library of Congress, Wikimedia Commons \u0026 Internet Archive, with a Ken Burns treatment and a warm narrator.",best:"anytime",rel:["News, News, News","Hometown History"]},
 "Backyard Naturalist":{desc:"LIVE: wildlife spotted near you this week, with photos.",best:"mornings",rel:["Hometown History","Home Movies & Travelogues"]},
 "Air & Allergy":{desc:"LIVE: AQI, particulates, ozone and pollen for your ZIP.",best:"allergy season",rel:["Weather Watch","River & Lake Watch"]},
@@ -5977,6 +5983,45 @@ const PROGRAM = {
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Holiday animation stations: the holiday movie lanes stay broad, while
+     these three are title-locked to actual animated specials/episodes. */
+  "Christmas Cartoons": {
+    genre: "xmascartoon", era: [1930, 2026],
+    queueTerms: ["christmas cartoon", "christmas animation", "animated christmas special", "christmas cartoon episode", "rudolph", "frosty", "grinch", "charlie brown christmas", "santa cartoon", "holiday cartoon"],
+    fastSubjects: ["christmas cartoon", "christmas animation", "animated christmas special", "christmas special", "rudolph", "frosty", "grinch", "charlie brown christmas", "santa cartoon", "holiday cartoon"],
+    fastCollections: ["animationandcartoons", "classic_tv", "vhskids", "vhsvault"],
+    providers: [{ collections: ["animationandcartoons", "classic_tv", "vhskids", "vhsvault", "opensource_movies"], require_subj: ["christmas cartoon", "christmas animation", "animated christmas", "christmas special", "rudolph", "frosty", "grinch", "charlie brown christmas", "santa cartoon", "holiday cartoon", "yuletide cartoon"] }],
+    require: { title_any: ["christmas", "christmas special", "christmas cartoon", "christmas animation", "rudolph", "frosty", "grinch", "charlie brown", "santa", "holiday cartoon", "yuletide cartoon", "winter holiday cartoon"] },
+    deny: { title: ["trailer", "commercial", "promo", "advertisement", "documentary", "lecture", "seminar", "news", "live action", "music video", "how to", "tutorial"], subject: ["trailer", "commercial", "advertising", "documentary", "lecture", "seminar", "news", "live action", "music video", "training film", "how to", "tutorial"] },
+    deepCollections: ["animationandcartoons", "classic_tv", "vhskids", "vhsvault", "opensource_movies"],
+    deepTitleTerms: ["christmas", "christmas special", "christmas cartoon", "christmas animation", "rudolph", "frosty", "grinch", "charlie brown", "santa", "holiday cartoon", "yuletide cartoon"],
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+  "Halloween Cartoons": {
+    genre: "halloweencartoon", era: [1930, 2026],
+    queueTerms: ["halloween cartoon", "halloween animation", "animated halloween special", "spooky cartoon", "monster cartoon", "ghost cartoon", "witch cartoon", "scooby doo halloween", "charlie brown halloween"],
+    fastSubjects: ["halloween cartoon", "halloween animation", "animated halloween special", "spooky cartoon", "monster cartoon", "ghost cartoon", "witch cartoon", "scooby doo halloween", "charlie brown halloween"],
+    fastCollections: ["animationandcartoons", "classic_tv", "vhskids", "vhsvault"],
+    providers: [{ collections: ["animationandcartoons", "classic_tv", "vhskids", "vhsvault", "opensource_movies"], require_subj: ["halloween cartoon", "halloween animation", "animated halloween", "spooky cartoon", "monster cartoon", "ghost cartoon", "witch cartoon", "scooby doo halloween", "charlie brown halloween", "halloween special"] }],
+    require: { title_any: ["halloween", "halloween special", "halloween cartoon", "halloween animation", "spooky cartoon", "monster cartoon", "ghost cartoon", "witch cartoon", "scooby", "charlie brown", "halloween episode", "trick or treat"] },
+    deny: { title: ["trailer", "commercial", "promo", "advertisement", "documentary", "lecture", "seminar", "news", "live action", "music video", "how to", "tutorial", "horror movie"], subject: ["trailer", "commercial", "advertising", "documentary", "lecture", "seminar", "news", "live action", "music video", "training film", "how to", "tutorial", "horror film"] },
+    deepCollections: ["animationandcartoons", "classic_tv", "vhskids", "vhsvault", "opensource_movies"],
+    deepTitleTerms: ["halloween", "halloween special", "halloween cartoon", "halloween animation", "spooky cartoon", "monster cartoon", "ghost cartoon", "witch cartoon", "scooby", "charlie brown", "trick or treat"],
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+  "Thanksgiving Cartoons": {
+    genre: "thanksgivingcartoon", era: [1930, 2026],
+    queueTerms: ["thanksgiving cartoon", "thanksgiving animation", "animated thanksgiving special", "turkey cartoon", "harvest cartoon", "charlie brown thanksgiving", "mouse on the mayflower", "family holiday cartoon"],
+    fastSubjects: ["thanksgiving cartoon", "thanksgiving animation", "animated thanksgiving special", "turkey cartoon", "harvest cartoon", "charlie brown thanksgiving", "mouse on the mayflower", "family holiday cartoon"],
+    fastCollections: ["animationandcartoons", "classic_tv", "vhskids", "vhsvault"],
+    providers: [{ collections: ["animationandcartoons", "classic_tv", "vhskids", "vhsvault", "opensource_movies"], require_subj: ["thanksgiving cartoon", "thanksgiving animation", "animated thanksgiving", "turkey cartoon", "harvest cartoon", "charlie brown thanksgiving", "mouse on the mayflower", "family holiday cartoon", "thanksgiving special"] }],
+    require: { title_any: ["thanksgiving", "thanksgiving special", "thanksgiving cartoon", "thanksgiving animation", "turkey cartoon", "harvest cartoon", "charlie brown", "mouse on the mayflower", "family holiday cartoon", "thanksgiving episode"] },
+    deny: { title: ["trailer", "commercial", "promo", "advertisement", "documentary", "lecture", "seminar", "news", "live action", "music video", "how to", "tutorial", "football", "parade"], subject: ["trailer", "commercial", "advertising", "documentary", "lecture", "seminar", "news", "live action", "music video", "training film", "how to", "tutorial", "football", "parade"] },
+    deepCollections: ["animationandcartoons", "classic_tv", "vhskids", "vhsvault", "opensource_movies"],
+    deepTitleTerms: ["thanksgiving", "thanksgiving special", "thanksgiving cartoon", "thanksgiving animation", "turkey cartoon", "harvest cartoon", "charlie brown", "mouse on the mayflower", "family holiday cartoon"],
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
   /* World Cinema (ch 113) — Phase 2 overhaul 2026-08-08. Non-English arthouse
      from every era + region. */
   "World Cinema": {
@@ -6401,7 +6446,9 @@ Object.assign(PROGRAM["Classic Cartoons"],{
 });
 Object.assign(PROGRAM["Saturday Morning"],{
   fastSubjects:rsAppendProgramTerms(PROGRAM["Saturday Morning"].fastSubjects,["saturday morning cartoon","cartoon","cartoons","animated series","full episode","fox kids","kids wb","toonami","nickelodeon","disney afternoon","schoolhouse rock","puppet show"]),
-  fastCollections:rsAppendProgramTerms(PROGRAM["Saturday Morning"].fastCollections,["saturdaymorningcartoons","animationandcartoons","vhskids","vhsvault","classic_tv_1990s","classic_tv_2000s"])
+  fastCollections:rsAppendProgramTerms(PROGRAM["Saturday Morning"].fastCollections,["saturdaymorningcartoons","animationandcartoons","vhskids","vhsvault","classic_tv_1990s","classic_tv_2000s"]),
+  require:Object.assign({},PROGRAM["Saturday Morning"].require||{},{title_any:rsAppendProgramTerms(PROGRAM["Saturday Morning"].require&&PROGRAM["Saturday Morning"].require.title_any,["cartoon","cartoons","animated","animation","puppet","saturday morning","fox kids","kids wb","toonami","nickelodeon","disney afternoon","schoolhouse rock","scooby","smurfs","transformers","thundercats","he-man","voltron","ducktales","batman","superman","pingu","sesame street","mister rogers","muppet","charlie brown","peanuts","care bears","rainbow brite","my little pony","gummi bears","darkwing duck","animaniacs","tiny toon","rugrats","hey arnold","rocko","powerpuff"])}),
+  deny:Object.assign({},PROGRAM["Saturday Morning"].deny||{},{title:rsAppendProgramTerms(PROGRAM["Saturday Morning"].deny&&PROGRAM["Saturday Morning"].deny.title,["lecture","seminar","news","memorial","tribute","golf","rodeo","slavery","tournament","documentary","history","meeting","government","public affairs","fundraiser","civic","political"]),subject:rsAppendProgramTerms(PROGRAM["Saturday Morning"].deny&&PROGRAM["Saturday Morning"].deny.subject,["lecture","seminar","news","memorial","tribute","golf","rodeo","slavery","tournament","documentary","history","meeting","government","public affairs","fundraiser","civic","political"])})
 });
 Object.assign(PROGRAM["Modern Cartoons"],{
   fastSubjects:rsAppendProgramTerms(PROGRAM["Modern Cartoons"].fastSubjects,["cartoon","cartoons","animated series","animated tv","full episode","full episodes","fox kids","kids wb","toonami","nickelodeon","disney afternoon"]),
@@ -6429,6 +6476,8 @@ Object.assign(PROGRAM["Comedy Classics"],{
 Object.assign(PROGRAM["Classic Cartoons"],{
   fastCollections:["classic_cartoons","animationandcartoons","saturdaymorningcartoons"],
   deepCollections:rsAppendProgramTerms(PROGRAM["Classic Cartoons"].deepCollections,["classic_cartoons","animationandcartoons","saturdaymorningcartoons","vhskids"]),
+  require:Object.assign({},PROGRAM["Classic Cartoons"].require||{},{title_any:rsAppendProgramTerms(PROGRAM["Classic Cartoons"].require&&PROGRAM["Classic Cartoons"].require.title_any,["cartoon","cartoons","animated","animation","looney tunes","merrie melodies","bugs bunny","daffy duck","popeye","tom and jerry","fleischer","betty boop","woody woodpecker","droopy","mr magoo","rocky and bullwinkle","hanna barbera","mickey","donald duck","goofy","pluto","silly symphonies","oswald","felix","mighty mouse","heckle and jeckle","terrytoons","superman"])}),
+  deny:Object.assign({},PROGRAM["Classic Cartoons"].deny||{},{title:rsAppendProgramTerms(PROGRAM["Classic Cartoons"].deny&&PROGRAM["Classic Cartoons"].deny.title,["lecture","seminar","news","crime","court","civic","political","documentary","history","screen capture","meeting","conference","panel","forum","recording","public affairs","education"]),subject:rsAppendProgramTerms(PROGRAM["Classic Cartoons"].deny&&PROGRAM["Classic Cartoons"].deny.subject,["lecture","seminar","news","crime","court","civic","political","documentary","history","screen capture","meeting","conference","panel","forum","recording","public affairs","education"])}),
   diversity:{maxPerEra:2,maxPerLane:2,maxPerCreator:1,maxPerCollection:3}
 });
 Object.assign(PROGRAM["Modern Cartoons"],{

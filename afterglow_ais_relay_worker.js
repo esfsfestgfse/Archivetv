@@ -101,10 +101,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-96-72-deep-harvest-v2";
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v101";
+const IA_QUEUE_CACHE_VERSION = "v102";
 /* Last-good shelves share the v101 namespace so an older shallow shelf
    never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v101";
+const IA_LAST_GOOD_CACHE_VERSION = "v102";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -2773,11 +2773,11 @@ function matchesTheme(doc, themeTerms, minScore = 1, requiredTitleTerms = []) {
     const needle = themeText(term);
     return needle && subject.includes(needle);
   });
-  /* Collection-expanded and direct recovery files often have an editorial
-     title that omits the channel phrase while their Archive subject carries
-     the exact genre classification. Keep the title gate strict unless the
-     subject independently matches the lane vocabulary. */
-  if (requiredTitleTerms.length && !titleMatches && !subjectMatches) return false;
+  /* The client has always enforced require.title_any. Enforce the same gate
+     in the relay so a subject-tagged lecture, news item, or collection record
+     cannot occupy a verified slot merely because it shares one broad genre
+     word. Expanded episode files retain their own title/subject vocabulary. */
+  if (requiredTitleTerms.length && !titleMatches) return false;
   if (!themeTerms.length) return true;
   return themeScore(doc, themeTerms) >= minScore;
 }

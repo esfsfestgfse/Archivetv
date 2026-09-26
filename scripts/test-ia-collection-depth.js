@@ -33,15 +33,22 @@ const expectedRails = {
   '10': 'classic_tv',
   '11': 'classic_tv',
   '12': 'classic_tv_1950s',
+  '704': 'animationandcartoons',
+  '705': 'animationandcartoons',
+  '706': 'animationandcartoons',
 };
 for (const [channel, collection] of Object.entries(expectedRails)) {
   const row = manifest.find(item => String(item.channel) === channel);
   check(Boolean(row), `IA channel ${channel} is in the exported manifest`);
   check(Boolean(row && row.queries.some(query => query.includes(`collection:${collection}`))), `IA channel ${channel} exposes ${collection} depth rail`);
+  if (['704', '705', '706'].includes(channel)) {
+    check(Boolean(row && row.requiredTitleTerms && row.requiredTitleTerms.length), `IA holiday animation channel ${channel} has a title gate`);
+  }
 }
 
 const relay = fs.readFileSync(path.join(root, 'afterglow_ais_relay_worker.js'), 'utf8');
-check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v101"/.test(relay), 'Relay cache namespace is v101');
+check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v102"/.test(relay), 'Relay cache namespace is v102');
+check(/requiredTitleTerms\.length && !titleMatches\) return false/.test(relay), 'Relay enforces the same strict title gate as the clients');
 check(/"206": \[/.test(relay) && /090-aahma-watermarked/.test(relay) && /amateur_west_1940_1/.test(relay), 'Home Movies has verified sparse-lane recovery media');
 check(/"11": \[/.test(relay) && /freakylinks-complete-series-2000/.test(relay) && /partners-1995-96/.test(relay), 'Modern Rerun TV has verified sitcom recovery media');
 check(/"208": \[/.test(relay) && /santa-fe-atsf-teamwork-and-technology/.test(relay) && /ThisIsMy1940/.test(relay), 'Railroad has verified railway recovery media');

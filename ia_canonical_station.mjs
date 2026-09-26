@@ -186,51 +186,6 @@ export const IA_CANONICAL_PILOT_PROFILES = Object.freeze({
   }),
 });
 
-/*
- * Version 4 hybrid lineup contract.
- *
- * Genre stations are broad, decade-balanced destinations. Era stations are
- * intentionally narrow and only become visible when their own health gate
- * passes. Early television/cinema share a grouped lane because those years
- * are too sparse to justify a separate station in most public catalogs.
- */
-const eraStation = (stationKey, channel, name, medium, era, options = {}) => Object.freeze({
-  stationKey,
-  channel: String(channel),
-  name,
-  source: "internet-archive",
-  stationKind: "era",
-  balanceMode: "strict-era",
-  medium,
-  era: Object.freeze(era),
-  minCatalog: options.minCatalog || 24,
-  minFamilies: options.minFamilies || 6,
-  maxFamilyShare: options.maxFamilyShare || 0.35,
-  minRuntimeSeconds: options.minRuntimeSeconds || (medium === "movie" ? 1800 : 900),
-  maxRuntimeSeconds: options.maxRuntimeSeconds || 4 * 60 * 60,
-  collections: Object.freeze(options.collections || (medium === "movie" ? ["feature_films", "opensource_movies"] : ["classic_tv", "television"])),
-});
-
-export const IA_HYBRID_STATION_BLUEPRINTS = Object.freeze([
-  eraStation("tv-early", 243, "Early Television", "television", [1930, 1949]),
-  eraStation("tv-1950s", 244, "1950s Television", "television", [1950, 1959]),
-  eraStation("tv-1960s", 245, "1960s Television", "television", [1960, 1969]),
-  eraStation("tv-1970s", 246, "1970s Television", "television", [1970, 1979]),
-  eraStation("tv-1980s", 247, "1980s Television", "television", [1980, 1989]),
-  eraStation("tv-1990s", 248, "1990s Television", "television", [1990, 1999]),
-  eraStation("tv-2000s", 249, "2000s Television", "television", [2000, 2009]),
-  eraStation("tv-2010s", 250, "2010s & Now Television", "television", [2010, 2026]),
-  eraStation("movie-early", 260, "Early Cinema", "movie", [1900, 1949], { minRuntimeSeconds: 1200 }),
-  eraStation("movie-1950s", 261, "1950s Movies", "movie", [1950, 1959], { minRuntimeSeconds: 1200 }),
-  eraStation("movie-1960s", 262, "1960s Movies", "movie", [1960, 1969], { minRuntimeSeconds: 1200 }),
-  eraStation("movie-1970s", 263, "1970s Movies", "movie", [1970, 1979], { minRuntimeSeconds: 1200 }),
-  eraStation("movie-1980s", 264, "1980s Movies", "movie", [1980, 1989], { minRuntimeSeconds: 1200 }),
-  eraStation("movie-1990s", 265, "1990s Movies", "movie", [1990, 1999], { minRuntimeSeconds: 1200 }),
-  eraStation("movie-2000s", 266, "2000s Movies", "movie", [2000, 2009], { minRuntimeSeconds: 1200 }),
-  eraStation("movie-2010s", 267, "2010s Movies", "movie", [2010, 2019], { minRuntimeSeconds: 1200 }),
-  eraStation("movie-2020s", 268, "2020s Movies", "movie", [2020, 2026], { minRuntimeSeconds: 1200 }),
-]);
-
 export function normalizeCanonicalItem(raw, profile) {
   const sourceIdentifier = text(raw.archiveId || raw.sourceIdentifier || raw.identifier || raw.id);
   const file = text(raw.file || raw.sourceFile || "");

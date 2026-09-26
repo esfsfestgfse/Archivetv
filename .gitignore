@@ -2,3 +2,9 @@
 *.log
 *.cpuprofile
 tmp/
+
+# Local audit evidence and provider probe output; retained on disk, not shipped.
+audit-archive/
+.pnpm-cache/
+.pnpm-store/
+scripts/__pycache__/

@@ -309,7 +309,10 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "audio engineering",
       "radio studio",
       "recording studio",
-      "audio technology"
+      "audio technology",
+      "sound design",
+      "microphone",
+      "audio production"
     ],
     "deny": [
       "fictional",
@@ -457,7 +460,10 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "world events",
       "news history",
       "current affairs",
-      "archival news"
+      "archival news",
+      "news archive",
+      "historical news",
+      "broadcast news"
     ],
     "deny": [
       "fictional",
@@ -698,13 +704,15 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "vocational education film"
     ],
     "match": [
-      "classroom instructional",
+      "classroom",
+      "instructional film",
+      "educational film",
       "science lesson",
       "civics education",
       "vocational training",
-      "teaching history",
-      "instructional film",
-      "educational documentary"
+      "teaching",
+      "school film",
+      "education"
     ],
     "deny": [
       "fictional",
@@ -748,7 +756,10 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "community media",
       "public affairs",
       "municipal",
-      "community documentary"
+      "community",
+      "cable access",
+      "local government",
+      "town meeting"
     ],
     "deny": [
       "fictional",
@@ -1143,28 +1154,32 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "youtube"
     ],
     "queries": [
-      "horticulture documentary",
-      "botanical garden film",
+      "horticulture documentary full",
+      "botanical garden documentary",
       "garden history documentary",
-      "landscape design film",
+      "landscape design documentary",
       "plant science documentary",
-      "botany documentary",
+      "botany documentary full",
       "garden design documentary",
-      "public garden film",
-      "botanical garden full documentary",
-      "horticulture full film",
+      "public garden tour documentary",
+      "arboretum documentary",
+      "gardening history film",
       "plant cultivation documentary",
       "landscape architecture garden documentary",
-      "public garden tour documentary",
-      "garden restoration documentary"
+      "garden restoration documentary",
+      "wildlife garden documentary"
     ],
     "match": [
       "horticulture",
-      "botanical garden",
-      "garden history",
-      "landscape design",
+      "garden",
+      "gardening",
+      "botanical",
+      "botany",
       "plant science",
-      "gardening history"
+      "landscape design",
+      "landscape architecture",
+      "arboretum",
+      "garden history"
     ],
     "deny": [
       "fictional",
@@ -1207,11 +1222,15 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     ],
     "match": [
       "veterinary",
+      "animal",
+      "wildlife",
       "animal behavior",
       "wildlife rehabilitation",
-      "zoo history",
+      "zoology",
+      "zoo",
       "animal welfare",
-      "animal care"
+      "animal care",
+      "conservation"
     ],
     "deny": [
       "fictional",
@@ -1404,10 +1423,11 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "youtube"
     ],
     "intent": "performance",
-    "topics": ["stage play", "theatre performance", "dance theatre", "live theatre"],
+    "formatRelaxed": true,
+    "topics": ["stage play", "play", "theatre", "theater", "theatre performance", "dance theatre", "live theatre", "ballet", "opera", "musical"],
     "formats": ["full performance", "complete performance", "full play", "complete play", "full show", "full musical", "full production", "full-length play", "entire performance", "complete opera", "full ballet"],
     "queries": ["stage play full performance", "theatre full play", "complete theatre performance", "dance theatre full performance", "live theatre complete show", "classic stage play full", "ballet full performance", "stage musical full performance", "public domain stage play full", "full Broadway musical", "complete opera performance", "full stage production"],
-    "match": ["stage play", "theatre performance", "theater performance", "dance theatre", "live theatre", "full performance", "complete play"],
+    "match": ["stage play", "play", "theatre", "theater", "theatre performance", "dance theatre", "live theatre", "ballet", "opera", "musical", "full performance", "complete play"],
     "deny": [
       "music video",
       "commercial",
@@ -1440,11 +1460,16 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     ],
     "match": [
       "printing history",
+      "printing",
       "typography",
+      "publishing",
       "publishing history",
       "book arts",
       "letterpress",
-      "printmaking"
+      "printmaking",
+      "bookbinding",
+      "typesetting",
+      "newspaper printing"
     ],
     "deny": [
       "fictional",
@@ -1490,10 +1515,13 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "match": [
       "oral history",
       "community history",
-      "memoir documentary",
-      "personal archives",
+      "memoir",
+      "personal archive",
       "public history",
-      "memory archive"
+      "memory archive",
+      "life story",
+      "community voices",
+      "interview"
     ],
     "deny": [
       "fictional",
@@ -1625,13 +1653,16 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "television program archive full"
     ],
     "match": [
-      "television history",
       "television",
       "broadcast television",
+      "classic tv",
       "classic tv history",
       "television production",
-      "tv network history",
-      "television archive"
+      "tv network",
+      "television archive",
+      "tv program",
+      "tv show",
+      "broadcast archive"
     ],
     "deny": [
       "fictional",
@@ -1752,6 +1783,9 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "cannabis in america documentary"
     ],
     "match": [
+      "cannabis",
+      "marijuana",
+      "hemp",
       "cannabis history",
       "marijuana history",
       "marijuana culture",
@@ -1843,10 +1877,15 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "match": [
       "cinematography",
       "film editing",
+      "film studio",
       "film studio history",
       "production design",
-      "filmmaking documentary",
-      "film production"
+      "filmmaking",
+      "film production",
+      "camera technology",
+      "movie making",
+      "motion picture",
+      "cinema"
     ],
     "deny": [
       "fictional",
@@ -1962,10 +2001,11 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "youtube"
     ],
     "intent": "film",
-    "topics": ["western movie", "western film", "cowboy movie", "frontier film"],
+    "formatRelaxed": true,
+    "topics": ["western movie", "western film", "western", "cowboy movie", "cowboy", "frontier film", "frontier", "spaghetti western", "silent western"],
     "formats": ["full movie", "full film", "feature film", "complete movie", "movie marathon", "full western", "western full film", "full-length western", "complete western", "feature western"],
     "queries": ["classic western full movie", "public domain western full movie", "cowboy movie full film", "frontier western feature film", "vintage western full movie", "western movie marathon", "classic cowboy film full", "western double feature full", "spaghetti western full movie", "silent western full movie", "classic western feature film", "western television movie full"],
-    "match": ["western movie", "western film", "cowboy movie", "frontier western", "full movie", "feature film"],
+    "match": ["western movie", "western film", "western", "cowboy movie", "cowboy", "frontier western", "frontier", "full movie", "feature film"],
     "deny": [
       "music video",
       "commercial",
@@ -2074,10 +2114,11 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "youtube"
     ],
     "intent": "performance",
-    "topics": ["variety show", "vaudeville", "stage revue", "television variety"],
+    "formatRelaxed": true,
+    "topics": ["variety show", "variety", "vaudeville", "stage revue", "revue", "television variety", "television show", "entertainment show"],
     "formats": ["full episode", "complete show", "full show", "variety special", "full performance", "full special", "complete variety", "full revue", "complete revue", "full program"],
     "queries": ["classic variety show full episode", "television variety complete show", "vaudeville television full show", "variety special full episode", "classic stage revue full performance", "music comedy variety show full", "variety show marathon", "television variety archive full episode", "family variety show full episode", "classic television special full show", "comedy variety show full episode", "international variety show full"],
-    "match": ["variety show", "television variety", "vaudeville", "stage revue", "full episode", "complete show"],
+    "match": ["variety show", "variety", "vaudeville", "stage revue", "revue", "television variety", "television show", "entertainment show", "full episode", "complete show"],
     "deny": [
       "music video",
       "commercial",
@@ -2135,12 +2176,17 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "national parks travel film"
     ],
     "match": [
+      "travel",
       "travel film history",
       "destination documentary",
       "tourism film",
       "travel television",
-      "cultural travel documentary",
-      "travel film archive"
+      "cultural travel",
+      "travel film archive",
+      "national parks",
+      "railway travel",
+      "world travel",
+      "exploration"
     ],
     "deny": [
       "fictional",
@@ -2226,10 +2272,11 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "youtube"
     ],
     "intent": "performance",
-    "topics": ["music performance", "concert", "music television", "live band"],
+    "formatRelaxed": true,
+    "topics": ["music performance", "performance", "concert", "music television", "live band", "music program", "music special"],
     "formats": ["full concert", "full performance", "complete show", "live set", "live music", "full episode"],
     "queries": ["music television full episode", "classic concert full performance", "live band full concert", "music variety show complete episode", "television music special full", "classic live performance full show", "concert television full episode", "music program full performance", "MTV unplugged full episode", "Austin City Limits full episode", "concert film full", "music documentary full", "The Midnight Special full episode", "Don Kirshner's Rock Concert full episode", "Soul Train full episode", "Top of the Pops full episode"],
-    "match": ["music performance", "full concert", "live band", "music television", "music variety show", "full performance"],
+    "match": ["music performance", "performance", "concert", "live band", "music television", "music variety show", "music program", "music special"],
     "deny": [
       "commercial",
       "cartoon",

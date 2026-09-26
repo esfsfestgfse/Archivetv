@@ -114,6 +114,7 @@ function normalizedProfile(body) {
     intent: text(approved.intent, 40).toLowerCase(),
     topics: list(approved.topics, 32),
     formats: list(approved.formats, 24),
+    formatRelaxed: approved.formatRelaxed === true,
     persistedRelaxed: approved.persistedRelaxed === true,
     persistedMatch: list(approved.persistedMatch, 24),
     providers: list(approved.providers, 2).map((value) => value.toLowerCase()),
@@ -165,7 +166,8 @@ function accepted(profile, item, provider, checkAspect = true) {
     const programDeny = /(?:history of|documentary about|retrospective|video essay|analysis|explained|lecture|seminar|webinar|conference|panel discussion|making of|behind the scenes|demo reel|showreel|workshop|masterclass|recap|production reel|festival reel)/i;
     if (programDeny.test(haystack)) return false;
     if (profile.topics.length && !termsMatch(haystack, profile.topics)) return false;
-    if (profile.formats.length && !termsMatch(titleHaystack, profile.formats)) return false;
+    if (profile.formats.length && !termsMatch(titleHaystack, profile.formats)
+      && !(profile.formatRelaxed === true && duration >= 20 * 60)) return false;
   }
   const required = profile.match.length ? profile.match : profile.queries;
   return !required.length || termsMatch(haystack, required);

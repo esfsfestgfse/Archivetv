@@ -12,7 +12,7 @@ if (!bridge.includes('IA_API_BASE + "/source/catalog"') || !bridge.includes('ser
 if (!bridge.includes('realsignal:source-freshness:v3') || !bridge.includes('playedIds: recentFor(profileKey).slice(0, 1)') || !bridge.includes('__rsRecordSourcePlay') || bridge.includes('remember(profileKey, fresh.items)')) issues.push('Source Suite freshness must be newest-first and record actual plays, not catalog fetches');
 const serverCatalog = fs.readFileSync(path.join(repo, 'realsignal_source_catalog.js'), 'utf8');
 if (!serverCatalog.includes('if (raw.length < SOURCE_MIN_READY)') || !serverCatalog.includes('SOURCE_QUERY_WINDOW = 4') || !serverCatalog.includes('SOURCE_MAX_QUERY_WINDOW = 6') || !serverCatalog.includes('profile.queryWindow || SOURCE_QUERY_WINDOW') || !serverCatalog.includes('youtubeSearchDuration(profile, rotation)') || !serverCatalog.includes('Full television/film/performance lanes are') || !serverCatalog.includes('SOURCE_YOUTUBE_QUERY_CONCURRENCY = 2') || !serverCatalog.includes('Math.ceil(ids.length / 50)')) issues.push('Source discovery must rotate a bounded query window, keep full-program lanes in the long-form bucket, allow only shallow lanes a capped expansion, bound search concurrency, and chunk detail hydration to 50 IDs');
-if (!serverCatalog.includes('profile.formats') || !serverCatalog.includes('program-form signal in the actual title')) issues.push('Entertainment Source Suite lanes must require an actual full-program form, not merely a broad search match');
+if (!serverCatalog.includes('profile.formats') || !serverCatalog.includes('program-form signal in the actual title') || !serverCatalog.includes('formatRelaxed === true && duration >= 20 * 60')) issues.push('Entertainment Source Suite lanes must require an actual full-program form, with only explicitly relaxed long-form profiles allowed to use duration as the form signal');
 const sourceRegistry = fs.readFileSync(path.join(repo, 'source_suite_profile_registry.js'), 'utf8');
 for (const key of ['animal-care', 'family-tv-club', 'garden-ledger', 'green-culture', 'jukebox-television', 'lesson-reel', 'local-signal', 'memory-bank', 'newsreel-exchange', 'print-shop', 'screen-test', 'sound-lab', 'stage-door', 'travel-reel', 'tv-time-machine', 'variety-hour', 'western-screen']) {
   const start = sourceRegistry.indexOf(`"${key}":`);
@@ -56,6 +56,12 @@ for (const key of ['classic-sitcom-room', 'family-tv-club', 'horror-house', 'wes
   const end = next >= 0 ? next + 5 : sourceRegistry.indexOf('\n});', start);
   const section = sourceRegistry.slice(start, end >= 0 ? end : sourceRegistry.length);
   if (!section.includes('"intent"') || !section.includes('"formats"') || !/(?:full|complete) (?:episode|movie|performance|concert|play|show)/.test(section)) issues.push(`${key} must use program-form Source Suite discovery instead of history-only searches`);
+}
+for (const key of ['western-screen', 'variety-hour', 'stage-door', 'jukebox-television']) {
+  const start = sourceRegistry.indexOf(`"${key}":`);
+  const next = sourceRegistry.indexOf('\n  },', start);
+  const section = sourceRegistry.slice(start, next >= 0 ? next + 5 : sourceRegistry.length);
+  if (!section.includes('"formatRelaxed": true')) issues.push(`${key} must explicitly opt into the long-form title fallback`);
 }
 for (const [key, terms] of Object.entries({
   'stage-door': ['"full production"', '"complete opera"'],

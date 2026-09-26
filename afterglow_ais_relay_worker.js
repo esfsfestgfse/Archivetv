@@ -101,10 +101,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-96-72-deep-harvest-v2";
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v108";
+const IA_QUEUE_CACHE_VERSION = "v109";
 /* Last-good shelves share the v101 namespace so an older shallow shelf
    never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v108";
+const IA_LAST_GOOD_CACHE_VERSION = "v109";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -5036,6 +5036,17 @@ async function expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, c
   if (emergencySeeds.length && iaNeedsCatalogDepth(expanded, count, candidateCount)) {
     expanded = mergeIaQueuePayload(expanded, { items: emergencySeeds, candidateItems: emergencySeeds }, candidateCount, { emergencySeedsMerged: true });
   }
+  /* Family shelves can contain records written by an earlier background rail.
+     Reapply the full editorial contract after every merge so a noisy Archive
+     result can never leak back into a later rotation through shared state. */
+  const retainApprovedCandidates = (value) => (Array.isArray(value) ? value : [])
+    .filter((item) => matchesTheme(item, themeTerms, themeMinScore, requiredTitleTerms))
+    .filter((item) => !matchesDeny(item, denyTerms))
+    .filter((item) => iaRuntimeAllowed(item, minRuntimeSeconds));
+  {
+    const approvedCandidates = retainApprovedCandidates(expanded.candidateItems || expanded.items);
+    expanded = { ...expanded, items: approvedCandidates.slice(0, candidateCount), candidateItems: approvedCandidates, candidates: approvedCandidates.length };
+  }
   /* Start with collection files from the exact foreground result. This keeps
      the richer episode catalog tied to the same genre-checked parent instead
      of betting the repair on a later rotated search page returning it again. */
@@ -5080,6 +5091,10 @@ async function expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, c
     expanded = forceDiscovery
       ? mergeIaQueuePayload(rescue, expanded, candidateCount, { rescue: true, refreshed: true })
       : mergeIaQueuePayload(expanded, rescue, candidateCount, { rescue: true });
+  }
+  {
+    const approvedCandidates = retainApprovedCandidates(expanded.candidateItems || expanded.items);
+    expanded = { ...expanded, items: approvedCandidates.slice(0, candidateCount), candidateItems: approvedCandidates, candidates: approvedCandidates.length };
   }
   if (!expanded.items.length) return null;
   /* Background repair is the only place allowed to spend extra metadata

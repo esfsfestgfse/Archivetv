@@ -32,6 +32,7 @@ const context = vm.createContext({
   Request: class Request { constructor(url) { this.url = url; } },
   IA_PREFIX: '/ia',
   IA_METADATA_TTL_SECONDS: 86400,
+  IA_MAX_EXPANDED_FILES: 720,
   cachedArchiveJson: async () => payload,
   archiveFetch: async () => ({ ok: true, json: async () => payload }),
   iaMetadataInflight: new Map(),
@@ -66,7 +67,8 @@ vm.runInContext(sourceBetween('function queueFileUrls', '\nasync function mapQue
   assert.doesNotMatch(playable.url, /%3A%3A/, 'synthetic IDs must never appear in Archive download directories');
   assert.match(worker, /async function expandSeedArchiveContainers\(/, 'the background refill must expand the parent already found by the fast rail');
   assert.match(worker, /const seedEpisodes = await expandSeedArchiveContainers\(/, 'the exact foreground parent must feed the expanded queue before rotated rediscovery');
-  assert.match(worker, /\(episodes \|\| \[\]\)\.slice\(0, 2\)/, 'one collection may contribute at most two episodes to a shelf');
+  assert.match(worker, /IA_BACKGROUND_COLLECTION_EPISODES_PER_PARENT\s*=\s*10/, 'collection expansion has a bounded per-parent episode budget');
+  assert.match(worker, /sampleArchiveSequence\(episodes \|\| \[\], IA_BACKGROUND_COLLECTION_EPISODES_PER_PARENT\)/, 'collection episodes are sampled across the full manifest');
   assert.match(worker, /const minimumFiles = archiveContainerHint\(doc\) \? 2 : 3/, 'unlabelled multi-file records need a conservative manifest threshold, not a title-only rejection');
   assert.match(worker, /program-director-container-seed/, 'the direct episode shelf must publish before the slow reserve rebuild');
 

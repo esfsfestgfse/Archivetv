@@ -87,13 +87,13 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
    the larger strict budget for named/genre-locked stations and a smaller one
    for broad stations so depth grows without bringing the old synchronous
    warmup back onto the channel-change path. */
-const IA_STRICT_CATALOG_CANDIDATE_MAX = 72;
-const IA_CATALOG_CANDIDATE_MAX = 48;
-const IA_CATALOG_BUDGET_VERSION = "catalog-72-48-depth-recovery";
+const IA_STRICT_CATALOG_CANDIDATE_MAX = 96;
+const IA_CATALOG_CANDIDATE_MAX = 72;
+const IA_CATALOG_BUDGET_VERSION = "catalog-96-72-deep-harvest-v2";
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
-/* v72 keeps Archive multi-file programs and their sibling episodes in the
+/* v97 keeps Archive multi-file programs and their sibling episodes in the
    candidate shelf. A cold tune still returns a verified
    parent program immediately, while the background shelf expands collection
    items into their individual playable episode files. The depth-recovery
@@ -101,15 +101,15 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-72-48-depth-recovery";
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v96";
-/* Last-good shelves share the v84 namespace so an older shallow shelf
+const IA_QUEUE_CACHE_VERSION = "v97";
+/* Last-good shelves share the v97 namespace so an older shallow shelf
    never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v96";
+const IA_LAST_GOOD_CACHE_VERSION = "v97";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
-   three shelves of distinct, verified media behind it so a warm tune or skip
+   four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
    still catching up. */
-const IA_FRESHNESS_CANDIDATE_FLOOR = 15;
+const IA_FRESHNESS_CANDIDATE_FLOOR = 24;
 const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
 /* The queue is allowed to be warm, but the opening program must not be warm
    forever. Keep a small durable history per channel so a reload, second
@@ -117,7 +117,7 @@ const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
    issued-shelf ledger (not a permanent ban): once the unseen catalog is
    exhausted, the selection helper deliberately relaxes the exclusion. */
 const IA_FRESHNESS_LEDGER_VERSION = "v1";
-const IA_FRESHNESS_LEDGER_MAX = 20;
+const IA_FRESHNESS_LEDGER_MAX = 32;
 const IA_FRESHNESS_LEDGER_TTL_SECONDS = 30 * 24 * 60 * 60;
 const IA_FRESHNESS_MEMORY_TTL_MS = 60 * 1000;
 /* A short per-isolate burst cache absorbs repeat requests from a TV, phone,
@@ -171,8 +171,16 @@ const IA_BACKGROUND_FALLBACK_LANES = 1;
 /* Container manifests can be large. They are valuable for episode variety but
    are never permitted to multiply the work of a foreground channel change. */
 const IA_FOREGROUND_CONTAINER_EXPANSIONS = 0;
-const IA_BACKGROUND_CONTAINER_EXPANSIONS = 4;
+const IA_BACKGROUND_CONTAINER_EXPANSIONS = 6;
 const IA_CONTAINER_EXPANSION_CONCURRENCY = 2;
+/* A complete-series manifest can contain hundreds of playable files. Sample
+   across the whole manifest instead of rejecting a large collection or taking
+   only its first couple of episodes. The rolling shelf remains bounded by the
+   channel catalog budget below. */
+const IA_MAX_EXPANDED_FILES = 720;
+const IA_BACKGROUND_COLLECTION_EPISODES_PER_PARENT = 10;
+const IA_BACKGROUND_PLAYABLE_TARGET = 24;
+const IA_DEPTH_PLAYABLE_TARGET = 36;
 /* A full-directory tune burst can arrive when a guide, television, and phone
    all ask for cold shelves together. Keep the foreground path to one Archive
    discovery rail; reserve rails still run behind the first frame. */
@@ -4069,14 +4077,15 @@ async function expandArchiveContainer(doc, cacheOrigin, ctx, rotation = 0, salt 
         : (/h\.?264/i.test(String(candidate && candidate.format || "")) ? 0 : /\.mp4$|\.m4v$/i.test(candidate.name) ? 1 : 2);
       if (!previous || score(file) < score(previous)) byEpisode.set(key, file);
     }
-    const playable = archiveEpisodeRotation([...byEpisode.values()], rotation, salt);
+    const rotatedPlayable = archiveEpisodeRotation([...byEpisode.values()], rotation, salt);
     /* A film with alternate encodes is not a series. Labelled containers may
        legitimately have two files; an unlabelled item needs three distinct
        media files before it joins the episode catalog. That catches ordinary
        Archive uploads whose title does not say “complete series” while keeping
        a two-file movie/alternate encode from being split accidentally. */
     const minimumFiles = archiveContainerHint(doc) ? 2 : 3;
-    if (playable.length < minimumFiles || playable.length > 360) return [];
+    if (rotatedPlayable.length < minimumFiles) return [];
+    const playable = sampleArchiveSequence(rotatedPlayable, IA_MAX_EXPANDED_FILES);
     const md = payload.metadata || {};
     const base = String(doc.title || doc.identifier).replace(/\s+/g, " ").trim();
     return playable.map((file) => {
@@ -4098,6 +4107,24 @@ async function expandArchiveContainer(doc, cacheOrigin, ctx, rotation = 0, salt 
     console.warn(JSON.stringify({ event: "ia-container-expansion-failed", identifier: doc.identifier, message: String(error && error.message || error) }));
     return [];
   }
+}
+
+/* Select evenly across a rotated Archive manifest. A simple slice would make
+   every deep collection reopen its earliest episodes until the catalog cache
+   expired, even when the manifest contains years of later material. */
+function sampleArchiveSequence(items, limit) {
+  const source = Array.isArray(items) ? items : [];
+  const maximum = Math.max(1, Number(limit) || source.length || 1);
+  if (source.length <= maximum) return source.slice();
+  if (maximum === 1) return [source[0]];
+  const picked = [], seen = new Set();
+  for (let index = 0; index < maximum; index += 1) {
+    const at = Math.round(index * (source.length - 1) / (maximum - 1));
+    if (seen.has(at)) continue;
+    seen.add(at);
+    picked.push(source[at]);
+  }
+  return picked;
 }
 
 function queueKey(value) {
@@ -4420,18 +4447,22 @@ async function mapQueueCandidates(items, limit, fn) {
 }
 
 function queueRotationSort(rotation, lane) {
-  const modes = ["downloads desc", "date desc", "titleSorter asc", "week desc"];
+  const modes = ["downloads desc", "date desc", "date asc", "titleSorter asc", "publicdate desc", "week desc"];
   return modes[(Number(rotation) + Number(lane)) % modes.length];
 }
 
-function queueRotationPage(rotation, lane, channel = "") {
-  /* Adjacent channel rotations deliberately sample adjacent Archive pages. A
-     sort change alone often returns the same top records, which made a fresh
-     rotation look like a repeat even when the catalog had more depth. Proven
-     repeat-heavy lanes get six pages during background repair; ordinary lanes
-     retain the smaller three-page window to keep Archive bursts bounded. */
-  const pageCount = iaDepthRecoveryEnabled(channel) ? 6 : 3;
-  return 1 + (Math.abs(Number(rotation) || 0) + Number(lane || 0)) % pageCount;
+function queueRotationPage(rotation, lane, channel = "", background = false) {
+  /* Background harvests are allowed to look beyond the first few Archive
+     result pages. Keep foreground discovery conservative so a channel change
+     stays fast, while deterministic channel/lane seeding gives each rotation
+     a different page window without making cache keys nondeterministic. */
+  const pageCount = background
+    ? (iaDepthRecoveryEnabled(channel) ? 18 : 12)
+    : (iaDepthRecoveryEnabled(channel) ? 6 : 3);
+  let seed = Math.abs(Number(rotation) || 0) * 7 + Number(lane || 0) * 3;
+  const key = String(channel || "");
+  for (let index = 0; index < key.length; index += 1) seed = (seed * 33 + key.charCodeAt(index)) >>> 0;
+  return 1 + seed % pageCount;
 }
 
 async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, cacheOrigin, ctx, rotation = 0, searchTimeoutMs = 3200, firstApprovedLane = false, expandContainers = !firstApprovedLane, freshnessExcludedIds = null) {
@@ -4462,7 +4493,8 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTit
     : Math.min(8, searchQueries.length);
   const lanePromises = searchQueries.slice(0, laneLimit).map(async (query, lane) => {
     try {
-      const result = await cachedSearchArchive(cacheOrigin, query, Math.min(36, Math.max(18, count * 4)), queueRotationPage(rotation, lane, channel), queueRotationSort(rotation, lane), ctx, searchTimeoutMs);
+      const rows = firstApprovedLane ? 36 : 60;
+      const result = await cachedSearchArchive(cacheOrigin, query, Math.min(rows, Math.max(18, count * 4)), queueRotationPage(rotation, lane, channel, !firstApprovedLane), queueRotationSort(rotation, lane), ctx, searchTimeoutMs);
       // Archive.org collections are catalog pages, not programs. Keeping one in
       // a shelf guarantees a failed playback attempt, so reject them before
       // ranking, caching, or media hydration for every IA channel.
@@ -4481,6 +4513,7 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTit
          expensive diversity work behind the first frame and cap it even during
          background refill so channel surfing cannot stampede Archive. */
       const expansionLimit = firstApprovedLane ? IA_FOREGROUND_CONTAINER_EXPANSIONS : IA_BACKGROUND_CONTAINER_EXPANSIONS;
+      const effectiveExpansionLimit = firstApprovedLane ? expansionLimit : Math.min(2, expansionLimit);
       /* Strong container signals are promoted first, with one generic
          multi-file probe behind them. The file manifest—not title wording—has
          the final say about whether an ordinary Archive record is a series. */
@@ -4490,7 +4523,7 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTit
          approved parent is enough to hydrate a first frame; the request-level
          background expansion below revisits that parent and turns its files
          into episode candidates after the viewer is already watching. */
-       const expansionSeeds = (firstApprovedLane || !expandContainers) ? [] : hintedSeeds.concat(genericSeeds).slice(0, expansionLimit);
+       const expansionSeeds = (firstApprovedLane || !expandContainers) ? [] : hintedSeeds.concat(genericSeeds).slice(0, effectiveExpansionLimit);
       const expandedSets = await mapQueueCandidates(expansionSeeds, IA_CONTAINER_EXPANSION_CONCURRENCY, async (doc, expansionIndex) => {
         const episodes = await expandArchiveContainer(doc, cacheOrigin, ctx, rotation, lane * 31 + expansionIndex, mediaTypes);
         return episodes.filter((episode) => matchesTheme(episode, themeTerms, themeMinScore, requiredTitleTerms) && !matchesDeny(episode, denyTerms));
@@ -4681,7 +4714,7 @@ function iaNeedsCatalogDepth(payload, count, candidateCount) {
     ? payload.candidateItems
     : ((payload && payload.items) || []);
   const playable = candidates.filter((item) => item && item.identifier && item.media && item.media.url).length;
-  /* Three complete shelves is the minimum useful depth for a channel change.
+  /* Four complete shelves is the minimum useful depth for a channel change.
      Prefer the larger background target when the catalog budget allows it.
      A warm cache can contain many unresolved identifiers while still having
      only the same five playable programs. Count both dimensions so a shallow
@@ -4808,10 +4841,10 @@ function scheduleCachedIaHydration(payload, requestedCount, cacheOrigin, cacheKe
 /* The first fast rail may have already found the exact Archive container that
    matters. Expand that known parent before asking a rotated reserve page to
    find it again: an identifier-only search has one result, so page 2/3 is
-   empty and used to make episode expansion silently disappear. Two files per
-   parent are enough to introduce episode variety without letting one season
-   fill the television's entire five-show buffer. */
-async function expandSeedArchiveContainers(payload, cacheOrigin, ctx, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, rotation) {
+   empty and used to make episode expansion silently disappear. Sample up to
+   ten episode positions per parent, interleaved across parents, so a deep
+   collection adds real variety without swallowing the entire station shelf. */
+async function expandSeedArchiveContainers(payload, cacheOrigin, ctx, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, rotation, catalogLimit = IA_CATALOG_CANDIDATE_MAX) {
   const candidates = Array.isArray(payload && payload.candidateItems) && payload.candidateItems.length
     ? payload.candidateItems
     : ((payload && payload.items) || []);
@@ -4825,16 +4858,21 @@ async function expandSeedArchiveContainers(payload, cacheOrigin, ctx, themeTerms
     if (!sourceId || seenParents.has(sourceId)) return false;
     seenParents.add(sourceId);
     return true;
-  }).slice(0, IA_BACKGROUND_CONTAINER_EXPANSIONS);
+  }).slice(0, Math.min(IA_BACKGROUND_CONTAINER_EXPANSIONS, Math.max(1, Math.ceil(Math.min(catalogLimit, IA_STRICT_CATALOG_CANDIDATE_MAX) / IA_BACKGROUND_COLLECTION_EPISODES_PER_PARENT))));
   if (!parents.length) return [];
   const episodeSets = await mapQueueCandidates(parents, IA_CONTAINER_EXPANSION_CONCURRENCY, async (parent, index) => {
     const episodes = await expandArchiveContainer({ ...parent, identifier: parent.sourceIdentifier || parent.identifier }, cacheOrigin, ctx, rotation, index * 47, mediaTypes);
     return episodes.filter((episode) => matchesTheme(episode, themeTerms, themeMinScore, requiredTitleTerms) && !matchesDeny(episode, denyTerms));
   });
+  const balancedSets = episodeSets.map((episodes) => sampleArchiveSequence(episodes || [], IA_BACKGROUND_COLLECTION_EPISODES_PER_PARENT));
   const expanded = [];
-  episodeSets.forEach((episodes, lane) => {
-    (episodes || []).slice(0, 2).forEach((episode) => expanded.push(queueItem(episode, lane)));
-  });
+  for (let row = 0; row < IA_BACKGROUND_COLLECTION_EPISODES_PER_PARENT && expanded.length < catalogLimit; row += 1) {
+    balancedSets.forEach((episodes, lane) => {
+      if (expanded.length >= catalogLimit) return;
+      const episode = episodes[row];
+      if (episode) expanded.push(queueItem(episode, lane));
+    });
+  }
   return expanded;
 }
 
@@ -4899,7 +4937,7 @@ async function expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, c
   /* Start with collection files from the exact foreground result. This keeps
      the richer episode catalog tied to the same genre-checked parent instead
      of betting the repair on a later rotated search page returning it again. */
-  const seedEpisodes = await expandSeedArchiveContainers(expanded, cacheOrigin, ctx, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, rotation);
+  const seedEpisodes = await expandSeedArchiveContainers(expanded, cacheOrigin, ctx, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, rotation, candidateCount);
   if (seedEpisodes.length) {
     expanded = mergeIaQueuePayload({ ...expanded, items: seedEpisodes, candidateItems: seedEpisodes }, expanded, candidateCount, { containerExpanded: true });
     /* Write the exact parent’s ready episode files immediately. Reserve-query
@@ -4927,7 +4965,7 @@ async function expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, c
     ? expanded.candidateItems
     : ((expanded && expanded.items) || []);
   const expandedPlayable = expandedCandidates.filter((item) => item && item.identifier && item.media && item.media.url).length;
-  const needsPlayableDepth = expandedPlayable < Math.min(candidateCount, Math.max(count, iaDepthRecoveryEnabled(channel) ? 18 : 15));
+  const needsPlayableDepth = expandedPlayable < Math.min(candidateCount, Math.max(count, iaDepthRecoveryEnabled(channel) ? IA_DEPTH_PLAYABLE_TARGET : IA_BACKGROUND_PLAYABLE_TARGET));
   if ((forceDiscovery || expanded.items.length < threshold || needsPlayableDepth) && reserveQueries.length) {
     const reserve = await buildIaQueue(channel, reserveQueries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, candidateCount, cacheOrigin, ctx, rotation);
     expanded = forceDiscovery
@@ -4942,18 +4980,17 @@ async function expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, c
   }
   if (!expanded.items.length) return null;
   /* Background repair is the only place allowed to spend extra metadata
-     budget. Persist a dozen verified playable candidates—not just their raw
-     identifiers—so a later rotation can serve a fresh shelf immediately even
+     budget. Persist a broad verified playable catalog—not just raw
+     identifiers—so later rotations can serve fresh shelves immediately even
      when Archive discovery is briefly slow. The public `items` field remains
      the normal five-program contract. */
-  /* Three five-item rotations need at least fifteen verified candidates to
-     avoid wrapping back into the same shelf while a viewer surfs. Keep this
-     work entirely behind the first frame; cold tuning still hydrates only the
-     requested public shelf. */
-  const backgroundTarget = Math.min(candidateCount, Math.max(count * 3, iaDepthRecoveryEnabled(channel) ? 18 : IA_FRESHNESS_CANDIDATE_FLOOR));
+  /* The background target provides several complete five-item rotations while
+     staying entirely behind the first frame; cold tuning still hydrates only
+     the requested public shelf. */
+  const backgroundTarget = Math.min(candidateCount, Math.max(count * 3, iaDepthRecoveryEnabled(channel) ? IA_DEPTH_PLAYABLE_TARGET : IA_BACKGROUND_PLAYABLE_TARGET));
   const deepHydrated = await hydrateIaQueue(expanded, backgroundTarget, cacheOrigin, ctx, mediaTypes);
   const hydrated = deepHydrated && deepHydrated.items.length
-    ? { ...deepHydrated, items: deepHydrated.items.slice(0, count), candidateItems: deepHydrated.items, candidates: deepHydrated.items.length, ready: Math.min(count, deepHydrated.items.length), partial: deepHydrated.items.length < count, hydrating: false }
+    ? { ...deepHydrated, items: deepHydrated.items.slice(0, count), candidateItems: deepHydrated.items, candidates: deepHydrated.items.length, ready: Math.min(count, deepHydrated.items.length), partial: deepHydrated.items.length < count, hydrating: false, catalogVersion: IA_CATALOG_BUDGET_VERSION, catalogDepth: deepHydrated.items.length, episodeDepth: queueEpisodeDepth(deepHydrated) }
     : null;
   if (!hydrated || !hydrated.items.length) return null;
   const queueTtl = hydrated.ready >= count ? IA_QUEUE_TTL_SECONDS : IA_PARTIAL_QUEUE_TTL_SECONDS;

@@ -1,0 +1,32 @@
+#!/usr/bin/env node
+/* Regression contract for the server-side IA deep-harvest path. This is a
+ * source-level guard because the live Archive catalog is intentionally dynamic
+ * and should not be hard-coded into CI. */
+const fs = require('node:fs');
+const path = require('node:path');
+
+const root = path.join(__dirname, '..');
+const relay = fs.readFileSync(path.join(root, 'afterglow_ais_relay_worker.js'), 'utf8');
+const failures = [];
+function check(ok, message) {
+  console.log(`${message}: ${ok ? 'ok' : 'FAILED'}`);
+  if (!ok) failures.push(message);
+}
+
+check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v97"/.test(relay), 'deep harvest invalidates the prior queue namespace');
+check(/IA_STRICT_CATALOG_CANDIDATE_MAX\s*=\s*96/.test(relay) && /IA_CATALOG_CANDIDATE_MAX\s*=\s*72/.test(relay), 'every IA lane receives a larger rolling catalog budget');
+check(/IA_FRESHNESS_CANDIDATE_FLOOR\s*=\s*24/.test(relay) && /IA_FRESHNESS_LEDGER_MAX\s*=\s*32/.test(relay), 'freshness history is large enough to cover several shelves');
+check(/IA_BACKGROUND_COLLECTION_EPISODES_PER_PARENT\s*=\s*10/.test(relay) && /IA_BACKGROUND_CONTAINER_EXPANSIONS\s*=\s*6/.test(relay), 'container harvesting covers multiple parents and episode positions');
+check(/IA_MAX_EXPANDED_FILES\s*=\s*720/.test(relay) && /sampleArchiveSequence\(rotatedPlayable, IA_MAX_EXPANDED_FILES\)/.test(relay), 'large complete-series manifests are sampled instead of discarded');
+check(/background\s*\?\s*\(iaDepthRecoveryEnabled\(channel\) \? 18 : 12\)/.test(relay), 'background rotations sample a deep deterministic Archive page window');
+check(/const rows = firstApprovedLane \? 36 : 60/.test(relay), 'background searches request a wider result page without slowing first tune');
+check(/IA_DEPTH_PLAYABLE_TARGET\s*=\s*36/.test(relay) && /IA_BACKGROUND_PLAYABLE_TARGET\s*=\s*24/.test(relay), 'playable depth is measured separately from the five-item on-air shelf');
+check(/catalogVersion: IA_CATALOG_BUDGET_VERSION/.test(relay) && /episodeDepth: queueEpisodeDepth\(deepHydrated\)/.test(relay), 'deep catalog depth is published for guide and telemetry consumers');
+check(/for \(let row = 0; row < IA_BACKGROUND_COLLECTION_EPISODES_PER_PARENT/.test(relay), 'expanded files are interleaved across parent collections');
+
+if (failures.length) {
+  console.error(`IA deep-harvesting contract failed: ${failures.length} check(s)`);
+  process.exitCode = 1;
+} else {
+  console.log('IA deep-harvesting contract passed.');
+}

@@ -41,7 +41,7 @@ for (const [channel, collection] of Object.entries(expectedRails)) {
 }
 
 const relay = fs.readFileSync(path.join(root, 'afterglow_ais_relay_worker.js'), 'utf8');
-check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v96"/.test(relay), 'Relay cache namespace is v96');
+check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v97"/.test(relay), 'Relay cache namespace is v97');
 check(/"206": \[/.test(relay) && /090-aahma-watermarked/.test(relay) && /amateur_west_1940_1/.test(relay), 'Home Movies has verified sparse-lane recovery media');
 check(/"11": \[/.test(relay) && /freakylinks-complete-series-2000/.test(relay) && /partners-1995-96/.test(relay), 'Modern Rerun TV has verified sitcom recovery media');
 check(/"208": \[/.test(relay) && /santa-fe-atsf-teamwork-and-technology/.test(relay) && /ThisIsMy1940/.test(relay), 'Railroad has verified railway recovery media');
@@ -51,16 +51,18 @@ check(/"154": \[/.test(relay) && /DragnetEpisode18TheBigSeventeenwcommercials/.t
 check(/"157": \[/.test(relay) && /powerpuff-girls-complete-series/.test(relay) && /StarWarsCloneWars2003/.test(relay), 'After School has verified kids-animation recovery media');
 check(/"228": \[/.test(relay) && /WETA_20131009_140000_Frontline/.test(relay) && /KYW_20141012_230000_60_Minutes/.test(relay), 'Deadline has verified newsmagazine recovery media');
 check(/"75": \[/.test(relay) && /XcorpsNOODregattaSEG2/.test(relay) && /jseALNAIRracing94ver2/.test(relay), 'Regatta has real IA water-sports recovery media');
-check(/IA_STRICT_CATALOG_CANDIDATE_MAX\s*=\s*72/.test(relay) && /IA_CATALOG_CANDIDATE_MAX\s*=\s*48/.test(relay), 'Relay retains the expanded rolling catalog budgets');
+check(/IA_STRICT_CATALOG_CANDIDATE_MAX\s*=\s*96/.test(relay) && /IA_CATALOG_CANDIDATE_MAX\s*=\s*72/.test(relay), 'Relay retains the deep rolling catalog budgets');
 check(/candidateLimit = Math\.max\(count, Math\.min\(IA_STRICT_CATALOG_CANDIDATE_MAX/.test(relay), 'Relay builds the candidate shelf from the expanded budget');
 check(/const expandedSources = new Set\(expanded\.map/.test(relay) && /const approvedPrograms = approved\.filter/.test(relay), 'Relay drops parent indexes after episode expansion');
 check(/const expansionSeeds = \(firstApprovedLane \|\| !expandContainers\) \? \[\] : hintedSeeds\.concat\(genericSeeds\)/.test(relay), 'Relay keeps manifest expansion off the first-frame and bounded rescue paths');
 check(/const expandedParents = new Set\(\)/.test(relay), 'Relay removes expanded parents across editorial rails');
 check(/candidateItems: items\.slice\(0, candidateLimit\)/.test(relay), 'Relay serializes the rolling candidate shelf');
-check(/const backgroundTarget = Math\.min\(candidateCount, Math\.max\(count \* 3, iaDepthRecoveryEnabled\(channel\) \? 18 : IA_FRESHNESS_CANDIDATE_FLOOR\)\)/.test(relay), 'Relay hydrates a deeper background playable shelf');
+check(/const backgroundTarget = Math\.min\(candidateCount, Math\.max\(count \* 3, iaDepthRecoveryEnabled\(channel\) \? IA_DEPTH_PLAYABLE_TARGET : IA_BACKGROUND_PLAYABLE_TARGET\)\)/.test(relay), 'Relay hydrates a deeper background playable shelf');
 check(/function rotatePlayableIaShelf\(/.test(relay) && /rotatePlayableIaShelf\(lastGood/.test(relay), 'Relay rotates hydrated last-good shelves instead of repeating the same five items');
 check(/const emergencyDepth = Math\.min\(candidateCount, Math\.max\(count, 8\)\)/.test(relay), 'Sparse emergency lanes widen before accepting a shallow five-item shelf');
-check(/IA_BACKGROUND_CONTAINER_EXPANSIONS\s*=\s*4/.test(relay), 'Background collection expansion covers four parent records per lane');
+check(/IA_BACKGROUND_CONTAINER_EXPANSIONS\s*=\s*6/.test(relay) && /IA_BACKGROUND_COLLECTION_EPISODES_PER_PARENT\s*=\s*10/.test(relay), 'Background collection expansion samples six parent records across ten episode positions');
+check(/queueRotationPage\(rotation, lane, channel, !firstApprovedLane\)/.test(relay) && /background\s*\?\s*\(iaDepthRecoveryEnabled\(channel\) \? 18 : 12\)/.test(relay), 'Background discovery walks a wider deterministic Archive page window');
+check(/sampleArchiveSequence\(rotatedPlayable, IA_MAX_EXPANDED_FILES\)/.test(relay) && /IA_MAX_EXPANDED_FILES\s*=\s*720/.test(relay), 'Large Archive manifests are sampled across their full file range');
 check(/function orderedIaEmergencySeeds\(/.test(relay) && /emergencySeedsMerged: true/.test(relay), 'Warm emergency shelves join background depth repair');
 check(/function mergeIaFallbackCandidates\(/.test(relay) && /\[\.\.\.current, \.\.\.prior\]/.test(relay), 'Last-good IA shelves accumulate verified candidates across rotations');
 check(/if \(payload && payload\.lastGoodKey\)/.test(relay) && /familyCandidates = mergeIaFallbackCandidates\(family, expanded\)/.test(relay), 'Exact IA rotation refills inherit the accumulated family catalog');

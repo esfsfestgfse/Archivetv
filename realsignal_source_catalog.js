@@ -372,7 +372,7 @@ async function peerTube(profile, rotation, env) {
      rows to start one video. */
   if (raw.length < SOURCE_MIN_READY) {
     const used = new Set(queries.map((query) => query.toLowerCase()));
-    const fallbackQueries = rotate(unique(profile.match.concat(profile.queries).map((query) => text(query, 180)))
+    const fallbackQueries = rotate(unique(peerTubePool.concat(profile.match, profile.queries).map((query) => text(query, 180)))
       .filter((query) => !used.has(query.toLowerCase())), rotation).slice(0, profile.peerTubeFallbackQueryWindow || SOURCE_QUERY_WINDOW);
     if (fallbackQueries.length) {
       const fallback = await search(fallbackQueries);

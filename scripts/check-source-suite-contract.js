@@ -32,11 +32,11 @@ for (const key of ['green-culture']) {
   const section = sourceRegistry.slice(start, next >= 0 ? next + 5 : sourceRegistry.length);
   if (!section.includes('"queryLimit": 12')) issues.push(`${key} must retain the expanded query pool for serial source rotations`);
 }
-for (const key of ['print-shop', 'screen-test', 'sound-lab', 'stage-door', 'variety-hour', 'western-screen', 'jukebox-television']) {
+for (const key of ['print-shop', 'screen-test', 'sound-lab', 'stage-door', 'variety-hour', 'western-screen', 'jukebox-television', 'garden-ledger', 'memory-bank', 'lesson-reel', 'local-signal']) {
   const start = sourceRegistry.indexOf(`"${key}":`);
   const next = sourceRegistry.indexOf('\n  },', start);
   const section = sourceRegistry.slice(start, next >= 0 ? next + 5 : sourceRegistry.length);
-  if (!section.includes('"queryLimit": 16') || !section.includes('"peerTubeQueryWindow": 1') || !section.includes('"peerTubeInstanceLimit": 1') || !section.includes('"peerTubeDetailLimit": 12') || !section.includes('"peerTubeFallbackQueryWindow": 1') || !section.includes('"peerTubeInstances": ["https://search.joinpeertube.org"]')) issues.push(`${key} must retain the bounded expanded query pool for serial source rotations`);
+  if (!section.includes('"queryLimit": 16') || !section.includes('"peerTubeQueryWindow": 2') || !section.includes('"peerTubeInstanceLimit": 1') || !section.includes('"peerTubeDetailLimit": 12') || !section.includes('"peerTubeFallbackQueryWindow": 2') || !section.includes('"peerTubeInstances": ["https://search.joinpeertube.org"]')) issues.push(`${key} must retain the bounded expanded query pool for serial source rotations`);
 }
 for (const key of ['sound-lab', 'screen-test', 'western-screen', 'variety-hour', 'jukebox-television', 'garden-ledger', 'stage-door', 'print-shop', 'memory-bank', 'lesson-reel', 'local-signal']) {
   const start = sourceRegistry.indexOf(`"${key}":`);

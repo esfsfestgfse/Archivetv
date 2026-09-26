@@ -101,10 +101,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-96-72-deep-harvest-v3";
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v112";
+const IA_QUEUE_CACHE_VERSION = "v113";
 /* Last-good shelves share the v101 namespace so an older shallow shelf
    never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v112";
+const IA_LAST_GOOD_CACHE_VERSION = "v113";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -1496,7 +1496,6 @@ const IA_LONG_TAIL_EXPANSIONS = Object.freeze({
     iaDirectRecovery("1978-witchs-night-out-a-halloween-cartoon-movie::1978 - Witch's Night Out (a Halloween cartoon movie).mp4", "1978-witchs-night-out-a-halloween-cartoon-movie", "1978 - Witch's Night Out (a Halloween cartoon movie).mp4", "Witch's Night Out", "halloween cartoon halloween animation animated halloween special spooky cartoon monster cartoon", 1978),
     iaDirectRecovery("the.-halloween.-tree.-1993::The.Halloween.Tree.1993.ia.mp4", "the.-halloween.-tree.-1993", "The.Halloween.Tree.1993.ia.mp4", "The Halloween Tree", "halloween cartoon halloween animation animated halloween special spooky cartoon monster cartoon", 1993),
     iaDirectRecovery("the-real-ghostbusters-the-halloween-door::The Real Ghostbusters - The Halloween Door.mp4", "the-real-ghostbusters-the-halloween-door", "The Real Ghostbusters - The Halloween Door.mp4", "The Real Ghostbusters · The Halloween Door", "halloween cartoon halloween animation animated halloween special spooky cartoon monster cartoon", 1988),
-    iaDirectRecovery("caspers-halloween-special::getvid.mp4", "caspers-halloween-special", "getvid.mp4", "Casper's Halloween Special", "halloween cartoon halloween animation animated halloween special spooky cartoon monster cartoon", 2021),
     iaDirectRecovery("tom-and-jerry-halloween-special::TOM AND JERRY HALLOWEEN SPECIAL.mp4", "tom-and-jerry-halloween-special", "TOM AND JERRY HALLOWEEN SPECIAL.mp4", "Tom and Jerry Halloween Special", "halloween cartoon halloween animation animated halloween special spooky cartoon monster cartoon", 1987)
   ],
   "706": [

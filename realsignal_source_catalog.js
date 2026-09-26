@@ -31,7 +31,11 @@ const SOURCE_MAX_QUERY_WINDOW = 6;
 const SOURCE_YOUTUBE_QUERY_CONCURRENCY = 2;
 const SOURCE_MAX_CONCURRENCY = 4;
 const SOURCE_TIMEOUT_MS = 7000;
-const SOURCE_FIRST_LANE_TIMEOUT_MS = 6500;
+/* A provider that cannot produce a verified lane inside this budget is not a
+   playback candidate. Let the other provider win, record the slow provider as
+   unhealthy, and keep it out of the next shelf until its cooldown expires. */
+const SOURCE_PROVIDER_BUDGET_MS = 4500;
+const SOURCE_FIRST_LANE_TIMEOUT_MS = 5000;
 const SOURCE_DEFAULT_INSTANCES = [
   "https://video.blender.org",
   "https://framatube.org",
@@ -390,9 +394,24 @@ function providers(profile, rotation, env, options = {}) {
     .filter((provider) => !disabled.has(String(provider).toLowerCase()))
     .map((provider) => {
       const label = provider === "youtube" ? "YouTube" : "PeerTube";
+      const startedAt = Date.now();
+      const task = Promise.resolve()
+        .then(() => provider === "youtube" ? youtube(profile, rotation, env) : peerTube(profile, rotation, env));
       return Promise.resolve()
-        .then(() => provider === "youtube" ? youtube(profile, rotation, env) : peerTube(profile, rotation, env))
-        .catch((error) => ({ provider: label, items: [], health: { error: text(error, 160) || "source failure" } }));
+        .then(() => withTimeout(task, SOURCE_PROVIDER_BUDGET_MS))
+        .then((lane) => ({
+          ...lane,
+          health: { ...(lane && lane.health || {}), durationMs: Date.now() - startedAt },
+        }))
+        .catch((error) => ({
+          provider: label,
+          items: [],
+          health: {
+            error: text(error, 160) || "source failure",
+            reason: String(error && error.message || error).toLowerCase().includes("timeout") ? "provider-timeout" : "provider-failure",
+            durationMs: Date.now() - startedAt,
+          },
+        }));
     });
 }
 
@@ -419,4 +438,4 @@ export function mergeSourceLanes(profileKey, lanes) {
   return { profileKey, items, ready: items.length, candidates: items.length, catalogVersion: "source-server-1", source: "server-source-catalog" };
 }
 
-export const SOURCE_LIMITS = { SOURCE_MIN_RUNTIME, SOURCE_MIN_ASPECT_RATIO, SOURCE_MAX_ITEMS, SOURCE_MIN_READY, SOURCE_MAX_QUERIES, SOURCE_QUERY_WINDOW, SOURCE_FIRST_LANE_TIMEOUT_MS };
+export const SOURCE_LIMITS = { SOURCE_MIN_RUNTIME, SOURCE_MIN_ASPECT_RATIO, SOURCE_MAX_ITEMS, SOURCE_MIN_READY, SOURCE_MAX_QUERIES, SOURCE_QUERY_WINDOW, SOURCE_PROVIDER_BUDGET_MS, SOURCE_FIRST_LANE_TIMEOUT_MS };

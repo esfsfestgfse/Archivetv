@@ -12,7 +12,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "4.0.5-audit-cleanup";
+const V3_RELEASE = "4.0.6-provider-admission";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -786,7 +786,12 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
       staleCatalog: true,
     };
   });
-  const filtered = uniqueQueueItems(items, effectiveBody);
+  const blockedProviders = options && options.blockedProviders instanceof Set ? options.blockedProviders : new Set();
+  /* A row from a provider currently in cooldown is not a fallback. Returning
+     it here would make the guide and ready shelf suggest the exact provider
+     that just timed out. Filter it before requalification and rotation. */
+  const eligibleItems = items.filter((item) => !blockedProviders.has(sourceProviderKey(item && item.provider)));
+  const filtered = uniqueQueueItems(eligibleItems, effectiveBody);
   const fresh = ignoreFreshness ? filtered : applyFreshness(filtered, effectiveBody);
   /* Source Suite may legitimately exhaust a small catalog. Repeat only after
      every verified row has appeared; never turn exhaustion into a 503 or hide
@@ -1157,20 +1162,23 @@ async function handleGuide(request, env) {
     }, 200, { "Cache-Control": "public, max-age=10, stale-while-revalidate=30", "X-RealSignal-Release": V3_RELEASE, "X-RealSignal-Source": "ia-canonical-pilot" });
   }
   if (!env.realsignal_catalog || typeof env.realsignal_catalog.prepare !== "function") return json({ error: "catalog binding is not configured" }, 503);
+  const sourceProfileForGuide = sourceProfile({ profileKey: channel });
+  const blockedProvidersForGuide = sourceProfileForGuide ? await readSourceCooldowns(env, sourceProfileForGuide.profileKey) : new Set();
+  const guideLimit = Math.min(40, limit * Math.max(1, blockedProvidersForGuide.size + 1));
   let result;
   try {
-    result = await env.realsignal_catalog.prepare(`SELECT p.id, p.title, p.description, p.provider, p.duration_seconds, p.media_type, p.media_url, p.source_url, p.rights, p.year, cp.last_seen_at, cf.last_served_at, cf.play_count, COUNT(*) OVER () AS catalog_depth, SUM(CASE WHEN cf.last_served_at IS NULL THEN 1 ELSE 0 END) OVER () AS unseen_count FROM programs p JOIN channel_programs cp ON cp.program_id=p.id LEFT JOIN channel_freshness cf ON cf.channel_key=cp.channel_key AND cf.program_id=p.id WHERE cp.channel_key=? AND p.status='active' AND p.media_url IS NOT NULL ORDER BY CASE WHEN cf.last_served_at IS NULL THEN 0 ELSE 1 END, cf.last_served_at ASC, cp.last_seen_at DESC LIMIT ?`).bind(channel, limit).all();
+    result = await env.realsignal_catalog.prepare(`SELECT p.id, p.title, p.description, p.provider, p.duration_seconds, p.media_type, p.media_url, p.source_url, p.rights, p.year, cp.last_seen_at, cf.last_served_at, cf.play_count, COUNT(*) OVER () AS catalog_depth, SUM(CASE WHEN cf.last_served_at IS NULL THEN 1 ELSE 0 END) OVER () AS unseen_count FROM programs p JOIN channel_programs cp ON cp.program_id=p.id LEFT JOIN channel_freshness cf ON cf.channel_key=cp.channel_key AND cf.program_id=p.id WHERE cp.channel_key=? AND p.status='active' AND p.media_url IS NOT NULL ORDER BY CASE WHEN cf.last_served_at IS NULL THEN 0 ELSE 1 END, cf.last_served_at ASC, cp.last_seen_at DESC LIMIT ?`).bind(channel, guideLimit).all();
   } catch (_) {
     /* Serve the verified guide during the short migration window before the
        V4 freshness table has been applied in every environment. */
-    result = await env.realsignal_catalog.prepare(`SELECT p.id, p.title, p.description, p.provider, p.duration_seconds, p.media_type, p.media_url, p.source_url, p.rights, p.year, cp.last_seen_at, COUNT(*) OVER () AS catalog_depth FROM programs p JOIN channel_programs cp ON cp.program_id=p.id WHERE cp.channel_key=? AND p.status='active' AND p.media_url IS NOT NULL ORDER BY cp.last_seen_at DESC LIMIT ?`).bind(channel, limit).all();
+    result = await env.realsignal_catalog.prepare(`SELECT p.id, p.title, p.description, p.provider, p.duration_seconds, p.media_type, p.media_url, p.source_url, p.rights, p.year, cp.last_seen_at, COUNT(*) OVER () AS catalog_depth FROM programs p JOIN channel_programs cp ON cp.program_id=p.id WHERE cp.channel_key=? AND p.status='active' AND p.media_url IS NOT NULL ORDER BY cp.last_seen_at DESC LIMIT ?`).bind(channel, guideLimit).all();
   }
   const items = (result.results || []).map((item) => ({
     ...item,
     duration: Number(item.duration_seconds || 0) || null,
     runtime: Number(item.duration_seconds || 0) || null,
     provider: item.provider || "verified catalog",
-  }));
+  })).filter((item) => !blockedProvidersForGuide.has(sourceProviderKey(item.provider))).slice(0, limit);
   const catalogDepth = Number(items[0] && items[0].catalog_depth) || items.length;
   const unseenCount = Number.isFinite(Number(items[0] && items[0].unseen_count)) ? Number(items[0].unseen_count) : catalogDepth;
   const seenCount = Math.max(0, catalogDepth - unseenCount);
@@ -1228,6 +1236,7 @@ async function handleSourceStatus(request, env) {
   const profileKey = String(url.searchParams.get("profileKey") || url.searchParams.get("channel") || "").slice(0, 120);
   const profile = sourceProfile({ profileKey });
   if (!profile) return json({ error: "unknown source profile" }, 404);
+  const cooldowns = await readSourceCooldowns(env, profile.profileKey);
   const cached = await catalogFallback(env, {
     channel: profile.profileKey,
     sourceCatalog: true,
@@ -1239,8 +1248,7 @@ async function handleSourceStatus(request, env) {
     persistedRelaxed: profile.persistedRelaxed,
     persistedMatch: profile.persistedMatch,
     themeMinScore: 1,
-  }, SOURCE_LIMITS.SOURCE_MAX_ITEMS, { ignoreFreshness: true });
-  const cooldowns = await readSourceCooldowns(env, profile.profileKey);
+  }, SOURCE_LIMITS.SOURCE_MAX_ITEMS, { ignoreFreshness: true, blockedProviders: cooldowns });
   const items = cached && Array.isArray(cached.candidateItems) ? cached.candidateItems : [];
   return json({
     apiVersion: "v3",
@@ -1350,7 +1358,7 @@ async function handleSourceCatalog(request, env, ctx, id) {
     themeMinScore: 1,
     recentIds: sourceRecentIds,
     freshnessLedger: true,
-  }, SOURCE_LIMITS.SOURCE_MAX_ITEMS).catch((error) => {
+  }, SOURCE_LIMITS.SOURCE_MAX_ITEMS, { blockedProviders: disabledProviders }).catch((error) => {
     console.warn(JSON.stringify({ event: "source-catalog-read-failed", requestId: id, error: String(error).slice(0, 160) }));
     return null;
   });

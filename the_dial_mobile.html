@@ -1157,6 +1157,24 @@ html.mob .wx-bug-mid{padding:4px 8px;gap:7px}
 .settings-label{font-size:9px;letter-spacing:1px;color:#7fb38f;padding:6px 10px 2px}
 .settings-input{flex:1;background:#0a1410;border:1px solid var(--phos-d);border-radius:6px;
   color:#eafff0;font-size:12px;padding:6px 8px;min-width:0}
+.custom-builder{margin:8px 6px 12px;padding:10px;border:1px solid rgba(103,255,134,.28);border-radius:10px;background:linear-gradient(135deg,rgba(22,52,34,.72),rgba(5,17,13,.92));box-shadow:inset 0 0 24px rgba(103,255,134,.04)}
+.custom-builder-title{font-size:13px;font-weight:700;letter-spacing:1px;color:#b6ffca}
+.custom-builder-help{margin:4px 0 10px;font-size:11px;line-height:1.45;color:#a9c5b1}
+.custom-step{display:flex;gap:8px;align-items:flex-start;margin:9px 0}
+.custom-step-num{flex:0 0 20px;height:20px;border-radius:50%;display:grid;place-items:center;background:#67ff86;color:#07130b;font-size:11px;font-weight:800}
+.custom-step-body{flex:1;min-width:0}
+.custom-step-label{display:block;margin:1px 0 5px;font-size:10px;letter-spacing:.8px;color:#d8ffe1}
+.custom-presets{display:flex;flex-wrap:wrap;gap:5px}
+.custom-preset{border:1px solid rgba(103,255,134,.34);border-radius:999px;padding:6px 9px;background:#0a1a12;color:#c8ffd5;font-size:10px;cursor:pointer}
+.custom-preset:hover,.custom-preset.active{background:#67ff86;color:#06110a;border-color:#67ff86}
+.custom-builder-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;width:100%}
+.custom-builder-grid .settings-input{width:100%;box-sizing:border-box}
+.custom-field{display:flex;flex-direction:column;gap:3px;min-width:0;color:#88ae94;font-size:9px;letter-spacing:.5px}
+.custom-field .settings-input{flex:1}
+.custom-builder-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+.custom-builder-actions .rbtn{flex:1;min-width:108px}
+.custom-builder-preview{margin-top:8px;padding:7px 8px;border:1px solid rgba(103,255,134,.2);border-radius:6px;color:#b7e9c1;font-size:10px;line-height:1.4}
+.custom-builder-note{display:block;margin-top:6px;color:#789a81;font-size:9px;line-height:1.4}
 
 /* ============ cycle-2: scrolling weather ticker · channel media panes · newswire ============ */
 @keyframes wxTick{to{transform:translateX(-100%)}}
@@ -1681,7 +1699,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="4.1.1-mobile-custom-station-manifests";
+window.__ATV_BUILD="4.1.2-mobile-custom-builder";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -1740,6 +1758,7 @@ window.addEventListener("unhandledrejection",function(e){
     <button id="mSkip">&#9197; SKIP</button>
     <button id="mSurf">SURF</button>
     <button id="mMenu">MENU</button>
+    <button id="mCustom">CUSTOM</button>
     <button id="mCast" aria-label="Cast RealSignal to a television">CAST</button>
     <button id="mInfo">INFO</button>
   </div>
@@ -1921,13 +1940,34 @@ window.addEventListener("unhandledrejection",function(e){
     <div class="settings-row"><span>Clock Format</span><button class="rbtn xs" id="setClock">12H</button></div>
     <div class="settings-row"><span>Cabinet Theme</span><button class="rbtn xs" id="setTheme">WALNUT</button></div>
     <div class="settings-sep"></div>
-    <div class="settings-label">CUSTOM CHANNEL BUILDER — YOUR OWN STATION RECIPE</div>
-    <div class="settings-row"><input id="customNameInput" class="settings-input" type="text" maxlength="64" placeholder="Channel name"><input id="customGenreInput" class="settings-input" type="text" maxlength="48" placeholder="Genre"></div>
-    <div class="settings-row"><input id="customEraFromInput" class="settings-input" type="number" min="1800" max="2100" placeholder="Era from"><input id="customEraToInput" class="settings-input" type="number" min="1800" max="2100" placeholder="Era to"></div>
-    <div class="settings-row"><input id="customRuntimeInput" class="settings-input" type="number" min="0" max="1440" value="15" placeholder="Minimum minutes"><input id="customSourcesInput" class="settings-input" type="text" placeholder="Sources: IA, YouTube, PeerTube"></div>
-    <div class="settings-row"><input id="customIncludeInput" class="settings-input" type="text" placeholder="Include terms"><input id="customExcludeInput" class="settings-input" type="text" placeholder="Exclude terms"></div>
-    <div class="settings-row"><button class="rbtn xs" id="btnCustomSave">SAVE CHANNEL</button><button class="rbtn xs" id="btnCustomRefresh">REFRESH</button><span id="customChannelStatus" aria-live="polite">No custom stations yet</span></div>
-    <div id="customChannelList" class="hist-list" aria-live="polite"></div>
+    <div class="settings-label">CUSTOM CHANNEL BUILDER — MAKE YOUR OWN STATION</div>
+    <div class="custom-builder" id="customBuilder">
+      <div class="custom-builder-title">BUILD A CHANNEL IN 3 STEPS</div>
+      <div class="custom-builder-help">Choose a template, give it a name, then press <b>SAVE &amp; PLAY</b>. RealSignal keeps the catalog fresh and only promotes verified long-form video.</div>
+      <div class="custom-step"><span class="custom-step-num">1</span><div class="custom-step-body"><span class="custom-step-label">START WITH A TEMPLATE</span><div class="custom-presets" role="group" aria-label="Custom channel templates">
+        <button type="button" class="custom-preset" data-custom-preset="classic-tv">CLASSIC TV</button>
+        <button type="button" class="custom-preset" data-custom-preset="modern-tv">MODERN TV</button>
+        <button type="button" class="custom-preset" data-custom-preset="cartoons">CARTOONS</button>
+        <button type="button" class="custom-preset" data-custom-preset="game-shows">GAME SHOWS</button>
+        <button type="button" class="custom-preset" data-custom-preset="cooking">COOKING</button>
+        <button type="button" class="custom-preset" data-custom-preset="cars">CARS &amp; GEAR</button>
+      </div></div></div>
+      <div class="custom-step"><span class="custom-step-num">2</span><div class="custom-step-body"><span class="custom-step-label">NAME AND DESCRIBE IT</span><div class="custom-builder-grid">
+        <label class="custom-field">CHANNEL NAME<input id="customNameInput" class="settings-input" type="text" maxlength="64" placeholder="e.g. Saturday Cartoons"></label>
+        <label class="custom-field">GENRE<input id="customGenreInput" class="settings-input" type="text" maxlength="48" list="customGenreOptions" placeholder="e.g. cartoons"></label>
+      </div><datalist id="customGenreOptions"><option value="classic television"><option value="television series"><option value="cartoons and animation"><option value="game shows"><option value="cooking and food"><option value="cars and gear"><option value="documentaries"><option value="music and concerts"><option value="outdoors"></datalist></div></div>
+      <div class="custom-step"><span class="custom-step-num">3</span><div class="custom-step-body"><span class="custom-step-label">SET THE RULES (OPTIONAL)</span><div class="custom-builder-grid">
+        <label class="custom-field">FROM YEAR<input id="customEraFromInput" class="settings-input" type="number" min="1800" max="2100" placeholder="Any year"></label>
+        <label class="custom-field">TO YEAR<input id="customEraToInput" class="settings-input" type="number" min="1800" max="2100" placeholder="Any year"></label>
+        <label class="custom-field">MINIMUM LENGTH<select id="customRuntimeInput" class="settings-input"><option value="15">15+ minutes</option><option value="22">22+ minutes</option><option value="30">30+ minutes</option><option value="45">45+ minutes</option><option value="60">60+ minutes</option></select></label>
+        <label class="custom-field">SOURCES<select id="customSourcesInput" class="settings-input"><option value="internet archive,youtube,peertube">RECOMMENDED MIX</option><option value="internet archive">INTERNET ARCHIVE</option><option value="youtube,peertube">YOUTUBE + PEERTUBE</option></select></label>
+      </div><div class="custom-builder-grid" style="margin-top:6px"><label class="custom-field">INCLUDE (OPTIONAL)<input id="customIncludeInput" class="settings-input" type="text" placeholder="full episodes, sitcoms"></label><label class="custom-field">EXCLUDE (OPTIONAL)<input id="customExcludeInput" class="settings-input" type="text" placeholder="shorts, tutorials"></label></div></div></div>
+      <div class="custom-builder-preview" id="customRecipePreview">Ready to build: choose a template or fill in your own rules.</div>
+      <div class="custom-builder-actions"><button type="button" class="rbtn xs" id="btnCustomSavePlay">SAVE &amp; PLAY</button><button type="button" class="rbtn xs" id="btnCustomSave">SAVE CHANNEL</button><button type="button" class="rbtn xs" id="btnCustomClear">CLEAR</button><button type="button" class="rbtn xs" id="btnCustomRefresh">REFRESH</button></div>
+      <span class="custom-builder-note">Saved stations appear below. Press PLAY any time to return to them. Your station keeps its own rotation and freshness history.</span>
+      <div id="customChannelStatus" aria-live="polite" class="custom-builder-note">No custom stations yet</div>
+      <div id="customChannelList" class="hist-list" aria-live="polite"></div>
+    </div>
     <div class="settings-sep"></div>
     <div class="settings-label">CHROMECAST — receiver discovery</div>
     <div class="settings-row"><input id="castReceiverIdInput" class="settings-input" type="text" placeholder="Google Cast receiver app ID" autocomplete="off"><button id="btnCastReceiverSave" class="rbtn xs">SAVE</button></div>
@@ -8536,6 +8576,7 @@ __rsWireMobile("mVolDn",function(){setVol(-.1);});
 __rsWireMobile("mMute",function(){toggleMute();var el=$("mMute");if(el){el.textContent=muted?"MUTED":"MUTE";el.classList.toggle("on",!!muted);}});
 __rsWireMobile("mSurf",surf);
 __rsWireMobile("mMenu",function(){var el=$("rMenu");if(el)el.click();});
+__rsWireMobile("mCustom",function(){if(typeof toggleSettings==="function")toggleSettings();setTimeout(function(){var f=document.getElementById("customNameInput");if(f)f.focus();},80);});
 __rsWireMobile("mInfo",function(){var el=$("rInfo");if(el)el.click();});
 __rsWireMobile("mSkip",function(){var el=$("rSkip");if(el)el.click();});
 __rsWireMobile("mPause",togglePlayback);
@@ -18593,17 +18634,28 @@ window.__atvBootDone=true; /* app is up -- from here on, errors get logged, not 
   function localRead(){try{var v=JSON.parse(localStorage.getItem(localKey)||"[]");return Array.isArray(v)?v:[];}catch(e){return [];}}
   function localWrite(v){try{localStorage.setItem(localKey,JSON.stringify(v.slice(0,100)));}catch(e){}}
   function status(text){var node=el("customChannelStatus");if(node)node.textContent=text;}
+  var PRESETS={
+    "classic-tv":{name:"Classic TV",genre:"classic television",eraFrom:1930,eraTo:1979,minRuntimeMinutes:22,sources:["internet archive"],include:["full episodes","television series"],exclude:["shorts","how to","tutorial"]},
+    "modern-tv":{name:"Modern TV",genre:"television series",eraFrom:1980,eraTo:2026,minRuntimeMinutes:22,sources:["internet archive","youtube","peertube"],include:["full episodes","television series"],exclude:["shorts","how to","tutorial"]},
+    cartoons:{name:"Cartoons",genre:"cartoons and animation",eraFrom:null,eraTo:null,minRuntimeMinutes:15,sources:["internet archive","youtube","peertube"],include:["full cartoon episodes","saturday morning","animated series"],exclude:["shorts","how to","tutorial"]},
+    "game-shows":{name:"Game Shows",genre:"game shows",eraFrom:1950,eraTo:2026,minRuntimeMinutes:22,sources:["internet archive","youtube","peertube"],include:["full game show episodes","game show"],exclude:["shorts","how to","tutorial"]},
+    cooking:{name:"Cooking",genre:"cooking and food",eraFrom:null,eraTo:null,minRuntimeMinutes:15,sources:["internet archive","youtube","peertube"],include:["cooking show","food television","recipes"],exclude:["shorts","how to","tutorial"]},
+    cars:{name:"Cars & Gear",genre:"cars and gear",eraFrom:null,eraTo:null,minRuntimeMinutes:15,sources:["internet archive","youtube","peertube"],include:["car show","automotive","restoration"],exclude:["shorts","how to","tutorial"]}
+  };
+  function setField(id,value){var node=el(id);if(node)node.value=value==null?"":String(value);}
+  function updatePreview(){var node=el("customRecipePreview");if(!node)return;var data=recipe(),era=data.eraFrom||data.eraTo?(data.eraFrom||"any")+"–"+(data.eraTo||"now"):"all years",sources=data.sources.length?data.sources.join(" + "):"recommended sources";node.textContent="READY · "+(data.name||"Unnamed station")+" · "+(data.genre||"any genre")+" · "+era+" · "+data.minRuntimeMinutes+"+ min · "+sources;}
+  function applyPreset(key){var p=PRESETS[key];if(!p)return;setField("customNameInput",p.name);setField("customGenreInput",p.genre);setField("customEraFromInput",p.eraFrom);setField("customEraToInput",p.eraTo);setField("customRuntimeInput",p.minRuntimeMinutes);setField("customSourcesInput",p.sources.join(","));setField("customIncludeInput",p.include.join(", "));setField("customExcludeInput",p.exclude.join(", "));document.querySelectorAll("[data-custom-preset]").forEach(function(button){button.classList.toggle("active",button.getAttribute("data-custom-preset")===key);});status("Template loaded: "+p.name+". You can edit anything before saving.");updatePreview();}
   function playRow(row){var recipe=row.recipe||{},name=row.name||recipe.name||"Custom station";if(row.id&&row.id.indexOf("local-")!==0&&typeof tuneCustomManifest==="function"){tuneCustomManifest(row.id,name);return;}if(typeof tuneCustomQueries==="function"){var terms=[recipe.genre].concat(recipe.include||[]).filter(function(v){return v&&v!=="general";}).slice(0,6),queries=terms.map(function(v){return 'mediatype:movies AND subject:("'+String(v).replace(/"/g,"")+'")';});if(queries.length)tuneCustomQueries(queries,name);else status("Add a genre or include term first");}}
   function render(rows){var list=el("customChannelList");if(!list)return;list.innerHTML="";if(!rows.length){list.textContent="No custom stations yet";return;}rows.forEach(function(row){var item=document.createElement("div");item.className="settings-row";var label=document.createElement("span"),recipe=row.recipe||{};label.textContent=(row.name||recipe.name||"Custom station")+" · "+(recipe.genre||"general")+" · "+(recipe.minRuntimeMinutes||15)+"m minimum";var play=document.createElement("button");play.className="rbtn xs";play.textContent="PLAY";play.addEventListener("click",function(){playRow(row);});var remove=document.createElement("button");remove.className="rbtn xs";remove.textContent="REMOVE";remove.setAttribute("aria-label","Remove "+(row.name||"custom station"));remove.addEventListener("click",function(){removeRow(row);});item.appendChild(label);item.appendChild(play);item.appendChild(remove);list.appendChild(item);});}
   async function readServer(){try{var r=await fetch(endpoint,{headers:{"x-realsignal-session":session()}});if(!r.ok)throw new Error("server "+r.status);var data=await r.json();return Array.isArray(data.channels)?data.channels:[];}catch(e){return null;}}
   async function refresh(){var remote=await readServer();if(remote){localWrite(remote);render(remote);status(remote.length+" custom station"+(remote.length===1?"":"s")+" saved");}else{var local=localRead();render(local);status(local.length?local.length+" local station"+(local.length===1?"":"s")+" · server reconnect pending":"Offline · station saves stay on this device");}}
   function recipe(){return {name:String((el("customNameInput")||{}).value||"").trim(),genre:String((el("customGenreInput")||{}).value||"general").trim(),eraFrom:String((el("customEraFromInput")||{}).value||"").trim()||null,eraTo:String((el("customEraToInput")||{}).value||"").trim()||null,minRuntimeMinutes:Number((el("customRuntimeInput")||{}).value)||15,language:"english",sources:listValue("customSourcesInput"),include:listValue("customIncludeInput"),exclude:listValue("customExcludeInput"),freshnessWindow:24};}
-  function clearForm(){["customNameInput","customGenreInput","customEraFromInput","customEraToInput","customSourcesInput","customIncludeInput","customExcludeInput"].forEach(function(id){var node=el(id);if(node)node.value="";});var runtime=el("customRuntimeInput");if(runtime)runtime.value="15";}
-  async function save(){var data=recipe();if(data.name.length<2){status("Give the station a name first");return;}var rows=localRead();try{var r=await fetch(endpoint,{method:"POST",headers:{"content-type":"application/json","x-realsignal-session":session()},body:JSON.stringify(data)});if(!r.ok)throw new Error("server "+r.status);var payload=await r.json();if(payload.channel)rows=[payload.channel].concat(rows.filter(function(row){return row.id!==payload.channel.id;}));status("Station saved to the catalog");}catch(e){var local={id:"local-"+Date.now(),name:data.name,recipe:data,status:"local"};rows=[local].concat(rows);status("Saved on this device · server reconnect pending");}localWrite(rows);render(rows);clearForm();}
+  function clearForm(){["customNameInput","customGenreInput","customEraFromInput","customEraToInput","customIncludeInput","customExcludeInput"].forEach(function(id){var node=el(id);if(node)node.value="";});var runtime=el("customRuntimeInput");if(runtime)runtime.value="15";var sources=el("customSourcesInput");if(sources)sources.value="internet archive,youtube,peertube";document.querySelectorAll("[data-custom-preset]").forEach(function(button){button.classList.remove("active");});status("Ready to build: choose a template or fill in your own rules");updatePreview();}
+  async function save(playAfter){var data=recipe();if(data.name.length<2){status("Give the station a name first");var name=el("customNameInput");if(name)name.focus();return;}var rows=localRead(),savedRow=null;status("Building "+data.name+"…");try{var r=await fetch(endpoint,{method:"POST",headers:{"content-type":"application/json","x-realsignal-session":session()},body:JSON.stringify(data)});if(!r.ok)throw new Error("server "+r.status);var payload=await r.json();if(payload.channel){savedRow=payload.channel;rows=[payload.channel].concat(rows.filter(function(row){return row.id!==payload.channel.id;}));}status("Saved to your station catalog");}catch(e){savedRow={id:"local-"+Date.now(),name:data.name,recipe:data,status:"local"};rows=[savedRow].concat(rows);status("Saved on this device · server reconnect pending");}localWrite(rows);render(rows);clearForm();if(playAfter&&savedRow)setTimeout(function(){playRow(savedRow);},120);}
   async function removeRow(row){var rows=localRead().filter(function(item){return item.id!==row.id;});if(row.id&&row.id.indexOf("local-")!==0){try{await fetch(endpoint+"/"+encodeURIComponent(row.id),{method:"DELETE",headers:{"x-realsignal-session":session()}});}catch(e){status("Removed locally · server reconnect pending");}}localWrite(rows);render(rows);if(!rows.length)status("No custom stations yet");}
   window.toggleCustomChannels=function(){if(typeof toggleSettings==="function")toggleSettings();setTimeout(function(){var first=el("customNameInput");if(first)first.focus();refresh();},80);};
   window.__customManifestNext=typeof nextCustomManifest==="function"?nextCustomManifest:function(){return false;};
-  function wire(){var saveButton=el("btnCustomSave"),refreshButton=el("btnCustomRefresh");if(saveButton&&!saveButton.__rsCustomWired){saveButton.__rsCustomWired=true;saveButton.addEventListener("click",save);}if(refreshButton&&!refreshButton.__rsCustomWired){refreshButton.__rsCustomWired=true;refreshButton.addEventListener("click",refresh);}render(localRead());}
+  function wire(){var saveButton=el("btnCustomSave"),savePlayButton=el("btnCustomSavePlay"),clearButton=el("btnCustomClear"),refreshButton=el("btnCustomRefresh");if(saveButton&&!saveButton.__rsCustomWired){saveButton.__rsCustomWired=true;saveButton.addEventListener("click",function(){save(false);});}if(savePlayButton&&!savePlayButton.__rsCustomWired){savePlayButton.__rsCustomWired=true;savePlayButton.addEventListener("click",function(){save(true);});}if(clearButton&&!clearButton.__rsCustomWired){clearButton.__rsCustomWired=true;clearButton.addEventListener("click",clearForm);}if(refreshButton&&!refreshButton.__rsCustomWired){refreshButton.__rsCustomWired=true;refreshButton.addEventListener("click",refresh);}document.querySelectorAll("[data-custom-preset]").forEach(function(button){if(button.__rsCustomWired)return;button.__rsCustomWired=true;button.addEventListener("click",function(){applyPreset(button.getAttribute("data-custom-preset"));});});["customNameInput","customGenreInput","customEraFromInput","customEraToInput","customRuntimeInput","customSourcesInput","customIncludeInput","customExcludeInput"].forEach(function(id){var node=el(id);if(node&&!node.__rsCustomWired){node.__rsCustomWired=true;node.addEventListener("input",updatePreview);node.addEventListener("change",updatePreview);}});render(localRead());updatePreview();}
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",wire);else wire();
 })();
 </script>

@@ -1,4 +1,4 @@
-/* 4.1.1 custom station manifest contract. */
+/* 4.1.2 custom builder contract. */
 const fs = require('fs');
 const path = require('path');
 const repo = path.resolve(__dirname, '..');
@@ -24,7 +24,7 @@ for (const token of ['CREATE TABLE IF NOT EXISTS custom_channels', 'owner_key', 
 }
 for (const file of htmlFiles) {
   const source = fs.readFileSync(path.join(repo, file), 'utf8');
-  for (const token of ['CUSTOM CHANNEL BUILDER', 'customNameInput', 'btnCustomSave', 'toggleCustomChannels', 'custom-station-manifests']) {
+  for (const token of ['CUSTOM CHANNEL BUILDER', 'customNameInput', 'btnCustomSavePlay', 'toggleCustomChannels', 'custom-builder']) {
     if (!source.includes(token)) throw new Error(`${file} missing ${token}`);
   }
 }

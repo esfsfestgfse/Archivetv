@@ -18494,6 +18494,17 @@ window.__atvBootDone=true; /* app is up -- from here on, errors get logged, not 
       try{primeGuideQueues();}catch(e){}
     },0);
   };
+  /* Mobile guide hard-wire: keep the visible remote button connected to the
+     shared guide wrapper even when an earlier shell listener is unavailable. */
+  (function(){
+    var mobileGuide=document.getElementById("mGuide");
+    if(!mobileGuide||mobileGuide.__rsGuideHardWired)return;
+    mobileGuide.__rsGuideHardWired=true;
+    mobileGuide.addEventListener("click",function(ev){
+      ev.preventDefault();ev.stopPropagation();
+      try{window.openGuide();}catch(e){if(gwrap)gwrap.classList.add("show");}
+    },true);
+  })();
   window.tuneNum=async function(n){
     if(gwrap&&gwrap.classList.contains("show"))window.closeGuide();
     return baseTune.apply(this,arguments);

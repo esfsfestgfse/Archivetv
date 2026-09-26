@@ -26,4 +26,8 @@ for (const file of files) {
     if (!source.includes(`PROGRAM["${lane}"]`)) throw new Error(`${file}: missing repaired lane ${lane}`);
   }
 }
+const mobile = fs.readFileSync(path.join(repo, 'the_dial_mobile.html'), 'utf8');
+if (!mobile.includes('Mobile guide hard-wire') || !mobile.includes('__rsGuideHardWired')) {
+  throw new Error('the_dial_mobile.html: missing direct mobile guide control wiring');
+}
 console.log('Telemetry lane policy: five proven weak lanes have additive rails, diversity limits, and quiet viewer-facing status text on desktop/mobile.');

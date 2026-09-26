@@ -292,6 +292,14 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "peerTubeDetailLimit": 12,
     "peerTubeFallbackQueryWindow": 1,
     "peerTubeInstances": ["https://search.joinpeertube.org"],
+    "peerTubeQueries": [
+      "sound design documentary",
+      "film sound documentary",
+      "acoustics documentary",
+      "audio engineering documentary",
+      "radio studio technology film",
+      "recording engineering documentary full"
+    ],
     "providers": [
       "peertube",
       "youtube"
@@ -699,6 +707,15 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "peerTubeDetailLimit": 12,
     "peerTubeFallbackQueryWindow": 1,
     "peerTubeInstances": ["https://search.joinpeertube.org"],
+    "peerTubeQueries": [
+      "health education film",
+      "school film archive",
+      "instructional film full program",
+      "classroom instructional film",
+      "civics education film",
+      "educational film archive",
+      "industrial training film"
+    ],
     "providers": [
       "peertube",
       "youtube"
@@ -752,6 +769,15 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "peerTubeDetailLimit": 12,
     "peerTubeFallbackQueryWindow": 1,
     "peerTubeInstances": ["https://search.joinpeertube.org"],
+    "peerTubeQueries": [
+      "public affairs tv full episode",
+      "local public affairs program",
+      "municipal public affairs video",
+      "public access television program",
+      "community television documentary",
+      "community channel full program",
+      "local public affairs full episode"
+    ],
     "providers": [
       "peertube",
       "youtube"
@@ -1179,6 +1205,14 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "peerTubeDetailLimit": 12,
     "peerTubeFallbackQueryWindow": 1,
     "peerTubeInstances": ["https://search.joinpeertube.org"],
+    "peerTubeQueries": [
+      "garden restoration documentary",
+      "gardening history film",
+      "plant conservation documentary",
+      "public garden tour documentary",
+      "botanical garden documentary",
+      "horticulture documentary full"
+    ],
     "providers": [
       "peertube",
       "youtube"
@@ -1455,6 +1489,14 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "peerTubeDetailLimit": 12,
     "peerTubeFallbackQueryWindow": 1,
     "peerTubeInstances": ["https://search.joinpeertube.org"],
+    "peerTubeQueries": [
+      "complete theatre performance",
+      "full Broadway musical",
+      "complete musical performance",
+      "full opera performance",
+      "ballet full performance",
+      "full stage production"
+    ],
     "providers": [
       "peertube",
       "youtube"
@@ -1484,6 +1526,15 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "peerTubeDetailLimit": 12,
     "peerTubeFallbackQueryWindow": 1,
     "peerTubeInstances": ["https://search.joinpeertube.org"],
+    "peerTubeQueries": [
+      "printing history documentary",
+      "publishing history documentary",
+      "typesetting film",
+      "newspaper printing film",
+      "printing press documentary full",
+      "bookbinding film full",
+      "printmaking documentary full"
+    ],
     "providers": [
       "peertube",
       "youtube"
@@ -1545,6 +1596,15 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "peerTubeDetailLimit": 12,
     "peerTubeFallbackQueryWindow": 1,
     "peerTubeInstances": ["https://search.joinpeertube.org"],
+    "peerTubeQueries": [
+      "personal archives film",
+      "personal archive documentary",
+      "oral history documentary",
+      "community history film",
+      "life story documentary full",
+      "oral history full interview",
+      "community oral history full"
+    ],
     "providers": [
       "peertube",
       "youtube"
@@ -1918,6 +1978,14 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "peerTubeDetailLimit": 12,
     "peerTubeFallbackQueryWindow": 1,
     "peerTubeInstances": ["https://search.joinpeertube.org"],
+    "peerTubeQueries": [
+      "motion picture technology documentary",
+      "film production documentary full",
+      "film production history full documentary",
+      "film camera documentary full",
+      "movie editing documentary full",
+      "documentary about filmmaking"
+    ],
     "providers": [
       "peertube",
       "youtube"
@@ -2067,6 +2135,14 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "peerTubeDetailLimit": 12,
     "peerTubeFallbackQueryWindow": 1,
     "peerTubeInstances": ["https://search.joinpeertube.org"],
+    "peerTubeQueries": [
+      "western movie marathon",
+      "frontier western feature film",
+      "silent western full movie",
+      "spaghetti western full movie",
+      "classic western feature film",
+      "western television movie full"
+    ],
     "providers": [
       "peertube",
       "youtube"
@@ -2185,6 +2261,15 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "peerTubeDetailLimit": 12,
     "peerTubeFallbackQueryWindow": 1,
     "peerTubeInstances": ["https://search.joinpeertube.org"],
+    "peerTubeQueries": [
+      "comedy variety show full episode",
+      "complete variety show full episode",
+      "vaudeville television full show",
+      "1950s variety show full episode",
+      "1960s variety show full episode",
+      "1970s variety show full episode",
+      "1980s variety show full episode"
+    ],
     "providers": [
       "peertube",
       "youtube"
@@ -2346,6 +2431,15 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "peerTubeDetailLimit": 12,
     "peerTubeFallbackQueryWindow": 1,
     "peerTubeInstances": ["https://search.joinpeertube.org"],
+    "peerTubeQueries": [
+      "music variety show complete episode",
+      "live band full concert",
+      "concert television full episode",
+      "Soul Train full episode",
+      "Don Kirshner's Rock Concert full episode",
+      "The Midnight Special full episode",
+      "Austin City Limits full episode"
+    ],
     "persistedRelaxed": true,
     "persistedMatch": ["concert", "live music", "music television", "music documentary"],
     "providers": [

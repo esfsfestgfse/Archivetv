@@ -127,6 +127,7 @@ function normalizedProfile(body) {
     persistedRelaxed: approved.persistedRelaxed === true,
     persistedMatch: list(approved.persistedMatch, 24),
     peerTubeInstances: list(approved.peerTubeInstances, 8),
+    peerTubeQueries: list(approved.peerTubeQueries, queryLimit),
     providers: list(approved.providers, 2).map((value) => value.toLowerCase()),
   };
 }
@@ -333,7 +334,8 @@ function peerTubeFile(detail) {
 
 async function peerTube(profile, rotation, env) {
   const instances = peerTubeInstances(env, profile);
-  const queries = rotate(profile.queries, rotation).slice(0, profile.peerTubeQueryWindow || profile.queryWindow || SOURCE_QUERY_WINDOW);
+  const peerTubePool = profile.peerTubeQueries.length ? profile.peerTubeQueries : profile.queries;
+  const queries = rotate(peerTubePool, rotation).slice(0, profile.peerTubeQueryWindow || profile.queryWindow || SOURCE_QUERY_WINDOW);
   const sortModes = ["-match", "-publishedAt", "-views", "-likes"];
   const sort = sortModes[(Number(rotation) || 0) % sortModes.length];
   async function search(querySet) {

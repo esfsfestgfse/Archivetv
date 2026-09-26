@@ -143,7 +143,7 @@ function termsMatch(haystack, terms) {
 function rightsOkay(rights, provider) {
   if (provider === "YouTube") return true;
   const value = text(rights, 240).toLowerCase();
-  return !!value && !/(?:unknown|all rights reserved)/i.test(value) && /(?:creative commons|public domain|no known copyright|no known restriction|attribution|free culture|unlicense|government work|copyright free|cc[- ]?(?:by|0|nc|sa))/i.test(value);
+  return !!value && !/(?:unknown|all rights reserved)/i.test(value) && /(?:creative commons|public domain|no known copyright|no known restriction|attribution|free culture|unlicense|government work|copyright free|royalty[- ]free|open publication|free art|cc[- ]?(?:by|0|nc|sa))/i.test(value);
 }
 
 function englishOkay(item) {

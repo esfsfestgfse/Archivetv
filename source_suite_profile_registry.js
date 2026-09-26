@@ -2438,7 +2438,11 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "Soul Train full episode",
       "Don Kirshner's Rock Concert full episode",
       "The Midnight Special full episode",
-      "Austin City Limits full episode"
+      "Austin City Limits full episode",
+      "music documentary full",
+      "public domain music program",
+      "music history documentary full",
+      "live music full performance"
     ],
     "persistedRelaxed": true,
     "persistedMatch": ["concert", "live music", "music television", "music documentary"],
@@ -2451,7 +2455,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "topics": ["music performance", "performance", "concert", "music television", "live band", "music program", "music special"],
     "formats": ["full concert", "full performance", "complete show", "live set", "live music", "full episode"],
     "queries": ["music television full episode", "classic concert full performance", "live band full concert", "music variety show complete episode", "television music special full", "classic live performance full show", "concert television full episode", "music program full performance", "MTV unplugged full episode", "Austin City Limits full episode", "concert film full", "music documentary full", "The Midnight Special full episode", "Don Kirshner's Rock Concert full episode", "Soul Train full episode", "Top of the Pops full episode"],
-    "match": ["music performance", "performance", "concert", "live band", "music television", "music variety show", "music program", "music special"],
+    "match": ["music performance", "performance", "concert", "live band", "music", "music television", "music variety show", "music program", "music special", "music history", "soundtrack"],
     "deny": [
       "commercial",
       "cartoon",

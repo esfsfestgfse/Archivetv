@@ -101,7 +101,7 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v4";
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v118";
+const IA_QUEUE_CACHE_VERSION = "v119";
 /* Last-good shelves share the v101 namespace so an older shallow shelf
    never masks the repaired episode-level catalog. */
 const IA_LAST_GOOD_CACHE_VERSION = "v113";
@@ -495,6 +495,7 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     iaDirectRecovery("SanFranc1906::SanFranc1906.mp4", "SanFranc1906", "SanFranc1906.mp4", "San Francisco Earthquake Newsreel", "newsreel disaster documentary earthquake documentary", 1906),
     iaDirectRecovery("0254_San_Francisco_Earthquake_Aftermath_1906_01_21_25_00::0254_San_Francisco_Earthquake_Aftermath_1906_01_21_25_00_3mb.mp4", "0254_San_Francisco_Earthquake_Aftermath_1906_01_21_25_00", "0254_San_Francisco_Earthquake_Aftermath_1906_01_21_25_00_3mb.mp4", "San Francisco Earthquake Aftermath Newsreel", "newsreel disaster documentary earthquake documentary", 1906),
     iaDirectRecovery("0385_Colorado_Flood_16_30_35_00::0385_Colorado_Flood_16_30_35_00_3mb.mp4", "0385_Colorado_Flood_16_30_35_00", "0385_Colorado_Flood_16_30_35_00_3mb.mp4", "Colorado Flood Newsreel", "newsreel disaster documentary flood documentary", 1935),
+    iaDirectRecovery("general-idi-amin-1973::General%20Idi%20Amin%20%281973%29.mp4", "general-idi-amin-1973", "General Idi Amin (1973).mp4", "British Pathe — General Idi Amin", "british pathe british newsreel newsreel documentary", 1973),
   ],
   "227": [
     { identifier: "top-gear-complete-clarkson-hammond-may::Top Gear 07x05.mp4", title: "Top Gear — Clarkson, Hammond & May · 07x05", subject: "top gear automotive car review road test", year: 2004 },
@@ -513,6 +514,8 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "top-gear-04x-05-2004.06.06-m-00tv", title: "Top Gear · Series 4 Episode 5", subject: "top gear automotive car review road test", year: 2004 },
     iaDirectRecovery("top-gear-s15-bd::TOP GEAR SERIES 15 DISC 218.mp4", "top-gear-s15-bd", "TOP GEAR SERIES 15 DISC 218.mp4", "Top Gear · Season 15 Disc 218", "top gear automotive car review road test", 2011),
     iaDirectRecovery("top-gear-s15-bd::TOP GEAR SERIES 15 DISC 219.mp4", "top-gear-s15-bd", "TOP GEAR SERIES 15 DISC 219.mp4", "Top Gear · Season 15 Disc 219", "top gear automotive car review road test", 2011),
+    iaDirectRecovery("top-gear-s15-bd::TOP GEAR SERIES 15 DISC 211.mp4", "top-gear-s15-bd", "TOP GEAR SERIES 15 DISC 211.mp4", "Top Gear · Season 15 Disc 211", "top gear automotive car review road test", 2011),
+    iaDirectRecovery("top-gear-s15-bd::TOP GEAR SERIES 15 DISC 212.mp4", "top-gear-s15-bd", "TOP GEAR SERIES 15 DISC 212.mp4", "Top Gear · Season 15 Disc 212", "top gear automotive car review road test", 2011),
     iaDirectRecovery("top-gear-s10::TOP_GEAR_SERIES_10_DISC_16.mp4", "top-gear-s10", "TOP_GEAR_SERIES_10_DISC_16.mp4", "Top Gear · Season 10 Disc 16", "top gear automotive car review road test", 2007),
     iaDirectRecovery("top-gear-s10::TOP_GEAR_SERIES_10_DISC_17.mp4", "top-gear-s10", "TOP_GEAR_SERIES_10_DISC_17.mp4", "Top Gear · Season 10 Disc 17", "top gear automotive car review road test", 2007),
     iaDirectRecovery("james-mays-toy-stories-s01-complete_202604::James.Mays.Toy.Stories.S01.Complete.480p.HDTV/James.Mays.Toy.Stories.S01E03.Meccano.480p.HDTV.ia.mp4", "james-mays-toy-stories-s01-complete_202604", "James.Mays.Toy.Stories.S01.Complete.480p.HDTV/James.Mays.Toy.Stories.S01E03.Meccano.480p.HDTV.ia.mp4", "James May's Toy Stories · Meccano", "automotive car culture engineering vehicle design", 2009),

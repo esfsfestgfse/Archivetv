@@ -101,10 +101,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-96-72-deep-harvest-v2";
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v103";
+const IA_QUEUE_CACHE_VERSION = "v104";
 /* Last-good shelves share the v101 namespace so an older shallow shelf
    never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v103";
+const IA_LAST_GOOD_CACHE_VERSION = "v104";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -2769,6 +2769,9 @@ function matchesTheme(doc, themeTerms, minScore = 1, requiredTitleTerms = []) {
   const title = String(doc && doc.title || "").toLowerCase();
   const subject = themeText(String(doc && doc.subject || ""));
   const titleMatches = requiredTitleTerms.some(term => title.includes(String(term).toLowerCase()));
+  const identifier = String(doc && doc.identifier || "");
+  const sourceIdentifier = String(doc && doc.sourceIdentifier || "");
+  const isExpandedEpisode = identifier.includes("::") || (sourceIdentifier && sourceIdentifier !== identifier);
   const subjectMatches = themeTerms.some(term => {
     const needle = themeText(term);
     return needle && subject.includes(needle);
@@ -2777,7 +2780,13 @@ function matchesTheme(doc, themeTerms, minScore = 1, requiredTitleTerms = []) {
      in the relay so a subject-tagged lecture, news item, or collection record
      cannot occupy a verified slot merely because it shares one broad genre
      word. Expanded episode files retain their own title/subject vocabulary. */
-  if (requiredTitleTerms.length && !titleMatches) return false;
+  /* An expanded file inherits the approved parent collection's editorial
+     context. Its filename may be only an episode number or an opaque tape
+     name, so requiring the holiday/cartoon title token on every child would
+     collapse a deep series back to the first matching file. Keep the gate
+     strict for standalone records and allow only explicitly expanded children
+     through to the normal theme/deny/runtime checks. */
+  if (requiredTitleTerms.length && !titleMatches && !isExpandedEpisode) return false;
   if (!themeTerms.length) return true;
   return themeScore(doc, themeTerms) >= minScore;
 }

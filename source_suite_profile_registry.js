@@ -287,9 +287,10 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "name": "The Sound Lab",
     "queryLimit": 16,
     "queryWindow": 6,
-    "peerTubeQueryWindow": 4,
-    "peerTubeInstanceLimit": 4,
+    "peerTubeQueryWindow": 2,
+    "peerTubeInstanceLimit": 3,
     "peerTubeDetailLimit": 24,
+    "peerTubeFallbackQueryWindow": 1,
     "providers": [
       "peertube",
       "youtube"
@@ -692,9 +693,10 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "name": "Lesson Reel",
     "queryLimit": 16,
     "queryWindow": 6,
-    "peerTubeQueryWindow": 4,
-    "peerTubeInstanceLimit": 4,
+    "peerTubeQueryWindow": 2,
+    "peerTubeInstanceLimit": 3,
     "peerTubeDetailLimit": 24,
+    "peerTubeFallbackQueryWindow": 1,
     "providers": [
       "peertube",
       "youtube"
@@ -743,9 +745,10 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "name": "Local Signal",
     "queryLimit": 16,
     "queryWindow": 6,
-    "peerTubeQueryWindow": 4,
-    "peerTubeInstanceLimit": 4,
+    "peerTubeQueryWindow": 2,
+    "peerTubeInstanceLimit": 3,
     "peerTubeDetailLimit": 24,
+    "peerTubeFallbackQueryWindow": 1,
     "providers": [
       "peertube",
       "youtube"
@@ -1168,9 +1171,10 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "name": "Garden Ledger",
     "queryLimit": 16,
     "queryWindow": 6,
-    "peerTubeQueryWindow": 4,
-    "peerTubeInstanceLimit": 4,
+    "peerTubeQueryWindow": 2,
+    "peerTubeInstanceLimit": 3,
     "peerTubeDetailLimit": 24,
+    "peerTubeFallbackQueryWindow": 1,
     "providers": [
       "peertube",
       "youtube"
@@ -1442,9 +1446,10 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "name": "Stage Door",
     "queryLimit": 16,
     "queryWindow": 6,
-    "peerTubeQueryWindow": 4,
-    "peerTubeInstanceLimit": 4,
+    "peerTubeQueryWindow": 2,
+    "peerTubeInstanceLimit": 3,
     "peerTubeDetailLimit": 24,
+    "peerTubeFallbackQueryWindow": 1,
     "providers": [
       "peertube",
       "youtube"
@@ -1469,9 +1474,10 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "name": "The Print Shop",
     "queryLimit": 16,
     "queryWindow": 6,
-    "peerTubeQueryWindow": 4,
-    "peerTubeInstanceLimit": 4,
+    "peerTubeQueryWindow": 2,
+    "peerTubeInstanceLimit": 3,
     "peerTubeDetailLimit": 24,
+    "peerTubeFallbackQueryWindow": 1,
     "providers": [
       "peertube",
       "youtube"
@@ -1528,9 +1534,10 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "name": "Memory Bank",
     "queryLimit": 16,
     "queryWindow": 6,
-    "peerTubeQueryWindow": 4,
-    "peerTubeInstanceLimit": 4,
+    "peerTubeQueryWindow": 2,
+    "peerTubeInstanceLimit": 3,
     "peerTubeDetailLimit": 24,
+    "peerTubeFallbackQueryWindow": 1,
     "providers": [
       "peertube",
       "youtube"
@@ -1899,9 +1906,10 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "name": "Screen Test",
     "queryLimit": 16,
     "queryWindow": 6,
-    "peerTubeQueryWindow": 4,
-    "peerTubeInstanceLimit": 4,
+    "peerTubeQueryWindow": 2,
+    "peerTubeInstanceLimit": 3,
     "peerTubeDetailLimit": 24,
+    "peerTubeFallbackQueryWindow": 1,
     "providers": [
       "peertube",
       "youtube"
@@ -2046,9 +2054,10 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "name": "Western Screen",
     "queryLimit": 16,
     "queryWindow": 6,
-    "peerTubeQueryWindow": 4,
-    "peerTubeInstanceLimit": 4,
+    "peerTubeQueryWindow": 2,
+    "peerTubeInstanceLimit": 3,
     "peerTubeDetailLimit": 24,
+    "peerTubeFallbackQueryWindow": 1,
     "providers": [
       "peertube",
       "youtube"
@@ -2162,9 +2171,10 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "name": "Variety Hour",
     "queryLimit": 16,
     "queryWindow": 6,
-    "peerTubeQueryWindow": 4,
-    "peerTubeInstanceLimit": 4,
+    "peerTubeQueryWindow": 2,
+    "peerTubeInstanceLimit": 3,
     "peerTubeDetailLimit": 24,
+    "peerTubeFallbackQueryWindow": 1,
     "providers": [
       "peertube",
       "youtube"
@@ -2321,9 +2331,10 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "name": "Jukebox Television",
     "queryLimit": 16,
     "queryWindow": 6,
-    "peerTubeQueryWindow": 4,
-    "peerTubeInstanceLimit": 4,
+    "peerTubeQueryWindow": 2,
+    "peerTubeInstanceLimit": 3,
     "peerTubeDetailLimit": 24,
+    "peerTubeFallbackQueryWindow": 1,
     "persistedRelaxed": true,
     "persistedMatch": ["concert", "live music", "music television", "music documentary"],
     "providers": [

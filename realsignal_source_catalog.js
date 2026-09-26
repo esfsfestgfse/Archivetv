@@ -117,6 +117,7 @@ function normalizedProfile(body) {
     peerTubeQueryWindow: Math.max(1, Math.min(SOURCE_MAX_QUERY_WINDOW, Number(approved.peerTubeQueryWindow) || Number(approved.queryWindow) || SOURCE_QUERY_WINDOW)),
     peerTubeInstanceLimit: Math.max(2, Math.min(8, Number(approved.peerTubeInstanceLimit) || 8)),
     peerTubeDetailLimit: Math.max(SOURCE_MIN_READY, Math.min(32, Number(approved.peerTubeDetailLimit) || 32)),
+    peerTubeFallbackQueryWindow: Math.max(1, Math.min(SOURCE_MAX_QUERY_WINDOW, Number(approved.peerTubeFallbackQueryWindow) || SOURCE_QUERY_WINDOW)),
     match: list(approved.match, 40),
     deny: list(approved.deny, 48),
     intent: text(approved.intent, 40).toLowerCase(),
@@ -365,7 +366,7 @@ async function peerTube(profile, rotation, env) {
   if (raw.length < SOURCE_MIN_READY) {
     const used = new Set(queries.map((query) => query.toLowerCase()));
     const fallbackQueries = rotate(unique(profile.match.concat(profile.queries).map((query) => text(query, 180)))
-      .filter((query) => !used.has(query.toLowerCase())), rotation).slice(0, SOURCE_QUERY_WINDOW);
+      .filter((query) => !used.has(query.toLowerCase())), rotation).slice(0, profile.peerTubeFallbackQueryWindow || SOURCE_QUERY_WINDOW);
     if (fallbackQueries.length) {
       const fallback = await search(fallbackQueries);
       searchedJobs += fallback.jobs;

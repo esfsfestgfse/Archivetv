@@ -101,10 +101,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-96-72-deep-harvest-v2";
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v107";
+const IA_QUEUE_CACHE_VERSION = "v108";
 /* Last-good shelves share the v101 namespace so an older shallow shelf
    never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v107";
+const IA_LAST_GOOD_CACHE_VERSION = "v108";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -1202,6 +1202,14 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     iaDirectRecovery("the-wabbit-who-came-to-supper-1942_202605::The Wabbit Who Came to Supper (1942).mp4", "the-wabbit-who-came-to-supper-1942_202605", "The Wabbit Who Came to Supper (1942).mp4", "The Wabbit Who Came to Supper (1942)", "classic cartoons looney tunes bugs bunny animation", 1942),
     iaDirectRecovery("merrie-melodies-a-day-at-the-zoo-1939::Merrie Melodies - A Day at the Zoo (1939).mp4", "merrie-melodies-a-day-at-the-zoo-1939", "Merrie Melodies - A Day at the Zoo (1939).mp4", "Merrie Melodies — A Day at the Zoo (1939)", "classic cartoons looney tunes merrie melodies animation", 1939),
     iaDirectRecovery("the-country-mouse-1935::The Country Mouse (1935).ia.mp4", "the-country-mouse-1935", "The Country Mouse (1935).ia.mp4", "The Country Mouse (1935)", "classic cartoons theatrical cartoon golden age animation", 1935),
+    iaDirectRecovery("popeye_patriotic_popeye::popeye_patriotic_popeye_512kb.mp4", "popeye_patriotic_popeye", "popeye_patriotic_popeye_512kb.mp4", "Popeye — Patriotic Popeye (1957)", "classic cartoons popeye cartoon animation", 1957),
+    iaDirectRecovery("popeye_private_eye_popeye::popeye_private_eye_popeye_512kb.mp4", "popeye_private_eye_popeye", "popeye_private_eye_popeye_512kb.mp4", "Popeye — Private Eye Popeye (1954)", "classic cartoons popeye cartoon animation", 1954),
+    iaDirectRecovery("popeye_shuteye_popeye::popeye_shuteye_popeye_512kb.mp4", "popeye_shuteye_popeye", "popeye_shuteye_popeye_512kb.mp4", "Popeye — Shuteye Popeye (1952)", "classic cartoons popeye cartoon animation", 1952),
+    iaDirectRecovery("popeye_i_dont_scare::popeye_i_dont_scare_512kb.mp4", "popeye_i_dont_scare", "popeye_i_dont_scare_512kb.mp4", "Popeye — I Don't Scare (1956)", "classic cartoons popeye cartoon animation", 1956),
+    iaDirectRecovery("popeye_taxi-turvey::popeye_taxi-turvey_512kb.mp4", "popeye_taxi-turvey", "popeye_taxi-turvey_512kb.mp4", "Popeye — Taxi-Turvy (1954)", "classic cartoons popeye cartoon animation", 1954),
+    iaDirectRecovery("popeye_fright_to_the_finish::popeye_fright_to_the_finish_512kb.mp4", "popeye_fright_to_the_finish", "popeye_fright_to_the_finish_512kb.mp4", "Popeye — Fright to the Finish (1954)", "classic cartoons popeye cartoon animation", 1954),
+    iaDirectRecovery("popeye_the_sailor_ancient_fantasy::popeye_the_sailor_ancient_fantasy_512kb.mp4", "popeye_the_sailor_ancient_fantasy", "popeye_the_sailor_ancient_fantasy_512kb.mp4", "Popeye — Ancient Fistory (1952)", "classic cartoons popeye cartoon animation", 1952),
+    iaDirectRecovery("popeye_big_bad_sinbad::popeye_big_bad_sinbad_512kb.mp4", "popeye_big_bad_sinbad", "popeye_big_bad_sinbad_512kb.mp4", "Popeye — Big Bad Sinbad (1952)", "classic cartoons popeye cartoon animation", 1952),
   ],
   "13": [
     { identifier: "walls-french-coffee-ice-cream-ad", title: "Wall's French Coffee Ice Cream Ad", subject: "vintage television commercial video advertisement", year: 1960, media: { type: "video", url: "https://archive.org/download/walls-french-coffee-ice-cream-ad/Wall%27s%20French%20Coffee%20Ice%20Cream%20Ad.mp4" } },

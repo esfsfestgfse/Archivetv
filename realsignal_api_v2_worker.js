@@ -12,7 +12,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "4.0.13-source-deep-lane-admission";
+const V3_RELEASE = "4.0.14-source-longform-requalification";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -514,10 +514,11 @@ function catalogFallbackAllowed(item, body) {
         const needle = String(term || "").trim().toLowerCase();
         return needle && haystack.includes(needle);
       }) && !(body.persistedRelaxed === true && persistedSignal)) return false;
+      const relaxedLongForm = body.persistedRelaxed === true && runtime >= 20 * 60;
       if (formats.length && !formats.some((term) => {
         const needle = String(term || "").trim().toLowerCase();
         return needle && title.includes(needle);
-      })) return false;
+      }) && !relaxedLongForm) return false;
     }
   }
   return true;

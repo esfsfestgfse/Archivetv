@@ -124,7 +124,7 @@ function normalizedProfile(body) {
     topics: list(approved.topics, 32),
     formats: list(approved.formats, 24),
     formatRelaxed: approved.formatRelaxed === true,
-    persistedRelaxed: approved.persistedRelaxed === true,
+    persistedRelaxed: approved.persistedRelaxed === true || approved.formatRelaxed === true,
     persistedMatch: list(approved.persistedMatch, 24),
     peerTubeInstances: list(approved.peerTubeInstances, 8),
     peerTubeQueries: list(approved.peerTubeQueries, queryLimit),

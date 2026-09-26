@@ -36,13 +36,19 @@ for (const key of ['print-shop', 'screen-test', 'sound-lab', 'stage-door', 'vari
   const start = sourceRegistry.indexOf(`"${key}":`);
   const next = sourceRegistry.indexOf('\n  },', start);
   const section = sourceRegistry.slice(start, next >= 0 ? next + 5 : sourceRegistry.length);
-  if (!section.includes('"queryLimit": 16') || !section.includes('"peerTubeQueryWindow": 2') || !section.includes('"peerTubeInstanceLimit": 1') || !section.includes('"peerTubeDetailLimit": 12') || !section.includes('"peerTubeFallbackQueryWindow": 2') || !section.includes('"peerTubeInstances": ["https://search.joinpeertube.org"]')) issues.push(`${key} must retain the bounded expanded query pool for serial source rotations`);
+  if (!section.includes('"queryLimit": 16') || (!section.includes('"peerTubeQueryWindow": 2') && !section.includes('"peerTubeQueryWindow": 4')) || !section.includes('"peerTubeInstanceLimit": 1') || !section.includes('"peerTubeDetailLimit": 12') || (!section.includes('"peerTubeFallbackQueryWindow": 2') && !section.includes('"peerTubeFallbackQueryWindow": 4')) || !section.includes('"peerTubeInstances": ["https://search.joinpeertube.org"]')) issues.push(`${key} must retain the bounded expanded query pool for serial source rotations`);
 }
 for (const key of ['sound-lab', 'screen-test', 'western-screen', 'variety-hour', 'jukebox-television', 'garden-ledger', 'stage-door', 'print-shop', 'memory-bank', 'lesson-reel', 'local-signal']) {
   const start = sourceRegistry.indexOf(`"${key}":`);
   const next = sourceRegistry.indexOf('\n  },', start);
   const section = sourceRegistry.slice(start, next >= 0 ? next + 5 : sourceRegistry.length);
   if (!section.includes('"peerTubeQueries":')) issues.push(`${key} must use a curated federated query lane instead of the broad base query pool`);
+}
+for (const key of ['sound-lab', 'screen-test', 'western-screen', 'variety-hour', 'jukebox-television', 'garden-ledger', 'stage-door', 'memory-bank', 'local-signal']) {
+  const start = sourceRegistry.indexOf(`"${key}":`);
+  const next = sourceRegistry.indexOf('\n  },', start);
+  const section = sourceRegistry.slice(start, next >= 0 ? next + 5 : sourceRegistry.length);
+  if (!section.includes('"peerTubeQueryWindow": 4') || !section.includes('"peerTubeFallbackQueryWindow": 4')) issues.push(`${key} must use the full bounded curated query window after its shallow-lane failure`);
 }
 for (const [key, terms] of Object.entries({
   'print-shop': ['"demo"', '"hands-on"', '"tutorial"'],

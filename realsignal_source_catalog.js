@@ -31,6 +31,7 @@ const SOURCE_MAX_QUERY_WINDOW = 6;
 const SOURCE_YOUTUBE_QUERY_CONCURRENCY = 2;
 const SOURCE_MAX_CONCURRENCY = 4;
 const SOURCE_TIMEOUT_MS = 7000;
+const SOURCE_DETAIL_TIMEOUT_MS = 1800;
 /* A provider that cannot produce a verified lane inside this budget is not a
    playback candidate. Let the other provider win, record the slow provider as
    unhealthy, and keep it out of the next shelf until its cooldown expires. */
@@ -113,6 +114,9 @@ function normalizedProfile(body) {
     name: approved.name,
     queries: list(approved.queries, queryLimit),
     queryWindow: Math.max(1, Math.min(SOURCE_MAX_QUERY_WINDOW, Number(approved.queryWindow) || SOURCE_QUERY_WINDOW)),
+    peerTubeQueryWindow: Math.max(1, Math.min(SOURCE_MAX_QUERY_WINDOW, Number(approved.peerTubeQueryWindow) || Number(approved.queryWindow) || SOURCE_QUERY_WINDOW)),
+    peerTubeInstanceLimit: Math.max(2, Math.min(8, Number(approved.peerTubeInstanceLimit) || 8)),
+    peerTubeDetailLimit: Math.max(SOURCE_MIN_READY, Math.min(32, Number(approved.peerTubeDetailLimit) || 32)),
     match: list(approved.match, 40),
     deny: list(approved.deny, 48),
     intent: text(approved.intent, 40).toLowerCase(),
@@ -303,12 +307,13 @@ async function youtube(profile, rotation, env) {
   return { provider: "YouTube", items: unique(items).slice(0, SOURCE_MAX_ITEMS), health: { searched: queries.length, candidates: candidates.length, details: detailItems.length, detailBatches: detailBatches.length } };
 }
 
-function peerTubeInstances(env) {
+function peerTubeInstances(env, profile) {
   const configured = text(env && env.PEERTUBE_INSTANCES, 1500);
   const values = (configured ? configured.split(",") : SOURCE_DEFAULT_INSTANCES).map((value) => {
     try { return new URL(value.trim()).origin; } catch (_) { return ""; }
   }).filter((value, index, all) => value && all.indexOf(value) === index);
-  return values.slice(0, 8);
+  const limit = Math.max(2, Math.min(8, Number(profile && profile.peerTubeInstanceLimit) || 8));
+  return values.slice(0, limit);
 }
 
 function peerTubeFile(detail) {
@@ -321,8 +326,8 @@ function peerTubeFile(detail) {
 }
 
 async function peerTube(profile, rotation, env) {
-  const instances = peerTubeInstances(env);
-  const queries = youtubeQueries(profile, rotation);
+  const instances = peerTubeInstances(env, profile);
+  const queries = rotate(profile.queries, rotation).slice(0, profile.peerTubeQueryWindow || profile.queryWindow || SOURCE_QUERY_WINDOW);
   const sortModes = ["-match", "-publishedAt", "-views", "-likes"];
   const sort = sortModes[(Number(rotation) || 0) % sortModes.length];
   async function search(querySet) {
@@ -367,9 +372,9 @@ async function peerTube(profile, rotation, env) {
       raw = unique(raw.concat(fallback.items)).filter((item) => accepted(profile, item, "PeerTube", false));
     }
   }
-  raw = raw.slice(0, 64);
+  raw = raw.slice(0, profile.peerTubeDetailLimit || 32);
   const detailed = await mapLimit(raw, SOURCE_MAX_CONCURRENCY, async (item) => {
-    const detail = await fetchJson(`${item.instance}/api/v1/videos/${encodeURIComponent(item.uuid)}`);
+    const detail = await withTimeout(fetchJson(`${item.instance}/api/v1/videos/${encodeURIComponent(item.uuid)}`), SOURCE_DETAIL_TIMEOUT_MS);
     const file = peerTubeFile(detail);
     if (!file) return null;
     const hydrated = {
@@ -438,4 +443,4 @@ export function mergeSourceLanes(profileKey, lanes) {
   return { profileKey, items, ready: items.length, candidates: items.length, catalogVersion: "source-server-1", source: "server-source-catalog" };
 }
 
-export const SOURCE_LIMITS = { SOURCE_MIN_RUNTIME, SOURCE_MIN_ASPECT_RATIO, SOURCE_MAX_ITEMS, SOURCE_MIN_READY, SOURCE_MAX_QUERIES, SOURCE_QUERY_WINDOW, SOURCE_PROVIDER_BUDGET_MS, SOURCE_FIRST_LANE_TIMEOUT_MS };
+export const SOURCE_LIMITS = { SOURCE_MIN_RUNTIME, SOURCE_MIN_ASPECT_RATIO, SOURCE_MAX_ITEMS, SOURCE_MIN_READY, SOURCE_MAX_QUERIES, SOURCE_QUERY_WINDOW, SOURCE_DETAIL_TIMEOUT_MS, SOURCE_PROVIDER_BUDGET_MS, SOURCE_FIRST_LANE_TIMEOUT_MS };

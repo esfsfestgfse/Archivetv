@@ -285,8 +285,11 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   },
   "sound-lab": {
     "name": "The Sound Lab",
-    "queryLimit": 12,
+    "queryLimit": 16,
     "queryWindow": 6,
+    "peerTubeQueryWindow": 4,
+    "peerTubeInstanceLimit": 4,
+    "peerTubeDetailLimit": 24,
     "providers": [
       "peertube",
       "youtube"
@@ -301,7 +304,13 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "recording studio documentary",
       "radio engineering film",
       "acoustics film",
-      "sound design documentary"
+      "sound design documentary",
+      "audio technology documentary full",
+      "recording engineering documentary full",
+      "film sound documentary",
+      "sound effects documentary",
+      "broadcast audio history documentary",
+      "public radio studio documentary"
     ],
     "match": [
       "sound recording",
@@ -681,8 +690,11 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   },
   "lesson-reel": {
     "name": "Lesson Reel",
-    "queryLimit": 12,
+    "queryLimit": 16,
     "queryWindow": 6,
+    "peerTubeQueryWindow": 4,
+    "peerTubeInstanceLimit": 4,
+    "peerTubeDetailLimit": 24,
     "providers": [
       "peertube",
       "youtube"
@@ -701,7 +713,9 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "home economics instructional film",
       "health education film",
       "science classroom film",
-      "vocational education film"
+      "vocational education film",
+      "instructional film full program",
+      "educational film archive full"
     ],
     "match": [
       "classroom",
@@ -727,8 +741,11 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   },
   "local-signal": {
     "name": "Local Signal",
-    "queryLimit": 12,
+    "queryLimit": 16,
     "queryWindow": 6,
+    "peerTubeQueryWindow": 4,
+    "peerTubeInstanceLimit": 4,
+    "peerTubeDetailLimit": 24,
     "providers": [
       "peertube",
       "youtube"
@@ -747,7 +764,9 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "local government television full meeting",
       "community media full documentary",
       "public affairs tv full episode",
-      "cable access full program"
+      "cable access full program",
+      "community channel full program",
+      "local public affairs full episode"
     ],
     "match": [
       "community television",
@@ -1147,8 +1166,11 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   },
   "garden-ledger": {
     "name": "Garden Ledger",
-    "queryLimit": 12,
+    "queryLimit": 16,
     "queryWindow": 6,
+    "peerTubeQueryWindow": 4,
+    "peerTubeInstanceLimit": 4,
+    "peerTubeDetailLimit": 24,
     "providers": [
       "peertube",
       "youtube"
@@ -1167,7 +1189,9 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "plant cultivation documentary",
       "landscape architecture garden documentary",
       "garden restoration documentary",
-      "wildlife garden documentary"
+      "wildlife garden documentary",
+      "garden documentary full program",
+      "plant conservation documentary"
     ],
     "match": [
       "horticulture",
@@ -1416,8 +1440,11 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   },
   "stage-door": {
     "name": "Stage Door",
-    "queryLimit": 12,
+    "queryLimit": 16,
     "queryWindow": 6,
+    "peerTubeQueryWindow": 4,
+    "peerTubeInstanceLimit": 4,
+    "peerTubeDetailLimit": 24,
     "providers": [
       "peertube",
       "youtube"
@@ -1426,7 +1453,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "formatRelaxed": true,
     "topics": ["stage play", "play", "theatre", "theater", "theatre performance", "dance theatre", "live theatre", "ballet", "opera", "musical"],
     "formats": ["full performance", "complete performance", "full play", "complete play", "full show", "full musical", "full production", "full-length play", "entire performance", "complete opera", "full ballet"],
-    "queries": ["stage play full performance", "theatre full play", "complete theatre performance", "dance theatre full performance", "live theatre complete show", "classic stage play full", "ballet full performance", "stage musical full performance", "public domain stage play full", "full Broadway musical", "complete opera performance", "full stage production"],
+    "queries": ["stage play full performance", "theatre full play", "complete theatre performance", "dance theatre full performance", "live theatre complete show", "classic stage play full", "ballet full performance", "stage musical full performance", "public domain stage play full", "full Broadway musical", "complete opera performance", "full stage production", "full theatre performance archive", "complete musical performance", "full opera performance", "full dance theatre performance"],
     "match": ["stage play", "play", "theatre", "theater", "theatre performance", "dance theatre", "live theatre", "ballet", "opera", "musical", "full performance", "complete play"],
     "deny": [
       "music video",
@@ -1440,8 +1467,11 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   },
   "print-shop": {
     "name": "The Print Shop",
-    "queryLimit": 12,
+    "queryLimit": 16,
     "queryWindow": 6,
+    "peerTubeQueryWindow": 4,
+    "peerTubeInstanceLimit": 4,
+    "peerTubeDetailLimit": 24,
     "providers": [
       "peertube",
       "youtube"
@@ -1456,7 +1486,13 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "printing factory documentary",
       "bookbinding documentary",
       "typesetting film",
-      "newspaper printing film"
+      "newspaper printing film",
+      "printing press documentary full",
+      "industrial printing documentary",
+      "bookbinding film full",
+      "newspaper press documentary",
+      "typefounding documentary",
+      "printmaking documentary full"
     ],
     "match": [
       "printing history",
@@ -1490,8 +1526,11 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   },
   "memory-bank": {
     "name": "Memory Bank",
-    "queryLimit": 12,
+    "queryLimit": 16,
     "queryWindow": 6,
+    "peerTubeQueryWindow": 4,
+    "peerTubeInstanceLimit": 4,
+    "peerTubeDetailLimit": 24,
     "providers": [
       "peertube",
       "youtube"
@@ -1510,7 +1549,9 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "community oral history full",
       "personal archive documentary",
       "life story documentary full",
-      "local history oral history"
+      "local history oral history",
+      "oral history program full",
+      "life story interview documentary full"
     ],
     "match": [
       "oral history",
@@ -1856,8 +1897,11 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   },
   "screen-test": {
     "name": "Screen Test",
-    "queryLimit": 12,
+    "queryLimit": 16,
     "queryWindow": 6,
+    "peerTubeQueryWindow": 4,
+    "peerTubeInstanceLimit": 4,
+    "peerTubeDetailLimit": 24,
     "providers": [
       "peertube",
       "youtube"
@@ -1872,7 +1916,13 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "cinematography full documentary",
       "film editing documentary",
       "production design documentary",
-      "camera film technology documentary"
+      "camera film technology documentary",
+      "film camera documentary full",
+      "movie editing documentary full",
+      "cinema technology documentary",
+      "film production history full documentary",
+      "movie studio documentary full",
+      "motion picture technology documentary"
     ],
     "match": [
       "cinematography",
@@ -1994,8 +2044,11 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   },
   "western-screen": {
     "name": "Western Screen",
-    "queryLimit": 12,
+    "queryLimit": 16,
     "queryWindow": 6,
+    "peerTubeQueryWindow": 4,
+    "peerTubeInstanceLimit": 4,
+    "peerTubeDetailLimit": 24,
     "providers": [
       "peertube",
       "youtube"
@@ -2004,7 +2057,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "formatRelaxed": true,
     "topics": ["western movie", "western film", "western", "cowboy movie", "cowboy", "frontier film", "frontier", "spaghetti western", "silent western"],
     "formats": ["full movie", "full film", "feature film", "complete movie", "movie marathon", "full western", "western full film", "full-length western", "complete western", "feature western"],
-    "queries": ["classic western full movie", "public domain western full movie", "cowboy movie full film", "frontier western feature film", "vintage western full movie", "western movie marathon", "classic cowboy film full", "western double feature full", "spaghetti western full movie", "silent western full movie", "classic western feature film", "western television movie full"],
+    "queries": ["classic western full movie", "public domain western full movie", "cowboy movie full film", "frontier western feature film", "vintage western full movie", "western movie marathon", "classic cowboy film full", "western double feature full", "spaghetti western full movie", "silent western full movie", "classic western feature film", "western television movie full", "public domain cowboy movie full", "classic western feature film", "silent cowboy feature", "western double feature full movie"],
     "match": ["western movie", "western film", "western", "cowboy movie", "cowboy", "frontier western", "frontier", "full movie", "feature film"],
     "deny": [
       "music video",
@@ -2107,8 +2160,11 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   },
   "variety-hour": {
     "name": "Variety Hour",
-    "queryLimit": 12,
+    "queryLimit": 16,
     "queryWindow": 6,
+    "peerTubeQueryWindow": 4,
+    "peerTubeInstanceLimit": 4,
+    "peerTubeDetailLimit": 24,
     "providers": [
       "peertube",
       "youtube"
@@ -2117,7 +2173,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "formatRelaxed": true,
     "topics": ["variety show", "variety", "vaudeville", "stage revue", "revue", "television variety", "television show", "entertainment show"],
     "formats": ["full episode", "complete show", "full show", "variety special", "full performance", "full special", "complete variety", "full revue", "complete revue", "full program"],
-    "queries": ["classic variety show full episode", "television variety complete show", "vaudeville television full show", "variety special full episode", "classic stage revue full performance", "music comedy variety show full", "variety show marathon", "television variety archive full episode", "family variety show full episode", "classic television special full show", "comedy variety show full episode", "international variety show full"],
+    "queries": ["classic variety show full episode", "television variety complete show", "vaudeville television full show", "variety special full episode", "classic stage revue full performance", "music comedy variety show full", "variety show marathon", "television variety archive full episode", "family variety show full episode", "classic television special full show", "comedy variety show full episode", "international variety show full", "1950s variety show full episode", "1960s variety show full episode", "1970s variety show full episode", "1980s variety show full episode"],
     "match": ["variety show", "variety", "vaudeville", "stage revue", "revue", "television variety", "television show", "entertainment show", "full episode", "complete show"],
     "deny": [
       "music video",
@@ -2263,8 +2319,11 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   },
   "jukebox-television": {
     "name": "Jukebox Television",
-    "queryLimit": 12,
+    "queryLimit": 16,
     "queryWindow": 6,
+    "peerTubeQueryWindow": 4,
+    "peerTubeInstanceLimit": 4,
+    "peerTubeDetailLimit": 24,
     "persistedRelaxed": true,
     "persistedMatch": ["concert", "live music", "music television", "music documentary"],
     "providers": [

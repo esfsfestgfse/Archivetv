@@ -47,7 +47,7 @@ for (const [channel, collection] of Object.entries(expectedRails)) {
 }
 
 const relay = fs.readFileSync(path.join(root, 'afterglow_ais_relay_worker.js'), 'utf8');
-check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v104"/.test(relay), 'Relay cache namespace is v104');
+check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v105"/.test(relay), 'Relay cache namespace is v105');
 check(/requiredTitleTerms\.length && !titleMatches && !isExpandedEpisode\) return false/.test(relay), 'Relay enforces the strict title gate while allowing approved expanded episodes');
 check(/"206": \[/.test(relay) && /090-aahma-watermarked/.test(relay) && /amateur_west_1940_1/.test(relay), 'Home Movies has verified sparse-lane recovery media');
 check(/"11": \[/.test(relay) && /freakylinks-complete-series-2000/.test(relay) && /partners-1995-96/.test(relay), 'Modern Rerun TV has verified sitcom recovery media');
@@ -75,6 +75,8 @@ check(/function mergeIaFallbackCandidates\(/.test(relay) && /\[\.\.\.current, \.
 check(/if \(payload && payload\.lastGoodKey\)/.test(relay) && /familyCandidates = mergeIaFallbackCandidates\(family, expanded\)/.test(relay), 'Exact IA rotation refills inherit the accumulated family catalog');
 check(/const cachedShelf =/.test(relay) && /const sharedShelf =/.test(relay), 'Cached and shared IA shelves rotate their deeper playable candidates');
 check(/\* requested\) % source\.length/.test(relay), 'Shelf rotation advances by a full public window');
+check(/"704": \[[\s\S]*HowTheGrinchStoleChristmas_201812/.test(relay) && /"705": \[[\s\S]*halloween-cartoon-collection_20231022/.test(relay) && /"706": \[[\s\S]*garfieldsthanksgiving/.test(relay), 'Holiday lanes have independent verified fallback banks');
+check(/"158": \[[\s\S]*spider-mantheanimatedseries[\s\S]*DragonTalesTVSeries[\s\S]*powerpuff-girls-complete-series/.test(relay), 'Saturday Morning recovery bank spans multiple complete animated series');
 
 if (failures) process.exitCode = 1;
 else console.log('IA collection-depth contract passed.');

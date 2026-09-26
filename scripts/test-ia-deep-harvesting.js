@@ -13,7 +13,7 @@ function check(ok, message) {
   if (!ok) failures.push(message);
 }
 
-check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v104"/.test(relay), 'deep harvest invalidates the prior queue namespace');
+check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v105"/.test(relay), 'deep harvest invalidates the prior queue namespace');
 check(/IA_STRICT_CATALOG_CANDIDATE_MAX\s*=\s*96/.test(relay) && /IA_CATALOG_CANDIDATE_MAX\s*=\s*72/.test(relay), 'every IA lane receives a larger rolling catalog budget');
 check(/IA_FRESHNESS_CANDIDATE_FLOOR\s*=\s*24/.test(relay) && /IA_FRESHNESS_LEDGER_MAX\s*=\s*32/.test(relay), 'freshness history is large enough to cover several shelves');
 check(/IA_BACKGROUND_COLLECTION_EPISODES_PER_PARENT\s*=\s*10/.test(relay) && /IA_BACKGROUND_CONTAINER_EXPANSIONS\s*=\s*6/.test(relay), 'container harvesting covers multiple parents and episode positions');
@@ -29,6 +29,8 @@ check(/memoryNeedsFreshRotation/.test(relay) && /iaShouldBypassShallowRotation\(
 check(/function safeMinRuntimeSeconds\(/.test(relay) && /function iaRuntimeAllowed\(/.test(relay) && /minRuntimeSeconds/.test(relay), 'runtime floors are enforced before short Archive clips reach first play');
 check(/Number\(rotation\) > 0 \|\| iaDepthRecoveryEnabled\(channel\)/.test(relay), 'later rotations collect supplemental Archive rails within the bounded grace window');
 check(/const expandedEpisode = item && rawIdentifier\.includes\("::"\)/.test(relay) && /rawIdentifier\.split\("::"\)\[0\]/.test(relay), 'expanded episode records can re-open their parent container for sibling harvesting');
+check(/"704": \[/.test(relay) && /HowTheGrinchStoleChristmas_201812/.test(relay) && /"705": \[/.test(relay) && /halloween-cartoon-collection_20231022/.test(relay) && /"706": \[/.test(relay) && /garfieldsthanksgiving/.test(relay), 'holiday animation stations have verified Archive recovery rails');
+check(/"158": \[[\s\S]*spider-mantheanimatedseries[\s\S]*DragonTalesTVSeries[\s\S]*powerpuff-girls-complete-series/.test(relay), 'Saturday Morning recovery rotates across multiple animated series instead of one Pingu shelf');
 
 if (failures.length) {
   console.error(`IA deep-harvesting contract failed: ${failures.length} check(s)`);

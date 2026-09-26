@@ -47,7 +47,7 @@ for (const [channel, collection] of Object.entries(expectedRails)) {
 }
 
 const relay = fs.readFileSync(path.join(root, 'afterglow_ais_relay_worker.js'), 'utf8');
-check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v110"/.test(relay), 'Relay cache namespace is v110');
+check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v111"/.test(relay), 'Relay cache namespace is v111');
 check(/requiredTitleTerms\.length && !titleMatches && !isExpandedEpisode\) return false/.test(relay), 'Relay enforces the strict title gate while allowing approved expanded episodes');
 check(/"206": \[/.test(relay) && /090-aahma-watermarked/.test(relay) && /amateur_west_1940_1/.test(relay), 'Home Movies has verified sparse-lane recovery media');
 check(/"11": \[/.test(relay) && /freakylinks-complete-series-2000/.test(relay) && /partners-1995-96/.test(relay), 'Modern Rerun TV has verified sitcom recovery media');
@@ -67,8 +67,8 @@ check(/candidateItems: items\.slice\(0, candidateLimit\)/.test(relay), 'Relay se
 check(/const backgroundTarget = Math\.min\(candidateCount, Math\.max\(count \* 3, iaDepthRecoveryEnabled\(channel\) \? IA_DEPTH_PLAYABLE_TARGET : IA_BACKGROUND_PLAYABLE_TARGET\)\)/.test(relay), 'Relay hydrates a deeper background playable shelf');
 check(/function rotatePlayableIaShelf\(/.test(relay) && /rotatePlayableIaShelf\(lastGood/.test(relay), 'Relay rotates hydrated last-good shelves instead of repeating the same five items');
 check(/const emergencyDepth = Math\.min\(candidateCount, Math\.max\(count, 8\)\)/.test(relay), 'Sparse emergency lanes widen before accepting a shallow five-item shelf');
-check(/IA_BACKGROUND_CONTAINER_EXPANSIONS\s*=\s*6/.test(relay) && /IA_BACKGROUND_COLLECTION_EPISODES_PER_PARENT\s*=\s*10/.test(relay), 'Background collection expansion samples six parent records across ten episode positions');
-check(/queueRotationPage\(rotation, lane, channel, !firstApprovedLane\)/.test(relay) && /background\s*\?\s*\(iaDepthRecoveryEnabled\(channel\) \? 18 : 12\)/.test(relay), 'Background discovery walks a wider deterministic Archive page window');
+check(/IA_BACKGROUND_CONTAINER_EXPANSIONS\s*=\s*6/.test(relay) && /IA_BACKGROUND_COLLECTION_EPISODES_PER_PARENT\s*=\s*16/.test(relay), 'Background collection expansion samples six parent records across sixteen episode positions');
+check(/queueRotationPage\(rotation, lane, channel, !firstApprovedLane\)/.test(relay) && /background\s*\?\s*\(iaDepthRecoveryEnabled\(channel\) \? 24 : 16\)/.test(relay), 'Background discovery walks a wider deterministic Archive page window');
 check(/sampleArchiveSequence\(rotatedPlayable, IA_MAX_EXPANDED_FILES\)/.test(relay) && /IA_MAX_EXPANDED_FILES\s*=\s*720/.test(relay), 'Large Archive manifests are sampled across their full file range');
 check(/function orderedIaEmergencySeeds\(/.test(relay) && /emergencySeedsMerged: true/.test(relay), 'Warm emergency shelves join background depth repair');
 check(/function mergeIaFallbackCandidates\(/.test(relay) && /\[\.\.\.current, \.\.\.prior\]/.test(relay), 'Last-good IA shelves accumulate verified candidates across rotations');
@@ -77,6 +77,11 @@ check(/const cachedShelf =/.test(relay) && /const sharedShelf =/.test(relay), 'C
 check(/\* requested\) % source\.length/.test(relay), 'Shelf rotation advances by a full public window');
 check(/"704": \[[\s\S]*HowTheGrinchStoleChristmas_201812/.test(relay) && /"705": \[[\s\S]*halloween-cartoon-collection_20231022/.test(relay) && /"706": \[[\s\S]*garfieldsthanksgiving/.test(relay), 'Holiday lanes have independent verified fallback banks');
 check(/"158": \[[\s\S]*spider-mantheanimatedseries[\s\S]*DragonTalesTVSeries[\s\S]*powerpuff-girls-complete-series/.test(relay), 'Saturday Morning recovery bank spans multiple complete animated series');
+check(/"10": \[[\s\S]*theloneranger_201705[\s\S]*Bonanza_-_The_Trail_Gang/.test(relay), 'Classic Rerun TV has a multi-series deep recovery bank');
+check(/"12": \[[\s\S]*nickelodeon-guts-season-1[\s\S]*Price_Is-Right_1957[\s\S]*Jeopardy/.test(relay), 'Game Show Channel spans multiple decades and formats');
+check(/"150": \[[\s\S]*bb_bamboo_isle[\s\S]*little_lulu_bargain_counter_attack/.test(relay), 'Classic Cartoons expands beyond the Popeye shelf');
+check(/"153": \[[\s\S]*spider-mantheanimatedseries[\s\S]*DragonTalesTVSeries[\s\S]*powerpuff-girls-complete-series/.test(relay), 'Modern Cartoons rotates across complete animated series');
+check(/"110": \[[\s\S]*his_girl_friday[\s\S]*ThePhantomoftheOpera/.test(relay), 'Classic Film has a deep, multi-era feature shelf');
 
 if (failures) process.exitCode = 1;
 else console.log('IA collection-depth contract passed.');

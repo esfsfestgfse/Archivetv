@@ -89,7 +89,7 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
    warmup back onto the channel-change path. */
 const IA_STRICT_CATALOG_CANDIDATE_MAX = 96;
 const IA_CATALOG_CANDIDATE_MAX = 72;
-const IA_CATALOG_BUDGET_VERSION = "catalog-96-72-deep-harvest-v2";
+const IA_CATALOG_BUDGET_VERSION = "catalog-96-72-deep-harvest-v3";
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
@@ -101,10 +101,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-96-72-deep-harvest-v2";
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v110";
+const IA_QUEUE_CACHE_VERSION = "v111";
 /* Last-good shelves share the v101 namespace so an older shallow shelf
    never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v110";
+const IA_LAST_GOOD_CACHE_VERSION = "v111";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -178,9 +178,9 @@ const IA_CONTAINER_EXPANSION_CONCURRENCY = 2;
    only its first couple of episodes. The rolling shelf remains bounded by the
    channel catalog budget below. */
 const IA_MAX_EXPANDED_FILES = 720;
-const IA_BACKGROUND_COLLECTION_EPISODES_PER_PARENT = 10;
-const IA_BACKGROUND_PLAYABLE_TARGET = 24;
-const IA_DEPTH_PLAYABLE_TARGET = 36;
+const IA_BACKGROUND_COLLECTION_EPISODES_PER_PARENT = 16;
+const IA_BACKGROUND_PLAYABLE_TARGET = 36;
+const IA_DEPTH_PLAYABLE_TARGET = 48;
 /* A full-directory tune burst can arrive when a guide, television, and phone
    all ask for cold shelves together. Keep the foreground path to one Archive
    discovery rail; reserve rails still run behind the first frame. */
@@ -303,11 +303,11 @@ function iaBackgroundReserveQueries(channel, queries, deep = false) {
   /* A lane is allowed to widen itself when its verified candidate shelf is
      shallow. This keeps neglected long-tail channels from depending on a
      hand-maintained allowlist while preserving the one-rail first-frame path. */
-  const limit = iaDepthRecoveryEnabled(channel) || deep ? Math.min(6, queries.length) : Math.min(IA_BACKGROUND_RESERVE_LANES, queries.length);
+  const limit = iaDepthRecoveryEnabled(channel) || deep ? Math.min(10, queries.length) : Math.min(IA_BACKGROUND_RESERVE_LANES, queries.length);
   return queries.slice(0, limit);
 }
 function iaBackgroundFallbackQueries(channel, queries, deep = false) {
-  const limit = iaDepthRecoveryEnabled(channel) || deep ? Math.min(2, queries.length) : Math.min(IA_BACKGROUND_FALLBACK_LANES, queries.length);
+  const limit = iaDepthRecoveryEnabled(channel) || deep ? Math.min(3, queries.length) : Math.min(IA_BACKGROUND_FALLBACK_LANES, queries.length);
   return queries.slice(0, limit);
 }
 /* Last-resort, already-observed playable records for those same sparse lanes.
@@ -2038,6 +2038,111 @@ const IA_LONG_TAIL_EXPANSIONS = Object.freeze({
 /* File-level freshness expansions are kept in a separate object so they can
    be layered onto the long-tail bank without duplicate object keys. */
 const IA_LONG_TAIL_EXPANSIONS_EXTRA = Object.freeze({
+  /* v111 IA deep harvest: verified records from collection-level discovery.
+     These banks are intentionally family-balanced and remain behind the
+     normal theme, deny, runtime, media, and freshness gates. They widen the
+     catalog without making the first tune wait for every Archive manifest. */
+  "10": [
+    iaDirectRecovery("theloneranger_201705::s01e01_EntertheLoneRanger.mp4", "theloneranger_201705", "s01e01_EntertheLoneRanger.mp4", "The Lone Ranger · Enter the Lone Ranger", "classic television western television series", 1949),
+    iaDirectRecovery("get-smart::Get Smart S01E01 (Mr. Big).mp4", "get-smart", "Get Smart S01E01 (Mr. Big).mp4", "Get Smart · Mr. Big", "classic television sitcom spy comedy television series", 1965),
+    iaDirectRecovery("GreenAcresCompleteSeries::Green Acres Season 1/Green Acres - 001 - Oliver Buys A Farm.mp4", "GreenAcresCompleteSeries", "Green Acres Season 1/Green Acres - 001 - Oliver Buys A Farm.mp4", "Green Acres · Oliver Buys a Farm", "classic television sitcom family comedy television series", 1965),
+    iaDirectRecovery("Bonanza_-_The_Trail_Gang::Bonanza_-_The_Trail_Gang_512kb.mp4", "Bonanza_-_The_Trail_Gang", "Bonanza_-_The_Trail_Gang_512kb.mp4", "Bonanza · The Trail Gang", "classic television western television series", 1959),
+    iaDirectRecovery("Bonanza_-_Day_Of_Reckoning::Bonanza_-_Day_Of_Reckoning_512kb.mp4", "Bonanza_-_Day_Of_Reckoning", "Bonanza_-_Day_Of_Reckoning_512kb.mp4", "Bonanza · Day of Reckoning", "classic television western television series", 1959),
+    iaDirectRecovery("Bonanza-BitterWater::Bonanza_Bitter_Water_S01-E29_512kb.mp4", "Bonanza-BitterWater", "Bonanza_Bitter_Water_S01-E29_512kb.mp4", "Bonanza · Bitter Water", "classic television western television series", 1960),
+    iaDirectRecovery("Bonanza-TheFearMerchants::Bonanza_-_The_Fear_Merchants_S01-E20_512kb.mp4", "Bonanza-TheFearMerchants", "Bonanza_-_The_Fear_Merchants_S01-E20_512kb.mp4", "Bonanza · The Fear Merchants", "classic television western television series", 1960),
+    iaDirectRecovery("SherlockHolmes1954::Sherlock Holmes 01 The Case of the Cunningham Heritage.mp4", "SherlockHolmes1954", "Sherlock Holmes 01 The Case of the Cunningham Heritage.mp4", "The Adventures of Sherlock Holmes · The Case of the Cunningham Heritage", "classic television mystery detective television series", 1954),
+    iaDirectRecovery("Dragnet1951::Dragnet/Season 1/Dragnet (1951) - S01E01 - The Human Bomb.mp4", "Dragnet1951", "Dragnet/Season 1/Dragnet (1951) - S01E01 - The Human Bomb.mp4", "Dragnet · The Human Bomb", "classic television police procedural detective television series", 1951),
+    iaDirectRecovery("You_Bet_Your_Life_Groucho::You_Bet_Your_Life_Groucho_Marx_512kb.mp4", "You_Bet_Your_Life_Groucho", "You_Bet_Your_Life_Groucho_Marx_512kb.mp4", "You Bet Your Life · Groucho Marx", "classic television panel show variety television series", 1954),
+    iaDirectRecovery("The_Beverly_Hillbillies::GRANNYS_GARDEN_512kb.mp4", "The_Beverly_Hillbillies", "GRANNYS_GARDEN_512kb.mp4", "The Beverly Hillbillies · Granny's Garden", "classic television sitcom television series", 1962),
+    iaDirectRecovery("the-benny-hill-show::01 - Benny Hill.mp4", "the-benny-hill-show", "01 - Benny Hill.mp4", "The Benny Hill Show", "classic television comedy variety television series", 1969),
+  ],
+  "11": [
+    iaDirectRecovery("Shogun_Miniseries::Shogun 1.mp4", "Shogun_Miniseries", "Shogun 1.mp4", "Shōgun · Episode 1", "modern television miniseries historical drama television series", 1980),
+    iaDirectRecovery("pride-and-prejudice-1995-miniseries::Pride.and.Prejudice.1995.S01E01.720p.BluRay.x264-GalaxyTV.mp4", "pride-and-prejudice-1995-miniseries", "Pride.and.Prejudice.1995.S01E01.720p.BluRay.x264-GalaxyTV.mp4", "Pride and Prejudice · Episode 1", "modern television miniseries drama television series", 1995),
+    iaDirectRecovery("mahabharat-1988-tv-series::64 भगवान श्री कृष्ण शांतिदूत क्यूँ बने थे_ _ Mahabharat Stories _ B. R. Chopra _ EP – 64.mp4", "mahabharat-1988-tv-series", "64 भगवान श्री कृष्ण शांतिदूत क्यूँ बने थे_ _ Mahabharat Stories _ B. R. Chopra _ EP – 64.mp4", "Mahabharat · Episode 64", "modern television drama television series", 1988),
+    iaDirectRecovery("miss-marple-1984-92::Agatha Christie's Miss Marple (1984 - 92)/01 The Body in the Library (1984)/S01Ep01 The Body in the Library (Part One).mp4", "miss-marple-1984-92", "Agatha Christie's Miss Marple (1984 - 92)/01 The Body in the Library (1984)/S01Ep01 The Body in the Library (Part One).mp4", "Agatha Christie's Miss Marple · The Body in the Library", "modern television mystery detective television series", 1984),
+    iaDirectRecovery("allo-allo::01 - Allo Allo S1E00 - The British Are Coming [Pilot].mp4", "allo-allo", "01 - Allo Allo S1E00 - The British Are Coming [Pilot].mp4", "'Allo 'Allo · The British Are Coming", "modern television sitcom comedy television series", 1984),
+    iaDirectRecovery("keeping-up-appearances_202402::Keeping_Up_Appearances_S01_E01.mp4", "keeping-up-appearances_202402", "Keeping_Up_Appearances_S01_E01.mp4", "Keeping Up Appearances · Episode 1", "modern television sitcom comedy television series", 1990),
+    iaDirectRecovery("walking-with-dinosaurs::Episode 1 - New Blood.mp4", "walking-with-dinosaurs", "Episode 1 - New Blood.mp4", "Walking with Dinosaurs · New Blood", "modern television natural history series documentary television", 1999),
+    iaDirectRecovery("forensic-files-collection::Forensic Files   01x09   Deadly Neighborhoods.mp4", "forensic-files-collection", "Forensic Files   01x09   Deadly Neighborhoods.mp4", "Forensic Files · Deadly Neighborhoods", "modern television documentary series television", 1996),
+  ],
+  "12": [
+    iaDirectRecovery("003-1986-05-16::003_1986-05-16.mp4", "003-1986-05-16", "003_1986-05-16.mp4", "Takeshi's Castle", "game show quiz show television contest", 1986),
+    iaDirectRecovery("nickelodeon-guts-season-1::Episode 101.mp4", "nickelodeon-guts-season-1", "Episode 101.mp4", "Nickelodeon GUTS · Season 1", "game show children's game show sports contest television", 1992),
+    iaDirectRecovery("nickelodeon-guts-season-2::Episode 200.mp4", "nickelodeon-guts-season-2", "Episode 200.mp4", "Nickelodeon GUTS · Season 2", "game show children's game show sports contest television", 1993),
+    iaDirectRecovery("nickelodeon-guts-season-3::Episode 301.mp4", "nickelodeon-guts-season-3", "Episode 301.mp4", "Nickelodeon GUTS · Season 3", "game show children's game show sports contest television", 1994),
+    iaDirectRecovery("weakestlinkepisodes::2003 Howard Video March 1 2003.mp4", "weakestlinkepisodes", "2003 Howard Video March 1 2003.mp4", "The Weakest Link · March 1, 2003", "game show quiz show television contest", 2003),
+    iaDirectRecovery("Price_Is-Right_1957::Price_Is_Right_512kb.mp4", "Price_Is-Right_1957", "Price_Is_Right_512kb.mp4", "The Price Is Right · 1957 Episode", "game show quiz show television contest", 1957),
+    iaDirectRecovery("The64000Question-dateToBeAdded::The64000Question1956.mp4", "The64000Question-dateToBeAdded", "The64000Question1956.mp4", "The $64,000 Question · 18 September 1956", "game show quiz show television contest", 1956),
+    iaDirectRecovery("j20011015::j20011015.mp4", "j20011015", "j20011015.mp4", "Jeopardy! · 15 October 2001", "game show quiz show television contest", 2001),
+    iaDirectRecovery("strikeItRich-26August1955::StrikeItRich26August1955.mp4", "strikeItRich-26August1955", "StrikeItRich26August1955.mp4", "Strike It Rich · 26 August 1955", "game show quiz show television contest", 1955),
+    iaDirectRecovery("1958EpisodeOfqueenForADay::QueenForADayMarch1958.mp4", "1958EpisodeOfqueenForADay", "QueenForADayMarch1958.mp4", "Queen for a Day · 1958 Episode", "game show quiz show television contest", 1958),
+    iaDirectRecovery("Wife_Johnny::Do_You_Trust_Your_Wife_512kb.mp4", "Wife_Johnny", "Do_You_Trust_Your_Wife_512kb.mp4", "Do You Trust Your Wife? · Johnny Carson", "game show quiz show television contest", 1958),
+  ],
+  "150": [
+    iaDirectRecovery("hectors_hectic_life::hectors_hectic_life_512kb.mp4", "hectors_hectic_life", "hectors_hectic_life_512kb.mp4", "Hector's Hectic Life", "classic cartoons theatrical cartoon animation", 1948),
+    iaDirectRecovery("bb_bamboo_isle::bb_bamboo_isle_512kb.mp4", "bb_bamboo_isle", "bb_bamboo_isle_512kb.mp4", "Betty Boop · Bamboo Isle", "classic cartoons betty boop animation", 1932),
+    iaDirectRecovery("bb_ill_be_glad_when_youre_dead::bb_ill_be_glad_when_youre_dead_512kb.mp4", "bb_ill_be_glad_when_youre_dead", "bb_ill_be_glad_when_youre_dead_512kb.mp4", "Betty Boop · I'll Be Glad When You're Dead", "classic cartoons betty boop animation", 1932),
+    iaDirectRecovery("noveltoon_naughty_but_nice::noveltoon_naughty_but_nice_512kb.mp4", "noveltoon_naughty_but_nice", "noveltoon_naughty_but_nice_512kb.mp4", "Noveltoon · Naughty But Mice", "classic cartoons theatrical cartoon animation", 1947),
+    iaDirectRecovery("bb_rise_to_fame::bb_rise_to_fame_512kb.mp4", "bb_rise_to_fame", "bb_rise_to_fame_512kb.mp4", "Betty Boop's Rise to Fame", "classic cartoons betty boop animation", 1934),
+    iaDirectRecovery("bb_and_the_little_king::bb_and_the_little_king_512kb.mp4", "bb_and_the_little_king", "bb_and_the_little_king_512kb.mp4", "Betty Boop and the Little King", "classic cartoons betty boop animation", 1936),
+    iaDirectRecovery("noveltoon_the_stupidstitious_cat::noveltoon_the_stupidstitious_cat_512kb.mp4", "noveltoon_the_stupidstitious_cat", "noveltoon_the_stupidstitious_cat_512kb.mp4", "Noveltoon · The Stupidstitious Cat", "classic cartoons theatrical cartoon animation", 1946),
+    iaDirectRecovery("bb_be_human::bb_be_human_512kb.mp4", "bb_be_human", "bb_be_human_512kb.mp4", "Betty Boop · Be Human", "classic cartoons betty boop animation", 1936),
+    iaDirectRecovery("bb_big_boss::bb_big_boss_512kb.mp4", "bb_big_boss", "bb_big_boss_512kb.mp4", "Betty Boop's Big Boss", "classic cartoons betty boop animation", 1933),
+    iaDirectRecovery("the_talking_magpies::the_talking_magpies_512kb.mp4", "the_talking_magpies", "the_talking_magpies_512kb.mp4", "The Talking Magpies", "classic cartoons theatrical cartoon animation", 1946),
+    iaDirectRecovery("Betty_Boop_for_President_1932::Betty_Boop_for_President_1932_512kb.mp4", "Betty_Boop_for_President_1932", "Betty_Boop_for_President_1932_512kb.mp4", "Betty Boop for President", "classic cartoons betty boop animation", 1932),
+    iaDirectRecovery("bb_betty_in_blunderland::bb_betty_in_blunderland_512kb.mp4", "bb_betty_in_blunderland", "bb_betty_in_blunderland_512kb.mp4", "Betty Boop · Betty in Blunderland", "classic cartoons betty boop animation", 1933),
+    iaDirectRecovery("bb_old_man_of_the_mountain::bb_old_man_of_the_mountain_512kb.mp4", "bb_old_man_of_the_mountain", "bb_old_man_of_the_mountain_512kb.mp4", "Betty Boop · The Old Man of the Mountain", "classic cartoons betty boop animation", 1933),
+    iaDirectRecovery("bb_chess_nuts::bb_chess_nuts_512kb.mp4", "bb_chess_nuts", "bb_chess_nuts_512kb.mp4", "Betty Boop · Chess Nuts", "classic cartoons betty boop animation", 1932),
+    iaDirectRecovery("bb_happy_you::bb_happy_you_512kb.mp4", "bb_happy_you", "bb_happy_you_512kb.mp4", "Betty Boop · Happy You and Merry Me", "classic cartoons betty boop animation", 1936),
+    iaDirectRecovery("little_audry_goofy_goofy_gander::little_audry_goofy_goofy_gander_512kb.mp4", "little_audry_goofy_goofy_gander", "little_audry_goofy_goofy_gander_512kb.mp4", "Little Audry · Goofy Goofy Gander", "classic cartoons theatrical cartoon animation", 1950),
+    iaDirectRecovery("bb_stop_that_noise::bb_stop_that_noise_512kb.mp4", "bb_stop_that_noise", "bb_stop_that_noise_512kb.mp4", "Betty Boop · Stop That Noise", "classic cartoons betty boop animation", 1935),
+    iaDirectRecovery("bb_musical_mountaineers::bb_musical_mountaineers_512kb.mp4", "bb_musical_mountaineers", "bb_musical_mountaineers_512kb.mp4", "Betty Boop · Musical Mountaineers", "classic cartoons betty boop animation", 1939),
+    iaDirectRecovery("bb_house_cleaning_blues::bb_house_cleaning_blues_512kb.mp4", "bb_house_cleaning_blues", "bb_house_cleaning_blues_512kb.mp4", "Betty Boop · House Cleaning Blues", "classic cartoons betty boop animation", 1937),
+    iaDirectRecovery("bb_poor_cinderella::bb_poor_cinderella_512kb.mp4", "bb_poor_cinderella", "bb_poor_cinderella_512kb.mp4", "Betty Boop · Poor Cinderella", "classic cartoons betty boop animation", 1934),
+    iaDirectRecovery("little_lulu_bargain_counter_attack::little_lulu_bargain_counter_attack_512kb.mp4", "little_lulu_bargain_counter_attack", "little_lulu_bargain_counter_attack_512kb.mp4", "Little Lulu · Bargain Counter Attack", "classic cartoons theatrical cartoon animation", 1946),
+  ],
+  "153": [
+    iaDirectRecovery("spider-mantheanimatedseries::01x05 The Menace of Mysterio.mp4", "spider-mantheanimatedseries", "01x05 The Menace of Mysterio.mp4", "Spider-Man: The Animated Series · The Menace of Mysterio", "modern cartoons animated television cartoon episode", 1994),
+    iaDirectRecovery("spider-mantheanimatedseries::01x06 The Sting of the Scorpion.mp4", "spider-mantheanimatedseries", "01x06 The Sting of the Scorpion.mp4", "Spider-Man: The Animated Series · The Sting of the Scorpion", "modern cartoons animated television cartoon episode", 1994),
+    iaDirectRecovery("spider-mantheanimatedseries::01x07 Kraven The Hunter.mp4", "spider-mantheanimatedseries", "01x07 Kraven The Hunter.mp4", "Spider-Man: The Animated Series · Kraven the Hunter", "modern cartoons animated television cartoon episode", 1994),
+    iaDirectRecovery("spider-mantheanimatedseries::01x08 The Alien Costume (Part 1).mp4", "spider-mantheanimatedseries", "01x08 The Alien Costume (Part 1).mp4", "Spider-Man: The Animated Series · The Alien Costume", "modern cartoons animated television cartoon episode", 1994),
+    iaDirectRecovery("DragonTalesTVSeries::Dragon.Tales.S01E05.Pigment.of.Your.Imagination.-.Zak's.Song.WEBRip.AAC2.0.x264-SA89.mp4", "DragonTalesTVSeries", "Dragon.Tales.S01E05.Pigment.of.Your.Imagination.-.Zak's.Song.WEBRip.AAC2.0.x264-SA89.mp4", "Dragon Tales · Pigment of Your Imagination", "modern cartoons animated television cartoon episode", 1999),
+    iaDirectRecovery("DragonTalesTVSeries::Dragon.Tales.S01E06.Snow.Dragons.-.The.Fury.Is.Out.on.This.One.WEBRip.AAC2.0.x264-SA89.mp4", "DragonTalesTVSeries", "Dragon.Tales.S01E06.Snow.Dragons.-.The.Fury.Is.Out.on.This.One.WEBRip.AAC2.0.x264-SA89.mp4", "Dragon Tales · Snow Dragons", "modern cartoons animated television cartoon episode", 1999),
+    iaDirectRecovery("DragonTalesTVSeries::Dragon.Tales.S01E07.The.Giant.of.Nod.-.The.Big.Sleep.Over.WEBRip.AAC2.0.x264-SA89.mp4", "DragonTalesTVSeries", "Dragon.Tales.S01E07.The.Giant.of.Nod.-.The.Big.Sleep.Over.WEBRip.AAC2.0.x264-SA89.mp4", "Dragon Tales · The Giant of Nod", "modern cartoons animated television cartoon episode", 1999),
+    iaDirectRecovery("DragonTalesTVSeries::Dragon.Tales.S01E08.A.Picture's.Worth.a.Thousand.Words.-.The.Talent.Pool.WEBRip.AAC2.0.x264-SA89.mp4", "DragonTalesTVSeries", "Dragon.Tales.S01E08.A.Picture's.Worth.a.Thousand.Words.-.The.Talent.Pool.WEBRip.AAC2.0.x264-SA89.mp4", "Dragon Tales · A Picture's Worth a Thousand Words", "modern cartoons animated television cartoon episode", 1999),
+    iaDirectRecovery("powerpuff-girls-complete-series::Powerpuff Girls - 01,06 - Telephonies - Tough Love.mp4", "powerpuff-girls-complete-series", "Powerpuff Girls - 01,06 - Telephonies - Tough Love.mp4", "The Powerpuff Girls · Telephonies / Tough Love", "modern cartoons animated television cartoon episode", 1998),
+    iaDirectRecovery("powerpuff-girls-complete-series::Powerpuff Girls - 01,07 - Major Competition - Mr. Mojo’s Rising.mp4", "powerpuff-girls-complete-series", "Powerpuff Girls - 01,07 - Major Competition - Mr. Mojo’s Rising.mp4", "The Powerpuff Girls · Major Competition / Mr. Mojo's Rising", "modern cartoons animated television cartoon episode", 1998),
+    iaDirectRecovery("powerpuff-girls-complete-series::Powerpuff Girls - 01,08 - Paste Makes Waste - Ice Sore.mp4", "powerpuff-girls-complete-series", "Powerpuff Girls - 01,08 - Paste Makes Waste - Ice Sore.mp4", "The Powerpuff Girls · Paste Makes Waste / Ice Sore", "modern cartoons animated television cartoon episode", 1998),
+    iaDirectRecovery("powerpuff-girls-complete-series::Powerpuff Girls - 01,09 - Bubblevicious - The Bare Facts.mp4", "powerpuff-girls-complete-series", "Powerpuff Girls - 01,09 - Bubblevicious - The Bare Facts.mp4", "The Powerpuff Girls · Bubblevicious / The Bare Facts", "modern cartoons animated television cartoon episode", 1998),
+    iaDirectRecovery("powerpuff-girls-complete-series::Powerpuff Girls - 01,10 - Cat Man Do - Impeach Fuzz.mp4", "powerpuff-girls-complete-series", "Powerpuff Girls - 01,10 - Cat Man Do - Impeach Fuzz.mp4", "The Powerpuff Girls · Cat Man Do / Impeach Fuzz", "modern cartoons animated television cartoon episode", 1998),
+  ],
+  "110": [
+    iaDirectRecovery("his_girl_friday::his_girl_friday_512kb.mp4", "his_girl_friday", "his_girl_friday_512kb.mp4", "His Girl Friday", "classic film cinema comedy drama feature film", 1940),
+    iaDirectRecovery("VoyagetothePlanetofPrehistoricWomen::VoyagetothePlanetofPrehistoricWomen_512kb.mp4", "VoyagetothePlanetofPrehistoricWomen", "VoyagetothePlanetofPrehistoricWomen_512kb.mp4", "Voyage to the Planet of Prehistoric Women", "classic film cinema science fiction feature film", 1967),
+    iaDirectRecovery("house_on_haunted_hill_ipod::house_on_haunted_hill_512kb.mp4", "house_on_haunted_hill_ipod", "house_on_haunted_hill_512kb.mp4", "House on Haunted Hill", "classic film cinema horror feature film", 1959),
+    iaDirectRecovery("dressed_to_kill::dressed_to_kill_512kb.mp4", "dressed_to_kill", "dressed_to_kill_512kb.mp4", "Dressed to Kill", "classic film cinema mystery drama feature film", 1946),
+    iaDirectRecovery("suddenly::suddenly_512kb.mp4", "suddenly", "suddenly_512kb.mp4", "Suddenly", "classic film cinema crime drama feature film", 1954),
+    iaDirectRecovery("TheStranger_0::The_Stranger_512kb.mp4", "TheStranger_0", "The_Stranger_512kb.mp4", "The Stranger", "classic film cinema noir drama feature film", 1946),
+    iaDirectRecovery("mclintok_widescreen::McLintock_512kb.mp4", "mclintok_widescreen", "McLintock_512kb.mp4", "McLintock!", "classic film cinema western comedy feature film", 1963),
+    iaDirectRecovery("ThePhantomoftheOpera::Phantom_of_the_Opera_512kb.mp4", "ThePhantomoftheOpera", "Phantom_of_the_Opera_512kb.mp4", "The Phantom of the Opera", "classic film cinema silent film horror feature film", 1925),
+  ],
+  "111": [
+    iaDirectRecovery("sex_madness::sex_madness_512kb.mp4", "sex_madness", "sex_madness_512kb.mp4", "Sex Madness", "drive-in exploitation cult film grindhouse feature film", 1938),
+    iaDirectRecovery("reefer_madness1938::reefer_madness1938_512kb.mp4", "reefer_madness1938", "reefer_madness1938_512kb.mp4", "Reefer Madness", "drive-in exploitation cult film grindhouse feature film", 1938),
+    iaDirectRecovery("DoubleFeatureHell2theGrindhouseExperience::DoubleFeatureHell2theGrindhouseExperience.mp4", "DoubleFeatureHell2theGrindhouseExperience", "DoubleFeatureHell2theGrindhouseExperience.mp4", "Double Feature Hell 2 · The Grindhouse Experience", "drive-in exploitation grindhouse cult film feature film", 2010),
+    iaDirectRecovery("BloodyPitOfHorror::BloodyPitOfHorror.mp4", "BloodyPitOfHorror", "BloodyPitOfHorror.mp4", "Bloody Pit of Horror", "drive-in horror cult film grindhouse feature film", 1965),
+    iaDirectRecovery("house_on_haunted_hill_ipod::house_on_haunted_hill_512kb.mp4", "house_on_haunted_hill_ipod", "house_on_haunted_hill_512kb.mp4", "House on Haunted Hill", "drive-in horror cult film feature film", 1959),
+    iaDirectRecovery("VoyagetothePlanetofPrehistoricWomen::VoyagetothePlanetofPrehistoricWomen_512kb.mp4", "VoyagetothePlanetofPrehistoricWomen", "VoyagetothePlanetofPrehistoricWomen_512kb.mp4", "Voyage to the Planet of Prehistoric Women", "drive-in science fiction monster movie feature film", 1967),
+    iaDirectRecovery("TheFastandtheFuriousJohnIreland1954goofyrip::TheFastandtheFuriousJohnIreland1954goofyrip_512kb.mp4", "TheFastandtheFuriousJohnIreland1954goofyrip", "TheFastandtheFuriousJohnIreland1954goofyrip_512kb.mp4", "The Fast and the Furious", "drive-in crime film action feature film", 1955),
+  ],
+  "80": [
+    iaDirectRecovery("Makingof1946::Makingof1946_512kb.mp4", "Makingof1946", "Makingof1946_512kb.mp4", "Making of a Shooter", "hunting outdoors sportsman wildlife outdoor television", 1946),
+    iaDirectRecovery("denaliwilderness::denaliwilderness.mp4", "denaliwilderness", "denaliwilderness.mp4", "Denali Wilderness", "outdoors wilderness wildlife hunting fishing outdoor television", 1982),
+    iaDirectRecovery("HuntingSeason::huntingonline_512kb.mp4", "HuntingSeason", "huntingonline_512kb.mp4", "Hunting Season", "hunting outdoors wildlife sportsman outdoor television", 2006),
+    iaDirectRecovery("MyHero-FishingStory::myhero-thefishingstory.mp4", "MyHero-FishingStory", "myhero-thefishingstory.mp4", "My Hero · The Fishing Story", "fishing outdoors sport fishing angling outdoor television", 1953),
+    iaDirectRecovery("BirdDogs1940::BirdDogs1940_512kb.mp4", "BirdDogs1940", "BirdDogs1940_512kb.mp4", "Bird Dogs", "hunting outdoors bird hunting sporting dogs outdoor television", 1940),
+  ],
   "18": [
     iaDirectRecovery("doogie-howser-m.d.-season-2-of-4-xvid-avi::Doogie Howser, M.D. - S02E01 - Doogenstein.mp4", "doogie-howser-m.d.-season-2-of-4-xvid-avi", "Doogie Howser, M.D. - S02E01 - Doogenstein.mp4", "Doogie Howser, M.D. — Doogenstein", "medical drama hospital drama medical series television", 1990),
     iaDirectRecovery("doogie-howser-m.d.-season-2-of-4-xvid-avi::Doogie Howser, M.D. - S02E08 - Revenge of the Teenage Dead.mp4", "doogie-howser-m.d.-season-2-of-4-xvid-avi", "Doogie Howser, M.D. - S02E08 - Revenge of the Teenage Dead.mp4", "Doogie Howser, M.D. — Revenge of the Teenage Dead", "medical drama hospital drama medical series television", 1990),
@@ -4550,7 +4655,7 @@ function queueRotationPage(rotation, lane, channel = "", background = false) {
      stays fast, while deterministic channel/lane seeding gives each rotation
      a different page window without making cache keys nondeterministic. */
   const pageCount = background
-    ? (iaDepthRecoveryEnabled(channel) ? 18 : 12)
+    ? (iaDepthRecoveryEnabled(channel) ? 24 : 16)
     : (iaDepthRecoveryEnabled(channel) ? 6 : 3);
   let seed = Math.abs(Number(rotation) || 0) * 7 + Number(lane || 0) * 3;
   const key = String(channel || "");
@@ -4577,7 +4682,11 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTit
      current rotation, opposite ends of the era range, and narrow editorial
      rails. Resolve all of them in parallel. Restricting discovery to only the
      first three made sparse channels look as if they were hydrating forever. */
-  const searchQueries = uniqueIaQueries(queries, 8);
+  /* Foreground discovery stays bounded. Background catalog harvest can use
+     the full editorial rail set so collection families, era lanes, and
+     alternate Archive shelves contribute to the long tail instead of only
+     the first eight query strings. */
+  const searchQueries = uniqueIaQueries(queries, firstApprovedLane ? 8 : 12);
    const foregroundLaneLimit = firstApprovedLane && iaDepthRecoveryEnabled(channel)
      ? Math.min(4, searchQueries.length)
      : firstApprovedLane && iaColdRescueEnabled(channel) ? 2 : IA_FOREGROUND_DISCOVERY_LANES;

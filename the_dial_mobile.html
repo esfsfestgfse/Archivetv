@@ -1699,7 +1699,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="4.1.5-mobile-ia-rotation-deep-harvest";
+window.__ATV_BUILD="4.1.6-mobile-ia-runtime-depth";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -6922,7 +6922,7 @@ window.__atvTimelessAudit=function(){
   return {ok:rows.every(function(row){return row.variants===1&&row.identity;}),channels:rows.length,failures:rows.filter(function(row){return row.variants!==1||!row.identity;}),channel10:rows.filter(function(row){return row.num===10;})[0]||null};
 };
 window.__atvIAManifest=function(){
-  return CH.filter(function(ch){return !ch.source;}).map(function(ch){var sl=slotFor(ch,0,{preview:true});return {channel:String(ch.num),name:ch.nm,queries:iaQueueQueries(sl),themeTerms:iaProgramThemeTerms(sl),denyTerms:iaProgramDenyTerms(sl),diversity:iaQueueDiversity(sl),mediaTypes:ch.audio?["audio"]:["movies"],themeMinScore:Math.max(1,Math.min(12,Number(sl&&sl.program&&sl.program.themeMinScore)||1))};});
+  return CH.filter(function(ch){return !ch.source;}).map(function(ch){var sl=slotFor(ch,0,{preview:true});return {channel:String(ch.num),name:ch.nm,queries:iaQueueQueries(sl),themeTerms:iaProgramThemeTerms(sl),denyTerms:iaProgramDenyTerms(sl),diversity:iaQueueDiversity(sl),mediaTypes:ch.audio?["audio"]:["movies"],themeMinScore:Math.max(1,Math.min(12,Number(sl&&sl.program&&sl.program.themeMinScore)||1)),minRuntimeSeconds:Math.max(0,Number(sl&&sl.program&&sl.program.minRuntimeSeconds)||0)};});
 };
 if(new URLSearchParams(location.search).get("soak")==="1"){
   var iaSoakDump=document.createElement("script");iaSoakDump.type="application/json";iaSoakDump.id="atvIASoakManifest";
@@ -7150,7 +7150,7 @@ async function iaLocalQueueFallback(ch,sl){
 }
 async function iaQueueRequest(ch,sl,count){
   var qs=iaQueueQueries(sl);if(!qs.length)return [];
-  try{var d=await withTO(iaQueueFetch({channel:iaQueueKey(ch),rotation:iaQueueRotationFor(ch),queries:qs,themeTerms:iaProgramThemeTerms(sl),denyTerms:iaProgramDenyTerms(sl),requiredTitleTerms:(sl&&sl.program&&sl.program.require&&sl.program.require.title_any)||[],diversity:iaQueueDiversity(sl),mediaTypes:ch&&ch.audio?["audio"]:["movies"],themeMinScore:Math.max(1,Math.min(12,Number(sl&&sl.program&&sl.program.themeMinScore)||1)),count:Math.max(1,Math.min(5,count||5))}),6500);
+  try{var d=await withTO(iaQueueFetch({channel:iaQueueKey(ch),rotation:iaQueueRotationFor(ch),queries:qs,themeTerms:iaProgramThemeTerms(sl),denyTerms:iaProgramDenyTerms(sl),requiredTitleTerms:(sl&&sl.program&&sl.program.require&&sl.program.require.title_any)||[],diversity:iaQueueDiversity(sl),mediaTypes:ch&&ch.audio?["audio"]:["movies"],themeMinScore:Math.max(1,Math.min(12,Number(sl&&sl.program&&sl.program.themeMinScore)||1)),minRuntimeSeconds:Math.max(0,Number(sl&&sl.program&&sl.program.minRuntimeSeconds)||0),count:Math.max(1,Math.min(5,count||5))}),6500);
     var out=((d&&d.items)||[]).filter(function(it){return iaProgramAllowed(it,sl);});
     /* A 200/empty response is not proof that the rail is empty. The Worker can
        be hydrating a cold IA shard, and rescue mode can mean its first search

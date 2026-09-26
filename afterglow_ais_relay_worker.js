@@ -101,10 +101,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-96-72-deep-harvest-v2";
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v98";
-/* Last-good shelves share the v98 namespace so an older shallow shelf
+const IA_QUEUE_CACHE_VERSION = "v99";
+/* Last-good shelves share the v99 namespace so an older shallow shelf
    never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v98";
+const IA_LAST_GOOD_CACHE_VERSION = "v99";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -251,7 +251,7 @@ const IA_CONFIRMED_REPAIR_CHANNELS = new Set([
   /* v4 serial retry: these lanes failed first-play twice, so they receive the
      same targeted recovery rails without changing healthy-channel behavior. */
   "69", "76", "78", "20", "152", "910", "912", "918", "205", "107", "111", "123", "124", "120", "155", "225", "233", "508",
-  "81", "150", "13", "112", "217", "234", "241",
+  "81", "150", "158", "13", "112", "217", "234", "241",
   /* v4.1 repeatability gate: these lanes failed in both the prior serial
      certification and the current serial retry. They get the same bounded
      rails; no broad emergency media is invented for them. */
@@ -281,7 +281,7 @@ for (const channel of IA_CONFIRMED_REPAIR_CHANNELS) {
    supplemental rails settle for a bounded extra window; every other channel
    retains the 900ms fast path. */
 const IA_ADAPTIVE_DEPTH_GRACE_CHANNELS = new Set([
-  "15", "18", "21", "61", "114", "203", "213", "214", "230", "236", "501", "502", "507", "915", "921",
+  "15", "18", "21", "61", "114", "150", "158", "203", "213", "214", "230", "236", "501", "502", "507", "915", "921",
 ]);
 const IA_ADAPTIVE_DEPTH_GRACE_MS = 2200;
 /* Reggae & Dub has a wide verified catalog but its secondary Archive rail is
@@ -2669,6 +2669,37 @@ function safeQueueRotation(value) {
   return Number.isInteger(rotation) && rotation >= 0 && rotation <= 127 ? rotation : 0;
 }
 
+function safeMinRuntimeSeconds(value) {
+  const runtime = Math.round(Number(value) || 0);
+  return Number.isFinite(runtime) && runtime > 0 ? Math.min(runtime, 86400) : 0;
+}
+
+function iaRuntimeSeconds(value) {
+  if (typeof value === "number" && Number.isFinite(value)) return Math.max(0, value);
+  const text = String(value || "").trim();
+  if (!text) return 0;
+  const parts = text.split(":").map(Number);
+  if (parts.length === 3 && parts.every(Number.isFinite)) return Math.max(0, parts[0] * 3600 + parts[1] * 60 + parts[2]);
+  if (parts.length === 2 && parts.every(Number.isFinite)) return Math.max(0, parts[0] * 60 + parts[1]);
+  const hours = text.match(/(\d+(?:\.\d+)?)\s*(?:hours?|hrs?)/i);
+  const minutes = text.match(/(\d+(?:\.\d+)?)\s*(?:minutes?|mins?)/i);
+  if (hours || minutes) return Math.max(0, (hours ? Number(hours[1]) * 3600 : 0) + (minutes ? Number(minutes[1]) * 60 : 0));
+  const numeric = Number.parseFloat(text);
+  return Number.isFinite(numeric) ? Math.max(0, numeric) : 0;
+}
+
+function iaRuntimeAllowed(doc, minimumSeconds) {
+  const minimum = safeMinRuntimeSeconds(minimumSeconds);
+  if (!minimum) return true;
+  const runtime = iaRuntimeSeconds(doc && doc.runtime);
+  if (runtime > 0) return runtime >= minimum;
+  /* Archive search rows sometimes omit duration even when the metadata file
+     has it. Keep unknown-duration programs eligible for later hydration, but
+     reject obvious clip/advertisement labels before they can win first play. */
+  const label = String(doc && (doc.title || doc.identifier) || "");
+  return !/(?:\bshorts?\b|\bclip\b|\btrailer\b|\bteaser\b|\bpreview\b|\bpromo(?:tion)?\b|\bcommercial\b|\bbumper\b|\bhighlight\b)/i.test(label);
+}
+
 /* Several IA channel manifests intentionally repeat a collection rail with a
    slightly different era/sort clause. Keep the editorial order, but do not
    spend a foreground Archive request twice on the same normalized query. This
@@ -4465,7 +4496,7 @@ function queueRotationPage(rotation, lane, channel = "", background = false) {
   return 1 + seed % pageCount;
 }
 
-async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, cacheOrigin, ctx, rotation = 0, searchTimeoutMs = 3200, firstApprovedLane = false, expandContainers = !firstApprovedLane, freshnessExcludedIds = null) {
+async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, cacheOrigin, ctx, rotation = 0, searchTimeoutMs = 3200, firstApprovedLane = false, expandContainers = !firstApprovedLane, freshnessExcludedIds = null, minRuntimeSeconds = 0) {
   /* `count` is the number of programs the viewer needs immediately. The
      caller also passes a larger candidate budget for strict lanes. The old
      builder accidentally used `count` for both, throwing away the wider
@@ -4503,7 +4534,7 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTit
       // ranking, caching, or media hydration for every IA channel.
       const docs = (result.docs || []).filter((doc) => doc && safeIaId(doc.identifier) && String(doc.mediatype || "").toLowerCase() !== "collection" && (!mediaTypes.length || mediaTypes.includes(String(doc.mediatype || "").toLowerCase())))
         .sort((a, b) => themeScore(b, themeTerms) - themeScore(a, themeTerms));
-      const approved = docs.filter((doc) => matchesTheme(doc, themeTerms, themeMinScore, requiredTitleTerms) && !matchesDeny(doc, denyTerms));
+      const approved = docs.filter((doc) => matchesTheme(doc, themeTerms, themeMinScore, requiredTitleTerms) && !matchesDeny(doc, denyTerms) && iaRuntimeAllowed(doc, minRuntimeSeconds));
       /* The first rail is returned before metadata expansion for speed. Every
          approved cold shelf gets a bounded background probe: Archive authors
          often omit words like “collection” even when an item contains a full
@@ -4529,7 +4560,7 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTit
        const expansionSeeds = (firstApprovedLane || !expandContainers) ? [] : hintedSeeds.concat(genericSeeds).slice(0, effectiveExpansionLimit);
       const expandedSets = await mapQueueCandidates(expansionSeeds, IA_CONTAINER_EXPANSION_CONCURRENCY, async (doc, expansionIndex) => {
         const episodes = await expandArchiveContainer(doc, cacheOrigin, ctx, rotation, lane * 31 + expansionIndex, mediaTypes);
-        return episodes.filter((episode) => matchesTheme(episode, themeTerms, themeMinScore, requiredTitleTerms) && !matchesDeny(episode, denyTerms));
+        return episodes.filter((episode) => matchesTheme(episode, themeTerms, themeMinScore, requiredTitleTerms) && !matchesDeny(episode, denyTerms) && iaRuntimeAllowed(episode, minRuntimeSeconds));
       });
       const expanded = expandedSets.flat();
       /* Once a parent has yielded independently playable files, the parent is
@@ -4564,11 +4595,11 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTit
         if (!pending) reject(new Error("no approved Archive lane"));
       }));
     }).catch(() => []);
-    /* A proven shallow/repeat-heavy lane gets a short grace period for a
-       second approved rail. This widens the candidate catalog before the
-       response when Archive is already warm, while the bounded waitUntil path
-       still finishes any slower rail without blocking healthy lanes. */
-    if (firstLane.length && iaDepthRecoveryEnabled(channel) && lanePromises.length > 1) {
+  /* A proven shallow/repeat-heavy lane gets a short grace period for a
+     second approved rail. This widens the candidate catalog before the
+     response when Archive is already warm, while the bounded waitUntil path
+     still finishes any slower rail without blocking healthy lanes. */
+    if (firstLane.length && (Number(rotation) > 0 || iaDepthRecoveryEnabled(channel)) && lanePromises.length > 1) {
       await Promise.race([
         Promise.allSettled(lanePromises),
         new Promise((resolve) => setTimeout(resolve, iaDepthGraceMs(channel))),
@@ -4660,6 +4691,7 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTit
     rotation: Number(rotation) || 0,
     generatedAt: new Date().toISOString(),
     ttlSeconds: IA_QUEUE_TTL_SECONDS,
+    minRuntimeSeconds: safeMinRuntimeSeconds(minRuntimeSeconds),
     items: items.slice(0, count),
     /* Keep all approved candidates in the serialized payload. `items` is the
        small public shelf; `candidateItems` is the rolling catalog behind it. */
@@ -4917,6 +4949,7 @@ async function cacheIaQueueIfRicher(cacheKey, payload, ttlSeconds, headers = {})
 
 async function expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, rotation, forceDiscovery = false) {
   let expanded = payload;
+  const minRuntimeSeconds = safeMinRuntimeSeconds(payload && payload.minRuntimeSeconds);
   /* Exact rotation caches can be hydrated by separate requests. Pull the
      family shelf into this refill first so those caches inherit the union of
      verified candidates instead of persisting another shallow, overlapping
@@ -4933,14 +4966,15 @@ async function expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, c
   /* A warm five-item shelf may have bypassed the cold emergency branch. Add
      the channel's verified recovery records to the background catalog before
      probing broader Archive rails, so stale caches can deepen immediately. */
-  const emergencySeeds = orderedIaEmergencySeeds(channel, rotation);
+  const emergencySeeds = orderedIaEmergencySeeds(channel, rotation).filter((item) => iaRuntimeAllowed(item, minRuntimeSeconds));
   if (emergencySeeds.length && iaNeedsCatalogDepth(expanded, count, candidateCount)) {
     expanded = mergeIaQueuePayload(expanded, { items: emergencySeeds, candidateItems: emergencySeeds }, candidateCount, { emergencySeedsMerged: true });
   }
   /* Start with collection files from the exact foreground result. This keeps
      the richer episode catalog tied to the same genre-checked parent instead
      of betting the repair on a later rotated search page returning it again. */
-  const seedEpisodes = await expandSeedArchiveContainers(expanded, cacheOrigin, ctx, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, rotation, candidateCount);
+  const seedEpisodes = (await expandSeedArchiveContainers(expanded, cacheOrigin, ctx, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, rotation, candidateCount))
+    .filter((episode) => iaRuntimeAllowed(episode, minRuntimeSeconds));
   if (seedEpisodes.length) {
     expanded = mergeIaQueuePayload({ ...expanded, items: seedEpisodes, candidateItems: seedEpisodes }, expanded, candidateCount, { containerExpanded: true });
     /* Write the exact parent’s ready episode files immediately. Reserve-query
@@ -4970,13 +5004,13 @@ async function expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, c
   const expandedPlayable = expandedCandidates.filter((item) => item && item.identifier && item.media && item.media.url).length;
   const needsPlayableDepth = expandedPlayable < Math.min(candidateCount, Math.max(count, iaDepthRecoveryEnabled(channel) ? IA_DEPTH_PLAYABLE_TARGET : IA_BACKGROUND_PLAYABLE_TARGET));
   if ((forceDiscovery || expanded.items.length < threshold || needsPlayableDepth) && reserveQueries.length) {
-    const reserve = await buildIaQueue(channel, reserveQueries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, candidateCount, cacheOrigin, ctx, rotation);
+    const reserve = await buildIaQueue(channel, reserveQueries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, candidateCount, cacheOrigin, ctx, rotation, 3200, false, true, null, minRuntimeSeconds);
     expanded = forceDiscovery
       ? mergeIaQueuePayload(reserve, expanded, candidateCount, { reserve: true, refreshed: true })
       : mergeIaQueuePayload(expanded, reserve, candidateCount, { reserve: true });
   }
   if ((forceDiscovery || expanded.items.length < threshold || needsPlayableDepth) && fallbackQueries.length) {
-    const rescue = await buildIaQueue(channel, fallbackQueries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, candidateCount, cacheOrigin, ctx, rotation);
+    const rescue = await buildIaQueue(channel, fallbackQueries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, candidateCount, cacheOrigin, ctx, rotation, 3200, false, true, null, minRuntimeSeconds);
     expanded = forceDiscovery
       ? mergeIaQueuePayload(rescue, expanded, candidateCount, { rescue: true, refreshed: true })
       : mergeIaQueuePayload(expanded, rescue, candidateCount, { rescue: true });
@@ -5065,6 +5099,7 @@ async function getIaQueue(request, url, env, ctx) {
   const requiredTitleTerms = safeThemeTerms(body && body.requiredTitleTerms);
   const mediaTypes = safeMediaTypes(body && body.mediaTypes);
   const themeMinScore = safeThemeMinScore(body && body.themeMinScore);
+  const minRuntimeSeconds = safeMinRuntimeSeconds(body && body.minRuntimeSeconds);
   const diversity = safeDiversity(body && body.diversity);
   const count = Math.max(1, Math.min(5, Number(body && body.count) || 5));
   if (!safeChannel(channel) || !queries) return json({ error: "invalid queue request" }, 400);
@@ -5079,9 +5114,9 @@ async function getIaQueue(request, url, env, ctx) {
   const rotation = safeQueueRotation(body && body.rotation);
   /* The five-show recovery shelf spans rotations, but never editorial rules.
      That avoids stale genre bleed after a channel's source contract changes. */
-  const familyFingerprint = JSON.stringify({ channel, queries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count });
+  const familyFingerprint = JSON.stringify({ channel, queries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, minRuntimeSeconds, diversity, count });
   const lastGoodDigest = await stableKey(familyFingerprint);
-  const fingerprint = JSON.stringify({ channel, queries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, rotation, catalogBudget: IA_CATALOG_BUDGET_VERSION });
+  const fingerprint = JSON.stringify({ channel, queries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, minRuntimeSeconds, diversity, count, rotation, catalogBudget: IA_CATALOG_BUDGET_VERSION });
   const digest = await stableKey(fingerprint);
   const cacheKey = new Request(url.origin + IA_PREFIX + "/cache/queue/" + IA_QUEUE_CACHE_VERSION + "/" + digest);
   const sharedKey = IA_QUEUE_KV_PREFIX + IA_QUEUE_CACHE_VERSION + ":" + digest;
@@ -5344,7 +5379,7 @@ async function getIaQueue(request, url, env, ctx) {
         continue in the background; waiting on a known-bad search rail defeats
         the television startup contract. Healthy lanes retain the normal fast
         discovery path. */
-     const orderedEmergencySeeds = orderedIaEmergencySeeds(channel, rotation);
+     const orderedEmergencySeeds = orderedIaEmergencySeeds(channel, rotation).filter((item) => iaRuntimeAllowed(item, minRuntimeSeconds));
      const directEmergencyStart = iaColdRescueEnabled(channel) && orderedEmergencySeeds.some((item) => item && item.media && item.media.url);
      let payload = directEmergencyStart
        ? {
@@ -5358,8 +5393,9 @@ async function getIaQueue(request, url, env, ctx) {
            hydrating: false,
            emergency: true,
            deferredContainerExpansion: true,
+           minRuntimeSeconds,
          }
-       : await buildIaQueue(channel, fastQueries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, candidateCount, url.origin, ctx, rotation, IA_FAST_SEARCH_TIMEOUT_MS, true, true, freshnessLedger.map((entry) => entry.id));
+       : await buildIaQueue(channel, fastQueries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, candidateCount, url.origin, ctx, rotation, IA_FAST_SEARCH_TIMEOUT_MS, true, true, freshnessLedger.map((entry) => entry.id), minRuntimeSeconds);
     const fallbackQueries = iaFallbackQueries(themeTerms, denyTerms, requiredTitleTerms, mediaTypes);
      if (!payload.items.length || (iaColdRescueEnabled(channel) && payload.items.length < count)) {
       /* A rotated fast rail can be empty even while the channel has approved
@@ -5378,12 +5414,12 @@ async function getIaQueue(request, url, env, ctx) {
          /* Weak lanes get a bounded race across the two rescue rails. Keep
             container expansion out of this recovery race; episode expansion
             remains background work and cannot delay the first playable URL. */
-         const rescue = await buildIaQueue(channel, rescueQueries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, candidateCount, url.origin, ctx, rescueRotation, IA_FAST_SEARCH_TIMEOUT_MS, iaColdRescueEnabled(channel), !iaColdRescueEnabled(channel), freshnessLedger.map((entry) => entry.id));
+         const rescue = await buildIaQueue(channel, rescueQueries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, candidateCount, url.origin, ctx, rescueRotation, IA_FAST_SEARCH_TIMEOUT_MS, iaColdRescueEnabled(channel), !iaColdRescueEnabled(channel), freshnessLedger.map((entry) => entry.id), minRuntimeSeconds);
         if (rescue.items.length) payload = mergeIaQueuePayload(payload, rescue, candidateCount, { rescue: true });
       }
     }
     const emergencyDepth = Math.min(candidateCount, Math.max(count, 8));
-    const emergencyBank = orderedIaEmergencySeeds(channel, rotation);
+    const emergencyBank = orderedIaEmergencySeeds(channel, rotation).filter((item) => iaRuntimeAllowed(item, minRuntimeSeconds));
     if (emergencyBank.length && payload.items.length < emergencyDepth) {
       /* A verified shelf keeps the television usable during a true cold-source
          miss or a partially hydrated result. Preserve any approved discovery
@@ -5414,13 +5450,14 @@ async function getIaQueue(request, url, env, ctx) {
        any sub-five shelf immediately in the background; waiting until the
        first hydrate completes made rotated channels look permanently shallow. */
     const needsExpansion = payload.items.length < count || payload.emergency === true || payload.deferredContainerExpansion === true;
+    const deepExpansion = payload.items.length < count || payload.emergency === true || payload.deferredContainerExpansion === true;
     /* Reserve and rescue lanes are valuable for diversity but must never sit
        in front of first tune. Start them as observed background work; the
        first three subject-locked rails below can already hydrate and return a
        verified program. A successful background pass overwrites the short
        partial cache and fills the shared ready shelf for the next request. */
     if (needsExpansion) {
-      scheduleIaExpansion(payload, iaBackgroundReserveQueries(channel, reserveQueries, payload.emergency === true), iaBackgroundFallbackQueries(channel, fallbackQueries, payload.emergency === true), channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, url.origin, cacheKey, sharedKey, env, ctx, rotation, payload.emergency === true);
+      scheduleIaExpansion(payload, iaBackgroundReserveQueries(channel, reserveQueries, deepExpansion), iaBackgroundFallbackQueries(channel, fallbackQueries, deepExpansion), channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, url.origin, cacheKey, sharedKey, env, ctx, rotation, deepExpansion);
     }
     if (!payload.items.length) {
       /* A cold Archive miss is not a programming decision. If this channel has
@@ -5481,7 +5518,7 @@ async function getIaQueue(request, url, env, ctx) {
          that bank once after the normal hydration path has truly produced no
          playable item. This closes the old "metadata exists, video is dead"
          hole without making healthy channels pay a second discovery pass. */
-      const rescueItems = orderedIaEmergencySeeds(channel, rotation).filter((item) => item && item.identifier);
+      const rescueItems = orderedIaEmergencySeeds(channel, rotation).filter((item) => item && item.identifier && iaRuntimeAllowed(item, minRuntimeSeconds));
       if (rescueItems.length) {
         const rescuePayload = {
           ...payload,

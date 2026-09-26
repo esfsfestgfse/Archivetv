@@ -93,7 +93,7 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-96-72-deep-harvest-v2";
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
-/* v97 keeps Archive multi-file programs and their sibling episodes in the
+/* v98 keeps Archive multi-file programs and their sibling episodes in the
    candidate shelf. A cold tune still returns a verified
    parent program immediately, while the background shelf expands collection
    items into their individual playable episode files. The depth-recovery
@@ -101,10 +101,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-96-72-deep-harvest-v2";
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v97";
-/* Last-good shelves share the v97 namespace so an older shallow shelf
+const IA_QUEUE_CACHE_VERSION = "v98";
+/* Last-good shelves share the v98 namespace so an older shallow shelf
    never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v97";
+const IA_LAST_GOOD_CACHE_VERSION = "v98";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -4488,8 +4488,11 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTit
    const foregroundLaneLimit = firstApprovedLane && iaDepthRecoveryEnabled(channel)
      ? Math.min(4, searchQueries.length)
      : firstApprovedLane && iaColdRescueEnabled(channel) ? 2 : IA_FOREGROUND_DISCOVERY_LANES;
+   const rotationRefreshLimit = firstApprovedLane && Number(rotation) > 0
+     ? Math.min(iaDepthRecoveryEnabled(channel) ? 4 : 2, searchQueries.length)
+     : foregroundLaneLimit;
    const laneLimit = firstApprovedLane
-     ? Math.min(foregroundLaneLimit, searchQueries.length)
+     ? Math.min(rotationRefreshLimit, searchQueries.length)
     : Math.min(8, searchQueries.length);
   const lanePromises = searchQueries.slice(0, laneLimit).map(async (query, lane) => {
     try {
@@ -5176,7 +5179,8 @@ async function getIaQueue(request, url, env, ctx) {
       }
     }
     const memory = iaQueueMemoryGet(cacheKey.url);
-    if (memory) {
+    const memoryNeedsFreshRotation = memory && Math.abs(Number(rotation) || 0) > 0 && iaNeedsCatalogDepth(memory.payload, count, iaCatalogCandidateBudget(themeMinScore, count));
+    if (memory && !memoryNeedsFreshRotation) {
       const freshMemory = applyIaFreshness(memory.payload, freshnessLedger, count);
       rememberIaFreshness(env, channel, freshMemory.issued, ctx);
       return cacheableJson(freshMemory.payload, memory.ttlSeconds, {
@@ -5263,6 +5267,7 @@ async function getIaQueue(request, url, env, ctx) {
         ? warmLastGood.candidateItems
         : warmLastGood.items;
       const warmNeedsExpansion = iaNeedsCatalogDepth(warmLastGood, count, warmCandidateCount);
+      const warmNeedsFreshRotation = rotation > 0 && warmNeedsExpansion;
       const freshWarm = applyIaFreshness(warmLastGood, freshnessLedger, count);
       rememberIaFreshness(env, channel, freshWarm.issued, ctx);
       let warmFallback = {
@@ -5286,7 +5291,7 @@ async function getIaQueue(request, url, env, ctx) {
          lanes, but it is exactly what traps a proven repeat-heavy lane on the
          same five items. Let those lanes re-enter their bounded discovery
          path; the warm shelf remains available if that path returns empty. */
-      if (!(iaDepthRecoveryEnabled(channel) && warmNeedsExpansion)) {
+      if (!warmNeedsFreshRotation) {
         const warmResponse = cacheableJson(warmFallback, 5, {
           "X-Afterglow-Source": "program-director-warm-start",
           "X-Afterglow-Cache": "shared-last-good",
@@ -5311,10 +5316,24 @@ async function getIaQueue(request, url, env, ctx) {
        This keeps the first playable item on the short path while preserving
        the broader catalog for refill and later rotations. */
     const orderedQueries = uniqueIaQueries(queries, 8);
-     const fastLaneCount = iaDepthRecoveryEnabled(channel)
-       ? Math.min(4, orderedQueries.length)
-       : iaColdRescueEnabled(channel) ? Math.min(2, orderedQueries.length) : IA_FOREGROUND_DISCOVERY_LANES;
-     const fastQueries = orderedQueries.slice(0, fastLaneCount);
+    /* Once a viewer has consumed the opening shelf, do not let the same
+       first rail win every later rotation. Put a deep/collection rail beside
+       the primary rail for subsequent turns so a shallow family shelf is
+       forced to discover a genuinely different Archive family. */
+    const rotationQueries = rotation > 0
+      ? uniqueIaQueries([
+        orderedQueries[0],
+        orderedQueries[Math.min(5, orderedQueries.length - 1)],
+        ...orderedQueries.slice(-3),
+        ...orderedQueries.slice(1),
+      ], 8)
+      : orderedQueries;
+    const fastLaneCount = rotation > 0
+      ? Math.min(iaDepthRecoveryEnabled(channel) ? 4 : 2, rotationQueries.length)
+      : iaDepthRecoveryEnabled(channel)
+        ? Math.min(4, rotationQueries.length)
+        : iaColdRescueEnabled(channel) ? Math.min(2, rotationQueries.length) : IA_FOREGROUND_DISCOVERY_LANES;
+    const fastQueries = rotationQueries.slice(0, fastLaneCount);
     /* The first-approved cold race intentionally starts with only the first
        rail. Keep the second fast rail at the front of the reserve list so a
        sparse winner can widen into the app's next approved lane immediately;

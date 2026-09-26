@@ -13,7 +13,7 @@ function check(ok, message) {
   if (!ok) failures.push(message);
 }
 
-check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v97"/.test(relay), 'deep harvest invalidates the prior queue namespace');
+check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v98"/.test(relay), 'deep harvest invalidates the prior queue namespace');
 check(/IA_STRICT_CATALOG_CANDIDATE_MAX\s*=\s*96/.test(relay) && /IA_CATALOG_CANDIDATE_MAX\s*=\s*72/.test(relay), 'every IA lane receives a larger rolling catalog budget');
 check(/IA_FRESHNESS_CANDIDATE_FLOOR\s*=\s*24/.test(relay) && /IA_FRESHNESS_LEDGER_MAX\s*=\s*32/.test(relay), 'freshness history is large enough to cover several shelves');
 check(/IA_BACKGROUND_COLLECTION_EPISODES_PER_PARENT\s*=\s*10/.test(relay) && /IA_BACKGROUND_CONTAINER_EXPANSIONS\s*=\s*6/.test(relay), 'container harvesting covers multiple parents and episode positions');
@@ -23,6 +23,9 @@ check(/const rows = firstApprovedLane \? 36 : 60/.test(relay), 'background searc
 check(/IA_DEPTH_PLAYABLE_TARGET\s*=\s*36/.test(relay) && /IA_BACKGROUND_PLAYABLE_TARGET\s*=\s*24/.test(relay), 'playable depth is measured separately from the five-item on-air shelf');
 check(/catalogVersion: IA_CATALOG_BUDGET_VERSION/.test(relay) && /episodeDepth: queueEpisodeDepth\(deepHydrated\)/.test(relay), 'deep catalog depth is published for guide and telemetry consumers');
 check(/for \(let row = 0; row < IA_BACKGROUND_COLLECTION_EPISODES_PER_PARENT/.test(relay), 'expanded files are interleaved across parent collections');
+check(/const rotationRefreshLimit = firstApprovedLane && Number\(rotation\) > 0/.test(relay) && /iaDepthRecoveryEnabled\(channel\) \? 4 : 2/.test(relay), 'later rotations widen discovery without slowing the first tune');
+check(/const rotationQueries = rotation > 0/.test(relay) && /const fastQueries = rotationQueries\.slice\(0, fastLaneCount\)/.test(relay), 'later rotations prioritize a fresh Archive rail instead of reordering one shallow shelf');
+check(/memoryNeedsFreshRotation/.test(relay) && /iaShouldBypassShallowRotation\(cachedPayload, rotation/.test(relay), 'shallow exact caches cannot mask a later fresh rotation');
 
 if (failures.length) {
   console.error(`IA deep-harvesting contract failed: ${failures.length} check(s)`);

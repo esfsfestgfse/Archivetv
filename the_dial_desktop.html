@@ -1629,7 +1629,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="4.1.0-desktop-custom-channel-foundation";
+window.__ATV_BUILD="4.1.1-desktop-custom-station-manifests";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -17139,6 +17139,7 @@ async function playBumper(ch,sl,my){
 
 /* ===== v10.1: skip — next item on the same channel, on demand ===== */
 function skipOne(){ if(!powered){quickBanner("TURN THE TV ON FIRST");return;}if(typeof window.__rsCastIsConnected==="function"&&window.__rsCastIsConnected()&&typeof window.__rsCastCommand==="function")window.__rsCastCommand("NEXT");
+  if(curNum===-1&&customSlot&&customSlot.manifestId&&typeof window.__customManifestNext==="function"){window.__customManifestNext();return;}
   var sc=byNum(curNum);
   if(sc&&sc.source==="v2preview"&&typeof window.__v2PreviewNext==="function"){window.__v2PreviewNext(true);return;}
   if(sc&&sc.source==="worldclock"&&typeof window.__worldClockNext==="function"){window.__worldClockNext();return;}
@@ -17242,8 +17243,26 @@ async function tuneCustomExec(){
     if(my===token) noSignal(customChan,my);
     return;
   }
+  if(customSlot.manifestId){
+    var manifest=null;
+    try{
+      var mr=await fetch("https://realsignal-api.tdy1990.workers.dev/api/v3/custom-channels/"+encodeURIComponent(customSlot.manifestId)+"/manifest?rotation="+(Number(customSlot.cursor)||0),{headers:{"x-realsignal-session":(localStorage.getItem("realsignal:v2-session")||"anonymous")}});
+      if(mr.ok)manifest=await mr.json();
+    }catch(e){}
+    var item=manifest&&Array.isArray(manifest.items)&&manifest.items.length?manifest.items[0]:null;
+    if(item&&my===token){
+      customSlot.manifestItems=manifest.items; customSlot.manifestDepth=Number(manifest.catalogDepth)||manifest.items.length;
+      var pl={id:item.id,title:item.title||customSlot.show,year:item.year||"",type:item.type||"video",url:item.mediaUrl||item.url,mediaUrl:item.mediaUrl||item.url,meta:{source:item.provider||"custom"}};
+      var played=item.type==="embed"&&typeof playV2Embed==="function"?await playV2Embed(pl,customChan,customSlot,my):await playFile(pl,customChan,customSlot,my,false);
+      if(played){setChanStatus(-1,"CUSTOM · "+Math.min(3,manifest.items.length)+" READY · "+(item.provider||"VERIFIED"));return;}
+    }
+    if(my===token){showOv("CUSTOM STATION","RECONNECTING","No verified program is ready yet.");setSig("tuning","RETRYING");clearTimeout(retryTimer);retryTimer=setTimeout(function(){if(my===token&&powered)tuneCustomExec();},2500);}
+    return;
+  }
   return tuneIA(customChan, customSlot, my);
 }
+function tuneCustomManifest(id,label){ customSlot={show:label||"CUSTOM STATION",manifestId:id,cursor:0}; if(!powered)powerOn(); return tuneNum(-1); }
+function nextCustomManifest(){ if(!customSlot||!customSlot.manifestId)return false; customSlot.cursor=(Number(customSlot.cursor)||0)+1; tuneNum(-1); return true; }
 function moreLikeThis(){ /* 1.3: multi-signal — decade+subject, creator, collection, subject */
   var m=(curItem&&curItem.meta)||{};
   var qs=[];
@@ -18355,7 +18374,8 @@ window.__atvBootDone=true; /* app is up -- from here on, errors get logged, not 
   function localRead(){try{var v=JSON.parse(localStorage.getItem(localKey)||"[]");return Array.isArray(v)?v:[];}catch(e){return [];}}
   function localWrite(v){try{localStorage.setItem(localKey,JSON.stringify(v.slice(0,100)));}catch(e){}}
   function status(text){var node=el("customChannelStatus");if(node)node.textContent=text;}
-  function render(rows){var list=el("customChannelList");if(!list)return;list.innerHTML="";if(!rows.length){list.textContent="No custom stations yet";return;}rows.forEach(function(row){var item=document.createElement("div");item.className="settings-row";var label=document.createElement("span"),recipe=row.recipe||{};label.textContent=(row.name||recipe.name||"Custom station")+" · "+(recipe.genre||"general")+" · "+(recipe.minRuntimeMinutes||15)+"m minimum";var remove=document.createElement("button");remove.className="rbtn xs";remove.textContent="REMOVE";remove.setAttribute("aria-label","Remove "+(row.name||"custom station"));remove.addEventListener("click",function(){removeRow(row);});item.appendChild(label);item.appendChild(remove);list.appendChild(item);});}
+  function playRow(row){var recipe=row.recipe||{},name=row.name||recipe.name||"Custom station";if(row.id&&row.id.indexOf("local-")!==0&&typeof tuneCustomManifest==="function"){tuneCustomManifest(row.id,name);return;}if(typeof tuneCustomQueries==="function"){var terms=[recipe.genre].concat(recipe.include||[]).filter(function(v){return v&&v!=="general";}).slice(0,6),queries=terms.map(function(v){return 'mediatype:movies AND subject:("'+String(v).replace(/"/g,"")+'")';});if(queries.length)tuneCustomQueries(queries,name);else status("Add a genre or include term first");}}
+  function render(rows){var list=el("customChannelList");if(!list)return;list.innerHTML="";if(!rows.length){list.textContent="No custom stations yet";return;}rows.forEach(function(row){var item=document.createElement("div");item.className="settings-row";var label=document.createElement("span"),recipe=row.recipe||{};label.textContent=(row.name||recipe.name||"Custom station")+" · "+(recipe.genre||"general")+" · "+(recipe.minRuntimeMinutes||15)+"m minimum";var play=document.createElement("button");play.className="rbtn xs";play.textContent="PLAY";play.addEventListener("click",function(){playRow(row);});var remove=document.createElement("button");remove.className="rbtn xs";remove.textContent="REMOVE";remove.setAttribute("aria-label","Remove "+(row.name||"custom station"));remove.addEventListener("click",function(){removeRow(row);});item.appendChild(label);item.appendChild(play);item.appendChild(remove);list.appendChild(item);});}
   async function readServer(){try{var r=await fetch(endpoint,{headers:{"x-realsignal-session":session()}});if(!r.ok)throw new Error("server "+r.status);var data=await r.json();return Array.isArray(data.channels)?data.channels:[];}catch(e){return null;}}
   async function refresh(){var remote=await readServer();if(remote){localWrite(remote);render(remote);status(remote.length+" custom station"+(remote.length===1?"":"s")+" saved");}else{var local=localRead();render(local);status(local.length?local.length+" local station"+(local.length===1?"":"s")+" · server reconnect pending":"Offline · station saves stay on this device");}}
   function recipe(){return {name:String((el("customNameInput")||{}).value||"").trim(),genre:String((el("customGenreInput")||{}).value||"general").trim(),eraFrom:String((el("customEraFromInput")||{}).value||"").trim()||null,eraTo:String((el("customEraToInput")||{}).value||"").trim()||null,minRuntimeMinutes:Number((el("customRuntimeInput")||{}).value)||15,language:"english",sources:listValue("customSourcesInput"),include:listValue("customIncludeInput"),exclude:listValue("customExcludeInput"),freshnessWindow:24};}
@@ -18363,6 +18383,7 @@ window.__atvBootDone=true; /* app is up -- from here on, errors get logged, not 
   async function save(){var data=recipe();if(data.name.length<2){status("Give the station a name first");return;}var rows=localRead();try{var r=await fetch(endpoint,{method:"POST",headers:{"content-type":"application/json","x-realsignal-session":session()},body:JSON.stringify(data)});if(!r.ok)throw new Error("server "+r.status);var payload=await r.json();if(payload.channel)rows=[payload.channel].concat(rows.filter(function(row){return row.id!==payload.channel.id;}));status("Station saved to the catalog");}catch(e){var local={id:"local-"+Date.now(),name:data.name,recipe:data,status:"local"};rows=[local].concat(rows);status("Saved on this device · server reconnect pending");}localWrite(rows);render(rows);clearForm();}
   async function removeRow(row){var rows=localRead().filter(function(item){return item.id!==row.id;});if(row.id&&row.id.indexOf("local-")!==0){try{await fetch(endpoint+"/"+encodeURIComponent(row.id),{method:"DELETE",headers:{"x-realsignal-session":session()}});}catch(e){status("Removed locally · server reconnect pending");}}localWrite(rows);render(rows);if(!rows.length)status("No custom stations yet");}
   window.toggleCustomChannels=function(){if(typeof toggleSettings==="function")toggleSettings();setTimeout(function(){var first=el("customNameInput");if(first)first.focus();refresh();},80);};
+  window.__customManifestNext=typeof nextCustomManifest==="function"?nextCustomManifest:function(){return false;};
   function wire(){var saveButton=el("btnCustomSave"),refreshButton=el("btnCustomRefresh");if(saveButton&&!saveButton.__rsCustomWired){saveButton.__rsCustomWired=true;saveButton.addEventListener("click",save);}if(refreshButton&&!refreshButton.__rsCustomWired){refreshButton.__rsCustomWired=true;refreshButton.addEventListener("click",refresh);}render(localRead());}
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",wire);else wire();
 })();

@@ -132,6 +132,51 @@ function normalizedProfile(body) {
   };
 }
 
+/* Custom stations use the same verified YouTube/PeerTube adapters as the
+   curated Source Suite, but their editorial recipe is supplied by the viewer
+   instead of the static registry. Keeping this profile shape identical means
+   duration, landscape, English, licensing, Shorts, and provider cooldown
+   gates remain shared rather than drifting into a second discovery path. */
+function customSourceProfile(recipe) {
+  const body = recipe && typeof recipe === "object" ? recipe : {};
+  const genre = text(body.genre || "", 80);
+  const include = list(body.include, 24);
+  const exclude = list(body.exclude, 48);
+  const eraFrom = Number(body.eraFrom);
+  const eraTo = Number(body.eraTo);
+  const era = Number.isFinite(eraFrom) || Number.isFinite(eraTo)
+    ? `${Number.isFinite(eraFrom) ? eraFrom : ""}-${Number.isFinite(eraTo) ? eraTo : ""}`
+    : "";
+  const seeds = Array.from(new Set([genre, ...include].map((value) => text(value, 100).toLowerCase()).filter((value) => value && value !== "general")));
+  const suffixes = ["full episode", "full program", "long form", "complete episode"];
+  const queries = Array.from(new Set(seeds.flatMap((seed) => suffixes.map((suffix) => `${seed} ${suffix}${era ? ` ${era}` : ""}`)).concat(seeds))).slice(0, SOURCE_MAX_QUERIES);
+  const sources = list(body.sources, 8).map((value) => value.toLowerCase());
+  const providers = sources.filter((value) => value === "youtube" || value === "peertube");
+  return {
+    profileKey: `custom:${text(body.id || body.name || "station", 80).toLowerCase().replace(/[^a-z0-9._:-]+/g, "-")}`,
+    name: text(body.name || "Custom station", 80),
+    queries: queries.length ? queries : ["full television program"],
+    queryWindow: SOURCE_QUERY_WINDOW,
+    peerTubeQueryWindow: SOURCE_QUERY_WINDOW,
+    peerTubeInstanceLimit: 8,
+    peerTubeDetailLimit: 32,
+    peerTubeFallbackQueryWindow: SOURCE_QUERY_WINDOW,
+    match: seeds,
+    deny: exclude,
+    /* “custom” deliberately avoids the stricter documentary/film format
+       branch; the viewer's genre and include terms remain the evidence gate. */
+    intent: "custom",
+    topics: [],
+    formats: [],
+    formatRelaxed: true,
+    persistedRelaxed: true,
+    persistedMatch: seeds,
+    peerTubeInstances: [],
+    peerTubeQueries: queries,
+    providers: providers.length ? providers : ["youtube", "peertube"],
+  };
+}
+
 function termsMatch(haystack, terms) {
   return terms.some((term) => {
     const value = text(term, 180).toLowerCase();
@@ -445,6 +490,11 @@ export async function discoverSourceCatalog(body, env, rotation = 0) {
 export function sourceCatalogTasks(body, env, rotation = 0, options = {}) {
   const profile = normalizedProfile(body);
   if (!profile) return { profile: null, tasks: [] };
+  return { profile, tasks: providers(profile, rotation, env, options) };
+}
+
+export function customSourceTasks(recipe, env, rotation = 0, options = {}) {
+  const profile = customSourceProfile(recipe);
   return { profile, tasks: providers(profile, rotation, env, options) };
 }
 

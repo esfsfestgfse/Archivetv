@@ -1629,7 +1629,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="4.0.18-desktop-live-data-control-room";
+window.__ATV_BUILD="4.0.19-desktop-telemetry-menu-cleanup";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -6346,6 +6346,41 @@ Object.assign(PROGRAM["Modern Cartoons"],{
   fastCollections:rsAppendProgramTerms(PROGRAM["Modern Cartoons"].fastCollections,["saturdaymorningcartoons","vhskids"]),
   require:Object.assign({},PROGRAM["Modern Cartoons"].require,{title_any:rsAppendProgramTerms(PROGRAM["Modern Cartoons"].require&&PROGRAM["Modern Cartoons"].require.title_any,["cartoon","cartoons","animated series","animated tv","full episode","full episodes"])})
 });
+/* Telemetry-guided cleanup 4.0.19: the 24-hour production window identified
+   five real slow/underfilled lanes (240, 103, 150, 153, 128). Add only
+   station-specific cold-start rails and collection depth. The existing
+   required-title, subject, deny, era, and media gates remain authoritative. */
+Object.assign(PROGRAM["Museum of Motion"],{
+  fastSubjects:rsAppendProgramTerms(PROGRAM["Museum of Motion"].fastSubjects,["film preservation","film archive","motion picture preservation","cinema archive","film restoration","animation history","visual culture"]),
+  fastCollections:["prelinger","FedFlix","avgeeks"],
+  deepCollections:rsAppendProgramTerms(PROGRAM["Museum of Motion"].deepCollections,["prelinger","FedFlix","avgeeks","opensource_movies"]),
+  deepTitleTerms:rsAppendProgramTerms(PROGRAM["Museum of Motion"].deepTitleTerms,["film preservation","film archive","film restoration","cinema history","motion picture history","movie making"]),
+  diversity:{maxPerEra:2,maxPerLane:2,maxPerCreator:1,maxPerCollection:3}
+});
+Object.assign(PROGRAM["Comedy Classics"],{
+  fastSubjects:rsAppendProgramTerms(PROGRAM["Comedy Classics"].fastSubjects,["silent comedy","classic comedy","slapstick comedy","vaudeville comedy","comedy feature"]),
+  fastCollections:["Comedy_Films","feature_films","silent_films"],
+  deepCollections:rsAppendProgramTerms(PROGRAM["Comedy Classics"].deepCollections,["Comedy_Films","feature_films","silent_films","opensource_movies"]),
+  deepTitleTerms:rsAppendProgramTerms(PROGRAM["Comedy Classics"].deepTitleTerms,["silent comedy","classic comedy","slapstick comedy","vaudeville comedy","comedy feature"]),
+  diversity:{maxPerEra:2,maxPerLane:2,maxPerCreator:1,maxPerCollection:3}
+});
+Object.assign(PROGRAM["Classic Cartoons"],{
+  fastCollections:["classic_cartoons","animationandcartoons","saturdaymorningcartoons"],
+  deepCollections:rsAppendProgramTerms(PROGRAM["Classic Cartoons"].deepCollections,["classic_cartoons","animationandcartoons","saturdaymorningcartoons","vhskids"]),
+  diversity:{maxPerEra:2,maxPerLane:2,maxPerCreator:1,maxPerCollection:3}
+});
+Object.assign(PROGRAM["Modern Cartoons"],{
+  fastCollections:["animationandcartoons","classic_tv_1990s","classic_tv_2000s"],
+  deepCollections:rsAppendProgramTerms(PROGRAM["Modern Cartoons"].deepCollections,["animationandcartoons","classic_tv_1990s","classic_tv_2000s","saturdaymorningcartoons"]),
+  diversity:{maxPerEra:2,maxPerLane:2,maxPerCreator:1,maxPerCollection:3}
+});
+Object.assign(PROGRAM["Britain on Film"],{
+  fastSubjects:rsAppendProgramTerms(PROGRAM["Britain on Film"].fastSubjects,["british newsreel","british travel film","british industrial film","british transport film","crown film unit"]),
+  fastCollections:["prelinger","FedFlix","universal_newsreels"],
+  deepCollections:rsAppendProgramTerms(PROGRAM["Britain on Film"].deepCollections,["prelinger","FedFlix","universal_newsreels","opensource_movies"]),
+  deepTitleTerms:rsAppendProgramTerms(PROGRAM["Britain on Film"].deepTitleTerms,["british newsreel","british travel film","british industrial film","british transport film","crown film unit"]),
+  diversity:{maxPerEra:2,maxPerLane:2,maxPerCreator:1,maxPerCollection:3}
+});
 Object.assign(PROGRAM["Modern Rerun TV"],{
   fastCollections:rsAppendProgramTerms(PROGRAM["Modern Rerun TV"].fastCollections,["classic_tv_1970s","classic_tv_2010s","television","vhsvault"]),
   deepCollections:rsAppendProgramTerms(PROGRAM["Modern Rerun TV"].deepCollections,["classic_tv_1970s","classic_tv_1980s","classic_tv_2000s","classic_tv_2010s"])
@@ -7342,7 +7377,7 @@ var liveGuideState=window.__atvLiveGuideState||{}; window.__atvLiveGuideState=li
 var LIVE_DATA_BEDS={worldclock:"gmjazz",weather:"gmjazz",stormcenter:"gmjazz",localradar:"gmjazz",tropical:"gmtropical",skytraffic:"gmelectro",airport:"gmelectro",airtraffic:"gmelectro",ships:"fieldrec",tides:"fieldrec",river:"fieldrec",space:"gmelectro",solar:"gmelectro",aurora:"gmelectro",iss:"gmelectro",apod:"gmelectro",seismic:"gmelectro",quake:"gmcountry",quakemap:"gmcountry",volcano:"gmcountry",wildfire:"gmcountry",grid:"gmjazz",gas:"gmjazz",sports:"gmjazz",wiki:"gmelectro",hf:"gmelectro",newsstand:"gmjazz"};
 function guideDurationLabel(sec){sec=Math.max(0,Math.round(Number(sec)||0));var h=Math.floor(sec/3600),m=Math.max(0,Math.round((sec%3600)/60));return h?(h+"H "+m+"M"):(m+"M");}
 function guideUpdatedLabel(at){if(!at)return "WAITING FOR LIVE DATA";var age=Math.max(0,Math.round((Date.now()-at)/1000));return age<60?"UPDATED JUST NOW":("UPDATED "+guideDurationLabel(age)+" AGO");}
-function guideItemTitle(item){return String(item&&(item.title||item.identifier||item.id)||"PROGRAM WARMING").replace(/\s+/g," ").trim();}
+function guideItemTitle(item){return String(item&&(item.title||item.identifier||item.id)||"PROGRAM DATA PENDING").replace(/\s+/g," ").trim();}
 function guideItemRuntime(item){var sec=item&&(item.runtime||item.duration||item.length);return Number(sec)>0?guideDurationLabel(sec):"RUNTIME PENDING";}
 function guideQueueItems(ch,sl,current){
   var q=(iaProgramQueues[iaQueueKey(ch)]||[]).filter(function(item){return iaProgramAllowed(item,sl);});
@@ -7361,7 +7396,7 @@ function guideListing(ch){
       var currentId=String(pv.currentId||""),verifiedItems=Array.isArray(verified.items)?verified.items:[],guideNext=current?verifiedItems.find(function(item){return String(item&&item.id||"")!==currentId;}):(verifiedNext||nextItem),catalogDepth=Number(verified.catalogDepth)||verifiedItems.length||items.length;
       return {now:guideCurrent?("NOW · "+guideItemTitle(guideCurrent)+(guideCurrent.duration?(" · "+guideItemRuntime(guideCurrent)):"")):"SOURCE SUITE · QUEUE READY",next:guideNext?("NEXT · "+guideItemTitle(guideNext)+" · "+guideItemRuntime(guideNext)):"NEXT · VERIFIED QUEUE REFRESHING",detail:catalogDepth+" VERIFIED PROGRAMS · "+Number(verified.unseenCount||0)+" UNSEEN · "+(verified.catalogExhausted?"CATALOG ROTATION RESET · ":"")+(guideCurrent&&guideCurrent.provider||pv.provider||"SOURCE SUITE"),state:guideCurrent?"playing":"ready",live:false,ready:Math.min(5,verifiedItems.length||items.length),capacity:5};
     }
-    return {now:current?("NOW · "+current+(Number(pv.currentDuration)>0?(" · "+guideDurationLabel(pv.currentDuration)):"")):(upItem?("UP NEXT · "+guideItemTitle(upItem)+" · "+guideItemRuntime(upItem)):"SOURCE SUITE · "+(ready?"QUEUE READY":"WARMING SOURCE")),next:current?(nextItem?("NEXT · "+guideItemTitle(nextItem)+" · "+guideItemRuntime(nextItem)):"NEXT · FIVE-ITEM BUFFER WARMING"):(nextItem?("THEN · "+guideItemTitle(nextItem)+" · "+guideItemRuntime(nextItem)):"NEXT · FIVE-ITEM BUFFER WARMING"),detail:ready+" / 5 BUFFER · "+items.length+" CATALOG · "+(pv.provider||"SOURCE SUITE"),state:ready?"ready":"warming",live:false,ready:ready,capacity:5};
+    return {now:current?("NOW · "+current+(Number(pv.currentDuration)>0?(" · "+guideDurationLabel(pv.currentDuration)):"")):(upItem?("UP NEXT · "+guideItemTitle(upItem)+" · "+guideItemRuntime(upItem)):"SOURCE SUITE · "+(ready?"QUEUE READY":"PROGRAM DATA PENDING")),next:current?(nextItem?("NEXT · "+guideItemTitle(nextItem)+" · "+guideItemRuntime(nextItem)):"NEXT · PROGRAM DATA PENDING"):(nextItem?("THEN · "+guideItemTitle(nextItem)+" · "+guideItemRuntime(nextItem)):"NEXT · PROGRAM DATA PENDING"),detail:ready+" PROGRAMS READY · "+items.length+" CATALOG · "+(pv.provider||"SOURCE SUITE"),state:ready?"ready":"warming",live:false,ready:ready,capacity:5};
   }
   if(ch.source){var live=liveGuideState[ch.num]||{},txt=String(live.text||window.__chanStatus[ch.num]||"CONNECTING LIVE DATA");return {now:"LIVE · "+txt,next:"CONTINUOUS LIVE DATA",detail:guideUpdatedLabel(live.at),state:"live",live:true,ready:null,capacity:null};}
   /* The guide is queue-backed: it never invents clock/daypart listings. */
@@ -7371,14 +7406,19 @@ function guideListing(ch){
      The wider catalog remains in the background and should not be reported as ready media. */
   var items=guideQueueItems(ch,sl,current),queuedNext=guideQueueNext(ch,sl,current),capacity=Math.max(1,Number(typeof IA_READY_TARGET!=="undefined"?IA_READY_TARGET:3)||3),ready=Math.min(capacity,items.length+(current?1:0));
   var nextItem=current?queuedNext:(items[1]||null),upItem=current?null:(items[0]||null);
-  if(current)return {now:"NOW · "+guideItemTitle(current),next:nextItem?("NEXT · "+guideItemTitle(nextItem)+" · "+guideItemRuntime(nextItem)):"NEXT · BUFFER WARMING",detail:ready+" / "+capacity+" READY · "+guideItemRuntime(current),state:"playing",live:false,ready:ready,capacity:capacity};
-  if(upItem)return {now:"UP NEXT · "+guideItemTitle(upItem),next:nextItem?("THEN · "+guideItemTitle(nextItem)+" · "+guideItemRuntime(nextItem)):"NEXT · BUFFER WARMING",detail:ready+" / "+capacity+" READY · PROGRAM QUEUE",state:"ready",live:false,ready:ready,capacity:capacity};
-  return {now:"BUILDING PROGRAM LINEUP",next:"HOT SHELF WARMING",detail:"0 / "+capacity+" HOT SHELF · BACKGROUND CANDIDATES",state:"warming",live:false,ready:0,capacity:capacity};
+  if(current)return {now:"NOW · "+guideItemTitle(current),next:nextItem?("NEXT · "+guideItemTitle(nextItem)+" · "+guideItemRuntime(nextItem)):"NEXT · PROGRAM DATA PENDING",detail:ready+" PROGRAMS READY · "+guideItemRuntime(current),state:"playing",live:false,ready:ready,capacity:capacity};
+  if(upItem)return {now:"UP NEXT · "+guideItemTitle(upItem),next:nextItem?("THEN · "+guideItemTitle(nextItem)+" · "+guideItemRuntime(nextItem)):"NEXT · PROGRAM DATA PENDING",detail:ready+" PROGRAMS READY · PROGRAM QUEUE",state:"ready",live:false,ready:ready,capacity:capacity};
+  return {now:"LINEUP PENDING",next:"PROGRAM DATA PENDING",detail:"BACKGROUND SEARCH CONTINUES",state:"warming",live:false,ready:0,capacity:capacity};
 }
+/* Viewer-facing status pass: preparation remains active, but implementation
+   vocabulary never needs to appear in the guide or channel browser. */
+var rsGuideListing=guideListing;
+guideListing=function(ch){var result=rsGuideListing(ch);if(!result)return result;["now","next","detail"].forEach(function(key){if(result[key]!=null)result[key]=String(result[key]).replace(/FIVE-ITEM BUFFER WARMING|HOT SHELF WARMING|BUFFER WARMING|WARMING SOURCE|PROGRAM WARMING/gi,"PROGRAM DATA PENDING").replace(/(\d+) \/ (\d+) BUFFER/gi,"$1 PROGRAMS READY");});return result;};
 function guideProgramState(ch){return guideListing(ch);}
 function startLiveDataBed(ch,sl){if(!ch||ch.cat!=="LDATA")return;var source=(sl&&sl.source)||ch.source||"";if(/^(livetv|livecams|highway|liveradio)$/.test(source))return;try{if(typeof startIAJazz==="function")startIAJazz(LIVE_DATA_BEDS[source]||"gmjazz");}catch(e){}}
 function refreshGuideData(){try{if(gwrap&&gwrap.classList.contains("show")){guideUpdatePreview();refreshGuideRows();}}catch(e){}}
 function setChanStatus(num,text){ try{var status=String(text||"LIVE DATA");window.__chanStatus[num]=status;liveGuideState[num]={text:status,at:Date.now()};refreshGuideData();}catch(e){} }
+var rsSetChanStatus=setChanStatus;setChanStatus=function(num,text){return rsSetChanStatus(num,String(text||"").replace(/QUEUE WARMING|BUFFER WARMING|WARMING SOURCE/gi,"PROGRAM DATA PENDING").replace(/BUFFER (\d+) \/ (\d+) CATALOG/gi,"$1 PROGRAMS READY"));};
 function renderRail(){ /* v9: honest CHANNEL BANK grid — replaces the horizontal scroll rail */
   if(!chList)return;
   if(!gwrap||!gwrap.classList.contains("show"))return; /* CYCLE-1 PERF: no rebuilds while the bank is hidden */
@@ -7709,6 +7749,7 @@ async function v2PeerTube(profile){
   var detailed=await v2MapLimit(raw,4,async function(x){try{var d=await withTO(fetch(x.host+"/api/v1/videos/"+encodeURIComponent(x.uuid),{mode:"cors"}).then(function(r){if(!r.ok)throw new Error("detail "+r.status);return r.json();}),6500),files=(d.files||[]).concat((d.streamingPlaylists||[]).reduce(function(out,p){return out.concat(p&&p.files||[]);},[])).filter(function(f){var fileUrl=String(f&&f.fileUrl||""),mime=v2Text(f&& (f.mimetype||f.mimeType||f.type)||"");return f&&fileUrl&&f.hasVideo!==false&&(/\.(?:mp4|webm|ogv)(?:[?#]|$)/i.test(fileUrl)||/^video\//i.test(mime));}).sort(function(a,b){return Math.abs(Number(a.resolution&&a.resolution.id||720)-720)-Math.abs(Number(b.resolution&&b.resolution.id||720)-720);}),file=files[0],license=v2Text(d.licence&&d.licence.label)||x.rights,aspect=v2AspectRatio(d)||v2AspectRatio(x)||v2AspectRatio(file),candidate={id:"pt:"+x.host+"/"+x.uuid,title:v2Text(d.name||x.title),description:v2Text(d.description||x.description),tags:v2Text(d.tags||x.tags||[]),category:v2Text(d.category&&d.category.label||x.category),account:v2Text(d.account&&d.account.displayName||x.account),query:x.query,year:String(d.publishedAt||"").slice(0,4),rights:license,url:file&&file.fileUrl||"",type:"video",duration:Number(d.duration||x.duration)||0,aspectRatio:aspect,sourceUrl:x.host+"/videos/watch/"+x.uuid,meta:{thumbnail:(d.thumbnails&&d.thumbnails[0]&&d.thumbnails[0].fileUrl)||""}};if(!file||!v2RightsOkay(license,"PeerTube")||aspect<1.2||!v2CandidateRelevant(profile,candidate))return null;var verified=v2Verified(candidate,"PeerTube · "+x.host.replace(/^https?:\/\//,""),x.query,"direct-file");if(verified&&onFirst)try{onFirst({provider:"PeerTube",items:[verified],health:{searched:jobs.length,details:raw.length,fastStart:true}});}catch(e){}return verified;}catch(e){return null;}});
   var verified=detailed.filter(Boolean);return {provider:"PeerTube",items:verified,health:{searched:jobs.length,details:raw.length}};
 }
+var rsSetSig=setSig;setSig=function(s,l){return rsSetSig(s,String(l||"").replace(/^WARMING UP$/i,"TUNING"));};
 async function v2PeerTubeCold(profile){
   var rotation=arguments[1]||0,onFirst=typeof arguments[2]==="function"?arguments[2]:null,instance="https://search.joinpeertube.org",licenseFilter="&licenceOneOf=1&licenceOneOf=2&licenceOneOf=3&licenceOneOf=4&licenceOneOf=5&licenceOneOf=6&licenceOneOf=7&licenceOneOf=8",queries=v2DiscoveryQueries(profile,"peertube",rotation,Math.min(4,Number(profile.queryLimit)||4));
   var found=profile.profileKey==="cooks-table"?[]:await v2MapLimit(queries,4,async function(query){try{var u=instance+"/api/v1/search/videos?search="+encodeURIComponent(query)+"&count=10&sort=-match"+licenseFilter,d=await withTO(fetch(u,{mode:"cors"}).then(function(r){if(!r.ok)throw new Error("http "+r.status);return r.json();}),3500);return (d.data||[]).map(function(x){var host=instance;try{host=new URL(x.url||instance).origin;}catch(e){}return {provider:"PeerTube",host:host,uuid:String(x.uuid||x.id||""),query:query,title:v2Text(x.name||x.title||"Untitled"),description:v2Text(x.description||x.truncatedDescription||""),tags:v2Text(x.tags||[]),category:v2Text(x.category&&x.category.label),account:v2Text(x.account&&x.account.displayName),rights:v2Text(x.licence&&x.licence.label),duration:Number(x.duration)||0,aspectRatio:x.aspectRatio};});}catch(e){return [];}});
@@ -8512,13 +8553,14 @@ function showBanner(ch,sl){if(!banner)return;
   banner.innerHTML='<span class="bn-num">'+ch.num+'</span><span class="bn-nm">'+esch(ch.nm)+'</span><span class="bn-now">'+esch(sl.show)+'</span>'; /* CYCLE-1 FIX: escape IA metadata */
   banner.classList.add("show");clearTimeout(bannerTimer);bannerTimer=setTimeout(()=>banner.classList.remove("show"),3500);}
 function quickBanner(t){if(!banner)return;banner.innerHTML='<span class="bn-msg">'+t+'</span>';banner.classList.add("show");
-  clearTimeout(bannerTimer);bannerTimer=setTimeout(()=>banner.classList.remove("show"),1700);}
+   clearTimeout(bannerTimer);bannerTimer=setTimeout(()=>banner.classList.remove("show"),1700);}
+var rsQuickBanner=quickBanner;quickBanner=function(t){return rsQuickBanner(String(t||"").replace(/QUEUE WARMING/gi,"FINDING PROGRAM").replace(/BUFFER WARMING/gi,"PROGRAM DATA PENDING"));};
 
 /* info / up-next */
 function toggleInfo(){if(!infoPanel)return;if(infoPanel.classList.contains("hide"))showInfo();else infoPanel.classList.add("hide");}
 function showInfo(){if(!infoPanel||!powered)return;const ch=byNum(curNum);if(!ch)return;
   const now=slotFor(ch,0,{preview:true}),queuedNext=ch.source?null:guideQueueNext(ch,now);
-  const nextLabel=queuedNext?(queuedNext.title||queuedNext.identifier):(ch.source?"CONTINUOUS LIVE DATA":"BUFFER WARMING");
+  const nextLabel=queuedNext?(queuedNext.title||queuedNext.identifier):(ch.source?"CONTINUOUS LIVE DATA":"PROGRAM DATA PENDING");
   var cm=CHANNEL_META[ch.nm]||{}; var im=(curItem&&curItem.meta)||{};
   infoPanel.innerHTML='<div class="ip-ch">CH '+ch.num+' \u00b7 '+esch(ch.nm)+'</div>'+
    '<div class="ip-row"><b>NOW</b><span>'+esch(now.show)+((curItem&&curItem.title)?(" \u2014 "+esch(String(curItem.title).slice(0,70))):"")+'</span></div>'+
@@ -17847,14 +17889,14 @@ var OSD_ITEMS=[
       HELP
     Items support: dev:true (hidden unless window.__devMode) and ctx:fn (hidden unless truthy).
     Toggle window.__devMode by tapping the build chip 5x rapidly (wired below). */
- {h:"PICTURE & VIEW"},
+  {h:"PICTURE"},
  {label:"FULLSCREEN",act:function(){closeOsd();toggleFullscreen();}},
  {label:"ZOOM",act:toggleAspect,val:function(){return aspectFill?"FILL":"FIT";}},
  {label:"PICTURE ADJUST",act:function(){closeOsd();togglePic();}},
  {label:"PICTURE-IN-PICTURE",act:function(){closeOsd();togglePip();}},
  {label:"PHOSPHOR TINT",act:function(){ if(typeof window.__cyclePhosphor==="function") window.__cyclePhosphor(); },val:function(){ try{return (typeof window.__getPhos==="function")?window.__getPhos():"GREEN";}catch(_){return "GREEN";} }},
 
- {h:"WHILE WATCHING"},
+  {h:"PLAYBACK"},
  {label:"SKIP PROGRAM",act:function(){closeOsd();skipOne();}},
  {label:"SLEEP TIMER",act:cycleSleep,val:function(){return sleepMin>0?(sleepMin+" MIN"):"OFF";}},
  {label:"NIGHT DIM",act:cycleNight,val:function(){return nightMode.toUpperCase();}},
@@ -17863,7 +17905,7 @@ var OSD_ITEMS=[
  {label:"FAVORITE SURF",act:function(){closeOsd();favSurf();}},
  {label:"MORE LIKE THIS",act:function(){closeOsd();moreLikeThis();}},
 
- {h:"THIS CHANNEL",ctx:function(){ try{ return !!(curSl&&(curSl.source==="weather"||curSl.source==="livetv"||curSl.source==="sports")); }catch(_){return false;} }},
+  {h:"CHANNEL TOOLS",ctx:function(){ try{ return !!(curSl&&(curSl.source==="weather"||curSl.source==="livetv"||curSl.source==="sports")); }catch(_){return false;} }},
  {label:"WX: SEGMENT MODE",ctx:function(){try{return !!(curSl&&curSl.source==="weather");}catch(_){return false;}},act:function(){closeOsd();
    var on=!store.get("wxSegments",false); store.set("wxSegments",on);
    quickBanner(on?"SEGMENT MODE ON \u00b7 LOCAL ON THE 8s":"SEGMENT MODE OFF");
@@ -17877,9 +17919,9 @@ var OSD_ITEMS=[
    try{ if(window.__tvReload)window.__tvReload(); }catch(e){}
    try{ if(curSl&&curSl.source==="livetv") tuneNum(curNum); }catch(e){} }},
 
- {h:"LIBRARY & INFO"},
+  {h:"LIBRARY"},
  {label:"MARATHON LOCK",act:marathonToggle,val:function(){var c=byNum(curNum);return (c&&marathonLock[c.num])?"ON":"OFF";}},
- {label:"SCHEDULE GRID",act:function(){closeOsd();toggleTVGuide();}},
+  {label:"LIVE GUIDE",act:function(){closeOsd();toggleTVGuide();}},
  {label:"SAVE TO TAPE",act:function(){closeOsd();saveCurrent();}},
  {label:"TAPE SHELF",act:function(){closeOsd();toggleSaved();}},
  {label:"DEEP CUTS",act:toggleDeepCuts,val:function(){return deepCuts?"ON":"OFF";}},
@@ -17891,10 +17933,10 @@ var OSD_ITEMS=[
  {label:"CLEAR BANS",act:clearBans,val:function(){return String(banned.length);}},
 
  {h:"SYSTEM"},
- {label:"OPEN ON ARCHIVE",act:function(){closeOsd();openSource();}},
- {label:"FEED HEALTH",act:function(){closeOsd();toggleSettings();
+  {label:"SOURCE PAGE",act:function(){closeOsd();openSource();}},
+  {label:"SYSTEM STATUS",act:function(){closeOsd();toggleSettings();
    setTimeout(function(){ var b=document.getElementById("btnHealth"); if(b)b.click(); },220);}},
- {label:"MORE SETTINGS\u2026",act:function(){closeOsd();toggleSettings();}},
+  {label:"SETTINGS",act:function(){closeOsd();toggleSettings();}},
  {label:"SHARE",act:function(){closeOsd();shareCurrent();}},
  {label:"EAS TEST",act:function(){closeOsd(); if(!powered){quickBanner("TURN THE TV ON FIRST");return;}
    var loc=store.get("homeLoc",null)||store.get("gpsLoc",null);

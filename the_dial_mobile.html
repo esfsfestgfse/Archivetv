@@ -1681,7 +1681,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="4.0.19-mobile-telemetry-menu-cleanup";
+window.__ATV_BUILD="4.1.0-mobile-custom-channel-foundation";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -1920,6 +1920,14 @@ window.addEventListener("unhandledrejection",function(e){
     <div class="settings-row"><span>Station Bumpers (vintage broadcast idents between programs)</span><button class="rbtn xs" id="setBumpers">ON</button></div>
     <div class="settings-row"><span>Clock Format</span><button class="rbtn xs" id="setClock">12H</button></div>
     <div class="settings-row"><span>Cabinet Theme</span><button class="rbtn xs" id="setTheme">WALNUT</button></div>
+    <div class="settings-sep"></div>
+    <div class="settings-label">CUSTOM CHANNEL BUILDER — YOUR OWN STATION RECIPE</div>
+    <div class="settings-row"><input id="customNameInput" class="settings-input" type="text" maxlength="64" placeholder="Channel name"><input id="customGenreInput" class="settings-input" type="text" maxlength="48" placeholder="Genre"></div>
+    <div class="settings-row"><input id="customEraFromInput" class="settings-input" type="number" min="1800" max="2100" placeholder="Era from"><input id="customEraToInput" class="settings-input" type="number" min="1800" max="2100" placeholder="Era to"></div>
+    <div class="settings-row"><input id="customRuntimeInput" class="settings-input" type="number" min="0" max="1440" value="15" placeholder="Minimum minutes"><input id="customSourcesInput" class="settings-input" type="text" placeholder="Sources: IA, YouTube, PeerTube"></div>
+    <div class="settings-row"><input id="customIncludeInput" class="settings-input" type="text" placeholder="Include terms"><input id="customExcludeInput" class="settings-input" type="text" placeholder="Exclude terms"></div>
+    <div class="settings-row"><button class="rbtn xs" id="btnCustomSave">SAVE CHANNEL</button><button class="rbtn xs" id="btnCustomRefresh">REFRESH</button><span id="customChannelStatus" aria-live="polite">No custom stations yet</span></div>
+    <div id="customChannelList" class="hist-list" aria-live="polite"></div>
     <div class="settings-sep"></div>
     <div class="settings-label">CHROMECAST — receiver discovery</div>
     <div class="settings-row"><input id="castReceiverIdInput" class="settings-input" type="text" placeholder="Google Cast receiver app ID" autocomplete="off"><button id="btnCastReceiverSave" class="rbtn xs">SAVE</button></div>
@@ -18094,6 +18102,7 @@ var OSD_ITEMS=[
    try{ if(curSl&&curSl.source==="livetv") tuneNum(curNum); }catch(e){} }},
 
   {h:"LIBRARY"},
+ {label:"CUSTOM CHANNELS",act:function(){closeOsd();toggleSettings();setTimeout(function(){var f=document.getElementById("customNameInput");if(f)f.focus();},0);}},
  {label:"MARATHON LOCK",act:marathonToggle,val:function(){var c=byNum(curNum);return (c&&marathonLock[c.num])?"ON":"OFF";}},
   {label:"LIVE GUIDE",act:function(){closeOsd();toggleTVGuide();}},
  {label:"SAVE TO TAPE",act:function(){closeOsd();saveCurrent();}},
@@ -18553,5 +18562,29 @@ window.__atvBootDone=true; /* app is up -- from here on, errors get logged, not 
 <script src="assets/release2-runtime.js?v=06de3bf"></script>
 <script src="assets/release3-runtime.js"></script>
 <script src="assets/release31-runtime.js"></script>
+<script>
+/* REALSIGNAL 5.0 FOUNDATION: custom station recipes.  Recipes are saved to
+   the server when available, with a local fallback so the builder never blocks
+   playback.  Discovery and verified playback remain separate concerns. */
+(function(){
+  var endpoint="https://realsignal-api.tdy1990.workers.dev/api/v3/custom-channels",localKey="realsignal:custom-channels";
+  function session(){try{var k="realsignal:v2-session",v=localStorage.getItem(k);if(!v){v="s-"+(crypto&&crypto.randomUUID?crypto.randomUUID():Date.now()+"-"+Math.random().toString(36).slice(2));localStorage.setItem(k,v);}return String(v).slice(0,80);}catch(e){return "anonymous";}}
+  function el(id){return document.getElementById(id);}
+  function listValue(id){return String((el(id)&&el(id).value)||"").split(",").map(function(v){return v.trim();}).filter(Boolean);}
+  function localRead(){try{var v=JSON.parse(localStorage.getItem(localKey)||"[]");return Array.isArray(v)?v:[];}catch(e){return [];}}
+  function localWrite(v){try{localStorage.setItem(localKey,JSON.stringify(v.slice(0,100)));}catch(e){}}
+  function status(text){var node=el("customChannelStatus");if(node)node.textContent=text;}
+  function render(rows){var list=el("customChannelList");if(!list)return;list.innerHTML="";if(!rows.length){list.textContent="No custom stations yet";return;}rows.forEach(function(row){var item=document.createElement("div");item.className="settings-row";var label=document.createElement("span"),recipe=row.recipe||{};label.textContent=(row.name||recipe.name||"Custom station")+" · "+(recipe.genre||"general")+" · "+(recipe.minRuntimeMinutes||15)+"m minimum";var remove=document.createElement("button");remove.className="rbtn xs";remove.textContent="REMOVE";remove.setAttribute("aria-label","Remove "+(row.name||"custom station"));remove.addEventListener("click",function(){removeRow(row);});item.appendChild(label);item.appendChild(remove);list.appendChild(item);});}
+  async function readServer(){try{var r=await fetch(endpoint,{headers:{"x-realsignal-session":session()}});if(!r.ok)throw new Error("server "+r.status);var data=await r.json();return Array.isArray(data.channels)?data.channels:[];}catch(e){return null;}}
+  async function refresh(){var remote=await readServer();if(remote){localWrite(remote);render(remote);status(remote.length+" custom station"+(remote.length===1?"":"s")+" saved");}else{var local=localRead();render(local);status(local.length?local.length+" local station"+(local.length===1?"":"s")+" · server reconnect pending":"Offline · station saves stay on this device");}}
+  function recipe(){return {name:String((el("customNameInput")||{}).value||"").trim(),genre:String((el("customGenreInput")||{}).value||"general").trim(),eraFrom:String((el("customEraFromInput")||{}).value||"").trim()||null,eraTo:String((el("customEraToInput")||{}).value||"").trim()||null,minRuntimeMinutes:Number((el("customRuntimeInput")||{}).value)||15,language:"english",sources:listValue("customSourcesInput"),include:listValue("customIncludeInput"),exclude:listValue("customExcludeInput"),freshnessWindow:24};}
+  function clearForm(){["customNameInput","customGenreInput","customEraFromInput","customEraToInput","customSourcesInput","customIncludeInput","customExcludeInput"].forEach(function(id){var node=el(id);if(node)node.value="";});var runtime=el("customRuntimeInput");if(runtime)runtime.value="15";}
+  async function save(){var data=recipe();if(data.name.length<2){status("Give the station a name first");return;}var rows=localRead();try{var r=await fetch(endpoint,{method:"POST",headers:{"content-type":"application/json","x-realsignal-session":session()},body:JSON.stringify(data)});if(!r.ok)throw new Error("server "+r.status);var payload=await r.json();if(payload.channel)rows=[payload.channel].concat(rows.filter(function(row){return row.id!==payload.channel.id;}));status("Station saved to the catalog");}catch(e){var local={id:"local-"+Date.now(),name:data.name,recipe:data,status:"local"};rows=[local].concat(rows);status("Saved on this device · server reconnect pending");}localWrite(rows);render(rows);clearForm();}
+  async function removeRow(row){var rows=localRead().filter(function(item){return item.id!==row.id;});if(row.id&&row.id.indexOf("local-")!==0){try{await fetch(endpoint+"/"+encodeURIComponent(row.id),{method:"DELETE",headers:{"x-realsignal-session":session()}});}catch(e){status("Removed locally · server reconnect pending");}}localWrite(rows);render(rows);if(!rows.length)status("No custom stations yet");}
+  window.toggleCustomChannels=function(){if(typeof toggleSettings==="function")toggleSettings();setTimeout(function(){var first=el("customNameInput");if(first)first.focus();refresh();},80);};
+  function wire(){var saveButton=el("btnCustomSave"),refreshButton=el("btnCustomRefresh");if(saveButton&&!saveButton.__rsCustomWired){saveButton.__rsCustomWired=true;saveButton.addEventListener("click",save);}if(refreshButton&&!refreshButton.__rsCustomWired){refreshButton.__rsCustomWired=true;refreshButton.addEventListener("click",refresh);}render(localRead());}
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",wire);else wire();
+})();
+</script>
 </body>
 </html>

@@ -34,7 +34,7 @@ const { pathToFileURL } = require('node:url');
   assert.equal(health.status, 200);
   const healthBody = await health.json();
   assert.equal(healthBody.apiVersion, 'v3');
-  assert.equal(healthBody.release, '4.0.19-telemetry-menu-cleanup');
+  assert.equal(healthBody.release, '4.1.0-custom-channel-foundation');
   assert.ok(healthBody.capabilities.includes('server-telemetry'));
   assert.ok(healthBody.capabilities.includes('verified-guide'));
 

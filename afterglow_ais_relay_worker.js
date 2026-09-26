@@ -101,10 +101,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-96-72-deep-harvest-v2";
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v100";
-/* Last-good shelves share the v100 namespace so an older shallow shelf
+const IA_QUEUE_CACHE_VERSION = "v101";
+/* Last-good shelves share the v101 namespace so an older shallow shelf
    never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v100";
+const IA_LAST_GOOD_CACHE_VERSION = "v101";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -4890,9 +4890,10 @@ async function expandSeedArchiveContainers(payload, cacheOrigin, ctx, themeTerms
        back to a parent container that must remain eligible for deeper sibling
        harvesting. Skipping those synthetic episodes was the reason a large
        complete-series lane could stay locked to its first five files. */
-    const expandedEpisode = item && String(item.identifier || "").includes("::") && item.sourceIdentifier && item.sourceIdentifier !== item.identifier;
+    const rawIdentifier = String(item && item.identifier || "");
+    const expandedEpisode = item && rawIdentifier.includes("::");
     if (item && item.media && item.media.url && !expandedEpisode) return false;
-    const sourceId = String(item && (item.sourceIdentifier || item.identifier) || "");
+    const sourceId = String(item && (item.sourceIdentifier || (rawIdentifier.includes("::") ? rawIdentifier.split("::")[0] : rawIdentifier)) || "");
     if (!sourceId || seenParents.has(sourceId)) return false;
     seenParents.add(sourceId);
     return true;

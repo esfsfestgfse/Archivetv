@@ -47,7 +47,9 @@ for (const [channel, collection] of Object.entries(expectedRails)) {
 }
 
 const relay = fs.readFileSync(path.join(root, 'afterglow_ais_relay_worker.js'), 'utf8');
-check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v113"/.test(relay), 'Relay cache namespace is v113');
+check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v114"/.test(relay), 'Relay cache namespace is v114');
+check(/IA_PROMOTED_ARCHIVE_BANKS/.test(relay) && /"243"/.test(relay) && /"244"/.test(relay), 'Only soak-approved archive families are promoted into the new Series Vault and Cartoon Reelhouse stations');
+check(/\.concat\(IA_PROMOTED_ARCHIVE_BANKS\[String\(channel\)\] \|\| \[\]\)/.test(relay), 'Promoted archive banks use the same verified emergency shelf path');
 check(/requiredTitleTerms\.length && !titleMatches && !isExpandedEpisode\) return false/.test(relay), 'Relay enforces the strict title gate while allowing approved expanded episodes');
 check(/"206": \[/.test(relay) && /090-aahma-watermarked/.test(relay) && /amateur_west_1940_1/.test(relay), 'Home Movies has verified sparse-lane recovery media');
 check(/"11": \[/.test(relay) && /freakylinks-complete-series-2000/.test(relay) && /partners-1995-96/.test(relay), 'Modern Rerun TV has verified sitcom recovery media');

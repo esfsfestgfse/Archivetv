@@ -101,7 +101,7 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-96-72-deep-harvest-v3";
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v113";
+const IA_QUEUE_CACHE_VERSION = "v114";
 /* Last-good shelves share the v101 namespace so an older shallow shelf
    never masks the repaired episode-level catalog. */
 const IA_LAST_GOOD_CACHE_VERSION = "v113";
@@ -209,7 +209,7 @@ const IA_STABLE_RESCUE_CHANNELS = new Set(["17", "19", "74", "82", "106", "107",
 const IA_COLD_RESCUE_CHANNELS = new Set([
   "2", "3", "10", "11", "12", "15", "64", "76", "101", "105", "110", "115", "116", "119", "120", "128", "130", "131", "132", "153", "154", "155", "156",
   "205", "208", "209", "210", "211", "212", "213", "214", "215", "216", "217", "219", "222", "223", "224", "225", "226", "227", "229", "230", "231", "232", "233", "234", "235", "236", "237", "238", "239", "240", "241", "242",
-  "507", "508", "509", "510", "511", "575", "700", "701", "703", "900", "906", "922", "926", "927", "928",
+  "507", "508", "509", "510", "511", "575", "700", "701", "703", "900", "906", "922", "926", "927", "928", "243", "244",
   /* v164's full soak isolated these additional cold lanes. Keep their verified
      shelves narrow and channel-owned; healthy lanes do not pay this cost. */
   "14", "15", "18", "56", "63", "68", "72", "73", "77", "83", "102", "104", "109", "122", "158", "200", "202", "704", "705", "706", "901", "911", "916"
@@ -2359,6 +2359,31 @@ const IA_LONG_TAIL_EXPANSIONS_EXTRA = Object.freeze({
     iaDirectRecovery("PaulWhiteman1920-1935CompleteCollection::ABundleOfOldLoveLetters.mp3", "PaulWhiteman1920-1935CompleteCollection", "ABundleOfOldLoveLetters.mp3", "Paul Whiteman — A Bundle of Old Love Letters", "78rpm shellac gramophone phonograph early recording dance band vaudeville", 1930, "audio"),
     iaDirectRecovery("PaulWhiteman1920-1935CompleteCollection::AFadedSummerLove.mp3", "PaulWhiteman1920-1935CompleteCollection", "AFadedSummerLove.mp3", "Paul Whiteman — A Faded Summer Love", "78rpm shellac gramophone phonograph early recording dance band vaudeville", 1930, "audio"),
   ],
+});
+/* v4 promotion gate: only families that passed the full multi-rotation soak
+   become new stations. These are unions of already-verified episode banks,
+   not blind search results. The normal PROGRAM theme/deny/runtime gates,
+   freshness ledger, and queue rotation still decide what reaches the shelf. */
+const IA_PROMOTED_ARCHIVE_BANKS = Object.freeze({
+  "243": Object.freeze([
+    ...(IA_EMERGENCY_SEEDS["10"] || []),
+    ...(IA_LONG_TAIL_EXPANSIONS["10"] || []),
+    ...(IA_LONG_TAIL_EXPANSIONS_EXTRA["10"] || []),
+    ...(IA_EMERGENCY_SEEDS["11"] || []),
+    ...(IA_LONG_TAIL_EXPANSIONS["11"] || []),
+    ...(IA_LONG_TAIL_EXPANSIONS_EXTRA["11"] || []),
+  ]),
+  "244": Object.freeze([
+    ...(IA_EMERGENCY_SEEDS["150"] || []),
+    ...(IA_LONG_TAIL_EXPANSIONS["150"] || []),
+    ...(IA_LONG_TAIL_EXPANSIONS_EXTRA["150"] || []),
+    ...(IA_EMERGENCY_SEEDS["153"] || []),
+    ...(IA_LONG_TAIL_EXPANSIONS["153"] || []),
+    ...(IA_LONG_TAIL_EXPANSIONS_EXTRA["153"] || []),
+    ...(IA_EMERGENCY_SEEDS["158"] || []),
+    ...(IA_LONG_TAIL_EXPANSIONS["158"] || []),
+    ...(IA_LONG_TAIL_EXPANSIONS_EXTRA["158"] || []),
+  ]),
 });
 /* These file names were verified against the IA metadata endpoint during the
    v172 soak. Carrying the known playable derivative with the recovery record
@@ -4942,6 +4967,7 @@ function orderedIaEmergencySeeds(channel, rotation) {
   const seeds = (IA_EMERGENCY_SEEDS[String(channel)] || [])
     .concat(IA_LONG_TAIL_EXPANSIONS[String(channel)] || [])
     .concat(IA_LONG_TAIL_EXPANSIONS_EXTRA[String(channel)] || [])
+    .concat(IA_PROMOTED_ARCHIVE_BANKS[String(channel)] || [])
     .map((item) => {
     const fileName = IA_LONG_TAIL_MEDIA_FILES[String(item && item.identifier || "")];
     if (!fileName || (item && item.media && item.media.url)) return item;

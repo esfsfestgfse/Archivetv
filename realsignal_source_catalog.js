@@ -115,7 +115,7 @@ function normalizedProfile(body) {
     queries: list(approved.queries, queryLimit),
     queryWindow: Math.max(1, Math.min(SOURCE_MAX_QUERY_WINDOW, Number(approved.queryWindow) || SOURCE_QUERY_WINDOW)),
     peerTubeQueryWindow: Math.max(1, Math.min(SOURCE_MAX_QUERY_WINDOW, Number(approved.peerTubeQueryWindow) || Number(approved.queryWindow) || SOURCE_QUERY_WINDOW)),
-    peerTubeInstanceLimit: Math.max(2, Math.min(8, Number(approved.peerTubeInstanceLimit) || 8)),
+    peerTubeInstanceLimit: Math.max(1, Math.min(8, Number(approved.peerTubeInstanceLimit) || 8)),
     peerTubeDetailLimit: Math.max(SOURCE_MIN_READY, Math.min(32, Number(approved.peerTubeDetailLimit) || 32)),
     peerTubeFallbackQueryWindow: Math.max(1, Math.min(SOURCE_MAX_QUERY_WINDOW, Number(approved.peerTubeFallbackQueryWindow) || SOURCE_QUERY_WINDOW)),
     match: list(approved.match, 40),
@@ -126,6 +126,7 @@ function normalizedProfile(body) {
     formatRelaxed: approved.formatRelaxed === true,
     persistedRelaxed: approved.persistedRelaxed === true,
     persistedMatch: list(approved.persistedMatch, 24),
+    peerTubeInstances: list(approved.peerTubeInstances, 8),
     providers: list(approved.providers, 2).map((value) => value.toLowerCase()),
   };
 }
@@ -313,8 +314,12 @@ function peerTubeInstances(env, profile) {
   const values = (configured ? configured.split(",") : SOURCE_DEFAULT_INSTANCES).map((value) => {
     try { return new URL(value.trim()).origin; } catch (_) { return ""; }
   }).filter((value, index, all) => value && all.indexOf(value) === index);
-  const limit = Math.max(2, Math.min(8, Number(profile && profile.peerTubeInstanceLimit) || 8));
-  return values.slice(0, limit);
+  const preferred = (profile && Array.isArray(profile.peerTubeInstances) ? profile.peerTubeInstances : []).map((value) => {
+    try { return new URL(value).origin; } catch (_) { return ""; }
+  }).filter((value, index, all) => value && all.indexOf(value) === index);
+  const pool = preferred.length ? preferred : values;
+  const limit = Math.max(1, Math.min(8, Number(profile && profile.peerTubeInstanceLimit) || 8));
+  return pool.slice(0, limit);
 }
 
 function peerTubeFile(detail) {

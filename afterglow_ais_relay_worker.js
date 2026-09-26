@@ -87,9 +87,9 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
    the larger strict budget for named/genre-locked stations and a smaller one
    for broad stations so depth grows without bringing the old synchronous
    warmup back onto the channel-change path. */
-const IA_STRICT_CATALOG_CANDIDATE_MAX = 96;
-const IA_CATALOG_CANDIDATE_MAX = 72;
-const IA_CATALOG_BUDGET_VERSION = "catalog-96-72-deep-harvest-v3";
+const IA_STRICT_CATALOG_CANDIDATE_MAX = 128;
+const IA_CATALOG_CANDIDATE_MAX = 96;
+const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v4";
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
@@ -101,7 +101,7 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-96-72-deep-harvest-v3";
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v114";
+const IA_QUEUE_CACHE_VERSION = "v115";
 /* Last-good shelves share the v101 namespace so an older shallow shelf
    never masks the repaired episode-level catalog. */
 const IA_LAST_GOOD_CACHE_VERSION = "v113";
@@ -109,7 +109,7 @@ const IA_LAST_GOOD_CACHE_VERSION = "v113";
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
    still catching up. */
-const IA_FRESHNESS_CANDIDATE_FLOOR = 24;
+const IA_FRESHNESS_CANDIDATE_FLOOR = 32;
 const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
 /* The queue is allowed to be warm, but the opening program must not be warm
    forever. Keep a small durable history per channel so a reload, second
@@ -171,16 +171,16 @@ const IA_BACKGROUND_FALLBACK_LANES = 1;
 /* Container manifests can be large. They are valuable for episode variety but
    are never permitted to multiply the work of a foreground channel change. */
 const IA_FOREGROUND_CONTAINER_EXPANSIONS = 0;
-const IA_BACKGROUND_CONTAINER_EXPANSIONS = 6;
+const IA_BACKGROUND_CONTAINER_EXPANSIONS = 8;
 const IA_CONTAINER_EXPANSION_CONCURRENCY = 2;
 /* A complete-series manifest can contain hundreds of playable files. Sample
    across the whole manifest instead of rejecting a large collection or taking
    only its first couple of episodes. The rolling shelf remains bounded by the
    channel catalog budget below. */
-const IA_MAX_EXPANDED_FILES = 720;
-const IA_BACKGROUND_COLLECTION_EPISODES_PER_PARENT = 16;
-const IA_BACKGROUND_PLAYABLE_TARGET = 36;
-const IA_DEPTH_PLAYABLE_TARGET = 48;
+const IA_MAX_EXPANDED_FILES = 1200;
+const IA_BACKGROUND_COLLECTION_EPISODES_PER_PARENT = 20;
+const IA_BACKGROUND_PLAYABLE_TARGET = 48;
+const IA_DEPTH_PLAYABLE_TARGET = 72;
 /* A full-directory tune burst can arrive when a guide, television, and phone
    all ask for cold shelves together. Keep the foreground path to one Archive
    discovery rail; reserve rails still run behind the first frame. */
@@ -4679,7 +4679,7 @@ function queueRotationPage(rotation, lane, channel = "", background = false) {
      stays fast, while deterministic channel/lane seeding gives each rotation
      a different page window without making cache keys nondeterministic. */
   const pageCount = background
-    ? (iaDepthRecoveryEnabled(channel) ? 24 : 16)
+    ? (iaDepthRecoveryEnabled(channel) ? 32 : 24)
     : (iaDepthRecoveryEnabled(channel) ? 6 : 3);
   let seed = Math.abs(Number(rotation) || 0) * 7 + Number(lane || 0) * 3;
   const key = String(channel || "");

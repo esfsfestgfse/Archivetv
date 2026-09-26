@@ -13,7 +13,7 @@ function check(ok, message) {
   if (!ok) failures.push(message);
 }
 
-check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v106"/.test(relay), 'deep harvest invalidates the prior queue namespace');
+check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v107"/.test(relay), 'deep harvest invalidates the prior queue namespace');
 check(/IA_STRICT_CATALOG_CANDIDATE_MAX\s*=\s*96/.test(relay) && /IA_CATALOG_CANDIDATE_MAX\s*=\s*72/.test(relay), 'every IA lane receives a larger rolling catalog budget');
 check(/IA_FRESHNESS_CANDIDATE_FLOOR\s*=\s*24/.test(relay) && /IA_FRESHNESS_LEDGER_MAX\s*=\s*32/.test(relay), 'freshness history is large enough to cover several shelves');
 check(/IA_BACKGROUND_COLLECTION_EPISODES_PER_PARENT\s*=\s*10/.test(relay) && /IA_BACKGROUND_CONTAINER_EXPANSIONS\s*=\s*6/.test(relay), 'container harvesting covers multiple parents and episode positions');

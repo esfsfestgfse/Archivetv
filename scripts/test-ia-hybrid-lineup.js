@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-/* Version 4 hybrid lineup guard: era lanes must be present and identical on
-   desktop/mobile without colliding with existing live-data channel numbers. */
+/* Version 4 retirement guard: the experimental decade profiles may remain
+   dormant for catalog research, but their channel numbers must not return to
+   the public desktop/mobile lineup until their metadata problem is solved. */
 const fs = require('node:fs');
 const path = require('node:path');
 
@@ -27,12 +28,8 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
   for (const station of blueprints) {
     const gl = station.stationKey.replace(/-/g, '_');
     const record = records.find((match) => match[2] === String(station.channel));
-    if (!record) issues.push(`${file}: missing channel ${station.channel} (${station.name})`);
-    else {
-      if (record[1] !== station.name) issues.push(`${file}: channel ${station.channel} name mismatch`);
-      if (record[3] !== gl) issues.push(`${file}: channel ${station.channel} query profile mismatch`);
-      if (!html.includes(`${gl}:`)) issues.push(`${file}: missing query profile ${gl}`);
-    }
+    if (record) issues.push(`${file}: retired decade channel ${station.channel} (${station.name}) is still public`);
+    if (!html.includes(`${gl}:`)) issues.push(`${file}: dormant query profile ${gl} was removed unexpectedly`);
   }
 }
 

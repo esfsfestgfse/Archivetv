@@ -36,7 +36,10 @@ const IA_ROTATION_REFILL_LANES = new Set(["915"]);
    the background repair path when D1 has no usable row. */
 /* V3 telemetry can promote a lane here only after production evidence shows
    repeated fallback/slow switching while D1 already has verified media. */
-const IA_FAST_CATALOG_LANES = new Set(["56", "64", "154", "205", "222", "922"]);
+const IA_FAST_CATALOG_LANES = new Set([
+  /* Verified D1 shelves keep cold tunes off the shared Archive burst path. */
+  "10", "11", "12", "56", "64", "110", "150", "154", "158", "205", "222", "922",
+]);
 const IA_CANONICAL_PILOT_VALUES = new Set(["1", "true", "on", "pilot"]);
 const IA_CANONICAL_PROFILE_BY_CHANNEL = new Map(Object.values(IA_CANONICAL_PILOT_PROFILES).map((profile) => [String(profile.channel), profile.profileKey]));
 /* A relay response can be playable while still being too shallow for a

@@ -101,10 +101,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-96-72-deep-harvest-v2";
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v105";
+const IA_QUEUE_CACHE_VERSION = "v106";
 /* Last-good shelves share the v101 namespace so an older shallow shelf
    never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v105";
+const IA_LAST_GOOD_CACHE_VERSION = "v106";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -1198,10 +1198,10 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
   ],
   "150": [
     { identifier: "merrie-melodies-quero-ser-marujo-i-wanna-be-a-sailor-1937-hd-pt-br", title: "Merrie Melodies — I Wanna Be a Sailor (1937)", subject: "classic cartoons looney tunes merrie melodies animation", year: 1937, media: { type: "video", url: "https://archive.org/download/merrie-melodies-quero-ser-marujo-i-wanna-be-a-sailor-1937-hd-pt-br/Merrie%20Melodies%20-%20Quero%20Ser%20Marujo%20%28I%20Wanna%20Be%20a%20Sailor%2C%201937%29%20HD%2C%20PT-BR.mp4" } },
-    { identifier: "walky-talky-hawky-1946", title: "Merrie Melodies — Walky Talky Hawky (1946)", subject: "classic cartoons looney tunes merrie melodies animation", year: 1946 },
-    { identifier: "the-wabbit-who-came-to-supper-1942_202605", title: "The Wabbit Who Came to Supper (1942)", subject: "classic cartoons looney tunes bugs bunny animation", year: 1942 },
-    { identifier: "merrie-melodies-a-day-at-the-zoo-1939", title: "Merrie Melodies — A Day at the Zoo (1939)", subject: "classic cartoons looney tunes merrie melodies animation", year: 1939 },
-    { identifier: "the-country-mouse-1935", title: "The Country Mouse (1935)", subject: "classic cartoons theatrical cartoon golden age animation", year: 1935 },
+    iaDirectRecovery("walky-talky-hawky-1946::Walky Talky Hawky (1946).mp4", "walky-talky-hawky-1946", "Walky Talky Hawky (1946).mp4", "Merrie Melodies — Walky Talky Hawky (1946)", "classic cartoons looney tunes merrie melodies animation", 1946),
+    iaDirectRecovery("the-wabbit-who-came-to-supper-1942_202605::The Wabbit Who Came to Supper (1942).mp4", "the-wabbit-who-came-to-supper-1942_202605", "The Wabbit Who Came to Supper (1942).mp4", "The Wabbit Who Came to Supper (1942)", "classic cartoons looney tunes bugs bunny animation", 1942),
+    iaDirectRecovery("merrie-melodies-a-day-at-the-zoo-1939::Merrie Melodies - A Day at the Zoo (1939).mp4", "merrie-melodies-a-day-at-the-zoo-1939", "Merrie Melodies - A Day at the Zoo (1939).mp4", "Merrie Melodies — A Day at the Zoo (1939)", "classic cartoons looney tunes merrie melodies animation", 1939),
+    iaDirectRecovery("the-country-mouse-1935::The Country Mouse (1935).ia.mp4", "the-country-mouse-1935", "The Country Mouse (1935).ia.mp4", "The Country Mouse (1935)", "classic cartoons theatrical cartoon golden age animation", 1935),
   ],
   "13": [
     { identifier: "walls-french-coffee-ice-cream-ad", title: "Wall's French Coffee Ice Cream Ad", subject: "vintage television commercial video advertisement", year: 1960, media: { type: "video", url: "https://archive.org/download/walls-french-coffee-ice-cream-ad/Wall%27s%20French%20Coffee%20Ice%20Cream%20Ad.mp4" } },

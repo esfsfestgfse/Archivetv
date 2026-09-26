@@ -12,7 +12,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "4.0.17-live-ship-admission";
+const V3_RELEASE = "4.0.18-live-data-control-room";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -1116,7 +1116,48 @@ async function handleHealthSummary(request, env) {
   const limit = Math.max(1, Math.min(100, Number(url.searchParams.get("limit")) || 40));
   const hours = Math.max(1, Math.min(168, Number(url.searchParams.get("hours")) || 24));
   const since = Date.now() - (hours * 60 * 60 * 1000);
-  const channelQuery = env.realsignal_catalog.prepare(`SELECT channel_key, samples, first_frame_count, CASE WHEN first_frame_count>0 THEN ROUND(first_frame_total_ms/first_frame_count) ELSE NULL END AS first_frame_avg_ms, first_frame_last_ms, switch_count, CASE WHEN switch_count>0 THEN ROUND(switch_total_ms/switch_count) ELSE NULL END AS switch_avg_ms, switch_last_ms, guide_count, CASE WHEN guide_count>0 THEN ROUND(guide_total_ms/guide_count) ELSE NULL END AS guide_avg_ms, queue_samples, CASE WHEN queue_samples>0 THEN ROUND(queue_total_depth/queue_samples) ELSE NULL END AS queue_avg_depth, queue_last_depth, repeats, skips, stalls, failures, recoveries, last_status, last_seen_at FROM channel_health WHERE last_seen_at>=? ORDER BY failures DESC, stalls DESC, repeats DESC, last_seen_at DESC LIMIT ?`).bind(since, limit).all();
+  /* Summary windows must be calculated from events inside the requested period.
+     Filtering cumulative channel_health rows by last_seen_at made one old outlier
+     poison every later 24-hour report. The lifetime scorecard remains available at
+     /health/channels; this endpoint now means exactly what windowHours says. */
+  const channelQuery = env.realsignal_catalog.prepare(`WITH recent AS (
+    SELECT channel_key, event_type, value_ms, queue_depth, created_at
+    FROM playback_events
+    WHERE created_at>=?
+  ), aggregated AS (
+    SELECT channel_key,
+      COUNT(*) AS samples,
+      SUM(CASE WHEN event_type='first-visible-frame' AND value_ms IS NOT NULL THEN 1 ELSE 0 END) AS first_frame_count,
+      ROUND(AVG(CASE WHEN event_type='first-visible-frame' THEN value_ms END)) AS first_frame_avg_ms,
+      SUM(CASE WHEN event_type='tune-complete' AND value_ms IS NOT NULL THEN 1 ELSE 0 END) AS switch_count,
+      ROUND(AVG(CASE WHEN event_type='tune-complete' THEN value_ms END)) AS switch_avg_ms,
+      SUM(CASE WHEN event_type IN ('guide-open','guide-close') AND value_ms IS NOT NULL THEN 1 ELSE 0 END) AS guide_count,
+      ROUND(AVG(CASE WHEN event_type IN ('guide-open','guide-close') THEN value_ms END)) AS guide_avg_ms,
+      SUM(CASE WHEN event_type='queue-sample' AND queue_depth IS NOT NULL THEN 1 ELSE 0 END) AS queue_samples,
+      ROUND(AVG(CASE WHEN event_type='queue-sample' THEN queue_depth END), 1) AS queue_avg_depth,
+      SUM(CASE WHEN event_type='repeat' THEN 1 ELSE 0 END) AS repeats,
+      SUM(CASE WHEN event_type='control' THEN 1 ELSE 0 END) AS skips,
+      SUM(CASE WHEN event_type='stall' THEN 1 ELSE 0 END) AS stalls,
+      SUM(CASE WHEN event_type IN ('media-error','tune-failed','startup-timeout','source-recovery-failed') THEN 1 ELSE 0 END) AS failures,
+      SUM(CASE WHEN event_type IN ('source-recovery','source-success') THEN 1 ELSE 0 END) AS recoveries,
+      MAX(created_at) AS last_seen_at
+    FROM recent GROUP BY channel_key
+  ), latest AS (
+    SELECT channel_key, event_type, value_ms, queue_depth,
+      ROW_NUMBER() OVER (PARTITION BY channel_key, event_type ORDER BY created_at DESC) AS rn
+    FROM recent
+    WHERE event_type IN ('first-visible-frame','tune-complete','guide-open','guide-close','queue-sample')
+  )
+  SELECT a.*,
+    MAX(CASE WHEN l.event_type='first-visible-frame' AND l.rn=1 THEN l.value_ms END) AS first_frame_last_ms,
+    MAX(CASE WHEN l.event_type='tune-complete' AND l.rn=1 THEN l.value_ms END) AS switch_last_ms,
+    MAX(CASE WHEN l.event_type IN ('guide-open','guide-close') AND l.rn=1 THEN l.value_ms END) AS guide_last_ms,
+    MAX(CASE WHEN l.event_type='queue-sample' AND l.rn=1 THEN l.queue_depth END) AS queue_last_depth,
+    '' AS last_status
+  FROM aggregated a LEFT JOIN latest l ON l.channel_key=a.channel_key
+  GROUP BY a.channel_key
+  ORDER BY a.failures DESC, a.stalls DESC, a.repeats DESC, a.last_seen_at DESC
+  LIMIT ?`).bind(since, limit).all();
   const sourceQuery = env.realsignal_catalog.prepare(`SELECT source_key, successes, failures, cooldown_until, last_error, updated_at FROM source_health WHERE updated_at>=? ORDER BY failures DESC, successes DESC, updated_at DESC LIMIT 100`).bind(since).all();
   const surfaceQuery = env.realsignal_catalog.prepare(`SELECT surface, cast_connected, COUNT(*) AS events, SUM(CASE WHEN event_type='first-visible-frame' THEN 1 ELSE 0 END) AS frames, SUM(CASE WHEN event_type IN ('media-error','tune-failed','startup-timeout','source-recovery-failed') THEN 1 ELSE 0 END) AS failures FROM playback_events WHERE created_at>=? GROUP BY surface, cast_connected ORDER BY events DESC`).bind(since).all();
   const totalsQuery = env.realsignal_catalog.prepare(`SELECT COUNT(*) AS events, SUM(CASE WHEN event_type='first-visible-frame' THEN 1 ELSE 0 END) AS frames, SUM(CASE WHEN event_type IN ('media-error','tune-failed','startup-timeout','source-recovery-failed') THEN 1 ELSE 0 END) AS failures, SUM(CASE WHEN event_type='repeat' THEN 1 ELSE 0 END) AS repeats, SUM(CASE WHEN event_type='stall' THEN 1 ELSE 0 END) AS stalls, SUM(CASE WHEN event_type='source-recovery' THEN 1 ELSE 0 END) AS recoveries FROM playback_events WHERE created_at>=?`).bind(since).first();

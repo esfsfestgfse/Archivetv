@@ -98,12 +98,38 @@
   }
   function observeMedia(node){
     if(!telemetryOn||!node||node.dataset.release2Observed)return;
-    node.dataset.release2Observed='1';var started=activeTune?activeTune.at:stamp(),first=false;
-    function frame(){if(first)return;if(node.tagName==='VIDEO'&&(!node.videoWidth||node.readyState<2))return;first=true;var key=currentProgramKey(),prior=false,depth=queueDepth();if(key){prior=seenPrograms.some(function(entry){return entry.key===key&&entry.tune!==((activeTune&&activeTune.seq)||0);});if(!seenPrograms.some(function(entry){return entry.key===key&&entry.tune===((activeTune&&activeTune.seq)||0);}))seenPrograms.push({key:key,tune:(activeTune&&activeTune.seq)||0});if(seenPrograms.length>250)seenPrograms.shift();}push({type:'first-visible-frame',channel:activeTune&&activeTune.channel||0,media:node.tagName.toLowerCase(),ms:Math.max(0,stamp()-started),programKey:key,repeat:prior,queueDepth:depth});if(Number.isFinite(depth))push({type:'queue-sample',channel:activeTune&&activeTune.channel||0,depth:depth,reason:'first-frame'});if(prior)push({type:'repeat',channel:activeTune&&activeTune.channel||0,programKey:key});}
-    ['playing','loadeddata','load'].forEach(function(type){node.addEventListener(type,frame,{passive:true});});
-    node.addEventListener('stalled',function(){push({type:'stall',channel:activeTune&&activeTune.channel||0,media:node.tagName.toLowerCase()});},{passive:true});
-    node.addEventListener('error',function(){push({type:'media-error',channel:activeTune&&activeTune.channel||0,media:node.tagName.toLowerCase()});},{passive:true});
-    if(node.tagName==='VIDEO'&&node.readyState>=2)frame();
+    node.dataset.release2Observed='1';
+    var tune=activeTune?{at:activeTune.at,channel:activeTune.channel,seq:activeTune.seq}:{at:stamp(),channel:currentTelemetryChannel(),seq:0},first=false,framePending=false;
+    function visible(){
+      if(node.tagName==='AUDIO')return true;
+      if(document.hidden||!node.isConnected)return false;
+      var rect=node.getBoundingClientRect(),style=getComputedStyle(node);
+      return rect.width>1&&rect.height>1&&style.display!=='none'&&style.visibility!=='hidden'&&Number(style.opacity||1)>0;
+    }
+    function frame(evidence){
+      if(first||!visible())return;
+      if(node.tagName==='VIDEO'&&(!node.videoWidth||node.readyState<2))return;
+      if(tune.seq&&activeTune&&activeTune.seq!==tune.seq)return;
+      first=true;var key=currentProgramKey(),prior=false,depth=queueDepth();
+      if(key){prior=seenPrograms.some(function(entry){return entry.key===key&&entry.tune!==tune.seq;});if(!seenPrograms.some(function(entry){return entry.key===key&&entry.tune===tune.seq;}))seenPrograms.push({key:key,tune:tune.seq});if(seenPrograms.length>250)seenPrograms.shift();}
+      push({type:'first-visible-frame',channel:tune.channel||0,media:node.tagName.toLowerCase(),ms:Math.max(0,stamp()-tune.at),programKey:key,repeat:prior,queueDepth:depth,source:evidence||'visible-media'});
+      if(Number.isFinite(depth))push({type:'queue-sample',channel:tune.channel||0,depth:depth,reason:'first-frame'});
+      if(prior)push({type:'repeat',channel:tune.channel||0,programKey:key});
+    }
+    function requestVisibleVideoFrame(){
+      if(first||framePending||node.tagName!=='VIDEO')return;
+      framePending=true;
+      if(typeof node.requestVideoFrameCallback==='function')node.requestVideoFrameCallback(function(){framePending=false;frame('video-rvfc');});
+      else requestAnimationFrame(function(){requestAnimationFrame(function(){framePending=false;frame('video-paint-fallback');});});
+    }
+    if(node.tagName==='VIDEO'){
+      node.addEventListener('playing',requestVisibleVideoFrame,{passive:true});
+      node.addEventListener('loadeddata',requestVisibleVideoFrame,{passive:true});
+      if(node.readyState>=2&&!node.paused)requestVisibleVideoFrame();
+    }else if(node.tagName==='IFRAME')node.addEventListener('load',function(){requestAnimationFrame(function(){frame('iframe-load');});},{passive:true});
+    else node.addEventListener('playing',function(){frame('audio-playing');},{passive:true});
+    node.addEventListener('stalled',function(){push({type:'stall',channel:tune.channel||0,media:node.tagName.toLowerCase()});},{passive:true});
+    node.addEventListener('error',function(){push({type:'media-error',channel:tune.channel||0,media:node.tagName.toLowerCase()});},{passive:true});
   }
   function formatMs(value){return Number.isFinite(value)?Math.round(value)+' ms':'—';}
   function renderHealthView(){
@@ -139,7 +165,7 @@
   }
   function installTelemetry(){
     var node=document.createElement('script');node.type='application/json';node.id='rs-release2-telemetry';node.hidden=true;document.body.appendChild(node);
-    window.__rsRelease2Telemetry={report:report,summary:summary,status:deviceStatus,lanes:laneRows,render:renderHealthView,clear:function(){report.events.length=0;report.channelStats={};seenPrograms.length=0;try{localStorage.removeItem(STORAGE_KEY);}catch(_){ }push({type:'cleared'});},json:function(){return JSON.stringify({report:report,summary:summary(),weakest:laneRows()},null,2);}};
+    window.__rsRelease2Telemetry={report:report,summary:summary,status:deviceStatus,lanes:laneRows,render:renderHealthView,record:push,clear:function(){report.events.length=0;report.channelStats={};seenPrograms.length=0;try{localStorage.removeItem(STORAGE_KEY);}catch(_){ }push({type:'cleared'});},json:function(){return JSON.stringify({report:report,summary:summary(),weakest:laneRows()},null,2);}};
     installHealthControls();installGuideObserver();
     var baseOpen=window.openGuide,baseClose=window.closeGuide;
     if(typeof baseOpen==='function'&&!baseOpen.__release2Wrapped){window.openGuide=function(){pendingGuide={action:'open',at:stamp()};return baseOpen.apply(this,arguments);};window.openGuide.__release2Wrapped=true;}

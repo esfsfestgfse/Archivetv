@@ -14,6 +14,8 @@ function check(ok, message) {
 
 check(runtime.includes('window.__rsRelease2Telemetry'), 'Release 2 telemetry API exists');
 check(runtime.includes('first-visible-frame'), 'First visible frame measurement exists');
+check(runtime.includes('requestVideoFrameCallback') && runtime.includes('video-rvfc'), 'Video first-frame timing waits for a composited frame');
+check(runtime.includes("record:push") && runtime.includes('getBoundingClientRect'), 'Telemetry accepts receiver evidence and rejects hidden media');
 check(runtime.includes('uniquePrograms') && runtime.includes("type==='repeat'"), 'Repeat and unique-program measurement exists');
 check(runtime.includes('source-recovery'), 'Source recovery measurement exists');
 check(runtime.includes('guideOpenP50') && runtime.includes('guideCloseP50'), 'Guide open/close measurement exists');
@@ -56,7 +58,11 @@ for (const file of builds) {
   const gearHead = gearHeadStart >= 0 && gearHeadEnd > gearHeadStart ? html.slice(gearHeadStart, gearHeadEnd) : '';
   check(gearHead.includes("jay leno's garage") && gearHead.includes('jay leno car show') && gearHead.includes("leno's garage"), `${file}: Gear Head prioritizes Jay Leno automotive programming`);
   check(gearHead.includes('the tonight show') && gearHead.includes('talk show') && gearHead.includes('monologue'), `${file}: Gear Head rejects Jay Leno late-night/talk-show bleed`);
-  check(/var onAirById=\{\};[\s\S]*?if\(e\)\{ onAirById\[String\(id\)\]=e; \}/.test(html), `${file}: sports EPG live-now index is populated before sorting`);
+  check(html.includes('sportsEpgById={}') && html.includes('function trustedSportsLive(c)') && html.includes('data-sports-live-mode="live"'), `${file}: sports EPG state survives rerenders and exposes a verified Live Now filter`);
+  check(html.includes('function todayEventState(status,when)') && html.includes('/postpon|cancel|abandon|suspend|no contest|delayed/'), `${file}: stale and invalid sports events are excluded from Live Now`);
+  check(html.includes('class="ship-map-panel"') && html.includes('class="ship-data-panel"') && html.includes('min-width:44px!important'), `${file}: Ship Tracker has a stacked touch layout with 44px map controls`);
+  check(html.includes('aria-label="Pan water map north"') && html.includes('Interactive water map. Drag or use arrow keys'), `${file}: water map has labeled touch and keyboard controls`);
+  check(html.includes('cast-receiver-ack') && html.includes('REALSIGNAL_CAST_OK'), `${file}: Cast receiver playback contributes first-frame telemetry`);
   check(html.includes('var queuePending=refillIAQueue(ch,sl,1)'), `${file}: active IA tune requests one candidate first`);
   check(html.includes('var IA_READY_TARGET=3'), `${file}: rolling IA shelf keeps one active plus two hot replacements`);
   check(html.includes('followCount=ask===1?IA_READY_TARGET:ask'), `${file}: IA refill promotes exactly two replacements after the active item`);

@@ -16,7 +16,7 @@ const { pathToFileURL } = require('node:url');
           bind(...args) {
             return {
               async all() {
-                if (/FROM channel_health/.test(sql)) return { results: [{ channel_key: '12', failures: 0, first_frame_avg_ms: 420, queue_avg_depth: 8 }] };
+                if (/FROM channel_health/.test(sql) || /WITH recent AS/.test(sql)) return { results: [{ channel_key: '12', failures: 0, first_frame_avg_ms: 420, queue_avg_depth: 8 }] };
                 if (/FROM programs/.test(sql)) return { results: [{ id: 'p1', title: 'Verified Program', provider: 'Internet Archive', media_url: 'https://archive.org/download/p1/p1.mp4', last_seen_at: Date.now(), channel_key: args[0], catalog_depth: 17, unseen_count: 12 }] };
                 return { results: [] };
               },
@@ -34,7 +34,7 @@ const { pathToFileURL } = require('node:url');
   assert.equal(health.status, 200);
   const healthBody = await health.json();
   assert.equal(healthBody.apiVersion, 'v3');
-  assert.equal(healthBody.release, '4.0.17-live-ship-admission');
+  assert.equal(healthBody.release, '4.0.18-live-data-control-room');
   assert.ok(healthBody.capabilities.includes('server-telemetry'));
   assert.ok(healthBody.capabilities.includes('verified-guide'));
 

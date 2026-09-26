@@ -101,7 +101,7 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v4";
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v115";
+const IA_QUEUE_CACHE_VERSION = "v116";
 /* Last-good shelves share the v101 namespace so an older shallow shelf
    never masks the repaired episode-level catalog. */
 const IA_LAST_GOOD_CACHE_VERSION = "v113";
@@ -233,7 +233,7 @@ function iaStrictRecoveryEnabled(channel) {
 const IA_DEPTH_RECOVERY_CHANNELS = new Set([
   "3", "10", "13", "14", "17", "18", "19", "21", "60", "61", "62", "64", "66", "68", "70", "74", "75", "76", "77", "81",
   "100", "101", "102", "105", "106", "107", "108", "111", "114", "115", "117", "118", "120", "124", "125", "126", "127", "128", "129", "130", "131", "132", "154", "205", "222", "922",
-  "72", "83", "104", "122", "202", "203", "204", "206", "209", "211", "212", "213", "214", "220", "223", "224", "228", "231", "235", "239", "240", "501", "502", "511", "700", "702", "703", "704", "705", "706", "901", "906", "907", "909", "914", "916", "918", "920", "921", "923", "927", "929"
+  "72", "83", "104", "122", "202", "203", "204", "206", "209", "210", "211", "212", "213", "214", "220", "223", "224", "227", "228", "231", "235", "239", "240", "501", "502", "511", "700", "702", "703", "704", "705", "706", "901", "906", "907", "909", "914", "916", "918", "920", "921", "923", "927", "929"
 ].filter(Boolean));
 function iaDepthRecoveryEnabled(channel) {
   return IA_DEPTH_RECOVERY_CHANNELS.has(String(channel));
@@ -268,7 +268,7 @@ const IA_CONFIRMED_REPAIR_CHANNELS = new Set([
   "15", "18", "21", "61", "79", "80", "114", "203", "214", "215", "225", "231", "501", "502", "507", "903", "904", "914", "915", "921", "929",
   /* v4.5 full-soak repeatability: these lanes remained shallow after the
      server-side catalog merge and need the same measured four-rail rescue. */
-  "213", "230", "236",
+  "213", "230", "236", "210", "227",
 ]);
 for (const channel of IA_CONFIRMED_REPAIR_CHANNELS) {
   IA_STABLE_RESCUE_CHANNELS.add(channel);
@@ -281,7 +281,7 @@ for (const channel of IA_CONFIRMED_REPAIR_CHANNELS) {
    supplemental rails settle for a bounded extra window; every other channel
    retains the 900ms fast path. */
 const IA_ADAPTIVE_DEPTH_GRACE_CHANNELS = new Set([
-  "15", "18", "21", "61", "114", "150", "158", "203", "213", "214", "230", "236", "501", "502", "507", "704", "705", "706", "915", "921",
+  "15", "18", "21", "61", "114", "150", "158", "203", "210", "213", "214", "227", "230", "236", "501", "502", "507", "704", "705", "706", "915", "921",
 ]);
 const IA_ADAPTIVE_DEPTH_GRACE_MS = 2200;
 /* Reggae & Dub has a wide verified catalog but its secondary Archive rail is

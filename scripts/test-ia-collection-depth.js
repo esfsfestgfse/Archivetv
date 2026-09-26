@@ -47,7 +47,7 @@ for (const [channel, collection] of Object.entries(expectedRails)) {
 }
 
 const relay = fs.readFileSync(path.join(root, 'afterglow_ais_relay_worker.js'), 'utf8');
-check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v115"/.test(relay), 'Relay cache namespace is v115');
+check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v116"/.test(relay), 'Relay cache namespace is v116');
 check(/IA_PROMOTED_ARCHIVE_BANKS/.test(relay) && /"243"/.test(relay) && /"244"/.test(relay), 'Only soak-approved archive families are promoted into the new Series Vault and Cartoon Reelhouse stations');
 check(/\.concat\(IA_PROMOTED_ARCHIVE_BANKS\[String\(channel\)\] \|\| \[\]\)/.test(relay), 'Promoted archive banks use the same verified emergency shelf path');
 check(/requiredTitleTerms\.length && !titleMatches && !isExpandedEpisode\) return false/.test(relay), 'Relay enforces the strict title gate while allowing approved expanded episodes');

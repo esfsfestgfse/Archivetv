@@ -13,7 +13,7 @@ function check(ok, message) {
   if (!ok) failures.push(message);
 }
 
-check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v99"/.test(relay), 'deep harvest invalidates the prior queue namespace');
+check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v100"/.test(relay), 'deep harvest invalidates the prior queue namespace');
 check(/IA_STRICT_CATALOG_CANDIDATE_MAX\s*=\s*96/.test(relay) && /IA_CATALOG_CANDIDATE_MAX\s*=\s*72/.test(relay), 'every IA lane receives a larger rolling catalog budget');
 check(/IA_FRESHNESS_CANDIDATE_FLOOR\s*=\s*24/.test(relay) && /IA_FRESHNESS_LEDGER_MAX\s*=\s*32/.test(relay), 'freshness history is large enough to cover several shelves');
 check(/IA_BACKGROUND_COLLECTION_EPISODES_PER_PARENT\s*=\s*10/.test(relay) && /IA_BACKGROUND_CONTAINER_EXPANSIONS\s*=\s*6/.test(relay), 'container harvesting covers multiple parents and episode positions');
@@ -28,6 +28,7 @@ check(/const rotationQueries = rotation > 0/.test(relay) && /const fastQueries =
 check(/memoryNeedsFreshRotation/.test(relay) && /iaShouldBypassShallowRotation\(cachedPayload, rotation/.test(relay), 'shallow exact caches cannot mask a later fresh rotation');
 check(/function safeMinRuntimeSeconds\(/.test(relay) && /function iaRuntimeAllowed\(/.test(relay) && /minRuntimeSeconds/.test(relay), 'runtime floors are enforced before short Archive clips reach first play');
 check(/Number\(rotation\) > 0 \|\| iaDepthRecoveryEnabled\(channel\)/.test(relay), 'later rotations collect supplemental Archive rails within the bounded grace window');
+check(/const expandedEpisode = item && String\(item.identifier \|\| ""\)\.includes\("::"\)/.test(relay), 'expanded episode records can re-open their parent container for sibling harvesting');
 
 if (failures.length) {
   console.error(`IA deep-harvesting contract failed: ${failures.length} check(s)`);

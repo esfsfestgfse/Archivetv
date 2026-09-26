@@ -1679,7 +1679,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="4.0.0-mobile-hybrid-lineup";
+window.__ATV_BUILD="4.0.3-mobile-hybrid-fast-era";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -2056,23 +2056,23 @@ const G={
  sitcommodern:{mt:"movies",col:["classic_tv","television"],fcol:["vhsvault"],   subj:["sitcom","television comedy","television series","tv series"],era:[1980,2026]}, /* Modern station: 1980s through today. */
  gameshow:   {mt:"movies",col:["classic_tv","television"],fcol:["vhsvault"],     subj:["game show","quiz show","panel show","game shows"],not:FNOT,era:[1940,2026],subjRequired:true,noBlindFallback:true}, /* CYCLE-14: ONLY game shows, every era */
  /* Version 4 era stations: strict decade lanes, grouped early years, no blind fallback. */
- tv_early:   {mt:"movies",col:["classic_tv","television"],fcol:[],subj:[],era:[1930,1949],noBlindFallback:true,not:FNOT},
- tv_1950s:   {mt:"movies",col:["classic_tv","television"],fcol:[],subj:[],era:[1950,1959],noBlindFallback:true,not:FNOT},
- tv_1960s:   {mt:"movies",col:["classic_tv","television"],fcol:[],subj:[],era:[1960,1969],noBlindFallback:true,not:FNOT},
- tv_1970s:   {mt:"movies",col:["classic_tv","television"],fcol:[],subj:[],era:[1970,1979],noBlindFallback:true,not:FNOT},
- tv_1980s:   {mt:"movies",col:["classic_tv","television"],fcol:[],subj:[],era:[1980,1989],noBlindFallback:true,not:FNOT},
- tv_1990s:   {mt:"movies",col:["classic_tv","television"],fcol:[],subj:[],era:[1990,1999],noBlindFallback:true,not:FNOT},
- tv_2000s:   {mt:"movies",col:["classic_tv","television"],fcol:[],subj:[],era:[2000,2009],noBlindFallback:true,not:FNOT},
- tv_2010s:   {mt:"movies",col:["classic_tv","television"],fcol:[],subj:[],era:[2010,2026],noBlindFallback:true,not:FNOT},
- movie_early:{mt:"movies",col:[],fcol:["feature_films","feature_films_unsorted","opensource_movies"],subj:[],era:[1900,1949],noBlindFallback:true,not:FNOT},
- movie_1950s:{mt:"movies",col:[],fcol:["feature_films","feature_films_unsorted","opensource_movies"],subj:[],era:[1950,1959],noBlindFallback:true,not:FNOT},
- movie_1960s:{mt:"movies",col:[],fcol:["feature_films","feature_films_unsorted","opensource_movies"],subj:[],era:[1960,1969],noBlindFallback:true,not:FNOT},
- movie_1970s:{mt:"movies",col:[],fcol:["feature_films","feature_films_unsorted","opensource_movies"],subj:[],era:[1970,1979],noBlindFallback:true,not:FNOT},
- movie_1980s:{mt:"movies",col:[],fcol:["feature_films","feature_films_unsorted","opensource_movies"],subj:[],era:[1980,1989],noBlindFallback:true,not:FNOT},
- movie_1990s:{mt:"movies",col:[],fcol:["feature_films","feature_films_unsorted","opensource_movies"],subj:[],era:[1990,1999],noBlindFallback:true,not:FNOT},
- movie_2000s:{mt:"movies",col:[],fcol:["feature_films","feature_films_unsorted","opensource_movies"],subj:[],era:[2000,2009],noBlindFallback:true,not:FNOT},
- movie_2010s:{mt:"movies",col:[],fcol:["feature_films","feature_films_unsorted","opensource_movies"],subj:[],era:[2010,2019],noBlindFallback:true,not:FNOT},
- movie_2020s:{mt:"movies",col:[],fcol:["feature_films","feature_films_unsorted","opensource_movies"],subj:[],era:[2020,2026],noBlindFallback:true,not:FNOT},
+ tv_early:   {mt:"movies",col:["classic_tv","television"],fcol:[],subj:["classic tv","tv series","television series","classic television","tv show"],era:[1930,1949],noBlindFallback:true,not:FNOT},
+ tv_1950s:   {mt:"movies",col:["classic_tv_1950s","classic_tv","television"],fcol:[],subj:["classic tv","tv series","television series","classic television","tv show"],era:[1950,1959],noBlindFallback:true,not:FNOT},
+ tv_1960s:   {mt:"movies",col:["classic_tv_1960s","classic_tv","television"],fcol:[],subj:["classic tv","tv series","television series","classic television","tv show"],era:[1960,1969],noBlindFallback:true,not:FNOT},
+ tv_1970s:   {mt:"movies",col:["classic_tv_1970s","classic_tv","television"],fcol:[],subj:["classic tv","tv series","television series","classic television","tv show"],era:[1970,1979],noBlindFallback:true,not:FNOT},
+ tv_1980s:   {mt:"movies",col:["classic_tv_1980s","classic_tv","television"],fcol:[],subj:["classic tv","tv series","television series","classic television","tv show"],era:[1980,1989],noBlindFallback:true,not:FNOT},
+ tv_1990s:   {mt:"movies",col:["classic_tv_1990s","classic_tv","television"],fcol:[],subj:["classic tv","tv series","television series","classic television","tv show"],era:[1990,1999],noBlindFallback:true,not:FNOT},
+ tv_2000s:   {mt:"movies",col:["classic_tv_2000s","classic_tv","television"],fcol:[],subj:["classic tv","tv series","television series","classic television","tv show"],era:[2000,2009],noBlindFallback:true,not:FNOT},
+ tv_2010s:   {mt:"movies",col:["classic_tv_2010s","classic_tv","television"],fcol:[],subj:["classic tv","tv series","television series","classic television","tv show"],era:[2010,2026],noBlindFallback:true,not:FNOT},
+ movie_early:{mt:"movies",col:["feature_films","feature_films_unsorted","opensource_movies"],fcol:[],subj:["feature film","feature length film","motion picture"],era:[1900,1949],noBlindFallback:true,not:FNOT},
+ movie_1950s:{mt:"movies",col:["feature_films","feature_films_unsorted","opensource_movies"],fcol:[],subj:["feature film","feature length film","motion picture"],era:[1950,1959],noBlindFallback:true,not:FNOT},
+ movie_1960s:{mt:"movies",col:["feature_films","feature_films_unsorted","opensource_movies"],fcol:[],subj:["feature film","feature length film","motion picture"],era:[1960,1969],noBlindFallback:true,not:FNOT},
+ movie_1970s:{mt:"movies",col:["feature_films","feature_films_unsorted","opensource_movies"],fcol:[],subj:["feature film","feature length film","motion picture"],era:[1970,1979],noBlindFallback:true,not:FNOT},
+ movie_1980s:{mt:"movies",col:["feature_films","feature_films_unsorted","opensource_movies"],fcol:[],subj:["feature film","feature length film","motion picture"],era:[1980,1989],noBlindFallback:true,not:FNOT},
+ movie_1990s:{mt:"movies",col:["feature_films","feature_films_unsorted","opensource_movies"],fcol:[],subj:["feature film","feature length film","motion picture"],era:[1990,1999],noBlindFallback:true,not:FNOT},
+ movie_2000s:{mt:"movies",col:["feature_films","feature_films_unsorted","opensource_movies"],fcol:[],subj:["feature film","feature length film","motion picture"],era:[2000,2009],noBlindFallback:true,not:FNOT},
+ movie_2010s:{mt:"movies",col:["feature_films","feature_films_unsorted","opensource_movies"],fcol:[],subj:["feature film","feature length film","motion picture"],era:[2010,2019],noBlindFallback:true,not:FNOT},
+ movie_2020s:{mt:"movies",col:["feature_films","feature_films_unsorted","opensource_movies"],fcol:[],subj:["feature film","feature length film","motion picture"],era:[2020,2026],noBlindFallback:true,not:FNOT},
  computer:   {mt:"movies",col:["computerchronicles"],   fcol:[],               subj:[],                           era:[1983,2002]},
  commercials:{mt:"movies",col:["classic_tv","prelinger"],fcol:[],              subj:["television commercials","advertising","toy commercial","toy advertisement","commercial","commercials","vintage commercial","retro commercial","classic commercial","tv commercial"],era:[1948,1995]},
  blackcinema:{mt:"movies",col:[],                       fcol:["feature_films"],       subj:["race film","black cinema","oscar micheaux","all black cast","african american film","spike lee","john singleton","julie dash","charles burnett","ava duvernay","barry jenkins","ryan coogler","jordan peele","denzel washington","sidney poitier","morgan freeman"],not:FNOT,era:[1915,2026]},
@@ -6848,7 +6848,11 @@ function slotFor(ch,_ignoredHour,opts){
   if(PROGRAM[ch.nm]){
     var prog=PROGRAM[ch.nm];
     if(ch.nm==="Sports Vault"&&sportsEra!=="all"){var selectedSportsEra=SPORTS_ERAS[sportsEra]||prog.era;prog=Object.assign({},prog,{era:selectedSportsEra,eraBuckets:[selectedSportsEra]});}
-    var pq=buildProgramQueries(prog,ch,advance);
+    /* Era stations use the same compact G-profile rails as the legacy IA
+       lanes. Their PROGRAM records still supply the guide/editorial contract,
+       but the query builder adds collection-wide no-year rescue rails because
+       Archive collections frequently omit the searchable year field. */
+    var pq=ch.station==="era"?buildQuery(ch.gl,ch.era):buildProgramQueries(prog,ch,advance);
     /* The station identity is permanent. PROGRAM.show used to carry daypart
        labels such as "The Late Late Show" into unrelated channels, even after
        the clock scheduler itself was retired. Editorial lanes may shape the
@@ -7074,6 +7078,15 @@ function iaProgramAllowed(item,sl){
   if(!item||!item.identifier||banned.indexOf(item.identifier)>=0||isTemporarilySkipped(item.identifier)||blockedId(item.identifier)||iaProgramFailed(item.identifier))return false;
   var cur=(curItem&&typeof curItem==="object")?curItem.id:null;if(item.identifier===cur)return false;
   if(!sl)return true;var p=sl.program||{}, title=String(item.title||"").toLowerCase(), subj=String(item.subject||item.subjects||"").toLowerCase();
+  /* Strict Version 4 era stations may use collection-wide rescue queries when
+     Archive year metadata is sparse. Keep that rescue fast, but never allow a
+     record outside the station's declared era into the queue. Prefer the
+     normalized year, then date, then a year embedded in the title. */
+  if(/^(?:tv|movie)_/.test(String(p.genre||""))&&Array.isArray(p.era)){
+    var eraText=String(item.year||item.date||"")+" "+String(item.title||"");
+    var eraMatch=eraText.match(/\b(?:18|19|20)\d{2}\b/), eraYear=eraMatch?Number(eraMatch[0]):0;
+    if(!eraYear||eraYear<Number(p.era[0])||eraYear>Number(p.era[1]))return false;
+  }
   if(!iaThemeMatches(item,sl))return false;
   if(p.deny){if((p.deny.title||[]).some(function(x){return title.indexOf(String(x).toLowerCase())>=0;}))return false;if((p.deny.subject||[]).some(function(x){return subj.indexOf(String(x).toLowerCase())>=0;}))return false;}
   if(p.require&&p.require.title_any&&p.require.title_any.length&&!p.require.title_any.some(function(x){return title.indexOf(String(x).toLowerCase())>=0;}))return false;

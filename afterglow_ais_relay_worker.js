@@ -101,7 +101,7 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v4";
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v116";
+const IA_QUEUE_CACHE_VERSION = "v117";
 /* Last-good shelves share the v101 namespace so an older shallow shelf
    never masks the repaired episode-level catalog. */
 const IA_LAST_GOOD_CACHE_VERSION = "v113";
@@ -479,6 +479,32 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "200-UN-35-53", title: "Universal Newsreel", subject: "newsreel news broadcast", year: 1962 },
     { identifier: "UniversalNewsreelVolume35Release3905-10-1962", title: "Universal Newsreel Volume 35, Release 39, 05/10/1962", subject: "newsreel current events", year: 1962 },
     { identifier: "UniversalNewsreelVolume35Release6007-23-1962", title: "Universal Newsreel Volume 35, Release 60, 07/23/1962", subject: "newsreel television news", year: 1962 },
+    { identifier: "CSPAN3_20140927_015000_1952_Universal_Newsreel", title: "1952 Universal Newsreel", subject: "newsreel historical newsreel", year: 1952 },
+    { identifier: "CSPAN3_20141226_102900_1964_Universal_Newsreel_Atomsville_U.S.A.", title: "1964 Universal Newsreel: Atomsville U.S.A.", subject: "newsreel science newsreel", year: 1964 },
+    { identifier: "UniversalNewsreelVolume36Release9711-28-1963", title: "Universal Newsreel Volume 36, Release 97, 11/28/1963", subject: "newsreel current events", year: 1963 },
+    { identifier: "UniversalNewsreelVolume35Release7509-13-1962", title: "Universal Newsreel Volume 35, Release 75, 09/13/1962", subject: "newsreel world affairs newsreel", year: 1962 },
+    { identifier: "70712CameraThrillsOfWWII", title: "Camera Thrills of WWII", subject: "newsreel war newsreel historical newsreel", year: 1943 },
+    { identifier: "LC-49494a", title: "Gandhi Slain! Newsreel", subject: "newsreel world affairs newsreel", year: 1948 },
+    { identifier: "TwoNewCruisersJoinUSNavyEtc1943", title: "Two New Cruisers Join the U.S. Navy", subject: "newsreel wartime newsreel", year: 1943 },
+    { identifier: "CSPAN3_20141128_085800_1963_Universal_Newsreel_on_the_Opening_of_the_88th_Congress", title: "1963 Universal Newsreel: Opening of the 88th Congress", subject: "newsreel political newsreel", year: 1963 },
+    { identifier: "UniversalNewsreelVolume36Release9611-24-1963", title: "Universal Newsreel Volume 36, Release 96, 11/24/1963", subject: "newsreel current events", year: 1963 },
+    { identifier: "ADC-1663", title: "Newsreel Archive Film", subject: "newsreel historical newsreel", year: 1963 },
+  ],
+  "227": [
+    { identifier: "top-gear-complete-clarkson-hammond-may::Top Gear 07x05.mp4", title: "Top Gear — Clarkson, Hammond & May · 07x05", subject: "top gear automotive car review road test", year: 2004 },
+    { identifier: "top-gear-s21::Top Gear UK Season 21 Disc 11.mp4", title: "Top Gear UK · Season 21 Disc 11", subject: "top gear automotive car review road test", year: 2014 },
+    { identifier: "top-gear-complete-clarkson-hammond-may::Top Gear 07x06.mp4", title: "Top Gear — Clarkson, Hammond & May · 07x06", subject: "top gear automotive car review road test", year: 2004 },
+    { identifier: "save-tube.-app-top-gear-s-02-e-06-full-episode-480p", title: "Top Gear · Series 2 Episode 6", subject: "top gear automotive car review road test", year: 2003 },
+    { identifier: "vid-20230220-141735", title: "Top Gear · Automotive Special", subject: "top gear automotive car culture road test", year: 2023 },
+    { identifier: "vid-20230220-152017", title: "Top Gear · Supercars Special", subject: "top gear automotive car review road test", year: 2023 },
+    { identifier: "BBC_20010916_043000_Top_Gear", title: "Top Gear · BBC Broadcast", subject: "top gear automotive car review road test", year: 2001 },
+    { identifier: "top-gear-1977-2001", title: "Top Gear · 1977–2001 Archive", subject: "top gear automotive car history road test", year: 2001 },
+    { identifier: "tgi_20200820", title: "Top Gear · Automotive Archive", subject: "top gear automotive car culture road test", year: 2020 },
+    { identifier: "top-gear-s17-bd::TOP_GEAR_S17_D38.mp4", title: "Top Gear · Series 17 Disc 38", subject: "top gear automotive car review road test", year: 2011 },
+    { identifier: "youtube-93nFkNBbgaI", title: "Top Gear · Car Challenge", subject: "top gear automotive car challenge road test", year: 2010 },
+    { identifier: "BBC_20010914_163000_Top_Gear", title: "Top Gear · BBC Archive", subject: "top gear automotive car review road test", year: 2001 },
+    { identifier: "youtube-lEKVUIeAsbA", title: "Top Gear · Automotive Special", subject: "top gear automotive car culture road test", year: 2012 },
+    { identifier: "top-gear-04x-05-2004.06.06-m-00tv", title: "Top Gear · Series 4 Episode 5", subject: "top gear automotive car review road test", year: 2004 },
   ],
   "75": [
     { identifier: "jseALNAIRracing94ver2", title: "Xcorps TV Presents Memorial Day Sail Regatta 1994", subject: "sailing regatta water sports", year: 1994, media: { type: "video", url: "https://archive.org/download/jseALNAIRracing94ver2/jseALNAIRracing94ver2.mp4" } },

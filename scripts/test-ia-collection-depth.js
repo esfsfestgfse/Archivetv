@@ -47,7 +47,9 @@ for (const [channel, collection] of Object.entries(expectedRails)) {
 }
 
 const relay = fs.readFileSync(path.join(root, 'afterglow_ais_relay_worker.js'), 'utf8');
-check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v116"/.test(relay), 'Relay cache namespace is v116');
+check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v117"/.test(relay), 'Relay cache namespace is v117');
+check(/"210": \[/.test(relay) && /CSPAN3_20140927_015000_1952_Universal_Newsreel/.test(relay), 'News, News, News has a deeper verified newsreel recovery bank');
+check(/"227": \[/.test(relay) && /top-gear-complete-clarkson-hammond-may/.test(relay) && /BBC_20010916_043000_Top_Gear/.test(relay), 'Gear Head has a deeper verified automotive recovery bank');
 check(/IA_PROMOTED_ARCHIVE_BANKS/.test(relay) && /"243"/.test(relay) && /"244"/.test(relay), 'Only soak-approved archive families are promoted into the new Series Vault and Cartoon Reelhouse stations');
 check(/\.concat\(IA_PROMOTED_ARCHIVE_BANKS\[String\(channel\)\] \|\| \[\]\)/.test(relay), 'Promoted archive banks use the same verified emergency shelf path');
 check(/requiredTitleTerms\.length && !titleMatches && !isExpandedEpisode\) return false/.test(relay), 'Relay enforces the strict title gate while allowing approved expanded episodes');

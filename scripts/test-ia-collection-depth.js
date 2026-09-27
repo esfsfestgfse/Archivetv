@@ -47,7 +47,7 @@ for (const [channel, collection] of Object.entries(expectedRails)) {
 }
 
 const relay = fs.readFileSync(path.join(root, 'afterglow_ais_relay_worker.js'), 'utf8');
-check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v148"/.test(relay), 'Relay cache namespace is v148');
+check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v149"/.test(relay), 'Relay cache namespace is v149');
 check(/0411_Tornado_06_00_36_00::t0411_Tornado_06_00_36_00\.mp4/.test(relay) && /ShockTro1938::ShockTro1938\.mp4/.test(relay), 'News adds more direct disaster/newsreel rotation');
 check(/youtube--IJuW9rAskc::-IJuW9rAskc\.mp4/.test(relay) && /youtube-Ko9kzyqW-l8::Ko9kzyqW-l8\.mp4/.test(relay), 'Gear Head adds verified direct automotive review rotation');
 check(/top-gear-s15-bd::TOP GEAR SERIES 15 DISC 211\.mp4/.test(relay) && /top-gear-s15-bd::TOP GEAR SERIES 15 DISC 212\.mp4/.test(relay), 'Gear Head adds more direct Top Gear episode rotation');
@@ -55,6 +55,8 @@ check(/EdisonNe1906::EdisonNe1906\.mp4/.test(relay) && /SanFranc1906::SanFranc19
 check(/top-gear-s15-bd::TOP GEAR SERIES 15 DISC 218\.mp4/.test(relay) && /top-gear-s10::TOP_GEAR_SERIES_10_DISC_16\.mp4/.test(relay), 'Gear Head has direct file-level episode recovery');
 check(/"210": \[/.test(relay) && /CSPAN3_20140927_015000_1952_Universal_Newsreel/.test(relay), 'News, News, News has a deeper verified newsreel recovery bank');
 check(/"59": \[/.test(relay) && /ctncrmn-Legion_Baseball_-_Maple_Grove_vs_Coon_Rapids_6\.11\.19_Full_Game/.test(relay) && /Wareham_Gatemen_vs_Orleans_Firebirds_7-29-17/.test(relay), 'Diamond Time has verified full-game baseball recovery');
+check(/"65": \[/.test(relay) && /wfktvme-Long_Lake_Ice_Fishing_Derby_2018/.test(relay) && /upland-hunting-volume-2-pheasants-and-labs/.test(relay), 'Sporting Life has verified fishing and hunting recovery');
+check(/"225": \[/.test(relay) && /hbo-def-comedy-jam-drew-fraser-lavelle-crawford-1995-most/.test(relay) && /sinbad_afrosbellbottoms/.test(relay), 'Uptown Comedy has verified decade-spanning stand-up recovery');
 check(/IA_FULL_WINDOW_ROTATION_CHANNELS\s*=\s*new Set\(\["14", "56", "59"/.test(relay), 'Diamond Time advances by a full fresh shelf');
 check(!/IA_STRICT_RECOVERY_CHANNELS\s*=\s*new Set\(\["19", "59"/.test(relay) && /letvma-Annual_Agganis_All_Star_Baseball_Classic_June_25_2023/.test(relay), 'Diamond Time uses the rolling catalog with a ten-game verified first rail');
 check(/"227": \[/.test(relay) && /top-gear-complete-clarkson-hammond-may/.test(relay) && /BBC_20010916_043000_Top_Gear/.test(relay), 'Gear Head has a deeper verified automotive recovery bank');

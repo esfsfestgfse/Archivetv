@@ -101,10 +101,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v12-repeat-lanes"
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v148";
+const IA_QUEUE_CACHE_VERSION = "v149";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v148";
+const IA_LAST_GOOD_CACHE_VERSION = "v149";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -2187,6 +2187,31 @@ const IA_LONG_TAIL_EXPANSIONS_EXTRA = Object.freeze({
     iaDirectRecovery("letvma-Annual_Agganis_All_Star_Baseball_Classic_June_25_2023::Annual_Agganis_All_Star_Baseball_Classic_June_25_2023.mp4", "letvma-Annual_Agganis_All_Star_Baseball_Classic_June_25_2023", "Annual_Agganis_All_Star_Baseball_Classic_June_25_2023.mp4", "Annual Agganis All-Star Baseball Classic", "baseball baseball game baseball broadcast all-star baseball", 2023),
     iaDirectRecovery("mapsdwi-LEGACY_VIDEO_5-3-2011_Varsity_Baseball_vs_Wausau_West::LEGACY_VIDEO_5-3-2011_Varsity_Baseball_vs_Wausau_West.mp4", "mapsdwi-LEGACY_VIDEO_5-3-2011_Varsity_Baseball_vs_Wausau_West", "LEGACY_VIDEO_5-3-2011_Varsity_Baseball_vs_Wausau_West.mp4", "Varsity Baseball · Wausau West", "baseball baseball game baseball broadcast high school baseball", 2011),
     iaDirectRecovery("hctvvt-Boys_Varsity_Baseball_v._Harwood_APRIL_23_2026::Boys_Varsity_Baseball_v._Harwood_APRIL_23_2026.mp4", "hctvvt-Boys_Varsity_Baseball_v._Harwood_APRIL_23_2026", "Boys_Varsity_Baseball_v._Harwood_APRIL_23_2026.mp4", "Boys Varsity Baseball · Harwood", "baseball baseball game baseball broadcast high school baseball", 2026),
+  ],
+  /* v4.1.57 serial certification: Sporting Life's search rails could return
+     one approved outdoor record and then stall on the next rotation. Keep a
+     verified long-form rail spanning fishing, hunting, wilderness, and
+     sporting-dog programming so the lane has television-sized fallbacks while
+     its broader Archive catalog continues to hydrate in the background. */
+  "65": [
+    iaDirectRecovery("wfktvme-Long_Lake_Ice_Fishing_Derby_2018::Long_Lake_Ice_Fishing_Derby_2018.mp4", "wfktvme-Long_Lake_Ice_Fishing_Derby_2018", "Long_Lake_Ice_Fishing_Derby_2018.mp4", "Long Lake Ice Fishing Derby (2018)", "sport fishing fishing tournament outdoor recreation television", 2018),
+    iaDirectRecovery("denaliwilderness::denaliwilderness.mp4", "denaliwilderness", "denaliwilderness.mp4", "Denali Wilderness", "outdoor recreation wilderness hunting sport fishing television", 1982),
+    iaDirectRecovery("HuntingSeason::huntingonline_512kb.mp4", "HuntingSeason", "huntingonline_512kb.mp4", "Hunting Season", "hunting sport outdoors wildlife sportsman television", 2006),
+    iaDirectRecovery("whitetail-madness-an-unbelievable-season-2000-hunting-vhs::Whitetail Madness An Unbelievable Season 2000 hunting VHS.mp4", "whitetail-madness-an-unbelievable-season-2000-hunting-vhs", "Whitetail Madness An Unbelievable Season 2000 hunting VHS.mp4", "Whitetail Madness: An Unbelievable Season", "hunting sport whitetail deer hunting outdoors television", 2000),
+    iaDirectRecovery("the-best-of-realtrees-home-videos-1999-hunting-vhs_1::The Best of REALTREES Home Videos 1999 Hunting VHS_1.mp4", "the-best-of-realtrees-home-videos-1999-hunting-vhs_1", "The Best of REALTREES Home Videos 1999 Hunting VHS_1.mp4", "The Best of Realtree's Home Videos 1999 Hunting", "hunting sport whitetail deer hunting outdoors television", 1999),
+    iaDirectRecovery("upland-hunting-volume-2-pheasants-and-labs::Upland Hunting Volume 2 - Pheasants and Labs.mp4", "upland-hunting-volume-2-pheasants-and-labs", "Upland Hunting Volume 2 - Pheasants and Labs.mp4", "Upland Hunting: Pheasants and Labs", "hunting sport bird hunting sporting dogs outdoors television", 1990),
+  ],
+  /* v4.1.57 serial certification: Uptown Comedy's exact Archive rails were
+     intermittently empty. These verified full-length specials provide a
+     decade-spanning stand-up shelf without admitting trailers, shorts, music,
+     or general comedy search noise. */
+  "225": [
+    iaDirectRecovery("hbo-def-comedy-jam-drew-fraser-lavelle-crawford-1995-most::HBO Def Comedy Jam Drew Fraser, Lavelle Crawford (1995, most).mp4", "hbo-def-comedy-jam-drew-fraser-lavelle-crawford-1995-most", "HBO Def Comedy Jam Drew Fraser, Lavelle Crawford (1995, most).mp4", "HBO Def Comedy Jam: Drew Fraser and Lavelle Crawford", "stand-up comedy television comedy performance", 1995),
+    iaDirectRecovery("ReddFoxHBOComedySpecial1978KevinDollabillzDollabi11zRARE::Redd Fox HBO Comedy Special 1978 - kevin dollabillz dollabi11z RARE.mp4", "ReddFoxHBOComedySpecial1978KevinDollabillzDollabi11zRARE", "Redd Fox HBO Comedy Special 1978 - kevin dollabillz dollabi11z RARE.mp4", "Redd Foxx HBO Comedy Special (1978)", "stand-up comedy television comedy performance", 1978),
+    iaDirectRecovery("katt-williams-let-a-player-play-live-2006::Katt Williams - Let A Player Play (Live 2006).mp4", "katt-williams-let-a-player-play-live-2006", "Katt Williams - Let A Player Play (Live 2006).mp4", "Katt Williams: Let a Playa Play", "stand-up comedy television comedy performance", 2006),
+    iaDirectRecovery("george-carlin-back-in-town-1996-hbo-comedy-hour-full-live-classic-stand-up-routine-special::George Carlin Back In Town  1996 HBO Comedy Hour Full LIVE Classic Stand Up Routine Special.mp4", "george-carlin-back-in-town-1996-hbo-comedy-hour-full-live-classic-stand-up-routine-special", "George Carlin Back In Town  1996 HBO Comedy Hour Full LIVE Classic Stand Up Routine Special.mp4", "George Carlin: Back in Town", "stand-up comedy television comedy performance", 1996),
+    iaDirectRecovery("peter-kay-live-at-the-bolton-albert-halls-2003-uk-vhs::Peter Kay Live at the Bolton Albert Halls (2003 UK VHS).mp4", "peter-kay-live-at-the-bolton-albert-halls-2003-uk-vhs", "Peter Kay Live at the Bolton Albert Halls (2003 UK VHS).mp4", "Peter Kay Live at the Bolton Albert Halls", "stand-up comedy television comedy performance", 2003),
+    iaDirectRecovery("sinbad_afrosbellbottoms::Sinbad - Afros & Bellbottoms (1428)(Prism Entertainment Corporation)(1993).mp4", "sinbad_afrosbellbottoms", "Sinbad - Afros & Bellbottoms (1428)(Prism Entertainment Corporation)(1993).mp4", "Sinbad: Afros & Bellbottoms", "stand-up comedy television comedy performance", 1993),
   ],
   "10": [
     iaDirectRecovery("theloneranger_201705::s01e01_EntertheLoneRanger.mp4", "theloneranger_201705", "s01e01_EntertheLoneRanger.mp4", "The Lone Ranger · Enter the Lone Ranger", "classic television western television series", 1949),

@@ -1551,7 +1551,10 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
    without losing the real Archive download path. */
 function iaDirectRecovery(identifier, sourceIdentifier, fileName, title, subject, year, type = "video") {
   const url = queueFileUrls(sourceIdentifier, {}, fileName)[0];
-  return { identifier, sourceIdentifier, fileName, title, subject, year, media: { type, url } };
+  /* Preserve provenance for the server-side catalog. These are hand-verified
+     Archive files, not generic search rows; holiday child filenames often do
+     not repeat the seasonal word even though the parent subject is exact. */
+  return { identifier, sourceIdentifier, fileName, title, subject, year, recoveryVerified: true, media: { type, url } };
 }
 
 const IA_LONG_TAIL_EXPANSIONS = Object.freeze({

@@ -12,7 +12,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "4.1.82-targeted-core-genre-fix";
+const V3_RELEASE = "4.1.83-holiday-catalog-admission";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -41,7 +41,7 @@ const IA_FAST_CATALOG_LANES = new Set([
   "10", "11", "12", "56", "64", "110", "150", "154", "158", "205", "222", "922",
   /* Holiday lanes have verified instant shelves but some still need a
      background relay refresh to grow beyond their shallow D1 catalog. */
-  "705", "707", "708", "709",
+  "705", "706", "707", "708", "709",
 ]);
 /* These seasonal lanes have title-verified recovery shelves. Some older D1
    rows predate subject persistence, so a clearly seasonal title must remain
@@ -269,6 +269,7 @@ function compactCatalogItem(item) {
     rights: String(item.rights || "").slice(0, 300),
     year: String(item.year || "").slice(0, 20),
     genreVerified: item.genreVerified === true,
+    recoveryVerified: item.recoveryVerified === true,
   };
 }
 
@@ -518,7 +519,19 @@ function catalogFallbackAllowed(item, body) {
     if (!cartoonStructureTerms.some((term) => title.includes(term))) return false;
     return formatTerms.some((format) => title.includes(format));
   });
-  const relayVerified = (item && item.genreVerified === true && !IA_DEPTH_REPAIR_LANES.has(String(body && body.channel || ""))) || holidayTitleVerified;
+  /* Hand-verified holiday recovery files are allowed to keep their editorial
+     subject signal even when the child filename is generic (for example,
+     “The Skeleton Dance” or “Jerky Turkey”). This remains narrow: the row
+     needs recovery provenance, a playable URL, and a seasonal subject signal. */
+  const trustedHolidayRecovery = IA_HOLIDAY_TITLE_LANES.has(holidayChannel)
+    && item && item.recoveryVerified === true
+    && item.media && item.media.url
+    && Array.isArray(body && body.themeTerms)
+    && body.themeTerms.some((term) => {
+      const needle = String(term || "").trim().toLowerCase();
+      return needle && subject.includes(needle);
+    });
+  const relayVerified = (item && item.genreVerified === true && !IA_DEPTH_REPAIR_LANES.has(String(body && body.channel || ""))) || holidayTitleVerified || trustedHolidayRecovery;
   const strictManufacturingLane = String(body && body.channel || "") === "200";
   const manufacturingSubjectMatch = strictManufacturingLane && Array.isArray(body && body.themeTerms)
     && body.themeTerms.some((term) => {
@@ -860,6 +873,7 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
       account: metadata.account || "",
       query: metadata.query || "",
       genreVerified: metadata.genreVerified === true,
+      recoveryVerified: metadata.recoveryVerified === true,
       language: metadata.language || metadata.defaultAudioLanguage || metadata.defaultLanguage || "",
       provider: row.provider,
       year: row.year || "",

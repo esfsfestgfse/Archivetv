@@ -12,7 +12,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "4.1.59-source-suite-depth";
+const V3_RELEASE = "4.1.60-source-suite-requalify";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -513,10 +513,15 @@ function catalogFallbackAllowed(item, body) {
     if (/(?:\b(?:hindi|tamil|telugu|bengali|bangla|marathi|malayalam|kannada|punjabi|urdu|indonesian|vietnamese|thai|arabic|espa[nñ]ol|portugu[eê]s|fran[cç]ais|deutsch|russian|turkish|korean|japanese|mandarin|sinhala|italian)\b)/i.test(haystack)) return false;
     const topicTerms = Array.isArray(body.topics) ? body.topics : [];
     const normalizedHaystack = haystack.replace(/[\-_/:]+/g, " ");
-    if (topicTerms.length && !topicTerms.some((term) => {
+    const topicMatch = topicTerms.some((term) => {
       const needle = String(term || "").trim().toLowerCase();
       return needle && (haystack.includes(needle) || normalizedHaystack.includes(needle.replace(/[\-_/:]+/g, " ")));
-    })) return false;
+    });
+    const persistedTopicSignal = Array.isArray(body.persistedMatch) && body.persistedMatch.some((term) => {
+      const needle = String(term || "").trim().toLowerCase();
+      return needle && (title.includes(needle) || haystack.includes(needle));
+    });
+    if (topicTerms.length && !topicMatch && !(body.persistedRelaxed === true && persistedTopicSignal)) return false;
     /* Requalify persisted Source Suite rows whenever an entertainment lane
        changes its editorial contract. Otherwise an older documentary entry
        can survive indefinitely just because it happens to share one topic

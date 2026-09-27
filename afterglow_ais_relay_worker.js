@@ -89,7 +89,7 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
    warmup back onto the channel-change path. */
 const IA_STRICT_CATALOG_CANDIDATE_MAX = 128;
 const IA_CATALOG_CANDIDATE_MAX = 96;
-const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v4";
+const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v5";
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
@@ -101,10 +101,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v4";
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v131";
+const IA_QUEUE_CACHE_VERSION = "v132";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v131";
+const IA_LAST_GOOD_CACHE_VERSION = "v132";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -2871,7 +2871,12 @@ function sharedQueuePut(env, key, payload, ttlSeconds, ctx) {
     ? payload.candidateItems
     : payload.items;
   const playableCandidateCount = payloadCandidates.filter((item) => item && item.identifier && item.media && item.media.url).length;
-  const fullShelf = Number(payload.ready || payload.items.length) >= 5 && playableCandidateCount >= IA_FRESHNESS_CANDIDATE_FLOOR;
+  /* A five-item shelf is already a valid television handoff. The 32-item
+     depth floor is a freshness goal, not a persistence gate: refusing to
+     write a 5–31 item verified catalog forces every later rotation to repeat
+     the same Archive search page. Persist the usable shelf immediately, then
+     let the background expansion grow it toward the freshness floor. */
+  const fullShelf = Number(payload.ready || payload.items.length) >= 5 && playableCandidateCount >= 5;
   const writes = [env.REALSIGNAL_QUEUE.put(key, JSON.stringify(payload), options)];
   /* Preserve the last complete five-show shelf. A one-item first-frame handoff
      may live briefly at its exact rotation key, but must never replace the
@@ -5066,13 +5071,17 @@ function iaNeedsCatalogDepth(payload, count, candidateCount) {
 }
 
 function iaShouldBypassShallowRotation(payload, rotation, count, candidateCount) {
-  /* A shallow exact-rotation cache is useful for the first frame, but it is
-     actively harmful on a later tune: rotating five records only changes
-     their order and makes the viewer see the same shelf forever. Let the
-     request fall through to bounded discovery when a non-zero revision still
-     lacks the three-shelf freshness floor. A verified last-good fallback is
-     still available at the bottom of getIaQueue if discovery misses. */
-  return Math.abs(Number(rotation) || 0) > 0 && iaNeedsCatalogDepth(payload, count, candidateCount);
+  /* A shallow exact-rotation cache is still useful when it contains a
+     verified shelf: the freshness ledger can rotate those records now while
+     background discovery grows the catalog. Only bypass a shelf that cannot
+     satisfy the requested first-play count; otherwise every 5–31 item lane
+     falls back to the same first Archive page on every channel change. */
+  const requested = Math.max(1, Number(count) || 1);
+  const candidates = Array.isArray(payload && payload.candidateItems) && payload.candidateItems.length
+    ? payload.candidateItems
+    : ((payload && payload.items) || []);
+  const playable = candidates.filter((item) => item && item.identifier && item.media && item.media.url).length;
+  return Math.abs(Number(rotation) || 0) > 0 && playable < requested;
 }
 
 function orderedIaEmergencySeeds(channel, rotation) {
@@ -5517,8 +5526,7 @@ async function getIaQueue(request, url, env, ctx) {
              catalog has the full three-shelf freshness floor. */
           const cachedNeedsFreshRotation = cachedPayload.fallback === true || cachedPayload.stale === true;
           const cachedNeedsCatalogDepth = iaNeedsCatalogDepth(cachedPayload, count, cachedCandidateCount);
-          const bypassShallowRotation = (iaDepthRecoveryEnabled(channel) && cachedNeedsCatalogDepth)
-            || iaShouldBypassShallowRotation(cachedPayload, rotation, count, cachedCandidateCount);
+          const bypassShallowRotation = iaShouldBypassShallowRotation(cachedPayload, rotation, count, cachedCandidateCount);
           if (cachedPayload.items && cachedPayload.items.length && (cachedNeedsFreshRotation || cachedNeedsCatalogDepth)) {
             scheduleIaExpansion(
               { ...cachedPayload, lastGoodKey, items: cachedCandidates.slice(0, cachedCandidateCount), candidateItems: cachedCandidates, candidates: cachedCandidates.length },
@@ -5581,8 +5589,7 @@ async function getIaQueue(request, url, env, ctx) {
         ? shared.candidateItems
         : ((shared.items) || []);
       const sharedNeedsExpansion = iaNeedsCatalogDepth(shared, count, sharedCandidateCount);
-      const bypassSharedShallow = (iaDepthRecoveryEnabled(channel) && sharedNeedsExpansion)
-        || iaShouldBypassShallowRotation(shared, rotation, count, sharedCandidateCount);
+      const bypassSharedShallow = iaShouldBypassShallowRotation(shared, rotation, count, sharedCandidateCount);
       if (sharedNeedsExpansion) {
         /* Do not wait for a complete-series expansion here. The current shelf
            is already playable; replenish it behind the response so the next
@@ -5645,7 +5652,8 @@ async function getIaQueue(request, url, env, ctx) {
         ? warmLastGood.candidateItems
         : warmLastGood.items;
       const warmNeedsExpansion = iaNeedsCatalogDepth(warmLastGood, count, warmCandidateCount);
-      const warmNeedsFreshRotation = rotation > 0 && warmNeedsExpansion;
+      const warmPlayable = warmCandidates.filter((item) => item && item.identifier && item.media && item.media.url).length;
+      const warmNeedsFreshRotation = rotation > 0 && warmPlayable < count;
       const freshWarm = applyIaFreshness(warmLastGood, freshnessLedger, count);
       rememberIaFreshness(env, channel, freshWarm.issued, ctx);
       let warmFallback = {

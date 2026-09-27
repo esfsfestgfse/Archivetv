@@ -12,7 +12,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "4.1.71-shelf-boundary-freshness";
+const V3_RELEASE = "4.1.72-holiday-genre-gate";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -476,9 +476,19 @@ function catalogFallbackAllowed(item, body) {
      editorially correct but does not literally repeat the required phrase
      (for example, a factory film titled "Master Hands"). */
   const requiredTitleTerms = Array.isArray(body && body.requiredTitleTerms) ? body.requiredTitleTerms : [];
-  const holidayTitleVerified = IA_HOLIDAY_TITLE_LANES.has(String(body && body.channel || "")) && requiredTitleTerms.some((term) => {
+  const holidayChannel = String(body && body.channel || "");
+  const holidayTitleVerified = IA_HOLIDAY_TITLE_LANES.has(holidayChannel) && requiredTitleTerms.some((term) => {
     const needle = String(term || "").trim().toLowerCase();
-    return needle.length >= 5 && title.includes(needle);
+    if (needle.length < 5 || !title.includes(needle)) return false;
+    /* A single broad seasonal word is not enough for an old persisted row:
+       “Frosty Glaze” and a news upload mentioning “Grinch” are not cartoons.
+       Require the lane's format signal as well, while leaving relay-verified
+       direct Archive children trusted through their provenance flag. */
+    const animationLane = holidayChannel === "704" || holidayChannel === "705" || holidayChannel === "706";
+    const formatTerms = animationLane
+      ? ["cartoon", "animation", "animated", "special", "rudolph", "frosty", "grinch", "mickey", "santa", "charlie brown", "pink panther", "scooby", "garfield", "spooky", "turkey", "mayflower", "pooh", "oswald", "jerky", "drumstick", "holiday", "winter"]
+      : ["television", "tv", "episode", "special", "parade", "sitcom", "variety", "show", "broadcast", "yuletide", "monster", "drive-in", "kidding around", "thanksgiving dinner"];
+    return formatTerms.some((format) => title.includes(format));
   });
   const relayVerified = (item && item.genreVerified === true && !IA_DEPTH_REPAIR_LANES.has(String(body && body.channel || ""))) || holidayTitleVerified;
   const strictManufacturingLane = String(body && body.channel || "") === "200";
@@ -487,10 +497,13 @@ function catalogFallbackAllowed(item, body) {
       const needle = String(term || "").trim().toLowerCase();
       return needle && subject.includes(needle);
     });
-  if (requiredTitleTerms.length && !relayVerified && !manufacturingSubjectMatch && !requiredTitleTerms.some((term) => {
+  const titleRequirementMatch = IA_HOLIDAY_TITLE_LANES.has(holidayChannel)
+    ? holidayTitleVerified
+    : requiredTitleTerms.some((term) => {
     const needle = String(term || "").trim().toLowerCase();
     return needle && title.includes(needle);
-  })) return false;
+  });
+  if (requiredTitleTerms.length && !relayVerified && !manufacturingSubjectMatch && !titleRequirementMatch) return false;
   const channelAliases = IA_FALLBACK_ALIASES[String(body && body.channel || "")] || [];
   const laneAliases = String(body && body.channel || "") === "917"
     ? ["metallica", "black sabbath", "ozzy osbourne", "motorhead", "motörhead", "judas priest", "iron maiden", "slayer"].concat(channelAliases)

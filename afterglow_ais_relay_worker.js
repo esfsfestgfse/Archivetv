@@ -101,10 +101,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v12-repeat-lanes"
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v149";
+const IA_QUEUE_CACHE_VERSION = "v150";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v149";
+const IA_LAST_GOOD_CACHE_VERSION = "v150";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -216,7 +216,7 @@ const IA_STABLE_RESCUE_CHANNELS = new Set(["17", "19", "74", "82", "106", "107",
 const IA_COLD_RESCUE_CHANNELS = new Set([
   "2", "3", "10", "11", "12", "15", "64", "76", "80", "101", "105", "110", "115", "116", "119", "120", "128", "130", "131", "132", "153", "154", "155", "156",
   "205", "208", "209", "210", "211", "212", "213", "214", "215", "216", "217", "219", "222", "223", "224", "225", "226", "227", "229", "230", "231", "232", "233", "234", "235", "236", "237", "238", "239", "240", "241", "242",
-  "507", "508", "509", "510", "511", "575", "700", "701", "703", "900", "906", "922", "926", "927", "928", "243", "244",
+  "507", "508", "509", "510", "511", "575", "700", "701", "703", "900", "906", "922", "926", "927", "928", "243", "244", "204",
   /* v164's full soak isolated these additional cold lanes. Keep their verified
      shelves narrow and channel-owned; healthy lanes do not pay this cost. */
   "14", "15", "18", "56", "63", "68", "72", "73", "77", "83", "102", "104", "109", "122", "158", "200", "202", "704", "705", "706", "901", "911", "916"
@@ -2212,6 +2212,17 @@ const IA_LONG_TAIL_EXPANSIONS_EXTRA = Object.freeze({
     iaDirectRecovery("george-carlin-back-in-town-1996-hbo-comedy-hour-full-live-classic-stand-up-routine-special::George Carlin Back In Town  1996 HBO Comedy Hour Full LIVE Classic Stand Up Routine Special.mp4", "george-carlin-back-in-town-1996-hbo-comedy-hour-full-live-classic-stand-up-routine-special", "George Carlin Back In Town  1996 HBO Comedy Hour Full LIVE Classic Stand Up Routine Special.mp4", "George Carlin: Back in Town", "stand-up comedy television comedy performance", 1996),
     iaDirectRecovery("peter-kay-live-at-the-bolton-albert-halls-2003-uk-vhs::Peter Kay Live at the Bolton Albert Halls (2003 UK VHS).mp4", "peter-kay-live-at-the-bolton-albert-halls-2003-uk-vhs", "Peter Kay Live at the Bolton Albert Halls (2003 UK VHS).mp4", "Peter Kay Live at the Bolton Albert Halls", "stand-up comedy television comedy performance", 2003),
     iaDirectRecovery("sinbad_afrosbellbottoms::Sinbad - Afros & Bellbottoms (1428)(Prism Entertainment Corporation)(1993).mp4", "sinbad_afrosbellbottoms", "Sinbad - Afros & Bellbottoms (1428)(Prism Entertainment Corporation)(1993).mp4", "Sinbad: Afros & Bellbottoms", "stand-up comedy television comedy performance", 1993),
+  ],
+  /* v4.1.58 latency repair: Prelinger Vault already had a valid five-film
+     fallback bank, but each cold start had to fetch Archive metadata before
+     the first frame. Promote the known playable MP4 derivatives so the lane
+     can start immediately while its larger catalog remains searchable. */
+  "204": [
+    iaDirectRecovery("Doctorin1946::Doctorin1946.mp4", "Doctorin1946", "Doctorin1946.mp4", "Doctor in Industry (Part I)", "public health educational film industrial film sponsored film", 1946),
+    iaDirectRecovery("HealthYo1953::HealthYo1953.mp4", "HealthYo1953", "HealthYo1953.mp4", "Health: Your Posture", "public health educational film safety film", 1953),
+    iaDirectRecovery("Sleepfor1950::Sleepfor1950.mp4", "Sleepfor1950", "Sleepfor1950.mp4", "Sleep for Health", "public health educational film classroom film", 1950),
+    iaDirectRecovery("EatforHe1954::EatforHe1954.mp4", "EatforHe1954", "EatforHe1954.mp4", "Eat for Health", "public health educational film consumer culture", 1954),
+    iaDirectRecovery("Careofth1949::Careofth1949.mp4", "Careofth1949", "Careofth1949.mp4", "Care of the Skin", "public health educational film sponsored film", 1949),
   ],
   "10": [
     iaDirectRecovery("theloneranger_201705::s01e01_EntertheLoneRanger.mp4", "theloneranger_201705", "s01e01_EntertheLoneRanger.mp4", "The Lone Ranger · Enter the Lone Ranger", "classic television western television series", 1949),

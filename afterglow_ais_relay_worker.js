@@ -101,7 +101,7 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v4";
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v127";
+const IA_QUEUE_CACHE_VERSION = "v129";
 /* Last-good shelves share the v101 namespace so an older shallow shelf
    never masks the repaired episode-level catalog. */
 const IA_LAST_GOOD_CACHE_VERSION = "v113";
@@ -121,6 +121,7 @@ const IA_FRESHNESS_LEDGER_MAX = 32;
 const IA_FRESHNESS_LEDGER_TTL_SECONDS = 30 * 24 * 60 * 60;
 const IA_FRESHNESS_MEMORY_TTL_MS = 60 * 1000;
 const IA_HOLIDAY_ANIMATION_CHANNELS = new Set(["704", "705", "706"]);
+const IA_FULL_WINDOW_ANIMATION_CHANNELS = new Set(["150", "153", "158", "704", "705", "706"]);
 /* A short per-isolate burst cache absorbs repeat requests from a TV, phone,
    and guide opened in quick succession. It is intentionally tiny and
    short-lived: Cache API/KV remain the durable shelves, while this map only
@@ -222,8 +223,10 @@ function iaColdRescueEnabled(channel) {
    high rotation values could surface a contaminated shared shelf even though
    its verified recovery bank was healthy. Keep only this proven lane on its
    own direct-ready bank until discovery has a larger, independently verified
-   manufacturing catalog. This is intentionally not a global cache bypass. */
-const IA_STRICT_RECOVERY_CHANNELS = new Set(["19", "200", "920"]);
+   manufacturing catalog. The six animation lanes use the same direct-ready
+   contract because their verified episode banks are deeper and more reliable
+   than the cold Archive search race; background expansion still deepens them. */
+const IA_STRICT_RECOVERY_CHANNELS = new Set(["19", "200", "920", "150", "153", "158", "704", "705", "706"]);
 function iaStrictRecoveryEnabled(channel) {
   return IA_STRICT_RECOVERY_CHANNELS.has(String(channel));
 }
@@ -4579,11 +4582,11 @@ function applyIaFreshness(payload, ledger, count) {
   }
   const requested = Math.max(1, Number(count) || 1);
   const playable = unique.filter((item) => item.media && item.media.url);
-  /* Holiday animation shelves have an explicit deterministic catalog window.
+  /* Deterministic animation shelves have an explicit catalog window.
      Once that window has been rotated, do not reorder it again from the
      generic ledger: doing so can pull the same familiar character back into
      the next shelf even when the rotated window is already fresh. */
-  if (IA_HOLIDAY_ANIMATION_CHANNELS.has(String(payload && payload.channel || "")) && Number(payload && payload.rotation) > 0 && Array.isArray(payload.items) && payload.items.length >= requested && playable.length >= requested) {
+  if (IA_FULL_WINDOW_ANIMATION_CHANNELS.has(String(payload && payload.channel || "")) && Number(payload && payload.rotation) > 0 && Array.isArray(payload.items) && payload.items.length >= requested && playable.length >= requested) {
     const issued = payload.items.slice(0, requested).map(iaFreshnessRecord).filter(Boolean);
     return {
       payload,
@@ -5000,14 +5003,14 @@ function rotatePlayableIaShelf(payload, rotation, count) {
   const playableCandidates = Array.isArray(payload && payload.candidateItems)
     ? payload.candidateItems.filter((item) => item && item.identifier && item.media && item.media.url)
     : [];
-  const holidayWindow = IA_HOLIDAY_ANIMATION_CHANNELS.has(String(payload && payload.channel || ""));
-  /* Holiday shelves are deliberately assembled from several recovery rails.
+  const animationWindow = IA_FULL_WINDOW_ANIMATION_CHANNELS.has(String(payload && payload.channel || ""));
+  /* Animation shelves are deliberately assembled from several recovery rails.
      Those rails can arrive in a different order as Archive responses finish,
      which made the same first few characters reappear on every skip even when
      the catalog was deep. Sort only these three editorial windows by stable
      item identity so a rotation number always addresses the same catalog
      window. The public order still changes by full shelf-sized steps. */
-  const stablePlayableCandidates = holidayWindow
+  const stablePlayableCandidates = animationWindow
     ? playableCandidates.slice().sort((a, b) => String(a.identifier).localeCompare(String(b.identifier)))
     : playableCandidates;
   const source = stablePlayableCandidates.length >= requested
@@ -5070,12 +5073,12 @@ function orderedIaEmergencySeeds(channel, rotation) {
     return url ? { ...item, media: { type: "video", url } } : item;
   });
   if (!seeds.length) return [];
-  /* Holiday animation cold starts already own verified, file-level banks.
+  /* Animation cold starts already own verified, file-level banks.
      Advance those banks by one complete public shelf so a channel change
      does not replay four of the previous five programs while Archive's
      deeper background rails are still hydrating. All other lanes retain the
      established one-record emergency offset. */
-  const shelfStep = IA_HOLIDAY_ANIMATION_CHANNELS.has(String(channel)) ? 5 : 1;
+  const shelfStep = IA_FULL_WINDOW_ANIMATION_CHANNELS.has(String(channel)) ? 5 : 1;
   const offset = (Math.abs(Number(rotation) || 0) * shelfStep) % seeds.length;
   return seeds.slice(offset).concat(seeds.slice(0, offset));
 }
@@ -5449,6 +5452,16 @@ async function getIaQueue(request, url, env, ctx) {
   if (iaStrictRecoveryEnabled(channel)) {
     const strict = strictRecoveryQueue(channel, rotation, count, themeTerms, denyTerms, requiredTitleTerms, mediaTypes);
     if (strict.ready >= count) {
+      if (IA_FULL_WINDOW_ANIMATION_CHANNELS.has(channel)) {
+        const strictCandidateCount = iaCatalogCandidateBudget(themeMinScore, count);
+        scheduleIaExpansion(
+          { ...strict, lastGoodKey },
+          iaBackgroundReserveQueries(channel, queries, true),
+          iaBackgroundFallbackQueries(channel, iaFallbackQueries(themeTerms, denyTerms, requiredTitleTerms, mediaTypes), true),
+          channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity,
+          count, strictCandidateCount, url.origin, cacheKey, sharedKey, env, ctx, rotation, true
+        );
+      }
       const freshStrict = applyIaFreshness(strict, freshnessLedger, count);
       rememberIaFreshness(env, channel, freshStrict.issued, ctx);
       return cacheableJson(freshStrict.payload, 60, {

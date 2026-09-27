@@ -12,7 +12,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "4.1.75-christmas-cartoon-genre-gate";
+const V3_RELEASE = "4.1.76-holiday-cartoon-genre-gate";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -484,11 +484,10 @@ function catalogFallbackAllowed(item, body) {
        “Frosty Glaze” and a news upload mentioning “Grinch” are not cartoons.
        Require the lane's format signal as well, while leaving relay-verified
        direct Archive children trusted through their provenance flag. */
-    /* Only Christmas Cartoons (704) reproduced false positives in the
-       persisted rolling catalog. Keep the established title admission for
-       the other seasonal lanes so their already-verified shelves do not lose
-       legitimate television/special entries. */
-    if (holidayChannel !== "704") return true;
+    /* The cartoon holiday lanes need the same title re-score. Their seasonal
+       words also occur in music, parade, meme, and upload-metadata videos;
+       the TV lanes intentionally keep their broader television admission. */
+    if (!["704", "705", "706"].includes(holidayChannel)) return true;
     const formatTerms = ["cartoon", "animation", "animated", "special", "rudolph", "frosty", "grinch", "mickey", "santa", "charlie brown", "pink panther", "scooby", "garfield", "spooky", "turkey", "mayflower", "pooh", "oswald", "jerky", "drumstick", "holiday", "winter"];
     /* Christmas search terms such as “Rudolph” and “Grinch” also occur in
        news, interviews, political clips, memes, and closing-logo uploads.
@@ -499,6 +498,10 @@ function catalogFallbackAllowed(item, body) {
       "carabinero", "disfrazado", "funcionaria", "la pintana", "golpearon",
       "politic", "election", "campaign", "press conference", "news report",
       "closing logo", "closing logos", "opening logo", "prank call", "meme",
+      "trypophobia", "animation meme", "gameplay", "roblox", "minecraft",
+      "national anthem", "labor day", "parade", "trio", "singing", "music",
+      "concert", "choir", "presents:", "presents ", "villains", "(esses)",
+      "opening to", "closing to", "opening/closing", "airing",
       "reaction", "commentary", "screen recording", "live broadcast",
     ];
     if (nonCartoonTerms.some((term) => title.includes(term))) return false;

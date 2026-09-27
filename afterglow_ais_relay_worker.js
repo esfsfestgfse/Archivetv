@@ -89,7 +89,7 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
    warmup back onto the channel-change path. */
 const IA_STRICT_CATALOG_CANDIDATE_MAX = 128;
 const IA_CATALOG_CANDIDATE_MAX = 96;
-const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v10-repeat-lanes";
+const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v11-repeat-lanes";
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
@@ -101,10 +101,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v10-repeat-lanes"
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v140";
+const IA_QUEUE_CACHE_VERSION = "v141";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v140";
+const IA_LAST_GOOD_CACHE_VERSION = "v141";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -122,6 +122,11 @@ const IA_FRESHNESS_LEDGER_TTL_SECONDS = 30 * 24 * 60 * 60;
 const IA_FRESHNESS_MEMORY_TTL_MS = 60 * 1000;
 const IA_HOLIDAY_ANIMATION_CHANNELS = new Set(["704", "705", "706"]);
 const IA_FULL_WINDOW_ANIMATION_CHANNELS = new Set(["150", "153", "158", "704", "705", "706"]);
+/* The same full-shelf rotation is useful for the verified long-tail banks
+   that still showed neighboring rotations reopening the same five programs.
+   This is a bounded ordering change only: discovery, hydration, and editorial
+   gates remain unchanged, while a channel advances by one public shelf. */
+const IA_FULL_WINDOW_ROTATION_CHANNELS = new Set(["14", "56", "60", "61", "74", "101", "103", "134", "210"]);
 /* A short per-isolate burst cache absorbs repeat requests from a TV, phone,
    and guide opened in quick succession. It is intentionally tiny and
    short-lived: Cache API/KV remain the durable shelves, while this map only
@@ -5268,9 +5273,10 @@ function orderedIaEmergencySeeds(channel, rotation) {
   /* Animation cold starts already own verified, file-level banks.
      Advance those banks by one complete public shelf so a channel change
      does not replay four of the previous five programs while Archive's
-     deeper background rails are still hydrating. All other lanes retain the
-     established one-record emergency offset. */
-  const shelfStep = IA_FULL_WINDOW_ANIMATION_CHANNELS.has(String(channel)) ? 5 : 1;
+   deeper background rails are still hydrating. The audited repeat-heavy lanes
+   use the same full-shelf step; all other lanes retain the one-record offset. */
+  const fullWindow = IA_FULL_WINDOW_ANIMATION_CHANNELS.has(String(channel)) || IA_FULL_WINDOW_ROTATION_CHANNELS.has(String(channel));
+  const shelfStep = fullWindow ? 5 : 1;
   const offset = (Math.abs(Number(rotation) || 0) * shelfStep) % seeds.length;
   return seeds.slice(offset).concat(seeds.slice(0, offset));
 }

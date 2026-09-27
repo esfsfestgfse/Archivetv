@@ -89,7 +89,7 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
    warmup back onto the channel-change path. */
 const IA_STRICT_CATALOG_CANDIDATE_MAX = 128;
 const IA_CATALOG_CANDIDATE_MAX = 96;
-const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v6";
+const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v7";
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
@@ -101,10 +101,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v6";
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v134";
+const IA_QUEUE_CACHE_VERSION = "v135";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v134";
+const IA_LAST_GOOD_CACHE_VERSION = "v135";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -1043,6 +1043,15 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "shell-film-unit-springs-1938-colorized", title: "Shell Film Unit — Springs", subject: "manufacturing industry factory engineering industrial film", year: 1938, media: { type: "video", url: "https://ia801607.us.archive.org/0/items/shell-film-unit-springs-1938-colorized/Shell%20Film%20Unit%20-%20Springs%20%281938%29%20%28colorized%29.mp4" } },
     { identifier: "NJY-008_1628-3439", title: "Chrysler Advantages — Car Manufacturing", subject: "manufacturing industry factory engineering industrial film", year: 1991, media: { type: "video", url: "https://dn601203.us.archive.org/0/items/NJY-008_1628-3439/1628_Chrysler-Advantages-Car-Manufacturing-Promo-CBS-WCBS-2_1991-10-25.ia.mp4" } },
     { identifier: "fc-fc-2701", title: "Ford V-8 Exhibit — Industrial Design", subject: "manufacturing industry factory engineering automotive industrial film", year: 1932, media: { type: "video", url: "https://dn800301.us.archive.org/0/items/fc-fc-2701/fc-fc-2701.mp4" } },
+  ],
+  "201": [
+    { identifier: "HomeEcon1951", title: "Home Economics — The Home Economics Story", subject: "home economics domestic science household arts cooking nutrition family life educational film", year: 1951, media: { type: "video", url: "https://archive.org/download/HomeEcon1951/HomeEcon1951.mp4" } },
+    { identifier: "HomeEcon1951_2", title: "Home Economics — The Home Economics Story, Part II", subject: "home economics domestic science household arts cooking nutrition family life educational film", year: 1951, media: { type: "video", url: "https://archive.org/download/HomeEcon1951_2/HomeEcon1951_2.mp4" } },
+    { identifier: "MotherTa1952", title: "Home Economics — Mother Takes a Holiday", subject: "home economics domestic science household arts housekeeping family life educational film", year: 1952, media: { type: "video", url: "https://archive.org/download/MotherTa1952/MotherTa1952.mp4" } },
+    { identifier: "MotherTa1952_2", title: "Home Economics — Mother Takes a Holiday, Part II", subject: "home economics domestic science household arts housekeeping family life educational film", year: 1952, media: { type: "video", url: "https://archive.org/download/MotherTa1952_2/MotherTa1952_2.mp4" } },
+    { identifier: "TimeSave1936", title: "Home Economics — Time Savers for Homemakers", subject: "home economics domestic science household arts housekeeping kitchen cooking educational film", year: 1936, media: { type: "video", url: "https://archive.org/download/TimeSave1936/TimeSave1936.mp4" } },
+    { identifier: "buying_food", title: "Home Economics — Buying Food", subject: "home economics domestic science household arts food nutrition cooking educational film", year: 1940, media: { type: "video", url: "https://archive.org/download/buying_food/buying_food.mp4" } },
+    { identifier: "CookingT1949", title: "Home Economics — Cooking Terms", subject: "home economics domestic science household arts cooking food nutrition educational film", year: 1949, media: { type: "video", url: "https://archive.org/download/CookingT1949/CookingT1949.mp4" } },
   ],
   "202": [
     { identifier: "pryor_202009", title: "Richard Pryor — Stand-Up", subject: "stand-up comedy comedy special live comedy", year: 1980, media: { type: "video", url: "https://archive.org/download/pryor_202009/RICHARD_PRYOR/VIDEO_TS/VTS_01_1.mp4" } },

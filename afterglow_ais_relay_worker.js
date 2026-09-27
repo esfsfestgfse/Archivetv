@@ -101,10 +101,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v12-repeat-lanes"
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v143";
+const IA_QUEUE_CACHE_VERSION = "v144";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v143";
+const IA_LAST_GOOD_CACHE_VERSION = "v144";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -2172,6 +2172,19 @@ const IA_LONG_TAIL_EXPANSIONS_EXTRA = Object.freeze({
      These banks are intentionally family-balanced and remain behind the
      normal theme, deny, runtime, media, and freshness gates. They widen the
      catalog without making the first tune wait for every Archive manifest. */
+  /* v4.1.51 serial certification: Diamond Time's broad search rails were
+     still timing out, so seed it with verified full-game baseball files. The
+     normal baseball theme, runtime, freshness, and hydration gates still
+     decide what reaches the public shelf. */
+  "59": [
+    iaDirectRecovery("ctncrmn-Legion_Baseball_-_Maple_Grove_vs_Coon_Rapids_6.11.19_Full_Game::Legion_Baseball_-_Maple_Grove_vs_Coon_Rapids_6.11.19_Full_Game.mp4", "ctncrmn-Legion_Baseball_-_Maple_Grove_vs_Coon_Rapids_6.11.19_Full_Game", "Legion_Baseball_-_Maple_Grove_vs_Coon_Rapids_6.11.19_Full_Game.mp4", "Legion Baseball · Maple Grove vs. Coon Rapids (Full Game)", "baseball baseball game baseball broadcast high school baseball", 2019),
+    iaDirectRecovery("frankky-GOTW_Baseball_FCHS_at_FHS_4_13_2023_Game_2::GOTW_Baseball_FCHS_at_FHS_4_13_2023_Game_2.mp4", "frankky-GOTW_Baseball_FCHS_at_FHS_4_13_2023_Game_2", "GOTW_Baseball_FCHS_at_FHS_4_13_2023_Game_2.mp4", "Game of the Week Baseball · FCHS at FHS (Game 2)", "baseball baseball game baseball broadcast", 2023),
+    iaDirectRecovery("Wareham_Gatemen_vs_Orleans_Firebirds_7-29-17::Wareham_Gatemen_vs_Orleans_Firebirds_7-29-17.mp4", "Wareham_Gatemen_vs_Orleans_Firebirds_7-29-17", "Wareham_Gatemen_vs_Orleans_Firebirds_7-29-17.mp4", "Cape League Baseball · Wareham vs. Orleans", "baseball baseball game baseball broadcast summer baseball", 2017),
+    iaDirectRecovery("lctvme-Lincoln_Academy_vs._Medomak_Valley_High_School_-_Baseball_-_May_9_2023::Lincoln_Academy_vs._Medomak_Valley_High_School_-_Baseball_-_May_9_2023.mp4", "lctvme-Lincoln_Academy_vs._Medomak_Valley_High_School_-_Baseball_-_May_9_2023", "Lincoln_Academy_vs._Medomak_Valley_High_School_-_Baseball_-_May_9_2023.mp4", "High School Baseball · Lincoln Academy vs. Medomak Valley", "baseball baseball game baseball broadcast high school baseball", 2023),
+    iaDirectRecovery("acalanes-campolindo-baseball::acalanes @ campolindo baseball.ia.mp4", "acalanes-campolindo-baseball", "acalanes @ campolindo baseball.ia.mp4", "High School Baseball · Acalanes vs. Campolindo", "baseball baseball game baseball broadcast high school baseball", 2025),
+    iaDirectRecovery("jctvor-Jesuit_Baseball_vs_Glencoe::Jesuit_Baseball_vs_Glencoe.mp4", "jctvor-Jesuit_Baseball_vs_Glencoe", "Jesuit_Baseball_vs_Glencoe.mp4", "Jesuit Baseball vs. Glencoe", "baseball baseball game baseball broadcast high school baseball", 2015),
+    iaDirectRecovery("WCT19883::WCT 19883.mp4", "WCT19883", "WCT 19883.mp4", "Norwood vs. Winton Woods High School Baseball", "baseball baseball game baseball broadcast high school baseball", 2012),
+  ],
   "10": [
     iaDirectRecovery("theloneranger_201705::s01e01_EntertheLoneRanger.mp4", "theloneranger_201705", "s01e01_EntertheLoneRanger.mp4", "The Lone Ranger · Enter the Lone Ranger", "classic television western television series", 1949),
     iaDirectRecovery("get-smart::Get Smart S01E01 (Mr. Big).mp4", "get-smart", "Get Smart S01E01 (Mr. Big).mp4", "Get Smart · Mr. Big", "classic television sitcom spy comedy television series", 1965),

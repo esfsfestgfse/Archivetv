@@ -101,7 +101,7 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v4";
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v124";
+const IA_QUEUE_CACHE_VERSION = "v127";
 /* Last-good shelves share the v101 namespace so an older shallow shelf
    never masks the repaired episode-level catalog. */
 const IA_LAST_GOOD_CACHE_VERSION = "v113";
@@ -1540,7 +1540,9 @@ const IA_LONG_TAIL_EXPANSIONS = Object.freeze({
     iaDirectRecovery("walt-disneys-mickeys-christmas-carol::Walt Disney`s  Mickey`s Christmas Carol.mp4", "walt-disneys-mickeys-christmas-carol", "Walt Disney`s  Mickey`s Christmas Carol.mp4", "Mickey's Christmas Carol", "christmas cartoon christmas animation animated christmas special holiday cartoon", 1983),
     iaDirectRecovery("frozen-in-time-2014-720p-obscure-cartoon-network-christmas-special::Frozen In Time (2014) [720p] [Obscure Cartoon Network Christmas Special].ia.mp4", "frozen-in-time-2014-720p-obscure-cartoon-network-christmas-special", "Frozen In Time (2014) [720p] [Obscure Cartoon Network Christmas Special].ia.mp4", "Frozen In Time · Cartoon Network Christmas Special", "christmas cartoon christmas animation animated christmas special holiday cartoon", 2014),
     iaDirectRecovery("pink-panther-a-very-pink-christmas-christmas-special-full-episode-funny-cartoon-::Pink Panther - A Very Pink Christmas Christmas Special _ Full Episode _ Funny Cartoon for Kids _ Cartoon Movie _ Animation 2018 Cartoons(1).mp4", "pink-panther-a-very-pink-christmas-christmas-special-full-episode-funny-cartoon-", "Pink Panther - A Very Pink Christmas Christmas Special _ Full Episode _ Funny Cartoon for Kids _ Cartoon Movie _ Animation 2018 Cartoons(1).mp4", "Pink Panther · A Very Pink Christmas", "christmas cartoon christmas animation animated christmas special holiday cartoon", 2018),
-    iaDirectRecovery("the-mask-t.-a.-s.-s01-e14-santa-mask-1995-geor4745nius-ultra-high-quality-old-rare::The Mask T.A.S. - S01, E14 - Santa Mask  (1995) [GEor4745NIUS] {Ultra-High Quality}.mp4", "the-mask-t.-a.-s.-s01-e14-santa-mask-1995-geor4745nius-ultra-high-quality-old-rare", "The Mask T.A.S. - S01, E14 - Santa Mask  (1995) [GEor4745NIUS] {Ultra-High Quality}.mp4", "The Mask · Santa Mask", "christmas cartoon christmas animation animated christmas special holiday cartoon", 1995)
+    iaDirectRecovery("the-mask-t.-a.-s.-s01-e14-santa-mask-1995-geor4745nius-ultra-high-quality-old-rare::The Mask T.A.S. - S01, E14 - Santa Mask  (1995) [GEor4745NIUS] {Ultra-High Quality}.mp4", "the-mask-t.-a.-s.-s01-e14-santa-mask-1995-geor4745nius-ultra-high-quality-old-rare", "The Mask T.A.S. - S01, E14 - Santa Mask  (1995) [GEor4745NIUS] {Ultra-High Quality}.mp4", "The Mask · Santa Mask", "christmas cartoon christmas animation animated christmas special holiday cartoon", 1995),
+    iaDirectRecovery("cartoon-sushi-s-2-episode-37-christmas-special-sd-480p::Cartoon Sushi S2 Episode 37 (Christmas Special) - SD 480p.mp4", "cartoon-sushi-s-2-episode-37-christmas-special-sd-480p", "Cartoon Sushi S2 Episode 37 (Christmas Special) - SD 480p.mp4", "Cartoon Sushi · Christmas Special", "christmas cartoon christmas animation animated christmas special holiday cartoon", 1998),
+    iaDirectRecovery("kippers-brilliant-cartoon-party-episode-21-christmas-special::Kipper’s Brilliant Cartoon Party! - Episode 21 (Christmas special).mp4", "kippers-brilliant-cartoon-party-episode-21-christmas-special", "Kipper’s Brilliant Cartoon Party! - Episode 21 (Christmas special).mp4", "Kipper’s Brilliant Cartoon Party · Christmas Special", "christmas cartoon christmas animation animated christmas special holiday cartoon", 2000)
   ],
   "705": [
     iaDirectRecovery("halloween-cartoon-collection_20231022::01-1929 - Disney -The Skeleton Dance.ia.mp4", "halloween-cartoon-collection_20231022", "01-1929 - Disney -The Skeleton Dance.ia.mp4", "The Skeleton Dance", "halloween cartoon halloween animation animated halloween special spooky cartoon monster cartoon", 1929),
@@ -4998,8 +5000,18 @@ function rotatePlayableIaShelf(payload, rotation, count) {
   const playableCandidates = Array.isArray(payload && payload.candidateItems)
     ? payload.candidateItems.filter((item) => item && item.identifier && item.media && item.media.url)
     : [];
-  const source = playableCandidates.length >= requested
-    ? playableCandidates
+  const holidayWindow = IA_HOLIDAY_ANIMATION_CHANNELS.has(String(payload && payload.channel || ""));
+  /* Holiday shelves are deliberately assembled from several recovery rails.
+     Those rails can arrive in a different order as Archive responses finish,
+     which made the same first few characters reappear on every skip even when
+     the catalog was deep. Sort only these three editorial windows by stable
+     item identity so a rotation number always addresses the same catalog
+     window. The public order still changes by full shelf-sized steps. */
+  const stablePlayableCandidates = holidayWindow
+    ? playableCandidates.slice().sort((a, b) => String(a.identifier).localeCompare(String(b.identifier)))
+    : playableCandidates;
+  const source = stablePlayableCandidates.length >= requested
+    ? stablePlayableCandidates
     : (Array.isArray(payload && payload.items) ? payload.items : []);
   if (!source.length) return { ...(payload || {}), items: [] };
   /* A rotation represents consuming the public shelf, not advancing one
@@ -5010,7 +5022,7 @@ function rotatePlayableIaShelf(payload, rotation, count) {
   return {
     ...(payload || {}),
     items: rotated.slice(0, requested),
-    ...(playableCandidates.length >= requested ? { candidateItems: rotated, candidates: rotated.length } : {}),
+    ...(stablePlayableCandidates.length >= requested ? { candidateItems: stablePlayableCandidates, candidates: stablePlayableCandidates.length } : {}),
     ready: Math.min(requested, rotated.length),
   };
 }
@@ -5058,7 +5070,13 @@ function orderedIaEmergencySeeds(channel, rotation) {
     return url ? { ...item, media: { type: "video", url } } : item;
   });
   if (!seeds.length) return [];
-  const offset = Math.abs(Number(rotation) || 0) % seeds.length;
+  /* Holiday animation cold starts already own verified, file-level banks.
+     Advance those banks by one complete public shelf so a channel change
+     does not replay four of the previous five programs while Archive's
+     deeper background rails are still hydrating. All other lanes retain the
+     established one-record emergency offset. */
+  const shelfStep = IA_HOLIDAY_ANIMATION_CHANNELS.has(String(channel)) ? 5 : 1;
+  const offset = (Math.abs(Number(rotation) || 0) * shelfStep) % seeds.length;
   return seeds.slice(offset).concat(seeds.slice(0, offset));
 }
 

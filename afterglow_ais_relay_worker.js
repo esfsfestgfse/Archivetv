@@ -89,7 +89,7 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
    warmup back onto the channel-change path. */
 const IA_STRICT_CATALOG_CANDIDATE_MAX = 128;
 const IA_CATALOG_CANDIDATE_MAX = 96;
-const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v11-repeat-lanes";
+const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v12-repeat-lanes";
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
@@ -101,10 +101,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v11-repeat-lanes"
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v141";
+const IA_QUEUE_CACHE_VERSION = "v142";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v141";
+const IA_LAST_GOOD_CACHE_VERSION = "v142";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -2621,6 +2621,13 @@ const IA_LONG_TAIL_EXPANSIONS_EXTRA = Object.freeze({
     iaDirectRecovery("UniversalNewsreelVolume35Release7509-13-1962::Universal Newsreel Volume 35 Release 75 09-13-1962.mp4", "UniversalNewsreelVolume35Release7509-13-1962", "Universal Newsreel Volume 35 Release 75 09-13-1962.mp4", "Universal Newsreel · September 1962", "news newsreel television news documentary archive", 1962),
     iaDirectRecovery("1960-05-23_u2_at_un::1960-05-23_u2_at_un.mp4", "1960-05-23_u2_at_un", "1960-05-23_u2_at_un.mp4", "Newsreel · U-2 at the U.N.", "news newsreel television news documentary archive", 1960),
     iaDirectRecovery("200-UN-35-53::200-UN-35-53 Universal Newsreel Volume 35 Release 53 06-28-1962.mp4", "200-UN-35-53", "200-UN-35-53 Universal Newsreel Volume 35 Release 53 06-28-1962.mp4", "Universal Newsreel · June 1962", "news newsreel television news documentary archive", 1962),
+    iaDirectRecovery("UniversalNewsreelVolume35Release201-01-1962::Universal Newsreel Volume 35 Release 2 01-01-1962.mp4", "UniversalNewsreelVolume35Release201-01-1962", "Universal Newsreel Volume 35 Release 2 01-01-1962.mp4", "Universal Newsreel · January 1962", "news newsreel television news documentary archive", 1962),
+    iaDirectRecovery("UniversalNewsreelVolume35Release3905-10-1962::Universal Newsreel Volume 35 Release 39 05-10-1962.mp4", "UniversalNewsreelVolume35Release3905-10-1962", "Universal Newsreel Volume 35 Release 39 05-10-1962.mp4", "Universal Newsreel · May 1962", "news newsreel television news documentary archive", 1962),
+    iaDirectRecovery("UniversalNewsreelVolume35Release6007-23-1962::Universal Newsreel Volume 35 Release 60 07-23-1962.mp4", "UniversalNewsreelVolume35Release6007-23-1962", "Universal Newsreel Volume 35 Release 60 07-23-1962.mp4", "Universal Newsreel · July 1962", "news newsreel television news documentary archive", 1962),
+    iaDirectRecovery("CSPAN3_20140927_015000_1952_Universal_Newsreel::CSPAN3_20140927_015000_1952_Universal_Newsreel.mp4", "CSPAN3_20140927_015000_1952_Universal_Newsreel", "CSPAN3_20140927_015000_1952_Universal_Newsreel.mp4", "C-SPAN Reel America · 1952 Universal Newsreel", "news newsreel television news documentary archive", 1952),
+    iaDirectRecovery("CSPAN3_20141226_102900_1964_Universal_Newsreel_Atomsville_U.S.A.::CSPAN3_20141226_102900_1964_Universal_Newsreel_Atomsville_U.S.A..mp4", "CSPAN3_20141226_102900_1964_Universal_Newsreel_Atomsville_U.S.A.", "CSPAN3_20141226_102900_1964_Universal_Newsreel_Atomsville_U.S.A..mp4", "C-SPAN Reel America · Atomsville U.S.A.", "news newsreel television news documentary archive science", 1964),
+    iaDirectRecovery("UniversalNewsreelVolume36Release9711-28-1963::Universal Newsreel Volume 36 Release 97 11-28-1963.mp4", "UniversalNewsreelVolume36Release9711-28-1963", "Universal Newsreel Volume 36 Release 97 11-28-1963.mp4", "Universal Newsreel · November 1963", "news newsreel television news documentary archive", 1963),
+    iaDirectRecovery("70712CameraThrillsOfWWII::70712 Camera Thrills of WWII.mp4", "70712CameraThrillsOfWWII", "70712 Camera Thrills of WWII.mp4", "Newsreel · Camera Thrills of WWII", "news newsreel television news documentary archive war history", 1943),
   ],
 });
 /* v4 promotion gate: only families that passed the full multi-rotation soak

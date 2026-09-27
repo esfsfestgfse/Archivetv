@@ -12,7 +12,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "4.1.67-holiday-certification-deep-catalog";
+const V3_RELEASE = "4.1.68-holiday-shallow-catalog-repair";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -39,6 +39,9 @@ const IA_ROTATION_REFILL_LANES = new Set(["915"]);
 const IA_FAST_CATALOG_LANES = new Set([
   /* Verified D1 shelves keep cold tunes off the shared Archive burst path. */
   "10", "11", "12", "56", "64", "110", "150", "154", "158", "205", "222", "922",
+  /* Holiday lanes have verified instant shelves but some still need a
+     background relay refresh to grow beyond their shallow D1 catalog. */
+  "705", "707", "708", "709",
 ]);
 const IA_CANONICAL_PILOT_VALUES = new Set(["1", "true", "on", "pilot"]);
 const IA_CANONICAL_PROFILE_BY_CHANNEL = new Map(Object.values(IA_CANONICAL_PILOT_PROFILES).map((profile) => [String(profile.channel), profile.profileKey]));

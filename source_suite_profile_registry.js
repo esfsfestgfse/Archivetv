@@ -2567,12 +2567,20 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "holiday family television full episode",
       "animated holiday television special",
       "holiday cartoon marathon",
-      "spooky cartoon full episode"
+      "spooky cartoon full episode",
+      "holiday television special full",
+      "family holiday special full",
+      "winter holiday television full",
+      "seasonal family special full",
+      "classic holiday television full",
+      "holiday cartoon collection full"
     ],
     "match": [
       "holiday cartoon", "christmas cartoon", "halloween cartoon", "thanksgiving cartoon",
       "holiday animated special", "seasonal cartoon", "holiday kids television",
-      "holiday family show", "animated holiday special", "winter cartoon", "holiday television special"
+      "holiday family show", "animated holiday special", "winter cartoon", "holiday television special",
+      "holiday television special", "family holiday special", "winter holiday television",
+      "seasonal family special", "classic holiday television", "holiday cartoon collection"
     ],
     "deny": [
       "educational", "instructional", "seminar", "lecture", "animation history",
@@ -2675,12 +2683,20 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "classic horror feature full",
       "seasonal horror film full",
       "halloween family movie full",
-      "halloween movie marathon"
+      "halloween movie marathon",
+      "classic monster movie full",
+      "public domain halloween feature full",
+      "spooky feature film full",
+      "horror anthology full movie",
+      "seasonal horror double feature",
+      "halloween classic film full"
     ],
     "match": [
       "halloween movie", "halloween horror", "horror holiday", "spooky feature", "monster movie",
       "witch movie", "haunted house movie", "halloween television movie", "classic horror feature",
-      "seasonal horror film", "halloween family movie", "halloween feature"
+      "seasonal horror film", "halloween family movie", "halloween feature",
+      "classic monster movie", "public domain halloween feature", "spooky feature film",
+      "horror anthology", "seasonal horror double feature", "halloween classic film"
     ],
     "deny": [
       "shorts", "short film", "trailer", "teaser", "reaction", "review", "recap", "commentary",
@@ -2711,12 +2727,20 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "monster cartoon full episode",
       "halloween kids television full episode",
       "classic halloween cartoon compilation",
-      "halloween cartoon marathon"
+      "halloween cartoon marathon",
+      "spooky television special full",
+      "monster cartoon special full",
+      "classic halloween television special",
+      "halloween family tv special full",
+      "halloween animated television full",
+      "halloween cartoon collection full"
     ],
     "match": [
       "halloween cartoon", "halloween animated special", "halloween special", "casper",
       "scooby doo", "charlie brown halloween", "garfield halloween", "spooky cartoon",
-      "monster cartoon", "halloween kids television", "classic halloween cartoon", "halloween television special"
+      "monster cartoon", "halloween kids television", "classic halloween cartoon", "halloween television special",
+      "spooky television special", "monster cartoon special", "classic halloween television",
+      "halloween family tv", "halloween animated television", "halloween cartoon collection"
     ],
     "deny": [
       "educational", "instructional", "seminar", "lecture", "animation history", "behind the scenes",

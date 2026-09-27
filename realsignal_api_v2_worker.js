@@ -12,7 +12,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "4.1.76-holiday-cartoon-genre-gate";
+const V3_RELEASE = "4.1.77-holiday-cartoon-stale-flag-fix";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -58,7 +58,7 @@ const IA_MIN_ROLLING_CATALOG_DEPTH = 15;
 /* These lanes additionally need stale-row re-scoring because their measured
    D1 history contained old genreVerified flags from before the current rules. */
 const IA_DEPTH_REPAIR_LANES = new Set([
-  "15", "18", "21", "114", "200", "203", "214", "501", "502", "507", "704", "921",
+  "15", "18", "21", "114", "200", "203", "214", "501", "502", "507", "704", "705", "706", "921",
 ]);
 /* Some IA collections store the genre in the series/film title rather than
    the child filename. These are deliberately lane-specific aliases for the
@@ -501,6 +501,8 @@ function catalogFallbackAllowed(item, body) {
       "trypophobia", "animation meme", "gameplay", "roblox", "minecraft",
       "national anthem", "labor day", "parade", "trio", "singing", "music",
       "concert", "choir", "presents:", "presents ", "villains", "(esses)",
+      "smp", "!sneak", "!razer", "server", "speedrun", "gaming", "new life",
+      "starts a factory", "factory gameplay",
       "opening to", "closing to", "opening/closing", "airing",
       "reaction", "commentary", "screen recording", "live broadcast",
     ];

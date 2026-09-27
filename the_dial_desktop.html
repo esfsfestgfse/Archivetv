@@ -1647,7 +1647,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="4.1.66-desktop-holiday-tv-depth-freshness";
+window.__ATV_BUILD="4.1.67-desktop-holiday-certification-deep-catalog";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -6465,10 +6465,14 @@ Object.assign(PROGRAM["Cop Show Classic"].deny,{title:PROGRAM["Cop Show Classic"
 Object.assign(PROGRAM["Saturday Morning"],{deepCollections:["saturdaymorningcartoons","vhskids","vhsvault","animationandcartoons"],deepTitleTerms:["saturday morning cartoon","saturday morning","cartoon","cartoons","animated series","full episode","full episodes","broadcast","fox kids","kids wb","toonami","nickelodeon","disney afternoon","schoolhouse rock","puppet show"]});
 Object.assign(PROGRAM["Classic Cartoons"],{deepCollections:["classic_cartoons","animationandcartoons","opensource_movies","prelinger"],deepTitleTerms:["cartoon","cartoons","animated","animation","animated series","animated short","theatrical cartoon","looney tunes","popeye","bugs bunny","tom and jerry","fleischer","woody woodpecker","mickey mouse","donald duck","saturday morning"]});
 Object.assign(PROGRAM["Modern Cartoons"],{deepCollections:["animationandcartoons","saturdaymorningcartoons","vhskids","vhsvault"],deepTitleTerms:["cartoon","cartoons","animated series","animated tv","episode","full episode","saturday morning","fox kids","kids wb","toonami","nickelodeon","disney afternoon","hanna barbera","transformers","scooby","ducktales","thundercats","x-men","batman animated"]});
-Object.assign(PROGRAM["Classic Rerun TV"],{deepCollections:["classic_tv","television","classic_tv_1950s","classic_tv_1960s"],deepTitleTerms:["complete series","complete","episode","episodes","sitcom","television series","tv series","classic television","variety show","anthology","show","season"]});
+Object.assign(PROGRAM["Classic Rerun TV"],{deepCollections:["classic_tv","television","classic_tv_1950s","classic_tv_1960s","classic_tv_1970s","classic_tv_1980s","prelinger","vhsvault"],deepTitleTerms:["complete series","complete","episode","episodes","sitcom","television series","tv series","classic television","variety show","anthology","show","season","i love lucy","the honeymooners","jack benny","burns and allen","dick van dyke","andy griffith","phil silvers","the addams family","the munsters","bewitched","get smart","the twilight zone","bonanza","dragnet","green acres","the beverly hillbillies"]});
 Object.assign(PROGRAM["Classic Rerun TV"],{themeMinScore:2,queueTerms:["i love lucy","the honeymooners","jack benny","burns and allen","george burns","gracie allen","dick van dyke","mary tyler moore","andy griffith","mayberry","phil silvers","sgt bilko","ed sullivan","red skelton","jackie gleason","milton berle","leave it to beaver","beverly hillbillies","green acres","petticoat junction","the addams family","the munsters","bewitched","i dream of jeannie","mr ed","mister ed","hogan's heroes","gomer pyle","f troop","get smart","twilight zone","outer limits","alfred hitchcock","one step beyond","night gallery","classic television","golden age of television","sitcom","television comedy","variety show","anthology series"],fastSubjects:["i love lucy","the honeymooners","jack benny","burns and allen","dick van dyke","mary tyler moore","andy griffith","phil silvers","ed sullivan","red skelton","classic television","golden age of television"],fastCollections:["classic_tv","classic_tv_1950s","classic_tv_1960s","classic_tv_1970s","television"],diversity:{maxPerEra:2,maxPerLane:2,maxPerCreator:1,maxPerCollection:2,maxPerFamily:1}});
 Object.assign(PROGRAM["Modern Rerun TV"],{deepCollections:["classic_tv","television","vhsvault","classic_tv_1990s"],deepTitleTerms:["complete series","complete","episode","episodes","sitcom","television series","tv series","comedy series","situation comedy","syndicated","season","show"]});
-Object.assign(PROGRAM["Game Show Channel"],{deepCollections:["classic_tv_1950s","classic_tv_1960s","classic_tv_1970s","classic_tv_1980s"],deepTitleTerms:["game show","quiz show","panel show","episode","episodes","complete series","jeopardy","price is right","family feud","match game","password","pyramid","newlywed game","hollywood squares","let's make a deal","what's my line","press your luck","double dare","millionaire"]});
+Object.assign(PROGRAM["Game Show Channel"],{deepCollections:["classic_tv_1950s","classic_tv_1960s","classic_tv_1970s","classic_tv_1980s","classic_tv_1990s","classic_tv_2000s","television","vhsvault","prelinger"],deepTitleTerms:["game show","quiz show","panel show","episode","episodes","complete series","jeopardy","price is right","family feud","match game","password","pyramid","newlywed game","hollywood squares","let's make a deal","what's my line","press your luck","double dare","millionaire","wheel of fortune","supermarket sweep","shop til you drop","shop 'til you drop","the weakest link","nickelodeon guts","figure it out","remote control","who wants to be a millionaire","catch 21","win lose or draw","to tell the truth","beat the clock","truth or consequences","treasure hunt"]});
+/* Core film families use the same collection-expansion path as television.
+   Each station keeps its own theme/deny contract; these shared roots only
+   expose the deeper feature-film and public-archive shelves to the profiler. */
+["Classic Film","Sunday Matinee","Midnight Matinee","The Drive-In","Sci-Fi Theater","Shock Theater","Comedy Classics","World Cinema","The Late Late Show"].forEach(function(name){var p=PROGRAM[name];if(!p)return;var roots=["feature_films","feature_films_unsorted","films","opensource_movies","prelinger","FedFlix"];p.fastCollections=rsAppendProgramTerms(p.fastCollections,roots);p.deepCollections=rsAppendProgramTerms(p.deepCollections,roots);p.deepTitleTerms=rsAppendProgramTerms(p.deepTitleTerms,["feature film","feature-length film","full movie","complete film","film archive","classic movie","film collection","movie archive"]);p.depthQuerySpread=true;p.diversity=Object.assign({},p.diversity||{},{maxPerEra:2,maxPerLane:2,maxPerCreator:1,maxPerCollection:3,maxPerFamily:1});});
 /* Every IA PROGRAM gets the same collection-depth treatment. The six stations
    above have hand-curated roots; the rest inherit a bounded set of their own
    provider collections and approved title vocabulary. This is catalog
@@ -8610,7 +8614,7 @@ function playFile(it,ch,sl,my,isFallback){return new Promise(res=>{
     }
     /* Video stations get video spots; music/radio stations get audio-only spots.
        A commercial can never cross that media boundary. */
-    if(adsOn && !ch.source && ch.gl!=="commercials"){ if(await playAdBreak(ch,sl,my)) return; } // hold the last frame while the bounded ad lookup runs
+    if(adsOn && !ch.source && ch.gl!=="commercials" && shouldInsertAdBreak(ch)){ if(await playAdBreak(ch,sl,my)) return; } // holiday stations take a measured break every second completed program
     try{ if(curVideo&&isFinite(curVideo.duration)){ totalMs+=curVideo.duration*1000; store.set("totalMs",totalMs); } }catch(e){} // NEW: watch-stats tally
     fastTuneDrop(ch.num); /* An ended program must advance, never restart from the return-tune cache. */
     if(token===my&&powered) tuneNum(curNum); },{signal:sig}); // 'ended' is still the ONLY advance path
@@ -17283,9 +17287,18 @@ var AD_CONTEXT_TOPICS={
   SOURCE:["public service announcement","book commercial","technology commercial","household commercial"],
   MUS:["record store commercial","stereo commercial","automobile commercial","beverage commercial"]
 };
+var AD_HOLIDAY_CONTEXTS={
+  christmas:["christmas commercial","holiday commercial","christmas toy commercial","christmas food commercial","christmas department store commercial","santa commercial","christmas public service announcement"],
+  halloween:["halloween commercial","halloween candy commercial","costume commercial","halloween television promo","halloween public service announcement","horror movie commercial"],
+  thanksgiving:["thanksgiving commercial","thanksgiving food commercial","turkey commercial","thanksgiving parade commercial","holiday food commercial","thanksgiving public service announcement"]
+};
+var adHolidayCadence=store.get("adHolidayCadence",{});if(!adHolidayCadence||typeof adHolidayCadence!=="object")adHolidayCadence={};
+function holidayAdKey(ch){var name=String(ch&&ch.nm||"").toLowerCase();if(/christmas|xmas|yuletide/.test(name))return "christmas";if(/halloween|monster island|haunt/.test(name))return "halloween";if(/thanksgiving|turkey day/.test(name))return "thanksgiving";return "";}
+function shouldInsertAdBreak(ch){if(!ch||ch.audio)return true;var key=holidayAdKey(ch);if(!key)return true;var count=Number(adHolidayCadence[key]||0)+1;adHolidayCadence[key]=count;store.set("adHolidayCadence",adHolidayCadence);return count%2===0;}
 function adContextTopics(ch){
   if(ch&&ch.audio)return ["radio commercial","radio advertisement","sponsor message","radio spot"];
   var name=String(ch&&ch.nm||"").toLowerCase();
+  var holiday=holidayAdKey(ch);if(holiday)return AD_HOLIDAY_CONTEXTS[holiday].concat(AD_CONTEXT_TOPICS.HOL);
   if(/hunt|tight lines|camp|range|sporting life|conservation/.test(name))return ["outdoor gear commercial","fishing gear commercial","hunting gear commercial","truck commercial"];
   if(/auto|racing|motor|gear head|railroad|aviation/.test(name))return ["automobile commercial","motor oil commercial","tire commercial","truck commercial"];
   return (AD_CONTEXT_TOPICS[String(ch&&ch.cat||"").toUpperCase()]||AD_CONTEXT_TOPICS.TV).slice();
@@ -17298,6 +17311,8 @@ function adItemContextScore(item,ch){
 }
 function adQueries(ch){
   var mt=(ch&&ch.audio)?"audio":"movies",isAudio=mt==="audio", sourceLanes=isAudio?AD_AUDIO_LANES:AD_LANES,start=(adLaneCursor%sourceLanes.length);adLaneCursor=(adLaneCursor+1)%sourceLanes.length;store.set("adLaneCursor",adLaneCursor);var lanes=sourceLanes.slice(start).concat(sourceLanes.slice(0,start)),context=adContextTopics(ch),qs=[];
+  var holiday=holidayAdKey(ch),holidayTerms=holiday&&!isAudio?AD_HOLIDAY_CONTEXTS[holiday]:[];
+  if(holidayTerms.length){var holidayWords=holidayTerms.map(programPhrase).join(" OR "),holidayClause="(subject:("+holidayWords+") OR title:("+holidayWords+"))",holidayDeny=" AND NOT (subject:(\"audio only\" OR \"radio commercial\" OR \"radio advertisement\" OR \"audio commercial\") OR title:(\"audio only\" OR \"radio commercial\" OR \"radio advertisement\" OR \"audio commercial\"))";qs.push("mediatype:movies AND "+holidayClause+holidayDeny);}
   /* Archive frequently omits year metadata on otherwise excellent product ads.
      Start video stations with one undated, station-matched rail; the dated
      lanes below still determine variety and remain the fallback backbone. */

@@ -42,6 +42,12 @@ for (const file of files) {
   const animation = queryFor(block, { cat: 'TOON', nm: 'Modern Cartoons', audio: false });
   assert(animation.some(query => query.includes('"toy commercial"')), `${file}: animation breaks need toy/family context`);
 
+  const holiday = queryFor(block, { cat: 'TV', nm: 'Christmas TV', audio: false });
+  assert(holiday.some(query => query.includes('"christmas commercial"')), `${file}: Christmas TV breaks need seasonal commercial context`);
+  assert(holiday.some(query => query.includes('"christmas toy commercial"')), `${file}: Christmas TV breaks need more than generic holiday ads`);
+  assert(holiday.every(query => query.includes('mediatype:movies')), `${file}: holiday television breaks must stay video-only`);
+  assert(holiday.every(query => query.includes('AND NOT (subject:("audio only" OR "radio commercial"')), `${file}: holiday television breaks must exclude audio ads`);
+
   const outdoor = queryFor(block, { cat: 'TV', nm: 'Tight Lines', audio: false });
   assert(outdoor.some(query => query.includes('"fishing gear commercial"')), `${file}: outdoor breaks need gear context`);
 
@@ -51,6 +57,12 @@ for (const file of files) {
     vm.runInContext(block, context, { timeout: 1000 });
     return context;
   })();
+  const cadence = [
+    vm.runInContext(`shouldInsertAdBreak({cat:"TV",nm:"Christmas TV",audio:false})`, scoring, { timeout: 1000 }),
+    vm.runInContext(`shouldInsertAdBreak({cat:"TV",nm:"Christmas TV",audio:false})`, scoring, { timeout: 1000 }),
+    vm.runInContext(`shouldInsertAdBreak({cat:"TV",nm:"Christmas TV",audio:false})`, scoring, { timeout: 1000 })
+  ];
+  assert.deepEqual(cadence, [false, true, false], `${file}: holiday commercial cadence must be measured, not every program`);
   const sportsScore = vm.runInContext(`adItemContextScore({title:"Vintage automobile commercial",subject:["sports drink commercial"]},{cat:"SPORTS",nm:"Sports Vault",audio:false})`, scoring, { timeout: 1000 });
   const genericScore = vm.runInContext(`adItemContextScore({title:"Time Savers for House Makers",subject:["classic television commercials"]},{cat:"SPORTS",nm:"Sports Vault",audio:false})`, scoring, { timeout: 1000 });
   assert(sportsScore > genericScore, `${file}: a sports-matched break must outrank a generic commercial`);

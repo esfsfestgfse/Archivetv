@@ -89,7 +89,7 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
    warmup back onto the channel-change path. */
 const IA_STRICT_CATALOG_CANDIDATE_MAX = 128;
 const IA_CATALOG_CANDIDATE_MAX = 96;
-const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v9-repeat-lanes";
+const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v10-repeat-lanes";
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
@@ -101,10 +101,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v9-repeat-lanes";
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v139";
+const IA_QUEUE_CACHE_VERSION = "v140";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v139";
+const IA_LAST_GOOD_CACHE_VERSION = "v140";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -2507,6 +2507,12 @@ const IA_LONG_TAIL_EXPANSIONS_EXTRA = Object.freeze({
     iaDirectRecovery("MaxBaerAndPrimoCarneraInTraining::Max_Baer_and_Primo_Carnera_in_Training_512kb.mp4", "MaxBaerAndPrimoCarneraInTraining", "Max_Baer_and_Primo_Carnera_in_Training_512kb.mp4", "Max Baer and Primo Carnera · Training", "boxing fight sports archive ringside training", 1934),
     iaDirectRecovery("MaxSchmelingVsJoeLouis::MaxSchmelingVsJoeLouis_512kb.mp4", "MaxSchmelingVsJoeLouis", "MaxSchmelingVsJoeLouis_512kb.mp4", "Max Schmeling vs. Joe Louis", "boxing fight sports archive ringside", 1936),
     iaDirectRecovery("SonnyListonVsClevelandWilliams::SonnyListonVsClevelandWilliams_512kb.mp4", "SonnyListonVsClevelandWilliams", "SonnyListonVsClevelandWilliams_512kb.mp4", "Sonny Liston vs. Cleveland Williams", "boxing fight sports archive ringside", 1959),
+    iaDirectRecovery("PrimoCarneraVsErnieSchaaf::PrimoCarneraVsErnieSchaaf_512kb.mp4", "PrimoCarneraVsErnieSchaaf", "PrimoCarneraVsErnieSchaaf_512kb.mp4", "Primo Carnera vs. Ernie Schaaf", "boxing fight sports archive ringside", 1933),
+    iaDirectRecovery("TommyLoughranVsJimmyDelaney::TommyLoughranVsJimmyDelaney_512kb.mp4", "TommyLoughranVsJimmyDelaney", "TommyLoughranVsJimmyDelaney_512kb.mp4", "Tommy Loughran vs. Jimmy Delaney", "boxing fight sports archive ringside", 1926),
+    iaDirectRecovery("TommyLoughranVsMickeyWalker::TommyLoughranVsMickeyWalker_512kb.mp4", "TommyLoughranVsMickeyWalker", "TommyLoughranVsMickeyWalker_512kb.mp4", "Tommy Loughran vs. Mickey Walker", "boxing fight sports archive ringside", 1929),
+    iaDirectRecovery("SonnyListonVsCassiusClay::SonnyListonVsCassiusClay_512kb.mp4", "SonnyListonVsCassiusClay", "SonnyListonVsCassiusClay_512kb.mp4", "Sonny Liston vs. Cassius Clay", "boxing fight sports archive ringside", 1964),
+    iaDirectRecovery("SonnyListonVsGerhardZech::SonnyListonVsGerhardZech_512kb.mp4", "SonnyListonVsGerhardZech", "SonnyListonVsGerhardZech_512kb.mp4", "Sonny Liston vs. Gerhard Zech", "boxing fight sports archive ringside", 1966),
+    iaDirectRecovery("JackDempseyNewsreel1930s::JackDempseyNewsreel1930s_512kb.mp4", "JackDempseyNewsreel1930s", "JackDempseyNewsreel1930s_512kb.mp4", "Jack Dempsey · 1930s Newsreel", "boxing fight sports archive ringside newsreel", 1939),
   ],
   "60": [
     iaDirectRecovery("patma-January_11th_2017_-_Boys_Hockey_vs_Danvers::January_11th_2017_-_Boys_Hockey_vs_Danvers.mp4", "patma-January_11th_2017_-_Boys_Hockey_vs_Danvers", "January_11th_2017_-_Boys_Hockey_vs_Danvers.mp4", "Boys Hockey vs. Danvers", "ice hockey hockey sports archive game", 2017),
@@ -2530,11 +2536,20 @@ const IA_LONG_TAIL_EXPANSIONS_EXTRA = Object.freeze({
     iaDirectRecovery("2010_Vancouver_Winter_Olympic_Torch_Relay_Seg1_12Dec2009::SSA51261_512kb.mp4", "2010_Vancouver_Winter_Olympic_Torch_Relay_Seg1_12Dec2009", "SSA51261_512kb.mp4", "Vancouver 2010 · Torch Relay Segment 2", "olympics olympic games winter olympics sports archive", 2009),
     iaDirectRecovery("2010_Vancouver_Winter_Olympic_Torch_Relay_Seg2_12Dec2009::SSA51265_512kb.mp4", "2010_Vancouver_Winter_Olympic_Torch_Relay_Seg2_12Dec2009", "SSA51265_512kb.mp4", "Vancouver 2010 · Torch Relay Segment 3", "olympics olympic games winter olympics sports archive", 2009),
     iaDirectRecovery("2010_Olympic_Medals_24Jan2010::SSA51404_512kb.mp4", "2010_Olympic_Medals_24Jan2010", "SSA51404_512kb.mp4", "Vancouver 2010 · Olympic Medals", "olympics olympic games winter olympics sports archive", 2010),
+    iaDirectRecovery("2010_Vancouver_Winter_Olympic_Torch_Relay_Seg1_12Dec2009::SSA51257_512kb.mp4", "2010_Vancouver_Winter_Olympic_Torch_Relay_Seg1_12Dec2009", "SSA51257_512kb.mp4", "Vancouver 2010 · Torch Relay Opening", "olympics olympic games winter olympics sports archive", 2009),
+    iaDirectRecovery("2010_Vancouver_Winter_Olympic_Torch_Relay_Seg2_12Dec2009::SSA51262_512kb.mp4", "2010_Vancouver_Winter_Olympic_Torch_Relay_Seg2_12Dec2009", "SSA51262_512kb.mp4", "Vancouver 2010 · Torch Relay Arrival", "olympics olympic games winter olympics sports archive", 2009),
+    iaDirectRecovery("2010_Olympic_Medals_24Jan2010::SSA51403_512kb.mp4", "2010_Olympic_Medals_24Jan2010", "SSA51403_512kb.mp4", "Vancouver 2010 · Medal Display", "olympics olympic games winter olympics sports archive", 2010),
   ],
   "74": [
     iaDirectRecovery("cammlsmh_000061::cammlsmh_000061_access.HD.mp4", "cammlsmh_000061", "cammlsmh_000061_access.HD.mp4", "Skiing at Mammoth and Hot Creek · 1959", "winter sports skiing olympic games outdoor archive", 1959),
     iaDirectRecovery("StLouisSki::MVI_0301_512kb.mp4", "StLouisSki", "MVI_0301_512kb.mp4", "St. Louis Ski", "winter sports skiing outdoor archive", 2010),
     iaDirectRecovery("Ski_With_A_Ranger::Ski_With_A_Ranger.mp4", "Ski_With_A_Ranger", "Ski_With_A_Ranger.mp4", "Ski with a Ranger", "winter sports skiing outdoor archive", 2010),
+    iaDirectRecovery("Ski_With_A_Ranger_FDRD_Breck_Ski_Resort::Ski_With_A_Ranger_FDRD_Breck_Ski_Resort.mp4", "Ski_With_A_Ranger_FDRD_Breck_Ski_Resort", "Ski_With_A_Ranger_FDRD_Breck_Ski_Resort.mp4", "Ski with a Ranger · Breck Ski Resort", "winter sports skiing outdoor archive", 2016),
+    iaDirectRecovery("97251_hm_skiing::97251.mp4", "97251_hm_skiing", "97251.mp4", "Home Movie · Skiing", "winter sports skiing outdoor home movie archive", 1938),
+    iaDirectRecovery("StephenFlip::StephenFLIP_512kb.mp4", "StephenFlip", "StephenFLIP_512kb.mp4", "Stephen · Trick Skiing", "winter sports skiing outdoor archive", 2005),
+    iaDirectRecovery("PrimeProductions_FlyingPenguinJibFest_Snowboarding_2005::FlyingPenguin2005_512kb.mp4", "PrimeProductions_FlyingPenguinJibFest_Snowboarding_2005", "FlyingPenguin2005_512kb.mp4", "Flying Penguin · Snowboarding", "winter sports skiing snowboarding outdoor archive", 2005),
+    iaDirectRecovery("Silvertongetsitdone::Silvertongetsitdone_512kb.mp4", "Silvertongetsitdone", "Silvertongetsitdone_512kb.mp4", "42 Fresh on Colorado", "winter sports skiing snowboarding outdoor archive", 2007),
+    iaDirectRecovery("valdezhelicamps.com::valdezhelicamps.com_out_512kb.mp4", "valdezhelicamps.com", "valdezhelicamps.com_out_512kb.mp4", "Heliskiing in Valdez, Alaska", "winter sports skiing snowboarding outdoor archive", 1999),
   ],
   "101": [
     iaDirectRecovery("captain-kronos-vampire-hunter-1974_202412::Captain Kronos Vampire Hunter 1974.mp4", "captain-kronos-vampire-hunter-1974_202412", "Captain Kronos Vampire Hunter 1974.mp4", "Captain Kronos: Vampire Hunter", "shock theater horror movie classic horror monster film", 1974),

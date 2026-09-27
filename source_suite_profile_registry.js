@@ -2491,17 +2491,17 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "name": "Family TV Club",
     "queryLimit": 8,
     "queryWindow": 6,
-    "persistedRelaxed": true,
-    "persistedMatch": ["full episode", "complete episode", "full show", "television program", "kids", "children", "family"],
+    "persistedRelaxed": false,
+    "persistedMatch": ["full episode", "complete episode", "full show", "television program"],
     "providers": [
       "peertube",
       "youtube"
     ],
     "intent": "television",
-    "topics": ["family television", "children's program", "kids television", "educational kids show", "kids", "children", "family"],
+    "topics": ["family television", "family sitcom", "family drama", "children's program", "children's television", "kids television", "educational kids show"],
     "formats": ["full episode", "complete episode", "full show", "television program", "kids show"],
     "queries": ["family television full episode", "children's television complete episode", "classic family TV show full episode", "public television kids full episode", "kids television full show", "children's program complete episode", "educational kids show full episode", "classic kids TV full episode"],
-    "match": ["family television", "children's television", "children's program", "kids television", "kids show", "full episode", "complete episode"],
+    "match": ["family television", "family sitcom", "family drama", "children's television", "children's program", "kids television", "kids show", "full episode", "complete episode"],
     "deny": [
       "music video",
       "commercial",
@@ -2509,6 +2509,14 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "horror",
       "prank",
       "reaction",
+      "reality tv",
+      "reality television",
+      "dating show",
+      "weight loss",
+      "flavor of love",
+      "secret eaters",
+      "pokemon",
+      "backyardigans",
       "unboxing",
       "shorts"
     ]

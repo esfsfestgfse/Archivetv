@@ -2554,7 +2554,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "peerTubeFallbackQueryWindow": 4,
     "peerTubeInstances": ["https://search.joinpeertube.org", "https://tilvids.com"],
     "providers": ["peertube", "youtube"],
-    "intent": "animation",
+    "intent": "television",
     "queries": [
       "holiday cartoon full episode",
       "christmas cartoon full episode",
@@ -2634,7 +2634,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "peerTubeFallbackQueryWindow": 4,
     "peerTubeInstances": ["https://search.joinpeertube.org", "https://tilvids.com"],
     "providers": ["peertube", "youtube"],
-    "intent": "animation",
+    "intent": "television",
     "queries": [
       "christmas cartoon full episode",
       "christmas animated special full",
@@ -2714,7 +2714,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "peerTubeFallbackQueryWindow": 4,
     "peerTubeInstances": ["https://search.joinpeertube.org", "https://tilvids.com"],
     "providers": ["peertube", "youtube"],
-    "intent": "animation",
+    "intent": "television",
     "queries": [
       "halloween cartoon full episode",
       "halloween animated special full",

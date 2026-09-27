@@ -22,6 +22,8 @@ for (const key of ['holiday-movie-house', 'holiday-cartoon-club', 'christmas-mov
   }
 }
 if (!sourceRegistry.includes('"fallbackProfiles": ["christmas-cartoon-club", "halloween-cartoon-club"]')) issues.push('holiday-cartoon-club must have an explicit seasonal family fallback');
+const api = fs.readFileSync(path.join(repo, 'realsignal_api_v2_worker.js'), 'utf8');
+if (!api.includes('async function familyCatalogFallback') || !api.includes('d1-family-source-catalog') || !api.includes('sourceProvidersFromItems')) issues.push('API must serve persisted seasonal family shelves when a broad holiday profile is empty');
 for (const key of ['animal-care', 'family-tv-club', 'garden-ledger', 'green-culture', 'jukebox-television', 'lesson-reel', 'local-signal', 'memory-bank', 'newsreel-exchange', 'print-shop', 'screen-test', 'sound-lab', 'stage-door', 'travel-reel', 'tv-time-machine', 'variety-hour', 'western-screen']) {
   const start = sourceRegistry.indexOf(`"${key}":`);
   const next = sourceRegistry.indexOf('\n  },', start);
@@ -99,7 +101,6 @@ for (const [key, terms] of Object.entries({
   const section = sourceRegistry.slice(start, next >= 0 ? next + 5 : sourceRegistry.length);
   for (const term of terms) if (!section.includes(term)) issues.push(`${key} must retain its expanded full-program forms`);
 }
-const api = fs.readFileSync(path.join(repo, 'realsignal_api_v2_worker.js'), 'utf8');
 if (!api.includes('const sourceRefreshCache = new Map()') || !api.includes('refresh already scheduled') || !api.includes('forceDeepRefresh') || !api.includes('server-source-catalog-refresh') || !api.includes('freshnessLedger: true')) issues.push('source refreshes must be deduplicated, deep refreshes must return the expanded union, and freshness filtering must preserve newest-first ledger order');
 if (!api.includes('blockedProviders') || !api.includes('eligibleItems = items.filter') || !api.includes('blockedProvidersForGuide') || !api.includes('A row from a provider currently in cooldown')) issues.push('provider cooldowns must remove unhealthy provider rows from catalogs and guide suggestions before rotation');
 if (!api.includes('const failed = !skipped && !!health.error;') || !api.includes("COALESCE(last_error, '')<>'no verified items'")) issues.push('an empty Source Suite search must rotate to another query, not trigger or retain a provider cooldown');

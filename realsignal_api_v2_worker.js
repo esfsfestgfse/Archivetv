@@ -12,7 +12,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "4.1.3-holiday-fallback";
+const V3_RELEASE = "4.1.4-holiday-family-shelf";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -828,6 +828,56 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
   } : null;
 }
 
+/* A family profile is an editorial union, not a second upstream search. When
+   a broad seasonal lane has no usable shelf of its own, reuse the already
+   verified D1 shelves from its narrower seasonal members. This keeps the
+   viewer on a fast, playable path even while the broad profile's providers
+   are cooling down or returning sparse results. */
+async function familyCatalogFallback(env, profile, requestedLimit = SOURCE_LIMITS.SOURCE_MAX_ITEMS) {
+  const fallbackProfiles = Array.isArray(profile && profile.fallbackProfiles) ? profile.fallbackProfiles : [];
+  if (!fallbackProfiles.length) return [];
+  const rows = [];
+  for (const profileKey of fallbackProfiles.slice(0, 4)) {
+    const alias = sourceProfile({ profileKey });
+    if (!alias) continue;
+    const cached = await catalogFallback(env, {
+      channel: alias.profileKey,
+      sourceCatalog: true,
+      denyTerms: alias.deny,
+      themeTerms: alias.match,
+      intent: alias.intent,
+      topics: alias.topics,
+      programFormats: alias.formats,
+      persistedRelaxed: alias.persistedRelaxed,
+      persistedMatch: alias.persistedMatch,
+      themeMinScore: 1,
+    }, requestedLimit, { ignoreFreshness: true, blockedProviders: new Set() }).catch(() => null);
+    if (cached && Array.isArray(cached.candidateItems)) rows.push(...cached.candidateItems);
+  }
+  /* The alias shelves have already passed their own 15-minute, aspect-ratio,
+     media-type, deny, and genre rules. Only dedupe here; re-running the broad
+     profile's match vocabulary would throw away valid titles such as Rudolph
+     or Casper that do not contain the generic phrase "holiday cartoon". */
+  return uniqueQueueItems(rows, {
+    sourceCatalog: true,
+    denyTerms: [],
+    themeTerms: [],
+    persistedMatch: [],
+    topics: [],
+    programFormats: [],
+    themeMinScore: 0,
+  }, requestedLimit);
+}
+
+function sourceProvidersFromItems(items) {
+  const providers = new Set();
+  for (const item of Array.isArray(items) ? items : []) {
+    const provider = sourceProviderKey(item && item.provider);
+    if (provider === "youtube" || provider === "peertube") providers.add(provider);
+  }
+  return providers;
+}
+
 async function handleQueue(request, env, ctx, id) {
   let body;
   try { body = await readBoundedJson(request); }
@@ -1299,7 +1349,12 @@ async function handleSourceStatus(request, env) {
     persistedMatch: profile.persistedMatch,
     themeMinScore: 1,
   }, SOURCE_LIMITS.SOURCE_MAX_ITEMS, { ignoreFreshness: true, blockedProviders: cooldowns });
-  const items = cached && Array.isArray(cached.candidateItems) ? cached.candidateItems : [];
+  let items = cached && Array.isArray(cached.candidateItems) ? cached.candidateItems : [];
+  let source = cached ? "d1-requalified-source-catalog" : "d1-requalified-source-catalog-empty";
+  if (!items.length && Array.isArray(profile.fallbackProfiles) && profile.fallbackProfiles.length) {
+    items = await familyCatalogFallback(env, profile, SOURCE_LIMITS.SOURCE_MAX_ITEMS);
+    if (items.length) source = "d1-family-source-catalog";
+  }
   return json({
     apiVersion: "v3",
     release: V3_RELEASE,
@@ -1308,8 +1363,8 @@ async function handleSourceStatus(request, env) {
     items,
     ready: items.length,
     catalogDepth: Number(cached && cached.catalogDepth || items.length),
-    source: cached ? "d1-requalified-source-catalog" : "d1-requalified-source-catalog-empty",
-    providerAvailability: { youtube: !cooldowns.has("youtube"), peertube: !cooldowns.has("peertube"), cooldownProviders: Array.from(cooldowns) },
+    source,
+    providerAvailability: { youtube: sourceProvidersFromItems(items).has("youtube") || (!items.length && !cooldowns.has("youtube")), peertube: sourceProvidersFromItems(items).has("peertube") || (!items.length && !cooldowns.has("peertube")), cooldownProviders: Array.from(cooldowns) },
     generatedAt: new Date().toISOString(),
   }, 200, { "Cache-Control": "public, max-age=15, stale-while-revalidate=60", "X-RealSignal-Release": V3_RELEASE });
 }
@@ -1692,6 +1747,38 @@ async function handleSourceCatalog(request, env, ctx, id) {
     console.warn(JSON.stringify({ event: "source-catalog-read-failed", requestId: id, error: String(error).slice(0, 160) }));
     return null;
   });
+  const familyFallbackItems = !cached?.items?.length && Array.isArray(profile.fallbackProfiles) && profile.fallbackProfiles.length
+    ? await familyCatalogFallback(env, profile, SOURCE_LIMITS.SOURCE_MAX_ITEMS)
+    : [];
+  if (familyFallbackItems.length) {
+    const familyBody = { ...body, recentIds: sourceRecentIds, freshnessLedger: true, count: Math.max(1, Number(body.count) || 5) };
+    const freshFamilyItems = applyFreshness(familyFallbackItems, familyBody);
+    if (playedIds.length) rememberFreshness(env, profile.profileKey, playedIds, ctx);
+    const familyProviders = sourceProvidersFromItems(freshFamilyItems);
+    return json({
+      profileKey: profile.profileKey,
+      items: rotateCatalogItems(freshFamilyItems, rotation),
+      ready: freshFamilyItems.length,
+      candidates: familyFallbackItems.length,
+      catalogDepth: familyFallbackItems.length,
+      unseenCatalogItems: freshFamilyItems.length,
+      seenCatalogItems: Math.max(0, familyFallbackItems.length - freshFamilyItems.length),
+      catalogExhausted: false,
+      repeatAllowed: false,
+      hydrating: false,
+      staleCatalog: false,
+      adaptiveFreshness: true,
+      freshnessLedger: true,
+      freshnessExcluded: Math.max(0, familyFallbackItems.length - freshFamilyItems.length),
+      freshnessWindow: sourceRecentIds.length,
+      fallbackProfiles: profile.fallbackProfiles,
+      catalogVersion: "source-server-1",
+      source: "d1-family-source-catalog",
+      providerAvailability: { youtube: familyProviders.has("youtube"), peertube: familyProviders.has("peertube"), cooldownProviders: [] },
+      apiVersion,
+      release: apiVersion === "v3" ? V3_RELEASE : undefined,
+    }, 200, { "Cache-Control": "public, max-age=10, stale-while-revalidate=60", "X-RealSignal-Request": id, "X-RealSignal-Source": "d1-family-source-catalog", "X-RealSignal-Release": apiVersion === "v3" ? V3_RELEASE : "2.2.2" });
+  }
   const minimumReady = Math.max(1, Math.min(SOURCE_LIMITS.SOURCE_MIN_READY, Number(body.minimumReady) || SOURCE_LIMITS.SOURCE_MIN_READY));
   /* Never make a viewer wait for a full refill when D1 already has playable
      rows. A shallow shelf is served immediately and refilled in the

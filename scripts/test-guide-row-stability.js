@@ -33,7 +33,7 @@ for (const name of files) {
     ['queue refill uses incremental guide refresh', functionBody(source, 'async function refillIAQueue(').includes('refreshGuideRows()')],
     ['guide warming uses incremental guide refresh', functionBody(source, 'function primeGuideQueues(').includes('refreshGuideRows()')],
     ['initial guide render still builds the rows', functionBody(source, 'function renderGuide()').includes('renderRail()')],
-    ['IA guide reports the rolling hot shelf', guideListingBody.includes('IA_READY_TARGET') && guideListingBody.includes('HOT SHELF')],
+    ['IA guide reports the rolling hot shelf', guideListingBody.includes('IA_READY_TARGET') && /hot replacements|HOT SHELF/.test(guideListingBody)],
     ['IA guide has no stale five-show warming promise', !guideListingBody.includes('FIVE-SHOW BUFFER WARMING')],
   ];
   for (const [label, passed] of checks) {

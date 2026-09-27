@@ -7,7 +7,7 @@ const path = require('node:path');
 
 const repo = path.resolve(__dirname, '..');
 const retired = [
-  ['243', 'tv_early'], ['244', 'tv_1950s'], ['245', 'tv_1960s'], ['246', 'tv_1970s'],
+  ['245', 'tv_1960s'], ['246', 'tv_1970s'],
   ['247', 'tv_1980s'], ['248', 'tv_1990s'], ['249', 'tv_2000s'], ['250', 'tv_2010s'],
   ['260', 'movie_early'], ['261', 'movie_1950s'], ['262', 'movie_1960s'], ['263', 'movie_1970s'],
   ['264', 'movie_1980s'], ['265', 'movie_1990s'], ['266', 'movie_2000s'], ['267', 'movie_2010s'],

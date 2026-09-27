@@ -102,9 +102,9 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v4";
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
 const IA_QUEUE_CACHE_VERSION = "v131";
-/* Last-good shelves share the v101 namespace so an older shallow shelf
-   never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v115";
+/* Last-good shelves share the active queue namespace so an older shallow
+   shelf never masks the repaired episode-level catalog. */
+const IA_LAST_GOOD_CACHE_VERSION = "v131";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is

@@ -2506,5 +2506,222 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "fan edit",
       "shorts"
     ]
+  },
+  "holiday-movie-house": {
+    "name": "Holiday Movie House",
+    "queryLimit": 16,
+    "queryWindow": 6,
+    "peerTubeQueryWindow": 6,
+    "peerTubeInstanceLimit": 2,
+    "peerTubeDetailLimit": 24,
+    "peerTubeFallbackQueryWindow": 4,
+    "peerTubeInstances": ["https://search.joinpeertube.org", "https://tilvids.com"],
+    "providers": ["peertube", "youtube"],
+    "intent": "film",
+    "queries": [
+      "holiday movie full",
+      "christmas movie full",
+      "halloween movie full",
+      "thanksgiving movie full",
+      "holiday television movie full",
+      "public domain holiday feature",
+      "classic holiday film full",
+      "seasonal movie marathon",
+      "winter holiday movie full",
+      "holiday family film full",
+      "holiday horror feature full",
+      "holiday romance movie full"
+    ],
+    "match": [
+      "holiday movie", "holiday film", "christmas movie", "christmas film",
+      "halloween movie", "halloween film", "thanksgiving movie", "seasonal film",
+      "winter holiday film", "holiday television movie", "holiday feature", "holiday special film"
+    ],
+    "deny": [
+      "shorts", "short film", "trailer", "teaser", "reaction", "review", "recap",
+      "commentary", "music video", "commercial", "fan edit", "clip", "countdown",
+      "top 10", "how to", "tutorial", "podcast", "vertical", "christmas music",
+      "holiday playlist", "holiday songs", "carol"
+    ]
+  },
+  "holiday-cartoon-club": {
+    "name": "Holiday Cartoon & TV Club",
+    "queryLimit": 16,
+    "queryWindow": 6,
+    "peerTubeQueryWindow": 6,
+    "peerTubeInstanceLimit": 2,
+    "peerTubeDetailLimit": 24,
+    "peerTubeFallbackQueryWindow": 4,
+    "peerTubeInstances": ["https://search.joinpeertube.org", "https://tilvids.com"],
+    "providers": ["peertube", "youtube"],
+    "intent": "animation",
+    "queries": [
+      "holiday cartoon full episode",
+      "christmas cartoon full episode",
+      "halloween cartoon full episode",
+      "thanksgiving cartoon full episode",
+      "holiday animated special full",
+      "seasonal kids television full episode",
+      "classic holiday cartoon compilation",
+      "winter cartoon full episode",
+      "holiday family television full episode",
+      "animated holiday television special",
+      "holiday cartoon marathon",
+      "spooky cartoon full episode"
+    ],
+    "match": [
+      "holiday cartoon", "christmas cartoon", "halloween cartoon", "thanksgiving cartoon",
+      "holiday animated special", "seasonal cartoon", "holiday kids television",
+      "holiday family show", "animated holiday special", "winter cartoon", "holiday television special"
+    ],
+    "deny": [
+      "educational", "instructional", "seminar", "lecture", "animation history",
+      "behind the scenes", "review", "reaction", "shorts", "short film", "trailer",
+      "music video", "playlist", "top 10", "how to", "tutorial", "vertical", "fan edit", "countdown"
+    ]
+  },
+  "christmas-movie-house": {
+    "name": "Christmas Movie House",
+    "queryLimit": 16,
+    "queryWindow": 6,
+    "peerTubeQueryWindow": 6,
+    "peerTubeInstanceLimit": 2,
+    "peerTubeDetailLimit": 24,
+    "peerTubeFallbackQueryWindow": 4,
+    "peerTubeInstances": ["https://search.joinpeertube.org", "https://tilvids.com"],
+    "providers": ["peertube", "youtube"],
+    "intent": "film",
+    "queries": [
+      "christmas movie full",
+      "christmas film full",
+      "classic christmas movie full",
+      "public domain christmas movie",
+      "christmas television movie full",
+      "santa movie full",
+      "noel film full",
+      "winter holiday movie full",
+      "christmas family film full",
+      "christmas romance movie full",
+      "christmas horror movie full",
+      "christmas movie marathon"
+    ],
+    "match": [
+      "christmas movie", "christmas film", "christmas television movie", "classic christmas",
+      "public domain christmas", "santa movie", "noel film", "winter holiday movie",
+      "christmas family film", "christmas romance", "christmas horror", "christmas feature"
+    ],
+    "deny": [
+      "shorts", "short film", "trailer", "teaser", "reaction", "review", "recap", "commentary",
+      "music video", "christmas music", "christmas songs", "carol", "playlist", "commercial",
+      "fan edit", "clip", "countdown", "top 10", "how to", "tutorial", "podcast", "vertical"
+    ]
+  },
+  "christmas-cartoon-club": {
+    "name": "Christmas Cartoon & TV",
+    "queryLimit": 16,
+    "queryWindow": 6,
+    "peerTubeQueryWindow": 6,
+    "peerTubeInstanceLimit": 2,
+    "peerTubeDetailLimit": 24,
+    "peerTubeFallbackQueryWindow": 4,
+    "peerTubeInstances": ["https://search.joinpeertube.org", "https://tilvids.com"],
+    "providers": ["peertube", "youtube"],
+    "intent": "animation",
+    "queries": [
+      "christmas cartoon full episode",
+      "christmas animated special full",
+      "rudolph cartoon full",
+      "frosty cartoon full",
+      "grinch cartoon full",
+      "santa cartoon full episode",
+      "animated christmas television special",
+      "charlie brown christmas full",
+      "christmas kids television full episode",
+      "classic christmas cartoon compilation",
+      "christmas cartoon marathon",
+      "christmas family show full episode"
+    ],
+    "match": [
+      "christmas cartoon", "christmas animated special", "rudolph", "frosty", "grinch",
+      "santa cartoon", "animated christmas", "charlie brown christmas", "christmas kids television",
+      "classic christmas cartoon", "christmas family show", "christmas television special"
+    ],
+    "deny": [
+      "educational", "instructional", "seminar", "lecture", "animation history", "behind the scenes",
+      "review", "reaction", "shorts", "short film", "trailer", "music video", "christmas music",
+      "playlist", "top 10", "how to", "tutorial", "vertical", "fan edit", "countdown"
+    ]
+  },
+  "halloween-movie-house": {
+    "name": "Halloween Movie House",
+    "queryLimit": 16,
+    "queryWindow": 6,
+    "peerTubeQueryWindow": 6,
+    "peerTubeInstanceLimit": 2,
+    "peerTubeDetailLimit": 24,
+    "peerTubeFallbackQueryWindow": 4,
+    "peerTubeInstances": ["https://search.joinpeertube.org", "https://tilvids.com"],
+    "providers": ["peertube", "youtube"],
+    "intent": "film",
+    "queries": [
+      "halloween movie full",
+      "halloween horror movie full",
+      "public domain horror feature",
+      "spooky movie full",
+      "monster movie full",
+      "witch movie full",
+      "haunted house movie full",
+      "halloween television movie full",
+      "classic horror feature full",
+      "seasonal horror film full",
+      "halloween family movie full",
+      "halloween movie marathon"
+    ],
+    "match": [
+      "halloween movie", "halloween horror", "horror holiday", "spooky feature", "monster movie",
+      "witch movie", "haunted house movie", "halloween television movie", "classic horror feature",
+      "seasonal horror film", "halloween family movie", "halloween feature"
+    ],
+    "deny": [
+      "shorts", "short film", "trailer", "teaser", "reaction", "review", "recap", "commentary",
+      "music video", "halloween music", "playlist", "commercial", "fan edit", "fan film", "clip",
+      "countdown", "top 10", "how to", "tutorial", "podcast", "vertical"
+    ]
+  },
+  "halloween-cartoon-club": {
+    "name": "Halloween Cartoon & TV",
+    "queryLimit": 16,
+    "queryWindow": 6,
+    "peerTubeQueryWindow": 6,
+    "peerTubeInstanceLimit": 2,
+    "peerTubeDetailLimit": 24,
+    "peerTubeFallbackQueryWindow": 4,
+    "peerTubeInstances": ["https://search.joinpeertube.org", "https://tilvids.com"],
+    "providers": ["peertube", "youtube"],
+    "intent": "animation",
+    "queries": [
+      "halloween cartoon full episode",
+      "halloween animated special full",
+      "halloween special cartoon full",
+      "casper halloween cartoon full",
+      "scooby doo halloween full",
+      "charlie brown halloween full",
+      "garfield halloween full",
+      "spooky cartoon full episode",
+      "monster cartoon full episode",
+      "halloween kids television full episode",
+      "classic halloween cartoon compilation",
+      "halloween cartoon marathon"
+    ],
+    "match": [
+      "halloween cartoon", "halloween animated special", "halloween special", "casper",
+      "scooby doo", "charlie brown halloween", "garfield halloween", "spooky cartoon",
+      "monster cartoon", "halloween kids television", "classic halloween cartoon", "halloween television special"
+    ],
+    "deny": [
+      "educational", "instructional", "seminar", "lecture", "animation history", "behind the scenes",
+      "review", "reaction", "shorts", "short film", "trailer", "music video", "halloween music",
+      "playlist", "top 10", "how to", "tutorial", "vertical", "fan edit", "countdown"
+    ]
   }
 });

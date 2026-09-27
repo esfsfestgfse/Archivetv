@@ -14,6 +14,13 @@ const serverCatalog = fs.readFileSync(path.join(repo, 'realsignal_source_catalog
 if (!serverCatalog.includes('if (raw.length < SOURCE_MIN_READY)') || !serverCatalog.includes('SOURCE_QUERY_WINDOW = 4') || !serverCatalog.includes('SOURCE_MAX_QUERY_WINDOW = 6') || !serverCatalog.includes('profile.queryWindow || SOURCE_QUERY_WINDOW') || !serverCatalog.includes('profile.peerTubeQueryWindow || profile.queryWindow') || !serverCatalog.includes('profile.peerTubeQueries.length ? profile.peerTubeQueries') || !serverCatalog.includes('curatedRemainder = rotate(peerTubePool') || !serverCatalog.includes('peerTubeFallbackQueryWindow') || !serverCatalog.includes('peerTubeInstances(env, profile)') || !serverCatalog.includes('peerTubeInstanceLimit') || !serverCatalog.includes('peerTubeDetailLimit') || !serverCatalog.includes('profile.peerTubeInstances') || !serverCatalog.includes('SOURCE_DETAIL_TIMEOUT_MS = 1800') || !serverCatalog.includes('withTimeout(fetchJson(`${item.instance}/api/v1/videos/') || !serverCatalog.includes('youtubeSearchDuration(profile, rotation)') || !serverCatalog.includes('Full television/film/performance lanes are') || !serverCatalog.includes('SOURCE_YOUTUBE_QUERY_CONCURRENCY = 2') || !serverCatalog.includes('Math.ceil(ids.length / 50)') || !serverCatalog.includes('SOURCE_PROVIDER_BUDGET_MS = 4500') || !serverCatalog.includes('withTimeout(task, SOURCE_PROVIDER_BUDGET_MS)')) issues.push('Source discovery must rotate a bounded query window, keep full-program lanes in the long-form bucket, bound PeerTube fan-out and per-item detail latency, enforce a provider admission budget, and chunk detail hydration to 50 IDs');
 if (!serverCatalog.includes('profile.formats') || !serverCatalog.includes('program-form signal in the actual title') || !serverCatalog.includes('formatRelaxed === true && duration >= 20 * 60') || !serverCatalog.includes('approved.formatRelaxed === true')) issues.push('Entertainment Source Suite lanes must require an actual full-program form, with only explicitly relaxed long-form profiles allowed to use duration as the form signal');
 const sourceRegistry = fs.readFileSync(path.join(repo, 'source_suite_profile_registry.js'), 'utf8');
+for (const key of ['holiday-movie-house', 'holiday-cartoon-club', 'christmas-movie-house', 'christmas-cartoon-club', 'halloween-movie-house', 'halloween-cartoon-club']) {
+  if (!sourceRegistry.includes(`"${key}":`)) issues.push(`holiday Source Suite profile ${key} must be present in the server registry`);
+  for (const file of files) {
+    const source = fs.readFileSync(path.join(repo, file), 'utf8');
+    if (!source.includes(`previewKey:"${key}"`) || !source.includes(`"${key}":{`)) issues.push(`${file}: holiday Source Suite profile ${key} must be wired into the client and channel map`);
+  }
+}
 for (const key of ['animal-care', 'family-tv-club', 'garden-ledger', 'green-culture', 'jukebox-television', 'lesson-reel', 'local-signal', 'memory-bank', 'newsreel-exchange', 'print-shop', 'screen-test', 'sound-lab', 'stage-door', 'travel-reel', 'tv-time-machine', 'variety-hour', 'western-screen']) {
   const start = sourceRegistry.indexOf(`"${key}":`);
   const next = sourceRegistry.indexOf('\n  },', start);
@@ -107,7 +114,7 @@ for (const file of files) {
   const source = fs.readFileSync(path.join(repo, file), 'utf8');
   const name = file;
   const required = [
-    [/V2_SOURCE_CACHE_VERSION=29/, 'source catalog cache version must invalidate strict-catalog shelves'],
+    [/V2_SOURCE_CACHE_VERSION=30/, 'source catalog cache version must invalidate strict-catalog shelves'],
     [/retainedItems=Array\.isArray\(cached&&cached\.items\)\?cached\.items\.filter/, 'previously verified source items must survive provider outages after requalification'],
     [/cacheValid=!!cached&&Number\(cached\.version\|\|0\)===V2_SOURCE_CACHE_VERSION/, 'only a current source catalog cache may be treated as fresh'],
     [/item\.account,item\.channelTitle/, 'YouTube language screening must inspect channel identity'],

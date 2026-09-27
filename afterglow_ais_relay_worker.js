@@ -89,7 +89,7 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
    warmup back onto the channel-change path. */
 const IA_STRICT_CATALOG_CANDIDATE_MAX = 128;
 const IA_CATALOG_CANDIDATE_MAX = 96;
-const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v7";
+const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v8-repeat-lanes";
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
@@ -101,10 +101,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v7";
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v137";
+const IA_QUEUE_CACHE_VERSION = "v138";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v137";
+const IA_LAST_GOOD_CACHE_VERSION = "v138";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -2495,6 +2495,61 @@ const IA_LONG_TAIL_EXPANSIONS_EXTRA = Object.freeze({
     iaDirectRecovery("PaulWhiteman1920-1935CompleteCollection::ABoyAndAGirlWereDancing.mp3", "PaulWhiteman1920-1935CompleteCollection", "ABoyAndAGirlWereDancing.mp3", "Paul Whiteman — A Boy and a Girl Were Dancing", "78rpm shellac gramophone phonograph early recording dance band vaudeville", 1928, "audio"),
     iaDirectRecovery("PaulWhiteman1920-1935CompleteCollection::ABundleOfOldLoveLetters.mp3", "PaulWhiteman1920-1935CompleteCollection", "ABundleOfOldLoveLetters.mp3", "Paul Whiteman — A Bundle of Old Love Letters", "78rpm shellac gramophone phonograph early recording dance band vaudeville", 1930, "audio"),
     iaDirectRecovery("PaulWhiteman1920-1935CompleteCollection::AFadedSummerLove.mp3", "PaulWhiteman1920-1935CompleteCollection", "AFadedSummerLove.mp3", "Paul Whiteman — A Faded Summer Love", "78rpm shellac gramophone phonograph early recording dance band vaudeville", 1930, "audio"),
+  ],
+  /* v4.1 repeat-heavy lane deepening. These are file-level records verified
+     against IA metadata so the lane can open on a wider union than its first
+     five search hits. Discovery remains enabled and the freshness ledger still
+     owns ordering and repeat suppression. */
+  "56": [
+    iaDirectRecovery("MuhammadAliVsFloydPatterson::MuhammadAliVsFloydPatterson.mp4", "MuhammadAliVsFloydPatterson", "MuhammadAliVsFloydPatterson.mp4", "Muhammad Ali vs. Floyd Patterson", "boxing fight sports archive ringside", 1965),
+    iaDirectRecovery("MaxBaerNewsreel::MaxBaerNewsreel_512kb.mp4", "MaxBaerNewsreel", "MaxBaerNewsreel_512kb.mp4", "Max Baer · Newsreel Fight Archive", "boxing fight sports archive ringside", 1935),
+    iaDirectRecovery("MaxBaerAndBuddyBaer::MaxBaerAndBuddyBaer_512kb.mp4", "MaxBaerAndBuddyBaer", "MaxBaerAndBuddyBaer_512kb.mp4", "Max Baer and Buddy Baer", "boxing fight sports archive ringside", 1935),
+    iaDirectRecovery("MaxBaerAndPrimoCarneraInTraining::Max_Baer_and_Primo_Carnera_in_Training_512kb.mp4", "MaxBaerAndPrimoCarneraInTraining", "Max_Baer_and_Primo_Carnera_in_Training_512kb.mp4", "Max Baer and Primo Carnera · Training", "boxing fight sports archive ringside training", 1934),
+    iaDirectRecovery("MaxSchmelingVsJoeLouis::MaxSchmelingVsJoeLouis_512kb.mp4", "MaxSchmelingVsJoeLouis", "MaxSchmelingVsJoeLouis_512kb.mp4", "Max Schmeling vs. Joe Louis", "boxing fight sports archive ringside", 1936),
+    iaDirectRecovery("SonnyListonVsClevelandWilliams::SonnyListonVsClevelandWilliams_512kb.mp4", "SonnyListonVsClevelandWilliams", "SonnyListonVsClevelandWilliams_512kb.mp4", "Sonny Liston vs. Cleveland Williams", "boxing fight sports archive ringside", 1959),
+  ],
+  "60": [
+    iaDirectRecovery("patma-January_11th_2017_-_Boys_Hockey_vs_Danvers::January_11th_2017_-_Boys_Hockey_vs_Danvers.mp4", "patma-January_11th_2017_-_Boys_Hockey_vs_Danvers", "January_11th_2017_-_Boys_Hockey_vs_Danvers.mp4", "Boys Hockey vs. Danvers", "ice hockey hockey sports archive game", 2017),
+    iaDirectRecovery("PickupHockeyWinterWednesday24Sept2014::CLIP0004.mp4", "PickupHockeyWinterWednesday24Sept2014", "CLIP0004.mp4", "Pickup Hockey · Winter Wednesday", "ice hockey hockey sports archive game", 2014),
+    iaDirectRecovery("PickupHockeyWinterFriday30Oct2015::CLIP0001.mp4", "PickupHockeyWinterFriday30Oct2015", "CLIP0001.mp4", "Pickup Hockey · Winter Friday", "ice hockey hockey sports archive game", 2015),
+    iaDirectRecovery("PickupHockeyWinterMonday03Oct2011::SSA50813.mp4", "PickupHockeyWinterMonday03Oct2011", "SSA50813.mp4", "Pickup Hockey · Winter Monday", "ice hockey hockey sports archive game", 2011),
+  ],
+  "61": [
+    iaDirectRecovery("olympiakisat-tokio-2021-naisten-pyoraily-madison-archibald-ja-kenny::Olympiakisat Tokio 2021 Naisten Pyöräily Madison + Archibald ja Kenny.mp4", "olympiakisat-tokio-2021-naisten-pyoraily-madison-archibald-ja-kenny", "Olympiakisat Tokio 2021 Naisten Pyöräily Madison + Archibald ja Kenny.mp4", "Olympic Games Tokyo 2021 · Women's Cycling", "olympics olympic games summer olympics sports archive", 2021),
+    iaDirectRecovery("olympiakisat-pariisi-2024-tervon-ja-kososen-insetti-ennen-moukarin-finaalia-ja-j::Olympiakisat Pariisi 2024 Tervon ja Kososen insetti ennen Moukarin finaalia ja Jakob Ingebrigtsen insertti.mp4", "olympiakisat-pariisi-2024-tervon-ja-kososen-insetti-ennen-moukarin-finaalia-ja-j", "Olympiakisat Pariisi 2024 Tervon ja Kososen insetti ennen Moukarin finaalia ja Jakob Ingebrigtsen insertti.mp4", "Olympic Games Paris 2024 · Hammer Throw Feature", "olympics olympic games summer olympics sports archive", 2024),
+    iaDirectRecovery("olympiakisat-dorney-eton-2012-naisten-kajakkimelonta-200m-b-finaali::Olympiakisat Dorney Eton 2012 Naisten Kajakkimelonta 200m B-Finaali.mp4", "olympiakisat-dorney-eton-2012-naisten-kajakkimelonta-200m-b-finaali", "Olympiakisat Dorney Eton 2012 Naisten Kajakkimelonta 200m B-Finaali.mp4", "Olympic Games London 2012 · Kayak Final", "olympics olympic games summer olympics sports archive", 2012),
+    iaDirectRecovery("2010_Vancouver_Winter_Olympics_Clock_In_Ottawa_05Apr2008::SSA50001_512kb.mp4", "2010_Vancouver_Winter_Olympics_Clock_In_Ottawa_05Apr2008", "SSA50001_512kb.mp4", "Vancouver 2010 · Olympic Countdown Clock", "olympics olympic games winter olympics sports archive", 2008),
+  ],
+  "74": [
+    iaDirectRecovery("cammlsmh_000061::cammlsmh_000061_access.HD.mp4", "cammlsmh_000061", "cammlsmh_000061_access.HD.mp4", "Skiing at Mammoth and Hot Creek · 1959", "winter sports skiing olympic games outdoor archive", 1959),
+    iaDirectRecovery("StLouisSki::MVI_0301_512kb.mp4", "StLouisSki", "MVI_0301_512kb.mp4", "St. Louis Ski", "winter sports skiing outdoor archive", 2010),
+  ],
+  "101": [
+    iaDirectRecovery("captain-kronos-vampire-hunter-1974_202412::Captain Kronos Vampire Hunter 1974.mp4", "captain-kronos-vampire-hunter-1974_202412", "Captain Kronos Vampire Hunter 1974.mp4", "Captain Kronos: Vampire Hunter", "shock theater horror movie classic horror monster film", 1974),
+    iaDirectRecovery("horror-of-dracula-1958_202406::Horror Of Dracula 1958.mp4", "horror-of-dracula-1958_202406", "Horror Of Dracula 1958.mp4", "Horror of Dracula", "shock theater horror movie classic horror monster film", 1958),
+  ],
+  "103": [
+    iaDirectRecovery("animal-crackers-1930::Animal Crackers 1930.ia.mp4", "animal-crackers-1930", "Animal Crackers 1930.ia.mp4", "Animal Crackers", "comedy classics classic comedy slapstick film television", 1930),
+    iaDirectRecovery("tape-35-3stoogesmaa-2nasc.::Tape #35 · Three Stooges Marathon #2", "tape-35-3stoogesmaa-2nasc.", "Tape #35-3stoogesmaa2nasc..mp4", "Three Stooges Marathon #2", "comedy classics classic comedy slapstick film television", 1940),
+    iaDirectRecovery("the-three-stooges-in-brideless-groom-1947-color::The Three Stooges in Brideless Groom (1947) (Color).ia.mp4", "the-three-stooges-in-brideless-groom-1947-color", "The Three Stooges in Brideless Groom (1947) (Color).ia.mp4", "The Three Stooges · Brideless Groom", "comedy classics classic comedy slapstick film television", 1947),
+    iaDirectRecovery("youre-never-too-young-1955-comedy-jerry-lewis-dean-martin::Youre Never Too Young.mp4", "youre-never-too-young-1955-comedy-jerry-lewis-dean-martin", "You're Never Too Young (1955 Comedy Jerry Lewis Dean Martin).mp4", "You're Never Too Young", "comedy classics classic comedy comedy film television", 1955),
+  ],
+  "134": [
+    iaDirectRecovery("monster-vision-christine::MonsterVision (Christine).mp4", "monster-vision-christine", "MonsterVision (Christine).mp4", "MonsterVision · Christine", "monstervision joe bob briggs drive in horror movie television", 1999),
+    iaDirectRecovery("godzilla-vs.-mothra-tnt-full::Godzilla vs. Mothra TNT full.ia.mp4", "godzilla-vs.-mothra-tnt-full", "Godzilla vs. Mothra TNT full.ia.mp4", "MonsterVision · Godzilla vs. Mothra", "monstervision joe bob briggs drive in horror movie television", 1998),
+    iaDirectRecovery("they-live_202506::TheyLive.mp4", "they-live_202506", "TheyLive.mp4", "Joe Bob Briggs Presents · They Live", "monstervision joe bob briggs drive in horror movie television", 1988),
+    iaDirectRecovery("monstervision-presents-childs-play-1997::Monstervision Presents Child's Play - 1997.mp4", "monstervision-presents-childs-play-1997", "Monstervision Presents Child's Play - 1997.mp4", "Monstervision Presents · Child's Play", "monstervision joe bob briggs drive in horror movie television", 1997),
+  ],
+  "14": [
+    iaDirectRecovery("VCF5JohnTooleComputerHistoryMuseum::John Toole, Computer History Museum.mp4", "VCF5JohnTooleComputerHistoryMuseum", "John Toole, Computer History Museum.mp4", "Computer Chronicles · John Toole", "computer chronicles personal computer technology television documentary", 2000),
+    iaDirectRecovery("terminal-madness-a-1980-documentary-about-personal-computers::Terminal Madness (A 1980 Documentary About Personal Computers) 480p.ia.mp4", "terminal-madness-a-1980-documentary-about-personal-computers", "Terminal Madness (A 1980 Documentary About Personal Computers) 480p.ia.mp4", "Terminal Madness · Personal Computers", "computer chronicles personal computer technology television documentary", 1980),
+    iaDirectRecovery("the-apple-iie-the-most-personal-computer-1983::The Apple IIe The Most Personal Computer 1983.mp4", "the-apple-iie-the-most-personal-computer-1983", "The Apple IIe The Most Personal Computer 1983.mp4", "The Apple IIe · The Most Personal Computer", "computer chronicles personal computer technology television documentary", 1983),
+  ],
+  "210": [
+    iaDirectRecovery("CSPAN3_20170116_063900_Newsreel_of_Franklin_D._Roosevelt_1941_Inauguration::CSPAN3_20170116_063900_Newsreel_of_Franklin_D._Roosevelt_1941_Inauguration.mp4", "CSPAN3_20170116_063900_Newsreel_of_Franklin_D._Roosevelt_1941_Inauguration", "CSPAN3_20170116_063900_Newsreel_of_Franklin_D._Roosevelt_1941_Inauguration.mp4", "Newsreel · Roosevelt Inauguration", "news newsreel television news documentary archive", 1941),
+    iaDirectRecovery("CSPAN3_20200216_111500_Reel_America_January_1945_United_Newsreel::CSPAN3_20200216_111500_Reel_America_January_1945_United_Newsreel.mp4", "CSPAN3_20200216_111500_Reel_America_January_1945_United_Newsreel", "CSPAN3_20200216_111500_Reel_America_January_1945_United_Newsreel.mp4", "Reel America · January 1945 United Newsreel", "news newsreel television news documentary archive", 1945),
+    iaDirectRecovery("CSPAN3_20200218_065700_Reel_America_January_24_1952_Universal_Newsreel::CSPAN3_20200218_065700_Reel_America_January_24_1952_Universal_Newsreel.mp4", "CSPAN3_20200218_065700_Reel_America_January_24_1952_Universal_Newsreel", "CSPAN3_20200218_065700_Reel_America_January_24_1952_Universal_Newsreel.mp4", "Reel America · Universal Newsreel 1952", "news newsreel television news documentary archive", 1952),
+    iaDirectRecovery("UniversalNewsreelVolume34Issue801-23-1961::Universal Newsreel Volume 34 Issue 8 01-23-1961.mp4", "UniversalNewsreelVolume34Issue801-23-1961", "Universal Newsreel Volume 34 Issue 8 01-23-1961.mp4", "Universal Newsreel · January 1961", "news newsreel television news documentary archive", 1961),
   ],
 });
 /* v4 promotion gate: only families that passed the full multi-rotation soak

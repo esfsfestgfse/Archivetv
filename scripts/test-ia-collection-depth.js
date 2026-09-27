@@ -47,7 +47,7 @@ for (const [channel, collection] of Object.entries(expectedRails)) {
 }
 
 const relay = fs.readFileSync(path.join(root, 'afterglow_ais_relay_worker.js'), 'utf8');
-check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v121"/.test(relay), 'Relay cache namespace is v121');
+check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v122"/.test(relay), 'Relay cache namespace is v122');
 check(/0411_Tornado_06_00_36_00::t0411_Tornado_06_00_36_00\.mp4/.test(relay) && /ShockTro1938::ShockTro1938\.mp4/.test(relay), 'News adds more direct disaster/newsreel rotation');
 check(/youtube--IJuW9rAskc::-IJuW9rAskc\.mp4/.test(relay) && /youtube-Ko9kzyqW-l8::Ko9kzyqW-l8\.mp4/.test(relay), 'Gear Head adds verified direct automotive review rotation');
 check(/top-gear-s15-bd::TOP GEAR SERIES 15 DISC 211\.mp4/.test(relay) && /top-gear-s15-bd::TOP GEAR SERIES 15 DISC 212\.mp4/.test(relay), 'Gear Head adds more direct Top Gear episode rotation');
@@ -84,7 +84,7 @@ check(/function mergeIaFallbackCandidates\(/.test(relay) && /\[\.\.\.current, \.
 check(/if \(payload && payload\.lastGoodKey\)/.test(relay) && /familyCandidates = mergeIaFallbackCandidates\(family, expanded\)/.test(relay), 'Exact IA rotation refills inherit the accumulated family catalog');
 check(/const cachedShelf =/.test(relay) && /const sharedShelf =/.test(relay), 'Cached and shared IA shelves rotate their deeper playable candidates');
 check(/\* requested\) % source\.length/.test(relay), 'Shelf rotation advances by a full public window');
-check(/"704": \[[\s\S]*HowTheGrinchStoleChristmas_201812/.test(relay) && /"705": \[[\s\S]*halloween-cartoon-collection_20231022/.test(relay) && /"706": \[[\s\S]*garfieldsthanksgiving/.test(relay), 'Holiday lanes have independent verified fallback banks');
+check(/"704": \[[\s\S]*HowTheGrinchStoleChristmas_201812[\s\S]*frosty-the-snowman-1969_202507[\s\S]*frozen-in-time-2014-720p-obscure-cartoon-network-christmas-special/.test(relay) && /"705": \[[\s\S]*halloween-cartoon-collection_20231022[\s\S]*cartoon-network-spookytoons[\s\S]*garfieldshalloweenadventure_201911[\s\S]*halloween_is_grinch_night_1977/.test(relay) && /"706": \[[\s\S]*garfieldsthanksgiving[\s\S]*the-mouse-on-the-mayflower-1968_202309[\s\S]*charlie-brown-thanksgiving_202111[\s\S]*ThanksgivingWithTheOswalds/.test(relay), 'Holiday lanes have expanded verified fallback banks across multiple series and eras');
 check(/"158": \[[\s\S]*spider-mantheanimatedseries[\s\S]*DragonTalesTVSeries[\s\S]*powerpuff-girls-complete-series/.test(relay), 'Saturday Morning recovery bank spans multiple complete animated series');
 check(/"10": \[[\s\S]*theloneranger_201705[\s\S]*Bonanza_-_The_Trail_Gang/.test(relay), 'Classic Rerun TV has a multi-series deep recovery bank');
 check(/"12": \[[\s\S]*nickelodeon-guts-season-1[\s\S]*Price_Is-Right_1957[\s\S]*Jeopardy/.test(relay), 'Game Show Channel spans multiple decades and formats');

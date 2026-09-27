@@ -1699,7 +1699,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="4.1.40-mobile-ia-family-depth-repair";
+window.__ATV_BUILD="4.1.41-mobile-ia-query-spread";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -6816,6 +6816,9 @@ function rsFamilyDepth(name,subjects,collections,titles){
   p.fastCollections=rsAppendProgramTerms(p.fastCollections,collections);
   p.deepCollections=rsAppendProgramTerms(p.deepCollections,collections);
   p.deepTitleTerms=rsAppendProgramTerms(p.deepTitleTerms,titles);
+  /* Keep the mobile manifest aligned with desktop: spread only the approved
+     rails for audited profiles so deep Archive collections are not skipped. */
+  p.depthQuerySpread=true;
   p.diversity=Object.assign({},p.diversity||{},{maxPerEra:2,maxPerLane:2,maxPerCreator:1,maxPerCollection:3,maxPerFamily:1});
 }
 rsFamilyDepth("Tight Lines",["fishing show","fishing television","fishing series","freshwater fishing","saltwater fishing","fly fishing documentary","bass fishing show","trout fishing show","sport fishing television"],["sports","sportstelevision","vhssports","prelinger","FedFlix","avgeeks","opensource_movies"],["fishing show","fishing television","fishing series","fishing episode","fishing documentary","freshwater fishing","saltwater fishing","fly fishing","bass fishing","trout fishing","sport fishing"]);
@@ -6833,6 +6836,10 @@ rsFamilyDepth("The Festival Circuit",["independent feature","indie film","festiv
 rsFamilyDepth("Noir & Mystery",["film noir","classic noir","hard-boiled detective","detective film","private eye film","murder mystery","whodunit film","crime film","suspense film","gothic mystery","classic mystery"],["Film_Noir","feature_films","feature_films_unsorted","opensource_movies","prelinger","FedFlix"],["film noir","classic noir","hard-boiled detective","detective film","private eye","murder mystery","whodunit","crime film","suspense film","gothic mystery","classic mystery"]);
 rsFamilyDepth("Christmas Channel",["christmas movie","christmas film","christmas television special","holiday feature","christmas special","christmas classic","yuletide film","christmas cartoon","christmas television"],["feature_films","feature_films_unsorted","classic_tv","classic_tv_1950s","classic_tv_1960s","classic_tv_1970s","prelinger","opensource_movies"],["christmas movie","christmas film","christmas television special","holiday feature","christmas special","christmas classic","yuletide film","christmas cartoon","christmas television"]);
 rsFamilyDepth("Halloween Haunt",["horror film","horror movie","classic horror","gothic horror","haunted house","supernatural horror","monster movie","creature feature","vampire film","werewolf film","zombie film","witch film","slasher film","giallo film","halloween movie"],["SciFi_Horror","feature_films_unsorted","feature_films","opensource_movies","prelinger","FedFlix"],["horror film","horror movie","classic horror","gothic horror","haunted house","supernatural horror","monster movie","creature feature","vampire film","werewolf film","zombie film","witch film","slasher film","giallo film","halloween movie"]);
+/* Keep holiday animation tied to individual episode/file rails instead of a
+   single mascot collection. Existing title and deny gates remain in force. */
+[["Christmas Cartoons",["christmas cartoon","christmas special","holiday cartoon","rudolph","frosty","grinch","santa claus","charlie brown christmas","christmas tales","winter cartoon"],["animationandcartoons","classic_cartoons","saturdaymorningcartoons","vhskids","vhsvault","classic_tv_1960s","classic_tv_1970s"]],["Halloween Cartoons",["halloween cartoon","halloween special","holiday cartoon","casper","scooby doo","charlie brown halloween","garfield halloween","count duckula","spooky cartoon","ghost cartoon","monster cartoon"],["animationandcartoons","classic_cartoons","saturdaymorningcartoons","vhskids","vhsvault","classic_tv_1960s","classic_tv_1970s"]],["Thanksgiving Cartoons",["thanksgiving cartoon","thanksgiving special","holiday cartoon","charlie brown thanksgiving","garfield thanksgiving","harvest cartoon","pilgrim cartoon","fall cartoon"],["animationandcartoons","classic_cartoons","saturdaymorningcartoons","vhskids","vhsvault","classic_tv_1960s","classic_tv_1970s"]]].forEach(function(entry){var p=PROGRAM[entry[0]];if(!p)return;p.fastSubjects=rsAppendProgramTerms(p.fastSubjects,entry[1]);p.fastCollections=rsAppendProgramTerms(p.fastCollections,entry[2]);p.deepCollections=rsAppendProgramTerms(p.deepCollections,entry[2]);p.deepTitleTerms=rsAppendProgramTerms(p.deepTitleTerms,entry[1]);p.depthQuerySpread=true;});
+["Classic Rerun TV","Modern Rerun TV","Game Show Channel","Saturday Morning","Classic Cartoons","Modern Cartoons","Classic Film","Midnight Matinee","Sci-Fi Theater","Shock Theater","Comedy Classics","World Cinema","Sunday Matinee","The Drive-In","Tight Lines","Camp & Trail","Range & Field","Christmas Channel","Halloween Haunt"].forEach(function(name){if(PROGRAM[name])PROGRAM[name].depthQuerySpread=true;});
 /* Every IA station gets a compact editorial diversity policy. These caps shape
    a shelf of already-approved programs; they never relax the station's terms,
    era, media type, or deny list when Archive is sparse. */
@@ -7021,7 +7028,10 @@ function slotFor(ch,_ignoredHour,opts){
 }
 function iaQueueQueries(sl){
   var all=(sl&&sl.queries||[]);if(all.length<=8)return all.slice();
-  var last=all.length-1, indexes=[0,1,2,last,last-1,last-2,last-3,Math.floor(last/2)], seen={};
+  var last=all.length-1;
+  var spread=!!(sl&&sl.program&&sl.program.depthQuerySpread);
+  var indexes=spread?[0,1,2,Math.floor(last/4),Math.floor(last/2),Math.floor(last*3/4),last-1,last]:[0,1,2,last,last-1,last-2,last-3,Math.floor(last/2)];
+  var seen={};
   return indexes.filter(function(index){if(seen[index])return false;seen[index]=1;return true;}).map(function(index){return all[index];});
 }
 window.__atvTimelessAudit=function(){

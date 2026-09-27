@@ -1699,7 +1699,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="4.1.80-mobile-entertainment-depth-and-holiday-ads";
+window.__ATV_BUILD="4.1.81-mobile-entertainment-genre-cleanup";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -6785,6 +6785,15 @@ function rsAddProgramDeny(name,key,terms){var p=PROGRAM[name];if(!p)return;p.den
 var RS_MOVIE_NONPROGRAM_TITLE=["news","newscast","interview","talk show","red carpet","review","trailer","promo","promotional","behind the scenes","podcast","music video","concert","press conference","panel discussion"];
 var RS_MOVIE_NONPROGRAM_SUBJECT=["news","newscast","interview","talk show","red carpet","review","trailer","promo","promotional","behind the scenes","podcast","music video","concert","press conference","panel discussion","celebrity interview"];
 ["World Cinema","The Late Late Show","The Festival Circuit"].forEach(function(name){rsAddProgramDeny(name,"title",RS_MOVIE_NONPROGRAM_TITLE);rsAddProgramDeny(name,"subject",RS_MOVIE_NONPROGRAM_SUBJECT);});
+/* Television episodes, reunion specials, podcasts, and promotional clips are not feature programs. Apply the shared movie gate to the broader film family too, while keeping each station's own genre terms intact. */
+var RS_BROAD_MOVIE_NAMES=["Classic Film","Sunday Matinee","Midnight Matinee","The Drive-In","Sci-Fi Theater","Shock Theater","Comedy Classics","World Cinema","The Late Late Show","Silent Cinema","Noir & Mystery","Action & Serials","The 36th Chamber","Monster Island","Black Cinema","Blaxploitation","The Festival Circuit","Darcys Playground"];
+var RS_BROAD_MOVIE_TITLE_REJECTS=["episode","episodes","season","television","tv show","tv special","series","podcast","reunion","red carpet","interview","review","recap","trailer","promo","featurette","news","newscast","opening","closing","credits","commercial","cereal","ashens"];
+var RS_BROAD_MOVIE_SUBJECT_REJECTS=["episode","episodes","season","television","tv show","tv special","series","podcast","reunion","red carpet","interview","review","recap","trailer","promo","featurette","news","newscast","commercial"];
+RS_BROAD_MOVIE_NAMES.forEach(function(name){rsAddProgramDeny(name,"title",RS_BROAD_MOVIE_TITLE_REJECTS);rsAddProgramDeny(name,"subject",RS_BROAD_MOVIE_SUBJECT_REJECTS);});
+rsAddProgramDeny("Classic Rerun TV","title",["podcast","reunion","airing","red carpet","interview","review","recap","trailer","commercial","news","newsreel","documentary","featurette","closing","opening","theme song","credits","daily mix"]);
+rsAddProgramDeny("Classic Rerun TV","subject",["podcast","reunion","airing","red carpet","interview","review","recap","trailer","commercial","news","newsreel","documentary","featurette","closing","opening","theme song","credits","daily mix"]);
+rsAddProgramDeny("Game Show Channel","title",["daily mix","battle rooms","analysis","retrospective","history of","best of","clip","clips","reaction","review","podcast","trailer","commercial"]);
+rsAddProgramDeny("Game Show Channel","subject",["daily mix","battle rooms","analysis","retrospective","history of","best of","clip","clips","reaction","review","podcast","trailer","commercial"]);
 ["Black Cinema"].forEach(function(name){rsAddProgramDeny(name,"title",["the view","entertainment tonight","talk show","interview","news","red carpet","review"]);rsAddProgramDeny(name,"subject",["talk show","interview","news","red carpet","review","panel discussion","entertainment news"]);});
 Object.assign(PROGRAM["Sunday Matinee"],{
   themeMinScore:1,

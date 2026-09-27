@@ -1647,7 +1647,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="4.1.65-desktop-sci-fi-catalog-depth";
+window.__ATV_BUILD="4.1.66-desktop-holiday-tv-depth-freshness";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -2505,6 +2505,9 @@ const CH=[
  {nm:"Christmas Cartoons", num:704, cat:"HOL", gl:"xmascartoon", era:[1930,2026], ns:"toon"},
  {nm:"Halloween Cartoons", num:705, cat:"HOL", gl:"halloweencartoon", era:[1930,2026], ns:"toon"},
  {nm:"Thanksgiving Cartoons", num:706, cat:"HOL", gl:"thanksgivingcartoon", era:[1930,2026], ns:"toon"},
+ {nm:"Christmas TV", num:707, cat:"HOL", gl:"xmastv", era:[1930,2026], ns:"tv"},
+ {nm:"Halloween TV", num:708, cat:"HOL", gl:"halloweentv", era:[1930,2026], ns:"tv"},
+ {nm:"Thanksgiving TV", num:709, cat:"HOL", gl:"thanksgivingtv", era:[1930,2026], ns:"tv"},
  {nm:"The Hearth", num:703,       cat:"HOL", gl:"yulelog",     era:[1900,2026], ns:"tv"}, /* Yule log fireplace loop with vintage Christmas music bed */
  {nm:"Test Pattern", num:506,      cat:"RETRO", source:"static", ns:"space"},
  {nm:"The Long Shot", num:507,     cat:"RETRO", gl:"slowtv",    era:[2000,2026], ns:"tv"}, /* Slow TV — NRK-style long-form: train rides, sunsets, ferry crossings, waterfalls */
@@ -2808,6 +2811,9 @@ const CHANNEL_META={
 "Christmas Cartoons":{desc:"Animated Christmas specials, holiday cartoons and vintage kids blocks from the Archive.",best:"December mornings",rel:["Christmas Channel","Saturday Morning"]},
 "Halloween Cartoons":{desc:"Animated spooky specials, monster cartoons and Halloween kids programming.",best:"October afternoons",rel:["Halloween Haunt","Classic Cartoons"]},
 "Thanksgiving Cartoons":{desc:"Animated harvest specials, turkey-day cartoons and family holiday episodes.",best:"Thanksgiving morning",rel:["Thanksgiving Channel","Saturday Morning"]},
+"Christmas TV":{desc:"Holiday television episodes, variety hours and seasonal specials from the Archive — live-action TV only.",best:"December evenings",rel:["Christmas Channel","Christmas Cartoons"]},
+"Halloween TV":{desc:"Halloween sitcom episodes, spooky television specials and hosted seasonal broadcasts — no cartoons or feature-film drift.",best:"October nights",rel:["Halloween Haunt","Halloween Cartoons"]},
+"Thanksgiving TV":{desc:"Thanksgiving sitcom episodes, variety specials, parades and family television from the Archive — no cartoon lane mixing.",best:"Thanksgiving evenings",rel:["Thanksgiving Channel","Thanksgiving Cartoons"]},
 "Historic Waco":{desc:"LIVE: a rolling archive of historical photographs of Waco \u0026 Central Texas \u2014 Library of Congress, Wikimedia Commons \u0026 Internet Archive, with a Ken Burns treatment and a warm narrator.",best:"anytime",rel:["News, News, News","Hometown History"]},
 "Backyard Naturalist":{desc:"LIVE: wildlife spotted near you this week, with photos.",best:"mornings",rel:["Hometown History","Home Movies & Travelogues"]},
 "Air & Allergy":{desc:"LIVE: AQI, particulates, ozone and pollen for your ZIP.",best:"allergy season",rel:["Weather Watch","River & Lake Watch"]},
@@ -6040,6 +6046,47 @@ const PROGRAM = {
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Dedicated live-action holiday television lanes. These deliberately sit
+     beside the movie and cartoon stations: specials, sitcom episodes, hosted
+     broadcasts, variety hours, parades, and family TV belong here; cartoons,
+     animated uploads, feature-film mirrors, and commentary do not. */
+  "Christmas TV": {
+    genre: "xmastv", era: [1930, 2026],
+    queueTerms: ["christmas television", "christmas tv episode", "christmas episode", "christmas television special", "holiday television", "holiday tv special", "christmas sitcom", "christmas variety show", "christmas broadcast", "yuletide television", "christmas family special", "christmas parade television"],
+    fastSubjects: ["christmas television", "christmas tv episode", "christmas episode", "christmas television special", "holiday television", "holiday tv special", "christmas sitcom", "christmas variety show", "christmas broadcast", "yuletide television", "christmas family special", "christmas parade television"],
+    fastCollections: ["classic_tv", "classic_tv_1950s", "classic_tv_1960s", "classic_tv_1970s", "classic_tv_1980s", "classic_tv_1990s", "classic_tv_2000s", "prelinger", "vhsvault"],
+    providers: [{ collections: ["classic_tv", "classic_tv_1950s", "classic_tv_1960s", "classic_tv_1970s", "classic_tv_1980s", "classic_tv_1990s", "classic_tv_2000s", "prelinger", "vhsvault"], require_subj: ["christmas television", "christmas tv", "christmas episode", "christmas special", "holiday television", "holiday tv", "christmas sitcom", "christmas variety", "christmas broadcast", "yuletide television", "christmas parade"] }],
+    require: { title_any: ["christmas", "christmas episode", "christmas special", "christmas television", "christmas tv", "holiday television", "holiday special", "christmas sitcom", "christmas variety", "christmas broadcast", "yuletide", "christmas parade"] },
+    deny: { title: ["cartoon", "animated", "animation", "kids cartoon", "children's cartoon", "trailer", "commercial", "promo", "documentary", "lecture", "seminar", "news analysis", "reaction", "commentary", "how to", "tutorial", "playlist", "music only", "collection"], subject: ["cartoon", "animated", "animation", "kids cartoon", "children's cartoon", "trailer", "commercial", "promo", "documentary", "lecture", "seminar", "news analysis", "reaction", "commentary", "how to", "tutorial", "playlist", "music only", "collection"] },
+    deepCollections: ["classic_tv", "classic_tv_1950s", "classic_tv_1960s", "classic_tv_1970s", "classic_tv_1980s", "classic_tv_1990s", "classic_tv_2000s", "prelinger", "vhsvault"],
+    deepTitleTerms: ["christmas television", "christmas tv episode", "christmas episode", "christmas television special", "holiday television", "holiday tv special", "christmas sitcom", "christmas variety show", "christmas broadcast", "yuletide television", "christmas family special", "christmas parade television"],
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+  "Halloween TV": {
+    genre: "halloweentv", era: [1930, 2026],
+    queueTerms: ["halloween television", "halloween tv episode", "halloween episode", "halloween television special", "spooky television", "horror anthology television", "halloween sitcom", "halloween variety show", "halloween broadcast", "monster television special", "hosted halloween special", "halloween family television"],
+    fastSubjects: ["halloween television", "halloween tv episode", "halloween episode", "halloween television special", "spooky television", "horror anthology television", "halloween sitcom", "halloween variety show", "halloween broadcast", "monster television special", "hosted halloween special", "halloween family television"],
+    fastCollections: ["classic_tv", "classic_tv_1950s", "classic_tv_1960s", "classic_tv_1970s", "classic_tv_1980s", "classic_tv_1990s", "classic_tv_2000s", "SciFi_Horror", "vhsvault"],
+    providers: [{ collections: ["classic_tv", "classic_tv_1950s", "classic_tv_1960s", "classic_tv_1970s", "classic_tv_1980s", "classic_tv_1990s", "classic_tv_2000s", "SciFi_Horror", "vhsvault"], require_subj: ["halloween television", "halloween tv", "halloween episode", "halloween special", "spooky television", "horror anthology television", "halloween sitcom", "halloween variety", "halloween broadcast", "monster television", "hosted halloween"] }],
+    require: { title_any: ["halloween", "halloween episode", "halloween special", "halloween television", "halloween tv", "spooky television", "horror anthology", "halloween sitcom", "halloween variety", "halloween broadcast", "monster television", "hosted halloween"] },
+    deny: { title: ["cartoon", "animated", "animation", "kids cartoon", "children's cartoon", "feature film", "full movie", "trailer", "commercial", "promo", "documentary", "lecture", "seminar", "reaction", "commentary", "how to", "tutorial", "playlist", "music only", "collection"], subject: ["cartoon", "animated", "animation", "kids cartoon", "children's cartoon", "feature film", "full movie", "trailer", "commercial", "promo", "documentary", "lecture", "seminar", "reaction", "commentary", "how to", "tutorial", "playlist", "music only", "collection"] },
+    deepCollections: ["classic_tv", "classic_tv_1950s", "classic_tv_1960s", "classic_tv_1970s", "classic_tv_1980s", "classic_tv_1990s", "classic_tv_2000s", "SciFi_Horror", "vhsvault"],
+    deepTitleTerms: ["halloween television", "halloween tv episode", "halloween episode", "halloween television special", "spooky television", "horror anthology television", "halloween sitcom", "halloween variety show", "halloween broadcast", "monster television special", "hosted halloween special", "halloween family television"],
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+  "Thanksgiving TV": {
+    genre: "thanksgivingtv", era: [1930, 2026],
+    queueTerms: ["thanksgiving television", "thanksgiving tv episode", "thanksgiving episode", "thanksgiving television special", "thanksgiving sitcom", "thanksgiving variety show", "thanksgiving broadcast", "thanksgiving parade television", "harvest television", "turkey day television", "thanksgiving family special", "thanksgiving comedy episode"],
+    fastSubjects: ["thanksgiving television", "thanksgiving tv episode", "thanksgiving episode", "thanksgiving television special", "thanksgiving sitcom", "thanksgiving variety show", "thanksgiving broadcast", "thanksgiving parade television", "harvest television", "turkey day television", "thanksgiving family special", "thanksgiving comedy episode"],
+    fastCollections: ["classic_tv", "classic_tv_1950s", "classic_tv_1960s", "classic_tv_1970s", "classic_tv_1980s", "classic_tv_1990s", "classic_tv_2000s", "prelinger", "vhsvault"],
+    providers: [{ collections: ["classic_tv", "classic_tv_1950s", "classic_tv_1960s", "classic_tv_1970s", "classic_tv_1980s", "classic_tv_1990s", "classic_tv_2000s", "prelinger", "vhsvault"], require_subj: ["thanksgiving television", "thanksgiving tv", "thanksgiving episode", "thanksgiving special", "thanksgiving sitcom", "thanksgiving variety", "thanksgiving broadcast", "thanksgiving parade television", "harvest television", "turkey day television"] }],
+    require: { title_any: ["thanksgiving", "thanksgiving episode", "thanksgiving special", "thanksgiving television", "thanksgiving tv", "thanksgiving sitcom", "thanksgiving variety", "thanksgiving broadcast", "thanksgiving parade", "harvest television", "turkey day television", "thanksgiving family"] },
+    deny: { title: ["cartoon", "animated", "animation", "kids cartoon", "children's cartoon", "feature film", "full movie", "trailer", "commercial", "promo", "documentary", "lecture", "seminar", "reaction", "commentary", "how to", "tutorial", "playlist", "music only", "collection", "football game"], subject: ["cartoon", "animated", "animation", "kids cartoon", "children's cartoon", "feature film", "full movie", "trailer", "commercial", "promo", "documentary", "lecture", "seminar", "reaction", "commentary", "how to", "tutorial", "playlist", "music only", "collection", "football game"] },
+    deepCollections: ["classic_tv", "classic_tv_1950s", "classic_tv_1960s", "classic_tv_1970s", "classic_tv_1980s", "classic_tv_1990s", "classic_tv_2000s", "prelinger", "vhsvault"],
+    deepTitleTerms: ["thanksgiving television", "thanksgiving tv episode", "thanksgiving episode", "thanksgiving television special", "thanksgiving sitcom", "thanksgiving variety show", "thanksgiving broadcast", "thanksgiving parade television", "harvest television", "turkey day television", "thanksgiving family special", "thanksgiving comedy episode"],
+    subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
   /* World Cinema (ch 113) — Phase 2 overhaul 2026-08-08. Non-English arthouse
      from every era + region. */
   "World Cinema": {
@@ -6467,6 +6514,16 @@ PROGRAM["Modern Rerun TV"].require.title_any=PROGRAM["Modern Rerun TV"].require.
   p.deny.title=(p.deny.title||[]).concat(rejects);
   p.deny.subject=(p.deny.subject||[]).concat(rejects);
 });
+/* Holiday TV lanes must remain live-action television. Their Archive search
+   roots overlap with movie and cartoon collections, so keep a final editorial
+   deny layer after the profile definitions. */
+["Christmas TV","Halloween TV","Thanksgiving TV"].forEach(function(name){
+  var p=PROGRAM[name];if(!p)return;p.deny=p.deny||{};
+  var rejects=["cartoon","animated","animation","kids cartoon","children's cartoon","feature film","full movie","trailer","commercial","promo","documentary","lecture","seminar","reaction","commentary","how to","tutorial","playlist","music only","collection","dvd opening","vhs opening","screen recording","screen capture"];
+  p.deny.title=(p.deny.title||[]).concat(rejects);
+  p.deny.subject=(p.deny.subject||[]).concat(rejects);
+  p.diversity={maxPerEra:2,maxPerLane:2,maxPerCreator:1,maxPerCollection:3,maxPerFamily:1};
+});
 /* Holiday shelves have enough verified seasonal families to carry two items
    from an era before repeating; this improves freshness without broadening
    the title gates or admitting generic holiday uploads. */
@@ -6787,13 +6844,16 @@ rsFamilyDepth("The Festival Circuit",["independent feature","indie film","festiv
 rsFamilyDepth("Noir & Mystery",["film noir","classic noir","hard-boiled detective","detective film","private eye film","murder mystery","whodunit film","crime film","suspense film","gothic mystery","classic mystery"],["Film_Noir","feature_films","feature_films_unsorted","opensource_movies","prelinger","FedFlix"],["film noir","classic noir","hard-boiled detective","detective film","private eye","murder mystery","whodunit","crime film","suspense film","gothic mystery","classic mystery"]);
 rsFamilyDepth("Christmas Channel",["christmas movie","christmas film","christmas television special","holiday feature","christmas special","christmas classic","yuletide film","christmas cartoon","christmas television"],["feature_films","feature_films_unsorted","classic_tv","classic_tv_1950s","classic_tv_1960s","classic_tv_1970s","prelinger","opensource_movies"],["christmas movie","christmas film","christmas television special","holiday feature","christmas special","christmas classic","yuletide film","christmas cartoon","christmas television"]);
 rsFamilyDepth("Halloween Haunt",["horror film","horror movie","classic horror","gothic horror","haunted house","supernatural horror","monster movie","creature feature","vampire film","werewolf film","zombie film","witch film","slasher film","giallo film","halloween movie"],["SciFi_Horror","feature_films_unsorted","feature_films","opensource_movies","prelinger","FedFlix"],["horror film","horror movie","classic horror","gothic horror","haunted house","supernatural horror","monster movie","creature feature","vampire film","werewolf film","zombie film","witch film","slasher film","giallo film","halloween movie"]);
+rsFamilyDepth("Christmas TV",["christmas television","christmas tv episode","christmas episode","christmas television special","holiday television","holiday tv special","christmas sitcom","christmas variety show","christmas broadcast","yuletide television","christmas family special","christmas parade television"],["classic_tv","classic_tv_1950s","classic_tv_1960s","classic_tv_1970s","classic_tv_1980s","classic_tv_1990s","classic_tv_2000s","prelinger","vhsvault"],["christmas television","christmas tv episode","christmas episode","christmas television special","holiday television","holiday tv special","christmas sitcom","christmas variety show","christmas broadcast","yuletide television","christmas family special","christmas parade television"]);
+rsFamilyDepth("Halloween TV",["halloween television","halloween tv episode","halloween episode","halloween television special","spooky television","horror anthology television","halloween sitcom","halloween variety show","halloween broadcast","monster television special","hosted halloween special","halloween family television"],["classic_tv","classic_tv_1950s","classic_tv_1960s","classic_tv_1970s","classic_tv_1980s","classic_tv_1990s","classic_tv_2000s","SciFi_Horror","vhsvault"],["halloween television","halloween tv episode","halloween episode","halloween television special","spooky television","horror anthology television","halloween sitcom","halloween variety show","halloween broadcast","monster television special","hosted halloween special","halloween family television"]);
+rsFamilyDepth("Thanksgiving TV",["thanksgiving television","thanksgiving tv episode","thanksgiving episode","thanksgiving television special","thanksgiving sitcom","thanksgiving variety show","thanksgiving broadcast","thanksgiving parade television","harvest television","turkey day television","thanksgiving family special","thanksgiving comedy episode"],["classic_tv","classic_tv_1950s","classic_tv_1960s","classic_tv_1970s","classic_tv_1980s","classic_tv_1990s","classic_tv_2000s","prelinger","vhsvault"],["thanksgiving television","thanksgiving tv episode","thanksgiving episode","thanksgiving television special","thanksgiving sitcom","thanksgiving variety show","thanksgiving broadcast","thanksgiving parade television","harvest television","turkey day television","thanksgiving family special","thanksgiving comedy episode"]);
 /* Holiday animation needs its own episode-level discovery rails. These are
    still constrained by each station's existing title/deny contracts. */
 [["Christmas Cartoons",["christmas cartoon","christmas special","holiday cartoon","rudolph","frosty","grinch","santa claus","charlie brown christmas","christmas tales","winter cartoon"],["animationandcartoons","classic_cartoons","saturdaymorningcartoons","vhskids","vhsvault","classic_tv_1960s","classic_tv_1970s"]],["Halloween Cartoons",["halloween cartoon","halloween special","holiday cartoon","casper","scooby doo","charlie brown halloween","garfield halloween","count duckula","spooky cartoon","ghost cartoon","monster cartoon"],["animationandcartoons","classic_cartoons","saturdaymorningcartoons","vhskids","vhsvault","classic_tv_1960s","classic_tv_1970s"]],["Thanksgiving Cartoons",["thanksgiving cartoon","thanksgiving special","holiday cartoon","charlie brown thanksgiving","garfield thanksgiving","harvest cartoon","pilgrim cartoon","fall cartoon"],["animationandcartoons","classic_cartoons","saturdaymorningcartoons","vhskids","vhsvault","classic_tv_1960s","classic_tv_1970s"]]].forEach(function(entry){var p=PROGRAM[entry[0]];if(!p)return;p.fastSubjects=rsAppendProgramTerms(p.fastSubjects,entry[1]);p.fastCollections=rsAppendProgramTerms(p.fastCollections,entry[2]);p.deepCollections=rsAppendProgramTerms(p.deepCollections,entry[2]);p.deepTitleTerms=rsAppendProgramTerms(p.deepTitleTerms,entry[1]);p.depthQuerySpread=true;});
 /* The audited entertainment families all benefit from the same bounded
    spread: early TV, games, animation, outdoor, and film rails stay visible
    without changing any station's editorial acceptance rules. */
-["Classic Rerun TV","Modern Rerun TV","Game Show Channel","Saturday Morning","Classic Cartoons","Modern Cartoons","Classic Film","Midnight Matinee","Sci-Fi Theater","Shock Theater","Comedy Classics","World Cinema","Sunday Matinee","The Drive-In","Tight Lines","Camp & Trail","Range & Field","Christmas Channel","Halloween Haunt","Home Economics"].forEach(function(name){if(PROGRAM[name])PROGRAM[name].depthQuerySpread=true;});
+["Classic Rerun TV","Modern Rerun TV","Game Show Channel","Saturday Morning","Classic Cartoons","Modern Cartoons","Classic Film","Midnight Matinee","Sci-Fi Theater","Shock Theater","Comedy Classics","World Cinema","Sunday Matinee","The Drive-In","Tight Lines","Camp & Trail","Range & Field","Christmas Channel","Halloween Haunt","Christmas TV","Halloween TV","Thanksgiving TV","Home Economics"].forEach(function(name){if(PROGRAM[name])PROGRAM[name].depthQuerySpread=true;});
 /* Home Economics was the only repaired lane that still timed out during the
    serial check. Give its domestic-science records their own title vocabulary
    and collection rails so Archive can hydrate the many real household films
@@ -6984,7 +7044,7 @@ function slotFor(ch,_ignoredHour,opts){
        labels such as "The Late Late Show" into unrelated channels, even after
        the clock scheduler itself was retired. Editorial lanes may shape the
        search, but they can never rename the channel on air. */
-    return {show:ch.nm, genre:prog.genre||ch.gl, era:prog.era||ch.era, source:"ia", queries:pq, program:prog};
+    return {show:ch.nm, genre:prog.genre||ch.gl, era:prog.era||ch.era, source:"ia", channel:ch.num, queries:pq, program:prog};
   }
   const g=ch.gl; let era=ch.era||(G[g]&&G[g].era);
   if(ch.nm==="Sports Vault"&&sportsEra!=="all") era=SPORTS_ERAS[sportsEra]||era; /* 1.4.2 */
@@ -7212,6 +7272,7 @@ function iaProgramAllowed(item,sl){
   if(!item||!item.identifier||banned.indexOf(item.identifier)>=0||isTemporarilySkipped(item.identifier)||blockedId(item.identifier)||iaProgramFailed(item.identifier))return false;
   var cur=(curItem&&typeof curItem==="object")?curItem.id:null;if(item.identifier===cur)return false;
   if(!sl)return true;var p=sl.program||{}, title=String(item.title||"").toLowerCase(), subj=String(item.subject||item.subjects||"").toLowerCase();
+  if(sl.channel&&iaSkipBlocked(sl.channel,item))return false;
   if(!iaThemeMatches(item,sl))return false;
   if(p.deny){if((p.deny.title||[]).some(function(x){return title.indexOf(String(x).toLowerCase())>=0;}))return false;if((p.deny.subject||[]).some(function(x){return subj.indexOf(String(x).toLowerCase())>=0;}))return false;}
   if(p.require&&p.require.title_any&&p.require.title_any.length&&!p.require.title_any.some(function(x){return title.indexOf(String(x).toLowerCase())>=0;}))return false;
@@ -7813,7 +7874,7 @@ function applyAV(){const el=screenArea.querySelector("video,audio");if(el){el.mu
    ===================================================================== */
 /* Source Suite is television programming, not a feed of clips.  Fifteen minutes
    is the floor for every lane; individual programs may of course run for hours. */
-var V2_SOURCE_CATALOG_SIZE=96,V2_SOURCE_READY_BUFFER=5,V2_SOURCE_MIN_CATALOG=12,V2_SOURCE_CACHE_VERSION=37,V2_SOURCE_CACHE_TTL=12*60*1000,V2_SOURCE_MAX_DETAIL=24,V2_SOURCE_MAX_CONCURRENCY=8,V2_SOURCE_MIN_RUNTIME=15*60;
+var V2_SOURCE_CATALOG_SIZE=96,V2_SOURCE_READY_BUFFER=5,V2_SOURCE_MIN_CATALOG=12,V2_SOURCE_CACHE_VERSION=38,V2_SOURCE_CACHE_TTL=12*60*1000,V2_SOURCE_MAX_DETAIL=24,V2_SOURCE_MAX_CONCURRENCY=8,V2_SOURCE_MIN_RUNTIME=15*60;
 const V2_PREVIEW_PROFILES={
   "public-health-archive":{name:"Public Health Archive",providers:["peertube","youtube"],queries:["public health film","sanitation film","medical education film","hospital documentary","epidemiology film"],match:["public health","health","sanitation","medical","hospital","epidemiology","epidemic","medicine"],deny:["fictional","horror","music video","commercial","cartoon","gameplay","wedding"]},
   "signal-room":{name:"The Signal Room",providers:["peertube","youtube"],queries:["telegraph history film","telephone history film","radio engineering film","broadcasting history film","communications technology film"],match:["telegraph","telephone","radio","broadcast","communication","telecom","signal","engineering"],deny:["fictional","music video","commercial","cartoon","gameplay","podcast","sermon"]},
@@ -8139,6 +8200,10 @@ async function tuneNum(n){
    clear the slot (manual re-roll). Keyed by channel name; survives power-off. */
 var schedMap=store.get("sched",{});
 var skipUntil=store.get("skipUntil",{}), SKIP_COOLDOWN=2*60*60*1000;
+var iaSkipLedger=store.get("iaSkipLedger",{})||{}, IA_SKIP_LEDGER_TTL=6*60*60*1000;
+function iaSkipPrune(channel){var key=String(channel||""),now=Date.now(),rows=Array.isArray(iaSkipLedger[key])?iaSkipLedger[key]:[];rows=rows.filter(function(row){return row&&Number(row.at||0)>now-IA_SKIP_LEDGER_TTL;});iaSkipLedger[key]=rows.slice(0,36);return iaSkipLedger[key];}
+function iaSkipBlocked(channel,item){var rows=iaSkipPrune(channel),id=String(item&&(item.identifier||item.id)||""),title=normTitle(item&&item.title||"");if(!id&&!title)return false;return rows.some(function(row){return (id&&String(row.id||"")===id)||(title&&String(row.title||"")===title);});}
+function markIaSkipped(channel,item){if(!channel||!item)return;var key=String(channel),rows=iaSkipPrune(key),id=String(item.id||item.identifier||""),title=normTitle(item.title||"");if(!id&&!title)return;rows=rows.filter(function(row){return String(row.id||"")!==id&&(!title||String(row.title||"")!==title);});rows.unshift({id:id,title:title,at:Date.now()});iaSkipLedger[key]=rows.slice(0,36);store.set("iaSkipLedger",iaSkipLedger);}
 /* One-time upgrade fence. Saved appointments and rapid-tune entries created by
    clock-scheduled builds can otherwise survive for hours and make the new
    timeless engine appear scheduled. Clear only those legacy playback pointers;
@@ -8333,7 +8398,7 @@ async function tuneIA(ch,sl,my){
     if(fq.length){ queries=fq.concat(queries); nlog("flow",true,"following "+(lastMeta.creator||lastMeta.collection)); }
   }
   var pc=preloadCache; /* 1.4: near-gapless cuts — the next program was resolved while the last one played */
-  if(pc&&pc.chNum===ch.num&&pc.pl&&iaCachedProgramAllowed(ch,pc.pl,sl)&&(Date.now()-pc.at)<1800000&&banned.indexOf(pc.pl.id)<0&&!isTemporarilySkipped(pc.pl.id)){
+  if(pc&&pc.chNum===ch.num&&pc.pl&&iaCachedProgramAllowed(ch,pc.pl,sl)&&!iaSkipBlocked(ch.num,pc.pl)&&(Date.now()-pc.at)<1800000&&banned.indexOf(pc.pl.id)<0&&!isTemporarilySkipped(pc.pl.id)){
     preloadCache=null;
     nlog("preload",true,"instant start from preload");
     if(await playFile(pc.pl,ch,sl,my,0)) return;
@@ -17369,11 +17434,11 @@ function skipOne(){ if(!powered){quickBanner("TURN THE TV ON FIRST");return;}if(
   if(sc&&sc.source==="aurora"&&typeof window.__auroraNext==="function"){window.__auroraNext();return;}
   if(sc&&sc.source==="weather"&&typeof window.__weatherNext==="function"){window.__weatherNext();return;}
   if(sc)schedClear(sc); /* 1.2: SKIP = manual re-roll of the slot */
-  if(curItem&&curItem.id){markSkipped(curItem.id);fastTuneDrop(curNum);}
+  if(curItem&&curItem.id){if(sc&&!sc.source)markIaSkipped(sc.num,curItem);markSkipped(curItem.id);fastTuneDrop(curNum);}
   /* Promote a resolved program-director item before retuning. Unlike the normal
      preloader this is synchronous: SKIP can immediately consume a warm URL. */
   if(sc&&!sc.source){var ss=slotFor(sc,0,{preview:true}), qi=takeIAQueue(sc,ss), qm=qi&&iaProgramMedia[qi.identifier];
-    if(qm&&typeof qm.then!=="function"&&qm.url){preloadCache={chNum:sc.num,pl:{...qm,title:qi.title||qi.identifier,year:qi.year},at:Date.now()};}}
+    if(qm&&typeof qm.then!=="function"&&qm.url&&!iaSkipBlocked(sc.num,qi)){preloadCache={chNum:sc.num,pl:{...qm,title:qi.title||qi.identifier,year:qi.year},at:Date.now()};}}
   adQueue=0; /* skipping during a break kills the rest of the break */
   quickBanner("SKIPPING\u2026"); resetProgress(); tuneNum(curNum); }
 

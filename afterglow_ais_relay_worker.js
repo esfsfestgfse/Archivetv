@@ -101,10 +101,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v12-repeat-lanes"
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v150";
+const IA_QUEUE_CACHE_VERSION = "v151";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v150";
+const IA_LAST_GOOD_CACHE_VERSION = "v151";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -122,11 +122,15 @@ const IA_FRESHNESS_LEDGER_TTL_SECONDS = 30 * 24 * 60 * 60;
 const IA_FRESHNESS_MEMORY_TTL_MS = 60 * 1000;
 const IA_HOLIDAY_ANIMATION_CHANNELS = new Set(["704", "705", "706"]);
 const IA_FULL_WINDOW_ANIMATION_CHANNELS = new Set(["150", "153", "158", "704", "705", "706"]);
+/* Holiday live-action TV has its own station family. Keep its direct file
+   rails and the expanded Archive catalog on the same full-window rotation as
+   the cartoon lanes, without mixing either family into the movie stations. */
+const IA_HOLIDAY_TV_CHANNELS = new Set(["707", "708", "709"]);
 /* The same full-shelf rotation is useful for the verified long-tail banks
    that still showed neighboring rotations reopening the same five programs.
    This is a bounded ordering change only: discovery, hydration, and editorial
    gates remain unchanged, while a channel advances by one public shelf. */
-const IA_FULL_WINDOW_ROTATION_CHANNELS = new Set(["14", "56", "59", "60", "61", "74", "101", "103", "134", "210"]);
+const IA_FULL_WINDOW_ROTATION_CHANNELS = new Set(["14", "56", "59", "60", "61", "74", "101", "103", "134", "210", "707", "708", "709"]);
 /* A short per-isolate burst cache absorbs repeat requests from a TV, phone,
    and guide opened in quick succession. It is intentionally tiny and
    short-lived: Cache API/KV remain the durable shelves, while this map only
@@ -219,7 +223,7 @@ const IA_COLD_RESCUE_CHANNELS = new Set([
   "507", "508", "509", "510", "511", "575", "700", "701", "703", "900", "906", "922", "926", "927", "928", "243", "244", "204",
   /* v164's full soak isolated these additional cold lanes. Keep their verified
      shelves narrow and channel-owned; healthy lanes do not pay this cost. */
-  "14", "15", "18", "56", "63", "68", "72", "73", "77", "83", "102", "104", "109", "122", "158", "200", "202", "704", "705", "706", "901", "911", "916"
+  "14", "15", "18", "56", "63", "68", "72", "73", "77", "83", "102", "104", "109", "122", "158", "200", "202", "704", "705", "706", "707", "708", "709", "901", "911", "916"
 ]);
 function iaColdRescueEnabled(channel) {
   return IA_COLD_RESCUE_CHANNELS.has(String(channel));
@@ -231,7 +235,7 @@ function iaColdRescueEnabled(channel) {
    manufacturing catalog. The six animation lanes use the same direct-ready
    contract because their verified episode banks are deeper and more reliable
    than the cold Archive search race; background expansion still deepens them. */
-const IA_STRICT_RECOVERY_CHANNELS = new Set(["19", "80", "200", "920", "150", "153", "158", "704", "705", "706"]);
+const IA_STRICT_RECOVERY_CHANNELS = new Set(["19", "80", "200", "920", "150", "153", "158", "704", "705", "706", "707", "708", "709"]);
 function iaStrictRecoveryEnabled(channel) {
   return IA_STRICT_RECOVERY_CHANNELS.has(String(channel));
 }
@@ -242,7 +246,7 @@ function iaStrictRecoveryEnabled(channel) {
 const IA_DEPTH_RECOVERY_CHANNELS = new Set([
   "3", "10", "13", "14", "17", "18", "19", "21", "60", "61", "62", "64", "66", "68", "70", "74", "75", "76", "77", "80", "81",
   "100", "101", "102", "105", "106", "107", "108", "111", "114", "115", "117", "118", "120", "124", "125", "126", "127", "128", "129", "130", "131", "132", "154", "205", "222", "922",
-  "72", "83", "104", "122", "202", "203", "204", "206", "209", "210", "211", "212", "213", "214", "220", "223", "224", "227", "228", "231", "235", "239", "240", "501", "502", "511", "700", "702", "703", "704", "705", "706", "901", "906", "907", "909", "914", "916", "918", "920", "921", "923", "927", "929"
+  "72", "83", "104", "122", "202", "203", "204", "206", "209", "210", "211", "212", "213", "214", "220", "223", "224", "227", "228", "231", "235", "239", "240", "501", "502", "511", "700", "702", "703", "704", "705", "706", "707", "708", "709", "901", "906", "907", "909", "914", "916", "918", "920", "921", "923", "927", "929"
 ].filter(Boolean));
 function iaDepthRecoveryEnabled(channel) {
   return IA_DEPTH_RECOVERY_CHANNELS.has(String(channel));
@@ -1640,6 +1644,37 @@ const IA_LONG_TAIL_EXPANSIONS = Object.freeze({
     iaDirectRecovery("jims.thanksgiving.marathon::1945 - Jerky Turkey.ia.mp4", "jims.thanksgiving.marathon", "1945 - Jerky Turkey.ia.mp4", "Jerky Turkey", "thanksgiving cartoon thanksgiving animation animated thanksgiving special turkey cartoon harvest cartoon family holiday cartoon", 1945),
     iaDirectRecovery("jims.thanksgiving.marathon::1949 - The-Little-Orphan.mp4", "jims.thanksgiving.marathon", "1949 - The-Little-Orphan.mp4", "The Little Orphan", "thanksgiving cartoon thanksgiving animation animated thanksgiving special turkey cartoon harvest cartoon family holiday cartoon", 1949),
     iaDirectRecovery("team.-toon.-s-01-e-04.-the.-turkey.-720p.-amzn.-web-dl.-ddp-5.1.-h.-264-t-7-st::Team.Toon.S01E04.The.Turkey.720p.AMZN.WEB-DL.DDP5.1.H.264-T7ST.mp4", "team.-toon.-s-01-e-04.-the.-turkey.-720p.-amzn.-web-dl.-ddp-5.1.-h.-264-t-7-st", "Team.Toon.S01E04.The.Turkey.720p.AMZN.WEB-DL.DDP5.1.H.264-T7ST.mp4", "Team Toon · The Turkey", "thanksgiving cartoon thanksgiving animation animated thanksgiving special turkey cartoon harvest cartoon family holiday cartoon", 2000)
+  ],
+  /* Dedicated live-action holiday television rails. These are separate from
+     the holiday movie/cartoon banks: hosted programs, sitcom/special
+     episodes, variety broadcasts, and parades only. The title prefix keeps
+     the strict station gate intact while the subject preserves the real
+     program identity for the guide and freshness ledger. */
+  "707": [
+    iaDirectRecovery("rockhampton-special-childrens-christmas-party-1996::Rockhampton Children's Christmas Party (1996).mp4", "rockhampton-special-childrens-christmas-party-1996", "Rockhampton Special Children's Christmas Party (1996).mp4", "Christmas TV · Rockhampton Children's Christmas Party (1996)", "christmas television christmas special holiday television family television variety broadcast", 1996),
+    iaDirectRecovery("youtube-EJaXPIhCJlo::EJaXPIhCJlo.mp4", "youtube-EJaXPIhCJlo", "EJaXPIhCJlo.mp4", "Christmas TV · Happy Holidays from RippleEffect (2011)", "christmas television christmas special holiday television broadcast", 2011),
+    iaDirectRecovery("vimeo-247979511::247979511.mp4", "vimeo-247979511", "247979511.mp4", "Christmas TV · Merry Christmas from Saint John's", "christmas television christmas special holiday television broadcast", 2017),
+    iaDirectRecovery("corrtx-The_Misadventures_of_CT_the_Christmas_Towne_Elf_Episode_4::The_Misadventures_of_CT_the_Christmas_Towne_Elf_Episode_4.mp4", "corrtx-The_Misadventures_of_CT_the_Christmas_Towne_Elf_Episode_4", "The_Misadventures_of_CT_the_Christmas_Towne_Elf_Episode_4.mp4", "Christmas TV · The Misadventures of CT the Christmas Towne Elf · Episode 4", "christmas television christmas episode holiday television family television", 2014),
+    iaDirectRecovery("christmas-night-1933::Christmas Night (1933).mp4", "christmas-night-1933", "Christmas Night (1933).mp4", "Christmas TV · Christmas Night (1933)", "christmas television christmas special holiday television seasonal broadcast", 1933),
+    iaDirectRecovery("lassie-a-christmas-story-1959-film-noir-christmas-special::Lassie A Christmas Story (1959 Film Noir Christmas Special).mp4", "lassie-a-christmas-story-1959-film-noir-christmas-special", "Lassie A Christmas Story (1959 Film Noir Christmas Special).mp4", "Christmas TV · Lassie · A Christmas Story", "christmas television christmas episode christmas special holiday television family television", 1958)
+  ],
+  "708": [
+    iaDirectRecovery("monster-vision-christine::MonsterVision (Christine).mp4", "monster-vision-christine", "MonsterVision (Christine).mp4", "Halloween TV · MonsterVision · Christine", "halloween television hosted horror anthology television spooky television monster television special", 1999),
+    iaDirectRecovery("godzilla-vs.-mothra-tnt-full::Godzilla vs. Mothra TNT full.ia.mp4", "godzilla-vs.-mothra-tnt-full", "Godzilla vs. Mothra TNT full.ia.mp4", "Halloween TV · MonsterVision · Godzilla vs. Mothra", "halloween television hosted horror anthology television spooky television monster television special", 1998),
+    iaDirectRecovery("monster-vision-national-lampoons-european-vacation::MonsterVision (National Lampoons European Vacation) .mp4", "monster-vision-national-lampoons-european-vacation", "MonsterVision (National Lampoons European Vacation) .mp4", "Halloween TV · MonsterVision · National Lampoon's European Vacation", "halloween television hosted horror anthology television spooky television monster television special", 1999),
+    iaDirectRecovery("the-last-drive-in-with-joe-bob-briggs-halloween-hootenanny-2019::The Last Drive-In with Joe Bob Briggs - Halloween Hootenanny (2019).mp4", "the-last-drive-in-with-joe-bob-briggs-halloween-hootenanny-2019", "The Last Drive-In with Joe Bob Briggs - Halloween Hootenanny (2019).mp4", "Halloween TV · The Last Drive-In · Halloween Hootenanny", "halloween television hosted horror anthology television spooky television halloween special", 2019),
+    iaDirectRecovery("98-02-7-1-teen-wolf::98-02-7-1 - Teen Wolf.ia.mp4", "98-02-7-1-teen-wolf", "98-02-7-1 - Teen Wolf.ia.mp4", "Halloween TV · MonsterVision · Teen Wolf", "halloween television hosted horror anthology television spooky television monster television special", 1998),
+    iaDirectRecovery("my-vhs-saga-part-3_woc::My VHS Saga Part 3.mp4", "my-vhs-saga-part-3_woc", "My VHS Saga Part 3.mp4", "Halloween TV · MonsterVision Presents · Halloween III", "halloween television hosted horror anthology television spooky television halloween special", 2023),
+    iaDirectRecovery("the-last-drive-in-with-joe-bob-briggs-s-00e-102-tcm-2020-family-reunion-night-1-cast::The Last Drive-In with Joe Bob Briggs - s00e102 - TCM 2020 Family Reunion - Night 1 (Cast).mp4", "the-last-drive-in-with-joe-bob-briggs-s-00e-102-tcm-2020-family-reunion-night-1-cast", "The Last Drive-In with Joe Bob Briggs - s00e102 - TCM 2020 Family Reunion - Night 1 (Cast).mp4", "Halloween TV · The Last Drive-In · TCM Family Reunion", "halloween television hosted horror anthology television spooky television seasonal special", 2020)
+  ],
+  "709": [
+    iaDirectRecovery("HalloweenThanksgiving::Halloween & Thanksgiving.mp4", "HalloweenThanksgiving", "Halloween & Thanksgiving.mp4", "Thanksgiving TV · Bear in the Big Blue House · Thanksgiving", "thanksgiving television thanksgiving special harvest television family television", 2000),
+    iaDirectRecovery("AsWeLikeIt::AsWeLikeIt.mp4", "AsWeLikeIt", "AsWeLikeIt.mp4", "Thanksgiving TV · As We Like It", "thanksgiving television harvest television family special variety broadcast", 1952),
+    iaDirectRecovery("GeorgeBurnsGracieAllen-Thanksgiving::burnsallen-thanksgiving.mp4", "GeorgeBurnsGracieAllen-Thanksgiving", "burnsallen-thanksgiving.mp4", "Thanksgiving TV · The George Burns and Gracie Allen Show", "thanksgiving television thanksgiving sitcom comedy episode harvest special", 1951),
+    iaDirectRecovery("Liberace_Thanksgiving::Liberace.mp4", "Liberace_Thanksgiving", "Liberace.mp4", "Thanksgiving TV · Liberace Thanksgiving", "thanksgiving television thanksgiving special variety broadcast harvest music", 1954),
+    iaDirectRecovery("macysthanksgivingdayparade1988withcommercialsvhs_201912::Macy's Thanksgiving Day Parade 1988.mp4", "macysthanksgivingdayparade1988withcommercialsvhs_201912", "Macy's Thanksgiving Day Parade 1988.mp4", "Thanksgiving TV · Macy's Thanksgiving Day Parade · 1988", "thanksgiving television thanksgiving parade broadcast seasonal special", 1988),
+    iaDirectRecovery("macysthanksgivingdayparade1989full::Macy's Thanksgiving Day Parade 1989 (full).mp4", "macysthanksgivingdayparade1989full", "Macy's Thanksgiving Day Parade 1989 (full).mp4", "Thanksgiving TV · Macy's Thanksgiving Day Parade · 1989", "thanksgiving television thanksgiving parade broadcast seasonal special", 1989),
+    iaDirectRecovery("DayofTha1951::DayofTha1951.mp4", "DayofTha1951", "DayofTha1951.mp4", "Thanksgiving TV · A Day of Thanksgiving", "thanksgiving television thanksgiving special harvest broadcast family television", 1951)
   ],
   "209": [
     { identifier: "NasaDestinationTomorrow-Dt12-FlightPioneers", title: "NASA Destination Tomorrow — Flight Pioneers", subject: "aviation aircraft airplane flight aerospace documentary", year: 2004, media: { type: "video", url: "https://archive.org/download/NasaDestinationTomorrow-Dt12-FlightPioneers/NASADT12-FlightPioneers.mp4" } },
@@ -5349,7 +5384,7 @@ function orderedIaEmergencySeeds(channel, rotation) {
      does not replay four of the previous five programs while Archive's
    deeper background rails are still hydrating. The audited repeat-heavy lanes
    use the same full-shelf step; all other lanes retain the one-record offset. */
-  const fullWindow = IA_FULL_WINDOW_ANIMATION_CHANNELS.has(String(channel)) || IA_FULL_WINDOW_ROTATION_CHANNELS.has(String(channel));
+  const fullWindow = IA_FULL_WINDOW_ANIMATION_CHANNELS.has(String(channel)) || IA_HOLIDAY_TV_CHANNELS.has(String(channel)) || IA_FULL_WINDOW_ROTATION_CHANNELS.has(String(channel));
   const shelfStep = fullWindow ? 5 : 1;
   const offset = (Math.abs(Number(rotation) || 0) * shelfStep) % seeds.length;
   return seeds.slice(offset).concat(seeds.slice(0, offset));

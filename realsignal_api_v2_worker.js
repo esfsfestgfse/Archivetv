@@ -12,7 +12,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "4.1.83-holiday-catalog-admission";
+const V3_RELEASE = "4.1.84-holiday-collection-child-admission";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -467,17 +467,31 @@ function catalogFallbackAllowed(item, body) {
      for “cannabis history” must not make an unrelated history upload look
      like Green Culture after it is persisted. */
   const haystack = `${title} ${description} ${subject} ${tags} ${category} ${account} ${sourceIdentifier} ${normalizedSourceIdentifier}`;
+  const holidayChannel = String(body && body.channel || "");
+  const trustedHolidayRecovery = IA_HOLIDAY_TITLE_LANES.has(holidayChannel)
+    && item && item.recoveryVerified === true
+    && item.media && item.media.url
+    && Array.isArray(body && body.themeTerms)
+    && body.themeTerms.some((term) => {
+      const needle = String(term || "").trim().toLowerCase();
+      return needle && subject.includes(needle);
+    });
+  /* A verified child file may inherit a parent identifier such as
+     “halloween-cartoon-collection”. Do not let that parent bookkeeping word
+     veto the child after the relay has already verified its media and subject. */
+  const denyHaystack = trustedHolidayRecovery
+    ? `${title} ${description} ${subject} ${tags} ${category} ${account}`
+    : haystack;
   const denyTerms = Array.isArray(body && body.denyTerms) ? body.denyTerms : [];
   if (denyTerms.some((term) => {
     const needle = String(term || "").trim().toLowerCase();
-    return needle && haystack.includes(needle);
+    return needle && denyHaystack.includes(needle);
   })) return false;
   /* A relay-verified item has already passed the channel's full source-side
      genre rules. Preserve that provenance when a child film title is
      editorially correct but does not literally repeat the required phrase
      (for example, a factory film titled "Master Hands"). */
   const requiredTitleTerms = Array.isArray(body && body.requiredTitleTerms) ? body.requiredTitleTerms : [];
-  const holidayChannel = String(body && body.channel || "");
   const holidayTitleVerified = IA_HOLIDAY_TITLE_LANES.has(holidayChannel) && requiredTitleTerms.some((term) => {
     const needle = String(term || "").trim().toLowerCase();
     if (needle.length < 5 || !title.includes(needle)) return false;
@@ -523,14 +537,6 @@ function catalogFallbackAllowed(item, body) {
      subject signal even when the child filename is generic (for example,
      “The Skeleton Dance” or “Jerky Turkey”). This remains narrow: the row
      needs recovery provenance, a playable URL, and a seasonal subject signal. */
-  const trustedHolidayRecovery = IA_HOLIDAY_TITLE_LANES.has(holidayChannel)
-    && item && item.recoveryVerified === true
-    && item.media && item.media.url
-    && Array.isArray(body && body.themeTerms)
-    && body.themeTerms.some((term) => {
-      const needle = String(term || "").trim().toLowerCase();
-      return needle && subject.includes(needle);
-    });
   const relayVerified = (item && item.genreVerified === true && !IA_DEPTH_REPAIR_LANES.has(String(body && body.channel || ""))) || holidayTitleVerified || trustedHolidayRecovery;
   const strictManufacturingLane = String(body && body.channel || "") === "200";
   const manufacturingSubjectMatch = strictManufacturingLane && Array.isArray(body && body.themeTerms)

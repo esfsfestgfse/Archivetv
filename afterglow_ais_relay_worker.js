@@ -101,10 +101,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v4";
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v129";
+const IA_QUEUE_CACHE_VERSION = "v131";
 /* Last-good shelves share the v101 namespace so an older shallow shelf
    never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v113";
+const IA_LAST_GOOD_CACHE_VERSION = "v115";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -209,7 +209,7 @@ const IA_STABLE_RESCUE_CHANNELS = new Set(["17", "19", "74", "82", "106", "107",
    diversity gates. This is deliberately an allowlist so healthy lanes keep
    the one-rail fast path. */
 const IA_COLD_RESCUE_CHANNELS = new Set([
-  "2", "3", "10", "11", "12", "15", "64", "76", "101", "105", "110", "115", "116", "119", "120", "128", "130", "131", "132", "153", "154", "155", "156",
+  "2", "3", "10", "11", "12", "15", "64", "76", "80", "101", "105", "110", "115", "116", "119", "120", "128", "130", "131", "132", "153", "154", "155", "156",
   "205", "208", "209", "210", "211", "212", "213", "214", "215", "216", "217", "219", "222", "223", "224", "225", "226", "227", "229", "230", "231", "232", "233", "234", "235", "236", "237", "238", "239", "240", "241", "242",
   "507", "508", "509", "510", "511", "575", "700", "701", "703", "900", "906", "922", "926", "927", "928", "243", "244",
   /* v164's full soak isolated these additional cold lanes. Keep their verified
@@ -226,7 +226,7 @@ function iaColdRescueEnabled(channel) {
    manufacturing catalog. The six animation lanes use the same direct-ready
    contract because their verified episode banks are deeper and more reliable
    than the cold Archive search race; background expansion still deepens them. */
-const IA_STRICT_RECOVERY_CHANNELS = new Set(["19", "200", "920", "150", "153", "158", "704", "705", "706"]);
+const IA_STRICT_RECOVERY_CHANNELS = new Set(["19", "80", "200", "920", "150", "153", "158", "704", "705", "706"]);
 function iaStrictRecoveryEnabled(channel) {
   return IA_STRICT_RECOVERY_CHANNELS.has(String(channel));
 }
@@ -235,7 +235,7 @@ function iaStrictRecoveryEnabled(channel) {
    lanes more background search rails and a wider page window. Healthy channel
    changes keep the original one-rail fast path and do not pay for the repair. */
 const IA_DEPTH_RECOVERY_CHANNELS = new Set([
-  "3", "10", "13", "14", "17", "18", "19", "21", "60", "61", "62", "64", "66", "68", "70", "74", "75", "76", "77", "81",
+  "3", "10", "13", "14", "17", "18", "19", "21", "60", "61", "62", "64", "66", "68", "70", "74", "75", "76", "77", "80", "81",
   "100", "101", "102", "105", "106", "107", "108", "111", "114", "115", "117", "118", "120", "124", "125", "126", "127", "128", "129", "130", "131", "132", "154", "205", "222", "922",
   "72", "83", "104", "122", "202", "203", "204", "206", "209", "210", "211", "212", "213", "214", "220", "223", "224", "227", "228", "231", "235", "239", "240", "501", "502", "511", "700", "702", "703", "704", "705", "706", "901", "906", "907", "909", "914", "916", "918", "920", "921", "923", "927", "929"
 ].filter(Boolean));
@@ -2211,11 +2211,25 @@ const IA_LONG_TAIL_EXPANSIONS_EXTRA = Object.freeze({
     iaDirectRecovery("TheFastandtheFuriousJohnIreland1954goofyrip::TheFastandtheFuriousJohnIreland1954goofyrip_512kb.mp4", "TheFastandtheFuriousJohnIreland1954goofyrip", "TheFastandtheFuriousJohnIreland1954goofyrip_512kb.mp4", "The Fast and the Furious", "drive-in crime film action feature film", 1955),
   ],
   "80": [
-    iaDirectRecovery("Makingof1946::Makingof1946_512kb.mp4", "Makingof1946", "Makingof1946_512kb.mp4", "Making of a Shooter", "hunting outdoors sportsman wildlife outdoor television", 1946),
-    iaDirectRecovery("denaliwilderness::denaliwilderness.mp4", "denaliwilderness", "denaliwilderness.mp4", "Denali Wilderness", "outdoors wilderness wildlife hunting fishing outdoor television", 1982),
+    iaDirectRecovery("denaliwilderness::denaliwilderness.mp4", "denaliwilderness", "denaliwilderness.mp4", "Denali Wilderness", "outdoors wilderness wildlife hunting outdoor television", 1982),
     iaDirectRecovery("HuntingSeason::huntingonline_512kb.mp4", "HuntingSeason", "huntingonline_512kb.mp4", "Hunting Season", "hunting outdoors wildlife sportsman outdoor television", 2006),
-    iaDirectRecovery("MyHero-FishingStory::myhero-thefishingstory.mp4", "MyHero-FishingStory", "myhero-thefishingstory.mp4", "My Hero · The Fishing Story", "fishing outdoors sport fishing angling outdoor television", 1953),
-    iaDirectRecovery("BirdDogs1940::BirdDogs1940_512kb.mp4", "BirdDogs1940", "BirdDogs1940_512kb.mp4", "Bird Dogs", "hunting outdoors bird hunting sporting dogs outdoor television", 1940),
+    iaDirectRecovery("whitetail-madness-an-unbelievable-season-2000-hunting-vhs::Whitetail Madness An Unbelievable Season 2000 hunting VHS.mp4", "whitetail-madness-an-unbelievable-season-2000-hunting-vhs", "Whitetail Madness An Unbelievable Season 2000 hunting VHS.mp4", "Whitetail Madness: An Unbelievable Season", "hunting whitetail deer hunting bowhunting outdoors hunting television", 2000),
+    iaDirectRecovery("the-best-of-realtrees-home-videos-1999-hunting-vhs_1::The Best of REALTREES Home Videos 1999 Hunting VHS_1.mp4", "the-best-of-realtrees-home-videos-1999-hunting-vhs_1", "The Best of REALTREES Home Videos 1999 Hunting VHS_1.mp4", "The Best of Realtree's Home Videos 1999 Hunting", "hunting whitetail deer hunting outdoors hunting television", 1999),
+    iaDirectRecovery("upland-hunting-volume-2-pheasants-and-labs::Upland Hunting Volume 2 - Pheasants and Labs.mp4", "upland-hunting-volume-2-pheasants-and-labs", "Upland Hunting Volume 2 - Pheasants and Labs.mp4", "Upland Hunting: Pheasants and Labs", "upland hunting bird hunting sporting dogs hunting outdoors hunting television", 1990),
+    iaDirectRecovery("vintage-vhs-mossy-oak-deer-school-lessons-learned-from-the-whitetail-deer::deer_school_lessons_learned_from_the_whitetail_deer_01.mp4", "vintage-vhs-mossy-oak-deer-school-lessons-learned-from-the-whitetail-deer", "deer_school_lessons_learned_from_the_whitetail_deer_01.mp4", "Mossy Oak: Deer School", "hunting whitetail deer hunting bowhunting outdoors hunting television", 1990),
+    iaDirectRecovery("way-of-the-whitetail-1985::Way of the Whitetail (1985).ia.mp4", "way-of-the-whitetail-1985", "Way of the Whitetail (1985).ia.mp4", "Way of the Whitetail", "hunting whitetail deer hunting outdoors hunting television", 1985),
+    iaDirectRecovery("vintage-vhs-whitetail-madness-1::whitetail_madness_1_01.mp4", "vintage-vhs-whitetail-madness-1", "whitetail_madness_1_01.mp4", "Whitetail Madness 1", "hunting whitetail deer hunting bowhunting outdoors hunting television", 1990),
+    iaDirectRecovery("vintage-vhs-whitetail-secrets::whitetail_secrets_01.mp4", "vintage-vhs-whitetail-secrets", "whitetail_secrets_01.mp4", "Whitetail Secrets", "hunting whitetail deer hunting outdoors hunting television", 1990),
+    iaDirectRecovery("TheVistaGroup-TheWhitetailWidowmakers1995::1995 VHS • The Whitetail Widowmakers 60 FPS.ia.mp4", "TheVistaGroup-TheWhitetailWidowmakers1995", "1995 VHS • The Whitetail Widowmakers 60 FPS.ia.mp4", "The Whitetail Widowmakers", "hunting whitetail deer hunting outdoors hunting television", 1995),
+    iaDirectRecovery("TheVistaGroup-WaterfowlChallenge1998::Waterfowl Challenge VHS • 60 FPS 1998.ia.mp4", "TheVistaGroup-WaterfowlChallenge1998", "Waterfowl Challenge VHS • 60 FPS 1998.ia.mp4", "Waterfowl Challenge", "waterfowl hunting duck hunting outdoors hunting television", 1998),
+    iaDirectRecovery("whitetail-high::Whitetail High.ia.mp4", "whitetail-high", "Whitetail High.ia.mp4", "Whitetail High", "hunting whitetail deer hunting outdoors hunting television", 1990),
+    iaDirectRecovery("whitetail-hunter::Whitetail Hunter.mp4", "whitetail-hunter", "Whitetail Hunter.mp4", "Whitetail Hunter", "hunting whitetail deer hunting outdoors hunting television", 1990),
+    iaDirectRecovery("bowhunting-for-whitetail-deer::Bowhunting for Whitetail Deer.mp4", "bowhunting-for-whitetail-deer", "Bowhunting for Whitetail Deer.mp4", "Bowhunting for Whitetail Deer", "hunting whitetail deer hunting bowhunting outdoors hunting television", 1990),
+    iaDirectRecovery("hunting-trophy-whitetail-deer-1::Hunting Trophy Whitetail Deer 1.mp4", "hunting-trophy-whitetail-deer-1", "Hunting Trophy Whitetail Deer 1.mp4", "Hunting Trophy Whitetail Deer 1", "hunting whitetail deer hunting outdoors hunting television", 1990),
+    iaDirectRecovery("hunting-trophy-whitetail-deer::Hunting Trophy Whitetail Deer.mp4", "hunting-trophy-whitetail-deer", "Hunting Trophy Whitetail Deer.mp4", "Hunting Trophy Whitetail Deer", "hunting whitetail deer hunting outdoors hunting television", 1990),
+    iaDirectRecovery("tips-techniques-waterfowl::Tips & Techniques - Waterfowl.mp4", "tips-techniques-waterfowl", "Tips & Techniques - Waterfowl.mp4", "Waterfowl Hunting Techniques", "waterfowl hunting duck hunting outdoors hunting television", 1997),
+    iaDirectRecovery("vintage-vhs-american-hunter-video-collection-pure-whitetail-chance-of-a-lifetime::american_hunter_collection_pure_whitetail_chance_of_a_lifetime_01.mp4", "vintage-vhs-american-hunter-video-collection-pure-whitetail-chance-of-a-lifetime", "american_hunter_collection_pure_whitetail_chance_of_a_lifetime_01.mp4", "American Hunter: Pure Whitetail", "hunting whitetail deer hunting outdoors hunting television", 1990),
+    iaDirectRecovery("RegulatedDeerHunting::RegulatedDeerHunting.mp4", "RegulatedDeerHunting", "RegulatedDeerHunting.mp4", "Regulated Deer Hunting", "hunting whitetail deer hunting outdoors hunting television", 1930),
   ],
   "18": [
     iaDirectRecovery("doogie-howser-m.d.-season-2-of-4-xvid-avi::Doogie Howser, M.D. - S02E01 - Doogenstein.mp4", "doogie-howser-m.d.-season-2-of-4-xvid-avi", "Doogie Howser, M.D. - S02E01 - Doogenstein.mp4", "Doogie Howser, M.D. — Doogenstein", "medical drama hospital drama medical series television", 1990),

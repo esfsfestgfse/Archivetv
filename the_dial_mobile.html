@@ -1699,7 +1699,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="4.1.36-mobile-animation-family-stable";
+window.__ATV_BUILD="4.1.37-mobile-hunt-editorial-filter";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -6386,11 +6386,18 @@ Object.assign(PROGRAM["The Hunt"],{require:{title_any:["deer","turkey","waterfow
 Object.assign(PROGRAM["The Hunt"],{
   eraBuckets:[[1930,1949],[1950,1979],[1980,1999],[2000,2026]],
   queueTerms:["hunting show","hunting television","hunting series","Ted Nugent hunting","Spirit of the Wild","American Sportsman","Outdoor Life television","North American Hunter","Buckmasters","ESPN Outdoors","TNN Outdoors","deer hunting","turkey hunting","waterfowl hunting","upland hunting","big game hunting","hunting dogs","whitetail hunting"],
-  fastSubjects:["Ted Nugent","Spirit of the Wild","American Sportsman","Outdoor Life","North American Hunter","Buckmasters","ESPN Outdoors","TNN Outdoors","hunting show","hunting television","hunting series","deer hunting","turkey hunting","waterfowl hunting","upland hunting","big game hunting","hunting dogs","whitetail hunting"],
+  /* Lead with real hunting vocabulary so a cold tune can find the broad
+     outdoors catalog. Keep Ted/show names as a later dedicated rail: Archive
+     indexes those records inconsistently and a Ted-only first rail returns
+     political interviews instead of hunting television. */
+  fastSubjects:["hunting","hunting show","hunting television","hunting series","deer hunting","turkey hunting","waterfowl hunting","upland hunting","big game hunting","hunting dogs","whitetail hunting","outdoor life","Spirit of the Wild","Ted Nugent","American Sportsman","North American Hunter","Buckmasters","ESPN Outdoors","TNN Outdoors"],
   fastCollections:["sports","sportstelevision","vhssports","opensource_movies","FedFlix","prelinger"],
   providers:[{collections:["sports","sportstelevision","vhssports","opensource_movies","FedFlix","prelinger"],require_subj:["Ted Nugent","Spirit of the Wild","American Sportsman","Outdoor Life","North American Hunter","Buckmasters","ESPN Outdoors","TNN Outdoors","hunting show","hunting television","hunting series","deer hunting","turkey hunting","waterfowl hunting","upland hunting","big game hunting","hunting dogs","whitetail hunting"]}],
-  require:{title_any:["hunting","hunt","deer","turkey","waterfowl","duck","upland","big game","bowhunting","whitetail","Ted Nugent","Spirit of the Wild","American Sportsman","Outdoor Life","North American Hunter","Buckmasters","ESPN Outdoors","TNN Outdoors"]},
-  deny:{title:["video game","horror","ghost","paranormal","cat hunting","mouse hunting","hunting incident","politics","political","gun rights","second amendment","airsoft","paintball","how to","tutorial","seminar","webinar","lecture","podcast","gear review","product review","equipment review","rifle review","firearm review","music video","concert","song","album","shorts"],subject:["video game","horror","ghost","paranormal","cat hunting","mouse hunting","politics","political","gun rights","second amendment","airsoft","paintball","tactical","how to","tutorial","seminar","webinar","lecture","podcast","gear review","product review","equipment review","rifle review","firearm review","music video","concert","song","album","shorts"]},
+  require:{title_any:["hunting","hunt","deer","turkey","waterfowl","duck","upland","big game","bowhunting","whitetail","hunting season","whitetail madness","realtree","upland hunting","denali wilderness","spirit of the wild","american sportsman","outdoor life","north american hunter","buckmasters","espn outdoors","tnn outdoors"]},
+  /* Political Ted/NRA/news material is explicitly out. A valid Spirit of the
+     Wild episode can still enter later if Archive exposes one, but interviews,
+     nightly commentary, music, and campaign/news clips cannot. */
+  deny:{title:["video game","horror","ghost","paranormal","cat hunting","mouse hunting","hunting incident","politics","political","political commentary","political interview","political debate","news & politics","news politics","campaign","election","conservative","liberal","republican","democrat","president","senate","congress","activism","culture war","opinion","commentary","talk show","radio show","cam & co","nightly nuge","the nightly nuge","nra","gun control","gun rights","second amendment","government","bureaucrat","border","covid","vaccin","airsoft","paintball","how to","tutorial","seminar","webinar","lecture","podcast","gear review","product review","equipment review","rifle review","firearm review","music video","concert","song","album","rock","shorts"],subject:["video game","horror","ghost","paranormal","cat hunting","mouse hunting","politics","political","political commentary","political interview","political debate","news & politics","news politics","news","campaign","election","conservative","liberal","republican","democrat","president","senate","congress","activism","culture war","opinion","commentary","talk show","radio show","cam & co","nightly nuge","the nightly nuge","nra","gun control","gun rights","second amendment","government","bureaucrat","border","covid","vaccin","airsoft","paintball","tactical","how to","tutorial","seminar","webinar","lecture","podcast","interview","gear review","product review","equipment review","rifle review","firearm review","music video","concert","song","album","rock","shorts"]},
   diversity:{maxPerEra:2,maxPerLane:1,maxPerCreator:1,maxPerCollection:2,maxPerFamily:1},
   subjRotate:true,subjRequired:true,noBlindFallback:true
 });

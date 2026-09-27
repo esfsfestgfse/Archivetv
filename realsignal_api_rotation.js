@@ -88,8 +88,13 @@ export class SessionRotation {
     let fresh = candidates;
     let cycleReset = false;
     if (!fresh.length && catalog.length) { fresh = catalog; cycleReset = true; }
-    const ordered = rotate(fresh, current.cursor);
     const limit = Math.max(1, Math.min(5, Number(body && body.count) || 3));
+    /* When a catalog is genuinely exhausted, begin the new cycle at a shelf
+       boundary. Advancing by one record here made the first post-exhaustion
+       shelf overlap the tail of the previous cycle, even though repeats were
+       correctly allowed at that point. Keep the normal cursor behavior for
+       unseen material; only the reset path needs a full-shelf step. */
+    const ordered = rotate(fresh, cycleReset ? current.cursor * limit : current.cursor);
     const selected = ordered.slice(0, limit);
     const selectedIds = selected.map(itemId).filter(Boolean);
     const selectionRepeatIds = cycleReset ? [] : selectedIds.filter((id) => prior.has(id));

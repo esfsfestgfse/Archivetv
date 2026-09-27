@@ -77,6 +77,7 @@ const { pathToFileURL } = require('node:url');
   assert.equal(unionThirdBody.cycleReset, true);
   assert.equal(unionThirdBody.exhaustion.catalogExhausted, true);
   assert.equal(unionThirdBody.exhaustion.repeatAllowed, true);
+  assert.deepEqual(unionThirdBody.items.map(item => item.identifier).sort(), ['union-1', 'union-4', 'union-5', 'union-6', 'union-7']);
 
   const nativeFetch = global.fetch;
   global.fetch = async request => {

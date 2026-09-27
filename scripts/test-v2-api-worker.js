@@ -293,4 +293,12 @@ const { pathToFileURL } = require('node:url');
   assert.ok(Number(limited.headers.get('Retry-After')) >= 1);
 
   console.log('V2 API contract passed: bounded input, relay forwarding, session isolation, rotation, and queue enqueue.');
-})().catch(error => { console.error(error); process.exitCode = 1; });
+})().then(() => {
+  /* This contract test imports the Worker runtime, which can leave a timer
+     handle alive after assertions finish. Exit explicitly so CI can advance
+     to deployment once the contract has passed. */
+  process.exit(0);
+}).catch(error => {
+  console.error(error);
+  process.exit(1);
+});

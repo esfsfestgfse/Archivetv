@@ -101,10 +101,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v12-repeat-lanes"
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v142";
+const IA_QUEUE_CACHE_VERSION = "v143";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v142";
+const IA_LAST_GOOD_CACHE_VERSION = "v143";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -281,9 +281,12 @@ const IA_CONFIRMED_REPAIR_CHANNELS = new Set([
   /* v4.1.41 family soak: only the lanes that still underfilled or reopened
      the same five approved records receive the deeper Archive path. */
   "81", "82", "83", "103", "108", "112", "113", "116", "117", "701",
-  /* Full 176-lane certification: these eight lanes timed out or returned no
-     usable first-play shelf and now receive the same bounded recovery rails. */
+  /* Full 176-lane certification: these lanes timed out or returned no usable
+     first-play shelf and now receive the same bounded recovery rails. */
   "2", "67", "201", "905", "913", "129", "215", "511",
+  /* v4.1.50 serial confirmation: these three lanes still failed after burst
+     pressure was removed, so they receive the bounded recovery path too. */
+  "59", "65", "125",
 ]);
 for (const channel of IA_CONFIRMED_REPAIR_CHANNELS) {
   IA_STABLE_RESCUE_CHANNELS.add(channel);
@@ -296,7 +299,7 @@ for (const channel of IA_CONFIRMED_REPAIR_CHANNELS) {
    supplemental rails settle for a bounded extra window; every other channel
    retains the 900ms fast path. */
 const IA_ADAPTIVE_DEPTH_GRACE_CHANNELS = new Set([
-  "15", "18", "21", "61", "114", "150", "158", "203", "210", "213", "214", "227", "230", "236", "501", "502", "507", "704", "705", "706", "915", "921",
+  "15", "18", "21", "59", "61", "65", "114", "125", "150", "158", "203", "210", "213", "214", "227", "230", "236", "501", "502", "507", "704", "705", "706", "915", "921",
 ]);
 const IA_ADAPTIVE_DEPTH_GRACE_MS = 2200;
 /* Reggae & Dub has a wide verified catalog but its secondary Archive rail is

@@ -593,7 +593,13 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "astronaut training film",
       "rocket engineering documentary",
       "spaceflight history",
-      "planetary mission film"
+      "planetary mission film",
+      "nasa mission documentary",
+      "apollo mission documentary",
+      "space shuttle documentary",
+      "rocket launch documentary",
+      "astronaut training documentary",
+      "planetary exploration documentary"
     ],
     "match": [
       "space mission",
@@ -612,7 +618,25 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "gameplay",
       "science fiction",
       "flat earth",
-      "conspiracy"
+      "conspiracy",
+      "movie explanation",
+      "movie recap",
+      "story explained",
+      "monster",
+      "horror movie",
+      "flight vlog",
+      "travel vlog"
+    ],
+    "topics": [
+      "space mission",
+      "spaceflight",
+      "astronaut",
+      "rocket",
+      "nasa",
+      "apollo",
+      "orbital",
+      "planetary",
+      "launch vehicle"
     ]
   },
   "backroad-journal": {
@@ -661,7 +685,12 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "storm research film",
       "hurricane science documentary",
       "tornado science film",
-      "weather instrument history"
+      "weather instrument history",
+      "hurricane science full documentary",
+      "tornado research full documentary",
+      "meteorology full documentary",
+      "weather radar science documentary",
+      "storm research full episode"
     ],
     "match": [
       "meteorology",
@@ -680,7 +709,21 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "gameplay",
       "weather prank",
       "conspiracy",
-      "storm chaser vlog"
+      "storm chaser vlog",
+      "sleep music",
+      "relaxing facts",
+      "weather forecast today",
+      "weather update"
+    ],
+    "topics": [
+      "meteorology",
+      "storm research",
+      "hurricane",
+      "tornado",
+      "weather instrument",
+      "atmospheric science",
+      "weather radar",
+      "forecasting history"
     ]
   },
   "atomic-age-files": {
@@ -1936,8 +1979,12 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "marijuana policy full documentary",
       "cannabis medicine full documentary",
       "cannabis cultivation history documentary",
-      "cannabis in america documentary"
+      "cannabis in america documentary",
+      "cannabis history full documentary",
+      "hemp culture full documentary",
+      "cannabis science full documentary"
     ],
+    "topics": ["cannabis", "marijuana", "hemp", "cannabis history", "marijuana history", "cannabis culture", "cannabis science", "cannabis policy"],
     "match": [
       "cannabis",
       "marijuana",
@@ -1967,7 +2014,14 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "product review",
       "smoking challenge",
       "affiliate",
-      "shorts"
+      "shorts",
+      "comedy",
+      "funniest",
+      "top 20",
+      "full movie",
+      "movie explanation",
+      "movie recap",
+      "fictional"
     ]
   },
   "animation-desk": {
@@ -2218,7 +2272,13 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "classic sci-fi cinema",
       "science fiction television history",
       "space movie production documentary",
-      "science fiction film preservation"
+      "science fiction film preservation",
+      "science fiction full movie",
+      "classic sci fi full movie",
+      "1950s sci fi full movie",
+      "1960s sci fi full movie",
+      "public domain sci fi full movie",
+      "space opera full movie"
     ],
     "match": [
       "science fiction film history",
@@ -2238,7 +2298,28 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "reaction",
       "movie recap",
       "fan film",
-      "shorts"
+      "shorts",
+      "movie explanation",
+      "story explained",
+      "trailer compilation"
+    ],
+    "intent": "film",
+    "formatRelaxed": false,
+    "topics": [
+      "science fiction",
+      "sci-fi",
+      "sci fi",
+      "space movie",
+      "science fiction television",
+      "sci-fi cinema"
+    ],
+    "formats": [
+      "full movie",
+      "feature film",
+      "full film",
+      "complete film",
+      "full episode",
+      "complete episode"
     ]
   },
   "game-show-archive": {
@@ -2309,14 +2390,18 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "1950s variety show full episode",
       "1960s variety show full episode",
       "1970s variety show full episode",
-      "1980s variety show full episode"
+      "1980s variety show full episode",
+      "The Ed Sullivan Show full episode",
+      "The Jackie Gleason Show full episode",
+      "The Dean Martin Show full episode",
+      "Hollywood Palace full episode"
     ],
     "providers": [
       "peertube",
       "youtube"
     ],
     "intent": "performance",
-    "formatRelaxed": true,
+    "formatRelaxed": false,
     "topics": ["variety show", "variety", "vaudeville", "stage revue", "revue", "television variety", "television show", "entertainment show"],
     "formats": ["full episode", "complete show", "full show", "variety special", "full performance", "full special", "complete variety", "full revue", "complete revue", "full program"],
     "queries": ["classic variety show full episode", "television variety complete show", "vaudeville television full show", "variety special full episode", "classic stage revue full performance", "music comedy variety show full", "variety show marathon", "television variety archive full episode", "family variety show full episode", "classic television special full show", "comedy variety show full episode", "international variety show full", "1950s variety show full episode", "1960s variety show full episode", "1970s variety show full episode", "1980s variety show full episode"],

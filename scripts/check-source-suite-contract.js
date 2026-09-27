@@ -85,7 +85,7 @@ for (const key of ['classic-sitcom-room', 'family-tv-club', 'horror-house', 'wes
   const section = sourceRegistry.slice(start, end >= 0 ? end : sourceRegistry.length);
   if (!section.includes('"intent"') || !section.includes('"formats"') || !/(?:full|complete) (?:episode|movie|performance|concert|play|show)/.test(section)) issues.push(`${key} must use program-form Source Suite discovery instead of history-only searches`);
 }
-for (const key of ['western-screen', 'variety-hour', 'stage-door', 'jukebox-television']) {
+for (const key of ['western-screen', 'stage-door', 'jukebox-television']) {
   const start = sourceRegistry.indexOf(`"${key}":`);
   const next = sourceRegistry.indexOf('\n  },', start);
   const section = sourceRegistry.slice(start, next >= 0 ? next + 5 : sourceRegistry.length);
@@ -107,6 +107,7 @@ if (!api.includes('const failed = !skipped && !!health.error;') || !api.includes
 if (!api.includes('kind: "source-status"') || !api.includes('async function handleSourceStatus') || !api.includes('d1-requalified-source-catalog')) issues.push('Source Suite audits must have a read-only endpoint for the client-equivalent requalified catalog');
 if (!api.includes('body.maintenance === true') || !api.includes('server-source-catalog-maintenance') || !api.includes('options.direct === true')) issues.push('controlled Source Suite refreshes must persist the complete verified provider union before reporting depth');
 if (!api.includes('tags: String(item.tags || "")') || !api.includes('metadata.tags || ""') || !api.includes('const tags = String(item && (item.tags || item.tag) || "").toLowerCase()')) issues.push('persisted Source Suite rows must retain provider evidence used by requalification');
+if (!api.includes('const declaredLanguage = String(item && item.language || "")') || !api.includes('const topicTerms = Array.isArray(body.topics) ? body.topics : []') || !api.includes('normalizedHaystack')) issues.push('persisted Source Suite rows must requalify English language and explicit topic anchors');
 if (serverCatalog.includes('item && item.query].join')) issues.push('provider search query text must not count as source-item genre evidence');
 if (!api.includes('Query text is retained for provenance, never as a genre signal')) issues.push('persisted Source Suite requalification must not use query provenance as genre evidence');
 const refresher = fs.readFileSync(path.join(repo, 'scripts', 'refresh-source-suite-profiles.js'), 'utf8');
@@ -116,7 +117,7 @@ for (const file of files) {
   const source = fs.readFileSync(path.join(repo, file), 'utf8');
   const name = file;
   const required = [
-    [/V2_SOURCE_CACHE_VERSION=30/, 'source catalog cache version must invalidate strict-catalog shelves'],
+    [/V2_SOURCE_CACHE_VERSION=31/, 'source catalog cache version must invalidate strict-catalog shelves'],
     [/retainedItems=Array\.isArray\(cached&&cached\.items\)\?cached\.items\.filter/, 'previously verified source items must survive provider outages after requalification'],
     [/cacheValid=!!cached&&Number\(cached\.version\|\|0\)===V2_SOURCE_CACHE_VERSION/, 'only a current source catalog cache may be treated as fresh'],
     [/item\.account,item\.channelTitle/, 'YouTube language screening must inspect channel identity'],

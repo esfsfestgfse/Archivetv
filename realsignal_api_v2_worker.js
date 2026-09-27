@@ -12,7 +12,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "4.1.4-holiday-family-shelf";
+const V3_RELEASE = "4.1.59-source-suite-depth";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -505,6 +505,18 @@ function catalogFallbackAllowed(item, body) {
     if (runtime < SOURCE_LIMITS.SOURCE_MIN_RUNTIME) return false;
     if (ratio < SOURCE_LIMITS.SOURCE_MIN_ASPECT_RATIO) return false;
     if (audio || (mediaType !== "video" && mediaType !== "embed")) return false;
+    /* Requalify stale rows against language and explicit profile topics before
+       they reach a guide or ready shelf. */
+    const declaredLanguage = String(item && item.language || "").trim().toLowerCase();
+    if (declaredLanguage && !/^en(?:[-_]|$)/i.test(declaredLanguage)) return false;
+    if (/[\u0400-\u04ff\u0600-\u06ff\u0590-\u05ff\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af\u1100-\u11ff\u0e00-\u0e7f]/.test(haystack)) return false;
+    if (/(?:\b(?:hindi|tamil|telugu|bengali|bangla|marathi|malayalam|kannada|punjabi|urdu|indonesian|vietnamese|thai|arabic|espa[nñ]ol|portugu[eê]s|fran[cç]ais|deutsch|russian|turkish|korean|japanese|mandarin|sinhala|italian)\b)/i.test(haystack)) return false;
+    const topicTerms = Array.isArray(body.topics) ? body.topics : [];
+    const normalizedHaystack = haystack.replace(/[\-_/:]+/g, " ");
+    if (topicTerms.length && !topicTerms.some((term) => {
+      const needle = String(term || "").trim().toLowerCase();
+      return needle && (haystack.includes(needle) || normalizedHaystack.includes(needle.replace(/[\-_/:]+/g, " ")));
+    })) return false;
     /* Requalify persisted Source Suite rows whenever an entertainment lane
        changes its editorial contract. Otherwise an older documentary entry
        can survive indefinitely just because it happens to share one topic
@@ -780,6 +792,7 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
       account: metadata.account || "",
       query: metadata.query || "",
       genreVerified: metadata.genreVerified === true,
+      language: metadata.language || metadata.defaultAudioLanguage || metadata.defaultLanguage || "",
       provider: row.provider,
       year: row.year || "",
       duration: Number(row.duration_seconds || metadata.duration || metadata.runtime) || null,

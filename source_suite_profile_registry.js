@@ -2304,7 +2304,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "trailer compilation"
     ],
     "intent": "film",
-    "formatRelaxed": false,
+    "formatRelaxed": true,
     "topics": [
       "science fiction",
       "sci-fi",
@@ -2492,13 +2492,13 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "queryLimit": 8,
     "queryWindow": 6,
     "persistedRelaxed": true,
-    "persistedMatch": ["full episode", "complete episode", "full show", "television program"],
+    "persistedMatch": ["full episode", "complete episode", "full show", "television program", "kids", "children", "family"],
     "providers": [
       "peertube",
       "youtube"
     ],
     "intent": "television",
-    "topics": ["family television", "children's program", "kids television", "educational kids show"],
+    "topics": ["family television", "children's program", "kids television", "educational kids show", "kids", "children", "family"],
     "formats": ["full episode", "complete episode", "full show", "television program", "kids show"],
     "queries": ["family television full episode", "children's television complete episode", "classic family TV show full episode", "public television kids full episode", "kids television full show", "children's program complete episode", "educational kids show full episode", "classic kids TV full episode"],
     "match": ["family television", "children's television", "children's program", "kids television", "kids show", "full episode", "complete episode"],

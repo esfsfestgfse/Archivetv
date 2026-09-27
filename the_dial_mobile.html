@@ -1699,7 +1699,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="4.1.79-mobile-holiday-cartoon-ci-unblock";
+window.__ATV_BUILD="4.1.80-mobile-entertainment-depth-and-holiday-ads";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -6536,6 +6536,26 @@ Object.assign(PROGRAM["Game Show Channel"],{depthQuerySpread:true,deepCollection
    Each station keeps its own theme/deny contract; these shared roots only
    expose the deeper feature-film and public-archive shelves to the profiler. */
 ["Classic Film","Sunday Matinee","Midnight Matinee","The Drive-In","Sci-Fi Theater","Shock Theater","Comedy Classics","World Cinema","The Late Late Show"].forEach(function(name){var p=PROGRAM[name];if(!p)return;var roots=["feature_films","feature_films_unsorted","films","opensource_movies","prelinger","FedFlix"];p.fastCollections=rsAppendProgramTerms(p.fastCollections,roots);p.deepCollections=rsAppendProgramTerms(p.deepCollections,roots);p.deepTitleTerms=rsAppendProgramTerms(p.deepTitleTerms,["feature film","feature-length film","full movie","complete film","film archive","classic movie","film collection","movie archive"]);p.depthQuerySpread=true;p.diversity=Object.assign({},p.diversity||{},{maxPerEra:2,maxPerLane:2,maxPerCreator:1,maxPerCollection:3,maxPerFamily:1});});
+/* v4.1.80 catalog expansion: widen only background collection discovery for
+   the three highest-value entertainment families. Fast shelves stay bounded;
+   later rotations and background harvests can reach these additional Archive
+   families and file-level episode/feature members. */
+var RS_CLASSIC_TV_DEPTH_ROOTS=["classic_tv","television","classic_tv_1940s","classic_tv_1950s","classic_tv_1960s","classic_tv_1970s","classic_tv_1980s","prelinger","vhsvault","avgeeks","opensource_movies"];
+var RS_CLASSIC_TV_DEPTH_TERMS=["full episode","full episodes","complete series","complete season","television episode","tv episode","broadcast episode","anthology episode","variety episode","sitcom episode","western series","detective series","medical drama","family sitcom","television comedy","golden age television"];
+PROGRAM["Classic Rerun TV"].depthQuerySpread=true;
+PROGRAM["Classic Rerun TV"].deepCollections=rsAppendProgramTerms(PROGRAM["Classic Rerun TV"].deepCollections,RS_CLASSIC_TV_DEPTH_ROOTS);
+PROGRAM["Classic Rerun TV"].deepTitleTerms=rsAppendProgramTerms(PROGRAM["Classic Rerun TV"].deepTitleTerms,RS_CLASSIC_TV_DEPTH_TERMS);
+PROGRAM["Classic Rerun TV"].diversity=Object.assign({},PROGRAM["Classic Rerun TV"].diversity||{},{maxPerEra:2,maxPerLane:2,maxPerCreator:1,maxPerCollection:2,maxPerFamily:1});
+var RS_GAME_SHOW_DEPTH_ROOTS=["gameshows","gameshows_miscellaneous","game_shows","buzzr","classic_tv_1940s","classic_tv_1950s","classic_tv_1960s","classic_tv_1970s","classic_tv_1980s","classic_tv_1990s","classic_tv_2000s","classic_tv_2010s","television","vhsvault","prelinger","opensource_movies"];
+var RS_GAME_SHOW_DEPTH_TERMS=["full episode","full episodes","complete series","complete season","game show episode","quiz show episode","panel show episode","daytime game show","syndicated game show","classic game show","word game","pricing game","dating game","stunt game","celebrity game","reality competition","televised contest","panel game"];
+PROGRAM["Game Show Channel"].depthQuerySpread=true;
+PROGRAM["Game Show Channel"].deepCollections=rsAppendProgramTerms(PROGRAM["Game Show Channel"].deepCollections,RS_GAME_SHOW_DEPTH_ROOTS);
+PROGRAM["Game Show Channel"].deepTitleTerms=rsAppendProgramTerms(PROGRAM["Game Show Channel"].deepTitleTerms,RS_GAME_SHOW_DEPTH_TERMS);
+PROGRAM["Game Show Channel"].diversity=Object.assign({},PROGRAM["Game Show Channel"].diversity||{},{maxPerEra:2,maxPerLane:2,maxPerCreator:1,maxPerCollection:3,maxPerFamily:1});
+var RS_MOVIE_DEPTH_NAMES=["Classic Film","Sunday Matinee","Midnight Matinee","The Drive-In","Sci-Fi Theater","Shock Theater","Comedy Classics","World Cinema","The Late Late Show","Silent Cinema","Noir & Mystery","Action & Serials","The 36th Chamber","Monster Island","Black Cinema","Blaxploitation","The Festival Circuit","Darcys Playground"];
+var RS_MOVIE_DEPTH_ROOTS=["feature_films","feature_films_unsorted","films","movies","opensource_movies","prelinger","FedFlix","SciFi_Horror","Film_Noir","publicdomain","cinemalibrestore","emergency_films"];
+var RS_MOVIE_DEPTH_TERMS=["feature film","feature-length film","full-length film","full movie","complete movie","complete film","restored print","public domain feature","archive feature","film print","cinema archive","motion picture","feature presentation"];
+RS_MOVIE_DEPTH_NAMES.forEach(function(name){var p=PROGRAM[name];if(!p)return;p.depthQuerySpread=true;p.deepCollections=rsAppendProgramTerms(p.deepCollections,RS_MOVIE_DEPTH_ROOTS);p.deepTitleTerms=rsAppendProgramTerms(p.deepTitleTerms,RS_MOVIE_DEPTH_TERMS);p.diversity=Object.assign({},p.diversity||{},{maxPerEra:2,maxPerLane:2,maxPerCreator:1,maxPerCollection:3,maxPerFamily:1});});
 /* Every IA PROGRAM gets the same collection-depth treatment. The six stations
    above have hand-curated roots; the rest inherit a bounded set of their own
    provider collections and approved title vocabulary. This is catalog
@@ -17468,25 +17488,31 @@ var AD_HOLIDAY_CONTEXTS={
    the normal ad ledger still prevents a recent spot from reopening. */
 var AD_HOLIDAY_LANES={
   christmas:[
-    {years:[1940,1979],topics:["christmas commercial","christmas toy commercial","christmas department store commercial"],collections:["classic_tv_commercials","prelinger"]},
+    {years:[1940,1959],topics:["christmas commercial","christmas toy commercial","christmas department store commercial"],collections:["classic_tv_commercials","prelinger"]},
+    {years:[1960,1979],topics:["christmas commercial","christmas toy commercial","christmas food commercial","christmas department store commercial"],collections:["classic_tv_commercials","prelinger"]},
     {years:[1980,1999],topics:["christmas commercial","christmas toy commercial","christmas food commercial"],collections:["vhscommercials","classic_tv_commercials"]},
-    {years:[2000,2026],topics:["christmas commercial","holiday commercial","christmas public service announcement"],collections:["opensource_movies","classic_tv_commercials"]}
+    {years:[2000,2009],topics:["christmas commercial","holiday commercial","christmas food commercial"],collections:["opensource_movies","classic_tv_commercials","vhscommercials"]},
+    {years:[2010,2026],topics:["christmas commercial","holiday commercial","christmas public service announcement"],collections:["opensource_movies","classic_tv_commercials"]}
   ],
   halloween:[
-    {years:[1950,1979],topics:["halloween commercial","halloween candy commercial","costume commercial"],collections:["classic_tv_commercials","prelinger"]},
+    {years:[1950,1969],topics:["halloween commercial","halloween candy commercial","costume commercial"],collections:["classic_tv_commercials","prelinger"]},
+    {years:[1970,1979],topics:["halloween commercial","halloween candy commercial","costume commercial","horror movie commercial"],collections:["classic_tv_commercials","prelinger"]},
     {years:[1980,1999],topics:["halloween commercial","halloween candy commercial","halloween television promo"],collections:["vhscommercials","classic_tv_commercials"]},
-    {years:[2000,2026],topics:["halloween commercial","halloween public service announcement","horror movie commercial"],collections:["opensource_movies","classic_tv_commercials"]}
+    {years:[2000,2009],topics:["halloween commercial","halloween candy commercial","horror movie commercial"],collections:["opensource_movies","classic_tv_commercials","vhscommercials"]},
+    {years:[2010,2026],topics:["halloween commercial","halloween public service announcement","horror movie commercial"],collections:["opensource_movies","classic_tv_commercials"]}
   ],
   thanksgiving:[
-    {years:[1950,1979],topics:["thanksgiving commercial","thanksgiving food commercial","turkey commercial"],collections:["classic_tv_commercials","prelinger"]},
+    {years:[1950,1969],topics:["thanksgiving commercial","thanksgiving food commercial","turkey commercial"],collections:["classic_tv_commercials","prelinger"]},
+    {years:[1970,1979],topics:["thanksgiving commercial","thanksgiving food commercial","turkey commercial","thanksgiving parade commercial"],collections:["classic_tv_commercials","prelinger"]},
     {years:[1980,1999],topics:["thanksgiving commercial","thanksgiving food commercial","thanksgiving parade commercial"],collections:["vhscommercials","classic_tv_commercials"]},
-    {years:[2000,2026],topics:["thanksgiving commercial","holiday food commercial","thanksgiving public service announcement"],collections:["opensource_movies","classic_tv_commercials"]}
+    {years:[2000,2009],topics:["thanksgiving commercial","holiday food commercial","turkey commercial"],collections:["opensource_movies","classic_tv_commercials","vhscommercials"]},
+    {years:[2010,2026],topics:["thanksgiving commercial","holiday food commercial","thanksgiving public service announcement"],collections:["opensource_movies","classic_tv_commercials"]}
   ]
 };
 var adHolidayCadence=store.get("adHolidayCadence",{});if(!adHolidayCadence||typeof adHolidayCadence!=="object")adHolidayCadence={};
 function holidayAdKey(ch){var name=String(ch&&ch.nm||"").toLowerCase();if(/christmas|xmas|yuletide/.test(name))return "christmas";if(/halloween|monster island|haunt/.test(name))return "halloween";if(/thanksgiving|turkey day/.test(name))return "thanksgiving";return "";}
 function holidayAdCadenceKey(ch){var holiday=holidayAdKey(ch);if(!holiday)return "";return holiday+":"+String(ch&&ch.nm||"station");}
-function shouldInsertAdBreak(ch){if(!ch||ch.audio)return true;var key=holidayAdCadenceKey(ch);if(!key)return true;var count=Number(adHolidayCadence[key]||0)+1;adHolidayCadence[key]=count;store.set("adHolidayCadence",adHolidayCadence);return count%2===0;}
+function shouldInsertAdBreak(ch){if(!ch||ch.audio)return true;var key=holidayAdCadenceKey(ch);if(!key)return true;var count=Number(adHolidayCadence[key]||0)+1;adHolidayCadence[key]=count;store.set("adHolidayCadence",adHolidayCadence);/* Holiday stations alternate two-program and three-program gaps so breaks feel scheduled, not machine-gunned. */var slot=(count-1)%5+1;return slot===2||slot===5;}
 function adContextTopics(ch){
   if(ch&&ch.audio)return ["radio commercial","radio advertisement","sponsor message","radio spot"];
   var name=String(ch&&ch.nm||"").toLowerCase();

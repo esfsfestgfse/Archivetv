@@ -126,6 +126,7 @@ function normalizedProfile(body) {
     formatRelaxed: approved.formatRelaxed === true,
     persistedRelaxed: approved.persistedRelaxed === true || approved.formatRelaxed === true,
     persistedMatch: list(approved.persistedMatch, 24),
+    fallbackProfiles: list(approved.fallbackProfiles, 4),
     peerTubeInstances: list(approved.peerTubeInstances, 8),
     peerTubeQueries: list(approved.peerTubeQueries, queryLimit),
     providers: list(approved.providers, 2).map((value) => value.toLowerCase()),
@@ -482,7 +483,7 @@ export function sourceProfile(body) {
 export async function discoverSourceCatalog(body, env, rotation = 0) {
   const profile = normalizedProfile(body);
   if (!profile) return { profileKey: "", items: [], lanes: [], ready: 0, candidates: 0, catalogVersion: "source-server-1", source: "server-source-catalog", error: "unknown source profile" };
-  const lanes = await Promise.all(providers(profile, rotation, env).map((task) => task.catch((error) => ({ provider: "unknown", items: [], health: { error: text(error, 160) } }))));
+  const lanes = await Promise.all(sourceTasks(profile, env, rotation).map((task) => task.catch((error) => ({ provider: "unknown", items: [], health: { error: text(error, 160) } }))));
   const items = unique(lanes.flatMap((lane) => lane.items || [])).slice(0, SOURCE_MAX_ITEMS);
   return { profileKey: profile.profileKey, items, lanes, ready: items.length, candidates: items.length, catalogVersion: "source-server-1", source: "server-source-catalog" };
 }
@@ -490,7 +491,21 @@ export async function discoverSourceCatalog(body, env, rotation = 0) {
 export function sourceCatalogTasks(body, env, rotation = 0, options = {}) {
   const profile = normalizedProfile(body);
   if (!profile) return { profile: null, tasks: [] };
-  return { profile, tasks: providers(profile, rotation, env, options) };
+  return { profile, tasks: sourceTasks(profile, env, rotation, options) };
+}
+
+/* Holiday family lanes can be sparse even when their seasonal children are
+   healthy. Keep the fallback explicit in the approved registry: it reuses the
+   same verified YouTube/PeerTube adapters and lets the generic holiday station
+   inherit already-qualified Christmas/Halloween material without inventing a
+   second discovery path or weakening any item-level filters. */
+function sourceTasks(profile, env, rotation, options = {}) {
+  const tasks = providers(profile, rotation, env, options);
+  const fallbackTasks = (profile.fallbackProfiles || [])
+    .map((profileKey) => normalizedProfile({ profileKey }))
+    .filter(Boolean)
+    .flatMap((fallback) => providers(fallback, rotation, env, { ...options, disabledProviders: [] }));
+  return tasks.concat(fallbackTasks);
 }
 
 export function customSourceTasks(recipe, env, rotation = 0, options = {}) {

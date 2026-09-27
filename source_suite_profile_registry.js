@@ -2546,6 +2546,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   },
   "holiday-cartoon-club": {
     "name": "Holiday Cartoon & TV Club",
+    "fallbackProfiles": ["christmas-cartoon-club", "halloween-cartoon-club"],
     "queryLimit": 16,
     "queryWindow": 6,
     "peerTubeQueryWindow": 6,

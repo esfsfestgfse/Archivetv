@@ -12,7 +12,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "4.1.77-holiday-cartoon-stale-flag-fix";
+const V3_RELEASE = "4.1.78-holiday-cartoon-structure-gate";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -503,10 +503,19 @@ function catalogFallbackAllowed(item, body) {
       "concert", "choir", "presents:", "presents ", "villains", "(esses)",
       "smp", "!sneak", "!razer", "server", "speedrun", "gaming", "new life",
       "starts a factory", "factory gameplay",
+      "credits remix", "remix", "missing children", "rudolph valentino",
+      "vandercook lake",
       "opening to", "closing to", "opening/closing", "airing",
       "reaction", "commentary", "screen recording", "live broadcast",
     ];
     if (nonCartoonTerms.some((term) => title.includes(term))) return false;
+    const cartoonStructureTerms = [
+      "cartoon", "animation", "animated", "special", "christmas", "halloween",
+      "thanksgiving", "reindeer", "snowman", "mickey", "charlie brown",
+      "pink panther", "scooby", "garfield", "casper", "grinch night",
+      "mayflower", "oswald", "pooh", "santa",
+    ];
+    if (!cartoonStructureTerms.some((term) => title.includes(term))) return false;
     return formatTerms.some((format) => title.includes(format));
   });
   const relayVerified = (item && item.genreVerified === true && !IA_DEPTH_REPAIR_LANES.has(String(body && body.channel || ""))) || holidayTitleVerified;

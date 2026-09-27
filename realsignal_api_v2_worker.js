@@ -12,7 +12,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "4.1.69-deep-ia-catalogs-and-holiday-ads";
+const V3_RELEASE = "4.1.70-holiday-title-recovery";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -43,6 +43,11 @@ const IA_FAST_CATALOG_LANES = new Set([
      background relay refresh to grow beyond their shallow D1 catalog. */
   "705", "707", "708", "709",
 ]);
+/* These seasonal lanes have title-verified recovery shelves. Some older D1
+   rows predate subject persistence, so a clearly seasonal title must remain
+   eligible even when its stored subject is blank. The title gate is still
+   mandatory; this does not relax generic IA fallback globally. */
+const IA_HOLIDAY_TITLE_LANES = new Set(["704", "705", "706", "707", "708", "709"]);
 const IA_CANONICAL_PILOT_VALUES = new Set(["1", "true", "on", "pilot"]);
 const IA_CANONICAL_PROFILE_BY_CHANNEL = new Map(Object.values(IA_CANONICAL_PILOT_PROFILES).map((profile) => [String(profile.channel), profile.profileKey]));
 /* A relay response can be playable while still being too shallow for a
@@ -470,14 +475,18 @@ function catalogFallbackAllowed(item, body) {
      genre rules. Preserve that provenance when a child film title is
      editorially correct but does not literally repeat the required phrase
      (for example, a factory film titled "Master Hands"). */
-  const relayVerified = item && item.genreVerified === true && !IA_DEPTH_REPAIR_LANES.has(String(body && body.channel || ""));
+  const requiredTitleTerms = Array.isArray(body && body.requiredTitleTerms) ? body.requiredTitleTerms : [];
+  const holidayTitleVerified = IA_HOLIDAY_TITLE_LANES.has(String(body && body.channel || "")) && requiredTitleTerms.some((term) => {
+    const needle = String(term || "").trim().toLowerCase();
+    return needle.length >= 5 && title.includes(needle);
+  });
+  const relayVerified = (item && item.genreVerified === true && !IA_DEPTH_REPAIR_LANES.has(String(body && body.channel || ""))) || holidayTitleVerified;
   const strictManufacturingLane = String(body && body.channel || "") === "200";
   const manufacturingSubjectMatch = strictManufacturingLane && Array.isArray(body && body.themeTerms)
     && body.themeTerms.some((term) => {
       const needle = String(term || "").trim().toLowerCase();
       return needle && subject.includes(needle);
     });
-  const requiredTitleTerms = Array.isArray(body && body.requiredTitleTerms) ? body.requiredTitleTerms : [];
   if (requiredTitleTerms.length && !relayVerified && !manufacturingSubjectMatch && !requiredTitleTerms.some((term) => {
     const needle = String(term || "").trim().toLowerCase();
     return needle && title.includes(needle);

@@ -12,7 +12,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "4.1.68-holiday-shallow-catalog-repair";
+const V3_RELEASE = "4.1.69-deep-ia-catalogs-and-holiday-ads";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -335,7 +335,7 @@ function shouldRefreshShallowCatalog(channel) {
 
 async function refreshShallowCatalog(env, request, body, id, currentDepth) {
   if (!env.RELAY || typeof env.RELAY.fetch !== "function") return;
-  if (!env.realsignal_catalog_refresh || typeof env.realsignal_catalog_refresh.send !== "function") return;
+  if ((!env.realsignal_catalog_refresh || typeof env.realsignal_catalog_refresh.send !== "function") && (!env.realsignal_catalog || typeof env.realsignal_catalog.batch !== "function")) return;
   if (Number(currentDepth) >= IA_MIN_ROLLING_CATALOG_DEPTH) return;
   /* The foreground request only needs a playable five-item shelf. The
      background repair must ask the adapter for the larger catalog, use a
@@ -360,7 +360,17 @@ async function refreshShallowCatalog(env, request, body, id, currentDepth) {
       : (Array.isArray(payload && payload.items) ? payload.items : []);
     const items = uniqueQueueItems(sourceItems, refreshBody, MAX_CATALOG_ITEMS);
     if (items.length <= Number(currentDepth)) return;
-    await enqueueCatalog(env, refreshBody, { ...payload, items, candidateItems: items });
+    const job = catalogJob(refreshBody, { ...payload, items, candidateItems: items });
+    if (!job) return;
+    /* A shallow fast lane must become deeper even when the refresh queue is
+       delayed or temporarily unavailable. Persist the already-verified relay
+       union in the same waitUntil task; the foreground tune still returns
+       from D1 immediately, while the next tune sees the expanded shelf. */
+    if (IA_FAST_CATALOG_LANES.has(String(body.channel)) && env.realsignal_catalog && typeof env.realsignal_catalog.batch === "function") {
+      await upsertCatalogJob(env, job);
+    } else {
+      await enqueueCatalog(env, refreshBody, { ...payload, items, candidateItems: items });
+    }
   } catch (error) {
     console.warn(JSON.stringify({ event: "shallow-catalog-refresh-failed", requestId: id, channel: String(body.channel), error: String(error).slice(0, 160) }));
   }

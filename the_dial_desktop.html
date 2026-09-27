@@ -1647,7 +1647,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="4.1.81-desktop-entertainment-genre-cleanup";
+window.__ATV_BUILD="4.1.82-desktop-targeted-core-genre-fix";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -6738,6 +6738,16 @@ rsAddProgramDeny("Classic Rerun TV","title",["podcast","reunion","airing","red c
 rsAddProgramDeny("Classic Rerun TV","subject",["podcast","reunion","airing","red carpet","interview","review","recap","trailer","commercial","news","newsreel","documentary","featurette","closing","opening","theme song","credits","daily mix"]);
 rsAddProgramDeny("Game Show Channel","title",["daily mix","battle rooms","analysis","retrospective","history of","best of","clip","clips","reaction","review","podcast","trailer","commercial"]);
 rsAddProgramDeny("Game Show Channel","subject",["daily mix","battle rooms","analysis","retrospective","history of","best of","clip","clips","reaction","review","podcast","trailer","commercial"]);
+rsAddProgramDeny("Sci-Fi Theater","title",["white house attack","barron trump","tweet that predicted","political","prediction","explainer","commentary","ai generated"]);
+rsAddProgramDeny("Sci-Fi Theater","subject",["white house attack","barron trump","political","prediction","explainer","commentary","ai generated"]);
+rsAddProgramDeny("Classic Rerun TV","title",["chitty chitty bang bang","feature film","full movie","blu-ray","720p g","1080p g","2005","variety show part"]);
+rsAddProgramDeny("Classic Rerun TV","subject",["chitty chitty bang bang","feature film","full movie","blu-ray","movie soundtrack","2005"]);
+rsAddProgramDeny("Game Show Channel","title",["launches new game show","unpeeled","news report","press conference","history of game shows"]);
+rsAddProgramDeny("Game Show Channel","subject",["launches new game show","unpeeled","news report","press conference","history of game shows"]);
+rsAddProgramDeny("Classic Film","title",["night america trembled","repubblicanesimo geopolitico","war of the worlds news","ai enhanced"]);
+rsAddProgramDeny("Classic Film","subject",["night america trembled","repubblicanesimo geopolitico","news broadcast","ai enhanced"]);
+rsAddProgramDeny("Sunday Matinee","title",["cover by","musical cover","somewhere hovering over indiana","great family film~","++++"]);
+rsAddProgramDeny("Sunday Matinee","subject",["cover","music video","concert","song cover","performance video"]);
 ["Black Cinema"].forEach(function(name){rsAddProgramDeny(name,"title",["the view","entertainment tonight","talk show","interview","news","red carpet","review"]);rsAddProgramDeny(name,"subject",["talk show","interview","news","red carpet","review","panel discussion","entertainment news"]);});
 Object.assign(PROGRAM["Sunday Matinee"],{
   themeMinScore:1,

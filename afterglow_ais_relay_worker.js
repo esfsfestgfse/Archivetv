@@ -101,10 +101,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v12-repeat-lanes"
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v146";
+const IA_QUEUE_CACHE_VERSION = "v147";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v146";
+const IA_LAST_GOOD_CACHE_VERSION = "v147";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -231,7 +231,7 @@ function iaColdRescueEnabled(channel) {
    manufacturing catalog. The six animation lanes use the same direct-ready
    contract because their verified episode banks are deeper and more reliable
    than the cold Archive search race; background expansion still deepens them. */
-const IA_STRICT_RECOVERY_CHANNELS = new Set(["19", "59", "80", "200", "920", "150", "153", "158", "704", "705", "706"]);
+const IA_STRICT_RECOVERY_CHANNELS = new Set(["19", "80", "200", "920", "150", "153", "158", "704", "705", "706"]);
 function iaStrictRecoveryEnabled(channel) {
   return IA_STRICT_RECOVERY_CHANNELS.has(String(channel));
 }

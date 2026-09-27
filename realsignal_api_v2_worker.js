@@ -12,7 +12,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "4.1.74-christmas-cartoon-rescore";
+const V3_RELEASE = "4.1.75-christmas-cartoon-genre-gate";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -489,10 +489,19 @@ function catalogFallbackAllowed(item, body) {
        the other seasonal lanes so their already-verified shelves do not lose
        legitimate television/special entries. */
     if (holidayChannel !== "704") return true;
-    const animationLane = true;
-    const formatTerms = animationLane
-      ? ["cartoon", "animation", "animated", "special", "rudolph", "frosty", "grinch", "mickey", "santa", "charlie brown", "pink panther", "scooby", "garfield", "spooky", "turkey", "mayflower", "pooh", "oswald", "jerky", "drumstick", "holiday", "winter"]
-      : ["television", "tv", "episode", "special", "parade", "sitcom", "variety", "show", "broadcast", "yuletide", "monster", "drive-in", "kidding around", "thanksgiving dinner"];
+    const formatTerms = ["cartoon", "animation", "animated", "special", "rudolph", "frosty", "grinch", "mickey", "santa", "charlie brown", "pink panther", "scooby", "garfield", "spooky", "turkey", "mayflower", "pooh", "oswald", "jerky", "drumstick", "holiday", "winter"];
+    /* Christmas search terms such as “Rudolph” and “Grinch” also occur in
+       news, interviews, political clips, memes, and closing-logo uploads.
+       Those false positives were the last remaining 704 genre bleed, so
+       reject the known non-cartoon shapes before admitting a title-only row. */
+    const nonCartoonTerms = [
+      "interview", "ww2", "wehrmacht", "national socialist", "nsdap", "german",
+      "carabinero", "disfrazado", "funcionaria", "la pintana", "golpearon",
+      "politic", "election", "campaign", "press conference", "news report",
+      "closing logo", "closing logos", "opening logo", "prank call", "meme",
+      "reaction", "commentary", "screen recording", "live broadcast",
+    ];
+    if (nonCartoonTerms.some((term) => title.includes(term))) return false;
     return formatTerms.some((format) => title.includes(format));
   });
   const relayVerified = (item && item.genreVerified === true && !IA_DEPTH_REPAIR_LANES.has(String(body && body.channel || ""))) || holidayTitleVerified;

@@ -2262,7 +2262,8 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   },
   "sci-fi-signal": {
     "name": "Sci-Fi Signal",
-    "queryLimit": 8,
+    "queryLimit": 12,
+    "queryWindow": 8,
     "providers": [
       "peertube",
       "youtube"
@@ -2278,7 +2279,15 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "1950s sci fi full movie",
       "1960s sci fi full movie",
       "public domain sci fi full movie",
-      "space opera full movie"
+      "space opera full movie",
+      "alien invasion full movie",
+      "robot invasion full movie",
+      "time travel full movie",
+      "space adventure full movie",
+      "science fiction serial full episode",
+      "Space Patrol full episode",
+      "Flash Gordon serial full episode",
+      "Captain Video full episode"
     ],
     "match": [
       "science fiction film history",
@@ -2286,7 +2295,18 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "science fiction television",
       "space movie production",
       "science fiction film preservation",
-      "sci-fi cinema"
+      "sci-fi cinema",
+      "science fiction",
+      "sci-fi",
+      "sci fi",
+      "space opera",
+      "alien invasion",
+      "robot invasion",
+      "time travel",
+      "space adventure",
+      "space patrol",
+      "flash gordon",
+      "captain video"
     ],
     "deny": [
       "fictional",
@@ -2311,7 +2331,15 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "sci fi",
       "space movie",
       "science fiction television",
-      "sci-fi cinema"
+      "sci-fi cinema",
+      "space opera",
+      "alien invasion",
+      "robot invasion",
+      "time travel",
+      "space adventure",
+      "space patrol",
+      "flash gordon",
+      "captain video"
     ],
     "formats": [
       "full movie",

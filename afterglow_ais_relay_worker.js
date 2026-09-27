@@ -101,10 +101,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v6";
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v133";
+const IA_QUEUE_CACHE_VERSION = "v134";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v133";
+const IA_LAST_GOOD_CACHE_VERSION = "v134";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -276,6 +276,9 @@ const IA_CONFIRMED_REPAIR_CHANNELS = new Set([
   /* v4.1.41 family soak: only the lanes that still underfilled or reopened
      the same five approved records receive the deeper Archive path. */
   "81", "82", "83", "103", "108", "112", "113", "116", "117", "701",
+  /* Full 176-lane certification: these eight lanes timed out or returned no
+     usable first-play shelf and now receive the same bounded recovery rails. */
+  "2", "67", "201", "905", "913", "129", "215", "511",
 ]);
 for (const channel of IA_CONFIRMED_REPAIR_CHANNELS) {
   IA_STABLE_RESCUE_CHANNELS.add(channel);

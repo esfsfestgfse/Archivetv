@@ -47,7 +47,7 @@ for (const [channel, collection] of Object.entries(expectedRails)) {
 }
 
 const relay = fs.readFileSync(path.join(root, 'afterglow_ais_relay_worker.js'), 'utf8');
-check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v147"/.test(relay), 'Relay cache namespace is v147');
+check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v148"/.test(relay), 'Relay cache namespace is v148');
 check(/0411_Tornado_06_00_36_00::t0411_Tornado_06_00_36_00\.mp4/.test(relay) && /ShockTro1938::ShockTro1938\.mp4/.test(relay), 'News adds more direct disaster/newsreel rotation');
 check(/youtube--IJuW9rAskc::-IJuW9rAskc\.mp4/.test(relay) && /youtube-Ko9kzyqW-l8::Ko9kzyqW-l8\.mp4/.test(relay), 'Gear Head adds verified direct automotive review rotation');
 check(/top-gear-s15-bd::TOP GEAR SERIES 15 DISC 211\.mp4/.test(relay) && /top-gear-s15-bd::TOP GEAR SERIES 15 DISC 212\.mp4/.test(relay), 'Gear Head adds more direct Top Gear episode rotation');
@@ -98,6 +98,7 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
 }
 check(/IA_HOLIDAY_ANIMATION_CHANNELS\s*=\s*new Set\(\["704", "705", "706"\]\)/.test(relay) && /Deterministic animation shelves have an explicit catalog window/.test(relay) && /stablePlayableCandidates/.test(relay), 'Holiday animation rotations preserve full fresh catalog windows');
 check(/IA_FULL_WINDOW_ANIMATION_CHANNELS\s*=\s*new Set\(\["150", "153", "158", "704", "705", "706"\]\)/.test(relay) && /IA_FULL_WINDOW_ROTATION_CHANNELS\s*=\s*new Set\(\["14", "56", "59", "60", "61", "74", "101", "103", "134", "210"\]\)/.test(relay) && /const shelfStep = fullWindow \? 5 : 1/.test(relay) && /strictCandidateCount/.test(relay), 'Animation and repeat-heavy lanes use full fresh windows with background expansion');
+check(/preserveRotatedFallback/.test(relay) && /second pass must preserve the already/.test(relay), 'Freshness preserves a rotated fallback shelf after the unseen catalog is exhausted');
 check(/cartoon-sushi-s-2-episode-37-christmas-special-sd-480p/.test(relay) && /kippers-brilliant-cartoon-party-episode-21-christmas-special/.test(relay), 'Christmas animation bank includes additional distinct verified specials');
 check(/"150": \[[\s\S]*bb_bamboo_isle[\s\S]*little_lulu_bargain_counter_attack/.test(relay), 'Classic Cartoons expands beyond the Popeye shelf');
 check(/"153": \[[\s\S]*spider-mantheanimatedseries[\s\S]*DragonTalesTVSeries[\s\S]*powerpuff-girls-complete-series/.test(relay), 'Modern Cartoons rotates across complete animated series');

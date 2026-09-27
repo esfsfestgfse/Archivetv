@@ -101,10 +101,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v12-repeat-lanes"
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v147";
+const IA_QUEUE_CACHE_VERSION = "v148";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v147";
+const IA_LAST_GOOD_CACHE_VERSION = "v148";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -4835,7 +4835,19 @@ function applyIaFreshness(payload, ledger, count) {
   const orderedCandidates = fresh.length
     ? fresh.concat(unique.filter((item) => !fresh.includes(item)))
     : unique;
-  const items = ordered.slice(0, requested);
+  /* A stale/fallback shelf may pass through freshness twice: once when the
+     fallback is assembled and again when it is handed to the client. If the
+     unseen catalog is exhausted, the second pass must preserve the already
+     rotated public shelf instead of resetting it to candidateItems[0..n].
+     Otherwise every full-window rotation appears to repeat its opening five
+     even though the deeper catalog is present and playable. */
+  const preserveRotatedFallback = Boolean(payload && payload.fallback) &&
+    publicItems.length >= requested &&
+    fresh.length < requested &&
+    publicItems.every((item) => item && item.identifier && item.media && item.media.url);
+  const items = preserveRotatedFallback
+    ? publicItems.slice(0, requested)
+    : ordered.slice(0, requested);
   const issued = items.map(iaFreshnessRecord).filter(Boolean);
   return {
     payload: {

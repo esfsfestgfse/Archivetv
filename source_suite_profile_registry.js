@@ -2498,7 +2498,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "youtube"
     ],
     "intent": "television",
-    "topics": ["family television", "family sitcom", "family drama", "children's program", "children's television", "kids television", "educational kids show"],
+    "topics": ["family television", "family sitcom", "family drama", "children's program", "children's television", "kids television", "educational kids show", "classic television", "television series", "tv show", "tv series"],
     "formats": ["full episode", "complete episode", "full show", "television program", "kids show"],
     "queries": ["family television full episode", "children's television complete episode", "classic family TV show full episode", "public television kids full episode", "kids television full show", "children's program complete episode", "educational kids show full episode", "classic kids TV full episode"],
     "match": ["family television", "family sitcom", "family drama", "children's television", "children's program", "kids television", "kids show", "full episode", "complete episode"],

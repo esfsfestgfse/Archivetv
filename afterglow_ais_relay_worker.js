@@ -101,10 +101,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v7";
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v136";
+const IA_QUEUE_CACHE_VERSION = "v137";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v136";
+const IA_LAST_GOOD_CACHE_VERSION = "v137";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -1050,6 +1050,14 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "2010_Vancouver_Winter_Olympic_Torch_Relay_Seg2_12Dec2009::SSA51265", title: "Olympic Archive — Vancouver Torch Relay, Segment 3", subject: "olympics olympic games winter olympics olympic ceremony sports archive", year: 2009, media: { type: "video", url: "https://archive.org/download/2010_Vancouver_Winter_Olympic_Torch_Relay_Seg2_12Dec2009/SSA51265_512kb.mp4" } },
     { identifier: "2010_Vancouver_Winter_Olympic_Torch_Relay_Seg3_12Dec2009::TorRly1", title: "Olympic Archive — Vancouver Torch Relay, Segment 4", subject: "olympics olympic games winter olympics olympic ceremony sports archive", year: 2009, media: { type: "video", url: "https://archive.org/download/2010_Vancouver_Winter_Olympic_Torch_Relay_Seg3_12Dec2009/TorRly1_512kb.mp4" } },
     { identifier: "2016-olympic-games-Rio-Men-football-soccer-all-matchs-in-HD-no-ads-no-commentary::iraq-denmark", title: "Olympic Archive — Rio 2016 Football: Iraq v Denmark", subject: "olympics olympic games summer olympics sports football soccer olympic event", year: 2016, media: { type: "video", url: "https://archive.org/download/2016-olympic-games-Rio-Men-football-soccer-all-matchs-in-HD-no-ads-no-commentary/2016_08_04_15_45%20-%20Football%20%28H%29%20-%20Groupes%20-%20Irak%20-%20Danemark.mp4" } },
+  ],
+  "71": [
+    { identifier: "1997-britishopengolf-final-round-19970720::segment1", title: "The Fairway — 1997 British Open, Final Round Part I", subject: "golf golf tournament golf championship professional golf sports archive", year: 1997, media: { type: "video", url: "https://archive.org/download/1997-britishopengolf-final-round-19970720/13%20-%201997%20British%20Open%20Golf%20-%20Final%20round%20%281st%20segment%29.mp4" } },
+    { identifier: "1997-britishopengolf-final-round-19970720::segment2", title: "The Fairway — 1997 British Open, Final Round Part II", subject: "golf golf tournament golf championship professional golf sports archive", year: 1997, media: { type: "video", url: "https://archive.org/download/1997-britishopengolf-final-round-19970720/15%20-%201997%20British%20Open%20Golf%20-%20Final%20round%20%282nd%20segment%29.mp4" } },
+    { identifier: "nsds-6958::vol1", title: "The Fairway — Golf Lesson Collection, Volume 1", subject: "golf golf instruction golf lesson professional golf sports archive", year: 2003, media: { type: "video", url: "https://archive.org/download/nsds-6958/NSDS-6958%20GOLF_LESSON_VOL1.mp4" } },
+    { identifier: "nsds-6958::vol10", title: "The Fairway — Golf Lesson Collection, Volume 10", subject: "golf golf instruction golf lesson professional golf sports archive", year: 2003, media: { type: "video", url: "https://archive.org/download/nsds-6958/NSDS-6958%20GOLF_LESSON_VOL110.mp4" } },
+    { identifier: "nsds-6958::vol11", title: "The Fairway — Golf Lesson Collection, Volume 11", subject: "golf golf instruction golf lesson professional golf sports archive", year: 2003, media: { type: "video", url: "https://archive.org/download/nsds-6958/NSDS-6958%20GOLF_LESSON_VOL111.mp4" } },
+    { identifier: "nsds-6958::vol12", title: "The Fairway — Golf Lesson Collection, Volume 12", subject: "golf golf instruction golf lesson professional golf sports archive", year: 2003, media: { type: "video", url: "https://archive.org/download/nsds-6958/NSDS-6958%20GOLF_LESSON_VOL112.mp4" } },
   ],
   "125": [
     { identifier: "kind-hearts-and-coronets-1949_202312", title: "Ealing & Co. — Kind Hearts and Coronets", subject: "ealing studios ealing comedy british comedy british cinema postwar british film", year: 1949, media: { type: "video", url: "https://archive.org/download/kind-hearts-and-coronets-1949_202312/Kind%20Hearts%20And%20Coronets%20%281949%29.mp4" } },

@@ -101,10 +101,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v12-repeat-lanes"
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v145";
+const IA_QUEUE_CACHE_VERSION = "v146";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v145";
+const IA_LAST_GOOD_CACHE_VERSION = "v146";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -231,7 +231,7 @@ function iaColdRescueEnabled(channel) {
    manufacturing catalog. The six animation lanes use the same direct-ready
    contract because their verified episode banks are deeper and more reliable
    than the cold Archive search race; background expansion still deepens them. */
-const IA_STRICT_RECOVERY_CHANNELS = new Set(["19", "80", "200", "920", "150", "153", "158", "704", "705", "706"]);
+const IA_STRICT_RECOVERY_CHANNELS = new Set(["19", "59", "80", "200", "920", "150", "153", "158", "704", "705", "706"]);
 function iaStrictRecoveryEnabled(channel) {
   return IA_STRICT_RECOVERY_CHANNELS.has(String(channel));
 }
@@ -2184,6 +2184,9 @@ const IA_LONG_TAIL_EXPANSIONS_EXTRA = Object.freeze({
     iaDirectRecovery("acalanes-campolindo-baseball::acalanes @ campolindo baseball.ia.mp4", "acalanes-campolindo-baseball", "acalanes @ campolindo baseball.ia.mp4", "High School Baseball · Acalanes vs. Campolindo", "baseball baseball game baseball broadcast high school baseball", 2025),
     iaDirectRecovery("jctvor-Jesuit_Baseball_vs_Glencoe::Jesuit_Baseball_vs_Glencoe.mp4", "jctvor-Jesuit_Baseball_vs_Glencoe", "Jesuit_Baseball_vs_Glencoe.mp4", "Jesuit Baseball vs. Glencoe", "baseball baseball game baseball broadcast high school baseball", 2015),
     iaDirectRecovery("WCT19883::WCT 19883.mp4", "WCT19883", "WCT 19883.mp4", "Norwood vs. Winton Woods High School Baseball", "baseball baseball game baseball broadcast high school baseball", 2012),
+    iaDirectRecovery("letvma-Annual_Agganis_All_Star_Baseball_Classic_June_25_2023::Annual_Agganis_All_Star_Baseball_Classic_June_25_2023.mp4", "letvma-Annual_Agganis_All_Star_Baseball_Classic_June_25_2023", "Annual_Agganis_All_Star_Baseball_Classic_June_25_2023.mp4", "Annual Agganis All-Star Baseball Classic", "baseball baseball game baseball broadcast all-star baseball", 2023),
+    iaDirectRecovery("mapsdwi-LEGACY_VIDEO_5-3-2011_Varsity_Baseball_vs_Wausau_West::LEGACY_VIDEO_5-3-2011_Varsity_Baseball_vs_Wausau_West.mp4", "mapsdwi-LEGACY_VIDEO_5-3-2011_Varsity_Baseball_vs_Wausau_West", "LEGACY_VIDEO_5-3-2011_Varsity_Baseball_vs_Wausau_West.mp4", "Varsity Baseball · Wausau West", "baseball baseball game baseball broadcast high school baseball", 2011),
+    iaDirectRecovery("hctvvt-Boys_Varsity_Baseball_v._Harwood_APRIL_23_2026::Boys_Varsity_Baseball_v._Harwood_APRIL_23_2026.mp4", "hctvvt-Boys_Varsity_Baseball_v._Harwood_APRIL_23_2026", "Boys_Varsity_Baseball_v._Harwood_APRIL_23_2026.mp4", "Boys Varsity Baseball · Harwood", "baseball baseball game baseball broadcast high school baseball", 2026),
   ],
   "10": [
     iaDirectRecovery("theloneranger_201705::s01e01_EntertheLoneRanger.mp4", "theloneranger_201705", "s01e01_EntertheLoneRanger.mp4", "The Lone Ranger · Enter the Lone Ranger", "classic television western television series", 1949),
@@ -5673,7 +5676,7 @@ async function getIaQueue(request, url, env, ctx) {
   if (iaStrictRecoveryEnabled(channel)) {
     const strict = strictRecoveryQueue(channel, rotation, count, themeTerms, denyTerms, requiredTitleTerms, mediaTypes);
     if (strict.ready >= count) {
-      if (IA_FULL_WINDOW_ANIMATION_CHANNELS.has(channel)) {
+      if (IA_FULL_WINDOW_ANIMATION_CHANNELS.has(channel) || IA_FULL_WINDOW_ROTATION_CHANNELS.has(channel)) {
         const strictCandidateCount = iaCatalogCandidateBudget(themeMinScore, count);
         scheduleIaExpansion(
           { ...strict, lastGoodKey },

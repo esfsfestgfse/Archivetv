@@ -101,7 +101,7 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v4";
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v123";
+const IA_QUEUE_CACHE_VERSION = "v124";
 /* Last-good shelves share the v101 namespace so an older shallow shelf
    never masks the repaired episode-level catalog. */
 const IA_LAST_GOOD_CACHE_VERSION = "v113";
@@ -120,6 +120,7 @@ const IA_FRESHNESS_LEDGER_VERSION = "v1";
 const IA_FRESHNESS_LEDGER_MAX = 32;
 const IA_FRESHNESS_LEDGER_TTL_SECONDS = 30 * 24 * 60 * 60;
 const IA_FRESHNESS_MEMORY_TTL_MS = 60 * 1000;
+const IA_HOLIDAY_ANIMATION_CHANNELS = new Set(["704", "705", "706"]);
 /* A short per-isolate burst cache absorbs repeat requests from a TV, phone,
    and guide opened in quick succession. It is intentionally tiny and
    short-lived: Cache API/KV remain the durable shelves, while this map only
@@ -4576,6 +4577,19 @@ function applyIaFreshness(payload, ledger, count) {
   }
   const requested = Math.max(1, Number(count) || 1);
   const playable = unique.filter((item) => item.media && item.media.url);
+  /* Holiday animation shelves have an explicit deterministic catalog window.
+     Once that window has been rotated, do not reorder it again from the
+     generic ledger: doing so can pull the same familiar character back into
+     the next shelf even when the rotated window is already fresh. */
+  if (IA_HOLIDAY_ANIMATION_CHANNELS.has(String(payload && payload.channel || "")) && Number(payload && payload.rotation) > 0 && Array.isArray(payload.items) && payload.items.length >= requested && playable.length >= requested) {
+    const issued = payload.items.slice(0, requested).map(iaFreshnessRecord).filter(Boolean);
+    return {
+      payload,
+      issued,
+      freshCount: issued.length,
+      excludedCount: 0,
+    };
+  }
   const publicItems = Array.isArray(payload && payload.items) && payload.items.length ? payload.items : unique;
   /* A hydrated response keeps unresolved catalog candidates in
      candidateItems. Never promote those into the public shelf just because

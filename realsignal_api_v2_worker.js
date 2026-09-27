@@ -12,7 +12,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "4.1.72-holiday-genre-gate";
+const V3_RELEASE = "4.1.73-targeted-holiday-gate";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -484,7 +484,12 @@ function catalogFallbackAllowed(item, body) {
        “Frosty Glaze” and a news upload mentioning “Grinch” are not cartoons.
        Require the lane's format signal as well, while leaving relay-verified
        direct Archive children trusted through their provenance flag. */
-    const animationLane = holidayChannel === "704" || holidayChannel === "705" || holidayChannel === "706";
+    /* Only Christmas Cartoons (704) reproduced false positives in the
+       persisted rolling catalog. Keep the established title admission for
+       the other seasonal lanes so their already-verified shelves do not lose
+       legitimate television/special entries. */
+    if (holidayChannel !== "704") return true;
+    const animationLane = true;
     const formatTerms = animationLane
       ? ["cartoon", "animation", "animated", "special", "rudolph", "frosty", "grinch", "mickey", "santa", "charlie brown", "pink panther", "scooby", "garfield", "spooky", "turkey", "mayflower", "pooh", "oswald", "jerky", "drumstick", "holiday", "winter"]
       : ["television", "tv", "episode", "special", "parade", "sitcom", "variety", "show", "broadcast", "yuletide", "monster", "drive-in", "kidding around", "thanksgiving dinner"];

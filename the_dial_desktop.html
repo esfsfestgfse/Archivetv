@@ -1647,7 +1647,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="4.1.42-desktop-ia-cert-recovery";
+window.__ATV_BUILD="4.1.43-desktop-ia-home-economics";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -6781,7 +6781,19 @@ rsFamilyDepth("Halloween Haunt",["horror film","horror movie","classic horror","
 /* The audited entertainment families all benefit from the same bounded
    spread: early TV, games, animation, outdoor, and film rails stay visible
    without changing any station's editorial acceptance rules. */
-["Classic Rerun TV","Modern Rerun TV","Game Show Channel","Saturday Morning","Classic Cartoons","Modern Cartoons","Classic Film","Midnight Matinee","Sci-Fi Theater","Shock Theater","Comedy Classics","World Cinema","Sunday Matinee","The Drive-In","Tight Lines","Camp & Trail","Range & Field","Christmas Channel","Halloween Haunt"].forEach(function(name){if(PROGRAM[name])PROGRAM[name].depthQuerySpread=true;});
+["Classic Rerun TV","Modern Rerun TV","Game Show Channel","Saturday Morning","Classic Cartoons","Modern Cartoons","Classic Film","Midnight Matinee","Sci-Fi Theater","Shock Theater","Comedy Classics","World Cinema","Sunday Matinee","The Drive-In","Tight Lines","Camp & Trail","Range & Field","Christmas Channel","Halloween Haunt","Home Economics"].forEach(function(name){if(PROGRAM[name])PROGRAM[name].depthQuerySpread=true;});
+/* Home Economics was the only repaired lane that still timed out during the
+   serial check. Give its domestic-science records their own title vocabulary
+   and collection rails so Archive can hydrate the many real household films
+   without admitting generic education or factory material. */
+Object.assign(PROGRAM["Home Economics"],{
+  fastSubjects:rsAppendProgramTerms(PROGRAM["Home Economics"].fastSubjects,["home economics","home economics film","home ec","domestic science","domestic arts","household arts","homemaking","home management","meal planning","meal preparation","cooking film","cooking demonstration","baking film","food preservation","nutrition film","sewing demonstration","dressmaking","housekeeping film","laundry demonstration","home budget","consumer education"]),
+  fastCollections:rsAppendProgramTerms(PROGRAM["Home Economics"].fastCollections,["prelinger","FedFlix","opensource_movies","cooking_movies","avgeeks","living_new_deal_project"]),
+  deepCollections:rsAppendProgramTerms(PROGRAM["Home Economics"].deepCollections,["prelinger","FedFlix","opensource_movies","cooking_movies","avgeeks","living_new_deal_project"]),
+  deepTitleTerms:rsAppendProgramTerms(PROGRAM["Home Economics"].deepTitleTerms,["home economics","home economics film","home ec","domestic science","domestic arts","household arts","homemaking","home management","meal planning","meal preparation","cooking film","cooking demonstration","baking film","food preservation","nutrition film","sewing demonstration","dressmaking","housekeeping film","laundry demonstration","home budget","consumer education"]),
+  require:Object.assign({},PROGRAM["Home Economics"].require||{},{title_any:rsAppendProgramTerms(PROGRAM["Home Economics"].require&&PROGRAM["Home Economics"].require.title_any,["home economics","home ec","domestic science","homemaking","home management","meal planning","cooking","baking","nutrition","sewing","dressmaking","housekeeping","laundry","home budget","consumer education","household arts"])}),
+  diversity:Object.assign({},PROGRAM["Home Economics"].diversity||{},{maxPerEra:2,maxPerLane:2,maxPerCreator:1,maxPerCollection:3,maxPerFamily:1})
+});
 /* Every IA station gets a compact editorial diversity policy. These caps shape
    a shelf of already-approved programs; they never relax the station's terms,
    era, media type, or deny list when Archive is sparse. */

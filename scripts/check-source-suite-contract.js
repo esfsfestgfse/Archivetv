@@ -36,7 +36,7 @@ for (const key of ['print-shop', 'screen-test', 'sound-lab', 'stage-door', 'vari
   const start = sourceRegistry.indexOf(`"${key}":`);
   const next = sourceRegistry.indexOf('\n  },', start);
   const section = sourceRegistry.slice(start, next >= 0 ? next + 5 : sourceRegistry.length);
-  if (!section.includes('"queryLimit": 16') || (!section.includes('"peerTubeQueryWindow": 2') && !section.includes('"peerTubeQueryWindow": 4')) || !section.includes('"peerTubeInstanceLimit": 1') || !section.includes('"peerTubeDetailLimit": 12') || (!section.includes('"peerTubeFallbackQueryWindow": 2') && !section.includes('"peerTubeFallbackQueryWindow": 4')) || !section.includes('"peerTubeInstances": ["https://search.joinpeertube.org"]')) issues.push(`${key} must retain the bounded expanded query pool for serial source rotations`);
+  if (!section.includes('"queryLimit": 16') || (!section.includes('"peerTubeQueryWindow": 2') && !section.includes('"peerTubeQueryWindow": 4') && !section.includes('"peerTubeQueryWindow": 6')) || (!section.includes('"peerTubeInstanceLimit": 1') && !section.includes('"peerTubeInstanceLimit": 2')) || (!section.includes('"peerTubeDetailLimit": 12') && !section.includes('"peerTubeDetailLimit": 24')) || (!section.includes('"peerTubeFallbackQueryWindow": 2') && !section.includes('"peerTubeFallbackQueryWindow": 4')) || !section.includes('"peerTubeInstances": ["https://search.joinpeertube.org"')) issues.push(`${key} must retain the bounded expanded query pool for serial source rotations`);
 }
 for (const key of ['sound-lab', 'screen-test', 'western-screen', 'variety-hour', 'jukebox-television', 'garden-ledger', 'stage-door', 'print-shop', 'memory-bank', 'lesson-reel', 'local-signal']) {
   const start = sourceRegistry.indexOf(`"${key}":`);
@@ -44,11 +44,17 @@ for (const key of ['sound-lab', 'screen-test', 'western-screen', 'variety-hour',
   const section = sourceRegistry.slice(start, next >= 0 ? next + 5 : sourceRegistry.length);
   if (!section.includes('"peerTubeQueries":')) issues.push(`${key} must use a curated federated query lane instead of the broad base query pool`);
 }
-for (const key of ['sound-lab', 'screen-test', 'western-screen', 'variety-hour', 'jukebox-television', 'garden-ledger', 'stage-door', 'memory-bank', 'local-signal']) {
+for (const key of ['screen-test', 'western-screen', 'variety-hour', 'jukebox-television', 'garden-ledger', 'stage-door', 'local-signal']) {
   const start = sourceRegistry.indexOf(`"${key}":`);
   const next = sourceRegistry.indexOf('\n  },', start);
   const section = sourceRegistry.slice(start, next >= 0 ? next + 5 : sourceRegistry.length);
   if (!section.includes('"peerTubeQueryWindow": 4') || !section.includes('"peerTubeFallbackQueryWindow": 4')) issues.push(`${key} must use the full bounded curated query window after its shallow-lane failure`);
+}
+for (const key of ['sound-lab', 'memory-bank']) {
+  const start = sourceRegistry.indexOf(`"${key}":`);
+  const next = sourceRegistry.indexOf('\n  },', start);
+  const section = sourceRegistry.slice(start, next >= 0 ? next + 5 : sourceRegistry.length);
+  if (!section.includes('"peerTubeQueryWindow": 6') || !section.includes('"peerTubeFallbackQueryWindow": 4') || !section.includes('"peerTubeInstanceLimit": 2') || !section.includes('"peerTubeDetailLimit": 24') || !section.includes('"peerTubeInstances": ["https://search.joinpeertube.org", "https://tilvids.com"]')) issues.push(`${key} must use the two-rail depth repair profile`);
 }
 for (const [key, terms] of Object.entries({
   'print-shop': ['"demo"', '"hands-on"', '"tutorial"'],
@@ -101,7 +107,7 @@ for (const file of files) {
   const source = fs.readFileSync(path.join(repo, file), 'utf8');
   const name = file;
   const required = [
-    [/V2_SOURCE_CACHE_VERSION=28/, 'source catalog cache version must invalidate strict-catalog shelves'],
+    [/V2_SOURCE_CACHE_VERSION=29/, 'source catalog cache version must invalidate strict-catalog shelves'],
     [/retainedItems=Array\.isArray\(cached&&cached\.items\)\?cached\.items\.filter/, 'previously verified source items must survive provider outages after requalification'],
     [/cacheValid=!!cached&&Number\(cached\.version\|\|0\)===V2_SOURCE_CACHE_VERSION/, 'only a current source catalog cache may be treated as fresh'],
     [/item\.account,item\.channelTitle/, 'YouTube language screening must inspect channel identity'],

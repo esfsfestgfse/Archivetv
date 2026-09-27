@@ -287,18 +287,24 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "name": "The Sound Lab",
     "queryLimit": 16,
     "queryWindow": 6,
-    "peerTubeQueryWindow": 4,
-    "peerTubeInstanceLimit": 1,
-    "peerTubeDetailLimit": 12,
+    "peerTubeQueryWindow": 6,
+    "peerTubeInstanceLimit": 2,
+    "peerTubeDetailLimit": 24,
     "peerTubeFallbackQueryWindow": 4,
-    "peerTubeInstances": ["https://search.joinpeertube.org"],
+    "peerTubeInstances": ["https://search.joinpeertube.org", "https://tilvids.com"],
     "peerTubeQueries": [
       "sound design documentary",
       "film sound documentary",
       "acoustics documentary",
       "audio engineering documentary",
       "radio studio technology film",
-      "recording engineering documentary full"
+      "recording engineering documentary full",
+      "microphone design documentary",
+      "foley sound documentary full",
+      "field recording documentary full",
+      "broadcast audio engineering full",
+      "sound mixing documentary full",
+      "recording studio documentary full"
     ],
     "providers": [
       "peertube",
@@ -320,7 +326,15 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "film sound documentary",
       "sound effects documentary",
       "broadcast audio history documentary",
-      "public radio studio documentary"
+      "public radio studio documentary",
+      "microphone design documentary",
+      "foley sound documentary full",
+      "field recording documentary full",
+      "broadcast audio engineering full",
+      "sound mixing documentary full",
+      "recording studio documentary full",
+      "audio mastering documentary full",
+      "film sound recording documentary"
     ],
     "match": [
       "sound recording",
@@ -331,7 +345,12 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "audio technology",
       "sound design",
       "microphone",
-      "audio production"
+      "audio production",
+      "foley",
+      "field recording",
+      "sound mixing",
+      "audio mastering",
+      "broadcast audio"
     ],
     "deny": [
       "fictional",
@@ -1591,11 +1610,11 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "name": "Memory Bank",
     "queryLimit": 16,
     "queryWindow": 6,
-    "peerTubeQueryWindow": 4,
-    "peerTubeInstanceLimit": 1,
-    "peerTubeDetailLimit": 12,
+    "peerTubeQueryWindow": 6,
+    "peerTubeInstanceLimit": 2,
+    "peerTubeDetailLimit": 24,
     "peerTubeFallbackQueryWindow": 4,
-    "peerTubeInstances": ["https://search.joinpeertube.org"],
+    "peerTubeInstances": ["https://search.joinpeertube.org", "https://tilvids.com"],
     "peerTubeQueries": [
       "personal archives film",
       "personal archive documentary",
@@ -1603,7 +1622,12 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "community history film",
       "life story documentary full",
       "oral history full interview",
-      "community oral history full"
+      "community oral history full",
+      "family history documentary full",
+      "memoir film full",
+      "first person documentary full",
+      "community memory project full",
+      "veteran oral history full"
     ],
     "providers": [
       "peertube",
@@ -1625,7 +1649,14 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "life story documentary full",
       "local history oral history",
       "oral history program full",
-      "life story interview documentary full"
+      "life story interview documentary full",
+      "family history documentary full",
+      "memoir film full",
+      "first person documentary full",
+      "community memory project full",
+      "veteran oral history full",
+      "immigrant oral history full",
+      "personal documentary full"
     ],
     "match": [
       "oral history",
@@ -1636,7 +1667,13 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "memory archive",
       "life story",
       "community voices",
-      "interview"
+      "interview",
+      "family history",
+      "autobiography",
+      "personal story",
+      "first person",
+      "testimony",
+      "community memory"
     ],
     "deny": [
       "fictional",
@@ -1646,7 +1683,11 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "gameplay",
       "reaction",
       "vlog",
-      "opinion"
+      "opinion",
+      "debate",
+      "commentary",
+      "political campaign",
+      "news panel"
     ]
   },
   "cartoon-time-machine": {

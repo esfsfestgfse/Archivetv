@@ -90,7 +90,7 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
    warmup back onto the channel-change path. */
 const IA_STRICT_CATALOG_CANDIDATE_MAX = 128;
 const IA_CATALOG_CANDIDATE_MAX = 96;
-const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v61-public-shelf-contract";
+const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v62-cache-rotation-repair";
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
@@ -103,10 +103,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v61-publi
    episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v218";
+const IA_QUEUE_CACHE_VERSION = "v219";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v218";
+const IA_LAST_GOOD_CACHE_VERSION = "v219";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -7656,7 +7656,19 @@ async function getIaQueue(request, url, env, ctx) {
         let cachedPayload = await cached.clone().json();
         const freshCached = applyIaFreshness(cachedPayload, freshnessLedger, count);
         cachedPayload = freshCached.payload;
-        rememberIaFreshness(env, channel, freshCached.issued, ctx);
+        let cachedIssued = freshCached.issued;
+        /* A partial cached response may contain only the five files that won
+           the first Archive rail. Before serving a later rotation, merge the
+           lane's verified file bank so the cache cannot hide a deeper shelf. */
+        if (rotation > 0 && IA_UNDERFILL_DEPTH_ROTATION_CHANNELS.has(channel)) {
+          const depthCached = rotateUnderfillDepthBank(cachedPayload, channel, rotation, count, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, minRuntimeSeconds);
+          if (depthCached !== cachedPayload) {
+            const freshDepthCached = applyIaFreshness(depthCached, freshnessLedger, count);
+            cachedPayload = freshDepthCached.payload;
+            cachedIssued = freshDepthCached.issued;
+          }
+        }
+        rememberIaFreshness(env, channel, cachedIssued, ctx);
         /* A zero-ready response is a handoff while Archive metadata is still
            resolving, not a playable shelf. Older deploys cached that handoff
            for ten seconds, so every poll received the same spinner even after
@@ -7719,7 +7731,10 @@ async function getIaQueue(request, url, env, ctx) {
     const memory = iaQueueMemoryGet(cacheKey.url);
     const memoryNeedsFreshRotation = memory && Math.abs(Number(rotation) || 0) > 0 && iaNeedsCatalogDepth(memory.payload, count, iaCatalogCandidateBudget(themeMinScore, count));
     if (memory && !memoryNeedsFreshRotation) {
-      const freshMemory = applyIaFreshness(memory.payload, freshnessLedger, count);
+      const memoryBase = rotation > 0 && IA_UNDERFILL_DEPTH_ROTATION_CHANNELS.has(channel)
+        ? rotateUnderfillDepthBank(memory.payload, channel, rotation, count, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, minRuntimeSeconds)
+        : memory.payload;
+      const freshMemory = applyIaFreshness(memoryBase, freshnessLedger, count);
       rememberIaFreshness(env, channel, freshMemory.issued, ctx);
       return cacheableJson(freshMemory.payload, memory.ttlSeconds, {
         "X-Afterglow-Source": "program-director-memory",
@@ -7728,7 +7743,10 @@ async function getIaQueue(request, url, env, ctx) {
       });
     }
     const shared = await sharedQueueGet(env, sharedKey);
-    const freshShared = shared ? applyIaFreshness(shared, freshnessLedger, count) : { payload: shared, issued: [] };
+    const sharedBase = shared && rotation > 0 && IA_UNDERFILL_DEPTH_ROTATION_CHANNELS.has(channel)
+      ? rotateUnderfillDepthBank(shared, channel, rotation, count, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, minRuntimeSeconds)
+      : shared;
+    const freshShared = sharedBase ? applyIaFreshness(sharedBase, freshnessLedger, count) : { payload: sharedBase, issued: [] };
     rememberIaFreshness(env, channel, freshShared.issued, ctx);
     const freshSharedPayload = freshShared.payload;
     const sharedShelf = freshSharedPayload && Array.isArray(freshSharedPayload.candidateItems) && freshSharedPayload.candidateItems.length > (Array.isArray(freshSharedPayload.items) ? freshSharedPayload.items.length : 0)
@@ -7812,8 +7830,11 @@ async function getIaQueue(request, url, env, ctx) {
       const warmNeedsFreshRotation = rotation > 0 && warmPlayable < warmFreshnessFloor;
       const freshWarm = applyIaFreshness(warmLastGood, freshnessLedger, count);
       rememberIaFreshness(env, channel, freshWarm.issued, ctx);
+      const warmBase = rotation > 0 && IA_UNDERFILL_DEPTH_ROTATION_CHANNELS.has(channel)
+        ? rotateUnderfillDepthBank({ ...freshWarm.payload, channel }, channel, rotation, count, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, minRuntimeSeconds)
+        : rotatePlayableIaShelf({ ...freshWarm.payload, channel }, rotation, count);
       let warmFallback = {
-        ...rotatePlayableIaShelf({ ...freshWarm.payload, channel }, rotation, count),
+        ...warmBase,
         rotation,
         fallback: true,
         stale: true,

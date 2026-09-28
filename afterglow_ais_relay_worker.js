@@ -90,7 +90,7 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
    warmup back onto the channel-change path. */
 const IA_STRICT_CATALOG_CANDIDATE_MAX = 128;
 const IA_CATALOG_CANDIDATE_MAX = 96;
-const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v60-freshness-window-repair";
+const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v61-public-shelf-contract";
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
@@ -103,10 +103,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v60-fresh
    episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v217";
+const IA_QUEUE_CACHE_VERSION = "v218";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v217";
+const IA_LAST_GOOD_CACHE_VERSION = "v218";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -6903,7 +6903,12 @@ function mergeIaQueuePayload(primary, secondary, candidateCount, flags = {}) {
     merged.push(item);
     if (merged.length >= candidateCount) break;
   }
-  return { ...(primary || {}), items: merged, candidateItems: merged, candidates: merged.length, ...flags };
+  /* Keep the foreground contract small even while this helper is merging a
+     deep background catalog. The old helper copied all candidateCount rows
+     into `items`; that let an emergency/recovery payload leak the catalog into
+     the player and made every rotation restart at the same five records. */
+  const publicCount = Math.max(1, Math.min(5, Number(primary && primary.count || secondary && secondary.count || 5)));
+  return { ...(primary || {}), items: merged.slice(0, publicCount), candidateItems: merged, candidates: merged.length, ...flags };
 }
 
 function rotatePlayableIaShelf(payload, rotation, count) {
@@ -7934,7 +7939,7 @@ async function getIaQueue(request, url, env, ctx) {
       const candidates = discovered.concat(orderedSeeds).slice(0, candidateCount);
       payload = {
         ...payload,
-        items: discovered.length ? discovered : orderedSeeds.slice(0, count),
+        items: discovered.length ? discovered.slice(0, count) : orderedSeeds.slice(0, count),
         candidateItems: candidates,
         candidates: candidates.length,
         ready: 0,

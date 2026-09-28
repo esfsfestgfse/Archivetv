@@ -12,7 +12,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "4.1.156-ia-freshness-window-repair";
+const V3_RELEASE = "4.1.157-ia-public-shelf-contract";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -305,6 +305,22 @@ function uniqueQueueItems(items, body, limit = MAX_CATALOG_ITEMS) {
     const source = String(item && (item.sourceIdentifier || item.source_identifier || id) || "").trim();
     return !(id === source && expandedSources.has(source));
   });
+}
+
+/* `items` is the on-air shelf, not the catalog. A relay recovery can carry
+   dozens of verified candidates in the same response, but exposing all of
+   them as `items` makes clients refill from the catalog head and repeat the
+   same opening programs. Keep the deep union in `candidateItems` while
+   enforcing the small, predictable playback contract at the API edge. */
+function limitPublicIaShelf(payload, count) {
+  if (!payload || typeof payload !== "object") return payload;
+  const requested = Math.max(1, Math.min(5, Number(count) || 3));
+  const items = Array.isArray(payload.items) ? payload.items.slice(0, requested) : [];
+  const rawReady = Number(payload.ready);
+  const ready = Number.isFinite(rawReady)
+    ? Math.min(requested, Math.max(0, rawReady), items.length)
+    : items.length;
+  return { ...payload, items, ready };
 }
 
 function catalogJob(body, payload) {
@@ -1098,7 +1114,13 @@ async function handleQueue(request, env, ctx, id) {
       body,
       MAX_CATALOG_ITEMS,
     );
-    payload = { ...payload, items: upstreamItems, candidateItems: upstreamCandidates, candidates: upstreamCandidates.length, ready: Math.min(Number(payload && payload.ready) || upstreamItems.length, upstreamItems.length) };
+    payload = limitPublicIaShelf({
+      ...payload,
+      items: upstreamItems,
+      candidateItems: upstreamCandidates,
+      candidates: upstreamCandidates.length,
+      ready: Math.min(Number(payload && payload.ready) || upstreamItems.length, upstreamItems.length),
+    }, count);
     const upstreamCandidateDepth = upstreamCandidates.length;
     const needsCatalogDepthRepair = upstreamCandidateDepth < IA_MIN_ROLLING_CATALOG_DEPTH;
     /* A persistent freshness ledger can legitimately consume most of a small
@@ -1117,7 +1139,14 @@ async function handleQueue(request, env, ctx, id) {
           const currentCandidates = Array.isArray(payload.candidateItems) && payload.candidateItems.length ? payload.candidateItems : upstreamItems;
           const mergedCandidates = uniqueQueueItems([...currentCandidates, ...fallbackItems], body, MAX_CATALOG_ITEMS);
           const mergedItems = uniqueQueueItems([...upstreamItems, ...additions], body, MAX_CATALOG_ITEMS);
-          payload = { ...payload, items: mergedItems, candidateItems: mergedCandidates, ready: Math.min(mergedItems.length, count), candidates: mergedCandidates.length, catalogRecovery: true };
+          payload = limitPublicIaShelf({
+            ...payload,
+            items: mergedItems,
+            candidateItems: mergedCandidates,
+            ready: Math.min(mergedItems.length, count),
+            candidates: mergedCandidates.length,
+            catalogRecovery: true,
+          }, count);
           catalogRecovery = true;
         }
       } catch (error) { console.warn(JSON.stringify({ event: "catalog-shallow-recovery-failed", requestId: id, error: String(error).slice(0, 160) })); }
@@ -1167,6 +1196,7 @@ async function handleQueue(request, env, ctx, id) {
       console.warn(JSON.stringify({ event: "rotation-refill-failed", requestId: id, channel: String(body.channel), error: String(error).slice(0, 160) }));
     }
   }
+  rotated = { ...rotated, payload: limitPublicIaShelf(rotated.payload, count) };
   if (catalogJob(body, rotated.payload)) ctx.waitUntil(enqueueCatalog(env, body, rotated.payload));
   const headers = new Headers(corsHeaders());
   headers.set("X-RealSignal-API", apiVersion);

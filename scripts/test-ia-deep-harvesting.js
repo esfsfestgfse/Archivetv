@@ -13,7 +13,7 @@ function check(ok, message) {
   if (!ok) failures.push(message);
 }
 
-check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v212"/.test(relay), 'underfill-depth harvest invalidates the prior queue namespace');
+check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v213"/.test(relay), 'underfill-rotation harvest invalidates the prior queue namespace');
 check(/function rotatePlayableIaShelf\([\s\S]*orderedIaEmergencySeeds\(recoveryChannel, 0\)/.test(relay), 'slow fallbacks merge the lane-owned verified bank before rotating');
 check(/rotationApplied === true/.test(relay) && /rotationApplied: true/.test(relay), 'rotation state prevents cached shelves from being advanced twice');
 check(/"701": \[[\s\S]*TheThingFromAnotherWorldHorrorSciFi1951JamesArnessKennethTobeyMargaretSheridan[\s\S]*TheGiantGilaMonster/.test(relay), 'Halloween Haunt adds full-length multi-era horror files');
@@ -63,6 +63,8 @@ check(!/general-idi-amin-1973.*General Idi Amin/.test(relay), 'Britain on Film e
 check(/const IA_UNDERFILL_DEPTH_BANKS\s*=\s*Object\.freeze/.test(relay) && /"66": \[[\s\S]*"81": \[[\s\S]*"212": \[[\s\S]*"929": \[/.test(relay), 'underfill-depth harvest covers video, nature, and audio long-tail lanes');
 check(/Xcorps21ASRhd2::Xcorps21ASRhd2\.mp4/.test(relay) && /Nature_Land_of_the_Eagle::Nature S10E07/.test(relay) && /mix_07_7_06::mix_07_7_06\.mp3/.test(relay), 'underfill-depth bank carries concrete Archive derivatives instead of collection placeholders');
 check(/"212": \[[\s\S]*wildlife nature animal behavior zoology natural history documentary television/.test(relay) && /"902": \[[\s\S]*bluegrass folk acoustic string band live music/.test(relay), 'underfill-depth bank preserves strict station vocabulary');
+
+check(relay.includes('const IA_UNDERFILL_DEPTH_ROTATION_CHANNELS = new Set(Object.keys(IA_UNDERFILL_DEPTH_BANKS))') && relay.includes('function rotateUnderfillDepthBank(') && relay.includes('underfillDepthRotation: true'), 'underfill lanes rotate the verified file bank instead of reopening a shallow search shelf');
 
 if (failures.length) {
   console.error(`IA deep-harvesting contract failed: ${failures.length} check(s)`);

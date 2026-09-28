@@ -90,7 +90,7 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
    warmup back onto the channel-change path. */
 const IA_STRICT_CATALOG_CANDIDATE_MAX = 128;
 const IA_CATALOG_CANDIDATE_MAX = 96;
-const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v55-underfill-depth-banks";
+const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v56-underfill-rotation-rails";
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
@@ -103,10 +103,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v55-under
    episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v212";
+const IA_QUEUE_CACHE_VERSION = "v213";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v212";
+const IA_LAST_GOOD_CACHE_VERSION = "v213";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -4108,6 +4108,12 @@ const IA_UNDERFILL_DEPTH_BANKS = Object.freeze({
     iaDirectRecovery("victor-17826-a-if-war-is-what-sherman-said-it-was::Victor 17826A - If War is What Sherman Said it Was - 3.0 CT 630N-16 EQ.mp3", "victor-17826-a-if-war-is-what-sherman-said-it-was", "Victor 17826A - If War is What Sherman Said it Was - 3.0 CT 630N-16 EQ.mp3", "Billy Murray · If War Is What Sherman Said It Was", "78rpm acoustic recording wax cylinder early 20th century billy murray", 1915, "audio", 175.02),
   ],
 });
+/* The harvested underfill banks are not just emergency media. They are the
+   stable, file-level rotation rail for these lanes while broader Archive
+   discovery catches up. Mark them as full-window stations so a later skip
+   cannot fall back to the same first five search results. */
+const IA_UNDERFILL_DEPTH_ROTATION_CHANNELS = new Set(Object.keys(IA_UNDERFILL_DEPTH_BANKS));
+for (const channel of IA_UNDERFILL_DEPTH_ROTATION_CHANNELS) IA_FULL_WINDOW_ROTATION_CHANNELS.add(channel);
 /* Keep a single cold tune from opening three identical Archive requests while
    several viewers or the soak harness hit the same rail together. This map is
    intentionally process-local and ephemeral; the durable result remains in
@@ -7061,6 +7067,53 @@ function strictRecoveryQueue(channel, rotation, count, themeTerms, denyTerms, re
   };
 }
 
+function rotateUnderfillDepthBank(payload, channel, rotation, count, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, minRuntimeSeconds = 0) {
+  const key = String(channel || "");
+  const normalizedRotation = Math.abs(Number(rotation) || 0);
+  const requested = Math.max(1, Number(count) || 1);
+  if (normalizedRotation <= 0 || !IA_UNDERFILL_DEPTH_ROTATION_CHANNELS.has(key)) return payload;
+  const bankTarget = Math.min(IA_STRICT_CATALOG_CANDIDATE_MAX, Math.max(requested * 5, IA_DEPTH_PLAYABLE_TARGET));
+  const direct = strictRecoveryQueue(key, 0, bankTarget, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, minRuntimeSeconds);
+  const seen = new Set();
+  const candidates = [];
+  for (const item of [
+    ...(Array.isArray(direct && direct.candidateItems) ? direct.candidateItems : []),
+    ...(Array.isArray(payload && payload.candidateItems) ? payload.candidateItems : []),
+    ...(Array.isArray(payload && payload.items) ? payload.items : []),
+  ]) {
+    const id = String(item && item.identifier || "");
+    if (!id || seen.has(id) || !item.media || !item.media.url) continue;
+    seen.add(id);
+    candidates.push(item);
+  }
+  if (candidates.length < requested) return payload;
+  const rotated = rotatePlayableIaShelf({
+    ...(payload || {}),
+    channel: key,
+    rotation: 0,
+    items: candidates,
+    candidateItems: candidates,
+    candidates: candidates.length,
+    ready: candidates.length,
+    partial: false,
+    hydrating: false,
+    rotationApplied: false,
+  }, normalizedRotation, requested);
+  return {
+    ...(payload || {}),
+    ...rotated,
+    channel: key,
+    rotation: normalizedRotation,
+    candidateItems: candidates,
+    candidates: candidates.length,
+    ready: Math.min(requested, Array.isArray(rotated.items) ? rotated.items.length : 0),
+    partial: Array.isArray(rotated.items) ? rotated.items.length < requested : true,
+    hydrating: false,
+    emergency: false,
+    underfillDepthRotation: true,
+  };
+}
+
 async function hydrateIaQueue(payload, requestedCount, cacheOrigin, ctx, mediaTypes, onReady, concurrency = 5) {
   /* Keep a few extra candidates behind the five-program shelf. Archive items
      occasionally have no browser-playable derivative; filtering those here
@@ -7824,6 +7877,15 @@ async function getIaQueue(request, url, env, ctx) {
        Do not write the ledger yet: only verified/returned shelf items count as
        issued, and the hydration callback below records those. */
     payload = applyIaFreshness(payload, freshnessLedger, count).payload;
+    /* A slow underfill lane can have a verified direct bank and a much larger
+       but still-hydrating search result at the same time. On later rotations,
+       prefer the file-level union and rotate the whole public shelf before
+       hydration; otherwise the search winner keeps reopening its first five
+       records even though deeper verified media is already available. */
+    if (rotation > 0 && IA_UNDERFILL_DEPTH_ROTATION_CHANNELS.has(String(channel))) {
+      const rotatedDepth = rotateUnderfillDepthBank(payload, channel, rotation, count, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, minRuntimeSeconds);
+      if (rotatedDepth !== payload) payload = applyIaFreshness(rotatedDepth, freshnessLedger, count).payload;
+    }
     payload = { ...payload, lastGoodKey };
     /* A first-approved rail may return one to four candidates even when the
        channel has more approved material in its reserve lanes. Start widening

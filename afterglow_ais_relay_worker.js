@@ -90,7 +90,7 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
    warmup back onto the channel-change path. */
 const IA_STRICT_CATALOG_CANDIDATE_MAX = 128;
 const IA_CATALOG_CANDIDATE_MAX = 96;
-const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v50-rotation-harvest";
+const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v51-verified-family-banks";
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
@@ -103,10 +103,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v50-rotat
    episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v207";
+const IA_QUEUE_CACHE_VERSION = "v208";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v207";
+const IA_LAST_GOOD_CACHE_VERSION = "v208";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -185,7 +185,7 @@ const IA_GLOBAL_VIDEO_POLICY_VERSION = "v1";
    that still showed neighboring rotations reopening the same five programs.
    This is a bounded ordering change only: discovery, hydration, and editorial
    gates remain unchanged, while a channel advances by one public shelf. */
-const IA_FULL_WINDOW_ROTATION_CHANNELS = new Set(["2", "14", "53", "55", "56", "59", "60", "61", "64", "74", "76", "78", "79", "82", "100", "101", "103", "107", "108", "113", "120", "121", "123", "128", "134", "210", "215", "217", "225", "233", "234", "235", "241", "511", "701", "906", "910", "917", "918", "919", "921", "928", "707", "708", "709"]);
+const IA_FULL_WINDOW_ROTATION_CHANNELS = new Set(["2", "14", "51", "53", "55", "56", "57", "58", "59", "60", "61", "64", "69", "74", "76", "78", "79", "82", "100", "101", "103", "107", "108", "113", "120", "121", "123", "124", "128", "134", "209", "210", "214", "215", "217", "225", "231", "232", "233", "234", "235", "237", "241", "511", "701", "703", "906", "910", "917", "918", "919", "921", "928", "707", "708", "709"]);
 /* Three repaired long-tail lanes proved that their durable warm shelf could
    still outrank a deeper direct bank on later skips. For these lanes, every
    non-opening rotation must use the lane-owned verified window first; Archive
@@ -284,7 +284,7 @@ const IA_COLD_RESCUE_CHANNELS = new Set([
   "507", "508", "509", "510", "511", "575", "700", "701", "703", "900", "906", "922", "926", "927", "928", "243", "244", "204",
   /* v164's full soak isolated these additional cold lanes. Keep their verified
      shelves narrow and channel-owned; healthy lanes do not pay this cost. */
-  "14", "15", "18", "56", "63", "68", "72", "73", "77", "83", "102", "104", "109", "122", "158", "200", "202", "704", "705", "706", "707", "708", "709", "901", "911", "916"
+  "14", "15", "18", "51", "56", "57", "58", "63", "68", "69", "72", "73", "77", "83", "102", "104", "109", "122", "124", "158", "200", "202", "209", "214", "215", "231", "232", "237", "704", "705", "706", "707", "708", "709", "901", "911", "916"
 ]);
 function iaColdRescueEnabled(channel) {
   return IA_COLD_RESCUE_CHANNELS.has(String(channel));
@@ -307,7 +307,7 @@ function iaStrictRecoveryEnabled(channel) {
 const IA_DEPTH_RECOVERY_CHANNELS = new Set([
   "3", "10", "13", "14", "17", "18", "19", "21", "60", "61", "62", "64", "66", "68", "70", "74", "75", "76", "77", "80", "81",
   "100", "101", "102", "105", "106", "107", "108", "111", "114", "115", "117", "118", "120", "124", "125", "126", "127", "128", "129", "130", "131", "132", "154", "205", "222", "922",
-  "72", "83", "104", "122", "202", "203", "204", "206", "209", "210", "211", "212", "213", "214", "220", "223", "224", "227", "228", "231", "235", "239", "240", "501", "502", "511", "700", "702", "703", "704", "705", "706", "707", "708", "709", "901", "906", "907", "909", "914", "916", "918", "920", "921", "923", "927", "929"
+  "51", "57", "58", "69", "72", "83", "104", "122", "124", "202", "203", "204", "206", "209", "210", "211", "212", "213", "214", "215", "220", "223", "224", "227", "228", "231", "232", "235", "237", "239", "240", "501", "502", "511", "700", "702", "703", "704", "705", "706", "707", "708", "709", "901", "906", "907", "909", "914", "916", "918", "920", "921", "923", "927", "929"
 ].filter(Boolean));
 function iaDepthRecoveryEnabled(channel) {
   return IA_DEPTH_RECOVERY_CHANNELS.has(String(channel));
@@ -357,6 +357,11 @@ const IA_CONFIRMED_REPAIR_CHANNELS = new Set([
      their repair bounded to verified file-level banks and deeper background
      discovery; do not relax the shared policy for healthy channels. */
   "55", "64", "701",
+  /* v4.1.146 deep Archive family harvest: the previous full soak found
+     real playable families, but the normal rotated search promoted only a
+     shallow subset of them. Keep these rails bounded to their own verified
+     station profiles while the wider Archive harvest continues in background. */
+  "51", "57", "58", "69", "124", "209", "214", "215", "231", "232", "237", "703",
 ]);
 for (const channel of IA_CONFIRMED_REPAIR_CHANNELS) {
   IA_STABLE_RESCUE_CHANNELS.add(channel);
@@ -3725,6 +3730,121 @@ const IA_LONG_TAIL_MEDIA_FILES = Object.freeze({
   "iVillage_60_Minutes": "iVillage_60_Minutes.mp4",
   "wto-60-minutes-explores-anarchists-and-battle-of-seattle": "WTO - 60 Minutes Explores Anarchists and Battle of Seattle.mp4",
 });
+/* v4.1.146 verified family harvest. The long-tail soak showed that these
+   lanes had real Archive depth, but the normal search rails were admitting
+   too few playable derivatives before the shelf was cached. These records are
+   file-level, landscape television material verified against Archive metadata.
+   They are a seed for the rolling catalog, not a bypass around the editorial
+   theme, runtime, deny, or freshness gates. */
+const IA_DEEP_HARVEST_BANKS = Object.freeze({
+  "51": [
+    iaDirectRecovery("1985-nfl-films-crunch-course::1985 NFL Films Crunch Course.ia.mp4", "1985-nfl-films-crunch-course", "1985 NFL Films Crunch Course.ia.mp4", "NFL Films Crunch Course (1985)", "nfl films professional football football documentary sports television", 1985),
+    iaDirectRecovery("1988-nfl-films-search-and-destroy::1988 NFL Films Search and Destroy.mp4", "1988-nfl-films-search-and-destroy", "1988 NFL Films Search and Destroy.mp4", "NFL Films Search and Destroy (1989)", "nfl films professional football football documentary sports television", 1989),
+    iaDirectRecovery("1990-road-to-the-super-bowl-the-story-of-the-1990-nfl-season::1990 Road to the Super Bowl - The Story of the 1990 NFL Season.ia.mp4", "1990-road-to-the-super-bowl-the-story-of-the-1990-nfl-season", "1990 Road to the Super Bowl - The Story of the 1990 NFL Season.ia.mp4", "Road to the Super Bowl: The 1990 NFL Season", "nfl films professional football football documentary sports television", 1990),
+    iaDirectRecovery("nfl-films-100-greatest-tackles-1995-trim::NFL Films 100 Greatest Tackles [1995] - Trim.ia.mp4", "nfl-films-100-greatest-tackles-1995-trim", "NFL Films 100 Greatest Tackles [1995] - Trim.ia.mp4", "NFL Films: 100 Greatest Tackles (1995)", "nfl films professional football football documentary sports television", 1995),
+    iaDirectRecovery("1986-giants-yearbook-world-champions::1986 Giants Yearbook [World Champions].mp4", "1986-giants-yearbook-world-champions", "1986 Giants Yearbook [World Champions].mp4", "New York Giants Yearbook: World Champions (1986)", "nfl films professional football football documentary sports television", 1986),
+    iaDirectRecovery("1985-giants-yearbook-bound-for-glory::1985 Giants Yearbook [Bound for Glory].ia.mp4", "1985-giants-yearbook-bound-for-glory", "1985 Giants Yearbook [Bound for Glory].ia.mp4", "New York Giants Yearbook: Bound for Glory (1985)", "nfl films professional football football documentary sports television", 1985),
+  ],
+  "57": [
+    iaDirectRecovery("vsuga-Homecoming_2015_at_Valdosta_State_-_Deja_Vu::Homecoming_2015_at_Valdosta_State_-_Deja_Vu.mp4", "vsuga-Homecoming_2015_at_Valdosta_State_-_Deja_Vu", "Homecoming_2015_at_Valdosta_State_-_Deja_Vu.mp4", "College Football: Valdosta State Homecoming (2015)", "college football football game football broadcast gridiron sports television", 2015),
+    iaDirectRecovery("trcwi-Ripon_College_football_v_Knox_College_9-10-22::Ripon_College_football_v_Knox_College_9-10-22.mp4", "trcwi-Ripon_College_football_v_Knox_College_9-10-22", "Ripon_College_football_v_Knox_College_9-10-22.mp4", "College Football: Ripon vs Knox (2022)", "college football football game football broadcast gridiron sports television", 2022),
+    iaDirectRecovery("nwctc-DeLaSalle_vs._Park_Center_High_School_Football.mpeg4::DeLaSalle_vs._Park_Center_High_School_Football.mp4", "nwctc-DeLaSalle_vs._Park_Center_High_School_Football.mpeg4", "DeLaSalle_vs._Park_Center_High_School_Football.mp4", "High School Football: DeLaSalle vs Park Center", "high school football football game football broadcast gridiron sports television", 2019),
+    iaDirectRecovery("chv6ut-2018_Football_-_Monticello_at_Altamont-20180918::2018_Football_-_Monticello_at_Altamont-20180918.mp4", "chv6ut-2018_Football_-_Monticello_at_Altamont-20180918", "2018_Football_-_Monticello_at_Altamont-20180918.mp4", "High School Football: Monticello at Altamont (2018)", "high school football football game football broadcast gridiron sports television", 2018),
+    iaDirectRecovery("ftvntx-2017_NCAA_FCS_Championship_-_BBQ_Bowl::2017_NCAA_FCS_Championship_-_BBQ_Bowl.mp4", "ftvntx-2017_NCAA_FCS_Championship_-_BBQ_Bowl", "2017_NCAA_FCS_Championship_-_BBQ_Bowl.mp4", "NCAA FCS Championship: BBQ Bowl (2017)", "college football football game football broadcast gridiron sports television", 2017),
+  ],
+  "58": [
+    iaDirectRecovery("nbpacma-North_Brookfield_Girls_Varsity_Basketball_Vs_Sizer::North_Brookfield_Girls_Varsity_Basketball_Vs_Sizer.mp4", "nbpacma-North_Brookfield_Girls_Varsity_Basketball_Vs_Sizer", "North_Brookfield_Girls_Varsity_Basketball_Vs_Sizer.mp4", "Girls Basketball: North Brookfield vs Sizer", "basketball basketball game basketball broadcast college basketball basketball tournament sports television", 2019),
+    iaDirectRecovery("tbcama-BHS_Girls_Basketball_vs_New_Bedford_2-5-19::BHS_Girls_Basketball_vs_New_Bedford_2-5-19.mp4", "tbcama-BHS_Girls_Basketball_vs_New_Bedford_2-5-19", "BHS_Girls_Basketball_vs_New_Bedford_2-5-19.mp4", "Girls Basketball: BHS vs New Bedford", "basketball basketball game basketball broadcast women's basketball sports television", 2019),
+    iaDirectRecovery("cbb-auburn-v-alabama-reel-2-1-28-1982-auburn-720::Cbb Auburn V Alabama Reel 2 1-28-1982 Auburn 720.mp4", "cbb-auburn-v-alabama-reel-2-1-28-1982-auburn-720", "Cbb Auburn V Alabama Reel 2 1-28-1982 Auburn 720.mp4", "Auburn vs Alabama Basketball (1982), Reel 2", "basketball basketball game basketball broadcast college basketball basketball history sports television", 1982),
+    iaDirectRecovery("WSCS_Basketball_01032019::Basketball_01032019.mp4", "WSCS_Basketball_01032019", "Basketball_01032019.mp4", "Basketball Broadcast (2019)", "basketball basketball game basketball broadcast sports television", 2019),
+    iaDirectRecovery("lvl_20031216_basketball_glen_cove::2003-12-16 - Locust Valley vs. Glen Cove - Basketball.mp4", "lvl_20031216_basketball_glen_cove", "2003-12-16 - Locust Valley vs. Glen Cove - Basketball.mp4", "Locust Valley vs Glen Cove Basketball (2003)", "basketball basketball game basketball broadcast sports television", 2003),
+  ],
+  "69": [
+    iaDirectRecovery("24-to-zero-le-mans-1984_202307::24 To Zero - Le Mans (1984).mp4", "24-to-zero-le-mans-1984_202307", "24 To Zero - Le Mans (1984).mp4", "24 Hours of Le Mans: The Unpredictable Race (1984)", "sports newsreel sports highlights sports event sports documentary motorsport history", 1984),
+    iaDirectRecovery("On_Your_Toes_P1::On_Your_Toes_P1_master.intros.ia.mp4", "On_Your_Toes_P1", "On_Your_Toes_P1_master.intros.ia.mp4", "On Your Toes: Sports Newsreel, Part 1", "sports newsreel sports highlights sports event sports documentary athlete profile", 1950),
+    iaDirectRecovery("buzkashi::buzkashi.mp4", "buzkashi", "buzkashi.mp4", "Buzkashi", "sports newsreel sports event sports documentary athlete profile world sport", 1950),
+    iaDirectRecovery("Magicint1955::Magicint1955_edit.mp4", "Magicint1955", "Magicint1955_edit.mp4", "Magic in the Air (1955)", "sports newsreel sports highlights sports event sports documentary stadium newsreel", 1955),
+    iaDirectRecovery("1984-british-open-vhs::1984BritishOpen.mp4", "1984-british-open-vhs", "1984BritishOpen.mp4", "The British Open (1984)", "sports newsreel sports highlights sports event sports documentary golf history", 1984),
+  ],
+  "124": [
+    iaDirectRecovery("frankenstein-created-woman_202505::Frankenstein Created Woman.mp4", "frankenstein-created-woman_202505", "Frankenstein Created Woman.mp4", "Frankenstein Created Woman (1966)", "hammer horror hammer film british horror gothic horror classic horror cinema", 1966),
+    iaDirectRecovery("she-1965-68::She (1965 - 68)/01 She (1965)/She (1965).ia.mp4", "she-1965-68", "She (1965 - 68)/01 She (1965)/She (1965).ia.mp4", "She (1965)", "hammer films hammer horror british horror gothic horror classic horror cinema", 1965),
+    iaDirectRecovery("she-1965-68::She (1965 - 68)/02 The Vengeance of She (1968)/The Vengeance of She (1968).mp4", "she-1965-68", "She (1965 - 68)/02 The Vengeance of She (1968)/The Vengeance of She (1968).mp4", "The Vengeance of She (1968)", "hammer films hammer horror british horror gothic horror classic horror cinema", 1968),
+    iaDirectRecovery("shadow-of-the-cat-1961::Shadow Of The Cat - 1961.ia.mp4", "shadow-of-the-cat-1961", "Shadow Of The Cat - 1961.ia.mp4", "Shadow of the Cat (1961)", "hammer horror hammer film british horror gothic horror classic horror cinema", 1961),
+    iaDirectRecovery("thequatermassxperiment::The Quatermass Xperiment.mp4", "thequatermassxperiment", "The Quatermass Xperiment.mp4", "The Quatermass Xperiment (1955)", "hammer horror hammer film british horror gothic horror science fiction classic horror cinema", 1955),
+    iaDirectRecovery("horror-of-dracula::Horror of Dracula.mp4", "horror-of-dracula", "Horror of Dracula", "Horror of Dracula (1958)", "hammer horror hammer film british horror gothic horror classic horror cinema", 1958),
+    iaDirectRecovery("the-mummy-1959::The Mummy 1959.mp4", "the-mummy-1959", "The Mummy 1959.mp4", "The Mummy (1959)", "hammer horror hammer film british horror gothic horror classic horror cinema", 1959),
+    iaDirectRecovery("the-gorgon-1964::The Gorgon 1964.mp4", "the-gorgon-1964", "The Gorgon 1964.mp4", "The Gorgon (1964)", "hammer horror hammer film british horror gothic horror classic horror cinema", 1964),
+  ],
+  "209": [
+    iaDirectRecovery("f-14-tomcat-1988::F-14 Tomcat (1988).mp4", "f-14-tomcat-1988", "F-14 Tomcat (1988).mp4", "F-14 Tomcat (1988)", "aviation aircraft flight aviation history aviation documentary", 1988),
+    iaDirectRecovery("cstmaah_000049::cstmaah_000049_access.mp4", "cstmaah_000049", "cstmaah_000049_access.mp4", "Flight of the Southern Cross", "aviation aircraft flight aviation history aviation documentary", 1930),
+    iaDirectRecovery("cstmaah_000052::cstmaah_000052_access.mp4", "cstmaah_000052", "cstmaah_000052_access.mp4", "Winning His Wings", "aviation aircraft flight aviation history aviation documentary", 1940),
+    iaDirectRecovery("cstr_000148::cstr_000148_access.HD.mp4", "cstr_000148", "cstr_000148_access.HD.mp4", "Sonoma County Airport (1990)", "aviation airport aircraft flight aviation history aviation documentary", 1990),
+    iaDirectRecovery("ARC-39163::ARC-39163.mp4", "ARC-39163", "ARC-39163.mp4", "Operation Varsity: March 1945 Newsreel", "aviation aircraft flight aviation history aviation documentary newsreel", 1945),
+    iaDirectRecovery("428-npc-1689::428-npc-1689 Flight Operations Aboard USS Kitkun Bay (CVE-71) 05-25-1945.mp4", "428-npc-1689", "428-npc-1689 Flight Operations Aboard USS Kitkun Bay (CVE-71) 05-25-1945.mp4", "Flight Operations Aboard USS Kitkun Bay (1944)", "aviation aircraft flight naval aviation aviation history documentary", 1944),
+    iaDirectRecovery("33-312::33-312-r1.ia.mp4", "33-312", "33-312-r1.ia.mp4", "Winged Warfare on the Boll Weevil", "aviation aircraft flight agricultural aviation aviation documentary", 1945),
+    iaDirectRecovery("200594_Hawaii_at_Your_Wingtip::200594_Hawaii_at_Your_Wingtip_master.intros.mp4", "200594_Hawaii_at_Your_Wingtip", "200594_Hawaii_at_Your_Wingtip_master.intros.mp4", "Hawaii at Your Wingtip", "aviation aircraft flight airline travel aviation documentary", 1950),
+    iaDirectRecovery("f-4-u-corsar::F4U Corsair_edit_evensmaller.mp4", "f-4-u-corsar", "F4U Corsair_edit_evensmaller.mp4", "F4U Corsair", "aviation aircraft flight aviation history aviation documentary", 1945),
+    iaDirectRecovery("the-big-plane-trip-b-1-t-00::THE_BIG_PLANE_TRIP-B1_t00.ia.mp4", "the-big-plane-trip-b-1-t-00", "THE_BIG_PLANE_TRIP-B1_t00.ia.mp4", "The Big Plane Trip", "aviation aircraft flight airline travel aviation documentary", 1950),
+    iaDirectRecovery("thunderbirds-tour-de-force-1997-fighter-jet-airplane-vhs::Thunderbirds Tour De Force 1997 Fighter Jet Airplane VHS.mp4", "thunderbirds-tour-de-force-1997-fighter-jet-airplane-vhs", "Thunderbirds Tour De Force 1997 Fighter Jet Airplane VHS.mp4", "Thunderbirds: Tour de Force (1997)", "aviation aircraft flight fighter jet aviation documentary", 1997),
+    iaDirectRecovery("avroe-vulcan-bomber-mark-2-1995::Avroe Vulcan Bomber Mark 2 (1995).mp4", "avroe-vulcan-bomber-mark-2-1995", "Avroe Vulcan Bomber Mark 2 (1995).mp4", "Avro Vulcan Bomber Mark 2 (1995)", "aviation aircraft flight aviation history aviation documentary", 1995),
+  ],
+  "214": [
+    iaDirectRecovery("dniprospetsstal-008-001::Початок. Створення підсобного господарства заводу «Дніпроспецсталь» Dniprospetsstal_008_001.ia.mp4", "dniprospetsstal-008-001", "Початок. Створення підсобного господарства заводу «Дніпроспецсталь» Dniprospetsstal_008_001.ia.mp4", "The Beginning: Launching the Dniprospetsstal Farm (1983)", "rural americana farm rural life agriculture countryside documentary", 1983),
+    iaDirectRecovery("casacsh_000031::FARM LABOR 1 screener for IA.mp4", "casacsh_000031", "FARM LABOR 1 screener for IA.mp4", "Farm Labor Reel 1 (1966)", "rural americana farm rural life agriculture countryside documentary", 1966),
+    iaDirectRecovery("casacsh_000033::FARM LABOR 3 screener for IA.mp4", "casacsh_000033", "FARM LABOR 3 screener for IA.mp4", "Farm Labor Reel 3 (1971–72)", "rural americana farm rural life agriculture countryside documentary", 1971),
+    iaDirectRecovery("1593PartnersinProsperity::1593PartnersinProsperity.mp4", "1593PartnersinProsperity", "1593PartnersinProsperity.mp4", "Partners in Prosperity", "rural americana farm rural life agriculture countryside documentary", 1950),
+    iaDirectRecovery("098991::098991.mp4", "098991", "098991.mp4", "Arkansas Farm Home Movie (1950s)", "rural americana farm rural life agriculture countryside home movie", 1950),
+    iaDirectRecovery("000427_202005::000427.ia.mp4", "000427_202005", "000427.ia.mp4", "Fairview Poultry Farm (1944)", "rural americana farm rural life agriculture countryside home movie", 1944),
+    iaDirectRecovery("FundoinC1949::FundoinC1949_edit.mp4", "FundoinC1949", "FundoinC1949_edit.mp4", "Fundo in Chile (1949)", "rural americana farm rural life agriculture countryside documentary", 1949),
+  ],
+  "215": [
+    iaDirectRecovery("wvual-WVUA_Severe_Weather_4_11_13_Part_1::WVUA_Severe_Weather_4_11_13_Part_1.mp4", "wvual-WVUA_Severe_Weather_4_11_13_Part_1", "WVUA_Severe_Weather_4_11_13_Part_1.mp4", "WVUA Severe Weather (2013)", "storm chasing tornado severe weather documentary meteorology television", 2013),
+    iaDirectRecovery("friona-tx-tornado-june-2-1995-vortex-95::Friona TX Tornado June 2 1995 VORTEX-95.mp4", "friona-tx-tornado-june-2-1995-vortex-95", "Friona TX Tornado June 2 1995 VORTEX-95.mp4", "Friona, Texas Tornado (1995)", "storm chasing tornado severe weather documentary meteorology television", 1995),
+  ],
+  "231": [
+    iaDirectRecovery("WeareDriven::Frontline.S02E02.We.are.Driven.1984.VHSRip.AAC2.0.x264-rattera.mp4", "WeareDriven", "Frontline.S02E02.We.are.Driven.1984.VHSRip.AAC2.0.x264-rattera.mp4", "Frontline: We Are Driven (1984)", "automobile industry automobile manufacturing car design motor car automotive history documentary", 1984),
+    iaDirectRecovery("Designing_the_Vehicle_of_the_Future::Designing_the_Vehicle_of_the_Future.mp4", "Designing_the_Vehicle_of_the_Future", "Designing_the_Vehicle_of_the_Future.mp4", "Designing the Vehicle of the Future", "automobile industry automobile manufacturing car design motor car automotive history documentary", 1950),
+    iaDirectRecovery("70-152::70-152.mp4", "70-152", "70-152.mp4", "Making an All-Steel Automobile Body", "automobile industry automobile manufacturing assembly line motor car automotive history documentary", 1940),
+    iaDirectRecovery("70-154::70-154.mp4", "70-154", "70-154.mp4", "The Metals of a Motor Car", "automobile industry automobile manufacturing assembly line motor car automotive history documentary", 1940),
+    iaDirectRecovery("70-138::70-138.mp4", "70-138", "70-138.mp4", "Making It Tough", "automobile industry automobile manufacturing assembly line motor car automotive history documentary", 1940),
+    iaDirectRecovery("mcciaz-Business_Beat_-_Jones_Auto_Sales::Business_Beat_-_Jones_Auto_Sales.mp4", "mcciaz-Business_Beat_-_Jones_Auto_Sales", "Business_Beat_-_Jones_Auto_Sales.mp4", "Business Beat: Jones Auto Sales", "automobile industry automobile manufacturing car culture motor car automotive documentary", 1980),
+    iaDirectRecovery("McLaughlin_Car_Truck_Repair::McLaughlin_Car_Truck_Repair.mp4", "McLaughlin_Car_Truck_Repair", "McLaughlin_Car_Truck_Repair.mp4", "McLaughlin Car and Truck Repair", "automobile industry automobile manufacturing motor car automotive history documentary", 1980),
+  ],
+  "232": [
+    iaDirectRecovery("interviews-spacewalk-preps-among-flight-day-9-highlights-cd0jxM2_1so::interviews-spacewalk-preps-among-flight-day-9-highlights-cd0jxM2_1so.mp4", "interviews-spacewalk-preps-among-flight-day-9-highlights-cd0jxM2_1so", "interviews-spacewalk-preps-among-flight-day-9-highlights-cd0jxM2_1so.mp4", "Spacewalk Preparations: Flight Day 9", "space race human spaceflight space shuttle nasa mission space documentary", 2011),
+    iaDirectRecovery("endeavour_then_and_now::endeavour_then_and_now.mp4", "endeavour_then_and_now", "endeavour_then_and_now.mp4", "Voyage of Endeavour: Then and Now", "space race human spaceflight space shuttle nasa mission space documentary", 1992),
+    iaDirectRecovery("STS1LaunchTracking::First Shuttle Flight - 342usaf51273-PR422(HQ).mp4", "STS1LaunchTracking", "First Shuttle Flight - 342usaf51273-PR422(HQ).mp4", "NASA STS-1 Launch and Tracking", "space race human spaceflight space shuttle nasa mission space documentary", 1981),
+    iaDirectRecovery("flight-day-3-brings-station-and-shuttle-crews-together-GA_P7u3GO2w::flight-day-3-brings-station-and-shuttle-crews-together-GA_P7u3GO2w.mp4", "flight-day-3-brings-station-and-shuttle-crews-together-GA_P7u3GO2w", "flight-day-3-brings-station-and-shuttle-crews-together-GA_P7u3GO2w.mp4", "Flight Day 3: Station and Shuttle Crews Together", "space race human spaceflight space shuttle nasa mission space documentary", 2011),
+    iaDirectRecovery("endeavour-launches-for-iss-on-this-week-nasa-7MlEY3RVk98::endeavour-launches-for-iss-on-this-week-nasa-7MlEY3RVk98.mp4", "endeavour-launches-for-iss-on-this-week-nasa-7MlEY3RVk98", "endeavour-launches-for-iss-on-this-week-nasa-7MlEY3RVk98.mp4", "Endeavour Launches for the ISS", "space race human spaceflight space shuttle nasa mission space documentary", 2011),
+    iaDirectRecovery("first-weld-made-to-new-spacecraft-DU0Vhd1ceDQ::first-weld-made-to-new-spacecraft-DU0Vhd1ceDQ.mp4", "first-weld-made-to-new-spacecraft-DU0Vhd1ceDQ", "first-weld-made-to-new-spacecraft-DU0Vhd1ceDQ.mp4", "First Weld Made to a New Spacecraft", "space race human spaceflight space shuttle nasa mission space documentary", 2011),
+    iaDirectRecovery("NOVA_ToTheMoon::1999 NOVA - To The Moon.ia.mp4", "NOVA_ToTheMoon", "1999 NOVA - To The Moon.ia.mp4", "NOVA: To the Moon (1999)", "space race human spaceflight apollo program nasa mission space documentary", 1999),
+    iaDirectRecovery("bbc-horizon-last-flight-of-the-columbia::BBC Horizon - Last Flight of the Columbia.mp4", "bbc-horizon-last-flight-of-the-columbia", "BBC Horizon - Last Flight of the Columbia.mp4", "BBC Horizon: Last Flight of the Columbia", "space race human spaceflight space shuttle nasa mission space documentary", 2003),
+    iaDirectRecovery("ss098-0004::SS098-0004 SpaceDisc Vol. 2 Shuttle Downlink (Side 1, English) (ld-decode, QTGMC, TV→PC).mp4", "ss098-0004", "SS098-0004 SpaceDisc Vol. 2 Shuttle Downlink (Side 1, English) (ld-decode, QTGMC, TV→PC).mp4", "Space Shuttle Downlink: Space Disc Vol. 2", "space race human spaceflight space shuttle nasa mission space documentary", 1984),
+    iaDirectRecovery("s-1025.100-and-s-1026.100-4-10-08::S1025.100 and S1026.100 4-10-08.ia.mp4", "s-1025.100-and-s-1026.100-4-10-08", "S1025.100 and S1026.100 4-10-08.ia.mp4", "Space Shuttle Emergency Egress Testing", "space race human spaceflight space shuttle nasa mission space documentary", 2008),
+  ],
+  "237": [
+    iaDirectRecovery("OurWorldWindTunnelsInAction::OW47WindTunnels0317.ia.mp4", "OurWorldWindTunnelsInAction", "OW47WindTunnels0317.ia.mp4", "Our World: Wind Tunnels in Action", "future technology science and technology research laboratory engineering space technology electronics documentary", 1960),
+    iaDirectRecovery("NasaConnect-MeasurementRatiosAndGraphing321Crash::NASAConnect-MeasurementRatiosAndGraphing-321Crash.mp4", "NasaConnect-MeasurementRatiosAndGraphing321Crash", "NASAConnect-MeasurementRatiosAndGraphing-321Crash.mp4", "NASA Connect: Measurement, Ratios, and Graphing", "future technology science and technology research laboratory engineering computer science space technology documentary", 2000),
+    iaDirectRecovery("OurWorldGravityInSpace::Ow48gravityoc-mpeg4ForNasa.ia.mp4", "OurWorldGravityInSpace", "Ow48gravityoc-mpeg4ForNasa.ia.mp4", "Our World: Gravity in Space", "future technology science and technology research laboratory engineering space technology documentary", 1960),
+    iaDirectRecovery("NASA_Our_World_Eye_In_The_Sky_HD::NASA_Our_World_Eye_In_The_Sky_cropped_Med.mp4", "NASA_Our_World_Eye_In_The_Sky_HD", "NASA_Our_World_Eye_In_The_Sky_cropped_Med.mp4", "Our World: Eyes in the Sky", "future technology science and technology research laboratory engineering space technology documentary", 1960),
+    iaDirectRecovery("NASA_eClips_Solar_System_HD::NASA_Our_World_Solar_System_cropped_Med.mp4", "NASA_eClips_Solar_System_HD", "NASA_Our_World_Solar_System_cropped_Med.mp4", "Our World: What Is the Solar System?", "future technology science and technology research laboratory engineering space technology documentary", 1960),
+    iaDirectRecovery("American1956_3::American1956_3_edit.mp4", "American1956_3", "American1956_3_edit.mp4", "American Engineer: Part III", "future technology science and technology engineering electronics industrial film documentary", 1956),
+    iaDirectRecovery("Plowshar1961_2::Plowshar1961_2_edit.mp4", "Plowshar1961_2", "Plowshar1961_2_edit.mp4", "Plowshare: Part II", "future technology science and technology engineering electronics industrial film documentary", 1961),
+    iaDirectRecovery("NOVA_ToTheMoon::1999 NOVA - To The Moon.mp4", "NOVA_ToTheMoon", "1999 NOVA - To The Moon.mp4", "NOVA: To the Moon", "future technology science and technology engineering space technology documentary", 1999),
+  ],
+  "703": [
+    iaDirectRecovery("DNALOUNGE-VIDEO-2022-12-24::2022-12-24.mp4", "DNALOUNGE-VIDEO-2022-12-24", "2022-12-24.mp4", "DNA Lounge Yule Log (2022)", "yule log fireplace video ambience christmas television holiday", 2022),
+    iaDirectRecovery("DNALOUNGE-VIDEO-2020-12-25::2020-12-25.ia.mp4", "DNALOUNGE-VIDEO-2020-12-25", "2020-12-25.ia.mp4", "DNA Lounge Yule Log (2020)", "yule log fireplace video ambience christmas television holiday", 2020),
+    iaDirectRecovery("wpix-yule-log-1970::avc_avc_20251225215525_Yule_Logbhmn33.[0].mp4", "wpix-yule-log-1970", "avc_avc_20251225215525_Yule_Logbhmn33.[0].mp4", "WPIX Yule Log (1970)", "yule log fireplace broadcast video christmas television holiday", 1970),
+    iaDirectRecovery("htvod-arties-yule-log-and-holiday-globe-2007.12.19::HTVOD Arties Yule Log And Holiday Globe 2007.12.19.ia.mp4", "htvod-arties-yule-log-and-holiday-globe-2007.12.19", "HTVOD Arties Yule Log And Holiday Globe 2007.12.19.ia.mp4", "Arties Yule Log and Holiday Globe (2007)", "yule log fireplace broadcast video christmas television holiday", 2007),
+    iaDirectRecovery("Metro_Cable_Yule_Log_2017::Metro_Cable_Yule_Log_2017.mp4", "Metro_Cable_Yule_Log_2017", "Metro_Cable_Yule_Log_2017.mp4", "Metro Cable Yule Log (2017)", "yule log fireplace broadcast video christmas television holiday", 2017),
+    iaDirectRecovery("nasa_tv-NASA_Rocket_Engine_Fireplace_-_8_Hours_in_4K::NASA_Rocket_Engine_Fireplace_-_8_Hours_in_4K.mp4", "nasa_tv-NASA_Rocket_Engine_Fireplace_-_8_Hours_in_4K", "NASA_Rocket_Engine_Fireplace_-_8_Hours_in_4K.mp4", "NASA Rocket Engine Fireplace (8 Hours)", "yule log fireplace video ambience christmas television holiday", 2024),
+    iaDirectRecovery("sec-yule-log::avc_SEC Yule Log.ia.mp4", "sec-yule-log", "avc_SEC Yule Log.ia.mp4", "SEC Network Yule Log", "yule log fireplace broadcast video christmas television holiday", 2025),
+    iaDirectRecovery("xmas-yule-log::Yule Log 2025.mp4", "xmas-yule-log", "Yule Log 2025.mp4", "Christmas Yule Log (2025)", "yule log fireplace video ambience christmas television holiday", 2025),
+  ],
+});
 /* Keep a single cold tune from opening three identical Archive requests while
    several viewers or the soak harness hit the same rail together. This map is
    intentionally process-local and ephemeral; the durable result remains in
@@ -6594,6 +6714,7 @@ function orderedIaEmergencySeeds(channel, rotation) {
     .concat(IA_LONG_TAIL_EXPANSIONS[String(channel)] || [])
     .concat(IA_LONG_TAIL_EXPANSIONS_EXTRA[String(channel)] || [])
     .concat(IA_PROMOTED_ARCHIVE_BANKS[String(channel)] || [])
+    .concat(IA_DEEP_HARVEST_BANKS[String(channel)] || [])
     .concat(IA_TARGETED_RECOVERY_BANKS[String(channel)] || [])
     .map((item) => {
     const fileName = IA_LONG_TAIL_MEDIA_FILES[String(item && item.identifier || "")];

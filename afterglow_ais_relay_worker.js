@@ -102,10 +102,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v42-catal
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v194";
+const IA_QUEUE_CACHE_VERSION = "v195";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v194";
+const IA_LAST_GOOD_CACHE_VERSION = "v195";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -6224,6 +6224,8 @@ function mergeIaQueuePayload(primary, secondary, candidateCount, flags = {}) {
 
 function rotatePlayableIaShelf(payload, rotation, count) {
   const requested = Math.max(1, Number(count) || 5);
+  const normalizedRotation = Math.abs(Number(rotation) || 0);
+  if (payload && payload.rotationApplied === true && Number(payload.rotation) === normalizedRotation && Array.isArray(payload.items) && payload.items.length >= requested) return payload;
   let playableCandidates = Array.isArray(payload && payload.candidateItems)
     ? payload.candidateItems.filter((item) => item && item.identifier && item.media && item.media.url)
     : [];
@@ -6284,12 +6286,14 @@ function rotatePlayableIaShelf(payload, rotation, count) {
   /* A rotation represents consuming the public shelf, not advancing one
      record. Step by a full requested shelf so the next tune does not replay
      four of the same five programs when a deeper catalog is available. */
-  const offset = source.length > 1 ? (Math.abs(Number(rotation) || 0) * requested) % source.length : 0;
+  const offset = source.length > 1 ? (normalizedRotation * requested) % source.length : 0;
   const rotated = source.slice(offset).concat(source.slice(0, offset));
   return {
     ...(payload || {}),
     items: rotated.slice(0, requested),
     ...(stablePlayableCandidates.length >= requested ? { candidateItems: stablePlayableCandidates, candidates: stablePlayableCandidates.length } : {}),
+    rotation: normalizedRotation,
+    rotationApplied: true,
     ready: Math.min(requested, rotated.length),
   };
 }

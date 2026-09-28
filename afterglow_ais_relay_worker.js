@@ -90,7 +90,7 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
    warmup back onto the channel-change path. */
 const IA_STRICT_CATALOG_CANDIDATE_MAX = 128;
 const IA_CATALOG_CANDIDATE_MAX = 96;
-const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v48-metal-depth";
+const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v49-adult-animation-depth";
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
@@ -102,10 +102,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v48-metal
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v205";
+const IA_QUEUE_CACHE_VERSION = "v206";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v205";
+const IA_LAST_GOOD_CACHE_VERSION = "v206";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -190,7 +190,7 @@ const IA_FULL_WINDOW_ROTATION_CHANNELS = new Set(["2", "14", "53", "55", "56", "
    non-opening rotation must use the lane-owned verified window first; Archive
    expansion continues behind it, but a shared five-item shelf can no longer
    masquerade as fresh programming. */
-const IA_DIRECT_FRESHNESS_RAIL_CHANNELS = new Set(["113", "123", "917"]);
+const IA_DIRECT_FRESHNESS_RAIL_CHANNELS = new Set(["113", "123", "155", "917"]);
 /* A short per-isolate burst cache absorbs repeat requests from a TV, phone,
    and guide opened in quick succession. It is intentionally tiny and
    short-lived: Cache API/KV remain the durable shelves, while this map only
@@ -1420,11 +1420,24 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     iaDirectRecovery("viridiana.-1961.720p.-blu-ray.x-264.-aac-ve::Viridiana.1961.720p.BluRay.x264.AAC-[VE].mp4", "viridiana.-1961.720p.-blu-ray.x-264.-aac-ve", "Viridiana.1961.720p.BluRay.x264.AAC-[VE].mp4", "Viridiana", "spanish cinema latin cinema spanish film classic movie", 1961),
   ],
   "155": [
-    { identifier: "cosdaz-Heavy_Metal_-_Locomotive_11", title: "Heavy Metal — Locomotive", subject: "adult animation animated film cartoon television", year: 1981, media: { type: "video", url: "https://archive.org/download/cosdaz-Heavy_Metal_-_Locomotive_11/Heavy_Metal_-_Locomotive_11.mp4" } },
-    { identifier: "Beavis1228_-_Beavis_goes_Berserk_IV_Shaman_2009-09-18_4.51", title: "Beavis Goes Berserk", subject: "adult animation animated comedy cartoon television", year: 2009 },
-    { identifier: "futurama-s2ep5-workprint", title: "Futurama — Season 2 Episode 5", subject: "adult animation animated comedy science fiction television", year: 2000 },
-    { identifier: "cartoon-sushi-s-4-episode-64-sd-480p", title: "Cartoon Sushi — Episode 64", subject: "adult animation animated short cartoon television", year: 1998 },
-    { identifier: "twitch-vod-v514146619", title: "A Fox in Space — Animation Production", subject: "adult animation animated science fiction cartoon", year: 2019 },
+    iaDirectRecovery("cosdaz-Heavy_Metal_-_Locomotive_11::Heavy_Metal_-_Locomotive_11.mp4", "cosdaz-Heavy_Metal_-_Locomotive_11", "Heavy_Metal_-_Locomotive_11.mp4", "Heavy Metal — Locomotive", "adult animation animated feature film cartoon television", 1981, "video", 5160, 640, 360),
+    iaDirectRecovery("LiquidTelevision210::Liquid Television 210.mp4", "LiquidTelevision210", "Liquid Television 210.mp4", "Liquid Television — Episode 2.10", "adult animation animated television liquid television mtv experimental animation", 1991, "video", 1428.14, 492, 360),
+    iaDirectRecovery("LiquidTelevision301::Liquid Television 301.mp4", "LiquidTelevision301", "Liquid Television 301.mp4", "Liquid Television — Episode 3.01", "adult animation animated television liquid television mtv experimental animation", 1992, "video", 1365.77, 496, 360),
+    iaDirectRecovery("LiquidTelevision105::Liquid Television 105.mp4", "LiquidTelevision105", "Liquid Television 105.mp4", "Liquid Television — Episode 1.05", "adult animation animated television liquid television mtv experimental animation", 1991, "video", 1491.37, 492, 360),
+    iaDirectRecovery("LiquidTelevision205::Liquid Television 205.mp4", "LiquidTelevision205", "Liquid Television 205.mp4", "Liquid Television — Episode 2.05", "adult animation animated television liquid television mtv experimental animation", 1991, "video", 1430.21, 480, 360),
+    iaDirectRecovery("LiquidTelevision206::Liquid Television 206.mp4", "LiquidTelevision206", "Liquid Television 206.mp4", "Liquid Television — Episode 2.06", "adult animation animated television liquid television mtv experimental animation", 1991, "video", 1427.14, 492, 360),
+    iaDirectRecovery("LiquidTelevision305::Liquid Television 305.mp4", "LiquidTelevision305", "Liquid Television 305.mp4", "Liquid Television — Episode 3.05", "adult animation animated television liquid television mtv experimental animation", 1992, "video", 1320.03, 496, 360),
+    iaDirectRecovery("LiquidTelevision303::Liquid Television 303.mp4", "LiquidTelevision303", "Liquid Television 303.mp4", "Liquid Television — Episode 3.03", "adult animation animated television liquid television mtv experimental animation", 1992, "video", 1337.21, 492, 360),
+    iaDirectRecovery("LiquidTelevision104::Liquid Television 104.mp4", "LiquidTelevision104", "Liquid Television 104.mp4", "Liquid Television — Episode 1.04", "adult animation animated television liquid television mtv experimental animation", 1991, "video", 1475.65, 496, 360),
+    iaDirectRecovery("LiquidTelevision106::Liquid Television 106.mp4", "LiquidTelevision106", "Liquid Television 106.mp4", "Liquid Television — Episode 1.06", "adult animation animated television liquid television mtv experimental animation", 1991, "video", 1425.12, 508, 360),
+    iaDirectRecovery("fire-and-ice-ralph-bakshi-1982::Fire And Ice ☆ Ralph Bakshi ☆1982.mp4", "fire-and-ice-ralph-bakshi-1982", "Fire And Ice ☆ Ralph Bakshi ☆1982.mp4", "Fire and Ice — Ralph Bakshi", "adult animation animated feature film fantasy ralph bakshi", 1982, "video", 4669.8, 720, 400),
+    iaDirectRecovery("american-pop-ralph-bakshi-1981::American Pop - Ralph Bakshi - 1981.mp4", "american-pop-ralph-bakshi-1981", "American Pop - Ralph Bakshi - 1981.mp4", "American Pop — Ralph Bakshi", "adult animation animated feature film music drama ralph bakshi", 1981, "video", 5743.79, 640, 352),
+    iaDirectRecovery("coonskin-aka-street-fight-ralph-bakshi-1975::Coonskin aka Street Fight ☆ Ralph Bakshi ☆1975.mp4", "coonskin-aka-street-fight-ralph-bakshi-1975", "Coonskin aka Street Fight ☆ Ralph Bakshi ☆1975.mp4", "Coonskin — Ralph Bakshi", "adult animation animated feature film satire ralph bakshi", 1975, "video", 4972.33, 720, 480),
+    iaDirectRecovery("heavy-traffic-ralph-bakshi-1973::Heavy Traffic - Ralph Bakshi - 1973.mp4", "heavy-traffic-ralph-bakshi-1973", "Heavy Traffic - Ralph Bakshi - 1973.mp4", "Heavy Traffic — Ralph Bakshi", "adult animation animated feature film satire ralph bakshi", 1973, "video", 4602.69, 1792, 1080),
+    iaDirectRecovery("wizard-ralph-bakshi-1977::Wizards ☆ Ralph Bakshi ☆ 1977.mp4", "wizard-ralph-bakshi-1977", "Wizards ☆ Ralph Bakshi ☆ 1977.mp4", "Wizards — Ralph Bakshi", "adult animation animated feature film fantasy ralph bakshi", 1977, "video", 4855.32, 640, 350),
+    iaDirectRecovery("le-seigneur-des.-anneaux-j.-r.-r.-tolkiens-the-lord-of-the-rings-ralph-bakshi-1978::Le Seigneur Des.Anneaux (J.R.R.Tolkien's The Lord Of The Rings) - Ralph Bakshi - 1978.mp4", "le-seigneur-des.-anneaux-j.-r.-r.-tolkiens-the-lord-of-the-rings-ralph-bakshi-1978", "Le Seigneur Des.Anneaux (J.R.R.Tolkien's The Lord Of The Rings) - Ralph Bakshi - 1978.mp4", "The Lord of the Rings — Ralph Bakshi", "adult animation animated feature film fantasy ralph bakshi", 1978, "video", 7680.52, 544, 304),
+    iaDirectRecovery("hey-good-lookin-1982-by-ralph-bakshi-hd-1080p::Hey Good Lookin' (1982) by Ralph Bakshi HD 1080p.mp4", "hey-good-lookin-1982-by-ralph-bakshi-hd-1080p", "Hey Good Lookin' (1982) by Ralph Bakshi HD 1080p.mp4", "Hey Good Lookin' — Ralph Bakshi", "adult animation animated feature film comedy ralph bakshi", 1982, "video", 4632.1, 1920, 1080),
+    iaDirectRecovery("last-days-of-coney-island_202509::Last Days of Coney Island.mp4", "last-days-of-coney-island_202509", "Last Days of Coney Island.mp4", "Last Days of Coney Island — Ralph Bakshi", "adult animation animated feature film ralph bakshi", 2015, "video", 1350.33, 1920, 1080),
   ],
   "225": [
     { identifier: "damon-1.03", title: "Damon — Episode 1.03", subject: "stand-up comedy television comedy performance", year: 2000 },

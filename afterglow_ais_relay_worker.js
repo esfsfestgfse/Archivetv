@@ -102,10 +102,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v42-catal
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v188";
+const IA_QUEUE_CACHE_VERSION = "v189";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v188";
+const IA_LAST_GOOD_CACHE_VERSION = "v189";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -6148,6 +6148,18 @@ function rotatePlayableIaShelf(payload, rotation, count) {
       return true;
     });
   }
+  /* A family shelf can be merged from two background rails. Deduplicate the
+     final playable catalog before calculating rotation offsets; otherwise one
+     record that arrived through two rails can occupy the end of one shelf and
+     the beginning of the next, creating a visible repeat even when the catalog
+     is otherwise deep. */
+  const seenPlayableIds = new Set();
+  playableCandidates = playableCandidates.filter((item) => {
+    const id = String(item && item.identifier || "");
+    if (!id || seenPlayableIds.has(id)) return false;
+    seenPlayableIds.add(id);
+    return true;
+  });
   const animationWindow = IA_FULL_WINDOW_ANIMATION_CHANNELS.has(String(payload && payload.channel || ""));
   /* Animation shelves are deliberately assembled from several recovery rails.
      Those rails can arrive in a different order as Archive responses finish,
@@ -6646,6 +6658,24 @@ async function getIaQueue(request, url, env, ctx) {
           ? familyShelf.candidateItems
           : ((familyShelf && familyShelf.items) || []);
         const familyPlayable = familyCandidates.filter((item) => item && item.identifier && item.media && item.media.url);
+        /* A deep emergency shelf is an instant handoff, not the end of
+           discovery. Keep harvesting until the holiday family has roughly
+           twelve complete five-item rotations. This is background-only and
+           therefore cannot slow the first frame, but it prevents a previously
+           cached 19–46 item shelf from becoming the permanent ceiling. */
+        const holidayCandidateCount = Math.min(IA_STRICT_CATALOG_CANDIDATE_MAX, Math.max(IA_DEPTH_PLAYABLE_TARGET, iaCatalogCandidateBudget(themeMinScore, count)));
+        if (familyPlayable.length < holidayCandidateCount) {
+          const holidaySeed = familyShelf && familyShelf.items
+            ? { ...familyShelf, lastGoodKey, items: familyPlayable.slice(0, holidayCandidateCount), candidateItems: familyPlayable, candidates: familyPlayable.length }
+            : { ...strict, lastGoodKey };
+          scheduleIaExpansion(
+            holidaySeed,
+            iaBackgroundReserveQueries(channel, queries, true),
+            iaBackgroundFallbackQueries(channel, iaFallbackQueries(themeTerms, denyTerms, requiredTitleTerms, mediaTypes), true),
+            channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity,
+            count, holidayCandidateCount, url.origin, cacheKey, sharedKey, env, ctx, rotation, true
+          );
+        }
         if (familyPlayable.length >= Math.max(count * 2, 10)) {
           const deepShelf = rotatePlayableIaShelf({
             ...(familyShelf || {}),

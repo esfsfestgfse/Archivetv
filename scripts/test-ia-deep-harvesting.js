@@ -13,7 +13,7 @@ function check(ok, message) {
   if (!ok) failures.push(message);
 }
 
-check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v188"/.test(relay), 'IA catalog depth rotation invalidates the prior queue namespace');
+check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v189"/.test(relay), 'IA depth harvest invalidates the prior queue namespace');
 check(/IA_STRICT_CATALOG_CANDIDATE_MAX\s*=\s*128/.test(relay) && /IA_CATALOG_CANDIDATE_MAX\s*=\s*96/.test(relay), 'every IA lane receives a larger rolling catalog budget');
 check(/IA_FRESHNESS_CANDIDATE_FLOOR\s*=\s*32/.test(relay) && /IA_FRESHNESS_LEDGER_MAX\s*=\s*96/.test(relay) && /IA_PLAYED_PATH/.test(relay), 'freshness history is large enough to cover several shelves and records actual plays');
 check(/IA_BACKGROUND_COLLECTION_EPISODES_PER_PARENT\s*=\s*20/.test(relay) && /IA_BACKGROUND_CONTAINER_EXPANSIONS\s*=\s*8/.test(relay), 'container harvesting covers multiple parents and episode positions');
@@ -34,6 +34,8 @@ check(/"158": \[[\s\S]*spider-mantheanimatedseries[\s\S]*DragonTalesTVSeries[\s\
 check(/const searchQueries = uniqueIaQueries\(queries, firstApprovedLane \? 8 : 12\)/.test(relay), 'background harvest uses the complete editorial query rail set');
 check(/function iaHolidaySearchQueries\(channel, queries\)/.test(relay) && /queries = iaHolidaySearchQueries\(channel, queries\)/.test(relay), 'holiday stations add bounded collection/title discovery rails after normal query shaping');
 check(/function iaHolidayThemeMatch\(doc, themeTerms\)/.test(relay) && /!holidayMatch\) return false/.test(relay), 'holiday stations use collection-aware acceptance without weakening the title gate globally');
+check(/const seenPlayableIds = new Set\(\)/.test(relay) && /seenPlayableIds\.has\(id\)/.test(relay), 'merged Archive rails cannot duplicate one playable file across adjacent shelves');
+check(/holidayCandidateCount = Math\.min\(IA_STRICT_CATALOG_CANDIDATE_MAX, Math\.max\(IA_DEPTH_PLAYABLE_TARGET/.test(relay) && /holidaySeed/.test(relay), 'holiday family shelves continue background harvesting until a deep playable target is reached');
 check(/"80": \[[\s\S]*HuntingSeason[\s\S]*whitetail-madness-an-unbelievable-season[\s\S]*TheVistaGroup-WaterfowlChallenge1998/.test(relay), 'The Hunt has verified long-form hunting recovery media');
 
 if (failures.length) {

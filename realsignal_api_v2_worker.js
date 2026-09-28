@@ -12,7 +12,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "4.1.86-thanksgiving-animation-depth";
+const V3_RELEASE = "4.1.87-all-ia-freshness-retry";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -416,17 +416,11 @@ async function rotateShelf(env, body, payload, request) {
   if (!response.ok) throw new Error(`rotation ${response.status}`);
   const selected = await response.json();
   const upstreamReady = Number.isFinite(Number(payload.ready)) ? Number(payload.ready) : (Array.isArray(payload.items) ? payload.items.length : 0);
-  const selectedItems = Array.isArray(selected.items) ? selected.items : [];
-  const selectedCatalog = Array.isArray(selected.catalog) && selected.catalog.length ? selected.catalog : candidates;
-  /* The relay may intentionally return one verified first-frame item while
-     its candidate catalog already carries additional direct media URLs. Once
-     rotation selects those playable candidates, readiness must describe the
-     returned shelf—not the relay's earlier handoff count. */
-  const playableSelected = selectedItems.filter((item) => {
-    const media = item && item.media;
-    return Boolean((media && media.url) || item && item.mediaUrl || item && item.url);
-  }).length;
-  const selectedReady = Math.max(upstreamReady, playableSelected);
+  /* Keep these as live references. A repeated shelf can trigger the bounded
+     same-DO retry below; the response must carry the retry's fresh items,
+     catalog, and readiness rather than the stale pre-retry snapshot. */
+  let selectedItems = Array.isArray(selected.items) ? selected.items : [];
+  let selectedCatalog = Array.isArray(selected.catalog) && selected.catalog.length ? selected.catalog : candidates;
   /* A loaded catalog must never return a previously seen item while the DO
      still reports unseen material. A rare stale/racing shelf can violate that
      invariant when the upstream candidate window changes during a burst. Ask
@@ -437,9 +431,22 @@ async function rotateShelf(env, body, payload, request) {
     const retry = await stub.fetch(new Request("https://rotation.internal/select", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ items: candidates, recentIds: boundedRecentIds.concat(selected.selectionRepeatIds), count, rotation: Number(selected.cursor) || 0 }) }));
     if (retry.ok) {
       const retrySelected = await retry.json();
-      if (retrySelected && (!Array.isArray(retrySelected.selectionRepeatIds) || !retrySelected.selectionRepeatIds.length || retrySelected.cycleReset)) Object.assign(selected, retrySelected);
+      if (retrySelected && (!Array.isArray(retrySelected.selectionRepeatIds) || !retrySelected.selectionRepeatIds.length || retrySelected.cycleReset)) {
+        Object.assign(selected, retrySelected);
+        selectedItems = Array.isArray(selected.items) ? selected.items : selectedItems;
+        selectedCatalog = Array.isArray(selected.catalog) && selected.catalog.length ? selected.catalog : selectedCatalog;
+      }
     }
   }
+  /* The relay may intentionally return one verified first-frame item while
+     its candidate catalog already carries additional direct media URLs. Once
+     rotation selects those playable candidates, readiness must describe the
+     returned shelf—not the relay's earlier handoff count. */
+  const playableSelected = selectedItems.filter((item) => {
+    const media = item && item.media;
+    return Boolean((media && media.url) || item && item.mediaUrl || item && item.url);
+  }).length;
+  const selectedReady = Math.max(upstreamReady, playableSelected);
   const exhaustion = selected && selected.exhaustion && typeof selected.exhaustion === 'object' ? selected.exhaustion : {};
   return { payload: { ...payload, items: selectedItems, candidateItems: selectedCatalog, candidates: selectedCatalog.length, ready: Math.min(selectedReady, selectedItems.length), v2: { sessionScoped: true, cursor: selected.cursor, cycleReset: !!selected.cycleReset, catalogSize: Number(selected.catalogSize) || selectedCatalog.length, catalogAdded: Number(selected.catalogAdded) || 0, unseen: Number(selected.unseen) || 0, seenInCatalog: Number(exhaustion.seenInCatalog) || 0, seenInCatalogBeforeSelection: Number(exhaustion.seenInCatalogBeforeSelection) || 0, unseenBeforeSelection: Number(exhaustion.unseenBeforeSelection) || 0, unseenAfterSelection: Number(exhaustion.unseenAfterSelection) || 0, catalogExhausted: !!exhaustion.catalogExhausted, repeatAllowed: !!exhaustion.repeatAllowed, selectionRepeatIds: Array.isArray(selected.selectionRepeatIds) ? selected.selectionRepeatIds : [] } }, rotation: selected };
 }

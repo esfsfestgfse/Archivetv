@@ -102,10 +102,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v42-catal
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v197";
+const IA_QUEUE_CACHE_VERSION = "v198";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v197";
+const IA_LAST_GOOD_CACHE_VERSION = "v198";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -289,7 +289,7 @@ function iaColdRescueEnabled(channel) {
    manufacturing catalog. The six animation lanes use the same direct-ready
    contract because their verified episode banks are deeper and more reliable
    than the cold Archive search race; background expansion still deepens them. */
-const IA_STRICT_RECOVERY_CHANNELS = new Set(["17", "19", "53", "74", "78", "80", "82", "100", "108", "120", "133", "200", "206", "215", "225", "228", "234", "235", "511", "910", "918", "919", "920", "921", "928", "150", "153", "158", "704", "705", "706", "707", "708", "709"]);
+const IA_STRICT_RECOVERY_CHANNELS = new Set(["17", "19", "53", "55", "64", "74", "78", "80", "82", "100", "108", "120", "133", "200", "206", "215", "225", "228", "234", "235", "511", "910", "918", "919", "920", "921", "928", "150", "153", "158", "704", "705", "706", "707", "708", "709"]);
 function iaStrictRecoveryEnabled(channel) {
   return IA_STRICT_RECOVERY_CHANNELS.has(String(channel));
 }
@@ -4183,7 +4183,13 @@ function themeScore(doc, themeTerms) {
 function matchesDeny(doc, denyTerms) {
   if (iaHasGlobalVideoPolicyViolation(doc)) return true;
   if (!denyTerms.length) return false;
-  const haystack = themeText(String(doc && doc.title || "") + " " + String(doc && doc.subject || ""));
+  const haystack = themeText([
+    doc && doc.title,
+    doc && doc.subject,
+    doc && doc.identifier,
+    doc && doc.sourceIdentifier,
+    doc && doc.fileName,
+  ].filter(Boolean).join(" "));
   return denyTerms.some((term) => haystack.includes(themeText(term)));
 }
 

@@ -13,7 +13,7 @@ function check(ok, message) {
   if (!ok) failures.push(message);
 }
 
-check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v210"/.test(relay), 'deep family harvest invalidates the prior queue namespace');
+check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v211"/.test(relay), 'deep family harvest invalidates the prior queue namespace');
 check(/function rotatePlayableIaShelf\([\s\S]*orderedIaEmergencySeeds\(recoveryChannel, 0\)/.test(relay), 'slow fallbacks merge the lane-owned verified bank before rotating');
 check(/rotationApplied === true/.test(relay) && /rotationApplied: true/.test(relay), 'rotation state prevents cached shelves from being advanced twice');
 check(/"701": \[[\s\S]*TheThingFromAnotherWorldHorrorSciFi1951JamesArnessKennethTobeyMargaretSheridan[\s\S]*TheGiantGilaMonster/.test(relay), 'Halloween Haunt adds full-length multi-era horror files');
@@ -42,10 +42,16 @@ check(/holidayCandidateCount = Math\.min\(IA_STRICT_CATALOG_CANDIDATE_MAX, Math\
 check(/const eligible = bank\.filter/.test(relay) && /const offset = eligible\.length > count/.test(relay), 'strict recovery rotates the verified bank after editorial filtering');
 check(/const IA_DEEP_HARVEST_BANKS = Object\.freeze/.test(relay) && /"51": \[[\s\S]*dvd-transfer-95_202207[\s\S]*"57": \[[\s\S]*tulane-vs-usc[\s\S]*"58": \[[\s\S]*1989-nba-all-star-game[\s\S]*"69": \[[\s\S]*womeninsportsaninformalhistory[\s\S]*"124": \[[\s\S]*frankenstein-created-woman_202505[\s\S]*"209": \[[\s\S]*cstmaah_000049[\s\S]*"215": \[[\s\S]*gov\.fema\.9-1315[\s\S]*"232": \[[\s\S]*STS1LaunchTracking[\s\S]*"703": \[[\s\S]*DNALOUNGE-VIDEO-2022-12-24/.test(relay), 'Deep harvest adds verified family banks to the weak IA lanes');
 check(/hands-of-the-ripper-1971::Hands of the Ripper 1971\.mp4/.test(relay) && /the-vampire-lovers-1970_202608::The Vampire Lovers 1970\.mp4/.test(relay), 'Hammer House adds verified full-length Hammer features');
+check(/the-satanic-rites-of-dracula-1973::The Satanic Rites Of Dracula 1973\.ia\.mp4/.test(relay) && /dracula-has-risen-from-the-grave-1968_202406::Dracula Has Risen from the Grave 1968\.ia\.mp4/.test(relay), 'Hammer House adds a deeper Dracula-era feature rail');
 check(/0520_American_Cowboy::0520_American_Cowboy_04_32_19_07_3mb\.mp4/.test(relay) && /gov\.archives\.arc\.47087::gov\.archives\.arc\.47087_512kb\.mp4/.test(relay), 'Country Roads adds verified rural and ranch programming');
+check(/170003_202005::170003\.ia\.mp4/.test(relay) && /000495_202005::000495\.m4v/.test(relay), 'Country Roads adds additional full-length rural files');
 check(/masterhandscomplete4kh264::Master_Hands_complete_4K_h264\.mov/.test(relay) && /200723_American_Maker::200723_American_Maker_master\.intros\.mov/.test(relay), 'Motor City adds verified manufacturing features');
+check(/0311_Chryslers_New_One_Hundred_Million_Dollar_Look_aka_Chrysler_1955_12_00_53_00::/.test(relay) && /6183_Its_Called_Motor_Oil_01_15_22_09::/.test(relay), 'Motor City adds additional automobile-industry programs');
 check(/nasa_tv-Shuttle_Endeavour_Crew_s_Best_of_Flight_Day_10::Shuttle_Endeavour_Crew_s_Best_of_Flight_Day_10\.mp4/.test(relay) && /future-iss-residents-meet-media-76tf_uy7skQ::future-iss-residents-meet-media-76tf_uy7skQ\.mp4/.test(relay), 'Space Race adds verified long-form NASA programs');
+check(/0969_Air_A_Film_Lesson_in_General_Science_19_15_53_15::/.test(relay) && /6240_System_Technology_01_29_28_19::/.test(relay) && /gov\.ntis\.ava20966vnb1\.1::/.test(relay), 'Future Lab adds a deeper science and technology file rail');
 check(/Holiday_Fireplace_2018::Holiday_Fireplace_2018\.mp4/.test(relay) && /christmas-yule-log-ambience-25-days-of-christmas-freeform::/.test(relay), 'The Hearth adds a broad verified fireplace and Yule Log bank');
+check(/jims-halloween-cartoon-marathon::1972 - The New Scooby-Doo Movies - Wednesday is Missing\.mp4/.test(relay) && /jims-halloween-cartoon-marathon::1998 - The New Batman Adventures - The Demon Within\.mp4/.test(relay), 'Halloween Cartoons adds full-length official animated specials from another Archive family');
+check(/stableRotationWindow/.test(relay) && /payload && payload\.holidayCatalog === true/.test(relay) && /strict\.ready >= count && \(!strictNeedsFreshRotation \|\| holidayFamily\)/.test(relay), 'holiday and full-window shelves keep a stable rotation and bypass the slow shallow-cache path');
 check(!/friona-tx-tornado-june-2-1995-vortex-95::Friona TX Tornado June 2 1995 VORTEX-95\.mp4/.test(relay), 'Storm Chase Classics excludes the verified sub-15-minute tornado clip');
 check(/const requiredRuntime = safeMinRuntimeSeconds\(payload && payload\.minRuntimeSeconds\)/.test(relay) && /item\.media\.url && iaRuntimeAllowed\(item, requiredRuntime\)/.test(relay), 'Rotated direct shelves enforce the lane runtime floor before promotion');
 check(/"80": \[[\s\S]*HuntingSeason[\s\S]*whitetail-madness-an-unbelievable-season[\s\S]*TheVistaGroup-WaterfowlChallenge1998/.test(relay), 'The Hunt has verified long-form hunting recovery media');

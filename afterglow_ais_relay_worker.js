@@ -90,7 +90,7 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
    warmup back onto the channel-change path. */
 const IA_STRICT_CATALOG_CANDIDATE_MAX = 128;
 const IA_CATALOG_CANDIDATE_MAX = 96;
-const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v53-long-tail-family-banks";
+const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v54-long-tail-family-banks";
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
@@ -103,10 +103,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v53-long-
    episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v210";
+const IA_QUEUE_CACHE_VERSION = "v211";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v210";
+const IA_LAST_GOOD_CACHE_VERSION = "v211";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -1893,7 +1893,15 @@ const IA_LONG_TAIL_EXPANSIONS = Object.freeze({
     iaDirectRecovery("halloween-cartoon-collection_20231022::30-1963 - Bugs Bunny - Transylvania 6-5000.mp4", "halloween-cartoon-collection_20231022", "30-1963 - Bugs Bunny - Transylvania 6-5000.mp4", "Bugs Bunny · Transylvania 6-5000", "halloween cartoon halloween animation animated halloween special spooky cartoon monster cartoon", 1963),
     iaDirectRecovery("halloween-cartoon-collection_20231022::31-1967 - Pink Panther - Pink Panic.mp4", "halloween-cartoon-collection_20231022", "31-1967 - Pink Panther - Pink Panic.mp4", "Pink Panther · Pink Panic", "halloween cartoon halloween animation animated halloween special spooky cartoon monster cartoon", 1967),
     iaDirectRecovery("halloween-cartoon-collection_20231022::32-1975 - Pink Panther - Pink Plasma.mp4", "halloween-cartoon-collection_20231022", "32-1975 - Pink Panther - Pink Plasma.mp4", "Pink Panther · Pink Plasma", "halloween cartoon halloween animation animated halloween special spooky cartoon monster cartoon", 1975),
-    iaDirectRecovery("halloween-cartoon-collection_20231022::34-1940 - Night on Bald Mountain segment from FANTASIA.mp4", "halloween-cartoon-collection_20231022", "34-1940 - Night on Bald Mountain segment from FANTASIA.mp4", "Fantasia · Night on Bald Mountain", "halloween cartoon halloween animation animated halloween special spooky cartoon monster cartoon", 1940)
+    iaDirectRecovery("halloween-cartoon-collection_20231022::34-1940 - Night on Bald Mountain segment from FANTASIA.mp4", "halloween-cartoon-collection_20231022", "34-1940 - Night on Bald Mountain segment from FANTASIA.mp4", "Fantasia · Night on Bald Mountain", "halloween cartoon halloween animation animated halloween special spooky cartoon monster cartoon", 1940),
+    iaDirectRecovery("jims-halloween-cartoon-marathon::1972 - The New Scooby-Doo Movies - Wednesday is Missing.mp4", "jims-halloween-cartoon-marathon", "1972 - The New Scooby-Doo Movies - Wednesday is Missing.mp4", "The New Scooby-Doo Movies · Wednesday Is Missing", "halloween cartoon halloween animation animated halloween special spooky cartoon monster cartoon saturday morning cartoon", 1972, "video", 2373.1, 1696, 952),
+    iaDirectRecovery("jims-halloween-cartoon-marathon::1978 - The Devil & Daniel Mouse.mp4", "jims-halloween-cartoon-marathon", "1978 - The Devil & Daniel Mouse.mp4", "The Devil and Daniel Mouse", "halloween cartoon halloween animation animated halloween special spooky cartoon monster cartoon", 1978, "video", 1353.45, 640, 480),
+    iaDirectRecovery("jims-halloween-cartoon-marathon::1991 - A Claymation Comedy of Horrors.ia.mp4", "jims-halloween-cartoon-marathon", "1991 - A Claymation Comedy of Horrors.ia.mp4", "A Claymation Comedy of Horrors", "halloween cartoon halloween animation animated halloween special spooky cartoon monster cartoon", 1991, "video", 1429.82, 640, 480),
+    iaDirectRecovery("jims-halloween-cartoon-marathon::1994 - Tiny Toons' Night Ghoulery.mp4", "jims-halloween-cartoon-marathon", "1994 - Tiny Toons' Night Ghoulery.mp4", "Tiny Toons · Night Ghoulery", "halloween cartoon halloween animation animated halloween special spooky cartoon monster cartoon", 1994, "video", 2721.79, 640, 480),
+    iaDirectRecovery("jims-halloween-cartoon-marathon::1997 - Superman The Animated Series - The Hand of Fate.mp4", "jims-halloween-cartoon-marathon", "1997 - Superman The Animated Series - The Hand of Fate.mp4", "Superman: The Animated Series · The Hand of Fate", "halloween cartoon halloween animation animated halloween special spooky cartoon monster cartoon", 1997, "video", 1259.54, 854, 480),
+    iaDirectRecovery("jims-halloween-cartoon-marathon::1998 - The New Batman Adventures - The Demon Within.mp4", "jims-halloween-cartoon-marathon", "1998 - The New Batman Adventures - The Demon Within.mp4", "The New Batman Adventures · The Demon Within", "halloween cartoon halloween animation animated halloween special spooky cartoon monster cartoon", 1998, "video", 1298.99, 854, 480),
+    iaDirectRecovery("jims-halloween-cartoon-marathon::Real Ghostbusters - When Halloween Was Forever.mp4", "jims-halloween-cartoon-marathon", "Real Ghostbusters - When Halloween Was Forever.mp4", "The Real Ghostbusters · When Halloween Was Forever", "halloween cartoon halloween animation animated halloween special spooky cartoon monster cartoon", 1986, "video", 1494.96, 620, 480),
+    iaDirectRecovery("jims-halloween-cartoon-marathon::Real Ghostbusters - The Boogieman Cometh.mp4", "jims-halloween-cartoon-marathon", "Real Ghostbusters - The Boogieman Cometh.mp4", "The Real Ghostbusters · The Boogieman Cometh", "halloween cartoon halloween animation animated halloween special spooky cartoon monster cartoon", 1986, "video", 1495.16, 616, 480)
   ],
   "706": [
     iaDirectRecovery("garfieldsthanksgiving::Garfield's Thanksgiving.mp4", "garfieldsthanksgiving", "Garfield's Thanksgiving.mp4", "Garfield's Thanksgiving", "thanksgiving cartoon thanksgiving animation animated thanksgiving special turkey cartoon harvest cartoon family holiday cartoon", 1989),
@@ -3825,6 +3833,10 @@ const IA_DEEP_HARVEST_BANKS = Object.freeze({
     iaDirectRecovery("the-curse-of-the-werewolf-1961_202509::The Curse of the Werewolf 1961.mp4", "the-curse-of-the-werewolf-1961_202509", "The Curse of the Werewolf 1961.mp4", "The Curse of the Werewolf (1961)", "hammer horror hammer film british horror gothic horror classic horror cinema", 1961, "video", 5559.58, 714, 384),
     iaDirectRecovery("the-two-faces-of-dr-jekyll-1960::The Two Faces of Dr Jekyll 1960.mp4", "the-two-faces-of-dr-jekyll-1960", "The Two Faces of Dr Jekyll 1960.mp4", "The Two Faces of Dr. Jekyll (1960)", "hammer horror hammer film british horror gothic horror classic horror cinema", 1960, "video", 5296.66, 682, 384),
     iaDirectRecovery("the-vampire-lovers-1970_202608::The Vampire Lovers 1970.mp4", "the-vampire-lovers-1970_202608", "The Vampire Lovers 1970.mp4", "The Vampire Lovers (1970)", "hammer horror hammer film british horror gothic horror classic horror cinema", 1970, "video", 5481.82, 854, 480),
+    iaDirectRecovery("the-satanic-rites-of-dracula-1973::The Satanic Rites Of Dracula 1973.ia.mp4", "the-satanic-rites-of-dracula-1973", "The Satanic Rites Of Dracula 1973.ia.mp4", "The Satanic Rites of Dracula (1973)", "hammer horror hammer film british horror gothic horror classic horror cinema", 1973, "video", 5064.46, 854, 480),
+    iaDirectRecovery("countess-dracula-1971_20240614::Countess Dracula 1971.mp4", "countess-dracula-1971_20240614", "Countess Dracula 1971.mp4", "Countess Dracula (1971)", "hammer horror hammer film british horror gothic horror classic horror cinema", 1971, "video", 5600.77, 1194, 720),
+    iaDirectRecovery("scars-of-dracula-1970_202406::Scars of Dracula 1970.mp4", "scars-of-dracula-1970_202406", "Scars of Dracula 1970.mp4", "Scars of Dracula (1970)", "hammer horror hammer film british horror gothic horror classic horror cinema", 1970, "video", 5717.92, 1204, 720),
+    iaDirectRecovery("dracula-has-risen-from-the-grave-1968_202406::Dracula Has Risen from the Grave 1968.ia.mp4", "dracula-has-risen-from-the-grave-1968_202406", "Dracula Has Risen from the Grave 1968.ia.mp4", "Dracula Has Risen from the Grave (1968)", "hammer horror hammer film british horror gothic horror classic horror cinema", 1968, "video", 5532.62, 1280, 720),
   ],
   "209": [
     iaDirectRecovery("f-14-tomcat-1988::F-14 Tomcat (1988).mp4", "f-14-tomcat-1988", "F-14 Tomcat (1988).mp4", "F-14 Tomcat (1988)", "aviation aircraft flight aviation history aviation documentary", 1988),
@@ -3856,6 +3868,10 @@ const IA_DEEP_HARVEST_BANKS = Object.freeze({
     iaDirectRecovery("098992::098992.mov", "098992", "098992.mov", "Arkansas Farm Home Movie (1956)", "rural americana farm rural life agriculture countryside home movie", 1956, "video", 1149.94, 1920, 1080),
     iaDirectRecovery("1669ModernTrendsinSwineProduction::1669ModernTrendsinSwineProduction.mp4", "1669ModernTrendsinSwineProduction", "1669ModernTrendsinSwineProduction.mp4", "Modern Trends in Swine Production (1961)", "rural americana farm rural life agriculture countryside livestock documentary", 1961, "video", 964.21, 640, 480),
     iaDirectRecovery("Democrac1940::Democrac1940.mp4", "Democrac1940", "Democrac1940.mp4", "Democracy at Work in Rural Puerto Rico (1940)", "rural americana farm rural life agriculture countryside rural community documentary", 1940, "video", 1203.34, 640, 480),
+    iaDirectRecovery("170003_202005::170003.ia.mp4", "170003_202005", "170003.ia.mp4", "Rural Community Film 170003", "rural americana farm rural life agriculture countryside community documentary", 1950, "video", 3132.13, 640, 480),
+    iaDirectRecovery("000463Rescan::000463_rescan.mov", "000463Rescan", "000463_rescan.mov", "Rural America Film 000463", "rural americana farm rural life agriculture countryside community documentary", 1950, "video", 1044.56, 2048, 1485),
+    iaDirectRecovery("6068_HM_Crawford_Farm_01_01_02_14::6068_HM_Crawford_Farm_01_01_02_14.mp4", "6068_HM_Crawford_Farm_01_01_02_14", "6068_HM_Crawford_Farm_01_01_02_14.mp4", "Crawford Farm Home Movie", "rural americana farm rural life agriculture countryside farm home movie", 1950, "video", 1013.49, 640, 480),
+    iaDirectRecovery("000495_202005::000495.m4v", "000495_202005", "000495.m4v", "Rural America Film 000495", "rural americana farm rural life agriculture countryside community documentary", 1950, "video", 1027.81, 854, 480),
   ],
   "215": [
     iaDirectRecovery("wvual-WVUA_Severe_Weather_4_11_13_Part_1::WVUA_Severe_Weather_4_11_13_Part_1.mp4", "wvual-WVUA_Severe_Weather_4_11_13_Part_1", "WVUA_Severe_Weather_4_11_13_Part_1.mp4", "WVUA Severe Weather (2013)", "storm chasing tornado severe weather documentary meteorology television", 2013, "video", 2629.87, 854, 480),
@@ -3879,6 +3895,9 @@ const IA_DEEP_HARVEST_BANKS = Object.freeze({
     iaDirectRecovery("McLaughlin_Car_Truck_Repair::McLaughlin_Car_Truck_Repair.mp4", "McLaughlin_Car_Truck_Repair", "McLaughlin_Car_Truck_Repair.mp4", "McLaughlin Car and Truck Repair", "automobile industry automobile manufacturing motor car automotive history documentary", 1980),
     iaDirectRecovery("masterhandscomplete4kh264::Master_Hands_complete_4K_h264.mov", "masterhandscomplete4kh264", "Master_Hands_complete_4K_h264.mov", "Master Hands (1936) · 4K Restoration", "automobile industry automobile manufacturing assembly line motor car automotive history documentary factory film", 1936, "video", 1908.72, 4096, 3072),
     iaDirectRecovery("200723_American_Maker::200723_American_Maker_master.intros.mov", "200723_American_Maker", "200723_American_Maker_master.intros.mov", "American Maker (1960)", "automobile industry automobile manufacturing car design motor car automotive history documentary factory film", 1960, "video", 1527.8, 5120, 3840),
+    iaDirectRecovery("0311_Chryslers_New_One_Hundred_Million_Dollar_Look_aka_Chrysler_1955_12_00_53_00::0311_Chryslers_New_One_Hundred_Million_Dollar_Look_aka_Chrysler_1955_12_00_53_00.mp4", "0311_Chryslers_New_One_Hundred_Million_Dollar_Look_aka_Chrysler_1955_12_00_53_00", "0311_Chryslers_New_One_Hundred_Million_Dollar_Look_aka_Chrysler_1955_12_00_53_00.mp4", "Chrysler's New Hundred Million Dollar Look (1955)", "automobile industry automobile manufacturing car design motor car automotive history documentary factory film", 1955, "video", 2196.97, 640, 480),
+    iaDirectRecovery("4018_Am_Film_Motortrip_Across_Country_1965::4018_Am_Film_Motortrip_Across_Country_1965.mp4", "4018_Am_Film_Motortrip_Across_Country_1965", "4018_Am_Film_Motortrip_Across_Country_1965.mp4", "Motor Trip Across the Country (1965)", "automobile industry automobile manufacturing car culture motor car automotive history documentary road film", 1965, "video", 1011.05, 640, 480),
+    iaDirectRecovery("6183_Its_Called_Motor_Oil_01_15_22_09::6183_Its_Called_Motor_Oil_01_15_22_09_3mb.m4v", "6183_Its_Called_Motor_Oil_01_15_22_09", "6183_Its_Called_Motor_Oil_01_15_22_09_3mb.m4v", "It's Called Motor Oil", "automobile industry automobile manufacturing motor car automotive history documentary factory film", 1960, "video", 2215.41, 640, 480),
   ],
   "232": [
     iaDirectRecovery("interviews-spacewalk-preps-among-flight-day-9-highlights-cd0jxM2_1so::interviews-spacewalk-preps-among-flight-day-9-highlights-cd0jxM2_1so.mp4", "interviews-spacewalk-preps-among-flight-day-9-highlights-cd0jxM2_1so", "interviews-spacewalk-preps-among-flight-day-9-highlights-cd0jxM2_1so.mp4", "Spacewalk Preparations: Flight Day 9", "space race human spaceflight space shuttle nasa mission space documentary", 2011),
@@ -3905,6 +3924,14 @@ const IA_DEEP_HARVEST_BANKS = Object.freeze({
     iaDirectRecovery("NOVA_ToTheMoon::1999 NOVA - To The Moon.mp4", "NOVA_ToTheMoon", "1999 NOVA - To The Moon.mp4", "NOVA: To the Moon", "future technology science and technology engineering space technology documentary", 1999),
     iaDirectRecovery("future-iss-residents-meet-media-76tf_uy7skQ::future-iss-residents-meet-media-76tf_uy7skQ.mp4", "future-iss-residents-meet-media-76tf_uy7skQ", "future-iss-residents-meet-media-76tf_uy7skQ.mp4", "Future ISS Residents Meet the Media (2011)", "future technology science and technology engineering space technology research documentary", 2011, "video", 2452.47, 1280, 720),
     iaDirectRecovery("gov.ntis.ava20963vnb1::gov.ntis.ava20963vnb1.mp4", "gov.ntis.ava20963vnb1", "gov.ntis.ava20963vnb1.mp4", "Science in the Courtroom: Recombinant DNA and Gene Cloning", "future technology science and technology engineering research laboratory documentary", 2001, "video", 2172.27, 720, 480),
+    iaDirectRecovery("0969_Air_A_Film_Lesson_in_General_Science_19_15_53_15::0969_Air_A_Film_Lesson_in_General_Science_19_15_53_15_3mb.mp4", "0969_Air_A_Film_Lesson_in_General_Science_19_15_53_15", "0969_Air_A_Film_Lesson_in_General_Science_19_15_53_15_3mb.mp4", "Air: A Film Lesson in General Science (1928)", "future technology science and technology engineering physics atmospheric science educational film documentary", 1928, "video", 1202.28, 640, 480),
+    iaDirectRecovery("Sciencei1956_8::Sciencei1956_8.mp4", "Sciencei1956_8", "Sciencei1956_8.mp4", "Science in Action: Rivers of Ice (Part II)", "future technology science and technology earth science engineering educational film documentary", 1956, "video", 954.45, 640, 480),
+    iaDirectRecovery("0559_Threads_of_Technology::0559_Threads_of_Technology_09_12_29_01_3mb.mp4", "0559_Threads_of_Technology", "0559_Threads_of_Technology_09_12_29_01_3mb.mp4", "Threads of Technology (1970)", "future technology science and technology engineering industrial technology educational film documentary", 1970, "video", 1047.14, 640, 480),
+    iaDirectRecovery("6240_System_Technology_01_29_28_19::6240_System_Technology_01_29_28_19_3mb.mp4", "6240_System_Technology_01_29_28_19", "6240_System_Technology_01_29_28_19_3mb.mp4", "System Technology (1960)", "future technology science and technology engineering systems technology educational film documentary", 1960, "video", 1572.9, 640, 480),
+    iaDirectRecovery("gov.dod.dimoc.24888::gov.dod.dimoc.24888_512kb.mp4", "gov.dod.dimoc.24888", "gov.dod.dimoc.24888_512kb.mp4", "Science for Survival (1963)", "future technology science and technology research laboratory engineering public science documentary", 1963, "video", 2482.72, 320, 240),
+    iaDirectRecovery("gov.ntis.ava20962vnb1::gov.ntis.ava20962vnb1.mp4", "gov.ntis.ava20962vnb1", "gov.ntis.ava20962vnb1.mp4", "Science in the Courtroom: Core Concepts of Microbiology", "future technology science and technology biotechnology research laboratory documentary", 2001, "video", 2434.2, 720, 480),
+    iaDirectRecovery("gov.ntis.ava20964vnb1::gov.ntis.ava20964vnb1.mp4", "gov.ntis.ava20964vnb1", "gov.ntis.ava20964vnb1.mp4", "Science in the Courtroom: Biotech Patent Cases", "future technology science and technology biotechnology research laboratory documentary", 2001, "video", 3464.3, 720, 480),
+    iaDirectRecovery("gov.ntis.ava20966vnb1.1::gov.ntis.ava20966vnb1.1.mp4", "gov.ntis.ava20966vnb1.1", "gov.ntis.ava20966vnb1.1.mp4", "Science in the Courtroom: Basic Principles of Toxicology", "future technology science and technology toxicology research laboratory documentary", 2001, "video", 2937.07, 720, 480),
   ],
   "703": [
     iaDirectRecovery("DNALOUNGE-VIDEO-2022-12-24::2022-12-24.mp4", "DNALOUNGE-VIDEO-2022-12-24", "2022-12-24.mp4", "DNA Lounge Yule Log (2022)", "yule log fireplace video ambience christmas television holiday", 2022),
@@ -6713,13 +6740,17 @@ function rotatePlayableIaShelf(payload, rotation, count) {
     return true;
   });
   const animationWindow = IA_FULL_WINDOW_ANIMATION_CHANNELS.has(String(payload && payload.channel || ""));
-  /* Animation shelves are deliberately assembled from several recovery rails.
-     Those rails can arrive in a different order as Archive responses finish,
-     which made the same first few characters reappear on every skip even when
-     the catalog was deep. Sort only these three editorial windows by stable
-     item identity so a rotation number always addresses the same catalog
-     window. The public order still changes by full shelf-sized steps. */
-  const stablePlayableCandidates = animationWindow
+  const stableRotationWindow = animationWindow ||
+    IA_FULL_WINDOW_ROTATION_CHANNELS.has(String(payload && payload.channel || "")) ||
+    payload && payload.holidayCatalog === true;
+  /* Recovery shelves are assembled from several Archive rails. Those rails can
+     arrive in a different order as background responses finish, which made a
+     deep catalog look shallow: the same first few programs were repeatedly
+     assigned to adjacent shelves. Sort every full-window and holiday catalog
+     by stable item identity so a rotation number addresses the same catalog
+     window every time. The public order still changes by full shelf-sized
+     steps. */
+  const stablePlayableCandidates = stableRotationWindow
     ? playableCandidates.slice().sort((a, b) => String(a.identifier).localeCompare(String(b.identifier)))
     : playableCandidates;
   /* A cached fallback can carry the same rotation number while its public
@@ -7236,13 +7267,17 @@ async function getIaQueue(request, url, env, ctx) {
       Math.max(count * 3, IA_FRESHNESS_CANDIDATE_FLOOR),
     );
     const strictNeedsFreshRotation = rotation > 0 && strictPlayable < strictFreshnessFloor;
-    if (strict.ready >= count && !strictNeedsFreshRotation) {
+    const holidayFamily = IA_HOLIDAY_ANIMATION_CHANNELS.has(channel) || IA_HOLIDAY_TV_CHANNELS.has(channel);
+    /* A holiday lane may have only a five-item emergency bank while its
+       family shelf is already deep in KV. Do not send later skips through the
+       slow shallow-cache path in that case: the family shelf is the verified
+       source of truth and can answer immediately. */
+    if (strict.ready >= count && (!strictNeedsFreshRotation || holidayFamily)) {
       /* Holiday recovery banks are intentionally only the instant safety net.
          Once the background family shelf has a real playable catalog, expose
          that union here instead of returning the same direct five forever.
          This keeps cold start fast while making later skips consume the deep
          Archive harvest and its expanded collection episodes. */
-      const holidayFamily = IA_HOLIDAY_ANIMATION_CHANNELS.has(channel) || IA_HOLIDAY_TV_CHANNELS.has(channel);
       if (holidayFamily) {
         const familyShelf = await sharedQueueGet(env, lastGoodKey);
         const familyCandidates = Array.isArray(familyShelf && familyShelf.candidateItems) && familyShelf.candidateItems.length

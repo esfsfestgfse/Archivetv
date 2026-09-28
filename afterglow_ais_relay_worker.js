@@ -89,7 +89,7 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
    warmup back onto the channel-change path. */
 const IA_STRICT_CATALOG_CANDIDATE_MAX = 128;
 const IA_CATALOG_CANDIDATE_MAX = 96;
-const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v16-rotation-window";
+const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v24-global-video-quality-radio-recovery";
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
@@ -101,10 +101,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v16-rotation-wind
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v162";
+const IA_QUEUE_CACHE_VERSION = "v170";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v162";
+const IA_LAST_GOOD_CACHE_VERSION = "v170";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -129,11 +129,18 @@ const IA_FULL_WINDOW_ANIMATION_CHANNELS = new Set(["150", "153", "158", "704", "
    rails and the expanded Archive catalog on the same full-window rotation as
    the cartoon lanes, without mixing either family into the movie stations. */
 const IA_HOLIDAY_TV_CHANNELS = new Set(["707", "708", "709"]);
+/* Full-length stations should not inherit the short-form Archive lanes. These
+   exceptions are intentional programming: commercials, trailers, short
+   subjects, and weather loops. The portrait/parody/podcast policy below still
+   applies to every video record, including these stations. */
+const IA_SHORT_FORM_CHANNELS = new Set(["13", "236", "501", "509"]);
+const IA_DEFAULT_VIDEO_MIN_RUNTIME_SECONDS = 15 * 60;
+const IA_GLOBAL_VIDEO_POLICY_VERSION = "v1";
 /* The same full-shelf rotation is useful for the verified long-tail banks
    that still showed neighboring rotations reopening the same five programs.
    This is a bounded ordering change only: discovery, hydration, and editorial
    gates remain unchanged, while a channel advances by one public shelf. */
-const IA_FULL_WINDOW_ROTATION_CHANNELS = new Set(["14", "56", "59", "60", "61", "74", "82", "100", "101", "103", "134", "210", "225", "234", "235", "511", "910", "918", "919", "928", "707", "708", "709"]);
+const IA_FULL_WINDOW_ROTATION_CHANNELS = new Set(["14", "56", "59", "60", "61", "74", "76", "78", "79", "82", "100", "101", "103", "121", "134", "210", "215", "225", "234", "235", "511", "910", "918", "919", "921", "928", "707", "708", "709"]);
 /* A short per-isolate burst cache absorbs repeat requests from a TV, phone,
    and guide opened in quick succession. It is intentionally tiny and
    short-lived: Cache API/KV remain the durable shelves, while this map only
@@ -238,7 +245,7 @@ function iaColdRescueEnabled(channel) {
    manufacturing catalog. The six animation lanes use the same direct-ready
    contract because their verified episode banks are deeper and more reliable
    than the cold Archive search race; background expansion still deepens them. */
-const IA_STRICT_RECOVERY_CHANNELS = new Set(["17", "19", "74", "80", "82", "100", "133", "200", "206", "225", "228", "234", "235", "511", "910", "918", "919", "920", "928", "150", "153", "158", "704", "705", "706", "707", "708", "709"]);
+const IA_STRICT_RECOVERY_CHANNELS = new Set(["17", "19", "74", "78", "80", "82", "100", "133", "200", "206", "215", "225", "228", "234", "235", "511", "910", "918", "919", "920", "921", "928", "150", "153", "158", "704", "705", "706", "707", "708", "709"]);
 function iaStrictRecoveryEnabled(channel) {
   return IA_STRICT_RECOVERY_CHANNELS.has(String(channel));
 }
@@ -1196,18 +1203,83 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "1952-RollerDerby-TheChiefsVsTheJolters", title: "Roller Derby — The Chiefs vs The Jolters", subject: "roller derby sports newsreel athletics", year: 1952 },
   ],
   "76": [
-    { identifier: "01-1990-daytona-500-full-broadcast", title: "Daytona 500 — Full Broadcast (1990)", subject: "stock car racing nascar motorsports", year: 1990 },
+    iaDirectRecovery("01-1990-daytona-500-full-broadcast::01 1990 Daytona 500   Cope vs. Earnhardt and the filming of Days of Thunder   Classic Full Race Replay.ia.mp4", "01-1990-daytona-500-full-broadcast", "01 1990 Daytona 500   Cope vs. Earnhardt and the filming of Days of Thunder   Classic Full Race Replay.ia.mp4", "Daytona 500 — Full Broadcast (1990)", "stock car racing nascar motorsports race broadcast", 1990, "video", 9193, 1280, 720),
+    iaDirectRecovery("01-1990-daytona-500-full-broadcast::02 1990 Pontiac Excitement 400 (RAW SATELLITE FEED).ia.mp4", "01-1990-daytona-500-full-broadcast", "02 1990 Pontiac Excitement 400 (RAW SATELLITE FEED).ia.mp4", "Pontiac Excitement 400 — Raw Satellite Feed (1990)", "stock car racing nascar motorsports race broadcast", 1990, "video", 13440, 854, 480),
+    iaDirectRecovery("01-1990-daytona-500-full-broadcast::03 1990 GM Goodwrench 500.ia.mp4", "01-1990-daytona-500-full-broadcast", "03 1990 GM Goodwrench 500.ia.mp4", "GM Goodwrench 500 (1990)", "stock car racing nascar motorsports race broadcast", 1990, "video", 13205, 854, 480),
+    iaDirectRecovery("01-1990-daytona-500-full-broadcast::04 1990 Motorcraft Quality Parts 500.ia.mp4", "01-1990-daytona-500-full-broadcast", "04 1990 Motorcraft Quality Parts 500.ia.mp4", "Motorcraft Quality Parts 500 (1990)", "stock car racing nascar motorsports race broadcast", 1990, "video", 11388, 640, 480),
+    iaDirectRecovery("01-1990-daytona-500-full-broadcast::05 1990 TranSouth 500.ia.mp4", "01-1990-daytona-500-full-broadcast", "05 1990 TranSouth 500.ia.mp4", "TranSouth 500 (1990)", "stock car racing nascar motorsports race broadcast", 1990, "video", 12625, 640, 480),
+    iaDirectRecovery("01-1990-daytona-500-full-broadcast::06 NASCAR Classic Full Race 1990 Valleydale Meats 500   Bristol Motor Speedway.ia.mp4", "01-1990-daytona-500-full-broadcast", "06 NASCAR Classic Full Race 1990 Valleydale Meats 500   Bristol Motor Speedway.ia.mp4", "Valleydale Meats 500 — Bristol Motor Speedway (1990)", "stock car racing nascar motorsports race broadcast", 1990, "video", 8092, 1280, 720),
+    iaDirectRecovery("01-1990-daytona-500-full-broadcast::07 1990 First Union 400 (RAW SATELLITE FEED).mp4", "01-1990-daytona-500-full-broadcast", "07 1990 First Union 400 (RAW SATELLITE FEED).mp4", "First Union 400 — Raw Satellite Feed (1990)", "stock car racing nascar motorsports race broadcast", 1990, "video", 11717, 1280, 720),
+    iaDirectRecovery("01-1990-daytona-500-full-broadcast::08 1990 Hanes Activewear 500.ia.mp4", "01-1990-daytona-500-full-broadcast", "08 1990 Hanes Activewear 500.ia.mp4", "Hanes Activewear 500 (1990)", "stock car racing nascar motorsports race broadcast", 1990, "video", 13135, 854, 480),
+    iaDirectRecovery("01-1990-daytona-500-full-broadcast::09 1990 Winston 500.ia.mp4", "01-1990-daytona-500-full-broadcast", "09 1990 Winston 500.ia.mp4", "Winston 500 (1990)", "stock car racing nascar motorsports race broadcast", 1990, "video", 10840, 640, 480),
+    iaDirectRecovery("01-1990-daytona-500-full-broadcast::10 1991 Coca-Cola 600.ia.mp4", "01-1990-daytona-500-full-broadcast", "10 1991 Coca-Cola 600.ia.mp4", "Coca-Cola 600 (1991)", "stock car racing nascar motorsports race broadcast", 1991, "video", 14268, 854, 480),
+    iaDirectRecovery("01-1990-daytona-500-full-broadcast::11 1990 Budweiser 500 (RAW SATELLITE FEED).ia.mp4", "01-1990-daytona-500-full-broadcast", "11 1990 Budweiser 500 (RAW SATELLITE FEED).ia.mp4", "Budweiser 500 — Raw Satellite Feed (1990)", "stock car racing nascar motorsports race broadcast", 1990, "video", 16304, 854, 480),
+    iaDirectRecovery("01-1990-daytona-500-full-broadcast::12 1990 Banquet Frozen Foods 300.ia.mp4", "01-1990-daytona-500-full-broadcast", "12 1990 Banquet Frozen Foods 300.ia.mp4", "Banquet Frozen Foods 300 (1990)", "stock car racing nascar motorsports race broadcast", 1990, "video", 7828, 854, 480),
     { identifier: "Races_MPEG", title: "AMP Outlaw Winternationals — Racing", subject: "stock car racing motorsports drag racing", year: 2000 },
     { identifier: "AMP_Races01", title: "AMP Races — Full Event", subject: "stock car racing motorsports drag racing", year: 2000 },
     { identifier: "nascar-canadian-tire-series-chaudiere_20250409", title: "NASCAR Canadian Tire Series — Chaudière", subject: "nascar stock car racing motorsports", year: 2025 },
     { identifier: "racing-dynamics", title: "Racing Dynamics (2002)", subject: "stock car racing motorsports race cars", year: 2002 },
   ],
+  "79": [
+    iaDirectRecovery("03-wsdt-darts-championships-2022-day-3-complete::01 WSDT Darts Championships (2022) - Day 1 Complete.ia.mp4", "03-wsdt-darts-championships-2022-day-3-complete", "01 WSDT Darts Championships (2022) - Day 1 Complete.ia.mp4", "WSDT Darts Championships — Day 1 (2022)", "darts recreation sports tournament competition", 2022, "video", 11790, 970, 496),
+    iaDirectRecovery("03-wsdt-darts-championships-2022-day-3-complete::02 WSDT Darts Championships (2022) - Day 2.ia.mp4", "03-wsdt-darts-championships-2022-day-3-complete", "02 WSDT Darts Championships (2022) - Day 2.ia.mp4", "WSDT Darts Championships — Day 2 (2022)", "darts recreation sports tournament competition", 2022, "video", 17747, 1026, 518),
+    iaDirectRecovery("03-wsdt-darts-championships-2022-day-3-complete::03 WSDT Darts Championships (2022) - Day 3 Complete.ia.mp4", "03-wsdt-darts-championships-2022-day-3-complete", "03 WSDT Darts Championships (2022) - Day 3 Complete.ia.mp4", "WSDT Darts Championships — Day 3 (2022)", "darts recreation sports tournament competition", 2022, "video", 18456, 968, 498),
+    iaDirectRecovery("03-wsdt-darts-championships-2022-day-3-complete::04 WSDT Darts Championships (2022) - Day 4 Finals Day.ia.mp4", "03-wsdt-darts-championships-2022-day-3-complete", "04 WSDT Darts Championships (2022) - Day 4 Finals Day.ia.mp4", "WSDT Darts Championships — Finals (2022)", "darts recreation sports tournament competition", 2022, "video", 12410, 970, 498),
+    iaDirectRecovery("wtvnj-Dawn_Hopkins_Exhibition_Pool_Tournament_June_5_2019::Dawn_Hopkins_Exhibition_Pool_Tournament_June_5_2019.mp4", "wtvnj-Dawn_Hopkins_Exhibition_Pool_Tournament_June_5_2019", "Dawn_Hopkins_Exhibition_Pool_Tournament_June_5_2019.mp4", "Dawn Hopkins Exhibition Pool Tournament (2019)", "pool billiards recreation sports tournament competition", 2019, "video", 4351, 853, 480),
+    iaDirectRecovery("03-wsdt-world-darts-championships-2023-day-2-complete_202507::01 WSDT World Darts Championships (2023) - Day 1 (Afternoon Complete).ia.mp4", "03-wsdt-world-darts-championships-2023-day-2-complete_202507", "01 WSDT World Darts Championships (2023) - Day 1 (Afternoon Complete).ia.mp4", "WSDT World Darts Championships — Day 1 Afternoon (2023)", "darts recreation sports tournament competition", 2023, "video", 13353, 914, 504),
+    iaDirectRecovery("03-wsdt-world-darts-championships-2023-day-2-complete_202507::02 WSDT World Darts Championships (2023) - Day 1 (Evening Complete).ia.mp4", "03-wsdt-world-darts-championships-2023-day-2-complete_202507", "02 WSDT World Darts Championships (2023) - Day 1 (Evening Complete).ia.mp4", "WSDT World Darts Championships — Day 1 Evening (2023)", "darts recreation sports tournament competition", 2023, "video", 9029, 914, 504),
+    iaDirectRecovery("03-wsdt-world-darts-championships-2023-day-2-complete_202507::03 WSDT World Darts Championships (2023) - Day 2 (Complete).ia.mp4", "03-wsdt-world-darts-championships-2023-day-2-complete_202507", "03 WSDT World Darts Championships (2023) - Day 2 (Complete).ia.mp4", "WSDT World Darts Championships — Day 2 (2023)", "darts recreation sports tournament competition", 2023, "video", 21490, 914, 504),
+    iaDirectRecovery("03-wsdt-world-darts-championships-2023-day-2-complete_202507::04 WSDT World Darts Championships (2023) - Day 3 (Complete).ia.mp4", "03-wsdt-world-darts-championships-2023-day-2-complete_202507", "04 WSDT World Darts Championships (2023) - Day 3 (Complete).ia.mp4", "WSDT World Darts Championships — Day 3 (2023)", "darts recreation sports tournament competition", 2023, "video", 20489, 914, 504),
+    iaDirectRecovery("power-pool-with-jim-_king-james_-rempe-and-loree-jon-jones-1988::Power Pool with Jim _King James_ Rempe and Loree Jon Jones (1988).mp4", "power-pool-with-jim-_king-james_-rempe-and-loree-jon-jones-1988", "Power Pool with Jim _King James_ Rempe and Loree Jon Jones (1988).mp4", "Power Pool with Jim Rempe and Loree Jon Jones (1988)", "pool billiards recreation sports tournament competition", 1988, "video", 3175, 480, 360),
+  ],
+  "121": [
+    iaDirectRecovery("bbc-tv-news-2_202401::Bbc Tv News 2.ia.mp4", "bbc-tv-news-2_202401", "Bbc Tv News 2.ia.mp4", "BBC Television News — Full Programme", "bbc television british television news documentary", 2024, "video", 9176, 1904, 1080),
+    iaDirectRecovery("the-day-of-the-triffids-1981_202601::Season 1/The Day of the Triffids - S01E01 - Episode 1.mp4", "the-day-of-the-triffids-1981_202601", "Season 1/The Day of the Triffids - S01E01 - Episode 1.mp4", "The Day of the Triffids — Episode 1 (1981)", "bbc television british television drama science fiction series", 1981, "video", 1560, 854, 480),
+    iaDirectRecovery("bbc-weasels-feisty-and-fearless-2019-1080p::BBC Weasels Feisty and Fearless (2019)-1080p.mp4", "bbc-weasels-feisty-and-fearless-2019-1080p", "BBC Weasels Feisty and Fearless (2019)-1080p.mp4", "BBC Weasels: Feisty and Fearless (2019)", "bbc television british television wildlife documentary", 2019, "video", 3555, 1920, 1080),
+    iaDirectRecovery("bbc-three-east-enders-1st-january-2012::BBC Three EastEnders (1st January 2012).mp4", "bbc-three-east-enders-1st-january-2012", "BBC Three EastEnders (1st January 2012).mp4", "EastEnders — 1 January 2012", "bbc television british television drama series", 2012, "video", 4019, 787, 576),
+    iaDirectRecovery("bbc-2-parkinson-ali-2::BBC 2 Parkinson Ali 2.mp4", "bbc-2-parkinson-ali-2", "BBC 2 Parkinson Ali 2.mp4", "Parkinson — BBC Interview Programme", "bbc television british television interview programme", 2000, "video", 2986, 787, 576),
+    iaDirectRecovery("the-day-of-the-triffids-1981_202601::Season 1/The Day of the Triffids - S01E02 - Episode 2.mp4", "the-day-of-the-triffids-1981_202601", "Season 1/The Day of the Triffids - S01E02 - Episode 2.mp4", "The Day of the Triffids — Episode 2 (1981)", "bbc television british television drama science fiction series", 1981, "video", 1556, 854, 480),
+    iaDirectRecovery("the-day-of-the-triffids-1981_202601::Season 1/The Day of the Triffids - S01E03 - Episode 3.mp4", "the-day-of-the-triffids-1981_202601", "Season 1/The Day of the Triffids - S01E03 - Episode 3.mp4", "The Day of the Triffids — Episode 3 (1981)", "bbc television british television drama science fiction series", 1981, "video", 1606, 854, 480),
+    iaDirectRecovery("the-day-of-the-triffids-1981_202601::Season 1/The Day of the Triffids - S01E04 - Episode 4.mp4", "the-day-of-the-triffids-1981_202601", "Season 1/The Day of the Triffids - S01E04 - Episode 4.mp4", "The Day of the Triffids — Episode 4 (1981)", "bbc television british television drama science fiction series", 1981, "video", 1616, 854, 480),
+    iaDirectRecovery("bbc-2-the-real-mccoy-episodes-season-3-1::Bbc 2 The Real Mccoy Episodes (Season 3)--1.mp4", "bbc-2-the-real-mccoy-episodes-season-3-1", "Bbc 2 The Real Mccoy Episodes (Season 3)--1.mp4", "The Real McCoy — Season 3 (BBC)", "bbc television british television comedy series", 1997, "video", 1735, 628, 480),
+    iaDirectRecovery("bbc-one-the-secret-lives-of-twins-episode-3-part-recorded-::BBC ONE-The Secret Lives Of Twins (EPISODE 3 PART RECORDED) 14th July 1999.mp4", "bbc-one-the-secret-lives-of-twins-episode-3-part-recorded-", "BBC ONE-The Secret Lives Of Twins (EPISODE 3 PART RECORDED) 14th July 1999.mp4", "The Secret Lives of Twins — Episode 3 (1999)", "bbc television british television documentary science factual", 1999, "video", 3984, 787, 576),
+  ],
   "78": [
-    { identifier: "pumping-iron-ii-the-women-side-2", title: "Pumping Iron II: The Women", subject: "fitness bodybuilding gym training exercise", year: 1985 },
-    { identifier: "the_comeback_1980", title: "The Comeback — Bodybuilding Documentary", subject: "fitness bodybuilding gym training exercise", year: 1980 },
-    { identifier: "O_FallonTV_-_RSC_Fitness_Classes_O_Fallon_MO", title: "RSC Fitness Classes", subject: "fitness exercise workout gym training", year: 2015 },
-    { identifier: "workout-with-helen", title: "Dance Workout with Helen", subject: "fitness exercise workout dance training", year: 2010 },
-    { identifier: "bodynarcissism", title: "Body Narcissism — Gym Rats and Bodybuilders", subject: "fitness bodybuilding gym training exercise", year: 2011 },
+    iaDirectRecovery("TheChampionWithin::The.Infinite.Voyage.S03E04.The.Champion.Within.1989.VHSRip.AAC2.0.x264-rattera.mp4", "TheChampionWithin", "The.Infinite.Voyage.S03E04.The.Champion.Within.1989.VHSRip.AAC2.0.x264-rattera.mp4", "The Champion Within — Exercise Physiology", "fitness exercise sports physiology athletic training television", 1989, "video", 3463, 640, 480),
+    iaDirectRecovery("TheVistaGroup-KickinCountryWorkoutwithDeniseAustin1992::Kickin' Country Workout with Denise Austin VHS • 60 FPS 1992.mp4", "TheVistaGroup-KickinCountryWorkoutwithDeniseAustin1992", "Kickin' Country Workout with Denise Austin VHS • 60 FPS 1992.mp4", "Denise Austin — Kickin' Country Workout", "fitness exercise workout aerobics training television", 1992, "video", 2931, 1470, 1080),
+    iaDirectRecovery("TheVistaGroup-AeroPilatesCardioWorkout2003::2003 VHS • AeroPilates Cardio Workout 60 FPS.mp4", "TheVistaGroup-AeroPilatesCardioWorkout2003", "2003 VHS • AeroPilates Cardio Workout 60 FPS.mp4", "AeroPilates Cardio Workout", "fitness exercise workout pilates training television", 2003, "video", 1410, 1440, 1080),
+    iaDirectRecovery("TheVistaGroup-WeightBenchWorkoutforMenandWomen2000s::2000s VHS • Weight Bench Workout for Men and Women 60 FPS.mp4", "TheVistaGroup-WeightBenchWorkoutforMenandWomen2000s", "2000s VHS • Weight Bench Workout for Men and Women 60 FPS.mp4", "Weight Bench Workout for Men and Women", "fitness bodybuilding weightlifting strength training television", 2000, "video", 2408, 960, 720),
+    iaDirectRecovery("TheVistaGroup-40PlusWorkoutWalkAerobics::40_Plus_Workout-_Walk_Aerobics_VHS_-_60_FPS_1990.mp4", "TheVistaGroup-40PlusWorkoutWalkAerobics", "40_Plus_Workout-_Walk_Aerobics_VHS_-_60_FPS_1990.mp4", "40 Plus Workout — Walk Aerobics", "fitness exercise workout aerobics training television", 1990, "video", 1838, 982, 720),
+    iaDirectRecovery("pumping-iron-ii-the-women-side-2", "pumping-iron-ii-the-women-side-2", "", "Pumping Iron II: The Women", "fitness bodybuilding gym training exercise", 1985, "video", 0, 0, 0),
+    iaDirectRecovery("the_comeback_1980", "the_comeback_1980", "", "The Comeback — Bodybuilding Documentary", "fitness bodybuilding gym training exercise", 1980, "video", 0, 0, 0),
+    iaDirectRecovery("bodynarcissism", "bodynarcissism", "", "Body Narcissism — Gym Rats and Bodybuilders", "fitness bodybuilding gym training exercise", 2011, "video", 0, 0, 0),
+  ],
+  "215": [
+    iaDirectRecovery("storm-chasers-up-and-personal::Greatest Storms 2010.mp4", "storm-chasers-up-and-personal", "Greatest Storms 2010.mp4", "Storm Chasers: Greatest Storms (2010)", "storm chasing tornado severe weather documentary meteorology television", 2010, "video", 5016, 852, 480),
+    iaDirectRecovery("storm-chasers-up-and-personal::Behind the Storms.mp4", "storm-chasers-up-and-personal", "Behind the Storms.mp4", "Storm Chasers: Behind the Storms", "storm chasing tornado severe weather documentary meteorology television", 2010, "video", 2494, 852, 480),
+    iaDirectRecovery("marshall-1999-footage::Marshall1999Footage.mp4", "marshall-1999-footage", "Marshall1999Footage.mp4", "Tim Marshall — May 3, 1999 Tornadoes", "storm chasing tornado severe weather documentary meteorology", 1999, "video", 5348, 960, 720),
+    iaDirectRecovery("05131995-t-2-uncut::05131995 t2 uncut.mp4", "05131995-t-2-uncut", "05131995 t2 uncut.mp4", "Henderson County Tornado — Uncut (1995)", "storm chasing tornado weather archive documentary", 1995, "video", 3341, 640, 480),
+    iaDirectRecovery("alabama-storm-videos::ABC 33/40 Storm Alert 1998 - 2/19/98-Vu5mgam74ic.mp4", "alabama-storm-videos", "ABC 33/40 Storm Alert 1998 - 2/19/98-Vu5mgam74ic.mp4", "ABC 33/40 Storm Alert — 1998", "storm chasing severe weather tornado documentary television", 1998, "video", 2602, 854, 480),
+  ],
+  "921": [
+    iaDirectRecovery("xminusone19550424nocontact001::X Minus One - 1955-04-24 - No Contact (001).mp3", "xminusone19550424nocontact001", "X Minus One - 1955-04-24 - No Contact (001).mp3", "X Minus One — No Contact (1955)", "atomic age radio science fiction radio drama cold war radio", 1955, "audio", 1678),
+    iaDirectRecovery("XMinusOneDrGrimshawsSanitorium07141955::XMinusOneDrGrimshawsSanitorium-07-14-1955.mp3", "XMinusOneDrGrimshawsSanitorium07141955", "XMinusOneDrGrimshawsSanitorium-07-14-1955.mp3", "X Minus One — Dr. Grimshaw's Sanatorium (1955)", "atomic age radio science fiction radio drama cold war radio", 1955, "audio", 1394),
+    iaDirectRecovery("DimensionX500624DestinationMoon::Dimension X 50-06-24 Destination Moon.mp3", "DimensionX500624DestinationMoon", "Dimension X 50-06-24 Destination Moon.mp3", "Dimension X — Destination Moon (1950)", "atomic age radio science fiction radio drama cold war radio", 1950, "audio", 1704),
+    iaDirectRecovery("Suspense-HeadshrinkeragnesMoorehead::Suspense_1959-08-23_headshrinkeram.mp3", "Suspense-HeadshrinkeragnesMoorehead", "Suspense_1959-08-23_headshrinkeram.mp3", "Suspense — Headshrinker (1959)", "atomic age radio suspense radio drama cold war radio", 1959, "audio", 1046),
+    iaDirectRecovery("dimension-x-14-mars-is-heaven-ray-bradbury-07-07-50::Dimension X-14-Mars Is Heaven (Ray Bradbury) 07-07-50.mp3", "dimension-x-14-mars-is-heaven-ray-bradbury-07-07-50", "Dimension X-14-Mars Is Heaven (Ray Bradbury) 07-07-50.mp3", "Dimension X — Mars Is Heaven (1950)", "atomic age radio science fiction radio drama cold war radio", 1950, "audio", 1597),
+    iaDirectRecovery("XMinusOne560417Jaywalker::X Minus One 56-04-17 Jaywalker.mp3", "XMinusOne560417Jaywalker", "X Minus One 56-04-17 Jaywalker.mp3", "X Minus One — Jaywalker (1956)", "atomic age radio science fiction radio drama cold war radio", 1956, "audio", 1696),
+    iaDirectRecovery("Suspense440203TheSisters::Suspense 44-02-03 The Sisters.mp3", "Suspense440203TheSisters", "Suspense 44-02-03 The Sisters.mp3", "Suspense — The Sisters (1944)", "atomic age radio suspense radio drama cold war radio", 1944, "audio", 1797),
+    iaDirectRecovery("XMinusOne19550508MarsIsHeaven::X minus One 1955-05-08 Mars is Heaven.mp3", "XMinusOne19550508MarsIsHeaven", "X minus One 1955-05-08 Mars is Heaven.mp3", "X Minus One — Mars Is Heaven (1955)", "atomic age radio science fiction radio drama cold war radio", 1955, "audio", 1585),
+    iaDirectRecovery("XMinusOne1955HelloTomorrow::X Minus One 1955 Hello, Tomorrow.mp3", "XMinusOne1955HelloTomorrow", "X Minus One 1955 Hello, Tomorrow.mp3", "X Minus One — Hello, Tomorrow (1955)", "atomic age radio science fiction radio drama cold war radio", 1955, "audio", 1449),
+    iaDirectRecovery("dimension-x-02-with-folded-hands-jack-williamson-04-15-50::Dimension X-02-With Folded Hands (Jack Williamson) 04-15-50.mp3", "dimension-x-02-with-folded-hands-jack-williamson-04-15-50", "Dimension X-02-With Folded Hands (Jack Williamson) 04-15-50.mp3", "Dimension X — With Folded Hands (1950)", "atomic age radio science fiction radio drama cold war radio", 1950, "audio", 1691),
+    iaDirectRecovery("Suspense490623GhostHunt::Suspense 49-06-23 Ghost Hunt.mp3", "Suspense490623GhostHunt", "Suspense 49-06-23 Ghost Hunt.mp3", "Suspense — Ghost Hunt (1949)", "atomic age radio suspense radio drama cold war radio", 1949, "audio", 1790),
+    iaDirectRecovery("XMinusOne550522Knock::X Minus One 55-05-22 Knock.mp3", "XMinusOne550522Knock", "X Minus One 55-05-22 Knock.mp3", "X Minus One — Knock (1955)", "atomic age radio science fiction radio drama cold war radio", 1955, "audio", 1705),
+    iaDirectRecovery("DimensionX19500422ReportOnBarnhouseEffect::Dimension X 1950-04-22 Report On Barnhouse Effect.mp3", "DimensionX19500422ReportOnBarnhouseEffect", "Dimension X 1950-04-22 Report On Barnhouse Effect.mp3", "Dimension X — Report on the Barnhouse Effect (1950)", "atomic age radio science fiction radio drama cold war radio", 1950, "audio", 1800),
+    iaDirectRecovery("XMinusOne570123OpenWarfare::X Minus One 57-01-23 Open Warfare.mp3", "XMinusOne570123OpenWarfare", "X Minus One 57-01-23 Open Warfare.mp3", "X Minus One — Open Warfare (1957)", "atomic age radio science fiction radio drama cold war radio", 1957, "audio", 1280),
+    iaDirectRecovery("XMinusOne560529053Lulungameena::XMinusOne560529053Lulungameena.mp3", "XMinusOne560529053Lulungameena", "XMinusOne560529053Lulungameena.mp3", "X Minus One — Lulungameena (1956)", "atomic age radio science fiction radio drama cold war radio", 1956, "audio", 1701),
+    iaDirectRecovery("XMinusOne560522052TheDefenders::XMinusOne560522052TheDefenders.mp3", "XMinusOne560522052TheDefenders", "XMinusOne560522052TheDefenders.mp3", "X Minus One — The Defenders (1956)", "atomic age radio science fiction radio drama cold war radio", 1956, "audio", 1687),
+    iaDirectRecovery("XMinusOne560605054ProjectMastadon::XMinusOne560605054ProjectMastadon.mp3", "XMinusOne560605054ProjectMastadon", "XMinusOne560605054ProjectMastadon.mp3", "X Minus One — Project Mastodon (1956)", "atomic age radio science fiction radio drama cold war radio", 1956, "audio", 1394),
+    iaDirectRecovery("XMinusOne571121TheCoffinCure::X Minus One 57-11-21 The Coffin Cure.MP3", "XMinusOne571121TheCoffinCure", "X Minus One 57-11-21 The Coffin Cure.MP3", "X Minus One — The Coffin Cure (1957)", "atomic age radio science fiction radio drama cold war radio", 1957, "audio", 1296),
   ],
   "20": [
     { identifier: "WSBK_20010917_213000_Judge_Judy", title: "Judge Judy — September 17, 2001", subject: "courtroom legal television judge court", year: 2001, media: { type: "video", url: "https://archive.org/download/WSBK_20010917_213000_Judge_Judy/WSBK_20010917_213000_Judge_Judy.mp4" } },
@@ -1583,12 +1655,16 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
    source identifier stays separate from the synthetic episode identifier so
    queue hydration and freshness can still treat each file as its own program
    without losing the real Archive download path. */
-function iaDirectRecovery(identifier, sourceIdentifier, fileName, title, subject, year, type = "video") {
+function iaDirectRecovery(identifier, sourceIdentifier, fileName, title, subject, year, type = "video", runtime = 0, width = 0, height = 0) {
   const url = queueFileUrls(sourceIdentifier, {}, fileName)[0];
   /* Preserve provenance for the server-side catalog. These are hand-verified
      Archive files, not generic search rows; holiday child filenames often do
      not repeat the seasonal word even though the parent subject is exact. */
-  return { identifier, sourceIdentifier, fileName, title, subject, year, recoveryVerified: true, media: { type, url } };
+  const media = { type, url };
+  if (Number(runtime) > 0) media.runtime = Number(runtime);
+  if (Number(width) > 0) media.width = Number(width);
+  if (Number(height) > 0) media.height = Number(height);
+  return { identifier, sourceIdentifier, fileName, title, subject, year, recoveryVerified: true, runtime: Number(runtime) > 0 ? Number(runtime) : undefined, width: Number(width) > 0 ? Number(width) : undefined, height: Number(height) > 0 ? Number(height) : undefined, media };
 }
 
 const IA_LONG_TAIL_EXPANSIONS = Object.freeze({
@@ -2551,6 +2627,20 @@ const IA_LONG_TAIL_EXPANSIONS_EXTRA = Object.freeze({
     iaDirectRecovery("tips-techniques-waterfowl::Tips & Techniques - Waterfowl.mp4", "tips-techniques-waterfowl", "Tips & Techniques - Waterfowl.mp4", "Waterfowl Hunting Techniques", "waterfowl hunting duck hunting outdoors hunting television", 1997),
     iaDirectRecovery("vintage-vhs-american-hunter-video-collection-pure-whitetail-chance-of-a-lifetime::american_hunter_collection_pure_whitetail_chance_of_a_lifetime_01.mp4", "vintage-vhs-american-hunter-video-collection-pure-whitetail-chance-of-a-lifetime", "american_hunter_collection_pure_whitetail_chance_of_a_lifetime_01.mp4", "American Hunter: Pure Whitetail", "hunting whitetail deer hunting outdoors hunting television", 1990),
     iaDirectRecovery("RegulatedDeerHunting::RegulatedDeerHunting.mp4", "RegulatedDeerHunting", "RegulatedDeerHunting.mp4", "Regulated Deer Hunting", "hunting whitetail deer hunting outdoors hunting television", 1930),
+    /* v4.1.101 IA deep-hunt harvest: long-form, landscape records verified
+       through Archive metadata before promotion. The Ted Nugent records
+       found by search were short interviews/music/game material, not episodes
+       of the hunting show, so they are intentionally not mislabeled here. */
+    iaDirectRecovery("cocnh-NH_Fish_and_Game_Adventure_Talks_-_Turkey_Hunting::NH_Fish_and_Game_Adventure_Talks_-_Turkey_Hunting.mp4", "cocnh-NH_Fish_and_Game_Adventure_Talks_-_Turkey_Hunting", "NH_Fish_and_Game_Adventure_Talks_-_Turkey_Hunting.mp4", "NH Fish & Game Adventure Talks · Turkey Hunting", "hunting turkey hunting hunting television outdoors sportsmen", 2018, "video", 5385, 640, 360),
+    iaDirectRecovery("elk-hunting-with-the-experts-1996::Tape.ia.mp4", "elk-hunting-with-the-experts-1996", "Tape.ia.mp4", "Elk Hunting with the Experts (1996)", "hunting elk hunting big game hunting outdoors sportsmen television", 1996, "video", 5314, 710, 474),
+    iaDirectRecovery("turkey-calling-and-hunting-with-bill-harper-1984::turkey calling and hunting with bill harper 1984.ia.mp4", "turkey-calling-and-hunting-with-bill-harper-1984", "turkey calling and hunting with bill harper 1984.ia.mp4", "Turkey Calling and Hunting with Bill Harper (1984)", "hunting turkey hunting waterfowl hunting outdoors sportsmen television", 1984, "video", 5147, 1920, 1080),
+    iaDirectRecovery("sportsmen-on-film-presents-capstick-hunting-the-african-lion::Sportsmen on Film Presents Capstick Hunting the African Lion.mp4", "sportsmen-on-film-presents-capstick-hunting-the-african-lion", "Sportsmen on Film Presents Capstick Hunting the African Lion.mp4", "Sportsmen on Film · Hunting the African Lion", "hunting big game hunting outdoors sportsmen television", 1990, "video", 2966, 655, 480),
+    iaDirectRecovery("hunting-trophy-whitetail-deer::Hunting Trophy Whitetail Deer.mp4", "hunting-trophy-whitetail-deer", "Hunting Trophy Whitetail Deer.mp4", "Hunting Trophy Whitetail Deer", "hunting whitetail deer hunting outdoors sportsmen television", 1990, "video", 1915, 853, 480),
+    iaDirectRecovery("KeithLindieArchiveHuntingCamp1957-1958::R89-FF47-CampDeer1957-1958.mp4", "KeithLindieArchiveHuntingCamp1957-1958", "R89-FF47-CampDeer1957-1958.mp4", "Hunting Camp · 1957–1958", "hunting deer hunting outdoors sportsmen archival television", 1957, "video", 1096, 1472, 1080),
+    iaDirectRecovery("KeithLindieArchiveHuntingCamp1960::R97-FF53-CampDeerSeason1960.mp4", "KeithLindieArchiveHuntingCamp1960", "R97-FF53-CampDeerSeason1960.mp4", "Hunting Camp · 1960", "hunting deer hunting outdoors sportsmen archival television", 1960, "video", 998, 1472, 1080),
+    iaDirectRecovery("f-16-5008-inuit-hunting-film::F16-5008_Inuit hunting film.mp4", "f-16-5008-inuit-hunting-film", "F16-5008_Inuit hunting film.mp4", "Inuit Hunting Film", "hunting subsistence hunting outdoor life cultural documentary television", 1954, "video", 2045, 290, 240),
+    iaDirectRecovery("vintage-vhs-buckmasters-scrape-hunting-for-pressurized-bucks::scrape_hunting_for_pressurized_bucks_01.mp4", "vintage-vhs-buckmasters-scrape-hunting-for-pressurized-bucks", "scrape_hunting_for_pressurized_bucks_01.mp4", "Buckmasters · Scrape Hunting for Pressurized Bucks", "hunting whitetail deer hunting outdoors sportsmen television", 1990, "video", 3474, 2590, 1952),
+    iaDirectRecovery("outdoor-life-hunter-education-training-course-safeguarding-our-heritage::Outdoor Life Hunter Education Training Course Safeguarding Our Heritage.mp4", "outdoor-life-hunter-education-training-course-safeguarding-our-heritage", "Outdoor Life Hunter Education Training Course Safeguarding Our Heritage.mp4", "Outdoor Life · Safeguarding Our Heritage", "hunting hunting safety outdoors sportsmen television", 1997, "video", 2202, 655, 480),
   ],
   "18": [
     iaDirectRecovery("doogie-howser-m.d.-season-2-of-4-xvid-avi::Doogie Howser, M.D. - S02E01 - Doogenstein.mp4", "doogie-howser-m.d.-season-2-of-4-xvid-avi", "Doogie Howser, M.D. - S02E01 - Doogenstein.mp4", "Doogie Howser, M.D. — Doogenstein", "medical drama hospital drama medical series television", 1990),
@@ -3622,10 +3712,82 @@ function iaRuntimeSeconds(value) {
   return Number.isFinite(numeric) ? Math.max(0, numeric) : 0;
 }
 
-function iaRuntimeAllowed(doc, minimumSeconds) {
+function iaFileRuntimeSeconds(file) {
+  if (!file || typeof file !== "object") return 0;
+  const declared = iaRuntimeSeconds(file.duration || file.runtime);
+  if (declared > 0) return declared;
+  /* Archive media manifests use `length` for playback duration and `size` for
+     bytes. Only accept a bounded numeric length so a malformed upload cannot
+     masquerade as a multi-hour program. */
+  const length = Number(file.length);
+  return Number.isFinite(length) && length > 0 && length < 172800 ? length : 0;
+}
+
+function iaIsVideoRecord(doc) {
+  if (!doc || typeof doc !== "object") return false;
+  if (doc.media && doc.media.type) return String(doc.media.type).toLowerCase() !== "audio";
+  if (doc.mediatype) return String(doc.mediatype).toLowerCase() !== "audio";
+  const fileName = String(doc.fileName || doc.name || "");
+  if (/\.(?:mp3|ogg|m4a|flac|wav)$/i.test(fileName)) return false;
+  return true;
+}
+
+function iaVideoPolicyText(doc) {
+  return String(doc && [doc.title, doc.subject, doc.description, doc.fileName, doc.identifier].filter(Boolean).join(" ") || "")
+    .replace(/<[^>]+>/g, " ")
+    .normalize("NFKD")
+    .toLowerCase();
+}
+
+function iaHasPortraitGeometry(doc) {
+  const width = Number(doc && (doc.width || doc.videoWidth || doc["video-width"] || (doc.media && doc.media.width)));
+  const height = Number(doc && (doc.height || doc.videoHeight || doc["video-height"] || (doc.media && doc.media.height)));
+  /* Square material is also not a television-shaped video. Requiring a real
+     landscape frame keeps vertical/social uploads out even when their title
+     does not say “portrait”. */
+  if (Number.isFinite(width) && Number.isFinite(height) && width > 0 && height > 0) return height >= width;
+  return false;
+}
+
+function iaHasGlobalVideoPolicyViolation(doc) {
+  if (!iaIsVideoRecord(doc)) return false;
+  const text = iaVideoPolicyText(doc);
+  if (iaHasPortraitGeometry(doc)) return true;
+  if (/(?:\bportrait\b|\bvertical\b|\bvertical\s+video\b|\b9\s*:\s*16\b|\b1080x1920\b|\b1920x1080\s*vertical\b)/i.test(text)) return true;
+  /* This is deliberately narrower than banning every comedy parody. The
+     user's complaint is fan-made/parody movies leaking into normal stations;
+     ordinary television satire can still live in comedy channels. */
+  if (/(?:\bfan(?:[- ]?made)?\b|\bfanfic(?:tion)?\b|\bunofficial\b|\bbootleg\b|\bhome[- ]?made\b).{0,48}\b(?:film|movie|feature|parody|remake)\b|\b(?:film|movie|feature|parody|remake)\b.{0,48}(?:\bfan(?:[- ]?made)?\b|\bfanfic(?:tion)?\b|\bunofficial\b|\bbootleg\b|\bhome[- ]?made\b)/i.test(text)) return true;
+  if (/(?:\bvideo\s*podcast\b|\bpodcast\b|\bvodcast\b|\bpod[- ]?cast\b)/i.test(text)) return true;
+  return false;
+}
+
+function iaEffectiveVideoMinRuntimeSeconds(channel, mediaTypes, requested) {
+  const minimum = safeMinRuntimeSeconds(requested);
+  const videoLane = !Array.isArray(mediaTypes) || !mediaTypes.length || mediaTypes.includes("movies");
+  if (!videoLane || IA_SHORT_FORM_CHANNELS.has(String(channel || ""))) return minimum;
+  return Math.max(minimum, IA_DEFAULT_VIDEO_MIN_RUNTIME_SECONDS);
+}
+
+function iaVideoPolicyAllowed(doc, minimumSeconds = 0) {
+  if (!iaIsVideoRecord(doc)) return true;
+  if (iaHasGlobalVideoPolicyViolation(doc)) return false;
   const minimum = safeMinRuntimeSeconds(minimumSeconds);
   if (!minimum) return true;
-  const runtime = iaRuntimeSeconds(doc && doc.runtime);
+  const runtime = iaRuntimeSeconds(doc && doc.runtime) || iaFileRuntimeSeconds(doc && doc.media);
+  if (runtime > 0) return runtime >= minimum;
+  /* Archive search rows sometimes omit duration even when the file manifest
+     has it. Keep the record eligible for metadata hydration, but reject the
+     labels that are unambiguously short-form before they can win first play. */
+  return !/(?:\bshorts?\b|\bshort\s+film\b|\bclip\b|\btrailer\b|\bteaser\b|\bpreview\b|\bpromo(?:tion)?\b|\bcommercial\b|\bbumper\b|\bhighlight\b)/i.test(iaVideoPolicyText(doc));
+}
+
+function iaRuntimeAllowed(doc, minimumSeconds) {
+  const minimum = safeMinRuntimeSeconds(minimumSeconds);
+  if (!iaIsVideoRecord(doc)) return true;
+  if (!iaVideoPolicyAllowed(doc, minimum)) return false;
+  if (!minimum) return true;
+  const runtime = iaRuntimeSeconds(doc && doc.runtime) || iaFileRuntimeSeconds(doc && doc.media);
   if (runtime > 0) return runtime >= minimum;
   /* Archive search rows sometimes omit duration even when the metadata file
      has it. Keep unknown-duration programs eligible for later hydration, but
@@ -3736,6 +3898,7 @@ function themeScore(doc, themeTerms) {
 }
 
 function matchesDeny(doc, denyTerms) {
+  if (iaHasGlobalVideoPolicyViolation(doc)) return true;
   if (!denyTerms.length) return false;
   const haystack = themeText(String(doc && doc.title || "") + " " + String(doc && doc.subject || ""));
   return denyTerms.some((term) => haystack.includes(themeText(term)));
@@ -5040,6 +5203,7 @@ async function expandArchiveContainer(doc, cacheOrigin, ctx, rotation = 0, salt 
       ? /\.mp3$|\.ogg$|\.m4a$|\.flac$/i.test(file.name)
       : /\.mp4$|\.m4v$|\.webm$|\.ogv$/i.test(file.name))
       && !archiveInterstitialFile(file.name)
+      && !iaHasGlobalVideoPolicyViolation(file)
       && !/(?:cover|torrent|\.txt$|\.xml$|_files$|_meta$|_archive$)/i.test(file.name));
     const byEpisode = new Map();
     for (const file of playableCandidates) {
@@ -5070,7 +5234,9 @@ async function expandArchiveContainer(doc, cacheOrigin, ctx, rotation = 0, salt 
         episode: seasonEpisode ? Number(seasonEpisode[2]) : null,
         /* Archive `file.length` is byte size, not duration. Feeding it to
            runtime gates rejected valid episodes as millions of seconds long. */
-        runtime: file.duration || file.runtime || doc.runtime,
+        runtime: iaFileRuntimeSeconds(file) || iaRuntimeSeconds(doc.runtime),
+        width: Number(file.width) || 0,
+        height: Number(file.height) || 0,
         media: (function() {
           const urls = queueFileUrls(doc.identifier, payload, file.name);
           return urls.length ? { type: wantsAudio ? "audio" : "video", url: urls[0], alts: urls.slice(1, 8) } : null;
@@ -5414,7 +5580,7 @@ async function queuePlayable(id, cacheOrigin, ctx, mediaTypes = [], attempt = 0)
     const payload = await metadata;
     const files = payload.files || [];
     const format = (file) => String(file && file.format || "").toLowerCase();
-    const video = files.filter((file) => file && file.name && !archiveInterstitialFile(file.name) && (/\.mp4$|\.m4v$/i.test(file.name) || /\.webm$/i.test(file.name) || /\.ogv$/i.test(file.name)))
+    const video = files.filter((file) => file && file.name && !archiveInterstitialFile(file.name) && !iaHasGlobalVideoPolicyViolation(file) && (/\.mp4$|\.m4v$/i.test(file.name) || /\.webm$/i.test(file.name) || /\.ogv$/i.test(file.name)))
       .sort((a, b) => {
         const score = (file) => /h\.?264/.test(format(file)) ? 0 : /\.mp4$|\.m4v$/i.test(file.name) ? 1 : /\.webm$/i.test(file.name) ? 2 : 3;
         return score(a) - score(b);
@@ -5425,7 +5591,7 @@ async function queuePlayable(id, cacheOrigin, ctx, mediaTypes = [], attempt = 0)
        video channel made a seemingly healthy shelf fail at playback time. */
     const wantsVideo = mediaTypes.includes("movies");
     const wantsAudio = mediaTypes.includes("audio");
-    const requested = requestedFile && files.find((file) => file && file.name === requestedFile && !archiveInterstitialFile(file.name) && (wantsAudio
+    const requested = requestedFile && files.find((file) => file && file.name === requestedFile && !archiveInterstitialFile(file.name) && !iaHasGlobalVideoPolicyViolation(file) && (wantsAudio
       ? /\.mp3$|\.ogg$|\.m4a$|\.flac$/i.test(file.name)
       : /\.mp4$|\.m4v$|\.webm$|\.ogv$/i.test(file.name)));
     const chosen = requested || (wantsVideo ? video[0] : wantsAudio ? audio : (video[0] || audio));
@@ -5435,7 +5601,14 @@ async function queuePlayable(id, cacheOrigin, ctx, mediaTypes = [], attempt = 0)
     const isVideo = video.includes(chosen);
     if ((wantsVideo && !isVideo) || (wantsAudio && isVideo)) return null;
     const urls = queueFileUrls(sourceId, payload, chosen.name);
-    return urls.length ? { type: isVideo ? "video" : "audio", url: urls[0], alts: urls.slice(1, 8) } : null;
+    return urls.length ? {
+      type: isVideo ? "video" : "audio",
+      url: urls[0],
+      alts: urls.slice(1, 8),
+      runtime: isVideo ? iaFileRuntimeSeconds(chosen) : 0,
+      width: Number(chosen.width) || 0,
+      height: Number(chosen.height) || 0,
+    } : null;
   } catch (error) {
     const message = String(error && error.message || error || "");
     const retryable = Boolean(error && error.retryable) || /AbortError|aborted|timeout|timed out|fetch failed|network|archive metadata (408|425|429|5\d\d)/i.test(message);
@@ -5793,7 +5966,7 @@ function orderedIaEmergencySeeds(channel, rotation) {
   return seeds.slice(offset).concat(seeds.slice(0, offset));
 }
 
-function strictRecoveryQueue(channel, rotation, count, themeTerms, denyTerms, requiredTitleTerms, mediaTypes) {
+function strictRecoveryQueue(channel, rotation, count, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, minRuntimeSeconds = 0) {
   const seen = new Set();
   const bank = orderedIaEmergencySeeds(channel, 0).filter((item) => {
     if (!item || !item.identifier || !item.media || !item.media.url || seen.has(item.identifier)) return false;
@@ -5806,7 +5979,7 @@ function strictRecoveryQueue(channel, rotation, count, themeTerms, denyTerms, re
     if (!item || !item.identifier || !item.media || !item.media.url) return false;
     if (mediaTypes.length && mediaTypes.includes("movies") && item.media.type !== "video") return false;
     if (mediaTypes.length && mediaTypes.includes("audio") && item.media.type !== "audio") return false;
-    return matchesTheme(item, themeTerms, 1, requiredTitleTerms) && !matchesDeny(item, denyTerms);
+    return matchesTheme(item, themeTerms, 1, requiredTitleTerms) && !matchesDeny(item, denyTerms) && iaRuntimeAllowed(item, minRuntimeSeconds);
   });
   return {
     channel,
@@ -5819,6 +5992,7 @@ function strictRecoveryQueue(channel, rotation, count, themeTerms, denyTerms, re
     ready: Math.min(count, candidates.length),
     partial: candidates.length < count,
     hydrating: false,
+    minRuntimeSeconds: safeMinRuntimeSeconds(minRuntimeSeconds),
     strictRecovery: true,
   };
 }
@@ -5841,7 +6015,7 @@ async function hydrateIaQueue(payload, requestedCount, cacheOrigin, ctx, mediaTy
       const item = items[index];
       const mediaContractMatches = item && item.media && item.media.url && (!mediaTypes.length || (mediaTypes.includes("movies") && item.media.type === "video") || (mediaTypes.includes("audio") && item.media.type === "audio"));
       const media = mediaContractMatches ? item.media : await queuePlayable(item.identifier, cacheOrigin, ctx, mediaTypes);
-      if (media && ready.length < requestedCount) {
+      if (media && iaRuntimeAllowed({ ...item, media }, payload && payload.minRuntimeSeconds) && ready.length < requestedCount) {
         const hydratedItem = { ...item, media };
         ready.push(hydratedItem);
         if (typeof onReady === "function") onReady(hydratedItem, ready.length);
@@ -6128,7 +6302,8 @@ async function getIaQueue(request, url, env, ctx) {
   const requiredTitleTerms = safeThemeTerms(body && body.requiredTitleTerms);
   const mediaTypes = safeMediaTypes(body && body.mediaTypes);
   const themeMinScore = safeThemeMinScore(body && body.themeMinScore);
-  const minRuntimeSeconds = safeMinRuntimeSeconds(body && body.minRuntimeSeconds);
+  const requestedMinRuntimeSeconds = safeMinRuntimeSeconds(body && body.minRuntimeSeconds);
+  const minRuntimeSeconds = iaEffectiveVideoMinRuntimeSeconds(channel, mediaTypes, requestedMinRuntimeSeconds);
   const diversity = safeDiversity(body && body.diversity);
   const count = Math.max(1, Math.min(5, Number(body && body.count) || 5));
   if (!safeChannel(channel) || !queries) return json({ error: "invalid queue request" }, 400);
@@ -6143,9 +6318,9 @@ async function getIaQueue(request, url, env, ctx) {
   const rotation = safeQueueRotation(body && body.rotation);
   /* The five-show recovery shelf spans rotations, but never editorial rules.
      That avoids stale genre bleed after a channel's source contract changes. */
-  const familyFingerprint = JSON.stringify({ channel, queries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, minRuntimeSeconds, diversity, count });
+  const familyFingerprint = JSON.stringify({ channel, queries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, minRuntimeSeconds, diversity, count, contentPolicy: IA_GLOBAL_VIDEO_POLICY_VERSION });
   const lastGoodDigest = await stableKey(familyFingerprint);
-  const fingerprint = JSON.stringify({ channel, queries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, minRuntimeSeconds, diversity, count, rotation, catalogBudget: IA_CATALOG_BUDGET_VERSION });
+  const fingerprint = JSON.stringify({ channel, queries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, minRuntimeSeconds, diversity, count, rotation, catalogBudget: IA_CATALOG_BUDGET_VERSION, contentPolicy: IA_GLOBAL_VIDEO_POLICY_VERSION });
   const digest = await stableKey(fingerprint);
   const cacheKey = new Request(url.origin + IA_PREFIX + "/cache/queue/" + IA_QUEUE_CACHE_VERSION + "/" + digest);
   const sharedKey = IA_QUEUE_KV_PREFIX + IA_QUEUE_CACHE_VERSION + ":" + digest;
@@ -6160,7 +6335,7 @@ async function getIaQueue(request, url, env, ctx) {
      recovery bank for the one channel that reproduced this defect. The bank
      is already direct-playable, so this remains a zero-network fast path. */
   if (iaStrictRecoveryEnabled(channel)) {
-    const strict = strictRecoveryQueue(channel, rotation, count, themeTerms, denyTerms, requiredTitleTerms, mediaTypes);
+    const strict = strictRecoveryQueue(channel, rotation, count, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, minRuntimeSeconds);
     if (strict.ready >= count) {
       if (IA_FULL_WINDOW_ANIMATION_CHANNELS.has(channel) || IA_FULL_WINDOW_ROTATION_CHANNELS.has(channel)) {
         const strictCandidateCount = iaCatalogCandidateBudget(themeMinScore, count);

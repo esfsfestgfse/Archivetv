@@ -33,6 +33,20 @@ const context = vm.createContext({
   IA_PREFIX: '/ia',
   IA_METADATA_TTL_SECONDS: 86400,
   IA_MAX_EXPANDED_FILES: 720,
+  iaRuntimeSeconds: (value) => {
+    const text = String(value || '').trim();
+    const parts = text.split(':').map(Number);
+    if (parts.length === 3 && parts.every(Number.isFinite)) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+    if (parts.length === 2 && parts.every(Number.isFinite)) return parts[0] * 60 + parts[1];
+    return Number(value) || 0;
+  },
+  iaHasGlobalVideoPolicyViolation: () => false,
+  iaFileRuntimeSeconds: (file) => {
+    const declared = Number(file && (file.duration || file.runtime));
+    if (Number.isFinite(declared) && declared > 0) return declared;
+    const length = Number(file && file.length);
+    return Number.isFinite(length) && length > 0 && length < 172800 ? length : 0;
+  },
   cachedArchiveJson: async () => payload,
   archiveFetch: async () => ({ ok: true, json: async () => payload }),
   iaMetadataInflight: new Map(),
@@ -52,7 +66,7 @@ vm.runInContext(sourceBetween('function queueFileUrls', '\nasync function mapQue
   assert.equal(new Set(episodes.map((episode) => episode.identifier)).size, 3, 'each episode must retain a unique synthetic identity');
   assert.ok(episodes.every((episode) => episode.identifier.includes('::Season 1/')), 'episode identity must retain its exact Archive file path');
   assert.ok(episodes.every((episode) => episode.title.includes('Benson Complete Series')), 'guide titles must keep the parent program identity');
-  assert.ok(episodes.every((episode) => episode.runtime === '25:00'), 'Archive byte size must never be mistaken for runtime seconds');
+  assert.ok(episodes.every((episode) => Number(episode.runtime) === 1500), 'Archive byte size must never be mistaken for runtime seconds');
   assert.notEqual(episodes[0].identifier, episodes[1].identifier, 'rotated episode records must remain distinct');
 
   const unlabelledEpisodes = await context.expandArchiveContainer({

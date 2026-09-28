@@ -12,7 +12,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "4.1.100-uptown-comedy-depth";
+const V3_RELEASE = "4.1.108-ia-content-policy";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -1560,6 +1560,8 @@ function customManifestAllowed(item, recipe) {
   const mediaType = String(item && (item.mediaType || item.type || (item.media && item.media.type)) || "video").toLowerCase();
   const duration = Number(item && (item.duration || item.runtime)) || 0;
   const ratio = Number(item && item.aspectRatio) || 0;
+  const width = Number(item && (item.width || item.videoWidth || (item.media && item.media.width))) || 0;
+  const height = Number(item && (item.height || item.videoHeight || (item.media && item.media.height))) || 0;
   const provider = customProviderKey(item && (item.provider || item.source));
   const allowedSources = customList(recipe && recipe.sources, 8).map(customProviderKey);
   const title = String(item && item.title || "");
@@ -1568,9 +1570,9 @@ function customManifestAllowed(item, recipe) {
   const exclude = customList(recipe && recipe.exclude, 24);
   const minRuntime = Math.max(0, Number(recipe && recipe.minRuntimeMinutes) || 15) * 60;
   if (!mediaUrl || mediaType === "audio" || mediaType === "audio/mpeg" || duration < minRuntime) return false;
-  if (ratio && ratio < 1.15) return false;
+  if ((width && height && height >= width) || (ratio && ratio < 1.15)) return false;
   if (allowedSources.length && !allowedSources.includes(provider)) return false;
-  if (/(?:#?shorts?\b|vertical\s+video|how[ -]+to|tutorial|reaction|trailer|teaser|promo|advertisement|commercial|fan\s+edit|lyrics\s+video)/i.test(haystack)) return false;
+  if (/(?:#?shorts?\b|vertical\s+video|portrait\s+video|9\s*:\s*16|1080x1920|how[ -]+to|tutorial|reaction|trailer|teaser|promo|advertisement|commercial|fan\s*[- ]?made|fan\s+edit|unofficial|bootleg|parody|podcast|vodcast|pod[ -]?cast|lyrics\s+video)/i.test(haystack)) return false;
   if (exclude.some((term) => term && haystack.includes(term))) return false;
   const genre = String(recipe && recipe.genre || "").trim().toLowerCase();
   if (include.length && !include.some((term) => haystack.includes(term))) return false;

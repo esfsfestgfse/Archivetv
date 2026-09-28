@@ -90,7 +90,7 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
    warmup back onto the channel-change path. */
 const IA_STRICT_CATALOG_CANDIDATE_MAX = 128;
 const IA_CATALOG_CANDIDATE_MAX = 96;
-const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v49-adult-animation-depth";
+const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v50-rotation-harvest";
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
@@ -99,13 +99,14 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v49-adult
    parent program immediately, while the background shelf expands collection
    items into their individual playable episode files. The depth-recovery
    namespace also prevents old five-item shelves from masking the wider
-   rotation rails below. Cache this separately from v49: episode data waited
+   rotation rails below. Cache this separately from the prior catalog budget:
+   episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v206";
+const IA_QUEUE_CACHE_VERSION = "v207";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v206";
+const IA_LAST_GOOD_CACHE_VERSION = "v207";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -6572,17 +6573,19 @@ function iaNeedsCatalogDepth(payload, count, candidateCount) {
 }
 
 function iaShouldBypassShallowRotation(payload, rotation, count, candidateCount) {
-  /* A shallow exact-rotation cache is still useful when it contains a
-     verified shelf: the freshness ledger can rotate those records now while
-     background discovery grows the catalog. Only bypass a shelf that cannot
-     satisfy the requested first-play count; otherwise every 5–31 item lane
-     falls back to the same first Archive page on every channel change. */
+  /* A shallow exact-rotation cache is still useful for first play, but it is
+     not a valid later rotation. Once a viewer advances, re-enter discovery
+     until the rolling catalog has three complete shelves (or its configured
+     candidate budget when that budget is smaller). Otherwise a 5–31 item
+     cache keeps winning and the same Archive page reopens forever. */
   const requested = Math.max(1, Number(count) || 1);
   const candidates = Array.isArray(payload && payload.candidateItems) && payload.candidateItems.length
     ? payload.candidateItems
     : ((payload && payload.items) || []);
   const playable = candidates.filter((item) => item && item.identifier && item.media && item.media.url).length;
-  return Math.abs(Number(rotation) || 0) > 0 && playable < requested;
+  const budget = Math.max(requested, Number(candidateCount) || requested);
+  const freshnessFloor = Math.min(budget, Math.max(requested * 3, IA_FRESHNESS_CANDIDATE_FLOOR));
+  return Math.abs(Number(rotation) || 0) > 0 && playable < freshnessFloor;
 }
 
 function orderedIaEmergencySeeds(channel, rotation) {
@@ -6710,7 +6713,11 @@ function scheduleCachedIaHydration(payload, requestedCount, cacheOrigin, cacheKe
   const items = Array.isArray(payload && payload.items) ? payload.items : [];
   const candidates = Array.isArray(payload && payload.candidateItems) ? payload.candidateItems : [];
   if (!candidates.length || candidates.length <= items.length) return;
-  const key = cacheKey.url;
+  /* Exact rotation keys are intentionally different, but the expensive
+     Archive harvest belongs to one editorial family. Coalesce concurrent
+     rotation refills so rapid channel surfing starts one deep crawl instead
+     of three competing crawls that each rediscover the same first page. */
+  const key = lastGoodKey || cacheKey.url;
   if (iaQueueHydrationInflight.has(key)) return;
   /* A partial cache may have been created by the foreground path before it
      was allowed to expand a complete-series parent. Revisit the first rail as
@@ -6919,7 +6926,11 @@ async function expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, c
    both discover that the shelf needs help, and duplicate expansions just
    compete for the same Archive budget. */
 function scheduleIaExpansion(seed, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, rotation, forceDiscovery = false) {
-  const key = cacheKey && cacheKey.url;
+  /* The exact queue cache is per rotation, but the expensive Archive harvest
+     is per channel/editorial fingerprint. Use the durable family key when it
+     is available so adjacent rotations share one catalog build and both
+     benefit from the resulting last-good union. */
+  const key = (seed && seed.lastGoodKey) || (cacheKey && cacheKey.url);
   if (!key || !ctx || iaQueueExpansionInflight.has(key)) return;
   const task = expandAndCacheIaQueue(seed, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, rotation, forceDiscovery)
     .catch((error) => {
@@ -7011,7 +7022,15 @@ async function getIaQueue(request, url, env, ctx) {
      is already direct-playable, so this remains a zero-network fast path. */
   if (iaStrictRecoveryEnabled(channel)) {
     const strict = strictRecoveryQueue(channel, rotation, count, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, minRuntimeSeconds);
-    if (strict.ready >= count) {
+    const strictPlayable = Array.isArray(strict.candidateItems)
+      ? strict.candidateItems.filter((item) => item && item.identifier && item.media && item.media.url).length
+      : 0;
+    const strictFreshnessFloor = Math.min(
+      iaCatalogCandidateBudget(themeMinScore, count),
+      Math.max(count * 3, IA_FRESHNESS_CANDIDATE_FLOOR),
+    );
+    const strictNeedsFreshRotation = rotation > 0 && strictPlayable < strictFreshnessFloor;
+    if (strict.ready >= count && !strictNeedsFreshRotation) {
       /* Holiday recovery banks are intentionally only the instant safety net.
          Once the background family shelf has a real playable catalog, expose
          that union here instead of returning the same direct five forever.
@@ -7265,7 +7284,11 @@ async function getIaQueue(request, url, env, ctx) {
         : warmLastGood.items;
       const warmNeedsExpansion = iaNeedsCatalogDepth(warmLastGood, count, warmCandidateCount);
       const warmPlayable = warmCandidates.filter((item) => item && item.identifier && item.media && item.media.url).length;
-      const warmNeedsFreshRotation = rotation > 0 && warmPlayable < count;
+      const warmFreshnessFloor = Math.min(
+        warmCandidateCount,
+        Math.max(count * 3, IA_FRESHNESS_CANDIDATE_FLOOR),
+      );
+      const warmNeedsFreshRotation = rotation > 0 && warmPlayable < warmFreshnessFloor;
       const freshWarm = applyIaFreshness(warmLastGood, freshnessLedger, count);
       rememberIaFreshness(env, channel, freshWarm.issued, ctx);
       let warmFallback = {

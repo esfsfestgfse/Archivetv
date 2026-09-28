@@ -90,7 +90,7 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
    warmup back onto the channel-change path. */
 const IA_STRICT_CATALOG_CANDIDATE_MAX = 128;
 const IA_CATALOG_CANDIDATE_MAX = 96;
-const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v40-played-ledger";
+const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v41-shelf-preserve";
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
@@ -102,10 +102,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v40-playe
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v186";
+const IA_QUEUE_CACHE_VERSION = "v187";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v186";
+const IA_LAST_GOOD_CACHE_VERSION = "v187";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -5559,6 +5559,27 @@ function applyIaFreshness(payload, ledger, count) {
       issued,
       freshCount: issued.length,
       excludedCount: 0,
+    };
+  }
+  /* Holiday catalogs arrive already rotated from the deep family shelf. Do
+     not run them back through the generic candidate ordering: that would
+     erase the full-shelf step and make Thanksgiving/Christmas/Halloween look
+     like the same five programs after every Next action. Preserve the rotated
+     public order, skip only IDs the viewer actually started, then fill from
+     the remaining verified catalog in its stable order. */
+  if (payload && payload.holidayCatalog === true && Array.isArray(payload.items) && payload.items.length >= requested && playable.length >= requested) {
+    const current = payload.items.filter((item) => item && item.identifier && item.media && item.media.url);
+    const currentIds = new Set(current.map((item) => String(item.identifier)));
+    const freshCurrent = current.filter((item) => !excluded.has(String(item.identifier)));
+    const freshRemainder = playable.filter((item) => !currentIds.has(String(item.identifier)) && !excluded.has(String(item.identifier)));
+    const repeatCurrent = current.filter((item) => excluded.has(String(item.identifier)));
+    const selected = freshCurrent.concat(freshRemainder, repeatCurrent).slice(0, requested);
+    const issued = selected.map(iaFreshnessRecord).filter(Boolean);
+    return {
+      payload: { ...payload, items: selected, ready: Math.min(requested, selected.length) },
+      issued,
+      freshCount: freshCurrent.length + freshRemainder.length,
+      excludedCount: Math.max(0, current.length - freshCurrent.length),
     };
   }
   /* Deterministic animation shelves have an explicit catalog window.

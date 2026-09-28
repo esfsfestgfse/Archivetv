@@ -13,7 +13,7 @@ function check(ok, message) {
   if (!ok) failures.push(message);
 }
 
-check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v208"/.test(relay), 'verified family harvest invalidates the prior queue namespace');
+check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v209"/.test(relay), 'deep sports/weather harvest invalidates the prior queue namespace');
 check(/function rotatePlayableIaShelf\([\s\S]*orderedIaEmergencySeeds\(recoveryChannel, 0\)/.test(relay), 'slow fallbacks merge the lane-owned verified bank before rotating');
 check(/rotationApplied === true/.test(relay) && /rotationApplied: true/.test(relay), 'rotation state prevents cached shelves from being advanced twice');
 check(/"701": \[[\s\S]*TheThingFromAnotherWorldHorrorSciFi1951JamesArnessKennethTobeyMargaretSheridan[\s\S]*TheGiantGilaMonster/.test(relay), 'Halloween Haunt adds full-length multi-era horror files');
@@ -40,7 +40,9 @@ check(/function iaHolidayThemeMatch\(doc, themeTerms\)/.test(relay) && /!holiday
 check(/const seenPlayableIds = new Set\(\)/.test(relay) && /seenPlayableIds\.has\(id\)/.test(relay), 'merged Archive rails cannot duplicate one playable file across adjacent shelves');
 check(/holidayCandidateCount = Math\.min\(IA_STRICT_CATALOG_CANDIDATE_MAX, Math\.max\(IA_DEPTH_PLAYABLE_TARGET/.test(relay) && /holidaySeed/.test(relay), 'holiday family shelves continue background harvesting until a deep playable target is reached');
 check(/const eligible = bank\.filter/.test(relay) && /const offset = eligible\.length > count/.test(relay), 'strict recovery rotates the verified bank after editorial filtering');
-check(/const IA_DEEP_HARVEST_BANKS = Object\.freeze/.test(relay) && /"51": \[[\s\S]*1985-nfl-films-crunch-course[\s\S]*"57": \[[\s\S]*Ripon_College_football[\s\S]*"58": \[[\s\S]*WSCS_Basketball[\s\S]*"69": \[[\s\S]*24-to-zero-le-mans[\s\S]*"124": \[[\s\S]*frankenstein-created-woman_202505[\s\S]*"209": \[[\s\S]*cstmaah_000049[\s\S]*"232": \[[\s\S]*STS1LaunchTracking[\s\S]*"703": \[[\s\S]*DNALOUNGE-VIDEO-2022-12-24/.test(relay), 'Deep harvest adds verified family banks to the weak IA lanes');
+check(/const IA_DEEP_HARVEST_BANKS = Object\.freeze/.test(relay) && /"51": \[[\s\S]*dvd-transfer-95_202207[\s\S]*"57": \[[\s\S]*tulane-vs-usc[\s\S]*"58": \[[\s\S]*1989-nba-all-star-game[\s\S]*"69": \[[\s\S]*womeninsportsaninformalhistory[\s\S]*"124": \[[\s\S]*frankenstein-created-woman_202505[\s\S]*"209": \[[\s\S]*cstmaah_000049[\s\S]*"215": \[[\s\S]*gov\.fema\.9-1315[\s\S]*"232": \[[\s\S]*STS1LaunchTracking[\s\S]*"703": \[[\s\S]*DNALOUNGE-VIDEO-2022-12-24/.test(relay), 'Deep harvest adds verified family banks to the weak IA lanes');
+check(!/friona-tx-tornado-june-2-1995-vortex-95::Friona TX Tornado June 2 1995 VORTEX-95\.mp4/.test(relay), 'Storm Chase Classics excludes the verified sub-15-minute tornado clip');
+check(/const requiredRuntime = safeMinRuntimeSeconds\(payload && payload\.minRuntimeSeconds\)/.test(relay) && /item\.media\.url && iaRuntimeAllowed\(item, requiredRuntime\)/.test(relay), 'Rotated direct shelves enforce the lane runtime floor before promotion');
 check(/"80": \[[\s\S]*HuntingSeason[\s\S]*whitetail-madness-an-unbelievable-season[\s\S]*TheVistaGroup-WaterfowlChallenge1998/.test(relay), 'The Hunt has verified long-form hunting recovery media');
 check(/"128": \[[\s\S]*gov\.archives\.arc\.36070::gov\.archives\.arc\.36070_512kb\.mp4[\s\S]*Industrial_Britain::Industrial_Britain_512kb\.mp4/.test(relay), 'Britain on Film has a deeper multi-era file rail');
 check(/"217": \[[\s\S]*IntroductionToHolography::IntroductionToHolography1972\.mp4[\s\S]*theconquestofeverest::theconquestofeverestreel2\.mp4/.test(relay), 'Educational Filmstrip has a deeper verified classroom rail');

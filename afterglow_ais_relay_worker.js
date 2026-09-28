@@ -90,7 +90,7 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
    warmup back onto the channel-change path. */
 const IA_STRICT_CATALOG_CANDIDATE_MAX = 128;
 const IA_CATALOG_CANDIDATE_MAX = 96;
-const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v64-file-depth";
+const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v65-identity-dedupe";
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
@@ -103,10 +103,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v64-file-
    episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v221";
+const IA_QUEUE_CACHE_VERSION = "v222";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v221";
+const IA_LAST_GOOD_CACHE_VERSION = "v222";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -7170,6 +7170,24 @@ function iaShouldBypassShallowRotation(payload, rotation, count, candidateCount)
   return Math.abs(Number(rotation) || 0) > 0 && playable < freshnessFloor;
 }
 
+/* Archive often exposes one logical program through several media encodings
+   (for example the same concert as .flac and .ogg, or the same film as .mp4
+   and .webm).  Exact URL/filename dedupe makes those encodings look like
+   fresh programs and slowly poisons the shelf.  Keep the source and logical
+   file stem, but ignore transport/container suffixes when deciding whether
+   an item has already been offered. */
+function iaPlayableIdentity(item) {
+  const rawIdentifier = String(item && item.identifier || "");
+  const source = String(item && item.sourceIdentifier || (rawIdentifier.includes("::") ? rawIdentifier.split("::")[0] : rawIdentifier)).trim().toLowerCase();
+  const fileName = String(item && item.fileName || (rawIdentifier.includes("::") ? rawIdentifier.slice(rawIdentifier.indexOf("::") + 2) : "")).trim().toLowerCase();
+  if (!source) return "";
+  if (!fileName) return source;
+  const stem = fileName
+    .replace(/\.(?:mp4|m4v|mov|ogv|webm|mp3|flac|ogg|oga|wav|m4a|aac)(?:[?#].*)?$/i, "")
+    .replace(/(?:[._-](?:orig|original|source|512kb|256kb|128kb|64kb|low|small|preview|proxy))$/i, "");
+  return `${source}::${stem}`;
+}
+
 function orderedIaEmergencySeeds(channel, rotation) {
   const rawSeeds = (IA_HOLIDAY_CONTAINER_SEEDS[String(channel)] || [])
     .concat(IA_EMERGENCY_SEEDS[String(channel)] || [])
@@ -7204,7 +7222,7 @@ function orderedIaEmergencySeeds(channel, rotation) {
     const fileName = String(item && item.fileName || (rawIdentifier.includes("::") ? rawIdentifier.slice(rawIdentifier.indexOf("::") + 2) : ""));
     if (!source) return false;
     if (!fileName && fileParents.has(source)) return false;
-    const identity = fileName ? source + "::" + fileName : source;
+    const identity = iaPlayableIdentity(item) || (fileName ? source + "::" + fileName : source);
     if (seen.has(identity)) return false;
     seen.add(identity);
     return true;
@@ -7224,8 +7242,9 @@ function orderedIaEmergencySeeds(channel, rotation) {
 function strictRecoveryQueue(channel, rotation, count, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, minRuntimeSeconds = 0) {
   const seen = new Set();
   const bank = orderedIaEmergencySeeds(channel, 0).filter((item) => {
-    if (!item || !item.identifier || !item.media || !item.media.url || seen.has(item.identifier)) return false;
-    seen.add(item.identifier);
+    const identity = iaPlayableIdentity(item);
+    if (!item || !item.identifier || !item.media || !item.media.url || !identity || seen.has(identity)) return false;
+    seen.add(identity);
     return true;
   });
   /* Filter before rotating. If a raw bank is rotated first, rejected items
@@ -7269,9 +7288,9 @@ function rotateUnderfillDepthBank(payload, channel, rotation, count, themeTerms,
     ...(Array.isArray(payload && payload.candidateItems) ? payload.candidateItems : []),
     ...(Array.isArray(payload && payload.items) ? payload.items : []),
   ]) {
-    const id = String(item && item.identifier || "");
-    if (!id || seen.has(id) || !item.media || !item.media.url) continue;
-    seen.add(id);
+    const identity = iaPlayableIdentity(item);
+    if (!identity || !item.media || !item.media.url || seen.has(identity)) continue;
+    seen.add(identity);
     candidates.push(item);
   }
   if (candidates.length < requested) return payload;
@@ -7282,7 +7301,7 @@ function rotateUnderfillDepthBank(payload, channel, rotation, count, themeTerms,
      then advanced by a full public shelf for every request. Otherwise a
      different Archive response order can make rotation 1/2/3 look identical
      even though the bank contains more than one shelf. */
-  const stableCandidates = candidates.slice().sort((a, b) => String(a.identifier || "").localeCompare(String(b.identifier || "")));
+  const stableCandidates = candidates.slice().sort((a, b) => iaPlayableIdentity(a).localeCompare(iaPlayableIdentity(b)));
   const offset = stableCandidates.length > 1
     ? (normalizedRotation * requested) % stableCandidates.length
     : 0;

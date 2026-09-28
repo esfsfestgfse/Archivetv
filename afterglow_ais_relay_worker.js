@@ -90,7 +90,7 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
    warmup back onto the channel-change path. */
 const IA_STRICT_CATALOG_CANDIDATE_MAX = 128;
 const IA_CATALOG_CANDIDATE_MAX = 96;
-const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v43-long-tail-depth";
+const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v44-family-depth";
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
@@ -102,10 +102,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v43-long-
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v200";
+const IA_QUEUE_CACHE_VERSION = "v201";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v200";
+const IA_LAST_GOOD_CACHE_VERSION = "v201";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -591,7 +591,6 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     iaDirectRecovery("SanFranc1906::SanFranc1906.mp4", "SanFranc1906", "SanFranc1906.mp4", "San Francisco Earthquake Newsreel", "newsreel disaster documentary earthquake documentary", 1906),
     iaDirectRecovery("0254_San_Francisco_Earthquake_Aftermath_1906_01_21_25_00::0254_San_Francisco_Earthquake_Aftermath_1906_01_21_25_00_3mb.mp4", "0254_San_Francisco_Earthquake_Aftermath_1906_01_21_25_00", "0254_San_Francisco_Earthquake_Aftermath_1906_01_21_25_00_3mb.mp4", "San Francisco Earthquake Aftermath Newsreel", "newsreel disaster documentary earthquake documentary", 1906),
     iaDirectRecovery("0385_Colorado_Flood_16_30_35_00::0385_Colorado_Flood_16_30_35_00_3mb.mp4", "0385_Colorado_Flood_16_30_35_00", "0385_Colorado_Flood_16_30_35_00_3mb.mp4", "Colorado Flood Newsreel", "newsreel disaster documentary flood documentary", 1935),
-    iaDirectRecovery("general-idi-amin-1973::General%20Idi%20Amin%20%281973%29.mp4", "general-idi-amin-1973", "General Idi Amin (1973).mp4", "British Pathe — General Idi Amin", "british pathe british newsreel newsreel documentary", 1973),
     iaDirectRecovery("0411_Tornado_06_00_36_00::t0411_Tornado_06_00_36_00.mp4", "0411_Tornado_06_00_36_00", "t0411_Tornado_06_00_36_00.mp4", "Tornado — Archival Newsreel", "newsreel disaster documentary tornado documentary", 1955),
     iaDirectRecovery("ShockTro1938::ShockTro1938.mp4", "ShockTro1938", "ShockTro1938.mp4", "Shock Troops of Disaster — New England Hurricane", "newsreel disaster documentary hurricane documentary", 1938),
     iaDirectRecovery("Earthqua1973::Earthqua1973.mp4", "Earthqua1973", "Earthqua1973.mp4", "Earthquake — Archival Public News Film", "newsreel disaster documentary earthquake public information", 1973),
@@ -1604,7 +1603,6 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "ThatCroonerfromNowhere_Cummingsoon_EP", title: "That Crooner from Nowhere — Cumming Soon EP", subject: "funk soul disco groove music", year: 2010 },
   ],
   "128": [
-    { identifier: "general-idi-amin-1973", title: "General Idi Amin", subject: "british pathe britain on film british newsreel british documentary", year: 1973, media: { type: "video", url: "https://archive.org/download/general-idi-amin-1973/General%20Idi%20Amin%20%281973%29.mp4" } },
     { identifier: "youtube-WQngx21QZxo", title: "Zeppelins over Britain — Terror in the Skies", subject: "british pathe britain on film british newsreel british documentary", year: 2016 },
     { identifier: "youtube-OAVqVut4g1k", title: "Night Combat — Tank Hunters", subject: "british pathe britain on film british newsreel british documentary", year: 2016 },
     { identifier: "youtube-NLYz6aWz1cs", title: "The Forgotten War Heroine — Milunka Savic", subject: "british pathe britain on film british newsreel british documentary", year: 2015 },
@@ -3353,12 +3351,12 @@ const IA_LONG_TAIL_EXPANSIONS_EXTRA = Object.freeze({
     iaDirectRecovery("WRC_20090719_230000_Dateline_NBC::WRC_20090719_230000_Dateline_NBC.mp4", "WRC_20090719_230000_Dateline_NBC", "WRC_20090719_230000_Dateline_NBC.mp4", "Dateline NBC · WRC Broadcast", "dateline television newsmagazine investigative journalism current affairs", 2009),
     iaDirectRecovery("msnbc.com-video-2006-10-08::mtp_netcast_061008.mp4", "msnbc.com-video-2006-10-08", "mtp_netcast_061008.mp4", "MSNBC News Video · October 2006", "television newsmagazine investigative journalism current affairs", 2006),
   ],
-  /* v4.1.138 long-tail depth repair: these five lanes had fast first frames
-     but repeatedly collapsed to one-to-four playable records after the
-     Archive index rotated. These are file-level, landscape, >=15-minute
-     derivatives verified against Archive metadata. They are an instant
-     canonical rail while the broader collection search continues in the
-     background; no parent-only records are promoted. */
+  /* v4.1.139 IA family-depth repair: the prior pass proved first-frame speed
+     but still left several family banks too shallow for three real rotations.
+     These are file-level, landscape, >=15-minute derivatives verified against
+     Archive metadata. Keep them as canonical cold rails while the broader
+     collection search continues in the background; no parent-only records or
+     unknown-runtime short clips are promoted. */
   "107": [
     iaDirectRecovery("that-certain-thing-1928::That Certain Thing (1928).mp4", "that-certain-thing-1928", "That Certain Thing (1928).mp4", "That Certain Thing (1928)", "silent film silent movie silent cinema silent drama feature film", 1928, "video", 5163.64, 620, 480),
     iaDirectRecovery("children-of-divorce-1927-with-sync-music::CHILDREN OF DIVORCE (1927) with SYNC MUSIC.ia.mp4", "children-of-divorce-1927-with-sync-music", "CHILDREN OF DIVORCE (1927) with SYNC MUSIC.ia.mp4", "Children of Divorce (1927)", "silent film silent movie silent cinema silent drama feature film", 1927, "video", 4722.19, 640, 480),
@@ -3396,6 +3394,13 @@ const IA_LONG_TAIL_EXPANSIONS_EXTRA = Object.freeze({
     iaDirectRecovery("rebecca-1940-film-noir-thirller-hitchcock::Rebecca (1940 Film Noir, Thirller, Hitchcock).mp4", "rebecca-1940-film-noir-thirller-hitchcock", "Rebecca (1940 Film Noir, Thirller, Hitchcock).mp4", "Rebecca (1940)", "britain on film british documentary british travel film british industrial film", 1940, "video", 7841.91, 494, 360),
     iaDirectRecovery("themysteryofstonehenge::themysteryofstonehenge/themysteryofstonehengereel1.mp4", "themysteryofstonehenge", "themysteryofstonehenge/themysteryofstonehengereel1.mp4", "The Mystery of Stonehenge · Reel 1", "britain on film british documentary british travel film british industrial film", 1950, "video", 1441.52, 640, 360),
     iaDirectRecovery("themysteryofstonehenge::themysteryofstonehenge/themysteryofstonehengereel2.mp4", "themysteryofstonehenge", "themysteryofstonehenge/themysteryofstonehengereel2.mp4", "The Mystery of Stonehenge · Reel 2", "britain on film british documentary british travel film british industrial film", 1950, "video", 1946.73, 640, 360),
+    iaDirectRecovery("gov.ntis.ava06858vnb1::ava06858vnb1_512kb.mp4", "gov.ntis.ava06858vnb1", "ava06858vnb1_512kb.mp4", "Know Your Ally · Britain", "britain on film british documentary british newsreel crown film unit", 1944, "video", 2525.49, 320, 240),
+    iaDirectRecovery("gov.archives.arc.36070::gov.archives.arc.36070_512kb.mp4", "gov.archives.arc.36070", "gov.archives.arc.36070_512kb.mp4", "The Battle of Britain", "britain on film british documentary british newsreel crown film unit", 1943, "video", 3194.46, 320, 240),
+    iaDirectRecovery("gov.archives.arc.38651::gov.archives.arc.38651_512kb.mp4", "gov.archives.arc.38651", "gov.archives.arc.38651_512kb.mp4", "Listen to Britain", "britain on film british documentary british travel film crown film unit", 1942, "video", 1176.64, 320, 240),
+    iaDirectRecovery("Industrial_Britain::Industrial_Britain_512kb.mp4", "Industrial_Britain", "Industrial_Britain_512kb.mp4", "Industrial Britain", "britain on film british industrial film british documentary crown film unit", 1933, "video", 1269.64, 320, 240),
+    iaDirectRecovery("night-mail-1936::Night Mail (1936).mp4", "night-mail-1936", "Night Mail (1936).mp4", "Night Mail", "britain on film british transport film british documentary crown film unit", 1936, "video", 1403.09, 640, 480),
+    iaDirectRecovery("0323_Little_Journey_to_England_and_France_July_7th_to_August_16th::0323_Little_Journey_to_England_and_France_July_7th_to_August_16th_19_01_00_55_00_3mb.mp4", "0323_Little_Journey_to_England_and_France_July_7th_to_August_16th", "0323_Little_Journey_to_England_and_France_July_7th_to_August_16th_19_01_00_55_00_3mb.mp4", "Little Journey to England and France · Reel 1", "britain on film british travel film british documentary", 1937, "video", 3282.14, 720, 486),
+    iaDirectRecovery("0324_Little_Journey_to_England_and_France_July_7th_to_August_16th_19_02_00_26_00::0324_Little_Journey_to_England_and_France_July_7th_to_August_16th_19_02_00_26_00_3mb.mp4", "0324_Little_Journey_to_England_and_France_July_7th_to_August_16th_19_02_00_26_00", "0324_Little_Journey_to_England_and_France_July_7th_to_August_16th_19_02_00_26_00_3mb.mp4", "Little Journey to England and France · Reel 2", "britain on film british travel film british documentary", 1937, "video", 3468.35, 640, 480),
   ],
   "217": [
     iaDirectRecovery("thesea_202602::thesea.mp4", "thesea_202602", "thesea.mp4", "The Sea (Educational Film)", "filmstrip classroom film educational film narrated filmstrip natural science", 1950, "video", 1618.27, 640, 360),
@@ -3404,6 +3409,24 @@ const IA_LONG_TAIL_EXPANSIONS_EXTRA = Object.freeze({
     iaDirectRecovery("FamilyAction--CivilDefenseHomePreparednessWorkshopFilmstrip5Of5::civil_defense_family_action_200kb.mp4", "FamilyAction--CivilDefenseHomePreparednessWorkshopFilmstrip5Of5", "civil_defense_family_action_200kb.mp4", "Family Action · Civil Defense Filmstrip 5", "filmstrip classroom film educational film narrated filmstrip civil defense", 1960, "video", 969.4, 655, 480),
     iaDirectRecovery("S.S.KresgeTraining-StopShrinkage::SS1080p.mp4", "S.S.KresgeTraining-StopShrinkage", "SS1080p.mp4", "S. S. Kresge Training · Stop Shrinkage", "filmstrip classroom film educational film instructional film retail training film", 1965, "video", 1207.04, 1920, 1080),
     iaDirectRecovery("OurTotemIsTheRaven::our_totem_is_the_raven_1972.mp4", "OurTotemIsTheRaven", "our_totem_is_the_raven_1972.mp4", "Our Totem Is the Raven", "classroom film educational film natural science filmstrip archive", 1971, "video", 1287.79, 640, 480),
+    iaDirectRecovery("IntroductionToHolography::IntroductionToHolography1972.mp4", "IntroductionToHolography", "IntroductionToHolography1972.mp4", "Introduction to Holography", "classroom film educational film instructional film science filmstrip", 1972, "video", 989.15, 640, 480),
+    iaDirectRecovery("juniorhighschool_20170530::juniorhighschool_20170530.mp4", "juniorhighschool_20170530", "juniorhighschool_20170530.mp4", "Junior High School", "classroom film educational film instructional film school filmstrip", 1978, "video", 2347.52, 640, 360),
+    iaDirectRecovery("detroitspatternofgrowth::detroitspatternofgrowth.mp4", "detroitspatternofgrowth", "detroitspatternofgrowth.mp4", "Detroit's Pattern of Growth", "classroom film educational film geography film city planning filmstrip", 1965, "video", 923.52, 640, 360),
+    iaDirectRecovery("mystery_of_time::mystery_of_time_512kb.mp4", "mystery_of_time", "mystery_of_time_512kb.mp4", "Mystery of Time", "classroom film educational film science film narrated filmstrip", 1957, "video", 1658.79, 320, 240),
+    iaDirectRecovery("firstcontact_201602::firstcontactreel1.mp4", "firstcontact_201602", "firstcontactreel1.mp4", "First Contact · Reel 1", "classroom film educational film anthropology film narrated filmstrip", 1982, "video", 1701.23, 640, 360),
+    iaDirectRecovery("firstcontact_201602::firstcontactreel2.mp4", "firstcontact_201602", "firstcontactreel2.mp4", "First Contact · Reel 2", "classroom film educational film anthropology film narrated filmstrip", 1982, "video", 1619.52, 640, 360),
+    iaDirectRecovery("amancalledbeestudyingtheyanomamo::amancalledbeestudyingtheyanomamo.mp4", "amancalledbeestudyingtheyanomamo", "amancalledbeestudyingtheyanomamo.mp4", "A Man Called Bee · Studying the Yanomamo", "classroom film educational film anthropology film narrated filmstrip", 1975, "video", 2596.82, 640, 360),
+    iaDirectRecovery("colonialnaturalist::colonialnaturalistreel1.mp4", "colonialnaturalist", "colonialnaturalistreel1.mp4", "Colonial Naturalist · Reel 1", "classroom film educational film natural science film narrated filmstrip", 1964, "video", 1704.61, 640, 360),
+    iaDirectRecovery("colonialnaturalist::colonialnaturalistreel2.mp4", "colonialnaturalist", "colonialnaturalistreel2.mp4", "Colonial Naturalist · Reel 2", "classroom film educational film natural science film narrated filmstrip", 1964, "video", 1706.86, 640, 360),
+    iaDirectRecovery("viewfromspace::viewfromspacereel1.mp4", "viewfromspace", "viewfromspacereel1.mp4", "View from Space · Reel 1", "classroom film educational film earth science film narrated filmstrip", 1969, "video", 1483.27, 640, 360),
+    iaDirectRecovery("viewfromspace::viewfromspacereel2.mp4", "viewfromspace", "viewfromspacereel2.mp4", "View from Space · Reel 2", "classroom film educational film earth science film narrated filmstrip", 1969, "video", 1468.94, 640, 360),
+    iaDirectRecovery("denaliwilderness::denaliwilderness.mp4", "denaliwilderness", "denaliwilderness.mp4", "Denali Wilderness", "classroom film educational film natural science film geography filmstrip", 1982, "video", 1631.48, 640, 360),
+    iaDirectRecovery("theconquestofeverest::theconquestofeverestreel1.mp4", "theconquestofeverest", "theconquestofeverestreel1.mp4", "The Conquest of Everest · Reel 1", "classroom film educational film geography film natural science filmstrip", 1953, "video", 2179.07, 640, 360),
+    iaDirectRecovery("theconquestofeverest::theconquestofeverestreel2.mp4", "theconquestofeverest", "theconquestofeverestreel2.mp4", "The Conquest of Everest · Reel 2", "classroom film educational film geography film natural science filmstrip", 1953, "video", 2444.19, 640, 360),
+    iaDirectRecovery("waterbirds_201510::waterbirds/waterbirds.mp4", "waterbirds_201510", "waterbirds/waterbirds.mp4", "Water Birds", "classroom film educational film natural science film biology filmstrip", 1957, "video", 1718.57, 640, 360),
+    iaDirectRecovery("thedayaftertrinity::thedayaftertrinityreel1.mp4", "thedayaftertrinity", "thedayaftertrinityreel1.mp4", "The Day After Trinity · Reel 1", "classroom film educational film history film science filmstrip", 1980, "video", 1952.07, 640, 360),
+    iaDirectRecovery("thedayaftertrinity::thedayaftertrinityreel2.mp4", "thedayaftertrinity", "thedayaftertrinityreel2.mp4", "The Day After Trinity · Reel 2", "classroom film educational film history film science filmstrip", 1980, "video", 1671.52, 640, 360),
+    iaDirectRecovery("franklloydwright_201701::franklloydwright_201701.mp4", "franklloydwright_201701", "franklloydwright_201701.mp4", "Frank Lloyd Wright", "classroom film educational film art appreciation film architecture filmstrip", 1958, "video", 1786.57, 640, 360),
   ],
   "233": [
     iaDirectRecovery("NationalGeographicTheSharks::National.Geographic.Specials.S18E01.The.Sharks.1982.FMG.WEB-DL.AAC2.0.H.264-rattera.mp4", "NationalGeographicTheSharks", "National.Geographic.Specials.S18E01.The.Sharks.1982.FMG.WEB-DL.AAC2.0.H.264-rattera.mp4", "The Sharks (1982)", "animal behavior wildlife documentary zoology nature television", 1982, "video", 3446.98, 640, 480),
@@ -3418,6 +3441,29 @@ const IA_LONG_TAIL_EXPANSIONS_EXTRA = Object.freeze({
     iaDirectRecovery("gentle-doctor-exotic-animal-medicine::Gentle Doctor - Exotic Animal Medicine.mp4", "gentle-doctor-exotic-animal-medicine", "Gentle Doctor - Exotic Animal Medicine.mp4", "The Gentle Doctor · Exotic Animal Medicine", "veterinary pet care animal companion animal behavior documentary", 2000, "video", 1577.49, 720, 480),
     iaDirectRecovery("FeedingLyssomanesviridis::Feeding_Lyssomanes_viridis_MPEG4V3_512kb.mp4", "FeedingLyssomanesviridis", "Feeding_Lyssomanes_viridis_MPEG4V3_512kb.mp4", "Feeding Lyssomanes viridis", "animal behavior wildlife documentary zoology nature television", 2008, "video", 3685.05, 320, 240),
     iaDirectRecovery("AnimalsOfTheArctic::AnimalsOfTheArctic.mp4", "AnimalsOfTheArctic", "AnimalsOfTheArctic.mp4", "Animals of the Arctic", "animal behavior wildlife documentary zoology nature television", 2000, "video", 963.14, 640, 480),
+    iaDirectRecovery("amazon-land-of-the-flooded-forest-1991::AmazonForest.mp4", "amazon-land-of-the-flooded-forest-1991", "AmazonForest.mp4", "Amazon: Land of the Flooded Forest", "animal behavior wildlife documentary zoology nature television", 1991, "video", 3556.84, 640, 480),
+    iaDirectRecovery("killer-whales-wolves-of-the-sea::KillerWhales.mp4", "killer-whales-wolves-of-the-sea", "KillerWhales.mp4", "Killer Whales: Wolves of the Sea", "animal behavior wildlife documentary zoology nature television", 1993, "video", 3482.09, 640, 480),
+    iaDirectRecovery("TheLegendOfBigfoot::The Legend of Bigfoot.mp4", "TheLegendOfBigfoot", "The Legend of Bigfoot.mp4", "The Legend of Bigfoot", "animal behavior wildlife documentary zoology nature television", 1975, "video", 4480.28, 640, 480),
+    iaDirectRecovery("NatureCats::Nature.S05E07.Cats.1986.DVDRip.DD2.0.x264-astro.mp4", "NatureCats", "Nature.S05E07.Cats.1986.DVDRip.DD2.0.x264-astro.mp4", "Cats", "animal behavior wildlife documentary zoology nature television", 1986, "video", 3467.92, 636, 478),
+    iaDirectRecovery("national-geographic-the-grizzlies-1987::TheGrizzlies.mp4", "national-geographic-the-grizzlies-1987", "TheGrizzlies.mp4", "The Grizzlies", "animal behavior wildlife documentary zoology nature television", 1987, "video", 3525.61, 640, 480),
+    iaDirectRecovery("national-geographic-tigers-of-the-snow-1996::TigersOfTheSnow.mp4", "national-geographic-tigers-of-the-snow-1996", "TigersOfTheSnow.mp4", "Tigers of the Snow", "animal behavior wildlife documentary zoology nature television", 1996, "video", 3427.82, 640, 480),
+    iaDirectRecovery("Nature_Land_of_the_Eagle::Nature S10E05 - Land of the Eagle (Part 1).mp4", "Nature_Land_of_the_Eagle", "Nature S10E05 - Land of the Eagle (Part 1).mp4", "Land of the Eagle · Part 1", "animal behavior wildlife documentary zoology nature television", 1991, "video", 3375.31, 640, 480),
+    iaDirectRecovery("Nature_Land_of_the_Eagle::Nature S10E06 - Land of the Eagle (Part 2).mp4", "Nature_Land_of_the_Eagle", "Nature S10E06 - Land of the Eagle (Part 2).mp4", "Land of the Eagle · Part 2", "animal behavior wildlife documentary zoology nature television", 1991, "video", 3409.46, 640, 480),
+    iaDirectRecovery("Nature_Land_of_the_Eagle::Nature S10E07 - Land of the Eagle (Part 3).mp4", "Nature_Land_of_the_Eagle", "Nature S10E07 - Land of the Eagle (Part 3).mp4", "Land of the Eagle · Part 3", "animal behavior wildlife documentary zoology nature television", 1991, "video", 3420.66, 640, 480),
+    iaDirectRecovery("ChasingBigCats::Nature.S23E01.Chasing.Big.Cats.DVDrip.x264.AAC-RATTERA.mp4", "ChasingBigCats", "Nature.S23E01.Chasing.Big.Cats.DVDrip.x264.AAC-RATTERA.mp4", "Chasing Big Cats", "animal behavior wildlife documentary zoology nature television", 2004, "video", 3438.44, 640, 480),
+    iaDirectRecovery("VictimsOfVenom::Nature.S14E12.Victims.of.Venom.1996.VHSRip.AAC2.0.x264-rattera.mp4", "VictimsOfVenom", "Nature.S14E12.Victims.of.Venom.1996.VHSRip.AAC2.0.x264-rattera.mp4", "Victims of Venom", "animal behavior wildlife documentary zoology nature television", 1996, "video", 3408.07, 640, 480),
+    iaDirectRecovery("wild-america-backyard-wildlife-1996::WildAmerica.mp4", "wild-america-backyard-wildlife-1996", "WildAmerica.mp4", "Wild America: Backyard Wildlife", "animal behavior wildlife documentary zoology nature television", 1996, "video", 1731.05, 640, 480),
+    iaDirectRecovery("dolphins_1988_1991::Dolphins.mp4", "dolphins_1988_1991", "Dolphins.mp4", "Dolphins", "animal behavior wildlife documentary zoology nature television", 1988, "video", 1515.5, 640, 480),
+    iaDirectRecovery("Nature_of_Australia::Nature S07E04 - Nature of Australia (Part 1).mp4", "Nature_of_Australia", "Nature S07E04 - Nature of Australia (Part 1).mp4", "Nature of Australia · Part 1", "animal behavior wildlife documentary zoology nature television", 1988, "video", 3515.06, 640, 480),
+    iaDirectRecovery("Nature_of_Australia::Nature S07E05 - Nature of Australia (Part 2).mp4", "Nature_of_Australia", "Nature S07E05 - Nature of Australia (Part 2).mp4", "Nature of Australia · Part 2", "animal behavior wildlife documentary zoology nature television", 1988, "video", 3507.99, 640, 480),
+    iaDirectRecovery("Nature_of_Australia::Nature S07E06 - Nature of Australia (Part 3).mp4", "Nature_of_Australia", "Nature S07E06 - Nature of Australia (Part 3).mp4", "Nature of Australia · Part 3", "animal behavior wildlife documentary zoology nature television", 1988, "video", 3539.42, 640, 480),
+    iaDirectRecovery("IceWindAndFire::Nature.S01E01.Flight.of.the.Condor.Ice.Wind.and.Fire.1982.VHSRip.AAC2.0.x264-rattera.mp4", "IceWindAndFire", "Nature.S01E01.Flight.of.the.Condor.Ice.Wind.and.Fire.1982.VHSRip.AAC2.0.x264-rattera.mp4", "The Flight of the Condor: Ice, Wind and Fire", "animal behavior wildlife documentary zoology nature television", 1982, "video", 3517.68, 640, 480),
+    iaDirectRecovery("bonobo-people-1993::Bonobos2.mp4", "bonobo-people-1993", "Bonobos2.mp4", "Bonobo People", "animal behavior wildlife documentary zoology nature television", 1993, "video", 2795.5, 640, 480),
+    iaDirectRecovery("the-complete-yellowstone::The Complete Yellowstone.ia.mp4", "the-complete-yellowstone", "The Complete Yellowstone.ia.mp4", "The Complete Yellowstone", "animal behavior wildlife documentary zoology nature television", 1988, "video", 3580.2, 720, 540),
+    iaDirectRecovery("NOVATheFirstSignsOfWashoe::NOVA.S01E10.The.First.Signs.of.Washoe.1974.VHSRip.AAC2.0.x264-rattera2.mp4", "NOVATheFirstSignsOfWashoe", "NOVA.S01E10.The.First.Signs.of.Washoe.1974.VHSRip.AAC2.0.x264-rattera2.mp4", "The First Signs of Washoe", "animal behavior wildlife documentary zoology nature television", 1974, "video", 3529.43, 640, 480),
+    iaDirectRecovery("DownTheAmazon::Nature.S01E03.Flight.of.the.Condor.Down.the.Amazon.1982.VHSRip.AAC2.0.x264-rattera.mp4", "DownTheAmazon", "Nature.S01E03.Flight.of.the.Condor.Down.the.Amazon.1982.VHSRip.AAC2.0.x264-rattera.mp4", "The Flight of the Condor: Down the Amazon", "animal behavior wildlife documentary zoology nature television", 1982, "video", 3530.53, 640, 480),
+    iaDirectRecovery("ClassicAnimalTracks::Classic.Animal.Tracks.1996.VHSRip.AAC2.0.x264-rattera.mp4", "ClassicAnimalTracks", "Classic.Animal.Tracks.1996.VHSRip.AAC2.0.x264-rattera.mp4", "Classic Animal Tracks", "animal behavior wildlife documentary zoology nature television", 1996, "video", 4413.04, 640, 480),
+    iaDirectRecovery("NOVAStillWaters::NOVA.S05E12.Still.Waters.1978.DVDRip.DD2.0.x264-astro.mp4", "NOVAStillWaters", "NOVA.S05E12.Still.Waters.1978.DVDRip.DD2.0.x264-astro.mp4", "Still Waters", "animal behavior wildlife documentary zoology nature television", 1978, "video", 3523.02, 627, 470),
   ],
   "241": [
     iaDirectRecovery("DetroitC1965::DetroitC1965.mp4", "DetroitC1965", "DetroitC1965.mp4", "Detroit: City on the Move", "civic film city planning public affairs community development", 1965, "video", 1092.33, 640, 480),
@@ -3430,6 +3476,13 @@ const IA_LONG_TAIL_EXPANSIONS_EXTRA = Object.freeze({
     iaDirectRecovery("0776_Urban_Sprawl_03_23_44_00::0776_Urban_Sprawl_03_23_44_00.mp4", "0776_Urban_Sprawl_03_23_44_00", "0776_Urban_Sprawl_03_23_44_00.mp4", "Urban Sprawl", "civic film city planning urban planning public works", 1960, "video", 908.01, 640, 480),
     iaDirectRecovery("City_Within_a_City_A::0816_City_Within_a_City_A_04_02_15_00_3mb.mp4", "City_Within_a_City_A", "0816_City_Within_a_City_A_04_02_15_00_3mb.mp4", "A City Within a City", "civic film city planning urban planning community development", 1964, "video", 1300.2, 640, 480),
     iaDirectRecovery("0545_City_The::0545_City_The_22_00_58_19_3mb.mp4", "0545_City_The", "0545_City_The_22_00_58_19_3mb.mp4", "The City", "civic film city planning public affairs community development", 1939, "video", 1926.15, 640, 480),
+    iaDirectRecovery("Rocheste1963_2::Rocheste1963_2.mp4", "Rocheste1963_2", "Rocheste1963_2.mp4", "Rochester: A City of Quality · Part II", "civic film city planning urban renewal public affairs", 1963, "video", 935.44, 640, 480),
+    iaDirectRecovery("201768_The_Green_City::201768_The_Green_City_master.intros.mp4", "201768_The_Green_City", "201768_The_Green_City_master.intros.mp4", "The Green City", "civic film city planning urban planning public service", 1963, "video", 1392.71, 640, 480),
+    iaDirectRecovery("202269_Occupying_a_Public_Shelter::202269_Occupying_A_Public_Shelter_master.intros.mp4", "202269_Occupying_a_Public_Shelter", "202269_Occupying_A_Public_Shelter_master.intros.mp4", "Occupying a Public Shelter", "civic film public information public service civil defense", 1966, "video", 1350.5, 640, 480),
+    iaDirectRecovery("Community_Development_with_Gunnison_Homes::0818_Community_Development_with_Gunnison_Homes_C09131_06_18_31_00_3mb.mp4", "Community_Development_with_Gunnison_Homes", "0818_Community_Development_with_Gunnison_Homes_C09131_06_18_31_00_3mb.mp4", "Community Development with Gunnison Homes", "civic film community development public housing city planning", 1950, "video", 1035.26, 640, 480),
+    iaDirectRecovery("0229_Dynamic_American_City_The_23_00_35_24-0035::0229_Dynamic_American_City_The_23_00_35_24-0035.mp4", "0229_Dynamic_American_City_The_23_00_35_24-0035", "0229_Dynamic_American_City_The_23_00_35_24-0035.mp4", "Dynamic American City", "civic film city planning urban renewal public works", 1956, "video", 1673.22, 640, 480),
+    iaDirectRecovery("CityTheP1939::CityTheP1939.mp4", "CityTheP1939", "CityTheP1939.mp4", "The City · Part I", "civic film city planning public affairs community development", 1939, "video", 985.55, 640, 480),
+    iaDirectRecovery("CityTheP1939_2::CityTheP1939_2.mp4", "CityTheP1939_2", "CityTheP1939_2.mp4", "The City · Part II", "civic film city planning public affairs community development", 1939, "video", 937.14, 640, 480),
   ],
 });
 /* v4 promotion gate: only families that passed the full multi-rotation soak

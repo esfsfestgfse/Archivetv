@@ -13,7 +13,7 @@ function check(ok, message) {
   if (!ok) failures.push(message);
 }
 
-check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v200"/.test(relay), 'IA long-tail depth repair invalidates the prior queue namespace');
+check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v201"/.test(relay), 'IA family-depth repair invalidates the prior queue namespace');
 check(/function rotatePlayableIaShelf\([\s\S]*orderedIaEmergencySeeds\(recoveryChannel, 0\)/.test(relay), 'slow fallbacks merge the lane-owned verified bank before rotating');
 check(/rotationApplied === true/.test(relay) && /rotationApplied: true/.test(relay), 'rotation state prevents cached shelves from being advanced twice');
 check(/"701": \[[\s\S]*TheThingFromAnotherWorldHorrorSciFi1951JamesArnessKennethTobeyMargaretSheridan[\s\S]*TheGiantGilaMonster/.test(relay), 'Halloween Haunt adds full-length multi-era horror files');
@@ -41,6 +41,11 @@ check(/const seenPlayableIds = new Set\(\)/.test(relay) && /seenPlayableIds\.has
 check(/holidayCandidateCount = Math\.min\(IA_STRICT_CATALOG_CANDIDATE_MAX, Math\.max\(IA_DEPTH_PLAYABLE_TARGET/.test(relay) && /holidaySeed/.test(relay), 'holiday family shelves continue background harvesting until a deep playable target is reached');
 check(/const eligible = bank\.filter/.test(relay) && /const offset = eligible\.length > count/.test(relay), 'strict recovery rotates the verified bank after editorial filtering');
 check(/"80": \[[\s\S]*HuntingSeason[\s\S]*whitetail-madness-an-unbelievable-season[\s\S]*TheVistaGroup-WaterfowlChallenge1998/.test(relay), 'The Hunt has verified long-form hunting recovery media');
+check(/"128": \[[\s\S]*gov\.archives\.arc\.36070::gov\.archives\.arc\.36070_512kb\.mp4[\s\S]*Industrial_Britain::Industrial_Britain_512kb\.mp4/.test(relay), 'Britain on Film has a deeper multi-era file rail');
+check(/"217": \[[\s\S]*IntroductionToHolography::IntroductionToHolography1972\.mp4[\s\S]*theconquestofeverest::theconquestofeverestreel2\.mp4/.test(relay), 'Educational Filmstrip has a deeper verified classroom rail');
+check(/"233": \[[\s\S]*amazon-land-of-the-flooded-forest-1991::AmazonForest\.mp4[\s\S]*NOVAStillWaters::NOVA\.S05E12\.Still\.Waters/.test(relay), 'Creature Comforts has a deeper wildlife rail');
+check(/"241": \[[\s\S]*Rocheste1963_2::Rocheste1963_2\.mp4[\s\S]*CityTheP1939_2::CityTheP1939_2\.mp4/.test(relay), 'Civic Cinema has a deeper city-film rail');
+check(!/general-idi-amin-1973.*General Idi Amin/.test(relay), 'Britain on Film excludes the verified short newsreel from the 15-minute lane');
 
 if (failures.length) {
   console.error(`IA deep-harvesting contract failed: ${failures.length} check(s)`);

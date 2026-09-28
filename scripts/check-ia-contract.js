@@ -63,6 +63,7 @@ if (!/if\(v2Payload&&Array\.isArray\(v2Payload\.items\)&&v2Payload\.items\.lengt
 if (!/takeIAMediaWarmer\(ch,it\)/.test(source)) issues.push('playback must adopt a staged first-frame media element');
 if (!/if\(!fastTuneGet\(ch\.num\)\)fastTunePut\(ch\.num,inline\)/.test(source) || !/if\(!fastTuneGet\(ch\.num\)\)fastTunePut\(ch\.num,Object\.assign\(\{},pl,\{type:pl\.type\|\|expected\}\)\)/.test(source)) issues.push('resolved IA shelf items must promote one valid candidate into the rapid-tune cache');
 if (!/delete iaProgramMedia\[rapid\.id\]; iaReadyShelfSave\(ch\); warmIAQueueHead\(ch\); refillIAQueue\(ch,sl\);/.test(source)) issues.push('rapid-tune playback must remove its shelf copy before the next program');
+if (!/function takeIAQueue\(ch,sl\)[\s\S]*var picked=q\.splice\(at,1\)\[0\];iaReadyShelfSave\(ch\);\/\*[\s\S]*?\*\/iaAdvanceQueueRotation\(ch\);/.test(source)) issues.push('every consumed IA program must advance the rotation before refilling the shelf');
 /* A playing event is the only point at which tuning may clear. Video lanes add a
    stricter decoded-frame guard before committing; audio lanes may commit directly. */
 if (!/v\.addEventListener\("playing",\(\)=>\{ if\(my===token\)\{/.test(source) || !/if\(!isAudio&&!\(v\.videoWidth>0\)\).*fin\(false\)/s.test(source) || !/fin\(true\); hideBuffer\(\); clearStall\(\);/.test(source)) issues.push('direct media must clear tuning only after a real playing event');

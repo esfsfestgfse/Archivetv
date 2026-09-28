@@ -50,7 +50,7 @@ for (const [channel, collection] of Object.entries(expectedRails)) {
 }
 
 const relay = fs.readFileSync(path.join(root, 'afterglow_ais_relay_worker.js'), 'utf8');
-check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v187"/.test(relay), 'Relay cache namespace is v187');
+check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v188"/.test(relay), 'Relay cache namespace is v188');
 check(/0411_Tornado_06_00_36_00::t0411_Tornado_06_00_36_00\.mp4/.test(relay) && /ShockTro1938::ShockTro1938\.mp4/.test(relay), 'News adds more direct disaster/newsreel rotation');
 check(/youtube--IJuW9rAskc::-IJuW9rAskc\.mp4/.test(relay) && /youtube-Ko9kzyqW-l8::Ko9kzyqW-l8\.mp4/.test(relay), 'Gear Head adds verified direct automotive review rotation');
 check(/top-gear-s15-bd::TOP GEAR SERIES 15 DISC 211\.mp4/.test(relay) && /top-gear-s15-bd::TOP GEAR SERIES 15 DISC 212\.mp4/.test(relay), 'Gear Head adds more direct Top Gear episode rotation');
@@ -68,7 +68,7 @@ check(/IA_PROMOTED_ARCHIVE_BANKS/.test(relay) && /"243"/.test(relay) && /"244"/.
 check(/\.concat\(IA_PROMOTED_ARCHIVE_BANKS\[String\(channel\)\] \|\| \[\]\)/.test(relay), 'Promoted archive banks use the same verified emergency shelf path');
 check(/IA_TARGETED_RECOVERY_BANKS[\s\S]*"120"[\s\S]*El\.Amor\.Brujo\.1986[\s\S]*Cria\.Cuervos\.1976[\s\S]*Dos Hermanos Murieron/.test(relay), 'La Movida has a deeper verified Spanish-cinema recovery bank');
 check(/IA_TARGETED_RECOVERY_BANKS[\s\S]*"108"[\s\S]*IA_EMERGENCY_SEEDS\["3"\][\s\S]*IA_LONG_TAIL_EXPANSIONS_EXTRA\["511"\]/.test(relay), 'Noir & Mystery has a verified film-noir recovery bank');
-check(/requiredTitleTerms\.length && !titleMatches && !isExpandedEpisode\) return false/.test(relay), 'Relay enforces the strict title gate while allowing approved expanded episodes');
+check(/requiredTitleTerms\.length && !titleMatches && !isExpandedEpisode && !holidayMatch\) return false/.test(relay), 'Relay enforces the strict title gate while allowing approved expanded episodes and verified holiday family records');
 check(/"206": \[/.test(relay) && /090-aahma-watermarked/.test(relay) && /amateur_west_1940_1/.test(relay), 'Home Movies has verified sparse-lane recovery media');
 check(/"11": \[/.test(relay) && /freakylinks-complete-series-2000/.test(relay) && /partners-1995-96/.test(relay), 'Modern Rerun TV has verified sitcom recovery media');
 check(/"208": \[/.test(relay) && /santa-fe-atsf-teamwork-and-technology/.test(relay) && /ThisIsMy1940/.test(relay), 'Railroad has verified railway recovery media');

@@ -90,7 +90,7 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
    warmup back onto the channel-change path. */
 const IA_STRICT_CATALOG_CANDIDATE_MAX = 128;
 const IA_CATALOG_CANDIDATE_MAX = 96;
-const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v41-shelf-preserve";
+const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v42-catalog-rails";
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
@@ -102,10 +102,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v41-shelf
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v187";
+const IA_QUEUE_CACHE_VERSION = "v188";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v187";
+const IA_LAST_GOOD_CACHE_VERSION = "v188";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -153,6 +153,20 @@ const IA_HOLIDAY_CONTAINER_SEEDS = Object.freeze({
   "709": [
     { identifier: "jims.thanksgiving.marathon", title: "Jim's Thanksgiving Television Marathon", subject: "thanksgiving television thanksgiving specials holiday television family television variety broadcast", year: 1985 },
   ],
+});
+/* Archive's public search index is enormous, but the old holiday queries
+   required both a matching subject phrase and a matching title phrase. That
+   discarded the many correctly-labeled title records whose subject field is
+   sparse. These rails search title-first inside known Archive families; the
+   collection-aware gate below still decides what is allowed on air. They are
+   discovery rails, not a genre bypass. */
+const IA_HOLIDAY_SEARCH_RAILS = Object.freeze({
+  "704": { family: "animation", terms: ["christmas", "xmas", "santa", "yuletide", "rudolph", "frosty", "grinch", "snowman", "holiday"], collections: ["animationandcartoons", "classic_cartoons", "more_animation", "vintage_cartoons", "animation_unsorted", "saturdaymorningcartoons", "vhskids", "vhsvault"] },
+  "705": { family: "animation", terms: ["halloween", "spooky", "monster", "ghost", "witch", "haunted", "pumpkin", "skeleton", "casper", "scooby doo", "trick or treat"], collections: ["animationandcartoons", "classic_cartoons", "more_animation", "vintage_cartoons", "animation_unsorted", "saturdaymorningcartoons", "vhskids", "vhsvault"] },
+  "706": { family: "animation", terms: ["thanksgiving", "turkey", "harvest", "mayflower", "pilgrim", "gobble", "autumn", "fall", "turkey day"], collections: ["animationandcartoons", "classic_cartoons", "more_animation", "vintage_cartoons", "animation_unsorted", "saturdaymorningcartoons", "vhskids", "vhsvault"] },
+  "707": { family: "television", terms: ["christmas", "xmas", "santa", "yuletide", "holiday", "nativity", "carol", "parade"], collections: ["classic_tv", "classic_tv_1940s", "classic_tv_1950s", "classic_tv_1960s", "classic_tv_1970s", "classic_tv_1980s", "television", "vhstvshows", "vhsvault", "prelinger", "avgeeks"] },
+  "708": { family: "television", terms: ["halloween", "spooky", "monster", "ghost", "witch", "haunted", "frankenstein", "horror", "last drive in", "monstervision"], collections: ["classic_tv", "classic_tv_1950s", "classic_tv_1960s", "classic_tv_1970s", "classic_tv_1980s", "classic_tv_1990s", "television", "vhstvshows", "vhsvault", "prelinger", "SciFi_Horror"] },
+  "709": { family: "television", terms: ["thanksgiving", "turkey", "harvest", "mayflower", "pilgrim", "gobble", "autumn", "fall", "parade", "turkey day"], collections: ["classic_tv", "classic_tv_1950s", "classic_tv_1960s", "classic_tv_1970s", "classic_tv_1980s", "classic_tv_1990s", "television", "vhstvshows", "vhsvault", "prelinger", "avgeeks"] },
 });
 /* Full-length stations should not inherit the short-form Archive lanes. These
    exceptions are intentional programming: commercials, trailers, short
@@ -3934,6 +3948,28 @@ function uniqueIaQueries(queries, limit = 8) {
   return result;
 }
 
+function iaArchiveQueryTerm(value) {
+  return '"' + String(value || "").replace(/[()"\\]/g, " ").replace(/\s+/g, " ").trim() + '"';
+}
+
+function iaHolidaySearchQueries(channel, queries) {
+  const rail = IA_HOLIDAY_SEARCH_RAILS[String(channel || "")];
+  if (!rail) return queries;
+  const terms = rail.terms.map(iaArchiveQueryTerm).join(" OR ");
+  const noise = ["trailer", "preview", "review", "reaction", "how to", "tutorial", "podcast", "playlist", "fan edit", "fan film", "fan movie", "parody", "spoof", "pmv", "vertical", "shorts"]
+    .map(iaArchiveQueryTerm).join(" OR ");
+  const suffix = noise ? " AND NOT title:(" + noise + ") AND NOT subject:(" + noise + ")" : "";
+  const rails = rail.collections.map((collection) =>
+    "mediatype:movies AND collection:" + collection + " AND title:(" + terms + ")" + suffix
+  );
+  /* Keep one title-only rail after the family rails. It catches properly named
+     Archive items whose collection is missing or uploader-specific, while the
+     local collection-aware gate prevents that broad index result from leaking
+     into the station. */
+  rails.push("mediatype:movies AND title:(" + terms + ")" + suffix);
+  return uniqueIaQueries(rails.concat(Array.isArray(queries) ? queries : []), 16);
+}
+
 /* A few editorial channels are correctly strict but have Archive queries that
    are too specific for the index to return anything. Broaden only the search
    shape—not the approved vocabulary—so the final theme/deny gates still make
@@ -3981,10 +4017,45 @@ function themeText(value) {
     .normalize("NFKD").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim() + " ";
 }
 
+function iaHolidayThemeMatch(doc, themeTerms) {
+  const vocabulary = themeText(Array.isArray(themeTerms) ? themeTerms.join(" ") : themeTerms);
+  const holidayTerms = ["christmas", "xmas", "halloween", "thanksgiving", "turkey day", "yuletide", "santa", "rudolph", "frosty", "grinch", "halloween", "spooky", "haunted", "harvest", "mayflower", "pilgrim", "parade"];
+  const holiday = holidayTerms.some((term) => vocabulary.includes(themeText(term)));
+  if (!holiday) return false;
+  const animationStation = /(?:cartoon|animation|animated)/i.test(vocabulary);
+  const televisionStation = /(?:television|\btv\b|live action|sitcom|variety|parade|broadcast)/i.test(vocabulary);
+  if (!animationStation && !televisionStation) return false;
+  const text = themeText([
+    doc && doc.title,
+    doc && doc.subject,
+    doc && doc.identifier,
+    doc && doc.sourceIdentifier,
+  ].filter(Boolean).join(" "));
+  if (!holidayTerms.some((term) => text.includes(themeText(term)))) return false;
+  const collection = themeText(doc && doc.collection);
+  const animationCollections = [
+    "animationandcartoons", "classic cartoons", "classic_cartoons", "more animation", "more_animation",
+    "vintage cartoons", "vintage_cartoons", "animation unsorted", "animation_unsorted",
+    "saturday morning cartoons", "saturdaymorningcartoons", "vhs kids", "vhskids", "cartoons",
+  ];
+  const televisionCollections = [
+    "classic tv", "classic_tv", "television", "vhstvshows", "vhs tv", "vhsvault",
+    "prelinger", "avgeeks", "childrenstelevision", "scifi horror", "scifi_horror",
+  ];
+  if (animationStation && animationCollections.some((token) => collection.includes(themeText(token)))) {
+    return !/(?:podcast|playlist|fan\s*made|fan\s*film|fan\s*movie|fan\s*edit|parody|spoof|pmv|vertical|\bshorts?\b|trailer|preview|review|reaction|how\s+to|tutorial)/i.test(text);
+  }
+  if (televisionStation && televisionCollections.some((token) => collection.includes(themeText(token)))) {
+    return !/(?:cartoon|animated|animation|podcast|playlist|fan\s*made|fan\s*film|fan\s*movie|fan\s*edit|parody|spoof|pmv|vertical|\bshorts?\b|trailer|preview|review|reaction|how\s+to|tutorial)/i.test(text);
+  }
+  return false;
+}
+
 function matchesTheme(doc, themeTerms, minScore = 1, requiredTitleTerms = []) {
   const title = String(doc && doc.title || "").toLowerCase();
   const subject = themeText(String(doc && doc.subject || ""));
   const titleMatches = requiredTitleTerms.some(term => title.includes(String(term).toLowerCase()));
+  const holidayMatch = iaHolidayThemeMatch(doc, themeTerms);
   const identifier = String(doc && doc.identifier || "");
   const sourceIdentifier = String(doc && doc.sourceIdentifier || "");
   const isExpandedEpisode = identifier.includes("::") || (sourceIdentifier && sourceIdentifier !== identifier);
@@ -4002,7 +4073,8 @@ function matchesTheme(doc, themeTerms, minScore = 1, requiredTitleTerms = []) {
      collapse a deep series back to the first matching file. Keep the gate
      strict for standalone records and allow only explicitly expanded children
      through to the normal theme/deny/runtime checks. */
-  if (requiredTitleTerms.length && !titleMatches && !isExpandedEpisode) return false;
+  if (requiredTitleTerms.length && !titleMatches && !isExpandedEpisode && !holidayMatch) return false;
+  if (holidayMatch) return true;
   if (!themeTerms.length) return true;
   return themeScore(doc, themeTerms) >= minScore;
 }
@@ -6532,6 +6604,10 @@ async function getIaQueue(request, url, env, ctx) {
     const titles = requiredTitleTerms.map(term => '"' + term.replace(/[()"\\]/g, " ") + '"').join(" OR ");
     queries = queries.map(query => "(" + query + ") AND title:(" + titles + ")");
   }
+  /* Holiday stations get title-first collection rails after the normal
+     required-title shaping. Their local editorial gate remains authoritative,
+     so sparse Archive subject metadata no longer hides valid deep material. */
+  queries = iaHolidaySearchQueries(channel, queries);
   /* The app owns a bounded carousel revision. Revision zero is the common,
      globally prewarmed shelf; later revisions are requested only after a
      viewer has actually consumed a queue, which keeps fresh programming from

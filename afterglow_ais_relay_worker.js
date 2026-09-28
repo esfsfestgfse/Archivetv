@@ -1424,6 +1424,43 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "dream-theater-awake-1994", title: "Dream Theater — Awake", subject: "metal progressive metal heavy metal rock music", year: 1994, media: { type: "audio", url: "https://archive.org/download/dream-theater-awake-1994/Dream%20Theater%20Awake%201994.mp3" } },
     { identifier: "diamond_head-a_lightning-to_the_nations-vinyl-1980", title: "Diamond Head — A Lightning to the Nations", subject: "metal heavy metal british metal rock music", year: 1980 },
   ],
+  /* v4.1.88 IA catalog-depth pass: expand the repeat-heavy families with
+     metadata-verified Archive files. Each entry is a real file-level program,
+     not a collection landing page, so the rotation ledger can remember it
+     independently and the shelf can hydrate it without another search burst. */
+  "21": [
+    iaDirectRecovery("court-tv-inside-americas-courts-october-24-1993::CourtTV Inside America's Courts October 24 1993.ia.mp4", "court-tv-inside-americas-courts-october-24-1993", "CourtTV Inside America's Courts October 24 1993.ia.mp4", "Court TV · Inside America's Courts (October 24, 1993)", "court tv courtroom trial legal television true crime", 1993),
+    iaDirectRecovery("court-tv-evidence-of-innocence-the-lloyd-schlup-death-penalty-case::Court TV - Evidence Of Innocence; The Lloyd Schlup Death Penalty Case.mp4", "court-tv-evidence-of-innocence-the-lloyd-schlup-death-penalty-case", "Court TV - Evidence Of Innocence; The Lloyd Schlup Death Penalty Case.mp4", "Court TV · Evidence of Innocence", "court tv courtroom trial legal television true crime", 1994),
+    iaDirectRecovery("most-shocking-deadly-force-court-tv-airing-s-1-e-7-2006::Most Shocking- Deadly Force (CourtTV Airing) (S1 E7) (2006).ia.mp4", "most-shocking-deadly-force-court-tv-airing-s-1-e-7-2006", "Most Shocking- Deadly Force (CourtTV Airing) (S1 E7) (2006).ia.mp4", "Court TV · Most Shocking — Deadly Force", "court tv true crime police investigation documentary television", 2006),
+    iaDirectRecovery("most-shocking-criminals-out-of-control-2-court-tv-airing-s-3-e-2-2007::Most Shocking： Criminals Out Of Control 2 (CourtTV Airing) (S3 E2) (2007).mp4", "most-shocking-criminals-out-of-control-2-court-tv-airing-s-3-e-2-2007", "Most Shocking： Criminals Out Of Control 2 (CourtTV Airing) (S3 E2) (2007).mp4", "Court TV · Most Shocking — Criminals Out of Control", "court tv true crime police investigation documentary television", 2007),
+  ],
+  "54": [
+    iaDirectRecovery("1913-the-speed-kings::1913-The_Speed_Kings.ia.mp4", "1913-the-speed-kings", "1913-The_Speed_Kings.ia.mp4", "Auto Racing · The Speed Kings (1913)", "auto racing motorsport racing history sports documentary", 1913),
+    iaDirectRecovery("760741959VictoryCircles::76074 1959 Victory Circles.mp4", "760741959VictoryCircles", "76074 1959 Victory Circles.mp4", "Auto Racing · Victory Circles (1959)", "auto racing motorsport indianapolis 500 racing sports documentary", 1959),
+    iaDirectRecovery("k6EMzrVtrZxY5v9lL7C3c4YSmY5VWk::tmpae70pd1a.mp4", "k6EMzrVtrZxY5v9lL7C3c4YSmY5VWk", "tmpae70pd1a.mp4", "Auto Racing · Tribute to Fangio (1959)", "auto racing formula one motorsport racing sports documentary", 1959),
+    iaDirectRecovery("77144-competition-driver::77144 Competition Driver.mp4", "77144-competition-driver", "77144 Competition Driver.mp4", "Auto Racing · Competition Driver (1958)", "auto racing motorsport watkins glen racing sports documentary", 1958),
+    iaDirectRecovery("46314-the-fifth-mexican-road-race-vwr::46314+The+Fifth+Mexican+Road+Race_vwr.mp4", "46314-the-fifth-mexican-road-race-vwr", "46314+The+Fifth+Mexican+Road+Race_vwr.mp4", "Auto Racing · The Fifth Mexican Road Race (1954)", "auto racing road racing motorsport racing sports documentary", 1954),
+    iaDirectRecovery("76084TheUnforgettable500::76084 The Unforgettable 500.mp4", "76084TheUnforgettable500", "76084 The Unforgettable 500.mp4", "Auto Racing · The Unforgettable 500 (1955)", "auto racing motorsport indianapolis 500 racing sports documentary", 1955),
+    iaDirectRecovery("source_201905::source.mp4", "source_201905", "source.mp4", "Auto Racing · CASCAR at Las Vegas Motor Speedway", "auto racing nascar stock car racing motorsport sports broadcast", 2003),
+  ],
+  "216": [
+    iaDirectRecovery("34102AerospaceCommunications::34102 Aerospace Communications.mp4", "34102AerospaceCommunications", "34102 Aerospace Communications.mp4", "Cold War Cinema · Aerospace Communications (1961)", "cold war film military history aerospace defense documentary", 1961),
+    iaDirectRecovery("75714NavyCombatFootage::75714 Navy Combat Footage.mp4", "75714NavyCombatFootage", "75714 Navy Combat Footage.mp4", "Cold War Cinema · Navy Combat Footage", "cold war film military history navy submarine defense documentary", 1970),
+    iaDirectRecovery("89784-us-navy-radiological-defense-civilian-manned-ships-vwr::89784+US+Navy+Radiological+Defense+Civilian+Manned+Ships_vwr.mp4", "89784-us-navy-radiological-defense-civilian-manned-ships-vwr", "89784+US+Navy+Radiological+Defense+Civilian+Manned+Ships_vwr.mp4", "Cold War Cinema · Radiological Defense", "cold war film civil defense nuclear history military documentary", 1960),
+    iaDirectRecovery("88504-taiwan-island-of-freedom::88504 Taiwan Island Of Freedom.mp4", "88504-taiwan-island-of-freedom", "88504 Taiwan Island Of Freedom.mp4", "Cold War Cinema · Taiwan: Island of Freedom", "cold war film geopolitics propaganda history documentary", 1959),
+    iaDirectRecovery("71292TheAtlanticAliance::71292 The Atlantic Aliance.mp4", "71292TheAtlanticAliance", "71292 The Atlantic Aliance.mp4", "Cold War Cinema · The Atlantic Alliance", "cold war film nato military history geopolitics documentary", 1980),
+    iaDirectRecovery("52344ThisIsUSEucom::52344 This Is US Eucom.mp4", "52344ThisIsUSEucom", "52344 This Is US Eucom.mp4", "Cold War Cinema · This Is U.S. EUCOM", "cold war film nato military history europe defense documentary", 1967),
+    iaDirectRecovery("42574usnavyaircraftrecognitionsovietjetaircractvwr::42574 US navy Aircraft Recognition Soviet Jet Aircract_vwr.mp4", "42574usnavyaircraftrecognitionsovietjetaircractvwr", "42574 US navy Aircraft Recognition Soviet Jet Aircract_vwr.mp4", "Cold War Cinema · Soviet Aircraft Recognition", "cold war film military aviation aircraft recognition defense documentary", 1960),
+    iaDirectRecovery("71622TheDayCalledX::71622 The Day Called X.mp4", "71622TheDayCalledX", "71622 The Day Called X.mp4", "Cold War Cinema · The Day Called X", "cold war film civil defense nuclear history documentary", 1957),
+    iaDirectRecovery("88074-sea-power-on-the-move::88074 Sea Power On The Move.mp4", "88074-sea-power-on-the-move", "88074 Sea Power On The Move.mp4", "Cold War Cinema · Sea Power on the Move", "cold war film navy military history maritime defense documentary", 1960),
+  ],
+  "927": [
+    iaDirectRecovery("soul-train-october-7-1972-with-the-jackson-5::Soul_Train_(October_7_1972).mp4", "soul-train-october-7-1972-with-the-jackson-5", "Soul_Train_(October_7_1972).mp4", "Soul Train · The Jackson 5 (October 7, 1972)", "soul train funk performance soul music television", 1972),
+    iaDirectRecovery("NewEditionInterviewSoulTrainNovember161985::New Edition Interview 😻 [Soul Train November 16, 1985].mp4", "NewEditionInterviewSoulTrainNovember161985", "New Edition Interview 😻 [Soul Train November 16, 1985].mp4", "Soul Train · New Edition Interview (1985)", "soul train R&B performance soul music television", 1985),
+    iaDirectRecovery("BestOfSoulTrainEp398ATasteOfHoneyAlGreenJeffreyOsborne0782::Best of Soul Train Ep  398 A Taste Of Honey_ Al Green_ Jeffrey Osborne 07 82.mp4", "BestOfSoulTrainEp398ATasteOfHoneyAlGreenJeffreyOsborne0782", "Best of Soul Train Ep  398 A Taste Of Honey_ Al Green_ Jeffrey Osborne 07 82.mp4", "Soul Train · A Taste of Honey, Al Green & Jeffrey Osborne", "soul train funk performance soul music television", 1982),
+    iaDirectRecovery("soul-train-70s-15-various-artists::Soul Train 70s - 15 - Various Artists.mp4", "soul-train-70s-15-various-artists", "Soul Train 70s - 15 - Various Artists.mp4", "Soul Train · Episode 52 (March 17, 1973)", "soul train funk performance soul music television", 1973),
+    iaDirectRecovery("Jacksons1979SoulTrainInterview::Jacksons1979SoulTrainInterview.mp4", "Jacksons1979SoulTrainInterview", "Jacksons1979SoulTrainInterview.mp4", "Soul Train · The Jacksons Interview (1979)", "soul train funk performance soul music television", 1979),
+  ],
   "919": [
     { identifier: "djshaneasebackthemusicofthemeters", title: "DJ Shan — The Music of the Meters", subject: "funk soul rhythm and blues r&b motown music", year: 2019, media: { type: "audio", url: "https://archive.org/download/djshaneasebackthemusicofthemeters/DJ%20Shan%20-%20Ease%20Back%20-%20The%20music%20of%20the%20Meters.mp3" } },
     { identifier: "eop_2016_05_14_second_set", title: "Electrorganic Projects — Second Set", subject: "funk soul rhythm and blues r&b music", year: 2016, media: { type: "audio", url: "https://archive.org/download/eop_2016_05_14_second_set/eop_2016_05_14_second_set.mp3" } },
@@ -2624,6 +2661,11 @@ const IA_LONG_TAIL_EXPANSIONS_EXTRA = Object.freeze({
     iaDirectRecovery("MidnightMaraudazNoirV57MixedByDonRayTheFutureSoulEpisode::MidnightMaraudazNoirV57MixedByDon-rayTheFutureSoulEpisode.mp3", "MidnightMaraudazNoirV57MixedByDonRayTheFutureSoulEpisode", "MidnightMaraudazNoirV57MixedByDon-rayTheFutureSoulEpisode.mp3", "Midnight Maraudaz — Future Soul", "funk soul groove broken beat dance music radio", 2013, "audio"),
     iaDirectRecovery("BOLTDIGI008::01_uptown_funk.mp3", "BOLTDIGI008", "01_uptown_funk.mp3", "Bolt 008 — Uptown Funk", "funk soul electro groove music radio", 2010, "audio"),
     iaDirectRecovery("fsz050::fsz050_16-chenard_walcker-i_ve_got_my_mojo_working.mp3", "fsz050", "fsz050_16-chenard_walcker-i_ve_got_my_mojo_working.mp3", "The Pusher — I've Got My Mojo Working", "funk soul blues groove music radio", 2006, "audio"),
+    iaDirectRecovery("MIXG032::09_Igor_Leontyev_-_Dont_Be_Sad.mp3", "MIXG032", "09_Igor_Leontyev_-_Dont_Be_Sad.mp3", "Retrovision — Don't Be Sad", "funk soul rhythm and blues groove music radio", 2013, "audio"),
+    iaDirectRecovery("MIXG032::11_Igor_Leontyev_-_A_Point_of_View.mp3", "MIXG032", "11_Igor_Leontyev_-_A_Point_of_View.mp3", "Retrovision — A Point of View", "funk soul rhythm and blues groove music radio", 2013, "audio"),
+    iaDirectRecovery("MIXG032::12_Fedorov_Mark_-_Prom_Night.mp3", "MIXG032", "12_Fedorov_Mark_-_Prom_Night.mp3", "Retrovision — Prom Night", "funk soul rhythm and blues groove music radio", 2013, "audio"),
+    iaDirectRecovery("BOLTDIGI008::02_nebulas.mp3", "BOLTDIGI008", "02_nebulas.mp3", "Bolt 008 — Nebulas", "funk soul electro groove music radio", 2010, "audio"),
+    iaDirectRecovery("fsz050::fsz050_14-chenard_walcker-season_of_the_witch.mp3", "fsz050", "fsz050_14-chenard_walcker-season_of_the_witch.mp3", "The Pusher — Season of the Witch", "funk soul blues groove music radio", 2006, "audio"),
   ],
   "922": [
     iaDirectRecovery("clubdelcountry::2006/2006-08-14.mp3", "clubdelcountry", "2006/2006-08-14.mp3", "Club del Country — August 14, 2006", "country music americana honky tonk radio", 2006, "audio"),
@@ -2835,6 +2877,9 @@ const IA_LONG_TAIL_EXPANSIONS_EXTRA = Object.freeze({
     iaDirectRecovery("CSPAN3_20141226_102900_1964_Universal_Newsreel_Atomsville_U.S.A.::CSPAN3_20141226_102900_1964_Universal_Newsreel_Atomsville_U.S.A..mp4", "CSPAN3_20141226_102900_1964_Universal_Newsreel_Atomsville_U.S.A.", "CSPAN3_20141226_102900_1964_Universal_Newsreel_Atomsville_U.S.A..mp4", "C-SPAN Reel America · Atomsville U.S.A.", "news newsreel television news documentary archive science", 1964),
     iaDirectRecovery("UniversalNewsreelVolume36Release9711-28-1963::Universal Newsreel Volume 36 Release 97 11-28-1963.mp4", "UniversalNewsreelVolume36Release9711-28-1963", "Universal Newsreel Volume 36 Release 97 11-28-1963.mp4", "Universal Newsreel · November 1963", "news newsreel television news documentary archive", 1963),
     iaDirectRecovery("70712CameraThrillsOfWWII::70712 Camera Thrills of WWII.mp4", "70712CameraThrillsOfWWII", "70712 Camera Thrills of WWII.mp4", "Newsreel · Camera Thrills of WWII", "news newsreel television news documentary archive war history", 1943),
+    iaDirectRecovery("un-un-v31-r62::un-un-v31-r62.mp4", "un-un-v31-r62", "un-un-v31-r62.mp4", "Universal Newsreel · Volume 31, Release 62", "news newsreel television news documentary archive", 1958),
+    iaDirectRecovery("dli.MoI.films.005659::INR 1610.ia.mp4", "dli.MoI.films.005659", "INR 1610.ia.mp4", "International Newsreel · 1610", "news newsreel television news documentary archive", 1979),
+    iaDirectRecovery("gov.archives.arc.43878::gov.archives.arc.43878_512kb.mp4", "gov.archives.arc.43878", "gov.archives.arc.43878_512kb.mp4", "U.F.A. Newsreel · No. 507", "news newsreel television news documentary archive", 1940),
   ],
 });
 /* v4 promotion gate: only families that passed the full multi-rotation soak

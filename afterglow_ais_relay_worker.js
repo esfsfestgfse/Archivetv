@@ -89,7 +89,7 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
    warmup back onto the channel-change path. */
 const IA_STRICT_CATALOG_CANDIDATE_MAX = 128;
 const IA_CATALOG_CANDIDATE_MAX = 96;
-const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v24-global-video-quality-radio-recovery";
+const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v34-noir-depth";
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
@@ -101,10 +101,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v24-global-video-
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v170";
+const IA_QUEUE_CACHE_VERSION = "v180";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v170";
+const IA_LAST_GOOD_CACHE_VERSION = "v180";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -140,7 +140,7 @@ const IA_GLOBAL_VIDEO_POLICY_VERSION = "v1";
    that still showed neighboring rotations reopening the same five programs.
    This is a bounded ordering change only: discovery, hydration, and editorial
    gates remain unchanged, while a channel advances by one public shelf. */
-const IA_FULL_WINDOW_ROTATION_CHANNELS = new Set(["14", "56", "59", "60", "61", "74", "76", "78", "79", "82", "100", "101", "103", "121", "134", "210", "215", "225", "234", "235", "511", "910", "918", "919", "921", "928", "707", "708", "709"]);
+const IA_FULL_WINDOW_ROTATION_CHANNELS = new Set(["2", "14", "53", "56", "59", "60", "61", "74", "76", "78", "79", "82", "100", "101", "103", "108", "120", "121", "134", "210", "215", "225", "234", "235", "511", "906", "910", "918", "919", "921", "928", "707", "708", "709"]);
 /* A short per-isolate burst cache absorbs repeat requests from a TV, phone,
    and guide opened in quick succession. It is intentionally tiny and
    short-lived: Cache API/KV remain the durable shelves, while this map only
@@ -245,7 +245,7 @@ function iaColdRescueEnabled(channel) {
    manufacturing catalog. The six animation lanes use the same direct-ready
    contract because their verified episode banks are deeper and more reliable
    than the cold Archive search race; background expansion still deepens them. */
-const IA_STRICT_RECOVERY_CHANNELS = new Set(["17", "19", "74", "78", "80", "82", "100", "133", "200", "206", "215", "225", "228", "234", "235", "511", "910", "918", "919", "920", "921", "928", "150", "153", "158", "704", "705", "706", "707", "708", "709"]);
+const IA_STRICT_RECOVERY_CHANNELS = new Set(["17", "19", "53", "74", "78", "80", "82", "100", "108", "120", "133", "200", "206", "215", "225", "228", "234", "235", "511", "910", "918", "919", "920", "921", "928", "150", "153", "158", "704", "705", "706", "707", "708", "709"]);
 function iaStrictRecoveryEnabled(channel) {
   return IA_STRICT_RECOVERY_CHANNELS.has(String(channel));
 }
@@ -1341,11 +1341,11 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "The_Body_Snatcher_1945", title: "The Body Snatcher", subject: "classic horror gothic cinema horror film", year: 1945 },
   ],
   "120": [
-    { identifier: "y-2-mate.is-nobleza-ranchera-1977-pelicula-mexicana-u-bg-1ye-qdri-8-720p-1650422060856", title: "Nobleza Ranchera", subject: "latin cinema mexican film spanish movie", year: 1977 },
-    { identifier: "NnLibroDelBuenAmorElElLibroDelBuenAmorComedia1975TomsAznarPatxiAndinBlancaEstradaEspaolEspaa", title: "El Libro del Buen Amor", subject: "latin cinema spanish film comedy movie", year: 1975 },
-    { identifier: "tragedia-en-waco-texas-ano-1993-jorge-reynoso-jorge-ortin-ana-luisa-peluffo-polo-ortin.", title: "Tragedia en Waco, Texas", subject: "latin cinema mexican film spanish movie drama", year: 1993 },
-    { identifier: "vicente-fernandez-sinverguenza...-pero-honrado-198520042008-dvd-completo", title: "Sinvergüenza, Pero Honrado", subject: "latin cinema mexican film spanish movie", year: 1985 },
-    { identifier: "viridiana.-1961.720p.-blu-ray.x-264.-aac-ve", title: "Viridiana", subject: "latin cinema spanish film classic movie", year: 1961 },
+    iaDirectRecovery("y-2-mate.is-nobleza-ranchera-1977-pelicula-mexicana-u-bg-1ye-qdri-8-720p-1650422060856::Y2Mate.is - Nobleza Ranchera (1977) Película Mexicana-uBG1yeQDRI8-720p-1650422060856.mp4", "y-2-mate.is-nobleza-ranchera-1977-pelicula-mexicana-u-bg-1ye-qdri-8-720p-1650422060856", "Y2Mate.is - Nobleza Ranchera (1977) Película Mexicana-uBG1yeQDRI8-720p-1650422060856.mp4", "Nobleza Ranchera", "spanish cinema mexican cinema latin cinema mexican film spanish movie", 1977),
+    iaDirectRecovery("NnLibroDelBuenAmorElElLibroDelBuenAmorComedia1975TomsAznarPatxiAndinBlancaEstradaEspaolEspaa::nn Libro del buen amor, El - (El libro del buen amor)-Comedia-1975(Tomás Aznar)Patxi Andión, Blanca Estrada-Español-España-.mp4", "NnLibroDelBuenAmorElElLibroDelBuenAmorComedia1975TomsAznarPatxiAndinBlancaEstradaEspaolEspaa", "nn Libro del buen amor, El - (El libro del buen amor)-Comedia-1975(Tomás Aznar)Patxi Andión, Blanca Estrada-Español-España-.mp4", "El Libro del Buen Amor", "spanish cinema latin cinema spanish film comedy movie", 1975),
+    iaDirectRecovery("tragedia-en-waco-texas-ano-1993-jorge-reynoso-jorge-ortin-ana-luisa-peluffo-polo-ortin.::'Tragedia En Waco Texas'Año -1993-Jorge Reynoso-Jorge Ortin-Ana Luisa Peluffo-Polo Ortin..mp4", "tragedia-en-waco-texas-ano-1993-jorge-reynoso-jorge-ortin-ana-luisa-peluffo-polo-ortin.", "'Tragedia En Waco Texas'Año -1993-Jorge Reynoso-Jorge Ortin-Ana Luisa Peluffo-Polo Ortin..mp4", "Tragedia en Waco, Texas", "spanish cinema mexican cinema latin cinema mexican film spanish movie drama", 1993),
+    iaDirectRecovery("vicente-fernandez-sinverguenza...-pero-honrado-198520042008-dvd-completo::Sph.mp4", "vicente-fernandez-sinverguenza...-pero-honrado-198520042008-dvd-completo", "Sph.mp4", "Sinvergüenza, Pero Honrado", "spanish cinema mexican cinema latin cinema mexican film spanish movie", 1985),
+    iaDirectRecovery("viridiana.-1961.720p.-blu-ray.x-264.-aac-ve::Viridiana.1961.720p.BluRay.x264.AAC-[VE].mp4", "viridiana.-1961.720p.-blu-ray.x-264.-aac-ve", "Viridiana.1961.720p.BluRay.x264.AAC-[VE].mp4", "Viridiana", "spanish cinema latin cinema spanish film classic movie", 1961),
   ],
   "155": [
     { identifier: "cosdaz-Heavy_Metal_-_Locomotive_11", title: "Heavy Metal — Locomotive", subject: "adult animation animated film cartoon television", year: 1981, media: { type: "video", url: "https://archive.org/download/cosdaz-Heavy_Metal_-_Locomotive_11/Heavy_Metal_-_Locomotive_11.mp4" } },
@@ -1668,7 +1668,7 @@ function iaDirectRecovery(identifier, sourceIdentifier, fileName, title, subject
 }
 
 const IA_LONG_TAIL_EXPANSIONS = Object.freeze({
-  /* v178 targeted first-frame recovery. These are already-observed IA files
+  /* v179 targeted first-frame recovery. These are already-observed IA files
      for the four lanes that remained empty after relay/cache repair. Keeping
      the media derivative on the seed avoids another metadata roundtrip during
      a cold tune; normal editorial discovery still owns later rotation depth. */
@@ -3222,8 +3222,67 @@ const IA_PROMOTED_ARCHIVE_BANKS = Object.freeze({
     ...(IA_LONG_TAIL_EXPANSIONS_EXTRA["158"] || []),
   ]),
 });
+/* Targeted reliability banks for failures reproduced by the v171 soak.
+   These are not new stations and do not broaden any editorial profile:
+   channel 2 combines already-verified network/game-show records, while
+   Sports Vault unions verified sport-specific banks so its all-sport identity
+   does not reopen on one baseball collection. */
+const IA_TARGETED_RECOVERY_BANKS = Object.freeze({
+  "2": Object.freeze([
+    ...(IA_EMERGENCY_SEEDS["11"] || []),
+    ...(IA_EMERGENCY_SEEDS["12"] || []),
+  ]),
+  "53": Object.freeze([
+    ...(IA_LONG_TAIL_EXPANSIONS_EXTRA["59"] || []),
+    ...(IA_LONG_TAIL_EXPANSIONS_EXTRA["56"] || []),
+    ...(IA_LONG_TAIL_EXPANSIONS_EXTRA["61"] || []),
+    ...(IA_LONG_TAIL_EXPANSIONS_EXTRA["74"] || []),
+  ]),
+  "120": Object.freeze([
+    iaDirectRecovery("el.-amor.-brujo.-1986.1080p.-webrip.x-264.", "el.-amor.-brujo.-1986.1080p.-webrip.x-264.", "El.Amor.Brujo.1986.1080p.WEBRip.x264.AAC-[YTS.MX].mp4", "El Amor Brujo", "spanish cinema latin cinema spanish film classic movie", 1986, "video", 5911),
+    iaDirectRecovery("all.-about.-my.-mother.-1999.-spanish.-1080p.-blu-ray.-h-264.-aac-vxt", "all.-about.-my.-mother.-1999.-spanish.-1080p.-blu-ray.-h-264.-aac-vxt", "All.About.My.Mother.1999.SPANISH.1080p.BluRay.H264.AAC-VXT.ia.mp4", "All About My Mother", "spanish cinema latin cinema spanish film comedy drama movie", 1999, "video", 6099),
+    iaDirectRecovery("tacones-lejanos-1991-high-heels-1080p-high-code", "tacones-lejanos-1991-high-heels-1080p-high-code", "Tacones lejanos (1991) High Heels 1080p- HighCode.mp4", "Tacones Lejanos", "spanish cinema latin cinema spanish film comedy drama movie", 1991, "video", 6815),
+    iaDirectRecovery("la-flor-de-mi-secreto-1995-bdrip-1080p-high-code", "la-flor-de-mi-secreto-1995-bdrip-1080p-high-code", "La flor de mi secreto (1995) BDRip 1080p- HighCode.mp4", "La Flor de Mi Secreto", "spanish cinema latin cinema spanish film drama movie", 1995, "video", 6334),
+    iaDirectRecovery("el-sur-1983-victor-erice-bluray-remux", "el-sur-1983-victor-erice-bluray-remux", "El.Sur.1983.1080p.BluRay.REMUX.AVC.FLAC.1.0-TRiToN.mp4", "El Sur", "spanish cinema latin cinema spanish film drama movie", 1983, "video", 5656),
+    iaDirectRecovery("el-beso-de-la-mujer-arana-1985", "el-beso-de-la-mujer-arana-1985", "El beso de la mujer araña (1985).ia.mp4", "El Beso de la Mujer Araña", "spanish cinema latin cinema spanish film drama movie", 1985, "video", 7231),
+    iaDirectRecovery("cazador-de-tiburones-hd", "cazador-de-tiburones-hd", "Cazador de Tiburones HD.mp4", "Cazador de Tiburones", "mexican cinema latin cinema mexican film spanish movie", 1979, "video", 5820),
+    iaDirectRecovery("la-mascara-del-terror", "la-mascara-del-terror", "la máscara del terror.mp4", "La Máscara del Terror", "spanish cinema latin cinema spanish film horror movie", 1995, "video", 1667),
+    iaDirectRecovery("aullidos-2006", "aullidos-2006", "Aullidos (2006).ia.mp4", "Aullidos", "spanish cinema latin cinema spanish film horror movie", 2006, "video", 5214),
+    iaDirectRecovery("cria.-cuervos.-1976.-spanish.-1080p.-blu-ray.-h-264.-aac-vxt", "cria.-cuervos.-1976.-spanish.-1080p.-blu-ray.-h-264.-aac-vxt", "Cria.Cuervos.1976.SPANISH.1080p.BluRay.H264.AAC-VXT.ia.mp4", "Cría Cuervos", "spanish cinema latin cinema spanish film drama movie", 1976, "video", 6591),
+    iaDirectRecovery("mil-gritos-tiene-la-noche-19820", "mil-gritos-tiene-la-noche-19820", "Mil Gritos Tiene La Noche (19820.ia.mp4", "Mil Gritos Tiene La Noche", "spanish cinema latin cinema spanish film horror movie", 1982, "video", 5132),
+    iaDirectRecovery("y-2-mate.is-la-edad-de-la-tentacion-pelicula-completa-de-gaston-santos-3f-3-rlj-", "y-2-mate.is-la-edad-de-la-tentacion-pelicula-completa-de-gaston-santos-3f-3rlj-", "Y2Mate.is - La edad de la tentación - película completa de Gastón Santos-3f3RLj_op1k-1080p-1628225027532.ia.mp4", "La Edad de la Tentación", "mexican cinema latin cinema spanish film classic movie", 1959, "video", 5548),
+    iaDirectRecovery("y-2-mate.is-antonio-aguilar-los-dos-rivales-pelicula-completa-en-hd-ra-40wbme-sa", "y-2-mate.is-antonio-aguilar-los-dos-rivales-pelicula-completa-en-hd-ra-40wbme-sa", "Y2Mate.is - Antonio Aguilar Los Dos Rivales - Película Completa en HD-ra40wbmeSas-1080p-1628386621221.ia.mp4", "Los Dos Rivales", "mexican cinema latin cinema spanish film western movie", 1966, "video", 4997),
+    iaDirectRecovery("lucia-e-o-sexo.-2001.1080p.-web-dl.x-264.-dual.-2.0", "lucia-e-o-sexo.-2001.1080p.-web-dl.x-264.-dual.-2.0", "Lúcia e o Sexo.2001.1080p.WEB-DL.x264.DUAL.2.0.mp4", "Lúcia e o Sexo", "spanish cinema latin cinema spanish film drama movie", 2001, "video", 7367),
+    iaDirectRecovery("condenados.-manuel.-mur.-oti.-1953.-amzn.-web-dl.-1080p.-dd.-2.0.-found.via.clan-sudamerica.net-001", "condenados.-manuel.-mur.-oti.-1953.-amzn.-web-dl.-1080p.-dd.-2.0.-found.via.clan-sudamerica.net-001", "Condenados.(Manuel.Mur.Oti,.1953).[AMZN.WEB-DL.1080p.DD+.2.0].(Found.via.clan-sudamerica.net)-001.mp4", "Condenados", "spanish cinema latin cinema spanish film drama movie", 1953, "video", 5216),
+    iaDirectRecovery("dos-hermanos-murieron-1980-600p", "dos-hermanos-murieron-1980-600p", "Dos Hermanos Murieron (1980) 600p.ia.mp4", "Dos Hermanos Murieron", "mexican cinema latin cinema spanish film drama movie", 1980, "video", 5415),
+    iaDirectRecovery("corazones-de-terciopelo-1992", "corazones-de-terciopelo-1992", "Corazones de terciopelo (1992).mp4", "Corazones de Terciopelo", "mexican cinema latin cinema spanish film drama movie", 1992, "video", 2134),
+    iaDirectRecovery("gueros.-2014.-spanish.-1080p.-blu-ray.-h-264.-aac-vxt_202207", "gueros.-2014.-spanish.-1080p.-blu-ray.-h-264.-aac-vxt_202207", "Gueros.2014.SPANISH.1080p.BluRay.H264.AAC-VXT.ia.mp4", "Güeros", "mexican cinema latin cinema spanish film drama movie", 2014, "video", 6676),
+    iaDirectRecovery("mujer-de-cabaret-1991", "mujer-de-cabaret-1991", "Mujer De Cabaret (1991).mp4", "Mujer de Cabaret", "mexican cinema latin cinema spanish film drama movie", 1991, "video", 5931),
+    iaDirectRecovery("yako-cazador-de-malditos-1986-1080p", "yako-cazador-de-malditos-1986-1080p", "Yako, Cazador de Malditos (1986) 1080p.mp4", "Yako, Cazador de Malditos", "mexican cinema latin cinema spanish film horror movie", 1986, "video", 5369),
+  ]),
+  "108": Object.freeze([
+    ...(IA_EMERGENCY_SEEDS["3"] || []),
+    iaDirectRecovery("Violated1953::Violated1953.mp4", "Violated1953", "Violated1953.mp4", "Violated", "film noir crime drama mystery detective feature film", 1953, "video", 4025, 528, 360),
+    iaDirectRecovery("tiw778452::tiw778452.mp4", "tiw778452", "tiw778452.mp4", "The Invisible Wall", "film noir crime drama mystery detective feature film", 1947, "video", 4306, 480, 360),
+    iaDirectRecovery("pursued-1947::Pursued (1947) Robert Mitchum, Teresa Wright, Judith Anderson, Dean Jagger.ia.mp4", "pursued-1947", "Pursued (1947) Robert Mitchum, Teresa Wright, Judith Anderson, Dean Jagger.ia.mp4", "Pursued", "film noir crime drama mystery detective feature film", 1947, "video", 6086, 624, 480),
+    iaDirectRecovery("tread-softly-stranger-1958-dvdrip.x-264::Tread.Softly.Stranger.(1958).DVDrip.x264-KG.mp4", "tread-softly-stranger-1958-dvdrip.x-264", "Tread.Softly.Stranger.(1958).DVDrip.x264-KG.mp4", "Tread Softly Stranger", "film noir crime drama mystery detective feature film", 1958, "video", 5489, 640, 480),
+    iaDirectRecovery("the_fat_man::The Fat Man.mp4", "the_fat_man", "The Fat Man.mp4", "The Fat Man", "film noir crime drama mystery detective feature film", 1951, "video", 4647, 608, 448),
+    iaDirectRecovery("thebluegardenia1953::The Blue Gardenia 1953.mp4", "thebluegardenia1953", "The Blue Gardenia 1953.mp4", "The Blue Gardenia", "film noir crime drama mystery detective feature film", 1953, "video", 5299, 482, 360),
+    iaDirectRecovery("manhandled-1949::Manhandled (1949) Sterling Hayden, Dan Duryea, Dorothy Lamour.mp4", "manhandled-1949", "Manhandled (1949) Sterling Hayden, Dan Duryea, Dorothy Lamour.mp4", "Manhandled", "film noir crime drama mystery detective feature film", 1949, "video", 5770, 480, 360),
+    iaDirectRecovery("murder-in-the-blue-room-1944-5-star-classic-mys-com-rom::Murder In the Blue Room (1944 5 Star Classic MysComRom).mp4", "murder-in-the-blue-room-1944-5-star-classic-mys-com-rom", "Murder In the Blue Room (1944 5 Star Classic MysComRom).mp4", "Murder in the Blue Room", "film noir crime drama mystery detective feature film", 1944, "video", 3611, 640, 360),
+    iaDirectRecovery("dishonoredlady1947usafeaturinghedylamarrdennisokeefejohnloderfilmnoirfullmovie_202001::Dishonored Lady (1947, USA) Featuring Hedy Lamarr, Dennis O'Keefe, John Loder - Film Noir Full Movie.mp4", "dishonoredlady1947usafeaturinghedylamarrdennisokeefejohnloderfilmnoirfullmovie_202001", "Dishonored Lady (1947, USA) Featuring Hedy Lamarr, Dennis O'Keefe, John Loder - Film Noir Full Movie.mp4", "Dishonored Lady", "film noir crime drama mystery detective feature film", 1947, "video", 5040, 480, 360),
+    iaDirectRecovery("world-for-ransom-1954-crime-drama-film-noir-dan-duryea-gene-lockhart-marian-carr::World for Ransom (1954) - CrimeDramaFilm-Noir - Dan Duryea, Gene Lockhart, Marian Carr.mp4", "world-for-ransom-1954-crime-drama-film-noir-dan-duryea-gene-lockhart-marian-carr", "World for Ransom (1954) - CrimeDramaFilm-Noir - Dan Duryea, Gene Lockhart, Marian Carr.mp4", "World for Ransom", "film noir crime drama mystery detective feature film", 1954, "video", 4912, 492, 360),
+    iaDirectRecovery("undertow1949_202002::Undertow (1949, USA) Featuring Scott Brady, John Russell, Dorothy Hart - Film Noir Full Movie.mp4", "undertow1949_202002", "Undertow (1949, USA) Featuring Scott Brady, John Russell, Dorothy Hart - Film Noir Full Movie.mp4", "Undertow", "film noir crime drama mystery detective feature film", 1949, "video", 4231, 658, 480),
+    iaDirectRecovery("the-brothers-rico-1957::The Brothers Rico 1957 VOS.ia.mp4", "the-brothers-rico-1957", "The Brothers Rico 1957 VOS.ia.mp4", "The Brothers Rico", "film noir crime drama mystery detective feature film", 1957, "video", 5497, 640, 350),
+    iaDirectRecovery("ivy-1947::Ivy (1947) Joan Fontaine, Patric Knowles, Herbert Marshall, Richard Ney.ia.mp4", "ivy-1947", "Ivy (1947) Joan Fontaine, Patric Knowles, Herbert Marshall, Richard Ney.ia.mp4", "Ivy", "film noir crime drama mystery detective feature film", 1947, "video", 5928, 496, 360),
+    iaDirectRecovery("a-life-at-stake-1955_202512::A Life At Stake 1955.ia.mp4", "a-life-at-stake-1955_202512", "A Life At Stake 1955.ia.mp4", "A Life at Stake", "film noir crime drama mystery detective feature film", 1955, "video", 4552, 1484, 1080),
+    iaDirectRecovery("thieveshighway1948::Thieves' Highway (1948, USA) Featuring Richard Carlson, Lucille Bremer - Film Noir Full Movie.mp4", "thieveshighway1948", "Thieves' Highway (1948, USA) Featuring Richard Carlson, Lucille Bremer - Film Noir Full Movie.mp4", "Thieves' Highway", "film noir crime drama mystery detective feature film", 1948, "video", 5650, 500, 360),
+    iaDirectRecovery("the-face-behind-the-mask-1941::The Face Behind the Mask (1941) Peter Lorre, Evelyn Keyes.ia.mp4", "the-face-behind-the-mask-1941", "The Face Behind the Mask (1941) Peter Lorre, Evelyn Keyes.ia.mp4", "The Face Behind the Mask", "film noir crime drama mystery detective feature film", 1941, "video", 4084, 480, 360),
+    ...(IA_LONG_TAIL_EXPANSIONS_EXTRA["511"] || []).filter((item) => /noir|mystery|crime/i.test(String(item && item.subject || ""))),
+  ]),
+});
 /* These file names were verified against the IA metadata endpoint during the
-   v172 soak. Carrying the known playable derivative with the recovery record
+   v179 soak. Carrying the known playable derivative with the recovery record
    prevents a warm five-item shelf from waiting on another metadata roundtrip
    before the background rotation can deepen. */
 const IA_LONG_TAIL_MEDIA_FILES = Object.freeze({
@@ -5944,15 +6003,40 @@ function iaShouldBypassShallowRotation(payload, rotation, count, candidateCount)
 }
 
 function orderedIaEmergencySeeds(channel, rotation) {
-  const seeds = (IA_EMERGENCY_SEEDS[String(channel)] || [])
+  const rawSeeds = (IA_EMERGENCY_SEEDS[String(channel)] || [])
     .concat(IA_LONG_TAIL_EXPANSIONS[String(channel)] || [])
     .concat(IA_LONG_TAIL_EXPANSIONS_EXTRA[String(channel)] || [])
     .concat(IA_PROMOTED_ARCHIVE_BANKS[String(channel)] || [])
+    .concat(IA_TARGETED_RECOVERY_BANKS[String(channel)] || [])
     .map((item) => {
     const fileName = IA_LONG_TAIL_MEDIA_FILES[String(item && item.identifier || "")];
     if (!fileName || (item && item.media && item.media.url)) return item;
     const url = queueFileUrls(item.identifier, {}, fileName)[0];
     return url ? { ...item, media: { type: "video", url } } : item;
+  });
+  /* Archive can expose one program twice: once as a parent identifier with
+     a direct media URL and again as the same identifier plus its concrete
+     file name. Treat the file-level record as canonical when both exist.
+     Keep different files from the same collection distinct so complete
+     series still expand normally. */
+  const fileParents = new Set();
+  for (const item of rawSeeds) {
+    const rawIdentifier = String(item && item.identifier || "");
+    const source = String(item && item.sourceIdentifier || (rawIdentifier.includes("::") ? rawIdentifier.split("::")[0] : rawIdentifier));
+    const fileName = String(item && item.fileName || (rawIdentifier.includes("::") ? rawIdentifier.slice(rawIdentifier.indexOf("::") + 2) : ""));
+    if (source && fileName) fileParents.add(source);
+  }
+  const seen = new Set();
+  const seeds = rawSeeds.filter((item) => {
+    const rawIdentifier = String(item && item.identifier || "");
+    const source = String(item && item.sourceIdentifier || (rawIdentifier.includes("::") ? rawIdentifier.split("::")[0] : rawIdentifier));
+    const fileName = String(item && item.fileName || (rawIdentifier.includes("::") ? rawIdentifier.slice(rawIdentifier.indexOf("::") + 2) : ""));
+    if (!source) return false;
+    if (!fileName && fileParents.has(source)) return false;
+    const identity = fileName ? source + "::" + fileName : source;
+    if (seen.has(identity)) return false;
+    seen.add(identity);
+    return true;
   });
   if (!seeds.length) return [];
   /* Animation cold starts already own verified, file-level banks.

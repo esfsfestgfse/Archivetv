@@ -13,7 +13,7 @@ function check(ok, message) {
   if (!ok) failures.push(message);
 }
 
-check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v198"/.test(relay), 'IA strict-lane repair invalidates the prior queue namespace');
+check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v199"/.test(relay), 'IA depth-window repair invalidates the prior queue namespace');
 check(/function rotatePlayableIaShelf\([\s\S]*orderedIaEmergencySeeds\(recoveryChannel, 0\)/.test(relay), 'slow fallbacks merge the lane-owned verified bank before rotating');
 check(/rotationApplied === true/.test(relay) && /rotationApplied: true/.test(relay), 'rotation state prevents cached shelves from being advanced twice');
 check(/"701": \[[\s\S]*TheThingFromAnotherWorldHorrorSciFi1951JamesArnessKennethTobeyMargaretSheridan[\s\S]*TheGiantGilaMonster/.test(relay), 'Halloween Haunt adds full-length multi-era horror files');

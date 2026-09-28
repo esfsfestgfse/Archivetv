@@ -102,10 +102,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v42-catal
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v198";
+const IA_QUEUE_CACHE_VERSION = "v199";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v198";
+const IA_LAST_GOOD_CACHE_VERSION = "v199";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -2522,20 +2522,20 @@ const IA_LONG_TAIL_EXPANSIONS_EXTRA = Object.freeze({
     iaDirectRecovery("1949-RollerDerby-NewJerseyVsPhiladelphia::1949-RollerDerby-NewJerseyVsPhiladelphia.mp4", "1949-RollerDerby-NewJerseyVsPhiladelphia", "1949-RollerDerby-NewJerseyVsPhiladelphia.mp4", "Roller Derby — New Jersey vs. Philadelphia (1949)", "roller derby professional sports broadcast vintage sports television", 1949, "video", 1947),
     iaDirectRecovery("wce93::01 - April 6th 1993.mp4", "wce93", "01 - April 6th 1993.mp4", "WCE Wrestling — April 6, 1993", "professional wrestling wrestling broadcast wrestling television sports", 1993, "video", 3002),
     iaDirectRecovery("wce93::02 - April 13th 1993.mp4", "wce93", "02 - April 13th 1993.mp4", "WCE Wrestling — April 13, 1993", "professional wrestling wrestling broadcast wrestling television sports", 1993, "video", 3073),
-    iaDirectRecovery("wce96v3::01 - January 2nd.mp4", "wce96v3", "01 - January 2nd.mp4", "WCE Hardcore TV — January 2, 1996", "professional wrestling wrestling broadcast wrestling television sports", 1996, "video", 3192),
+    iaDirectRecovery("wce96v3::01 - January 2nd.mp4", "wce96v3", "01 - January 2nd.mp4", "WCE Wrestling TV — January 2, 1996", "professional wrestling wrestling broadcast wrestling television sports", 1996, "video", 3192),
     iaDirectRecovery("recdub94::01 - January 4th 1994.mp4", "recdub94", "01 - January 4th 1994.mp4", "WCE Wrestling — January 4, 1994", "professional wrestling wrestling broadcast wrestling television sports", 1994, "video", 3103),
-    iaDirectRecovery("recdub2000540::01 - January 1st 2000.mp4", "recdub2000540", "01 - January 1st 2000.mp4", "WCE Hardcore TV — January 1, 2000", "professional wrestling wrestling broadcast wrestling television sports", 2000, "video", 3207),
+    iaDirectRecovery("recdub2000540::01 - January 1st 2000.mp4", "recdub2000540", "01 - January 1st 2000.mp4", "WCE Wrestling TV — January 1, 2000", "professional wrestling wrestling broadcast wrestling television sports", 2000, "video", 3207),
     iaDirectRecovery("wce93::03 - April 20th 1993.mp4", "wce93", "03 - April 20th 1993.mp4", "WCE Wrestling — April 20, 1993", "professional wrestling wrestling broadcast wrestling television sports", 1993, "video", 3105),
     iaDirectRecovery("wce93::04 - April 27th 1993.mp4", "wce93", "04 - April 27th 1993.mp4", "WCE Wrestling — April 27, 1993", "professional wrestling wrestling broadcast wrestling television sports", 1993, "video", 3032),
     iaDirectRecovery("wce93::05 - May 4th 1993.mp4", "wce93", "05 - May 4th 1993.mp4", "WCE Wrestling — May 4, 1993", "professional wrestling wrestling broadcast wrestling television sports", 1993, "video", 3001),
-    iaDirectRecovery("wce96v3::02 - January 9th.mp4", "wce96v3", "02 - January 9th.mp4", "WCE Hardcore TV — January 9, 1996", "professional wrestling wrestling broadcast wrestling television sports", 1996, "video", 3320),
-    iaDirectRecovery("wce96v3::03 - January 16th.mp4", "wce96v3", "03 - January 16th.mp4", "WCE Hardcore TV — January 16, 1996", "professional wrestling wrestling broadcast wrestling television sports", 1996, "video", 3240),
+    iaDirectRecovery("wce96v3::02 - January 9th.mp4", "wce96v3", "02 - January 9th.mp4", "WCE Wrestling TV — January 9, 1996", "professional wrestling wrestling broadcast wrestling television sports", 1996, "video", 3320),
+    iaDirectRecovery("wce96v3::03 - January 16th.mp4", "wce96v3", "03 - January 16th.mp4", "WCE Wrestling TV — January 16, 1996", "professional wrestling wrestling broadcast wrestling television sports", 1996, "video", 3240),
     iaDirectRecovery("recdub94::02 - January 18th 1994.mp4", "recdub94", "02 - January 18th 1994.mp4", "WCE Wrestling — January 18, 1994", "professional wrestling wrestling broadcast wrestling television sports", 1994, "video", 4926),
     iaDirectRecovery("recdub94::03 - January 25th 1994.mp4", "recdub94", "03 - January 25th 1994.mp4", "WCE Wrestling — January 25, 1994", "professional wrestling wrestling broadcast wrestling television sports", 1994, "video", 3185),
-    iaDirectRecovery("recdub2000540::02 - January 8th 2000.mp4", "recdub2000540", "02 - January 8th 2000.mp4", "WCE Hardcore TV — January 8, 2000", "professional wrestling wrestling broadcast wrestling television sports", 2000, "video", 3140),
-    iaDirectRecovery("recdub2000540::03 - January 15th 2000.mp4", "recdub2000540", "03 - January 15th 2000.mp4", "WCE Hardcore TV — January 15, 2000", "professional wrestling wrestling broadcast wrestling television sports", 2000, "video", 3543),
+    iaDirectRecovery("recdub2000540::02 - January 8th 2000.mp4", "recdub2000540", "02 - January 8th 2000.mp4", "WCE Wrestling TV — January 8, 2000", "professional wrestling wrestling broadcast wrestling television sports", 2000, "video", 3140),
+    iaDirectRecovery("recdub2000540::03 - January 15th 2000.mp4", "recdub2000540", "03 - January 15th 2000.mp4", "WCE Wrestling TV — January 15, 2000", "professional wrestling wrestling broadcast wrestling television sports", 2000, "video", 3543),
     { identifier: "wce93", title: "WCE Wrestling — 1993 Collection", subject: "professional wrestling wrestling broadcast wrestling television sports", year: 1993 },
-    { identifier: "wce96v3", title: "WCE Hardcore TV — 1996 Collection", subject: "professional wrestling wrestling broadcast wrestling television sports", year: 1996 },
+    { identifier: "wce96v3", title: "WCE Wrestling TV — 1996 Collection", subject: "professional wrestling wrestling broadcast wrestling television sports", year: 1996 },
     { identifier: "re-c-dub-1995-complete", title: "RE-C-DUB — 1995 Complete Wrestling Collection", subject: "professional wrestling wrestling broadcast wrestling television sports", year: 1995 },
   ],
   /* Trackside had admitted a generic movie marathon because “marathon” was

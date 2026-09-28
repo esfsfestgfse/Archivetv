@@ -102,10 +102,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v42-catal
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v193";
+const IA_QUEUE_CACHE_VERSION = "v194";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v193";
+const IA_LAST_GOOD_CACHE_VERSION = "v194";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -6227,6 +6227,21 @@ function rotatePlayableIaShelf(payload, rotation, count) {
   let playableCandidates = Array.isArray(payload && payload.candidateItems)
     ? payload.candidateItems.filter((item) => item && item.identifier && item.media && item.media.url)
     : [];
+  /* A slow discovery request may fall back to a last-good payload that was
+     written before the lane's deeper recovery bank finished hydrating. Merge
+     the lane-owned verified files into that fallback before calculating the
+     public shelf offset. This keeps a slow Archive search from undoing the
+     freshness work already available locally. */
+  const recoveryChannel = String(payload && payload.channel || "");
+  if (recoveryChannel && iaColdRescueEnabled(recoveryChannel)) {
+    const seenRecovery = new Set(playableCandidates.map((item) => String(item && item.identifier || "")));
+    for (const item of orderedIaEmergencySeeds(recoveryChannel, 0)) {
+      const id = String(item && item.identifier || "");
+      if (!id || !item.media || !item.media.url || seenRecovery.has(id)) continue;
+      playableCandidates.push(item);
+      seenRecovery.add(id);
+    }
+  }
   /* Archive often exposes several encodings of the same longplay. They are
      valid files, but not distinct programs. Keep one file per verified arcade
      source so a skip cannot appear to advance while replaying the same game. */
@@ -6698,7 +6713,7 @@ async function getIaQueue(request, url, env, ctx) {
   const channel = String(body && body.channel || "").trim();
   let queries = safeQueries(body && body.queries);
   const themeTerms = safeThemeTerms(body && body.themeTerms);
-  const denyTerms = safeDenyTerms(body && body.denyTerms);
+  const denyTerms = Array.from(new Set(safeDenyTerms(body && body.denyTerms).concat(channel === "64" ? ["shooting", "archery"] : [])));
   const requiredTitleTerms = safeThemeTerms(body && body.requiredTitleTerms);
   const mediaTypes = safeMediaTypes(body && body.mediaTypes);
   const themeMinScore = safeThemeMinScore(body && body.themeMinScore);

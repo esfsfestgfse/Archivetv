@@ -90,7 +90,7 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
    warmup back onto the channel-change path. */
 const IA_STRICT_CATALOG_CANDIDATE_MAX = 128;
 const IA_CATALOG_CANDIDATE_MAX = 96;
-const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v57-underfill-stable-rails";
+const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v58-underfill-depth-rotation";
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
@@ -103,10 +103,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v57-under
    episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v214";
+const IA_QUEUE_CACHE_VERSION = "v215";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v214";
+const IA_LAST_GOOD_CACHE_VERSION = "v215";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -6622,7 +6622,12 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTit
      catalog before metadata hydration could select playable files. Keep the
      wider candidate shelf intact; hydrate only the requested foreground
      count, then let background refill and later rotations consume the rest. */
-  const items = [], deferred = [], freshnessDeferred = [], seen = new Set(), seenTitles = new Set(), candidateLimit = Math.max(count, Math.min(IA_STRICT_CATALOG_CANDIDATE_MAX, Number(count) || 5));
+  /* `count` is the five-item on-air shelf. `candidateCount` is the much
+     larger rolling catalog behind it. Using `count` here silently truncated
+     every fresh Archive search back to five records, which made the app look
+     shallow even when the search rails had found dozens of approved files. */
+  const items = [], deferred = [], freshnessDeferred = [], seen = new Set(), seenTitles = new Set();
+  const candidateLimit = Math.max(count, Math.min(IA_STRICT_CATALOG_CANDIDATE_MAX, Number(candidateCount) || count));
   const freshnessExcluded = new Set(Array.isArray(freshnessExcludedIds) ? freshnessExcludedIds.map(String) : []);
   const used = { lane: new Map(), era: new Map(), creator: new Map(), collection: new Map(), family: new Map(), source: new Map() };
   let deferredContainerExpansion = false;
@@ -7088,18 +7093,30 @@ function rotateUnderfillDepthBank(payload, channel, rotation, count, themeTerms,
     candidates.push(item);
   }
   if (candidates.length < requested) return payload;
-  const rotated = rotatePlayableIaShelf({
+  /* Do not delegate this measured underfill rail back to the generic shelf
+     rotator. That helper is intentionally cache-aware and may accept an
+     already-marked payload as a valid window. Underfill banks need a stronger
+     guarantee: the same deterministic candidate union must be sorted first,
+     then advanced by a full public shelf for every request. Otherwise a
+     different Archive response order can make rotation 1/2/3 look identical
+     even though the bank contains more than one shelf. */
+  const stableCandidates = candidates.slice().sort((a, b) => String(a.identifier || "").localeCompare(String(b.identifier || "")));
+  const offset = stableCandidates.length > 1
+    ? (normalizedRotation * requested) % stableCandidates.length
+    : 0;
+  const ordered = stableCandidates.slice(offset).concat(stableCandidates.slice(0, offset));
+  const rotated = {
     ...(payload || {}),
     channel: key,
-    rotation: 0,
-    items: candidates,
-    candidateItems: candidates,
-    candidates: candidates.length,
-    ready: candidates.length,
-    partial: false,
+    rotation: normalizedRotation,
+    items: ordered.slice(0, requested),
+    candidateItems: stableCandidates,
+    candidates: stableCandidates.length,
+    ready: Math.min(requested, ordered.length),
+    partial: ordered.length < requested,
     hydrating: false,
-    rotationApplied: false,
-  }, normalizedRotation, requested);
+    rotationApplied: true,
+  };
   return {
     ...(payload || {}),
     ...rotated,

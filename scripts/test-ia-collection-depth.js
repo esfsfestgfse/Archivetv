@@ -50,7 +50,7 @@ for (const [channel, collection] of Object.entries(expectedRails)) {
 }
 
 const relay = fs.readFileSync(path.join(root, 'afterglow_ais_relay_worker.js'), 'utf8');
-check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v192"/.test(relay), 'Relay cache namespace is v192');
+check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v193"/.test(relay), 'Relay cache namespace is v193');
 check(/0411_Tornado_06_00_36_00::t0411_Tornado_06_00_36_00\.mp4/.test(relay) && /ShockTro1938::ShockTro1938\.mp4/.test(relay), 'News adds more direct disaster/newsreel rotation');
 check(/youtube--IJuW9rAskc::-IJuW9rAskc\.mp4/.test(relay) && /youtube-Ko9kzyqW-l8::Ko9kzyqW-l8\.mp4/.test(relay), 'Gear Head adds verified direct automotive review rotation');
 check(/top-gear-s15-bd::TOP GEAR SERIES 15 DISC 211\.mp4/.test(relay) && /top-gear-s15-bd::TOP GEAR SERIES 15 DISC 212\.mp4/.test(relay), 'Gear Head adds more direct Top Gear episode rotation');
@@ -100,6 +100,7 @@ check(/"158": \[[\s\S]*spider-mantheanimatedseries[\s\S]*DragonTalesTVSeries[\s\
 check(/"10": \[[\s\S]*theloneranger_201705[\s\S]*Bonanza_-_The_Trail_Gang/.test(relay), 'Classic Rerun TV has a multi-series deep recovery bank');
 check(/"12": \[[\s\S]*nickelodeon-guts-season-1[\s\S]*Price_Is-Right_1957[\s\S]*Jeopardy/.test(relay), 'Game Show Channel spans multiple decades and formats');
 check(/"701": \[[\s\S]*Grave_of_the_Vampire_movie::Grave-of-the-Vampire\.mp4[\s\S]*Nosferatu_most_complete_version_93_mins\.[\s\S]*bride-of-frankenstein-1935-restored-movie-720p-hd/.test(relay), 'Halloween Haunt has a deep, full-length multi-era horror film bank');
+check(/"55": \[[\s\S]*wce93::03 - April 20th 1993\.mp4[\s\S]*recdub2000540::03 - January 15th 2000\.mp4/.test(relay) && /"64": \[[\s\S]*track-and-field-day-8-evening-720p\.mp4[\s\S]*track-and-field-women-marathon-576p\.mp4/.test(relay), 'Weak sports lanes have deeper episode and athletics event banks');
 for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
   const source = fs.readFileSync(path.join(root, file), 'utf8');
   check(/Object\.assign\(PROGRAM\["News, News, News"\],\{[\s\S]*diversity:\{maxPerEra:2,maxPerLane:2,maxPerCreator:1,maxPerCollection:3,maxPerFamily:1\}\}\);/.test(source), `${file}: News rotates multiple items per era before repeating`);

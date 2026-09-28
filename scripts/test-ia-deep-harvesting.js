@@ -13,7 +13,7 @@ function check(ok, message) {
   if (!ok) failures.push(message);
 }
 
-check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v192"/.test(relay), 'IA Haunt depth repair invalidates the prior queue namespace');
+check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v193"/.test(relay), 'IA freshness repair invalidates the prior queue namespace');
 check(/"701": \[[\s\S]*TheThingFromAnotherWorldHorrorSciFi1951JamesArnessKennethTobeyMargaretSheridan[\s\S]*TheGiantGilaMonster/.test(relay), 'Halloween Haunt adds full-length multi-era horror files');
 check(/IA_STRICT_CATALOG_CANDIDATE_MAX\s*=\s*128/.test(relay) && /IA_CATALOG_CANDIDATE_MAX\s*=\s*96/.test(relay), 'every IA lane receives a larger rolling catalog budget');
 check(/IA_FRESHNESS_CANDIDATE_FLOOR\s*=\s*32/.test(relay) && /IA_FRESHNESS_LEDGER_MAX\s*=\s*96/.test(relay) && /IA_PLAYED_PATH/.test(relay), 'freshness history is large enough to cover several shelves and records actual plays');

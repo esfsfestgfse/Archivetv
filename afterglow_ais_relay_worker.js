@@ -102,10 +102,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v42-catal
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v192";
+const IA_QUEUE_CACHE_VERSION = "v193";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v192";
+const IA_LAST_GOOD_CACHE_VERSION = "v193";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -2512,7 +2512,7 @@ const IA_LONG_TAIL_EXPANSIONS_EXTRA = Object.freeze({
      These banks are intentionally family-balanced and remain behind the
      normal theme, deny, runtime, media, and freshness gates. They widen the
      catalog without making the first tune wait for every Archive manifest. */
-  /* v4.1.130 broad-soak repair: Roller Derby & Wrestling was falling back to
+  /* v4.1.131 broad-soak repair: Roller Derby & Wrestling was falling back to
      a five-item wrestling shelf. Seed it with two genuine roller-derby
      broadcasts plus long-form WCE/NJPW collection files. The collection
      parents remain expansion anchors; the individual files are the instant
@@ -2525,6 +2525,15 @@ const IA_LONG_TAIL_EXPANSIONS_EXTRA = Object.freeze({
     iaDirectRecovery("wce96v3::01 - January 2nd.mp4", "wce96v3", "01 - January 2nd.mp4", "WCE Hardcore TV — January 2, 1996", "professional wrestling wrestling broadcast wrestling television sports", 1996, "video", 3192),
     iaDirectRecovery("recdub94::01 - January 4th 1994.mp4", "recdub94", "01 - January 4th 1994.mp4", "WCE Wrestling — January 4, 1994", "professional wrestling wrestling broadcast wrestling television sports", 1994, "video", 3103),
     iaDirectRecovery("recdub2000540::01 - January 1st 2000.mp4", "recdub2000540", "01 - January 1st 2000.mp4", "WCE Hardcore TV — January 1, 2000", "professional wrestling wrestling broadcast wrestling television sports", 2000, "video", 3207),
+    iaDirectRecovery("wce93::03 - April 20th 1993.mp4", "wce93", "03 - April 20th 1993.mp4", "WCE Wrestling — April 20, 1993", "professional wrestling wrestling broadcast wrestling television sports", 1993, "video", 3105),
+    iaDirectRecovery("wce93::04 - April 27th 1993.mp4", "wce93", "04 - April 27th 1993.mp4", "WCE Wrestling — April 27, 1993", "professional wrestling wrestling broadcast wrestling television sports", 1993, "video", 3032),
+    iaDirectRecovery("wce93::05 - May 4th 1993.mp4", "wce93", "05 - May 4th 1993.mp4", "WCE Wrestling — May 4, 1993", "professional wrestling wrestling broadcast wrestling television sports", 1993, "video", 3001),
+    iaDirectRecovery("wce96v3::02 - January 9th.mp4", "wce96v3", "02 - January 9th.mp4", "WCE Hardcore TV — January 9, 1996", "professional wrestling wrestling broadcast wrestling television sports", 1996, "video", 3320),
+    iaDirectRecovery("wce96v3::03 - January 16th.mp4", "wce96v3", "03 - January 16th.mp4", "WCE Hardcore TV — January 16, 1996", "professional wrestling wrestling broadcast wrestling television sports", 1996, "video", 3240),
+    iaDirectRecovery("recdub94::02 - January 18th 1994.mp4", "recdub94", "02 - January 18th 1994.mp4", "WCE Wrestling — January 18, 1994", "professional wrestling wrestling broadcast wrestling television sports", 1994, "video", 4926),
+    iaDirectRecovery("recdub94::03 - January 25th 1994.mp4", "recdub94", "03 - January 25th 1994.mp4", "WCE Wrestling — January 25, 1994", "professional wrestling wrestling broadcast wrestling television sports", 1994, "video", 3185),
+    iaDirectRecovery("recdub2000540::02 - January 8th 2000.mp4", "recdub2000540", "02 - January 8th 2000.mp4", "WCE Hardcore TV — January 8, 2000", "professional wrestling wrestling broadcast wrestling television sports", 2000, "video", 3140),
+    iaDirectRecovery("recdub2000540::03 - January 15th 2000.mp4", "recdub2000540", "03 - January 15th 2000.mp4", "WCE Hardcore TV — January 15, 2000", "professional wrestling wrestling broadcast wrestling television sports", 2000, "video", 3543),
     { identifier: "wce93", title: "WCE Wrestling — 1993 Collection", subject: "professional wrestling wrestling broadcast wrestling television sports", year: 1993 },
     { identifier: "wce96v3", title: "WCE Hardcore TV — 1996 Collection", subject: "professional wrestling wrestling broadcast wrestling television sports", year: 1996 },
     { identifier: "re-c-dub-1995-complete", title: "RE-C-DUB — 1995 Complete Wrestling Collection", subject: "professional wrestling wrestling broadcast wrestling television sports", year: 1995 },
@@ -2542,6 +2551,15 @@ const IA_LONG_TAIL_EXPANSIONS_EXTRA = Object.freeze({
     iaDirectRecovery("2016_Rio_Olympics_Track_and_Field::Athletics/2016-08-12/track-and-field-men-20km-race-walking-576p.mp4", "2016_Rio_Olympics_Track_and_Field", "Athletics/2016-08-12/track-and-field-men-20km-race-walking-576p.mp4", "Track & Field — Men's 20 km Race Walk", "track and field athletics meet race walking olympics sports broadcast", 2016, "video", 7531),
     iaDirectRecovery("2016_Rio_Olympics_Track_and_Field::Athletics/2016-08-12/track-and-field-men-discus-qualification-432p.mp4", "2016_Rio_Olympics_Track_and_Field", "Athletics/2016-08-12/track-and-field-men-discus-qualification-432p.mp4", "Track & Field — Men's Discus Qualification", "track and field athletics meet discus olympics sports broadcast", 2016, "video", 10876),
     iaDirectRecovery("this_is_your_life_jesse_owens::this_is_your_life_jesse_owens.mp4", "this_is_your_life_jesse_owens", "this_is_your_life_jesse_owens.mp4", "This Is Your Life — Jesse Owens", "track and field athletics history olympics sports television", 1960, "video", 1507),
+    iaDirectRecovery("2016_Rio_Olympics_Track_and_Field::Athletics/2016-08-13/track-and-field-day-8-evening-720p.mp4", "2016_Rio_Olympics_Track_and_Field", "Athletics/2016-08-13/track-and-field-day-8-evening-720p.mp4", "Track & Field — Rio 2016 Day 8 Evening", "track and field athletics meet olympics sports broadcast", 2016, "video", 13500),
+    iaDirectRecovery("2016_Rio_Olympics_Track_and_Field::Athletics/2016-08-13/track-and-field-day-8-morning-720p.mp4", "2016_Rio_Olympics_Track_and_Field", "Athletics/2016-08-13/track-and-field-day-8-morning-720p.mp4", "Track & Field — Rio 2016 Day 8 Morning", "track and field athletics meet olympics sports broadcast", 2016, "video", 14500),
+    iaDirectRecovery("2016_Rio_Olympics_Track_and_Field::Athletics/2016-08-13/track-and-field-men-discus-final-720p.mp4", "2016_Rio_Olympics_Track_and_Field", "Athletics/2016-08-13/track-and-field-men-discus-final-720p.mp4", "Track & Field — Men's Discus Final", "track and field athletics meet discus olympics sports broadcast", 2016, "video", 11200),
+    iaDirectRecovery("2016_Rio_Olympics_Track_and_Field::Athletics/2016-08-13/track-and-field-men-group-a-long-jump-qualification-432p.mp4", "2016_Rio_Olympics_Track_and_Field", "Athletics/2016-08-13/track-and-field-men-group-a-long-jump-qualification-432p.mp4", "Track & Field — Men's Long Jump Qualification A", "track and field athletics meet long jump olympics sports broadcast", 2016, "video", 8400),
+    iaDirectRecovery("2016_Rio_Olympics_Track_and_Field::Athletics/2016-08-13/track-and-field-men-long-jump-final-720p.mp4", "2016_Rio_Olympics_Track_and_Field", "Athletics/2016-08-13/track-and-field-men-long-jump-final-720p.mp4", "Track & Field — Men's Long Jump Final", "track and field athletics meet long jump olympics sports broadcast", 2016, "video", 9800),
+    iaDirectRecovery("2016_Rio_Olympics_Track_and_Field::Athletics/2016-08-13/track-and-field-men-pole-vault-a-720p.mp4", "2016_Rio_Olympics_Track_and_Field", "Athletics/2016-08-13/track-and-field-men-pole-vault-a-720p.mp4", "Track & Field — Men's Pole Vault", "track and field athletics meet pole vault olympics sports broadcast", 2016, "video", 10200),
+    iaDirectRecovery("2016_Rio_Olympics_Track_and_Field::Athletics/2016-08-13/track-and-field-women-triple-jump-a-720p.mp4", "2016_Rio_Olympics_Track_and_Field", "Athletics/2016-08-13/track-and-field-women-triple-jump-a-720p.mp4", "Track & Field — Women's Triple Jump A", "track and field athletics meet triple jump olympics sports broadcast", 2016, "video", 9900),
+    iaDirectRecovery("2016_Rio_Olympics_Track_and_Field::Athletics/2016-08-14/track-and-field-men-high-jump-a-432p.mp4", "2016_Rio_Olympics_Track_and_Field", "Athletics/2016-08-14/track-and-field-men-high-jump-a-432p.mp4", "Track & Field — Men's High Jump A", "track and field athletics meet high jump olympics sports broadcast", 2016, "video", 8800),
+    iaDirectRecovery("2016_Rio_Olympics_Track_and_Field::Athletics/2016-08-14/track-and-field-women-marathon-576p.mp4", "2016_Rio_Olympics_Track_and_Field", "Athletics/2016-08-14/track-and-field-women-marathon-576p.mp4", "Track & Field — Women's Marathon", "track and field athletics meet marathon road race olympics sports broadcast", 2016, "video", 10300),
     { identifier: "2016_Rio_Olympics_Track_and_Field", title: "Rio 2016 — Track and Field Collection", subject: "track and field athletics meet olympics sports broadcast", year: 2016 },
     { identifier: "Olympics.2012.BBC", title: "BBC Olympics 2012 — Athletics Collection", subject: "track and field athletics meet olympics sports broadcast", year: 2012 },
   ],
@@ -5770,6 +5788,7 @@ function applyIaFreshness(payload, ledger, count) {
   const preserveRotatedFallback = Boolean(payload && payload.fallback) &&
     publicItems.length >= requested &&
     fresh.length < requested &&
+    unique.length < requested * 2 &&
     publicItems.every((item) => item && item.identifier && item.media && item.media.url);
   const items = preserveRotatedFallback
     ? publicItems.slice(0, requested)

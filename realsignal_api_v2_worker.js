@@ -12,7 +12,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "4.1.161-ia-freshness-identity";
+const V3_RELEASE = "4.1.162-ia-deep-tail-freshness";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -286,12 +286,28 @@ function queueItemKey(item) {
   return String(item && (item.identifier || item.id || (item.media && item.media.url) || item.url) || "").trim();
 }
 
+/* IA file records can differ only by container/bitrate suffix. Treat those
+   encodings as one catalog program at the API boundary too, otherwise the
+   relay's deep bank is widened and then immediately made shallow again by
+   the adapter's exact-ID merge. */
+function queueItemIdentity(item) {
+  const raw = queueItemKey(item);
+  if (!raw) return "";
+  const source = String(item && (item.sourceIdentifier || item.source_identifier) || (raw.includes("::") ? raw.split("::")[0] : raw)).trim().toLowerCase();
+  const file = String(item && item.fileName || (raw.includes("::") ? raw.slice(raw.indexOf("::") + 2) : "")).trim().toLowerCase();
+  if (!file) return source;
+  const stem = file
+    .replace(/\.(?:mp4|m4v|mov|ogv|webm|mp3|flac|ogg|oga|wav|m4a|aac)(?:[?#].*)?$/i, "")
+    .replace(/(?:[._-](?:orig|original|source|512kb|256kb|128kb|64kb|low|small|preview|proxy))$/i, "");
+  return `${source}::${stem}`;
+}
+
 function uniqueQueueItems(items, body, limit = MAX_CATALOG_ITEMS) {
   if (!Array.isArray(items)) return [];
   const seen = new Set();
   const out = [];
   for (const item of items) {
-    const key = queueItemKey(item);
+    const key = queueItemIdentity(item);
     if (!key || seen.has(key) || !catalogFallbackAllowed(item, body)) continue;
     seen.add(key);
     out.push(item);

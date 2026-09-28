@@ -90,7 +90,7 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
    warmup back onto the channel-change path. */
 const IA_STRICT_CATALOG_CANDIDATE_MAX = 128;
 const IA_CATALOG_CANDIDATE_MAX = 96;
-const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v65-identity-dedupe";
+const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v66-deep-tail";
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
@@ -103,10 +103,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v65-ident
    episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v222";
+const IA_QUEUE_CACHE_VERSION = "v223";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v222";
+const IA_LAST_GOOD_CACHE_VERSION = "v223";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -251,8 +251,10 @@ const IA_CONTAINER_EXPANSION_CONCURRENCY = 2;
    channel catalog budget below. */
 const IA_MAX_EXPANDED_FILES = 1200;
 const IA_BACKGROUND_COLLECTION_EPISODES_PER_PARENT = 20;
-const IA_BACKGROUND_PLAYABLE_TARGET = 48;
-const IA_DEPTH_PLAYABLE_TARGET = 72;
+/* Keep the visible shelf small, but let the background harvest build a real
+   long tail. These larger targets are never awaited on a channel change. */
+const IA_BACKGROUND_PLAYABLE_TARGET = 64;
+const IA_DEPTH_PLAYABLE_TARGET = 96;
 /* A full-directory tune burst can arrive when a guide, television, and phone
    all ask for cold shelves together. Keep the foreground path to one Archive
    discovery rail; reserve rails still run behind the first frame. */
@@ -4264,11 +4266,12 @@ const IA_DEPTH_EXPANSION_OVERLAYS = Object.freeze({
 });
 for (const [channel, additions] of Object.entries(IA_DEPTH_EXPANSION_OVERLAYS)) {
   if (!IA_UNDERFILL_DEPTH_BANKS[channel]) continue;
-  const seen = new Set(IA_UNDERFILL_DEPTH_BANKS[channel].map((item) => String(item && item.identifier || "")));
+  const seen = new Set(IA_UNDERFILL_DEPTH_BANKS[channel].map((item) => iaPlayableIdentity(item)).filter(Boolean));
   for (const item of additions) {
-    if (item && item.identifier && !seen.has(item.identifier)) {
+    const identity = iaPlayableIdentity(item);
+    if (item && item.identifier && identity && !seen.has(identity)) {
       IA_UNDERFILL_DEPTH_BANKS[channel].push(item);
-      seen.add(item.identifier);
+      seen.add(identity);
     }
   }
 }
@@ -4562,7 +4565,8 @@ function mergeIaFallbackCandidates(previous, payload) {
   const arcadeVariantDedupe = String((payload && payload.channel) || (previous && previous.channel) || "") === "152";
   const counts = { family: new Map(), creator: new Map(), collection: new Map(), source: new Map() };
   const canAdd = (item, relaxed) => {
-    if (!item || !item.identifier || seen.has(item.identifier)) return false;
+    const identity = iaPlayableIdentity(item);
+    if (!item || !item.identifier || !identity || seen.has(identity)) return false;
     if (arcadeVariantDedupe) {
       const source = String(item.sourceIdentifier || item.identifier || "").split("::")[0];
       if (IA_ARCADE_VARIANT_SOURCES.has(source) && arcadeVariantSources.has(source)) return false;
@@ -4576,7 +4580,7 @@ function mergeIaFallbackCandidates(previous, payload) {
   };
   const add = (item) => {
     const keys = queueDiversityKeys(item, item.lane);
-    seen.add(item.identifier);
+    seen.add(iaPlayableIdentity(item));
     if (arcadeVariantDedupe) {
       const source = String(item.sourceIdentifier || item.identifier || "").split("::")[0];
       if (IA_ARCADE_VARIANT_SOURCES.has(source)) arcadeVariantSources.add(source);
@@ -6409,7 +6413,9 @@ function iaFreshnessRecord(item) {
   if (!item || !item.identifier) return null;
   const keys = queueDiversityKeys(item, item.lane);
   return {
-    id: String(item.identifier),
+    /* Store the logical Archive program, not its container encoding. A
+       played .flac therefore suppresses the same file's .ogg sibling. */
+    id: iaPlayableIdentity(item) || String(item.identifier),
     era: keys.era || "",
     collection: keys.collection || "",
     lane: keys.lane || "",
@@ -6467,7 +6473,12 @@ function queueFreshnessDiffers(item, previous) {
 
 function applyIaFreshness(payload, ledger, count) {
   const history = normalizeIaFreshnessLedger(ledger);
-  const excluded = new Set(history.map((entry) => entry.id));
+  const excluded = new Set();
+  history.forEach((entry) => {
+    if (!entry || !entry.id) return;
+    excluded.add(String(entry.id));
+    excluded.add(iaPlayableIdentity({ identifier: entry.id }) || String(entry.id));
+  });
   const candidates = Array.isArray(payload && payload.candidateItems) && payload.candidateItems.length
     ? payload.candidateItems
     : ((payload && payload.items) || []);
@@ -6475,8 +6486,9 @@ function applyIaFreshness(payload, ledger, count) {
   const unique = [];
   const seen = new Set();
   for (const item of candidates) {
-    if (!item || !item.identifier || seen.has(item.identifier)) continue;
-    seen.add(item.identifier);
+    const identity = iaPlayableIdentity(item);
+    if (!item || !item.identifier || !identity || seen.has(identity)) continue;
+    seen.add(identity);
     unique.push(item);
   }
   const requested = Math.max(1, Number(count) || 1);
@@ -6488,7 +6500,7 @@ function applyIaFreshness(payload, ledger, count) {
      unseen, preserve its order and let the next rotation advance normally. */
   if (payload && payload.strictRecovery && Array.isArray(payload.items) && payload.items.length >= requested &&
       payload.items.every((item) => item && item.identifier && item.media && item.media.url) &&
-      payload.items.slice(0, requested).every((item) => !excluded.has(String(item.identifier)))) {
+      payload.items.slice(0, requested).every((item) => !excluded.has(iaPlayableIdentity(item) || String(item.identifier)))) {
     const issued = payload.items.slice(0, requested).map(iaFreshnessRecord).filter(Boolean);
     return {
       payload,
@@ -6503,8 +6515,8 @@ function applyIaFreshness(payload, ledger, count) {
      shelf to candidateItems[0..n] when the current window is still fresh. */
   if (payload && payload.rotationApplied === true && Array.isArray(payload.items) && payload.items.length >= requested && playable.length >= requested) {
     const current = payload.items.filter((item) => item && item.identifier && item.media && item.media.url);
-    const currentIds = new Set(current.map((item) => String(item.identifier)));
-    const freshCurrent = current.filter((item) => !excluded.has(String(item.identifier)));
+    const currentIds = new Set(current.map((item) => iaPlayableIdentity(item) || String(item.identifier)));
+    const freshCurrent = current.filter((item) => !excluded.has(iaPlayableIdentity(item) || String(item.identifier)));
     /* Keep the catalog in the same window order that produced the current
        shelf. The old code searched `playable` from index zero here. When a
        rotated shelf had already been issued in the played ledger, that path
@@ -6513,13 +6525,13 @@ function applyIaFreshness(payload, ledger, count) {
        current window, then wrap once; freshness can skip played IDs without
        erasing the selected rotation. */
     const currentAnchor = current.length
-      ? playable.findIndex((item) => String(item && item.identifier || "") === String(current[0].identifier || ""))
+      ? playable.findIndex((item) => (iaPlayableIdentity(item) || String(item && item.identifier || "")) === (iaPlayableIdentity(current[0]) || String(current[0].identifier || "")))
       : -1;
     const windowOrderedPlayable = currentAnchor > 0
       ? playable.slice(currentAnchor).concat(playable.slice(0, currentAnchor))
       : playable;
-    const freshRemainder = windowOrderedPlayable.filter((item) => !currentIds.has(String(item.identifier)) && !excluded.has(String(item.identifier)));
-    const repeatCurrent = current.filter((item) => excluded.has(String(item.identifier)));
+    const freshRemainder = windowOrderedPlayable.filter((item) => !currentIds.has(iaPlayableIdentity(item) || String(item.identifier)) && !excluded.has(iaPlayableIdentity(item) || String(item.identifier)));
+    const repeatCurrent = current.filter((item) => excluded.has(iaPlayableIdentity(item) || String(item.identifier)));
     const selected = freshCurrent.concat(freshRemainder, repeatCurrent).slice(0, requested);
     const issued = selected.map(iaFreshnessRecord).filter(Boolean);
     return {
@@ -6537,10 +6549,10 @@ function applyIaFreshness(payload, ledger, count) {
      the remaining verified catalog in its stable order. */
   if (payload && payload.holidayCatalog === true && Array.isArray(payload.items) && payload.items.length >= requested && playable.length >= requested) {
     const current = payload.items.filter((item) => item && item.identifier && item.media && item.media.url);
-    const currentIds = new Set(current.map((item) => String(item.identifier)));
-    const freshCurrent = current.filter((item) => !excluded.has(String(item.identifier)));
-    const freshRemainder = playable.filter((item) => !currentIds.has(String(item.identifier)) && !excluded.has(String(item.identifier)));
-    const repeatCurrent = current.filter((item) => excluded.has(String(item.identifier)));
+    const currentIds = new Set(current.map((item) => iaPlayableIdentity(item) || String(item.identifier)));
+    const freshCurrent = current.filter((item) => !excluded.has(iaPlayableIdentity(item) || String(item.identifier)));
+    const freshRemainder = playable.filter((item) => !currentIds.has(iaPlayableIdentity(item) || String(item.identifier)) && !excluded.has(iaPlayableIdentity(item) || String(item.identifier)));
+    const repeatCurrent = current.filter((item) => excluded.has(iaPlayableIdentity(item) || String(item.identifier)));
     const selected = freshCurrent.concat(freshRemainder, repeatCurrent).slice(0, requested);
     const issued = selected.map(iaFreshnessRecord).filter(Boolean);
     return {
@@ -6569,7 +6581,7 @@ function applyIaFreshness(payload, ledger, count) {
      the freshness pass is reordering it; use the already-ready items until
      the background refill supplies more playable depth. */
   const source = playable.length >= requested ? playable : publicItems;
-  const fresh = source.filter((item) => !excluded.has(String(item.identifier)));
+  const fresh = source.filter((item) => !excluded.has(iaPlayableIdentity(item) || String(item.identifier)));
   /* Repeats are only permitted after the channel has exhausted its unseen
      shelf. Prefer fresh media first, then use the oldest/reasonably rotated
      history as the emergency tail. */
@@ -6577,8 +6589,8 @@ function applyIaFreshness(payload, ledger, count) {
     ? fresh
     : fresh.concat(source.filter((item) => excluded.has(String(item.identifier))));
   const previous = history.length ? history[history.length - 1] : null;
-  let firstIndex = eligible.findIndex((item) => !excluded.has(String(item.identifier)) && queueFreshnessDiffers(item, previous));
-  if (firstIndex < 0) firstIndex = eligible.findIndex((item) => !excluded.has(String(item.identifier)));
+  let firstIndex = eligible.findIndex((item) => !excluded.has(iaPlayableIdentity(item) || String(item.identifier)) && queueFreshnessDiffers(item, previous));
+  if (firstIndex < 0) firstIndex = eligible.findIndex((item) => !excluded.has(iaPlayableIdentity(item) || String(item.identifier)));
   if (firstIndex < 0) firstIndex = 0;
   const ordered = firstIndex > 0 ? [eligible[firstIndex], ...eligible.slice(0, firstIndex), ...eligible.slice(firstIndex + 1)] : eligible;
   const orderedCandidates = fresh.length
@@ -7019,13 +7031,14 @@ function mergeIaQueuePayload(primary, secondary, candidateCount, flags = {}) {
     ? payload.candidateItems
     : ((payload && payload.items) || []);
   for (const item of [...candidates(primary), ...candidates(secondary)]) {
-    if (!item || !item.identifier || seen.has(item.identifier)) continue;
+    const identity = iaPlayableIdentity(item);
+    if (!item || !item.identifier || !identity || seen.has(identity)) continue;
     if (arcadeVariantDedupe) {
       const source = String(item.sourceIdentifier || item.identifier || "").split("::")[0];
       if (IA_ARCADE_VARIANT_SOURCES.has(source) && arcadeVariantSources.has(source)) continue;
       if (IA_ARCADE_VARIANT_SOURCES.has(source)) arcadeVariantSources.add(source);
     }
-    seen.add(item.identifier);
+    seen.add(identity);
     merged.push(item);
     if (merged.length >= candidateCount) break;
   }
@@ -7051,9 +7064,9 @@ function rotatePlayableIaShelf(payload, rotation, count) {
      freshness work already available locally. */
   const recoveryChannel = String(payload && payload.channel || "");
   if (recoveryChannel && iaColdRescueEnabled(recoveryChannel)) {
-    const seenRecovery = new Set(playableCandidates.map((item) => String(item && item.identifier || "")));
+    const seenRecovery = new Set(playableCandidates.map((item) => iaPlayableIdentity(item)).filter(Boolean));
     for (const item of orderedIaEmergencySeeds(recoveryChannel, 0)) {
-      const id = String(item && item.identifier || "");
+      const id = iaPlayableIdentity(item);
       if (!id || !item.media || !item.media.url || !iaRuntimeAllowed(item, requiredRuntime) || seenRecovery.has(id)) continue;
       playableCandidates.push(item);
       seenRecovery.add(id);
@@ -7079,7 +7092,7 @@ function rotatePlayableIaShelf(payload, rotation, count) {
      is otherwise deep. */
   const seenPlayableIds = new Set();
   playableCandidates = playableCandidates.filter((item) => {
-    const id = String(item && item.identifier || "");
+    const id = iaPlayableIdentity(item);
     if (!id || seenPlayableIds.has(id)) return false;
     seenPlayableIds.add(id);
     return true;

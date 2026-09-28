@@ -12,7 +12,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "4.1.123-ia-commercial-fallback";
+const V3_RELEASE = "4.1.124-holiday-depth-freshness";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -865,9 +865,12 @@ function localRotationFallback(payload, body) {
 async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_MAX_ITEMS, options = {}) {
   if (!env.realsignal_catalog || typeof env.realsignal_catalog.prepare !== "function") return null;
   const ignoreFreshness = options && options.ignoreFreshness === true;
+  const freshnessDisabled = body && body.freshnessLedger === false;
   const effectiveBody = ignoreFreshness
     ? { ...body, recentIds: [], freshnessLedger: false }
-    : await withFreshnessLedger(env, body);
+    : freshnessDisabled
+      ? { ...body, recentIds: Array.isArray(body.recentIds) ? body.recentIds : [], freshnessLedger: false }
+      : await withFreshnessLedger(env, body);
   const channel = normalizedChannelKey(effectiveBody.channel);
   const limit = Math.max(1, Math.min(SOURCE_LIMITS.SOURCE_MAX_ITEMS, Number(requestedLimit) || SOURCE_LIMITS.SOURCE_MAX_ITEMS));
   const result = await env.realsignal_catalog.prepare(`SELECT p.* FROM programs p JOIN channel_programs cp ON cp.program_id=p.id WHERE cp.channel_key=? AND p.status='active' AND p.media_url IS NOT NULL ORDER BY cp.last_seen_at DESC LIMIT ?`).bind(channel, limit).all();
@@ -992,7 +995,14 @@ async function handleQueue(request, env, ctx, id) {
   catch (error) { return json({ error: error instanceof RangeError ? error.message : "invalid JSON body", requestId: id }, error instanceof RangeError ? 413 : 400); }
   if (!body || typeof body !== "object" || Array.isArray(body)) return json({ error: "queue payload must be an object", requestId: id }, 400);
   if (!String(body.channel || "").trim()) return json({ error: "channel is required", requestId: id }, 400);
-  body = await withFreshnessLedger(env, body);
+  /* IA freshness is owned by the relay/client played-only ledger. This API
+     route is an adapter and must not turn a queued shelf into watched history
+     or let stale D1 rows suppress the same candidates on every tune. Keep the
+     server rotation path available only for an explicit future opt-in. */
+  const useServerCatalog = body.serverCatalog === true;
+  body = useServerCatalog
+    ? await withFreshnessLedger(env, body)
+    : { ...body, freshnessLedger: false, recentIds: Array.isArray(body.recentIds) ? body.recentIds : [] };
   const apiVersion = new URL(request.url).pathname.startsWith(V3_PREFIX) ? "v3" : "v2";
   const count = Math.max(1, Math.min(5, Number(body.count) || 3));
   const upstreamBody = { ...body, count };
@@ -1009,11 +1019,10 @@ async function handleQueue(request, env, ctx, id) {
       headers.set("X-RealSignal-Request", id);
       headers.set("X-RealSignal-Source", "ia-canonical-pilot");
       headers.set("X-RealSignal-Queue", JSON.stringify({ ready: canonicalPayload.ready, background: false, canonicalPilot: true, catalogDepth: canonicalPayload.catalogDepth }));
-      rememberFreshness(env, body.channel, canonicalPayload.items, ctx);
       return new Response(JSON.stringify({ ...canonicalPayload, apiVersion, release: apiVersion === "v3" ? V3_RELEASE : undefined }), { status: 200, headers });
     }
   }
-  if (IA_FAST_CATALOG_LANES.has(String(body.channel))) {
+  if (useServerCatalog && IA_FAST_CATALOG_LANES.has(String(body.channel))) {
     try {
       /* Feed the full verified D1 catalog into session rotation. The rotation
          object applies the persistent freshness ledger for the opening pick,
@@ -1052,7 +1061,6 @@ async function handleQueue(request, env, ctx, id) {
           release: apiVersion === "v3" ? V3_RELEASE : undefined,
           fastCatalogLane: true,
         };
-        rememberFreshness(env, body.channel, fastRotated.payload.items, ctx);
         return new Response(JSON.stringify(fastPayload), { status: 200, headers });
       }
     } catch (error) {
@@ -1112,12 +1120,19 @@ async function handleQueue(request, env, ctx, id) {
     ctx.waitUntil(refreshShallowCatalog(env, request, body, id, responseCandidateDepth));
   }
   let rotated;
-  try { rotated = await rotateShelf(env, body, payload, request); }
-  catch (error) {
-    console.warn(JSON.stringify({ event: "v2-rotation-fallback", requestId: id, error: String(error).slice(0, 160) }));
-    rotated = { payload: localRotationFallback(payload, body), rotation: { configured: false, fallback: true } };
+  if (!useServerCatalog) {
+    /* The relay already owns IA rotation and its played-only freshness ledger.
+       Return its verified shelf unchanged so the API Durable Object cannot
+       mark queued items as seen or recreate the same-five regression. */
+    rotated = { payload, rotation: { configured: false, relayOwned: true } };
+  } else {
+    try { rotated = await rotateShelf(env, body, payload, request); }
+    catch (error) {
+      console.warn(JSON.stringify({ event: "v2-rotation-fallback", requestId: id, error: String(error).slice(0, 160) }));
+      rotated = { payload: localRotationFallback(payload, body), rotation: { configured: false, fallback: true } };
+    }
   }
-  if (IA_ROTATION_REFILL_LANES.has(String(body.channel)) && Number(rotated.payload && rotated.payload.ready || 0) < count) {
+  if (useServerCatalog && IA_ROTATION_REFILL_LANES.has(String(body.channel)) && Number(rotated.payload && rotated.payload.ready || 0) < count) {
     /* The session DO has already recorded the first fresh selections. Add a
        deeper D1 shelf and ask it once more for the missing unseen slot; this
        preserves freshness while preventing a four-item cold shelf. */
@@ -1144,9 +1159,10 @@ async function handleQueue(request, env, ctx, id) {
   headers.set("X-RealSignal-API", apiVersion);
   if (apiVersion === "v3") headers.set("X-RealSignal-Release", V3_RELEASE);
   headers.set("X-RealSignal-Request", id);
-  headers.set("X-RealSignal-Source", catalogRecovery ? "d1-catalog+session-rotation" : "ais-relay+session-rotation");
+  headers.set("X-RealSignal-Source", useServerCatalog
+    ? (catalogRecovery ? "d1-catalog+session-rotation" : "ais-relay+session-rotation")
+    : (catalogRecovery ? "d1-catalog+relay-owned" : "ais-relay+relay-owned"));
   headers.set("X-RealSignal-Queue", JSON.stringify({ ready: Number(rotated.payload.ready || (rotated.payload.items || []).length), background: !!rotated.payload.hydrating }));
-  rememberFreshness(env, body.channel, rotated.payload.items, ctx);
   /* A catalog recovery is a successful queue response. Returning the relay's
      original 4xx/5xx here made the browser discard the valid D1 shelf and
      retry the same dead upstream path. */

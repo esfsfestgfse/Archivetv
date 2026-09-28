@@ -39,6 +39,7 @@ const SNAPSHOT_PATH = "/snapshot";
 const IA_PREFIX = "/ia";
 const IA_QUEUE_PATH = IA_PREFIX + "/queue";
 const IA_PROGRAM_PATH = IA_PREFIX + "/program";
+const IA_PLAYED_PATH = IA_PREFIX + "/played";
 const ADSB_PATH = "/live/adsb";
 const SPACE_PATH = "/live/space";
 const WATER_PATH = "/live/water";
@@ -89,7 +90,7 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
    warmup back onto the channel-change path. */
 const IA_STRICT_CATALOG_CANDIDATE_MAX = 128;
 const IA_CATALOG_CANDIDATE_MAX = 96;
-const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v39-commercial-fallback";
+const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v40-played-ledger";
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
@@ -101,10 +102,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v39-commercial-fa
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v185";
+const IA_QUEUE_CACHE_VERSION = "v186";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v185";
+const IA_LAST_GOOD_CACHE_VERSION = "v186";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -119,8 +120,8 @@ const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
 /* v2 intentionally starts a fresh ledger after the long-tail bank expansion;
    old issued shelves were measured against the former shallow catalogs and
    would otherwise consume the new unseen window before viewers ever saw it. */
-const IA_FRESHNESS_LEDGER_VERSION = "v2";
-const IA_FRESHNESS_LEDGER_MAX = 32;
+const IA_FRESHNESS_LEDGER_VERSION = "v3-played-only";
+const IA_FRESHNESS_LEDGER_MAX = 96;
 const IA_FRESHNESS_LEDGER_TTL_SECONDS = 30 * 24 * 60 * 60;
 const IA_FRESHNESS_MEMORY_TTL_MS = 60 * 1000;
 const IA_HOLIDAY_ANIMATION_CHANNELS = new Set(["704", "705", "706"]);
@@ -129,6 +130,30 @@ const IA_FULL_WINDOW_ANIMATION_CHANNELS = new Set(["150", "153", "158", "704", "
    rails and the expanded Archive catalog on the same full-window rotation as
    the cartoon lanes, without mixing either family into the movie stations. */
 const IA_HOLIDAY_TV_CHANNELS = new Set(["707", "708", "709"]);
+/* Large Archive compilation items are discovery anchors, not the public
+   shelf. Their file manifests are expanded in the background into individual
+   episodes so a holiday station can use the long tail instead of reopening a
+   handful of hand-picked fallbacks. */
+const IA_HOLIDAY_CONTAINER_SEEDS = Object.freeze({
+  "704": [
+    { identifier: "jims-christmas-cartoon-marathon", title: "Jim's Christmas Cartoon Marathon", subject: "christmas cartoons christmas animation animated christmas specials holiday cartoons children's television", year: 1987 },
+    { identifier: "bhristmas-cartoon-collection", title: "Christmas Cartoon Collection", subject: "christmas cartoons christmas animation animated christmas specials holiday cartoons golden age animation", year: 1950 },
+  ],
+  "705": [
+    { identifier: "the-biggest-ever-childrens-tv-collection-volume-8-halloween-edition", title: "The Biggest Ever Children's TV Collection — Volume 8 Halloween Edition", subject: "halloween children's television halloween cartoons halloween special spooky kids television", year: 2010 },
+    { identifier: "halloween-cartoon-collection_20231022", title: "Halloween Cartoon Collection", subject: "halloween cartoons halloween animation animated halloween specials spooky cartoons classic animation", year: 1950 },
+  ],
+  "706": [
+    { identifier: "jims.thanksgiving.marathon", title: "Jim's Thanksgiving Cartoon Marathon", subject: "thanksgiving cartoons thanksgiving animation animated thanksgiving specials turkey cartoons harvest cartoons", year: 1985 },
+    { identifier: "nicks_thanksgiving_fest", title: "Nick's Thanksgiving Fest", subject: "thanksgiving cartoons thanksgiving animation animated thanksgiving specials turkey cartoons family holiday television", year: 1989 },
+  ],
+  "707": [
+    { identifier: "jims-christmas-cartoon-marathon", title: "Jim's Christmas Television Marathon", subject: "christmas television christmas specials holiday television family television variety broadcast", year: 1987 },
+  ],
+  "709": [
+    { identifier: "jims.thanksgiving.marathon", title: "Jim's Thanksgiving Television Marathon", subject: "thanksgiving television thanksgiving specials holiday television family television variety broadcast", year: 1985 },
+  ],
+});
 /* Full-length stations should not inherit the short-form Archive lanes. These
    exceptions are intentional programming: commercials, trailers, short
    subjects, and weather loops. The portrait/parody/podcast policy below still
@@ -1775,6 +1800,7 @@ const IA_LONG_TAIL_EXPANSIONS = Object.freeze({
     iaDirectRecovery("bhristmas-cartoon-collection::1978 - MGM-The Pink Panther in  A Very Pink Christmas.mp4", "bhristmas-cartoon-collection", "1978 - MGM-The Pink Panther in  A Very Pink Christmas.mp4", "The Pink Panther · A Very Pink Christmas", "christmas cartoon christmas animation animated christmas special holiday cartoon", 1978)
   ],
   "705": [
+    iaDirectRecovery("the-biggest-ever-childrens-tv-collection-volume-8-halloween-edition::The Biggest Ever Children's TV Collection (Volume 8) Halloween Edition.ia.mp4", "the-biggest-ever-childrens-tv-collection-volume-8-halloween-edition", "The Biggest Ever Children's TV Collection (Volume 8) Halloween Edition.ia.mp4", "The Biggest Ever Children's TV Collection · Volume 8 Halloween Edition", "halloween cartoon halloween animation animated halloween special spooky cartoon children's television halloween kids television", 2010),
     iaDirectRecovery("halloween-cartoon-collection_20231022::01-1929 - Disney -The Skeleton Dance.ia.mp4", "halloween-cartoon-collection_20231022", "01-1929 - Disney -The Skeleton Dance.ia.mp4", "The Skeleton Dance", "halloween cartoon halloween animation animated halloween special spooky cartoon monster cartoon", 1929),
     iaDirectRecovery("halloween-cartoon-collection_20231022::02-1929 - Disney - Hell's Bells.ia.mp4", "halloween-cartoon-collection_20231022", "02-1929 - Disney - Hell's Bells.ia.mp4", "Hell's Bells", "halloween cartoon halloween animation animated halloween special spooky cartoon monster cartoon", 1929),
     iaDirectRecovery("halloween-cartoon-collection_20231022::03-1929 - Mickey Mouse -The Haunted House.mp4", "halloween-cartoon-collection_20231022", "03-1929 - Mickey Mouse -The Haunted House.mp4", "Mickey Mouse · The Haunted House", "halloween cartoon halloween animation animated halloween special spooky cartoon monster cartoon", 1929),
@@ -3851,7 +3877,7 @@ function iaHasGlobalVideoPolicyViolation(doc) {
   /* This is deliberately narrower than banning every comedy parody. The
      user's complaint is fan-made/parody movies leaking into normal stations;
      ordinary television satire can still live in comedy channels. */
-  if (/(?:\bfan(?:[- ]?made)?\b|\bfanfic(?:tion)?\b|\bunofficial\b|\bbootleg\b|\bhome[- ]?made\b).{0,48}\b(?:film|movie|feature|parody|remake)\b|\b(?:film|movie|feature|parody|remake)\b.{0,48}(?:\bfan(?:[- ]?made)?\b|\bfanfic(?:tion)?\b|\bunofficial\b|\bbootleg\b|\bhome[- ]?made\b)/i.test(text)) return true;
+  if (/(?:\bfan(?:[- ]?made)?\b|\bfan[- ]?edit\b|\bfan\s+film\b|\bfan\s+movie\b|\bfanfic(?:tion)?\b|\bunofficial\b|\bbootleg\b|\bhome[- ]?made\b).{0,48}\b(?:film|movie|feature|parody|remake|reconstruction)\b|\b(?:film|movie|feature|parody|remake|reconstruction)\b.{0,48}(?:\bfan(?:[- ]?made)?\b|\bfan[- ]?edit\b|\bfan\s+film\b|\bfan\s+movie\b|\bfanfic(?:tion)?\b|\bunofficial\b|\bbootleg\b|\bhome[- ]?made\b)/i.test(text)) return true;
   if (/(?:\bvideo\s*podcast\b|\bpodcast\b|\bvodcast\b|\bpod[- ]?cast\b)/i.test(text)) return true;
   return false;
 }
@@ -5539,7 +5565,7 @@ function applyIaFreshness(payload, ledger, count) {
      Once that window has been rotated, do not reorder it again from the
      generic ledger: doing so can pull the same familiar character back into
      the next shelf even when the rotated window is already fresh. */
-  if (IA_FULL_WINDOW_ANIMATION_CHANNELS.has(String(payload && payload.channel || "")) && Number(payload && payload.rotation) > 0 && Array.isArray(payload.items) && payload.items.length >= requested && playable.length >= requested) {
+  if (!payload.holidayCatalog && IA_FULL_WINDOW_ANIMATION_CHANNELS.has(String(payload && payload.channel || "")) && Number(payload && payload.rotation) > 0 && Array.isArray(payload.items) && payload.items.length >= requested && playable.length >= requested) {
     const issued = payload.items.slice(0, requested).map(iaFreshnessRecord).filter(Boolean);
     return {
       payload,
@@ -5604,7 +5630,12 @@ function applyIaFreshness(payload, ledger, count) {
 }
 
 function rememberIaFreshness(env, channel, records, ctx) {
-  const incoming = normalizeIaFreshnessLedger(records);
+  /* Queue construction is not viewing. Older callers pass the shelf that was
+     issued to the client; treating that whole shelf as watched is what made
+     every new session reopen the same five after the ledger exhausted itself.
+     Only the lightweight /ia/played route is allowed to write this ledger. */
+  const played = (Array.isArray(records) ? records : []).filter((record) => record && record.__played === true);
+  const incoming = normalizeIaFreshnessLedger(played);
   if (!env || !env.REALSIGNAL_QUEUE || !channel || !incoming.length) return;
   const key = iaFreshnessLedgerKey(channel);
   const local = iaFreshnessMemory.get(key);
@@ -5632,6 +5663,30 @@ function rememberIaFreshness(env, channel, records, ctx) {
   })();
   if (ctx) ctx.waitUntil(work);
   else return work;
+}
+
+async function recordIaPlayed(request, env, ctx) {
+  let body;
+  try { body = await request.json(); } catch { return json({ error: "played payload must be JSON" }, 400); }
+  const channel = String(body && body.channel || "").trim();
+  const id = String(body && (body.id || body.identifier) || "").trim();
+  if (!safeChannel(channel) || !id || id.length > 240 || /[\r\n]/.test(id)) {
+    return json({ error: "invalid played record" }, 400);
+  }
+  /* This endpoint is deliberately tiny: it never searches Archive and never
+     sits on the playback path. It only records the item after the client has
+     seen its first decoded frame, allowing the next shelf to avoid genuinely
+     watched programs rather than merely queued ones. */
+  rememberIaFreshness(env, channel, [{
+    __played: true,
+    identifier: id,
+    title: cleanText(body && body.title, 240),
+    subject: cleanText(body && body.subject, 420),
+    year: cleanText(body && (body.year || body.date), 16),
+    collection: cleanText(body && body.collection, 160),
+    lane: cleanText(body && body.lane, 24),
+  }], ctx);
+  return json({ ok: true, channel, id, freshness: "played-only" }, 202);
 }
 
 /* Resolve a queue candidate to a direct Archive CDN URL while it is still in
@@ -6063,7 +6118,8 @@ function iaShouldBypassShallowRotation(payload, rotation, count, candidateCount)
 }
 
 function orderedIaEmergencySeeds(channel, rotation) {
-  const rawSeeds = (IA_EMERGENCY_SEEDS[String(channel)] || [])
+  const rawSeeds = (IA_HOLIDAY_CONTAINER_SEEDS[String(channel)] || [])
+    .concat(IA_EMERGENCY_SEEDS[String(channel)] || [])
     .concat(IA_LONG_TAIL_EXPANSIONS[String(channel)] || [])
     .concat(IA_LONG_TAIL_EXPANSIONS_EXTRA[String(channel)] || [])
     .concat(IA_PROMOTED_ARCHIVE_BANKS[String(channel)] || [])
@@ -6481,6 +6537,36 @@ async function getIaQueue(request, url, env, ctx) {
   if (iaStrictRecoveryEnabled(channel)) {
     const strict = strictRecoveryQueue(channel, rotation, count, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, minRuntimeSeconds);
     if (strict.ready >= count) {
+      /* Holiday recovery banks are intentionally only the instant safety net.
+         Once the background family shelf has a real playable catalog, expose
+         that union here instead of returning the same direct five forever.
+         This keeps cold start fast while making later skips consume the deep
+         Archive harvest and its expanded collection episodes. */
+      const holidayFamily = IA_HOLIDAY_ANIMATION_CHANNELS.has(channel) || IA_HOLIDAY_TV_CHANNELS.has(channel);
+      if (holidayFamily) {
+        const familyShelf = await sharedQueueGet(env, lastGoodKey);
+        const familyCandidates = Array.isArray(familyShelf && familyShelf.candidateItems) && familyShelf.candidateItems.length
+          ? familyShelf.candidateItems
+          : ((familyShelf && familyShelf.items) || []);
+        const familyPlayable = familyCandidates.filter((item) => item && item.identifier && item.media && item.media.url);
+        if (familyPlayable.length >= Math.max(count * 2, 10)) {
+          const deepShelf = rotatePlayableIaShelf({
+            ...(familyShelf || {}),
+            channel,
+            rotation,
+            candidateItems: familyPlayable,
+            candidates: familyPlayable.length,
+            strictRecovery: false,
+            holidayCatalog: true,
+          }, rotation, count);
+          const freshHoliday = applyIaFreshness(deepShelf, freshnessLedger, count);
+          return cacheableJson(freshHoliday.payload, 30, {
+            "X-Afterglow-Source": "program-director-holiday-catalog",
+            "X-Afterglow-Queue-Ready": String(freshHoliday.payload.ready || freshHoliday.payload.items.length),
+            "X-Afterglow-Queue-Deep": String(familyPlayable.length),
+          });
+        }
+      }
       if (IA_FULL_WINDOW_ANIMATION_CHANNELS.has(channel) || IA_FULL_WINDOW_ROTATION_CHANNELS.has(channel)) {
         const strictCandidateCount = iaCatalogCandidateBudget(themeMinScore, count);
         scheduleIaExpansion(
@@ -7208,6 +7294,10 @@ export default {
       return getIaMetadata(decodeURIComponent(url.pathname.slice((IA_PREFIX + "/metadata/").length)), url, ctx);
     }
 
+    if (request.method === "POST" && url.pathname === IA_PLAYED_PATH) {
+      return recordIaPlayed(request, env, ctx);
+    }
+
     if (request.method === "POST" && (url.pathname === IA_QUEUE_PATH || url.pathname === IA_PROGRAM_PATH)) {
       return getIaQueue(request, url, env, ctx);
     }
@@ -7223,6 +7313,7 @@ export default {
         shipRegions: Object.keys(SHIP_REGIONS),
         archiveQueuePath: IA_QUEUE_PATH,
         archiveProgramPath: IA_PROGRAM_PATH,
+        archivePlayedPath: IA_PLAYED_PATH,
         adsbPath: ADSB_PATH,
         texasHighwayImagePath: TEXAS_HIGHWAY_IMAGE_PATH,
         worldCamImagePath: WORLD_CAM_IMAGE_PATH,

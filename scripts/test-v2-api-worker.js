@@ -152,12 +152,22 @@ const { pathToFileURL } = require('node:url');
      profile, so they should enqueue one refresh job, not one job per lane. */
   assert.equal(queueMessages.length, 1);
 
-  const payload = { channel: '12', sessionId: 'viewer-a', rotation: 0, count: 3, themeTerms: ['game show'], items: [] };
+  const payload = { channel: '12', sessionId: 'viewer-a', serverCatalog: true, rotation: 0, count: 3, themeTerms: ['game show'], items: [] };
   const first = await worker.fetch(new Request('https://api.example/api/v2/ia/queue', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) }), env, ctx);
   assert.equal(first.status, 200);
   assert.deepEqual((await first.clone().json()).items.map(item => item.identifier), ['ia-1', 'ia-2', 'ia-3']);
   assert.match(first.headers.get('X-RealSignal-Source'), /session-rotation/);
   assert.equal(queueMessages.length, 2);
+
+  /* Normal IA requests are relay-owned. The API must not silently fall back
+   * to its Durable Object and turn queued items into freshness history. */
+  const relayOwnedPayload = { ...payload };
+  delete relayOwnedPayload.serverCatalog;
+  relayOwnedPayload.sessionId = 'viewer-c';
+  const relayOwned = await worker.fetch(new Request('https://api.example/api/v2/ia/queue', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(relayOwnedPayload) }), env, ctx);
+  assert.equal(relayOwned.status, 200);
+  assert.deepEqual((await relayOwned.json()).items.map(item => item.identifier), ['ia-1', 'ia-2', 'ia-3', 'ia-4', 'ia-5']);
+  assert.match(relayOwned.headers.get('X-RealSignal-Source'), /relay-owned/);
 
   const second = await worker.fetch(new Request('https://api.example/api/v2/ia/queue', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) }), env, ctx);
   assert.deepEqual((await second.json()).items.map(item => item.identifier).sort(), ['ia-4', 'ia-5']);
@@ -201,7 +211,7 @@ const { pathToFileURL } = require('node:url');
     ...fallbackEnv,
     RELAY: { async fetch() { fastLaneRelayCalls += 1; return new Response(JSON.stringify({ ready: 0, items: [] }), { status: 503, headers: { 'content-type': 'application/json' } }); } },
   };
-  const fastLane = await worker.fetch(new Request('https://api.example/api/v2/ia/queue', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ channel: '64', sessionId: 'fast-lane-viewer', rotation: 0, count: 1, themeTerms: ['factory'], requiredTitleTerms: ['factory'], denyTerms: ['cartoon'], mediaTypes: ['movies'], themeMinScore: 1 }) }), fastLaneEnv, ctx);
+  const fastLane = await worker.fetch(new Request('https://api.example/api/v2/ia/queue', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ channel: '64', sessionId: 'fast-lane-viewer', serverCatalog: true, rotation: 0, count: 1, themeTerms: ['factory'], requiredTitleTerms: ['factory'], denyTerms: ['cartoon'], mediaTypes: ['movies'], themeMinScore: 1 }) }), fastLaneEnv, ctx);
   assert.equal(fastLane.status, 200);
   assert.match(fastLane.headers.get('X-RealSignal-Source'), /d1-catalog-fast-lane/);
   /* A shallow fast lane still returns immediately from D1, but now schedules

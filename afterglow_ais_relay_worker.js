@@ -90,7 +90,7 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
    warmup back onto the channel-change path. */
 const IA_STRICT_CATALOG_CANDIDATE_MAX = 128;
 const IA_CATALOG_CANDIDATE_MAX = 96;
-const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v56-underfill-rotation-rails";
+const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v57-underfill-stable-rails";
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
@@ -103,10 +103,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v56-under
    episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v213";
+const IA_QUEUE_CACHE_VERSION = "v214";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v213";
+const IA_LAST_GOOD_CACHE_VERSION = "v214";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -6900,6 +6900,7 @@ function rotatePlayableIaShelf(payload, rotation, count) {
   const animationWindow = IA_FULL_WINDOW_ANIMATION_CHANNELS.has(String(payload && payload.channel || ""));
   const stableRotationWindow = animationWindow ||
     IA_FULL_WINDOW_ROTATION_CHANNELS.has(String(payload && payload.channel || "")) ||
+    IA_UNDERFILL_DEPTH_ROTATION_CHANNELS.has(String(payload && payload.channel || "")) ||
     payload && payload.holidayCatalog === true;
   /* Recovery shelves are assembled from several Archive rails. Those rails can
      arrive in a different order as background responses finish, which made a
@@ -7104,8 +7105,8 @@ function rotateUnderfillDepthBank(payload, channel, rotation, count, themeTerms,
     ...rotated,
     channel: key,
     rotation: normalizedRotation,
-    candidateItems: candidates,
-    candidates: candidates.length,
+    candidateItems: Array.isArray(rotated.candidateItems) && rotated.candidateItems.length ? rotated.candidateItems : candidates,
+    candidates: Array.isArray(rotated.candidateItems) && rotated.candidateItems.length ? rotated.candidateItems.length : candidates.length,
     ready: Math.min(requested, Array.isArray(rotated.items) ? rotated.items.length : 0),
     partial: Array.isArray(rotated.items) ? rotated.items.length < requested : true,
     hydrating: false,

@@ -157,7 +157,7 @@ async function probeRotation(row, rotationOffset) {
       } : null;
       const responseWasWarmFallback = lastFallback === '1' || Boolean(body && body.stale);
       if (responseWasWarmFallback) sawWarmFallback = true;
-      const items = response.ok && Array.isArray(body.items) ? body.items.filter(item => {
+      const allItems = response.ok && Array.isArray(body.items) ? body.items.filter(item => {
         const terms = row.requiredTitleTerms || [];
         if (!terms.length) return true;
         const title = String(item && item.title || '').toLowerCase();
@@ -176,8 +176,16 @@ async function probeRotation(row, rotationOffset) {
         })) return true;
         return item && item.genreVerified === true;
       }) : [];
-      const catalogDepth = response.ok && Array.isArray(body.candidateItems) ? body.candidateItems.length : items.length;
-      const readyCount = Math.min(items.length, Math.max(0, Number(body && body.ready) || 0));
+      const catalogDepth = response.ok && Array.isArray(body.candidateItems) ? body.candidateItems.length : allItems.length;
+      /* The API may return the verified candidate catalog in `items` while
+         `ready` describes only the on-air shelf. Count and compare only that
+         advertised shelf; otherwise a 96-item catalog is mistaken for 96
+         simultaneous programs and every candidate is reported as a repeat. */
+      const advertisedReady = Number.isFinite(Number(body && body.ready))
+        ? Math.max(0, Number(body.ready))
+        : Math.min(count, allItems.length);
+      const readyCount = Math.min(allItems.length, advertisedReady);
+      const items = allItems.slice(0, readyCount);
       const shouldReplaceBest = readyCount > bestReady || (readyCount === bestReady && (items.length > bestItems.length || catalogDepth > bestCatalogDepth));
       if (catalogDepth > bestCatalogDepth) bestCatalogDepth = catalogDepth;
       if (shouldReplaceBest) {

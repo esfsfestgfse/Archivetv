@@ -90,7 +90,7 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
    warmup back onto the channel-change path. */
 const IA_STRICT_CATALOG_CANDIDATE_MAX = 128;
 const IA_CATALOG_CANDIDATE_MAX = 96;
-const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v62-cache-rotation-repair";
+const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v63-underfill-window";
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
@@ -103,10 +103,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v62-cache
    episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v219";
+const IA_QUEUE_CACHE_VERSION = "v220";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v219";
+const IA_LAST_GOOD_CACHE_VERSION = "v220";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -7644,6 +7644,37 @@ async function getIaQueue(request, url, env, ctx) {
         "X-Afterglow-Queue-Deep": String(freshDirect.payload.candidates || freshDirect.payload.candidateItems.length),
         "X-Afterglow-Queue-Freshness-Rail": "1",
       });
+    }
+  }
+  /* Underfill lanes have a verified local bank even when the shared Archive
+     shelf is still hydrating. Put that bank ahead of every cache path for
+     later rotations. This is deliberately a tiny synchronous selector: it
+     keeps a skip instant and makes it impossible for a partial warm shelf to
+     erase the deeper lane-owned window. Broader Archive discovery continues
+     below and replenishes the bank asynchronously. */
+  if (IA_UNDERFILL_DEPTH_ROTATION_CHANNELS.has(channel) && rotation > 0) {
+    const directBank = orderedIaEmergencySeeds(channel, 0).filter((item) => iaRuntimeAllowed(item, minRuntimeSeconds));
+    if (directBank.length >= count) {
+      const directPayload = {
+        channel,
+        rotation: 0,
+        items: directBank.slice(0, count),
+        candidateItems: directBank,
+        candidates: directBank.length,
+        ready: Math.min(count, directBank.length),
+        minRuntimeSeconds,
+      };
+      const directDepth = rotateUnderfillDepthBank(directPayload, channel, rotation, count, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, minRuntimeSeconds);
+      const freshDirectDepth = applyIaFreshness(directDepth, freshnessLedger, count);
+      if (freshDirectDepth.payload && Array.isArray(freshDirectDepth.payload.items) && freshDirectDepth.payload.items.length >= count) {
+        rememberIaFreshness(env, channel, freshDirectDepth.issued, ctx);
+        return cacheableJson(freshDirectDepth.payload, 30, {
+          "X-Afterglow-Source": "program-director-underfill-window",
+          "X-Afterglow-Queue-Ready": String(freshDirectDepth.payload.ready),
+          "X-Afterglow-Queue-Deep": String(freshDirectDepth.payload.candidates || directBank.length),
+          "X-Afterglow-Queue-Freshness-Rail": "1",
+        });
+      }
     }
   }
   try {

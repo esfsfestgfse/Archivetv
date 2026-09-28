@@ -50,7 +50,7 @@ for (const [channel, collection] of Object.entries(expectedRails)) {
 }
 
 const relay = fs.readFileSync(path.join(root, 'afterglow_ais_relay_worker.js'), 'utf8');
-check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v220"/.test(relay), 'Relay cache namespace is v220');
+check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v221"/.test(relay), 'Relay cache namespace is v221');
 const api = fs.readFileSync(path.join(root, 'realsignal_api_v2_worker.js'), 'utf8');
 check(/const requestedCount = Math\.max\(1, Math\.min\(5, Number\(effectiveBody/.test(api) && /items: shelf/.test(api), 'API fallbacks expose a five-item shelf plus a deeper candidate catalog');
 check(/0411_Tornado_06_00_36_00::t0411_Tornado_06_00_36_00\.mp4/.test(relay) && /ShockTro1938::ShockTro1938\.mp4/.test(relay), 'News adds more direct disaster/newsreel rotation');

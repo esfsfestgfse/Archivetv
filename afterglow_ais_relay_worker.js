@@ -90,7 +90,7 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
    warmup back onto the channel-change path. */
 const IA_STRICT_CATALOG_CANDIDATE_MAX = 128;
 const IA_CATALOG_CANDIDATE_MAX = 96;
-const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v63-underfill-window";
+const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v64-file-depth";
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
@@ -103,10 +103,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v63-under
    episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v220";
+const IA_QUEUE_CACHE_VERSION = "v221";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v220";
+const IA_LAST_GOOD_CACHE_VERSION = "v221";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -4146,6 +4146,132 @@ const IA_UNDERFILL_DEPTH_BANKS = Object.freeze({
     iaDirectRecovery("victor-5355-im-afraid-to-come-home-in-the-dark::Victor 5355 - I'm Afraid to Come Home in the Dark - 3.0 CT 800N-16 EQ.mp3", "victor-5355-im-afraid-to-come-home-in-the-dark", "Victor 5355 - I'm Afraid to Come Home in the Dark - 3.0 CT 800N-16 EQ.mp3", "I’m Afraid to Come Home in the Dark", "78rpm acoustic recording early 20th century vaudeville vocal", 1912, "audio", 159.71),
   ],
 });
+/* v4.1.160 depth overlay. The first underfill repair promoted the strongest
+   file from each Archive family, but left many verified siblings in the audit
+   artifact. Promote those siblings as a second, file-level rail now. This is
+   intentionally additive: no discovery rule is widened, no portrait media is
+   admitted, and every item still passes the normal theme/deny/runtime gates. */
+const IA_DEPTH_EXPANSION_OVERLAYS = Object.freeze({
+  "66": [
+    iaDirectRecovery("love-child-world-industries::Love Child-World Industries.mp4", "love-child-world-industries", "Love Child-World Industries.mp4", "World Industries · Love Child (1992)", "action sports skateboarding street skating outdoor television", 1992, "video", 1117.12, 640, 480),
+    iaDirectRecovery("world-industries-its-your-world-2011::World Industries - It's Your World (2011).ia.mp4", "world-industries-its-your-world-2011", "World Industries - It's Your World (2011).ia.mp4", "World Industries · It's Your World (2011)", "action sports skateboarding street skating outdoor television", 2011, "video", 1483.72, 540, 360),
+    iaDirectRecovery("tree-fort-volume-1::Tree Fort Volume 1.mp4", "tree-fort-volume-1", "Tree Fort Volume 1.mp4", "Tree Fort · Volume 1", "action sports skateboarding snowboarding outdoor television", 2000, "video", 1069.07, 640, 480),
+    iaDirectRecovery("mack-dawg-productions-sick-boys-1988::Mack Dawg Productions - Sick Boys (1988).mp4", "mack-dawg-productions-sick-boys-1988", "Mack Dawg Productions - Sick Boys (1988).mp4", "Mack Dawg Productions · Sick Boys (1988)", "action sports snowboarding skiing outdoor television", 1988, "video", 3228.69, 1920, 1080),
+    iaDirectRecovery("heroin-roger-homage-2022::Heroin & Roger - Homage (2022).mp4", "heroin-roger-homage-2022", "Heroin & Roger - Homage (2022).mp4", "Heroin & Roger · Homage (2022)", "action sports skateboarding street skating outdoor television", 2022, "video", 1403.14, 1920, 1080),
+    iaDirectRecovery("ian-and-jay-space-out-2024-07-07::ian-and-jay-space-out-2024-07-07.ia.mp4", "ian-and-jay-space-out-2024-07-07", "ian-and-jay-space-out-2024-07-07.ia.mp4", "Ian and Jay · Space Out", "action sports skateboarding outdoor television", 2024, "video", 4301.7, 1280, 720),
+    iaDirectRecovery("element-bams-or-bust-2008::Element - Bam's Or Bust (2008).ia.mp4", "element-bams-or-bust-2008", "Element - Bam's Or Bust (2008).ia.mp4", "Element · Bam's Or Bust (2008)", "action sports skateboarding street skating outdoor television", 2008, "video", 1018.08, 853, 480),
+    iaDirectRecovery("channel-one-lo-fi-skate-explosion::Channel_One_LoFi_Skate_Explosion_cap_1.mov", "channel-one-lo-fi-skate-explosion", "Channel_One_LoFi_Skate_Explosion_cap_1.mov", "Channel One · Lo-Fi Skate Explosion (1995)", "action sports skateboarding street skating outdoor television", 1995, "video", 1544.55, 720, 486),
+    iaDirectRecovery("world-industries-world-war-iii-2001::World Industries - World War III (2001).ia.mp4", "world-industries-world-war-iii-2001", "World Industries - World War III (2001).ia.mp4", "World Industries · World War III (2001)", "action sports skateboarding street skating outdoor television", 2001, "video", 1230.06, 751, 572),
+    iaDirectRecovery("girl-chocolate-badass-meets-dumbass-2007::Girl & Chocolate - Badass Meets Dumbass (2007).mp4", "girl-chocolate-badass-meets-dumbass-2007", "Girl & Chocolate - Badass Meets Dumbass (2007).mp4", "Girl and Chocolate · Badass Meets Dumbass (2007)", "action sports skateboarding street skating outdoor television", 2007, "video", 1475.4, 654, 480),
+    iaDirectRecovery("fourstar-gang-of-fourstar-2009::Fourstar - Gang Of Fourstar (2009).ia.mp4", "fourstar-gang-of-fourstar-2009", "Fourstar - Gang Of Fourstar (2009).ia.mp4", "Fourstar · Gang of Fourstar (2009)", "action sports skateboarding street skating outdoor television", 2009, "video", 1025.02, 853, 478),
+  ],
+  "81": [
+    iaDirectRecovery("bptvpa-Lets_Talk_Tailwaggers_20th_Anniversary_Show_Fishing_memories::Lets_Talk_Tailwaggers_20th_Anniversary_Show_Fishing_memories.mp4", "bptvpa-Lets_Talk_Tailwaggers_20th_Anniversary_Show_Fishing_memories", "Lets_Talk_Tailwaggers_20th_Anniversary_Show_Fishing_memories.mp4", "Let's Talk Tailwaggers · Fishing Memories", "fishing angling sport fishing outdoor recreation television", 2016, "video", 1459.63, 480, 360),
+    iaDirectRecovery("bctvpa-Fishing_for_Fate_-_Virtual_Edition_8-6-20::Fishing_for_Fate_-_Virtual_Edition_8-6-20.mp4", "bctvpa-Fishing_for_Fate_-_Virtual_Edition_8-6-20", "Fishing_for_Fate_-_Virtual_Edition_8-6-20.mp4", "Fishing for Fate · Virtual Edition", "fishing angling sport fishing outdoor recreation television", 2020, "video", 3284.05, 853, 480),
+  ],
+  "3": [
+    iaDirectRecovery("foto_20211208::nightmare.alley.1947.internal.bdrip.x264-manic.mp4", "foto_20211208", "nightmare.alley.1947.internal.bdrip.x264-manic.mp4", "Nightmare Alley (1947)", "film noir crime drama mystery detective suspense thriller classic feature film", 1947, "video", 6699.86, 658, 480),
+    iaDirectRecovery("boomerang1947_202003::Boomerang 1947 - Dana Andrews, Lee J. Cobb, Arthur Kennedy, Jane Wyatt, Ed_x264.ia.mp4", "boomerang1947_202003", "Boomerang 1947 - Dana Andrews, Lee J. Cobb, Arthur Kennedy, Jane Wyatt, Ed_x264.ia.mp4", "Boomerang! (1947)", "film noir crime drama mystery detective suspense thriller classic feature film", 1947, "video", 5282.61, 852, 620),
+    iaDirectRecovery("cry-of-the-city-1948_202008::Cry of the City (1948).mp4", "cry-of-the-city-1948_202008", "Cry of the City (1948).mp4", "Cry of the City (1948)", "film noir crime drama mystery detective suspense thriller classic feature film", 1948, "video", 5715.05, 659, 480),
+    iaDirectRecovery("1944-double-exposure-william-berke-vo::1944 - Double Exposure - William Berke - VO.mp4", "1944-double-exposure-william-berke-vo", "1944 - Double Exposure - William Berke - VO.mp4", "Double Exposure (1944)", "film noir crime drama mystery detective suspense thriller classic feature film", 1944, "video", 3744.54, 320, 240),
+    iaDirectRecovery("1942-eyes-of-the-underworld-roy-william-neill-vo::1942 - Eyes of the Underworld - Roy William Neill - VO.mp4", "1942-eyes-of-the-underworld-roy-william-neill-vo", "1942 - Eyes of the Underworld - Roy William Neill - VO.mp4", "Eyes of the Underworld (1942)", "film noir crime drama mystery detective suspense thriller classic feature film", 1942, "video", 3691.78, 640, 480),
+    iaDirectRecovery("Pitfalls3648::PITFALL_1948.mp4", "Pitfalls3648", "PITFALL_1948.mp4", "Pitfall (1948)", "film noir crime drama mystery detective suspense thriller classic feature film", 1948, "video", 5199.87, 490, 360),
+    iaDirectRecovery("exposed-republic::Exposed republic.ia.mp4", "exposed-republic", "Exposed republic.ia.mp4", "Exposed (1947)", "film noir crime drama mystery detective suspense thriller classic feature film", 1947, "video", 3413.94, 640, 480),
+  ],
+  "11": [
+    iaDirectRecovery("the-bad-girls-guide-2005-sitcom::The Bad Girl's Guide Episode 05- The Guide to Baby Talk 6_28_2005- Jenny McCarthy- yt - Vintage TV And Collectables.ia.mp4", "the-bad-girls-guide-2005-sitcom", "The Bad Girl's Guide Episode 05- The Guide to Baby Talk 6_28_2005- Jenny McCarthy- yt - Vintage TV And Collectables.ia.mp4", "The Bad Girl's Guide · The Guide to Baby Talk", "modern rerun television series sitcom comedy series television series", 2005, "video", 1224.95, 548, 360),
+    iaDirectRecovery("mulaney-season-1-tv-show-2014-mkv::Mulaney - S01E08 - It's a Wonderful Home Alone.mp4", "mulaney-season-1-tv-show-2014-mkv", "Mulaney - S01E08 - It's a Wonderful Home Alone.mp4", "Mulaney · It's a Wonderful Home Alone", "modern rerun television series sitcom comedy series television series", 2014, "video", 1300.5, 853, 480),
+    iaDirectRecovery("mulaney-season-1-tv-show-2014-mkv::Mulaney - S01E11 - Power Moves.mp4", "mulaney-season-1-tv-show-2014-mkv", "Mulaney - S01E11 - Power Moves.mp4", "Mulaney · Power Moves", "modern rerun television series sitcom comedy series television series", 2014, "video", 1300.84, 853, 480),
+    iaDirectRecovery("the.-end.of.the.-fucking.-world.-s-02-e-03.1080p.-hevc.x-265-me-gusta::The.End.of.the.Fucking.World.S02E01.1080p.HEVC.x265-MeGusta.mp4", "the.-end.of.the.-fucking.-world.-s-02-e-03.1080p.-hevc.x-265-me-gusta", "The.End.of.the.Fucking.World.S02E01.1080p.HEVC.x265-MeGusta.mp4", "The End of the F***ing World · Season 2 Episode 1", "modern rerun television series comedy drama series television series", 2019, "video", 1445.01, 854, 480),
+    iaDirectRecovery("the.-end.of.the.-fucking.-world.-s-02-e-03.1080p.-hevc.x-265-me-gusta::The.End.of.the.Fucking.World.S02E04.1080p.HEVC.x265-MeGusta.mp4", "the.-end.of.the.-fucking.-world.-s-02-e-03.1080p.-hevc.x-265-me-gusta", "The.End.of.the.Fucking.World.S02E04.1080p.HEVC.x265-MeGusta.mp4", "The End of the F***ing World · Season 2 Episode 4", "modern rerun television series comedy drama series television series", 2019, "video", 1482.57, 854, 480),
+    iaDirectRecovery("d.-j.-kat-show::D.J. Kat Show.mp4", "d.-j.-kat-show", "D.J. Kat Show.mp4", "The D.J. Kat Show", "modern rerun television series comedy series television series", 1988, "video", 2996.3, 720, 480),
+    iaDirectRecovery("osbournes_reloaded::Osbournes Reloaded (2009) - Episode 1.mp4", "osbournes_reloaded", "Osbournes Reloaded (2009) - Episode 1.mp4", "Osbournes Reloaded · Episode 1", "modern rerun television series comedy variety television series", 2009, "video", 1593.4, 624, 352),
+    iaDirectRecovery("mr.-rhodes-s-1e-08-looking-for-mrs.-goodbar-episode-8::Mr Rhodes- s1e06 - Huge - Mr Rhodes - 1.06.ia.mp4", "mr.-rhodes-s-1e-08-looking-for-mrs.-goodbar-episode-8", "Mr Rhodes- s1e06 - Huge - Mr Rhodes - 1.06.ia.mp4", "Mr. Rhodes · Huge", "modern rerun television series sitcom comedy series television series", 1996, "video", 1331.73, 720, 480),
+    iaDirectRecovery("maggie-episode-4-bruces-birthday-party::“Maggie” Episode 8 (last)- Maggie the Poet.mp4", "maggie-episode-4-bruces-birthday-party", "“Maggie” Episode 8 (last)- Maggie the Poet.mp4", "Maggie · Maggie the Poet", "modern rerun television series sitcom comedy series television series", 1981, "video", 1561.34, 640, 480),
+  ],
+  "20": [
+    iaDirectRecovery("WSBK_20010911_210000_Judge_Judy::WSBK_20010911_210000_Judge_Judy.mp4", "WSBK_20010911_210000_Judge_Judy", "WSBK_20010911_210000_Judge_Judy.mp4", "Judge Judy · WSBK September 11, 2001", "judge show court show judge judy television judge show courtroom television", 2001, "video", 1800.86, 640, 480),
+    iaDirectRecovery("judge.mathis.2010.04.20::judge.mathis.2010.04.20.pdtv.xvid-2wire.mp4", "judge.mathis.2010.04.20", "judge.mathis.2010.04.20.pdtv.xvid-2wire.mp4", "Judge Mathis · April 20, 2010", "judge show court show judge mathis television courtroom television", 2010, "video", 2520.65, 576, 432),
+    iaDirectRecovery("judge-mathis-season-19-premiere::MA-1901_WB-Nosey_JudgeMathis_YR19_Ep19001_HD_1080i_2997df_2ch_2352192_final.mp4", "judge-mathis-season-19-premiere", "MA-1901_WB-Nosey_JudgeMathis_YR19_Ep19001_HD_1080i_2997df_2ch_2352192_final.mp4", "Judge Mathis · Season 19 Premiere", "judge show court show judge mathis television courtroom television", 2017, "video", 2473.85, 1920, 1080),
+  ],
+  "500": [
+    iaDirectRecovery("1990-1120-tv-abc-ny-wabc-it-pt-2::1990-1120-TV-ABC-NY-WABC-IT_Pt2.ia.mp4", "1990-1120-tv-abc-ny-wabc-it-pt-2", "1990-1120-TV-ABC-NY-WABC-IT_Pt2.ia.mp4", "Stephen King's IT · Part 2 (1990 VHS Recording)", "found footage vhs home video television recording archival television documentary", 1990, "video", 6976.98, 640, 480),
+    iaDirectRecovery("barbie-and-the-rockers-out-of-this-world-1987-betamax-rip::Barbie and the Rockers - Out of this World 1987 (Betamax rip).ia.mp4", "barbie-and-the-rockers-out-of-this-world-1987-betamax-rip", "Barbie and the Rockers - Out of this World 1987 (Betamax rip).ia.mp4", "Barbie and the Rockers · Out of This World (1987 Betamax)", "found footage vhs betamax television recording archival television", 1987, "video", 1511.88, 960, 720),
+    iaDirectRecovery("esso-you-make-the-difference-1990::ESSO You Make The Difference 1990.mp4", "esso-you-make-the-difference-1990", "ESSO You Make The Difference 1990.mp4", "ESSO · You Make the Difference (1990)", "found footage vhs home video archival television recording documentary", 1990, "video", 2351.64, 720, 540),
+    iaDirectRecovery("gabriels-fire-ep-01-pilot::Gabriel's Fire Ep04 Louis' Date.ia.mp4", "gabriels-fire-ep-01-pilot", "Gabriel's Fire Ep04 Louis' Date.ia.mp4", "Gabriel's Fire · Louis' Date", "found footage vhs television series archival television recording", 1990, "video", 3104.51, 854, 480),
+    iaDirectRecovery("colorado-rmnp-1987-interlaced::Colorado-RMNP-1987-deinterlaced.m4v", "colorado-rmnp-1987-interlaced", "Colorado-RMNP-1987-deinterlaced.m4v", "Rocky Mountain National Park Tour Video (1987)", "found footage vhs home video travel footage archival documentary", 1987, "video", 1863.36, 621, 472),
+    iaDirectRecovery("cult-toons-wrestle-down-the-wind::Wrestle Down The Wind [WCW All-Stars].ia.mp4", "cult-toons-wrestle-down-the-wind", "Wrestle Down The Wind [WCW All-Stars].ia.mp4", "WCW All-Stars · Wrestle Down the Wind", "found footage vhs television recording archival sports television", 1990, "video", 1651.2, 640, 480),
+  ],
+  "118": [
+    iaDirectRecovery("montypythonflyingcircus::Monty Python's Flying Circus [RAW]/Series 3S - Fliegender Zirkus (1972)/039B. Fliegender Zirkus 2.mp4", "montypythonflyingcircus", "Monty Python's Flying Circus [RAW]/Series 3S - Fliegender Zirkus (1972)/039B. Fliegender Zirkus 2.mp4", "Monty Python's Flying Circus · Fliegender Zirkus 2", "british television british comedy british sitcom classic television uk television television series", 1972, "video", 2505.46, 638, 480),
+    iaDirectRecovery("montypythonflyingcircus::Monty Python's Flying Circus [RAW]/Series 1 (1969-1970)/002. Sex and Violence.mp4", "montypythonflyingcircus", "Monty Python's Flying Circus [RAW]/Series 1 (1969-1970)/002. Sex and Violence.mp4", "Monty Python's Flying Circus · Sex and Violence", "british television british comedy british sitcom classic television uk television television series", 1969, "video", 2011.22, 640, 480),
+    iaDirectRecovery("neil-innes-and-the-rutles-beatlefest-home-movies-90s::Beatlefest Rutles/VIDEO_TS/VTS_01_3.mp4", "neil-innes-and-the-rutles-beatlefest-home-movies-90s", "Beatlefest Rutles/VIDEO_TS/VTS_01_3.mp4", "The Rutles · Beatlefest Archive", "british television british comedy british music television uk television comedy series", 1997, "video", 1816.28, 640, 480),
+    iaDirectRecovery("neil-innes-and-the-rutles-beatlefest-home-movies-90s::New Rutles 94 Beatlefest 97 94/VIDEO_TS/VTS_02_2.mp4", "neil-innes-and-the-rutles-beatlefest-home-movies-90s", "New Rutles 94 Beatlefest 97 94/VIDEO_TS/VTS_02_2.mp4", "The Rutles · Beatlefest 1994/1997", "british television british comedy british music television uk television comedy series", 1997, "video", 1815.41, 640, 480),
+    iaDirectRecovery("neil-innes-and-the-rutles-beatlefest-home-movies-90s::Neil Innes BeatleFest 2001 Beatley Incorrect Ken Thornton/VIDEO_TS/VTS_01_2.mp4", "neil-innes-and-the-rutles-beatlefest-home-movies-90s", "Neil Innes BeatleFest 2001 Beatley Incorrect Ken Thornton/VIDEO_TS/VTS_01_2.mp4", "Neil Innes · Beatley Incorrect (2001)", "british television british comedy british music television uk television comedy series", 2001, "video", 1813.58, 640, 480),
+    iaDirectRecovery("keeping-up-appearances_202402::Keeping_Up_Appearances_S04_E09.mp4", "keeping-up-appearances_202402", "Keeping_Up_Appearances_S04_E09.mp4", "Keeping Up Appearances · Series 4 Episode 9", "british television british sitcom british comedy classic television uk television television series", 1990, "video", 2901.15, 496, 368),
+    iaDirectRecovery("keeping-up-appearances_202402::Keeping_Up_Appearances_S02_E10.mp4", "keeping-up-appearances_202402", "Keeping_Up_Appearances_S02_E10.mp4", "Keeping Up Appearances · Series 2 Episode 10", "british television british sitcom british comedy classic television uk television television series", 1990, "video", 1771.73, 400, 304),
+  ],
+  "902": [
+    iaDirectRecovery("bill-monroe1994-06-23.sb.kp.flac::Bill Monroe 6-23-94 early08.flac", "bill-monroe1994-06-23.sb.kp.flac", "Bill Monroe 6-23-94 early08.flac", "Bill Monroe and the Bluegrass Boys · Dahlonega (1994)", "bluegrass folk acoustic string band live music", 1994, "audio", 262.26),
+    iaDirectRecovery("bill-monroe1994-06-23.sb.kp.flac::Bill Monroe 6-23-94 early12.flac", "bill-monroe1994-06-23.sb.kp.flac", "Bill Monroe 6-23-94 early12.flac", "Bill Monroe and the Bluegrass Boys · Dahlonega (1994)", "bluegrass folk acoustic string band live music", 1994, "audio", 254.13),
+    iaDirectRecovery("BillMonroe1966-09-04.onstage.unk.wharfrat73.flac1644::haney_bgf1966-09-04d2t18.flac", "BillMonroe1966-09-04.onstage.unk.wharfrat73.flac1644", "haney_bgf1966-09-04d2t18.flac", "Bill Monroe · Roanoke Blue Grass Festival (1966)", "bluegrass folk acoustic string band live music", 1966, "audio", 347.87),
+    iaDirectRecovery("BillMonroe1966-09-04.onstage.unk.wharfrat73.flac1644::haney_bgf1966-09-04d2t11.flac", "BillMonroe1966-09-04.onstage.unk.wharfrat73.flac1644", "haney_bgf1966-09-04d2t11.flac", "Bill Monroe · Roanoke Blue Grass Festival (1966)", "bluegrass folk acoustic string band live music", 1966, "audio", 278.53),
+    iaDirectRecovery("tru1990-05-11.sen441.kp.flac::TonyRiceUnit5-11-90I10.flac", "tru1990-05-11.sen441.kp.flac", "TonyRiceUnit5-11-90I10.flac", "Tony Rice Unit · Virginia Beach Bluegrass Festival", "bluegrass folk acoustic string band live music", 1990, "audio", 363.9),
+    iaDirectRecovery("tru1990-05-11.sen441.kp.flac::TonyRiceUnit5-11-90I09.flac", "tru1990-05-11.sen441.kp.flac", "TonyRiceUnit5-11-90I09.flac", "Tony Rice Unit · Virginia Beach Bluegrass Festival", "bluegrass folk acoustic string band live music", 1990, "audio", 360.9),
+    iaDirectRecovery("timobrien2002STLMO::Track 8.ogg", "timobrien2002STLMO", "Track 8.ogg", "Tim O'Brien Band · Mississippi Nights (2002)", "bluegrass folk acoustic string band live music", 2002, "audio", 344.96),
+    iaDirectRecovery("timobrien2002STLMO::Track 10.ogg", "timobrien2002STLMO", "Track 10.ogg", "Tim O'Brien Band · Mississippi Nights (2002)", "bluegrass folk acoustic string band live music", 2002, "audio", 336.69),
+    iaDirectRecovery("Track15_201508::Track 8.ogg", "Track15_201508", "Track 8.ogg", "Tim O'Brien · Old Settlers Music Festival (2004)", "bluegrass folk acoustic string band live music", 2004, "audio", 366.74),
+    iaDirectRecovery("doc-3-25-00.sbd.kp.flac::Doc3-25-00early04.flac", "doc-3-25-00.sbd.kp.flac", "Doc3-25-00early04.flac", "Doc Watson · Suwannee SpringFest (2000)", "bluegrass folk acoustic string band live music", 2000, "audio", 308),
+  ],
+  "905": [
+    iaDirectRecovery("wille-dixon-chicago-1974-wxrt-un-concert-series::04 Rock Me.flac", "wille-dixon-chicago-1974-wxrt-un-concert-series", "04 Rock Me.flac", "Willie Dixon · Rock Me (Chicago '74)", "blues chicago blues electric blues live music", 1974, "audio", 418.48),
+    iaDirectRecovery("wille-dixon-chicago-1974-wxrt-un-concert-series::07 Wang Dang Doodle.flac", "wille-dixon-chicago-1974-wxrt-un-concert-series", "07 Wang Dang Doodle.flac", "Willie Dixon · Wang Dang Doodle (Chicago '74)", "blues chicago blues electric blues live music", 1974, "audio", 386.61),
+    iaDirectRecovery("JeffersonBlindLemon192529TheCollection20BluesGreats18LockStepBlues::Jefferson, Blind Lemon 1925-29 The Collection- 20 Blues Greats 19 Bootin' Me 'Bout.flac", "JeffersonBlindLemon192529TheCollection20BluesGreats18LockStepBlues", "Jefferson, Blind Lemon 1925-29 The Collection- 20 Blues Greats 19 Bootin' Me 'Bout.flac", "Blind Lemon Jefferson · Bootin' Me 'Bout", "blues delta blues country blues acoustic blues", 1929, "audio", 196.87),
+    iaDirectRecovery("JeffersonBlindLemon192529TheCollection20BluesGreats18LockStepBlues::Jefferson, Blind Lemon 1925-29 The Collection- 20 Blues Greats 18 Lock Step Blues.flac", "JeffersonBlindLemon192529TheCollection20BluesGreats18LockStepBlues", "Jefferson, Blind Lemon 1925-29 The Collection- 20 Blues Greats 18 Lock Step Blues.flac", "Blind Lemon Jefferson · Lock Step Blues", "blues delta blues country blues acoustic blues", 1929, "audio", 194.57),
+    iaDirectRecovery("lp_the-james-cotton-blues-band_the-james-cotton-blues-band::disc1/lp_the-james-cotton-blues-band_the-james-cotton-blues-band_disc1side2.flac", "lp_the-james-cotton-blues-band_the-james-cotton-blues-band", "disc1/lp_the-james-cotton-blues-band_the-james-cotton-blues-band_disc1side2.flac", "The James Cotton Blues Band · Side Two", "blues chicago blues electric blues harmonica blues live music", 1967, "audio", 1369.8),
+    iaDirectRecovery("lp_the-legendary-leadbelly_leadbelly::disc1/lp_the-legendary-leadbelly_leadbelly_disc1side2.flac", "lp_the-legendary-leadbelly_leadbelly", "disc1/lp_the-legendary-leadbelly_leadbelly_disc1side2.flac", "The Legendary Leadbelly · Side Two", "blues delta blues country blues acoustic blues", 1963, "audio", 777.8),
+  ],
+  "906": [
+    iaDirectRecovery("octubre2-CocoMontoya::octubre2-CocoMontoya.mp3", "octubre2-CocoMontoya", "octubre2-CocoMontoya.mp3", "Coco Montoya · Golpes de la Guitarra", "blues electric blues texas blues blues guitar contemporary blues live music", 2011, "audio", 3262.35),
+    iaDirectRecovery("diciembre-18-kws-live-in-chicago::Diciembre18-KWS-LiveInChicago.mp3", "diciembre-18-kws-live-in-chicago", "Diciembre18-KWS-LiveInChicago.mp3", "Kenny Wayne Shepherd · Live in Chicago", "blues electric blues texas blues blues guitar contemporary blues live music", 2010, "audio", 3496.76),
+    iaDirectRecovery("mayo-9-joe-bonamassa::Mayo9-JoeBonamassa.mp3", "mayo-9-joe-bonamassa", "Mayo9-JoeBonamassa.mp3", "Joe Bonamassa · Black Rock", "blues electric blues blues guitar contemporary blues live music", 2010, "audio", 3500.29),
+    iaDirectRecovery("junio-11-john-lee-hooker-2a-parte::Junio11-JohnLeeHooker2aParte.mp3", "junio-11-john-lee-hooker-2a-parte", "Junio11-JohnLeeHooker2aParte.mp3", "John Lee Hooker · The Boogie Man, Part 2", "blues electric blues chicago blues contemporary blues live music", 2011, "audio", 3199.9),
+    iaDirectRecovery("abril-14-ciclo-muddy-waters-2a-parte::Abril14-CicloMuddyWaters2aParte.mp3", "abril-14-ciclo-muddy-waters-2a-parte", "Abril14-CicloMuddyWaters2aParte.mp3", "Muddy Waters · King of Electric Blues, Part 2", "blues electric blues chicago blues contemporary blues live music", 2013, "audio", 3511.59),
+    iaDirectRecovery("octubre-26-gary-clark-jr::Octubre26-GaryClarkJr.mp3", "octubre-26-gary-clark-jr", "Octubre26-GaryClarkJr.mp3", "Gary Clark Jr. · Live", "blues electric blues blues guitar contemporary blues live music", 2014, "audio", 3245.4),
+  ],
+  "907": [
+    iaDirectRecovery("HarlanLeonardAndHisRocketsTooMuch1940::Harlan_Leonard_And_His_Rockets-Too_Much-1940.ogg", "HarlanLeonardAndHisRocketsTooMuch1940", "Harlan_Leonard_And_His_Rockets-Too_Much-1940.ogg", "Harlan Leonard and His Rockets · Too Much", "swing big band jazz dance band 78rpm", 1940, "audio", 194.82),
+    iaDirectRecovery("JimmieLuncefordOrchestra-FriscoFog::Jimmie_Lunceford_Orchestra-Frisco_Fog-1937.ogg", "JimmieLuncefordOrchestra-FriscoFog", "Jimmie_Lunceford_Orchestra-Frisco_Fog-1937.ogg", "Jimmie Lunceford Orchestra · Frisco Fog", "swing big band jazz dance band 78rpm", 1937, "audio", 191.49),
+    iaDirectRecovery("JanSavittAndHisTopHatters-SugarFootStomp::Jan_Savitt_and_his_Top_Hatters-Sugar_Foot_Stomp-1938.wav", "JanSavittAndHisTopHatters-SugarFootStomp", "Jan_Savitt_and_his_Top_Hatters-Sugar_Foot_Stomp-1938.wav", "Jan Savitt and His Top Hatters · Sugar Foot Stomp", "swing big band jazz dance band 78rpm", 1938, "audio", 164.28),
+    iaDirectRecovery("JanSavittAndHisTopHattersFuturisticShuffle1938::Jan_Savitt_and_his_Top_Hatters-Futuristic_Shuffle-1938.ogg", "JanSavittAndHisTopHattersFuturisticShuffle1938", "Jan_Savitt_and_his_Top_Hatters-Futuristic_Shuffle-1938.ogg", "Jan Savitt and His Top Hatters · Futuristic Shuffle", "swing big band jazz dance band 78rpm", 1938, "audio", 204.87),
+    iaDirectRecovery("JoeMarsalaOrchestra-IKnowThatYouKnow::Joe_Marsala_Orchestra-I_Know_That_You_Know-1941.wav", "JoeMarsalaOrchestra-IKnowThatYouKnow", "Joe_Marsala_Orchestra-I_Know_That_You_Know-1941.wav", "Joe Marsala Orchestra · I Know That You Know", "swing big band jazz dance band 78rpm", 1941, "audio", 177.82),
+    iaDirectRecovery("wayne-king-and-his-orchestra-one-morning-in-may-fox-trot-brunswick-663-6735-november-16-1933::Wayne King And His Orchestra - One Morning In May (Fox Trot) - Brunswick 663, 6735 - November 16, 1933.mp3", "wayne-king-and-his-orchestra-one-morning-in-may-fox-trot-brunswick-663-6735-november-16-1933", "Wayne King And His Orchestra - One Morning In May (Fox Trot) - Brunswick 663, 6735 - November 16, 1933.mp3", "Wayne King and His Orchestra · One Morning in May", "swing big band jazz dance band foxtrot 78rpm", 1933, "audio", 164.6),
+  ],
+  "914": [
+    iaDirectRecovery("sido-endlich-wochenende::Sido-Endlich Wochenende.mp3", "sido-endlich-wochenende", "Sido-Endlich Wochenende.mp3", "Sido · Endlich Wochenende", "hip hop hip-hop rap contemporary hip hop underground hip hop", 2004, "audio", 224.65),
+    iaDirectRecovery("enggytaylsfullshowpart3::enggy & taylsFULL SHOW PART 3.mp3", "enggytaylsfullshowpart3", "enggy & taylsFULL SHOW PART 3.mp3", "Enggy and Tayls · Full Show Part 3", "hip hop hip-hop rap underground hip hop live music", 2018, "audio", 3036),
+    iaDirectRecovery("music9_202601::Black Excellence (Prod By Christopher Rose).mp3", "music9_202601", "Black Excellence (Prod By Christopher Rose).mp3", "Christopher Rose · Black Excellence", "hip hop hip-hop rap contemporary hip hop independent music", 2026, "audio", 291.74),
+    iaDirectRecovery("music9_202601::The Black Mission (Prod By Christopher Rose).mp3", "music9_202601", "The Black Mission (Prod By Christopher Rose).mp3", "Christopher Rose · The Black Mission", "hip hop hip-hop rap contemporary hip hop independent music", 2026, "audio", 163.32),
+  ],
+  "929": [
+    iaDirectRecovery("Experience_957::2 Experience.flac", "Experience_957", "2 Experience.flac", "Ada Jones · Experience (1906)", "78rpm acoustic recording wax cylinder early 20th century ada jones", 1906, "audio", 155.12),
+    iaDirectRecovery("victor-17335-b-theres-no-place-like-home::Victor 17335B - There's No Place Like Home - 3.0 CT 630N-16 EQ.flac", "victor-17335-b-theres-no-place-like-home", "Victor 17335B - There's No Place Like Home - 3.0 CT 630N-16 EQ.flac", "Billy Murray · There's No Place Like Home", "78rpm acoustic recording wax cylinder early 20th century billy murray", 1912, "audio", 151.2),
+    iaDirectRecovery("victor-88376-dreams-of-long-ago::Victor 88376 - Dreams of Long Ago - 3.0 CT 630N-16 EQ.flac", "victor-88376-dreams-of-long-ago", "Victor 88376 - Dreams of Long Ago - 3.0 CT 630N-16 EQ.flac", "Enrico Caruso · Dreams of Long Ago", "78rpm acoustic recording wax cylinder early 20th century enrico caruso", 1912, "audio", 232.08),
+    iaDirectRecovery("victor-5161-its-great-to-be-a-soldier-man::Victor 5161 - It's Great to be a Soldier Man - 3.0 CT 800N-16 EQ.flac", "victor-5161-its-great-to-be-a-soldier-man", "Victor 5161 - It's Great to be a Soldier Man - 3.0 CT 800N-16 EQ.flac", "Billy Murray · It's Great to Be a Soldier Man", "78rpm acoustic recording wax cylinder early 20th century billy murray", 1907, "audio", 158.96),
+    iaDirectRecovery("victor-17286-b-good-night-nurse::Victor 17286B - Good-Night, Nurse - 3.0 CT 630N-16 EQ.flac", "victor-17286-b-good-night-nurse", "Victor 17286B - Good-Night, Nurse - 3.0 CT 630N-16 EQ.flac", "Billy Murray · Good-Night, Nurse", "78rpm acoustic recording wax cylinder early 20th century billy murray", 1913, "audio", 153.31),
+    iaDirectRecovery("victor-17826-a-if-war-is-what-sherman-said-it-was::Victor 17826A - If War is What Sherman Said it Was - 3.0 CT 630N-16 EQ.flac", "victor-17826-a-if-war-is-what-sherman-said-it-was", "Victor 17826A - If War is What Sherman Said it Was - 3.0 CT 630N-16 EQ.flac", "Billy Murray · If War Is What Sherman Said It Was", "78rpm acoustic recording wax cylinder early 20th century billy murray", 1915, "audio", 174.99),
+  ],
+});
+for (const [channel, additions] of Object.entries(IA_DEPTH_EXPANSION_OVERLAYS)) {
+  if (!IA_UNDERFILL_DEPTH_BANKS[channel]) continue;
+  const seen = new Set(IA_UNDERFILL_DEPTH_BANKS[channel].map((item) => String(item && item.identifier || "")));
+  for (const item of additions) {
+    if (item && item.identifier && !seen.has(item.identifier)) {
+      IA_UNDERFILL_DEPTH_BANKS[channel].push(item);
+      seen.add(item.identifier);
+    }
+  }
+}
 /* The harvested underfill banks are not just emergency media. They are the
    stable, file-level rotation rail for these lanes while broader Archive
    discovery catches up. Mark them as full-window stations so a later skip

@@ -12,7 +12,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "4.1.159-ia-underfill-window";
+const V3_RELEASE = "4.1.160-ia-deep-catalog";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -86,7 +86,11 @@ const RATE_LIMITS = Object.freeze({
      mistaking normal tuning for abuse. Provider work is still deduplicated
      below and the upstream adapters remain bounded. */
   "source-catalog": Object.freeze({ windowMs: 60_000, max: 60 }),
-  queue: Object.freeze({ windowMs: 60_000, max: 60 }),
+  /* Queue traffic includes guide refreshes, fast channel surfing, and the
+     certification sweep. Keep the guard, but do not let a normal burst of
+     channel changes turn into a false empty shelf. Provider adapters remain
+     separately bounded below. */
+  queue: Object.freeze({ windowMs: 60_000, max: 240 }),
   "youtube-uploads": Object.freeze({ windowMs: 60_000, max: 30 }),
 });
 /* This is a small edge guard, not durable product state. It absorbs accidental

@@ -90,7 +90,7 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
    warmup back onto the channel-change path. */
 const IA_STRICT_CATALOG_CANDIDATE_MAX = 128;
 const IA_CATALOG_CANDIDATE_MAX = 96;
-const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v42-catalog-rails";
+const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v43-long-tail-depth";
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
@@ -102,10 +102,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v42-catal
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v199";
+const IA_QUEUE_CACHE_VERSION = "v200";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v199";
+const IA_LAST_GOOD_CACHE_VERSION = "v200";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -184,7 +184,7 @@ const IA_GLOBAL_VIDEO_POLICY_VERSION = "v1";
    that still showed neighboring rotations reopening the same five programs.
    This is a bounded ordering change only: discovery, hydration, and editorial
    gates remain unchanged, while a channel advances by one public shelf. */
-const IA_FULL_WINDOW_ROTATION_CHANNELS = new Set(["2", "14", "53", "55", "56", "59", "60", "61", "64", "74", "76", "78", "79", "82", "100", "101", "103", "108", "120", "121", "134", "210", "215", "225", "234", "235", "511", "701", "906", "910", "918", "919", "921", "928", "707", "708", "709"]);
+const IA_FULL_WINDOW_ROTATION_CHANNELS = new Set(["2", "14", "53", "55", "56", "59", "60", "61", "64", "74", "76", "78", "79", "82", "100", "101", "103", "107", "108", "120", "121", "128", "134", "210", "215", "217", "225", "233", "234", "235", "241", "511", "701", "906", "910", "918", "919", "921", "928", "707", "708", "709"]);
 /* A short per-isolate burst cache absorbs repeat requests from a TV, phone,
    and guide opened in quick succession. It is intentionally tiny and
    short-lived: Cache API/KV remain the durable shelves, while this map only
@@ -289,7 +289,7 @@ function iaColdRescueEnabled(channel) {
    manufacturing catalog. The six animation lanes use the same direct-ready
    contract because their verified episode banks are deeper and more reliable
    than the cold Archive search race; background expansion still deepens them. */
-const IA_STRICT_RECOVERY_CHANNELS = new Set(["17", "19", "53", "55", "64", "74", "78", "80", "82", "100", "108", "120", "133", "200", "206", "215", "225", "228", "234", "235", "511", "910", "918", "919", "920", "921", "928", "150", "153", "158", "704", "705", "706", "707", "708", "709"]);
+const IA_STRICT_RECOVERY_CHANNELS = new Set(["17", "19", "53", "55", "64", "74", "78", "80", "82", "100", "107", "108", "120", "128", "133", "200", "206", "215", "217", "225", "228", "233", "234", "235", "241", "511", "910", "918", "919", "920", "921", "928", "150", "153", "158", "704", "705", "706", "707", "708", "709"]);
 function iaStrictRecoveryEnabled(channel) {
   return IA_STRICT_RECOVERY_CHANNELS.has(String(channel));
 }
@@ -362,7 +362,7 @@ for (const channel of IA_CONFIRMED_REPAIR_CHANNELS) {
    supplemental rails settle for a bounded extra window; every other channel
    retains the 900ms fast path. */
 const IA_ADAPTIVE_DEPTH_GRACE_CHANNELS = new Set([
-  "15", "18", "21", "59", "61", "65", "114", "125", "150", "158", "203", "210", "213", "214", "227", "230", "236", "501", "502", "507", "704", "705", "706", "915", "921",
+  "15", "18", "21", "59", "61", "65", "107", "114", "125", "128", "150", "158", "203", "210", "213", "214", "217", "227", "230", "233", "236", "241", "501", "502", "507", "704", "705", "706", "915", "921",
 ]);
 const IA_ADAPTIVE_DEPTH_GRACE_MS = 2200;
 /* Reggae & Dub has a wide verified catalog but its secondary Archive rail is
@@ -3352,6 +3352,84 @@ const IA_LONG_TAIL_EXPANSIONS_EXTRA = Object.freeze({
     iaDirectRecovery("KGO_20190414_050000_Nightline::KGO_20190414_050000_Nightline.mp4", "KGO_20190414_050000_Nightline", "KGO_20190414_050000_Nightline.mp4", "Nightline · KGO Broadcast", "nightline television newsmagazine investigative journalism current affairs", 2019),
     iaDirectRecovery("WRC_20090719_230000_Dateline_NBC::WRC_20090719_230000_Dateline_NBC.mp4", "WRC_20090719_230000_Dateline_NBC", "WRC_20090719_230000_Dateline_NBC.mp4", "Dateline NBC · WRC Broadcast", "dateline television newsmagazine investigative journalism current affairs", 2009),
     iaDirectRecovery("msnbc.com-video-2006-10-08::mtp_netcast_061008.mp4", "msnbc.com-video-2006-10-08", "mtp_netcast_061008.mp4", "MSNBC News Video · October 2006", "television newsmagazine investigative journalism current affairs", 2006),
+  ],
+  /* v4.1.138 long-tail depth repair: these five lanes had fast first frames
+     but repeatedly collapsed to one-to-four playable records after the
+     Archive index rotated. These are file-level, landscape, >=15-minute
+     derivatives verified against Archive metadata. They are an instant
+     canonical rail while the broader collection search continues in the
+     background; no parent-only records are promoted. */
+  "107": [
+    iaDirectRecovery("that-certain-thing-1928::That Certain Thing (1928).mp4", "that-certain-thing-1928", "That Certain Thing (1928).mp4", "That Certain Thing (1928)", "silent film silent movie silent cinema silent drama feature film", 1928, "video", 5163.64, 620, 480),
+    iaDirectRecovery("children-of-divorce-1927-with-sync-music::CHILDREN OF DIVORCE (1927) with SYNC MUSIC.ia.mp4", "children-of-divorce-1927-with-sync-music", "CHILDREN OF DIVORCE (1927) with SYNC MUSIC.ia.mp4", "Children of Divorce (1927)", "silent film silent movie silent cinema silent drama feature film", 1927, "video", 4722.19, 640, 480),
+    iaDirectRecovery("betsy-ross-1917::Betsy Ross (1917).ia.mp4", "betsy-ross-1917", "Betsy Ross (1917).ia.mp4", "Betsy Ross (1917)", "silent film silent movie silent cinema silent drama feature film", 1917, "video", 3585.85, 640, 480),
+    iaDirectRecovery("stark_love::Stark.Love.1927.WEBDL.1080p.h264.AAC.KJNU.mp4", "stark_love", "Stark.Love.1927.WEBDL.1080p.h264.AAC.KJNU.mp4", "Stark Love (1927)", "silent film silent movie silent cinema silent drama feature film", 1927, "video", 4938.56, 854, 480),
+    iaDirectRecovery("erotikon::Erotikon (1920).mp4", "erotikon", "Erotikon (1920).mp4", "Erotikon (1920)", "silent film silent movie silent cinema silent drama feature film", 1920, "video", 5819.31, 640, 480),
+    iaDirectRecovery("civilization_1916::Civilization (1916).mp4", "civilization_1916", "Civilization (1916).mp4", "Civilization (1916)", "silent film silent movie silent cinema silent drama feature film", 1916, "video", 4633.66, 626, 480),
+    iaDirectRecovery("fragment-of-an-empire-1929::Обломок империи (Fragment of Empire) 1929.mp4", "fragment-of-an-empire-1929", "Обломок империи (Fragment of Empire) 1929.mp4", "Fragment of Empire (1929)", "silent film silent movie silent cinema silent drama feature film", 1929, "video", 6606.43, 854, 480),
+    iaDirectRecovery("The_General_Buster_Keaton::The_General.mp4", "The_General_Buster_Keaton", "The_General.mp4", "The General (1926)", "silent film silent movie silent cinema silent comedy feature film", 1926, "video", 4723.85, 640, 480),
+    iaDirectRecovery("AliceInWonderland1915_503::AliceInWonderland-Silent_512kb.mp4", "AliceInWonderland1915_503", "AliceInWonderland-Silent_512kb.mp4", "Alice in Wonderland (1915)", "silent film silent movie silent cinema silent drama feature film", 1915, "video", 2527.89, 320, 240),
+    iaDirectRecovery("Cleopatra_1912::Cleopatra.mp4", "Cleopatra_1912", "Cleopatra.mp4", "Cleopatra (1912)", "silent film silent movie silent cinema silent drama feature film", 1912, "video", 5231.22, 720, 480),
+    iaDirectRecovery("The_Four_Horsemen_of_the_Apocalypse::fh1_512kb.mp4", "The_Four_Horsemen_of_the_Apocalypse", "fh1_512kb.mp4", "The Four Horsemen of the Apocalypse (1921) · Reel 1", "silent film silent movie silent cinema silent drama feature film", 1921, "video", 2123.08, 360, 240),
+    iaDirectRecovery("The_Four_Horsemen_of_the_Apocalypse::fh2_512kb.mp4", "The_Four_Horsemen_of_the_Apocalypse", "fh2_512kb.mp4", "The Four Horsemen of the Apocalypse (1921) · Reel 2", "silent film silent movie silent cinema silent drama feature film", 1921, "video", 2128.36, 360, 240),
+    iaDirectRecovery("CarmenCBD::Carmen.mp4", "CarmenCBD", "Carmen.mp4", "Carmen (1915)", "silent film silent movie silent cinema silent drama feature film", 1915, "video", 3390.69, 640, 480),
+    iaDirectRecovery("TheCabinetOfDr.Caligari1920FULLMOVIE::The Cabinet of Dr. Caligari (1920) FULL MOVIE.mp4", "TheCabinetOfDr.Caligari1920FULLMOVIE", "The Cabinet of Dr. Caligari (1920) FULL MOVIE.mp4", "The Cabinet of Dr. Caligari (1920)", "silent film silent movie silent cinema silent drama feature film", 1920, "video", 4462.64, 628, 480),
+    iaDirectRecovery("TheChampion::The-Champion-v2.mp4", "TheChampion", "The-Champion-v2.mp4", "The Champion (1915)", "silent film silent movie silent cinema silent comedy feature film", 1915, "video", 1842.17, 640, 480),
+    iaDirectRecovery("TheFlapper1920::The-Flapper-1920.mp4", "TheFlapper1920", "The-Flapper-1920.mp4", "The Flapper (1920)", "silent film silent movie silent cinema silent drama feature film", 1920, "video", 5128.2, 640, 480),
+    iaDirectRecovery("TerrorIsland::TerrorIsland.mp4", "TerrorIsland", "TerrorIsland.mp4", "Terror Island (1920)", "silent film silent movie silent cinema silent drama feature film", 1920, "video", 3248.55, 640, 480),
+    iaDirectRecovery("ThePlayHouse1921::The-Play-House-v2.mp4", "ThePlayHouse1921", "The-Play-House-v2.mp4", "The Play House (1921)", "silent film silent movie silent cinema silent comedy feature film", 1921, "video", 1354.95, 640, 480),
+    iaDirectRecovery("TheBelovedRogue_201312::The Beloved Rogue.mp4", "TheBelovedRogue_201312", "The Beloved Rogue.mp4", "The Beloved Rogue (1927)", "silent film silent movie silent cinema silent drama feature film", 1927, "video", 5885.99, 640, 480),
+    iaDirectRecovery("ThePhantomCarriage_201405::ThePhantomCarriage1921.mp4", "ThePhantomCarriage_201405", "ThePhantomCarriage1921.mp4", "The Phantom Carriage (1921)", "silent film silent movie silent cinema silent drama feature film", 1921, "video", 6342.66, 640, 480),
+    iaDirectRecovery("TheLittleAmerican::The Little American.mp4", "TheLittleAmerican", "The Little American.mp4", "The Little American (1917)", "silent film silent movie silent cinema silent drama feature film", 1917, "video", 3727.19, 640, 480),
+    iaDirectRecovery("RomanceOfTheRedwoods::Romance of The Redwoods.mp4", "RomanceOfTheRedwoods", "Romance of The Redwoods.mp4", "Romance of the Redwoods (1917)", "silent film silent movie silent cinema silent drama feature film", 1917, "video", 5469.17, 640, 480),
+    iaDirectRecovery("ForTheTermOfHisNaturalLife::ForTheTermOfHisNaturalLife.mp4", "ForTheTermOfHisNaturalLife", "ForTheTermOfHisNaturalLife.mp4", "For the Term of His Natural Life (1927)", "silent film silent movie silent cinema silent drama feature film", 1927, "video", 5681.67, 553, 404),
+    iaDirectRecovery("INTOLERANCE_201407::Intolerance-v2.mp4", "INTOLERANCE_201407", "Intolerance-v2.mp4", "Intolerance (1916)", "silent film silent movie silent cinema silent drama feature film", 1916, "video", 11822.11, 640, 480),
+  ],
+  "128": [
+    iaDirectRecovery("brief_city_TNA::brief_city_TNA_512kb.mp4", "brief_city_TNA", "brief_city_TNA_512kb.mp4", "A Brief City (British Festival Film)", "britain on film british travel film british industrial film british documentary", 1951, "video", 1124, 320, 240),
+    iaDirectRecovery("wonder_jet_TNA::wonder_jet_TNA_512kb.mp4", "wonder_jet_TNA", "wonder_jet_TNA_512kb.mp4", "Wonder Jet (British Aviation Film)", "britain on film british travel film british industrial film british documentary", 1950, "video", 1154, 320, 240),
+    iaDirectRecovery("shown_by_request_TNA::shown_by_request_TNA_512kb.mp4", "shown_by_request_TNA", "shown_by_request_TNA_512kb.mp4", "Shown by Request (British Film)", "britain on film british travel film british industrial film british documentary", 1950, "video", 1094.96, 320, 240),
+    iaDirectRecovery("motionpicture0081::motionpicture0081.mp4", "motionpicture0081", "motionpicture0081.mp4", "World in Action · British Documentary", "britain on film british newsreel british documentary british industrial film", 1960, "video", 1703.19, 640, 480),
+    iaDirectRecovery("whywefightthebattleofbritain::whywefightthebattleofbritain/whywefightthebattleofbritainreel1.mp4", "whywefightthebattleofbritain", "whywefightthebattleofbritain/whywefightthebattleofbritainreel1.mp4", "Why We Fight · The Battle of Britain · Reel 1", "britain on film british documentary british industrial film british travel film", 1943, "video", 1624.69, 640, 360),
+    iaDirectRecovery("whywefightthebattleofbritain::whywefightthebattleofbritain/whywefightthebattleofbritainreel2.mp4", "whywefightthebattleofbritain", "whywefightthebattleofbritain/whywefightthebattleofbritainreel2.mp4", "Why We Fight · The Battle of Britain · Reel 2", "britain on film british documentary british industrial film british travel film", 1943, "video", 1566.94, 640, 360),
+    iaDirectRecovery("medievalvillage::medievalvillage.mp4", "medievalvillage", "medievalvillage.mp4", "Medieval Village (British History Film)", "britain on film british documentary british travel film british industrial film", 1950, "video", 1132.02, 640, 360),
+    iaDirectRecovery("rebecca-1940-film-noir-thirller-hitchcock::Rebecca (1940 Film Noir, Thirller, Hitchcock).mp4", "rebecca-1940-film-noir-thirller-hitchcock", "Rebecca (1940 Film Noir, Thirller, Hitchcock).mp4", "Rebecca (1940)", "britain on film british documentary british travel film british industrial film", 1940, "video", 7841.91, 494, 360),
+    iaDirectRecovery("themysteryofstonehenge::themysteryofstonehenge/themysteryofstonehengereel1.mp4", "themysteryofstonehenge", "themysteryofstonehenge/themysteryofstonehengereel1.mp4", "The Mystery of Stonehenge · Reel 1", "britain on film british documentary british travel film british industrial film", 1950, "video", 1441.52, 640, 360),
+    iaDirectRecovery("themysteryofstonehenge::themysteryofstonehenge/themysteryofstonehengereel2.mp4", "themysteryofstonehenge", "themysteryofstonehenge/themysteryofstonehengereel2.mp4", "The Mystery of Stonehenge · Reel 2", "britain on film british documentary british travel film british industrial film", 1950, "video", 1946.73, 640, 360),
+  ],
+  "217": [
+    iaDirectRecovery("thesea_202602::thesea.mp4", "thesea_202602", "thesea.mp4", "The Sea (Educational Film)", "filmstrip classroom film educational film narrated filmstrip natural science", 1950, "video", 1618.27, 640, 360),
+    iaDirectRecovery("ordealofwoodrowwilson_202602::ordealofwoodrowwilson.mp4", "ordealofwoodrowwilson_202602", "ordealofwoodrowwilson.mp4", "The Ordeal of Woodrow Wilson (Educational Film)", "filmstrip classroom film educational film narrated filmstrip history film", 1950, "video", 1513.4, 640, 360),
+    iaDirectRecovery("FamilyFalloutShelters--CivilDefenseHomePreparednessWorkshopFilmstrip2::civil_defense_family_fallout_shelters_200kb.mp4", "FamilyFalloutShelters--CivilDefenseHomePreparednessWorkshopFilmstrip2", "civil_defense_family_fallout_shelters_200kb.mp4", "Family Fallout Shelters · Filmstrip 2", "filmstrip classroom film educational film narrated filmstrip civil defense", 1960, "video", 1063.2, 655, 480),
+    iaDirectRecovery("FamilyAction--CivilDefenseHomePreparednessWorkshopFilmstrip5Of5::civil_defense_family_action_200kb.mp4", "FamilyAction--CivilDefenseHomePreparednessWorkshopFilmstrip5Of5", "civil_defense_family_action_200kb.mp4", "Family Action · Civil Defense Filmstrip 5", "filmstrip classroom film educational film narrated filmstrip civil defense", 1960, "video", 969.4, 655, 480),
+    iaDirectRecovery("S.S.KresgeTraining-StopShrinkage::SS1080p.mp4", "S.S.KresgeTraining-StopShrinkage", "SS1080p.mp4", "S. S. Kresge Training · Stop Shrinkage", "filmstrip classroom film educational film instructional film retail training film", 1965, "video", 1207.04, 1920, 1080),
+    iaDirectRecovery("OurTotemIsTheRaven::our_totem_is_the_raven_1972.mp4", "OurTotemIsTheRaven", "our_totem_is_the_raven_1972.mp4", "Our Totem Is the Raven", "classroom film educational film natural science filmstrip archive", 1971, "video", 1287.79, 640, 480),
+  ],
+  "233": [
+    iaDirectRecovery("NationalGeographicTheSharks::National.Geographic.Specials.S18E01.The.Sharks.1982.FMG.WEB-DL.AAC2.0.H.264-rattera.mp4", "NationalGeographicTheSharks", "National.Geographic.Specials.S18E01.The.Sharks.1982.FMG.WEB-DL.AAC2.0.H.264-rattera.mp4", "The Sharks (1982)", "animal behavior wildlife documentary zoology nature television", 1982, "video", 3446.98, 640, 480),
+    iaDirectRecovery("NatureWisdomoftheWild::Nature.S18E05.Wisdom.of.the.Wild.1999.VHSRip.AAC2.0.x264-rattera.mp4", "NatureWisdomoftheWild", "Nature.S18E05.Wisdom.of.the.Wild.1999.VHSRip.AAC2.0.x264-rattera.mp4", "Wisdom of the Wild (1999)", "animal behavior wildlife documentary zoology nature television", 1999, "video", 3409.67, 640, 480),
+    iaDirectRecovery("AnimalsBehavingWorse::Nature.S24E09.Animals.Behaving.Worse.2006.DVDRip.AAC2.0.x264-astro.mp4", "AnimalsBehavingWorse", "Nature.S24E09.Animals.Behaving.Worse.2006.DVDRip.AAC2.0.x264-astro.mp4", "Animals Behaving Worse (2006)", "animal behavior wildlife documentary zoology nature television", 2006, "video", 3412.06, 661, 372),
+    iaDirectRecovery("WhalesDolphinsMen::Horizon.S08E21.Whales.Dolphins.and.Men.1972.VHSrip.x264.AAC-rattera2.mp4", "WhalesDolphinsMen", "Horizon.S08E21.Whales.Dolphins.and.Men.1972.VHSrip.x264.AAC-rattera2.mp4", "Whales, Dolphins, and Men (1972)", "animal behavior wildlife documentary zoology nature television", 1972, "video", 3135.02, 640, 480),
+    iaDirectRecovery("SecretWeapons::Nature.S02E05.Secret.Weapons.1983.VHSRip.AAC2.0.x264-rattera.mp4", "SecretWeapons", "Nature.S02E05.Secret.Weapons.1983.VHSRip.AAC2.0.x264-rattera.mp4", "Secret Weapons (1983)", "animal behavior wildlife documentary zoology nature television", 1983, "video", 3359.94, 640, 480),
+    iaDirectRecovery("AnimalsBehavingBadly::Nature.S20E11.Animals.Behaving.Badly.2001.DVDRip.DD2.0.x264-astro.mp4", "AnimalsBehavingBadly", "Nature.S20E11.Animals.Behaving.Badly.2001.DVDRip.DD2.0.x264-astro.mp4", "Animals Behaving Badly (2001)", "animal behavior wildlife documentary zoology nature television", 2001, "video", 3242.04, 672, 420),
+    iaDirectRecovery("ThePrivateLivesofDolphins::NOVA.S19E17.The.Private.Lives.of.Dolphins.1992.DVDRip.DD2.0.x264-astro.mp4", "ThePrivateLivesofDolphins", "NOVA.S19E17.The.Private.Lives.of.Dolphins.1992.DVDRip.DD2.0.x264-astro.mp4", "The Private Lives of Dolphins (1992)", "animal behavior wildlife documentary zoology nature television", 1992, "video", 3341.78, 633, 474),
+    iaDirectRecovery("ThroughAnimalEyes::Nature.S03E16.Through.Animal.Eyes.1985.VHSRip.AAC2.0.x264-rattera.mp4", "ThroughAnimalEyes", "Nature.S03E16.Through.Animal.Eyes.1985.VHSRip.AAC2.0.x264-rattera.mp4", "Through Animal Eyes (1985)", "animal behavior wildlife documentary zoology nature television", 1985, "video", 3472.47, 640, 480),
+    iaDirectRecovery("pets-emergency-first-aid-cats::Pets Emergency First Aid Cats.mp4", "pets-emergency-first-aid-cats", "Pets Emergency First Aid Cats.mp4", "Pets Emergency First Aid · Cats", "pet care veterinary animal companion animal behavior documentary", 1998, "video", 2176.2, 640, 480),
+    iaDirectRecovery("gentle-doctor-exotic-animal-medicine::Gentle Doctor - Exotic Animal Medicine.mp4", "gentle-doctor-exotic-animal-medicine", "Gentle Doctor - Exotic Animal Medicine.mp4", "The Gentle Doctor · Exotic Animal Medicine", "veterinary pet care animal companion animal behavior documentary", 2000, "video", 1577.49, 720, 480),
+    iaDirectRecovery("FeedingLyssomanesviridis::Feeding_Lyssomanes_viridis_MPEG4V3_512kb.mp4", "FeedingLyssomanesviridis", "Feeding_Lyssomanes_viridis_MPEG4V3_512kb.mp4", "Feeding Lyssomanes viridis", "animal behavior wildlife documentary zoology nature television", 2008, "video", 3685.05, 320, 240),
+    iaDirectRecovery("AnimalsOfTheArctic::AnimalsOfTheArctic.mp4", "AnimalsOfTheArctic", "AnimalsOfTheArctic.mp4", "Animals of the Arctic", "animal behavior wildlife documentary zoology nature television", 2000, "video", 963.14, 640, 480),
+  ],
+  "241": [
+    iaDirectRecovery("DetroitC1965::DetroitC1965.mp4", "DetroitC1965", "DetroitC1965.mp4", "Detroit: City on the Move", "civic film city planning public affairs community development", 1965, "video", 1092.33, 640, 480),
+    iaDirectRecovery("Communit1959::Communit1959.mp4", "Communit1959", "Communit1959.mp4", "Community Growth: Crisis and Challenge", "civic film community development public affairs city planning", 1959, "video", 962.06, 640, 480),
+    iaDirectRecovery("Housingi1943::Housingi1943.mp4", "Housingi1943", "Housingi1943.mp4", "Housing in Chile: One Government's Plan", "civic film public housing public service municipal government", 1943, "video", 1091.66, 640, 480),
+    iaDirectRecovery("changing_city::changing_city.mp4", "changing_city", "changing_city.mp4", "Changing City", "civic film city planning public affairs community development", 0, "video", 965.18, 640, 480),
+    iaDirectRecovery("community_health_in_action::community_health_in_action.mp4", "community_health_in_action", "community_health_in_action.mp4", "Community Health in Action", "civic film public service community development municipal services", 0, "video", 1344.72, 640, 480),
+    iaDirectRecovery("StoryOfACity::StoryOfACity.mp4", "StoryOfACity", "StoryOfACity.mp4", "Story of a City: New York", "civic film city planning public affairs public service", 1946, "video", 1146.62, 640, 480),
+    iaDirectRecovery("6316_Form_Design_and_the_City_01_01_12_00::6316_Form_Design_and_the_City_01_01_12_00_3mb.mp4", "6316_Form_Design_and_the_City_01_01_12_00", "6316_Form_Design_and_the_City_01_01_12_00_3mb.mp4", "Form, Design and the City", "civic film city planning urban planning public works", 1962, "video", 1760.06, 640, 480),
+    iaDirectRecovery("0776_Urban_Sprawl_03_23_44_00::0776_Urban_Sprawl_03_23_44_00.mp4", "0776_Urban_Sprawl_03_23_44_00", "0776_Urban_Sprawl_03_23_44_00.mp4", "Urban Sprawl", "civic film city planning urban planning public works", 1960, "video", 908.01, 640, 480),
+    iaDirectRecovery("City_Within_a_City_A::0816_City_Within_a_City_A_04_02_15_00_3mb.mp4", "City_Within_a_City_A", "0816_City_Within_a_City_A_04_02_15_00_3mb.mp4", "A City Within a City", "civic film city planning urban planning community development", 1964, "video", 1300.2, 640, 480),
+    iaDirectRecovery("0545_City_The::0545_City_The_22_00_58_19_3mb.mp4", "0545_City_The", "0545_City_The_22_00_58_19_3mb.mp4", "The City", "civic film city planning public affairs community development", 1939, "video", 1926.15, 640, 480),
   ],
 });
 /* v4 promotion gate: only families that passed the full multi-rotation soak

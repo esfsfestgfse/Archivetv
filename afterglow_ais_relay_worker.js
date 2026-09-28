@@ -90,7 +90,7 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
    warmup back onto the channel-change path. */
 const IA_STRICT_CATALOG_CANDIDATE_MAX = 128;
 const IA_CATALOG_CANDIDATE_MAX = 96;
-const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v46-full-window-rails";
+const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v47-direct-window-freshness";
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
@@ -102,10 +102,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v46-full-
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v203";
+const IA_QUEUE_CACHE_VERSION = "v204";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v203";
+const IA_LAST_GOOD_CACHE_VERSION = "v204";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -185,6 +185,12 @@ const IA_GLOBAL_VIDEO_POLICY_VERSION = "v1";
    This is a bounded ordering change only: discovery, hydration, and editorial
    gates remain unchanged, while a channel advances by one public shelf. */
 const IA_FULL_WINDOW_ROTATION_CHANNELS = new Set(["2", "14", "53", "55", "56", "59", "60", "61", "64", "74", "76", "78", "79", "82", "100", "101", "103", "107", "108", "113", "120", "121", "123", "128", "134", "210", "215", "217", "225", "233", "234", "235", "241", "511", "701", "906", "910", "917", "918", "919", "921", "928", "707", "708", "709"]);
+/* Three repaired long-tail lanes proved that their durable warm shelf could
+   still outrank a deeper direct bank on later skips. For these lanes, every
+   non-opening rotation must use the lane-owned verified window first; Archive
+   expansion continues behind it, but a shared five-item shelf can no longer
+   masquerade as fresh programming. */
+const IA_DIRECT_FRESHNESS_RAIL_CHANNELS = new Set(["113", "123", "917"]);
 /* A short per-isolate burst cache absorbs repeat requests from a TV, phone,
    and guide opened in quick succession. It is intentionally tiny and
    short-lived: Cache API/KV remain the durable shelves, while this map only
@@ -3395,6 +3401,11 @@ const IA_LONG_TAIL_EXPANSIONS_EXTRA = Object.freeze({
     iaDirectRecovery("the-chinese-detective-1981-s-01-e-03::The Chinese Detective 1982 S02E02.mp4", "the-chinese-detective-1981-s-01-e-03", "The Chinese Detective 1982 S02E02.mp4", "The Chinese Detective — Season 2 Episode 2", "british television british tv bbc television british police drama television series", 1982, "video", 2988.07, 640, 480),
     iaDirectRecovery("play-of-the-month-mrs.-warrens-profession-1974::Play of the Month - Mrs. Warren's Profession (1974).mp4", "play-of-the-month-mrs.-warrens-profession-1974", "Play of the Month - Mrs. Warren's Profession (1974).mp4", "Play of the Month — Mrs. Warren's Profession", "british television british tv bbc television television play british drama", 1974, "video", 6564.14, 482, 360),
     iaDirectRecovery("the-professionals-foxhole-on-the-roof::The Professionals foxhole on the roof.mp4", "the-professionals-foxhole-on-the-roof", "The Professionals foxhole on the roof.mp4", "The Professionals — Foxhole on the Roof", "british television british tv itv television british action television series", 1978, "video", 3006.57, 960, 720),
+    iaDirectRecovery("eleanor-play-for-today-1974::Eleanor (Play for Today) 1974.mp4", "eleanor-play-for-today-1974", "Eleanor (Play for Today) 1974.mp4", "Play for Today — Eleanor", "british television british tv bbc television television play british drama", 1974, "video", 3409.27, 368, 288),
+    iaDirectRecovery("gangsters-pilot-1975-play-for-today::GANGSTERS PILOT 1975 (PLAY FOR TODAY).mp4", "gangsters-pilot-1975-play-for-today", "GANGSTERS PILOT 1975 (PLAY FOR TODAY).mp4", "Play for Today — Gangsters Pilot", "british television british tv bbc television television play british drama crime television series", 1975, "video", 6681.48, 576, 416),
+    iaDirectRecovery("dear-brutus-play-for-today-1981::Dear Brutus (Play for Today - 1981).mp4", "dear-brutus-play-for-today-1981", "Dear Brutus (Play for Today - 1981).mp4", "Play for Today — Dear Brutus", "british television british tv bbc television television play british drama", 1981, "video", 4791.27, 372, 286),
+    iaDirectRecovery("play-for-today-ploughmans-share-1979::Play for Today - Ploughman's Share (1979).mp4", "play-for-today-ploughmans-share-1979", "Play for Today - Ploughman's Share (1979).mp4", "Play for Today — Ploughman's Share", "british television british tv bbc television television play british drama", 1979, "video", 4415.28, 480, 360),
+    iaDirectRecovery("play-for-today-the-happy-hunting-ground::(Play for Today )- The Happy Hunting Ground.mp4", "play-for-today-the-happy-hunting-ground", "(Play for Today )- The Happy Hunting Ground.mp4", "Play for Today — The Happy Hunting Ground", "british television british tv bbc television television play british drama", 1970, "video", 4293.04, 632, 360),
   ],
   /* Metal (ch 917) is an audio station. The previous bank had only four
      playable records because one album parent had no file URL. Add distinct
@@ -7048,6 +7059,33 @@ async function getIaQueue(request, url, env, ctx) {
         "X-Afterglow-Source": "program-director-strict-recovery",
         "X-Afterglow-Queue-Ready": String(freshStrict.payload.ready),
         "X-Afterglow-Queue-Strict": "1",
+      });
+    }
+  }
+  /* These three lanes have a verified, lane-owned bank large enough to serve
+     a complete non-opening window without touching the shared warm shelf.
+     Keep the opening request on the normal fast path, then make every later
+     rotation deterministic and fresh from the direct bank. The deeper Archive
+     harvest is still scheduled below this response and can enlarge the bank
+     without ever blocking a channel change. */
+  if (IA_DIRECT_FRESHNESS_RAIL_CHANNELS.has(channel) && rotation > 0) {
+    const directWindow = strictRecoveryQueue(channel, rotation, count, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, minRuntimeSeconds);
+    if (directWindow.ready >= count) {
+      const directCandidateCount = iaCatalogCandidateBudget(themeMinScore, count);
+      scheduleIaExpansion(
+        { ...directWindow, lastGoodKey },
+        iaBackgroundReserveQueries(channel, queries, true),
+        iaBackgroundFallbackQueries(channel, iaFallbackQueries(themeTerms, denyTerms, requiredTitleTerms, mediaTypes), true),
+        channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity,
+        count, directCandidateCount, url.origin, cacheKey, sharedKey, env, ctx, rotation, true
+      );
+      const freshDirect = applyIaFreshness({ ...directWindow, directFreshnessRail: true }, freshnessLedger, count);
+      rememberIaFreshness(env, channel, freshDirect.issued, ctx);
+      return cacheableJson(freshDirect.payload, 30, {
+        "X-Afterglow-Source": "program-director-direct-window",
+        "X-Afterglow-Queue-Ready": String(freshDirect.payload.ready || freshDirect.payload.items.length),
+        "X-Afterglow-Queue-Deep": String(freshDirect.payload.candidates || freshDirect.payload.candidateItems.length),
+        "X-Afterglow-Queue-Freshness-Rail": "1",
       });
     }
   }

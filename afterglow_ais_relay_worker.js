@@ -102,10 +102,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v42-catal
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v191";
+const IA_QUEUE_CACHE_VERSION = "v192";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v191";
+const IA_LAST_GOOD_CACHE_VERSION = "v192";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -2512,7 +2512,7 @@ const IA_LONG_TAIL_EXPANSIONS_EXTRA = Object.freeze({
      These banks are intentionally family-balanced and remain behind the
      normal theme, deny, runtime, media, and freshness gates. They widen the
      catalog without making the first tune wait for every Archive manifest. */
-  /* v4.1.129 broad-soak repair: Roller Derby & Wrestling was falling back to
+  /* v4.1.130 broad-soak repair: Roller Derby & Wrestling was falling back to
      a five-item wrestling shelf. Seed it with two genuine roller-derby
      broadcasts plus long-form WCE/NJPW collection files. The collection
      parents remain expansion anchors; the individual files are the instant
@@ -2560,6 +2560,20 @@ const IA_LONG_TAIL_EXPANSIONS_EXTRA = Object.freeze({
     iaDirectRecovery("TheMostDangerousGame::TheMostDangerousGame.mp4", "TheMostDangerousGame", "TheMostDangerousGame.mp4", "The Most Dangerous Game (1932)", "horror film classic horror thriller feature film", 1932, "video", 3753),
     iaDirectRecovery("Horror_Hotel::Horror_Hotel.mp4", "Horror_Hotel", "Horror_Hotel.mp4", "Horror Hotel (1960)", "horror film classic horror gothic horror feature film", 1960, "video", 4554),
     iaDirectRecovery("TheGhostTrain::TheGhostTrain.mp4", "TheGhostTrain", "TheGhostTrain.mp4", "The Ghost Train (1941)", "horror film classic horror haunted house feature film", 1941, "video", 4882),
+    iaDirectRecovery("Grave_of_the_Vampire_movie::Grave-of-the-Vampire.mp4", "Grave_of_the_Vampire_movie", "Grave-of-the-Vampire.mp4", "Grave of the Vampire (1972)", "horror film classic horror vampire film feature film", 1972, "video", 5380),
+    iaDirectRecovery("Nosferatu_most_complete_version_93_mins.::Nosferatu_1922_Symphony_of_Horror_512kb.mp4", "Nosferatu_most_complete_version_93_mins.", "Nosferatu_1922_Symphony_of_Horror_512kb.mp4", "Nosferatu (1922)", "horror film silent horror vampire film classic horror feature film", 1922, "video", 5601),
+    iaDirectRecovery("AtomAgeVampire::AtomAgeVampire.mp4", "AtomAgeVampire", "AtomAgeVampire.mp4", "Atom Age Vampire (1960)", "horror film classic horror vampire film feature film", 1960, "video", 5172),
+    iaDirectRecovery("CreatureFromTheHauntedSea::CreatureFromTheHauntedSea.mp4", "CreatureFromTheHauntedSea", "CreatureFromTheHauntedSea.mp4", "Creature from the Haunted Sea (1961)", "horror film classic horror monster movie feature film", 1961, "video", 4473),
+    iaDirectRecovery("Werewolf_In_A_Girls_Dormitory::Werewolf_In_A_Girls_Dormitory.mp4", "Werewolf_In_A_Girls_Dormitory", "Werewolf_In_A_Girls_Dormitory.mp4", "Werewolf in a Girls' Dormitory (1962)", "horror film classic horror werewolf film feature film", 1962, "video", 4989),
+    iaDirectRecovery("the_ghost_walks::the_ghost_walks.mp4", "the_ghost_walks", "the_ghost_walks.mp4", "The Ghost Walks (1934)", "horror film classic horror haunted house feature film", 1934, "video", 3806),
+    iaDirectRecovery("TheVampireBat::TheVampireBat.mp4", "TheVampireBat", "TheVampireBat.mp4", "The Vampire Bat (1933)", "horror film classic horror vampire film feature film", 1933, "video", 3582),
+    iaDirectRecovery("mad_monster::mad_monster.mp4", "mad_monster", "mad_monster.mp4", "The Mad Monster (1942)", "horror film classic horror monster movie feature film", 1942, "video", 4597),
+    iaDirectRecovery("monster_maker_ipod::the_monster_maker.mp4", "monster_maker_ipod", "the_monster_maker.mp4", "The Monster Maker (1944)", "horror film classic horror monster movie feature film", 1944, "video", 3736),
+    iaDirectRecovery("InvisibleGhost1941::Invisible-Ghost.mp4", "InvisibleGhost1941", "Invisible-Ghost.mp4", "Invisible Ghost (1941)", "horror film classic horror supernatural horror feature film", 1941, "video", 3928),
+    iaDirectRecovery("abbott-and-costello-meet-frankenstein::Abbott and Costello Meet Frankenstein.mp4", "abbott-and-costello-meet-frankenstein", "Abbott and Costello Meet Frankenstein.mp4", "Abbott and Costello Meet Frankenstein (1948)", "horror film classic horror monster movie comedy horror feature film", 1948, "video", 4967),
+    iaDirectRecovery("bride-of-frankenstein-1935-restored-movie-720p-hd::bride of frankenstein-1935-restored movie-720p-hd.mp4", "bride-of-frankenstein-1935-restored-movie-720p-hd", "bride of frankenstein-1935-restored movie-720p-hd.mp4", "Bride of Frankenstein (1935)", "horror film classic horror monster movie feature film", 1935, "video", 4308),
+    iaDirectRecovery("TheThingFromAnotherWorldHorrorSciFi1951JamesArnessKennethTobeyMargaretSheridan::The Thing From Another World  (Horror Sci-Fi 1951)  James Arness, Kenneth Tobey & Margaret Sheridan.mp4", "TheThingFromAnotherWorldHorrorSciFi1951JamesArnessKennethTobeyMargaretSheridan", "The Thing From Another World  (Horror Sci-Fi 1951)  James Arness, Kenneth Tobey & Margaret Sheridan.mp4", "The Thing from Another World (1951)", "horror film science fiction horror classic horror monster movie feature film", 1951, "video", 5190),
+    iaDirectRecovery("TheGiantGilaMonster::The_Giant_Gila_Monster.mp4", "TheGiantGilaMonster", "The_Giant_Gila_Monster.mp4", "The Giant Gila Monster (1959)", "horror film classic horror monster movie creature feature feature film", 1959, "video", 4423),
   ],
   /* v4.1.51 serial certification: Diamond Time's broad search rails were
      still timing out, so seed it with verified full-game baseball files. The

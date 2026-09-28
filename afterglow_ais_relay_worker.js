@@ -90,7 +90,7 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
    warmup back onto the channel-change path. */
 const IA_STRICT_CATALOG_CANDIDATE_MAX = 128;
 const IA_CATALOG_CANDIDATE_MAX = 96;
-const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v67-weak-lane-first";
+const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v70-ia-recovery-admission";
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
@@ -103,10 +103,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v67-weak-
    episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v224";
+const IA_QUEUE_CACHE_VERSION = "v227";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v224";
+const IA_LAST_GOOD_CACHE_VERSION = "v227";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -3975,7 +3975,6 @@ const IA_UNDERFILL_DEPTH_BANKS = Object.freeze({
     iaDirectRecovery("Xcorps47BIGAIRhd2::Xcorps47BIGAIRhd2.mov", "Xcorps47BIGAIRhd2", "Xcorps47BIGAIRhd2.mov", "Xcorps Action Sports 47: Big Air", "action sports extreme sports skateboarding surfing snowboarding bmx motorsports outdoor television", 2009, "video", 1324.99, 1280, 720),
   ],
   "81": [
-    iaDirectRecovery("corvmi-Fishing_Derby_and_Cardboard_boat_race_2016::Fishing_Derby_and_Cardboard_boat_race_2016.mp4", "corvmi-Fishing_Derby_and_Cardboard_boat_race_2016", "Fishing_Derby_and_Cardboard_boat_race_2016.mp4", "Fishing Derby and Cardboard Boat Race (2016)", "fishing angling sport fishing outdoor recreation television", 2016, "video", 1437.83, 480, 360),
     iaDirectRecovery("daiwa-fishing-video-fun-to-fish-with-lure_202506::DAIWA FISHING VIDEO Fun to fish with Lure ブラックバス用 ベイト タックル編.ia.mp4", "daiwa-fishing-video-fun-to-fish-with-lure_202506", "DAIWA FISHING VIDEO Fun to fish with Lure ブラックバス用 ベイト タックル編.ia.mp4", "Daiwa Fishing: Fun to Fish with Lure", "fishing angling bass fishing lure fishing fly fishing outdoor recreation television", 1993, "video", 1576.4, 960, 720),
     iaDirectRecovery("wfktvme-Long_Lake_Ice_Fishing_Derby_2018::Long_Lake_Ice_Fishing_Derby_2018.mp4", "wfktvme-Long_Lake_Ice_Fishing_Derby_2018", "Long_Lake_Ice_Fishing_Derby_2018.mp4", "Long Lake Ice Fishing Derby (2018)", "fishing angling ice fishing outdoor recreation television", 2018, "video", 1225.53, 640, 360),
     iaDirectRecovery("Winter_Outdoors_and_Fishing_2-27-17::Winter_Outdoors_and_Fishing_2-27-17.mp4", "Winter_Outdoors_and_Fishing_2-27-17", "Winter_Outdoors_and_Fishing_2-27-17.mp4", "Winter Outdoors and Fishing", "fishing angling outdoor recreation sport fishing television", 2017, "video", 1482.66, 640, 480),
@@ -4264,7 +4263,115 @@ const IA_DEPTH_EXPANSION_OVERLAYS = Object.freeze({
     iaDirectRecovery("victor-17826-a-if-war-is-what-sherman-said-it-was::Victor 17826A - If War is What Sherman Said it Was - 3.0 CT 630N-16 EQ.flac", "victor-17826-a-if-war-is-what-sherman-said-it-was", "Victor 17826A - If War is What Sherman Said it Was - 3.0 CT 630N-16 EQ.flac", "Billy Murray · If War Is What Sherman Said It Was", "78rpm acoustic recording wax cylinder early 20th century billy murray", 1915, "audio", 174.99),
   ],
 });
+/* v4.1.164 verified Archive family rails. These are deliberately separate
+   from the emergency bank: every record below came from a live Archive file
+   manifest, uses a concrete file path, and is retained only when it is a real
+   program/episode/track rather than a parent placeholder or an alternate
+   encode. This is the depth layer that makes a station feel like television:
+   many families, many eras, and enough unseen files to survive repeated skips. */
+const IA_DEEP_ARCHIVE_FAMILY_OVERLAYS = Object.freeze({
+  "81": [
+    iaDirectRecovery("vts-01-1_20231104::Adventure Bound/Adventure Bound S10 ep 1-6/Disk 1/VIDEO_TS/VTS_01_1.mp4", "vts-01-1_20231104", "Adventure Bound/Adventure Bound S10 ep 1-6/Disk 1/VIDEO_TS/VTS_01_1.mp4", "Adventure Bound · Season 10 Episode 1", "fishing angling sport fishing outdoor recreation television series", 2010, "video", 1326.68, 854, 480),
+    iaDirectRecovery("vts-01-1_20231104::Adventure Bound/Adventure Bound S10 ep 1-6/Disk 1/VIDEO_TS/VTS_02_1.mp4", "vts-01-1_20231104", "Adventure Bound/Adventure Bound S10 ep 1-6/Disk 1/VIDEO_TS/VTS_02_1.mp4", "Adventure Bound · Season 10 Episode 2", "fishing angling sport fishing outdoor recreation television series", 2010, "video", 1326.64, 854, 480),
+    iaDirectRecovery("vts-01-1_20231104::Adventure Bound/Adventure Bound S10 ep 1-6/Disk 1/VIDEO_TS/VTS_03_1.mp4", "vts-01-1_20231104", "Adventure Bound/Adventure Bound S10 ep 1-6/Disk 1/VIDEO_TS/VTS_03_1.mp4", "Adventure Bound · Season 10 Episode 3", "fishing angling sport fishing outdoor recreation television series", 2010, "video", 1327.2, 854, 480),
+    iaDirectRecovery("vts-01-1_20231104::Adventure Bound/Adventure Bound S13 ep 1-6/Disk 1/VIDEO_TS/VTS_01_1.mp4", "vts-01-1_20231104", "Adventure Bound/Adventure Bound S13 ep 1-6/Disk 1/VIDEO_TS/VTS_01_1.mp4", "Adventure Bound · Season 13 Episode 1", "fishing angling sport fishing outdoor recreation television series", 2013, "video", 1327.44, 854, 480),
+    iaDirectRecovery("vts-01-1_20231104::Adventure Bound/Adventure Bound S13 ep 7-12/Disk 2/VIDEO_TS/VTS_03_1.mp4", "vts-01-1_20231104", "Adventure Bound/Adventure Bound S13 ep 7-12/Disk 2/VIDEO_TS/VTS_03_1.mp4", "Adventure Bound · Season 13 Episode 9", "fishing angling sport fishing outdoor recreation television series", 2013, "video", 1326.32, 854, 480),
+    iaDirectRecovery("vts-01-1_20231104::Adventure Bound/Adventure Bound S2 ep 7-12/Disc 1/VIDEO_TS/VTS_02_1.mp4", "vts-01-1_20231104", "Adventure Bound/Adventure Bound S2 ep 7-12/Disc 1/VIDEO_TS/VTS_02_1.mp4", "Adventure Bound · Season 2 Episode 8", "fishing angling sport fishing outdoor recreation television series", 2002, "video", 1328.2, 854, 480),
+    iaDirectRecovery("vts-01-1_20231104::Adventure Bound/Adventure Bound S4 ep 1-6/Disk 1/VIDEO_TS/VTS_02_1.mp4", "vts-01-1_20231104", "Adventure Bound/Adventure Bound S4 ep 1-6/Disk 1/VIDEO_TS/VTS_02_1.mp4", "Adventure Bound · Season 4 Episode 2", "fishing angling sport fishing outdoor recreation television series", 2004, "video", 1328.52, 854, 480),
+    iaDirectRecovery("vts-01-1_20231104::Adventure Bound/Adventure Bound S7 ep 7-12/Disk 1/VIDEO_TS/VTS_03_1.mp4", "vts-01-1_20231104", "Adventure Bound/Adventure Bound S7 ep 7-12/Disk 1/VIDEO_TS/VTS_03_1.mp4", "Adventure Bound · Season 7 Episode 9", "fishing angling sport fishing outdoor recreation television series", 2007, "video", 1329.04, 854, 480),
+    iaDirectRecovery("AlaskaFishingDocumentaries::CenturiesOfFishSeattlesDynamicDistantWaterFishingFleet.mp4", "AlaskaFishingDocumentaries", "CenturiesOfFishSeattlesDynamicDistantWaterFishingFleet.mp4", "Alaska Fishing · Seattle's Distant Water Fleet", "fishing angling commercial fishing salmon alaska outdoor documentary television", 2010, "video", 2815.42, 540, 360),
+    iaDirectRecovery("AlaskaFishingDocumentaries::FishingForTheFuturefullVersion.mp4", "AlaskaFishingDocumentaries", "FishingForTheFuturefullVersion.mp4", "Alaska Fishing · Fishing for the Future", "fishing angling commercial fishing salmon alaska outdoor documentary television", 2010, "video", 1699.28, 540, 360),
+    iaDirectRecovery("AlaskaFishingDocumentaries::NeetsBay_AnAlaskaSalmonRanch.mp4", "AlaskaFishingDocumentaries", "NeetsBay_AnAlaskaSalmonRanch.mp4", "Alaska Fishing · Neets Bay Salmon Ranch", "fishing angling salmon alaska outdoor documentary television", 2010, "video", 1603.78, 480, 360),
+    iaDirectRecovery("AlaskaFishingDocumentaries::PetersburgTheTownThatFishBuilt.mp4", "AlaskaFishingDocumentaries", "PetersburgTheTownThatFishBuilt.mp4", "Alaska Fishing · Petersburg: The Town That Fish Built", "fishing angling commercial fishing salmon alaska outdoor documentary television", 2010, "video", 1790.46, 540, 360),
+    iaDirectRecovery("AlaskaFishingDocumentaries::SockeyeAndTheAgeOfSail_TheStoryOfTheAlaskaPackersAssociation.mp4", "AlaskaFishingDocumentaries", "SockeyeAndTheAgeOfSail_TheStoryOfTheAlaskaPackersAssociation.mp4", "Alaska Fishing · Sockeye and the Age of Sail", "fishing angling salmon alaska commercial fishing outdoor documentary television", 2010, "video", 2559.11, 540, 360),
+    iaDirectRecovery("AlaskaFishingDocumentaries::TheLonglinePioneers.mp4", "AlaskaFishingDocumentaries", "TheLonglinePioneers.mp4", "Alaska Fishing · The Longline Pioneers", "fishing angling commercial fishing alaska outdoor documentary television", 2010, "video", 1841.56, 540, 360),
+    iaDirectRecovery("thefarmingoffish::thefarmingoffishreel1.mov", "thefarmingoffish", "thefarmingoffishreel1.mov", "The Farming of Fish · Reel 1", "fishing aquaculture fish farming outdoor documentary television", 2012, "video", 1735.13, 1280, 720),
+    iaDirectRecovery("thefarmingoffish::thefarmingoffishreel2.mov", "thefarmingoffish", "thefarmingoffishreel2.mov", "The Farming of Fish · Reel 2", "fishing aquaculture fish farming outdoor documentary television", 2012, "video", 1754.5, 1280, 720),
+    iaDirectRecovery("97246_hm_fishing_at_monmouth_lake_and_klamath_falls_home_at_south_gate_calif::97246.mov", "97246_hm_fishing_at_monmouth_lake_and_klamath_falls_home_at_south_gate_calif", "97246.mov", "Home Movie Fishing at Monmouth Lake and Klamath Falls", "fishing angling outdoor recreation home movie television", 1954, "video", 1467, 1440, 1080),
+    iaDirectRecovery("6125_HM_Fishing_1954_01_01_04_00::6125_HM_Fishing_1954_01_01_04_00_3mb.m4v", "6125_HM_Fishing_1954_01_01_04_00", "6125_HM_Fishing_1954_01_01_04_00_3mb.m4v", "Home Movie Fishing (1954)", "fishing angling outdoor recreation home movie television", 1954, "video", 1209.24, 640, 480),
+    iaDirectRecovery("willthefishinghavetostop::willthefishinghavetostop.mov", "willthefishinghavetostop", "willthefishinghavetostop.mov", "Will the Fishing Have to Stop?", "fishing angling conservation outdoor documentary television", 2010, "video", 1998.21, 1280, 720),
+  ],
+  "11": [
+    iaDirectRecovery("ms_series_er::er1.mp4", "ms_series_er", "er1.mp4", "ER · Archive Episode 1", "modern rerun television medical drama television series 1990s television", 1994, "video", 7787.02, 640, 360),
+    iaDirectRecovery("ms_series_er::er37.mp4", "ms_series_er", "er37.mp4", "ER · Archive Episode 37", "modern rerun television medical drama television series 1990s television", 1996, "video", 7167.35, 640, 360),
+    iaDirectRecovery("ms_series_er::er74.mp4", "ms_series_er", "er74.mp4", "ER · Archive Episode 74", "modern rerun television medical drama television series 1990s television", 1998, "video", 8106.64, 640, 360),
+    iaDirectRecovery("ms_series_er::er109.mp4", "ms_series_er", "er109.mp4", "ER · Archive Episode 109", "modern rerun television medical drama television series 2000s television", 2001, "video", 8943.54, 640, 360),
+    iaDirectRecovery("TheApprenticeUSSeason1::The Apprentice (US) S01E01 - Meet the Billionaire.mp4", "TheApprenticeUSSeason1", "The Apprentice (US) S01E01 - Meet the Billionaire.mp4", "The Apprentice · Meet the Billionaire", "modern rerun television reality competition business television series", 2004, "video", 3507.89, 512, 384),
+    iaDirectRecovery("TheApprenticeUSSeason1::The Apprentice (US) S01E04 - Ethics, Shmethics.mp4", "TheApprenticeUSSeason1", "The Apprentice (US) S01E04 - Ethics, Shmethics.mp4", "The Apprentice · Ethics, Shmethics", "modern rerun television reality competition business television series", 2004, "video", 2526.72, 512, 384),
+    iaDirectRecovery("TheApprenticeUSSeason1::The Apprentice (US) S01E07 - Dupe-lex.mp4", "TheApprenticeUSSeason1", "The Apprentice (US) S01E07 - Dupe-lex.mp4", "The Apprentice · Dupe-lex", "modern rerun television reality competition business television series", 2004, "video", 2479.17, 512, 384),
+    iaDirectRecovery("TheApprenticeUSSeason1::The Apprentice (US) S01E10 - Wheeling and Dealing.mp4", "TheApprenticeUSSeason1", "The Apprentice (US) S01E10 - Wheeling and Dealing.mp4", "The Apprentice · Wheeling and Dealing", "modern rerun television reality competition business television series", 2004, "video", 2479.22, 512, 384),
+    iaDirectRecovery("pride-and-prejudice-1995-miniseries::Pride.and.Prejudice.1995.S01E01.720p.BluRay.x264-GalaxyTV.mp4", "pride-and-prejudice-1995-miniseries", "Pride.and.Prejudice.1995.S01E01.720p.BluRay.x264-GalaxyTV.mp4", "Pride and Prejudice · Episode 1", "modern rerun television period drama television miniseries television series", 1995, "video", 3342.85, 854, 480),
+    iaDirectRecovery("pride-and-prejudice-1995-miniseries::Pride.and.Prejudice.1995.S01E03.720p.BluRay.x264-GalaxyTV.mp4", "pride-and-prejudice-1995-miniseries", "Pride.and.Prejudice.1995.S01E03.720p.BluRay.x264-GalaxyTV.mp4", "Pride and Prejudice · Episode 3", "modern rerun television period drama television miniseries television series", 1995, "video", 3300.74, 854, 480),
+    iaDirectRecovery("pride-and-prejudice-1995-miniseries::Pride.and.Prejudice.1995.S01E05.720p.BluRay.x264-GalaxyTV.mp4", "pride-and-prejudice-1995-miniseries", "Pride.and.Prejudice.1995.S01E05.720p.BluRay.x264-GalaxyTV.mp4", "Pride and Prejudice · Episode 5", "modern rerun television period drama television miniseries television series", 1995, "video", 3054.4, 854, 480),
+    iaDirectRecovery("baywatch_202212::002-In Deep(REMASTERED VERSION).mp4", "baywatch_202212", "002-In Deep(REMASTERED VERSION).mp4", "Baywatch · In Deep", "modern rerun television drama action television series 1980s television", 1989, "video", 2800.09, 1920, 1080),
+    iaDirectRecovery("baywatch_202212::003-Heat Wave(REMASTERED VERSION).mp4", "baywatch_202212", "003-Heat Wave(REMASTERED VERSION).mp4", "Baywatch · Heat Wave", "modern rerun television drama action television series 1980s television", 1989, "video", 2786.2, 1920, 1080),
+    iaDirectRecovery("baywatch_202212::004-Second Wave(REMASTERED VERSION).mp4", "baywatch_202212", "004-Second Wave(REMASTERED VERSION).mp4", "Baywatch · Second Wave", "modern rerun television drama action television series 1980s television", 1989, "video", 2833.21, 1920, 1080),
+  ],
+  "20": [
+    iaDirectRecovery("WSBK_20010914_180000_The_Peoples_Court::WSBK_20010914_180000_The_Peoples_Court.mp4", "WSBK_20010914_180000_The_Peoples_Court", "WSBK_20010914_180000_The_Peoples_Court.mp4", "The People's Court · September 14, 2001", "judge show court show courtroom television television series", 2001, "video", 3599.39, 640, 480),
+    iaDirectRecovery("WSBK_20010913_180000_The_Peoples_Court::WSBK_20010913_180000_The_Peoples_Court.mp4", "WSBK_20010913_180000_The_Peoples_Court", "WSBK_20010913_180000_The_Peoples_Court.mp4", "The People's Court · September 13, 2001", "judge show court show courtroom television television series", 2001, "video", 3596.99, 640, 480),
+    iaDirectRecovery("WSBK_20010913_160000_Judge_Mathis::WSBK_20010913_160000_Judge_Mathis.mp4", "WSBK_20010913_160000_Judge_Mathis", "WSBK_20010913_160000_Judge_Mathis.mp4", "Judge Mathis · September 13, 2001", "judge show court show courtroom television television series", 2001, "video", 3596.86, 640, 480),
+    iaDirectRecovery("WSBK_20010911_160000_Judge_Mathis::WSBK_20010911_160000_Judge_Mathis.mp4", "WSBK_20010911_160000_Judge_Mathis", "WSBK_20010911_160000_Judge_Mathis.mp4", "Judge Mathis · September 11, 2001", "judge show court show courtroom television television series", 2001, "video", 3599.06, 640, 480),
+    iaDirectRecovery("TheCourtOfLastResortTheMaryMoralesCase::CourtOfLastResort-theMaryMoralesCase.mp4", "TheCourtOfLastResortTheMaryMoralesCase", "CourtOfLastResort-theMaryMoralesCase.mp4", "The Court of Last Resort · The Mary Morales Case", "court show courtroom true crime television series classic television", 1957, "video", 1503.01, 720, 540),
+    iaDirectRecovery("JudgeRoyBeanTheRunaway::Judge Roy Bean - The Runaway.mp4", "JudgeRoyBeanTheRunaway", "Judge Roy Bean - The Runaway.mp4", "Judge Roy Bean · The Runaway", "court show courtroom western television series classic television", 1956, "video", 1566.37, 640, 480),
+    iaDirectRecovery("JudgeRoyBeanSlightlyProdigal::Judge Roy Bean - Slightly Prodigal.mp4", "JudgeRoyBeanSlightlyProdigal", "Judge Roy Bean - Slightly Prodigal.mp4", "Judge Roy Bean · Slightly Prodigal", "court show courtroom western television series classic television", 1956, "video", 1594.33, 640, 480),
+    iaDirectRecovery("JUDGE_ROY_BEAN_Letty_Leaves_Home::JUDGE_ROY_BEAN_Letty_Leaves_Home.mp4", "JUDGE_ROY_BEAN_Letty_Leaves_Home", "JUDGE_ROY_BEAN_Letty_Leaves_Home.mp4", "Judge Roy Bean · Letty Leaves Home", "court show courtroom western television series classic television", 1956, "video", 1583.62, 400, 304),
+  ],
+  "118": [
+    iaDirectRecovery("BBC_Sherlock2010::1x01 A Study in Pink.mp4", "BBC_Sherlock2010", "1x01 A Study in Pink.mp4", "Sherlock · A Study in Pink", "british television british mystery british drama uk television television series", 2010, "video", 5286.55, 1280, 720),
+    iaDirectRecovery("BBC_Sherlock2010::1x02 The Blind Banker.mp4", "BBC_Sherlock2010", "1x02 The Blind Banker.mp4", "Sherlock · The Blind Banker", "british television british mystery british drama uk television television series", 2010, "video", 5307, 1280, 720),
+    iaDirectRecovery("BBC_Sherlock2010::2x01 A Scandal in Belgravia.mp4", "BBC_Sherlock2010", "2x01 A Scandal in Belgravia.mp4", "Sherlock · A Scandal in Belgravia", "british television british mystery british drama uk television television series", 2012, "video", 5375.05, 1280, 720),
+    iaDirectRecovery("BBC_Sherlock2010::3x01 The Empty Hearse.mp4", "BBC_Sherlock2010", "3x01 The Empty Hearse.mp4", "Sherlock · The Empty Hearse", "british television british mystery british drama uk television television series", 2014, "video", 5170.48, 1280, 720),
+    iaDirectRecovery("blackadder-remastered::1 The Black Adder (Series 1)3.mp4", "blackadder-remastered", "1 The Black Adder (Series 1)3.mp4", "Blackadder · Series 1 Episode 1", "british television british comedy british sitcom uk television television series", 1983, "video", 2012.04, 640, 480),
+    iaDirectRecovery("blackadder-remastered::1 The Black Adder (Series 1)4.mp4", "blackadder-remastered", "1 The Black Adder (Series 1)4.mp4", "Blackadder · Series 1 Episode 2", "british television british comedy british sitcom uk television television series", 1983, "video", 2029.04, 640, 480),
+    iaDirectRecovery("blackadder-remastered::2 Blackadder II (Series 2)4.mp4", "blackadder-remastered", "2 Blackadder II (Series 2)4.mp4", "Blackadder II · Episode 1", "british television british comedy british sitcom uk television television series", 1986, "video", 1813.04, 640, 480),
+    iaDirectRecovery("blackadder-remastered::2 Blackadder II (Series 2)5.mp4", "blackadder-remastered", "2 Blackadder II (Series 2)5.mp4", "Blackadder II · Episode 2", "british television british comedy british sitcom uk television television series", 1986, "video", 1607.04, 640, 480),
+    iaDirectRecovery("bbc-red-dwarf::Red Dwarf I Disc 1 (Main Feature)3.mp4", "bbc-red-dwarf", "Red Dwarf I Disc 1 (Main Feature)3.mp4", "Red Dwarf · Series 1 Episode 1", "british television british comedy british science fiction uk television television series", 1988, "video", 1802.04, 640, 480),
+    iaDirectRecovery("bbc-red-dwarf::Red Dwarf I Disc 1 (Main Feature)4.mp4", "bbc-red-dwarf", "Red Dwarf I Disc 1 (Main Feature)4.mp4", "Red Dwarf · Series 1 Episode 2", "british television british comedy british science fiction uk television television series", 1988, "video", 1736.04, 640, 480),
+    iaDirectRecovery("bbc-red-dwarf::Red Dwarf II Disc 1 (Main Feature)3.mp4", "bbc-red-dwarf", "Red Dwarf II Disc 1 (Main Feature)3.mp4", "Red Dwarf · Series 2 Episode 1", "british television british comedy british science fiction uk television television series", 1989, "video", 1699.04, 640, 480),
+    iaDirectRecovery("bbc-red-dwarf::Red Dwarf III Disc 1 (Main Feature)3.mp4", "bbc-red-dwarf", "Red Dwarf III Disc 1 (Main Feature)3.mp4", "Red Dwarf · Series 3 Episode 1", "british television british comedy british science fiction uk television television series", 1989, "video", 1642.04, 640, 480),
+    iaDirectRecovery("Space1999.Series1::Space 1999 S01E01 Breakaway.mp4", "Space1999.Series1", "Space 1999 S01E01 Breakaway.mp4", "Space: 1999 · Breakaway", "british television british science fiction uk television television series classic television", 1975, "video", 3004, 640, 480),
+    iaDirectRecovery("Space1999.Series1::Space 1999 S01E02 Force of Life.mp4", "Space1999.Series1", "Space 1999 S01E02 Force of Life.mp4", "Space: 1999 · Force of Life", "british television british science fiction uk television television series classic television", 1975, "video", 2974.6, 640, 470),
+    iaDirectRecovery("Space1999.Series1::Space 1999 S01E03 Collision Course.mp4", "Space1999.Series1", "Space 1999 S01E03 Collision Course.mp4", "Space: 1999 · Collision Course", "british television british science fiction uk television television series classic television", 1975, "video", 3004.88, 640, 470),
+    iaDirectRecovery("Space1999.Series1::Space 1999 S01E04 War Games.mp4", "Space1999.Series1", "Space 1999 S01E04 War Games.mp4", "Space: 1999 · War Games", "british television british science fiction uk television television series classic television", 1975, "video", 2999.6, 640, 470),
+  ],
+  "914": [
+    iaDirectRecovery("DJScoobyRapHipHopRnbMixVol.4::DJ Scooby - RapHipHopRnbMix Vol. 4.mp3", "DJScoobyRapHipHopRnbMixVol.4", "DJ Scooby - RapHipHopRnbMix Vol. 4.mp3", "DJ Scooby · Rap/Hip-Hop/R&B Mix Vol. 4", "hip hop hip-hop rap rnb contemporary hip hop dj mix music", 2010, "audio", 4763.9),
+    iaDirectRecovery("djdragnanddjnonstop::DJ_Dragn__DJ_Nonstop__Hip_Hop__Reggae_Mix_Vol.1.mp3", "djdragnanddjnonstop", "DJ_Dragn__DJ_Nonstop__Hip_Hop__Reggae_Mix_Vol.1.mp3", "DJ Dragn and DJ Nonstop · Hip-Hop/Reggae Mix Vol. 1", "hip hop hip-hop rap reggae dj mix music", 2010, "audio", 3447.27),
+    iaDirectRecovery("01TimeRidersHipHop03032017::01_Time_Riders_Hip_Hop_03032017.mp3", "01TimeRidersHipHop03032017", "01_Time_Riders_Hip_Hop_03032017.mp3", "Time Riders · Hip-Hop Mix (March 2017)", "hip hop hip-hop rap underground hip hop dj mix music", 2017, "audio", 3441.58),
+    iaDirectRecovery("MaraudazMusicV58MixedByDonRaySoundsFromTheUnderground::MarauderMusicV58MixedByDon-raySoundsFromTheUnderground.mp3", "MaraudazMusicV58MixedByDonRaySoundsFromTheUnderground", "MarauderMusicV58MixedByDon-raySoundsFromTheUnderground.mp3", "Marauder Music · Sounds from the Underground Vol. 58", "hip hop hip-hop rap underground hip hop dj mix independent music", 2010, "audio", 3407.13),
+    iaDirectRecovery("PlaneteRap-2015::Ali-Lundi23Fvrier.mp3", "PlaneteRap-2015", "Ali-Lundi23Fvrier.mp3", "Planète Rap · Ali (Monday, February 23)", "hip hop hip-hop rap french rap dj mix music", 2015, "audio", 3430.3),
+    iaDirectRecovery("PlaneteRap-2015::Alonzo-Jeudi17Septembre.mp3", "PlaneteRap-2015", "Alonzo-Jeudi17Septembre.mp3", "Planète Rap · Alonzo (Thursday, September 17)", "hip hop hip-hop rap french rap dj mix music", 2015, "audio", 3093.11),
+    iaDirectRecovery("PlaneteRap-2015::BigFloOli-Lundi20Avril.mp3", "PlaneteRap-2015", "BigFloOli-Lundi20Avril.mp3", "Planète Rap · Bigflo & Oli (Monday, April 20)", "hip hop hip-hop rap french rap dj mix music", 2015, "audio", 3190.83),
+    iaDirectRecovery("PlaneteRap-2015::BlackM-Lundi1erJuin.mp3", "PlaneteRap-2015", "BlackM-Lundi1erJuin.mp3", "Planète Rap · Black M (Monday, June 1)", "hip hop hip-hop rap french rap dj mix music", 2015, "audio", 2894.05),
+  ],
+  "929": [
+    iaDirectRecovery("BigBandMixRecordings1935-1945::01.MoonlightSerenade.mp3", "BigBandMixRecordings1935-1945", "01.MoonlightSerenade.mp3", "Big Band 78rpm · Moonlight Serenade", "78rpm acoustic recording wax cylinder swing big band jazz dance band", 1939, "audio", 203.7),
+    iaDirectRecovery("BigBandMixRecordings1935-1945::02.BeginTheBeguine.mp3", "BigBandMixRecordings1935-1945", "02.BeginTheBeguine.mp3", "Big Band 78rpm · Begin the Beguine", "78rpm acoustic recording wax cylinder swing big band jazz dance band", 1938, "audio", 196.23),
+    iaDirectRecovery("BigBandMixRecordings1935-1945::03.TaintNoUse.mp3", "BigBandMixRecordings1935-1945", "03.TaintNoUse.mp3", "Big Band 78rpm · 'Tain't No Use", "78rpm acoustic recording wax cylinder swing big band jazz dance band", 1938, "audio", 193.1),
+    iaDirectRecovery("BigBandMixRecordings1935-1945::04.AStringOfPearls.mp3", "BigBandMixRecordings1935-1945", "04.AStringOfPearls.mp3", "Big Band 78rpm · A String of Pearls", "78rpm acoustic recording wax cylinder swing big band jazz dance band", 1941, "audio", 175.36),
+    iaDirectRecovery("BigBandMixRecordings1935-1945::05.MyBlueHeaven.mp3", "BigBandMixRecordings1935-1945", "05.MyBlueHeaven.mp3", "Big Band 78rpm · My Blue Heaven", "78rpm acoustic recording wax cylinder swing big band jazz dance band", 1935, "audio", 191.9),
+    iaDirectRecovery("BigBandMixRecordings1935-1945::06.FlatbushFlanagan.mp3", "BigBandMixRecordings1935-1945", "06.FlatbushFlanagan.mp3", "Big Band 78rpm · Flatbush Flanagan", "78rpm acoustic recording wax cylinder swing big band jazz dance band", 1938, "audio", 199.21),
+    iaDirectRecovery("BigBandMixRecordings1935-1945::07.Skylark.mp3", "BigBandMixRecordings1935-1945", "07.Skylark.mp3", "Big Band 78rpm · Skylark", "78rpm acoustic recording wax cylinder swing big band jazz dance band", 1942, "audio", 162.9),
+    iaDirectRecovery("BigBandMixRecordings1935-1945::08.NorthwestPassage.mp3", "BigBandMixRecordings1935-1945", "08.NorthwestPassage.mp3", "Big Band 78rpm · Northwest Passage", "78rpm acoustic recording wax cylinder swing big band jazz dance band", 1940, "audio", 190.43),
+    iaDirectRecovery("LeoReismanVictorRecordingsCollection1929-1933::AGreatBigBunchOfYou1932LeoReismanOrchestra.mp3", "LeoReismanVictorRecordingsCollection1929-1933", "AGreatBigBunchOfYou1932LeoReismanOrchestra.mp3", "Leo Reisman Orchestra · A Great Big Bunch of You", "78rpm acoustic recording wax cylinder popular orchestra dance band", 1932, "audio", 162.29),
+    iaDirectRecovery("LeoReismanVictorRecordingsCollection1929-1933::AHeartOfStone1933LeoReismanOrchestra.mp3", "LeoReismanVictorRecordingsCollection1929-1933", "AHeartOfStone1933LeoReismanOrchestra.mp3", "Leo Reisman Orchestra · A Heart of Stone", "78rpm acoustic recording wax cylinder popular orchestra dance band", 1933, "audio", 206.49),
+    iaDirectRecovery("LeoReismanVictorRecordingsCollection1929-1933::ARainyDay1932LeoReismanOrchestra.mp3", "LeoReismanVictorRecordingsCollection1929-1933", "ARainyDay1932LeoReismanOrchestra.mp3", "Leo Reisman Orchestra · A Rainy Day", "78rpm acoustic recording wax cylinder popular orchestra dance band", 1932, "audio", 176.94),
+    iaDirectRecovery("LeoReismanVictorRecordingsCollection1929-1933::AintMisbehavin1929LeoReismanAndHisOrchestra.flac", "LeoReismanVictorRecordingsCollection1929-1933", "AintMisbehavin1929LeoReismanAndHisOrchestra.flac", "Leo Reisman Orchestra · Ain't Misbehavin'", "78rpm acoustic recording wax cylinder popular orchestra dance band", 1929, "audio", 215.04),
+  ],
+});
 for (const [channel, additions] of Object.entries(IA_DEPTH_EXPANSION_OVERLAYS)) {
+  if (!IA_UNDERFILL_DEPTH_BANKS[channel]) continue;
+  const seen = new Set(IA_UNDERFILL_DEPTH_BANKS[channel].map((item) => iaPlayableIdentity(item)).filter(Boolean));
+  for (const item of additions) {
+    const identity = iaPlayableIdentity(item);
+    if (item && item.identifier && identity && !seen.has(identity)) {
+      IA_UNDERFILL_DEPTH_BANKS[channel].push(item);
+      seen.add(identity);
+    }
+  }
+}
+for (const [channel, additions] of Object.entries(IA_DEEP_ARCHIVE_FAMILY_OVERLAYS)) {
   if (!IA_UNDERFILL_DEPTH_BANKS[channel]) continue;
   const seen = new Set(IA_UNDERFILL_DEPTH_BANKS[channel].map((item) => iaPlayableIdentity(item)).filter(Boolean));
   for (const item of additions) {

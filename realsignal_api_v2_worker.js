@@ -12,7 +12,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "4.1.163-ia-weak-lane-first";
+const V3_RELEASE = "4.1.166-ia-recovery-admission";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -65,6 +65,11 @@ const IA_DEPTH_REPAIR_LANES = new Set([
      relay's verified file banks refill the catalog. */
   "3", "11", "20", "66", "81", "118", "212", "500", "902", "905", "906", "907", "914", "929",
 ]);
+/* The six lanes repaired from live Archive family manifests must not let an
+   older D1 shelf mask the new file-level rail. The relay remains the fast,
+   verified source of truth for these lanes while the complete union is
+   persisted back to D1 asynchronously through the normal catalog job. */
+const IA_ARCHIVE_FAMILY_DEPTH_LANES = new Set(["11", "20", "81", "118", "914", "929"]);
 /* Some IA collections store the genre in the series/film title rather than
    the child filename. These are deliberately lane-specific aliases for the
    two long-tail lanes that failed the serial certification when their relay
@@ -585,7 +590,10 @@ function catalogFallbackAllowed(item, body) {
      subject signal even when the child filename is generic (for example,
      “The Skeleton Dance” or “Jerky Turkey”). This remains narrow: the row
      needs recovery provenance, a playable URL, and a seasonal subject signal. */
-  const relayVerified = (item && item.genreVerified === true && !IA_DEPTH_REPAIR_LANES.has(String(body && body.channel || ""))) || holidayTitleVerified || trustedHolidayRecovery;
+  const archiveFamilyRecovery = IA_ARCHIVE_FAMILY_DEPTH_LANES.has(String(body && body.channel || ""))
+    && item && item.recoveryVerified === true
+    && item.media && item.media.url;
+  const relayVerified = (item && item.genreVerified === true && !IA_DEPTH_REPAIR_LANES.has(String(body && body.channel || ""))) || holidayTitleVerified || trustedHolidayRecovery || archiveFamilyRecovery;
   const strictManufacturingLane = String(body && body.channel || "") === "200";
   const manufacturingSubjectMatch = strictManufacturingLane && Array.isArray(body && body.themeTerms)
     && body.themeTerms.some((term) => {
@@ -1071,7 +1079,8 @@ async function handleQueue(request, env, ctx, id) {
       return new Response(JSON.stringify({ ...canonicalPayload, apiVersion, release: apiVersion === "v3" ? V3_RELEASE : undefined }), { status: 200, headers });
     }
   }
-  if (useServerCatalog && IA_FAST_CATALOG_LANES.has(String(body.channel))) {
+  const archiveFamilyRelayRail = IA_ARCHIVE_FAMILY_DEPTH_LANES.has(String(body.channel));
+  if (useServerCatalog && IA_FAST_CATALOG_LANES.has(String(body.channel)) && !archiveFamilyRelayRail) {
     try {
       /* Feed the full verified D1 catalog into session rotation. The rotation
          object applies the persistent freshness ledger for the opening pick,
@@ -1182,7 +1191,7 @@ async function handleQueue(request, env, ctx, id) {
     ctx.waitUntil(refreshShallowCatalog(env, request, body, id, responseCandidateDepth));
   }
   let rotated;
-  if (!useServerCatalog) {
+  if (!useServerCatalog || archiveFamilyRelayRail) {
     /* The relay already owns IA rotation and its played-only freshness ledger.
        Return its verified shelf unchanged so the API Durable Object cannot
        mark queued items as seen or recreate the same-five regression. */

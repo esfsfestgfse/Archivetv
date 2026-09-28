@@ -89,7 +89,7 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
    warmup back onto the channel-change path. */
 const IA_STRICT_CATALOG_CANDIDATE_MAX = 128;
 const IA_CATALOG_CANDIDATE_MAX = 96;
-const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v34-noir-depth";
+const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v39-commercial-fallback";
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
@@ -101,10 +101,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v34-noir-depth";
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v180";
+const IA_QUEUE_CACHE_VERSION = "v185";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v180";
+const IA_LAST_GOOD_CACHE_VERSION = "v185";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -358,6 +358,16 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "videoplayback-2021-08-28-t-212139.465", title: "Ski Train to Winter Park · 2006", subject: "railroad railway train passenger train", year: 2006 },
     { identifier: "the-british-railway-series-episode-6-goodbye-stephen-the-green-engine", title: "The British Railway Series · Episode 6", subject: "railway railroad train rail transport", year: 2007 },
     { identifier: "ThisIsMy1940", title: "This Is My Railroad · Part I", subject: "railroad railway locomotive rail transport", year: 1940 },
+    iaDirectRecovery("GreatRai1942::GreatRai1942.mp4", "GreatRai1942", "GreatRai1942.mp4", "A Great Railroad at Work — Part I", "railroad railway locomotive rail transport", 1942, "video", 1483, 640, 480),
+    iaDirectRecovery("BigTrain1955::BigTrain1955.mp4", "BigTrain1955", "BigTrain1955.mp4", "Big Trains Rolling", "railroad railway locomotive rail transport", 1955, "video", 1435, 640, 480),
+    iaDirectRecovery("Wheelsof1950::Wheelsof1950.mp4", "Wheelsof1950", "Wheelsof1950.mp4", "Wheels of Progress", "railroad railway locomotive rail transport", 1950, "video", 1143, 640, 480),
+    iaDirectRecovery("Completi1914_2::Completi1914_2.mp4", "Completi1914_2", "Completi1914_2.mp4", "Completion of Northwestern Pacific Railroad — Part II", "railroad railway train rail transport", 1914, "video", 948, 640, 480),
+    iaDirectRecovery("NewHoriz1948::NewHoriz1948.mp4", "NewHoriz1948", "NewHoriz1948.mp4", "New Horizons", "railroad railway train rail transport", 1948, "video", 1075, 640, 480),
+    iaDirectRecovery("bliptv-20131031-104457-Black5video-ClassicRailroadFilmsEp2MeetUnclePete605::bliptv-20131031-104457-Black5video-ClassicRailroadFilmsEp2MeetUnclePete605.mp4", "bliptv-20131031-104457-Black5video-ClassicRailroadFilmsEp2MeetUnclePete605", "bliptv-20131031-104457-Black5video-ClassicRailroadFilmsEp2MeetUnclePete605.mp4", "Classic Railroad Films — Meet Uncle Pete", "railroad railway locomotive rail transport railroad film", 2013, "video", 2739, 1280, 720),
+    iaDirectRecovery("CSPAN3_20200511_051800_The_Civil_War_Cumberland_Valley_Railroad::CSPAN3_20200511_051800_The_Civil_War_Cumberland_Valley_Railroad.mp4", "CSPAN3_20200511_051800_The_Civil_War_Cumberland_Valley_Railroad", "CSPAN3_20200511_051800_The_Civil_War_Cumberland_Valley_Railroad.mp4", "The Civil War Cumberland Valley Railroad", "railroad railway railroad history rail transport documentary", 2020, "video", 2580, 635, 476),
+    iaDirectRecovery("CSPAN3_20190922_080000_The_Civil_War_Cumberland_Valley_Railroad::CSPAN3_20190922_080000_The_Civil_War_Cumberland_Valley_Railroad.mp4", "CSPAN3_20190922_080000_The_Civil_War_Cumberland_Valley_Railroad", "CSPAN3_20190922_080000_The_Civil_War_Cumberland_Valley_Railroad.mp4", "The Civil War Cumberland Valley Railroad — Archive Edition", "railroad railway railroad history rail transport documentary", 2019, "video", 2581, 635, 476),
+    iaDirectRecovery("hctvohv-The_Clinton_Railroad_and_Other_Hudson_Railroad_Lore::The_Clinton_Railroad_and_Other_Hudson_Railroad_Lore.mp4", "hctvohv-The_Clinton_Railroad_and_Other_Hudson_Railroad_Lore", "The_Clinton_Railroad_and_Other_Hudson_Railroad_Lore.mp4", "The Clinton Railroad and Hudson Railroad Lore", "railroad railway railroad history rail transport documentary", 2020, "video", 3316, 640, 480),
+    iaDirectRecovery("youtube-O29q00diAac::O29q00diAac.mp4", "youtube-O29q00diAac", "O29q00diAac.mp4", "Space Age Railroad", "railroad railway locomotive rail transport documentary", 2010, "video", 1031, 640, 480),
   ],
   "116": [
     { identifier: "The_Brother_from_Another_Planet_1984", title: "The Brother from Another Planet (1984)", subject: "blaxploitation black cinema independent film", year: 1984, media: { type: "video", url: "https://archive.org/download/The_Brother_from_Another_Planet_1984/videoplayback%20%281%29.mp4" } },
@@ -1294,6 +1304,14 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "cool-spot-nintendo-snes-pal-60-gameplay-full-game-longplay-recorded-by-archive", title: "Cool Spot — Full Game Longplay", subject: "arcade video games gameplay longplay", year: 1993 },
     { identifier: "supercross-3-d-atari-jaguar-pal-gameplay-demostration-attract-mode-recorded-by-j", title: "Supercross 3D — Atari Jaguar Gameplay", subject: "arcade video games gameplay racing", year: 1994 },
     { identifier: "worm-war-i-atari-2600-pal-gameplay-by-zeusdaz", title: "Worm War I — Atari 2600 Longplay", subject: "arcade video games gameplay longplay", year: 1978 },
+    iaDirectRecovery("galaxian-3-play-station-pal-gameplay-full-game-longplay-recorded-by-you-tube-all-stages::Galaxian 3 PlayStation PAL Gameplay (Full Game Longplay Recorded By YouTube All Stages).mp4", "galaxian-3-play-station-pal-gameplay-full-game-longplay-recorded-by-you-tube-all-stages", "Galaxian 3 PlayStation PAL Gameplay (Full Game Longplay Recorded By YouTube All Stages).mp4", "Galaxian 3 — Full Game Longplay", "arcade video games gameplay longplay", 1990, "video", 1104, 480, 360),
+    iaDirectRecovery("burning-force-sega-mega-drive-pal-gameplay-full-game-longplay::Burning Force Sega Mega Drive PAL Gameplay (Full Game Longplay Complete The Game Walkthrough Guide Recorded By Joe Roberts).mp4", "burning-force-sega-mega-drive-pal-gameplay-full-game-longplay", "Burning Force Sega Mega Drive PAL Gameplay (Full Game Longplay Complete The Game Walkthrough Guide Recorded By Joe Roberts).mp4", "Burning Force — Full Game Longplay", "arcade video games gameplay longplay", 1990, "video", 2300, 480, 360),
+    iaDirectRecovery("cool-spot-nintendo-snes-pal-60-gameplay-full-game-longplay-recorded-by-archive::Cool Spot Nintendo SNES PAL 60 Gameplay (Full Game Longplay Recorded By Archive).mp4", "cool-spot-nintendo-snes-pal-60-gameplay-full-game-longplay-recorded-by-archive", "Cool Spot Nintendo SNES PAL 60 Gameplay (Full Game Longplay Recorded By Archive).mp4", "Cool Spot — Full Game Longplay", "arcade video games gameplay longplay", 1993, "video", 5109, 480, 360),
+    iaDirectRecovery("Jaguar_Longplay_-_Bubsy_in_Fractured_Furry_Tales_-_US::Jaguar_Longplay_-_Bubsy_in_Fractured_Furry_Tales_-_WW.mp4", "Jaguar_Longplay_-_Bubsy_in_Fractured_Furry_Tales_-_US", "Jaguar_Longplay_-_Bubsy_in_Fractured_Furry_Tales_-_WW.mp4", "Bubsy in Fractured Furry Tales — Atari Jaguar Longplay", "arcade video games gameplay longplay", 1996, "video", 7488, 644, 464),
+    iaDirectRecovery("GamecubeLongplayLuigisMansionUS::Gamecube_Longplay_-_Luigis_Mansion_-_US.mp4", "GamecubeLongplayLuigisMansionUS", "Gamecube_Longplay_-_Luigis_Mansion_-_US.mp4", "Luigi's Mansion — GameCube Longplay", "arcade video games gameplay longplay", 2001, "video", 12503, 640, 480),
+    iaDirectRecovery("Gameboy_Longplay_-_Double_Dragon_-_US::Gameboy_Longplay_-_Double_Dragon_-_US.mp4", "Gameboy_Longplay_-_Double_Dragon_-_US", "Gameboy_Longplay_-_Double_Dragon_-_US.mp4", "Double Dragon — Game Boy Longplay", "arcade video games gameplay longplay", 1990, "video", 1286, 320, 288),
+    iaDirectRecovery("GameGearLongplay049Outrun::Game_Gear_Longplay_049_Outrun.mp4", "GameGearLongplay049Outrun", "Game_Gear_Longplay_049_Outrun.mp4", "OutRun — Game Gear Longplay", "arcade video games gameplay longplay racing", 1991, "video", 2459, 320, 288),
+    iaDirectRecovery("Genesis_Longplay_-_Earthworm_Jim_-_USv2::Genesis_Longplay_-_Earthworm_Jim_-_US.mp4", "Genesis_Longplay_-_Earthworm_Jim_-_USv2", "Genesis_Longplay_-_Earthworm_Jim_-_US.mp4", "Earthworm Jim — Genesis Longplay", "arcade video games gameplay longplay", 1994, "video", 3609, 640, 448),
   ],
   "912": [
     { identifier: "DeshOrchestraAjitGhosh_201807", title: "Desh — Orchestra", subject: "classical music orchestra instrumental radio", year: 2018, media: { type: "audio", url: "https://archive.org/download/DeshOrchestraAjitGhosh_201807/Desh%20Orchestra-Ajit%20Ghosh.mp3" } },
@@ -1403,11 +1421,11 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     iaDirectRecovery("popeye_big_bad_sinbad::popeye_big_bad_sinbad_512kb.mp4", "popeye_big_bad_sinbad", "popeye_big_bad_sinbad_512kb.mp4", "Popeye — Big Bad Sinbad (1952)", "classic cartoons popeye cartoon animation", 1952),
   ],
   "13": [
-    { identifier: "walls-french-coffee-ice-cream-ad", title: "Wall's French Coffee Ice Cream Ad", subject: "vintage television commercial video advertisement", year: 1960, media: { type: "video", url: "https://archive.org/download/walls-french-coffee-ice-cream-ad/Wall%27s%20French%20Coffee%20Ice%20Cream%20Ad.mp4" } },
-    { identifier: "wwl-tv-new-orleans-promos-3-25-1990", title: "WWL-TV New Orleans Promos (1990)", subject: "television commercial video advertisement vintage tv", year: 1990 },
-    { identifier: "funny_or_die_video_4f4622efba", title: "Sasquatch Safety Public Service Announcement", subject: "public service announcement television commercial video", year: 2008 },
-    { identifier: "csbtv20ca-Plastic_Bag_Recycling_PSA", title: "Plastic Bag Recycling PSA", subject: "public service announcement television commercial video", year: 2012 },
-    { identifier: "waste-food-ted-moult-1971", title: "Waste Food (1971)", subject: "public service announcement television commercial video", year: 1971 },
+    iaDirectRecovery("walls-french-coffee-ice-cream-ad::Wall's French Coffee Ice Cream Ad.mp4", "walls-french-coffee-ice-cream-ad", "Wall's French Coffee Ice Cream Ad.mp4", "Wall's French Coffee Ice Cream Ad", "vintage television commercial video advertisement", 1960, "video", 22, 640, 480),
+    iaDirectRecovery("wwl-tv-new-orleans-promos-3-25-1990::WWL-TV New Orleans Promos - 3-25-1990.mp4", "wwl-tv-new-orleans-promos-3-25-1990", "WWL-TV New Orleans Promos - 3-25-1990.mp4", "WWL-TV New Orleans Promos (1990)", "television commercial video advertisement vintage tv", 1990, "video", 57, 632, 480),
+    iaDirectRecovery("funny_or_die_video_4f4622efba::funny_or_die_video_4f4622efba.mp4", "funny_or_die_video_4f4622efba", "funny_or_die_video_4f4622efba.mp4", "Sasquatch Safety Public Service Announcement", "public service announcement television commercial video", 2008, "video", 90, 480, 360),
+    iaDirectRecovery("csbtv20ca-Plastic_Bag_Recycling_PSA::Plastic_Bag_Recycling_PSA.mp4", "csbtv20ca-Plastic_Bag_Recycling_PSA", "Plastic_Bag_Recycling_PSA.mp4", "Plastic Bag Recycling PSA", "public service announcement television commercial video", 2012, "video", 30, 632, 480),
+    iaDirectRecovery("waste-food-ted-moult-1971::Waste Food - Ted Moult (1971).mp4", "waste-food-ted-moult-1971", "Waste Food - Ted Moult (1971).mp4", "Waste Food (1971)", "public service announcement television commercial video", 1971, "video", 46, 640, 480),
   ],
   "112": [
     { identifier: "the-parent-trap-1961_202508", title: "The Parent Trap (1961)", subject: "family film sunday matinee classic movie", year: 1961, media: { type: "video", url: "https://archive.org/download/the-parent-trap-1961_202508/The%20Parent%20Trap.mp4" } },
@@ -1450,6 +1468,14 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     { identifier: "Top10HipHopVideosOf2018V04MpPCQMe8360p_201902", title: "Top 10 Hip Hop Videos of 2018", subject: "hip hop rap music video culture", year: 2018, media: { type: "video", url: "https://archive.org/download/Top10HipHopVideosOf2018V04MpPCQMe8360p_201902/Top_10_Hip_Hop_Videos_of_2018_v04MpPCQMe8_360p.mp4" } },
     { identifier: "prkcitut-Of_Verona_Interview_-_Live_on_Park_City_Television", title: "Of Verona — Live Television Interview", subject: "hip hop rap music television performance interview", year: 2011 },
     { identifier: "by-boys-de-simoes-filho-parte-2", title: "B-Boys of Simões Filho — Part 2", subject: "hip hop rap music breakdance culture", year: 2011 },
+    iaDirectRecovery("Breakin_In_The_USA_1984_VHSRip::Breakin_In_The_USA.mp4", "Breakin_In_The_USA_1984_VHSRip", "Breakin_In_The_USA.mp4", "Breakin' in the USA", "hip hop rap music breakdance culture dance film", 1984, "video", 3041, 640, 480),
+    iaDirectRecovery("BreakdanceBreakin1984Cutrefilms_201803::Breakdance_Breakin',1984_Cutrefilms.mp4", "BreakdanceBreakin1984Cutrefilms_201803", "Breakdance_Breakin',1984_Cutrefilms.mp4", "Breakdance — Breakin' (1984)", "hip hop rap music breakdance culture dance film", 1984, "video", 5069, 665, 360),
+    iaDirectRecovery("breakin-2_202304::BREAKIN 2.mp4", "breakin-2_202304", "BREAKIN 2.mp4", "Breakin' 2: Electric Boogaloo", "hip hop rap music breakdance culture dance film", 1984, "video", 5659, 640, 480),
+    iaDirectRecovery("wild-style-1983-1080p-web-dl-ddp-2.0-h-264::Wild.Style.1983.1080p.AMZN.WEB-DL.DDP2.0.H.264-ETHiCS.mp4", "wild-style-1983-1080p-web-dl-ddp-2.0-h-264", "Wild.Style.1983.1080p.AMZN.WEB-DL.DDP2.0.H.264-ETHiCS.mp4", "Wild Style", "hip hop rap music breakdance graffiti culture dance film", 1983, "video", 4912, 640, 480),
+    iaDirectRecovery("Culture_Main_EP_131_Breakin_York_A_Documentary::Culture_Main_EP_131_Breakin_York_A_Documentary.mp4", "Culture_Main_EP_131_Breakin_York_A_Documentary", "Culture_Main_EP_131_Breakin_York_A_Documentary.mp4", "Breakin' York — A Documentary", "hip hop rap music breakdance culture dance documentary", 2016, "video", 3553, 640, 360),
+    iaDirectRecovery("BeatStreet1984Spanish::Beat Street 1984 (Spanish).mp4", "BeatStreet1984Spanish", "Beat Street 1984 (Spanish).mp4", "Beat Street", "hip hop rap music breakdance culture dance film", 1984, "video", 6378, 675, 360),
+    iaDirectRecovery("WJZ-CTYLN-002-015::WJZ-CTYLN-002-015.mp4", "WJZ-CTYLN-002-015", "WJZ-CTYLN-002-015.mp4", "Breakin' and Rappin'", "hip hop rap music breakdance culture dance documentary", 1984, "video", 3656, 711, 480),
+    iaDirectRecovery("graffiti-bridge-1990::Graffiti.Bridge.1990.mp4", "graffiti-bridge-1990", "Graffiti.Bridge.1990.mp4", "Graffiti Bridge", "hip hop rap music graffiti culture dance film", 1990, "video", 5426, 1920, 1072),
   ],
   "928": [
     { identifier: "78_mood-indigo-and-wall-street-wail_duke-ellington-aho_collectors-series-78s", title: "Duke Ellington — Mood Indigo", subject: "jazz swing big band duke ellington", year: 1943, media: { type: "audio", url: "https://archive.org/download/78_mood-indigo-and-wall-street-wail_duke-ellington-aho_collectors-series-78s/mood%20indigo_duke%20ellington%20aho_brunswick%20set_mono.mp3" } },
@@ -3634,10 +3660,15 @@ function mergeIaFallbackCandidates(previous, payload) {
     collection: cap(diversity.maxPerCollection, 2),
     source: 2,
   };
-  const ordered = [...current, ...prior], merged = [], seen = new Set();
+  const ordered = [...current, ...prior], merged = [], seen = new Set(), arcadeVariantSources = new Set();
+  const arcadeVariantDedupe = String((payload && payload.channel) || (previous && previous.channel) || "") === "152";
   const counts = { family: new Map(), creator: new Map(), collection: new Map(), source: new Map() };
   const canAdd = (item, relaxed) => {
     if (!item || !item.identifier || seen.has(item.identifier)) return false;
+    if (arcadeVariantDedupe) {
+      const source = String(item.sourceIdentifier || item.identifier || "").split("::")[0];
+      if (IA_ARCADE_VARIANT_SOURCES.has(source) && arcadeVariantSources.has(source)) return false;
+    }
     if (relaxed) return true;
     const keys = queueDiversityKeys(item, item.lane);
     return (!keys.family || (counts.family.get(keys.family) || 0) < limits.family) &&
@@ -3648,6 +3679,10 @@ function mergeIaFallbackCandidates(previous, payload) {
   const add = (item) => {
     const keys = queueDiversityKeys(item, item.lane);
     seen.add(item.identifier);
+    if (arcadeVariantDedupe) {
+      const source = String(item.sourceIdentifier || item.identifier || "").split("::")[0];
+      if (IA_ARCADE_VARIANT_SOURCES.has(source)) arcadeVariantSources.add(source);
+    }
     merged.push(item);
     Object.keys(counts).forEach((key) => {
       if (keys[key]) counts[key].set(keys[key], (counts[key].get(keys[key]) || 0) + 1);
@@ -5921,13 +5956,25 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTit
   };
 }
 
+const IA_ARCADE_VARIANT_SOURCES = new Set([
+  "galaxian-3-play-station-pal-gameplay-full-game-longplay-recorded-by-you-tube-all-stages",
+  "burning-force-sega-mega-drive-pal-gameplay-full-game-longplay",
+  "cool-spot-nintendo-snes-pal-60-gameplay-full-game-longplay-recorded-by-archive",
+]);
+
 function mergeIaQueuePayload(primary, secondary, candidateCount, flags = {}) {
-  const seen = new Set(), merged = [];
+  const seen = new Set(), merged = [], arcadeVariantSources = new Set();
+  const arcadeVariantDedupe = String((primary && primary.channel) || (secondary && secondary.channel) || "") === "152";
   const candidates = (payload) => Array.isArray(payload && payload.candidateItems)
     ? payload.candidateItems
     : ((payload && payload.items) || []);
   for (const item of [...candidates(primary), ...candidates(secondary)]) {
     if (!item || !item.identifier || seen.has(item.identifier)) continue;
+    if (arcadeVariantDedupe) {
+      const source = String(item.sourceIdentifier || item.identifier || "").split("::")[0];
+      if (IA_ARCADE_VARIANT_SOURCES.has(source) && arcadeVariantSources.has(source)) continue;
+      if (IA_ARCADE_VARIANT_SOURCES.has(source)) arcadeVariantSources.add(source);
+    }
     seen.add(item.identifier);
     merged.push(item);
     if (merged.length >= candidateCount) break;
@@ -5937,9 +5984,22 @@ function mergeIaQueuePayload(primary, secondary, candidateCount, flags = {}) {
 
 function rotatePlayableIaShelf(payload, rotation, count) {
   const requested = Math.max(1, Number(count) || 5);
-  const playableCandidates = Array.isArray(payload && payload.candidateItems)
+  let playableCandidates = Array.isArray(payload && payload.candidateItems)
     ? payload.candidateItems.filter((item) => item && item.identifier && item.media && item.media.url)
     : [];
+  /* Archive often exposes several encodings of the same longplay. They are
+     valid files, but not distinct programs. Keep one file per verified arcade
+     source so a skip cannot appear to advance while replaying the same game. */
+  if (String(payload && payload.channel || "") === "152") {
+    const seenVariantSources = new Set();
+    playableCandidates = playableCandidates.filter((item) => {
+      const source = String(item.sourceIdentifier || item.identifier || "").split("::")[0];
+      if (!IA_ARCADE_VARIANT_SOURCES.has(source)) return true;
+      if (seenVariantSources.has(source)) return false;
+      seenVariantSources.add(source);
+      return true;
+    });
+  }
   const animationWindow = IA_FULL_WINDOW_ANIMATION_CHANNELS.has(String(payload && payload.channel || ""));
   /* Animation shelves are deliberately assembled from several recovery rails.
      Those rails can arrive in a different order as Archive responses finish,

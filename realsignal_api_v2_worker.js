@@ -12,7 +12,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "4.1.154-ia-public-shelf-contract";
+const V3_RELEASE = "4.1.155-ia-deep-audit";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -59,6 +59,11 @@ const IA_MIN_ROLLING_CATALOG_DEPTH = 15;
    D1 history contained old genreVerified flags from before the current rules. */
 const IA_DEPTH_REPAIR_LANES = new Set([
   "15", "18", "21", "114", "200", "203", "214", "501", "502", "507", "704", "705", "706", "921",
+  /* v4.1.155 depth audit: these lanes still had stale D1 rows that were
+     admitted by an old genreVerified flag even when the current profile would
+     reject them. Re-score them before fallback/guide selection while the
+     relay's verified file banks refill the catalog. */
+  "3", "11", "20", "66", "81", "118", "212", "500", "902", "905", "906", "907", "914", "929",
 ]);
 /* Some IA collections store the genre in the series/film title rather than
    the child filename. These are deliberately lane-specific aliases for the

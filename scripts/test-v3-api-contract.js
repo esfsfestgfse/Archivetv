@@ -34,7 +34,7 @@ const { pathToFileURL } = require('node:url');
   assert.equal(health.status, 200);
   const healthBody = await health.json();
   assert.equal(healthBody.apiVersion, 'v3');
-  assert.equal(healthBody.release, '4.1.91-ia-long-tail-cache-bust');
+  assert.equal(healthBody.release, '4.1.92-ia-repeat-lane-depth');
   assert.ok(healthBody.capabilities.includes('server-telemetry'));
   assert.ok(healthBody.capabilities.includes('verified-guide'));
   assert.ok(healthBody.capabilities.includes('custom-channel-manifests'));

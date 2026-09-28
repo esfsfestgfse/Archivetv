@@ -89,7 +89,7 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
    warmup back onto the channel-change path. */
 const IA_STRICT_CATALOG_CANDIDATE_MAX = 128;
 const IA_CATALOG_CANDIDATE_MAX = 96;
-const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v13-long-tail";
+const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v14-repeat-lanes";
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
@@ -101,10 +101,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v13-long-tail";
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v153";
+const IA_QUEUE_CACHE_VERSION = "v154";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v153";
+const IA_LAST_GOOD_CACHE_VERSION = "v154";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -235,7 +235,7 @@ function iaColdRescueEnabled(channel) {
    manufacturing catalog. The six animation lanes use the same direct-ready
    contract because their verified episode banks are deeper and more reliable
    than the cold Archive search race; background expansion still deepens them. */
-const IA_STRICT_RECOVERY_CHANNELS = new Set(["19", "80", "200", "920", "150", "153", "158", "704", "705", "706", "707", "708", "709"]);
+const IA_STRICT_RECOVERY_CHANNELS = new Set(["19", "74", "80", "82", "100", "200", "225", "234", "235", "511", "910", "918", "919", "920", "928", "150", "153", "158", "704", "705", "706", "707", "708", "709"]);
 function iaStrictRecoveryEnabled(channel) {
   return IA_STRICT_RECOVERY_CHANNELS.has(String(channel));
 }
@@ -2156,6 +2156,8 @@ const IA_LONG_TAIL_EXPANSIONS = Object.freeze({
     iaDirectRecovery("youtube-jDrGqftxD8g", "youtube-jDrGqftxD8g", "jDrGqftxD8g.mp4", "Young Viking Goddess Alone in Off-Grid Wilderness", "wilderness camping hiking outdoor recreation", 2022),
     iaDirectRecovery("mendocamping", "mendocamping", "mendocamping.mp4", "Mendocino Camping", "camping wilderness outdoor recreation", 2010),
     iaDirectRecovery("098403", "098403", "098403.mp4", "Wisconsin Hiking and Fishing Home Movie", "hiking trail outdoor recreation wilderness", 1949),
+    iaDirectRecovery("denaliwilderness::denaliwilderness.mp4", "denaliwilderness", "denaliwilderness.mp4", "Denali Wilderness", "camping hiking wilderness outdoor recreation nature travel television", 1982),
+    iaDirectRecovery("bbrtvmev-Sailing_on_Moosehead_Lake_Ice::Sailing_on_Moosehead_Lake_Ice.HD.mp4", "bbrtvmev-Sailing_on_Moosehead_Lake_Ice", "Sailing_on_Moosehead_Lake_Ice.HD.mp4", "Sailing on Moosehead Lake Ice", "camping wilderness outdoor recreation winter travel television", 2021),
   ],
   "900": [
     iaDirectRecovery("07.08.16TheKINDAtMartinsDowntown::01 China ryder.mp3", "07.08.16TheKINDAtMartinsDowntown", "01 China ryder.mp3", "the KIND — Live at Martin's Downtown", "rock live concert music", 2016, "audio"),
@@ -2400,6 +2402,10 @@ const IA_LONG_TAIL_EXPANSIONS_EXTRA = Object.freeze({
     iaDirectRecovery("Jeff_Richards_Comedy_Special_-_New_York_New_York::Jeff_Richards_Comedy_Special_-_New_York_New_York.mp4", "Jeff_Richards_Comedy_Special_-_New_York_New_York", "Jeff_Richards_Comedy_Special_-_New_York_New_York.mp4", "Jeff Richards — New York, New York", "stand-up comedy television comedy performance live comedy", 2010),
     iaDirectRecovery("hyperbolic-matthew-broussard-full-comedy-special::HYPERBOLIC   Matthew Broussard   FULL COMEDY SPECIAL.ia.mp4", "hyperbolic-matthew-broussard-full-comedy-special", "HYPERBOLIC   Matthew Broussard   FULL COMEDY SPECIAL.ia.mp4", "Matthew Broussard — Hyperbolic", "stand-up comedy television comedy performance live comedy", 2016),
     iaDirectRecovery("fptvar-Improv_Comedy_Troupe_on_FPTV_New_Year_s_Day_Special_2022::Improv_Comedy_Troupe_on_FPTV_New_Year_s_Day_Special_2022.mp4", "fptvar-Improv_Comedy_Troupe_on_FPTV_New_Year_s_Day_Special_2022", "Improv_Comedy_Troupe_on_FPTV_New_Year_s_Day_Special_2022.mp4", "Improv Comedy Troupe — New Year's Day Special", "improv comedy television comedy performance live comedy", 2022),
+    iaDirectRecovery("lee-evans-collection::1. Live At Her Majesty's Theatre (1994).mp4", "lee-evans-collection", "1. Live At Her Majesty's Theatre (1994).mp4", "Lee Evans — Live at Her Majesty's Theatre", "stand-up comedy comedy special live comedy performance", 1994),
+    iaDirectRecovery("lee-evans-collection::2. Live From The West End (1995).mp4", "lee-evans-collection", "2. Live From The West End (1995).mp4", "Lee Evans — Live from the West End", "stand-up comedy comedy special live comedy performance", 1995),
+    iaDirectRecovery("lee-evans-collection::3. Different Planet Tour (1996).mp4", "lee-evans-collection", "3. Different Planet Tour (1996).mp4", "Lee Evans — Different Planet Tour", "stand-up comedy comedy special live comedy performance", 1996),
+    iaDirectRecovery("GeorgeLopezWhyYouCryingFullStandUpComedyShowLive::George Lopez - Why You Crying (Full Stand Up Comedy Show Live).mp4", "GeorgeLopezWhyYouCryingFullStandUpComedyShowLive", "George Lopez - Why You Crying (Full Stand Up Comedy Show Live).mp4", "George Lopez — Why You Crying", "stand-up comedy comedy special live comedy performance", 2007),
   ],
   /* v4.1.58 latency repair: Prelinger Vault already had a valid five-film
      fallback bank, but each cold start had to fetch Archive metadata before
@@ -2573,6 +2579,11 @@ const IA_LONG_TAIL_EXPANSIONS_EXTRA = Object.freeze({
     iaDirectRecovery("the-day-the-earth-stood-still-o-1951-o-colorized-version::The Day the Earth Stood Still (1951 - Colorized) - Michael Rennie.ia.mp4", "the-day-the-earth-stood-still-o-1951-o-colorized-version", "The Day the Earth Stood Still (1951 - Colorized) - Michael Rennie.ia.mp4", "The Day the Earth Stood Still", "science fiction film sci-fi space alien invasion classic movie feature film", 1951),
     iaDirectRecovery("turner_video_204::204.ia.mp4", "turner_video_204", "204.ia.mp4", "Turner Sci-Fi Feature 204", "science fiction film sci-fi space alien invasion feature film", 1984),
     iaDirectRecovery("it-came-from-outer-space-1953-svengoolie::It Came from Outer Space 1953 Svengoolie.MP4", "it-came-from-outer-space-1953-svengoolie", "It Came from Outer Space 1953 Svengoolie.MP4", "It Came from Outer Space", "science fiction film sci-fi space alien invasion classic movie feature film", 1953),
+    iaDirectRecovery("VoyagetothePlanetofPrehistoricWomen::VoyagetothePlanetofPrehistoricWomen_512kb.mp4", "VoyagetothePlanetofPrehistoricWomen", "VoyagetothePlanetofPrehistoricWomen_512kb.mp4", "Voyage to the Planet of Prehistoric Women", "science fiction film sci-fi space alien invasion creature feature movie", 1967),
+    iaDirectRecovery("robot-monster-1953::Robot Monster (1953).mp4", "robot-monster-1953", "Robot Monster (1953).mp4", "Robot Monster", "science fiction film sci-fi space alien invasion monster movie feature film", 1953),
+    iaDirectRecovery("giant-beast-planet::Giant Beast Planet.ia.mp4", "giant-beast-planet", "Giant Beast Planet.ia.mp4", "Giant Beast Planet", "science fiction film sci-fi space alien invasion creature feature movie", 1965),
+    iaDirectRecovery("GodzillaThingRedMenace::Godzilla vs. the Thing - Red Menace Reconstruction.mp4", "GodzillaThingRedMenace", "Godzilla vs. the Thing - Red Menace Reconstruction.mp4", "Godzilla vs. the Thing", "science fiction film sci-fi space monster movie kaiju feature film", 1964),
+    iaDirectRecovery("mothra-1961-4-k-remaster-w-english-subtitles::MOTHRA (1961) 4K Remaster W: English Subtitles.ia.mp4", "mothra-1961-4-k-remaster-w-english-subtitles", "MOTHRA (1961) 4K Remaster W: English Subtitles.ia.mp4", "Mothra", "science fiction film sci-fi space monster movie kaiju feature film", 1961),
   ],
   "235": [
     iaDirectRecovery("DWqXJsGsN1O95wCYtpndXJ6cOLzMUI::tmpqq96av61.mp4", "DWqXJsGsN1O95wCYtpndXJ6cOLzMUI", "tmpqq96av61.mp4", "Down Under — In Search of Australia", "travelogue road trip travel film geography culture documentary outdoors", 1971),
@@ -2585,11 +2596,29 @@ const IA_LONG_TAIL_EXPANSIONS_EXTRA = Object.freeze({
     iaDirectRecovery("DragnetTheBigHitRunKiller::DragnetTheBigHitRunKiller.mp4", "DragnetTheBigHitRunKiller", "DragnetTheBigHitRunKiller.mp4", "Dragnet — The Big Hit-Run Killer", "detective television dragnet classic television police procedural detective show", 1954),
     iaDirectRecovery("hawaii-five-o-S2E3-480p::hawaii-five-o-S2E3-480p.mp4", "hawaii-five-o-S2E3-480p", "hawaii-five-o-S2E3-480p.mp4", "Hawaii Five-O — Season 2, Episode 3", "detective television police procedural classic television mystery show", 1968),
     iaDirectRecovery("columbo-pilot-episodes::1 - Prescription Murder.ia.mp4", "columbo-pilot-episodes", "1 - Prescription Murder.ia.mp4", "Columbo — Prescription Murder", "detective television police procedural classic television mystery show", 1968),
+    iaDirectRecovery("Dragnet1951::Dragnet/Season 1/Dragnet (1951) - S01E01 - The Human Bomb.mp4", "Dragnet1951", "Dragnet/Season 1/Dragnet (1951) - S01E01 - The Human Bomb.mp4", "Dragnet — The Human Bomb", "detective television dragnet classic television police procedural detective show", 1951),
+    iaDirectRecovery("Dragnet1951::Dragnet/Season 1/Dragnet (1951) - S01E02 - The Big Actor.mp4", "Dragnet1951", "Dragnet/Season 1/Dragnet (1951) - S01E02 - The Big Actor.mp4", "Dragnet — The Big Actor", "detective television dragnet classic television police procedural detective show", 1951),
+    iaDirectRecovery("Dragnet1951::Dragnet/Season 1/Dragnet (1951) - S01E05 - The Big Cast.mp4", "Dragnet1951", "Dragnet/Season 1/Dragnet (1951) - S01E05 - The Big Cast.mp4", "Dragnet — The Big Cast", "detective television dragnet classic television police procedural detective show", 1951),
+    iaDirectRecovery("hill.-street.-blues.-s-01::Hill.Street.Blues.S01E01.Hill.Street.Station.Pilot.mp4", "hill.-street.-blues.-s-01", "Hill.Street.Blues.S01E01.Hill.Street.Station.Pilot.mp4", "Hill Street Blues — Pilot", "detective television police procedural classic television mystery show", 1981),
+    iaDirectRecovery("hill.-street.-blues.-s-01::Hill.Street.Blues.S01E02.Presidential.Fever.mp4", "hill.-street.-blues.-s-01", "Hill.Street.Blues.S01E02.Presidential.Fever.mp4", "Hill Street Blues — Presidential Fever", "detective television police procedural classic television mystery show", 1981),
+    iaDirectRecovery("hill.street.blues.s-03::Hill.street.blues.s03e01.trial.by.fury.webrip.x264.mp4", "hill.street.blues.s-03", "Hill.street.blues.s03e01.trial.by.fury.webrip.x264.mp4", "Hill Street Blues — Trial by Fury", "detective television police procedural classic television mystery show", 1983),
+    iaDirectRecovery("hill.street.blues.s-05::Hill.street.blues.s05e01.mayo,.hold.the.pickle.sdtv.x264.mp4", "hill.street.blues.s-05", "Hill.street.blues.s05e01.mayo,.hold.the.pickle.sdtv.x264.mp4", "Hill Street Blues — Mayo, Hold the Pickle", "detective television police procedural classic television mystery show", 1985),
+    iaDirectRecovery("adam-12.-s-01::Adam-12.S01E01.Log.001.The.Impossible.Mission.mp4", "adam-12.-s-01", "Adam-12.S01E01.Log.001.The.Impossible.Mission.mp4", "Adam-12 — The Impossible Mission", "detective television police procedural classic television mystery show", 1968),
+    iaDirectRecovery("adam-12.-s-01::Adam-12.S01E02.Log.141.The.Color.TV.Bandit.mp4", "adam-12.-s-01", "Adam-12.S01E02.Log.141.The.Color.TV.Bandit.mp4", "Adam-12 — The Color TV Bandit", "detective television police procedural classic television mystery show", 1968),
+    iaDirectRecovery("columbo-pilot-episodes::2 - Ransom For A Dead Man.mp4", "columbo-pilot-episodes", "2 - Ransom For A Dead Man.mp4", "Columbo — Ransom for a Dead Man", "detective television police procedural classic television mystery show", 1971),
   ],
   "910": [
     iaDirectRecovery("la-rumba-pagana::A Puerto Rico - Sexteto Juventud.MP3", "la-rumba-pagana", "A Puerto Rico - Sexteto Juventud.MP3", "La Rumba Pagana — A Puerto Rico", "latin salsa rumba mambo latin music radio", 1940, "audio"),
     iaDirectRecovery("la-rumba-pagana::Brincando Cha Cha - Carmen Rivero.MP3", "la-rumba-pagana", "Brincando Cha Cha - Carmen Rivero.MP3", "La Rumba Pagana — Brincando Cha Cha", "latin salsa rumba mambo latin music radio", 1940, "audio"),
     iaDirectRecovery("la-rumba-pagana::Como Me Tratan - Chivirico Davila.mp3", "la-rumba-pagana", "Como Me Tratan - Chivirico Davila.mp3", "La Rumba Pagana — Como Me Tratan", "latin salsa rumba mambo latin music radio", 1940, "audio"),
+    iaDirectRecovery("la-rumba-pagana::Dilema - Johnny Ventura And His Orchestra.MP3", "la-rumba-pagana", "Dilema - Johnny Ventura And His Orchestra.MP3", "La Rumba Pagana — Dilema", "latin salsa rumba mambo latin music radio", 1940, "audio"),
+    iaDirectRecovery("la-rumba-pagana::El Timbal -  Chico Orefiche Con El Gran Combo.MP3", "la-rumba-pagana", "El Timbal -  Chico Orefiche Con El Gran Combo.MP3", "La Rumba Pagana — El Timbal", "latin salsa rumba mambo latin music radio", 1940, "audio"),
+    iaDirectRecovery("la-rumba-pagana::Entre Espumas - Pellin Rodriguez And his Orchestra.MP3", "la-rumba-pagana", "Entre Espumas - Pellin Rodriguez And his Orchestra.MP3", "La Rumba Pagana — Entre Espumas", "latin salsa rumba mambo latin music radio", 1940, "audio"),
+    iaDirectRecovery("la-rumba-pagana::Estas Equivocado - Roberto Roena And His Orchestra.MP3", "la-rumba-pagana", "Estas Equivocado - Roberto Roena And His Orchestra.MP3", "La Rumba Pagana — Estas Equivocado", "latin salsa rumba mambo latin music radio", 1940, "audio"),
+    iaDirectRecovery("la-rumba-pagana::Hay Algo En Ella - Adalberto Santiago.mp3", "la-rumba-pagana", "Hay Algo En Ella - Adalberto Santiago.mp3", "La Rumba Pagana — Hay Algo en Ella", "latin salsa rumba mambo latin music radio", 1940, "audio"),
+    iaDirectRecovery("la-rumba-pagana::Llego La Charanga - Tipica Novel (2).mp3", "la-rumba-pagana", "Llego La Charanga - Tipica Novel (2).mp3", "La Rumba Pagana — Llego La Charanga", "latin salsa rumba mambo latin music radio", 1940, "audio"),
+    iaDirectRecovery("la-rumba-pagana::Mi Desengaño - Roberto Roena.MP3", "la-rumba-pagana", "Mi Desengaño - Roberto Roena.MP3", "La Rumba Pagana — Mi Desengaño", "latin salsa rumba mambo latin music radio", 1940, "audio"),
+    iaDirectRecovery("la-rumba-pagana::Oreja Mocha - Argueso & His Orchestra.flac", "la-rumba-pagana", "Oreja Mocha - Argueso & His Orchestra.flac", "La Rumba Pagana — Oreja Mocha", "latin salsa rumba mambo latin music radio", 1940, "audio"),
   ],
   "928": [
     iaDirectRecovery("ca200_cjazz::106_Infinitus_Ensemble__The_Pink_Shoes_Of_Marie_Antoinette.mp3", "ca200_cjazz", "106_Infinitus_Ensemble__The_Pink_Shoes_Of_Marie_Antoinette.mp3", "Clinical Jazz — The Pink Shoes of Marie Antoinette", "jazz free jazz avant-garde contemporary jazz radio", 2008, "audio"),

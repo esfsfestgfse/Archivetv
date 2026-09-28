@@ -116,7 +116,12 @@ async function requestQueue(row, remainingMs, rotationOffset) {
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: { 'content-type': 'application/json', ...(isVersionedApiEndpoint ? { 'x-realsignal-session': soakSessionId } : {}) },
-      body: JSON.stringify({ channel: String(row.channel), count, rotation: (rotationBase + (Number(row.channel) || 0) + rotationOffset) % 4096, queries: row.queries, themeTerms: row.themeTerms || [], denyTerms: row.denyTerms || [], requiredTitleTerms: row.requiredTitleTerms || [], diversity: row.diversity || {}, mediaTypes: row.mediaTypes || ['movies'], themeMinScore: row.themeMinScore || 1, ...(isVersionedApiEndpoint ? { sessionId: soakSessionId } : {}) }),
+      /* A rotation is a viewer's successive Next/consumption cursor. Do not
+         add the channel number here: channel IDs have unrelated values and
+         can accidentally land on a multiple of the catalog length, making a
+         healthy lane look repeat-heavy. Use --rotation-base when a seeded
+         session is specifically being simulated. */
+      body: JSON.stringify({ channel: String(row.channel), count, rotation: (rotationBase + rotationOffset) % 4096, queries: row.queries, themeTerms: row.themeTerms || [], denyTerms: row.denyTerms || [], requiredTitleTerms: row.requiredTitleTerms || [], diversity: row.diversity || {}, mediaTypes: row.mediaTypes || ['movies'], themeMinScore: row.themeMinScore || 1, ...(isVersionedApiEndpoint ? { sessionId: soakSessionId } : {}) }),
       signal: controller.signal,
     });
     const body = await response.json();

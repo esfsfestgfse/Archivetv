@@ -90,7 +90,7 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
    warmup back onto the channel-change path. */
 const IA_STRICT_CATALOG_CANDIDATE_MAX = 128;
 const IA_CATALOG_CANDIDATE_MAX = 96;
-const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v59-underfill-deep-audit";
+const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v60-freshness-window-repair";
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
@@ -103,10 +103,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v59-under
    episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v216";
+const IA_QUEUE_CACHE_VERSION = "v217";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v216";
+const IA_LAST_GOOD_CACHE_VERSION = "v217";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -6379,7 +6379,20 @@ function applyIaFreshness(payload, ledger, count) {
     const current = payload.items.filter((item) => item && item.identifier && item.media && item.media.url);
     const currentIds = new Set(current.map((item) => String(item.identifier)));
     const freshCurrent = current.filter((item) => !excluded.has(String(item.identifier)));
-    const freshRemainder = playable.filter((item) => !currentIds.has(String(item.identifier)) && !excluded.has(String(item.identifier)));
+    /* Keep the catalog in the same window order that produced the current
+       shelf. The old code searched `playable` from index zero here. When a
+       rotated shelf had already been issued in the played ledger, that path
+       discarded the rotation and pulled the catalog's opening five back to
+       the front. Anchor the remaining candidates immediately after the
+       current window, then wrap once; freshness can skip played IDs without
+       erasing the selected rotation. */
+    const currentAnchor = current.length
+      ? playable.findIndex((item) => String(item && item.identifier || "") === String(current[0].identifier || ""))
+      : -1;
+    const windowOrderedPlayable = currentAnchor > 0
+      ? playable.slice(currentAnchor).concat(playable.slice(0, currentAnchor))
+      : playable;
+    const freshRemainder = windowOrderedPlayable.filter((item) => !currentIds.has(String(item.identifier)) && !excluded.has(String(item.identifier)));
     const repeatCurrent = current.filter((item) => excluded.has(String(item.identifier)));
     const selected = freshCurrent.concat(freshRemainder, repeatCurrent).slice(0, requested);
     const issued = selected.map(iaFreshnessRecord).filter(Boolean);

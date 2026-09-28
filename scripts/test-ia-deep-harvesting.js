@@ -13,7 +13,7 @@ function check(ok, message) {
   if (!ok) failures.push(message);
 }
 
-check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v190"/.test(relay), 'IA verified-window rotation invalidates the prior queue namespace');
+check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v191"/.test(relay), 'IA depth repair invalidates the prior queue namespace');
 check(/IA_STRICT_CATALOG_CANDIDATE_MAX\s*=\s*128/.test(relay) && /IA_CATALOG_CANDIDATE_MAX\s*=\s*96/.test(relay), 'every IA lane receives a larger rolling catalog budget');
 check(/IA_FRESHNESS_CANDIDATE_FLOOR\s*=\s*32/.test(relay) && /IA_FRESHNESS_LEDGER_MAX\s*=\s*96/.test(relay) && /IA_PLAYED_PATH/.test(relay), 'freshness history is large enough to cover several shelves and records actual plays');
 check(/IA_BACKGROUND_COLLECTION_EPISODES_PER_PARENT\s*=\s*20/.test(relay) && /IA_BACKGROUND_CONTAINER_EXPANSIONS\s*=\s*8/.test(relay), 'container harvesting covers multiple parents and episode positions');

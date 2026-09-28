@@ -102,10 +102,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v42-catal
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v190";
+const IA_QUEUE_CACHE_VERSION = "v191";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v190";
+const IA_LAST_GOOD_CACHE_VERSION = "v191";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -167,6 +167,11 @@ const IA_HOLIDAY_SEARCH_RAILS = Object.freeze({
   "707": { family: "television", terms: ["christmas", "xmas", "santa", "yuletide", "holiday", "nativity", "carol", "parade"], collections: ["classic_tv", "classic_tv_1940s", "classic_tv_1950s", "classic_tv_1960s", "classic_tv_1970s", "classic_tv_1980s", "television", "vhstvshows", "vhsvault", "prelinger", "avgeeks"] },
   "708": { family: "television", terms: ["halloween", "spooky", "monster", "ghost", "witch", "haunted", "frankenstein", "horror", "last drive in", "monstervision"], collections: ["classic_tv", "classic_tv_1950s", "classic_tv_1960s", "classic_tv_1970s", "classic_tv_1980s", "classic_tv_1990s", "television", "vhstvshows", "vhsvault", "prelinger", "SciFi_Horror"] },
   "709": { family: "television", terms: ["thanksgiving", "turkey", "harvest", "mayflower", "pilgrim", "gobble", "autumn", "fall", "parade", "turkey day"], collections: ["classic_tv", "classic_tv_1950s", "classic_tv_1960s", "classic_tv_1970s", "classic_tv_1980s", "classic_tv_1990s", "television", "vhstvshows", "vhsvault", "prelinger", "avgeeks"] },
+  /* Halloween Haunt is a feature-film lane, not a television or animation
+     lane. Give it title-first horror rails so the deep Archive film families
+     can hydrate behind the instant recovery shelf without inheriting the
+     holiday-TV gate. */
+  "701": { family: "film", terms: ["horror", "horror film", "horror movie", "dracula", "frankenstein", "monster", "vampire", "werewolf", "zombie", "witch", "haunted house", "gothic"], collections: ["SciFi_Horror", "feature_films", "feature_films_unsorted", "film_scifi", "silent_films", "moviesandfilms", "TheVideoCellarCollection"] },
 });
 /* Full-length stations should not inherit the short-form Archive lanes. These
    exceptions are intentional programming: commercials, trailers, short
@@ -179,7 +184,7 @@ const IA_GLOBAL_VIDEO_POLICY_VERSION = "v1";
    that still showed neighboring rotations reopening the same five programs.
    This is a bounded ordering change only: discovery, hydration, and editorial
    gates remain unchanged, while a channel advances by one public shelf. */
-const IA_FULL_WINDOW_ROTATION_CHANNELS = new Set(["2", "14", "53", "56", "59", "60", "61", "74", "76", "78", "79", "82", "100", "101", "103", "108", "120", "121", "134", "210", "215", "225", "234", "235", "511", "906", "910", "918", "919", "921", "928", "707", "708", "709"]);
+const IA_FULL_WINDOW_ROTATION_CHANNELS = new Set(["2", "14", "53", "55", "56", "59", "60", "61", "64", "74", "76", "78", "79", "82", "100", "101", "103", "108", "120", "121", "134", "210", "215", "225", "234", "235", "511", "701", "906", "910", "918", "919", "921", "928", "707", "708", "709"]);
 /* A short per-isolate burst cache absorbs repeat requests from a TV, phone,
    and guide opened in quick succession. It is intentionally tiny and
    short-lived: Cache API/KV remain the durable shelves, while this map only
@@ -340,6 +345,11 @@ const IA_CONFIRMED_REPAIR_CHANNELS = new Set([
   /* v4.1.50 serial confirmation: these three lanes still failed after burst
      pressure was removed, so they receive the bounded recovery path too. */
   "59", "65", "125",
+  /* v4.1.129 broad soak confirmation: these lanes either reopened a tiny
+     five-item bank or admitted a generic Archive title into the lane. Keep
+     their repair bounded to verified file-level banks and deeper background
+     discovery; do not relax the shared policy for healthy channels. */
+  "55", "64", "701",
 ]);
 for (const channel of IA_CONFIRMED_REPAIR_CHANNELS) {
   IA_STABLE_RESCUE_CHANNELS.add(channel);
@@ -2502,6 +2512,55 @@ const IA_LONG_TAIL_EXPANSIONS_EXTRA = Object.freeze({
      These banks are intentionally family-balanced and remain behind the
      normal theme, deny, runtime, media, and freshness gates. They widen the
      catalog without making the first tune wait for every Archive manifest. */
+  /* v4.1.129 broad-soak repair: Roller Derby & Wrestling was falling back to
+     a five-item wrestling shelf. Seed it with two genuine roller-derby
+     broadcasts plus long-form WCE/NJPW collection files. The collection
+     parents remain expansion anchors; the individual files are the instant
+     verified shelf. */
+  "55": [
+    iaDirectRecovery("1949-RollerDerby-NewYorkVsPhiladelphia::1949-RollerDerby-NewYorkVsPhiladelphia.mp4", "1949-RollerDerby-NewYorkVsPhiladelphia", "1949-RollerDerby-NewYorkVsPhiladelphia.mp4", "Roller Derby — New York vs. Philadelphia (1949)", "roller derby professional sports broadcast vintage sports television", 1949, "video", 2076),
+    iaDirectRecovery("1949-RollerDerby-NewJerseyVsPhiladelphia::1949-RollerDerby-NewJerseyVsPhiladelphia.mp4", "1949-RollerDerby-NewJerseyVsPhiladelphia", "1949-RollerDerby-NewJerseyVsPhiladelphia.mp4", "Roller Derby — New Jersey vs. Philadelphia (1949)", "roller derby professional sports broadcast vintage sports television", 1949, "video", 1947),
+    iaDirectRecovery("wce93::01 - April 6th 1993.mp4", "wce93", "01 - April 6th 1993.mp4", "WCE Wrestling — April 6, 1993", "professional wrestling wrestling broadcast wrestling television sports", 1993, "video", 3002),
+    iaDirectRecovery("wce93::02 - April 13th 1993.mp4", "wce93", "02 - April 13th 1993.mp4", "WCE Wrestling — April 13, 1993", "professional wrestling wrestling broadcast wrestling television sports", 1993, "video", 3073),
+    iaDirectRecovery("wce96v3::01 - January 2nd.mp4", "wce96v3", "01 - January 2nd.mp4", "WCE Hardcore TV — January 2, 1996", "professional wrestling wrestling broadcast wrestling television sports", 1996, "video", 3192),
+    iaDirectRecovery("recdub94::01 - January 4th 1994.mp4", "recdub94", "01 - January 4th 1994.mp4", "WCE Wrestling — January 4, 1994", "professional wrestling wrestling broadcast wrestling television sports", 1994, "video", 3103),
+    iaDirectRecovery("recdub2000540::01 - January 1st 2000.mp4", "recdub2000540", "01 - January 1st 2000.mp4", "WCE Hardcore TV — January 1, 2000", "professional wrestling wrestling broadcast wrestling television sports", 2000, "video", 3207),
+    { identifier: "wce93", title: "WCE Wrestling — 1993 Collection", subject: "professional wrestling wrestling broadcast wrestling television sports", year: 1993 },
+    { identifier: "wce96v3", title: "WCE Hardcore TV — 1996 Collection", subject: "professional wrestling wrestling broadcast wrestling television sports", year: 1996 },
+    { identifier: "re-c-dub-1995-complete", title: "RE-C-DUB — 1995 Complete Wrestling Collection", subject: "professional wrestling wrestling broadcast wrestling television sports", year: 1995 },
+  ],
+  /* Trackside had admitted a generic movie marathon because “marathon” was
+     scored as a standalone genre token. These are metadata-verified,
+     long-form athletics files from the Archive's Rio Track and Field
+     collection; the profile gate below now requires real athletics language. */
+  "64": [
+    iaDirectRecovery("2016_Rio_Olympics_Track_and_Field::Athletics/2016-08-12/track-and-field-day-7-evening-720p.mp4", "2016_Rio_Olympics_Track_and_Field", "Athletics/2016-08-12/track-and-field-day-7-evening-720p.mp4", "Track & Field — Rio 2016 Day 7 Evening", "track and field athletics meet olympics sports broadcast", 2016, "video", 13543),
+    iaDirectRecovery("2016_Rio_Olympics_Track_and_Field::Athletics/2016-08-12/track-and-field-day-7-morning-720p.mp4", "2016_Rio_Olympics_Track_and_Field", "Athletics/2016-08-12/track-and-field-day-7-morning-720p.mp4", "Track & Field — Rio 2016 Day 7 Morning", "track and field athletics meet olympics sports broadcast", 2016, "video", 16264),
+    iaDirectRecovery("2016_Rio_Olympics_Track_and_Field::Athletics/2016-08-12/track-and-field-heptathlon-group-a-high-jump-432p.mp4", "2016_Rio_Olympics_Track_and_Field", "Athletics/2016-08-12/track-and-field-heptathlon-group-a-high-jump-432p.mp4", "Track & Field — Heptathlon High Jump A", "track and field athletics meet heptathlon high jump olympics sports broadcast", 2016, "video", 10762),
+    iaDirectRecovery("2016_Rio_Olympics_Track_and_Field::Athletics/2016-08-12/track-and-field-heptathlon-group-b-high-jump-432p.mp4", "2016_Rio_Olympics_Track_and_Field", "Athletics/2016-08-12/track-and-field-heptathlon-group-b-high-jump-432p.mp4", "Track & Field — Heptathlon High Jump B", "track and field athletics meet heptathlon high jump olympics sports broadcast", 2016, "video", 8480),
+    iaDirectRecovery("2016_Rio_Olympics_Track_and_Field::Athletics/2016-08-12/track-and-field-heptathlon-group-b-shot-put-432p.mp4", "2016_Rio_Olympics_Track_and_Field", "Athletics/2016-08-12/track-and-field-heptathlon-group-b-shot-put-432p.mp4", "Track & Field — Heptathlon Shot Put", "track and field athletics meet heptathlon shot put olympics sports broadcast", 2016, "video", 4672),
+    iaDirectRecovery("2016_Rio_Olympics_Track_and_Field::Athletics/2016-08-12/track-and-field-men-20km-race-walking-576p.mp4", "2016_Rio_Olympics_Track_and_Field", "Athletics/2016-08-12/track-and-field-men-20km-race-walking-576p.mp4", "Track & Field — Men's 20 km Race Walk", "track and field athletics meet race walking olympics sports broadcast", 2016, "video", 7531),
+    iaDirectRecovery("2016_Rio_Olympics_Track_and_Field::Athletics/2016-08-12/track-and-field-men-discus-qualification-432p.mp4", "2016_Rio_Olympics_Track_and_Field", "Athletics/2016-08-12/track-and-field-men-discus-qualification-432p.mp4", "Track & Field — Men's Discus Qualification", "track and field athletics meet discus olympics sports broadcast", 2016, "video", 10876),
+    iaDirectRecovery("this_is_your_life_jesse_owens::this_is_your_life_jesse_owens.mp4", "this_is_your_life_jesse_owens", "this_is_your_life_jesse_owens.mp4", "This Is Your Life — Jesse Owens", "track and field athletics history olympics sports television", 1960, "video", 1507),
+    { identifier: "2016_Rio_Olympics_Track_and_Field", title: "Rio 2016 — Track and Field Collection", subject: "track and field athletics meet olympics sports broadcast", year: 2016 },
+    { identifier: "Olympics.2012.BBC", title: "BBC Olympics 2012 — Athletics Collection", subject: "track and field athletics meet olympics sports broadcast", year: 2012 },
+  ],
+  /* Halloween Haunt was reaching the generic discovery path and sometimes
+     waited long enough to look dead. These long-form public Archive horror
+     films provide a real depth floor while the title-first horror rails grow
+     the rest of the catalog. */
+  "701": [
+    iaDirectRecovery("house_on_haunted_hill_ipod::house_on_haunted_hill.mp4", "house_on_haunted_hill_ipod", "house_on_haunted_hill.mp4", "House on Haunted Hill (1959)", "horror film classic horror haunted house feature film", 1959, "video", 4483),
+    iaDirectRecovery("BloodyPitOfHorror::BloodyPitOfHorror.mp4", "BloodyPitOfHorror", "BloodyPitOfHorror.mp4", "Bloody Pit of Horror (1965)", "horror film classic horror gothic horror feature film", 1965, "video", 4943),
+    iaDirectRecovery("Horror_Express::Horror_Express.mp4", "Horror_Express", "Horror_Express.mp4", "Horror Express (1973)", "horror film classic horror supernatural horror feature film", 1973, "video", 5286),
+    iaDirectRecovery("CarnivalofSouls::CarnivalOfSouls.mp4", "CarnivalofSouls", "CarnivalOfSouls.mp4", "Carnival of Souls (1962)", "horror film classic horror gothic horror feature film", 1962, "video", 4979),
+    iaDirectRecovery("The_Little_Shop_of_Horrors.mpeg::The_Little_Shop_of_Horrors.mp4", "The_Little_Shop_of_Horrors.mpeg", "The_Little_Shop_of_Horrors.mp4", "The Little Shop of Horrors (1960)", "horror film classic horror monster movie feature film", 1960, "video", 4350),
+    iaDirectRecovery("Night.Of.The.Living.Dead_1080p::NightOfTheLivingDead.mp4", "Night.Of.The.Living.Dead_1080p", "NightOfTheLivingDead.mp4", "Night of the Living Dead (1968)", "horror film classic horror zombie film feature film", 1968, "video", 5753),
+    iaDirectRecovery("white_zombie::white_zombie.mp4", "white_zombie", "white_zombie.mp4", "White Zombie (1932)", "horror film classic horror zombie film feature film", 1932, "video", 3919),
+    iaDirectRecovery("TheMostDangerousGame::TheMostDangerousGame.mp4", "TheMostDangerousGame", "TheMostDangerousGame.mp4", "The Most Dangerous Game (1932)", "horror film classic horror thriller feature film", 1932, "video", 3753),
+    iaDirectRecovery("Horror_Hotel::Horror_Hotel.mp4", "Horror_Hotel", "Horror_Hotel.mp4", "Horror Hotel (1960)", "horror film classic horror gothic horror feature film", 1960, "video", 4554),
+    iaDirectRecovery("TheGhostTrain::TheGhostTrain.mp4", "TheGhostTrain", "TheGhostTrain.mp4", "The Ghost Train (1941)", "horror film classic horror haunted house feature film", 1941, "video", 4882),
+  ],
   /* v4.1.51 serial certification: Diamond Time's broad search rails were
      still timing out, so seed it with verified full-game baseball files. The
      normal baseball theme, runtime, freshness, and hydration gates still

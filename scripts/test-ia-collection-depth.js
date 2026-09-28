@@ -50,7 +50,7 @@ for (const [channel, collection] of Object.entries(expectedRails)) {
 }
 
 const relay = fs.readFileSync(path.join(root, 'afterglow_ais_relay_worker.js'), 'utf8');
-check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v190"/.test(relay), 'Relay cache namespace is v190');
+check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v191"/.test(relay), 'Relay cache namespace is v191');
 check(/0411_Tornado_06_00_36_00::t0411_Tornado_06_00_36_00\.mp4/.test(relay) && /ShockTro1938::ShockTro1938\.mp4/.test(relay), 'News adds more direct disaster/newsreel rotation');
 check(/youtube--IJuW9rAskc::-IJuW9rAskc\.mp4/.test(relay) && /youtube-Ko9kzyqW-l8::Ko9kzyqW-l8\.mp4/.test(relay), 'Gear Head adds verified direct automotive review rotation');
 check(/top-gear-s15-bd::TOP GEAR SERIES 15 DISC 211\.mp4/.test(relay) && /top-gear-s15-bd::TOP GEAR SERIES 15 DISC 212\.mp4/.test(relay), 'Gear Head adds more direct Top Gear episode rotation');
@@ -61,7 +61,7 @@ check(/"59": \[/.test(relay) && /ctncrmn-Legion_Baseball_-_Maple_Grove_vs_Coon_R
 check(/"65": \[/.test(relay) && /wfktvme-Long_Lake_Ice_Fishing_Derby_2018/.test(relay) && /upland-hunting-volume-2-pheasants-and-labs/.test(relay), 'Sporting Life has verified fishing and hunting recovery');
 check(/"225": \[/.test(relay) && /hbo-def-comedy-jam-drew-fraser-lavelle-crawford-1995-most/.test(relay) && /sinbad_afrosbellbottoms/.test(relay), 'Uptown Comedy has verified decade-spanning stand-up recovery');
 check(/"204": \[/.test(relay) && /Doctorin1946::Doctorin1946\.mp4/.test(relay) && /Careofth1949::Careofth1949\.mp4/.test(relay), 'Prelinger Vault has direct playable recovery files for fast cold starts');
-check(/IA_FULL_WINDOW_ROTATION_CHANNELS\s*=\s*new Set\(\["2", "14", "53", "56", "59"/.test(relay), 'Network TV and Diamond Time advance by a full fresh shelf');
+check(/IA_FULL_WINDOW_ROTATION_CHANNELS\s*=\s*new Set\(\[[\s\S]*"55"[\s\S]*"64"[\s\S]*"701"/.test(relay), 'Network TV and repaired depth lanes advance by a full fresh shelf');
 check(!/IA_STRICT_RECOVERY_CHANNELS\s*=\s*new Set\(\["19", "59"/.test(relay) && /letvma-Annual_Agganis_All_Star_Baseball_Classic_June_25_2023/.test(relay), 'Diamond Time uses the rolling catalog with a ten-game verified first rail');
 check(/"227": \[/.test(relay) && /top-gear-complete-clarkson-hammond-may/.test(relay) && /BBC_20010916_043000_Top_Gear/.test(relay), 'Gear Head has a deeper verified automotive recovery bank');
 check(/IA_PROMOTED_ARCHIVE_BANKS/.test(relay) && /"243"/.test(relay) && /"244"/.test(relay), 'Only soak-approved archive families are promoted into the new Series Vault and Cartoon Reelhouse stations');
@@ -105,7 +105,7 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
   check(/\["Christmas Cartoons","Halloween Cartoons","Thanksgiving Cartoons"\][\s\S]*maxPerEra:2,maxPerLane:2,maxPerCreator:1,maxPerCollection:3,maxPerFamily:1/.test(source), `${file}: Holiday animation lanes use a wider freshness window`);
 }
 check(/IA_HOLIDAY_ANIMATION_CHANNELS\s*=\s*new Set\(\["704", "705", "706"\]\)/.test(relay) && /Deterministic animation shelves have an explicit catalog window/.test(relay) && /stablePlayableCandidates/.test(relay), 'Holiday animation rotations preserve full fresh catalog windows');
-check(/IA_FULL_WINDOW_ANIMATION_CHANNELS\s*=\s*new Set\(\["150", "153", "158", "704", "705", "706"\]\)/.test(relay) && /IA_HOLIDAY_TV_CHANNELS\s*=\s*new Set\(\["707", "708", "709"\]\)/.test(relay) && /IA_FULL_WINDOW_ROTATION_CHANNELS\s*=\s*new Set\(\["2", "14", "53", "56", "59", "60", "61", "74", "76", "78", "79", "82", "100", "101", "103", "108", "120", "121", "134", "210", "215", "225", "234", "235", "511", "906", "910", "918", "919", "921", "928", "707", "708", "709"\]\)/.test(relay) && /const shelfStep = fullWindow \? 5 : 1/.test(relay) && /strictCandidateCount/.test(relay), 'Animation, holiday TV, repeat-heavy, and radio lanes use full fresh windows with background expansion');
+check(/IA_FULL_WINDOW_ANIMATION_CHANNELS\s*=\s*new Set\(\["150", "153", "158", "704", "705", "706"\]\)/.test(relay) && /IA_HOLIDAY_TV_CHANNELS\s*=\s*new Set\(\["707", "708", "709"\]\)/.test(relay) && /IA_FULL_WINDOW_ROTATION_CHANNELS\s*=\s*new Set\(\[[\s\S]*"55"[\s\S]*"64"[\s\S]*"701"[\s\S]*"707"[\s\S]*"709"\]\)/.test(relay) && /const shelfStep = fullWindow \? 5 : 1/.test(relay) && /strictCandidateCount/.test(relay), 'Animation, holiday TV, repaired repeat-heavy, and radio lanes use full fresh windows with background expansion');
 check(/preserveRotatedFallback/.test(relay) && /second pass must preserve the already/.test(relay), 'Freshness preserves a rotated fallback shelf after the unseen catalog is exhausted');
 check(/cartoon-sushi-s-2-episode-37-christmas-special-sd-480p/.test(relay) && /kippers-brilliant-cartoon-party-episode-21-christmas-special/.test(relay), 'Christmas animation bank includes additional distinct verified specials');
 check(/"707": \[[\s\S]*Christmas TV · Rockhampton/.test(relay) && /"708": \[[\s\S]*Halloween TV · MonsterVision/.test(relay) && /"709": \[[\s\S]*Thanksgiving TV · Macy's Thanksgiving Day Parade/.test(relay), 'Holiday live-action TV stations have dedicated verified recovery banks');

@@ -1699,7 +1699,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="4.1.93-mobile-ia-rotation-order";
+window.__ATV_BUILD="4.1.94-mobile-ia-rotation-window";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -7368,8 +7368,8 @@ function iaMarkProgramFailed(id){if(id)iaProgramFailures[id]=Date.now()+IA_PROGR
    the dial into a background download farm. */
 var iaMediaWarmers={}, iaMediaWarmerOrder=[], iaMediaWarmByChannel={}, iaWarmWanted={}, IA_MEDIA_WARM_MAX=6;
 function iaQueueKey(ch){return String((ch&&ch.num)||((ch&&ch.nm)||""));}
-function iaQueueRotationFor(ch){var key=iaQueueKey(ch);if(!Object.prototype.hasOwnProperty.call(iaQueueRotation,key)){var hash=iaRotationSessionSeed;for(var i=0;i<key.length;i++)hash=((hash*33)^key.charCodeAt(i))>>>0;iaQueueRotation[key]=hash%128;}return Math.max(0,Math.min(127,Math.floor(Number(iaQueueRotation[key])||0)));}
-function iaAdvanceQueueRotation(ch){var key=iaQueueKey(ch);iaQueueRotation[key]=(iaQueueRotationFor(ch)+1)%128;store.set("iaQueueRotation",iaQueueRotation);}
+function iaQueueRotationFor(ch){var key=iaQueueKey(ch);if(!Object.prototype.hasOwnProperty.call(iaQueueRotation,key)){var hash=iaRotationSessionSeed;for(var i=0;i<key.length;i++)hash=((hash*33)^key.charCodeAt(i))>>>0;iaQueueRotation[key]=hash%128;}return Math.max(0,Math.min(4095,Math.floor(Number(iaQueueRotation[key])||0)));}
+function iaAdvanceQueueRotation(ch){var key=iaQueueKey(ch);iaQueueRotation[key]=(iaQueueRotationFor(ch)+1)%4096;store.set("iaQueueRotation",iaQueueRotation);}
 function iaMediaWarmKey(ch,item){return iaQueueKey(ch)+":"+String(item&&item.identifier||item&&item.id||"");}
 function releaseIAMediaWarmer(key,keepElement){var w=iaMediaWarmers[key];if(!w)return null;delete iaMediaWarmers[key];if(iaMediaWarmByChannel[w.channel]===key)delete iaMediaWarmByChannel[w.channel];clearTimeout(w.timer);var i=iaMediaWarmerOrder.indexOf(key);if(i>=0)iaMediaWarmerOrder.splice(i,1);if(!keepElement){try{w.el.pause();w.el.removeAttribute("src");w.el.load();}catch(e){}}return w.el;}
 function takeIAMediaWarmer(ch,item){return releaseIAMediaWarmer(iaMediaWarmKey(ch,item),true);}

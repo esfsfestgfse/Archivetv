@@ -41,7 +41,7 @@ const concurrency = Math.max(1, Math.min(12, Number(option('--concurrency', '2')
 const timeoutMs = Math.max(5000, Number(option('--timeout-ms', '35000')) || 35000);
 const depthTimeoutMs = Math.max(1000, Math.min(timeoutMs, Number(option('--depth-timeout-ms', '8000')) || 8000));
 const pollMs = Math.max(250, Number(option('--poll-ms', '1250')) || 1250);
-const rotationBase = Math.max(0, Math.min(127, Number(option('--rotation-base', '0')) || 0));
+const rotationBase = Math.max(0, Math.min(4095, Number(option('--rotation-base', '0')) || 0));
 const rotations = Math.max(1, Math.min(3, Number(option('--rotations', '1')) || 1));
 /* Mirror the browser's stale-shelf refresh window when investigating whether
    a warm fallback actually turns into a fresh rotation. Defaults to zero so
@@ -116,7 +116,7 @@ async function requestQueue(row, remainingMs, rotationOffset) {
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: { 'content-type': 'application/json', ...(isVersionedApiEndpoint ? { 'x-realsignal-session': soakSessionId } : {}) },
-      body: JSON.stringify({ channel: String(row.channel), count, rotation: (rotationBase + (Number(row.channel) || 0) + rotationOffset) % 128, queries: row.queries, themeTerms: row.themeTerms || [], denyTerms: row.denyTerms || [], requiredTitleTerms: row.requiredTitleTerms || [], diversity: row.diversity || {}, mediaTypes: row.mediaTypes || ['movies'], themeMinScore: row.themeMinScore || 1, ...(isVersionedApiEndpoint ? { sessionId: soakSessionId } : {}) }),
+      body: JSON.stringify({ channel: String(row.channel), count, rotation: (rotationBase + (Number(row.channel) || 0) + rotationOffset) % 4096, queries: row.queries, themeTerms: row.themeTerms || [], denyTerms: row.denyTerms || [], requiredTitleTerms: row.requiredTitleTerms || [], diversity: row.diversity || {}, mediaTypes: row.mediaTypes || ['movies'], themeMinScore: row.themeMinScore || 1, ...(isVersionedApiEndpoint ? { sessionId: soakSessionId } : {}) }),
       signal: controller.signal,
     });
     const body = await response.json();

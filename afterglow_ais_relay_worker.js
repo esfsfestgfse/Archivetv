@@ -102,10 +102,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v42-catal
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v195";
+const IA_QUEUE_CACHE_VERSION = "v196";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v195";
+const IA_LAST_GOOD_CACHE_VERSION = "v196";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -6225,7 +6225,6 @@ function mergeIaQueuePayload(primary, secondary, candidateCount, flags = {}) {
 function rotatePlayableIaShelf(payload, rotation, count) {
   const requested = Math.max(1, Number(count) || 5);
   const normalizedRotation = Math.abs(Number(rotation) || 0);
-  if (payload && payload.rotationApplied === true && Number(payload.rotation) === normalizedRotation && Array.isArray(payload.items) && payload.items.length >= requested) return payload;
   let playableCandidates = Array.isArray(payload && payload.candidateItems)
     ? payload.candidateItems.filter((item) => item && item.identifier && item.media && item.media.url)
     : [];
@@ -6279,6 +6278,21 @@ function rotatePlayableIaShelf(payload, rotation, count) {
   const stablePlayableCandidates = animationWindow
     ? playableCandidates.slice().sort((a, b) => String(a.identifier).localeCompare(String(b.identifier)))
     : playableCandidates;
+  /* A cached fallback can carry the same rotation number while its public
+     shelf still contains the prior opening five. Only accept the fast return
+     when the first item actually matches the requested window in the merged,
+     deduplicated catalog. Otherwise rebuild the shelf from that catalog; this
+     is what lets a slow lane keep using its verified recovery bank instead of
+     reopening its stale last-good shelf. */
+  const expectedIndex = stablePlayableCandidates.length > 1
+    ? (normalizedRotation * requested) % stablePlayableCandidates.length
+    : 0;
+  const expectedFirstId = stablePlayableCandidates[expectedIndex] && String(stablePlayableCandidates[expectedIndex].identifier || "");
+  const actualFirstId = payload && Array.isArray(payload.items) && payload.items[0]
+    ? String(payload.items[0].identifier || "")
+    : "";
+  if (payload && payload.rotationApplied === true && Number(payload.rotation) === normalizedRotation && Array.isArray(payload.items) && payload.items.length >= requested &&
+      (!expectedFirstId || expectedFirstId === actualFirstId)) return payload;
   const source = stablePlayableCandidates.length >= requested
     ? stablePlayableCandidates
     : (Array.isArray(payload && payload.items) ? payload.items : []);
@@ -6990,7 +7004,7 @@ async function getIaQueue(request, url, env, ctx) {
       const freshWarm = applyIaFreshness(warmLastGood, freshnessLedger, count);
       rememberIaFreshness(env, channel, freshWarm.issued, ctx);
       let warmFallback = {
-        ...rotatePlayableIaShelf(freshWarm.payload, sameRotation ? 0 : rotation, count),
+        ...rotatePlayableIaShelf(freshWarm.payload, rotation, count),
         rotation,
         fallback: true,
         stale: true,

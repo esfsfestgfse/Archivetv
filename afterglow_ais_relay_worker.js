@@ -90,7 +90,7 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
    warmup back onto the channel-change path. */
 const IA_STRICT_CATALOG_CANDIDATE_MAX = 128;
 const IA_CATALOG_CANDIDATE_MAX = 96;
-const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v45-long-tail-rails";
+const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v46-full-window-rails";
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
@@ -102,10 +102,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v45-long-
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v202";
+const IA_QUEUE_CACHE_VERSION = "v203";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v202";
+const IA_LAST_GOOD_CACHE_VERSION = "v203";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -184,7 +184,7 @@ const IA_GLOBAL_VIDEO_POLICY_VERSION = "v1";
    that still showed neighboring rotations reopening the same five programs.
    This is a bounded ordering change only: discovery, hydration, and editorial
    gates remain unchanged, while a channel advances by one public shelf. */
-const IA_FULL_WINDOW_ROTATION_CHANNELS = new Set(["2", "14", "53", "55", "56", "59", "60", "61", "64", "74", "76", "78", "79", "82", "100", "101", "103", "107", "108", "120", "121", "128", "134", "210", "215", "217", "225", "233", "234", "235", "241", "511", "701", "906", "910", "918", "919", "921", "928", "707", "708", "709"]);
+const IA_FULL_WINDOW_ROTATION_CHANNELS = new Set(["2", "14", "53", "55", "56", "59", "60", "61", "64", "74", "76", "78", "79", "82", "100", "101", "103", "107", "108", "113", "120", "121", "123", "128", "134", "210", "215", "217", "225", "233", "234", "235", "241", "511", "701", "906", "910", "917", "918", "919", "921", "928", "707", "708", "709"]);
 /* A short per-isolate burst cache absorbs repeat requests from a TV, phone,
    and guide opened in quick succession. It is intentionally tiny and
    short-lived: Cache API/KV remain the durable shelves, while this map only

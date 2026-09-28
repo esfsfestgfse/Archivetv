@@ -102,10 +102,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v42-catal
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v196";
+const IA_QUEUE_CACHE_VERSION = "v197";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v196";
+const IA_LAST_GOOD_CACHE_VERSION = "v197";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -5724,6 +5724,25 @@ function applyIaFreshness(payload, ledger, count) {
       excludedCount: 0,
     };
   }
+  /* Any shelf explicitly produced by rotatePlayableIaShelf has already been
+     selected from the rolling catalog. The generic freshness ordering below
+     is allowed to choose an unseen replacement, but it must not reset that
+     shelf to candidateItems[0..n] when the current window is still fresh. */
+  if (payload && payload.rotationApplied === true && Array.isArray(payload.items) && payload.items.length >= requested && playable.length >= requested) {
+    const current = payload.items.filter((item) => item && item.identifier && item.media && item.media.url);
+    const currentIds = new Set(current.map((item) => String(item.identifier)));
+    const freshCurrent = current.filter((item) => !excluded.has(String(item.identifier)));
+    const freshRemainder = playable.filter((item) => !currentIds.has(String(item.identifier)) && !excluded.has(String(item.identifier)));
+    const repeatCurrent = current.filter((item) => excluded.has(String(item.identifier)));
+    const selected = freshCurrent.concat(freshRemainder, repeatCurrent).slice(0, requested);
+    const issued = selected.map(iaFreshnessRecord).filter(Boolean);
+    return {
+      payload: { ...payload, items: selected, ready: Math.min(requested, selected.length) },
+      issued,
+      freshCount: freshCurrent.length + freshRemainder.length,
+      excludedCount: Math.max(0, current.length - freshCurrent.length),
+    };
+  }
   /* Holiday catalogs arrive already rotated from the deep family shelf. Do
      not run them back through the generic candidate ordering: that would
      erase the full-shelf step and make Thanksgiving/Christmas/Halloween look
@@ -7004,7 +7023,7 @@ async function getIaQueue(request, url, env, ctx) {
       const freshWarm = applyIaFreshness(warmLastGood, freshnessLedger, count);
       rememberIaFreshness(env, channel, freshWarm.issued, ctx);
       let warmFallback = {
-        ...rotatePlayableIaShelf(freshWarm.payload, rotation, count),
+        ...rotatePlayableIaShelf({ ...freshWarm.payload, channel }, rotation, count),
         rotation,
         fallback: true,
         stale: true,

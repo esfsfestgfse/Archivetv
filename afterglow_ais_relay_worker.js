@@ -90,7 +90,7 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
    warmup back onto the channel-change path. */
 const IA_STRICT_CATALOG_CANDIDATE_MAX = 128;
 const IA_CATALOG_CANDIDATE_MAX = 96;
-const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v52-deep-sports-weather-banks";
+const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v53-long-tail-family-banks";
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
@@ -103,10 +103,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v52-deep-
    episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v209";
+const IA_QUEUE_CACHE_VERSION = "v210";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v209";
+const IA_LAST_GOOD_CACHE_VERSION = "v210";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -3817,6 +3817,14 @@ const IA_DEEP_HARVEST_BANKS = Object.freeze({
     iaDirectRecovery("horror-of-dracula::Horror of Dracula.mp4", "horror-of-dracula", "Horror of Dracula", "Horror of Dracula (1958)", "hammer horror hammer film british horror gothic horror classic horror cinema", 1958),
     iaDirectRecovery("the-mummy-1959::The Mummy 1959.mp4", "the-mummy-1959", "The Mummy 1959.mp4", "The Mummy (1959)", "hammer horror hammer film british horror gothic horror classic horror cinema", 1959),
     iaDirectRecovery("the-gorgon-1964::The Gorgon 1964.mp4", "the-gorgon-1964", "The Gorgon 1964.mp4", "The Gorgon (1964)", "hammer horror hammer film british horror gothic horror classic horror cinema", 1964),
+    iaDirectRecovery("hands-of-the-ripper-1971::Hands of the Ripper 1971.mp4", "hands-of-the-ripper-1971", "Hands of the Ripper 1971.mp4", "Hands of the Ripper (1971)", "hammer horror hammer film british horror gothic horror classic horror cinema", 1971, "video", 5123.41, 1206, 720),
+    iaDirectRecovery("the-reptile-1966::The Reptile (1966).ia.mp4", "the-reptile-1966", "The Reptile (1966).ia.mp4", "The Reptile (1966)", "hammer horror hammer film british horror gothic horror classic horror cinema", 1966, "video", 5412.35, 640, 360),
+    iaDirectRecovery("plague-of-the-zombies-1966_202508::Plague Of The Zombies 1966.mp4", "plague-of-the-zombies-1966_202508", "Plague Of The Zombies 1966.mp4", "Plague of the Zombies (1966)", "hammer horror hammer film british horror gothic horror classic horror cinema", 1966, "video", 5394.21, 1200, 720),
+    iaDirectRecovery("the-evil-of-frankenstein::The Evil of Frankenstein.m4v", "the-evil-of-frankenstein", "The Evil of Frankenstein.m4v", "The Evil of Frankenstein (1964)", "hammer horror hammer film british horror gothic horror classic horror cinema", 1964, "video", 5192.79, 1920, 1080),
+    iaDirectRecovery("the-devil-rides-out-1968_202510::The Devil Rides Out 1968.mp4", "the-devil-rides-out-1968_202510", "The Devil Rides Out 1968.mp4", "The Devil Rides Out (1968)", "hammer horror hammer film british horror gothic horror classic horror cinema", 1968, "video", 5762.58, 682, 384),
+    iaDirectRecovery("the-curse-of-the-werewolf-1961_202509::The Curse of the Werewolf 1961.mp4", "the-curse-of-the-werewolf-1961_202509", "The Curse of the Werewolf 1961.mp4", "The Curse of the Werewolf (1961)", "hammer horror hammer film british horror gothic horror classic horror cinema", 1961, "video", 5559.58, 714, 384),
+    iaDirectRecovery("the-two-faces-of-dr-jekyll-1960::The Two Faces of Dr Jekyll 1960.mp4", "the-two-faces-of-dr-jekyll-1960", "The Two Faces of Dr Jekyll 1960.mp4", "The Two Faces of Dr. Jekyll (1960)", "hammer horror hammer film british horror gothic horror classic horror cinema", 1960, "video", 5296.66, 682, 384),
+    iaDirectRecovery("the-vampire-lovers-1970_202608::The Vampire Lovers 1970.mp4", "the-vampire-lovers-1970_202608", "The Vampire Lovers 1970.mp4", "The Vampire Lovers (1970)", "hammer horror hammer film british horror gothic horror classic horror cinema", 1970, "video", 5481.82, 854, 480),
   ],
   "209": [
     iaDirectRecovery("f-14-tomcat-1988::F-14 Tomcat (1988).mp4", "f-14-tomcat-1988", "F-14 Tomcat (1988).mp4", "F-14 Tomcat (1988)", "aviation aircraft flight aviation history aviation documentary", 1988),
@@ -3840,6 +3848,14 @@ const IA_DEEP_HARVEST_BANKS = Object.freeze({
     iaDirectRecovery("098991::098991.mp4", "098991", "098991.mp4", "Arkansas Farm Home Movie (1950s)", "rural americana farm rural life agriculture countryside home movie", 1950),
     iaDirectRecovery("000427_202005::000427.ia.mp4", "000427_202005", "000427.ia.mp4", "Fairview Poultry Farm (1944)", "rural americana farm rural life agriculture countryside home movie", 1944),
     iaDirectRecovery("FundoinC1949::FundoinC1949_edit.mp4", "FundoinC1949", "FundoinC1949_edit.mp4", "Fundo in Chile (1949)", "rural americana farm rural life agriculture countryside documentary", 1949),
+    iaDirectRecovery("0520_American_Cowboy::0520_American_Cowboy_04_32_19_07_3mb.mp4", "0520_American_Cowboy", "0520_American_Cowboy_04_32_19_07_3mb.mp4", "American Cowboy (1950)", "rural americana farm rural life agriculture countryside cowboy ranch western documentary", 1950, "video", 1872.27, 640, 480),
+    iaDirectRecovery("ThisIsth1957::ThisIsth1957.mp4", "ThisIsth1957", "ThisIsth1957.mp4", "This Is the Dairy Industry (1957)", "rural americana farm rural life agriculture countryside dairy documentary", 1957, "video", 1330.7, 640, 480),
+    iaDirectRecovery("WhoShall1969::WhoShall1969.mp4", "WhoShall1969", "WhoShall1969.mp4", "Who Shall Reap? (1969)", "rural americana farm rural life agriculture countryside agriculture documentary", 1969, "video", 1682.25, 640, 480),
+    iaDirectRecovery("Canada-The_Prairie_Provinces::Canada-The_Prairie_Provinces_master.intros.mp4", "Canada-The_Prairie_Provinces", "Canada-The_Prairie_Provinces_master.intros.mp4", "Canada: The Prairie Provinces (1958)", "rural americana farm rural life agriculture countryside prairie documentary", 1958, "video", 945.07, 2048, 1536),
+    iaDirectRecovery("gov.archives.arc.47087::gov.archives.arc.47087_512kb.mp4", "gov.archives.arc.47087", "gov.archives.arc.47087_512kb.mp4", "A Rural Community: Holtville, Alabama (1945)", "rural americana farm rural life agriculture countryside community documentary", 1945, "video", 4082.05, 320, 240),
+    iaDirectRecovery("098992::098992.mov", "098992", "098992.mov", "Arkansas Farm Home Movie (1956)", "rural americana farm rural life agriculture countryside home movie", 1956, "video", 1149.94, 1920, 1080),
+    iaDirectRecovery("1669ModernTrendsinSwineProduction::1669ModernTrendsinSwineProduction.mp4", "1669ModernTrendsinSwineProduction", "1669ModernTrendsinSwineProduction.mp4", "Modern Trends in Swine Production (1961)", "rural americana farm rural life agriculture countryside livestock documentary", 1961, "video", 964.21, 640, 480),
+    iaDirectRecovery("Democrac1940::Democrac1940.mp4", "Democrac1940", "Democrac1940.mp4", "Democracy at Work in Rural Puerto Rico (1940)", "rural americana farm rural life agriculture countryside rural community documentary", 1940, "video", 1203.34, 640, 480),
   ],
   "215": [
     iaDirectRecovery("wvual-WVUA_Severe_Weather_4_11_13_Part_1::WVUA_Severe_Weather_4_11_13_Part_1.mp4", "wvual-WVUA_Severe_Weather_4_11_13_Part_1", "WVUA_Severe_Weather_4_11_13_Part_1.mp4", "WVUA Severe Weather (2013)", "storm chasing tornado severe weather documentary meteorology television", 2013, "video", 2629.87, 854, 480),
@@ -3861,6 +3877,8 @@ const IA_DEEP_HARVEST_BANKS = Object.freeze({
     iaDirectRecovery("70-138::70-138.mp4", "70-138", "70-138.mp4", "Making It Tough", "automobile industry automobile manufacturing assembly line motor car automotive history documentary", 1940),
     iaDirectRecovery("mcciaz-Business_Beat_-_Jones_Auto_Sales::Business_Beat_-_Jones_Auto_Sales.mp4", "mcciaz-Business_Beat_-_Jones_Auto_Sales", "Business_Beat_-_Jones_Auto_Sales.mp4", "Business Beat: Jones Auto Sales", "automobile industry automobile manufacturing car culture motor car automotive documentary", 1980),
     iaDirectRecovery("McLaughlin_Car_Truck_Repair::McLaughlin_Car_Truck_Repair.mp4", "McLaughlin_Car_Truck_Repair", "McLaughlin_Car_Truck_Repair.mp4", "McLaughlin Car and Truck Repair", "automobile industry automobile manufacturing motor car automotive history documentary", 1980),
+    iaDirectRecovery("masterhandscomplete4kh264::Master_Hands_complete_4K_h264.mov", "masterhandscomplete4kh264", "Master_Hands_complete_4K_h264.mov", "Master Hands (1936) · 4K Restoration", "automobile industry automobile manufacturing assembly line motor car automotive history documentary factory film", 1936, "video", 1908.72, 4096, 3072),
+    iaDirectRecovery("200723_American_Maker::200723_American_Maker_master.intros.mov", "200723_American_Maker", "200723_American_Maker_master.intros.mov", "American Maker (1960)", "automobile industry automobile manufacturing car design motor car automotive history documentary factory film", 1960, "video", 1527.8, 5120, 3840),
   ],
   "232": [
     iaDirectRecovery("interviews-spacewalk-preps-among-flight-day-9-highlights-cd0jxM2_1so::interviews-spacewalk-preps-among-flight-day-9-highlights-cd0jxM2_1so.mp4", "interviews-spacewalk-preps-among-flight-day-9-highlights-cd0jxM2_1so", "interviews-spacewalk-preps-among-flight-day-9-highlights-cd0jxM2_1so.mp4", "Spacewalk Preparations: Flight Day 9", "space race human spaceflight space shuttle nasa mission space documentary", 2011),
@@ -3873,6 +3891,8 @@ const IA_DEEP_HARVEST_BANKS = Object.freeze({
     iaDirectRecovery("bbc-horizon-last-flight-of-the-columbia::BBC Horizon - Last Flight of the Columbia.mp4", "bbc-horizon-last-flight-of-the-columbia", "BBC Horizon - Last Flight of the Columbia.mp4", "BBC Horizon: Last Flight of the Columbia", "space race human spaceflight space shuttle nasa mission space documentary", 2003),
     iaDirectRecovery("ss098-0004::SS098-0004 SpaceDisc Vol. 2 Shuttle Downlink (Side 1, English) (ld-decode, QTGMC, TV→PC).mp4", "ss098-0004", "SS098-0004 SpaceDisc Vol. 2 Shuttle Downlink (Side 1, English) (ld-decode, QTGMC, TV→PC).mp4", "Space Shuttle Downlink: Space Disc Vol. 2", "space race human spaceflight space shuttle nasa mission space documentary", 1984),
     iaDirectRecovery("s-1025.100-and-s-1026.100-4-10-08::S1025.100 and S1026.100 4-10-08.ia.mp4", "s-1025.100-and-s-1026.100-4-10-08", "S1025.100 and S1026.100 4-10-08.ia.mp4", "Space Shuttle Emergency Egress Testing", "space race human spaceflight space shuttle nasa mission space documentary", 2008),
+    iaDirectRecovery("nasa_tv-Shuttle_Endeavour_Crew_s_Best_of_Flight_Day_10::Shuttle_Endeavour_Crew_s_Best_of_Flight_Day_10.mp4", "nasa_tv-Shuttle_Endeavour_Crew_s_Best_of_Flight_Day_10", "Shuttle_Endeavour_Crew_s_Best_of_Flight_Day_10.mp4", "Shuttle Endeavour: Best of Flight Day 10 (2010)", "space race human spaceflight space shuttle nasa mission space documentary", 2010, "video", 1018.4, 854, 480),
+    iaDirectRecovery("future-iss-residents-meet-media-76tf_uy7skQ::future-iss-residents-meet-media-76tf_uy7skQ.mp4", "future-iss-residents-meet-media-76tf_uy7skQ", "future-iss-residents-meet-media-76tf_uy7skQ.mp4", "Future ISS Residents Meet the Media (2011)", "space race human spaceflight international space station nasa mission space documentary", 2011, "video", 2452.47, 1280, 720),
   ],
   "237": [
     iaDirectRecovery("OurWorldWindTunnelsInAction::OW47WindTunnels0317.ia.mp4", "OurWorldWindTunnelsInAction", "OW47WindTunnels0317.ia.mp4", "Our World: Wind Tunnels in Action", "future technology science and technology research laboratory engineering space technology electronics documentary", 1960),
@@ -3883,6 +3903,8 @@ const IA_DEEP_HARVEST_BANKS = Object.freeze({
     iaDirectRecovery("American1956_3::American1956_3_edit.mp4", "American1956_3", "American1956_3_edit.mp4", "American Engineer: Part III", "future technology science and technology engineering electronics industrial film documentary", 1956),
     iaDirectRecovery("Plowshar1961_2::Plowshar1961_2_edit.mp4", "Plowshar1961_2", "Plowshar1961_2_edit.mp4", "Plowshare: Part II", "future technology science and technology engineering electronics industrial film documentary", 1961),
     iaDirectRecovery("NOVA_ToTheMoon::1999 NOVA - To The Moon.mp4", "NOVA_ToTheMoon", "1999 NOVA - To The Moon.mp4", "NOVA: To the Moon", "future technology science and technology engineering space technology documentary", 1999),
+    iaDirectRecovery("future-iss-residents-meet-media-76tf_uy7skQ::future-iss-residents-meet-media-76tf_uy7skQ.mp4", "future-iss-residents-meet-media-76tf_uy7skQ", "future-iss-residents-meet-media-76tf_uy7skQ.mp4", "Future ISS Residents Meet the Media (2011)", "future technology science and technology engineering space technology research documentary", 2011, "video", 2452.47, 1280, 720),
+    iaDirectRecovery("gov.ntis.ava20963vnb1::gov.ntis.ava20963vnb1.mp4", "gov.ntis.ava20963vnb1", "gov.ntis.ava20963vnb1.mp4", "Science in the Courtroom: Recombinant DNA and Gene Cloning", "future technology science and technology engineering research laboratory documentary", 2001, "video", 2172.27, 720, 480),
   ],
   "703": [
     iaDirectRecovery("DNALOUNGE-VIDEO-2022-12-24::2022-12-24.mp4", "DNALOUNGE-VIDEO-2022-12-24", "2022-12-24.mp4", "DNA Lounge Yule Log (2022)", "yule log fireplace video ambience christmas television holiday", 2022),
@@ -3893,6 +3915,18 @@ const IA_DEEP_HARVEST_BANKS = Object.freeze({
     iaDirectRecovery("nasa_tv-NASA_Rocket_Engine_Fireplace_-_8_Hours_in_4K::NASA_Rocket_Engine_Fireplace_-_8_Hours_in_4K.mp4", "nasa_tv-NASA_Rocket_Engine_Fireplace_-_8_Hours_in_4K", "NASA_Rocket_Engine_Fireplace_-_8_Hours_in_4K.mp4", "NASA Rocket Engine Fireplace (8 Hours)", "yule log fireplace video ambience christmas television holiday", 2024),
     iaDirectRecovery("sec-yule-log::avc_SEC Yule Log.ia.mp4", "sec-yule-log", "avc_SEC Yule Log.ia.mp4", "SEC Network Yule Log", "yule log fireplace broadcast video christmas television holiday", 2025),
     iaDirectRecovery("xmas-yule-log::Yule Log 2025.mp4", "xmas-yule-log", "Yule Log 2025.mp4", "Christmas Yule Log (2025)", "yule log fireplace video ambience christmas television holiday", 2025),
+    iaDirectRecovery("DNALOUNGE-VIDEO-2023-12-24::2023-12-24.mp4", "DNALOUNGE-VIDEO-2023-12-24", "2023-12-24.mp4", "DNA Lounge Yule Log (2023)", "yule log fireplace video ambience christmas television holiday", 2023, "video", 86383.08, 1280, 720),
+    iaDirectRecovery("tamutx-Reveille_X_By_The_Fireplace_One_Hour_Yule_Log-20211224::Reveille_X_By_The_Fireplace_One_Hour_Yule_Log-20211224.mp4", "tamutx-Reveille_X_By_The_Fireplace_One_Hour_Yule_Log-20211224", "Reveille_X_By_The_Fireplace_One_Hour_Yule_Log-20211224.mp4", "Reveille X by the Fireplace (2021)", "yule log fireplace video ambience christmas television holiday", 2021, "video", 3627.75, 854, 480),
+    iaDirectRecovery("Holiday_Fireplace_2018::Holiday_Fireplace_2018.mp4", "Holiday_Fireplace_2018", "Holiday_Fireplace_2018.mp4", "Holiday Fireplace (2018)", "yule log fireplace video ambience christmas television holiday", 2018, "video", 7185.21, 640, 360),
+    iaDirectRecovery("video_fireplace::Video Fireplace.ia.mp4", "video_fireplace", "Video Fireplace.ia.mp4", "Video Fireplace (1982)", "yule log fireplace video ambience christmas television holiday", 1982, "video", 3760.16, 640, 480),
+    iaDirectRecovery("ChristmasYuleLog::ChristmasYuleLog.mp4", "ChristmasYuleLog", "ChristmasYuleLog.mp4", "Christmas Yule Log", "yule log fireplace video ambience christmas television holiday", 1980, "video", 10826.58, 640, 480),
+    iaDirectRecovery("00005_202608::YULELOG/BDMV/STREAM/00005.mp4", "00005_202608", "YULELOG/BDMV/STREAM/00005.mp4", "The Yule Log: Christmas by the Fireplace", "yule log fireplace video ambience christmas television holiday", 2008, "video", 5148.24, 854, 480),
+    iaDirectRecovery("christmas-yule-log-ambience-25-days-of-christmas-freeform::avc_Christmas Yule Log Ambience - 25 Days of Christmas - Freeform.ia.mp4", "christmas-yule-log-ambience-25-days-of-christmas-freeform", "avc_Christmas Yule Log Ambience - 25 Days of Christmas - Freeform.ia.mp4", "Freeform 25 Days of Christmas: Yule Log (2023)", "yule log fireplace video ambience christmas television holiday", 2023, "video", 1801.74, 1920, 1080),
+    iaDirectRecovery("spctvmev-SPCTV_Fireplace::SPCTV_Fireplace.mp4", "spctvmev-SPCTV_Fireplace", "SPCTV_Fireplace.mp4", "SPCTV Fireplace (2024)", "yule log fireplace video ambience christmas television holiday", 2024, "video", 3256.15, 854, 480),
+    iaDirectRecovery("SMC_Holiday_Fireplace::SMC_Holiday_Fireplace.mp4", "SMC_Holiday_Fireplace", "SMC_Holiday_Fireplace.mp4", "SMC Holiday Fireplace (2023)", "yule log fireplace video ambience christmas television holiday", 2023, "video", 4468.7, 854, 480),
+    iaDirectRecovery("auscitx-Trail_of_Lights_Yule_Log_2016::Trail_of_Lights_Yule_Log_2016.mp4", "auscitx-Trail_of_Lights_Yule_Log_2016", "Trail_of_Lights_Yule_Log_2016.mp4", "Trail of Lights Yule Log (2016)", "yule log fireplace video ambience christmas television holiday", 2016, "video", 2250.85, 854, 480),
+    iaDirectRecovery("wpix-yule-log-5th-hour-with-1966-log::WPIX Yule Log 5th hour with 1966 Log.ia.mp4", "wpix-yule-log-5th-hour-with-1966-log", "WPIX Yule Log 5th hour with 1966 Log.ia.mp4", "WPIX Yule Log: Fifth Hour (1966)", "yule log fireplace broadcast video christmas television holiday", 1966, "video", 3591.03, 854, 480),
+    iaDirectRecovery("ctncrmn-Sportsnight_-_Spend_the_Holidays_with_Joe_and_Howie_-_Yule_Log::Sportsnight_-_Spend_the_Holidays_with_Joe_and_Howie_-_Yule_Log.mp4", "ctncrmn-Sportsnight_-_Spend_the_Holidays_with_Joe_and_Howie_-_Yule_Log", "Sportsnight_-_Spend_the_Holidays_with_Joe_and_Howie_-_Yule_Log.mp4", "Sportsnight Holiday Yule Log (2022)", "yule log fireplace video ambience christmas television holiday sports broadcast", 2022, "video", 7199.05, 854, 480),
   ],
 });
 /* Keep a single cold tune from opening three identical Archive requests while

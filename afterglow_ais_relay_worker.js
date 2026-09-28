@@ -90,7 +90,7 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
    warmup back onto the channel-change path. */
 const IA_STRICT_CATALOG_CANDIDATE_MAX = 128;
 const IA_CATALOG_CANDIDATE_MAX = 96;
-const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v47-direct-window-freshness";
+const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v48-metal-depth";
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
@@ -102,10 +102,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v47-direc
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v204";
+const IA_QUEUE_CACHE_VERSION = "v205";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v204";
+const IA_LAST_GOOD_CACHE_VERSION = "v205";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -3421,6 +3421,10 @@ const IA_LONG_TAIL_EXPANSIONS_EXTRA = Object.freeze({
     iaDirectRecovery("terrorizer-nausea-split::06 - Terrorizer - After World Obliteration.mp3", "terrorizer-nausea-split", "06 - Terrorizer - After World Obliteration.mp3", "Terrorizer — After World Obliteration", "metal heavy metal death metal grindcore rock music", 1989, "audio", 239.83),
     iaDirectRecovery("highspirits-highspirits::05 Wings Of Fire - Don't Look Down.mp3", "highspirits-highspirits", "05 Wings Of Fire - Don't Look Down.mp3", "High Spirits — Don't Look Down", "metal heavy metal hard rock rock music", 2009, "audio", 334.89),
     iaDirectRecovery("castle-rat-different-dirt::Different Dirt.mp3", "castle-rat-different-dirt", "Different Dirt.mp3", "Castle Rat — Different Dirt", "metal heavy metal doom metal rock music", 2024, "audio", 279.41),
+    iaDirectRecovery("cavalera-conspiracy-live-at-metal-town-goteborg-27-06-2008::Cavalera Conspiracy-Live at Metal Town, Göteborg 27-06-2008.mp3", "cavalera-conspiracy-live-at-metal-town-goteborg-27-06-2008", "Cavalera Conspiracy-Live at Metal Town, Göteborg 27-06-2008.mp3", "Cavalera Conspiracy — Live at Metal Town", "metal heavy metal thrash metal live music rock music", 2008, "audio", 1707.97),
+    iaDirectRecovery("stormkeep-tales-of-othertime::Stormkeep - Tales of Othertime.mp3", "stormkeep-tales-of-othertime", "Stormkeep - Tales of Othertime.mp3", "Stormkeep — Tales of Othertime", "metal heavy metal black metal extreme metal rock music", 2021, "audio", 2590.34),
+    iaDirectRecovery("galneryus-beyond-the-end-of-despair::Galneryus - Beyond the End of Despair.mp3", "galneryus-beyond-the-end-of-despair", "Galneryus - Beyond the End of Despair.mp3", "Galneryus — Beyond the End of Despair", "metal heavy metal power metal rock music", 2006, "audio", 3526.97),
+    iaDirectRecovery("ambrotos-transcendental-mastery::Ambrotos -Transcendental Mastery.mp3", "ambrotos-transcendental-mastery", "Ambrotos -Transcendental Mastery.mp3", "Ambrotos — Transcendental Mastery", "metal heavy metal death metal extreme metal rock music", 2022, "audio", 2777.38),
   ],
   "107": [
     iaDirectRecovery("that-certain-thing-1928::That Certain Thing (1928).mp4", "that-certain-thing-1928", "That Certain Thing (1928).mp4", "That Certain Thing (1928)", "silent film silent movie silent cinema silent drama feature film", 1928, "video", 5163.64, 620, 480),

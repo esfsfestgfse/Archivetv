@@ -50,7 +50,7 @@ for (const [channel, collection] of Object.entries(expectedRails)) {
 }
 
 const relay = fs.readFileSync(path.join(root, 'afterglow_ais_relay_worker.js'), 'utf8');
-check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v204"/.test(relay), 'Relay cache namespace is v204');
+check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v205"/.test(relay), 'Relay cache namespace is v205');
 check(/0411_Tornado_06_00_36_00::t0411_Tornado_06_00_36_00\.mp4/.test(relay) && /ShockTro1938::ShockTro1938\.mp4/.test(relay), 'News adds more direct disaster/newsreel rotation');
 check(/youtube--IJuW9rAskc::-IJuW9rAskc\.mp4/.test(relay) && /youtube-Ko9kzyqW-l8::Ko9kzyqW-l8\.mp4/.test(relay), 'Gear Head adds verified direct automotive review rotation');
 check(/top-gear-s15-bd::TOP GEAR SERIES 15 DISC 211\.mp4/.test(relay) && /top-gear-s15-bd::TOP GEAR SERIES 15 DISC 212\.mp4/.test(relay), 'Gear Head adds more direct Top Gear episode rotation');
@@ -63,6 +63,7 @@ check(/"225": \[/.test(relay) && /hbo-def-comedy-jam-drew-fraser-lavelle-crawfor
 check(/"204": \[/.test(relay) && /Doctorin1946::Doctorin1946\.mp4/.test(relay) && /Careofth1949::Careofth1949\.mp4/.test(relay), 'Prelinger Vault has direct playable recovery files for fast cold starts');
 check(/IA_FULL_WINDOW_ROTATION_CHANNELS\s*=\s*new Set\(\[[\s\S]*"55"[\s\S]*"64"[\s\S]*"701"/.test(relay), 'Network TV and repaired depth lanes advance by a full fresh shelf');
 check(/IA_DIRECT_FRESHNESS_RAIL_CHANNELS\s*=\s*new Set\(\["113", "123", "917"\]\)/.test(relay) && /program-director-direct-window/.test(relay), 'Proven long-tail repeat lanes bypass stale warm shelves on later rotations');
+check(/"917": \[[\s\S]*cavalera-conspiracy-live-at-metal-town-goteborg-27-06-2008[\s\S]*stormkeep-tales-of-othertime[\s\S]*galneryus-beyond-the-end-of-despair[\s\S]*ambrotos-transcendental-mastery/.test(relay), 'Metal adds four verified full-record audio rails to prevent a shallow rotation wrap');
 check(!/IA_STRICT_RECOVERY_CHANNELS\s*=\s*new Set\(\["19", "59"/.test(relay) && /letvma-Annual_Agganis_All_Star_Baseball_Classic_June_25_2023/.test(relay), 'Diamond Time uses the rolling catalog with a ten-game verified first rail');
 check(/"227": \[/.test(relay) && /top-gear-complete-clarkson-hammond-may/.test(relay) && /BBC_20010916_043000_Top_Gear/.test(relay), 'Gear Head has a deeper verified automotive recovery bank');
 check(/IA_PROMOTED_ARCHIVE_BANKS/.test(relay) && /"243"/.test(relay) && /"244"/.test(relay), 'Only soak-approved archive families are promoted into the new Series Vault and Cartoon Reelhouse stations');

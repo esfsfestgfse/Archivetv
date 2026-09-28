@@ -90,7 +90,7 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
    warmup back onto the channel-change path. */
 const IA_STRICT_CATALOG_CANDIDATE_MAX = 128;
 const IA_CATALOG_CANDIDATE_MAX = 96;
-const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v66-deep-tail";
+const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v67-weak-lane-first";
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
@@ -103,10 +103,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v66-deep-
    episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v223";
+const IA_QUEUE_CACHE_VERSION = "v224";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v223";
+const IA_LAST_GOOD_CACHE_VERSION = "v224";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -7810,20 +7810,17 @@ async function getIaQueue(request, url, env, ctx) {
      keeps a skip instant and makes it impossible for a partial warm shelf to
      erase the deeper lane-owned window. Broader Archive discovery continues
      below and replenishes the bank asynchronously. */
-  if (IA_UNDERFILL_DEPTH_ROTATION_CHANNELS.has(channel) && rotation > 0) {
+  /* Proven underfill lanes have a verified file-level Archive bank. Use that
+     bank for the opening shelf as well as later skips; otherwise the first
+     cold request can come from a different search rail and repeat two or
+     three of those same programs on the next rotation. Archive discovery
+     still runs behind this instant, verified handoff and can replace the
+     bank after it proves fresher candidates. */
+  if (IA_UNDERFILL_DEPTH_ROTATION_CHANNELS.has(channel)) {
     const directBank = orderedIaEmergencySeeds(channel, 0).filter((item) => iaRuntimeAllowed(item, minRuntimeSeconds));
     if (directBank.length >= count) {
-      const directPayload = {
-        channel,
-        rotation: 0,
-        items: directBank.slice(0, count),
-        candidateItems: directBank,
-        candidates: directBank.length,
-        ready: Math.min(count, directBank.length),
-        minRuntimeSeconds,
-      };
-      const directDepth = rotateUnderfillDepthBank(directPayload, channel, rotation, count, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, minRuntimeSeconds);
-      const freshDirectDepth = applyIaFreshness(directDepth, freshnessLedger, count);
+      const directWindow = strictRecoveryQueue(channel, rotation, count, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, minRuntimeSeconds);
+      const freshDirectDepth = applyIaFreshness({ ...directWindow, underfillDepthRotation: true }, freshnessLedger, count);
       if (freshDirectDepth.payload && Array.isArray(freshDirectDepth.payload.items) && freshDirectDepth.payload.items.length >= count) {
         rememberIaFreshness(env, channel, freshDirectDepth.issued, ctx);
         return cacheableJson(freshDirectDepth.payload, 30, {

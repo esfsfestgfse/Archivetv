@@ -90,7 +90,7 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
    warmup back onto the channel-change path. */
 const IA_STRICT_CATALOG_CANDIDATE_MAX = 128;
 const IA_CATALOG_CANDIDATE_MAX = 96;
-const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v44-family-depth";
+const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v45-long-tail-rails";
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
@@ -102,10 +102,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v44-famil
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v201";
+const IA_QUEUE_CACHE_VERSION = "v202";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v201";
+const IA_LAST_GOOD_CACHE_VERSION = "v202";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -3351,12 +3351,66 @@ const IA_LONG_TAIL_EXPANSIONS_EXTRA = Object.freeze({
     iaDirectRecovery("WRC_20090719_230000_Dateline_NBC::WRC_20090719_230000_Dateline_NBC.mp4", "WRC_20090719_230000_Dateline_NBC", "WRC_20090719_230000_Dateline_NBC.mp4", "Dateline NBC · WRC Broadcast", "dateline television newsmagazine investigative journalism current affairs", 2009),
     iaDirectRecovery("msnbc.com-video-2006-10-08::mtp_netcast_061008.mp4", "msnbc.com-video-2006-10-08", "mtp_netcast_061008.mp4", "MSNBC News Video · October 2006", "television newsmagazine investigative journalism current affairs", 2006),
   ],
-  /* v4.1.139 IA family-depth repair: the prior pass proved first-frame speed
-     but still left several family banks too shallow for three real rotations.
-     These are file-level, landscape, >=15-minute derivatives verified against
-     Archive metadata. Keep them as canonical cold rails while the broader
-     collection search continues in the background; no parent-only records or
-     unknown-runtime short clips are promoted. */
+  /* v4.1.140 IA long-tail repair: the prior pass proved first-frame speed
+      but still left several family banks too shallow for three real rotations.
+      These are file-level, landscape, >=15-minute derivatives verified against
+      Archive metadata. Keep them as canonical cold rails while the broader
+      collection search continues in the background; no parent-only records or
+      unknown-runtime short clips are promoted. */
+  /* World Cinema (ch 113) had a profile/query mismatch: its emergency bank was
+     drive-in horror, while the station contract is foreign/arthouse cinema.
+     These exact file-level films restore the intended genre and give the lane
+     enough distinct families for three five-item rotations. */
+  "113": [
+    iaDirectRecovery("WarOfTheRobots::WarOfTheRobots1978.mp4", "WarOfTheRobots", "WarOfTheRobots1978.mp4", "War of the Robots", "world cinema foreign film Italian cinema international cinema", 1978, "video", 5999.73, 540, 360),
+    iaDirectRecovery("BattleOfTheWorldsWidesceen::Battle of the Worlds NTSC_1.mp4", "BattleOfTheWorldsWidesceen", "Battle of the Worlds NTSC_1.mp4", "Battle of the Worlds", "world cinema foreign film Italian cinema international cinema", 1961, "video", 5006.78, 640, 360),
+    iaDirectRecovery("AtomAgeVampire::AtomAgeVampire.mp4", "AtomAgeVampire", "AtomAgeVampire.mp4", "Atom Age Vampire", "world cinema foreign film Italian cinema international cinema", 1960, "video", 5172.7, 640, 480),
+    iaDirectRecovery("StarOdysseyitalianStarWars1979::STAR_ODYSSEY_1979-desktop.mp4", "StarOdysseyitalianStarWars1979", "STAR_ODYSSEY_1979-desktop.mp4", "Star Odyssey", "world cinema foreign film Italian cinema international cinema", 1979, "video", 5282.31, 640, 480),
+    iaDirectRecovery("the-shop-on-main-street::The Shop on Main Street.mp4", "the-shop-on-main-street", "The Shop on Main Street.mp4", "The Shop on Main Street", "world cinema foreign film Slovak cinema international cinema", 1965, "video", 7584.72, 853, 480),
+    iaDirectRecovery("cadena.perpetua.1979::Cadena.perpetua.1979.Arturo.Ripstein.mp4", "cadena.perpetua.1979", "Cadena.perpetua.1979.Arturo.Ripstein.mp4", "Life Sentence", "world cinema foreign film Mexican cinema international cinema", 1979, "video", 5653.46, 672, 352),
+    iaDirectRecovery("de.espaldas.a.la.puerta.-1959::De.espaldas.a.la.puerta.1959.SATRip.x264.AC3-mifune.mp4", "de.espaldas.a.la.puerta.-1959", "De.espaldas.a.la.puerta.1959.SATRip.x264.AC3-mifune.mp4", "Back to the Door", "world cinema foreign film Spanish cinema international cinema", 1959, "video", 5285.58, 640, 480),
+    iaDirectRecovery("curse-of-the-oily-man::Curse of the Oily Man.mp4", "curse-of-the-oily-man", "Curse of the Oily Man.mp4", "Curse of the Oily Man", "world cinema foreign film international cinema arthouse film", 1958, "video", 5365.04, 1920, 1080),
+    iaDirectRecovery("after.-the.-curfew.-1954.1080p.-blu-ray.x-264.-aac-yts.-mx::After.The.Curfew.1954.1080p.BluRay.x264.AAC-[YTS.MX].mp4", "after.-the.-curfew.-1954.1080p.-blu-ray.x-264.-aac-yts.-mx", "After.The.Curfew.1954.1080p.BluRay.x264.AAC-[YTS.MX].mp4", "After the Curfew", "world cinema foreign film Indonesian cinema international cinema", 1954, "video", 6190.52, 1472, 1072),
+    iaDirectRecovery("mosfilms-adaptation-of-fyodor-dostoevskys-white-nights-1959-subtitled-in-literar::Mosfilm's Adaptation of Fyodor Dostoevsky's White Nights 1959 Subtitled in Literary Arabic Translations.ia.mp4", "mosfilms-adaptation-of-fyodor-dostoevskys-white-nights-1959-subtitled-in-literar", "Mosfilm's Adaptation of Fyodor Dostoevsky's White Nights 1959 Subtitled in Literary Arabic Translations.ia.mp4", "White Nights", "world cinema foreign film Russian cinema international cinema", 1959, "video", 5743.85, 854, 480),
+    iaDirectRecovery("dien-bien-phu-1992-french-with-english-subs::Diên Biên Phú (1992) [Donald Pleasence; French w. English Subs].ia.mp4", "dien-bien-phu-1992-french-with-english-subs", "Diên Biên Phú (1992) [Donald Pleasence; French w. English Subs].ia.mp4", "Diên Biên Phú", "world cinema foreign film French cinema international cinema", 1992, "video", 7925.3, 1280, 720),
+    iaDirectRecovery("absences-repetees::Absences repetees.mp4", "absences-repetees", "Absences repetees.mp4", "Repeated Absences", "world cinema foreign film French cinema arthouse film", 1972, "video", 4709.84, 800, 480),
+    iaDirectRecovery("tiyanak-1988::Tiyanak 1988 stitch w open fix and full end cred.ia.mp4", "tiyanak-1988", "Tiyanak 1988 stitch w open fix and full end cred.ia.mp4", "Tiyanak", "world cinema foreign film Filipino cinema international cinema", 1988, "video", 7443.63, 1920, 1080),
+    iaDirectRecovery("la_jument_vapeur_1978::834407697013.mp4", "la_jument_vapeur_1978", "834407697013.mp4", "Dirty Dishes", "world cinema foreign film French cinema international cinema", 1978, "video", 5864.4, 640, 480),
+    iaDirectRecovery("Strass::VINCENT LANNOO -  Strass .mp4", "Strass", "VINCENT LANNOO -  Strass .mp4", "Strass", "world cinema foreign film Belgian cinema arthouse film international cinema", 2001, "video", 5147.01, 450, 360),
+    iaDirectRecovery("jesus_der_film::Jesus - Der Film (1986).mp4", "jesus_der_film", "Jesus - Der Film (1986).mp4", "Jesus — Der Film", "world cinema foreign film German cinema experimental film international cinema", 1986, "video", 7684.39, 640, 480),
+  ],
+  /* The Telly (ch 123) had only one hydrated episode plus parent records.
+     Expand across Play for Today, The Prisoner, Wish Me Luck, Chinese
+     Detective, Up Pompeii, Jemima Shore, and other British television rails. */
+  "123": [
+    iaDirectRecovery("wish-me-luck-s-01-e-01::Wish Me Luck S01E08.mp4", "wish-me-luck-s-01-e-01", "Wish Me Luck S01E08.mp4", "Wish Me Luck — Season 1 Episode 8", "british television british tv itv television british drama television series", 1988, "video", 3154.27, 622, 480),
+    iaDirectRecovery("wish-me-luck-s-01-e-01::Wish Me Luck S02E02.mp4", "wish-me-luck-s-01-e-01", "Wish Me Luck S02E02.mp4", "Wish Me Luck — Season 2 Episode 2", "british television british tv itv television british drama television series", 1989, "video", 3154.08, 620, 480),
+    iaDirectRecovery("willies-last-stand-play-for-today::Willie's Last Stand (Play for Today).mp4", "willies-last-stand-play-for-today", "Willie's Last Stand (Play for Today).mp4", "Play for Today — Willie's Last Stand", "british television british tv bbc television television play british drama", 1977, "video", 3226.32, 464, 360),
+    iaDirectRecovery("the-last-window-cleaner-play-for-today-1979::The Last Window Cleaner (Play for Today) 1979.mp4", "the-last-window-cleaner-play-for-today-1979", "The Last Window Cleaner (Play for Today) 1979.mp4", "Play for Today — The Last Window Cleaner", "british television british tv bbc television television play british drama", 1979, "video", 4026.2, 466, 360),
+    iaDirectRecovery("goodbye-play-for-today-1975::Goodbye (Play for Today) 1975.mp4", "goodbye-play-for-today-1975", "Goodbye (Play for Today) 1975.mp4", "Play for Today — Goodbye", "british television british tv bbc television television play british drama", 1975, "video", 4676.06, 384, 288),
+    iaDirectRecovery("the-prisoner::The.Prisoner.S01E00.Arrival.mp4", "the-prisoner", "The.Prisoner.S01E00.Arrival.mp4", "The Prisoner — Arrival", "british television british tv itv television british science fiction television series", 1967, "video", 2935.42, 636, 480),
+    iaDirectRecovery("up-pompeii-s-1-e-5-the-actors::Up Pompeii S1-E5-The Actors.mp4", "up-pompeii-s-1-e-5-the-actors", "Up Pompeii S1-E5-The Actors.mp4", "Up Pompeii — The Actors", "british television british tv bbc television british comedy television series", 1970, "video", 2086.26, 854, 480),
+    iaDirectRecovery("jemima-shore-investigates-s-01-e-09-a-promising-death::Jemima Shore Investigates - S01E09 - A Promising Death.mp4", "jemima-shore-investigates-s-01-e-09-a-promising-death", "Jemima Shore Investigates - S01E09 - A Promising Death.mp4", "Jemima Shore Investigates — A Promising Death", "british television british tv itv television british mystery television series", 1983, "video", 3131.95, 644, 480),
+    iaDirectRecovery("the-chinese-detective-1981-s-01-e-03::The Chinese Detective 1981 S01E03.mp4", "the-chinese-detective-1981-s-01-e-03", "The Chinese Detective 1981 S01E03.mp4", "The Chinese Detective — Season 1 Episode 3", "british television british tv bbc television british police drama television series", 1981, "video", 2989.82, 640, 480),
+    iaDirectRecovery("the-chinese-detective-1981-s-01-e-03::The Chinese Detective 1982 S02E02.mp4", "the-chinese-detective-1981-s-01-e-03", "The Chinese Detective 1982 S02E02.mp4", "The Chinese Detective — Season 2 Episode 2", "british television british tv bbc television british police drama television series", 1982, "video", 2988.07, 640, 480),
+    iaDirectRecovery("play-of-the-month-mrs.-warrens-profession-1974::Play of the Month - Mrs. Warren's Profession (1974).mp4", "play-of-the-month-mrs.-warrens-profession-1974", "Play of the Month - Mrs. Warren's Profession (1974).mp4", "Play of the Month — Mrs. Warren's Profession", "british television british tv bbc television television play british drama", 1974, "video", 6564.14, 482, 360),
+    iaDirectRecovery("the-professionals-foxhole-on-the-roof::The Professionals foxhole on the roof.mp4", "the-professionals-foxhole-on-the-roof", "The Professionals foxhole on the roof.mp4", "The Professionals — Foxhole on the Roof", "british television british tv itv television british action television series", 1978, "video", 3006.57, 960, 720),
+  ],
+  /* Metal (ch 917) is an audio station. The previous bank had only four
+     playable records because one album parent had no file URL. Add distinct
+     Archive recordings and tracks so the audio lane also has real depth. */
+  "917": [
+    iaDirectRecovery("black-metal-150726::Black Metal 150726.mp3", "black-metal-150726", "Black Metal 150726.mp3", "Black Metal — Archive Session", "metal heavy metal black metal extreme metal rock music", 2015, "audio", 5112.32),
+    iaDirectRecovery("hard-rock-hell-radio-tune-022125032025::Hard_Rock_Hell_Radio_-_Tune_022125032025.mp3", "hard-rock-hell-radio-tune-022125032025", "Hard_Rock_Hell_Radio_-_Tune_022125032025.mp3", "Hard Rock Hell Radio — Metal Session", "metal heavy metal hard rock power metal rock music", 2025, "audio", 3418.78),
+    iaDirectRecovery("IngloriousRzezniaAntyradio14022016::Inglorious - Rzeźnia-Antyradio 14022016.mp3", "IngloriousRzezniaAntyradio14022016", "Inglorious - Rzeźnia-Antyradio 14022016.mp3", "Inglorious — Rzeźnia Antyradio", "metal heavy metal rock music radio", 2016, "audio", 4016.12),
+    iaDirectRecovery("metallicametallica::01 Enter Sandman.mp3", "metallicametallica", "01 Enter Sandman.mp3", "Metallica — Enter Sandman", "metal heavy metal thrash metal rock music", 1991, "audio", 331.18),
+    iaDirectRecovery("metallicametallica::05 Wherever I May Roam.mp3", "metallicametallica", "05 Wherever I May Roam.mp3", "Metallica — Wherever I May Roam", "metal heavy metal thrash metal rock music", 1991, "audio", 403.75),
+    iaDirectRecovery("boris-at-last-feedbacker::1 - Feedbacker pt. 1.mp3", "boris-at-last-feedbacker", "1 - Feedbacker pt. 1.mp3", "Boris — Feedbacker Part 1", "metal heavy metal doom metal rock music", 2003, "audio", 578.14),
+    iaDirectRecovery("boris-at-last-feedbacker::2 - Feedbacker pt. 2.mp3", "boris-at-last-feedbacker", "2 - Feedbacker pt. 2.mp3", "Boris — Feedbacker Part 2", "metal heavy metal doom metal rock music", 2003, "audio", 894.51),
+    iaDirectRecovery("terrorizer-nausea-split::06 - Terrorizer - After World Obliteration.mp3", "terrorizer-nausea-split", "06 - Terrorizer - After World Obliteration.mp3", "Terrorizer — After World Obliteration", "metal heavy metal death metal grindcore rock music", 1989, "audio", 239.83),
+    iaDirectRecovery("highspirits-highspirits::05 Wings Of Fire - Don't Look Down.mp3", "highspirits-highspirits", "05 Wings Of Fire - Don't Look Down.mp3", "High Spirits — Don't Look Down", "metal heavy metal hard rock rock music", 2009, "audio", 334.89),
+    iaDirectRecovery("castle-rat-different-dirt::Different Dirt.mp3", "castle-rat-different-dirt", "Different Dirt.mp3", "Castle Rat — Different Dirt", "metal heavy metal doom metal rock music", 2024, "audio", 279.41),
+  ],
   "107": [
     iaDirectRecovery("that-certain-thing-1928::That Certain Thing (1928).mp4", "that-certain-thing-1928", "That Certain Thing (1928).mp4", "That Certain Thing (1928)", "silent film silent movie silent cinema silent drama feature film", 1928, "video", 5163.64, 620, 480),
     iaDirectRecovery("children-of-divorce-1927-with-sync-music::CHILDREN OF DIVORCE (1927) with SYNC MUSIC.ia.mp4", "children-of-divorce-1927-with-sync-music", "CHILDREN OF DIVORCE (1927) with SYNC MUSIC.ia.mp4", "Children of Divorce (1927)", "silent film silent movie silent cinema silent drama feature film", 1927, "video", 4722.19, 640, 480),

@@ -102,10 +102,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v42-catal
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v189";
+const IA_QUEUE_CACHE_VERSION = "v190";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v189";
+const IA_LAST_GOOD_CACHE_VERSION = "v190";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -6278,14 +6278,17 @@ function strictRecoveryQueue(channel, rotation, count, themeTerms, denyTerms, re
     seen.add(item.identifier);
     return true;
   });
-  const offset = bank.length > count ? (Math.abs(Number(rotation) || 0) * count) % bank.length : 0;
-  const rotated = bank.slice(offset).concat(bank.slice(0, offset));
-  const candidates = rotated.filter((item) => {
+  /* Filter before rotating. If a raw bank is rotated first, rejected items
+     leave holes at the window boundary and a verified title can slide from
+     the end of one shelf into the start of the next. */
+  const eligible = bank.filter((item) => {
     if (!item || !item.identifier || !item.media || !item.media.url) return false;
     if (mediaTypes.length && mediaTypes.includes("movies") && item.media.type !== "video") return false;
     if (mediaTypes.length && mediaTypes.includes("audio") && item.media.type !== "audio") return false;
     return matchesTheme(item, themeTerms, 1, requiredTitleTerms) && !matchesDeny(item, denyTerms) && iaRuntimeAllowed(item, minRuntimeSeconds);
   });
+  const offset = eligible.length > count ? (Math.abs(Number(rotation) || 0) * count) % eligible.length : 0;
+  const candidates = eligible.slice(offset).concat(eligible.slice(0, offset));
   return {
     channel,
     rotation,

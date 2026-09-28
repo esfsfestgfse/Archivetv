@@ -89,7 +89,7 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
    warmup back onto the channel-change path. */
 const IA_STRICT_CATALOG_CANDIDATE_MAX = 128;
 const IA_CATALOG_CANDIDATE_MAX = 96;
-const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v14-repeat-lanes";
+const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v15-rotation-order";
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
@@ -101,10 +101,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-deep-harvest-v14-repeat-lanes"
    rotation rails below. Cache this separately from v49: episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v154";
+const IA_QUEUE_CACHE_VERSION = "v155";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v154";
+const IA_LAST_GOOD_CACHE_VERSION = "v155";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -2572,6 +2572,11 @@ const IA_LONG_TAIL_EXPANSIONS_EXTRA = Object.freeze({
     iaDirectRecovery("South_Mountain_YMCA_International_Camping_6-20-16::South_Mountain_YMCA_International_Camping_6-20-16.mp4", "South_Mountain_YMCA_International_Camping_6-20-16", "South_Mountain_YMCA_International_Camping_6-20-16.mp4", "South Mountain YMCA — International Camping", "camping hiking trail wilderness travel outdoor recreation outdoors television", 2016),
     iaDirectRecovery("youtube-BPb97FSQu2k::BPb97FSQu2k.mp4", "youtube-BPb97FSQu2k", "BPb97FSQu2k.mp4", "Adventure Camping Across North Dakota and Montana", "camping hiking trail wilderness travel outdoor recreation road trip outdoors television", 2017),
     iaDirectRecovery("CSPAN2_20170604_052000_Oregon_Hiking_and_Trails::CSPAN2_20170604_052000_Oregon_Hiking_and_Trails.mp4", "CSPAN2_20170604_052000_Oregon_Hiking_and_Trails", "CSPAN2_20170604_052000_Oregon_Hiking_and_Trails.mp4", "Oregon Hiking and Trails", "camping hiking trail wilderness travel outdoor recreation outdoors television", 2017),
+    iaDirectRecovery("colorado-rmnp-1987-interlaced::Colorado-RMNP-1987-deinterlaced.mp4", "colorado-rmnp-1987-interlaced", "Colorado-RMNP-1987-deinterlaced.mp4", "Rocky Mountain National Park Tour", "camping hiking trail wilderness travel outdoor recreation scenic travel television", 1987),
+    iaDirectRecovery("rough_road_to_panama::rough_road_to_panama_512kb.mp4", "rough_road_to_panama", "rough_road_to_panama_512kb.mp4", "Rough Road to Panama", "camping hiking trail wilderness travel road trip travelogue outdoor recreation", 1947),
+    iaDirectRecovery("kentucky-travel-film-1965::Kentucky Travel Film (1965).mp4", "kentucky-travel-film-1965", "Kentucky Travel Film (1965).mp4", "Kentucky Travel Film", "camping hiking trail wilderness travel road trip travelogue outdoor recreation", 1965),
+    iaDirectRecovery("capsdf_000033::capsdf_000033_access.mp4", "capsdf_000033", "capsdf_000033_access.mp4", "Gold Rush Trip — Vacation Film", "camping hiking trail wilderness travel road trip travelogue outdoor recreation", 1961),
+    iaDirectRecovery("capsdf_000028::capsdf_000028_access.mp4", "capsdf_000028", "capsdf_000028_access.mp4", "Murphys and Angels Camp Road Trip", "camping hiking trail wilderness travel road trip travelogue outdoor recreation", 1973),
   ],
   "100": [
     iaDirectRecovery("the-phantom-planet-1961-extra-ordinary-sci-fi-telecasts-episode-2::The Phantom Planet (1961) - Extra Ordinary Sci-Fi Telecasts Episode 2.mp4", "the-phantom-planet-1961-extra-ordinary-sci-fi-telecasts-episode-2", "The Phantom Planet (1961) - Extra Ordinary Sci-Fi Telecasts Episode 2.mp4", "The Phantom Planet", "science fiction film sci-fi space alien invasion monster movie feature film", 1961),
@@ -2589,6 +2594,13 @@ const IA_LONG_TAIL_EXPANSIONS_EXTRA = Object.freeze({
     iaDirectRecovery("DWqXJsGsN1O95wCYtpndXJ6cOLzMUI::tmpqq96av61.mp4", "DWqXJsGsN1O95wCYtpndXJ6cOLzMUI", "tmpqq96av61.mp4", "Down Under — In Search of Australia", "travelogue road trip travel film geography culture documentary outdoors", 1971),
     iaDirectRecovery("KHFUh3hJyY40d6jhV8m6tCggF60Qp5::tmpgocnztz1.mp4", "KHFUh3hJyY40d6jhV8m6tCggF60Qp5", "tmpgocnztz1.mp4", "The Swiss Riviera — Lake Geneva", "travelogue road trip travel film geography culture documentary outdoors", 1940),
     iaDirectRecovery("riches-of-the-veld-south-africa-travelogue-kimberly-diamond-gold-mines-1948::Riches of the Veld South Africa Travelogue Kimberly Diamond & Gold Mines (1948.mp4", "riches-of-the-veld-south-africa-travelogue-kimberly-diamond-gold-mines-1948", "Riches of the Veld South Africa Travelogue Kimberly Diamond & Gold Mines (1948.mp4", "Riches of the Veld — South Africa", "travelogue road trip travel film geography culture documentary outdoors", 1948),
+    iaDirectRecovery("Waco_Wild_West_Century_2004_Camping_Trip::waco2004.ogv", "Waco_Wild_West_Century_2004_Camping_Trip", "waco2004.ogv", "Waco Wild West Century Camping Trip", "travelogue road trip travel film camping outdoors recreation", 2005),
+    iaDirectRecovery("csf_00009::csf_00009_access.HD.mp4", "csf_00009", "csf_00009_access.HD.mp4", "Skyline Hike over the Muir Trail", "travelogue road trip travel film hiking outdoors recreation", 1947),
+    iaDirectRecovery("youtube-BPb97FSQu2k::BPb97FSQu2k.mp4", "youtube-BPb97FSQu2k", "BPb97FSQu2k.mp4", "Adventure Camping Across North Dakota and Montana", "travelogue road trip travel film camping outdoors recreation", 2017),
+    iaDirectRecovery("CSPAN2_20170604_052000_Oregon_Hiking_and_Trails::CSPAN2_20170604_052000_Oregon_Hiking_and_Trails.mp4", "CSPAN2_20170604_052000_Oregon_Hiking_and_Trails", "CSPAN2_20170604_052000_Oregon_Hiking_and_Trails.mp4", "Oregon Hiking and Trails", "travelogue road trip travel film hiking outdoors recreation", 2017),
+    iaDirectRecovery("South_Mountain_YMCA_International_Camping_6-20-16::South_Mountain_YMCA_International_Camping_6-20-16.mp4", "South_Mountain_YMCA_International_Camping_6-20-16", "South_Mountain_YMCA_International_Camping_6-20-16.mp4", "South Mountain YMCA — International Camping", "travelogue road trip travel film camping outdoors recreation", 2016),
+    iaDirectRecovery("all-aboard-the-potomac-eagle_202603::A1_t00.mp4", "all-aboard-the-potomac-eagle_202603", "A1_t00.mp4", "All Aboard the Potomac Eagle", "travelogue road trip travel film scenic travel transportation outdoors", 2005),
+    iaDirectRecovery("cab-ride-along-the-santa-fe-trail-part-1::Cab Ride Along The Santa Fe Trail Part 1.mp4", "cab-ride-along-the-santa-fe-trail-part-1", "Cab Ride Along The Santa Fe Trail Part 1.mp4", "Cab Ride Along the Santa Fe Trail", "travelogue road trip travel film scenic travel transportation outdoors", 1998),
   ],
   "511": [
     iaDirectRecovery("DragnetEpisode18TheBigSeventeenwcommercials::dragnet_bigseventeen.mp4", "DragnetEpisode18TheBigSeventeenwcommercials", "dragnet_bigseventeen.mp4", "Dragnet — The Big Seventeen", "detective television dragnet classic television police procedural detective show", 1952),
@@ -5120,6 +5132,22 @@ function applyIaFreshness(payload, ledger, count) {
   }
   const requested = Math.max(1, Number(count) || 1);
   const playable = unique.filter((item) => item.media && item.media.url);
+  /* Strict recovery already selected a verified, rotation-specific shelf.
+     Do not reorder that shelf back to candidateItems[0..n] before it reaches
+     the client; doing so erased the full-shelf step and caused every second
+     rotation to reopen the same five records. If the selected shelf is still
+     unseen, preserve its order and let the next rotation advance normally. */
+  if (payload && payload.strictRecovery && Array.isArray(payload.items) && payload.items.length >= requested &&
+      payload.items.every((item) => item && item.identifier && item.media && item.media.url) &&
+      payload.items.slice(0, requested).every((item) => !excluded.has(String(item.identifier)))) {
+    const issued = payload.items.slice(0, requested).map(iaFreshnessRecord).filter(Boolean);
+    return {
+      payload,
+      issued,
+      freshCount: issued.length,
+      excludedCount: 0,
+    };
+  }
   /* Deterministic animation shelves have an explicit catalog window.
      Once that window has been rotated, do not reorder it again from the
      generic ledger: doing so can pull the same familiar character back into

@@ -13,7 +13,7 @@ function check(ok, message) {
   if (!ok) failures.push(message);
 }
 
-check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v211"/.test(relay), 'deep family harvest invalidates the prior queue namespace');
+check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v212"/.test(relay), 'underfill-depth harvest invalidates the prior queue namespace');
 check(/function rotatePlayableIaShelf\([\s\S]*orderedIaEmergencySeeds\(recoveryChannel, 0\)/.test(relay), 'slow fallbacks merge the lane-owned verified bank before rotating');
 check(/rotationApplied === true/.test(relay) && /rotationApplied: true/.test(relay), 'rotation state prevents cached shelves from being advanced twice');
 check(/"701": \[[\s\S]*TheThingFromAnotherWorldHorrorSciFi1951JamesArnessKennethTobeyMargaretSheridan[\s\S]*TheGiantGilaMonster/.test(relay), 'Halloween Haunt adds full-length multi-era horror files');
@@ -60,6 +60,9 @@ check(/"217": \[[\s\S]*IntroductionToHolography::IntroductionToHolography1972\.m
 check(/"233": \[[\s\S]*amazon-land-of-the-flooded-forest-1991::AmazonForest\.mp4[\s\S]*NOVAStillWaters::NOVA\.S05E12\.Still\.Waters/.test(relay), 'Creature Comforts has a deeper wildlife rail');
 check(/"241": \[[\s\S]*Rocheste1963_2::Rocheste1963_2\.mp4[\s\S]*CityTheP1939_2::CityTheP1939_2\.mp4/.test(relay), 'Civic Cinema has a deeper city-film rail');
 check(!/general-idi-amin-1973.*General Idi Amin/.test(relay), 'Britain on Film excludes the verified short newsreel from the 15-minute lane');
+check(/const IA_UNDERFILL_DEPTH_BANKS\s*=\s*Object\.freeze/.test(relay) && /"66": \[[\s\S]*"81": \[[\s\S]*"212": \[[\s\S]*"929": \[/.test(relay), 'underfill-depth harvest covers video, nature, and audio long-tail lanes');
+check(/Xcorps21ASRhd2::Xcorps21ASRhd2\.mp4/.test(relay) && /Nature_Land_of_the_Eagle::Nature S10E07/.test(relay) && /mix_07_7_06::mix_07_7_06\.mp3/.test(relay), 'underfill-depth bank carries concrete Archive derivatives instead of collection placeholders');
+check(/"212": \[[\s\S]*wildlife nature animal behavior zoology natural history documentary television/.test(relay) && /"902": \[[\s\S]*bluegrass folk acoustic string band live music/.test(relay), 'underfill-depth bank preserves strict station vocabulary');
 
 if (failures.length) {
   console.error(`IA deep-harvesting contract failed: ${failures.length} check(s)`);

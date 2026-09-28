@@ -51,6 +51,8 @@ for (const [channel, collection] of Object.entries(expectedRails)) {
 
 const relay = fs.readFileSync(path.join(root, 'afterglow_ais_relay_worker.js'), 'utf8');
 check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v215"/.test(relay), 'Relay cache namespace is v215');
+const api = fs.readFileSync(path.join(root, 'realsignal_api_v2_worker.js'), 'utf8');
+check(/const requestedCount = Math\.max\(1, Math\.min\(5, Number\(effectiveBody/.test(api) && /items: shelf/.test(api), 'API fallbacks expose a five-item shelf plus a deeper candidate catalog');
 check(/0411_Tornado_06_00_36_00::t0411_Tornado_06_00_36_00\.mp4/.test(relay) && /ShockTro1938::ShockTro1938\.mp4/.test(relay), 'News adds more direct disaster/newsreel rotation');
 check(/youtube--IJuW9rAskc::-IJuW9rAskc\.mp4/.test(relay) && /youtube-Ko9kzyqW-l8::Ko9kzyqW-l8\.mp4/.test(relay), 'Gear Head adds verified direct automotive review rotation');
 check(/top-gear-s15-bd::TOP GEAR SERIES 15 DISC 211\.mp4/.test(relay) && /top-gear-s15-bd::TOP GEAR SERIES 15 DISC 212\.mp4/.test(relay), 'Gear Head adds more direct Top Gear episode rotation');

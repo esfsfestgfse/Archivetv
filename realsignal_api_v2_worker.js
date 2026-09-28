@@ -12,7 +12,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "4.1.153-ia-depth-rotation";
+const V3_RELEASE = "4.1.154-ia-public-shelf-contract";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -919,10 +919,18 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
   const exhausted = !ignoreFreshness && effectiveBody.sourceCatalog === true && filtered.length > 0 && fresh.length === 0;
   const selected = exhausted ? filtered : fresh;
   const seenCount = Math.max(0, filtered.length - fresh.length);
-  return selected.length ? {
-    items: rotateCatalogItems(selected, effectiveBody.rotation),
+  const requestedCount = Math.max(1, Math.min(5, Number(effectiveBody && effectiveBody.count) || 3));
+  const ordered = rotateCatalogItems(selected, effectiveBody.rotation);
+  const shelf = ordered.slice(0, requestedCount);
+  return shelf.length ? {
+    /* Keep the public contract consistent with the live relay: `items` is the
+       immediately playable shelf, while `candidateItems` is the larger
+       catalog behind it. Returning every fallback row as `items` made a
+       transient relay outage look like a 96-program simultaneous queue and
+       caused the guide/freshness layer to miscount repeats. */
+    items: shelf,
     candidateItems: filtered,
-    ready: selected.length,
+    ready: shelf.length,
     candidates: filtered.length,
     catalogDepth: filtered.length,
     unseenCatalogItems: fresh.length,

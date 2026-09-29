@@ -86,16 +86,16 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
 /* The public shelf is still five playable programs, but the rolling catalog
    behind it must be large enough to represent real Archive collections. The
    catalog is deliberately much deeper than the on-air shelf now: named,
-   genre-locked stations can retain up to 2,048 verified candidates and broad
-   stations up to 1,536. That work remains background-only; channel changes
+   genre-locked stations can retain up to 4,096 verified candidates and broad
+   stations up to 3,072. That work remains background-only; channel changes
    still hydrate the first five records without waiting for the long tail. */
 const IA_STRICT_CATALOG_CANDIDATE_MAX = 4096;
 const IA_CATALOG_CANDIDATE_MAX = 3072;
-const IA_CATALOG_BUDGET_VERSION = "catalog-4096-3072-deep-harvest-v86-file-banks";
+ const IA_CATALOG_BUDGET_VERSION = "catalog-4096-3072-deep-harvest-v87-quality-admission";
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
-/* v98 keeps Archive multi-file programs and their sibling episodes in the
+ /* v246 keeps Archive multi-file programs and their sibling episodes in the
    candidate shelf. A cold tune still returns a verified
    parent program immediately, while the background shelf expands collection
    items into their individual playable episode files. The depth-recovery
@@ -104,10 +104,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-4096-3072-deep-harvest-v86-file-banks
    episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v245";
+ const IA_QUEUE_CACHE_VERSION = "v246";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v245";
+ const IA_LAST_GOOD_CACHE_VERSION = "v246";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -5617,7 +5617,7 @@ const IA_STATION_QUALITY_GATES = Object.freeze({
   },
   "70": {
     requiredGroups: [["rodeo", "bull riding", "barrel racing", "calf roping", "bronco", "steer wrestling", "team roping", "saddle bronc", "bareback"]],
-    denyTerms: ["parade", "traffic", "safety education", "city spotlight", "after words", "not my first rodeo", "minecraft", "fishing rodeo", "motorcycle", "police", "politics", "political", "news", "podcast", "review", "tutorial", "how to"],
+     denyTerms: ["parade", "traffic", "safety education", "city spotlight", "after words", "not my first rodeo", "rodeo drive", "minecraft", "fishing rodeo", "motorcycle", "police", "politics", "political", "news", "tvnews", "foxnews", "cavuto", "television news", "podcast", "review", "tutorial", "how to"],
   },
   "112": {
     requiredGroups: [["film", "movie", "feature", "family", "musical", "cinema", "matinee", "disney", "oz", "poppins", "wonka", "lassie", "black stallion"]],
@@ -5636,6 +5636,8 @@ function iaStationQualityGate(channel, doc) {
     doc && doc.title,
     doc && doc.subject,
     doc && doc.description,
+    doc && doc.collection,
+    doc && doc.collectionName,
     doc && doc.sourceIdentifier,
     doc && doc.identifier,
   ].filter(Boolean).join(" "));
@@ -7785,7 +7787,7 @@ function rotatePlayableIaShelf(payload, rotation, count) {
   const normalizedRotation = Math.abs(Number(rotation) || 0);
   const requiredRuntime = safeMinRuntimeSeconds(payload && payload.minRuntimeSeconds);
   let playableCandidates = Array.isArray(payload && payload.candidateItems)
-    ? payload.candidateItems.filter((item) => item && item.identifier && item.media && item.media.url && iaRuntimeAllowed(item, requiredRuntime))
+    ? payload.candidateItems.filter((item) => item && item.identifier && item.media && item.media.url && iaStationQualityGate(String(payload && payload.channel || ""), item) && iaRuntimeAllowed(item, requiredRuntime))
     : [];
   /* A slow discovery request may fall back to a last-good payload that was
      written before the lane's deeper recovery bank finished hydrating. Merge
@@ -7797,7 +7799,7 @@ function rotatePlayableIaShelf(payload, rotation, count) {
     const seenRecovery = new Set(playableCandidates.map((item) => iaPlayableIdentity(item)).filter(Boolean));
     for (const item of orderedIaEmergencySeeds(recoveryChannel, 0)) {
       const id = iaPlayableIdentity(item);
-      if (!id || !item.media || !item.media.url || !iaRuntimeAllowed(item, requiredRuntime) || seenRecovery.has(id)) continue;
+      if (!id || !item.media || !item.media.url || !iaStationQualityGate(recoveryChannel, item) || !iaRuntimeAllowed(item, requiredRuntime) || seenRecovery.has(id)) continue;
       playableCandidates.push(item);
       seenRecovery.add(id);
     }

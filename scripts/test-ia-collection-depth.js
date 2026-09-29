@@ -50,7 +50,7 @@ for (const [channel, collection] of Object.entries(expectedRails)) {
 }
 
 const relay = fs.readFileSync(path.join(root, 'afterglow_ais_relay_worker.js'), 'utf8');
-check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v245"/.test(relay), 'Relay cache namespace is v245');
+check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v246"/.test(relay), 'Relay cache namespace is v246');
 check(/IA_BACKGROUND_HARVEST_OFFSETS\s*=\s*Object\.freeze\(\[1, 3, 7, 15, 31, 63, 127\]\)/.test(relay) && /harvestIaBackgroundPages/.test(relay), 'Archive depth walks later page windows behind first play');
 const api = fs.readFileSync(path.join(root, 'realsignal_api_v2_worker.js'), 'utf8');
 check(/const requestedCount = Math\.max\(1, Math\.min\(5, Number\(effectiveBody/.test(api) && /items: shelf/.test(api), 'API fallbacks expose a five-item shelf plus a deeper candidate catalog');

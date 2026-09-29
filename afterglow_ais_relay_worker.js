@@ -84,13 +84,14 @@ const IA_METADATA_TTL_SECONDS = 86400;
 const IA_QUEUE_TTL_SECONDS = 86400;
 const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
 /* The public shelf is still five playable programs, but the rolling catalog
-   behind it must be large enough to represent real Archive collections. Keep
-   the larger strict budget for named/genre-locked stations and a smaller one
-   for broad stations so depth grows without bringing the old synchronous
-   warmup back onto the channel-change path. */
-const IA_STRICT_CATALOG_CANDIDATE_MAX = 128;
-const IA_CATALOG_CANDIDATE_MAX = 96;
-const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v70-ia-recovery-admission";
+   behind it must be large enough to represent real Archive collections. The
+   catalog is deliberately much deeper than the on-air shelf now: named,
+   genre-locked stations can retain up to 2,048 verified candidates and broad
+   stations up to 1,536. That work remains background-only; channel changes
+   still hydrate the first five records without waiting for the long tail. */
+const IA_STRICT_CATALOG_CANDIDATE_MAX = 2048;
+const IA_CATALOG_CANDIDATE_MAX = 1536;
+const IA_CATALOG_BUDGET_VERSION = "catalog-2048-1536-deep-harvest-v85-file-banks";
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
@@ -103,15 +104,15 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-128-96-holiday-deep-harvest-v70-ia-re
    episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v227";
+const IA_QUEUE_CACHE_VERSION = "v244";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v227";
+const IA_LAST_GOOD_CACHE_VERSION = "v244";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
    still catching up. */
-const IA_FRESHNESS_CANDIDATE_FLOOR = 32;
+const IA_FRESHNESS_CANDIDATE_FLOOR = 128;
 const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
 /* The queue is allowed to be warm, but the opening program must not be warm
    forever. Keep a small durable history per channel so a reload, second
@@ -122,7 +123,7 @@ const IA_QUEUE_KV_PREFIX = "realsignal:ia:queue:";
    old issued shelves were measured against the former shallow catalogs and
    would otherwise consume the new unseen window before viewers ever saw it. */
 const IA_FRESHNESS_LEDGER_VERSION = "v3-played-only";
-const IA_FRESHNESS_LEDGER_MAX = 96;
+const IA_FRESHNESS_LEDGER_MAX = 256;
 const IA_FRESHNESS_LEDGER_TTL_SECONDS = 30 * 24 * 60 * 60;
 const IA_FRESHNESS_MEMORY_TTL_MS = 60 * 1000;
 const IA_HOLIDAY_ANIMATION_CHANNELS = new Set(["704", "705", "706"]);
@@ -185,7 +186,7 @@ const IA_GLOBAL_VIDEO_POLICY_VERSION = "v1";
    that still showed neighboring rotations reopening the same five programs.
    This is a bounded ordering change only: discovery, hydration, and editorial
    gates remain unchanged, while a channel advances by one public shelf. */
-const IA_FULL_WINDOW_ROTATION_CHANNELS = new Set(["2", "14", "51", "53", "55", "56", "57", "58", "59", "60", "61", "64", "69", "74", "76", "78", "79", "82", "100", "101", "103", "107", "108", "113", "120", "121", "123", "124", "128", "134", "209", "210", "214", "215", "217", "225", "231", "232", "233", "234", "235", "237", "241", "511", "701", "703", "906", "910", "917", "918", "919", "921", "928", "707", "708", "709"]);
+const IA_FULL_WINDOW_ROTATION_CHANNELS = new Set(["2", "14", "18", "19", "51", "53", "55", "56", "57", "58", "59", "60", "61", "64", "67", "69", "74", "76", "82", "109", "116", "120", "121", "123", "124", "127", "128", "134", "210", "214", "217", "219", "222", "225", "231", "232", "233", "234", "235", "237", "241", "510", "515", "575", "700", "701", "703", "704", "705", "706", "707", "708", "709", "901", "902", "904", "906", "910", "914", "915", "917", "918", "919", "920", "921", "922", "927", "928"]);
 /* Three repaired long-tail lanes proved that their durable warm shelf could
    still outrank a deeper direct bank on later skips. For these lanes, every
    non-opening rotation must use the lane-owned verified window first; Archive
@@ -204,6 +205,7 @@ const iaFreshnessMemory = new Map();
    viewer can still receive a verified program or the last-good shelf. */
 const IA_SHARED_QUEUE_READ_TIMEOUT_MS = 700;
 const iaQueueMemory = new Map();
+const iaLastGoodMemory = new Map();
 const iaQueueExpansionInflight = new Map();
 function iaQueueMemoryGet(key) {
   const entry = iaQueueMemory.get(key);
@@ -226,6 +228,20 @@ function iaQueueMemoryPut(key, payload, ttlSeconds) {
   iaQueueMemory.set(key, { payload, ttlSeconds: ttl, expiresAt: Date.now() + ttl * 1000 });
   while (iaQueueMemory.size > IA_QUEUE_MEMORY_MAX) iaQueueMemory.delete(iaQueueMemory.keys().next().value);
 }
+function iaLastGoodMemoryGet(key) {
+  const entry = iaLastGoodMemory.get(key);
+  if (!entry || entry.expiresAt <= Date.now()) {
+    if (entry) iaLastGoodMemory.delete(key);
+    return null;
+  }
+  return entry.payload;
+}
+function iaLastGoodMemoryPut(key, payload, ttlSeconds = IA_QUEUE_MEMORY_TTL_SECONDS) {
+  if (!key || !payload || !Array.isArray(payload.items) || !payload.items.length) return;
+  const ttl = Math.max(1, Math.min(IA_QUEUE_MEMORY_TTL_SECONDS, Number(ttlSeconds) || IA_QUEUE_MEMORY_TTL_SECONDS));
+  iaLastGoodMemory.set(key, { payload, expiresAt: Date.now() + ttl * 1000 });
+  while (iaLastGoodMemory.size > IA_QUEUE_MEMORY_MAX) iaLastGoodMemory.delete(iaLastGoodMemory.keys().next().value);
+}
 /* The queue endpoint is part of channel-change critical path.  Archive can
    hydrate a richer shelf after the response, but a cold request must hand the
    browser viable identifiers quickly enough for its own direct resolver to
@@ -243,18 +259,18 @@ const IA_BACKGROUND_FALLBACK_LANES = 1;
 /* Container manifests can be large. They are valuable for episode variety but
    are never permitted to multiply the work of a foreground channel change. */
 const IA_FOREGROUND_CONTAINER_EXPANSIONS = 0;
-const IA_BACKGROUND_CONTAINER_EXPANSIONS = 8;
+const IA_BACKGROUND_CONTAINER_EXPANSIONS = 16;
 const IA_CONTAINER_EXPANSION_CONCURRENCY = 2;
 /* A complete-series manifest can contain hundreds of playable files. Sample
    across the whole manifest instead of rejecting a large collection or taking
    only its first couple of episodes. The rolling shelf remains bounded by the
    channel catalog budget below. */
-const IA_MAX_EXPANDED_FILES = 1200;
-const IA_BACKGROUND_COLLECTION_EPISODES_PER_PARENT = 20;
+const IA_MAX_EXPANDED_FILES = 5000;
+const IA_BACKGROUND_COLLECTION_EPISODES_PER_PARENT = 64;
 /* Keep the visible shelf small, but let the background harvest build a real
    long tail. These larger targets are never awaited on a channel change. */
-const IA_BACKGROUND_PLAYABLE_TARGET = 64;
-const IA_DEPTH_PLAYABLE_TARGET = 96;
+const IA_BACKGROUND_PLAYABLE_TARGET = 768;
+const IA_DEPTH_PLAYABLE_TARGET = 1536;
 /* A full-directory tune burst can arrive when a guide, television, and phone
    all ask for cold shelves together. Keep the foreground path to one Archive
    discovery rail; reserve rails still run behind the first frame. */
@@ -3966,6 +3982,247 @@ const IA_DEEP_HARVEST_BANKS = Object.freeze({
    this bank separate makes the harvest auditable and lets the normal theme,
    deny, runtime, media-type, freshness, and fallback gates remain in charge. */
 const IA_UNDERFILL_DEPTH_BANKS = Object.freeze({
+  "17": [
+    iaDirectRecovery("conantonight::Conan.O.Brien.2009.06.01.Will.Ferrell.HDTV.XviD-DVSKY.mp4", "conantonight", "Conan.O.Brien.2009.06.01.Will.Ferrell.HDTV.XviD-DVSKY.mp4", "The Tonight Show with Conan O'Brien — Will Ferrell (June 2009)", "late night talk show television Conan O'Brien NBC 2009", 2009, "video", 2593.63, 624, 352),
+    iaDirectRecovery("conantonight::Conan.O.Brien.2009.06.02.Tom.Hanks.HDTV.XviD-iHT.mp4", "conantonight", "Conan.O.Brien.2009.06.02.Tom.Hanks.HDTV.XviD-iHT.mp4", "The Tonight Show with Conan O'Brien — Tom Hanks (June 2009)", "late night talk show television Conan O'Brien NBC 2009", 2009, "video", 2593.72, 624, 352),
+    iaDirectRecovery("conantonight::Conan.O.Brien.2009.06.03.Julia.Louis.Dreyfus.HDTV.XviD-DVSKY.mp4", "conantonight", "Conan.O.Brien.2009.06.03.Julia.Louis.Dreyfus.HDTV.XviD-DVSKY.mp4", "The Tonight Show with Conan O'Brien — Julia Louis-Dreyfus (June 2009)", "late night talk show television Conan O'Brien NBC 2009", 2009, "video", 2592.93, 624, 352),
+    iaDirectRecovery("conantonight::Conan.O.Brien.2009.06.04.Gwyneth.Paltrow.HDTV.XviD-CHGRP.mp4", "conantonight", "Conan.O.Brien.2009.06.04.Gwyneth.Paltrow.HDTV.XviD-CHGRP.mp4", "The Tonight Show with Conan O'Brien — Gwyneth Paltrow (June 2009)", "late night talk show television Conan O'Brien NBC 2009", 2009, "video", 2594.76, 624, 352),
+    iaDirectRecovery("conantonight::Conan.O.Brien.2009.06.05.Ryan.Seacrest.HDTV.XviD-CHGRP.mp4", "conantonight", "Conan.O.Brien.2009.06.05.Ryan.Seacrest.HDTV.XviD-CHGRP.mp4", "The Tonight Show with Conan O'Brien — Ryan Seacrest (June 2009)", "late night talk show television Conan O'Brien NBC 2009", 2009, "video", 2589.55, 624, 352),
+    iaDirectRecovery("conantonight::Conan.O.Brien.2009.06.08.David.Duchovny.HDTV.XviD-2HD.mp4", "conantonight", "Conan.O.Brien.2009.06.08.David.Duchovny.HDTV.XviD-2HD.mp4", "The Tonight Show with Conan O'Brien — David Duchovny (June 2009)", "late night talk show television Conan O'Brien NBC 2009", 2009, "video", 2603.83, 624, 352),
+    iaDirectRecovery("conantonight::Conan.O.Brien.2009.06.09.Eddie.Murphy.HDTV.XviD-CHGRP.mp4", "conantonight", "Conan.O.Brien.2009.06.09.Eddie.Murphy.HDTV.XviD-CHGRP.mp4", "The Tonight Show with Conan O'Brien — Eddie Murphy (June 2009)", "late night talk show television Conan O'Brien NBC 2009", 2009, "video", 2594.6, 624, 352),
+    iaDirectRecovery("conantonight::Conan.O.Brien.2009.06.10.Dane.Cook.HDTV.XviD-CHGRP.mp4", "conantonight", "Conan.O.Brien.2009.06.10.Dane.Cook.HDTV.XviD-CHGRP.mp4", "The Tonight Show with Conan O'Brien — Dane Cook (June 2009)", "late night talk show television Conan O'Brien NBC 2009", 2009, "video", 2594.2, 624, 352),
+    iaDirectRecovery("conantonight::Conan.O.Brien.2009.06.11.Norm.MacDonald.HDTV.XviD-LMAO.mp4", "conantonight", "Conan.O.Brien.2009.06.11.Norm.MacDonald.HDTV.XviD-LMAO.mp4", "The Tonight Show with Conan O'Brien — Norm MacDonald (June 2009)", "late night talk show television Conan O'Brien NBC 2009", 2009, "video", 2600.61, 624, 352),
+    iaDirectRecovery("conantonight::Conan.O.Brien.2009.06.12.Jamie.Foxx.HDTV.XviD-2HD.mp4", "conantonight", "Conan.O.Brien.2009.06.12.Jamie.Foxx.HDTV.XviD-2HD.mp4", "The Tonight Show with Conan O'Brien — Jamie Foxx (June 2009)", "late night talk show television Conan O'Brien NBC 2009", 2009, "video", 2604.41, 624, 352),
+    iaDirectRecovery("conantonight::Conan.O.Brien.2009.06.15.Will.Arnett.HDTV.XVID-BAJSKORV.mp4", "conantonight", "Conan.O.Brien.2009.06.15.Will.Arnett.HDTV.XVID-BAJSKORV.mp4", "The Tonight Show with Conan O'Brien — Will Arnett (June 2009)", "late night talk show television Conan O'Brien NBC 2009", 2009, "video", 2600.42, 624, 352),
+    iaDirectRecovery("conantonight::Conan.O.Brien.2009.06.16.Larry.David.HDTV.XviD-aAF.mp4", "conantonight", "Conan.O.Brien.2009.06.16.Larry.David.HDTV.XviD-aAF.mp4", "The Tonight Show with Conan O'Brien — Larry David (June 2009)", "late night talk show television Conan O'Brien NBC 2009", 2009, "video", 2595.23, 624, 352),
+    iaDirectRecovery("conantonight::Conan.O.Brien.2009.06.17.William.Shatner.HDTV.XviD-CHGRP.mp4", "conantonight", "Conan.O.Brien.2009.06.17.William.Shatner.HDTV.XviD-CHGRP.mp4", "The Tonight Show with Conan O'Brien — William Shatner (June 2009)", "late night talk show television Conan O'Brien NBC 2009", 2009, "video", 2596.56, 624, 352),
+    iaDirectRecovery("conantonight::Conan.O.Brien.2009.06.18.Eva.Mendes.HDTV.XviD-CHGRP.mp4", "conantonight", "Conan.O.Brien.2009.06.18.Eva.Mendes.HDTV.XviD-CHGRP.mp4", "The Tonight Show with Conan O'Brien — Eva Mendes (June 2009)", "late night talk show television Conan O'Brien NBC 2009", 2009, "video", 2596.12, 624, 352),
+    iaDirectRecovery("conantonight::Conan.O.Brien.2009.06.19.Phil.Jackson.HDTV.XviD-DVSKY.mp4", "conantonight", "Conan.O.Brien.2009.06.19.Phil.Jackson.HDTV.XviD-DVSKY.mp4", "The Tonight Show with Conan O'Brien — Phil Jackson (June 2009)", "late night talk show television Conan O'Brien NBC 2009", 2009, "video", 2595, 624, 352),
+    iaDirectRecovery("conantonight::Conan.O.Brien.2009.06.22.Cameron.Diaz.HDTV.XVID-BAJSKORV.mp4", "conantonight", "Conan.O.Brien.2009.06.22.Cameron.Diaz.HDTV.XVID-BAJSKORV.mp4", "The Tonight Show with Conan O'Brien — Cameron Diaz (June 2009)", "late night talk show television Conan O'Brien NBC 2009", 2009, "video", 2600.28, 624, 352),
+    iaDirectRecovery("conantonight::Conan.O.Brien.2009.06.23.Lisa.Kudrow.HDTV.XviD-2HD.mp4", "conantonight", "Conan.O.Brien.2009.06.23.Lisa.Kudrow.HDTV.XviD-2HD.mp4", "The Tonight Show with Conan O'Brien — Lisa Kudrow (June 2009)", "late night talk show television Conan O'Brien NBC 2009", 2009, "video", 2600.52, 624, 352),
+    iaDirectRecovery("conantonight::Conan.O.Brien.2009.06.24.Brandon.McMillan.HDTV.XVID-BAJSKORV.mp4", "conantonight", "Conan.O.Brien.2009.06.24.Brandon.McMillan.HDTV.XVID-BAJSKORV.mp4", "The Tonight Show with Conan O'Brien — Brandon McMillan (June 2009)", "late night talk show television Conan O'Brien NBC 2009", 2009, "video", 2601.12, 624, 352),
+    iaDirectRecovery("conantonight::Conan.O.Brien.2009.06.25.Bruno.HDTV.XVID-BAJSKORV.mp4", "conantonight", "Conan.O.Brien.2009.06.25.Bruno.HDTV.XVID-BAJSKORV.mp4", "The Tonight Show with Conan O'Brien — Bruno (June 2009)", "late night talk show television Conan O'Brien NBC 2009", 2009, "video", 2602.82, 624, 352),
+    iaDirectRecovery("conantonight::Conan.O.Brien.2009.06.26.Snoop.Dogg.HDTV.XviD-2HD.mp4", "conantonight", "Conan.O.Brien.2009.06.26.Snoop.Dogg.HDTV.XviD-2HD.mp4", "The Tonight Show with Conan O'Brien — Snoop Dogg (June 2009)", "late night talk show television Conan O'Brien NBC 2009", 2009, "video", 2601.5, 624, 352),
+  ],
+  "52": [
+    iaDirectRecovery("MuhammadAliVersusFloydPatterson::MuhammadAliVersusFloydPatterson.ogv", "MuhammadAliVersusFloydPatterson", "MuhammadAliVersusFloydPatterson.ogv", "Muhammad Ali vs Floyd Patterson", "boxing muhammad ali floyd patterson", 1972, "video", 1796.3, 400, 304),
+    iaDirectRecovery("MuhammadAliVsSonnyListon::MuhammadAliVsSonnyListon.ogv", "MuhammadAliVsSonnyListon", "MuhammadAliVsSonnyListon.ogv", "Muhammad Ali vs Sonny Liston", "boxing championship muhammad ali sonny liston rocky marciano jack dempsey", 1965, "video", 1997.93, 400, 304),
+    iaDirectRecovery("MuhammadAliVsFloydPatterson::MuhammadAliVsFloydPatterson.mp4", "MuhammadAliVsFloydPatterson", "MuhammadAliVsFloydPatterson.mp4", "Muhammad Ali vs Floyd Patterson", "boxing championship muhammad ali floyd patterson", 1965, "video", 3701.19, 476, 360),
+    iaDirectRecovery("SonnyListonVsCassiusClay::SonnyListonVsCassiusClay.mp4", "SonnyListonVsCassiusClay", "SonnyListonVsCassiusClay.mp4", "Sonny Liston vs Cassius Clay", "boxing championship sonny liston cassius clay muhammad ali joe louis", 1964, "video", 2584.71, 640, 480),
+    iaDirectRecovery("FloydPattersonVsGeorgeChuvalo::FloydPattersonVsGeorgeChuvalo.ogv", "FloydPattersonVsGeorgeChuvalo", "FloydPattersonVsGeorgeChuvalo.ogv", "Floyd Patterson vs George Chuvalo", "boxing floyd patterson george chuvalo rocky marciano muhammad ali", 1965, "video", 3996.54, 400, 304),
+    iaDirectRecovery("best-of-ufc::06.Top UFC Trilogies.mp4", "best-of-ufc", "06.Top UFC Trilogies.mp4", "Best of UFC", "Combat sport Mixed Martial Arts Ultimate Fighting Championship", 2022, "video", 983.74, 1280, 720),
+    iaDirectRecovery("60fps-iafc-the-2nd-absolute-tournament-1st-absolute-world-championship-11-25-26-95::1995.11.25+26-IAFC-The 2nd Absolute Tournament-1st Absolute World Championship/1995.11.26n-IAFC-1st Absolute World Championship Tournament Final.mp4", "60fps-iafc-the-2nd-absolute-tournament-1st-absolute-world-championship-11-25-26-95", "1995.11.25+26-IAFC-The 2nd Absolute Tournament-1st Absolute World Championship/1995.11.26n-IAFC-1st Absolute World Championship Tournament Final.mp4", "1995.11.25 & 26-IAFC-The 2nd Absolute Tournament: 1st Absolute World Championship On Martial Arts (50fps)", "Classic Classics No Holds Barred NHB MMA Mixed Martial Arts Russia Russian Absolute Fighting Championship AFC Tournament", 1995, "video", 1132.97, 1450, 1080),
+    iaDirectRecovery("MuhammadAliInMoscow::MuhammadAliInMoscow.mp4", "MuhammadAliInMoscow", "MuhammadAliInMoscow.mp4", "Muhammad Ali in Moscow", "boxing muhammad ali ussr igor vysotsky pyotr zayev yevgeny gorstkov мохаммед али советский бокс игорь высоцкий петр заев евгений горстков", 1978, "video", 1098.83, 640, 480),
+    iaDirectRecovery("ufc.1-10.-webrip.-h-264-wiz::UFC - 001-010 WEBRip x264-WIZ/UFC.005.The.Return.of.the.Beast.1995.WEBRip.H264-Wiz.mp4", "ufc.1-10.-webrip.-h-264-wiz", "UFC - 001-010 WEBRip x264-WIZ/UFC.005.The.Return.of.the.Beast.1995.WEBRip.H264-Wiz.mp4", "UFC 1-10", "UFC Ultimate fighting MMA", 1993, "video", 7135.7, 1280, 720),
+    iaDirectRecovery("03-29-2024-espn-boxing-full-card::03_29_2024 ESPN Boxing Full Card.mp4", "03-29-2024-espn-boxing-full-card", "03_29_2024 ESPN Boxing Full Card.mp4", "ESPN Top Rank Boxing: \"Valdez x Wilson & Superbad x Valle\" (Mar. 29th, 2024)", "ESPN Boxing Top Rank Boxing Desert Diamond Arena Glendale Phoenix Arizona Combat Sports ESPN+ Top Rank Inc. Raymond Muratalia Xolisani Ndongeni Senisa Estrada Yokasta Valle OScar Valdez Liam Wilson", 2024, "video", 9271.61, 1280, 720),
+    iaDirectRecovery("battle-of-champions-with-muhammad-ali-and-cus-damato-hd-720p::Battle of Champions with Muhammad Ali and Cus Damato [HD, 720p].ia.mp4", "battle-of-champions-with-muhammad-ali-and-cus-damato-hd-720p", "Battle of Champions with Muhammad Ali and Cus Damato [HD, 720p].ia.mp4", "Battle Of Champions With Muhammad Ali And Cus Damato [ HD, 720p]", "Ali, D'Amato, boxing D'Amato", 1970, "video", 2766.19, 1280, 720),
+    iaDirectRecovery("ufc.1-10.-webrip.-h-264-wiz::UFC - 001-010 WEBRip x264-WIZ/UFC.006.Clash.of.the.Titans.1995.WEBRip.H264-Wiz.mp4", "ufc.1-10.-webrip.-h-264-wiz", "UFC - 001-010 WEBRip x264-WIZ/UFC.006.Clash.of.the.Titans.1995.WEBRip.H264-Wiz.mp4", "UFC 1-10", "UFC Ultimate fighting MMA", 1993, "video", 6659.46, 1280, 720),
+    iaDirectRecovery("ufc.1-10.-webrip.-h-264-wiz::UFC - 001-010 WEBRip x264-WIZ/UFC.004.Revenge.of.the.Warriors.1994.WEBRip.H264-Wiz.mp4", "ufc.1-10.-webrip.-h-264-wiz", "UFC - 001-010 WEBRip x264-WIZ/UFC.004.Revenge.of.the.Warriors.1994.WEBRip.H264-Wiz.mp4", "UFC 1-10", "UFC Ultimate fighting MMA", 1993, "video", 5375.94, 1280, 720),
+    iaDirectRecovery("ufc.1-10.-webrip.-h-264-wiz::UFC - 001-010 WEBRip x264-WIZ/UFC.001.The.Beginning.1993.WEBRip.H264-Wiz.mp4", "ufc.1-10.-webrip.-h-264-wiz", "UFC - 001-010 WEBRip x264-WIZ/UFC.001.The.Beginning.1993.WEBRip.H264-Wiz.mp4", "UFC 1-10", "UFC Ultimate fighting MMA", 1993, "video", 5298.96, 1280, 720),
+  ],
+  "121": [
+    iaDirectRecovery("BBC.All.Watched.Over.by.Machines.of.Loving.Grace.3of3.Monkey.in.the.Machine.PDTV::BBC.All.Watched.Over.by.Machines.of.Loving.Grace.1of3.Love.and.Power.PDTV.x264.AAC.MVGroup.org.mp4", "BBC.All.Watched.Over.by.Machines.of.Loving.Grace.3of3.Monkey.in.the.Machine.PDTV", "BBC.All.Watched.Over.by.Machines.of.Loving.Grace.1of3.Love.and.Power.PDTV.x264.AAC.MVGroup.org.mp4", "BBC. All. Watched. Over.by. Machines.of. Loving. Grace. 3of 3. Monkey.in.the. Machine. PDTV.x 264. AAC. MVGroup.org", "bbc documentary Adam Curtis", 2011, "video", 3572.14, 1024, 576),
+    iaDirectRecovery("connections-1978-complete-first-series::Connections (1978) - Season 01/Connections (1978) - S01E03 - Distant Voices.mp4", "connections-1978-complete-first-series", "Connections (1978) - Season 01/Connections (1978) - S01E03 - Distant Voices.mp4", "Connections (1978) Complete First Series", "Connections \"James Burke\" BBC science history", 1978, "video", 3022.04, 650, 480),
+    iaDirectRecovery("red-dwarf-1988::Specials/Other/Red Dwarf Beat The Geek DVD Game.ia.mp4", "red-dwarf-1988", "Specials/Other/Red Dwarf Beat The Geek DVD Game.ia.mp4", "Red Dwarf (1988)", "Red Dwarf BBC BBC Television Comedy Sitcom Science Fiction UK TV British Television 1988", 1988, "video", 4386.3, 1280, 720),
+    iaDirectRecovery("last-of-the-summer-wines-1973::Featurettes/Specials/S00E06 - Getting Sam Home 1983 Christmas Special.mp4", "last-of-the-summer-wines-1973", "Featurettes/Specials/S00E06 - Getting Sam Home 1983 Christmas Special.mp4", "Last of the Summer Wine (1973)", "Last of the Summer Wine Comedy BBC BBC Television 1973 UK TV British Television", 1973, "video", 5260.24, 640, 480),
+    iaDirectRecovery("BBC.All.Watched.Over.by.Machines.of.Loving.Grace.3of3.Monkey.in.the.Machine.PDTV::BBC.All.Watched.Over.by.Machines.of.Loving.Grace.2of3.Abuse.of.Vegetational.Concepts.PDTV.x264.AAC.MVGroup.org.mp4", "BBC.All.Watched.Over.by.Machines.of.Loving.Grace.3of3.Monkey.in.the.Machine.PDTV", "BBC.All.Watched.Over.by.Machines.of.Loving.Grace.2of3.Abuse.of.Vegetational.Concepts.PDTV.x264.AAC.MVGroup.org.mp4", "BBC. All. Watched. Over.by. Machines.of. Loving. Grace. 3of 3. Monkey.in.the. Machine. PDTV.x 264. AAC. MVGroup.org", "bbc documentary Adam Curtis", 2011, "video", 3564.07, 1024, 576),
+    iaDirectRecovery("connections-1978-complete-first-series::Connections (1978) - Season 01/Connections (1978) - S01E08 - Eat, Drink and Be Merry.mp4", "connections-1978-complete-first-series", "Connections (1978) - Season 01/Connections (1978) - S01E08 - Eat, Drink and Be Merry.mp4", "Connections (1978) Complete First Series", "Connections \"James Burke\" BBC science history", 1978, "video", 3003, 650, 480),
+    iaDirectRecovery("red-dwarf-1988::Specials/Other/Red Dwarf Night VHS TVRip.mp4", "red-dwarf-1988", "Specials/Other/Red Dwarf Night VHS TVRip.mp4", "Red Dwarf (1988)", "Red Dwarf BBC BBC Television Comedy Sitcom Science Fiction UK TV British Television 1988", 1988, "video", 10868.15, 856, 480),
+    iaDirectRecovery("last-of-the-summer-wines-1973::Series 07/Last of the Summer Wine - S07E07 - Getting Sam Home (1983 Christmas Special) .mp4", "last-of-the-summer-wines-1973", "Series 07/Last of the Summer Wine - S07E07 - Getting Sam Home (1983 Christmas Special) .mp4", "Last of the Summer Wine (1973)", "Last of the Summer Wine Comedy BBC BBC Television 1973 UK TV British Television", 1973, "video", 5260.2, 640, 480),
+    iaDirectRecovery("BBC.All.Watched.Over.by.Machines.of.Loving.Grace.3of3.Monkey.in.the.Machine.PDTV::BBC.All.Watched.Over.by.Machines.of.Loving.Grace.3of3.Monkey.in.the.Machine.PDTV.x264.AAC.MVGroup.org.mp4", "BBC.All.Watched.Over.by.Machines.of.Loving.Grace.3of3.Monkey.in.the.Machine.PDTV", "BBC.All.Watched.Over.by.Machines.of.Loving.Grace.3of3.Monkey.in.the.Machine.PDTV.x264.AAC.MVGroup.org.mp4", "BBC. All. Watched. Over.by. Machines.of. Loving. Grace. 3of 3. Monkey.in.the. Machine. PDTV.x 264. AAC. MVGroup.org", "bbc documentary Adam Curtis", 2011, "video", 3486.52, 1024, 576),
+    iaDirectRecovery("connections-1978-complete-first-series::Connections (1978) - Season 01/Connections (1978) - S01E07 - The Long Chain.mp4", "connections-1978-complete-first-series", "Connections (1978) - Season 01/Connections (1978) - S01E07 - The Long Chain.mp4", "Connections (1978) Complete First Series", "Connections \"James Burke\" BBC science history", 1978, "video", 2976.96, 650, 480),
+    iaDirectRecovery("red-dwarf-1988::Specials/Other/The Ultimate Red Dwarf (Series 1 - 8) Retrospective Supercut.mp4", "red-dwarf-1988", "Specials/Other/The Ultimate Red Dwarf (Series 1 - 8) Retrospective Supercut.mp4", "Red Dwarf (1988)", "Red Dwarf BBC BBC Television Comedy Sitcom Science Fiction UK TV British Television 1988", 1988, "video", 7878.76, 854, 480),
+    iaDirectRecovery("last-of-the-summer-wines-1973::Featurettes/Specials/S00E08 - Uncle of the Bride 1986 New Years Special.mp4", "last-of-the-summer-wines-1973", "Featurettes/Specials/S00E08 - Uncle of the Bride 1986 New Years Special.mp4", "Last of the Summer Wine (1973)", "Last of the Summer Wine Comedy BBC BBC Television 1973 UK TV British Television", 1973, "video", 5050.25, 640, 480),
+    iaDirectRecovery("connections-1978-complete-first-series::Connections (1978) - Season 01/Connections (1978) - S01E04 - Faith in Numbers.mp4", "connections-1978-complete-first-series", "Connections (1978) - Season 01/Connections (1978) - S01E04 - Faith in Numbers.mp4", "Connections (1978) Complete First Series", "Connections \"James Burke\" BBC science history", 1978, "video", 2974, 650, 480),
+    iaDirectRecovery("red-dwarf-1988::Specials/Red Dwarf - S00E108 - Series X Featurette - We're Smegged.mp4", "red-dwarf-1988", "Specials/Red Dwarf - S00E108 - Series X Featurette - We're Smegged.mp4", "Red Dwarf (1988)", "Red Dwarf BBC BBC Television Comedy Sitcom Science Fiction UK TV British Television 1988", 1988, "video", 7040.06, 854, 480),
+    iaDirectRecovery("last-of-the-summer-wines-1973::Series 08/Last of the Summer Wine - S08E07 - Uncle Of The Bride (1986 New Years Special).mp4", "last-of-the-summer-wines-1973", "Series 08/Last of the Summer Wine - S08E07 - Uncle Of The Bride (1986 New Years Special).mp4", "Last of the Summer Wine (1973)", "Last of the Summer Wine Comedy BBC BBC Television 1973 UK TV British Television", 1973, "video", 5050.2, 640, 480),
+    iaDirectRecovery("connections-1978-complete-first-series::Connections (1978) - Season 01/Connections (1978) - S01E05 - The Wheel of Fortune.mp4", "connections-1978-complete-first-series", "Connections (1978) - Season 01/Connections (1978) - S01E05 - The Wheel of Fortune.mp4", "Connections (1978) Complete First Series", "Connections \"James Burke\" BBC science history", 1978, "video", 2973.92, 650, 480),
+    iaDirectRecovery("red-dwarf-1988::Season 1/Other/Red Dwarf I Byte One - The End (1993 UK VHS).ia.mp4", "red-dwarf-1988", "Season 1/Other/Red Dwarf I Byte One - The End (1993 UK VHS).ia.mp4", "Red Dwarf (1988)", "Red Dwarf BBC BBC Television Comedy Sitcom Science Fiction UK TV British Television 1988", 1988, "video", 5410.28, 640, 480),
+    iaDirectRecovery("last-of-the-summer-wines-1973::Featurettes/Specials/S00E10 - Big Day at Dream Acres 1987 Christmas Special.mp4", "last-of-the-summer-wines-1973", "Featurettes/Specials/S00E10 - Big Day at Dream Acres 1987 Christmas Special.mp4", "Last of the Summer Wine (1973)", "Last of the Summer Wine Comedy BBC BBC Television 1973 UK TV British Television", 1973, "video", 4455.68, 640, 480),
+    iaDirectRecovery("connections-1978-complete-first-series::Connections (1978) - Season 01/Connections (1978) - S01E06 - Thunder in the Skies.mp4", "connections-1978-complete-first-series", "Connections (1978) - Season 01/Connections (1978) - S01E06 - Thunder in the Skies.mp4", "Connections (1978) Complete First Series", "Connections \"James Burke\" BBC science history", 1978, "video", 2973, 650, 480),
+    iaDirectRecovery("red-dwarf-1988::Season 2/Other/Red Dwarf II Byte Two - Stasis Leak (1992 UK VHS).ia.mp4", "red-dwarf-1988", "Season 2/Other/Red Dwarf II Byte Two - Stasis Leak (1992 UK VHS).ia.mp4", "Red Dwarf (1988)", "Red Dwarf BBC BBC Television Comedy Sitcom Science Fiction UK TV British Television 1988", 1988, "video", 5360.85, 640, 480),
+    iaDirectRecovery("last-of-the-summer-wines-1973::Series 09/09x13 - Big Day At Dream Acres (1987 Christmas Special).mp4", "last-of-the-summer-wines-1973", "Series 09/09x13 - Big Day At Dream Acres (1987 Christmas Special).mp4", "Last of the Summer Wine (1973)", "Last of the Summer Wine Comedy BBC BBC Television 1973 UK TV British Television", 1973, "video", 4455.68, 640, 480),
+    iaDirectRecovery("connections-1978-complete-first-series::Connections (1978) - Season 01/Connections (1978) - S01E01 - The Trigger Effect.mp4", "connections-1978-complete-first-series", "Connections (1978) - Season 01/Connections (1978) - S01E01 - The Trigger Effect.mp4", "Connections (1978) Complete First Series", "Connections \"James Burke\" BBC science history", 1978, "video", 2970, 650, 480),
+    iaDirectRecovery("red-dwarf-1988::Season 1/Other/Red Dwarf I Byte Two - Confidence and Paranoia (1993 UK VHS).ia.mp4", "red-dwarf-1988", "Season 1/Other/Red Dwarf I Byte Two - Confidence and Paranoia (1993 UK VHS).ia.mp4", "Red Dwarf (1988)", "Red Dwarf BBC BBC Television Comedy Sitcom Science Fiction UK TV British Television 1988", 1988, "video", 5341.85, 640, 480),
+    iaDirectRecovery("last-of-the-summer-wines-1973::Featurettes/Specials/S00E11 - Crums 1988 Christmas Special.mp4", "last-of-the-summer-wines-1973", "Featurettes/Specials/S00E11 - Crums 1988 Christmas Special.mp4", "Last of the Summer Wine (1973)", "Last of the Summer Wine Comedy BBC BBC Television 1973 UK TV British Television", 1973, "video", 3603.96, 640, 480),
+  ],
+  "151": [
+    iaDirectRecovery("digimon-digital-monsters-the-complete-seasons-1-4-collection-1999-2003-saban-ent::Digimon 3x21 - Jeri's Quest.mp4", "digimon-digital-monsters-the-complete-seasons-1-4-collection-1999-2003-saban-ent", "Digimon 3x21 - Jeri's Quest.mp4", "Digimon: Digital Monsters - The Complete Seasons 1-4 Collection (1999-2003, Saban Entertainment - English dub)", "saban entertainment saban brands fox kids nicktoons jetix digimon digimon anime digital monsters digimon adventure digimon adventure zero two digimon tamers digimon frontier anime japanese anime japanese animation english dub english dubs", 1999, "video", 1289.59, 638, 480),
+    iaDirectRecovery("pokemon-indigo-league-season-1-1998::[AnimeRG] Pokémon - 0035 - The Legend of Dritini [480p] [Eng-Sub] [x265] [pseudo].mp4", "pokemon-indigo-league-season-1-1998", "[AnimeRG] Pokémon - 0035 - The Legend of Dritini [480p] [Eng-Sub] [x265] [pseudo].mp4", "Pokémon: Indigo League - The Complete Collection (1997-99, English dub)", "pokémon pokémon anime anime japanese anime japanese animation nintendo video games ash ketchum pikachu team rocket english dub pokémon songs misty pokémon brock pokémon kids' wb japanese cartoons citv children's itv cartoon network", 1998, "video", 1369.37, 640, 480),
+    iaDirectRecovery("digimon-digital-monsters-the-complete-seasons-1-4-collection-1999-2003-saban-ent::Digimon Tamers - 1x21 - Jeri's Quest.mp4", "digimon-digital-monsters-the-complete-seasons-1-4-collection-1999-2003-saban-ent", "Digimon Tamers - 1x21 - Jeri's Quest.mp4", "Digimon: Digital Monsters - The Complete Seasons 1-4 Collection (1999-2003, Saban Entertainment - English dub)", "saban entertainment saban brands fox kids nicktoons jetix digimon digimon anime digital monsters digimon adventure digimon adventure zero two digimon tamers digimon frontier anime japanese anime japanese animation english dub english dubs", 1999, "video", 1289.59, 638, 480),
+    iaDirectRecovery("pokemon-indigo-league-season-1-1998::[AnimeRG] Pokémon - 0001 - Pokémon, I Choose You [Di [480p] [x265] [pseudo].mp4", "pokemon-indigo-league-season-1-1998", "[AnimeRG] Pokémon - 0001 - Pokémon, I Choose You [Di [480p] [x265] [pseudo].mp4", "Pokémon: Indigo League - The Complete Collection (1997-99, English dub)", "pokémon pokémon anime anime japanese anime japanese animation nintendo video games ash ketchum pikachu team rocket english dub pokémon songs misty pokémon brock pokémon kids' wb japanese cartoons citv children's itv cartoon network", 1998, "video", 1342.64, 640, 480),
+    iaDirectRecovery("digimon-digital-monsters-the-complete-seasons-1-4-collection-1999-2003-saban-ent::Digimon 3x34 - Lionheart.mp4", "digimon-digital-monsters-the-complete-seasons-1-4-collection-1999-2003-saban-ent", "Digimon 3x34 - Lionheart.mp4", "Digimon: Digital Monsters - The Complete Seasons 1-4 Collection (1999-2003, Saban Entertainment - English dub)", "saban entertainment saban brands fox kids nicktoons jetix digimon digimon anime digital monsters digimon adventure digimon adventure zero two digimon tamers digimon frontier anime japanese anime japanese animation english dub english dubs", 1999, "video", 1285.89, 630, 480),
+    iaDirectRecovery("pokemon-indigo-league-season-1-1998::[AnimeRG] Pokémon - 0003 - Ash Catches A Pokémon [480p] [x265] [pseudo].mp4", "pokemon-indigo-league-season-1-1998", "[AnimeRG] Pokémon - 0003 - Ash Catches A Pokémon [480p] [x265] [pseudo].mp4", "Pokémon: Indigo League - The Complete Collection (1997-99, English dub)", "pokémon pokémon anime anime japanese anime japanese animation nintendo video games ash ketchum pikachu team rocket english dub pokémon songs misty pokémon brock pokémon kids' wb japanese cartoons citv children's itv cartoon network", 1998, "video", 1342.29, 640, 480),
+    iaDirectRecovery("digimon-digital-monsters-the-complete-seasons-1-4-collection-1999-2003-saban-ent::Digimon Tamers - 1x34 - Lionheart.mp4", "digimon-digital-monsters-the-complete-seasons-1-4-collection-1999-2003-saban-ent", "Digimon Tamers - 1x34 - Lionheart.mp4", "Digimon: Digital Monsters - The Complete Seasons 1-4 Collection (1999-2003, Saban Entertainment - English dub)", "saban entertainment saban brands fox kids nicktoons jetix digimon digimon anime digital monsters digimon adventure digimon adventure zero two digimon tamers digimon frontier anime japanese anime japanese animation english dub english dubs", 1999, "video", 1285.89, 630, 480),
+    iaDirectRecovery("pokemon-indigo-league-season-1-1998::[AnimeRG] Pokémon - 0011 - Charmander The Stray Pokémon [480p] [x265] [pseudo].mp4", "pokemon-indigo-league-season-1-1998", "[AnimeRG] Pokémon - 0011 - Charmander The Stray Pokémon [480p] [x265] [pseudo].mp4", "Pokémon: Indigo League - The Complete Collection (1997-99, English dub)", "pokémon pokémon anime anime japanese anime japanese animation nintendo video games ash ketchum pikachu team rocket english dub pokémon songs misty pokémon brock pokémon kids' wb japanese cartoons citv children's itv cartoon network", 1998, "video", 1342.17, 640, 480),
+    iaDirectRecovery("digimon-digital-monsters-the-complete-seasons-1-4-collection-1999-2003-saban-ent::Digimon 3x10 - The Icemon Cometh.mp4", "digimon-digital-monsters-the-complete-seasons-1-4-collection-1999-2003-saban-ent", "Digimon 3x10 - The Icemon Cometh.mp4", "Digimon: Digital Monsters - The Complete Seasons 1-4 Collection (1999-2003, Saban Entertainment - English dub)", "saban entertainment saban brands fox kids nicktoons jetix digimon digimon anime digital monsters digimon adventure digimon adventure zero two digimon tamers digimon frontier anime japanese anime japanese animation english dub english dubs", 1999, "video", 1285.69, 638, 480),
+    iaDirectRecovery("pokemon-indigo-league-season-1-1998::[AnimeRG] Pokémon - 0024 - Haunter Versus Kadabra [480p] [x265] [pseudo].mp4", "pokemon-indigo-league-season-1-1998", "[AnimeRG] Pokémon - 0024 - Haunter Versus Kadabra [480p] [x265] [pseudo].mp4", "Pokémon: Indigo League - The Complete Collection (1997-99, English dub)", "pokémon pokémon anime anime japanese anime japanese animation nintendo video games ash ketchum pikachu team rocket english dub pokémon songs misty pokémon brock pokémon kids' wb japanese cartoons citv children's itv cartoon network", 1998, "video", 1342.17, 640, 480),
+    iaDirectRecovery("digimon-digital-monsters-the-complete-seasons-1-4-collection-1999-2003-saban-ent::Digimon Tamers - 1x10 - The Icemon Cometh.mp4", "digimon-digital-monsters-the-complete-seasons-1-4-collection-1999-2003-saban-ent", "Digimon Tamers - 1x10 - The Icemon Cometh.mp4", "Digimon: Digital Monsters - The Complete Seasons 1-4 Collection (1999-2003, Saban Entertainment - English dub)", "saban entertainment saban brands fox kids nicktoons jetix digimon digimon anime digital monsters digimon adventure digimon adventure zero two digimon tamers digimon frontier anime japanese anime japanese animation english dub english dubs", 1999, "video", 1285.69, 638, 480),
+    iaDirectRecovery("pokemon-indigo-league-season-1-1998::[AnimeRG] Pokémon - 0025 - Primeape Goes Bananas [480p] [x265] [pseudo].mp4", "pokemon-indigo-league-season-1-1998", "[AnimeRG] Pokémon - 0025 - Primeape Goes Bananas [480p] [x265] [pseudo].mp4", "Pokémon: Indigo League - The Complete Collection (1997-99, English dub)", "pokémon pokémon anime anime japanese anime japanese animation nintendo video games ash ketchum pikachu team rocket english dub pokémon songs misty pokémon brock pokémon kids' wb japanese cartoons citv children's itv cartoon network", 1998, "video", 1342.12, 640, 480),
+    iaDirectRecovery("digimon-digital-monsters-the-complete-seasons-1-4-collection-1999-2003-saban-ent::Digimon 3x51 - Such Sweet Sorrow (2).mp4", "digimon-digital-monsters-the-complete-seasons-1-4-collection-1999-2003-saban-ent", "Digimon 3x51 - Such Sweet Sorrow (2).mp4", "Digimon: Digital Monsters - The Complete Seasons 1-4 Collection (1999-2003, Saban Entertainment - English dub)", "saban entertainment saban brands fox kids nicktoons jetix digimon digimon anime digital monsters digimon adventure digimon adventure zero two digimon tamers digimon frontier anime japanese anime japanese animation english dub english dubs", 1999, "video", 1285.39, 638, 480),
+    iaDirectRecovery("pokemon-indigo-league-season-1-1998::[AnimeRG] Pokémon - 0010 - Bulbasaur And The Hidden Village [480p] [x265] [pseudo].mp4", "pokemon-indigo-league-season-1-1998", "[AnimeRG] Pokémon - 0010 - Bulbasaur And The Hidden Village [480p] [x265] [pseudo].mp4", "Pokémon: Indigo League - The Complete Collection (1997-99, English dub)", "pokémon pokémon anime anime japanese anime japanese animation nintendo video games ash ketchum pikachu team rocket english dub pokémon songs misty pokémon brock pokémon kids' wb japanese cartoons citv children's itv cartoon network", 1998, "video", 1342.08, 640, 480),
+    iaDirectRecovery("digimon-digital-monsters-the-complete-seasons-1-4-collection-1999-2003-saban-ent::Digimon Tamers - 1x51 - Such Sweet Sorrow (2).mp4", "digimon-digital-monsters-the-complete-seasons-1-4-collection-1999-2003-saban-ent", "Digimon Tamers - 1x51 - Such Sweet Sorrow (2).mp4", "Digimon: Digital Monsters - The Complete Seasons 1-4 Collection (1999-2003, Saban Entertainment - English dub)", "saban entertainment saban brands fox kids nicktoons jetix digimon digimon anime digital monsters digimon adventure digimon adventure zero two digimon tamers digimon frontier anime japanese anime japanese animation english dub english dubs", 1999, "video", 1285.39, 638, 480),
+    iaDirectRecovery("pokemon-indigo-league-season-1-1998::[AnimeRG] Pokémon - 0006 - Clefairy And The Moon Stone [480p] [x265] [pseudo].mp4", "pokemon-indigo-league-season-1-1998", "[AnimeRG] Pokémon - 0006 - Clefairy And The Moon Stone [480p] [x265] [pseudo].mp4", "Pokémon: Indigo League - The Complete Collection (1997-99, English dub)", "pokémon pokémon anime anime japanese anime japanese animation nintendo video games ash ketchum pikachu team rocket english dub pokémon songs misty pokémon brock pokémon kids' wb japanese cartoons citv children's itv cartoon network", 1998, "video", 1342.04, 640, 480),
+    iaDirectRecovery("digimon-digital-monsters-the-complete-seasons-1-4-collection-1999-2003-saban-ent::Digimon 3x50 - Jeri Fights Back (1).mp4", "digimon-digital-monsters-the-complete-seasons-1-4-collection-1999-2003-saban-ent", "Digimon 3x50 - Jeri Fights Back (1).mp4", "Digimon: Digital Monsters - The Complete Seasons 1-4 Collection (1999-2003, Saban Entertainment - English dub)", "saban entertainment saban brands fox kids nicktoons jetix digimon digimon anime digital monsters digimon adventure digimon adventure zero two digimon tamers digimon frontier anime japanese anime japanese animation english dub english dubs", 1999, "video", 1284.35, 638, 480),
+    iaDirectRecovery("pokemon-indigo-league-season-1-1998::[AnimeRG] Pokémon - 0029 - The Punchy Pokémon [480p] [x265] [pseudo].mp4", "pokemon-indigo-league-season-1-1998", "[AnimeRG] Pokémon - 0029 - The Punchy Pokémon [480p] [x265] [pseudo].mp4", "Pokémon: Indigo League - The Complete Collection (1997-99, English dub)", "pokémon pokémon anime anime japanese anime japanese animation nintendo video games ash ketchum pikachu team rocket english dub pokémon songs misty pokémon brock pokémon kids' wb japanese cartoons citv children's itv cartoon network", 1998, "video", 1342, 640, 480),
+    iaDirectRecovery("digimon-digital-monsters-the-complete-seasons-1-4-collection-1999-2003-saban-ent::Digimon Tamers - 1x50 - Jeri Fights Back (1).mp4", "digimon-digital-monsters-the-complete-seasons-1-4-collection-1999-2003-saban-ent", "Digimon Tamers - 1x50 - Jeri Fights Back (1).mp4", "Digimon: Digital Monsters - The Complete Seasons 1-4 Collection (1999-2003, Saban Entertainment - English dub)", "saban entertainment saban brands fox kids nicktoons jetix digimon digimon anime digital monsters digimon adventure digimon adventure zero two digimon tamers digimon frontier anime japanese anime japanese animation english dub english dubs", 1999, "video", 1284.35, 638, 480),
+    iaDirectRecovery("pokemon-indigo-league-season-1-1998::[AnimeRG] Pokémon - 0044 - Showdown At Dark City [480p] [x265] [pseudo].mp4", "pokemon-indigo-league-season-1-1998", "[AnimeRG] Pokémon - 0044 - Showdown At Dark City [480p] [x265] [pseudo].mp4", "Pokémon: Indigo League - The Complete Collection (1997-99, English dub)", "pokémon pokémon anime anime japanese anime japanese animation nintendo video games ash ketchum pikachu team rocket english dub pokémon songs misty pokémon brock pokémon kids' wb japanese cartoons citv children's itv cartoon network", 1998, "video", 1342, 640, 480),
+  ],
+  "206": [
+    iaDirectRecovery("sIvanBes1938_3::sIvanBes1938_3.mp4", "sIvanBes1938_3", "sIvanBes1938_3.mp4", "[Amateur films: Ivan Besse collection: Britton, South Dakota 1938-39] (Part II)", "Amateur films Home movies South Dakota: Everyday life", 1938, "video", 1211.91, 640, 480),
+    iaDirectRecovery("amateur_west_1940_1::amateur_west_1940_1.ogv", "amateur_west_1940_1", "amateur_west_1940_1.ogv", "Amateur Film: West 1940", "Amateur Films Home Movies Travelogues Grand Canyon Colorado River", 1940, "video", 987.49, 400, 304),
+    iaDirectRecovery("sIvanBes1938_6::sIvanBes1938_6.mp4", "sIvanBes1938_6", "sIvanBes1938_6.mp4", "[Amateur films: Ivan Besse collection: Britton, South Dakota 1938-39] (Part VI)", "Amateur films Home movies South Dakota: Everyday life", 1938, "video", 1172.04, 640, 480),
+    iaDirectRecovery("sIvanBes1938_5::sIvanBes1938_5.mp4", "sIvanBes1938_5", "sIvanBes1938_5.mp4", "[Amateur films: Ivan Besse collection: Britton, South Dakota 1938-39] (Part V)", "Amateur films Home movies South Dakota: Everyday life", 1938, "video", 967.97, 640, 480),
+    iaDirectRecovery("sIvanBes1938::sIvanBes1938.mp4", "sIvanBes1938", "sIvanBes1938.mp4", "[Amateur films: Ivan Besse collection: Britton, South Dakota 1938-39] (Part IV)", "Amateur films Home movies South Dakota: Everyday life", 1938, "video", 1005.14, 640, 480),
+    iaDirectRecovery("sIvanBes1938_9::sIvanBes1938_9.mp4", "sIvanBes1938_9", "sIvanBes1938_9.mp4", "[Amateur films: Ivan Besse collection: Britton, South Dakota 1938-39] (Part IX)", "Amateur films Home movies South Dakota: Everyday life", 1938, "video", 966.97, 640, 480),
+    iaDirectRecovery("sIvanBes1938_7::sIvanBes1938_7.mp4", "sIvanBes1938_7", "sIvanBes1938_7.mp4", "[Amateur films: Ivan Besse collection: Britton, South Dakota 1938-39] (Part VII)", "Amateur films Home movies South Dakota: Everyday life", 1938, "video", 1028.06, 640, 480),
+    iaDirectRecovery("6270HMTexasTravelsAndTelevisedMoonWalk01181613::6270_HM_Texas_Travels_and_Televised_Moon_Walk_01_18_16_13.mp4", "6270HMTexasTravelsAndTelevisedMoonWalk01181613", "6270_HM_Texas_Travels_and_Televised_Moon_Walk_01_18_16_13.mp4", "[Home Movies: Texas Travels and Televised Moon Walk]", "home movies christmas birthday television", 1969, "video", 1050.26, 640, 480),
+    iaDirectRecovery("WallaceKellyGoesToNewYork::WallaceKellyWallaceGoestoNewYorkMPEG2.mp4", "WallaceKellyGoesToNewYork", "WallaceKellyWallaceGoestoNewYorkMPEG2.mp4", "Wallace Kelly Goes to New York", "Home movies Amateur films Kentucky New York City Wallace Kelly", 1930, "video", 1199.99, 640, 480),
+    iaDirectRecovery("tmp_AmateurF_3::tmp_AmateurF_3.ogv", "tmp_AmateurF_3", "tmp_AmateurF_3.ogv", "Amateur Film - Little Journeys to Niagara", "Amateur Films Home Movies Travelogues Niagara Falls", 1931, "video", 1926.09, 400, 304),
+    iaDirectRecovery("HMTravelsinFrancea98684::98684.mov", "HMTravelsinFrancea98684", "98684.mov", "Home Movie: 98684: Travels in France and England", "prelinger home movies", 1972, "video", 953.25, 1440, 1080),
+    iaDirectRecovery("WallaceKellyGoesToNewYork::WallaceKellyGoesToNewYork.ogv", "WallaceKellyGoesToNewYork", "WallaceKellyGoesToNewYork.ogv", "Wallace Kelly Goes to New York", "Home movies Amateur films Kentucky New York City Wallace Kelly", 1930, "video", 1200, 400, 304),
+    iaDirectRecovery("WallaceKellyGoesToNewYork::Wallace KellyGoes to NY.mov", "WallaceKellyGoesToNewYork", "Wallace KellyGoes to NY.mov", "Wallace Kelly Goes to New York", "Home movies Amateur films Kentucky New York City Wallace Kelly", 1930, "video", 1259.51, 324, 243),
+  ],
+  "211": [
+    iaDirectRecovery("igm-173-internet-device::IGM-173-internet-device.mp4", "igm-173-internet-device", "IGM-173-internet-device.mp4", "I've Got Munchies- Takes A Bite Out Of Tuna Tomato Rice Cakes", "I've Got Munchies Quarantine MNNTV easy recipe cooking show puppet tuna tomato rice cakes pac man wonder woman diary apocalypse noise machine Killy Dwyer and KILL THE BAND POISON Last hit", 2020, "video", 1214.83, 1920, 1080),
+    iaDirectRecovery("the-french-chef-with-julia-child-madeleines-and-genoise-jelly-roll-1971::The French Chef with Julia Child- Madeleines and Genoise Jelly Roll (1971).mp4", "the-french-chef-with-julia-child-madeleines-and-genoise-jelly-roll-1971", "The French Chef with Julia Child- Madeleines and Genoise Jelly Roll (1971).mp4", "The French Chef With Julia Child Madeleines And Genoise Jelly Roll ( 1971)", "Julia Child French Chef desserts PBS 1970s", 2024, "video", 1730.75, 640, 480),
+    iaDirectRecovery("julia-child-more-company::Julia Child & More Company.mp4", "julia-child-more-company", "Julia Child & More Company.mp4", "Julia Child & More Company - Summer Dinner", "julia child julia child and more company julia child & more company summer dinner cooking food preparation savarin salmon salmon steaks aspic chicken liver aspic cooking show tv show tv series", 1979, "video", 1693.61, 720, 480),
+    iaDirectRecovery("IGM170InternetItunes::IGM-170-internet-itunes.mp4", "IGM170InternetItunes", "IGM-170-internet-itunes.mp4", "I've Got Munchies- Takes A Bite Out Of Pepperoni Parmesan Crisps", "cooking show comedy puppet public access TV pepperoni parm crisps easy recipe", 2011, "video", 972.84, 1280, 720),
+    iaDirectRecovery("louisiana-kitchen-1986::Louisiana Kitchen (1986).ia.mp4", "louisiana-kitchen-1986", "Louisiana Kitchen (1986).ia.mp4", "Chef Paul Prudhomme’s Louisiana Kitchen (1986)", "VHS 1986 Louisiana cooking Cajun cuisine Paul Prudhomme Louisiana recipes blackened redfish Cajun Popcorn bread pudding Chantilly cream Louisiana culture traditional cooking techniques Louisiana coffee Cajun Martini cooking tutorial Cajun recipes classic cuisine Louisiana Kitchen", 1986, "video", 1949.29, 640, 480),
+    iaDirectRecovery("IGM160InternetItunes::IGM-160-internet-itunes.mp4", "IGM160InternetItunes", "IGM-160-internet-itunes.mp4", "I've Got Munchies- Takes A Bite Out Of Pull Apart Cheesy Garlic Bread", "I've Got Munchies cooking show easy recipe stoner cooking puppet Garlic bread pull apart bread home alone oregano butter Percy Lambert Sharon Jamilkowski Nick Bowan Pac Man Leslie Marseglia Patriotic tea teabagger Redneck summer summer fun Ricky's Top 5 The Joy of Painting Diana Ross Tarot Cards Moon Jenn Dodd Hungry Productions MNNTV MNNNYC funny", 2016, "video", 1072.72, 1280, 720),
+    iaDirectRecovery("IGM157ItunesInternet::IGM 157 itunes internet.mp4", "IGM157ItunesInternet", "IGM 157 itunes internet.mp4", "I've Got Munchies- Takes A Bite Out Of Candy Cane Rice Krispies Treats", "I've Got Munchies Hungry Productions Sharon Jamilkowski Nick Bowan Percy Lambert Squirm and Germ Sensitive Blue Eyes Music Video Rap Comedy Cooking show easy recipe Candy Cane Rice Krispies Treats Mary Jane Mexican Lightbulb Munchies snack cartoon Petunia kid tax doll taxes papers Barbie Head Ricky top 5 list Animals redneck Russian", 2016, "video", 1163.6, 1280, 720),
+    iaDirectRecovery("the-french-chef-with-julia-child-s-10-e-07-the-french-chef-fruit-tarts_202606::The French Chef with Julia Child_S10E18_The French Chef_ Lobster a l'Americaine.ia.mp4", "the-french-chef-with-julia-child-s-10-e-07-the-french-chef-fruit-tarts_202606", "The French Chef with Julia Child_S10E18_The French Chef_ Lobster a l'Americaine.ia.mp4", "The French Chef With Julia Child (Season 1)", "Julia Child pbs PBS", 1963, "video", 1847.22, 640, 480),
+    iaDirectRecovery("the-french-chef-with-julia-child-s-01-e-08-the-french-chef-to-ragout-a-goose::The French Chef with Julia Child_S01E09_The French Chef_ Sudden Company.ia.mp4", "the-french-chef-with-julia-child-s-01-e-08-the-french-chef-to-ragout-a-goose", "The French Chef with Julia Child_S01E09_The French Chef_ Sudden Company.ia.mp4", "The French Chef With Julia Child (Season 10 )", "Julia Child PBS pbs", 1973, "video", 1733.44, 640, 480),
+    iaDirectRecovery("the-french-chef-with-julia-child-s-06-e-13-the-french-chef-saddle-of-lamb::The French Chef with Julia Child_S06E20_The French Chef_ Quenelles.ia.mp4", "the-french-chef-with-julia-child-s-06-e-13-the-french-chef-saddle-of-lamb", "The French Chef with Julia Child_S06E20_The French Chef_ Quenelles.ia.mp4", "The French Chef With Julia Child (Season 5)", "Julia Child", 1967, "video", 1848.3, 640, 480),
+    iaDirectRecovery("the-french-chef-with-julia-child-s-10-e-07-the-french-chef-fruit-tarts_202606::The French Chef with Julia Child_S10E16_The French Chef_ Aspics.ia.mp4", "the-french-chef-with-julia-child-s-10-e-07-the-french-chef-fruit-tarts_202606", "The French Chef with Julia Child_S10E16_The French Chef_ Aspics.ia.mp4", "The French Chef With Julia Child (Season 1)", "Julia Child pbs PBS", 1963, "video", 1779.97, 640, 480),
+    iaDirectRecovery("the-french-chef-with-julia-child-s-01-e-08-the-french-chef-to-ragout-a-goose::The French Chef with Julia Child_S01E12_The French Chef_ Grand Finale Sit Down Dinner.ia.mp4", "the-french-chef-with-julia-child-s-01-e-08-the-french-chef-to-ragout-a-goose", "The French Chef with Julia Child_S01E12_The French Chef_ Grand Finale Sit Down Dinner.ia.mp4", "The French Chef With Julia Child (Season 10 )", "Julia Child PBS pbs", 1973, "video", 1726.06, 640, 480),
+    iaDirectRecovery("the-french-chef-with-julia-child-s-10-e-07-the-french-chef-fruit-tarts_202606::The French Chef with Julia Child_S10E24_The French Chef_ Dinner In A Pot.ia.mp4", "the-french-chef-with-julia-child-s-10-e-07-the-french-chef-fruit-tarts_202606", "The French Chef with Julia Child_S10E24_The French Chef_ Dinner In A Pot.ia.mp4", "The French Chef With Julia Child (Season 1)", "Julia Child pbs PBS", 1963, "video", 1771.97, 640, 480),
+    iaDirectRecovery("the-french-chef-with-julia-child-s-01-e-08-the-french-chef-to-ragout-a-goose::The French Chef with Julia Child_S01E08_The French Chef_ To Ragout A Goose.ia.mp4", "the-french-chef-with-julia-child-s-01-e-08-the-french-chef-to-ragout-a-goose", "The French Chef with Julia Child_S01E08_The French Chef_ To Ragout A Goose.ia.mp4", "The French Chef With Julia Child (Season 10 )", "Julia Child PBS pbs", 1973, "video", 1723.09, 640, 480),
+    iaDirectRecovery("the-french-chef-with-julia-child-s-10-e-07-the-french-chef-fruit-tarts_202606::The French Chef with Julia Child_S10E09_The French Chef_ Vegetables The French Way.ia.mp4", "the-french-chef-with-julia-child-s-10-e-07-the-french-chef-fruit-tarts_202606", "The French Chef with Julia Child_S10E09_The French Chef_ Vegetables The French Way.ia.mp4", "The French Chef With Julia Child (Season 1)", "Julia Child pbs PBS", 1963, "video", 1770.58, 640, 480),
+    iaDirectRecovery("the-french-chef-with-julia-child-s-01-e-08-the-french-chef-to-ragout-a-goose::The French Chef with Julia Child_S01E07_The French Chef_ V.i.p. Cake.ia.mp4", "the-french-chef-with-julia-child-s-01-e-08-the-french-chef-to-ragout-a-goose", "The French Chef with Julia Child_S01E07_The French Chef_ V.i.p. Cake.ia.mp4", "The French Chef With Julia Child (Season 10 )", "Julia Child PBS pbs", 1973, "video", 1722.71, 640, 480),
+    iaDirectRecovery("the-french-chef-with-julia-child-s-10-e-07-the-french-chef-fruit-tarts_202606::The French Chef with Julia Child_S10E25_The French Chef_ Pate A Choux.ia.mp4", "the-french-chef-with-julia-child-s-10-e-07-the-french-chef-fruit-tarts_202606", "The French Chef with Julia Child_S10E25_The French Chef_ Pate A Choux.ia.mp4", "The French Chef With Julia Child (Season 1)", "Julia Child pbs PBS", 1963, "video", 1766.25, 640, 480),
+    iaDirectRecovery("the-french-chef-with-julia-child-s-01-e-08-the-french-chef-to-ragout-a-goose::The French Chef with Julia Child_S01E04_The French Chef_ Small Kitchen, Big Ideas.ia.mp4", "the-french-chef-with-julia-child-s-01-e-08-the-french-chef-to-ragout-a-goose", "The French Chef with Julia Child_S01E04_The French Chef_ Small Kitchen, Big Ideas.ia.mp4", "The French Chef With Julia Child (Season 10 )", "Julia Child PBS pbs", 1973, "video", 1722.05, 640, 480),
+  ],
+  "220": [
+    iaDirectRecovery("WETA_20010911_170000_Reading_Rainbow::WETA_20010911_170000_Reading_Rainbow.mp4", "WETA_20010911_170000_Reading_Rainbow", "WETA_20010911_170000_Reading_Rainbow.mp4", "Reading Rainbow : WETA : September 11, 2001 1:00pm-1:30pm EDT", "Reading Rainbow Television Program", 2001, "video", 1803.57, 640, 480),
+    iaDirectRecovery("WETA_20010913_170000_Reading_Rainbow::WETA_20010913_170000_Reading_Rainbow.mp4", "WETA_20010913_170000_Reading_Rainbow", "WETA_20010913_170000_Reading_Rainbow.mp4", "Reading Rainbow : WETA : September 13, 2001 1:00pm-1:29pm EDT", "Reading Rainbow Television Program", 2001, "video", 1791.92, 640, 480),
+    iaDirectRecovery("reading-rainbow-episodes::BURIED_TREASURE_02_Title_01.mov", "reading-rainbow-episodes", "BURIED_TREASURE_02_Title_01.mov", "READING RAINBOW Episodes", "Reading Rainbow", 2022, "video", 1672.04, 720, 544),
+    iaDirectRecovery("reading-rainbow-visiting-day::Reading Rainbow - Visiting Day.mp4", "reading-rainbow-visiting-day", "Reading Rainbow - Visiting Day.mp4", "Reading Rainbow: Visiting Day (DVD ISO)", "Reading Rainbow LeVar Burton WNED-TV PBS Kids", 2004, "video", 1732.81, 640, 480),
+    iaDirectRecovery("reading-rainbow-tar-beach-1992::Reading Rainbow - Tar Beach (1992).ia.mp4", "reading-rainbow-tar-beach-1992", "Reading Rainbow - Tar Beach (1992).ia.mp4", "Reading Rainbow: Tar Beach (1992) VHS", "reading rainbow tar beach vhs levar burton george washington bridge faith ringgold ruby dee", 1992, "video", 1750.7, 640, 480),
+    iaDirectRecovery("WETA_20010915_173000_This_Old_House::WETA_20010915_173000_This_Old_House.mp4", "WETA_20010915_173000_This_Old_House", "WETA_20010915_173000_This_Old_House.mp4", "This Old House : WETA : September 15, 2001 1:30pm-1:59pm EDT", "This Old House Television Program", 2001, "video", 1798.03, 640, 480),
+    iaDirectRecovery("reading-rainbow-beegu::Reading Rainbow - Beegu.mp4", "reading-rainbow-beegu", "Reading Rainbow - Beegu.mp4", "Reading Rainbow: Beegu (DVD ISO)", "Reading Rainbow LeVar Burton WNED PBS Kids", 2005, "video", 1727.24, 640, 480),
+    iaDirectRecovery("WETA_20010912_170000_Reading_Rainbow::WETA_20010912_170000_Reading_Rainbow.mp4", "WETA_20010912_170000_Reading_Rainbow", "WETA_20010912_170000_Reading_Rainbow.mp4", "Reading Rainbow : WETA : September 12, 2001 1:00pm-1:30pm EDT", "Reading Rainbow Television Program", 2001, "video", 1800.36, 640, 480),
+    iaDirectRecovery("WETA_20010914_170000_Reading_Rainbow::WETA_20010914_170000_Reading_Rainbow.mp4", "WETA_20010914_170000_Reading_Rainbow", "WETA_20010914_170000_Reading_Rainbow.mp4", "Reading Rainbow : WETA : September 14, 2001 1:00pm-1:30pm EDT", "Reading Rainbow Television Program", 2001, "video", 1799.59, 640, 480),
+    iaDirectRecovery("lets-go_202411::LETS_GO.mp4", "lets-go_202411", "LETS_GO.mp4", "Reading Rainbow: Let's Go! (DVD ISO)", "Reading Rainbow LeVar Burton Children's Series WNED-TV", 2006, "video", 1659.85, 640, 480),
+    iaDirectRecovery("WETA_20010917_170000_Reading_Rainbow::WETA_20010917_170000_Reading_Rainbow.mp4", "WETA_20010917_170000_Reading_Rainbow", "WETA_20010917_170000_Reading_Rainbow.mp4", "Reading Rainbow : WETA : September 17, 2001 1:00pm-1:29pm EDT", "Reading Rainbow Television Program", 2001, "video", 1799.06, 640, 480),
+    iaDirectRecovery("julia-child-the-way-to-soups-salads-bread::JuliaChildSoups.mp4", "julia-child-the-way-to-soups-salads-bread", "JuliaChildSoups.mp4", "Julia Child—The Way to Cook: Soups, Salads & Bread (1985)", "vhs tape vhs how-to cooking julia child alfred a. knopf 1985", 1985, "video", 3426.79, 640, 480),
+    iaDirectRecovery("toh_s01::toh_s1e05.ia.mp4", "toh_s01", "toh_s1e05.ia.mp4", "This Old House - Season 1", "this old house home repair home improvement bob vila norm abrams wgbh boston pbs public television", 1979, "video", 1726, 1920, 1080),
+    iaDirectRecovery("reading-rainbow-snowy-day-stories-and-poems-1991::Reading Rainbow - Snowy Day - Stories and Poems (1991).ia.mp4", "reading-rainbow-snowy-day-stories-and-poems-1991", "Reading Rainbow - Snowy Day - Stories and Poems (1991).ia.mp4", "Reading Rainbow: Snowy Day - Stories and Poems (1991) VHS", "reading rainbow vhs levar burton snowy day stories and poems lena horne lacey chabert richard courtney", 1991, "video", 1725.63, 640, 480),
+    iaDirectRecovery("toh_s02::toh_s2e27.ia.mp4", "toh_s02", "toh_s2e27.ia.mp4", "This Old House - Season 2", "this old house home repair home improvement bob vila norm abrams wgbh boston pbs public television", 1981, "video", 3519.23, 1920, 1080),
+    iaDirectRecovery("reading-rainbow-episodes::MANS_BEST_FRIEND_01_Title_01.mov", "reading-rainbow-episodes", "MANS_BEST_FRIEND_01_Title_01.mov", "READING RAINBOW Episodes", "Reading Rainbow", 2022, "video", 1659.12, 720, 544),
+    iaDirectRecovery("lets-go_202411::LETS_GO8.mp4", "lets-go_202411", "LETS_GO8.mp4", "Reading Rainbow: Let's Go! (DVD ISO)", "Reading Rainbow LeVar Burton Children's Series WNED-TV", 2006, "video", 1659.85, 640, 480),
+    iaDirectRecovery("toh_s01::toh_s1e13.ia.mp4", "toh_s01", "toh_s1e13.ia.mp4", "This Old House - Season 1", "this old house home repair home improvement bob vila norm abrams wgbh boston pbs public television", 1979, "video", 1726, 1920, 1080),
+    iaDirectRecovery("toh_s02::toh_s2e09.ia.mp4", "toh_s02", "toh_s2e09.ia.mp4", "This Old House - Season 2", "this old house home repair home improvement bob vila norm abrams wgbh boston pbs public television", 1981, "video", 1767.55, 1920, 1080),
+    iaDirectRecovery("reading-rainbow-episodes::MANS_BEST_FRIEND_02_Title_01.mov", "reading-rainbow-episodes", "MANS_BEST_FRIEND_02_Title_01.mov", "READING RAINBOW Episodes", "Reading Rainbow", 2022, "video", 1641.87, 720, 544),
+    iaDirectRecovery("lets-go_202411::LETS_GO17.mp4", "lets-go_202411", "LETS_GO17.mp4", "Reading Rainbow: Let's Go! (DVD ISO)", "Reading Rainbow LeVar Burton Children's Series WNED-TV", 2006, "video", 1641.93, 640, 480),
+    iaDirectRecovery("toh_s01::toh_s1e04.ia.mp4", "toh_s01", "toh_s1e04.ia.mp4", "This Old House - Season 1", "this old house home repair home improvement bob vila norm abrams wgbh boston pbs public television", 1979, "video", 1725.13, 1920, 1080),
+    iaDirectRecovery("lets-go_202411::LETS_GO9.mp4", "lets-go_202411", "LETS_GO9.mp4", "Reading Rainbow: Let's Go! (DVD ISO)", "Reading Rainbow LeVar Burton Children's Series WNED-TV", 2006, "video", 1641.93, 640, 480),
+    iaDirectRecovery("toh_s01::toh_s1e10.ia.mp4", "toh_s01", "toh_s1e10.ia.mp4", "This Old House - Season 1", "this old house home repair home improvement bob vila norm abrams wgbh boston pbs public television", 1979, "video", 1724.5, 1920, 1080),
+  ],
+  "224": [
+    iaDirectRecovery("rasmumiaspeakslivefromwithinthebellyofthebeast::mumia_speaks_revised_version.ogv", "rasmumiaspeakslivefromwithinthebellyofthebeast", "mumia_speaks_revised_version.ogv", "mumia speaks: live from within the belly of the beast", "mumia abu jamal mumia free mumia free political prisoners malcolm x el hajj malik al shabazz black panther party cointelpro fbi martin luther king jr conspiracy genocide black power african liberation human rights civil liberties ireland ira bernadette devlin mcallisky bog side french riots algeria dominican republic cuba vietnam war korean war korea.vietnam freedom justice liberty equality revolution free all political prisoners free the cuba 5 freedom and justice now", 2005, "video", 5846.32, 400, 304),
+    iaDirectRecovery("i-am-not-your-negro-james-baldwin-arte-de-2015::I.Am.Not.Your.Negro.2016.1080p.BluRay.x264-[YTS.AM].mp4", "i-am-not-your-negro-james-baldwin-arte-de-2015", "I.Am.Not.Your.Negro.2016.1080p.BluRay.x264-[YTS.AM].mp4", "I Am Not Your Negro (FR, NL, EN subtitles, DE vo)", "james baldwin mlk malcolm x rassismus usa black lives matter", 2015, "video", 5630.46, 1920, 1024),
+    iaDirectRecovery("201379_201380_Anarchy_USA::201380_Anarchy_USA_R2_master.intros.mov", "201379_201380_Anarchy_USA", "201380_Anarchy_USA_R2_master.intros.mov", "Anarchy, U.S.A.", "Activism War Communism Civil rights Colonialism Colonialism--resistance to People of Middle Eastern or North African origin or descent 1960s 1950s Politics and government People of African origin or descent People of Asian and Pacific Islander origin or descent Patriotism Black history and culture Law enforcement", 1966, "video", 2689.34, 4096, 3072),
+    iaDirectRecovery("PHP1_fullMPEG2::PHP1_Full_HDV.mov", "PHP1_fullMPEG2", "PHP1_Full_HDV.mov", "Until The Last Gun Is Silent: Coretta Scott King 1968/2006", "Coretta Scott King Mark Tribe Port Huron Project video art new left Vietnam anti-war protest reenactment performance Martin Luther King Vietcong peace presidential candidate public opinion poverty militarism domestic affairs exploitation labor rent consumers medicare welfare social security Memphis Washington women motherhood", 2006, "video", 920.45, 1920, 1080),
+    iaDirectRecovery("cabemrc_000016::cabemrc_000016_access.HD.mp4", "cabemrc_000016", "cabemrc_000016_access.HD.mp4", "Voices of Black Panther women", "californiarevealed Black Panther Party African American women--Biography African American women--Civil rights Black power--United States--History--20th century African American women civil rights workers--Biography Black power--United States--Biography Oakland (Calif.) Merritt College", 1990, "video", 7099.99, 720, 540),
+    iaDirectRecovery("Dr.Martin.Luther.King.Jr.A.Historical.Perspective.XviD-AC3.www.mvgroup.org::Dr.Martin.Luther.King.Jr.A.Historical.Perspective.XviD-AC3.www.mvgroup.org.mp4", "Dr.Martin.Luther.King.Jr.A.Historical.Perspective.XviD-AC3.www.mvgroup.org", "Dr.Martin.Luther.King.Jr.A.Historical.Perspective.XviD-AC3.www.mvgroup.org.mp4", "Dr. Martin Luther King Jr: A Historical Perspective - Full Documentary", "Martin Luther King A Historical Perspective", 1994, "video", 3649.75, 640, 480),
+    iaDirectRecovery("MalcolmXInterviewAtUCBerkeley::Malcolm X - interview at UC Berkeley.mp4", "MalcolmXInterviewAtUCBerkeley", "Malcolm X - interview at UC Berkeley.mp4", "Malcolm X Interview At UC Berkeley", "Malcolm X Berkeley University of California Civil Rights Negroes", 1963, "video", 2408.49, 480, 360),
+    iaDirectRecovery("Songs_of_the_Civil_Rights_Movement::Songs_of_the_Civil_Rights_Movement.HD.mov", "Songs_of_the_Civil_Rights_Movement", "Songs_of_the_Civil_Rights_Movement.HD.mov", "Songs of the Civil Rights Movement", "Virginia Norfolk City of Norfolk NorfolkTV Government Access TV Community Media PEG Youtube Civil Rights Movement (Literary School Or Movement) history Documentary Songs historical NPL library civil rights African-American Music (Musical Genre) 2014", 2014, "video", 3046.16, 1280, 720),
+    iaDirectRecovery("FreedomOnMyMind::American.Experience.S07E08.Freedom.On.My.Mind.1994.VHSRip.AAC2.0.x264-krokkers.mp4", "FreedomOnMyMind", "American.Experience.S07E08.Freedom.On.My.Mind.1994.VHSRip.AAC2.0.x264-krokkers.mp4", "Freedom on My Mind", "american experience (television program) Mississippi Freedom Project Student Nonviolent Coordinating Committee (U.S.) African Americans -- Suffrage -- Mississippi African Americans -- Civil rights -- Mississippi Voter registration -- Mississippi Civil rights workers -- Mississippi -- History -- 20th century Civil rights movements -- United States -- History African Americans -- Civil rights African Americans -- Suffrage Civil rights movements Civil rights workers Race relations Voter registration Mississippi -- Race relations United States -- Race relations Mississippi United States", 1994, "video", 6486.67, 638, 480),
+    iaDirectRecovery("WRC_20120113_120000_Today::WRC_20120113_120000_Today.mp4", "WRC_20120113_120000_Today", "WRC_20120113_120000_Today.mp4", "Today : WRC : January 13, 2012 7:00am-11:00am EST", "washington romney tom brokaw new york florida hoda lyrica deborah norville south carolina new england bryant gumbel bryant tom kierein barbara walters newt gingrich matt lauer hollywood matt fibromyalgia splenda essentials d.c. new york city dave garroway florence henderson barbara ann curry willard scott locklear mmm philadelphia george lyrica katie couric itchy skin natalie heather locklear jane meredith vieira fred muggs ann al savannah bertolli arlington mr. gumbel willard kathy jon huntsman illinois tom barbara jane pauley california chicago hershey jim hartz tom hanks fairfax sears johnson katie rick perry estelle parsons deborah moisturizing cream africa niagara texas visine bobbie pennsylvania neutrogena eucerin joanne benefiber utah virginia hydroblend toyota aveeno daily moisturizing lotion martin luther king jr. lee meriweather garroway colorado meredith pacific northwest stevie john palmer margaret larson mr. brokaw verizon center for customers verizon arizona john lennon centrum al roker multigrain cheerios nicoderm cq frank mcgee humira wisconsin dove kfc pacific north west unforgettable weaver emerald card danella florence mom macy michigan turbotax luca tsa cleveland carlin natalie beckley l.a. southern california kathy pollack prego meredith iran la maine luther king jr. watertown gingrich rockies martin luther king", 2012, "video", 14400.3, 640, 480),
+    iaDirectRecovery("EqualityUnderTheLawTheLostGenerationOfPrinceEdwardCounty::EqualityUnderTheLawLostGeneration.mp4", "EqualityUnderTheLawTheLostGenerationOfPrinceEdwardCounty", "EqualityUnderTheLawLostGeneration.mp4", "Equality under the law, the lost generation of Prince Edward County.", "integration segregation civil rights Bill of Rights Constitution", 1965, "video", 1489.28, 640, 480),
+    iaDirectRecovery("Black-Natchez::Black Natchez Tulane University Digital Library.mp4", "Black-Natchez", "Black Natchez Tulane University Digital Library.mp4", "Black Natchez", "Deacons for Defense and Justice National Association for the Advancement of Colored People (NAACP) David Neuman Ed Pincus Natchez Mississippi George Metcalfe Charles Evers Civil Rights Movement Self-Defense Black Power Mississippi Freedom Democratic Party", 1967, "video", 3846.34, 640, 480),
+    iaDirectRecovery("William.Pepper.An.Act.of.State.The.Execution.of.MLK::William.Pepper-An.Act.of.State.The.Execution.of.MLK-1-29-03-JusticeVision-Xvid.mp4", "William.Pepper.An.Act.of.State.The.Execution.of.MLK", "William.Pepper-An.Act.of.State.The.Execution.of.MLK-1-29-03-JusticeVision-Xvid.mp4", "William Pepper, An Act of State: The Execution of Martin Luther King, Jr 01/29/03", "Assassination MLK MartinLutherKingJr Law Politics Military Intelligence 1960s WilliamPepper Video", 2003, "video", 8056.49, 651, 480),
+    iaDirectRecovery("attack-on-terror-the-fbi-vs.-the-ku-klux-klan::AttackOnTerror.mov", "attack-on-terror-the-fbi-vs.-the-ku-klux-klan", "AttackOnTerror.mov", "Attack On Terror: The FBI Vs. The Ku Klux Klan", "Attack On Terror: The FBI Vs. The Ku Klux Klan Attack On Terror The FBI Vs. The Ku Klux Klan Mississippi KKK Civil Rights Movement Mississippi Burning Case Based On A True Story 1964 Ku Klux Klan FBI", 1975, "video", 11375.74, 1278, 716),
+    iaDirectRecovery("southern-united-states-films::Ghosts Of Mississippi.mp4", "southern-united-states-films", "Ghosts Of Mississippi.mp4", "Southern United States Films", "Southern United States Films Southern United States Southern Life Southern Families American Civil War Civil Rights Movement History Martin Luter King Jr. Coretta Scott King Rosa Parks Harriet Tubman", 2023, "video", 7828.61, 1908, 1080),
+    iaDirectRecovery("i-am-not-your-negro-james-baldwin-arte-de-2015::i am not your negro james baldwin ARTE DE 2015.mp4", "i-am-not-your-negro-james-baldwin-arte-de-2015", "i am not your negro james baldwin ARTE DE 2015.mp4", "I Am Not Your Negro (FR, NL, EN subtitles, DE vo)", "james baldwin mlk malcolm x rassismus usa black lives matter", 2015, "video", 5188.8, 1280, 720),
+    iaDirectRecovery("201379_201380_Anarchy_USA::201379_Anarchy_USA_R1_master.intros.mov", "201379_201380_Anarchy_USA", "201379_Anarchy_USA_R1_master.intros.mov", "Anarchy, U.S.A.", "Activism War Communism Civil rights Colonialism Colonialism--resistance to People of Middle Eastern or North African origin or descent 1960s 1950s Politics and government People of African origin or descent People of Asian and Pacific Islander origin or descent Patriotism Black history and culture Law enforcement", 1966, "video", 2015.47, 4096, 3072),
+    iaDirectRecovery("cabemrc_000016::cabemrc_000016_access.mp4", "cabemrc_000016", "cabemrc_000016_access.mp4", "Voices of Black Panther women", "californiarevealed Black Panther Party African American women--Biography African American women--Civil rights Black power--United States--History--20th century African American women civil rights workers--Biography Black power--United States--Biography Oakland (Calif.) Merritt College", 1990, "video", 7100.04, 640, 480),
+    iaDirectRecovery("Songs_of_the_Civil_Rights_Movement::Songs_of_the_Civil_Rights_Movement.mp4", "Songs_of_the_Civil_Rights_Movement", "Songs_of_the_Civil_Rights_Movement.mp4", "Songs of the Civil Rights Movement", "Virginia Norfolk City of Norfolk NorfolkTV Government Access TV Community Media PEG Youtube Civil Rights Movement (Literary School Or Movement) history Documentary Songs historical NPL library civil rights African-American Music (Musical Genre) 2014", 2014, "video", 3046.18, 640, 360),
+    iaDirectRecovery("southern-united-states-films::The Light Of Freedom.mp4", "southern-united-states-films", "The Light Of Freedom.mp4", "Southern United States Films", "Southern United States Films Southern United States Southern Life Southern Families American Civil War Civil Rights Movement History Martin Luter King Jr. Coretta Scott King Rosa Parks Harriet Tubman", 2023, "video", 7423, 1920, 1080),
+  ],
+  "508": [
+    iaDirectRecovery("oxi-clean-full-infomercial-1998::Oxi-Clean Full Infomercial (1998).mp4", "oxi-clean-full-infomercial-1998", "Oxi-Clean Full Infomercial (1998).mp4", "Oxi Clean Full Infomercial ( 1998)", "Infomercial Oxi-Clean Billy Mays", 1998, "video", 1709.97, 1280, 720),
+    iaDirectRecovery("pro-cede-aero-garden-bowflex-infomercials-2008::ProCede, AeroGarden & Bowflex Infomercials (2008).ia.mp4", "pro-cede-aero-garden-bowflex-infomercials-2008", "ProCede, AeroGarden & Bowflex Infomercials (2008).ia.mp4", "Pro Cede, Aero Garden & Bowflex Infomercials ( 2008)", "AeroGarden Aerogarden infomercial aerogarden 2008 procede hair growth infomercial procede bowflex home gym bowflex discovery channel", 2008, "video", 3206.31, 640, 480),
+    iaDirectRecovery("bowflex-infomercial-march-2002::Bowflex infomercial, March 2002.mp4", "bowflex-infomercial-march-2002", "Bowflex infomercial, March 2002.mp4", "Bowflex Infomercial, March 2002", "Bowflex Infomercial", 2002, "video", 1708.92, 320, 240),
+    iaDirectRecovery("bowflex-infomercial-2004-2008::Bowflex Infomercial 2004_2008.mp4", "bowflex-infomercial-2004-2008", "Bowflex Infomercial 2004_2008.mp4", "Bowflex Infomercial 2004", "Bowflex Xtreme", 2004, "video", 1710.31, 472, 360),
+    iaDirectRecovery("cmt-09-13-2003-09-bow-flex-infomercial::CMT 09-13-2003 _ 09  BowFlex Infomercial.ia.mp4", "cmt-09-13-2003-09-bow-flex-infomercial", "CMT 09-13-2003 _ 09  BowFlex Infomercial.ia.mp4", "2003 Bowflex Infomercial", "Bowflex", 2003, "video", 1800.31, 640, 480),
+  ],
+  "903": [
+    iaDirectRecovery("the-art-of-charlie-parker-vol.-2-jazztone-j-1017::09 - The Art of Charlie PARKER vol. 2 - Jazztone J-1017 Side B - Out of nowhere.mp3", "the-art-of-charlie-parker-vol.-2-jazztone-j-1017", "09 - The Art of Charlie PARKER vol. 2 - Jazztone J-1017 Side B - Out of nowhere.mp3", "The Art of Charlie PARKER Vol. 2 - Jazztone J-1017", "Jazz on 33 rpm Bebop Charlie Parker Jazztone J-1017 Records formerly owned by my parents", 1946, "audio", 229.77, 0, 0),
+    iaDirectRecovery("jay-mc-shann-wbez-1980-chicago-jazz-festival::06-Yardbird Suite.mp3", "jay-mc-shann-wbez-1980-chicago-jazz-festival", "06-Yardbird Suite.mp3", "Jay McShann WBEZ 1980 Chicago Jazz Festival", "Jay McShann Charlie Parker Billy Taylor Michael Cuscuna Jazz Alive WBEZ NPR Chicago Jazz Festival Grant Park live concert FM broadcast", 1980, "audio", 544.32, 0, 0),
+    iaDirectRecovery("red-rodney-ira-sullivan-chicago-jazz-1980-wbez::09-This Is Always-Star Eyes.mp3", "red-rodney-ira-sullivan-chicago-jazz-1980-wbez", "09-This Is Always-Star Eyes.mp3", "Red Rodney Ira Sullivan Chicago Jazz 1980 WBEZ", "Red Rodney Ira Sullivan Chicago Jazz Festival WBEZ Charlie Parker FM broadcast live concert", 1980, "audio", 659.11, 0, 0),
+    iaDirectRecovery("1950-charlie-parker-with-strings::11 East Of The Sun (West Of The Moon).mp3", "1950-charlie-parker-with-strings", "11 East Of The Sun (West Of The Moon).mp3", "Charlie Parker With Strings", "Jazz Pop Big Band Third Stream Standards Cool Jazz", 1950, "audio", 221.16, 0, 0),
+    iaDirectRecovery("the-art-of-charlie-parker-vol.-2-jazztone-j-1017::01 - The Art of Charlie PARKER vol. 2 - Jazztone J-1017 Side A - Lover Man.mp3", "the-art-of-charlie-parker-vol.-2-jazztone-j-1017", "01 - The Art of Charlie PARKER vol. 2 - Jazztone J-1017 Side A - Lover Man.mp3", "The Art of Charlie PARKER Vol. 2 - Jazztone J-1017", "Jazz on 33 rpm Bebop Charlie Parker Jazztone J-1017 Records formerly owned by my parents", 1946, "audio", 200.99, 0, 0),
+    iaDirectRecovery("jay-mc-shann-wbez-1980-chicago-jazz-festival::16-Jumping At the Woodside.mp3", "jay-mc-shann-wbez-1980-chicago-jazz-festival", "16-Jumping At the Woodside.mp3", "Jay McShann WBEZ 1980 Chicago Jazz Festival", "Jay McShann Charlie Parker Billy Taylor Michael Cuscuna Jazz Alive WBEZ NPR Chicago Jazz Festival Grant Park live concert FM broadcast", 1980, "audio", 357.19, 0, 0),
+    iaDirectRecovery("red-rodney-ira-sullivan-chicago-jazz-1980-wbez::11-The Red Arrow.mp3", "red-rodney-ira-sullivan-chicago-jazz-1980-wbez", "11-The Red Arrow.mp3", "Red Rodney Ira Sullivan Chicago Jazz 1980 WBEZ", "Red Rodney Ira Sullivan Chicago Jazz Festival WBEZ Charlie Parker FM broadcast live concert", 1980, "audio", 493.54, 0, 0),
+    iaDirectRecovery("1950-charlie-parker-with-strings::13 I'm In The Mood For Love.mp3", "1950-charlie-parker-with-strings", "13 I'm In The Mood For Love.mp3", "Charlie Parker With Strings", "Jazz Pop Big Band Third Stream Standards Cool Jazz", 1950, "audio", 216.34, 0, 0),
+    iaDirectRecovery("the-art-of-charlie-parker-vol.-2-jazztone-j-1017::08 - The Art of Charlie PARKER vol. 2 - Jazztone J-1017 Side B - Embraceable you.mp3", "the-art-of-charlie-parker-vol.-2-jazztone-j-1017", "08 - The Art of Charlie PARKER vol. 2 - Jazztone J-1017 Side B - Embraceable you.mp3", "The Art of Charlie PARKER Vol. 2 - Jazztone J-1017", "Jazz on 33 rpm Bebop Charlie Parker Jazztone J-1017 Records formerly owned by my parents", 1946, "audio", 199.31, 0, 0),
+    iaDirectRecovery("jay-mc-shann-wbez-1980-chicago-jazz-festival::15-Confessin' the Blues.mp3", "jay-mc-shann-wbez-1980-chicago-jazz-festival", "15-Confessin' the Blues.mp3", "Jay McShann WBEZ 1980 Chicago Jazz Festival", "Jay McShann Charlie Parker Billy Taylor Michael Cuscuna Jazz Alive WBEZ NPR Chicago Jazz Festival Grant Park live concert FM broadcast", 1980, "audio", 344.33, 0, 0),
+    iaDirectRecovery("red-rodney-ira-sullivan-chicago-jazz-1980-wbez::07-Naima.mp3", "red-rodney-ira-sullivan-chicago-jazz-1980-wbez", "07-Naima.mp3", "Red Rodney Ira Sullivan Chicago Jazz 1980 WBEZ", "Red Rodney Ira Sullivan Chicago Jazz Festival WBEZ Charlie Parker FM broadcast live concert", 1980, "audio", 444.19, 0, 0),
+    iaDirectRecovery("the-art-of-charlie-parker-vol.-2-jazztone-j-1017::06 - The Art of Charlie PARKER vol. 2 - Jazztone J-1017 Side B - My old Flame.mp3", "the-art-of-charlie-parker-vol.-2-jazztone-j-1017", "06 - The Art of Charlie PARKER vol. 2 - Jazztone J-1017 Side B - My old Flame.mp3", "The Art of Charlie PARKER Vol. 2 - Jazztone J-1017", "Jazz on 33 rpm Bebop Charlie Parker Jazztone J-1017 Records formerly owned by my parents", 1946, "audio", 190.67, 0, 0),
+    iaDirectRecovery("jay-mc-shann-wbez-1980-chicago-jazz-festival::14-Body and Soul.mp3", "jay-mc-shann-wbez-1980-chicago-jazz-festival", "14-Body and Soul.mp3", "Jay McShann WBEZ 1980 Chicago Jazz Festival", "Jay McShann Charlie Parker Billy Taylor Michael Cuscuna Jazz Alive WBEZ NPR Chicago Jazz Festival Grant Park live concert FM broadcast", 1980, "audio", 343.13, 0, 0),
+    iaDirectRecovery("red-rodney-ira-sullivan-chicago-jazz-1980-wbez::05-Blues in the Guts.mp3", "red-rodney-ira-sullivan-chicago-jazz-1980-wbez", "05-Blues in the Guts.mp3", "Red Rodney Ira Sullivan Chicago Jazz 1980 WBEZ", "Red Rodney Ira Sullivan Chicago Jazz Festival WBEZ Charlie Parker FM broadcast live concert", 1980, "audio", 414.1, 0, 0),
+    iaDirectRecovery("the-art-of-charlie-parker-vol.-2-jazztone-j-1017::04 - The Art of Charlie PARKER vol. 2 - Jazztone J-1017 Side A - Bird of Paradise.mp3", "the-art-of-charlie-parker-vol.-2-jazztone-j-1017", "04 - The Art of Charlie PARKER vol. 2 - Jazztone J-1017 Side A - Bird of Paradise.mp3", "The Art of Charlie PARKER Vol. 2 - Jazztone J-1017", "Jazz on 33 rpm Bebop Charlie Parker Jazztone J-1017 Records formerly owned by my parents", 1946, "audio", 187.3, 0, 0),
+    iaDirectRecovery("jay-mc-shann-wbez-1980-chicago-jazz-festival::08-Get Me On Your Mind.mp3", "jay-mc-shann-wbez-1980-chicago-jazz-festival", "08-Get Me On Your Mind.mp3", "Jay McShann WBEZ 1980 Chicago Jazz Festival", "Jay McShann Charlie Parker Billy Taylor Michael Cuscuna Jazz Alive WBEZ NPR Chicago Jazz Festival Grant Park live concert FM broadcast", 1980, "audio", 332.81, 0, 0),
+    iaDirectRecovery("red-rodney-ira-sullivan-chicago-jazz-1980-wbez::03-Dewey Square.mp3", "red-rodney-ira-sullivan-chicago-jazz-1980-wbez", "03-Dewey Square.mp3", "Red Rodney Ira Sullivan Chicago Jazz 1980 WBEZ", "Red Rodney Ira Sullivan Chicago Jazz Festival WBEZ Charlie Parker FM broadcast live concert", 1980, "audio", 368.76, 0, 0),
+    iaDirectRecovery("the-art-of-charlie-parker-vol.-2-jazztone-j-1017::03 - The Art of Charlie PARKER vol. 2 - Jazztone J-1017 Side A - The Gypsy.mp3", "the-art-of-charlie-parker-vol.-2-jazztone-j-1017", "03 - The Art of Charlie PARKER vol. 2 - Jazztone J-1017 Side A - The Gypsy.mp3", "The Art of Charlie PARKER Vol. 2 - Jazztone J-1017", "Jazz on 33 rpm Bebop Charlie Parker Jazztone J-1017 Records formerly owned by my parents", 1946, "audio", 182.1, 0, 0),
+    iaDirectRecovery("jay-mc-shann-wbez-1980-chicago-jazz-festival::17-Hootie Blues.mp3", "jay-mc-shann-wbez-1980-chicago-jazz-festival", "17-Hootie Blues.mp3", "Jay McShann WBEZ 1980 Chicago Jazz Festival", "Jay McShann Charlie Parker Billy Taylor Michael Cuscuna Jazz Alive WBEZ NPR Chicago Jazz Festival Grant Park live concert FM broadcast", 1980, "audio", 322.25, 0, 0),
+    iaDirectRecovery("red-rodney-ira-sullivan-chicago-jazz-1980-wbez::12-Round Midnight.mp3", "red-rodney-ira-sullivan-chicago-jazz-1980-wbez", "12-Round Midnight.mp3", "Red Rodney Ira Sullivan Chicago Jazz 1980 WBEZ", "Red Rodney Ira Sullivan Chicago Jazz Festival WBEZ Charlie Parker FM broadcast live concert", 1980, "audio", 306.12, 0, 0),
+  ],
+  "913": [
+    iaDirectRecovery("lp_music-to-remember-in-the-mood_rita-robbins-mel-baxter-lewis-everettes::disc1/lp_music-to-remember-in-the-mood_rita-robbins-mel-baxter-lewis-everettes_disc1side1.flac", "lp_music-to-remember-in-the-mood_rita-robbins-mel-baxter-lewis-everettes", "disc1/lp_music-to-remember-in-the-mood_rita-robbins-mel-baxter-lewis-everettes_disc1side1.flac", "Music To Remember - In The Mood", "Jazz Pop Vocal Easy Listening", 1955, "audio", 1136, 0, 0),
+    iaDirectRecovery("lp_a-swingin-love-affair_peter-palmer-and-his-orchestra-with-voi_0::disc1/lp_a-swingin-love-affair_peter-palmer-and-his-orchestra-with-voi_0_disc1side2.flac", "lp_a-swingin-love-affair_peter-palmer-and-his-orchestra-with-voi_0", "disc1/lp_a-swingin-love-affair_peter-palmer-and-his-orchestra-with-voi_0_disc1side2.flac", "A Swingin' Love Affair", "Jazz Pop Vocal Easy Listening", 1959, "audio", 962.2, 0, 0),
+    iaDirectRecovery("lp_music-to-remember-in-the-mood_rita-robbins-mel-baxter-lewis-everettes::disc1/lp_music-to-remember-in-the-mood_rita-robbins-mel-baxter-lewis-everettes_disc1side2.flac", "lp_music-to-remember-in-the-mood_rita-robbins-mel-baxter-lewis-everettes", "disc1/lp_music-to-remember-in-the-mood_rita-robbins-mel-baxter-lewis-everettes_disc1side2.flac", "Music To Remember - In The Mood", "Jazz Pop Vocal Easy Listening", 1955, "audio", 1133.8, 0, 0),
+    iaDirectRecovery("lp_a-swingin-love-affair_peter-palmer-and-his-orchestra-with-voi_0::disc1/lp_a-swingin-love-affair_peter-palmer-and-his-orchestra-with-voi_0_disc1side1.flac", "lp_a-swingin-love-affair_peter-palmer-and-his-orchestra-with-voi_0", "disc1/lp_a-swingin-love-affair_peter-palmer-and-his-orchestra-with-voi_0_disc1side1.flac", "A Swingin' Love Affair", "Jazz Pop Vocal Easy Listening", 1959, "audio", 871.6, 0, 0),
+    iaDirectRecovery("lp_music-to-remember-in-the-mood_rita-robbins-mel-baxter-lewis-everettes::disc1/02.01. I'm In The Mood For Love.mp3", "lp_music-to-remember-in-the-mood_rita-robbins-mel-baxter-lewis-everettes", "disc1/02.01. I'm In The Mood For Love.mp3", "Music To Remember - In The Mood", "Jazz Pop Vocal Easy Listening", 1955, "audio", 200.64, 0, 0),
+    iaDirectRecovery("lp_a-swingin-love-affair_peter-palmer-and-his-orchestra-with-voi_0::disc1/02.03. The Glory Of Love .mp3", "lp_a-swingin-love-affair_peter-palmer-and-his-orchestra-with-voi_0", "disc1/02.03. The Glory Of Love .mp3", "A Swingin' Love Affair", "Jazz Pop Vocal Easy Listening", 1959, "audio", 172.54, 0, 0),
+    iaDirectRecovery("lp_music-to-remember-in-the-mood_rita-robbins-mel-baxter-lewis-everettes::disc1/02.06. Smoke Gets In Your Eyes; Laura.mp3", "lp_music-to-remember-in-the-mood_rita-robbins-mel-baxter-lewis-everettes", "disc1/02.06. Smoke Gets In Your Eyes; Laura.mp3", "Music To Remember - In The Mood", "Jazz Pop Vocal Easy Listening", 1955, "audio", 173.54, 0, 0),
+    iaDirectRecovery("lp_a-swingin-love-affair_peter-palmer-and-his-orchestra-with-voi_0::disc1/02.01. This Can't Be Love .mp3", "lp_a-swingin-love-affair_peter-palmer-and-his-orchestra-with-voi_0", "disc1/02.01. This Can't Be Love .mp3", "A Swingin' Love Affair", "Jazz Pop Vocal Easy Listening", 1959, "audio", 158.64, 0, 0),
+    iaDirectRecovery("lp_music-to-remember-in-the-mood_rita-robbins-mel-baxter-lewis-everettes::disc1/02.05. Body And Soul.mp3", "lp_music-to-remember-in-the-mood_rita-robbins-mel-baxter-lewis-everettes", "disc1/02.05. Body And Soul.mp3", "Music To Remember - In The Mood", "Jazz Pop Vocal Easy Listening", 1955, "audio", 172.82, 0, 0),
+    iaDirectRecovery("lp_a-swingin-love-affair_peter-palmer-and-his-orchestra-with-voi_0::disc1/02.05. I Could Write A Book .mp3", "lp_a-swingin-love-affair_peter-palmer-and-his-orchestra-with-voi_0", "disc1/02.05. I Could Write A Book .mp3", "A Swingin' Love Affair", "Jazz Pop Vocal Easy Listening", 1959, "audio", 156.84, 0, 0),
+    iaDirectRecovery("lp_music-to-remember-in-the-mood_rita-robbins-mel-baxter-lewis-everettes::disc1/01.06. The Way You Look Tonight.mp3", "lp_music-to-remember-in-the-mood_rita-robbins-mel-baxter-lewis-everettes", "disc1/01.06. The Way You Look Tonight.mp3", "Music To Remember - In The Mood", "Jazz Pop Vocal Easy Listening", 1955, "audio", 170.83, 0, 0),
+    iaDirectRecovery("lp_a-swingin-love-affair_peter-palmer-and-his-orchestra-with-voi_0::disc1/02.04. My Funny Valentine .mp3", "lp_a-swingin-love-affair_peter-palmer-and-his-orchestra-with-voi_0", "disc1/02.04. My Funny Valentine .mp3", "A Swingin' Love Affair", "Jazz Pop Vocal Easy Listening", 1959, "audio", 155.14, 0, 0),
+    iaDirectRecovery("lp_music-to-remember-in-the-mood_rita-robbins-mel-baxter-lewis-everettes::disc1/01.03. Star Dust.mp3", "lp_music-to-remember-in-the-mood_rita-robbins-mel-baxter-lewis-everettes", "disc1/01.03. Star Dust.mp3", "Music To Remember - In The Mood", "Jazz Pop Vocal Easy Listening", 1955, "audio", 161.83, 0, 0),
+    iaDirectRecovery("lp_a-swingin-love-affair_peter-palmer-and-his-orchestra-with-voi_0::disc1/02.02. Love Is Just Around The Corner .mp3", "lp_a-swingin-love-affair_peter-palmer-and-his-orchestra-with-voi_0", "disc1/02.02. Love Is Just Around The Corner .mp3", "A Swingin' Love Affair", "Jazz Pop Vocal Easy Listening", 1959, "audio", 151.94, 0, 0),
+    iaDirectRecovery("lp_music-to-remember-in-the-mood_rita-robbins-mel-baxter-lewis-everettes::disc1/02.03. September Song.mp3", "lp_music-to-remember-in-the-mood_rita-robbins-mel-baxter-lewis-everettes", "disc1/02.03. September Song.mp3", "Music To Remember - In The Mood", "Jazz Pop Vocal Easy Listening", 1955, "audio", 155.14, 0, 0),
+  ],
+  "920": [
+    iaDirectRecovery("Voices_of_Christmas_Past_1898_to_1922::21_ChristmasinCamp.flac", "Voices_of_Christmas_Past_1898_to_1922", "21_ChristmasinCamp.flac", "Voices of Christmas Past - 1898 to 1922", "christmas vintage music gramophone phonograph holiday uncle josh silent night night before christmas ernest hare peerless quartet jingle bells", 1922, "audio", 374.48, 200, 200),
+    iaDirectRecovery("78_es-zittern-die-morschen-knochen_reichsmusikzug-des-reichs-arbeitsdienstes-hans-baum_gbia0376121a::Es zittern die - Reichsmusikzug des Reichs-Arbeitsdienstes.mp3", "78_es-zittern-die-morschen-knochen_reichsmusikzug-des-reichs-arbeitsdienstes-hans-baum_gbia0376121a", "Es zittern die - Reichsmusikzug des Reichs-Arbeitsdienstes.mp3", "Es zittern die morschen Knochen", "78rpm March", 1938, "audio", 182.71, 0, 0),
+    iaDirectRecovery("78_ghost-riders-in-the-sky_rustys-riders-fenton-jonesy-jones-stan-jones_gbia0024964b::Ghost Riders in the Sky - Rusty's Riders-restored.mp3", "78_ghost-riders-in-the-sky_rustys-riders-fenton-jonesy-jones-stan-jones_gbia0024964b", "Ghost Riders in the Sky - Rusty's Riders-restored.mp3", "Ghost Riders in the Sky", "78rpm Hillbilly", 1953, "audio", 205.75, 640, 640),
+    iaDirectRecovery("03-id-love-to-take-orders-from-you::03 I'd Love To Take Orders From You_.m4a", "03-id-love-to-take-orders-from-you", "03 I'd Love To Take Orders From You_.m4a", "Chick Bullock & His Levee Loungers, 1935, I'd Love To Take Orders From You, 78 RPM Transfer, Digital Restoration of Damaged ShellacPart", "Chic Bullock Melotone records Catalogue #5-11-02A mx: 17990 (1-A-3)", 1935, "audio", 196.56, 478, 480),
+    iaDirectRecovery("1-the-smaland-waltz::1- The Smaland Waltz.mp3", "1-the-smaland-waltz", "1- The Smaland Waltz.mp3", "The Småland Waltz by Arvid Franzen and John Lager 78rpm", "The Småland Waltz Arvid Franzen John Lager Smålands Valsen Smaalandsvalsen 73720-A accordion duet duet Victor Victor Talking Machine Co. Camden N.J. VE Victrola 78rpm music Swedish songs Swedish songbooks phonograph record record gramophone record shellac swedish", 1923, "audio", 191.48, 0, 0),
+    iaDirectRecovery("bizet.-carmen.-act-1-sabajno.-la-scala.-1931-victor.-m-128::Bizet.[Carmen.Act1-Sabajno.LaScala.1931-Victor.M128].flac", "bizet.-carmen.-act-1-sabajno.-la-scala.-1931-victor.-m-128", "Bizet.[Carmen.Act1-Sabajno.LaScala.1931-Victor.M128].flac", "[78rpm] Sabajno conducted CARMEN with La Scala Opera 1931", "78 rpm", 1931, "audio", 2941, 0, 0),
+    iaDirectRecovery("2-schon-ist-die-jugend-performced-by-nebe-quartett::2- Schön ist die Jugend performced by Nebe-Quartett.mp3", "2-schon-ist-die-jugend-performced-by-nebe-quartett", "2- Schön ist die Jugend performced by Nebe-Quartett.mp3", "Schön Ist Die Jugend Performced by Nebe Quartett 78rpm", "Schön Ist Die Jugend Nebe Quartett 78rpm Columbia Graphophone Company 78 phonograph record record gramophone record music shellac Ges. vom Nebe-Quartet Berlin German Quartet E6094 19576 2615-B Columbia Record Hannover Germany", 1911, "audio", 188.24, 0, 0),
+    iaDirectRecovery("1-o-gonne-mir-den-fruhlingstraum-performced-by-nebe-quartett::1- O gönne mir den Frühlingstraum performced by  Nebe-Quartett.mp3", "1-o-gonne-mir-den-fruhlingstraum-performced-by-nebe-quartett", "1- O gönne mir den Frühlingstraum performced by  Nebe-Quartett.mp3", "O Gönne Mir Den Frühlingstraum Performced by Nebe Quartett 78rpm", "O Gönne Mir Den Frühlingstraum Nebe Quartett 78rpm Columbia Graphophone Company 78 phonograph record record gramophone record music shellac Ges. vom Nebe-Quartet Berlin German Quartet E6094 19580 2618-B Columbia Record Hannover Germany", 1911, "audio", 188.11, 0, 0),
+    iaDirectRecovery("1-fest-hos-gustafsons-celebration-at-gustafsons-by-olle-i-skratthult-hjalmar-peterson::1- Fest hos Gustafson's by Olle i Skratthult.mp3", "1-fest-hos-gustafsons-celebration-at-gustafsons-by-olle-i-skratthult-hjalmar-peterson", "1- Fest hos Gustafson's by Olle i Skratthult.mp3", "Fest Hos Gustafson's (Celebration At Gustafson's) by Olle i Skratthult (Hjalmar Peterson) 78rpm", "Fest Hos Gustafson's Celebration At Gustafson's Olle i Skratthult Hjalmar Peterson Comic Song with orchestra Orthophonic Recording 79320-A Swedish Victor Victor Talking Machine Co. Camden N.J. VE Victrola 78rpm comic singers music Swedish songs Swedish songbooks phonograph record record gramophone record Victor electrical recording New Jersey shellac", 1927, "audio", 198.43, 0, 0),
+    iaDirectRecovery("die-wacht-am-rhein-vocal-solo-in-german-78rpm::3- Die Wacht Am Rhein, Vocal Solo In German (Original recording, no back side, slightly edited).mp3", "die-wacht-am-rhein-vocal-solo-in-german-78rpm", "3- Die Wacht Am Rhein, Vocal Solo In German (Original recording, no back side, slightly edited).mp3", "Die Wacht Am Rhein, Vocal Solo In German by Emil Münch 78rpm", "Die Wacht Am Rhein Vocal Solo In German 78rpm 78 rpm shellac record antique German vintage American Graphophone Company Columbia Phonograph Company No. 108 108-8-X Audio-Technica Audacity Minnesota Emil Munch", 1905, "audio", 183.25, 0, 0),
+    iaDirectRecovery("1902-ed-02::君が代分列行進_陸軍戸山学校軍楽隊_1902_ed02.mp3", "1902-ed-02", "君が代分列行進_陸軍戸山学校軍楽隊_1902_ed02.mp3", "Kimigayo Parade March", "Kimigayo Parade March one-sided disc record Columbia Phonograph Company ing military music in Japan Toyama School’s military band", 1902, "audio", 172.61, 0, 0),
+    iaDirectRecovery("ravel.-bolero-stokowski.-all-american-orch.-1942-columbia::Ravel.[Bolero-Stokowski.AllAmericanOrch.1942-Columbia].flac", "ravel.-bolero-stokowski.-all-american-orch.-1942-columbia", "Ravel.[Bolero-Stokowski.AllAmericanOrch.1942-Columbia].flac", "[78rpm] Ravel Bolero - Stokowski 1942", "Shellac Stokowski Ravel Bolero", 1942, "audio", 747, 0, 0),
+    iaDirectRecovery("nar-morsan-fyller-femtio-ar-mothers-fiftieth-birthday-kalle-namndoman-olle-i-s::2- När Morsan Fyller Femtio År  (Mother's Fiftieth Birthday) (Kalle Namndoman) Olle i Skratthult (Hjalmar Peterson), recorded with Siren Spear Tip stylus.mp3", "nar-morsan-fyller-femtio-ar-mothers-fiftieth-birthday-kalle-namndoman-olle-i-s", "2- När Morsan Fyller Femtio År  (Mother's Fiftieth Birthday) (Kalle Namndoman) Olle i Skratthult (Hjalmar Peterson), recorded with Siren Spear Tip stylus.mp3", "När Morsan Fyller Femtio År (Mother's Fiftieth Birthday) (Kalle Namndoman) Olle i Skratthult (Hjalmar Peterson) 78rpm", "När Morsan Fyller Femtio År Mother's Fiftieth Birthday Kalle Namndoman Comic Song with orchestra Orthophonic Recording Swedish Victor Victor Talking Machine Co. Camden N.J. VE Victrola 78rpm comic singers music Swedish songs Swedish songbooks phonograph record record gramophone record Victor electrical recording New Jersey shellac 79320-B", 1927, "audio", 197.69, 0, 0),
+    iaDirectRecovery("Voices_of_Christmas_Past_1898_to_1922::18_AngelsfromtheRealmsofGlory.flac", "Voices_of_Christmas_Past_1898_to_1922", "18_AngelsfromtheRealmsofGlory.flac", "Voices of Christmas Past - 1898 to 1922", "christmas vintage music gramophone phonograph holiday uncle josh silent night night before christmas ernest hare peerless quartet jingle bells", 1922, "audio", 246.08, 200, 200),
+    iaDirectRecovery("03-id-love-to-take-orders-from-you::07 I'd Love To Take Orders From You_.mp3", "03-id-love-to-take-orders-from-you", "07 I'd Love To Take Orders From You_.mp3", "Chick Bullock & His Levee Loungers, 1935, I'd Love To Take Orders From You, 78 RPM Transfer, Digital Restoration of Damaged ShellacPart", "Chic Bullock Melotone records Catalogue #5-11-02A mx: 17990 (1-A-3)", 1935, "audio", 195.84, 478, 480),
+    iaDirectRecovery("bizet.-carmen.-act-1-sabajno.-la-scala.-1931-victor.-m-128::Bizet.[Carmen.Act3-Sabajno.LaScala.1931-Victor.M128].flac", "bizet.-carmen.-act-1-sabajno.-la-scala.-1931-victor.-m-128", "Bizet.[Carmen.Act3-Sabajno.LaScala.1931-Victor.M128].flac", "[78rpm] Sabajno conducted CARMEN with La Scala Opera 1931", "78 rpm", 1931, "audio", 2306, 0, 0),
+    iaDirectRecovery("1-fest-hos-gustafsons-celebration-at-gustafsons-by-olle-i-skratthult-hjalmar-peterson::2- Fest hos Gustafson's by Olle i Skratthult (recorded with Siren Spear Tip stylus).mp3", "1-fest-hos-gustafsons-celebration-at-gustafsons-by-olle-i-skratthult-hjalmar-peterson", "2- Fest hos Gustafson's by Olle i Skratthult (recorded with Siren Spear Tip stylus).mp3", "Fest Hos Gustafson's (Celebration At Gustafson's) by Olle i Skratthult (Hjalmar Peterson) 78rpm", "Fest Hos Gustafson's Celebration At Gustafson's Olle i Skratthult Hjalmar Peterson Comic Song with orchestra Orthophonic Recording 79320-A Swedish Victor Victor Talking Machine Co. Camden N.J. VE Victrola 78rpm comic singers music Swedish songs Swedish songbooks phonograph record record gramophone record Victor electrical recording New Jersey shellac", 1927, "audio", 195.74, 0, 0),
+    iaDirectRecovery("nar-morsan-fyller-femtio-ar-mothers-fiftieth-birthday-kalle-namndoman-olle-i-s::1- När Morsan Fyller Femtio År  (Mother's Fiftieth Birthday) (Kalle Namndoman) Olle i Skratthult (Hjalmar Peterson).mp3", "nar-morsan-fyller-femtio-ar-mothers-fiftieth-birthday-kalle-namndoman-olle-i-s", "1- När Morsan Fyller Femtio År  (Mother's Fiftieth Birthday) (Kalle Namndoman) Olle i Skratthult (Hjalmar Peterson).mp3", "När Morsan Fyller Femtio År (Mother's Fiftieth Birthday) (Kalle Namndoman) Olle i Skratthult (Hjalmar Peterson) 78rpm", "När Morsan Fyller Femtio År Mother's Fiftieth Birthday Kalle Namndoman Comic Song with orchestra Orthophonic Recording Swedish Victor Victor Talking Machine Co. Camden N.J. VE Victrola 78rpm comic singers music Swedish songs Swedish songbooks phonograph record record gramophone record Victor electrical recording New Jersey shellac 79320-B", 1927, "audio", 192.34, 0, 0),
+    iaDirectRecovery("Voices_of_Christmas_Past_1898_to_1922::13_OhLittleTownofBethlehem.flac", "Voices_of_Christmas_Past_1898_to_1922", "13_OhLittleTownofBethlehem.flac", "Voices of Christmas Past - 1898 to 1922", "christmas vintage music gramophone phonograph holiday uncle josh silent night night before christmas ernest hare peerless quartet jingle bells", 1922, "audio", 237.45, 200, 200),
+    iaDirectRecovery("03-id-love-to-take-orders-from-you::01 I'd Love To Take Orders From You_ 1.mp3", "03-id-love-to-take-orders-from-you", "01 I'd Love To Take Orders From You_ 1.mp3", "Chick Bullock & His Levee Loungers, 1935, I'd Love To Take Orders From You, 78 RPM Transfer, Digital Restoration of Damaged ShellacPart", "Chic Bullock Melotone records Catalogue #5-11-02A mx: 17990 (1-A-3)", 1935, "audio", 190.28, 478, 480),
+    iaDirectRecovery("bizet.-carmen.-act-1-sabajno.-la-scala.-1931-victor.-m-128::Bizet.[Carmen.Act2-Sabajno.LaScala.1931-Victor.M128].flac", "bizet.-carmen.-act-1-sabajno.-la-scala.-1931-victor.-m-128", "Bizet.[Carmen.Act2-Sabajno.LaScala.1931-Victor.M128].flac", "[78rpm] Sabajno conducted CARMEN with La Scala Opera 1931", "78 rpm", 1931, "audio", 2218, 0, 0),
+    iaDirectRecovery("Voices_of_Christmas_Past_1898_to_1922::14_AdesteFideles.flac", "Voices_of_Christmas_Past_1898_to_1922", "14_AdesteFideles.flac", "Voices of Christmas Past - 1898 to 1922", "christmas vintage music gramophone phonograph holiday uncle josh silent night night before christmas ernest hare peerless quartet jingle bells", 1922, "audio", 236.1, 200, 200),
+    iaDirectRecovery("03-id-love-to-take-orders-from-you::01 I'd Love To Take Orders From You_.m4a", "03-id-love-to-take-orders-from-you", "01 I'd Love To Take Orders From You_.m4a", "Chick Bullock & His Levee Loungers, 1935, I'd Love To Take Orders From You, 78 RPM Transfer, Digital Restoration of Damaged ShellacPart", "Chic Bullock Melotone records Catalogue #5-11-02A mx: 17990 (1-A-3)", 1935, "audio", 190.24, 478, 480),
+    iaDirectRecovery("bizet.-carmen.-act-1-sabajno.-la-scala.-1931-victor.-m-128::Bizet.[Carmen.Act4-Sabajno.LaScala.1931-Victor.M128].flac", "bizet.-carmen.-act-1-sabajno.-la-scala.-1931-victor.-m-128", "Bizet.[Carmen.Act4-Sabajno.LaScala.1931-Victor.M128].flac", "[78rpm] Sabajno conducted CARMEN with La Scala Opera 1931", "78 rpm", 1931, "audio", 1240, 0, 0),
+  ],
   "66": [
     iaDirectRecovery("Xcorps16TheMUSIChd2::Xcorps16TheMUSIChd2.mp4", "Xcorps16TheMUSIChd2", "Xcorps16TheMUSIChd2.mp4", "Xcorps Action Sports Music TV 16: The Music", "action sports extreme sports skateboarding surfing snowboarding bmx motorsports outdoor television", 2004, "video", 1341.81, 640, 360),
     iaDirectRecovery("Xcorps21ASRhd2::Xcorps21ASRhd2.mp4", "Xcorps21ASRhd2", "Xcorps21ASRhd2.mp4", "Xcorps Action Sports 21: ASR", "action sports extreme sports skateboarding surfing snowboarding bmx motorsports outdoor television", 2005, "video", 1332.48, 640, 360),
@@ -3982,6 +4239,132 @@ const IA_UNDERFILL_DEPTH_BANKS = Object.freeze({
     iaDirectRecovery("97234_hm_travel_and_fishing_in_california::97234.mp4", "97234_hm_travel_and_fishing_in_california", "97234.mp4", "Home Movie: Travel and Fishing in California", "fishing angling outdoor recreation travel sport fishing television", 1958, "video", 999.39, 640, 480),
     iaDirectRecovery("Fishing_with_a_Cop_North_Salina_Picnic_BBQ::Fishing_with_a_Cop_North_Salina_Picnic_BBQ.mp4", "Fishing_with_a_Cop_North_Salina_Picnic_BBQ", "Fishing_with_a_Cop_North_Salina_Picnic_BBQ.mp4", "Fishing with a Cop / North Salina Picnic BBQ", "fishing angling sport fishing outdoor recreation television", 2016, "video", 908.37, 640, 360),
     iaDirectRecovery("vhs-sports-1993-babe-winkleman-good-fishing-april-10-kima-yakima-woc-pro-res-480i::VHS Sports 1993 Babe Winkleman Good Fishing April 10 (KIMA Yakima) WOC H264 480p.mp4", "vhs-sports-1993-babe-winkleman-good-fishing-april-10-kima-yakima-woc-pro-res-480i", "VHS Sports 1993 Babe Winkleman Good Fishing April 10 (KIMA Yakima) WOC H264 480p.mp4", "Babe Winkleman’s Good Fishing (1993)", "fishing angling sport fishing outdoor recreation television sports program", 1993, "video", 1447, 655, 486),
+  ],
+  /* v4.1.172 file-level Archive harvest: Soul Train is a deep television
+     family, not a five-item music fallback. These records were selected from
+     real Archive file manifests, measured as playable landscape video, and
+     kept separate from the opening shelf so skips can advance through the
+     wider 1971–1988 program range without delaying first play. */
+  "927": [
+    iaDirectRecovery("soul-train-season-1-episode-1::Soul Train (Season 1, Episode 1).ia.mp4", "soul-train-season-1-episode-1", "Soul Train (Season 1, Episode 1).ia.mp4", "Soul Train (Season 1, Episode 1)", "soul train 1971 1970s don cornelius productions", 1971, "video", 3222.88, 640, 480),
+    iaDirectRecovery("soul-train-season-1-episode-22-restored::Soul Train (Season 1, Episode 22)(Restored).ia.mp4", "soul-train-season-1-episode-22-restored", "Soul Train (Season 1, Episode 22)(Restored).ia.mp4", "Soul Train (Season 1, Episode 22)", "soul train four tops jackie wilson kool and the gang 1972 1970s don cornelius productions", 1972, "video", 2694.47, 640, 480),
+    iaDirectRecovery("SoulTrain1975EpisodeWithJohnnyMathisAndTheDells::Soul Train 1975 episode with Johnny Mathis and The Dells.mp4", "SoulTrain1975EpisodeWithJohnnyMathisAndTheDells", "Soul Train 1975 episode with Johnny Mathis and The Dells.mp4", "Soul Train 1975 Episode With Johnny Mathis And The Dells", "Johnny Mathis The Dells Don Cornelius Soul Train Dance Show", 1975, "video", 2748.52, 640, 480),
+    iaDirectRecovery("TheBestOfSoulTrainEp.289FeatJoeSimonCherylLynn021979::The Best of Soul Train Ep. 289 feat Joe Simon_ Cheryl Lynn 02-1979.mp4", "TheBestOfSoulTrainEp.289FeatJoeSimonCherylLynn021979", "The Best of Soul Train Ep. 289 feat Joe Simon_ Cheryl Lynn 02-1979.mp4", "The Best Of Soul Train Ep. 289 Feat Joe Simon Cheryl Lynn 02 1979", "Cheryl Lynn Joe Simon Soul Train Don Cornelius Dance Show Rhythm & Blues Soul Music", 1979, "video", 2628.71, 480, 360),
+    iaDirectRecovery("SoulTrain-Season15-Episode27-JermaineStewartTheSOSBandJuicy-6141986::videoplayback (6).mp4", "SoulTrain-Season15-Episode27-JermaineStewartTheSOSBandJuicy-6141986", "videoplayback (6).mp4", "Soul Train - Season 15, Episode 27: Jermaine Stewart / The SOS Band / Juicy", "soul train dance show R&B performance funk performance Don Cornelius", 1986, "video", 2627.71, 480, 360),
+    iaDirectRecovery("soul-train-season-2-episode-19::Soul Train (Season 2, Episode 19).ia.mp4", "soul-train-season-2-episode-19", "Soul Train (Season 2, Episode 19).ia.mp4", "Soul Train (Season 2, Episode 19)", "soul train 1973 1970s james brown lyn collins the jbs the jb's don cornelius productions", 1973, "video", 2642.08, 640, 480),
+    iaDirectRecovery("soul-train-season-1-episode-7-partially-full-episode::Soul Train (Season 1, Episode 7).ia.mp4", "soul-train-season-1-episode-7-partially-full-episode", "Soul Train (Season 1, Episode 7).ia.mp4", "Soul Train (Season 1, Episode 7)", "soul train 1971 1970s don cornelius productions", 1971, "video", 2778.22, 640, 480),
+    iaDirectRecovery("BestOfSoulTrainEp103KoolTheGangAlWilsonNaturalFour0674::Best of Soul Train Ep 103 Kool & The Gang_ Al Wilson_ Natural Four 06 74.mp4", "BestOfSoulTrainEp103KoolTheGangAlWilsonNaturalFour0674", "Best of Soul Train Ep 103 Kool & The Gang_ Al Wilson_ Natural Four 06 74.mp4", "Best Of Soul Train Ep 103 Kool & The Gang, Al Wilson & Natural Four", "Natural Four Al Wilson Kool & The Gang Soul Train Don Cornelius Dance Show Rhythm & Blues Soul Music", 1974, "video", 2624.32, 480, 360),
+    iaDirectRecovery("soul-train-season-1-episode-11::Soul Train (Season 1, Episode 11).mp4", "soul-train-season-1-episode-11", "Soul Train (Season 1, Episode 11).mp4", "Soul Train (Season 1, Episode 11) — DVD Version", "soul train jean knight the delfonics 1971 1970s don cornelius productions", 1971, "video", 907.24, 640, 480),
+    iaDirectRecovery("soul-train-season-8-episode-25::Soul Train (Season 8, Episode 25).mp4", "soul-train-season-8-episode-25", "Soul Train (Season 8, Episode 25).mp4", "Soul Train (Season 8, Episode 25)", "soul train 1979 1970s don cornelius productions", 1979, "video", 2815.56, 1280, 720),
+    iaDirectRecovery("soul-train-season-1-episode-10-partially-full-episode::Soul Train (Season 1, Episode 10)(Restored).ia.mp4", "soul-train-season-1-episode-10-partially-full-episode", "Soul Train (Season 1, Episode 10)(Restored).ia.mp4", "Soul Train (Season 1, Episode 10)", "soul train 1971 1970s don cornelius productions", 1971, "video", 2634.52, 640, 480),
+    iaDirectRecovery("SoulTrain-withBar-KaysArpeggioSimonSoussan1979::Soul Train with Bar Kays Arpeggio 1979.mp4", "SoulTrain-withBar-KaysArpeggioSimonSoussan1979", "Soul Train with Bar Kays Arpeggio 1979.mp4", "Soul Train — Bar-Kays, Arpeggio & Simon Soussan (1979)", "The Bar-Kays Soul Train Dance Show Soul Music Rhythm & Blues Disco Music Arpeggio Don Cornelius", 1979, "video", 2743, 640, 480),
+    iaDirectRecovery("soul-train-season-8-episode-23-gene-chandler-chic::Soul Train Chic Gene Chandler.ia.mp4", "soul-train-season-8-episode-23-gene-chandler-chic", "Soul Train Chic Gene Chandler.ia.mp4", "Soul Train — Gene Chandler / Chic", "Gene Chandler Soul Train Earth Wind and Fire Chic Peaches & Herb Shalamar dance show", 1979, "video", 2742.34, 640, 480),
+    iaDirectRecovery("SoulTrainWithCameoAndPatriceRushen::Soul Train with Cameo and Patrice Rushen.mp4", "SoulTrainWithCameoAndPatriceRushen", "Soul Train with Cameo and Patrice Rushen.mp4", "Soul Train With Cameo And Patrice Rushen", "Soul Train Cameo Patrice Rushen Dance Show Don Cornelius", 1982, "video", 2505.97, 640, 480),
+    iaDirectRecovery("soul-train-season-8-episode-30-gino-vanelli-gloria-gaynor::Soul Train Gino Vanelli Gloria Gaynor.ia.mp4", "soul-train-season-8-episode-30-gino-vanelli-gloria-gaynor", "Soul Train Gino Vanelli Gloria Gaynor.ia.mp4", "Soul Train — Gino Vanelli / Gloria Gaynor", "Soul Train Don Cornelius Gloria Gaynor Jackson 5 Donna Summer Marvin Gaye disco soul rhythm and blues", 1979, "video", 2748.08, 640, 480),
+    iaDirectRecovery("BestOfSoulTrainEp123GrahamCentralStationLeonHaywoodZulemaCousseaux0175::Best of Soul Train Ep 123 Graham Central Station_ Leon Haywood 01 75.mp4", "BestOfSoulTrainEp123GrahamCentralStationLeonHaywoodZulemaCousseaux0175", "Best of Soul Train Ep 123 Graham Central Station_ Leon Haywood 01 75.mp4", "Best Of Soul Train Ep 123 — Graham Central Station / Leon Haywood", "Zulema Cousseaux Graham Central Station Leon Haywood Soul Train Don Cornelius Dance Show Rhythm & Blues Soul Music", 1975, "video", 2628.38, 480, 360),
+    iaDirectRecovery("BestOfSoulTrainEp264TheBrothersJohnsonTheDells0878::Best of Soul Train Ep 264 The Brothers Johnson_ The Dells 08 78.mp4", "BestOfSoulTrainEp264TheBrothersJohnsonTheDells0878", "Best of Soul Train Ep 264 The Brothers Johnson_ The Dells 08 78.mp4", "Best Of Soul Train Ep 264 — The Brothers Johnson / The Dells", "The Dells Brothers Johnson Soul Train Don Cornelius Dance Show Rhythm & Blues Soul Music", 1978, "video", 2627.55, 480, 360),
+    iaDirectRecovery("soul-train-season-3-episodes-12-and-13::Soul Train (Season 3, Episodes 12 and 13).ia.mp4", "soul-train-season-3-episodes-12-and-13", "Soul Train (Season 3, Episodes 12 and 13).ia.mp4", "Soul Train (Season 3, Episodes 12 & 13)", "soul train tower of power pointer sisters tavares smokey robinson 1973 1970s don cornelius productions", 1973, "video", 3535.95, 640, 480),
+    iaDirectRecovery("soul-train-season-2-episode-5-restored::Soul Train (Season 2, Episode 5)(Restored).ia.mp4", "soul-train-season-2-episode-5-restored", "Soul Train (Season 2, Episode 5)(Restored).ia.mp4", "Soul Train (Season 2, Episode 5) — Restored", "soul train jermaine jackson jackson 5 1972 1970s don cornelius productions", 1972, "video", 2592.32, 640, 480),
+    iaDirectRecovery("SoulTrainSeason13Episode2TheManhattansPhilipBailey::Soul Train with Philip Bailey Manhattans.mp4", "SoulTrainSeason13Episode2TheManhattansPhilipBailey", "Soul Train with Philip Bailey Manhattans.mp4", "Soul Train — The Manhattans / Philip Bailey", "Soul Train The Manhattans Philip Bailey Don Cornelius dance show music entertainment", 1983, "video", 2460.04, 640, 480),
+    iaDirectRecovery("SoulTrainWithAlB.SureSiedahGarrettGregoryAbbott::Soul Train with Al B. Sure, Siedah Garrett Gregory Abbott.mp4", "SoulTrainWithAlB.SureSiedahGarrettGregoryAbbott", "Soul Train with Al B. Sure, Siedah Garrett Gregory Abbott.mp4", "Soul Train — Al B. Sure, Siedah Garrett & Gregory Abbott", "Soul Train Don Cornelius Al B. Sure Gregory Abbott Siedah Garrett Dance Show", 1988, "video", 2505.9, 854, 480),
+    iaDirectRecovery("soul-train-season-4-episode-13-nhk-airing::Soul Train (Season 4, Episode 13)(NHK Airing).mp4", "soul-train-season-4-episode-13-nhk-airing", "Soul Train (Season 4, Episode 13)(NHK Airing).mp4", "Soul Train (Season 4, Episode 13)", "soul train isley brothers 1974 1970s don cornelius productions", 1974, "video", 2527.33, 480, 360),
+    iaDirectRecovery("soul-train-season-12-episode-14-with-the-gap-band-yarborough-and-peoples-and-robert-whitfield::Soul Train Season 12 Episode 14 with The Gap Band Yarborough and Peoples Robert Whitfield.mp4", "soul-train-season-12-episode-14-with-the-gap-band-yarborough-and-peoples-and-robert-whitfield", "Soul Train Season 12 Episode 14 with The Gap Band Yarborough and Peoples Robert Whitfield.mp4", "Soul Train — The Gap Band, Yarbrough & Peoples", "Soul Train The Gap Band Yarbrough Peoples Robert Whitfield Don Cornelius dance show", 1983, "video", 2475.43, 480, 360),
+  ],
+  /* The Jazz Masters lane is audio by design. Harvesting individual tracks
+     from the Archive manifests gives it real rotation depth across Billie
+     Holiday, Ellington, Armstrong, Coltrane, Parker, and swing-era sessions
+     instead of reopening one five-track shelf. */
+  "928": [
+    iaDirectRecovery("billie-holiday-just-jazz-ed-beach-1961-wrvr::02 They Way You Look Tonight.mp3", "billie-holiday-just-jazz-ed-beach-1961-wrvr", "02 They Way You Look Tonight.mp3", "Billie Holiday — The Way You Look Tonight", "Billie Holiday Lady Day Just Jazz Ed Beach WRVR FM broadcast aircheck jazz vocal", 1966, "audio", 348.19),
+    iaDirectRecovery("billie-holiday-just-jazz-ed-beach-1961-wrvr::56 Travelin' Light.mp3", "billie-holiday-just-jazz-ed-beach-1961-wrvr", "56 Travelin' Light.mp3", "Billie Holiday — Travelin' Light", "Billie Holiday Lady Day Just Jazz Ed Beach WRVR FM broadcast aircheck jazz vocal", 1966, "audio", 334.08),
+    iaDirectRecovery("billie-holiday-just-jazz-ed-beach-1961-wrvr::22 I'm Pulling Through.mp3", "billie-holiday-just-jazz-ed-beach-1961-wrvr", "22 I'm Pulling Through.mp3", "Billie Holiday — I'm Pulling Through", "Billie Holiday Lady Day Just Jazz Ed Beach WRVR FM broadcast aircheck jazz vocal", 1966, "audio", 331.26),
+    iaDirectRecovery("billie-holiday-just-jazz-ed-beach-1961-wrvr::05 Body And Soul.mp3", "billie-holiday-just-jazz-ed-beach-1961-wrvr", "05 Body And Soul.mp3", "Billie Holiday — Body and Soul", "Billie Holiday Lady Day Just Jazz Ed Beach WRVR FM broadcast aircheck jazz vocal", 1966, "audio", 321.65),
+    iaDirectRecovery("billie-holiday-just-jazz-ed-beach-1961-wrvr::07 Travelin' Light.mp3", "billie-holiday-just-jazz-ed-beach-1961-wrvr", "07 Travelin' Light.mp3", "Billie Holiday — Travelin' Light (alternate take)", "Billie Holiday Lady Day Just Jazz Ed Beach WRVR FM broadcast aircheck jazz vocal", 1966, "audio", 307.17),
+    iaDirectRecovery("billie-holiday-just-jazz-ed-beach-1961-wrvr::64 Gloomy Sunday.mp3", "billie-holiday-just-jazz-ed-beach-1961-wrvr", "64 Gloomy Sunday.mp3", "Billie Holiday — Gloomy Sunday", "Billie Holiday Lady Day Just Jazz Ed Beach WRVR FM broadcast aircheck jazz vocal", 1966, "audio", 301.25),
+    iaDirectRecovery("billie-holiday-just-jazz-ed-beach-1961-wrvr::49 Your Mother's Son-In-Law.mp3", "billie-holiday-just-jazz-ed-beach-1961-wrvr", "49 Your Mother's Son-In-Law.mp3", "Billie Holiday — Your Mother's Son-In-Law", "Billie Holiday Lady Day Just Jazz Ed Beach WRVR FM broadcast aircheck jazz vocal", 1966, "audio", 301.06),
+    iaDirectRecovery("billie-holiday-just-jazz-ed-beach-1961-wrvr::15 Summertime.mp3", "billie-holiday-just-jazz-ed-beach-1961-wrvr", "15 Summertime.mp3", "Billie Holiday — Summertime", "Billie Holiday Lady Day Just Jazz Ed Beach WRVR FM broadcast aircheck jazz vocal", 1966, "audio", 297.3),
+    iaDirectRecovery("billie-holiday-just-jazz-ed-beach-1961-wrvr::12 Some Other Spring.mp3", "billie-holiday-just-jazz-ed-beach-1961-wrvr", "12 Some Other Spring.mp3", "Billie Holiday — Some Other Spring", "Billie Holiday Lady Day Just Jazz Ed Beach WRVR FM broadcast aircheck jazz vocal", 1966, "audio", 294.19),
+    iaDirectRecovery("billie-holiday-just-jazz-ed-beach-1961-wrvr::67 Georgia On My Mind.mp3", "billie-holiday-just-jazz-ed-beach-1961-wrvr", "67 Georgia On My Mind.mp3", "Billie Holiday — Georgia On My Mind", "Billie Holiday Lady Day Just Jazz Ed Beach WRVR FM broadcast aircheck jazz vocal", 1966, "audio", 292.13),
+    iaDirectRecovery("1944EsquireAll-americanJazzConcert::1944-01-18-NBCB-Esquire-All-American-Jazz-Concert-Metropolitan-Opera-House-NYC.mp3", "1944EsquireAll-americanJazzConcert", "1944-01-18-NBCB-Esquire-All-American-Jazz-Concert-Metropolitan-Opera-House-NYC.mp3", "1944 Esquire All-American Jazz Concert", "Teddy Wilson Jack Teagarden Art Tatum Red Norvo Coleman Hawkins Billie Holiday Benny Goodman jazz swing big band", 1944, "audio", 7403.88),
+    iaDirectRecovery("danny_kaye_louis_armstrong-the_five_pennies-vinyl-1959::B3-Medley.mp3", "danny_kaye_louis_armstrong-the_five_pennies-vinyl-1959", "B3-Medley.mp3", "Louis Armstrong — The Five Pennies Medley", "Danny Kaye Louis Armstrong movie soundtrack film music jazz 50s music vinyl recording", 1959, "audio", 223.45),
+    iaDirectRecovery("danny_kaye_louis_armstrong-the_five_pennies-vinyl-1959::A5-Indiana Radio Montage.mp3", "danny_kaye_louis_armstrong-the_five_pennies-vinyl-1959", "A5-Indiana Radio Montage.mp3", "Louis Armstrong — Indiana Radio Montage", "Danny Kaye Louis Armstrong movie soundtrack film music jazz 50s music vinyl recording", 1959, "audio", 196.68),
+    iaDirectRecovery("danny_kaye_louis_armstrong-the_five_pennies-vinyl-1959::B1-The Five Pennies Saints.mp3", "danny_kaye_louis_armstrong-the_five_pennies-vinyl-1959", "B1-The Five Pennies Saints.mp3", "Louis Armstrong — The Five Pennies Saints", "Danny Kaye Louis Armstrong movie soundtrack film music jazz 50s music vinyl recording", 1959, "audio", 188.03),
+    iaDirectRecovery("danny_kaye_louis_armstrong-the_five_pennies-vinyl-1959::A9-Battle Hymn Of The Republic.mp3", "danny_kaye_louis_armstrong-the_five_pennies-vinyl-1959", "A9-Battle Hymn Of The Republic.mp3", "Louis Armstrong — Battle Hymn of the Republic", "Danny Kaye Louis Armstrong movie soundtrack film music jazz 50s music vinyl recording", 1959, "audio", 161.15),
+    iaDirectRecovery("danny_kaye_louis_armstrong-the_five_pennies-vinyl-1959::B9-The Five Pennies Finale And Battle Hymn Of The Republic Finale.mp3", "danny_kaye_louis_armstrong-the_five_pennies-vinyl-1959", "B9-The Five Pennies Finale And Battle Hymn Of The Republic Finale.mp3", "Louis Armstrong — The Five Pennies Finale", "Danny Kaye Louis Armstrong movie soundtrack film music jazz 50s music vinyl recording", 1959, "audio", 156.5),
+    iaDirectRecovery("danny_kaye_louis_armstrong-the_five_pennies-vinyl-1959::B2-College Montage.mp3", "danny_kaye_louis_armstrong-the_five_pennies-vinyl-1959", "B2-College Montage.mp3", "Louis Armstrong — College Montage", "Danny Kaye Louis Armstrong movie soundtrack film music jazz 50s music vinyl recording", 1959, "audio", 151.64),
+    iaDirectRecovery("01-john-coltrane-live-in-paris-1962::01 - John Coltrane - Live in Paris 1962 -  Mr. P.C..flac", "01-john-coltrane-live-in-paris-1962", "01 - John Coltrane - Live in Paris 1962 -  Mr. P.C..flac", "John Coltrane — Mr. P.C. (Live in Paris, 1962)", "modern jazz John Coltrane McCoy Tyner Jimmy Garrison Elvin Jones live jazz", 1962, "audio", 1575.75),
+    iaDirectRecovery("01-john-coltrane-live-in-paris-1962::02 - John Coltrane - Live in Paris 1962 - The Inch Worm.flac", "01-john-coltrane-live-in-paris-1962", "02 - John Coltrane - Live in Paris 1962 - The Inch Worm.flac", "John Coltrane — The Inch Worm (Live in Paris, 1962)", "modern jazz John Coltrane McCoy Tyner Jimmy Garrison Elvin Jones live jazz", 1962, "audio", 612.39),
+    iaDirectRecovery("01-john-coltrane-live-in-paris-1962::03 - John Coltrane - Live in Paris 1962 -  Ev'rytime we say goodbye.flac", "01-john-coltrane-live-in-paris-1962", "03 - John Coltrane - Live in Paris 1962 -  Ev'rytime we say goodbye.flac", "John Coltrane — Ev'rytime We Say Goodbye (Live in Paris, 1962)", "modern jazz John Coltrane McCoy Tyner Jimmy Garrison Elvin Jones live jazz", 1962, "audio", 300.64),
+    iaDirectRecovery("the-art-of-charlie-parker-vol.-2-jazztone-j-1017::09 - The Art of Charlie PARKER vol. 2 - Jazztone J-1017 Side B - Out of nowhere.mp3", "the-art-of-charlie-parker-vol.-2-jazztone-j-1017", "09 - The Art of Charlie PARKER vol. 2 - Jazztone J-1017 Side B - Out of nowhere.mp3", "Charlie Parker — Out of Nowhere", "jazz bebop Charlie Parker Jazztone 78rpm recording", 1946, "audio", 229.77),
+    iaDirectRecovery("the-art-of-charlie-parker-vol.-2-jazztone-j-1017::01 - The Art of Charlie PARKER vol. 2 - Jazztone J-1017 Side A - Lover Man.mp3", "the-art-of-charlie-parker-vol.-2-jazztone-j-1017", "01 - The Art of Charlie PARKER vol. 2 - Jazztone J-1017 Side A - Lover Man.mp3", "Charlie Parker — Lover Man", "jazz bebop Charlie Parker Jazztone 78rpm recording", 1946, "audio", 200.99),
+    iaDirectRecovery("the-art-of-charlie-parker-vol.-2-jazztone-j-1017::08 - The Art of Charlie PARKER vol. 2 - Jazztone J-1017 Side B - Embraceable you.mp3", "the-art-of-charlie-parker-vol.-2-jazztone-j-1017", "08 - The Art of Charlie PARKER vol. 2 - Jazztone J-1017 Side B - Embraceable you.mp3", "Charlie Parker — Embraceable You", "jazz bebop Charlie Parker Jazztone 78rpm recording", 1946, "audio", 199.31),
+    iaDirectRecovery("the-art-of-charlie-parker-vol.-2-jazztone-j-1017::06 - The Art of Charlie PARKER vol. 2 - Jazztone J-1017 Side B - My old Flame.mp3", "the-art-of-charlie-parker-vol.-2-jazztone-j-1017", "06 - The Art of Charlie PARKER vol. 2 - Jazztone J-1017 Side B - My old Flame.mp3", "Charlie Parker — My Old Flame", "jazz bebop Charlie Parker Jazztone 78rpm recording", 1946, "audio", 190.67),
+    iaDirectRecovery("the-art-of-charlie-parker-vol.-2-jazztone-j-1017::04 - The Art of Charlie PARKER vol. 2 - Jazztone J-1017 Side A - Bird of Paradise.mp3", "the-art-of-charlie-parker-vol.-2-jazztone-j-1017", "04 - The Art of Charlie PARKER vol. 2 - Jazztone J-1017 Side A - Bird of Paradise.mp3", "Charlie Parker — Bird of Paradise", "jazz bebop Charlie Parker Jazztone 78rpm recording", 1946, "audio", 187.3),
+    iaDirectRecovery("the-art-of-charlie-parker-vol.-2-jazztone-j-1017::03 - The Art of Charlie PARKER vol. 2 - Jazztone J-1017 Side A - The Gypsy.mp3", "the-art-of-charlie-parker-vol.-2-jazztone-j-1017", "03 - The Art of Charlie PARKER vol. 2 - Jazztone J-1017 Side A - The Gypsy.mp3", "Charlie Parker — The Gypsy", "jazz bebop Charlie Parker Jazztone 78rpm recording", 1946, "audio", 182.1),
+    iaDirectRecovery("the-art-of-charlie-parker-vol.-2-jazztone-j-1017::07 - The Art of Charlie PARKER vol. 2 - Jazztone J-1017 Side B - Scrapple from Apple.mp3", "the-art-of-charlie-parker-vol.-2-jazztone-j-1017", "07 - The Art of Charlie PARKER vol. 2 - Jazztone J-1017 Side B - Scrapple from Apple.mp3", "Charlie Parker — Scrapple from the Apple", "jazz bebop Charlie Parker Jazztone 78rpm recording", 1946, "audio", 176.48),
+  ],
+  /* v4.1.173 file-level depth repair: Friday Night Fights was reopening
+     Patterson-era records because the old shelf never reached the larger
+     public-domain bout families. These are real landscape boxing films from
+     distinct fights and eras; alternate encodes of the same bout stay out. */
+  "56": [
+    iaDirectRecovery("MuhammadAliVsSonnyListon::MuhammadAliVsSonnyListon.ogv", "MuhammadAliVsSonnyListon", "MuhammadAliVsSonnyListon.ogv", "Muhammad Ali vs Sonny Liston", "boxing championship professional boxing heavyweight fight sports archive", 1965, "video", 1997.93, 400, 304),
+    iaDirectRecovery("MaxBaerVsJamesBraddock::MaxBaerVsJamesBraddock.ogv", "MaxBaerVsJamesBraddock", "MaxBaerVsJamesBraddock.ogv", "Max Baer vs James Braddock", "boxing championship professional boxing heavyweight fight sports archive", 1935, "video", 1841.52, 400, 304),
+    iaDirectRecovery("MaxSchmelingVersusJoeLouis::MaxSchmelingVersusJoeLouis.mp4", "MaxSchmelingVersusJoeLouis", "MaxSchmelingVersusJoeLouis.mp4", "Max Schmeling vs Joe Louis", "boxing championship professional boxing heavyweight fight sports archive", 1936, "video", 1868.12, 640, 480),
+    iaDirectRecovery("FloydPattersonVsGeorgeChuvalo::FloydPattersonVsGeorgeChuvalo.ogv", "FloydPattersonVsGeorgeChuvalo", "FloydPattersonVsGeorgeChuvalo.ogv", "Floyd Patterson vs George Chuvalo", "boxing championship professional boxing heavyweight fight sports archive", 1965, "video", 3996.54, 400, 304),
+    iaDirectRecovery("FloydPattersonVsBrianLondon::FloydPattersonVsBrianLondon.mp4", "FloydPattersonVsBrianLondon", "FloydPattersonVsBrianLondon.mp4", "Floyd Patterson vs Brian London", "boxing championship professional boxing heavyweight fight sports archive", 1959, "video", 2272.77, 480, 360),
+    iaDirectRecovery("GeneTunneyVersusJackDempsey::GeneTunneyVersusJackDempsey.mp4", "GeneTunneyVersusJackDempsey", "GeneTunneyVersusJackDempsey.mp4", "Gene Tunney vs Jack Dempsey", "boxing championship professional boxing heavyweight fight sports archive", 1927, "video", 1858.6, 640, 480),
+    iaDirectRecovery("MaxBaerVersusPrimoCarnera::MaxBaerVersusPrimoCarnera.ogv", "MaxBaerVersusPrimoCarnera", "MaxBaerVersusPrimoCarnera.ogv", "Max Baer vs Primo Carnera", "boxing championship professional boxing heavyweight fight sports archive", 1934, "video", 1471.33, 400, 304),
+    iaDirectRecovery("holyfield-lewis-i::HolyfieldLewisI.ia.mp4", "holyfield-lewis-i", "HolyfieldLewisI.ia.mp4", "Evander Holyfield vs Lennox Lewis I", "boxing championship professional boxing heavyweight fight sports archive", 1999, "video", 13440.84, 720, 480),
+    iaDirectRecovery("tyson-vs-douglas::amarec(20240820-1636).ia.mp4", "tyson-vs-douglas", "amarec(20240820-1636).ia.mp4", "Mike Tyson vs James Douglas", "boxing championship professional boxing heavyweight fight sports archive", 1990, "video", 3551.06, 640, 480),
+  ],
+  /* v4.1.173 Festival Circuit family rail. Broad Archive search is full of
+     trailers, shorts, fan uploads, and duplicate encodes; these verified
+     Globians/independent-film files provide a deep landscape catalog without
+     weakening the channel's editorial filters. */
+  "117": [
+    iaDirectRecovery("Me_Jane_USA_2000::Me_Jane_USA_2000.ogv", "Me_Jane_USA_2000", "Me_Jane_USA_2000.ogv", "Me Jane (USA 2000)", "film festival independent film documentary world cinema international cinema", 2000, "video", 2096.84, 400, 304),
+    iaDirectRecovery("Venezuela_Bolivariana_VEN_2004::Venezuela_Bolivariana_VEN_2004.ogv", "Venezuela_Bolivariana_VEN_2004", "Venezuela_Bolivariana_VEN_2004.ogv", "Venezuela Bolivariana: People and Struggle", "film festival independent film documentary world cinema international cinema", 2004, "video", 4618.08, 400, 300),
+    iaDirectRecovery("Buddhas_Maler_D_2004::Buddhas_Maler_D_2004.ogv", "Buddhas_Maler_D_2004", "Buddhas_Maler_D_2004.ogv", "Buddha's Painter", "film festival independent film documentary world cinema international cinema", 2004, "video", 3338.84, 400, 304),
+    iaDirectRecovery("Not_This_War_USA2006::Not_This_War_USA2006.ogv", "Not_This_War_USA2006", "Not_This_War_USA2006.ogv", "Not This War", "film festival independent film documentary world cinema international cinema", 2006, "video", 951.12, 400, 304),
+    iaDirectRecovery("Tea_Room_F_2003::Tea_Room_F_2003.ogv", "Tea_Room_F_2003", "Tea_Room_F_2003.ogv", "Tea Space", "film festival independent film documentary world cinema international cinema", 2003, "video", 1609, 400, 304),
+    iaDirectRecovery("WAIA_Part1_J_2004::WAIA_Part1_J_2004.mp4", "WAIA_Part1_J_2004", "WAIA_Part1_J_2004.mp4", "WAIA: Memory of Clubs and Maracas — Part 1", "film festival independent film documentary world cinema international cinema", 2004, "video", 2555.52, 640, 480),
+    iaDirectRecovery("Half_City_D_1988::Half_City_D_1988.ogv", "Half_City_D_1988", "Half_City_D_1988.ogv", "Half City", "film festival independent film documentary world cinema international cinema", 1988, "video", 983.02, 400, 304),
+    iaDirectRecovery("Thatta_Kedona_D_2005_Part_1_EngST::Thatta_Kedona_Part1_D_2005_EnglST.ogv", "Thatta_Kedona_D_2005_Part_1_EngST", "Thatta_Kedona_Part1_D_2005_EnglST.ogv", "Thatta Kedona: The Toy Village of Pakistan — Part 1", "film festival independent film documentary world cinema international cinema", 2005, "video", 5533.64, 400, 304),
+    iaDirectRecovery("Delbanco_D_1990::Delbanco_D_1990_256kb.mp4", "Delbanco_D_1990", "Delbanco_D_1990_256kb.mp4", "Delbanco", "film festival independent film documentary world cinema international cinema", 1990, "video", 2827.16, 384, 288),
+    iaDirectRecovery("IsraeliWomanRegina_ISR_2004::IsraeliWomanRegina_ISR_2004.ogv", "IsraeliWomanRegina_ISR_2004", "IsraeliWomanRegina_ISR_2004.ogv", "To Be an Israeli Woman — Regina", "film festival independent film documentary world cinema international cinema", 2004, "video", 4168.56, 400, 304),
+    iaDirectRecovery("Papaderos_D_1991::Papaderos_D_1991_256kb.mp4", "Papaderos_D_1991", "Papaderos_D_1991_256kb.mp4", "Papaderos", "film festival independent film documentary world cinema international cinema", 1991, "video", 2254.16, 384, 288),
+    iaDirectRecovery("IsraeliWomanAzizia_ISR_2004::IsraeliWomanAziza_ISR_2004.ogv", "IsraeliWomanAzizia_ISR_2004", "IsraeliWomanAziza_ISR_2004.ogv", "To Be an Israeli Woman — Aziza", "film festival independent film documentary world cinema international cinema", 2004, "video", 3909.6, 400, 304),
+    iaDirectRecovery("IsraeliWomanRebecca_ISR_2004::IsraeliWomanRebecca_ISR_2004.ogv", "IsraeliWomanRebecca_ISR_2004", "IsraeliWomanRebecca_ISR_2004.ogv", "To Be an Israeli Woman — Rebecca", "film festival independent film documentary world cinema international cinema", 2004, "video", 3928.72, 400, 304),
+    iaDirectRecovery("IsraeliWomanNaomi_ISR_2004::IsraeliWomanNaomi_ISR_2004.ogv", "IsraeliWomanNaomi_ISR_2004", "IsraeliWomanNaomi_ISR_2004.ogv", "To Be an Israeli Woman — Naomi", "film festival independent film documentary world cinema international cinema", 2004, "video", 4031.68, 400, 304),
+    iaDirectRecovery("WAIA_Part2_J_2004::WAIA_Part2_J_2004.ogv", "WAIA_Part2_J_2004", "WAIA_Part2_J_2004.ogv", "WAIA: Memory of Clubs and Maracas — Part 2", "film festival independent film documentary world cinema international cinema", 2004, "video", 2533.03, 400, 304),
+    iaDirectRecovery("IsraeliWomanLea_ISR_2004::IsraeliWomanLea_ISR_2004.ogv", "IsraeliWomanLea_ISR_2004", "IsraeliWomanLea_ISR_2004.ogv", "To Be an Israeli Woman — Lea", "film festival independent film documentary world cinema international cinema", 2004, "video", 3739.6, 400, 304),
+    iaDirectRecovery("Thatta_Kedona_D_2005_Part_2_EnglST::Thatta_Kedona_Part2_D_2005_EnglST.ogv", "Thatta_Kedona_D_2005_Part_2_EnglST", "Thatta_Kedona_Part2_D_2005_EnglST.ogv", "Thatta Kedona: The Toy Village of Pakistan — Part 2", "film festival independent film documentary world cinema international cinema", 2005, "video", 5453.99, 400, 304),
+    iaDirectRecovery("Delbanco_D1990_155minextversion::Delbanco_155MinEDIT1990_48kHz_GESAMT.mp4", "Delbanco_D1990_155minextversion", "Delbanco_155MinEDIT1990_48kHz_GESAMT.mp4", "Delbanco — Extended Edition", "film festival independent film documentary world cinema international cinema", 1990, "video", 9268.12, 640, 480),
+    iaDirectRecovery("Heckmann::Gustav_Heckmann_1992.mp4", "Heckmann", "Gustav_Heckmann_1992.mp4", "Gustav Heckmann: A Life in the 20th Century", "film festival independent film documentary world cinema international cinema", 1992, "video", 5062.96, 640, 480),
+    iaDirectRecovery("Der18.September2005::18September2005.mp4", "Der18.September2005", "18September2005.mp4", "The 18th of September 2005", "film festival independent film documentary world cinema international cinema", 2005, "video", 5092.72, 640, 480),
+    iaDirectRecovery("pARTicipation_1985::pARTicipation_NTSC_480.mp4", "pARTicipation_1985", "pARTicipation_NTSC_480.mp4", "pARTicipation: The Work of Kurt Delbanco", "film festival independent film documentary world cinema international cinema", 1985, "video", 1710.14, 640, 480),
+    iaDirectRecovery("PakistanEngagement::Engagement_1991 480.mp4", "PakistanEngagement", "Engagement_1991 480.mp4", "Pakistan Trilogy: Engagement", "film festival independent film documentary world cinema international cinema", 1991, "video", 1745.52, 640, 480),
+    iaDirectRecovery("AmjadsVillage_1991::Amjad's Village 1991 480.mp4", "AmjadsVillage_1991", "Amjad's Village 1991 480.mp4", "Pakistan Trilogy: Amjad's Village", "film festival independent film documentary world cinema international cinema", 1991, "video", 2380.48, 640, 480),
+  ],
+  /* v4.1.174 Short Subject depth repair. The old lane was five individual
+     Soundies, so every three-item skip cycle looked like a reset. These are
+     longer, landscape compilation/reel files from distinct Archive families;
+     individual short clips remain editorially secondary instead of becoming
+     the entire station. */
+  "236": [
+    iaDirectRecovery("xd-38984c-official-films-african-americanand-southern-soundies-vwr::XD38984c+Official+Films+African+American+and+Southern+Soundies_vwr.mp4", "xd-38984c-official-films-african-americanand-southern-soundies-vwr", "XD38984c+Official+Films+African+American+and+Southern+Soundies_vwr.mp4", "African American Soundies: Cab Calloway, Louis Armstrong and Fats Waller", "short subject theatrical short soundie music film performance film compilation", 1940, "video", 911.89, 854, 480),
+    iaDirectRecovery("av-geeks-at-hunt-library-soundies-9-24-2021::AV_Geeks_at_Hunt_Library_Soundies_9-24-2021.mp4", "av-geeks-at-hunt-library-soundies-9-24-2021", "AV_Geeks_at_Hunt_Library_Soundies_9-24-2021.mp4", "AV Geeks at Hunt Library: Soundies Reel", "short subject theatrical short soundie music film performance film compilation", 2021, "video", 4145.41, 1280, 720),
+    iaDirectRecovery("xd-44594-african-american-sounds-bessie-smith-vwr::XD44594+African+American+Sounds+Bessie+Smith_vwr.mp4", "xd-44594-african-american-sounds-bessie-smith-vwr", "XD44594+African+American+Sounds+Bessie+Smith_vwr.mp4", "African American Soundies: Bessie Smith and James P. Johnson", "short subject theatrical short soundie music film performance film compilation", 1930, "video", 2177.4, 854, 480),
+    iaDirectRecovery("LlYFgVKPS1PKacXsy4RTmTXSvqFhRw::tmp4_ftud5_.mp4", "LlYFgVKPS1PKacXsy4RTmTXSvqFhRw", "tmp4_ftud5_.mp4", "Vintage Soundies: Fats Waller, Maurice Rocco and Nat King Cole", "short subject theatrical short soundie music film performance film compilation", 1940, "video", 2066.11, 854, 480),
+    iaDirectRecovery("BvlW7HtWWXOs073BXLH75Yc0vRY3SX::tmpyn11dv2x.mp4", "BvlW7HtWWXOs073BXLH75Yc0vRY3SX", "tmpyn11dv2x.mp4", "Harlem Medley: Jazz, Tap, Gospel and Boogie Soundies", "short subject theatrical short soundie music film performance film compilation", 1940, "video", 1680.73, 854, 480),
+    iaDirectRecovery("0751_Soundies_Black_Music_15_01_07_00::0751_Soundies_Black_Music_15_01_07_00_3mb.mp4", "0751_Soundies_Black_Music_15_01_07_00", "0751_Soundies_Black_Music_15_01_07_00_3mb.mp4", "Soundies: Black Music", "short subject theatrical short soundie music film performance film compilation", 1940, "video", 1684.98, 640, 480),
+    iaDirectRecovery("xd-44604-african-american-soundies-vwr::XD44604+African+American+Soundies_vwr.mp4", "xd-44604-african-american-soundies-vwr", "XD44604+African+American+Soundies_vwr.mp4", "African American Soundies: Noble Sissle, Don Redman and Fats Waller", "short subject theatrical short soundie music film performance film compilation", 1936, "video", 1654.38, 854, 480),
+    iaDirectRecovery("cab-calloway-soundies::Cab Calloway - Soundies.ia.mp4", "cab-calloway-soundies", "Cab Calloway - Soundies.ia.mp4", "Cab Calloway Soundies", "short subject theatrical short soundie music film performance film compilation", 1940, "video", 3925.36, 320, 240),
+    iaDirectRecovery("calauem_001778::calauem_001778_access.HD.mp4", "calauem_001778", "calauem_001778_access.HD.mp4", "BEEM Cuts 1–4: Soundies Tape 122", "short subject theatrical short soundie music film performance film compilation", 1940, "video", 7290, 720, 540),
+    iaDirectRecovery("xd-45374a-african-american-soundies-2-vwr::XD45374a+African+American+Soundies+2_vwr.mp4", "xd-45374a-african-american-soundies-2-vwr", "XD45374a+African+American+Soundies+2_vwr.mp4", "1940s Soundies Reel: Lambeth Walk, Songs of the South and Dinah", "short subject theatrical short soundie music film performance film compilation", 1940, "video", 1200.63, 854, 480),
+    iaDirectRecovery("0733_Soundies_Variety_Girls_Burlesque_04_29_02_05::0733_Soundies_Variety_Girls_Burlesque_04_29_02_05_3mb.mp4", "0733_Soundies_Variety_Girls_Burlesque_04_29_02_05", "0733_Soundies_Variety_Girls_Burlesque_04_29_02_05_3mb.mp4", "Soundies: Variety Girls", "short subject theatrical short soundie music film performance film compilation", 1940, "video", 1047.91, 640, 480),
+    iaDirectRecovery("ScopitonesMania::A1_t00.mp4", "ScopitonesMania", "A1_t00.mp4", "Scopitones Mania: European Musical Shorts Reel", "short subject theatrical short soundie music film performance film compilation", 1960, "video", 3892.43, 640, 480),
   ],
   "3": [
     iaDirectRecovery("He_Walked_By_Night.avi::He_Walked_By_Night.mp4", "He_Walked_By_Night.avi", "He_Walked_By_Night.mp4", "He Walked by Night", "film noir crime drama mystery detective suspense thriller classic horror feature film", 1948, "video", 4723.01, 622, 480),
@@ -4146,6 +4529,48 @@ const IA_UNDERFILL_DEPTH_BANKS = Object.freeze({
     iaDirectRecovery("columbia-a2794-b-ive-got-my-captain-working-for-me-now::Columbia A2794B - I've Got My Captain Working for Me Now - 3.0 CT 630N-16 EQ.mp3", "columbia-a2794-b-ive-got-my-captain-working-for-me-now", "Columbia A2794B - I've Got My Captain Working for Me Now - 3.0 CT 630N-16 EQ.mp3", "I’ve Got My Captain Working for Me Now", "78rpm acoustic recording early 20th century vaudeville vocal", 1913, "audio", 160.81),
     iaDirectRecovery("victor-5355-im-afraid-to-come-home-in-the-dark::Victor 5355 - I'm Afraid to Come Home in the Dark - 3.0 CT 800N-16 EQ.mp3", "victor-5355-im-afraid-to-come-home-in-the-dark", "Victor 5355 - I'm Afraid to Come Home in the Dark - 3.0 CT 800N-16 EQ.mp3", "I’m Afraid to Come Home in the Dark", "78rpm acoustic recording early 20th century vaudeville vocal", 1912, "audio", 159.71),
   ],
+  /* v4.1.178: promote the deep-family rails into the actual underfill bank.
+     The overlay table is additive only for channels already present here, so
+     keeping these records in the bank is what makes the instant recovery path
+     and the freshness floor see them. */
+  "116": [
+    iaDirectRecovery("the-soul-of-black-charley-1080p::The.Soul.of.Black.Charley.1973.BDRIP.1080p.MirrorNova.mp4", "the-soul-of-black-charley-1080p", "The.Soul.of.Black.Charley.1973.BDRIP.1080p.MirrorNova.mp4", "The Soul of Black Charley (1973)", "blaxploitation black action film crime film feature film 1970s cinema", 1973, "video", 6568.46, 1126, 480),
+    iaDirectRecovery("fight-for-your-life-1977::Fight For Your Life 1977.ia.mp4", "fight-for-your-life-1977", "Fight For Your Life 1977.ia.mp4", "Fight for Your Life (1977)", "blaxploitation black action film crime film feature film 1970s cinema", 1977, "video", 5143.8, 640, 356),
+    iaDirectRecovery("abby-1974_202605::Abby 1974.ia.mp4", "abby-1974_202605", "Abby 1974.ia.mp4", "Abby (1974)", "blaxploitation black horror film crime film feature film 1970s cinema", 1974, "video", 5333.61, 1280, 720),
+    iaDirectRecovery("blacula_202511::Blacula.mp4", "blacula_202511", "Blacula.mp4", "Blacula (1972)", "blaxploitation black horror film vampire feature film 1970s cinema", 1972, "video", 5590.28, 854, 480),
+    iaDirectRecovery("the-human-tornado-1976::The Human Tornado 1976.mp4", "the-human-tornado-1976", "The Human Tornado 1976.mp4", "The Human Tornado (1976)", "blaxploitation black action comedy film feature film 1970s cinema", 1976, "video", 5777.9, 854, 480),
+    iaDirectRecovery("BlackFistMPEG::Black Fist.mp4", "BlackFistMPEG", "Black Fist.mp4", "Black Fist (1975)", "blaxploitation black action film crime film feature film 1970s cinema", 1975, "video", 5568.34, 640, 480),
+    iaDirectRecovery("the-legend-of-black-charley-1972-sdtv-h-265::The Legend of Black Charley - (1972) - SDTV - h265.mp4", "the-legend-of-black-charley-1972-sdtv-h-265", "The Legend of Black Charley - (1972) - SDTV - h265.mp4", "The Legend of Black Charley (1972)", "blaxploitation black western action film feature film 1970s cinema", 1972, "video", 5408.9, 626, 478),
+    iaDirectRecovery("cleopatra-jones-1973-vhs-transfer::CLEOPATRA JONES 1973 VHS TRANSFER.mp4", "cleopatra-jones-1973-vhs-transfer", "CLEOPATRA JONES 1973 VHS TRANSFER.mp4", "Cleopatra Jones (1973)", "blaxploitation black action crime film feature film 1970s cinema", 1973, "video", 5371.02, 640, 480),
+    iaDirectRecovery("dr.-black-mr.-hyde::Dr. Black Mr. Hyde.mp4", "dr.-black-mr.-hyde", "Dr. Black Mr. Hyde.mp4", "Dr. Black, Mr. Hyde (1976)", "blaxploitation black horror film crime film feature film 1970s cinema", 1976, "video", 5230.02, 846, 474),
+    iaDirectRecovery("thomasine-and-bushrod-1974::Thomasine.and.Bushrod.1974.1080p.WEBRip.x264-RARBG.ia.mp4", "thomasine-and-bushrod-1974", "Thomasine.and.Bushrod.1974.1080p.WEBRip.x264-RARBG.ia.mp4", "Thomasine & Bushrod (1974)", "blaxploitation black action crime film feature film 1970s cinema", 1974, "video", 5696.07, 1920, 1080),
+    iaDirectRecovery("the-education-of-sonny-carson-1974-dvd-rip::The Education Of Sonny Carson(1974) DVD RIP.mp4", "the-education-of-sonny-carson-1974-dvd-rip", "The Education Of Sonny Carson(1974) DVD RIP.mp4", "The Education of Sonny Carson (1974)", "blaxploitation black crime drama film feature film 1970s cinema", 1974, "video", 6252.67, 624, 336),
+  ],
+  "510": [
+    iaDirectRecovery("tvgamemuseumtaitold::TV Game Museum History of Video Games Vol. 1 - Taito 1 & 2.mp4", "tvgamemuseumtaitold", "TV Game Museum History of Video Games Vol. 1 - Taito 1 & 2.mp4", "TV Game Museum · History of Video Games: Taito", "video game history arcade history retro gaming game culture preservation", 1991, "video", 3444.49, 640, 480),
+    iaDirectRecovery("video-game-invasion-the-history-of-a-global-obsession-2004::Video Game Invasion_ The History of a Global Obsession [2004].mp4", "video-game-invasion-the-history-of-a-global-obsession-2004", "Video Game Invasion_ The History of a Global Obsession [2004].mp4", "Video Game Invasion: The History of a Global Obsession", "video game history arcade history retro gaming game culture documentary", 2004, "video", 5425.39, 384, 288),
+    iaDirectRecovery("tetris_202607::Tetris.mp4", "tetris_202607", "Tetris.mp4", "Tetris · Computer Game Documentary", "video game history computer game history puzzle game retro gaming documentary", 2003, "video", 3534.24, 384, 288),
+    iaDirectRecovery("video-game-notables-stream::2023-01-22 Video Game Notables Stream.mp4", "video-game-notables-stream", "2023-01-22 Video Game Notables Stream.mp4", "Video Game Notables · 2023 Induction Stream", "video game history game culture arcade history preservation retro gaming", 2023, "video", 11694.61, 854, 480),
+    iaDirectRecovery("2016-phil-barnes-visits-game-works-las-vegas-pinball-hall-of-game-video-arcades::(2016) Phil Barnes Visits GameWorks - Las Vegas Pinball Hall of Game Video Arcades.mp4", "2016-phil-barnes-visits-game-works-las-vegas-pinball-hall-of-game-video-arcades", "(2016) Phil Barnes Visits GameWorks - Las Vegas Pinball Hall of Game Video Arcades.mp4", "Phil Barnes · GameWorks and Las Vegas Arcades", "arcade history pinball video game history game culture retro gaming", 2016, "video", 5830.23, 854, 480),
+    iaDirectRecovery("2012philatpinballhalloffame::2012 Phil at Pinball Hall of Fame.mp4", "2012philatpinballhalloffame", "2012 Phil at Pinball Hall of Fame.mp4", "Phil Barnes · Pinball Hall of Fame", "arcade history pinball video game history game culture retro gaming", 2012, "video", 2634.15, 1280, 720),
+    iaDirectRecovery("CCRP-1437A-BS::1437 Computer Bowl Part 1 (1997).ia.mp4", "CCRP-1437A-BS", "1437 Computer Bowl Part 1 (1997).ia.mp4", "Computer Bowl (1997) · Part 1", "video game history computer game history game show retro computing game culture", 1997, "video", 1776.4, 646, 480),
+    iaDirectRecovery("CCRP-1437A-BS::1438 Computer Bowl Part 2 (1997).ia.mp4", "CCRP-1437A-BS", "1438 Computer Bowl Part 2 (1997).ia.mp4", "Computer Bowl (1997) · Part 2", "video game history computer game history game show retro computing game culture", 1997, "video", 1701.87, 646, 480),
+    iaDirectRecovery("CCRP-1102A-BS::1102 Baseball Software + RA.ia.mp4", "CCRP-1102A-BS", "1102 Baseball Software + RA.ia.mp4", "Computer Chronicles · Baseball Software", "computer game history sports video game history retro computing game culture", 1993, "video", 1595.07, 640, 480),
+  ],
+  "228": [
+    iaDirectRecovery("WETA_20130926_090000_Frontline::WETA_20130926_090000_Frontline.mp4", "WETA_20130926_090000_Frontline", "WETA_20130926_090000_Frontline.mp4", "Frontline · WETA, September 26, 2013", "frontline television newsmagazine investigative journalism current affairs", 2013, "video", 3600.4, 640, 480),
+    iaDirectRecovery("KYW_20141012_230000_60_Minutes::KYW_20141012_230000_60_Minutes.mpg", "KYW_20141012_230000_60_Minutes", "KYW_20141012_230000_60_Minutes.mpg", "60 Minutes · KYW, October 12, 2014", "60 minutes television newsmagazine investigative journalism current affairs", 2014, "video", 3720.25, 1920, 1080),
+    iaDirectRecovery("WETA_20131009_110000_Frontline::WETA_20131009_110000_Frontline.mp4", "WETA_20131009_110000_Frontline", "WETA_20131009_110000_Frontline.mp4", "Frontline · WETA, October 9, 2013", "frontline television newsmagazine investigative journalism current affairs", 2013, "video", 7200.43, 640, 480),
+    iaDirectRecovery("KQED_20191030_110000_Frontline::KQED_20191030_110000_Frontline.mp4", "KQED_20191030_110000_Frontline", "KQED_20191030_110000_Frontline.mp4", "Frontline · KQED, October 30, 2019", "frontline television newsmagazine investigative journalism current affairs", 2019, "video", 3659.06, 853, 480),
+    iaDirectRecovery("MSNBCW_20190408_060000_Dateline::MSNBCW_20190408_060000_Dateline.mp4", "MSNBCW_20190408_060000_Dateline", "MSNBCW_20190408_060000_Dateline.mp4", "Dateline NBC · MSNBCW, April 7, 2019", "dateline nbc television newsmagazine investigative journalism current affairs", 2019, "video", 7261.02, 853, 480),
+    iaDirectRecovery("BBCNEWS_20190106_113000_Dateline_London::BBCNEWS_20190106_113000_Dateline_London.mp4", "BBCNEWS_20190106_113000_Dateline_London", "BBCNEWS_20190106_113000_Dateline_London.mp4", "Dateline London · BBC News, January 6, 2019", "dateline television newsmagazine investigative journalism current affairs british television", 2019, "video", 1860.88, 640, 360),
+    iaDirectRecovery("WRC_20131028_072000_Dateline_NBC::WRC_20131028_072000_Dateline_NBC.mp4", "WRC_20131028_072000_Dateline_NBC", "WRC_20131028_072000_Dateline_NBC.mp4", "Dateline NBC · WRC, October 28, 2013", "dateline nbc television newsmagazine investigative journalism current affairs", 2013, "video", 2400.3, 640, 480),
+    iaDirectRecovery("60-minutes-april-10-1994::SONATA_VOLUME_Title4.mp4", "60-minutes-april-10-1994", "SONATA_VOLUME_Title4.mp4", "60 Minutes · April 10, 1994", "60 minutes television newsmagazine investigative journalism current affairs", 1994, "video", 3584.28, 352, 264),
+    iaDirectRecovery("wvue-2-4-94-2::WVUE 2-4-94 2.ia.mp4", "wvue-2-4-94-2", "WVUE 2-4-94 2.ia.mp4", "ABC News 20/20 and WVUE News · February 4, 1994", "20/20 television newsmagazine investigative journalism current affairs local news", 1994, "video", 4529.07, 633, 480),
+    iaDirectRecovery("abc-news-nightline-june-20-1986::ABC News Nightline (June 20, 1986).mp4", "abc-news-nightline-june-20-1986", "ABC News Nightline (June 20, 1986).mp4", "ABC News Nightline · June 20, 1986", "nightline television newsmagazine investigative journalism current affairs", 1986, "video", 1780.73, 640, 480),
+    iaDirectRecovery("nightline-the-hajj::Nightline The Hajj.mp4", "nightline-the-hajj", "Nightline The Hajj.mp4", "Nightline · The Hajj", "nightline television newsmagazine investigative journalism current affairs", 1997, "video", 1350.62, 640, 480),
+    iaDirectRecovery("james-randi-on-dateline-1995::James Randi on Dateline, 1995.ia.mp4", "james-randi-on-dateline-1995", "James Randi on Dateline, 1995.ia.mp4", "Dateline · James Randi (1995)", "dateline nbc television newsmagazine investigative journalism current affairs", 1995, "video", 1405.1, 854, 480),
+  ],
 });
 /* v4.1.160 depth overlay. The first underfill repair promoted the strongest
    file from each Archive family, but left many verified siblings in the audit
@@ -4169,6 +4594,57 @@ const IA_DEPTH_EXPANSION_OVERLAYS = Object.freeze({
   "81": [
     iaDirectRecovery("bptvpa-Lets_Talk_Tailwaggers_20th_Anniversary_Show_Fishing_memories::Lets_Talk_Tailwaggers_20th_Anniversary_Show_Fishing_memories.mp4", "bptvpa-Lets_Talk_Tailwaggers_20th_Anniversary_Show_Fishing_memories", "Lets_Talk_Tailwaggers_20th_Anniversary_Show_Fishing_memories.mp4", "Let's Talk Tailwaggers · Fishing Memories", "fishing angling sport fishing outdoor recreation television", 2016, "video", 1459.63, 480, 360),
     iaDirectRecovery("bctvpa-Fishing_for_Fate_-_Virtual_Edition_8-6-20::Fishing_for_Fate_-_Virtual_Edition_8-6-20.mp4", "bctvpa-Fishing_for_Fate_-_Virtual_Edition_8-6-20", "Fishing_for_Fate_-_Virtual_Edition_8-6-20.mp4", "Fishing for Fate · Virtual Edition", "fishing angling sport fishing outdoor recreation television", 2020, "video", 3284.05, 853, 480),
+  ],
+  /* v4.1.176 deep family rail: Blaxploitation was reopening a five-film
+     shelf because the broader search was finding collection labels and
+     duplicate encodes, not enough distinct feature files. These are
+     manifest-verified landscape films from separate Archive records/files. */
+  "116": [
+    iaDirectRecovery("the-soul-of-black-charley-1080p::The.Soul.of.Black.Charley.1973.BDRIP.1080p.MirrorNova.mp4", "the-soul-of-black-charley-1080p", "The.Soul.of.Black.Charley.1973.BDRIP.1080p.MirrorNova.mp4", "The Soul of Black Charley (1973)", "blaxploitation black action film crime film feature film 1970s cinema", 1973, "video", 6568.46, 1126, 480),
+    iaDirectRecovery("fight-for-your-life-1977::Fight For Your Life 1977.ia.mp4", "fight-for-your-life-1977", "Fight For Your Life 1977.ia.mp4", "Fight for Your Life (1977)", "blaxploitation black action film crime film feature film 1970s cinema", 1977, "video", 5143.8, 640, 356),
+    iaDirectRecovery("abby-1974_202605::Abby 1974.ia.mp4", "abby-1974_202605", "Abby 1974.ia.mp4", "Abby (1974)", "blaxploitation black horror film crime film feature film 1970s cinema", 1974, "video", 5333.61, 1280, 720),
+    iaDirectRecovery("blacula_202511::Blacula.mp4", "blacula_202511", "Blacula.mp4", "Blacula (1972)", "blaxploitation black horror film vampire feature film 1970s cinema", 1972, "video", 5590.28, 854, 480),
+    iaDirectRecovery("the-human-tornado-1976::The Human Tornado 1976.mp4", "the-human-tornado-1976", "The Human Tornado 1976.mp4", "The Human Tornado (1976)", "blaxploitation black action comedy film feature film 1970s cinema", 1976, "video", 5777.9, 854, 480),
+    iaDirectRecovery("BlackFistMPEG::Black Fist.mp4", "BlackFistMPEG", "Black Fist.mp4", "Black Fist (1975)", "blaxploitation black action film crime film feature film 1970s cinema", 1975, "video", 5568.34, 640, 480),
+    iaDirectRecovery("the-legend-of-black-charley-1972-sdtv-h-265::The Legend of Black Charley - (1972) - SDTV - h265.mp4", "the-legend-of-black-charley-1972-sdtv-h-265", "The Legend of Black Charley - (1972) - SDTV - h265.mp4", "The Legend of Black Charley (1972)", "blaxploitation black western action film feature film 1970s cinema", 1972, "video", 5408.9, 626, 478),
+    iaDirectRecovery("cleopatra-jones-1973-vhs-transfer::CLEOPATRA JONES 1973 VHS TRANSFER.mp4", "cleopatra-jones-1973-vhs-transfer", "CLEOPATRA JONES 1973 VHS TRANSFER.mp4", "Cleopatra Jones (1973)", "blaxploitation black action crime film feature film 1970s cinema", 1973, "video", 5371.02, 640, 480),
+    iaDirectRecovery("dr.-black-mr.-hyde::Dr. Black Mr. Hyde.mp4", "dr.-black-mr.-hyde", "Dr. Black Mr. Hyde.mp4", "Dr. Black, Mr. Hyde (1976)", "blaxploitation black horror film crime film feature film 1970s cinema", 1976, "video", 5230.02, 846, 474),
+    iaDirectRecovery("thomasine-and-bushrod-1974::Thomasine.and.Bushrod.1974.1080p.WEBRip.x264-RARBG.ia.mp4", "thomasine-and-bushrod-1974", "Thomasine.and.Bushrod.1974.1080p.WEBRip.x264-RARBG.ia.mp4", "Thomasine & Bushrod (1974)", "blaxploitation black action crime film feature film 1970s cinema", 1974, "video", 5696.07, 1920, 1080),
+    iaDirectRecovery("the-education-of-sonny-carson-1974-dvd-rip::The Education Of Sonny Carson(1974) DVD RIP.mp4", "the-education-of-sonny-carson-1974-dvd-rip", "The Education Of Sonny Carson(1974) DVD RIP.mp4", "The Education of Sonny Carson (1974)", "blaxploitation black crime drama film feature film 1970s cinema", 1974, "video", 6252.67, 624, 336),
+  ],
+  /* The Game Room had five longplays, which made it look like a game channel
+     but behave like a tiny playlist. This rail adds long-form game history,
+     arcade culture, preservation, and television-game programming. We keep
+     the 15-minute floor and choose one derivative per program/file family. */
+  "510": [
+    iaDirectRecovery("tvgamemuseumtaitold::TV Game Museum History of Video Games Vol. 1 - Taito 1 & 2.mp4", "tvgamemuseumtaitold", "TV Game Museum History of Video Games Vol. 1 - Taito 1 & 2.mp4", "TV Game Museum · History of Video Games: Taito", "video game history arcade history retro gaming game culture preservation", 1991, "video", 3444.49, 640, 480),
+    iaDirectRecovery("video-game-invasion-the-history-of-a-global-obsession-2004::Video Game Invasion_ The History of a Global Obsession [2004].mp4", "video-game-invasion-the-history-of-a-global-obsession-2004", "Video Game Invasion_ The History of a Global Obsession [2004].mp4", "Video Game Invasion: The History of a Global Obsession", "video game history arcade history retro gaming game culture documentary", 2004, "video", 5425.39, 384, 288),
+    iaDirectRecovery("tetris_202607::Tetris.mp4", "tetris_202607", "Tetris.mp4", "Tetris · Computer Game Documentary", "video game history computer game history puzzle game retro gaming documentary", 2003, "video", 3534.24, 384, 288),
+    iaDirectRecovery("video-game-notables-stream::2023-01-22 Video Game Notables Stream.mp4", "video-game-notables-stream", "2023-01-22 Video Game Notables Stream.mp4", "Video Game Notables · 2023 Induction Stream", "video game history game culture arcade history preservation retro gaming", 2023, "video", 11694.61, 854, 480),
+    iaDirectRecovery("2016-phil-barnes-visits-game-works-las-vegas-pinball-hall-of-game-video-arcades::(2016) Phil Barnes Visits GameWorks - Las Vegas Pinball Hall of Game Video Arcades.mp4", "2016-phil-barnes-visits-game-works-las-vegas-pinball-hall-of-game-video-arcades", "(2016) Phil Barnes Visits GameWorks - Las Vegas Pinball Hall of Game Video Arcades.mp4", "Phil Barnes · GameWorks and Las Vegas Arcades", "arcade history pinball video game history game culture retro gaming", 2016, "video", 5830.23, 854, 480),
+    iaDirectRecovery("2012philatpinballhalloffame::2012 Phil at Pinball Hall of Fame.mp4", "2012philatpinballhalloffame", "2012 Phil at Pinball Hall of Fame.mp4", "Phil Barnes · Pinball Hall of Fame", "arcade history pinball video game history game culture retro gaming", 2012, "video", 2634.15, 1280, 720),
+    iaDirectRecovery("CCRP-1437A-BS::1437 Computer Bowl Part 1 (1997).ia.mp4", "CCRP-1437A-BS", "1437 Computer Bowl Part 1 (1997).ia.mp4", "Computer Bowl (1997) · Part 1", "video game history computer game history game show retro computing game culture", 1997, "video", 1776.4, 646, 480),
+    iaDirectRecovery("CCRP-1437A-BS::1438 Computer Bowl Part 2 (1997).ia.mp4", "CCRP-1437A-BS", "1438 Computer Bowl Part 2 (1997).ia.mp4", "Computer Bowl (1997) · Part 2", "video game history computer game history game show retro computing game culture", 1997, "video", 1701.87, 646, 480),
+    iaDirectRecovery("CCRP-1102A-BS::1102 Baseball Software + RA.ia.mp4", "CCRP-1102A-BS", "1102 Baseball Software + RA.ia.mp4", "Computer Chronicles · Baseball Software", "computer game history sports video game history retro computing game culture", 1993, "video", 1595.07, 640, 480),
+  ],
+  /* Deadline's broad newsmagazine search had a 14-item playable bank. That
+     was enough to start but not enough to stay above the 15-item freshness
+     floor, so later skips fell back into slow discovery. These are concrete,
+     landscape Archive files from Frontline, Dateline, Nightline, 20/20, and
+     60 Minutes, with alternate encodes intentionally excluded. */
+  "228": [
+    iaDirectRecovery("WETA_20130926_090000_Frontline::WETA_20130926_090000_Frontline.mp4", "WETA_20130926_090000_Frontline", "WETA_20130926_090000_Frontline.mp4", "Frontline · WETA, September 26, 2013", "frontline television newsmagazine investigative journalism current affairs", 2013, "video", 3600.4, 640, 480),
+    iaDirectRecovery("KYW_20141012_230000_60_Minutes::KYW_20141012_230000_60_Minutes.mpg", "KYW_20141012_230000_60_Minutes", "KYW_20141012_230000_60_Minutes.mpg", "60 Minutes · KYW, October 12, 2014", "60 minutes television newsmagazine investigative journalism current affairs", 2014, "video", 3720.25, 1920, 1080),
+    iaDirectRecovery("WETA_20131009_110000_Frontline::WETA_20131009_110000_Frontline.mp4", "WETA_20131009_110000_Frontline", "WETA_20131009_110000_Frontline.mp4", "Frontline · WETA, October 9, 2013", "frontline television newsmagazine investigative journalism current affairs", 2013, "video", 7200.43, 640, 480),
+    iaDirectRecovery("KQED_20191030_110000_Frontline::KQED_20191030_110000_Frontline.mp4", "KQED_20191030_110000_Frontline", "KQED_20191030_110000_Frontline.mp4", "Frontline · KQED, October 30, 2019", "frontline television newsmagazine investigative journalism current affairs", 2019, "video", 3659.06, 853, 480),
+    iaDirectRecovery("MSNBCW_20190408_060000_Dateline::MSNBCW_20190408_060000_Dateline.mp4", "MSNBCW_20190408_060000_Dateline", "MSNBCW_20190408_060000_Dateline.mp4", "Dateline NBC · MSNBCW, April 7, 2019", "dateline nbc television newsmagazine investigative journalism current affairs", 2019, "video", 7261.02, 853, 480),
+    iaDirectRecovery("BBCNEWS_20190106_113000_Dateline_London::BBCNEWS_20190106_113000_Dateline_London.mp4", "BBCNEWS_20190106_113000_Dateline_London", "BBCNEWS_20190106_113000_Dateline_London.mp4", "Dateline London · BBC News, January 6, 2019", "dateline television newsmagazine investigative journalism current affairs british television", 2019, "video", 1860.88, 640, 360),
+    iaDirectRecovery("WRC_20131028_072000_Dateline_NBC::WRC_20131028_072000_Dateline_NBC.mp4", "WRC_20131028_072000_Dateline_NBC", "WRC_20131028_072000_Dateline_NBC.mp4", "Dateline NBC · WRC, October 28, 2013", "dateline nbc television newsmagazine investigative journalism current affairs", 2013, "video", 2400.3, 640, 480),
+    iaDirectRecovery("60-minutes-april-10-1994::SONATA_VOLUME_Title4.mp4", "60-minutes-april-10-1994", "SONATA_VOLUME_Title4.mp4", "60 Minutes · April 10, 1994", "60 minutes television newsmagazine investigative journalism current affairs", 1994, "video", 3584.28, 352, 264),
+    iaDirectRecovery("wvue-2-4-94-2::WVUE 2-4-94 2.ia.mp4", "wvue-2-4-94-2", "WVUE 2-4-94 2.ia.mp4", "ABC News 20/20 and WVUE News · February 4, 1994", "20/20 television newsmagazine investigative journalism current affairs local news", 1994, "video", 4529.07, 633, 480),
+    iaDirectRecovery("abc-news-nightline-june-20-1986::ABC News Nightline (June 20, 1986).mp4", "abc-news-nightline-june-20-1986", "ABC News Nightline (June 20, 1986).mp4", "ABC News Nightline · June 20, 1986", "nightline television newsmagazine investigative journalism current affairs", 1986, "video", 1780.73, 640, 480),
+    iaDirectRecovery("nightline-the-hajj::Nightline The Hajj.mp4", "nightline-the-hajj", "Nightline The Hajj.mp4", "Nightline · The Hajj", "nightline television newsmagazine investigative journalism current affairs", 1997, "video", 1350.62, 640, 480),
+    iaDirectRecovery("james-randi-on-dateline-1995::James Randi on Dateline, 1995.ia.mp4", "james-randi-on-dateline-1995", "James Randi on Dateline, 1995.ia.mp4", "Dateline · James Randi (1995)", "dateline nbc television newsmagazine investigative journalism current affairs", 1995, "video", 1405.1, 854, 480),
   ],
   "3": [
     iaDirectRecovery("foto_20211208::nightmare.alley.1947.internal.bdrip.x264-manic.mp4", "foto_20211208", "nightmare.alley.1947.internal.bdrip.x264-manic.mp4", "Nightmare Alley (1947)", "film noir crime drama mystery detective suspense thriller classic feature film", 1947, "video", 6699.86, 658, 480),
@@ -4387,6 +4863,17 @@ for (const [channel, additions] of Object.entries(IA_DEEP_ARCHIVE_FAMILY_OVERLAY
    discovery catches up. Mark them as full-window stations so a later skip
    cannot fall back to the same first five search results. */
 const IA_UNDERFILL_DEPTH_ROTATION_CHANNELS = new Set(Object.keys(IA_UNDERFILL_DEPTH_BANKS));
+/* v4.1.183 file-level depth harvest. These lanes now have Archive-verified
+   episode/track banks, so they must use the same channel-owned recovery and
+   full-window freshness path as the earlier repaired families. This keeps a
+   cold search failure from replacing a deep verified catalog with a stale
+   five-item last-good shelf. */
+const IA_FILE_BANK_CHANNELS = new Set(["17", "52", "121", "151", "206", "211", "220", "224", "508", "903", "913", "920"]);
+for (const channel of IA_FILE_BANK_CHANNELS) {
+  IA_COLD_RESCUE_CHANNELS.add(channel);
+  IA_DEPTH_RECOVERY_CHANNELS.add(channel);
+  IA_STRICT_RECOVERY_CHANNELS.add(channel);
+}
 for (const channel of IA_UNDERFILL_DEPTH_ROTATION_CHANNELS) IA_FULL_WINDOW_ROTATION_CHANNELS.add(channel);
 /* Keep a single cold tune from opening three identical Archive requests while
    several viewers or the soak harness hit the same rail together. This map is
@@ -4402,14 +4889,20 @@ const IA_ARCHIVE_SEARCH_FOREGROUND_CONCURRENCY = 4;
 const IA_ARCHIVE_SEARCH_BACKGROUND_CONCURRENCY = 2;
 let iaArchiveSearchActive = 0;
 let iaArchiveSearchForegroundActive = 0;
-const iaArchiveSearchForegroundWaiters = [];
-const iaArchiveSearchBackgroundWaiters = [];
 async function withIaArchiveSearchPermit(task, foreground = false) {
   const canRun = () => foreground
     ? iaArchiveSearchForegroundActive < IA_ARCHIVE_SEARCH_FOREGROUND_CONCURRENCY
     : iaArchiveSearchActive < (IA_ARCHIVE_SEARCH_FOREGROUND_CONCURRENCY + IA_ARCHIVE_SEARCH_BACKGROUND_CONCURRENCY);
-  if (!canRun()) {
-    await new Promise((resolve) => (foreground ? iaArchiveSearchForegroundWaiters : iaArchiveSearchBackgroundWaiters).push(resolve));
+  /* Never park a resolver from one request in a global array. Cloudflare can
+     resume that resolver in a different request context after the creator has
+     completed, which cancels the continuation and turns a healthy lane into a
+     500/502 under a broad certification sweep. Poll with a bounded, local
+     backoff instead; the permit remains a process-local pressure valve, but
+     every wait belongs to the request that started it. */
+  const waitUntil = Date.now() + (foreground ? 2200 : 5000);
+  while (!canRun()) {
+    if (Date.now() >= waitUntil) throw new Error("archive search concurrency saturated");
+    await new Promise((resolve) => setTimeout(resolve, 25));
   }
   iaArchiveSearchActive += 1;
   if (foreground) iaArchiveSearchForegroundActive += 1;
@@ -4418,8 +4911,6 @@ async function withIaArchiveSearchPermit(task, foreground = false) {
   } finally {
     iaArchiveSearchActive = Math.max(0, iaArchiveSearchActive - 1);
     if (foreground) iaArchiveSearchForegroundActive = Math.max(0, iaArchiveSearchForegroundActive - 1);
-    const next = iaArchiveSearchForegroundWaiters.shift() || iaArchiveSearchBackgroundWaiters.shift();
-    if (next) next();
   }
 }
 /* TV, phone, and guide requests can hydrate the same queue at once. Share the
@@ -4708,6 +5199,38 @@ function mergeIaFallbackCandidates(previous, payload) {
   return merged;
 }
 
+/* Keep the approved Archive catalog separate from the ready playback shelf.
+   A discovery result can be genre-checked before its media derivative has been
+   hydrated. Throwing those records away at the shared-cache boundary makes a
+   deep search look like a five-item playlist on the next tune, because every
+   refill has to rediscover the same first page. These records have already
+   passed the channel's editorial contract; hydration remains the gate for the
+   public `items` shelf. */
+function mergeIaCatalogCandidates(previous, payload, options = {}) {
+  const sourceItems = (value) => {
+    const candidates = Array.isArray(value && value.candidateItems) && value.candidateItems.length
+      ? value.candidateItems
+      : ((value && value.items) || []);
+    return candidates.filter((item) => item && item.identifier);
+  };
+  const merged = [], seen = new Set();
+  /* Once a lane has a durable last-good catalog, preserve that catalog's
+     order and append newly harvested files. Sorting or prepending the newest
+     response lets a moving Archive result set slide the five-item boundary
+     backwards and reopen a program on the next skip. */
+  const orderedSources = options.preserveOrder
+    ? [...sourceItems(previous), ...sourceItems(payload)]
+    : [...sourceItems(payload), ...sourceItems(previous)];
+  for (const item of orderedSources) {
+    const identity = iaPlayableIdentity(item) || String(item.identifier || "");
+    if (!identity || seen.has(identity)) continue;
+    seen.add(identity);
+    merged.push(item);
+    if (merged.length >= IA_STRICT_CATALOG_CANDIDATE_MAX) break;
+  }
+  return merged;
+}
+
 function sharedQueuePut(env, key, payload, ttlSeconds, ctx) {
   if (!env || !env.REALSIGNAL_QUEUE || !payload || !Array.isArray(payload.items) || !payload.items.length) return;
   const options = {
@@ -4733,16 +5256,33 @@ function sharedQueuePut(env, key, payload, ttlSeconds, ctx) {
      may live briefly at its exact rotation key, but must never replace the
      recovery shelf and turn later tunes into a permanent 1/5 loop. */
   if (fullShelf) {
+    const memoryPrevious = iaLastGoodMemoryGet(fallbackKey);
+    const memoryCandidates = mergeIaCatalogCandidates(memoryPrevious, payload, { preserveOrder: true });
+    iaLastGoodMemoryPut(fallbackKey, {
+      ...payload,
+      lastGood: true,
+      catalogOrderLocked: true,
+      candidateItems: memoryCandidates,
+      candidates: memoryCandidates.length,
+    });
     writes.push((async () => {
       let previous = null;
       try { previous = await env.REALSIGNAL_QUEUE.get(fallbackKey, { type: "json" }); } catch {}
-      const candidateItems = mergeIaFallbackCandidates(previous, payload);
-      return env.REALSIGNAL_QUEUE.put(fallbackKey, JSON.stringify({
+       /* Persist the full approved catalog as well as the verified fallback
+          media. The public shelf still contains only playable files, while a
+          later rotation can hydrate a different approved window instead of
+          reopening the same five records. */
+       const prior = iaLastGoodMemoryGet(fallbackKey) || previous;
+       const candidateItems = mergeIaCatalogCandidates(prior, payload, { preserveOrder: true });
+       const stored = {
         ...payload,
         lastGood: true,
+        catalogOrderLocked: true,
         candidateItems,
         candidates: candidateItems.length,
-      }), {
+       };
+       iaLastGoodMemoryPut(fallbackKey, stored);
+       return env.REALSIGNAL_QUEUE.put(fallbackKey, JSON.stringify(stored), {
         expirationTtl: Math.max(60, Math.min(86400, IA_QUEUE_TTL_SECONDS)),
       });
     })());
@@ -4751,6 +5291,21 @@ function sharedQueuePut(env, key, payload, ttlSeconds, ctx) {
     console.warn(JSON.stringify({ event: "shared-queue-write-failed", message: String(error && error.message || error) }));
   });
   if (ctx) ctx.waitUntil(write);
+}
+
+async function mergeIaLastGoodCatalog(payload, lastGoodKey, env) {
+  if (!payload || !lastGoodKey || !env || !env.REALSIGNAL_QUEUE) return payload;
+  const previous = iaLastGoodMemoryGet(lastGoodKey) || await sharedQueueGet(env, lastGoodKey);
+  if (!previous) return { ...payload, lastGoodKey };
+  const merged = mergeIaCatalogCandidates(previous, payload, { preserveOrder: true });
+  return {
+    ...payload,
+    lastGoodKey,
+    catalogOrderLocked: true,
+    candidateItems: merged,
+    candidates: merged.length,
+    catalogDepth: merged.length,
+  };
 }
 
 function safeChannel(channel) {
@@ -6911,7 +7466,7 @@ function queueRotationPage(rotation, lane, channel = "", background = false) {
   return 1 + seed % pageCount;
 }
 
-async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, cacheOrigin, ctx, rotation = 0, searchTimeoutMs = 3200, firstApprovedLane = false, expandContainers = !firstApprovedLane, freshnessExcludedIds = null, minRuntimeSeconds = 0) {
+async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, candidateCount = count, cacheOrigin, ctx, rotation = 0, searchTimeoutMs = 3200, firstApprovedLane = false, expandContainers = !firstApprovedLane, freshnessExcludedIds = null, minRuntimeSeconds = 0) {
   /* `count` is the number of programs the viewer needs immediately. The
      caller also passes a larger candidate budget for strict lanes. The old
      builder accidentally used `count` for both, throwing away the wider
@@ -7216,7 +7771,7 @@ function rotatePlayableIaShelf(payload, rotation, count) {
      by stable item identity so a rotation number addresses the same catalog
      window every time. The public order still changes by full shelf-sized
      steps. */
-  const stablePlayableCandidates = stableRotationWindow
+  const stablePlayableCandidates = stableRotationWindow && !(payload && payload.catalogOrderLocked === true)
     ? playableCandidates.slice().sort((a, b) => String(a.identifier).localeCompare(String(b.identifier)))
     : playableCandidates;
   /* A cached fallback can carry the same rotation number while its public
@@ -7253,10 +7808,50 @@ function rotatePlayableIaShelf(payload, rotation, count) {
   };
 }
 
+/* Rotate the approved catalog before media hydration. This is the missing
+   bridge between Archive discovery and the rolling shelf: a later rotation
+   must not hydrate candidateItems[0..4] again just because the rest of the
+   catalog is still waiting for a media lookup. The selected window is kept at
+   the front of candidateItems so hydrateIaQueue probes the requested window
+   first; unresolved records remain behind it for background replenishment. */
+function rotateApprovedIaShelf(payload, rotation, count) {
+  const requested = Math.max(1, Number(count) || 5);
+  const normalizedRotation = Math.abs(Number(rotation) || 0);
+  const raw = Array.isArray(payload && payload.candidateItems) && payload.candidateItems.length
+    ? payload.candidateItems
+    : ((payload && payload.items) || []);
+  const seen = new Set();
+  const candidates = raw.filter((item) => {
+    if (!item || !item.identifier) return false;
+    const identity = iaPlayableIdentity(item) || String(item.identifier);
+    if (seen.has(identity)) return false;
+    seen.add(identity);
+    return true;
+  }).slice().sort((a, b) => {
+    const left = iaPlayableIdentity(a) || String(a.identifier || "");
+    const right = iaPlayableIdentity(b) || String(b.identifier || "");
+    return left.localeCompare(right, undefined, { numeric: true, sensitivity: "base" });
+  });
+  if (candidates.length < Math.max(requested * 3, requested)) return payload;
+  const offset = (normalizedRotation * requested) % candidates.length;
+  const ordered = candidates.slice(offset).concat(candidates.slice(0, offset));
+  return {
+    ...(payload || {}),
+    items: ordered.slice(0, requested),
+    candidateItems: ordered,
+    candidates: ordered.length,
+    rotation: normalizedRotation,
+    rotationApplied: true,
+    approvedCatalogRotation: true,
+    ready: Math.min(requested, ordered.length),
+  };
+}
+
 function iaCatalogCandidateBudget(themeMinScore, count) {
   const requested = Math.max(1, Number(count) || 5);
   const strict = Number(themeMinScore) > 1;
-  return Math.min(strict ? IA_STRICT_CATALOG_CANDIDATE_MAX : IA_CATALOG_CANDIDATE_MAX, Math.max(requested, requested * (strict ? 12 : 8)));
+  const target = strict ? 2048 : 1536;
+  return Math.min(strict ? IA_STRICT_CATALOG_CANDIDATE_MAX : IA_CATALOG_CANDIDATE_MAX, Math.max(requested, target, requested * (strict ? 12 : 8)));
 }
 
 function iaNeedsCatalogDepth(payload, count, candidateCount) {
@@ -7314,15 +7909,21 @@ function orderedIaEmergencySeeds(channel, rotation) {
     .concat(IA_LONG_TAIL_EXPANSIONS[String(channel)] || [])
     .concat(IA_LONG_TAIL_EXPANSIONS_EXTRA[String(channel)] || [])
     .concat(IA_PROMOTED_ARCHIVE_BANKS[String(channel)] || [])
-    .concat(IA_DEEP_HARVEST_BANKS[String(channel)] || [])
-    .concat(IA_UNDERFILL_DEPTH_BANKS[String(channel)] || [])
-    .concat(IA_TARGETED_RECOVERY_BANKS[String(channel)] || [])
-    .map((item) => {
-    const fileName = IA_LONG_TAIL_MEDIA_FILES[String(item && item.identifier || "")];
-    if (!fileName || (item && item.media && item.media.url)) return item;
-    const url = queueFileUrls(item.identifier, {}, fileName)[0];
-    return url ? { ...item, media: { type: "video", url } } : item;
-  });
+     .concat(IA_DEEP_HARVEST_BANKS[String(channel)] || [])
+     .concat(IA_UNDERFILL_DEPTH_BANKS[String(channel)] || [])
+     .concat(IA_TARGETED_RECOVERY_BANKS[String(channel)] || [])
+     .map((item) => {
+     if (!item || !item.identifier) return item;
+     /* Every record in these lane-owned banks is an editorially approved
+        recovery candidate. Preserve that provenance when the API rechecks a
+        relay response; otherwise depth-repair lanes reject the direct bank
+        and fall back to an older D1 shelf before the relay can rotate it. */
+     const verified = { ...item, genreVerified: true, recoveryVerified: true };
+     const fileName = IA_LONG_TAIL_MEDIA_FILES[String(item && item.identifier || "")];
+     if (!fileName || (verified.media && verified.media.url)) return verified;
+     const url = queueFileUrls(item.identifier, {}, fileName)[0];
+     return url ? { ...verified, media: { type: "video", url } } : verified;
+   });
   /* Archive can expose one program twice: once as a parent identifier with
      a direct media URL and again as the same identifier plus its concrete
      file name. Treat the file-level record as canonical when both exist.
@@ -7403,11 +8004,18 @@ function rotateUnderfillDepthBank(payload, channel, rotation, count, themeTerms,
   const direct = strictRecoveryQueue(key, 0, bankTarget, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, minRuntimeSeconds);
   const seen = new Set();
   const candidates = [];
-  for (const item of [
-    ...(Array.isArray(direct && direct.candidateItems) ? direct.candidateItems : []),
+  const directCandidates = Array.isArray(direct && direct.candidateItems) ? direct.candidateItems : [];
+  const payloadCandidates = [
     ...(Array.isArray(payload && payload.candidateItems) ? payload.candidateItems : []),
     ...(Array.isArray(payload && payload.items) ? payload.items : []),
-  ]) {
+  ];
+  /* A durable last-good catalog is already the viewer's stable order. Keep
+     it first and append new emergency files; re-sorting it here lets a new
+     Archive response move the shelf boundary backward and repeat a program. */
+  const orderedCandidates = payload && payload.catalogOrderLocked
+    ? payloadCandidates.concat(directCandidates)
+    : directCandidates.concat(payloadCandidates);
+  for (const item of orderedCandidates) {
     const identity = iaPlayableIdentity(item);
     if (!identity || !item.media || !item.media.url || seen.has(identity)) continue;
     seen.add(identity);
@@ -7421,7 +8029,9 @@ function rotateUnderfillDepthBank(payload, channel, rotation, count, themeTerms,
      then advanced by a full public shelf for every request. Otherwise a
      different Archive response order can make rotation 1/2/3 look identical
      even though the bank contains more than one shelf. */
-  const stableCandidates = candidates.slice().sort((a, b) => iaPlayableIdentity(a).localeCompare(iaPlayableIdentity(b)));
+  const stableCandidates = payload && payload.catalogOrderLocked
+    ? candidates
+    : candidates.slice().sort((a, b) => iaPlayableIdentity(a).localeCompare(iaPlayableIdentity(b)));
   const offset = stableCandidates.length > 1
     ? (normalizedRotation * requested) % stableCandidates.length
     : 0;
@@ -7595,6 +8205,74 @@ async function cacheIaQueueIfRicher(cacheKey, payload, ttlSeconds, headers = {})
   return true;
 }
 
+/* The Archive search API is ordered by popularity/downloads, so a single
+   page per editorial rail keeps rediscovering the same opening records even
+   when the collection has thousands of other programs. Do the wider page walk
+   only inside background replenishment. The viewer still gets its first
+   verified item from the existing short path, while later pages contribute to
+   the durable catalog and freshness ledger. The offsets are deterministic and
+   bounded, but now reach well beyond the first few popularity pages. */
+const IA_BACKGROUND_HARVEST_OFFSETS = Object.freeze([1, 3, 7, 15, 31]);
+
+function iaBackgroundHarvestOffsets(channel, forceDiscovery) {
+  if (forceDiscovery || iaDepthRecoveryEnabled(channel)) return IA_BACKGROUND_HARVEST_OFFSETS;
+  return [1];
+}
+
+async function harvestIaBackgroundPages(seed, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, ctx, rotation, minRuntimeSeconds, forceDiscovery) {
+  let expanded = seed;
+  const harvestQueries = uniqueIaQueries([
+    ...(Array.isArray(reserveQueries) ? reserveQueries : []),
+    ...(Array.isArray(fallbackQueries) ? fallbackQueries : []),
+  ], 12);
+  if (!harvestQueries.length) return expanded;
+  const target = Math.min(
+    candidateCount,
+    Math.max(count * 3, iaDepthRecoveryEnabled(channel) ? IA_DEPTH_PLAYABLE_TARGET : IA_BACKGROUND_PLAYABLE_TARGET),
+  );
+  const playableCount = (value) => (Array.isArray(value && value.candidateItems) ? value.candidateItems : (value && value.items) || [])
+    .filter((item) => item && item.identifier && item.media && item.media.url).length;
+  for (const offset of iaBackgroundHarvestOffsets(channel, forceDiscovery)) {
+    const currentCandidates = Array.isArray(expanded && expanded.candidateItems) ? expanded.candidateItems : [];
+    if (currentCandidates.length >= target && playableCount(expanded) >= target) break;
+    const harvestRotation = Math.abs(Number(rotation) || 0) + offset;
+    try {
+      const pagePass = await buildIaQueue(
+        channel,
+        harvestQueries,
+        themeTerms,
+        denyTerms,
+        requiredTitleTerms,
+        mediaTypes,
+        themeMinScore,
+        diversity,
+        count,
+        candidateCount,
+        cacheOrigin,
+        ctx,
+        harvestRotation,
+        3200,
+        false,
+        true,
+        null,
+        minRuntimeSeconds,
+      );
+      if (pagePass && (pagePass.candidateItems || pagePass.items || []).length) {
+        /* Preserve the already-established catalog order. New page windows
+           append behind it, so a background harvest cannot move the opening
+           shelf backward on the next skip. */
+        expanded = mergeIaQueuePayload(expanded, pagePass, candidateCount, {
+          backgroundPageHarvest: true,
+          catalogOrderLocked: true,
+        });
+      }
+    } catch (error) {
+      console.warn(JSON.stringify({ event: "ia-background-page-harvest-failed", channel, offset, message: String(error && error.message || error) }));
+    }
+  }
+  return expanded;
+}
+
 async function expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, rotation, forceDiscovery = false) {
   let expanded = payload;
   const minRuntimeSeconds = safeMinRuntimeSeconds(payload && payload.minRuntimeSeconds);
@@ -7605,7 +8283,7 @@ async function expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, c
   if (payload && payload.lastGoodKey) {
     const family = await sharedQueueGet(env, payload.lastGoodKey);
     if (family && Array.isArray(family.items) && family.items.length) {
-      const familyCandidates = mergeIaFallbackCandidates(family, expanded);
+       const familyCandidates = mergeIaCatalogCandidates(family, expanded);
       if (familyCandidates.length > (Array.isArray(expanded.candidateItems) ? expanded.candidateItems.length : 0)) {
         expanded = { ...expanded, items: familyCandidates.slice(0, candidateCount), candidateItems: familyCandidates, candidates: familyCandidates.length };
       }
@@ -7663,18 +8341,48 @@ async function expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, c
   const expandedPlayable = expandedCandidates.filter((item) => item && item.identifier && item.media && item.media.url).length;
   const needsPlayableDepth = expandedPlayable < Math.min(candidateCount, Math.max(count, iaDepthRecoveryEnabled(channel) ? IA_DEPTH_PLAYABLE_TARGET : IA_BACKGROUND_PLAYABLE_TARGET));
   if ((forceDiscovery || expanded.items.length < threshold || needsPlayableDepth) && reserveQueries.length) {
-    const reserve = await buildIaQueue(channel, reserveQueries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, candidateCount, cacheOrigin, ctx, rotation, 3200, false, true, null, minRuntimeSeconds);
+    const reserve = await buildIaQueue(channel, reserveQueries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, ctx, rotation, 3200, false, true, null, minRuntimeSeconds);
     expanded = forceDiscovery
       ? mergeIaQueuePayload(reserve, expanded, candidateCount, { reserve: true, refreshed: true })
       : mergeIaQueuePayload(expanded, reserve, candidateCount, { reserve: true });
   }
   if ((forceDiscovery || expanded.items.length < threshold || needsPlayableDepth) && fallbackQueries.length) {
-    const rescue = await buildIaQueue(channel, fallbackQueries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, candidateCount, cacheOrigin, ctx, rotation, 3200, false, true, null, minRuntimeSeconds);
+    const rescue = await buildIaQueue(channel, fallbackQueries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, ctx, rotation, 3200, false, true, null, minRuntimeSeconds);
     expanded = forceDiscovery
       ? mergeIaQueuePayload(rescue, expanded, candidateCount, { rescue: true, refreshed: true })
       : mergeIaQueuePayload(expanded, rescue, candidateCount, { rescue: true });
   }
   {
+    const approvedCandidates = retainApprovedCandidates(expanded.candidateItems || expanded.items);
+    expanded = { ...expanded, items: approvedCandidates.slice(0, candidateCount), candidateItems: approvedCandidates, candidates: approvedCandidates.length };
+  }
+  /* One search page per rail is not enough for the Archive's deep families:
+     popularity sorting keeps returning the same opening records. After the
+     normal reserve/rescue pass, walk three deterministic later-page windows
+     for depth lanes (one for ordinary lanes). This work is already behind
+     waitUntil, so it cannot delay the first visible frame or a channel
+     change. Every page still passes the same theme, deny, runtime, media, and
+     collection-expansion gates before it is merged. */
+  if (forceDiscovery || needsPlayableDepth || iaDepthRecoveryEnabled(channel)) {
+    expanded = await harvestIaBackgroundPages(
+      expanded,
+      reserveQueries,
+      fallbackQueries,
+      channel,
+      themeTerms,
+      denyTerms,
+      requiredTitleTerms,
+      mediaTypes,
+      themeMinScore,
+      diversity,
+      count,
+      candidateCount,
+      cacheOrigin,
+      ctx,
+      rotation,
+      minRuntimeSeconds,
+      forceDiscovery,
+    );
     const approvedCandidates = retainApprovedCandidates(expanded.candidateItems || expanded.items);
     expanded = { ...expanded, items: approvedCandidates.slice(0, candidateCount), candidateItems: approvedCandidates, candidates: approvedCandidates.length };
   }
@@ -7689,8 +8397,18 @@ async function expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, c
      the requested public shelf. */
   const backgroundTarget = Math.min(candidateCount, Math.max(count * 3, iaDepthRecoveryEnabled(channel) ? IA_DEPTH_PLAYABLE_TARGET : IA_BACKGROUND_PLAYABLE_TARGET));
   const deepHydrated = await hydrateIaQueue(expanded, backgroundTarget, cacheOrigin, ctx, mediaTypes);
+  /* `deepHydrated.items` is intentionally bounded by the media probe budget;
+     it is not the whole catalog. Keep the approved, still-unhydrated Archive
+     records behind the verified media rows so the next refill can hydrate a
+     different window instead of collapsing the lane back to the same five. */
+  const hydratedCatalog = Array.isArray(deepHydrated && deepHydrated.items) ? deepHydrated.items : [];
+  const approvedCatalog = mergeIaCatalogCandidates(
+    { candidateItems: hydratedCatalog },
+    { candidateItems: expanded && expanded.candidateItems ? expanded.candidateItems : expanded && expanded.items },
+  );
+  const playableCatalogDepth = approvedCatalog.filter((item) => item && item.identifier && item.media && item.media.url).length;
   const hydrated = deepHydrated && deepHydrated.items.length
-    ? { ...deepHydrated, items: deepHydrated.items.slice(0, count), candidateItems: deepHydrated.items, candidates: deepHydrated.items.length, ready: Math.min(count, deepHydrated.items.length), partial: deepHydrated.items.length < count, hydrating: false, catalogVersion: IA_CATALOG_BUDGET_VERSION, catalogDepth: deepHydrated.items.length, episodeDepth: queueEpisodeDepth(deepHydrated) }
+    ? { ...deepHydrated, items: deepHydrated.items.slice(0, count), candidateItems: approvedCatalog, candidates: approvedCatalog.length, ready: Math.min(count, deepHydrated.items.length), partial: deepHydrated.items.length < count, hydrating: false, catalogVersion: IA_CATALOG_BUDGET_VERSION, catalogDepth: approvedCatalog.length, playableCatalogDepth, episodeDepth: queueEpisodeDepth({ candidateItems: approvedCatalog }) }
     : null;
   if (!hydrated || !hydrated.items.length) return null;
   const queueTtl = hydrated.ready >= count ? IA_QUEUE_TTL_SECONDS : IA_PARTIAL_QUEUE_TTL_SECONDS;
@@ -7994,10 +8712,13 @@ async function getIaQueue(request, url, env, ctx) {
             );
           }
           if (!bypassShallowRotation) {
-            const cachedWasRotated = Array.isArray(cachedPayload.candidateItems) && cachedPayload.candidateItems.length > (Array.isArray(cachedPayload.items) ? cachedPayload.items.length : 0);
-            const cachedShelfBase = cachedWasRotated
-              ? rotatePlayableIaShelf(cachedPayload, rotation, count)
+            const cachedRotationPayload = rotation > 0 && IA_FULL_WINDOW_ROTATION_CHANNELS.has(channel)
+              ? await mergeIaLastGoodCatalog(cachedPayload, lastGoodKey, env)
               : cachedPayload;
+            const cachedWasRotated = Array.isArray(cachedRotationPayload.candidateItems) && cachedRotationPayload.candidateItems.length > (Array.isArray(cachedRotationPayload.items) ? cachedRotationPayload.items.length : 0);
+            const cachedShelfBase = cachedWasRotated
+              ? rotatePlayableIaShelf(cachedRotationPayload, rotation, count)
+              : cachedRotationPayload;
             const freshCachedShelf = applyIaFreshness(cachedShelfBase, freshnessLedger, count);
             const cachedShelf = freshCachedShelf.payload;
             rememberIaFreshness(env, channel, freshCachedShelf.issued, ctx);
@@ -8010,8 +8731,7 @@ async function getIaQueue(request, url, env, ctx) {
               return rotatedResponse;
             }
             if (cachedPayload.partial && Array.isArray(cachedPayload.candidateItems)) {
-              const strictQueue = themeMinScore > 1;
-              const candidateCount = Math.min(strictQueue ? IA_STRICT_CATALOG_CANDIDATE_MAX : IA_CATALOG_CANDIDATE_MAX, Math.max(count, count * (strictQueue ? 12 : 8)));
+              const candidateCount = iaCatalogCandidateBudget(themeMinScore, count);
               scheduleCachedIaHydration(cachedPayload, count, url.origin, cacheKey, sharedKey, lastGoodKey, env, ctx, mediaTypes, channel, themeTerms, denyTerms, requiredTitleTerms, diversity, themeMinScore, candidateCount, queries);
             }
             return cached;
@@ -8022,11 +8742,14 @@ async function getIaQueue(request, url, env, ctx) {
       }
     }
     const memory = iaQueueMemoryGet(cacheKey.url);
-    const memoryNeedsFreshRotation = memory && Math.abs(Number(rotation) || 0) > 0 && iaNeedsCatalogDepth(memory.payload, count, iaCatalogCandidateBudget(themeMinScore, count));
+    const memoryCatalog = memory && rotation > 0 && IA_FULL_WINDOW_ROTATION_CHANNELS.has(channel)
+      ? await mergeIaLastGoodCatalog(memory.payload, lastGoodKey, env)
+      : (memory && memory.payload);
+    const memoryNeedsFreshRotation = memoryCatalog && Math.abs(Number(rotation) || 0) > 0 && iaNeedsCatalogDepth(memoryCatalog, count, iaCatalogCandidateBudget(themeMinScore, count));
     if (memory && !memoryNeedsFreshRotation) {
       const memoryBase = rotation > 0 && IA_UNDERFILL_DEPTH_ROTATION_CHANNELS.has(channel)
-        ? rotateUnderfillDepthBank(memory.payload, channel, rotation, count, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, minRuntimeSeconds)
-        : memory.payload;
+        ? rotateUnderfillDepthBank(memoryCatalog, channel, rotation, count, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, minRuntimeSeconds)
+        : memoryCatalog;
       const freshMemory = applyIaFreshness(memoryBase, freshnessLedger, count);
       rememberIaFreshness(env, channel, freshMemory.issued, ctx);
       return cacheableJson(freshMemory.payload, memory.ttlSeconds, {
@@ -8036,9 +8759,12 @@ async function getIaQueue(request, url, env, ctx) {
       });
     }
     const shared = await sharedQueueGet(env, sharedKey);
-    const sharedBase = shared && rotation > 0 && IA_UNDERFILL_DEPTH_ROTATION_CHANNELS.has(channel)
-      ? rotateUnderfillDepthBank(shared, channel, rotation, count, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, minRuntimeSeconds)
+    const sharedCatalog = shared && rotation > 0 && IA_FULL_WINDOW_ROTATION_CHANNELS.has(channel)
+      ? await mergeIaLastGoodCatalog(shared, lastGoodKey, env)
       : shared;
+    const sharedBase = sharedCatalog && rotation > 0 && IA_UNDERFILL_DEPTH_ROTATION_CHANNELS.has(channel)
+      ? rotateUnderfillDepthBank(sharedCatalog, channel, rotation, count, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, minRuntimeSeconds)
+      : sharedCatalog;
     const freshShared = sharedBase ? applyIaFreshness(sharedBase, freshnessLedger, count) : { payload: sharedBase, issued: [] };
     rememberIaFreshness(env, channel, freshShared.issued, ctx);
     const freshSharedPayload = freshShared.payload;
@@ -8048,17 +8774,17 @@ async function getIaQueue(request, url, env, ctx) {
     if (sharedShelf && Array.isArray(sharedShelf.items) && sharedShelf.items.length && Number(sharedShelf.ready) > 0) {
       const sharedReady = Number(sharedShelf.ready) >= count;
       const sharedCandidateCount = iaCatalogCandidateBudget(themeMinScore, count);
-      const sharedCandidates = Array.isArray(shared.candidateItems) && shared.candidateItems.length
-        ? shared.candidateItems
-        : ((shared.items) || []);
-      const sharedNeedsExpansion = iaNeedsCatalogDepth(shared, count, sharedCandidateCount);
-      const bypassSharedShallow = iaShouldBypassShallowRotation(shared, rotation, count, sharedCandidateCount);
+      const sharedCandidates = Array.isArray(sharedBase && sharedBase.candidateItems) && sharedBase.candidateItems.length
+        ? sharedBase.candidateItems
+        : ((sharedBase && sharedBase.items) || []);
+      const sharedNeedsExpansion = iaNeedsCatalogDepth(sharedBase, count, sharedCandidateCount);
+      const bypassSharedShallow = iaShouldBypassShallowRotation(sharedBase, rotation, count, sharedCandidateCount);
       if (sharedNeedsExpansion) {
         /* Do not wait for a complete-series expansion here. The current shelf
            is already playable; replenish it behind the response so the next
            skip/channel change sees a second, non-overlapping shelf. */
         scheduleIaExpansion(
-          { ...shared, lastGoodKey, items: sharedCandidates.slice(0, sharedCandidateCount), candidateItems: sharedCandidates, candidates: sharedCandidates.length },
+          { ...sharedBase, lastGoodKey, items: sharedCandidates.slice(0, sharedCandidateCount), candidateItems: sharedCandidates, candidates: sharedCandidates.length },
           iaBackgroundReserveQueries(channel, queries, sharedNeedsExpansion),
           iaBackgroundFallbackQueries(channel, iaFallbackQueries(themeTerms, denyTerms, requiredTitleTerms, mediaTypes), sharedNeedsExpansion),
           channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity,
@@ -8069,7 +8795,7 @@ async function getIaQueue(request, url, env, ctx) {
       let sharedFallback = null;
       if (!sharedReady && sharedShelf.partial && Array.isArray(sharedShelf.candidateItems) && !sharedNeedsExpansion) {
         const candidateCount = iaCatalogCandidateBudget(themeMinScore, count);
-        scheduleCachedIaHydration(shared, count, url.origin, cacheKey, sharedKey, lastGoodKey, env, ctx, mediaTypes, channel, themeTerms, denyTerms, requiredTitleTerms, diversity, themeMinScore, candidateCount, queries);
+        scheduleCachedIaHydration(sharedBase, count, url.origin, cacheKey, sharedKey, lastGoodKey, env, ctx, mediaTypes, channel, themeTerms, denyTerms, requiredTitleTerms, diversity, themeMinScore, candidateCount, queries);
         /* A partial exact-rotation shelf should start the background refill,
            but it should not force the viewer to live on one program. Serve a
            rotated full last-good shelf while the current rotation finishes. */
@@ -8164,8 +8890,7 @@ async function getIaQueue(request, url, env, ctx) {
     // Hard-locked programming can reject many otherwise plausible Archive.org
     // results. Give those channels a deeper candidate shelf before hydration so
     // a single unplayable item never turns into a visible No Signal screen.
-    const strictQueue = themeMinScore > 1;
-    const candidateCount = Math.min(strictQueue ? IA_STRICT_CATALOG_CANDIDATE_MAX : IA_CATALOG_CANDIDATE_MAX, Math.max(count, count * (strictQueue ? 12 : 8)));
+    const candidateCount = iaCatalogCandidateBudget(themeMinScore, count);
     /* Cold channel changes must not wait for every diversity rail. The first
        three queries are the app's fast, subject-locked rails; wide collection
        rescue lanes are deliberately deferred until the fast shelf is sparse.
@@ -8216,7 +8941,7 @@ async function getIaQueue(request, url, env, ctx) {
            deferredContainerExpansion: true,
            minRuntimeSeconds,
          }
-       : await buildIaQueue(channel, fastQueries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, candidateCount, url.origin, ctx, rotation, IA_FAST_SEARCH_TIMEOUT_MS, true, true, freshnessLedger.map((entry) => entry.id), minRuntimeSeconds);
+       : await buildIaQueue(channel, fastQueries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, url.origin, ctx, rotation, IA_FAST_SEARCH_TIMEOUT_MS, true, true, freshnessLedger.map((entry) => entry.id), minRuntimeSeconds);
     const fallbackQueries = iaFallbackQueries(themeTerms, denyTerms, requiredTitleTerms, mediaTypes);
      if (!payload.items.length || (iaColdRescueEnabled(channel) && payload.items.length < count)) {
       /* A rotated fast rail can be empty even while the channel has approved
@@ -8235,7 +8960,7 @@ async function getIaQueue(request, url, env, ctx) {
          /* Weak lanes get a bounded race across the two rescue rails. Keep
             container expansion out of this recovery race; episode expansion
             remains background work and cannot delay the first playable URL. */
-         const rescue = await buildIaQueue(channel, rescueQueries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, candidateCount, url.origin, ctx, rescueRotation, IA_FAST_SEARCH_TIMEOUT_MS, iaColdRescueEnabled(channel), !iaColdRescueEnabled(channel), freshnessLedger.map((entry) => entry.id), minRuntimeSeconds);
+         const rescue = await buildIaQueue(channel, rescueQueries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, url.origin, ctx, rescueRotation, IA_FAST_SEARCH_TIMEOUT_MS, iaColdRescueEnabled(channel), !iaColdRescueEnabled(channel), freshnessLedger.map((entry) => entry.id), minRuntimeSeconds);
         if (rescue.items.length) payload = mergeIaQueuePayload(payload, rescue, candidateCount, { rescue: true });
       }
     }
@@ -8259,6 +8984,17 @@ async function getIaQueue(request, url, env, ctx) {
         ready: 0,
         emergency: true,
       };
+    }
+    /* Rotate the approved catalog before hydration once it contains at least
+       three complete shelves. This applies to every IA lane, not only the
+       historical hand-maintained full-window allowlist. The old path rotated
+       only already-hydrated media; a large Archive result with five resolved
+       URLs therefore reopened the same five while the rest of its catalog was
+       discarded. The helper keeps the selected window at the front so the
+       foreground probe pays for the requested shelf, not the opening page. */
+    const approvedCatalogCount = Array.isArray(payload && payload.candidateItems) ? payload.candidateItems.length : 0;
+    if (rotation > 0 && approvedCatalogCount >= count * 3) {
+      payload = rotateApprovedIaShelf(payload, rotation, count);
     }
     /* Freshness is applied before hydration as well as at the response edge,
        so the foreground metadata probes spend their budget on unseen items.
@@ -8491,7 +9227,14 @@ async function getIaQueue(request, url, env, ctx) {
         .catch(() => {})
     );
     return initialResponse;
-  } catch {
+  } catch (error) {
+    console.warn(JSON.stringify({
+      event: "ia-queue-error",
+      channel,
+      rotation,
+      message: String(error && error.message || error || "unknown"),
+      stack: String(error && error.stack || "").slice(0, 1200),
+    }));
     return json({ error: "archive queue unavailable" }, 502);
   }
 }

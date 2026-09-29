@@ -12,7 +12,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "4.1.166-ia-recovery-admission";
+const V3_RELEASE = "4.1.183-deep-ia-catalog";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -291,6 +291,10 @@ function queueItemKey(item) {
   return String(item && (item.identifier || item.id || (item.media && item.media.url) || item.url) || "").trim();
 }
 
+function queueItemPlayable(item) {
+  return Boolean(item && String((item.media && item.media.url) || item.mediaUrl || item.url || "").trim());
+}
+
 /* IA file records can differ only by container/bitrate suffix. Treat those
    encodings as one catalog program at the API boundary too, otherwise the
    relay's deep bank is widened and then immediately made shallow again by
@@ -329,6 +333,15 @@ function uniqueQueueItems(items, body, limit = MAX_CATALOG_ITEMS) {
     const id = queueItemKey(item);
     const source = String(item && (item.sourceIdentifier || item.source_identifier || id) || "").trim();
     return !(id === source && expandedSources.has(source));
+  });
+}
+
+function stableCatalogItems(items, body, limit = MAX_CATALOG_ITEMS) {
+  const unique = uniqueQueueItems(items, body, limit);
+  return unique.sort((left, right) => {
+    const leftKey = queueItemIdentity(left);
+    const rightKey = queueItemIdentity(right);
+    return leftKey < rightKey ? -1 : leftKey > rightKey ? 1 : 0;
   });
 }
 
@@ -876,7 +889,7 @@ function applyFreshness(items, body) {
 
 function localRotationFallback(payload, body) {
   const count = Math.max(1, Math.min(5, Number(body && body.count) || 3));
-  const candidateItems = uniqueQueueItems(
+  const candidateItems = stableCatalogItems(
     Array.isArray(payload && payload.candidateItems) && payload.candidateItems.length
       ? payload.candidateItems
       : ((payload && payload.items) || []),
@@ -884,13 +897,17 @@ function localRotationFallback(payload, body) {
     MAX_CATALOG_ITEMS,
   );
   const fresh = applyFreshness(candidateItems, body);
-  const items = rotateCatalogItems(fresh, Number(body && body.rotation) || 0).slice(0, count);
+  const playable = fresh.filter((item) => item && ((item.media && item.media.url) || item.mediaUrl || item.url));
+  const source = playable.length >= count ? playable : fresh;
+  const rotationStep = body && body.sourceCatalog === true ? 1 : count;
+  const items = rotateCatalogItems(source, (Number(body && body.rotation) || 0) * rotationStep).slice(0, count);
+  const playableSelected = items.filter((item) => item && ((item.media && item.media.url) || item.mediaUrl || item.url)).length;
   return {
     ...payload,
     items,
     candidateItems,
     candidates: candidateItems.length,
-    ready: items.length,
+    ready: playable.length >= count ? playableSelected : items.length,
     fallback: true,
     v2: {
       sessionScoped: false,
@@ -926,6 +943,15 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
   const items = (result.results || []).map((row) => {
     let metadata = {};
     try { metadata = row.metadata_json ? JSON.parse(row.metadata_json) : {}; } catch (_) { /* tolerate old rows */ }
+    /* Older Archive harvests persisted the resolved file URL in metadata_json
+       before the normalized media_url column was populated. Treat that as a
+       playable record instead of counting it as catalog depth and then
+       silently discarding it from every shelf. This is deliberately limited
+       to explicit mediaUrl/media_url fields from the catalog row; discovery
+       and URL guessing still stay out of the request path. */
+    const mediaUrl = String(row.media_url || metadata.mediaUrl || metadata.media_url || "").trim();
+    const mediaType = row.media_type || metadata.mediaType || metadata.media_type || "video";
+    const sourceUrl = row.source_url || metadata.sourceUrl || metadata.source_url || "";
     return {
       id: row.id,
       identifier: row.id,
@@ -945,12 +971,12 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
       duration: Number(row.duration_seconds || metadata.duration || metadata.runtime) || null,
       runtime: Number(row.duration_seconds || metadata.duration || metadata.runtime) || null,
       aspectRatio: Number(row.aspect_ratio || metadata.aspectRatio || metadata.aspect_ratio || metadata.ratio) || null,
-      mediaType: row.media_type || "video",
-      media: { type: row.media_type || "video", url: row.media_url },
-      type: row.media_type === "embed" ? "embed" : "video",
-      url: row.media_url,
-      embedUrl: row.media_type === "embed" ? row.media_url : "",
-      sourceUrl: row.source_url || "",
+      mediaType,
+      media: { type: mediaType, url: mediaUrl },
+      type: mediaType === "embed" ? "embed" : "video",
+      url: mediaUrl,
+      embedUrl: mediaType === "embed" ? mediaUrl : "",
+      sourceUrl,
       rights: row.rights || "",
       staleCatalog: true,
     };
@@ -960,16 +986,26 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
      it here would make the guide and ready shelf suggest the exact provider
      that just timed out. Filter it before requalification and rotation. */
   const eligibleItems = items.filter((item) => !blockedProviders.has(sourceProviderKey(item && item.provider)));
-  const filtered = uniqueQueueItems(eligibleItems, effectiveBody);
-  const fresh = ignoreFreshness ? filtered : applyFreshness(filtered, effectiveBody);
+  const filtered = stableCatalogItems(eligibleItems, effectiveBody);
+  /* A catalog row without a resolved media URL is useful evidence for a
+     background repair, but it is not a playable program. Keep it in the
+     candidate union while measuring depth/freshness and selecting the public
+     shelf only from rows that can actually start. */
+  const playableCatalog = filtered.filter(queueItemPlayable);
+  const fresh = ignoreFreshness ? playableCatalog : applyFreshness(playableCatalog, effectiveBody);
   /* Source Suite may legitimately exhaust a small catalog. Repeat only after
      every verified row has appeared; never turn exhaustion into a 503 or hide
      the real catalog depth from the guide. */
-  const exhausted = !ignoreFreshness && effectiveBody.sourceCatalog === true && filtered.length > 0 && fresh.length === 0;
-  const selected = exhausted ? filtered : fresh;
-  const seenCount = Math.max(0, filtered.length - fresh.length);
+  const exhausted = !ignoreFreshness && effectiveBody.sourceCatalog === true && playableCatalog.length > 0 && fresh.length === 0;
+  const selected = exhausted ? playableCatalog : fresh;
+  const seenCount = Math.max(0, playableCatalog.length - fresh.length);
   const requestedCount = Math.max(1, Math.min(5, Number(effectiveBody && effectiveBody.count) || 3));
-  const ordered = rotateCatalogItems(selected, effectiveBody.rotation);
+  /* IA rotations represent consuming the five-item public shelf. Source
+     profiles keep their historical one-record cursor, but the Archive
+     recovery rail must advance by a complete shelf or the API fallback will
+     return four of the same five programs on every Next action. */
+  const rotationStep = effectiveBody && effectiveBody.sourceCatalog === true ? 1 : requestedCount;
+  const ordered = rotateCatalogItems(selected, (Number(effectiveBody.rotation) || 0) * rotationStep);
   const shelf = ordered.slice(0, requestedCount);
   return shelf.length ? {
     /* Keep the public contract consistent with the live relay: `items` is the
@@ -982,6 +1018,7 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
     ready: shelf.length,
     candidates: filtered.length,
     catalogDepth: filtered.length,
+    playableCatalogDepth: playableCatalog.length,
     unseenCatalogItems: fresh.length,
     seenCatalogItems: seenCount,
     catalogExhausted: exhausted,
@@ -1151,14 +1188,24 @@ async function handleQueue(request, env, ctx, id) {
       ready: Math.min(Number(payload && payload.ready) || upstreamItems.length, upstreamItems.length),
     }, count);
     const upstreamCandidateDepth = upstreamCandidates.length;
-    const needsCatalogDepthRepair = upstreamCandidateDepth < IA_MIN_ROLLING_CATALOG_DEPTH;
+    const upstreamPlayableCandidateDepth = upstreamCandidates.filter(queueItemPlayable).length;
+    const relayOwnsRotatedShelf = payload && payload.rotationApplied === true && upstreamItems.length >= count;
+    /* Candidate depth alone is not enough: older relay/D1 unions can contain
+       approved identifiers whose resolved file URL was lost at persistence
+       time. Count playable rows for the repair gate so those lanes pull their
+       real Archive files instead of reopening the same five playable rows. */
+    const needsCatalogDepthRepair = upstreamPlayableCandidateDepth < IA_MIN_ROLLING_CATALOG_DEPTH;
     /* A persistent freshness ledger can legitimately consume most of a small
        upstream shelf. Refill from the deeper D1 catalog before rotation when
        the remaining unseen window cannot satisfy the requested shelf; do not
        relax freshness or recycle a recently served program just to reach five. */
     const recentWindow = recentCatalogIds(body).size;
-    const needsFreshnessRefill = recentWindow >= count && upstreamCandidateDepth < Math.min(MAX_CATALOG_ITEMS, recentWindow + count);
-    if (upstreamItems.length < count || needsCatalogDepthRepair || needsFreshnessRefill) {
+    const needsFreshnessRefill = recentWindow >= count && upstreamPlayableCandidateDepth < Math.min(MAX_CATALOG_ITEMS, recentWindow + count);
+    /* A full relay-owned rotation is already the correct public shelf. D1 is
+       allowed to deepen the catalog in the background, but replacing this
+       shelf synchronously makes a moving D1 union slide the rotation cursor
+       back onto the same opening programs. */
+    if (!relayOwnsRotatedShelf && (upstreamItems.length < count || needsCatalogDepthRepair || needsFreshnessRefill)) {
       try {
         const fallback = await catalogFallback(env, body, Math.max(MAX_CATALOG_ITEMS, count));
         const fallbackItems = fallback && Array.isArray(fallback.candidateItems) && fallback.candidateItems.length ? fallback.candidateItems : (fallback ? fallback.items : []);
@@ -1166,8 +1213,22 @@ async function handleQueue(request, env, ctx, id) {
         const additions = uniqueQueueItems(fallbackItems, body).filter((item) => !seen.has(queueItemKey(item)));
         if (additions.length) {
           const currentCandidates = Array.isArray(payload.candidateItems) && payload.candidateItems.length ? payload.candidateItems : upstreamItems;
-          const mergedCandidates = uniqueQueueItems([...currentCandidates, ...fallbackItems], body, MAX_CATALOG_ITEMS);
-          const mergedItems = uniqueQueueItems([...upstreamItems, ...additions], body, MAX_CATALOG_ITEMS);
+          const mergedCandidates = stableCatalogItems([...currentCandidates, ...fallbackItems], body, MAX_CATALOG_ITEMS);
+          /* Put the already-rotated recovery shelf first. The old merge put
+             upstreamItems first, so a deep D1 recovery catalog was present in
+             `candidateItems` but the public five-item shelf still came from
+             the stale relay opening window. */
+          const recoveryShelf = fallback && Array.isArray(fallback.items) ? fallback.items : [];
+          const mergedPlayable = mergedCandidates.filter((item) => item && item.identifier && ((item.media && item.media.url) || item.mediaUrl || item.url));
+          /* The relay may already have selected the correct rotation window.
+             D1 enrichment must not rotate that shelf a second time; doing so
+             moved the public window back onto the old opening items whenever
+             the fallback catalog was alphabetically wider than the relay. */
+          const upstreamAlreadyRotated = payload && payload.rotationApplied === true && upstreamItems.length >= count;
+          const rotatedRecovery = upstreamAlreadyRotated
+            ? upstreamItems.slice(0, count)
+            : rotateCatalogItems(mergedPlayable, (Number(body.rotation) || 0) * count).slice(0, count);
+          const mergedItems = uniqueQueueItems([...rotatedRecovery, ...recoveryShelf, ...upstreamItems, ...additions], body, MAX_CATALOG_ITEMS);
           payload = limitPublicIaShelf({
             ...payload,
             items: mergedItems,
@@ -1181,14 +1242,27 @@ async function handleQueue(request, env, ctx, id) {
       } catch (error) { console.warn(JSON.stringify({ event: "catalog-shallow-recovery-failed", requestId: id, error: String(error).slice(0, 160) })); }
     }
   }
-  const responseCandidateDepth = Array.isArray(payload && payload.candidateItems)
-    ? payload.candidateItems.length
-    : (Array.isArray(payload && payload.items) ? payload.items.length : 0);
+  const responseCandidateItems = Array.isArray(payload && payload.candidateItems)
+    ? payload.candidateItems
+    : (Array.isArray(payload && payload.items) ? payload.items : []);
+  const responseCandidateDepth = responseCandidateItems.filter(queueItemPlayable).length;
   if (responseCandidateDepth < IA_MIN_ROLLING_CATALOG_DEPTH && shouldRefreshShallowCatalog(body.channel)) {
     /* Non-fast lanes get the same non-blocking catalog repair. The API still
        returns the current playable shelf immediately; this only makes the
        next request deeper and fresher. */
     ctx.waitUntil(refreshShallowCatalog(env, request, body, id, responseCandidateDepth));
+  }
+  /* Some relay-owned lanes have a verified playable catalog behind the public
+     five-item handoff but do not carry the relay's full-window marker. Rotate
+     that catalog at the API edge before returning it. This is deliberately
+     skipped for recovery merges and already-rotated shelves, and never runs on
+     Source Suite, so it cannot double-advance a shelf or create a new media
+     hydration path. */
+  const playableCandidateDepth = Array.isArray(payload && payload.candidateItems)
+    ? payload.candidateItems.filter(queueItemPlayable).length
+    : 0;
+  if (!useServerCatalog && !catalogRecovery && payload && payload.rotationApplied !== true && playableCandidateDepth > count) {
+    payload = localRotationFallback(payload, body);
   }
   let rotated;
   if (!useServerCatalog || archiveFamilyRelayRail) {

@@ -89,9 +89,9 @@ const IA_PARTIAL_QUEUE_TTL_SECONDS = 15;
    genre-locked stations can retain up to 2,048 verified candidates and broad
    stations up to 1,536. That work remains background-only; channel changes
    still hydrate the first five records without waiting for the long tail. */
-const IA_STRICT_CATALOG_CANDIDATE_MAX = 2048;
-const IA_CATALOG_CANDIDATE_MAX = 1536;
-const IA_CATALOG_BUDGET_VERSION = "catalog-2048-1536-deep-harvest-v85-file-banks";
+const IA_STRICT_CATALOG_CANDIDATE_MAX = 4096;
+const IA_CATALOG_CANDIDATE_MAX = 3072;
+const IA_CATALOG_BUDGET_VERSION = "catalog-4096-3072-deep-harvest-v86-file-banks";
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
@@ -104,10 +104,10 @@ const IA_CATALOG_BUDGET_VERSION = "catalog-2048-1536-deep-harvest-v85-file-banks
    episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
-const IA_QUEUE_CACHE_VERSION = "v244";
+const IA_QUEUE_CACHE_VERSION = "v245";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
-const IA_LAST_GOOD_CACHE_VERSION = "v244";
+const IA_LAST_GOOD_CACHE_VERSION = "v245";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -259,18 +259,18 @@ const IA_BACKGROUND_FALLBACK_LANES = 1;
 /* Container manifests can be large. They are valuable for episode variety but
    are never permitted to multiply the work of a foreground channel change. */
 const IA_FOREGROUND_CONTAINER_EXPANSIONS = 0;
-const IA_BACKGROUND_CONTAINER_EXPANSIONS = 16;
+const IA_BACKGROUND_CONTAINER_EXPANSIONS = 32;
 const IA_CONTAINER_EXPANSION_CONCURRENCY = 2;
 /* A complete-series manifest can contain hundreds of playable files. Sample
    across the whole manifest instead of rejecting a large collection or taking
    only its first couple of episodes. The rolling shelf remains bounded by the
    channel catalog budget below. */
-const IA_MAX_EXPANDED_FILES = 5000;
-const IA_BACKGROUND_COLLECTION_EPISODES_PER_PARENT = 64;
+const IA_MAX_EXPANDED_FILES = 10000;
+const IA_BACKGROUND_COLLECTION_EPISODES_PER_PARENT = 96;
 /* Keep the visible shelf small, but let the background harvest build a real
    long tail. These larger targets are never awaited on a channel change. */
-const IA_BACKGROUND_PLAYABLE_TARGET = 768;
-const IA_DEPTH_PLAYABLE_TARGET = 1536;
+const IA_BACKGROUND_PLAYABLE_TARGET = 1536;
+const IA_DEPTH_PLAYABLE_TARGET = 3072;
 /* A full-directory tune burst can arrive when a guide, television, and phone
    all ask for cold shelves together. Keep the foreground path to one Archive
    discovery rail; reserve rails still run behind the first frame. */
@@ -4578,6 +4578,12 @@ const IA_UNDERFILL_DEPTH_BANKS = Object.freeze({
    intentionally additive: no discovery rule is widened, no portrait media is
    admitted, and every item still passes the normal theme/deny/runtime gates. */
 const IA_DEPTH_EXPANSION_OVERLAYS = Object.freeze({
+  /* College Game Day can share the already verified college-football rail
+     with Gridiron Classics. Reusing the file-level records keeps this lane
+     deep without admitting generic sports news or talk content. */
+  "62": [
+    ...(IA_DEEP_HARVEST_BANKS["57"] || []),
+  ],
   "66": [
     iaDirectRecovery("love-child-world-industries::Love Child-World Industries.mp4", "love-child-world-industries", "Love Child-World Industries.mp4", "World Industries · Love Child (1992)", "action sports skateboarding street skating outdoor television", 1992, "video", 1117.12, 640, 480),
     iaDirectRecovery("world-industries-its-your-world-2011::World Industries - It's Your World (2011).ia.mp4", "world-industries-its-your-world-2011", "World Industries - It's Your World (2011).ia.mp4", "World Industries · It's Your World (2011)", "action sports skateboarding street skating outdoor television", 2011, "video", 1483.72, 540, 360),
@@ -4746,6 +4752,19 @@ const IA_DEPTH_EXPANSION_OVERLAYS = Object.freeze({
    encode. This is the depth layer that makes a station feel like television:
    many families, many eras, and enough unseen files to survive repeated skips. */
 const IA_DEEP_ARCHIVE_FAMILY_OVERLAYS = Object.freeze({
+  /* Women in Sport was finding women-labeled records in separate sports
+     banks but their subjects did not always repeat the station vocabulary.
+     Normalize that editorial context while retaining the original verified
+     file URL, then add the verified girls/women hockey files already used by
+     the sports suite. */
+  "67": [
+    ...(IA_DEEP_HARVEST_BANKS["58"] || [])
+      .filter((item) => /(?:girls|women|female|ladies)/i.test(String(item && item.title || "") + " " + String(item && item.subject || "")))
+      .map((item) => ({ ...item, subject: String(item.subject || "") + " women's sports women athletes women's athletics" })),
+    ...(IA_UNDERFILL_DEPTH_BANKS["60"] || [])
+      .filter((item) => /(?:girls|women|female|ladies)/i.test(String(item && item.title || "") + " " + String(item && item.subject || "")))
+      .map((item) => ({ ...item, subject: String(item.subject || "") + " women's sports women athletes women's athletics" })),
+  ],
   "81": [
     iaDirectRecovery("vts-01-1_20231104::Adventure Bound/Adventure Bound S10 ep 1-6/Disk 1/VIDEO_TS/VTS_01_1.mp4", "vts-01-1_20231104", "Adventure Bound/Adventure Bound S10 ep 1-6/Disk 1/VIDEO_TS/VTS_01_1.mp4", "Adventure Bound · Season 10 Episode 1", "fishing angling sport fishing outdoor recreation television series", 2010, "video", 1326.68, 854, 480),
     iaDirectRecovery("vts-01-1_20231104::Adventure Bound/Adventure Bound S10 ep 1-6/Disk 1/VIDEO_TS/VTS_02_1.mp4", "vts-01-1_20231104", "Adventure Bound/Adventure Bound S10 ep 1-6/Disk 1/VIDEO_TS/VTS_02_1.mp4", "Adventure Bound · Season 10 Episode 2", "fishing angling sport fishing outdoor recreation television series", 2010, "video", 1326.64, 854, 480),
@@ -5573,6 +5592,55 @@ function iaHolidayThemeMatch(doc, themeTerms) {
     return !/(?:cartoon|animated|animation|podcast|playlist|fan\s*made|fan\s*film|fan\s*movie|fan\s*edit|parody|spoof|pmv|vertical|\bshorts?\b|trailer|preview|review|reaction|how\s+to|tutorial)/i.test(text);
   }
   return false;
+}
+
+/* A few broad Archive subjects are useful discovery hints but are not strong
+   enough to be a station identity on their own. These lane-owned gates keep
+   broad search results from promoting political/news/podcast material into a
+   sports lane, or a collection rip into a movie lane. They run after the
+   normal theme/deny checks and apply equally to discovered records, expanded
+   episode files, and verified recovery banks. */
+const IA_STATION_QUALITY_GATES = Object.freeze({
+  "62": {
+    requiredGroups: [
+      ["college", "ncaa", "university", "varsity", "campus", "intercollegiate"],
+      ["football", "basketball", "volleyball", "soccer", "baseball", "hockey", "lacrosse", "softball", "athletics", "sports"],
+    ],
+    denyTerms: ["uncle frank", "podcast", "politics", "political", "news", "lecture", "seminar", "video game", "fantasy sports"],
+  },
+  "67": {
+    requiredGroups: [
+      ["women", "woman", "women's", "female", "girl", "girls", "ladies"],
+      ["sport", "athlete", "athletics", "basketball", "soccer", "hockey", "softball", "volleyball", "track", "field", "olympic", "gymnastics", "tennis", "golf", "rowing"],
+    ],
+    denyTerms: ["women's equality", "politics", "political", "think tank", "republican", "biden", "podcast", "commercial", "advertising"],
+  },
+  "70": {
+    requiredGroups: [["rodeo", "bull riding", "barrel racing", "calf roping", "bronco", "steer wrestling", "team roping", "saddle bronc", "bareback"]],
+    denyTerms: ["parade", "traffic", "safety education", "city spotlight", "after words", "not my first rodeo", "minecraft", "fishing rodeo", "motorcycle", "police", "politics", "political", "news", "podcast", "review", "tutorial", "how to"],
+  },
+  "112": {
+    requiredGroups: [["film", "movie", "feature", "family", "musical", "cinema", "matinee", "disney", "oz", "poppins", "wonka", "lassie", "black stallion"]],
+    denyTerms: ["ernest p worrell", "vhs rip", "home movie", "home movies", "fan film", "fan-made", "parody", "podcast", "short film", "trailer", "seminar", "lecture", "training film"],
+  },
+  "119": {
+    requiredGroups: [["samurai", "chanbara", "jidaigeki", "zatoichi", "kurosawa", "ronin", "sword", "shogun", "ninja", "mifune", "chiba", "lone wolf", "harakiri"]],
+    denyTerms: ["anime", "cartoon", "documentary about", "home movie", "home movies", "amateur film", "fan film", "fan-made", "parody", "podcast", "short film", "trailer", "commercial", "outtakes"],
+  },
+});
+
+function iaStationQualityGate(channel, doc) {
+  const rule = IA_STATION_QUALITY_GATES[String(channel || "")];
+  if (!rule) return true;
+  const text = themeText([
+    doc && doc.title,
+    doc && doc.subject,
+    doc && doc.description,
+    doc && doc.sourceIdentifier,
+    doc && doc.identifier,
+  ].filter(Boolean).join(" "));
+  if (rule.denyTerms.some((term) => text.includes(themeText(term)))) return false;
+  return (rule.requiredGroups || []).every((group) => group.some((term) => text.includes(themeText(term))));
 }
 
 function matchesTheme(doc, themeTerms, minScore = 1, requiredTitleTerms = []) {
@@ -7458,7 +7526,7 @@ function queueRotationPage(rotation, lane, channel = "", background = false) {
      stays fast, while deterministic channel/lane seeding gives each rotation
      a different page window without making cache keys nondeterministic. */
   const pageCount = background
-    ? (iaDepthRecoveryEnabled(channel) ? 32 : 24)
+    ? (iaDepthRecoveryEnabled(channel) ? 64 : 48)
     : (iaDepthRecoveryEnabled(channel) ? 6 : 3);
   let seed = Math.abs(Number(rotation) || 0) * 7 + Number(lane || 0) * 3;
   const key = String(channel || "");
@@ -7513,7 +7581,7 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTit
       // ranking, caching, or media hydration for every IA channel.
       const docs = (result.docs || []).filter((doc) => doc && safeIaId(doc.identifier) && String(doc.mediatype || "").toLowerCase() !== "collection" && (!mediaTypes.length || mediaTypes.includes(String(doc.mediatype || "").toLowerCase())))
         .sort((a, b) => themeScore(b, themeTerms) - themeScore(a, themeTerms));
-      const approved = docs.filter((doc) => matchesTheme(doc, themeTerms, themeMinScore, requiredTitleTerms) && !matchesDeny(doc, denyTerms) && iaRuntimeAllowed(doc, minRuntimeSeconds));
+      const approved = docs.filter((doc) => iaStationQualityGate(channel, doc) && matchesTheme(doc, themeTerms, themeMinScore, requiredTitleTerms) && !matchesDeny(doc, denyTerms) && iaRuntimeAllowed(doc, minRuntimeSeconds));
       /* The first rail is returned before metadata expansion for speed. Every
          approved cold shelf gets a bounded background probe: Archive authors
          often omit words like “collection” even when an item contains a full
@@ -7539,7 +7607,7 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTit
        const expansionSeeds = (firstApprovedLane || !expandContainers) ? [] : hintedSeeds.concat(genericSeeds).slice(0, effectiveExpansionLimit);
       const expandedSets = await mapQueueCandidates(expansionSeeds, IA_CONTAINER_EXPANSION_CONCURRENCY, async (doc, expansionIndex) => {
         const episodes = await expandArchiveContainer(doc, cacheOrigin, ctx, rotation, lane * 31 + expansionIndex, mediaTypes);
-        return episodes.filter((episode) => matchesTheme(episode, themeTerms, themeMinScore, requiredTitleTerms) && !matchesDeny(episode, denyTerms) && iaRuntimeAllowed(episode, minRuntimeSeconds));
+        return episodes.filter((episode) => iaStationQualityGate(channel, episode) && matchesTheme(episode, themeTerms, themeMinScore, requiredTitleTerms) && !matchesDeny(episode, denyTerms) && iaRuntimeAllowed(episode, minRuntimeSeconds));
       });
       const expanded = expandedSets.flat();
       /* Once a parent has yielded independently playable files, the parent is
@@ -7630,7 +7698,7 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTit
     for (const lane of lanes) {
       const candidate = lane[row], doc = candidate && candidate.doc;
       const titleKey = queueTitleKey(doc);
-      if (!doc || expandedParents.has(String(doc.identifier || "")) || !matchesTheme(doc, themeTerms, themeMinScore, requiredTitleTerms) || matchesDeny(doc, denyTerms) || seen.has(doc.identifier) || (titleKey && seenTitles.has(titleKey))) continue;
+      if (!doc || expandedParents.has(String(doc.identifier || "")) || !iaStationQualityGate(channel, doc) || !matchesTheme(doc, themeTerms, themeMinScore, requiredTitleTerms) || matchesDeny(doc, denyTerms) || seen.has(doc.identifier) || (titleKey && seenTitles.has(titleKey))) continue;
       seen.add(doc.identifier);
       if (titleKey) seenTitles.add(titleKey);
       /* Keep previously issued programs as an emergency tail. Fresh records
@@ -7850,7 +7918,7 @@ function rotateApprovedIaShelf(payload, rotation, count) {
 function iaCatalogCandidateBudget(themeMinScore, count) {
   const requested = Math.max(1, Number(count) || 5);
   const strict = Number(themeMinScore) > 1;
-  const target = strict ? 2048 : 1536;
+  const target = strict ? 4096 : 3072;
   return Math.min(strict ? IA_STRICT_CATALOG_CANDIDATE_MAX : IA_CATALOG_CANDIDATE_MAX, Math.max(requested, target, requested * (strict ? 12 : 8)));
 }
 
@@ -7975,7 +8043,7 @@ function strictRecoveryQueue(channel, rotation, count, themeTerms, denyTerms, re
     if (!item || !item.identifier || !item.media || !item.media.url) return false;
     if (mediaTypes.length && mediaTypes.includes("movies") && item.media.type !== "video") return false;
     if (mediaTypes.length && mediaTypes.includes("audio") && item.media.type !== "audio") return false;
-    return matchesTheme(item, themeTerms, 1, requiredTitleTerms) && !matchesDeny(item, denyTerms) && iaRuntimeAllowed(item, minRuntimeSeconds);
+    return iaStationQualityGate(channel, item) && matchesTheme(item, themeTerms, 1, requiredTitleTerms) && !matchesDeny(item, denyTerms) && iaRuntimeAllowed(item, minRuntimeSeconds);
   });
   const offset = eligible.length > count ? (Math.abs(Number(rotation) || 0) * count) % eligible.length : 0;
   const candidates = eligible.slice(offset).concat(eligible.slice(0, offset));
@@ -8155,7 +8223,7 @@ async function expandSeedArchiveContainers(payload, cacheOrigin, ctx, themeTerms
   if (!parents.length) return [];
   const episodeSets = await mapQueueCandidates(parents, IA_CONTAINER_EXPANSION_CONCURRENCY, async (parent, index) => {
     const episodes = await expandArchiveContainer({ ...parent, identifier: parent.sourceIdentifier || parent.identifier }, cacheOrigin, ctx, rotation, index * 47, mediaTypes);
-    return episodes.filter((episode) => matchesTheme(episode, themeTerms, themeMinScore, requiredTitleTerms) && !matchesDeny(episode, denyTerms));
+    return episodes.filter((episode) => iaStationQualityGate(channel, episode) && matchesTheme(episode, themeTerms, themeMinScore, requiredTitleTerms) && !matchesDeny(episode, denyTerms));
   });
   const balancedSets = episodeSets.map((episodes) => sampleArchiveSequence(episodes || [], IA_BACKGROUND_COLLECTION_EPISODES_PER_PARENT));
   const expanded = [];
@@ -8212,7 +8280,7 @@ async function cacheIaQueueIfRicher(cacheKey, payload, ttlSeconds, headers = {})
    verified item from the existing short path, while later pages contribute to
    the durable catalog and freshness ledger. The offsets are deterministic and
    bounded, but now reach well beyond the first few popularity pages. */
-const IA_BACKGROUND_HARVEST_OFFSETS = Object.freeze([1, 3, 7, 15, 31]);
+const IA_BACKGROUND_HARVEST_OFFSETS = Object.freeze([1, 3, 7, 15, 31, 63, 127]);
 
 function iaBackgroundHarvestOffsets(channel, forceDiscovery) {
   if (forceDiscovery || iaDepthRecoveryEnabled(channel)) return IA_BACKGROUND_HARVEST_OFFSETS;
@@ -8300,7 +8368,7 @@ async function expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, c
      Reapply the full editorial contract after every merge so a noisy Archive
      result can never leak back into a later rotation through shared state. */
   const retainApprovedCandidates = (value) => (Array.isArray(value) ? value : [])
-    .filter((item) => matchesTheme(item, themeTerms, themeMinScore, requiredTitleTerms))
+    .filter((item) => iaStationQualityGate(channel, item) && matchesTheme(item, themeTerms, themeMinScore, requiredTitleTerms))
     .filter((item) => !matchesDeny(item, denyTerms))
     .filter((item) => iaRuntimeAllowed(item, minRuntimeSeconds));
   {

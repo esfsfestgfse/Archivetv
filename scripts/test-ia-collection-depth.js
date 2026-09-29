@@ -50,8 +50,8 @@ for (const [channel, collection] of Object.entries(expectedRails)) {
 }
 
 const relay = fs.readFileSync(path.join(root, 'afterglow_ais_relay_worker.js'), 'utf8');
-check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v244"/.test(relay), 'Relay cache namespace is v244');
-check(/IA_BACKGROUND_HARVEST_OFFSETS\s*=\s*Object\.freeze\(\[1, 3, 7, 15, 31\]\)/.test(relay) && /harvestIaBackgroundPages/.test(relay), 'Archive depth walks later page windows behind first play');
+check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v245"/.test(relay), 'Relay cache namespace is v245');
+check(/IA_BACKGROUND_HARVEST_OFFSETS\s*=\s*Object\.freeze\(\[1, 3, 7, 15, 31, 63, 127\]\)/.test(relay) && /harvestIaBackgroundPages/.test(relay), 'Archive depth walks later page windows behind first play');
 const api = fs.readFileSync(path.join(root, 'realsignal_api_v2_worker.js'), 'utf8');
 check(/const requestedCount = Math\.max\(1, Math\.min\(5, Number\(effectiveBody/.test(api) && /items: shelf/.test(api), 'API fallbacks expose a five-item shelf plus a deeper candidate catalog');
 check(/0411_Tornado_06_00_36_00::t0411_Tornado_06_00_36_00\.mp4/.test(relay) && /ShockTro1938::ShockTro1938\.mp4/.test(relay), 'News adds more direct disaster/newsreel rotation');
@@ -84,7 +84,7 @@ check(/"154": \[/.test(relay) && /DragnetEpisode18TheBigSeventeenwcommercials/.t
 check(/"157": \[/.test(relay) && /powerpuff-girls-complete-series/.test(relay) && /StarWarsCloneWars2003/.test(relay), 'After School has verified kids-animation recovery media');
 check(/"228": \[/.test(relay) && /WETA_20131009_140000_Frontline/.test(relay) && /KYW_20141012_230000_60_Minutes/.test(relay), 'Deadline has verified newsmagazine recovery media');
 check(/"75": \[/.test(relay) && /XcorpsNOODregattaSEG2/.test(relay) && /jseALNAIRracing94ver2/.test(relay), 'Regatta has real IA water-sports recovery media');
-check(/IA_STRICT_CATALOG_CANDIDATE_MAX\s*=\s*2048/.test(relay) && /IA_CATALOG_CANDIDATE_MAX\s*=\s*1536/.test(relay) && /const target = strict \? 2048 : 1536/.test(relay), 'Relay retains thousands-deep rolling catalog budgets');
+check(/IA_STRICT_CATALOG_CANDIDATE_MAX\s*=\s*4096/.test(relay) && /IA_CATALOG_CANDIDATE_MAX\s*=\s*3072/.test(relay) && /const target = strict \? 4096 : 3072/.test(relay), 'Relay retains thousands-deep rolling catalog budgets');
 check(/candidateLimit = Math\.max\(count, Math\.min\(IA_STRICT_CATALOG_CANDIDATE_MAX/.test(relay), 'Relay builds the candidate shelf from the expanded budget');
 check(/const expandedSources = new Set\(expanded\.map/.test(relay) && /const approvedPrograms = approved\.filter/.test(relay), 'Relay drops parent indexes after episode expansion');
 check(/const expansionSeeds = \(firstApprovedLane \|\| !expandContainers\) \? \[\] : hintedSeeds\.concat\(genericSeeds\)/.test(relay), 'Relay keeps manifest expansion off the first-frame and bounded rescue paths');
@@ -93,9 +93,9 @@ check(/candidateItems: items\.slice\(0, candidateLimit\)/.test(relay), 'Relay se
 check(/const backgroundTarget = Math\.min\(candidateCount, Math\.max\(count \* 3, iaDepthRecoveryEnabled\(channel\) \? IA_DEPTH_PLAYABLE_TARGET : IA_BACKGROUND_PLAYABLE_TARGET\)\)/.test(relay), 'Relay hydrates a deeper background playable shelf');
 check(/function rotatePlayableIaShelf\(/.test(relay) && /rotatePlayableIaShelf\(lastGood/.test(relay), 'Relay rotates hydrated last-good shelves instead of repeating the same five items');
 check(/const emergencyDepth = Math\.min\(candidateCount, Math\.max\(count, 8\)\)/.test(relay), 'Sparse emergency lanes widen before accepting a shallow five-item shelf');
-check(/IA_BACKGROUND_CONTAINER_EXPANSIONS\s*=\s*16/.test(relay) && /IA_BACKGROUND_COLLECTION_EPISODES_PER_PARENT\s*=\s*64/.test(relay), 'Background collection expansion samples sixteen parent records across sixty-four episode positions');
-check(/queueRotationPage\(rotation, lane, channel, !firstApprovedLane\)/.test(relay) && /background\s*\?\s*\(iaDepthRecoveryEnabled\(channel\) \? 32 : 24\)/.test(relay), 'Background discovery walks a wider deterministic Archive page window');
-check(/sampleArchiveSequence\(rotatedPlayable, IA_MAX_EXPANDED_FILES\)/.test(relay) && /IA_MAX_EXPANDED_FILES\s*=\s*5000/.test(relay), 'Large Archive manifests are sampled across their full file range');
+check(/IA_BACKGROUND_CONTAINER_EXPANSIONS\s*=\s*32/.test(relay) && /IA_BACKGROUND_COLLECTION_EPISODES_PER_PARENT\s*=\s*96/.test(relay), 'Background collection expansion samples thirty-two parent records across ninety-six episode positions');
+check(/queueRotationPage\(rotation, lane, channel, !firstApprovedLane\)/.test(relay) && /background\s*\?\s*\(iaDepthRecoveryEnabled\(channel\) \? 64 : 48\)/.test(relay), 'Background discovery walks a wider deterministic Archive page window');
+check(/sampleArchiveSequence\(rotatedPlayable, IA_MAX_EXPANDED_FILES\)/.test(relay) && /IA_MAX_EXPANDED_FILES\s*=\s*10000/.test(relay), 'Large Archive manifests are sampled across their full file range');
 check(/function orderedIaEmergencySeeds\(/.test(relay) && /emergencySeedsMerged: true/.test(relay), 'Warm emergency shelves join background depth repair');
 check(/function mergeIaFallbackCandidates\(/.test(relay) && /\[\.\.\.current, \.\.\.prior\]/.test(relay), 'Last-good IA shelves accumulate verified candidates across rotations');
 check(/function mergeIaCatalogCandidates\(/.test(relay) && /const candidateItems = mergeIaCatalogCandidates\(prior, payload, \{ preserveOrder: true \}\)/.test(relay) && /catalogOrderLocked: true/.test(relay), 'Last-good IA shelves retain approved unresolved catalog records for later hydration');

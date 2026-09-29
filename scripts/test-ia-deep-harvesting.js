@@ -13,20 +13,20 @@ function check(ok, message) {
   if (!ok) failures.push(message);
 }
 
-check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v244"/.test(relay), 'File-level Archive banks invalidate the prior queue namespace');
+check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v245"/.test(relay), 'File-level Archive banks invalidate the prior queue namespace');
 check(!/iaArchiveSearchForegroundWaiters|iaArchiveSearchBackgroundWaiters/.test(relay) && /archive search concurrency saturated/.test(relay), 'Archive search permits cannot resolve across request contexts');
-check(/IA_BACKGROUND_HARVEST_OFFSETS\s*=\s*Object\.freeze\(\[1, 3, 7, 15, 31\]\)/.test(relay) && /harvestIaBackgroundPages/.test(relay), 'Background IA harvesting walks deterministic later-page windows');
+check(/IA_BACKGROUND_HARVEST_OFFSETS\s*=\s*Object\.freeze\(\[1, 3, 7, 15, 31, 63, 127\]\)/.test(relay) && /harvestIaBackgroundPages/.test(relay), 'Background IA harvesting walks deterministic later-page windows');
 check(/const candidateLimit = Math\.max\(count, Math\.min\(IA_STRICT_CATALOG_CANDIDATE_MAX, Number\(candidateCount\) \|\| count\)\)/.test(relay), 'fresh Archive search preserves the larger rolling candidate catalog');
 check(/function rotatePlayableIaShelf\([\s\S]*orderedIaEmergencySeeds\(recoveryChannel, 0\)/.test(relay), 'slow fallbacks merge the lane-owned verified bank before rotating');
 check(/rotationApplied === true/.test(relay) && /rotationApplied: true/.test(relay), 'rotation state prevents cached shelves from being advanced twice');
 check(/"701": \[[\s\S]*TheThingFromAnotherWorldHorrorSciFi1951JamesArnessKennethTobeyMargaretSheridan[\s\S]*TheGiantGilaMonster/.test(relay), 'Halloween Haunt adds full-length multi-era horror files');
-check(/IA_STRICT_CATALOG_CANDIDATE_MAX\s*=\s*2048/.test(relay) && /IA_CATALOG_CANDIDATE_MAX\s*=\s*1536/.test(relay) && /const target = strict \? 2048 : 1536/.test(relay), 'every IA lane receives a thousands-deep rolling catalog budget');
+check(/IA_STRICT_CATALOG_CANDIDATE_MAX\s*=\s*4096/.test(relay) && /IA_CATALOG_CANDIDATE_MAX\s*=\s*3072/.test(relay) && /const target = strict \? 4096 : 3072/.test(relay), 'every IA lane receives a thousands-deep rolling catalog budget');
 check(/IA_FRESHNESS_CANDIDATE_FLOOR\s*=\s*128/.test(relay) && /IA_FRESHNESS_LEDGER_MAX\s*=\s*256/.test(relay) && /IA_PLAYED_PATH/.test(relay), 'freshness history is large enough to cover a deep catalog and records actual plays');
-check(/IA_BACKGROUND_COLLECTION_EPISODES_PER_PARENT\s*=\s*64/.test(relay) && /IA_BACKGROUND_CONTAINER_EXPANSIONS\s*=\s*16/.test(relay), 'container harvesting covers multiple parents and episode positions');
-check(/IA_MAX_EXPANDED_FILES\s*=\s*5000/.test(relay) && /sampleArchiveSequence\(rotatedPlayable, IA_MAX_EXPANDED_FILES\)/.test(relay), 'large complete-series manifests are sampled instead of discarded');
-check(/background\s*\?\s*\(iaDepthRecoveryEnabled\(channel\) \? 32 : 24\)/.test(relay), 'background rotations sample a deep deterministic Archive page window');
+check(/IA_BACKGROUND_COLLECTION_EPISODES_PER_PARENT\s*=\s*96/.test(relay) && /IA_BACKGROUND_CONTAINER_EXPANSIONS\s*=\s*32/.test(relay), 'container harvesting covers multiple parents and episode positions');
+check(/IA_MAX_EXPANDED_FILES\s*=\s*10000/.test(relay) && /sampleArchiveSequence\(rotatedPlayable, IA_MAX_EXPANDED_FILES\)/.test(relay), 'large complete-series manifests are sampled instead of discarded');
+check(/background\s*\?\s*\(iaDepthRecoveryEnabled\(channel\) \? 64 : 48\)/.test(relay), 'background rotations sample a deep deterministic Archive page window');
 check(/const rows = firstApprovedLane \? 36 : 60/.test(relay), 'background searches request a wider result page without slowing first tune');
-check(/IA_DEPTH_PLAYABLE_TARGET\s*=\s*1536/.test(relay) && /IA_BACKGROUND_PLAYABLE_TARGET\s*=\s*768/.test(relay), 'playable depth is measured separately from the five-item on-air shelf');
+check(/IA_DEPTH_PLAYABLE_TARGET\s*=\s*3072/.test(relay) && /IA_BACKGROUND_PLAYABLE_TARGET\s*=\s*1536/.test(relay), 'playable depth is measured separately from the five-item on-air shelf');
 check(/catalogVersion: IA_CATALOG_BUDGET_VERSION/.test(relay) && /episodeDepth: queueEpisodeDepth\(\{ candidateItems: approvedCatalog \}\)/.test(relay), 'deep catalog depth is published for guide and telemetry consumers');
 check(/async function buildIaQueue\([\s\S]*?diversity, count, candidateCount = count, cacheOrigin/.test(relay), 'Archive queue builder preserves the five-item count and larger candidate budget contract');
 check(/diversity, count, candidateCount, cacheOrigin/.test(relay), 'background and rescue queue calls pass the candidate budget without shifting cache context');

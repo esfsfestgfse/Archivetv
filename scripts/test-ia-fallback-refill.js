@@ -15,7 +15,7 @@ async function test(file) {
     iaProgramAllowed:()=>true, pickIA:async()=>item,
     iaReadyShelfRestore(){}, iaProgramInflight:{}, iaProgramQueues:{}, iaQueueRetries:{},
     iaProgramFailed:()=>false, iaPendingTooLong:()=>false, iaEmergencyItems:()=>[],
-    warmIAQueue(){}, iaReadyShelfSave(){}, gwrap:null,
+    warmIAQueue(){}, iaSeedEmergencyShelf(){}, iaReadyShelfSave(){}, gwrap:null,
     setTimeout(fn,ms){timers.push({fn,ms});}};
   vm.createContext(s); vm.runInContext(local+'\n'+request+'\n'+refill,s);
   const fallback = await vm.runInContext('iaQueueRequest({num:12},{},5)',s);

@@ -4886,6 +4886,39 @@ for (const [channel, additions] of Object.entries(IA_DEEP_ARCHIVE_FAMILY_OVERLAY
     }
   }
 }
+/* v4.1.191 reviewed IA depth rails. These are concrete, file-level records
+   harvested from Archive metadata, not collection landing pages. Keeping the
+   source/file pair in the identifier lets the freshness ledger distinguish
+   episodes/files while the station profile still enforces the genre gates. */
+const IA_RESEARCHED_FILE_DEPTH_RAILS = Object.freeze({
+  "70": [
+    iaDirectRecovery("0452_California_Rodeo_at_Salinas_01_34_55_15::0452_California_Rodeo_at_Salinas_01_34_55_15_3mb.mp4", "0452_California_Rodeo_at_Salinas_01_34_55_15", "0452_California_Rodeo_at_Salinas_01_34_55_15_3mb.mp4", "California Rodeo at Salinas", "rodeo bull riding barrel racing western sports rodeo film", 1950, "video", 508.04, 640, 480),
+    iaDirectRecovery("97215_hm_vacation_and_rodeo::97215.mp4", "97215_hm_vacation_and_rodeo", "97215.mp4", "Home Movies · Vacation and Rodeo", "rodeo bull riding western sports rodeo home movie travel", 1970, "video", 957.45, 640, 480),
+    iaDirectRecovery("0431_HM_Night_Rodeo_Gallup_New_Mexico_1951_00_34_24_00::0431_HM_Night_Rodeo_Gallup_New_Mexico_1951_00_34_24_00.mp4", "0431_HM_Night_Rodeo_Gallup_New_Mexico_1951_00_34_24_00", "0431_HM_Night_Rodeo_Gallup_New_Mexico_1951_00_34_24_00.mp4", "Night Rodeo · Gallup, New Mexico", "rodeo bull riding barrel racing western sports rodeo home movie", 1951, "video", 451.16, 640, 480),
+    iaDirectRecovery("53664-tuscon-rodeo-mos::53664 Tuscon Rodeo_mos.mp4", "53664-tuscon-rodeo-mos", "53664 Tuscon Rodeo_mos.mp4", "Tucson Rodeo · Little Britches and Rodeo Parade", "rodeo bull riding western sports rodeo parade horse show", 1950, "video", 621.11, 853, 480),
+    iaDirectRecovery("97261_hm_salinas_rodeo::97261.mp4", "97261_hm_salinas_rodeo", "97261.mp4", "Salinas Rodeo", "rodeo bull riding barrel racing western sports rodeo home movie", 1927, "video", 243.44, 640, 480),
+    iaDirectRecovery("TheRodeo::V00172.mp4", "TheRodeo", "V00172.mp4", "The Rodeo", "rodeo bull riding barrel racing western sports rodeo film", 1950, "video", 915.81, 640, 480),
+    iaDirectRecovery("TheGreatAmericanCowboy::Great American Cowboy part 1 of 4.mp4", "TheGreatAmericanCowboy", "Great American Cowboy part 1 of 4.mp4", "The Great American Cowboy · Part 1", "rodeo bull riding barrel racing western sports rodeo documentary", 1973, "video", 1265.05, 480, 360),
+    iaDirectRecovery("TheGreatAmericanCowboy::Great American Cowboy part 2 of 4.mp4", "TheGreatAmericanCowboy", "Great American Cowboy part 2 of 4.mp4", "The Great American Cowboy · Part 2", "rodeo bull riding barrel racing western sports rodeo documentary", 1973, "video", 1309.61, 480, 360),
+    iaDirectRecovery("TheGreatAmericanCowboy::Great American Cowboy part 3 of 4.mp4", "TheGreatAmericanCowboy", "Great American Cowboy part 3 of 4.mp4", "The Great American Cowboy · Part 3", "rodeo bull riding barrel racing western sports rodeo documentary", 1973, "video", 1481.5, 480, 360),
+    iaDirectRecovery("TheGreatAmericanCowboy::Great American Cowboy part 4 of 4.mp4", "TheGreatAmericanCowboy", "Great American Cowboy part 4 of 4.mp4", "The Great American Cowboy · Part 4", "rodeo bull riding barrel racing western sports rodeo documentary", 1973, "video", 1272.87, 480, 360),
+  ],
+  "119": [
+    iaDirectRecovery("kagemusha_202012::Kagemusha.mp4", "kagemusha_202012", "Kagemusha.mp4", "Kagemusha", "samurai samurai cinema chanbara jidaigeki japanese cinema japanese film akira kurosawa", 1980, "video", 10814.06, 853, 480),
+    iaDirectRecovery("seven-samurai-1954_202402::Seven Samurai (1954).mp4", "seven-samurai-1954_202402", "Seven Samurai (1954).mp4", "Seven Samurai", "samurai samurai cinema chanbara jidaigeki japanese cinema japanese film akira kurosawa toshiro mifune", 1954, "video", 12424.53, 640, 480),
+    iaDirectRecovery("The47Ronin::The 47 Ronin.mp4", "The47Ronin", "The 47 Ronin.mp4", "The 47 Ronin", "samurai samurai cinema chanbara jidaigeki japanese cinema japanese film ronin", 1941, "video", 13365.29, 960, 720),
+    iaDirectRecovery("the-last-samurai-1974::The.Last.Samurai.1974.mp4", "the-last-samurai-1974", "The.Last.Samurai.1974.mp4", "The Last Samurai", "samurai samurai cinema chanbara jidaigeki japanese cinema japanese film ronin", 1974, "video", 9124.24, 1036, 420),
+    iaDirectRecovery("shinsengumi-chronicles-1963::Shinsengumi Chronicles 1963.mp4", "shinsengumi-chronicles-1963", "Shinsengumi Chronicles 1963.mp4", "Shinsengumi Chronicles", "samurai samurai cinema chanbara jidaigeki japanese cinema japanese film ronin", 1963, "video", 5587.62, 868, 364),
+    iaDirectRecovery("the-men-who-tread-on-tigers-tails::The Men Who Tread on Tiger's Tails.mp4", "the-men-who-tread-on-tigers-tails", "The Men Who Tread on Tiger's Tails.mp4", "The Men Who Tread on the Tiger's Tail", "samurai samurai cinema chanbara jidaigeki japanese cinema japanese film", 1952, "video", 3552.6, 853, 480),
+    iaDirectRecovery("harakiri-1962::Harakiri (1962).mp4", "harakiri-1962", "Harakiri (1962).mp4", "Harakiri", "samurai samurai cinema chanbara jidaigeki japanese cinema japanese film ronin", 1962, "video", 7981.63, 1124, 480),
+    iaDirectRecovery("samurai-ii-duel-at-ichijoji-temple::Samurai II Duel at Ichijoji Temple.mp4", "samurai-ii-duel-at-ichijoji-temple", "Samurai II Duel at Ichijoji Temple.mp4", "Samurai II · Duel at Ichijoji Temple", "samurai samurai cinema chanbara jidaigeki japanese cinema japanese film", 1955, "video", 6218.3, 853, 480),
+    iaDirectRecovery("samurai-iii-duel-at-ganryu-island::Samurai III Duel at Ganryu Island.mp4", "samurai-iii-duel-at-ganryu-island", "Samurai III Duel at Ganryu Island.mp4", "Samurai III · Duel at Ganryu Island", "samurai samurai cinema chanbara jidaigeki japanese cinema japanese film", 1956, "video", 6288.75, 853, 480),
+    iaDirectRecovery("Chushingura::Chushingura BETTER crop.mp4", "Chushingura", "Chushingura BETTER crop.mp4", "Chushingura · The 47 Ronin", "samurai samurai cinema chanbara jidaigeki japanese cinema japanese film ronin", 1962, "video", 12444.05, 641, 368),
+    iaDirectRecovery("Yojimbo.1961.720p.BluRay.x264.anoXmous::Yojimbo.1961.720p.BluRay.x264.anoXmous_.mp4", "Yojimbo.1961.720p.BluRay.x264.anoXmous", "Yojimbo.1961.720p.BluRay.x264.anoXmous_.mp4", "Yojimbo", "samurai samurai cinema chanbara jidaigeki japanese cinema japanese film akira kurosawa toshiro mifune", 1961, "video", 6651.97, 1280, 544),
+    iaDirectRecovery("zatoichi-26-the-blind-swordsman-ntsc-dvd-dd-2.0-x-264-rr::26_Zatoichi_The_Blind_Swordsman_NTSC_DVD_DD2.0_x264-RR.ia.mp4", "zatoichi-26-the-blind-swordsman-ntsc-dvd-dd-2.0-x-264-rr", "26_Zatoichi_The_Blind_Swordsman_NTSC_DVD_DD2.0_x264-RR.ia.mp4", "Zatoichi · Darkness Is His Ally", "samurai samurai cinema chanbara jidaigeki japanese cinema japanese film zatoichi shintaro katsu", 1989, "video", 7116.76, 872, 480),
+  ],
+});
+
 /* v4.1.190 verified file-depth rails. These are deliberately built only from
    file-level records already present in the relay's reviewed Archive banks.
    Do not widen a lane with a collection placeholder or an unverified file
@@ -4901,7 +4934,10 @@ const IA_VERIFIED_FILE_DEPTH_RAILS = Object.freeze({
       .map((item) => ({ ...item, subject: String(item.subject || "") + " women's sports women athletes women's athletics" })),
   ].filter((item) => item && item.media && item.media.url),
   "68": verifiedIaFileRail(IA_EMERGENCY_SEEDS["68"]),
-  "70": verifiedIaFileRail(IA_EMERGENCY_SEEDS["70"]),
+  "70": verifiedIaFileRail([
+    ...(IA_EMERGENCY_SEEDS["70"] || []),
+    ...(IA_RESEARCHED_FILE_DEPTH_RAILS["70"] || []),
+  ]),
   "72": verifiedIaFileRail(IA_EMERGENCY_SEEDS["72"]),
   "73": verifiedIaFileRail(IA_EMERGENCY_SEEDS["73"]),
   "83": verifiedIaFileRail(IA_EMERGENCY_SEEDS["83"]),
@@ -4914,7 +4950,10 @@ const IA_VERIFIED_FILE_DEPTH_RAILS = Object.freeze({
      transient Archive metadata miss cannot erase an otherwise playable skip. */
   "910": verifiedIaFileRail(IA_EMERGENCY_SEEDS["910"]),
   "918": verifiedIaFileRail(IA_EMERGENCY_SEEDS["918"]),
-  "119": verifiedIaFileRail(IA_EMERGENCY_SEEDS["119"]),
+  "119": verifiedIaFileRail([
+    ...(IA_EMERGENCY_SEEDS["119"] || []),
+    ...(IA_RESEARCHED_FILE_DEPTH_RAILS["119"] || []),
+  ]),
 });
 /* The harvested underfill banks are not just emergency media. They are the
    stable, file-level rotation rail for these lanes while broader Archive
@@ -4927,6 +4966,44 @@ const IA_UNDERFILL_DEPTH_ROTATION_CHANNELS = new Set(Object.keys(IA_UNDERFILL_DE
    cold search failure from replacing a deep verified catalog with a stale
    five-item last-good shelf. */
 const IA_FILE_BANK_CHANNELS = new Set(["17", "52", "54", "62", "63", "67", "68", "70", "72", "73", "83", "105", "112", "119", "121", "151", "206", "211", "220", "224", "508", "903", "910", "913", "918", "920"]);
+/* v4.1.192 freshness repair: the full 179-channel measurement found one
+   hundred lanes reopening at least one item across two shelves. Most already
+   have a deeper approved catalog; they were simply not using the same stable
+   full-window rotation path. The smaller file/collection banks below are
+   promoted into the same lane-owned rail when reviewed records already exist.
+   This is additive: it never invents media and it does not weaken any station
+   vocabulary, runtime, portrait, parody, podcast, or short-form gate. */
+const IA_FRESHNESS_REPAIR_CHANNELS = new Set([
+  "51", "54", "55", "57", "58", "63", "65", "67", "68", "69", "70", "71", "72", "73", "75", "77", "78", "79", "83",
+  "2", "158", "101", "102", "103", "104", "132", "133", "10", "12", "19", "13", "105", "152", "200", "201", "900", "901", "904", "908", "909", "911", "912", "915", "203", "923", "204", "501", "106", "15", "21", "18", "205", "502", "109", "110", "111", "112", "114", "115", "117", "122", "124", "125", "128", "129", "130", "131", "153", "154", "156", "157", "208", "213", "216", "217", "219", "222", "223", "225", "226", "227", "229", "230", "231", "232", "234", "235", "239", "240", "241", "242", "243", "926", "700", "701", "702", "507", "508", "509", "511",
+]);
+/* Reuse only file-level records already present in reviewed Archive banks.
+   Collection parents are not emitted directly; their file children are what
+   carry the freshness identity and reach the media resolver. */
+const IA_BROAD_FRESHNESS_FILE_RAILS = Object.freeze(Object.fromEntries(
+  [...IA_FRESHNESS_REPAIR_CHANNELS].map((channel) => {
+    const records = [
+      ...(IA_UNDERFILL_DEPTH_BANKS[channel] || []),
+      ...(IA_DEPTH_EXPANSION_OVERLAYS[channel] || []),
+      ...(IA_DEEP_ARCHIVE_FAMILY_OVERLAYS[channel] || []),
+      ...(IA_LONG_TAIL_EXPANSIONS[channel] || []),
+      ...(IA_EMERGENCY_SEEDS[channel] || []),
+    ];
+    const seen = new Set();
+    const rail = records.filter((item) => {
+      const identity = iaPlayableIdentity(item);
+      if (!identity || !item.media || !item.media.url || seen.has(identity)) return false;
+      seen.add(identity);
+      return true;
+    });
+    return [channel, rail];
+  }),
+));
+for (const channel of IA_FRESHNESS_REPAIR_CHANNELS) {
+  IA_DEPTH_RECOVERY_CHANNELS.add(channel);
+  IA_FULL_WINDOW_ROTATION_CHANNELS.add(channel);
+  if ((IA_BROAD_FRESHNESS_FILE_RAILS[channel] || []).length) IA_FILE_BANK_CHANNELS.add(channel);
+}
 for (const channel of IA_FILE_BANK_CHANNELS) {
   IA_COLD_RESCUE_CHANNELS.add(channel);
   IA_DEPTH_RECOVERY_CHANNELS.add(channel);
@@ -7264,6 +7341,50 @@ function applyIaFreshness(payload, ledger, count) {
   }
   const requested = Math.max(1, Number(count) || 1);
   const playable = unique.filter((item) => item.media && item.media.url);
+  /* Repeat-heavy lanes can have a larger verified candidate union attached to
+     a fallback response even when its public `items` field still contains
+     the previous five.  Before the repair pass, the fallback branch below
+     treated that payload as authoritative and kept reopening the old window.
+     For measured freshness-repair lanes, choose the window from the stable
+     playable union first.  This preserves the ledger and every station gate,
+     while making rotation deterministic even when the Archive search is slow
+     or the response arrived through last-good recovery. */
+  const freshnessRepairChannel = IA_FRESHNESS_REPAIR_CHANNELS.has(String(payload && payload.channel || ""));
+  const repairCatalog = freshnessRepairChannel && Number(payload && payload.rotation) > 0 && playable.length >= requested * 3
+    ? playable.slice().sort((a, b) => String(iaPlayableIdentity(a) || a.identifier || "").localeCompare(String(iaPlayableIdentity(b) || b.identifier || ""), undefined, { numeric: true, sensitivity: "base" }))
+    : null;
+  if (repairCatalog && repairCatalog.length >= requested * 3) {
+    const repairOffset = (Math.abs(Number(payload.rotation) || 0) * requested) % repairCatalog.length;
+    const rotatedRepair = repairCatalog.slice(repairOffset).concat(repairCatalog.slice(0, repairOffset));
+    const unseenRepair = rotatedRepair.filter((item) => !excluded.has(iaPlayableIdentity(item) || String(item.identifier)));
+    const repeatedRepair = rotatedRepair.filter((item) => excluded.has(iaPlayableIdentity(item) || String(item.identifier)));
+    const selectedRepair = unseenRepair.length >= requested
+      ? unseenRepair.slice(0, requested)
+      : unseenRepair.concat(repeatedRepair).slice(0, requested);
+    if (selectedRepair.length >= requested) {
+      const issued = selectedRepair.map(iaFreshnessRecord).filter(Boolean);
+      return {
+        payload: {
+          ...payload,
+          items: selectedRepair,
+          candidateItems: repairCatalog,
+          candidates: repairCatalog.length,
+          ready: requested,
+          rotationApplied: true,
+          freshnessRepairApplied: true,
+          freshness: {
+            ledgerSize: history.length,
+            freshCount: unseenRepair.length,
+            excludedCount: Math.max(0, rotatedRepair.length - unseenRepair.length),
+            repeatedFallback: unseenRepair.length < requested,
+          },
+        },
+        issued,
+        freshCount: unseenRepair.length,
+        excludedCount: Math.max(0, rotatedRepair.length - unseenRepair.length),
+      };
+    }
+  }
   /* Strict recovery already selected a verified, rotation-specific shelf.
      Do not reorder that shelf back to candidateItems[0..n] before it reaches
      the client; doing so erased the full-shelf step and caused every second
@@ -8026,6 +8147,7 @@ function orderedIaEmergencySeeds(channel, rotation) {
      .concat(IA_DEEP_HARVEST_BANKS[String(channel)] || [])
      .concat(IA_UNDERFILL_DEPTH_BANKS[String(channel)] || [])
      .concat(IA_VERIFIED_FILE_DEPTH_RAILS[String(channel)] || [])
+     .concat(IA_BROAD_FRESHNESS_FILE_RAILS[String(channel)] || [])
      .concat(IA_TARGETED_RECOVERY_BANKS[String(channel)] || [])
      .map((item) => {
      if (!item || !item.identifier) return item;
@@ -8772,12 +8894,10 @@ async function getIaQueue(request, url, env, ctx) {
       }
     }
   }
-  /* Chanbara's verified file rail is intentionally constrained, and its
-     normal Archive metadata path repeatedly timed out before exposing the
-     three known-good files. Keep this fast handoff narrowly scoped to that
-     reproducible lane; the other ten file-depth lanes retain broader Archive
-     discovery so a larger verified shelf can still win. */
-  if (channel === "119") {
+  /* Rodeo and Chanbara now have enough reviewed file-level material to use a
+     channel-owned rotation rail. This keeps a cold Archive search miss from
+     collapsing either station back to its old three-item emergency shelf. */
+  if (channel === "119" || channel === "70") {
     const verifiedFileRail = (IA_VERIFIED_FILE_DEPTH_RAILS[channel] || []).filter((item) =>
       item && item.media && item.media.url &&
       iaStationQualityGate(channel, item) &&
@@ -9219,7 +9339,7 @@ async function getIaQueue(request, url, env, ctx) {
       );
     }
     const verifiedFileRail = IA_FILE_BANK_CHANNELS.has(String(channel))
-      ? (IA_VERIFIED_FILE_DEPTH_RAILS[String(channel)] || []).filter((item) =>
+      ? (IA_VERIFIED_FILE_DEPTH_RAILS[String(channel)] || IA_BROAD_FRESHNESS_FILE_RAILS[String(channel)] || []).filter((item) =>
         item && item.media && item.media.url &&
         iaStationQualityGate(channel, item) &&
         matchesTheme(item, themeTerms, themeMinScore, requiredTitleTerms) &&
@@ -9342,6 +9462,31 @@ async function getIaQueue(request, url, env, ctx) {
       }));
       if (hydrated.ready > 0) sharedQueuePut(env, sharedKey, hydrated, queueTtl, ctx);
       return response;
+    }
+    /* A later rotation can lose its Archive metadata race even though the
+       lane already owns verified direct media. Do one final, synchronous
+       lane-owned recovery before returning a zero-ready handoff. This is
+       intentionally limited to the measured freshness-repair/file-bank
+       lanes and uses the same strict theme, deny, media-type, and runtime
+       gates as normal recovery. It prevents a transient Archive outage from
+       becoming a visible No Signal without pretending that new depth exists. */
+    if (IA_FRESHNESS_REPAIR_CHANNELS.has(channel) || IA_FILE_BANK_CHANNELS.has(channel)) {
+      const repairFallback = strictRecoveryQueue(channel, rotation, count, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, minRuntimeSeconds);
+      if (repairFallback && repairFallback.ready >= count) {
+        const freshRepairFallback = applyIaFreshness({
+          ...repairFallback,
+          freshnessRepairFallback: true,
+          fallback: true,
+          stale: true,
+        }, freshnessLedger, count);
+        rememberIaFreshness(env, channel, freshRepairFallback.issued, ctx);
+        return cacheableJson(freshRepairFallback.payload, 5, {
+          "X-Afterglow-Source": "program-director-freshness-repair-fallback",
+          "X-Afterglow-Queue-Ready": String(freshRepairFallback.payload.ready || freshRepairFallback.payload.items.length),
+          "X-Afterglow-Queue-Fallback": "1",
+          "X-Afterglow-Queue-Freshness-Repair": "1",
+        });
+      }
     }
     /* Do not send an empty shelf just because Archive metadata is slow. The
        identifiers have already passed the strict editorial filter, and the

@@ -15,7 +15,7 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
     ['mixes retained and newly discovered items', source.includes('merged=v2Unique(prior.concat(discovered))')],
     ['keeps the 96-item catalog ceiling', source.includes('V2_SOURCE_CATALOG_SIZE=96')],
     ['keeps the five-program ready buffer', source.includes('V2_SOURCE_READY_BUFFER=5')],
-    ['IA skip history is enforced before queue selection', source.includes('iaProgramMedia[id]===null||iaPendingTooLong(id)||(id&&isTemporarilySkipped(id))')],
+    ['IA skip history is enforced before queue selection, with exhaustion recovery', source.includes('bypassFreshness=!!(q[i]&&q[i]._freshnessFallback)') && source.includes('(!bypassFreshness&&id&&isTemporarilySkipped(id))') && source.includes('!freshnessFallback&&isTemporarilySkipped(item.identifier)') && source.includes('queue-recovery')],
     ['Source Suite refresh does not fall back to a played item', source.includes('function v2TuneRefreshed') && !source.includes('if(next<0)next=state.items.findIndex(function(item){return String(item&&item.id||"")!==currentId;});')],
     ['Source Suite Next does not replay a played item when the shelf is exhausted', source.includes('window.__v2PreviewNext=function') && !source.includes('if(next<0)next=state.items.findIndex(function(item){return String(item&&item.id||"")!==currentId;});')],
     ['manual Source Suite Next has an available-item recovery path', source.includes('window.__v2PreviewNext=function(manual)') && source.includes('SOURCE SUITE · NEXT AVAILABLE PROGRAM')],

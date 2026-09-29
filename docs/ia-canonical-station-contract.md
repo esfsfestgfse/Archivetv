@@ -39,10 +39,12 @@ The canonical queue is a rolling shelf: one selected item, up to two immediately
 
 The Worker flag is off unless `IA_CANONICAL_PILOT` is set to `on`, `true`, `1`, or `pilot`. `IA_CANONICAL_PILOT_CHANNELS` can further restrict the pilot to a comma-separated channel list. A manifest is eligible only when `verified: true` and its `catalogDepth` meets the profile minimum. If either condition fails, the existing relay/D1 path is used unchanged.
 
+Before promotion, the Worker also supports an isolated shadow comparison. Set `IA_CANONICAL_SHADOW` to `on`, `true`, `1`, or `shadow`, then restrict it with `IA_CANONICAL_SHADOW_CHANNELS`. POST the same queue request shape to `/api/v3/ia/canonical/shadow`. The endpoint calls the existing relay, computes the canonical selection beside it, and returns depth, ready-item count, unseen count, overlap, and promotion status. It never serves canonical items to viewers and never enables the D1 server-catalog path. This makes shadow traffic safe to run against a canary or audit tool while the current station remains the source of truth.
+
 The pilot sequence is:
 
 1. Generate and inspect the three manifests.
-2. Compare catalog depth, genre accuracy, runtime, repeats, and queue latency.
+2. Run allow-listed shadow comparisons against the existing relay and record catalog depth, genre accuracy, runtime, repeats, and queue latency.
 3. Measure decoded first-frame speed in the browser/device canary; server-side comparison cannot prove a rendered frame.
 4. Enable only the passing profile(s) with the channel allow-list.
 5. Expand to additional IA profiles only after the same gate passes.

@@ -1647,7 +1647,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="4.1.188-desktop-freshness-exhaustion-recovery";
+window.__ATV_BUILD="4.1.190-desktop-archive-cdn-queue-recovery";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -6032,6 +6032,18 @@ const PROGRAM = {
     providers: [{ collections: ["animationandcartoons", "classic_tv", "vhskids", "vhsvault", "opensource_movies"], require_subj: ["halloween cartoon", "halloween animation", "animated halloween", "spooky cartoon", "monster cartoon", "ghost cartoon", "witch cartoon", "scooby doo halloween", "charlie brown halloween", "halloween special"] }],
     require: { title_any: ["halloween", "halloween special", "halloween cartoon", "halloween animation", "spooky cartoon", "monster cartoon", "ghost cartoon", "witch cartoon", "scooby", "garfield", "mostly ghostly", "grinch night", "spooky toons", "great pumpkin", "halloween tree", "charlie brown", "halloween episode", "trick or treat"], title_or_subject_any: ["halloween cartoon", "halloween animation", "animated halloween", "spooky cartoon", "monster cartoon", "ghost cartoon", "witch cartoon", "halloween special"] },
     deny: { title: ["trailer", "commercial", "promo", "advertisement", "documentary", "lecture", "seminar", "news", "foxnews", "foxnewsw", "fox news", "broadcast", "newscast", "news program", "full broadcast", "live broadcast", "live action", "music video", "background music", "soundtrack", "music only", "playlist", "collection", "livestream", "re-watch", "rewatch", "reaction", "commentary", "how to", "tutorial", "horror movie"], subject: ["trailer", "commercial", "advertising", "documentary", "lecture", "seminar", "news", "foxnews", "foxnewsw", "fox news", "broadcast", "newscast", "news program", "full broadcast", "live broadcast", "live action", "music video", "background music", "soundtrack", "music only", "playlist", "collection", "livestream", "re-watch", "rewatch", "reaction", "commentary", "training film", "how to", "tutorial", "horror film"] },
+    /* Verified recovery shelf for cold Archive/proxy misses. These are full
+       landscape cartoon or children-TV specials, never portrait clips or fan
+       parody uploads. Discovery still owns freshness; this rail only keeps
+       the station on air while the deeper shelf repairs itself. */
+    emergencyItems: [
+      {identifier:"hanna-barbera-mostly-ghostly-halloween-vhs-1991", title:"Hanna-Barbera — Mostly Ghostly (1991)", year:1991, collection:"vhskids", subject:"halloween cartoon, animated special", media:{type:"video",url:"https://archive.org/download/hanna-barbera-mostly-ghostly-halloween-vhs-1991/Hanna-Barbera%20-%20Mostly%20Ghostly%20-%20VHS%20-%201991.ia.mp4"}},
+      {identifier:"disneys-boo-busters-halloween-vhs-1993", title:"Disney's Boo Busters — Halloween (1993)", year:1993, collection:"vhskids", subject:"halloween cartoon, animated special", media:{type:"video",url:"https://archive.org/download/disneys-boo-busters-halloween-vhs-1993/Disney's%20Boo%20Busters%20-%20Halloween%20VHS%20-%201993.ia.mp4"}},
+      {identifier:"casper-the-friendly-ghost-frightday-the-13th-1995-full-vhs", title:"Casper the Friendly Ghost — Frightday the 13th (1995)", year:1995, collection:"vhskids", subject:"halloween cartoon, animated special", media:{type:"video",url:"https://archive.org/download/casper-the-friendly-ghost-frightday-the-13th-1995-full-vhs/Casper%20the%20Friendly%20Ghost%20-%20Frightday%20the%2013th%20%281995%2C%20Full%20VHS%29.mp4"}},
+      {identifier:"rugrats-halloween-vhs", title:"Rugrats Halloween (VHS)", year:1998, collection:"vhskids", subject:"halloween cartoon, animated special", media:{type:"video",url:"https://archive.org/download/rugrats-halloween-vhs/Rugrats%20Halloween%20VHS.mp4"}},
+      {identifier:"scooby-doos-greatest-mysteries-2002-vhs", title:"Scooby-Doo's Greatest Mysteries (2002)", year:2002, collection:"vhskids", subject:"halloween cartoon, animated special", media:{type:"video",url:"https://archive.org/download/scooby-doos-greatest-mysteries-2002-vhs/Scooby-Doo's%20Greatest%20Mysteries%20%282002%20VHS%29%20%28Version%202%29.ia.mp4"}},
+      {identifier:"a-magic-school-bus-halloween-Full-VHS", title:"The Magic School Bus — Halloween (Full VHS)", year:1995, collection:"vhskids", subject:"halloween cartoon, animated special", media:{type:"video",url:"https://archive.org/download/a-magic-school-bus-halloween-Full-VHS/A%20Magic%20School%20Bus%20Halloween.mp4"}}
+    ],
     deepCollections: ["animationandcartoons", "classic_tv", "vhskids", "vhsvault", "opensource_movies"],
     deepTitleTerms: ["halloween", "halloween special", "halloween cartoon", "halloween animation", "spooky cartoon", "monster cartoon", "ghost cartoon", "witch cartoon", "scooby", "garfield", "mostly ghostly", "grinch night", "spooky toons", "great pumpkin", "halloween tree", "charlie brown", "trick or treat"],
     subjRotate: true, subjRequired: true, noBlindFallback: true
@@ -6583,18 +6595,19 @@ Object.assign(PROGRAM["Classic Cartoons"],{
   themeMinScore:1,
   queueTerms:rsAppendProgramTerms(PROGRAM["Classic Cartoons"].queueTerms,["cartoon","cartoons","animated series","classic animation","golden age animation","theatrical cartoon","looney tunes","popeye","bugs bunny","tom and jerry","fleischer","woody woodpecker","mickey mouse","donald duck"]),
   fastSubjects:rsAppendProgramTerms(PROGRAM["Classic Cartoons"].fastSubjects,["cartoon","cartoons","animated series","classic animation","golden age animation","theatrical cartoon","looney tunes","popeye","bugs bunny","tom and jerry","fleischer","woody woodpecker","mickey mouse","donald duck"]),
-  fastCollections:rsAppendProgramTerms(PROGRAM["Classic Cartoons"].fastCollections,["classic_cartoons","animationandcartoons","classic_tv","opensource_movies"])
+  fastCollections:rsAppendProgramTerms(PROGRAM["Classic Cartoons"].fastCollections,["classic_cartoons","animationandcartoons","classic_tv","opensource_movies"]),
+  require:Object.assign({},PROGRAM["Classic Cartoons"].require||{},{title_or_subject_any:["cartoon","cartoons","animated","animation","looney tunes","merrie melodies","popeye","bugs bunny","tom and jerry","fleischer","woody woodpecker","mickey mouse","donald duck"]})
 });
 Object.assign(PROGRAM["Saturday Morning"],{
   fastSubjects:rsAppendProgramTerms(PROGRAM["Saturday Morning"].fastSubjects,["saturday morning cartoon","cartoon","cartoons","animated series","full episode","fox kids","kids wb","toonami","nickelodeon","disney afternoon","schoolhouse rock","puppet show"]),
   fastCollections:rsAppendProgramTerms(PROGRAM["Saturday Morning"].fastCollections,["saturdaymorningcartoons","animationandcartoons","vhskids","vhsvault","classic_tv_1990s","classic_tv_2000s"]),
-  require:Object.assign({},PROGRAM["Saturday Morning"].require||{},{title_any:rsAppendProgramTerms(PROGRAM["Saturday Morning"].require&&PROGRAM["Saturday Morning"].require.title_any,["cartoon","cartoons","animated","animation","puppet","saturday morning","fox kids","kids wb","toonami","nickelodeon","disney afternoon","schoolhouse rock","scooby","smurfs","transformers","thundercats","he-man","voltron","ducktales","batman","superman","pingu","sesame street","mister rogers","muppet","charlie brown","peanuts","care bears","rainbow brite","my little pony","gummi bears","darkwing duck","animaniacs","tiny toon","rugrats","hey arnold","rocko","powerpuff"])}),
+  require:Object.assign({},PROGRAM["Saturday Morning"].require||{},{title_any:rsAppendProgramTerms(PROGRAM["Saturday Morning"].require&&PROGRAM["Saturday Morning"].require.title_any,["cartoon","cartoons","animated","animation","puppet","saturday morning","fox kids","kids wb","toonami","nickelodeon","disney afternoon","schoolhouse rock","scooby","smurfs","transformers","thundercats","he-man","voltron","ducktales","batman","superman","pingu","sesame street","mister rogers","muppet","charlie brown","peanuts","care bears","rainbow brite","my little pony","gummi bears","darkwing duck","animaniacs","tiny toon","rugrats","hey arnold","rocko","powerpuff"]),title_or_subject_any:["cartoon","cartoons","animated","animation","puppet","saturday morning","children's television","kids television","animated series","full episode","fox kids","kids wb","toonami","nickelodeon","disney afternoon","schoolhouse rock"]}),
   deny:Object.assign({},PROGRAM["Saturday Morning"].deny||{},{title:rsAppendProgramTerms(PROGRAM["Saturday Morning"].deny&&PROGRAM["Saturday Morning"].deny.title,["lecture","seminar","news","memorial","tribute","golf","rodeo","slavery","tournament","documentary","history","meeting","government","public affairs","fundraiser","civic","political"]),subject:rsAppendProgramTerms(PROGRAM["Saturday Morning"].deny&&PROGRAM["Saturday Morning"].deny.subject,["lecture","seminar","news","memorial","tribute","golf","rodeo","slavery","tournament","documentary","history","meeting","government","public affairs","fundraiser","civic","political"])})
 });
 Object.assign(PROGRAM["Modern Cartoons"],{
   fastSubjects:rsAppendProgramTerms(PROGRAM["Modern Cartoons"].fastSubjects,["cartoon","cartoons","animated series","animated tv","full episode","full episodes","fox kids","kids wb","toonami","nickelodeon","disney afternoon"]),
   fastCollections:rsAppendProgramTerms(PROGRAM["Modern Cartoons"].fastCollections,["saturdaymorningcartoons","vhskids"]),
-  require:Object.assign({},PROGRAM["Modern Cartoons"].require,{title_any:rsAppendProgramTerms(PROGRAM["Modern Cartoons"].require&&PROGRAM["Modern Cartoons"].require.title_any,["cartoon","cartoons","animated series","animated tv","full episode","full episodes"])})
+  require:Object.assign({},PROGRAM["Modern Cartoons"].require,{title_any:rsAppendProgramTerms(PROGRAM["Modern Cartoons"].require&&PROGRAM["Modern Cartoons"].require.title_any,["cartoon","cartoons","animated series","animated tv","full episode","full episodes"]),title_or_subject_any:["cartoon","cartoons","animated series","animated television","animated tv series","saturday morning cartoon","cartoon network","nickelodeon","hanna barbera","full episode"]})
 });
 /* Telemetry-guided cleanup 4.0.19: the 24-hour production window identified
    five real slow/underfilled lanes (240, 103, 150, 153, 128). Add only
@@ -7411,11 +7424,25 @@ async function iaQueueRequest(ch,sl,count){
     out.hydrating=!!(d&&d.hydrating);out.partial=!!(d&&d.partial)||Number(d&&d.ready||0)<Math.max(1,Math.min(5,count||5));out.fallback=!!(d&&d.fallback);out.stale=!!(d&&d.stale);out.rotation=Number.isFinite(Number(d&&d.rotation))?Number(d.rotation):iaQueueRotationFor(ch);out.ready=Number(d&&d.ready)||out.length;out.candidates=Number(d&&d.candidates)||out.length;return out;
   }catch(e){nlog("queue",false,"director unavailable: "+(e&&e.message||e)+"; using local shelf");var fallback=await iaLocalQueueFallback(ch,sl);if(!fallback.length)fallback=await iaLocalQueueFallbackMode(ch,sl,true);fallback.localFallback=true;fallback.partial=true;return fallback;}
 }
-function warmIAQueue(ch,sl,hydrating,limit){var q=iaProgramQueues[iaQueueKey(ch)]||[],expected=iaExpectedMedia(ch);q.slice(0,limit===undefined?5:Math.max(0,Number(limit)||0)).forEach(function(it){if(!it||iaProgramFailed(it.identifier)||iaProgramMedia[it.identifier])return;var id=it.identifier,editorial={identifier:id,creator:it.creator||"",collection:it.collection||"",subject:it.subject||"",lane:it.lane};if(it.media&&it.media.url){if(it.media.type&&it.media.type!==expected){iaMarkProgramFailed(id);return;}var inlineUrls=(it.media.alts||[]).concat([it.media.url]).filter(Boolean),inlinePrimary=inlineUrls.find(function(u){return /archive\.org\/download\//i.test(String(u));})||inlineUrls[0];if(iaInterstitialMedia(inlinePrimary)){iaMarkProgramFailed(id);return;}var inline={type:it.media.type||expected,url:inlinePrimary,alts:inlineUrls.filter(function(u){return u!==inlinePrimary;}).slice(0,8),id:id,captions:null,meta:editorial};iaProgramMedia[id]=inline;if(!fastTuneGet(ch.num))fastTunePut(ch.num,inline);return;}/* Resolve all five in parallel and replace the Promise with its settled value so tuning can choose whichever candidate is actually ready. */iaProgramPendingAt[id]=Date.now();var pending=resolvePlayable(id,expected).then(function(pl){delete iaProgramPendingAt[id];if(!pl){iaMarkProgramFailed(id);setTimeout(function(){if(powered)refillIAQueue(ch,sl);},160);}if(pl){pl.meta=Object.assign({},pl.meta||{},editorial);var current=(iaProgramQueues[iaQueueKey(ch)]||[]).find(function(x){return x&&x.identifier===id;});if(current)current.media={type:pl.type||expected,url:pl.url,alts:pl.alts||[]};if(!fastTuneGet(ch.num))fastTunePut(ch.num,Object.assign({},pl,{type:pl.type||expected}));iaReadyShelfSave(ch);}iaProgramMedia[id]=pl;warmIAQueueHead(ch);return pl;}).catch(function(){delete iaProgramPendingAt[id];iaMarkProgramFailed(id);iaProgramMedia[id]=null;setTimeout(function(){if(powered)refillIAQueue(ch,sl);},160);return null;});iaProgramMedia[id]=pending;});warmIAQueueHead(ch);}
+function iaArchiveDirectURL(url){return /(?:dn|ia)\d+\.[a-z0-9.-]*archive\.org\/\d+\/items\//i.test(String(url||""));}
+function iaDisplayTitle(it,ch){var title=String((it&&((it.title)||(it.meta&&it.meta.title)))||"").trim(),name=String((ch&&ch.nm)||"").trim(),low=title.toLowerCase();if(!title||low===name.toLowerCase()||low==="classic cartoons"){
+  var raw=String((it&&(it.identifier||it.id))||"").split("::").pop();try{raw=decodeURIComponent(raw);}catch(e){}raw=raw.replace(/\.(?:mp4|m4v|webm|ogv|mov|m3u8)$/i,"").replace(/[._]+/g," ").replace(/\s+/g," ").trim();if(raw&&!/^[a-z0-9]{20,}$/i.test(raw)&&raw.toLowerCase()!==name.toLowerCase())title=raw;
+}return title||name;}
+function adoptIAResolvedMedia(ch,sl,id,expected,editorial,pl){delete iaProgramPendingAt[id];if(!pl){iaMarkProgramFailed(id);setTimeout(function(){if(powered)refillIAQueue(ch,sl);},160);}var current=(iaProgramQueues[iaQueueKey(ch)]||[]).find(function(x){return x&&x.identifier===id;});if(pl){pl.title=pl.title||editorial.title||iaDisplayTitle(current||{identifier:id},ch);pl.year=pl.year||editorial.year||(current&&current.year)||"";pl.meta=Object.assign({},pl.meta||{},editorial);if(current)current.media={type:pl.type||expected,url:pl.url,alts:pl.alts||[]};if(!fastTuneGet(ch.num))fastTunePut(ch.num,Object.assign({},pl,{type:pl.type||expected}));iaReadyShelfSave(ch);}iaProgramMedia[id]=pl;warmIAQueueHead(ch);return pl;}
+var iaProgramResolvers={};
+function queueIAProgramMedia(ch,sl,it,expected,editorial){var id=it.identifier;if(iaProgramResolvers[id])return;var prior=iaProgramMedia[id]&&typeof iaProgramMedia[id]==="object"&&iaProgramMedia[id].url?iaProgramMedia[id]:null;iaProgramPendingAt[id]=Date.now();var pending=resolvePlayable(id,expected).then(function(pl){return adoptIAResolvedMedia(ch,sl,id,expected,editorial,pl);}).catch(function(){delete iaProgramPendingAt[id];if(!prior){iaMarkProgramFailed(id);iaProgramMedia[id]=null;}else iaProgramMedia[id]=prior;setTimeout(function(){if(powered)refillIAQueue(ch,sl);},160);return prior||null;}).finally(function(){delete iaProgramResolvers[id];});iaProgramResolvers[id]=pending;if(!prior)iaProgramMedia[id]=pending;}
+function warmIAQueue(ch,sl,hydrating,limit){var q=iaProgramQueues[iaQueueKey(ch)]||[],expected=iaExpectedMedia(ch);q.slice(0,limit===undefined?5:Math.max(0,Number(limit)||0)).forEach(function(it){if(!it||iaProgramFailed(it.identifier)||iaProgramMedia[it.identifier])return;var id=it.identifier,editorial={identifier:id,creator:it.creator||"",collection:it.collection||"",subject:it.subject||"",lane:it.lane};if(it.media&&it.media.url){if(it.media.type&&it.media.type!==expected){iaMarkProgramFailed(id);return;}var inlineUrls=(it.media.alts||[]).concat([it.media.url]).filter(Boolean),inlinePrimary=inlineUrls.find(iaArchiveDirectURL)||inlineUrls.find(function(u){return /archive\.org\/download\//i.test(String(u));})||inlineUrls[0];if(iaInterstitialMedia(inlinePrimary)){iaMarkProgramFailed(id);return;}/* Archive download redirects are resolved to an item-specific CDN host before promotion. */if(!iaArchiveDirectURL(inlinePrimary)&&/archive\.org\/download\//i.test(String(inlinePrimary))){queueIAProgramMedia(ch,sl,it,expected,editorial);return;}var inline={type:it.media.type||expected,url:inlinePrimary,alts:inlineUrls.filter(function(u){return u!==inlinePrimary;}).slice(0,8),id:id,captions:null,meta:editorial};iaProgramMedia[id]=inline;if(!fastTuneGet(ch.num))fastTunePut(ch.num,inline);return;}/* Resolve all five in parallel and replace the Promise with its settled value so tuning can choose whichever candidate is actually ready. */queueIAProgramMedia(ch,sl,it,expected,editorial);});warmIAQueueHead(ch);}
 function iaQueueHasReadyProgram(ch){var q=iaProgramQueues[iaQueueKey(ch)]||[];return q.some(function(it){var pl=it&&iaProgramMedia[it.identifier],w=it&&iaMediaWarmers[iaMediaWarmKey(ch,it)];return !!((w&&w.el.readyState>=2)||(pl&&typeof pl.then!=="function"&&pl.url));});}
+/* A queue can contain five perfectly valid identifiers while every media
+   resolver is still pending (or has just failed). Treat that as an empty
+   on-air shelf after the relay has demonstrably fallen back, so a verified
+   station recovery rail can take the air instead of leaving the tuner on
+   TUNING forever. */
+function iaSeedEmergencyShelf(ch,sl,items){var k=iaQueueKey(ch),emergency=iaEmergencyItems(sl),retry=Number(iaQueueRetries[k]||0);if(!emergency.length||iaQueueHasReadyProgram(ch)||!items||items.hydrating)return false;if(!(items.localFallback||items.fallback||items.stale||retry>=2))return false;var seen={},merged=[];emergency.concat(iaProgramQueues[k]||[]).forEach(function(it){var id=it&&it.identifier;if(!id||seen[id]||!iaProgramAllowed(it,sl))return;seen[id]=1;merged.push(it);});if(!merged.length)return false;iaProgramQueues[k]=merged.slice(0,5);nlog("queue-recovery",true,"CH "+k+" seeded verified emergency shelf");return true;}
+function waitIAQueueReady(ch,sl,ms){return new Promise(function(resolve){var q=(iaProgramQueues[iaQueueKey(ch)]||[]).slice(0,3),done=false,left=0,timer=setTimeout(function(){finish(null);},Math.max(500,Number(ms)||5200));function finish(pl){if(done)return;done=true;clearTimeout(timer);resolve(pl||null);}q.forEach(function(it){var p=it&&iaProgramMedia[it.identifier];if(!p){return;}left++;if(typeof p.then!=="function"){if(p.url)finish(p);else if(!--left)finish(null);return;}p.then(function(pl){if(pl&&pl.url)finish(pl);else if(!--left)finish(null);}).catch(function(){if(!--left)finish(null);});});if(!left)finish(null);});}
 function iaPendingTooLong(id){return !!(iaProgramPendingAt[id]&&Date.now()-iaProgramPendingAt[id]>8500);}
-async function refillIAQueue(ch,sl,count){var k=iaQueueKey(ch);iaReadyShelfRestore(ch,sl);if(iaProgramInflight[k])return iaProgramInflight[k];var ask=Math.max(1,Math.min(5,Number(count)||IA_READY_TARGET)),followCount=ask===1?IA_READY_TARGET:ask;iaProgramInflight[k]=iaQueueRequest(ch,sl,ask).then(function(items){var desiredRotation=iaQueueRotationFor(ch),serverRotated=!!(items&&(items.rotationApplied||items.underfillDepthRotation))&&Number(items.rotation)===Number(desiredRotation),freshRotation=serverRotated||(!items.fallback&&!items.stale&&Number(items.rotation)===Number(desiredRotation)),old=freshRotation?[]:(iaProgramQueues[k]||[]),byId={},order=[];old.concat(items).forEach(function(it){var id=it&&it.identifier;if(!it||!id||iaProgramFailed(id)||iaPendingTooLong(id)||!iaProgramAllowed(it,sl))return;if(!byId[id])order.push(id);if(!byId[id]||(it.media&&it.media.url&&!byId[id].media))byId[id]=it;});iaProgramQueues[k]=order.map(function(id){return byId[id];}).slice(0,5);if(!iaProgramQueues[k].length)iaProgramQueues[k]=iaEmergencyItems(sl);warmIAQueue(ch,sl,items.hydrating,ask===1?1:((typeof curNum!=="undefined"&&ch.num===curNum)?2:1));iaReadyShelfSave(ch);var needsFresh=!!items.fallback||!!items.stale,needsMore=needsFresh||!!items.hydrating||!!items.partial||(iaProgramQueues[k].length<IA_READY_TARGET&&Number(items.candidates)>iaProgramQueues[k].length);if(iaProgramQueues[k].length){var retry=(items.localFallback||needsFresh)?(iaQueueRetries[k]||0)+1:0;iaQueueRetries[k]=retry;if(needsMore&&(!items.localFallback||retry<=3)&&(!needsFresh||retry<=3))setTimeout(function(){if(powered)refillIAQueue(ch,sl,followCount);},items.localFallback?5000*Math.pow(2,retry-1):needsFresh?5600:items.hydrating?1200:2200);}else{var retry=(iaQueueRetries[k]||0)+1;iaQueueRetries[k]=retry;/* Cold IA shards may legitimately take longer than three polls. Keep retrying only while the relay says it is hydrating, with a hard cap so a dead rail never loops forever. */var maxRetry=items.hydrating?12:3;if(retry<=maxRetry)setTimeout(function(){if(powered)refillIAQueue(ch,sl,followCount);},items.hydrating?Math.min(8000,1400*retry):retry*4500);}nlog("queue",true,"CH "+k+" ready="+iaProgramQueues[k].length+(needsMore?needsFresh?" · refreshing rotation":" · topping up":""));if(gwrap&&gwrap.classList.contains("show"))refreshGuideRows();return iaProgramQueues[k];}).finally(function(){delete iaProgramInflight[k];});return iaProgramInflight[k];}
-function takeIAQueue(ch,sl){var k=iaQueueKey(ch),q=iaProgramQueues[k]||[],warmAt=-1,resolvedAt=-1,fallback=-1;for(var i=q.length-1;i>=0;i--){var id=q[i]&&q[i].identifier,bypassFreshness=!!(q[i]&&q[i]._freshnessFallback),bad=!iaProgramAllowed(q[i],sl)||iaProgramMedia[id]===null||iaPendingTooLong(id)||(!bypassFreshness&&id&&isTemporarilySkipped(id));if(bad){delete iaProgramPendingAt[id];q.splice(i,1);}}for(var j=0;j<q.length;j++){var it=q[j],w=iaMediaWarmers[iaMediaWarmKey(ch,it)],pl=iaProgramMedia[it.identifier];if(fallback<0)fallback=j;if(w&&w.el.readyState>=2){warmAt=j;break;}if(resolvedAt<0&&pl&&typeof pl.then!=="function"&&pl.url)resolvedAt=j;}var at=warmAt>=0?warmAt:(resolvedAt>=0?resolvedAt:fallback);if(at>=0){var picked=q.splice(at,1)[0];iaReadyShelfSave(ch);/* Every consumed program advances the server catalog window. Waiting until one item remained rebuilt the same shelf during rapid skips. */iaAdvanceQueueRotation(ch);warmIAQueueHead(ch);refillIAQueue(ch,sl);return picked;}refillIAQueue(ch,sl);return null;}
+async function refillIAQueue(ch,sl,count){var k=iaQueueKey(ch);iaReadyShelfRestore(ch,sl);if(iaProgramInflight[k])return iaProgramInflight[k];var ask=Math.max(1,Math.min(5,Number(count)||IA_READY_TARGET)),followCount=ask===1?IA_READY_TARGET:ask;iaProgramInflight[k]=iaQueueRequest(ch,sl,ask).then(function(items){var desiredRotation=iaQueueRotationFor(ch),serverRotated=!!(items&&(items.rotationApplied||items.underfillDepthRotation))&&Number(items.rotation)===Number(desiredRotation),freshRotation=serverRotated||(!items.fallback&&!items.stale&&Number(items.rotation)===Number(desiredRotation)),old=freshRotation?[]:(iaProgramQueues[k]||[]),byId={},order=[];old.concat(items).forEach(function(it){var id=it&&it.identifier;if(!it||!id||iaProgramFailed(id)||iaPendingTooLong(id)||!iaProgramAllowed(it,sl))return;if(!byId[id])order.push(id);if(!byId[id]||(it.media&&it.media.url&&!byId[id].media))byId[id]=it;});iaProgramQueues[k]=order.map(function(id){return byId[id];}).slice(0,5);if(!iaProgramQueues[k].length)iaProgramQueues[k]=iaEmergencyItems(sl);iaSeedEmergencyShelf(ch,sl,items);/* Active IA lanes keep three media candidates resolving: one on air, one for Skip, and one spare for a transient source miss. */warmIAQueue(ch,sl,items.hydrating,ask===1?3:((typeof curNum!=="undefined"&&ch.num===curNum)?3:1));iaReadyShelfSave(ch);var needsFresh=!!items.fallback||!!items.stale,needsMore=needsFresh||!!items.hydrating||!!items.partial||(iaProgramQueues[k].length<IA_READY_TARGET&&Number(items.candidates)>iaProgramQueues[k].length);if(iaProgramQueues[k].length){var retry=(items.localFallback||needsFresh)?(iaQueueRetries[k]||0)+1:0;iaQueueRetries[k]=retry;if(needsMore&&(!items.localFallback||retry<=3)&&(!needsFresh||retry<=3))setTimeout(function(){if(powered)refillIAQueue(ch,sl,followCount);},items.localFallback?5000*Math.pow(2,retry-1):needsFresh?5600:items.hydrating?1200:2200);}else{var retry=(iaQueueRetries[k]||0)+1;iaQueueRetries[k]=retry;/* Cold IA shards may legitimately take longer than three polls. Keep retrying only while the relay says it is hydrating, with a hard cap so a dead rail never loops forever. */var maxRetry=items.hydrating?12:3;if(retry<=maxRetry)setTimeout(function(){if(powered)refillIAQueue(ch,sl,followCount);},items.hydrating?Math.min(8000,1400*retry):retry*4500);}nlog("queue",true,"CH "+k+" ready="+iaProgramQueues[k].length+(needsMore?needsFresh?" · refreshing rotation":" · topping up":""));if(gwrap&&gwrap.classList.contains("show"))refreshGuideRows();return iaProgramQueues[k];}).finally(function(){delete iaProgramInflight[k];});return iaProgramInflight[k];}
+function takeIAQueue(ch,sl,requireReady){var k=iaQueueKey(ch),q=iaProgramQueues[k]||[],warmAt=-1,resolvedAt=-1,fallback=-1;for(var i=q.length-1;i>=0;i--){var id=q[i]&&q[i].identifier,bypassFreshness=!!(q[i]&&q[i]._freshnessFallback),bad=!iaProgramAllowed(q[i],sl)||iaProgramMedia[id]===null||iaPendingTooLong(id)||(!bypassFreshness&&id&&isTemporarilySkipped(id));if(bad){delete iaProgramPendingAt[id];q.splice(i,1);}}for(var j=0;j<q.length;j++){var it=q[j],w=iaMediaWarmers[iaMediaWarmKey(ch,it)],pl=iaProgramMedia[it.identifier];if(fallback<0)fallback=j;if(w&&w.el.readyState>=2){warmAt=j;break;}if(resolvedAt<0&&pl&&typeof pl.then!=="function"&&pl.url)resolvedAt=j;}var at=warmAt>=0?warmAt:(resolvedAt>=0?resolvedAt:fallback);if(requireReady&&warmAt<0&&resolvedAt<0){refillIAQueue(ch,sl);return null;}if(at>=0){var picked=q.splice(at,1)[0];iaReadyShelfSave(ch);/* Every consumed program advances the server catalog window. Waiting until one item remained rebuilt the same shelf during rapid skips. */iaAdvanceQueueRotation(ch);warmIAQueueHead(ch);refillIAQueue(ch,sl);return picked;}refillIAQueue(ch,sl);return null;}
 /* Archive is blocked outright in some desktop browsers. Keep every discovery probe short so
    a dead route never holds a channel change hostage for 15+ seconds. */
 function iaFastJSON(url,ms){return withTO(fetch(url,{mode:"cors"}).then(r=>{if(!r.ok)throw new Error("http "+r.status);return r.json();}),ms||1800);}
@@ -7572,7 +7599,19 @@ async function resolvePlayable(id,wantType){
   /* Prefer the item-specific Archive CDN host. Browser content blockers commonly target
      archive.org but leave these delivery hosts alone; archive.org remains the final fallback. */
   const cdnDir=String(m&&m.dir||"").replace(/\/+$/,"");
-  const cdnHosts=[m&&m.server,m&&m.d1,m&&m.d2].filter(function(h,i,a){return typeof h==="string"&&/^[a-z0-9.-]+\.archive\.org$/i.test(h)&&a.indexOf(h)===i;});
+  /* Archive metadata can expose a healthier delivery host under
+     alternate_locations even when the primary d1 host is slow or stale.
+     Put those advertised hosts first so the client does not spend its whole
+     tune window retrying one bad edge. */
+  const altHosts=[];
+  [m&&m.alternate_locations&&m.alternate_locations.workable,
+   m&&m.alternate_locations&&m.alternate_locations.servers].forEach(function(list){
+    mArr(list).forEach(function(entry){
+      var host=typeof entry==="string"?entry:(entry&&entry.server);
+      if(host)altHosts.push(host);
+    });
+  });
+  const cdnHosts=altHosts.concat([m&&m.server,m&&m.d1,m&&m.d2]).filter(function(h,i,a){return typeof h==="string"&&/^[a-z0-9.-]+\.archive\.org$/i.test(h)&&a.indexOf(h)===i;});
   const bases=cdnHosts.map(function(h){return cdnDir?("https://"+h+cdnDir+"/"):archiveBase;});
   bases.push(archiveBase);
   const mediaUrls=function(names){var out=[]; names.forEach(function(name){bases.forEach(function(base){var u=base+enc(name);if(out.indexOf(u)<0)out.push(u);});});return out;};
@@ -7586,7 +7625,7 @@ async function resolvePlayable(id,wantType){
   const fmtOf=f=>String((f&&f.format)||"").toLowerCase();
   const scored=[];
   files.forEach(f=>{ if(!f||!f.name)return; const n=f.name;if(iaInterstitialMedia(n))return;
-    if(/\.mp4$|\.m4v$/i.test(n)) scored.push([/h\.?264/.test(fmtOf(f))?0:1,n]);
+    if(/\.mp4$|\.m4v$/i.test(n)) scored.push([/h\.?264|avc/i.test(fmtOf(f))?0:1,n]);
     else if(/\.webm$/i.test(n)) scored.push([IOS?9:2,n]);
     else if(/\.ogv$/i.test(n)) scored.push([IOS?9:3,n]); });
   const cand=scored.filter(x=>x[0]<9).sort((a,b)=>a[0]-b[0]).map(x=>x[1])
@@ -7595,7 +7634,7 @@ async function resolvePlayable(id,wantType){
   if(exactVideo){if(wantType&&wantType!=="video")return null;const urls=mediaUrls(exactVideo);return {type:"video",url:urls[0],alts:urls.slice(1,8),id,captions:cap,meta};}
   const aud = requestedFile?files.find(f=>f&&f.name===requestedFile&&/\.mp3$|\.ogg$|\.m4a$|\.flac$/i.test(f.name)):(v(/\.mp3$/i)||v(/\.ogg$/i)||v(/\.m4a$/i)||v(/\.flac$/i));
   if(aud&&wantType!=="video"){ const urls=mediaUrls([aud.name]); return {type:"audio", url:urls[0], alts:urls.slice(1,4), id, captions:cap, meta}; }
-  if(requestedFile){nlog("files",false,"requested file missing in "+sourceId);return null;}
+  if(requestedFile){nlog("files",false,"requested file missing in "+sourceId+"; selecting verified derivative");}
   if(cand.length){ if(wantType&&wantType!=="video")return null; const urls=mediaUrls(cand); return {type:"video", url:urls[0],
     alts:urls.slice(1,8), // CDN hosts first, then alternate playable files
     id, captions:cap, meta}; }
@@ -8207,6 +8246,13 @@ async function tuneNum(n){
   if(marathonLock[ch.num] && sl.source==="ia"){ sl.queries=marathonQueryFor(marathonLock[ch.num],ch); sl.show="\ud83d\udd12 "+marathonLock[ch.num].label; } // NEW: marathon lock
   if(!ch.source)primeIACompanions(ch,sl);
   nowName.textContent=ch.nm; nowMeta.textContent=sl.show; showBanner(ch,sl);
+  /* Clear stale lower-third metadata as soon as a channel handoff begins. */
+  if(changedChannel){
+    lastMeta=null;
+    lProg.textContent=sl.show||ch.nm;
+    lTitle.textContent="";
+    lMeta.textContent="CH "+ch.num+" · "+ch.nm;
+  }
   bug.textContent=(isFav(n)?"★ ":"")+"CH "+n; bug.classList.add("hide"); lower.classList.add("fade");
   volHint.classList.remove("show");
   setSig("tuning","TUNING"); sfxStatic();
@@ -8315,7 +8361,9 @@ try{if(Number(store.get("iaTimelessIdentityVersion",0))<IA_TIMELESS_IDENTITY_VER
 function isTemporarilySkipped(id){var until=skipUntil[id]||0;if(until&&until<=Date.now()){delete skipUntil[id];store.set("skipUntil",skipUntil);return false;}return until>Date.now();}
 function markSkipped(id){if(!id)return;skipUntil[id]=Date.now()+SKIP_COOLDOWN;var ks=Object.keys(skipUntil);if(ks.length>200){ks.sort(function(a,b){return skipUntil[a]-skipUntil[b];});while(ks.length>200)delete skipUntil[ks.shift()];}store.set("skipUntil",skipUntil);}
 var lastMeta=null; /* 1.3: programming flow memory */
+var iaSkipTuneAt={}; /* A manual skip must not re-enter the just-played fast-tune cache. */
 var preloadCache=null; /* 1.4: the next program, resolved ahead of time */
+var preloadInFlight=null; /* Keep a manual skip attached to the resolver already warming its handoff. */
 /* Rapid Tune cache: Archive discovery can be slow or blocked, but a resolved direct CDN URL
    is reusable. Keep a deliberately small, expiring channel cache so power-on and return-tunes
    go straight to media rather than repeating search + metadata every time. */
@@ -8355,17 +8403,38 @@ try{store.set("stationMgr",false);store.set("plan",{});}catch(e){}
 async function preloadNext(ch,sl,my){
   /* This cache belongs to the channel, not a single tune token. Let it complete
      across a same-channel SKIP so the new program is already playable. */
-  if(!powered||!sl||!sl.queries)return;
+  if(!powered||!sl||!sl.queries||my!==token||curNum!==ch.num)return;
   try{
-    var item=takeIAQueue(ch,sl)||await pickFromQueriesFast(sl.queries,3);
+    /* Skip should consume only a verified handoff. If the director is briefly
+       rate-limited, go straight to one bounded rescue search instead of
+       waiting on an unresolved shelf record. */
+    var item=takeIAQueue(ch,sl,true)||await pickFromQueriesFast(sl.queries,3);
     if(!item)return;
-    var pl=iaProgramMedia[item.identifier]; if(pl&&typeof pl.then==="function")pl=await pl; else if(!pl)pl=await resolvePlayable(item.identifier,iaExpectedMedia(ch));
+    var pl=iaProgramMedia[item.identifier];
+    try{if(pl&&typeof pl.then==="function")pl=await withTO(pl,6200); else if(!pl)pl=await withTO(resolvePlayable(item.identifier,iaExpectedMedia(ch)),6200);}catch(e){pl=null;}
+    if(!pl){
+      /* A transient Archive/relay miss must not leave the channel without a
+         next item. Select a different candidate immediately, without banning
+         the first record or changing the user's freshness history. */
+      var rescue=await pickFromQueriesFast(sl.queries,4);
+      if(rescue&&rescue.identifier!==item.identifier){
+        item=rescue;pl=iaProgramMedia[item.identifier];
+        try{if(pl&&typeof pl.then==="function")pl=await withTO(pl,6200); else if(!pl)pl=await withTO(resolvePlayable(item.identifier,iaExpectedMedia(ch)),6200);}catch(e){pl=null;}
+      }
+    }
     if(!pl)return;
-    pl.title=item.title||item.identifier; pl.year=item.year;
+    pl.title=iaDisplayTitle({title:pl.title||item.title,meta:pl.meta,identifier:item.identifier||pl.id},ch); pl.year=item.year;
     preloadCache={chNum:ch.num,pl:pl,at:Date.now()};
     iaWarmWanted[iaQueueKey(ch)]=Date.now()+120000;stageIAMediaWarmer(ch,item,pl);
-    nlog("preload",true,'CH '+ch.num+' next: "'+String(pl.title).slice(0,40)+'"');
+    nlog("preload",true,'CH '+ch.num+' next: "'+String(pl.title).slice(0,40)+'" ['+String(item.identifier||pl.id||"").slice(-72)+']');
   }catch(e){ nlog("preload",false,(e&&e.message)||e); }
+}
+function schedulePreload(ch,sl,my){
+  if(preloadInFlight&&preloadInFlight.chNum===ch.num&&Date.now()-preloadInFlight.at<15000)return preloadInFlight.promise;
+  var promise=preloadNext(ch,sl,my),entry={chNum:ch.num,promise:promise,at:Date.now()};
+  preloadInFlight=entry;
+  promise.then(function(){if(preloadInFlight===entry)preloadInFlight=null;},function(){if(preloadInFlight===entry)preloadInFlight=null;});
+  return promise;
 }
 function schedGet(ch){
   var r=ch&&ch.nm&&schedMap[ch.nm]; if(!r)return null;
@@ -8394,8 +8463,8 @@ function primeIAQueues(){
   /* Background work never owns the station currently on air. Its request is
      launched by tuneIA with the one-item fast path and must not be joined by
      this broad warmup pass. */
-  all=all.filter(function(c){return c.num!==curNum;}).slice(0,8);
-  var cursor=0,active=0,limit=2;
+  all=all.filter(function(c){return c.num!==curNum;}).slice(0,3);
+  var cursor=0,active=0,limit=1;
   function pump(){
     if(run!==iaPrimeRun||!powered)return;
     while(active<limit&&cursor<all.length){(function(ch){active++;var sl=slotFor(ch,0,{preview:true});refillIAQueue(ch,sl).catch(function(){}).finally(function(){active--;if(gwrap&&gwrap.classList.contains("show"))refreshGuideRows();setTimeout(pump,700);});})(all[cursor++]);}
@@ -8421,7 +8490,10 @@ function primeIACompanions(ch,activeSlot){
        once, which was starving otherwise healthy niche channels. */
     // Keep the active queue immediate, but spread neighboring shelves so a
     // channel change cannot fan out into a relay burst.
-    var warmDelay=index===0?0:900+(index-1)*900;
+    /* Do not let neighboring shelves compete with the active station's cold
+       metadata/media work. The active lane starts now; neighbors begin only
+       after the first-frame window and then spread out to avoid Archive 429s. */
+    var warmDelay=index===0?0:4200+(index-1)*3200;
     setTimeout(function(){if(!powered||companionRun!==iaPrimeRun)return;var ss=(c===ch&&activeSlot)?activeSlot:slotFor(c,0,{preview:true});refillIAQueue(c,ss).catch(function(){});},warmDelay);
   });
   primeIACompanions._resume=setTimeout(function(){if(powered)primeIAQueues();},15000);
@@ -8442,7 +8514,9 @@ async function tuneIA(ch,sl,my){
        Otherwise the old tune could remain on its spinner forever while five
        Archive metadata requests quietly stalled. */
     if(iaQueueHasReadyProgram(ch)){
-      nlog("tune",true,"CH "+ch.num+" playable queue active; preserving tune");
+      nlog("tune",true,"CH "+ch.num+" playable queue active; resuming queue playback");
+      clearTimeout(retryTimer);
+      if(powered&&curNum===ch.num)tuneNum(ch.num);
       return;
     }
     var rescue=++token;nlog("tune",false,"CH "+ch.num+" no playable queue at deadline");iaRetry(ch,rescue);
@@ -8450,7 +8524,8 @@ async function tuneIA(ch,sl,my){
   try{
   iaReadyShelfRestore(ch,sl); /* survive a reload with the last known playable shelf */
   var queuePending=refillIAQueue(ch,sl,1); /* get one playable item on air first; the five-item shelf follows in the background */
-  var rapid=fastTuneGet(ch.num);
+   var skipStamp=iaSkipTuneAt[String(ch.num)]||0,skipFresh=skipStamp&&Date.now()-skipStamp<15000;
+   var rapid=skipFresh?null:fastTuneGet(ch.num);
   if(rapid){
     nlog("rapid-tune",true,"CH "+ch.num+" cached media");
     if(await playFile(rapid,ch,sl,my,0)){
@@ -8469,7 +8544,10 @@ async function tuneIA(ch,sl,my){
      between a channel change and a program that is already ready in the
      queue. Cold metadata rejoin lookups were the largest avoidable pause on
      revisits. Only rejoin when the shelf has no work left to do. */
-  var rec=iaQueueHasReadyProgram(ch)?schedGet(ch):null;
+  /* A restored/verified shelf is already a playable handoff. Do not make the
+     fast path wait on an older schedule record or a second metadata lookup;
+     schedule rejoin is only useful when the shelf is genuinely empty. */
+  var rec=iaQueueHasReadyProgram(ch)?null:schedGet(ch);
   if(rec&&!iaCachedProgramAllowed(ch,{id:rec.id,title:rec.title||"",year:rec.year||""},sl)){schedClear(ch);rec=null;}
   if(rec){
     var rj=null; try{ rj=await resolvePlayable(rec.id); }catch(e){}
@@ -8497,13 +8575,21 @@ async function tuneIA(ch,sl,my){
     if(fq.length){ queries=fq.concat(queries); nlog("flow",true,"following "+(lastMeta.creator||lastMeta.collection)); }
   }
   var pc=preloadCache; /* 1.4: near-gapless cuts — the next program was resolved while the last one played */
-  if(pc&&pc.chNum===ch.num&&pc.pl&&iaCachedProgramAllowed(ch,pc.pl,sl)&&!iaSkipBlocked(ch.num,pc.pl)&&(Date.now()-pc.at)<1800000&&banned.indexOf(pc.pl.id)<0&&!isTemporarilySkipped(pc.pl.id)){
+   if(pc&&pc.chNum===ch.num&&pc.pl&&(!curItem||pc.pl.id!==curItem.id)&&iaCachedProgramAllowed(ch,pc.pl,sl)&&!iaSkipBlocked(ch.num,pc.pl)&&(Date.now()-pc.at)<1800000&&banned.indexOf(pc.pl.id)<0&&!isTemporarilySkipped(pc.pl.id)){
     preloadCache=null;
     nlog("preload",true,"instant start from preload");
     if(await playFile(pc.pl,ch,sl,my,0)) return;
   }
   /* The queued head has already been discovered and its metadata is normally resolving in
      parallel. This is the fast path after a channel has been visited once. */
+  /* Give the active lane's parallel media resolvers a chance to promote the
+     first valid file. Selecting the first pending identifier used to make one
+     slow Archive hop block faster siblings and caused a retry-sized delay. */
+  if(!iaQueueHasReadyProgram(ch)){
+    try{await withTO(queuePending,4200);}catch(e){}
+    if(my!==token)return;
+    if(!iaQueueHasReadyProgram(ch)){try{await waitIAQueueReady(ch,sl,5200);}catch(e){}if(my!==token)return;}
+  }
   var queued=takeIAQueue(ch,sl);
   if(!queued){ /* A cold channel gets one short chance to receive its buffer, never an endless spinner. */
     try{await withTO(queuePending,4200);}catch(e){}
@@ -8514,10 +8600,10 @@ async function tuneIA(ch,sl,my){
      One dead metadata record or CDN file must never consume the whole tune. */
   for(var queuedTry=0;queued&&queuedTry<3;queuedTry++){
     var qpl=iaProgramMedia[queued.identifier];
-    if(qpl&&typeof qpl.then==="function")qpl=await withTO(qpl,2200).catch(function(){return null;});
-    else if(!qpl)qpl=await withTO(resolvePlayable(queued.identifier),2200).catch(function(){return null;});
+    if(qpl&&typeof qpl.then==="function")qpl=await withTO(qpl,6200).catch(function(){return null;});
+    else if(!qpl)qpl=await withTO(resolvePlayable(queued.identifier),6200).catch(function(){return null;});
     if(my!==token)return;
-    if(qpl){qpl.title=queued.title||queued.identifier;qpl.year=queued.year;if(await playFile(qpl,ch,sl,my,0))return;}
+    if(qpl){qpl.title=iaDisplayTitle({title:qpl.title||queued.title,meta:qpl.meta,identifier:queued.identifier||qpl.id},ch);qpl.year=queued.year;if(await playFile(qpl,ch,sl,my,0))return;}
     iaMarkProgramFailed(queued.identifier);iaProgramMedia[queued.identifier]=null;
     queued=takeIAQueue(ch,sl);
   }
@@ -8550,7 +8636,7 @@ async function tuneIA(ch,sl,my){
       }
     }
     const pl=await resolvePlayable(item.identifier); if(my!==token)return;
-    if(pl){ pl.title=item.title||item.identifier; pl.year=item.year;
+    if(pl){ pl.title=iaDisplayTitle({title:pl.title||item.title,meta:pl.meta,identifier:item.identifier||pl.id},ch); pl.year=item.year;
       if(await playFile(pl,ch,sl,my,a)) return; }
     iaMarkProgramFailed(item.identifier);
   }
@@ -8634,7 +8720,7 @@ function playFile(it,ch,sl,my,isFallback){return new Promise(res=>{
   /* PeerTube direct files are already metadata/rights/landscape verified, but some
      instances take several seconds to expose the first decoded frame. Do not
      discard a good Source Suite item at the generic IA timeout. */
-  let done=false; const startTimeout=(it.isAd?4000:(ch&&ch.source==="v2preview"&&/peertube/i.test(String(it.provider||""))?15000:(isFallback>0?3200:4200))); const to=setTimeout(()=>fin(false),startTimeout);
+  let done=false; const startTimeout=(it.isAd?4000:(ch&&ch.source==="v2preview"&&/peertube/i.test(String(it.provider||""))?15000:(isFallback>0?7000:(isAudio?9000:12000)))); const to=setTimeout(()=>fin(false),startTimeout);
   function tryPlay(){ try{const p=v.play&&v.play();
     if(p&&p.catch)p.catch(()=>{ /* audible autoplay blocked -> mute & retry so the queue continues */
       try{ v.muted=true; needSound(true); const q=v.play&&v.play(); if(q&&q.catch)q.catch(()=>{});
@@ -8661,7 +8747,10 @@ function playFile(it,ch,sl,my,isFallback){return new Promise(res=>{
       if(!it.isAd&&!it.isSignoff&&ch&&!ch.source)warmAd(ch); /* resolve the next station-matched break while this program is on-air */
       if(!it.isAd&&!it.isSignoff&&ch&&ch.num>0&&sl&&sl.queries){ /* resolve the NEXT program before a viewer can hit SKIP */
         clearTimeout(preloadNext._t);
-        preloadNext._t=setTimeout(function(){ preloadNext(ch,sl,my); },2500);
+        /* Start the next-item resolver shortly after the first real frame. It
+           stays off the tune path, but gives a normal Skip enough lead time to
+           use a verified handoff instead of reopening Archive search. */
+        preloadNext._t=setTimeout(function(){ schedulePreload(ch,sl,my); },900);
       }
       if(v.muted&&!muted){ needSound(true); setTimeout(function(){ attemptUnmute(v); },400); }
       if(isAudio){ audioScreen.classList.remove("hide"); audioTitle.textContent=it.title||ch.nm;
@@ -8743,11 +8832,12 @@ function showNow(ch,sl,title,extra){
   else { if(clockBug)clockBug.style.display=""; lower.classList.remove("fade"); clearTimeout(showNow._t); showNow._t=setTimeout(()=>lower.classList.add("fade"),6500); }
   if(!sl.isAd)pushHistory(ch,title); applyAspect(); /* CYCLE-1 FIX: ads out of Recently Watched */
 }
-function iaRetry(ch,my){if(my!==token)return;var k=String(ch&&ch.num||"?"),attempt=(iaTuneRetries[k]||0)+1;iaTuneRetries[k]=attempt;
+function iaRetry(ch,my){if(my!==token||!powered||curNum!==ch.num)return;var k=String(ch&&ch.num||"?"),attempt=(iaTuneRetries[k]||0)+1;iaTuneRetries[k]=attempt;
   var delay=Math.min(4500,700+attempt*700);nlog("channel",false,"IA retry ch"+k+" #"+attempt);
   setSig("tuning","LOADING");showOv("LOADING PROGRAM","PLEASE STAND BY","Finding another program for “"+ch.nm+"”…");
   nowName.textContent="Loading program";nowMeta.textContent="CH "+ch.num+" · "+ch.nm;
-  clearTimeout(retryTimer);retryTimer=setTimeout(function(){if(my===token&&powered)tuneNum(curNum);},delay);}
+  lProg.textContent=(slotFor(ch,0).show||ch.nm);lTitle.textContent="";lMeta.textContent="CH "+ch.num+" · "+ch.nm;
+  clearTimeout(retryTimer);retryTimer=setTimeout(function(){if(my===token&&powered&&curNum===ch.num)tuneNum(ch.num);},delay);}
 function noSignal(ch,my){ if(my!==token)return; clearScreen(); nlog("channel",false,"NO SIGNAL ch"+ch.num);
   setSig("dead","NO SIGNAL"); showOv("NO SIGNAL","PLEASE STAND BY","Weak feed on “"+ch.nm+"” — retrying… or press CH ▲ / SURF.");
   nowName.textContent="No signal"; nowMeta.textContent="CH "+ch.num+" · "+ch.nm;
@@ -8766,7 +8856,7 @@ function powerOn(){powered=true;document.body.classList.add("atv-powered");justP
   /* Do not make the entire IA dial compete with the first station. The active
      tune starts with one candidate; broad shelf warmup waits until playback
      has had time to establish itself. */
-  setTimeout(function(){if(!powered)return;startEmergencyMonitor();getWxLocation().then(resolveLocale);setTimeout(function(){if(powered)primeIAQueues();},12000);},0);
+  setTimeout(function(){if(!powered)return;startEmergencyMonitor();getWxLocation().then(resolveLocale);setTimeout(function(){if(powered)primeIAQueues();},30000);},0);
   var pLed=$("rPowLed"); if(pLed) pLed.classList.add("on"); /* PWR LED green when powered on */
   var mBtn=$("rMute"); if(mBtn) mBtn.classList.remove("mute-on"); /* mute cleared on power-on */
   showShortcutHint(); /* audit-fix Ship B 2026-08-09: fade-in-and-out shortcut strip on power-on */
@@ -8789,8 +8879,9 @@ function step(dir){if(!powered)return;let i=DIAL_INDEX.get(curNum);if(i==null)i=
   lastNum=curNum;if(typeof window.__rsCastIsConnected==="function"&&window.__rsCastIsConnected()&&typeof window.__rsCastCommand==="function")window.__rsCastCommand(dir>0?"CHANNEL_UP":"CHANNEL_DOWN",{channel:DIAL_ORDER[i].num});showFlip(DIAL_ORDER[i].num);tuneNum(DIAL_ORDER[i].num);}
 function surf(){if(!powered)return;lastNum=curNum;if(typeof window.__rsCastIsConnected==="function"&&window.__rsCastIsConnected()&&typeof window.__rsCastCommand==="function")window.__rsCastCommand("SURF");var lineup=publicLineupChannels();if(lineup.length)tuneNum(lineup[Math.floor(Math.random()*lineup.length)].num);}
 function goLast(){if(!powered)return;const t=lastNum;lastNum=curNum;if(typeof window.__rsCastIsConnected==="function"&&window.__rsCastIsConnected()&&typeof window.__rsCastCommand==="function")window.__rsCastCommand("LAST",{channel:t});tuneNum(t);}
+function channelEntryCanContinue(buf){var s=String(buf||"");if(s.length>=3)return false;return CH.some(function(c){var n=String(c&&c.num||"");return n.length>s.length&&n.indexOf(s)===0;});}
 function pressDigit(d){if(!powered)return;sfxClick();entryBuf+=d;entry.style.display="block";entry.textContent=entryBuf.padStart(2,"·");
-  clearTimeout(entryTimer); if(entryBuf.length>=2)commitEntry(); else entryTimer=setTimeout(commitEntry,1500);}
+  clearTimeout(entryTimer); if(entryBuf.length>=3||!channelEntryCanContinue(entryBuf))commitEntry(); else entryTimer=setTimeout(commitEntry,1500);}
 function commitEntry(){clearTimeout(entryTimer);const n=parseInt(entryBuf,10);entryBuf="";entry.style.display="none";
   if(byNum(n)){lastNum=curNum;tuneNum(n);}else{entry.style.display="block";entry.textContent="--";setTimeout(()=>entry.style.display="none",700);}}
 function toggleFav(targetNum){if(!powered)return;const n=Number.isFinite(Number(targetNum))?Number(targetNum):curNum;const ch=byNum(n);if(!ch)return;
@@ -8828,7 +8919,7 @@ function applyGlassScan(level){
 var glassPower=$("glassPower"),glassChDown=$("glassChDown"),glassChUp=$("glassChUp"),glassVolDown=$("glassVolDown"),glassVolUp=$("glassVolUp"),glassGuide=$("glassGuide"),glassMenu=$("glassMenu"),glassCustom=$("glassCustom"),glassCast=$("glassCast"),glassNext=$("glassNext"),glassSurf=$("glassSurf"),glassMute=$("glassMute");
 if(glassPower)glassPower.addEventListener("click",togglePower);if(glassChDown)glassChDown.addEventListener("click",()=>step(-1));if(glassChUp)glassChUp.addEventListener("click",()=>step(1));if(glassVolDown)glassVolDown.addEventListener("click",()=>setVol(-.1));if(glassVolUp)glassVolUp.addEventListener("click",()=>setVol(.1));if(glassGuide)glassGuide.addEventListener("click",openGuide);if(glassMenu)glassMenu.addEventListener("click",toggleOsd);if(glassCustom)glassCustom.addEventListener("click",function(){if(typeof toggleSettings==="function")toggleSettings();setTimeout(function(){var f=document.getElementById("customNameInput");if(f)f.focus();},80);});if(glassCast)glassCast.addEventListener("click",function(){if(typeof window.__rsCastRequest==="function")window.__rsCastRequest();});if(glassNext)glassNext.addEventListener("click",skipOne);if(glassSurf)glassSurf.addEventListener("click",surf);if(glassMute)glassMute.addEventListener("click",toggleMute);
 document.querySelectorAll("[data-glass-scan]").forEach(function(b){b.addEventListener("click",function(){applyGlassScan(b.dataset.glassScan);quickBanner("TEXTURE · "+b.textContent);});});
-applyGlassScan(store.get("glassScan",1));
+applyGlassScan(store.get("glassScan",0));
 var cabPow=$("cabPow"); if(cabPow)cabPow.addEventListener("click",togglePower);
 var cabChUp=$("cabChUp"),cabChDn=$("cabChDn"); if(cabChUp)cabChUp.addEventListener("click",()=>step(1)); if(cabChDn)cabChDn.addEventListener("click",()=>step(-1));
 document.querySelectorAll("[data-cab-d]").forEach(b=>b.addEventListener("click",()=>pressDigit(b.dataset.cabD)));
@@ -17555,7 +17646,7 @@ async function playBumper(ch,sl,my){
 /* 1.0: btnAds wire removed — COMMERCIALS toggle lives in the OSD + Settings */
 
 /* ===== v10.1: skip — next item on the same channel, on demand ===== */
-function skipOne(){ if(!powered){quickBanner("TURN THE TV ON FIRST");return;}if(typeof window.__rsCastIsConnected==="function"&&window.__rsCastIsConnected()&&typeof window.__rsCastCommand==="function")window.__rsCastCommand("NEXT");
+async function skipOne(){ if(!powered){quickBanner("TURN THE TV ON FIRST");return;}if(typeof window.__rsCastIsConnected==="function"&&window.__rsCastIsConnected()&&typeof window.__rsCastCommand==="function")window.__rsCastCommand("NEXT");
   if(curNum===-1&&customSlot&&customSlot.manifestId&&typeof window.__customManifestNext==="function"){window.__customManifestNext();return;}
   var sc=byNum(curNum);
   if(sc&&sc.source==="v2preview"&&typeof window.__v2PreviewNext==="function"){window.__v2PreviewNext(true);return;}
@@ -17572,11 +17663,22 @@ function skipOne(){ if(!powered){quickBanner("TURN THE TV ON FIRST");return;}if(
   if(sc&&sc.source==="aurora"&&typeof window.__auroraNext==="function"){window.__auroraNext();return;}
   if(sc&&sc.source==="weather"&&typeof window.__weatherNext==="function"){window.__weatherNext();return;}
   if(sc)schedClear(sc); /* 1.2: SKIP = manual re-roll of the slot */
-  if(curItem&&curItem.id){if(sc&&!sc.source){iaReportPlayed(sc,curItem,"skipped");markIaSkipped(sc.num,curItem);}markSkipped(curItem.id);fastTuneDrop(curNum);}
+  if(curItem&&curItem.id){if(sc&&!sc.source){iaReportPlayed(sc,curItem,"skipped");markIaSkipped(sc.num,curItem);}markSkipped(curItem.id);if(sc&&!sc.source)iaSkipTuneAt[String(curNum)]=Date.now();fastTuneDrop(curNum);}
   /* Promote a resolved program-director item before retuning. Unlike the normal
      preloader this is synchronous: SKIP can immediately consume a warm URL. */
-  if(sc&&!sc.source){var ss=slotFor(sc,0,{preview:true}), qi=takeIAQueue(sc,ss), qm=qi&&iaProgramMedia[qi.identifier];
-    if(qm&&typeof qm.then!=="function"&&qm.url&&!iaSkipBlocked(sc.num,qi)){preloadCache={chNum:sc.num,pl:{...qm,title:qi.title||qi.identifier,year:qi.year},at:Date.now()};}}
+  var warmHandoff=false;
+  if(sc&&!sc.source){var ss=slotFor(sc,0,{preview:true}), qi=takeIAQueue(sc,ss,true), qm=qi&&iaProgramMedia[qi.identifier];
+    if(qm&&typeof qm!=="function"&&qm.url&&!iaSkipBlocked(sc.num,qi)){preloadCache={chNum:sc.num,pl:{...qm,title:iaDisplayTitle({title:qm.title||qi.title,meta:qm.meta,identifier:qi.identifier||qm.id},sc),year:qi.year},at:Date.now()};warmHandoff=true;nlog("skip",true,'CH '+sc.num+' handoff: "'+String(preloadCache.pl.title||"").slice(0,40)+'" ['+String(qi.identifier||qm.id||"").slice(-72)+']');}
+    /* Keep the current picture on screen while the already-running preloader
+       finishes. A manual skip must not turn a verified channel into TUNING
+       just because the next Archive CDN file is a few seconds late. */
+    if(!warmHandoff&&!preloadCache&&preloadInFlight&&preloadInFlight.chNum===sc.num){
+      quickBanner("SKIPPING…");
+      try{await withTO(preloadInFlight.promise,7000);}catch(e){}
+      if(!powered||curNum!==sc.num)return;
+      if(preloadCache&&preloadCache.chNum===sc.num)warmHandoff=true;
+    }}
+  if(warmHandoff&&preloadCache&&preloadCache.chNum===curNum){adQueue=0;resetProgress();tuneNum(curNum);return;}
   adQueue=0; /* skipping during a break kills the rest of the break */
   quickBanner("SKIPPING\u2026"); resetProgress(); tuneNum(curNum); }
 

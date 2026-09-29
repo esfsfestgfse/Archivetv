@@ -380,6 +380,11 @@ const IA_CONFIRMED_REPAIR_CHANNELS = new Set([
      shallow subset of them. Keep these rails bounded to their own verified
      station profiles while the wider Archive harvest continues in background. */
   "51", "57", "58", "69", "124", "209", "214", "215", "231", "232", "237", "703",
+  /* v4.1.190 low-concurrency certification: these lanes reproduced the same
+     shallow shelf or repeat pattern after burst pressure was removed. Give
+     only these lanes the existing bounded rescue rails; their editorial
+     vocabulary, media gates, and fallback policy remain unchanged. */
+  "62", "63", "68", "70", "72", "73", "83", "105",
 ]);
 for (const channel of IA_CONFIRMED_REPAIR_CHANNELS) {
   IA_STABLE_RESCUE_CHANNELS.add(channel);
@@ -393,6 +398,10 @@ for (const channel of IA_CONFIRMED_REPAIR_CHANNELS) {
    retains the 900ms fast path. */
 const IA_ADAPTIVE_DEPTH_GRACE_CHANNELS = new Set([
   "15", "18", "21", "59", "61", "65", "107", "114", "125", "128", "150", "158", "203", "210", "213", "214", "217", "227", "230", "233", "236", "241", "501", "502", "507", "704", "705", "706", "915", "921",
+  /* v4.1.190 canary: these 11 lanes reproduced shallow or underfilled
+     shelves after the first targeted repair. Extra grace is background-only;
+     first-play selection and editorial gates remain unchanged. */
+  "62", "63", "67", "68", "70", "72", "73", "83", "105", "112", "119",
 ]);
 const IA_ADAPTIVE_DEPTH_GRACE_MS = 2200;
 /* Reggae & Dub has a wide verified catalog but its secondary Archive rail is
@@ -4877,6 +4886,36 @@ for (const [channel, additions] of Object.entries(IA_DEEP_ARCHIVE_FAMILY_OVERLAY
     }
   }
 }
+/* v4.1.190 verified file-depth rails. These are deliberately built only from
+   file-level records already present in the relay's reviewed Archive banks.
+   Do not widen a lane with a collection placeholder or an unverified file
+   guess: the canary must tell us which lanes still need upstream harvest. */
+const verifiedIaFileRail = (items) => (items || []).filter((item) => item && item.media && item.media.url);
+const IA_VERIFIED_FILE_DEPTH_RAILS = Object.freeze({
+  "62": verifiedIaFileRail(IA_DEEP_HARVEST_BANKS["57"]),
+  "63": verifiedIaFileRail(IA_LONG_TAIL_EXPANSIONS["130"]),
+  "67": [
+    ...(IA_DEEP_ARCHIVE_FAMILY_OVERLAYS["67"] || []),
+    ...(IA_LONG_TAIL_EXPANSIONS["69"] || [])
+      .filter((item) => /(?:women|woman|female|girls|ladies)/i.test(String(item && item.title || "") + " " + String(item && item.subject || "")))
+      .map((item) => ({ ...item, subject: String(item.subject || "") + " women's sports women athletes women's athletics" })),
+  ].filter((item) => item && item.media && item.media.url),
+  "68": verifiedIaFileRail(IA_EMERGENCY_SEEDS["68"]),
+  "70": verifiedIaFileRail(IA_EMERGENCY_SEEDS["70"]),
+  "72": verifiedIaFileRail(IA_EMERGENCY_SEEDS["72"]),
+  "73": verifiedIaFileRail(IA_EMERGENCY_SEEDS["73"]),
+  "83": verifiedIaFileRail(IA_EMERGENCY_SEEDS["83"]),
+  "105": verifiedIaFileRail(IA_DEEP_ARCHIVE_FAMILY_OVERLAYS["116"]),
+  "112": verifiedIaFileRail(IA_LONG_TAIL_EXPANSIONS["103"]),
+  "54": verifiedIaFileRail(IA_EMERGENCY_SEEDS["54"]),
+  /* v4.1.190 full certification reproduced cold middle-rotation misses on
+     Latin and Electronic. Both lanes already have reviewed file-level rails
+     in their emergency banks; promote only those known-good files here so a
+     transient Archive metadata miss cannot erase an otherwise playable skip. */
+  "910": verifiedIaFileRail(IA_EMERGENCY_SEEDS["910"]),
+  "918": verifiedIaFileRail(IA_EMERGENCY_SEEDS["918"]),
+  "119": verifiedIaFileRail(IA_EMERGENCY_SEEDS["119"]),
+});
 /* The harvested underfill banks are not just emergency media. They are the
    stable, file-level rotation rail for these lanes while broader Archive
    discovery catches up. Mark them as full-window stations so a later skip
@@ -4887,7 +4926,7 @@ const IA_UNDERFILL_DEPTH_ROTATION_CHANNELS = new Set(Object.keys(IA_UNDERFILL_DE
    full-window freshness path as the earlier repaired families. This keeps a
    cold search failure from replacing a deep verified catalog with a stale
    five-item last-good shelf. */
-const IA_FILE_BANK_CHANNELS = new Set(["17", "52", "121", "151", "206", "211", "220", "224", "508", "903", "913", "920"]);
+const IA_FILE_BANK_CHANNELS = new Set(["17", "52", "54", "62", "63", "67", "68", "70", "72", "73", "83", "105", "112", "119", "121", "151", "206", "211", "220", "224", "508", "903", "910", "913", "918", "920"]);
 for (const channel of IA_FILE_BANK_CHANNELS) {
   IA_COLD_RESCUE_CHANNELS.add(channel);
   IA_DEPTH_RECOVERY_CHANNELS.add(channel);
@@ -7319,7 +7358,12 @@ function applyIaFreshness(payload, ledger, count) {
      history as the emergency tail. */
   const eligible = fresh.length >= requested
     ? fresh
-    : fresh.concat(source.filter((item) => excluded.has(String(item.identifier))));
+    /* When a constrained, verified rail is genuinely exhausted, allow its
+       known-good files back in as the emergency tail. Match the same logical
+       file identity used to build `excluded`; comparing the raw identifier
+       dropped file-level records whose identifiers include `source::file`,
+       turning a healthy constrained lane into an empty queue on rotation 1. */
+    : fresh.concat(source.filter((item) => excluded.has(iaPlayableIdentity(item) || String(item.identifier))));
   const previous = history.length ? history[history.length - 1] : null;
   let firstIndex = eligible.findIndex((item) => !excluded.has(iaPlayableIdentity(item) || String(item.identifier)) && queueFreshnessDiffers(item, previous));
   if (firstIndex < 0) firstIndex = eligible.findIndex((item) => !excluded.has(iaPlayableIdentity(item) || String(item.identifier)));
@@ -7978,9 +8022,10 @@ function orderedIaEmergencySeeds(channel, rotation) {
     .concat(IA_EMERGENCY_SEEDS[String(channel)] || [])
     .concat(IA_LONG_TAIL_EXPANSIONS[String(channel)] || [])
     .concat(IA_LONG_TAIL_EXPANSIONS_EXTRA[String(channel)] || [])
-    .concat(IA_PROMOTED_ARCHIVE_BANKS[String(channel)] || [])
+     .concat(IA_PROMOTED_ARCHIVE_BANKS[String(channel)] || [])
      .concat(IA_DEEP_HARVEST_BANKS[String(channel)] || [])
      .concat(IA_UNDERFILL_DEPTH_BANKS[String(channel)] || [])
+     .concat(IA_VERIFIED_FILE_DEPTH_RAILS[String(channel)] || [])
      .concat(IA_TARGETED_RECOVERY_BANKS[String(channel)] || [])
      .map((item) => {
      if (!item || !item.identifier) return item;
@@ -8154,7 +8199,7 @@ async function hydrateIaQueue(payload, requestedCount, cacheOrigin, ctx, mediaTy
       if (media && iaRuntimeAllowed({ ...item, media }, payload && payload.minRuntimeSeconds) && ready.length < requestedCount) {
         const hydratedItem = { ...item, media };
         ready.push(hydratedItem);
-        if (typeof onReady === "function") onReady(hydratedItem, ready.length);
+        if (typeof onReady === "function") onReady(hydratedItem, ready.length, ready.slice());
       }
     }
   }
@@ -8727,6 +8772,34 @@ async function getIaQueue(request, url, env, ctx) {
       }
     }
   }
+  /* Chanbara's verified file rail is intentionally constrained, and its
+     normal Archive metadata path repeatedly timed out before exposing the
+     three known-good files. Keep this fast handoff narrowly scoped to that
+     reproducible lane; the other ten file-depth lanes retain broader Archive
+     discovery so a larger verified shelf can still win. */
+  if (channel === "119") {
+    const verifiedFileRail = (IA_VERIFIED_FILE_DEPTH_RAILS[channel] || []).filter((item) =>
+      item && item.media && item.media.url &&
+      iaStationQualityGate(channel, item) &&
+      matchesTheme(item, themeTerms, themeMinScore, requiredTitleTerms) &&
+      !matchesDeny(item, denyTerms) &&
+      iaRuntimeAllowed(item, minRuntimeSeconds));
+    if (verifiedFileRail.length) {
+      const verifiedWindow = strictRecoveryQueue(channel, rotation, count, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, minRuntimeSeconds);
+      const verifiedShelf = applyIaFreshness({
+        ...verifiedWindow,
+        fileDepthRail: true,
+        partial: verifiedWindow.candidateItems.length < count,
+      }, freshnessLedger, count);
+      rememberIaFreshness(env, channel, verifiedShelf.issued, ctx);
+      return cacheableJson(verifiedShelf.payload, 30, {
+        "X-Afterglow-Source": "program-director-verified-file-rail",
+        "X-Afterglow-Queue-Ready": String(verifiedShelf.payload.ready || verifiedShelf.payload.items.length),
+        "X-Afterglow-Queue-Deep": String(verifiedShelf.payload.candidates || verifiedShelf.payload.candidateItems.length),
+        "X-Afterglow-Queue-File-Rail": "1",
+      });
+    }
+  }
   try {
     const cache = edgeCache, cached = await edgeCachePromise;
     if (cached) {
@@ -9043,12 +9116,23 @@ async function getIaQueue(request, url, env, ctx) {
          one-item Game Show response cannot become No Signal. Rotate the seed
          order so the emergency path is not a fixed five-item loop, and let the
          normal background discovery replace it with fresher material. */
-      const orderedSeeds = emergencyBank;
+      const orderedSeeds = emergencyBank.filter((item) => item && item.media && item.media.url &&
+        iaStationQualityGate(channel, item) &&
+        matchesTheme(item, themeTerms, themeMinScore, requiredTitleTerms) &&
+        !matchesDeny(item, denyTerms));
       const discovered = Array.isArray(payload.items) ? payload.items : [];
-      const candidates = discovered.concat(orderedSeeds).slice(0, candidateCount);
+      const seenEmergency = new Set();
+      const candidates = [];
+      for (const item of [...discovered, ...orderedSeeds]) {
+        const identity = iaPlayableIdentity(item);
+        if (!item || !item.identifier || !identity || seenEmergency.has(identity)) continue;
+        seenEmergency.add(identity);
+        candidates.push(item);
+        if (candidates.length >= candidateCount) break;
+      }
       payload = {
         ...payload,
-        items: discovered.length ? discovered.slice(0, count) : orderedSeeds.slice(0, count),
+        items: candidates.slice(0, count),
         candidateItems: candidates,
         candidates: candidates.length,
         ready: 0,
@@ -9134,13 +9218,29 @@ async function getIaQueue(request, url, env, ctx) {
         { "X-Afterglow-Source": "program-director", "X-Afterglow-Queue-Ready": "0" },
       );
     }
+    const verifiedFileRail = IA_FILE_BANK_CHANNELS.has(String(channel))
+      ? (IA_VERIFIED_FILE_DEPTH_RAILS[String(channel)] || []).filter((item) =>
+        item && item.media && item.media.url &&
+        iaStationQualityGate(channel, item) &&
+        matchesTheme(item, themeTerms, themeMinScore, requiredTitleTerms) &&
+        !matchesDeny(item, denyTerms) &&
+        iaRuntimeAllowed(item, minRuntimeSeconds))
+      : [];
+    /* Direct file rails are already verified locally. Return the whole known
+       partial shelf together instead of resolving on the first file and making
+       a constrained lane look like a one-item station. Healthy lanes retain
+       the instant first-frame handoff. */
+    const firstReadyTarget = verifiedFileRail.length
+      ? Math.min(count, verifiedFileRail.length)
+      : 1;
     let firstReadyResolve;
     const firstReady = new Promise((resolve) => { firstReadyResolve = resolve; });
-    const hydration = hydrateIaQueue(payload, count, url.origin, ctx, mediaTypes, (item, readyCount) => {
+    const hydration = hydrateIaQueue(payload, count, url.origin, ctx, mediaTypes, (item, readyCount, readyItems) => {
       if (!firstReadyResolve) return;
+      if (readyCount < firstReadyTarget) return;
       const resolveFirst = firstReadyResolve;
       firstReadyResolve = null;
-      resolveFirst({ ...payload, items: [item], candidates: payload.items.length, ready: readyCount, partial: true, hydrating: true });
+      resolveFirst({ ...payload, items: Array.isArray(readyItems) ? readyItems.slice(0, count) : [item], candidates: payload.items.length, ready: readyCount, partial: true, hydrating: true });
     }, iaForegroundHydrationConcurrency(channel));
     /* A cold channel gets one short, bounded chance to receive its first
        verified program. The remaining four may still be resolving; making

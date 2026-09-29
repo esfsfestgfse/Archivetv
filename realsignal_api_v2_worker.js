@@ -49,6 +49,7 @@ const IA_FAST_CATALOG_LANES = new Set([
    mandatory; this does not relax generic IA fallback globally. */
 const IA_HOLIDAY_TITLE_LANES = new Set(["704", "705", "706", "707", "708", "709"]);
 const IA_CANONICAL_PILOT_VALUES = new Set(["1", "true", "on", "pilot"]);
+const IA_CANONICAL_SHADOW_VALUES = new Set(["1", "true", "on", "shadow"]);
 const IA_CANONICAL_PROFILE_BY_CHANNEL = new Map(Object.values(IA_CANONICAL_PILOT_PROFILES).map((profile) => [String(profile.channel), profile.profileKey]));
 /* A relay response can be playable while still being too shallow for a
    rolling television catalog. Enrich any IA lane below the three-shelf floor
@@ -160,6 +161,7 @@ function routeFor(pathname) {
     if (pathname === `${prefix}/health/summary`) return { kind: "health-summary", apiVersion };
     if (pathname === `${prefix}/guide`) return { kind: "guide", apiVersion };
     if (pathname === `${prefix}/ia/queue` || pathname === `${prefix}/ia/program`) return { kind: "queue", apiVersion, prefix };
+    if (apiVersion === "v3" && pathname === `${prefix}/ia/canonical/shadow`) return { kind: "canonical-shadow", apiVersion };
     if (pathname === `${prefix}/ia/search`) return { kind: "relay", relayPath: "/ia/search", apiVersion };
     if (pathname.startsWith(`${prefix}/ia/metadata/`)) {
       const id = pathname.slice(`${prefix}/ia/metadata/`.length);
@@ -741,6 +743,18 @@ function canonicalPilotEnabled(env, channel) {
   return !!(manifest && profile && manifest.verified === true && Array.isArray(manifest.items) && manifest.items.length >= Number(profile.minCatalog || 0) && balanced);
 }
 
+function canonicalShadowEnabled(env, channel) {
+  const flag = String(env && env.IA_CANONICAL_SHADOW || "").trim().toLowerCase();
+  if (!IA_CANONICAL_SHADOW_VALUES.has(flag)) return false;
+  const normalized = normalizedChannelKey(channel);
+  const allowList = String(env && env.IA_CANONICAL_SHADOW_CHANNELS || "").split(",").map((value) => normalizedChannelKey(value)).filter(Boolean);
+  if (allowList.length && !allowList.includes(normalized)) return false;
+  const { profile, manifest } = canonicalPilotProfile(normalized);
+  const decadeCounts = manifest && manifest.decadeCounts && typeof manifest.decadeCounts === "object" ? manifest.decadeCounts : {};
+  const balanced = !!(profile && (profile.requiredDecades || []).every((decade) => Number(decadeCounts[String(decade)] || 0) > 0));
+  return !!(manifest && profile && manifest.verified === true && Array.isArray(manifest.items) && manifest.items.length >= Number(profile.minCatalog || 0) && balanced);
+}
+
 function canonicalPilotPayload(manifest, profile, body, count) {
   const selection = selectCanonicalItems(manifest, Array.isArray(body && body.recentIds) ? body.recentIds : [], count, Number(body && body.rotation) || 0);
   if (!selection.items.length) return null;
@@ -781,6 +795,76 @@ function canonicalPilotPayload(manifest, profile, body, count) {
       selectionRepeatIds: [],
     },
   };
+}
+
+function canonicalShadowSummary(liveBody, liveStatus, canonicalPayload, profile, recentIds) {
+  const liveItems = Array.isArray(liveBody && liveBody.candidateItems) && liveBody.candidateItems.length
+    ? liveBody.candidateItems
+    : Array.isArray(liveBody && liveBody.items) ? liveBody.items : [];
+  const canonicalItems = [...(canonicalPayload.candidateItems || []), ...(canonicalPayload.items || [])];
+  const keyOf = (item) => String(item && (item.id || item.programId || item.identifier || item.mediaUrl || item.url) || "").trim();
+  const liveKeys = new Set(liveItems.map(keyOf).filter(Boolean));
+  const canonicalKeys = new Set(canonicalItems.map(keyOf).filter(Boolean));
+  let overlap = 0;
+  for (const key of canonicalKeys) if (liveKeys.has(key)) overlap += 1;
+  const liveDepth = Number(liveBody && (liveBody.catalogDepth || liveBody.candidates || liveItems.length)) || 0;
+  const canonicalDepth = Number(canonicalPayload.catalogDepth || canonicalItems.length) || 0;
+  const eligible = canonicalPayload.verified === true && canonicalDepth >= Number(profile.minCatalog || 0);
+  return {
+    live: {
+      status: Number(liveStatus) || 0,
+      available: Number(liveStatus) >= 200 && Number(liveStatus) < 300,
+      source: String(liveBody && liveBody.source || "relay-unavailable").slice(0, 120),
+      ready: Number(liveBody && liveBody.ready) || (Array.isArray(liveBody && liveBody.items) ? liveBody.items.length : 0),
+      candidates: Number(liveBody && liveBody.candidates) || liveItems.length,
+      catalogDepth: liveDepth,
+    },
+    canonical: {
+      verified: canonicalPayload.verified === true,
+      profileKey: profile.profileKey,
+      ready: canonicalPayload.ready,
+      candidates: canonicalPayload.candidates,
+      catalogDepth: canonicalDepth,
+      unseen: canonicalPayload.unseenCatalogItems,
+      repeatAllowed: canonicalPayload.repeatAllowed,
+      freshnessExcluded: canonicalPayload.freshnessExcluded,
+    },
+    comparison: {
+      overlappingItems: overlap,
+      canonicalOnlyItems: Math.max(0, canonicalKeys.size - overlap),
+      liveOnlyItems: Math.max(0, liveKeys.size - overlap),
+      recentIdsConsidered: Array.isArray(recentIds) ? recentIds.length : 0,
+      canonicalEligible: eligible,
+      promotionDecision: eligible ? "needs-canary" : "hold",
+    },
+  };
+}
+
+async function handleCanonicalShadow(request, env, id) {
+  let body;
+  try { body = await readBoundedJson(request); }
+  catch (error) { return json({ error: error instanceof RangeError ? error.message : "invalid JSON body", requestId: id }, error instanceof RangeError ? 413 : 400); }
+  if (!body || typeof body !== "object" || Array.isArray(body)) return json({ error: "shadow payload must be an object", requestId: id }, 400);
+  if (!String(body.channel || "").trim()) return json({ error: "channel is required", requestId: id }, 400);
+  if (!canonicalShadowEnabled(env, body.channel)) return json({ error: "canonical shadow is not enabled for this channel", requestId: id }, 404);
+  const canonical = canonicalPilotProfile(body.channel);
+  const count = Math.max(1, Math.min(5, Number(body.count) || 5));
+  const recentIds = Array.isArray(body.recentIds) ? body.recentIds.slice(0, FRESHNESS_LEDGER_LIMIT) : [];
+  const canonicalPayload = canonicalPilotPayload(canonical.manifest, canonical.profile, { ...body, recentIds, freshnessLedger: true }, count);
+  if (!canonicalPayload) return json({ error: "canonical manifest has no selectable items", requestId: id }, 503);
+
+  /* Shadow comparison is deliberately relay-only. It never enables the D1
+     server catalog or returns canonical items as playback, so this endpoint
+     cannot alter the current viewer path. */
+  const liveBody = { ...body, count, recentIds, freshnessLedger: false, serverCatalog: false };
+  delete liveBody.sessionId;
+  delete liveBody.session;
+  const upstream = await forwardToRelay(request, env, "/ia/queue", liveBody, id);
+  let parsed = null;
+  try { parsed = await upstream.json(); } catch (_) { parsed = null; }
+  const summary = canonicalShadowSummary(parsed, upstream.status, canonicalPayload, canonical.profile, recentIds);
+  console.log(JSON.stringify({ event: "canonical-shadow-comparison", requestId: id, channel: String(body.channel), ...summary.comparison }));
+  return json({ apiVersion: "v3", release: V3_RELEASE, requestId: id, generatedAt: new Date().toISOString(), ...summary }, 200, { "Cache-Control": "no-store", "X-RealSignal-Release": V3_RELEASE, "X-RealSignal-Source": "ia-canonical-shadow" });
 }
 
 function persistCanonicalPilotManifest(env, manifest, profile, ctx) {
@@ -2158,7 +2242,7 @@ const worker = {
     try {
       if (route && route.kind === "health") {
         const v3 = route.apiVersion === "v3";
-        return json({ service: "realsignal-api", apiVersion: v3 ? "v3" : "v2", release: v3 ? V3_RELEASE : "2.2.2", status: "ready", capabilities: ["ia-search", "ia-metadata", "ia-queue", "session-rotation", "catalog-jobs", "source-catalog", "adaptive-catalog", "freshness-ledger", ...(v3 ? ["verified-guide", "server-telemetry", "source-health", "custom-channel-recipes", "custom-channel-manifests", ...(IA_CANONICAL_PILOT_VALUES.has(String(env.IA_CANONICAL_PILOT || "").trim().toLowerCase()) ? ["ia-canonical-pilot"] : [])] : []), "youtube-sports"], bindings: { relay: !!env.RELAY, rotation: !!env.ROTATION, catalog: !!env.realsignal_catalog, refreshQueue: !!env.realsignal_catalog_refresh }, checkedAt: new Date().toISOString() }, 200, { "Cache-Control": "no-store", "X-RealSignal-Request": id, "X-RealSignal-Release": v3 ? V3_RELEASE : "2.2.2" });
+        return json({ service: "realsignal-api", apiVersion: v3 ? "v3" : "v2", release: v3 ? V3_RELEASE : "2.2.2", status: "ready", capabilities: ["ia-search", "ia-metadata", "ia-queue", "session-rotation", "catalog-jobs", "source-catalog", "adaptive-catalog", "freshness-ledger", ...(v3 ? ["verified-guide", "server-telemetry", "source-health", "custom-channel-recipes", "custom-channel-manifests", ...(IA_CANONICAL_PILOT_VALUES.has(String(env.IA_CANONICAL_PILOT || "").trim().toLowerCase()) ? ["ia-canonical-pilot"] : []), ...(IA_CANONICAL_SHADOW_VALUES.has(String(env.IA_CANONICAL_SHADOW || "").trim().toLowerCase()) ? ["ia-canonical-shadow"] : [])] : []), "youtube-sports"], bindings: { relay: !!env.RELAY, rotation: !!env.ROTATION, catalog: !!env.realsignal_catalog, refreshQueue: !!env.realsignal_catalog_refresh }, checkedAt: new Date().toISOString() }, 200, { "Cache-Control": "no-store", "X-RealSignal-Request": id, "X-RealSignal-Release": v3 ? V3_RELEASE : "2.2.2" });
       }
       if (route && route.kind === "telemetry") {
         if (request.method !== "POST") return json({ error: "method not allowed", requestId: id }, 405, { Allow: "POST,OPTIONS" });
@@ -2177,6 +2261,12 @@ const worker = {
       if (route && route.kind === "guide") {
         if (request.method !== "GET") return json({ error: "method not allowed", requestId: id }, 405, { Allow: "GET,OPTIONS" });
         return await handleGuide(request, env);
+      }
+      if (route && route.kind === "canonical-shadow") {
+        if (request.method !== "POST") return json({ error: "method not allowed", requestId: id }, 405, { Allow: "POST,OPTIONS" });
+        const limited = rateLimit(request, "queue");
+        if (limited) return limited;
+        return await handleCanonicalShadow(request, env, id);
       }
       if (route && route.kind === "youtube-uploads") {
         if (request.method !== "GET") return json({ error: "method not allowed", requestId: id }, 405, { Allow: "GET,OPTIONS" });

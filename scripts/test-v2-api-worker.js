@@ -166,7 +166,10 @@ const { pathToFileURL } = require('node:url');
   relayOwnedPayload.sessionId = 'viewer-c';
   const relayOwned = await worker.fetch(new Request('https://api.example/api/v2/ia/queue', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(relayOwnedPayload) }), env, ctx);
   assert.equal(relayOwned.status, 200);
-  assert.deepEqual((await relayOwned.json()).items.map(item => item.identifier), ['ia-1', 'ia-2', 'ia-3', 'ia-4', 'ia-5']);
+  /* Relay-owned responses honor the caller's requested public shelf size.
+     The same payload asks for three items, so the API must not leak the
+     relay's deeper five-item catalog into the on-air response. */
+  assert.deepEqual((await relayOwned.json()).items.map(item => item.identifier), ['ia-1', 'ia-2', 'ia-3']);
   assert.match(relayOwned.headers.get('X-RealSignal-Source'), /relay-owned/);
 
   const second = await worker.fetch(new Request('https://api.example/api/v2/ia/queue', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload) }), env, ctx);

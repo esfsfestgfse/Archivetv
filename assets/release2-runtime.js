@@ -11,7 +11,7 @@
   var REMOTE_ENDPOINT=String(window.__RS_REMOTE_TELEMETRY_ENDPOINT||'https://realsignal-api.tdy1990.workers.dev/api/v3/telemetry');
   var REMOTE_HEALTH_ENDPOINT=String(window.__RS_REMOTE_HEALTH_ENDPOINT||'https://realsignal-api.tdy1990.workers.dev/api/v3/health/summary?hours=24&limit=8');
   var REMOTE_TYPES={"tune-complete":1,"first-visible-frame":1,"guide-open":1,"guide-close":1,"queue-sample":1,"repeat":1,"control":1,"stall":1,"media-error":1,"tune-failed":1,"startup-timeout":1,"source-recovery":1,"source-recovery-failed":1,"source-success":1,"source-failure":1};
-  var remoteQueue=[],remoteTimer=0,remoteInFlight=false,remoteHealthInFlight=false,remoteHealth=null;
+  var remoteQueue=[],remoteTimer=0,remoteInFlight=false,remoteHealthInFlight=false,remoteHealth=null,healthPolicy={};
   var STORAGE_KEY='realsignal:health:v2',persistTimer=0,stored={};
   try{stored=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}')||{};}catch(_){stored={};}
   var report={version:4,startedAt:Date.now(),events:Array.isArray(stored.events)?stored.events.slice(-500):[],channelStats:stored.channelStats&&typeof stored.channelStats==='object'?stored.channelStats:{},sessions:Number(stored.sessions||0)+1,notes:['bounded local report','optional remote v3 telemetry','bounded 500-event ring','bounded per-channel history']};
@@ -43,7 +43,7 @@
     queueRemote(event);
     var node=document.getElementById('rs-release2-telemetry');
     if(node)node.textContent=JSON.stringify(report);
-    renderHealthView();
+    renderHealthView();syncLocalHealthPolicy();
   }
   function boundedPush(list,value,max){if(!Array.isArray(list)||!Number.isFinite(value))return;list.push(value);if(list.length>max)list.splice(0,list.length-max);}
   function channelMeta(num){try{var row=typeof byNum==='function'?byNum(Number(num)):null;return {name:row&&row.nm||('CHANNEL '+num),cat:row&&row.cat||'',source:row&&row.source||row&&row.gl||''};}catch(_){return {name:'CHANNEL '+num,cat:'',source:''};}}
@@ -94,7 +94,7 @@
       var empty=document.getElementById('rsHealthRemoteLanes');if(empty)empty.innerHTML='<div class="rs-health-empty">Server health is temporarily unavailable. Local measurements remain active.</div>';
       return;
     }
-    remoteHealth=value;
+    remoteHealth=value;syncRemoteHealthPolicy(value);
     var channels=Array.isArray(value.channels)?value.channels:[],totals=value.totals||{},score=Number(value.overallScore);
     set('rsHealthRemoteStatus',String(value.status||'READY').toUpperCase()+' · '+(Number.isFinite(score)?Math.round(score)+'/100':'NO SCORE'));
     set('rsHealthRemoteFrame',formatMs(remoteMetric(channels,'first_frame_avg_ms')));
@@ -112,6 +112,45 @@
     fetch(REMOTE_HEALTH_ENDPOINT,{method:'GET',mode:'cors',cache:'no-store',headers:{'x-realsignal-client':'health-dashboard'},signal:controller?controller.signal:undefined}).then(function(response){if(!response.ok)throw new Error('HTTP '+response.status);return response.json();}).then(function(value){if(value&&value.apiVersion==='v3')renderRemoteHealth(value);else throw new Error('invalid dashboard payload');}).catch(function(error){renderRemoteHealth({error:String(error&&error.message||'unavailable')});}).finally(function(){clearTimeout(timer);remoteHealthInFlight=false;});
   }
   function laneRows(){return Object.keys(report.channelStats).map(function(key){var row=report.channelStats[key]||{},attempts=Number(row.tunes||0),frames=Number(row.frames||0),failures=Number(row.failures||0),stalls=Number(row.stalls||0),repeats=Number(row.repeats||0),timeouts=Number(row.timeouts||0),frameP50=median(row.frameMs),switchP50=median(row.switchMs),depths=(row.queueDepths||[]).filter(Number.isFinite),cat=String(row.cat||''),source=String(row.source||''),visualLane=source==='v2preview'||/^(NET|TOON|MOV|TV|DOC|SOURCE|RETRO|HOL|BRIT|SPORTS)$/.test(cat),unframed=visualLane?Math.max(0,attempts-frames):0,score=100-(failures*18)-(timeouts*20)-(stalls*8)-(repeats*5)-(unframed*12)+(frames?Math.min(8,frames):0);return {channel:Number(row.channel||key)||0,name:String(row.name||('CHANNEL '+key)),cat:cat,source:source,visualLane:visualLane,attempts:attempts,frames:frames,unframed:unframed,failures:failures,stalls:stalls,repeats:repeats,timeouts:timeouts,recoveries:Number(row.recoveries||0),frameP50:frameP50,switchP50:switchP50,queue:depths.length?depths[depths.length-1]:null,score:Math.max(0,Math.min(100,score)),lastAt:Number(row.lastAt||0)};}).filter(function(row){return row.attempts||row.frames||row.failures||row.repeats||row.stalls;}).sort(function(a,b){return a.score-b.score||b.failures-a.failures||b.lastAt-a.lastAt;});}
+  function refreshLineupAfterHealth(){try{if(typeof buildCatNav==='function')buildCatNav();if(typeof renderGuide==='function'){var wrap=document.getElementById('gwrap');if(wrap&&wrap.classList.contains('show'))renderGuide();}}catch(_){ }}
+  function setHealthPolicy(channel,state,reason,score,origin){
+    var key=String(Number(channel)||0);if(key==='0')return false;
+    var current=healthPolicy[key],next=state==='keep'?null:{state:state,reason:String(reason||'measured health policy'),score:Number.isFinite(Number(score))?Number(score):null,origin:String(origin||'telemetry'),at:Date.now()};
+    if(!next){if(!current)return false;delete healthPolicy[key];}
+    else if(current&&current.state===next.state&&current.origin===next.origin&&current.reason===next.reason&&current.score===next.score)return false;
+    else healthPolicy[key]=next;
+    window.__rsChannelHealthPolicy=healthPolicy;return true;
+  }
+  function recentChannelEvents(channel){
+    var key=String(Number(channel)||0);return report.events.filter(function(event){return String(Number(event&&event.channel)||0)===key;}).slice(-8);
+  }
+  function syncLocalHealthPolicy(){
+    var changed=false,now=Date.now();
+    laneRows().forEach(function(row){
+      if(!row.channel||!row.visualLane||!row.lastAt||now-Number(row.lastAt)>24*3600e3)return;
+      var recent=recentChannelEvents(row.channel),failures=recent.filter(function(event){return event.type==='media-error'||event.type==='tune-failed'||event.type==='source-recovery-failed'||event.type==='startup-timeout';}).length,stalls=recent.filter(function(event){return event.type==='stall';}).length,repeats=recent.filter(function(event){return event.type==='repeat';}).length,frames=recent.filter(function(event){return event.type==='first-visible-frame';}).length;
+      if(recent.length<3)return;
+      if(failures>=2||stalls>=2||row.score<45){changed=setHealthPolicy(row.channel,'hide','repeated playback failures · repairing in background',row.score,'local')||changed;}
+      else if(row.score<70||failures||stalls||repeats>=4){changed=setHealthPolicy(row.channel,'repair','weak measured lane · repair in background',row.score,'local')||changed;}
+      else if(frames>=1&&failures===0&&stalls===0){changed=setHealthPolicy(row.channel,'keep','','','local')||changed;}
+    });
+    if(changed)refreshLineupAfterHealth();
+  }
+  function syncRemoteHealthPolicy(value){
+    var changed=false,channels=value&&Array.isArray(value.channels)?value.channels:[];
+    channels.forEach(function(row){
+      var channel=String(row&&row.channel_key||'').trim(),number=/^\d+$/.test(channel),ch=null;
+      number=number?Number(channel):0;
+      try{ch=number&&typeof byNum==='function'?byNum(number):null;}catch(_){ch=null;}
+      if(!ch||ch.cat==='LDATA'||ch.cat==='MUS')return;
+      var failures=Number(row.failures||0),stalls=Number(row.stalls||0),repeats=Number(row.repeats||0),score=Number(row.score);
+      if(!Number.isFinite(score))score=Math.max(0,100-(failures*18)-(stalls*8)-(repeats*5));
+      if(failures>=3||stalls>=2||score<45)changed=setHealthPolicy(number,'hide','server score below playback gate · repairing in background',score,'remote')||changed;
+      else if(failures||stalls||repeats>=4||score<70)changed=setHealthPolicy(number,'repair','server health watch · repair in background',score,'remote')||changed;
+      else if(score>=75)changed=setHealthPolicy(number,'keep','','','remote')||changed;
+    });
+    if(changed)refreshLineupAfterHealth();
+  }
   function htmlSafe(value){return String(value==null?'':value).replace(/[&<>"']/g,function(ch){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];});}
   function currentChannel(){try{if(typeof curNum!=='undefined'&&typeof byNum==='function')return byNum(curNum);}catch(_){ }return null;}
   function currentProgramKey(){try{var item=typeof curItem!=='undefined'?curItem:null,ch=currentChannel(),key=item&&(item.id||item.url||item.src||item.title);return String(key||(ch&&((ch.num||0)+'|'+(ch.nm||'')))||'');}catch(_){return '';}}

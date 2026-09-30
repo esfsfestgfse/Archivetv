@@ -31,6 +31,7 @@ check(runtime.includes('keepalive:true') && runtime.includes('queueRemote') && r
 check(runtime.includes('currentTelemetryChannel') && runtime.includes('remoteEvent.channel'), 'Global guide events receive a valid telemetry channel');
 check(runtime.includes('rsHealthExport') && runtime.includes('rsHealthLanes'), 'Health dashboard export and weak-lane controls exist');
 check(runtime.includes('/api/v3/health/summary') && runtime.includes('fetchRemoteHealth') && runtime.includes('remoteMetric'), 'Live server health dashboard is read-only and non-blocking');
+check(runtime.includes('syncLocalHealthPolicy') && runtime.includes('syncRemoteHealthPolicy') && runtime.includes('repeated playback failures'), 'Measured weak lanes enter temporary hide/repair policy');
 check(runtime.includes('statusLabel') && runtime.includes('__rsCastIsConnected') && runtime.includes('castConnected'), 'Mobile/Cast status measurement exists');
 check(runtime.includes("addEventListener('online'"), 'Online recovery hook exists');
 check(guide.includes('realsignal:guide-recent') && guide.includes('rsGuideRecentOnly'), 'Guide recently-watched view exists');
@@ -67,6 +68,8 @@ for (const file of builds) {
   check(html.includes('class="ship-map-panel"') && html.includes('class="ship-data-panel"') && html.includes('min-width:44px!important'), `${file}: Ship Tracker has a stacked touch layout with 44px map controls`);
   check(html.includes('aria-label="Pan water map north"') && html.includes('Interactive water map. Drag or use arrow keys'), `${file}: water map has labeled touch and keyboard controls`);
   check(html.includes('cast-receiver-ack') && html.includes('REALSIGNAL_CAST_OK'), `${file}: Cast receiver playback contributes first-frame telemetry`);
+  check(html.includes('__rsChannelHealthPolicy') && html.includes('function dynamicChannelHealth'), `${file}: lineup accepts temporary measured health overrides`);
+  check(html.includes('function orderedChannels(){return DIAL_ORDER.filter(isPublicLineupChannel);}') && html.includes('var order=orderedChannels()'), `${file}: channel stepping skips hidden repair lanes without renumbering`);
   check(html.includes('var queuePending=refillIAQueue(ch,sl,1)'), `${file}: active IA tune requests one candidate first`);
   check(html.includes('var IA_READY_TARGET=3'), `${file}: rolling IA shelf keeps one active plus two hot replacements`);
   check(html.includes('followCount=ask===1?IA_READY_TARGET:ask'), `${file}: IA refill promotes exactly two replacements after the active item`);

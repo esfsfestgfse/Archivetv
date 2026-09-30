@@ -16,7 +16,10 @@ function readRegistry(filename) {
   const channelBlock = blockBetween(source, "const CH=[", "\n];", filename);
   const categoryBlock = blockBetween(source, "const CAT={", "};", filename);
   const metadataBlock = blockBetween(source, "const CHANNEL_META={", "\n};", filename);
-  const programBlock = blockBetween(source, "const PROGRAM = {", "\n};\n\n/* Editorial lane overlay", filename);
+  const programStart = source.indexOf("const PROGRAM = {");
+  const editorialStart = source.indexOf("/* Editorial lane overlay", programStart);
+  if (programStart < 0 || editorialStart < 0) throw new Error(`${filename}: cannot find PROGRAM/editorial boundary`);
+  const programBlock = source.slice(programStart, editorialStart);
   const orderMatch = source.match(/var CAT_ORDER=\[([^\]]+)\]/);
   if (!orderMatch) throw new Error(`${filename}: cannot find CAT_ORDER`);
   const channels = [...channelBlock.matchAll(/\{nm:"([^"]+)",\s*num:(\d+),\s*cat:"([^"]+)",\s*(?:gl:"([^"]+)"|source:"([^"]+)")/g)]
@@ -24,7 +27,7 @@ function readRegistry(filename) {
   const categories = [...categoryBlock.matchAll(/([A-Z]+):"/g)].map((match) => match[1]);
   const order = [...orderMatch[1].matchAll(/"([A-Z]+)"/g)].map((match) => match[1]);
   const metadataNames = new Set([...metadataBlock.matchAll(/^"([^"]+)":\{/gm)].map((match) => match[1]));
-  const programNames = new Set([...programBlock.matchAll(/^\s*"([^"]+)"\s*:\s*\{/gm)].map((match) => match[1]));
+  const programNames = new Set([...programBlock.matchAll(/^\s*"([^"]+)"\s*:\s*(?:\{|rsDecadeTvPilot\b)/gm)].map((match) => match[1]));
   return { channels, categories, order, metadataNames, programNames };
 }
 

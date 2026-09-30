@@ -174,7 +174,11 @@ async function edgeJson(request, ctx, body, status = 200, extra = {}, ttlSeconds
   if (!canCache) return json(body, status, extra);
   const cacheKey = new Request(new URL(request.url).toString(), { method: "GET" });
   const cached = await caches.default.match(cacheKey);
-  if (cached) return cached;
+  if (cached) {
+    const headers = new Headers(cached.headers);
+    headers.set("X-RealSignal-Cache", "hit");
+    return new Response(cached.body, { status: cached.status, statusText: cached.statusText, headers });
+  }
   const headers = {
     ...extra,
     "Cache-Control": extra["Cache-Control"] || `public, max-age=${ttlSeconds}, stale-while-revalidate=${Math.max(ttlSeconds * 4, 30)}`,

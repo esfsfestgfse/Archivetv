@@ -53,7 +53,14 @@ const IA_CANONICAL_SHADOW_VALUES = new Set(["1", "true", "on", "shadow"]);
 /* Keep the first real-client rollout intentionally small. The V2 session
    catalog is proven in hosted requests for these lanes, but remains opt-in
    until visible playback and guide behavior are measured in the app. */
-const IA_SESSION_CATALOG_CANARY_CHANNELS = new Set(["12", "153", "700", "702"]);
+/* Expand the session-catalog canary only across the representative IA lanes
+   already exercised in the hosted pilot. Keep this explicit until the full
+   low-concurrency certification proves the new rotation path is safe for the
+   complete manifest. */
+const IA_SESSION_CATALOG_CANARY_CHANNELS = new Set([
+  "3", "10", "11", "12", "15", "20", "56", "64", "81", "110",
+  "118", "153", "154", "158", "205", "222", "500", "700", "702",
+]);
 const IA_CANONICAL_PROFILE_BY_CHANNEL = new Map(Object.values(IA_CANONICAL_PILOT_PROFILES).map((profile) => [String(profile.channel), profile.profileKey]));
 /* A relay response can be playable while still being too shallow for a
    rolling television catalog. Enrich any IA lane below the three-shelf floor

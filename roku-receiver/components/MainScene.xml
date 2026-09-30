@@ -34,6 +34,7 @@
     <Label id="hint" text="Pairing codes use numbers and A-F. Press OK on CONNECT when it lights up." translation="[110,875]" color="#a8cbb5" width="1600" wrap="true" />
     <Label id="nowPlaying" text="" translation="[110,950]" color="#f3dd7a" width="1700" />
     <ApiTask id="apiTask" />
+    <ApiTask id="heartbeatTask" />
     <Timer id="pollTimer" repeat="true" duration="2" />
     <Timer id="heartbeatTimer" repeat="true" duration="10" />
     <Timer id="focusTimer" repeat="false" duration="0.1" />

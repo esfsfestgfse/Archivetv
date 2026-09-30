@@ -7,7 +7,10 @@ sub run()
   kind = LCase(m.top.requestKind)
   api = m.top.baseUrl
   if kind = "session-get"
-    url = api + "/roku/session?code=" + EncodeUriComponent(m.top.code) + "&since=" + StrI(m.top.since).Trim()
+    ' Pairing codes are generated as uppercase letters and digits only, so they
+    ' are already safe in the query string.  EncodeUriComponent is not
+    ' available on every Roku BrightScript runtime.
+    url = api + "/roku/session?code=" + m.top.code + "&since=" + StrI(m.top.since).Trim()
     body = invalid
     method = "GET"
   else if kind = "heartbeat"

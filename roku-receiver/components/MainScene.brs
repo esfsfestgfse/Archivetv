@@ -1,5 +1,6 @@
 sub init()
   m.api = m.top.findNode("apiTask")
+  m.heartbeatApi = m.top.findNode("heartbeatTask")
   m.player = m.top.findNode("player")
   m.overlay = m.top.findNode("overlay")
   m.brand = m.top.findNode("brand")
@@ -46,6 +47,8 @@ sub init()
   m.focusTimer.observeField("fire", "initialFocus")
   m.api.observeField("result", "apiResult")
   m.api.observeField("error", "apiError")
+  m.heartbeatApi.observeField("result", "heartbeatResult")
+  m.heartbeatApi.observeField("error", "heartbeatError")
   m.player.observeField("state", "videoState")
   m.top.observeField("isScreenVisible", "screenVisible")
   m.code = ""
@@ -56,7 +59,10 @@ sub init()
   m.lastChannel = 3
   m.rotation = 0
   m.sessionStarted = false
+  m.requestActive = false
+  m.heartbeatActive = false
   m.api.baseUrl = "https://realsignal-api.tdy1990.workers.dev/api/v3"
+  m.heartbeatApi.baseUrl = m.api.baseUrl
   m.top.focusable = true
   m.connect.visible = false
   m.status.text = "Use the arrows and OK to enter the 12-character pairing code."
@@ -276,6 +282,7 @@ sub connectNow()
     return
   end if
   hidePairingScreen()
+  startSessionTimers()
   m.nowPlaying.visible = true
   m.nowPlaying.text = "CONNECTED · LOADING CH " + m.lastChannel.ToStr()
   m.pendingTune = true
@@ -299,6 +306,8 @@ sub hidePairingScreen()
 end sub
 
 sub request(kind, payload)
+  if m.requestActive = true then return
+  m.requestActive = true
   m.requestSerial = m.requestSerial + 1
   m.api.control = "stop"
   m.api.baseUrl = "https://realsignal-api.tdy1990.workers.dev/api/v3"
@@ -315,12 +324,33 @@ sub pollSession(event)
 end sub
 
 sub heartbeat(event)
-  if m.code <> "" then request("heartbeat", {})
+  heartbeatRequest()
+end sub
+
+sub heartbeatRequest()
+  if m.code = "" or m.heartbeatActive = true then return
+  m.heartbeatActive = true
+  m.heartbeatApi.baseUrl = "https://realsignal-api.tdy1990.workers.dev/api/v3"
+  m.heartbeatApi.code = m.code
+  m.heartbeatApi.since = 0
+  m.heartbeatApi.requestKind = "heartbeat"
+  m.heartbeatApi.payload = {}
+  m.heartbeatApi.runToken = m.requestSerial
+  m.heartbeatApi.control = "run"
+end sub
+
+sub heartbeatResult(event)
+  m.heartbeatActive = false
+end sub
+
+sub heartbeatError(event)
+  m.heartbeatActive = false
 end sub
 
 sub apiResult(event)
   data = event.getData()
   if data = invalid then return
+  m.requestActive = false
   startSessionTimers()
   if data.DoesExist("sequence") then m.since = data.sequence
   if data.DoesExist("commands")
@@ -335,6 +365,7 @@ sub apiResult(event)
 end sub
 
 sub apiError(event)
+  m.requestActive = false
   error = event.getData()
   if error <> invalid and error <> ""
     if m.code <> ""

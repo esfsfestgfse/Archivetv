@@ -104,10 +104,10 @@ const IA_CATALOG_CANDIDATE_MAX = 3072;
    episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
- const IA_QUEUE_CACHE_VERSION = "v248";
+ const IA_QUEUE_CACHE_VERSION = "v249";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
- const IA_LAST_GOOD_CACHE_VERSION = "v248";
+ const IA_LAST_GOOD_CACHE_VERSION = "v249";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -375,7 +375,7 @@ function iaStrictRecoveryEnabled(channel) {
 const IA_DEPTH_RECOVERY_CHANNELS = new Set([
   "3", "10", "13", "14", "17", "18", "19", "21", "60", "61", "62", "64", "66", "68", "70", "74", "75", "76", "77", "80", "81",
   "100", "101", "102", "105", "106", "107", "108", "111", "114", "115", "117", "118", "120", "124", "125", "126", "127", "128", "129", "130", "131", "132", "154", "205", "222", "922",
-  "51", "57", "58", "69", "72", "83", "104", "122", "124", "202", "203", "204", "206", "209", "210", "211", "212", "213", "214", "215", "220", "223", "224", "227", "228", "231", "232", "235", "237", "239", "240", "501", "502", "511", "700", "702", "703", "704", "705", "706", "707", "708", "709", "901", "906", "907", "909", "914", "916", "918", "920", "921", "923", "927", "929", "16", "90"
+  "51", "57", "58", "69", "72", "83", "104", "122", "124", "202", "203", "204", "206", "209", "210", "211", "212", "213", "214", "215", "220", "223", "224", "227", "228", "231", "232", "235", "237", "239", "240", "501", "502", "511", "700", "702", "703", "704", "705", "706", "707", "708", "709", "901", "906", "907", "909", "914", "916", "918", "920", "921", "923", "927", "929", "16", "22", "23", "90"
 ].filter(Boolean));
 function iaDepthRecoveryEnabled(channel) {
   return IA_DEPTH_RECOVERY_CHANNELS.has(String(channel));
@@ -7256,19 +7256,42 @@ const IA_TITLE_FAMILY_ALIASES = Object.freeze([
 ]);
 
 function queueTitleFamily(doc) {
-  const title = queueKey(doc && doc.title);
-  if (!title) return queueKey(doc && (doc.sourceIdentifier || doc.identifier));
+  const rawTitle = String(doc && doc.title || "").normalize("NFKD").toLowerCase().trim();
+  const title = queueKey(rawTitle);
+  const source = queueKey(doc && (doc.sourceIdentifier || ""));
+  if (!title) return source || queueKey(doc && doc.identifier);
+
+  /* Expanded Archive files often repeat the container title before a middle
+     dot, for example “Father Ted (Complete Series) · Father Ted S02E03”.
+     Keep the container head for family identity so every episode belongs to
+     the show, not to its individual episode filename. */
+  const rawHead = rawTitle.split(/\s*[·•]\s*/)[0].trim();
+  const head = queueKey(rawHead);
+  const aliasText = [title, head, source].filter(Boolean).join(" ");
   for (const [family, aliases] of IA_TITLE_FAMILY_ALIASES) {
-    if (aliases.some((alias) => title.includes(queueKey(alias)))) return family;
+    if (aliases.some((alias) => aliasText.includes(queueKey(alias)))) return family;
   }
-  const stem = title
-    .replace(/\b(?:episode|ep|chapter|part)\s*(?:title\s*)?(?:\d+|[a-z])?.*$/i, "")
-    .replace(/\b(?:s\d{1,2}e\d{1,3}|season\s*\d+|series\s*\d+)\b.*$/i, "")
-    .replace(/\b(?:complete(?:\s+series|\s+collection)?|full\s+series|box\s*set)\b/gi, "")
-    .replace(/\b(?:19|20)\d{2}\b/g, "")
+
+  /* Remove the catalog wrapper, episode markers, and broadcast dates before
+     deriving a fallback family. This turns dated one-off titles such as
+     “Brian Henderson's Bandstand - 8 June 1963” into one stable show family,
+     while leaving unrelated programs distinct. */
+  const completeContainer = /\b(?:complete|full)\s+(?:tv\s+)?series\b|\bbox\s*set\b/i.test(rawTitle);
+  let stem = completeContainer && rawHead ? rawHead : rawTitle;
+  stem = stem
+    .replace(/^\s*(?:19|20)\d{2}'?s?\s+(?:television|tv|t v)\s*[:,-]\s*/i, "")
+    .replace(/\b(?:the\s+)?complete(?:\s+tv)?\s+series\b/gi, " ")
+    .replace(/\b(?:full\s+series|box\s*set)\b/gi, " ")
+    .replace(/\([^)]*\b(?:19|20)\d{2}\b[^)]*\)/g, " ")
+    .replace(/\b(?:19|20)\d{2}\s*(?:[-–]\s*(?:19|20)?\d{2})?\b/g, " ")
+    .replace(/\b(?:s\d{1,2}e\d{1,3}|season\s*\d+|series\s*\d+|episode\s*\d+|ep\s*\d+|disc\s*\d+|disk\s*\d+|part\s*\d+)\b.*$/i, "")
+    .replace(/\s*[-–—:]\s*(?=(?:\d{1,2}(?:st|nd|rd|th)?\s+)?(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\b|\d{4}\b|(?:unknown\s+)?episode\b|pilot\b)[\s\S]*$/i, "")
+    .replace(/\s*\d{1,2}(?:st|nd|rd|th)?\s+(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\b.*$/i, "")
+    .replace(/\s+(?:disc|disk)\s+\d+\b.*$/i, "")
     .replace(/\s+/g, " ")
     .trim();
-  return stem.slice(0, 120) || title.slice(0, 120);
+  const normalizedStem = queueKey(stem);
+  return normalizedStem.slice(0, 120) || title.slice(0, 120);
 }
 
 function queueEraKey(value) {

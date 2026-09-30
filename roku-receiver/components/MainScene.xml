@@ -1,0 +1,16 @@
+<component name="MainScene" extends="Scene">
+  <script type="text/brightscript" uri="pkg:/components/MainScene.brs" />
+  <children>
+    <Video id="player" width="1920" height="1080" visible="false" />
+    <Rectangle id="overlay" width="1920" height="1080" color="#07100e" opacity="0.96" visible="true" />
+    <Label id="brand" text="REALSIGNAL" translation="[110,110]" color="#79ffad" font="font:LargeBoldSystemFont" />
+    <Label id="headline" text="ROKU PREVIEW" translation="[110,190]" color="#effff3" font="font:MediumBoldSystemFont" />
+    <Label id="status" text="Enter the pairing code from the RealSignal Roku Remote" translation="[110,260]" color="#a8cbb5" width="1600" wrap="true" />
+    <Keyboard id="keyboard" translation="[110,340]" maxTextLength="24" showTextEditBox="true" />
+    <Button id="connect" text="CONNECT" translation="[110,610]" />
+    <Label id="nowPlaying" text="" translation="[110,950]" color="#f3dd7a" width="1700" />
+    <ApiTask id="apiTask" />
+    <Timer id="pollTimer" repeat="true" duration="2" />
+    <Timer id="heartbeatTimer" repeat="true" duration="10" />
+  </children>
+</component>

@@ -7,6 +7,7 @@
 
 import { SessionRotation } from "./realsignal_api_rotation.js";
 import { EdgeRateLimiter } from "./realsignal_api_rate_limit.js";
+import { RokuSession } from "./realsignal_roku_session.js";
 import { mergeSourceLanes, sourceCatalogTasks, sourceProfile, SOURCE_LIMITS } from "./realsignal_source_catalog.js";
 import { IA_CANONICAL_PILOT_PROFILES, IA_CANONICAL_SCHEMA_VERSION, canonicalGuide, selectCanonicalItems } from "./ia_canonical_station.mjs";
 import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
@@ -149,6 +150,9 @@ const RATE_LIMITS = Object.freeze({
      separately bounded below. */
   queue: Object.freeze({ windowMs: 60_000, max: 240 }),
   "youtube-uploads": Object.freeze({ windowMs: 60_000, max: 30 }),
+  /* Roku sessions are opt-in control traffic. Keep a generous bounded guard
+     so a broken remote cannot turn polling into an unbounded Worker bill. */
+  "roku-session": Object.freeze({ windowMs: 60_000, max: 180 }),
 });
 /* This is a small edge guard, not durable product state. It absorbs accidental
    provider-triggering bursts in each Worker isolate while durable channel
@@ -270,8 +274,64 @@ function routeFor(pathname) {
     if (pathname === `${prefix}/source/catalog`) return { kind: "source-catalog", apiVersion };
     if (pathname === `${prefix}/source/status`) return { kind: "source-status", apiVersion };
     if (pathname === `${prefix}/catalog`) return { kind: "catalog", apiVersion };
+    if (apiVersion === "v3" && pathname === `${prefix}/roku/session`) return { kind: "roku-session", apiVersion };
   }
   return null;
+}
+
+function makeRokuPairingCode() {
+  return crypto.randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase();
+}
+
+function rokuResponse(response, id) {
+  const headers = new Headers(response.headers);
+  for (const [key, value] of Object.entries(corsHeaders(headers.get("content-type") || "application/json; charset=utf-8"))) headers.set(key, value);
+  headers.set("Cache-Control", "no-store");
+  headers.set("X-RealSignal-API", "v3");
+  headers.set("X-RealSignal-Request", id);
+  headers.set("X-RealSignal-Source", "roku-session");
+  headers.set("X-RealSignal-Release", V3_RELEASE);
+  return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+}
+
+async function handleRokuSession(request, env, ctx, id) {
+  if (!env.ROKU_SESSION || typeof env.ROKU_SESSION.getByName !== "function") {
+    return json({ error: "Roku preview is not configured", requestId: id }, 503, { "Cache-Control": "no-store", "X-RealSignal-Release": V3_RELEASE });
+  }
+  const url = new URL(request.url);
+  if (request.method === "GET") {
+    const code = String(url.searchParams.get("code") || request.headers.get("X-RealSignal-Roku-Code") || "").trim().slice(0, 96);
+    if (!code) return json({ error: "Roku session code is required", requestId: id }, 400, { "Cache-Control": "no-store", "X-RealSignal-Release": V3_RELEASE });
+    const stub = env.ROKU_SESSION.getByName(`roku:${safeSession(code)}`);
+    const response = await stub.fetch(new Request(`https://roku.internal/session?code=${encodeURIComponent(code)}&since=${encodeURIComponent(url.searchParams.get("since") || "0")}`, { method: "GET", headers: { "X-RealSignal-Roku-Code": code } }));
+    return rokuResponse(response, id);
+  }
+  if (request.method !== "POST") return json({ error: "method not allowed", requestId: id }, 405, { Allow: "GET,POST,OPTIONS" });
+  let body;
+  try { body = await readBoundedJson(request); }
+  catch (error) { return json({ error: error instanceof RangeError ? error.message : "invalid JSON body", requestId: id }, 400, { "Cache-Control": "no-store", "X-RealSignal-Release": V3_RELEASE }); }
+  const action = String(body && body.action || "").trim().toLowerCase();
+  if (action === "create") {
+    const code = makeRokuPairingCode();
+    const stub = env.ROKU_SESSION.getByName(`roku:${safeSession(code)}`);
+    const init = await stub.fetch(new Request(`https://roku.internal/session?code=${encodeURIComponent(code)}&action=init`, {
+      method: "POST",
+      headers: { "content-type": "application/json", "X-RealSignal-Roku-Code": code },
+      body: JSON.stringify({ action: "init", code, state: body.state || {} }),
+    }));
+    if (!init.ok) return rokuResponse(init, id);
+    const payload = await init.json().catch(() => ({}));
+    return json({ ...payload, pairingCode: code, endpoint: `${url.origin}/api/v3/roku/session`, expiresAt: payload.expiresAt, receiverProtocol: "opt-in-session-v1", requestId: id }, 201, { "Cache-Control": "no-store", "X-RealSignal-Release": V3_RELEASE, "X-RealSignal-Source": "roku-session" });
+  }
+  const code = String(body && body.code || url.searchParams.get("code") || request.headers.get("X-RealSignal-Roku-Code") || "").trim().slice(0, 96);
+  if (!code) return json({ error: "Roku session code is required", requestId: id }, 400, { "Cache-Control": "no-store", "X-RealSignal-Release": V3_RELEASE });
+  const stub = env.ROKU_SESSION.getByName(`roku:${safeSession(code)}`);
+  const response = await stub.fetch(new Request(`https://roku.internal/session?code=${encodeURIComponent(code)}`, {
+    method: "POST",
+    headers: { "content-type": "application/json", "X-RealSignal-Roku-Code": code },
+    body: JSON.stringify({ ...body, code }),
+  }));
+  return rokuResponse(response, id);
 }
 
 async function fetchYouTubeJson(url) {
@@ -2063,7 +2123,7 @@ const worker = {
     try {
       if (route && route.kind === "health") {
         const v3 = route.apiVersion === "v3";
-        return json({ service: "realsignal-api", apiVersion: v3 ? "v3" : "v2", release: v3 ? V3_RELEASE : "2.2.2", status: "ready", capabilities: ["ia-search", "ia-metadata", "ia-queue", "session-rotation", "catalog-jobs", "source-catalog", "adaptive-catalog", "freshness-ledger", ...(v3 ? ["verified-guide", "server-telemetry", "source-health", "edge-manifests", "durable-rate-limit", "queue-dead-letter", "version5-gate", ...(IA_CANONICAL_PILOT_VALUES.has(String(env.IA_CANONICAL_PILOT || "").trim().toLowerCase()) ? ["ia-canonical-pilot"] : []), ...(IA_CANONICAL_SHADOW_VALUES.has(String(env.IA_CANONICAL_SHADOW || "").trim().toLowerCase()) ? ["ia-canonical-shadow"] : [])] : []), "youtube-sports"], bindings: { relay: !!env.RELAY, rotation: !!env.ROTATION, rateLimiter: !!env.RATE_LIMITER, catalog: !!env.realsignal_catalog, refreshQueue: !!env.realsignal_catalog_refresh }, checkedAt: new Date().toISOString() }, 200, { "Cache-Control": "no-store", "X-RealSignal-Request": id, "X-RealSignal-Release": v3 ? V3_RELEASE : "2.2.2" });
+        return json({ service: "realsignal-api", apiVersion: v3 ? "v3" : "v2", release: v3 ? V3_RELEASE : "2.2.2", status: "ready", capabilities: ["ia-search", "ia-metadata", "ia-queue", "session-rotation", "catalog-jobs", "source-catalog", "adaptive-catalog", "freshness-ledger", ...(v3 ? ["verified-guide", "server-telemetry", "source-health", "edge-manifests", "durable-rate-limit", "queue-dead-letter", "version5-gate", "roku-session", ...(IA_CANONICAL_PILOT_VALUES.has(String(env.IA_CANONICAL_PILOT || "").trim().toLowerCase()) ? ["ia-canonical-pilot"] : []), ...(IA_CANONICAL_SHADOW_VALUES.has(String(env.IA_CANONICAL_SHADOW || "").trim().toLowerCase()) ? ["ia-canonical-shadow"] : [])] : []), "youtube-sports"], bindings: { relay: !!env.RELAY, rotation: !!env.ROTATION, rateLimiter: !!env.RATE_LIMITER, rokuSession: !!env.ROKU_SESSION, catalog: !!env.realsignal_catalog, refreshQueue: !!env.realsignal_catalog_refresh }, checkedAt: new Date().toISOString() }, 200, { "Cache-Control": "no-store", "X-RealSignal-Request": id, "X-RealSignal-Release": v3 ? V3_RELEASE : "2.2.2" });
       }
       if (route && route.kind === "telemetry") {
         if (request.method !== "POST") return json({ error: "method not allowed", requestId: id }, 405, { Allow: "POST,OPTIONS" });
@@ -2078,6 +2138,11 @@ const worker = {
       if (route && route.kind === "health-summary") {
         if (request.method !== "GET") return json({ error: "method not allowed", requestId: id }, 405, { Allow: "GET,OPTIONS" });
         return await handleHealthSummary(request, env, ctx);
+      }
+      if (route && route.kind === "roku-session") {
+        const limited = await durableRateLimit(request, env, "roku-session");
+        if (limited) return limited;
+        return await handleRokuSession(request, env, ctx, id);
       }
       if (route && route.kind === "guide") {
         if (request.method !== "GET") return json({ error: "method not allowed", requestId: id }, 405, { Allow: "GET,OPTIONS" });
@@ -2132,5 +2197,5 @@ const worker = {
   },
 };
 
-export { SessionRotation, EdgeRateLimiter, freshnessExclusionIds };
+export { SessionRotation, EdgeRateLimiter, RokuSession, freshnessExclusionIds };
 export default worker;

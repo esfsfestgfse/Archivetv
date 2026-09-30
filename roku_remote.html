@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#08100e">
+  <title>RealSignal Roku Remote</title>
+  <style>
+    :root { color-scheme: dark; font-family: system-ui, -apple-system, Segoe UI, sans-serif; background:#07100e; color:#e7fff0; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; display:grid; place-items:center; background:radial-gradient(circle at 50% 0,#173c2a 0,#07100e 50%,#030706 100%); }
+    main { width:min(100%,520px); min-height:100vh; padding:24px 18px 32px; display:flex; flex-direction:column; gap:16px; }
+    header { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+    h1 { margin:0; font-size:20px; letter-spacing:.14em; text-transform:uppercase; color:#79ffad; }
+    .badge { border:1px solid #27583d; border-radius:999px; padding:6px 10px; color:#8db9a1; font-size:11px; letter-spacing:.08em; }
+    .panel { border:1px solid #214532; border-radius:18px; background:rgba(8,22,16,.9); box-shadow:0 18px 50px rgba(0,0,0,.3); padding:16px; }
+    .row { display:flex; gap:10px; align-items:center; }
+    .row > * { min-width:0; }
+    label { display:block; color:#8db9a1; font-size:11px; letter-spacing:.1em; text-transform:uppercase; margin:0 0 7px; }
+    input { width:100%; border:1px solid #315d45; border-radius:10px; background:#07120d; color:#effff3; padding:12px 13px; font:inherit; }
+    button { border:1px solid #315d45; border-radius:11px; background:linear-gradient(#183824,#0c2015); color:#edfff1; padding:12px 13px; min-height:44px; font-weight:700; letter-spacing:.04em; cursor:pointer; }
+    button:hover, button:focus-visible { border-color:#79ffad; outline:none; box-shadow:0 0 0 2px rgba(121,255,173,.18); }
+    button:active { transform:translateY(1px); }
+    .primary { background:linear-gradient(#40bd72,#1d7445); color:#031209; border-color:#7effae; }
+    .danger { border-color:#7c3b3b; color:#ffb5a5; }
+    .session { display:grid; grid-template-columns:1fr auto; gap:12px; align-items:end; }
+    .code { font:700 24px ui-monospace,SFMono-Regular,Consolas,monospace; letter-spacing:.16em; color:#f3dd7a; word-break:break-all; }
+    .status { display:flex; justify-content:space-between; gap:12px; color:#8db9a1; font-size:13px; }
+    .status strong { color:#79ffad; }
+    .status.offline strong { color:#ffb5a5; }
+    .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+    .wide { grid-column:span 2; }
+    .channel { display:grid; grid-template-columns:1fr auto; gap:10px; align-items:end; }
+    .volume { display:grid; grid-template-columns:auto 1fr auto; gap:10px; align-items:center; margin-top:12px; }
+    .volume output { min-width:42px; text-align:right; color:#f3dd7a; font-weight:700; }
+    input[type=range] { accent-color:#79ffad; padding:0; }
+    .hint { margin:0; color:#789586; font-size:12px; line-height:1.5; }
+    #log { min-height:42px; margin:0; color:#abc9b7; font:12px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace; white-space:pre-wrap; }
+    @media (min-width:600px) { main { min-height:auto; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header><h1>RealSignal</h1><span class="badge">ROKU PREVIEW · OPT-IN</span></header>
+    <section class="panel">
+      <div class="session">
+        <div><label>Pairing code</label><div id="code" class="code">NOT CONNECTED</div></div>
+        <button id="newSession" class="primary">New session</button>
+      </div>
+      <div class="row" style="margin-top:14px"><input id="existingCode" autocomplete="off" placeholder="Paste an existing pairing code"><button id="connect">Connect</button></div>
+      <p class="hint" style="margin-top:12px">This remote only controls the separate Roku preview session. Chromecast and the normal RealSignal player are unchanged.</p>
+    </section>
+    <section class="panel">
+      <div id="status" class="status offline"><span>Receiver</span><strong>OFFLINE</strong></div>
+      <div class="channel" style="margin-top:14px"><div><label>Channel</label><input id="channel" inputmode="numeric" value="3" aria-label="Channel number"></div><button id="tune" class="primary">Tune</button></div>
+      <div class="grid" style="margin-top:12px">
+        <button data-action="POWER">Power</button><button data-action="GUIDE">Guide</button><button data-action="BACK">Back</button>
+        <button data-action="PREV">Previous</button><button data-action="NEXT">Next</button><button data-action="PLAY">Play</button>
+        <button data-action="PAUSE">Pause</button><button data-action="STOP">Stop</button><button data-action="MUTE">Mute</button>
+      </div>
+      <div class="volume"><button data-action="VOLUME" data-level="-0.1">−</button><input id="volume" type="range" min="0" max="1" step=".05" value=".7" aria-label="Volume"><button data-action="VOLUME" data-level="0.1">+</button><output id="volumeValue">70%</output></div>
+    </section>
+    <section class="panel"><label>Session activity</label><p id="log">Create a session to begin.</p></section>
+  </main>
+  <script>
+    (() => {
+      const API = new URLSearchParams(location.search).get("api") || "https://realsignal-api.tdy1990.workers.dev/api/v3/roku/session";
+      const $ = (id) => document.getElementById(id);
+      let code = "";
+      let since = 0;
+      let pollTimer = 0;
+      let volume = .7;
+      const log = (message) => { $("log").textContent = `${new Date().toLocaleTimeString()}  ${message}`; };
+      const api = async (path = "", options = {}) => {
+        const response = await fetch(`${API}${path}`, { ...options, headers: { "content-type":"application/json", ...(options.headers || {}) } });
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(body.error || `Request failed (${response.status})`);
+        return body;
+      };
+      const setCode = (next) => { code = String(next || "").trim().toUpperCase(); $("code").textContent = code || "NOT CONNECTED"; since = 0; };
+      const postCommand = async (command, state = {}) => {
+        if (!code) return log("Create or connect a session first.");
+        try { await api("", { method:"POST", body:JSON.stringify({ action:"command", code, command, state:{ channel:Number($("channel").value)||3, volume, powered:true, ...state } }) }); log(`${command.action} sent`); }
+        catch (error) { log(error.message); }
+      };
+      const poll = async () => {
+        if (!code) return;
+        try {
+          const body = await api(`?code=${encodeURIComponent(code)}&since=${since}`);
+          since = Number(body.sequence || since);
+          const online = !!(body.receiver && body.receiver.online);
+          $("status").classList.toggle("offline", !online);
+          $("status").innerHTML = `<span>Receiver${body.receiver && body.receiver.model ? ` · ${body.receiver.model}` : ""}</span><strong>${online ? "ONLINE" : "WAITING"}</strong>`;
+          if (Array.isArray(body.commands) && body.commands.length) log(`${body.commands.length} receiver update${body.commands.length === 1 ? "" : "s"}`);
+        } catch (error) { log(`Waiting for receiver · ${error.message}`); }
+        pollTimer = window.setTimeout(poll, 2500);
+      };
+      const connect = (nextCode) => { window.clearTimeout(pollTimer); setCode(nextCode); if (code) { log("Session connected; waiting for Roku receiver."); poll(); } };
+      $("newSession").onclick = async () => { try { const body = await api("", { method:"POST", body:JSON.stringify({ action:"create", state:{ channel:3, volume } }) }); connect(body.pairingCode || body.session); log("New pairing code created."); } catch (error) { log(error.message); } };
+      $("connect").onclick = () => connect($("existingCode").value);
+      $("tune").onclick = () => postCommand({ action:"TUNE", channel:Number($("channel").value)||3 });
+      document.querySelectorAll("[data-action]").forEach((button) => button.onclick = () => {
+        const action = button.dataset.action;
+        if (action === "VOLUME") { volume = Math.max(0, Math.min(1, volume + Number(button.dataset.level || 0))); $("volume").value = volume; $("volumeValue").textContent = `${Math.round(volume * 100)}%`; }
+        postCommand({ action, channel:Number($("channel").value)||3, level:volume, muted:action === "MUTE" });
+      });
+      $("volume").oninput = (event) => { volume = Number(event.target.value); $("volumeValue").textContent = `${Math.round(volume * 100)}%`; };
+      window.addEventListener("beforeunload", () => window.clearTimeout(pollTimer));
+    })();
+  </script>
+</body>
+</html>

@@ -8,6 +8,7 @@ on:
       - 'the_dial_desktop.html'
       - 'the_dial_mobile.html'
       - 'realsignal_cast_receiver.html'
+      - 'roku_remote.html'
       - 'sw.js'
       - 'manifest.json'
       - 'icon-192.png'
@@ -107,6 +108,7 @@ jobs:
           cp the_dial_desktop.html _site/the_dial_desktop.html
           cp the_dial_mobile.html _site/the_dial_mobile.html
           cp realsignal_cast_receiver.html _site/realsignal_cast_receiver.html
+          cp roku_remote.html _site/roku_remote.html
           cp sw.js manifest.json icon-192.png icon-512.png _site/
           cp assets/* _site/assets/
 

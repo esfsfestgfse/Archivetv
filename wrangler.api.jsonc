@@ -26,12 +26,14 @@
   "durable_objects": {
     "bindings": [
       { "name": "ROTATION", "class_name": "SessionRotation" },
-      { "name": "RATE_LIMITER", "class_name": "EdgeRateLimiter" }
+      { "name": "RATE_LIMITER", "class_name": "EdgeRateLimiter" },
+      { "name": "ROKU_SESSION", "class_name": "RokuSession" }
     ]
   },
   "migrations": [
     { "tag": "v1", "new_sqlite_classes": ["SessionRotation"] },
-    { "tag": "v2", "new_sqlite_classes": ["EdgeRateLimiter"] }
+    { "tag": "v2", "new_sqlite_classes": ["EdgeRateLimiter"] },
+    { "tag": "v3", "new_sqlite_classes": ["RokuSession"] }
   ],
   "queues": {
     "producers": [

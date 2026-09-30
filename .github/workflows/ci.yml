@@ -42,6 +42,8 @@ jobs:
         run: node scripts/test-ia-collection-depth.js
       - name: Validate Chromecast sender and receiver contract
         run: node scripts/check-cast-contract.js
+      - name: Validate opt-in Roku preview contract
+        run: node scripts/check-roku-contract.js
       - name: Test Cast channel changes, guide, and recovery
         run: node scripts/test-cast-runtime.js
       - name: Test IA audit measurements
@@ -89,6 +91,7 @@ jobs:
           node scripts/check-channel-registry.js
           node scripts/check-source-suite-contract.js
           node scripts/check-cast-contract.js
+          node scripts/check-roku-contract.js
           node scripts/test-guide-row-stability.js
           node scripts/test-modern-cartoons-lock.js
           node scripts/test-modern-rerun-lock.js
@@ -140,6 +143,7 @@ jobs:
           node scripts/check-channel-registry.js
           node scripts/check-source-suite-contract.js
           node scripts/check-cast-contract.js
+          node scripts/check-roku-contract.js
           node scripts/test-guide-row-stability.js
           node scripts/test-modern-cartoons-lock.js
           node scripts/test-modern-rerun-lock.js

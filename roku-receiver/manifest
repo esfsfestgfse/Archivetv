@@ -1,0 +1,10 @@
+title=RealSignal Roku Preview
+subtitle=Opt-in RealSignal receiver prototype
+major_version=1
+minor_version=0
+build_version=1
+ui_resolutions=fhd,hd,sd
+supports_input_launch=1
+enable_audioguide=1
+developer=RealSignal
+description=Opt-in Roku receiver for RealSignal direct media playback and remote sessions.

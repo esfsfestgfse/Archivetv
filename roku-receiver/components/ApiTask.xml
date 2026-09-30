@@ -1,0 +1,13 @@
+<component name="ApiTask" extends="Task">
+  <interface>
+    <field id="baseUrl" type="string" />
+    <field id="code" type="string" />
+    <field id="since" type="integer" value="0" />
+    <field id="requestKind" type="string" />
+    <field id="payload" type="assocarray" />
+    <field id="runToken" type="integer" value="0" />
+    <field id="result" type="assocarray" />
+    <field id="error" type="string" />
+  </interface>
+  <script type="text/brightscript" uri="pkg:/components/ApiTask.brs" />
+</component>

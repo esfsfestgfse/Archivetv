@@ -90,6 +90,17 @@ const IA_FALLBACK_ALIASES = Object.freeze({
   "116": Object.freeze(["black charley", "fight for your life", "abby", "brother from another planet", "fighting mad", "foxy brown", "trouble man", "lord shango", "cleopatra jones", "black fist", "human tornado"]),
   "123": Object.freeze(["man in room 17", "world at war", "keeping up appearances", "jason king", "viz", "tomorrow's world", "roger mellie", "garth marenghi", "darkplace", "bbc", "british"]),
 });
+/* Targeted requalification for two lanes exposed by the expanded canary.
+   These are positive editorial gates, not a global relaxation: a persisted
+   row must still carry the lane's subject/title signal before it can reach the
+   rolling shelf. */
+const IA_STRICT_TOPIC_LANES = new Map([
+  ["20", ["judge show", "court show", "people's court", "divorce court", "judge judy", "judge wapner", "judge mathis", "judge joe brown", "small claims court", "civil court", "television judge show"]],
+]);
+const IA_ENGLISH_FOCUS_LANES = new Set(["11"]);
+const IA_NON_ENGLISH_SIGNAL_TERMS = [
+  "hindi", "indian", "mahabharat", "bhagwan", "tamil", "telugu", "bengali", "bangla", "marathi", "malayalam", "kannada", "punjabi", "urdu", "arabic", "spanish", "portuguese", "french", "german", "russian", "turkish", "korean", "japanese", "mandarin",
+];
 const YOUTUBE_SPORT_HANDLES = new Set([
   "NFL", "NCAAFootball", "NBA", "marchmadness", "MLB", "NHL", "wnba", "NCAA",
   "premierleague", "MLS", "FIFA", "lolesports", "iccmedia", "WorldRugby", "aflcomau",
@@ -566,6 +577,12 @@ function catalogFallbackAllowed(item, body) {
     const needle = String(term || "").trim().toLowerCase();
     return needle && denyHaystack.includes(needle);
   })) return false;
+  const strictTopicTerms = IA_STRICT_TOPIC_LANES.get(holidayChannel);
+  if (strictTopicTerms && !strictTopicTerms.some((term) => haystack.includes(term))) return false;
+  if (IA_ENGLISH_FOCUS_LANES.has(holidayChannel)) {
+    if (IA_NON_ENGLISH_SIGNAL_TERMS.some((term) => haystack.includes(term))) return false;
+    if (/[\u0400-\u04ff\u0600-\u06ff\u0590-\u05ff\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af\u1100-\u11ff\u0e00-\u0e7f]/.test(haystack)) return false;
+  }
   /* A relay-verified item has already passed the channel's full source-side
      genre rules. Preserve that provenance when a child film title is
      editorially correct but does not literally repeat the required phrase

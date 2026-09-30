@@ -26,8 +26,8 @@ for (const [name, source] of [['desktop', desktop], ['mobile', mobile]]) {
     if (!source.includes(`'${channel}'`)) issues.push(`${name} is missing pilot channel ${channel}`);
   }
 }
-if (!desktop.includes('4.1.196-desktop-session-catalog-expanded')) issues.push('desktop build stamp must identify the expanded canary');
-if (!mobile.includes('4.1.196-mobile-session-catalog-expanded')) issues.push('mobile build stamp must identify the expanded canary');
+if (!desktop.includes('4.1.197-desktop-session-catalog-guarded')) issues.push('desktop build stamp must identify the guarded canary');
+if (!mobile.includes('4.1.197-mobile-session-catalog-guarded')) issues.push('mobile build stamp must identify the guarded canary');
 
 console.log(`Session catalog canary contract: ${issues.length ? 'FAILED' : 'passed'}`);
 for (const issue of issues) console.log(`P0 ${issue}`);

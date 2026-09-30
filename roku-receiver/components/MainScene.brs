@@ -38,17 +38,6 @@ sub init()
   m.clearCode.focusable = false
   m.backspaceCode.focusable = false
   m.connect.focusable = false
-  for index = 0 to m.keyIds.Count() - 1
-    keyNode = m.top.findNode("key" + m.keyIds[index])
-    column = index
-    if index >= 4 then column = index - 4
-    if index >= 8 then column = index - 8
-    if index >= 12 then column = index - 12
-    if column < 3 then keyNode.nextFocusRight = "key" + m.keyIds[index + 1]
-    if column > 0 then keyNode.nextFocusLeft = "key" + m.keyIds[index - 1]
-    if index < 12 then keyNode.nextFocusDown = "key" + m.keyIds[index + 4]
-    if index >= 4 then keyNode.nextFocusUp = "key" + m.keyIds[index - 4]
-  end for
   m.pollTimer.observeField("fire", "pollSession")
   m.heartbeatTimer.observeField("fire", "heartbeat")
   m.focusTimer.observeField("fire", "initialFocus")
@@ -276,7 +265,7 @@ sub removeLastCodeCharacter()
 end sub
 
 sub connectNow()
-  m.code = UCase(Trim(m.codeBuffer))
+  m.code = UCase(m.codeBuffer)
   if Len(m.code) < 12
     m.status.text = "Enter all 12 characters first."
     return

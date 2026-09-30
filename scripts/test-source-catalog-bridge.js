@@ -67,11 +67,12 @@ vm.runInContext(source, context);
     fetch: async (url, options) => {
       staleCalls.push({ url: String(url), options });
       const request = JSON.parse(options.body);
-      const count = request.refresh ? 12 : 3;
+      const count = 3;
+      const prefix = request.refresh ? 'fresh-shelf' : 'shelf';
       return { ok: true, async json() {
         return {
           source: 'd1-source-catalog',
-          items: Array.from({ length: count }, (_, index) => ({ id: `shelf-${index}`, type: 'video', duration: 1200 })),
+          items: Array.from({ length: count }, (_, index) => ({ id: `${prefix}-${index}`, type: 'video', duration: 1200 })),
           providerAvailability: { youtube: true, peertube: true },
           hydrating: !request.refresh,
           staleCatalog: !request.refresh,
@@ -88,7 +89,7 @@ vm.runInContext(source, context);
   await new Promise(resolve => setImmediate(resolve));
   assert.equal(staleCalls.length, 2);
   assert.equal(JSON.parse(staleCalls[1].options.body).refresh, true);
-  assert.equal(refreshedCount, 12);
+  assert.equal(refreshedCount, 3, 'same-sized but newly rotated shelves must be adopted');
   assert.equal(staleContext.localStorage.getItem('realsignal:source-freshness:v3'), null, 'background catalog adoption must not mark fetched programs as watched');
   console.log('Source catalog bridge passed: server preference, play-only freshness, and server-only YouTube handling.');
 })().catch(error => { console.error(error.stack || error); process.exitCode = 1; });

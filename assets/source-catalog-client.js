@@ -101,7 +101,10 @@
        stale response held by the normal request coalescer. */
     setTimeout(function () {
       request(profile, rotation, true).then(function (fresh) {
-        if (!fresh || !Array.isArray(fresh.items) || fresh.items.length <= stale.items.length) return;
+        if (!fresh || !Array.isArray(fresh.items) || !fresh.items.length) return;
+        var staleIds = stale.items.map(itemKey);
+        var changed = fresh.items.some(function (item) { return staleIds.indexOf(itemKey(item)) < 0; });
+        if (!changed && fresh.items.length <= stale.items.length && Number(fresh.catalogDepth || 0) <= Number(stale.catalogDepth || 0)) return;
         if (typeof onFirst === "function") onFirst({
           provider: "Server Catalog",
           items: fresh.items,

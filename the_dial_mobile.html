@@ -1689,7 +1689,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="4.1.201-mobile-rolling-shelf";
+window.__ATV_BUILD="4.1.202-mobile-verified-guide";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -7806,7 +7806,7 @@ var LIVE_DATA_BEDS={worldclock:"gmjazz",weather:"gmjazz",stormcenter:"gmjazz",lo
 function guideDurationLabel(sec){sec=Math.max(0,Math.round(Number(sec)||0));var h=Math.floor(sec/3600),m=Math.max(0,Math.round((sec%3600)/60));return h?(h+"H "+m+"M"):(m+"M");}
 function guideUpdatedLabel(at){if(!at)return "WAITING FOR LIVE DATA";var age=Math.max(0,Math.round((Date.now()-at)/1000));return age<60?"UPDATED JUST NOW":("UPDATED "+guideDurationLabel(age)+" AGO");}
 function guideItemTitle(item){return String(item&&(item.title||item.identifier||item.id)||"PROGRAM DATA PENDING").replace(/\s+/g," ").trim();}
-function guideItemRuntime(item){var sec=item&&(item.runtime||item.duration||item.length);return Number(sec)>0?guideDurationLabel(sec):"RUNTIME PENDING";}
+function guideItemRuntime(item){var sec=item&&(item.runtime||item.duration||item.length||item.duration_seconds);return Number(sec)>0?guideDurationLabel(sec):"RUNTIME PENDING";}
 function guideQueueItems(ch,sl,current){
   var q=(iaProgramQueues[iaQueueKey(ch)]||[]).filter(function(item){return iaProgramAllowed(item,sl);});
   if(!current)return q;
@@ -7814,8 +7814,27 @@ function guideQueueItems(ch,sl,current){
   return q.filter(function(item){return !((currentId&&(String(item.identifier||item.id||"")===currentId))||(!currentId&&currentTitle&&String(item.title||"")===currentTitle));});
 }
 function guideQueueNext(ch,sl,current){return guideQueueItems(ch,sl,current)[0]||null;}
+function guideVerifiedListing(ch,verified){
+  if(!verified||verified.verified!==true)return null;
+  var localCurrent=(ch&&ch.num===curNum&&curItem&&curItem.title)?curItem:null;
+  var items=Array.isArray(verified.items)?verified.items.filter(Boolean):[];
+  var serverCurrent=verified.current||items[0]||null;
+  var current=localCurrent||null;
+  var currentId=String((localCurrent&&(localCurrent.identifier||localCurrent.id))||"");
+  var next=localCurrent?items.find(function(item){return String(item.identifier||item.id||"")!==currentId;}):(verified.next||items[1]||null);
+  var catalogDepth=Number(verified.catalogDepth)||items.length;
+  var unseenCount=Number(verified.unseenCount)||0;
+  var source=String((current&&current.provider)||serverCurrent&&serverCurrent.provider||verified.source||"verified catalog");
+  var detail=catalogDepth+" VERIFIED PROGRAMS · "+unseenCount+" UNSEEN · "+source;
+  if(localCurrent)return {now:"NOW · "+guideItemTitle(localCurrent),next:next?("NEXT · "+guideItemTitle(next)+" · "+guideItemRuntime(next)):"NEXT · PROGRAM DATA PENDING",detail:detail,state:"playing",live:false,ready:Math.min(3,items.length+1),capacity:3};
+  if(serverCurrent)return {now:"UP NEXT · "+guideItemTitle(serverCurrent)+" · "+guideItemRuntime(serverCurrent),next:next?("THEN · "+guideItemTitle(next)+" · "+guideItemRuntime(next)):"NEXT · PROGRAM DATA PENDING",detail:detail,state:"ready",live:false,ready:Math.min(3,items.length),capacity:3};
+  return null;
+}
 function guideListing(ch){
   if(!ch)return {now:"OFF AIR",next:"TUNE A CHANNEL",detail:"STANDBY",state:"standby",live:false,ready:0,capacity:5};
+  var verifiedGuide=(window.__rsVerifiedGuide||{})[String(ch.previewKey||ch.num)];
+  var verifiedListing=guideVerifiedListing(ch,verifiedGuide);
+  if(verifiedListing)return verifiedListing;
   if(ch.source==="v2preview"){
     var pv=(window.__v2PreviewState||{})[ch.num]||{},items=Array.isArray(pv.items)?pv.items:[],ready=Math.min(5,items.length),current=pv.currentTitle?String(pv.currentTitle):"",cursor=items.length?(Number(pv.cursor||0)%items.length):0,upItem=items[cursor],nextItem=items.length?items[(cursor+1)%items.length]:null;
     var verified=(window.__rsVerifiedGuide||{})[String(ch.previewKey||ch.num)],verifiedCurrent=verified&&verified.current,verifiedNext=verified&&verified.next;

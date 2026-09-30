@@ -17,6 +17,10 @@
     } catch (_) { return null; }
   }
 
+  function eligible(ch) {
+    return !!ch && (ch.source === "v2preview" || !ch.source) && ch.cat !== "LDATA" && ch.cat !== "MUS";
+  }
+
   function keyFor(ch) {
     if (!ch) return "";
     return String(ch.source === "v2preview" ? (ch.previewKey || ch.num) : ch.num);
@@ -57,7 +61,8 @@
   }
 
   function fetchVerified() {
-    fetchKey(keyFor(channel()));
+    var ch = channel();
+    if (eligible(ch)) fetchKey(keyFor(ch));
   }
 
   function prefetchVisibleRows() {
@@ -71,7 +76,7 @@
       if (rect.bottom < 0 || rect.top > (window.innerHeight || document.documentElement.clientHeight || 900)) return false;
       var ch;
       try { ch = byNum(Number(row.dataset.channelNum)); } catch (_) { ch = null; }
-      if (!ch || ch.source !== "v2preview") return false;
+      if (!eligible(ch)) return false;
       var key = keyFor(ch);
       if (!key || inflight[key] || (cache[key] && Date.now() - cache[key].at < ttl)) return false;
       remaining -= 1;

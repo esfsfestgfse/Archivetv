@@ -38,6 +38,7 @@ check(fs.existsSync(path.join(repo, 'assets', 'source-catalog-client.js')), 'Ser
 const verifiedGuide = fs.readFileSync(path.join(repo, 'assets', 'verified-guide-client.js'), 'utf8');
 check(verifiedGuide.includes('/guide?channel=') && verifiedGuide.includes('__rsVerifiedGuide'), 'Verified current/next guide bridge exists');
 check(verifiedGuide.includes('prefetchVisibleRows') && verifiedGuide.includes('remaining = 4'), 'Verified guide prefetches only a bounded visible Source Suite window');
+check(verifiedGuide.includes('function eligible(ch)') && verifiedGuide.includes('ch.cat !== "LDATA"') && verifiedGuide.includes('ch.cat !== "MUS"'), 'Verified guide avoids live-data and radio rows');
 
 for (const file of builds) {
   const html = fs.readFileSync(path.join(repo, file), 'utf8');
@@ -46,6 +47,7 @@ for (const file of builds) {
   check(html.includes('assets/verified-guide-client.js'), `${file}: verified guide bridge loaded`);
   check(html.includes('rsHealthPanel') && html.includes('rsHealthFrame'), `${file}: APP HEALTH panel is present`);
   check(html.includes('currentDuration') && html.includes('guideItemRuntime(nextItem)'), `${file}: guide exposes Source Suite current/next runtime data`);
+  check(html.includes('function guideVerifiedListing(ch,verified)') && html.includes('verifiedGuide=(window.__rsVerifiedGuide||{})'), `${file}: guide uses verified server current/next data for IA and Source Suite`);
   const surfaceStamp = file.includes('mobile') ? 'mobile' : 'desktop';
   const actualStamp = (html.match(/window\.__ATV_BUILD\s*=\s*"([^"]+)"/) || [])[1] || '';
   check(/^(?:3|4)\.\d+\.\d+-(desktop|mobile)[.-][a-z0-9-]+$/.test(actualStamp) || html.includes('2.2.2-' + surfaceStamp + '.240-channel-health-repairs'), `${file}: build stamp is a recognized RealSignal release`);

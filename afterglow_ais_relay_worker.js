@@ -216,6 +216,11 @@ const IA_BACKGROUND_EXPANSION_MAX_QUEUED = 24;
    hydrate thousands of Archive records just because the eventual catalog
    budget is large; later skips resume the cursor and add another batch. */
 const IA_BACKGROUND_HARVEST_BATCH_SIZE = 1;
+/* A single queue delivery intentionally harvests one later page. Depth lanes
+   need more than one page to escape Archive's popularity ordering, but that
+   work must remain finite and resumable rather than turning one delivery into
+   an unbounded crawl. The queue consumer chains at most six small deliveries. */
+const IA_BACKGROUND_HARVEST_CONTINUATION_MAX = 6;
 const IA_BACKGROUND_HYDRATE_BATCH = 4;
 const IA_DEPTH_BACKGROUND_HYDRATE_BATCH = 8;
 const IA_BACKGROUND_HYDRATION_CONCURRENCY = 2;
@@ -7296,6 +7301,22 @@ function iaDurableCatalogRotationEligible(payload, channel, rotation, count) {
   return candidates.length > Math.max(1, Number(count) || 1);
 }
 
+/* A five-item durable shelf is enough for a cold first tune, but it is not a
+   freshness shelf. Serving that same shelf on rotation one made a background
+   harvest look healthy while the viewer saw the opening programs again. Keep
+   later fast-path reads instant only when they contain at least one complete
+   replacement window; shallow shelves must fall through to the deeper repair
+   and discovery rails. */
+function iaDurableRotationDepth(channel, rotation, count) {
+  const requested = Math.max(1, Number(count) || 1);
+  if (Number(rotation) <= 0) return requested;
+  const key = String(channel || "");
+  const freshnessSensitive = IA_FULL_WINDOW_ROTATION_CHANNELS.has(key) ||
+    IA_FRESHNESS_REPAIR_CHANNELS.has(key) ||
+    IA_STRICT_RECOVERY_CHANNELS.has(key);
+  return freshnessSensitive ? Math.max(requested * 2, 10) : requested + 1;
+}
+
 function iaFreshnessRecord(item) {
   if (!item || !item.identifier) return null;
   const keys = queueDiversityKeys(item, item.lane);
@@ -8273,6 +8294,12 @@ function strictRecoveryQueue(channel, rotation, count, themeTerms, denyTerms, re
     hydrating: false,
     minRuntimeSeconds: safeMinRuntimeSeconds(minRuntimeSeconds),
     strictRecovery: true,
+    /* Mark the window as selected before the freshness pass. Without this
+       marker a later strict-recovery response can be treated as an ordinary
+       candidate list and reordered from its first item, undoing the full
+       shelf step that rotation just chose. */
+    rotationApplied: true,
+    catalogOrderLocked: true,
   };
 }
 
@@ -8924,7 +8951,7 @@ async function getIaQueue(request, url, env, ctx) {
        forever in the family shelf. Keep the public fast path available at
        five, while using the complete approved candidate union as the seed for
        metadata hydration and additional Archive discovery. */
-    if (durablePlayable.length >= count) {
+    if (durablePlayable.length >= iaDurableRotationDepth(channel, rotation, count)) {
       const durableCandidateCount = iaCatalogCandidateBudget(themeMinScore, count);
       const durableNeedsExpansion = iaNeedsCatalogDepth(
         { candidateItems: durableCandidates },
@@ -8992,6 +9019,41 @@ async function getIaQueue(request, url, env, ctx) {
      recovery bank for the one channel that reproduced this defect. The bank
      is already direct-playable, so this remains a zero-network fast path. */
   if (iaStrictRecoveryEnabled(channel)) {
+    /* A strict emergency bank is intentionally small, but a prior background
+       harvest may already have written a deeper verified family catalog. If
+       freshness excludes the current emergency window, use that durable rail
+       before reopening the smaller bank. This is still a KV-only recovery
+       read: it never adds Archive work to a channel change and never admits
+       unresolved or unverified records. */
+    if (rotation > 0) {
+      const durableRecovery = await sharedQueueGet(env, lastGoodKey);
+      const durableRecoveryCandidates = Array.isArray(durableRecovery && durableRecovery.candidateItems) && durableRecovery.candidateItems.length
+        ? durableRecovery.candidateItems
+        : ((durableRecovery && durableRecovery.items) || []);
+      const durableRecoveryPlayable = durableRecoveryCandidates.filter((item) => item && item.identifier && item.media && item.media.url);
+      if (durableRecoveryPlayable.length >= count) {
+        const durableRecoveryWindow = rotatePlayableIaShelf({
+          ...(durableRecovery || {}),
+          channel,
+          rotation,
+          candidateItems: durableRecoveryPlayable,
+          candidates: durableRecoveryPlayable.length,
+          catalogOrderLocked: true,
+          stale: false,
+          fallback: false,
+        }, rotation, count);
+        const durableRecoveryFresh = applyIaFreshness(durableRecoveryWindow, freshnessLedger, count);
+        if (durableRecoveryFresh.payload && Array.isArray(durableRecoveryFresh.payload.items) && durableRecoveryFresh.payload.items.length >= count) {
+          rememberIaFreshness(env, channel, durableRecoveryFresh.issued, ctx);
+          return cacheableJson(durableRecoveryFresh.payload, 30, {
+            "X-Afterglow-Source": "program-director-durable-recovery-rotation",
+            "X-Afterglow-Queue-Ready": String(durableRecoveryFresh.payload.ready || durableRecoveryFresh.payload.items.length),
+            "X-Afterglow-Queue-Deep": String(durableRecoveryPlayable.length),
+            "X-Afterglow-Queue-Freshness-Rail": "1",
+          });
+        }
+      }
+    }
     const strict = strictRecoveryQueue(channel, rotation, count, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, minRuntimeSeconds);
     const strictPlayable = Array.isArray(strict.candidateItems)
       ? strict.candidateItems.filter((item) => item && item.identifier && item.media && item.media.url).length
@@ -9915,7 +9977,7 @@ export default {
           isIaBackground: true,
           waitUntil(promise) { Promise.resolve(promise).catch(() => {}); },
         };
-        await expandAndCacheIaQueue(
+        const harvested = await expandAndCacheIaQueue(
           payload.seed,
           payload.reserveQueries,
           payload.fallbackQueries,
@@ -9936,6 +9998,32 @@ export default {
           payload.rotation,
           payload.forceDiscovery === true,
         );
+        /* One delivery advances one deterministic page window. Continue only
+           for depth-recovery lanes, carry the richer verified union forward,
+           and stop after a bounded number of passes. This keeps all Archive
+           work asynchronous while allowing a large collection to actually
+           become deep instead of stopping after its first reserve page. */
+        const harvestPasses = Math.max(0, Number(payload.harvestPasses) || 0);
+        const channel = String(payload.channel || "");
+        const nextCursor = harvested && Number.isFinite(Number(harvested.backgroundHarvestCursor))
+          ? Number(harvested.backgroundHarvestCursor)
+          : 0;
+        const currentCandidates = harvested && Array.isArray(harvested.candidateItems)
+          ? harvested.candidateItems.length
+          : 0;
+        const canContinue = harvested &&
+          (payload.forceDiscovery === true || iaDepthRecoveryEnabled(channel)) &&
+          harvestPasses < IA_BACKGROUND_HARVEST_CONTINUATION_MAX &&
+          currentCandidates < Number(payload.candidateCount || 0) &&
+          nextCursor > 0;
+        if (canContinue && env.IA_HARVEST_QUEUE && typeof env.IA_HARVEST_QUEUE.send === "function") {
+          await env.IA_HARVEST_QUEUE.send({
+            ...payload,
+            seed: harvested,
+            harvestPasses: harvestPasses + 1,
+            forceDiscovery: true,
+          });
+        }
         message.ack();
       } catch (error) {
         console.warn(JSON.stringify({ event: "ia-background-queue-consumer-failed", channel: String(payload.channel || ""), message: String(error && error.message || error) }));

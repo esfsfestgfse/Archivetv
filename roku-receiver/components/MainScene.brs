@@ -54,6 +54,8 @@ sub init()
   m.since = 0
   m.requestSerial = 0
   m.lastChannel = 3
+  m.rotation = 0
+  m.sessionStarted = false
   m.api.baseUrl = "https://realsignal-api.tdy1990.workers.dev/api/v3"
   m.top.focusable = true
   m.connect.visible = false
@@ -277,7 +279,8 @@ sub connectNow()
   m.nowPlaying.visible = true
   m.nowPlaying.text = "CONNECTED · LOADING CH " + m.lastChannel.ToStr()
   m.pendingTune = true
-  request("queue", { channel: m.lastChannel.ToStr(), count: 1, surface: "roku", sessionId: m.code, freshnessLedger: true })
+  m.rotation = 0
+  request("queue", { channel: m.lastChannel.ToStr(), count: 1, rotation: m.rotation, surface: "roku", sessionId: m.code, freshnessLedger: true })
 end sub
 
 sub hidePairingScreen()
@@ -318,6 +321,7 @@ end sub
 sub apiResult(event)
   data = event.getData()
   if data = invalid then return
+  startSessionTimers()
   if data.DoesExist("sequence") then m.since = data.sequence
   if data.DoesExist("commands")
     for each command in data.commands
@@ -334,6 +338,7 @@ sub apiError(event)
   error = event.getData()
   if error <> invalid and error <> ""
     if m.code <> ""
+      startSessionTimers()
       m.nowPlaying.visible = true
       m.nowPlaying.text = "RECEIVER WAITING · " + error
     else
@@ -342,21 +347,35 @@ sub apiError(event)
   end if
 end sub
 
+sub startSessionTimers()
+  if m.sessionStarted = true then return
+  m.sessionStarted = true
+  m.pollTimer.control = "start"
+  m.heartbeatTimer.control = "start"
+end sub
+
 sub handleCommand(command)
   if command = invalid then return
   action = UCase(command.action)
   if action = "TUNE"
     m.lastChannel = command.channel
+    m.rotation = 0
     m.pendingTune = true
-    request("queue", { channel: m.lastChannel.ToStr(), count: 1, surface: "roku", sessionId: m.code, freshnessLedger: true })
+    request("queue", { channel: m.lastChannel.ToStr(), count: 1, rotation: m.rotation, surface: "roku", sessionId: m.code, freshnessLedger: true })
   else if action = "NEXT"
     m.lastChannel = m.lastChannel + 1
+    m.rotation = 0
     m.pendingTune = true
-    request("queue", { channel: m.lastChannel.ToStr(), count: 1, surface: "roku", sessionId: m.code, freshnessLedger: true })
+    request("queue", { channel: m.lastChannel.ToStr(), count: 1, rotation: m.rotation, surface: "roku", sessionId: m.code, freshnessLedger: true })
   else if action = "PREV"
     m.lastChannel = Max(1, m.lastChannel - 1)
+    m.rotation = 0
     m.pendingTune = true
-    request("queue", { channel: m.lastChannel.ToStr(), count: 1, surface: "roku", sessionId: m.code, freshnessLedger: true })
+    request("queue", { channel: m.lastChannel.ToStr(), count: 1, rotation: m.rotation, surface: "roku", sessionId: m.code, freshnessLedger: true })
+  else if action = "SKIP"
+    m.rotation = (m.rotation + 1) mod 4096
+    m.pendingTune = true
+    request("queue", { channel: m.lastChannel.ToStr(), count: 1, rotation: m.rotation, skip: true, surface: "roku", sessionId: m.code, freshnessLedger: true })
   else if action = "PLAY"
     m.player.control = "play"
   else if action = "PAUSE"

@@ -2,11 +2,14 @@ sub init()
   m.api = m.top.findNode("apiTask")
   m.player = m.top.findNode("player")
   m.overlay = m.top.findNode("overlay")
+  m.brand = m.top.findNode("brand")
+  m.headline = m.top.findNode("headline")
   m.codeDisplay = m.top.findNode("codeDisplay")
   m.clearCode = m.top.findNode("clearCode")
   m.backspaceCode = m.top.findNode("backspaceCode")
   m.connect = m.top.findNode("connect")
   m.status = m.top.findNode("status")
+  m.hint = m.top.findNode("hint")
   m.nowPlaying = m.top.findNode("nowPlaying")
   m.pollTimer = m.top.findNode("pollTimer")
   m.heartbeatTimer = m.top.findNode("heartbeatTimer")
@@ -270,13 +273,26 @@ sub connectNow()
     m.status.text = "Enter all 12 characters first."
     return
   end if
+  hidePairingScreen()
+  m.nowPlaying.visible = true
+  m.nowPlaying.text = "CONNECTED · LOADING CH " + m.lastChannel.ToStr()
+  m.pendingTune = true
+  request("queue", { channel: m.lastChannel.ToStr(), count: 1, surface: "roku", sessionId: m.code, freshnessLedger: true })
+end sub
+
+sub hidePairingScreen()
   m.overlay.visible = false
+  m.brand.visible = false
+  m.headline.visible = false
+  m.status.visible = false
+  m.codeDisplay.visible = false
+  m.hint.visible = false
   m.clearCode.visible = false
   m.backspaceCode.visible = false
   m.connect.visible = false
-  m.status.text = "Connected · waiting for remote commands"
-  request("session-get", {})
-  request("heartbeat", {})
+  for each keyId in m.keyIds
+    m.top.findNode("key" + keyId).visible = false
+  end for
 end sub
 
 sub request(kind, payload)
@@ -316,7 +332,14 @@ end sub
 
 sub apiError(event)
   error = event.getData()
-  if error <> invalid and error <> "" then m.status.text = "Receiver waiting · " + error
+  if error <> invalid and error <> ""
+    if m.code <> ""
+      m.nowPlaying.visible = true
+      m.nowPlaying.text = "RECEIVER WAITING · " + error
+    else
+      m.status.text = "Receiver waiting · " + error
+    end if
+  end if
 end sub
 
 sub handleCommand(command)
@@ -359,7 +382,8 @@ sub playItem(item)
   if item.DoesExist("mediaUrl") then mediaUrl = item.mediaUrl
   if mediaUrl = "" and item.DoesExist("media") and item.media <> invalid and item.media.DoesExist("url") then mediaUrl = item.media.url
   if mediaUrl = ""
-    m.status.text = "The server returned no direct playable media."
+    m.nowPlaying.visible = true
+    m.nowPlaying.text = "NO PLAYABLE MEDIA RETURNED"
     return
   end if
   streamFormat = "mp4"
@@ -367,6 +391,7 @@ sub playItem(item)
   m.player.content = { url: mediaUrl, streamFormat: streamFormat }
   m.player.visible = true
   m.player.control = "play"
+  m.nowPlaying.visible = true
   title = ""
   if item.DoesExist("title") then title = item.title
   m.nowPlaying.text = "CH " + m.lastChannel.ToStr() + "  ·  " + title
@@ -374,6 +399,7 @@ end sub
 
 sub videoState(event)
   if event.getData() = "error"
-    m.status.text = "This source could not play on Roku; the next verified item can be tried."
+    m.nowPlaying.visible = true
+    m.nowPlaying.text = "SOURCE FAILED · TRY NEXT FROM PHONE"
   end if
 end sub

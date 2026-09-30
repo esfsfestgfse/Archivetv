@@ -55,7 +55,8 @@
       <div class="channel" style="margin-top:14px"><div><label>Channel</label><input id="channel" inputmode="numeric" value="3" aria-label="Channel number"></div><button id="tune" class="primary">Tune</button></div>
       <div class="grid" style="margin-top:12px">
         <button data-action="POWER">Power</button><button data-action="GUIDE">Guide</button><button data-action="BACK">Back</button>
-        <button data-action="PREV">Previous</button><button data-action="NEXT">Next</button><button data-action="PLAY">Play</button>
+        <button data-action="PREV">Previous channel</button><button data-action="NEXT">Next channel</button><button data-action="SKIP">Skip video</button>
+        <button data-action="PLAY">Play</button>
         <button data-action="PAUSE">Pause</button><button data-action="STOP">Stop</button><button data-action="MUTE">Mute</button>
       </div>
       <div class="volume"><button data-action="VOLUME" data-level="-0.1">−</button><input id="volume" type="range" min="0" max="1" step=".05" value=".7" aria-label="Volume"><button data-action="VOLUME" data-level="0.1">+</button><output id="volumeValue">70%</output></div>
@@ -104,7 +105,13 @@
         if (action === "VOLUME") { volume = Math.max(0, Math.min(1, volume + Number(button.dataset.level || 0))); $("volume").value = volume; $("volumeValue").textContent = `${Math.round(volume * 100)}%`; }
         postCommand({ action, channel:Number($("channel").value)||3, level:volume, muted:action === "MUTE" });
       });
-      $("volume").oninput = (event) => { volume = Number(event.target.value); $("volumeValue").textContent = `${Math.round(volume * 100)}%`; };
+      let volumeTimer = 0;
+      $("volume").oninput = (event) => {
+        volume = Number(event.target.value);
+        $("volumeValue").textContent = `${Math.round(volume * 100)}%`;
+        window.clearTimeout(volumeTimer);
+        volumeTimer = window.setTimeout(() => postCommand({ action:"VOLUME", channel:Number($("channel").value)||3, level:volume }), 120);
+      };
       window.addEventListener("beforeunload", () => window.clearTimeout(pollTimer));
     })();
   </script>

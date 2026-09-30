@@ -11,7 +11,7 @@ const RECEIVER_ONLINE_MS = 30 * 1000;
 const MAX_COMMANDS = 32;
 const MAX_TEXT = 240;
 const ALLOWED_ACTIONS = new Set([
-  "TUNE", "NEXT", "PREV", "GUIDE", "BACK", "PLAY", "PAUSE", "STOP",
+  "TUNE", "NEXT", "PREV", "SKIP", "GUIDE", "BACK", "PLAY", "PAUSE", "STOP",
   "POWER", "MUTE", "VOLUME", "HEARTBEAT",
 ]);
 

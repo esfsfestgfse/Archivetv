@@ -23,10 +23,11 @@ sub init()
   m.requestSerial = 0
   m.lastChannel = 3
   m.api.baseUrl = "https://realsignal-api.tdy1990.workers.dev/api/v3"
-  m.keyboard.visible = false
-  m.enterPairing.visible = true
+  m.keyboard.visible = true
+  m.enterPairing.visible = false
   m.connect.visible = false
-  m.enterPairing.setFocus(true)
+  m.status.text = "Enter the 12-character code from the phone remote, then press CONNECT."
+  m.keyboard.setFocus(true)
 end sub
 
 sub pairingPressed(event)
@@ -45,8 +46,14 @@ end sub
 sub codeChanged(event)
   if event <> invalid and event.getData() <> invalid
     entered = UCase(Trim(event.getData()))
-    m.status.text = "Pairing code: " + entered + "  ·  press BACK, then CONNECT"
-    if Len(entered) >= 6 then m.connect.visible = true
+    if Len(entered) >= 12
+      m.keyboard.visible = false
+      m.connect.visible = true
+      m.connect.setFocus(true)
+      m.status.text = "Pairing code ready · press CONNECT"
+    else
+      m.status.text = "Pairing code: " + entered + "  ·  keep entering the code"
+    end if
   end if
 end sub
 

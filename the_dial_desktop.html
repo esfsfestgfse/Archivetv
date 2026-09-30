@@ -1647,7 +1647,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="4.1.197-desktop-session-catalog-guarded";
+window.__ATV_BUILD="4.1.198-desktop-session-catalog-full";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -7260,7 +7260,7 @@ function normSearch(d){ if(d&&d.response) return {numFound:(d.response.numFound|
 var IA_RELAY_BASE="https://ais-relay.tdy1990.workers.dev/ia";
 var RS_V3_CANARY=new URLSearchParams(location.search).get('v3')==='1';
 var RS_V2_CATALOG_CANARY=new URLSearchParams(location.search).get('v2catalog')==='1';
-var RS_V2_CATALOG_CANARY_CHANNELS=new Set(['3','10','11','12','15','20','56','64','81','110','118','153','154','158','205','222','500','700','702']);
+var RS_V2_CATALOG_CANARY_CHANNELS=new Set(['51','52','53','54','55','56','57','58','59','60','61','62','63','64','65','66','67','68','69','70','71','72','73','74','75','76','77','78','79','80','81','82','83','2','3','150','151','158','100','101','102','103','104','132','133','134','10','11','12','19','20','13','105','152','200','201','500','14','900','901','902','903','904','905','906','907','908','909','910','911','912','913','914','915','916','917','918','919','920','929','921','202','203','922','923','204','501','106','15','21','17','18','205','502','107','108','109','110','111','112','113','114','115','116','117','118','121','122','123','124','125','126','127','128','129','130','131','119','120','153','154','155','156','157','206','208','209','210','211','212','213','214','215','216','217','219','220','222','223','224','225','226','227','228','229','230','231','232','233','234','235','236','237','238','239','240','241','242','243','244','575','926','927','928','700','701','702','704','705','706','707','708','709','703','507','508','509','510','511']);
 var RS_CANARY_API=new URLSearchParams(location.search).get('api')==='canary'?"https://realsignal-api-canary.tdy1990.workers.dev/api/":"";
 var IA_API_BASE=RS_CANARY_API?(RS_CANARY_API+(RS_V3_CANARY?'v3':'v2')):(RS_V3_CANARY?"https://realsignal-api.tdy1990.workers.dev/api/v3":"https://realsignal-api.tdy1990.workers.dev/api/v2");
 function iaSessionId(){var key="realsignal:v2-session",value="";try{value=localStorage.getItem(key)||"";if(!value){value="s-"+(crypto&&crypto.randomUUID?crypto.randomUUID():Date.now()+"-"+Math.random().toString(36).slice(2));localStorage.setItem(key,value);}}catch(e){}return String(value||"anonymous").slice(0,80);}

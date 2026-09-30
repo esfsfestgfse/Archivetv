@@ -38,7 +38,10 @@ const IA_ROTATION_REFILL_LANES = new Set(["915"]);
    repeated fallback/slow switching while D1 already has verified media. */
 const IA_FAST_CATALOG_LANES = new Set([
   /* Verified D1 shelves keep cold tunes off the shared Archive burst path. */
-  "10", "11", "12", "56", "64", "110", "150", "154", "158", "205", "222", "922",
+  "10", "11", "12", "56", "64", "69", "76", "110", "150", "154", "158", "205", "222", "231", "922",
+  /* These three relay-owned sports/automotive lanes passed availability but
+     reopened the same shelf after rotation. Stable D1 ordering gives the
+     session ledger a fixed union to walk instead of a moving relay window. */
   /* Holiday lanes have verified instant shelves but some still need a
      background relay refresh to grow beyond their shallow D1 catalog. */
   "705", "706", "707", "708", "709",
@@ -53,13 +56,27 @@ const IA_CANONICAL_SHADOW_VALUES = new Set(["1", "true", "on", "shadow"]);
 /* Keep the first real-client rollout intentionally small. The V2 session
    catalog is proven in hosted requests for these lanes, but remains opt-in
    until visible playback and guide behavior are measured in the app. */
-/* Expand the session-catalog canary only across the representative IA lanes
-   already exercised in the hosted pilot. Keep this explicit until the full
-   low-concurrency certification proves the new rotation path is safe for the
-   complete manifest. */
+/* The isolated Worker is now the full-backend certification target. Keep the
+   browser client on its smaller 19-lane opt-in until this full low-concurrency
+   soak passes; this lets us certify every IA lane without exposing production
+   users to an unproven client rollout. */
 const IA_SESSION_CATALOG_CANARY_CHANNELS = new Set([
-  "3", "10", "11", "12", "15", "20", "56", "64", "81", "110",
-  "118", "153", "154", "158", "205", "222", "500", "700", "702",
+  "2", "3", "10", "11", "12", "13", "14", "15", "17", "18", "19", "20", "21",
+  "51", "52", "53", "54", "55", "56", "57", "58", "59", "60", "61", "62", "63",
+  "64", "65", "66", "67", "68", "69", "70", "71", "72", "73", "74", "75", "76",
+  "77", "78", "79", "80", "81", "82", "83", "100", "101", "102", "103", "104",
+  "105", "106", "107", "108", "109", "110", "111", "112", "113", "114", "115",
+  "116", "117", "118", "119", "120", "121", "122", "123", "124", "125", "126",
+  "127", "128", "129", "130", "131", "132", "133", "134", "150", "151", "152",
+  "153", "154", "155", "156", "157", "158", "200", "201", "202", "203", "204",
+  "205", "206", "208", "209", "210", "211", "212", "213", "214", "215", "216",
+  "217", "219", "220", "222", "223", "224", "225", "226", "227", "228", "229",
+  "230", "231", "232", "233", "234", "235", "236", "237", "238", "239", "240",
+  "241", "242", "500", "501", "502", "507", "508", "509", "510", "511", "575",
+  "700", "701", "702", "703", "704", "705", "706", "707", "708", "709", "900",
+  "901", "902", "903", "904", "905", "906", "907", "908", "909", "910", "911",
+  "912", "913", "914", "915", "916", "917", "918", "919", "920", "921", "922",
+  "923", "926", "927", "928", "929",
 ]);
 const IA_CANONICAL_PROFILE_BY_CHANNEL = new Map(Object.values(IA_CANONICAL_PILOT_PROFILES).map((profile) => [String(profile.channel), profile.profileKey]));
 /* A relay response can be playable while still being too shallow for a
@@ -96,6 +113,9 @@ const IA_FALLBACK_ALIASES = Object.freeze({
    rolling shelf. */
 const IA_STRICT_TOPIC_LANES = new Map([
   ["20", ["judge show", "court show", "people's court", "divorce court", "judge judy", "judge wapner", "judge mathis", "judge joe brown", "small claims court", "civil court", "television judge show"]],
+]);
+const IA_STRICT_TOPIC_EXCLUSIONS = new Map([
+  ["20", ["disney", "big bands", "hammer hand", "hammerhand", "mgtow", "men's rights", "gender wars"]],
 ]);
 const IA_ENGLISH_FOCUS_LANES = new Set(["11"]);
 const IA_NON_ENGLISH_SIGNAL_TERMS = [
@@ -577,6 +597,8 @@ function catalogFallbackAllowed(item, body) {
     const needle = String(term || "").trim().toLowerCase();
     return needle && denyHaystack.includes(needle);
   })) return false;
+  const strictTopicExclusions = IA_STRICT_TOPIC_EXCLUSIONS.get(holidayChannel);
+  if (strictTopicExclusions && strictTopicExclusions.some((term) => title.includes(term))) return false;
   const strictTopicTerms = IA_STRICT_TOPIC_LANES.get(holidayChannel);
   if (strictTopicTerms && !strictTopicTerms.some((term) => haystack.includes(term))) return false;
   if (IA_ENGLISH_FOCUS_LANES.has(holidayChannel)) {

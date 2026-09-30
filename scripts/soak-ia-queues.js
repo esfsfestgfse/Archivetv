@@ -49,6 +49,7 @@ const rotations = Math.max(1, Math.min(3, Number(option('--rotations', '1')) || 
 const rotationDelayMs = Math.max(0, Math.min(15000, Number(option('--rotation-delay-ms', '0')) || 0));
 const relayHealthTimeoutMs = Math.max(2000, Math.min(15000, Number(option('--relay-health-timeout-ms', '8000')) || 8000));
 const outputPath = option('--out');
+const serverCatalogCanary = String(option('--server-catalog-canary', '')).trim();
 const requestedChannels = new Set(String(option('--channels', '')).split(',').map(value => value.trim()).filter(Boolean));
 const completeManifest = JSON.parse(fs.readFileSync(path.resolve(manifestPath), 'utf8'));
 /* Use a fresh persisted session for each soak. The browser does this with its
@@ -121,7 +122,7 @@ async function requestQueue(row, remainingMs, rotationOffset) {
          can accidentally land on a multiple of the catalog length, making a
          healthy lane look repeat-heavy. Use --rotation-base when a seeded
          session is specifically being simulated. */
-      body: JSON.stringify({ channel: String(row.channel), count, rotation: (rotationBase + rotationOffset) % 4096, queries: row.queries, themeTerms: row.themeTerms || [], denyTerms: row.denyTerms || [], requiredTitleTerms: row.requiredTitleTerms || [], diversity: row.diversity || {}, mediaTypes: row.mediaTypes || ['movies'], themeMinScore: row.themeMinScore || 1, ...(isVersionedApiEndpoint ? { sessionId: soakSessionId } : {}) }),
+      body: JSON.stringify({ channel: String(row.channel), count, rotation: (rotationBase + rotationOffset) % 4096, queries: row.queries, themeTerms: row.themeTerms || [], denyTerms: row.denyTerms || [], requiredTitleTerms: row.requiredTitleTerms || [], diversity: row.diversity || {}, mediaTypes: row.mediaTypes || ['movies'], themeMinScore: row.themeMinScore || 1, ...(isVersionedApiEndpoint ? { sessionId: soakSessionId } : {}), ...(serverCatalogCanary ? { serverCatalog: true, catalogCanary: serverCatalogCanary } : {}) }),
       signal: controller.signal,
     });
     const body = await response.json();

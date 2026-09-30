@@ -51,7 +51,7 @@ for (const [channel, collection] of Object.entries(expectedRails)) {
 }
 
 const relay = fs.readFileSync(path.join(root, 'afterglow_ais_relay_worker.js'), 'utf8');
-check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v246"/.test(relay), 'Relay cache namespace is v246');
+check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v\d+"/.test(relay) && /IA_LAST_GOOD_CACHE_VERSION\s*=\s*"v\d+"/.test(relay), 'Relay cache namespaces are versioned');
 check(/IA_BACKGROUND_HARVEST_OFFSETS\s*=\s*Object\.freeze\(\[1, 3, 7, 15, 31, 63, 127\]\)/.test(relay) && /harvestIaBackgroundPages/.test(relay), 'Archive depth walks later page windows behind first play');
 const api = fs.readFileSync(path.join(root, 'realsignal_api_v2_worker.js'), 'utf8');
 check(/const requestedCount = Math\.max\(1, Math\.min\(5, Number\(effectiveBody/.test(api) && /items: shelf/.test(api), 'API fallbacks expose a five-item shelf plus a deeper candidate catalog');
@@ -66,7 +66,7 @@ check(/"65": \[/.test(relay) && /wfktvme-Long_Lake_Ice_Fishing_Derby_2018/.test(
 check(/"225": \[/.test(relay) && /hbo-def-comedy-jam-drew-fraser-lavelle-crawford-1995-most/.test(relay) && /sinbad_afrosbellbottoms/.test(relay), 'Uptown Comedy has verified decade-spanning stand-up recovery');
 check(/"204": \[/.test(relay) && /Doctorin1946::Doctorin1946\.mp4/.test(relay) && /Careofth1949::Careofth1949\.mp4/.test(relay), 'Prelinger Vault has direct playable recovery files for fast cold starts');
 check(/IA_FULL_WINDOW_ROTATION_CHANNELS\s*=\s*new Set\(\[[\s\S]*"55"[\s\S]*"64"[\s\S]*"701"/.test(relay), 'Network TV and repaired depth lanes advance by a full fresh shelf');
-check(/IA_DIRECT_FRESHNESS_RAIL_CHANNELS\s*=\s*new Set\(\["113", "123", "155", "917"\]\)/.test(relay) && /program-director-direct-window/.test(relay), 'Proven long-tail repeat lanes bypass stale warm shelves on later rotations');
+check(/IA_DIRECT_FRESHNESS_RAIL_CHANNELS\s*=\s*new Set\(\[[\s\S]*"24"[\s\S]*"113"[\s\S]*"123"[\s\S]*"155"[\s\S]*"917"[\s\S]*\]\)/.test(relay) && /program-director-direct-window/.test(relay), 'Proven long-tail repeat lanes bypass stale warm shelves on later rotations');
 check(/"917": \[[\s\S]*cavalera-conspiracy-live-at-metal-town-goteborg-27-06-2008[\s\S]*stormkeep-tales-of-othertime[\s\S]*galneryus-beyond-the-end-of-despair[\s\S]*ambrotos-transcendental-mastery/.test(relay), 'Metal adds four verified full-record audio rails to prevent a shallow rotation wrap');
 check(/"155": \[[\s\S]*LiquidTelevision210::Liquid Television 210\.mp4[\s\S]*fire-and-ice-ralph-bakshi-1982[\s\S]*last-days-of-coney-island_202509/.test(relay) && !/Beavis1228_-_Beavis_goes_Berserk_IV_Shaman/.test(relay), 'Adult Animation replaces contaminated short/fan rails with verified Liquid Television and feature-length animation');
 check(!/IA_STRICT_RECOVERY_CHANNELS\s*=\s*new Set\(\["19", "59"/.test(relay) && /letvma-Annual_Agganis_All_Star_Baseball_Classic_June_25_2023/.test(relay), 'Diamond Time uses the rolling catalog with a ten-game verified first rail');

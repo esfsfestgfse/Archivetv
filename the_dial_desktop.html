@@ -1607,6 +1607,54 @@ html,body{background:#040706!important}
   html.mob .skybeacon-main,html.mob .water-main,html.mob .tropical-main{grid-template-columns:1fr!important;grid-template-rows:minmax(190px,52%) minmax(0,1fr)!important;gap:5px!important}.skybeacon-side,.water-side,.tropical-side{min-height:0}.skybeacon-radar,.water-mapbox,.tropical-stage{min-height:0}.skybeacon-panel,.water-list,.tropical-panel{overscroll-behavior:contain}
 }
 </style>
+<style id="realsignal-ship-tracker-polish">
+/* Ship Tracker 5.1: information-first live desk. The AIS/snapshot data path stays unchanged. */
+#shipRoot{grid-template-columns:minmax(0,1.55fr) minmax(300px,.85fr)!important;grid-template-rows:minmax(0,1fr)!important;gap:10px!important;padding:10px!important;background:radial-gradient(110% 90% at 18% 0%,rgba(18,72,92,.44),transparent 55%),linear-gradient(145deg,#03131b,#020a0d 68%,#061312)!important}
+#shipRoot .ship-map-panel{grid-column:1!important;grid-row:1!important;border:1px solid rgba(143,210,255,.22);border-radius:16px;box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 14px 32px rgba(0,0,0,.25);background:linear-gradient(145deg,#071d2a,#020a11)!important}
+#shipRoot #shipMap{border-radius:15px;background:#061723!important}
+#shipRoot .ship-data-panel{grid-column:2!important;grid-row:1!important;border:1px solid rgba(124,255,179,.2);border-radius:16px;background:linear-gradient(165deg,rgba(8,30,26,.96),rgba(2,12,13,.96))!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 14px 32px rgba(0,0,0,.22)}
+#shipRoot .ship-panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 13px 10px;border-bottom:1px solid rgba(124,255,179,.16);background:linear-gradient(180deg,rgba(109,255,173,.12),transparent)}
+#shipRoot .ship-panel-title{display:block;color:#effff5;font:900 14px/1.1 system-ui,-apple-system,sans-serif;letter-spacing:.35px}
+#shipRoot .ship-kicker{display:block;margin-bottom:4px;color:#79c9a0;font:800 8px/1 monospace;letter-spacing:1.6px;text-transform:uppercase}
+#shipRoot .ship-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:9px 10px 7px}
+#shipRoot .ship-stat{min-width:0;padding:8px 8px 7px;border:1px solid rgba(143,210,255,.14);border-radius:10px;background:rgba(2,15,20,.58)}
+#shipRoot .ship-stat strong{display:block;color:#c8efff;font:900 18px/1 system-ui,-apple-system,sans-serif;letter-spacing:-.5px}
+#shipRoot .ship-stat span{display:block;margin-top:4px;color:#72a5b4;font:800 7px/1 monospace;letter-spacing:1.1px}
+#shipRoot .ship-list-head{display:flex;justify-content:space-between;align-items:center;padding:3px 12px 5px;color:#79c9a0;font:800 8px/1 monospace;letter-spacing:1.2px}
+#shipRoot .ship-empty{padding:24px 12px;text-align:center;color:#8ab9c7;font:900 9px/1.6 monospace;letter-spacing:.7px}#shipRoot .ship-empty span{display:block;margin-top:7px;color:#63818c;font-size:8px;font-weight:700;letter-spacing:.2px}
+#shipRoot #shipList{padding:0 9px 10px!important;scrollbar-color:#2e866c transparent}
+#shipRoot .ship-detail{min-height:102px;margin:0 10px 6px;padding:10px 11px;border:1px solid rgba(143,210,255,.15);border-radius:11px;background:linear-gradient(135deg,rgba(8,39,45,.74),rgba(3,18,22,.68));box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
+#shipRoot .ship-detail-empty{color:#7ca5ab;font:800 9px/1.5 monospace;letter-spacing:.45px}
+#shipRoot .ship-detail-grid{gap:5px 10px;margin-top:7px;color:#86c7b0;font-size:8.5px}
+#shipRoot .ship-detail-grid b{color:#effff5}
+#shipRoot .ship-photo{width:118px;height:70px;border-radius:8px;box-shadow:0 5px 15px rgba(0,0,0,.3)}
+#shipRoot .ship-row{display:grid!important;grid-template-columns:8px minmax(0,1fr) auto!important;gap:9px!important;align-items:center!important;min-height:52px;margin:4px 0;padding:8px 9px!important;border:1px solid rgba(143,210,255,.1)!important;border-radius:10px;background:rgba(4,22,27,.5);cursor:pointer;transition:background .16s,border-color .16s,transform .16s}
+#shipRoot .ship-row:hover,#shipRoot .ship-row:focus-visible{border-color:rgba(124,255,179,.4)!important;background:rgba(15,57,48,.62);outline:none;transform:translateX(2px)}
+#shipRoot .ship-row.is-selected{border-color:rgba(124,255,179,.65)!important;background:linear-gradient(100deg,rgba(17,75,57,.8),rgba(5,31,30,.65));box-shadow:inset 3px 0 #7cffb3}
+#shipRoot .ship-row-signal{align-self:stretch;border-radius:4px;background:var(--ship-row-color,#67ff86);box-shadow:0 0 8px var(--ship-row-color,#67ff86)}
+#shipRoot .ship-row-body{min-width:0}
+#shipRoot .ship-row-body strong{display:block;overflow:hidden;color:#e7fff1;font:900 11px/1.1 system-ui,-apple-system,sans-serif;letter-spacing:.2px;text-overflow:ellipsis;white-space:nowrap}
+#shipRoot .ship-row-body small{display:block;overflow:hidden;margin-top:4px;color:#87bbaa;font:800 8px/1.1 monospace;letter-spacing:.35px;text-overflow:ellipsis;white-space:nowrap}
+#shipRoot .ship-row-state{color:#b8f7c6}
+#shipRoot .ship-row-caret{color:#72a5b4;font:700 18px/1 system-ui,sans-serif}
+#shipRoot .ship-ticker{display:none!important}
+#shipRoot .ship-map-hud{position:absolute;left:12px;top:12px;z-index:20;display:flex;align-items:baseline;gap:8px;padding:9px 11px;border:1px solid rgba(143,210,255,.18);border-radius:10px;background:rgba(2,12,18,.8);backdrop-filter:blur(8px);pointer-events:none}
+#shipRoot .ship-map-hud strong{color:#e1f7ff;font:900 16px/1 system-ui,-apple-system,sans-serif}
+#shipRoot .ship-map-hud span{color:#8ab9c7;font:800 8px/1 monospace;letter-spacing:1.2px}
+#shipRoot .ship-map-hud .ship-map-kicker{color:#9dd5e8}
+@media(max-width:700px){
+  html.mob #shipRoot{grid-template-columns:1fr!important;grid-template-rows:minmax(235px,54%) minmax(0,1fr)!important;gap:6px!important;padding:6px!important}
+  html.mob #shipRoot .ship-map-panel{grid-column:1!important;grid-row:1!important;border-radius:13px}
+  html.mob #shipRoot .ship-data-panel{grid-column:1!important;grid-row:2!important;border-radius:13px}
+  html.mob #shipRoot .ship-panel-head{padding:10px 11px 8px}
+  html.mob #shipRoot .ship-panel-title{font-size:12px}
+  html.mob #shipRoot .ship-stats{padding:7px 8px 5px}
+  html.mob #shipRoot .ship-stat{padding:7px 7px 6px}
+  html.mob #shipRoot .ship-stat strong{font-size:16px}
+  html.mob #shipRoot .ship-detail{min-height:82px;margin:0 8px 4px;padding:8px 9px}
+  html.mob #shipRoot .ship-photo{width:100px;height:60px}
+}
+</style>
 <style id="realsignal-cast-tv-mode">
 /* Cast is its own television presentation, not a scaled desktop cabinet. The phone is the remote. */
 body.cast-receiver{background:#000!important;overflow:hidden!important}
@@ -1637,7 +1685,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="5.0.7-desktop-source-coldstart";
+window.__ATV_BUILD="5.1.0-desktop-ship-tracker";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -15023,13 +15071,17 @@ async function tuneShips(ch,sl,my){
     '<div class="ship-map-panel" style="grid-column:1;grid-row:1/span 2;display:flex;align-items:center;justify-content:center;min-height:0;min-width:0;background:#000;border-radius:6px;overflow:hidden;position:relative">'+
       '<div id="shipMap" style="width:100%;height:100%;position:relative;background:#0a1928">'+
         '<div style="position:absolute;bottom:6px;left:8px;font:700 9px monospace;letter-spacing:1.5px;color:#9fc4ff;background:rgba(0,0,0,.6);padding:3px 8px;border-radius:3px;pointer-events:none;z-index:20"><span id="shipMapLabel">GULF OF MEXICO</span> \u00b7 VESSEL TRACKER</div>'+
+        '<div class="ship-map-hud"><span class="ship-map-kicker">LIVE TRAFFIC</span><strong id="shipMapCount">--</strong><span>TRACKED</span></div>'+
       '</div>'+
     '</div>'+
     '<div class="ship-data-panel" style="grid-column:2;grid-row:1;display:flex;flex-direction:column;min-height:0;background:rgba(3,10,6,.55);border:1px solid rgba(103,255,134,.15);border-radius:6px;overflow:hidden">'+
-      '<div style="flex:none;padding:6px 8px;background:linear-gradient(180deg,rgba(103,255,134,.10),transparent);border-bottom:1px solid rgba(103,255,134,.15);display:flex;align-items:center;gap:8px">'+
-        '<span style="font:700 11px monospace;letter-spacing:1.5px">SHIP TRACKER \u00b7 <span id="shipRegionLabel">GULF</span></span>'+
+      '<div class="ship-panel-head">'+
+        '<div><span class="ship-kicker">LIVE MARITIME FEED</span><span class="ship-panel-title">SHIP TRACKER \u00b7 <span id="shipRegionLabel">GULF</span></span></div>'+
         '<span id="shipStatus" class="status-pill st-connecting" style="margin-left:auto"><span class="st-dot"></span><span id="shipStatusTxt">connecting\u2026</span></span>'+
       '</div>'+
+      '<div class="ship-stats"><div class="ship-stat"><strong id="shipCount">--</strong><span>VESSELS</span></div><div class="ship-stat"><strong id="shipMoving">--</strong><span>MOVING</span></div><div class="ship-stat"><strong id="shipLastUpdate">--</strong><span>LAST UPDATE</span></div></div>'+
+      '<div class="ship-detail" id="shipDetail"><div class="ship-detail-empty">SELECT A VESSEL FOR PHOTO, IDENTITY, COURSE, SPEED, DESTINATION, AND NAVIGATION STATUS.</div></div>'+
+      '<div class="ship-list-head"><span>NEARBY VESSELS</span><span id="shipListSource">WAITING FOR DATA</span></div>'+
       '<div id="shipList" style="flex:1;overflow-y:auto;padding:4px 6px">Connecting to vessel data\u2026</div>'+
     '</div>'+
     '<div class="ship-ticker" style="grid-column:2;grid-row:2;padding:5px 8px;font:700 9px monospace;letter-spacing:1.2px;color:#9fd6a6;border-top:1px solid rgba(103,255,134,.10);background:rgba(0,0,0,.25);text-align:center" id="shipTicker">AIS STREAM \u00b7 KPLER SNAPSHOT FALLBACK \u00b7 GALVESTON \u00b7 HOUSTON \u00b7 CORPUS CHRISTI \u00b7 PORT ARTHUR \u00b7 FREEPORT</div>'+
@@ -15038,7 +15090,6 @@ async function tuneShips(ch,sl,my){
   var shipInteractiveCss=document.createElement("style");shipInteractiveCss.textContent='#shipRoot .ship-blip{pointer-events:auto;cursor:pointer} #shipRoot .ship-blip:hover{transform:scale(1.8);z-index:8} #shipRoot .ship-map-tools{position:absolute;top:8px;right:8px;z-index:25;display:grid;grid-template-columns:repeat(3,28px);gap:3px} #shipRoot .ship-map-tools button{height:25px;border:1px solid rgba(159,196,255,.45);border-radius:4px;background:rgba(2,13,23,.88);color:#cfe0ff;font:800 11px monospace;cursor:pointer} #shipRoot .ship-map-tools button:hover{border-color:#67ff86;color:#67ff86} #shipRoot .ship-map-tools .wide{grid-column:span 3;font-size:8px;letter-spacing:.7px} #shipRoot .ship-detail{flex:none;min-height:92px;padding:7px 8px;border-bottom:1px solid rgba(103,255,134,.15);background:linear-gradient(180deg,rgba(7,34,22,.72),rgba(3,10,6,.4));color:#cfe0ff;font:10px monospace} #shipRoot .ship-detail-empty{color:#78977f;font-size:9px;line-height:1.45} #shipRoot .ship-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:3px 9px;margin-top:5px;color:#9fd6a6;font-size:8.5px} #shipRoot .ship-detail-grid b{color:#e8fff0;font-weight:700} #shipRoot .ship-photo{float:right;width:112px;height:67px;object-fit:cover;border:1px solid rgba(159,196,255,.35);border-radius:3px;background:#06121d;margin-left:8px} #shipRoot .ship-row{cursor:pointer} #shipRoot .ship-row:hover{background:rgba(103,255,134,.08)}';document.head.appendChild(shipInteractiveCss);
   var shipMapBox=$("shipMap"),shipListBox=$("shipList");
   if(shipMapBox)shipMapBox.insertAdjacentHTML("beforeend",'<div class="ship-map-tools" role="group" aria-label="Ship map controls"><button type="button" data-ship-pan="up" title="Pan north" aria-label="Pan ship map north">▲</button><button type="button" data-ship-home title="Return to Gulf" aria-label="Return ship map to the Gulf">⌂</button><button type="button" data-ship-pan="down" title="Pan south" aria-label="Pan ship map south">▼</button><button type="button" data-ship-pan="left" title="Pan west" aria-label="Pan ship map west">◀</button><button type="button" data-ship-zoom="out" title="Zoom out" aria-label="Zoom ship map out">−</button><button type="button" data-ship-pan="right" title="Pan east" aria-label="Pan ship map east">▶</button><button type="button" data-ship-zoom="in" class="wide" title="Zoom in" aria-label="Zoom ship map in">＋ ZOOM IN</button><button type="button" data-ship-world class="wide" title="Show world vessel overview">WORLD OVERVIEW</button><button type="button" data-ship-center class="wide" title="Center the selected vessel">CENTER SELECTED VESSEL</button></div>');
-  if(shipListBox)shipListBox.insertAdjacentHTML("beforebegin",'<div id="shipDetail" class="ship-detail"><div class="ship-detail-empty">SELECT A VESSEL FOR PHOTO, IDENTITY, COURSE, SPEED, DESTINATION, AND NAVIGATION STATUS.</div></div>');
   if(shipSocket){ try{shipSocket.close();}catch(e){} shipSocket=null; }
   shipList={};
   /* Keep a bounded last-good snapshot locally so a short provider or network hiccup never
@@ -15086,6 +15137,7 @@ async function tuneShips(ch,sl,my){
     var sog=vessel.sog!=null?Math.round(Number(vessel.sog))+" kn":"--",cog=vessel.cog!=null?Math.round(Number(vessel.cog))+"°":"--",heading=vessel.heading!=null?Math.round(Number(vessel.heading))+"°":"--";
     detail.innerHTML='<img id="shipPhoto" class="ship-photo" alt="Public vessel photo"><div style="color:#effff3;font-size:11px;font-weight:900;letter-spacing:.7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esch(vessel.name||("MMSI "+vessel.mmsi))+'</div><div id="shipPhotoHint" style="color:#79a6ff;font-size:8px;margin-top:2px">LOOKING UP PUBLIC PHOTO · '+esch(vessel.source||"AIS")+'</div><div class="ship-detail-grid"><span><b>MMSI</b> '+esch(String(vessel.mmsi||"--"))+'</span><span><b>TYPE</b> '+esch(vessel.vesselType||"--")+'</span><span><b>SPEED</b> '+esch(sog)+'</span><span><b>COURSE</b> '+esch(cog)+'</span><span><b>HEADING</b> '+esch(heading)+'</span><span><b>NAV</b> '+esch(vessel.navStatus||"--")+'</span><span><b>DEST</b> '+esch(vessel.destination||"--")+'</span><span><b>POS</b> '+(vessel.lat!=null?Number(vessel.lat).toFixed(3)+"°, "+Number(vessel.lon).toFixed(3)+"°":"--")+'</span></div>';
     shipPhotoLookup(vessel);
+    renderList();
   }
   function bindShipMapControls(){var mapBox=$("shipMap");if(!mapBox)return;mapBox.querySelectorAll("[data-ship-pan]").forEach(function(b){b.onclick=function(e){e.stopPropagation();var step=shipView.range*.45,dir=b.dataset.shipPan,lat=shipView.lat,lon=shipView.lon;if(dir==="up")lat+=step/69.05;if(dir==="down")lat-=step/69.05;if(dir==="left")lon-=step/(69.17*Math.max(.25,Math.cos(lat*Math.PI/180)));if(dir==="right")lon+=step/(69.17*Math.max(.25,Math.cos(lat*Math.PI/180)));if(lon>180)lon-=360;if(lon<-180)lon+=360;setShipView(lat,lon,shipView.range);};});mapBox.querySelectorAll("[data-ship-zoom]").forEach(function(b){b.onclick=function(e){e.stopPropagation();setShipView(shipView.lat,shipView.lon,shipView.range*(b.dataset.shipZoom==="in"?.55:1.8));};});var home=mapBox.querySelector("[data-ship-home]");if(home)home.onclick=function(e){e.stopPropagation();setShipView(27.5,-89,700,"gulf");};var world=mapBox.querySelector("[data-ship-world]");if(world)world.onclick=function(e){e.stopPropagation();setShipView(0,0,20000,"world");};var center=mapBox.querySelector("[data-ship-center]");if(center)center.onclick=function(e){e.stopPropagation();var vessel=shipList[selectedMmsi];if(!vessel||vessel.lat==null||vessel.lon==null){quickBanner("SELECT A VESSEL FIRST");return;}setShipView(Number(vessel.lat),Number(vessel.lon),Math.max(180,Math.min(shipView.range,500)),shipRegion);selectShip(selectedMmsi);quickBanner("CENTERED ON "+String(vessel.name||("MMSI "+vessel.mmsi)).slice(0,28));};if(!mapBox._shipDragBound){mapBox._shipDragBound=true;mapBox.tabIndex=0;mapBox.setAttribute("role","application");mapBox.setAttribute("aria-label","Interactive vessel map. Use arrow keys to pan, plus and minus to zoom.");mapBox.style.touchAction="none";mapBox.addEventListener("wheel",function(e){if(e.target.closest&&e.target.closest("button,.ship-blip"))return;e.preventDefault();setShipView(shipView.lat,shipView.lon,shipView.range*(e.deltaY>0?1.35:.74));},{passive:false});mapBox.addEventListener("keydown",function(e){var k=e.key;if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","+","=","-","_","Home"].indexOf(k)<0)return;e.preventDefault();if(k==="Home"){setShipView(27.5,-89,700,"gulf");return;}if(k==="+"||k==="="){setShipView(shipView.lat,shipView.lon,shipView.range*.74);return;}if(k==="-"||k==="_"){setShipView(shipView.lat,shipView.lon,shipView.range*1.35);return;}var step=shipView.range*.45,lat=shipView.lat,lon=shipView.lon;if(k==="ArrowUp")lat+=step/69.05;if(k==="ArrowDown")lat-=step/69.05;if(k==="ArrowLeft")lon-=step/(69.17*Math.max(.25,Math.cos(lat*Math.PI/180)));if(k==="ArrowRight")lon+=step/(69.17*Math.max(.25,Math.cos(lat*Math.PI/180)));setShipView(lat,lon,shipView.range);});mapBox.addEventListener("pointerdown",function(e){if(e.target.closest&&e.target.closest("button,.ship-blip"))return;shipDrag={x:e.clientX,y:e.clientY};mapBox.focus();mapBox.setPointerCapture&&mapBox.setPointerCapture(e.pointerId);});mapBox.addEventListener("pointerup",function(e){if(!shipDrag)return;var dx=e.clientX-shipDrag.x,dy=e.clientY-shipDrag.y;shipDrag=null;if(Math.abs(dx)+Math.abs(dy)>8){var lat=shipView.lat+dy*shipView.range/Math.max(1,mapBox.clientHeight)/69.05*2,lon=shipView.lon-dx*shipView.range/Math.max(1,mapBox.clientWidth)/69.17/Math.max(.25,Math.cos(shipView.lat*Math.PI/180))*2;setShipView(lat,lon,shipView.range);}});mapBox.addEventListener("pointercancel",function(){shipDrag=null;});window.addEventListener("resize",function(){if($("shipMap")===mapBox){mp=null;ensureShipMap();paint();}});}}
   function ensureShipMap(){
@@ -15239,22 +15291,27 @@ async function tuneShips(ch,sl,my){
     var arr=Object.keys(shipList).map(function(k){return shipList[k];})
       .filter(function(s){return (!s.region||s.region===shipRegion)&&(s.lat!=null||s.name);})
       .sort(function(a,b){return b.ts-a.ts;});
+    var moving=arr.filter(function(s){return Number(s.sog)>0.5;}).length,updatedAt=lastMsgAt||snapshotAt||0,age=updatedAt?Math.max(0,Math.round((Date.now()-updatedAt)/1000)):0;
+    var ageLabel=!updatedAt?"--":(age<60?age+"s":Math.floor(age/60)+"m"),countEl=$("shipCount"),movingEl=$("shipMoving"),lastEl=$("shipLastUpdate"),mapCount=$("shipMapCount"),sourceEl=$("shipListSource");
+    if(countEl)countEl.textContent=arr.length;
+    if(movingEl)movingEl.textContent=moving;
+    if(lastEl)lastEl.textContent=ageLabel;
+    if(mapCount)mapCount.textContent=arr.length;
+    if(sourceEl)sourceEl.textContent=snapshotSource?(String(snapshotSource).toUpperCase()): (msgCount?"AIS LIVE":"WAITING FOR DATA");
     setChanStatus(ch.num,arr.length+" vessels \u00b7 "+msgCount+" stream msgs"+(snapshotAt?" \u00b7 "+snapshotSource:""));
     if(shipBug) shipBug.update(String(arr.length),
       arr[0]?((arr[0].name||("MMSI "+arr[0].mmsi))+" \u00b7 "+(arr[0].sog!=null?Math.round(arr[0].sog)+"kn":"tracking")):"vessels in the Gulf");
     var top=arr.slice(0,20);
-    if(!top.length){ listEl.innerHTML='<div style="padding:12px;text-align:center;color:#9fd6a6;font-size:11px;line-height:1.5">Waiting for AIS traffic\u2026<br><span style="opacity:.7;font-size:10px">Vessels appear here as they broadcast position reports.</span></div>'; return; }
+    if(!top.length){ listEl.innerHTML='<div class="ship-empty">WAITING FOR VESSEL DATA<br><span>Live AIS traffic and the snapshot fallback will appear here automatically.</span></div>'; return; }
     listEl.innerHTML=top.map(function(s){
       var sog=s.sog!=null?s.sog:0;
       var col=sog<0.5?"#888":sog>15?"#ffd34d":sog>=5?"#67ff86":"#7fb4ff";
       var lbl=sog<0.5?"ANCHOR":sog>15?"FAST":sog>=5?"CRUISE":"SLOW";
-      return '<div class="ship-row" data-ship-mmsi="'+esch(String(s.mmsi))+'" style="display:grid;grid-template-columns:6px 1fr auto;gap:6px;align-items:center;padding:3px 4px 3px 0;border-bottom:1px solid rgba(255,255,255,.05)">'+
-        '<div style="background:'+col+';border-radius:2px;align-self:stretch;box-shadow:0 0 3px '+col+'88"></div>'+
-        '<div><div style="color:#cfe0ff;font-size:11px;font-weight:700;letter-spacing:.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esch(s.name||("MMSI "+s.mmsi))+'</div>'+
-        '<div style="color:#9fd6a6;font-size:9.5px;letter-spacing:.5px">'+lbl+' \u00b7 '+(s.sog!=null?Math.round(s.sog)+" kn":"\u2014")+(s.lat!=null?' \u00b7 '+s.lat.toFixed(2)+"\u00b0N "+Math.abs(s.lon).toFixed(2)+"\u00b0W":"")+'</div></div>'+
-      '</div>';
+      var destination=s.destination?"\u2192 "+String(s.destination).trim():(s.lat!=null?Number(s.lat).toFixed(2)+"\u00b0 / "+Number(s.lon).toFixed(2)+"\u00b0":"POSITION PENDING");
+      return '<div class="ship-row'+(selectedMmsi===String(s.mmsi)?" is-selected":"")+'" data-ship-mmsi="'+esch(String(s.mmsi))+'" role="button" tabindex="0" style="--ship-row-color:'+col+'">'+
+        '<span class="ship-row-signal"></span><span class="ship-row-body"><strong>'+esch(s.name||("MMSI "+s.mmsi))+'</strong><small><span class="ship-row-state">'+lbl+'</span> \u00b7 '+(s.sog!=null?Math.round(s.sog)+" kn":"\u2014")+' \u00b7 '+esch(destination)+'</small></span><span class="ship-row-caret">\u203a</span></div>';
     }).join("");
-    listEl.querySelectorAll("[data-ship-mmsi]").forEach(function(row){row.onclick=function(){selectShip(row.dataset.shipMmsi);};});
+    listEl.querySelectorAll("[data-ship-mmsi]").forEach(function(row){row.onclick=function(){selectShip(row.dataset.shipMmsi);};row.onkeydown=function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();selectShip(row.dataset.shipMmsi);}};});
   }
   function render(){ paint(); renderList(); }
   var tuneStart=Date.now();

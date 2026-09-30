@@ -1,10 +1,10 @@
 /* RealSignal server-catalog client bridge.
  *
- * Source Suite discovery is attempted at the API boundary first. PeerTube is
- * retained as a bounded canary fallback when the API is unavailable; YouTube
- * stays server-only so no browser credential or direct Data API call returns.
- * This bridge deliberately claims one provider lane so client adapters do not
- * duplicate the same server result.
+ * Source Suite discovery is server-only. The browser may consume a previously
+ * verified local shelf while the API is unavailable, but it must never start a
+ * new PeerTube or YouTube search on its own. This keeps catalog ownership,
+ * freshness, cooldowns, and provider admission in one place and makes desktop,
+ * mobile, and Cast consume the same source truth.
  */
 (function () {
   var originalProvider = window.v2Provider;
@@ -131,8 +131,11 @@
       }
       return { provider: name, items: [], health: { serverCatalog: true, skipped: "shared-server-lane" } };
     }
-    if (name === "youtube") return { provider: "YouTube", items: [], health: { serverCatalog: true, skipped: "server-catalog-unavailable" } };
-    return originalProvider.apply(this, arguments);
+    return {
+      provider: name === "peertube" ? "PeerTube" : "YouTube",
+      items: [],
+      health: { serverCatalog: true, skipped: "server-catalog-unavailable" },
+    };
   };
 
   /* The player calls this only after a program has produced a playable frame.

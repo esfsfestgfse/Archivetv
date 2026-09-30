@@ -95,7 +95,7 @@ const IA_CATALOG_CANDIDATE_MAX = 3072;
 /* A queue with zero playable items is never a useful cache result. Keep the
    queue namespace separate from the previous release while the empty result
    path below is deliberately no-store. */
- /* v246 keeps Archive multi-file programs and their sibling episodes in the
+ /* v248 keeps Archive multi-file programs and their sibling episodes in the
    candidate shelf. A cold tune still returns a verified
    parent program immediately, while the background shelf expands collection
    items into their individual playable episode files. The depth-recovery
@@ -104,10 +104,10 @@ const IA_CATALOG_CANDIDATE_MAX = 3072;
    episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
- const IA_QUEUE_CACHE_VERSION = "v246";
+ const IA_QUEUE_CACHE_VERSION = "v248";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
- const IA_LAST_GOOD_CACHE_VERSION = "v246";
+ const IA_LAST_GOOD_CACHE_VERSION = "v248";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -375,7 +375,7 @@ function iaStrictRecoveryEnabled(channel) {
 const IA_DEPTH_RECOVERY_CHANNELS = new Set([
   "3", "10", "13", "14", "17", "18", "19", "21", "60", "61", "62", "64", "66", "68", "70", "74", "75", "76", "77", "80", "81",
   "100", "101", "102", "105", "106", "107", "108", "111", "114", "115", "117", "118", "120", "124", "125", "126", "127", "128", "129", "130", "131", "132", "154", "205", "222", "922",
-  "51", "57", "58", "69", "72", "83", "104", "122", "124", "202", "203", "204", "206", "209", "210", "211", "212", "213", "214", "215", "220", "223", "224", "227", "228", "231", "232", "235", "237", "239", "240", "501", "502", "511", "700", "702", "703", "704", "705", "706", "707", "708", "709", "901", "906", "907", "909", "914", "916", "918", "920", "921", "923", "927", "929"
+  "51", "57", "58", "69", "72", "83", "104", "122", "124", "202", "203", "204", "206", "209", "210", "211", "212", "213", "214", "215", "220", "223", "224", "227", "228", "231", "232", "235", "237", "239", "240", "501", "502", "511", "700", "702", "703", "704", "705", "706", "707", "708", "709", "901", "906", "907", "909", "914", "916", "918", "920", "921", "923", "927", "929", "16", "90"
 ].filter(Boolean));
 function iaDepthRecoveryEnabled(channel) {
   return IA_DEPTH_RECOVERY_CHANNELS.has(String(channel));
@@ -7326,6 +7326,11 @@ function iaFreshnessRecord(item) {
     id: iaPlayableIdentity(item) || String(item.identifier),
     era: keys.era || "",
     collection: keys.collection || "",
+    /* Remember the logical series family as well as the concrete file. A
+       complete-series expansion can give every episode a fresh identifier;
+       without this field the next opening can still be the same show through
+       a different episode or uploader. */
+    family: keys.family || "",
     lane: keys.lane || "",
     issuedAt: Date.now(),
   };
@@ -7335,16 +7340,22 @@ function normalizeIaFreshnessLedger(value) {
   const raw = Array.isArray(value) ? value : (value && Array.isArray(value.items) ? value.items : []);
   const seen = new Set();
   const items = raw.map((entry) => {
-    if (typeof entry === "string") return { id: entry, era: "", collection: "", lane: "", issuedAt: 0 };
+    if (typeof entry === "string") return { id: entry, era: "", collection: "", family: "", lane: "", issuedAt: 0 };
     if (!entry || !entry.id) return null;
     return {
       id: String(entry.id).slice(0, 240),
       era: String(entry.era || "").slice(0, 12),
       collection: String(entry.collection || "").slice(0, 160),
+      family: String(entry.family || "").slice(0, 160),
       lane: String(entry.lane || "").slice(0, 24),
       issuedAt: Number(entry.issuedAt) || 0,
     };
   }).filter((entry) => entry && entry.id && !seen.has(entry.id) && seen.add(entry.id));
+  /* Older ledgers predate family-aware freshness. Preserve them as valid
+     records; the next played item will backfill the new field naturally. */
+  items.forEach((entry) => {
+    if (!Object.prototype.hasOwnProperty.call(entry, "family")) entry.family = "";
+  });
   return items.slice(-IA_FRESHNESS_LEDGER_MAX);
 }
 
@@ -7375,6 +7386,7 @@ function queueFreshnessDiffers(item, previous) {
      sparse channel. */
   if (current.era && previous.era && current.era !== previous.era) return true;
   if (current.collection && previous.collection && current.collection !== previous.collection) return true;
+  if (current.family && previous.family && current.family !== previous.family) return true;
   if (current.lane && previous.lane && current.lane !== previous.lane) return true;
   return !current.era && !current.collection && !current.lane;
 }
@@ -8087,8 +8099,14 @@ function rotatePlayableIaShelf(payload, rotation, count) {
   const actualFirstId = payload && Array.isArray(payload.items) && payload.items[0]
     ? String(payload.items[0].identifier || "")
     : "";
+  const familyLimit = safeDiversity(payload && payload.diversity).maxPerFamily;
+  const expectedWindow = familyBalancedIaWindow(stablePlayableCandidates, expectedIndex, requested, familyLimit);
+  const actualWindow = payload && Array.isArray(payload.items) ? payload.items.slice(0, requested) : [];
+  const sameFamilyBalancedWindow = expectedWindow.length >= requested && actualWindow.length >= requested &&
+    expectedWindow.every((item, index) => (iaPlayableIdentity(item) || String(item.identifier || "")) ===
+      (iaPlayableIdentity(actualWindow[index]) || String(actualWindow[index] && actualWindow[index].identifier || "")));
   if (payload && payload.rotationApplied === true && Number(payload.rotation) === normalizedRotation && Array.isArray(payload.items) && payload.items.length >= requested &&
-      (!expectedFirstId || expectedFirstId === actualFirstId)) return payload;
+      (!expectedFirstId || expectedFirstId === actualFirstId) && sameFamilyBalancedWindow) return payload;
   const source = stablePlayableCandidates.length >= requested
     ? stablePlayableCandidates
     : (Array.isArray(payload && payload.items) ? payload.items : []);
@@ -8097,10 +8115,10 @@ function rotatePlayableIaShelf(payload, rotation, count) {
      record. Step by a full requested shelf so the next tune does not replay
      four of the same five programs when a deeper catalog is available. */
   const offset = source.length > 1 ? (normalizedRotation * requested) % source.length : 0;
-  const rotated = source.slice(offset).concat(source.slice(0, offset));
+  const rotated = familyBalancedIaWindow(source, offset, requested, familyLimit);
   return {
     ...(payload || {}),
-    items: rotated.slice(0, requested),
+    items: rotated,
     ...(stablePlayableCandidates.length >= requested ? { candidateItems: stablePlayableCandidates, candidates: stablePlayableCandidates.length } : {}),
     rotation: normalizedRotation,
     rotationApplied: true,
@@ -8134,7 +8152,12 @@ function rotateApprovedIaShelf(payload, rotation, count) {
   });
   if (candidates.length < Math.max(requested * 3, requested)) return payload;
   const offset = (normalizedRotation * requested) % candidates.length;
-  const ordered = candidates.slice(offset).concat(candidates.slice(0, offset));
+  const familyLimit = safeDiversity(payload && payload.diversity).maxPerFamily;
+  const selected = familyBalancedIaWindow(candidates, offset, requested, familyLimit);
+  const selectedIds = new Set(selected.map((item) => iaPlayableIdentity(item) || String(item.identifier || "")));
+  const orderedTail = candidates.slice(offset).concat(candidates.slice(0, offset))
+    .filter((item) => !selectedIds.has(iaPlayableIdentity(item) || String(item.identifier || "")));
+  const ordered = selected.concat(orderedTail);
   return {
     ...(payload || {}),
     items: ordered.slice(0, requested),
@@ -8201,6 +8224,53 @@ function iaPlayableIdentity(item) {
     .replace(/\.(?:mp4|m4v|mov|ogv|webm|mp3|flac|ogg|oga|wav|m4a|aac)(?:[?#].*)?$/i, "")
     .replace(/(?:[._-](?:orig|original|source|512kb|256kb|128kb|64kb|low|small|preview|proxy))$/i, "");
   return `${source}::${stem}`;
+}
+
+/* Build a shelf from the rolling playable catalog without letting one
+   complete-series family occupy the opening window. The catalog may contain
+   hundreds of episodes from one Archive item and only a handful from other
+   families; take one from every family that is available at the current
+   rotation cursor first, then use the remaining slots as a controlled fill.
+   This keeps sparse lanes playable while making deep lanes feel like a real
+   station instead of a single show's playlist. */
+function familyBalancedIaWindow(candidates, start, requested, maxPerFamily = 1) {
+  const source = Array.isArray(candidates) ? candidates.filter((item) => item && item.identifier) : [];
+  const count = Math.max(1, Number(requested) || 1);
+  if (!source.length) return [];
+  const ordered = source.slice(start).concat(source.slice(0, start));
+  const familyLimit = Math.max(1, Math.min(5, Number(maxPerFamily) || 1));
+  const selected = [], selectedIds = new Set(), familyCounts = new Map();
+  const familyOf = (item) => {
+    const family = queueDiversityKeys(item, item && item.lane).family;
+    /* A missing family is not evidence that all unknown items are the same
+       show. Give it an identity-scoped key so incomplete Archive metadata
+       cannot collapse the entire shelf into one artificial family. */
+    return family || `unknown:${iaPlayableIdentity(item) || item.identifier}`;
+  };
+  const add = (item, relaxed = false) => {
+    const id = iaPlayableIdentity(item) || String(item.identifier || "");
+    if (!id || selectedIds.has(id)) return false;
+    const family = familyOf(item);
+    if (!relaxed && (familyCounts.get(family) || 0) >= familyLimit) return false;
+    selected.push(item);
+    selectedIds.add(id);
+    familyCounts.set(family, (familyCounts.get(family) || 0) + 1);
+    return true;
+  };
+  /* The strict pass is the important one: it guarantees that distinct series
+     families get a chance before any family receives a second episode. */
+  for (const item of ordered) {
+    if (selected.length >= count) break;
+    add(item);
+  }
+  /* If the approved catalog contains fewer families than the requested shelf,
+     fill from the same verified catalog. Never manufacture a new item or
+     relax the channel's genre/runtime/media gates here. */
+  for (const item of ordered) {
+    if (selected.length >= count) break;
+    add(item, true);
+  }
+  return selected;
 }
 
 function orderedIaEmergencySeeds(channel, rotation) {
@@ -9563,7 +9633,7 @@ async function getIaQueue(request, url, env, ctx) {
        discarded. The helper keeps the selected window at the front so the
        foreground probe pays for the requested shelf, not the opening page. */
     const approvedCatalogCount = Array.isArray(payload && payload.candidateItems) ? payload.candidateItems.length : 0;
-    if (rotation > 0 && approvedCatalogCount >= count * 3) {
+    if (approvedCatalogCount >= count * 3) {
       payload = rotateApprovedIaShelf(payload, rotation, count);
     }
     /* Freshness is applied before hydration as well as at the response edge,

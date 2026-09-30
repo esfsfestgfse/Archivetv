@@ -4,7 +4,7 @@ const path=require('node:path');
 const vm=require('node:vm');
 for(const file of ['the_dial_desktop.html','the_dial_mobile.html']){
   const html=fs.readFileSync(path.join(__dirname,'..',file),'utf8');
-  assert.match(html,/async function iaQueueFetch\(body\)\{var requestBody=\{\.\.\.body,sessionId:iaSessionId\(\),serverCatalog:true\}/,'IA queue must use the server freshness shelf by default');
+  assert.match(html,/async function iaQueueFetch\(body\)\{[\s\S]*requestBody=\{\.\.\.body,sessionId:iaSessionId\(\),serverCatalog:!decadePilot\}/,'IA queue must use the server freshness shelf by default');
   const code=html.slice(html.indexOf('function iaQueueKey('),html.indexOf('function iaMediaWarmKey('));
   const saved={};
   const s={iaQueueRotation:{12:4094,121:8},store:{set(key,value){saved[key]=JSON.parse(JSON.stringify(value));}}};

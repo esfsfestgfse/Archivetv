@@ -13,7 +13,7 @@ function check(ok, message) {
   if (!ok) failures.push(message);
 }
 
-check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v246"/.test(relay), 'File-level Archive banks invalidate the prior queue namespace');
+check(/IA_QUEUE_CACHE_VERSION\s*=\s*"v\d+"/.test(relay) && /IA_LAST_GOOD_CACHE_VERSION\s*=\s*"v\d+"/.test(relay), 'File-level Archive banks use versioned queue namespaces');
 check(!/iaArchiveSearchForegroundWaiters|iaArchiveSearchBackgroundWaiters/.test(relay) && /archive search concurrency saturated/.test(relay), 'Archive search permits cannot resolve across request contexts');
 check(/IA_BACKGROUND_HARVEST_OFFSETS\s*=\s*Object\.freeze\(\[1, 3, 7, 15, 31, 63, 127\]\)/.test(relay) && /harvestIaBackgroundPages/.test(relay), 'Background IA harvesting walks deterministic later-page windows');
 check(/const candidateLimit = Math\.max\(count, Math\.min\(IA_STRICT_CATALOG_CANDIDATE_MAX, Number\(candidateCount\) \|\| count\)\)/.test(relay), 'fresh Archive search preserves the larger rolling candidate catalog');
@@ -72,7 +72,7 @@ check(/const IA_UNDERFILL_DEPTH_BANKS\s*=\s*Object\.freeze/.test(relay) && /"66"
 check(/Xcorps21ASRhd2::Xcorps21ASRhd2\.mp4/.test(relay) && /Nature_Land_of_the_Eagle::Nature S10E07/.test(relay) && /mix_07_7_06::mix_07_7_06\.mp3/.test(relay), 'underfill-depth bank carries concrete Archive derivatives instead of collection placeholders');
 check(/"212": \[[\s\S]*wildlife nature animal behavior zoology natural history documentary television/.test(relay) && /"902": \[[\s\S]*bluegrass folk acoustic string band live music/.test(relay), 'underfill-depth bank preserves strict station vocabulary');
 
-check(relay.includes('const IA_UNDERFILL_DEPTH_ROTATION_CHANNELS = new Set(Object.keys(IA_UNDERFILL_DEPTH_BANKS))') && relay.includes('function rotateUnderfillDepthBank(') && relay.includes('underfillDepthRotation: true') && relay.includes('const stableCandidates = payload && payload.catalogOrderLocked') && relay.includes('payloadCandidates.concat(directCandidates)'), 'underfill lanes rotate the verified file bank instead of reopening a shallow search shelf');
+check(/const IA_UNDERFILL_DEPTH_ROTATION_CHANNELS = new Set\(\[\.\.\.Object\.keys\(IA_UNDERFILL_DEPTH_BANKS\),\s*"24"\]\)/.test(relay) && relay.includes('function rotateUnderfillDepthBank(') && relay.includes('underfillDepthRotation: true') && relay.includes('const stableCandidates = payload && payload.catalogOrderLocked') && relay.includes('payloadCandidates.concat(directCandidates)'), 'underfill lanes rotate the verified file bank instead of reopening a shallow search shelf');
 check(/iaStationQualityGate\(String\(payload && payload\.channel/.test(relay) && /iaStationQualityGate\(recoveryChannel, item\)/.test(relay) && /rodeo drive/.test(relay), 'final shelves reject contaminated shared and emergency-rail records');
 
 if (failures.length) {

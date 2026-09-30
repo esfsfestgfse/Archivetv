@@ -5,7 +5,7 @@ const path = require('node:path');
 const html = fs.readFileSync(path.join(__dirname, '../realsignal_cast_receiver.html'), 'utf8');
 function setup() {
   const nodes = new Map(), loads = [], messages = [], timers = new Map();
-  let listener, errorListener, current, stops = 0, pauses = 0, plays = 0, systemVolume = null, timerId = 0;
+  let listener, errorListener, windowMessageListeners = [], current, stops = 0, pauses = 0, plays = 0, systemVolume = null, timerId = 0;
   const eventListeners = new Map();
   function element() {
     const classes = new Set();
@@ -24,14 +24,14 @@ function setup() {
     sendCustomMessage(ns, id, packet) {messages.push(packet);},
     addCustomMessageListener(ns, callback) {listener = callback;}};
   const sandbox = {URL, document: {getElementById(id) {if(!nodes.has(id)) nodes.set(id, element()); return nodes.get(id);},
-    createElement: element, createDocumentFragment: element}, window: {addEventListener() {}},
+    createElement: element, createDocumentFragment: element}, window: {addEventListener(type, callback) {if(type === 'message') windowMessageListeners.push(callback);}},
     setTimeout(fn) {timers.set(++timerId, fn); return timerId;}, clearTimeout: id => timers.delete(id),
     cast: {framework: {CastReceiverContext: {getInstance: () => context}, CastReceiverOptions: function(){},
       messages: {MediaInformation: function(){}, GenericMediaMetadata: function(){}, LoadRequestData: function(){}, StreamType: {BUFFERED: 'BUFFERED'}},
       events: {EventType: {ERROR: 'ERROR', MEDIA_FINISHED: 'MEDIA_FINISHED'}}, system: {MessageType: {JSON: 'JSON'}}}}};
   vm.runInNewContext(html.match(/<script>\s*([\s\S]*?)<\/script>/)[1], sandbox);
   const send = data => listener({senderId: 'phone', data});
-  return {loads, messages, timers, nodes, send, stops: () => stops, pauses: () => pauses, plays: () => plays,
+  return {loads, messages, timers, nodes, send, windowMessages: () => windowMessageListeners, stops: () => stops, pauses: () => pauses, plays: () => plays,
     systemVolume: () => systemVolume,
     error(info) {current = info; errorListener({});},
     state(channel, powered = true) {send({type: 'REALSIGNAL_STATE', channel, powered});},
@@ -87,6 +87,11 @@ const flush = async () => {await Promise.resolve(); await Promise.resolve();};
   assert.equal(embed.loads.length, 0, 'Source Suite embeds must not enter the native direct-media loader');
   assert(embed.nodes.get('screen').src.includes('youtube.com/embed/abc123'), 'receiver must load the embed URL in its director');
   assert(embed.nodes.get('app').classList.contains('director-open'), 'receiver must show the director for an interactive embed');
+  embed.nodes.get('screen').onload();
+  assert.equal(embed.messages.filter(m => m.type === 'REALSIGNAL_CAST_OK').length, 0, 'embed load must wait for a verified playing state');
+  const embedHandler = embed.windowMessages()[embed.windowMessages().length - 1];
+  embedHandler({source: embed.nodes.get('screen').contentWindow, origin: 'https://www.youtube.com', data: JSON.stringify({event: 'onStateChange', info: 1})});
+  assert.equal(embed.messages.filter(m => m.type === 'REALSIGNAL_CAST_OK').length, 1, 'embed playing state must acknowledge receiver playback');
   embed.send({type: 'REALSIGNAL_COMMAND', action: 'PAUSE'});
   assert(embed.nodes.get('screen').contentWindow, 'embed receiver must retain a controllable director window');
   console.log('Cast runtime: channel races, standby, guide, bounded recovery passed (mock CAF SDK).');

@@ -13,7 +13,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "4.1.206-public-scale-foundation";
+const V3_RELEASE = "4.1.207-unthrottled-playback-queue";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -2104,8 +2104,8 @@ const worker = {
       if (!route) return json({ error: "not found", requestId: id }, 404);
       if (route.kind === "queue") {
         if (request.method !== "POST") return json({ error: "method not allowed", requestId: id }, 405, { Allow: "POST,OPTIONS" });
-        const limited = await durableRateLimit(request, env, route.kind);
-        if (limited) return limited;
+        /* Playback is the product. Do not rate-limit normal channel changes;
+           expensive discovery/provider routes remain protected below. */
         return await handleQueue(request, env, ctx, id);
       }
       if (request.method !== "GET") return json({ error: "method not allowed", requestId: id }, 405, { Allow: "GET,OPTIONS" });

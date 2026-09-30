@@ -13,7 +13,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "4.1.207-unthrottled-playback-queue";
+const V3_RELEASE = "5.0.0-adaptive-broadcast-os";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -46,6 +46,14 @@ const IA_FAST_CATALOG_LANES = new Set([
   /* Holiday lanes have verified instant shelves but some still need a
      background relay refresh to grow beyond their shallow D1 catalog. */
   "705", "706", "707", "708", "709",
+  /* 4.1.208 targeted freshness repair: the clean 179-lane soak found these
+     lanes reopening the same relay shelf even though D1 already contains a
+     verified catalog. Keep the repair local: full-catalog rotation is used
+     only for measured repeat-heavy lanes, while the relay remains the
+     discovery path for every other channel. */
+  "13", "19", "21", "54", "67", "70", "71", "73", "78", "83",
+  "105", "109", "112", "114", "125", "129", "130", "131", "152", "156",
+  "201", "226", "242", "501", "502", "508", "900", "901", "912", "926",
 ]);
 /* These seasonal lanes have title-verified recovery shelves. Some older D1
    rows predate subject persistence, so a clearly seasonal title must remain

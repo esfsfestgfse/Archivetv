@@ -27,10 +27,6 @@ sub init()
   m.enterPairing.visible = true
   m.connect.visible = false
   m.enterPairing.setFocus(true)
-  deepLink = CreateObject("roAppInfo").GetDeepLinkInfo()
-  if deepLink <> invalid and deepLink.DoesExist("session")
-    m.keyboard.text = deepLink.session
-  end if
 end sub
 
 sub pairingPressed(event)

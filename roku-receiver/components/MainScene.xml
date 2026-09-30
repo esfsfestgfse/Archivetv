@@ -6,7 +6,7 @@
     <Label id="brand" text="REALSIGNAL" translation="[110,110]" color="#79ffad" font="font:LargeBoldSystemFont" />
     <Label id="headline" text="ROKU PREVIEW" translation="[110,190]" color="#effff3" font="font:MediumBoldSystemFont" />
     <Label id="status" text="Enter the pairing code from the RealSignal Roku Remote" translation="[110,260]" color="#a8cbb5" width="1600" wrap="true" />
-    <MiniKeyboard id="keyboard" translation="[110,360]" maxTextLength="24" showTextEditBox="true" visible="false" />
+    <MiniKeyboard id="keyboard" translation="[110,360]" showTextEditBox="true" visible="false" />
     <Button id="enterPairing" text="ENTER PAIRING CODE" translation="[110,360]" />
     <Button id="connect" text="CONNECT" translation="[110,450]" visible="false" />
     <Label id="nowPlaying" text="" translation="[110,950]" color="#f3dd7a" width="1700" />

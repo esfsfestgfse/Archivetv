@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'realsignal_api_v2_worker.js'
+      - 'realsignal_roku_session.js'
       - 'realsignal_api_rotation.js'
       - 'realsignal_api_rate_limit.js'
       - 'realsignal_source_catalog.js'

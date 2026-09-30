@@ -67,21 +67,21 @@ sub init()
   m.connect.visible = false
   m.status.text = "Use the arrows and OK to enter the 12-character pairing code."
   m.top.setFocus(true)
-  focusKey(0)
+  focusSelection(0)
   m.focusTimer.control = "start"
 end sub
 
 sub initialFocus(event)
   if m.code = ""
     m.top.setFocus(true)
-    focusKey(0)
+    focusSelection(0)
   end if
 end sub
 
 sub screenVisible(event)
   if event <> invalid and event.getData() = true and m.code = ""
     m.top.setFocus(true)
-    focusKey(0)
+    focusSelection(0)
   end if
 end sub
 
@@ -90,27 +90,57 @@ function onKeyEvent(key as String, press as Boolean) as Boolean
 
   normalized = LCase(key)
   if normalized = "left"
-    focusKey(m.focusIndex - 1)
-    return true
-  else if normalized = "right"
-    focusKey(m.focusIndex + 1)
-    return true
-  else if normalized = "up"
-    focusKey(m.focusIndex - 4)
-    return true
-  else if normalized = "down"
-    focusKey(m.focusIndex + 4)
-    return true
-  else if normalized = "back" or normalized = "backspace"
-    if Len(m.codeBuffer) > 0
-      m.codeBuffer = Left(m.codeBuffer, Len(m.codeBuffer) - 1)
-      m.connect.visible = false
-      updateCodeDisplay()
-      m.status.text = "Removed last character · " + Len(m.codeBuffer).ToStr() + " of 12"
+    if m.focusIndex > 16 then
+      focusSelection(m.focusIndex - 1)
+    else if m.focusIndex = 16 then
+      focusSelection(16)
+    else
+      focusSelection(m.focusIndex - 1)
     end if
     return true
+  else if normalized = "right"
+    if m.focusIndex < 16 then
+      focusSelection(m.focusIndex + 1)
+    else if m.connect.visible
+      focusSelection(m.focusIndex + 1)
+    else
+      focusSelection(17)
+    end if
+    return true
+  else if normalized = "up"
+    if m.focusIndex >= 16 then
+      focusSelection(m.focusIndex - 4)
+    else
+      focusSelection(m.focusIndex - 4)
+    end if
+    return true
+  else if normalized = "down"
+    nextIndex = m.focusIndex + 4
+    if m.focusIndex >= 12 and m.focusIndex <= 15
+      column = m.focusIndex - 12
+      if column = 0
+        nextIndex = 16
+      else if column = 1
+        nextIndex = 17
+      else if m.connect.visible
+        nextIndex = 18
+      else
+        nextIndex = 17
+      end if
+    else if m.focusIndex >= 16
+      nextIndex = m.focusIndex
+    end if
+    focusSelection(nextIndex)
+    return true
+  else if normalized = "back" or normalized = "backspace"
+    removeLastCodeCharacter()
+    return true
   else if normalized = "ok" or normalized = "select" or normalized = "enter"
-    if m.connect.visible and m.connect.hasFocus()
+    if m.focusIndex = 16
+      clearCodeEntry()
+    else if m.focusIndex = 17
+      removeLastCodeCharacter()
+    else if m.focusIndex = 18
       connectNow()
     else
       appendCode(m.keyIds[m.focusIndex])
@@ -121,10 +151,21 @@ function onKeyEvent(key as String, press as Boolean) as Boolean
   return false
 end function
 
-sub focusKey(index)
-  if index < 0 or index >= m.keyIds.Count() then return
+sub focusSelection(index)
+  limit = 17
+  if m.connect.visible then limit = 18
+  if index < 0 then index = 0
+  if index > limit then index = limit
   m.focusIndex = index
-  m.status.text = "Selected key " + m.keyIds[index] + " · press OK"
+  if index < m.keyIds.Count()
+    m.status.text = "Selected key " + m.keyIds[index] + " · press OK"
+  else if index = 16
+    m.status.text = "Selected CLEAR · press OK"
+  else if index = 17
+    m.status.text = "Selected BACKSPACE · press OK"
+  else
+    m.status.text = "Selected CONNECT · press OK"
+  end if
 end sub
 
 sub key0Pressed(event)
@@ -182,7 +223,8 @@ sub appendCode(value)
   updateCodeDisplay()
   if Len(m.codeBuffer) = 12
     m.connect.visible = true
-    m.status.text = "Pairing code ready · press CONNECT"
+    m.status.text = "Pairing code ready · press OK to CONNECT"
+    focusSelection(18)
   else
     m.status.text = "Entering pairing code · " + Len(m.codeBuffer).ToStr() + " of 12"
   end if
@@ -198,25 +240,39 @@ end sub
 
 sub clearPressed(event)
   if event <> invalid and event.getData() = true and m.code = ""
-    m.codeBuffer = ""
-    m.connect.visible = false
-    updateCodeDisplay()
-    m.status.text = "Code cleared · use the arrows and OK"
-    focusKey(0)
+    clearCodeEntry()
   end if
 end sub
 
 sub backspacePressed(event)
-  if event <> invalid and event.getData() = true and m.code = "" and Len(m.codeBuffer) > 0
-    m.codeBuffer = Left(m.codeBuffer, Len(m.codeBuffer) - 1)
-    m.connect.visible = false
-    updateCodeDisplay()
-    m.status.text = "Removed last character · " + Len(m.codeBuffer).ToStr() + " of 12"
+  if event <> invalid and event.getData() = true and m.code = ""
+    removeLastCodeCharacter()
   end if
 end sub
 
 sub connectPressed(event)
   if event <> invalid and event.getData() = true then connectNow()
+end sub
+
+sub clearCodeEntry()
+  if m.code <> "" then return
+  m.codeBuffer = ""
+  m.connect.visible = false
+  updateCodeDisplay()
+  m.status.text = "Code cleared · use the arrows and OK"
+  m.focusIndex = 0
+end sub
+
+sub removeLastCodeCharacter()
+  if m.code <> "" then return
+  if Len(m.codeBuffer) > 0
+    m.codeBuffer = Left(m.codeBuffer, Len(m.codeBuffer) - 1)
+    m.connect.visible = false
+    updateCodeDisplay()
+    m.status.text = "Removed last character · " + Len(m.codeBuffer).ToStr() + " of 12"
+  else
+    m.status.text = "Nothing to remove · enter a character first"
+  end if
 end sub
 
 sub connectNow()

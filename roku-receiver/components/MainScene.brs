@@ -17,6 +17,7 @@ sub init()
   m.api.observeField("result", "apiResult")
   m.api.observeField("error", "apiError")
   m.player.observeField("state", "videoState")
+  m.top.observeField("isScreenVisible", "screenVisible")
   m.code = ""
   m.since = 0
   m.requestSerial = 0
@@ -28,6 +29,13 @@ sub init()
   m.status.text = "Enter the 12-character code from the phone remote, then press CONNECT."
   m.top.setFocus(true)
   m.keyboard.setFocus(true)
+end sub
+
+sub screenVisible(event)
+  if event <> invalid and event.getData() = true and m.code = ""
+    m.top.setFocus(true)
+    m.keyboard.setFocus(true)
+  end if
 end sub
 
 sub pairingPressed(event)

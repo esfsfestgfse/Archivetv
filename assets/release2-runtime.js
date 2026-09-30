@@ -9,8 +9,9 @@
   var telemetryOn=params.get('r2Telemetry')!=='0';
   var remoteTelemetryOn=telemetryOn&&params.get('remoteTelemetry')!=='0';
   var REMOTE_ENDPOINT=String(window.__RS_REMOTE_TELEMETRY_ENDPOINT||'https://realsignal-api.tdy1990.workers.dev/api/v3/telemetry');
+  var REMOTE_HEALTH_ENDPOINT=String(window.__RS_REMOTE_HEALTH_ENDPOINT||'https://realsignal-api.tdy1990.workers.dev/api/v3/health/summary?hours=24&limit=8');
   var REMOTE_TYPES={"tune-complete":1,"first-visible-frame":1,"guide-open":1,"guide-close":1,"queue-sample":1,"repeat":1,"control":1,"stall":1,"media-error":1,"tune-failed":1,"startup-timeout":1,"source-recovery":1,"source-recovery-failed":1,"source-success":1,"source-failure":1};
-  var remoteQueue=[],remoteTimer=0,remoteInFlight=false;
+  var remoteQueue=[],remoteTimer=0,remoteInFlight=false,remoteHealthInFlight=false,remoteHealth=null;
   var STORAGE_KEY='realsignal:health:v2',persistTimer=0,stored={};
   try{stored=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}')||{};}catch(_){stored={};}
   var report={version:4,startedAt:Date.now(),events:Array.isArray(stored.events)?stored.events.slice(-500):[],channelStats:stored.channelStats&&typeof stored.channelStats==='object'?stored.channelStats:{},sessions:Number(stored.sessions||0)+1,notes:['bounded local report','optional remote v3 telemetry','bounded 500-event ring','bounded per-channel history']};
@@ -81,6 +82,35 @@
     return {version:4,events:report.events.length,sessions:report.sessions,tunes:tunes.length,frames:frames.length,uniquePrograms:seenPrograms.length,repeats:report.events.filter(function(e){return e.type==='repeat';}).length,skips:report.events.filter(function(e){return e.type==='control'&&e.action==='skip';}).length,tuneP50:percentile(tunes,.5),tuneP95:percentile(tunes,.95),frameP50:percentile(frames,.5),frameP95:percentile(frames,.95),guideOpenP50:percentile(opens,.5),guideOpenP95:percentile(opens,.95),guideCloseP50:percentile(closes,.5),guideCloseP95:percentile(closes,.95),queueSamples:depths.length,queueCurrent:depths.length?depths[depths.length-1]:null,queueMin:depths.length?depths[0]:null,queueMax:depths.length?depths[depths.length-1]:null,sourceFailures:failures,sourceRecoveries:report.events.filter(function(e){return e.type==='source-recovery';}).length,sourceRecoveryFailures:report.events.filter(function(e){return e.type==='source-recovery-failed';}).length,timeouts:report.events.filter(function(e){return e.type==='startup-timeout';}).length,stalls:report.events.filter(function(e){return e.type==='stall';}).length,errors:report.events.filter(function(e){return e.type==='media-error';}).length,surface:status.surface,castConnected:status.cast,statusLabel:status.label};
   }
   function median(values){var copy=(values||[]).filter(Number.isFinite).slice().sort(function(a,b){return a-b;});return copy.length?copy[Math.floor((copy.length-1)/2)]:null;}
+  function remoteMetric(rows,key){var values=(Array.isArray(rows)?rows:[]).map(function(row){return Number(row&&row[key]);}).filter(Number.isFinite);return median(values);}
+  function remoteDepth(value){return Number.isFinite(value)?(Math.round(value*10)/10)+' ready':'—';}
+  function renderRemoteHealth(value){
+    var set=function(id,text){var el=document.getElementById(id);if(el)el.textContent=text;};
+    if(!value||value.error){
+      set('rsHealthRemoteStatus','LIVE UNAVAILABLE · LOCAL ONLY');
+      set('rsHealthRemoteFrame','—');set('rsHealthRemoteSwitch','—');set('rsHealthRemoteGuide','—');set('rsHealthRemoteQueue','—');
+      set('rsHealthRemoteEvents',value&&value.error?'RETRYING · '+value.error:'NOT SYNCED');
+      set('rsHealthRemoteNote','The live score is optional and never blocks playback.');
+      var empty=document.getElementById('rsHealthRemoteLanes');if(empty)empty.innerHTML='<div class="rs-health-empty">Server health is temporarily unavailable. Local measurements remain active.</div>';
+      return;
+    }
+    remoteHealth=value;
+    var channels=Array.isArray(value.channels)?value.channels:[],totals=value.totals||{},score=Number(value.overallScore);
+    set('rsHealthRemoteStatus',String(value.status||'READY').toUpperCase()+' · '+(Number.isFinite(score)?Math.round(score)+'/100':'NO SCORE'));
+    set('rsHealthRemoteFrame',formatMs(remoteMetric(channels,'first_frame_avg_ms')));
+    set('rsHealthRemoteSwitch',formatMs(remoteMetric(channels,'switch_avg_ms')));
+    set('rsHealthRemoteGuide',formatMs(remoteMetric(channels,'guide_avg_ms')));
+    set('rsHealthRemoteQueue',remoteDepth(remoteMetric(channels,'queue_avg_depth')));
+    set('rsHealthRemoteEvents',(Number(totals.events)||0)+' events · '+(Number(value.windowHours)||24)+'H');
+    set('rsHealthRemoteNote',(Number(totals.failures)||0)+' failures · '+(Number(totals.repeats)||0)+' repeats · '+(Number(totals.stalls)||0)+' stalls · '+(Number(totals.recoveries)||0)+' recoveries');
+    var lanes=document.getElementById('rsHealthRemoteLanes');if(!lanes)return;
+    lanes.innerHTML=channels.slice(0,6).map(function(row){var failures=Number(row.failures||0),stalls=Number(row.stalls||0),repeats=Number(row.repeats||0),score=100-(failures*18)-(stalls*8)-(repeats*5),tone=score<60?'bad':score<85?'warn':'good',channel=String(row.channel_key||'').trim(),numeric=/^\d+$/.test(channel),label=htmlSafe(channel||'LANE');return '<button type="button" class="rs-health-lane '+tone+'" '+(numeric?'data-rs-channel="'+label+'"':'disabled')+'><span class="rs-health-lane-id">'+label.slice(-3).padStart(3,'0')+'</span><span class="rs-health-lane-name"><b>CHANNEL '+label+'</b><small>'+htmlSafe((row.last_status||'SERVER TELEMETRY').slice(0,40))+'</small></span><span class="rs-health-lane-metrics"><b>'+Math.max(0,Math.min(100,score))+'</b><small>'+[row.first_frame_avg_ms!=null?'F '+formatMs(Number(row.first_frame_avg_ms)):'F —',row.switch_avg_ms!=null?'S '+formatMs(Number(row.switch_avg_ms)):'S —','Q '+(row.queue_avg_depth==null?'—':row.queue_avg_depth),failures?'ERR '+failures:(repeats?'REP '+repeats:'OK')].join(' · ')+'</small></span></button>';}).join('')||'<div class="rs-health-empty">No server lanes measured yet.</div>';
+  }
+  function fetchRemoteHealth(){
+    if(!remoteTelemetryOn||remoteHealthInFlight||typeof fetch!=='function'||!document.getElementById('rsHealthRemoteStatus'))return;
+    remoteHealthInFlight=true;var controller=typeof AbortController==='function'?new AbortController():null,timer=setTimeout(function(){if(controller)controller.abort();},5000);
+    fetch(REMOTE_HEALTH_ENDPOINT,{method:'GET',mode:'cors',cache:'no-store',headers:{'x-realsignal-client':'health-dashboard'},signal:controller?controller.signal:undefined}).then(function(response){if(!response.ok)throw new Error('HTTP '+response.status);return response.json();}).then(function(value){if(value&&value.apiVersion==='v3')renderRemoteHealth(value);else throw new Error('invalid dashboard payload');}).catch(function(error){renderRemoteHealth({error:String(error&&error.message||'unavailable')});}).finally(function(){clearTimeout(timer);remoteHealthInFlight=false;});
+  }
   function laneRows(){return Object.keys(report.channelStats).map(function(key){var row=report.channelStats[key]||{},attempts=Number(row.tunes||0),frames=Number(row.frames||0),failures=Number(row.failures||0),stalls=Number(row.stalls||0),repeats=Number(row.repeats||0),timeouts=Number(row.timeouts||0),frameP50=median(row.frameMs),switchP50=median(row.switchMs),depths=(row.queueDepths||[]).filter(Number.isFinite),cat=String(row.cat||''),source=String(row.source||''),visualLane=source==='v2preview'||/^(NET|TOON|MOV|TV|DOC|SOURCE|RETRO|HOL|BRIT|SPORTS)$/.test(cat),unframed=visualLane?Math.max(0,attempts-frames):0,score=100-(failures*18)-(timeouts*20)-(stalls*8)-(repeats*5)-(unframed*12)+(frames?Math.min(8,frames):0);return {channel:Number(row.channel||key)||0,name:String(row.name||('CHANNEL '+key)),cat:cat,source:source,visualLane:visualLane,attempts:attempts,frames:frames,unframed:unframed,failures:failures,stalls:stalls,repeats:repeats,timeouts:timeouts,recoveries:Number(row.recoveries||0),frameP50:frameP50,switchP50:switchP50,queue:depths.length?depths[depths.length-1]:null,score:Math.max(0,Math.min(100,score)),lastAt:Number(row.lastAt||0)};}).filter(function(row){return row.attempts||row.frames||row.failures||row.repeats||row.stalls;}).sort(function(a,b){return a.score-b.score||b.failures-a.failures||b.lastAt-a.lastAt;});}
   function htmlSafe(value){return String(value==null?'':value).replace(/[&<>"']/g,function(ch){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];});}
   function currentChannel(){try{if(typeof curNum!=='undefined'&&typeof byNum==='function')return byNum(curNum);}catch(_){ }return null;}
@@ -157,6 +187,7 @@
     if(clear&&!clear.dataset.wired){clear.dataset.wired='1';clear.addEventListener('click',function(){report.events.length=0;report.channelStats={};seenPrograms.length=0;activeTune=null;try{localStorage.removeItem(STORAGE_KEY);}catch(_){ }push({type:'health-reset'});});}
     if(exporter&&!exporter.dataset.wired){exporter.dataset.wired='1';exporter.addEventListener('click',function(){try{var blob=new Blob([JSON.stringify({report:report,summary:summary(),weakest:laneRows()},null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='realsignal-health-'+new Date().toISOString().replace(/[:.]/g,'-')+'.json';a.click();setTimeout(function(){URL.revokeObjectURL(url);},1000);}catch(_){ }});}
     if(lanes&&!lanes.dataset.wired){lanes.dataset.wired='1';lanes.addEventListener('click',function(event){var button=event.target.closest&&event.target.closest('[data-rs-channel]');if(!button)return;var number=Number(button.getAttribute('data-rs-channel'));if(typeof window.tuneNum==='function')window.tuneNum(number);});}
+    var remoteRefresh=document.getElementById('rsHealthRemoteRefresh');if(remoteRefresh&&!remoteRefresh.dataset.wired){remoteRefresh.dataset.wired='1';remoteRefresh.addEventListener('click',fetchRemoteHealth);}
   }
   function installGuideObserver(){
     var guide=document.getElementById('gwrap');if(!guide||guide.dataset.release2Observed)return;
@@ -167,6 +198,7 @@
     var node=document.createElement('script');node.type='application/json';node.id='rs-release2-telemetry';node.hidden=true;document.body.appendChild(node);
     window.__rsRelease2Telemetry={report:report,summary:summary,status:deviceStatus,lanes:laneRows,render:renderHealthView,record:push,clear:function(){report.events.length=0;report.channelStats={};seenPrograms.length=0;try{localStorage.removeItem(STORAGE_KEY);}catch(_){ }push({type:'cleared'});},json:function(){return JSON.stringify({report:report,summary:summary(),weakest:laneRows()},null,2);}};
     installHealthControls();installGuideObserver();
+    setTimeout(fetchRemoteHealth,700);setInterval(fetchRemoteHealth,60000);
     var baseOpen=window.openGuide,baseClose=window.closeGuide;
     if(typeof baseOpen==='function'&&!baseOpen.__release2Wrapped){window.openGuide=function(){pendingGuide={action:'open',at:stamp()};return baseOpen.apply(this,arguments);};window.openGuide.__release2Wrapped=true;}
     if(typeof baseClose==='function'&&!baseClose.__release2Wrapped){window.closeGuide=function(){pendingGuide={action:'close',at:stamp()};return baseClose.apply(this,arguments);};window.closeGuide.__release2Wrapped=true;}

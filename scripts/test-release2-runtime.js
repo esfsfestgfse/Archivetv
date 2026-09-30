@@ -30,6 +30,7 @@ check(runtime.includes('remoteTelemetry') && runtime.includes('REMOTE_TYPES'), '
 check(runtime.includes('keepalive:true') && runtime.includes('queueRemote') && runtime.includes('flushRemote'), 'Remote telemetry is batched and non-blocking');
 check(runtime.includes('currentTelemetryChannel') && runtime.includes('remoteEvent.channel'), 'Global guide events receive a valid telemetry channel');
 check(runtime.includes('rsHealthExport') && runtime.includes('rsHealthLanes'), 'Health dashboard export and weak-lane controls exist');
+check(runtime.includes('/api/v3/health/summary') && runtime.includes('fetchRemoteHealth') && runtime.includes('remoteMetric'), 'Live server health dashboard is read-only and non-blocking');
 check(runtime.includes('statusLabel') && runtime.includes('__rsCastIsConnected') && runtime.includes('castConnected'), 'Mobile/Cast status measurement exists');
 check(runtime.includes("addEventListener('online'"), 'Online recovery hook exists');
 check(guide.includes('realsignal:guide-recent') && guide.includes('rsGuideRecentOnly'), 'Guide recently-watched view exists');
@@ -46,6 +47,7 @@ for (const file of builds) {
   check(html.includes('assets/guide-overhaul.css') && html.includes('assets/guide-overhaul.js'), `${file}: shared guide overhaul assets loaded`);
   check(html.includes('assets/verified-guide-client.js'), `${file}: verified guide bridge loaded`);
   check(html.includes('rsHealthPanel') && html.includes('rsHealthFrame'), `${file}: APP HEALTH panel is present`);
+  check(html.includes('rsHealthRemoteStatus') && html.includes('rsHealthRemoteRefresh') && html.includes('rsHealthRemoteLanes'), `${file}: live server health panel is present`);
   check(html.includes('currentDuration') && html.includes('guideItemRuntime(nextItem)'), `${file}: guide exposes Source Suite current/next runtime data`);
   check(html.includes('function guideVerifiedListing(ch,verified)') && html.includes('verifiedGuide=(window.__rsVerifiedGuide||{})'), `${file}: guide uses verified server current/next data for IA and Source Suite`);
   const surfaceStamp = file.includes('mobile') ? 'mobile' : 'desktop';

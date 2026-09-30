@@ -9,7 +9,6 @@ sub init()
   m.nowPlaying = m.top.findNode("nowPlaying")
   m.pollTimer = m.top.findNode("pollTimer")
   m.heartbeatTimer = m.top.findNode("heartbeatTimer")
-  m.top.observeField("focusedChild", "keepFocus")
   m.enterPairing.observeField("buttonSelected", "pairingPressed")
   m.connect.observeField("buttonSelected", "connectPressed")
   m.keyboard.observeField("text", "codeChanged")
@@ -27,6 +26,7 @@ sub init()
   m.enterPairing.visible = false
   m.connect.visible = false
   m.status.text = "Enter the 12-character code from the phone remote, then press CONNECT."
+  m.top.setFocus(true)
   m.keyboard.setFocus(true)
 end sub
 
@@ -37,10 +37,6 @@ sub pairingPressed(event)
     m.status.text = "Enter the 12-character code from the phone remote, then press BACK."
     m.keyboard.setFocus(true)
   end if
-end sub
-
-sub keepFocus(event)
-  if m.top.hasFocus() = false then m.top.setFocus(true)
 end sub
 
 sub codeChanged(event)

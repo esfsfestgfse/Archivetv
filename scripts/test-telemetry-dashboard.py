@@ -53,7 +53,10 @@ async def main():
         await page.wait_for_selector("#rsHealthLanes", state="visible", timeout=10000)
         build = await page.evaluate("() => window.__ATV_BUILD")
         summary = await page.evaluate("() => window.__rsRelease2Telemetry.summary()")
-        lanes = page.locator(".rs-health-lane")
+        # The panel now has a second, read-only server lane list. This test is
+        # asserting the seeded local scorecard, so keep the selector scoped to
+        # the local list instead of racing the optional network refresh.
+        lanes = page.locator("#rsHealthLanes .rs-health-lane")
         # The dashboard is shared across release trains.  Keep this as a
         # compatibility guard for recognizable RealSignal stamps, not a
         # one-release allowlist that turns a valid build-stamp bump into a

@@ -37,7 +37,6 @@ const { pathToFileURL } = require('node:url');
   assert.equal(healthBody.release, '4.1.188-freshness-exhaustion-recovery');
   assert.ok(healthBody.capabilities.includes('server-telemetry'));
   assert.ok(healthBody.capabilities.includes('verified-guide'));
-  assert.ok(healthBody.capabilities.includes('custom-channel-manifests'));
 
   const telemetry = await worker.fetch(new Request('https://api.example/api/v3/telemetry', {
     method: 'POST',

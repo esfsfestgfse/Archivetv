@@ -6,7 +6,7 @@
  */
 
 import { SessionRotation } from "./realsignal_api_rotation.js";
-import { customSourceTasks, mergeSourceLanes, sourceCatalogTasks, sourceProfile, SOURCE_LIMITS } from "./realsignal_source_catalog.js";
+import { mergeSourceLanes, sourceCatalogTasks, sourceProfile, SOURCE_LIMITS } from "./realsignal_source_catalog.js";
 import { IA_CANONICAL_PILOT_PROFILES, IA_CANONICAL_SCHEMA_VERSION, canonicalGuide, selectCanonicalItems } from "./ia_canonical_station.mjs";
 import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
@@ -211,14 +211,6 @@ function routeFor(pathname) {
     }
     if (pathname === `${prefix}/source/catalog`) return { kind: "source-catalog", apiVersion };
     if (pathname === `${prefix}/source/status`) return { kind: "source-status", apiVersion };
-    if (pathname === `${prefix}/custom-channels`) return { kind: "custom-channels", apiVersion };
-    if (pathname.startsWith(`${prefix}/custom-channels/`)) {
-      const parts = pathname.slice(`${prefix}/custom-channels/`.length).split("/").filter(Boolean);
-      const channelId = parts[0] ? decodeURIComponent(parts[0]) : "";
-      if (!channelId) return null;
-      if (parts[1] === "manifest") return { kind: "custom-manifest", channelId, apiVersion };
-      return { kind: "custom-channel", channelId, apiVersion };
-    }
     if (pathname === `${prefix}/catalog`) return { kind: "catalog", apiVersion };
   }
   return null;
@@ -1775,287 +1767,6 @@ async function handleSourceStatus(request, env) {
   }, 200, { "Cache-Control": "public, max-age=15, stale-while-revalidate=60", "X-RealSignal-Release": V3_RELEASE });
 }
 
-const CUSTOM_CHANNEL_SCHEMA_VERSION = "custom-channel-v1";
-const CUSTOM_CHANNEL_SOURCES = new Set(["internet-archive", "youtube", "peertube", "library-of-congress", "nasa", "wikimedia", "fast", "radio"]);
-const CUSTOM_SOURCE_ALIASES = Object.freeze({
-  ia: "internet-archive",
-  "internet archive": "internet-archive",
-  archive: "internet-archive",
-  youtube: "youtube",
-  peertube: "peertube",
-  "peer tube": "peertube",
-  loc: "library-of-congress",
-  "library of congress": "library-of-congress",
-  nasa: "nasa",
-  wikimedia: "wikimedia",
-  fast: "fast",
-  radio: "radio",
-});
-
-function customOwnerKey(request, url) {
-  return safeSession(request.headers.get("X-RealSignal-Session") || url.searchParams.get("session") || "anonymous");
-}
-
-function customList(value, limit = 24) {
-  const input = Array.isArray(value) ? value : String(value || "").split(",");
-  return Array.from(new Set(input.map((item) => String(item || "").trim().toLowerCase()).filter(Boolean))).slice(0, limit);
-}
-
-function normalizeCustomRecipe(input) {
-  const body = input && typeof input === "object" && !Array.isArray(input) ? input : {};
-  const name = String(body.name || "").trim().replace(/\s+/g, " ").slice(0, 64);
-  if (name.length < 2) return { error: "channel name must be at least two characters" };
-  const minRuntimeMinutes = Math.max(0, Math.min(1440, Math.round(Number(body.minRuntimeMinutes) || 15)));
-  const eraFrom = Number.isFinite(Number(body.eraFrom)) ? Math.max(1800, Math.min(2100, Math.round(Number(body.eraFrom)))) : null;
-  const eraTo = Number.isFinite(Number(body.eraTo)) ? Math.max(1800, Math.min(2100, Math.round(Number(body.eraTo)))) : null;
-  const sources = customList(body.sources, 8).map((source) => CUSTOM_SOURCE_ALIASES[source] || source).filter((source) => CUSTOM_CHANNEL_SOURCES.has(source));
-  const normalizedSources = sources.length ? sources : ["internet-archive"];
-  return {
-    schemaVersion: CUSTOM_CHANNEL_SCHEMA_VERSION,
-    name,
-    genre: String(body.genre || "general").trim().replace(/\s+/g, " ").slice(0, 48) || "general",
-    eraFrom: eraFrom == null ? null : Math.min(eraFrom, eraTo == null ? eraFrom : eraTo),
-    eraTo: eraTo == null ? null : Math.max(eraTo, eraFrom == null ? eraTo : eraFrom),
-    minRuntimeMinutes,
-    language: String(body.language || "english").trim().toLowerCase().slice(0, 32) || "english",
-    sources: normalizedSources,
-    include: customList(body.include, 24),
-    exclude: customList(body.exclude, 24),
-    freshnessWindow: Math.max(5, Math.min(96, Math.round(Number(body.freshnessWindow) || 24))),
-    queueModel: "rolling-1-plus-2",
-  };
-}
-
-function customChannelRecord(row) {
-  let recipe = {};
-  try { recipe = JSON.parse(row.recipe_json || "{}"); } catch (_) { /* keep malformed legacy rows visible as inactive */ }
-  return {
-    id: row.channel_id,
-    ownerKey: row.owner_key,
-    name: row.name,
-    recipe,
-    status: row.status || "active",
-    createdAt: Number(row.created_at || 0),
-    updatedAt: Number(row.updated_at || 0),
-  };
-}
-
-function customProviderKey(value) {
-  const source = String(value || "").toLowerCase();
-  if (/youtube/.test(source)) return "youtube";
-  if (/peertube|peer tube/.test(source)) return "peertube";
-  if (/archive|internet/.test(source)) return "internet-archive";
-  if (/library|loc/.test(source)) return "library-of-congress";
-  if (/nasa/.test(source)) return "nasa";
-  if (/wiki/.test(source)) return "wikimedia";
-  if (/fast/.test(source)) return "fast";
-  if (/radio/.test(source)) return "radio";
-  return source || "unknown";
-}
-
-function customManifestAllowed(item, recipe) {
-  const mediaUrl = String(item && (item.mediaUrl || item.url || (item.media && item.media.url)) || "").trim();
-  const mediaType = String(item && (item.mediaType || item.type || (item.media && item.media.type)) || "video").toLowerCase();
-  const duration = Number(item && (item.duration || item.runtime)) || 0;
-  const ratio = Number(item && item.aspectRatio) || 0;
-  const width = Number(item && (item.width || item.videoWidth || (item.media && item.media.width))) || 0;
-  const height = Number(item && (item.height || item.videoHeight || (item.media && item.media.height))) || 0;
-  const provider = customProviderKey(item && (item.provider || item.source));
-  const allowedSources = customList(recipe && recipe.sources, 8).map(customProviderKey);
-  const title = String(item && item.title || "");
-  const haystack = [title, item && item.description, item && item.subject, item && item.tags, item && item.category, item && item.account, item && item.query, item && item.sourceIdentifier].join(" ").toLowerCase();
-  const include = customList(recipe && recipe.include, 24);
-  const exclude = customList(recipe && recipe.exclude, 24);
-  const minRuntime = Math.max(0, Number(recipe && recipe.minRuntimeMinutes) || 15) * 60;
-  if (!mediaUrl || mediaType === "audio" || mediaType === "audio/mpeg" || duration < minRuntime) return false;
-  if ((width && height && height >= width) || (ratio && ratio < 1.15)) return false;
-  if (allowedSources.length && !allowedSources.includes(provider)) return false;
-  if (/(?:#?shorts?\b|vertical\s+video|portrait\s+video|9\s*:\s*16|1080x1920|how[ -]+to|tutorial|reaction|trailer|teaser|promo|advertisement|commercial|fan\s*[- ]?made|fan\s+edit|unofficial|bootleg|parody|podcast|vodcast|pod[ -]?cast|lyrics\s+video)/i.test(haystack)) return false;
-  if (exclude.some((term) => term && haystack.includes(term))) return false;
-  const genre = String(recipe && recipe.genre || "").trim().toLowerCase();
-  if (include.length && !include.some((term) => haystack.includes(term))) return false;
-  if (!include.length && genre && genre !== "general" && !haystack.includes(genre)) return false;
-  const year = Number(String(item && item.year || "").slice(0, 4));
-  const from = Number(recipe && recipe.eraFrom);
-  const to = Number(recipe && recipe.eraTo);
-  if (year && Number.isFinite(from) && year < from) return false;
-  if (year && Number.isFinite(to) && year > to) return false;
-  if (String(recipe && recipe.language || "english").toLowerCase() === "english" && /[\u0400-\u04ff\u0600-\u06ff\u0900-\u097f\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]/.test(haystack)) return false;
-  return true;
-}
-
-function customManifestBody(channelKey, recipe, rotation = 0) {
-  const include = customList(recipe && recipe.include, 24);
-  const genre = String(recipe && recipe.genre || "").trim();
-  return {
-    channel: channelKey,
-    count: MAX_CATALOG_ITEMS,
-    rotation: Number(rotation) || 0,
-    themeTerms: Array.from(new Set([genre, ...include].filter((value) => value && value.toLowerCase() !== "general"))).slice(0, 40),
-    denyTerms: customList(recipe && recipe.exclude, 48),
-    mediaTypes: ["video", "embed"],
-    minRuntimeSeconds: Math.max(0, Number(recipe && recipe.minRuntimeMinutes) || 15) * 60,
-    sourceCatalog: false,
-    freshnessLedger: false,
-  };
-}
-
-function customManifestItem(item) {
-  const compact = compactCatalogItem(item);
-  if (!compact || !compact.mediaUrl) return null;
-  return {
-    ...compact,
-    media: { type: compact.mediaType || "video", url: compact.mediaUrl },
-    type: compact.mediaType === "embed" ? "embed" : "video",
-    url: compact.mediaUrl,
-  };
-}
-
-async function readCustomManifestRows(env, channelKey, recipe, recentIds, limit) {
-  if (!env.realsignal_catalog || typeof env.realsignal_catalog.prepare !== "function") return [];
-  const result = await env.realsignal_catalog.prepare("SELECT p.* FROM programs p JOIN channel_programs cp ON cp.program_id=p.id WHERE cp.channel_key=? AND p.status='active' AND p.media_url IS NOT NULL ORDER BY cp.last_seen_at DESC LIMIT ?").bind(channelKey, Math.max(1, Math.min(MAX_CATALOG_ITEMS, limit))).all();
-  return (result.results || []).map((row) => {
-    let metadata = {};
-    try { metadata = row.metadata_json ? JSON.parse(row.metadata_json) : {}; } catch (_) { /* tolerate old rows */ }
-    return customManifestItem({
-      id: row.id,
-      identifier: row.id,
-      sourceIdentifier: row.source_identifier || row.id,
-      title: row.title,
-      description: row.description || "",
-      subject: metadata.subject || metadata.subjects || "",
-      tags: metadata.tags || "",
-      category: metadata.category || "",
-      account: metadata.account || "",
-      query: metadata.query || "",
-      duration: Number(row.duration_seconds || metadata.duration || metadata.runtime) || 0,
-      aspectRatio: Number(row.aspect_ratio || metadata.aspectRatio || metadata.aspect_ratio) || 0,
-      mediaType: row.media_type || "video",
-      mediaUrl: row.media_url,
-      url: row.media_url,
-      sourceUrl: row.source_url || "",
-      rights: row.rights || "",
-      year: row.year || "",
-      provider: row.provider || metadata.provider || "internet-archive",
-    });
-  }).filter((item) => item && customManifestAllowed(item, recipe));
-}
-
-function selectCustomManifestItems(items, recentIds, count, rotation) {
-  const candidates = Array.from(new Map((Array.isArray(items) ? items : []).map((item) => [String(item && item.id || ""), item]).filter(([id]) => id)).values());
-  const recent = new Set((Array.isArray(recentIds) ? recentIds : []).map((id) => String(id || "").trim()).filter(Boolean));
-  const fresh = candidates.filter((item) => !recent.has(String(item.id)));
-  const exhausted = candidates.length > 0 && fresh.length === 0;
-  const shelf = exhausted ? candidates : fresh;
-  return { items: rotateCatalogItems(shelf, rotation).slice(0, Math.max(1, Math.min(3, Number(count) || 3))), candidates, fresh, exhausted };
-}
-
-async function handleCustomManifest(request, env, ctx, id, channelId) {
-  if (!env.realsignal_catalog || typeof env.realsignal_catalog.prepare !== "function") return json({ error: "catalog binding is not configured", requestId: id }, 503);
-  const url = new URL(request.url);
-  const ownerKey = customOwnerKey(request, url);
-  const recordResult = await env.realsignal_catalog.prepare("SELECT channel_id, owner_key, name, recipe_json, status, created_at, updated_at FROM custom_channels WHERE channel_id=? AND owner_key=? AND status='active' LIMIT 1").bind(channelId.slice(0, 120), ownerKey).all();
-  const record = (recordResult.results || [])[0];
-  if (!record) return json({ error: "custom channel not found", requestId: id }, 404);
-  let recipe = {};
-  try { recipe = JSON.parse(record.recipe_json || "{}"); } catch (_) { /* malformed rows return an empty constrained manifest */ }
-  const channelKey = `custom:${ownerKey}:${channelId}`.slice(0, 120);
-  const recentIds = await readFreshnessIds(env, channelKey, Number(recipe.freshnessWindow) || 24);
-  const rotation = Number(url.searchParams.get("rotation") || 0);
-  const forceRefresh = url.searchParams.get("refresh") === "1";
-  let catalog = await readCustomManifestRows(env, channelKey, recipe, recentIds, MAX_CATALOG_ITEMS);
-  const supportedSources = customList(recipe.sources, 8).filter((source) => source === "internet-archive" || source === "youtube" || source === "peertube");
-  const unsupportedSources = customList(recipe.sources, 8).filter((source) => !supportedSources.includes(source));
-  const needsDiscovery = forceRefresh || catalog.length < 3;
-  const lanes = [];
-  if (needsDiscovery) {
-    const body = customManifestBody(channelKey, recipe, rotation);
-    const sources = customList(recipe.sources, 8);
-    if (!sources.length || sources.includes("internet-archive")) {
-      try {
-        const upstream = await forwardToRelay(request, env, "/ia/queue", body, id);
-        if (upstream.ok) {
-          const payload = await upstream.json();
-          lanes.push({ provider: "Internet Archive", items: Array.isArray(payload && payload.candidateItems) && payload.candidateItems.length ? payload.candidateItems : (payload && payload.items) || [], health: { ready: true } });
-        } else lanes.push({ provider: "Internet Archive", items: [], health: { error: `relay ${upstream.status}` } });
-      } catch (error) { lanes.push({ provider: "Internet Archive", items: [], health: { error: String(error).slice(0, 160) } }); }
-    }
-    const customSources = sources.filter((source) => source === "youtube" || source === "peertube");
-    if (customSources.length) {
-      const { profile, tasks } = customSourceTasks({ ...recipe, id: channelId, sources: customSources }, env, rotation, {});
-      const providerLanes = await Promise.all(tasks.map((task) => Promise.resolve(task).catch((error) => ({ provider: "unknown", items: [], health: { error: String(error).slice(0, 160) } }))));
-      lanes.push(...providerLanes);
-      await persistSourceHealth(env, { profileKey: channelKey }, providerLanes);
-    }
-    const discovered = lanes.flatMap((lane) => Array.isArray(lane && lane.items) ? lane.items : []).map(customManifestItem).filter((item) => item && customManifestAllowed(item, recipe));
-    if (discovered.length) {
-      const deduped = Array.from(new Map(discovered.map((item) => [item.id, item])).values()).slice(0, MAX_CATALOG_ITEMS);
-      await upsertCatalogJob(env, { channelKey, rules: { themeTerms: customList(recipe.include, 24), denyTerms: customList(recipe.exclude, 24), mediaTypes: ["video", "embed"] }, items: deduped });
-      catalog = Array.from(new Map(catalog.concat(deduped).map((item) => [item.id, item])).values()).slice(0, MAX_CATALOG_ITEMS);
-    }
-  }
-  const selection = selectCustomManifestItems(catalog, recentIds, 3, rotation);
-  if (selection.items.length) rememberFreshness(env, channelKey, selection.items, ctx);
-  return json({
-    apiVersion: "v3",
-    release: V3_RELEASE,
-    schemaVersion: CUSTOM_CHANNEL_SCHEMA_VERSION,
-    channel: { id: record.channel_id, name: record.name, ownerKey, recipe },
-    current: selection.items[0] || null,
-    next: selection.items[1] || null,
-    items: selection.items,
-    ready: selection.items.length,
-    candidates: selection.candidates.length,
-    catalogDepth: selection.candidates.length,
-    unseenCatalogItems: selection.fresh.length,
-    catalogExhausted: selection.exhausted,
-    repeatAllowed: selection.exhausted,
-    supportedSources,
-    unsupportedSources,
-    lanes,
-    verified: selection.items.length > 0,
-    source: "custom-verified-manifest",
-    queueModel: "rolling-1-plus-2",
-    freshnessLedger: true,
-    generatedAt: new Date().toISOString(),
-  }, selection.items.length ? 200 : 503, { "Cache-Control": "no-store", "X-RealSignal-Release": V3_RELEASE });
-}
-
-async function handleCustomChannels(request, env, id, channelId = "") {
-  if (!env.realsignal_catalog || typeof env.realsignal_catalog.prepare !== "function") return json({ error: "catalog binding is not configured", requestId: id }, 503);
-  const url = new URL(request.url);
-  const ownerKey = customOwnerKey(request, url);
-  const hasId = !!channelId;
-  if (request.method === "GET") {
-    const result = hasId
-      ? await env.realsignal_catalog.prepare("SELECT channel_id, owner_key, name, recipe_json, status, created_at, updated_at FROM custom_channels WHERE channel_id=? AND owner_key=? LIMIT 1").bind(channelId.slice(0, 120), ownerKey).all()
-      : await env.realsignal_catalog.prepare("SELECT channel_id, owner_key, name, recipe_json, status, created_at, updated_at FROM custom_channels WHERE owner_key=? AND status='active' ORDER BY updated_at DESC LIMIT 100").bind(ownerKey).all();
-    const records = (result.results || []).map(customChannelRecord);
-    if (hasId && !records.length) return json({ error: "custom channel not found", requestId: id }, 404);
-    return json({ apiVersion: "v3", release: V3_RELEASE, schemaVersion: CUSTOM_CHANNEL_SCHEMA_VERSION, channels: records, channel: records[0] || null, generatedAt: new Date().toISOString() }, 200, { "Cache-Control": "no-store", "X-RealSignal-Release": V3_RELEASE });
-  }
-  if (request.method === "DELETE") {
-    if (!hasId) return json({ error: "channel id is required", requestId: id }, 400);
-    const result = await env.realsignal_catalog.prepare("UPDATE custom_channels SET status='deleted', updated_at=? WHERE channel_id=? AND owner_key=? AND status<>'deleted'").bind(Date.now(), channelId.slice(0, 120), ownerKey).run();
-    if (!Number(result.meta && result.meta.changes || 0)) return json({ error: "custom channel not found", requestId: id }, 404);
-    return json({ apiVersion: "v3", release: V3_RELEASE, deleted: true, id: channelId }, 200, { "Cache-Control": "no-store", "X-RealSignal-Release": V3_RELEASE });
-  }
-  if (!["POST", "PUT", "PATCH"].includes(request.method)) return json({ error: "method not allowed", requestId: id }, 405, { Allow: "GET,POST,PUT,PATCH,DELETE,OPTIONS" });
-  let body;
-  try { body = await readBoundedJson(request); } catch (error) { return json({ error: error instanceof RangeError ? error.message : "invalid JSON body", requestId: id }, 400); }
-  const normalized = normalizeCustomRecipe(body);
-  if (normalized.error) return json({ error: normalized.error, requestId: id }, 422);
-  const now = Date.now();
-  if (hasId) {
-    const existing = await env.realsignal_catalog.prepare("SELECT channel_id FROM custom_channels WHERE channel_id=? AND owner_key=? AND status='active' LIMIT 1").bind(channelId.slice(0, 120), ownerKey).all();
-    if (!(existing.results || []).length) return json({ error: "custom channel not found", requestId: id }, 404);
-    await env.realsignal_catalog.prepare("UPDATE custom_channels SET name=?, recipe_json=?, updated_at=? WHERE channel_id=? AND owner_key=?").bind(normalized.name, JSON.stringify(normalized), now, channelId.slice(0, 120), ownerKey).run();
-    return json({ apiVersion: "v3", release: V3_RELEASE, schemaVersion: CUSTOM_CHANNEL_SCHEMA_VERSION, channel: { id: channelId, ownerKey, name: normalized.name, recipe: normalized, status: "active", updatedAt: now }, created: false }, 200, { "Cache-Control": "no-store", "X-RealSignal-Release": V3_RELEASE });
-  }
-  const newId = `custom-${crypto.randomUUID()}`;
-  await env.realsignal_catalog.prepare("INSERT INTO custom_channels (channel_id, owner_key, name, recipe_json, status, created_at, updated_at) VALUES (?, ?, ?, ?, 'active', ?, ?)").bind(newId, ownerKey, normalized.name, JSON.stringify(normalized), now, now).run();
-  return json({ apiVersion: "v3", release: V3_RELEASE, schemaVersion: CUSTOM_CHANNEL_SCHEMA_VERSION, channel: { id: newId, ownerKey, name: normalized.name, recipe: normalized, status: "active", createdAt: now, updatedAt: now }, created: true }, 201, { "Cache-Control": "no-store", "X-RealSignal-Release": V3_RELEASE });
-}
 
 async function persistSourceHealth(env, profile, lanes) {
   if (!env.realsignal_catalog || typeof env.realsignal_catalog.batch !== "function") return;
@@ -2294,7 +2005,7 @@ const worker = {
     try {
       if (route && route.kind === "health") {
         const v3 = route.apiVersion === "v3";
-        return json({ service: "realsignal-api", apiVersion: v3 ? "v3" : "v2", release: v3 ? V3_RELEASE : "2.2.2", status: "ready", capabilities: ["ia-search", "ia-metadata", "ia-queue", "session-rotation", "catalog-jobs", "source-catalog", "adaptive-catalog", "freshness-ledger", ...(v3 ? ["verified-guide", "server-telemetry", "source-health", "custom-channel-recipes", "custom-channel-manifests", ...(IA_CANONICAL_PILOT_VALUES.has(String(env.IA_CANONICAL_PILOT || "").trim().toLowerCase()) ? ["ia-canonical-pilot"] : []), ...(IA_CANONICAL_SHADOW_VALUES.has(String(env.IA_CANONICAL_SHADOW || "").trim().toLowerCase()) ? ["ia-canonical-shadow"] : [])] : []), "youtube-sports"], bindings: { relay: !!env.RELAY, rotation: !!env.ROTATION, catalog: !!env.realsignal_catalog, refreshQueue: !!env.realsignal_catalog_refresh }, checkedAt: new Date().toISOString() }, 200, { "Cache-Control": "no-store", "X-RealSignal-Request": id, "X-RealSignal-Release": v3 ? V3_RELEASE : "2.2.2" });
+        return json({ service: "realsignal-api", apiVersion: v3 ? "v3" : "v2", release: v3 ? V3_RELEASE : "2.2.2", status: "ready", capabilities: ["ia-search", "ia-metadata", "ia-queue", "session-rotation", "catalog-jobs", "source-catalog", "adaptive-catalog", "freshness-ledger", ...(v3 ? ["verified-guide", "server-telemetry", "source-health", ...(IA_CANONICAL_PILOT_VALUES.has(String(env.IA_CANONICAL_PILOT || "").trim().toLowerCase()) ? ["ia-canonical-pilot"] : []), ...(IA_CANONICAL_SHADOW_VALUES.has(String(env.IA_CANONICAL_SHADOW || "").trim().toLowerCase()) ? ["ia-canonical-shadow"] : [])] : []), "youtube-sports"], bindings: { relay: !!env.RELAY, rotation: !!env.ROTATION, catalog: !!env.realsignal_catalog, refreshQueue: !!env.realsignal_catalog_refresh }, checkedAt: new Date().toISOString() }, 200, { "Cache-Control": "no-store", "X-RealSignal-Request": id, "X-RealSignal-Release": v3 ? V3_RELEASE : "2.2.2" });
       }
       if (route && route.kind === "telemetry") {
         if (request.method !== "POST") return json({ error: "method not allowed", requestId: id }, 405, { Allow: "POST,OPTIONS" });
@@ -2335,13 +2046,6 @@ const worker = {
       if (route && route.kind === "source-status") {
         if (request.method !== "GET") return json({ error: "method not allowed", requestId: id }, 405, { Allow: "GET,OPTIONS" });
         return await handleSourceStatus(request, env);
-      }
-      if (route && route.kind === "custom-manifest") {
-        if (request.method !== "GET") return json({ error: "method not allowed", requestId: id }, 405, { Allow: "GET,OPTIONS" });
-        return await handleCustomManifest(request, env, ctx, id, route.channelId || "");
-      }
-      if (route && (route.kind === "custom-channels" || route.kind === "custom-channel")) {
-        return await handleCustomChannels(request, env, id, route.channelId || "");
       }
       if (route && route.kind === "catalog") {
         if (request.method !== "GET") return json({ error: "method not allowed", requestId: id }, 405, { Allow: "GET,OPTIONS" });

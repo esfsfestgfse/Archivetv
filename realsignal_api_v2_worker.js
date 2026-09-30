@@ -6,13 +6,14 @@
  */
 
 import { SessionRotation } from "./realsignal_api_rotation.js";
+import { EdgeRateLimiter } from "./realsignal_api_rate_limit.js";
 import { mergeSourceLanes, sourceCatalogTasks, sourceProfile, SOURCE_LIMITS } from "./realsignal_source_catalog.js";
 import { IA_CANONICAL_PILOT_PROFILES, IA_CANONICAL_SCHEMA_VERSION, canonicalGuide, selectCanonicalItems } from "./ia_canonical_station.mjs";
 import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "4.1.205-health-gating";
+const V3_RELEASE = "4.1.206-public-scale-foundation";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -164,6 +165,28 @@ function json(body, status = 200, extra = {}) {
   return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders(), ...extra } });
 }
 
+/* Only cache GET responses whose body is independent of a viewer session.
+   Playback shelves and freshness writes stay out of this helper; those are
+   stateful and must never be shared between viewers. */
+async function edgeJson(request, ctx, body, status = 200, extra = {}, ttlSeconds = 0) {
+  const canCache = request && request.method === "GET" && status === 200 && ttlSeconds > 0
+    && typeof caches !== "undefined" && caches.default && ctx && typeof ctx.waitUntil === "function";
+  if (!canCache) return json(body, status, extra);
+  const cacheKey = new Request(new URL(request.url).toString(), { method: "GET" });
+  const cached = await caches.default.match(cacheKey);
+  if (cached) return cached;
+  const headers = {
+    ...extra,
+    "Cache-Control": extra["Cache-Control"] || `public, max-age=${ttlSeconds}, stale-while-revalidate=${Math.max(ttlSeconds * 4, 30)}`,
+    "X-RealSignal-Cache": "miss",
+  };
+  const response = json(body, status, headers);
+  ctx.waitUntil(caches.default.put(cacheKey, response.clone()).catch((error) => {
+    console.warn(JSON.stringify({ event: "edge-cache-write-failed", error: String(error).slice(0, 160) }));
+  }));
+  return response;
+}
+
 function requestId() { return crypto.randomUUID(); }
 
 function safeSession(value) {
@@ -192,6 +215,29 @@ function rateLimit(request, kind) {
   if (bucket.count <= limit.max) return null;
   const retryAfter = Math.max(1, Math.ceil((bucket.startedAt + limit.windowMs - now) / 1000));
   return json({ error: "request rate limit exceeded", requestId: requestId(), retryAfterSeconds: retryAfter }, 429, { "Cache-Control": "no-store", "Retry-After": String(retryAfter) });
+}
+
+async function durableRateLimit(request, env, kind) {
+  const limit = RATE_LIMITS[kind];
+  if (!limit || !env.RATE_LIMITER || typeof env.RATE_LIMITER.getByName !== "function") return rateLimit(request, kind);
+  const client = requestClientKey(request);
+  const bucketKey = `${kind}:${client}`.slice(0, 240);
+  try {
+    const stub = env.RATE_LIMITER.getByName(bucketKey);
+    const response = await stub.fetch("https://realsignal.invalid/check", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ bucketKey: kind, windowMs: limit.windowMs, max: limit.max }),
+    });
+    if (response.status !== 429) return null;
+    const payload = await response.json().catch(() => ({}));
+    return json({ error: "request rate limit exceeded", requestId: requestId(), retryAfterSeconds: Number(payload.retryAfterSeconds || 1) }, 429, { "Cache-Control": "no-store", "Retry-After": String(payload.retryAfterSeconds || 1) });
+  } catch (error) {
+    /* A limiter outage must not take the television off the air. Fall back to
+       the bounded isolate guard and record the degradation for telemetry. */
+    console.warn(JSON.stringify({ event: "durable-rate-limit-fallback", kind, error: String(error).slice(0, 160) }));
+    return rateLimit(request, kind);
+  }
 }
 
 function routeFor(pathname) {
@@ -1443,14 +1489,14 @@ async function handleQueue(request, env, ctx, id) {
   return new Response(JSON.stringify({ ...rotated.payload, apiVersion, release: apiVersion === "v3" ? V3_RELEASE : undefined }), { status: catalogRecovery ? 200 : upstream.status, headers });
 }
 
-async function handleCatalog(request, env) {
+async function handleCatalog(request, env, ctx) {
   if (!env.realsignal_catalog || typeof env.realsignal_catalog.prepare !== "function") return json({ error: "catalog binding is not configured" }, 503);
   const url = new URL(request.url);
   const channel = String(url.searchParams.get("channel") || "").slice(0, 120);
   if (!channel) return json({ error: "channel is required" }, 400);
   const limit = Math.max(1, Math.min(MAX_CATALOG_ITEMS, Number(url.searchParams.get("limit")) || 20));
   const result = await env.realsignal_catalog.prepare(`SELECT p.* FROM programs p JOIN channel_programs cp ON cp.program_id=p.id WHERE cp.channel_key=? AND p.status='active' ORDER BY cp.last_seen_at DESC LIMIT ?`).bind(channel, limit).all();
-  return json({ channel, items: result.results || [], source: "d1-catalog" }, 200, { "Cache-Control": "public, max-age=15, stale-while-revalidate=60" });
+  return edgeJson(request, ctx, { channel, items: result.results || [], source: "d1-catalog" }, 200, { "Cache-Control": "public, max-age=15, stale-while-revalidate=60" }, 15);
 }
 
 const V3_EVENT_TYPES = new Set([
@@ -1544,11 +1590,11 @@ async function handleTelemetry(request, env, ctx, id) {
   return json({ accepted: events.length, apiVersion: "v3", release: V3_RELEASE, requestId: id }, 202, { "Cache-Control": "no-store", "X-RealSignal-Release": V3_RELEASE });
 }
 
-async function handleChannelHealth(request, env) {
+async function handleChannelHealth(request, env, ctx) {
   if (!env.realsignal_catalog || typeof env.realsignal_catalog.prepare !== "function") return json({ error: "catalog binding is not configured" }, 503);
   const limit = Math.max(1, Math.min(100, Number(new URL(request.url).searchParams.get("limit")) || 30));
   const result = await env.realsignal_catalog.prepare(`SELECT channel_key, samples, first_frame_count, CASE WHEN first_frame_count>0 THEN ROUND(first_frame_total_ms/first_frame_count) ELSE NULL END AS first_frame_avg_ms, first_frame_last_ms, switch_count, CASE WHEN switch_count>0 THEN ROUND(switch_total_ms/switch_count) ELSE NULL END AS switch_avg_ms, switch_last_ms, guide_count, CASE WHEN guide_count>0 THEN ROUND(guide_total_ms/guide_count) ELSE NULL END AS guide_avg_ms, queue_samples, CASE WHEN queue_samples>0 THEN ROUND(queue_total_depth/queue_samples) ELSE NULL END AS queue_avg_depth, queue_last_depth, repeats, skips, stalls, failures, recoveries, last_status, last_seen_at FROM channel_health ORDER BY failures DESC, stalls DESC, repeats DESC, last_seen_at DESC LIMIT ?`).bind(limit).all();
-  return json({ apiVersion: "v3", release: V3_RELEASE, channels: result.results || [] }, 200, { "Cache-Control": "public, max-age=15, stale-while-revalidate=60", "X-RealSignal-Release": V3_RELEASE });
+  return edgeJson(request, ctx, { apiVersion: "v3", release: V3_RELEASE, channels: result.results || [] }, 200, { "Cache-Control": "public, max-age=15, stale-while-revalidate=60", "X-RealSignal-Release": V3_RELEASE }, 15);
 }
 
 function channelHealthScore(row) {
@@ -1566,7 +1612,7 @@ function channelHealthScore(row) {
   return Math.max(0, Math.min(100, Math.round(score)));
 }
 
-async function handleHealthSummary(request, env) {
+async function handleHealthSummary(request, env, ctx) {
   if (!env.realsignal_catalog || typeof env.realsignal_catalog.prepare !== "function") return json({ error: "catalog binding is not configured" }, 503);
   const url = new URL(request.url);
   const limit = Math.max(1, Math.min(100, Number(url.searchParams.get("limit")) || 40));
@@ -1631,10 +1677,10 @@ async function handleHealthSummary(request, env) {
   const totalRows = totals || {};
   const scores = channelRows.map((row) => row.score);
   const overallScore = scores.length ? Math.round(scores.reduce((sum, value) => sum + value, 0) / scores.length) : null;
-  return json({ apiVersion: "v3", release: V3_RELEASE, windowHours: hours, generatedAt: new Date().toISOString(), overallScore, status: overallScore == null ? "waiting" : overallScore >= 85 ? "healthy" : overallScore >= 65 ? "watch" : "repair", totals: { events: Number(totalRows.events || 0), frames: Number(totalRows.frames || 0), failures: Number(totalRows.failures || 0), repeats: Number(totalRows.repeats || 0), stalls: Number(totalRows.stalls || 0), recoveries: Number(totalRows.recoveries || 0) }, channels: channelRows, sources: sourceRows, surfaces: surfaces.results || [], freshness }, 200, { "Cache-Control": "public, max-age=15, stale-while-revalidate=60", "X-RealSignal-Release": V3_RELEASE });
+  return edgeJson(request, ctx, { apiVersion: "v3", release: V3_RELEASE, windowHours: hours, generatedAt: new Date().toISOString(), overallScore, status: overallScore == null ? "waiting" : overallScore >= 85 ? "healthy" : overallScore >= 65 ? "watch" : "repair", totals: { events: Number(totalRows.events || 0), frames: Number(totalRows.frames || 0), failures: Number(totalRows.failures || 0), repeats: Number(totalRows.repeats || 0), stalls: Number(totalRows.stalls || 0), recoveries: Number(totalRows.recoveries || 0) }, channels: channelRows, sources: sourceRows, surfaces: surfaces.results || [], freshness }, 200, { "Cache-Control": "public, max-age=15, stale-while-revalidate=60", "X-RealSignal-Release": V3_RELEASE }, 15);
 }
 
-async function handleGuide(request, env) {
+async function handleGuide(request, env, ctx) {
   const url = new URL(request.url);
   const channel = String(url.searchParams.get("channel") || "").replace(/[^a-zA-Z0-9._:-]/g, "").slice(0, 120);
   if (!channel) return json({ error: "channel is required" }, 400);
@@ -1643,7 +1689,7 @@ async function handleGuide(request, env) {
   if (canonicalPilotEnabled(env, channel)) {
     const recentIds = await readFreshnessIds(env, channel);
     const guide = canonicalGuide(canonical.manifest, recentIds, limit);
-    return json({
+    return edgeJson(request, ctx, {
       apiVersion: "v3",
       release: V3_RELEASE,
       channel,
@@ -1657,7 +1703,7 @@ async function handleGuide(request, env) {
       canonicalProfileKey: canonical.profile.profileKey,
       canonicalGeneratedAt: canonical.manifest.generatedAt,
       generatedAt: new Date().toISOString(),
-    }, 200, { "Cache-Control": "public, max-age=10, stale-while-revalidate=30", "X-RealSignal-Release": V3_RELEASE, "X-RealSignal-Source": "ia-canonical-pilot" });
+    }, 200, { "Cache-Control": "public, max-age=10, stale-while-revalidate=30", "X-RealSignal-Release": V3_RELEASE, "X-RealSignal-Source": "ia-canonical-pilot" }, 10);
   }
   if (!env.realsignal_catalog || typeof env.realsignal_catalog.prepare !== "function") return json({ error: "catalog binding is not configured" }, 503);
   const sourceProfileForGuide = sourceProfile({ profileKey: channel });
@@ -1681,7 +1727,7 @@ async function handleGuide(request, env) {
   const unseenCount = Number.isFinite(Number(items[0] && items[0].unseen_count)) ? Number(items[0].unseen_count) : catalogDepth;
   const seenCount = Math.max(0, catalogDepth - unseenCount);
   const catalogExhausted = catalogDepth > 0 && unseenCount === 0;
-  return json({ apiVersion: "v3", release: V3_RELEASE, channel, current: items[0] || null, next: items[1] || null, items, verified: true, queueModel: "rolling-1-plus-2", catalogDepth, unseenCount, seenCount, catalogExhausted, repeatAllowed: catalogExhausted, freshnessLedger: items.some((item) => item.last_served_at != null), generatedAt: new Date().toISOString(), source: "d1-verified-catalog" }, 200, { "Cache-Control": "public, max-age=10, stale-while-revalidate=30", "X-RealSignal-Release": V3_RELEASE });
+  return edgeJson(request, ctx, { apiVersion: "v3", release: V3_RELEASE, channel, current: items[0] || null, next: items[1] || null, items, verified: true, queueModel: "rolling-1-plus-2", catalogDepth, unseenCount, seenCount, catalogExhausted, repeatAllowed: catalogExhausted, freshnessLedger: items.some((item) => item.last_served_at != null), generatedAt: new Date().toISOString(), source: "d1-verified-catalog" }, 200, { "Cache-Control": "public, max-age=10, stale-while-revalidate=30", "X-RealSignal-Release": V3_RELEASE }, 10);
 }
 
 async function firstSourceLane(tasks) {
@@ -1729,7 +1775,7 @@ async function readSourceCooldowns(env, profileKey) {
    /source/catalog it never schedules provider discovery, so health audits can
    inspect the editorially requalified D1 shelf without turning an audit into
    a search burst. */
-async function handleSourceStatus(request, env) {
+async function handleSourceStatus(request, env, ctx) {
   const url = new URL(request.url);
   const profileKey = String(url.searchParams.get("profileKey") || url.searchParams.get("channel") || "").slice(0, 120);
   const profile = sourceProfile({ profileKey });
@@ -1753,7 +1799,7 @@ async function handleSourceStatus(request, env) {
     items = await familyCatalogFallback(env, profile, SOURCE_LIMITS.SOURCE_MAX_ITEMS);
     if (items.length) source = "d1-family-source-catalog";
   }
-  return json({
+  return edgeJson(request, ctx, {
     apiVersion: "v3",
     release: V3_RELEASE,
     profileKey: profile.profileKey,
@@ -1764,7 +1810,7 @@ async function handleSourceStatus(request, env) {
     source,
     providerAvailability: { youtube: sourceProvidersFromItems(items).has("youtube") || (!items.length && !cooldowns.has("youtube")), peertube: sourceProvidersFromItems(items).has("peertube") || (!items.length && !cooldowns.has("peertube")), cooldownProviders: Array.from(cooldowns) },
     generatedAt: new Date().toISOString(),
-  }, 200, { "Cache-Control": "public, max-age=15, stale-while-revalidate=60", "X-RealSignal-Release": V3_RELEASE });
+  }, 200, { "Cache-Control": "public, max-age=15, stale-while-revalidate=60", "X-RealSignal-Release": V3_RELEASE }, 15);
 }
 
 
@@ -2005,56 +2051,56 @@ const worker = {
     try {
       if (route && route.kind === "health") {
         const v3 = route.apiVersion === "v3";
-        return json({ service: "realsignal-api", apiVersion: v3 ? "v3" : "v2", release: v3 ? V3_RELEASE : "2.2.2", status: "ready", capabilities: ["ia-search", "ia-metadata", "ia-queue", "session-rotation", "catalog-jobs", "source-catalog", "adaptive-catalog", "freshness-ledger", ...(v3 ? ["verified-guide", "server-telemetry", "source-health", ...(IA_CANONICAL_PILOT_VALUES.has(String(env.IA_CANONICAL_PILOT || "").trim().toLowerCase()) ? ["ia-canonical-pilot"] : []), ...(IA_CANONICAL_SHADOW_VALUES.has(String(env.IA_CANONICAL_SHADOW || "").trim().toLowerCase()) ? ["ia-canonical-shadow"] : [])] : []), "youtube-sports"], bindings: { relay: !!env.RELAY, rotation: !!env.ROTATION, catalog: !!env.realsignal_catalog, refreshQueue: !!env.realsignal_catalog_refresh }, checkedAt: new Date().toISOString() }, 200, { "Cache-Control": "no-store", "X-RealSignal-Request": id, "X-RealSignal-Release": v3 ? V3_RELEASE : "2.2.2" });
+        return json({ service: "realsignal-api", apiVersion: v3 ? "v3" : "v2", release: v3 ? V3_RELEASE : "2.2.2", status: "ready", capabilities: ["ia-search", "ia-metadata", "ia-queue", "session-rotation", "catalog-jobs", "source-catalog", "adaptive-catalog", "freshness-ledger", ...(v3 ? ["verified-guide", "server-telemetry", "source-health", "edge-manifests", "durable-rate-limit", "queue-dead-letter", "version5-gate", ...(IA_CANONICAL_PILOT_VALUES.has(String(env.IA_CANONICAL_PILOT || "").trim().toLowerCase()) ? ["ia-canonical-pilot"] : []), ...(IA_CANONICAL_SHADOW_VALUES.has(String(env.IA_CANONICAL_SHADOW || "").trim().toLowerCase()) ? ["ia-canonical-shadow"] : [])] : []), "youtube-sports"], bindings: { relay: !!env.RELAY, rotation: !!env.ROTATION, rateLimiter: !!env.RATE_LIMITER, catalog: !!env.realsignal_catalog, refreshQueue: !!env.realsignal_catalog_refresh }, checkedAt: new Date().toISOString() }, 200, { "Cache-Control": "no-store", "X-RealSignal-Request": id, "X-RealSignal-Release": v3 ? V3_RELEASE : "2.2.2" });
       }
       if (route && route.kind === "telemetry") {
         if (request.method !== "POST") return json({ error: "method not allowed", requestId: id }, 405, { Allow: "POST,OPTIONS" });
-        const limited = rateLimit(request, "queue");
+        const limited = await durableRateLimit(request, env, "queue");
         if (limited) return limited;
         return await handleTelemetry(request, env, ctx, id);
       }
       if (route && route.kind === "channel-health") {
         if (request.method !== "GET") return json({ error: "method not allowed", requestId: id }, 405, { Allow: "GET,OPTIONS" });
-        return await handleChannelHealth(request, env);
+        return await handleChannelHealth(request, env, ctx);
       }
       if (route && route.kind === "health-summary") {
         if (request.method !== "GET") return json({ error: "method not allowed", requestId: id }, 405, { Allow: "GET,OPTIONS" });
-        return await handleHealthSummary(request, env);
+        return await handleHealthSummary(request, env, ctx);
       }
       if (route && route.kind === "guide") {
         if (request.method !== "GET") return json({ error: "method not allowed", requestId: id }, 405, { Allow: "GET,OPTIONS" });
-        return await handleGuide(request, env);
+        return await handleGuide(request, env, ctx);
       }
       if (route && route.kind === "canonical-shadow") {
         if (request.method !== "POST") return json({ error: "method not allowed", requestId: id }, 405, { Allow: "POST,OPTIONS" });
-        const limited = rateLimit(request, "queue");
+        const limited = await durableRateLimit(request, env, "queue");
         if (limited) return limited;
         return await handleCanonicalShadow(request, env, id);
       }
       if (route && route.kind === "youtube-uploads") {
         if (request.method !== "GET") return json({ error: "method not allowed", requestId: id }, 405, { Allow: "GET,OPTIONS" });
-        const limited = rateLimit(request, route.kind);
+        const limited = await durableRateLimit(request, env, route.kind);
         if (limited) return limited;
         return await handleYouTubeUploads(request, env, id);
       }
       if (route && route.kind === "source-catalog") {
         if (request.method !== "POST") return json({ error: "method not allowed", requestId: id }, 405, { Allow: "POST,OPTIONS" });
-        const limited = rateLimit(request, route.kind);
+        const limited = await durableRateLimit(request, env, route.kind);
         if (limited) return limited;
         return await handleSourceCatalog(request, env, ctx, id);
       }
       if (route && route.kind === "source-status") {
         if (request.method !== "GET") return json({ error: "method not allowed", requestId: id }, 405, { Allow: "GET,OPTIONS" });
-        return await handleSourceStatus(request, env);
+        return await handleSourceStatus(request, env, ctx);
       }
       if (route && route.kind === "catalog") {
         if (request.method !== "GET") return json({ error: "method not allowed", requestId: id }, 405, { Allow: "GET,OPTIONS" });
-        return await handleCatalog(request, env);
+        return await handleCatalog(request, env, ctx);
       }
       if (!route) return json({ error: "not found", requestId: id }, 404);
       if (route.kind === "queue") {
         if (request.method !== "POST") return json({ error: "method not allowed", requestId: id }, 405, { Allow: "POST,OPTIONS" });
-        const limited = rateLimit(request, route.kind);
+        const limited = await durableRateLimit(request, env, route.kind);
         if (limited) return limited;
         return await handleQueue(request, env, ctx, id);
       }
@@ -2074,5 +2120,5 @@ const worker = {
   },
 };
 
-export { SessionRotation, freshnessExclusionIds };
+export { SessionRotation, EdgeRateLimiter, freshnessExclusionIds };
 export default worker;

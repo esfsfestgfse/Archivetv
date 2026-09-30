@@ -25,11 +25,13 @@
   ],
   "durable_objects": {
     "bindings": [
-      { "name": "ROTATION", "class_name": "SessionRotation" }
+      { "name": "ROTATION", "class_name": "SessionRotation" },
+      { "name": "RATE_LIMITER", "class_name": "EdgeRateLimiter" }
     ]
   },
   "migrations": [
-    { "tag": "v1", "new_sqlite_classes": ["SessionRotation"] }
+    { "tag": "v1", "new_sqlite_classes": ["SessionRotation"] },
+    { "tag": "v2", "new_sqlite_classes": ["EdgeRateLimiter"] }
   ],
   "queues": {
     "producers": [
@@ -40,7 +42,10 @@
         "queue": "realsignal-catalog-refresh",
         "max_batch_size": 10,
         "max_batch_timeout": 10,
-        "max_retries": 3
+        "max_retries": 3,
+        "retry_delay": 30,
+        "max_concurrency": 4,
+        "dead_letter_queue": "realsignal-catalog-refresh-dlq"
       }
     ]
   }

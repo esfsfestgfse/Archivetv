@@ -11,6 +11,7 @@ const migration = fs.readFileSync(path.join(root, 'migrations', '0001_realsignal
 const checks = [
   [worker.includes('const API_PREFIX = "/api/v2"'), 'versioned V2 route'],
   [worker.includes('const RATE_LIMITS =') && worker.includes('function rateLimit('), 'expensive public routes have an edge request budget'],
+  [worker.includes('async function durableRateLimit(') && worker.includes('env.RATE_LIMITER'), 'public budgets have a durable sharded limiter with a safe local fallback'],
   [worker.includes('Retry-After'), 'rate-limited clients receive retry guidance'],
   [worker.includes('readBoundedJson') && worker.includes('MAX_BODY_BYTES'), 'bounded JSON input'],
   [worker.includes('env.RELAY.fetch') && worker.includes('relay.internal'), 'internal relay service binding'],
@@ -25,7 +26,7 @@ const checks = [
   [source.includes('SOURCE_MIN_RUNTIME = 15 * 60') && source.includes('function accepted') && source.includes('function peerTube'), 'server source adapter runtime and genre gates'],
   [source.includes('YOUTUBE_API_KEY') && source.includes('youtube-nocookie.com/embed'), 'server YouTube adapter uses a Worker secret and embed-safe output'],
   [source.includes('ctx') === false, 'source adapter stays independent of request context'],
-  [config.includes('"d1_databases"') && config.includes('"durable_objects"') && config.includes('"queues"'), 'production bindings'],
+  [config.includes('"d1_databases"') && config.includes('"durable_objects"') && config.includes('"queues"') && config.includes('"RATE_LIMITER"') && config.includes('"dead_letter_queue"'), 'production bindings, durable limiter, and queue dead-letter protection'],
   [migration.includes('CREATE TABLE IF NOT EXISTS programs') && migration.includes('channel_programs'), 'normalized catalog schema'],
 ];
 const failed = checks.filter(([ok]) => !ok).map(([, label]) => label);

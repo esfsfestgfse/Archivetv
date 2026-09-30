@@ -6,6 +6,7 @@ on:
     paths:
       - 'realsignal_api_v2_worker.js'
       - 'realsignal_api_rotation.js'
+      - 'realsignal_api_rate_limit.js'
       - 'realsignal_source_catalog.js'
       - 'ia_canonical_station.mjs'
       - 'ia_canonical_pilot_manifest.js'
@@ -16,6 +17,7 @@ on:
       - 'scripts/test-v3-api-contract.js'
       - 'scripts/test-ia-canonical-pilot.js'
       - 'scripts/check-v2-api-contract.js'
+      - 'scripts/test-version5-gate.js'
       - '.github/workflows/realsignal-api.yml'
   workflow_dispatch:
 
@@ -45,6 +47,7 @@ jobs:
           node scripts/test-source-catalog-bridge.js
           node --check realsignal_api_v2_worker.js
           node --check realsignal_api_rotation.js
+          node --check realsignal_api_rate_limit.js
           node --check realsignal_source_catalog.js
           node --check source_suite_profile_registry.js
           node --check ia_canonical_station.mjs

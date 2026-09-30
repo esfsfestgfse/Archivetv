@@ -34,9 +34,11 @@ const { pathToFileURL } = require('node:url');
   assert.equal(health.status, 200);
   const healthBody = await health.json();
   assert.equal(healthBody.apiVersion, 'v3');
-  assert.equal(healthBody.release, '4.1.205-health-gating');
+  assert.equal(healthBody.release, '4.1.206-public-scale-foundation');
   assert.ok(healthBody.capabilities.includes('server-telemetry'));
   assert.ok(healthBody.capabilities.includes('verified-guide'));
+  assert.ok(healthBody.capabilities.includes('edge-manifests'));
+  assert.ok(healthBody.capabilities.includes('durable-rate-limit'));
 
   const telemetry = await worker.fetch(new Request('https://api.example/api/v3/telemetry', {
     method: 'POST',

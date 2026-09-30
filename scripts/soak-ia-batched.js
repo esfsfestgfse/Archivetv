@@ -79,6 +79,16 @@ const results = completed.flatMap(report => report.results || []);
 const rotations = results.flatMap(result => result.rotations || []);
 const failures = results.filter(result => !result.ok);
 const playableLatencies = results.map(result => result.firstPlayLatencyMs).filter(value => Number.isFinite(value));
+const observedItems = rotations.reduce((sum, rotation) => sum + (Array.isArray(rotation.itemIds) ? rotation.itemIds.length : 0), 0);
+const duplicateItems = results.reduce((sum, result) => sum + (result.duplicateItems || 0), 0);
+const freshItems = Math.max(0, observedItems - duplicateItems);
+const freshness = {
+  observedItems,
+  freshItems,
+  duplicateItems,
+  uniqueCoverage: observedItems ? Number((freshItems / observedItems).toFixed(3)) : 0,
+  staleLanes: results.filter(result => Number(result.duplicateItems || 0) > 0 || Number(result.freshnessRatio || 0) < 0.75).length,
+};
 const sourceCounts = {};
 const cacheCounts = {};
 rotations.forEach(result => {
@@ -112,7 +122,8 @@ const report = {
     fullDepthChannels: results.filter(result => (result.fiveItemDepth || 0) >= (Number(option('--rotations', '3')) || 3)).length,
     depthUnderfilled: results.reduce((sum, result) => sum + (result.depthUnderfilled ? 1 : 0), 0),
     timeouts: results.reduce((sum, result) => sum + (result.timeoutCount || 0), 0),
-    duplicateItems: results.reduce((sum, result) => sum + (result.duplicateItems || 0), 0),
+    duplicateItems,
+    freshness,
     transportFailures: results.reduce((sum, result) => sum + (result.transportFailures || 0), 0),
     httpFailures: results.reduce((sum, result) => sum + (result.httpFailures || 0), 0),
     responseSources: sourceCounts,

@@ -14,5 +14,22 @@
       "binding": "REALSIGNAL_QUEUE",
       "id": "8404a49b4d75470baeaab6e32fb99489"
     }
-  ]
+  ],
+  "queues": {
+    "producers": [
+      {
+        "binding": "IA_HARVEST_QUEUE",
+        "queue": "realsignal-ia-harvest"
+      }
+    ],
+    "consumers": [
+      {
+        "queue": "realsignal-ia-harvest",
+        "max_batch_size": 1,
+        "max_batch_timeout": 5,
+        "max_retries": 3,
+        "dead_letter_queue": "realsignal-ia-harvest-dlq"
+      }
+    ]
+  }
 }

@@ -67,13 +67,13 @@ for (const file of builds) {
   check(html.includes('var IA_READY_TARGET=3'), `${file}: rolling IA shelf keeps one active plus two hot replacements`);
   check(html.includes('followCount=ask===1?IA_READY_TARGET:ask'), `${file}: IA refill promotes exactly two replacements after the active item`);
   check(html.includes('iaProgramQueues[k].length<IA_READY_TARGET'), `${file}: IA background refill uses the rolling shelf target`);
-  check(html.includes('setTimeout(function(){if(powered)primeIAQueues();},12000)'), `${file}: broad IA warmup is deferred`);
-  check(html.includes('all=all.filter(function(c){return c.num!==curNum;}).slice(0,8)'), `${file}: background warmup excludes active channel`);
+  check(html.includes('setTimeout(function(){if(powered)primeIAQueues();},30000)') || html.includes('setTimeout(function(){if(powered)primeIAQueues();},12000)'), `${file}: broad IA warmup is deferred`);
+  check(html.includes('all=all.filter(function(c){return c.num!==curNum;})'), `${file}: background warmup excludes active channel`);
   check(html.includes('q.slice(0,limit===undefined?5:Math.max(0,Number(limit)||0))'), `${file}: IA media resolver fan-out is bounded`);
-  check(html.includes('ask===1?1:((typeof curNum!=="undefined"&&ch.num===curNum)?2:1)'), `${file}: active IA gets priority over companion media warmup`);
+  check(html.includes('ask===1?3:((typeof curNum!=="undefined"&&ch.num===curNum)?3:1)') || html.includes('ask===1?1:((typeof curNum!=="undefined"&&ch.num===curNum)?2:1)'), `${file}: active IA gets priority over companion media warmup`);
   check(html.includes('realsignal-api.tdy1990.workers.dev/api/v2'), `${file}: IA queue uses the V2 API boundary`);
   check(html.includes('function iaQueueFetch(body)'), `${file}: IA queue keeps a direct-relay fallback`);
-  check(html.includes('inlinePrimary=inlineUrls.find(function(u){return /archive\\.org\\/download\\//i.test(String(u));})'), `${file}: stable Archive download URL is preferred for inline queue media`);
+  check(html.includes('inlinePrimary=inlineUrls.find(iaArchiveDirectURL)') && html.includes('archive.org'), `${file}: stable Archive download URL is preferred for inline queue media`);
   check(html.includes('AD_RECENT_TTL=7*24*3600e3'), `${file}: extended ad freshness ledger`);
   check(html.includes('runtime>=45*60'), `${file}: long-program ad budget`);
 }

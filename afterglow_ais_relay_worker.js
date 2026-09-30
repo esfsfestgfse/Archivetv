@@ -207,6 +207,45 @@ const IA_SHARED_QUEUE_READ_TIMEOUT_MS = 700;
 const iaQueueMemory = new Map();
 const iaLastGoodMemory = new Map();
 const iaQueueExpansionInflight = new Map();
+/* A full certification can touch many shallow lanes at once. Keep the
+   expensive background Archive harvest bounded so it cannot starve the
+   foreground queue path or make the local/edge runtime churn request scopes. */
+const IA_BACKGROUND_EXPANSION_MAX_ACTIVE = 2;
+const IA_BACKGROUND_EXPANSION_MAX_QUEUED = 24;
+/* Grow the catalog in bounded stages. A single request must not try to
+   hydrate thousands of Archive records just because the eventual catalog
+   budget is large; later skips resume the cursor and add another batch. */
+const IA_BACKGROUND_HARVEST_BATCH_SIZE = 1;
+const IA_BACKGROUND_HYDRATE_BATCH = 4;
+const IA_DEPTH_BACKGROUND_HYDRATE_BATCH = 8;
+const IA_BACKGROUND_HYDRATION_CONCURRENCY = 2;
+let iaBackgroundExpansionsActive = 0;
+const iaBackgroundExpansionQueue = [];
+function pumpIaBackgroundExpansions() {
+  while (iaBackgroundExpansionsActive < IA_BACKGROUND_EXPANSION_MAX_ACTIVE && iaBackgroundExpansionQueue.length) {
+    const entry = iaBackgroundExpansionQueue.shift();
+    iaBackgroundExpansionsActive += 1;
+    Promise.resolve()
+      .then(entry.task)
+      .then(entry.resolve, entry.reject)
+      .finally(() => {
+        iaBackgroundExpansionsActive -= 1;
+        pumpIaBackgroundExpansions();
+      });
+  }
+}
+function queueIaBackgroundExpansion(task, priority = 0) {
+  if (iaBackgroundExpansionQueue.length >= IA_BACKGROUND_EXPANSION_MAX_QUEUED) return null;
+  const promise = new Promise((resolve, reject) => {
+    iaBackgroundExpansionQueue.push({ task, resolve, reject, priority: Number(priority) || 0 });
+    /* The thinnest approved catalogs get the next available harvest slot.
+       This makes a full sweep repair the weakest lanes first instead of
+       spending its bounded background budget on already-deep channels. */
+    iaBackgroundExpansionQueue.sort((a, b) => a.priority - b.priority);
+    pumpIaBackgroundExpansions();
+  });
+  return promise;
+}
 function iaQueueMemoryGet(key) {
   const entry = iaQueueMemory.get(key);
   if (!entry || entry.expiresAt <= Date.now()) {
@@ -260,6 +299,12 @@ const IA_BACKGROUND_FALLBACK_LANES = 1;
    are never permitted to multiply the work of a foreground channel change. */
 const IA_FOREGROUND_CONTAINER_EXPANSIONS = 0;
 const IA_BACKGROUND_CONTAINER_EXPANSIONS = 32;
+/* The eventual catalog may contain thirty-two parent families, but one
+   request should expand only a small batch. Later rotations revisit the same
+   family with a different deterministic offset, or add the next parents from
+   the accumulated candidate union, without holding a Worker turn open for
+   dozens of eight-second metadata calls. */
+const IA_BACKGROUND_PARENT_BATCH = 1;
 const IA_CONTAINER_EXPANSION_CONCURRENCY = 2;
 /* A complete-series manifest can contain hundreds of playable files. Sample
    across the whole manifest instead of rejecting a large collection or taking
@@ -796,26 +841,12 @@ const IA_EMERGENCY_SEEDS = Object.freeze({
     iaDirectRecovery("clubdelcountry::2009/cdc2009-10-19Part147-1.mp3", "clubdelcountry", "2009/cdc2009-10-19Part147-1.mp3", "Club del Country — Part 147A", "country music bluegrass honky tonk americana", 2009, "audio"),
     iaDirectRecovery("clubdelcountry::2009/cdc2009-10-19Part147-2.mp3", "clubdelcountry", "2009/cdc2009-10-19Part147-2.mp3", "Club del Country — Part 147B", "country music bluegrass honky tonk americana", 2009, "audio"),
   ],
-  "920": [
-    { identifier: "78_house-of-the-rising-sun_josh-white-and-his-guitar_gbia0001628b", title: "House of the Rising Sun — 78rpm Recording", subject: "78rpm early recording folk blues", year: 1942 },
-    { identifier: "TheColumbiansCollection1924-1929DirectedByBenSelvin", title: "The Columbians Collection 1924–1929", subject: "78rpm early recording dance band", year: 1924 },
-    { identifier: "AbeLymanCollection1925-1934", title: "Abe Lyman Collection 1925–1935", subject: "78rpm early recording dance band", year: 1925 },
-    { identifier: "PaulWhiteman1920-1935CompleteCollection", title: "Paul Whiteman Collection 1920–1935", subject: "78rpm early recording jazz dance band", year: 1920 },
-    { identifier: "TedLewisCollection1919-1934", title: "Ted Lewis Collection 1919–1934", subject: "78rpm early recording jazz dance band", year: 1919 },
-  ],
   "82": [
     { identifier: "RoadstoR1950_2", title: "Roads to Romance: The Santa Cruz Trail and Land of the Giant Cactus", subject: "camping hiking trail wilderness travel outdoor recreation travel film", year: 1950 },
     { identifier: "0901_New_Oregon_Trail_The_01_36_49_27", title: "The New Oregon Trail", subject: "trail hiking wilderness travel outdoor recreation", year: 1950 },
     { identifier: "HMEmmausBoysCampW98617", title: "Emmaus Boys Camp, Wesco, Missouri", subject: "camping outdoor recreation wilderness travel", year: 1934 },
     { identifier: "amateur_film_ice_harvest_camp_minisi_1921", title: "Ice Harvest at Camp Minsi", subject: "camping outdoor recreation winter travel", year: 1921 },
     { identifier: "diary_of_a_mountain_girl_1927-1939", title: "Diary of a Mountain Girl", subject: "mountain hiking wilderness travel outdoor recreation", year: 1930 },
-  ],
-  "19": [
-    { identifier: "The_Beverly_Hillbillies", title: "The Beverly Hillbillies — Granny's Garden", subject: "classic television family sitcom domestic sitcom", year: 1962 },
-    { identifier: "TLS_Lucy_Gets_A_Roommate", title: "The Lucy Show — Lucy Gets a Roommate", subject: "classic television family sitcom domestic sitcom", year: 1963 },
-    { identifier: "Andy_Griffith_A_Wife_For_Andy", title: "The Andy Griffith Show — A Wife for Andy", subject: "classic television family sitcom domestic sitcom", year: 1963 },
-    { identifier: "Andy-Griffith-Show_Andy-Discovers-America", title: "The Andy Griffith Show — Andy Discovers America", subject: "classic television family sitcom domestic sitcom", year: 1961 },
-    { identifier: "Beverly_Hillbillies_Ep03_Meanwhile_Back_At_The_Cabin", title: "The Beverly Hillbillies — Meanwhile Back at the Cabin", subject: "classic television family sitcom domestic sitcom", year: 1962 },
   ],
   "906": [
     { identifier: "buddy-guy-srv-1986-lone-star-cafe-nyc", title: "Buddy Guy & Stevie Ray Vaughan — Lone Star Cafe, 1986", subject: "contemporary blues electric blues blues rock live music", year: 1986 },
@@ -7101,7 +7132,7 @@ async function expandArchiveContainer(doc, cacheOrigin, ctx, rotation = 0, salt 
       /* This runs only after first tune has already returned. Let a large but
          valid Archive manifest finish rather than borrowing the 4.2s
          first-frame deadline and silently losing its episode files. */
-      const upstream = await archiveFetch("https://archive.org/metadata/" + encodeURIComponent(doc.identifier), {}, 8000);
+      const upstream = await archiveFetch("https://archive.org/metadata/" + encodeURIComponent(doc.identifier), {}, ctx && ctx.isIaBackground ? 2800 : 8000);
       if (!upstream.ok) throw new Error("archive metadata " + upstream.status);
       return upstream.json();
     }, ctx);
@@ -7255,6 +7286,14 @@ function queueDiversityKeys(doc, lane) {
 
 function iaFreshnessLedgerKey(channel) {
   return IA_QUEUE_KV_PREFIX + "freshness:" + IA_FRESHNESS_LEDGER_VERSION + ":" + encodeURIComponent(String(channel || "").trim());
+}
+
+function iaDurableCatalogRotationEligible(payload, channel, rotation, count) {
+  if (Number(rotation) <= 0) return false;
+  if (IA_FULL_WINDOW_ROTATION_CHANNELS.has(String(channel || ""))) return true;
+  if (!payload || payload.catalogOrderLocked === true) return true;
+  const candidates = Array.isArray(payload.candidateItems) ? payload.candidateItems : [];
+  return candidates.length > Math.max(1, Number(count) || 1);
 }
 
 function iaFreshnessRecord(item) {
@@ -7613,7 +7652,7 @@ async function queuePlayable(id, cacheOrigin, ctx, mediaTypes = [], attempt = 0)
     let metadata = iaMetadataInflight.get(inflightKey);
     if (!metadata) {
       metadata = cachedArchiveJson(cacheKey, IA_METADATA_TTL_SECONDS, async () => {
-        const upstream = await archiveFetch("https://archive.org/metadata/" + encodeURIComponent(sourceId), {}, 4200);
+        const upstream = await archiveFetch("https://archive.org/metadata/" + encodeURIComponent(sourceId), {}, ctx && ctx.isIaBackground ? 2800 : 4200);
         if (!upstream.ok) {
           const error = new Error("archive metadata " + upstream.status);
           error.retryable = upstream.status === 408 || upstream.status === 425 || upstream.status === 429 || upstream.status >= 500;
@@ -7660,7 +7699,7 @@ async function queuePlayable(id, cacheOrigin, ctx, mediaTypes = [], attempt = 0)
   } catch (error) {
     const message = String(error && error.message || error || "");
     const retryable = Boolean(error && error.retryable) || /AbortError|aborted|timeout|timed out|fetch failed|network|archive metadata (408|425|429|5\d\d)/i.test(message);
-    if (retryable && attempt < 2) {
+    if (retryable && attempt < (ctx && ctx.isIaBackground ? 0 : 2)) {
       await new Promise((resolve) => setTimeout(resolve, iaArchiveRetryDelay(attempt)));
       return queuePlayable(id, cacheOrigin, ctx, mediaTypes, attempt + 1);
     }
@@ -7765,8 +7804,13 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTit
       /* Strong container signals are promoted first, with one generic
          multi-file probe behind them. The file manifest—not title wording—has
          the final say about whether an ordinary Archive record is a series. */
-      const hintedSeeds = catalogCanExpand ? approved.filter(archiveContainerHint) : [];
-      const genericSeeds = catalogCanExpand ? approved.filter((doc) => !archiveContainerHint(doc)).slice(0, 1) : [];
+      /* File-level episode records are already the result of an earlier
+         collection expansion. Re-opening their synthetic `parent::file`
+         identifiers as Archive parents creates guaranteed metadata misses and
+         consumes the bounded background budget without adding depth. */
+      const expandable = (doc) => doc && !doc.media?.url && !String(doc.identifier || "").includes("::");
+      const hintedSeeds = catalogCanExpand ? approved.filter((doc) => expandable(doc) && archiveContainerHint(doc)) : [];
+      const genericSeeds = catalogCanExpand ? approved.filter((doc) => expandable(doc) && !archiveContainerHint(doc)).slice(0, 1) : [];
       /* The foreground lane must never wait on Archive manifests. The exact
          approved parent is enough to hydrate a first frame; the request-level
          background expansion below revisits that parent and turns its files
@@ -8370,7 +8414,7 @@ function scheduleCachedIaHydration(payload, requestedCount, cacheOrigin, cacheKe
    empty and used to make episode expansion silently disappear. Sample up to
    ten episode positions per parent, interleaved across parents, so a deep
    collection adds real variety without swallowing the entire station shelf. */
-async function expandSeedArchiveContainers(payload, cacheOrigin, ctx, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, rotation, catalogLimit = IA_CATALOG_CANDIDATE_MAX) {
+async function expandSeedArchiveContainers(payload, cacheOrigin, ctx, channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, rotation, catalogLimit = IA_CATALOG_CANDIDATE_MAX) {
   const candidates = Array.isArray(payload && payload.candidateItems) && payload.candidateItems.length
     ? payload.candidateItems
     : ((payload && payload.items) || []);
@@ -8382,16 +8426,22 @@ async function expandSeedArchiveContainers(payload, cacheOrigin, ctx, themeTerms
        harvesting. Skipping those synthetic episodes was the reason a large
        complete-series lane could stay locked to its first five files. */
     const rawIdentifier = String(item && item.identifier || "");
-    const expandedEpisode = item && rawIdentifier.includes("::");
+    const expandedEpisode = Boolean(item && rawIdentifier.includes("::") && item.sourceIdentifier && item.fileName && !item.recoveryVerified);
     if (item && item.media && item.media.url && !expandedEpisode) return false;
+    /* A normal direct-ready Archive item is already a program, not a
+       collection. Only explicit series/collection signals or a synthetic
+       episode may spend the background manifest budget. */
+    if (!archiveContainerHint(item) && !expandedEpisode) return false;
     const sourceId = String(item && (item.sourceIdentifier || (rawIdentifier.includes("::") ? rawIdentifier.split("::")[0] : rawIdentifier)) || "");
     if (!sourceId || seenParents.has(sourceId)) return false;
     seenParents.add(sourceId);
     return true;
-  }).slice(0, Math.min(IA_BACKGROUND_CONTAINER_EXPANSIONS, Math.max(1, Math.ceil(Math.min(catalogLimit, IA_STRICT_CATALOG_CANDIDATE_MAX) / IA_BACKGROUND_COLLECTION_EPISODES_PER_PARENT))));
+  }).slice(0, Math.min(IA_BACKGROUND_CONTAINER_EXPANSIONS, IA_BACKGROUND_PARENT_BATCH, Math.max(1, Math.ceil(Math.min(catalogLimit, IA_STRICT_CATALOG_CANDIDATE_MAX) / IA_BACKGROUND_COLLECTION_EPISODES_PER_PARENT))));
   if (!parents.length) return [];
   const episodeSets = await mapQueueCandidates(parents, IA_CONTAINER_EXPANSION_CONCURRENCY, async (parent, index) => {
-    const episodes = await expandArchiveContainer({ ...parent, identifier: parent.sourceIdentifier || parent.identifier }, cacheOrigin, ctx, rotation, index * 47, mediaTypes);
+    const parentIdentifier = String(parent && parent.identifier || "");
+    const parentSource = String(parent && parent.sourceIdentifier || (parentIdentifier.includes("::") ? parentIdentifier.split("::")[0] : parentIdentifier));
+    const episodes = await expandArchiveContainer({ ...parent, identifier: parentSource, sourceIdentifier: parentSource }, cacheOrigin, ctx, rotation, index * 47, mediaTypes);
     return episodes.filter((episode) => iaStationQualityGate(channel, episode) && matchesTheme(episode, themeTerms, themeMinScore, requiredTitleTerms) && !matchesDeny(episode, denyTerms));
   });
   const balancedSets = episodeSets.map((episodes) => sampleArchiveSequence(episodes || [], IA_BACKGROUND_COLLECTION_EPISODES_PER_PARENT));
@@ -8458,6 +8508,7 @@ function iaBackgroundHarvestOffsets(channel, forceDiscovery) {
 
 async function harvestIaBackgroundPages(seed, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, ctx, rotation, minRuntimeSeconds, forceDiscovery) {
   let expanded = seed;
+  const backgroundMode = Boolean(ctx && ctx.isIaBackground);
   const harvestQueries = uniqueIaQueries([
     ...(Array.isArray(reserveQueries) ? reserveQueries : []),
     ...(Array.isArray(fallbackQueries) ? fallbackQueries : []),
@@ -8469,14 +8520,23 @@ async function harvestIaBackgroundPages(seed, reserveQueries, fallbackQueries, c
   );
   const playableCount = (value) => (Array.isArray(value && value.candidateItems) ? value.candidateItems : (value && value.items) || [])
     .filter((item) => item && item.identifier && item.media && item.media.url).length;
-  for (const offset of iaBackgroundHarvestOffsets(channel, forceDiscovery)) {
+  const allOffsets = iaBackgroundHarvestOffsets(channel, forceDiscovery);
+  const cursor = Math.max(0, Number(seed && seed.backgroundHarvestCursor) || 0) % Math.max(1, allOffsets.length);
+  const offsets = allOffsets.slice(cursor, cursor + IA_BACKGROUND_HARVEST_BATCH_SIZE);
+  const scheduledOffsets = offsets.length
+    ? offsets
+    : allOffsets.slice(0, IA_BACKGROUND_HARVEST_BATCH_SIZE);
+  let completed = 0;
+  for (const offset of scheduledOffsets) {
     const currentCandidates = Array.isArray(expanded && expanded.candidateItems) ? expanded.candidateItems : [];
     if (currentCandidates.length >= target && playableCount(expanded) >= target) break;
     const harvestRotation = Math.abs(Number(rotation) || 0) + offset;
     try {
+      const queryIndex = (cursor + completed) % Math.max(1, harvestQueries.length);
+      const passQueries = backgroundMode ? [harvestQueries[queryIndex]] : harvestQueries;
       const pagePass = await buildIaQueue(
         channel,
-        harvestQueries,
+        passQueries,
         themeTerms,
         denyTerms,
         requiredTitleTerms,
@@ -8488,9 +8548,9 @@ async function harvestIaBackgroundPages(seed, reserveQueries, fallbackQueries, c
         cacheOrigin,
         ctx,
         harvestRotation,
-        3200,
-        false,
-        true,
+        backgroundMode ? IA_FAST_SEARCH_TIMEOUT_MS : 3200,
+        backgroundMode,
+        !backgroundMode,
         null,
         minRuntimeSeconds,
       );
@@ -8503,15 +8563,21 @@ async function harvestIaBackgroundPages(seed, reserveQueries, fallbackQueries, c
           catalogOrderLocked: true,
         });
       }
+      completed += 1;
+      expanded = { ...expanded, backgroundHarvestCursor: (cursor + completed) % Math.max(1, allOffsets.length) };
     } catch (error) {
       console.warn(JSON.stringify({ event: "ia-background-page-harvest-failed", channel, offset, message: String(error && error.message || error) }));
+      completed += 1;
+      expanded = { ...expanded, backgroundHarvestCursor: (cursor + completed) % Math.max(1, allOffsets.length) };
     }
   }
+  if (completed === 0) expanded = { ...expanded, backgroundHarvestCursor: cursor };
   return expanded;
 }
 
 async function expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, rotation, forceDiscovery = false) {
   let expanded = payload;
+  const backgroundMode = Boolean(ctx && ctx.isIaBackground);
   const minRuntimeSeconds = safeMinRuntimeSeconds(payload && payload.minRuntimeSeconds);
   /* Exact rotation caches can be hydrated by separate requests. Pull the
      family shelf into this refill first so those caches inherit the union of
@@ -8547,7 +8613,7 @@ async function expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, c
   /* Start with collection files from the exact foreground result. This keeps
      the richer episode catalog tied to the same genre-checked parent instead
      of betting the repair on a later rotated search page returning it again. */
-  const seedEpisodes = (await expandSeedArchiveContainers(expanded, cacheOrigin, ctx, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, rotation, candidateCount))
+  const seedEpisodes = (await expandSeedArchiveContainers(expanded, cacheOrigin, ctx, channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, rotation, candidateCount))
     .filter((episode) => iaRuntimeAllowed(episode, minRuntimeSeconds));
   if (seedEpisodes.length) {
     expanded = mergeIaQueuePayload({ ...expanded, items: seedEpisodes, candidateItems: seedEpisodes }, expanded, candidateCount, { containerExpanded: true });
@@ -8578,13 +8644,13 @@ async function expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, c
   const expandedPlayable = expandedCandidates.filter((item) => item && item.identifier && item.media && item.media.url).length;
   const needsPlayableDepth = expandedPlayable < Math.min(candidateCount, Math.max(count, iaDepthRecoveryEnabled(channel) ? IA_DEPTH_PLAYABLE_TARGET : IA_BACKGROUND_PLAYABLE_TARGET));
   if ((forceDiscovery || expanded.items.length < threshold || needsPlayableDepth) && reserveQueries.length) {
-    const reserve = await buildIaQueue(channel, reserveQueries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, ctx, rotation, 3200, false, true, null, minRuntimeSeconds);
+    const reserve = await buildIaQueue(channel, backgroundMode ? reserveQueries.slice(0, 1) : reserveQueries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, ctx, rotation, backgroundMode ? IA_FAST_SEARCH_TIMEOUT_MS : 3200, backgroundMode, !backgroundMode, null, minRuntimeSeconds);
     expanded = forceDiscovery
       ? mergeIaQueuePayload(reserve, expanded, candidateCount, { reserve: true, refreshed: true })
       : mergeIaQueuePayload(expanded, reserve, candidateCount, { reserve: true });
   }
   if ((forceDiscovery || expanded.items.length < threshold || needsPlayableDepth) && fallbackQueries.length) {
-    const rescue = await buildIaQueue(channel, fallbackQueries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, ctx, rotation, 3200, false, true, null, minRuntimeSeconds);
+    const rescue = await buildIaQueue(channel, backgroundMode ? fallbackQueries.slice(0, 1) : fallbackQueries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, ctx, rotation, backgroundMode ? IA_FAST_SEARCH_TIMEOUT_MS : 3200, backgroundMode, !backgroundMode, null, minRuntimeSeconds);
     expanded = forceDiscovery
       ? mergeIaQueuePayload(rescue, expanded, candidateCount, { rescue: true, refreshed: true })
       : mergeIaQueuePayload(expanded, rescue, candidateCount, { rescue: true });
@@ -8632,8 +8698,11 @@ async function expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, c
   /* The background target provides several complete five-item rotations while
      staying entirely behind the first frame; cold tuning still hydrates only
      the requested public shelf. */
-  const backgroundTarget = Math.min(candidateCount, Math.max(count * 3, iaDepthRecoveryEnabled(channel) ? IA_DEPTH_PLAYABLE_TARGET : IA_BACKGROUND_PLAYABLE_TARGET));
-  const deepHydrated = await hydrateIaQueue(expanded, backgroundTarget, cacheOrigin, ctx, mediaTypes);
+  const currentPlayableDepth = (Array.isArray(expanded && expanded.candidateItems) ? expanded.candidateItems : (expanded && expanded.items) || [])
+    .filter((item) => item && item.identifier && item.media && item.media.url).length;
+  const hydrateBatch = iaDepthRecoveryEnabled(channel) ? IA_DEPTH_BACKGROUND_HYDRATE_BATCH : IA_BACKGROUND_HYDRATE_BATCH;
+  const backgroundTarget = Math.min(candidateCount, Math.max(count, currentPlayableDepth + hydrateBatch));
+  const deepHydrated = await hydrateIaQueue(expanded, backgroundTarget, cacheOrigin, ctx, mediaTypes, undefined, backgroundMode ? IA_BACKGROUND_HYDRATION_CONCURRENCY : 5);
   /* `deepHydrated.items` is intentionally bounded by the media probe budget;
      it is not the whole catalog. Keep the approved, still-unhydrated Archive
      records behind the verified media rows so the next refill can hydrate a
@@ -8649,7 +8718,35 @@ async function expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, c
     : null;
   if (!hydrated || !hydrated.items.length) return null;
   const queueTtl = hydrated.ready >= count ? IA_QUEUE_TTL_SECONDS : IA_PARTIAL_QUEUE_TTL_SECONDS;
-  if (hydrated.ready >= count) sharedQueuePut(env, sharedKey, hydrated, queueTtl, ctx);
+  if (hydrated.ready >= count) {
+    sharedQueuePut(env, sharedKey, hydrated, queueTtl, ctx);
+    /* Background expansion is the only path that can discover a deeper
+       catalog after the opening shelf has already been persisted. Mirror its
+       approved union into the family last-good key explicitly; otherwise a
+       later skip can keep reading the older five-item fallback even though
+       the exact-rotation cache has grown. */
+    const familyKey = payload && payload.lastGoodKey;
+    if (familyKey && familyKey !== sharedKey) {
+      const familyPrior = iaLastGoodMemoryGet(familyKey) || await sharedQueueGet(env, familyKey);
+      const familyCandidates = mergeIaCatalogCandidates(familyPrior, hydrated, { preserveOrder: true });
+      const familyPayload = {
+        ...hydrated,
+        lastGoodKey: familyKey,
+        lastGood: true,
+        catalogOrderLocked: true,
+        candidateItems: familyCandidates,
+        candidates: familyCandidates.length,
+        catalogDepth: familyCandidates.length,
+      };
+      iaLastGoodMemoryPut(familyKey, familyPayload);
+      const familyWrite = env.REALSIGNAL_QUEUE.put(familyKey, JSON.stringify(familyPayload), {
+        expirationTtl: Math.max(60, Math.min(86400, Number(queueTtl) || IA_QUEUE_TTL_SECONDS)),
+      }).catch((error) => {
+        console.warn(JSON.stringify({ event: "ia-background-family-write-failed", channel: String(channel || (payload && payload.channel) || ""), message: String(error && error.message || error) }));
+      });
+      if (ctx) ctx.waitUntil(familyWrite);
+    }
+  }
   await cacheIaQueueIfRicher(cacheKey, hydrated, queueTtl, {
     "X-Afterglow-Source": "program-director-background",
     "X-Afterglow-Queue-Ready": String(hydrated.ready),
@@ -8669,13 +8766,67 @@ function scheduleIaExpansion(seed, reserveQueries, fallbackQueries, channel, the
      benefit from the resulting last-good union. */
   const key = (seed && seed.lastGoodKey) || (cacheKey && cacheKey.url);
   if (!key || !ctx || iaQueueExpansionInflight.has(key)) return;
-  const task = expandAndCacheIaQueue(seed, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, rotation, forceDiscovery)
+  const seedCandidates = Array.isArray(seed && seed.candidateItems) && seed.candidateItems.length
+    ? seed.candidateItems
+    : ((seed && seed.items) || []);
+  const seedPlayable = seedCandidates.filter((item) => item && item.identifier && item.media && item.media.url).length;
+  /* Queued work can begin after the originating request has returned. Use a
+     detached waitUntil adapter inside that work so a delayed cache write does
+     not try to perform I/O through a stale request context. The outer promise
+     is still registered on the real request context below, so the Worker keeps
+     the expansion alive until this bounded step completes. */
+  const backgroundCtx = {
+    isIaBackground: true,
+    waitUntil(promise) { Promise.resolve(promise).catch(() => {}); },
+  };
+  /* Production background growth belongs to a Queue consumer, not to the
+     request that is changing the channel. This keeps Archive metadata/search
+     work from extending or canceling a TV handoff. Local development keeps
+     the bounded in-process fallback until the queue binding is available. */
+  if (env && env.IA_HARVEST_QUEUE && typeof env.IA_HARVEST_QUEUE.send === "function") {
+    const message = {
+      type: "ia-catalog-harvest",
+      version: 1,
+      seed,
+      reserveQueries,
+      fallbackQueries,
+      channel,
+      themeTerms,
+      denyTerms,
+      requiredTitleTerms,
+      mediaTypes,
+      themeMinScore,
+      diversity,
+      count,
+      candidateCount,
+      cacheOrigin,
+      cacheKey: cacheKey && cacheKey.url ? cacheKey.url : String(cacheKey || ""),
+      sharedKey,
+      rotation,
+      forceDiscovery,
+    };
+    const queued = env.IA_HARVEST_QUEUE.send(message)
+      .catch((error) => {
+        console.warn(JSON.stringify({ event: "ia-background-queue-send-failed", channel: String(channel || ""), message: String(error && error.message || error) }));
+      })
+      .finally(() => iaQueueExpansionInflight.delete(key));
+    iaQueueExpansionInflight.set(key, queued);
+    ctx.waitUntil(queued);
+    return;
+  }
+  const task = queueIaBackgroundExpansion(
+    () => expandAndCacheIaQueue(seed, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, backgroundCtx, rotation, forceDiscovery),
+    seedPlayable || seedCandidates.length || count,
+  );
+  if (!task) return;
+  const logChannel = seed && seed.channel != null ? String(seed.channel) : "";
+  const guardedTask = task
     .catch((error) => {
-      console.warn(JSON.stringify({ event: "ia-background-replenishment-failed", channel, message: String(error && error.message || error) }));
+      console.warn(JSON.stringify({ event: "ia-background-replenishment-failed", channel: logChannel, message: String(error && error.message || error) }));
     })
     .finally(() => iaQueueExpansionInflight.delete(key));
-  iaQueueExpansionInflight.set(key, task);
-  ctx.waitUntil(task);
+  iaQueueExpansionInflight.set(key, guardedTask);
+  ctx.waitUntil(guardedTask);
 }
 
 function scheduleIaReplenishment(ready, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, rotation) {
@@ -8754,6 +8905,89 @@ async function getIaQueue(request, url, env, ctx) {
   const edgeCache = caches.default;
   const edgeCachePromise = edgeCache.match(cacheKey);
   const freshnessLedger = await freshnessLedgerPromise;
+  /* A later skip should never wait for Archive recovery when this exact
+     editorial family already has a durable, verified catalog. The old path
+     reached the slow repair fallback first, which made a healthy channel feel
+     frozen even though its approved files were already in KV. This is a
+     rotation-only fast path: cold start remains unchanged, and the same
+     station gates plus played ledger still decide what can air. */
+  if (rotation > 0) {
+    const durableCatalog = await sharedQueueGet(env, lastGoodKey);
+    const durableCandidates = Array.isArray(durableCatalog && durableCatalog.candidateItems) && durableCatalog.candidateItems.length
+      ? durableCatalog.candidateItems
+      : ((durableCatalog && durableCatalog.items) || []);
+    const durablePlayable = durableCandidates.filter((item) => item && item.identifier && item.media && item.media.url);
+    /* Exactly five verified items are enough for an instant handoff, but they
+       are not enough to declare a channel deep. The old strict `> count`
+       check skipped the background harvester at precisely the point where a
+       shallow lane needed it most, so the same five programs could live
+       forever in the family shelf. Keep the public fast path available at
+       five, while using the complete approved candidate union as the seed for
+       metadata hydration and additional Archive discovery. */
+    if (durablePlayable.length >= count) {
+      const durableCandidateCount = iaCatalogCandidateBudget(themeMinScore, count);
+      const durableNeedsExpansion = iaNeedsCatalogDepth(
+        { candidateItems: durableCandidates },
+        count,
+        durableCandidateCount,
+      );
+      /* The durable rotation rail is intentionally instant, but it must not
+         become a permanent ceiling for a shallow catalog. Keep the response
+         hot while asking the background harvester to walk additional Archive
+         pages and collection files. The in-flight guard coalesces this to one
+         expansion per editorial family. */
+      if (durableNeedsExpansion) {
+        const durableSeed = {
+          ...(durableCatalog || {}),
+          lastGoodKey,
+          items: durablePlayable.slice(0, durableCandidateCount),
+          candidateItems: durableCandidates,
+          candidates: durableCandidates.length,
+        };
+        scheduleIaExpansion(
+          durableSeed,
+          iaBackgroundReserveQueries(channel, queries, true),
+          iaBackgroundFallbackQueries(channel, iaFallbackQueries(themeTerms, denyTerms, requiredTitleTerms, mediaTypes), true),
+          channel,
+          themeTerms,
+          denyTerms,
+          requiredTitleTerms,
+          mediaTypes,
+          themeMinScore,
+          diversity,
+          count,
+          durableCandidateCount,
+          url.origin,
+          cacheKey,
+          sharedKey,
+          env,
+          ctx,
+          rotation,
+          true,
+        );
+      }
+      const durableWindow = rotatePlayableIaShelf({
+        ...(durableCatalog || {}),
+        channel,
+        rotation,
+        candidateItems: durablePlayable,
+        candidates: durablePlayable.length,
+        catalogOrderLocked: true,
+        stale: false,
+        fallback: false,
+      }, rotation, count);
+      const freshDurable = applyIaFreshness(durableWindow, freshnessLedger, count);
+      if (freshDurable.payload && Array.isArray(freshDurable.payload.items) && freshDurable.payload.items.length >= count) {
+        rememberIaFreshness(env, channel, freshDurable.issued, ctx);
+        return cacheableJson(freshDurable.payload, 15, {
+          "X-Afterglow-Source": "program-director-durable-catalog-rotation",
+          "X-Afterglow-Queue-Ready": String(freshDurable.payload.ready || freshDurable.payload.items.length),
+          "X-Afterglow-Queue-Deep": String(durablePlayable.length),
+          "X-Afterglow-Queue-Freshness-Rail": "1",
+        });
+      }
+    }
+  }
   /* Do not let a contaminated shared shelf outrank a verified, lane-owned
      recovery bank for the one channel that reproduced this defect. The bank
      is already direct-playable, so this remains a zero-network fast path. */
@@ -8975,7 +9209,7 @@ async function getIaQueue(request, url, env, ctx) {
             );
           }
           if (!bypassShallowRotation) {
-            const cachedRotationPayload = rotation > 0 && IA_FULL_WINDOW_ROTATION_CHANNELS.has(channel)
+            const cachedRotationPayload = iaDurableCatalogRotationEligible(cachedPayload, channel, rotation, count)
               ? await mergeIaLastGoodCatalog(cachedPayload, lastGoodKey, env)
               : cachedPayload;
             const cachedWasRotated = Array.isArray(cachedRotationPayload.candidateItems) && cachedRotationPayload.candidateItems.length > (Array.isArray(cachedRotationPayload.items) ? cachedRotationPayload.items.length : 0);
@@ -9005,7 +9239,7 @@ async function getIaQueue(request, url, env, ctx) {
       }
     }
     const memory = iaQueueMemoryGet(cacheKey.url);
-    const memoryCatalog = memory && rotation > 0 && IA_FULL_WINDOW_ROTATION_CHANNELS.has(channel)
+    const memoryCatalog = memory && iaDurableCatalogRotationEligible(memory.payload, channel, rotation, count)
       ? await mergeIaLastGoodCatalog(memory.payload, lastGoodKey, env)
       : (memory && memory.payload);
     const memoryNeedsFreshRotation = memoryCatalog && Math.abs(Number(rotation) || 0) > 0 && iaNeedsCatalogDepth(memoryCatalog, count, iaCatalogCandidateBudget(themeMinScore, count));
@@ -9022,7 +9256,7 @@ async function getIaQueue(request, url, env, ctx) {
       });
     }
     const shared = await sharedQueueGet(env, sharedKey);
-    const sharedCatalog = shared && rotation > 0 && IA_FULL_WINDOW_ROTATION_CHANNELS.has(channel)
+    const sharedCatalog = shared && iaDurableCatalogRotationEligible(shared, channel, rotation, count)
       ? await mergeIaLastGoodCatalog(shared, lastGoodKey, env)
       : shared;
     const sharedBase = sharedCatalog && rotation > 0 && IA_UNDERFILL_DEPTH_ROTATION_CHANNELS.has(channel)
@@ -9669,6 +9903,46 @@ async function getKplerSnapshot(request, env, ctx) {
 }
 
 export default {
+  async queue(batch, env, ctx) {
+    for (const message of batch.messages || []) {
+      const payload = message && message.body;
+      if (!payload || payload.type !== "ia-catalog-harvest" || Number(payload.version) !== 1) {
+        message.ack();
+        continue;
+      }
+      try {
+        const backgroundCtx = {
+          isIaBackground: true,
+          waitUntil(promise) { Promise.resolve(promise).catch(() => {}); },
+        };
+        await expandAndCacheIaQueue(
+          payload.seed,
+          payload.reserveQueries,
+          payload.fallbackQueries,
+          payload.channel,
+          payload.themeTerms,
+          payload.denyTerms,
+          payload.requiredTitleTerms,
+          payload.mediaTypes,
+          payload.themeMinScore,
+          payload.diversity,
+          payload.count,
+          payload.candidateCount,
+          payload.cacheOrigin,
+          payload.cacheKey,
+          payload.sharedKey,
+          env,
+          backgroundCtx,
+          payload.rotation,
+          payload.forceDiscovery === true,
+        );
+        message.ack();
+      } catch (error) {
+        console.warn(JSON.stringify({ event: "ia-background-queue-consumer-failed", channel: String(payload.channel || ""), message: String(error && error.message || error) }));
+        message.retry({ delaySeconds: 30 });
+      }
+    }
+  },
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (request.method === "OPTIONS") {

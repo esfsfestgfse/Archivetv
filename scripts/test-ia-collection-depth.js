@@ -91,7 +91,7 @@ check(/const expandedSources = new Set\(expanded\.map/.test(relay) && /const app
 check(/const expansionSeeds = \(firstApprovedLane \|\| !expandContainers\) \? \[\] : hintedSeeds\.concat\(genericSeeds\)/.test(relay), 'Relay keeps manifest expansion off the first-frame and bounded rescue paths');
 check(/const expandedParents = new Set\(\)/.test(relay), 'Relay removes expanded parents across editorial rails');
 check(/candidateItems: items\.slice\(0, candidateLimit\)/.test(relay), 'Relay serializes the rolling candidate shelf');
-check(/const backgroundTarget = Math\.min\(candidateCount, Math\.max\(count \* 3, iaDepthRecoveryEnabled\(channel\) \? IA_DEPTH_PLAYABLE_TARGET : IA_BACKGROUND_PLAYABLE_TARGET\)\)/.test(relay), 'Relay hydrates a deeper background playable shelf');
+check(/const currentPlayableDepth = \(Array\.isArray\(expanded && expanded\.candidateItems\)/.test(relay) && /const hydrateBatch = iaDepthRecoveryEnabled\(channel\)/.test(relay) && /const backgroundTarget = Math\.min\(candidateCount, Math\.max\(count, currentPlayableDepth \+ hydrateBatch\)\)/.test(relay), 'Relay hydrates a deeper background playable shelf in bounded batches');
 check(/function rotatePlayableIaShelf\(/.test(relay) && /rotatePlayableIaShelf\(lastGood/.test(relay), 'Relay rotates hydrated last-good shelves instead of repeating the same five items');
 check(/const emergencyDepth = Math\.min\(candidateCount, Math\.max\(count, 8\)\)/.test(relay), 'Sparse emergency lanes widen before accepting a shallow five-item shelf');
 check(/IA_BACKGROUND_CONTAINER_EXPANSIONS\s*=\s*32/.test(relay) && /IA_BACKGROUND_COLLECTION_EPISODES_PER_PARENT\s*=\s*96/.test(relay), 'Background collection expansion samples thirty-two parent records across ninety-six episode positions');

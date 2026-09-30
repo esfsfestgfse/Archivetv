@@ -388,7 +388,10 @@ sub playItem(item)
   end if
   streamFormat = "mp4"
   if LCase(mediaUrl).InStr(".m3u8") > 0 then streamFormat = "hls"
-  m.player.content = { url: mediaUrl, streamFormat: streamFormat }
+  content = CreateObject("roSGNode", "ContentNode")
+  content.url = mediaUrl
+  content.streamFormat = streamFormat
+  m.player.content = content
   m.player.visible = true
   m.player.control = "play"
   m.nowPlaying.visible = true

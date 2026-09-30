@@ -1689,7 +1689,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="5.0.4-mobile-show-balance";
+window.__ATV_BUILD="5.0.5-mobile-00s-tv-pilot";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -2251,6 +2251,7 @@ const CH=[
  {nm:"1960s TV (Pilot)", num:16,  cat:"TV", gl:"tv1960pilot", era:[1960,1969], ns:"tv"},
  {nm:"1970s TV (Pilot)", num:22,  cat:"TV", gl:"tv1970pilot", era:[1970,1979], ns:"tv"},
  {nm:"1980s TV (Pilot)", num:23,  cat:"TV", gl:"tv1980pilot", era:[1980,1989], ns:"tv"},
+ {nm:"2000s TV (Pilot)", num:24,  cat:"TV", gl:"tv2000pilot", era:[2000,2009], ns:"tv"},
  {nm:"Game Show Channel", num:12, cat:"TV", gl:"gameshow",     era:[1940,2026], ns:"tv"},
  {nm:"Old Nick", num:19, cat:"TV", gl:"nickatnite", era:[1950,1985], ns:"tv"}, /* Nick at Nite era classic sitcoms — moved 13→19 to clear collision with Vintage Commercials */
  {nm:"The Court Room", num:20, cat:"TV", gl:"courtroom", era:[1980,2020], ns:"tv"}, /* Judge shows — People's Court, Judge Judy, Judge Wapner — moved 14→20 to clear Computer Chronicles collision */
@@ -2529,7 +2530,7 @@ function publicLineupChannels(){return CH.filter(isPublicLineupChannel);}
 const GUIDE_CATEGORIES=[
   {id:"all",label:"All channels",meta:"The complete RealSignal directory",color:"#baffcf"},
   {id:"reruns",label:"Reruns",meta:"Classic and modern television series",color:"#c6a7ff",channels:[10,11]},
-  {id:"decades",label:"TV by decade · pilot",meta:"Metadata-tested decade lanes",color:"#f7d27c",channels:[16,90]},
+  {id:"decades",label:"TV by decade · pilot",meta:"Metadata-tested decade lanes",color:"#f7d27c",channels:[16,22,23,24,90]},
   {id:"watch",label:"TV & film",meta:"Networks, series, movies and retro",color:"#8ee6ff",cats:["NET","TV","MOV","RETRO","HOL"]},
   {id:"animation",label:"Animation & kids",meta:"Cartoons, anime and family viewing",color:"#9ab8ff",cats:["TOON"]},
   {id:"sports",label:"Sports",meta:"Competition, archives and scoreboards",color:"#c8ff84",cats:["SPORTS"]},
@@ -2652,6 +2653,7 @@ const CHANNEL_META={
 "1990s TV (Pilot)":{desc:"Pilot lane: verified television episodes whose episode-era metadata lands in the 1990s.",best:"anytime",rel:["Modern Rerun TV","Game Show Channel"]},
 "1970s TV (Pilot)":{desc:"Pilot lane: verified television episodes whose episode-era metadata lands in the 1970s.",best:"anytime",rel:["Classic Rerun TV","Modern Rerun TV"]},
 "1980s TV (Pilot)":{desc:"Pilot lane: verified television episodes whose episode-era metadata lands in the 1980s.",best:"anytime",rel:["Classic Rerun TV","Modern Rerun TV"]},
+"2000s TV (Pilot)":{desc:"Pilot lane: verified long-form television episodes from the 2000s, balanced across series families.",best:"anytime",rel:["Modern Rerun TV","1990s TV (Pilot)"]},
 "Old Nick":{desc:"Nick at Nite classic-sitcom vault — I Love Lucy, Bewitched, Dick Van Dyke, Andy Griffith, Brady Bunch, Odd Couple, Taxi, Happy Days, Get Smart, Beverly Hillbillies.",best:"evenings",rel:["Classic Rerun TV","Modern Rerun TV"]},
 "The Court Room":{desc:"Judge shows and small-claims TV — People's Court, Judge Judy, Judge Wapner, Divorce Court, Judge Mathis, Judge Joe Brown, Judge Alex.",best:"afternoons",rel:["Court TV","Old Nick"]},
 "Game Show Channel":{desc:"Panel shows, quizzes and game shows across every era.",best:"daytime",rel:["Classic Rerun TV"]},
@@ -6458,6 +6460,7 @@ function rsDecadeTvPilot(genre, years, decade, collection) {
 Object.assign(PROGRAM, {
   "1970s TV (Pilot)": rsDecadeTvPilot("tv1970pilot", [1970, 1979], "1970", "classic_tv_1970s"),
   "1980s TV (Pilot)": rsDecadeTvPilot("tv1980pilot", [1980, 1989], "1980", "classic_tv_1980s"),
+  "2000s TV (Pilot)": rsDecadeTvPilot("tv2000pilot", [2000, 2009], "2000", "classic_tv_2000s"),
 });
 
 /* Editorial lane overlay: these are programming rules, not clock schedules.
@@ -6467,6 +6470,7 @@ const PROGRAM_EDITORIAL={
   "Classic Rerun TV":{eraBuckets:[[1930,1939],[1940,1949],[1950,1959],[1960,1969],[1970,1979],[1980,1989]],topicBuckets:[["variety show","comedy variety"],["anthology series","television drama"],["family sitcom","situation comedy"],["detective tv","crime tv"],["variety show","comedy series"],["television comedy","television series"]]},
  "1970s TV (Pilot)":{eraBuckets:[[1970,1979]],topicBuckets:[["sitcom","television series"],["variety show"],["game show"],["drama series"]]},
  "1980s TV (Pilot)":{eraBuckets:[[1980,1989]],topicBuckets:[["sitcom","television series"],["variety show"],["game show"],["drama series"]]},
+  "2000s TV (Pilot)":{eraBuckets:[[2000,2009]],topicBuckets:[["sitcom","television series"],["game show"],["talk show"],["court show"],["late night"]]},
   "Modern Rerun TV":{eraBuckets:[[1980,1989],[1990,1999],[2000,2009],[2010,2026]],topicBuckets:[["family sitcom"],["workplace sitcom"],["ensemble sitcom"],["syndicated comedy"]]},
   "Game Show Channel":{eraBuckets:[[1940,1949],[1950,1959],[1960,1969],[1970,1979],[1980,1989],[1990,1999],[2000,2026]],topicBuckets:[["panel show"],["quiz show"],["word game"],["pricing game"],["dating game"],["stunt game"],["game show","quiz show"]]},
   "Vintage Commercials":{eraBuckets:[[1930,1949],[1950,1959],[1960,1969],[1970,1979],[1980,1989],[1990,1999],[2000,2009],[2010,2019],[2020,2026]],topicBuckets:[["food commercial"],["automobile commercial"],["toy commercial"],["technology commercial"],["household commercial"],["public service announcement"],["brand commercial"],["product commercial"],["commercial break"]]},
@@ -7509,7 +7513,7 @@ async function iaLocalQueueFallbackMode(ch,sl,allowFreshnessFallback){
 }
 async function iaQueueRequest(ch,sl,count){
   var qs=iaQueueQueries(sl);if(!qs.length)return [];
-  try{var decadePilot=!!(sl&&sl.program&&/^tv(?:1960|1990)pilot$/.test(String(sl.program.genre||""))),d=await withTO(iaQueueFetch({channel:iaQueueKey(ch),rotation:iaQueueRotationFor(ch),queries:decadePilot?qs.slice(0,16):qs,themeTerms:iaProgramThemeTerms(sl),denyTerms:iaProgramDenyTerms(sl),requiredTitleTerms:(sl&&sl.program&&sl.program.require&&sl.program.require.title_any)||[],diversity:iaQueueDiversity(sl),mediaTypes:ch&&ch.audio?["audio"]:["movies"],themeMinScore:Math.max(1,Math.min(12,Number(sl&&sl.program&&sl.program.themeMinScore)||1)),minRuntimeSeconds:Math.max(0,Number(sl&&sl.program&&sl.program.minRuntimeSeconds)||0),count:Math.max(1,Math.min(5,count||5)),decadePilot:decadePilot}),6500);
+  try{var decadePilot=!!(sl&&sl.program&&/^tv(?:1960|1970|1980|1990|2000)pilot$/.test(String(sl.program.genre||""))),d=await withTO(iaQueueFetch({channel:iaQueueKey(ch),rotation:iaQueueRotationFor(ch),queries:decadePilot?qs.slice(0,16):qs,themeTerms:iaProgramThemeTerms(sl),denyTerms:iaProgramDenyTerms(sl),requiredTitleTerms:(sl&&sl.program&&sl.program.require&&sl.program.require.title_any)||[],diversity:iaQueueDiversity(sl),mediaTypes:ch&&ch.audio?["audio"]:["movies"],themeMinScore:Math.max(1,Math.min(12,Number(sl&&sl.program&&sl.program.themeMinScore)||1)),minRuntimeSeconds:Math.max(0,Number(sl&&sl.program&&sl.program.minRuntimeSeconds)||0),count:Math.max(1,Math.min(5,count||5)),decadePilot:decadePilot}),6500);
     var rawItems=Array.isArray(d&&d.items)?d.items:[];
     var out=rawItems.filter(function(it){return iaProgramAllowed(it,sl);});
     /* A channel can have a healthy, genre-verified catalog while this device's

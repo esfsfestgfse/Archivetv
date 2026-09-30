@@ -104,10 +104,10 @@ const IA_CATALOG_CANDIDATE_MAX = 3072;
    episode data waited
    behind reserve rebuilding and could expire
    before the small, already-resolved container shelf was written. */
- const IA_QUEUE_CACHE_VERSION = "v249";
+ const IA_QUEUE_CACHE_VERSION = "v258";
 /* Last-good shelves share the active queue namespace so an older shallow
    shelf never masks the repaired episode-level catalog. */
- const IA_LAST_GOOD_CACHE_VERSION = "v249";
+ const IA_LAST_GOOD_CACHE_VERSION = "v258";
 /* Five playable items are the on-air shelf, not the catalog. Keep at least
    four shelves of distinct, verified media behind it so a warm tune or skip
    does not keep replaying the same five records while Archive discovery is
@@ -192,7 +192,7 @@ const IA_FULL_WINDOW_ROTATION_CHANNELS = new Set(["2", "14", "18", "19", "51", "
    non-opening rotation must use the lane-owned verified window first; Archive
    expansion continues behind it, but a shared five-item shelf can no longer
    masquerade as fresh programming. */
-const IA_DIRECT_FRESHNESS_RAIL_CHANNELS = new Set(["113", "123", "155", "917"]);
+const IA_DIRECT_FRESHNESS_RAIL_CHANNELS = new Set(["24", "113", "123", "155", "917"]);
 /* A short per-isolate burst cache absorbs repeat requests from a TV, phone,
    and guide opened in quick succession. It is intentionally tiny and
    short-lived: Cache API/KV remain the durable shelves, while this map only
@@ -4990,18 +4990,37 @@ const IA_VERIFIED_FILE_DEPTH_RAILS = Object.freeze({
     ...(IA_EMERGENCY_SEEDS["119"] || []),
     ...(IA_RESEARCHED_FILE_DEPTH_RAILS["119"] || []),
   ]),
+  /* 00s TV pilot: use only reviewed long-form file records from the existing
+     episode banks. Broad Archive decade searches mix in news, clips, music,
+     and promotional material, so this lane must stay on the verified rail. */
+  "24": verifiedIaFileRail([
+    ...(IA_DEEP_HARVEST_BANKS["11"] || []),
+    ...(IA_UNDERFILL_DEPTH_BANKS["11"] || []),
+    ...(IA_DEEP_ARCHIVE_FAMILY_OVERLAYS["11"] || []),
+    ...(IA_UNDERFILL_DEPTH_BANKS["17"] || []),
+    ...(IA_UNDERFILL_DEPTH_BANKS["20"] || []),
+    ...(IA_LONG_TAIL_EXPANSIONS_EXTRA["11"] || []),
+    ...(IA_LONG_TAIL_EXPANSIONS_EXTRA["12"] || []),
+  ].filter((item) => {
+    const year = Number(item && item.year);
+    const runtime = Number(item && (item.runtime || (item.media && item.media.runtime)) || 0);
+    const text = String(item && [item.title, item.subject, item.fileName].filter(Boolean).join(" ") || "").toLowerCase();
+    if (year < 2000 || year > 2009 || runtime < 900) return false;
+    if (!/(?:television|tv|sitcom|television series|tv series|game show|talk show|court show|late night)/i.test(text)) return false;
+    return !/(?:feature film|full movie|movie|cartoon|animated|news|newscast|documentary|podcast|radio|commercial|trailer|tutorial|how to|parody|fan[- ]?made|portrait|vertical|short|clip|highlight)/i.test(text);
+  })),
 });
 /* The harvested underfill banks are not just emergency media. They are the
    stable, file-level rotation rail for these lanes while broader Archive
    discovery catches up. Mark them as full-window stations so a later skip
    cannot fall back to the same first five search results. */
-const IA_UNDERFILL_DEPTH_ROTATION_CHANNELS = new Set(Object.keys(IA_UNDERFILL_DEPTH_BANKS));
+const IA_UNDERFILL_DEPTH_ROTATION_CHANNELS = new Set([...Object.keys(IA_UNDERFILL_DEPTH_BANKS), "24"]);
 /* v4.1.183 file-level depth harvest. These lanes now have Archive-verified
    episode/track banks, so they must use the same channel-owned recovery and
    full-window freshness path as the earlier repaired families. This keeps a
    cold search failure from replacing a deep verified catalog with a stale
    five-item last-good shelf. */
-const IA_FILE_BANK_CHANNELS = new Set(["17", "52", "54", "62", "63", "67", "68", "70", "72", "73", "83", "105", "112", "119", "121", "151", "206", "211", "220", "224", "508", "903", "910", "913", "918", "920"]);
+const IA_FILE_BANK_CHANNELS = new Set(["17", "24", "52", "54", "62", "63", "67", "68", "70", "72", "73", "83", "105", "112", "119", "121", "151", "206", "211", "220", "224", "508", "903", "910", "913", "918", "920"]);
 /* v4.1.192 freshness repair: the full 179-channel measurement found one
    hundred lanes reopening at least one item across two shelves. Most already
    have a deeper approved catalog; they were simply not using the same stable
@@ -7223,6 +7242,7 @@ function queueKey(value) {
    common series aliases first, then fall back to a conservative title stem so
    episode markers and alternate encode labels do not become separate families. */
 const IA_TITLE_FAMILY_ALIASES = Object.freeze([
+  ["the tonight show with conan o brien", ["the tonight show with conan", "conan o brien", "conan tonight"]],
   ["burns and allen", ["burns and allen", "george burns", "gracie allen"]],
   ["i love lucy", ["i love lucy", "lucille ball"]],
   ["the honeymooners", ["the honeymooners", "ralph kramden"]],
@@ -7277,7 +7297,10 @@ function queueTitleFamily(doc) {
      “Brian Henderson's Bandstand - 8 June 1963” into one stable show family,
      while leaving unrelated programs distinct. */
   const completeContainer = /\b(?:complete|full)\s+(?:tv\s+)?series\b|\bbox\s*set\b/i.test(rawTitle);
-  let stem = completeContainer && rawHead ? rawHead : rawTitle;
+  /* The relay renders expanded files as “Series · Episode”. When the title
+     has that explicit program/episode shape, the head is the stable family
+     key even when the Archive record is not labeled “complete series”. */
+  let stem = rawHead && rawHead !== rawTitle ? rawHead : rawTitle;
   stem = stem
     .replace(/^\s*(?:19|20)\d{2}'?s?\s+(?:television|tv|t v)\s*[:,-]\s*/i, "")
     .replace(/\b(?:the\s+)?complete(?:\s+tv)?\s+series\b/gi, " ")
@@ -7495,6 +7518,41 @@ function applyIaFreshness(payload, ledger, count) {
       freshCount: issued.length,
       excludedCount: 0,
     };
+  }
+  if (payload && payload.strictRecovery && Array.isArray(payload.candidateItems) && payload.candidateItems.length) {
+    const unseenCandidates = payload.candidateItems.filter((item) =>
+      item && item.identifier && item.media && item.media.url &&
+      !excluded.has(iaPlayableIdentity(item) || String(item.identifier))
+    );
+    const unseenIds = new Set(unseenCandidates.map((item) => iaPlayableIdentity(item) || String(item.identifier || "")));
+    const familyPool = String(payload.channel) === "24"
+      ? unseenCandidates.concat(payload.candidateItems.filter((item) => {
+        const id = iaPlayableIdentity(item) || String(item && item.identifier || "");
+        return item && item.identifier && item.media && item.media.url && !unseenIds.has(id);
+      }))
+      : unseenCandidates;
+    const balancedFresh = String(payload.channel) === "24"
+      ? familyBalancedIaWindowStrict(
+      familyPool,
+      0,
+      requested,
+      safeDiversity(payload && payload.diversity).maxPerFamily,
+      )
+      : familyBalancedIaWindow(
+        familyPool,
+        0,
+        requested,
+        safeDiversity(payload && payload.diversity).maxPerFamily,
+      );
+    if (balancedFresh.length >= requested) {
+      const issued = balancedFresh.map(iaFreshnessRecord).filter(Boolean);
+      return {
+        payload: { ...payload, items: balancedFresh, ready: requested, freshnessFamilyBalanced: true },
+        issued,
+        freshCount: balancedFresh.filter((item) => unseenIds.has(iaPlayableIdentity(item) || String(item.identifier || ""))).length,
+        excludedCount: Math.max(0, payload.candidateItems.length - unseenCandidates.length),
+      };
+    }
   }
   /* Any shelf explicitly produced by rotatePlayableIaShelf has already been
      selected from the rolling catalog. The generic freshness ordering below
@@ -8257,6 +8315,14 @@ function iaPlayableIdentity(item) {
    This keeps sparse lanes playable while making deep lanes feel like a real
    station instead of a single show's playlist. */
 function familyBalancedIaWindow(candidates, start, requested, maxPerFamily = 1) {
+  return familyBalancedIaWindowInternal(candidates, start, requested, maxPerFamily, false);
+}
+
+function familyBalancedIaWindowStrict(candidates, start, requested, maxPerFamily = 1) {
+  return familyBalancedIaWindowInternal(candidates, start, requested, maxPerFamily, true);
+}
+
+function familyBalancedIaWindowInternal(candidates, start, requested, maxPerFamily = 1, strictOnly = false) {
   const source = Array.isArray(candidates) ? candidates.filter((item) => item && item.identifier) : [];
   const count = Math.max(1, Number(requested) || 1);
   if (!source.length) return [];
@@ -8286,6 +8352,7 @@ function familyBalancedIaWindow(candidates, start, requested, maxPerFamily = 1) 
     if (selected.length >= count) break;
     add(item);
   }
+  if (strictOnly) return selected;
   /* If the approved catalog contains fewer families than the requested shelf,
      fill from the same verified catalog. Never manufacture a new item or
      relax the channel's genre/runtime/media gates here. */
@@ -8374,12 +8441,15 @@ function strictRecoveryQueue(channel, rotation, count, themeTerms, denyTerms, re
   });
   const offset = eligible.length > count ? (Math.abs(Number(rotation) || 0) * count) % eligible.length : 0;
   const candidates = eligible.slice(offset).concat(eligible.slice(0, offset));
+  const openingItems = String(channel) === "24"
+    ? familyBalancedIaWindow(candidates, 0, count, 1)
+    : candidates.slice(0, count);
   return {
     channel,
     rotation,
     generatedAt: new Date().toISOString(),
     ttlSeconds: 60,
-    items: candidates.slice(0, count),
+    items: openingItems,
     candidateItems: candidates,
     candidates: candidates.length,
     ready: Math.min(count, candidates.length),
@@ -8437,14 +8507,17 @@ function rotateUnderfillDepthBank(payload, channel, rotation, count, themeTerms,
     ? (normalizedRotation * requested) % stableCandidates.length
     : 0;
   const ordered = stableCandidates.slice(offset).concat(stableCandidates.slice(0, offset));
+  const publicWindow = key === "24"
+    ? familyBalancedIaWindow(stableCandidates, offset, requested, 1)
+    : ordered.slice(0, requested);
   const rotated = {
     ...(payload || {}),
     channel: key,
     rotation: normalizedRotation,
-    items: ordered.slice(0, requested),
+    items: publicWindow,
     candidateItems: stableCandidates,
     candidates: stableCandidates.length,
-    ready: Math.min(requested, ordered.length),
+    ready: Math.min(requested, publicWindow.length),
     partial: ordered.length < requested,
     hydrating: false,
     rotationApplied: true,

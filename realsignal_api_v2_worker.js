@@ -50,6 +50,10 @@ const IA_FAST_CATALOG_LANES = new Set([
 const IA_HOLIDAY_TITLE_LANES = new Set(["704", "705", "706", "707", "708", "709"]);
 const IA_CANONICAL_PILOT_VALUES = new Set(["1", "true", "on", "pilot"]);
 const IA_CANONICAL_SHADOW_VALUES = new Set(["1", "true", "on", "shadow"]);
+/* Keep the first real-client rollout intentionally small. The V2 session
+   catalog is proven in hosted requests for these lanes, but remains opt-in
+   until visible playback and guide behavior are measured in the app. */
+const IA_SESSION_CATALOG_CANARY_CHANNELS = new Set(["12", "153", "700", "702"]);
 const IA_CANONICAL_PROFILE_BY_CHANNEL = new Map(Object.values(IA_CANONICAL_PILOT_PROFILES).map((profile) => [String(profile.channel), profile.profileKey]));
 /* A relay response can be playable while still being too shallow for a
    rolling television catalog. Enrich any IA lane below the three-shelf floor
@@ -1177,7 +1181,9 @@ async function handleQueue(request, env, ctx, id) {
      route is an adapter and must not turn a queued shelf into watched history
      or let stale D1 rows suppress the same candidates on every tune. Keep the
      server rotation path available only for an explicit future opt-in. */
-  const useServerCatalog = body.serverCatalog === true;
+  const requestedServerCatalog = body.serverCatalog === true;
+  const catalogCanary = body.catalogCanary === "v2-session";
+  const useServerCatalog = requestedServerCatalog && (!catalogCanary || IA_SESSION_CATALOG_CANARY_CHANNELS.has(String(body.channel)));
   body = useServerCatalog
     ? await withFreshnessLedger(env, body)
     : { ...body, freshnessLedger: false, recentIds: Array.isArray(body.recentIds) ? body.recentIds : [] };

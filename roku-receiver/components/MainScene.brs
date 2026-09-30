@@ -1,5 +1,3 @@
-const API_BASE = "https://realsignal-api.tdy1990.workers.dev/api/v3"
-
 sub init()
   m.api = m.top.findNode("apiTask")
   m.player = m.top.findNode("player")
@@ -22,7 +20,7 @@ sub init()
   m.since = 0
   m.requestSerial = 0
   m.lastChannel = 3
-  m.api.baseUrl = API_BASE
+  m.api.baseUrl = "https://realsignal-api.tdy1990.workers.dev/api/v3"
   m.keyboard.setFocus(true)
   deepLink = CreateObject("roAppInfo").GetDeepLinkInfo()
   if deepLink <> invalid and deepLink.DoesExist("session")
@@ -59,7 +57,7 @@ end sub
 sub request(kind, payload)
   m.requestSerial = m.requestSerial + 1
   m.api.control = "stop"
-  m.api.baseUrl = API_BASE
+  m.api.baseUrl = "https://realsignal-api.tdy1990.workers.dev/api/v3"
   m.api.code = m.code
   m.api.since = m.since
   m.api.requestKind = kind

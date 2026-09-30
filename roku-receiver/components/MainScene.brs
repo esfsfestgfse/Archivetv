@@ -3,12 +3,14 @@ sub init()
   m.player = m.top.findNode("player")
   m.overlay = m.top.findNode("overlay")
   m.keyboard = m.top.findNode("keyboard")
+  m.enterPairing = m.top.findNode("enterPairing")
   m.connect = m.top.findNode("connect")
   m.status = m.top.findNode("status")
   m.nowPlaying = m.top.findNode("nowPlaying")
   m.pollTimer = m.top.findNode("pollTimer")
   m.heartbeatTimer = m.top.findNode("heartbeatTimer")
   m.top.observeField("focusedChild", "keepFocus")
+  m.enterPairing.observeField("buttonSelected", "pairingPressed")
   m.connect.observeField("buttonSelected", "connectPressed")
   m.keyboard.observeField("text", "codeChanged")
   m.pollTimer.observeField("fire", "pollSession")
@@ -21,10 +23,22 @@ sub init()
   m.requestSerial = 0
   m.lastChannel = 3
   m.api.baseUrl = "https://realsignal-api.tdy1990.workers.dev/api/v3"
-  m.keyboard.setFocus(true)
+  m.keyboard.visible = false
+  m.enterPairing.visible = true
+  m.connect.visible = false
+  m.enterPairing.setFocus(true)
   deepLink = CreateObject("roAppInfo").GetDeepLinkInfo()
   if deepLink <> invalid and deepLink.DoesExist("session")
     m.keyboard.text = deepLink.session
+  end if
+end sub
+
+sub pairingPressed(event)
+  if event.getData() = true
+    m.enterPairing.visible = false
+    m.keyboard.visible = true
+    m.status.text = "Enter the 12-character code from the phone remote, then press BACK."
+    m.keyboard.setFocus(true)
   end if
 end sub
 
@@ -34,7 +48,9 @@ end sub
 
 sub codeChanged(event)
   if event <> invalid and event.getData() <> invalid
-    m.status.text = "Pairing code: " + UCase(event.getData()) + "  ·  press CONNECT"
+    entered = UCase(Trim(event.getData()))
+    m.status.text = "Pairing code: " + entered + "  ·  press BACK, then CONNECT"
+    if Len(entered) >= 6 then m.connect.visible = true
   end if
 end sub
 
@@ -47,6 +63,7 @@ sub connectPressed(event)
     end if
     m.overlay.visible = false
     m.keyboard.visible = false
+    m.enterPairing.visible = false
     m.connect.visible = false
     m.status.text = "Connected · waiting for remote commands"
     request("session-get", {})

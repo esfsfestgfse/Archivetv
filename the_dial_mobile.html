@@ -1689,7 +1689,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="5.0.0-mobile-adaptive-broadcast-os";
+window.__ATV_BUILD="5.0.1-mobile-rerun-guide-visibility";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -2521,6 +2521,7 @@ function publicLineupChannels(){return CH.filter(isPublicLineupChannel);}
    this adds stable clean IDs plus a deliberately small set of browse destinations. */
 const GUIDE_CATEGORIES=[
   {id:"all",label:"All channels",meta:"The complete RealSignal directory",color:"#baffcf"},
+  {id:"reruns",label:"Reruns",meta:"Classic and modern television series",color:"#c6a7ff",channels:[10,11]},
   {id:"watch",label:"TV & film",meta:"Networks, series, movies and retro",color:"#8ee6ff",cats:["NET","TV","MOV","RETRO","HOL"]},
   {id:"animation",label:"Animation & kids",meta:"Cartoons, anime and family viewing",color:"#9ab8ff",cats:["TOON"]},
   {id:"sports",label:"Sports",meta:"Competition, archives and scoreboards",color:"#c8ff84",cats:["SPORTS"]},
@@ -2532,7 +2533,7 @@ const GUIDE_CATEGORIES=[
 ];
 const GUIDE_CATEGORY_BY_ID=Object.fromEntries(GUIDE_CATEGORIES.map(function(group){return [group.id,group];}));
 const GUIDE_SUBGENRES={NET:"Network television",TV:"Television & reruns",MOV:"Movies",TOON:"Animation",SPORTS:"Sports",MUS:"Music & audio",DOC:"Archive & ideas",SOURCE:"Source suite",LBRO:"Live video",LDATA:"Live data",RETRO:"Retro archive",HOL:"Seasonal",BRIT:"World & culture"};
-function guideCategoryFor(ch){return GUIDE_CATEGORIES.find(function(group){return group.cats&&group.cats.indexOf(ch.cat)>-1;})||GUIDE_CATEGORY_BY_ID.all;}
+function guideCategoryFor(ch){var reruns=GUIDE_CATEGORY_BY_ID.reruns;if(reruns&&reruns.channels.indexOf(Number(ch.num))>-1)return reruns;return GUIDE_CATEGORIES.find(function(group){return group.cats&&group.cats.indexOf(ch.cat)>-1;})||GUIDE_CATEGORY_BY_ID.all;}
 function guideChannelKey(ch){return "rs-"+String(ch.num).padStart(3,"0")+"-"+String(ch.nm).toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,"");}
 CH.forEach(function(ch){var health=channelHealth(ch);ch.healthState=health.state;ch.healthReason=health.reason;ch.guideGroup=guideCategoryFor(ch).id;ch.key=guideChannelKey(ch);});
 /* QA FIX (from Programmed Channels 2.0 audit, Phase 1): channel numbers used to be computed by
@@ -9443,7 +9444,7 @@ function buildCatNav(){
 function buildCatNav(){
   if(!catNav)return;catNav.innerHTML="";
   GUIDE_CATEGORIES.forEach(function(group){
-    var count=group.id==="all"?publicLineupChannels().length:publicLineupChannels().filter(function(ch){return group.cats&&group.cats.indexOf(ch.cat)>-1;}).length;
+    var count=group.id==="all"?publicLineupChannels().length:publicLineupChannels().filter(function(ch){return group.channels?group.channels.indexOf(Number(ch.num))>-1:group.cats&&group.cats.indexOf(ch.cat)>-1;}).length;
     var button=document.createElement("button");button.type="button";button.className="catchip"+(catFilter===group.id?" act":"");button.innerHTML='<span class="guide-cat-label">'+esch(group.label)+'</span><span class="guide-cat-count">'+count+'</span>';button.style.color=group.color;button.title=group.meta+" · "+count+" channels";button.setAttribute("aria-label",group.label+" ("+count+" channels)");
     button.addEventListener("click",function(){catFilter=group.id;catNav.querySelectorAll(".catchip").forEach(function(item){item.classList.remove("act");});button.classList.add("act");renderRail();primeGuideQueues(visibleChannels());});catNav.appendChild(button);
   });

@@ -14,7 +14,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "5.0.0-adaptive-broadcast-os";
+const V3_RELEASE = "5.0.7-source-coldstart";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -2035,7 +2035,10 @@ async function handleSourceCatalog(request, env, ctx, id) {
     if (playedIds.length) rememberFreshness(env, profile.profileKey, playedIds, ctx);
     return json({ ...cached, profileKey: profile.profileKey, catalogVersion: "source-server-1", source: "d1-source-catalog", hydrating, staleCatalog: hydrating, adaptiveFreshness: true, freshnessLedger: true, providerAvailability: { youtube: !!env.YOUTUBE_API_KEY && !disabledProviders.has("youtube"), peertube: !disabledProviders.has("peertube"), cooldownProviders: Array.from(disabledProviders) }, apiVersion, release: apiVersion === "v3" ? V3_RELEASE : undefined }, 200, { "Cache-Control": "public, max-age=10, stale-while-revalidate=60", "X-RealSignal-Request": id, "X-RealSignal-Source": "d1-source-catalog", "X-RealSignal-Release": apiVersion === "v3" ? V3_RELEASE : "2.2.2" });
   }
-  const { profile: normalized, tasks } = sourceCatalogTasks(body, env, rotation, { disabledProviders });
+  const sourcePlan = sourceCatalogTasks(body, env, rotation, { disabledProviders });
+  const normalized = sourcePlan.profile;
+  const tasks = sourcePlan.tasks;
+  const firstLaneTasks = sourceCatalogTasks(body, env, rotation, { disabledProviders, firstLane: true }).tasks;
   let firstTimer;
   let first;
   if (forceDeepRefresh) {
@@ -2044,14 +2047,14 @@ async function handleSourceCatalog(request, env, ctx, id) {
        window as a cold start; the full provider union continues in the
        background and is persisted without making refresh wait 20+ seconds. */
     first = await Promise.race([
-      firstSourceLane(tasks),
+      firstSourceLane(firstLaneTasks.length ? firstLaneTasks : tasks),
       new Promise((resolve) => {
         firstTimer = setTimeout(() => resolve({ items: [], lanes: [], ready: 0, candidates: 0, hydrating: true, timedOut: true }), SOURCE_LIMITS.SOURCE_FIRST_LANE_TIMEOUT_MS);
       }),
     ]).finally(() => clearTimeout(firstTimer));
   } else {
     first = await Promise.race([
-      firstSourceLane(tasks),
+      firstSourceLane(firstLaneTasks.length ? firstLaneTasks : tasks),
       new Promise((resolve) => {
         firstTimer = setTimeout(() => resolve({ items: [], lanes: [], ready: 0, candidates: 0, hydrating: true, timedOut: true }), SOURCE_LIMITS.SOURCE_FIRST_LANE_TIMEOUT_MS);
       }),

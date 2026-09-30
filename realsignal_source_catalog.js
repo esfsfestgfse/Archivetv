@@ -244,10 +244,11 @@ function youtubeSearchDuration(profile, rotation) {
   return Math.abs(Number(rotation) || 0) % 2 ? "medium" : "long";
 }
 
-async function youtube(profile, rotation, env) {
+async function youtube(profile, rotation, env, options = {}) {
+  const firstLane = options.firstLane === true;
   const key = text(env && env.YOUTUBE_API_KEY, 180);
   if (!key) return { provider: "YouTube", items: [], health: { skipped: true, reason: "YOUTUBE_API_KEY not configured" } };
-  const queries = youtubeQueries(profile, rotation);
+  const queries = youtubeQueries(profile, rotation).slice(0, firstLane ? 1 : undefined);
   const orders = ["relevance", "date", "viewCount"];
   const order = orders[(Number(rotation) || 0) % orders.length];
   const jobs = queries.map((query) => async () => {
@@ -256,7 +257,7 @@ async function youtube(profile, rotation, env) {
       type: "video",
       videoDuration: youtubeSearchDuration(profile, rotation),
       videoEmbeddable: "true",
-      maxResults: "25",
+      maxResults: firstLane ? "12" : "25",
       order,
       q: query,
       key,
@@ -274,11 +275,11 @@ async function youtube(profile, rotation, env) {
     })).filter((item) => item.rawId);
   });
   const candidates = (await mapLimit(jobs, SOURCE_YOUTUBE_QUERY_CONCURRENCY, (job) => job())).flat();
-  const ids = unique(candidates).map((item) => item.rawId).slice(0, 75);
+  const ids = unique(candidates).map((item) => item.rawId).slice(0, firstLane ? 25 : 75);
   if (!ids.length) return { provider: "YouTube", items: [], health: { searched: queries.length, candidates: 0 } };
   /* videos.list accepts at most 50 IDs. Chunking also means one oversized
      discovery pass cannot invalidate an otherwise healthy YouTube lane. */
-  const detailBatches = await mapLimit(Array.from({ length: Math.ceil(ids.length / 50) }, (_, index) => ids.slice(index * 50, index * 50 + 50)), 2, async (batch) => {
+  const detailBatches = await mapLimit(Array.from({ length: Math.ceil(ids.length / 50) }, (_, index) => ids.slice(index * 50, index * 50 + 50)), firstLane ? 1 : 2, async (batch) => {
     const detailUrl = "https://www.googleapis.com/youtube/v3/videos?" + new URLSearchParams({ part: "snippet,contentDetails,status,player", id: batch.join(","), key });
     return fetchJson(detailUrl);
   });
@@ -309,7 +310,7 @@ async function youtube(profile, rotation, env) {
     };
     return accepted(profile, hydrated, "YouTube") ? normalized(hydrated, "YouTube", candidate.query) : null;
   }).filter(Boolean);
-  return { provider: "YouTube", items: unique(items).slice(0, SOURCE_MAX_ITEMS), health: { searched: queries.length, candidates: candidates.length, details: detailItems.length, detailBatches: detailBatches.length } };
+  return { provider: "YouTube", items: unique(items).slice(0, firstLane ? 12 : SOURCE_MAX_ITEMS), health: { searched: queries.length, candidates: candidates.length, details: detailItems.length, detailBatches: detailBatches.length, firstLane } };
 }
 
 function peerTubeInstances(env, profile) {
@@ -334,16 +335,18 @@ function peerTubeFile(detail) {
   }).sort((a, b) => Math.abs(Number(a.resolution && a.resolution.id || 720) - 720) - Math.abs(Number(b.resolution && b.resolution.id || 720) - 720))[0] || null;
 }
 
-async function peerTube(profile, rotation, env) {
+async function peerTube(profile, rotation, env, options = {}) {
+  const firstLane = options.firstLane === true;
   const instances = peerTubeInstances(env, profile);
   const peerTubePool = profile.peerTubeQueries.length ? profile.peerTubeQueries : profile.queries;
-  const queries = rotate(peerTubePool, rotation).slice(0, profile.peerTubeQueryWindow || profile.queryWindow || SOURCE_QUERY_WINDOW);
+  const queries = rotate(peerTubePool, rotation).slice(0, firstLane ? 1 : (profile.peerTubeQueryWindow || profile.queryWindow || SOURCE_QUERY_WINDOW));
   const sortModes = ["-match", "-publishedAt", "-views", "-likes"];
   const sort = sortModes[(Number(rotation) || 0) % sortModes.length];
   async function search(querySet) {
-    const jobs = instances.flatMap((instance) => querySet.map((query) => ({ instance, query })));
-    const searched = await mapLimit(jobs, SOURCE_MAX_CONCURRENCY, async ({ instance, query }) => {
-      const url = `${instance}/api/v1/search/videos?${new URLSearchParams({ search: query, count: "12", sort })}`;
+    const searchInstances = firstLane ? instances.slice(0, 1) : instances;
+    const jobs = searchInstances.flatMap((instance) => querySet.map((query) => ({ instance, query })));
+    const searched = await mapLimit(jobs, firstLane ? 2 : SOURCE_MAX_CONCURRENCY, async ({ instance, query }) => {
+      const url = `${instance}/api/v1/search/videos?${new URLSearchParams({ search: query, count: firstLane ? "8" : "12", sort })}`;
       const data = await fetchJson(url);
       return (data.data || []).map((item) => {
         let host = instance;
@@ -372,7 +375,7 @@ async function peerTube(profile, rotation, env) {
   /* A catalog with four or ten items is still shallow for television. Expand
      until the verified shelf has a real rotation window, not merely enough
      rows to start one video. */
-  if (raw.length < SOURCE_MIN_READY) {
+  if (!firstLane && raw.length < SOURCE_MIN_READY) {
     const used = new Set(queries.map((query) => query.toLowerCase()));
     const curatedRemainder = rotate(peerTubePool, (Number(rotation) || 0) + queries.length);
     const fallbackPool = unique(curatedRemainder.concat(profile.match, profile.queries).map((query) => text(query, 180)));
@@ -384,8 +387,8 @@ async function peerTube(profile, rotation, env) {
       raw = unique(raw.concat(fallback.items)).filter((item) => accepted(profile, item, "PeerTube", false));
     }
   }
-  raw = raw.slice(0, profile.peerTubeDetailLimit || 32);
-  const detailed = await mapLimit(raw, SOURCE_MAX_CONCURRENCY, async (item) => {
+  raw = raw.slice(0, firstLane ? 8 : (profile.peerTubeDetailLimit || 32));
+  const detailed = await mapLimit(raw, firstLane ? 6 : SOURCE_MAX_CONCURRENCY, async (item) => {
     const detail = await withTimeout(fetchJson(`${item.instance}/api/v1/videos/${encodeURIComponent(item.uuid)}`), SOURCE_DETAIL_TIMEOUT_MS);
     const file = peerTubeFile(detail);
     if (!file) return null;
@@ -401,7 +404,7 @@ async function peerTube(profile, rotation, env) {
     };
     return accepted(profile, hydrated, "PeerTube") ? normalized(hydrated, "PeerTube", item.query) : null;
   });
-  return { provider: "PeerTube", items: unique(detailed.filter(Boolean)).slice(0, SOURCE_MAX_ITEMS), health: { searched: searchedJobs, candidates: raw.length, details: detailed.filter(Boolean).length, instances: instances.length } };
+  return { provider: "PeerTube", items: unique(detailed.filter(Boolean)).slice(0, firstLane ? 8 : SOURCE_MAX_ITEMS), health: { searched: searchedJobs, candidates: raw.length, details: detailed.filter(Boolean).length, instances: firstLane ? Math.min(1, instances.length) : instances.length, firstLane } };
 }
 
 function providers(profile, rotation, env, options = {}) {
@@ -413,7 +416,7 @@ function providers(profile, rotation, env, options = {}) {
       const label = provider === "youtube" ? "YouTube" : "PeerTube";
       const startedAt = Date.now();
       const task = Promise.resolve()
-        .then(() => provider === "youtube" ? youtube(profile, rotation, env) : peerTube(profile, rotation, env));
+        .then(() => provider === "youtube" ? youtube(profile, rotation, env, options) : peerTube(profile, rotation, env, options));
       return Promise.resolve()
         .then(() => withTimeout(task, SOURCE_PROVIDER_BUDGET_MS))
         .then((lane) => ({

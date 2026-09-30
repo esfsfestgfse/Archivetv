@@ -2,80 +2,236 @@ sub init()
   m.api = m.top.findNode("apiTask")
   m.player = m.top.findNode("player")
   m.overlay = m.top.findNode("overlay")
-  m.keyboard = m.top.findNode("keyboard")
-  m.enterPairing = m.top.findNode("enterPairing")
+  m.codeDisplay = m.top.findNode("codeDisplay")
+  m.clearCode = m.top.findNode("clearCode")
+  m.backspaceCode = m.top.findNode("backspaceCode")
   m.connect = m.top.findNode("connect")
   m.status = m.top.findNode("status")
   m.nowPlaying = m.top.findNode("nowPlaying")
   m.pollTimer = m.top.findNode("pollTimer")
   m.heartbeatTimer = m.top.findNode("heartbeatTimer")
-  m.enterPairing.observeField("buttonSelected", "pairingPressed")
+  m.focusTimer = m.top.findNode("focusTimer")
+  m.clearCode.observeField("buttonSelected", "clearPressed")
+  m.backspaceCode.observeField("buttonSelected", "backspacePressed")
   m.connect.observeField("buttonSelected", "connectPressed")
-  m.keyboard.observeField("text", "codeChanged")
+  m.keyIds = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D", "E", "F"]
+  for each keyId in m.keyIds
+    keyNode = m.top.findNode("key" + keyId)
+    keyNode.focusable = false
+  end for
+  m.top.findNode("key0").observeField("buttonSelected", "key0Pressed")
+  m.top.findNode("key1").observeField("buttonSelected", "key1Pressed")
+  m.top.findNode("key2").observeField("buttonSelected", "key2Pressed")
+  m.top.findNode("key3").observeField("buttonSelected", "key3Pressed")
+  m.top.findNode("key4").observeField("buttonSelected", "key4Pressed")
+  m.top.findNode("key5").observeField("buttonSelected", "key5Pressed")
+  m.top.findNode("key6").observeField("buttonSelected", "key6Pressed")
+  m.top.findNode("key7").observeField("buttonSelected", "key7Pressed")
+  m.top.findNode("key8").observeField("buttonSelected", "key8Pressed")
+  m.top.findNode("key9").observeField("buttonSelected", "key9Pressed")
+  m.top.findNode("keyA").observeField("buttonSelected", "keyAPressed")
+  m.top.findNode("keyB").observeField("buttonSelected", "keyBPressed")
+  m.top.findNode("keyC").observeField("buttonSelected", "keyCPressed")
+  m.top.findNode("keyD").observeField("buttonSelected", "keyDPressed")
+  m.top.findNode("keyE").observeField("buttonSelected", "keyEPressed")
+  m.top.findNode("keyF").observeField("buttonSelected", "keyFPressed")
+  m.clearCode.focusable = false
+  m.backspaceCode.focusable = false
+  m.connect.focusable = false
+  for index = 0 to m.keyIds.Count() - 1
+    keyNode = m.top.findNode("key" + m.keyIds[index])
+    column = index
+    if index >= 4 then column = index - 4
+    if index >= 8 then column = index - 8
+    if index >= 12 then column = index - 12
+    if column < 3 then keyNode.nextFocusRight = "key" + m.keyIds[index + 1]
+    if column > 0 then keyNode.nextFocusLeft = "key" + m.keyIds[index - 1]
+    if index < 12 then keyNode.nextFocusDown = "key" + m.keyIds[index + 4]
+    if index >= 4 then keyNode.nextFocusUp = "key" + m.keyIds[index - 4]
+  end for
   m.pollTimer.observeField("fire", "pollSession")
   m.heartbeatTimer.observeField("fire", "heartbeat")
+  m.focusTimer.observeField("fire", "initialFocus")
   m.api.observeField("result", "apiResult")
   m.api.observeField("error", "apiError")
   m.player.observeField("state", "videoState")
   m.top.observeField("isScreenVisible", "screenVisible")
   m.code = ""
+  m.codeBuffer = ""
+  m.focusIndex = 0
   m.since = 0
   m.requestSerial = 0
   m.lastChannel = 3
   m.api.baseUrl = "https://realsignal-api.tdy1990.workers.dev/api/v3"
-  m.keyboard.visible = true
-  m.enterPairing.visible = false
+  m.top.focusable = true
   m.connect.visible = false
-  m.status.text = "Enter the 12-character code from the phone remote, then press CONNECT."
+  m.status.text = "Use the arrows and OK to enter the 12-character pairing code."
   m.top.setFocus(true)
-  m.keyboard.setFocus(true)
+  focusKey(0)
+  m.focusTimer.control = "start"
+end sub
+
+sub initialFocus(event)
+  if m.code = ""
+    m.top.setFocus(true)
+    focusKey(0)
+  end if
 end sub
 
 sub screenVisible(event)
   if event <> invalid and event.getData() = true and m.code = ""
     m.top.setFocus(true)
-    m.keyboard.setFocus(true)
+    focusKey(0)
   end if
 end sub
 
-sub pairingPressed(event)
-  if event.getData() = true
-    m.enterPairing.visible = false
-    m.keyboard.visible = true
-    m.status.text = "Enter the 12-character code from the phone remote, then press BACK."
-    m.keyboard.setFocus(true)
-  end if
-end sub
+function onKeyEvent(key as String, press as Boolean) as Boolean
+  if press = false or m.code <> "" then return false
 
-sub codeChanged(event)
-  if event <> invalid and event.getData() <> invalid
-    entered = UCase(Trim(event.getData()))
-    if Len(entered) >= 12
-      m.keyboard.visible = false
-      m.connect.visible = true
-      m.connect.setFocus(true)
-      m.status.text = "Pairing code ready · press CONNECT"
-    else
-      m.status.text = "Pairing code: " + entered + "  ·  keep entering the code"
+  normalized = LCase(key)
+  if normalized = "left"
+    focusKey(m.focusIndex - 1)
+    return true
+  else if normalized = "right"
+    focusKey(m.focusIndex + 1)
+    return true
+  else if normalized = "up"
+    focusKey(m.focusIndex - 4)
+    return true
+  else if normalized = "down"
+    focusKey(m.focusIndex + 4)
+    return true
+  else if normalized = "back" or normalized = "backspace"
+    if Len(m.codeBuffer) > 0
+      m.codeBuffer = Left(m.codeBuffer, Len(m.codeBuffer) - 1)
+      m.connect.visible = false
+      updateCodeDisplay()
+      m.status.text = "Removed last character · " + Len(m.codeBuffer).ToStr() + " of 12"
     end if
+    return true
+  else if normalized = "ok" or normalized = "select" or normalized = "enter"
+    if m.connect.visible and m.connect.hasFocus()
+      connectNow()
+    else
+      appendCode(m.keyIds[m.focusIndex])
+    end if
+    return true
+  end if
+
+  return false
+end function
+
+sub focusKey(index)
+  if index < 0 or index >= m.keyIds.Count() then return
+  m.focusIndex = index
+  m.status.text = "Selected key " + m.keyIds[index] + " · press OK"
+end sub
+
+sub key0Pressed(event)
+  if event.getData() = true then appendCode("0")
+end sub
+sub key1Pressed(event)
+  if event.getData() = true then appendCode("1")
+end sub
+sub key2Pressed(event)
+  if event.getData() = true then appendCode("2")
+end sub
+sub key3Pressed(event)
+  if event.getData() = true then appendCode("3")
+end sub
+sub key4Pressed(event)
+  if event.getData() = true then appendCode("4")
+end sub
+sub key5Pressed(event)
+  if event.getData() = true then appendCode("5")
+end sub
+sub key6Pressed(event)
+  if event.getData() = true then appendCode("6")
+end sub
+sub key7Pressed(event)
+  if event.getData() = true then appendCode("7")
+end sub
+sub key8Pressed(event)
+  if event.getData() = true then appendCode("8")
+end sub
+sub key9Pressed(event)
+  if event.getData() = true then appendCode("9")
+end sub
+sub keyAPressed(event)
+  if event.getData() = true then appendCode("A")
+end sub
+sub keyBPressed(event)
+  if event.getData() = true then appendCode("B")
+end sub
+sub keyCPressed(event)
+  if event.getData() = true then appendCode("C")
+end sub
+sub keyDPressed(event)
+  if event.getData() = true then appendCode("D")
+end sub
+sub keyEPressed(event)
+  if event.getData() = true then appendCode("E")
+end sub
+sub keyFPressed(event)
+  if event.getData() = true then appendCode("F")
+end sub
+
+sub appendCode(value)
+  if m.code <> "" or Len(m.codeBuffer) >= 12 then return
+  m.codeBuffer = m.codeBuffer + UCase(value)
+  updateCodeDisplay()
+  if Len(m.codeBuffer) = 12
+    m.connect.visible = true
+    m.status.text = "Pairing code ready · press CONNECT"
+  else
+    m.status.text = "Entering pairing code · " + Len(m.codeBuffer).ToStr() + " of 12"
+  end if
+end sub
+
+sub updateCodeDisplay()
+  shown = m.codeBuffer
+  while Len(shown) < 12
+    shown = shown + "·"
+  end while
+  m.codeDisplay.text = "CODE: " + shown
+end sub
+
+sub clearPressed(event)
+  if event <> invalid and event.getData() = true and m.code = ""
+    m.codeBuffer = ""
+    m.connect.visible = false
+    updateCodeDisplay()
+    m.status.text = "Code cleared · use the arrows and OK"
+    focusKey(0)
+  end if
+end sub
+
+sub backspacePressed(event)
+  if event <> invalid and event.getData() = true and m.code = "" and Len(m.codeBuffer) > 0
+    m.codeBuffer = Left(m.codeBuffer, Len(m.codeBuffer) - 1)
+    m.connect.visible = false
+    updateCodeDisplay()
+    m.status.text = "Removed last character · " + Len(m.codeBuffer).ToStr() + " of 12"
   end if
 end sub
 
 sub connectPressed(event)
-  if event.getData() = true
-    m.code = UCase(Trim(m.keyboard.text))
-    if m.code = ""
-      m.status.text = "Enter the pairing code first."
-      return
-    end if
-    m.overlay.visible = false
-    m.keyboard.visible = false
-    m.enterPairing.visible = false
-    m.connect.visible = false
-    m.status.text = "Connected · waiting for remote commands"
-    request("session-get", {})
-    request("heartbeat", {})
+  if event <> invalid and event.getData() = true then connectNow()
+end sub
+
+sub connectNow()
+  m.code = UCase(Trim(m.codeBuffer))
+  if Len(m.code) < 12
+    m.status.text = "Enter all 12 characters first."
+    return
   end if
+  m.overlay.visible = false
+  m.clearCode.visible = false
+  m.backspaceCode.visible = false
+  m.connect.visible = false
+  m.status.text = "Connected · waiting for remote commands"
+  request("session-get", {})
+  request("heartbeat", {})
 end sub
 
 sub request(kind, payload)

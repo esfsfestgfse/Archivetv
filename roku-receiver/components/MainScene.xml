@@ -3,15 +3,39 @@
   <children>
     <Video id="player" width="1920" height="1080" visible="false" />
     <Rectangle id="overlay" width="1920" height="1080" color="#07100e" opacity="0.96" visible="true" />
-    <Label id="brand" text="REALSIGNAL" translation="[110,110]" color="#79ffad" font="font:LargeBoldSystemFont" />
-    <Label id="headline" text="ROKU PREVIEW" translation="[110,190]" color="#effff3" font="font:MediumBoldSystemFont" />
-    <Label id="status" text="Enter the pairing code from the RealSignal Roku Remote" translation="[110,260]" color="#a8cbb5" width="1600" wrap="true" />
-    <MiniKeyboard id="keyboard" translation="[110,360]" showTextEditBox="true" focusable="true" visible="false" />
-    <Button id="enterPairing" text="ENTER PAIRING CODE" translation="[110,360]" />
-    <Button id="connect" text="CONNECT" translation="[110,450]" visible="false" />
+    <Label id="brand" text="REALSIGNAL" translation="[110,90]" color="#79ffad" font="font:LargeBoldSystemFont" />
+    <Label id="headline" text="ROKU PREVIEW" translation="[110,165]" color="#effff3" font="font:MediumBoldSystemFont" />
+    <Label id="status" text="Use the arrows and OK to enter the 12-character pairing code." translation="[110,235]" color="#a8cbb5" width="1600" wrap="true" />
+    <Label id="codeDisplay" text="CODE: ------------" translation="[110,315]" color="#f3dd7a" font="font:LargeBoldSystemFont" />
+
+    <Button id="key0" text="0" translation="[110,405]" width="150" height="64" />
+    <Button id="key1" text="1" translation="[510,405]" width="150" height="64" />
+    <Button id="key2" text="2" translation="[910,405]" width="150" height="64" />
+    <Button id="key3" text="3" translation="[1310,405]" width="150" height="64" />
+
+    <Button id="key4" text="4" translation="[110,485]" width="150" height="64" />
+    <Button id="key5" text="5" translation="[510,485]" width="150" height="64" />
+    <Button id="key6" text="6" translation="[910,485]" width="150" height="64" />
+    <Button id="key7" text="7" translation="[1310,485]" width="150" height="64" />
+
+    <Button id="key8" text="8" translation="[110,565]" width="150" height="64" />
+    <Button id="key9" text="9" translation="[510,565]" width="150" height="64" />
+    <Button id="keyA" text="A" translation="[910,565]" width="150" height="64" />
+    <Button id="keyB" text="B" translation="[1310,565]" width="150" height="64" />
+
+    <Button id="keyC" text="C" translation="[110,645]" width="150" height="64" />
+    <Button id="keyD" text="D" translation="[510,645]" width="150" height="64" />
+    <Button id="keyE" text="E" translation="[910,645]" width="150" height="64" />
+    <Button id="keyF" text="F" translation="[1310,645]" width="150" height="64" />
+
+    <Button id="clearCode" text="CLEAR" translation="[110,770]" width="220" height="64" />
+    <Button id="backspaceCode" text="BACKSPACE" translation="[510,770]" width="280" height="64" />
+    <Button id="connect" text="CONNECT" translation="[910,770]" width="260" height="64" visible="false" />
+    <Label id="hint" text="Pairing codes use numbers and A-F. Press OK on CONNECT when it lights up." translation="[110,875]" color="#a8cbb5" width="1600" wrap="true" />
     <Label id="nowPlaying" text="" translation="[110,950]" color="#f3dd7a" width="1700" />
     <ApiTask id="apiTask" />
     <Timer id="pollTimer" repeat="true" duration="2" />
     <Timer id="heartbeatTimer" repeat="true" duration="10" />
+    <Timer id="focusTimer" repeat="false" duration="0.1" />
   </children>
 </component>

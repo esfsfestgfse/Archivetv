@@ -1815,7 +1815,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "western movie full", "comedy movie full", "romance movie full"
     ],
     "match": ["feature film", "feature movie", "full movie", "full length film", "independent film", "indie film", "public domain film", "complete movie", "movie", "film"],
-    "deny": ["shorts", "short film", "vertical", "trailer", "teaser", "clip", "recap", "review", "reaction", "podcast", "how to", "tutorial", "fan film", "fan-made", "parody", "music video", "commercial", "documentary", "film history", "film preservation", "movie commentary", "film explained", "lecture", "seminar", "conference", "panel discussion", "making of", "behind the scenes", "retrospective"]
+    "deny": ["shorts", "short film", "vertical", "trailer", "teaser", "clip", "recap", "review", "reaction", "podcast", "how to", "tutorial", "fan film", "fan-made", "parody", "music video", "commercial", "documentary", "film history", "film preservation", "movie commentary", "film explained", "lecture", "seminar", "conference", "panel discussion", "making of", "movie making", "filmmaking", "film making", "behind the scenes", "studio tour", "educational film", "retrospective"]
   },
   "modern-free-cinema": {
     "name": "Modern Free Cinema",

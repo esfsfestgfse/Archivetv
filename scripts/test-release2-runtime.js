@@ -53,7 +53,7 @@ for (const file of builds) {
   check(html.includes('function guideVerifiedListing(ch,verified)') && html.includes('verifiedGuide=(window.__rsVerifiedGuide||{})'), `${file}: guide uses verified server current/next data for IA and Source Suite`);
   const surfaceStamp = file.includes('mobile') ? 'mobile' : 'desktop';
   const actualStamp = (html.match(/window\.__ATV_BUILD\s*=\s*"([^"]+)"/) || [])[1] || '';
-  check(/^(?:3|4|5)\.\d+\.\d+-(desktop|mobile)[.-][a-z0-9-]+$/.test(actualStamp) || html.includes('2.2.2-' + surfaceStamp + '.240-channel-health-repairs'), `${file}: build stamp is a recognized RealSignal release`);
+  check(/^(?:3|4|5)\.\d+\.\d+-(?:desktop|mobile|source-suite)[.-][a-z0-9-]+$/.test(actualStamp) || html.includes('2.2.2-' + surfaceStamp + '.240-channel-health-repairs'), `${file}: build stamp is a recognized RealSignal release`);
   check(html.includes('var chanRT={timers:[],teardowns:[]};') && html.includes('chanRT.teardowns.splice(0)'), `${file}: live-channel teardown callbacks are executed`);
   check(html.includes('shipSocket.close()') && html.includes('clearTimeout(publicViewTimer)'), `${file}: Ship Tracker closes sockets and pending viewport retries on channel change`);
   check(/function clearShipData\(\)\{[\s\S]*?selectedMmsi=""[\s\S]*?ship-detail-empty/.test(html), `${file}: Ship Tracker clears stale vessel selection when the map region changes`);

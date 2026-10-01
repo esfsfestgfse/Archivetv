@@ -1287,9 +1287,12 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
    verified D1 shelves from its narrower seasonal members. This keeps the
    viewer on a fast, playable path even while the broad profile's providers
    are cooling down or returning sparse results. */
-async function familyCatalogFallback(env, profile, requestedLimit = SOURCE_LIMITS.SOURCE_MAX_ITEMS) {
+async function familyCatalogFallback(env, profile, requestedLimit = SOURCE_LIMITS.SOURCE_MAX_ITEMS, depth = 0, visited = new Set()) {
   const fallbackProfiles = Array.isArray(profile && profile.fallbackProfiles) ? profile.fallbackProfiles : [];
-  if (!fallbackProfiles.length) return [];
+  const profileKey = String(profile && profile.profileKey || "");
+  if (!fallbackProfiles.length || depth > 2 || visited.has(profileKey)) return [];
+  const nextVisited = new Set(visited);
+  if (profileKey) nextVisited.add(profileKey);
   const rows = [];
   for (const profileKey of fallbackProfiles.slice(0, 4)) {
     const alias = sourceProfile({ profileKey });
@@ -1307,7 +1310,12 @@ async function familyCatalogFallback(env, profile, requestedLimit = SOURCE_LIMIT
       persistedMatch: alias.persistedMatch,
       themeMinScore: 1,
     }, requestedLimit, { ignoreFreshness: true, blockedProviders: new Set() }).catch(() => null);
-    if (cached && Array.isArray(cached.candidateItems)) rows.push(...cached.candidateItems);
+    if (cached && Array.isArray(cached.candidateItems) && cached.candidateItems.length) {
+      rows.push(...cached.candidateItems);
+    } else if (depth < 2 && Array.isArray(alias.fallbackProfiles) && alias.fallbackProfiles.length) {
+      const nested = await familyCatalogFallback(env, alias, requestedLimit, depth + 1, nextVisited).catch(() => []);
+      rows.push(...nested);
+    }
   }
   /* The alias shelves have already passed their own 15-minute, aspect-ratio,
      media-type, deny, and genre rules. Only dedupe here; re-running the broad

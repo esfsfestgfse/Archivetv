@@ -4,6 +4,11 @@ from playwright.async_api import async_playwright
 
 TARGET = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:8799/the_dial_mobile.html"
 IS_DESKTOP = "desktop" in TARGET
+# tuneNum() starts the app's long-lived queue/media work and returns
+# immediately. This sweep is checking JavaScript errors across every channel,
+# not waiting for each channel's playback window. The old 800 ms pause made
+# the desktop job exceed GitHub's ten-minute limit as the lineup grew.
+TUNE_SETTLE_MS = 240
 
 async def main():
     errors = []
@@ -57,12 +62,15 @@ async def main():
             # probes, and live-data fetches). Do not await that lifecycle here;
             # this sweep only needs to trigger the tune and observe page errors.
             await pg.evaluate("(n)=>{ tuneNum(n); }", n)
-            await pg.wait_for_timeout(800)
+            await pg.wait_for_timeout(TUNE_SETTLE_MS)
             if len(errors) > pre_count:
                 nm = await pg.evaluate(f"()=>CH.find(c=>c.num==={n}).nm")
                 ch_errors.append((n, nm, errors[-1][:120]))
                 print(f"  ERROR ch {n} ({nm}): {errors[-1][:80]}")
 
+        # Give the final tune a short chance to flush synchronous page errors,
+        # without turning this error sweep into a full playback soak.
+        await pg.wait_for_timeout(400)
         await b.close()
 
     print(f"\n=== {len(ch_errors)} channels with page errors out of {len(nums)} ===")

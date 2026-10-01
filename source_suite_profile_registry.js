@@ -1051,7 +1051,17 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "gameplay",
       "reaction",
       "fan edit",
-      "lyrics video"
+      "lyrics video",
+      "a black comedy",
+      "audiobook",
+      "unabridged",
+      "chapter",
+      "harry potter",
+      "fantasy",
+      "horror",
+      "monster movie",
+      "full movie",
+      "podcast"
     ]
   },
   "documentary-desk": {
@@ -1299,7 +1309,6 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     ],
     "match": [
       "horticulture",
-      "garden",
       "gardening",
       "botanical",
       "botany",
@@ -1307,7 +1316,12 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "landscape design",
       "landscape architecture",
       "arboretum",
-      "garden history"
+      "garden history",
+      "garden restoration",
+      "garden design",
+      "plant cultivation",
+      "plant conservation",
+      "public garden"
     ],
     "deny": [
       "fictional",
@@ -1322,6 +1336,15 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "walkthrough",
       "game stream",
       "twitch",
+      "podcast",
+      "linux",
+      "debian",
+      "system administration",
+      "software conference",
+      "airborne",
+      "army",
+      "military",
+      "war footage",
       "product review",
       "influencer",
       "affiliate"

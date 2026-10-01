@@ -683,9 +683,9 @@ function catalogFallbackAllowed(item, body) {
   const tags = String(item && (item.tags || item.tag) || "").toLowerCase();
   const category = String(item && item.category || "").toLowerCase();
   const account = String(item && (item.account || item.channelTitle) || "").toLowerCase();
-  const strictTopicTerms = Array.isArray(body && body.strictTopicTerms) ? body.strictTopicTerms : [];
+  const profileStrictTopicTerms = Array.isArray(body && body.strictTopicTerms) ? body.strictTopicTerms : [];
   const identityHaystack = `${title} ${account}`;
-  if (strictTopicTerms.length && !strictTopicTerms.some((term) => {
+  if (profileStrictTopicTerms.length && !profileStrictTopicTerms.some((term) => {
     const needle = String(term || "").trim().toLowerCase();
     return needle && identityHaystack.includes(needle);
   })) return false;

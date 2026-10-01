@@ -1848,7 +1848,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "public domain feature film full", "free movie full length", "modern cinema feature film",
       "complete movie landscape", "full movie", "public domain movie full"
     ],
-    "match": ["feature film", "feature movie", "full movie", "full length film", "independent film", "indie film", "public domain film", "modern cinema", "complete movie", "landscape feature"],
+    "match": ["feature film", "feature movie", "full movie", "full length film", "independent film", "indie film", "public domain film", "modern cinema", "complete movie", "landscape feature", "movie", "film"],
     "deny": ["shorts", "short film", "vertical", "trailer", "teaser", "clip", "recap", "review", "reaction", "podcast", "how to", "tutorial", "fan film", "fan-made", "parody", "music video", "commercial", "movie commentary", "documentary", "film explained"]
   },
   "indie-feature-house": {
@@ -1871,7 +1871,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "public domain indie movie full", "free feature film full", "arthouse feature film full", "cult independent movie full",
       "full movie", "public domain movie full"
     ],
-    "match": ["independent feature film", "independent movie", "indie feature", "festival feature", "arthouse feature", "public domain movie", "free feature film", "cult independent film", "full length movie", "complete feature film"],
+    "match": ["independent feature film", "independent movie", "indie feature", "festival feature", "arthouse feature", "public domain movie", "free feature film", "cult independent film", "full length movie", "complete feature film", "movie", "film"],
     "deny": ["shorts", "short film", "vertical", "trailer", "teaser", "clip", "recap", "review", "reaction", "podcast", "how to", "tutorial", "fan film", "fan-made", "parody", "music video", "commercial", "movie commentary", "documentary", "film explained"]
   },
   "tv-time-machine": {

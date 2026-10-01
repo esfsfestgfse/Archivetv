@@ -1840,8 +1840,8 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "peerTubeInstances": ["https://search.joinpeertube.org", "https://video.blender.org", "https://framatube.org", "https://peertube.uno", "https://tilvids.com", "https://peertube.doesstuff.social", "https://peertube.dngr.us"],
     "providers": ["peertube", "youtube"],
     "intent": "film",
-    "topics": ["feature film", "full movie", "independent film", "public domain film", "modern cinema"],
-    "formats": ["full movie", "full film", "feature film", "complete movie", "full-length movie", "complete feature film"],
+    "topics": ["feature film", "full movie", "independent film", "public domain film", "modern cinema", "movie", "film"],
+    "formats": ["full movie", "full film", "feature film", "complete movie", "full-length movie", "complete feature film", "movie", "film"],
     "queries": [
       "full feature film 1980s", "full feature film 1990s", "full feature film 2000s",
       "full feature film 2010s", "full feature film 2020s", "independent feature film full",
@@ -1849,7 +1849,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "complete movie landscape"
     ],
     "match": ["feature film", "feature movie", "full movie", "full length film", "independent film", "indie film", "public domain film", "modern cinema", "complete movie", "landscape feature"],
-    "deny": ["shorts", "short film", "vertical", "trailer", "teaser", "clip", "recap", "review", "reaction", "podcast", "how to", "tutorial", "fan film", "fan-made", "parody", "music video", "commercial", "movie commentary"]
+    "deny": ["shorts", "short film", "vertical", "trailer", "teaser", "clip", "recap", "review", "reaction", "podcast", "how to", "tutorial", "fan film", "fan-made", "parody", "music video", "commercial", "movie commentary", "documentary", "film explained"]
   },
   "indie-feature-house": {
     "name": "Indie Feature House",
@@ -1863,15 +1863,15 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "fallbackProfiles": ["modern-free-cinema"],
     "providers": ["peertube", "youtube"],
     "intent": "film",
-    "topics": ["independent feature film", "independent movie", "indie feature", "festival feature", "arthouse feature", "public domain movie"],
-    "formats": ["full movie", "full film", "feature film", "complete movie", "full-length movie", "complete feature film"],
+    "topics": ["independent feature film", "independent movie", "indie feature", "festival feature", "arthouse feature", "public domain movie", "movie", "film"],
+    "formats": ["full movie", "full film", "feature film", "complete movie", "full-length movie", "complete feature film", "movie", "film"],
     "queries": [
       "independent feature film 1980s full", "independent feature film 1990s full", "independent feature film 2000s full",
       "independent feature film 2010s full", "independent feature film 2020s full", "festival feature film full",
       "public domain indie movie full", "free feature film full", "arthouse feature film full", "cult independent movie full"
     ],
     "match": ["independent feature film", "independent movie", "indie feature", "festival feature", "arthouse feature", "public domain movie", "free feature film", "cult independent film", "full length movie", "complete feature film"],
-    "deny": ["shorts", "short film", "vertical", "trailer", "teaser", "clip", "recap", "review", "reaction", "podcast", "how to", "tutorial", "fan film", "fan-made", "parody", "music video", "commercial", "movie commentary"]
+    "deny": ["shorts", "short film", "vertical", "trailer", "teaser", "clip", "recap", "review", "reaction", "podcast", "how to", "tutorial", "fan film", "fan-made", "parody", "music video", "commercial", "movie commentary", "documentary", "film explained"]
   },
   "tv-time-machine": {
     "name": "TV Time Machine",

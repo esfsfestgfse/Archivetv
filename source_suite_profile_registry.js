@@ -1829,6 +1829,49 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "shorts"
     ]
   },
+  "modern-free-cinema": {
+    "name": "Modern Free Cinema",
+    "queryLimit": 16,
+    "queryWindow": 6,
+    "peerTubeQueryWindow": 4,
+    "peerTubeInstanceLimit": 1,
+    "peerTubeDetailLimit": 12,
+    "peerTubeFallbackQueryWindow": 4,
+    "peerTubeInstances": ["https://search.joinpeertube.org"],
+    "providers": ["peertube", "youtube"],
+    "intent": "film",
+    "topics": ["feature film", "full movie", "independent film", "public domain film", "modern cinema"],
+    "formats": ["full movie", "full film", "feature film", "complete movie", "full-length movie", "complete feature film"],
+    "queries": [
+      "full feature film 1980s", "full feature film 1990s", "full feature film 2000s",
+      "full feature film 2010s", "full feature film 2020s", "independent feature film full",
+      "public domain feature film full", "free movie full length", "modern cinema feature film",
+      "complete movie landscape"
+    ],
+    "match": ["feature film", "feature movie", "full movie", "full length film", "independent film", "indie film", "public domain film", "modern cinema", "complete movie", "landscape feature"],
+    "deny": ["shorts", "short film", "vertical", "trailer", "teaser", "clip", "recap", "review", "reaction", "podcast", "how to", "tutorial", "fan film", "fan-made", "parody", "music video", "commercial", "movie commentary"]
+  },
+  "indie-feature-house": {
+    "name": "Indie Feature House",
+    "queryLimit": 16,
+    "queryWindow": 6,
+    "peerTubeQueryWindow": 4,
+    "peerTubeInstanceLimit": 1,
+    "peerTubeDetailLimit": 12,
+    "peerTubeFallbackQueryWindow": 4,
+    "peerTubeInstances": ["https://search.joinpeertube.org"],
+    "providers": ["peertube", "youtube"],
+    "intent": "film",
+    "topics": ["independent feature film", "independent movie", "indie feature", "festival feature", "arthouse feature", "public domain movie"],
+    "formats": ["full movie", "full film", "feature film", "complete movie", "full-length movie", "complete feature film"],
+    "queries": [
+      "independent feature film 1980s full", "independent feature film 1990s full", "independent feature film 2000s full",
+      "independent feature film 2010s full", "independent feature film 2020s full", "festival feature film full",
+      "public domain indie movie full", "free feature film full", "arthouse feature film full", "cult independent movie full"
+    ],
+    "match": ["independent feature film", "independent movie", "indie feature", "festival feature", "arthouse feature", "public domain movie", "free feature film", "cult independent film", "full length movie", "complete feature film"],
+    "deny": ["shorts", "short film", "vertical", "trailer", "teaser", "clip", "recap", "review", "reaction", "podcast", "how to", "tutorial", "fan film", "fan-made", "parody", "music video", "commercial", "movie commentary"]
+  },
   "tv-time-machine": {
     "name": "TV Time Machine",
     "queryLimit": 12,

@@ -16,7 +16,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="RealSignal">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>REALSIGNAL · The Dial 5.4.0</title>
+<title>REALSIGNAL · The Dial 5.5.0</title>
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
@@ -1746,7 +1746,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="5.4.0-mobile-core-polish";
+window.__ATV_BUILD="5.5.0-mobile-movie-pbs";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -2369,6 +2369,8 @@ const CH=[
  {nm:"Monster Island", num:115,   cat:"MOV", gl:"kaiju",       era:[1954,2026], ns:"movie"}, /* Godzilla, Gamera, Toho — Japanese giant-monster cinema */
  {nm:"Blaxploitation", num:116,   cat:"MOV", gl:"blaxploit",   era:[1970,1985], ns:"movie"}, /* 70s Black action cinema — Shaft, Foxy Brown, Superfly, Coffy, Cleopatra Jones */
  {nm:"The Festival Circuit", num:117, cat:"MOV", gl:"indiefilm", era:[1980,2026], ns:"movie"}, /* Sundance-adjacent indie features + short films from 80s-00s */
+ {nm:"Modern Archive Cinema", num:121, cat:"MOV", gl:"modernarchivecinema", era:[1980,2026], ns:"movie"}, /* IA feature films from the 1980s through today */
+ {nm:"Archive Genre Cinema", num:122, cat:"MOV", gl:"archivegenrecinema", era:[1980,2026], ns:"movie"}, /* IA horror, sci-fi, action, mystery and cult features from 1980-present */
  /* BRITISH SUITE · 118–131. One flagship plus distinct, non-overlapping editorial lanes. */
  {nm:"Blighty", num:118,            cat:"BRIT", gl:"british",     era:[1945,2026], ns:"tv"}, /* British TV + cinema flagship */
  {nm:"The Beeb", num:121,           cat:"BRIT", gl:"british",     era:[1930,2026], ns:"tv"},
@@ -2428,6 +2430,7 @@ const CH=[
  {nm:"Civic Cinema", num:241, cat:"DOC", gl:"civiccinema", era:[1930,2026], ns:"doc"},
  {nm:"Earth From Above", num:242, cat:"DOC", gl:"earthfromabove", era:[1955,2026], ns:"space"},
  {nm:"Archive Series Vault", num:243, cat:"DOC", gl:"archiveseries", era:[1935,2026], ns:"doc"},
+ {nm:"PBS Public Media", num:245, cat:"DOC", gl:"pbspublicmedia", era:[1970,2026], ns:"doc"}, /* PBS-related television, documentaries, arts and public-media films; no podcasts */
  {nm:"Cartoon Reelhouse", num:244, cat:"DOC", gl:"cartoonreelhouse", era:[1929,2005], ns:"doc"},
  {nm:"Public Health Archive", num:513, cat:"SOURCE", source:"v2preview", ns:"doc", previewKey:"public-health-archive"},
  {nm:"The Signal Room", num:514, cat:"SOURCE", source:"v2preview", ns:"doc", previewKey:"signal-room"},
@@ -2498,6 +2501,8 @@ const CH=[
  {nm:"Christmas Cartoon & TV", num:579, cat:"SOURCE", source:"v2preview", ns:"toon", previewKey:"christmas-cartoon-club"},
  {nm:"Halloween Movie House", num:580, cat:"SOURCE", source:"v2preview", ns:"movie", previewKey:"halloween-movie-house"},
  {nm:"Halloween Cartoon & TV", num:581, cat:"SOURCE", source:"v2preview", ns:"toon", previewKey:"halloween-cartoon-club"},
+ {nm:"Modern Free Cinema", num:582, cat:"SOURCE", source:"v2preview", ns:"movie", previewKey:"modern-free-cinema"}, /* YouTube + PeerTube feature-film lane, 1980-present */
+ {nm:"Indie Feature House", num:583, cat:"SOURCE", source:"v2preview", ns:"movie", previewKey:"indie-feature-house"}, /* YouTube + PeerTube independent and public/free cinema, 1980-present */
  {nm:"On This Day", num:504,       cat:"RETRO", source:"onthisday",ns:"movie"},
  {nm:"Public Domain Day", num:505, cat:"RETRO", source:"pdday",    ns:"tv"},
  {nm:"Live TV", num:300,          cat:"LBRO", source:"livetv",    ns:"tv"},
@@ -2594,6 +2599,11 @@ function orderedChannels(){return DIAL_ORDER.filter(isPublicLineupChannel);}
 
 /* ===== 1.3 METADATA FOUNDATION: per-channel identity, driving INFO + guide + discovery ===== */
 const CHANNEL_META={
+"Modern Archive Cinema":{desc:"INTERNET ARCHIVE · feature films from the 1980s through today, rotated across public/free cinema collections with no shorts, podcasts or fan films.",rel:["Archive Genre Cinema","The Festival Circuit","Classic Film"]},
+"Archive Genre Cinema":{desc:"INTERNET ARCHIVE · 1980s-to-present horror, science fiction, action, mystery, western and cult features with collection-level rotation.",rel:["Modern Archive Cinema","The Drive-In","Darcys Playground"]},
+"PBS Public Media":{desc:"INTERNET ARCHIVE · PBS-related public television, documentaries, science, history, arts and drama; no podcasts or radio-only programs.",rel:["The Documentary Hour","The Chronicle","Modern Archive Cinema"]},
+"Modern Free Cinema":{desc:"SOURCE SUITE · YouTube + PeerTube feature-film lane spanning the 1980s through today; full-length, landscape programming only.",rel:["Indie Feature House","Movie House","Modern Archive Cinema"]},
+"Indie Feature House":{desc:"SOURCE SUITE · YouTube + PeerTube independent, public/free and festival feature films from 1980-present; no Shorts, podcasts, trailers or parody uploads.",rel:["Modern Free Cinema","The Festival Circuit","Screen Test"]},
 "Public Health Archive":{desc:"SOURCE SUITE · public-health, sanitation, medical education and hospital films from qualified video hosts.",rel:["The Signal Room","The Classroom"]},
 "The Signal Room":{desc:"SOURCE SUITE · telegraph, telephone, radio, broadcasting and communications history from qualified video hosts.",rel:["Public Health Archive","The Sound Lab"]},
 "The Darkroom":{desc:"SOURCE SUITE · photography, camera history, darkroom technique and cinematography films from qualified PeerTube and YouTube sources.",rel:["The Signal Room","Design & Architecture"]},
@@ -5129,6 +5139,41 @@ const PROGRAM = {
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
+  /* Modern Archive Cinema (ch 121) — feature-length IA cinema from 1980 through
+     the present. This is intentionally broad by genre but strict about film form,
+     so one old collection cannot monopolize the shelf. */
+  "Modern Archive Cinema": {
+    genre: "modernarchivecinema", era: [1980, 2026], minRuntimeSeconds: 3600,
+    queueTerms: ["feature film", "feature movie", "independent film", "public domain film", "1980s film", "1990s film", "2000s film", "2010s film", "2020s film"],
+    fastSubjects: ["feature film", "feature movie", "independent film", "public domain film", "modern cinema"],
+    fastCollections: ["feature_films", "feature_films_unsorted", "opensource_movies", "SciFi_Horror", "blackcinema"],
+    wideCollections: ["feature_films", "feature_films_unsorted", "opensource_movies", "SciFi_Horror", "blackcinema", "vhsvault"],
+    providers: [
+      {collections: ["feature_films", "feature_films_unsorted", "opensource_movies"], require_subj: ["feature film", "feature movie", "independent film", "indie film", "public domain film", "modern film", "modern cinema", "1980s film", "1990s film", "2000s film", "2010s film", "2020s film"]},
+      {collections: ["SciFi_Horror", "blackcinema", "feature_films_unsorted", "opensource_movies"], require_subj: ["feature film", "feature movie", "horror film", "science fiction film", "action film", "mystery film", "comedy film", "independent film"]}
+    ],
+    deny: {title: ["trailer", "teaser", "commercial", "clip", "recap", "review", "reaction", "podcast", "short film", "fan film", "parody"], subject: ["trailer", "commercial", "cartoon", "animated short", "training film", "podcast", "audio only", "fan film", "parody"]},
+    subjRotate: true, subjRequired: true, noBlindFallback: true,
+    diversity: {maxPerEra: 3, maxPerLane: 2, maxPerCreator: 1, maxPerCollection: 2}
+  },
+
+  /* Archive Genre Cinema (ch 122) — a separate 1980-present genre shelf for
+     horror, science fiction, action, mystery, western and cult features. */
+  "Archive Genre Cinema": {
+    genre: "archivegenrecinema", era: [1980, 2026], minRuntimeSeconds: 3600,
+    queueTerms: ["horror feature", "science fiction feature", "action feature", "mystery feature", "cult film", "western feature", "genre film"],
+    fastSubjects: ["horror film", "science fiction film", "action film", "mystery film", "cult film", "western film"],
+    fastCollections: ["SciFi_Horror", "feature_films", "feature_films_unsorted", "opensource_movies"],
+    wideCollections: ["SciFi_Horror", "feature_films", "feature_films_unsorted", "opensource_movies", "vhsvault"],
+    providers: [
+      {collections: ["SciFi_Horror", "feature_films", "feature_films_unsorted"], require_subj: ["horror film", "horror movie", "science fiction film", "science fiction movie", "action film", "action movie", "mystery film", "mystery movie", "cult film", "western film", "genre film"]},
+      {collections: ["opensource_movies", "feature_films_unsorted", "vhsvault"], require_subj: ["feature film", "feature movie", "cult film", "drive-in film", "monster movie", "crime film", "detective film", "martial arts film"]}
+    ],
+    deny: {title: ["trailer", "teaser", "commercial", "clip", "recap", "review", "reaction", "podcast", "short film", "fan film", "fan-made", "parody", "how to"], subject: ["trailer", "commercial", "cartoon", "animated short", "training film", "podcast", "audio only", "fan film", "parody"]},
+    subjRotate: true, subjRequired: true, noBlindFallback: true,
+    diversity: {maxPerEra: 3, maxPerLane: 2, maxPerCreator: 1, maxPerCollection: 2}
+  },
+
   /* Blighty (ch 118, new 2026-08-08). British TV + cinema in one channel — Beeb sitcoms,
      ITV drama, Doctor Who, Ealing, Hammer, Carry On, kitchen-sink. Provider tiers rotate
      so we don't camp on one era: (1) named British sitcoms/comedies, (2) named British
@@ -5284,6 +5329,24 @@ const PROGRAM = {
       subject: ["preschool","commercial","adult swim","adult animation","adult","instructional","training film"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
+  },
+
+  /* PBS Public Media (ch 245) — PBS-related public television, documentary,
+     science, history, arts, cooking and drama programming. Podcasts, radio-only
+     records and short web clips are deliberately excluded. */
+  "PBS Public Media": {
+    genre: "pbspublicmedia", era: [1970, 2026], minRuntimeSeconds: 900,
+    queueTerms: ["PBS television", "PBS documentary", "PBS science", "PBS history", "PBS arts", "PBS drama", "public television", "public media"],
+    fastSubjects: ["PBS", "public television", "public media", "PBS documentary", "PBS science", "PBS history", "PBS arts"],
+    fastCollections: ["opensource_movies", "classic_tv", "classic_tv_1970s", "classic_tv_1980s", "classic_tv_1990s", "classic_tv_2000s", "prelinger", "avgeeks"],
+    wideCollections: ["opensource_movies", "classic_tv", "classic_tv_1960s", "classic_tv_1970s", "classic_tv_1980s", "classic_tv_1990s", "classic_tv_2000s", "prelinger", "avgeeks"],
+    providers: [
+      {collections: ["classic_tv", "classic_tv_1970s", "classic_tv_1980s", "classic_tv_1990s", "classic_tv_2000s", "opensource_movies"], require_subj: ["PBS", "PBS television", "public television", "public TV", "public broadcasting", "public media", "Frontline", "Nova", "American Experience", "American Masters", "Nature PBS", "Masterpiece", "Great Performances", "Independent Lens", "PBS Kids"]},
+      {collections: ["opensource_movies", "prelinger", "avgeeks"], require_subj: ["PBS documentary", "public television documentary", "science documentary", "history documentary", "nature documentary", "arts documentary", "public media film", "educational television"]}
+    ],
+    deny: {title: ["podcast", "podcasts", "audio only", "radio show", "trailer", "teaser", "commercial", "clip", "short film", "shorts", "reaction", "review", "fan film", "parody"], subject: ["podcast", "podcasts", "audio only", "radio", "commercial", "advertising", "trailer", "cartoon", "animated short", "short film", "fan film", "parody", "music video"]},
+    subjRotate: true, subjRequired: true, noBlindFallback: true,
+    diversity: {maxPerEra: 3, maxPerLane: 2, maxPerCreator: 1, maxPerCollection: 2}
   },
 
   /* The Documentary Hour (ch 226) — Phase 5 overhaul 2026-08-08. PBS/BBC serious
@@ -8269,7 +8332,12 @@ const V2_PREVIEW_PROFILES={
   "travel-reel":{name:"Travel Reel",queryLimit:8,providers:["peertube","youtube"],queries:["travel film history documentary","destination documentary film","tourism film archive","travel television history","cultural travel documentary"],match:["travel film history","destination documentary","tourism film","travel television","cultural travel documentary","travel film archive"],deny:["fictional","music video","commercial","cartoon","gameplay","influencer","travel vlog","hotel advertisement","shorts"]},
   "family-tv-club":{name:"Family TV Club",queryLimit:8,providers:["peertube","youtube"],queries:["family television full episode","children's television complete episode","classic family TV show full episode","public television kids full episode","kids television full show","children's program complete episode","educational kids show full episode","classic kids TV full episode"],match:["family television","children's television","children's program","kids television","kids show","full episode","complete episode"],deny:["music video","commercial","gameplay","horror","prank","reaction","unboxing","shorts"]},
   "sports-film-room":{name:"Sports Film Room",queryLimit:8,providers:["peertube","youtube"],queries:["sports documentary history","athlete profile documentary","sports television history","baseball history film","football history documentary"],match:["sports documentary","athlete profile","sports television history","baseball history","football history","sports film"],deny:["fictional","music video","commercial","cartoon","gameplay","esports","sports betting","reaction","how to","shorts"]},
-  "jukebox-television":{name:"Jukebox Television",queryLimit:8,providers:["peertube","youtube"],queries:["music television full episode","classic concert full performance","live band full concert","music variety show complete episode","television music special full","classic live performance full show","concert television full episode","music program full performance"],match:["music performance","full concert","live band","music television","music variety show","full performance"],deny:["commercial","cartoon","gameplay","reaction","lyrics video","fan edit","shorts"]}
+  "jukebox-television":{name:"Jukebox Television",queryLimit:8,providers:["peertube","youtube"],queries:["music television full episode","classic concert full performance","live band full concert","music variety show complete episode","television music special full","classic live performance full show","concert television full episode","music program full performance"],match:["music performance","full concert","live band","music television","music variety show","full performance"],deny:["commercial","cartoon","gameplay","reaction","lyrics video","fan edit","shorts"]},
+  /* The four new movie lanes are deliberately 1980s-to-present. The Source
+     Suite pair uses the same YouTube/PeerTube architecture but keeps distinct
+     query families so they do not reopen as the same five-item shelf. */
+  "modern-free-cinema":{name:"Modern Free Cinema",queryLimit:16,providers:["peertube","youtube"],intent:"film",queries:["full feature film 1980s","full feature film 1990s","full feature film 2000s","full feature film 2010s","full feature film 2020s","independent feature film full","public domain feature film full","free movie full length","modern cinema feature film","complete movie landscape"],match:["feature film","feature movie","full movie","full length film","independent film","indie film","public domain film","modern cinema","complete movie","landscape feature"],deny:["shorts","short film","vertical","trailer","teaser","clip","recap","review","reaction","podcast","how to","tutorial","fan film","fan-made","parody","music video","commercial","movie commentary"]},
+  "indie-feature-house":{name:"Indie Feature House",queryLimit:16,providers:["peertube","youtube"],intent:"film",queries:["independent feature film 1980s full","independent feature film 1990s full","independent feature film 2000s full","independent feature film 2010s full","independent feature film 2020s full","festival feature film full","public domain indie movie full","free feature film full","arthouse feature film full","cult independent movie full"],match:["independent feature film","independent movie","indie feature","festival feature","arthouse feature","public domain movie","free feature film","cult independent film","full length movie","complete feature film"],deny:["shorts","short film","vertical","trailer","teaser","clip","recap","review","reaction","podcast","how to","tutorial","fan film","fan-made","parody","music video","commercial","movie commentary"]}
 };
 Object.assign(V2_PREVIEW_PROFILES,{
   "holiday-movie-house":{name:"Holiday Movie House",queryLimit:16,providers:["peertube","youtube"],intent:"film",queries:["holiday movie full","christmas movie full","halloween movie full","thanksgiving movie full","holiday television movie full","public domain holiday feature","classic holiday film full","seasonal movie marathon","winter holiday movie full","holiday family film full","holiday horror feature full","holiday romance movie full"],match:["holiday movie","holiday film","christmas movie","christmas film","halloween movie","halloween film","thanksgiving movie","seasonal film","winter holiday film","holiday television movie","holiday feature","holiday special film"],deny:["shorts","short film","trailer","teaser","reaction","review","recap","commentary","music video","commercial","fan edit","clip","countdown","top 10","how to","tutorial","podcast","vertical","christmas music","holiday playlist","holiday songs","carol"]},
@@ -8290,7 +8358,7 @@ const V2_SOURCE_MODE_GROUPS={
   performance:["comedy-circuit","rhythm-archives","black-stage","stage-door","variety-hour","talk-show-archive","jukebox-television"],
   documentary:["documentary-desk","freedom-stories"],
   animation:["cartoon-time-machine","animation-desk"],
-  film:["movie-house","screen-test","film-noir-desk","horror-house","western-screen","sci-fi-signal"],
+  film:["movie-house","screen-test","film-noir-desk","horror-house","western-screen","sci-fi-signal","modern-free-cinema","indie-feature-house"],
   television:["tv-time-machine","classic-sitcom-room","game-show-archive","family-tv-club"]
 };
 const V2_SOURCE_TOPIC_OVERRIDES={
@@ -8299,7 +8367,7 @@ const V2_SOURCE_TOPIC_OVERRIDES={
   "local-signal":["community television","public access","local cable","municipal public affairs"],"comfort-television":["craft show","home improvement","gardening show","public television lifestyle"],"comedy-circuit":["stand up comedy","sketch comedy","comedy performance","comedy show"],"rhythm-archives":["soul performance","jazz performance","rhythm and blues","live music"],"freedom-stories":["civil rights","human rights","labor movement","voting rights"],"black-stage":["Black theatre","Black comedy","Black dance","soul performance"],"documentary-desk":["investigative documentary","science documentary","history documentary","independent documentary"],"invention-files":["invention","inventor","engineering project","prototype"],"blueprint":["architecture","building design","urban design","architectural project"],"rail-archive":["train","railway","locomotive","railroad"],"flight-deck":["aviation","aircraft","airport","flight"],
   "ocean-desk":["oceanography","marine life","underwater exploration","deep sea"],"garden-ledger":["gardening","horticulture","botanical garden","landscape design"],"animal-care":["animal care","veterinary care","wildlife rehabilitation","animal rescue"],"food-lab":["food science","food experiment","food safety","fermentation"],"language-lab":["linguistics","language lesson","writing system","endangered language"],"legal-record":["courtroom","legal education","law and justice","constitutional law"],"earth-lab":["geology","volcano","paleontology","earth science"],"textile-archive":["weaving","textile craft","garment making","fiber arts"],"stage-door":["stage play","theatre performance","dance theatre","live theatre"],"print-shop":["letterpress","printmaking","book arts","printing press"],"memory-bank":["oral history","community story","memoir","personal archive"],
   "cartoon-time-machine":["animation","animated cartoon","animated short","classic cartoon","cartoon episode","cartoon short","animated film","animated movie","animated series","stop motion"],"movie-house":["feature film","full movie","independent film","classic movie"],"tv-time-machine":["classic television","television episode","retro TV show","vintage television"],"cooks-table":["cooking show","recipe demonstration","chef cooking","regional cuisine"],"gearhead-garage":["car restoration","automotive repair","classic car","motorsport","road test"],"green-culture":["cannabis culture","marijuana policy","cannabis medicine","cannabis science"],"animation-desk":["independent animation","animated short film","stop motion animation","experimental animation"],"screen-test":["short film","student film","independent film","experimental film"],"classic-sitcom-room":["classic sitcom","sitcom episode","television comedy","comedy series"],"film-noir-desk":["film noir","noir movie","detective film","crime film"],"horror-house":["horror movie","horror film","monster movie","supernatural film"],"western-screen":["western movie","western film","cowboy movie","frontier film"],"sci-fi-signal":["science fiction movie","sci-fi film","space movie","speculative fiction"],
-  "game-show-archive":["game show","quiz show","television game show","contest show"],"variety-hour":["variety show","vaudeville","stage revue","television variety"],"talk-show-archive":["talk show","television interview","late night show","celebrity interview"],"travel-reel":["travel show","destination travel","cultural travel","travelogue"],"family-tv-club":["family television","children's program","kids television","educational kids show"],"sports-film-room":["sports program","athlete feature","baseball","football","basketball","motorsport"],"jukebox-television":["music performance","concert","music television","live band"]
+  "game-show-archive":["game show","quiz show","television game show","contest show"],"variety-hour":["variety show","vaudeville","stage revue","television variety"],"talk-show-archive":["talk show","television interview","late night show","celebrity interview"],"travel-reel":["travel show","destination travel","cultural travel","travelogue"],"family-tv-club":["family television","children's program","kids television","educational kids show"],"sports-film-room":["sports program","athlete feature","baseball","football","basketball","motorsport"],"jukebox-television":["music performance","concert","music television","live band"],"modern-free-cinema":["feature film","full movie","independent film","public domain film","modern cinema"],"indie-feature-house":["independent feature film","independent movie","indie feature","festival feature","arthouse feature","public domain movie"]
 };
 const V2_SOURCE_QUERY_SUFFIXES={archive:["original archival film","complete educational film","primary source footage","full newsreel"],practical:["full episode","complete program","project video","television show"],field:["full program","field footage","expedition video","complete episode"],education:["complete lesson","educational program","classroom film","instructional program"],performance:["full performance","complete show","live performance","full episode"],documentary:["full documentary","feature documentary","complete documentary","documentary film"],animation:["full cartoon","cartoon episode","animated short film","cartoon compilation"],film:["full movie","feature film","complete film","short film"],television:["full episode","complete episode","television program","TV show"]};
 const V2_SOURCE_COMMON_DENY=["how to","tutorial","shorts","vertical video","reaction","podcast","trailer","teaser","promo","advertisement","commercial","fan edit","lyrics video"];

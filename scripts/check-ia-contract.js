@@ -74,7 +74,7 @@ if (!/if\(prog\)\{buildProgramQueries\(prog,ch,false\)/.test(source)) issues.pus
 
 const slotBlock = blockAfter('function slotFor(', '{', '}');
 if (/getHours|names\s*\[|PROFILES|seasonalProfileName/.test(slotBlock)) issues.push('slotFor must never select programming from the clock or a seasonal profile');
-if (!/return \{show:ch\.nm, genre:prog\.genre\|\|ch\.gl/.test(slotBlock) || !/show:ch\.nm, source:ch\.source/.test(slotBlock)) issues.push('every source and PROGRAM slot must use the permanent channel name on air');
+if (!(/return \{show:(?:ch\.nm|canonicalChannelLabel\(ch\)), genre:prog\.genre\|\|ch\.gl/.test(slotBlock)) || !/show:ch\.nm, source:ch\.source/.test(slotBlock)) issues.push('every source and PROGRAM slot must use the permanent channel name on air');
 if (/show:prog\.show/.test(slotBlock)) issues.push('legacy PROGRAM show labels must never rename an IA channel');
 if (/id="setPlan"|function buildPlan\(|function planKey\(|stationMgr\?/.test(source)) issues.push('clock-bound Station Manager appointments must remain retired');
 if (/barsText\.textContent=\(hour/.test(source)) issues.push('color bars must not sign off according to the clock');

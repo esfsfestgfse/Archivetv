@@ -33,6 +33,11 @@ for (const name of files) {
     ['queue refill uses incremental guide refresh', functionBody(source, 'async function refillIAQueue(').includes('refreshGuideRows()')],
     ['guide warming uses incremental guide refresh', functionBody(source, 'function primeGuideQueues(').includes('refreshGuideRows()')],
     ['initial guide render still builds the rows', functionBody(source, 'function renderGuide()').includes('renderRail()')],
+    ['guide has a dedicated movies lane', source.includes('id:"movies"')],
+    ['stale decade pilot lane is not a browse category', !source.includes('id:"decades"')],
+    ['guide keeps numbers stable while grouping families', source.includes('CATEGORY ORDER · NUMBERS STABLE')],
+    ['core family labels are explicit', source.includes('function guideFamilyLabel(ch)') && /Live television/.test(source) && /Live sports/.test(source) && /Live weather/.test(source) && /Live radio/.test(source)],
+    ['live stream updates feed current/next guide data', source.includes('function noteLiveStreamGuide(c)') && guideListingBody.includes('live.next')],
     ['IA guide reports the rolling hot shelf', guideListingBody.includes('IA_READY_TARGET') && /hot replacements|HOT SHELF/.test(guideListingBody)],
     ['IA guide has no stale five-show warming promise', !guideListingBody.includes('FIVE-SHOW BUFFER WARMING')],
   ];

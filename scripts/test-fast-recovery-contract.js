@@ -26,7 +26,7 @@ for (const [name, source] of [['desktop', desktop], ['mobile', mobile]]) {
     'function tvHealthScore(e)',
     'c._healthScore',
     'tuneStartedAt=Date.now()',
-    'label:"Live services"',
+    'label:"Live now"',
   ]) {
     if (!source.includes(needle)) throw new Error(`${name}: missing FAST recovery contract ${needle}`);
   }

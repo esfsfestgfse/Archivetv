@@ -1735,7 +1735,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="5.1.6-mobile-fast-health";
+window.__ATV_BUILD="5.2.0-mobile-guide-core";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -2545,20 +2545,20 @@ function publicLineupChannels(){return CH.filter(isPublicLineupChannel);}
    this adds stable clean IDs plus a deliberately small set of browse destinations. */
 const GUIDE_CATEGORIES=[
   {id:"all",label:"All channels",meta:"The complete RealSignal directory",color:"#baffcf"},
-  {id:"reruns",label:"Reruns",meta:"Classic and modern television series",color:"#c6a7ff",channels:[10,11]},
-  {id:"decades",label:"TV by decade · pilot",meta:"Metadata-tested decade lanes",color:"#f7d27c",channels:[16,22,23,24,90]},
-  {id:"watch",label:"TV & film",meta:"Networks, series, movies and retro",color:"#8ee6ff",cats:["NET","TV","MOV","RETRO","HOL"]},
+  {id:"live",label:"Live now",meta:"Live TV · sports · weather · radio",color:"#73ffd2",channels:[300,50,950,924]},
+  {id:"tv",label:"Television",meta:"Networks, series, reruns and game shows",color:"#c6a7ff",cats:["NET","TV"]},
+  {id:"movies",label:"Movies & cinema",meta:"Feature films, serials and cinema archives",color:"#8ee6ff",cats:["MOV"]},
   {id:"animation",label:"Animation & kids",meta:"Cartoons, anime and family viewing",color:"#9ab8ff",cats:["TOON"]},
   {id:"sports",label:"Sports",meta:"Competition, archives and scoreboards",color:"#c8ff84",cats:["SPORTS"]},
   {id:"archive",label:"Archive & ideas",meta:"History, science, culture and documentary",color:"#ffd590",cats:["DOC"]},
   {id:"source",label:"Source suite",meta:"Verified programming from independent video archives and hosts",color:"#ffcf75",cats:["SOURCE"]},
+  {id:"music",label:"Music & radio",meta:"Concerts, music libraries and live radio",color:"#ffb4d0",cats:["MUS"]},
   {id:"world",label:"World & culture",meta:"British television and global perspective",color:"#d7b7ff",cats:["BRIT"]},
-  {id:"music",label:"Music & audio",meta:"Concerts, radio and listening rooms",color:"#ffb4d0",cats:["MUS"]},
-  {id:"live",label:"Live services",meta:"Live TV · sports · weather · radio",color:"#73ffd2",channels:[50,300,924,950]}
+  {id:"retro",label:"Retro & seasonal",meta:"Found footage, VHS, holiday and archive loops",color:"#f4b978",cats:["RETRO","HOL"]}
 ];
 const GUIDE_CATEGORY_BY_ID=Object.fromEntries(GUIDE_CATEGORIES.map(function(group){return [group.id,group];}));
 const GUIDE_SUBGENRES={NET:"Network television",TV:"Television & reruns",MOV:"Movies",TOON:"Animation",SPORTS:"Sports",MUS:"Music & audio",DOC:"Archive & ideas",SOURCE:"Source suite",LBRO:"Live video",LDATA:"Live data",RETRO:"Retro archive",HOL:"Seasonal",BRIT:"World & culture"};
-function guideCategoryFor(ch){var live=GUIDE_CATEGORY_BY_ID.live,reruns=GUIDE_CATEGORY_BY_ID.reruns,decades=GUIDE_CATEGORY_BY_ID.decades;if(live&&live.channels.indexOf(Number(ch.num))>-1)return live;if(decades&&decades.channels.indexOf(Number(ch.num))>-1)return decades;if(reruns&&reruns.channels.indexOf(Number(ch.num))>-1)return reruns;return GUIDE_CATEGORIES.find(function(group){return group.cats&&group.cats.indexOf(ch.cat)>-1;})||GUIDE_CATEGORY_BY_ID.all;}
+function guideCategoryFor(ch){var live=GUIDE_CATEGORY_BY_ID.live;if(live&&live.channels.indexOf(Number(ch.num))>-1)return live;return GUIDE_CATEGORIES.find(function(group){return group.cats&&group.cats.indexOf(ch.cat)>-1;})||GUIDE_CATEGORY_BY_ID.all;}
 function guideChannelKey(ch){return "rs-"+String(ch.num).padStart(3,"0")+"-"+String(ch.nm).toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,"");}
 CH.forEach(function(ch){var health=channelHealth(ch);ch.healthState=health.state;ch.healthReason=health.reason;ch.guideGroup=guideCategoryFor(ch).id;ch.key=guideChannelKey(ch);});
 /* QA FIX (from Programmed Channels 2.0 audit, Phase 1): channel numbers used to be computed by
@@ -7891,13 +7891,13 @@ function visibleChannels(){let l=favOnly?publicLineupChannels().filter(c=>isFav(
      Nothing about CH itself changes, so tuning/search/everything else is unaffected. */
   var catPos={}; GUIDE_CATEGORIES.forEach(function(c,i){catPos[c.id]=i;});
   l=l.slice().sort(function(a,b){
-    /* ALL is the actual cable lineup: channel numbers ascend without editorial blocks.
-       A selected genre remains grouped by its stable browse category, then numbered. */
-    if(!catFilter||catFilter==="all") return a.num-b.num||String(a.nm).localeCompare(String(b.nm));
+    /* The guide is organized like a cable directory: browse families first, then the
+       persistent tuning number. The number itself is never changed, so favorites, remotes,
+       Cast packets, and saved last-channel state remain compatible across releases. */
     var pa=catPos[a.guideGroup], pb=catPos[b.guideGroup];
     if(pa==null) pa=999; if(pb==null) pb=999;
     if(pa!==pb) return pa-pb;
-    return a.num-b.num;
+    return a.num-b.num||String(a.nm).localeCompare(String(b.nm));
   });
   return l;}
 window.__chanStatus=window.__chanStatus||{};
@@ -7932,6 +7932,14 @@ function guideQueueItems(ch,sl,current){
   return q.filter(function(item){return !((currentId&&(String(item.identifier||item.id||"")===currentId))||(!currentId&&currentTitle&&String(item.title||"")===currentTitle));});
 }
 function guideQueueNext(ch,sl,current){return guideQueueItems(ch,sl,current)[0]||null;}
+function guideFamilyLabel(ch){
+  var n=Number(ch&&ch.num);
+  if(n===300)return "Live television";
+  if(n===50)return "Live sports";
+  if(n===950)return "Live weather";
+  if(n===924)return "Live radio";
+  return GUIDE_SUBGENRES[ch&&ch.cat]||String((ch&&ch.cat)||"Channel");
+}
 function guideVerifiedListing(ch,verified){
   if(!verified||verified.verified!==true)return null;
   var localCurrent=(ch&&ch.num===curNum&&curItem&&curItem.title)?curItem:null;
@@ -7963,7 +7971,17 @@ function guideListing(ch){
     }
     return {now:current?("NOW · "+current+(Number(pv.currentDuration)>0?(" · "+guideDurationLabel(pv.currentDuration)):"")):(upItem?("UP NEXT · "+guideItemTitle(upItem)+" · "+guideItemRuntime(upItem)):"SOURCE SUITE · "+(ready?"QUEUE READY":"PROGRAM DATA PENDING")),next:current?(nextItem?("NEXT · "+guideItemTitle(nextItem)+" · "+guideItemRuntime(nextItem)):"NEXT · PROGRAM DATA PENDING"):(nextItem?("THEN · "+guideItemTitle(nextItem)+" · "+guideItemRuntime(nextItem)):"NEXT · PROGRAM DATA PENDING"),detail:ready+" PROGRAMS READY · "+items.length+" CATALOG · "+(pv.provider||"SOURCE SUITE"),state:ready?"ready":"warming",live:false,ready:ready,capacity:5};
   }
-  if(ch.source){var live=liveGuideState[ch.num]||{},txt=String(live.text||window.__chanStatus[ch.num]||"CONNECTING LIVE DATA");return {now:"LIVE · "+txt,next:"CONTINUOUS LIVE DATA",detail:guideUpdatedLabel(live.at),state:"live",live:true,ready:null,capacity:null};}
+  if(ch.source){
+    var live=liveGuideState[ch.num]||{}, source=String(ch.source||"");
+    var fallbackNow=source==="livetv"?"SELECT A CHANNEL":source==="sports"?"SCOREBOARD READY":source==="weather"?"CURRENT CONDITIONS":source==="liveradio"?"STATION DIRECTORY":"LIVE FEED";
+    var fallbackNext=source==="weather"?"FORECAST REFRESH":source==="liveradio"?"STATION ROTATION":"LIVE FEED CONTINUES";
+    var txt=String(live.now||live.text||window.__chanStatus[ch.num]||fallbackNow).replace(/\s+/g," ").trim();
+    var nextTxt=String(live.next||fallbackNext).replace(/\s+/g," ").trim();
+    if(!/^(LIVE|NOW|UP NEXT)/i.test(txt))txt="LIVE · "+txt;
+    if(!/^(NEXT|THEN|CONTINUOUS)/i.test(nextTxt))nextTxt="NEXT · "+nextTxt;
+    var detail=String(live.detail||[live.source||guideFamilyLabel(ch),guideUpdatedLabel(live.at)].filter(Boolean).join(" · "));
+    return {now:txt,next:nextTxt,detail:detail,state:"live",live:true,ready:null,capacity:null};
+  }
   /* The guide is queue-backed: it never invents clock/daypart listings. */
   var sl=typeof slotFor==="function"?slotFor(ch,0,{preview:true}):null;
   var current=(ch.num===curNum&&curItem&&curItem.title)?curItem:null;
@@ -7983,6 +8001,11 @@ function guideProgramState(ch){return guideListing(ch);}
 function startLiveDataBed(ch,sl){if(!ch||ch.cat!=="LDATA")return;var source=(sl&&sl.source)||ch.source||"";if(/^(livetv|livecams|highway|liveradio)$/.test(source))return;try{if(typeof startIAJazz==="function")startIAJazz(LIVE_DATA_BEDS[source]||"gmjazz");}catch(e){}}
 function refreshGuideData(){try{if(gwrap&&gwrap.classList.contains("show")){guideUpdatePreview();refreshGuideRows();}}catch(e){}}
 function setChanStatus(num,text){ try{var status=String(text||"LIVE DATA");window.__chanStatus[num]=status;liveGuideState[num]={text:status,at:Date.now()};refreshGuideData();}catch(e){} }
+function noteLiveStreamGuide(c){
+  var n=Number(curNum); if(!n||!c)return;
+  liveGuideState[n]={now:String(c.name||"LIVE STREAM"),next:"LIVE FEED CONTINUES",source:String(c.src||"verified stream"),detail:String(c.src||"verified stream")+" · UPDATED JUST NOW",at:Date.now()};
+  try{refreshGuideData();}catch(e){}
+}
 var rsSetChanStatus=setChanStatus;setChanStatus=function(num,text){return rsSetChanStatus(num,String(text||"").replace(/QUEUE WARMING|BUFFER WARMING|WARMING SOURCE/gi,"PROGRAM DATA PENDING").replace(/BUFFER (\d+) \/ (\d+) CATALOG/gi,"$1 PROGRAMS READY"));};
 function renderRail(){ /* v9: honest CHANNEL BANK grid — replaces the horizontal scroll rail */
   if(!chList)return;
@@ -8032,7 +8055,7 @@ function renderRail(){ /* v9: honest CHANNEL BANK grid — replaces the horizont
 function renderRail(){
   if(!chList||!gwrap||!gwrap.classList.contains("show"))return;
   chList.innerHTML="";var list=visibleChannels(),active=GUIDE_CATEGORY_BY_ID[catFilter]||GUIDE_CATEGORY_BY_ID.all,query=String(window.__gQuery||"").trim();
-  var title=query?"SEARCH RESULTS":(favOnly?"FAVORITES":active.label.toUpperCase()),descriptor=query?('"'+query+'" · '+list.length+' matches'):(favOnly?list.length+" saved channels":active.meta+" · NUMBER ORDER");
+  var title=query?"SEARCH RESULTS":(favOnly?"FAVORITES":active.label.toUpperCase()),descriptor=query?('"'+query+'" · '+list.length+' matches'):(favOnly?list.length+" saved channels":active.meta+" · CATEGORY ORDER · NUMBERS STABLE");
   var titleEl=$("railTitle"),resultsEl=$("guideResults"),countEl=$("guideCount");if(titleEl)titleEl.textContent=title;if(resultsEl)resultsEl.textContent=descriptor;if(countEl)countEl.textContent=list.length+" CHANNEL"+(list.length===1?"":"S");
   if(!list.length){chList.innerHTML='<div class="chempty">No matching channels yet. Clear the search or choose another category.</div>';return;}
   /* Build off-DOM. Rendering two hundred channel rows one append at a time was
@@ -8042,7 +8065,7 @@ function renderRail(){
     if(group.id!==previousGroup){var divider=document.createElement("div");divider.className="chsection";divider.innerHTML='<span class="chsection-label">'+esch(group.label.toUpperCase())+'</span><span class="chsection-sub">'+esch(group.meta)+'</span>';fragment.appendChild(divider);previousGroup=group.id;}
     var row=document.createElement("button");row.type="button";row.dataset.channelKey=ch.key;row.dataset.channelNum=ch.num;row.title=ch.nm+((CHANNEL_META[ch.nm]&&CHANNEL_META[ch.nm].desc)?(" \\u2014 "+CHANNEL_META[ch.nm].desc):"");row.className="chcell"+(ch.num===curNum?" on":"");row.style.setProperty("--cat",CAT[ch.cat]||group.color);
     var listing=guideListing(ch),lastId=(window.__chLastId||{})[ch.num],thumb=lastId?'<span class="cc-thumb"><img src="https://archive.org/services/img/'+esch(lastId)+'" alt="" loading="lazy" decoding="async"></span>':'<span class="cc-thumb"><span class="cc-thumb-glyph">'+ch.num+'</span></span>';
-    row.innerHTML='<span class="cc-n">'+ch.num+'</span>'+thumb+'<span class="cc-identity"><span class="cc-nm">'+esch(ch.nm)+'</span><span class="cc-genre">'+esch(GUIDE_SUBGENRES[ch.cat]||ch.cat)+'</span></span><span class="cc-now-block"><span class="cc-now">'+esch(listing.now)+'</span><span class="cc-status">'+esch(listing.detail)+'</span></span><span class="cc-next-block"><span class="cc-next">'+esch(listing.next)+'</span></span>'+(isFav(ch.num)?'<span class="cc-f">★</span>':'');
+    row.innerHTML='<span class="cc-n">'+ch.num+'</span>'+thumb+'<span class="cc-identity"><span class="cc-nm">'+esch(ch.nm)+'</span><span class="cc-genre">'+esch(guideFamilyLabel(ch))+'</span></span><span class="cc-now-block"><span class="cc-now">'+esch(listing.now)+'</span><span class="cc-status">'+esch(listing.detail)+'</span></span><span class="cc-next-block"><span class="cc-next">'+esch(listing.next)+'</span></span>'+(isFav(ch.num)?'<span class="cc-f">★</span>':'');
     row.addEventListener("click",(function(num){return function(){tuneNum(num);if(window.closeSheets)window.closeSheets();else closeGuide();};})(ch.num));fragment.appendChild(row);
   });
   chList.appendChild(fragment);
@@ -12521,7 +12544,7 @@ async function playTV(c,my,list,idx,triedCount,proxyIdx,altIdx){
     if(settled||my!==token)return;
     if(!(v.currentTime>0))return;           /* nothing decoded yet */
     if(v.videoWidth>0){
-      settled=true; clearWatch(); markTvOk(c,Date.now()-tuneStartedAt);
+      settled=true; clearWatch(); markTvOk(c,Date.now()-tuneStartedAt); noteLiveStreamGuide(c);
       nlog("livetv",true,c.name+" playing "+v.videoWidth+"x"+v.videoHeight);
       return;
     }
@@ -12529,7 +12552,7 @@ async function playTV(c,my,list,idx,triedCount,proxyIdx,altIdx){
        The clock is advancing and audio is decoding -- that stream IS working, it simply has no
        picture. Failing it over was wrong; label it instead so the black screen is explained. */
     if(v.readyState>=2){
-      settled=true; clearWatch(); markTvOk(c,Date.now()-tuneStartedAt);
+      settled=true; clearWatch(); markTvOk(c,Date.now()-tuneStartedAt); noteLiveStreamGuide(c);
       var capA=pane.querySelector(".dc-media-cap");
       if(capA) capA.textContent="\u266A AUDIO ONLY \u00b7 "+String(c.name).toUpperCase()+" (radio \u2014 no video track)";
       nlog("livetv",true,c.name+" audio-only stream (radio)");

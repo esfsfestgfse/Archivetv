@@ -9,7 +9,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>REALSIGNAL · The Dial 5.5.0</title>
+<title>REALSIGNAL · The Dial 5.5.1</title>
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
@@ -1707,7 +1707,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="5.5.0-desktop-movie-pbs";
+window.__ATV_BUILD="5.5.1-desktop-source-catalog";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -8391,13 +8391,35 @@ async function v2PeerTubeCold(profile){
 /* YouTube discovery belongs to the API Worker. Keeping provider resolution out
    of the browser prevents credential leakage and makes Source Suite rotation
    consistent across desktop, mobile, and Cast. */
+/* Source Suite discovery is server-owned. The browser must consume the
+   verified shelf instead of trying to search PeerTube itself while YouTube is
+   intentionally kept behind the Worker secret. A server response may be
+   shallow during background refill, but one verified item is enough to put a
+   picture on air immediately; the next refresh deepens the shelf. */
+async function v2ServerSourceCatalog(profile,rotation,force){
+  var base=String(typeof IA_API_BASE!=="undefined"?IA_API_BASE:"").replace(/\/$/,"");
+  if(!/^https?:\/\//i.test(base))return {provider:"Server Catalog",items:[],health:{skipped:true,reason:"source API unavailable"}};
+  var recent=v2Recent(profile.name).slice(0,24),body={profileKey:profile.profileKey,count:5,rotation:Number(rotation)||0,recentIds:recent,playedIds:recent.slice(0,8),minimumReady:12,staleReady:1};
+  if(force)body.refresh=true;
+  try{
+    var response=await withTO(fetch(base+"/source/catalog",{method:"POST",mode:"cors",headers:{"content-type":"application/json","x-realsignal-client":"realsignal-web"},body:JSON.stringify(body)}),7500);
+    if(!response.ok)throw new Error("source catalog http "+response.status);
+    var payload=await response.json(),raw=Array.isArray(payload&&payload.items)?payload.items:[],items=v2Unique(raw.map(function(item){
+      var provider=v2Text(item&&item.provider)||"Source Catalog",isEmbed=String(item&&item.type||"").toLowerCase()==="embed"||!!item&&!!item.embedUrl,url=isEmbed?(item&&item.embedUrl||item&&item.url||""):(item&&item.url||"");
+      var normalized=Object.assign({},item,{id:String(item&&item.id||item&&item.identifier||item&&item.sourceIdentifier||""),provider:provider,type:isEmbed?"embed":"video",url:String(url||""),embedUrl:isEmbed?String(item&&item.embedUrl||url||""):"",duration:Number(item&&item.duration||item&&item.runtime||0),aspectRatio:v2AspectRatio(item)||16/9});
+      if(!normalized.id||!normalized.url||!v2ProgramRuntimeOkay(normalized)||!v2Landscape(normalized)||!v2CandidateRelevant(profile,normalized))return null;
+      return v2Verified(normalized,provider,normalized.query||"server catalog","server-verified");
+    }).filter(Boolean));
+    return {provider:"Server Catalog",items:items,health:{server:true,ready:items.length,candidates:raw.length,catalogDepth:Number(payload&&payload.catalogDepth||raw.length),source:payload&&payload.source||"server-source-catalog"}};
+  }catch(error){return {provider:"Server Catalog",items:[],health:{server:true,error:String(error&&error.message||error).slice(0,180)}};}
+}
 async function v2YouTube(profile){return {provider:"YouTube",items:[],health:{skipped:true,reason:"server catalog required"}};}
 function v2IsoDuration(value){var m=String(value||"").match(/^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/i);return m?(Number(m[1]||0)*3600+Number(m[2]||0)*60+Number(m[3]||0)):0;}
 async function v2Archive(profile){
   try{var terms=profile.queries.slice(0,3).map(function(q){return "(title:("+q+") OR subject:("+q+"))";}).join(" OR "),u=iaURL("mediatype:movies AND ("+terms+")",32,1),d=await fetchJSONResilient(u,"v2-ia"),docs=(d&&d.response&&d.response.docs)||[],items=v2Unique(docs.filter(function(x){return v2Relevant(profile,x)&&v2RightsOkay(x.license||x.rights,"Internet Archive");}).map(function(x){return {id:String(x.identifier||""),title:v2Text(x.title||x.identifier),description:v2Text(x.description||""),year:String(x.year||"").slice(0,4),rights:v2Text(x.license||x.rights),type:"archive",provider:"Internet Archive",duration:iaRuntimeSeconds(x.runtime||0)};})).slice(0,12);var hydrated=await v2MapLimit(items,3,async function(x){try{var pl=await resolvePlayable(x.id,"video");return pl&&pl.url?v2Verified(Object.assign({},x,pl,{id:x.id,type:"video",sourceUrl:"https://archive.org/details/"+x.id}),"Internet Archive","archive","resolved-file"):null;}catch(e){return null;}});return {provider:"Internet Archive",items:hydrated.filter(Boolean),health:{searched:docs.length,details:items.length}};}catch(e){return {provider:"Internet Archive",items:[],health:{error:String(e)}};}
 }
 async function v2Loc(profile){try{var jobs=profile.queries.slice(0,5),found=await v2MapLimit(jobs,3,async function(query){var u="https://www.loc.gov/film-and-videos/?q="+encodeURIComponent(query)+"&fo=json&c=10",d=await withTO(fetch(u,{mode:"cors"}).then(function(r){if(!r.ok)throw new Error("http "+r.status);return r.json();}),6500);return (d.results||[]).map(function(x){var urls=v2CollectMedia(x.resources||x,"https://www.loc.gov");return {id:String(x.id||""),title:v2Text(x.title||"Untitled"),description:v2Text(x.description||x.extract||""),year:String(x.date||"").slice(0,4),rights:v2Text(x.rights||x.rights_advisory),url:urls[0]||"",type:"video",sourceUrl:String(x.id||""),query:query};});});return {provider:"Library of Congress",items:found.flat().filter(function(x){return x.id&&v2Relevant(profile,x)&&x.url;}).map(function(x){return v2Verified(x,"Library of Congress",x.query,"media-url");}).filter(Boolean),health:{searched:jobs.length}};}catch(e){return {provider:"Library of Congress",items:[],health:{error:String(e)}};}}
-async function v2Provider(name,profile){var rotation=arguments[2]||0,onFirst=typeof arguments[3]==="function"?arguments[3]:null;if(name==="peertube")return v2PeerTubeCold(profile,rotation,onFirst);if(name==="youtube")return v2YouTube(profile,rotation,onFirst);if(name==="archive")return v2Archive(profile);if(name==="loc")return v2Loc(profile);return {provider:name,items:[],health:{skipped:true,reason:"provider not configured"}};}
+async function v2Provider(name,profile){var rotation=arguments[2]||0,onFirst=typeof arguments[3]==="function"?arguments[3]:null;if(name==="server")return v2ServerSourceCatalog(profile,rotation,arguments[4]===true);if(name==="peertube")return v2PeerTubeCold(profile,rotation,onFirst);if(name==="youtube")return v2YouTube(profile,rotation,onFirst);if(name==="archive")return v2Archive(profile);if(name==="loc")return v2Loc(profile);return {provider:name,items:[],health:{skipped:true,reason:"provider not configured"}};}
 async function v2LoadProfile(ch,profile,my){
   var key=profile.name,state=v2PreviewState[ch.num]||(v2PreviewState[ch.num]={items:[],cursor:0,currentTitle:"",provider:"SOURCE PILOT"});
   if(v2PreviewInflight[key])return v2PreviewFirstReady[key]||v2PreviewInflight[key];
@@ -8411,10 +8433,10 @@ async function v2LoadProfile(ch,profile,my){
   var readyResolve,readyReject;v2PreviewFirstReady[key]=new Promise(function(resolve,reject){readyResolve=resolve;readyReject=reject;});
   v2PreviewInflight[key]=(async function(){
      var rotation=v2NextRotation(key),previousId=state.items.length?String(state.items[Number(state.cursor||0)%state.items.length].id||""):"";
-     var providerList=(profile.providers||[]).filter(function(p){return p==="youtube"||p==="peertube";}).filter(function(p,i,a){return a.indexOf(p)===i;}),results=new Array(providerList.length),earlyReady=false,tasks;
+     var providerList=["server"].concat((profile.providers||[]).filter(function(p){return p==="youtube"||p==="peertube";})).filter(function(p,i,a){return a.indexOf(p)===i;}),results=new Array(providerList.length),earlyReady=false,tasks;
      function install(lanes,rememberCurrent,persist){var discovered=v2RoundRobin(lanes.map(function(x){return Array.isArray(x&&x.items)?x.items:[];})),prior=v2Unique(cachedItems.concat(state.items||[])),merged=v2Unique(prior.concat(discovered)),items=v2CatalogOrder(key,merged.filter(function(item){return v2Landscape(item)&&v2ProgramRuntimeOkay(item);}).slice(0,V2_SOURCE_CATALOG_SIZE));state.health=v2SourceHealth(key,lanes);if(items.length){var activeId=state.items.length?String(state.items[Number(state.cursor||0)%state.items.length].id||""):"",keepId=rememberCurrent?previousId:activeId,nextIndex=keepId?items.findIndex(function(x){return String(x.id||"")===keepId;}):-1;state.items=items;state.cursor=nextIndex>=0?nextIndex:(state.cursor%items.length+items.length)%items.length;state.provider=items.map(function(x){return x.provider;}).filter(function(x,i,a){return a.indexOf(x)===i;}).join(" + ");if(persist!==false)store.set("v2source:"+key,{version:V2_SOURCE_CACHE_VERSION,at:Date.now(),items:items,health:state.health});}refreshGuideData();}
      function publishFirst(index,result){if(!result||!Array.isArray(result.items)||!result.items.length)return;results[index]=result;install(results.filter(Boolean),true,false);if(profile.profileKey==="cooks-table"){var preferred=state.items.findIndex(function(item){return /women cooking at home|v-men.*cooking/i.test(String(item&&item.title||""));});if(preferred>=0)state.cursor=preferred;}if(!earlyReady&&state.items.length){earlyReady=true;if(readyResolve)readyResolve(state.items);}}
-     tasks=providerList.map(function(p,i){return v2Provider(p,profile,rotation,function(result){publishFirst(i,result);}).catch(function(e){return {provider:p,items:[],health:{error:String(e)}};});});
+     tasks=providerList.map(function(p,i){return v2Provider(p,profile,rotation,function(result){publishFirst(i,result);},force).then(function(result){if(result&&result.items&&result.items.length)publishFirst(i,result);return result;}).catch(function(e){return {provider:p,items:[],health:{error:String(e)}};});});
      var firstReady=new Promise(function(resolve){var left=tasks.length,done=false;tasks.forEach(function(task,i){task.then(function(result){results[i]=result;if(!done&&result&&result.items&&result.items.length){done=true;resolve(true);}if(!--left&&!done){done=true;resolve(false);}});});});
      await firstReady;install(results.filter(Boolean),true);if(!earlyReady&&readyResolve){earlyReady=true;readyResolve(state.items);}await Promise.all(tasks.map(function(task,i){return task.then(function(result){results[i]=result;install(results.filter(Boolean),false);});}));
      return state.items;

@@ -2359,8 +2359,8 @@ const CH=[
  {nm:"Monster Island", num:115,   cat:"MOV", gl:"kaiju",       era:[1954,2026], ns:"movie"}, /* Godzilla, Gamera, Toho — Japanese giant-monster cinema */
  {nm:"Blaxploitation", num:116,   cat:"MOV", gl:"blaxploit",   era:[1970,1985], ns:"movie"}, /* 70s Black action cinema — Shaft, Foxy Brown, Superfly, Coffy, Cleopatra Jones */
  {nm:"The Festival Circuit", num:117, cat:"MOV", gl:"indiefilm", era:[1980,2026], ns:"movie"}, /* Sundance-adjacent indie features + short films from 80s-00s */
- {nm:"Modern Archive Cinema", num:121, cat:"MOV", gl:"modernarchivecinema", era:[1980,2026], ns:"movie"}, /* IA feature films from the 1980s through today */
- {nm:"Archive Genre Cinema", num:122, cat:"MOV", gl:"archivegenrecinema", era:[1980,2026], ns:"movie"}, /* IA horror, sci-fi, action, mystery and cult features from 1980-present */
+ {nm:"Modern Archive Cinema", num:135, cat:"MOV", gl:"modernarchivecinema", era:[1980,2026], ns:"movie"}, /* IA feature films from the 1980s through today */
+ {nm:"Archive Genre Cinema", num:136, cat:"MOV", gl:"archivegenrecinema", era:[1980,2026], ns:"movie"}, /* IA horror, sci-fi, action, mystery and cult features from 1980-present */
  /* BRITISH SUITE · 118–131. One flagship plus distinct, non-overlapping editorial lanes. */
  {nm:"Blighty", num:118,            cat:"BRIT", gl:"british",     era:[1945,2026], ns:"tv"}, /* British TV + cinema flagship */
  {nm:"The Beeb", num:121,           cat:"BRIT", gl:"british",     era:[1930,2026], ns:"tv"},
@@ -5114,7 +5114,7 @@ const PROGRAM = {
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
 
-  /* Modern Archive Cinema (ch 121) — feature-length IA cinema from 1980 through
+  /* Modern Archive Cinema (ch 135) — feature-length IA cinema from 1980 through
      the present. This is intentionally broad by genre but strict about film form,
      so one old collection cannot monopolize the shelf. */
   "Modern Archive Cinema": {
@@ -5132,7 +5132,7 @@ const PROGRAM = {
     diversity: {maxPerEra: 3, maxPerLane: 2, maxPerCreator: 1, maxPerCollection: 2}
   },
 
-  /* Archive Genre Cinema (ch 122) — a separate 1980-present genre shelf for
+  /* Archive Genre Cinema (ch 136) — a separate 1980-present genre shelf for
      horror, science fiction, action, mystery, western and cult features. */
   "Archive Genre Cinema": {
     genre: "archivegenrecinema", era: [1980, 2026], minRuntimeSeconds: 3600,

@@ -1746,7 +1746,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="5.5.10-source-suite-ia-targeted-depth-repair";
+window.__ATV_BUILD="5.5.11-source-suite-guide-lineup-cleanup";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -2302,13 +2302,8 @@ const CH=[
  {nm:"Midnight Matinee", num:132,  cat:"MOV", gl:"midnightmatinee", era:[1940,2026], ns:"movie"},
  {nm:"The Stage Door", num:133,    cat:"MOV", gl:"stagedoor", era:[1930,2026], ns:"movie"},
  {nm:"Darcys Playground", num:134, cat:"MOV", gl:"darcysplayground", era:[1970,2026], ns:"movie"},
- {nm:"1990s TV (Pilot)", num:90,  cat:"TV", gl:"tv1990pilot", era:[1990,1999], ns:"tv"},
  {nm:"Classic Rerun TV", num:10,  cat:"TV", gl:"sitcom",       era:[1930,1989], ns:"tv"},
  {nm:"Modern Rerun TV", num:11,   cat:"TV", gl:"sitcommodern", era:[1980,2026], ns:"tv"},
- {nm:"1960s TV (Pilot)", num:16,  cat:"TV", gl:"tv1960pilot", era:[1960,1969], ns:"tv"},
- {nm:"1970s TV (Pilot)", num:22,  cat:"TV", gl:"tv1970pilot", era:[1970,1979], ns:"tv"},
- {nm:"1980s TV (Pilot)", num:23,  cat:"TV", gl:"tv1980pilot", era:[1980,1989], ns:"tv"},
- {nm:"2000s TV (Pilot)", num:24,  cat:"TV", gl:"tv2000pilot", era:[2000,2009], ns:"tv"},
  {nm:"Game Show Channel", num:12, cat:"TV", gl:"gameshow",     era:[1940,2026], ns:"tv"},
  {nm:"Old Nick", num:19, cat:"TV", gl:"nickatnite", era:[1950,1985], ns:"tv"}, /* Nick at Nite era classic sitcoms — moved 13→19 to clear collision with Vintage Commercials */
  {nm:"The Court Room", num:20, cat:"TV", gl:"courtroom", era:[1980,2020], ns:"tv"}, /* Judge shows — People's Court, Judge Judy, Judge Wapner — moved 14→20 to clear Computer Chronicles collision */
@@ -2686,11 +2681,6 @@ const CHANNEL_META={
 "Music Films":{desc:"Soundies, musical shorts and performance films.",best:"evenings",rel:["Live Concerts","Jukebox 78"]},
 "Classic Rerun TV":{desc:"1950s-60s television: sitcoms, anthologies, the rerun rotation.",best:"evenings",rel:["Modern Rerun TV","Game Show Channel"]},
 "Modern Rerun TV":{desc:"TV from the 1980s through today, taped and syndicated.",best:"anytime",rel:["Classic Rerun TV","VHS Vault"]},
-"1960s TV (Pilot)":{desc:"Pilot lane: verified television episodes whose episode-era metadata lands in the 1960s.",best:"anytime",rel:["Classic Rerun TV","Game Show Channel"]},
-"1990s TV (Pilot)":{desc:"Pilot lane: verified television episodes whose episode-era metadata lands in the 1990s.",best:"anytime",rel:["Modern Rerun TV","Game Show Channel"]},
-"1970s TV (Pilot)":{desc:"Pilot lane: verified television episodes whose episode-era metadata lands in the 1970s.",best:"anytime",rel:["Classic Rerun TV","Modern Rerun TV"]},
-"1980s TV (Pilot)":{desc:"Pilot lane: verified television episodes whose episode-era metadata lands in the 1980s.",best:"anytime",rel:["Classic Rerun TV","Modern Rerun TV"]},
-"2000s TV (Pilot)":{desc:"Pilot lane: verified long-form television episodes from the 2000s, balanced across series families.",best:"anytime",rel:["Modern Rerun TV","1990s TV (Pilot)"]},
 "Old Nick":{desc:"Nick at Nite classic-sitcom vault — I Love Lucy, Bewitched, Dick Van Dyke, Andy Griffith, Brady Bunch, Odd Couple, Taxi, Happy Days, Get Smart, Beverly Hillbillies.",best:"evenings",rel:["Classic Rerun TV","Modern Rerun TV"]},
 "The Court Room":{desc:"Judge shows and small-claims TV — People's Court, Judge Judy, Judge Wapner, Divorce Court, Judge Mathis, Judge Joe Brown, Judge Alex.",best:"afternoons",rel:["Court TV","Old Nick"]},
 "Game Show Channel":{desc:"Panel shows, quizzes and game shows across every era.",best:"daytime",rel:["Classic Rerun TV"]},
@@ -5621,43 +5611,6 @@ const PROGRAM = {
     subjRequired: true, noBlindFallback: true
   },
 
-  /* Decade pilots: strict episode-year lanes used only to test whether
-     decade browsing has enough verified depth to become permanent channels. */
-  "1960s TV (Pilot)": {
-    genre: "tv1960pilot", era: [1960, 1969], eraBuckets: [[1960, 1969]],
-    queueTerms: ["1960s television", "1960s tv", "classic television", "television series", "tv series", "sitcom", "anthology series", "variety show", "game show", "drama series", "comedy series"],
-    fastSubjects: ["television", "classic television", "television series", "tv series", "sitcom", "anthology series", "variety show", "game show"],
-    fastCollections: ["classic_tv_1960s", "classic_tv", "television"],
-    wideCollections: ["classic_tv_1960s", "classic_tv", "television"],
-    deepCollections: ["classic_tv_1960s", "classic_tv", "television"],
-    deepTitleTerms: ["episode", "episodes", "season", "television", "tv series", "sitcom", "anthology", "variety show", "game show"],
-    providers: [
-      {collections: ["classic_tv_1960s", "classic_tv", "television"], require_subj: ["television", "classic television", "television series", "tv series", "sitcom", "anthology series", "variety show", "game show", "drama series", "comedy series"]},
-      {collections: ["vhsvault", "opensource_movies"], require_subj: ["1960s television", "1960s tv", "television series", "tv series", "sitcom", "variety show", "game show"]}
-    ],
-    deny: {title: ["feature film", "full movie", "movie", "movies", "movies archive", "tv series & movies", "cartoon", "animated", "news", "commercial", "commercial break", "station ident", "interview", "documentary", "podcast", "how to", "tutorial", "trailer", "review", "radio"], subject: ["feature film", "movie", "movies", "cartoon", "animated", "news", "newscast", "commercial", "advertising", "commercial break", "station ident", "interview", "documentary", "educational", "podcast", "lecture", "radio only"]},
-    require: {title_or_subject_any: ["television", "tv series", "sitcom", "anthology", "variety show", "game show", "drama series", "comedy series"]},
-    minRuntimeSeconds: 900, themeMinScore: 1, depthQuerySpread: true, subjRequired: true, noBlindFallback: true,
-    diversity: {maxPerEra: 4, maxPerLane: 2, maxPerCreator: 1, maxPerCollection: 1, maxPerFamily: 1}
-  },
-  "1990s TV (Pilot)": {
-    genre: "tv1990pilot", era: [1990, 1999], eraBuckets: [[1990, 1999]],
-    queueTerms: ["1990s television", "1990s tv", "television series", "tv series", "sitcom", "comedy series", "drama series", "game show", "variety show", "talk show"],
-    fastSubjects: ["television", "1990s television", "television series", "tv series", "sitcom", "comedy series", "drama series", "game show"],
-    fastCollections: ["classic_tv_1990s", "classic_tv", "television"],
-    wideCollections: ["classic_tv_1990s", "classic_tv", "television"],
-    deepCollections: ["classic_tv_1990s", "classic_tv", "television", "vhsvault"],
-    deepTitleTerms: ["episode", "episodes", "season", "television", "tv series", "sitcom", "comedy series", "drama series", "game show", "talk show"],
-    providers: [
-      {collections: ["classic_tv_1990s", "classic_tv", "television"], require_subj: ["television", "1990s television", "television series", "tv series", "sitcom", "comedy series", "drama series", "game show", "variety show"]},
-      {collections: ["vhsvault", "opensource_movies"], require_subj: ["1990s television", "1990s tv", "television series", "tv series", "sitcom", "comedy series", "talk show"]}
-    ],
-    deny: {title: ["feature film", "full movie", "movie", "movies", "movies archive", "tv series & movies", "cartoon", "animated", "news", "commercial", "commercial break", "station ident", "interview", "documentary", "astronomer", "astronomy", "magic school bus", "roli polie olie", "hometime", "plumbing", "pbs", "podcast", "how to", "tutorial", "trailer", "review", "radio"], subject: ["feature film", "movie", "movies", "cartoon", "animated", "news", "newscast", "commercial", "advertising", "commercial break", "station ident", "interview", "documentary", "astronomer", "astronomy", "magic school bus", "roli polie olie", "children", "kids", "preschool", "educational", "informational", "pbs", "podcast", "lecture", "radio only"]},
-    require: {title_or_subject_any: ["television", "tv series", "sitcom", "comedy series", "drama series", "game show", "variety show", "talk show"]},
-    minRuntimeSeconds: 900, themeMinScore: 1, depthQuerySpread: true, subjRequired: true, noBlindFallback: true,
-    diversity: {maxPerEra: 4, maxPerLane: 2, maxPerCreator: 1, maxPerCollection: 1, maxPerFamily: 1}
-  },
-
   /* Game Show Channel — user asked for all-era game show content, not just 1950s.
      Enumerate every classic_tv decade bucket plus vhsvault, and load the subject
      list with the show titles IA uploaders actually put in metadata (Jeopardy!,
@@ -6520,47 +6473,11 @@ const PROGRAM = {
   },
 };
 
-/* Temporary decade pilots: strict television-only lanes used to validate
-   series-aware family rotation across more than the original 1960s/1990s pair. */
-function rsDecadeTvPilot(genre, years, decade, collection) {
-  const televisionTerms = ["television", "classic television", "television series", "tv series", "sitcom", "anthology series", "variety show", "game show", "drama series", "comedy series", "talk show"];
-  const decadeTerms = [`${decade}s television`, `${decade}s tv`];
-  const collections = [collection, "classic_tv", "television"];
-  return {
-    genre, era: years, eraBuckets: [years],
-    queueTerms: [...decadeTerms, ...televisionTerms],
-    fastSubjects: televisionTerms,
-    fastCollections: collections,
-    wideCollections: collections,
-    deepCollections: [...collections, "vhsvault"],
-    deepTitleTerms: ["episode", "episodes", "season", ...televisionTerms],
-    providers: [
-      {collections, require_subj: televisionTerms},
-      {collections: ["vhsvault", "opensource_movies"], require_subj: [...decadeTerms, "television series", "tv series", "sitcom", "variety show", "game show"]},
-    ],
-    deny: {
-      title: ["feature film", "full movie", "movie", "movies", "tv series & movies", "cartoon", "animated", "news", "commercial", "station ident", "interview", "documentary", "podcast", "how to", "tutorial", "trailer", "review", "radio"],
-      subject: ["feature film", "movie", "movies", "cartoon", "animated", "news", "newscast", "commercial", "advertising", "station ident", "interview", "documentary", "educational", "podcast", "lecture", "radio only"],
-    },
-    require: {title_or_subject_any: ["television", "tv series", "sitcom", "anthology", "variety show", "game show", "drama series", "comedy series", "talk show"]},
-    minRuntimeSeconds: 900, themeMinScore: 1, depthQuerySpread: true, subjRequired: true, noBlindFallback: true,
-    diversity: {maxPerEra: 4, maxPerLane: 2, maxPerCreator: 1, maxPerCollection: 1, maxPerFamily: 1},
-  };
-}
-Object.assign(PROGRAM, {
-  "1970s TV (Pilot)": rsDecadeTvPilot("tv1970pilot", [1970, 1979], "1970", "classic_tv_1970s"),
-  "1980s TV (Pilot)": rsDecadeTvPilot("tv1980pilot", [1980, 1989], "1980", "classic_tv_1980s"),
-  "2000s TV (Pilot)": rsDecadeTvPilot("tv2000pilot", [2000, 2009], "2000", "classic_tv_2000s"),
-});
-
 /* Editorial lane overlay: these are programming rules, not clock schedules.
    Provider/deny definitions above remain the authority for channel identity. */
 const PROGRAM_EDITORIAL={
   "Darcys Playground":{eraBuckets:[[1984,1989],[1990,1995],[1996,2000],[2012,2018],[2019,2026]],topicBuckets:[["joe bob's drive-in theater"],["tnt monstervision","monstervision"],["joe bob briggs","monstervision"],["the last drive-in","last drive in"],["joe bob family reunion","joe bob tcm"]]},
   "Classic Rerun TV":{eraBuckets:[[1930,1939],[1940,1949],[1950,1959],[1960,1969],[1970,1979],[1980,1989]],topicBuckets:[["variety show","comedy variety"],["anthology series","television drama"],["family sitcom","situation comedy"],["detective tv","crime tv"],["variety show","comedy series"],["television comedy","television series"]]},
- "1970s TV (Pilot)":{eraBuckets:[[1970,1979]],topicBuckets:[["sitcom","television series"],["variety show"],["game show"],["drama series"]]},
- "1980s TV (Pilot)":{eraBuckets:[[1980,1989]],topicBuckets:[["sitcom","television series"],["variety show"],["game show"],["drama series"]]},
-  "2000s TV (Pilot)":{eraBuckets:[[2000,2009]],topicBuckets:[["sitcom","television series"],["game show"],["talk show"],["court show"],["late night"]]},
   "Modern Rerun TV":{eraBuckets:[[1980,1989],[1990,1999],[2000,2009],[2010,2026]],topicBuckets:[["family sitcom"],["workplace sitcom"],["ensemble sitcom"],["syndicated comedy"]]},
   "Game Show Channel":{eraBuckets:[[1940,1949],[1950,1959],[1960,1969],[1970,1979],[1980,1989],[1990,1999],[2000,2026]],topicBuckets:[["panel show"],["quiz show"],["word game"],["pricing game"],["dating game"],["stunt game"],["game show","quiz show"]]},
   "Vintage Commercials":{eraBuckets:[[1930,1949],[1950,1959],[1960,1969],[1970,1979],[1980,1989],[1990,1999],[2000,2009],[2010,2019],[2020,2026]],topicBuckets:[["food commercial"],["automobile commercial"],["toy commercial"],["technology commercial"],["household commercial"],["public service announcement"],["brand commercial"],["product commercial"],["commercial break"]]},
@@ -7462,7 +7379,7 @@ var IA_API_BASE=RS_CANARY_API?(RS_CANARY_API+(RS_V3_CANARY?'v3':'v2')):(RS_V3_CA
 function iaSessionId(){var key="realsignal:v2-session",value="";try{value=localStorage.getItem(key)||"";if(!value){value="s-"+(crypto&&crypto.randomUUID?crypto.randomUUID():Date.now()+"-"+Math.random().toString(36).slice(2));localStorage.setItem(key,value);}}catch(e){}return String(value||"anonymous").slice(0,80);}
 /* One selected program, two hot verified candidates, and a deeper server
    catalog behind session rotation. The browser never owns freshness. */
-async function iaQueueFetch(body){var decadePilot=!!(body&&body.decadePilot===true),requestBody={...body,sessionId:iaSessionId(),serverCatalog:!decadePilot};var options={method:"POST",mode:"cors",headers:{"content-type":"application/json","x-realsignal-session":iaSessionId()},body:JSON.stringify(requestBody)},v2Payload=null,v2Error=null;if(decadePilot){try{var pilotRelay=await fetch(IA_RELAY_BASE+"/queue",options);if(pilotRelay.ok){var pilotPayload=await pilotRelay.json();if(pilotPayload&&Array.isArray(pilotPayload.items)&&pilotPayload.items.length)return pilotPayload;}}catch(e){}}try{var response=await fetch(IA_API_BASE+"/ia/queue",options);if(response.ok){v2Payload=await response.json();if(v2Payload&&Array.isArray(v2Payload.items)&&v2Payload.items.length)return v2Payload;}else v2Error=new Error("v2 queue "+response.status);}catch(e){v2Error=e;}try{var legacy=await fetch(IA_RELAY_BASE+"/queue",options);if(legacy.ok){var legacyPayload=await legacy.json();if(legacyPayload&&Array.isArray(legacyPayload.items)&&legacyPayload.items.length)return legacyPayload;if(!v2Payload)return legacyPayload;}}catch(e){}if(v2Payload)return v2Payload;throw v2Error||new Error("queue unavailable");}
+async function iaQueueFetch(body){var requestBody={...body,sessionId:iaSessionId(),serverCatalog:true};var options={method:"POST",mode:"cors",headers:{"content-type":"application/json","x-realsignal-session":iaSessionId()},body:JSON.stringify(requestBody)},v2Payload=null,v2Error=null;try{var response=await fetch(IA_API_BASE+"/ia/queue",options);if(response.ok){v2Payload=await response.json();if(v2Payload&&Array.isArray(v2Payload.items)&&v2Payload.items.length)return v2Payload;}else v2Error=new Error("v2 queue "+response.status);}catch(e){v2Error=e;}try{var legacy=await fetch(IA_RELAY_BASE+"/queue",options);if(legacy.ok){var legacyPayload=await legacy.json();if(legacyPayload&&Array.isArray(legacyPayload.items)&&legacyPayload.items.length)return legacyPayload;if(!v2Payload)return legacyPayload;}}catch(e){}if(v2Payload)return v2Payload;throw v2Error||new Error("queue unavailable");}
 function iaReportPlayed(ch,it,reason){if(!ch||!it||it.isAd||ch.source)return;var meta=it.meta||{},id=meta.identifier||meta.id||it.identifier||it.id;if(!id)return;try{fetch(IA_RELAY_BASE+"/played",{method:"POST",mode:"cors",headers:{"content-type":"application/json","x-realsignal-session":iaSessionId()},body:JSON.stringify({channel:String(ch.num||""),id:String(id),title:meta.title||it.title||ch.nm,subject:meta.subject||meta.subjects||it.subject||"",year:meta.year||it.year||"",collection:meta.collection||it.collection||"",lane:meta.lane||it.lane||"",reason:reason||"visible"})}).catch(function(){});}catch(e){}}
 function iaRelaySearchURL(q,rows,page,sort){return IA_RELAY_BASE+"/search?"+[
   "q="+encodeURIComponent(q),"rows="+encodeURIComponent(rows),"page="+encodeURIComponent(page),"sort="+encodeURIComponent(sort||"downloads desc")].join("&");}
@@ -7559,10 +7476,6 @@ function iaProgramAllowed(item,sl){
   if(sl.channel&&!freshnessFallback&&iaSkipBlocked(sl.channel,item))return false;
   if(!iaThemeMatches(item,sl))return false;
   if(p.deny){if((p.deny.title||[]).some(function(x){return title.indexOf(String(x).toLowerCase())>=0;}))return false;if((p.deny.subject||[]).some(function(x){return subj.indexOf(String(x).toLowerCase())>=0;}))return false;}
-  /* Decade pilots are intentionally stricter than the broad IA lanes. Archive
-     collection children can lose the parent year during file expansion; do
-     not let that metadata gap turn a decade pilot into a mixed-era rerun lane. */
-  if(/^tv(?:1960|1990)pilot$/.test(String(p.genre||""))&&Array.isArray(p.era)&&p.era.length>=2){var yearMatch=String(item.year||"").match(/\b(?:19|20)\d{2}\b/);if(!yearMatch)yearMatch=String(item.title||"").match(/\b(?:19|20)\d{2}\b/);var itemYear=yearMatch?Number(yearMatch[0]):0;if(!itemYear||itemYear<Number(p.era[0])||itemYear>Number(p.era[1]))return false;}
   if(p.require&&p.require.title_any&&p.require.title_any.length&&!p.require.title_any.some(function(x){return title.indexOf(String(x).toLowerCase())>=0;})){
     /* Collection children may carry the station identity in validated subject
        metadata rather than in the child filename. Keep this opt-in so broad
@@ -7603,7 +7516,7 @@ async function iaLocalQueueFallbackMode(ch,sl,allowFreshnessFallback){
 }
 async function iaQueueRequest(ch,sl,count){
   var qs=iaQueueQueries(sl);if(!qs.length)return [];
-  try{var decadePilot=!!(sl&&sl.program&&/^tv(?:1960|1970|1980|1990|2000)pilot$/.test(String(sl.program.genre||""))),d=await withTO(iaQueueFetch({channel:iaQueueKey(ch),rotation:iaQueueRotationFor(ch),queries:decadePilot?qs.slice(0,16):qs,themeTerms:iaProgramThemeTerms(sl),denyTerms:iaProgramDenyTerms(sl),requiredTitleTerms:(sl&&sl.program&&sl.program.require&&sl.program.require.title_any)||[],diversity:iaQueueDiversity(sl),mediaTypes:ch&&ch.audio?["audio"]:["movies"],themeMinScore:Math.max(1,Math.min(12,Number(sl&&sl.program&&sl.program.themeMinScore)||1)),minRuntimeSeconds:Math.max(0,Number(sl&&sl.program&&sl.program.minRuntimeSeconds)||0),count:Math.max(1,Math.min(5,count||5)),decadePilot:decadePilot}),6500);
+  try{var d=await withTO(iaQueueFetch({channel:iaQueueKey(ch),rotation:iaQueueRotationFor(ch),queries:qs,themeTerms:iaProgramThemeTerms(sl),denyTerms:iaProgramDenyTerms(sl),requiredTitleTerms:(sl&&sl.program&&sl.program.require&&sl.program.require.title_any)||[],diversity:iaQueueDiversity(sl),mediaTypes:ch&&ch.audio?["audio"]:["movies"],themeMinScore:Math.max(1,Math.min(12,Number(sl&&sl.program&&sl.program.themeMinScore)||1)),minRuntimeSeconds:Math.max(0,Number(sl&&sl.program&&sl.program.minRuntimeSeconds)||0),count:Math.max(1,Math.min(5,count||5))}),6500);
     var rawItems=Array.isArray(d&&d.items)?d.items:[];
     var out=rawItems.filter(function(it){return iaProgramAllowed(it,sl);});
     /* A channel can have a healthy, genre-verified catalog while this device's

@@ -21,7 +21,7 @@ function registrySection(key) {
   return sourceRegistry.slice(start, next >= 0 ? next + 5 : sourceRegistry.length);
 }
 const blackStageSection = registrySection('black-stage');
-if (!blackStageSection.includes('"intent": "performance"') || !blackStageSection.includes('"formatRelaxed": true') || !blackStageSection.includes('"full performance"') || !blackStageSection.includes('"audiobook"') || !blackStageSection.includes('"harry potter"') || !blackStageSection.includes('"a black comedy"')) issues.push('black-stage must use long-form performance discovery and reject audiobook/chapter/movie false positives');
+if (!blackStageSection.includes('"intent": "performance"') || !blackStageSection.includes('"formatRelaxed": true') || !blackStageSection.includes('"queryWindow": 6') || !blackStageSection.includes('"full performance"') || !blackStageSection.includes('"African American"') || !blackStageSection.includes('"audiobook"') || !blackStageSection.includes('"harry potter"') || !blackStageSection.includes('"a black comedy"')) issues.push('black-stage must use a bounded deep performance catalog, admit real African American performance signals, and reject audiobook/chapter/movie false positives');
 const gardenLedgerSection = registrySection('garden-ledger');
 if (!gardenLedgerSection.includes('"podcast"') || !gardenLedgerSection.includes('"linux"') || gardenLedgerSection.includes('\n      "garden",')) issues.push('garden-ledger must reject podcasts/software/military false positives and avoid the broad garden signal');
 for (const key of ['holiday-movie-house', 'holiday-cartoon-club', 'christmas-movie-house', 'christmas-cartoon-club', 'halloween-movie-house', 'halloween-cartoon-club']) {
@@ -57,7 +57,7 @@ for (const key of ['print-shop', 'screen-test', 'sound-lab', 'stage-door', 'vari
   const start = sourceRegistry.indexOf(`"${key}":`);
   const next = sourceRegistry.indexOf('\n  },', start);
   const section = sourceRegistry.slice(start, next >= 0 ? next + 5 : sourceRegistry.length);
-  if (!section.includes('"queryLimit": 16') || (!section.includes('"peerTubeQueryWindow": 2') && !section.includes('"peerTubeQueryWindow": 4') && !section.includes('"peerTubeQueryWindow": 6')) || (!section.includes('"peerTubeInstanceLimit": 1') && !section.includes('"peerTubeInstanceLimit": 2')) || (!section.includes('"peerTubeDetailLimit": 12') && !section.includes('"peerTubeDetailLimit": 24')) || (!section.includes('"peerTubeFallbackQueryWindow": 2') && !section.includes('"peerTubeFallbackQueryWindow": 4')) || !section.includes('"peerTubeInstances": ["https://search.joinpeertube.org"')) issues.push(`${key} must retain the bounded expanded query pool for serial source rotations`);
+if (!section.includes('"queryLimit": 16') || (!section.includes('"peerTubeQueryWindow": 2') && !section.includes('"peerTubeQueryWindow": 4') && !section.includes('"peerTubeQueryWindow": 6')) || (!section.includes('"peerTubeInstanceLimit": 1') && !section.includes('"peerTubeInstanceLimit": 2')) || (!section.includes('"peerTubeDetailLimit": 12') && !section.includes('"peerTubeDetailLimit": 24')) || (!section.includes('"peerTubeFallbackQueryWindow": 2') && !section.includes('"peerTubeFallbackQueryWindow": 4') && !section.includes('"peerTubeFallbackQueryWindow": 6')) || !section.includes('"peerTubeInstances": ["https://search.joinpeertube.org"')) issues.push(`${key} must retain the bounded expanded query pool for serial source rotations`);
 }
 for (const key of ['sound-lab', 'screen-test', 'western-screen', 'variety-hour', 'jukebox-television', 'garden-ledger', 'stage-door', 'print-shop', 'memory-bank', 'lesson-reel', 'local-signal']) {
   const start = sourceRegistry.indexOf(`"${key}":`);
@@ -69,7 +69,7 @@ for (const key of ['screen-test', 'western-screen', 'variety-hour', 'jukebox-tel
   const start = sourceRegistry.indexOf(`"${key}":`);
   const next = sourceRegistry.indexOf('\n  },', start);
   const section = sourceRegistry.slice(start, next >= 0 ? next + 5 : sourceRegistry.length);
-  if (!section.includes('"peerTubeQueryWindow": 4') || !section.includes('"peerTubeFallbackQueryWindow": 4')) issues.push(`${key} must use the full bounded curated query window after its shallow-lane failure`);
+  if ((!section.includes('"peerTubeQueryWindow": 4') && !section.includes('"peerTubeQueryWindow": 6')) || (!section.includes('"peerTubeFallbackQueryWindow": 4') && !section.includes('"peerTubeFallbackQueryWindow": 6'))) issues.push(`${key} must use the full bounded curated query window after its shallow-lane failure`);
 }
 for (const key of ['sound-lab', 'memory-bank']) {
   const start = sourceRegistry.indexOf(`"${key}":`);
@@ -82,7 +82,7 @@ for (const [key, terms] of Object.entries({
   'screen-test': ['"oil exploration"', '"petroleum"', '"drilling"'],
   'sound-lab': ['"ambient sounds"', '"slugtv"', '"podcast"'],
   'animal-care': ['"team presentation"', '"judging session"'],
-  'garden-ledger': ['"strange horticulture"', '"video game"', '"walkthrough"'],
+  'garden-ledger': ['"strange horticulture"', '"video game"', '"walkthrough"', '"diecast"', '"toy restoration"'],
 })) {
   const start = sourceRegistry.indexOf(`"${key}":`);
   const next = sourceRegistry.indexOf('\n  },', start);

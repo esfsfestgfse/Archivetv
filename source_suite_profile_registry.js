@@ -1023,17 +1023,26 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   },
   "black-stage": {
     "name": "Black Stage",
-    "queryLimit": 8,
+    "queryLimit": 16,
+    "queryWindow": 6,
+    "peerTubeQueryWindow": 6,
+    "peerTubeFallbackQueryWindow": 6,
+    "peerTubeInstanceLimit": 2,
+    "peerTubeDetailLimit": 24,
+    "peerTubeInstances": ["https://search.joinpeertube.org", "https://tilvids.com"],
     "intent": "performance",
     "formatRelaxed": true,
     "topics": [
-      "Black performance",
-      "African American theatre",
+      "Black theatre",
+      "Black theater",
+      "African American",
+      "Black arts",
       "Black comedy",
       "Black dance",
       "soul performance",
-      "Black arts",
-      "African American culture"
+      "stage play",
+      "dance performance",
+      "live performance"
     ],
     "formats": [
       "full performance",
@@ -1049,23 +1058,33 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "youtube"
     ],
     "queries": [
-      "Black theatre full performance",
+      "Black theatre full play",
+      "Black theater complete performance",
       "African American stage play full",
+      "African American theatre full performance",
       "Black comedy full performance",
       "Black dance full performance",
       "soul performance full concert",
       "Black arts full program",
       "African American music performance full",
-      "Black television performance full episode"
+      "Black television performance full episode",
+      "Black stage play complete",
+      "Black live performance full show",
+      "African American dance full performance",
+      "Black performance archive full"
     ],
     "match": [
-      "Black performance",
-      "African American theatre",
+      "Black theatre",
+      "Black theater",
+      "African American",
+      "Black arts",
       "Black comedy",
       "Black dance",
       "soul performance",
-      "Black arts",
-      "African American culture"
+      "stage play",
+      "dance performance",
+      "live performance",
+      "Black performance"
     ],
     "deny": [
       "fictional",
@@ -1295,10 +1314,10 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "name": "Garden Ledger",
     "queryLimit": 16,
     "queryWindow": 6,
-    "peerTubeQueryWindow": 4,
+    "peerTubeQueryWindow": 6,
     "peerTubeInstanceLimit": 1,
-    "peerTubeDetailLimit": 12,
-    "peerTubeFallbackQueryWindow": 4,
+    "peerTubeDetailLimit": 24,
+    "peerTubeFallbackQueryWindow": 6,
     "peerTubeInstances": ["https://search.joinpeertube.org"],
     "peerTubeQueries": [
       "garden restoration documentary",
@@ -1306,7 +1325,13 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "plant conservation documentary",
       "public garden tour documentary",
       "botanical garden documentary",
-      "horticulture documentary full"
+      "horticulture documentary full",
+      "gardening full documentary",
+      "horticulture full program",
+      "botanical garden full documentary",
+      "landscape gardening full program",
+      "plant cultivation documentary",
+      "community garden documentary"
     ],
     "providers": [
       "peertube",
@@ -1370,7 +1395,13 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "war footage",
       "product review",
       "influencer",
-      "affiliate"
+      "affiliate",
+      "diecast",
+      "majorette",
+      "toy restoration",
+      "model car",
+      "logging truck",
+      "truck restoration"
     ]
   },
   "animal-care": {

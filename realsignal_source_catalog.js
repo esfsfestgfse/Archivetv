@@ -157,9 +157,11 @@ function normalizedProfile(body) {
     youtubeDiscoveryWindow: Math.max(0, Math.min(6, Number(approved.youtubeDiscoveryWindow) || 0)),
     youtubeDiscoveryQueries: list(approved.youtubeDiscoveryQueries, 12),
     youtubeDiscoveredChannelWindow: Math.max(0, Math.min(12, Number(approved.youtubeDiscoveredChannelWindow) || 0)),
+    youtubeChannelDiscoveryOnMaintenance: approved.youtubeChannelDiscoveryOnMaintenance !== false,
     youtubeChannelPageWindow: Math.max(1, Math.min(4, Number(approved.youtubeChannelPageWindow) || (approved.deepCatalog === true ? 3 : 1))),
     youtubeSearchPageWindow: Math.max(1, Math.min(3, Number(approved.youtubeSearchPageWindow) || 1)),
     youtubeSearchOnViewer: approved.youtubeSearchOnViewer !== false,
+    youtubeSearchOnMaintenance: approved.youtubeSearchOnMaintenance !== false,
     youtubeChannelDeny: list(approved.youtubeChannelDeny, 24),
     youtubeChannelRequired: list(approved.youtubeChannelRequired, 16),
     providers: list(approved.providers, 2).map((value) => value.toLowerCase()),
@@ -348,7 +350,7 @@ async function youtubeChannelUploads(profile, rotation, env, options = {}) {
   const firstLane = options.firstLane === true;
   const key = text(env && env.YOUTUBE_API_KEY, 180);
   const anchors = rotate(profile.youtubeChannelHandles || [], rotation).slice(0, firstLane ? 1 : (profile.youtubeChannelWindow || 2)).map((seed) => ({ seed, discovered: false }));
-  const discoveryEnabled = profile.deepCatalog === true && options.maintenance === true;
+  const discoveryEnabled = profile.deepCatalog === true && options.maintenance === true && profile.youtubeChannelDiscoveryOnMaintenance !== false;
   const discovery = discoveryEnabled ? await youtubeDiscoverChannels(profile, rotation, env, options) : { items: [], health: { queries: 0, candidates: 0, accepted: 0 } };
   const discovered = discovery.items.map((item) => ({ seed: item.seed, discovered: true }));
   const seeds = [...anchors, ...discovered].filter((item, index, all) => all.findIndex((candidate) => candidate.seed === item.seed) === index).slice(0, firstLane ? 1 : Math.max(profile.youtubeChannelWindow || 2, anchors.length + discovered.length));
@@ -423,7 +425,10 @@ async function youtube(profile, rotation, env, options = {}) {
   const queries = youtubeQueries(profile, rotation).slice(0, firstLane ? 1 : undefined);
   const orders = ["relevance", "date", "viewCount"];
   const order = orders[(Number(rotation) || 0) % orders.length];
-  const searchEnabled = profile.youtubeSearchOnViewer !== false || options.maintenance === true;
+  /* A deep profile may be backed entirely by approved channel upload rails.
+     In that case maintenance search only burns quota and invites unrelated
+     fan uploads; the upload pages are the durable discovery source. */
+  const searchEnabled = profile.youtubeSearchOnViewer !== false || (options.maintenance === true && profile.youtubeSearchOnMaintenance !== false);
   const jobs = searchEnabled ? queries.map((query) => async () => {
     const pageItems = [];
     let pageToken = "";

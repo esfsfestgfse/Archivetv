@@ -1796,41 +1796,30 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   },
   "movie-house": {
     "name": "Movie House",
-    "queryLimit": 8,
-    "providers": [
-      "peertube",
-      "youtube"
-    ],
+    "queryLimit": 16,
+    "queryWindow": 6,
+    "peerTubeQueryWindow": 6,
+    "peerTubeInstanceLimit": 6,
+    "peerTubeDetailLimit": 16,
+    "peerTubeFallbackQueryWindow": 6,
+    "peerTubeInstances": ["https://search.joinpeertube.org", "https://video.blender.org", "https://framatube.org", "https://peertube.uno", "https://tilvids.com", "https://peertube.doesstuff.social", "https://peertube.dngr.us"],
+    "providers": ["peertube", "youtube"],
+    "intent": "film",
+    "topics": ["feature film", "full movie", "full-length film", "independent film", "public domain film", "movie", "film"],
+    "formats": ["full movie", "full film", "feature film", "complete movie", "full-length movie", "complete feature film", "movie", "film"],
     "queries": [
-      "film history documentary",
-      "cinema history film",
-      "movie making documentary",
-      "film preservation documentary",
-      "director career retrospective"
+      "full feature film 1980s", "full feature film 1990s", "full feature film 2000s",
+      "full feature film 2010s", "full feature film 2020s", "independent feature film full",
+      "public domain feature film full", "free movie full length", "classic movie full",
+      "cult movie full", "action movie full", "horror movie full", "sci-fi movie full",
+      "western movie full", "comedy movie full", "romance movie full"
     ],
-    "match": [
-      "film history",
-      "cinema history",
-      "movie making",
-      "film preservation",
-      "director retrospective",
-      "cinema documentary"
-    ],
-    "deny": [
-      "fictional",
-      "music video",
-      "commercial",
-      "cartoon",
-      "gameplay",
-      "trailer",
-      "reaction",
-      "movie recap",
-      "fan edit",
-      "shorts"
-    ]
+    "match": ["feature film", "feature movie", "full movie", "full length film", "independent film", "indie film", "public domain film", "complete movie", "movie", "film"],
+    "deny": ["shorts", "short film", "vertical", "trailer", "teaser", "clip", "recap", "review", "reaction", "podcast", "how to", "tutorial", "fan film", "fan-made", "parody", "music video", "commercial", "documentary", "film history", "film preservation", "movie commentary", "film explained", "lecture", "seminar", "conference", "panel discussion", "making of", "behind the scenes", "retrospective"]
   },
   "modern-free-cinema": {
     "name": "Modern Free Cinema",
+    "fallbackProfiles": ["movie-house"],
     "queryLimit": 16,
     "queryWindow": 6,
     "peerTubeQueryWindow": 6,
@@ -1860,7 +1849,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "peerTubeDetailLimit": 12,
     "peerTubeFallbackQueryWindow": 6,
     "peerTubeInstances": ["https://search.joinpeertube.org", "https://video.blender.org", "https://framatube.org", "https://peertube.uno", "https://tilvids.com", "https://peertube.doesstuff.social", "https://peertube.dngr.us"],
-    "fallbackProfiles": ["modern-free-cinema"],
+    "fallbackProfiles": ["modern-free-cinema", "movie-house"],
     "providers": ["peertube", "youtube"],
     "intent": "film",
     "topics": ["independent feature film", "independent movie", "indie feature", "festival feature", "arthouse feature", "public domain movie", "movie", "film"],

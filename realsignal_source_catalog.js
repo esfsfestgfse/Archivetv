@@ -31,7 +31,12 @@ const SOURCE_MAX_QUERY_WINDOW = 6;
 const SOURCE_YOUTUBE_QUERY_CONCURRENCY = 2;
 const SOURCE_MAX_CONCURRENCY = 4;
 const SOURCE_TIMEOUT_MS = 7000;
-const SOURCE_DETAIL_TIMEOUT_MS = 1800;
+/* PeerTube federation search is fast, but the selected instance often needs
+   a few seconds to return file/playlist metadata. The viewer still receives
+   the stale verified shelf immediately; this budget only controls background
+   catalog deepening and prevents healthy licensed films from being discarded
+   before their playable file is visible. */
+const SOURCE_DETAIL_TIMEOUT_MS = 3500;
 /* A provider that cannot produce a verified lane inside this budget is not a
    playback candidate. Let the other provider win, record the slow provider as
    unhealthy, and keep it out of the next shelf until its cooldown expires. */

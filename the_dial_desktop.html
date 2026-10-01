@@ -9,7 +9,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>REALSIGNAL · The Dial 5.2.2</title>
+<title>REALSIGNAL · The Dial 5.3.0</title>
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
@@ -572,10 +572,10 @@ html.mob .ot-detail{display:none}   /* phone: name + sport is enough, detail is 
 .tv-pane-live{width:100%;aspect-ratio:16/9;max-height:46vh;background:#000;border-radius:8px;
   overflow:hidden;margin-bottom:8px;position:relative}
 /* ---- Live TV: full-bleed video with an overlay guide ---- */
-.tv3-screen{position:relative;padding:0;overflow:hidden}
+.tv3-screen{position:relative;padding:0;overflow:hidden;background:radial-gradient(80% 90% at 50% 42%,rgba(15,42,76,.34),transparent 68%),linear-gradient(145deg,#02060d,#040b16 62%,#02040a)}
 /* Live TV must remain a full-screen surface after playTV applies legacy preview-pane classes. */
 .tv3-screen #tvPane.tv-pane-live{position:absolute!important;inset:0!important;width:auto!important;height:auto!important;max-height:none!important;aspect-ratio:auto!important;margin:0!important;border-radius:0!important}
-.tv3-video{position:absolute;inset:0;background:#000;display:flex;align-items:center;justify-content:center}
+.tv3-video{position:absolute;inset:0;background:radial-gradient(70% 70% at 50% 45%,rgba(19,50,82,.22),transparent 70%),repeating-linear-gradient(0deg,rgba(123,177,230,.035) 0 1px,transparent 1px 4px),#02050b;display:flex;align-items:center;justify-content:center}
 .tv3-video video{width:100%;height:100%;object-fit:contain;background:#000}
 .tv3-hud{position:absolute;left:0;right:0;top:0;z-index:12;display:flex;align-items:center;gap:8px;
   padding:6px 8px;background:linear-gradient(180deg,rgba(4,10,22,.85),rgba(4,10,22,0))}
@@ -591,6 +591,13 @@ html.mob .ot-detail{display:none}   /* phone: name + sport is enough, detail is 
 .tv3-close{flex:none;cursor:pointer;color:#9fc4ff;font-size:15px;padding:0 6px;line-height:1.9}
 .tv3-gmeta{flex:none;font:700 9px monospace;letter-spacing:1px;color:#7fb4ff;opacity:.8}
 .tv3-list{flex:1 1 auto;min-height:60px;overflow-y:auto;margin-right:26px}
+.tv3-video .dc-media-cap{z-index:3;left:50%;right:auto;top:50%;bottom:auto;transform:translate(-50%,-50%);width:min(620px,calc(100% - 48px));box-sizing:border-box;padding:24px 28px;border:1px solid rgba(127,180,255,.38);border-radius:12px;background:linear-gradient(145deg,rgba(6,18,34,.94),rgba(2,8,17,.91));box-shadow:0 18px 48px rgba(0,0,0,.38),inset 0 1px rgba(255,255,255,.08);color:#e5f1ff;font:900 clamp(12px,1.5vw,18px)/1.35 monospace;letter-spacing:1.2px;text-align:center;white-space:normal;text-overflow:clip}
+.tv3-video .dc-media-cap::before{content:"READY TO TUNE";display:block;margin-bottom:9px;color:#83baff;font-size:9px;letter-spacing:2.2px}
+.tv3-video.tv3-connecting .dc-media-cap::before{content:"CONNECTING TO LIVE TV";color:#ffd37a}
+.tv3-video.tv3-error .dc-media-cap{border-color:rgba(255,130,117,.48);background:linear-gradient(145deg,rgba(46,16,20,.94),rgba(16,7,12,.92));color:#ffe8e4}
+.tv3-video.tv3-error .dc-media-cap::before{content:"SIGNAL UNAVAILABLE";color:#ff9d8f}
+.tv3-video.tv3-playing .dc-media-cap{left:16px;right:16px;top:auto;bottom:14px;transform:none;width:auto;padding:7px 10px;border-color:rgba(255,226,122,.22);border-radius:6px;background:linear-gradient(90deg,rgba(2,8,15,.9),rgba(2,8,15,.58),transparent);box-shadow:none;color:#ffe27a;font-size:9px;letter-spacing:1px;text-align:left;white-space:nowrap}
+.tv3-video.tv3-playing .dc-media-cap::before{display:none}
 /* Live TV is picture-first. The directory is a proper side drawer on wide screens,
    not a second full-screen layer that turns the player into a thin strip. */
 .tv3-guide-label{flex:none;font:800 9px/1 monospace;letter-spacing:1.3px;color:#dbeaff;padding:2px 1px 0}
@@ -1685,7 +1692,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="5.2.2-desktop-guide-core";
+window.__ATV_BUILD="5.3.0-desktop-live-tv";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -12379,6 +12386,7 @@ function sortByHealthThenName(arr){
 }
 async function playTV(c,my,list,idx,triedCount,proxyIdx,altIdx){
   var pane=$("tvPane"); if(!pane||!c)return;
+  try{pane.classList.remove("tv3-playing","tv3-error","tv3-connecting");pane.classList.add("tv3-connecting");}catch(e){}
   /* pane starts collapsed (tv-pane-idle) so an empty black box doesn't push the channel list
      off-screen; expand it now that a channel has actually been chosen */
   try{ pane.classList.remove("tv-pane-idle"); pane.classList.add("tv-pane-live"); }catch(e){}
@@ -12396,6 +12404,7 @@ async function playTV(c,my,list,idx,triedCount,proxyIdx,altIdx){
     var castCh=byNum(curNum),castItem={id:"fast:"+tvHealthKey(c),url:castSrc,type:"video",title:c.name,alts:castAlts};
     if(typeof window.__rsCastPublishMedia==="function")window.__rsCastPublishMedia(castItem,castCh);
     pane.innerHTML='<div class="dc-media-cap">CASTING: '+esch(String(c.name).toUpperCase())+' · CONTROL FROM PHONE</div>';
+    pane.classList.remove("tv3-connecting","tv3-error");pane.classList.add("tv3-playing");
     return;
   }
   try{ if(tvHls){tvHls.destroy();tvHls=null;} }catch(e){}
@@ -12415,6 +12424,7 @@ async function playTV(c,my,list,idx,triedCount,proxyIdx,altIdx){
   function highlightRow(i){ var l=$("dcList"); if(!l)return; l.querySelectorAll("[data-ci]").forEach(function(x){x.classList.remove("sel");});
     var r=l.querySelector('[data-ci="'+i+'"]'); if(r)r.classList.add("sel"); }
   function fail(m){ if(my!==token)return; try{clearWatch();}catch(e){} nlog("livetv",false,c.name+": "+m);
+    try{pane.classList.remove("tv3-playing","tv3-connecting");pane.classList.add("tv3-error");}catch(e){}
     /* QA FIX (user-reported: "sometimes randomly selects the next channel ... id rather it just
        stay where its told to be"). Auto-advancing made sense while surfing, but when you pick a
        specific channel, silently hopping to a different one is wrong -- it should say what
@@ -12481,6 +12491,7 @@ async function playTV(c,my,list,idx,triedCount,proxyIdx,altIdx){
     if(settled||my!==token)return;
     if(!(v.currentTime>0))return;           /* nothing decoded yet */
     if(v.videoWidth>0){
+      pane.classList.remove("tv3-connecting","tv3-error");pane.classList.add("tv3-playing");
       settled=true; clearWatch(); markTvOk(c,Date.now()-tuneStartedAt); noteLiveStreamGuide(c);
       nlog("livetv",true,c.name+" playing "+v.videoWidth+"x"+v.videoHeight);
       return;
@@ -12489,6 +12500,7 @@ async function playTV(c,my,list,idx,triedCount,proxyIdx,altIdx){
        The clock is advancing and audio is decoding -- that stream IS working, it simply has no
        picture. Failing it over was wrong; label it instead so the black screen is explained. */
     if(v.readyState>=2){
+      pane.classList.remove("tv3-connecting","tv3-error");pane.classList.add("tv3-playing");
       settled=true; clearWatch(); markTvOk(c,Date.now()-tuneStartedAt); noteLiveStreamGuide(c);
       var capA=pane.querySelector(".dc-media-cap");
       if(capA) capA.textContent="\u266A AUDIO ONLY \u00b7 "+String(c.name).toUpperCase()+" (radio \u2014 no video track)";
@@ -12579,6 +12591,7 @@ async function tuneLiveTV(ch,sl,my){
        and picking a channel closes it automatically. */
     '<div class="tv3-video" id="tvPane"><div class="dc-media-cap" id="tvCap">PRESS GUIDE</div></div>'+
     '<div class="tv3-hud">'+
+      '<span class="tv3-brand"><span class="tv3-live-dot"></span>LIVE TV</span>'+
       '<span class="tv3-btn" id="tvGuideBtn">\u2630 GUIDE</span>'+
       '<span class="tv3-now" id="tvNowName"></span>'+
       '<span class="tv3-btn tv3-gear" id="tvProxyBtn">\u2699</span>'+

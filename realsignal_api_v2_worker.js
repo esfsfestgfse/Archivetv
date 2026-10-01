@@ -14,7 +14,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "5.5.3-source-suite-movie-recovery";
+const V3_RELEASE = "5.5.5-source-suite-movie-guard";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -845,7 +845,7 @@ function catalogFallbackAllowed(item, body) {
        can survive indefinitely just because it happens to share one topic
        word with the new TV/film lane. */
     if (/^(?:television|film|performance)$/.test(String(body.intent || ""))) {
-      const programDeny = /(?:history of|documentary about|retrospective|video essay|analysis|explained|lecture|seminar|webinar|conference|panel discussion|making of|movie making|filmmaking|film making|studio tour|educational film|behind the scenes|demo reel|showreel|workshop|masterclass|recap|production reel|festival reel)/i;
+      const programDeny = /(?:history of|documentary about|retrospective|video essay|analysis|explained|lecture|seminar|webinar|conference|panel discussion|making of|movie making|filmmaking|film making|studio tour|educational film|behind the scenes|demo reel|showreel|workshop|masterclass|recap|production reel|festival reel|fan[ -]?made|fan animation|unofficial|mashup|amv|gacha|roleplay|my little pony|\bpony\b)/i;
       const formats = Array.isArray(body.programFormats) ? body.programFormats : [];
       const topics = Array.isArray(body.topics) ? body.topics : [];
       if (programDeny.test(haystack)) return false;

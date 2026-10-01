@@ -9,7 +9,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>REALSIGNAL · The Dial 5.5.4</title>
+<title>REALSIGNAL · The Dial 5.5.5</title>
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
@@ -1707,7 +1707,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="5.5.4-source-suite-authoritative-movie";
+window.__ATV_BUILD="5.5.5-source-suite-movie-guard";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -8214,7 +8214,7 @@ function applyAV(){const el=screenArea.querySelector("video,audio");if(el){el.mu
    ===================================================================== */
 /* Source Suite is television programming, not a feed of clips.  Fifteen minutes
    is the floor for every lane; individual programs may of course run for hours. */
-var V2_SOURCE_CATALOG_SIZE=96,V2_SOURCE_READY_BUFFER=5,V2_SOURCE_MIN_CATALOG=12,V2_SOURCE_CACHE_VERSION=40,V2_SOURCE_CACHE_TTL=12*60*1000,V2_SOURCE_MAX_DETAIL=24,V2_SOURCE_MAX_CONCURRENCY=8,V2_SOURCE_MIN_RUNTIME=15*60;
+var V2_SOURCE_CATALOG_SIZE=96,V2_SOURCE_READY_BUFFER=5,V2_SOURCE_MIN_CATALOG=12,V2_SOURCE_CACHE_VERSION=42,V2_SOURCE_CACHE_TTL=12*60*1000,V2_SOURCE_MAX_DETAIL=24,V2_SOURCE_MAX_CONCURRENCY=8,V2_SOURCE_MIN_RUNTIME=15*60;
 const V2_PREVIEW_PROFILES={
   "public-health-archive":{name:"Public Health Archive",providers:["peertube","youtube"],queries:["public health film","sanitation film","medical education film","hospital documentary","epidemiology film"],match:["public health","health","sanitation","medical","hospital","epidemiology","epidemic","medicine"],deny:["fictional","horror","music video","commercial","cartoon","gameplay","wedding"]},
   "signal-room":{name:"The Signal Room",providers:["peertube","youtube"],queries:["telegraph history film","telephone history film","radio engineering film","broadcasting history film","communications technology film"],match:["telegraph","telephone","radio","broadcast","communication","telecom","signal","engineering"],deny:["fictional","music video","commercial","cartoon","gameplay","podcast","sermon"]},
@@ -8396,6 +8396,11 @@ async function v2PeerTubeCold(profile){
    intentionally kept behind the Worker secret. A server response may be
    shallow during background refill, but one verified item is enough to put a
    picture on air immediately; the next refresh deepens the shelf. */
+/* Final film gate: keep fan-made, unofficial, mashup, and children's-IP
+   uploads out even when an old cached row or a broad server shelf carries
+   only a misleading "full movie" phrase. */
+var rsMovieCandidateRelevant=v2CandidateRelevant;
+v2CandidateRelevant=function(profile,item){var identity=v2Text([item&&item.title,item&&item.tags,item&&item.subject,item&&item.category,item&&item.account]).toLowerCase();if((profile&&profile.intent)==="film"&&/(?:fan[ -]?made|fan animation|unofficial|mashup|amv|gacha|roleplay|my little pony|\bpony\b)/i.test(identity))return false;return rsMovieCandidateRelevant(profile,item);};
 async function v2ServerSourceCatalog(profile,rotation,force){
   var base=String(typeof IA_API_BASE!=="undefined"?IA_API_BASE:"").replace(/\/$/,"");
   if(!/^https?:\/\//i.test(base))return {provider:"Server Catalog",items:[],health:{skipped:true,reason:"source API unavailable"}};

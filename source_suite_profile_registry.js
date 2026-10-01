@@ -1817,7 +1817,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "western movie full", "comedy movie full", "romance movie full"
     ],
     "match": ["feature film", "feature movie", "full movie", "full length film", "independent film", "indie film", "public domain film", "complete movie", "movie", "film"],
-    "deny": ["shorts", "short film", "vertical", "trailer", "teaser", "clip", "recap", "review", "reaction", "podcast", "how to", "tutorial", "fan film", "fan-made", "parody", "music video", "commercial", "documentary", "film history", "film preservation", "movie commentary", "film explained", "lecture", "seminar", "conference", "panel discussion", "making of", "movie making", "filmmaking", "film making", "behind the scenes", "studio tour", "educational film", "retrospective"]
+    "deny": ["shorts", "short film", "vertical", "trailer", "teaser", "clip", "recap", "review", "reaction", "podcast", "how to", "tutorial", "fan film", "fan-made", "fan made", "fanmade", "fan animation", "unofficial", "parody", "mashup", "amv", "gacha", "roleplay", "my little pony", "pony", "music video", "commercial", "documentary", "film history", "film preservation", "movie commentary", "film explained", "lecture", "seminar", "conference", "panel discussion", "making of", "movie making", "filmmaking", "film making", "behind the scenes", "studio tour", "educational film", "retrospective"]
   },
   "modern-free-cinema": {
     "name": "Modern Free Cinema",
@@ -1841,7 +1841,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "complete movie landscape", "full movie", "public domain movie full"
     ],
     "match": ["feature film", "feature movie", "full movie", "full length film", "independent film", "indie film", "public domain film", "modern cinema", "complete movie", "landscape feature", "movie", "film"],
-    "deny": ["shorts", "short film", "vertical", "trailer", "teaser", "clip", "recap", "review", "reaction", "podcast", "how to", "tutorial", "fan film", "fan-made", "parody", "music video", "commercial", "movie commentary", "documentary", "film explained"]
+    "deny": ["shorts", "short film", "vertical", "trailer", "teaser", "clip", "recap", "review", "reaction", "podcast", "how to", "tutorial", "fan film", "fan-made", "fan made", "fanmade", "fan animation", "unofficial", "parody", "mashup", "amv", "gacha", "roleplay", "my little pony", "pony", "music video", "commercial", "movie commentary", "documentary", "film explained"]
   },
   "indie-feature-house": {
     "name": "Indie Feature House",
@@ -1865,7 +1865,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "full movie", "public domain movie full"
     ],
     "match": ["independent feature film", "independent movie", "indie feature", "festival feature", "arthouse feature", "public domain movie", "free feature film", "cult independent film", "full length movie", "complete feature film", "movie", "film"],
-    "deny": ["shorts", "short film", "vertical", "trailer", "teaser", "clip", "recap", "review", "reaction", "podcast", "how to", "tutorial", "fan film", "fan-made", "parody", "music video", "commercial", "movie commentary", "documentary", "film explained"]
+    "deny": ["shorts", "short film", "vertical", "trailer", "teaser", "clip", "recap", "review", "reaction", "podcast", "how to", "tutorial", "fan film", "fan-made", "fan made", "fanmade", "fan animation", "unofficial", "parody", "mashup", "amv", "gacha", "roleplay", "my little pony", "pony", "music video", "commercial", "movie commentary", "documentary", "film explained"]
   },
   "tv-time-machine": {
     "name": "TV Time Machine",

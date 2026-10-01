@@ -129,6 +129,7 @@ function normalizedProfile(body) {
     topics: list(approved.topics, 32),
     formats: list(approved.formats, 24),
     formatRelaxed: approved.formatRelaxed === true,
+    minTitleYear: Math.max(0, Number(approved.minTitleYear) || 0),
     persistedRelaxed: approved.persistedRelaxed === true || approved.formatRelaxed === true,
     persistedMatch: list(approved.persistedMatch, 24),
     fallbackProfiles: list(approved.fallbackProfiles, 4),
@@ -176,12 +177,16 @@ function accepted(profile, item, provider, checkAspect = true) {
   const ratio = aspectRatio(item);
   const source = provider || text(item && item.provider, 60);
   if (!item || !(item.id || item.uuid || item.rawId) || !title || duration < SOURCE_MIN_RUNTIME || (checkAspect && ratio < SOURCE_MIN_ASPECT_RATIO)) return false;
+  if (profile.minTitleYear) {
+    const titleYears = Array.from(title.matchAll(/(?:^|[^0-9])((?:19|20)\d{2})(?:[^0-9]|$)/g)).map((match) => Number(match[1])).filter(Boolean);
+    if (titleYears.some((year) => year < profile.minTitleYear)) return false;
+  }
   if (/(?:#?shorts?\b|vertical\s+video|how[ -]+to|tutorial|reaction|trailer|teaser|promo|advertisement|commercial|fan\s+edit|lyrics\s+video)/i.test(haystack)) return false;
   if (profile.deny.some((term) => haystack.includes(text(term, 180).toLowerCase()))) return false;
   if (!rightsOkay(item.rights, source)) return false;
   if (source === "YouTube" && !englishOkay(item)) return false;
   if (/^(?:television|film|performance)$/.test(profile.intent || "")) {
-    const programDeny = /(?:history of|documentary about|retrospective|video essay|analysis|explained|lecture|seminar|webinar|conference|panel discussion|making of|behind the scenes|demo reel|showreel|workshop|masterclass|recap|production reel|festival reel)/i;
+    const programDeny = /(?:history of|documentary about|retrospective|video essay|analysis|explained|lecture|seminar|webinar|conference|panel discussion|making of|movie making|filmmaking|film making|studio tour|educational film|behind the scenes|demo reel|showreel|workshop|masterclass|recap|production reel|festival reel)/i;
     if (programDeny.test(haystack)) return false;
     if (profile.topics.length && !termsMatch(haystack, profile.topics)) return false;
     if (profile.formats.length && !termsMatch(titleHaystack, profile.formats)

@@ -1806,8 +1806,9 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "peerTubeInstances": ["https://search.joinpeertube.org", "https://video.blender.org", "https://framatube.org", "https://peertube.uno", "https://tilvids.com", "https://peertube.doesstuff.social", "https://peertube.dngr.us"],
     "providers": ["peertube", "youtube"],
     "intent": "film",
+    "minTitleYear": 1980,
     "topics": ["feature film", "full movie", "full-length film", "independent film", "public domain film", "movie", "film"],
-    "formats": ["full movie", "full film", "feature film", "complete movie", "full-length movie", "complete feature film", "movie", "film"],
+    "formats": ["full movie", "full film", "feature film", "complete movie", "full-length movie", "complete feature film", "public domain movie", "feature movie"],
     "queries": [
       "full feature film 1980s", "full feature film 1990s", "full feature film 2000s",
       "full feature film 2010s", "full feature film 2020s", "independent feature film full",
@@ -1830,8 +1831,9 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "peerTubeInstances": ["https://search.joinpeertube.org", "https://video.blender.org", "https://framatube.org", "https://peertube.uno", "https://tilvids.com", "https://peertube.doesstuff.social", "https://peertube.dngr.us"],
     "providers": ["peertube", "youtube"],
     "intent": "film",
+    "minTitleYear": 1980,
     "topics": ["feature film", "full movie", "independent film", "public domain film", "modern cinema", "movie", "film"],
-    "formats": ["full movie", "full film", "feature film", "complete movie", "full-length movie", "complete feature film", "movie", "film"],
+    "formats": ["full movie", "full film", "feature film", "complete movie", "full-length movie", "complete feature film", "public domain movie", "feature movie"],
     "queries": [
       "full feature film 1980s", "full feature film 1990s", "full feature film 2000s",
       "full feature film 2010s", "full feature film 2020s", "independent feature film full",
@@ -1853,8 +1855,9 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "fallbackProfiles": ["modern-free-cinema", "movie-house"],
     "providers": ["peertube", "youtube"],
     "intent": "film",
+    "minTitleYear": 1980,
     "topics": ["independent feature film", "independent movie", "indie feature", "festival feature", "arthouse feature", "public domain movie", "movie", "film"],
-    "formats": ["full movie", "full film", "feature film", "complete movie", "full-length movie", "complete feature film", "movie", "film"],
+    "formats": ["full movie", "full film", "feature film", "complete movie", "full-length movie", "complete feature film", "public domain movie", "feature movie"],
     "queries": [
       "independent feature film 1980s full", "independent feature film 1990s full", "independent feature film 2000s full",
       "independent feature film 2010s full", "independent feature film 2020s full", "festival feature film full",

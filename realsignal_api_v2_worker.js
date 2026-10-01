@@ -818,6 +818,11 @@ function catalogFallbackAllowed(item, body) {
     if (runtime < SOURCE_LIMITS.SOURCE_MIN_RUNTIME) return false;
     if (ratio < SOURCE_LIMITS.SOURCE_MIN_ASPECT_RATIO) return false;
     if (audio || (mediaType !== "video" && mediaType !== "embed")) return false;
+    const minTitleYear = Math.max(0, Number(body.minTitleYear) || 0);
+    if (minTitleYear) {
+      const titleYears = Array.from(title.matchAll(/(?:^|[^0-9])((?:19|20)\d{2})(?:[^0-9]|$)/g)).map((match) => Number(match[1])).filter(Boolean);
+      if (titleYears.some((year) => year < minTitleYear)) return false;
+    }
     /* Requalify stale rows against language and explicit profile topics before
        they reach a guide or ready shelf. */
     const declaredLanguage = String(item && item.language || "").trim().toLowerCase();
@@ -840,7 +845,7 @@ function catalogFallbackAllowed(item, body) {
        can survive indefinitely just because it happens to share one topic
        word with the new TV/film lane. */
     if (/^(?:television|film|performance)$/.test(String(body.intent || ""))) {
-      const programDeny = /(?:history of|documentary about|retrospective|video essay|analysis|explained|lecture|seminar|webinar|conference|panel discussion|making of|behind the scenes|demo reel|showreel|workshop|masterclass|recap|production reel|festival reel)/i;
+      const programDeny = /(?:history of|documentary about|retrospective|video essay|analysis|explained|lecture|seminar|webinar|conference|panel discussion|making of|movie making|filmmaking|film making|studio tour|educational film|behind the scenes|demo reel|showreel|workshop|masterclass|recap|production reel|festival reel)/i;
       const formats = Array.isArray(body.programFormats) ? body.programFormats : [];
       const topics = Array.isArray(body.topics) ? body.topics : [];
       if (programDeny.test(haystack)) return false;
@@ -1297,6 +1302,7 @@ async function familyCatalogFallback(env, profile, requestedLimit = SOURCE_LIMIT
       intent: alias.intent,
       topics: alias.topics,
       programFormats: alias.formats,
+      minTitleYear: alias.minTitleYear,
       persistedRelaxed: alias.persistedRelaxed,
       persistedMatch: alias.persistedMatch,
       themeMinScore: 1,
@@ -1862,6 +1868,7 @@ async function handleSourceStatus(request, env, ctx) {
     intent: profile.intent,
     topics: profile.topics,
     programFormats: profile.formats,
+    minTitleYear: profile.minTitleYear,
     persistedRelaxed: profile.persistedRelaxed,
     persistedMatch: profile.persistedMatch,
     themeMinScore: 1,
@@ -1976,6 +1983,7 @@ async function handleSourceCatalog(request, env, ctx, id) {
     intent: profile.intent,
     topics: profile.topics,
     programFormats: profile.formats,
+    minTitleYear: profile.minTitleYear,
     persistedRelaxed: profile.persistedRelaxed,
     persistedMatch: profile.persistedMatch,
     themeMinScore: 1,
@@ -2085,6 +2093,7 @@ async function handleSourceCatalog(request, env, ctx, id) {
       intent: normalized.intent,
       topics: normalized.topics,
       programFormats: normalized.formats,
+      minTitleYear: normalized.minTitleYear,
       persistedRelaxed: normalized.persistedRelaxed,
       persistedMatch: normalized.persistedMatch,
       themeMinScore: 1,

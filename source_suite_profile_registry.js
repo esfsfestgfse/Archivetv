@@ -1039,6 +1039,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "black arts",
       "black dance",
       "soul performance",
+      "black comedy",
       "black performance",
       "black stage"
     ],
@@ -1113,7 +1114,14 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "horror",
       "monster movie",
       "full movie",
-      "podcast"
+      "podcast",
+      "retro movie archive",
+      "hammer films",
+      "nursery theatre",
+      "happily never after",
+      "tim burton",
+      "lemony snicket",
+      "brothers grimm"
     ]
   },
   "documentary-desk": {
@@ -1341,7 +1349,11 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "botanical garden full documentary",
       "landscape gardening full program",
       "plant cultivation documentary",
-      "community garden documentary"
+      "community garden documentary",
+      "gardening",
+      "permaculture full documentary",
+      "regenerative farming documentary",
+      "pollinator garden documentary"
     ],
     "providers": [
       "peertube",
@@ -1361,9 +1373,9 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "plant cultivation documentary",
       "landscape architecture garden documentary",
       "garden restoration documentary",
-      "wildlife garden documentary",
-      "garden documentary full program",
-      "plant conservation documentary"
+      "gardening full documentary",
+      "permaculture full documentary",
+      "regenerative farming documentary"
     ],
     "match": [
       "horticulture",
@@ -1379,7 +1391,13 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "garden design",
       "plant cultivation",
       "plant conservation",
-      "public garden"
+      "public garden",
+      "permaculture",
+      "regenerative farming",
+      "pollinator garden",
+      "food forest",
+      "soil health",
+      "garden"
     ],
     "deny": [
       "fictional",
@@ -1399,6 +1417,10 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "debian",
       "system administration",
       "software conference",
+      "conference",
+      "summit",
+      "webinar",
+      "lecture",
       "airborne",
       "army",
       "military",

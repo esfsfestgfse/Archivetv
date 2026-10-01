@@ -22,6 +22,7 @@ for (const [name, source] of [['desktop', desktop], ['mobile', mobile]]) {
     'https://www.apsattv.com/hp.m3u',
     'iGoCast',
     'https://www.apsattv.com/igocast.m3u',
+    'window.__tvRefreshSources(out)',
     'label:"Live services"',
   ]) {
     if (!source.includes(needle)) throw new Error(`${name}: missing FAST recovery contract ${needle}`);

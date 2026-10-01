@@ -1685,7 +1685,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="5.1.4-desktop-fast-sources";
+window.__ATV_BUILD="5.1.5-desktop-fast-source-menu";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -12097,7 +12097,13 @@ async function refreshIPTV(){
     });
     return c;
   });
-  iptvCache=out; iptvCacheAt=Date.now(); saveIptvCatalog(out); return out;
+  iptvCache=out; iptvCacheAt=Date.now(); saveIptvCatalog(out);
+  /* The first paint may use the small seed shelf while the remaining FAST providers
+     finish in the background. Refresh the open source selector when that full catalog
+     arrives so HP FAST, iGoCast, and every other healthy provider become visible without
+     requiring a channel restart or page reload. */
+  if(window.__tvRefreshSources)window.__tvRefreshSources(out);
+  return out;
 }
 function startIPTVRefresh(){if(!iptvRefreshPromise){iptvRefreshPromise=refreshIPTV().catch(function(e){nlog("livetv",false,"catalog refresh: "+((e&&e.message)||e));return iptvCache||loadIptvCatalog()||[];}).finally(function(){iptvRefreshPromise=null;});}return iptvRefreshPromise;}
 function fetchIPTV(){var now=Date.now();if(iptvCache&&iptvCache.length){if(now-iptvCacheAt>FAST_CATALOG_REFRESH_MS)startIPTVRefresh();return Promise.resolve(iptvCache);}var cached=loadIptvCatalog();if(cached.length){iptvCache=cached;iptvCacheAt=now;startIPTVRefresh();return Promise.resolve(cached);}if(!iptvSeedPromise){iptvSeedPromise=fastSeedCatalog(FAST_FEEDS.slice(0,6)).then(function(seed){if(seed&&seed.length){iptvCache=seed;iptvCacheAt=Date.now();saveIptvCatalog(seed);startIPTVRefresh().catch(function(){});return seed;}return startIPTVRefresh();}).finally(function(){iptvSeedPromise=null;});}return iptvSeedPromise;}

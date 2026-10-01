@@ -16,7 +16,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="RealSignal">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>REALSIGNAL · The Dial 5.5.23</title>
+<title>REALSIGNAL · The Dial 5.5.24</title>
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
@@ -1746,7 +1746,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="5.5.23-source-suite-rotation-accuracy";
+window.__ATV_BUILD="5.5.24-consolidated-guide-lineup";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -2550,10 +2550,14 @@ function channelHealth(ch){
 /* User-facing safety switch: health scoring may still mark weak lanes for repair,
    but it must never remove a channel from the dial, guide, surf order, or Cast list. */
 const CHANNEL_HIDING_ENABLED=false;
-function isPublicLineupChannel(ch){if(!CHANNEL_HIDING_ENABLED)return true;var state=channelHealth(ch).state;return state!=="hide"&&state!=="retire";}
+function isPublicLineupChannel(ch){
+  if(GUIDE_MERGED_LINEUP_ENABLED&&typeof GUIDE_MERGED_MEMBER_NUMS!=="undefined"&&GUIDE_MERGED_MEMBER_NUMS.has(Number(ch&&ch.num)))return false;
+  if(!CHANNEL_HIDING_ENABLED)return true;var state=channelHealth(ch).state;return state!=="hide"&&state!=="retire";
+}
 function publicLineupChannels(){return CH.filter(isPublicLineupChannel);}
-/* Human-facing guide taxonomy. Channel numbers remain the persistent tuning address;
-   this adds stable clean IDs plus a deliberately small set of browse destinations. */
+/* Human-facing guide taxonomy. Consolidated family cards are now the browse/surf
+   default; member numbers remain persistent compatibility addresses for direct
+   tuning, saved links, favorites, Cast packets, and family detail views. */
 const GUIDE_CATEGORIES=[
   {id:"all",label:"All channels",meta:"The complete RealSignal directory",color:"#baffcf"},
   {id:"live",label:"Live now",meta:"Live TV · sports · weather · radio",color:"#73ffd2",channels:[300,50,950,924]},
@@ -2569,6 +2573,27 @@ const GUIDE_CATEGORIES=[
 ];
 const GUIDE_CATEGORY_BY_ID=Object.fromEntries(GUIDE_CATEGORIES.map(function(group){return [group.id,group];}));
 const GUIDE_SUBGENRES={NET:"Network television",TV:"Television & reruns",MOV:"Movies",TOON:"Animation",SPORTS:"Sports",MUS:"Music & audio",DOC:"Archive & ideas",SOURCE:"Source suite",LBRO:"Live video",LDATA:"Live data",RETRO:"Retro archive",HOL:"Seasonal",BRIT:"World & culture"};
+/* Consolidated family lineup. `lineup=legacy` is an emergency rollback view;
+   no channel record is deleted or mutated by the merge. */
+const GUIDE_MERGE_AUDIT_ENABLED=/(?:^|[?&])mergeAudit=1(?:&|$)/.test(String(location.search||""));
+const GUIDE_MERGED_LINEUP_ENABLED=!/(?:^|[?&])lineup=legacy(?:&|$)/.test(String(location.search||""));
+const GUIDE_MERGE_UI_ENABLED=GUIDE_MERGE_AUDIT_ENABLED||GUIDE_MERGED_LINEUP_ENABLED;
+const GUIDE_MERGE_ALIASES=[
+  {id:"courtroom-tv",label:"Courtroom TV",meta:"Courtroom and judge-show family",members:[20,21]},
+  {id:"archive-cinema-mix",label:"Archive Cinema Mix",meta:"Modern Archive Cinema + Archive Genre Cinema",members:[135,136]},
+  {id:"kids-family-animation",label:"Kids & Family Animation",meta:"Classic Cartoons + Modern Cartoons",members:[150,153]},
+  {id:"comedy-archive",label:"Comedy Archive",meta:"Comedy Classics + Joke Joint",members:[202,222]},
+  {id:"news-current-affairs",label:"Newsreel & Current Affairs",meta:"Three existing news and affairs lanes",members:[210,219,228]},
+  {id:"travel-people",label:"Travel & People",meta:"Travelogue, people, and roadside lanes",members:[206,214,235]},
+  {id:"nature-earth",label:"Nature & Earth",meta:"Nature, earth science, and field lanes",members:[212,233,242]},
+  {id:"space-nasa",label:"Space & NASA",meta:"Space and NASA archive lanes",members:[213,232]},
+  {id:"food-home",label:"Food & Home",meta:"Foodways and home/lifestyle lanes",members:[201,211]},
+  {id:"auto-archive",label:"Auto Archive",meta:"Gearhead, automotive, and source-suite auto lanes",members:[227,231,559]},
+  {id:"black-media",label:"Black Media",meta:"Kept separate: Black Screen · Black Television · Black Laughs",members:[105,225,538]}
+];
+function guideMergeMembers(alias){return (alias&&Array.isArray(alias.members)?alias.members:[]).map(function(num){return byNum(Number(num));}).filter(Boolean);}
+function guideMergeAliasById(id){return GUIDE_MERGE_ALIASES.find(function(alias){return alias.id===id;})||null;}
+const GUIDE_MERGED_MEMBER_NUMS=new Set(GUIDE_MERGE_ALIASES.filter(function(alias){return alias.id!=="black-media";}).reduce(function(all,alias){return all.concat(alias.members||[]);},[]));
 function guideCategoryFor(ch){var live=GUIDE_CATEGORY_BY_ID.live;if(live&&live.channels.indexOf(Number(ch.num))>-1)return live;return GUIDE_CATEGORIES.find(function(group){return group.cats&&group.cats.indexOf(ch.cat)>-1;})||GUIDE_CATEGORY_BY_ID.all;}
 function guideChannelKey(ch){return "rs-"+String(ch.num).padStart(3,"0")+"-"+String(ch.nm).toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,"");}
 CH.forEach(function(ch){var health=channelHealth(ch);ch.healthState=health.state;ch.healthReason=health.reason;ch.guideGroup=guideCategoryFor(ch).id;ch.key=guideChannelKey(ch);});
@@ -7853,7 +7878,13 @@ function sfxClick(){if(!soundOn||!audioCtx())return;const c=ac,t=c.currentTime;c
    ===================================================================== */
 function isFav(n){var c=byNum(n);return c?favs.includes(c.nm):false;}
 var catFilter="all"; /* Guide category only; never changes the tuned channel. */
-function visibleChannels(){let l=favOnly?publicLineupChannels().filter(c=>isFav(c.num)):publicLineupChannels();
+function guideBrowsePool(){
+  var active=GUIDE_MERGE_UI_ENABLED?guideMergeAliasById(window.__rsGuideMergeAliasFilter||""):null;
+  if(active)return guideMergeMembers(active).filter(function(c){return !favOnly||isFav(c.num);});
+  var base=favOnly?publicLineupChannels().filter(function(c){return isFav(c.num);}):publicLineupChannels();
+  return GUIDE_MERGED_LINEUP_ENABLED?base.filter(function(c){return !GUIDE_MERGED_MEMBER_NUMS.has(Number(c.num));}):base;
+}
+function visibleChannels(){let l=guideBrowsePool();
   if(catFilter&&catFilter!=="all")l=l.filter(function(c){return c.guideGroup===catFilter;});
   /* Universal search. Matches channel name, its category label, its number, and whatever the
      dynamic status line currently says -- so "storm", "402", "hurricane" and "sports" all find
@@ -7861,7 +7892,7 @@ function visibleChannels(){let l=favOnly?publicLineupChannels().filter(c=>isFav(
      one category is almost never what someone means when they type. */
   var q=String(window.__gQuery||"").toLowerCase().trim();
   if(q){
-    l=(favOnly?publicLineupChannels().filter(c=>isFav(c.num)):publicLineupChannels()).filter(function(c){
+    l=guideBrowsePool().filter(function(c){
       var st=String((window.__chanStatus||{})[c.num]||"");
       var group=guideCategoryFor(c);
       var hay=(c.nm+" "+(CATNAME[c.cat]||c.cat)+" "+group.label+" "+group.meta+" "+(GUIDE_SUBGENRES[c.cat]||"")+" "+c.key+" "+c.num+" "+st+" "+
@@ -8042,9 +8073,19 @@ function renderRail(){ /* v9: honest CHANNEL BANK grid — replaces the horizont
 function renderRail(){
   if(!chList||!gwrap||!gwrap.classList.contains("show"))return;
   chList.innerHTML="";var list=visibleChannels(),active=GUIDE_CATEGORY_BY_ID[catFilter]||GUIDE_CATEGORY_BY_ID.all,query=String(window.__gQuery||"").trim();
-  var title=query?"SEARCH RESULTS":(favOnly?"FAVORITES":active.label.toUpperCase()),descriptor=query?('"'+query+'" · '+list.length+' matches'):(favOnly?list.length+" saved channels":active.meta+" · CATEGORY ORDER · NUMBERS STABLE");
+  var activeMergeAlias=GUIDE_MERGE_UI_ENABLED?guideMergeAliasById(window.__rsGuideMergeAliasFilter||""):null;
+  if(activeMergeAlias){var aliasNums=guideMergeMembers(activeMergeAlias).map(function(ch){return ch.num;});list=list.filter(function(ch){return aliasNums.indexOf(ch.num)>=0;});}
+  var title=activeMergeAlias?activeMergeAlias.label.toUpperCase():(query?"SEARCH RESULTS":(favOnly?"FAVORITES":active.label.toUpperCase()));
+  var descriptor=activeMergeAlias?((GUIDE_MERGED_LINEUP_ENABLED?"CONSOLIDATED GUIDE":"GUIDE-ONLY MERGE TRIAL")+" · "+list.length+" EXISTING CHANNELS · NUMBERS UNCHANGED"):(query?('"'+query+'" · '+list.length+' matches'):(favOnly?list.length+" saved channels":active.meta+" · CATEGORY ORDER · NUMBERS STABLE"));
   var titleEl=$("railTitle"),resultsEl=$("guideResults"),countEl=$("guideCount");if(titleEl)titleEl.textContent=title;if(resultsEl)resultsEl.textContent=descriptor;if(countEl)countEl.textContent=list.length+" CHANNEL"+(list.length===1?"":"S");
-  if(!list.length){chList.innerHTML='<div class="chempty">No matching channels yet. Clear the search or choose another category.</div>';return;}
+  var mergeFragment=document.createDocumentFragment();
+  if(GUIDE_MERGE_UI_ENABLED&&activeMergeAlias){var back=document.createElement("button");back.type="button";back.className="chsection";back.style.cssText="width:100%;text-align:left;cursor:pointer";back.innerHTML='<span class="chsection-label">← ALL CHANNELS</span><span class="chsection-sub">Exit merge view · actual tuning lineup unchanged</span>';back.addEventListener("click",function(){window.__rsGuideMergeAliasFilter="";renderRail();});mergeFragment.appendChild(back);}
+  if(GUIDE_MERGE_UI_ENABLED&&!activeMergeAlias&&!favOnly){
+    var aliasQuery=query.toLowerCase(),aliases=GUIDE_MERGE_ALIASES.filter(function(alias){return GUIDE_MERGED_LINEUP_ENABLED?alias.id!=="black-media":true;}).filter(function(alias){var members=guideMergeMembers(alias),text=(alias.label+" "+alias.meta+" "+members.map(function(ch){return ch.nm+" "+ch.num;}).join(" ")).toLowerCase();return (!aliasQuery||text.indexOf(aliasQuery)>-1)&&members.length;});
+    if(aliases.length){var aliasHead=document.createElement("div");aliasHead.className="chsection";aliasHead.innerHTML='<span class="chsection-label">'+(GUIDE_MERGED_LINEUP_ENABLED?"CONSOLIDATED FAMILIES":"MERGE TRIALS")+'</span><span class="chsection-sub">'+(GUIDE_MERGED_LINEUP_ENABLED?"Umbrella guide groups · source channels remain tunable":"Guide-only groups · no channel numbers changed")+'</span>';mergeFragment.appendChild(aliasHead);aliases.forEach(function(alias){var members=guideMergeMembers(alias),row=document.createElement("button");row.type="button";row.className="chcell guide-alias-card";row.title=alias.meta+" · "+(GUIDE_MERGED_LINEUP_ENABLED?"consolidated guide":"guide-only test");row.innerHTML='<span class="cc-n">◆</span><span class="cc-thumb"><span class="cc-thumb-glyph">'+(GUIDE_MERGED_LINEUP_ENABLED?"TV":"TR")+'</span></span><span class="cc-identity"><span class="cc-nm">'+esch(alias.label)+'</span><span class="cc-genre">'+(GUIDE_MERGED_LINEUP_ENABLED?"CONSOLIDATED GUIDE":"GUIDE-ONLY MERGE TRIAL")+'</span></span><span class="cc-now-block"><span class="cc-now">'+esch(alias.meta)+'</span><span class="cc-status">'+members.length+' EXISTING CHANNELS · NUMBERS UNCHANGED</span></span><span class="cc-next-block"><span class="cc-next">OPEN TO TEST MEMBERS</span></span>';row.addEventListener("click",function(){window.__rsGuideMergeAliasFilter=alias.id;renderRail();});mergeFragment.appendChild(row);});}
+  }
+  if(mergeFragment.childNodes.length)chList.appendChild(mergeFragment);
+  if(!list.length){chList.insertAdjacentHTML("beforeend",'<div class="chempty">No matching channels yet. Clear the search or choose another category.</div>');return;}
   /* Build off-DOM. Rendering two hundred channel rows one append at a time was
      forcing repeated layout work precisely when the viewer asked to browse. */
   var previousGroup=null,fragment=document.createDocumentFragment();
@@ -8268,11 +8309,11 @@ const V2_SOURCE_MODE_GROUPS={
   practical:["darkroom","restoration-row","consumer-report","public-works","sound-lab","workshop","foodways","comfort-television","invention-files","blueprint","garden-ledger","animal-care","food-lab","textile-archive","print-shop","cooks-table","gearhead-garage","green-culture"],
   field:["map-room","field-notes","wild-earth-desk","mission-control","backroad-journal","storm-lab","rail-archive","flight-deck","ocean-desk","earth-lab","travel-reel","sports-film-room"],
   education:["classroom","lesson-reel","language-lab"],
-  performance:["comedy-circuit","rhythm-archives","black-stage","stage-door","variety-hour","talk-show-archive","jukebox-television"],
+  performance:["comedy-circuit","rhythm-archives","stage-door","variety-hour","talk-show-archive","jukebox-television"],
   documentary:["documentary-desk","freedom-stories"],
   animation:["cartoon-time-machine","animation-desk"],
   film:["movie-house","screen-test","film-noir-desk","horror-house","western-screen","sci-fi-signal","modern-free-cinema","indie-feature-house"],
-  television:["tv-time-machine","classic-sitcom-room","game-show-archive","family-tv-club"]
+  television:["tv-time-machine","classic-sitcom-room","game-show-archive","family-tv-club","black-stage"]
 };
 const V2_SOURCE_TOPIC_OVERRIDES={
   "public-health-archive":["public health","medical education","sanitation","hospital medicine"],"signal-room":["telegraph","telephone","radio engineering","broadcast engineering"],"darkroom":["darkroom photography","film processing","photo printing","analog photography"],"restoration-row":["art restoration","furniture restoration","car restoration","building restoration","book restoration","tool restoration"],"consumer-report":["product testing","consumer test","product safety","consumer review"],"map-room":["cartography","map making","geography","surveying"],"military-archive":["military training","armed forces","wartime footage","military technology"],"public-works":["public works","civil engineering","infrastructure","transit construction","water utility"],
@@ -8285,6 +8326,8 @@ const V2_SOURCE_TOPIC_OVERRIDES={
 const V2_SOURCE_QUERY_SUFFIXES={archive:["original archival film","complete educational film","primary source footage","full newsreel"],practical:["full episode","complete program","project video","television show"],field:["full program","field footage","expedition video","complete episode"],education:["complete lesson","educational program","classroom film","instructional program"],performance:["full performance","complete show","live performance","full episode"],documentary:["full documentary","feature documentary","complete documentary","documentary film"],animation:["full cartoon","cartoon episode","animated short film","cartoon compilation"],film:["full movie","feature film","complete film","short film"],television:["full episode","complete episode","television program","TV show"]};
 const V2_SOURCE_COMMON_DENY=["how to","tutorial","shorts","vertical video","reaction","podcast","trailer","teaser","promo","advertisement","commercial","fan edit","lyrics video"];
 Object.keys(V2_PREVIEW_PROFILES).forEach(function(key){V2_PREVIEW_PROFILES[key].profileKey=key;});Object.keys(V2_SOURCE_MODE_GROUPS).forEach(function(mode){V2_SOURCE_MODE_GROUPS[mode].forEach(function(key){if(V2_PREVIEW_PROFILES[key])V2_PREVIEW_PROFILES[key].intent=mode;});});
+Object.assign(V2_PREVIEW_PROFILES["black-stage"],{name:"Black Television",intent:"television",strictTopicTerms:["black television","black sitcom","african american television","black family television","black drama","black variety show","black sketch comedy","black kids television","black television series"],topics:["Black television","Black sitcom","African American television","Black family television","Black drama","Black variety show","Black sketch comedy","Black kids television","Black television series"],formats:["full episode","complete episode","television program","TV show","TV series","full television special","complete sitcom episode"],queries:["Black sitcom full episode","African American television full episode","classic Black TV full episode","Black family sitcom full episode","Black drama TV full episode","Black television series complete episode","Black variety show full episode","Black sketch comedy full episode","Black kids television full episode","Black television special full","archive Black television full episode","1970s Black TV full episode","1980s Black TV full episode","1990s Black TV full episode"],match:["Black television","Black sitcom","African American television","Black family television","Black drama","Black variety show","Black sketch comedy","Black kids television","Black television series"],deny:["stand up","standup","roast battle","stage play","theatre","theater","concert","music video","dance performance","gaming","gameplay","how to","tutorial","lecture","seminar","full movie","fan-made","parody"]});
+V2_SOURCE_TOPIC_OVERRIDES["black-stage"]=["black television","black sitcom","african american television","black family television","black drama","black variety show","black sketch comedy","black kids television","black television series"];
 function v2ProgramTopics(profile){var direct=V2_SOURCE_TOPIC_OVERRIDES[profile.profileKey||""];if(direct)return direct.slice();return v2TextUnique((profile.match||[]).map(function(term){return v2Text(term).replace(/\b(?:history|historical|documentary|archive|archival|retrospective|profile)\b/gi," ").replace(/\s+/g," ").trim();}).filter(function(term){return term.length>2;}));}
  function v2ProgramDeny(profile){var mode=profile.intent||"documentary",extra=[],profileDeny=Array.isArray(profile&&profile.deny)?profile.deny:[];if(/^(?:animation|film|television|performance)$/.test(mode))extra=["history of","documentary about","documentary","retrospective","video essay","analysis","explained","lecture","seminar","webinar","conference","panel discussion","making of","behind the scenes","demo reel","showreel","workshop","masterclass","recap","production reel","festival reel"];else if(mode==="practical")extra=["history of","documentary about","lecture","seminar","webinar","conference","panel discussion"];else if(mode==="archive")extra=["history of","retrospective","video essay","analysis","explained","reaction video","feature film","full movie","movie","hausa","nollywood","bollywood"];else if(mode==="education")extra=["seminar","webinar","conference","panel discussion","opinion"];else if(mode==="field")extra=["lecture","seminar","webinar","conference","panel discussion"];return v2TextUnique(V2_SOURCE_COMMON_DENY.concat(profileDeny,extra));}
 function v2ProgramTitleDeny(profile){if((profile.intent||"")==="animation")return ["story of trying to produce","trying to produce","level up by creating","animation workshop","animation class","animation conference","production pipeline","production workflow","production using","animation process","build animated","animated overlay","drawing cartoon","software demo","project breakdown","artist talk","workshop","masterclass","recap","lecture","seminar","webinar","conference","tutorial","course","pipeline","workflow","software","overlay","drawing","rendering","rigging","modeling","review","breakdown","explainer","cutscene","cutscenes","gameplay","production","project","learn","guide","constraints","system","update","updates","widget","widgets","rig","rigs","track","tracks","visualization"];return [];}
@@ -9603,7 +9646,8 @@ function buildCatNav(){
 function buildCatNav(){
   if(!catNav)return;catNav.innerHTML="";
   GUIDE_CATEGORIES.forEach(function(group){
-    var count=group.id==="all"?publicLineupChannels().length:publicLineupChannels().filter(function(ch){return guideCategoryFor(ch).id===group.id;}).length;
+    var countPool=GUIDE_MERGED_LINEUP_ENABLED&&!window.__rsGuideMergeAliasFilter?guideBrowsePool():publicLineupChannels();
+    var count=group.id==="all"?countPool.length:countPool.filter(function(ch){return guideCategoryFor(ch).id===group.id;}).length;
     var button=document.createElement("button");button.type="button";button.className="catchip"+(catFilter===group.id?" act":"");button.innerHTML='<span class="guide-cat-label">'+esch(group.label)+'</span><span class="guide-cat-count">'+count+'</span>';button.style.color=group.color;button.title=group.meta+" · "+count+" channels";button.setAttribute("aria-label",group.label+" ("+count+" channels)");
     button.addEventListener("click",function(){catFilter=group.id;catNav.querySelectorAll(".catchip").forEach(function(item){item.classList.remove("act");});button.classList.add("act");renderRail();primeGuideQueues(visibleChannels());});catNav.appendChild(button);
   });

@@ -16,6 +16,8 @@ for (const [name, source] of [['desktop', desktop], ['mobile', mobile]]) {
     'FAST_PROVIDER_COOLDOWN_MS',
     'loadIptvCatalog()',
     'label:"FAST · VERIFIED"',
+    'FreeLiveSports',
+    'freelivesports.m3u',
     'label:"Live services"',
   ]) {
     if (!source.includes(needle)) throw new Error(`${name}: missing FAST recovery contract ${needle}`);

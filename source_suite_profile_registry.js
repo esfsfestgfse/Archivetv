@@ -1037,7 +1037,6 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "black theater",
       "african american",
       "black arts",
-      "black dance",
       "soul performance",
       "black comedy",
       "black performance",
@@ -1121,7 +1120,12 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "happily never after",
       "tim burton",
       "lemony snicket",
-      "brothers grimm"
+      "brothers grimm",
+      "klaus schulze",
+      "electronic music",
+      "synthesizer",
+      "discography",
+      "album"
     ]
   },
   "documentary-desk": {
@@ -1353,7 +1357,15 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "gardening",
       "permaculture full documentary",
       "regenerative farming documentary",
-      "pollinator garden documentary"
+      "pollinator garden documentary",
+      "organic farming documentary",
+      "vegetable gardening full documentary",
+      "seed saving documentary",
+      "greenhouse gardening documentary",
+      "soil health documentary",
+      "homestead gardening documentary",
+      "community garden full program",
+      "permaculture farm documentary"
     ],
     "providers": [
       "peertube",
@@ -1376,7 +1388,17 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "community garden",
       "farm",
       "farmer",
-      "homestead"
+      "homestead",
+      "greenhouse",
+      "vegetable",
+      "organic farming",
+      "seed saving",
+      "compost",
+      "soil",
+      "crop",
+      "homesteading",
+      "agroecology",
+      "food production"
     ],
     "queries": [
       "horticulture documentary full",
@@ -1394,7 +1416,15 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "garden restoration documentary",
       "gardening full documentary",
       "permaculture full documentary",
-      "regenerative farming documentary"
+      "regenerative farming documentary",
+      "organic farming documentary",
+      "vegetable gardening full documentary",
+      "seed saving documentary",
+      "greenhouse gardening documentary",
+      "soil health documentary",
+      "homestead gardening documentary",
+      "community garden full program",
+      "permaculture farm documentary"
     ],
     "match": [
       "horticulture",
@@ -1416,7 +1446,16 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "pollinator garden",
       "food forest",
       "soil health",
-      "garden"
+      "greenhouse",
+      "vegetable",
+      "organic farming",
+      "seed saving",
+      "compost",
+      "soil",
+      "crop",
+      "homesteading",
+      "agroecology",
+      "food production"
     ],
     "deny": [
       "fictional",

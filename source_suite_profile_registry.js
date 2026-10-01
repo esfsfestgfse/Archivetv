@@ -1860,6 +1860,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "peerTubeDetailLimit": 12,
     "peerTubeFallbackQueryWindow": 4,
     "peerTubeInstances": ["https://search.joinpeertube.org"],
+    "fallbackProfiles": ["modern-free-cinema"],
     "providers": ["peertube", "youtube"],
     "intent": "film",
     "topics": ["independent feature film", "independent movie", "indie feature", "festival feature", "arthouse feature", "public domain movie"],

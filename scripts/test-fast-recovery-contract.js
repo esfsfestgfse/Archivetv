@@ -18,6 +18,10 @@ for (const [name, source] of [['desktop', desktop], ['mobile', mobile]]) {
     'label:"FAST · VERIFIED"',
     'FreeLiveSports',
     'freelivesports.m3u',
+    'HP FAST',
+    'https://www.apsattv.com/hp.m3u',
+    'iGoCast',
+    'https://www.apsattv.com/igocast.m3u',
     'label:"Live services"',
   ]) {
     if (!source.includes(needle)) throw new Error(`${name}: missing FAST recovery contract ${needle}`);

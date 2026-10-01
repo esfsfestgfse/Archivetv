@@ -1735,7 +1735,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="5.1.3-mobile-fast-sources";
+window.__ATV_BUILD="5.1.4-mobile-fast-sources";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -11977,12 +11977,12 @@ var IPTV_TABS=[
  /* Service tabs first -- these match on the SOURCE a channel came from (c.src) rather than its
     genre, so each FAST provider gets its own browsable lineup the way a real box presents them.
     Genre tabs follow and still match on group-title. */
- {label:"IPTV ORG",src:/^IPTV-org$/i},{label:"FAST · VERIFIED",src:/^(Checked|Tubi|Roku|Pluto TV|Samsung TV\+|Plex|Xumo|DistroTV|Local Now|TCL\+|LG Channels|Vizio WatchFree\+|VIDAA|Whale TV\+|Cineverse|Galaxy TV|FreeLiveSports)$/i},
+ {label:"IPTV ORG",src:/^IPTV-org$/i},{label:"FAST · VERIFIED",src:/^(Checked|Tubi|Roku|Pluto TV|Samsung TV\+|Plex|Xumo|DistroTV|Local Now|TCL\+|LG Channels|Vizio WatchFree\+|VIDAA|Whale TV\+|Cineverse|Galaxy TV|FreeLiveSports|HP FAST|iGoCast)$/i},
  {label:"ROKU",src:/^Roku$/i},{label:"PLUTO",src:/^Pluto TV$/i},{label:"TUBI",src:/^Tubi$/i},
  {label:"SAMSUNG",src:/^Samsung TV\+$/i},{label:"PLEX",src:/^Plex$/i},{label:"XUMO",src:/^Xumo$/i},
  {label:"DISTRO",src:/^DistroTV$/i},{label:"LOCAL NOW",src:/^Local Now$/i},{label:"TCL\+",src:/^TCL\+$/i},
  {label:"LG CHANNELS",src:/^LG Channels$/i},{label:"VIZIO",src:/^Vizio WatchFree\+$/i},{label:"VIDAA",src:/^VIDAA$/i},
- {label:"WHALE TV",src:/^Whale TV\+$/i},{label:"CINEVERSE",src:/^Cineverse$/i},{label:"GALAXY",src:/^Galaxy TV$/i},{label:"FREE SPORTS",src:/^FreeLiveSports$/i},
+ {label:"WHALE TV",src:/^Whale TV\+$/i},{label:"CINEVERSE",src:/^Cineverse$/i},{label:"GALAXY",src:/^Galaxy TV$/i},{label:"FREE SPORTS",src:/^FreeLiveSports$/i},{label:"HP FAST",src:/^HP FAST$/i},{label:"IGOCAST",src:/^iGoCast$/i},
  {label:"NEWS",re:/news/i},{label:"SPORTS",re:/sport/i},{label:"WEATHER",re:/weather/i},
  {label:"MOVIES",re:/movie|cinema|film/i},{label:"ENTERTAIN",re:/entertain|comedy|series|drama|classic/i},
  {label:"KIDS",re:/kids|animation|family|cartoon/i},{label:"MUSIC",re:/music/i},
@@ -12080,7 +12080,9 @@ var FAST_FEEDS=[
   ["Vizio WatchFree+","https://www.apsattv.com/vizio.m3u"],["VIDAA","https://www.apsattv.com/vidaa.m3u"],
   ["Whale TV+","https://www.apsattv.com/whaletvplus_us.m3u"],["Cineverse","https://www.apsattv.com/cineverse.m3u"],
   ["Galaxy TV","https://www.apsattv.com/galxytv.m3u"],
-  ["FreeLiveSports","https://www.apsattv.com/freelivesports.m3u"]
+  ["FreeLiveSports","https://www.apsattv.com/freelivesports.m3u"],
+  ["HP FAST","https://www.apsattv.com/hp.m3u"],
+  ["iGoCast","https://www.apsattv.com/igocast.m3u"]
 ];
 function fetchM3UTextBounded(url){var request=function(u,ms){return withTO(fetch(u,{cache:"no-store"}).then(function(r){if(!r.ok)throw new Error("http "+r.status);return r.text();}),ms);};var attempts=[{tag:"m3u-direct",delay:0,run:function(){return request(url,6500);}}];CORS_RELAYS.forEach(function(make,i){attempts.push({tag:"m3u-relay-"+(i+1),delay:450+(i*450),run:function(){return request(make(url),7000);}});});return firstOk(attempts);}
 async function fetchM3USource(label,url,filter){try{ /* Some public FAST playlist hosts reject the browser/null origin. Use a bounded direct-first relay race so a blocked host can still populate its own source shelf without serial proxy failures delaying Live TV. */ var text=await fetchM3UTextBounded(url);var list=parseM3U(text).filter(filter||function(){return true;});list.forEach(function(c){c.src=label;});nlog("livetv",true,label+": "+list.length);return list;}catch(e){nlog("livetv",false,label+": "+((e&&e.message)||e));return [];}}

@@ -9,7 +9,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>REALSIGNAL · The Dial 5.5.24</title>
+<title>REALSIGNAL · The Dial 5.5.25</title>
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
@@ -1707,7 +1707,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="5.5.24-consolidated-guide-lineup";
+window.__ATV_BUILD="5.5.25-courtroom-canonical-merge";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -2541,7 +2541,7 @@ function channelHealth(ch){
    but it must never remove a channel from the dial, guide, surf order, or Cast list. */
 const CHANNEL_HIDING_ENABLED=false;
 function isPublicLineupChannel(ch){
-  if(GUIDE_MERGED_LINEUP_ENABLED&&typeof GUIDE_MERGED_MEMBER_NUMS!=="undefined"&&GUIDE_MERGED_MEMBER_NUMS.has(Number(ch&&ch.num)))return false;
+  if(GUIDE_MERGED_LINEUP_ENABLED&&typeof GUIDE_MERGED_MEMBER_NUMS!=="undefined"&&GUIDE_MERGED_MEMBER_NUMS.has(Number(ch&&ch.num))&&!isCanonicalRealMergeMember(ch))return false;
   if(!CHANNEL_HIDING_ENABLED)return true;var state=channelHealth(ch).state;return state!=="hide"&&state!=="retire";
 }
 function publicLineupChannels(){return CH.filter(isPublicLineupChannel);}
@@ -2584,6 +2584,18 @@ const GUIDE_MERGE_ALIASES=[
 function guideMergeMembers(alias){return (alias&&Array.isArray(alias.members)?alias.members:[]).map(function(num){return byNum(Number(num));}).filter(Boolean);}
 function guideMergeAliasById(id){return GUIDE_MERGE_ALIASES.find(function(alias){return alias.id===id;})||null;}
 const GUIDE_MERGED_MEMBER_NUMS=new Set(GUIDE_MERGE_ALIASES.filter(function(alias){return alias.id!=="black-media";}).reduce(function(all,alias){return all.concat(alias.members||[]);},[]));
+/* REAL MERGE PILOT: Courtroom TV is the first family whose underlying
+   playback identity is consolidated. The guide cards above are still useful
+   for the remaining families, but only this pilot redirects old numbers and
+   shares one catalog/freshness ledger. */
+const REAL_CHANNEL_MERGES=[{id:"courtroom-tv",canonicalNum:20,label:"Courtroom TV",members:[20,21]}];
+const REAL_CHANNEL_MERGE_BY_NUM=new Map();
+REAL_CHANNEL_MERGES.forEach(function(merge){(merge.members||[]).forEach(function(num){REAL_CHANNEL_MERGE_BY_NUM.set(Number(num),merge);});});
+function realChannelMergeFor(value){var num=Number(value&&value.num!==undefined?value.num:value);return REAL_CHANNEL_MERGE_BY_NUM.get(num)||null;}
+function canonicalTuneNum(value){var merge=realChannelMergeFor(value);return merge?Number(merge.canonicalNum):Number(value);}
+function canonicalChannelLabel(ch){var merge=realChannelMergeFor(ch);return merge?merge.label:String(ch&&ch.nm||"");}
+function isCanonicalRealMergeMember(ch){var merge=realChannelMergeFor(ch);return !!(merge&&Number(ch&&ch.num)===Number(merge.canonicalNum));}
+function isHiddenConsolidatedMember(ch){return !!(GUIDE_MERGED_MEMBER_NUMS&&GUIDE_MERGED_MEMBER_NUMS.has(Number(ch&&ch.num))&&!isCanonicalRealMergeMember(ch));}
 function guideCategoryFor(ch){var live=GUIDE_CATEGORY_BY_ID.live;if(live&&live.channels.indexOf(Number(ch.num))>-1)return live;return GUIDE_CATEGORIES.find(function(group){return group.cats&&group.cats.indexOf(ch.cat)>-1;})||GUIDE_CATEGORY_BY_ID.all;}
 function guideChannelKey(ch){return "rs-"+String(ch.num).padStart(3,"0")+"-"+String(ch.nm).toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,"");}
 CH.forEach(function(ch){var health=channelHealth(ch);ch.healthState=health.state;ch.healthReason=health.reason;ch.guideGroup=guideCategoryFor(ch).id;ch.key=guideChannelKey(ch);});
@@ -7199,6 +7211,19 @@ function buildProgramQueries(prog,ch,advance) {
   return fastQs.concat(editorialQs).concat(wideQs);
 }
 
+/* Real merge pilot programming. A merged family gets one query pool and one
+   queue key, while its old member records remain available for compatibility
+   views and direct-address resolution. */
+function rsUniqueMergedValues(left,right){var seen={},out=[];[].concat(Array.isArray(left)?left:[],Array.isArray(right)?right:[]).forEach(function(value){var key=String(value==null?"":value).toLowerCase();if(key&&!seen[key]){seen[key]=1;out.push(value);}});return out;}
+function rsMergeProgramRecords(left,right,label){
+  var out=Object.assign({},left||{}),arrayKeys=["queueTerms","fastSubjects","fastCollections","deepCollections","deepTitleTerms","queries","providers","formats","match","topics","strictTopicTerms","searchTerms"];
+  arrayKeys.forEach(function(key){var merged=rsUniqueMergedValues(left&&left[key],right&&right[key]);if(merged.length)out[key]=merged;});
+  ["require","deny","diversity"].forEach(function(key){var a=(left&&left[key])||{},b=(right&&right[key])||{},nested=Object.assign({},a,b);Object.keys(a).concat(Object.keys(b)).forEach(function(child){if(Array.isArray(a[child])||Array.isArray(b[child]))nested[child]=rsUniqueMergedValues(a[child],b[child]);});if(Object.keys(nested).length)out[key]=nested;});
+  var eras=[left&&left.era,right&&right.era].filter(function(era){return Array.isArray(era)&&era.length>=2;});if(eras.length)out.era=[Math.min.apply(null,eras.map(function(era){return Number(era[0]);})),Math.max.apply(null,eras.map(function(era){return Number(era[1]);}))];
+  out.name=label;out.genre="courtroom";out.mt=out.mt||"movies";out.depthQuerySpread=true;out.channelMerge=true;return out;
+}
+function channelProgramFor(ch){var merge=realChannelMergeFor(ch);if(merge&&merge.id==="courtroom-tv")return rsMergeProgramRecords(PROGRAM["The Court Room"],PROGRAM["Court TV"],merge.label);return PROGRAM[ch&&ch.nm];}
+
 /* Permanent channel programming. The legacy hour argument remains accepted so
    older callers cannot break, but the clock never changes a channel's identity,
    label, genre, era, provider, or eligibility. */
@@ -7206,8 +7231,9 @@ function slotFor(ch,_ignoredHour,opts){
   var advance=!(opts&&opts.preview);
   if(ch.source) return {show:ch.nm, source:ch.source};
   /* PROGRAMMED CHANNELS 2.0: if a PROGRAM entry exists for this channel, use it. */
-  if(PROGRAM[ch.nm]){
-    var prog=PROGRAM[ch.nm];
+  var channelProgram=channelProgramFor(ch);
+  if(channelProgram){
+    var prog=channelProgram;
     if(ch.nm==="Sports Vault"&&sportsEra!=="all"){var selectedSportsEra=SPORTS_ERAS[sportsEra]||prog.era;prog=Object.assign({},prog,{era:selectedSportsEra,eraBuckets:[selectedSportsEra]});}
     /* Era stations use the same compact G-profile rails as the legacy IA
        lanes. Their PROGRAM records still supply the guide/editorial contract,
@@ -7218,7 +7244,7 @@ function slotFor(ch,_ignoredHour,opts){
        labels such as "The Late Late Show" into unrelated channels, even after
        the clock scheduler itself was retired. Editorial lanes may shape the
        search, but they can never rename the channel on air. */
-    return {show:ch.nm, genre:prog.genre||ch.gl, era:prog.era||ch.era, source:"ia", channel:ch.num, queries:pq, program:prog};
+    return {show:canonicalChannelLabel(ch), genre:prog.genre||ch.gl, era:prog.era||ch.era, source:"ia", channel:ch.num, queries:pq, program:prog};
   }
   const g=ch.gl; let era=ch.era||(G[g]&&G[g].era);
   if(ch.nm==="Sports Vault"&&sportsEra!=="all") era=SPORTS_ERAS[sportsEra]||era; /* 1.4.2 */
@@ -7243,7 +7269,7 @@ window.__atvTimelessAudit=function(){
   return {ok:rows.every(function(row){return row.variants===1&&row.identity;}),channels:rows.length,failures:rows.filter(function(row){return row.variants!==1||!row.identity;}),channel10:rows.filter(function(row){return row.num===10;})[0]||null};
 };
 window.__atvIAManifest=function(){
-  return CH.filter(function(ch){return !ch.source;}).map(function(ch){var sl=slotFor(ch,0,{preview:true});return {channel:String(ch.num),name:ch.nm,queries:iaQueueQueries(sl),themeTerms:iaProgramThemeTerms(sl),denyTerms:iaProgramDenyTerms(sl),diversity:iaQueueDiversity(sl),mediaTypes:ch.audio?["audio"]:["movies"],themeMinScore:Math.max(1,Math.min(12,Number(sl&&sl.program&&sl.program.themeMinScore)||1)),minRuntimeSeconds:Math.max(0,Number(sl&&sl.program&&sl.program.minRuntimeSeconds)||0)};});
+  return CH.filter(function(ch){return !ch.source;}).map(function(ch){var sl=slotFor(ch,0,{preview:true});return {channel:String(ch.num),name:canonicalChannelLabel(ch),queries:iaQueueQueries(sl),themeTerms:iaProgramThemeTerms(sl),denyTerms:iaProgramDenyTerms(sl),diversity:iaQueueDiversity(sl),mediaTypes:ch.audio?["audio"]:["movies"],themeMinScore:Math.max(1,Math.min(12,Number(sl&&sl.program&&sl.program.themeMinScore)||1)),minRuntimeSeconds:Math.max(0,Number(sl&&sl.program&&sl.program.minRuntimeSeconds)||0)};});
 };
 if(new URLSearchParams(location.search).get("soak")==="1"){
   var iaSoakDump=document.createElement("script");iaSoakDump.type="application/json";iaSoakDump.id="atvIASoakManifest";
@@ -7839,7 +7865,7 @@ function guideBrowsePool(){
   var active=GUIDE_MERGE_UI_ENABLED?guideMergeAliasById(window.__rsGuideMergeAliasFilter||""):null;
   if(active)return guideMergeMembers(active).filter(function(c){return !favOnly||isFav(c.num);});
   var base=favOnly?publicLineupChannels().filter(function(c){return isFav(c.num);}):publicLineupChannels();
-  return GUIDE_MERGED_LINEUP_ENABLED?base.filter(function(c){return !GUIDE_MERGED_MEMBER_NUMS.has(Number(c.num));}):base;
+  return GUIDE_MERGED_LINEUP_ENABLED?base.filter(function(c){return !isHiddenConsolidatedMember(c);}):base;
 }
 function visibleChannels(){let l=guideBrowsePool();
   if(catFilter&&catFilter!=="all")l=l.filter(function(c){return c.guideGroup===catFilter;});
@@ -8029,13 +8055,14 @@ function renderRail(){
   var activeMergeAlias=GUIDE_MERGE_UI_ENABLED?guideMergeAliasById(window.__rsGuideMergeAliasFilter||""):null;
   if(activeMergeAlias){var aliasNums=guideMergeMembers(activeMergeAlias).map(function(ch){return ch.num;});list=list.filter(function(ch){return aliasNums.indexOf(ch.num)>=0;});}
   var title=activeMergeAlias?activeMergeAlias.label.toUpperCase():(query?"SEARCH RESULTS":(favOnly?"FAVORITES":active.label.toUpperCase()));
-  var descriptor=activeMergeAlias?((GUIDE_MERGED_LINEUP_ENABLED?"CONSOLIDATED GUIDE":"GUIDE-ONLY MERGE TRIAL")+" · "+list.length+" EXISTING CHANNELS · NUMBERS UNCHANGED"):(query?('"'+query+'" · '+list.length+' matches'):(favOnly?list.length+" saved channels":active.meta+" · CATEGORY ORDER · NUMBERS STABLE"));
+  var activeRealMerge=activeMergeAlias&&REAL_CHANNEL_MERGES.find(function(merge){return merge.id===activeMergeAlias.id;});
+  var descriptor=activeMergeAlias?((activeRealMerge?"REAL MERGE PILOT":(GUIDE_MERGED_LINEUP_ENABLED?"CONSOLIDATED GUIDE":"GUIDE-ONLY MERGE TRIAL"))+" · "+(activeRealMerge?"1 CANONICAL + "+(list.length-1)+" LEGACY ALIAS":list.length+" EXISTING CHANNELS · NUMBERS UNCHANGED")):(query?('"'+query+'" · '+list.length+' matches'):(favOnly?list.length+" saved channels":active.meta+" · CATEGORY ORDER · NUMBERS STABLE"));
   var titleEl=$("railTitle"),resultsEl=$("guideResults"),countEl=$("guideCount");if(titleEl)titleEl.textContent=title;if(resultsEl)resultsEl.textContent=descriptor;if(countEl)countEl.textContent=list.length+" CHANNEL"+(list.length===1?"":"S");
   var mergeFragment=document.createDocumentFragment();
-  if(GUIDE_MERGE_UI_ENABLED&&activeMergeAlias){var back=document.createElement("button");back.type="button";back.className="chsection";back.style.cssText="width:100%;text-align:left;cursor:pointer";back.innerHTML='<span class="chsection-label">← ALL CHANNELS</span><span class="chsection-sub">Exit merge view · actual tuning lineup unchanged</span>';back.addEventListener("click",function(){window.__rsGuideMergeAliasFilter="";renderRail();});mergeFragment.appendChild(back);}
+  if(GUIDE_MERGE_UI_ENABLED&&activeMergeAlias){var back=document.createElement("button");back.type="button";back.className="chsection";back.style.cssText="width:100%;text-align:left;cursor:pointer";back.innerHTML='<span class="chsection-label">← ALL CHANNELS</span><span class="chsection-sub">Exit family view · legacy numbers remain compatible</span>';back.addEventListener("click",function(){window.__rsGuideMergeAliasFilter="";renderRail();});mergeFragment.appendChild(back);}
   if(GUIDE_MERGE_UI_ENABLED&&!activeMergeAlias&&!favOnly){
     var aliasQuery=query.toLowerCase(),aliases=GUIDE_MERGE_ALIASES.filter(function(alias){return GUIDE_MERGED_LINEUP_ENABLED?alias.id!=="black-media":true;}).filter(function(alias){var members=guideMergeMembers(alias),text=(alias.label+" "+alias.meta+" "+members.map(function(ch){return ch.nm+" "+ch.num;}).join(" ")).toLowerCase();return (!aliasQuery||text.indexOf(aliasQuery)>-1)&&members.length;});
-    if(aliases.length){var aliasHead=document.createElement("div");aliasHead.className="chsection";aliasHead.innerHTML='<span class="chsection-label">'+(GUIDE_MERGED_LINEUP_ENABLED?"CONSOLIDATED FAMILIES":"MERGE TRIALS")+'</span><span class="chsection-sub">'+(GUIDE_MERGED_LINEUP_ENABLED?"Umbrella guide groups · source channels remain tunable":"Guide-only groups · no channel numbers changed")+'</span>';mergeFragment.appendChild(aliasHead);aliases.forEach(function(alias){var members=guideMergeMembers(alias),row=document.createElement("button");row.type="button";row.className="chcell guide-alias-card";row.title=alias.meta+" · "+(GUIDE_MERGED_LINEUP_ENABLED?"consolidated guide":"guide-only test");row.innerHTML='<span class="cc-n">◆</span><span class="cc-thumb"><span class="cc-thumb-glyph">'+(GUIDE_MERGED_LINEUP_ENABLED?"TV":"TR")+'</span></span><span class="cc-identity"><span class="cc-nm">'+esch(alias.label)+'</span><span class="cc-genre">'+(GUIDE_MERGED_LINEUP_ENABLED?"CONSOLIDATED GUIDE":"GUIDE-ONLY MERGE TRIAL")+'</span></span><span class="cc-now-block"><span class="cc-now">'+esch(alias.meta)+'</span><span class="cc-status">'+members.length+' EXISTING CHANNELS · NUMBERS UNCHANGED</span></span><span class="cc-next-block"><span class="cc-next">OPEN TO TEST MEMBERS</span></span>';row.addEventListener("click",function(){window.__rsGuideMergeAliasFilter=alias.id;renderRail();});mergeFragment.appendChild(row);});}
+    if(aliases.length){var aliasHead=document.createElement("div");aliasHead.className="chsection";aliasHead.innerHTML='<span class="chsection-label">'+(GUIDE_MERGED_LINEUP_ENABLED?"CONSOLIDATED FAMILIES":"MERGE TRIALS")+'</span><span class="chsection-sub">'+(GUIDE_MERGED_LINEUP_ENABLED?"Canonical families · legacy numbers remain directly tunable":"Guide-only groups · no channel numbers changed")+'</span>';mergeFragment.appendChild(aliasHead);aliases.forEach(function(alias){var members=guideMergeMembers(alias),real=REAL_CHANNEL_MERGES.find(function(merge){return merge.id===alias.id;}),row=document.createElement("button");row.type="button";row.className="chcell guide-alias-card";row.title=alias.meta+" · "+(GUIDE_MERGED_LINEUP_ENABLED?"consolidated guide":"guide-only test");row.innerHTML='<span class="cc-n">◆</span><span class="cc-thumb"><span class="cc-thumb-glyph">'+(GUIDE_MERGED_LINEUP_ENABLED?"TV":"TR")+'</span></span><span class="cc-identity"><span class="cc-nm">'+esch(alias.label)+'</span><span class="cc-genre">'+(GUIDE_MERGED_LINEUP_ENABLED?"CONSOLIDATED GUIDE":"GUIDE-ONLY MERGE TRIAL")+'</span></span><span class="cc-now-block"><span class="cc-now">'+esch(alias.meta)+'</span><span class="cc-status">'+(real?"1 CANONICAL CHANNEL · LEGACY "+(members.length-1)+" ALIAS":""+members.length+" EXISTING CHANNELS · NUMBERS UNCHANGED")+'</span></span><span class="cc-next-block"><span class="cc-next">OPEN TO TEST MEMBERS</span></span>';row.addEventListener("click",function(){window.__rsGuideMergeAliasFilter=alias.id;renderRail();});mergeFragment.appendChild(row);});}
   }
   if(mergeFragment.childNodes.length)chList.appendChild(mergeFragment);
   if(!list.length){chList.insertAdjacentHTML("beforeend",'<div class="chempty">No matching channels yet. Clear the search or choose another category.</div>');return;}
@@ -8044,9 +8071,9 @@ function renderRail(){
   var previousGroup=null,fragment=document.createDocumentFragment();
   list.forEach(function(ch){var group=guideCategoryFor(ch);
     if(group.id!==previousGroup){var divider=document.createElement("div");divider.className="chsection";divider.innerHTML='<span class="chsection-label">'+esch(group.label.toUpperCase())+'</span><span class="chsection-sub">'+esch(group.meta)+'</span>';fragment.appendChild(divider);previousGroup=group.id;}
-    var row=document.createElement("button");row.type="button";row.dataset.channelKey=ch.key;row.dataset.channelNum=ch.num;row.title=ch.nm+((CHANNEL_META[ch.nm]&&CHANNEL_META[ch.nm].desc)?(" \\u2014 "+CHANNEL_META[ch.nm].desc):"");row.className="chcell"+(ch.num===curNum?" on":"");row.style.setProperty("--cat",CAT[ch.cat]||group.color);
+    var row=document.createElement("button");row.type="button";row.dataset.channelKey=ch.key;row.dataset.channelNum=ch.num;row.title=canonicalChannelLabel(ch)+((CHANNEL_META[ch.nm]&&CHANNEL_META[ch.nm].desc)?(" \\u2014 "+CHANNEL_META[ch.nm].desc):"");row.className="chcell"+(ch.num===curNum?" on":"");row.style.setProperty("--cat",CAT[ch.cat]||group.color);
     var listing=guideListing(ch),lastId=(window.__chLastId||{})[ch.num],thumb=lastId?'<span class="cc-thumb"><img src="https://archive.org/services/img/'+esch(lastId)+'" alt="" loading="lazy" decoding="async"></span>':'<span class="cc-thumb"><span class="cc-thumb-glyph">'+ch.num+'</span></span>';
-    row.innerHTML='<span class="cc-n">'+ch.num+'</span>'+thumb+'<span class="cc-identity"><span class="cc-nm">'+esch(ch.nm)+'</span><span class="cc-genre">'+esch(guideFamilyLabel(ch))+'</span></span><span class="cc-now-block"><span class="cc-now">'+esch(listing.now)+'</span><span class="cc-status">'+esch(listing.detail)+'</span></span><span class="cc-next-block"><span class="cc-next">'+esch(listing.next)+'</span></span>'+(isFav(ch.num)?'<span class="cc-f">★</span>':'');
+    row.innerHTML='<span class="cc-n">'+ch.num+'</span>'+thumb+'<span class="cc-identity"><span class="cc-nm">'+esch(canonicalChannelLabel(ch))+'</span><span class="cc-genre">'+esch(guideFamilyLabel(ch))+'</span></span><span class="cc-now-block"><span class="cc-now">'+esch(listing.now)+'</span><span class="cc-status">'+esch(listing.detail)+'</span></span><span class="cc-next-block"><span class="cc-next">'+esch(listing.next)+'</span></span>'+(isFav(ch.num)?'<span class="cc-f">★</span>':'');
     row.addEventListener("click",(function(num){return function(){tuneNum(num);if(window.closeSheets)window.closeSheets();else closeGuide();};})(ch.num));fragment.appendChild(row);
   });
   chList.appendChild(fragment);
@@ -8435,22 +8462,22 @@ window.__v2PreviewNext=function(manual){var ch=byNum(curNum),state=ch&&v2Preview
 async function tuneNum(n){
   if(!powered)return;
   if(n===-1 && customSlot){ return tuneCustomExec(); }
-  const ch=byNum(n); if(!ch)return;
-  if(window.__rsPlaybackAudit)window.__rsPlaybackAudit.begin(n);
-  const changedChannel=(curNum!==n)||justPowered; justPowered=false; // NEW: station bumper only on a real channel change
+  const requestedNum=Number(n),canonicalNum=canonicalTuneNum(requestedNum),ch=byNum(canonicalNum); if(!ch)return;
+  if(window.__rsPlaybackAudit)window.__rsPlaybackAudit.begin(canonicalNum);
+  const changedChannel=(curNum!==canonicalNum)||justPowered; justPowered=false; // NEW: station bumper only on a real channel change
   if(changedChannel)adQueue=0; /* a break belongs to one station; never leak it across a channel change */
-  curNum=n; store.set("last",n); store.set("lastName",ch.nm); if(typeof window.__rsCastIsConnected==="function"&&window.__rsCastIsConnected()&&typeof window.__rsCastCommand==="function")window.__rsCastCommand("TUNE",{channel:Number(n)}); if(typeof window.__rsCastSync==="function")window.__rsCastSync(); const my=++token; clearTimeout(retryTimer);
-  renderRail(); chNum.textContent=String(n);
+  curNum=canonicalNum; store.set("last",canonicalNum); store.set("lastRequested",requestedNum); store.set("lastName",canonicalChannelLabel(ch)); if(typeof window.__rsCastIsConnected==="function"&&window.__rsCastIsConnected()&&typeof window.__rsCastCommand==="function")window.__rsCastCommand("TUNE",{channel:canonicalNum}); if(typeof window.__rsCastSync==="function")window.__rsCastSync(); const my=++token; clearTimeout(retryTimer);
+  renderRail(); chNum.textContent=String(canonicalNum);
   const sl=slotFor(ch,0);
   if(marathonLock[ch.num] && sl.source==="ia"){ sl.queries=marathonQueryFor(marathonLock[ch.num],ch); sl.show="\ud83d\udd12 "+marathonLock[ch.num].label; } // NEW: marathon lock
   if(!ch.source)primeIACompanions(ch,sl);
-  nowName.textContent=ch.nm; nowMeta.textContent=sl.show; showBanner(ch,sl);
+  nowName.textContent=canonicalChannelLabel(ch); nowMeta.textContent=sl.show; showBanner(ch,sl);
   /* Clear stale lower-third metadata as soon as a channel handoff begins. */
   if(changedChannel){
     lastMeta=null;
     lProg.textContent=sl.show||ch.nm;
     lTitle.textContent="";
-    lMeta.textContent="CH "+ch.num+" · "+ch.nm;
+    lMeta.textContent="CH "+ch.num+" · "+canonicalChannelLabel(ch);
   }
   bug.textContent=(isFav(n)?"★ ":"")+"CH "+n; bug.classList.add("hide"); lower.classList.add("fade");
   volHint.classList.remove("show");
@@ -8460,7 +8487,7 @@ async function tuneNum(n){
   if(changedChannel&&!holdPicture){ // Keep the outgoing picture up while the new station resolves.
     var identLine=(CATNAME[ch.cat]||"")+" \u00b7 "+sl.show;
     if(ch.cat==="NET" && Math.random()<0.5){ var RI=regionalIdents(); identLine=RI[Math.floor(Math.random()*RI.length)]; }
-    showOv("YOU'RE WATCHING",ch.nm.toUpperCase(),identLine);
+    showOv("YOU'RE WATCHING",canonicalChannelLabel(ch).toUpperCase(),identLine);
     rollDialTo(n); flashIdent(ch.cat);
   }
   else if(!holdPicture) showOv("TUNING…","PLEASE STAND BY","“"+ch.nm+"” — "+sl.show);
@@ -9025,8 +9052,8 @@ function playFile(it,ch,sl,my,isFallback){return new Promise(res=>{
 
 function showNow(ch,sl,title,extra){
   lProg.textContent=sl.show; lTitle.textContent=title||"";
-  lMeta.textContent="CH "+ch.num+" · "+ch.nm+(extra?(" "+extra):"");
-  nowName.textContent=title||ch.nm; nowMeta.textContent="CH "+ch.num+" · "+sl.show;
+  lMeta.textContent="CH "+ch.num+" · "+canonicalChannelLabel(ch)+(extra?(" "+extra):"");
+  nowName.textContent=title||canonicalChannelLabel(ch); nowMeta.textContent="CH "+ch.num+" · "+sl.show;
   if(ch.source){ lower.classList.add("fade"); if(clockBug)clockBug.style.display="none"; } /* 1.5.1: data channels carry their own chrome */
   else { if(clockBug)clockBug.style.display=""; lower.classList.remove("fade"); clearTimeout(showNow._t); showNow._t=setTimeout(()=>lower.classList.add("fade"),6500); }
   if(!sl.isAd)pushHistory(ch,title); applyAspect(); /* CYCLE-1 FIX: ads out of Recently Watched */
@@ -9226,7 +9253,7 @@ document.addEventListener("webkitfullscreenchange",()=>document.body.classList.t
 
 /* channel banner + quick toast */
 function showBanner(ch,sl){if(!banner)return;
-  banner.innerHTML='<span class="bn-num">'+ch.num+'</span><span class="bn-nm">'+esch(ch.nm)+'</span><span class="bn-now">'+esch(sl.show)+'</span>'; /* CYCLE-1 FIX: escape IA metadata */
+  banner.innerHTML='<span class="bn-num">'+ch.num+'</span><span class="bn-nm">'+esch(canonicalChannelLabel(ch))+'</span><span class="bn-now">'+esch(sl.show)+'</span>'; /* CYCLE-1 FIX: escape IA metadata */
   banner.classList.add("show");clearTimeout(bannerTimer);bannerTimer=setTimeout(()=>banner.classList.remove("show"),3500);}
 function quickBanner(t){if(!banner)return;banner.innerHTML='<span class="bn-msg">'+t+'</span>';banner.classList.add("show");
    clearTimeout(bannerTimer);bannerTimer=setTimeout(()=>banner.classList.remove("show"),1700);}
@@ -17961,7 +17988,7 @@ function marathonQueryFor(lock,ch){
      locked onto the same generic collection played identical content. The lock is now ANDed
      with the channel's own genre constraints first; the generic pool is the last resort. */
   var f=lock.kind==="collection" ? 'collection:"'+lock.value+'"' : 'creator:("'+lock.value+'")';
-  var qs=[],prog=ch&&PROGRAM[ch.nm],mt=(prog&&prog.mt)||((ch&&ch.audio)?"audio":"movies");
+  var qs=[],prog=ch&&channelProgramFor(ch),mt=(prog&&prog.mt)||((ch&&ch.audio)?"audio":"movies");
   if(prog){buildProgramQueries(prog,ch,false).slice(0,8).forEach(function(q){qs.push(f+" AND ("+q+")");});return qs;}
   if(ch&&ch.gl&&G[ch.gl]) buildQuery(ch.gl,ch.era).slice(0,5).forEach(function(q){ qs.push(f+" AND ("+q+")"); });
   if(!qs.length){qs.push(f+" AND mediatype:"+mt);qs.push("mediatype:"+mt+" AND "+f);}

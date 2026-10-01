@@ -105,7 +105,18 @@ function withTimeout(promise, ms = SOURCE_TIMEOUT_MS) {
 
 async function fetchJson(url, options = {}) {
   const response = await withTimeout(fetch(url, options));
-  if (!response.ok) throw new Error(`source http ${response.status}`);
+  if (!response.ok) {
+    let detail = "";
+    try {
+      const body = await response.clone().json();
+      const first = Array.isArray(body && body.error && body.error.errors) ? body.error.errors[0] : null;
+      detail = text(first && (first.reason || first.message) || body && body.error && body.error.message || body && body.message, 180);
+    } catch (_) { /* provider may return an HTML or empty error body */ }
+    const error = new Error(`source http ${response.status}${detail ? ` · ${detail}` : ""}`);
+    error.status = response.status;
+    error.providerDetail = detail;
+    throw error;
+  }
   return response.json();
 }
 
@@ -145,6 +156,7 @@ function normalizedProfile(body) {
     youtubeDiscoveryWindow: Math.max(0, Math.min(6, Number(approved.youtubeDiscoveryWindow) || 0)),
     youtubeDiscoveryQueries: list(approved.youtubeDiscoveryQueries, 12),
     youtubeDiscoveredChannelWindow: Math.max(0, Math.min(12, Number(approved.youtubeDiscoveredChannelWindow) || 0)),
+    youtubeChannelPageWindow: Math.max(1, Math.min(4, Number(approved.youtubeChannelPageWindow) || (approved.deepCatalog === true ? 3 : 1))),
     youtubeChannelDeny: list(approved.youtubeChannelDeny, 24),
     youtubeChannelRequired: list(approved.youtubeChannelRequired, 16),
     providers: list(approved.providers, 2).map((value) => value.toLowerCase()),
@@ -303,11 +315,15 @@ async function youtubeDiscoverChannels(profile, rotation, env, options = {}) {
       return { seed: channelId, discovered: true, title: text(snippet.title, 180), query };
     }).filter(Boolean);
   });
-  const responses = (await mapLimit(jobs, 2, (job) => job())).flat().filter(Boolean);
+  const results = await mapLimit(jobs, 2, async (job) => {
+    try { return { items: await job(), error: "" }; }
+    catch (error) { return { items: [], error: text(error && (error.providerDetail || error.message), 180) || "discovery request failed" }; }
+  });
+  const responses = results.flatMap((result) => Array.isArray(result && result.items) ? result.items : []).filter(Boolean);
   const accepted = unique(responses.map((item) => ({ id: item.seed, ...item })));
   return {
     items: accepted.slice(0, firstLane ? 1 : (profile.youtubeDiscoveredChannelWindow || 0)),
-    health: { queries: queries.length, candidates: responses.length, accepted: accepted.length },
+    health: { queries: queries.length, candidates: responses.length, accepted: accepted.length, errors: results.map((result) => result && result.error).filter(Boolean).slice(0, 8) },
   };
 }
 
@@ -328,9 +344,28 @@ async function youtubeChannelUploads(profile, rotation, env, options = {}) {
     const channel = await fetchJson("https://www.googleapis.com/youtube/v3/channels?" + channelParams, { headers: { Referer: "https://esfsfestgfse.github.io/Archivetv/" } });
     const playlistId = channel && channel.items && channel.items[0] && channel.items[0].contentDetails && channel.items[0].contentDetails.relatedPlaylists && channel.items[0].contentDetails.relatedPlaylists.uploads;
     if (!playlistId) return { seed, resolved: false, items: [] };
-    const uploadsParams = new URLSearchParams({ part: "snippet", playlistId, maxResults: firstLane ? "25" : "50", key });
-    const uploads = await fetchJson("https://www.googleapis.com/youtube/v3/playlistItems?" + uploadsParams, { headers: { Referer: "https://esfsfestgfse.github.io/Archivetv/" } });
-    const items = (uploads && uploads.items || []).map((item) => {
+    /* One upload page is enough for a cold start. Maintenance rotates through
+       older upload pages so a deep channel does not keep reopening the same
+       newest fifty videos. Playlist pagination is cheap compared with
+       videos.list and remains bounded to four pages per approved seed. */
+    const pageWindow = options.maintenance === true ? profile.youtubeChannelPageWindow : 1;
+    const pageStart = options.maintenance === true
+      ? Math.abs((Number(rotation) || 0) + seed.split("").reduce((sum, char) => sum + char.charCodeAt(0), 0)) % pageWindow
+      : 0;
+    const pageLimit = Math.min(4, pageStart + pageWindow);
+    let pageToken = "";
+    const pageItems = [];
+    let pagesFetched = 0;
+    for (let page = 0; page < pageLimit; page += 1) {
+      const uploadsParams = new URLSearchParams({ part: "snippet", playlistId, maxResults: firstLane ? "25" : "50", key });
+      if (pageToken) uploadsParams.set("pageToken", pageToken);
+      const uploads = await fetchJson("https://www.googleapis.com/youtube/v3/playlistItems?" + uploadsParams, { headers: { Referer: "https://esfsfestgfse.github.io/Archivetv/" } });
+      pagesFetched += 1;
+      if (page >= pageStart) pageItems.push(...(uploads && uploads.items || []));
+      pageToken = text(uploads && uploads.nextPageToken, 120);
+      if (!pageToken) break;
+    }
+    const items = pageItems.map((item) => {
       const videoId = text(item && item.snippet && item.snippet.resourceId && item.snippet.resourceId.videoId, 120);
       const snippet = item && item.snippet || {};
       return videoId ? {
@@ -345,15 +380,20 @@ async function youtubeChannelUploads(profile, rotation, env, options = {}) {
         year: text(snippet.publishedAt, 12),
       } : null;
     }).filter(Boolean);
-    return { seed, resolved: true, items };
+    return { seed, resolved: true, pages: pagesFetched, items };
   });
-  const lanes = (await mapLimit(jobs, 2, (job) => job())).filter(Boolean);
+  const lanes = (await mapLimit(jobs, 2, async (job) => {
+    try { return await job(); }
+    catch (error) { return { seed: "", resolved: false, pages: 0, items: [], error: text(error && (error.providerDetail || error.message), 180) || "channel upload request failed" }; }
+  })).filter(Boolean);
   return {
     items: unique(lanes.flatMap((lane) => lane.items || [])),
     health: {
       seeds: seeds.length,
       resolved: lanes.filter((lane) => lane.resolved).length,
       candidates: lanes.reduce((sum, lane) => sum + (lane.items || []).length, 0),
+      pages: lanes.reduce((sum, lane) => sum + Number(lane.pages || 0), 0),
+      errors: lanes.map((lane) => lane.error).filter(Boolean).slice(0, 8),
       discovered: discovery.health,
     },
   };

@@ -34,7 +34,7 @@ const { pathToFileURL } = require('node:url');
   assert.equal(health.status, 200);
   const healthBody = await health.json();
   assert.equal(healthBody.apiVersion, 'v3');
-  assert.equal(healthBody.release, '5.5.8-source-suite-deep-movie-catalogs');
+  assert.equal(healthBody.release, '5.5.9-source-suite-rotating-upload-depth');
   assert.ok(healthBody.capabilities.includes('server-telemetry'));
   assert.ok(healthBody.capabilities.includes('verified-guide'));
   assert.ok(healthBody.capabilities.includes('edge-manifests'));

@@ -14,7 +14,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "5.5.5-source-suite-movie-guard";
+const V3_RELEASE = "5.5.6-source-suite-movie-recovery";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -1321,15 +1321,20 @@ async function familyCatalogFallback(env, profile, requestedLimit = SOURCE_LIMIT
      media-type, deny, and genre rules. Only dedupe here; re-running the broad
      profile's match vocabulary would throw away valid titles such as Rudolph
      or Casper that do not contain the generic phrase "holiday cartoon". */
-  return uniqueQueueItems(rows, {
-    sourceCatalog: true,
-    denyTerms: [],
-    themeTerms: [],
-    persistedMatch: [],
-    topics: [],
-    programFormats: [],
-    themeMinScore: 0,
-  }, requestedLimit);
+  const familyBody = profile && profile.intent === "film"
+    ? {
+        sourceCatalog: true,
+        denyTerms: profile.deny,
+        themeTerms: profile.match,
+        persistedMatch: [],
+        topics: profile.topics,
+        programFormats: profile.formats,
+        minTitleYear: profile.minTitleYear,
+        intent: profile.intent,
+        themeMinScore: 1,
+      }
+    : { sourceCatalog: true, denyTerms: [], themeTerms: [], persistedMatch: [], topics: [], programFormats: [], themeMinScore: 0 };
+  return uniqueQueueItems(rows, familyBody, requestedLimit);
 }
 
 function sourceProvidersFromItems(items) {

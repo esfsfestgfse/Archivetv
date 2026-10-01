@@ -1796,7 +1796,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   },
   "movie-house": {
     "name": "Movie House",
-    "fallbackProfiles": ["indie-feature-house"],
+    "fallbackProfiles": ["indie-feature-house", "horror-house", "sci-fi-signal", "western-screen", "film-noir-desk"],
     "queryLimit": 16,
     "queryWindow": 6,
     "peerTubeQueryWindow": 6,
@@ -1821,7 +1821,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   },
   "modern-free-cinema": {
     "name": "Modern Free Cinema",
-    "fallbackProfiles": ["indie-feature-house", "movie-house"],
+    "fallbackProfiles": ["indie-feature-house", "movie-house", "horror-house", "sci-fi-signal", "western-screen", "film-noir-desk"],
     "queryLimit": 16,
     "queryWindow": 6,
     "peerTubeQueryWindow": 6,
@@ -1852,7 +1852,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "peerTubeDetailLimit": 12,
     "peerTubeFallbackQueryWindow": 6,
     "peerTubeInstances": ["https://search.joinpeertube.org", "https://video.blender.org", "https://framatube.org", "https://peertube.uno", "https://tilvids.com", "https://peertube.doesstuff.social", "https://peertube.dngr.us"],
-    "fallbackProfiles": ["modern-free-cinema", "movie-house"],
+    "fallbackProfiles": ["modern-free-cinema", "movie-house", "horror-house", "sci-fi-signal", "western-screen", "film-noir-desk"],
     "providers": ["peertube", "youtube"],
     "intent": "film",
     "minTitleYear": 1980,

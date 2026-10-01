@@ -1796,6 +1796,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   },
   "movie-house": {
     "name": "Movie House",
+    "fallbackProfiles": ["indie-feature-house"],
     "queryLimit": 16,
     "queryWindow": 6,
     "peerTubeQueryWindow": 6,
@@ -1819,7 +1820,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   },
   "modern-free-cinema": {
     "name": "Modern Free Cinema",
-    "fallbackProfiles": ["movie-house"],
+    "fallbackProfiles": ["indie-feature-house", "movie-house"],
     "queryLimit": 16,
     "queryWindow": 6,
     "peerTubeQueryWindow": 6,

@@ -1836,9 +1836,10 @@ async function readSourceCooldowns(env, profileKey) {
   try {
     const prefix = `${String(profileKey || "").slice(0, 100)}:%`;
     /* Older releases wrote a cooldown for the harmless "no verified items"
-       case. Ignore those legacy rows immediately; real provider errors remain
-       eligible for their short recovery cooldown. */
-    const result = await env.realsignal_catalog.prepare("SELECT source_key, cooldown_until FROM source_health WHERE source_key LIKE ? AND cooldown_until>? AND COALESCE(last_error, '')<>'no verified items'").bind(prefix, Date.now()).all();
+       case. Ignore those legacy rows immediately. A single transport miss is
+       also not enough to empty a channel: require two recorded provider
+       failures before applying the short recovery cooldown. */
+    const result = await env.realsignal_catalog.prepare("SELECT source_key, cooldown_until FROM source_health WHERE source_key LIKE ? AND cooldown_until>? AND COALESCE(last_error, '')<>'no verified items' AND COALESCE(failures, 0)>=2").bind(prefix, Date.now()).all();
     return new Set((result.results || []).map((row) => sourceProviderKey(String(row.source_key || "").split(":").pop())));
   } catch (_) { return new Set(); }
 }

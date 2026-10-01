@@ -118,11 +118,12 @@ function normalizedProfile(body) {
     profileKey,
     name: approved.name,
     queries: list(approved.queries, queryLimit),
-    queryWindow: Math.max(1, Math.min(SOURCE_MAX_QUERY_WINDOW, Number(approved.queryWindow) || SOURCE_QUERY_WINDOW)),
-    peerTubeQueryWindow: Math.max(1, Math.min(SOURCE_MAX_QUERY_WINDOW, Number(approved.peerTubeQueryWindow) || Number(approved.queryWindow) || SOURCE_QUERY_WINDOW)),
+    queryWindow: Math.max(1, Math.min(approved.deepCatalog === true ? 10 : SOURCE_MAX_QUERY_WINDOW, Number(approved.queryWindow) || SOURCE_QUERY_WINDOW)),
+    peerTubeQueryWindow: Math.max(1, Math.min(approved.deepCatalog === true ? 10 : SOURCE_MAX_QUERY_WINDOW, Number(approved.peerTubeQueryWindow) || Number(approved.queryWindow) || SOURCE_QUERY_WINDOW)),
     peerTubeInstanceLimit: Math.max(1, Math.min(8, Number(approved.peerTubeInstanceLimit) || 8)),
     peerTubeDetailLimit: Math.max(SOURCE_MIN_READY, Math.min(32, Number(approved.peerTubeDetailLimit) || 32)),
-    peerTubeFallbackQueryWindow: Math.max(1, Math.min(SOURCE_MAX_QUERY_WINDOW, Number(approved.peerTubeFallbackQueryWindow) || SOURCE_QUERY_WINDOW)),
+    peerTubeFallbackQueryWindow: Math.max(1, Math.min(approved.deepCatalog === true ? 10 : SOURCE_MAX_QUERY_WINDOW, Number(approved.peerTubeFallbackQueryWindow) || SOURCE_QUERY_WINDOW)),
+    deepCatalog: approved.deepCatalog === true,
     match: list(approved.match, 40),
     deny: list(approved.deny, 48),
     intent: text(approved.intent, 40).toLowerCase(),
@@ -139,6 +140,13 @@ function normalizedProfile(body) {
     fallbackProfiles: list(approved.fallbackProfiles, 4),
     peerTubeInstances: list(approved.peerTubeInstances, 8),
     peerTubeQueries: list(approved.peerTubeQueries, queryLimit),
+    youtubeChannelWindow: Math.max(1, Math.min(6, Number(approved.youtubeChannelWindow) || 2)),
+    youtubeChannelHandles: list(approved.youtubeChannelHandles, 12),
+    youtubeDiscoveryWindow: Math.max(0, Math.min(6, Number(approved.youtubeDiscoveryWindow) || 0)),
+    youtubeDiscoveryQueries: list(approved.youtubeDiscoveryQueries, 12),
+    youtubeDiscoveredChannelWindow: Math.max(0, Math.min(12, Number(approved.youtubeDiscoveredChannelWindow) || 0)),
+    youtubeChannelDeny: list(approved.youtubeChannelDeny, 24),
+    youtubeChannelRequired: list(approved.youtubeChannelRequired, 16),
     providers: list(approved.providers, 2).map((value) => value.toLowerCase()),
   };
 }
@@ -193,15 +201,17 @@ function accepted(profile, item, provider, checkAspect = true) {
   if (profile.deny.some((term) => haystack.includes(text(term, 180).toLowerCase()))) return false;
   if (!rightsOkay(item.rights, source)) return false;
   if (source === "YouTube" && !englishOkay(item)) return false;
+  const trustedYouTubeChannel = source === "YouTube" && text(item && item.channelSeed, 120) && (profile.youtubeChannelHandles.includes(text(item && item.channelSeed, 120)) || item.channelDiscovered === true);
   if (/^(?:television|film|performance)$/.test(profile.intent || "")) {
     const programDeny = /(?:history of|documentary about|retrospective|video essay|analysis|explained|lecture|seminar|webinar|conference|panel discussion|making of|movie making|filmmaking|film making|studio tour|educational film|behind the scenes|demo reel|showreel|workshop|masterclass|recap|production reel|festival reel|fan[ -]?made|fan animation|unofficial|mashup|amv|gacha|roleplay|my little pony|\bpony\b)/i;
     if (programDeny.test(haystack)) return false;
     if (profile.topics.length && !termsMatch(haystack, profile.topics)) return false;
     if (profile.formats.length && !termsMatch(titleHaystack, profile.formats)
-      && !(profile.formatRelaxed === true && duration >= 20 * 60)) return false;
+      && !(profile.formatRelaxed === true && duration >= 20 * 60)
+      && !(trustedYouTubeChannel && duration >= 20 * 60)) return false;
   }
-  if (profile.movieLane === "modern" && profile.laneDeny.some((term) => haystack.includes(text(term, 180).toLowerCase()))) return false;
-  if (profile.movieLane === "indie" && profile.laneRequired.length && !profile.laneRequired.some((term) => haystack.includes(text(term, 180).toLowerCase()))) return false;
+  if (profile.movieLane === "modern" && profile.laneDeny.some((term) => titleHaystack.includes(text(term, 180).toLowerCase()))) return false;
+  if (profile.movieLane === "indie" && profile.laneRequired.length && !trustedYouTubeChannel && !profile.laneRequired.some((term) => haystack.includes(text(term, 180).toLowerCase()))) return false;
   const required = profile.match.length ? profile.match : profile.queries;
   return !required.length || termsMatch(haystack, required);
 }
@@ -214,6 +224,8 @@ function normalized(item, provider, query) {
     tags: text(item.tags, 600),
     category: text(item.category, 120),
     account: text(item.account, 180),
+    channelSeed: text(item.channelSeed, 120),
+    channelDiscovered: item.channelDiscovered === true,
     year: text(item.year, 12).slice(0, 4),
     rights: text(item.rights, 240),
     provider,
@@ -264,6 +276,89 @@ function youtubeSearchDuration(profile, rotation) {
   return Math.abs(Number(rotation) || 0) % 2 ? "medium" : "long";
 }
 
+async function youtubeDiscoverChannels(profile, rotation, env, options = {}) {
+  const firstLane = options.firstLane === true;
+  const key = text(env && env.YOUTUBE_API_KEY, 180);
+  const queries = rotate(profile.youtubeDiscoveryQueries || [], rotation).slice(0, firstLane ? 1 : (profile.youtubeDiscoveryWindow || 0));
+  if (!key || !queries.length) return { items: [], health: { queries: 0, candidates: 0, accepted: 0 } };
+  const jobs = queries.map((query) => async () => {
+    const params = new URLSearchParams({
+      part: "snippet",
+      type: "channel",
+      maxResults: firstLane ? "8" : "25",
+      q: query,
+      regionCode: "US",
+      relevanceLanguage: "en",
+      safeSearch: "moderate",
+      key,
+    });
+    const data = await fetchJson("https://www.googleapis.com/youtube/v3/search?" + params, { headers: { Referer: "https://esfsfestgfse.github.io/Archivetv/" } });
+    return (data.items || []).map((item) => {
+      const channelId = text(item && item.id && item.id.channelId, 80);
+      const snippet = item && item.snippet || {};
+      const identity = text([snippet.title, snippet.description].join(" "), 2500).toLowerCase();
+      if (!/^UC[a-zA-Z0-9_-]{20,}$/.test(channelId)) return null;
+      if ((profile.youtubeChannelDeny || []).some((term) => identity.includes(text(term, 180).toLowerCase()))) return null;
+      if ((profile.youtubeChannelRequired || []).length && !termsMatch(identity, profile.youtubeChannelRequired)) return null;
+      return { seed: channelId, discovered: true, title: text(snippet.title, 180), query };
+    }).filter(Boolean);
+  });
+  const responses = (await mapLimit(jobs, 2, (job) => job())).flat().filter(Boolean);
+  const accepted = unique(responses.map((item) => ({ id: item.seed, ...item })));
+  return {
+    items: accepted.slice(0, firstLane ? 1 : (profile.youtubeDiscoveredChannelWindow || 0)),
+    health: { queries: queries.length, candidates: responses.length, accepted: accepted.length },
+  };
+}
+
+async function youtubeChannelUploads(profile, rotation, env, options = {}) {
+  const firstLane = options.firstLane === true;
+  const key = text(env && env.YOUTUBE_API_KEY, 180);
+  const anchors = rotate(profile.youtubeChannelHandles || [], rotation).slice(0, firstLane ? 1 : (profile.youtubeChannelWindow || 2)).map((seed) => ({ seed, discovered: false }));
+  const discoveryEnabled = profile.deepCatalog === true && options.maintenance === true;
+  const discovery = discoveryEnabled ? await youtubeDiscoverChannels(profile, rotation, env, options) : { items: [], health: { queries: 0, candidates: 0, accepted: 0 } };
+  const discovered = discovery.items.map((item) => ({ seed: item.seed, discovered: true }));
+  const seeds = [...anchors, ...discovered].filter((item, index, all) => all.findIndex((candidate) => candidate.seed === item.seed) === index).slice(0, firstLane ? 1 : Math.max(profile.youtubeChannelWindow || 2, anchors.length + discovered.length));
+  if (!key || !seeds.length) return { items: [], health: { seeds: seeds.length, resolved: 0, candidates: 0, discovered: discovery.health } };
+  const jobs = seeds.map((seedInfo) => async () => {
+    const seed = seedInfo.seed;
+    const channelParams = new URLSearchParams({ part: "contentDetails", key });
+    if (/^UC[a-zA-Z0-9_-]{20,}$/.test(seed)) channelParams.set("id", seed);
+    else channelParams.set("forHandle", String(seed).replace(/^@/, ""));
+    const channel = await fetchJson("https://www.googleapis.com/youtube/v3/channels?" + channelParams, { headers: { Referer: "https://esfsfestgfse.github.io/Archivetv/" } });
+    const playlistId = channel && channel.items && channel.items[0] && channel.items[0].contentDetails && channel.items[0].contentDetails.relatedPlaylists && channel.items[0].contentDetails.relatedPlaylists.uploads;
+    if (!playlistId) return { seed, resolved: false, items: [] };
+    const uploadsParams = new URLSearchParams({ part: "snippet", playlistId, maxResults: firstLane ? "25" : "50", key });
+    const uploads = await fetchJson("https://www.googleapis.com/youtube/v3/playlistItems?" + uploadsParams, { headers: { Referer: "https://esfsfestgfse.github.io/Archivetv/" } });
+    const items = (uploads && uploads.items || []).map((item) => {
+      const videoId = text(item && item.snippet && item.snippet.resourceId && item.snippet.resourceId.videoId, 120);
+      const snippet = item && item.snippet || {};
+      return videoId ? {
+        id: `yt:${videoId}`,
+        rawId: videoId,
+        query: `channel:${seed}`,
+        channelSeed: seed,
+        channelDiscovered: seedInfo.discovered === true,
+        title: text(snippet.title),
+        description: text(snippet.description, 1800),
+        account: text(snippet.videoOwnerChannelTitle || snippet.channelTitle, 180),
+        year: text(snippet.publishedAt, 12),
+      } : null;
+    }).filter(Boolean);
+    return { seed, resolved: true, items };
+  });
+  const lanes = (await mapLimit(jobs, 2, (job) => job())).filter(Boolean);
+  return {
+    items: unique(lanes.flatMap((lane) => lane.items || [])),
+    health: {
+      seeds: seeds.length,
+      resolved: lanes.filter((lane) => lane.resolved).length,
+      candidates: lanes.reduce((sum, lane) => sum + (lane.items || []).length, 0),
+      discovered: discovery.health,
+    },
+  };
+}
+
 async function youtube(profile, rotation, env, options = {}) {
   const firstLane = options.firstLane === true;
   const key = text(env && env.YOUTUBE_API_KEY, 180);
@@ -272,31 +367,47 @@ async function youtube(profile, rotation, env, options = {}) {
   const orders = ["relevance", "date", "viewCount"];
   const order = orders[(Number(rotation) || 0) % orders.length];
   const jobs = queries.map((query) => async () => {
-    const searchUrl = "https://www.googleapis.com/youtube/v3/search?" + new URLSearchParams({
+    const searchParams = new URLSearchParams({
       part: "snippet",
       type: "video",
-      videoDuration: youtubeSearchDuration(profile, rotation),
-      videoEmbeddable: "true",
-      maxResults: firstLane ? "12" : "25",
+      maxResults: firstLane ? "12" : (profile.deepCatalog === true ? "50" : "25"),
       order,
+      regionCode: "US",
+      relevanceLanguage: "en",
+      safeSearch: "moderate",
       q: query,
       key,
     });
-    const data = await fetchJson(searchUrl);
-    return (data.items || []).map((item) => ({
-      id: `yt:${text(item.id && item.id.videoId, 120)}`,
-      rawId: text(item.id && item.id.videoId, 120),
-      query,
-      title: text(item.snippet && item.snippet.title),
-      description: text(item.snippet && item.snippet.description, 1800),
-      account: text(item.snippet && item.snippet.channelTitle, 180),
-      year: text(item.snippet && item.snippet.publishedAt, 12),
-      language: text(item.snippet && (item.snippet.defaultAudioLanguage || item.snippet.defaultLanguage), 40),
-    })).filter((item) => item.rawId);
+    /* Deep movie lanes search broadly, then enforce runtime after videos.list
+       hydration. The API's long-duration bucket can return an empty result
+       set for legitimate full films, while the detail response gives us the
+       exact duration and embed status we need for admission. */
+    if (profile.deepCatalog !== true) searchParams.set("videoDuration", youtubeSearchDuration(profile, rotation));
+    const searchUrl = "https://www.googleapis.com/youtube/v3/search?" + searchParams;
+    const data = await fetchJson(searchUrl, { headers: { Referer: "https://esfsfestgfse.github.io/Archivetv/" } });
+    return {
+      items: (data.items || []).map((item) => ({
+        id: `yt:${text(item.id && item.id.videoId, 120)}`,
+        rawId: text(item.id && item.id.videoId, 120),
+        query,
+        title: text(item.snippet && item.snippet.title),
+        description: text(item.snippet && item.snippet.description, 1800),
+        account: text(item.snippet && item.snippet.channelTitle, 180),
+        year: text(item.snippet && item.snippet.publishedAt, 12),
+        language: text(item.snippet && (item.snippet.defaultAudioLanguage || item.snippet.defaultLanguage), 40),
+      })).filter((item) => item.rawId),
+      totalResults: Number(data.pageInfo && data.pageInfo.totalResults) || 0,
+      hasNextPage: Boolean(data.nextPageToken),
+    };
   });
-  const candidates = (await mapLimit(jobs, SOURCE_YOUTUBE_QUERY_CONCURRENCY, (job) => job())).flat();
-  const ids = unique(candidates).map((item) => item.rawId).slice(0, firstLane ? 25 : 75);
-  if (!ids.length) return { provider: "YouTube", items: [], health: { searched: queries.length, candidates: 0 } };
+  const channelLane = await youtubeChannelUploads(profile, rotation, env, options);
+  const searchResponses = await mapLimit(jobs, SOURCE_YOUTUBE_QUERY_CONCURRENCY, (job) => job());
+  const searchCandidates = searchResponses.flatMap((response) => Array.isArray(response && response.items) ? response.items : []);
+  const candidates = unique([...(channelLane.items || []), ...searchCandidates]);
+  const totalResults = searchResponses.reduce((sum, response) => sum + Number(response && response.totalResults || 0), 0);
+  const pages = searchResponses.filter((response) => response && response.hasNextPage).length;
+  const ids = unique(candidates).map((item) => item.rawId).slice(0, firstLane ? 25 : (profile.deepCatalog === true ? 150 : 75));
+  if (!ids.length) return { provider: "YouTube", items: [], health: { searched: queries.length, candidates: 0, totalResults, pages, channelSeeds: channelLane.health } };
   /* videos.list accepts at most 50 IDs. Chunking also means one oversized
      discovery pass cannot invalidate an otherwise healthy YouTube lane. */
   const detailBatches = await mapLimit(Array.from({ length: Math.ceil(ids.length / 50) }, (_, index) => ids.slice(index * 50, index * 50 + 50)), firstLane ? 1 : 2, async (batch) => {
@@ -330,7 +441,7 @@ async function youtube(profile, rotation, env, options = {}) {
     };
     return accepted(profile, hydrated, "YouTube") ? normalized(hydrated, "YouTube", candidate.query) : null;
   }).filter(Boolean);
-  return { provider: "YouTube", items: unique(items).slice(0, firstLane ? 12 : SOURCE_MAX_ITEMS), health: { searched: queries.length, candidates: candidates.length, details: detailItems.length, detailBatches: detailBatches.length, firstLane } };
+  return { provider: "YouTube", items: unique(items).slice(0, firstLane ? 12 : SOURCE_MAX_ITEMS), health: { searched: queries.length, candidates: candidates.length, searchCandidates: searchCandidates.length, totalResults, pages, channelSeeds: channelLane.health, details: detailItems.length, detailBatches: detailBatches.length, firstLane } };
 }
 
 function peerTubeInstances(env, profile) {
@@ -438,7 +549,7 @@ function providers(profile, rotation, env, options = {}) {
       const task = Promise.resolve()
         .then(() => provider === "youtube" ? youtube(profile, rotation, env, options) : peerTube(profile, rotation, env, options));
       return Promise.resolve()
-        .then(() => withTimeout(task, SOURCE_PROVIDER_BUDGET_MS))
+        .then(() => options.maintenance === true ? withTimeout(task, 12_000) : withTimeout(task, SOURCE_PROVIDER_BUDGET_MS))
         .then((lane) => ({
           ...lane,
           health: { ...(lane && lane.health || {}), durationMs: Date.now() - startedAt },
@@ -480,7 +591,12 @@ export function sourceCatalogTasks(body, env, rotation = 0, options = {}) {
    second discovery path or weakening any item-level filters. */
 function sourceTasks(profile, env, rotation, options = {}) {
   const tasks = providers(profile, rotation, env, options);
-  const fallbackTasks = (profile.fallbackProfiles || [])
+  /* Deep maintenance is an editorial rebuild of this lane, not a family
+     fallback merge. Searching fallback profiles here made the movie lanes
+     look larger while reintroducing overlap and spending the maintenance
+     budget on unrelated catalogs. Viewer requests still retain their fast
+     fallback safety net. */
+  const fallbackTasks = options.maintenance === true && profile.deepCatalog === true ? [] : (profile.fallbackProfiles || [])
     .map((profileKey) => normalizedProfile({ profileKey }))
     .filter(Boolean)
     .flatMap((fallback) => providers(fallback, rotation, env, { ...options, disabledProviders: [] }));

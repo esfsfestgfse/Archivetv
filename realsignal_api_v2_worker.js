@@ -14,7 +14,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "5.5.7-source-suite-separated-movie-lanes";
+const V3_RELEASE = "5.5.8-source-suite-deep-movie-catalogs";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -2002,6 +2002,7 @@ async function handleSourceCatalog(request, env, ctx, id) {
   try { body = await readBoundedJson(request); }
   catch (error) { return json({ error: error instanceof RangeError ? error.message : "invalid JSON body", requestId: id }, error instanceof RangeError ? 413 : 400); }
   if (!body || typeof body !== "object" || Array.isArray(body)) return json({ error: "source catalog payload must be an object", requestId: id }, 400);
+  const maintenance = body.maintenance === true;
   const profile = sourceProfile(body);
   if (!profile) return json({ error: "unknown source profile", requestId: id }, 404);
   if (!profile.queries.length) return json({ error: "source profile has no discovery queries", requestId: id }, 503);
@@ -2014,7 +2015,11 @@ async function handleSourceCatalog(request, env, ctx, id) {
      filter excludes the newest played items first instead of accidentally
      preferring the oldest part of the ledger. */
   const sourceRecentIds = Array.from(new Set((Array.isArray(body.recentIds) ? body.recentIds : []).concat(ledgerIds))).slice(0, 48);
-  const disabledProviders = await readSourceCooldowns(env, profile.profileKey);
+  /* Viewer requests honor provider cooldowns so a slow or failing source can
+     never block a shelf. A bounded maintenance repair is different: it is the
+     health check that decides whether a cooled provider has recovered, so it
+     must be allowed to probe both movie rails again. */
+  const disabledProviders = maintenance ? new Set() : await readSourceCooldowns(env, profile.profileKey);
   const cached = await catalogFallback(env, {
     channel: profile.profileKey,
     rotation,
@@ -2038,7 +2043,7 @@ async function handleSourceCatalog(request, env, ctx, id) {
     console.warn(JSON.stringify({ event: "source-catalog-read-failed", requestId: id, error: String(error).slice(0, 160) }));
     return null;
   });
-  const familyFallbackItems = !cached?.items?.length && Array.isArray(profile.fallbackProfiles) && profile.fallbackProfiles.length
+  const familyFallbackItems = !maintenance && !cached?.items?.length && Array.isArray(profile.fallbackProfiles) && profile.fallbackProfiles.length
     ? await familyCatalogFallback(env, profile, SOURCE_LIMITS.SOURCE_MAX_ITEMS)
     : [];
   if (familyFallbackItems.length) {
@@ -2046,7 +2051,7 @@ async function handleSourceCatalog(request, env, ctx, id) {
        catalog. Keep it on air, but still run this profile's own providers in
        the background so a shallow lane can repair itself instead of serving
        the same fallback item forever. */
-    const familySourcePlan = sourceCatalogTasks(body, env, rotation, { disabledProviders });
+    const familySourcePlan = sourceCatalogTasks(body, env, rotation, { disabledProviders, maintenance });
     if (familySourcePlan.profile && familySourcePlan.tasks.length) {
       scheduleSourceRefresh(env, ctx, familySourcePlan.profile, familySourcePlan.tasks, id);
     }
@@ -2088,7 +2093,7 @@ async function handleSourceCatalog(request, env, ctx, id) {
   /* Refresh is a hint to refill, never permission to strand a viewer on a
      503. If a verified shelf exists, serve it immediately and let the source
      adapters replace it in the background. */
-  if (cached && Array.isArray(cached.items) && (cached.items.length >= staleReady || hasFreshFallback) && !forceDeepRefresh) {
+  if (!maintenance && cached && Array.isArray(cached.items) && (cached.items.length >= staleReady || hasFreshFallback) && !forceDeepRefresh) {
     if (cached.items.length < minimumReady) {
       const { profile: normalized, tasks } = sourceCatalogTasks(body, env, rotation, { disabledProviders });
       scheduleSourceRefresh(env, ctx, normalized, tasks, id);
@@ -2097,10 +2102,10 @@ async function handleSourceCatalog(request, env, ctx, id) {
     if (playedIds.length) rememberFreshness(env, profile.profileKey, playedIds, ctx);
     return json({ ...cached, profileKey: profile.profileKey, catalogVersion: "source-server-1", source: "d1-source-catalog", hydrating, staleCatalog: hydrating, adaptiveFreshness: true, freshnessLedger: true, providerAvailability: { youtube: !!env.YOUTUBE_API_KEY && !disabledProviders.has("youtube"), peertube: !disabledProviders.has("peertube"), cooldownProviders: Array.from(disabledProviders) }, apiVersion, release: apiVersion === "v3" ? V3_RELEASE : undefined }, 200, { "Cache-Control": "public, max-age=10, stale-while-revalidate=60", "X-RealSignal-Request": id, "X-RealSignal-Source": "d1-source-catalog", "X-RealSignal-Release": apiVersion === "v3" ? V3_RELEASE : "2.2.2" });
   }
-  const sourcePlan = sourceCatalogTasks(body, env, rotation, { disabledProviders });
+  const sourcePlan = sourceCatalogTasks(body, env, rotation, { disabledProviders, maintenance });
   const normalized = sourcePlan.profile;
   const tasks = sourcePlan.tasks;
-  const firstLaneTasks = sourceCatalogTasks(body, env, rotation, { disabledProviders, firstLane: true }).tasks;
+  const firstLaneTasks = sourceCatalogTasks(body, env, rotation, { disabledProviders, firstLane: true, maintenance }).tasks;
   let firstTimer;
   let first;
   if (forceDeepRefresh) {
@@ -2139,6 +2144,10 @@ async function handleSourceCatalog(request, env, ctx, id) {
       topics: normalized.topics,
       programFormats: normalized.formats,
       minTitleYear: normalized.minTitleYear,
+      minContentYear: normalized.minContentYear,
+      movieLane: normalized.movieLane,
+      laneRequired: normalized.laneRequired,
+      laneDeny: normalized.laneDeny,
       persistedRelaxed: normalized.persistedRelaxed,
       persistedMatch: normalized.persistedMatch,
       themeMinScore: 1,
@@ -2169,7 +2178,7 @@ async function handleSourceCatalog(request, env, ctx, id) {
   }
   const cachedItems = forceDeepRefresh && cached && Array.isArray(cached.candidateItems) ? cached.candidateItems : (forceDeepRefresh && cached && Array.isArray(cached.items) ? cached.items : []);
   const discoveredItems = forceDeepRefresh
-    ? uniqueQueueItems(cachedItems.concat(first.items || []), { ...body, sourceCatalog: true, denyTerms: profile.deny, themeTerms: profile.match, themeMinScore: 1 }, SOURCE_LIMITS.SOURCE_MAX_ITEMS)
+    ? uniqueQueueItems(cachedItems.concat(first.items || []), { ...body, sourceCatalog: true, denyTerms: profile.deny, themeTerms: profile.match, minContentYear: profile.minContentYear, movieLane: profile.movieLane, laneRequired: profile.laneRequired, laneDeny: profile.laneDeny, themeMinScore: 1 }, SOURCE_LIMITS.SOURCE_MAX_ITEMS)
     : first.items;
   const freshnessBody = { ...body, recentIds: sourceRecentIds, freshnessLedger: true };
   const unseenFirstItems = applyFreshness(discoveredItems, freshnessBody);

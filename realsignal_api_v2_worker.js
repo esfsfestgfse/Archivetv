@@ -1988,6 +1988,14 @@ async function handleSourceCatalog(request, env, ctx, id) {
     ? await familyCatalogFallback(env, profile, SOURCE_LIMITS.SOURCE_MAX_ITEMS)
     : [];
   if (familyFallbackItems.length) {
+    /* A family recovery shelf is an immediate safety net, not the permanent
+       catalog. Keep it on air, but still run this profile's own providers in
+       the background so a shallow lane can repair itself instead of serving
+       the same fallback item forever. */
+    const familySourcePlan = sourceCatalogTasks(body, env, rotation, { disabledProviders });
+    if (familySourcePlan.profile && familySourcePlan.tasks.length) {
+      scheduleSourceRefresh(env, ctx, familySourcePlan.profile, familySourcePlan.tasks, id);
+    }
     const familyBody = { ...body, recentIds: sourceRecentIds, freshnessLedger: true, count: Math.max(1, Number(body.count) || 5) };
     const freshFamilyItems = applyFreshness(familyFallbackItems, familyBody);
     if (playedIds.length) rememberFreshness(env, profile.profileKey, playedIds, ctx);

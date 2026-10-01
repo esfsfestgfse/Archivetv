@@ -1024,16 +1024,39 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   "black-stage": {
     "name": "Black Stage",
     "queryLimit": 8,
+    "intent": "performance",
+    "formatRelaxed": true,
+    "topics": [
+      "Black performance",
+      "African American theatre",
+      "Black comedy",
+      "Black dance",
+      "soul performance",
+      "Black arts",
+      "African American culture"
+    ],
+    "formats": [
+      "full performance",
+      "complete performance",
+      "full show",
+      "complete show",
+      "full episode",
+      "live performance",
+      "full concert"
+    ],
     "providers": [
       "peertube",
       "youtube"
     ],
     "queries": [
-      "Black performance history documentary",
-      "African American theatre film",
-      "Black comedy archive",
-      "Black dance documentary",
-      "soul performance history"
+      "Black theatre full performance",
+      "African American stage play full",
+      "Black comedy full performance",
+      "Black dance full performance",
+      "soul performance full concert",
+      "Black arts full program",
+      "African American music performance full",
+      "Black television performance full episode"
     ],
     "match": [
       "Black performance",

@@ -21,7 +21,7 @@ function registrySection(key) {
   return sourceRegistry.slice(start, next >= 0 ? next + 5 : sourceRegistry.length);
 }
 const blackStageSection = registrySection('black-stage');
-if (!blackStageSection.includes('"audiobook"') || !blackStageSection.includes('"harry potter"') || !blackStageSection.includes('"a black comedy"')) issues.push('black-stage must reject audiobook/chapter and generic movie false positives');
+if (!blackStageSection.includes('"intent": "performance"') || !blackStageSection.includes('"formatRelaxed": true') || !blackStageSection.includes('"full performance"') || !blackStageSection.includes('"audiobook"') || !blackStageSection.includes('"harry potter"') || !blackStageSection.includes('"a black comedy"')) issues.push('black-stage must use long-form performance discovery and reject audiobook/chapter/movie false positives');
 const gardenLedgerSection = registrySection('garden-ledger');
 if (!gardenLedgerSection.includes('"podcast"') || !gardenLedgerSection.includes('"linux"') || gardenLedgerSection.includes('\n      "garden",')) issues.push('garden-ledger must reject podcasts/software/military false positives and avoid the broad garden signal');
 for (const key of ['holiday-movie-house', 'holiday-cartoon-club', 'christmas-movie-house', 'christmas-cartoon-club', 'halloween-movie-house', 'halloween-cartoon-club']) {

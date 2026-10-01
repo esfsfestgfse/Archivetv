@@ -19,6 +19,7 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
     ['Source Suite refresh does not fall back to a played item', source.includes('function v2TuneRefreshed') && !source.includes('if(next<0)next=state.items.findIndex(function(item){return String(item&&item.id||"")!==currentId;});')],
     ['Source Suite Next does not replay a played item when the shelf is exhausted', source.includes('window.__v2PreviewNext=function') && !source.includes('if(next<0)next=state.items.findIndex(function(item){return String(item&&item.id||"")!==currentId;});')],
     ['manual Source Suite Next has an available-item recovery path', source.includes('window.__v2PreviewNext=function(manual)') && source.includes('SOURCE SUITE · NEXT AVAILABLE PROGRAM')],
+    ['Source Suite tunes away from a retained recently played item', source.includes('function v2FreshCursor') && source.includes('v2FreshCursor(profile,state);')],
     ['PeerTube fallback includes the federated search index', source.includes('https://search.joinpeertube.org') && source.includes('instances=')],
     ['PeerTube verifier reads nested streaming playlist files', source.includes('(d.files||[]).concat((d.streamingPlaylists||[]).reduce')],
     ['PeerTube verifier derives aspect ratio from selected media', source.includes('v2AspectRatio(file),candidate=')],

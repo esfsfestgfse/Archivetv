@@ -139,6 +139,7 @@ function normalizedProfile(body) {
     deny: list(approved.deny, 48),
     intent: text(approved.intent, 40).toLowerCase(),
     topics: list(approved.topics, 32),
+    strictTopicTerms: list(approved.strictTopicTerms, 16),
     formats: list(approved.formats, 24),
     formatRelaxed: approved.formatRelaxed === true,
     minTitleYear: Math.max(0, Number(approved.minTitleYear) || 0),
@@ -226,6 +227,9 @@ function accepted(profile, item, provider, checkAspect = true) {
   if (source === "YouTube" && profile.youtubeChannelIdentityRequired.length
       && !termsMatch(text([item.account, item.channelTitle, item.channelDescription].join(" "), 1600).toLowerCase(), profile.youtubeChannelIdentityRequired)) return false;
   const trustedYouTubeChannel = source === "YouTube" && text(item && item.channelSeed, 120) && (profile.youtubeChannelHandles.includes(text(item && item.channelSeed, 120)) || item.channelDiscovered === true);
+  const strictTopicTerms = Array.isArray(profile.strictTopicTerms) ? profile.strictTopicTerms : [];
+  const identityHaystack = text([title, item && item.account, item && item.channelTitle].join(" "), 1800).toLowerCase();
+  if (strictTopicTerms.length && !strictTopicTerms.some((term) => identityHaystack.includes(text(term, 180).toLowerCase()))) return false;
   if (/^(?:television|film|performance)$/.test(profile.intent || "")) {
     const programDeny = /(?:history of|documentary about|retrospective|video essay|analysis|explained|lecture|seminar|webinar|conference|panel discussion|making of|movie making|filmmaking|film making|studio tour|educational film|behind the scenes|demo reel|showreel|workshop|masterclass|recap|production reel|festival reel|fan[ -]?made|fan animation|unofficial|mashup|amv|gacha|roleplay|my little pony|\bpony\b)/i;
     if (programDeny.test(haystack)) return false;

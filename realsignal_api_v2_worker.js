@@ -14,7 +14,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "5.5.19-source-suite-rotation-repair";
+const V3_RELEASE = "5.5.20-source-suite-strict-lane-repair";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -683,6 +683,12 @@ function catalogFallbackAllowed(item, body) {
   const tags = String(item && (item.tags || item.tag) || "").toLowerCase();
   const category = String(item && item.category || "").toLowerCase();
   const account = String(item && (item.account || item.channelTitle) || "").toLowerCase();
+  const strictTopicTerms = Array.isArray(body && body.strictTopicTerms) ? body.strictTopicTerms : [];
+  const identityHaystack = `${title} ${account}`;
+  if (strictTopicTerms.length && !strictTopicTerms.some((term) => {
+    const needle = String(term || "").trim().toLowerCase();
+    return needle && identityHaystack.includes(needle);
+  })) return false;
   /* Query text is retained for provenance, never as a genre signal. A search
      for “cannabis history” must not make an unrelated history upload look
      like Green Culture after it is persisted. */
@@ -1320,6 +1326,7 @@ async function familyCatalogFallback(env, profile, requestedLimit = SOURCE_LIMIT
       themeTerms: alias.match,
       intent: alias.intent,
       topics: alias.topics,
+      strictTopicTerms: alias.strictTopicTerms,
       programFormats: alias.formats,
       minTitleYear: alias.minTitleYear,
       minContentYear: alias.minContentYear,
@@ -1348,6 +1355,7 @@ async function familyCatalogFallback(env, profile, requestedLimit = SOURCE_LIMIT
         themeTerms: profile.match,
         persistedMatch: [],
         topics: profile.topics,
+        strictTopicTerms: profile.strictTopicTerms,
         programFormats: profile.formats,
         minTitleYear: profile.minTitleYear,
         minContentYear: profile.minContentYear,
@@ -1904,6 +1912,7 @@ async function handleSourceStatus(request, env, ctx) {
     themeTerms: profile.match,
     intent: profile.intent,
     topics: profile.topics,
+    strictTopicTerms: profile.strictTopicTerms,
     programFormats: profile.formats,
     minTitleYear: profile.minTitleYear,
     minContentYear: profile.minContentYear,
@@ -2028,6 +2037,7 @@ async function handleSourceCatalog(request, env, ctx, id) {
     themeTerms: profile.match,
     intent: profile.intent,
     topics: profile.topics,
+    strictTopicTerms: profile.strictTopicTerms,
     programFormats: profile.formats,
     minTitleYear: profile.minTitleYear,
     minContentYear: profile.minContentYear,
@@ -2142,6 +2152,7 @@ async function handleSourceCatalog(request, env, ctx, id) {
       themeTerms: normalized.match,
       intent: normalized.intent,
       topics: normalized.topics,
+      strictTopicTerms: normalized.strictTopicTerms,
       programFormats: normalized.formats,
       minTitleYear: normalized.minTitleYear,
       minContentYear: normalized.minContentYear,
@@ -2178,7 +2189,7 @@ async function handleSourceCatalog(request, env, ctx, id) {
   }
   const cachedItems = forceDeepRefresh && cached && Array.isArray(cached.candidateItems) ? cached.candidateItems : (forceDeepRefresh && cached && Array.isArray(cached.items) ? cached.items : []);
   const discoveredItems = forceDeepRefresh
-    ? uniqueQueueItems(cachedItems.concat(first.items || []), { ...body, sourceCatalog: true, denyTerms: profile.deny, themeTerms: profile.match, minContentYear: profile.minContentYear, movieLane: profile.movieLane, laneRequired: profile.laneRequired, laneDeny: profile.laneDeny, themeMinScore: 1 }, SOURCE_LIMITS.SOURCE_MAX_ITEMS)
+    ? uniqueQueueItems(cachedItems.concat(first.items || []), { ...body, sourceCatalog: true, denyTerms: profile.deny, themeTerms: profile.match, strictTopicTerms: profile.strictTopicTerms, minContentYear: profile.minContentYear, movieLane: profile.movieLane, laneRequired: profile.laneRequired, laneDeny: profile.laneDeny, themeMinScore: 1 }, SOURCE_LIMITS.SOURCE_MAX_ITEMS)
     : first.items;
   const freshnessBody = { ...body, recentIds: sourceRecentIds, freshnessLedger: true };
   const unseenFirstItems = applyFreshness(discoveredItems, freshnessBody);

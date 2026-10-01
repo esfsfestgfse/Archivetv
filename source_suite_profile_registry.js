@@ -1032,6 +1032,16 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "peerTubeInstances": ["https://search.joinpeertube.org", "https://tilvids.com"],
     "intent": "performance",
     "formatRelaxed": true,
+    "strictTopicTerms": [
+      "black theatre",
+      "black theater",
+      "african american",
+      "black arts",
+      "black dance",
+      "soul performance",
+      "black performance",
+      "black stage"
+    ],
     "topics": [
       "Black theatre",
       "Black theater",
@@ -1318,7 +1328,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "peerTubeInstanceLimit": 1,
     "peerTubeDetailLimit": 24,
     "peerTubeFallbackQueryWindow": 6,
-    "peerTubeInstances": ["https://search.joinpeertube.org"],
+    "peerTubeInstances": ["https://search.joinpeertube.org", "https://spectra.video"],
     "peerTubeQueries": [
       "garden restoration documentary",
       "gardening history film",

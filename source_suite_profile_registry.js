@@ -1359,6 +1359,25 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "peertube",
       "youtube"
     ],
+    "strictTopicTerms": [
+      "gardening",
+      "gardener",
+      "horticulture",
+      "botanical",
+      "permaculture",
+      "pollinator",
+      "food forest",
+      "soil health",
+      "garden design",
+      "garden tour",
+      "plant cultivation",
+      "plant conservation",
+      "landscape gardening",
+      "community garden",
+      "farm",
+      "farmer",
+      "homestead"
+    ],
     "queries": [
       "horticulture documentary full",
       "botanical garden documentary",
@@ -1433,7 +1452,13 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "toy restoration",
       "model car",
       "logging truck",
-      "truck restoration"
+      "truck restoration",
+      "walled garden",
+      "digital painting",
+      "time lapse",
+      "garden statues",
+      "garden hustle",
+      "france is a garden"
     ]
   },
   "animal-care": {

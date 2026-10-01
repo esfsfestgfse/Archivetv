@@ -3088,10 +3088,6 @@ const IA_LONG_TAIL_EXPANSIONS_EXTRA = Object.freeze({
     iaDirectRecovery("sight-sound-queen-esther-small-file::Sight & Sound - Joseph - Small File.ia.mp4", "sight-sound-queen-esther-small-file", "Sight & Sound - Joseph - Small File.ia.mp4", "Sight & Sound — Joseph", "gospel worship christian service religious music", 2013),
     iaDirectRecovery("sight-sound-queen-esther-small-file::Sight & Sound - Moses - Small File.ia.mp4", "sight-sound-queen-esther-small-file", "Sight & Sound - Moses - Small File.ia.mp4", "Sight & Sound — Moses", "gospel worship christian service religious music", 2013),
     iaDirectRecovery("sight-sound-queen-esther-small-file::Sight & Sound - Noah - Small File.ia.mp4", "sight-sound-queen-esther-small-file", "Sight & Sound - Noah - Small File.ia.mp4", "Sight & Sound — Noah", "gospel worship christian service religious music", 2013),
-    iaDirectRecovery("kingjamesvideobible::19-Psalms.mp4", "kingjamesvideobible", "19-Psalms.mp4", "King James Video Bible — Psalms", "gospel worship christian service bible scripture", 2020),
-    iaDirectRecovery("kingjamesvideobible::20-Proverbs.mp4", "kingjamesvideobible", "20-Proverbs.mp4", "King James Video Bible — Proverbs", "gospel worship christian service bible scripture", 2020),
-    iaDirectRecovery("kingjamesvideobible::21-Ecclesiastes.mp4", "kingjamesvideobible", "21-Ecclesiastes.mp4", "King James Video Bible — Ecclesiastes", "gospel worship christian service bible scripture", 2020),
-    iaDirectRecovery("kingjamesvideobible::22-Song of Solomon.mp4", "kingjamesvideobible", "22-Song of Solomon.mp4", "King James Video Bible — Song of Solomon", "gospel worship christian service bible scripture", 2020),
   ],
   "154": [
     iaDirectRecovery("Dragnet1951::Dragnet/Season 1/Dragnet (1951) - S01E01 - The Human Bomb.mp4", "Dragnet1951", "Dragnet/Season 1/Dragnet (1951) - S01E01 - The Human Bomb.mp4", "Dragnet — The Human Bomb", "dragnet classic television police procedural detective show", 1951),

@@ -1685,7 +1685,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="5.1.1-desktop-live-lineup";
+window.__ATV_BUILD="5.1.2-desktop-fast-guide";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -2533,11 +2533,11 @@ const GUIDE_CATEGORIES=[
   {id:"source",label:"Source suite",meta:"Verified programming from independent video archives and hosts",color:"#ffcf75",cats:["SOURCE"]},
   {id:"world",label:"World & culture",meta:"British television and global perspective",color:"#d7b7ff",cats:["BRIT"]},
   {id:"music",label:"Music & audio",meta:"Concerts, radio and listening rooms",color:"#ffb4d0",cats:["MUS"]},
-  {id:"live",label:"Live & local",meta:"Cameras, maps, weather and real-time signals",color:"#73ffd2",cats:["LBRO","LDATA"]}
+  {id:"live",label:"Live services",meta:"Live TV · sports · weather · radio",color:"#73ffd2",channels:[50,300,924,950]}
 ];
 const GUIDE_CATEGORY_BY_ID=Object.fromEntries(GUIDE_CATEGORIES.map(function(group){return [group.id,group];}));
 const GUIDE_SUBGENRES={NET:"Network television",TV:"Television & reruns",MOV:"Movies",TOON:"Animation",SPORTS:"Sports",MUS:"Music & audio",DOC:"Archive & ideas",SOURCE:"Source suite",LBRO:"Live video",LDATA:"Live data",RETRO:"Retro archive",HOL:"Seasonal",BRIT:"World & culture"};
-function guideCategoryFor(ch){var reruns=GUIDE_CATEGORY_BY_ID.reruns,decades=GUIDE_CATEGORY_BY_ID.decades;if(decades&&decades.channels.indexOf(Number(ch.num))>-1)return decades;if(reruns&&reruns.channels.indexOf(Number(ch.num))>-1)return reruns;return GUIDE_CATEGORIES.find(function(group){return group.cats&&group.cats.indexOf(ch.cat)>-1;})||GUIDE_CATEGORY_BY_ID.all;}
+function guideCategoryFor(ch){var live=GUIDE_CATEGORY_BY_ID.live,reruns=GUIDE_CATEGORY_BY_ID.reruns,decades=GUIDE_CATEGORY_BY_ID.decades;if(live&&live.channels.indexOf(Number(ch.num))>-1)return live;if(decades&&decades.channels.indexOf(Number(ch.num))>-1)return decades;if(reruns&&reruns.channels.indexOf(Number(ch.num))>-1)return reruns;return GUIDE_CATEGORIES.find(function(group){return group.cats&&group.cats.indexOf(ch.cat)>-1;})||GUIDE_CATEGORY_BY_ID.all;}
 function guideChannelKey(ch){return "rs-"+String(ch.num).padStart(3,"0")+"-"+String(ch.nm).toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/(^-|-$)/g,"");}
 CH.forEach(function(ch){var health=channelHealth(ch);ch.healthState=health.state;ch.healthReason=health.reason;ch.guideGroup=guideCategoryFor(ch).id;ch.key=guideChannelKey(ch);});
 /* QA FIX (from Programmed Channels 2.0 audit, Phase 1): channel numbers used to be computed by
@@ -11889,7 +11889,7 @@ var IPTV_TABS=[
  /* Service tabs first -- these match on the SOURCE a channel came from (c.src) rather than its
     genre, so each FAST provider gets its own browsable lineup the way a real box presents them.
     Genre tabs follow and still match on group-title. */
- {label:"IPTV ORG",src:/^IPTV-org$/i},{label:"FEATURED FAST",src:/^(Checked|Tubi|Roku|Pluto TV|Samsung TV\+|Plex|Xumo|DistroTV|Local Now|TCL\+|LG Channels|Vizio WatchFree\+|VIDAA|Whale TV\+|Cineverse|Galaxy TV)$/i},
+ {label:"IPTV ORG",src:/^IPTV-org$/i},{label:"FAST · VERIFIED",src:/^(Checked|Tubi|Roku|Pluto TV|Samsung TV\+|Plex|Xumo|DistroTV|Local Now|TCL\+|LG Channels|Vizio WatchFree\+|VIDAA|Whale TV\+|Cineverse|Galaxy TV)$/i},
  {label:"ROKU",src:/^Roku$/i},{label:"PLUTO",src:/^Pluto TV$/i},{label:"TUBI",src:/^Tubi$/i},
  {label:"SAMSUNG",src:/^Samsung TV\+$/i},{label:"PLEX",src:/^Plex$/i},{label:"XUMO",src:/^Xumo$/i},
  {label:"DISTRO",src:/^DistroTV$/i},{label:"LOCAL NOW",src:/^Local Now$/i},{label:"TCL\+",src:/^TCL\+$/i},
@@ -11901,7 +11901,14 @@ var IPTV_TABS=[
  {label:"DOCS",re:/documentary|science|history|education|culture|nature|travel/i},{label:"GENERAL",re:/general|lifestyle/i},
  {label:"ALL SOURCES",src:/./}
 ];
-var iptvCache=null, tvHls=null, sportsIptvCache=null;
+var iptvCache=null, iptvCacheAt=0, iptvRefreshPromise=null, iptvSeedPromise=null, tvHls=null, sportsIptvCache=null;
+/* FAST is a large, optional catalog. Keep a small last-good copy so the guide can open
+   immediately, and refresh providers in a bounded queue instead of launching every large
+   playlist at once. A provider can cool down briefly after repeated failures, but it is never
+   permanently banned and its last-good entries remain usable during the cooldown. */
+var FAST_CATALOG_REFRESH_MS=15*60*1000, FAST_CATALOG_STALE_MS=3*24*60*60*1000,
+    FAST_PROVIDER_COOLDOWN_MS=8*60*1000, FAST_FEED_MAX_ITEMS=320,
+    FAST_CATALOG_MAX_ITEMS=2200, FAST_INFLIGHT={};
 /* Dedicated sports channel sourcing. The general Live TV channel pulls the English-language
    playlist; that is the wrong slice for a sports tab (English-only, sports diluted). These two
    sources are sports-specific and complementary:
@@ -12010,16 +12017,25 @@ async function fetchM3USource(label,url,filter){
     return list;
   }catch(e){nlog("livetv",false,label+": "+((e&&e.message)||e));return [];}
 }
-async function fetchIPTV(){
+async function fastMapLimit(list,limit,fn){var out=new Array(list.length),next=0,workers=[];async function worker(){while(next<list.length){var i=next++;try{out[i]=await fn(list[i],i);}catch(e){out[i]=[];}}}for(var i=0;i<Math.min(Math.max(1,limit||1),list.length);i++)workers.push(worker());await Promise.all(workers);return out;}
+function fastFeedKey(feed){return String(feed[0])+"|"+String(feed[1]);}
+function fastFeedStoreKey(feed){return "fastFeed:"+v2Hash(fastFeedKey(feed));}
+function fastFeedHealth(){var h=store.get("fastFeedHealth",{});return h&&typeof h==="object"?h:{};}
+function fastFeedCached(feed){var row=store.get(fastFeedStoreKey(feed),null),items=row&&Array.isArray(row.items)?row.items:[];return row&&Number(row.at||0)>Date.now()-FAST_CATALOG_STALE_MS?items:[];}
+function fastFeedCooling(feed){var h=fastFeedHealth()[fastFeedKey(feed)]||{};return Number(h.fail||0)>=2&&Number(h.failedAt||0)>Date.now()-FAST_PROVIDER_COOLDOWN_MS;}
+function fastFeedMark(feed,ok,items){var key=fastFeedKey(feed),health=fastFeedHealth(),h=health[key]||{};if(ok){h.fail=0;h.failedAt=0;h.okAt=Date.now();store.set(fastFeedStoreKey(feed),{at:Date.now(),items:(items||[]).slice(0,FAST_FEED_MAX_ITEMS)});}else{h.fail=Number(h.fail||0)+1;h.failedAt=Date.now();}health[key]=h;store.set("fastFeedHealth",health);}
+function fetchFASTFeed(feed){var key=fastFeedKey(feed);if(FAST_INFLIGHT[key])return FAST_INFLIGHT[key];var cached=fastFeedCached(feed);if(fastFeedCooling(feed))return Promise.resolve(cached);FAST_INFLIGHT[key]=(async function(){try{var list=await fetchM3USource(feed[0],feed[1]);if(!list.length)throw new Error("empty provider catalog");fastFeedMark(feed,true,list);return list;}catch(e){fastFeedMark(feed,false);if(cached.length)nlog("livetv",false,feed[0]+" cooling; using last-good catalog");return cached;}})().finally(function(){delete FAST_INFLIGHT[key];});return FAST_INFLIGHT[key];}
+function saveIptvCatalog(list){try{store.set("fastCatalog",{at:Date.now(),items:(list||[]).slice(0,FAST_CATALOG_MAX_ITEMS)});}catch(e){}}
+function loadIptvCatalog(){var row=store.get("fastCatalog",null);if(!row||!Array.isArray(row.items)||Number(row.at||0)<=Date.now()-FAST_CATALOG_STALE_MS)return [];return row.items;}
+function fastSeedCatalog(feeds){return new Promise(function(resolve){var next=0,active=0,finished=false;function pump(){if(finished)return;while(active<3&&next<feeds.length){(function(feed){active++;fetchFASTFeed(feed).then(function(list){active--;if(list&&list.length&&!finished){finished=true;resolve(list);return;}if(!finished)pump();}).catch(function(){active--;if(!finished)pump();});})(feeds[next++]);}if(!active&&next>=feeds.length&&!finished){finished=true;resolve([]);}}pump();});}
+async function refreshIPTV(){
   /* QA FIX + FEATURE: this function's definition was accidentally destroyed during an earlier
      wholesale block port (it was still being called from tuneLiveTV and the sports fallback,
      so the main Live TV channel would have thrown on tune). Rebuilt, and extended per request:
-     the three workable FAST services (Roku / Pluto TV / Tubi -- Samsung and Plex remain
-     excluded for non-HLS/auth reasons verified earlier) now feed the main Live TV channel
-     across ALL genres, not just sports. Their group-titles flow into the existing genre tabs.
-     English-only via the shared exclusion heuristic; iptv-org's own list is already the
-     English-language playlist. */
-  if(iptvCache) return iptvCache;
+     every configured public FAST service now contributes to the main Live TV channel across
+     ALL genres, not just sports. The cold path returns the first healthy provider shelf and
+     the remaining providers finish in the background. Their group-titles flow into the existing
+     genre tabs; English-only remains enforced by the shared exclusion heuristic. */
   var out=await fetchCheckedIPTV();
   try{
     var te=await withTO(fetch("https://iptv-org.github.io/iptv/languages/eng.m3u",{cache:"no-store"}).then(function(r){return r.text();}),15000);
@@ -12036,7 +12052,7 @@ async function fetchIPTV(){
      it lives on raw.githubusercontent.com (more reliable than the github.io pages host) and is
      substantially larger -- streams/us.m3u alone carries ~1,278 entries. */
   var COUNTRIES=[["US","us"],["UK","uk"],["Canada","ca"],["Australia","au"],["NZ","nz"],["Ireland","ie"]];
-  var countryLists=await Promise.all(COUNTRIES.map(function(country){return fetchM3USource("IPTV-org","https://raw.githubusercontent.com/iptv-org/iptv/master/streams/"+country[1]+".m3u",function(c){return !looksNonEnglish(c.name);}).then(function(list){list.forEach(function(c){c.country=country[0];});return list;});}));
+  var countryLists=await fastMapLimit(COUNTRIES,3,function(country){return fetchM3USource("IPTV-org","https://raw.githubusercontent.com/iptv-org/iptv/master/streams/"+country[1]+".m3u",function(c){return !looksNonEnglish(c.name);}).then(function(list){list.forEach(function(c){c.country=country[0];});return list;});});
   countryLists.forEach(function(list){out=out.concat(list);});
   /* Roku and Pluto TV were dropped after a user report that none of their channels ever played.
      Cause: every URL in those two playlists is a jmp2.uk redirect link, not a real manifest --
@@ -12050,7 +12066,7 @@ async function fetchIPTV(){
      real CDN). An HLS-aware proxy that resolves against the POST-redirect URL handles them
      fine, so they are listed again. If the configured proxy can't cope, the dead-channel
      health system culls them automatically after two strikes -- no manual list needed. */
-  var fastLists=await Promise.all(FAST_FEEDS.map(function(feed){return fetchM3USource(feed[0],feed[1],function(c){return !looksNonEnglish(c.name);});}));
+  var fastLists=await fastMapLimit(FAST_FEEDS,3,function(feed){return fetchFASTFeed(feed).then(function(list){return list.filter(function(c){return !looksNonEnglish(c.name);});});});
   fastLists.forEach(function(list){out=out.concat(list);});
   /* Keep one visible row per channel name, but retain the other provider URLs
      behind it. FAST catalogs commonly publish the same channel through Pluto,
@@ -12078,8 +12094,10 @@ async function fetchIPTV(){
     });
     return c;
   });
-  iptvCache=out; return out;
+  iptvCache=out; iptvCacheAt=Date.now(); saveIptvCatalog(out); return out;
 }
+function startIPTVRefresh(){if(!iptvRefreshPromise){iptvRefreshPromise=refreshIPTV().catch(function(e){nlog("livetv",false,"catalog refresh: "+((e&&e.message)||e));return iptvCache||loadIptvCatalog()||[];}).finally(function(){iptvRefreshPromise=null;});}return iptvRefreshPromise;}
+function fetchIPTV(){var now=Date.now();if(iptvCache&&iptvCache.length){if(now-iptvCacheAt>FAST_CATALOG_REFRESH_MS)startIPTVRefresh();return Promise.resolve(iptvCache);}var cached=loadIptvCatalog();if(cached.length){iptvCache=cached;iptvCacheAt=now;startIPTVRefresh();return Promise.resolve(cached);}if(!iptvSeedPromise){iptvSeedPromise=fastSeedCatalog(FAST_FEEDS.slice(0,6)).then(function(seed){if(seed&&seed.length){iptvCache=seed;iptvCacheAt=Date.now();saveIptvCatalog(seed);startIPTVRefresh().catch(function(){});return seed;}return startIPTVRefresh();}).finally(function(){iptvSeedPromise=null;});}return iptvSeedPromise;}
 /* ---------- EPG "now playing" ----------
    The Tubi playlist ships a matching XMLTV guide (verified: all 173 tvg-ids in the playlist have
    a channel entry in the guide). The file is ~3MB, so it is fetched lazily on first use, scanned
@@ -12169,7 +12187,7 @@ async function fetchSportsIPTV(){
      auth token. */
   /* see fetchIPTV: Roku/Pluto entries are jmp2.uk redirect links and cannot play through a
      browser CORS proxy. Tubi publishes direct manifests, so it stays. */
-  var fastSports=await Promise.all(FAST_FEEDS.map(function(feed){return fetchM3USource(feed[0],feed[1],function(c){return /sport|motorsport|fight|racing|golf|tennis|boxing|ufc|wwe|nfl|nba|mlb|nhl|soccer|football|outdoor/i.test((c.cat||"")+" "+(c.name||""))&&!looksNonEnglish(c.name);});}));
+  var fastSports=await fastMapLimit(FAST_FEEDS,3,function(feed){return fetchFASTFeed(feed).then(function(list){return list.filter(function(c){return /sport|motorsport|fight|racing|golf|tennis|boxing|ufc|wwe|nfl|nba|mlb|nhl|soccer|football|outdoor/i.test((c.cat||"")+" "+(c.name||""))&&!looksNonEnglish(c.name);});});});
   fastSports.forEach(function(list){out=out.concat(list);});
   try{
     var t2=await withTO(fetch("https://raw.githubusercontent.com/Free-TV/IPTV/master/playlist.m3u8",{cache:"no-store"}).then(function(r){return r.text();}),15000);

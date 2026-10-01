@@ -10,6 +10,13 @@ for (const [name, source] of [['desktop', desktop], ['mobile', mobile]]) {
     'retrying alternate provider',
     'manifestNeedsUnsupportedCodec',
     'function(_,data)',
+    'fastMapLimit(FAST_FEEDS,3',
+    'fetchFASTFeed(feed)',
+    'fastSeedCatalog(FAST_FEEDS.slice(0,6))',
+    'FAST_PROVIDER_COOLDOWN_MS',
+    'loadIptvCatalog()',
+    'label:"FAST · VERIFIED"',
+    'label:"Live services"',
   ]) {
     if (!source.includes(needle)) throw new Error(`${name}: missing FAST recovery contract ${needle}`);
   }

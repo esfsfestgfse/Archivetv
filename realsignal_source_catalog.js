@@ -130,6 +130,10 @@ function normalizedProfile(body) {
     formats: list(approved.formats, 24),
     formatRelaxed: approved.formatRelaxed === true,
     minTitleYear: Math.max(0, Number(approved.minTitleYear) || 0),
+    minContentYear: Math.max(0, Number(approved.minContentYear) || 0),
+    movieLane: text(approved.movieLane, 24).toLowerCase(),
+    laneRequired: list(approved.laneRequired, 16),
+    laneDeny: list(approved.laneDeny, 16),
     persistedRelaxed: approved.persistedRelaxed === true || approved.formatRelaxed === true,
     persistedMatch: list(approved.persistedMatch, 24),
     fallbackProfiles: list(approved.fallbackProfiles, 4),
@@ -181,6 +185,10 @@ function accepted(profile, item, provider, checkAspect = true) {
     const titleYears = Array.from(title.matchAll(/(?:^|[^0-9])((?:19|20)\d{2})(?:[^0-9]|$)/g)).map((match) => Number(match[1])).filter(Boolean);
     if (titleYears.some((year) => year < profile.minTitleYear)) return false;
   }
+  if (profile.minContentYear) {
+    const contentYears = Array.from(haystack.matchAll(/(?:^|[^0-9])((?:19|20)\d{2})(?:[^0-9]|$)/g)).map((match) => Number(match[1])).filter(Boolean);
+    if (contentYears.some((year) => year < profile.minContentYear)) return false;
+  }
   if (/(?:#?shorts?\b|vertical\s+video|how[ -]+to|tutorial|reaction|trailer|teaser|promo|advertisement|commercial|fan\s+edit|lyrics\s+video)/i.test(haystack)) return false;
   if (profile.deny.some((term) => haystack.includes(text(term, 180).toLowerCase()))) return false;
   if (!rightsOkay(item.rights, source)) return false;
@@ -192,6 +200,8 @@ function accepted(profile, item, provider, checkAspect = true) {
     if (profile.formats.length && !termsMatch(titleHaystack, profile.formats)
       && !(profile.formatRelaxed === true && duration >= 20 * 60)) return false;
   }
+  if (profile.movieLane === "modern" && profile.laneDeny.some((term) => haystack.includes(text(term, 180).toLowerCase()))) return false;
+  if (profile.movieLane === "indie" && profile.laneRequired.length && !profile.laneRequired.some((term) => haystack.includes(text(term, 180).toLowerCase()))) return false;
   const required = profile.match.length ? profile.match : profile.queries;
   return !required.length || termsMatch(haystack, required);
 }

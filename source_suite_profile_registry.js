@@ -1821,7 +1821,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   },
   "modern-free-cinema": {
     "name": "Modern Free Cinema",
-    "fallbackProfiles": ["indie-feature-house", "movie-house", "horror-house", "sci-fi-signal", "western-screen", "film-noir-desk"],
+    "fallbackProfiles": ["movie-house", "horror-house", "sci-fi-signal", "western-screen", "film-noir-desk"],
     "queryLimit": 16,
     "queryWindow": 6,
     "peerTubeQueryWindow": 6,
@@ -1832,6 +1832,9 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "providers": ["peertube", "youtube"],
     "intent": "film",
     "minTitleYear": 1980,
+    "minContentYear": 1980,
+    "movieLane": "modern",
+    "laneDeny": ["independent", "indie", "arthouse", "festival", "student film", "cult", "public domain", "microbudget", "free movie", "free feature", "boris karloff", "gothic horror"],
     "topics": ["feature film", "full movie", "independent film", "public domain film", "modern cinema", "movie", "film"],
     "formats": ["full movie", "full film", "feature film", "complete movie", "full-length movie", "complete feature film", "public domain movie", "feature movie"],
     "queries": [
@@ -1852,10 +1855,13 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "peerTubeDetailLimit": 12,
     "peerTubeFallbackQueryWindow": 6,
     "peerTubeInstances": ["https://search.joinpeertube.org", "https://video.blender.org", "https://framatube.org", "https://peertube.uno", "https://tilvids.com", "https://peertube.doesstuff.social", "https://peertube.dngr.us"],
-    "fallbackProfiles": ["modern-free-cinema", "movie-house", "horror-house", "sci-fi-signal", "western-screen", "film-noir-desk"],
+    "fallbackProfiles": ["movie-house", "film-noir-desk", "horror-house", "sci-fi-signal", "western-screen"],
     "providers": ["peertube", "youtube"],
     "intent": "film",
     "minTitleYear": 1980,
+    "minContentYear": 1980,
+    "movieLane": "indie",
+    "laneRequired": ["independent", "indie", "arthouse", "festival", "cult", "public domain", "microbudget", "free movie", "free feature"],
     "topics": ["independent feature film", "independent movie", "indie feature", "festival feature", "arthouse feature", "public domain movie", "movie", "film"],
     "formats": ["full movie", "full film", "feature film", "complete movie", "full-length movie", "complete feature film", "public domain movie", "feature movie"],
     "queries": [

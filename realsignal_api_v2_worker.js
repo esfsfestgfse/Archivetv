@@ -14,7 +14,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "5.5.6-source-suite-movie-recovery";
+const V3_RELEASE = "5.5.7-source-suite-separated-movie-lanes";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -687,6 +687,17 @@ function catalogFallbackAllowed(item, body) {
      for “cannabis history” must not make an unrelated history upload look
      like Green Culture after it is persisted. */
   const haystack = `${title} ${description} ${subject} ${tags} ${category} ${account} ${sourceIdentifier} ${normalizedSourceIdentifier}`;
+  const movieLane = String(body && body.movieLane || "").trim().toLowerCase();
+  const laneRequired = Array.isArray(body && body.laneRequired) ? body.laneRequired : [];
+  const laneDeny = Array.isArray(body && body.laneDeny) ? body.laneDeny : [];
+  if (movieLane === "modern" && laneDeny.some((term) => {
+    const needle = String(term || "").trim().toLowerCase();
+    return needle && haystack.includes(needle);
+  })) return false;
+  if (movieLane === "indie" && laneRequired.length && !laneRequired.some((term) => {
+    const needle = String(term || "").trim().toLowerCase();
+    return needle && haystack.includes(needle);
+  })) return false;
   const holidayChannel = String(body && body.channel || "");
   const trustedHolidayRecovery = IA_HOLIDAY_TITLE_LANES.has(holidayChannel)
     && item && item.recoveryVerified === true
@@ -822,6 +833,11 @@ function catalogFallbackAllowed(item, body) {
     if (minTitleYear) {
       const titleYears = Array.from(title.matchAll(/(?:^|[^0-9])((?:19|20)\d{2})(?:[^0-9]|$)/g)).map((match) => Number(match[1])).filter(Boolean);
       if (titleYears.some((year) => year < minTitleYear)) return false;
+    }
+    const minContentYear = Math.max(0, Number(body.minContentYear) || 0);
+    if (minContentYear) {
+      const contentYears = Array.from(haystack.matchAll(/(?:^|[^0-9])((?:19|20)\d{2})(?:[^0-9]|$)/g)).map((match) => Number(match[1])).filter(Boolean);
+      if (contentYears.some((year) => year < minContentYear)) return false;
     }
     /* Requalify stale rows against language and explicit profile topics before
        they reach a guide or ready shelf. */
@@ -1306,6 +1322,10 @@ async function familyCatalogFallback(env, profile, requestedLimit = SOURCE_LIMIT
       topics: alias.topics,
       programFormats: alias.formats,
       minTitleYear: alias.minTitleYear,
+      minContentYear: alias.minContentYear,
+      movieLane: alias.movieLane,
+      laneRequired: alias.laneRequired,
+      laneDeny: alias.laneDeny,
       persistedRelaxed: alias.persistedRelaxed,
       persistedMatch: alias.persistedMatch,
       themeMinScore: 1,
@@ -1330,6 +1350,10 @@ async function familyCatalogFallback(env, profile, requestedLimit = SOURCE_LIMIT
         topics: profile.topics,
         programFormats: profile.formats,
         minTitleYear: profile.minTitleYear,
+        minContentYear: profile.minContentYear,
+        movieLane: profile.movieLane,
+        laneRequired: profile.laneRequired,
+        laneDeny: profile.laneDeny,
         intent: profile.intent,
         themeMinScore: 1,
       }
@@ -1882,6 +1906,10 @@ async function handleSourceStatus(request, env, ctx) {
     topics: profile.topics,
     programFormats: profile.formats,
     minTitleYear: profile.minTitleYear,
+    minContentYear: profile.minContentYear,
+    movieLane: profile.movieLane,
+    laneRequired: profile.laneRequired,
+    laneDeny: profile.laneDeny,
     persistedRelaxed: profile.persistedRelaxed,
     persistedMatch: profile.persistedMatch,
     themeMinScore: 1,
@@ -1997,6 +2025,10 @@ async function handleSourceCatalog(request, env, ctx, id) {
     topics: profile.topics,
     programFormats: profile.formats,
     minTitleYear: profile.minTitleYear,
+    minContentYear: profile.minContentYear,
+    movieLane: profile.movieLane,
+    laneRequired: profile.laneRequired,
+    laneDeny: profile.laneDeny,
     persistedRelaxed: profile.persistedRelaxed,
     persistedMatch: profile.persistedMatch,
     themeMinScore: 1,

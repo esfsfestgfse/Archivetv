@@ -23,6 +23,9 @@ for (const [name, source] of [['desktop', desktop], ['mobile', mobile]]) {
     'iGoCast',
     'https://www.apsattv.com/igocast.m3u',
     'window.__tvRefreshSources(out)',
+    'function tvHealthScore(e)',
+    'c._healthScore',
+    'tuneStartedAt=Date.now()',
     'label:"Live services"',
   ]) {
     if (!source.includes(needle)) throw new Error(`${name}: missing FAST recovery contract ${needle}`);

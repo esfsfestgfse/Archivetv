@@ -1735,7 +1735,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="5.1.5-mobile-fast-source-menu";
+window.__ATV_BUILD="5.1.6-mobile-fast-health";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -12357,14 +12357,26 @@ function looksRadio(c){
 }
 function tvHealthKey(c){ return String((c&&(c.url||c.name))||"").slice(0,180); }
 function tvHealthSave(o){ try{ store.set(TVH_KEY,o); }catch(e){} }
-function markTvFail(c){
-  var k=tvHealthKey(c); if(!k)return; var o=tvHealthAll();
-  var e=o[k]||{f:0}; e.f=(e.f||0)+1; e.t=Date.now(); o[k]=e; tvHealthSave(o);
-  nlog("tvhealth",false,(c.name||"?")+" strike "+e.f);
+function tvHealthScore(e){
+  if(!e)return 100;
+  var fail=Number(e.f||0), ok=Number(e.ok||0), ms=Number(e.ms||0), score=100;
+  score-=Math.min(60,fail*18);
+  score+=Math.min(8,ok);
+  if(ms>0)score-=Math.min(28,Math.max(0,(ms-1200)/250));
+  return Math.max(0,Math.min(100,Math.round(score)));
 }
-function markTvOk(c){
+function markTvFail(c,reason){
   var k=tvHealthKey(c); if(!k)return; var o=tvHealthAll();
-  if(o[k]){ delete o[k]; tvHealthSave(o); nlog("tvhealth",true,(c.name||"?")+" recovered"); }
+  var e=o[k]||{f:0,ok:0}; e.f=(e.f||0)+1; e.t=Date.now(); e.lastFail=e.t;
+  e.lastError=String(reason||"failed to connect").slice(0,120); e.score=tvHealthScore(e); e.provider=c.src||""; o[k]=e; tvHealthSave(o);
+  nlog("tvhealth",false,(c.name||"?")+" strike "+e.f+" · score "+e.score);
+}
+function markTvOk(c,firstFrameMs){
+  var k=tvHealthKey(c); if(!k)return; var o=tvHealthAll(),e=o[k]||{f:0,ok:0};
+  var ms=Math.max(0,Number(firstFrameMs)||0); e.f=0; e.ok=Number(e.ok||0)+1; e.t=Date.now(); e.lastOk=e.t;
+  if(ms)e.ms=e.ms?Math.round(Number(e.ms)*.7+ms*.3):ms;
+  e.lastError=""; e.provider=c.src||""; e.score=tvHealthScore(e); o[k]=e; tvHealthSave(o);
+  nlog("tvhealth",true,(c.name||"?")+" first frame "+(ms?ms+"ms":"ready")+" · score "+e.score);
 }
 function tvStrikes(c,health){ var e=(health||tvHealthAll())[tvHealthKey(c)]; return e?(e.f||0):0; }
 /* Culling: a channel that has failed twice or more on THIS device is hidden by default rather
@@ -12389,12 +12401,18 @@ function sortByHealthThenName(arr){
      verified.  A catalog entry is still available, but it no longer crowds the
      front of the directory ahead of a source with an actual playback signal. */
   arr.forEach(function(c){
+    var e=h[tvHealthKey(c)]||{};
+    c._healthScore=Number.isFinite(Number(e.score))?Number(e.score):tvHealthScore(e);
     c._strikes=tvStrikes(c,h);
     c._trust=c.checked?3:(c.verified?2:(c.tvgId?1:0));
+    c._providerRank={"Checked":0,"Tubi":1,"Pluto TV":2,"Roku":3,"Plex":4,"Samsung TV+":5,"Xumo":6,"HP FAST":7,"iGoCast":8,"FreeLiveSports":9}[String(c.src||"")];
+    if(c._providerRank==null)c._providerRank=20;
   });
   arr.sort(function(a,b){
+    if(a._healthScore!==b._healthScore) return b._healthScore-a._healthScore;
     if(a._strikes!==b._strikes) return a._strikes-b._strikes;   /* healthy first */
     if(a._trust!==b._trust) return b._trust-a._trust;             /* playable first */
+    if(a._providerRank!==b._providerRank) return a._providerRank-b._providerRank;
     return String(a.name||"").toLowerCase().localeCompare(String(b.name||"").toLowerCase());
   });
   return arr;
@@ -12432,6 +12450,7 @@ async function playTV(c,my,list,idx,triedCount,proxyIdx,altIdx){
      catalog mislabeled the provider. This is broader than a Pluto/Roku source-name check on
      purpose: IPTV-org also carries Pluto channels, including duplicate Car Chase variants. */
   if(isRedirectorUrl(c.url)){var hlsProxy="https://hls-proxy.tdy1990.workers.dev";if(proxies.indexOf(hlsProxy)<0)proxies.unshift(hlsProxy);}
+  var tuneStartedAt=Date.now();
   var src=proxies.length?proxiedVia(proxies[Math.min(proxyIdx,proxies.length-1)],c.url,{ua:c.ua,ref:c.ref}):c.url;
   function highlightRow(i){ var l=$("dcList"); if(!l)return; l.querySelectorAll("[data-ci]").forEach(function(x){x.classList.remove("sel");});
     var r=l.querySelector('[data-ci="'+i+'"]'); if(r)r.classList.add("sel"); }
@@ -12460,7 +12479,7 @@ async function playTV(c,my,list,idx,triedCount,proxyIdx,altIdx){
     /* Record the exhausted entry even for an explicit pick. Strikes are temporary and only
        lower the entry in the list; they are not a permanent ban. Without this, repeatedly
        clicking one dead Pluto redirector could never teach the health sorter anything. */
-    markTvFail(c);
+    markTvFail(c,m);
     if(window.__tvNoAdvance){
       var pane0=$("tvPane");
       if(pane0) pane0.innerHTML='<div class="dc-media-cap">'+esch(String(c.name).toUpperCase())+
@@ -12502,7 +12521,7 @@ async function playTV(c,my,list,idx,triedCount,proxyIdx,altIdx){
     if(settled||my!==token)return;
     if(!(v.currentTime>0))return;           /* nothing decoded yet */
     if(v.videoWidth>0){
-      settled=true; clearWatch(); markTvOk(c);
+      settled=true; clearWatch(); markTvOk(c,Date.now()-tuneStartedAt);
       nlog("livetv",true,c.name+" playing "+v.videoWidth+"x"+v.videoHeight);
       return;
     }
@@ -12510,7 +12529,7 @@ async function playTV(c,my,list,idx,triedCount,proxyIdx,altIdx){
        The clock is advancing and audio is decoding -- that stream IS working, it simply has no
        picture. Failing it over was wrong; label it instead so the black screen is explained. */
     if(v.readyState>=2){
-      settled=true; clearWatch(); markTvOk(c);
+      settled=true; clearWatch(); markTvOk(c,Date.now()-tuneStartedAt);
       var capA=pane.querySelector(".dc-media-cap");
       if(capA) capA.textContent="\u266A AUDIO ONLY \u00b7 "+String(c.name).toUpperCase()+" (radio \u2014 no video track)";
       nlog("livetv",true,c.name+" audio-only stream (radio)");

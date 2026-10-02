@@ -2570,15 +2570,15 @@ const GUIDE_MERGED_LINEUP_ENABLED=!/(?:^|[?&])lineup=legacy(?:&|$)/.test(String(
 const GUIDE_MERGE_UI_ENABLED=GUIDE_MERGE_AUDIT_ENABLED||GUIDE_MERGED_LINEUP_ENABLED;
 const GUIDE_MERGE_ALIASES=[
   {id:"courtroom-tv",label:"Courtroom TV",meta:"Courtroom and judge-show family",members:[20,21]},
-  {id:"archive-cinema-mix",label:"Archive Cinema Mix",meta:"Modern Archive Cinema + Archive Genre Cinema",members:[135,136]},
-  {id:"kids-family-animation",label:"Kids & Family Animation",meta:"Classic Cartoons + Modern Cartoons",members:[150,153]},
+  {id:"archive-cinema-mix",label:"Archive Movie Mix",meta:"1980s-to-present feature films across broad and genre cinema rails",members:[135,136]},
+  {id:"kids-family-animation",label:"Kids & Family Animation",meta:"Kids Hour + After School",members:[156,157]},
   {id:"comedy-archive",label:"Comedy Archive",meta:"Comedy Classics + Joke Joint",members:[202,222]},
   {id:"news-current-affairs",label:"Newsreel & Current Affairs",meta:"Three existing news and affairs lanes",members:[210,219,228]},
   {id:"travel-people",label:"Travel & People",meta:"Travelogue, people, and roadside lanes",members:[206,214,235]},
   {id:"nature-earth",label:"Nature & Earth",meta:"Nature, earth science, and field lanes",members:[212,233,242]},
   {id:"space-nasa",label:"Space & NASA",meta:"Space and NASA archive lanes",members:[213,232]},
   {id:"food-home",label:"Food & Home",meta:"Foodways and home/lifestyle lanes",members:[201,211]},
-  {id:"auto-archive",label:"Auto Archive",meta:"Gearhead, automotive, and source-suite auto lanes",members:[227,231,559]},
+  {id:"auto-archive",label:"Auto Archive",meta:"Gear Head + Motor City; Gearhead Garage remains source-backed",members:[227,231]},
   {id:"black-media",label:"Black Media",meta:"Kept separate: Black Screen · Black Television · Black Laughs",members:[105,225,538]}
 ];
 function guideMergeMembers(alias){return (alias&&Array.isArray(alias.members)?alias.members:[]).map(function(num){return byNum(Number(num));}).filter(Boolean);}
@@ -2589,7 +2589,15 @@ const GUIDE_MERGED_MEMBER_NUMS=new Set(GUIDE_MERGE_ALIASES.filter(function(alias
    guide-only until their own canary passes. */
 const REAL_CHANNEL_MERGES=[
   {id:"courtroom-tv",canonicalNum:20,label:"Courtroom TV",members:[20,21],programs:["The Court Room","Court TV"],genre:"courtroom"},
-  {id:"archive-cinema-mix",canonicalNum:135,label:"Archive Movie Mix",members:[135,136],programs:["Modern Archive Cinema","Archive Genre Cinema"],genre:"modernarchivecinema"}
+  {id:"archive-cinema-mix",canonicalNum:135,label:"Archive Movie Mix",members:[135,136],programs:["Modern Archive Cinema","Archive Genre Cinema"],genre:"modernarchivecinema"},
+  {id:"kids-family-animation",canonicalNum:156,label:"Kids & Family Animation",members:[156,157],programs:["Kids Hour","After School"],genre:"kids-family"},
+  {id:"comedy-archive",canonicalNum:202,label:"Comedy Archive",members:[202,222],programs:["Joke Joint","Mic Night"],genre:"comedy"},
+  {id:"news-current-affairs",canonicalNum:210,label:"Newsreel & Current Affairs",members:[210,219,228],programs:["News, News, News","Vintage Local News","Deadline"],genre:"newsarchive"},
+  {id:"travel-people",canonicalNum:206,label:"Travel & People",members:[206,214,235],programs:["Home Movies & Travelogues","Country Roads","Roadside America"],genre:"travel"},
+  {id:"nature-earth",canonicalNum:212,label:"Nature & Earth",members:[212,233,242],programs:["Nature Channel","Creature Comforts","Earth From Above"],genre:"nature"},
+  {id:"space-nasa",canonicalNum:213,label:"Space & NASA",members:[213,232],programs:["NASA Marathon","Space Race"],genre:"space"},
+  {id:"food-home",canonicalNum:201,label:"Food & Home",members:[201,211],programs:["Home Economics","The Kitchen"],genre:"home"},
+  {id:"auto-archive",canonicalNum:227,label:"Auto Archive",members:[227,231],programs:["Gear Head","Motor City"],genre:"automotive"}
 ];
 const REAL_CHANNEL_MERGE_BY_NUM=new Map();
 REAL_CHANNEL_MERGES.forEach(function(merge){(merge.members||[]).forEach(function(num){REAL_CHANNEL_MERGE_BY_NUM.set(Number(num),merge);});});

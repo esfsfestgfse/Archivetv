@@ -28,6 +28,21 @@ for (const file of files) {
   const archive = source.match(/\{id:"archive-cinema-mix",canonicalNum:(\d+),label:"([^"]+)",members:\[(\d+),(\d+)\]/);
   expect(file, 'Archive Movie Mix canonicalizes 135/136', archive && archive[1] === '135' && archive[2] === 'Archive Movie Mix' && archive[3] === '135' && archive[4] === '136');
   expect(file, 'merged catalog uses both Archive cinema profiles', source.includes('programs:["Modern Archive Cinema","Archive Genre Cinema"]'));
+  const expectedMerges = [
+    ['kids-family-animation', '156', '157'],
+    ['comedy-archive', '202', '222'],
+    ['news-current-affairs', '210', '219', '228'],
+    ['travel-people', '206', '214', '235'],
+    ['nature-earth', '212', '233', '242'],
+    ['space-nasa', '213', '232'],
+    ['food-home', '201', '211'],
+    ['auto-archive', '227', '231']
+  ];
+  for (const [id, ...members] of expectedMerges) {
+    expect(file, `${id} has one canonical merge`, source.includes(`id:"${id}"`) && members.every(num => source.includes(`members:[${members.join(',')}]`)));
+  }
+  expect(file, 'protected Classic and Modern Cartoons remain separate', source.includes('members:[150,153]') === false && source.includes('num:150') && source.includes('num:153'));
+  expect(file, 'protected source-backed Gearhead Garage remains separate', source.includes('num:559') && source.includes('members:[227,231,559]') === false);
   expect(file, 'canonical queue uses one channel identity', source.includes('return {show:canonicalChannelLabel(ch)') && source.includes('store.set("last",canonicalNum)'));
   expect(file, 'Black-media channels remain outside the real pilot', source.includes('num:105') && source.includes('num:225') && source.includes('num:538') && !source.includes('REAL_CHANNEL_MERGES=[{id:"courtroom-tv",canonicalNum:20,label:"Courtroom TV",members:[20,21,105'));
 }

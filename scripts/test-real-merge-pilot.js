@@ -20,7 +20,7 @@ for (const file of files) {
   const source = fs.readFileSync(path.join(root, file), 'utf8');
   const pilot = source.match(/\{id:"courtroom-tv",canonicalNum:(\d+),label:"([^"]+)",members:\[(\d+),(\d+)\]/);
   const build = source.match(/window\.__ATV_BUILD="([^"]+)"/);
-  expect(file, '5.5.31 guide-lineup-cleanup build stamp', build && /^5\.5\.31-(?:desktop|mobile)-guide-lineup-cleanup$/.test(build[1]));
+  expect(file, '5.5.32 cooking-food build stamp', build && /^5\.5\.32-(?:desktop|mobile)-cooking-food$/.test(build[1]));
   expect(file, 'Courtroom pilot declares canonical channel 20', pilot && pilot[1] === '20' && pilot[2] === 'Courtroom TV');
   expect(file, 'Courtroom pilot includes legacy members 20 and 21', pilot && pilot[3] === '20' && pilot[4] === '21');
   expect(file, 'legacy tune resolves through canonicalTuneNum', source.includes('canonicalTuneNum(requestedNum)') && source.includes('REAL_CHANNEL_MERGE_BY_NUM'));
@@ -28,6 +28,7 @@ for (const file of files) {
   const archive = source.match(/\{id:"archive-cinema-mix",canonicalNum:(\d+),label:"([^"]+)",members:\[(\d+),(\d+)\]/);
   expect(file, 'Archive Movie Mix canonicalizes 135/136', archive && archive[1] === '135' && archive[2] === 'Archive Movie Mix' && archive[3] === '135' && archive[4] === '136');
   expect(file, 'merged catalog uses both Archive cinema profiles', source.includes('programs:["Modern Archive Cinema","Archive Genre Cinema"]'));
+  expect(file, 'Cooking & Food uses The Kitchen only', source.includes('id:"food-home",canonicalNum:201,label:"Cooking & Food",members:[201,211],programs:["The Kitchen"],genre:"cooking"') && !source.includes('id:"food-home",canonicalNum:201,label:"Cooking & Food",members:[201,211],programs:["Home Economics","The Kitchen"]'));
   const expectedMerges = [
     ['kids-family-animation', '156', '157'],
     ['comedy-archive', '202', '222'],

@@ -9,7 +9,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>REALSIGNAL · The Dial 5.5.31</title>
+<title>REALSIGNAL · The Dial 5.5.32</title>
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
@@ -1707,7 +1707,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="5.5.31-desktop-guide-lineup-cleanup";
+window.__ATV_BUILD="5.5.32-desktop-cooking-food";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -2577,7 +2577,7 @@ const GUIDE_MERGE_ALIASES=[
   {id:"travel-people",label:"Travel & People",meta:"Travelogue, people, and roadside lanes",members:[206,214,235]},
   {id:"nature-earth",label:"Nature & Earth",meta:"Nature, earth science, and field lanes",members:[212,233,242]},
   {id:"space-nasa",label:"Space & NASA",meta:"Space and NASA archive lanes",members:[213,232]},
-  {id:"food-home",label:"Food & Home",meta:"Foodways and home/lifestyle lanes",members:[201,211]},
+  {id:"food-home",label:"Cooking & Food",meta:"Julia Child, chef programs, recipes, food culture and culinary demonstrations",members:[201,211]},
   {id:"auto-archive",label:"Auto Archive",meta:"Gear Head + Motor City; Gearhead Garage remains source-backed",members:[227,231]},
   {id:"black-media",label:"Black Media",meta:"Kept separate: Black Screen · Black Television · Black Laughs",members:[105,225,538]}
 ];
@@ -2596,7 +2596,7 @@ const REAL_CHANNEL_MERGES=[
   {id:"travel-people",canonicalNum:206,label:"Travel & People",members:[206,214,235],programs:["Home Movies & Travelogues","Country Roads","Roadside America"],genre:"travel"},
   {id:"nature-earth",canonicalNum:212,label:"Nature & Earth",members:[212,233,242],programs:["Nature Channel","Creature Comforts","Earth From Above"],genre:"nature"},
   {id:"space-nasa",canonicalNum:213,label:"Space & NASA",members:[213,232],programs:["NASA Marathon","Space Race"],genre:"space"},
-  {id:"food-home",canonicalNum:201,label:"Food & Home",members:[201,211],programs:["Home Economics","The Kitchen"],genre:"home"},
+  {id:"food-home",canonicalNum:201,label:"Cooking & Food",members:[201,211],programs:["The Kitchen"],genre:"cooking"},
   {id:"auto-archive",canonicalNum:227,label:"Auto Archive",members:[227,231],programs:["Gear Head","Motor City"],genre:"automotive"}
 ];
 const REAL_CHANNEL_MERGE_BY_NUM=new Map();
@@ -2725,7 +2725,7 @@ const CHANNEL_META={
 "Black Cinema":{desc:"The full arc of Black cinema — Oscar Micheaux race films of the 1920s through Spike Lee, Julie Dash, Charles Burnett, Barry Jenkins, Ryan Coogler, Jordan Peele. 1915 through today.",best:"primetime",rel:["Blaxploitation","Classic Film"]},
 "Arcade Archive":{desc:"Videogame footage, longplays and arcade history.",best:"late night",rel:["Classic Cartoons","Computer Chronicles"]},
 "Manufacturing Marvels":{desc:"How things get made: industrial process films.",best:"afternoons",rel:["Prelinger Vault","Home Economics"]},
-"Home Economics":{desc:"Cooking, baking, meal planning and household arts - a rotating topic each tune-in.",best:"daytime",rel:["Manufacturing Marvels","Prelinger Vault"]},
+"Home Economics":{desc:"Legacy record routed into Cooking & Food: chef programs, recipes, culinary demonstrations and food culture.",best:"daytime",rel:["The Kitchen","Foodways"]},
 "Found Footage Static":{desc:"Degraded prints and off-air oddities, glitch treatment included.",best:"after midnight",rel:["Shock Theater","VHS Vault"]},
 "Computer Chronicles":{desc:"The definitive record of the personal-computer revolution.",best:"evenings",rel:["Arcade Archive","Modern Rerun TV"]},
 "Live Concerts":{desc:"Live concert recordings from the Open Source Audio community archive.",best:"evenings",rel:["Rock","Music Films"]},

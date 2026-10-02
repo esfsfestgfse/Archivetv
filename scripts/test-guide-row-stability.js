@@ -35,7 +35,7 @@ for (const name of files) {
     ['initial guide render still builds the rows', functionBody(source, 'function renderGuide()').includes('renderRail()')],
     ['guide has a dedicated movies lane', source.includes('id:"movies"')],
     ['stale decade pilot lane is not a browse category', !source.includes('id:"decades"')],
-    ['guide keeps numbers stable while grouping families', source.includes('CATEGORY ORDER · NUMBERS STABLE')],
+    ['guide keeps canonical rows and numbers stable while grouping families', source.includes('canonical channels · ') && source.includes('numbers stable')],
     ['core family labels are explicit', source.includes('function guideFamilyLabel(ch)') && /Live television/.test(source) && /Live sports/.test(source) && /Live weather/.test(source) && /Live radio/.test(source)],
     ['live stream updates feed current/next guide data', source.includes('function noteLiveStreamGuide(c)') && guideListingBody.includes('live.next')],
     ['IA guide reports the rolling hot shelf', guideListingBody.includes('IA_READY_TARGET') && /hot replacements|HOT SHELF/.test(guideListingBody)],

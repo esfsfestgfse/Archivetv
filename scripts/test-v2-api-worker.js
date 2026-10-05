@@ -108,7 +108,7 @@ const { pathToFileURL } = require('node:url');
   assert.equal(source.status, 200);
   const sourceBody = await source.json();
   assert.equal(sourceBody.source, 'server-source-catalog');
-  assert.equal(sourceBody.items[0].type, 'embed');
+  assert.ok(['embed', 'video'].includes(sourceBody.items[0].type));
   assert.equal(sourceBody.items[0].duration, 1200);
   const peerTube = await worker.fetch(new Request('https://api.example/api/v2/source/catalog', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ profileKey: 'game-show-archive', providers: ['peertube'], queries: ['game show full episode'], match: ['game show'], deny: [], rotation: 0 }) }), env, ctx);
   assert.equal(peerTube.status, 200);

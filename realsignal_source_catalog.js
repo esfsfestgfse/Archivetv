@@ -946,8 +946,7 @@ async function okApi(profile, rotation, env, options = {}) {
      viewer request can find a real long-form item without waiting for
      maintenance mode. */
   const queryCount = firstLane ? Math.min(3, Math.max(1, Number(profile.queryWindow) || 3)) : (profile.queryWindow || SOURCE_QUERY_WINDOW);
-  const markerCount = firstLane ? Math.max(1, queryCount - 1) : Math.max(1, Math.ceil(queryCount * 0.6));
-  const broadCount = Math.max(0, queryCount - markerCount);
+  const markerCount = firstLane ? Math.max(1, queryCount - 1) : Math.max(1, Math.floor(queryCount * 0.4));
   let expandedTags = [];
   /* OK's supported search surface is tag-oriented, not a title index. One
      maintenance-only tag expansion gives broad lanes a chance to discover
@@ -955,14 +954,21 @@ async function okApi(profile, rotation, env, options = {}) {
      item-level titleRequiredTerms gate remains the final admission authority. */
   if (!firstLane && broadPool.length) {
     try {
-      const seed = rotate(broadPool, Number(rotation || 0) + 1)[0];
+      const seed = rotate(broadPool, Number(rotation || 0))[0];
       expandedTags = await okApiTagQueries(seed, env);
     } catch (error) {
       expandedTags = [];
     }
   }
+  const tagTerms = profile.profileKey === "ok-movie-channel"
+    ? [...OK_MOVIE_CONTEXT_TERMS, ...OK_MOVIE_STRONG_TERMS]
+    : ["television", "tv", "show", "series", "episode", "sitcom", "drama", "comedy", "western"];
+  expandedTags = expandedTags.filter((tag) => termsMatch(text(tag, 180).toLowerCase(), tagTerms)).slice(0, 2);
   const markerQueries = rotate(pool, rotation).slice(0, markerCount);
-  const broadQueries = rotate(broadPool, Number(rotation || 0) + 1).slice(0, broadCount);
+  /* Always reserve room for the broad semantic rail. Generic quality tags
+     such as `4k` are useful only as a secondary recall source; they cannot
+     crowd out `movie`, `full movie`, or the equivalent television terms. */
+  const broadQueries = rotate(broadPool, Number(rotation || 0)).slice(0, queryCount);
   const queries = Array.from(new Set([...markerQueries, ...expandedTags, ...broadQueries]
     .map((query) => text(query, 180))
     .filter(Boolean))).slice(0, queryCount);

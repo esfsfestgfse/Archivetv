@@ -9,6 +9,7 @@ on:
       - 'realsignal_api_v2_worker.js'
       - 'realsignal_api_rotation.js'
       - 'realsignal_source_catalog.js'
+      - 'ok_public_embed_catalog.js'
       - 'ia_canonical_station.mjs'
       - 'ia_canonical_pilot_manifest.js'
       - 'source_suite_profile_registry.js'

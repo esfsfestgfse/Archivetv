@@ -2128,7 +2128,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   "ok-movie-channel": {
     "name": "OK Movie Channel",
     "queryLimit": 8,
-    "queryWindow": 4,
+    "queryWindow": 6,
      "providers": ["ok-api", "ok-manifest"],
     "intent": "film",
     "serverOnly": true,
@@ -2151,7 +2151,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "intent": "television",
     "serverOnly": true,
     "minRuntimeSeconds": 900,
-    "okApiQueries": ["fullepisode", "tvseries", "englishtelevision", "english", "american", "publicdomaintv", "classictelevision", "tvshow"],
+    "okApiQueries": ["americantelevision", "englishtelevision", "englishseries", "englishsitcom", "fullepisode", "tvshow", "publicdomaintv", "classictelevision"],
     "topics": ["television", "tv", "tv show", "tv series", "show", "episode", "ep", "season", "series", "serial", "sitcom", "drama", "comedy", "program"],
     "formats": ["full episode", "complete episode", "full series", "tv show", "television episode"],
     "formatRelaxed": true,

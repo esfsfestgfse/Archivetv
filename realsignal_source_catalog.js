@@ -389,6 +389,7 @@ function accepted(profile, item, provider, checkAspect = true) {
     if (profile.topics.length && !termsMatch(haystack, profile.topics)) return false;
     if (profile.formats.length && !termsMatch(titleHaystack, profile.formats)
       && !(profile.formatRelaxed === true && duration >= 20 * 60)
+      && !(profile.formatRelaxed === true && minimumRuntime <= 15 * 60 && duration >= 15 * 60)
       && !(trustedYouTubeChannel && duration >= 20 * 60)) return false;
   }
   if (profile.movieLane === "modern" && profile.laneDeny.some((term) => titleHaystack.includes(text(term, 180).toLowerCase()))) return false;

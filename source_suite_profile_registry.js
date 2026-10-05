@@ -2151,12 +2151,12 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "intent": "television",
     "serverOnly": true,
     "minRuntimeSeconds": 900,
-    "okApiQueries": ["englishtelevision", "fullepisode", "publicdomaintv", "tvseries", "english tv show", "american television", "classic english television"],
-    "topics": ["television", "tv", "tv show", "tv series", "episode", "season", "series", "sitcom", "drama", "comedy"],
+    "okApiQueries": ["fullepisode", "tvseries", "englishtelevision", "english", "american", "publicdomaintv", "classictelevision", "tvshow"],
+    "topics": ["television", "tv", "tv show", "tv series", "show", "episode", "ep", "season", "series", "serial", "sitcom", "drama", "comedy", "program"],
     "formats": ["full episode", "complete episode", "full series", "tv show", "television episode"],
-    "formatRelaxed": false,
+    "formatRelaxed": true,
     "queries": ["english tv show", "english television", "full episode english", "american tv series", "classic english television", "public domain tv", "television 1980s", "television 1990s"],
-    "match": ["television", "tv show", "tv series", "full episode", "complete episode", "sitcom", "series"],
+    "match": ["television", "tv show", "tv series", "show", "full episode", "complete episode", "episode", "ep", "sitcom", "series", "serial", "program"],
     "deny": ["shorts", "short film", "vertical", "trailer", "teaser", "clip", "recap", "review", "reaction", "podcast", "how to", "tutorial", "fan film", "fan-made", "parody", "music video", "commercial", "cartoon", "gameplay", "lecture", "seminar", "conference", "panel discussion"]
   },
   "vimeo-movie-channel": {

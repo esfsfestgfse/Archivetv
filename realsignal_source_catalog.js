@@ -195,9 +195,11 @@ function okApiDuration(row) {
   const milliseconds = Number(okApiScalar(row && row.duration_ms));
   if (Number.isFinite(milliseconds) && milliseconds > 0) return milliseconds / 1000;
   const duration = Number(okApiScalar(row && row.duration));
-  if (Number.isFinite(duration) && duration > 0) return duration / 1000;
+  /* OK.ru's VideoBean duration is already expressed in seconds. Only the
+     explicitly named duration_ms field is converted from milliseconds. */
+  if (Number.isFinite(duration) && duration > 0) return duration;
   const length = Number(okApiScalar(row && row.length));
-  return Number.isFinite(length) && length > 0 ? length / 1000 : 0;
+  return Number.isFinite(length) && length > 0 ? length : 0;
 }
 
 function okApiId(value) {

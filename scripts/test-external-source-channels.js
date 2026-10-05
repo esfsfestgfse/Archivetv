@@ -46,6 +46,7 @@ const { pathToFileURL } = require("node:url");
   assert.match(catalog, /OK_PUBLIC_EMBED_MANIFEST/, "OK.ru public-embed manifest is not wired");
   assert.match(catalog, /Authorization: `bearer \$\{token\}`/, "Vimeo token must be sent as an authorization header");
   assert.match(catalog, /search\.tagContents/, "OK.ru API search method is missing");
+assert.match(catalog, /OK\.ru's VideoBean duration is already expressed in seconds/, "OK.ru duration must remain in seconds unless the field is explicitly duration_ms");
   assert.doesNotMatch(catalog, /OK_API_SIG/, "legacy OK API signature binding must not be used");
   assert.match(okManifest, /videoembed\/1570971190743/, "OK.ru manifest must contain its public embed URL");
   assert.match(okManifest, /CC0|public domain/i, "OK.ru manifest must retain a rights note");

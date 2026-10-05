@@ -419,6 +419,8 @@ function okAdmissionStats(profile, candidates) {
   const stats = {
     runtime: 0,
     aspect: 0,
+    aspectUnknown: 0,
+    aspectPortrait: 0,
     embed: 0,
     language: 0,
     blocked: 0,
@@ -438,7 +440,12 @@ function okAdmissionStats(profile, candidates) {
     const source = "OK.ru";
     if (!item || !(item.id || item.uuid || item.rawId) || !title) { stats.other += 1; continue; }
     if (duration < minimumRuntime) { stats.runtime += 1; continue; }
-    if (ratio < SOURCE_MIN_ASPECT_RATIO) { stats.aspect += 1; continue; }
+    if (ratio < SOURCE_MIN_ASPECT_RATIO) {
+      stats.aspect += 1;
+      if (ratio > 0) stats.aspectPortrait += 1;
+      else stats.aspectUnknown += 1;
+      continue;
+    }
     if (!rightsOkay(item, source)) { stats.embed += 1; continue; }
     if (!englishOkay(item)) { stats.language += 1; continue; }
     if (/(?:#?shorts?\b|vertical\s+video|how[ -]+to|tutorial|reaction|trailer|teaser|promo|advertisement|commercial|fan\s+edit|lyrics\s+video)/i.test(haystack)

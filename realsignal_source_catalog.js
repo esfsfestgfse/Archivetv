@@ -384,6 +384,23 @@ function englishOkay(item) {
   return !/\b(?:hindi|tamil|telugu|bengali|bangla|marathi|malayalam|kannada|punjabi|urdu|indonesian|vietnamese|thai|arabic|espa[nñ]ol|portugu[eê]s|fran[cç]ais|deutsch|russian|turkish|korean|japanese|mandarin|pide|deseo|cuestionable|cap[ií]tulo|episodio|temporada|pel[ií]cula|televisi[oó]n|serie)\b/i.test(sample);
 }
 
+const OK_MOVIE_STRONG_TERMS = ["yts", "yts.am", "yify", "bdrip", "blu-ray", "bluray", "dvdrip", "dvd rip", "vhsrip", "vhs rip", "fullmovie", "full movie", "feature film", "complete movie", "full film"];
+const OK_MOVIE_CONTEXT_TERMS = ["movie", "film", "feature", "cinema", "hollywood", "american movie", "classic movie", "action movie", "western movie", "comedy movie", "drama movie", "horror movie", "thriller movie", "science fiction movie", "english movie", "full length movie"];
+const OK_NON_MOVIE_TERMS = ["aviation", "aircraft", "airplane", "flight", "landing", "takeoff", "hdr", "dolby vision", "fps", "video ultra hd", "demo", "test pattern", "sample video", "nature relaxation", "screen saver", "gameplay", "walkthrough", "music video", "visualizer"];
+
+function okMovieTitleQualified(profile, item) {
+  if (!profile || profile.profileKey !== "ok-movie-channel" || !profile.titleRequiredTerms.length) return false;
+  const title = text(item && item.title, 500).toLowerCase();
+  const haystack = text([item && item.title, item && item.description, item && item.tags, item && item.category, item && item.account].join(" "), 5000).toLowerCase();
+  const query = text(item && item.query, 180).toLowerCase();
+  if (!termsMatch(title, profile.titleRequiredTerms)) return false;
+  if (termsMatch(haystack, OK_NON_MOVIE_TERMS)) return false;
+  const strongRelease = termsMatch(title, OK_MOVIE_STRONG_TERMS) || termsMatch(query, OK_MOVIE_STRONG_TERMS);
+  const titleEvidence = termsMatch(haystack, profile.match);
+  const movieContext = termsMatch(query, OK_MOVIE_CONTEXT_TERMS);
+  return strongRelease || titleEvidence || movieContext;
+}
+
 function accepted(profile, item, provider, checkAspect = true) {
   const title = text(item && item.title, 500);
   /* Provider search phrases are editorial context, but television/film lanes
@@ -401,7 +418,7 @@ function accepted(profile, item, provider, checkAspect = true) {
   const minimumRuntime = Math.max(SOURCE_MIN_RUNTIME, Number(profile.minRuntimeSeconds) || 0);
   if (!item || !(item.id || item.uuid || item.rawId) || !title || duration < minimumRuntime || (checkAspect && ratio < SOURCE_MIN_ASPECT_RATIO)) return false;
   if (profile.titleRequiredTerms.length && !termsMatch(titleHaystack, profile.titleRequiredTerms)) return false;
-  const qualityMovieTitle = profile.profileKey === "ok-movie-channel" && profile.titleRequiredTerms.length > 0 && termsMatch(titleHaystack, profile.titleRequiredTerms);
+  const qualityMovieTitle = okMovieTitleQualified(profile, item);
   if (profile.minTitleYear) {
     const titleYears = Array.from(title.matchAll(/(?:^|[^0-9])((?:19|20)\d{2})(?:[^0-9]|$)/g)).map((match) => Number(match[1])).filter(Boolean);
     if (titleYears.some((year) => year < profile.minTitleYear)) return false;
@@ -463,7 +480,7 @@ function okAdmissionStats(profile, candidates) {
     const duration = Number(item && item.duration) || 0;
     const ratio = aspectRatio(item);
     const source = "OK.ru";
-    const qualityMovieTitle = profile.profileKey === "ok-movie-channel" && profile.titleRequiredTerms.length > 0 && termsMatch(titleHaystack, profile.titleRequiredTerms);
+    const qualityMovieTitle = okMovieTitleQualified(profile, item);
     if (!item || !(item.id || item.uuid || item.rawId) || !title) { stats.other += 1; continue; }
     if (duration < minimumRuntime) { stats.runtime += 1; continue; }
     if (ratio < SOURCE_MIN_ASPECT_RATIO) {

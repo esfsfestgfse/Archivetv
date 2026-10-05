@@ -2151,11 +2151,11 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "intent": "television",
     "serverOnly": true,
     "minRuntimeSeconds": 900,
-    "okApiQueries": ["tv", "television", "episode", "series", "sitcom", "drama", "comedy", "classic"],
+    "okApiQueries": ["english television", "english tv show", "american television", "classic english television", "full episode english", "tv series english", "public domain television"],
     "topics": ["television", "tv", "tv show", "tv series", "episode", "season", "series", "sitcom", "drama", "comedy"],
     "formats": ["full episode", "complete episode", "full series", "tv show", "television episode"],
-    "formatRelaxed": true,
-    "queries": ["tvshow", "television", "tvseries", "fullepisode", "fullseries", "sitcom", "television1980s", "television1990s"],
+    "formatRelaxed": false,
+    "queries": ["english tv show", "english television", "full episode english", "american tv series", "classic english television", "public domain tv", "television 1980s", "television 1990s"],
     "match": ["television", "tv show", "tv series", "full episode", "complete episode", "sitcom", "series"],
     "deny": ["shorts", "short film", "vertical", "trailer", "teaser", "clip", "recap", "review", "reaction", "podcast", "how to", "tutorial", "fan film", "fan-made", "parody", "music video", "commercial", "cartoon", "gameplay", "lecture", "seminar", "conference", "panel discussion"]
   },
@@ -2182,7 +2182,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "intent": "television",
     "serverOnly": true,
     "topics": ["television", "tv show", "tv series", "episode", "sitcom", "drama", "documentary series"],
-    "formats": ["full episode", "complete episode", "full series", "tv show", "television episode"],
+    "formats": ["full episode", "complete episode", "episode", "ep", "full series", "tv show", "television episode", "season", "series"],
     "queries": ["full television episode 1980s", "full television episode 1990s", "full television episode 2000s", "full television episode 2010s", "full television episode 2020s", "full tv series episode", "complete tv show episode", "television program full episode"],
     "match": ["television", "tv show", "tv series", "full episode", "complete episode", "sitcom", "series", "television program"],
     "deny": ["shorts", "short film", "vertical", "trailer", "teaser", "clip", "recap", "review", "reaction", "podcast", "how to", "tutorial", "fan film", "fan-made", "parody", "music video", "commercial", "cartoon", "gameplay", "lecture", "seminar", "conference", "panel discussion", "making of", "behind the scenes"]

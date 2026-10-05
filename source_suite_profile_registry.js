@@ -2151,7 +2151,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "intent": "television",
     "serverOnly": true,
     "minRuntimeSeconds": 900,
-    "okApiQueries": ["english television", "english tv show", "american television", "classic english television", "full episode english", "tv series english", "public domain television"],
+    "okApiQueries": ["englishtelevision", "fullepisode", "publicdomaintv", "tvseries", "english tv show", "american television", "classic english television"],
     "topics": ["television", "tv", "tv show", "tv series", "episode", "season", "series", "sitcom", "drama", "comedy"],
     "formats": ["full episode", "complete episode", "full series", "tv show", "television episode"],
     "formatRelaxed": false,

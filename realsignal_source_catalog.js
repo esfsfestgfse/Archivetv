@@ -314,6 +314,7 @@ function normalizedProfile(body) {
     queries: list(approved.queries, queryLimit),
     okApiQueries: list(approved.okApiQueries, queryLimit),
     okApiBroadQueries: list(approved.okApiBroadQueries, queryLimit),
+    okApiTitleQueries: list(approved.okApiTitleQueries, queryLimit),
     queryWindow: Math.max(1, Math.min(approved.deepCatalog === true ? 10 : SOURCE_MAX_QUERY_WINDOW, Number(approved.queryWindow) || SOURCE_QUERY_WINDOW)),
     peerTubeQueryWindow: Math.max(1, Math.min(approved.deepCatalog === true ? 10 : SOURCE_MAX_QUERY_WINDOW, Number(approved.peerTubeQueryWindow) || Number(approved.queryWindow) || SOURCE_QUERY_WINDOW)),
     peerTubeInstanceLimit: Math.max(1, Math.min(8, Number(approved.peerTubeInstanceLimit) || 8)),
@@ -941,12 +942,14 @@ async function okApi(profile, rotation, env, options = {}) {
   if (!okApiConfig(env)) return { provider: "OK.ru", items: [], health: { api: true, skipped: true, reason: "OK_APPLICATION_KEY, OK_SESSION_KEY or OK_ACCESS_TOKEN, and OK_SESSION_SECRET or OK_APPLICATION_SECRET are not configured" } };
   const pool = Array.isArray(profile.okApiQueries) && profile.okApiQueries.length ? profile.okApiQueries : profile.queries;
   const broadPool = Array.isArray(profile.okApiBroadQueries) ? profile.okApiBroadQueries : [];
+  const titlePool = Array.isArray(profile.okApiTitleQueries) ? profile.okApiTitleQueries : [];
   /* A single cold-start tag was too easy to miss on OK.ru. Keep the fast
      lane bounded, but search three approved terms in parallel so a normal
      viewer request can find a real long-form item without waiting for
      maintenance mode. */
   const queryCount = firstLane ? Math.min(3, Math.max(1, Number(profile.queryWindow) || 3)) : (profile.queryWindow || SOURCE_QUERY_WINDOW);
-  const markerCount = firstLane ? Math.max(1, queryCount - 1) : Math.max(1, Math.floor(queryCount * 0.4));
+  const markerCount = firstLane ? 1 : Math.max(1, Math.floor(queryCount * 0.4));
+  const titleCount = titlePool.length ? (firstLane ? 1 : 2) : 0;
   let expandedTags = [];
   /* OK's supported search surface is tag-oriented, not a title index. One
      maintenance-only tag expansion gives broad lanes a chance to discover
@@ -965,11 +968,12 @@ async function okApi(profile, rotation, env, options = {}) {
     : ["television", "tv", "show", "series", "episode", "sitcom", "drama", "comedy", "western"];
   expandedTags = expandedTags.filter((tag) => termsMatch(text(tag, 180).toLowerCase(), tagTerms)).slice(0, 2);
   const markerQueries = rotate(pool, rotation).slice(0, markerCount);
+  const titleQueries = rotate(titlePool, rotation).slice(0, titleCount);
   /* Always reserve room for the broad semantic rail. Generic quality tags
      such as `4k` are useful only as a secondary recall source; they cannot
      crowd out `movie`, `full movie`, or the equivalent television terms. */
   const broadQueries = rotate(broadPool, Number(rotation || 0)).slice(0, queryCount);
-  const queries = Array.from(new Set([...markerQueries, ...expandedTags, ...broadQueries]
+  const queries = Array.from(new Set([...markerQueries, ...titleQueries, ...expandedTags, ...broadQueries]
     .map((query) => text(query, 180))
     .filter(Boolean))).slice(0, queryCount);
   const jobs = queries.map((query) => async () => {

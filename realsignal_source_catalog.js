@@ -827,7 +827,12 @@ async function okApi(profile, rotation, env, options = {}) {
   const firstLane = options.firstLane === true;
   if (!okApiConfig(env)) return { provider: "OK.ru", items: [], health: { api: true, skipped: true, reason: "OK_APPLICATION_KEY, OK_SESSION_KEY or OK_ACCESS_TOKEN, and OK_SESSION_SECRET or OK_APPLICATION_SECRET are not configured" } };
   const pool = Array.isArray(profile.okApiQueries) && profile.okApiQueries.length ? profile.okApiQueries : profile.queries;
-  const queries = rotate(pool, rotation).slice(0, firstLane ? 1 : (profile.queryWindow || SOURCE_QUERY_WINDOW));
+  /* A single cold-start tag was too easy to miss on OK.ru. Keep the fast
+     lane bounded, but search three approved terms in parallel so a normal
+     viewer request can find a real long-form item without waiting for
+     maintenance mode. */
+  const queryCount = firstLane ? Math.min(3, Math.max(1, Number(profile.queryWindow) || 3)) : (profile.queryWindow || SOURCE_QUERY_WINDOW);
+  const queries = rotate(pool, rotation).slice(0, queryCount);
   const jobs = queries.map((query) => async () => {
     const items = [];
     let anchor = "";
@@ -847,7 +852,7 @@ async function okApi(profile, rotation, env, options = {}) {
     }
     return { query, pages, items };
   });
-  const responses = await mapLimit(jobs, firstLane ? 1 : 2, async (job) => {
+  const responses = await mapLimit(jobs, firstLane ? 2 : 2, async (job) => {
     try { return { ...(await job()), error: "" }; }
     catch (error) { return { items: [], pages: 0, error: text(error && (error.providerDetail || error.message), 220) || "OK API request failed" }; }
   });

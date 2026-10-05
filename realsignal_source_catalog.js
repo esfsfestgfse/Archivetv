@@ -277,6 +277,7 @@ function normalizedProfile(body) {
     strictTopicTerms: list(approved.strictTopicTerms, 16),
     formats: list(approved.formats, 24),
     formatRelaxed: approved.formatRelaxed === true,
+    minRuntimeSeconds: Math.max(SOURCE_MIN_RUNTIME, Number(approved.minRuntimeSeconds) || 0),
     minTitleYear: Math.max(0, Number(approved.minTitleYear) || 0),
     minContentYear: Math.max(0, Number(approved.minContentYear) || 0),
     movieLane: text(approved.movieLane, 24).toLowerCase(),
@@ -346,7 +347,8 @@ function accepted(profile, item, provider, checkAspect = true) {
   const duration = Number(item && item.duration) || 0;
   const ratio = aspectRatio(item);
   const source = provider || text(item && item.provider, 60);
-  if (!item || !(item.id || item.uuid || item.rawId) || !title || duration < SOURCE_MIN_RUNTIME || (checkAspect && ratio < SOURCE_MIN_ASPECT_RATIO)) return false;
+  const minimumRuntime = Math.max(SOURCE_MIN_RUNTIME, Number(profile.minRuntimeSeconds) || 0);
+  if (!item || !(item.id || item.uuid || item.rawId) || !title || duration < minimumRuntime || (checkAspect && ratio < SOURCE_MIN_ASPECT_RATIO)) return false;
   if (profile.minTitleYear) {
     const titleYears = Array.from(title.matchAll(/(?:^|[^0-9])((?:19|20)\d{2})(?:[^0-9]|$)/g)).map((match) => Number(match[1])).filter(Boolean);
     if (titleYears.some((year) => year < profile.minTitleYear)) return false;

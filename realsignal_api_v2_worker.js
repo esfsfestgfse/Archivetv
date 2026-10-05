@@ -14,7 +14,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "5.5.40-ok-server-verified";
+const V3_RELEASE = "5.5.41-ok-runtime-gates";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -831,8 +831,9 @@ function catalogFallbackAllowed(item, body) {
   if (mediaTypes.length && mediaTypes.indexOf("audio") < 0 && audio) return false;
   if (body && body.sourceCatalog === true) {
     const runtime = Number(item && (item.duration || item.runtime)) || 0;
+    const minimumRuntime = Math.max(SOURCE_LIMITS.SOURCE_MIN_RUNTIME, Number(body.minRuntimeSeconds) || 0);
     const ratio = Number(item && item.aspectRatio) || 0;
-    if (runtime < SOURCE_LIMITS.SOURCE_MIN_RUNTIME) return false;
+    if (runtime < minimumRuntime) return false;
     if (ratio < SOURCE_LIMITS.SOURCE_MIN_ASPECT_RATIO) return false;
     if (audio || (mediaType !== "video" && mediaType !== "embed")) return false;
     const minTitleYear = Math.max(0, Number(body.minTitleYear) || 0);
@@ -1330,6 +1331,7 @@ async function familyCatalogFallback(env, profile, requestedLimit = SOURCE_LIMIT
       programFormats: alias.formats,
       minTitleYear: alias.minTitleYear,
       minContentYear: alias.minContentYear,
+      minRuntimeSeconds: alias.minRuntimeSeconds,
       movieLane: alias.movieLane,
       laneRequired: alias.laneRequired,
       laneDeny: alias.laneDeny,
@@ -1359,6 +1361,7 @@ async function familyCatalogFallback(env, profile, requestedLimit = SOURCE_LIMIT
         programFormats: profile.formats,
         minTitleYear: profile.minTitleYear,
         minContentYear: profile.minContentYear,
+        minRuntimeSeconds: profile.minRuntimeSeconds,
         movieLane: profile.movieLane,
         laneRequired: profile.laneRequired,
         laneDeny: profile.laneDeny,
@@ -1938,6 +1941,7 @@ async function handleSourceStatus(request, env, ctx) {
     programFormats: profile.formats,
     minTitleYear: profile.minTitleYear,
     minContentYear: profile.minContentYear,
+    minRuntimeSeconds: profile.minRuntimeSeconds,
     movieLane: profile.movieLane,
     laneRequired: profile.laneRequired,
     laneDeny: profile.laneDeny,
@@ -2063,6 +2067,7 @@ async function handleSourceCatalog(request, env, ctx, id) {
     programFormats: profile.formats,
     minTitleYear: profile.minTitleYear,
     minContentYear: profile.minContentYear,
+    minRuntimeSeconds: profile.minRuntimeSeconds,
     movieLane: profile.movieLane,
     laneRequired: profile.laneRequired,
     laneDeny: profile.laneDeny,
@@ -2178,6 +2183,7 @@ async function handleSourceCatalog(request, env, ctx, id) {
       programFormats: normalized.formats,
       minTitleYear: normalized.minTitleYear,
       minContentYear: normalized.minContentYear,
+      minRuntimeSeconds: normalized.minRuntimeSeconds,
       movieLane: normalized.movieLane,
       laneRequired: normalized.laneRequired,
       laneDeny: normalized.laneDeny,
@@ -2211,7 +2217,7 @@ async function handleSourceCatalog(request, env, ctx, id) {
   }
   const cachedItems = forceDeepRefresh && cached && Array.isArray(cached.candidateItems) ? cached.candidateItems : (forceDeepRefresh && cached && Array.isArray(cached.items) ? cached.items : []);
   const discoveredItems = forceDeepRefresh
-    ? uniqueQueueItems(cachedItems.concat(first.items || []), { ...body, sourceCatalog: true, denyTerms: profile.deny, themeTerms: profile.match, strictTopicTerms: profile.strictTopicTerms, minContentYear: profile.minContentYear, movieLane: profile.movieLane, laneRequired: profile.laneRequired, laneDeny: profile.laneDeny, themeMinScore: 1 }, SOURCE_LIMITS.SOURCE_MAX_ITEMS)
+    ? uniqueQueueItems(cachedItems.concat(first.items || []), { ...body, sourceCatalog: true, denyTerms: profile.deny, themeTerms: profile.match, strictTopicTerms: profile.strictTopicTerms, minContentYear: profile.minContentYear, minRuntimeSeconds: profile.minRuntimeSeconds, movieLane: profile.movieLane, laneRequired: profile.laneRequired, laneDeny: profile.laneDeny, themeMinScore: 1 }, SOURCE_LIMITS.SOURCE_MAX_ITEMS)
     : first.items;
   const freshnessBody = { ...body, recentIds: sourceRecentIds, freshnessLedger: true };
   const unseenFirstItems = applyFreshness(discoveredItems, freshnessBody);

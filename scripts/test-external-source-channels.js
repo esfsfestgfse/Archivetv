@@ -31,7 +31,7 @@ const { pathToFileURL } = require("node:url");
   for (const [key, provider] of Object.entries(expected)) {
     const profile = sourceProfile({ profileKey: key });
     assert.ok(profile, `${key} must be approved server-side`);
-    if (key.startsWith("ok-")) assert.deepEqual(profile.providers, ["ok-api", "ok-manifest"], `${key} must retain the public-embed fallback`);
+    if (key.startsWith("ok-")) assert.deepEqual(profile.providers, ["ok-api", "ok-sitemap", "ok-manifest"], `${key} must retain signed API, public sitemap, and manifest rails`);
     else assert.deepEqual(profile.providers, [provider], `${key} must stay isolated to its declared source family`);
     assert.equal(profile.minRuntime || 15 * 60, 15 * 60, `${key} must retain the fifteen-minute floor`);
     assert.ok(profile.deny.includes("shorts"), `${key} must reject Shorts`);
@@ -63,6 +63,8 @@ const { pathToFileURL } = require("node:url");
   assert.match(catalog, /Authorization: `bearer \$\{token\}`/, "Vimeo token must be sent as an authorization header");
   assert.match(catalog, /search\.tagContents/, "OK.ru API search method is missing");
   assert.match(catalog, /search\.tagSearch/, "OK.ru tag expansion method is missing");
+  assert.match(catalog, /sitemap-index-video/, "OK.ru public video sitemap is not wired");
+  assert.match(catalog, /allow_embed/, "OK.ru sitemap admission must require a public embed URL");
   assert.match(catalog, /expandedTags/, "OK.ru catalog health must expose tag expansion diagnostics");
   assert.match(catalog, /expandedTitleTags/, "OK.ru catalog health must expose title-tag expansion diagnostics");
   assert.match(catalog, /candidateSamples/, "OK.ru catalog health must expose bounded rejected-candidate samples");

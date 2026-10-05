@@ -5,9 +5,10 @@
  * validation, and the normalized item shape returned to every client surface.
  * YouTube uses the optional YOUTUBE_API_KEY Worker secret. PeerTube uses its
  * public API and direct media renditions. Vimeo and OK.ru are opt-in,
- * server-only adapters that return official platform embeds and never scrape
- * or download third-party media. OK.ru prefers its signed REST API when the
- * three Cloudflare secrets are present, then falls back to a credential-free,
+ * server-only adapters that return official platform embeds and never download
+ * third-party media. OK.ru prefers its signed REST API when the three
+ * Cloudflare secrets are present, then uses OK's publicly declared video
+ * sitemap/player metadata during maintenance before falling back to a small,
  * reviewable public-embed manifest.
  */
 
@@ -48,6 +49,7 @@ const SOURCE_DETAIL_TIMEOUT_MS = 3500;
    unhealthy, and keep it out of the next shelf until its cooldown expires. */
 const SOURCE_PROVIDER_BUDGET_MS = 4500;
 const SOURCE_FIRST_LANE_TIMEOUT_MS = 5000;
+const OK_SITEMAP_MAINTENANCE_TIMEOUT_MS = 25_000;
 const SOURCE_DEFAULT_INSTANCES = [
   "https://video.blender.org",
   "https://framatube.org",
@@ -126,8 +128,22 @@ async function fetchJson(url, options = {}) {
   return response.json();
 }
 
+async function fetchText(url, options = {}, timeoutMs = 10_000) {
+  const response = await withTimeout(fetch(url, options), timeoutMs);
+  if (!response.ok) throw new Error(`source http ${response.status}`);
+  const bytes = await withTimeout(response.arrayBuffer(), timeoutMs);
+  const contentType = text(response.headers.get("content-type"), 120).toLowerCase();
+  if (/gzip/i.test(contentType) || /\.gz(?:$|\?)/i.test(url)) {
+    if (typeof DecompressionStream !== "function") throw new Error("gzip decompression unavailable");
+    const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"));
+    return new Response(stream).text();
+  }
+  return new TextDecoder().decode(bytes);
+}
+
 const OK_API_DEFAULT_SERVER = "https://api.ok.ru/fb.do";
 const OK_API_VIDEO_TYPES = ["USER_VIDEO", "GROUP_VIDEO"];
+const OK_VIDEO_SITEMAP_INDEX = "https://ok.ru/sitemap-index-video.xml.gz";
 
 function md5Hex(value) {
   return createHash("md5").update(String(value || ""), "utf8").digest("hex");
@@ -251,6 +267,144 @@ async function okApiTagQueries(seed, env) {
   return tags
     .map((tag) => text(okApiScalar(tag && (tag.query || tag.name || tag.tag)), 180))
     .filter((tag) => tag.length >= 3);
+}
+
+function okXmlDecode(value) {
+  return text(value, 2000)
+    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/gi, "$1")
+    .replace(/&quot;/gi, '"')
+    .replace(/&apos;/gi, "'")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">");
+}
+
+function okSitemapTag(block, tag) {
+  const match = text(block, 30_000).match(new RegExp(`<${tag}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${tag}>`, "i"));
+  return okXmlDecode(match && match[1] || "");
+}
+
+function okSitemapEntries(xml) {
+  return Array.from(String(xml || "").matchAll(/<url\b[^>]*>([\s\S]*?)<\/url>/gi)).map((match) => {
+    const block = match[1] || "";
+    const video = block.match(/<video:video\b[^>]*>([\s\S]*?)<\/video:video>/i);
+    const videoBlock = video && video[1] || "";
+    return {
+      sourceUrl: okSitemapTag(block, "loc"),
+      title: okSitemapTag(videoBlock, "video:title"),
+      description: okSitemapTag(videoBlock, "video:description"),
+      embedUrl: okSitemapTag(videoBlock, "video:player_loc"),
+      embedAllowed: /<video:player_loc\b[^>]*allow_embed\s*=\s*["']?yes["']?/i.test(videoBlock),
+      thumbnailUrl: okSitemapTag(videoBlock, "video:thumbnail_loc"),
+      duration: Number(okSitemapTag(videoBlock, "video:duration")) || 0,
+      year: okSitemapTag(videoBlock, "video:publication_date"),
+    };
+  }).filter((item) => item.sourceUrl && item.title && item.embedUrl);
+}
+
+function okSitemapShardUrls(xml) {
+  return Array.from(String(xml || "").matchAll(/<loc>(https?:\/\/ok\.ru\/sitemap-part-video-[^<]+?\.xml\.gz)<\/loc>/gi))
+    .map((match) => match[1])
+    .filter((url, index, all) => all.indexOf(url) === index);
+}
+
+let okSitemapShardCache = { at: 0, indexUrl: "", urls: [] };
+
+function okThumbnailDimensions(url) {
+  const match = text(url, 1400).match(/(?:size=|[?&](?:width|w)=)(\d{2,5})[x&](?:height|h)=?(\d{2,5})/i)
+    || text(url, 1400).match(/(?:^|[^0-9])(\d{3,5})x(\d{3,5})(?:[^0-9]|$)/i);
+  return match ? { width: Number(match[1]), height: Number(match[2]) } : { width: 0, height: 0 };
+}
+
+function okEmbedDimensions(html) {
+  const decoded = String(html || "")
+    .replace(/&quot;/gi, '"')
+    .replace(/&amp;/gi, "&")
+    .replace(/&apos;/gi, "'")
+    .replace(/\\u0026/gi, "&");
+  const pairs = Array.from(decoded.matchAll(/\"width\"\s*:\s*\"?(\d+)\"?\s*,\s*\"height\"\s*:\s*\"?(\d+)\"?/gi))
+    .map((match) => ({ width: Number(match[1]), height: Number(match[2]) }))
+    .filter((pair) => pair.width > 0 && pair.height > 0);
+  return pairs.sort((a, b) => (b.width * b.height) - (a.width * a.height))[0] || { width: 0, height: 0 };
+}
+
+function okSitemapQuery(profile, item) {
+  const title = text(item.title, 1200).toLowerCase();
+  const haystack = text([item.title, item.description].join(" "), 5000).toLowerCase();
+  const titleSeeds = Array.isArray(profile.okApiTitleQueries) ? profile.okApiTitleQueries : [];
+  const titleHit = titleSeeds.find((seed) => {
+    const compactSeed = text(seed, 180).toLowerCase().replace(/[^a-z0-9]+/g, "");
+    const compactTitle = title.replace(/[^a-z0-9]+/g, "");
+    return compactSeed.length >= 4 && compactTitle.includes(compactSeed);
+  });
+  const quality = (profile.titleRequiredTerms || []).find((term) => termsMatch(title, [term]));
+  if (titleHit) return `${titleHit}${quality ? ` ${quality}` : ""}`;
+  /* The sitemap is the broad discovery rail. Do not require a hand-curated
+     title list to find a real film: a long-form OK title carrying one of the
+     requested release-quality markers is enough to enter the normal strict
+     admission pipeline. `accepted()` still enforces the one-hour runtime,
+     landscape/embed/English checks, and all deny terms. */
+  if (profile.profileKey === "ok-movie-channel" && quality && Number(item.duration) >= 60 * 60
+      && !termsMatch(title, ["episode", "season", "series", "tv show", "television", "sitcom", "cartoon", "trailer", "clip"])) {
+    return `movie-quality ${quality}`;
+  }
+  if (profile.profileKey === "ok-movie-channel" && termsMatch(haystack, [...OK_MOVIE_CONTEXT_TERMS, ...OK_MOVIE_STRONG_TERMS])) return `movie ${quality || ""}`.trim();
+  if (profile.profileKey === "ok-tv-channel" && termsMatch(haystack, profile.topics || [])) return `television ${quality || ""}`.trim();
+  return "";
+}
+
+async function okSitemap(profile, rotation, env, options = {}) {
+  const firstLane = options.firstLane === true;
+  if (firstLane) return { provider: "OK.ru", items: [], health: { sitemap: true, skipped: true, reason: "maintenance-only sitemap discovery", firstLane } };
+  const indexUrl = text(env && env.OK_VIDEO_SITEMAP_INDEX, 600) || OK_VIDEO_SITEMAP_INDEX;
+  let shardUrls = okSitemapShardCache.indexUrl === indexUrl && Date.now() - okSitemapShardCache.at < 6 * 60 * 60 * 1000 ? okSitemapShardCache.urls : [];
+  if (!shardUrls.length) {
+    const indexXml = await fetchText(indexUrl, { headers: { Accept: "application/xml, text/xml", "User-Agent": "RealSignal-public-catalog/1.0" } });
+    shardUrls = okSitemapShardUrls(indexXml);
+    okSitemapShardCache = { at: Date.now(), indexUrl, urls: shardUrls };
+  }
+  const shardUrl = rotate(shardUrls, rotation)[0];
+  if (!shardUrl) return { provider: "OK.ru", items: [], health: { sitemap: true, skipped: true, reason: "no video sitemap shards", firstLane } };
+  const shardXml = await fetchText(shardUrl, { headers: { Accept: "application/xml, text/xml", "User-Agent": "RealSignal-public-catalog/1.0" } }, 20_000);
+  const entries = okSitemapEntries(shardXml);
+  const candidates = entries.map((entry) => {
+    const query = okSitemapQuery(profile, entry);
+    if (!query) return null;
+    const id = text(entry.sourceUrl.match(/\/video\/(\d+)/i)?.[1], 120);
+    return id ? {
+      id: `ok:${id}`,
+      rawId: id,
+      title: entry.title,
+      description: entry.description,
+      duration: entry.duration,
+      year: entry.year,
+      url: entry.embedUrl,
+      embedUrl: entry.embedUrl,
+      sourceUrl: entry.sourceUrl,
+      thumbnailUrl: entry.thumbnailUrl,
+      embedAllowed: entry.embedAllowed === true,
+      query,
+    } : null;
+  }).filter(Boolean).filter((item) => accepted(profile, { ...item, aspectRatio: 16 / 9 }, "OK.ru", false));
+  const knownDimensions = candidates.map((item) => ({ item, dimensions: okThumbnailDimensions(item.thumbnailUrl) }));
+  const known = knownDimensions
+    .filter(({ dimensions }) => dimensions.width > 0 && dimensions.height > 0)
+    .map(({ item, dimensions }) => ({ ...item, ...dimensions, aspectRatio: dimensions.width / dimensions.height }))
+    .filter((item) => accepted(profile, item, "OK.ru"));
+  const unknown = knownDimensions.filter(({ dimensions }) => !(dimensions.width > 0 && dimensions.height > 0)).map(({ item }) => item);
+  const details = await mapLimit(unknown.slice(0, 6), 2, async (item) => {
+    try {
+      const html = await fetchText(item.embedUrl, { headers: { Accept: "text/html", "User-Agent": "RealSignal-public-catalog/1.0" } });
+      const dimensions = okEmbedDimensions(html);
+      const hydrated = { ...item, aspectRatio: dimensions.width && dimensions.height ? dimensions.width / dimensions.height : 0, width: dimensions.width, height: dimensions.height };
+      return accepted(profile, hydrated, "OK.ru") ? normalized(hydrated, "OK.ru", item.query) : null;
+    } catch (_) { return null; }
+  });
+  return {
+    provider: "OK.ru",
+    items: unique(known.concat(details.filter(Boolean))).slice(0, SOURCE_MAX_ITEMS),
+    health: { sitemap: true, indexUrl, shardUrl, shards: shardUrls.length, entries: entries.length, candidates: candidates.length, thumbnailVerified: known.length, embedVerified: details.filter(Boolean).length, firstLane },
+  };
 }
 
 function okApiDimensions(row) {
@@ -386,9 +540,9 @@ function englishOkay(item) {
   return !/\b(?:hindi|tamil|telugu|bengali|bangla|marathi|malayalam|kannada|punjabi|urdu|indonesian|vietnamese|thai|arabic|espa[nñ]ol|portugu[eê]s|fran[cç]ais|deutsch|russian|turkish|korean|japanese|mandarin|pide|deseo|cuestionable|cap[ií]tulo|episodio|temporada|pel[ií]cula|televisi[oó]n|serie)\b/i.test(sample);
 }
 
-const OK_MOVIE_STRONG_TERMS = ["yts", "yts.am", "yify", "bdrip", "blu-ray", "bluray", "dvdrip", "dvd rip", "vhsrip", "vhs rip", "fullmovie", "full movie", "feature film", "complete movie", "full film"];
+const OK_MOVIE_STRONG_TERMS = ["4k", "2160p", "1080p", "yts", "yts.am", "yify", "bdrip", "blu-ray", "bluray", "dvdrip", "dvd rip", "vhsrip", "vhs rip", "fullmovie", "full movie", "feature film", "complete movie", "full film"];
 const OK_MOVIE_CONTEXT_TERMS = ["movie", "film", "feature", "cinema", "hollywood", "american movie", "classic movie", "action movie", "western movie", "comedy movie", "drama movie", "horror movie", "thriller movie", "science fiction movie", "english movie", "full length movie"];
-const OK_NON_MOVIE_TERMS = ["aviation", "aircraft", "airplane", "flight", "landing", "takeoff", "hdr", "dolby vision", "fps", "video ultra hd", "demo", "test pattern", "sample video", "nature relaxation", "screen saver", "gameplay", "walkthrough", "music video", "visualizer"];
+const OK_NON_MOVIE_TERMS = ["aviation", "aircraft", "airplane", "flight", "landing", "takeoff", "concert", "tour", "live album", "music performance", "music video", "hdr", "dolby vision", "fps", "video ultra hd", "demo", "test pattern", "sample video", "nature relaxation", "screen saver", "gameplay", "walkthrough", "visualizer"];
 
 function okMovieTitleQualified(profile, item) {
   if (!profile || profile.profileKey !== "ok-movie-channel" || !profile.titleRequiredTerms.length) return false;
@@ -1065,17 +1219,18 @@ function providers(profile, rotation, env, options = {}) {
   return profile.providers
     .filter((provider) => !disabled.has(String(provider).toLowerCase()))
     .map((provider) => {
-      const label = provider === "youtube" ? "YouTube" : provider === "peertube" ? "PeerTube" : provider === "vimeo" ? "Vimeo" : (provider === "ok" || provider === "ok-api" || provider === "ok-manifest") ? "OK.ru" : provider;
+      const label = provider === "youtube" ? "YouTube" : provider === "peertube" ? "PeerTube" : provider === "vimeo" ? "Vimeo" : (provider === "ok" || provider === "ok-api" || provider === "ok-manifest" || provider === "ok-sitemap") ? "OK.ru" : provider;
       const startedAt = Date.now();
       const task = Promise.resolve()
         .then(() => provider === "youtube" ? youtube(profile, rotation, env, options)
           : provider === "peertube" ? peerTube(profile, rotation, env, options)
           : provider === "vimeo" ? vimeo(profile, rotation, env, options)
           : provider === "ok-api" ? okApi(profile, rotation, env, options)
+          : provider === "ok-sitemap" ? okSitemap(profile, rotation, env, options)
           : (provider === "ok" || provider === "ok-manifest") ? okPublicManifest(profile, rotation, options)
           : { provider: label, items: [], health: { skipped: true, reason: "unsupported provider" } });
       return Promise.resolve()
-        .then(() => options.maintenance === true ? withTimeout(task, 12_000) : withTimeout(task, SOURCE_PROVIDER_BUDGET_MS))
+        .then(() => options.maintenance === true ? withTimeout(task, provider === "ok-sitemap" ? OK_SITEMAP_MAINTENANCE_TIMEOUT_MS : 12_000) : withTimeout(task, SOURCE_PROVIDER_BUDGET_MS))
         .then((lane) => ({
           ...lane,
           health: { ...(lane && lane.health || {}), durationMs: Date.now() - startedAt },
@@ -1110,6 +1265,17 @@ export function sourceCatalogTasks(body, env, rotation = 0, options = {}) {
   return { profile, tasks: sourceTasks(profile, env, rotation, options) };
 }
 
+/* The public OK sitemap is deliberately maintenance-only because reading and
+   inflating a compressed shard is much heavier than a normal viewer request.
+   When an OK lane is cold or shallow, schedule that maintenance rail in the
+   background instead of silently omitting it from the refresh. The foreground
+   still uses the fast API/manifest lane and never waits on sitemap discovery. */
+export function sourceRefreshTasks(body, env, rotation = 0, options = {}) {
+  const plan = sourceCatalogTasks(body, env, rotation, options);
+  if (!plan.profile || options.maintenance === true || !plan.profile.providers.includes("ok-sitemap")) return plan.tasks;
+  return sourceCatalogTasks(body, env, rotation, { ...options, maintenance: true }).tasks;
+}
+
 /* Holiday family lanes can be sparse even when their seasonal children are
    healthy. Keep the fallback explicit in the approved registry: it reuses the
    same verified YouTube/PeerTube adapters and lets the generic holiday station
@@ -1135,4 +1301,4 @@ export function mergeSourceLanes(profileKey, lanes) {
   return { profileKey, items, ready: items.length, candidates: items.length, catalogVersion: "source-server-1", source: "server-source-catalog" };
 }
 
-export const SOURCE_LIMITS = { SOURCE_MIN_RUNTIME, SOURCE_MIN_ASPECT_RATIO, SOURCE_MAX_ITEMS, SOURCE_MIN_READY, SOURCE_MAX_QUERIES, SOURCE_QUERY_WINDOW, SOURCE_DETAIL_TIMEOUT_MS, SOURCE_PROVIDER_BUDGET_MS, SOURCE_FIRST_LANE_TIMEOUT_MS };
+export const SOURCE_LIMITS = { SOURCE_MIN_RUNTIME, SOURCE_MIN_ASPECT_RATIO, SOURCE_MAX_ITEMS, SOURCE_MIN_READY, SOURCE_MAX_QUERIES, SOURCE_QUERY_WINDOW, SOURCE_DETAIL_TIMEOUT_MS, SOURCE_PROVIDER_BUDGET_MS, SOURCE_FIRST_LANE_TIMEOUT_MS, OK_SITEMAP_MAINTENANCE_TIMEOUT_MS };

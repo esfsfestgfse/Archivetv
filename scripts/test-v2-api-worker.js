@@ -10,6 +10,7 @@ const { pathToFileURL } = require('node:url');
   const rotations = new Map();
   const calls = [];
   const queueMessages = [];
+  const waitUntilPromises = [];
   const env = {
     RELAY: { async fetch(request) {
       calls.push({ url: request.url, method: request.method, body: request.method === 'POST' ? await request.text() : '' });
@@ -25,7 +26,7 @@ const { pathToFileURL } = require('node:url');
     } },
     realsignal_catalog_refresh: { async send(body) { queueMessages.push(body); } },
   };
-  const ctx = { waitUntil(promise) { return promise; } };
+  const ctx = { waitUntil(promise) { const tracked = Promise.resolve(promise); waitUntilPromises.push(tracked); return tracked; } };
 
   /* D1 returns the freshness ledger newest-first. The queue must exclude the
    * newest rows, not the oldest rows, or shallow lanes immediately replay the
@@ -115,6 +116,7 @@ const { pathToFileURL } = require('node:url');
   const peerTubeBody = await peerTube.json();
   assert.equal(peerTubeBody.items[0].provider, 'PeerTube');
   assert.equal(peerTubeBody.items[0].url, 'https://tube.example/static/game-show.mp4');
+  await Promise.allSettled(waitUntilPromises.splice(0));
 
   const staleSourceCatalogEnv = {
     ...env,
@@ -146,6 +148,7 @@ const { pathToFileURL } = require('node:url');
   assert.equal((await sportsHighlights.json()).items[0].snippet.resourceId.videoId, 'sports-1');
   const unapprovedYouTube = await worker.fetch(new Request('https://api.example/api/v2/youtube/uploads?handle=unapproved'), { ...env, YOUTUBE_API_KEY: 'unit-test-key' }, ctx);
   assert.equal(unapprovedYouTube.status, 404);
+  await Promise.allSettled(waitUntilPromises.splice(0));
   global.fetch = nativeFetch;
   /* Source refreshes are intentionally deduplicated per profile during the
      cooldown window. The YouTube and PeerTube requests above share the same

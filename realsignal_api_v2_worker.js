@@ -8,13 +8,13 @@
 import { SessionRotation } from "./realsignal_api_rotation.js";
 import { EdgeRateLimiter } from "./realsignal_api_rate_limit.js";
 import { RokuSession } from "./realsignal_roku_session.js";
-import { mergeSourceLanes, sourceCatalogTasks, sourceProfile, SOURCE_LIMITS } from "./realsignal_source_catalog.js";
+import { mergeSourceLanes, sourceCatalogTasks, sourceRefreshTasks, sourceProfile, SOURCE_LIMITS } from "./realsignal_source_catalog.js";
 import { IA_CANONICAL_PILOT_PROFILES, IA_CANONICAL_SCHEMA_VERSION, canonicalGuide, selectCanonicalItems } from "./ia_canonical_station.mjs";
 import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "5.5.68-ok-title-tag-expansion";
+const V3_RELEASE = "5.5.69-ok-public-sitemap-index";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -2105,7 +2105,7 @@ async function handleSourceCatalog(request, env, ctx, id) {
        catalog. Keep it on air, but still run this profile's own providers in
        the background so a shallow lane can repair itself instead of serving
        the same fallback item forever. */
-    const familySourcePlan = sourceCatalogTasks(body, env, rotation, { disabledProviders, maintenance });
+    const familySourcePlan = { profile: sourceProfile(body), tasks: sourceRefreshTasks(body, env, rotation, { disabledProviders, maintenance }) };
     if (familySourcePlan.profile && familySourcePlan.tasks.length) {
       scheduleSourceRefresh(env, ctx, familySourcePlan.profile, familySourcePlan.tasks, id);
     }
@@ -2149,7 +2149,8 @@ async function handleSourceCatalog(request, env, ctx, id) {
      adapters replace it in the background. */
   if (!maintenance && cached && Array.isArray(cached.items) && (cached.items.length >= staleReady || hasFreshFallback) && !forceDeepRefresh) {
     if (cached.items.length < minimumReady) {
-      const { profile: normalized, tasks } = sourceCatalogTasks(body, env, rotation, { disabledProviders });
+      const normalized = sourceProfile(body);
+      const tasks = sourceRefreshTasks(body, env, rotation, { disabledProviders });
       scheduleSourceRefresh(env, ctx, normalized, tasks, id);
     }
     const hydrating = body.refresh === true || cached.items.length < minimumReady;
@@ -2181,7 +2182,8 @@ async function handleSourceCatalog(request, env, ctx, id) {
       }),
     ]).finally(() => clearTimeout(firstTimer));
   }
-  scheduleSourceRefresh(env, ctx, normalized, tasks, id, forceDeepRefresh);
+  const refreshTasks = sourceRefreshTasks(body, env, rotation, { disabledProviders, maintenance });
+  scheduleSourceRefresh(env, ctx, normalized, refreshTasks, id, forceDeepRefresh);
   if (body.maintenance === true) {
     /* The normal path above deliberately returns the first verified lane so a
        viewer never waits on both providers. A maintenance refresh is the

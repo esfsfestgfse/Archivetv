@@ -410,6 +410,7 @@ function normalized(item, provider, query) {
     year: text(item.year, 12).slice(0, 4),
     rights: text(item.rights, 240),
     provider,
+    durationUnit: provider === "OK.ru" ? "seconds" : "",
     query: text(query, 180),
     type: item.type || "video",
     url: text(item.url, 1400),

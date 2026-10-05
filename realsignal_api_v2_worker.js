@@ -14,7 +14,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "5.5.42-ok-runtime-gates";
+const V3_RELEASE = "5.5.43-ok-runtime-gates";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -418,9 +418,10 @@ async function forwardToRelay(request, env, relayPath, body, id) {
 function compactCatalogItem(item) {
   const id = String(item && (item.identifier || item.id || (item.media && item.media.url)) || "").slice(0, 500);
   if (!id) return null;
+  const provider = String(item.provider || item.source || "internet-archive").slice(0, 60);
   return {
     id,
-    provider: String(item.provider || item.source || "internet-archive").slice(0, 60),
+    provider,
     sourceIdentifier: String(item.sourceIdentifier || item.identifier || id).slice(0, 500),
     title: String(item.title || "Untitled").slice(0, 500),
     description: String(item.description || "").slice(0, 2000),
@@ -430,6 +431,7 @@ function compactCatalogItem(item) {
     account: String(item.account || "").slice(0, 240),
     query: String(item.query || "").slice(0, 240),
     duration: Number(item.duration || item.runtime) || null,
+    durationUnit: provider === "OK.ru" ? "seconds" : "",
     aspectRatio: Number(item.aspectRatio) || null,
     mediaType: String((item.media && item.media.type) || item.type || "video").slice(0, 30),
     mediaUrl: String((item.media && item.media.url) || item.url || "").slice(0, 1500),
@@ -1224,6 +1226,15 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
     const mediaUrl = String(row.media_url || metadata.mediaUrl || metadata.media_url || "").trim();
     const mediaType = row.media_type || metadata.mediaType || metadata.media_type || "video";
     const sourceUrl = row.source_url || metadata.sourceUrl || metadata.source_url || "";
+    const provider = String(row.provider || metadata.provider || "").trim();
+    const storedDuration = Number(row.duration_seconds || metadata.duration || metadata.runtime) || 0;
+    /* OK.ru rows written before 5.5.42 stored the provider's millisecond
+       duration directly in duration_seconds. New rows carry an explicit
+       seconds marker. Convert only the legacy rows so the runtime floors
+       remain correct without double-converting fresh catalog entries. */
+    const duration = provider === "OK.ru" && metadata.durationUnit !== "seconds"
+      ? storedDuration / 1000
+      : storedDuration;
     return {
       id: row.id,
       identifier: row.id,
@@ -1238,10 +1249,10 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
       genreVerified: metadata.genreVerified === true,
       recoveryVerified: metadata.recoveryVerified === true,
       language: metadata.language || metadata.defaultAudioLanguage || metadata.defaultLanguage || "",
-      provider: row.provider,
+      provider,
       year: row.year || "",
-      duration: Number(row.duration_seconds || metadata.duration || metadata.runtime) || null,
-      runtime: Number(row.duration_seconds || metadata.duration || metadata.runtime) || null,
+      duration: duration || null,
+      runtime: duration || null,
       aspectRatio: Number(row.aspect_ratio || metadata.aspectRatio || metadata.aspect_ratio || metadata.ratio) || null,
       mediaType,
       media: { type: mediaType, url: mediaUrl },

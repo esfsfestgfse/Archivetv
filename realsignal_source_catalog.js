@@ -6,10 +6,12 @@
  * YouTube uses the optional YOUTUBE_API_KEY Worker secret. PeerTube uses its
  * public API and direct media renditions. Vimeo and OK.ru are opt-in,
  * server-only adapters that return official platform embeds and never scrape
- * or download third-party media. OK.ru uses a credential-free, reviewable
- * public-embed manifest; it does not scrape anonymous search results.
+ * or download third-party media. OK.ru prefers its signed REST API when the
+ * three Cloudflare secrets are present, then falls back to a credential-free,
+ * reviewable public-embed manifest.
  */
 
+import { createHash } from "node:crypto";
 import { SOURCE_PROFILE_REGISTRY } from "./source_suite_profile_registry.js";
 import { OK_PUBLIC_EMBED_MANIFEST } from "./ok_public_embed_catalog.js";
 
@@ -124,6 +126,129 @@ async function fetchJson(url, options = {}) {
   return response.json();
 }
 
+const OK_API_DEFAULT_SERVER = "https://api.ok.ru/fb.do";
+const OK_API_VIDEO_TYPES = ["USER_VIDEO", "GROUP_VIDEO"];
+
+function md5Hex(value) {
+  return createHash("md5").update(String(value || ""), "utf8").digest("hex");
+}
+
+function okApiConfig(env) {
+  const applicationKey = text(env && env.OK_APPLICATION_KEY, 240);
+  const applicationSecret = text(env && env.OK_APPLICATION_SECRET, 240);
+  const accessToken = text(env && env.OK_ACCESS_TOKEN, 600);
+  return applicationKey && applicationSecret && accessToken ? {
+    applicationKey,
+    applicationSecret,
+    accessToken,
+    apiServer: text(env && env.OK_API_SERVER, 600) || OK_API_DEFAULT_SERVER,
+  } : null;
+}
+
+function okApiSignature(params, sessionSecret) {
+  const signed = Object.keys(params)
+    .filter((key) => key !== "access_token" && key !== "session_key" && key !== "sig")
+    .sort()
+    .map((key) => `${key}=${params[key]}`)
+    .join("");
+  return md5Hex(`${signed}${sessionSecret}`).toLowerCase();
+}
+
+async function okApiCall(method, params, env) {
+  const config = okApiConfig(env);
+  if (!config) throw new Error("OK API secrets not configured");
+  const requestParams = {
+    ...params,
+    application_key: config.applicationKey,
+    access_token: config.accessToken,
+    format: "json",
+    method,
+  };
+  const sessionSecret = md5Hex(`${config.accessToken}${config.applicationSecret}`).toLowerCase();
+  requestParams.sig = okApiSignature(requestParams, sessionSecret);
+  const url = `${config.apiServer}${config.apiServer.includes("?") ? "&" : "?"}${new URLSearchParams(requestParams)}`;
+  const data = await fetchJson(url, { headers: { Accept: "application/json", Referer: "https://esfsfestgfse.github.io/Archivetv/" } });
+  if (data && (data.error_code || data.errorCode || data.error_msg || data.errorMessage)) {
+    throw new Error(`OK API ${text(data.error_code || data.errorCode || "error", 40)} · ${text(data.error_msg || data.errorMessage || "request failed", 180)}`);
+  }
+  return data || {};
+}
+
+function okApiScalar(value) {
+  if (Array.isArray(value)) return value.length ? value[0] : "";
+  return value;
+}
+
+function okApiObject(value) {
+  if (Array.isArray(value)) return value.find((entry) => entry && typeof entry === "object") || null;
+  return value && typeof value === "object" ? value : null;
+}
+
+function okApiId(value) {
+  const raw = text(okApiScalar(value), 200);
+  if (!raw) return "";
+  const match = raw.match(/(?:video|movie|content)[:/_-]?(\d+)/i);
+  return text(match ? match[1] : raw, 120);
+}
+
+function okApiRows(data) {
+  const rows = [];
+  const seenObjects = new Set();
+  function visit(value, depth = 0) {
+    if (!value || depth > 7) return;
+    if (Array.isArray(value)) {
+      value.forEach((entry) => visit(entry, depth + 1));
+      return;
+    }
+    if (typeof value !== "object") return;
+    if (seenObjects.has(value)) return;
+    seenObjects.add(value);
+    const id = okApiId(value.id || value.videoId || value.video_id || value.content_id || value.contentId || value.movieId || value.movie_id || value.ref);
+    const title = text(okApiScalar(value.title || value.name || value.caption), 500);
+    const duration = Number(okApiScalar(value.duration || value.duration_seconds || value.length)) || 0;
+    const hasVideoShape = Boolean(id && (title || duration || value.url || value.permalink || value.videoUrl || value.url_hls || value.url_mp4 || value.width || value.height));
+    if (hasVideoShape) rows.push(value);
+    Object.values(value).forEach((child) => visit(child, depth + 1));
+  }
+  visit(data);
+  return rows;
+}
+
+function okApiItem(row, query) {
+  const width = Number(okApiScalar(row.width || row.video_width || row.dimensions && row.dimensions.width || row.initial_dimensions && row.initial_dimensions.width)) || 0;
+  const height = Number(okApiScalar(row.height || row.video_height || row.dimensions && row.dimensions.height || row.initial_dimensions && row.initial_dimensions.height)) || 0;
+  const id = okApiId(row.id || row.videoId || row.video_id || row.content_id || row.contentId || row.movieId || row.movie_id || row.ref);
+  const permalink = text(okApiScalar(row.permalink || row.sourceUrl || row.source_url || row.url || row.videoUrl), 1400);
+  const blocked = okApiScalar(row.blocked);
+  const published = okApiScalar(row.is_published || row.isPublished);
+  const directLinkAccess = okApiScalar(row.direct_link_access || row.directLinkAccess);
+  if (!id || !permalink || blocked === true || published === false || directLinkAccess === false) return null;
+  const title = text(okApiScalar(row.title || row.name || row.caption), 500);
+  const description = text(okApiScalar(row.description || row.text), 1800);
+  const tags = Array.isArray(row.tags) ? row.tags.map((tag) => text(okApiScalar(tag), 100)).filter(Boolean).join(" ") : text(okApiScalar(row.tags), 600);
+  const embedUrl = `https://ok.ru/videoembed/${encodeURIComponent(id)}`;
+  return {
+    id: `ok:${id}`,
+    rawId: id,
+    title,
+    description,
+    tags,
+    category: text(okApiScalar(row.content_type || row.contentType || row.category), 120),
+    account: text(okApiScalar(row.owner_name || row.ownerName || row.provider || row.partner_name), 180),
+    language: text(okApiScalar(row.language || row.lang), 40),
+    year: text(okApiScalar(row.created || row.created_ms || row.publish_at), 20),
+    rights: "OK.ru public embed; provider authorization required",
+    duration: Number(okApiScalar(row.duration || row.duration_seconds || row.length)) || 0,
+    aspectRatio: width > 0 && height > 0 ? width / height : 0,
+    type: "embed",
+    url: embedUrl,
+    embedUrl,
+    sourceUrl: /^https?:\/\//i.test(permalink) ? permalink : `https://ok.ru/video/${id}`,
+    embedAllowed: Boolean(width > 0 && height > 0 && embedUrl),
+    query,
+  };
+}
+
 function normalizedProfile(body) {
   const profileKey = text(body && (body.profileKey || body.channel || body.name), 120).toLowerCase().replace(/[^a-z0-9._:-]+/g, "-");
   const approved = SOURCE_PROFILE_REGISTRY[profileKey];
@@ -133,6 +258,7 @@ function normalizedProfile(body) {
     profileKey,
     name: approved.name,
     queries: list(approved.queries, queryLimit),
+    okApiQueries: list(approved.okApiQueries, queryLimit),
     queryWindow: Math.max(1, Math.min(approved.deepCatalog === true ? 10 : SOURCE_MAX_QUERY_WINDOW, Number(approved.queryWindow) || SOURCE_QUERY_WINDOW)),
     peerTubeQueryWindow: Math.max(1, Math.min(approved.deepCatalog === true ? 10 : SOURCE_MAX_QUERY_WINDOW, Number(approved.peerTubeQueryWindow) || Number(approved.queryWindow) || SOURCE_QUERY_WINDOW)),
     peerTubeInstanceLimit: Math.max(1, Math.min(8, Number(approved.peerTubeInstanceLimit) || 8)),
@@ -678,6 +804,53 @@ async function vimeo(profile, rotation, env, options = {}) {
   };
 }
 
+async function okApi(profile, rotation, env, options = {}) {
+  const firstLane = options.firstLane === true;
+  if (!okApiConfig(env)) return { provider: "OK.ru", items: [], health: { api: true, skipped: true, reason: "OK_APPLICATION_KEY, OK_APPLICATION_SECRET, and OK_ACCESS_TOKEN are not configured" } };
+  const pool = Array.isArray(profile.okApiQueries) && profile.okApiQueries.length ? profile.okApiQueries : profile.queries;
+  const queries = rotate(pool, rotation).slice(0, firstLane ? 1 : (profile.queryWindow || SOURCE_QUERY_WINDOW));
+  const jobs = queries.map((query) => async () => {
+    const items = [];
+    let anchor = "";
+    let pages = 0;
+    for (let page = 0; page < (firstLane ? 1 : 2); page += 1) {
+      const data = await okApiCall("search.tagContents", {
+        query,
+        count: firstLane ? 20 : 100,
+        anchor,
+        filter: JSON.stringify({ types: OK_API_VIDEO_TYPES }),
+        fields: "video.*",
+      }, env);
+      pages += 1;
+      items.push(...okApiRows(data).map((row) => ({ ...row, __query: query })));
+      anchor = text(data && (data.anchor || data.next_anchor || data.nextAnchor), 240);
+      if (!anchor) break;
+    }
+    return { query, pages, items };
+  });
+  const responses = await mapLimit(jobs, firstLane ? 1 : 2, async (job) => {
+    try { return { ...(await job()), error: "" }; }
+    catch (error) { return { items: [], pages: 0, error: text(error && (error.providerDetail || error.message), 220) || "OK API request failed" }; }
+  });
+  const candidates = unique(responses.flatMap((response) => response.items || [])
+    .map((row) => okApiItem(row, row && row.__query || ""))
+    .filter(Boolean));
+  const items = candidates.filter((item) => accepted(profile, item, "OK.ru"));
+  return {
+    provider: "OK.ru",
+    items: items.slice(0, firstLane ? 8 : SOURCE_MAX_ITEMS).map((item) => normalized(item, "OK.ru", item.query)),
+    health: {
+      api: true,
+      searched: queries.length,
+      pages: responses.reduce((sum, response) => sum + Number(response.pages || 0), 0),
+      candidates: candidates.length,
+      details: items.length,
+      errors: responses.map((response) => response.error).filter(Boolean).slice(0, 8),
+      firstLane,
+    },
+  };
+}
+
 function okPublicManifest(profile, rotation, options = {}) {
   const firstLane = options.firstLane === true;
   const candidates = Array.isArray(OK_PUBLIC_EMBED_MANIFEST[profile.profileKey]) ? OK_PUBLIC_EMBED_MANIFEST[profile.profileKey] : [];
@@ -695,12 +868,13 @@ function providers(profile, rotation, env, options = {}) {
   return profile.providers
     .filter((provider) => !disabled.has(String(provider).toLowerCase()))
     .map((provider) => {
-      const label = provider === "youtube" ? "YouTube" : provider === "peertube" ? "PeerTube" : provider === "vimeo" ? "Vimeo" : (provider === "ok" || provider === "ok-manifest") ? "OK.ru" : provider;
+      const label = provider === "youtube" ? "YouTube" : provider === "peertube" ? "PeerTube" : provider === "vimeo" ? "Vimeo" : (provider === "ok" || provider === "ok-api" || provider === "ok-manifest") ? "OK.ru" : provider;
       const startedAt = Date.now();
       const task = Promise.resolve()
         .then(() => provider === "youtube" ? youtube(profile, rotation, env, options)
           : provider === "peertube" ? peerTube(profile, rotation, env, options)
           : provider === "vimeo" ? vimeo(profile, rotation, env, options)
+          : provider === "ok-api" ? okApi(profile, rotation, env, options)
           : (provider === "ok" || provider === "ok-manifest") ? okPublicManifest(profile, rotation, options)
           : { provider: label, items: [], health: { skipped: true, reason: "unsupported provider" } });
       return Promise.resolve()

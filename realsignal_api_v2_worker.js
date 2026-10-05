@@ -14,7 +14,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "5.5.35-ok-public-embed-pilot";
+const V3_RELEASE = "5.5.36-ok-api-pilot";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -1880,23 +1880,26 @@ function sourceProviderKey(value) {
   if (normalized.includes("youtube")) return "youtube";
   if (normalized.includes("peertube")) return "peertube";
   if (normalized.includes("vimeo")) return "vimeo";
-  if (normalized.includes("ok.ru") || normalized === "ok" || normalized.startsWith("ok-manifest") || normalized.includes("odnoklassniki")) return "ok";
+  if (normalized.includes("ok.ru") || normalized === "ok" || normalized.startsWith("ok-api") || normalized.startsWith("ok-manifest") || normalized.includes("odnoklassniki")) return "ok";
   return normalized.replace(/[^a-z0-9._-]+/g, "-").slice(0, 40) || "unknown";
 }
 
 function sourceProviderAvailability(env, items = [], disabled = [], cooldownProviders = []) {
   const present = sourceProvidersFromItems(Array.isArray(items) ? items : []);
   const blocked = new Set((Array.isArray(disabled) ? disabled : []).concat(Array.isArray(cooldownProviders) ? cooldownProviders : []).map((value) => sourceProviderKey(value)));
-  /* OK.ru is intentionally manifest-only. Public embed availability must not
-     be held hostage to an API session, static signature, or Russian-language
-     developer-console setup. The manifest adapter still reports zero ready
-     items when a lane has no approved public embeds. */
-  const okConfigured = !env || env.OK_PUBLIC_EMBED_MANIFEST_ENABLED !== "false";
+  /* OK.ru prefers the signed API when its three secrets exist, but keeps the
+     public-embed manifest available as a safe fallback during setup or API
+     outages. The manifest adapter reports zero ready items when a lane has
+     no approved public embeds instead of inventing content. */
+  const okApiConfigured = Boolean(env && env.OK_APPLICATION_KEY && env.OK_APPLICATION_SECRET && env.OK_ACCESS_TOKEN);
+  const okManifestConfigured = !env || env.OK_PUBLIC_EMBED_MANIFEST_ENABLED !== "false";
+  const okConfigured = okApiConfigured || okManifestConfigured;
   const configured = {
     youtube: Boolean(env && env.YOUTUBE_API_KEY),
     peertube: true,
     vimeo: Boolean(env && env.VIMEO_ACCESS_TOKEN),
     ok: okConfigured,
+    okApi: okApiConfigured,
   };
   return Object.fromEntries(Object.entries(configured).map(([provider, ready]) => [provider, !blocked.has(provider) && (present.has(provider) || ready)]).concat([['cooldownProviders', Array.from(blocked)] ]));
 }

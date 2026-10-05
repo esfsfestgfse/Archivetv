@@ -42,6 +42,9 @@ const { pathToFileURL } = require("node:url");
   for (const marker of ["4k", "1080p", "bdrip", "blu-ray", "dvd rip", "vhs rip"]) {
     assert.ok(movieProfile.titleRequiredTerms.includes(marker), `OK Movie Channel must require ${marker} in the title`);
   }
+  for (const term of ["tv series", "television series", "season", "episode"]) {
+    assert.ok(movieProfile.deny.includes(term), `OK Movie Channel must reject ${term} entries`);
+  }
 
   assert.match(catalog, /async function vimeo\(/, "Vimeo adapter is missing");
   assert.match(catalog, /async function okApi\(/, "OK.ru signed API adapter is missing");

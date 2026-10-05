@@ -2143,7 +2143,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "formatRelaxed": true,
     "queries": ["4k full movie", "1080p full movie", "blu-ray movie", "dvd rip movie", "vhs rip movie", "full movie 1980s", "full movie 1990s", "full movie 2000s", "full movie 2010s", "full movie 2020s", "english movie 1080p", "american movie 1080p"],
     "match": ["feature film", "full movie", "full-length movie", "complete movie", "movie", "film"],
-    "deny": ["shorts", "short film", "vertical", "trailer", "teaser", "clip", "recap", "review", "reaction", "podcast", "how to", "tutorial", "fan film", "fan-made", "fan made", "fanmade", "unofficial", "parody", "mashup", "music video", "commercial", "documentary", "film history", "film explained", "lecture", "seminar", "conference", "panel discussion"]
+    "deny": ["shorts", "short film", "vertical", "trailer", "teaser", "clip", "recap", "review", "reaction", "podcast", "how to", "tutorial", "fan film", "fan-made", "fan made", "fanmade", "unofficial", "parody", "mashup", "music video", "commercial", "documentary", "film history", "film explained", "lecture", "seminar", "conference", "panel discussion", "tv series", "television series", "season", "episode"]
   },
   "ok-tv-channel": {
     "name": "OK TV Channel",

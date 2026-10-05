@@ -400,6 +400,50 @@ function accepted(profile, item, provider, checkAspect = true) {
   return !required.length || termsMatch(haystack, required);
 }
 
+function okAdmissionStats(profile, candidates) {
+  const stats = {
+    runtime: 0,
+    aspect: 0,
+    embed: 0,
+    language: 0,
+    blocked: 0,
+    topic: 0,
+    format: 0,
+    genre: 0,
+    accepted: 0,
+    other: 0,
+  };
+  const minimumRuntime = Math.max(SOURCE_MIN_RUNTIME, Number(profile && profile.minRuntimeSeconds) || 0);
+  for (const item of candidates) {
+    const title = text(item && item.title, 500);
+    const haystack = text([title, item && item.description, item && item.tags, item && item.category, item && item.account].join(" "), 5000).toLowerCase();
+    const titleHaystack = title.toLowerCase();
+    const duration = Number(item && item.duration) || 0;
+    const ratio = aspectRatio(item);
+    const source = "OK.ru";
+    if (!item || !(item.id || item.uuid || item.rawId) || !title) { stats.other += 1; continue; }
+    if (duration < minimumRuntime) { stats.runtime += 1; continue; }
+    if (ratio < SOURCE_MIN_ASPECT_RATIO) { stats.aspect += 1; continue; }
+    if (!rightsOkay(item, source)) { stats.embed += 1; continue; }
+    if (!englishOkay(item)) { stats.language += 1; continue; }
+    if (/(?:#?shorts?\b|vertical\s+video|how[ -]+to|tutorial|reaction|trailer|teaser|promo|advertisement|commercial|fan\s+edit|lyrics\s+video)/i.test(haystack)
+        || profile.deny.some((term) => haystack.includes(text(term, 180).toLowerCase()))) { stats.blocked += 1; continue; }
+    if (/^(?:television|film|performance)$/.test(profile.intent || "")) {
+      const programDeny = /(?:history of|documentary about|retrospective|video essay|analysis|explained|lecture|seminar|webinar|conference|panel discussion|making of|movie making|filmmaking|film making|studio tour|educational film|behind the scenes|demo reel|showreel|workshop|masterclass|recap|production reel|festival reel|fan[ -]?made|fan animation|unofficial|mashup|amv|gacha|roleplay|my little pony|\bpony\b)/i;
+      if (programDeny.test(haystack)) { stats.blocked += 1; continue; }
+      if (profile.topics.length && !termsMatch(haystack, profile.topics)) { stats.topic += 1; continue; }
+      if (profile.formats.length && !termsMatch(titleHaystack, profile.formats)
+          && !(profile.formatRelaxed === true && duration >= 20 * 60)
+          && !(profile.formatRelaxed === true && minimumRuntime <= 15 * 60 && duration >= 15 * 60)) { stats.format += 1; continue; }
+    }
+    const required = profile.match.length ? profile.match : profile.queries;
+    if (required.length && !termsMatch(haystack, required)) { stats.genre += 1; continue; }
+    if (accepted(profile, item, source)) stats.accepted += 1;
+    else stats.other += 1;
+  }
+  return stats;
+}
+
 function normalized(item, provider, query) {
   return {
     id: text(item.id, 300),
@@ -872,6 +916,7 @@ async function okApi(profile, rotation, env, options = {}) {
       pages: responses.reduce((sum, response) => sum + Number(response.pages || 0), 0),
       candidates: candidates.length,
       details: items.length,
+      admission: okAdmissionStats(profile, candidates),
       errors: responses.map((response) => response.error).filter(Boolean).slice(0, 8),
       firstLane,
     },

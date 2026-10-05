@@ -39,7 +39,7 @@ const { pathToFileURL } = require("node:url");
     assert.ok(profile.deny.includes("parody"), `${key} must reject parody uploads`);
   }
   const movieProfile = sourceProfile({ profileKey: "ok-movie-channel" });
-  for (const marker of ["4k", "1080p", "bdrip", "blu-ray", "dvd rip", "vhs rip"]) {
+  for (const marker of ["4k", "1080p", "bdrip", "blu-ray", "dvd rip", "vhs rip", "yts"]) {
     assert.ok(movieProfile.titleRequiredTerms.includes(marker), `OK Movie Channel must require ${marker} in the title`);
   }
   for (const term of ["tv series", "television series", "season", "episode"]) {

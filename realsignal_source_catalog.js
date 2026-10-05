@@ -341,7 +341,7 @@ function englishOkay(item) {
   if (declared && !/^en(?:[-_]|$)/i.test(declared)) return false;
   const sample = text([item && item.title, item && item.description, item && item.account].join(" "), 3000);
   if (/[\u0400-\u04ff\u0600-\u06ff\u0900-\u097f\u1100-\u11ff\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af\u0590-\u05ff\u0e00-\u0e7f]/.test(sample)) return false;
-  return !/\b(?:hindi|tamil|telugu|bengali|bangla|marathi|malayalam|kannada|punjabi|urdu|indonesian|vietnamese|thai|arabic|espa[nñ]ol|portugu[eê]s|fran[cç]ais|deutsch|russian|turkish|korean|japanese|mandarin)\b/i.test(sample);
+  return !/\b(?:hindi|tamil|telugu|bengali|bangla|marathi|malayalam|kannada|punjabi|urdu|indonesian|vietnamese|thai|arabic|espa[nñ]ol|portugu[eê]s|fran[cç]ais|deutsch|russian|turkish|korean|japanese|mandarin|pide|deseo|cuestionable|cap[ií]tulo|episodio|temporada|pel[ií]cula|televisi[oó]n|serie)\b/i.test(sample);
 }
 
 function accepted(profile, item, provider, checkAspect = true) {

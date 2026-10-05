@@ -14,7 +14,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "5.5.45-ok-runtime-gates";
+const V3_RELEASE = "5.5.46-ok-runtime-gates";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -685,6 +685,12 @@ function catalogFallbackAllowed(item, body) {
   const tags = String(item && (item.tags || item.tag) || "").toLowerCase();
   const category = String(item && item.category || "").toLowerCase();
   const account = String(item && (item.account || item.channelTitle) || "").toLowerCase();
+  const provider = String(item && (item.provider || item.source) || "").toLowerCase();
+  /* OK.ru search metadata can occasionally overstate a short foreign-language
+     upload. Keep the English-only Source Suite contract enforced when an old
+     row is read back from D1, not just when a fresh provider response arrives. */
+  if ((provider === "ok.ru" || provider === "ok") && (/[\u0400-\u04ff\u0600-\u06ff\u0590-\u05ff\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]/.test(`${title} ${description} ${account}`)
+    || /\b(?:pide|deseo|cuestionable|cap[ií]tulo|episodio|temporada|pel[ií]cula|televisi[oó]n|serie|hindi|tamil|telugu|bengali|arabic|russian|korean|japanese)\b/i.test(`${title} ${description} ${account}`))) return false;
   const profileStrictTopicTerms = Array.isArray(body && body.strictTopicTerms) ? body.strictTopicTerms : [];
   const identityHaystack = `${title} ${account}`;
   if (profileStrictTopicTerms.length && !profileStrictTopicTerms.some((term) => {

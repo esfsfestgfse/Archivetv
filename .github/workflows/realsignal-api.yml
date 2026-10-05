@@ -83,4 +83,4 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: deploy --config wrangler.api.jsonc
+          command: deploy --config wrangler.api.jsonc --keep-vars

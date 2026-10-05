@@ -311,6 +311,7 @@ function normalizedProfile(body) {
     topics: list(approved.topics, 32),
     strictTopicTerms: list(approved.strictTopicTerms, 16),
     formats: list(approved.formats, 24),
+    titleRequiredTerms: list(approved.titleRequiredTerms, 24),
     formatRelaxed: approved.formatRelaxed === true,
     minRuntimeSeconds: Math.max(SOURCE_MIN_RUNTIME, Number(approved.minRuntimeSeconds) || 0),
     minTitleYear: Math.max(0, Number(approved.minTitleYear) || 0),
@@ -384,6 +385,7 @@ function accepted(profile, item, provider, checkAspect = true) {
   const source = provider || text(item && item.provider, 60);
   const minimumRuntime = Math.max(SOURCE_MIN_RUNTIME, Number(profile.minRuntimeSeconds) || 0);
   if (!item || !(item.id || item.uuid || item.rawId) || !title || duration < minimumRuntime || (checkAspect && ratio < SOURCE_MIN_ASPECT_RATIO)) return false;
+  if (profile.titleRequiredTerms.length && !termsMatch(titleHaystack, profile.titleRequiredTerms)) return false;
   if (profile.minTitleYear) {
     const titleYears = Array.from(title.matchAll(/(?:^|[^0-9])((?:19|20)\d{2})(?:[^0-9]|$)/g)).map((match) => Number(match[1])).filter(Boolean);
     if (titleYears.some((year) => year < profile.minTitleYear)) return false;
@@ -453,6 +455,7 @@ function okAdmissionStats(profile, candidates) {
       else stats.aspectUnknown += 1;
       continue;
     }
+    if (profile.titleRequiredTerms.length && !termsMatch(titleHaystack, profile.titleRequiredTerms)) { stats.format += 1; continue; }
     if (!rightsOkay(item, source)) { stats.embed += 1; continue; }
     if (!englishOkay(item)) { stats.language += 1; continue; }
     if (/(?:#?shorts?\b|vertical\s+video|how[ -]+to|tutorial|reaction|trailer|teaser|promo|advertisement|commercial|fan\s+edit|lyrics\s+video)/i.test(haystack)

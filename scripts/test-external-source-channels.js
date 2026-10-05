@@ -38,6 +38,10 @@ const { pathToFileURL } = require("node:url");
     assert.ok(profile.deny.includes("podcast"), `${key} must reject podcasts`);
     assert.ok(profile.deny.includes("parody"), `${key} must reject parody uploads`);
   }
+  const movieProfile = sourceProfile({ profileKey: "ok-movie-channel" });
+  for (const marker of ["4k", "1080p", "bdrip", "blu-ray", "dvd rip", "vhs rip"]) {
+    assert.ok(movieProfile.titleRequiredTerms.includes(marker), `OK Movie Channel must require ${marker} in the title`);
+  }
 
   assert.match(catalog, /async function vimeo\(/, "Vimeo adapter is missing");
   assert.match(catalog, /async function okApi\(/, "OK.ru signed API adapter is missing");

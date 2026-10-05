@@ -2148,9 +2148,10 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
      "providers": ["ok-api", "ok-manifest"],
     "intent": "television",
     "serverOnly": true,
-    "okApiQueries": ["fullepisode", "tvshow", "tvseries", "television", "englishtelevision", "publicdomaintv"],
-    "topics": ["television", "tv show", "tv series", "episode", "sitcom", "drama"],
+    "okApiQueries": ["tv", "television", "episode", "series", "sitcom", "drama", "comedy", "classic"],
+    "topics": ["television", "tv", "tv show", "tv series", "episode", "season", "series", "sitcom", "drama", "comedy"],
     "formats": ["full episode", "complete episode", "full series", "tv show", "television episode"],
+    "formatRelaxed": true,
     "queries": ["tvshow", "television", "tvseries", "fullepisode", "fullseries", "sitcom", "television1980s", "television1990s"],
     "match": ["television", "tv show", "tv series", "full episode", "complete episode", "sitcom", "series"],
     "deny": ["shorts", "short film", "vertical", "trailer", "teaser", "clip", "recap", "review", "reaction", "podcast", "how to", "tutorial", "fan film", "fan-made", "parody", "music video", "commercial", "cartoon", "gameplay", "lecture", "seminar", "conference", "panel discussion"]

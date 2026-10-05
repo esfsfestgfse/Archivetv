@@ -142,7 +142,7 @@ for (const file of files) {
     [/function v2Verified\(/, 'items must carry a common verification envelope'],
     [/V2_SOURCE_MIN_RUNTIME=15\*60/, 'Source Suite programming must require television-length programs'],
     [/function v2ProgramRuntimeOkay\(/, 'every source item must pass the shared television-runtime gate'],
-    [/merged\.filter\(function\(item\)\{return v2Landscape\(item\)&&v2ProgramRuntimeOkay\(item\);\}\)/, 'the final source catalog merge must re-enforce the television-runtime floor'],
+    [/merged\.filter\(function\(item\)\{return v2Landscape\(item\)&&v2ProfileRuntimeOkay\(item,profile\);\}\)/, 'the final source catalog merge must re-enforce the profile-specific runtime floor'],
     [/!v2Landscape\(item\)\|\|!v2ProgramRuntimeOkay\(item\)/, 'runtime qualification must be enforced at verification time'],
     [/Number\(data\.info\)===0\)advance\(\)/, 'YouTube embeds must advance immediately on their ended signal'],
     [/function v2SourceHealth\(/, 'provider health must be persisted'],

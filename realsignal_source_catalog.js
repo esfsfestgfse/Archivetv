@@ -189,6 +189,17 @@ function okApiObject(value) {
   return value && typeof value === "object" ? value : null;
 }
 
+function okApiDuration(row) {
+  const seconds = Number(okApiScalar(row && row.duration_seconds));
+  if (Number.isFinite(seconds) && seconds > 0) return seconds;
+  const milliseconds = Number(okApiScalar(row && row.duration_ms));
+  if (Number.isFinite(milliseconds) && milliseconds > 0) return milliseconds / 1000;
+  const duration = Number(okApiScalar(row && row.duration));
+  if (Number.isFinite(duration) && duration > 0) return duration / 1000;
+  const length = Number(okApiScalar(row && row.length));
+  return Number.isFinite(length) && length > 0 ? length / 1000 : 0;
+}
+
 function okApiId(value) {
   const raw = text(okApiScalar(value), 200);
   if (!raw) return "";
@@ -210,7 +221,7 @@ function okApiRows(data) {
     seenObjects.add(value);
     const id = okApiId(value.id || value.videoId || value.video_id || value.content_id || value.contentId || value.movieId || value.movie_id || value.ref);
     const title = text(okApiScalar(value.title || value.name || value.caption), 500);
-    const duration = Number(okApiScalar(value.duration || value.duration_seconds || value.length)) || 0;
+    const duration = okApiDuration(value);
     const hasVideoShape = Boolean(id && (title || duration || value.url || value.permalink || value.videoUrl || value.url_hls || value.url_mp4 || value.width || value.height));
     if (hasVideoShape) rows.push(value);
     Object.values(value).forEach((child) => visit(child, depth + 1));
@@ -243,7 +254,7 @@ function okApiItem(row, query) {
     language: text(okApiScalar(row.language || row.lang), 40),
     year: text(okApiScalar(row.created || row.created_ms || row.publish_at), 20),
     rights: "OK.ru public embed; provider authorization required",
-    duration: Number(okApiScalar(row.duration || row.duration_seconds || row.length)) || 0,
+    duration: okApiDuration(row),
     aspectRatio: width > 0 && height > 0 ? width / height : 0,
     type: "embed",
     url: embedUrl,

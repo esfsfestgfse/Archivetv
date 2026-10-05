@@ -1891,7 +1891,7 @@ function sourceProviderAvailability(env, items = [], disabled = [], cooldownProv
      public-embed manifest available as a safe fallback during setup or API
      outages. The manifest adapter reports zero ready items when a lane has
      no approved public embeds instead of inventing content. */
-  const okApiConfigured = Boolean(env && env.OK_APPLICATION_KEY && env.OK_APPLICATION_SECRET && env.OK_ACCESS_TOKEN);
+  const okApiConfigured = Boolean(env && env.OK_APPLICATION_KEY && env.OK_ACCESS_TOKEN && (env.OK_SESSION_SECRET || env.OK_APPLICATION_SECRET));
   const okManifestConfigured = !env || env.OK_PUBLIC_EMBED_MANIFEST_ENABLED !== "false";
   const okConfigured = okApiConfigured || okManifestConfigured;
   const configured = {

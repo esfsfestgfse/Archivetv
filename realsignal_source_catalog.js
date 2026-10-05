@@ -136,10 +136,12 @@ function md5Hex(value) {
 function okApiConfig(env) {
   const applicationKey = text(env && env.OK_APPLICATION_KEY, 240);
   const applicationSecret = text(env && env.OK_APPLICATION_SECRET, 240);
+  const sessionSecret = text(env && env.OK_SESSION_SECRET, 240);
   const accessToken = text(env && env.OK_ACCESS_TOKEN, 600);
-  return applicationKey && applicationSecret && accessToken ? {
+  return applicationKey && accessToken && (applicationSecret || sessionSecret) ? {
     applicationKey,
     applicationSecret,
+    sessionSecret,
     accessToken,
     apiServer: text(env && env.OK_API_SERVER, 600) || OK_API_DEFAULT_SERVER,
   } : null;
@@ -164,8 +166,8 @@ async function okApiCall(method, params, env) {
     format: "json",
     method,
   };
-  const sessionSecret = md5Hex(`${config.accessToken}${config.applicationSecret}`).toLowerCase();
-  requestParams.sig = okApiSignature(requestParams, sessionSecret);
+  const requestSecret = config.sessionSecret || md5Hex(`${config.accessToken}${config.applicationSecret}`).toLowerCase();
+  requestParams.sig = okApiSignature(requestParams, requestSecret);
   const url = `${config.apiServer}${config.apiServer.includes("?") ? "&" : "?"}${new URLSearchParams(requestParams)}`;
   const data = await fetchJson(url, { headers: { Accept: "application/json", Referer: "https://esfsfestgfse.github.io/Archivetv/" } });
   if (data && (data.error_code || data.errorCode || data.error_msg || data.errorMessage)) {
@@ -806,7 +808,7 @@ async function vimeo(profile, rotation, env, options = {}) {
 
 async function okApi(profile, rotation, env, options = {}) {
   const firstLane = options.firstLane === true;
-  if (!okApiConfig(env)) return { provider: "OK.ru", items: [], health: { api: true, skipped: true, reason: "OK_APPLICATION_KEY, OK_APPLICATION_SECRET, and OK_ACCESS_TOKEN are not configured" } };
+  if (!okApiConfig(env)) return { provider: "OK.ru", items: [], health: { api: true, skipped: true, reason: "OK_APPLICATION_KEY, OK_ACCESS_TOKEN, and OK_SESSION_SECRET or OK_APPLICATION_SECRET are not configured" } };
   const pool = Array.isArray(profile.okApiQueries) && profile.okApiQueries.length ? profile.okApiQueries : profile.queries;
   const queries = rotate(pool, rotation).slice(0, firstLane ? 1 : (profile.queryWindow || SOURCE_QUERY_WINDOW));
   const jobs = queries.map((query) => async () => {

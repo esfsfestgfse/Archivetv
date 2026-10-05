@@ -2134,9 +2134,10 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "serverOnly": true,
     "minTitleYear": 1980,
     "movieLane": "modern",
-    "okApiQueries": ["fullmovie", "featurefilm", "publicdomainmovie", "cc0movie", "englishmovie", "freemovie"],
+    "okApiQueries": ["movie", "film", "feature", "cinema", "classic", "english", "publicdomain", "freemovie"],
     "topics": ["feature film", "full movie", "movie", "film"],
     "formats": ["full movie", "full film", "feature film", "complete movie", "full-length movie"],
+    "formatRelaxed": true,
     "queries": ["featurefilm", "fullmovie", "movie1980s", "movie1990s", "movie2000s", "movie2010s", "movie2020s", "englishmovie"],
     "match": ["feature film", "full movie", "full-length movie", "complete movie", "movie", "film"],
     "deny": ["shorts", "short film", "vertical", "trailer", "teaser", "clip", "recap", "review", "reaction", "podcast", "how to", "tutorial", "fan film", "fan-made", "fan made", "fanmade", "unofficial", "parody", "mashup", "music video", "commercial", "documentary", "film history", "film explained", "lecture", "seminar", "conference", "panel discussion"]

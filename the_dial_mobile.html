@@ -16,7 +16,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="RealSignal">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>REALSIGNAL · The Dial 5.5.32</title>
+<title>REALSIGNAL · The Dial 5.5.33</title>
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
@@ -1746,7 +1746,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="5.5.32-mobile-cooking-food";
+window.__ATV_BUILD="5.5.33-mobile-cleanup-sweep";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -8118,10 +8118,6 @@ function renderRail(){
   var titleEl=$("railTitle"),resultsEl=$("guideResults"),countEl=$("guideCount");if(titleEl)titleEl.textContent=title;if(resultsEl)resultsEl.textContent=descriptor;if(countEl)countEl.textContent=list.length+" CHANNEL"+(list.length===1?"":"S");
   var mergeFragment=document.createDocumentFragment();
   if(GUIDE_MERGE_UI_ENABLED&&activeMergeAlias){var back=document.createElement("button");back.type="button";back.className="chsection";back.style.cssText="width:100%;text-align:left;cursor:pointer";back.innerHTML='<span class="chsection-label">← ALL CHANNELS</span><span class="chsection-sub">Exit family view · legacy numbers remain compatible</span>';back.addEventListener("click",function(){window.__rsGuideMergeAliasFilter="";renderRail();});mergeFragment.appendChild(back);}
-  if(false&&GUIDE_MERGE_UI_ENABLED&&!activeMergeAlias&&!favOnly){
-    var aliasQuery=query.toLowerCase(),aliases=GUIDE_MERGE_ALIASES.filter(function(alias){return GUIDE_MERGED_LINEUP_ENABLED?alias.id!=="black-media":true;}).filter(function(alias){var members=guideMergeMembers(alias),text=(alias.label+" "+alias.meta+" "+members.map(function(ch){return ch.nm+" "+ch.num;}).join(" ")).toLowerCase();return (!aliasQuery||text.indexOf(aliasQuery)>-1)&&members.length;});
-    if(aliases.length){var aliasHead=document.createElement("div");aliasHead.className="chsection";aliasHead.innerHTML='<span class="chsection-label">'+(GUIDE_MERGED_LINEUP_ENABLED?"CONSOLIDATED FAMILIES":"MERGE TRIALS")+'</span><span class="chsection-sub">'+(GUIDE_MERGED_LINEUP_ENABLED?"Canonical families · legacy numbers remain directly tunable":"Guide-only groups · no channel numbers changed")+'</span>';mergeFragment.appendChild(aliasHead);aliases.forEach(function(alias){var members=guideMergeMembers(alias),real=REAL_CHANNEL_MERGES.find(function(merge){return merge.id===alias.id;}),row=document.createElement("button");row.type="button";row.className="chcell guide-alias-card";row.title=alias.meta+" · "+(GUIDE_MERGED_LINEUP_ENABLED?"consolidated guide":"guide-only test");row.innerHTML='<span class="cc-n">◆</span><span class="cc-thumb"><span class="cc-thumb-glyph">'+(GUIDE_MERGED_LINEUP_ENABLED?"TV":"TR")+'</span></span><span class="cc-identity"><span class="cc-nm">'+esch(alias.label)+'</span><span class="cc-genre">'+(GUIDE_MERGED_LINEUP_ENABLED?"CONSOLIDATED GUIDE":"GUIDE-ONLY MERGE TRIAL")+'</span></span><span class="cc-now-block"><span class="cc-now">'+esch(alias.meta)+'</span><span class="cc-status">'+(real?"1 CANONICAL CHANNEL · LEGACY "+(members.length-1)+" ALIAS":""+members.length+" EXISTING CHANNELS · NUMBERS UNCHANGED")+'</span></span><span class="cc-next-block"><span class="cc-next">OPEN TO TEST MEMBERS</span></span>';row.addEventListener("click",function(){window.__rsGuideMergeAliasFilter=alias.id;renderRail();});mergeFragment.appendChild(row);});}
-  }
   if(mergeFragment.childNodes.length)chList.appendChild(mergeFragment);
   if(!list.length){chList.insertAdjacentHTML("beforeend",'<div class="chempty">No matching channels yet. Clear the search or choose another category.</div>');return;}
   /* Build off-DOM. Rendering two hundred channel rows one append at a time was

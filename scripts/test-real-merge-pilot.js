@@ -20,7 +20,7 @@ for (const file of files) {
   const source = fs.readFileSync(path.join(root, file), 'utf8');
   const pilot = source.match(/\{id:"courtroom-tv",canonicalNum:(\d+),label:"([^"]+)",members:\[(\d+),(\d+)\]/);
   const build = source.match(/window\.__ATV_BUILD="([^"]+)"/);
-  expect(file, '5.5.32 cooking-food build stamp', build && /^5\.5\.32-(?:desktop|mobile)-cooking-food$/.test(build[1]));
+  expect(file, '5.5.33 cleanup-sweep build stamp', build && /^5\.5\.33-(?:desktop|mobile)-cleanup-sweep$/.test(build[1]));
   expect(file, 'Courtroom pilot declares canonical channel 20', pilot && pilot[1] === '20' && pilot[2] === 'Courtroom TV');
   expect(file, 'Courtroom pilot includes legacy members 20 and 21', pilot && pilot[3] === '20' && pilot[4] === '21');
   expect(file, 'legacy tune resolves through canonicalTuneNum', source.includes('canonicalTuneNum(requestedNum)') && source.includes('REAL_CHANNEL_MERGE_BY_NUM'));
@@ -45,7 +45,7 @@ for (const file of files) {
   expect(file, 'protected Classic and Modern Cartoons remain separate', source.includes('members:[150,153]') === false && source.includes('num:150') && source.includes('num:153'));
   expect(file, 'protected source-backed Gearhead Garage remains separate', source.includes('num:559') && source.includes('members:[227,231,559]') === false);
   expect(file, 'canonical queue uses one channel identity', source.includes('return {show:canonicalChannelLabel(ch)') && source.includes('store.set("last",canonicalNum)'));
-  expect(file, 'normal guide does not render duplicate family cards', source.includes('if(false&&GUIDE_MERGE_UI_ENABLED&&!activeMergeAlias&&!favOnly)'));
+  expect(file, 'normal guide does not render duplicate family cards', !source.includes('guide-alias-card') && !source.includes('if(false&&GUIDE_MERGE_UI_ENABLED&&!activeMergeAlias&&!favOnly)'));
   expect(file, 'family views resolve to the canonical member only', source.includes('(!canonical||Number(c.num)===canonical)'));
   expect(file, 'Black-media channels remain outside the real pilot', source.includes('num:105') && source.includes('num:225') && source.includes('num:538') && !source.includes('REAL_CHANNEL_MERGES=[{id:"courtroom-tv",canonicalNum:20,label:"Courtroom TV",members:[20,21,105'));
 }

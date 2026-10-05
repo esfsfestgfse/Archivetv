@@ -6042,6 +6042,37 @@ async function getWorldCamImage(url, ctx) {
   }
 }
 
+const MAX_TEXT_UPSTREAM_BYTES = 1024 * 1024;
+const MAX_ARCHIVE_SEARCH_BYTES = 4 * 1024 * 1024;
+
+async function readResponseTextCapped(response, maxBytes, label) {
+  const advertised = Number(response.headers.get("content-length") || 0);
+  if (advertised > maxBytes) throw new RangeError(label + " response exceeds " + maxBytes + " bytes");
+  /* A fetch response with no body has no text to parse. Avoid falling back to
+     response.text(), which would remove the size guard on unusual mocks or
+     platform adapters that do not expose a stream. */
+  if (!response.body) return "";
+  const reader = response.body.getReader();
+  const chunks = [];
+  let total = 0;
+  try {
+    while (true) {
+      const part = await reader.read();
+      if (part.done) break;
+      total += part.value.byteLength;
+      if (total > maxBytes) {
+        try { await reader.cancel(); } catch (_) { /* best effort */ }
+        throw new RangeError(label + " response exceeds " + maxBytes + " bytes");
+      }
+      chunks.push(part.value);
+    }
+  } finally { reader.releaseLock(); }
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+  return new TextDecoder().decode(bytes);
+}
+
 async function timedTextFetch(url, timeoutMs = 6200) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -6051,7 +6082,7 @@ async function timedTextFetch(url, timeoutMs = 6200) {
       headers: { "Accept": "text/html,text/plain,application/xml;q=0.8,*/*;q=0.2", "User-Agent": ADSB_USER_AGENT },
     });
     if (!response.ok) throw new Error("upstream " + response.status);
-    return response.text();
+    return readResponseTextCapped(response, MAX_TEXT_UPSTREAM_BYTES, "text upstream");
   } finally {
     clearTimeout(timer);
   }
@@ -7006,7 +7037,7 @@ async function searchArchive(query, rows, page, sort, timeoutMs = 3200) {
     let upstream;
     try {
       upstream = await archiveFetch(upstreamUrl.toString(), { cache: "no-store" }, timeoutMs);
-      const raw = await upstream.text();
+      const raw = await readResponseTextCapped(upstream, MAX_ARCHIVE_SEARCH_BYTES, "archive advanced search");
       if (!upstream.ok) throw new Error("archive advanced search " + upstream.status);
       let payload;
       try {

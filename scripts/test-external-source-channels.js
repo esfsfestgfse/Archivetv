@@ -48,6 +48,7 @@ const { pathToFileURL } = require("node:url");
     }
     assert.ok(profile.okApiBroadQueries.length >= 12, `${label} must keep a broad OK.ru discovery pool behind its title gate`);
     assert.ok(profile.okApiTitleQueries.length >= 20, `${label} must keep a title-specific OK.ru discovery pool`);
+    assert.ok(profile.okApiTitleQualifiers.length >= 5, `${label} must pair title searches with quality qualifiers`);
   }
   const movieProfile = titleQualityProfiles[0][1];
   for (const term of ["tv series", "television series", "season", "episode"]) {

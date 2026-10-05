@@ -315,6 +315,7 @@ function normalizedProfile(body) {
     okApiQueries: list(approved.okApiQueries, queryLimit),
     okApiBroadQueries: list(approved.okApiBroadQueries, queryLimit),
     okApiTitleQueries: list(approved.okApiTitleQueries, queryLimit),
+    okApiTitleQualifiers: list(approved.okApiTitleQualifiers, 8),
     queryWindow: Math.max(1, Math.min(approved.deepCatalog === true ? 10 : SOURCE_MAX_QUERY_WINDOW, Number(approved.queryWindow) || SOURCE_QUERY_WINDOW)),
     peerTubeQueryWindow: Math.max(1, Math.min(approved.deepCatalog === true ? 10 : SOURCE_MAX_QUERY_WINDOW, Number(approved.peerTubeQueryWindow) || Number(approved.queryWindow) || SOURCE_QUERY_WINDOW)),
     peerTubeInstanceLimit: Math.max(1, Math.min(8, Number(approved.peerTubeInstanceLimit) || 8)),
@@ -943,6 +944,7 @@ async function okApi(profile, rotation, env, options = {}) {
   const pool = Array.isArray(profile.okApiQueries) && profile.okApiQueries.length ? profile.okApiQueries : profile.queries;
   const broadPool = Array.isArray(profile.okApiBroadQueries) ? profile.okApiBroadQueries : [];
   const titlePool = Array.isArray(profile.okApiTitleQueries) ? profile.okApiTitleQueries : [];
+  const titleQualifiers = Array.isArray(profile.okApiTitleQualifiers) ? profile.okApiTitleQualifiers : [];
   /* A single cold-start tag was too easy to miss on OK.ru. Keep the fast
      lane bounded, but search three approved terms in parallel so a normal
      viewer request can find a real long-form item without waiting for
@@ -968,7 +970,10 @@ async function okApi(profile, rotation, env, options = {}) {
     : ["television", "tv", "show", "series", "episode", "sitcom", "drama", "comedy", "western"];
   expandedTags = expandedTags.filter((tag) => termsMatch(text(tag, 180).toLowerCase(), tagTerms)).slice(0, 2);
   const markerQueries = rotate(pool, rotation).slice(0, markerCount);
-  const titleQueries = rotate(titlePool, rotation).slice(0, titleCount);
+  const titleQueries = rotate(titlePool, rotation).slice(0, titleCount).map((query, index) => {
+    const qualifier = titleQualifiers.length ? titleQualifiers[(Number(rotation || 0) + index) % titleQualifiers.length] : "";
+    return qualifier ? `${query} ${qualifier}` : query;
+  });
   /* Always reserve room for the broad semantic rail. Generic quality tags
      such as `4k` are useful only as a secondary recall source; they cannot
      crowd out `movie`, `full movie`, or the equivalent television terms. */

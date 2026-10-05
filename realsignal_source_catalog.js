@@ -189,17 +189,24 @@ function okApiObject(value) {
   return value && typeof value === "object" ? value : null;
 }
 
+function okApiDurationValue(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric <= 0) return 0;
+  /* OK.ru responses in the wild contain both second-valued VideoBean
+     durations and legacy millisecond-sized values under the generic
+     `duration` field. A multi-day "movie" is a unit signal, not a real
+     program, so normalize only implausibly large values here. */
+  return numeric > 24 * 60 * 60 ? numeric / 1000 : numeric;
+}
+
 function okApiDuration(row) {
-  const seconds = Number(okApiScalar(row && row.duration_seconds));
-  if (Number.isFinite(seconds) && seconds > 0) return seconds;
+  const seconds = okApiDurationValue(okApiScalar(row && row.duration_seconds));
+  if (seconds > 0) return seconds;
   const milliseconds = Number(okApiScalar(row && row.duration_ms));
   if (Number.isFinite(milliseconds) && milliseconds > 0) return milliseconds / 1000;
-  const duration = Number(okApiScalar(row && row.duration));
-  /* OK.ru's VideoBean duration is already expressed in seconds. Only the
-     explicitly named duration_ms field is converted from milliseconds. */
-  if (Number.isFinite(duration) && duration > 0) return duration;
-  const length = Number(okApiScalar(row && row.length));
-  return Number.isFinite(length) && length > 0 ? length : 0;
+  const duration = okApiDurationValue(okApiScalar(row && row.duration));
+  if (duration > 0) return duration;
+  return okApiDurationValue(okApiScalar(row && row.length));
 }
 
 function okApiId(value) {

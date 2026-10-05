@@ -42,7 +42,7 @@ const { pathToFileURL } = require("node:url");
   assert.match(catalog, /async function vimeo\(/, "Vimeo adapter is missing");
   assert.match(catalog, /async function okApi\(/, "OK.ru signed API adapter is missing");
   assert.match(catalog, /function okPublicManifest\(/, "OK.ru public-embed fallback is missing");
-  assert.match(catalog, /OK_APPLICATION_KEY|OK_APPLICATION_SECRET|OK_ACCESS_TOKEN/, "OK.ru secret bindings are missing");
+  assert.match(catalog, /OK_APPLICATION_KEY|OK_APPLICATION_SECRET|OK_SESSION_KEY|OK_ACCESS_TOKEN/, "OK.ru secret bindings are missing");
   assert.match(catalog, /OK_PUBLIC_EMBED_MANIFEST/, "OK.ru public-embed manifest is not wired");
   assert.match(catalog, /Authorization: `bearer \$\{token\}`/, "Vimeo token must be sent as an authorization header");
   assert.match(catalog, /search\.tagContents/, "OK.ru API search method is missing");

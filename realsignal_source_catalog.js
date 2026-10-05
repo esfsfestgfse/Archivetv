@@ -386,6 +386,7 @@ function accepted(profile, item, provider, checkAspect = true) {
   const minimumRuntime = Math.max(SOURCE_MIN_RUNTIME, Number(profile.minRuntimeSeconds) || 0);
   if (!item || !(item.id || item.uuid || item.rawId) || !title || duration < minimumRuntime || (checkAspect && ratio < SOURCE_MIN_ASPECT_RATIO)) return false;
   if (profile.titleRequiredTerms.length && !termsMatch(titleHaystack, profile.titleRequiredTerms)) return false;
+  const qualityMovieTitle = profile.profileKey === "ok-movie-channel" && profile.titleRequiredTerms.length > 0 && termsMatch(titleHaystack, profile.titleRequiredTerms);
   if (profile.minTitleYear) {
     const titleYears = Array.from(title.matchAll(/(?:^|[^0-9])((?:19|20)\d{2})(?:[^0-9]|$)/g)).map((match) => Number(match[1])).filter(Boolean);
     if (titleYears.some((year) => year < profile.minTitleYear)) return false;
@@ -412,7 +413,7 @@ function accepted(profile, item, provider, checkAspect = true) {
   if (/^(?:television|film|performance)$/.test(profile.intent || "")) {
     const programDeny = /(?:history of|documentary about|retrospective|video essay|analysis|explained|lecture|seminar|webinar|conference|panel discussion|making of|movie making|filmmaking|film making|studio tour|educational film|behind the scenes|demo reel|showreel|workshop|masterclass|recap|production reel|festival reel|fan[ -]?made|fan animation|unofficial|mashup|amv|gacha|roleplay|my little pony|\bpony\b)/i;
     if (programDeny.test(haystack)) return false;
-    if (profile.topics.length && !termsMatch(haystack, profile.topics)) return false;
+    if (profile.topics.length && !termsMatch(haystack, profile.topics) && !qualityMovieTitle) return false;
     if (profile.formats.length && !termsMatch(titleHaystack, profile.formats)
       && !(profile.formatRelaxed === true && duration >= 20 * 60)
       && !(profile.formatRelaxed === true && minimumRuntime <= 15 * 60 && duration >= 15 * 60)
@@ -421,7 +422,7 @@ function accepted(profile, item, provider, checkAspect = true) {
   if (profile.movieLane === "modern" && profile.laneDeny.some((term) => titleHaystack.includes(text(term, 180).toLowerCase()))) return false;
   if (profile.movieLane === "indie" && profile.laneRequired.length && !trustedYouTubeChannel && !profile.laneRequired.some((term) => haystack.includes(text(term, 180).toLowerCase()))) return false;
   const required = profile.match.length ? profile.match : profile.queries;
-  return !required.length || termsMatch(haystack, required);
+  return !required.length || termsMatch(haystack, required) || qualityMovieTitle;
 }
 
 function okAdmissionStats(profile, candidates) {
@@ -447,6 +448,7 @@ function okAdmissionStats(profile, candidates) {
     const duration = Number(item && item.duration) || 0;
     const ratio = aspectRatio(item);
     const source = "OK.ru";
+    const qualityMovieTitle = profile.profileKey === "ok-movie-channel" && profile.titleRequiredTerms.length > 0 && termsMatch(titleHaystack, profile.titleRequiredTerms);
     if (!item || !(item.id || item.uuid || item.rawId) || !title) { stats.other += 1; continue; }
     if (duration < minimumRuntime) { stats.runtime += 1; continue; }
     if (ratio < SOURCE_MIN_ASPECT_RATIO) {
@@ -463,13 +465,13 @@ function okAdmissionStats(profile, candidates) {
     if (/^(?:television|film|performance)$/.test(profile.intent || "")) {
       const programDeny = /(?:history of|documentary about|retrospective|video essay|analysis|explained|lecture|seminar|webinar|conference|panel discussion|making of|movie making|filmmaking|film making|studio tour|educational film|behind the scenes|demo reel|showreel|workshop|masterclass|recap|production reel|festival reel|fan[ -]?made|fan animation|unofficial|mashup|amv|gacha|roleplay|my little pony|\bpony\b)/i;
       if (programDeny.test(haystack)) { stats.blocked += 1; continue; }
-      if (profile.topics.length && !termsMatch(haystack, profile.topics)) { stats.topic += 1; continue; }
+      if (profile.topics.length && !termsMatch(haystack, profile.topics) && !qualityMovieTitle) { stats.topic += 1; continue; }
       if (profile.formats.length && !termsMatch(titleHaystack, profile.formats)
           && !(profile.formatRelaxed === true && duration >= 20 * 60)
           && !(profile.formatRelaxed === true && minimumRuntime <= 15 * 60 && duration >= 15 * 60)) { stats.format += 1; continue; }
     }
     const required = profile.match.length ? profile.match : profile.queries;
-    if (required.length && !termsMatch(haystack, required)) { stats.genre += 1; continue; }
+    if (required.length && !termsMatch(haystack, required) && !qualityMovieTitle) { stats.genre += 1; continue; }
     if (accepted(profile, item, source)) stats.accepted += 1;
     else stats.other += 1;
   }

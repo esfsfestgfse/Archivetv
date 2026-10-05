@@ -48,6 +48,7 @@ const { pathToFileURL } = require("node:url");
   assert.match(catalog, /search\.tagContents/, "OK.ru API search method is missing");
 assert.match(catalog, /OK\.ru's VideoBean duration is already expressed in seconds/, "OK.ru duration must remain in seconds unless the field is explicitly duration_ms");
 assert.match(catalog, /function okAdmissionStats\(/, "OK.ru admission must expose aggregate gate diagnostics for the source health view");
+assert.match(catalog, /function okApiDimensions\(/, "OK.ru adapter must read nested landscape dimensions before admitting embeds");
   assert.doesNotMatch(catalog, /OK_API_SIG/, "legacy OK API signature binding must not be used");
   assert.match(okManifest, /videoembed\/1570971190743/, "OK.ru manifest must contain its public embed URL");
   assert.match(okManifest, /CC0|public domain/i, "OK.ru manifest must retain a rights note");

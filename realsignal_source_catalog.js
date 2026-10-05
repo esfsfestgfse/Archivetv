@@ -232,9 +232,24 @@ function okApiRows(data) {
   return rows;
 }
 
+function okApiDimensions(row) {
+  const sources = [row, okApiScalar(row && row.dimensions), okApiScalar(row && row.initial_dimensions), okApiScalar(row && row.video_info), okApiScalar(row && row.videoInfo), okApiScalar(row && row.video)];
+  for (const source of sources) {
+    if (!source || typeof source !== "object") continue;
+    const width = Number(okApiScalar(source.width || source.video_width || source.standard_width || source.standardWidth || source.w || source.video_info && source.video_info.width)) || 0;
+    const height = Number(okApiScalar(source.height || source.video_height || source.standard_height || source.standardHeight || source.h || source.video_info && source.video_info.height)) || 0;
+    if (width > 0 && height > 0) return { width, height };
+    const raw = text(okApiScalar(source.value || source.size || source.resolution || source.dimensions), 80);
+    const match = raw.match(/(\d{2,5})\s*[x×]\s*(\d{2,5})/i);
+    if (match) return { width: Number(match[1]), height: Number(match[2]) };
+  }
+  return { width: 0, height: 0 };
+}
+
 function okApiItem(row, query) {
-  const width = Number(okApiScalar(row.width || row.video_width || row.dimensions && row.dimensions.width || row.initial_dimensions && row.initial_dimensions.width)) || 0;
-  const height = Number(okApiScalar(row.height || row.video_height || row.dimensions && row.dimensions.height || row.initial_dimensions && row.initial_dimensions.height)) || 0;
+  const dimensions = okApiDimensions(row);
+  const width = dimensions.width;
+  const height = dimensions.height;
   const id = okApiId(row.id || row.videoId || row.video_id || row.content_id || row.contentId || row.movieId || row.movie_id || row.ref);
   const permalink = text(okApiScalar(row.permalink || row.sourceUrl || row.source_url || row.url || row.videoUrl), 1400);
   const blocked = okApiScalar(row.blocked);

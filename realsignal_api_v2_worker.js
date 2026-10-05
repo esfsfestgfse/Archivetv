@@ -14,7 +14,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "5.5.33-cleanup-sweep";
+const V3_RELEASE = "5.5.34-external-source-pilot";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -1879,7 +1879,22 @@ function sourceProviderKey(value) {
   const normalized = String(value || "").toLowerCase();
   if (normalized.includes("youtube")) return "youtube";
   if (normalized.includes("peertube")) return "peertube";
+  if (normalized.includes("vimeo")) return "vimeo";
+  if (normalized.includes("ok.ru") || normalized === "ok" || normalized.includes("odnoklassniki")) return "ok";
   return normalized.replace(/[^a-z0-9._-]+/g, "-").slice(0, 40) || "unknown";
+}
+
+function sourceProviderAvailability(env, items = [], disabled = [], cooldownProviders = []) {
+  const present = sourceProvidersFromItems(Array.isArray(items) ? items : []);
+  const blocked = new Set((Array.isArray(disabled) ? disabled : []).concat(Array.isArray(cooldownProviders) ? cooldownProviders : []).map((value) => sourceProviderKey(value)));
+  const okConfigured = Boolean(env && env.OK_TAG_CONTENTS_URL && env.OK_APPLICATION_KEY && env.OK_ACCESS_TOKEN && env.OK_API_SIG);
+  const configured = {
+    youtube: Boolean(env && env.YOUTUBE_API_KEY),
+    peertube: true,
+    vimeo: Boolean(env && env.VIMEO_ACCESS_TOKEN),
+    ok: okConfigured,
+  };
+  return Object.fromEntries(Object.entries(configured).map(([provider, ready]) => [provider, !blocked.has(provider) && (present.has(provider) || ready)]).concat([['cooldownProviders', Array.from(blocked)] ]));
 }
 
 async function readSourceCooldowns(env, profileKey) {
@@ -1938,7 +1953,7 @@ async function handleSourceStatus(request, env, ctx) {
     ready: items.length,
     catalogDepth: Number(cached && cached.catalogDepth || items.length),
     source,
-    providerAvailability: { youtube: sourceProvidersFromItems(items).has("youtube") || (!items.length && !cooldowns.has("youtube")), peertube: sourceProvidersFromItems(items).has("peertube") || (!items.length && !cooldowns.has("peertube")), cooldownProviders: Array.from(cooldowns) },
+    providerAvailability: sourceProviderAvailability(env, items, [], Array.from(cooldowns)),
     generatedAt: new Date().toISOString(),
   }, 200, { "Cache-Control": "public, max-age=15, stale-while-revalidate=60", "X-RealSignal-Release": V3_RELEASE }, 15);
 }
@@ -2088,7 +2103,7 @@ async function handleSourceCatalog(request, env, ctx, id) {
       fallbackProfiles: profile.fallbackProfiles,
       catalogVersion: "source-server-1",
       source: "d1-family-source-catalog",
-      providerAvailability: { youtube: familyProviders.has("youtube"), peertube: familyProviders.has("peertube"), cooldownProviders: [] },
+      providerAvailability: sourceProviderAvailability(env, familyFallbackItems, []),
       apiVersion,
       release: apiVersion === "v3" ? V3_RELEASE : undefined,
     }, 200, { "Cache-Control": "public, max-age=10, stale-while-revalidate=60", "X-RealSignal-Request": id, "X-RealSignal-Source": "d1-family-source-catalog", "X-RealSignal-Release": apiVersion === "v3" ? V3_RELEASE : "2.2.2" });
@@ -2110,7 +2125,7 @@ async function handleSourceCatalog(request, env, ctx, id) {
     }
     const hydrating = body.refresh === true || cached.items.length < minimumReady;
     if (playedIds.length) rememberFreshness(env, profile.profileKey, playedIds, ctx);
-    return json({ ...cached, profileKey: profile.profileKey, catalogVersion: "source-server-1", source: "d1-source-catalog", hydrating, staleCatalog: hydrating, adaptiveFreshness: true, freshnessLedger: true, providerAvailability: { youtube: !!env.YOUTUBE_API_KEY && !disabledProviders.has("youtube"), peertube: !disabledProviders.has("peertube"), cooldownProviders: Array.from(disabledProviders) }, apiVersion, release: apiVersion === "v3" ? V3_RELEASE : undefined }, 200, { "Cache-Control": "public, max-age=10, stale-while-revalidate=60", "X-RealSignal-Request": id, "X-RealSignal-Source": "d1-source-catalog", "X-RealSignal-Release": apiVersion === "v3" ? V3_RELEASE : "2.2.2" });
+    return json({ ...cached, profileKey: profile.profileKey, catalogVersion: "source-server-1", source: "d1-source-catalog", hydrating, staleCatalog: hydrating, adaptiveFreshness: true, freshnessLedger: true, providerAvailability: sourceProviderAvailability(env, cached.items, Array.from(disabledProviders)), apiVersion, release: apiVersion === "v3" ? V3_RELEASE : undefined }, 200, { "Cache-Control": "public, max-age=10, stale-while-revalidate=60", "X-RealSignal-Request": id, "X-RealSignal-Source": "d1-source-catalog", "X-RealSignal-Release": apiVersion === "v3" ? V3_RELEASE : "2.2.2" });
   }
   const sourcePlan = sourceCatalogTasks(body, env, rotation, { disabledProviders, maintenance });
   const normalized = sourcePlan.profile;
@@ -2181,7 +2196,7 @@ async function handleSourceCatalog(request, env, ctx, id) {
       freshnessLedger: true,
       catalogVersion: "source-server-1",
       source: "server-source-catalog-maintenance",
-      providerAvailability: { youtube: !!env.YOUTUBE_API_KEY && !disabledProviders.has("youtube"), peertube: !disabledProviders.has("peertube"), cooldownProviders: Array.from(disabledProviders) },
+      providerAvailability: sourceProviderAvailability(env, verified, Array.from(disabledProviders)),
       limits: SOURCE_LIMITS,
       apiVersion,
       release: apiVersion === "v3" ? V3_RELEASE : undefined,
@@ -2196,7 +2211,7 @@ async function handleSourceCatalog(request, env, ctx, id) {
   const catalogExhausted = discoveredItems.length > 0 && unseenFirstItems.length === 0;
   const freshFirstItems = catalogExhausted ? discoveredItems : unseenFirstItems;
   if (playedIds.length) rememberFreshness(env, normalized.profileKey, playedIds, ctx);
-  return json({ profileKey: normalized.profileKey, items: freshFirstItems, ready: freshFirstItems.length, candidates: discoveredItems.length, catalogDepth: discoveredItems.length, unseenCatalogItems: unseenFirstItems.length, seenCatalogItems: Math.max(0, discoveredItems.length - unseenFirstItems.length), catalogExhausted, repeatAllowed: catalogExhausted, lanes: first.lanes, hydrating: true, adaptiveFreshness: true, freshnessLedger: true, freshnessExcluded: Math.max(0, discoveredItems.length - unseenFirstItems.length), freshnessWindow: recentCatalogIds(freshnessBody).size, catalogVersion: "source-server-1", source: forceDeepRefresh ? "server-source-catalog-refresh" : "server-source-catalog", providerAvailability: { youtube: !!env.YOUTUBE_API_KEY && !disabledProviders.has("youtube"), peertube: !disabledProviders.has("peertube"), cooldownProviders: Array.from(disabledProviders) }, limits: SOURCE_LIMITS, apiVersion, release: apiVersion === "v3" ? V3_RELEASE : undefined }, freshFirstItems.length ? 200 : 503, { "Cache-Control": "no-store", "X-RealSignal-Request": id, "X-RealSignal-Source": "server-source-catalog", "X-RealSignal-Release": apiVersion === "v3" ? V3_RELEASE : "2.2.2" });
+  return json({ profileKey: normalized.profileKey, items: freshFirstItems, ready: freshFirstItems.length, candidates: discoveredItems.length, catalogDepth: discoveredItems.length, unseenCatalogItems: unseenFirstItems.length, seenCatalogItems: Math.max(0, discoveredItems.length - unseenFirstItems.length), catalogExhausted, repeatAllowed: catalogExhausted, lanes: first.lanes, hydrating: true, adaptiveFreshness: true, freshnessLedger: true, freshnessExcluded: Math.max(0, discoveredItems.length - unseenFirstItems.length), freshnessWindow: recentCatalogIds(freshnessBody).size, catalogVersion: "source-server-1", source: forceDeepRefresh ? "server-source-catalog-refresh" : "server-source-catalog", providerAvailability: sourceProviderAvailability(env, freshFirstItems, Array.from(disabledProviders)), limits: SOURCE_LIMITS, apiVersion, release: apiVersion === "v3" ? V3_RELEASE : undefined }, freshFirstItems.length ? 200 : 503, { "Cache-Control": "no-store", "X-RealSignal-Request": id, "X-RealSignal-Source": "server-source-catalog", "X-RealSignal-Release": apiVersion === "v3" ? V3_RELEASE : "2.2.2" });
 }
 
 const worker = {

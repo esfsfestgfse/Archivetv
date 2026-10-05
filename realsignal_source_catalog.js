@@ -4,7 +4,9 @@
  * provider queries, discovery, television-length filtering, landscape
  * validation, and the normalized item shape returned to every client surface.
  * YouTube uses the optional YOUTUBE_API_KEY Worker secret. PeerTube uses its
- * public API and direct media renditions, never unverifiable embeds.
+ * public API and direct media renditions. Vimeo and OK.ru are opt-in,
+ * server-only adapters that return official platform embeds and never scrape
+ * or download third-party media.
  */
 
 import { SOURCE_PROFILE_REGISTRY } from "./source_suite_profile_registry.js";
@@ -165,7 +167,7 @@ function normalizedProfile(body) {
     youtubeSearchOnMaintenance: approved.youtubeSearchOnMaintenance !== false,
     youtubeChannelDeny: list(approved.youtubeChannelDeny, 24),
     youtubeChannelRequired: list(approved.youtubeChannelRequired, 16),
-    providers: list(approved.providers, 2).map((value) => value.toLowerCase()),
+    providers: list(approved.providers, 4).map((value) => value.toLowerCase()),
   };
 }
 
@@ -178,8 +180,13 @@ function termsMatch(haystack, terms) {
   });
 }
 
-function rightsOkay(rights, provider) {
+function rightsOkay(item, provider) {
+  const rights = text(item && item.rights, 240);
   if (provider === "YouTube") return true;
+  /* Vimeo/OK rows are admitted only when the platform has explicitly exposed
+     the item for embedding in the authenticated response. This is a playback
+     permission check, not a claim that RealSignal owns the media. */
+  if ((provider === "Vimeo" || provider === "OK.ru") && item && item.embedAllowed === true) return true;
   const value = text(rights, 240).toLowerCase();
   return !!value && !/(?:unknown|all rights reserved)/i.test(value) && /(?:creative commons|public domain|no known copyright|no known restriction|attribution|free culture|unlicense|government work|copyright free|royalty[- ]free|open publication|free art|cc[- ]?(?:by|0|nc|sa))/i.test(value);
 }
@@ -217,8 +224,8 @@ function accepted(profile, item, provider, checkAspect = true) {
   }
   if (/(?:#?shorts?\b|vertical\s+video|how[ -]+to|tutorial|reaction|trailer|teaser|promo|advertisement|commercial|fan\s+edit|lyrics\s+video)/i.test(haystack)) return false;
   if (profile.deny.some((term) => haystack.includes(text(term, 180).toLowerCase()))) return false;
-  if (!rightsOkay(item.rights, source)) return false;
-  if (source === "YouTube" && !englishOkay(item)) return false;
+  if (!rightsOkay(item, source)) return false;
+  if (["YouTube", "Vimeo", "OK.ru"].includes(source) && !englishOkay(item)) return false;
   /* A channel seed is only a starting point. Re-check the returned channel
      identity so an approved handle cannot silently turn into a fan-upload or
      unrelated mirror later. This is intentionally separate from video-topic
@@ -265,6 +272,7 @@ function normalized(item, provider, query) {
     duration: Number(item.duration) || 0,
     aspectRatio: aspectRatio(item),
     embedded: item.type === "embed",
+    embedAllowed: item.embedAllowed === true,
   };
 }
 
@@ -618,16 +626,159 @@ async function peerTube(profile, rotation, env, options = {}) {
   return { provider: "PeerTube", items: unique(detailed.filter(Boolean)).slice(0, firstLane ? 8 : SOURCE_MAX_ITEMS), health: { searched: searchedJobs, candidates: raw.length, details: detailed.filter(Boolean).length, instances: firstLane ? Math.min(1, instances.length) : instances.length, firstLane } };
 }
 
+async function vimeo(profile, rotation, env, options = {}) {
+  const firstLane = options.firstLane === true;
+  const token = text(env && env.VIMEO_ACCESS_TOKEN, 240);
+  const queries = rotate(profile.queries, rotation).slice(0, firstLane ? 1 : (profile.queryWindow || SOURCE_QUERY_WINDOW));
+  if (!token || !queries.length) return { provider: "Vimeo", items: [], health: { skipped: !token, reason: token ? "no approved queries" : "VIMEO_ACCESS_TOKEN not configured", queries: 0 } };
+  const jobs = queries.map((query) => async () => {
+    const params = new URLSearchParams({ query, per_page: firstLane ? "8" : "25", sort: Number(rotation || 0) % 2 ? "date" : "relevant", direction: "desc" });
+    const data = await fetchJson("https://api.vimeo.com/videos?" + params, {
+      headers: { Authorization: `bearer ${token}`, Accept: "application/vnd.vimeo.*+json;version=3.4" },
+    });
+    return (Array.isArray(data && data.data) ? data.data : []).map((item) => {
+      const uri = text(item && item.uri, 120);
+      const id = text(uri.match(/(?:videos\/)?(\d+)/i)?.[1] || item && item.id, 120);
+      const width = Number(item && item.width) || 0;
+      const height = Number(item && item.height) || 0;
+      const embedUrl = text(item && item.player_embed_url, 1400) || (id ? `https://player.vimeo.com/video/${id}` : "");
+      return id ? {
+        id: `vimeo:${id}`,
+        title: text(item && item.name, 500),
+        description: text(item && item.description, 1800),
+        tags: text(Array.isArray(item && item.tags) ? item.tags.map((tag) => tag && (tag.name || tag)).join(" ") : item && item.tags, 600),
+        category: text(item && item.categories && item.categories[0] && item.categories[0].name, 120),
+        account: text(item && item.user && item.user.name, 180),
+        language: text(item && (item.language || item.default_language), 40),
+        year: text(item && item.created_time, 12),
+        rights: text(item && (item.license || item.license_name), 240),
+        duration: Number(item && item.duration) || 0,
+        aspectRatio: width > 0 && height > 0 ? width / height : 0,
+        type: "embed",
+        url: embedUrl,
+        embedUrl,
+        sourceUrl: text(item && item.link, 1400) || `https://vimeo.com/${id}`,
+        embedAllowed: Boolean(embedUrl && (item && (item.player_embed_url || item.embed))),
+        query,
+      } : null;
+    }).filter(Boolean);
+  });
+  const responses = await mapLimit(jobs, 2, async (job) => {
+    try { return { items: await job(), error: "" }; }
+    catch (error) { return { items: [], error: text(error && (error.providerDetail || error.message), 180) || "Vimeo request failed" }; }
+  });
+  const candidates = unique(responses.flatMap((response) => response.items || []));
+  const items = candidates.filter((item) => accepted(profile, item, "Vimeo"));
+  return {
+    provider: "Vimeo",
+    items: items.slice(0, firstLane ? 8 : SOURCE_MAX_ITEMS).map((item) => normalized(item, "Vimeo", item.query)),
+    health: { searched: queries.length, candidates: candidates.length, details: items.length, errors: responses.map((response) => response.error).filter(Boolean).slice(0, 8), firstLane },
+  };
+}
+
+function okOfficialEndpoint(env) {
+  const configured = text(env && env.OK_TAG_CONTENTS_URL, 1000) || "https://api.ok.ru/fb.do";
+  try {
+    const url = new URL(configured);
+    if (url.protocol !== "https:" || url.hostname !== "api.ok.ru") return "";
+    return url.toString();
+  } catch (_) { return ""; }
+}
+
+function okVideoRows(payload) {
+  const rows = [];
+  const add = (value) => {
+    if (Array.isArray(value)) value.forEach(add);
+    else if (value && typeof value === "object") rows.push(value);
+  };
+  add(payload && payload.videos);
+  add(payload && payload.video);
+  add(payload && payload.media_topics);
+  add(payload && payload.media_topic);
+  add(payload && payload.items);
+  return rows.flatMap((row) => {
+    const nested = row.video || row.media && row.media.video || row.content && row.content.video;
+    return nested && typeof nested === "object" ? [nested] : [row];
+  });
+}
+
+async function okRu(profile, rotation, env, options = {}) {
+  const firstLane = options.firstLane === true;
+  const endpoint = okOfficialEndpoint(env);
+  const applicationKey = text(env && env.OK_APPLICATION_KEY, 240);
+  const accessToken = text(env && env.OK_ACCESS_TOKEN, 500);
+  const signature = text(env && env.OK_API_SIG, 500);
+  const queries = rotate(profile.queries, rotation).slice(0, firstLane ? 1 : (profile.queryWindow || SOURCE_QUERY_WINDOW));
+  if (!endpoint || !applicationKey || !accessToken || !signature || !queries.length) {
+    return { provider: "OK.ru", items: [], health: { skipped: true, reason: "OK authenticated session is not configured", queries: 0 } };
+  }
+  const responses = await mapLimit(queries, 2, async (query) => {
+    const params = new URLSearchParams({
+      method: "search.tagContents",
+      application_key: applicationKey,
+      access_token: accessToken,
+      sig: signature,
+      format: "json",
+      query,
+      filter: "USER_VIDEO,GROUP_VIDEO",
+      count: firstLane ? "8" : "25",
+      fields: "video.id,video.url_provider,video.url_mp4,video.duration,video.title,video.description,video.width,video.height,video.language",
+    });
+    try {
+      const data = await fetchJson(endpoint, { method: "POST", headers: { Accept: "application/json", "Content-Type": "application/x-www-form-urlencoded" }, body: params.toString() });
+      const items = okVideoRows(data).map((item) => {
+        const id = text(item && (item.id || item.video_id || item.videoId), 120);
+        const providerUrl = text(item && (item.url_provider || item.url || item.link), 1400);
+        const embedUrl = text(item && (item.embed_url || item.url_embed), 1400) || (id ? `https://ok.ru/videoembed/${id}` : "");
+        const width = Number(item && item.width) || 0;
+        const height = Number(item && item.height) || 0;
+        return id ? {
+          id: `ok:${id}`,
+          title: text(item && (item.title || item.name), 500),
+          description: text(item && (item.description || item.text), 1800),
+          tags: text(item && (item.tags || item.hashtags), 600),
+          category: text(item && item.category, 120),
+          account: text(item && (item.owner_name || item.author_name), 180),
+          language: text(item && item.language, 40),
+          rights: text(item && (item.license || item.rights), 240),
+          duration: Number(item && (item.duration || item.duration_sec)) || 0,
+          aspectRatio: width > 0 && height > 0 ? width / height : 0,
+          type: "embed",
+          url: embedUrl,
+          embedUrl,
+          sourceUrl: providerUrl || `https://ok.ru/video/${id}`,
+          embedAllowed: Boolean(embedUrl || providerUrl),
+          query,
+        } : null;
+      }).filter(Boolean);
+      return { query, items, error: "" };
+    } catch (error) {
+      return { query, items: [], error: text(error && (error.providerDetail || error.message), 180) || "OK.ru request failed" };
+    }
+  });
+  const candidates = unique(responses.flatMap((response) => response.items || []));
+  const items = candidates.filter((item) => accepted(profile, item, "OK.ru"));
+  return {
+    provider: "OK.ru",
+    items: items.slice(0, firstLane ? 8 : SOURCE_MAX_ITEMS).map((item) => normalized(item, "OK.ru", item.query)),
+    health: { searched: queries.length, candidates: candidates.length, details: items.length, errors: responses.map((response) => response.error).filter(Boolean).slice(0, 8), firstLane },
+  };
+}
+
 function providers(profile, rotation, env, options = {}) {
   const disabled = new Set((options.disabledProviders instanceof Set ? Array.from(options.disabledProviders) : (Array.isArray(options.disabledProviders) ? options.disabledProviders : []))
     .map((value) => String(value || "").toLowerCase()));
   return profile.providers
     .filter((provider) => !disabled.has(String(provider).toLowerCase()))
     .map((provider) => {
-      const label = provider === "youtube" ? "YouTube" : "PeerTube";
+      const label = provider === "youtube" ? "YouTube" : provider === "peertube" ? "PeerTube" : provider === "vimeo" ? "Vimeo" : provider === "ok" ? "OK.ru" : provider;
       const startedAt = Date.now();
       const task = Promise.resolve()
-        .then(() => provider === "youtube" ? youtube(profile, rotation, env, options) : peerTube(profile, rotation, env, options));
+        .then(() => provider === "youtube" ? youtube(profile, rotation, env, options)
+          : provider === "peertube" ? peerTube(profile, rotation, env, options)
+          : provider === "vimeo" ? vimeo(profile, rotation, env, options)
+          : provider === "ok" ? okRu(profile, rotation, env, options)
+          : { provider: label, items: [], health: { skipped: true, reason: "unsupported provider" } });
       return Promise.resolve()
         .then(() => options.maintenance === true ? withTimeout(task, 12_000) : withTimeout(task, SOURCE_PROVIDER_BUDGET_MS))
         .then((lane) => ({

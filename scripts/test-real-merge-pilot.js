@@ -20,7 +20,7 @@ for (const file of files) {
   const source = fs.readFileSync(path.join(root, file), 'utf8');
   const pilot = source.match(/\{id:"courtroom-tv",canonicalNum:(\d+),label:"([^"]+)",members:\[(\d+),(\d+)\]/);
   const build = source.match(/window\.__ATV_BUILD="([^"]+)"/);
-  expect(file, '5.5.69 OK public sitemap build stamp', build && /^5\.5\.69-(?:desktop|mobile)-ok-public-sitemap-index$/.test(build[1]));
+  expect(file, '5.5.70 OK sitemap parser hardening build stamp', build && /^5\.5\.70-(?:desktop|mobile)-ok-sitemap-parser-hardening$/.test(build[1]));
   expect(file, 'Courtroom pilot declares canonical channel 20', pilot && pilot[1] === '20' && pilot[2] === 'Courtroom TV');
   expect(file, 'Courtroom pilot includes legacy members 20 and 21', pilot && pilot[3] === '20' && pilot[4] === '21');
   expect(file, 'legacy tune resolves through canonicalTuneNum', source.includes('canonicalTuneNum(requestedNum)') && source.includes('REAL_CHANNEL_MERGE_BY_NUM'));

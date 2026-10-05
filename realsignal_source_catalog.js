@@ -49,7 +49,7 @@ const SOURCE_DETAIL_TIMEOUT_MS = 3500;
    unhealthy, and keep it out of the next shelf until its cooldown expires. */
 const SOURCE_PROVIDER_BUDGET_MS = 4500;
 const SOURCE_FIRST_LANE_TIMEOUT_MS = 5000;
-const OK_SITEMAP_MAINTENANCE_TIMEOUT_MS = 25_000;
+const OK_SITEMAP_MAINTENANCE_TIMEOUT_MS = 30_000;
 const SOURCE_DEFAULT_INSTANCES = [
   "https://video.blender.org",
   "https://framatube.org",
@@ -280,18 +280,24 @@ function okXmlDecode(value) {
 }
 
 function okSitemapTag(block, tag) {
-  const match = text(block, 30_000).match(new RegExp(`<${tag}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${tag}>`, "i"));
+  const match = String(block || "").match(new RegExp(`<${tag}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${tag}>`, "i"));
   return okXmlDecode(match && match[1] || "");
 }
 
-function okSitemapEntries(xml) {
+function okSitemapEntries(xml, profile) {
   return Array.from(String(xml || "").matchAll(/<url\b[^>]*>([\s\S]*?)<\/url>/gi)).map((match) => {
     const block = match[1] || "";
     const video = block.match(/<video:video\b[^>]*>([\s\S]*?)<\/video:video>/i);
     const videoBlock = video && video[1] || "";
+    const title = okSitemapTag(videoBlock, "video:title");
+    /* Every approved OK profile currently carries title quality markers. They
+       are the user-requested discovery contract, so discard the other 99% of
+       a shard before decoding descriptions, embeds, thumbnails, and dates. */
+    if (profile && Array.isArray(profile.titleRequiredTerms) && profile.titleRequiredTerms.length
+        && !(profile.titleRequiredTerms || []).some((term) => termsMatch(title.toLowerCase(), [term]))) return null;
     return {
       sourceUrl: okSitemapTag(block, "loc"),
-      title: okSitemapTag(videoBlock, "video:title"),
+      title,
       description: okSitemapTag(videoBlock, "video:description"),
       embedUrl: okSitemapTag(videoBlock, "video:player_loc"),
       embedAllowed: /<video:player_loc\b[^>]*allow_embed\s*=\s*["']?yes["']?/i.test(videoBlock),
@@ -299,7 +305,7 @@ function okSitemapEntries(xml) {
       duration: Number(okSitemapTag(videoBlock, "video:duration")) || 0,
       year: okSitemapTag(videoBlock, "video:publication_date"),
     };
-  }).filter((item) => item.sourceUrl && item.title && item.embedUrl);
+  }).filter((item) => item && item.sourceUrl && item.title && item.embedUrl);
 }
 
 function okSitemapShardUrls(xml) {
@@ -365,8 +371,8 @@ async function okSitemap(profile, rotation, env, options = {}) {
   }
   const shardUrl = rotate(shardUrls, rotation)[0];
   if (!shardUrl) return { provider: "OK.ru", items: [], health: { sitemap: true, skipped: true, reason: "no video sitemap shards", firstLane } };
-  const shardXml = await fetchText(shardUrl, { headers: { Accept: "application/xml, text/xml", "User-Agent": "RealSignal-public-catalog/1.0" } }, 20_000);
-  const entries = okSitemapEntries(shardXml);
+  const shardXml = await fetchText(shardUrl, { headers: { Accept: "application/xml, text/xml", "User-Agent": "RealSignal-public-catalog/1.0" } }, 28_000);
+  const entries = okSitemapEntries(shardXml, profile);
   const candidates = entries.map((entry) => {
     const query = okSitemapQuery(profile, entry);
     if (!query) return null;

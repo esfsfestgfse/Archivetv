@@ -23,15 +23,16 @@ const { pathToFileURL } = require("node:url");
 
   const { sourceProfile } = await import(pathToFileURL(path.join(root, "realsignal_source_catalog.js")));
   const expected = {
-    "ok-movie-channel": "ok-manifest",
-    "ok-tv-channel": "ok-manifest",
+    "ok-movie-channel": "ok-api",
+    "ok-tv-channel": "ok-api",
     "vimeo-movie-channel": "vimeo",
     "vimeo-tv-channel": "vimeo",
   };
   for (const [key, provider] of Object.entries(expected)) {
     const profile = sourceProfile({ profileKey: key });
     assert.ok(profile, `${key} must be approved server-side`);
-    assert.deepEqual(profile.providers, [provider], `${key} must stay isolated to its declared source family`);
+    if (key.startsWith("ok-")) assert.deepEqual(profile.providers, ["ok-api", "ok-manifest"], `${key} must retain the public-embed fallback`);
+    else assert.deepEqual(profile.providers, [provider], `${key} must stay isolated to its declared source family`);
     assert.equal(profile.minRuntime || 15 * 60, 15 * 60, `${key} must retain the fifteen-minute floor`);
     assert.ok(profile.deny.includes("shorts"), `${key} must reject Shorts`);
     assert.ok(profile.deny.includes("podcast"), `${key} must reject podcasts`);
@@ -39,10 +40,13 @@ const { pathToFileURL } = require("node:url");
   }
 
   assert.match(catalog, /async function vimeo\(/, "Vimeo adapter is missing");
-  assert.match(catalog, /function okPublicManifest\(/, "OK.ru public-embed manifest adapter is missing");
+  assert.match(catalog, /async function okApi\(/, "OK.ru signed API adapter is missing");
+  assert.match(catalog, /function okPublicManifest\(/, "OK.ru public-embed fallback is missing");
+  assert.match(catalog, /OK_APPLICATION_KEY|OK_APPLICATION_SECRET|OK_ACCESS_TOKEN/, "OK.ru secret bindings are missing");
   assert.match(catalog, /OK_PUBLIC_EMBED_MANIFEST/, "OK.ru public-embed manifest is not wired");
   assert.match(catalog, /Authorization: `bearer \$\{token\}`/, "Vimeo token must be sent as an authorization header");
-  assert.doesNotMatch(catalog, /OK_ACCESS_TOKEN|OK_APPLICATION_KEY|OK_API_SIG|search\.tagContents/, "OK.ru public-embed channels must not require authenticated API search");
+  assert.match(catalog, /search\.tagContents/, "OK.ru API search method is missing");
+  assert.doesNotMatch(catalog, /OK_API_SIG/, "legacy OK API signature binding must not be used");
   assert.match(okManifest, /videoembed\/1570971190743/, "OK.ru manifest must contain its public embed URL");
   assert.match(okManifest, /CC0|public domain/i, "OK.ru manifest must retain a rights note");
   assert.match(api, /providerAvailability: sourceProviderAvailability/, "API responses must expose external provider availability");

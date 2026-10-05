@@ -32,7 +32,7 @@ try {
 
   & $node 'scripts/check-html-syntax.js'
   if ($LASTEXITCODE -ne 0) { throw 'HTML validation failed.' }
-  foreach ($contract in @('check-channel-registry.js', 'check-source-suite-contract.js', 'check-cast-contract.js', 'check-worker-contract.js', 'test-ia-collection-depth.js', 'test-ia-episode-expansion.js', 'test-ia-deep-harvesting.js', 'test-ia-hybrid-lineup.js', 'test-telemetry-lane-policy.js', 'test-hunting-channel-contract.js')) {
+  foreach ($contract in @('check-channel-registry.js', 'check-source-suite-contract.js', 'test-external-source-channels.js', 'check-cast-contract.js', 'check-worker-contract.js', 'test-ia-collection-depth.js', 'test-ia-episode-expansion.js', 'test-ia-deep-harvesting.js', 'test-ia-hybrid-lineup.js', 'test-telemetry-lane-policy.js', 'test-hunting-channel-contract.js')) {
     & $node (Join-Path 'scripts' $contract)
     if ($LASTEXITCODE -ne 0) { throw "Release contract failed: $contract" }
   }

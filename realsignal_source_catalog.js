@@ -6,10 +6,12 @@
  * YouTube uses the optional YOUTUBE_API_KEY Worker secret. PeerTube uses its
  * public API and direct media renditions. Vimeo and OK.ru are opt-in,
  * server-only adapters that return official platform embeds and never scrape
- * or download third-party media.
+ * or download third-party media. OK.ru uses a credential-free, reviewable
+ * public-embed manifest; it does not scrape anonymous search results.
  */
 
 import { SOURCE_PROFILE_REGISTRY } from "./source_suite_profile_registry.js";
+import { OK_PUBLIC_EMBED_MANIFEST } from "./ok_public_embed_catalog.js";
 
 const SOURCE_MIN_RUNTIME = 15 * 60;
 const SOURCE_MIN_ASPECT_RATIO = 1.2;
@@ -676,92 +678,14 @@ async function vimeo(profile, rotation, env, options = {}) {
   };
 }
 
-function okOfficialEndpoint(env) {
-  const configured = text(env && env.OK_TAG_CONTENTS_URL, 1000) || "https://api.ok.ru/fb.do";
-  try {
-    const url = new URL(configured);
-    if (url.protocol !== "https:" || url.hostname !== "api.ok.ru") return "";
-    return url.toString();
-  } catch (_) { return ""; }
-}
-
-function okVideoRows(payload) {
-  const rows = [];
-  const add = (value) => {
-    if (Array.isArray(value)) value.forEach(add);
-    else if (value && typeof value === "object") rows.push(value);
-  };
-  add(payload && payload.videos);
-  add(payload && payload.video);
-  add(payload && payload.media_topics);
-  add(payload && payload.media_topic);
-  add(payload && payload.items);
-  return rows.flatMap((row) => {
-    const nested = row.video || row.media && row.media.video || row.content && row.content.video;
-    return nested && typeof nested === "object" ? [nested] : [row];
-  });
-}
-
-async function okRu(profile, rotation, env, options = {}) {
+function okPublicManifest(profile, rotation, options = {}) {
   const firstLane = options.firstLane === true;
-  const endpoint = okOfficialEndpoint(env);
-  const applicationKey = text(env && env.OK_APPLICATION_KEY, 240);
-  const accessToken = text(env && env.OK_ACCESS_TOKEN, 500);
-  const signature = text(env && env.OK_API_SIG, 500);
-  const queries = rotate(profile.queries, rotation).slice(0, firstLane ? 1 : (profile.queryWindow || SOURCE_QUERY_WINDOW));
-  if (!endpoint || !applicationKey || !accessToken || !signature || !queries.length) {
-    return { provider: "OK.ru", items: [], health: { skipped: true, reason: "OK authenticated session is not configured", queries: 0 } };
-  }
-  const responses = await mapLimit(queries, 2, async (query) => {
-    const params = new URLSearchParams({
-      method: "search.tagContents",
-      application_key: applicationKey,
-      access_token: accessToken,
-      sig: signature,
-      format: "json",
-      query,
-      filter: "USER_VIDEO,GROUP_VIDEO",
-      count: firstLane ? "8" : "25",
-      fields: "video.id,video.url_provider,video.url_mp4,video.duration,video.title,video.description,video.width,video.height,video.language",
-    });
-    try {
-      const data = await fetchJson(endpoint, { method: "POST", headers: { Accept: "application/json", "Content-Type": "application/x-www-form-urlencoded" }, body: params.toString() });
-      const items = okVideoRows(data).map((item) => {
-        const id = text(item && (item.id || item.video_id || item.videoId), 120);
-        const providerUrl = text(item && (item.url_provider || item.url || item.link), 1400);
-        const embedUrl = text(item && (item.embed_url || item.url_embed), 1400) || (id ? `https://ok.ru/videoembed/${id}` : "");
-        const width = Number(item && item.width) || 0;
-        const height = Number(item && item.height) || 0;
-        return id ? {
-          id: `ok:${id}`,
-          title: text(item && (item.title || item.name), 500),
-          description: text(item && (item.description || item.text), 1800),
-          tags: text(item && (item.tags || item.hashtags), 600),
-          category: text(item && item.category, 120),
-          account: text(item && (item.owner_name || item.author_name), 180),
-          language: text(item && item.language, 40),
-          rights: text(item && (item.license || item.rights), 240),
-          duration: Number(item && (item.duration || item.duration_sec)) || 0,
-          aspectRatio: width > 0 && height > 0 ? width / height : 0,
-          type: "embed",
-          url: embedUrl,
-          embedUrl,
-          sourceUrl: providerUrl || `https://ok.ru/video/${id}`,
-          embedAllowed: Boolean(embedUrl || providerUrl),
-          query,
-        } : null;
-      }).filter(Boolean);
-      return { query, items, error: "" };
-    } catch (error) {
-      return { query, items: [], error: text(error && (error.providerDetail || error.message), 180) || "OK.ru request failed" };
-    }
-  });
-  const candidates = unique(responses.flatMap((response) => response.items || []));
-  const items = candidates.filter((item) => accepted(profile, item, "OK.ru"));
+  const candidates = Array.isArray(OK_PUBLIC_EMBED_MANIFEST[profile.profileKey]) ? OK_PUBLIC_EMBED_MANIFEST[profile.profileKey] : [];
+  const items = rotate(unique(candidates), rotation).filter((item) => accepted(profile, item, "OK.ru"));
   return {
     provider: "OK.ru",
     items: items.slice(0, firstLane ? 8 : SOURCE_MAX_ITEMS).map((item) => normalized(item, "OK.ru", item.query)),
-    health: { searched: queries.length, candidates: candidates.length, details: items.length, errors: responses.map((response) => response.error).filter(Boolean).slice(0, 8), firstLane },
+    health: { manifest: true, searched: 0, candidates: candidates.length, details: items.length, errors: [], firstLane, constrained: items.length < SOURCE_MIN_READY },
   };
 }
 
@@ -771,13 +695,13 @@ function providers(profile, rotation, env, options = {}) {
   return profile.providers
     .filter((provider) => !disabled.has(String(provider).toLowerCase()))
     .map((provider) => {
-      const label = provider === "youtube" ? "YouTube" : provider === "peertube" ? "PeerTube" : provider === "vimeo" ? "Vimeo" : provider === "ok" ? "OK.ru" : provider;
+      const label = provider === "youtube" ? "YouTube" : provider === "peertube" ? "PeerTube" : provider === "vimeo" ? "Vimeo" : (provider === "ok" || provider === "ok-manifest") ? "OK.ru" : provider;
       const startedAt = Date.now();
       const task = Promise.resolve()
         .then(() => provider === "youtube" ? youtube(profile, rotation, env, options)
           : provider === "peertube" ? peerTube(profile, rotation, env, options)
           : provider === "vimeo" ? vimeo(profile, rotation, env, options)
-          : provider === "ok" ? okRu(profile, rotation, env, options)
+          : (provider === "ok" || provider === "ok-manifest") ? okPublicManifest(profile, rotation, options)
           : { provider: label, items: [], health: { skipped: true, reason: "unsupported provider" } });
       return Promise.resolve()
         .then(() => options.maintenance === true ? withTimeout(task, 12_000) : withTimeout(task, SOURCE_PROVIDER_BUDGET_MS))

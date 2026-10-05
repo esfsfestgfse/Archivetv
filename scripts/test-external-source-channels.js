@@ -9,6 +9,7 @@ const { pathToFileURL } = require("node:url");
   const desktop = fs.readFileSync(path.join(root, "the_dial_desktop.html"), "utf8");
   const mobile = fs.readFileSync(path.join(root, "the_dial_mobile.html"), "utf8");
   const catalog = fs.readFileSync(path.join(root, "realsignal_source_catalog.js"), "utf8");
+  const okManifest = fs.readFileSync(path.join(root, "ok_public_embed_catalog.js"), "utf8");
   const api = fs.readFileSync(path.join(root, "realsignal_api_v2_worker.js"), "utf8");
   const keys = ["ok-movie-channel", "ok-tv-channel", "vimeo-movie-channel", "vimeo-tv-channel"];
   const channels = ["OK Movie Channel", "OK TV Channel", "Vimeo Movie Channel", "Vimeo TV Channel"];
@@ -22,8 +23,8 @@ const { pathToFileURL } = require("node:url");
 
   const { sourceProfile } = await import(pathToFileURL(path.join(root, "realsignal_source_catalog.js")));
   const expected = {
-    "ok-movie-channel": "ok",
-    "ok-tv-channel": "ok",
+    "ok-movie-channel": "ok-manifest",
+    "ok-tv-channel": "ok-manifest",
     "vimeo-movie-channel": "vimeo",
     "vimeo-tv-channel": "vimeo",
   };
@@ -38,11 +39,12 @@ const { pathToFileURL } = require("node:url");
   }
 
   assert.match(catalog, /async function vimeo\(/, "Vimeo adapter is missing");
-  assert.match(catalog, /async function okRu\(/, "OK.ru adapter is missing");
+  assert.match(catalog, /function okPublicManifest\(/, "OK.ru public-embed manifest adapter is missing");
+  assert.match(catalog, /OK_PUBLIC_EMBED_MANIFEST/, "OK.ru public-embed manifest is not wired");
   assert.match(catalog, /Authorization: `bearer \$\{token\}`/, "Vimeo token must be sent as an authorization header");
-  assert.match(catalog, /method: "POST"/, "OK.ru credentials must be sent in a POST body");
-  assert.match(catalog, /hostname !== "api\.ok\.ru"/, "OK.ru endpoint must be allowlisted");
-  assert.doesNotMatch(catalog, /url\.searchParams\.set\("access_token"/, "OK access tokens must not be placed in URLs");
+  assert.doesNotMatch(catalog, /OK_ACCESS_TOKEN|OK_APPLICATION_KEY|OK_API_SIG|search\.tagContents/, "OK.ru public-embed channels must not require authenticated API search");
+  assert.match(okManifest, /videoembed\/1570971190743/, "OK.ru manifest must contain its public embed URL");
+  assert.match(okManifest, /CC0|public domain/i, "OK.ru manifest must retain a rights note");
   assert.match(api, /providerAvailability: sourceProviderAvailability/, "API responses must expose external provider availability");
   console.log("external source channel contract passed: four isolated channels, server-only credentials, safe provider transport, and shared qualification gates.");
 })().catch((error) => { console.error(error.stack || error); process.exitCode = 1; });

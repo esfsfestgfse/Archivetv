@@ -953,6 +953,7 @@ async function okApi(profile, rotation, env, options = {}) {
   const markerCount = firstLane ? 1 : Math.max(1, Math.floor(queryCount * 0.4));
   const titleCount = titlePool.length ? (firstLane ? 1 : 2) : 0;
   let expandedTags = [];
+  let expandedTitleTags = [];
   /* OK's supported search surface is tag-oriented, not a title index. One
      maintenance-only tag expansion gives broad lanes a chance to discover
      title-specific hashtags without adding a cold-start round trip. The
@@ -965,10 +966,22 @@ async function okApi(profile, rotation, env, options = {}) {
       expandedTags = [];
     }
   }
+  if (!firstLane && titlePool.length) {
+    try {
+      const seed = rotate(titlePool, Number(rotation || 0))[0];
+      expandedTitleTags = await okApiTagQueries(seed, env);
+    } catch (error) {
+      expandedTitleTags = [];
+    }
+  }
   const tagTerms = profile.profileKey === "ok-movie-channel"
     ? [...OK_MOVIE_CONTEXT_TERMS, ...OK_MOVIE_STRONG_TERMS]
     : ["television", "tv", "show", "series", "episode", "sitcom", "drama", "comedy", "western"];
   expandedTags = expandedTags.filter((tag) => termsMatch(text(tag, 180).toLowerCase(), tagTerms)).slice(0, 2);
+  expandedTitleTags = expandedTitleTags.filter((tag) => {
+    const value = text(tag, 180).toLowerCase();
+    return titlePool.some((seed) => termsMatch(value, [seed])) || termsMatch(value, tagTerms);
+  }).slice(0, 2);
   const markerQueries = rotate(pool, rotation).slice(0, markerCount);
   const titleQueries = rotate(titlePool, rotation).slice(0, titleCount).map((query, index) => {
     const qualifier = titleQualifiers.length ? titleQualifiers[(Number(rotation || 0) + index) % titleQualifiers.length] : "";
@@ -978,7 +991,7 @@ async function okApi(profile, rotation, env, options = {}) {
      such as `4k` are useful only as a secondary recall source; they cannot
      crowd out `movie`, `full movie`, or the equivalent television terms. */
   const broadQueries = rotate(broadPool, Number(rotation || 0)).slice(0, queryCount);
-  const queries = Array.from(new Set([...markerQueries, ...titleQueries, ...expandedTags, ...broadQueries]
+  const queries = Array.from(new Set([...markerQueries, ...titleQueries, ...expandedTitleTags, ...expandedTags, ...broadQueries]
     .map((query) => text(query, 180))
     .filter(Boolean))).slice(0, queryCount);
   const jobs = queries.map((query) => async () => {
@@ -1016,6 +1029,7 @@ async function okApi(profile, rotation, env, options = {}) {
       searched: queries.length,
       searchTerms: queries,
       expandedTags: expandedTags.slice(0, 12),
+      expandedTitleTags: expandedTitleTags.slice(0, 12),
       pages: responses.reduce((sum, response) => sum + Number(response.pages || 0), 0),
       candidates: candidates.length,
       details: items.length,

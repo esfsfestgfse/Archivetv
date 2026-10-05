@@ -64,6 +64,7 @@ const { pathToFileURL } = require("node:url");
   assert.match(catalog, /search\.tagContents/, "OK.ru API search method is missing");
   assert.match(catalog, /search\.tagSearch/, "OK.ru tag expansion method is missing");
   assert.match(catalog, /expandedTags/, "OK.ru catalog health must expose tag expansion diagnostics");
+  assert.match(catalog, /expandedTitleTags/, "OK.ru catalog health must expose title-tag expansion diagnostics");
   assert.match(catalog, /candidateSamples/, "OK.ru catalog health must expose bounded rejected-candidate samples");
 assert.match(catalog, /multi-day "movie" is a unit signal/, "OK.ru duration must normalize legacy millisecond-sized generic duration fields");
 assert.match(catalog, /function okAdmissionStats\(/, "OK.ru admission must expose aggregate gate diagnostics for the source health view");

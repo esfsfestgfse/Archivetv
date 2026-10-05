@@ -239,6 +239,20 @@ function okApiRows(data) {
   return rows;
 }
 
+async function okApiTagQueries(seed, env) {
+  const query = text(seed, 180);
+  if (query.length < 3) return [];
+  const data = await okApiCall("search.tagSearch", {
+    query,
+    count: 20,
+    filter: JSON.stringify({ types: OK_API_VIDEO_TYPES }),
+  }, env);
+  const tags = Array.isArray(data && data.tags) ? data.tags : [];
+  return tags
+    .map((tag) => text(okApiScalar(tag && (tag.query || tag.name || tag.tag)), 180))
+    .filter((tag) => tag.length >= 3);
+}
+
 function okApiDimensions(row) {
   const sources = [row, okApiScalar(row && row.dimensions), okApiScalar(row && row.initial_dimensions), okApiScalar(row && row.video_info), okApiScalar(row && row.videoInfo), okApiScalar(row && row.video)];
   for (const source of sources) {
@@ -293,12 +307,13 @@ function normalizedProfile(body) {
   const profileKey = text(body && (body.profileKey || body.channel || body.name), 120).toLowerCase().replace(/[^a-z0-9._:-]+/g, "-");
   const approved = SOURCE_PROFILE_REGISTRY[profileKey];
   if (!approved) return null;
-  const queryLimit = Math.max(SOURCE_MAX_QUERIES, Math.min(16, Number(approved.queryLimit) || SOURCE_MAX_QUERIES));
+  const queryLimit = Math.max(SOURCE_MAX_QUERIES, Math.min(32, Number(approved.queryLimit) || SOURCE_MAX_QUERIES));
   return {
     profileKey,
     name: approved.name,
     queries: list(approved.queries, queryLimit),
     okApiQueries: list(approved.okApiQueries, queryLimit),
+    okApiBroadQueries: list(approved.okApiBroadQueries, queryLimit),
     queryWindow: Math.max(1, Math.min(approved.deepCatalog === true ? 10 : SOURCE_MAX_QUERY_WINDOW, Number(approved.queryWindow) || SOURCE_QUERY_WINDOW)),
     peerTubeQueryWindow: Math.max(1, Math.min(approved.deepCatalog === true ? 10 : SOURCE_MAX_QUERY_WINDOW, Number(approved.peerTubeQueryWindow) || Number(approved.queryWindow) || SOURCE_QUERY_WINDOW)),
     peerTubeInstanceLimit: Math.max(1, Math.min(8, Number(approved.peerTubeInstanceLimit) || 8)),
@@ -908,12 +923,32 @@ async function okApi(profile, rotation, env, options = {}) {
   const firstLane = options.firstLane === true;
   if (!okApiConfig(env)) return { provider: "OK.ru", items: [], health: { api: true, skipped: true, reason: "OK_APPLICATION_KEY, OK_SESSION_KEY or OK_ACCESS_TOKEN, and OK_SESSION_SECRET or OK_APPLICATION_SECRET are not configured" } };
   const pool = Array.isArray(profile.okApiQueries) && profile.okApiQueries.length ? profile.okApiQueries : profile.queries;
+  const broadPool = Array.isArray(profile.okApiBroadQueries) ? profile.okApiBroadQueries : [];
   /* A single cold-start tag was too easy to miss on OK.ru. Keep the fast
      lane bounded, but search three approved terms in parallel so a normal
      viewer request can find a real long-form item without waiting for
      maintenance mode. */
   const queryCount = firstLane ? Math.min(3, Math.max(1, Number(profile.queryWindow) || 3)) : (profile.queryWindow || SOURCE_QUERY_WINDOW);
-  const queries = rotate(pool, rotation).slice(0, queryCount);
+  const markerCount = firstLane ? Math.max(1, queryCount - 1) : Math.max(1, Math.ceil(queryCount * 0.6));
+  const broadCount = Math.max(0, queryCount - markerCount);
+  let expandedTags = [];
+  /* OK's supported search surface is tag-oriented, not a title index. One
+     maintenance-only tag expansion gives broad lanes a chance to discover
+     title-specific hashtags without adding a cold-start round trip. The
+     item-level titleRequiredTerms gate remains the final admission authority. */
+  if (!firstLane && broadPool.length) {
+    try {
+      const seed = rotate(broadPool, Number(rotation || 0) + 1)[0];
+      expandedTags = await okApiTagQueries(seed, env);
+    } catch (error) {
+      expandedTags = [];
+    }
+  }
+  const markerQueries = rotate(pool, rotation).slice(0, markerCount);
+  const broadQueries = rotate(broadPool, Number(rotation || 0) + 1).slice(0, broadCount);
+  const queries = Array.from(new Set([...markerQueries, ...expandedTags, ...broadQueries]
+    .map((query) => text(query, 180))
+    .filter(Boolean))).slice(0, queryCount);
   const jobs = queries.map((query) => async () => {
     const items = [];
     let anchor = "";
@@ -947,6 +982,8 @@ async function okApi(profile, rotation, env, options = {}) {
     health: {
       api: true,
       searched: queries.length,
+      searchTerms: queries,
+      expandedTags: expandedTags.slice(0, 12),
       pages: responses.reduce((sum, response) => sum + Number(response.pages || 0), 0),
       candidates: candidates.length,
       details: items.length,

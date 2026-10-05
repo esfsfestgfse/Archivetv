@@ -46,6 +46,7 @@ const { pathToFileURL } = require("node:url");
     for (const marker of ["4k", "1080p", "bdrip", "blu-ray", "dvd rip", "vhs rip", "yts"]) {
       assert.ok(profile.titleRequiredTerms.includes(marker), `${label} must require ${marker} in the title`);
     }
+    assert.ok(profile.okApiBroadQueries.length >= 12, `${label} must keep a broad OK.ru discovery pool behind its title gate`);
   }
   const movieProfile = titleQualityProfiles[0][1];
   for (const term of ["tv series", "television series", "season", "episode"]) {
@@ -59,6 +60,8 @@ const { pathToFileURL } = require("node:url");
   assert.match(catalog, /OK_PUBLIC_EMBED_MANIFEST/, "OK.ru public-embed manifest is not wired");
   assert.match(catalog, /Authorization: `bearer \$\{token\}`/, "Vimeo token must be sent as an authorization header");
   assert.match(catalog, /search\.tagContents/, "OK.ru API search method is missing");
+  assert.match(catalog, /search\.tagSearch/, "OK.ru tag expansion method is missing");
+  assert.match(catalog, /expandedTags/, "OK.ru catalog health must expose tag expansion diagnostics");
 assert.match(catalog, /multi-day "movie" is a unit signal/, "OK.ru duration must normalize legacy millisecond-sized generic duration fields");
 assert.match(catalog, /function okAdmissionStats\(/, "OK.ru admission must expose aggregate gate diagnostics for the source health view");
 assert.match(catalog, /function okApiDimensions\(/, "OK.ru adapter must read nested landscape dimensions before admitting embeds");

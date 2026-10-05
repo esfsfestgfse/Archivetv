@@ -2127,7 +2127,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   },
   "ok-movie-channel": {
     "name": "OK Movie Channel",
-    "queryLimit": 16,
+    "queryLimit": 32,
     "queryWindow": 10,
      "providers": ["ok-api", "ok-manifest"],
     "intent": "film",
@@ -2137,17 +2137,18 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "movieLane": "modern",
     "deepCatalog": true,
     "okApiQueries": ["yts", "yts.am", "yify", "yts 1080p", "yts bluray", "4k", "2160p", "1080p", "bdrip", "blu-ray", "bluray", "dvdrip", "dvd rip", "vhsrip", "vhs rip", "fullmovie"],
+    "okApiBroadQueries": ["movie", "film", "feature", "cinema", "hollywood", "american movie", "classic movie", "action movie", "western movie", "comedy movie", "drama movie", "horror movie", "thriller movie", "science fiction movie", "english movie", "full length movie"],
     "topics": ["feature film", "full movie", "movie", "film"],
     "formats": ["full movie", "full film", "feature film", "complete movie", "full-length movie"],
     "titleRequiredTerms": ["4k", "2160p", "1080p", "bdrip", "blu-ray", "bluray", "dvd rip", "dvdrip", "vhs rip", "vhsrip", "yts", "yts.am", "yify"],
     "formatRelaxed": true,
     "queries": ["4k full movie", "1080p full movie", "blu-ray movie", "dvd rip movie", "vhs rip movie", "full movie 1980s", "full movie 1990s", "full movie 2000s", "full movie 2010s", "full movie 2020s", "english movie 1080p", "american movie 1080p"],
     "match": ["feature film", "full movie", "full-length movie", "complete movie", "movie", "film"],
-    "deny": ["shorts", "short film", "vertical", "trailer", "teaser", "clip", "recap", "review", "reaction", "podcast", "how to", "tutorial", "fan film", "fan-made", "fan made", "fanmade", "unofficial", "parody", "mashup", "music video", "commercial", "documentary", "film history", "film explained", "lecture", "seminar", "conference", "panel discussion", "tv series", "television series", "season", "episode"]
+    "deny": ["shorts", "short film", "vertical", "trailer", "teaser", "clip", "recap", "review", "reaction", "podcast", "how to", "tutorial", "fan film", "fan-made", "fan made", "fanmade", "fan animation", "unofficial", "parody", "mashup", "amv", "gacha", "roleplay", "my little pony", "pony", "music video", "commercial", "documentary", "film history", "film explained", "lecture", "seminar", "conference", "panel discussion", "tv series", "television series", "season", "episode"]
   },
   "ok-tv-channel": {
     "name": "OK TV Channel",
-    "queryLimit": 16,
+    "queryLimit": 32,
     "queryWindow": 10,
      "providers": ["ok-api", "ok-manifest"],
     "intent": "television",
@@ -2155,13 +2156,14 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "minRuntimeSeconds": 900,
     "deepCatalog": true,
     "okApiQueries": ["yts", "yify", "4k", "2160p", "1080p", "bdrip", "blu-ray", "dvdrip", "dvd rip", "vhsrip", "full episode", "tv series", "english television", "american television", "english series", "sitcom"],
+    "okApiBroadQueries": ["television", "tv show", "tv series", "full episode", "classic television", "classic tv", "american television", "english television", "english series", "sitcom", "drama series", "comedy series", "western television", "crime series", "public domain television", "complete episode"],
     "topics": ["television", "tv", "tv show", "tv series", "show", "episode", "ep", "season", "series", "serial", "sitcom", "drama", "comedy", "program"],
     "formats": ["full episode", "complete episode", "full series", "tv show", "television episode"],
     "formatRelaxed": true,
     "titleRequiredTerms": ["4k", "2160p", "1080p", "bdrip", "blu-ray", "bluray", "dvd rip", "dvdrip", "vhs rip", "vhsrip", "yts", "yts.am", "yify"],
     "queries": ["yts tv show", "yify full episode", "4k tv show", "1080p tv episode", "blu-ray tv series", "dvd rip tv show", "vhs rip television", "english tv show", "english television", "full episode english", "american tv series", "classic english television", "public domain tv", "television 1980s", "television 1990s"],
     "match": ["television", "tv show", "tv series", "show", "full episode", "complete episode", "episode", "ep", "sitcom", "series", "serial", "program"],
-    "deny": ["shorts", "short film", "vertical", "trailer", "teaser", "clip", "recap", "review", "reaction", "podcast", "how to", "tutorial", "fan film", "fan-made", "parody", "music video", "commercial", "cartoon", "gameplay", "lecture", "seminar", "conference", "panel discussion"]
+    "deny": ["shorts", "short film", "vertical", "trailer", "teaser", "clip", "recap", "review", "reaction", "podcast", "how to", "tutorial", "fan film", "fan-made", "fan made", "fanmade", "fan animation", "unofficial", "parody", "mashup", "amv", "gacha", "roleplay", "my little pony", "pony", "music video", "commercial", "cartoon", "gameplay", "lecture", "seminar", "conference", "panel discussion", "full movie", "full film", "feature film", "complete movie", "movie", "cinema", "film", "anime", "donghua", "manhua", "manhwa", "xianxia", "wuxia", "cultivation", "k-drama", "korean drama", "telenovela"]
   },
   "vimeo-movie-channel": {
     "name": "Vimeo Movie Channel",

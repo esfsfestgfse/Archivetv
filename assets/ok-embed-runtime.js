@@ -13,6 +13,10 @@
     if (!profile || String(profile.profileKey || "").indexOf("ok-") !== 0) return true;
     if (!item) return false;
     var title = String(item.title || ""), lower = title.toLowerCase();
+    var tv = profile.intent === "television", reference = String(item.identityReference || "");
+    if (item.language !== "en" || (tv
+      ? !/^https:\/\/www\.tvmaze\.com\/shows\/\d+(?:\/|$)/.test(reference) || !/^tvmaze:\d+$/.test(String(item.seriesId || ""))
+      : !/^https:\/\/www\.wikidata\.org\/wiki\/Q\d+$/.test(reference))) return false;
     var url = String(item.embedUrl || item.url || "");
     if (!/^https:\/\/ok\.ru\/videoembed\/\d+(?:[?#]|$)/i.test(url)) return false;
     if (Number(item.duration || item.runtime) < (profile.intent === "film" ? 3600 : 900)) return false;

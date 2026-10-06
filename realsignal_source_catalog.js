@@ -494,7 +494,7 @@ export async function okTitleSearch(profile, rotation, env, options = {}) {
     const nameOf = item => `${String(item.title).match(/\b(?:19|20)\d{2}\b/)?.[0] || ""}:${okProgramName(item.title, "movie").toLowerCase()}`;
     const identities = new Map(known.filter(item => item.language === "en" && item.identityReference).map(item => [nameOf(item), { language: "en", identityReference: item.identityReference, identityProvider: "Wikidata" }]));
     for (const item of candidates) if (identities.has(nameOf(item))) movieIdentities.set(item.id, identities.get(nameOf(item)));
-    try { const discovered = await okMovieIdentities(candidates.filter(item => !movieIdentities.has(item.id)), url => fetchJson(url, { headers: { "User-Agent": "RealSignal/5.5.73 (catalog metadata; https://github.com/esfsfestgfse/Archivetv)" }, cf: { cacheTtl: 86400, cacheEverything: true } })); for (const [key, identity] of discovered) movieIdentities.set(key, identity); }
+    try { const discovered = await okMovieIdentities(candidates.filter(item => !movieIdentities.has(item.id)), url => fetchJson(url, { headers: { "User-Agent": "RealSignal/5.5.74 (catalog metadata; https://github.com/esfsfestgfse/Archivetv)" }, cf: { cacheTtl: 86400, cacheEverything: true } })); for (const [key, identity] of discovered) movieIdentities.set(key, identity); }
     catch (error) { errors.push(`film identity: ${text(error?.message, 100)}`); }
   }
   const verified = await mapLimit(candidates, 3, async (item) => {
@@ -518,6 +518,15 @@ export async function okTitleSearch(profile, rotation, env, options = {}) {
 // The identical gate is applied to newly discovered items AND old D1 rows.
 export function qualifySourceItem(profile, item) {
   if (!profile || !item) return null;
+  if (/^ok-(?:movie|tv)-channel$/.test(profile.profileKey)) {
+    // Search words and an English-looking title are not language evidence.
+    // Recheck persisted rows too: legacy tag results included foreign animation.
+    const tv = profile.profileKey === "ok-tv-channel";
+    const reference = String(item.identityReference || "");
+    if (item.language !== "en" || (tv
+      ? !/^https:\/\/www\.tvmaze\.com\/shows\/\d+(?:\/|$)/.test(reference) || !/^tvmaze:\d+$/.test(String(item.seriesId || ""))
+      : !/^https:\/\/www\.wikidata\.org\/wiki\/Q\d+$/.test(reference))) return null;
+  }
   const url = text(item.embedUrl || item.media?.url || item.mediaUrl || item.url, 1400);
   const okEmbed = item.provider === "OK.ru" && /^https:\/\/ok\.ru\/videoembed\/\d+(?:[?#]|$)/i.test(url);
   const candidate = okEmbed ? { ...item, type: "embed", url, embedUrl: url, embedAllowed: true } : item;
@@ -1285,7 +1294,7 @@ async function okApi(profile, rotation, env, options = {}) {
 function okPublicManifest(profile, rotation, options = {}) {
   const firstLane = options.firstLane === true;
   const candidates = [...(OK_PUBLIC_EMBED_MANIFEST[profile.profileKey] || []), ...(OK_VERIFIED_SEARCH_SEED[profile.profileKey] || [])];
-  const items = rotate(unique(candidates), rotation).filter((item) => accepted(profile, item, "OK.ru"));
+  const items = rotate(unique(candidates), rotation).map((item) => qualifySourceItem(profile, item)).filter(Boolean);
   return {
     provider: "OK.ru",
     items: items.slice(0, firstLane ? 8 : SOURCE_MAX_ITEMS).map((item) => normalized(item, "OK.ru", item.query)),

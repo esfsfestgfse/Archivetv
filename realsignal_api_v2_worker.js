@@ -8,13 +8,13 @@
 import { SessionRotation } from "./realsignal_api_rotation.js";
 import { EdgeRateLimiter } from "./realsignal_api_rate_limit.js";
 import { RokuSession } from "./realsignal_roku_session.js";
-import { mergeSourceLanes, sourceCatalogTasks, sourceRefreshTasks, sourceProfile, SOURCE_LIMITS } from "./realsignal_source_catalog.js";
+import { mergeSourceLanes, sourceCatalogTasks, sourceRefreshTasks, sourceProfile, qualifySourceItem, SOURCE_LIMITS } from "./realsignal_source_catalog.js";
 import { IA_CANONICAL_PILOT_PROFILES, IA_CANONICAL_SCHEMA_VERSION, canonicalGuide, selectCanonicalItems } from "./ia_canonical_station.mjs";
 import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "5.5.71-ok-tv-content-tightening";
+const V3_RELEASE = "5.5.72-ok-title-search-playback-recovery";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -419,6 +419,8 @@ function compactCatalogItem(item) {
   const id = String(item && (item.identifier || item.id || (item.media && item.media.url)) || "").slice(0, 500);
   if (!id) return null;
   const provider = String(item.provider || item.source || "internet-archive").slice(0, 60);
+  const mediaUrl = String(item.embedUrl || (item.media && item.media.url) || item.url || "").slice(0, 1500);
+  const okEmbed = provider === "OK.ru" && /^https:\/\/ok\.ru\/videoembed\/\d+(?:[?#]|$)/i.test(mediaUrl);
   return {
     id,
     provider,
@@ -433,8 +435,13 @@ function compactCatalogItem(item) {
     duration: Number(item.duration || item.runtime) || null,
     durationUnit: provider === "OK.ru" ? "seconds" : "",
     aspectRatio: Number(item.aspectRatio) || null,
-    mediaType: String((item.media && item.media.type) || item.type || "video").slice(0, 30),
-    mediaUrl: String((item.media && item.media.url) || item.url || "").slice(0, 1500),
+    mediaType: okEmbed ? "embed" : String((item.media && item.media.type) || item.type || "video").slice(0, 30),
+    mediaUrl,
+    embedAllowed: item.embedAllowed === true,
+    language: String(item.language || "").slice(0, 40),
+    seriesTitle: String(item.seriesTitle || "").slice(0, 150),
+    seriesId: String(item.seriesId || "").slice(0, 100),
+    identityReference: String(item.identityReference || "").slice(0, 500),
     sourceUrl: String(item.sourceUrl || "").slice(0, 1500),
     rights: String(item.rights || "").slice(0, 300),
     year: String(item.year || "").slice(0, 20),
@@ -602,7 +609,7 @@ async function upsertCatalogJob(env, job) {
   const now = Date.now();
   const statements = [];
   for (const item of job.items.slice(0, MAX_CATALOG_ITEMS)) {
-    statements.push(env.realsignal_catalog.prepare(`INSERT INTO programs (id, provider, source_identifier, title, description, duration_seconds, aspect_ratio, media_type, media_url, source_url, rights, year, metadata_json, first_seen_at, last_seen_at, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active') ON CONFLICT(id) DO UPDATE SET provider=excluded.provider, source_identifier=excluded.source_identifier, title=excluded.title, description=excluded.description, duration_seconds=excluded.duration_seconds, aspect_ratio=excluded.aspect_ratio, media_type=excluded.media_type, media_url=excluded.media_url, source_url=excluded.source_url, rights=excluded.rights, year=excluded.year, last_seen_at=excluded.last_seen_at, status='active'`).bind(item.id, item.provider, item.sourceIdentifier, item.title, item.description, item.duration, item.aspectRatio, item.mediaType, item.mediaUrl, item.sourceUrl, item.rights, item.year, JSON.stringify(item), now, now));
+    statements.push(env.realsignal_catalog.prepare(`INSERT INTO programs (id, provider, source_identifier, title, description, duration_seconds, aspect_ratio, media_type, media_url, source_url, rights, year, metadata_json, first_seen_at, last_seen_at, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active') ON CONFLICT(id) DO UPDATE SET provider=excluded.provider, source_identifier=excluded.source_identifier, title=excluded.title, description=excluded.description, duration_seconds=excluded.duration_seconds, aspect_ratio=excluded.aspect_ratio, media_type=excluded.media_type, media_url=excluded.media_url, source_url=excluded.source_url, rights=excluded.rights, year=excluded.year, metadata_json=excluded.metadata_json, last_seen_at=excluded.last_seen_at, status='active'`).bind(item.id, item.provider, item.sourceIdentifier, item.title, item.description, item.duration, item.aspectRatio, item.mediaType, item.mediaUrl, item.sourceUrl, item.rights, item.year, JSON.stringify(item), now, now));
     statements.push(env.realsignal_catalog.prepare(`INSERT INTO channel_programs (channel_key, program_id, score, last_seen_at) VALUES (?, ?, ?, ?) ON CONFLICT(channel_key, program_id) DO UPDATE SET score=excluded.score, last_seen_at=excluded.last_seen_at`).bind(job.channelKey, item.id, 0, now));
   }
   if (job.rules) statements.push(env.realsignal_catalog.prepare(`INSERT INTO channel_rules (channel_key, rules_json, updated_at) VALUES (?, ?, ?) ON CONFLICT(channel_key) DO UPDATE SET rules_json=excluded.rules_json, updated_at=excluded.updated_at`).bind(job.channelKey, JSON.stringify(job.rules), now));
@@ -673,6 +680,9 @@ function rotateCatalogItems(items, rotation) {
 }
 
 function catalogFallbackAllowed(item, body) {
+  if (body && body.sourceCatalog === true && /^ok-(?:movie|tv)-channel$/.test(String(body.channel || ""))) {
+    return !!qualifySourceItem(sourceProfile({ profileKey: body.channel }), item);
+  }
   const title = String(item && item.title || "").toLowerCase();
   const description = String(item && item.description || "").toLowerCase();
   const subject = String(item && (item.subject || item.subjects) || "").toLowerCase();
@@ -1230,7 +1240,8 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
        to explicit mediaUrl/media_url fields from the catalog row; discovery
        and URL guessing still stay out of the request path. */
     const mediaUrl = String(row.media_url || metadata.mediaUrl || metadata.media_url || "").trim();
-    const mediaType = row.media_type || metadata.mediaType || metadata.media_type || "video";
+    const mediaType = row.provider === "OK.ru" && /^https:\/\/ok\.ru\/videoembed\/\d+(?:[?#]|$)/i.test(mediaUrl)
+      ? "embed" : row.media_type || metadata.mediaType || metadata.media_type || "video";
     const sourceUrl = row.source_url || metadata.sourceUrl || metadata.source_url || "";
     const provider = String(row.provider || metadata.provider || "").trim();
     const storedDuration = Number(row.duration_seconds || metadata.duration || metadata.runtime) || 0;
@@ -1255,6 +1266,9 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
       genreVerified: metadata.genreVerified === true,
       recoveryVerified: metadata.recoveryVerified === true,
       language: metadata.language || metadata.defaultAudioLanguage || metadata.defaultLanguage || "",
+      seriesTitle: metadata.seriesTitle || "",
+      seriesId: metadata.seriesId || "",
+      identityReference: metadata.identityReference || "",
       provider,
       year: row.year || "",
       duration: duration || null,
@@ -1991,7 +2005,15 @@ async function persistSourceHealth(env, profile, lanes) {
   if (!env.realsignal_catalog || typeof env.realsignal_catalog.batch !== "function") return;
   const now = Date.now();
   const statements = [];
+  const grouped = new Map();
   for (const lane of Array.isArray(lanes) ? lanes : []) {
+    const key = sourceProviderKey(lane && lane.provider);
+    const prior = grouped.get(key);
+    // Search, API and sitemap are rails of ONE provider. An optional rail
+    // failure cannot quarantine a provider whose other rail just succeeded.
+    if (!prior || (lane.items || []).length || !(prior.items || []).length && prior.health?.error) grouped.set(key, lane);
+  }
+  for (const lane of grouped.values()) {
     const provider = sourceProviderKey(lane && lane.provider);
     if (provider === "unknown") continue;
     const health = lane && lane.health && typeof lane.health === "object" ? lane.health : {};
@@ -2148,7 +2170,7 @@ async function handleSourceCatalog(request, env, ctx, id) {
      503. If a verified shelf exists, serve it immediately and let the source
      adapters replace it in the background. */
   if (!maintenance && cached && Array.isArray(cached.items) && (cached.items.length >= staleReady || hasFreshFallback) && !forceDeepRefresh) {
-    if (cached.items.length < minimumReady) {
+    if (cached.items.length < minimumReady || profile.profileKey.startsWith("ok-") && body.refresh === true) {
       const normalized = sourceProfile(body);
       const tasks = sourceRefreshTasks(body, env, rotation, { disabledProviders });
       scheduleSourceRefresh(env, ctx, normalized, tasks, id);
@@ -2157,13 +2179,15 @@ async function handleSourceCatalog(request, env, ctx, id) {
     if (playedIds.length) rememberFreshness(env, profile.profileKey, playedIds, ctx);
     return json({ ...cached, profileKey: profile.profileKey, catalogVersion: "source-server-1", source: "d1-source-catalog", hydrating, staleCatalog: hydrating, adaptiveFreshness: true, freshnessLedger: true, providerAvailability: sourceProviderAvailability(env, cached.items, Array.from(disabledProviders)), apiVersion, release: apiVersion === "v3" ? V3_RELEASE : undefined }, 200, { "Cache-Control": "public, max-age=10, stale-while-revalidate=60", "X-RealSignal-Request": id, "X-RealSignal-Source": "d1-source-catalog", "X-RealSignal-Release": apiVersion === "v3" ? V3_RELEASE : "2.2.2" });
   }
-  const sourcePlan = sourceCatalogTasks(body, env, rotation, { disabledProviders, maintenance });
+  const sourcePlan = sourceCatalogTasks(body, env, rotation, { disabledProviders, maintenance, firstLane: !maintenance });
   const normalized = sourcePlan.profile;
   const tasks = sourcePlan.tasks;
-  const firstLaneTasks = sourceCatalogTasks(body, env, rotation, { disabledProviders, firstLane: true, maintenance }).tasks;
+  const firstLaneTasks = tasks;
   let firstTimer;
   let first;
-  if (forceDeepRefresh) {
+  if (maintenance) {
+    first = { items: [], lanes: [] }; // The full plan is awaited exactly once below.
+  } else if (forceDeepRefresh) {
     /* This request was launched by the already-playing client as a background
        refill. Return the first verified provider lane within the same bounded
        window as a cold start; the full provider union continues in the
@@ -2182,8 +2206,10 @@ async function handleSourceCatalog(request, env, ctx, id) {
       }),
     ]).finally(() => clearTimeout(firstTimer));
   }
-  const refreshTasks = sourceRefreshTasks(body, env, rotation, { disabledProviders, maintenance });
-  scheduleSourceRefresh(env, ctx, normalized, refreshTasks, id, forceDeepRefresh);
+  if (!maintenance) {
+    const refreshTasks = sourceRefreshTasks(body, env, rotation, { disabledProviders });
+    scheduleSourceRefresh(env, ctx, normalized, refreshTasks, id, forceDeepRefresh);
+  }
   if (body.maintenance === true) {
     /* The normal path above deliberately returns the first verified lane so a
        viewer never waits on both providers. A maintenance refresh is the

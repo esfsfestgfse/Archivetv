@@ -129,7 +129,7 @@ for (const file of files) {
   const name = file;
   const required = [
     [/V2_SOURCE_CACHE_VERSION=(?:4[1-9]|5[0-9])/, 'source catalog cache version must invalidate strict-catalog shelves'],
-    [/retainedItems=Array\.isArray\(cached&&cached\.items\)\?cached\.items\.filter/, 'previously verified source items must survive provider outages after requalification'],
+    [/retainedItems=Array\.isArray\(cached&&cached\.items\)\?cached\.items[^\n]{0,250}\.filter/, 'previously verified source items must survive provider outages after requalification'],
     [/cacheValid=!!cached&&Number\(cached\.version\|\|0\)===V2_SOURCE_CACHE_VERSION/, 'only a current source catalog cache may be treated as fresh'],
     [/item\.account,item\.channelTitle/, 'YouTube language screening must inspect channel identity'],
     [/V2_SOURCE_CACHE_TTL=12\*60\*1000/, 'source catalog cache must expire quickly enough to rotate'],
@@ -142,7 +142,7 @@ for (const file of files) {
     [/function v2Verified\(/, 'items must carry a common verification envelope'],
     [/V2_SOURCE_MIN_RUNTIME=15\*60/, 'Source Suite programming must require television-length programs'],
     [/function v2ProgramRuntimeOkay\(/, 'every source item must pass the shared television-runtime gate'],
-    [/merged\.filter\(function\(item\)\{return v2Landscape\(item\)&&v2ProfileRuntimeOkay\(item,profile\);\}\)/, 'the final source catalog merge must re-enforce the profile-specific runtime floor'],
+    [/merged[^\n]+\.filter\(function\(item\)\{return [^;]*v2Landscape\(item\)&&v2ProfileRuntimeOkay\(item,profile\);\}\)/, 'the final source catalog merge must re-enforce the profile-specific runtime floor'],
     [/!v2Landscape\(item\)\|\|!v2ProgramRuntimeOkay\(item\)/, 'runtime qualification must be enforced at verification time'],
     [/Number\(data\.info\)===0\)advance\(\)/, 'YouTube embeds must advance immediately on their ended signal'],
     [/function v2SourceHealth\(/, 'provider health must be persisted'],

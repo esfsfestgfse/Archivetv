@@ -13,6 +13,8 @@
  */
 
 import { createHash } from "node:crypto";
+import { okSearchRows, okEmbedMetadata, okTitleSearchQueries, okPublicSearchUrl, okProgramIdentity, okProgramName, okMovieIdentities, okBalancedCandidates } from "./ok_public_search.js";
+import { OK_VERIFIED_SEARCH_SEED } from "./ok_verified_search_seed.js";
 import { SOURCE_PROFILE_REGISTRY } from "./source_suite_profile_registry.js";
 import { OK_PUBLIC_EMBED_MANIFEST } from "./ok_public_embed_catalog.js";
 
@@ -389,6 +391,8 @@ async function okSitemap(profile, rotation, env, options = {}) {
       sourceUrl: entry.sourceUrl,
       thumbnailUrl: entry.thumbnailUrl,
       embedAllowed: entry.embedAllowed === true,
+      type: "embed",
+      rights: "OK.ru public embed; playback remains subject to provider availability",
       query,
     } : null;
   }).filter(Boolean).filter((item) => accepted(profile, { ...item, aspectRatio: 16 / 9 }, "OK.ru", false));
@@ -396,7 +400,8 @@ async function okSitemap(profile, rotation, env, options = {}) {
   const known = knownDimensions
     .filter(({ dimensions }) => dimensions.width > 0 && dimensions.height > 0)
     .map(({ item, dimensions }) => ({ ...item, ...dimensions, aspectRatio: dimensions.width / dimensions.height }))
-    .filter((item) => accepted(profile, item, "OK.ru"));
+    .filter((item) => accepted(profile, item, "OK.ru"))
+    .map((item) => normalized(item, "OK.ru", item.query));
   const unknown = knownDimensions.filter(({ dimensions }) => !(dimensions.width > 0 && dimensions.height > 0)).map(({ item }) => item);
   const details = await mapLimit(unknown.slice(0, 6), 2, async (item) => {
     try {
@@ -463,6 +468,62 @@ function okApiItem(row, query) {
   };
 }
 
+export async function okTitleSearch(profile, rotation, env, options = {}) {
+  const firstLane = options.firstLane === true;
+  const queries = okTitleSearchQueries(profile, rotation).slice(0, firstLane ? 2 : 4);
+  const errors = [];
+  const pages = await mapLimit(queries, 2, async (query) => {
+    try {
+      const html = await fetchText(okPublicSearchUrl(query), { headers: { Accept: "text/html" } }, 6000);
+      return okSearchRows(html).map((row) => okApiItem(row, query)).filter(Boolean);
+    } catch (error) { errors.push(text(error && error.message, 120)); return []; }
+  });
+  const kind = profile.profileKey === "ok-tv-channel" ? "tv" : "movie";
+  const candidates = okBalancedCandidates(pages.map(page => page.filter(item => accepted(profile, item, "OK.ru"))), kind, firstLane ? 12 : 36);
+  const identityCache = new Map();
+  let movieIdentities = new Map();
+  if (kind === "movie") {
+    // An identity lookup can delay NEW discoveries, never erase a known shelf.
+    const known = [...(OK_VERIFIED_SEARCH_SEED[profile.profileKey] || [])];
+    if (env.realsignal_catalog) {
+      try {
+        const stored = await env.realsignal_catalog.prepare("SELECT metadata_json FROM programs WHERE provider=? AND status='active' ORDER BY last_seen_at DESC LIMIT 256").bind("OK.ru").all();
+        for (const row of stored.results || []) { try { known.push(JSON.parse(row.metadata_json)); } catch (_) {} }
+      } catch (_) { /* bootstrap identities remain available */ }
+    }
+    const nameOf = item => `${String(item.title).match(/\b(?:19|20)\d{2}\b/)?.[0] || ""}:${okProgramName(item.title, "movie").toLowerCase()}`;
+    const identities = new Map(known.filter(item => item.language === "en" && item.identityReference).map(item => [nameOf(item), { language: "en", identityReference: item.identityReference, identityProvider: "Wikidata" }]));
+    for (const item of candidates) if (identities.has(nameOf(item))) movieIdentities.set(item.id, identities.get(nameOf(item)));
+    try { const discovered = await okMovieIdentities(candidates.filter(item => !movieIdentities.has(item.id)), url => fetchJson(url, { headers: { "User-Agent": "RealSignal/5.5.72 (catalog metadata; https://github.com/esfsfestgfse/Archivetv)" }, cf: { cacheTtl: 86400, cacheEverything: true } })); for (const [key, identity] of discovered) movieIdentities.set(key, identity); }
+    catch (error) { errors.push(`film identity: ${text(error?.message, 100)}`); }
+  }
+  const verified = await mapLimit(candidates, 3, async (item) => {
+    try {
+      const identity = kind === "tv" ? await okProgramIdentity(item, "tv", (url) => fetchJson(url, {}, 6000), identityCache) : movieIdentities.get(item.id);
+      if (!identity) return null;
+      const html = await fetchText(item.embedUrl, { headers: { Accept: "text/html" } }, 6000);
+      const metadata = okEmbedMetadata(html, item.rawId);
+      if (!metadata) return null;
+      const hydrated = { ...item, ...metadata, ...identity, id: item.id };
+      return accepted(profile, hydrated, "OK.ru") ? normalized(hydrated, "OK.ru", item.query) : null;
+    } catch (_) { return null; }
+  });
+  return { provider: "OK.ru", items: verified.filter(Boolean), health: {
+    titleSearch: true, queries, candidates: candidates.length,
+    verifiedEmbeds: verified.filter(Boolean).length, errors, firstLane,
+    ...(errors.length === queries.length ? { error: "public title search unavailable" } : {}),
+  } };
+}
+
+// The identical gate is applied to newly discovered items AND old D1 rows.
+export function qualifySourceItem(profile, item) {
+  if (!profile || !item) return null;
+  const url = text(item.embedUrl || item.media?.url || item.mediaUrl || item.url, 1400);
+  const okEmbed = item.provider === "OK.ru" && /^https:\/\/ok\.ru\/videoembed\/\d+(?:[?#]|$)/i.test(url);
+  const candidate = okEmbed ? { ...item, type: "embed", url, embedUrl: url, embedAllowed: true } : item;
+  return accepted(profile, candidate, candidate.provider) ? normalized(candidate, candidate.provider, candidate.query) : null;
+}
+
 function normalizedProfile(body) {
   const profileKey = text(body && (body.profileKey || body.channel || body.name), 120).toLowerCase().replace(/[^a-z0-9._:-]+/g, "-");
   const approved = SOURCE_PROFILE_REGISTRY[profileKey];
@@ -483,7 +544,7 @@ function normalizedProfile(body) {
     peerTubeFallbackQueryWindow: Math.max(1, Math.min(approved.deepCatalog === true ? 10 : SOURCE_MAX_QUERY_WINDOW, Number(approved.peerTubeFallbackQueryWindow) || SOURCE_QUERY_WINDOW)),
     deepCatalog: approved.deepCatalog === true,
     match: list(approved.match, 40),
-    deny: list(approved.deny, 48),
+    deny: list(approved.deny, 96),
     intent: text(approved.intent, 40).toLowerCase(),
     topics: list(approved.topics, 32),
     strictTopicTerms: list(approved.strictTopicTerms, 16),
@@ -543,6 +604,10 @@ function englishOkay(item) {
   if (declared && !/^en(?:[-_]|$)/i.test(declared)) return false;
   const sample = text([item && item.title, item && item.description, item && item.account].join(" "), 3000);
   if (/[\u0400-\u04ff\u0600-\u06ff\u0900-\u097f\u1100-\u11ff\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af\u0590-\u05ff\u0e00-\u0e7f]/.test(sample)) return false;
+  if (/(?:[._ -](?:FRENCH|GERMAN|PORTUGUESE|SPANISH|ITALIAN|LATINO|CASTELLANO|HINDI|CHINESE)[._ -]|\bes-ES\b|\besp\b|\bsubbed\b|\bdonghua\b)/i.test(sample)) return false;
+  if (/(?:\b(?:TRUEFRENCH|VOSTFR|SUBFRENCH|SUBESP|HUN|RUS|LAT|DUBLADO|DUBBED|DUAL|MULTI)\b|\[(?:TR|FR|ES|RU)\])/i.test(sample)) return false;
+  if (/(?:[._ -](?:TR|FR|ES|RU|HU|DE)[._ -]|\((?:spanish|french|german|italian|portuguese)\b|\bteljes\s+film\b|\bmagyar\b)/i.test(sample)) return false;
+  if (/\b(?:UKR|DVO|UKRAINIAN|DUBLAJ|COMMENTARY\s+ONLY|AUDIO\s+ONLY|HDCAM|CAMRIP)\b/i.test(sample)) return false;
   return !/\b(?:hindi|tamil|telugu|bengali|bangla|marathi|malayalam|kannada|punjabi|urdu|indonesian|vietnamese|thai|arabic|espa[nñ]ol|portugu[eê]s|fran[cç]ais|deutsch|russian|turkish|korean|japanese|mandarin|pide|deseo|cuestionable|cap[ií]tulo|episodio|temporada|pel[ií]cula|televisi[oó]n|serie)\b/i.test(sample);
 }
 
@@ -581,6 +646,10 @@ function accepted(profile, item, provider, checkAspect = true) {
   if (!item || !(item.id || item.uuid || item.rawId) || !title || duration < minimumRuntime || (checkAspect && ratio < SOURCE_MIN_ASPECT_RATIO)) return false;
   if (profile.titleRequiredTerms.length && !termsMatch(titleHaystack, profile.titleRequiredTerms)) return false;
   const qualityMovieTitle = okMovieTitleQualified(profile, item);
+  const okEpisode = source === "OK.ru" && profile.profileKey === "ok-tv-channel" && /\b(?:s\d{1,2}[ ._-]*e\d{1,3}|\d{1,2}x\d{1,3})\b/i.test(title);
+  if (source === "OK.ru" && profile.profileKey === "ok-movie-channel" && termsMatch(haystack,
+    [...OK_NON_MOVIE_TERMS, "full set", "dj set", "video tracklist", "festival set", "english subtitle movies"])) return false;
+  if (source === "OK.ru" && profile.profileKey === "ok-tv-channel" && /(?:\bbtth\b|battle through the heavens|sword of coming|renegade imm?ortal|slay the gods|apotheosis|donghua|\banime\b|chinese animation)/i.test(haystack)) return false;
   if (profile.minTitleYear) {
     const titleYears = Array.from(title.matchAll(/(?:^|[^0-9])((?:19|20)\d{2})(?:[^0-9]|$)/g)).map((match) => Number(match[1])).filter(Boolean);
     if (titleYears.some((year) => year < profile.minTitleYear)) return false;
@@ -607,7 +676,7 @@ function accepted(profile, item, provider, checkAspect = true) {
   if (/^(?:television|film|performance)$/.test(profile.intent || "")) {
     const programDeny = /(?:history of|documentary about|retrospective|video essay|analysis|explained|lecture|seminar|webinar|conference|panel discussion|making of|movie making|filmmaking|film making|studio tour|educational film|behind the scenes|demo reel|showreel|workshop|masterclass|recap|production reel|festival reel|fan[ -]?made|fan animation|unofficial|mashup|amv|gacha|roleplay|my little pony|\bpony\b)/i;
     if (programDeny.test(haystack)) return false;
-    if (profile.topics.length && !termsMatch(haystack, profile.topics) && !qualityMovieTitle) return false;
+    if (profile.topics.length && !termsMatch(haystack, profile.topics) && !qualityMovieTitle && !okEpisode) return false;
     if (profile.formats.length && !termsMatch(titleHaystack, profile.formats)
       && !(profile.formatRelaxed === true && duration >= 20 * 60)
       && !(profile.formatRelaxed === true && minimumRuntime <= 15 * 60 && duration >= 15 * 60)
@@ -616,7 +685,7 @@ function accepted(profile, item, provider, checkAspect = true) {
   if (profile.movieLane === "modern" && profile.laneDeny.some((term) => titleHaystack.includes(text(term, 180).toLowerCase()))) return false;
   if (profile.movieLane === "indie" && profile.laneRequired.length && !trustedYouTubeChannel && !profile.laneRequired.some((term) => haystack.includes(text(term, 180).toLowerCase()))) return false;
   const required = profile.match.length ? profile.match : profile.queries;
-  return !required.length || termsMatch(haystack, required) || qualityMovieTitle;
+  return !required.length || termsMatch(haystack, required) || qualityMovieTitle || okEpisode;
 }
 
 function okAdmissionStats(profile, candidates) {
@@ -695,6 +764,11 @@ function normalized(item, provider, query) {
     aspectRatio: aspectRatio(item),
     embedded: item.type === "embed",
     embedAllowed: item.embedAllowed === true,
+    language: text(item.language, 40),
+    seriesTitle: text(item.seriesTitle, 150),
+    seriesId: text(item.seriesId, 100),
+    identityReference: text(item.identityReference, 300),
+    identityProvider: text(item.identityProvider, 50),
   };
 }
 
@@ -1210,7 +1284,7 @@ async function okApi(profile, rotation, env, options = {}) {
 
 function okPublicManifest(profile, rotation, options = {}) {
   const firstLane = options.firstLane === true;
-  const candidates = Array.isArray(OK_PUBLIC_EMBED_MANIFEST[profile.profileKey]) ? OK_PUBLIC_EMBED_MANIFEST[profile.profileKey] : [];
+  const candidates = [...(OK_PUBLIC_EMBED_MANIFEST[profile.profileKey] || []), ...(OK_VERIFIED_SEARCH_SEED[profile.profileKey] || [])];
   const items = rotate(unique(candidates), rotation).filter((item) => accepted(profile, item, "OK.ru"));
   return {
     provider: "OK.ru",
@@ -1225,18 +1299,19 @@ function providers(profile, rotation, env, options = {}) {
   return profile.providers
     .filter((provider) => !disabled.has(String(provider).toLowerCase()))
     .map((provider) => {
-      const label = provider === "youtube" ? "YouTube" : provider === "peertube" ? "PeerTube" : provider === "vimeo" ? "Vimeo" : (provider === "ok" || provider === "ok-api" || provider === "ok-manifest" || provider === "ok-sitemap") ? "OK.ru" : provider;
+      const label = provider === "youtube" ? "YouTube" : provider === "peertube" ? "PeerTube" : provider === "vimeo" ? "Vimeo" : provider.startsWith("ok") ? "OK.ru" : provider;
       const startedAt = Date.now();
       const task = Promise.resolve()
         .then(() => provider === "youtube" ? youtube(profile, rotation, env, options)
           : provider === "peertube" ? peerTube(profile, rotation, env, options)
           : provider === "vimeo" ? vimeo(profile, rotation, env, options)
           : provider === "ok-api" ? okApi(profile, rotation, env, options)
+          : provider === "ok-search" ? okTitleSearch(profile, rotation, env, options)
           : provider === "ok-sitemap" ? okSitemap(profile, rotation, env, options)
           : (provider === "ok" || provider === "ok-manifest") ? okPublicManifest(profile, rotation, options)
           : { provider: label, items: [], health: { skipped: true, reason: "unsupported provider" } });
       return Promise.resolve()
-        .then(() => options.maintenance === true ? withTimeout(task, provider === "ok-sitemap" ? OK_SITEMAP_MAINTENANCE_TIMEOUT_MS : 12_000) : withTimeout(task, SOURCE_PROVIDER_BUDGET_MS))
+        .then(() => options.maintenance === true ? withTimeout(task, ["ok-sitemap", "ok-search"].includes(provider) ? OK_SITEMAP_MAINTENANCE_TIMEOUT_MS : 12_000) : withTimeout(task, SOURCE_PROVIDER_BUDGET_MS))
         .then((lane) => ({
           ...lane,
           health: { ...(lane && lane.health || {}), durationMs: Date.now() - startedAt },
@@ -1277,9 +1352,11 @@ export function sourceCatalogTasks(body, env, rotation = 0, options = {}) {
    background instead of silently omitting it from the refresh. The foreground
    still uses the fast API/manifest lane and never waits on sitemap discovery. */
 export function sourceRefreshTasks(body, env, rotation = 0, options = {}) {
-  const plan = sourceCatalogTasks(body, env, rotation, options);
-  if (!plan.profile || options.maintenance === true || !plan.profile.providers.includes("ok-sitemap")) return plan.tasks;
-  return sourceCatalogTasks(body, env, rotation, { ...options, maintenance: true }).tasks;
+  const profile = normalizedProfile(body);
+  if (!profile) return [];
+  // Choose the plan BEFORE starting promises; previously every refill launched
+  // a discarded foreground discovery plus an identical maintenance discovery.
+  return sourceTasks(profile, env, rotation, profile.providers.includes("ok-sitemap") ? { ...options, maintenance: true } : options);
 }
 
 /* Holiday family lanes can be sparse even when their seasonal children are

@@ -31,7 +31,7 @@ const { pathToFileURL } = require("node:url");
   for (const [key, provider] of Object.entries(expected)) {
     const profile = sourceProfile({ profileKey: key });
     assert.ok(profile, `${key} must be approved server-side`);
-    if (key.startsWith("ok-")) assert.deepEqual(profile.providers, ["ok-api", "ok-sitemap", "ok-manifest"], `${key} must retain signed API, public sitemap, and manifest rails`);
+    if (key.startsWith("ok-")) assert.deepEqual(profile.providers, ["ok-search", "ok-manifest"], `${key} must use title search with a verified fallback, not tag/sitemap contamination`);
     else assert.deepEqual(profile.providers, [provider], `${key} must stay isolated to its declared source family`);
     assert.equal(profile.minRuntime || 15 * 60, 15 * 60, `${key} must retain the fifteen-minute floor`);
     assert.ok(profile.deny.includes("shorts"), `${key} must reject Shorts`);

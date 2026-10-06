@@ -14,7 +14,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "5.5.72-ok-title-search-playback-recovery";
+const V3_RELEASE = "5.5.73-ok-catalog-persistence-recovery";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -1295,7 +1295,10 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
      candidate union while measuring depth/freshness and selecting the public
      shelf only from rows that can actually start. */
   const playableCatalog = filtered.filter(queueItemPlayable);
-  const fresh = ignoreFreshness ? playableCatalog : applyFreshness(playableCatalog, effectiveBody);
+  const strictOKFreshness = effectiveBody.sourceCatalog === true && /^ok-(?:movie|tv)-channel$/.test(channel);
+  const fresh = ignoreFreshness ? playableCatalog : strictOKFreshness
+    ? playableCatalog.filter(item => !recentCatalogIds(effectiveBody).has(queueItemKey(item)))
+    : applyFreshness(playableCatalog, effectiveBody);
   /* Source Suite may legitimately exhaust a small catalog. Repeat only after
      every verified row has appeared; never turn exhaustion into a 503 or hide
      the real catalog depth from the guide. */
@@ -2040,7 +2043,10 @@ async function persistSourceHealth(env, profile, lanes) {
 async function persistSourceLanes(env, profile, lanes, options = {}) {
   const merged = mergeSourceLanes(profile.profileKey, lanes);
   await persistSourceHealth(env, profile, lanes);
-  const job = catalogJob({ channel: profile.profileKey, themeTerms: profile.match, denyTerms: profile.deny, mediaTypes: ["video", "embed"] }, merged);
+  // Persist with the same approved station gate used during discovery. Generic
+  // topic matching discarded filenames such as Taxi.S01E01.DVDRip after they
+  // had already passed identity/runtime/embed verification.
+  const job = catalogJob({ channel: profile.profileKey, sourceCatalog: true, themeTerms: profile.match, denyTerms: profile.deny, mediaTypes: ["video", "embed"] }, merged);
   if (!job) return merged;
   /* Viewer requests remain queue-backed and non-blocking. Controlled
      maintenance refreshes need an honest depth result, so they write the
@@ -2096,6 +2102,7 @@ async function handleSourceCatalog(request, env, ctx, id) {
   const disabledProviders = maintenance ? new Set() : await readSourceCooldowns(env, profile.profileKey);
   const cached = await catalogFallback(env, {
     channel: profile.profileKey,
+    count: body.count,
     rotation,
     sourceCatalog: true,
     denyTerms: profile.deny,

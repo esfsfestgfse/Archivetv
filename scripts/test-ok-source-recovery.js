@@ -46,6 +46,7 @@ const root = path.resolve(__dirname, '..');
   const originalFetch = globalThis.fetch;
   try {
     globalThis.fetch = async () => new Response('provider temporarily unavailable', { status: 429 });
+    const { default: worker } = await import(pathToFileURL(path.join(root, 'realsignal_api_v2_worker.js')));
     for (const profile of [movie, tv]) {
       const plan = source.sourceCatalogTasks({ profileKey: profile.profileKey }, {}, 0, { firstLane: true });
       const lanes = await Promise.all(plan.tasks);
@@ -53,6 +54,17 @@ const root = path.resolve(__dirname, '..');
       assert.ok(shelf.length >= 5, `${profile.profileKey}: provider outage must not empty the verified shelf`);
       assert.ok(shelf.every(row => row.type === 'embed' && row.duration >= profile.minRuntimeSeconds));
       assert.ok(shelf.every(row => source.qualifySourceItem(profile, row)));
+      const inserted = [];
+      const db = {
+        prepare(sql) { return { bind(...values) { return { sql, values, async all() { return { results: [] }; } }; } }; },
+        async batch(statements) { inserted.push(...statements.filter(s => s.sql.startsWith('INSERT INTO programs'))); return []; }
+      };
+      const response = await worker.fetch(new Request('https://api.example/api/v3/source/catalog', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ profileKey: profile.profileKey, maintenance: true }) }), { realsignal_catalog: db }, { waitUntil() {} });
+      const result = await response.json();
+      assert.equal(response.status, 200);
+      assert.equal(inserted.length, result.items.length, 'every admitted program must survive the database write gate');
+      assert.ok(inserted.length >= 20, 'release filenames must not collapse a deep catalog to five rows');
+      assert.ok(inserted.every(row => row.values[7] === 'embed'));
     }
   } finally { globalThis.fetch = originalFetch; }
 
@@ -82,10 +94,10 @@ const root = path.resolve(__dirname, '..');
   assert.ok(api.includes('metadata_json=excluded.metadata_json'), 'catalog repairs must replace stale metadata');
   for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
     const html = fs.readFileSync(path.join(root, file), 'utf8');
-    assert.ok(html.includes('assets/ok-embed-runtime.js?v=5.5.72'));
+    assert.ok(html.includes('assets/ok-embed-runtime.js?v=5.5.73'));
     assert.ok(html.includes('function playOKEmbed'));
     assert.ok(html.includes('window.RealSignalOKEmbed.qualify(profile,item)'));
-    assert.ok(html.includes('V2_SOURCE_CACHE_VERSION=59'));
+    assert.ok(html.includes('V2_SOURCE_CACHE_VERSION=60'));
   }
   console.log('OK source recovery passed: title metadata, runtime/genre/cache gates, fair hydration, official iframe, actual EOF, spoof rejection and cleanup.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

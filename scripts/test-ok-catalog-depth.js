@@ -2,6 +2,7 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const vm = require('node:vm');
 const { DatabaseSync } = require('node:sqlite');
 const { pathToFileURL } = require('node:url');
 const root = path.resolve(__dirname, '..');
@@ -32,6 +33,16 @@ const root = path.resolve(__dirname, '..');
   const queries = helpers.okTitleSearchQueries({ profileKey: 'ok-tv-channel' }, 1, { seriesTitles: ['Test Drama', 'New Show', 'Another Show'], deep: true });
   assert.ok(queries.some(q => q.includes('New Show')));
   assert.equal(queries.length, 6);
+  for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
+    const html = fs.readFileSync(path.join(root, file), 'utf8');
+    const client = { v2Unique: items => [...new Map(items.map(item => [item.id, item])).values()] };
+    vm.runInNewContext(html.match(/function v2MergeCatalog\(profile,prior,discovered\)\{[^\n]*\}/)[0], client);
+    const prior = Array.from({ length: 512 }, (_, i) => ({ id: 'played-' + i }));
+    const discoveries = Array.from({ length: 10 }, (_, i) => ({ id: 'new-' + i }));
+    assert.ok(client.v2MergeCatalog({ profileKey: 'ok-tv-channel' }, prior, discoveries).slice(0, 5).every(item => item.id.startsWith('new-')), 'a full old catalog must not crowd out new programs');
+    assert.equal(client.v2MergeCatalog({ profileKey: 'other-source-profile' }, prior, discoveries)[0].id, 'played-0', 'other source families retain their existing merge behavior');
+    assert.ok(html.includes('merged=v2MergeCatalog(profile,prior,discovered)'));
+  }
   const oldFetch = globalThis.fetch;
   try {
     globalThis.fetch = async () => new Response('unavailable', { status: 429 });
@@ -57,6 +68,7 @@ const root = path.resolve(__dirname, '..');
       const shelf = await res.json();
       assert.equal(shelf.items.length, 5);
       assert.ok(shelf.catalogDepth > 96);
+      assert.ok(shelf.candidateItems.every(item => !seen.includes(item.id)), 'the OK background window must exclude recently served episodes too');
       assert.equal(new Set(shelf.items.map(item => item.seriesId)).size, 5, JSON.stringify(shelf.items.map(item => ({ title: item.title, series: item.seriesId }))));
       for (const item of shelf.items) { assert.ok(!seen.includes(item.id), 'recent episodes must not repeat'); seen.push(item.id); }
     }

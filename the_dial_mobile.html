@@ -16,11 +16,11 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="RealSignal">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>REALSIGNAL · The Dial 5.5.75</title>
+<title>REALSIGNAL · The Dial 5.5.76</title>
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
-<script src="assets/ok-embed-runtime.js?v=5.5.75"></script>
+<script src="assets/ok-embed-runtime.js?v=5.5.76"></script>
 <!-- Source Suite starts verified YouTube playback on a cold tune. Warm the exact
      origins it uses so DNS/TLS setup is not serialized behind catalog discovery. -->
 <link rel="preconnect" href="https://www.googleapis.com" crossorigin>
@@ -1747,7 +1747,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="5.5.75-mobile-ok-progressive-catalog-depth";
+window.__ATV_BUILD="5.5.76-mobile-ok-progressive-catalog-depth";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -8264,7 +8264,7 @@ function applyAV(){const el=screenArea.querySelector("video,audio");if(el){el.mu
    ===================================================================== */
 /* Source Suite is television programming, not a feed of clips.  Fifteen minutes
    is the floor for every lane; individual programs may of course run for hours. */
-var V2_SOURCE_CATALOG_SIZE=96,V2_SOURCE_READY_BUFFER=5,V2_SOURCE_MIN_CATALOG=12,V2_SOURCE_CACHE_VERSION=62,V2_SOURCE_CACHE_TTL=12*60*1000,V2_SOURCE_MAX_DETAIL=24,V2_SOURCE_MAX_CONCURRENCY=8,V2_SOURCE_MIN_RUNTIME=15*60;
+var V2_SOURCE_CATALOG_SIZE=96,V2_SOURCE_READY_BUFFER=5,V2_SOURCE_MIN_CATALOG=12,V2_SOURCE_CACHE_VERSION=63,V2_SOURCE_CACHE_TTL=12*60*1000,V2_SOURCE_MAX_DETAIL=24,V2_SOURCE_MAX_CONCURRENCY=8,V2_SOURCE_MIN_RUNTIME=15*60;
 const V2_PREVIEW_PROFILES={
   "public-health-archive":{name:"Public Health Archive",providers:["peertube","youtube"],queries:["public health film","sanitation film","medical education film","hospital documentary","epidemiology film"],match:["public health","health","sanitation","medical","hospital","epidemiology","epidemic","medicine"],deny:["fictional","horror","music video","commercial","cartoon","gameplay","wedding"]},
   "signal-room":{name:"The Signal Room",providers:["peertube","youtube"],queries:["telegraph history film","telephone history film","radio engineering film","broadcasting history film","communications technology film"],match:["telegraph","telephone","radio","broadcast","communication","telecom","signal","engineering"],deny:["fictional","music video","commercial","cartoon","gameplay","podcast","sermon"]},
@@ -8391,6 +8391,7 @@ function v2NextRotation(key){var current=Number(store.get("v2rotation:"+key,0))|
 function v2QueryWindow(profile,provider,rotation,limit){var pool=v2ProgramQueries(profile),max=Math.min(Number(limit)||pool.length,pool.length);if(!pool.length)return [];var offset=(v2Hash(profile.name+"|"+provider)+Number(rotation||0))%pool.length;return pool.slice(offset).concat(pool.slice(0,offset)).slice(0,max);}
 function v2DiscoveryQueries(profile,provider,rotation,limit){var max=Math.max(1,Number(limit)||4),topics=v2ProgramTopics(profile),rotated=topics.length?topics.slice(Number(rotation||0)%topics.length).concat(topics.slice(0,Number(rotation||0)%topics.length)):[],anchors=topics.length?[topics[0],rotated[1]||rotated[0]]:[],formed=v2QueryWindow(profile,provider,rotation,max);return v2TextUnique(anchors.concat(formed)).slice(0,max);}
 function v2Recent(key){var ids=store.get("v2recent:"+key,[]);return Array.isArray(ids)?ids:[];}
+function v2MergeCatalog(profile,prior,discovered){return v2Unique(/^ok-(movie|tv)-channel$/.test(profile.profileKey)?discovered.concat(prior):prior.concat(discovered));}
 function v2Remember(key,item){var id=String(item&&item.id||"");if(!id)return;var ids=v2Recent(key).filter(function(x){return x!==id;});ids.unshift(id);store.set("v2recent:"+key,ids.slice(0,/^OK (Movie|TV) Channel$/.test(key)?1024:24));if(typeof window.__rsRecordSourcePlay==="function"&&item&&/youtube|peertube|vimeo|ok\.ru/i.test(String(item.provider||"")))window.__rsRecordSourcePlay(key,item);}
 function v2Rejected(key){var cutoff=Date.now()-6*60*60*1000,rows=store.get("v2rejected:"+key,[]);rows=(Array.isArray(rows)?rows:[]).filter(function(row){return row&&row.id&&Number(row.at||0)>=cutoff;});store.set("v2rejected:"+key,rows);return rows.map(function(row){return String(row.id);});}
 function v2Reject(key,item){var id=String(item&&item.id||"");if(!id)return;var rows=v2Rejected(key).filter(function(row){return String(row.id)!==id;});rows.unshift({id:id,at:Date.now()});store.set("v2rejected:"+key,rows.slice(0,48));}
@@ -8499,7 +8500,7 @@ async function v2LoadProfile(ch,profile,my){
         reintroduce podcasts, lectures, or unqualified search results after a
         valid server shelf has already been installed. */
      var providerList=["server"].concat(profile.serverOnly?[]:(profile.providers||[]).filter(function(p){return p==="youtube"||p==="peertube";})).filter(function(p,i,a){return a.indexOf(p)===i;}),results=new Array(providerList.length),earlyReady=false,tasks;
-     function install(lanes,rememberCurrent,persist){var discovered=v2RoundRobin(lanes.map(function(x){return Array.isArray(x&&x.items)?x.items:[];})),prior=v2Unique(cachedItems.concat(state.items||[])),merged=v2Unique(prior.concat(discovered)),items=v2CatalogOrder(key,merged.map(function(item){return profile.profileKey.indexOf("ok-")===0?window.RealSignalOKEmbed.normalize(item):item;}).filter(function(item){return (profile.profileKey.indexOf("ok-")!==0||window.RealSignalOKEmbed.qualify(profile,item))&&v2Landscape(item)&&v2ProfileRuntimeOkay(item,profile);}).slice(0,profile.profileKey.indexOf("ok-")===0?512:V2_SOURCE_CATALOG_SIZE));if(profile.profileKey.indexOf("ok-")===0)items=window.RealSignalOKEmbed.order(profile,items);state.health=v2SourceHealth(key,lanes);if(items.length){var activeId=state.items.length?String(state.items[Number(state.cursor||0)%state.items.length].id||""):"",keepId=rememberCurrent?previousId:activeId,nextIndex=keepId?items.findIndex(function(x){return String(x.id||"")===keepId;}):-1;state.items=items;state.cursor=nextIndex>=0?nextIndex:(state.cursor%items.length+items.length)%items.length;state.provider=items.map(function(x){return x.provider;}).filter(function(x,i,a){return a.indexOf(x)===i;}).join(" + ");if(persist!==false)store.set("v2source:"+key,{version:V2_SOURCE_CACHE_VERSION,at:Date.now(),items:items,health:state.health});}refreshGuideData();}
+     function install(lanes,rememberCurrent,persist){var discovered=v2RoundRobin(lanes.map(function(x){return Array.isArray(x&&x.items)?x.items:[];})),prior=v2Unique(cachedItems.concat(state.items||[])),merged=v2MergeCatalog(profile,prior,discovered),items=v2CatalogOrder(key,merged.map(function(item){return profile.profileKey.indexOf("ok-")===0?window.RealSignalOKEmbed.normalize(item):item;}).filter(function(item){return (profile.profileKey.indexOf("ok-")!==0||window.RealSignalOKEmbed.qualify(profile,item))&&v2Landscape(item)&&v2ProfileRuntimeOkay(item,profile);}).slice(0,profile.profileKey.indexOf("ok-")===0?512:V2_SOURCE_CATALOG_SIZE));if(profile.profileKey.indexOf("ok-")===0)items=window.RealSignalOKEmbed.order(profile,items);state.health=v2SourceHealth(key,lanes);if(items.length){var activeId=state.items.length?String(state.items[Number(state.cursor||0)%state.items.length].id||""):"",keepId=rememberCurrent?previousId:activeId,nextIndex=keepId?items.findIndex(function(x){return String(x.id||"")===keepId;}):-1;state.items=items;state.cursor=nextIndex>=0?nextIndex:(state.cursor%items.length+items.length)%items.length;state.provider=items.map(function(x){return x.provider;}).filter(function(x,i,a){return a.indexOf(x)===i;}).join(" + ");if(persist!==false)store.set("v2source:"+key,{version:V2_SOURCE_CACHE_VERSION,at:Date.now(),items:items,health:state.health});}refreshGuideData();}
      function publishFirst(index,result){if(!result||!Array.isArray(result.items)||!result.items.length)return;results[index]=result;install(results.filter(Boolean),true,false);if(profile.profileKey==="cooks-table"){var preferred=state.items.findIndex(function(item){return /women cooking at home|v-men.*cooking/i.test(String(item&&item.title||""));});if(preferred>=0)state.cursor=preferred;}if(!earlyReady&&state.items.length){earlyReady=true;if(readyResolve)readyResolve(state.items);}}
      tasks=providerList.map(function(p,i){return v2Provider(p,profile,rotation,function(result){publishFirst(i,result);},force).then(function(result){if(result&&result.items&&result.items.length)publishFirst(i,result);return result;}).catch(function(e){return {provider:p,items:[],health:{error:String(e)}};});});
      var firstReady=new Promise(function(resolve){var left=tasks.length,done=false;tasks.forEach(function(task,i){task.then(function(result){results[i]=result;if(!done&&result&&result.items&&result.items.length){done=true;resolve(true);}if(!--left&&!done){done=true;resolve(false);}});});});

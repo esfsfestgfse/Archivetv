@@ -12,7 +12,7 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
     ['invalidates strict-catalog source caches for programming freshness', /V2_SOURCE_CACHE_VERSION=(?:4[1-9]|[5-9][0-9]|[1-9][0-9]{2,})(?:,|;)/.test(source)],
     ['requires a deeper source shelf before treating it as healthy', source.includes('V2_SOURCE_MIN_CATALOG=12')],
     ['retains cached verified catalog items', source.includes('prior=v2Unique(cachedItems.concat(state.items||[]))')],
-    ['mixes retained and newly discovered items', source.includes('merged=v2Unique(prior.concat(discovered))')],
+    ['mixes retained and newly discovered items', source.includes('merged=v2MergeCatalog(profile,prior,discovered)') && source.includes('discovered.concat(prior):prior.concat(discovered)')],
     ['keeps the 96-item catalog ceiling', source.includes('V2_SOURCE_CATALOG_SIZE=96')],
     ['keeps the five-program ready buffer', source.includes('V2_SOURCE_READY_BUFFER=5')],
     ['IA skip history is enforced before queue selection, with exhaustion recovery', source.includes('bypassFreshness=!!(q[i]&&q[i]._freshnessFallback)') && source.includes('(!bypassFreshness&&id&&isTemporarilySkipped(id))') && source.includes('!freshnessFallback&&isTemporarilySkipped(item.identifier)') && source.includes('queue-recovery')],

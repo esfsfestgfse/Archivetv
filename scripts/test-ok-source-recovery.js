@@ -99,10 +99,10 @@ const root = path.resolve(__dirname, '..');
   assert.ok(api.includes('metadata_json=excluded.metadata_json'), 'catalog repairs must replace stale metadata');
   for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
     const html = fs.readFileSync(path.join(root, file), 'utf8');
-    assert.ok(html.includes('assets/ok-embed-runtime.js?v=5.5.74'));
+    assert.ok(html.includes('assets/ok-embed-runtime.js?v=5.5.75'));
     assert.ok(html.includes('function playOKEmbed'));
     assert.ok(html.includes('window.RealSignalOKEmbed.qualify(profile,item)'));
-    assert.ok(html.includes('V2_SOURCE_CACHE_VERSION=61'));
+    assert.ok(html.includes('V2_SOURCE_CACHE_VERSION=62'));
   }
   console.log('OK source recovery passed: title metadata, runtime/genre/cache gates, fair hydration, official iframe, actual EOF, spoof rejection and cleanup.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

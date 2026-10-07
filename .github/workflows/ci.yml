@@ -68,6 +68,8 @@ jobs:
         run: node scripts/test-youtube-catalog-depth.js
       - name: Validate OK title search and playback recovery
         run: node scripts/test-ok-source-recovery.js
+      - name: Validate persistent OK discovery and deep episode rotation
+        run: node scripts/test-ok-catalog-depth.js
       - name: Validate guarded IA canonical pilot
         run: node scripts/test-ia-canonical-pilot.js
       - name: Validate Version 4 hybrid lineup

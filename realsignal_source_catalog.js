@@ -13,7 +13,7 @@
  */
 
 import { createHash } from "node:crypto";
-import { okSearchRows, okEmbedMetadata, okTitleSearchQueries, okPublicSearchUrl, okProgramIdentity, okProgramName, okMovieIdentities, okBalancedCandidates } from "./ok_public_search.js";
+import { okSearchRows, okSearchResultRows, okSearchPageRequest, okQueryOffset, okEmbedMetadata, okTitleSearchQueries, okPublicSearchUrl, okProgramIdentity, okProgramName, okMovieIdentities, okBalancedCandidates, okTVIndexTitles, okDiscoveryCursor } from "./ok_public_search.js";
 import { OK_VERIFIED_SEARCH_SEED } from "./ok_verified_search_seed.js";
 import { SOURCE_PROFILE_REGISTRY } from "./source_suite_profile_registry.js";
 import { OK_PUBLIC_EMBED_MANIFEST } from "./ok_public_embed_catalog.js";
@@ -470,13 +470,40 @@ function okApiItem(row, query) {
 
 export async function okTitleSearch(profile, rotation, env, options = {}) {
   const firstLane = options.firstLane === true;
-  const queries = okTitleSearchQueries(profile, rotation).slice(0, firstLane ? 2 : 4);
   const errors = [];
+  const cursor = firstLane ? rotation : await okDiscoveryCursor(env.realsignal_catalog, profile.profileKey, rotation);
+  let seriesTitles = [];
+  const indexPage = Math.floor(cursor / 80);
+  if (!firstLane && profile.profileKey === "ok-tv-channel") {
+    try {
+      const shows = await fetchJson(`https://api.tvmaze.com/shows?page=${indexPage}`, { cf: { cacheTtl: 86400, cacheEverything: true } });
+      seriesTitles = okTVIndexTitles(shows, cursor % 80);
+    } catch (error) { errors.push(`series index: ${text(error?.message, 100)}`); }
+  }
+  const queries = okTitleSearchQueries(profile, cursor, { seriesTitles, deep: !firstLane }).slice(0, firstLane ? 2 : 6);
+  const offsets = [];
   const pages = await mapLimit(queries, 2, async (query) => {
     try {
-      const html = await fetchText(okPublicSearchUrl(query), { headers: { Accept: "text/html" } }, 6000);
-      return okSearchRows(html).map((row) => okApiItem(row, query)).filter(Boolean);
-    } catch (error) { errors.push(text(error && error.message, 120)); return []; }
+      const path = `$.okQueryOffsets.q${createHash("sha256").update(query.toLowerCase()).digest("hex").slice(0, 16)}`;
+      const offset = firstLane ? 0 : await okQueryOffset(env.realsignal_catalog, profile.profileKey, path);
+      offsets.push({ query, offset });
+      const request = okSearchPageRequest(query, offset);
+      const payload = await fetchJson(request.url, request.options);
+      if (!payload.success) throw new Error("public search page unavailable");
+      if (!payload.result?.videos) {
+        if (!firstLane) await okQueryOffset(env.realsignal_catalog, profile.profileKey, path, true);
+        return [];
+      }
+      const rows = okSearchResultRows(payload.result);
+      if (!firstLane && (!payload.result.videos.hasMore || !rows.length)) await okQueryOffset(env.realsignal_catalog, profile.profileKey, path, true);
+      return rows.map((row) => okApiItem(row, query)).filter(Boolean);
+    } catch (error) {
+      errors.push(text(error?.message, 120));
+      try {
+        const html = await fetchText(okPublicSearchUrl(query), { headers: { Accept: "text/html" } }, 6000);
+        return okSearchRows(html).map(row => okApiItem(row, query)).filter(Boolean);
+      } catch (_) { return []; }
+    }
   });
   const kind = profile.profileKey === "ok-tv-channel" ? "tv" : "movie";
   const candidates = okBalancedCandidates(pages.map(page => page.filter(item => accepted(profile, item, "OK.ru"))), kind, firstLane ? 12 : 36);
@@ -494,7 +521,7 @@ export async function okTitleSearch(profile, rotation, env, options = {}) {
     const nameOf = item => `${String(item.title).match(/\b(?:19|20)\d{2}\b/)?.[0] || ""}:${okProgramName(item.title, "movie").toLowerCase()}`;
     const identities = new Map(known.filter(item => item.language === "en" && item.identityReference).map(item => [nameOf(item), { language: "en", identityReference: item.identityReference, identityProvider: "Wikidata" }]));
     for (const item of candidates) if (identities.has(nameOf(item))) movieIdentities.set(item.id, identities.get(nameOf(item)));
-    try { const discovered = await okMovieIdentities(candidates.filter(item => !movieIdentities.has(item.id)), url => fetchJson(url, { headers: { "User-Agent": "RealSignal/5.5.74 (catalog metadata; https://github.com/esfsfestgfse/Archivetv)" }, cf: { cacheTtl: 86400, cacheEverything: true } })); for (const [key, identity] of discovered) movieIdentities.set(key, identity); }
+    try { const discovered = await okMovieIdentities(candidates.filter(item => !movieIdentities.has(item.id)), url => fetchJson(url, { headers: { "User-Agent": "RealSignal/5.5.75 (catalog metadata; https://github.com/esfsfestgfse/Archivetv)" }, cf: { cacheTtl: 86400, cacheEverything: true } })); for (const [key, identity] of discovered) movieIdentities.set(key, identity); }
     catch (error) { errors.push(`film identity: ${text(error?.message, 100)}`); }
   }
   const verified = await mapLimit(candidates, 3, async (item) => {
@@ -509,7 +536,7 @@ export async function okTitleSearch(profile, rotation, env, options = {}) {
     } catch (_) { return null; }
   });
   return { provider: "OK.ru", items: verified.filter(Boolean), health: {
-    titleSearch: true, queries, candidates: candidates.length,
+    titleSearch: true, queries, queryPages: offsets, discoveryCursor: cursor, seriesIndexPage: seriesTitles.length ? indexPage : null, candidates: candidates.length,
     verifiedEmbeds: verified.filter(Boolean).length, errors, firstLane,
     ...(errors.length === queries.length ? { error: "public title search unavailable" } : {}),
   } };

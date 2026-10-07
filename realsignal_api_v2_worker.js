@@ -8,13 +8,14 @@
 import { SessionRotation } from "./realsignal_api_rotation.js";
 import { EdgeRateLimiter } from "./realsignal_api_rate_limit.js";
 import { RokuSession } from "./realsignal_roku_session.js";
+import { okBalancedCandidates } from "./ok_public_search.js";
 import { mergeSourceLanes, sourceCatalogTasks, sourceRefreshTasks, sourceProfile, qualifySourceItem, SOURCE_LIMITS } from "./realsignal_source_catalog.js";
 import { IA_CANONICAL_PILOT_PROFILES, IA_CANONICAL_SCHEMA_VERSION, canonicalGuide, selectCanonicalItems } from "./ia_canonical_station.mjs";
 import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "5.5.74-ok-verified-identity-recovery";
+const V3_RELEASE = "5.5.75-ok-progressive-catalog-depth";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -23,6 +24,7 @@ const MAX_BODY_BYTES = 128 * 1024;
    playable shelf, but discovery and rotation are no longer trapped inside the
    same five rows at every cold start. */
 const MAX_CATALOG_ITEMS = 96;
+const OK_CATALOG_WINDOW = 512;
 /* Keep the recent exclusion window large enough to prevent opening repeats,
    but bounded so a smaller verified catalog can still produce the full
    five-item shelf on a cold rotation. A 32-item window left lane 915 with
@@ -612,7 +614,7 @@ async function upsertCatalogJob(env, job) {
     statements.push(env.realsignal_catalog.prepare(`INSERT INTO programs (id, provider, source_identifier, title, description, duration_seconds, aspect_ratio, media_type, media_url, source_url, rights, year, metadata_json, first_seen_at, last_seen_at, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active') ON CONFLICT(id) DO UPDATE SET provider=excluded.provider, source_identifier=excluded.source_identifier, title=excluded.title, description=excluded.description, duration_seconds=excluded.duration_seconds, aspect_ratio=excluded.aspect_ratio, media_type=excluded.media_type, media_url=excluded.media_url, source_url=excluded.source_url, rights=excluded.rights, year=excluded.year, metadata_json=excluded.metadata_json, last_seen_at=excluded.last_seen_at, status='active'`).bind(item.id, item.provider, item.sourceIdentifier, item.title, item.description, item.duration, item.aspectRatio, item.mediaType, item.mediaUrl, item.sourceUrl, item.rights, item.year, JSON.stringify(item), now, now));
     statements.push(env.realsignal_catalog.prepare(`INSERT INTO channel_programs (channel_key, program_id, score, last_seen_at) VALUES (?, ?, ?, ?) ON CONFLICT(channel_key, program_id) DO UPDATE SET score=excluded.score, last_seen_at=excluded.last_seen_at`).bind(job.channelKey, item.id, 0, now));
   }
-  if (job.rules) statements.push(env.realsignal_catalog.prepare(`INSERT INTO channel_rules (channel_key, rules_json, updated_at) VALUES (?, ?, ?) ON CONFLICT(channel_key) DO UPDATE SET rules_json=excluded.rules_json, updated_at=excluded.updated_at`).bind(job.channelKey, JSON.stringify(job.rules), now));
+  if (job.rules) statements.push(env.realsignal_catalog.prepare(`INSERT INTO channel_rules (channel_key, rules_json, updated_at) VALUES (?, ?, ?) ON CONFLICT(channel_key) DO UPDATE SET rules_json=CASE WHEN channel_rules.channel_key IN ('ok-tv-channel','ok-movie-channel') THEN json_patch(channel_rules.rules_json, excluded.rules_json) ELSE excluded.rules_json END, updated_at=excluded.updated_at`).bind(job.channelKey, JSON.stringify(job.rules), now));
   if (statements.length) await env.realsignal_catalog.batch(statements);
 }
 
@@ -908,11 +910,15 @@ function catalogFallbackAllowed(item, body) {
   return true;
 }
 
+function sourceHistoryLimit(body) {
+  return /^ok-(movie|tv)-channel$/.test(String(body?.channel || body?.profileKey || "")) ? 1024 : 48;
+}
+
 function recentCatalogIds(body) {
-  return new Set((Array.isArray(body && body.recentIds) ? body.recentIds : [])
+  const ids = (Array.isArray(body && body.recentIds) ? body.recentIds : [])
     .map((value) => String(value || "").trim().slice(0, 500))
-    .filter(Boolean)
-    .slice(-48));
+    .filter(Boolean);
+  return new Set(sourceHistoryLimit(body) > 48 ? ids.slice(0, 1024) : ids.slice(-48));
 }
 
 /* D1 freshness rows are read newest-first. Client-only requests historically
@@ -1137,7 +1143,7 @@ async function withFreshnessLedger(env, body) {
     const id = String(value || "").trim().slice(0, 500);
     if (id && !seen.has(id)) { seen.add(id); merged.push(id); }
   }
-  return { ...body, recentIds: merged.slice(0, 48), freshnessLedger: true };
+  return { ...body, recentIds: merged.slice(0, sourceHistoryLimit(body)), freshnessLedger: true };
 }
 
 async function rememberFreshness(env, channel, items, ctx) {
@@ -1228,8 +1234,14 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
       ? { ...body, recentIds: Array.isArray(body.recentIds) ? body.recentIds : [], freshnessLedger: false }
       : await withFreshnessLedger(env, body);
   const channel = normalizedChannelKey(effectiveBody.channel);
-  const limit = Math.max(1, Math.min(SOURCE_LIMITS.SOURCE_MAX_ITEMS, Number(requestedLimit) || SOURCE_LIMITS.SOURCE_MAX_ITEMS));
-  const result = await env.realsignal_catalog.prepare(`SELECT p.* FROM programs p JOIN channel_programs cp ON cp.program_id=p.id WHERE cp.channel_key=? AND p.status='active' AND p.media_url IS NOT NULL ORDER BY cp.last_seen_at DESC LIMIT ?`).bind(channel, limit).all();
+  const okCatalog = effectiveBody.sourceCatalog === true && /^ok-(?:movie|tv)-channel$/.test(channel);
+  const limit = okCatalog ? OK_CATALOG_WINDOW : Math.max(1, Math.min(SOURCE_LIMITS.SOURCE_MAX_ITEMS, Number(requestedLimit) || SOURCE_LIMITS.SOURCE_MAX_ITEMS));
+  // The database keeps the full union. This bounded playback window prefers
+  // unseen/oldest-served rows, so older episodes don't vanish behind new writes.
+  const query = okCatalog
+    ? `SELECT p.* FROM programs p JOIN channel_programs cp ON cp.program_id=p.id LEFT JOIN channel_freshness cf ON cf.channel_key=cp.channel_key AND cf.program_id=p.id WHERE cp.channel_key=? AND p.status='active' AND p.media_url IS NOT NULL ORDER BY CASE WHEN cf.last_served_at IS NULL THEN 0 ELSE 1 END, cf.last_served_at ASC, cp.last_seen_at DESC LIMIT ?`
+    : `SELECT p.* FROM programs p JOIN channel_programs cp ON cp.program_id=p.id WHERE cp.channel_key=? AND p.status='active' AND p.media_url IS NOT NULL ORDER BY cp.last_seen_at DESC LIMIT ?`;
+  const result = await env.realsignal_catalog.prepare(query).bind(channel, limit).all();
   const items = (result.results || []).map((row) => {
     let metadata = {};
     try { metadata = row.metadata_json ? JSON.parse(row.metadata_json) : {}; } catch (_) { /* tolerate old rows */ }
@@ -1289,12 +1301,13 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
      it here would make the guide and ready shelf suggest the exact provider
      that just timed out. Filter it before requalification and rotation. */
   const eligibleItems = items.filter((item) => !blockedProviders.has(sourceProviderKey(item && item.provider)));
-  const filtered = stableCatalogItems(eligibleItems, effectiveBody);
+  const filtered = stableCatalogItems(eligibleItems, effectiveBody, limit);
   /* A catalog row without a resolved media URL is useful evidence for a
      background repair, but it is not a playable program. Keep it in the
      candidate union while measuring depth/freshness and selecting the public
      shelf only from rows that can actually start. */
-  const playableCatalog = filtered.filter(queueItemPlayable);
+  const playable = filtered.filter(queueItemPlayable);
+  const playableCatalog = okCatalog ? okBalancedCandidates([playable], channel === "ok-tv-channel" ? "tv" : "movie", limit) : playable;
   const strictOKFreshness = effectiveBody.sourceCatalog === true && /^ok-(?:movie|tv)-channel$/.test(channel);
   const fresh = ignoreFreshness ? playableCatalog : strictOKFreshness
     ? playableCatalog.filter(item => !recentCatalogIds(effectiveBody).has(queueItemKey(item)))
@@ -1311,7 +1324,8 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
      recovery rail must advance by a complete shelf or the API fallback will
      return four of the same five programs on every Next action. */
   const rotationStep = effectiveBody && effectiveBody.sourceCatalog === true ? 1 : requestedCount;
-  const ordered = rotateCatalogItems(selected, (Number(effectiveBody.rotation) || 0) * rotationStep);
+  const rotated = rotateCatalogItems(selected, (Number(effectiveBody.rotation) || 0) * rotationStep);
+  const ordered = okCatalog ? okBalancedCandidates([rotated], channel === "ok-tv-channel" ? "tv" : "movie", limit) : rotated;
   const shelf = ordered.slice(0, requestedCount);
   return shelf.length ? {
     /* Keep the public contract consistent with the live relay: `items` is the
@@ -1325,6 +1339,7 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
     candidates: filtered.length,
     catalogDepth: filtered.length,
     playableCatalogDepth: playableCatalog.length,
+    ...(okCatalog ? { distinctPrograms: new Set(playableCatalog.map(item => item.seriesId || item.identityReference || item.id)).size, catalogWindow: limit } : {}),
     unseenCatalogItems: fresh.length,
     seenCatalogItems: seenCount,
     catalogExhausted: exhausted,
@@ -2070,7 +2085,8 @@ function scheduleSourceRefresh(env, ctx, normalized, tasks, requestId, force = f
   if (sourceRefreshCache.size > 512) {
     for (const [key, at] of sourceRefreshCache) if (now - at >= 15_000) sourceRefreshCache.delete(key);
   }
-  const background = Promise.all(tasks.map((task) => Promise.resolve(task).catch((error) => ({ provider: "unknown", items: [], health: { error: String(error).slice(0, 160) } })))).then((lanes) => persistSourceLanes(env, normalized, lanes)).catch((error) => {
+  const plan = typeof tasks === "function" ? tasks() : tasks;
+  const background = Promise.all(plan.map((task) => Promise.resolve(task).catch((error) => ({ provider: "unknown", items: [], health: { error: String(error).slice(0, 160) } })))).then((lanes) => persistSourceLanes(env, normalized, lanes)).catch((error) => {
     console.error(JSON.stringify({ event: "source-catalog-persist-failed", requestId, profileKey: normalized.profileKey, error: String(error).slice(0, 200) }));
   });
   if (ctx && typeof ctx.waitUntil === "function") ctx.waitUntil(background);
@@ -2094,7 +2110,7 @@ async function handleSourceCatalog(request, env, ctx, id) {
   /* Client history is newest-first. Keep the order intact so the freshness
      filter excludes the newest played items first instead of accidentally
      preferring the oldest part of the ledger. */
-  const sourceRecentIds = Array.from(new Set((Array.isArray(body.recentIds) ? body.recentIds : []).concat(ledgerIds))).slice(0, 48);
+  const sourceRecentIds = Array.from(new Set((Array.isArray(body.recentIds) ? body.recentIds : []).concat(ledgerIds))).slice(0, sourceHistoryLimit({ channel: profile.profileKey }));
   /* Viewer requests honor provider cooldowns so a slow or failing source can
      never block a shelf. A bounded maintenance repair is different: it is the
      health check that decides whether a cooled provider has recovered, so it
@@ -2179,7 +2195,7 @@ async function handleSourceCatalog(request, env, ctx, id) {
   if (!maintenance && cached && Array.isArray(cached.items) && (cached.items.length >= staleReady || hasFreshFallback) && !forceDeepRefresh) {
     if (cached.items.length < minimumReady || profile.profileKey.startsWith("ok-") && body.refresh === true) {
       const normalized = sourceProfile(body);
-      const tasks = sourceRefreshTasks(body, env, rotation, { disabledProviders });
+      const tasks = () => sourceRefreshTasks(body, env, rotation, { disabledProviders });
       scheduleSourceRefresh(env, ctx, normalized, tasks, id);
     }
     const hydrating = body.refresh === true || cached.items.length < minimumReady;
@@ -2214,7 +2230,7 @@ async function handleSourceCatalog(request, env, ctx, id) {
     ]).finally(() => clearTimeout(firstTimer));
   }
   if (!maintenance) {
-    const refreshTasks = sourceRefreshTasks(body, env, rotation, { disabledProviders });
+    const refreshTasks = () => sourceRefreshTasks(body, env, rotation, { disabledProviders });
     scheduleSourceRefresh(env, ctx, normalized, refreshTasks, id, forceDeepRefresh);
   }
   if (body.maintenance === true) {

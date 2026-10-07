@@ -13,16 +13,24 @@ export function okSearchRows(html) {
     if (!match[1].includes("searchQuery") || !match[1].includes("videos")) continue;
     let props;
     try { props = JSON.parse(okDecodeAttribute(match[1])); } catch (_) { continue; }
-    for (const row of props.videos?.list || []) {
-      const movie = row.movie;
-      if (!movie || movie.blocked || movie.paid || row.warning || !/^\d+$/.test(String(movie.id || "")) || seen.has(String(movie.id))) continue;
-      seen.add(String(movie.id));
-      rows.push({ ...movie, permalink: `https://ok.ru/video/${movie.id}`,
-        description: movie.description || row.description || "",
-        // Search results use milliseconds; the embed metadata uses seconds.
-        duration_seconds: Number(movie.duration) / 1000,
-        title: movie.title || row.name || "" });
+    for (const row of okSearchResultRows(props)) {
+      if (!seen.has(row.id)) { seen.add(row.id); rows.push(row); }
     }
+  }
+  return rows;
+}
+
+export function okSearchResultRows(props) {
+  const rows = [], seen = new Set();
+  for (const row of props?.videos?.list || []) {
+    const movie = row.movie;
+    if (!movie || movie.blocked || movie.paid || row.warning || !/^\d+$/.test(String(movie.id || "")) || seen.has(String(movie.id))) continue;
+    seen.add(String(movie.id));
+    rows.push({ ...movie, permalink: `https://ok.ru/video/${movie.id}`,
+      description: movie.description || row.description || "",
+      // Search results use milliseconds; the embed metadata uses seconds.
+      duration_seconds: Number(movie.duration) / 1000,
+      title: movie.title || row.name || "" });
   }
   return rows;
 }
@@ -49,7 +57,49 @@ export function okEmbedMetadata(html, expectedId) {
   return null;
 }
 
-export function okTitleSearchQueries(profile, rotation = 0) {
+export function okTVIndexTitles(shows, cursor = 0) {
+  const eligible = (Array.isArray(shows) ? shows : []).filter(show =>
+    show?.language === "English" && show.type !== "Animation" &&
+    (show.network?.country?.code === "US" || show.webChannel?.country?.code === "US"));
+  const offset = Math.abs(Math.floor(Number(cursor) || 0)) * 3;
+  return Array.from({ length: Math.min(3, eligible.length) }, (_, i) => eligible[(offset + i) % eligible.length].name);
+}
+
+// Atomically advance discovery independently of a viewer's playback rotation.
+// The existing rules record carries the cursor; no schema migration is needed.
+export async function okDiscoveryCursor(db, profileKey, fallback = 0) {
+  if (db?.prepare) {
+    try {
+      const result = await db.prepare("INSERT INTO channel_rules (channel_key, rules_json, updated_at) VALUES (?, '{\"okDiscoveryCursor\":1}', ?) ON CONFLICT(channel_key) DO UPDATE SET rules_json=json_set(channel_rules.rules_json, '$.okDiscoveryCursor', COALESCE(json_extract(channel_rules.rules_json, '$.okDiscoveryCursor'), 0)+1) RETURNING json_extract(rules_json, '$.okDiscoveryCursor') AS cursor").bind(profileKey, Date.now()).all();
+      const cursor = Number(result.results?.[0]?.cursor);
+      if (Number.isFinite(cursor) && cursor > 0) return cursor - 1;
+    } catch (_) { /* old/test databases retain bounded rotation-based discovery */ }
+  }
+  return Math.abs(Math.floor(Number(fallback) || 0));
+}
+
+export async function okQueryOffset(db, profileKey, path, reset = false) {
+  if (!db?.prepare) return 0;
+  try {
+    if (reset) {
+      await db.prepare("UPDATE channel_rules SET rules_json=json_set(rules_json, ?, 0) WHERE channel_key=?").bind(path, profileKey).all();
+      return 0;
+    }
+    const result = await db.prepare("INSERT INTO channel_rules (channel_key, rules_json, updated_at) VALUES (?, json_set('{}', ?, 20), ?) ON CONFLICT(channel_key) DO UPDATE SET rules_json=json_set(channel_rules.rules_json, ?, COALESCE(json_extract(channel_rules.rules_json, ?), 0)+20) RETURNING json_extract(rules_json, ?) AS cursor").bind(profileKey, path, Date.now(), path, path, path).all();
+    return Math.max(0, (Number(result.results?.[0]?.cursor) || 20) - 20);
+  } catch (_) { return 0; }
+}
+
+// Anonymous continuation endpoint used by OK's public search UI. No login,
+// cookies, secret token, media extraction, or player authorization is involved.
+export function okSearchPageRequest(query, offset = 0) {
+  return { url: "https://ok.ru/web-api/v2/video/fetchSearchResult", options: {
+    method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ id: 1, parameters: { displayMode: "Movie", videosOffset: Math.max(0, Math.floor(offset)), channelsOffset: 0, searchQuery: String(query).slice(0, 120), currentStateId: "anonymVideo", durationType: "ANY", hd: false } })
+  } };
+}
+
+export function okTitleSearchQueries(profile, rotation = 0, options = {}) {
   const markers = profile.profileKey === "ok-movie-channel"
     ? ["yts", "bdrip", "blu-ray", "dvd rip", "vhs rip", "1080p movie", "4k movie"]
     : ["S01E01 1080p", "S02E01 DVDRip", "S01 BDRip", "S03 1080p", "tv series dvd rip", "sitcom 1080p", "television VHS rip"];
@@ -58,11 +108,19 @@ export function okTitleSearchQueries(profile, rotation = 0) {
     : ["Batman", "Batman and Robin", "Tombstone", "The Godfather", "Scarface", "Goodfellas", "The Shawshank Redemption", "Pulp Fiction", "The Matrix", "Jurassic Park", "Back to the Future", "Die Hard", "The Terminator", "Aliens", "Predator", "Rocky", "Rambo", "Top Gun", "The Blues Brothers", "The Goonies", "The Breakfast Club", "The Lost Boys", "Heat", "Casino", "Se7en", "Fight Club", "The Green Mile", "The Departed", "The Dark Knight", "Inception", "Interstellar", "John Wick"];
   const offset = Math.abs(Math.floor(Number(rotation) || 0));
   // A broad query always accompanies title examples: examples are not a whitelist.
-  return [markers[offset % markers.length], ...Array.from({ length: 3 }, (_, index) => {
+  const examples = Array.from({ length: 3 }, (_, index) => {
     const seed = seeds[(offset * 3 + index) % Math.max(1, seeds.length)];
     const quality = profile.profileKey === "ok-tv-channel" ? ["1080p", "DVDRip", "DVDRip"][index] : ["1080p", "1080p", "1080p"][index];
     return seed ? `${seed} ${quality}` : markers[(offset + index + 1) % markers.length];
-  })];
+  });
+  // Search the whole show title; enforce release words on each result title.
+  // Forcing BDRip on a modern series (or 1080p on an old VHS show) hid episodes.
+  const indexed = (options.seriesTitles || []).slice(0, 3);
+  // Bare release markers find programs outside every example/index list.
+  const broad = profile.profileKey === "ok-tv-channel" ? ["DVDRip S01", "1080p S02", "BDRip S03", "VHS rip episode", "1080p S04", "4k S01"][offset % 6] : markers[offset % markers.length];
+  const movieDepth = options.deep && profile.profileKey === "ok-movie-channel"
+    ? [`${1980 + offset % 47} 1080p`, `${1980 + (offset * 7) % 47} BDRip`] : [];
+  return Array.from(new Set([broad, ...indexed, ...examples, ...movieDepth])).slice(0, options.deep ? 6 : 4);
 }
 
 export function okProgramName(title, kind) {
@@ -70,6 +128,7 @@ export function okProgramName(title, kind) {
   const cutoff = kind === "tv" ? /\b(?:s\d{1,2}\s*e\d{1,3}|\d{1,2}x\d{1,3}|season\s*\d|episode\s*\d|full episodes?)\b/i
     : /\b(?:19|20)\d{2}\b/;
   value = value.split(cutoff)[0].replace(/\b(?:4k|1080p|bdrip|blu\s*ray|dvd\s*rip|vhs\s*rip|webrip)\b.*$/i, "");
+  if (kind === "tv") value = value.replace(/\b(?:19|20)\d{2}\b/g, " ");
   return value.replace(/[()[\]{}]/g, " ").replace(/\s+/g, " ").trim().slice(0, 150);
 }
 
@@ -80,7 +139,7 @@ export async function okProgramIdentity(item, kind, getJson, cache = new Map()) 
   if (!cache.has(key)) cache.set(key, (async () => {
     if (kind === "tv") {
       const rows = await getJson(`https://api.tvmaze.com/search/shows?q=${encodeURIComponent(name)}`);
-      const compact = s => String(s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+      const compact = s => String(s || "").toLowerCase().replace(/^the\s+/, "").replace(/[^a-z0-9]/g, "");
       const show = (Array.isArray(rows) ? rows : []).map(row => row.show)
         .find(show => show && compact(show.name) === compact(name) && show.language === "English" && show.type !== "Animation");
       return show ? { language: "en", seriesTitle: show.name, identityReference: show.url, identityProvider: "TVmaze", seriesId: `tvmaze:${show.id}` } : null;
@@ -158,7 +217,7 @@ export function okBalancedCandidates(pages, kind, maximum = 36) {
       const item = page[index];
       if (!item || seen.has(item.id)) continue;
       seen.add(item.id);
-      const name = okProgramName(item.title, kind).toLowerCase();
+      const name = kind === "tv" && item.seriesId ? item.seriesId : okProgramName(item.title, kind).toLowerCase();
       const episode = kind === "tv" ? String(item.title).match(/\b(?:s\d{1,2}\s*e\d{1,3}|\d{1,2}x\d{1,3})\b/i)?.[0] : "";
       const identity = kind === "movie" ? `${name}:${String(item.title).match(/\b(?:19|20)\d{2}\b/)?.[0] || ""}` : `${name}:${episode || item.id}`;
       if (seen.has(`program:${identity}`)) continue;

@@ -1,0 +1,22 @@
+name: Deepen OK catalogs
+on:
+  schedule:
+    - cron: '23 */6 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ok-catalog-ingestion
+  cancel-in-progress: false
+jobs:
+  deepen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Advance verified TV and movie discovery serially
+        run: node scripts/refresh-ok-catalogs.js

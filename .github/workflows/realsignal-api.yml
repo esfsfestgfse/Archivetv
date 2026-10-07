@@ -46,6 +46,7 @@ jobs:
           node scripts/check-v2-api-contract.js
           node scripts/test-external-source-channels.js
           node scripts/test-ok-source-recovery.js
+          node scripts/test-ok-catalog-depth.js
           node scripts/test-v2-api-worker.js
           node scripts/test-v3-api-contract.js
           node scripts/test-ia-canonical-pilot.js

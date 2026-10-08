@@ -5,6 +5,7 @@ const { pathToFileURL } = require('node:url');
 
 (async () => {
   const catalog = await import(pathToFileURL(path.join(__dirname, '..', 'ok_curated_tv_catalog.js')));
+  const worker = await import(pathToFileURL(path.join(__dirname, '..', 'realsignal_api_v2_worker.js')));
   const profiles = [
     ['ok-britannia-channel', 'Only Fools and Horses S02E03 DVDRip', 'Only Fools and Horses'],
     ['ok-history-vault-channel', 'The World at War S01E02 1080p', 'The World at War'],
@@ -17,6 +18,9 @@ const { pathToFileURL } = require('node:url');
     assert.equal(catalog.okCuratedPrecheck(profile, item), true, `${profileKey} accepts a long landscape program`);
     const identity = await catalog.okCuratedIdentity(profile, item);
     assert.equal(identity.seriesTitle, seriesTitle);
+    const persistedCandidate = { ...item, ...identity, provider: 'OK.ru', type: 'embed', url: item.embedUrl };
+    assert.equal(worker.catalogFallbackAllowed(persistedCandidate, { sourceCatalog: true, channel: profileKey }), true, `${profileKey} keeps curated programs through the persistence gate`);
+    assert.equal(worker.catalogFallbackAllowed({ ...persistedCandidate, duration: 120 }, { sourceCatalog: true, channel: profileKey }), false, `${profileKey} still enforces runtime during persistence`);
     if (/In Living Color/.test(title)) assert.equal(identity.episodeIdentity, 'episode9');
     assert.equal(catalog.okCuratedVerified(profile, { ...item, ...identity }), true);
     for (const bad of [

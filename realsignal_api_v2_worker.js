@@ -688,7 +688,7 @@ function rotateCatalogItems(items, rotation) {
 }
 
 function catalogFallbackAllowed(item, body) {
-  if (body && body.sourceCatalog === true && /^(?:ok-(?:movie|tv|kids|adult|anime)|vimeo-(?:movie|tv))-channel$/.test(String(body.channel || ""))) {
+  if (body && body.sourceCatalog === true && /^(?:ok-(?:movie|tv|kids|adult|anime|britannia|history-vault|factory-floor|black-tv)|vimeo-(?:movie|tv))-channel$/.test(String(body.channel || ""))) {
     return !!qualifySourceItem(sourceProfile({ profileKey: body.channel }), item);
   }
   const title = String(item && item.title || "").toLowerCase();
@@ -2393,5 +2393,5 @@ const worker = {
   },
 };
 
-export { SessionRotation, EdgeRateLimiter, RokuSession, freshnessExclusionIds };
+export { SessionRotation, EdgeRateLimiter, RokuSession, freshnessExclusionIds, catalogFallbackAllowed };
 export default worker;

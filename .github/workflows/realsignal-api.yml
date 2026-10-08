@@ -23,6 +23,8 @@ on:
       - 'migrations/**'
       - 'scripts/test-v2-api-worker.js'
       - 'scripts/test-v3-api-contract.js'
+      - 'scripts/test-ok-source-recovery.js'
+      - 'scripts/test-ok-curated-tv.js'
       - 'scripts/test-ia-canonical-pilot.js'
       - 'scripts/check-v2-api-contract.js'
       - 'scripts/test-version5-gate.js'

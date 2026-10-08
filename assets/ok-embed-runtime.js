@@ -55,12 +55,24 @@
     return !item.language || /^en(?:[-_]|$)/i.test(item.language);
   }
   function stop() { if (active) active(); active = null; }
+  function programKey(item) {
+    if (!item) return "";
+    var value = String(item.title || "").replace(/[_.:-]+/g, " ");
+    var pair = value.match(/\bs\s*(\d{1,2})\s*e\s*(\d{1,3})\b/i)
+      || value.match(/\b(\d{1,2})\s*x\s*(\d{1,3})\b/i)
+      || value.match(/\bseason\s*(\d{1,2})\s*(?:episode|ep)\s*(\d{1,3})\b/i);
+    var episode = pair ? "s" + String(Number(pair[1])).padStart(2, "0") + "e" + String(Number(pair[2])).padStart(2, "0")
+      : (value.match(/\b(?:episode|ep)\s*(\d{1,3})\b/i) || [])[1];
+    if (!pair && episode) episode = "episode" + Number(episode);
+    episode = episode || item.episodeIdentity;
+    return item.seriesId && episode ? item.seriesId + ":" + episode
+      : !item.seriesId && item.identityReference ? item.identityReference : item.id;
+  }
   function order(profile, items) {
     var groups = new Map(), seen = new Set(), result = [], tv = profile.intent === "television" || /^ok-(?:kids|adult|anime)-channel$/.test(String(profile.profileKey || ""));
     items.forEach(function (item) {
       var series = String(item.seriesId || item.seriesTitle || item.id);
-      var episode = item.episodeIdentity || (String(item.title || "").match(/\b(?:s\d{1,2}[ ._-]*e\d{1,3}|\d{1,2}x\d{1,3}|episode\s*\d+)\b/i) || [])[0];
-      var key = tv && episode ? series + ":" + String(episode).toLowerCase().replace(/[ ._-]/g, "") : !tv && item.identityReference ? item.identityReference : item.id;
+      var key = tv ? programKey(item) : item.identityReference || item.id;
       if (seen.has(key)) return; seen.add(key);
       if (!groups.has(series)) groups.set(series, []);
       groups.get(series).push(item);
@@ -70,15 +82,30 @@
     }
     return result;
   }
+  // Background discovery must not replace the item a tune is awaiting.
+  function reconcileShelf(state, items) {
+    var selectedId = String(state.pendingId || state.currentId || "");
+    var selected = (state.items || []).find(function (item) { return String(item.id) === selectedId; });
+    var selectedKey = selected && programKey(selected);
+    var next = items.filter(function (item) { return !selectedKey || programKey(item) !== selectedKey || String(item.id) === selectedId; });
+    var index = next.findIndex(function (item) { return String(item.id) === selectedId; });
+    if (selected && index < 0) { next.unshift(selected); index = 0; }
+    return { items: next, cursor: index >= 0 ? index : 0 };
+  }
   function play(options) {
     stop();
     return new Promise(function (resolve) {
-      var frame = document.createElement("iframe"), disposed = false, loaded = false, playing = false, advanced = false, settled = false, timer;
+      var frame = document.createElement("iframe"), disposed = false, loaded = false, playing = false, startSuppressed = false, advanced = false, settled = false, timer;
       function settle(value) { if (!settled) { settled = true; resolve(value); } }
       function cleanup() {
         disposed = true; clearTimeout(timer); root.removeEventListener("message", message); frame.onload = null;
         if (active === cleanup) active = null;
         settle(false);
+      }
+      function armStartTimer() {
+        clearTimeout(timer);
+        if (startSuppressed) return;
+        timer = setTimeout(function () { if (!playing) fail(); }, 15000);
       }
       function fail() {
         if (disposed || !options.isCurrent()) return;
@@ -92,6 +119,9 @@
         try { if (typeof data === "string") data = JSON.parse(data); } catch (_) { return; }
         if (!data || typeof data !== "object") return;
         if (data.event === "error") { fail(); return; }
+        // Explicit pauses, autoplay restrictions and ads are not failed media.
+        if (/^(?:paused|autoplaySoundProhibited|adShown|adStarted)$/.test(data.event)) { startSuppressed = true; clearTimeout(timer); return; }
+        if (/^(?:resumed|adCompleted)$/.test(data.event)) { startSuppressed = false; if (!playing) armStartTimer(); }
         if (data.event === "started" || data.event === "timeupdate" && Number(data.time) > 0) {
           if (!playing) { playing = true; clearTimeout(timer); frame.dataset.playbackState = "playing"; options.onStarted(); }
         }
@@ -107,15 +137,15 @@
       frame.dataset.playbackState = "loading";
       frame.onload = function () {
         if (disposed || !options.isCurrent()) { cleanup(); return; }
-        if (!loaded) { loaded = true; frame.dataset.playbackState = "ready"; options.onReady(); settle(true); }
+        if (!loaded) { loaded = true; frame.dataset.playbackState = "ready"; if (!playing) armStartTimer(); options.onReady(); settle(true); }
       };
       root.addEventListener("message", message);
       active = cleanup;
       options.container.appendChild(frame);
-      // Only an iframe that never loads may fail by timeout. Autoplay policy,
-      // paused content and provider ads must never trigger reconnect/skip loops.
+      // Page load is not video start. A silent, unstarted player gets one
+      // bounded recovery; actual EOF alone advances a playing program.
       timer = setTimeout(function () { if (!loaded) fail(); }, 20000);
     });
   }
-  root.RealSignalOKEmbed = { play: play, stop: stop, qualify: qualify, order: order, normalize: normalize };
+  root.RealSignalOKEmbed = { play: play, stop: stop, qualify: qualify, order: order, normalize: normalize, programKey: programKey, reconcileShelf: reconcileShelf };
 })(window);

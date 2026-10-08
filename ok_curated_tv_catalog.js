@@ -47,6 +47,8 @@ const CHANNELS = Object.freeze({
   }
 });
 
+import { okEpisodeIdentity } from "./ok_public_search.js";
+
 const clean = value => String(value || "").toLowerCase().replace(/[’']/g, "").replace(/[^a-z0-9]+/g, " ").trim();
 const compact = value => clean(value).replace(/\s+/g, "");
 const canonical = aliases => aliases[0];
@@ -99,31 +101,13 @@ function programLeadsTitle(channel, program, title) {
 }
 
 function martinEpisode(title) {
+  if (/^\s*martin[ ._-]+(?:mystery|chuzzlewit|luther|clunes|freeman)\b/i.test(title)) return false;
   if (/\b(?:dean martin|doc martin|steve martin|martin scorsese|martin short)\b/i.test(title)) return false;
   if (/\bmartin lawrence\b.*\b(?:stand[ -]?up|interview|special|movie|film|tour|live)\b/i.test(title)) return false;
   return /(?:^|[^a-z])martin(?:[^a-z]|$)/i.test(title)
     && /\b(?:s\d{1,2}[ ._-]*e\d{1,3}|\d{1,2}x\d{1,3}|season\s*\d+|episode\s*\d+|ep\.?\s*\d+)\b/i.test(title);
 }
 
-function episodeEvidence(title) {
-  return /\b(?:s[ ._-]*\d{1,2}[ ._-]*e[ ._-]*\d{1,3}|\d{1,2}\s*x\s*\d{1,3}|season\s*\d+\s*(?:episode|ep)\s*\d+|episode\s*\d+|\d+\s*of\s*\d+|\d+of\d+|s[ ._-]*\d+[ ._-]*ep[ ._-]*\d+|\d+[ ._-]*episode[ ._-]*\d+)\b/i.test(title);
-}
-
-function episodeIdentity(title) {
-  const patterns = [
-    /\bs\s*(\d{1,2})[ ._-]*e\s*(\d{1,3})\b/i,
-    /\b(\d{1,2})\s*x\s*(\d{1,3})\b/i,
-    /\bseason\s*(\d{1,2})\s*(?:episode|ep)\s*(\d{1,3})\b/i,
-    /\b(\d{1,3})\s*of\s*(\d{1,3})\b/i,
-    /\b(\d{1,3})of(\d{1,3})\b/i,
-  ];
-  for (const pattern of patterns) {
-    const match = String(title || "").match(pattern);
-    if (match) return `s${String(Number(match[1])).padStart(2,"0")}e${String(Number(match[2])).padStart(2,"0")}`;
-  }
-  const episode = String(title || "").match(/\b(?:episode|ep)\.?\s*(\d{1,3})\b/i);
-  return episode ? `episode${Number(episode[1])}` : "";
-}
 
 export function okCuratedPrecheck(profile, item, checkAspect = true) {
   const channel = okCuratedChannel(profile);
@@ -131,7 +115,7 @@ export function okCuratedPrecheck(profile, item, checkAspect = true) {
   const haystack = [title, item?.description, item?.tags, item?.category].join(" ");
   if (!channel || !item?.id || Number(item.duration) < 900) return false;
   if (checkAspect && !(Number(item.aspectRatio) >= 1.2)) return false;
-  if (COMMON_DENY.test(haystack) || FOREIGN.test(haystack)) return false;
+  if (COMMON_DENY.test(haystack) || FOREIGN.test(haystack) || /\breunion\b|\b(?:CZ|FR|ES|RU|HU|DE)[._-]EN\b/i.test(haystack)) return false;
   const program = matchProgram(profile, title);
   if (!program) return false;
   if (channel.family === "black-tv" && program === "Martin" && !martinEpisode(title)) return false;
@@ -155,7 +139,7 @@ export async function okCuratedIdentity(profile, item) {
     curatedFamily: channel.family,
     curatedVerified: true,
     curatedVerificationVersion: 1,
-    episodeIdentity: episodeIdentity(item.title)
+    episodeIdentity: okEpisodeIdentity(item.title)
   };
 }
 

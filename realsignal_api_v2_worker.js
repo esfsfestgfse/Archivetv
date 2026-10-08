@@ -8,15 +8,15 @@
 import { SessionRotation } from "./realsignal_api_rotation.js";
 import { EdgeRateLimiter } from "./realsignal_api_rate_limit.js";
 import { RokuSession } from "./realsignal_roku_session.js";
-import { okBalancedCandidates } from "./ok_public_search.js";
+import { okBalancedCandidates, okPlaybackIdentity } from "./ok_public_search.js";
 import { vimeoBalancedItems } from "./vimeo_catalog.js";
-import { mergeSourceLanes, sourceCatalogTasks, sourceRefreshTasks, sourceProfile, qualifySourceItem, SOURCE_LIMITS } from "./realsignal_source_catalog.js";
+import { mergeSourceLanes, sourceCatalogTasks, sourceRefreshTasks, sourceProfile, qualifySourceItem, isOKSourceProfile, SOURCE_LIMITS } from "./realsignal_source_catalog.js";
 import { IA_CANONICAL_PILOT_PROFILES, IA_CANONICAL_SCHEMA_VERSION, canonicalGuide, selectCanonicalItems } from "./ia_canonical_station.mjs";
 import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "5.5.78-ok-curated-tv";
+const V3_RELEASE = "5.5.79-ok-curated-tv";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -693,7 +693,7 @@ function rotateCatalogItems(items, rotation) {
 }
 
 function catalogFallbackAllowed(item, body) {
-  if (body && body.sourceCatalog === true && /^(?:ok-(?:movie|tv|kids|adult|anime|britannia|history-vault|factory-floor|black-tv)|vimeo-(?:movie|tv))-channel$/.test(String(body.channel || ""))) {
+  if (body && body.sourceCatalog === true && (isOKSourceProfile(body.channel) || /^vimeo-(?:movie|tv)-channel$/.test(String(body.channel || "")))) {
     return !!qualifySourceItem(sourceProfile({ profileKey: body.channel }), item);
   }
   const title = String(item && item.title || "").toLowerCase();
@@ -922,7 +922,8 @@ function catalogFallbackAllowed(item, body) {
 }
 
 function sourceHistoryLimit(body) {
-  return /^(?:ok-(?:movie|tv|kids|adult|anime)|vimeo-(?:movie|tv))-channel$/.test(String(body?.channel || body?.profileKey || "")) ? 1024 : 48;
+  const channel = String(body?.channel || body?.profileKey || "");
+  return isOKSourceProfile(channel) || /^vimeo-(?:movie|tv)-channel$/.test(channel) ? 1024 : 48;
 }
 
 function recentCatalogIds(body) {
@@ -1124,11 +1125,12 @@ async function readFreshnessIds(env, channel, limit = FRESHNESS_LEDGER_LIMIT) {
   if (!env.realsignal_catalog || typeof env.realsignal_catalog.prepare !== "function") return [];
   const channelKey = normalizedChannelKey(channel);
   if (!channelKey) return [];
+  if (isOKSourceProfile(channelKey)) limit = sourceHistoryLimit({ channel: channelKey });
   const now = Date.now();
   const cached = freshnessReadCache.get(channelKey);
   if (cached && now - cached.at < FRESHNESS_CACHE_TTL_MS) return cached.ids.slice(0, limit);
   try {
-    const result = await env.realsignal_catalog.prepare("SELECT program_id FROM channel_freshness WHERE channel_key=? ORDER BY last_served_at DESC LIMIT ?").bind(channelKey, Math.max(1, Math.min(64, limit))).all();
+    const result = await env.realsignal_catalog.prepare("SELECT program_id FROM channel_freshness WHERE channel_key=? ORDER BY last_served_at DESC LIMIT ?").bind(channelKey, Math.max(1, Math.min(isOKSourceProfile(channelKey) ? 1024 : 64, limit))).all();
     const ids = (result.results || []).map((row) => String(row.program_id || "").trim().slice(0, 500)).filter(Boolean);
     freshnessReadCache.set(channelKey, { at: now, ids });
     return ids;
@@ -1245,7 +1247,7 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
       ? { ...body, recentIds: Array.isArray(body.recentIds) ? body.recentIds : [], freshnessLedger: false }
       : await withFreshnessLedger(env, body);
   const channel = normalizedChannelKey(effectiveBody.channel);
-  const okCatalog = effectiveBody.sourceCatalog === true && /^ok-(?:movie|tv|kids|adult|anime|britannia|history-vault|factory-floor|black-tv)-channel$/.test(channel);
+  const okCatalog = effectiveBody.sourceCatalog === true && isOKSourceProfile(channel);
   const vimeoCatalog = effectiveBody.sourceCatalog === true && /^vimeo-(?:movie|tv)-channel$/.test(channel);
   const deepCatalog = okCatalog || vimeoCatalog;
   const limit = deepCatalog ? OK_CATALOG_WINDOW : Math.max(1, Math.min(SOURCE_LIMITS.SOURCE_MAX_ITEMS, Number(requestedLimit) || SOURCE_LIMITS.SOURCE_MAX_ITEMS));
@@ -1332,9 +1334,26 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
      shelf only from rows that can actually start. */
   const playable = filtered.filter(queueItemPlayable);
   const playableCatalog = okCatalog ? okBalancedCandidates([playable], channel === "ok-movie-channel" ? "movie" : "tv", limit) : vimeoCatalog ? vimeoBalancedItems(playable) : playable;
+  const recentIDs = recentCatalogIds(effectiveBody);
+  const okKind = channel === "ok-movie-channel" ? "movie" : "tv";
+  const recentPrograms = okCatalog ? new Set(playable.filter(item => recentIDs.has(queueItemKey(item))).map(item => okPlaybackIdentity(item, okKind))) : new Set();
+  // Resolve watched identities independently of the bounded playable window.
+  // Inactive originals still identify alternate uploads of a watched episode.
+  if (okCatalog && !ignoreFreshness && recentIDs.size) {
+    try {
+      const history = await env.realsignal_catalog.prepare("SELECT p.id,p.title,p.metadata_json FROM programs p JOIN channel_programs cp ON cp.program_id=p.id WHERE cp.channel_key=? AND p.id IN (SELECT value FROM json_each(?))").bind(channel, JSON.stringify([...recentIDs])).all();
+      for (const row of history.results || []) {
+        let metadata = {};
+        try { metadata = JSON.parse(row.metadata_json || "{}"); } catch (_) { /* tolerate legacy rows */ }
+        recentPrograms.add(okPlaybackIdentity({ ...metadata, id: row.id, title: row.title }, okKind));
+      }
+    } catch (error) {
+      console.warn(JSON.stringify({ event: "ok-canonical-history-read-failed", channel, error: String(error).slice(0, 160) }));
+    }
+  }
   const strictOKFreshness = deepCatalog;
   const fresh = ignoreFreshness ? playableCatalog : strictOKFreshness
-    ? playableCatalog.filter(item => !recentCatalogIds(effectiveBody).has(queueItemKey(item)))
+    ? playableCatalog.filter(item => !recentIDs.has(queueItemKey(item)) && (!okCatalog || !recentPrograms.has(okPlaybackIdentity(item, okKind))))
     : applyFreshness(playableCatalog, effectiveBody);
   /* Source Suite may legitimately exhaust a small catalog. Repeat only after
      every verified row has appeared; never turn exhaustion into a 503 or hide

@@ -95,6 +95,24 @@ const root = path.resolve(__dirname, '..');
   const nextReady = window.RealSignalOKEmbed.play(options); const nextFrame = frames[1]; nextFrame.onload(); await nextReady;
   send('error', 'https://ok.ru', nextFrame.contentWindow); assert.equal(failed, 1);
   assert.equal(listeners.size, 0);
+  const silentReady = window.RealSignalOKEmbed.play(options); frames[2].onload(); await silentReady;
+  for (const fn of [...timers.values()]) fn();
+  assert.equal(failed, 2, 'an iframe page with no media start must not hang forever');
+  const pausedReady = window.RealSignalOKEmbed.play(options); frames[3].onload(); await pausedReady;
+  send('autoplaySoundProhibited', 'https://ok.ru', frames[3].contentWindow);
+  for (const fn of [...timers.values()]) fn();
+  assert.equal(failed, 2, 'autoplay restrictions must not silently skip the selected program');
+  window.RealSignalOKEmbed.stop();
+  for (const event of ['paused', 'autoplaySoundProhibited', 'adStarted']) {
+    const beforeLoadReady = window.RealSignalOKEmbed.play(options), beforeLoadFrame = frames.at(-1);
+    send(event, 'https://ok.ru', beforeLoadFrame.contentWindow);
+    beforeLoadFrame.onload(); await beforeLoadReady;
+    for (const fn of [...timers.values()]) fn();
+    assert.equal(failed, 2, `${event} before iframe load must remain protected after load`);
+    send(event === 'adStarted' ? 'adCompleted' : 'resumed', 'https://ok.ru', beforeLoadFrame.contentWindow);
+    assert.equal(timers.size, 1, 'resuming an unstarted player re-enables bounded recovery');
+    window.RealSignalOKEmbed.stop();
+  }
   const api = fs.readFileSync(path.join(root, 'realsignal_api_v2_worker.js'), 'utf8');
   assert.ok(api.includes('metadata_json=excluded.metadata_json'), 'catalog repairs must replace stale metadata');
   for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {

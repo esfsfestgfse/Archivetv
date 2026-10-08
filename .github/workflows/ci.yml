@@ -14,6 +14,7 @@ on:
       - 'ok_public_embed_catalog.js'
       - 'ok_public_search.js'
       - 'ok_animation_catalog.js'
+      - 'ok_curated_tv_catalog.js'
       - 'ok_animation_verified_seed.js'
       - 'ok_verified_search_seed.js'
       - 'assets/ok-embed-runtime.js'
@@ -78,6 +79,8 @@ jobs:
         run: node scripts/test-ok-animation.js
       - name: Validate persistent OK animation catalogs and freshness
         run: node scripts/test-ok-animation-depth.js
+      - name: Validate curated OK television identity and tune races
+        run: node scripts/test-ok-curated-tv.js
       - name: Validate Vimeo public catalog depth and episode rotation
         run: node scripts/test-vimeo-catalog-depth.js
       - name: Validate actual Vimeo playback lifecycle

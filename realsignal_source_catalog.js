@@ -529,7 +529,7 @@ export async function okTitleSearch(profile, rotation, env, options = {}) {
     const nameOf = item => `${String(item.title).match(/\b(?:19|20)\d{2}\b/)?.[0] || ""}:${okProgramName(item.title, "movie").toLowerCase()}`;
     const identities = new Map(known.filter(item => item.language === "en" && item.identityReference).map(item => [nameOf(item), { language: "en", identityReference: item.identityReference, identityProvider: "Wikidata" }]));
     for (const item of candidates) if (identities.has(nameOf(item))) movieIdentities.set(item.id, identities.get(nameOf(item)));
-    try { const discovered = await okMovieIdentities(candidates.filter(item => !movieIdentities.has(item.id)), url => fetchJson(url, { headers: { "User-Agent": "RealSignal/5.5.78 (catalog metadata; https://github.com/esfsfestgfse/Archivetv)" }, cf: { cacheTtl: 86400, cacheEverything: true } })); for (const [key, identity] of discovered) movieIdentities.set(key, identity); }
+    try { const discovered = await okMovieIdentities(candidates.filter(item => !movieIdentities.has(item.id)), url => fetchJson(url, { headers: { "User-Agent": "RealSignal/5.5.79 (catalog metadata; https://github.com/esfsfestgfse/Archivetv)" }, cf: { cacheTtl: 86400, cacheEverything: true } })); for (const [key, identity] of discovered) movieIdentities.set(key, identity); }
     catch (error) { errors.push(`film identity: ${text(error?.message, 100)}`); }
   }
   const verified = await mapLimit(candidates, 3, async (item) => {
@@ -553,6 +553,11 @@ export async function okTitleSearch(profile, rotation, env, options = {}) {
 }
 
 // The identical gate is applied to newly discovered items AND old D1 rows.
+export function isOKSourceProfile(value) {
+  const profile = typeof value === "string" ? SOURCE_PROFILE_REGISTRY[value] : value;
+  return !!profile && Array.isArray(profile.providers) && profile.providers.some(provider => /^ok-(?:search|manifest|api)$/.test(provider));
+}
+
 export function qualifySourceItem(profile, item) {
   if (!profile || !item) return null;
   if (okAnimationFamily(profile) && !okAnimationVerified(profile,item)) return null;
@@ -1217,7 +1222,7 @@ async function vimeo(profile, rotation, env, options = {}) {
         if (item.language && !vimeoLanguageKnown(item)) return null;
         try {
           identity = await vimeoProgramIdentity(item, kind,
-            url => vimeoJson(url, { headers: { "User-Agent": "RealSignal/5.5.78 (public catalog identity; https://github.com/esfsfestgfse/Archivetv)", Accept: "application/json" } }, Math.max(1, Math.min(3000, deadline - Date.now()))), identityCache);
+            url => vimeoJson(url, { headers: { "User-Agent": "RealSignal/5.5.79 (public catalog identity; https://github.com/esfsfestgfse/Archivetv)", Accept: "application/json" } }, Math.max(1, Math.min(3000, deadline - Date.now()))), identityCache);
         } catch (error) {
           if (!(kind === "tv" ? vimeoOriginalSeriesEvidence(item) : vimeoLanguageKnown(item))) throw error;
           errors.push(text(error?.message, 120));

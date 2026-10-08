@@ -209,6 +209,23 @@ export async function okMovieIdentities(items, getJson) {
   return result;
 }
 
+export function okEpisodeIdentity(title) {
+  const value = String(title || "").replace(/[_.:-]+/g, " ");
+  const pair = value.match(/\bs\s*(\d{1,2})\s*e\s*(\d{1,3})\b/i)
+    || value.match(/\b(\d{1,2})\s*x\s*(\d{1,3})\b/i)
+    || value.match(/\bseason\s*(\d{1,2})\s*(?:episode|ep)\s*(\d{1,3})\b/i);
+  if (pair) return `s${String(Number(pair[1])).padStart(2, "0")}e${String(Number(pair[2])).padStart(2, "0")}`;
+  const episode = value.match(/\b(?:episode|ep)\s*(\d{1,3})\b/i);
+  return episode ? `episode${Number(episode[1])}` : "";
+}
+
+export function okPlaybackIdentity(item, kind = "tv") {
+  const series = item.seriesId || item.seriesTitle || okProgramName(item.title, kind).toLowerCase();
+  const episode = okEpisodeIdentity(item.title) || item.episodeIdentity;
+  return kind === "tv" && episode ? `${series}:${episode}`
+    : kind === "movie" && item.identityReference ? item.identityReference : item.id;
+}
+
 // Fair admission: no search page or series can consume the hydration budget.
 export function okBalancedCandidates(pages, kind, maximum = 36) {
   const seen = new Set(), buckets = new Map();
@@ -218,8 +235,7 @@ export function okBalancedCandidates(pages, kind, maximum = 36) {
       if (!item || seen.has(item.id)) continue;
       seen.add(item.id);
       const name = kind === "tv" && item.seriesId ? item.seriesId : okProgramName(item.title, kind).toLowerCase();
-      const episode = kind === "tv" ? String(item.title).match(/\b(?:s\d{1,2}\s*e\d{1,3}|\d{1,2}x\d{1,3})\b/i)?.[0] : "";
-      const identity = kind === "movie" ? `${name}:${String(item.title).match(/\b(?:19|20)\d{2}\b/)?.[0] || ""}` : `${name}:${episode || item.id}`;
+      const identity = kind === "movie" ? `${name}:${String(item.title).match(/\b(?:19|20)\d{2}\b/)?.[0] || ""}` : okPlaybackIdentity(item, kind);
       if (seen.has(`program:${identity}`)) continue;
       seen.add(`program:${identity}`);
       if (!buckets.has(name)) buckets.set(name, []);

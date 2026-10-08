@@ -74,6 +74,32 @@ const root = path.resolve(__dirname, '..');
       for (const item of shelf.items) { assert.ok(!seen.includes(item.id), 'recent episodes must not repeat'); seen.push(item.id); }
     }
     await Promise.all(tasks);
+    const curated = await import(pathToFileURL(path.join(root, 'ok_curated_tv_catalog.js')));
+    const blackProfile = { profileKey: 'ok-black-tv-channel' };
+    const blackShows = ['Living Single', 'The Jamie Foxx Show', 'Moesha', 'The Parkers', 'A Different World', 'In Living Color'];
+    for (let i = 0; i < 120; i++) {
+      const id = `ok:${900000 + i}`, title = `${blackShows[i % 6]} Season:1 Episode:${Math.floor(i / 6) + 1}`;
+      const item = { id, rawId: String(900000 + i), title, provider: 'OK.ru', duration: 1500, durationUnit: 'seconds', aspectRatio: 1.33, type: 'embed', embedAllowed: true, url: `https://ok.ru/videoembed/${900000 + i}`, embedUrl: `https://ok.ru/videoembed/${900000 + i}` };
+      Object.assign(item, await curated.okCuratedIdentity(blackProfile, item));
+      sql.prepare("INSERT INTO programs (id,provider,title,duration_seconds,aspect_ratio,media_type,media_url,metadata_json,first_seen_at,last_seen_at,status) VALUES (?,?,?,?,?,?,?,?,?,?,'active')").run(id, 'OK.ru', title, 1500, 1.33, 'embed', item.url, JSON.stringify(item), 1, 1);
+      sql.prepare('INSERT INTO channel_programs (channel_key,program_id,score,last_seen_at) VALUES (?,?,0,1)').run(blackProfile.profileKey, id);
+    }
+    const recent = [];
+    for (let rotation = 0; rotation < 16; rotation++) {
+      const shelf = await (await worker.fetch(request({ profileKey: blackProfile.profileKey, count: 5, rotation, recentIds: recent }), { realsignal_catalog: db }, ctx)).json();
+      assert.equal(shelf.items.length, 5, 'curated profiles use the same full shelf as older OK profiles');
+      assert.ok(shelf.candidateItems.every(item => !recent.includes(item.id)), 'new OK profiles cannot forget played items after 48 IDs');
+      for (const item of shelf.items) { assert.ok(!recent.includes(item.id)); recent.unshift(item.id); }
+    }
+    await Promise.all(tasks);
+    const watchedRow = sql.prepare('SELECT * FROM programs WHERE id=?').get('ok:900000');
+    const alternateMetadata = { ...JSON.parse(watchedRow.metadata_json), id: 'ok:999000', url: 'https://ok.ru/videoembed/999000', embedUrl: 'https://ok.ru/videoembed/999000' };
+    sql.prepare("INSERT INTO programs (id,provider,title,duration_seconds,aspect_ratio,media_type,media_url,metadata_json,first_seen_at,last_seen_at,status) VALUES (?,?,?,?,?,?,?,?,?,?,'active')").run(alternateMetadata.id, 'OK.ru', watchedRow.title, 1500, 1.33, 'embed', alternateMetadata.url, JSON.stringify(alternateMetadata), 1, 1);
+    sql.prepare('INSERT INTO channel_programs (channel_key,program_id,score,last_seen_at) VALUES (?,?,0,1)').run(blackProfile.profileKey, alternateMetadata.id);
+    sql.prepare("UPDATE programs SET status='inactive' WHERE id=?").run(watchedRow.id);
+    const outsideWindow = await (await worker.fetch(request({ profileKey: blackProfile.profileKey, count: 5, recentIds: [watchedRow.id] }), { realsignal_catalog: db }, ctx)).json();
+    assert.ok(outsideWindow.candidateItems.every(item => item.id !== alternateMetadata.id), 'canonical history must reject alternate uploads even when the watched original is no longer in the playable window');
+    await Promise.all(tasks);
   } finally { globalThis.fetch = oldFetch; sql.close(); }
   console.log('OK depth passed: persisted cursor, dynamic US series index, >96 retained episodes, balanced five-show shelves, and sixteen unseen rotations (>48 recent IDs).');
 })().catch(error => { console.error(error); process.exitCode = 1; });

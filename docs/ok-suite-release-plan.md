@@ -1,0 +1,68 @@
+# OK suite: shared-engine release plan
+
+All OK profiles use the existing public search, official embed player, server
+catalog, and rotation infrastructure. No private/signed video URL extraction.
+New channels configure the common pipeline; they do not receive new backends.
+
+## This release
+
+- Long freshness history applies to every registered OK profile, not a hardcoded
+  subset of older channel names.
+- Episode identity recognizes season/episode punctuation and alternate uploads.
+- Unseen programs stay ahead of watched programs in desktop and mobile catalogs.
+- Pending tunes survive background shelf refreshes. Cancelled tunes cannot
+  reject the replacement shelf. Loaded players that never start get bounded
+  recovery; explicit pauses, autoplay restrictions and ads are not failures.
+- Black Television can launch based on overall programming depth. Missing Martin
+  does not block unrelated verified shows. Martin must mean the Lawrence sitcom.
+- British and factory channels retain their existing programming restrictions.
+
+## Remaining rollout
+
+1. Deepen History Vault and launch Science Lab with actual playback evidence.
+2. Gearhead TV: English automotive programs, never late-night Jay Leno.
+3. Cookhouse: cooking/food programs; Julia Child, Pepin, Great Chefs and others.
+4. Video Hits: 1980–2009 music videos, MTV-inspired, not affiliated with MTV.
+5. Country Video: 1980–2009 country music videos, CMT-inspired, not affiliated.
+6. Soul & Flow: BET-inspired 1980–2009 hip-hop, R&B, soul, funk and new jack swing
+   music videos. Not a BET feed or affiliated with BET.
+
+## Music admission gate (not yet implemented or launched)
+
+Use the same OK discovery/storage/playback engine with a music-video profile.
+Verify track identity and original release year using MusicBrainz; upload dates
+and an artist's career dates are not sufficient. Apply landscape, genre and
+video-format checks. Reject lyrics-only/audio-only, reactions, fan edits, parody,
+podcasts and unrelated performances. Deliberately allow normal music-video
+runtimes rather than forcing a 15-minute television floor. Rotate artists, with
+eight-play artist separation when inventory permits. Do not publish empty lanes.
+
+## Still to prove or implement
+
+- Visible frames, skip behavior and guide integration for each newly exposed lane.
+- Automated cross-session series-share limits; do not claim a 30% cap is already
+  enforced. It requires at least four healthy program families to be feasible.
+- Independent spoken-language verification: curated English program/title
+  evidence is not a guarantee that an upload has not been dubbed.
+- Continued discovery beyond initial program seeds, without relaxed genre gates.
+- A rolling 1 playing + 2 ready shelf without a blocking full-catalog rebuild.
+
+Each verified release gets a new desktop/mobile stamp. Vimeo remains paused.
+
+## 5.5.79 verification record
+
+- Focused contract, depth, freshness and runtime tests pass locally, including
+  real SQLite tests covering sixteen five-item rotations and long OK history.
+- Chrome showed actual frames for Jamie Foxx, The Wayans Bros, A Different World
+  and Bernie Mac through consecutive Next actions. Desktop guide open/close
+  preserved playback and showed current/next program data.
+- The mobile page played Jamie Foxx through its own remote and guide. This is
+  browser evidence, not physical Android or Chromecast certification.
+- Independent review reproduced three edge cases: suppression before iframe
+  load, alternate episode reinsertion, and watched rows outside the active
+  catalog window. Regression tests first reproduced these failures; the fixes
+  now pass. Canonical history lookup includes inactive originals without
+  admitting them to playback.
+- Review follow-up cleared all three findings, and all eighteen focused tests
+  passed again after the fixes. Hosted build stamp, CI, API deployment and Pages
+  deployment must still be checked after pushing.

@@ -13,6 +13,19 @@
     if (!profile || String(profile.profileKey || "").indexOf("ok-") !== 0) return true;
     if (!item) return false;
     var title = String(item.title || ""), lower = title.toLowerCase();
+    var family = /^ok-(kids|adult|anime)-channel$/.exec(String(profile.profileKey || ""));
+    if (family) {
+      return item.animationVerified === true && item.animationVerificationVersion === 2 && item.animationFamily === family[1] && item.language === "en"
+        && (!(Number(item.animationEpisodeRuntime)>0) || Number(item.duration)<=Number(item.animationEpisodeRuntime)*1.35 || /\b(?:compilation|marathon|complete series|complete season|all episodes|full series|full season|mega comp)\b/i.test(title))
+        && /^tvmaze:\d+$/.test(String(item.seriesId || ""))
+        && /^https:\/\/www\.tvmaze\.com\/shows\/\d+(?:\/|$)/.test(String(item.identityReference || ""))
+        && /^https:\/\/ok\.ru\/videoembed\/\d+(?:[?#]|$)/.test(String(item.embedUrl || item.url || ""))
+        && item.embedAllowed === true && Number(item.duration || item.runtime) >= 900 && Number(item.aspectRatio) >= 1.2
+        && !/[\u0400-\u04ff\u0600-\u06ff\u0900-\u097f\u3040-\u30ff\u3400-\u9fff]/.test(title)
+        && !/\b(?:vostfr|truefrench|subbed|subesp|rus|russian|french|spanish|german|hindi|tamil|telugu|italian|hungarian|dublado|dual|multi|donghua|latino|espa[nñ]ol|fran[cç]ais|episodul|portugu[eê]s|subtitulado)\b/i.test(title)
+        && !/\b(?:shorts?|clip|trailer|teaser|recap|reaction|review|podcast|how[ -]to|tutorial|fan[ -]?(?:made|film|edit|animation)|parody|amv|gacha|gameplay|porn|hentai|nsfw|audio only)\b/i.test(title)
+        && (family[1] !== "anime" || /\b(?:english[ ._-]+dub(?:bed)?|dub(?:bed)?[ ._-]+english)\b/i.test(title));
+    }
     var tv = profile.intent === "television", reference = String(item.identityReference || "");
     if (item.language !== "en" || (tv
       ? !/^https:\/\/www\.tvmaze\.com\/shows\/\d+(?:\/|$)/.test(reference) || !/^tvmaze:\d+$/.test(String(item.seriesId || ""))
@@ -33,7 +46,7 @@
   }
   function stop() { if (active) active(); active = null; }
   function order(profile, items) {
-    var groups = new Map(), seen = new Set(), result = [], tv = profile.intent === "television";
+    var groups = new Map(), seen = new Set(), result = [], tv = profile.intent === "television" || /^ok-(?:kids|adult|anime)-channel$/.test(String(profile.profileKey || ""));
     items.forEach(function (item) {
       var series = String(item.seriesId || item.seriesTitle || item.id);
       var episode = String(item.title || "").match(/\b(?:s\d{1,2}[ ._-]*e\d{1,3}|\d{1,2}x\d{1,3})\b/i);

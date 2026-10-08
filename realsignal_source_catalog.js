@@ -15,8 +15,11 @@
 import { createHash } from "node:crypto";
 import { okSearchRows, okSearchResultRows, okSearchPageRequest, okQueryOffset, okEmbedMetadata, okTitleSearchQueries, okPublicSearchUrl, okProgramIdentity, okProgramName, okMovieIdentities, okBalancedCandidates, okTVIndexTitles, okDiscoveryCursor } from "./ok_public_search.js";
 import { OK_VERIFIED_SEARCH_SEED } from "./ok_verified_search_seed.js";
+import { okAnimationFamily, okAnimationQueries, okAnimationIdentity, okAnimationPrecheck, okAnimationVerified } from "./ok_animation_catalog.js";
+import { OK_ANIMATION_VERIFIED_SEED } from "./ok_animation_verified_seed.js";
 import { SOURCE_PROFILE_REGISTRY } from "./source_suite_profile_registry.js";
 import { OK_PUBLIC_EMBED_MANIFEST } from "./ok_public_embed_catalog.js";
+import { VIMEO_FIELDS, vimeoDiscoveryCursor, vimeoSearchPage, vimeoItem, vimeoOEmbedVerified, vimeoBalancedItems, vimeoJson, vimeoProgramOkay, vimeoProgramIdentity, vimeoLanguageKnown, vimeoOriginalSeriesEvidence } from "./vimeo_catalog.js";
 
 const SOURCE_MIN_RUNTIME = 15 * 60;
 const SOURCE_MIN_ASPECT_RATIO = 1.2;
@@ -470,6 +473,7 @@ function okApiItem(row, query) {
 
 export async function okTitleSearch(profile, rotation, env, options = {}) {
   const firstLane = options.firstLane === true;
+  const animation = okAnimationFamily(profile);
   const errors = [];
   const cursor = firstLane ? rotation : await okDiscoveryCursor(env.realsignal_catalog, profile.profileKey, rotation);
   let seriesTitles = [];
@@ -480,7 +484,7 @@ export async function okTitleSearch(profile, rotation, env, options = {}) {
       seriesTitles = okTVIndexTitles(shows, cursor % 80);
     } catch (error) { errors.push(`series index: ${text(error?.message, 100)}`); }
   }
-  const queries = okTitleSearchQueries(profile, cursor, { seriesTitles, deep: !firstLane }).slice(0, firstLane ? 2 : 6);
+  const queries = (animation ? okAnimationQueries(profile, cursor) : okTitleSearchQueries(profile, cursor, { seriesTitles, deep: !firstLane })).slice(0, firstLane ? 2 : 6);
   const offsets = [];
   const pages = await mapLimit(queries, 2, async (query) => {
     try {
@@ -505,9 +509,10 @@ export async function okTitleSearch(profile, rotation, env, options = {}) {
       } catch (_) { return []; }
     }
   });
-  const kind = profile.profileKey === "ok-tv-channel" ? "tv" : "movie";
+  const kind = profile.profileKey === "ok-tv-channel" || animation ? "tv" : "movie";
   const candidates = okBalancedCandidates(pages.map(page => page.filter(item => accepted(profile, item, "OK.ru"))), kind, firstLane ? 12 : 36);
   const identityCache = new Map();
+  const animationMisses = [];
   let movieIdentities = new Map();
   if (kind === "movie") {
     // An identity lookup can delay NEW discoveries, never erase a known shelf.
@@ -521,23 +526,24 @@ export async function okTitleSearch(profile, rotation, env, options = {}) {
     const nameOf = item => `${String(item.title).match(/\b(?:19|20)\d{2}\b/)?.[0] || ""}:${okProgramName(item.title, "movie").toLowerCase()}`;
     const identities = new Map(known.filter(item => item.language === "en" && item.identityReference).map(item => [nameOf(item), { language: "en", identityReference: item.identityReference, identityProvider: "Wikidata" }]));
     for (const item of candidates) if (identities.has(nameOf(item))) movieIdentities.set(item.id, identities.get(nameOf(item)));
-    try { const discovered = await okMovieIdentities(candidates.filter(item => !movieIdentities.has(item.id)), url => fetchJson(url, { headers: { "User-Agent": "RealSignal/5.5.76 (catalog metadata; https://github.com/esfsfestgfse/Archivetv)" }, cf: { cacheTtl: 86400, cacheEverything: true } })); for (const [key, identity] of discovered) movieIdentities.set(key, identity); }
+    try { const discovered = await okMovieIdentities(candidates.filter(item => !movieIdentities.has(item.id)), url => fetchJson(url, { headers: { "User-Agent": "RealSignal/5.5.77 (catalog metadata; https://github.com/esfsfestgfse/Archivetv)" }, cf: { cacheTtl: 86400, cacheEverything: true } })); for (const [key, identity] of discovered) movieIdentities.set(key, identity); }
     catch (error) { errors.push(`film identity: ${text(error?.message, 100)}`); }
   }
   const verified = await mapLimit(candidates, 3, async (item) => {
     try {
-      const identity = kind === "tv" ? await okProgramIdentity(item, "tv", (url) => fetchJson(url, {}, 6000), identityCache) : movieIdentities.get(item.id);
-      if (!identity) return null;
+      const identity = animation ? await okAnimationIdentity(profile,item,url=>fetchJson(url,{},6000),identityCache) : kind === "tv" ? await okProgramIdentity(item, "tv", (url) => fetchJson(url, {}, 6000), identityCache) : movieIdentities.get(item.id);
+      if (!identity) { if (animation && animationMisses.length < 8) animationMisses.push({title:item.title,programName:okProgramName(item.title,"tv"),stage:"show-identity"}); return null; }
       const html = await fetchText(item.embedUrl, { headers: { Accept: "text/html" } }, 6000);
       const metadata = okEmbedMetadata(html, item.rawId);
       if (!metadata) return null;
       const hydrated = { ...item, ...metadata, ...identity, id: item.id };
-      return accepted(profile, hydrated, "OK.ru") ? normalized(hydrated, "OK.ru", item.query) : null;
+      return qualifySourceItem(profile,{...hydrated,provider:"OK.ru"});
     } catch (_) { return null; }
   });
   return { provider: "OK.ru", items: verified.filter(Boolean), health: {
     titleSearch: true, queries, queryPages: offsets, discoveryCursor: cursor, seriesIndexPage: seriesTitles.length ? indexPage : null, candidates: candidates.length,
     verifiedEmbeds: verified.filter(Boolean).length, errors, firstLane,
+    ...(animation ? { animationMisses } : {}),
     ...(errors.length === queries.length ? { error: "public title search unavailable" } : {}),
   } };
 }
@@ -545,6 +551,9 @@ export async function okTitleSearch(profile, rotation, env, options = {}) {
 // The identical gate is applied to newly discovered items AND old D1 rows.
 export function qualifySourceItem(profile, item) {
   if (!profile || !item) return null;
+  if (okAnimationFamily(profile) && !okAnimationVerified(profile,item)) return null;
+  if (item.provider === "Vimeo" && (item.embedVerified !== true || item.publicEmbed !== true || !vimeoProgramOkay(item, profile.intent === "film" ? "movie" : "tv") || !vimeoLanguageKnown(item))) return null;
+  if (item.provider === "Vimeo" && profile.intent === "television" && !item.seriesId && !vimeoOriginalSeriesEvidence(item)) return null;
   if (/^ok-(?:movie|tv)-channel$/.test(profile.profileKey)) {
     // Search words and an English-looking title are not language evidence.
     // Recheck persisted rows too: legacy tag results included foreign animation.
@@ -644,7 +653,8 @@ function englishOkay(item) {
   if (/(?:\b(?:TRUEFRENCH|VOSTFR|SUBFRENCH|SUBESP|HUN|RUS|LAT|DUBLADO|DUBBED|DUAL|MULTI)\b|\[(?:TR|FR|ES|RU)\])/i.test(sample)) return false;
   if (/(?:[._ -](?:TR|FR|ES|RU|HU|DE)[._ -]|\((?:spanish|french|german|italian|portuguese)\b|\bteljes\s+film\b|\bmagyar\b)/i.test(sample)) return false;
   if (/\b(?:UKR|DVO|UKRAINIAN|DUBLAJ|COMMENTARY\s+ONLY|AUDIO\s+ONLY|HDCAM|CAMRIP)\b/i.test(sample)) return false;
-  return !/\b(?:hindi|tamil|telugu|bengali|bangla|marathi|malayalam|kannada|punjabi|urdu|indonesian|vietnamese|thai|arabic|espa[nñ]ol|portugu[eê]s|fran[cç]ais|deutsch|russian|turkish|korean|japanese|mandarin|pide|deseo|cuestionable|cap[ií]tulo|episodio|temporada|pel[ií]cula|televisi[oó]n|serie)\b/i.test(sample);
+  // Unaccented "television" is English too; it cannot be language evidence.
+  return !/\b(?:hindi|tamil|telugu|bengali|bangla|marathi|malayalam|kannada|punjabi|urdu|indonesian|vietnamese|thai|arabic|espa[nñ]ol|portugu[eê]s|fran[cç]ais|deutsch|russian|turkish|korean|japanese|mandarin|pide|deseo|cuestionable|cap[ií]tulo|episodio|temporada|pel[ií]cula|televisión|serie)\b/i.test(sample);
 }
 
 const OK_MOVIE_STRONG_TERMS = ["4k", "2160p", "1080p", "yts", "yts.am", "yify", "bdrip", "blu-ray", "bluray", "dvdrip", "dvd rip", "vhsrip", "vhs rip", "fullmovie", "full movie", "feature film", "complete movie", "full film"];
@@ -665,6 +675,7 @@ function okMovieTitleQualified(profile, item) {
 }
 
 function accepted(profile, item, provider, checkAspect = true) {
+  if (okAnimationFamily(profile)) return okAnimationPrecheck(profile,item,checkAspect);
   const title = text(item && item.title, 500);
   /* Provider search phrases are editorial context, but television/film lanes
      also require a program-form signal in the actual title. That prevents a
@@ -800,11 +811,13 @@ function normalized(item, provider, query) {
     aspectRatio: aspectRatio(item),
     embedded: item.type === "embed",
     embedAllowed: item.embedAllowed === true,
+    ...(provider === "Vimeo" ? { embedVerified: item.embedVerified === true, publicEmbed: item.publicEmbed === true, verifiedAt: Number(item.verifiedAt) || 0 } : {}),
     language: text(item.language, 40),
     seriesTitle: text(item.seriesTitle, 150),
     seriesId: text(item.seriesId, 100),
     identityReference: text(item.identityReference, 300),
     identityProvider: text(item.identityProvider, 50),
+    ...(okAnimationFamily({profileKey:item.animationFamily ? `ok-${item.animationFamily}-channel` : ''}) ? {animationFamily:item.animationFamily,animationVerified:item.animationVerified===true,animationVerificationVersion:item.animationVerificationVersion,animationEpisodeRuntime:Number(item.animationEpisodeRuntime)||0} : {}),
   };
 }
 
@@ -1160,51 +1173,67 @@ async function peerTube(profile, rotation, env, options = {}) {
 
 async function vimeo(profile, rotation, env, options = {}) {
   const firstLane = options.firstLane === true;
+  const deadline = Date.now() + (options.maintenance === true ? 27_000 : 4000);
+  const searchDeadline = deadline - (options.maintenance === true ? 10_000 : 1200);
   const token = text(env && env.VIMEO_ACCESS_TOKEN, 240);
-  const queries = rotate(profile.queries, rotation).slice(0, firstLane ? 1 : (profile.queryWindow || SOURCE_QUERY_WINDOW));
+  const cursor = firstLane ? rotation : await vimeoDiscoveryCursor(env.realsignal_catalog, profile.profileKey, rotation);
+  const window = profile.queryWindow || SOURCE_QUERY_WINDOW;
+  const queries = rotate(profile.queries, cursor * window).slice(0, firstLane ? 1 : window);
   if (!token || !queries.length) return { provider: "Vimeo", items: [], health: { skipped: !token, reason: token ? "no approved queries" : "VIMEO_ACCESS_TOKEN not configured", queries: 0 } };
+  const queryPages = [], errors = [];
   const jobs = queries.map((query) => async () => {
-    const params = new URLSearchParams({ query, per_page: firstLane ? "8" : "25", sort: Number(rotation || 0) % 2 ? "date" : "relevant", direction: "desc" });
-    const data = await fetchJson("https://api.vimeo.com/videos?" + params, {
+    if (Date.now() >= searchDeadline) return [];
+    const sort = Math.floor(cursor / Math.max(1, Math.ceil(profile.queries.length / window))) % 2 ? "date" : "relevant";
+    const page = firstLane ? 1 : await vimeoSearchPage(env.realsignal_catalog, profile.profileKey, query, sort);
+    const params = new URLSearchParams({ query, per_page: firstLane ? "12" : "50", page: String(page), sort, direction: "desc", fields: VIMEO_FIELDS });
+    const data = await vimeoJson("https://api.vimeo.com/videos?" + params, {
       headers: { Authorization: `bearer ${token}`, Accept: "application/vnd.vimeo.*+json;version=3.4" },
-    });
-    return (Array.isArray(data && data.data) ? data.data : []).map((item) => {
-      const uri = text(item && item.uri, 120);
-      const id = text(uri.match(/(?:videos\/)?(\d+)/i)?.[1] || item && item.id, 120);
-      const width = Number(item && item.width) || 0;
-      const height = Number(item && item.height) || 0;
-      const embedUrl = text(item && item.player_embed_url, 1400) || (id ? `https://player.vimeo.com/video/${id}` : "");
-      return id ? {
-        id: `vimeo:${id}`,
-        title: text(item && item.name, 500),
-        description: text(item && item.description, 1800),
-        tags: text(Array.isArray(item && item.tags) ? item.tags.map((tag) => tag && (tag.name || tag)).join(" ") : item && item.tags, 600),
-        category: text(item && item.categories && item.categories[0] && item.categories[0].name, 120),
-        account: text(item && item.user && item.user.name, 180),
-        language: text(item && (item.language || item.default_language), 40),
-        year: text(item && item.created_time, 12),
-        rights: text(item && (item.license || item.license_name), 240),
-        duration: Number(item && item.duration) || 0,
-        aspectRatio: width > 0 && height > 0 ? width / height : 0,
-        type: "embed",
-        url: embedUrl,
-        embedUrl,
-        sourceUrl: text(item && item.link, 1400) || `https://vimeo.com/${id}`,
-        embedAllowed: Boolean(embedUrl && (item && (item.player_embed_url || item.embed))),
-        query,
-      } : null;
-    }).filter(Boolean);
+    }, Math.min(firstLane ? 2500 : 8000, searchDeadline - Date.now()));
+    const rows = Array.isArray(data?.data) ? data.data : [];
+    queryPages.push({ query, sort, page, returned: rows.length, total: Number(data.total) || 0 });
+    if (!firstLane) await vimeoSearchPage(env.realsignal_catalog, profile.profileKey, query, sort, data.paging?.next || Number(data.total) > page * 50 ? page + 1 : 1);
+    return rows.map(item => vimeoItem(item, query)).filter(Boolean);
   });
   const responses = await mapLimit(jobs, 2, async (job) => {
     try { return { items: await job(), error: "" }; }
     catch (error) { return { items: [], error: text(error && (error.providerDetail || error.message), 180) || "Vimeo request failed" }; }
   });
   const candidates = unique(responses.flatMap((response) => response.items || []));
-  const items = candidates.filter((item) => accepted(profile, item, "Vimeo"));
+  const kind = profile.intent === "film" ? "movie" : "tv";
+  const qualified = vimeoBalancedItems(candidates.filter((item) => item.publicEmbed && vimeoProgramOkay(item, kind) && accepted(profile, item, "Vimeo"))).slice(0, firstLane ? 3 : 24);
+  const identityCache = new Map();
+  const verified = await mapLimit(qualified, 3, async item => {
+    if (Date.now() >= deadline) return null;
+    try {
+      let identity = null;
+      if (kind === "tv" || !vimeoLanguageKnown(item)) {
+        if (item.language && !vimeoLanguageKnown(item)) return null;
+        try {
+          identity = await vimeoProgramIdentity(item, kind,
+            url => vimeoJson(url, { headers: { "User-Agent": "RealSignal/5.5.77 (public catalog identity; https://github.com/esfsfestgfse/Archivetv)", Accept: "application/json" } }, Math.max(1, Math.min(3000, deadline - Date.now()))), identityCache);
+        } catch (error) {
+          if (!(kind === "tv" ? vimeoOriginalSeriesEvidence(item) : vimeoLanguageKnown(item))) throw error;
+          errors.push(text(error?.message, 120));
+        }
+        if (identity?.rejectedIdentity && !vimeoOriginalSeriesEvidence(item) || !identity && !(kind === "tv" ? vimeoOriginalSeriesEvidence(item) : vimeoLanguageKnown(item))) return null;
+        if (identity?.rejectedIdentity) identity = null;
+      }
+      if (Date.now() >= deadline) return null;
+      const data = await vimeoJson(`https://vimeo.com/api/oembed.json?${new URLSearchParams({ url: item.sourceUrl })}`, {}, Math.min(2500, deadline - Date.now()));
+      const playable = vimeoOEmbedVerified(item, data);
+      const identified = playable && { ...playable, ...(identity || {}) };
+      return identified ? qualifySourceItem(profile, { ...identified, provider: "Vimeo" }) : null;
+    } catch (error) { errors.push(text(error?.message, 120)); return null; }
+  });
+  const items = verified.filter(Boolean);
   return {
     provider: "Vimeo",
-    items: items.slice(0, firstLane ? 8 : SOURCE_MAX_ITEMS).map((item) => normalized(item, "Vimeo", item.query)),
-    health: { searched: queries.length, candidates: candidates.length, details: items.length, errors: responses.map((response) => response.error).filter(Boolean).slice(0, 8), firstLane },
+    items,
+    health: { searched: queries.length, discoveryCursor: cursor, queryPages, candidates: candidates.length, qualified: qualified.length, details: items.length,
+      admission: { runtime: candidates.filter(item => item.duration < profile.minRuntimeSeconds).length, notPublic: candidates.filter(item => !item.publicEmbed).length, portrait: candidates.filter(item => item.aspectRatio > 0 && item.aspectRatio < SOURCE_MIN_ASPECT_RATIO).length },
+      candidateSamples: candidates.slice(0, 6).map(item => ({ title: item.title, duration: item.duration, aspectRatio: item.aspectRatio, publicEmbed: item.publicEmbed, language: item.language })),
+      error: queryPages.length ? undefined : responses.find(response => response.error)?.error,
+      errors: [...responses.map((response) => response.error).filter(Boolean), ...errors].slice(0, 8), firstLane },
   };
 }
 
@@ -1320,7 +1349,7 @@ async function okApi(profile, rotation, env, options = {}) {
 
 function okPublicManifest(profile, rotation, options = {}) {
   const firstLane = options.firstLane === true;
-  const candidates = [...(OK_PUBLIC_EMBED_MANIFEST[profile.profileKey] || []), ...(OK_VERIFIED_SEARCH_SEED[profile.profileKey] || [])];
+  const candidates = [...(OK_PUBLIC_EMBED_MANIFEST[profile.profileKey] || []), ...(OK_VERIFIED_SEARCH_SEED[profile.profileKey] || []), ...(OK_ANIMATION_VERIFIED_SEED[profile.profileKey] || [])];
   const items = rotate(unique(candidates), rotation).map((item) => qualifySourceItem(profile, item)).filter(Boolean);
   return {
     provider: "OK.ru",
@@ -1347,7 +1376,7 @@ function providers(profile, rotation, env, options = {}) {
           : (provider === "ok" || provider === "ok-manifest") ? okPublicManifest(profile, rotation, options)
           : { provider: label, items: [], health: { skipped: true, reason: "unsupported provider" } });
       return Promise.resolve()
-        .then(() => options.maintenance === true ? withTimeout(task, ["ok-sitemap", "ok-search"].includes(provider) ? OK_SITEMAP_MAINTENANCE_TIMEOUT_MS : 12_000) : withTimeout(task, SOURCE_PROVIDER_BUDGET_MS))
+        .then(() => options.maintenance === true ? withTimeout(task, ["ok-sitemap", "ok-search", "vimeo"].includes(provider) ? OK_SITEMAP_MAINTENANCE_TIMEOUT_MS : 12_000) : withTimeout(task, SOURCE_PROVIDER_BUDGET_MS))
         .then((lane) => ({
           ...lane,
           health: { ...(lane && lane.health || {}), durationMs: Date.now() - startedAt },

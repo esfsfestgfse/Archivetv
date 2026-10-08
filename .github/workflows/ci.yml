@@ -9,8 +9,12 @@ on:
       - 'realsignal_api_v2_worker.js'
       - 'realsignal_api_rotation.js'
       - 'realsignal_source_catalog.js'
+      - 'vimeo_catalog.js'
+      - 'assets/vimeo-embed-runtime.js'
       - 'ok_public_embed_catalog.js'
       - 'ok_public_search.js'
+      - 'ok_animation_catalog.js'
+      - 'ok_animation_verified_seed.js'
       - 'ok_verified_search_seed.js'
       - 'assets/ok-embed-runtime.js'
       - 'ia_canonical_station.mjs'
@@ -70,6 +74,14 @@ jobs:
         run: node scripts/test-ok-source-recovery.js
       - name: Validate persistent OK discovery and deep episode rotation
         run: node scripts/test-ok-catalog-depth.js
+      - name: Validate separated OK animation families
+        run: node scripts/test-ok-animation.js
+      - name: Validate persistent OK animation catalogs and freshness
+        run: node scripts/test-ok-animation-depth.js
+      - name: Validate Vimeo public catalog depth and episode rotation
+        run: node scripts/test-vimeo-catalog-depth.js
+      - name: Validate actual Vimeo playback lifecycle
+        run: node scripts/test-vimeo-embed-runtime.js
       - name: Validate guarded IA canonical pilot
         run: node scripts/test-ia-canonical-pilot.js
       - name: Validate Version 4 hybrid lineup

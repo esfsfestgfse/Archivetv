@@ -125,7 +125,7 @@ export function okTitleSearchQueries(profile, rotation = 0, options = {}) {
 
 export function okProgramName(title, kind) {
   let value = String(title || "").replace(/^\[[^\]]+\]\s*/g, "").replace(/[._]+/g, " ");
-  const cutoff = kind === "tv" ? /\b(?:s\d{1,2}\s*e\d{1,3}|\d{1,2}x\d{1,3}|season\s*\d|episode\s*\d|full episodes?)\b/i
+  const cutoff = kind === "tv" ? /\b(?:s\d{1,2}\s*e\d{1,3}|\d{1,2}x\d{1,3}|season\s*\d+|episode\s*\d+|full episodes?)\b/i
     : /\b(?:19|20)\d{2}\b/;
   value = value.split(cutoff)[0].replace(/\b(?:4k|1080p|bdrip|blu\s*ray|dvd\s*rip|vhs\s*rip|webrip)\b.*$/i, "");
   if (kind === "tv") value = value.replace(/\b(?:19|20)\d{2}\b/g, " ");

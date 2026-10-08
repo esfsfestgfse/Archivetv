@@ -9,7 +9,10 @@ on:
       - 'realsignal_api_rotation.js'
       - 'realsignal_api_rate_limit.js'
       - 'realsignal_source_catalog.js'
+      - 'vimeo_catalog.js'
       - 'ok_public_search.js'
+      - 'ok_animation_catalog.js'
+      - 'ok_animation_verified_seed.js'
       - 'ok_verified_search_seed.js'
       - 'ia_canonical_station.mjs'
       - 'ia_canonical_pilot_manifest.js'
@@ -47,6 +50,10 @@ jobs:
           node scripts/test-external-source-channels.js
           node scripts/test-ok-source-recovery.js
           node scripts/test-ok-catalog-depth.js
+          node scripts/test-ok-animation.js
+          node scripts/test-ok-animation-depth.js
+          node scripts/test-vimeo-catalog-depth.js
+          node scripts/test-vimeo-embed-runtime.js
           node scripts/test-v2-api-worker.js
           node scripts/test-v3-api-contract.js
           node scripts/test-ia-canonical-pilot.js
@@ -55,6 +62,8 @@ jobs:
           node --check realsignal_api_rotation.js
           node --check realsignal_api_rate_limit.js
           node --check realsignal_source_catalog.js
+          node --check vimeo_catalog.js
+          node --check ok_animation_catalog.js
           node --check source_suite_profile_registry.js
           node --check ia_canonical_station.mjs
 

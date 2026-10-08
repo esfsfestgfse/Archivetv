@@ -4,8 +4,8 @@ const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
 const root = path.resolve(__dirname, '..');
-const catalog = JSON.parse(fs.readFileSync(path.join(root, 'artifacts/ok-title-playback-canary.json'), 'utf8')).catalogs;
-const port = Number(process.env.OK_CANARY_PORT || 4186);
+const catalog = JSON.parse(fs.readFileSync(path.resolve(root, process.env.SOURCE_CANARY_FILE || 'artifacts/ok-title-playback-canary.json'), 'utf8')).catalogs;
+const port = Number(process.env.SOURCE_CANARY_PORT || process.env.OK_CANARY_PORT || 4186);
 http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, `http://127.0.0.1:${port}`);
@@ -16,7 +16,7 @@ http.createServer(async (req, res) => {
       const pool = unseen.length ? unseen : items;
       const offset = Math.abs(Number(body.rotation) || 0) % Math.max(1, pool.length);
       res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
-      res.end(JSON.stringify({ items: pool.slice(offset).concat(pool.slice(0, offset)).slice(0, 5), candidateItems: items, catalogDepth: items.length, hydrating: false, source: 'loopback-public-metadata-canary' })); return;
+      res.end(JSON.stringify({ items: pool.slice(offset).concat(pool.slice(0, offset)).slice(0, 5), candidateItems: pool, catalogDepth: items.length, hydrating: false, source: 'loopback-public-metadata-canary' })); return;
     }
     if (url.pathname.startsWith('/api/v3/')) {
       res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify({ status: 'ready', events: [] })); return;

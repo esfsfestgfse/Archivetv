@@ -2169,32 +2169,192 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "match": ["television", "tv show", "tv series", "show", "full episode", "complete episode", "episode", "ep", "sitcom", "series", "serial", "program"],
     "deny": ["shorts", "short film", "vertical", "trailer", "teaser", "clip", "recap", "review", "reaction", "podcast", "how to", "tutorial", "fan film", "fan-made", "fan made", "fanmade", "fan animation", "unofficial", "parody", "mashup", "amv", "gacha", "roleplay", "my little pony", "pony", "music video", "commercial", "cartoon", "animation", "animated", "gameplay", "lecture", "seminar", "conference", "panel discussion", "full movie", "full film", "feature film", "complete movie", "movie", "cinema", "film", "anime", "donghua", "manhua", "manhwa", "xianxia", "wuxia", "cultivation", "k-drama", "korean drama", "j-drama", "telenovela", "turkish drama", "bollywood"]
   },
+  "ok-kids-channel": {
+    "name": "OKCartoon Kids",
+    "queryLimit": 32,
+    "queryWindow": 4,
+    "providers": [
+      "ok-search", "ok-manifest"
+    ],
+    "intent": "animation",
+    "serverOnly": true,
+    "minRuntimeSeconds": 900,
+    "deepCatalog": true,
+    "formatRelaxed": true,
+    "topics": [
+      "cartoon",
+      "animation"
+    ],
+    "formats": [
+      "full episode",
+      "complete episode",
+      "cartoon compilation"
+    ],
+    "queries": [
+      "OKCartoon Kids full episode"
+    ],
+    "match": [
+      "cartoon",
+      "animation"
+    ],
+    "deny": [
+      "shorts",
+      "vertical",
+      "trailer",
+      "teaser",
+      "clip",
+      "recap",
+      "review",
+      "reaction",
+      "podcast",
+      "how to",
+      "tutorial",
+      "fan film",
+      "fan-made",
+      "fan made",
+      "fanmade",
+      "parody",
+      "amv",
+      "gacha",
+      "gameplay",
+      "porn",
+      "hentai"
+    ]
+  },
+  "ok-adult-channel": {
+    "name": "OKCartoon Adult Animation",
+    "queryLimit": 32,
+    "queryWindow": 4,
+    "providers": [
+      "ok-search", "ok-manifest"
+    ],
+    "intent": "animation",
+    "serverOnly": true,
+    "minRuntimeSeconds": 900,
+    "deepCatalog": true,
+    "formatRelaxed": true,
+    "topics": [
+      "cartoon",
+      "animation"
+    ],
+    "formats": [
+      "full episode",
+      "complete episode",
+      "cartoon compilation"
+    ],
+    "queries": [
+      "OKCartoon Adult Animation full episode"
+    ],
+    "match": [
+      "cartoon",
+      "animation"
+    ],
+    "deny": [
+      "shorts",
+      "vertical",
+      "trailer",
+      "teaser",
+      "clip",
+      "recap",
+      "review",
+      "reaction",
+      "podcast",
+      "how to",
+      "tutorial",
+      "fan film",
+      "fan-made",
+      "fan made",
+      "fanmade",
+      "parody",
+      "amv",
+      "gacha",
+      "gameplay",
+      "porn",
+      "hentai"
+    ]
+  },
+  "ok-anime-channel": {
+    "name": "OK Anime",
+    "queryLimit": 32,
+    "queryWindow": 4,
+    "providers": [
+      "ok-search", "ok-manifest"
+    ],
+    "intent": "animation",
+    "serverOnly": true,
+    "minRuntimeSeconds": 900,
+    "deepCatalog": true,
+    "formatRelaxed": true,
+    "topics": [
+      "cartoon",
+      "animation"
+    ],
+    "formats": [
+      "full episode",
+      "complete episode",
+      "cartoon compilation"
+    ],
+    "queries": [
+      "OK Anime full episode"
+    ],
+    "match": [
+      "cartoon",
+      "animation"
+    ],
+    "deny": [
+      "shorts",
+      "vertical",
+      "trailer",
+      "teaser",
+      "clip",
+      "recap",
+      "review",
+      "reaction",
+      "podcast",
+      "how to",
+      "tutorial",
+      "fan film",
+      "fan-made",
+      "fan made",
+      "fanmade",
+      "parody",
+      "amv",
+      "gacha",
+      "gameplay",
+      "porn",
+      "hentai"
+    ]
+  },
   "vimeo-movie-channel": {
     "name": "Vimeo Movie Channel",
-    "queryLimit": 8,
+    "queryLimit": 24,
     "queryWindow": 4,
     "providers": ["vimeo"],
     "intent": "film",
     "serverOnly": true,
     "minTitleYear": 1980,
+    "minRuntimeSeconds": 3600,
+    "formatRelaxed": true,
     "movieLane": "modern",
     "topics": ["feature film", "full movie", "movie", "film", "cinema"],
     "formats": ["full movie", "full film", "feature film", "complete movie", "full-length movie"],
-    "queries": ["full feature film 1980s", "full feature film 1990s", "full feature film 2000s", "full feature film 2010s", "full feature film 2020s", "independent feature film full", "public domain feature film", "full movie English"],
+    "queries": ["feature film", "full movie", "full film", "independent film", "full length movie", "complete movie", "feature comedy", "feature drama", "feature thriller", "feature horror", "feature western", "science fiction movie", "american movie", "english movie", "indie feature", "romantic comedy film", "action movie", "crime movie", "family movie", "1980 movie", "1990 movie", "2000 movie", "2010 movie", "2020 movie"],
     "match": ["feature film", "feature movie", "full movie", "full length film", "independent film", "public domain film", "complete movie", "movie", "film"],
     "deny": ["shorts", "short film", "vertical", "trailer", "teaser", "clip", "recap", "review", "reaction", "podcast", "how to", "tutorial", "fan film", "fan-made", "fan made", "fanmade", "unofficial", "parody", "mashup", "music video", "commercial", "documentary", "film history", "film explained", "lecture", "seminar", "conference", "panel discussion", "making of", "behind the scenes"]
   },
   "vimeo-tv-channel": {
     "name": "Vimeo TV Channel",
-    "queryLimit": 8,
+    "queryLimit": 24,
     "queryWindow": 4,
     "providers": ["vimeo"],
     "intent": "television",
     "serverOnly": true,
+    "minRuntimeSeconds": 900,
+    "formatRelaxed": true,
     "topics": ["television", "tv show", "tv series", "episode", "sitcom", "drama", "documentary series"],
     "formats": ["full episode", "complete episode", "episode", "ep", "full series", "tv show", "television episode", "season", "series"],
-    "queries": ["full television episode 1980s", "full television episode 1990s", "full television episode 2000s", "full television episode 2010s", "full television episode 2020s", "full tv series episode", "complete tv show episode", "television program full episode"],
-    "match": ["television", "tv show", "tv series", "full episode", "complete episode", "sitcom", "series", "television program"],
+    "queries": ["full episode", "television", "tv show", "sitcom", "drama series", "complete episode", "episode 1", "episode 2", "episode 3", "episode 4", "episode 5", "episode 6", "season 1", "season 2", "tv series", "television program", "comedy series", "crime series", "western television", "documentary series", "american television", "english episode", "pilot episode", "full tv episode"],
+    "match": ["television", "tv show", "tv series", "full episode", "complete episode", "episode", "sitcom", "series", "television program"],
     "deny": ["shorts", "short film", "vertical", "trailer", "teaser", "clip", "recap", "review", "reaction", "podcast", "how to", "tutorial", "fan film", "fan-made", "parody", "music video", "commercial", "cartoon", "gameplay", "lecture", "seminar", "conference", "panel discussion", "making of", "behind the scenes"]
   },
   "tv-time-machine": {

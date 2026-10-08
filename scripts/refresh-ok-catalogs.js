@@ -2,8 +2,9 @@
 const endpoint = process.env.OK_CATALOG_ENDPOINT || 'https://realsignal-api.tdy1990.workers.dev/api/v3/source/catalog';
 const tvWindows = Math.min(40, Math.max(0, Number(process.env.OK_TV_WINDOWS || 12)));
 const movieWindows = Math.min(20, Math.max(0, Number(process.env.OK_MOVIE_WINDOWS || 6)));
+const animationWindows = Math.min(16, Math.max(0, Number(process.env.OK_ANIMATION_WINDOWS || 10)));
 (async () => {
-  for (const [profileKey, windows] of [['ok-tv-channel', tvWindows], ['ok-movie-channel', movieWindows]]) {
+  for (const [profileKey, windows] of [['ok-tv-channel', tvWindows], ['ok-movie-channel', movieWindows], ['ok-kids-channel', animationWindows], ['ok-adult-channel', animationWindows], ['ok-anime-channel', animationWindows]]) {
     for (let window = 0; window < windows; window++) {
       const start = Date.now();
       const response = await fetch(endpoint, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ profileKey, maintenance: true }), signal: AbortSignal.timeout(45000) });

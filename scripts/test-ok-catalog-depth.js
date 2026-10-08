@@ -24,6 +24,7 @@ const root = path.resolve(__dirname, '..');
   assert.equal(await helpers.okQueryOffset(db, 'ok-tv-channel', '$.okQueryOffsets.test'), 0);
   assert.equal(JSON.parse(helpers.okSearchPageRequest('Taxi DVDRip', 40).options.body).parameters.videosOffset, 40);
   assert.equal(helpers.okProgramName('[site] The.Flash.2014.S01E03.1080p', 'tv'), 'The Flash');
+  assert.equal(helpers.okProgramName('Taxi Episode 12 DVDRip','tv'),'Taxi','two-digit episode labels must not pollute the show identity');
   const shows = [
     { name: 'Test Drama', language: 'English', type: 'Scripted', network: { country: { code: 'US' } } },
     { name: 'Foreign Drama', language: 'French', type: 'Scripted', network: { country: { code: 'FR' } } },

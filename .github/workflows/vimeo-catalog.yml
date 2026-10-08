@@ -1,22 +1,22 @@
-name: Deepen OK catalogs
+name: Deepen Vimeo catalogs
 on:
   schedule:
-    - cron: '23 */6 * * *'
+    - cron: '47 */6 * * *'
   workflow_dispatch:
 permissions:
   contents: read
 concurrency:
-  group: ok-catalog-ingestion
+  group: vimeo-catalog-ingestion
   cancel-in-progress: false
 jobs:
   deepen:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v5
         with:
           node-version: '22'
           package-manager-cache: false
-      - name: Advance verified TV, movie, and animation discovery serially
-        run: node scripts/refresh-ok-catalogs.js
+      - name: Advance public verified TV and film catalogs serially
+        run: node scripts/refresh-vimeo-catalogs.js

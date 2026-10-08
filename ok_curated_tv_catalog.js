@@ -5,7 +5,7 @@
  * OK embeds only; no signed media extraction or private-video scraping.
  */
 
-const COMMON_DENY = /\b(?:shorts?|clip|trailer|teaser|promo|recap|reaction|review|podcast|how[ -]?to|tutorial|fan[ -]?(?:made|film|edit|animation)|parody|mashup|gameplay|soundtrack|theme song|music video|audio only|commentary only|interview|behind the scenes|making of|video essay|explained|lecture|seminar|conference|panel|best of|supercut|tribute|anniversary|50 years of laughs|greatest christmas moments|lost pilot|test episode|comedy duo|life lessons)\b/i;
+const COMMON_DENY = /\b(?:shorts?|clip|trailer|teaser|promo|recap|reaction|review|podcast|how[ -]?to|tutorial|fan[ -]?(?:made|film|edit|animation)|parody|mashup|gameplay|soundtrack|theme song|music video|audio only|commentary only|interview|behind the scenes|making of|video essay|explained|lecture|seminar|conference|panel|best of|supercut|tribute|anniversary|50 years of laughs|greatest christmas moments|lost pilot|test episode|comedy duo|life lessons|doctors? revisited)\b/i;
 const FOREIGN = /(?:[\u0400-\u04ff\u0600-\u06ff\u0900-\u097f\u1100-\u11ff\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]|\b(?:vostfr|vose|truefrench|subfrench|subesp|subbed|rus|russian|french|spanish|german|hindi|tamil|telugu|italian|hungarian|dublado|dubbed|dual|multi|latino|espa[nñ]ol|fran[cç]ais|episodul|portugu[eê]s|subtitulado|magyar|turkish|romana|romanian|ukrainian|ukr|dvo|tr-p\d+)\b)/i;
 
 const CHANNELS = Object.freeze({

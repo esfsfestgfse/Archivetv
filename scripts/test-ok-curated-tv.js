@@ -41,6 +41,8 @@ const { pathToFileURL } = require('node:url');
   }
   const martinEpisode = { id: 'ok:martin', rawId: 'martin', title: 'Martin S02E04', duration: 1320, aspectRatio: 16 / 9, embedAllowed: true, embedUrl: 'https://ok.ru/videoembed/123' };
   assert.equal((await catalog.okCuratedIdentity(black, martinEpisode)).seriesTitle, 'Martin');
+  const brit = { profileKey: 'ok-britannia-channel' };
+  assert.equal(catalog.okCuratedPrecheck(brit, { id: 'ok:revisited', title: 'Doctor Who: The Doctors Revisited 2013 S01E07', duration: 1800, aspectRatio: 16 / 9 }), false, 'Doctor Who retrospectives must not enter the episode channel');
   const { default: fs } = await import('node:fs');
   const vm = await import('node:vm');
   const runtime = fs.readFileSync(path.join(__dirname, '..', 'assets', 'ok-embed-runtime.js'), 'utf8');

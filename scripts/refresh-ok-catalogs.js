@@ -16,7 +16,7 @@ const curatedProfiles = ['ok-britannia-channel', 'ok-history-vault-channel', 'ok
       if (!response.ok && !(curated && response.status === 503)) throw new Error(`${profileKey}: refresh ${response.status}`);
       console.log(JSON.stringify({ profileKey, window, ms: Date.now() - start, verified: result.items?.length || 0, discovery: result.lanes?.filter(l => l.health?.titleSearch).map(l => ({ cursor: l.health.discoveryCursor, admitted: l.items.length, queryPages: l.health.queryPages })) }));
     }
-    const statusUrl = endpoint.replace(/\/catalog$/, '/status') + '?profileKey=' + profileKey;
+    const statusUrl = endpoint.replace(/\/catalog$/, '/status') + '?profileKey=' + profileKey + '&fresh=' + Date.now();
     const response = await fetch(statusUrl, { signal: AbortSignal.timeout(15000) });
     const status = await response.json();
     if (!response.ok) throw new Error(`${profileKey}: status ${response.status}`);

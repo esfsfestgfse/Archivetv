@@ -445,7 +445,12 @@ function compactCatalogItem(item) {
     language: String(item.language || "").slice(0, 40),
     seriesTitle: String(item.seriesTitle || "").slice(0, 150),
     seriesId: String(item.seriesId || "").slice(0, 100),
+    identityProvider: String(item.identityProvider || "").slice(0, 80),
     identityReference: String(item.identityReference || "").slice(0, 500),
+    curatedFamily: String(item.curatedFamily || "").slice(0, 40),
+    curatedVerified: item.curatedVerified === true,
+    curatedVerificationVersion: Number(item.curatedVerificationVersion) || 0,
+    episodeIdentity: String(item.episodeIdentity || "").slice(0, 80),
     animationFamily: String(item.animationFamily || "").slice(0, 12),
     animationVerified: item.animationVerified === true,
     animationVerificationVersion: Number(item.animationVerificationVersion) || 0,
@@ -1240,7 +1245,7 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
       ? { ...body, recentIds: Array.isArray(body.recentIds) ? body.recentIds : [], freshnessLedger: false }
       : await withFreshnessLedger(env, body);
   const channel = normalizedChannelKey(effectiveBody.channel);
-  const okCatalog = effectiveBody.sourceCatalog === true && /^ok-(?:movie|tv|kids|adult|anime)-channel$/.test(channel);
+  const okCatalog = effectiveBody.sourceCatalog === true && /^ok-(?:movie|tv|kids|adult|anime|britannia|history-vault|factory-floor|black-tv)-channel$/.test(channel);
   const vimeoCatalog = effectiveBody.sourceCatalog === true && /^vimeo-(?:movie|tv)-channel$/.test(channel);
   const deepCatalog = okCatalog || vimeoCatalog;
   const limit = deepCatalog ? OK_CATALOG_WINDOW : Math.max(1, Math.min(SOURCE_LIMITS.SOURCE_MAX_ITEMS, Number(requestedLimit) || SOURCE_LIMITS.SOURCE_MAX_ITEMS));
@@ -1288,7 +1293,12 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
       language: metadata.language || metadata.defaultAudioLanguage || metadata.defaultLanguage || "",
       seriesTitle: metadata.seriesTitle || "",
       seriesId: metadata.seriesId || "",
+      identityProvider: metadata.identityProvider || "",
       identityReference: metadata.identityReference || "",
+      curatedFamily: metadata.curatedFamily || "",
+      curatedVerified: metadata.curatedVerified === true,
+      curatedVerificationVersion: Number(metadata.curatedVerificationVersion) || 0,
+      episodeIdentity: metadata.episodeIdentity || "",
       animationFamily: metadata.animationFamily || "",
       animationVerified: metadata.animationVerified === true,
       animationVerificationVersion: Number(metadata.animationVerificationVersion) || 0,
@@ -2393,5 +2403,5 @@ const worker = {
   },
 };
 
-export { SessionRotation, EdgeRateLimiter, RokuSession, freshnessExclusionIds, catalogFallbackAllowed };
+export { SessionRotation, EdgeRateLimiter, RokuSession, freshnessExclusionIds, catalogFallbackAllowed, compactCatalogItem };
 export default worker;

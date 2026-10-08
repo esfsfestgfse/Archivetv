@@ -21,6 +21,10 @@ const { pathToFileURL } = require('node:url');
     const persistedCandidate = { ...item, ...identity, provider: 'OK.ru', type: 'embed', url: item.embedUrl };
     assert.equal(worker.catalogFallbackAllowed(persistedCandidate, { sourceCatalog: true, channel: profileKey }), true, `${profileKey} keeps curated programs through the persistence gate`);
     assert.equal(worker.catalogFallbackAllowed({ ...persistedCandidate, duration: 120 }, { sourceCatalog: true, channel: profileKey }), false, `${profileKey} still enforces runtime during persistence`);
+    const stored = worker.compactCatalogItem(persistedCandidate);
+    assert.equal(stored.curatedVerified, true, `${profileKey} verification survives database serialization`);
+    assert.equal(stored.curatedFamily, identity.curatedFamily);
+    assert.equal(stored.episodeIdentity, identity.episodeIdentity);
     if (/In Living Color/.test(title)) assert.equal(identity.episodeIdentity, 'episode9');
     assert.equal(catalog.okCuratedVerified(profile, { ...item, ...identity }), true);
     for (const bad of [

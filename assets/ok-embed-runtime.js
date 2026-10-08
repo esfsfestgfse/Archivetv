@@ -26,6 +26,16 @@
         && !/\b(?:shorts?|clip|trailer|teaser|recap|reaction|review|podcast|how[ -]to|tutorial|fan[ -]?(?:made|film|edit|animation)|parody|amv|gacha|gameplay|porn|hentai|nsfw|audio only)\b/i.test(title)
         && (family[1] !== "anime" || /\b(?:english[ ._-]+dub(?:bed)?|dub(?:bed)?[ ._-]+english)\b/i.test(title));
     }
+    var curated = /^ok-(britannia|history-vault|factory-floor|black-tv)-channel$/.exec(String(profile.profileKey || ""));
+    if (curated) {
+      var expectedFamily = curated[1] === "history-vault" ? "history" : curated[1] === "factory-floor" ? "factory" : curated[1];
+      return item.curatedVerified === true && item.curatedVerificationVersion === 1 && item.curatedFamily === expectedFamily
+        && item.language === "en" && String(item.seriesId || "").indexOf("realsignal-ok:" + expectedFamily + ":") === 0
+        && /^https:\/\/ok\.ru\/videoembed\/\d+(?:[?#]|$)/.test(String(item.embedUrl || item.url || ""))
+        && item.embedAllowed === true && Number(item.duration || item.runtime) >= 900 && Number(item.aspectRatio) >= 1.2
+        && !/[\u0400-\u04ff\u0600-\u06ff\u0900-\u097f\u3040-\u30ff\u3400-\u9fff]/.test(title)
+        && !/\b(?:shorts?|clip|trailer|teaser|recap|reaction|review|podcast|how[ -]?to|tutorial|fan[ -]?(?:made|film|edit)|parody|gameplay|audio only)\b/i.test(title);
+    }
     var tv = profile.intent === "television", reference = String(item.identityReference || "");
     if (item.language !== "en" || (tv
       ? !/^https:\/\/www\.tvmaze\.com\/shows\/\d+(?:\/|$)/.test(reference) || !/^tvmaze:\d+$/.test(String(item.seriesId || ""))
@@ -49,8 +59,8 @@
     var groups = new Map(), seen = new Set(), result = [], tv = profile.intent === "television" || /^ok-(?:kids|adult|anime)-channel$/.test(String(profile.profileKey || ""));
     items.forEach(function (item) {
       var series = String(item.seriesId || item.seriesTitle || item.id);
-      var episode = String(item.title || "").match(/\b(?:s\d{1,2}[ ._-]*e\d{1,3}|\d{1,2}x\d{1,3})\b/i);
-      var key = tv && episode ? series + ":" + episode[0].toLowerCase().replace(/[ ._-]/g, "") : !tv && item.identityReference ? item.identityReference : item.id;
+      var episode = item.episodeIdentity || (String(item.title || "").match(/\b(?:s\d{1,2}[ ._-]*e\d{1,3}|\d{1,2}x\d{1,3}|episode\s*\d+)\b/i) || [])[0];
+      var key = tv && episode ? series + ":" + String(episode).toLowerCase().replace(/[ ._-]/g, "") : !tv && item.identityReference ? item.identityReference : item.id;
       if (seen.has(key)) return; seen.add(key);
       if (!groups.has(series)) groups.set(series, []);
       groups.get(series).push(item);

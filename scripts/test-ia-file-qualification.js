@@ -18,7 +18,7 @@ function relay(metadata = {}, mediaStatus = 206, redirectedUrl = '') {
     } };
   vm.createContext(sandbox);
   vm.runInContext(fs.readFileSync(path.join(root, 'afterglow_ais_relay_worker.js'), 'utf8').replace('export default', 'const worker =') +
-    '\nglobalThis.contract={iaRuntimeAllowed, iaStationQualityGate, queuePlayable, iaPlayableIdentity, hydrateIaQueue, qualifyIaQueueResponse, verifyIaTransport};', sandbox);
+    '\nglobalThis.contract={iaRuntimeAllowed, iaStationQualityGate, queuePlayable, iaPlayableIdentity, hydrateIaQueue, qualifyIaQueueResponse, verifyIaTransport,worker};', sandbox);
   return sandbox.contract;
 }
 const verified = { identifier: 'series::episode.mp4', sourceIdentifier: 'series', title: 'Family sitcom episode',
@@ -90,6 +90,50 @@ test('cached and emergency URL-only shelves are qualified at the relay response 
   assert.equal(payload.items[0].media.verification, 'transport');
   const legacy = Response.json(raw);
   assert.equal(await f.qualifyIaQueueResponse(legacy, {}, 'https://relay.invalid', {}), legacy);
+});
+
+test('response qualification persists newly learned collection metadata for background workers', async () => {
+  const f = relay({ metadata: { language: 'eng' }, files: Array.from({ length: 4 }, (_, i) => ({ name: 'Race ' + i + '.mp4', length: 2400, width: 640, height: 480 })) });
+  const data = new Map(), waits = [], puts = [];
+  const env = { REALSIGNAL_QUEUE: { get: async key => JSON.parse(data.get(key) || 'null'), put: async (key, value) => { puts.push(key); data.set(key, value); } } };
+  const raw = { channel: '77', lastGoodKey: 'family', candidateItems: [{ identifier: 'races', title: 'Grand Prix', media: { type: 'video', url: 'https://archive.org/download/races/Race%200.mp4' } }] };
+  await f.qualifyIaQueueResponse(Response.json(raw), { iaRepair: true, channel: '77', count: 1, mediaTypes: ['movies'] }, 'https://relay.invalid', { waitUntil: p => waits.push(p) }, env);
+  await Promise.all(waits);
+  const stored = JSON.parse(data.get('family') || 'null');
+  assert.equal(stored?.candidateItems[0].media.sourceProgramCount, 4);
+  assert.equal(stored?.candidateItems[0].media.verification, 'transport');
+  assert.equal(puts.filter(key => key === 'family').length, 1, 'qualification must not double-write the same KV key');
+});
+
+test('canary underfill lanes schedule discovery instead of returning an isolated emergency bank', async () => {
+  const f = relay({ metadata: { language: 'eng' }, files: Array.from({ length: 4 }, (_, i) => ({ name: 'Race ' + i + '.mp4', length: 2400, width: 640, height: 480 })) });
+  const data = new Map(), waits = [], jobs = [];
+  const env = { REALSIGNAL_QUEUE: { get: async key => JSON.parse(data.get(key) || 'null'), put: async (key, value) => data.set(key, value) }, IA_HARVEST_QUEUE: { send: async job => jobs.push(job) } };
+  const response = await f.worker.fetch(new Request('https://relay.invalid/ia/queue', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ channel: '77', queries: ['mediatype:movies AND title:grandprix'], themeTerms: [], themeMinScore: 0, mediaTypes: ['movies'], count: 3, iaRepair: true }) }), env, { waitUntil: p => waits.push(p) });
+  const payload = await response.json();
+  await Promise.all(waits);
+  assert.equal(response.status, 200);
+  assert.match(payload.lastGoodKey || '', /file-1/, JSON.stringify({ source: response.headers.get('X-Afterglow-Source'), jobs: jobs.length }));
+  assert.ok(jobs.some(job => job.iaRepair === true && job.channel === '77'));
+});
+
+test('a real queued recovery harvest promotes distinct sibling files into the family catalog', async () => {
+  const names = ['S1983E01 - 1983 Austrian Grand Prix - Highlights.ia.mp4', ...Array.from({ length: 11 }, (_, i) => 'S1983E' + (i + 2) + ' - Grand Prix.mp4')];
+  const f = relay({ metadata: { language: 'eng' }, files: names.map(name => ({ name, length: 2400, width: 640, height: 480 })) });
+  const data = new Map(), waits = [], jobs = [];
+  const env = { REALSIGNAL_QUEUE: { get: async key => JSON.parse(data.get(key) || 'null'), put: async (key, value) => data.set(key, value) }, IA_HARVEST_QUEUE: { send: async job => jobs.push(job) } };
+  const ctx = { waitUntil: p => waits.push(p) };
+  const response = await f.worker.fetch(new Request('https://relay.invalid/ia/queue', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ channel: '77', queries: ['mediatype:movies AND title:grandprix'], themeTerms: ['formula one'], themeMinScore: 2, mediaTypes: ['movies'], count: 3, iaRepair: true }) }), env, ctx);
+  const payload = await response.json();
+  await Promise.all(waits);
+  await f.worker.queue({ messages: [{ body: jobs.shift(), ack() {}, retry() { assert.fail('harvest should not fail'); } }] }, env, ctx);
+  await Promise.all(waits);
+  const stored = JSON.parse(data.get(payload.lastGoodKey) || 'null');
+  assert.equal(stored.candidateItems.filter(row => row.fileName && row.sourceIdentifier === 'f1-1983-highlights-reviews-grand-prix').length, 12);
+  const nextResponse = await f.worker.fetch(new Request('https://relay.invalid/ia/queue', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ channel: '77', queries: ['mediatype:movies AND title:grandprix'], themeTerms: ['formula one'], themeMinScore: 2, mediaTypes: ['movies'], count: 3, iaRepair: true }) }), env, ctx);
+  const next = await nextResponse.json();
+  assert.equal(next.ready, 3, 'a cold tune must use the deeper verified family, not the small emergency bank');
+  assert.ok(next.candidateItems.some(row => row.fileName && row.sourceIdentifier === 'f1-1983-highlights-reviews-grand-prix'), 'the expanded family must reach the cold response too');
 });
 test('confirmed editorial contamination is rejected without blocking genuine cooking or court TV', () => {
   const f = relay();

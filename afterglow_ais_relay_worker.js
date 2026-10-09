@@ -5458,7 +5458,10 @@ function sharedQueuePut(env, key, payload, ttlSeconds, ctx) {
      let the background expansion grow it toward the freshness floor. */
   const required = ctx?.iaRepair ? 1 : 5;
   const fullShelf = Number(payload.ready || payload.items.length) >= required && playableCandidateCount >= required;
-  const writes = [env.REALSIGNAL_QUEUE.put(key, JSON.stringify(payload), options)];
+  // Family-only qualification is already persisted by the merged write below.
+  // A second immediate put to that same KV key can fail its per-key write limit.
+  const writes = ctx?.iaRepair && fullShelf && key === fallbackKey
+    ? [] : [env.REALSIGNAL_QUEUE.put(key, JSON.stringify(payload), options)];
   /* Preserve the last complete five-show shelf. A one-item first-frame handoff
      may live briefly at its exact rotation key, but must never replace the
      recovery shelf and turn later tunes into a permanent 1/5 loop. */
@@ -7272,7 +7275,8 @@ async function expandArchiveContainer(doc, cacheOrigin, ctx, rotation = 0, salt 
         height: Number(file.height) || 0,
         media: (function() {
           const urls = queueFileUrls(doc.identifier, payload, file.name);
-          return urls.length ? { type: wantsAudio ? "audio" : "video", url: urls[0], alts: urls.slice(1, 8), runtime: iaFileRuntimeSeconds(file), width: Number(file.width) || 0, height: Number(file.height) || 0, sourceIdentifier: doc.identifier, fileName: file.name, sourceUrl: "https://archive.org/details/" + encodeURIComponent(doc.identifier), language: file.language || md.language || "", rights: md.licenseurl || md.rights || "", metadataVerifiedAt: Date.now(), verification: "metadata-only" } : null;
+          return urls.length ? { type: wantsAudio ? "audio" : "video", url: urls[0], alts: urls.slice(1, 8), runtime: iaFileRuntimeSeconds(file), width: Number(file.width) || 0, height: Number(file.height) || 0, sourceIdentifier: doc.identifier, fileName: file.name, sourceUrl: "https://archive.org/details/" + encodeURIComponent(doc.identifier), language: file.language || md.language || "", rights: md.licenseurl || md.rights || "", metadataVerifiedAt: Date.now(), verification: "metadata-only",
+            ...(ctx && ctx.iaRepair ? { sourceProgramCount: byEpisode.size } : {}) } : null;
         })(),
         collection: Array.isArray(md.collection) ? (md.collection[0] || doc.collection) : (md.collection || doc.collection) };
     });
@@ -7893,6 +7897,12 @@ async function queuePlayable(id, cacheOrigin, ctx, mediaTypes = [], attempt = 0)
       language: String(chosen.language || payload.metadata && payload.metadata.language || ""),
       rights: String(payload.metadata && (payload.metadata.licenseurl || payload.metadata.rights) || ""),
       metadataVerifiedAt: Date.now(),
+      /* A ready file may belong to an unlabelled multi-program item. Reuse
+         this already-fetched manifest as evidence for background expansion;
+         alternate encodes, previews and unsuitable extras are not depth. */
+      ...(ctx && ctx.iaRepair && isVideo ? { sourceProgramCount: new Set(video
+        .filter(file => iaFileRuntimeSeconds(file) >= 900 && Number(file.width) > Number(file.height) && Number(file.height) > 0)
+        .map(archiveEpisodeKey)).size } : {}),
     } : null;
   } catch (error) {
     const message = String(error && error.message || error || "");
@@ -8698,7 +8708,7 @@ async function verifyIaTransport(media) {
   return null;
 }
 
-async function qualifyIaQueueResponse(response, body, cacheOrigin, ctx) {
+async function qualifyIaQueueResponse(response, body, cacheOrigin, ctx, env) {
   if (!response.ok || !body || body.iaRepair !== true) return response;
   const payload = await response.clone().json();
   const requested = Math.max(1, Math.min(5, Number(body.count) || 3));
@@ -8714,6 +8724,10 @@ async function qualifyIaQueueResponse(response, body, cacheOrigin, ctx) {
     candidateItems: ordered,
     minRuntimeSeconds: iaEffectiveVideoMinRuntimeSeconds(String(body.channel), mediaTypes, Number(body.minRuntimeSeconds) || 0),
   }, requested, cacheOrigin, strictContext, mediaTypes);
+  /* Qualification can enrich a URL-only emergency record after its refill
+     was scheduled. Keep that knowledge in the same durable family so the
+     background consumer can discover its sibling files on the next pass. */
+  if (qualified.lastGoodKey) sharedQueuePut(env, qualified.lastGoodKey, qualified, IA_QUEUE_TTL_SECONDS, strictContext);
   const headers = new Headers(response.headers);
   headers.set("X-Afterglow-Queue-Ready", String(qualified.ready));
   return new Response(JSON.stringify(qualified), { status: response.status, headers });
@@ -8806,12 +8820,13 @@ async function expandSeedArchiveContainers(payload, cacheOrigin, ctx, channel, t
        complete-series lane could stay locked to its first five files. */
     const rawIdentifier = String(item && item.identifier || "");
     const expandedEpisode = Boolean(item && rawIdentifier.includes("::") && item.sourceIdentifier && item.fileName && !item.recoveryVerified);
-    if (item && item.media && item.media.url && !expandedEpisode) return false;
+    const provenCollection = Boolean(ctx && ctx.iaRepair && Number(item && item.media && item.media.sourceProgramCount) >= 3);
+    if (item && item.media && item.media.url && !expandedEpisode && !provenCollection) return false;
     /* A normal direct-ready Archive item is already a program, not a
        collection. Only explicit series/collection signals or a synthetic
        episode may spend the background manifest budget. */
-    if (!archiveContainerHint(item) && !expandedEpisode) return false;
-    const sourceId = String(item && (item.sourceIdentifier || (rawIdentifier.includes("::") ? rawIdentifier.split("::")[0] : rawIdentifier)) || "");
+    if (!archiveContainerHint(item) && !expandedEpisode && !provenCollection) return false;
+    const sourceId = String(item && (item.sourceIdentifier || item.media && item.media.sourceIdentifier || (rawIdentifier.includes("::") ? rawIdentifier.split("::")[0] : rawIdentifier)) || "");
     if (!sourceId || seenParents.has(sourceId)) return false;
     seenParents.add(sourceId);
     return true;
@@ -8833,7 +8848,7 @@ async function expandSeedArchiveContainers(payload, cacheOrigin, ctx, channel, t
   if (!parents.length) return [];
   const episodeSets = await mapQueueCandidates(parents, IA_CONTAINER_EXPANSION_CONCURRENCY, async (parent, index) => {
     const parentIdentifier = String(parent && parent.identifier || "");
-    const parentSource = String(parent && parent.sourceIdentifier || (parentIdentifier.includes("::") ? parentIdentifier.split("::")[0] : parentIdentifier));
+    const parentSource = String(parent && parent.sourceIdentifier || parent && parent.media && parent.media.sourceIdentifier || (parentIdentifier.includes("::") ? parentIdentifier.split("::")[0] : parentIdentifier));
     const episodes = await expandArchiveContainer({ ...parent, identifier: parentSource, sourceIdentifier: parentSource }, cacheOrigin, ctx, rotation, index * 47, mediaTypes);
     return episodes.filter((episode) => iaStationQualityGate(channel, episode) && matchesTheme(episode, themeTerms, themeMinScore, requiredTitleTerms) && !matchesDeny(episode, denyTerms));
   });
@@ -9048,7 +9063,7 @@ async function expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, c
     const family = await sharedQueueGet(env, payload.lastGoodKey);
     if (family && Array.isArray(family.items) && family.items.length) {
        const familyCandidates = mergeIaCatalogCandidates(family, expanded);
-      if (familyCandidates.length > (Array.isArray(expanded.candidateItems) ? expanded.candidateItems.length : 0)) {
+      if (ctx.iaRepair || familyCandidates.length > (Array.isArray(expanded.candidateItems) ? expanded.candidateItems.length : 0)) {
         expanded = { ...expanded, items: familyCandidates.slice(0, candidateCount), candidateItems: familyCandidates, candidates: familyCandidates.length };
       }
     }
@@ -9070,6 +9085,12 @@ async function expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, c
   {
     const approvedCandidates = retainApprovedCandidates(expanded.candidateItems || expanded.items);
     expanded = { ...expanded, items: approvedCandidates.slice(0, candidateCount), candidateItems: approvedCandidates, candidates: approvedCandidates.length };
+  }
+  /* A queue delivery may precede foreground file qualification. Learn the
+     small seed's metadata here too; otherwise an unlabelled multi-file bank
+     can permanently miss sibling discovery. This never runs on a tune. */
+  if (backgroundMode && ctx.iaRepair) {
+    expanded = await hydrateIaQueue(expanded, count, cacheOrigin, ctx, mediaTypes, undefined, IA_BACKGROUND_HYDRATION_CONCURRENCY);
   }
   /* Start with collection files from the exact foreground result. This keeps
      the richer episode catalog tied to the same genre-checked parent instead
@@ -9519,7 +9540,9 @@ async function getIaQueue(request, url, env, ctx) {
          that union here instead of returning the same direct five forever.
          This keeps cold start fast while making later skips consume the deep
          Archive harvest and its expanded collection episodes. */
-      if (holidayFamily) {
+      // In repair mode every strict lane may already own a deeper file catalog.
+      // Keep the emergency bank as fallback, not as a permanent cold-start cap.
+      if (holidayFamily || ctx.iaRepair) {
         const familyShelf = await sharedQueueGet(env, lastGoodKey);
         const familyCandidates = Array.isArray(familyShelf && familyShelf.candidateItems) && familyShelf.candidateItems.length
           ? familyShelf.candidateItems
@@ -9551,11 +9574,11 @@ async function getIaQueue(request, url, env, ctx) {
             candidateItems: familyPlayable,
             candidates: familyPlayable.length,
             strictRecovery: false,
-            holidayCatalog: true,
+            ...(holidayFamily ? { holidayCatalog: true } : { repairFamilyCatalog: true }),
           }, rotation, count);
           const freshHoliday = applyIaFreshness(deepShelf, freshnessLedger, count);
           return cacheableJson(freshHoliday.payload, 30, {
-            "X-Afterglow-Source": "program-director-holiday-catalog",
+            "X-Afterglow-Source": holidayFamily ? "program-director-holiday-catalog" : "program-director-repair-family-catalog",
             "X-Afterglow-Queue-Ready": String(freshHoliday.payload.ready || freshHoliday.payload.items.length),
             "X-Afterglow-Queue-Deep": String(familyPlayable.length),
           });
@@ -9571,7 +9594,8 @@ async function getIaQueue(request, url, env, ctx) {
           count, strictCandidateCount, url.origin, cacheKey, sharedKey, env, ctx, rotation, true
         );
       }
-      const freshStrict = applyIaFreshness(strict, freshnessLedger, count);
+      // Let file qualification enrich the same family already being harvested.
+      const freshStrict = applyIaFreshness(ctx.iaRepair ? { ...strict, lastGoodKey } : strict, freshnessLedger, count);
       rememberIaFreshness(env, channel, freshStrict.issued, ctx);
       return cacheableJson(freshStrict.payload, 60, {
         "X-Afterglow-Source": "program-director-strict-recovery",
@@ -10553,7 +10577,7 @@ export default {
 
     if (request.method === "POST" && (url.pathname === IA_QUEUE_PATH || url.pathname === IA_PROGRAM_PATH)) {
       const body = await request.clone().json().catch(() => null);
-      return qualifyIaQueueResponse(await getIaQueue(request, url, env, ctx), body, url.origin, ctx);
+      return qualifyIaQueueResponse(await getIaQueue(request, url, env, ctx), body, url.origin, ctx, env);
     }
 
     // Anything other than a WebSocket upgrade gets a useful health response.

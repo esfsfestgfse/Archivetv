@@ -44,7 +44,14 @@ async function main() {
   const server = http.createServer(async (req, res) => {
     try {
       const url = new URL(req.url, 'http://127.0.0.1:' + port);
-      if (url.pathname === '/__ia-canary') { res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify({ ...stats, queueTrace, relayTrace, pendingJobs: jobs.length, sessions: sessions.size })); return; }
+      if (url.pathname === '/__ia-canary') {
+        const catalogs = [...kv].filter(([key]) => key.includes('last-good:file-1')).map(([key, raw]) => {
+          const value = JSON.parse(raw), rows = value.candidateItems || value.items || [];
+          return { key, channel: value.channel, candidates: rows.length, episodes: rows.filter(row => row.fileName).length,
+            collections: rows.filter(row => row.media?.sourceProgramCount >= 3).length };
+        });
+        res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify({ ...stats, queueTrace, relayTrace, catalogs, pendingJobs: jobs.length, sessions: sessions.size })); return;
+      }
       if (url.pathname.startsWith('/api/v3/') || url.pathname.startsWith('/ia/')) {
         let raw = ''; for await (const part of req) { raw += part; if (raw.length > 2 * 1024 * 1024) throw Error('body too large'); }
         if (url.pathname.endsWith('/ia/queue')) stats.queueRequests++;

@@ -10,11 +10,62 @@ function relay(extra = {}) {
     caches: { default: { match: async () => undefined, put: async () => {} } }, ...extra };
   vm.createContext(scope);
   vm.runInContext(fs.readFileSync(path.join(root, 'afterglow_ais_relay_worker.js'), 'utf8').replace('export default', 'const worker =') +
-    '\nglobalThis.f={harvestIaBackgroundPages,buildIaQueue,expandSeedArchiveContainers,expandArchiveContainer,scheduleIaReplenishment,expandAndCacheIaQueue,checkpointIaDiscovery,iaRepairCollectionSeeds};', scope);
+    '\nglobalThis.f={harvestIaBackgroundPages,buildIaQueue,expandSeedArchiveContainers,expandArchiveContainer,scheduleIaReplenishment,expandAndCacheIaQueue,checkpointIaDiscovery,iaRepairCollectionSeeds,queuePlayable};', scope);
   return scope;
 }
 const rules = { maxPerLane: 1, maxPerEra: 1, maxPerCreator: 1, maxPerCollection: 1, maxPerFamily: 1 };
 const queries = Array.from({ length: 12 }, (_, i) => 'rail-' + i);
+
+test('hydration exposes distinct eligible siblings without counting encodes or short/portrait extras', async () => {
+  const scope = relay();
+  vm.runInContext('cachedArchiveJson=async (_key,_ttl,loader)=>loader(); archiveFetch=async()=>Response.json({metadata:{language:"eng"},files:[{name:"Race 1.mp4",length:2400,width:640,height:480},{name:"Race 1.ia.mp4",length:2400,width:640,height:480},{name:"Race 2.mp4",length:2400,width:640,height:480},{name:"Race 3.mp4",length:2400,width:640,height:480},{name:"preview.mp4",length:2400,width:640,height:480},{name:"short.mp4",length:240,width:640,height:480},{name:"vertical.mp4",length:2400,width:480,height:640}]});', scope);
+  const media = await scope.f.queuePlayable('races', 'https://relay.invalid', { iaRepair: true }, ['movies']);
+  assert.equal(media.sourceProgramCount, 3);
+});
+
+test('a recovered ready file can expand its metadata-proven sibling collection in the canary', async () => {
+  const scope = relay();
+  vm.runInContext('cachedArchiveJson=async (_key,_ttl,loader)=>loader(); archiveFetch=async()=>Response.json({metadata:{language:"eng"},files:Array.from({length:4},(_,i)=>({name:"Race "+i+".mp4",length:2400,width:640,height:480}))});', scope);
+  const seed = { candidateItems: [{ identifier: 'races', title: 'Grand Prix', recoveryVerified: true,
+    media: { type: 'video', url: 'https://archive.org/download/races/Race%200.mp4', sourceIdentifier: 'races', fileName: 'Race 0.mp4', sourceProgramCount: 4 } }] };
+  const ctx = { iaRepair: true, isIaBackground: true, iaDiscovery: { rails: {}, parents: {} }, waitUntil: () => {} };
+  const rows = await scope.f.expandSeedArchiveContainers(seed, 'https://relay.invalid', ctx, '77', [], [], [], ['movies'], 0, 0, 256);
+  assert.equal(rows.length, 4);
+  assert.equal(new Set(rows.map(row => row.identifier)).size, 4);
+  assert.ok(rows.every(row => row.media.runtime === 2400));
+});
+
+test('metadata sibling hints do not change the legacy expansion path or turn one program into a series', async () => {
+  const scope = relay();
+  const item = { identifier: 'race', title: 'Grand Prix', media: { type: 'video', url: 'https://archive.org/download/race/Race.mp4', sourceProgramCount: 4 } };
+  const expand = ctx => scope.f.expandSeedArchiveContainers({ candidateItems: [item] }, 'https://relay.invalid', ctx, '77', [], [], [], ['movies'], 0, 0, 256);
+  assert.equal((await expand({ waitUntil: () => {} })).length, 0);
+  item.media.sourceProgramCount = 1;
+  assert.equal((await expand({ iaRepair: true, waitUntil: () => {} })).length, 0);
+});
+
+test('background expansion inherits richer family metadata even when candidate count is unchanged', async () => {
+  const scope = relay({ fetch: async () => new Response('x', { status: 206, headers: { 'content-type': 'video/mp4' } }) });
+  vm.runInContext('cachedArchiveJson=async (_key,_ttl,loader)=>loader(); archiveFetch=async()=>Response.json({metadata:{language:"eng"},files:Array.from({length:4},(_,i)=>({name:"Race "+i+".mp4",length:2400,width:640,height:480}))});', scope);
+  const item = { identifier: 'races', title: 'Grand Prix', media: { type: 'video', url: 'https://archive.org/download/races/Race%200.mp4' } };
+  const rich = { ...item, media: { ...item.media, sourceIdentifier: 'races', fileName: 'Race 0.mp4', sourceProgramCount: 4 } };
+  const data = new Map([['family', JSON.stringify({ items: [rich], candidateItems: [rich], ready: 1 })]]);
+  const env = { REALSIGNAL_QUEUE: { get: async key => JSON.parse(data.get(key) || 'null'), put: async (key, value) => data.set(key, value) } };
+  const ctx = { iaRepair: true, isIaBackground: true, waitUntil: p => p.catch(() => {}) };
+  const result = await scope.f.expandAndCacheIaQueue({ items: [item], candidateItems: [item], lastGoodKey: 'family' }, [], [], '77', [], [], [], ['movies'], 0, rules, 3, 256, 'https://relay.invalid', new Request('https://relay.invalid/queue'), 'shared', env, ctx, 0, true);
+  assert.equal(result.candidateItems.filter(row => row.identifier.includes('::Race ')).length, 4);
+});
+
+test('background collection discovery does not depend on foreground qualification winning the race', async () => {
+  const scope = relay({ fetch: async () => new Response('x', { status: 206, headers: { 'content-type': 'video/mp4' } }) });
+  vm.runInContext('cachedArchiveJson=async (_key,_ttl,loader)=>loader(); archiveFetch=async()=>Response.json({metadata:{language:"eng"},files:Array.from({length:4},(_,i)=>({name:"Race "+i+".mp4",length:2400,width:640,height:480}))});', scope);
+  const item = { identifier: 'races', title: 'Grand Prix', recoveryVerified: true, media: { type: 'video', url: 'https://archive.org/download/races/Race%200.mp4' } };
+  const data = new Map();
+  const env = { REALSIGNAL_QUEUE: { get: async key => JSON.parse(data.get(key) || 'null'), put: async (key, value) => data.set(key, value) } };
+  const ctx = { iaRepair: true, isIaBackground: true, waitUntil: p => p.catch(() => {}) };
+  const result = await scope.f.expandAndCacheIaQueue({ items: [item], candidateItems: [item], lastGoodKey: 'family' }, [], [], '77', [], [], [], ['movies'], 0, rules, 3, 256, 'https://relay.invalid', new Request('https://relay.invalid/queue'), 'shared', env, ctx, 0, true);
+  assert.equal(result.candidateItems.filter(row => row.identifier.includes('::Race ')).length, 4);
+});
 
 test('classic cartoon repair supplies full episodes and keeps all collection parents for discovery', () => {
   const rows = relay().f.iaRepairCollectionSeeds('150');

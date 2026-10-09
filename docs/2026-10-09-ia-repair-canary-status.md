@@ -11,6 +11,73 @@ Scope: all **169 canonical IA stations**: 141 video and 28 audio. Thirteen
 existing aliases are not counted as separate stations. No station was hidden,
 removed, or padded with off-genre material to improve a test score.
 
+### Resumed run — latest decision
+
+Archive metadata/search became reachable again. The availability incident below
+is historical, not the current blocker. Actual desktop TV/cartoon pictures and
+Next were rechecked. A shared background/cold-tune depth defect was reproduced
+and repaired behind `iaRepair`; **production promotion is still blocked** by
+the remaining underfills and incomplete device/freshness certification.
+
+The checkpoint has **76 passing behavioral tests** and **49 passing local Node
+CI commands**. These are local results, not a claim that hosted CI, physical
+mobile/Cast, or all 169 stations have passed.
+
+New repairs:
+
+- Reuse already-fetched file metadata to identify unlabelled multi-program
+  parents. Alternate encodings, short/portrait files and previews do not inflate
+  the hydration hint; normal runtime/editorial/transport gates still apply.
+- Persist enriched qualification into the same family being harvested, including
+  equal-size metadata improvements. Strict recovery now retains that family key.
+- A background queue delivery learns its small seed's metadata itself, so it
+  cannot miss sibling expansion merely by starting before foreground verification.
+- Family-only qualification avoids two immediate writes to the same KV key;
+  the merged family write remains authoritative. This is covered by regression
+  assertion, not a relaxation of the external provider's limits.
+- In repair mode, a grown approved family outranks the small emergency bank on
+  cold tune. The emergency bank remains fallback. No new foreground discovery,
+  production flag, binding, channel, or OK/Vimeo change was introduced.
+
+Fresh evidence:
+
+| Check | Result | Limit |
+| --- | --- | --- |
+| Classic Cartoons, desktop | Six distinct visible starts; 286–1,500 ms; zero recorded stalls | Small browser sample, not a full-device soak |
+| Classic TV, desktop | Bonanza and Dragnet pictures; clean samples 232/216 ms | One overlapping Get Smart/Bonanza event was ambiguous and is not counted as a reliable program-correlated measurement |
+| Guide, desktop | Open 208 ms; close 26 ms; actual current/next and durations | One interaction sample |
+| Grand Prix after repair | Three rotations, three transport-qualified reservations each, nine distinct programs, zero repeats; queue 170/160/150 ms | Synthetic skip acknowledgements, not nine decoded videos |
+| Grand Prix, visible playback | Austrian race 1,124 ms; Next to Italian race 1,079 ms; after client reload, Next to an expanded French race file 868 ms | Actual pictures/advancing media time and a file beyond the old bank; not a long/device-wide soak |
+| Repeated weak-lane retry | 15 of the other 17 still underfill; Midnight Matinee and Ragtime initially fill | Both initial recoveries drop to two ready items on later rotations; neither is certified |
+
+Remaining measured backlog: 56 Friday Night Fights; 68 Coaches' Clinic; 71 The
+Fairway; 72 Racquet Club; 73 Equestrian; 74 Winter Games; 83 Range & Field;
+134 Darcys Playground; 19 Old Nick; 200 Manufacturing Marvels; 202 Comedy
+Archive; 204 Prelinger Vault; 227 Auto Archive; 702 Thanksgiving Channel;
+511 The Detective. Also recheck sustained depth on 132 Midnight Matinee and
+911 Ragtime. Do not lower the quality floors to make these appear healthy.
+
+Background discovery can continue after a cold response; these failures are
+valid shelf observations, not proof that every source is dead. The local queue
+harness is bounded and is not a production-scale saturation certification.
+The full 169-station run has **not** been repeated after these last fixes.
+
+Local evidence retained, not committed:
+`ia-repair-resumed-targeted.json`, `ia-repair-resumed-weak-lanes.json`,
+`ia-repair-deep-cold-rotations.json`, `ia-repair-deep-cold-weak-retry.json`, and
+`ia-repair-deep-cold-recovered-rotations.json` under `artifacts/`.
+
+Bounded independent review: safe to checkpoint on the repair branch; no
+remaining critical finding in this diff. The existing shared-write helper
+logs/swallow failures without retry. Durable-owner failure must be distinguished
+from a failed KV mirror, and verified response success must not be treated as
+proof of persistence. Add recovery/telemetry coverage before production
+promotion. Cloudflare documents one same-key KV write per second:
+https://developers.cloudflare.com/kv/platform/limits/ .
+Actual cloud throttling/concurrent delivery, full unrelated legacy/OK/Vimeo
+behavior, and physical-device decoding were outside that narrow review and
+remain separate release gates; controlled owner concurrency tests did pass.
+
 ## Implemented repairs
 
 - Durable catalog unions and played history have a serialized owner instead
@@ -45,7 +112,7 @@ Jetsons) and nine full-length starter episodes, interleaved by show. These
 starters still require transport checks. Their collection files continue through
 background expansion; nine is not a claim about the channel's ultimate depth.
 
-## Evidence and its limits
+## Earlier evidence and its limits
 
 | Check | Observed result | What it proves |
 | --- | --- | --- |
@@ -66,7 +133,7 @@ metadata timed out, including a separate HTTP client. Other network access
 responded. This establishes a connection problem from the test environment,
 **not** an assertion that Internet Archive is down worldwide or a known cause.
 
-The last CDN/startup/generation repairs passed regression tests but do not yet
+At the earlier checkpoint, the CDN/startup/generation repairs passed regression tests but did not yet
 have a fresh live-browser playback pass. Physical mobile and Cast certification
 was not performed. Receiver-side start/skip/completion acknowledgement behavior
 must be checked before the canary is promoted for Cast.
@@ -85,10 +152,11 @@ Local artifacts are intentionally not added to Git:
 
 ## Next steps — avoid rerunning broad discovery unnecessarily
 
-1. Restore a successful Archive availability preflight.
-2. Restart the isolated canary with the final code and verify actual picture,
-   Next and guide transitions on channels 10 and 150 first.
-3. Recheck the earlier repeated misses with low concurrency. Retain strict
+1. Preserve the successful availability preflight and the TV/cartoon/racing
+   picture evidence; do not repeat broad discovery for those observations.
+2. Extend the successful clean-session Next sample with longer browser playback
+   and mobile/Cast acknowledgement behavior.
+3. Repair the measured remaining misses with low concurrency. Retain strict
    qualification; expand suitable collection files rather than lowering floors.
 4. Repeat the full 169-lane transport/rotation pass only after those checks pass.
    Measure freshness across multiple rotations, not only a ready shelf.

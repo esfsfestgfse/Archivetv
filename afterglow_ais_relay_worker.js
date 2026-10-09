@@ -5632,7 +5632,7 @@ function iaVideoPolicyAllowed(doc, minimumSeconds = 0) {
   if (iaHasGlobalVideoPolicyViolation(doc)) return false;
   const minimum = safeMinRuntimeSeconds(minimumSeconds);
   if (!minimum) return true;
-  const runtime = iaRuntimeSeconds(doc && doc.runtime) || iaFileRuntimeSeconds(doc && doc.media);
+  const runtime = doc && doc.media ? iaFileRuntimeSeconds(doc.media) : iaRuntimeSeconds(doc && doc.runtime);
   if (runtime > 0) return runtime >= minimum;
   /* Archive search rows sometimes omit duration even when the file manifest
      has it. Keep the record eligible for metadata hydration, but reject the
@@ -5645,7 +5645,7 @@ function iaRuntimeAllowed(doc, minimumSeconds) {
   if (!iaIsVideoRecord(doc)) return true;
   if (!iaVideoPolicyAllowed(doc, minimum)) return false;
   if (!minimum) return true;
-  const runtime = iaRuntimeSeconds(doc && doc.runtime) || iaFileRuntimeSeconds(doc && doc.media);
+  const runtime = doc && doc.media ? iaFileRuntimeSeconds(doc.media) : iaRuntimeSeconds(doc && doc.runtime);
   if (runtime > 0) return runtime >= minimum;
   /* Archive search rows sometimes omit duration even when the metadata file
      has it. Keep unknown-duration programs eligible for later hydration, but
@@ -5782,6 +5782,12 @@ function iaHolidayThemeMatch(doc, themeTerms) {
    normal theme/deny checks and apply equally to discovered records, expanded
    episode files, and verified recovery banks. */
 const IA_STATION_QUALITY_GATES = Object.freeze({
+  "19": { requiredGroups: [], denyTerms: ["characters read to", "fan made", "fan-made", "fan reading", "reaction video"] },
+  "20": { requiredGroups: [["judge judy", "judge joe brown", "judge mathis", "judge greg mathis", "people's court", "peoples court", "divorce court", "judge milian", "judge hatchett", "judge alex", "judge faith", "judge jerry", "hot bench", "small claims"]], denyTerms: ["judge roy bean", "fictional western", "podcast", "fan-made"] },
+  "201": { requiredGroups: [["cook", "cuisine", "food", "chef", "recipe", "baking", "julia child", "pepin", "test kitchen", "galloping gourmet"]], denyTerms: ["office etiquette", "secretarial", "horse meat podcast", "podcast"] },
+  "707": { requiredGroups: [], denyTerms: ["cartoon", "animation", "animated", "little king", "podcast", "fan-made"] },
+  "708": { requiredGroups: [], denyTerms: ["cartoon", "animation", "animated", "podcast", "fan-made"] },
+  "709": { requiredGroups: [], denyTerms: ["cartoon", "animation", "animated", "podcast", "fan-made"] },
   "62": {
     requiredGroups: [
       ["college", "ncaa", "university", "varsity", "campus", "intercollegiate"],
@@ -7837,6 +7843,7 @@ async function queuePlayable(id, cacheOrigin, ctx, mediaTypes = [], attempt = 0)
     const requested = requestedFile && files.find((file) => file && file.name === requestedFile && !archiveInterstitialFile(file.name) && !iaHasGlobalVideoPolicyViolation(file) && (wantsAudio
       ? /\.mp3$|\.ogg$|\.m4a$|\.flac$/i.test(file.name)
       : /\.mp4$|\.m4v$|\.webm$|\.ogv$/i.test(file.name)));
+    if (requestedFile && !requested) return null;
     const chosen = requested || (wantsVideo ? video[0] : wantsAudio ? audio : (video[0] || audio));
     if (!chosen) return null;
     /* `id` may be synthetic (`parent::file`). URLs must use the real Archive
@@ -7848,9 +7855,15 @@ async function queuePlayable(id, cacheOrigin, ctx, mediaTypes = [], attempt = 0)
       type: isVideo ? "video" : "audio",
       url: urls[0],
       alts: urls.slice(1, 8),
-      runtime: isVideo ? iaFileRuntimeSeconds(chosen) : 0,
+      runtime: iaFileRuntimeSeconds(chosen),
       width: Number(chosen.width) || 0,
       height: Number(chosen.height) || 0,
+      fileName: chosen.name,
+      sourceIdentifier: sourceId,
+      sourceUrl: "https://archive.org/details/" + encodeURIComponent(sourceId),
+      language: String(chosen.language || payload.metadata && payload.metadata.language || ""),
+      rights: String(payload.metadata && (payload.metadata.licenseurl || payload.metadata.rights) || ""),
+      metadataVerifiedAt: Date.now(),
     } : null;
   } catch (error) {
     const message = String(error && error.message || error || "");
@@ -8579,6 +8592,18 @@ function rotateUnderfillDepthBank(payload, channel, rotation, count, themeTerms,
   };
 }
 
+async function verifyIaTransport(media) {
+  if (!media || !media.url) return null;
+  if (media.verification === "transport" && Number(media.verifiedAt) > Date.now() - 86400000) return media;
+  try {
+    const response = await timedFetch(media.url, { headers: { Range: "bytes=0-0" } }, 2800);
+    const contentType = String(response.headers.get("content-type") || "");
+    const accepted = (response.status === 200 || response.status === 206) && /^(?:video|audio)\/|application\/ogg/i.test(contentType);
+    if (response.body) await response.body.cancel();
+    return accepted ? { ...media, verifiedAt: Date.now(), verification: "transport" } : null;
+  } catch (_) { return null; }
+}
+
 async function hydrateIaQueue(payload, requestedCount, cacheOrigin, ctx, mediaTypes, onReady, concurrency = 5) {
   /* Keep a few extra candidates behind the five-program shelf. Archive items
      occasionally have no browser-playable derivative; filtering those here
@@ -8596,7 +8621,11 @@ async function hydrateIaQueue(payload, requestedCount, cacheOrigin, ctx, mediaTy
       if (index >= items.length) return;
       const item = items[index];
       const mediaContractMatches = item && item.media && item.media.url && (!mediaTypes.length || (mediaTypes.includes("movies") && item.media.type === "video") || (mediaTypes.includes("audio") && item.media.type === "audio"));
-      const media = mediaContractMatches ? item.media : await queuePlayable(item.identifier, cacheOrigin, ctx, mediaTypes);
+      const strict = Boolean(ctx && ctx.iaRepair);
+      const metadataKnown = item && item.media && iaFileRuntimeSeconds(item.media) > 0 && (item.media.type === "audio" || Number(item.media.width) > Number(item.media.height) && Number(item.media.height) > 0);
+      let media = mediaContractMatches && (!strict || metadataKnown) ? item.media : await queuePlayable(item.identifier, cacheOrigin, ctx, mediaTypes);
+      if (strict && media && media.type === "video" && (!iaFileRuntimeSeconds(media) || !Number(media.height) || Number(media.width) <= Number(media.height))) media = null;
+      if (strict && media) media = await verifyIaTransport(media);
       if (media && iaRuntimeAllowed({ ...item, media }, payload && payload.minRuntimeSeconds) && ready.length < requestedCount) {
         const hydratedItem = { ...item, media };
         ready.push(hydratedItem);
@@ -8609,7 +8638,7 @@ async function hydrateIaQueue(payload, requestedCount, cacheOrigin, ctx, mediaTy
   return {
     ...payload,
     items: ready,
-    candidateItems: items,
+    candidateItems: mergeIaCatalogCandidates({ candidateItems: items }, { candidateItems: ready }, { preserveOrder: true }),
     candidates: items.length,
     ready: ready.length,
     partial: ready.length < requestedCount,
@@ -9101,6 +9130,10 @@ async function getIaQueue(request, url, env, ctx) {
     return json({ error: "queue payload must be JSON" }, 400);
   }
   const channel = String(body && body.channel || "").trim();
+  if (body && body.iaRepair === true) {
+    const originalContext = ctx;
+    ctx = { iaRepair: true, isIaBackground: Boolean(originalContext && originalContext.isIaBackground), waitUntil: promise => originalContext ? originalContext.waitUntil(promise) : promise };
+  }
   let queries = safeQueries(body && body.queries);
   const themeTerms = safeThemeTerms(body && body.themeTerms);
   const denyTerms = Array.from(new Set(safeDenyTerms(body && body.denyTerms).concat(channel === "64" ? ["shooting", "archery"] : [])));
@@ -9127,9 +9160,10 @@ async function getIaQueue(request, url, env, ctx) {
   const rotation = safeQueueRotation(body && body.rotation);
   /* The five-show recovery shelf spans rotations, but never editorial rules.
      That avoids stale genre bleed after a channel's source contract changes. */
-  const familyFingerprint = JSON.stringify({ channel, queries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, minRuntimeSeconds, diversity, count, contentPolicy: IA_GLOBAL_VIDEO_POLICY_VERSION });
+  const fileContract = body && body.iaRepair === true ? { fileContract: "ia-file-1" } : {};
+  const familyFingerprint = JSON.stringify({ channel, queries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, minRuntimeSeconds, diversity, count, contentPolicy: IA_GLOBAL_VIDEO_POLICY_VERSION, ...fileContract });
   const lastGoodDigest = await stableKey(familyFingerprint);
-  const fingerprint = JSON.stringify({ channel, queries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, minRuntimeSeconds, diversity, count, rotation, catalogBudget: IA_CATALOG_BUDGET_VERSION, contentPolicy: IA_GLOBAL_VIDEO_POLICY_VERSION });
+  const fingerprint = JSON.stringify({ channel, queries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, minRuntimeSeconds, diversity, count, rotation, catalogBudget: IA_CATALOG_BUDGET_VERSION, contentPolicy: IA_GLOBAL_VIDEO_POLICY_VERSION, ...fileContract });
   const digest = await stableKey(fingerprint);
   const cacheKey = new Request(url.origin + IA_PREFIX + "/cache/queue/" + IA_QUEUE_CACHE_VERSION + "/" + digest);
   const sharedKey = IA_QUEUE_KV_PREFIX + IA_QUEUE_CACHE_VERSION + ":" + digest;

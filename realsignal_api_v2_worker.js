@@ -6,6 +6,7 @@
  */
 
 import { SessionRotation } from "./realsignal_api_rotation.js";
+import { normalizeIaFileRecord, qualifyIaFileRecord } from "./ia_file_contract.js";
 import { EdgeRateLimiter } from "./realsignal_api_rate_limit.js";
 import { RokuSession } from "./realsignal_roku_session.js";
 import { okBalancedCandidates, okPlaybackIdentity } from "./ok_public_search.js";
@@ -422,6 +423,7 @@ async function forwardToRelay(request, env, relayPath, body, id) {
 }
 
 function compactCatalogItem(item) {
+  if (item && ((!item.provider && !item.source) || /^(?:internet[- ]archive|ia)$/i.test(item.provider || item.source || ""))) item = normalizeIaFileRecord(item);
   const id = String(item && (item.identifier || item.id || (item.media && item.media.url)) || "").slice(0, 500);
   if (!id) return null;
   const provider = String(item.provider || item.source || "internet-archive").slice(0, 60);
@@ -441,6 +443,9 @@ function compactCatalogItem(item) {
     duration: Number(item.duration || item.runtime) || null,
     durationUnit: provider === "OK.ru" ? "seconds" : "",
     aspectRatio: Number(item.aspectRatio) || null,
+    ...(item.logicalId ? { logicalId: item.logicalId, fileName: item.fileName, width: item.width, height: item.height,
+      runtimeSeconds: item.runtimeSeconds, metadataVerifiedAt: item.metadataVerifiedAt,
+      verifiedAt: item.verifiedAt, verification: item.verification } : {}),
     mediaType: okEmbed ? "embed" : String((item.media && item.media.type) || item.type || "video").slice(0, 30),
     mediaUrl,
     embedAllowed: item.embedAllowed === true,
@@ -725,6 +730,7 @@ function rotateCatalogItems(items, rotation) {
 }
 
 function catalogFallbackAllowed(item, body) {
+  if (body && body.iaRepair === true && body.sourceCatalog !== true && !qualifyIaFileRecord(item, body).accepted) return false;
   if (body && body.sourceCatalog === true && (isOKSourceProfile(body.channel) || /^vimeo-(?:movie|tv)-channel$/.test(String(body.channel || "")))) {
     return !!qualifySourceItem(sourceProfile({ profileKey: body.channel }), item);
   }
@@ -1339,6 +1345,9 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
       seriesId: metadata.seriesId || "",
       identityProvider: metadata.identityProvider || "",
       identityReference: metadata.identityReference || "",
+      ...(provider !== "OK.ru" && provider !== "Vimeo" ? { logicalId: metadata.logicalId, fileName: metadata.fileName,
+        width: metadata.width, height: metadata.height, runtimeSeconds: metadata.runtimeSeconds,
+        verification: metadata.verification, verifiedAt: metadata.verifiedAt, metadataVerifiedAt: metadata.metadataVerifiedAt } : {}),
       ...(metadata.musicVerified ? { musicVerified: true, musicVerificationVersion: Number(metadata.musicVerificationVersion), musicFamily: metadata.musicFamily || "soul", musicArtist: metadata.musicArtist, musicArtistId: metadata.musicArtistId, musicTrack: metadata.musicTrack, musicTrackKey: metadata.musicTrackKey, musicRecordingId: metadata.musicRecordingId, musicReleaseYear: Number(metadata.musicReleaseYear) } : {}),
       curatedFamily: metadata.curatedFamily || "",
       curatedVerified: metadata.curatedVerified === true,

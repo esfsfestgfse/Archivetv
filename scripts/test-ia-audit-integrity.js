@@ -112,7 +112,8 @@ test('family-limited reservation balances the shelf without dropping the deeper 
 test('IA API canary reserves without watching and commits the actual start to D1 and the relay', async () => {
   const { default: worker, SessionRotation } = await import(pathToFileURL(path.join(root, 'realsignal_api_v2_worker.js')));
   const objects = new Map(), calls = [], batches = [], pending = [];
-  const items = ['A', 'B', 'C'].flatMap(family => [item('1', family), item('2', family)]).map(row => ({ ...row, title: 'Game Show Program ' + row.title }));
+  const items = ['A', 'B', 'C'].flatMap(family => [item('1', family), item('2', family)]).map(row => ({ ...row, title: 'Game Show Program ' + row.title,
+    media: { ...row.media, runtime: 1320, width: 640, height: 480, verifiedAt: Date.now(), verification: 'transport' } }));
   const env = { RELAY: { fetch: async request => {
     const body = await request.json(); calls.push({ path: new URL(request.url).pathname, body });
     return Response.json({ ready: 5, items: items.slice(0, 5), candidateItems: items });

@@ -20,6 +20,7 @@ on:
       - 'ok_verified_search_seed.js'
       - 'assets/ok-embed-runtime.js'
       - 'ia_canonical_station.mjs'
+      - 'ia_file_contract.js'
       - 'ia_canonical_pilot_manifest.js'
       - 'source_suite_profile_registry.js'
       - 'wrangler.api.jsonc'
@@ -64,6 +65,8 @@ jobs:
         run: node scripts/test-ia-rotation.js
       - name: Test IA catalog integrity and played-only reservations
         run: node --test scripts/test-ia-audit-integrity.js
+      - name: Test IA selected-file qualification and transport
+        run: node --test scripts/test-ia-file-qualification.js
       - name: Test delayed live-data callbacks across channel changes
         run: node scripts/test-live-data-lifecycle.js
       - name: Guard guide row stability during background queue warming

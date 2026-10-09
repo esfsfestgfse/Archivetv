@@ -6,6 +6,8 @@
  * time. The pilot is intentionally limited to three existing IA channels.
  */
 
+import { normalizeIaFileRecord } from "./ia_file_contract.js";
+
 export const IA_CANONICAL_SCHEMA_VERSION = "ia-canonical-1";
 
 const GENERIC_COLLECTIONS = new Set([
@@ -187,8 +189,9 @@ export const IA_CANONICAL_PILOT_PROFILES = Object.freeze({
 });
 
 export function normalizeCanonicalItem(raw, profile) {
+  raw = normalizeIaFileRecord(raw);
   const sourceIdentifier = text(raw.archiveId || raw.sourceIdentifier || raw.identifier || raw.id);
-  const file = text(raw.file || raw.sourceFile || "");
+  const file = text(raw.file || raw.sourceFile || raw.fileName || "");
   const title = text(raw.canonicalTitle || raw.title || raw.name || sourceIdentifier);
   const year = parseYear(raw.year || raw.date || title);
   const runtimeSeconds = parseRuntime(raw.runtimeSeconds || raw.durationSeconds || raw.duration || raw.runtime);
@@ -196,7 +199,7 @@ export function normalizeCanonicalItem(raw, profile) {
   const description = text(raw.description);
   const subject = arrayText(raw.subject || raw.subjects);
   const tags = arrayText(raw.tags);
-  const mediaUrl = text(raw.mediaUrl || raw.url || "");
+  const mediaUrl = text(raw.mediaUrl || raw.url || raw.media?.url || "");
   const programId = text(raw.programId || `ia:${sourceIdentifier}${file ? `::${file}` : ""}`);
   const familyKey = text(raw.familyKey || raw.seriesTitle || raw.series || collection || sourceIdentifier).toLowerCase();
   return {
@@ -213,6 +216,12 @@ export function normalizeCanonicalItem(raw, profile) {
     runtimeSeconds,
     duration: runtimeSeconds || null,
     runtime: runtimeSeconds || null,
+    width: raw.width,
+    height: raw.height,
+    aspectRatio: raw.aspectRatio,
+    language: raw.language,
+    logicalId: raw.logicalId,
+    metadataVerifiedAt: raw.metadataVerifiedAt,
     collection,
     familyKey,
     description,
@@ -220,12 +229,12 @@ export function normalizeCanonicalItem(raw, profile) {
     tags,
     genres: arrayText(raw.genres),
     mediaUrl,
-    media: { type: "video", url: mediaUrl },
+    media: { ...raw.media, type: "video", url: mediaUrl },
     url: mediaUrl,
     sourceUrl: text(raw.sourceUrl || (sourceIdentifier ? `https://archive.org/details/${encodeURIComponent(sourceIdentifier)}` : "")),
     provider: "Internet Archive",
     rights: text(raw.rights || raw.license),
-    playability: text(raw.playability || "verified"),
+    playability: text(raw.playability || raw.verification || "metadata-only"),
     family: familyKey,
     profileKey: profile?.profileKey || text(raw.profileKey),
     metadataVersion: IA_CANONICAL_SCHEMA_VERSION,
@@ -234,6 +243,7 @@ export function normalizeCanonicalItem(raw, profile) {
 
 export function canonicalItemAccepted(item, profile) {
   if (!profile || !item || !item.programId || !item.mediaUrl) return false;
+  if (item.playability === "failed" || item.aspectRatio && item.aspectRatio <= 1) return false;
   if (!item.runtimeSeconds || item.runtimeSeconds < profile.minRuntimeSeconds || item.runtimeSeconds > profile.maxRuntimeSeconds) return false;
   if (!Number.isFinite(Number(item.year)) || item.year < profile.era[0] || item.year > profile.era[1]) return false;
   const haystack = haystackFor(item);
@@ -253,8 +263,9 @@ export function buildCanonicalManifest(profile, rawItems, generatedAt = new Date
     .filter((item) => canonicalItemAccepted(item, profile));
   const unique = new Map();
   for (const item of normalized) {
-    const existing = unique.get(item.programId);
-    if (!existing || item.runtimeSeconds > existing.runtimeSeconds) unique.set(item.programId, item);
+    const identity = item.logicalId || item.programId;
+    const existing = unique.get(identity);
+    if (!existing || item.runtimeSeconds > existing.runtimeSeconds) unique.set(identity, item);
   }
   const pool = Array.from(unique.values());
   const collectionCounts = new Map();

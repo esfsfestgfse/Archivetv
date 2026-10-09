@@ -168,3 +168,18 @@ unchanged. The visible stamp is bumped for this follow-up.
   required before declaring rotation repaired.
 - The local browser also observed natural EOF handoff from Savage Garden to
   The Cranberries, without a manual Next action.
+
+## 5.5.85 music guide selection
+
+- All four 5.5.84 workflows passed. Production returned twelve five-item shelves
+  with sixty distinct songs; Soul & Flow and Country Video also remained healthy.
+- Hosted playback showed Soundgarden, Journey and Metallica. A reproducible
+  guide mismatch named Madonna as Next while freshness selected other artists.
+- Music guide listings now select from the actual client catalog using the same
+  artist and canonical-song history as playback. Selection runs on a copy and
+  cannot advance the cursor or record a listen. Nonmusic guide paths are unchanged.
+- Desktop/mobile regression fixtures reproduced the wrong Next label first,
+  then passed with and without a server guide manifest. The exhausted-catalog
+  fixture also names the actual oldest replay rather than reporting a refresh.
+- Local browser confirmation showed The Fray in Next and then visibly played
+  The Fray after a skip. Hosted deployment confirmation remains required.

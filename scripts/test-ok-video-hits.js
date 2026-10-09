@@ -76,6 +76,40 @@ const { pathToFileURL } = require('node:url');
     context.v2Remember(profile.name,verified);
     assert.equal(context.v2FreshCursor(profile,{items:[verified,{...verified,id:'ok:988',musicArtistId:'new-artist',identityReference:'new-song'}],cursor:0}),1,'Next advances past the seen canonical song');
     for(const key of ['ok-soul-flow-channel','ok-country-video-channel'])assert.equal(context.v2Recent(source.sourceProfile({profileKey:key}).name).length,0,'histories are independent');
+    // The guide must use the same artist/canonical-song policy as the player,
+    // rather than naming the first upload that differs from the current ID.
+    const blocked={...verified,id:'ok:madonna',title:'Madonna - Frozen',musicArtistId:'recent-artist',identityReference:'madonna-song'};
+    const alternate={...verified,id:'ok:alternate',title:'A heard song, another upload',musicArtistId:'other-artist',identityReference:'already-heard-song'};
+    const fresh={...verified,id:'ok:journey',title:'Journey - When You Love a Woman',musicArtistId:'fresh-artist',identityReference:'journey-song'};
+    const shelf={items:[blocked,verified,alternate,fresh],cursor:1,currentId:verified.id,currentTitle:verified.title,provider:'OK.ru'};
+    context.curNum=599;context.curItem=verified;context.V2_PREVIEW_PROFILES={[profile.profileKey]:profile};
+    context.window.__v2PreviewState={599:shelf};
+    saved.set('v2recentArtists:'+profile.name,[verified.musicArtistId,blocked.musicArtistId]);
+    saved.set('v2recentPrograms:'+profile.name,[window.RealSignalOKEmbed.programKey(verified),window.RealSignalOKEmbed.programKey(alternate)]);
+    context.window.__rsVerifiedGuide={[profile.profileKey]:{verified:true,current:verified,next:blocked,items:shelf.items,catalogDepth:4,unseenCount:4}};
+    for(const name of ['guideDurationLabel','guideItemTitle','guideItemRuntime'])vm.runInNewContext(html.split(/\r?\n/).find(line=>line.startsWith('function '+name+'(')),context);
+    const guideSource=html.slice(html.indexOf('function guideVerifiedListing('),html.indexOf('/* Viewer-facing status pass:'));
+    vm.runInNewContext(guideSource,context);
+    const ch={num:599,source:'v2preview',previewKey:profile.profileKey},snapshot=JSON.stringify(shelf),history=JSON.stringify([...saved]);
+    const actualNext={items:shelf.items.filter(row=>row.id!==verified.id),cursor:0};
+    const nextIndex=context.v2FreshCursor(profile,actualNext);
+    const expected=actualNext.items[nextIndex];assert.equal(expected.id,fresh.id);
+    for(const hasManifest of [true,false]){
+      if(!hasManifest)delete context.window.__rsVerifiedGuide[profile.profileKey];
+      const listing=context.guideListing(ch);
+      assert.equal(listing.next,'NEXT · Journey - When You Love a Woman · 4M',file+': guide follows actual music freshness selection');
+      assert.equal(JSON.stringify(shelf),snapshot,'guide browsing cannot advance or mutate playback');
+      assert.equal(JSON.stringify([...saved]),history,'guide browsing cannot mark a song heard');
+    }
+    assert.equal(context.guideOKMusicListing({...ch,source:'livetv'},null),null,'live TV guide remains on its existing path');
+    assert.equal(context.guideOKMusicListing({...ch,previewKey:'ok-tv-channel'},null),null,'nonmusic source guide remains on its existing path');
+    saved.set('v2recent:'+profile.name,[verified.id,fresh.id,alternate.id,blocked.id]);
+    saved.set('v2recentArtists:'+profile.name,shelf.items.map(row=>row.musicArtistId));
+    saved.set('v2recentPrograms:'+profile.name,shelf.items.map(row=>window.RealSignalOKEmbed.programKey(row)));
+    const exhaustedSnapshot=JSON.stringify(shelf),exhaustedHistory=JSON.stringify([...saved]);
+    assert.equal(context.guideListing(ch).next,'NEXT · Madonna - Frozen · 4M',file+': exhausted guide names the oldest replay selected by Next');
+    assert.equal(JSON.stringify(shelf),exhaustedSnapshot,'exhaustion preview cannot advance playback');
+    assert.equal(JSON.stringify([...saved]),exhaustedHistory,'exhaustion preview cannot record playback');
   }
   console.log('Video Hits passed: shared engine, separate family, deep canonical bootstrap, stored identity and independent Next.');
 })().catch(error=>{console.error(error);process.exitCode=1;});

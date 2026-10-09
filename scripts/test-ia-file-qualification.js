@@ -5,11 +5,12 @@ const vm = require('node:vm');
 const { test } = require('node:test');
 const { pathToFileURL } = require('node:url');
 const root = path.join(__dirname, '..');
-function relay(metadata = {}, mediaStatus = 206, redirectedUrl = '') {
+function relay(metadata = {}, mediaStatus = 206, redirectedUrl = '', fetchOverride) {
   const sandbox = { console, URL, URLSearchParams, Request, Response, Headers, AbortController, AbortSignal,
     TextEncoder, TextDecoder, Date, setTimeout, clearTimeout, crypto: require('node:crypto').webcrypto,
     caches: { default: { match: async () => undefined, put: async () => {} } },
     fetch: async url => {
+      if (fetchOverride) return fetchOverride(url);
       if (/archive\.org\/metadata\//.test(String(url))) return Response.json(metadata);
       assert.match(String(url), /archive\.org\/download\//);
       const response = new Response('x', { status: mediaStatus, headers: { 'content-type': 'video/mp4' } });
@@ -90,6 +91,134 @@ test('cached and emergency URL-only shelves are qualified at the relay response 
   assert.equal(payload.items[0].media.verification, 'transport');
   const legacy = Response.json(raw);
   assert.equal(await f.qualifyIaQueueResponse(legacy, {}, 'https://relay.invalid', {}), legacy);
+});
+
+test('underfill recovery retains unresolved original candidates behind the playable shelf', async () => {
+  const original = { identifier: 'temporarily-unresolved::episode.mp4', title: 'Full sitcom episode' };
+  const f = relay({ metadata: { language: 'eng' }, files: [] });
+  const response = await f.qualifyIaQueueResponse(Response.json({ candidateItems: [original], items: [], ready: 0 }),
+    { iaRepair: true, channel: '10', count: 3, mediaTypes: ['movies'], minRuntimeSeconds: 900 },
+    'https://relay.invalid', { waitUntil() {} });
+  const payload = await response.json();
+  assert.ok(payload.ready > 0, 'known recovery episodes should fill the shelf');
+  assert.ok(payload.candidateItems.some(item => item.identifier === original.identifier),
+    'a temporary metadata miss must not erase the original candidate from the deeper catalog');
+});
+
+test('a deep collection cannot monopolize foreground qualification ahead of other shows', async () => {
+  const rows = ['Alpha', 'Alpha', 'Alpha', 'Beta', 'Gamma'].map((seriesId, i) => ({
+    ...verified, identifier: seriesId + '::episode-' + i + '.mp4', seriesId,
+    sourceIdentifier: seriesId, title: seriesId + ' · Complete Episode Collection · Episode ' + i,
+    media: { ...verified.media, url: 'https://archive.org/download/' + seriesId + '/episode-' + i + '.mp4' },
+  }));
+  const raw = { candidateItems: rows, items: rows.slice(0, 3), ready: 3 };
+  const response = await relay().qualifyIaQueueResponse(Response.json(raw),
+    { iaRepair: true, channel: '10', count: 3, mediaTypes: ['movies'], diversity: { maxPerFamily: 1 } },
+    'https://relay.invalid', { waitUntil() {} });
+  const payload = await response.json();
+  assert.equal(new Set(payload.items.map(item => item.seriesId)).size, 3,
+    'qualify across shows before the ready-only rotation gate; later balancing cannot recover unseen families');
+  assert.equal(payload.candidateItems.filter(item => item.seriesId === 'Alpha').length, 3,
+    'balance the hot shelf, not the deeper inventory');
+});
+
+test('family qualification preserves explicit reservations and genuinely single-series shelves', async () => {
+  const rows = Array.from({ length: 3 }, (_, i) => ({ ...verified, identifier: 'Alpha::episode-' + i + '.mp4',
+    seriesId: 'Alpha', title: 'Alpha · Episode ' + i,
+    media: { ...verified.media, url: 'https://archive.org/download/Alpha/episode-' + i + '.mp4' } }));
+  const beta = { ...rows[0], identifier: 'Beta::episode.mp4', seriesId: 'Beta', title: 'Beta · Episode',
+    media: { ...rows[0].media, url: 'https://archive.org/download/Beta/episode.mp4' } };
+  const f = relay(), body = { iaRepair: true, channel: '10', count: 3, mediaTypes: ['movies'], diversity: { maxPerFamily: 1 } };
+  for (const explicit of [false, true]) {
+    const response = await f.qualifyIaQueueResponse(Response.json({ candidateItems: explicit ? rows.concat(beta) : rows, ready: 3 }),
+      { ...body, ...(explicit ? { hydrationPreferredIds: rows.map(row => row.identifier) } : {}) },
+      'https://relay.invalid', { waitUntil() {} });
+    const payload = await response.json();
+    assert.deepEqual(payload.items.map(item => item.identifier), rows.map(row => row.identifier),
+      'do not displace reservations or turn a genuinely constrained series into an empty shelf');
+  }
+});
+
+test('hydrating a parent cannot sneak a watched child back into the ready shelf', async () => {
+  const f = relay({ metadata: { language: 'eng' }, files: [{ name: 'episode.mp4', length: 1320, width: 640, height: 480 }] });
+  const response = await f.qualifyIaQueueResponse(Response.json({ candidateItems: [{ identifier: 'series', title: 'Classic series collection' }], ready: 0 }),
+    { iaRepair: true, channel: '77', count: 1, mediaTypes: ['movies'], hydrationExcludeIds: ['series::episode.mp4'] },
+    'https://relay.invalid', { waitUntil() {} });
+  const payload = await response.json();
+  assert.equal(payload.ready, 0, 'recheck exclusion after resolving a parent to its actual selected file');
+});
+
+test('strict parent hydration returns the selected file identity, not an ambiguous collection identity', async () => {
+  const f = relay({ metadata: { language: 'eng' }, files: [{ name: 'episode.mp4', length: 1320, width: 640, height: 480 }] });
+  const response = await f.qualifyIaQueueResponse(Response.json({ candidateItems: [{ identifier: 'series', title: 'Classic series collection' }], ready: 0 }),
+    { iaRepair: true, channel: '77', count: 1, mediaTypes: ['movies'] },
+    'https://relay.invalid', { waitUntil() {} });
+  const payload = await response.json();
+  assert.equal(payload.items[0].identifier, 'series::episode.mp4');
+  assert.equal(payload.items[0].fileName, 'episode.mp4');
+});
+
+test('a full verified shelf returns without waiting for unrelated slow metadata', async () => {
+  let release;
+  const delayed = new Promise(resolve => { release = resolve; });
+  const waits = [], f = relay({}, 206, '', async () => { await delayed; return Response.json({ files: [] }); });
+  const rows = [{ identifier: 'slow-one' }, { identifier: 'slow-two' },
+    ...['Alpha', 'Beta', 'Gamma'].map(name => ({ ...verified, identifier: name + '::episode.mp4',
+      title: name + ' full television episode', seriesId: name, sourceIdentifier: name,
+      media: { ...verified.media, url: 'https://archive.org/download/' + name + '/episode.mp4',
+        sourceIdentifier: name, fileName: 'episode.mp4' } }))];
+  const hydration = f.hydrateIaQueue({ candidateItems: rows, minRuntimeSeconds: 900 }, 3,
+    'https://relay.invalid', { iaRepair: true, waitUntil: p => waits.push(p) }, ['movies']);
+  const first = await Promise.race([hydration, new Promise(resolve => setTimeout(() => resolve(null), 500))]);
+  release();
+  await hydration;
+  await Promise.all(waits);
+  assert.ok(first, 'a complete shelf must resolve while unrelated metadata is still pending');
+  assert.equal(first.ready, 3);
+  assert.ok(waits.length, 'remaining requests must be tracked in the request lifetime');
+});
+
+test('a collection parent and its selected episode cannot occupy two ready slots', async () => {
+  const f = relay({ metadata: { language: 'eng' }, files: [{ name: 'episode.mp4', length: 1320, width: 640, height: 480 }] });
+  const response = await f.qualifyIaQueueResponse(Response.json({ candidateItems: [
+    { identifier: 'series', title: 'Classic series collection' },
+    { identifier: 'series::episode.mp4', title: 'Classic series episode' },
+  ] }), { iaRepair: true, channel: '77', count: 2, mediaTypes: ['movies'] },
+  'https://relay.invalid', { waitUntil() {} });
+  const payload = await response.json();
+  assert.equal(payload.ready, 1, 'deduplicate the selected file after resolving parent metadata');
+});
+
+test('seed recovery preserves the learned collection metadata of an excluded child', async () => {
+  const f = relay({ metadata: { language: 'eng' }, files: Array.from({ length: 4 }, (_, i) => ({
+    name: 'episode-' + i + '.mp4', length: 1320, width: 640, height: 480,
+  })) });
+  const response = await f.qualifyIaQueueResponse(Response.json({ candidateItems: [{ identifier: 'series', title: 'Classic series collection' }] }),
+    { iaRepair: true, channel: '10', count: 3, mediaTypes: ['movies'], hydrationExcludeIds: ['series::episode-0.mp4'] },
+    'https://relay.invalid', { waitUntil() {} });
+  const payload = await response.json(), parent = payload.candidateItems.find(item => item.identifier === 'series');
+  assert.equal(payload.ready, 3);
+  assert.equal(parent?.media?.sourceProgramCount, 4, 'fallback cannot erase the complete-series discovery hint');
+});
+
+test('failed alternative families do not strand playable unseen episodes', async () => {
+  const f = relay({}, 206, '', async url => {
+    if (String(url).includes('/metadata/')) return Response.json({ files: [] });
+    return new Response('x', { status: String(url).includes('/Alpha/') ? 206 : 403,
+      headers: { 'content-type': 'video/mp4' } });
+  });
+  const rows = ['Alpha', 'Alpha', 'Alpha', 'Beta', 'Gamma'].map((seriesId, i) => ({
+    ...verified, identifier: seriesId + '::episode-' + i + '.mp4', seriesId, sourceIdentifier: seriesId,
+    title: seriesId + ' full television episode', media: { ...verified.media,
+      url: 'https://archive.org/download/' + seriesId + '/episode-' + i + '.mp4',
+      sourceIdentifier: seriesId, fileName: 'episode-' + i + '.mp4', verifiedAt: 0, verification: undefined },
+  }));
+  const response = await f.qualifyIaQueueResponse(Response.json({ candidateItems: rows }),
+    { iaRepair: true, channel: '10', count: 3, mediaTypes: ['movies'], diversity: { maxPerFamily: 1 } },
+    'https://relay.invalid', { waitUntil() {} });
+  const payload = await response.json();
+  assert.equal(payload.ready, 3, 'try distinct shows first, then admit unseen episodes when other families fail');
+  assert.equal(new Set(payload.items.map(item => item.identifier)).size, 3);
 });
 
 test('response qualification persists newly learned collection metadata for background workers', async () => {

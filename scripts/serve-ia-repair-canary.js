@@ -47,7 +47,11 @@ async function main() {
       if (url.pathname === '/__ia-canary') {
         const catalogs = [...kv].filter(([key]) => key.includes('last-good:file-1')).map(([key, raw]) => {
           const value = JSON.parse(raw), rows = value.candidateItems || value.items || [];
+          const families = new Map();
+          rows.filter(row => row.media?.url).forEach(row => { const family = row.seriesId || row.sourceIdentifier || row.identifier; families.set(family, (families.get(family) || 0) + 1); });
           return { key, channel: value.channel, candidates: rows.length, episodes: rows.filter(row => row.fileName).length,
+            transportVerified: rows.filter(row => row.media?.verification === 'transport' && row.media.verifiedAt > Date.now() - 86400000).length,
+            families: Object.fromEntries(families),
             collections: rows.filter(row => row.media?.sourceProgramCount >= 3).length };
         });
         res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify({ ...stats, queueTrace, relayTrace, catalogs, pendingJobs: jobs.length, sessions: sessions.size })); return;

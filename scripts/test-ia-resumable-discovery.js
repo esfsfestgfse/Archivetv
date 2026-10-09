@@ -74,7 +74,8 @@ test('background expansion inherits richer family metadata even when candidate c
   const env = { REALSIGNAL_QUEUE: { get: async key => JSON.parse(data.get(key) || 'null'), put: async (key, value) => data.set(key, value) } };
   const ctx = { iaRepair: true, isIaBackground: true, waitUntil: p => p.catch(() => {}) };
   const result = await scope.f.expandAndCacheIaQueue({ items: [item], candidateItems: [item], lastGoodKey: 'family' }, [], [], '77', [], [], [], ['movies'], 0, rules, 3, 256, 'https://relay.invalid', new Request('https://relay.invalid/queue'), 'shared', env, ctx, 0, true);
-  assert.equal(result.candidateItems.filter(row => row.identifier.includes('::Race ')).length, 4);
+  assert.equal(result.candidateItems.filter(row => row.sourceIdentifier === 'races' && row.fileName).length, 4,
+    JSON.stringify(result.candidateItems.map(row => ({ id: row.identifier, source: row.sourceIdentifier, file: row.fileName, selectedFile: row.media?.fileName }))));
 });
 
 test('background collection discovery does not depend on foreground qualification winning the race', async () => {
@@ -85,16 +86,37 @@ test('background collection discovery does not depend on foreground qualificatio
   const env = { REALSIGNAL_QUEUE: { get: async key => JSON.parse(data.get(key) || 'null'), put: async (key, value) => data.set(key, value) } };
   const ctx = { iaRepair: true, isIaBackground: true, waitUntil: p => p.catch(() => {}) };
   const result = await scope.f.expandAndCacheIaQueue({ items: [item], candidateItems: [item], lastGoodKey: 'family' }, [], [], '77', [], [], [], ['movies'], 0, rules, 3, 256, 'https://relay.invalid', new Request('https://relay.invalid/queue'), 'shared', env, ctx, 0, true);
-  assert.equal(result.candidateItems.filter(row => row.identifier.includes('::Race ')).length, 4);
+  assert.equal(result.candidateItems.filter(row => row.sourceIdentifier === 'races' && row.fileName).length, 4);
 });
 
 test('classic cartoon repair supplies full episodes and keeps all collection parents for discovery', () => {
   const rows = relay().f.iaRepairCollectionSeeds('150');
   const parents = rows.filter(row => !row.media), episodes = rows.filter(row => row.media);
-  assert.equal(parents.length, 3); assert.equal(episodes.length, 9);
-  assert.equal(new Set(episodes.map(row => row.seriesId)).size, 3);
+  assert.equal(parents.length, 8); assert.equal(episodes.length, 24);
+  assert.equal(new Set(episodes.map(row => row.seriesId)).size, 8);
   assert.ok(episodes.every(row => row.media.runtime >= 900 && row.media.width > row.media.height));
-  assert.equal(relay().f.iaRepairCollectionSeeds('10').length, 0);
+  assert.equal(relay().f.iaRepairCollectionSeeds('10').filter(row => !row.media).length, 9);
+});
+
+test('classic station rails cover many distinct verified series rather than a tiny emergency bank', () => {
+  const f = relay().f;
+  for (const channel of ['10', '150']) {
+    const rows = f.iaRepairCollectionSeeds(channel);
+    const parents = rows.filter(row => !row.media), episodes = rows.filter(row => row.media);
+    assert.ok(new Set(parents.map(row => row.seriesId)).size >= 8, channel + ' needs at least eight real show families');
+    assert.ok(episodes.length >= 24, channel + ' needs broad immediate file candidates behind its three-item shelf');
+    assert.ok(parents.every(parent => /complete|collection|episodes/i.test(parent.title)), 'all known manifests remain eligible for full expansion');
+    assert.ok(episodes.every(row => row.year < 1990 && row.media.runtime >= 900 && row.media.width > row.media.height));
+    assert.ok(episodes.every(row => row.media.metadataVerifiedAt === Date.parse('2026-10-09T16:05:38Z') && row.media.verification !== 'transport'),
+      'static reviewed metadata has a fixed audit time; rebuilding a seed must not claim fresh metadata or transport verification');
+  }
+});
+
+test('pending collection expansion continues even when search rails return no candidates', async () => {
+  const scope = relay(), jobs = [];
+  vm.runInContext('globalThis.workerFixture=worker;expandAndCacheIaQueue=async()=>({items:[],candidateItems:[],discoveryState:{parents:{series:{offset:96,total:238,complete:false}}},backgroundHarvestCursor:0});', scope);
+  await scope.workerFixture.queue({ messages: [{ body: { type: 'ia-catalog-harvest', version: 1, channel: '10', iaRepair: true, count: 3, candidateCount: 256 }, ack() {}, retry() { assert.fail('unexpected retry'); } }] }, { IA_HARVEST_QUEUE: { send: async body => jobs.push(body) } }, { waitUntil() {} });
+  assert.equal(jobs.length, 1, 'series file progress must not depend on a search-page cursor');
 });
 async function harvest(scope, seed, ctx) {
   return scope.f.harvestIaBackgroundPages(seed, queries, [], '10', [], [], [], ['movies'], 0, rules, 3, 256, 'https://relay.invalid', ctx, 0, 900, true);

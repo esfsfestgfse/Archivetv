@@ -8642,11 +8642,28 @@ function rotateUnderfillDepthBank(payload, channel, rotation, count, themeTerms,
 }
 
 const iaVerifiedTransports = new Map();
-/* Canary-only full-length collection rails. Starters are metadata evidence,
+const IA_REPAIR_COLLECTION_METADATA_AT = Date.parse("2026-10-09T16:05:38Z");
+/* Repaired-station full-length collection rails. Starters are metadata evidence,
    not verified transports; every file still passes the live admission probe.
-   Parents remain discoverable so these are not permanent nine-video lists. */
+   Parents remain discoverable so these are not permanent starter playlists. */
 const IA_REPAIR_COLLECTION_PARENTS = Object.freeze({
+  "10": [
+    {"identifier":"leave-it-to-beaver-the-complete-series-1957-1963","title":"Leave It to Beaver · Complete Episode Collection","year":1957,"language":"eng","files":[["Leave It to Beaver (The Complete Series) [1957 - 1963]/Season 1/S00E00 - It's a Small World (Pilot).ia.mp4",1503.17,853,482],["Leave It to Beaver (The Complete Series) [1957 - 1963]/Season 1/S01E01 - Beaver Gets Spelled.ia.mp4",1552.39,1920,1080],["Leave It to Beaver (The Complete Series) [1957 - 1963]/Season 1/S01E02 - Captain Jack.ia.mp4",1554.39,1920,1080]]},
+    {"identifier":"benson-complete-series-1979-1986","title":"Benson · Complete Episode Collection","year":1979,"language":"eng","files":[["Season 1/Benson_S01E01_Change.mp4",1514.75,640,480],["Season 1/Benson_S01E02_Trust Me.mp4",1483.25,640,480],["Season 1/Benson_S01E03_The President's Double.mp4",1495.9,640,480]]},
+    {"identifier":"the-dick-van-dyke-show-the-complete-series-1961-1966","title":"The Dick Van Dyke Show · Complete Episode Collection","year":1961,"language":"eng","files":[["The Dick Van Dyke Show (The Complete Series) [1961 - 1966]/Season 1/S00E00 - Head of the Family (Pilot).mp4",1580.35,960,540],["The Dick Van Dyke Show (The Complete Series) [1961 - 1966]/Season 1/S01E01 - The Sick Boy and the Sitter.mp4",1553.58,1280,720],["The Dick Van Dyke Show (The Complete Series) [1961 - 1966]/Season 1/S01E02 - My Blonde-Haired Brunette.mp4",1541.39,1280,720]]},
+    {"identifier":"the-mary-tyler-moore-show-the-complete-first-season","title":"The Mary Tyler Moore Show · Complete Episode Collection","year":1970,"language":"eng","files":[["The Mary Tyler Moore Show - The Complete First Season (DVD 1).mp4",1544.27,640,480],["The Mary Tyler Moore Show - The Complete First Season (DVD 1)1.mp4",1541.39,640,480],["The Mary Tyler Moore Show - The Complete First Season (DVD 1)10.mp4",1539.53,640,480]]},
+    {"identifier":"munsters_the","title":"The Munsters · Complete Episode Collection","year":1964,"language":"eng","files":[["The Munsters 01.mp4",1464.04,626,480],["The Munsters 02.mp4",1464.2,626,480],["The Munsters 03.mp4",1465.17,632,480]]},
+    {"identifier":"the-honeymooners-DVD","title":"The Honeymooners · Complete Episode Collection","year":1955,"language":"eng","files":[["The Honeymooners S00E1114.mp4",1314.09,640,480],["The Honeymooners S01E01.mp4",1562,640,480],["The Honeymooners S01E02.mp4",1562.99,640,480]]},
+    {"identifier":"the-addams-family__season-1","title":"The Addams Family · Complete Episode Collection","year":1964,"language":"eng","files":[["The Addams Family -- 1x01 -- The Addams Family Goes to School.mp4",1542.62,640,480],["The Addams Family -- 1x02 -- Morticia and the Psychologist.mp4",1542.62,640,480],["The Addams Family -- 1x03 -- Fester's Punctured Romance.mp4",1543.33,640,480]]},
+    {"identifier":"get-smart","title":"Get Smart · Complete Episode Collection","year":1965,"language":"eng","files":[["Get Smart S01E01 (Mr. Big).ia.mp4",1535.49,576,432],["Get Smart S01E02 (Diplomat's Daughter).ia.mp4",1521.1,576,432],["Get Smart S01E03 (School Days).ia.mp4",1522.23,576,432]]},
+    {"identifier":"GreenAcresCompleteSeries","title":"Green Acres · Complete Episode Collection","year":1965,"language":"eng","files":[["Green Acres Season 1/Green Acres - 001 - Oliver Buys A Farm.mp4",1520.14,643,480],["Green Acres Season 1/Green Acres - 002 - Lisa's First Day on the Farm.mp4",1538.34,540,360],["Green Acres Season 1/Green Acres - 003 - The Decorator.mp4",1611.78,643,480]]},
+  ],
   "150": [
+    {"identifier":"clutch-cargo_1959","title":"Clutch Cargo · Complete Episode Collection","year":1959,"language":"eng","files":[["1.mp4",1167.89,480,360],["10.mp4",1211.11,480,360],["11.mp4",1205.3,480,360]]},
+    {"identifier":"space-angel","title":"Space Angel · Complete Episode Collection","year":1962,"language":"eng","files":[["Space Angel S01 E01 Space Hijackers.ia.mp4",1299.76,640,480],["Space Angel S01 E03 Wizard Of Eden.ia.mp4",1340.4,640,480],["Space Angel S01 E04 INCIDENT OF THE LOUD PLANET.ia.mp4",1569.74,640,480]]},
+    {"identifier":"top-cat-s-01-e-27-dibble-breaks-the-rec","title":"Top Cat · Complete Episode Collection","year":1961,"language":"eng","files":[["Top Cat S01E01 Hawaii Here We Come.mp4",1535.7,480,360],["Top Cat S01E02 The Maharajah of Pookajee.mp4",1537.12,480,360],["Top Cat S01E03 All That Jazz.mp4",1536.81,480,360]]},
+    {"identifier":"the-pink-panther-show-the-complete-series-1969-70","title":"The Pink Panther Show · Complete Episode Collection","year":1969,"language":"eng","files":[["S01E01 - The Pink Blueprint + Bomb Voyage + The Pink Tail Fly.mp4",1280.35,640,480],["S01E02 - Pinto Pink + Le Pig-Al Patrol + In the Pink.mp4",1286.27,634,476],["S01E03 - Jet Pink + The Pique Poquette of Paris + Tickled Pink.mp4",1283.65,632,472]]},
+    {"identifier":"the-new-scooby-doo-movies-1972-season-1_202604","title":"The New Scooby-Doo Movies · Complete Episode Collection","year":1972,"language":"eng","files":[["The New Scooby-Doo Movies (1972) S1 EP01.mp4",2572.17,640,480],["The New Scooby-Doo Movies (1972) S1 EP02.mp4",2485.57,640,480],["The New Scooby-Doo Movies (1972) S1 EP03.mp4",2478.99,512,384]]},
     { identifier: "the-flintstones-season-2-d-3", title: "The Flintstones · Classic Cartoon Episodes", year: 1961,
       files: [["THE_FLINTSTONES_SEASON2_D33.mp4", 1505.77, 640, 480], ["THE_FLINTSTONES_SEASON2_D34.mp4", 1505.32, 640, 480], ["THE_FLINTSTONES_SEASON2_D35.mp4", 1504.43, 640, 480]] },
     { identifier: "20240727_20240727_0523", title: "The Scooby Doo Show · Classic Cartoon Episodes", year: 1976, language: "eng",
@@ -8657,19 +8674,21 @@ const IA_REPAIR_COLLECTION_PARENTS = Object.freeze({
 });
 function iaRepairCollectionSeeds(channel) {
   const parents = IA_REPAIR_COLLECTION_PARENTS[String(channel)] || [], rows = [];
+  const subject = String(channel) === "10" ? "classic television sitcom television comedy anthology series" : "classic cartoons animated series classic animation";
   for (const parent of parents) {
     const base = { identifier: parent.identifier, sourceIdentifier: parent.identifier, title: parent.title, seriesId: parent.identifier,
-      year: parent.year, language: parent.language || "", subject: "classic cartoons animated series classic animation", genreVerified: true };
+      year: parent.year, language: parent.language || "", subject, genreVerified: true };
     rows.push(base);
   }
   // Interleave shows even before the per-session family balancer runs.
   for (let i = 0; i < 3; i++) for (const parent of parents) {
+    if (!parent.files[i]) continue;
     const [fileName, runtime, width, height] = parent.files[i];
     rows.push({ identifier: parent.identifier + "::" + fileName, sourceIdentifier: parent.identifier, fileName,
       title: parent.title + " · " + fileName.replace(/\.mp4$/, ""), seriesId: parent.identifier, year: parent.year,
-      language: parent.language || "", subject: "classic cartoons animated series classic animation", genreVerified: true,
+      language: parent.language || "", subject, genreVerified: true,
       media: { type: "video", url: "https://archive.org/download/" + encodeURIComponent(parent.identifier) + "/" + encodeURIComponent(fileName),
-        sourceIdentifier: parent.identifier, fileName, runtime, width, height, metadataVerifiedAt: Date.now(), sourceUrl: "https://archive.org/details/" + parent.identifier } });
+        sourceIdentifier: parent.identifier, fileName, runtime, width, height, metadataVerifiedAt: IA_REPAIR_COLLECTION_METADATA_AT, sourceUrl: "https://archive.org/details/" + parent.identifier } });
   }
   return rows;
 }
@@ -8715,17 +8734,45 @@ async function qualifyIaQueueResponse(response, body, cacheOrigin, ctx, env) {
   const payload = await response.clone().json();
   const requested = Math.max(1, Math.min(5, Number(body.count) || 3));
   const mediaTypes = safeMediaTypes(body.mediaTypes);
-  const strictContext = { iaRepair: true, waitUntil: promise => ctx && ctx.waitUntil ? ctx.waitUntil(promise) : promise };
-  const identity = item => iaFreshnessRecord(typeof item === "string" ? { identifier: item } : item)?.id || "";
+  const identity = value => {
+    const item = typeof value === "string" ? { identifier: value } : value;
+    if (!item) return "";
+    return iaPlayableIdentity({ ...item, sourceIdentifier: item.media?.sourceIdentifier || item.sourceIdentifier,
+      fileName: item.media?.fileName || item.fileName }).replace(/(?:[._-](?:ia|h264|x264|avc))$/i, "");
+  };
   const excluded = new Set((Array.isArray(body.hydrationExcludeIds) ? body.hydrationExcludeIds.slice(-1024) : []).map(identity));
   const preferred = new Set((Array.isArray(body.hydrationPreferredIds) ? body.hydrationPreferredIds.slice(0, 5) : []).map(identity));
+  const strictContext = { iaRepair: true, iaHydrationExcluded: excluded, iaHydrationIdentity: identity,
+    waitUntil: promise => ctx && ctx.waitUntil ? ctx.waitUntil(promise) : promise };
   const repairEpisodes = iaRepairCollectionSeeds(body.channel).filter(item => item.media);
-  const candidates = mergeIaCatalogCandidates({ candidateItems: repairEpisodes }, { candidateItems: payload.candidateItems?.length ? payload.candidateItems : payload.items || [] }, { preserveOrder: true }).filter(item => !excluded.has(identity(item)));
-  const ordered = candidates.filter(item => preferred.has(identity(item))).concat(candidates.filter(item => !preferred.has(identity(item))));
-  const qualified = await hydrateIaQueue({ ...payload,
-    candidateItems: ordered,
+  // Preserve the selected catalog order. Recovery rails add depth behind it;
+  // prepending their first episodes reopened the same starters on every tune.
+  const candidates = (payload.candidateItems?.length ? payload.candidateItems : payload.items || []).filter(item => !excluded.has(identity(item)));
+  let ordered = candidates.filter(item => preferred.has(identity(item))).concat(candidates.filter(item => !preferred.has(identity(item))));
+  const hydrationFamilyLimit = repairEpisodes.length && !preferred.size ? safeDiversity(body.diversity).maxPerFamily : 0;
+  if (hydrationFamilyLimit) {
+    const balanced = familyBalancedIaWindowStrict(ordered, 0, ordered.length, hydrationFamilyLimit);
+    const firstIds = new Set(balanced.map(identity));
+    ordered = balanced.concat(ordered.filter(item => !firstIds.has(identity(item))));
+  }
+  let qualified = await hydrateIaQueue({ ...payload,
+    candidateItems: ordered, hydrationFamilyLimit,
     minRuntimeSeconds: iaEffectiveVideoMinRuntimeSeconds(String(body.channel), mediaTypes, Number(body.minRuntimeSeconds) || 0),
   }, requested, cacheOrigin, strictContext, mediaTypes);
+  // Do not let already-known seed metadata race and displace the requested
+  // program while its metadata resolves. Seeds recover an actual underfill.
+  const learnedCatalog = qualified;
+  if (qualified.ready < requested && repairEpisodes.length) {
+    qualified = await hydrateIaQueue({ ...qualified, candidateItems: mergeIaCatalogCandidates(
+      { candidateItems: qualified.items }, { candidateItems: repairEpisodes.filter(item => !excluded.has(identity(item))) }, { preserveOrder: true }),
+    }, requested, cacheOrigin, strictContext, mediaTypes);
+  }
+  // Recovery fills only the ready shelf. A temporary metadata/transport miss
+  // must not discard the original candidates from subsequent discovery.
+  const retainedCatalog = mergeIaCatalogCandidates({ candidateItems: mergeIaCatalogCandidates(
+    { candidateItems: ordered }, learnedCatalog, { preserveOrder: true }) }, qualified, { preserveOrder: true });
+  qualified.candidateItems = mergeIaCatalogCandidates({ candidateItems: retainedCatalog }, { candidateItems: repairEpisodes.filter(item => !excluded.has(identity(item))) }, { preserveOrder: true });
+  qualified.candidates = qualified.candidateItems.length;
   /* Qualification can enrich a URL-only emergency record after its refill
      was scheduled. Keep that knowledge in the same durable family so the
      background consumer can discover its sibling files on the next pass. */
@@ -8745,31 +8792,78 @@ async function hydrateIaQueue(payload, requestedCount, cacheOrigin, ctx, mediaTy
   const ready = [], items = Array.isArray(payload && payload.candidateItems) && payload.candidateItems.length
     ? payload.candidateItems
     : ((payload && payload.items) || []);
+  // Balance before the ready-only reservation gate, not just afterward.
+  // Otherwise a large cached collection wins every transport race and other
+  // series never enter the ready catalog. Explicit reservations keep their order.
+  const familyOf = item => item.seriesId || queueTitleFamily(item) || item.sourceIdentifier || item.identifier;
+  const distinctFamilies = new Set(items.map(familyOf)).size;
+  let familyLimit = Number(payload && payload.hydrationFamilyLimit) > 0 && distinctFamilies >= requestedCount
+    ? Number(payload.hydrationFamilyLimit) : requestedCount;
+  const readyFamilies = new Map();
+  const readyIdentities = new Set(), deferred = new Set();
+  const learned = new Map();
+  let indices = items.map((_, index) => index);
   let cursor = 0;
+  let resolveShelf;
+  const fullShelf = new Promise(resolve => { resolveShelf = resolve; });
   async function worker() {
     while (ready.length < requestedCount) {
-      const index = cursor++;
-      if (index >= items.length) return;
+      const index = indices[cursor++];
+      if (index === undefined) return;
       const item = items[index];
+      const family = familyOf(item);
+      if ((readyFamilies.get(family) || 0) >= familyLimit) { deferred.add(index); continue; }
       const mediaContractMatches = item && item.media && item.media.url && (!mediaTypes.length || (mediaTypes.includes("movies") && item.media.type === "video") || (mediaTypes.includes("audio") && item.media.type === "audio"));
       const strict = Boolean(ctx && ctx.iaRepair);
       const metadataKnown = item && item.media && iaFileRuntimeSeconds(item.media) > 0 && (item.media.type === "audio" || Number(item.media.width) > Number(item.media.height) && Number(item.media.height) > 0);
       let media = mediaContractMatches && (!strict || metadataKnown) ? item.media : await queuePlayable(item.identifier, cacheOrigin, ctx, mediaTypes);
       if (strict && media && media.type === "video" && (!iaFileRuntimeSeconds(media) || !Number(media.height) || Number(media.width) <= Number(media.height))) media = null;
       if (strict && media) media = await verifyIaTransport(media);
-      if (media && iaRuntimeAllowed({ ...item, media }, payload && payload.minRuntimeSeconds) && ready.length < requestedCount) {
-        const hydratedItem = { ...item, media };
+      const hydratedCandidate = media ? { ...item, media } : null;
+      if (strict && hydratedCandidate) learned.set(index, hydratedCandidate);
+      const hydratedItem = strict && media && media.sourceIdentifier && media.fileName
+        ? { ...hydratedCandidate, identifier: media.sourceIdentifier + "::" + media.fileName,
+            sourceIdentifier: media.sourceIdentifier, fileName: media.fileName }
+        : hydratedCandidate;
+      // Parent IDs are not episode IDs. Recheck the selected file after
+      // metadata resolves, or a watched first episode can bypass exclusions.
+      if (strict && hydratedItem && ctx.iaHydrationExcluded?.has(ctx.iaHydrationIdentity(hydratedItem))) continue;
+      const selectedIdentity = hydratedItem && (ctx?.iaHydrationIdentity
+        ? ctx.iaHydrationIdentity(hydratedItem)
+        : iaPlayableIdentity(hydratedItem).replace(/(?:[._-](?:ia|h264|x264|avc))$/i, ""));
+      if (strict && readyIdentities.has(selectedIdentity)) continue;
+      if (media && (readyFamilies.get(family) || 0) >= familyLimit) { deferred.add(index); continue; }
+      if (media && iaRuntimeAllowed({ ...item, media }, payload && payload.minRuntimeSeconds) && ready.length < requestedCount && (readyFamilies.get(family) || 0) < familyLimit) {
         ready.push(hydratedItem);
+        if (strict) readyIdentities.add(selectedIdentity);
+        readyFamilies.set(family, (readyFamilies.get(family) || 0) + 1);
         if (typeof onReady === "function") onReady(hydratedItem, ready.length, ready.slice());
+        if (ready.length >= requestedCount) resolveShelf();
       }
     }
   }
   const workerCount = iaAdaptiveHydrationConcurrency(concurrency, items.length);
-  await Promise.all(Array.from({ length: workerCount }, worker));
+  const completion = (async () => {
+    await Promise.all(Array.from({ length: workerCount }, worker));
+    // Diversity is a preference, not a dead-signal gate. Only relax it after
+    // every alternate family has failed, and still enforce exact-file history.
+    if (ready.length < requestedCount && familyLimit < requestedCount && deferred.size) {
+      familyLimit = requestedCount;
+      indices = [...deferred].sort((a, b) => a - b);
+      cursor = 0;
+      await Promise.all(Array.from({ length: workerCount }, worker));
+    }
+  })();
+  if (ctx?.iaRepair && !ctx.isIaBackground && typeof ctx.waitUntil === "function") {
+    await Promise.race([completion, fullShelf]);
+    ctx.waitUntil(completion.catch(error => console.warn(JSON.stringify({
+      event: "ia-pending-hydration-failed", message: String(error?.message || error),
+    }))));
+  } else await completion;
   return {
     ...payload,
     items: ready,
-    candidateItems: mergeIaCatalogCandidates({ candidateItems: items }, { candidateItems: ready }, { preserveOrder: true }),
+    candidateItems: mergeIaCatalogCandidates({ candidateItems: items.map((item, index) => learned.get(index) || item) }, { candidateItems: ready }, { preserveOrder: true }),
     candidates: items.length,
     ready: ready.length,
     partial: ready.length < requestedCount,
@@ -10495,7 +10589,7 @@ export default {
           (payload.iaRepair === true || payload.forceDiscovery === true || iaDepthRecoveryEnabled(channel)) &&
           harvestPasses < IA_BACKGROUND_HARVEST_CONTINUATION_MAX &&
           currentCandidates < Number(payload.candidateCount || 0) &&
-          nextCursor > 0;
+          (nextCursor > 0 || payload.iaRepair === true && Object.values(harvested.discoveryState?.parents || {}).some(parent => !parent.complete));
         if (canContinue && env.IA_HARVEST_QUEUE && typeof env.IA_HARVEST_QUEUE.send === "function") {
           await env.IA_HARVEST_QUEUE.send({
             ...payload,

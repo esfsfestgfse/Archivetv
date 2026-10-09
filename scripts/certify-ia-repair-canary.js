@@ -19,7 +19,7 @@ async function main() {
   const channels = new Set(String(option('--channels', '')).split(',').filter(Boolean));
   const lanes = inventory.filter(row => !row.hiddenAlias && (!channels.size || channels.has(String(row.channel))));
   const output = path.resolve(option('--out', 'artifacts/ia-repair-canary-admission.json'));
-  const rotations = Math.max(1, Math.min(3, Number(option('--rotations', '1')) || 1));
+  const rotations = Math.max(1, Math.min(12, Number(option('--rotations', '1')) || 1));
   const { qualifyIaFileRecord } = await import(require('node:url').pathToFileURL(path.join(__dirname, '../ia_file_contract.js')));
   const report = { measurement: 'live transport qualification and reservation order; not visible frames', endpoint, startedAt: new Date().toISOString(), rotations, results: [] };
   const post = async (route, body) => {
@@ -43,7 +43,7 @@ async function main() {
       try {
         const payload = await post('queue', body), items = payload.items || [], checks = items.map(item => qualifyIaFileRecord(item, body));
         const repeats = checks.filter(check => seen.has(check.item.logicalId)).length;
-        const row = { queueMs: Math.round(performance.now() - start), ready: items.length, catalog: Number(payload.v2?.catalogSize || payload.candidates || 0), rejected: checks.filter(check => !check.accepted).map(check => check.reason), repeats, exhausted: payload.v2?.cycleReset === true, programs: checks.map(check => ({ id: check.item.identifier, title: check.item.title, runtime: check.item.runtimeSeconds, ratio: check.item.aspectRatio })) };
+        const row = { queueMs: Math.round(performance.now() - start), ready: items.length, catalog: Number(payload.v2?.catalogSize || payload.candidates || 0), rejected: checks.filter(check => !check.accepted).map(check => check.reason), repeats, exhausted: payload.v2?.cycleReset === true, programs: checks.map(check => ({ id: check.item.identifier, title: check.item.title, seriesId: check.item.seriesId, runtime: check.item.runtimeSeconds, ratio: check.item.aspectRatio })) };
         result.rotations.push(row);
         if (row.ready < 3 || row.rejected.length || repeats && !row.exhausted) result.passed = false;
         if (rotations > 1) {

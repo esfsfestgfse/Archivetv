@@ -10,11 +10,20 @@ function relay(extra = {}) {
     caches: { default: { match: async () => undefined, put: async () => {} } }, ...extra };
   vm.createContext(scope);
   vm.runInContext(fs.readFileSync(path.join(root, 'afterglow_ais_relay_worker.js'), 'utf8').replace('export default', 'const worker =') +
-    '\nglobalThis.f={harvestIaBackgroundPages,buildIaQueue,expandSeedArchiveContainers,expandArchiveContainer,scheduleIaReplenishment,expandAndCacheIaQueue,checkpointIaDiscovery};', scope);
+    '\nglobalThis.f={harvestIaBackgroundPages,buildIaQueue,expandSeedArchiveContainers,expandArchiveContainer,scheduleIaReplenishment,expandAndCacheIaQueue,checkpointIaDiscovery,iaRepairCollectionSeeds};', scope);
   return scope;
 }
 const rules = { maxPerLane: 1, maxPerEra: 1, maxPerCreator: 1, maxPerCollection: 1, maxPerFamily: 1 };
 const queries = Array.from({ length: 12 }, (_, i) => 'rail-' + i);
+
+test('classic cartoon repair supplies full episodes and keeps all collection parents for discovery', () => {
+  const rows = relay().f.iaRepairCollectionSeeds('150');
+  const parents = rows.filter(row => !row.media), episodes = rows.filter(row => row.media);
+  assert.equal(parents.length, 3); assert.equal(episodes.length, 9);
+  assert.equal(new Set(episodes.map(row => row.seriesId)).size, 3);
+  assert.ok(episodes.every(row => row.media.runtime >= 900 && row.media.width > row.media.height));
+  assert.equal(relay().f.iaRepairCollectionSeeds('10').length, 0);
+});
 async function harvest(scope, seed, ctx) {
   return scope.f.harvestIaBackgroundPages(seed, queries, [], '10', [], [], [], ['movies'], 0, rules, 3, 256, 'https://relay.invalid', ctx, 0, 900, true);
 }
@@ -96,11 +105,20 @@ test('real catalog upsert preserves richer IA qualification after shallow discov
   const env = { realsignal_catalog: { prepare: sql => ({ bind: (...args) => ({ sql, args }) }), batch: async list => list.map(item => db.prepare(item.sql).run(...item.args)) } };
   const send = async item => worker.queue({ messages: [{ body: { channelKey: '10', items: [compactCatalogItem(item)] }, ack: () => {}, retry: () => assert.fail('upsert failed') }] }, env);
   await send({ identifier: 'show::episode.mp4', provider: 'Internet Archive', title: 'Leave It to Beaver', media: { type: 'video', url: 'https://archive.org/download/show/episode.mp4', runtime: 1320, width: 640, height: 480, verifiedAt: Date.now(), verification: 'transport' } });
-  await send({ identifier: 'show::episode.mp4', provider: 'Internet Archive', title: 'Leave It to Beaver' });
+  await send({ identifier: 'show::episode.mp4', provider: 'internet-archive', title: 'Leave It to Beaver' });
   const row = db.prepare('SELECT * FROM programs').get();
   assert.equal(row.duration_seconds, 1320); assert.equal(row.aspect_ratio, 640 / 480);
   assert.match(row.media_url, /episode.mp4/);
   const md = JSON.parse(row.metadata_json);
   assert.equal(md.width, 640); assert.equal(md.verification, 'transport');
   db.close();
+});
+
+test('completed collections are revisited after the refresh interval', async () => {
+  const scope = relay();
+  vm.runInContext('cachedArchiveJson=async (_key,_ttl,loader)=>loader(); archiveFetch=async()=>Response.json({metadata:{language:"eng"},files:Array.from({length:4},(_,i)=>({name:"Episode "+i+".mp4",format:"h.264",length:1320,width:640,height:480}))});', scope);
+  const ctx = { iaRepair: true, isIaBackground: true, iaDiscovery: { parents: { beaver: { offset: 3, total: 3, complete: true, updatedAt: Date.now() - 86400_001 } }, rails: {} }, waitUntil: () => {} };
+  const rows = await scope.f.expandSeedArchiveContainers({ candidateItems: [{ identifier: 'beaver', title: 'Beaver complete series' }] }, 'https://relay.invalid', ctx, '999', [], [], [], ['movies'], 0, 0, 256);
+  assert.ok(rows.some(row => row.identifier.endsWith('Episode 3.mp4')));
+  assert.equal(ctx.iaDiscovery.parents.beaver.generation, 1);
 });

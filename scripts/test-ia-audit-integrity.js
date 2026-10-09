@@ -7,6 +7,7 @@ const vm = require('node:vm');
 const { test } = require('node:test');
 const { pathToFileURL } = require('node:url');
 const root = path.join(__dirname, '..');
+const { rotationContext } = require('./ia-storage-test-helper');
 
 function relayFixture(initial = []) {
   const storage = new Map(initial), writes = [], pending = [];
@@ -31,11 +32,8 @@ function item(id, family = 'A') {
 }
 async function rotationFixture(seed) {
   const { SessionRotation } = await import(pathToFileURL(path.join(root, 'realsignal_api_rotation.js')));
-  let saved = seed;
-  const rotation = new SessionRotation({ storage: {
-    get: async () => saved, put: async (_key, value) => { saved = structuredClone(value); },
-  } }, {});
-  return { saved: () => saved, select: async body => {
+  const ctx = rotationContext(seed), rotation = new SessionRotation(ctx, {});
+  return { saved: () => ctx.snapshot(), select: async body => {
     const response = await rotation.fetch(new Request('https://rotation.internal/select', {
       method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body),
     }));
@@ -109,6 +107,17 @@ test('family-limited reservation balances the shelf without dropping the deeper 
   assert.deepEqual(result.items.map(x => x.seriesId).sort(), ['A', 'B', 'C']);
   assert.equal(result.catalogSize, 9);
 });
+
+test('catalog exhaustion cannot reserve the item currently playing', async () => {
+  const items = [item('A'), item('B')], f = await rotationFixture();
+  await f.select({ mode: 'reserve', items, count: 2 });
+  await f.select({ mode: 'commit', id: items[0].identifier, event: 'started' });
+  await f.select({ mode: 'commit', id: items[0].identifier, event: 'completed' });
+  await f.select({ mode: 'commit', id: items[1].identifier, event: 'started' });
+  const next = await f.select({ mode: 'reserve', items, count: 2 });
+  assert.equal(next.cycleReset, true);
+  assert.deepEqual(next.items.map(row => row.identifier), [items[0].identifier]);
+});
 test('IA API canary reserves without watching and commits the actual start to D1 and the relay', async () => {
   const { default: worker, SessionRotation } = await import(pathToFileURL(path.join(root, 'realsignal_api_v2_worker.js')));
   const objects = new Map(), calls = [], batches = [], pending = [];
@@ -119,8 +128,7 @@ test('IA API canary reserves without watching and commits the actual start to D1
     return Response.json({ ready: 5, items: items.slice(0, 5), candidateItems: items });
   } }, ROTATION: { getByName: name => {
     if (!objects.has(name)) {
-      let state;
-      objects.set(name, new SessionRotation({ storage: { get: async () => state, put: async (_key, value) => { state = structuredClone(value); } } }, {}));
+      objects.set(name, new SessionRotation(rotationContext(), {}));
     }
     return objects.get(name);
   } }, realsignal_catalog: { prepare: sql => ({ bind: (...args) => ({ sql, args,

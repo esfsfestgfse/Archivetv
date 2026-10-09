@@ -4,6 +4,12 @@ const SHORT_FORM = new Set(['13', '236', '501', '509']);
 const INTERNATIONAL = new Set(['106', '107', '114', '115', '119', '120', '151']);
 const FEATURES = new Set(['100', '101', '102', '103', '105', '106', '107', '108', '110', '111', '112', '114', '115', '116', '117', '119', '120', '124', '125', '132', '135', '700', '701', '702']);
 
+export function iaMinimumFileRuntimeSeconds(rules = {}) {
+  if (Array.isArray(rules.mediaTypes) && rules.mediaTypes.length && !rules.mediaTypes.includes('movies') && !rules.mediaTypes.includes('video')) return 0;
+  const requested = Math.max(0, Number(rules.minRuntimeSeconds) || 0), channel = String(rules.channel || '');
+  return SHORT_FORM.has(channel) ? requested : Math.max(requested, FEATURES.has(channel) ? 3600 : 900);
+}
+
 function seconds(value) {
   if (value == null || value === '') return 0;
   if (Number.isFinite(Number(value))) return Math.max(0, Number(value));
@@ -28,7 +34,7 @@ export function normalizeIaFileRecord(raw = {}) {
   const height = Number(media.height || raw.height || raw.videoHeight) || 0;
   const aspectRatio = width > 0 && height > 0 ? width / height : Number(media.aspectRatio || raw.aspectRatio) || 0;
   const stem = fileName.toLowerCase().replace(/\.(?:mp4|m4v|mov|ogv|webm|mp3|flac|ogg|oga|wav|m4a|aac)$/i, '')
-    .replace(/(?:[._-](?:orig|original|source|512kb|256kb|128kb|64kb|low|small|preview|proxy))$/i, '');
+    .replace(/(?:[._ -](?:ia|h\.?264|avc|x264|mpeg4|webm|ogv|\d{2,4}kb|orig|original|source|low|small|preview|proxy))+$/i, '');
   const logicalId = sourceIdentifier.toLowerCase() + (stem ? '::' + stem : '');
   return { ...raw, sourceIdentifier, fileName, logicalId, runtimeSeconds: runtime, duration: runtime || null,
     width, height, aspectRatio: aspectRatio || null,
@@ -48,18 +54,22 @@ export function qualifyIaFileRecord(raw, rules = {}, now = Date.now()) {
   const item = normalizeIaFileRecord(raw), type = String(item.media.type || item.mediaType || item.type || 'video');
   const reject = (reason, needsHydration = false) => ({ accepted: false, reason, needsHydration, item });
   if (!item.media.url) return reject('unresolved-media', true);
-  if (type === 'audio') return { accepted: !Array.isArray(rules.mediaTypes) || !rules.mediaTypes.length || rules.mediaTypes.includes('audio'), reason: 'audio-contract', item };
+  if (item.verification === 'failed' || raw.playability === 'failed') return reject('failed-media');
+  const transportValid = item.verification === 'transport' && item.verifiedAt > 0 && now - item.verifiedAt <= 86400_000 && item.verifiedAt <= now + 60_000;
+  if (type === 'audio') {
+    if (rules.iaRepair === true && rules.requireTransport !== false && !transportValid) return reject('unverified-transport', true);
+    return { accepted: !Array.isArray(rules.mediaTypes) || !rules.mediaTypes.length || rules.mediaTypes.includes('audio'), reason: 'audio-contract', item };
+  }
   const text = [item.title, item.description, item.subject, item.fileName].filter(Boolean).join(' ').toLowerCase();
   if (/\b(?:podcast|vodcast|fan[- ]?made|fan[- ]?(?:film|movie|edit)|fanfic|unofficial remake|reaction video|parody|spoof)\b/i.test(text)) return reject('policy-contamination');
   if (/\b(?:vertical|portrait|shorts|9\s*:\s*16)\b/i.test(text) || (item.aspectRatio && item.aspectRatio <= 1)) return reject('portrait-media');
   if (!item.aspectRatio) return reject('unknown-geometry', true);
   const channel = String(rules.channel || '');
-  const floor = SHORT_FORM.has(channel) ? Math.max(0, Number(rules.minRuntimeSeconds) || 0)
-    : Math.max(Number(rules.minRuntimeSeconds) || 0, FEATURES.has(channel) ? 3600 : 900);
+  const floor = iaMinimumFileRuntimeSeconds(rules);
   if (!item.runtimeSeconds) return reject('unknown-runtime', true);
   if (item.runtimeSeconds < floor) return reject('short-runtime');
   if (!INTERNATIONAL.has(channel) && item.language && !/(?:^|[,; /])(?:eng|en|english)(?:$|[,; /])/.test(item.language)) return reject('non-english-edition');
   if (item.verification === 'failed' || raw.playability === 'failed') return reject('failed-media');
-  if (rules.requireTransport !== false && (item.verification !== 'transport' || !item.verifiedAt || now - item.verifiedAt > 86400_000 || item.verifiedAt > now + 60_000)) return reject('unverified-transport', true);
+  if (rules.requireTransport !== false && !transportValid) return reject('unverified-transport', true);
   return { accepted: true, reason: 'file-qualified', needsHydration: false, item };
 }

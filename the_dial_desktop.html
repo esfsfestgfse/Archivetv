@@ -14,6 +14,7 @@
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
 <script src="assets/ok-embed-runtime.js?v=5.5.85"></script>
+<script src="assets/ia-playback-shelf.js"></script>
 <script src="assets/vimeo-embed-runtime.js?v=5.5.85"></script>
 <!-- Source Suite starts verified YouTube playback on a cold tune. Warm the exact
      origins it uses so DNS/TLS setup is not serialized behind catalog discovery. -->
@@ -7955,8 +7956,9 @@ var LIVE_DATA_BEDS={worldclock:"gmjazz",weather:"gmjazz",stormcenter:"gmjazz",lo
 function guideDurationLabel(sec){sec=Math.max(0,Math.round(Number(sec)||0));var h=Math.floor(sec/3600),m=Math.max(0,Math.round((sec%3600)/60));return h?(h+"H "+m+"M"):(m+"M");}
 function guideUpdatedLabel(at){if(!at)return "WAITING FOR LIVE DATA";var age=Math.max(0,Math.round((Date.now()-at)/1000));return age<60?"UPDATED JUST NOW":("UPDATED "+guideDurationLabel(age)+" AGO");}
 function guideItemTitle(item){return String(item&&(item.title||item.identifier||item.id)||"PROGRAM DATA PENDING").replace(/\s+/g," ").trim();}
-function guideItemRuntime(item){var sec=item&&(item.runtime||item.duration||item.length||item.duration_seconds);return Number(sec)>0?guideDurationLabel(sec):"RUNTIME PENDING";}
+function guideItemRuntime(item){var media=item&&item.media,sec=media&&(media.runtime||media.duration||media.length)||item&&(item.runtime||item.duration||item.length||item.duration_seconds);return Number(sec)>0?guideDurationLabel(sec):"RUNTIME PENDING";}
 function guideQueueItems(ch,sl,current){
+  if(iaRepairEnabled(ch))return window.RealSignalIAShelf.client().rows(iaQueueKey(ch));
   var q=(iaProgramQueues[iaQueueKey(ch)]||[]).filter(function(item){return iaProgramAllowed(item,sl);});
   if(!current)return q;
   var currentId=String(current.identifier||current.id||""),currentTitle=String(current.title||"");
@@ -7973,6 +7975,7 @@ function guideFamilyLabel(ch){
   return GUIDE_SUBGENRES[ch&&ch.cat]||String((ch&&ch.cat)||"Channel");
 }
 function guideVerifiedListing(ch,verified){
+  if(iaRepairEnabled(ch))return null;
   if(!verified||verified.verified!==true)return null;
   var localCurrent=(ch&&ch.num===curNum&&curItem&&curItem.title)?curItem:null;
   var items=Array.isArray(verified.items)?verified.items.filter(Boolean):[];
@@ -8691,6 +8694,12 @@ setTimeout(warmRapidTune,700);
    builds so an hour-gated plan can never reappear after an upgrade. */
 try{store.set("stationMgr",false);store.set("plan",{});}catch(e){}
 async function preloadNext(ch,sl,my){
+  if(iaRepairEnabled(ch)){
+    if(!powered||my!==token||curNum!==ch.num)return;
+    var shelf=window.RealSignalIAShelf.client(),key=iaQueueKey(ch);
+    try{await shelf.reserve(key,iaRepairBody(ch,sl));if(!powered||my!==token||curNum!==ch.num)return;var next=shelf.peek(key);if(next)stageIAMediaWarmer(ch,next,{...next.media,id:next.identifier,title:next.title,meta:next});}catch(error){nlog("ia-repair-preload",false,String(error));}
+    return;
+  }
   /* This cache belongs to the channel, not a single tune token. Let it complete
      across a same-channel SKIP so the new program is already playable. */
   if(!powered||!sl||!sl.queries||my!==token||curNum!==ch.num)return;
@@ -8744,6 +8753,7 @@ function schedSet(ch,it,dur){
 function schedClear(ch){ if(ch&&ch.nm&&schedMap[ch.nm]){ delete schedMap[ch.nm]; store.set("sched",schedMap); } }
 var iaPrimeRun=0;
 function primeIAQueues(){
+  if(window.RealSignalIAShelf&&window.RealSignalIAShelf.enabled)return;
   var run=++iaPrimeRun, here=CH.findIndex(function(c){return c.num===curNum;}), all=CH.filter(function(c){return !c.source;});
   /* Never prewarm the whole dial. 169 Archive shelves turn a power-on into a
      sustained request flood that starves the channel the viewer actually
@@ -8766,6 +8776,7 @@ function primeIAQueues(){
    neighboring IA stations a viewer is most likely to surf to next. Their five
    identifiers resolve in parallel and only the queue head gets a media element. */
 function primeIACompanions(ch,activeSlot){
+  if(window.RealSignalIAShelf&&window.RealSignalIAShelf.enabled)return;
   if(!powered||!ch||ch.source)return;
   var all=CH.filter(function(c){return !c.source;}).sort(function(a,b){return a.num-b.num;}), at=all.indexOf(ch), targets=[ch];
   if(all[at+1])targets.push(all[at+1]);if(all[at-1])targets.push(all[at-1]);
@@ -8789,7 +8800,27 @@ function primeIACompanions(ch,activeSlot){
   primeIACompanions._resume=setTimeout(function(){if(powered)primeIAQueues();},15000);
 }
 
+function iaRepairEnabled(ch){return !!(ch&&!ch.source&&window.RealSignalIAShelf&&window.RealSignalIAShelf.enabled);}
+function iaRepairBody(ch,sl){return {queries:iaQueueQueries(sl),themeTerms:iaProgramThemeTerms(sl),denyTerms:iaProgramDenyTerms(sl),requiredTitleTerms:(sl&&sl.program&&sl.program.require&&sl.program.require.title_any)||[],diversity:iaQueueDiversity(sl),mediaTypes:ch.audio?["audio"]:["movies"],themeMinScore:Math.max(1,Number(sl&&sl.program&&sl.program.themeMinScore)||1),minRuntimeSeconds:Number(sl&&sl.program&&sl.program.minRuntimeSeconds)||0};}
+function iaRepairEvent(ch,it,event){if(!iaRepairEnabled(ch)||!it||it.isAd||it.isSignoff||it.ch!=null&&Number(it.ch)!==Number(ch.num))return Promise.resolve();return window.RealSignalIAShelf.client().event(iaQueueKey(ch),it,event).catch(function(error){nlog("ia-repair-event",false,String(error));});}
+async function tuneIARepair(ch,sl,my){
+  var shelf=window.RealSignalIAShelf.client(),key=iaQueueKey(ch);
+  try{
+    for(var attempt=0;attempt<3;attempt++){
+      if(my!==token||!powered||curNum!==ch.num)return;
+      var item=shelf.peek(key);
+      if(!item){await shelf.reserve(key,iaRepairBody(ch,sl));if(my!==token||!powered||curNum!==ch.num)return;item=shelf.peek(key);}
+      if(!item)break;
+      var media={...item.media,id:item.identifier,title:iaDisplayTitle(item,ch),year:item.year,meta:item};
+      if(await playFile(media,ch,sl,my,0))return;
+      if(my!==token||!powered||curNum!==ch.num)return;
+      await iaRepairEvent(ch,media,"failed");
+    }
+  }catch(error){nlog("ia-repair-tune",false,String(error));}
+  if(my===token&&powered&&curNum===ch.num)iaRetry(ch,my);
+}
 async function tuneIA(ch,sl,my){
+  if(iaRepairEnabled(ch))return tuneIARepair(ch,sl,my);
   /* End-to-end circuit breaker: individual fetches are bounded, but serial
      fallbacks used to add up to nearly a minute. Do not invalidate a tune while
      its own five-show director request or a resolved shelf is still making
@@ -8959,7 +8990,7 @@ function acquireVideo(staged,preserveCurrent){
     theVideo=v;videoCtl=ctl;
     if(!staged){try{v.pause();}catch(e){}try{v.removeAttribute("src");v.load();}catch(e){}}
   }
-  return {v:v,sig:ctl?ctl.signal:undefined,commit:function(){if(!preserveCurrent)return;if(previousCtl){try{previousCtl.abort();}catch(e){}}theVideo=v;videoCtl=ctl;},rollback:function(){if(ctl){try{ctl.abort();}catch(e){}}if(v!==previousVideo){try{v.pause();v.removeAttribute("src");v.load();}catch(e){}try{v.remove();}catch(e){}}if(preserveCurrent){theVideo=previousVideo;videoCtl=previousCtl;}else if(videoCtl===ctl)videoCtl=null;}};
+  return {v:v,sig:ctl?ctl.signal:undefined,commit:function(){if(!preserveCurrent)return;if(previousCtl){try{previousCtl.abort();}catch(e){}}theVideo=v;videoCtl=ctl;},rollback:function(){if(ctl){try{ctl.abort();}catch(e){}}if(v!==previousVideo){try{v.pause();v.removeAttribute("src");v.load();}catch(e){}try{v.remove();}catch(e){}}if(preserveCurrent&&theVideo===v){theVideo=previousVideo;videoCtl=previousCtl;}else if(videoCtl===ctl)videoCtl=null;}};
 }
 function unlockMedia(){ /* must be called from inside a real user gesture (power press) */
   try{ if(!theVideo) theVideo=document.createElement("video");
@@ -8985,7 +9016,7 @@ function playFile(it,ch,sl,my,isFallback){return new Promise(res=>{
     var sent=typeof window.__rsCastPublishMedia==="function"&&window.__rsCastPublishMedia(it,ch);
     if(!sent)return res(false);
     hideOv();hideBuffer();clearStall();setSig("live",isAudio?"ON AIR ♪":"ON AIR");
-    setCurItem(it,ch,sl);showNow(ch,sl,it.title||ch.nm,it.year?("· "+it.year):(it.source||""));bug.classList.remove("hide");
+    setCurItem(it,ch,sl,false);showNow(ch,sl,it.title||ch.nm,it.year?("· "+it.year):(it.source||""));bug.classList.remove("hide");
     return res(true);
   }
   soundBlocked=false; // flag only set if the muted fallback fires
@@ -9010,7 +9041,10 @@ function playFile(it,ch,sl,my,isFallback){return new Promise(res=>{
   /* PeerTube direct files are already metadata/rights/landscape verified, but some
      instances take several seconds to expose the first decoded frame. Do not
      discard a good Source Suite item at the generic IA timeout. */
-  let done=false; const startTimeout=(it.isAd?4000:(ch&&ch.source==="v2preview"&&/peertube/i.test(String(it.provider||""))?15000:(isFallback>0?7000:(isAudio?9000:12000)))); const to=setTimeout(()=>fin(false),startTimeout);
+  const boundedIaStart=iaRepairEnabled(ch)&&!isAudio&&!it.isAd&&!it.isSignoff;
+  let done=false,to; const startTimeout=boundedIaStart?4000:(it.isAd?4000:(ch&&ch.source==="v2preview"&&/peertube/i.test(String(it.provider||""))?15000:(isFallback>0?7000:(isAudio?9000:12000))));
+  function armStart(){clearTimeout(to);to=setTimeout(function(){if(boundedIaStart&&tryAlternate())return;fin(false);},startTimeout);}
+  armStart();
   function tryPlay(){ try{const p=v.play&&v.play();
     if(p&&p.catch)p.catch(()=>{ /* audible autoplay blocked -> mute & retry so the queue continues */
       try{ v.muted=true; needSound(true); const q=v.play&&v.play(); if(q&&q.catch)q.catch(()=>{});
@@ -9025,7 +9059,9 @@ function playFile(it,ch,sl,my,isFallback){return new Promise(res=>{
         },900);
       }catch(e){} });
   }catch(e){} }
+  var recovery=iaRepairEnabled(ch)&&!it.isAd&&!it.isSignoff?window.RealSignalIAShelf.lifecycle(function(){return my===token&&powered&&curNum===ch.num;},function(){iaRepairEvent(ch,it,"failed");fastTuneDrop(ch.num);tuneNum(ch.num);}):null;
   function fin(ok){ if(done)return; done=true; clearTimeout(to);
+    if(ok&&recovery&&!recovery.start()){av.rollback();return res(false);}
     if(ok){
       if(my!==token){av.rollback();return res(true);} // superseded; keep the newer tune's picture intact
       av.commit();
@@ -9060,11 +9096,13 @@ function playFile(it,ch,sl,my,isFallback){return new Promise(res=>{
     res(ok);
   }
   v.addEventListener("loadeddata",()=>{ if(resumeSeekSec>0){ try{v.currentTime=resumeSeekSec;}catch(e){} resumeSeekSec=0; } },{signal:sig});
-  const altQ=(it.alts||(it.alt?[it.alt]:[])).slice(); // FIX err4: bad derivatives are skipped file-by-file within the same item
+  const altQ=(it.alts||(it.alt?[it.alt]:[])).filter(function(url,index,all){return url&&url!==it.url&&all.indexOf(url)===index;}).slice(0,boundedIaStart?2:8);
+  function tryAlternate(){if(done||my!==token||!powered||!altQ.length)return false;const nx=altQ.shift();try{nlog("video",true,"retrying the same program on an alternate origin");v.src=nx;v.load();}catch(e){}if(boundedIaStart)armStart();tryPlay();return true;}
   v.addEventListener("error",()=>{try{nlog("video",false,"err"+((v.error&&v.error.code)||"?")+" "+((v.src||"").split("/").pop().slice(-40)));}catch(e){}
-    if(!done && altQ.length){ const nx=altQ.shift(); try{nlog("video",true,"retrying with alternate file");}catch(e){} try{v.src=nx; v.load();}catch(e){} tryPlay(); return; }
-    fin(false);},{signal:sig});
+    if(tryAlternate())return;
+    if(recovery&&recovery.fail())return;fin(false);},{signal:sig});
   v.addEventListener("ended",async ()=>{ if(token!==my) return; resetProgress();
+    if(iaRepairEnabled(ch)&&!it.isAd&&!it.isSignoff)iaRepairEvent(ch,it,"completed");
     if(it.isSignoff){ try{signoffClipDone();}catch(e){} return; } // sign-off sequence drives its own next step
     if(ch&&ch.source==="v2preview"){ if(token===my&&powered&&typeof window.__v2PreviewNext==="function")window.__v2PreviewNext(); return; }
     if(!powered) return;
@@ -9512,13 +9550,13 @@ let curVideo=null, curItem=null, ccOn=false, ccBlobUrl=null,
     themeIdx=store.get("theme",0);
 
 /* ---------- current item tracking ---------- */
-function setCurItem(it,ch,sl){
+function setCurItem(it,ch,sl,decoded){
   curItem={id:it.id||null,url:it.url||null,title:it.title||ch.nm,
            year:it.year||null, meta:it.meta||null, source:ch.source||"archive",
            embedded:!!it.embedded,isAudio:(it.type==="audio"||ch.audio),captions:it.captions||null,
-           ch:ch.num,chName:ch.nm};
+           ch:ch.num,chName:ch.nm,isAd:!!it.isAd,isSignoff:!!it.isSignoff,duration:Number(it.runtime||it.duration||it.meta&&it.meta.media&&it.meta.media.runtime)||null};
   markSeen(curItem.id); /* ads still markSeen (no repeat spots within 3h) but stay out of stats + dedup */
-  iaReportPlayed(ch,it);
+  if(iaRepairEnabled(ch)){if(decoded!==false)iaRepairEvent(ch,it,"started");}else iaReportPlayed(ch,it);
   if(!it.isAd){
     const nt=normTitle(curItem.title); if(nt){ recentTitles.unshift(nt); if(recentTitles.length>12)recentTitles.length=12; }
     chStats[ch.num]=(chStats[ch.num]||0)+1; store.set("chStats",chStats);
@@ -17980,6 +18018,7 @@ async function playBumper(ch,sl,my){
 /* ===== v10.1: skip — next item on the same channel, on demand ===== */
 async function skipOne(){ if(!powered){quickBanner("TURN THE TV ON FIRST");return;}if(typeof window.__rsCastIsConnected==="function"&&window.__rsCastIsConnected()&&typeof window.__rsCastCommand==="function")window.__rsCastCommand("NEXT");
   var sc=byNum(curNum);
+  if(iaRepairEnabled(sc)){if(curItem&&!curItem.isAd)iaRepairEvent(sc,curItem,"skipped");adQueue=0;fastTuneDrop(sc.num);resetProgress();tuneNum(curNum);return;}
   if(sc&&sc.source==="v2preview"&&typeof window.__v2PreviewNext==="function"){window.__v2PreviewNext(true);return;}
   if(sc&&sc.source==="worldclock"&&typeof window.__worldClockNext==="function"){window.__worldClockNext();return;}
   if(sc&&sc.source==="tropical"&&typeof window.__tropicalNext==="function"){window.__tropicalNext();return;}

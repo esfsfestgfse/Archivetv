@@ -6,7 +6,7 @@
  */
 
 import { SessionRotation } from "./realsignal_api_rotation.js";
-import { normalizeIaFileRecord, qualifyIaFileRecord } from "./ia_file_contract.js";
+import { normalizeIaFileRecord, qualifyIaFileRecord, iaMinimumFileRuntimeSeconds } from "./ia_file_contract.js";
 import { EdgeRateLimiter } from "./realsignal_api_rate_limit.js";
 import { RokuSession } from "./realsignal_roku_session.js";
 import { okBalancedCandidates, okPlaybackIdentity } from "./ok_public_search.js";
@@ -426,7 +426,8 @@ function compactCatalogItem(item) {
   if (item && ((!item.provider && !item.source) || /^(?:internet[- ]archive|ia)$/i.test(item.provider || item.source || ""))) item = normalizeIaFileRecord(item);
   const id = String(item && (item.identifier || item.id || (item.media && item.media.url)) || "").slice(0, 500);
   if (!id) return null;
-  const provider = String(item.provider || item.source || "internet-archive").slice(0, 60);
+  const rawProvider = String(item.provider || item.source || "Internet Archive").slice(0, 60);
+  const provider = /^(?:internet[- ]archive|ia|archive)$/i.test(rawProvider) ? "Internet Archive" : rawProvider;
   const mediaUrl = String(item.embedUrl || (item.media && item.media.url) || item.url || "").slice(0, 1500);
   const okEmbed = provider === "OK.ru" && /^https:\/\/ok\.ru\/videoembed\/\d+(?:[?#]|$)/i.test(mediaUrl);
   return {
@@ -630,7 +631,8 @@ async function upsertCatalogJob(env, job) {
   if (!env.realsignal_catalog || typeof env.realsignal_catalog.batch !== "function" || !job || !Array.isArray(job.items)) return;
   const now = Date.now();
   const statements = [];
-  for (const item of job.items.slice(0, MAX_CATALOG_ITEMS)) {
+  for (const rawItem of job.items.slice(0, MAX_CATALOG_ITEMS)) {
+    const item = /^(?:internet[- ]archive|ia|archive)$/i.test(rawItem.provider || "") ? { ...rawItem, provider: "Internet Archive" } : rawItem;
     const ia = item.provider === "Internet Archive";
     const metadata = ia ? Object.fromEntries(Object.entries(item).filter(([key, value]) => value != null && value !== "" && value !== 0 && !(key === "verification" && value === "metadata-only"))) : item;
     const enrich = column => `CASE WHEN excluded.provider='Internet Archive' THEN COALESCE(NULLIF(excluded.${column}, ''), programs.${column}) ELSE excluded.${column} END`;
@@ -642,7 +644,10 @@ async function upsertCatalogJob(env, job) {
 }
 
 async function rotateShelf(env, body, payload, request) {
-  if (!env.ROTATION || typeof env.ROTATION.getByName !== "function") return { payload, rotation: { configured: false } };
+  if (!env.ROTATION || typeof env.ROTATION.getByName !== "function") {
+    if (body.iaRepair === true) throw new Error("IA reservation binding unavailable");
+    return { payload, rotation: { configured: false } };
+  }
   const sessionHeader = request && request.headers ? request.headers.get("x-realsignal-session") : "";
   const session = safeSession(body.sessionId || body.session || sessionHeader || `ip-${requestClientKey(request)}`);
   const channel = safeSession(body.channel || "unknown");
@@ -661,7 +666,7 @@ async function rotateShelf(env, body, payload, request) {
   const recentLimit = candidates.length >= count ? Math.max(0, candidates.length - count) : recentValues.length;
   const boundedRecentIds = freshnessExclusionIds(body, reservationMode ? recentValues.length : recentLimit);
   const selectBody = { items: candidates, recentIds: boundedRecentIds, count, rotation: Number(body.rotation) || 0,
-    ...(reservationMode ? { mode: "reserve", diversity: body.diversity || {} } : {}) };
+    ...(reservationMode ? { mode: "reserve", diversity: body.diversity || {}, rules: body, rejectedIds: body.iaRejectedIds || [] } : {}) };
   const response = await stub.fetch(new Request("https://rotation.internal/select", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(selectBody) }));
   if (!response.ok) throw new Error(`rotation ${response.status}`);
   const selected = await response.json();
@@ -698,7 +703,7 @@ async function rotateShelf(env, body, payload, request) {
   }).length;
   const selectedReady = Math.max(upstreamReady, playableSelected);
   const exhaustion = selected && selected.exhaustion && typeof selected.exhaustion === 'object' ? selected.exhaustion : {};
-  return { payload: { ...payload, items: selectedItems, candidateItems: selectedCatalog, candidates: selectedCatalog.length, ready: Math.min(selectedReady, selectedItems.length), v2: { sessionScoped: true, cursor: selected.cursor, cycleReset: !!selected.cycleReset, catalogSize: Number(selected.catalogSize) || selectedCatalog.length, catalogAdded: Number(selected.catalogAdded) || 0, unseen: Number(selected.unseen) || 0, seenInCatalog: Number(exhaustion.seenInCatalog) || 0, seenInCatalogBeforeSelection: Number(exhaustion.seenInCatalogBeforeSelection) || 0, unseenBeforeSelection: Number(exhaustion.unseenBeforeSelection) || 0, unseenAfterSelection: Number(exhaustion.unseenAfterSelection) || 0, catalogExhausted: !!exhaustion.catalogExhausted, repeatAllowed: !!exhaustion.repeatAllowed, selectionRepeatIds: Array.isArray(selected.selectionRepeatIds) ? selected.selectionRepeatIds : [] } }, rotation: selected };
+  return { payload: { ...payload, items: selectedItems, candidateItems: selectedCatalog, candidates: selectedCatalog.length, ready: Math.min(selectedReady, selectedItems.length), v2: { sessionScoped: true, cursor: selected.cursor, cycleReset: !!selected.cycleReset, ...(reservationMode ? { cycleGeneration: Number(selected.cycleGeneration) || 0 } : {}), catalogSize: Number(selected.catalogSize) || selectedCatalog.length, catalogAdded: Number(selected.catalogAdded) || 0, unseen: Number(selected.unseen) || 0, seenInCatalog: Number(exhaustion.seenInCatalog) || 0, seenInCatalogBeforeSelection: Number(exhaustion.seenInCatalogBeforeSelection) || 0, unseenBeforeSelection: Number(exhaustion.unseenBeforeSelection) || 0, unseenAfterSelection: Number(exhaustion.unseenAfterSelection) || 0, catalogExhausted: !!exhaustion.catalogExhausted, repeatAllowed: !!exhaustion.repeatAllowed, selectionRepeatIds: Array.isArray(selected.selectionRepeatIds) ? selected.selectionRepeatIds : [] } }, rotation: selected };
 }
 
 async function handleIaPlayback(request, env, ctx, requestId) {
@@ -717,13 +722,14 @@ async function handleIaPlayback(request, env, ctx, requestId) {
   if (!result.ok) return json({ error: "playback identity not reserved" }, result.status);
   /* Only an actual start enters cross-session watched history. Skipping a
      reservation suppresses it within this session, not everybody's catalog. */
-  if (event === "started") {
+  const acknowledgement = await result.json();
+  if (event === "started" && acknowledgement.committed) {
     await rememberFreshness(env, channel, [id], ctx);
-    ctx.waitUntil(forwardToRelay(request, env, "/ia/played", body, requestId).then(response => {
+    ctx.waitUntil(forwardToRelay(request, env, "/ia/played", { ...body, iaRepair: true }, requestId).then(response => {
       if (!response.ok) console.warn(JSON.stringify({ event: "ia-played-forward-failed", channel, status: response.status }));
     }).catch(error => console.warn(JSON.stringify({ event: "ia-played-forward-failed", channel, error: String(error).slice(0, 160) }))));
   }
-  return json({ ok: true, channel, id, event }, 202, { "Cache-Control": "no-store" });
+  return json({ ok: true, channel, id, event, cycleGeneration: Number(acknowledgement.cycleGeneration) || 0 }, 202, { "Cache-Control": "no-store" });
 }
 
 function rotateCatalogItems(items, rotation) {
@@ -1547,6 +1553,21 @@ async function handleQueue(request, env, ctx, id) {
   const apiVersion = new URL(request.url).pathname.startsWith(V3_PREFIX) ? "v3" : "v2";
   const count = Math.max(1, Math.min(5, Number(body.count) || 3));
   const upstreamBody = { ...body, count };
+  if (body.iaRepair === true && body.sourceCatalog !== true) {
+    // Admission and hydration must use the same floor. Otherwise three short
+    // files consume the entire hydration budget before the API rejects them.
+    upstreamBody.minRuntimeSeconds = iaMinimumFileRuntimeSeconds(body);
+    if (!env.ROTATION) return json({ error: "IA reservations temporarily unavailable", requestId: id }, 503);
+    try {
+      const session = safeSession(body.sessionId || body.session || request.headers.get("x-realsignal-session") || `ip-${requestClientKey(request)}`);
+      const stub = env.ROTATION.getByName(`ia-repair:session:${session}:channel:${safeSession(body.channel)}`);
+      const response = await stub.fetch(new Request("https://rotation.internal/select", { method: "POST", body: JSON.stringify({ mode: "peek", count, rules: body }) }));
+      if (!response.ok) throw Error("reservation peek " + response.status);
+      const state = await response.json();
+      upstreamBody.hydrationExcludeIds = [...(state.seenIds || []), ...(state.cooldownIds || []), state.playing].filter(Boolean).slice(-1024);
+      upstreamBody.hydrationPreferredIds = state.reservationIds || [];
+    } catch (error) { return json({ error: "IA reservations temporarily unavailable", requestId: id }, 503); }
+  }
   delete upstreamBody.sessionId;
   delete upstreamBody.session;
   const canonical = canonicalPilotProfile(body.channel);
@@ -1581,6 +1602,7 @@ async function handleQueue(request, env, ctx, id) {
         try { fastRotated = await rotateShelf(env, body, fastCatalog, request); }
         catch (error) {
           console.warn(JSON.stringify({ event: "fast-catalog-rotation-fallback", requestId: id, channel: String(body.channel), error: String(error).slice(0, 160) }));
+          if (body.iaRepair === true) return json({ error: "IA reservations temporarily unavailable", requestId: id }, 503, { "Cache-Control": "no-store" });
           fastRotated = { payload: localRotationFallback(fastCatalog, body), rotation: { configured: false, fallback: true } };
         }
         const headers = new Headers(corsHeaders());
@@ -1621,6 +1643,10 @@ async function handleQueue(request, env, ctx, id) {
        Re-apply the lane contract here before anything reaches D1 or the
        session rotation. This removes stale/contaminated rows already present
        in older catalogs and collapses duplicate collection/file records. */
+    if (body.iaRepair === true) {
+      const raw = [...(payload.items || []), ...(payload.candidateItems || [])];
+      body.iaRejectedIds = Array.from(new Set(raw.filter(item => ['failed-media', 'portrait-media', 'short-runtime', 'policy-contamination', 'non-english-edition'].includes(qualifyIaFileRecord(item, body).reason)).map(queueItemKey)));
+    }
     const upstreamItems = uniqueQueueItems(Array.isArray(payload && payload.items) ? payload.items : [], body, MAX_CATALOG_ITEMS);
     const upstreamCandidates = uniqueQueueItems(
       Array.isArray(payload && payload.candidateItems) && payload.candidateItems.length ? payload.candidateItems : upstreamItems,
@@ -1712,7 +1738,7 @@ async function handleQueue(request, env, ctx, id) {
     payload = localRotationFallback(payload, body);
   }
   let rotated;
-  if (!useServerCatalog || archiveFamilyRelayRail) {
+  if (body.iaRepair !== true && (!useServerCatalog || archiveFamilyRelayRail)) {
     /* The relay already owns IA rotation and its played-only freshness ledger.
        Return its verified shelf unchanged so the API Durable Object cannot
        mark queued items as seen or recreate the same-five regression. */
@@ -1721,6 +1747,7 @@ async function handleQueue(request, env, ctx, id) {
     try { rotated = await rotateShelf(env, body, payload, request); }
     catch (error) {
       console.warn(JSON.stringify({ event: "v2-rotation-fallback", requestId: id, error: String(error).slice(0, 160) }));
+      if (body.iaRepair === true) return json({ error: "IA reservations temporarily unavailable", requestId: id }, 503, { "Cache-Control": "no-store" });
       rotated = { payload: localRotationFallback(payload, body), rotation: { configured: false, fallback: true } };
     }
   }

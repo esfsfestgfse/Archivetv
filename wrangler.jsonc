@@ -5,6 +5,7 @@
   "compatibility_date": "2026-08-20",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
+  "durable_objects": { "bindings": [{ "name": "IA_STATE_OWNER", "class_name": "SessionRotation", "script_name": "realsignal-api" }] },
   "observability": {
     "enabled": true,
     "head_sampling_rate": 0.1

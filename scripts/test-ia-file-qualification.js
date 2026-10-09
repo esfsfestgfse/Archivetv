@@ -5,23 +5,36 @@ const vm = require('node:vm');
 const { test } = require('node:test');
 const { pathToFileURL } = require('node:url');
 const root = path.join(__dirname, '..');
-function relay(metadata = {}, mediaStatus = 206) {
+function relay(metadata = {}, mediaStatus = 206, redirectedUrl = '') {
   const sandbox = { console, URL, URLSearchParams, Request, Response, Headers, AbortController, AbortSignal,
     TextEncoder, TextDecoder, Date, setTimeout, clearTimeout, crypto: require('node:crypto').webcrypto,
     caches: { default: { match: async () => undefined, put: async () => {} } },
     fetch: async url => {
       if (/archive\.org\/metadata\//.test(String(url))) return Response.json(metadata);
       assert.match(String(url), /archive\.org\/download\//);
-      return new Response('x', { status: mediaStatus, headers: { 'content-type': 'video/mp4' } });
+      const response = new Response('x', { status: mediaStatus, headers: { 'content-type': 'video/mp4' } });
+      if (redirectedUrl) Object.defineProperty(response, 'url', { value: redirectedUrl });
+      return response;
     } };
   vm.createContext(sandbox);
   vm.runInContext(fs.readFileSync(path.join(root, 'afterglow_ais_relay_worker.js'), 'utf8').replace('export default', 'const worker =') +
-    '\nglobalThis.contract={iaRuntimeAllowed, iaStationQualityGate, queuePlayable, iaPlayableIdentity, hydrateIaQueue};', sandbox);
+    '\nglobalThis.contract={iaRuntimeAllowed, iaStationQualityGate, queuePlayable, iaPlayableIdentity, hydrateIaQueue, qualifyIaQueueResponse, verifyIaTransport};', sandbox);
   return sandbox.contract;
 }
 const verified = { identifier: 'series::episode.mp4', sourceIdentifier: 'series', title: 'Family sitcom episode',
   language: 'eng', media: { type: 'video', url: 'https://archive.org/download/series/episode.mp4',
     runtime: 1320, width: 640, height: 480, verifiedAt: Date.now(), verification: 'transport' } };
+
+test('transport admission preserves the resolved same-file Archive CDN, not its redirect', async () => {
+  const url = 'https://ia800001.us.archive.org/12/items/series/episode.mp4';
+  const media = { ...verified.media, sourceIdentifier: 'series', fileName: 'episode.mp4', verification: undefined, verifiedAt: 0 };
+  const result = await relay({}, 206, url).verifyIaTransport(media);
+  assert.equal(result.url, url);
+  assert.ok(result.alts.includes(media.url));
+  for (const redirected of ['https://evil.invalid/12/items/series/episode.mp4', 'https://ia800001.us.archive.org/12/items/series/other.mp4']) {
+    assert.equal(await relay({}, 206, redirected).verifyIaTransport(media), null, 'a redirect cannot change provider or episode');
+  }
+});
 
 test('the selected child runtime overrides the longer parent runtime', () => {
   assert.equal(relay().iaRuntimeAllowed({ runtime: 1800, media: { type: 'video', runtime: 120 } }, 900), false);
@@ -53,7 +66,7 @@ test('TV qualification rejects known portraits, unresolved metadata, shorts and 
   ]) assert.equal(catalogFallbackAllowed({ ...verified, runtime: 1800, media }, rules), false);
   assert.equal(catalogFallbackAllowed({ ...verified, language: 'jpn' }, rules), false);
   assert.equal(catalogFallbackAllowed({ ...verified, language: 'jpn', media: { ...verified.media, runtime: 4000 } }, { ...rules, channel: '106' }), true, 'international stations keep their language contract');
-  assert.equal(catalogFallbackAllowed({ identifier: 'radio', media: { type: 'audio', url: 'https://archive.org/download/radio/program.mp3' } }, { ...rules, channel: '920', mediaTypes: ['audio'] }), true);
+  assert.equal(catalogFallbackAllowed({ identifier: 'radio', media: { type: 'audio', url: 'https://archive.org/download/radio/program.mp3', verification: 'transport', verifiedAt: Date.now() } }, { ...rules, channel: '920', mediaTypes: ['audio'] }), true);
 });
 test('strict hot-shelf hydration performs transport validation and preserves enriched candidates', async () => {
   const metadata = { metadata: { language: 'eng' }, files: [{ name: 'episode.mp4', format: 'h.264', length: 1320, width: 640, height: 480 }] };
@@ -65,6 +78,18 @@ test('strict hot-shelf hydration performs transport validation and preserves enr
   assert.equal(good.candidateItems[0].media.runtime, 1320);
   const dead = await relay(metadata, 403).hydrateIaQueue({ candidateItems: [candidate], minRuntimeSeconds: 900 }, 1, 'https://relay.invalid', ctx, ['movies']);
   assert.equal(dead.ready, 0, 'metadata or a plausible URL does not prove a playable transport');
+});
+
+test('cached and emergency URL-only shelves are qualified at the relay response boundary', async () => {
+  const f = relay({ metadata: { language: 'eng' }, files: [{ name: 'episode.mp4', format: 'h.264', length: 1320, width: 640, height: 480 }] });
+  const raw = { channel: '10', ready: 1, items: [{ identifier: 'series::episode.mp4', title: 'Full sitcom episode', media: { type: 'video', url: 'https://archive.org/download/series/episode.mp4' } }] };
+  const result = await f.qualifyIaQueueResponse(Response.json(raw), { iaRepair: true, channel: '10', count: 1, mediaTypes: ['movies'], minRuntimeSeconds: 900 }, 'https://relay.invalid', { waitUntil() {} });
+  const payload = await result.json();
+  assert.equal(payload.ready, 1);
+  assert.equal(payload.items[0].media.runtime, 1320);
+  assert.equal(payload.items[0].media.verification, 'transport');
+  const legacy = Response.json(raw);
+  assert.equal(await f.qualifyIaQueueResponse(legacy, {}, 'https://relay.invalid', {}), legacy);
 });
 test('confirmed editorial contamination is rejected without blocking genuine cooking or court TV', () => {
   const f = relay();
@@ -107,6 +132,14 @@ test('alternate encodings do not inflate canonical episode depth', async () => {
     { ...base, file: 'episode_512kb.mp4', mediaUrl: 'https://archive.org/download/beaver/episode_512kb.mp4' },
   ]);
   assert.equal(manifest.catalogDepth, 1);
+});
+
+test('IA and H.264 derivatives have the same logical episode identity', async () => {
+  const { normalizeIaFileRecord } = await import(pathToFileURL(path.join(root, 'ia_file_contract.js')));
+  const key = file => normalizeIaFileRecord({ identifier: 'series::' + file }).logicalId;
+  assert.equal(key('Episode 1.ia.mp4'), key('Episode 1.mp4'));
+  assert.equal(key('Episode 1_h264.mp4'), key('Episode 1.mp4'));
+  assert.notEqual(key('Episode 2.mp4'), key('Episode 1.mp4'));
 });
 
 test('strict file shelves are isolated without invalidating legacy cache identities', () => {

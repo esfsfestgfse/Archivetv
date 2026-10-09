@@ -169,6 +169,7 @@
     if(!telemetryOn||!node||node.dataset.release2Observed)return;
     node.dataset.release2Observed='1';
     var tune=activeTune?{at:activeTune.at,channel:activeTune.channel,seq:activeTune.seq}:{at:stamp(),channel:currentTelemetryChannel(),seq:0},first=false,framePending=false;
+    function current(){return node.isConnected&&(!tune.seq||!!activeTune&&activeTune.seq===tune.seq);}
     function visible(){
       if(node.tagName==='AUDIO')return true;
       if(document.hidden||!node.isConnected)return false;
@@ -176,10 +177,14 @@
       return rect.width>1&&rect.height>1&&style.display!=='none'&&style.visibility!=='hidden'&&Number(style.opacity||1)>0;
     }
     function frame(evidence){
-      if(first||!visible())return;
+      if(first||!current()||!visible())return;
       if(node.tagName==='VIDEO'&&(!node.videoWidth||node.readyState<2))return;
       if(tune.seq&&activeTune&&activeTune.seq!==tune.seq)return;
-      first=true;var key=currentProgramKey(),prior=false,depth=queueDepth();
+      first=true;
+      if(node.tagName==='AUDIO'){push({type:'source-success',channel:tune.channel||0,media:'audio',source:'audio-playing'});return;}
+      if(!tune.seq||stamp()-tune.at>120000){push({type:'media-ready',channel:tune.channel||0,status:'unknown-tune-latency'});return;}
+      if(node.tagName==='IFRAME'){push({type:'media-ready',channel:tune.channel||0,status:'embed-loaded-not-frame-verified'});return;}
+      var key=currentProgramKey(),prior=false,depth=queueDepth();
       if(key){prior=seenPrograms.some(function(entry){return entry.key===key&&entry.tune!==tune.seq;});if(!seenPrograms.some(function(entry){return entry.key===key&&entry.tune===tune.seq;}))seenPrograms.push({key:key,tune:tune.seq});if(seenPrograms.length>250)seenPrograms.shift();}
       push({type:'first-visible-frame',channel:tune.channel||0,media:node.tagName.toLowerCase(),ms:Math.max(0,stamp()-tune.at),programKey:key,repeat:prior,queueDepth:depth,source:evidence||'visible-media'});
       if(Number.isFinite(depth))push({type:'queue-sample',channel:tune.channel||0,depth:depth,reason:'first-frame'});
@@ -197,8 +202,8 @@
       if(node.readyState>=2&&!node.paused)requestVisibleVideoFrame();
     }else if(node.tagName==='IFRAME')node.addEventListener('load',function(){requestAnimationFrame(function(){frame('iframe-load');});},{passive:true});
     else node.addEventListener('playing',function(){frame('audio-playing');},{passive:true});
-    node.addEventListener('stalled',function(){push({type:'stall',channel:tune.channel||0,media:node.tagName.toLowerCase()});},{passive:true});
-    node.addEventListener('error',function(){push({type:'media-error',channel:tune.channel||0,media:node.tagName.toLowerCase()});},{passive:true});
+    node.addEventListener('stalled',function(){if(current())push({type:'stall',channel:tune.channel||0,media:node.tagName.toLowerCase()});},{passive:true});
+    node.addEventListener('error',function(){if(current())push({type:'media-error',channel:tune.channel||0,media:node.tagName.toLowerCase()});},{passive:true});
   }
   function formatMs(value){return Number.isFinite(value)?Math.round(value)+' ms':'—';}
   function renderHealthView(){
@@ -248,7 +253,7 @@
       window.tuneNum=function(channel){
         var row={channel:Number(channel)||0,at:stamp(),seq:++tuneSeq};activeTune=row;push({type:'tune-start',channel:row.channel,seq:row.seq});
         var result;try{result=baseTune.apply(this,arguments);}catch(error){push({type:'tune-error',channel:row.channel,error:String(error&&error.message||error)});throw error;}
-        return Promise.resolve(result).then(function(value){row.ms=Math.max(0,stamp()-row.at);var depth=queueDepth();push({type:'tune-complete',channel:row.channel,ms:row.ms,queueDepth:depth});if(Number.isFinite(depth))push({type:'queue-sample',channel:row.channel,depth:depth,reason:'tune-complete'});return value;},function(error){row.ms=Math.max(0,stamp()-row.at);push({type:'tune-failed',channel:row.channel,ms:row.ms,error:String(error&&error.message||error)});throw error;});
+        return Promise.resolve(result).then(function(value){if(activeTune!==row)return value;row.ms=Math.max(0,stamp()-row.at);var depth=queueDepth();push({type:'tune-complete',channel:row.channel,ms:row.ms,queueDepth:depth});if(Number.isFinite(depth))push({type:'queue-sample',channel:row.channel,depth:depth,reason:'tune-complete'});return value;},function(error){if(activeTune===row){row.ms=Math.max(0,stamp()-row.at);push({type:'tune-failed',channel:row.channel,ms:row.ms,error:String(error&&error.message||error)});}throw error;});
       };
     }
     var observer=new MutationObserver(function(records){records.forEach(function(record){Array.prototype.forEach.call(record.addedNodes||[],function(n){if(n.nodeType!==1)return;if(n.matches&&n.matches('video,audio,iframe'))observeMedia(n);if(n.querySelectorAll)Array.prototype.forEach.call(n.querySelectorAll('video,audio,iframe'),observeMedia);});});});

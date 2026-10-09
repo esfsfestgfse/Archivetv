@@ -21,6 +21,8 @@ on:
       - 'assets/ok-embed-runtime.js'
       - 'ia_canonical_station.mjs'
       - 'ia_file_contract.js'
+      - 'ia_durable_state.js'
+      - 'assets/ia-playback-shelf.js'
       - 'ia_canonical_pilot_manifest.js'
       - 'source_suite_profile_registry.js'
       - 'wrangler.api.jsonc'
@@ -67,8 +69,16 @@ jobs:
         run: node --test scripts/test-ia-audit-integrity.js
       - name: Test IA selected-file qualification and transport
         run: node --test scripts/test-ia-file-qualification.js
-        - name: Test resumable IA search and episode discovery
-          run: node --test scripts/test-ia-resumable-discovery.js
+      - name: Test resumable IA search and episode discovery
+        run: node --test scripts/test-ia-resumable-discovery.js
+      - name: Test one IA playback order and post-start recovery
+        run: node --test scripts/test-ia-playback-order.js
+      - name: Validate IA review regressions and durable catalog ownership
+        run: |
+          node --test scripts/test-ia-review-regressions.js
+          node --test scripts/test-ia-durable-owner.js
+          node --test scripts/test-ia-telemetry-correlation.js
+          node --test scripts/test-ia-certification-readiness.js
       - name: Test delayed live-data callbacks across channel changes
         run: node scripts/test-live-data-lifecycle.js
       - name: Guard guide row stability during background queue warming

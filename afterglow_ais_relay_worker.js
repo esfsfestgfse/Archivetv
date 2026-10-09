@@ -5305,7 +5305,15 @@ function cacheableJson(body, ttlSeconds, extraHeaders = {}) {
 /* Cache API is extremely fast but local to the serving edge.  The dial needs a
    second, shared shelf so a ready program found on one device is immediately
    useful to another device (or after the viewer moves between networks). */
+async function iaOwnedState(env, key, kind, payload) {
+  const stub = env.IA_STATE_OWNER.getByName("ia-state:" + key);
+  const response = await stub.fetch(new Request("https://ia-state.internal", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ mode: "ia-state", kind, read: payload === undefined, payload }) }));
+  if (!response.ok) throw new Error("IA durable state " + response.status);
+  return response.json();
+}
+
 async function sharedQueueGet(env, key) {
+  if (env?.IA_STATE_OWNER && /file-1(?::|%3A)/i.test(key)) return iaOwnedState(env, key, key.includes("freshness:") ? "ledger" : key.startsWith("ia:discovery:") ? "discovery" : "catalog");
   if (!env || !env.REALSIGNAL_QUEUE) return null;
   let timer;
   try {
@@ -5448,7 +5456,8 @@ function sharedQueuePut(env, key, payload, ttlSeconds, ctx) {
      write a 5–31 item verified catalog forces every later rotation to repeat
      the same Archive search page. Persist the usable shelf immediately, then
      let the background expansion grow it toward the freshness floor. */
-  const fullShelf = Number(payload.ready || payload.items.length) >= 5 && playableCandidateCount >= 5;
+  const required = ctx?.iaRepair ? 1 : 5;
+  const fullShelf = Number(payload.ready || payload.items.length) >= required && playableCandidateCount >= required;
   const writes = [env.REALSIGNAL_QUEUE.put(key, JSON.stringify(payload), options)];
   /* Preserve the last complete five-show shelf. A one-item first-frame handoff
      may live briefly at its exact rotation key, but must never replace the
@@ -5464,6 +5473,11 @@ function sharedQueuePut(env, key, payload, ttlSeconds, ctx) {
       candidates: memoryCandidates.length,
     });
     writes.push((async () => {
+      if (ctx?.iaRepair && env.IA_STATE_OWNER) {
+        const stored = await iaOwnedState(env, fallbackKey, "catalog", payload);
+        iaLastGoodMemoryPut(fallbackKey, stored);
+        return env.REALSIGNAL_QUEUE.put(fallbackKey, JSON.stringify(stored), options);
+      }
       let previous = null;
       try { previous = await env.REALSIGNAL_QUEUE.get(fallbackKey, { type: "json" }); } catch {}
        /* Persist the full approved catalog as well as the verified fallback
@@ -5495,7 +5509,7 @@ function sharedQueuePut(env, key, payload, ttlSeconds, ctx) {
 
 async function mergeIaLastGoodCatalog(payload, lastGoodKey, env) {
   if (!payload || !lastGoodKey || !env || !env.REALSIGNAL_QUEUE) return payload;
-  const previous = iaLastGoodMemoryGet(lastGoodKey) || await sharedQueueGet(env, lastGoodKey);
+  const previous = env.IA_STATE_OWNER && /file-1(?::|%3A)/i.test(lastGoodKey) ? await sharedQueueGet(env, lastGoodKey) : iaLastGoodMemoryGet(lastGoodKey) || await sharedQueueGet(env, lastGoodKey);
   if (!previous) return { ...payload, lastGoodKey };
   const merged = mergeIaCatalogCandidates(previous, payload, { preserveOrder: true });
   return {
@@ -7242,7 +7256,7 @@ async function expandArchiveContainer(doc, cacheOrigin, ctx, rotation = 0, salt 
     const progress = progressive ? (ctx.iaDiscovery.parents[doc.identifier] || { offset: 0 }) : null;
     const ordered = progressive ? [...byEpisode.values()].sort((a, b) => String(a.name).localeCompare(String(b.name), undefined, { numeric: true })) : rotatedPlayable;
     const playable = progressive ? ordered.slice(progress.offset || 0, (progress.offset || 0) + IA_BACKGROUND_COLLECTION_EPISODES_PER_PARENT) : sampleArchiveSequence(rotatedPlayable, IA_MAX_EXPANDED_FILES);
-    if (progressive) ctx.iaDiscovery.parents[doc.identifier] = { offset: (progress.offset || 0) + playable.length, total: ordered.length, complete: (progress.offset || 0) + playable.length >= ordered.length, updatedAt: Date.now() };
+    if (progressive) ctx.iaDiscovery.parents[doc.identifier] = { generation: Number(progress.generation) || 0, offset: (progress.offset || 0) + playable.length, total: ordered.length, complete: (progress.offset || 0) + playable.length >= ordered.length, updatedAt: Date.now() };
     const md = payload.metadata || {};
     const base = String(doc.title || doc.identifier).replace(/\s+/g, " ").trim();
     return playable.map((file) => {
@@ -7465,7 +7479,7 @@ async function loadIaFreshnessLedger(env, channel) {
   if (!env || !env.REALSIGNAL_QUEUE || !channel) return [];
   const key = iaFreshnessLedgerKey(channel);
   const local = iaFreshnessMemory.get(key);
-  if (local && local.expiresAt > Date.now()) return local.items;
+  if (local && local.expiresAt > Date.now() && !(env.IA_STATE_OWNER && String(channel).startsWith("file-1:"))) return local.items;
   if (local) iaFreshnessMemory.delete(key);
   try {
     const payload = await sharedQueueGet(env, key);
@@ -7753,6 +7767,12 @@ function rememberIaFreshness(env, channel, records, ctx) {
   iaFreshnessMemory.set(key, { items: optimistic, expiresAt: Date.now() + IA_FRESHNESS_MEMORY_TTL_MS });
   const work = (async () => {
     try {
+      if (env.IA_STATE_OWNER && String(channel).startsWith("file-1:")) {
+        const stored = await iaOwnedState(env, key, "ledger", { channel: String(channel), items: incoming, updatedAt: Date.now() });
+        iaFreshnessMemory.set(key, { items: stored.items, expiresAt: Date.now() + IA_FRESHNESS_MEMORY_TTL_MS });
+        await env.REALSIGNAL_QUEUE.put(key, JSON.stringify(stored), { expirationTtl: IA_FRESHNESS_LEDGER_TTL_SECONDS });
+        return;
+      }
       /* Re-read immediately before writing so two devices that tune the same
          channel close together merge their issued shelves instead of one
          request erasing the other request's history. */
@@ -7778,7 +7798,7 @@ async function recordIaPlayed(request, env, ctx) {
   try { body = await request.json(); } catch { return json({ error: "played payload must be JSON" }, 400); }
   const channel = String(body && body.channel || "").trim();
   const id = String(body && (body.id || body.identifier) || "").trim();
-  if (!safeChannel(channel) || !id || id.length > 240 || /[\r\n]/.test(id)) {
+  if (!safeChannel(channel) || !id || id.length > 500 || /[\r\n]/.test(id)) {
     return json({ error: "invalid played record" }, 400);
   }
   /* This endpoint is deliberately tiny: it never searches Archive and never
@@ -7794,7 +7814,7 @@ async function recordIaPlayed(request, env, ctx) {
     lane: cleanText(body && body.lane, 24),
     seriesId: cleanText(body && body.seriesId, 160),
   });
-  rememberIaFreshness(env, channel, [{ ...played, __played: true }], ctx);
+  rememberIaFreshness(env, body.iaRepair === true ? "file-1:" + channel : channel, [{ ...played, __played: true }], ctx);
   return json({ ok: true, channel, id, freshness: "played-only" }, 202);
 }
 
@@ -8609,16 +8629,94 @@ function rotateUnderfillDepthBank(payload, channel, rotation, count, themeTerms,
   };
 }
 
+const iaVerifiedTransports = new Map();
+/* Canary-only full-length collection rails. Starters are metadata evidence,
+   not verified transports; every file still passes the live admission probe.
+   Parents remain discoverable so these are not permanent nine-video lists. */
+const IA_REPAIR_COLLECTION_PARENTS = Object.freeze({
+  "150": [
+    { identifier: "the-flintstones-season-2-d-3", title: "The Flintstones · Classic Cartoon Episodes", year: 1961,
+      files: [["THE_FLINTSTONES_SEASON2_D33.mp4", 1505.77, 640, 480], ["THE_FLINTSTONES_SEASON2_D34.mp4", 1505.32, 640, 480], ["THE_FLINTSTONES_SEASON2_D35.mp4", 1504.43, 640, 480]] },
+    { identifier: "20240727_20240727_0523", title: "The Scooby Doo Show · Classic Cartoon Episodes", year: 1976, language: "eng",
+      files: [["01 High Rise Hair Raiser.mp4", 1460.86, 720, 480], ["02 The Fiesta Host Is An Aztec Ghost.mp4", 1451.69, 720, 480], ["03 The Gruesome Game Of The Gator Goul.mp4", 1454.86, 720, 480]] },
+    { identifier: "the-jetsons-episode-3-jetsons-nite-out-watch-cartoons-onl", title: "The Jetsons · Classic Cartoon Episodes", year: 1962,
+      files: [["The Jetsons Episode 1 - Rosey the Robot.mp4", 1543.79, 448, 336], ["The Jetsons Episode 10 - Uniblab.mp4", 1540.04, 416, 304], ["The Jetsons Episode 11 - A Visit from Grandpa.mp4", 1541.57, 416, 304]] },
+  ],
+});
+function iaRepairCollectionSeeds(channel) {
+  const parents = IA_REPAIR_COLLECTION_PARENTS[String(channel)] || [], rows = [];
+  for (const parent of parents) {
+    const base = { identifier: parent.identifier, sourceIdentifier: parent.identifier, title: parent.title, seriesId: parent.identifier,
+      year: parent.year, language: parent.language || "", subject: "classic cartoons animated series classic animation", genreVerified: true };
+    rows.push(base);
+  }
+  // Interleave shows even before the per-session family balancer runs.
+  for (let i = 0; i < 3; i++) for (const parent of parents) {
+    const [fileName, runtime, width, height] = parent.files[i];
+    rows.push({ identifier: parent.identifier + "::" + fileName, sourceIdentifier: parent.identifier, fileName,
+      title: parent.title + " · " + fileName.replace(/\.mp4$/, ""), seriesId: parent.identifier, year: parent.year,
+      language: parent.language || "", subject: "classic cartoons animated series classic animation", genreVerified: true,
+      media: { type: "video", url: "https://archive.org/download/" + encodeURIComponent(parent.identifier) + "/" + encodeURIComponent(fileName),
+        sourceIdentifier: parent.identifier, fileName, runtime, width, height, metadataVerifiedAt: Date.now(), sourceUrl: "https://archive.org/details/" + parent.identifier } });
+  }
+  return rows;
+}
 async function verifyIaTransport(media) {
   if (!media || !media.url) return null;
-  if (media.verification === "transport" && Number(media.verifiedAt) > Date.now() - 86400000) return media;
-  try {
-    const response = await timedFetch(media.url, { headers: { Range: "bytes=0-0" } }, 2800);
-    const contentType = String(response.headers.get("content-type") || "");
-    const accepted = (response.status === 200 || response.status === 206) && /^(?:video|audio)\/|application\/ogg/i.test(contentType);
-    if (response.body) await response.body.cancel();
-    return accepted ? { ...media, verifiedAt: Date.now(), verification: "transport" } : null;
-  } catch (_) { return null; }
+  const memo = iaVerifiedTransports.get(media.url), now = Date.now();
+  if (media.verification === "transport" && Number(media.verifiedAt) > now - 86400000 && Number(media.verifiedAt) <= now + 60000) return media;
+  if (memo && memo.verifiedAt > now - 86400000) return { ...media, ...memo };
+  // These alternate origins resolve the same exact file, not another episode.
+  const urls = Array.from(new Set([media.url, ...(media.alts || [])])).slice(0, 3);
+  for (const url of urls) {
+    try {
+      const response = await timedFetch(url, { headers: { Range: "bytes=0-0" } }, 2800);
+      const contentType = String(response.headers.get("content-type") || "");
+      let resolvedUrl = url;
+      let sameFile = true;
+      if (response.url) {
+        try {
+          const resolved = new URL(response.url), requested = new URL(url);
+          const path = decodeURIComponent(requested.pathname);
+          const marker = path.includes('/download/') ? '/download/' : '/items/';
+          const exactFile = media.sourceIdentifier && media.fileName ? media.sourceIdentifier + '/' + media.fileName : path.split(marker)[1];
+          sameFile = resolved.protocol === 'https:' && /^(?:[a-z0-9-]+\.)*archive\.org$/i.test(resolved.hostname) &&
+            !!exactFile && decodeURIComponent(resolved.pathname).endsWith('/' + exactFile);
+          if (sameFile) resolvedUrl = response.url;
+        } catch (_) { sameFile = false; }
+      }
+      const accepted = sameFile && (response.status === 200 || response.status === 206) && /^(?:video|audio)\/|application\/ogg/i.test(contentType);
+      if (response.body) await response.body.cancel();
+      if (accepted) {
+        const result = { ...media, url: resolvedUrl, alts: urls.filter(value => value !== resolvedUrl), verifiedAt: Date.now(), verification: "transport" };
+        iaVerifiedTransports.set(media.url, { url: result.url, alts: result.alts, verifiedAt: result.verifiedAt, verification: "transport" });
+        if (iaVerifiedTransports.size > 2048) iaVerifiedTransports.delete(iaVerifiedTransports.keys().next().value);
+        return result;
+      }
+    } catch (_) { /* bounded alternate-origin recovery */ }
+  }
+  return null;
+}
+
+async function qualifyIaQueueResponse(response, body, cacheOrigin, ctx) {
+  if (!response.ok || !body || body.iaRepair !== true) return response;
+  const payload = await response.clone().json();
+  const requested = Math.max(1, Math.min(5, Number(body.count) || 3));
+  const mediaTypes = safeMediaTypes(body.mediaTypes);
+  const strictContext = { iaRepair: true, waitUntil: promise => ctx && ctx.waitUntil ? ctx.waitUntil(promise) : promise };
+  const identity = item => iaFreshnessRecord(typeof item === "string" ? { identifier: item } : item)?.id || "";
+  const excluded = new Set((Array.isArray(body.hydrationExcludeIds) ? body.hydrationExcludeIds.slice(-1024) : []).map(identity));
+  const preferred = new Set((Array.isArray(body.hydrationPreferredIds) ? body.hydrationPreferredIds.slice(0, 5) : []).map(identity));
+  const repairEpisodes = iaRepairCollectionSeeds(body.channel).filter(item => item.media);
+  const candidates = mergeIaCatalogCandidates({ candidateItems: repairEpisodes }, { candidateItems: payload.candidateItems?.length ? payload.candidateItems : payload.items || [] }, { preserveOrder: true }).filter(item => !excluded.has(identity(item)));
+  const ordered = candidates.filter(item => preferred.has(identity(item))).concat(candidates.filter(item => !preferred.has(identity(item))));
+  const qualified = await hydrateIaQueue({ ...payload,
+    candidateItems: ordered,
+    minRuntimeSeconds: iaEffectiveVideoMinRuntimeSeconds(String(body.channel), mediaTypes, Number(body.minRuntimeSeconds) || 0),
+  }, requested, cacheOrigin, strictContext, mediaTypes);
+  const headers = new Headers(response.headers);
+  headers.set("X-Afterglow-Queue-Ready", String(qualified.ready));
+  return new Response(JSON.stringify(qualified), { status: response.status, headers });
 }
 
 async function hydrateIaQueue(payload, requestedCount, cacheOrigin, ctx, mediaTypes, onReady, concurrency = 5) {
@@ -8722,7 +8820,13 @@ async function expandSeedArchiveContainers(payload, cacheOrigin, ctx, channel, t
   if (ctx && ctx.iaRepair && ctx.iaDiscovery) {
     const state = ctx.iaDiscovery;
     const offset = Math.max(0, Number(state.parentCursor) || 0) % Math.max(1, parents.length);
-    const pending = parents.slice(offset).concat(parents.slice(0, offset)).filter(parent => !state.parents[String(parent.sourceIdentifier || parent.identifier).split("::")[0]]?.complete);
+    const pending = parents.slice(offset).concat(parents.slice(0, offset)).filter(parent => {
+      const id = String(parent.sourceIdentifier || parent.identifier).split("::")[0], previous = state.parents[id];
+      if (!previous?.complete) return true;
+      if (Date.now() - Number(previous.updatedAt || 0) < 86400_000) return false;
+      state.parents[id] = { offset: 0, generation: (Number(previous.generation) || 0) + 1, updatedAt: Date.now() };
+      return true;
+    });
     parents.splice(0, parents.length, ...pending.slice(0, parentLimit));
     state.parentCursor = offset + parentLimit;
   } else parents.splice(parentLimit);
@@ -8804,7 +8908,7 @@ function mergeIaDiscoveryState(previous, incoming) {
   }
   for (const key of Object.keys(next.parents).slice(0, 4096)) {
     const old = merged.parents[key], value = next.parents[key];
-    if (!old || Number(value.offset || 0) >= Number(old.offset || 0)) merged.parents[key] = value;
+    if (!old || Number(value.generation || 0) > Number(old.generation || 0) || Number(value.generation || 0) === Number(old.generation || 0) && Number(value.offset || 0) >= Number(old.offset || 0)) merged.parents[key] = value;
   }
   merged.updatedAt = Math.max(merged.updatedAt, next.updatedAt);
   return merged;
@@ -8812,6 +8916,11 @@ function mergeIaDiscoveryState(previous, incoming) {
 
 async function checkpointIaDiscovery(env, key, state) {
   if (!env || !env.REALSIGNAL_QUEUE || !key) return;
+  if (env.IA_STATE_OWNER && key.includes("file-1:")) {
+    const stored = await iaOwnedState(env, key, "discovery", state);
+    await env.REALSIGNAL_QUEUE.put(key, JSON.stringify(stored), { expirationTtl: 30 * 86400 });
+    return;
+  }
   const previous = await env.REALSIGNAL_QUEUE.get(key, "json");
   await env.REALSIGNAL_QUEUE.put(key, JSON.stringify(mergeIaDiscoveryState(previous || {}, state)), { expirationTtl: 30 * 86400 });
 }
@@ -8926,8 +9035,8 @@ async function expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, c
   const backgroundMode = Boolean(ctx && ctx.isIaBackground);
   let discoveryKey = "";
   if (backgroundMode && ctx.iaRepair) {
-    discoveryKey = "ia:discovery:v1:" + await stableKey(String(payload && payload.lastGoodKey || sharedKey || channel));
-    const durable = env && env.REALSIGNAL_QUEUE ? await env.REALSIGNAL_QUEUE.get(discoveryKey, "json") : null;
+    discoveryKey = "ia:discovery:v1:file-1:" + await stableKey(String(payload && payload.lastGoodKey || sharedKey || channel));
+    const durable = await sharedQueueGet(env, discoveryKey);
     ctx.iaDiscovery = mergeIaDiscoveryState(durable || {}, payload && payload.discoveryState || {});
   }
   const minRuntimeSeconds = safeMinRuntimeSeconds(payload && payload.minRuntimeSeconds);
@@ -8947,7 +9056,7 @@ async function expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, c
   /* A warm five-item shelf may have bypassed the cold emergency branch. Add
      the channel's verified recovery records to the background catalog before
      probing broader Archive rails, so stale caches can deepen immediately. */
-  const emergencySeeds = orderedIaEmergencySeeds(channel, rotation).filter((item) => iaRuntimeAllowed(item, minRuntimeSeconds));
+  const emergencySeeds = (ctx && ctx.iaRepair ? iaRepairCollectionSeeds(channel) : []).concat(orderedIaEmergencySeeds(channel, rotation)).filter((item) => iaRuntimeAllowed(item, minRuntimeSeconds));
   if (emergencySeeds.length && iaNeedsCatalogDepth(expanded, count, candidateCount)) {
     expanded = mergeIaQueuePayload(expanded, { items: emergencySeeds, candidateItems: emergencySeeds }, candidateCount, { emergencySeedsMerged: true });
   }
@@ -9261,10 +9370,10 @@ async function getIaQueue(request, url, env, ctx) {
   const digest = await stableKey(fingerprint);
   const cacheKey = new Request(url.origin + IA_PREFIX + "/cache/queue/" + IA_QUEUE_CACHE_VERSION + "/" + digest);
   const sharedKey = IA_QUEUE_KV_PREFIX + IA_QUEUE_CACHE_VERSION + ":" + digest;
-  const lastGoodKey = sharedQueueFallbackKey(lastGoodDigest);
+  const lastGoodKey = sharedQueueFallbackKey((body.iaRepair === true ? "file-1:" : "") + lastGoodDigest);
   /* Read the durable ledger in parallel with the normal cache path. KV is a
      small control-plane read; it must never become a second Archive search. */
-  const freshnessLedgerPromise = loadIaFreshnessLedger(env, channel);
+  const freshnessLedgerPromise = loadIaFreshnessLedger(env, body.iaRepair === true ? "file-1:" + channel : channel);
   const edgeCache = caches.default;
   const edgeCachePromise = edgeCache.match(cacheKey);
   const freshnessLedger = await freshnessLedgerPromise;
@@ -10443,7 +10552,8 @@ export default {
     }
 
     if (request.method === "POST" && (url.pathname === IA_QUEUE_PATH || url.pathname === IA_PROGRAM_PATH)) {
-      return getIaQueue(request, url, env, ctx);
+      const body = await request.clone().json().catch(() => null);
+      return qualifyIaQueueResponse(await getIaQueue(request, url, env, ctx), body, url.origin, ctx);
     }
 
     // Anything other than a WebSocket upgrade gets a useful health response.

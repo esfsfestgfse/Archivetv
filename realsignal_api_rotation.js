@@ -1,5 +1,7 @@
 /* Per-session rotation state for the Version 2 API. A session+channel is the
  * coordination atom; one viewer's Next action cannot consume another's. */
+import { normalizeIaFileRecord, qualifyIaFileRecord } from './ia_file_contract.js';
+import { handleIaOwnedState, readIaChunkedState, writeIaChunkedState } from './ia_durable_state.js';
 
 /* Keep enough verified candidates in the session shelf that a fresh tune is
  * not forced back onto the same five rows. The public player still receives a
@@ -63,6 +65,23 @@ function familyId(item) {
   return String(item.seriesId || item.seriesTitle || item.family || item.sourceIdentifier || itemId(item).split("::")[0]);
 }
 
+function episodeKey(item) {
+  return normalizeIaFileRecord(typeof item === 'string' ? { identifier: item } : item).logicalId;
+}
+
+function reservationCatalog(existing, incoming, seen) {
+  const rows = mergeCatalog(existing, incoming, seen, MAX_RESERVATION_ITEMS), positions = new Map(), result = [];
+  for (const item of rows) {
+    const key = episodeKey(item);
+    if (positions.has(key)) {
+      // Keep one complete encoding record; never graft another file's identity onto its URL.
+      const index = positions.get(key);
+      if (Number(item.media && item.media.verifiedAt) > Number(result[index].media && result[index].media.verifiedAt)) result[index] = item;
+    } else { positions.set(key, result.length); result.push(item); }
+  }
+  return result;
+}
+
 /* Apply editorial balance to the small shelf, never to the stored inventory.
    A sparse family pool may relax the cap only after all other families get a
    turn; the result explicitly reports that constrained condition. */
@@ -87,13 +106,14 @@ export class SessionRotation {
   constructor(ctx, env) { this.ctx = ctx; this.env = env; }
 
   async state(limit = MAX_ITEMS) {
-    const value = await this.ctx.storage.get("rotation");
+    const value = (limit === MAX_RESERVATION_ITEMS && await readIaChunkedState(this.ctx.storage, 'ia-reservation')) || await this.ctx.storage.get("rotation");
     if (!value || typeof value !== "object") return { version: 2, catalog: [], seen: [], cursor: 0, updatedAt: 0 };
     return {
       version: 2,
       catalog: cleanItems(value.catalog, limit),
       seen: Array.isArray(value.seen) ? value.seen.filter(Boolean).slice(-MAX_SEEN) : [],
       cursor: Number(value.cursor) || 0,
+      cycleGeneration: Number(value.cycleGeneration) || 0,
       updatedAt: Number(value.updatedAt) || 0,
       reserved: Array.isArray(value.reserved) ? value.reserved.slice(0, 5) : [],
       cooldowns: value.cooldowns && typeof value.cooldowns === "object" ? value.cooldowns : {},
@@ -106,7 +126,11 @@ export class SessionRotation {
     let body;
     try { body = await request.json(); } catch (_) { return Response.json({ error: "invalid rotation payload" }, { status: 400 }); }
     if (!body || typeof body !== "object" || Array.isArray(body)) return Response.json({ error: "invalid rotation payload" }, { status: 400 });
-    if (["reserve", "commit", "release", "peek"].includes(body.mode)) return this.reservation(body);
+    if (body.mode === 'ia-state') return handleIaOwnedState(this.ctx, body);
+    if (["reserve", "commit", "release", "peek"].includes(body.mode)) {
+      const run = () => this.reservation(body);
+      return this.ctx.blockConcurrencyWhile ? this.ctx.blockConcurrencyWhile(run) : run();
+    }
     const rawCandidates = cleanItems(body && body.items);
     const recent = new Set((Array.isArray(body && body.recentIds) ? body.recentIds : [])
       .map((value) => String(value || "").trim().slice(0, 500))
@@ -176,45 +200,58 @@ export class SessionRotation {
 
   async reservation(body) {
     const current = await this.state(MAX_RESERVATION_ITEMS);
-    const catalog = mergeCatalog(current.catalog, cleanItems(body.items, MAX_RESERVATION_ITEMS), current.seen, MAX_RESERVATION_ITEMS);
+    const rejected = new Set((body.rejectedIds || []).map(episodeKey));
+    const qualified = item => !rejected.has(episodeKey(item)) && (!body.rules || qualifyIaFileRecord(item, body.rules).accepted);
+    const catalog = reservationCatalog(current.catalog.filter(qualified), cleanItems(body.items, MAX_RESERVATION_ITEMS).filter(qualified), current.seen);
     const ids = new Set(catalog.map(itemId)), now = Date.now();
     const seen = new Set(current.seen);
-    const cooldowns = Object.fromEntries(Object.entries(current.cooldowns || {}).filter(([, until]) => Number(until) > now));
-    let reserved = (current.reserved || []).filter(id => ids.has(id) && !seen.has(id) && !cooldowns[id]);
-    const id = String(body.id || "").trim().slice(0, 500);
+    let seenEpisodes = new Set(current.seen.map(episodeKey));
+    const hasSeen = id => seenEpisodes.has(episodeKey(id));
+    const cooldowns = Object.fromEntries(Object.entries(current.cooldowns || {}).filter(([, until]) => Number(until) > now).map(([id, until]) => [episodeKey(id), until]));
+    let reserved = (current.reserved || []).map(id => catalog.find(item => episodeKey(item) === episodeKey(id))).filter(Boolean).map(itemId)
+      .filter(id => ids.has(id) && episodeKey(id) !== episodeKey(current.playing) && !hasSeen(id) && !cooldowns[episodeKey(id)]);
+    const requestedId = String(body.id || "").trim().slice(0, 500);
+    const id = catalog.find(item => episodeKey(item) === episodeKey(requestedId))?.identifier || requestedId;
+    let committed = false;
     if (body.mode === "commit" || body.mode === "release") {
       if (!id || !ids.has(id)) return Response.json({ error: "unknown program identity" }, { status: 400 });
       reserved = reserved.filter(value => value !== id);
       if (body.mode === "commit") {
+        committed = !hasSeen(id);
         seen.add(id);
+        seenEpisodes.add(episodeKey(id));
         current.playing = body.event === "completed" || body.event === "skipped" ? "" : id;
       } else {
-        cooldowns[id] = now + 5 * 60_000;
+        cooldowns[episodeKey(id)] = now + 5 * 60_000;
         if (current.playing === id) current.playing = "";
       }
     }
     const count = Math.max(1, Math.min(5, Number(body.count) || 3));
-    const recent = new Set(Array.isArray(body.recentIds) ? body.recentIds : []);
-    const eligible = catalog.filter(item => !cooldowns[itemId(item)]);
-    let fresh = eligible.filter(item => !seen.has(itemId(item)));
+    const recent = new Set((Array.isArray(body.recentIds) ? body.recentIds : []).map(episodeKey));
+    const eligible = catalog.filter(item => episodeKey(item) !== episodeKey(current.playing) && !cooldowns[episodeKey(item)]);
+    let fresh = eligible.filter(item => !hasSeen(itemId(item)));
     const cycleReset = body.mode === "reserve" && !fresh.length && eligible.length > 0;
-    if (cycleReset) { seen.clear(); fresh = eligible; reserved = []; }
+    const cycleGeneration = (current.cycleGeneration || 0) + (cycleReset ? 1 : 0);
+    if (cycleReset) { seen.clear(); seenEpisodes.clear(); fresh = eligible; reserved = []; }
     const selected = reserved.map(id => catalog.find(item => itemId(item) === id)).filter(Boolean);
     let relaxed = false;
     if (body.mode === "reserve") {
       const offset = current.cursor || Number(body.rotation) || 0;
-      relaxed = appendBalanced(selected, rotate(fresh.filter(item => !recent.has(itemId(item))), offset), count, body.diversity);
-      if (selected.length < count) relaxed = appendBalanced(selected, rotate(fresh.filter(item => recent.has(itemId(item))), offset), count, body.diversity) || relaxed;
+      relaxed = appendBalanced(selected, rotate(fresh.filter(item => !recent.has(episodeKey(item))), offset), count, body.diversity);
+      if (selected.length < count) relaxed = appendBalanced(selected, rotate(fresh.filter(item => recent.has(episodeKey(item))), offset), count, body.diversity) || relaxed;
       reserved = selected.map(itemId);
     }
     const next = { version: 3, catalog, seen: [...seen].slice(-MAX_RESERVATION_ITEMS), reserved,
-      cooldowns, playing: current.playing || "", cursor: current.cursor + (body.mode === "commit" && !current.seen.includes(id) ? 1 : 0), updatedAt: now };
-    if (body.mode !== "peek") await this.ctx.storage.put("rotation", next);
-    const unseen = catalog.filter(item => !seen.has(itemId(item))).length;
-    return Response.json({ items: selected.slice(0, count), catalog, cursor: next.cursor, cycleReset,
-      seen: seen.size, reserved: reserved.length, playing: next.playing, catalogSize: catalog.length,
+      cooldowns, playing: current.playing || "", cursor: current.cursor + (committed ? 1 : 0), cycleGeneration, updatedAt: now };
+    if (body.mode !== "peek") {
+      const write = storage => writeIaChunkedState(storage, 'ia-reservation', next);
+      await this.ctx.storage.transaction(write);
+    }
+    const unseen = catalog.filter(item => !hasSeen(itemId(item))).length;
+    return Response.json({ items: selected.slice(0, count), catalog, cursor: next.cursor, cycleReset, cycleGeneration,
+      seen: seen.size, seenIds: next.seen, cooldownIds: Object.keys(cooldowns), reservationIds: reserved, reserved: reserved.length, playing: next.playing, catalogSize: catalog.length,
       catalogAdded: Math.max(0, catalog.length - current.catalog.length), unseen,
-      diversityRelaxed: relaxed, selectionRepeatIds: [],
+      diversityRelaxed: relaxed, committed, selectionRepeatIds: [],
       exhaustion: { catalogSize: catalog.length, seenInCatalog: catalog.length - unseen,
         unseenBeforeSelection: fresh.length, unseenAfterSelection: unseen,
         catalogExhausted: cycleReset, cycleReset, repeatAllowed: cycleReset } });

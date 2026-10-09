@@ -2389,6 +2389,19 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "match": ["television", "sitcom", "comedy", "episode", "series"],
     "deny": ["shorts", "vertical", "trailer", "teaser", "clip", "recap", "review", "reaction", "podcast", "how to", "tutorial", "fan film", "fan-made", "parody", "gameplay", "interview", "stand-up", "stand up", "dean martin", "doc martin", "steve martin", "martin scorsese"]
   },
+  "ok-soul-flow-channel": {
+    "name": "OK Soul & Flow",
+    "queryLimit": 32,
+    "queryWindow": 4,
+    "providers": ["ok-search", "ok-manifest"],
+    "intent": "music",
+    "serverOnly": true,
+    "minRuntimeSeconds": 120,
+    "deepCatalog": true,
+    "queries": ["Janet Jackson music video", "Whitney Houston music video", "TLC music video", "Aaliyah music video"],
+    "match": ["music video", "r&b", "soul", "hip hop"],
+    "deny": ["lyrics", "concert", "podcast", "fan edit", "reaction", "audio only"]
+  },
   "vimeo-movie-channel": {
     "name": "Vimeo Movie Channel",
     "queryLimit": 24,

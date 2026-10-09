@@ -220,6 +220,7 @@ export function okEpisodeIdentity(title) {
 }
 
 export function okPlaybackIdentity(item, kind = "tv") {
+  if (item.musicVerified && item.identityReference) return item.identityReference;
   const series = item.seriesId || item.seriesTitle || okProgramName(item.title, kind).toLowerCase();
   const episode = okEpisodeIdentity(item.title) || item.episodeIdentity;
   return kind === "tv" && episode ? `${series}:${episode}`
@@ -234,7 +235,7 @@ export function okBalancedCandidates(pages, kind, maximum = 36) {
       const item = page[index];
       if (!item || seen.has(item.id)) continue;
       seen.add(item.id);
-      const name = kind === "tv" && item.seriesId ? item.seriesId : okProgramName(item.title, kind).toLowerCase();
+      const name = item.musicArtistId || (kind === "tv" && item.seriesId ? item.seriesId : okProgramName(item.title, kind).toLowerCase());
       const identity = kind === "movie" ? `${name}:${String(item.title).match(/\b(?:19|20)\d{2}\b/)?.[0] || ""}` : okPlaybackIdentity(item, kind);
       if (seen.has(`program:${identity}`)) continue;
       seen.add(`program:${identity}`);

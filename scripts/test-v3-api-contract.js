@@ -34,7 +34,7 @@ const { pathToFileURL } = require('node:url');
   assert.equal(health.status, 200);
   const healthBody = await health.json();
   assert.equal(healthBody.apiVersion, 'v3');
-  assert.equal(healthBody.release, '5.5.79-ok-curated-tv');
+  assert.equal(healthBody.release, '5.5.80-ok-soul-flow');
   assert.ok(healthBody.capabilities.includes('server-telemetry'));
   assert.ok(healthBody.capabilities.includes('verified-guide'));
   assert.ok(healthBody.capabilities.includes('edge-manifests'));

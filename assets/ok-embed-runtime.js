@@ -13,6 +13,27 @@
     if (!profile || String(profile.profileKey || "").indexOf("ok-") !== 0) return true;
     if (!item) return false;
     var title = String(item.title || ""), lower = title.toLowerCase();
+    if (profile.profileKey === "ok-soul-flow-channel") {
+      var clean = function (value) { return String(value || "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]/g, ""); };
+      var artist = String(item.musicArtist || ""), input = title.trim();
+      var song = artist && clean(input.slice(0,artist.length)) === clean(artist) && /^[\s\-–—_:,.]+/.test(input.slice(artist.length))
+        ? input.slice(artist.length).replace(/^[\s\-–—_:,.]+/, "")
+          .replace(/\([^)]*(?:official|music video|remaster|\b(?:19|20)\d{2}\b|\b(?:hd|hq|4k|1080p|720p)\b)[^)]*\)/gi, "")
+          .replace(/\[[^\]]*\]/g, "")
+          .replace(/\b(?:official(?: music)? video|music video|official|remastered|hd|hq|4k|1080p|720p)\b.*$/i, "")
+          .replace(/\b(?:feat\.?|ft\.?)\s+.*$/i, "")
+          .replace(/["“”]/g, "").replace(/\s*\((?:\d+)\)\s*$/, "").replace(/[\s\-_:,]+$/, "").trim() : "";
+      var mbid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
+      return item.musicVerified === true && item.musicVerificationVersion === 2
+        && item.musicReleaseYear >= 1980 && item.musicReleaseYear <= 2009
+        && mbid.test(String(item.musicArtistId || "")) && mbid.test(String(item.musicRecordingId || ""))
+        && item.identityReference === "https://musicbrainz.org/recording/" + item.musicRecordingId
+        && !!item.id && !!song && song.length <= 160 && clean(artist) + ":" + clean(song) === item.musicTrackKey
+        && item.embedAllowed === true && /^https:\/\/ok\.ru\/videoembed\/\d+(?:[?#]|$)/.test(String(item.embedUrl || item.url || ""))
+        && Number(item.duration) >= 120 && Number(item.duration) <= 900 && Number(item.aspectRatio) >= 1.2
+        && !/[\u0400-\u04ff\u0600-\u06ff\u0900-\u097f\u3040-\u30ff\u3400-\u9fff]|\b(?:vostfr|subesp|dublado|latino|espa[nñ]ol|fran[cç]ais)\b/i.test(title)
+        && !/\b(?:lyrics?|live|concert|reaction|review|podcast|interview|tutorial|trailer|teaser|cover|karaoke|remix|bootleg|dj[ -]?edit|tribute|slideshow|mashup|parody|fan[ -]?(?:made|edit|video)|unofficial|audio[ -]?only|visualizer|shorts?|vertical|dance practice|behind the scenes|making of)\b/i.test(title);
+    }
     var family = /^ok-(kids|adult|anime)-channel$/.exec(String(profile.profileKey || ""));
     if (family) {
       return item.animationVerified === true && item.animationVerificationVersion === 2 && item.animationFamily === family[1] && item.language === "en"
@@ -57,6 +78,7 @@
   function stop() { if (active) active(); active = null; }
   function programKey(item) {
     if (!item) return "";
+    if (item.musicVerified && item.identityReference) return item.identityReference;
     var value = String(item.title || "").replace(/[_.:-]+/g, " ");
     var pair = value.match(/\bs\s*(\d{1,2})\s*e\s*(\d{1,3})\b/i)
       || value.match(/\b(\d{1,2})\s*x\s*(\d{1,3})\b/i)
@@ -68,17 +90,23 @@
     return item.seriesId && episode ? item.seriesId + ":" + episode
       : !item.seriesId && item.identityReference ? item.identityReference : item.id;
   }
-  function order(profile, items) {
+  function order(profile, items, recentArtists) {
     var groups = new Map(), seen = new Set(), result = [], tv = profile.intent === "television" || /^ok-(?:kids|adult|anime)-channel$/.test(String(profile.profileKey || ""));
     items.forEach(function (item) {
-      var series = String(item.seriesId || item.seriesTitle || item.id);
-      var key = tv ? programKey(item) : item.identityReference || item.id;
+      var series = String(item.musicArtistId || item.seriesId || item.seriesTitle || item.id);
+      var key = item.musicVerified ? programKey(item) : tv ? programKey(item) : item.identityReference || item.id;
       if (seen.has(key)) return; seen.add(key);
       if (!groups.has(series)) groups.set(series, []);
       groups.get(series).push(item);
     });
+    var artists = (Array.isArray(recentArtists) ? recentArtists : []).slice(0,8).reverse();
     while (Array.from(groups.values()).some(function (list) { return list.length; })) {
-      groups.forEach(function (list) { if (list.length) result.push(list.shift()); });
+      var available = Array.from(groups.entries()).filter(function (entry) { return entry[1].length; });
+      var music = available.some(function (entry) { return entry[1][0].musicVerified; });
+      if (music) {
+        var selected = available.find(function (entry) { return artists.indexOf(entry[0]) < 0; }) || available[0];
+        result.push(selected[1].shift()); artists.push(selected[0]); artists = artists.slice(-8);
+      } else groups.forEach(function (list) { if (list.length) result.push(list.shift()); });
     }
     return result;
   }

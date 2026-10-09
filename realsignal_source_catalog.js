@@ -17,6 +17,7 @@ import { okSearchRows, okSearchResultRows, okSearchPageRequest, okQueryOffset, o
 import { OK_VERIFIED_SEARCH_SEED } from "./ok_verified_search_seed.js";
 import { okAnimationFamily, okAnimationQueries, okAnimationIdentity, okAnimationPrecheck, okAnimationVerified } from "./ok_animation_catalog.js";
 import { okCuratedChannel, okCuratedQueries, okCuratedIdentity, okCuratedPrecheck, okCuratedVerified } from "./ok_curated_tv_catalog.js";
+import { okMusicChannel, okMusicQueries, okMusicPrecheck, okMusicVerified, okMusicIdentities } from "./ok_music_catalog.js";
 import { OK_ANIMATION_VERIFIED_SEED } from "./ok_animation_verified_seed.js";
 import { SOURCE_PROFILE_REGISTRY } from "./source_suite_profile_registry.js";
 import { OK_PUBLIC_EMBED_MANIFEST } from "./ok_public_embed_catalog.js";
@@ -476,6 +477,9 @@ export async function okTitleSearch(profile, rotation, env, options = {}) {
   const firstLane = options.firstLane === true;
   const animation = okAnimationFamily(profile);
   const curated = okCuratedChannel(profile);
+  const music = okMusicChannel(profile);
+  // Music metadata work belongs exclusively to background ingestion.
+  if (music && options.maintenance !== true) return { provider: "OK.ru", items: (OK_VERIFIED_SEARCH_SEED[profile.profileKey] || []).map(item => qualifySourceItem(profile,item)).filter(Boolean), health: { skipped: true, reason: "verified-music-catalog-only" } };
   const errors = [];
   const cursor = firstLane ? rotation : await okDiscoveryCursor(env.realsignal_catalog, profile.profileKey, rotation);
   let seriesTitles = [];
@@ -486,7 +490,7 @@ export async function okTitleSearch(profile, rotation, env, options = {}) {
       seriesTitles = okTVIndexTitles(shows, cursor % 80);
     } catch (error) { errors.push(`series index: ${text(error?.message, 100)}`); }
   }
-  const queries = (animation ? okAnimationQueries(profile, cursor) : curated ? okCuratedQueries(profile, cursor) : okTitleSearchQueries(profile, cursor, { seriesTitles, deep: !firstLane })).slice(0, firstLane ? 2 : 6);
+  const queries = (music ? okMusicQueries(profile,cursor) : animation ? okAnimationQueries(profile, cursor) : curated ? okCuratedQueries(profile, cursor) : okTitleSearchQueries(profile, cursor, { seriesTitles, deep: !firstLane })).slice(0, firstLane ? 2 : 6);
   const offsets = [];
   const pages = await mapLimit(queries, 2, async (query) => {
     try {
@@ -511,12 +515,23 @@ export async function okTitleSearch(profile, rotation, env, options = {}) {
       } catch (_) { return []; }
     }
   });
-  const kind = profile.profileKey === "ok-tv-channel" || animation || curated ? "tv" : "movie";
-  const candidates = okBalancedCandidates(pages.map(page => page.filter(item => accepted(profile, item, "OK.ru"))), kind, firstLane ? 12 : 36);
+  const kind = music ? "music" : profile.profileKey === "ok-tv-channel" || animation || curated ? "tv" : "movie";
+  const candidates = okBalancedCandidates(pages.map(page => page.filter(item => accepted(profile, item, "OK.ru"))), kind, music ? 16 : firstLane ? 12 : 36);
   const identityCache = new Map();
   const animationMisses = [];
   const curatedMisses = [];
   let movieIdentities = new Map();
+  let musicIdentities = new Map();
+  if (music) {
+    const known = [...(OK_VERIFIED_SEARCH_SEED[profile.profileKey] || [])];
+    if (env.realsignal_catalog) {
+      try {
+        const stored = await env.realsignal_catalog.prepare("SELECT p.metadata_json FROM programs p JOIN channel_programs cp ON cp.program_id=p.id WHERE cp.channel_key=? ORDER BY cp.last_seen_at DESC LIMIT 512").bind(profile.profileKey).all();
+        for (const row of stored.results || []) { try { known.push(JSON.parse(row.metadata_json)); } catch (_) {} }
+      } catch (_) { /* bootstrap remains usable */ }
+    }
+    musicIdentities = await okMusicIdentities(candidates,known,url => fetchJson(url,{ headers: { "User-Agent": "RealSignal/5.5.80 (https://github.com/esfsfestgfse/Archivetv)" }, cf: { cacheTtl: 604800, cacheEverything: true } }));
+  }
   if (kind === "movie") {
     // An identity lookup can delay NEW discoveries, never erase a known shelf.
     const known = [...(OK_VERIFIED_SEARCH_SEED[profile.profileKey] || [])];
@@ -529,12 +544,12 @@ export async function okTitleSearch(profile, rotation, env, options = {}) {
     const nameOf = item => `${String(item.title).match(/\b(?:19|20)\d{2}\b/)?.[0] || ""}:${okProgramName(item.title, "movie").toLowerCase()}`;
     const identities = new Map(known.filter(item => item.language === "en" && item.identityReference).map(item => [nameOf(item), { language: "en", identityReference: item.identityReference, identityProvider: "Wikidata" }]));
     for (const item of candidates) if (identities.has(nameOf(item))) movieIdentities.set(item.id, identities.get(nameOf(item)));
-    try { const discovered = await okMovieIdentities(candidates.filter(item => !movieIdentities.has(item.id)), url => fetchJson(url, { headers: { "User-Agent": "RealSignal/5.5.79 (catalog metadata; https://github.com/esfsfestgfse/Archivetv)" }, cf: { cacheTtl: 86400, cacheEverything: true } })); for (const [key, identity] of discovered) movieIdentities.set(key, identity); }
+    try { const discovered = await okMovieIdentities(candidates.filter(item => !movieIdentities.has(item.id)), url => fetchJson(url, { headers: { "User-Agent": "RealSignal/5.5.80 (catalog metadata; https://github.com/esfsfestgfse/Archivetv)" }, cf: { cacheTtl: 86400, cacheEverything: true } })); for (const [key, identity] of discovered) movieIdentities.set(key, identity); }
     catch (error) { errors.push(`film identity: ${text(error?.message, 100)}`); }
   }
   const verified = await mapLimit(candidates, 3, async (item) => {
     try {
-      const identity = animation ? await okAnimationIdentity(profile,item,url=>fetchJson(url,{},6000),identityCache) : curated ? await okCuratedIdentity(profile,item) : kind === "tv" ? await okProgramIdentity(item, "tv", (url) => fetchJson(url, {}, 6000), identityCache) : movieIdentities.get(item.id);
+      const identity = music ? musicIdentities.get(item.id) : animation ? await okAnimationIdentity(profile,item,url=>fetchJson(url,{},6000),identityCache) : curated ? await okCuratedIdentity(profile,item) : kind === "tv" ? await okProgramIdentity(item, "tv", (url) => fetchJson(url, {}, 6000), identityCache) : movieIdentities.get(item.id);
       if (!identity) { if (animation && animationMisses.length < 8) animationMisses.push({title:item.title,programName:okProgramName(item.title,"tv"),stage:"show-identity"}); if (curated && curatedMisses.length < 8) curatedMisses.push({title:item.title,stage:"curated-program-identity"}); return null; }
       const html = await fetchText(item.embedUrl, { headers: { Accept: "text/html" } }, 6000);
       const metadata = okEmbedMetadata(html, item.rawId);
@@ -562,6 +577,7 @@ export function qualifySourceItem(profile, item) {
   if (!profile || !item) return null;
   if (okAnimationFamily(profile) && !okAnimationVerified(profile,item)) return null;
   if (okCuratedChannel(profile) && !okCuratedVerified(profile,item)) return null;
+  if (okMusicChannel(profile) && !okMusicVerified(profile,item)) return null;
   if (item.provider === "Vimeo" && (item.embedVerified !== true || item.publicEmbed !== true || !vimeoProgramOkay(item, profile.intent === "film" ? "movie" : "tv") || !vimeoLanguageKnown(item))) return null;
   if (item.provider === "Vimeo" && profile.intent === "television" && !item.seriesId && !vimeoOriginalSeriesEvidence(item)) return null;
   if (/^ok-(?:movie|tv)-channel$/.test(profile.profileKey)) {
@@ -606,7 +622,7 @@ function normalizedProfile(body) {
     formats: list(approved.formats, 24),
     titleRequiredTerms: list(approved.titleRequiredTerms, 24),
     formatRelaxed: approved.formatRelaxed === true,
-    minRuntimeSeconds: Math.max(SOURCE_MIN_RUNTIME, Number(approved.minRuntimeSeconds) || 0),
+    minRuntimeSeconds: Math.max(okMusicChannel({profileKey}) ? 120 : SOURCE_MIN_RUNTIME, Number(approved.minRuntimeSeconds) || 0),
     minTitleYear: Math.max(0, Number(approved.minTitleYear) || 0),
     minContentYear: Math.max(0, Number(approved.minContentYear) || 0),
     movieLane: text(approved.movieLane, 24).toLowerCase(),
@@ -685,6 +701,7 @@ function okMovieTitleQualified(profile, item) {
 }
 
 function accepted(profile, item, provider, checkAspect = true) {
+  if (okMusicChannel(profile)) return okMusicPrecheck(profile,item,checkAspect);
   if (okAnimationFamily(profile)) return okAnimationPrecheck(profile,item,checkAspect);
   if (okCuratedChannel(profile)) return okCuratedPrecheck(profile,item,checkAspect);
   const title = text(item && item.title, 500);
@@ -828,6 +845,7 @@ function normalized(item, provider, query) {
     seriesId: text(item.seriesId, 100),
     identityReference: text(item.identityReference, 300),
     identityProvider: text(item.identityProvider, 50),
+    ...(item.musicVerified ? { musicVerified: true, musicVerificationVersion: item.musicVerificationVersion, musicArtist: text(item.musicArtist,100), musicArtistId: text(item.musicArtistId,80), musicTrack: text(item.musicTrack,160), musicTrackKey: text(item.musicTrackKey,300), musicRecordingId: text(item.musicRecordingId,80), musicReleaseYear: Number(item.musicReleaseYear) } : {}),
     ...(okAnimationFamily({profileKey:item.animationFamily ? `ok-${item.animationFamily}-channel` : ''}) ? {animationFamily:item.animationFamily,animationVerified:item.animationVerified===true,animationVerificationVersion:item.animationVerificationVersion,animationEpisodeRuntime:Number(item.animationEpisodeRuntime)||0} : {}),
     ...(item.curatedFamily ? {curatedFamily:text(item.curatedFamily,40),curatedVerified:item.curatedVerified===true,curatedVerificationVersion:Number(item.curatedVerificationVersion)||0,episodeIdentity:text(item.episodeIdentity,40)} : {}),
   };
@@ -1222,7 +1240,7 @@ async function vimeo(profile, rotation, env, options = {}) {
         if (item.language && !vimeoLanguageKnown(item)) return null;
         try {
           identity = await vimeoProgramIdentity(item, kind,
-            url => vimeoJson(url, { headers: { "User-Agent": "RealSignal/5.5.79 (public catalog identity; https://github.com/esfsfestgfse/Archivetv)", Accept: "application/json" } }, Math.max(1, Math.min(3000, deadline - Date.now()))), identityCache);
+            url => vimeoJson(url, { headers: { "User-Agent": "RealSignal/5.5.80 (public catalog identity; https://github.com/esfsfestgfse/Archivetv)", Accept: "application/json" } }, Math.max(1, Math.min(3000, deadline - Date.now()))), identityCache);
         } catch (error) {
           if (!(kind === "tv" ? vimeoOriginalSeriesEvidence(item) : vimeoLanguageKnown(item))) throw error;
           errors.push(text(error?.message, 120));

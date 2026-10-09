@@ -16,7 +16,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "5.5.79-ok-curated-tv";
+const V3_RELEASE = "5.5.80-ok-soul-flow";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -447,6 +447,7 @@ function compactCatalogItem(item) {
     seriesId: String(item.seriesId || "").slice(0, 100),
     identityProvider: String(item.identityProvider || "").slice(0, 80),
     identityReference: String(item.identityReference || "").slice(0, 500),
+    ...(item.musicVerified ? { musicVerified: true, musicVerificationVersion: Number(item.musicVerificationVersion), musicArtist: String(item.musicArtist || "").slice(0,100), musicArtistId: String(item.musicArtistId || "").slice(0,80), musicTrack: String(item.musicTrack || "").slice(0,160), musicTrackKey: String(item.musicTrackKey || "").slice(0,300), musicRecordingId: String(item.musicRecordingId || "").slice(0,80), musicReleaseYear: Number(item.musicReleaseYear) } : {}),
     curatedFamily: String(item.curatedFamily || "").slice(0, 40),
     curatedVerified: item.curatedVerified === true,
     curatedVerificationVersion: Number(item.curatedVerificationVersion) || 0,
@@ -1297,6 +1298,7 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
       seriesId: metadata.seriesId || "",
       identityProvider: metadata.identityProvider || "",
       identityReference: metadata.identityReference || "",
+      ...(metadata.musicVerified ? { musicVerified: true, musicVerificationVersion: Number(metadata.musicVerificationVersion), musicArtist: metadata.musicArtist, musicArtistId: metadata.musicArtistId, musicTrack: metadata.musicTrack, musicTrackKey: metadata.musicTrackKey, musicRecordingId: metadata.musicRecordingId, musicReleaseYear: Number(metadata.musicReleaseYear) } : {}),
       curatedFamily: metadata.curatedFamily || "",
       curatedVerified: metadata.curatedVerified === true,
       curatedVerificationVersion: Number(metadata.curatedVerificationVersion) || 0,
@@ -1333,9 +1335,9 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
      candidate union while measuring depth/freshness and selecting the public
      shelf only from rows that can actually start. */
   const playable = filtered.filter(queueItemPlayable);
-  const playableCatalog = okCatalog ? okBalancedCandidates([playable], channel === "ok-movie-channel" ? "movie" : "tv", limit) : vimeoCatalog ? vimeoBalancedItems(playable) : playable;
+  const playableCatalog = okCatalog ? okBalancedCandidates([playable], channel === "ok-soul-flow-channel" ? "music" : channel === "ok-movie-channel" ? "movie" : "tv", limit) : vimeoCatalog ? vimeoBalancedItems(playable) : playable;
   const recentIDs = recentCatalogIds(effectiveBody);
-  const okKind = channel === "ok-movie-channel" ? "movie" : "tv";
+  const okKind = channel === "ok-soul-flow-channel" ? "music" : channel === "ok-movie-channel" ? "movie" : "tv";
   const recentPrograms = okCatalog ? new Set(playable.filter(item => recentIDs.has(queueItemKey(item))).map(item => okPlaybackIdentity(item, okKind))) : new Set();
   // Resolve watched identities independently of the bounded playable window.
   // Inactive originals still identify alternate uploads of a watched episode.

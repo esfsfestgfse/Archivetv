@@ -18,7 +18,7 @@ const { DatabaseSync } = require('node:sqlite');
     sql.exec('CREATE TABLE channel_rules (channel_key TEXT PRIMARY KEY, rules_json TEXT NOT NULL, updated_at INTEGER NOT NULL)');
     const db = { prepare(query) { return { bind(...values) { return { async all() { return { results: sql.prepare(query).all(...values) }; } }; } }; } };
     for (let rotation = 0; rotation < count; rotation++) {
-      const start = Date.now(); const lane = await okTitleSearch(sourceProfile({ profileKey: key }), rotation + Number(process.env.OK_PROBE_START || 0), { realsignal_catalog: db }, {});
+      const start = Date.now(); const lane = await okTitleSearch(sourceProfile({ profileKey: key }), rotation + Number(process.env.OK_PROBE_START || 0), { realsignal_catalog: db }, { maintenance: true });
       lane.items.forEach(item => union.set(item.id, item));
       const sample = { rotation, ms: Date.now() - start, admitted: lane.items.length, errors: lane.health.errors, queries: lane.health.queries };
       samples.push(sample); console.log(JSON.stringify({ key, ...sample }));

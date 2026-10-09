@@ -13,6 +13,7 @@ on:
       - 'ok_public_search.js'
       - 'ok_animation_catalog.js'
       - 'ok_curated_tv_catalog.js'
+      - 'ok_music_catalog.js'
       - 'assets/ok-embed-runtime.js'
       - 'ok_animation_verified_seed.js'
       - 'ok_verified_search_seed.js'
@@ -57,6 +58,7 @@ jobs:
           node scripts/test-ok-animation.js
           node scripts/test-ok-animation-depth.js
           node scripts/test-ok-curated-tv.js
+          node scripts/test-ok-music.js
           node scripts/test-vimeo-catalog-depth.js
           node scripts/test-vimeo-embed-runtime.js
           node scripts/test-v2-api-worker.js
@@ -70,6 +72,7 @@ jobs:
           node --check vimeo_catalog.js
           node --check ok_animation_catalog.js
           node --check ok_curated_tv_catalog.js
+          node --check ok_music_catalog.js
           node --check scripts/refresh-ok-catalogs.js
           node --check source_suite_profile_registry.js
           node --check ia_canonical_station.mjs

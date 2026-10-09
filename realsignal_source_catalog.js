@@ -479,7 +479,7 @@ export async function okTitleSearch(profile, rotation, env, options = {}) {
   const curated = okCuratedChannel(profile);
   const music = okMusicChannel(profile);
   // Music metadata work belongs exclusively to background ingestion.
-  if (music && options.maintenance !== true) return { provider: "OK.ru", items: (OK_VERIFIED_SEARCH_SEED[profile.profileKey] || []).map(item => qualifySourceItem(profile,item)).filter(Boolean), health: { skipped: true, reason: "verified-music-catalog-only" } };
+  if (music && options.maintenance !== true) return { provider: "OK.ru", items: okBalancedCandidates([(OK_VERIFIED_SEARCH_SEED[profile.profileKey] || []).map(item => qualifySourceItem(profile,item)).filter(Boolean)],"music",SOURCE_MAX_ITEMS), health: { skipped: true, reason: "verified-music-catalog-only" } };
   const errors = [];
   const cursor = firstLane ? rotation : await okDiscoveryCursor(env.realsignal_catalog, profile.profileKey, rotation);
   let seriesTitles = [];
@@ -530,7 +530,7 @@ export async function okTitleSearch(profile, rotation, env, options = {}) {
         for (const row of stored.results || []) { try { known.push(JSON.parse(row.metadata_json)); } catch (_) {} }
       } catch (_) { /* bootstrap remains usable */ }
     }
-    musicIdentities = await okMusicIdentities(candidates,known,url => fetchJson(url,{ headers: { "User-Agent": "RealSignal/5.5.80 (https://github.com/esfsfestgfse/Archivetv)" }, cf: { cacheTtl: 604800, cacheEverything: true } }));
+    musicIdentities = await okMusicIdentities(candidates,known,url => fetchJson(url,{ headers: { "User-Agent": "RealSignal/5.5.81 (https://github.com/esfsfestgfse/Archivetv)" }, cf: { cacheTtl: 604800, cacheEverything: true } }));
   }
   if (kind === "movie") {
     // An identity lookup can delay NEW discoveries, never erase a known shelf.
@@ -544,7 +544,7 @@ export async function okTitleSearch(profile, rotation, env, options = {}) {
     const nameOf = item => `${String(item.title).match(/\b(?:19|20)\d{2}\b/)?.[0] || ""}:${okProgramName(item.title, "movie").toLowerCase()}`;
     const identities = new Map(known.filter(item => item.language === "en" && item.identityReference).map(item => [nameOf(item), { language: "en", identityReference: item.identityReference, identityProvider: "Wikidata" }]));
     for (const item of candidates) if (identities.has(nameOf(item))) movieIdentities.set(item.id, identities.get(nameOf(item)));
-    try { const discovered = await okMovieIdentities(candidates.filter(item => !movieIdentities.has(item.id)), url => fetchJson(url, { headers: { "User-Agent": "RealSignal/5.5.80 (catalog metadata; https://github.com/esfsfestgfse/Archivetv)" }, cf: { cacheTtl: 86400, cacheEverything: true } })); for (const [key, identity] of discovered) movieIdentities.set(key, identity); }
+    try { const discovered = await okMovieIdentities(candidates.filter(item => !movieIdentities.has(item.id)), url => fetchJson(url, { headers: { "User-Agent": "RealSignal/5.5.81 (catalog metadata; https://github.com/esfsfestgfse/Archivetv)" }, cf: { cacheTtl: 86400, cacheEverything: true } })); for (const [key, identity] of discovered) movieIdentities.set(key, identity); }
     catch (error) { errors.push(`film identity: ${text(error?.message, 100)}`); }
   }
   const verified = await mapLimit(candidates, 3, async (item) => {
@@ -1240,7 +1240,7 @@ async function vimeo(profile, rotation, env, options = {}) {
         if (item.language && !vimeoLanguageKnown(item)) return null;
         try {
           identity = await vimeoProgramIdentity(item, kind,
-            url => vimeoJson(url, { headers: { "User-Agent": "RealSignal/5.5.80 (public catalog identity; https://github.com/esfsfestgfse/Archivetv)", Accept: "application/json" } }, Math.max(1, Math.min(3000, deadline - Date.now()))), identityCache);
+            url => vimeoJson(url, { headers: { "User-Agent": "RealSignal/5.5.81 (public catalog identity; https://github.com/esfsfestgfse/Archivetv)", Accept: "application/json" } }, Math.max(1, Math.min(3000, deadline - Date.now()))), identityCache);
         } catch (error) {
           if (!(kind === "tv" ? vimeoOriginalSeriesEvidence(item) : vimeoLanguageKnown(item))) throw error;
           errors.push(text(error?.message, 120));
@@ -1380,10 +1380,11 @@ async function okApi(profile, rotation, env, options = {}) {
 function okPublicManifest(profile, rotation, options = {}) {
   const firstLane = options.firstLane === true;
   const candidates = [...(OK_PUBLIC_EMBED_MANIFEST[profile.profileKey] || []), ...(OK_VERIFIED_SEARCH_SEED[profile.profileKey] || []), ...(OK_ANIMATION_VERIFIED_SEED[profile.profileKey] || [])];
-  const items = rotate(unique(candidates), rotation).map((item) => qualifySourceItem(profile, item)).filter(Boolean);
+  const qualified = rotate(unique(candidates), rotation).map((item) => qualifySourceItem(profile, item)).filter(Boolean);
+  const items = okMusicChannel(profile) ? okBalancedCandidates([qualified],"music",SOURCE_MAX_ITEMS) : qualified;
   return {
     provider: "OK.ru",
-    items: items.slice(0, firstLane ? 8 : SOURCE_MAX_ITEMS).map((item) => normalized(item, "OK.ru", item.query)),
+    items: items.slice(0, firstLane && !okMusicChannel(profile) ? 8 : SOURCE_MAX_ITEMS).map((item) => normalized(item, "OK.ru", item.query)),
     health: { manifest: true, searched: 0, candidates: candidates.length, details: items.length, errors: [], firstLane, constrained: items.length < SOURCE_MIN_READY },
   };
 }
@@ -1475,7 +1476,8 @@ function sourceTasks(profile, env, rotation, options = {}) {
 
 
 export function mergeSourceLanes(profileKey, lanes) {
-  const items = unique((lanes || []).flatMap((lane) => Array.isArray(lane && lane.items) ? lane.items : [])).slice(0, SOURCE_MAX_ITEMS);
+  const candidates = unique((lanes || []).flatMap((lane) => Array.isArray(lane && lane.items) ? lane.items : []));
+  const items = okMusicChannel({profileKey}) ? okBalancedCandidates([candidates],"music",SOURCE_MAX_ITEMS) : candidates.slice(0, SOURCE_MAX_ITEMS);
   return { profileKey, items, ready: items.length, candidates: items.length, catalogVersion: "source-server-1", source: "server-source-catalog" };
 }
 

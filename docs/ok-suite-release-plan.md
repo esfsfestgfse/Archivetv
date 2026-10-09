@@ -78,6 +78,15 @@ Each verified release gets a new desktop/mobile stamp. Vimeo remains paused.
 - Metadata/official-embed checks are not an independent license determination
   or a guarantee that every provider upload stays available indefinitely.
 
+## 5.5.81 cold-catalog follow-up
+
+Production verification caught alternate uploads in the very first no-D1
+response; later stored-catalog responses were already canonical. The startup
+search, manifest and merge rails now deduplicate by song before returning,
+retain the deeper bootstrap without provider requests, and are covered by a
+failing-then-passing empty-catalog regression. Existing TV/movie rails are
+unchanged. The visible stamp is bumped for this follow-up.
+
 ## 5.5.79 verification record
 
 - Focused contract, depth, freshness and runtime tests pass locally, including

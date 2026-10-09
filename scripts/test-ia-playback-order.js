@@ -6,13 +6,46 @@ const { test } = require('node:test');
 const { pathToFileURL } = require('node:url');
 const { rotationContext } = require('./ia-storage-test-helper');
 const root = path.join(__dirname, '..');
-function runtime() {
-  const scope = { window: {}, URLSearchParams, location: { search: '?iaRepair=1' }, Date, Promise, setTimeout, clearTimeout };
+function runtime(search = '?iaRepair=1', pilot = '', castConnected) {
+  const scope = { window: { __rsCastIsConnected: castConnected }, URLSearchParams, location: { search }, document: { querySelector: () => pilot ? { content: pilot } : null }, Date, Promise, setTimeout, clearTimeout };
   vm.createContext(scope);
   vm.runInContext(fs.readFileSync(path.join(root, 'assets/ia-playback-shelf.js'), 'utf8'), scope);
   return scope.window.RealSignalIAShelf;
 }
 const item = id => ({ identifier: id, title: id, media: { type: 'video', url: 'https://archive.org/download/series/' + id + '.mp4' } });
+
+test('partial production release activates only certified channels and keeps rollback available', () => {
+  const pilot = runtime('', '10,150');
+  assert.equal(pilot.enabledForChannel('10'), true);
+  assert.equal(pilot.enabledForChannel(150), true);
+  for (const channel of ['19', '56', '77', '132', '200', '702', '911']) assert.equal(pilot.enabledForChannel(channel), false);
+  assert.equal(runtime('?iaRepair=0', '10,150').enabledForChannel(10), false);
+  assert.equal(runtime('').enabledForChannel(10), false, 'mobile with no promotion manifest retains legacy playback');
+  assert.equal(runtime('?iaRepair=1').enabledForChannel(77), true, 'explicit local canary still tests unpromoted lanes');
+  assert.equal(runtime('?castReceiver=1', '10,150').enabledForChannel(10), false, 'Cast remains on its separately certified protocol');
+});
+
+test('Cast connection dynamically returns promoted senders to legacy playback', () => {
+  let connected = false;
+  const pilot = runtime('', '10,150', () => connected);
+  assert.equal(pilot.enabledForChannel(10), true);
+  connected = true;
+  assert.equal(pilot.enabledForChannel(10), false);
+  assert.equal(pilot.enabledForChannel(150), false);
+  connected = false;
+  assert.equal(pilot.enabledForChannel(10), true);
+  assert.equal(runtime('?iaRepair=1', '', () => true).enabledForChannel(10), false);
+});
+
+for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) test(file + ': weak and non-IA stations cannot enter the promoted playback path', () => {
+  const source = fs.readFileSync(path.join(root, file), 'utf8');
+  const scope = { window: { RealSignalIAShelf: runtime('', '10,150') } };
+  vm.createContext(scope);
+  vm.runInContext(source.slice(source.indexOf('function iaRepairEnabled('), source.indexOf('\n', source.indexOf('function iaRepairEnabled('))), scope);
+  assert.equal(scope.iaRepairEnabled({ num: 10 }), true);
+  assert.equal(scope.iaRepairEnabled({ num: 77 }), false);
+  assert.equal(scope.iaRepairEnabled({ num: 10, source: 'ok' }), false);
+});
 
 test('guide, Next and EOF use the same first reservation without consuming it on preload', async () => {
   const events = [], api = runtime().create({ queue: async () => ({ items: [item('A'), item('B'), item('C')] }), report: async event => events.push(event) });

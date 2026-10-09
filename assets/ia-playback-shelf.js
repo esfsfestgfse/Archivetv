@@ -1,4 +1,4 @@
-/* IA-only canary. Metadata preparation is not viewing; only the decoded start
+/* IA-only guarded rollout. Metadata preparation is not viewing; only the decoded start
    commits a reservation. One owner supplies guide, preload, Next and EOF. */
 (function () {
   function create(options) {
@@ -64,7 +64,17 @@
       started: function () { return started; }
     };
   }
-  var enabled = new URLSearchParams(location.search).get('iaRepair') === '1', client = null;
+  var query = new URLSearchParams(location.search), optIn = query.get('iaRepair');
+  var promotion = typeof document !== 'undefined' && document.querySelector('meta[name="realsignal-ia-repair-channels"]');
+  var promoted = promotion ? String(promotion.content || '').split(',').map(function (id) { return id.trim(); }).filter(Boolean) : [];
+  var enabled = optIn !== '0' && (optIn === '1' || promoted.length > 0), client = null;
+  function enabledForChannel(channel) {
+    // Receiver acknowledgements need their own physical-device certification.
+    if (!enabled || query.get('castReceiver') === '1') return false;
+    try { if (typeof window.__rsCastIsConnected === 'function' && window.__rsCastIsConnected()) return false; }
+    catch (_) { return false; }
+    return optIn === '1' || promoted.indexOf(String(channel)) >= 0;
+  }
   function apiBase() {
     var override = new URLSearchParams(location.search).get('iaRepairApi') || '';
     if (/^https:\/\/realsignal-ia-audit-api\.tdy1990\.workers\.dev\/api\/v3$/.test(override) || /^http:\/\/(?:127\.0\.0\.1|localhost):\d+\/api\/v3$/.test(override)) return override;
@@ -79,7 +89,7 @@
     } finally { clearTimeout(timer); }
   }
   window.RealSignalIAShelf = {
-    enabled: enabled, create: create, lifecycle: lifecycle,
+    enabled: enabled, enabledForChannel: enabledForChannel, create: create, lifecycle: lifecycle,
     queue: function (body) { return request('/ia/queue', Object.assign({}, body, { iaRepair: true, serverCatalog: true })); },
     client: function () { return client || (client = create({ queue: function (body) { return window.RealSignalIAShelf.queue(body); }, report: function (body) { return request('/ia/playback', body); } })); }
   };

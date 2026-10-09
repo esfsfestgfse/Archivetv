@@ -6,42 +6,51 @@
  * small immediate shelf; this is only the hidden rotation window. */
 const MAX_SEEN = 1024;
 const MAX_ITEMS = 96;
+const MAX_RESERVATION_ITEMS = 1024;
 
 function itemId(item) {
   const value = item && (item.identifier || item.id || (item.media && item.media.url));
   return String(value || "").trim().slice(0, 500);
 }
 
-function cleanItems(items) {
+function cleanItems(items, limit = MAX_ITEMS) {
   if (!Array.isArray(items)) return [];
   const seen = new Set();
   const out = [];
-  for (const item of items.slice(0, MAX_ITEMS)) {
+  for (const item of items) {
     const id = itemId(item);
     if (!id || seen.has(id)) continue;
     seen.add(id);
     out.push(item);
+    if (out.length >= limit) break;
   }
   return out;
 }
 
-function mergeCatalog(existing, incoming, seenIds) {
+function mergeCatalog(existing, incoming, seenIds, limit = MAX_ITEMS) {
   const played = new Set(Array.isArray(seenIds) ? seenIds : []);
   const merged = [];
-  const seen = new Set();
+  const positions = new Map();
   for (const item of [...(Array.isArray(existing) ? existing : []), ...(Array.isArray(incoming) ? incoming : [])]) {
     const id = itemId(item);
-    if (!id || seen.has(id)) continue;
-    seen.add(id);
+    if (!id) continue;
+    if (positions.has(id)) {
+      const index = positions.get(id), previous = merged[index];
+      const known = Object.fromEntries(Object.entries(item).filter(([, value]) => value !== undefined && value !== null && value !== ""));
+      merged[index] = { ...previous, ...known };
+      if (previous.media || item.media) merged[index].media = { ...previous.media, ...item.media };
+      continue;
+    }
+    positions.set(id, merged.length);
     merged.push(item);
   }
-  if (merged.length <= MAX_ITEMS) return merged;
+  if (merged.length <= limit) return merged;
   /* Keep the session catalog stable, but make room for newly discovered rows
      by evicting played entries before unseen ones. This preserves the union
      of the active upstream windows without letting the DO grow unbounded. */
   const unseen = merged.filter((item) => !played.has(itemId(item)));
   const playedItems = merged.filter((item) => played.has(itemId(item)));
-  return unseen.concat(playedItems).slice(0, MAX_ITEMS);
+  return unseen.concat(playedItems).slice(0, limit);
 }
 
 function rotate(items, offset) {
@@ -50,18 +59,45 @@ function rotate(items, offset) {
   return items.slice(start).concat(items.slice(0, start));
 }
 
+function familyId(item) {
+  return String(item.seriesId || item.seriesTitle || item.family || item.sourceIdentifier || itemId(item).split("::")[0]);
+}
+
+/* Apply editorial balance to the small shelf, never to the stored inventory.
+   A sparse family pool may relax the cap only after all other families get a
+   turn; the result explicitly reports that constrained condition. */
+function appendBalanced(selected, pool, count, diversity = {}) {
+  const ids = new Set(selected.map(itemId)), families = new Map();
+  selected.forEach(item => families.set(familyId(item), (families.get(familyId(item)) || 0) + 1));
+  const cap = Math.max(1, Math.min(count, Number(diversity.maxPerFamily) || count));
+  let relaxed = false;
+  for (const loosen of [false, true]) {
+    for (const item of pool) {
+      if (selected.length >= count) return relaxed;
+      const id = itemId(item), family = familyId(item);
+      if (ids.has(id) || (!loosen && (families.get(family) || 0) >= cap)) continue;
+      if (loosen && (families.get(family) || 0) >= cap) relaxed = true;
+      selected.push(item); ids.add(id); families.set(family, (families.get(family) || 0) + 1);
+    }
+  }
+  return relaxed;
+}
+
 export class SessionRotation {
   constructor(ctx, env) { this.ctx = ctx; this.env = env; }
 
-  async state() {
+  async state(limit = MAX_ITEMS) {
     const value = await this.ctx.storage.get("rotation");
     if (!value || typeof value !== "object") return { version: 2, catalog: [], seen: [], cursor: 0, updatedAt: 0 };
     return {
       version: 2,
-      catalog: cleanItems(value.catalog),
+      catalog: cleanItems(value.catalog, limit),
       seen: Array.isArray(value.seen) ? value.seen.filter(Boolean).slice(-MAX_SEEN) : [],
       cursor: Number(value.cursor) || 0,
       updatedAt: Number(value.updatedAt) || 0,
+      reserved: Array.isArray(value.reserved) ? value.reserved.slice(0, 5) : [],
+      cooldowns: value.cooldowns && typeof value.cooldowns === "object" ? value.cooldowns : {},
+      playing: String(value.playing || ""),
     };
   }
 
@@ -69,6 +105,8 @@ export class SessionRotation {
     if (request.method !== "POST") return new Response("Method Not Allowed", { status: 405 });
     let body;
     try { body = await request.json(); } catch (_) { return Response.json({ error: "invalid rotation payload" }, { status: 400 }); }
+    if (!body || typeof body !== "object" || Array.isArray(body)) return Response.json({ error: "invalid rotation payload" }, { status: 400 });
+    if (["reserve", "commit", "release", "peek"].includes(body.mode)) return this.reservation(body);
     const rawCandidates = cleanItems(body && body.items);
     const recent = new Set((Array.isArray(body && body.recentIds) ? body.recentIds : [])
       .map((value) => String(value || "").trim().slice(0, 500))
@@ -94,7 +132,10 @@ export class SessionRotation {
        shelf overlap the tail of the previous cycle, even though repeats were
        correctly allowed at that point. Keep the normal cursor behavior for
        unseen material; only the reset path needs a full-shelf step. */
-    const ordered = rotate(fresh, cycleReset ? current.cursor * limit : current.cursor);
+    const offset = cycleReset ? current.cursor * limit : current.cursor;
+    const nonrecent = fresh.filter(item => !recent.has(itemId(item)));
+    const recentOnly = fresh.filter(item => recent.has(itemId(item)));
+    const ordered = rotate(nonrecent, offset).concat(rotate(recentOnly, offset));
     const selected = ordered.slice(0, limit);
     const selectedIds = selected.map(itemId).filter(Boolean);
     const selectionRepeatIds = cycleReset ? [] : selectedIds.filter((id) => prior.has(id));
@@ -131,6 +172,52 @@ export class SessionRotation {
       },
       selectionRepeatIds,
     });
+  }
+
+  async reservation(body) {
+    const current = await this.state(MAX_RESERVATION_ITEMS);
+    const catalog = mergeCatalog(current.catalog, cleanItems(body.items, MAX_RESERVATION_ITEMS), current.seen, MAX_RESERVATION_ITEMS);
+    const ids = new Set(catalog.map(itemId)), now = Date.now();
+    const seen = new Set(current.seen);
+    const cooldowns = Object.fromEntries(Object.entries(current.cooldowns || {}).filter(([, until]) => Number(until) > now));
+    let reserved = (current.reserved || []).filter(id => ids.has(id) && !seen.has(id) && !cooldowns[id]);
+    const id = String(body.id || "").trim().slice(0, 500);
+    if (body.mode === "commit" || body.mode === "release") {
+      if (!id || !ids.has(id)) return Response.json({ error: "unknown program identity" }, { status: 400 });
+      reserved = reserved.filter(value => value !== id);
+      if (body.mode === "commit") {
+        seen.add(id);
+        current.playing = body.event === "completed" || body.event === "skipped" ? "" : id;
+      } else {
+        cooldowns[id] = now + 5 * 60_000;
+        if (current.playing === id) current.playing = "";
+      }
+    }
+    const count = Math.max(1, Math.min(5, Number(body.count) || 3));
+    const recent = new Set(Array.isArray(body.recentIds) ? body.recentIds : []);
+    const eligible = catalog.filter(item => !cooldowns[itemId(item)]);
+    let fresh = eligible.filter(item => !seen.has(itemId(item)));
+    const cycleReset = body.mode === "reserve" && !fresh.length && eligible.length > 0;
+    if (cycleReset) { seen.clear(); fresh = eligible; reserved = []; }
+    const selected = reserved.map(id => catalog.find(item => itemId(item) === id)).filter(Boolean);
+    let relaxed = false;
+    if (body.mode === "reserve") {
+      const offset = current.cursor || Number(body.rotation) || 0;
+      relaxed = appendBalanced(selected, rotate(fresh.filter(item => !recent.has(itemId(item))), offset), count, body.diversity);
+      if (selected.length < count) relaxed = appendBalanced(selected, rotate(fresh.filter(item => recent.has(itemId(item))), offset), count, body.diversity) || relaxed;
+      reserved = selected.map(itemId);
+    }
+    const next = { version: 3, catalog, seen: [...seen].slice(-MAX_RESERVATION_ITEMS), reserved,
+      cooldowns, playing: current.playing || "", cursor: current.cursor + (body.mode === "commit" && !current.seen.includes(id) ? 1 : 0), updatedAt: now };
+    if (body.mode !== "peek") await this.ctx.storage.put("rotation", next);
+    const unseen = catalog.filter(item => !seen.has(itemId(item))).length;
+    return Response.json({ items: selected.slice(0, count), catalog, cursor: next.cursor, cycleReset,
+      seen: seen.size, reserved: reserved.length, playing: next.playing, catalogSize: catalog.length,
+      catalogAdded: Math.max(0, catalog.length - current.catalog.length), unseen,
+      diversityRelaxed: relaxed, selectionRepeatIds: [],
+      exhaustion: { catalogSize: catalog.length, seenInCatalog: catalog.length - unseen,
+        unseenBeforeSelection: fresh.length, unseenAfterSelection: unseen,
+        catalogExhausted: cycleReset, cycleReset, repeatAllowed: cycleReset } });
   }
 }
 

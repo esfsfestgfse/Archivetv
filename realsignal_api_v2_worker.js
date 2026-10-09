@@ -270,6 +270,7 @@ function routeFor(pathname) {
     if (pathname === `${prefix}/health/summary`) return { kind: "health-summary", apiVersion };
     if (pathname === `${prefix}/guide`) return { kind: "guide", apiVersion };
     if (pathname === `${prefix}/ia/queue` || pathname === `${prefix}/ia/program`) return { kind: "queue", apiVersion, prefix };
+    if (pathname === `${prefix}/ia/playback`) return { kind: "ia-playback", apiVersion };
     if (apiVersion === "v3" && pathname === `${prefix}/ia/canonical/shadow`) return { kind: "canonical-shadow", apiVersion };
     if (pathname === `${prefix}/ia/search`) return { kind: "relay", relayPath: "/ia/search", apiVersion };
     if (pathname.startsWith(`${prefix}/ia/metadata/`)) {
@@ -637,7 +638,8 @@ async function rotateShelf(env, body, payload, request) {
   const sessionHeader = request && request.headers ? request.headers.get("x-realsignal-session") : "";
   const session = safeSession(body.sessionId || body.session || sessionHeader || `ip-${requestClientKey(request)}`);
   const channel = safeSession(body.channel || "unknown");
-  const stub = env.ROTATION.getByName(`session:${session}:channel:${channel}`);
+  const reservationMode = body.iaRepair === true && body.sourceCatalog !== true;
+  const stub = env.ROTATION.getByName(`${reservationMode ? "ia-repair:" : ""}session:${session}:channel:${channel}`);
   const rawCandidates = Array.isArray(payload && payload.candidateItems) && payload.candidateItems.length
     ? payload.candidateItems
     : ((payload && payload.items) || []);
@@ -649,8 +651,10 @@ async function rotateShelf(env, body, payload, request) {
      then apply the remaining recent history. */
   const recentValues = Array.from(recentCatalogIds(body));
   const recentLimit = candidates.length >= count ? Math.max(0, candidates.length - count) : recentValues.length;
-  const boundedRecentIds = freshnessExclusionIds(body, recentLimit);
-  const response = await stub.fetch(new Request("https://rotation.internal/select", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ items: candidates, recentIds: boundedRecentIds, count, rotation: Number(body.rotation) || 0 }) }));
+  const boundedRecentIds = freshnessExclusionIds(body, reservationMode ? recentValues.length : recentLimit);
+  const selectBody = { items: candidates, recentIds: boundedRecentIds, count, rotation: Number(body.rotation) || 0,
+    ...(reservationMode ? { mode: "reserve", diversity: body.diversity || {} } : {}) };
+  const response = await stub.fetch(new Request("https://rotation.internal/select", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(selectBody) }));
   if (!response.ok) throw new Error(`rotation ${response.status}`);
   const selected = await response.json();
   const upstreamReady = Number.isFinite(Number(payload.ready)) ? Number(payload.ready) : (Array.isArray(payload.items) ? payload.items.length : 0);
@@ -666,7 +670,7 @@ async function rotateShelf(env, body, payload, request) {
      and will advance to the remaining unseen rows. A true exhausted cycle is
      still allowed to repeat and is reported explicitly. */
   if (!selected.cycleReset && Array.isArray(selected.selectionRepeatIds) && selected.selectionRepeatIds.length) {
-    const retry = await stub.fetch(new Request("https://rotation.internal/select", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ items: candidates, recentIds: boundedRecentIds.concat(selected.selectionRepeatIds), count, rotation: Number(selected.cursor) || 0 }) }));
+    const retry = await stub.fetch(new Request("https://rotation.internal/select", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...selectBody, recentIds: boundedRecentIds.concat(selected.selectionRepeatIds), rotation: Number(selected.cursor) || 0 }) }));
     if (retry.ok) {
       const retrySelected = await retry.json();
       if (retrySelected && (!Array.isArray(retrySelected.selectionRepeatIds) || !retrySelected.selectionRepeatIds.length || retrySelected.cycleReset)) {
@@ -687,6 +691,31 @@ async function rotateShelf(env, body, payload, request) {
   const selectedReady = Math.max(upstreamReady, playableSelected);
   const exhaustion = selected && selected.exhaustion && typeof selected.exhaustion === 'object' ? selected.exhaustion : {};
   return { payload: { ...payload, items: selectedItems, candidateItems: selectedCatalog, candidates: selectedCatalog.length, ready: Math.min(selectedReady, selectedItems.length), v2: { sessionScoped: true, cursor: selected.cursor, cycleReset: !!selected.cycleReset, catalogSize: Number(selected.catalogSize) || selectedCatalog.length, catalogAdded: Number(selected.catalogAdded) || 0, unseen: Number(selected.unseen) || 0, seenInCatalog: Number(exhaustion.seenInCatalog) || 0, seenInCatalogBeforeSelection: Number(exhaustion.seenInCatalogBeforeSelection) || 0, unseenBeforeSelection: Number(exhaustion.unseenBeforeSelection) || 0, unseenAfterSelection: Number(exhaustion.unseenAfterSelection) || 0, catalogExhausted: !!exhaustion.catalogExhausted, repeatAllowed: !!exhaustion.repeatAllowed, selectionRepeatIds: Array.isArray(selected.selectionRepeatIds) ? selected.selectionRepeatIds : [] } }, rotation: selected };
+}
+
+async function handleIaPlayback(request, env, ctx, requestId) {
+  let body;
+  try { body = await readBoundedJson(request); }
+  catch (_) { return json({ error: "invalid playback payload" }, 400); }
+  const channel = String(body && body.channel || "").trim();
+  const id = String(body && body.id || "").trim();
+  const event = String(body && body.event || "");
+  if (!channel || !id || id.length > 500 || !["started", "completed", "skipped", "failed"].includes(event)) return json({ error: "invalid playback event" }, 400);
+  if (!env.ROTATION) return json({ error: "session rotation unavailable" }, 503);
+  const session = safeSession(body.sessionId || request.headers.get("x-realsignal-session") || `ip-${requestClientKey(request)}`);
+  const stub = env.ROTATION.getByName(`ia-repair:session:${session}:channel:${safeSession(channel)}`);
+  const result = await stub.fetch(new Request("https://rotation.internal/select", { method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ mode: event === "failed" ? "release" : "commit", id, event }) }));
+  if (!result.ok) return json({ error: "playback identity not reserved" }, result.status);
+  /* Only an actual start enters cross-session watched history. Skipping a
+     reservation suppresses it within this session, not everybody's catalog. */
+  if (event === "started") {
+    await rememberFreshness(env, channel, [id], ctx);
+    ctx.waitUntil(forwardToRelay(request, env, "/ia/played", body, requestId).then(response => {
+      if (!response.ok) console.warn(JSON.stringify({ event: "ia-played-forward-failed", channel, status: response.status }));
+    }).catch(error => console.warn(JSON.stringify({ event: "ia-played-forward-failed", channel, error: String(error).slice(0, 160) }))));
+  }
+  return json({ ok: true, channel, id, event }, 202, { "Cache-Control": "no-store" });
 }
 
 function rotateCatalogItems(items, rotation) {
@@ -1509,7 +1538,7 @@ async function handleQueue(request, env, ctx, id) {
   delete upstreamBody.sessionId;
   delete upstreamBody.session;
   const canonical = canonicalPilotProfile(body.channel);
-  if (canonicalPilotEnabled(env, body.channel)) {
+  if (body.iaRepair !== true && canonicalPilotEnabled(env, body.channel)) {
     const canonicalPayload = canonicalPilotPayload(canonical.manifest, canonical.profile, body, count);
     if (canonicalPayload) {
       persistCanonicalPilotManifest(env, canonical.manifest, canonical.profile, ctx);
@@ -2363,6 +2392,10 @@ const worker = {
       if (route && route.kind === "health") {
         const v3 = route.apiVersion === "v3";
         return json({ service: "realsignal-api", apiVersion: v3 ? "v3" : "v2", release: v3 ? V3_RELEASE : "2.2.2", status: "ready", capabilities: ["ia-search", "ia-metadata", "ia-queue", "session-rotation", "catalog-jobs", "source-catalog", "adaptive-catalog", "freshness-ledger", ...(v3 ? ["verified-guide", "server-telemetry", "source-health", "edge-manifests", "durable-rate-limit", "queue-dead-letter", "version5-gate", "roku-session", ...(IA_CANONICAL_PILOT_VALUES.has(String(env.IA_CANONICAL_PILOT || "").trim().toLowerCase()) ? ["ia-canonical-pilot"] : []), ...(IA_CANONICAL_SHADOW_VALUES.has(String(env.IA_CANONICAL_SHADOW || "").trim().toLowerCase()) ? ["ia-canonical-shadow"] : [])] : []), "youtube-sports"], bindings: { relay: !!env.RELAY, rotation: !!env.ROTATION, rateLimiter: !!env.RATE_LIMITER, rokuSession: !!env.ROKU_SESSION, catalog: !!env.realsignal_catalog, refreshQueue: !!env.realsignal_catalog_refresh }, checkedAt: new Date().toISOString() }, 200, { "Cache-Control": "no-store", "X-RealSignal-Request": id, "X-RealSignal-Release": v3 ? V3_RELEASE : "2.2.2" });
+      }
+      if (route && route.kind === "ia-playback") {
+        if (request.method !== "POST") return json({ error: "method not allowed" }, 405, { Allow: "POST,OPTIONS" });
+        return await handleIaPlayback(request, env, ctx, id);
       }
       if (route && route.kind === "telemetry") {
         if (request.method !== "POST") return json({ error: "method not allowed", requestId: id }, 405, { Allow: "POST,OPTIONS" });

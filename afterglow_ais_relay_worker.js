@@ -5399,7 +5399,7 @@ function mergeIaCatalogCandidates(previous, payload, options = {}) {
       : ((value && value.items) || []);
     return candidates.filter((item) => item && item.identifier);
   };
-  const merged = [], seen = new Set();
+  const merged = [], positions = new Map();
   /* Once a lane has a durable last-good catalog, preserve that catalog's
      order and append newly harvested files. Sorting or prepending the newest
      response lets a moving Archive result set slide the five-item boundary
@@ -5409,10 +5409,22 @@ function mergeIaCatalogCandidates(previous, payload, options = {}) {
     : [...sourceItems(payload), ...sourceItems(previous)];
   for (const item of orderedSources) {
     const identity = iaPlayableIdentity(item) || String(item.identifier || "");
-    if (!identity || seen.has(identity)) continue;
-    seen.add(identity);
+    if (!identity) continue;
+    if (positions.has(identity)) {
+      const index = positions.get(identity), previousItem = merged[index];
+      /* Identity order is stable; knowledge is not. A hydrated update must
+         enrich the existing row, and an unresolved refresh must not erase it. */
+      const known = Object.fromEntries(Object.entries(item).filter(([, value]) => value !== undefined && value !== null && value !== ""));
+      merged[index] = { ...previousItem, ...known };
+      if (previousItem.media || item.media) {
+        const media = Object.fromEntries(Object.entries(item.media || {}).filter(([, value]) => value !== undefined && value !== null && value !== ""));
+        merged[index].media = { ...previousItem.media, ...media };
+      }
+      continue;
+    }
+    if (merged.length >= IA_STRICT_CATALOG_CANDIDATE_MAX) continue;
+    positions.set(identity, merged.length);
     merged.push(item);
-    if (merged.length >= IA_STRICT_CATALOG_CANDIDATE_MAX) break;
   }
   return merged;
 }
@@ -5458,7 +5470,9 @@ function sharedQueuePut(env, key, payload, ttlSeconds, ctx) {
           media. The public shelf still contains only playable files, while a
           later rotation can hydrate a different approved window instead of
           reopening the same five records. */
-       const prior = iaLastGoodMemoryGet(fallbackKey) || previous;
+       /* A cold isolate's new five-item memory shelf is not a replacement for
+          the durable bank. Merge all three sources before persisting. */
+       const prior = { candidateItems: mergeIaCatalogCandidates(previous, iaLastGoodMemoryGet(fallbackKey), { preserveOrder: true }) };
        const candidateItems = mergeIaCatalogCandidates(prior, payload, { preserveOrder: true });
        const stored = {
         ...payload,
@@ -7756,15 +7770,16 @@ async function recordIaPlayed(request, env, ctx) {
      sits on the playback path. It only records the item after the client has
      seen its first decoded frame, allowing the next shelf to avoid genuinely
      watched programs rather than merely queued ones. */
-  rememberIaFreshness(env, channel, [{
-    __played: true,
+  const played = iaFreshnessRecord({
     identifier: id,
     title: cleanText(body && body.title, 240),
     subject: cleanText(body && body.subject, 420),
     year: cleanText(body && (body.year || body.date), 16),
     collection: cleanText(body && body.collection, 160),
     lane: cleanText(body && body.lane, 24),
-  }], ctx);
+    seriesId: cleanText(body && body.seriesId, 160),
+  });
+  rememberIaFreshness(env, channel, [{ ...played, __played: true }], ctx);
   return json({ ok: true, channel, id, freshness: "played-only" }, 202);
 }
 

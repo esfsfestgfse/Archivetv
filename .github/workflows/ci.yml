@@ -62,6 +62,8 @@ jobs:
         run: node scripts/test-ia-fallback-refill.js
       - name: Test IA persisted rotation rollover
         run: node scripts/test-ia-rotation.js
+      - name: Test IA catalog integrity and played-only reservations
+        run: node --test scripts/test-ia-audit-integrity.js
       - name: Test delayed live-data callbacks across channel changes
         run: node scripts/test-live-data-lifecycle.js
       - name: Guard guide row stability during background queue warming

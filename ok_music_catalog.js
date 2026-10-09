@@ -13,18 +13,43 @@ export const OK_SOUL_ARTISTS = Object.freeze([
   'Ciara', 'Ashanti', 'Nelly', 'Ludacris', 'Kanye West', 'Ne-Yo', 'Rihanna',
   'Earth, Wind & Fire', 'Kool & The Gang', 'Lionel Richie', 'Teena Marie',
 ]);
-const DENY = /\b(?:lyrics?|live|concert|reaction|review|podcast|interview|tutorial|trailer|teaser|cover|karaoke|remix|bootleg|dj[ -]?edit|tribute|slideshow|mashup|parody|fan[ -]?(?:made|edit|video)|unofficial|audio[ -]?only|visualizer|shorts?|vertical|dance practice|behind the scenes|making of)\b/i;
+export const OK_COUNTRY_ARTISTS = Object.freeze([
+  'George Strait', 'Reba McEntire', 'Alan Jackson', 'Randy Travis',
+  'Clint Black', 'Dwight Yoakam', 'Vince Gill', 'Patty Loveless',
+  'Garth Brooks', 'Brooks & Dunn', 'Travis Tritt', 'Mark Chesnutt',
+  'Joe Diffie', 'Tanya Tucker', 'Ricky Skaggs', 'Sawyer Brown',
+  'Alabama', 'The Oak Ridge Boys', 'Kathy Mattea', 'Mary Chapin Carpenter',
+  'Shania Twain', 'Faith Hill', 'Tim McGraw', 'Kenny Chesney',
+  'Toby Keith', 'Trace Adkins', 'Brad Paisley', 'Keith Urban',
+  'Joe Nichols', 'Martina McBride', 'Lee Ann Womack', 'LeAnn Rimes',
+  'Wynonna', 'Trisha Yearwood', 'Carrie Underwood', 'Sugarland',
+  'Lady Antebellum', 'Dixie Chicks', 'Josh Turner', 'Dierks Bentley',
+  'Rodney Atkins', 'Big & Rich', 'Gretchen Wilson', 'Lonestar',
+  'Montgomery Gentry', 'Rascal Flatts', 'John Michael Montgomery', 'Mel McDaniel',
+  'Don Williams', 'Dolly Parton', 'Kenny Rogers', 'Johnny Cash',
+  'Willie Nelson', 'Waylon Jennings', 'Steve Earle', 'Rosanne Cash',
+  'Steve Wariner', 'Collin Raye', 'Deana Carter', 'Mindy McCready',
+  'Tracy Lawrence', 'David Lee Murphy', 'Suzy Bogguss', 'Hank Williams Jr.',
+  'Restless Heart', 'Diamond Rio', 'Pam Tillis', 'Lorrie Morgan',
+  'The Judds', 'Rick Trevino', 'Gary Allan', 'Chris LeDoux',
+  'Billy Ray Cyrus', 'BlackHawk', 'Little Texas', 'Emmylou Harris',
+  'Nitty Gritty Dirt Band', 'SHeDAISY', 'Phil Vassar', 'Tracy Byrd',
+]);
+const MUSIC_FAMILIES = Object.freeze({'ok-soul-flow-channel':'soul','ok-country-video-channel':'country'});
+const ARTISTS = [...OK_SOUL_ARTISTS, ...OK_COUNTRY_ARTISTS];
+const DENY = /\b(?:lyrics?|live|concert|reaction|review|podcast|interview|tutorial|trailer|teaser|cover|karaoke|remix|bootleg|dj[ -]?edit|tribute|slideshow|mashup|parody|fan[ -]?(?:made|edit|video|film)|unofficial|audio[ -]?only|visualizer|shorts?|vertical|dance practice|behind the scenes|making of|music city tonight|nashville now|austin city limits|grand ole opry|cmt crossroads|farm aid|tnn)\b/i;
 const FOREIGN = /[\u0400-\u04ff\u0600-\u06ff\u0900-\u097f\u3040-\u30ff\u3400-\u9fff]|\b(?:vostfr|subesp|dublado|latino|espa[nñ]ol|fran[cç]ais)\b/i;
 const MBID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
 const normalize = value => String(value || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
-export function okMusicChannel(profile) { return profile?.profileKey === 'ok-soul-flow-channel'; }
+export function okMusicChannel(profile) { return Object.hasOwn(MUSIC_FAMILIES,profile?.profileKey || ''); }
 export function okMusicQueries(profile, cursor = 0) {
   if (!okMusicChannel(profile)) return [];
-  return Array.from({ length: 4 }, (_, i) => `${OK_SOUL_ARTISTS[(Math.abs(Math.floor(cursor)) * 4 + i) % OK_SOUL_ARTISTS.length]} music video`);
+  const artists = MUSIC_FAMILIES[profile.profileKey] === 'country' ? OK_COUNTRY_ARTISTS : OK_SOUL_ARTISTS;
+  return Array.from({ length: 4 }, (_, i) => `${artists[(Math.abs(Math.floor(cursor)) * 4 + i) % artists.length]} music video`);
 }
 export function okMusicTitle(title) {
   const input = String(title || '').trim();
-  const artist = [...OK_SOUL_ARTISTS].sort((a,b) => b.length-a.length).find(name => normalize(input.slice(0, name.length)) === normalize(name) && /^[\s\-–—_:,.]+/.test(input.slice(name.length)));
+  const artist = [...ARTISTS].sort((a,b) => b.length-a.length).find(name => normalize(input.slice(0, name.length)) === normalize(name) && /^[\s\-–—_:,.]+/.test(input.slice(name.length)));
   if (!artist) return null;
   const song = input.slice(artist.length).replace(/^[\s\-–—_:,.]+/, '')
     .replace(/\([^)]*(?:official|music video|remaster|\b(?:19|20)\d{2}\b|\b(?:hd|hq|4k|1080p|720p)\b)[^)]*\)/gi, '')
@@ -35,7 +60,9 @@ export function okMusicTitle(title) {
   return song && song.length <= 160 ? { artist, song, key: normalize(artist) + ':' + normalize(song) } : null;
 }
 export function okMusicPrecheck(profile, item, checkAspect = true) {
-  return okMusicChannel(profile) && !!item && !!item.id && !!okMusicTitle(item.title)
+  const title = okMusicTitle(item?.title);
+  const artists = MUSIC_FAMILIES[profile?.profileKey] === 'country' ? OK_COUNTRY_ARTISTS : OK_SOUL_ARTISTS;
+  return okMusicChannel(profile) && !!item && !!item.id && !!title && artists.includes(title.artist)
     && Number(item.duration) >= 120 && Number(item.duration) <= 900
     && (!checkAspect || Number(item.aspectRatio) >= 1.2)
     && !DENY.test(String(item.title || '')) && !FOREIGN.test(String(item.title || ''));
@@ -56,7 +83,7 @@ export function okMusicIdentityFromResults(item, result) {
   if (!record) return null;
   const year = Number(record['first-release-date'].slice(0,4));
   if (year < 1980 || year > 2009) return null;
-  return { musicVerified: true, musicVerificationVersion: 2, musicArtist: title.artist,
+  return { musicVerified: true, musicVerificationVersion: 2, musicFamily: OK_COUNTRY_ARTISTS.includes(title.artist) ? 'country' : 'soul', musicArtist: title.artist,
     musicArtistId: record['artist-credit'][0].artist.id, musicTrack: title.song,
     musicTrackKey: title.key, musicRecordingId: record.id, musicReleaseYear: year,
     year: String(year), language: 'en', seriesId: 'musicbrainz:' + record['artist-credit'][0].artist.id,
@@ -66,6 +93,7 @@ export function okMusicIdentityFromResults(item, result) {
 export function okMusicVerified(profile, item) {
   const title = okMusicTitle(item?.title);
   return okMusicPrecheck(profile,item) && item.musicVerified === true && item.musicVerificationVersion === 2
+    && (item.musicFamily || 'soul') === MUSIC_FAMILIES[profile.profileKey]
     && title?.key === item.musicTrackKey && MBID.test(item.musicArtistId || '') && MBID.test(item.musicRecordingId || '')
     && item.musicReleaseYear >= 1980 && item.musicReleaseYear <= 2009
     && item.identityReference === 'https://musicbrainz.org/recording/' + item.musicRecordingId
@@ -110,7 +138,7 @@ export async function okMusicIdentities(items, known, fetchJson) {
       cache.set(title.key, identity);
     }
     if (identity) {
-      const keys = ['musicVerified','musicVerificationVersion','musicArtist','musicArtistId','musicTrack','musicTrackKey','musicRecordingId','musicReleaseYear','year','language','seriesId','seriesTitle','identityProvider','identityReference'];
+      const keys = ['musicVerified','musicVerificationVersion','musicFamily','musicArtist','musicArtistId','musicTrack','musicTrackKey','musicRecordingId','musicReleaseYear','year','language','seriesId','seriesTitle','identityProvider','identityReference'];
       identities.set(item.id, Object.fromEntries(keys.map(key => [key, identity[key]])));
     }
   }

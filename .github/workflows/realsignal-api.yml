@@ -59,6 +59,7 @@ jobs:
           node scripts/test-ok-animation-depth.js
           node scripts/test-ok-curated-tv.js
           node scripts/test-ok-music.js
+          node scripts/test-ok-country.js
           node scripts/test-vimeo-catalog-depth.js
           node scripts/test-vimeo-embed-runtime.js
           node scripts/test-v2-api-worker.js

@@ -23,9 +23,8 @@ New channels configure the common pipeline; they do not receive new backends.
 2. Gearhead TV: English automotive programs, never late-night Jay Leno.
 3. Cookhouse: cooking/food programs; Julia Child, Pepin, Great Chefs and others.
 4. Video Hits: 1980–2009 music videos, MTV-inspired, not affiliated with MTV.
-5. Country Video: 1980–2009 country music videos, CMT-inspired, not affiliated.
 
-## Music admission gate (implemented for Soul & Flow, channel 597)
+## Music admission gate (Soul & Flow 597 and Country Video 598)
 
 Use the same OK discovery/storage/playback engine with a music-video profile.
 Verify track identity and original release year using MusicBrainz; upload dates
@@ -86,6 +85,28 @@ search, manifest and merge rails now deduplicate by song before returning,
 retain the deeper bootstrap without provider requests, and are covered by a
 failing-then-passing empty-catalog regression. Existing TV/movie rails are
 unchanged. The visible stamp is bumped for this follow-up.
+
+## 5.5.82 Country Video
+
+- Channel 598: OK Country Video, CMT-inspired country music videos from 1980
+  through 2009. Independent channel; not affiliated with CMT.
+- Twenty rotating four-artist discovery windows produced 117 public embeds.
+  After excluding a Music City Tonight performance, the admitted bootstrap is
+  116 embeds: 100 distinct songs and 55 artists. The upload inventory spans 22
+  1980s, 47 1990s and 47 2000s entries. Alternate uploads are one song in playback.
+- Country and Soul share search, original-year verification, D1, official
+  embeds, Next and guide integration. Country has a separate genre/family and
+  viewing ledger; old Soul rows without a family remain backward compatible.
+- Scheduled maintenance now advances both independent artist catalogs. Provider
+  discovery and MusicBrainz checks remain off the viewer's startup path.
+- Real Chrome canary showed Trace Adkins and Lee Ann Womack video frames;
+  Next and current/next guide open/close worked. Physical-device testing is not
+  implied. Hosted deployment and final regression evidence follow below.
+- The five ready items are a shelf, not the catalog. The shared 96-item window
+  and durable catalog remain intact; the verified bootstrap is not a whitelist.
+- Mobile visual testing caught the performance-show title loophole before
+  publishing. Reproducing server/browser tests failed first, then passed after
+  excluding performance shows and fan films from the shared music gate.
 
 ## 5.5.79 verification record
 

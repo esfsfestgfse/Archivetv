@@ -9,6 +9,7 @@ import { SessionRotation } from "./realsignal_api_rotation.js";
 import { EdgeRateLimiter } from "./realsignal_api_rate_limit.js";
 import { RokuSession } from "./realsignal_roku_session.js";
 import { okBalancedCandidates, okPlaybackIdentity } from "./ok_public_search.js";
+import { okMusicChannel } from "./ok_music_catalog.js";
 import { vimeoBalancedItems } from "./vimeo_catalog.js";
 import { mergeSourceLanes, sourceCatalogTasks, sourceRefreshTasks, sourceProfile, qualifySourceItem, isOKSourceProfile, SOURCE_LIMITS } from "./realsignal_source_catalog.js";
 import { IA_CANONICAL_PILOT_PROFILES, IA_CANONICAL_SCHEMA_VERSION, canonicalGuide, selectCanonicalItems } from "./ia_canonical_station.mjs";
@@ -16,7 +17,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "5.5.81-ok-soul-flow";
+const V3_RELEASE = "5.5.82-ok-country-video";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -447,7 +448,7 @@ function compactCatalogItem(item) {
     seriesId: String(item.seriesId || "").slice(0, 100),
     identityProvider: String(item.identityProvider || "").slice(0, 80),
     identityReference: String(item.identityReference || "").slice(0, 500),
-    ...(item.musicVerified ? { musicVerified: true, musicVerificationVersion: Number(item.musicVerificationVersion), musicArtist: String(item.musicArtist || "").slice(0,100), musicArtistId: String(item.musicArtistId || "").slice(0,80), musicTrack: String(item.musicTrack || "").slice(0,160), musicTrackKey: String(item.musicTrackKey || "").slice(0,300), musicRecordingId: String(item.musicRecordingId || "").slice(0,80), musicReleaseYear: Number(item.musicReleaseYear) } : {}),
+    ...(item.musicVerified ? { musicVerified: true, musicVerificationVersion: Number(item.musicVerificationVersion), musicFamily: item.musicFamily || "soul", musicArtist: String(item.musicArtist || "").slice(0,100), musicArtistId: String(item.musicArtistId || "").slice(0,80), musicTrack: String(item.musicTrack || "").slice(0,160), musicTrackKey: String(item.musicTrackKey || "").slice(0,300), musicRecordingId: String(item.musicRecordingId || "").slice(0,80), musicReleaseYear: Number(item.musicReleaseYear) } : {}),
     curatedFamily: String(item.curatedFamily || "").slice(0, 40),
     curatedVerified: item.curatedVerified === true,
     curatedVerificationVersion: Number(item.curatedVerificationVersion) || 0,
@@ -1298,7 +1299,7 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
       seriesId: metadata.seriesId || "",
       identityProvider: metadata.identityProvider || "",
       identityReference: metadata.identityReference || "",
-      ...(metadata.musicVerified ? { musicVerified: true, musicVerificationVersion: Number(metadata.musicVerificationVersion), musicArtist: metadata.musicArtist, musicArtistId: metadata.musicArtistId, musicTrack: metadata.musicTrack, musicTrackKey: metadata.musicTrackKey, musicRecordingId: metadata.musicRecordingId, musicReleaseYear: Number(metadata.musicReleaseYear) } : {}),
+      ...(metadata.musicVerified ? { musicVerified: true, musicVerificationVersion: Number(metadata.musicVerificationVersion), musicFamily: metadata.musicFamily || "soul", musicArtist: metadata.musicArtist, musicArtistId: metadata.musicArtistId, musicTrack: metadata.musicTrack, musicTrackKey: metadata.musicTrackKey, musicRecordingId: metadata.musicRecordingId, musicReleaseYear: Number(metadata.musicReleaseYear) } : {}),
       curatedFamily: metadata.curatedFamily || "",
       curatedVerified: metadata.curatedVerified === true,
       curatedVerificationVersion: Number(metadata.curatedVerificationVersion) || 0,
@@ -1335,9 +1336,9 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
      candidate union while measuring depth/freshness and selecting the public
      shelf only from rows that can actually start. */
   const playable = filtered.filter(queueItemPlayable);
-  const playableCatalog = okCatalog ? okBalancedCandidates([playable], channel === "ok-soul-flow-channel" ? "music" : channel === "ok-movie-channel" ? "movie" : "tv", limit) : vimeoCatalog ? vimeoBalancedItems(playable) : playable;
+  const playableCatalog = okCatalog ? okBalancedCandidates([playable], okMusicChannel({profileKey:channel}) ? "music" : channel === "ok-movie-channel" ? "movie" : "tv", limit) : vimeoCatalog ? vimeoBalancedItems(playable) : playable;
   const recentIDs = recentCatalogIds(effectiveBody);
-  const okKind = channel === "ok-soul-flow-channel" ? "music" : channel === "ok-movie-channel" ? "movie" : "tv";
+  const okKind = okMusicChannel({profileKey:channel}) ? "music" : channel === "ok-movie-channel" ? "movie" : "tv";
   const recentPrograms = okCatalog ? new Set(playable.filter(item => recentIDs.has(queueItemKey(item))).map(item => okPlaybackIdentity(item, okKind))) : new Set();
   // Resolve watched identities independently of the bounded playable window.
   // Inactive originals still identify alternate uploads of a watched episode.

@@ -6,10 +6,11 @@ const animationWindows = Math.min(16, Math.max(0, Number(process.env.OK_ANIMATIO
 const curatedWindows = Math.min(16, Math.max(0, Number(process.env.OK_CURATED_WINDOWS || 6)));
 const musicWindows = Math.min(12, Math.max(0, Number(process.env.OK_MUSIC_WINDOWS || 4)));
 const curatedProfiles = ['ok-britannia-channel', 'ok-history-vault-channel', 'ok-factory-floor-channel', 'ok-black-tv-channel'];
+const musicProfiles = ['ok-soul-flow-channel', 'ok-country-video-channel'];
 (async () => {
   const failures = [];
-  for (const [profileKey, windows] of [['ok-tv-channel', tvWindows], ['ok-movie-channel', movieWindows], ['ok-kids-channel', animationWindows], ['ok-adult-channel', animationWindows], ['ok-anime-channel', animationWindows], ...curatedProfiles.map(profile => [profile, curatedWindows]), ['ok-soul-flow-channel',musicWindows]]) {
-    const curated = curatedProfiles.includes(profileKey) || profileKey === 'ok-soul-flow-channel';
+  for (const [profileKey, windows] of [['ok-tv-channel', tvWindows], ['ok-movie-channel', movieWindows], ['ok-kids-channel', animationWindows], ['ok-adult-channel', animationWindows], ['ok-anime-channel', animationWindows], ...curatedProfiles.map(profile => [profile, curatedWindows]), ...musicProfiles.map(profile => [profile,musicWindows])]) {
+    const curated = curatedProfiles.includes(profileKey) || musicProfiles.includes(profileKey);
     for (let window = 0; window < windows; window++) {
       const start = Date.now();
       const response = await fetch(endpoint, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ profileKey, maintenance: true }), signal: AbortSignal.timeout(45000) });

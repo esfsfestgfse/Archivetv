@@ -13,9 +13,10 @@ const { DatabaseSync } = require('node:sqlite');
   const count = Number(process.env.OK_PROBE_ROTATIONS || 4);
   const keys = (process.env.OK_PROBE_PROFILES || 'ok-movie-channel,ok-tv-channel').split(',');
   for (const key of keys) {
-    const union = new Map((OK_VERIFIED_SEARCH_SEED[key] || []).map(item => [item.id, item])); const samples = [];
+    const union = new Map([...(OK_VERIFIED_SEARCH_SEED[key] || []), ...(catalogs[key]?.items || [])].map(item => [item.id, item])); const samples = [];
     const sql = new DatabaseSync(':memory:');
     sql.exec('CREATE TABLE channel_rules (channel_key TEXT PRIMARY KEY, rules_json TEXT NOT NULL, updated_at INTEGER NOT NULL)');
+    sql.prepare('INSERT INTO channel_rules VALUES (?,?,?)').run(key,JSON.stringify({okDiscoveryCursor:Math.max(0,Number(process.env.OK_PROBE_START)||0)}),Date.now());
     const db = { prepare(query) { return { bind(...values) { return { async all() { return { results: sql.prepare(query).all(...values) }; } }; } }; } };
     for (let rotation = 0; rotation < count; rotation++) {
       const start = Date.now(); const lane = await okTitleSearch(sourceProfile({ profileKey: key }), rotation + Number(process.env.OK_PROBE_START || 0), { realsignal_catalog: db }, { maintenance: true });

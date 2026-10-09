@@ -144,7 +144,7 @@ for (const file of files) {
     [/function v2ProgramRuntimeOkay\(/, 'every source item must pass the shared television-runtime gate'],
     [/merged[^\n]+\.filter\(function\(item\)\{return [^;]*v2Landscape\(item\)&&v2ProfileRuntimeOkay\(item,profile\);\}\)/, 'the final source catalog merge must re-enforce the profile-specific runtime floor'],
     [/!v2Landscape\(item\)\|\|\(!musicOkay&&!v2ProgramRuntimeOkay\(item\)\)/, 'runtime qualification must be enforced at verification time'],
-    [/musicOkay=profile&&profile\.profileKey==="ok-soul-flow-channel"&&window\.RealSignalOKEmbed\.qualify\(profile,item\)/, 'the music runtime exception must be bound to the verified music profile'],
+    [/musicOkay=window\.RealSignalOKEmbed\.musicProfile\(profile\)&&window\.RealSignalOKEmbed\.qualify\(profile,item\)/, 'the music runtime exception must be bound to an approved and verified music profile'],
     [/Number\(data\.info\)===0\)advance\(\)/, 'YouTube embeds must advance immediately on their ended signal'],
     [/function v2SourceHealth\(/, 'provider health must be persisted'],
     [/function v2Loc\(/, 'Library of Congress must have a runtime lane'],

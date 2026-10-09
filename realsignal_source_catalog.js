@@ -530,7 +530,7 @@ export async function okTitleSearch(profile, rotation, env, options = {}) {
         for (const row of stored.results || []) { try { known.push(JSON.parse(row.metadata_json)); } catch (_) {} }
       } catch (_) { /* bootstrap remains usable */ }
     }
-    musicIdentities = await okMusicIdentities(candidates,known,url => fetchJson(url,{ headers: { "User-Agent": "RealSignal/5.5.81 (https://github.com/esfsfestgfse/Archivetv)" }, cf: { cacheTtl: 604800, cacheEverything: true } }));
+    musicIdentities = await okMusicIdentities(candidates,known,url => fetchJson(url,{ headers: { "User-Agent": "RealSignal/5.5.82 (https://github.com/esfsfestgfse/Archivetv)" }, cf: { cacheTtl: 604800, cacheEverything: true } }));
   }
   if (kind === "movie") {
     // An identity lookup can delay NEW discoveries, never erase a known shelf.
@@ -544,7 +544,7 @@ export async function okTitleSearch(profile, rotation, env, options = {}) {
     const nameOf = item => `${String(item.title).match(/\b(?:19|20)\d{2}\b/)?.[0] || ""}:${okProgramName(item.title, "movie").toLowerCase()}`;
     const identities = new Map(known.filter(item => item.language === "en" && item.identityReference).map(item => [nameOf(item), { language: "en", identityReference: item.identityReference, identityProvider: "Wikidata" }]));
     for (const item of candidates) if (identities.has(nameOf(item))) movieIdentities.set(item.id, identities.get(nameOf(item)));
-    try { const discovered = await okMovieIdentities(candidates.filter(item => !movieIdentities.has(item.id)), url => fetchJson(url, { headers: { "User-Agent": "RealSignal/5.5.81 (catalog metadata; https://github.com/esfsfestgfse/Archivetv)" }, cf: { cacheTtl: 86400, cacheEverything: true } })); for (const [key, identity] of discovered) movieIdentities.set(key, identity); }
+    try { const discovered = await okMovieIdentities(candidates.filter(item => !movieIdentities.has(item.id)), url => fetchJson(url, { headers: { "User-Agent": "RealSignal/5.5.82 (catalog metadata; https://github.com/esfsfestgfse/Archivetv)" }, cf: { cacheTtl: 86400, cacheEverything: true } })); for (const [key, identity] of discovered) movieIdentities.set(key, identity); }
     catch (error) { errors.push(`film identity: ${text(error?.message, 100)}`); }
   }
   const verified = await mapLimit(candidates, 3, async (item) => {
@@ -845,7 +845,7 @@ function normalized(item, provider, query) {
     seriesId: text(item.seriesId, 100),
     identityReference: text(item.identityReference, 300),
     identityProvider: text(item.identityProvider, 50),
-    ...(item.musicVerified ? { musicVerified: true, musicVerificationVersion: item.musicVerificationVersion, musicArtist: text(item.musicArtist,100), musicArtistId: text(item.musicArtistId,80), musicTrack: text(item.musicTrack,160), musicTrackKey: text(item.musicTrackKey,300), musicRecordingId: text(item.musicRecordingId,80), musicReleaseYear: Number(item.musicReleaseYear) } : {}),
+    ...(item.musicVerified ? { musicVerified: true, musicVerificationVersion: item.musicVerificationVersion, musicFamily: item.musicFamily || "soul", musicArtist: text(item.musicArtist,100), musicArtistId: text(item.musicArtistId,80), musicTrack: text(item.musicTrack,160), musicTrackKey: text(item.musicTrackKey,300), musicRecordingId: text(item.musicRecordingId,80), musicReleaseYear: Number(item.musicReleaseYear) } : {}),
     ...(okAnimationFamily({profileKey:item.animationFamily ? `ok-${item.animationFamily}-channel` : ''}) ? {animationFamily:item.animationFamily,animationVerified:item.animationVerified===true,animationVerificationVersion:item.animationVerificationVersion,animationEpisodeRuntime:Number(item.animationEpisodeRuntime)||0} : {}),
     ...(item.curatedFamily ? {curatedFamily:text(item.curatedFamily,40),curatedVerified:item.curatedVerified===true,curatedVerificationVersion:Number(item.curatedVerificationVersion)||0,episodeIdentity:text(item.episodeIdentity,40)} : {}),
   };
@@ -1240,7 +1240,7 @@ async function vimeo(profile, rotation, env, options = {}) {
         if (item.language && !vimeoLanguageKnown(item)) return null;
         try {
           identity = await vimeoProgramIdentity(item, kind,
-            url => vimeoJson(url, { headers: { "User-Agent": "RealSignal/5.5.81 (public catalog identity; https://github.com/esfsfestgfse/Archivetv)", Accept: "application/json" } }, Math.max(1, Math.min(3000, deadline - Date.now()))), identityCache);
+            url => vimeoJson(url, { headers: { "User-Agent": "RealSignal/5.5.82 (public catalog identity; https://github.com/esfsfestgfse/Archivetv)", Accept: "application/json" } }, Math.max(1, Math.min(3000, deadline - Date.now()))), identityCache);
         } catch (error) {
           if (!(kind === "tv" ? vimeoOriginalSeriesEvidence(item) : vimeoLanguageKnown(item))) throw error;
           errors.push(text(error?.message, 120));

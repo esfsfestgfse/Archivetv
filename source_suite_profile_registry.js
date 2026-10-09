@@ -2402,6 +2402,19 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "match": ["music video", "r&b", "soul", "hip hop"],
     "deny": ["lyrics", "concert", "podcast", "fan edit", "reaction", "audio only"]
   },
+  "ok-country-video-channel": {
+    "name": "OK Country Video",
+    "queryLimit": 32,
+    "queryWindow": 4,
+    "providers": ["ok-search", "ok-manifest"],
+    "intent": "music",
+    "serverOnly": true,
+    "minRuntimeSeconds": 120,
+    "deepCatalog": true,
+    "queries": ["George Strait music video", "Reba McEntire music video", "Alan Jackson music video", "Randy Travis music video"],
+    "match": ["music video", "country", "country pop", "country rock"],
+    "deny": ["lyrics", "concert", "podcast", "fan edit", "reaction", "audio only"]
+  },
   "vimeo-movie-channel": {
     "name": "Vimeo Movie Channel",
     "queryLimit": 24,

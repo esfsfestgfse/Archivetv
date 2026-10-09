@@ -84,6 +84,8 @@ jobs:
         run: node scripts/test-ok-curated-tv.js
       - name: Validate OK music identity, era and freshness
         run: node scripts/test-ok-music.js
+      - name: Validate separated country music discovery and rotation
+        run: node scripts/test-ok-country.js
       - name: Validate Vimeo public catalog depth and episode rotation
         run: node scripts/test-vimeo-catalog-depth.js
       - name: Validate actual Vimeo playback lifecycle

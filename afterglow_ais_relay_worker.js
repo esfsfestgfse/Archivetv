@@ -5506,6 +5506,8 @@ function sharedQueuePut(env, key, payload, ttlSeconds, ctx) {
   }
   const write = Promise.all(writes).catch((error) => {
     console.warn(JSON.stringify({ event: "shared-queue-write-failed", message: String(error && error.message || error) }));
+    // Repair harvests must retry failed persistence, not acknowledge lost depth.
+    if (ctx?.iaRepair && ctx.isIaBackground) throw error;
   });
   if (ctx) ctx.waitUntil(write);
 }
@@ -10442,10 +10444,15 @@ export default {
         continue;
       }
       try {
+        const persistence = [];
         const backgroundCtx = {
           isIaBackground: true,
           iaRepair: payload.iaRepair === true,
-          waitUntil(promise) { Promise.resolve(promise).catch(() => {}); },
+          waitUntil(promise) {
+            const work = Promise.resolve(promise);
+            if (payload.iaRepair === true) persistence.push(work);
+            work.catch(() => {});
+          },
         };
         const harvested = await expandAndCacheIaQueue(
           payload.seed,
@@ -10468,6 +10475,9 @@ export default {
           payload.rotation,
           payload.forceDiscovery === true,
         );
+        // The queue acknowledgement is the durability boundary. A foreground
+        // response remains fast; only the background consumer awaits storage.
+        if (payload.iaRepair === true) await Promise.all(persistence);
         /* One delivery advances one deterministic page window. Continue only
            for depth-recovery lanes, carry the richer verified union forward,
            and stop after a bounded number of passes. This keeps all Archive

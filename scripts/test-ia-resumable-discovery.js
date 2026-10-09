@@ -16,6 +16,27 @@ function relay(extra = {}) {
 const rules = { maxPerLane: 1, maxPerEra: 1, maxPerCreator: 1, maxPerCollection: 1, maxPerFamily: 1 };
 const queries = Array.from({ length: 12 }, (_, i) => 'rail-' + i);
 
+test('repair harvest is not acknowledged before its catalog is durably written', async () => {
+  const scope = relay(), events = [];
+  let release;
+  const write = new Promise(resolve => { release = resolve; });
+  scope.saveFixture = (env, ctx) => scope.f.persistFixture(env, ctx);
+  vm.runInContext('globalThis.workerFixture=worker;globalThis.f.persistFixture=(env,ctx)=>sharedQueuePut(env,"family",{channel:"10",ready:1,lastGoodKey:"family",items:[{identifier:"episode",media:{url:"https://archive.org/download/series/episode.mp4"}}]},3600,ctx);expandAndCacheIaQueue=async(...args)=>{saveFixture(args[15],args[16]);return null;};', scope);
+  const env = { REALSIGNAL_QUEUE: { get: async () => null, put: async () => { events.push('writing'); await write; events.push('persisted'); } } };
+  const completion = scope.workerFixture.queue({ messages: [{ body: { type: 'ia-catalog-harvest', version: 1, channel: '10', iaRepair: true }, ack: () => events.push('ack'), retry: () => events.push('retry') }] }, env, { waitUntil() {} });
+  await new Promise(setImmediate);
+  assert.equal(events.includes('ack'), false, 'a successful handler must not discard unfinished writes');
+  release(); await completion;
+  assert.deepEqual(events, ['writing', 'persisted', 'ack']);
+});
+
+test('failed repair catalog persistence retries the harvest instead of acknowledging data loss', async () => {
+  const scope = relay({ console: { warn() {} } }), events = [];
+  vm.runInContext('globalThis.workerFixture=worker;expandAndCacheIaQueue=async(...args)=>{sharedQueuePut(args[15],"family",{channel:"10",ready:1,lastGoodKey:"family",items:[{identifier:"episode",media:{url:"https://archive.org/download/series/episode.mp4"}}]},3600,args[16]);return null;};', scope);
+  await scope.workerFixture.queue({ messages: [{ body: { type: 'ia-catalog-harvest', version: 1, channel: '10', iaRepair: true }, ack: () => events.push('ack'), retry: () => events.push('retry') }] }, { REALSIGNAL_QUEUE: { get: async () => null, put: async () => { throw Error('temporary storage failure'); } } }, { waitUntil() {} });
+  assert.deepEqual(events, ['retry']);
+});
+
 test('hydration exposes distinct eligible siblings without counting encodes or short/portrait extras', async () => {
   const scope = relay();
   vm.runInContext('cachedArchiveJson=async (_key,_ttl,loader)=>loader(); archiveFetch=async()=>Response.json({metadata:{language:"eng"},files:[{name:"Race 1.mp4",length:2400,width:640,height:480},{name:"Race 1.ia.mp4",length:2400,width:640,height:480},{name:"Race 2.mp4",length:2400,width:640,height:480},{name:"Race 3.mp4",length:2400,width:640,height:480},{name:"preview.mp4",length:2400,width:640,height:480},{name:"short.mp4",length:240,width:640,height:480},{name:"vertical.mp4",length:2400,width:480,height:640}]});', scope);

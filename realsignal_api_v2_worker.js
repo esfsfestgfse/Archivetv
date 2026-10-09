@@ -10,6 +10,7 @@ import { EdgeRateLimiter } from "./realsignal_api_rate_limit.js";
 import { RokuSession } from "./realsignal_roku_session.js";
 import { okBalancedCandidates, okPlaybackIdentity } from "./ok_public_search.js";
 import { okMusicChannel } from "./ok_music_catalog.js";
+import { OK_VERIFIED_SEARCH_SEED } from "./ok_verified_search_seed.js";
 import { vimeoBalancedItems } from "./vimeo_catalog.js";
 import { mergeSourceLanes, sourceCatalogTasks, sourceRefreshTasks, sourceProfile, qualifySourceItem, isOKSourceProfile, SOURCE_LIMITS } from "./realsignal_source_catalog.js";
 import { IA_CANONICAL_PILOT_PROFILES, IA_CANONICAL_SCHEMA_VERSION, canonicalGuide, selectCanonicalItems } from "./ia_canonical_station.mjs";
@@ -17,7 +18,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "5.5.83-ok-video-hits";
+const V3_RELEASE = "5.5.84-ok-video-hits";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -1191,6 +1192,16 @@ async function rememberFreshness(env, channel, items, ctx) {
    catalog rather than turning a healthy channel into No Signal. */
 function applyFreshness(items, body) {
   if (!Array.isArray(items) || !items.length) return [];
+  const musicProfile = sourceProfile(body);
+  if (okMusicChannel(musicProfile)) {
+    // A played upload can be outside the current cold window. Resolve its
+    // canonical song against the full verified bootstrap, not this shelf only.
+    const recent = recentCatalogIds(body);
+    const known = (OK_VERIFIED_SEARCH_SEED[musicProfile.profileKey] || []).concat(items);
+    const heardSongs = new Set(known.filter(item => recent.has(queueItemKey(item))).map(item => okPlaybackIdentity(item, "music")));
+    const fresh = items.filter(item => !recent.has(queueItemKey(item)) && !heardSongs.has(okPlaybackIdentity(item, "music")));
+    return fresh.length ? fresh : items;
+  }
   const requestedCount = Math.max(1, Math.min(5, Number(body && body.count) || 3));
   const recentLimit = items.length >= requestedCount ? Math.max(0, items.length - requestedCount) : recentCatalogIds(body).size;
   const boundedRecent = new Set(freshnessExclusionIds(body, recentLimit));

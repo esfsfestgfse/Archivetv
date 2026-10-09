@@ -43,6 +43,16 @@ const { pathToFileURL } = require('node:url');
   const cold=await(await worker.default.fetch(new Request('https://api.example/api/v3/source/catalog',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({profileKey:profile.profileKey,count:5})}),{},{waitUntil(){}})).json();
   assert.ok(cold.items.length>=5,'empty durable catalog still starts without foreground provider discovery');
   assert.equal(new Set(cold.items.map(x=>x.identityReference)).size,cold.items.length,'alternate uploads are one song in playback');
+  const heardIds=[],heardSongs=new Set();
+  for(let rotation=0;rotation<12;rotation++){
+    const response=await worker.default.fetch(new Request('https://api.example/api/v3/source/catalog',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({profileKey:profile.profileKey,count:5,rotation,recentIds:heardIds})}),{},{waitUntil(){}});
+    assert.equal(response.status,200);
+    const selected=(await response.json()).items.slice(0,5);
+    assert.equal(selected.length,5);
+    for(const row of selected){assert.ok(!heardSongs.has(row.identityReference),'cold rotations cannot reopen alternate uploads: '+row.title);heardSongs.add(row.identityReference);}
+    heardIds.unshift(...selected.map(row=>row.id));
+  }
+  assert.equal(heardSongs.size,60,'twelve cold shelves have sixty distinct songs without D1');
   const {DatabaseSync}=require('node:sqlite'),sql=new DatabaseSync(':memory:');
   for(const file of ['0001_realsignal_catalog.sql','0002_realsignal_v3_observability.sql','0003_realsignal_v4_adaptive_catalog.sql'])sql.exec(fs.readFileSync(path.join(root,'migrations',file),'utf8'));
   sql.prepare("INSERT INTO programs (id,provider,title,duration_seconds,aspect_ratio,media_type,media_url,metadata_json,first_seen_at,last_seen_at,status) VALUES (?,?,?,?,?,?,?,?,?,?,'active')").run(verified.id,'OK.ru',verified.title,225,4/3,'embed',verified.embedUrl,JSON.stringify({...worker.compactCatalogItem(verified),durationUnit:'seconds'}),1,1);

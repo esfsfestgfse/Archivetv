@@ -154,3 +154,17 @@ unchanged. The visible stamp is bumped for this follow-up.
 - Embeddable metadata is not an independent license determination. Provider
   availability can change; no private credentials or extracted media URLs
   are included in the bootstrap.
+
+## 5.5.84 cold-rotation follow-up
+
+- The first hosted twelve-shelf probe reproduced an alternate-upload repeat
+  after five successful rotations. The cold path excluded upload IDs but did
+  not resolve heard songs whose original upload lay outside the next window.
+- A no-D1 regression reproduced the same Cyndi Lauper repeat. Cold music history
+  now resolves canonical identities through the full verified bootstrap before
+  filtering a shelf. This does not request providers or affect TV/movie rails.
+- Twelve offline shelves now produce sixty different canonical songs. The
+  visible stamp is bumped again for this follow-up; hosted confirmation is
+  required before declaring rotation repaired.
+- The local browser also observed natural EOF handoff from Savage Garden to
+  The Cranberries, without a manual Next action.

@@ -125,3 +125,32 @@ unchanged. The visible stamp is bumped for this follow-up.
 - Review follow-up cleared all three findings, and all eighteen focused tests
   passed again after the fixes. Hosted build stamp, CI, API deployment and Pages
   deployment must still be checked after pushing.
+
+## 5.5.83 Video Hits
+
+- Channel 599: OK Video Hits, MTV-inspired pop, rock, alternative and new wave
+  music videos originally released in 1980–2009. Independent, not an MTV feed.
+- Twenty-nine rotating artist windows found 222 public embeds. Rechecking
+  official-embed metadata admitted all 222 uploads: 184 distinct songs and
+  102 artists. Upload distribution: 83 from the 1980s, 73 from the 1990s,
+  66 from the 2000s. Alternate uploads are one canonical song in playback.
+- Reuses the existing OK discovery, MusicBrainz original-release checks, D1,
+  official player, guide and Next engine. Separate family and viewing history
+  from Soul & Flow and Country Video. Scheduled background maintenance now
+  advances all three music catalogs; the bootstrap is not a whitelist.
+- Review reproduced two shared bugs before release: Official Audio/Audio
+  Version labels bypassed the video gate, and automatic EOF stalled after
+  inventory exhaustion. Negative server/browser tests failed first. Music-only
+  replay now occurs after refresh finds no unseen items, with cancellation
+  checks preserved. All 24 EOF/Next scenarios pass for the three profiles on
+  desktop/mobile. The independent follow-up closed both findings.
+- Browser canary showed visible frames for Smashing Pumpkins, Savage Garden,
+  U2 and P!nk; desktop and 390×844 mobile-layout Next and current/next guide
+  open/close worked. Savage Garden's provider ad initially displayed a media
+  error, then cleared and the actual video played; not a content failure.
+- All 56 local CI/deploy commands passed, plus the merge/build-stamp contract.
+  This is sampled browser evidence, not every-upload playback or physical
+  phone/Cast certification. Hosted release confirmation follows deployment.
+- Embeddable metadata is not an independent license determination. Provider
+  availability can change; no private credentials or extracted media URLs
+  are included in the bootstrap.

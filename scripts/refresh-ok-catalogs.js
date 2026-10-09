@@ -6,7 +6,7 @@ const animationWindows = Math.min(16, Math.max(0, Number(process.env.OK_ANIMATIO
 const curatedWindows = Math.min(16, Math.max(0, Number(process.env.OK_CURATED_WINDOWS || 6)));
 const musicWindows = Math.min(12, Math.max(0, Number(process.env.OK_MUSIC_WINDOWS || 4)));
 const curatedProfiles = ['ok-britannia-channel', 'ok-history-vault-channel', 'ok-factory-floor-channel', 'ok-black-tv-channel'];
-const musicProfiles = ['ok-soul-flow-channel', 'ok-country-video-channel'];
+const musicProfiles = ['ok-soul-flow-channel', 'ok-country-video-channel', 'ok-video-hits-channel'];
 (async () => {
   const failures = [];
   for (const [profileKey, windows] of [['ok-tv-channel', tvWindows], ['ok-movie-channel', movieWindows], ['ok-kids-channel', animationWindows], ['ok-adult-channel', animationWindows], ['ok-anime-channel', animationWindows], ...curatedProfiles.map(profile => [profile, curatedWindows]), ...musicProfiles.map(profile => [profile,musicWindows])]) {

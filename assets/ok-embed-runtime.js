@@ -3,7 +3,7 @@
 (function (root) {
   "use strict";
   var active = null;
-  function musicProfile(profile) { return !!profile && /^(?:ok-soul-flow-channel|ok-country-video-channel)$/.test(String(profile.profileKey || "")); }
+  function musicProfile(profile) { return !!profile && /^(?:ok-soul-flow-channel|ok-country-video-channel|ok-video-hits-channel)$/.test(String(profile.profileKey || "")); }
   function normalize(item) {
     if (!item || item.provider !== "OK.ru") return item;
     var url = String(item.embedUrl || item.url || "");
@@ -26,7 +26,7 @@
           .replace(/["“”]/g, "").replace(/\s*\((?:\d+)\)\s*$/, "").replace(/[\s\-_:,]+$/, "").trim() : "";
       var mbid = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
       return item.musicVerified === true && item.musicVerificationVersion === 2
-        && (item.musicFamily || "soul") === (profile.profileKey === "ok-country-video-channel" ? "country" : "soul")
+        && (item.musicFamily || "soul") === (profile.profileKey === "ok-country-video-channel" ? "country" : profile.profileKey === "ok-video-hits-channel" ? "video-hits" : "soul")
         && item.musicReleaseYear >= 1980 && item.musicReleaseYear <= 2009
         && mbid.test(String(item.musicArtistId || "")) && mbid.test(String(item.musicRecordingId || ""))
         && item.identityReference === "https://musicbrainz.org/recording/" + item.musicRecordingId
@@ -34,7 +34,7 @@
         && item.embedAllowed === true && /^https:\/\/ok\.ru\/videoembed\/\d+(?:[?#]|$)/.test(String(item.embedUrl || item.url || ""))
         && Number(item.duration) >= 120 && Number(item.duration) <= 900 && Number(item.aspectRatio) >= 1.2
         && !/[\u0400-\u04ff\u0600-\u06ff\u0900-\u097f\u3040-\u30ff\u3400-\u9fff]|\b(?:vostfr|subesp|dublado|latino|espa[nñ]ol|fran[cç]ais)\b/i.test(title)
-        && !/\b(?:lyrics?|live|concert|reaction|review|podcast|interview|tutorial|trailer|teaser|cover|karaoke|remix|bootleg|dj[ -]?edit|tribute|slideshow|mashup|parody|fan[ -]?(?:made|edit|video|film)|unofficial|audio[ -]?only|visualizer|shorts?|vertical|dance practice|behind the scenes|making of|music city tonight|nashville now|austin city limits|grand ole opry|cmt crossroads|farm aid|tnn)\b/i.test(title);
+        && !/\b(?:lyrics?|live|concert|reaction|review|podcast|interview|tutorial|trailer|teaser|cover|karaoke|remix|bootleg|dj[ -]?edit|tribute|slideshow|mashup|parody|fan[ -]?(?:made|edit|video|film)|unofficial|official[ -]?audio|audio[ -]?(?:only|version)|visualizer|shorts?|vertical|dance practice|behind the scenes|making of|music city tonight|nashville now|austin city limits|grand ole opry|cmt crossroads|farm aid|tnn)\b/i.test(title);
     }
     var family = /^ok-(kids|adult|anime)-channel$/.exec(String(profile.profileKey || ""));
     if (family) {

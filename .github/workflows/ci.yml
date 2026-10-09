@@ -86,6 +86,10 @@ jobs:
         run: node scripts/test-ok-music.js
       - name: Validate separated country music discovery and rotation
         run: node scripts/test-ok-country.js
+      - name: Validate MTV-style Video Hits discovery and rotation
+        run: node scripts/test-ok-video-hits.js
+      - name: Validate shared music EOF recovery
+        run: node scripts/test-ok-music-exhaustion.js
       - name: Validate Vimeo public catalog depth and episode rotation
         run: node scripts/test-vimeo-catalog-depth.js
       - name: Validate actual Vimeo playback lifecycle

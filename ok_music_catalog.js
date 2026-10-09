@@ -35,16 +35,48 @@ export const OK_COUNTRY_ARTISTS = Object.freeze([
   'Billy Ray Cyrus', 'BlackHawk', 'Little Texas', 'Emmylou Harris',
   'Nitty Gritty Dirt Band', 'SHeDAISY', 'Phil Vassar', 'Tracy Byrd',
 ]);
-const MUSIC_FAMILIES = Object.freeze({'ok-soul-flow-channel':'soul','ok-country-video-channel':'country'});
-const ARTISTS = [...OK_SOUL_ARTISTS, ...OK_COUNTRY_ARTISTS];
-const DENY = /\b(?:lyrics?|live|concert|reaction|review|podcast|interview|tutorial|trailer|teaser|cover|karaoke|remix|bootleg|dj[ -]?edit|tribute|slideshow|mashup|parody|fan[ -]?(?:made|edit|video|film)|unofficial|audio[ -]?only|visualizer|shorts?|vertical|dance practice|behind the scenes|making of|music city tonight|nashville now|austin city limits|grand ole opry|cmt crossroads|farm aid|tnn)\b/i;
+export const OK_VIDEO_HITS_ARTISTS = Object.freeze([
+  'Madonna', 'Cyndi Lauper', 'Duran Duran', 'Eurythmics',
+  'George Michael', 'Wham!', 'a-ha', 'Tears for Fears',
+  'Depeche Mode', 'New Order', 'The Cure', 'INXS',
+  'Billy Idol', 'David Bowie', 'Peter Gabriel', 'Genesis',
+  'Phil Collins', 'Dire Straits', 'The Police', 'Sting',
+  'U2', 'R.E.M.', 'The Cars', 'Huey Lewis & The News',
+  'Journey', 'Foreigner', 'Bryan Adams', 'Bruce Springsteen',
+  'John Mellencamp', 'Tom Petty', 'Bon Jovi', "Guns N' Roses",
+  'Aerosmith', 'Van Halen', 'Def Leppard', 'Mötley Crüe',
+  'Poison', 'Heart', 'Roxette', 'Belinda Carlisle',
+  'Bangles', 'The Go-Go\'s', 'Bananarama', 'Kim Wilde',
+  'Tina Turner', 'Pet Shop Boys', 'Rick Astley', 'Simple Minds',
+  'Nirvana', 'Pearl Jam', 'Alice in Chains', 'Soundgarden',
+  'Stone Temple Pilots', 'The Smashing Pumpkins', 'Radiohead', 'Green Day',
+  'The Offspring', 'Blink-182', 'Oasis', 'Blur',
+  'Garbage', 'No Doubt', 'Alanis Morissette', 'Sheryl Crow',
+  'Sarah McLachlan', 'The Cranberries', 'Counting Crows', 'Goo Goo Dolls',
+  'Matchbox Twenty', 'Collective Soul', 'Third Eye Blind', 'Foo Fighters',
+  'Weezer', 'Beck', 'Lenny Kravitz', 'Red Hot Chili Peppers',
+  'Metallica', 'Rage Against the Machine', 'Ricky Martin', 'Savage Garden',
+  'Britney Spears', 'Christina Aguilera', 'Justin Timberlake', 'NSYNC',
+  'Backstreet Boys', 'Avril Lavigne', 'Pink', 'P!nk',
+  'Kelly Clarkson', 'Coldplay', 'Keane', 'The Killers',
+  'Franz Ferdinand', 'Arctic Monkeys', 'Muse', 'Linkin Park',
+  'Evanescence', 'Fall Out Boy', 'My Chemical Romance', 'Paramore',
+  'Maroon 5', 'Nelly Furtado', 'Gwen Stefani', 'Rob Thomas',
+  'The Fray', 'The Script', 'Panic! at the Disco', 'Snow Patrol',
+  'Daughtry', 'Good Charlotte', 'Sum 41', 'P.O.D.',
+  'System of a Down', 'Korn',
+]);
+const MUSIC_FAMILIES = Object.freeze({'ok-soul-flow-channel':'soul','ok-country-video-channel':'country','ok-video-hits-channel':'video-hits'});
+const FAMILY_ARTISTS = Object.freeze({'soul':OK_SOUL_ARTISTS,'country':OK_COUNTRY_ARTISTS,'video-hits':OK_VIDEO_HITS_ARTISTS});
+const ARTISTS = [...OK_SOUL_ARTISTS, ...OK_COUNTRY_ARTISTS, ...OK_VIDEO_HITS_ARTISTS];
+const DENY = /\b(?:lyrics?|live|concert|reaction|review|podcast|interview|tutorial|trailer|teaser|cover|karaoke|remix|bootleg|dj[ -]?edit|tribute|slideshow|mashup|parody|fan[ -]?(?:made|edit|video|film)|unofficial|official[ -]?audio|audio[ -]?(?:only|version)|visualizer|shorts?|vertical|dance practice|behind the scenes|making of|music city tonight|nashville now|austin city limits|grand ole opry|cmt crossroads|farm aid|tnn)\b/i;
 const FOREIGN = /[\u0400-\u04ff\u0600-\u06ff\u0900-\u097f\u3040-\u30ff\u3400-\u9fff]|\b(?:vostfr|subesp|dublado|latino|espa[nñ]ol|fran[cç]ais)\b/i;
 const MBID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
 const normalize = value => String(value || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
 export function okMusicChannel(profile) { return Object.hasOwn(MUSIC_FAMILIES,profile?.profileKey || ''); }
 export function okMusicQueries(profile, cursor = 0) {
   if (!okMusicChannel(profile)) return [];
-  const artists = MUSIC_FAMILIES[profile.profileKey] === 'country' ? OK_COUNTRY_ARTISTS : OK_SOUL_ARTISTS;
+  const artists = FAMILY_ARTISTS[MUSIC_FAMILIES[profile.profileKey]];
   return Array.from({ length: 4 }, (_, i) => `${artists[(Math.abs(Math.floor(cursor)) * 4 + i) % artists.length]} music video`);
 }
 export function okMusicTitle(title) {
@@ -61,7 +93,7 @@ export function okMusicTitle(title) {
 }
 export function okMusicPrecheck(profile, item, checkAspect = true) {
   const title = okMusicTitle(item?.title);
-  const artists = MUSIC_FAMILIES[profile?.profileKey] === 'country' ? OK_COUNTRY_ARTISTS : OK_SOUL_ARTISTS;
+  const artists = FAMILY_ARTISTS[MUSIC_FAMILIES[profile?.profileKey]] || [];
   return okMusicChannel(profile) && !!item && !!item.id && !!title && artists.includes(title.artist)
     && Number(item.duration) >= 120 && Number(item.duration) <= 900
     && (!checkAspect || Number(item.aspectRatio) >= 1.2)
@@ -83,7 +115,7 @@ export function okMusicIdentityFromResults(item, result) {
   if (!record) return null;
   const year = Number(record['first-release-date'].slice(0,4));
   if (year < 1980 || year > 2009) return null;
-  return { musicVerified: true, musicVerificationVersion: 2, musicFamily: OK_COUNTRY_ARTISTS.includes(title.artist) ? 'country' : 'soul', musicArtist: title.artist,
+  return { musicVerified: true, musicVerificationVersion: 2, musicFamily: OK_COUNTRY_ARTISTS.includes(title.artist) ? 'country' : OK_VIDEO_HITS_ARTISTS.includes(title.artist) ? 'video-hits' : 'soul', musicArtist: title.artist,
     musicArtistId: record['artist-credit'][0].artist.id, musicTrack: title.song,
     musicTrackKey: title.key, musicRecordingId: record.id, musicReleaseYear: year,
     year: String(year), language: 'en', seriesId: 'musicbrainz:' + record['artist-credit'][0].artist.id,

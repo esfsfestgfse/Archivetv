@@ -2415,6 +2415,19 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "match": ["music video", "country", "country pop", "country rock"],
     "deny": ["lyrics", "concert", "podcast", "fan edit", "reaction", "audio only"]
   },
+  "ok-video-hits-channel": {
+    "name": "OK Video Hits",
+    "queryLimit": 32,
+    "queryWindow": 4,
+    "providers": ["ok-search", "ok-manifest"],
+    "intent": "music",
+    "serverOnly": true,
+    "minRuntimeSeconds": 120,
+    "deepCatalog": true,
+    "queries": ["Madonna music video", "Cyndi Lauper music video", "Duran Duran music video", "Eurythmics music video"],
+    "match": ["music video", "pop", "rock", "alternative", "new wave"],
+    "deny": ["lyrics", "concert", "podcast", "fan edit", "reaction", "audio only"]
+  },
   "vimeo-movie-channel": {
     "name": "Vimeo Movie Channel",
     "queryLimit": 24,

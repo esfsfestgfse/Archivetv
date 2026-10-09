@@ -2,13 +2,17 @@ const assert = require('node:assert/strict');
 const { test } = require('node:test');
 const { pathToFileURL } = require('node:url');
 const path = require('node:path');
+const fs = require('node:fs');
+const { DatabaseSync } = require('node:sqlite');
 const root = path.join(__dirname, '..');
 const { rotationContext } = require('./ia-storage-test-helper');
 const modules = Promise.all(['realsignal_api_v2_worker.js', 'ia_file_contract.js'].map(file => import(pathToFileURL(path.join(root, file)))));
+let fixtureId = 0;
 const row = (file, extra = {}) => ({ identifier: 'benson::' + file, title: 'Benson television sitcom full episode', language: 'eng',
   media: { type: 'video', url: 'https://archive.org/download/benson/' + file, runtime: 1514, width: 640, height: 480, verification: 'transport', verifiedAt: Date.now() }, ...extra });
 async function fixture() {
-  const [{ default: api, SessionRotation }] = await modules, objects = new Map(), pending = [], forwarded = [], queueBodies = [];
+  const { default: api, SessionRotation } = await import(pathToFileURL(path.join(root, 'realsignal_api_v2_worker.js')) + '?fixture=' + fixtureId++);
+  const objects = new Map(), pending = [], forwarded = [], queueBodies = [];
   let incoming = [row('A.mp4'), row('B.mp4'), row('C.mp4')];
   const env = { RELAY: { fetch: async request => {
     forwarded.push(new URL(request.url).pathname);
@@ -40,6 +44,151 @@ async function catalogFixture(rows) {
   };
   return f;
 }
+
+// Run the emitted SQL against SQLite, not a fake returning every database row.
+// A newest-first LIMIT before qualification must fail the older-episode tests.
+async function sqliteCatalogFixture(rows, channel = '10') {
+  const f = await fixture(), [{ compactCatalogItem }] = await modules;
+  const db = new DatabaseSync(':memory:');
+  for (const migration of ['0001_realsignal_catalog.sql', '0003_realsignal_v4_adaptive_catalog.sql']) {
+    db.exec(fs.readFileSync(path.join(root, 'migrations', migration), 'utf8'));
+  }
+  const insert = db.prepare('INSERT INTO programs (id,provider,source_identifier,title,description,duration_seconds,aspect_ratio,media_type,media_url,metadata_json,first_seen_at,last_seen_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)');
+  const link = db.prepare('INSERT INTO channel_programs (channel_key,program_id,last_seen_at) VALUES (?,?,?)');
+  rows.forEach((raw, i) => {
+    const item = compactCatalogItem(raw), at = rows.length - i;
+    insert.run(item.id, item.provider, item.sourceIdentifier, item.title, item.description, item.duration,
+      item.aspectRatio, item.mediaType, raw.metadataOnlyUrl ? null : item.mediaUrl, JSON.stringify(item), at, at);
+    link.run(channel, item.id, at);
+  });
+  f.db = db; f.batches = [];
+  f.env.realsignal_catalog = {
+    prepare(sql) { return { bind(...args) { return {
+      sql, args,
+      all: async () => ({ results: db.prepare(sql).all(...args) }),
+      first: async () => db.prepare(sql).get(...args) || null,
+      run: async () => db.prepare(sql).run(...args),
+    }; } }; },
+    async batch(statements) {
+      f.batches.push(statements);
+      return statements.map(statement => db.prepare(statement.sql).run(...statement.args));
+    },
+  };
+  return f;
+}
+
+test('older qualified shows survive hundreds of newer incomplete catalog rows', async () => {
+  const pending = Array.from({ length: 600 }, (_, i) => row('incomplete-' + i + '.mp4', {
+    media: { ...row('incomplete-' + i + '.mp4').media, verification: 'metadata-only', verifiedAt: 0 },
+  }));
+  const healthy = ['Beaver', 'Benson', 'Lucy', 'Dragnet'].map(seriesId => row(seriesId + '.mp4', { seriesId }));
+  const f = await sqliteCatalogFixture(pending.concat(healthy));
+  try {
+    const payload = await (await f.request('queue', { channel: '10', iaRepair: true, serverCatalog: true, sessionId: 'older-healthy', count: 3, diversity: { maxPerFamily: 1 } })).json();
+    assert.equal(payload.ready, 3);
+    assert.ok(payload.items.every(item => healthy.some(record => record.identifier === item.identifier)),
+      'use older qualified programs, not the unrelated emergency relay shelf');
+    assert.equal(new Set(payload.items.map(item => item.seriesId)).size, 3);
+    await Promise.all(f.pending);
+  } finally { f.db.close(); }
+});
+
+test('repaired IA session rotation receives more than the old ninety-six-record window', async () => {
+  const records = Array.from({ length: 140 }, (_, i) => row('deep-' + i + '.mp4', { seriesId: 'show-' + i % 10 }));
+  const f = await sqliteCatalogFixture(records, '150');
+  try {
+    const payload = await (await f.request('queue', { channel: '150', iaRepair: true, serverCatalog: true, sessionId: 'wide-window', count: 3 })).json();
+    assert.equal(payload.v2.catalogSize, 140);
+    assert.equal(payload.items.length, 3, 'widen the catalog, not the public playing shelf');
+    await Promise.all(f.pending);
+  } finally { f.db.close(); }
+});
+
+test('verified older metadata URLs remain available when the normalized URL column is empty', async () => {
+  const records = ['A', 'B', 'C'].map(file => row('old-' + file + '.mp4', { metadataOnlyUrl: true }));
+  const f = await sqliteCatalogFixture(records);
+  try {
+    const payload = await (await f.request('queue', { channel: '10', iaRepair: true, serverCatalog: true, sessionId: 'legacy-url', count: 3 })).json();
+    assert.deepEqual(new Set(payload.items.map(item => item.identifier)), new Set(records.map(item => item.identifier)));
+    await Promise.all(f.pending);
+  } finally { f.db.close(); }
+});
+
+test('background repaired catalog imports keep qualified episodes beyond ninety-six', async () => {
+  const f = await catalogFixture([row('cached-A.mp4'), row('cached-B.mp4'), row('cached-C.mp4')]);
+  const discovered = Array.from({ length: 140 }, (_, i) => row('discovered-' + i + '.mp4'));
+  f.incoming(discovered);
+  await f.request('queue', { channel: '10', iaRepair: true, serverCatalog: true, sessionId: 'wide-import', count: 3 });
+  await Promise.all(f.pending);
+  const inserted = new Set(f.batches.flat().filter(statement => /INSERT INTO programs/.test(statement.sql)).map(statement => statement.args[0]));
+  assert.ok(inserted.has('benson::discovered-139.mp4'), 'qualified tail episodes must not vanish at persistence');
+  assert.ok(f.batches.every(batch => batch.length <= 32), 'deeper imports stay in bounded write batches');
+});
+
+test('a dominant series does not crowd older healthy series out of the database window', async () => {
+  const dominant = Array.from({ length: 600 }, (_, i) => row('dominant-' + i + '.mp4', { seriesId: 'Bonanza' }));
+  const others = ['Beaver', 'Lucy', 'Dragnet'].map(seriesId => row(seriesId + '.mp4', { seriesId }));
+  const f = await sqliteCatalogFixture(dominant.concat(others));
+  try {
+    const payload = await (await f.request('queue', { channel: '10', iaRepair: true, serverCatalog: true, sessionId: 'show-breadth', count: 3, diversity: { maxPerFamily: 1 } })).json();
+    assert.equal(new Set(payload.items.map(item => item.seriesId)).size, 3);
+    assert.ok(payload.candidateItems.some(item => item.seriesId === 'Lucy'));
+    await Promise.all(f.pending);
+  } finally { f.db.close(); }
+});
+
+test('incomplete members do not consume a healthy episode family position', async () => {
+  const incomplete = Array.from({ length: 600 }, (_, i) => row('incomplete-lucy-' + i + '.mp4', {
+    seriesId: 'Lucy', media: { ...row('incomplete.mp4').media, verification: 'metadata-only', verifiedAt: 0 },
+  }));
+  const dominant = Array.from({ length: 600 }, (_, i) => row('bonanza-' + i + '.mp4', { seriesId: 'Bonanza' }));
+  const healthy = ['Lucy', 'Beaver', 'Dragnet'].map(seriesId => row(seriesId + '.mp4', { seriesId }));
+  const f = await sqliteCatalogFixture(incomplete.concat(dominant, healthy));
+  try {
+    const payload = await (await f.request('queue', { channel: '10', iaRepair: true, serverCatalog: true, sessionId: 'family-rank', count: 3 })).json();
+    assert.ok(payload.candidateItems.some(item => item.seriesId === 'Lucy'), 'unverified siblings cannot bury the verified Lucy episode');
+    await Promise.all(f.pending);
+  } finally { f.db.close(); }
+});
+
+test('policy rejects trigger bounded database refill instead of erasing healthy older shows', async () => {
+  const blocked = Array.from({ length: 600 }, (_, i) => row('blocked-' + i + '.mp4', {
+    title: 'Unrelated television full episode', seriesId: 'blocked-' + i,
+  }));
+  const healthy = ['Beaver', 'Lucy', 'Dragnet'].map(seriesId => row(seriesId + '.mp4', { seriesId }));
+  const f = await sqliteCatalogFixture(blocked.concat(healthy));
+  try {
+    const payload = await (await f.request('queue', { channel: '10', iaRepair: true, serverCatalog: true, sessionId: 'policy-refill', denyTerms: ['unrelated'], count: 3 })).json();
+    assert.deepEqual(new Set(payload.items.map(item => item.identifier)), new Set(healthy.map(item => item.identifier)),
+      'keep the strict deny rule and find the older healthy shows, not emergency relay items');
+    await Promise.all(f.pending);
+  } finally { f.db.close(); }
+});
+
+test('repaired relay catalogs retain qualified tail episodes on their way to session rotation', async () => {
+  const f = await fixture();
+  f.incoming(Array.from({ length: 140 }, (_, i) => row('relay-depth-' + i + '.mp4')));
+  const payload = await (await f.request('queue', { channel: '11', iaRepair: true, serverCatalog: true, sessionId: 'relay-window', count: 3 })).json();
+  assert.equal(payload.v2.catalogSize, 140);
+  assert.equal(payload.items.length, 3);
+  await Promise.all(f.pending);
+});
+
+test('deep repaired catalog imports fit queue message limits without losing episodes', async () => {
+  const f = await fixture(), queued = [];
+  f.incoming(Array.from({ length: 140 }, (_, i) => row('large-' + i + '.mp4', {
+    description: 'Classic television full episode. ' + 'é'.repeat(1900),
+  })));
+  f.env.realsignal_catalog_refresh = { send: async job => {
+    assert.ok(Buffer.byteLength(JSON.stringify(job)) <= 120000, 'leave room under the 128 KB queue limit');
+    queued.push(job);
+  } };
+  await f.request('queue', { channel: '11', iaRepair: true, serverCatalog: true, sessionId: 'large-import', count: 3 });
+  await Promise.all(f.pending);
+  assert.ok(queued.length > 1, 'split the large union into bounded messages');
+  assert.equal(new Set(queued.flatMap(job => job.items.map(item => item.id))).size, 140);
+  assert.ok(queued.every(job => job.iaRepair === true && job.channelKey === '11'));
+});
 
 test('a playable fast catalog above fifteen keeps discovering in background without blocking tunes', async () => {
   const old = Array.from({ length: 30 }, (_, i) => row('old-' + i + '.mp4'));

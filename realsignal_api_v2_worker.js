@@ -19,7 +19,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "5.5.88-ia-catalog-refresh";
+const V3_RELEASE = "5.5.89-ia-catalog-breadth";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -28,6 +28,7 @@ const MAX_BODY_BYTES = 128 * 1024;
    playable shelf, but discovery and rotation are no longer trapped inside the
    same five rows at every cold start. */
 const MAX_CATALOG_ITEMS = 96;
+const IA_REPAIR_CATALOG_WINDOW = 512;
 const OK_CATALOG_WINDOW = 512;
 /* Keep the recent exclusion window large enough to prevent opening repeats,
    but bounded so a smaller verified catalog can still produce the full
@@ -497,7 +498,7 @@ function queueItemIdentity(item) {
   return `${source}::${stem}`;
 }
 
-function uniqueQueueItems(items, body, limit = MAX_CATALOG_ITEMS) {
+function uniqueQueueItems(items, body, limit = body && body.iaRepair === true && body.sourceCatalog !== true ? IA_REPAIR_CATALOG_WINDOW : MAX_CATALOG_ITEMS) {
   if (!Array.isArray(items)) return [];
   const seen = new Set();
   const out = [];
@@ -522,7 +523,7 @@ function uniqueQueueItems(items, body, limit = MAX_CATALOG_ITEMS) {
   });
 }
 
-function stableCatalogItems(items, body, limit = MAX_CATALOG_ITEMS) {
+function stableCatalogItems(items, body, limit = body && body.iaRepair === true && body.sourceCatalog !== true ? IA_REPAIR_CATALOG_WINDOW : MAX_CATALOG_ITEMS) {
   const unique = uniqueQueueItems(items, body, limit);
   return unique.sort((left, right) => {
     const leftKey = queueItemIdentity(left);
@@ -555,6 +556,7 @@ function catalogJob(body, payload) {
   if (!items.length) return null;
   return {
     type: "catalog-upsert",
+    ...(body.iaRepair === true && body.sourceCatalog !== true ? { iaRepair: true } : {}),
     channelKey: String(body.channel || "unknown").slice(0, 120),
     rules: {
       themeTerms: Array.isArray(body.themeTerms) ? body.themeTerms.slice(0, 40).map(String) : [],
@@ -570,7 +572,28 @@ async function enqueueCatalog(env, body, payload) {
   if (!env.realsignal_catalog_refresh || typeof env.realsignal_catalog_refresh.send !== "function") return;
   const job = catalogJob(body, payload);
   if (!job) return;
-  try { await env.realsignal_catalog_refresh.send(job, { contentType: "json" }); }
+  try {
+    if (job.iaRepair !== true) {
+      await env.realsignal_catalog_refresh.send(job, { contentType: "json" });
+      return;
+    }
+    // Queue limits are bytes, not JavaScript characters. Keep the full union
+    // while leaving headroom below the platform's 128 KB message limit.
+    const encoder = new TextEncoder(), maxBytes = 120_000;
+    const overhead = encoder.encode(JSON.stringify({ ...job, items: [] })).byteLength;
+    let items = [], bytes = overhead;
+    for (const item of job.items) {
+      const itemBytes = encoder.encode(JSON.stringify(item)).byteLength;
+      if (overhead + itemBytes > maxBytes) throw new RangeError("catalog record exceeds message budget");
+      if (items.length && bytes + 1 + itemBytes > maxBytes) {
+        await env.realsignal_catalog_refresh.send({ ...job, items }, { contentType: "json" });
+        items = []; bytes = overhead;
+      }
+      bytes += itemBytes + (items.length ? 1 : 0);
+      items.push(item);
+    }
+    if (items.length) await env.realsignal_catalog_refresh.send({ ...job, items }, { contentType: "json" });
+  }
   catch (error) { console.warn(JSON.stringify({ event: "catalog-job-not-queued", error: String(error).slice(0, 160) })); }
 }
 
@@ -595,7 +618,7 @@ async function refreshShallowCatalog(env, request, body, id, currentDepth) {
      prevent the very unseen candidates we need to persist. */
   const refreshBody = {
     ...body,
-    count: MAX_CATALOG_ITEMS,
+    count: body.iaRepair === true ? IA_REPAIR_CATALOG_WINDOW : MAX_CATALOG_ITEMS,
     rotation: (Number(body.rotation) || 0) + Math.max(17, IA_MIN_ROLLING_CATALOG_DEPTH),
     recentIds: [],
     freshnessLedger: false,
@@ -609,7 +632,7 @@ async function refreshShallowCatalog(env, request, body, id, currentDepth) {
     const sourceItems = Array.isArray(payload && payload.candidateItems) && payload.candidateItems.length
       ? payload.candidateItems
       : (Array.isArray(payload && payload.items) ? payload.items : []);
-    const items = uniqueQueueItems(sourceItems, refreshBody, MAX_CATALOG_ITEMS);
+    const items = uniqueQueueItems(sourceItems, refreshBody);
     if (!items.length || body.iaRepair !== true && items.length <= Number(currentDepth)) return;
     const job = catalogJob(refreshBody, { ...payload, items, candidateItems: items });
     if (!job) return;
@@ -631,7 +654,7 @@ async function upsertCatalogJob(env, job) {
   if (!env.realsignal_catalog || typeof env.realsignal_catalog.batch !== "function" || !job || !Array.isArray(job.items)) return;
   const now = Date.now();
   const statements = [];
-  for (const rawItem of job.items.slice(0, MAX_CATALOG_ITEMS)) {
+  for (const rawItem of job.items.slice(0, job.iaRepair === true ? IA_REPAIR_CATALOG_WINDOW : MAX_CATALOG_ITEMS)) {
     const item = /^(?:internet[- ]archive|ia|archive)$/i.test(rawItem.provider || "") ? { ...rawItem, provider: "Internet Archive" } : rawItem;
     const ia = item.provider === "Internet Archive";
     const metadata = ia ? Object.fromEntries(Object.entries(item).filter(([key, value]) => value != null && value !== "" && value !== 0 && !(key === "verification" && value === "metadata-only"))) : item;
@@ -640,7 +663,9 @@ async function upsertCatalogJob(env, job) {
     statements.push(env.realsignal_catalog.prepare(`INSERT INTO channel_programs (channel_key, program_id, score, last_seen_at) VALUES (?, ?, ?, ?) ON CONFLICT(channel_key, program_id) DO UPDATE SET score=excluded.score, last_seen_at=excluded.last_seen_at`).bind(job.channelKey, item.id, 0, now));
   }
   if (job.rules) statements.push(env.realsignal_catalog.prepare(`INSERT INTO channel_rules (channel_key, rules_json, updated_at) VALUES (?, ?, ?) ON CONFLICT(channel_key) DO UPDATE SET rules_json=CASE WHEN channel_rules.channel_key LIKE 'ok-%' THEN json_patch(channel_rules.rules_json, excluded.rules_json) ELSE excluded.rules_json END, updated_at=excluded.updated_at`).bind(job.channelKey, JSON.stringify(job.rules), now));
-  if (statements.length) await env.realsignal_catalog.batch(statements);
+  for (let offset = 0; offset < statements.length; offset += 32) {
+    await env.realsignal_catalog.batch(statements.slice(offset, offset + 32));
+  }
 }
 
 async function rotateShelf(env, body, payload, request) {
@@ -1306,15 +1331,40 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
   const channel = normalizedChannelKey(effectiveBody.channel);
   const okCatalog = effectiveBody.sourceCatalog === true && isOKSourceProfile(channel);
   const vimeoCatalog = effectiveBody.sourceCatalog === true && /^vimeo-(?:movie|tv)-channel$/.test(channel);
+  const repairCatalog = effectiveBody.iaRepair === true && effectiveBody.sourceCatalog !== true;
   const deepCatalog = okCatalog || vimeoCatalog;
-  const limit = deepCatalog ? OK_CATALOG_WINDOW : Math.max(1, Math.min(SOURCE_LIMITS.SOURCE_MAX_ITEMS, Number(requestedLimit) || SOURCE_LIMITS.SOURCE_MAX_ITEMS));
+  const limit = repairCatalog ? IA_REPAIR_CATALOG_WINDOW : deepCatalog ? OK_CATALOG_WINDOW : Math.max(1, Math.min(SOURCE_LIMITS.SOURCE_MAX_ITEMS, Number(requestedLimit) || SOURCE_LIMITS.SOURCE_MAX_ITEMS));
   // The database keeps the full union. This bounded playback window prefers
   // unseen/oldest-served rows, so older episodes don't vanish behind new writes.
-  const query = deepCatalog
+  const query = repairCatalog
+    ? `WITH catalog_rows AS (
+        SELECT p.*, cp.last_seen_at AS catalog_seen_at, cf.last_served_at,
+          CASE WHEN json_valid(p.metadata_json) THEN p.metadata_json ELSE '{}' END AS safe_metadata
+        FROM programs p JOIN channel_programs cp ON cp.program_id=p.id
+        LEFT JOIN channel_freshness cf ON cf.channel_key=cp.channel_key AND cf.program_id=p.id
+        WHERE cp.channel_key=? AND p.status='active'
+      ), scored AS (
+        SELECT *, CASE WHEN json_extract(safe_metadata,'$.verification')='transport'
+          AND json_extract(safe_metadata,'$.verifiedAt') BETWEEN ? AND ?
+          AND (media_type='audio' OR (COALESCE(duration_seconds,json_extract(safe_metadata,'$.runtimeSeconds'),0)>=?
+            AND COALESCE(aspect_ratio,json_extract(safe_metadata,'$.aspectRatio'),0)>1))
+          THEN 0 ELSE 1 END AS qualification_rank
+        FROM catalog_rows
+        WHERE COALESCE(NULLIF(media_url,''),json_extract(safe_metadata,'$.mediaUrl'),json_extract(safe_metadata,'$.media_url')) IS NOT NULL
+      ), ranked AS (
+        SELECT *, ROW_NUMBER() OVER (PARTITION BY qualification_rank,
+          COALESCE(NULLIF(json_extract(safe_metadata,'$.seriesTitle'),''),NULLIF(json_extract(safe_metadata,'$.seriesId'),''),source_identifier,id)
+          ORDER BY CASE WHEN last_served_at IS NULL THEN 0 ELSE 1 END, last_served_at ASC, catalog_seen_at DESC, id) AS family_rank
+        FROM scored
+      ) SELECT * FROM ranked ORDER BY qualification_rank, family_rank,
+        CASE WHEN last_served_at IS NULL THEN 0 ELSE 1 END, last_served_at ASC, catalog_seen_at DESC, id LIMIT ? OFFSET ?`
+    : deepCatalog
     ? `SELECT p.* FROM programs p JOIN channel_programs cp ON cp.program_id=p.id LEFT JOIN channel_freshness cf ON cf.channel_key=cp.channel_key AND cf.program_id=p.id WHERE cp.channel_key=? AND p.status='active' AND p.media_url IS NOT NULL ORDER BY CASE WHEN cf.last_served_at IS NULL THEN 0 ELSE 1 END, cf.last_served_at ASC, cp.last_seen_at DESC LIMIT ?`
     : `SELECT p.* FROM programs p JOIN channel_programs cp ON cp.program_id=p.id WHERE cp.channel_key=? AND p.status='active' AND p.media_url IS NOT NULL ORDER BY cp.last_seen_at DESC LIMIT ?`;
-  const result = await env.realsignal_catalog.prepare(query).bind(channel, limit).all();
-  const items = (result.results || []).map((row) => {
+  const now = Date.now();
+  const bindings = repairCatalog ? [channel, now - 86400_000, now + 60_000, iaMinimumFileRuntimeSeconds(effectiveBody), limit, 0] : [channel, limit];
+  let result = await env.realsignal_catalog.prepare(query).bind(...bindings).all();
+  const fromCatalogRow = (row) => {
     let metadata = {};
     try { metadata = row.metadata_json ? JSON.parse(row.metadata_json) : {}; } catch (_) { /* tolerate old rows */ }
     /* Older Archive harvests persisted the resolved file URL in metadata_json
@@ -1382,7 +1432,20 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
       rights: row.rights || "",
       staleCatalog: true,
     };
-  });
+  };
+  const items = (result.results || []).map(fromCatalogRow);
+  let catalogReadRows = items.length, catalogReadPages = 1;
+  // SQL can prioritize transport facts, but editorial rules remain the same
+  // shared JS gate. Rejected records must not silently use up the entire
+  // playback window. Refill only from D1, never from synchronous discovery.
+  while (repairCatalog && (result.results || []).length === limit && catalogReadPages < 4 &&
+    uniqueQueueItems(items, effectiveBody, limit).length < limit) {
+    const nextBindings = [...bindings.slice(0, -1), catalogReadPages * limit];
+    result = await env.realsignal_catalog.prepare(query).bind(...nextBindings).all();
+    const nextItems = (result.results || []).map(fromCatalogRow);
+    catalogReadRows += nextItems.length; catalogReadPages++;
+    items.push(...nextItems);
+  }
   const blockedProviders = options && options.blockedProviders instanceof Set ? options.blockedProviders : new Set();
   /* A row from a provider currently in cooldown is not a fallback. Returning
      it here would make the guide and ready shelf suggest the exact provider
@@ -1443,6 +1506,8 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
     candidates: filtered.length,
     catalogDepth: filtered.length,
     playableCatalogDepth: playableCatalog.length,
+    ...(repairCatalog ? { catalogWindow: limit, catalogReadRows, catalogReadPages,
+      catalogReadTruncated: catalogReadPages === 4 && (result.results || []).length === limit } : {}),
     ...(okCatalog ? { distinctPrograms: new Set(playableCatalog.map(item => item.seriesId || item.identityReference || item.id)).size, catalogWindow: limit } : {}),
     unseenCatalogItems: fresh.length,
     seenCatalogItems: seenCount,
@@ -1553,6 +1618,7 @@ async function handleQueue(request, env, ctx, id) {
   const apiVersion = new URL(request.url).pathname.startsWith(V3_PREFIX) ? "v3" : "v2";
   const count = Math.max(1, Math.min(5, Number(body.count) || 3));
   const upstreamBody = { ...body, count };
+  const catalogLimit = body.iaRepair === true && body.sourceCatalog !== true ? IA_REPAIR_CATALOG_WINDOW : MAX_CATALOG_ITEMS;
   if (body.iaRepair === true && body.sourceCatalog !== true) {
     // Admission and hydration must use the same floor. Otherwise three short
     // files consume the entire hydration budget before the API rejects them.
@@ -1590,7 +1656,7 @@ async function handleQueue(request, env, ctx, id) {
       /* Feed the full verified D1 catalog into session rotation. The rotation
          object applies the persistent freshness ledger for the opening pick,
          then walks unseen rows from the larger catalog on later Next actions. */
-        const fastCatalog = await catalogFallback(env, body, MAX_CATALOG_ITEMS, { ignoreFreshness: true });
+        const fastCatalog = await catalogFallback(env, body, catalogLimit, { ignoreFreshness: true });
       if (fastCatalog && Array.isArray(fastCatalog.items) && fastCatalog.items.length) {
         // Fifteen ready records prove availability, not catalog completeness.
         // Repaired IA stations keep importing new qualified identities on a
@@ -1652,11 +1718,11 @@ async function handleQueue(request, env, ctx, id) {
       const raw = [...(payload.items || []), ...(payload.candidateItems || [])];
       body.iaRejectedIds = Array.from(new Set(raw.filter(item => ['failed-media', 'portrait-media', 'short-runtime', 'policy-contamination', 'non-english-edition'].includes(qualifyIaFileRecord(item, body).reason)).map(queueItemKey)));
     }
-    const upstreamItems = uniqueQueueItems(Array.isArray(payload && payload.items) ? payload.items : [], body, MAX_CATALOG_ITEMS);
+    const upstreamItems = uniqueQueueItems(Array.isArray(payload && payload.items) ? payload.items : [], body, catalogLimit);
     const upstreamCandidates = uniqueQueueItems(
       Array.isArray(payload && payload.candidateItems) && payload.candidateItems.length ? payload.candidateItems : upstreamItems,
       body,
-      MAX_CATALOG_ITEMS,
+      catalogLimit,
     );
     payload = limitPublicIaShelf({
       ...payload,
@@ -1678,20 +1744,20 @@ async function handleQueue(request, env, ctx, id) {
        the remaining unseen window cannot satisfy the requested shelf; do not
        relax freshness or recycle a recently served program just to reach five. */
     const recentWindow = recentCatalogIds(body).size;
-    const needsFreshnessRefill = recentWindow >= count && upstreamPlayableCandidateDepth < Math.min(MAX_CATALOG_ITEMS, recentWindow + count);
+    const needsFreshnessRefill = recentWindow >= count && upstreamPlayableCandidateDepth < Math.min(catalogLimit, recentWindow + count);
     /* A full relay-owned rotation is already the correct public shelf. D1 is
        allowed to deepen the catalog in the background, but replacing this
        shelf synchronously makes a moving D1 union slide the rotation cursor
        back onto the same opening programs. */
     if (!relayOwnsRotatedShelf && (upstreamItems.length < count || needsCatalogDepthRepair || needsFreshnessRefill)) {
       try {
-        const fallback = await catalogFallback(env, body, Math.max(MAX_CATALOG_ITEMS, count));
+        const fallback = await catalogFallback(env, body, Math.max(catalogLimit, count));
         const fallbackItems = fallback && Array.isArray(fallback.candidateItems) && fallback.candidateItems.length ? fallback.candidateItems : (fallback ? fallback.items : []);
         const seen = new Set(upstreamCandidates.map(queueItemKey));
         const additions = uniqueQueueItems(fallbackItems, body).filter((item) => !seen.has(queueItemKey(item)));
         if (additions.length) {
           const currentCandidates = Array.isArray(payload.candidateItems) && payload.candidateItems.length ? payload.candidateItems : upstreamItems;
-          const mergedCandidates = stableCatalogItems([...currentCandidates, ...fallbackItems], body, MAX_CATALOG_ITEMS);
+          const mergedCandidates = stableCatalogItems([...currentCandidates, ...fallbackItems], body, catalogLimit);
           /* Put the already-rotated recovery shelf first. The old merge put
              upstreamItems first, so a deep D1 recovery catalog was present in
              `candidateItems` but the public five-item shelf still came from
@@ -1706,7 +1772,7 @@ async function handleQueue(request, env, ctx, id) {
           const rotatedRecovery = upstreamAlreadyRotated
             ? upstreamItems.slice(0, count)
             : rotateCatalogItems(mergedPlayable, (Number(body.rotation) || 0) * count).slice(0, count);
-          const mergedItems = uniqueQueueItems([...rotatedRecovery, ...recoveryShelf, ...upstreamItems, ...additions], body, MAX_CATALOG_ITEMS);
+          const mergedItems = uniqueQueueItems([...rotatedRecovery, ...recoveryShelf, ...upstreamItems, ...additions], body, catalogLimit);
           payload = limitPublicIaShelf({
             ...payload,
             items: mergedItems,
@@ -1761,14 +1827,14 @@ async function handleQueue(request, env, ctx, id) {
        deeper D1 shelf and ask it once more for the missing unseen slot; this
        preserves freshness while preventing a four-item cold shelf. */
     try {
-      const refill = await catalogFallback(env, body, MAX_CATALOG_ITEMS);
+      const refill = await catalogFallback(env, body, catalogLimit);
       const refillItems = refill && Array.isArray(refill.candidateItems) && refill.candidateItems.length
         ? refill.candidateItems
         : (refill && refill.items) || [];
       const currentCandidates = Array.isArray(rotated.payload && rotated.payload.candidateItems) && rotated.payload.candidateItems.length
         ? rotated.payload.candidateItems
         : (rotated.payload && rotated.payload.items) || [];
-      const mergedCandidates = uniqueQueueItems([...currentCandidates, ...refillItems], body, MAX_CATALOG_ITEMS);
+      const mergedCandidates = uniqueQueueItems([...currentCandidates, ...refillItems], body, catalogLimit);
       if (mergedCandidates.length > currentCandidates.length) {
         const retryPayload = { ...rotated.payload, candidateItems: mergedCandidates, candidates: mergedCandidates.length };
         const retry = await rotateShelf(env, { ...body, rotation: (Number(body.rotation) || 0) + 1 }, retryPayload, request);

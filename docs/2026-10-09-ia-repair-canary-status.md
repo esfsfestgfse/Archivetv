@@ -3,7 +3,7 @@
 ## Release decision
 
 **Do not promote this repair to production yet.** The production reference is
-5.5.85 (`90ada75`). No push or deployment was performed during this repair run.
+5.5.85 (`90ada75`). No production push or deployment was performed during this repair run.
 The new behavior is opt-in through `?iaRepair=1`; existing OK/Vimeo protocols
 and the normal IA rotation path remain available.
 

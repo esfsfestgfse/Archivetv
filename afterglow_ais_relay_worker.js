@@ -7133,12 +7133,17 @@ function queueItem(doc, lane) {
     subject: doc.subject || null,
     creator: doc.creator || null,
     collection: doc.collection || null,
+    language: doc.language || doc.media?.language || null,
+    width: Number(doc.width || doc.media?.width) || 0,
+    height: Number(doc.height || doc.media?.height) || 0,
+    seriesId: doc.seriesId || queueTitleFamily(doc),
     genreVerified: true,
     mediaType: doc.media && doc.media.type ? doc.media.type : null,
     /* Expanded file entries already have a direct Archive CDN URL from the
        manifest we just fetched. Preserve it so the browser never has to turn
        around and fetch the same parent metadata a second time. */
     media: doc.media && doc.media.url ? {
+      ...doc.media,
       type: doc.media.type || "video",
       url: doc.media.url,
       alts: Array.isArray(doc.media.alts) ? doc.media.alts.slice(0, 7) : [],
@@ -7233,7 +7238,11 @@ async function expandArchiveContainer(doc, cacheOrigin, ctx, rotation = 0, salt 
        a two-file movie/alternate encode from being split accidentally. */
     const minimumFiles = archiveContainerHint(doc) ? 2 : 3;
     if (rotatedPlayable.length < minimumFiles) return [];
-    const playable = sampleArchiveSequence(rotatedPlayable, IA_MAX_EXPANDED_FILES);
+    const progressive = Boolean(ctx && ctx.iaRepair && ctx.iaDiscovery);
+    const progress = progressive ? (ctx.iaDiscovery.parents[doc.identifier] || { offset: 0 }) : null;
+    const ordered = progressive ? [...byEpisode.values()].sort((a, b) => String(a.name).localeCompare(String(b.name), undefined, { numeric: true })) : rotatedPlayable;
+    const playable = progressive ? ordered.slice(progress.offset || 0, (progress.offset || 0) + IA_BACKGROUND_COLLECTION_EPISODES_PER_PARENT) : sampleArchiveSequence(rotatedPlayable, IA_MAX_EXPANDED_FILES);
+    if (progressive) ctx.iaDiscovery.parents[doc.identifier] = { offset: (progress.offset || 0) + playable.length, total: ordered.length, complete: (progress.offset || 0) + playable.length >= ordered.length, updatedAt: Date.now() };
     const md = payload.metadata || {};
     const base = String(doc.title || doc.identifier).replace(/\s+/g, " ").trim();
     return playable.map((file) => {
@@ -7244,12 +7253,12 @@ async function expandArchiveContainer(doc, cacheOrigin, ctx, rotation = 0, salt 
         episode: seasonEpisode ? Number(seasonEpisode[2]) : null,
         /* Archive `file.length` is byte size, not duration. Feeding it to
            runtime gates rejected valid episodes as millions of seconds long. */
-        runtime: iaFileRuntimeSeconds(file) || iaRuntimeSeconds(doc.runtime),
+        runtime: iaFileRuntimeSeconds(file),
         width: Number(file.width) || 0,
         height: Number(file.height) || 0,
         media: (function() {
           const urls = queueFileUrls(doc.identifier, payload, file.name);
-          return urls.length ? { type: wantsAudio ? "audio" : "video", url: urls[0], alts: urls.slice(1, 8) } : null;
+          return urls.length ? { type: wantsAudio ? "audio" : "video", url: urls[0], alts: urls.slice(1, 8), runtime: iaFileRuntimeSeconds(file), width: Number(file.width) || 0, height: Number(file.height) || 0, sourceIdentifier: doc.identifier, fileName: file.name, sourceUrl: "https://archive.org/details/" + encodeURIComponent(doc.identifier), language: file.language || md.language || "", rights: md.licenseurl || md.rights || "", metadataVerifiedAt: Date.now(), verification: "metadata-only" } : null;
         })(),
         collection: Array.isArray(md.collection) ? (md.collection[0] || doc.collection) : (md.collection || doc.collection) };
     });
@@ -7921,6 +7930,8 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTit
      every fresh Archive search back to five records, which made the app look
      shallow even when the search rails had found dozens of approved files. */
   const items = [], deferred = [], freshnessDeferred = [], seen = new Set(), seenTitles = new Set();
+  const catalogAdmission = Boolean(ctx && ctx.iaRepair && ctx.isIaBackground);
+  const discoveryResults = [];
   const candidateLimit = Math.max(count, Math.min(IA_STRICT_CATALOG_CANDIDATE_MAX, Number(candidateCount) || count));
   const freshnessExcluded = new Set(Array.isArray(freshnessExcludedIds) ? freshnessExcludedIds.map(String) : []);
   const used = { lane: new Map(), era: new Map(), creator: new Map(), collection: new Map(), family: new Map(), source: new Map() };
@@ -7949,8 +7960,11 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTit
     : Math.min(8, searchQueries.length);
   const lanePromises = searchQueries.slice(0, laneLimit).map(async (query, lane) => {
     try {
-      const rows = firstApprovedLane ? 36 : 60;
-      const result = await cachedSearchArchive(cacheOrigin, query, Math.min(rows, Math.max(18, count * 4)), queueRotationPage(rotation, lane, channel, !firstApprovedLane), queueRotationSort(rotation, lane), ctx, searchTimeoutMs);
+      const rows = catalogAdmission ? 60 : firstApprovedLane ? 36 : 60;
+      const requestedRows = catalogAdmission ? rows : Math.min(rows, Math.max(18, count * 4));
+      const requestedPage = catalogAdmission && ctx.discoveryPage ? ctx.discoveryPage : queueRotationPage(rotation, lane, channel, !firstApprovedLane);
+      const result = await cachedSearchArchive(cacheOrigin, query, requestedRows, requestedPage, catalogAdmission ? "identifier asc" : queueRotationSort(rotation, lane), ctx, searchTimeoutMs);
+      discoveryResults[lane] = { query, ok: true, page: requestedPage, rows: requestedRows, numFound: Number.isFinite(Number(result.numFound)) ? Number(result.numFound) : null, returned: (result.docs || []).length };
       // Archive.org collections are catalog pages, not programs. Keeping one in
       // a shelf guarantees a failed playback attempt, so reject them before
       // ranking, caching, or media hydration for every IA channel.
@@ -7997,6 +8011,7 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTit
       const approvedPrograms = approved.filter((doc) => !expandedSources.has(String(doc.identifier || "")));
       return [...expanded, ...approvedPrograms].map((doc) => ({ doc, lane }));
     } catch {
+      discoveryResults[lane] = { query, ok: false };
       return [];
     }
   });
@@ -8066,6 +8081,7 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTit
     items.push(queueItem(candidate.doc, candidate.lane));
   }
   function diverseEnough(candidate) {
+    if (catalogAdmission) return true;
     const keys = queueDiversityKeys(candidate.doc, candidate.lane);
     return underCap("lane", keys.lane, diversity.maxPerLane) &&
       underCap("era", keys.era, diversity.maxPerEra) &&
@@ -8125,6 +8141,7 @@ async function buildIaQueue(channel, queries, themeTerms, denyTerms, requiredTit
     candidateItems: items.slice(0, candidateLimit),
     ready: Math.min(items.length, count),
     deferredContainerExpansion,
+    ...(catalogAdmission ? { discoveryResults } : {}),
   };
 }
 
@@ -8700,7 +8717,15 @@ async function expandSeedArchiveContainers(payload, cacheOrigin, ctx, channel, t
     if (!sourceId || seenParents.has(sourceId)) return false;
     seenParents.add(sourceId);
     return true;
-  }).slice(0, Math.min(IA_BACKGROUND_CONTAINER_EXPANSIONS, IA_BACKGROUND_PARENT_BATCH, Math.max(1, Math.ceil(Math.min(catalogLimit, IA_STRICT_CATALOG_CANDIDATE_MAX) / IA_BACKGROUND_COLLECTION_EPISODES_PER_PARENT))));
+  });
+  const parentLimit = Math.min(IA_BACKGROUND_CONTAINER_EXPANSIONS, IA_BACKGROUND_PARENT_BATCH, Math.max(1, Math.ceil(Math.min(catalogLimit, IA_STRICT_CATALOG_CANDIDATE_MAX) / IA_BACKGROUND_COLLECTION_EPISODES_PER_PARENT)));
+  if (ctx && ctx.iaRepair && ctx.iaDiscovery) {
+    const state = ctx.iaDiscovery;
+    const offset = Math.max(0, Number(state.parentCursor) || 0) % Math.max(1, parents.length);
+    const pending = parents.slice(offset).concat(parents.slice(0, offset)).filter(parent => !state.parents[String(parent.sourceIdentifier || parent.identifier).split("::")[0]]?.complete);
+    parents.splice(0, parents.length, ...pending.slice(0, parentLimit));
+    state.parentCursor = offset + parentLimit;
+  } else parents.splice(parentLimit);
   if (!parents.length) return [];
   const episodeSets = await mapQueueCandidates(parents, IA_CONTAINER_EXPANSION_CONCURRENCY, async (parent, index) => {
     const parentIdentifier = String(parent && parent.identifier || "");
@@ -8765,6 +8790,62 @@ async function cacheIaQueueIfRicher(cacheKey, payload, ttlSeconds, headers = {})
    bounded, but now reach well beyond the first few popularity pages. */
 const IA_BACKGROUND_HARVEST_OFFSETS = Object.freeze([1, 3, 7, 15, 31, 63, 127]);
 
+function iaDiscoveryState(raw = {}) {
+  return { version: 1, steps: Math.max(0, Number(raw.steps) || 0), parentCursor: Math.max(0, Number(raw.parentCursor) || 0), rails: { ...(raw.rails || {}) }, parents: { ...(raw.parents || {}) }, updatedAt: Number(raw.updatedAt) || 0 };
+}
+
+function mergeIaDiscoveryState(previous, incoming) {
+  const merged = iaDiscoveryState(previous), next = iaDiscoveryState(incoming);
+  merged.steps = Math.max(merged.steps, next.steps);
+  merged.parentCursor = Math.max(merged.parentCursor, next.parentCursor);
+  for (const key of Object.keys(next.rails).slice(0, 12)) {
+    const old = merged.rails[key], value = next.rails[key];
+    if (!old || Number(value.generation || 0) > Number(old.generation || 0) || Number(value.generation || 0) === Number(old.generation || 0) && (Number(value.page || 1) > Number(old.page || 1) || Number(value.page || 1) === Number(old.page || 1) && Number(value.updatedAt || 0) >= Number(old.updatedAt || 0))) merged.rails[key] = value;
+  }
+  for (const key of Object.keys(next.parents).slice(0, 4096)) {
+    const old = merged.parents[key], value = next.parents[key];
+    if (!old || Number(value.offset || 0) >= Number(old.offset || 0)) merged.parents[key] = value;
+  }
+  merged.updatedAt = Math.max(merged.updatedAt, next.updatedAt);
+  return merged;
+}
+
+async function checkpointIaDiscovery(env, key, state) {
+  if (!env || !env.REALSIGNAL_QUEUE || !key) return;
+  const previous = await env.REALSIGNAL_QUEUE.get(key, "json");
+  await env.REALSIGNAL_QUEUE.put(key, JSON.stringify(mergeIaDiscoveryState(previous || {}, state)), { expirationTtl: 30 * 86400 });
+}
+
+async function harvestIaResumablePages(seed, queries, channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, ctx, rotation, minRuntimeSeconds) {
+  const state = ctx.iaDiscovery || iaDiscoveryState(seed && seed.discoveryState);
+  ctx.iaDiscovery = state;
+  const start = state.steps % queries.length;
+  let selected = -1;
+  for (let at = 0; at < queries.length; at++) {
+    const index = (start + at) % queries.length, rail = state.rails[queries[index]];
+    if (!rail || !rail.retryAt || rail.retryAt <= Date.now()) { selected = index; break; }
+  }
+  if (selected < 0) return { ...seed, discoveryState: state };
+  const query = queries[selected];
+  let rail = state.rails[query] || { page: 1, generation: 0, failures: 0 };
+  if (rail.exhausted) {
+    if (Date.now() - Number(rail.updatedAt || 0) < 1800000) { state.steps += 1; return { ...seed, discoveryState: state }; }
+    rail = { page: 1, generation: Number(rail.generation || 0) + 1, failures: 0 };
+  }
+  const pagePass = await buildIaQueue(channel, [query], themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, { ...ctx, discoveryPage: rail.page }, rotation, IA_FAST_SEARCH_TIMEOUT_MS, true, false, null, minRuntimeSeconds);
+  const result = pagePass && pagePass.discoveryResults && pagePass.discoveryResults[0];
+  if (result && result.ok) {
+    const exhausted = result.numFound != null ? rail.page * result.rows >= result.numFound : result.returned < result.rows;
+    rail = { ...rail, page: Math.min(10000, rail.page + 1), exhausted, failures: 0, retryAt: 0, numFound: result.numFound, updatedAt: Date.now() };
+  } else {
+    const failures = Number(rail.failures || 0) + 1;
+    rail = { ...rail, failures, retryAt: Date.now() + Math.min(300000, 15000 * 2 ** Math.min(failures - 1, 4)), updatedAt: Date.now() };
+  }
+  state.rails[query] = rail;
+  state.steps += 1; state.updatedAt = Date.now();
+  return { ...mergeIaQueuePayload(seed, pagePass, candidateCount, { backgroundPageHarvest: true, catalogOrderLocked: true }), discoveryState: state, backgroundHarvestCursor: state.steps };
+}
+
 function iaBackgroundHarvestOffsets(channel, forceDiscovery) {
   if (forceDiscovery || iaDepthRecoveryEnabled(channel)) return IA_BACKGROUND_HARVEST_OFFSETS;
   return [1];
@@ -8778,6 +8859,7 @@ async function harvestIaBackgroundPages(seed, reserveQueries, fallbackQueries, c
     ...(Array.isArray(fallbackQueries) ? fallbackQueries : []),
   ], 12);
   if (!harvestQueries.length) return expanded;
+  if (backgroundMode && ctx.iaRepair) return harvestIaResumablePages(seed, harvestQueries, channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, ctx, rotation, minRuntimeSeconds);
   const target = Math.min(
     candidateCount,
     Math.max(count * 3, iaDepthRecoveryEnabled(channel) ? IA_DEPTH_PLAYABLE_TARGET : IA_BACKGROUND_PLAYABLE_TARGET),
@@ -8842,6 +8924,12 @@ async function harvestIaBackgroundPages(seed, reserveQueries, fallbackQueries, c
 async function expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, rotation, forceDiscovery = false) {
   let expanded = payload;
   const backgroundMode = Boolean(ctx && ctx.isIaBackground);
+  let discoveryKey = "";
+  if (backgroundMode && ctx.iaRepair) {
+    discoveryKey = "ia:discovery:v1:" + await stableKey(String(payload && payload.lastGoodKey || sharedKey || channel));
+    const durable = env && env.REALSIGNAL_QUEUE ? await env.REALSIGNAL_QUEUE.get(discoveryKey, "json") : null;
+    ctx.iaDiscovery = mergeIaDiscoveryState(durable || {}, payload && payload.discoveryState || {});
+  }
   const minRuntimeSeconds = safeMinRuntimeSeconds(payload && payload.minRuntimeSeconds);
   /* Exact rotation caches can be hydrated by separate requests. Pull the
      family shelf into this refill first so those caches inherit the union of
@@ -8907,13 +8995,13 @@ async function expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, c
     : ((expanded && expanded.items) || []);
   const expandedPlayable = expandedCandidates.filter((item) => item && item.identifier && item.media && item.media.url).length;
   const needsPlayableDepth = expandedPlayable < Math.min(candidateCount, Math.max(count, iaDepthRecoveryEnabled(channel) ? IA_DEPTH_PLAYABLE_TARGET : IA_BACKGROUND_PLAYABLE_TARGET));
-  if ((forceDiscovery || expanded.items.length < threshold || needsPlayableDepth) && reserveQueries.length) {
+  if (!(backgroundMode && ctx.iaRepair) && (forceDiscovery || expanded.items.length < threshold || needsPlayableDepth) && reserveQueries.length) {
     const reserve = await buildIaQueue(channel, backgroundMode ? reserveQueries.slice(0, 1) : reserveQueries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, ctx, rotation, backgroundMode ? IA_FAST_SEARCH_TIMEOUT_MS : 3200, backgroundMode, !backgroundMode, null, minRuntimeSeconds);
     expanded = forceDiscovery
       ? mergeIaQueuePayload(reserve, expanded, candidateCount, { reserve: true, refreshed: true })
       : mergeIaQueuePayload(expanded, reserve, candidateCount, { reserve: true });
   }
-  if ((forceDiscovery || expanded.items.length < threshold || needsPlayableDepth) && fallbackQueries.length) {
+  if (!(backgroundMode && ctx.iaRepair) && (forceDiscovery || expanded.items.length < threshold || needsPlayableDepth) && fallbackQueries.length) {
     const rescue = await buildIaQueue(channel, backgroundMode ? fallbackQueries.slice(0, 1) : fallbackQueries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, ctx, rotation, backgroundMode ? IA_FAST_SEARCH_TIMEOUT_MS : 3200, backgroundMode, !backgroundMode, null, minRuntimeSeconds);
     expanded = forceDiscovery
       ? mergeIaQueuePayload(rescue, expanded, candidateCount, { rescue: true, refreshed: true })
@@ -8930,7 +9018,7 @@ async function expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, c
      waitUntil, so it cannot delay the first visible frame or a channel
      change. Every page still passes the same theme, deny, runtime, media, and
      collection-expansion gates before it is merged. */
-  if (forceDiscovery || needsPlayableDepth || iaDepthRecoveryEnabled(channel)) {
+  if (ctx && ctx.iaRepair || forceDiscovery || needsPlayableDepth || iaDepthRecoveryEnabled(channel)) {
     expanded = await harvestIaBackgroundPages(
       expanded,
       reserveQueries,
@@ -8953,7 +9041,11 @@ async function expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, c
     const approvedCandidates = retainApprovedCandidates(expanded.candidateItems || expanded.items);
     expanded = { ...expanded, items: approvedCandidates.slice(0, candidateCount), candidateItems: approvedCandidates, candidates: approvedCandidates.length };
   }
-  if (!expanded.items.length) return null;
+  if (discoveryKey) {
+    expanded = { ...expanded, discoveryState: ctx.iaDiscovery };
+    await checkpointIaDiscovery(env, discoveryKey, ctx.iaDiscovery);
+  }
+  if (!expanded.items.length) return ctx && ctx.iaRepair ? expanded : null;
   /* Background repair is the only place allowed to spend extra metadata
      budget. Persist a broad verified playable catalog—not just raw
      identifiers—so later rotations can serve fresh shelves immediately even
@@ -9041,6 +9133,7 @@ function scheduleIaExpansion(seed, reserveQueries, fallbackQueries, channel, the
      the expansion alive until this bounded step completes. */
   const backgroundCtx = {
     isIaBackground: true,
+    iaRepair: Boolean(ctx.iaRepair),
     waitUntil(promise) { Promise.resolve(promise).catch(() => {}); },
   };
   /* Production background growth belongs to a Queue consumer, not to the
@@ -9051,6 +9144,7 @@ function scheduleIaExpansion(seed, reserveQueries, fallbackQueries, channel, the
     const message = {
       type: "ia-catalog-harvest",
       version: 1,
+      iaRepair: Boolean(ctx.iaRepair),
       seed,
       reserveQueries,
       fallbackQueries,
@@ -10217,6 +10311,7 @@ export default {
       try {
         const backgroundCtx = {
           isIaBackground: true,
+          iaRepair: payload.iaRepair === true,
           waitUntil(promise) { Promise.resolve(promise).catch(() => {}); },
         };
         const harvested = await expandAndCacheIaQueue(
@@ -10254,7 +10349,7 @@ export default {
           ? harvested.candidateItems.length
           : 0;
         const canContinue = harvested &&
-          (payload.forceDiscovery === true || iaDepthRecoveryEnabled(channel)) &&
+          (payload.iaRepair === true || payload.forceDiscovery === true || iaDepthRecoveryEnabled(channel)) &&
           harvestPasses < IA_BACKGROUND_HARVEST_CONTINUATION_MAX &&
           currentCandidates < Number(payload.candidateCount || 0) &&
           nextCursor > 0;

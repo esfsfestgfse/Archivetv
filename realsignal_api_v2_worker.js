@@ -19,7 +19,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "5.5.87-ia-collection-depth";
+const V3_RELEASE = "5.5.88-ia-catalog-refresh";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -574,12 +574,12 @@ async function enqueueCatalog(env, body, payload) {
   catch (error) { console.warn(JSON.stringify({ event: "catalog-job-not-queued", error: String(error).slice(0, 160) })); }
 }
 
-function shouldRefreshShallowCatalog(channel) {
+function shouldRefreshShallowCatalog(channel, intervalMs = 30_000) {
   const key = normalizedChannelKey(channel);
   if (!key) return false;
   const now = Date.now();
   const last = Number(shallowCatalogRefreshCache.get(key) || 0);
-  if (now - last < 30_000) return false;
+  if (now - last < intervalMs) return false;
   shallowCatalogRefreshCache.set(key, now);
   return true;
 }
@@ -587,7 +587,7 @@ function shouldRefreshShallowCatalog(channel) {
 async function refreshShallowCatalog(env, request, body, id, currentDepth) {
   if (!env.RELAY || typeof env.RELAY.fetch !== "function") return;
   if ((!env.realsignal_catalog_refresh || typeof env.realsignal_catalog_refresh.send !== "function") && (!env.realsignal_catalog || typeof env.realsignal_catalog.batch !== "function")) return;
-  if (Number(currentDepth) >= IA_MIN_ROLLING_CATALOG_DEPTH) return;
+  if (body.iaRepair !== true && Number(currentDepth) >= IA_MIN_ROLLING_CATALOG_DEPTH) return;
   /* The foreground request only needs a playable five-item shelf. The
      background repair must ask the adapter for the larger catalog, use a
      different rotation seed, and ignore recent-play exclusions while writing
@@ -610,7 +610,7 @@ async function refreshShallowCatalog(env, request, body, id, currentDepth) {
       ? payload.candidateItems
       : (Array.isArray(payload && payload.items) ? payload.items : []);
     const items = uniqueQueueItems(sourceItems, refreshBody, MAX_CATALOG_ITEMS);
-    if (items.length <= Number(currentDepth)) return;
+    if (!items.length || body.iaRepair !== true && items.length <= Number(currentDepth)) return;
     const job = catalogJob(refreshBody, { ...payload, items, candidateItems: items });
     if (!job) return;
     /* A shallow fast lane must become deeper even when the refresh queue is
@@ -1592,7 +1592,12 @@ async function handleQueue(request, env, ctx, id) {
          then walks unseen rows from the larger catalog on later Next actions. */
         const fastCatalog = await catalogFallback(env, body, MAX_CATALOG_ITEMS, { ignoreFreshness: true });
       if (fastCatalog && Array.isArray(fastCatalog.items) && fastCatalog.items.length) {
-        if (fastCatalog.candidateItems.length < IA_MIN_ROLLING_CATALOG_DEPTH && shouldRefreshShallowCatalog(body.channel)) {
+        // Fifteen ready records prove availability, not catalog completeness.
+        // Repaired IA stations keep importing new qualified identities on a
+        // bounded background cadence, even when their old D1 shelf is full.
+        const repairRefresh = body.iaRepair === true;
+        if ((repairRefresh || fastCatalog.candidateItems.length < IA_MIN_ROLLING_CATALOG_DEPTH)
+          && shouldRefreshShallowCatalog(body.channel, repairRefresh ? 300_000 : 30_000)) {
           /* Keep the first frame on the local verified shelf. Refill a shallow
              fast lane from the relay asynchronously so discovery never blocks
              a tune and the next visit sees a wider rotation catalog. */

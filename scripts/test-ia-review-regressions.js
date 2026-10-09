@@ -22,6 +22,58 @@ async function fixture() {
   return { request, env, incoming: rows => { incoming = rows; }, objects, pending, forwarded, queueBodies };
 }
 
+async function catalogFixture(rows) {
+  const f = await fixture(), [{ compactCatalogItem }] = await modules;
+  const records = rows.map(compactCatalogItem).map(item => ({
+    id: item.id, provider: item.provider, source_identifier: item.sourceIdentifier,
+    title: item.title, description: item.description, duration_seconds: item.duration,
+    aspect_ratio: item.aspectRatio, media_type: item.mediaType, media_url: item.mediaUrl,
+    metadata_json: JSON.stringify(item), year: item.year,
+  }));
+  f.batches = [];
+  f.env.realsignal_catalog = {
+    prepare(sql) { return { bind(...args) { return {
+      sql, args, all: async () => ({ results: /FROM programs p/.test(sql) ? records : [] }),
+      first: async () => null, run: async () => ({ success: true }),
+    }; } }; },
+    async batch(statements) { f.batches.push(statements); },
+  };
+  return f;
+}
+
+test('a playable fast catalog above fifteen keeps discovering in background without blocking tunes', async () => {
+  const old = Array.from({ length: 30 }, (_, i) => row('old-' + i + '.mp4'));
+  const f = await catalogFixture(old), refreshed = old.concat(row('new.mp4'));
+  let release;
+  const delayed = new Promise(resolve => { release = resolve; });
+  f.env.RELAY.fetch = async request => {
+    f.queueBodies.push(await request.json());
+    await delayed;
+    return Response.json({ items: refreshed.slice(0, 3), candidateItems: refreshed });
+  };
+  const body = { channel: '10', iaRepair: true, serverCatalog: true, sessionId: 'deep-fast', count: 3, recentIds: ['watched'] };
+  const response = await f.request('queue', body), payload = await response.json();
+  await f.request('queue', body);
+  const callsBeforeRelease = f.queueBodies.length;
+  release();
+  await Promise.all(f.pending);
+  assert.equal(payload.ready, 3, 'a tune uses the verified database shelf while discovery is pending');
+  assert.equal(callsBeforeRelease, 1, 'coalesce foreground-triggered background discovery');
+  assert.deepEqual(f.queueBodies[0].recentIds, []);
+  assert.ok(f.batches.flat().some(statement => /INSERT INTO programs/.test(statement.sql) && statement.args[0] === 'benson::new.mp4'));
+});
+
+test('same-sized qualified refreshes can add new episodes rather than preserving an old snapshot', async () => {
+  const old = Array.from({ length: 24 }, (_, i) => row('old-' + i + '.mp4'));
+  const f = await catalogFixture(old), replacement = Array.from({ length: 24 }, (_, i) => row('new-' + i + '.mp4'));
+  f.incoming(replacement);
+  const response = await f.request('queue', { channel: '150', iaRepair: true, serverCatalog: true, sessionId: 'same-depth', count: 3 });
+  await Promise.all(f.pending);
+  assert.equal((await response.json()).ready, 3);
+  assert.ok(f.batches.flat().some(statement => /INSERT INTO programs/.test(statement.sql) && statement.args[0] === 'benson::new-0.mp4'),
+    'equal depth does not mean equal catalog identities; preserve the durable union');
+});
+
 test('relay-family channels also reserve identities in the IA repair canary', async () => {
   const f = await fixture(), body = { channel: '11', iaRepair: true, serverCatalog: true, sessionId: 'review', count: 3 };
   const queue = await (await f.request('queue', body)).json();

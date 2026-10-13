@@ -104,6 +104,25 @@ test('repaired IA session rotation receives more than the old ninety-six-record 
   } finally { f.db.close(); }
 });
 
+test('classic cartoon D1 fallback enforces its canonical editorial exclusions', async () => {
+  const records = [
+    row('review.mp4', { title: 'Cartoon Network Review by ADOTJ', subject: 'classic cartoon animation', seriesId: 'review-show' }),
+    row('top-cat.mp4', { title: 'Top Cat S01E01', subject: 'classic cartoon animation', seriesId: 'top-cat' }),
+    row('popeye.mp4', { title: 'Popeye Meets Sinbad', subject: 'classic cartoon animation', seriesId: 'popeye' }),
+    row('jetsons.mp4', { title: 'The Jetsons S01E01', subject: 'classic cartoon animation', seriesId: 'jetsons' }),
+  ];
+  const f = await sqliteCatalogFixture(records, '150');
+  try {
+    const payload = await (await f.request('queue', { channel: '150', iaRepair: true, serverCatalog: true,
+      sessionId: 'cartoon-editorial', count: 3, themeTerms: ['cartoon', 'animation'] })).json();
+    assert.equal(payload.ready, 3);
+    assert.ok(payload.candidateItems.every(item => !/\breview\b/i.test(item.title)),
+      'stale genreVerified rows cannot bypass the channel profile deny list');
+    assert.ok(payload.items.some(item => /top cat|popeye|jetsons/i.test(item.title)));
+    await Promise.all(f.pending);
+  } finally { f.db.close(); }
+});
+
 test('verified older metadata URLs remain available when the normalized URL column is empty', async () => {
   const records = ['A', 'B', 'C'].map(file => row('old-' + file + '.mp4', { metadataOnlyUrl: true }));
   const f = await sqliteCatalogFixture(records);

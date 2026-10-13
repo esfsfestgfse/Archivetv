@@ -118,6 +118,20 @@ test('pending collection expansion continues even when search rails return no ca
   await scope.workerFixture.queue({ messages: [{ body: { type: 'ia-catalog-harvest', version: 1, channel: '10', iaRepair: true, count: 3, candidateCount: 256 }, ack() {}, retry() { assert.fail('unexpected retry'); } }] }, { IA_HARVEST_QUEUE: { send: async body => jobs.push(body) } }, { waitUntil() {} });
   assert.equal(jobs.length, 1, 'series file progress must not depend on a search-page cursor');
 });
+
+test('a full metadata bank keeps harvesting while playable depth is shallow or a collection is unfinished', async () => {
+  const scope = relay(), jobs = [];
+  const candidates = Array.from({ length: 256 }, (_, i) => ({ identifier: 'candidate-' + i }));
+  vm.runInContext('globalThis.workerFixture=worker;expandAndCacheIaQueue=async()=>fullMetadataBank;', scope);
+  scope.fullMetadataBank = {
+    items: [{ identifier: 'ready-1', media: { url: 'https://archive.org/download/show/ready-1.mp4' } }],
+    candidateItems: candidates,
+    discoveryState: { parents: { series: { offset: 96, total: 238, complete: false } } },
+    backgroundHarvestCursor: 0,
+  };
+  await scope.workerFixture.queue({ messages: [{ body: { type: 'ia-catalog-harvest', version: 1, channel: '150', iaRepair: true, count: 3, candidateCount: 256 }, ack() {}, retry() { assert.fail('unexpected retry'); } }] }, { IA_HARVEST_QUEUE: { send: async body => jobs.push(body) } }, { waitUntil() {} });
+  assert.equal(jobs.length, 1, 'metadata volume must not stop playable episode discovery');
+});
 async function harvest(scope, seed, ctx) {
   return scope.f.harvestIaBackgroundPages(seed, queries, [], '10', [], [], [], ['movies'], 0, rules, 3, 256, 'https://relay.invalid', ctx, 0, 900, true);
 }

@@ -10582,14 +10582,27 @@ export default {
         const nextCursor = harvested && Number.isFinite(Number(harvested.backgroundHarvestCursor))
           ? Number(harvested.backgroundHarvestCursor)
           : 0;
-        const currentCandidates = harvested && Array.isArray(harvested.candidateItems)
-          ? harvested.candidateItems.length
-          : 0;
+        const harvestedCandidates = harvested && Array.isArray(harvested.candidateItems)
+          ? harvested.candidateItems
+          : [];
+        const currentCandidates = harvestedCandidates.length;
+        const candidateTarget = Math.max(Number(payload.count) || 0, Number(payload.candidateCount) || 0);
+        const playableTarget = Math.min(candidateTarget || IA_BACKGROUND_PLAYABLE_TARGET,
+          Math.max(Number(payload.count) || 0,
+            iaDepthRecoveryEnabled(channel) ? IA_DEPTH_PLAYABLE_TARGET : IA_BACKGROUND_PLAYABLE_TARGET));
+        const playableDepth = new Set(harvestedCandidates
+          .concat(Array.isArray(harvested?.items) ? harvested.items : [])
+          .filter(item => item && item.media && item.media.url)
+          .map(item => iaPlayableIdentity(item))
+          .filter(Boolean)).size;
+        const hasIncompleteParent = payload.iaRepair === true &&
+          Object.values(harvested?.discoveryState?.parents || {}).some(parent => !parent.complete);
+        const needsMoreDepth = currentCandidates < candidateTarget || playableDepth < playableTarget || hasIncompleteParent;
         const canContinue = harvested &&
           (payload.iaRepair === true || payload.forceDiscovery === true || iaDepthRecoveryEnabled(channel)) &&
           harvestPasses < IA_BACKGROUND_HARVEST_CONTINUATION_MAX &&
-          currentCandidates < Number(payload.candidateCount || 0) &&
-          (nextCursor > 0 || payload.iaRepair === true && Object.values(harvested.discoveryState?.parents || {}).some(parent => !parent.complete));
+          needsMoreDepth &&
+          (nextCursor > 0 || hasIncompleteParent);
         if (canContinue && env.IA_HARVEST_QUEUE && typeof env.IA_HARVEST_QUEUE.send === "function") {
           await env.IA_HARVEST_QUEUE.send({
             ...payload,

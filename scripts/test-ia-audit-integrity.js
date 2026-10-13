@@ -108,6 +108,16 @@ test('family-limited reservation balances the shelf without dropping the deeper 
   assert.equal(result.catalogSize, 9);
 });
 
+test('family balancing treats punctuation variants of one show as the same series', async () => {
+  const items = [item('1', 'get-smart'), item('2', 'Get Smart'), item('1', 'beaver')];
+  const f = await rotationFixture();
+  const result = await f.select({ mode: 'reserve', items, count: 2, diversity: { maxPerFamily: 1 } });
+  assert.equal(result.items.length, 2);
+  assert.equal(result.items.filter(row => /get[ -]smart/i.test(row.seriesId)).length, 1,
+    'one show cannot occupy two family slots because punctuation differs');
+  assert.ok(result.items.some(row => row.seriesId === 'beaver'));
+});
+
 test('catalog exhaustion cannot reserve the item currently playing', async () => {
   const items = [item('A'), item('B')], f = await rotationFixture();
   await f.select({ mode: 'reserve', items, count: 2 });

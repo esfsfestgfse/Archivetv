@@ -19,7 +19,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "5.5.89-ia-catalog-breadth";
+const V3_RELEASE = "5.5.90-ia-playable-depth";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -822,7 +822,16 @@ function catalogFallbackAllowed(item, body) {
   const denyHaystack = trustedHolidayRecovery
     ? `${title} ${description} ${subject} ${tags} ${category} ${account}`
     : haystack;
-  const denyTerms = Array.isArray(body && body.denyTerms) ? body.denyTerms : [];
+  const canonicalProfileKey = body && body.iaRepair === true
+    ? IA_CANONICAL_PROFILE_BY_CHANNEL.get(String(body.channel || ""))
+    : "";
+  const canonicalDenyTerms = canonicalProfileKey
+    ? IA_CANONICAL_PILOT_PROFILES[canonicalProfileKey]?.excludeAny || []
+    : [];
+  const denyTerms = [...new Set([
+    ...(Array.isArray(body && body.denyTerms) ? body.denyTerms : []),
+    ...canonicalDenyTerms,
+  ])];
   if (denyTerms.some((term) => {
     const needle = String(term || "").trim().toLowerCase();
     return needle && denyHaystack.includes(needle);

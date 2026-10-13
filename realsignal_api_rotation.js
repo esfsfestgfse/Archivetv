@@ -62,7 +62,12 @@ function rotate(items, offset) {
 }
 
 function familyId(item) {
-  return String(item.seriesId || item.seriesTitle || item.family || item.sourceIdentifier || itemId(item).split("::")[0]);
+  return String(item.seriesId || item.seriesTitle || item.family || item.sourceIdentifier || itemId(item).split("::")[0])
+    .normalize('NFKD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
 }
 
 function episodeKey(item) {

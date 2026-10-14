@@ -490,7 +490,8 @@ export async function okTitleSearch(profile, rotation, env, options = {}) {
       seriesTitles = okTVIndexTitles(shows, cursor % 80);
     } catch (error) { errors.push(`series index: ${text(error?.message, 100)}`); }
   }
-  const queries = (music ? okMusicQueries(profile,cursor) : animation ? okAnimationQueries(profile, cursor) : curated ? okCuratedQueries(profile, cursor) : okTitleSearchQueries(profile, cursor, { seriesTitles, deep: !firstLane })).slice(0, firstLane ? 2 : 6);
+  const queryLimit = firstLane ? 2 : profile.profileKey === "ok-tv-channel" ? 10 : 6;
+  const queries = (music ? okMusicQueries(profile,cursor) : animation ? okAnimationQueries(profile, cursor) : curated ? okCuratedQueries(profile, cursor) : okTitleSearchQueries(profile, cursor, { seriesTitles, deep: !firstLane })).slice(0, queryLimit);
   const offsets = [];
   const pages = await mapLimit(queries, 2, async (query) => {
     try {

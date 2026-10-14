@@ -92,6 +92,10 @@
     return item.seriesId && episode ? item.seriesId + ":" + episode
       : !item.seriesId && item.identityReference ? item.identityReference : item.id;
   }
+  function seriesKey(item) {
+    if (!item) return "";
+    return String(item.seriesId || item.seriesTitle || "").trim();
+  }
   function order(profile, items, recentArtists) {
     var groups = new Map(), seen = new Set(), result = [], tv = profile.intent === "television" || /^ok-(?:kids|adult|anime)-channel$/.test(String(profile.profileKey || ""));
     items.forEach(function (item) {
@@ -177,5 +181,5 @@
       timer = setTimeout(function () { if (!loaded) fail(); }, 20000);
     });
   }
-  root.RealSignalOKEmbed = { play: play, stop: stop, qualify: qualify, order: order, normalize: normalize, programKey: programKey, reconcileShelf: reconcileShelf, musicProfile: musicProfile };
+  root.RealSignalOKEmbed = { play: play, stop: stop, qualify: qualify, order: order, normalize: normalize, programKey: programKey, seriesKey: seriesKey, reconcileShelf: reconcileShelf, musicProfile: musicProfile };
 })(window);

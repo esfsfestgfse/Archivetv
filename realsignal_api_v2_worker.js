@@ -9,7 +9,7 @@ import { SessionRotation } from "./realsignal_api_rotation.js";
 import { normalizeIaFileRecord, qualifyIaFileRecord, iaMinimumFileRuntimeSeconds } from "./ia_file_contract.js";
 import { EdgeRateLimiter } from "./realsignal_api_rate_limit.js";
 import { RokuSession } from "./realsignal_roku_session.js";
-import { okBalancedCandidates, okPlaybackIdentity } from "./ok_public_search.js";
+import { okBalancedCandidates, okPlaybackIdentity, okPreferUnseenSeries, okSeriesIdentity } from "./ok_public_search.js";
 import { okMusicChannel } from "./ok_music_catalog.js";
 import { OK_VERIFIED_SEARCH_SEED } from "./ok_verified_search_seed.js";
 import { vimeoBalancedItems } from "./vimeo_catalog.js";
@@ -19,7 +19,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "5.5.90-ia-playable-depth";
+const V3_RELEASE = "5.5.91-ok-tv-series-depth";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -1470,6 +1470,7 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
   const recentIDs = recentCatalogIds(effectiveBody);
   const okKind = okMusicChannel({profileKey:channel}) ? "music" : channel === "ok-movie-channel" ? "movie" : "tv";
   const recentPrograms = okCatalog ? new Set(playable.filter(item => recentIDs.has(queueItemKey(item))).map(item => okPlaybackIdentity(item, okKind))) : new Set();
+  const recentSeriesById = new Map(playable.filter(item => recentIDs.has(queueItemKey(item))).map(item => [queueItemKey(item), okSeriesIdentity(item)]));
   // Resolve watched identities independently of the bounded playable window.
   // Inactive originals still identify alternate uploads of a watched episode.
   if (okCatalog && !ignoreFreshness && recentIDs.size) {
@@ -1478,7 +1479,9 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
       for (const row of history.results || []) {
         let metadata = {};
         try { metadata = JSON.parse(row.metadata_json || "{}"); } catch (_) { /* tolerate legacy rows */ }
-        recentPrograms.add(okPlaybackIdentity({ ...metadata, id: row.id, title: row.title }, okKind));
+        const historicalItem = { ...metadata, id: row.id, title: row.title };
+        recentPrograms.add(okPlaybackIdentity(historicalItem, okKind));
+        recentSeriesById.set(String(row.id), okSeriesIdentity(historicalItem));
       }
     } catch (error) {
       console.warn(JSON.stringify({ event: "ok-canonical-history-read-failed", channel, error: String(error).slice(0, 160) }));
@@ -1488,13 +1491,21 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
   const fresh = ignoreFreshness ? playableCatalog : strictOKFreshness
     ? playableCatalog.filter(item => !recentIDs.has(queueItemKey(item)) && (!okCatalog || !recentPrograms.has(okPlaybackIdentity(item, okKind))))
     : applyFreshness(playableCatalog, effectiveBody);
+  const requestedCount = Math.max(1, Math.min(5, Number(effectiveBody && effectiveBody.count) || 3));
   /* Source Suite may legitimately exhaust a small catalog. Repeat only after
      every verified row has appeared; never turn exhaustion into a 503 or hide
      the real catalog depth from the guide. */
   const exhausted = !ignoreFreshness && effectiveBody.sourceCatalog === true && playableCatalog.length > 0 && fresh.length === 0;
-  const selected = exhausted ? playableCatalog : fresh;
+  const freshKeys = new Set(fresh.map(queueItemKey));
+  const selected = ignoreFreshness || fresh.length >= requestedCount ? fresh
+    : fresh.concat(playableCatalog.filter(item => !freshKeys.has(queueItemKey(item))));
   const seenCount = Math.max(0, playableCatalog.length - fresh.length);
-  const requestedCount = Math.max(1, Math.min(5, Number(effectiveBody && effectiveBody.count) || 3));
+  const suppliedRecentSeries = Array.isArray(effectiveBody && effectiveBody.recentSeries)
+    ? effectiveBody.recentSeries.map(value => String(value || "").trim()).filter(Boolean).slice(0, 10)
+    : [];
+  const recentSeries = okKind === "tv" ? new Set(suppliedRecentSeries.length
+    ? suppliedRecentSeries
+    : Array.from(recentIDs).slice(0, 10).map(id => recentSeriesById.get(id)).filter(Boolean)) : new Set();
   /* IA rotations represent consuming the five-item public shelf. Source
      profiles keep their historical one-record cursor, but the Archive
      recovery rail must advance by a complete shelf or the API fallback will
@@ -1502,7 +1513,10 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
   const rotationStep = effectiveBody && effectiveBody.sourceCatalog === true ? 1 : requestedCount;
   const rotated = rotateCatalogItems(selected, (Number(effectiveBody.rotation) || 0) * rotationStep);
   const ordered = okCatalog ? okBalancedCandidates([rotated], channel === "ok-movie-channel" ? "movie" : "tv", limit) : vimeoCatalog ? vimeoBalancedItems(rotated) : rotated;
-  const shelf = ordered.slice(0, requestedCount);
+  const seriesOrdered = okCatalog && okKind === "tv"
+    ? okBalancedCandidates([okPreferUnseenSeries(ordered, recentSeries, requestedCount)], "tv", limit)
+    : ordered;
+  const shelf = seriesOrdered.slice(0, requestedCount);
   return shelf.length ? {
     /* Keep the public contract consistent with the live relay: `items` is the
        immediately playable shelf, while `candidateItems` is the larger
@@ -1510,7 +1524,7 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
        transient relay outage look like a 96-program simultaneous queue and
        caused the guide/freshness layer to miscount repeats. */
     items: shelf,
-    candidateItems: deepCatalog ? ordered : filtered,
+    candidateItems: deepCatalog ? seriesOrdered : filtered,
     ready: shelf.length,
     candidates: filtered.length,
     catalogDepth: filtered.length,

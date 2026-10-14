@@ -57,12 +57,13 @@ export function okEmbedMetadata(html, expectedId) {
   return null;
 }
 
-export function okTVIndexTitles(shows, cursor = 0) {
+export function okTVIndexTitles(shows, cursor = 0, limit = 10) {
   const eligible = (Array.isArray(shows) ? shows : []).filter(show =>
     show?.language === "English" && show.type !== "Animation" &&
     (show.network?.country?.code === "US" || show.webChannel?.country?.code === "US"));
-  const offset = Math.abs(Math.floor(Number(cursor) || 0)) * 3;
-  return Array.from({ length: Math.min(3, eligible.length) }, (_, i) => eligible[(offset + i) % eligible.length].name);
+  const count = Math.min(Math.max(1, Math.floor(Number(limit) || 10)), eligible.length);
+  const offset = Math.abs(Math.floor(Number(cursor) || 0)) * count;
+  return Array.from({ length: count }, (_, i) => eligible[(offset + i) % eligible.length].name);
 }
 
 // Atomically advance discovery independently of a viewer's playback rotation.
@@ -115,12 +116,16 @@ export function okTitleSearchQueries(profile, rotation = 0, options = {}) {
   });
   // Search the whole show title; enforce release words on each result title.
   // Forcing BDRip on a modern series (or 1080p on an old VHS show) hid episodes.
-  const indexed = (options.seriesTitles || []).slice(0, 3);
+  const indexed = (options.seriesTitles || []).slice(0, options.deep && profile.profileKey === "ok-tv-channel" ? 10 : 3);
   // Bare release markers find programs outside every example/index list.
   const broad = profile.profileKey === "ok-tv-channel" ? ["DVDRip S01", "1080p S02", "BDRip S03", "VHS rip episode", "1080p S04", "4k S01"][offset % 6] : markers[offset % markers.length];
   const movieDepth = options.deep && profile.profileKey === "ok-movie-channel"
     ? [`${1980 + offset % 47} 1080p`, `${1980 + (offset * 7) % 47} BDRip`] : [];
-  return Array.from(new Set([broad, ...indexed, ...examples, ...movieDepth])).slice(0, options.deep ? 6 : 4);
+  const ordered = options.deep && profile.profileKey === "ok-tv-channel"
+    ? [...indexed, broad, ...examples]
+    : [broad, ...indexed, ...examples, ...movieDepth];
+  return Array.from(new Set(ordered)).slice(0,
+    options.deep && profile.profileKey === "ok-tv-channel" ? 10 : options.deep ? 6 : 4);
 }
 
 export function okProgramName(title, kind) {
@@ -225,6 +230,25 @@ export function okPlaybackIdentity(item, kind = "tv") {
   const episode = okEpisodeIdentity(item.title) || item.episodeIdentity;
   return kind === "tv" && episode ? `${series}:${episode}`
     : kind === "movie" && item.identityReference ? item.identityReference : item.id;
+}
+
+export function okSeriesIdentity(item) {
+  if (!item) return "";
+  return String(item.seriesId || item.identityReference || item.seriesTitle || okProgramName(item.title, "tv").toLowerCase() || item.id || "").trim();
+}
+
+// Prefer different shows before another episode of a recently watched show.
+// This is a preference rather than a ban: constrained catalogs append the
+// cooled shows so a healthy channel never turns into an empty shelf.
+export function okPreferUnseenSeries(items, recentSeries) {
+  const rows = Array.isArray(items) ? items : [];
+  const cooled = recentSeries instanceof Set ? recentSeries : new Set(recentSeries || []);
+  if (!rows.length || !cooled.size) return rows.slice();
+  const unseen = [], recent = [];
+  for (const item of rows) (cooled.has(okSeriesIdentity(item)) ? recent : unseen).push(item);
+  const age = new Map(Array.from(cooled).map((series, index) => [series, index]));
+  recent.sort((left, right) => (age.get(okSeriesIdentity(right)) ?? -1) - (age.get(okSeriesIdentity(left)) ?? -1));
+  return unseen.concat(recent);
 }
 
 // Fair admission: no search page or series can consume the hydration budget.

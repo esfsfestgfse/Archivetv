@@ -19,10 +19,10 @@ function sourceBetween(start, end) {
 const payload = {
   metadata: { collection: ['classic_tv'] },
   files: [
-    { name: 'Season 1/Benson_S01E01_Change.mp4', format: 'h.264', length: '551234567' },
-    { name: 'Season 1/Benson_S01E02_Trust Me.mp4', format: 'h.264', length: '542345678' },
-    { name: 'Season 1/Benson_S01E03_The President\'s Double.mp4', format: 'h.264', length: '532345678' },
-    { name: 'Season 1/Benson_S01E01_Change.ia.mp4', format: 'MPEG4', length: '651234567' },
+    { name: 'Season 1/Benson_S01E01_Change.mp4', format: 'h.264', duration: '25:00', size: '551234567' },
+    { name: 'Season 1/Benson_S01E02_Trust Me.mp4', format: 'h.264', duration: '25:00', size: '542345678' },
+    { name: 'Season 1/Benson_S01E03_The President\'s Double.mp4', format: 'h.264', duration: '25:00', size: '532345678' },
+    { name: 'Season 1/Benson_S01E01_Change.ia.mp4', format: 'MPEG4', duration: '25:00', size: '651234567' },
     { name: 'Benson_thumb.jpg', format: 'Thumbnail' },
   ],
 };
@@ -42,7 +42,10 @@ const context = vm.createContext({
   },
   iaHasGlobalVideoPolicyViolation: () => false,
   iaFileRuntimeSeconds: (file) => {
-    const declared = Number(file && (file.duration || file.runtime));
+    const raw = String(file && (file.duration || file.runtime) || '').trim();
+    const parts = raw.split(':').map(Number);
+    const declared = parts.length === 3 && parts.every(Number.isFinite) ? parts[0] * 3600 + parts[1] * 60 + parts[2]
+      : parts.length === 2 && parts.every(Number.isFinite) ? parts[0] * 60 + parts[1] : Number(raw);
     if (Number.isFinite(declared) && declared > 0) return declared;
     const length = Number(file && file.length);
     return Number.isFinite(length) && length > 0 && length < 172800 ? length : 0;

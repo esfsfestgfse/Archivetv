@@ -29,7 +29,7 @@ const {pathToFileURL}=require('node:url');
     const seen=[];
     for(let rotation=0;rotation<16;rotation++){
       const response=await worker.fetch(new Request('https://api.example/api/v3/source/catalog',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({profileKey:key,count:5,rotation,recentIds:seen})}),{realsignal_catalog:db},ctx);
-      const shelf=await response.json();assert.equal(response.status,200);assert.equal(shelf.items.length,5);assert.ok(shelf.catalogDepth>=150,'background discovery may grow, never shrink, the retained catalog');
+      const shelf=await response.json();assert.equal(response.status,200);assert.equal(shelf.items.length,5,`${family} rotation ${rotation}: ${JSON.stringify({ready:shelf.ready,candidates:shelf.candidates,depth:shelf.catalogDepth,unseen:shelf.unseenCatalogItems,exhausted:shelf.catalogExhausted,items:(shelf.items||[]).map(item=>item.id)})}`);assert.ok(shelf.catalogDepth>=150,'background discovery may grow, never shrink, the retained catalog');
       assert.equal(new Set(shelf.items.map(item=>item.seriesId)).size,5);
       assert.ok(shelf.candidateItems.every(item=>!seen.includes(item.id)));
       for(const item of shelf.items){assert.equal(item.animationFamily,family);assert.equal(item.animationVerified,true);assert.ok(!seen.includes(item.id));seen.push(item.id)}

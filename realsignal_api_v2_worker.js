@@ -1522,11 +1522,11 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
     : fresh.concat(playableCatalog.filter(item => !freshKeys.has(queueItemKey(item))));
   const seenCount = Math.max(0, playableCatalog.length - fresh.length);
   const suppliedRecentSeries = Array.isArray(effectiveBody && effectiveBody.recentSeries)
-    ? effectiveBody.recentSeries.map(value => String(value || "").trim()).filter(Boolean).slice(0, 10)
+    ? effectiveBody.recentSeries.map(value => String(value || "").trim()).filter(Boolean).slice(0, 24)
     : [];
   const recentSeries = okKind === "tv" ? new Set(suppliedRecentSeries.length
     ? suppliedRecentSeries
-    : Array.from(recentIDs).slice(0, 10).map(id => recentSeriesById.get(id)).filter(Boolean)) : new Set();
+    : Array.from(recentIDs).slice(0, 24).map(id => recentSeriesById.get(id)).filter(Boolean)) : new Set();
   /* IA rotations represent consuming the five-item public shelf. Source
      profiles keep their historical one-record cursor, but the Archive
      recovery rail must advance by a complete shelf or the API fallback will

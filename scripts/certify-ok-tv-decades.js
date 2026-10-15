@@ -65,7 +65,7 @@ async function certify({ profileKey, decade }) {
     const playedIds = rotation && snapshots.length ? [itemId(snapshots.at(-1).items[0])] : [];
     const result = await requestJson(endpoint, {
       method: 'POST', headers,
-      body: JSON.stringify({ profileKey, count: 5, minimumReady: 5, staleReady: 2, rotation, recentIds, recentSeries: playedSeries.slice(0, 10), playedIds }),
+      body: JSON.stringify({ profileKey, count: 5, minimumReady: 5, staleReady: 2, rotation, recentIds, recentSeries: playedSeries.slice(0, 24), playedIds }),
     });
     const items = Array.isArray(result.payload.items) ? result.payload.items : [];
     snapshots.push({ status: result.response.status, responseTimeMs: result.responseTimeMs, payload: result.payload, items });

@@ -104,7 +104,7 @@ const root = path.resolve(__dirname, '..');
     const movies = { cursor: 0, items: [{ id: 'movie-a' }, { id: 'movie-b' }] };
     assert.equal(selection.v2NextFreshIndex({ name: 'OK Movie Channel', profileKey: 'ok-movie-channel' }, movies, ''), 0, `${file} tuning must preserve an explicitly selected unplayed movie`);
     assert.equal(selection.v2NextFreshIndex({ name: 'OK Movie Channel', profileKey: 'ok-movie-channel' }, movies, 'movie-a'), 1, `${file} Next must still advance from the current movie`);
-    assert.ok(html.includes('recentSeries:v2RecentSeries(profile.name).slice(0,10)'), `${file} must send the same distinct-series cooldown window to the server`);
+    assert.ok(html.includes('recentSeries:v2RecentSeries(profile.name).slice(0,24)'), `${file} must send the same distinct-series cooldown window to the server`);
   }
   const oldFetch = globalThis.fetch;
   try {
@@ -142,7 +142,7 @@ const root = path.resolve(__dirname, '..');
       assert.ok(shelf.catalogDepth > 96);
       assert.ok(shelf.candidateItems.every(item => !seen.includes(item.id)), 'the OK background window must exclude recently served episodes too');
       assert.equal(new Set(shelf.items.map(item => item.seriesId)).size, 5, JSON.stringify(shelf.items.map(item => ({ title: item.title, series: item.seriesId }))));
-      const recentlyPlayedSeries = new Set(playedSeries.slice(0, 10));
+      const recentlyPlayedSeries = new Set(playedSeries.slice(0, 24));
       assert.ok(shelf.items.every(item => !recentlyPlayedSeries.has(item.seriesId)), 'an unseen episode must not bring back one of the previous ten shows while alternatives exist');
       for (const item of shelf.items) {
         assert.ok(!seen.includes(item.id), 'recent episodes must not repeat');

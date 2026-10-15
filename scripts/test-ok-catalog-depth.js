@@ -37,6 +37,8 @@ const root = path.resolve(__dirname, '..');
   assert.equal(queries.length, 10, 'deep television discovery must not stop after six narrow searches');
   assert.deepEqual(queries.map(query => query.replace(/\s+(?:1080p|DVDRip|BDRip|BluRay)$/i, '')), indexedTitles, 'a full maintenance pass must search all ten indexed series instead of spending two slots on generic queries');
   assert.ok(queries.every(query => /\b(?:1080p|DVDRip|BDRip|BluRay)$/i.test(query)), 'indexed series searches must include an admissible release marker');
+  const dvdRepairQueries = helpers.okTitleSearchQueries({ profileKey: 'ok-tv-channel' }, 1, { seriesTitles: indexedTitles, deep: true, indexedMarker: 'DVDRip' });
+  assert.ok(dvdRepairQueries.every(query => /\sDVDRip$/i.test(query)), 'a targeted old-TV pass must be able to probe every title with the proven DVD release marker');
   const decadeShows = [
     ...Array.from({ length: 8 }, (_, index) => ({ name: `Eighties Show ${index + 1}`, premiered: `198${index}-01-01`, language: 'English', type: 'Scripted', network: { country: { code: 'US' } } })),
     ...Array.from({ length: 8 }, (_, index) => ({ name: `Nineties Show ${index + 1}`, premiered: `199${index}-01-01`, language: 'English', type: 'Scripted', network: { country: { code: 'US' } } })),

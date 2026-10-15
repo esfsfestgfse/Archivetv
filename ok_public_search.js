@@ -162,8 +162,9 @@ export function okTitleSearchQueries(profile, rotation = 0, options = {}) {
      also match clips and discussion. Pair every indexed series with the
      release markers that the shared admission gate already requires. */
   const indexedMarkers = ["1080p", "DVDRip", "BDRip", "BluRay"];
+  const forcedMarker = indexedMarkers.find(marker => marker.toLowerCase() === String(options.indexedMarker || "").toLowerCase());
   const indexed = profile.profileKey === "ok-tv-channel"
-    ? indexedTitles.map((title, index) => `${title} ${indexedMarkers[(offset + index) % indexedMarkers.length]}`)
+    ? indexedTitles.map((title, index) => `${title} ${forcedMarker || indexedMarkers[(offset + index) % indexedMarkers.length]}`)
     : indexedTitles;
   // Bare release markers find programs outside every example/index list.
   const broad = profile.profileKey === "ok-tv-channel" ? ["DVDRip S01", "1080p S02", "BDRip S03", "VHS rip episode", "1080p S04", "4k S01"][offset % 6] : markers[offset % markers.length];

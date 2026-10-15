@@ -484,10 +484,12 @@ export async function okTitleSearch(profile, rotation, env, options = {}) {
   const cursor = firstLane ? rotation : await okDiscoveryCursor(env.realsignal_catalog, profile.profileKey, rotation);
   let seriesTitles = [];
   let indexPages = [];
+  let indexedMarker = "";
   if (!firstLane && profile.profileKey === "ok-tv-channel") {
     try {
       const pagePlan = okTVIndexPagePlan(cursor);
       indexPages = pagePlan.pages;
+      indexedMarker = pagePlan.targeted ? (cursor % 2 === 0 ? "DVDRip" : "1080p") : "";
       const pageRows = await Promise.all(indexPages.map(page => fetchJson(`https://api.tvmaze.com/shows?page=${page}`, { cf: { cacheTtl: 86400, cacheEverything: true } })));
       const shows = pageRows.flat();
       seriesTitles = pagePlan.targeted
@@ -496,7 +498,7 @@ export async function okTitleSearch(profile, rotation, env, options = {}) {
     } catch (error) { errors.push(`series index: ${text(error?.message, 100)}`); }
   }
   const queryLimit = firstLane ? 2 : profile.profileKey === "ok-tv-channel" ? 10 : 6;
-  const queries = (music ? okMusicQueries(profile,cursor) : animation ? okAnimationQueries(profile, cursor) : curated ? okCuratedQueries(profile, cursor) : okTitleSearchQueries(profile, cursor, { seriesTitles, deep: !firstLane })).slice(0, queryLimit);
+  const queries = (music ? okMusicQueries(profile,cursor) : animation ? okAnimationQueries(profile, cursor) : curated ? okCuratedQueries(profile, cursor) : okTitleSearchQueries(profile, cursor, { seriesTitles, indexedMarker, deep: !firstLane })).slice(0, queryLimit);
   const offsets = [];
   const pages = await mapLimit(queries, 2, async (query) => {
     try {
@@ -565,7 +567,7 @@ export async function okTitleSearch(profile, rotation, env, options = {}) {
     } catch (_) { return null; }
   });
   return { provider: "OK.ru", items: verified.filter(Boolean), health: {
-    titleSearch: true, queries, queryPages: offsets, discoveryCursor: cursor, seriesIndexPages: seriesTitles.length ? indexPages : [], candidates: candidates.length,
+    titleSearch: true, queries, queryPages: offsets, discoveryCursor: cursor, seriesIndexPages: seriesTitles.length ? indexPages : [], indexedMarker: indexedMarker || null, candidates: candidates.length,
     verifiedEmbeds: verified.filter(Boolean).length, errors, firstLane,
     ...(animation ? { animationMisses } : {}),
     ...(curated ? { curatedMisses } : {}),

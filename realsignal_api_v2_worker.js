@@ -1515,7 +1515,9 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
   const freshKeys = new Set(fresh.map(queueItemKey));
   const availableSeries = okCatalog && okKind === "tv" ? new Set(playableCatalog.map(okSeriesIdentity).filter(Boolean)).size : 0;
   const freshSeries = okCatalog && okKind === "tv" ? new Set(fresh.map(okSeriesIdentity).filter(Boolean)).size : 0;
-  const needsSeriesFallback = availableSeries > 1 && freshSeries < availableSeries;
+  const needsSeriesFallback = availableSeries > 1 && (derivedCatalog
+    ? freshSeries < availableSeries
+    : freshSeries < Math.min(requestedCount, availableSeries));
   /* Exact episode freshness must not let one deep show monopolize a TV shelf.
      When unseen rows come from too few series, append the oldest fallback
      rows and let the series balancer pick one show at a time. This can repeat

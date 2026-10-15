@@ -289,6 +289,30 @@ function insertEpisode(sql, { id, series, seriesIndex, decade, episode, seenAt }
     catalogSql.close();
   }
 
+  for (const filename of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
+    const html = fs.readFileSync(path.join(root, filename), 'utf8');
+    assert.ok(html.includes('const OK_DECADES_ENABLED=new URLSearchParams(location.search).get("okDecades")==="1";'), `${filename} must expose one explicit pilot flag`);
+    const channelStart = html.indexOf('const OK_DECADE_CHANNELS=[');
+    const channelEnd = html.indexOf('\n];', channelStart);
+    assert.ok(channelStart > -1 && channelEnd > channelStart, `${filename} must define the guarded channel records`);
+    const channelBlock = html.slice(channelStart, channelEnd);
+    for (const [number, key, name] of [
+      [600, 'ok-tv-1980s', 'OK TV: The 80s'],
+      [601, 'ok-tv-1990s', 'OK TV: The 90s'],
+      [602, 'ok-tv-2000s', 'OK TV: The 2000s'],
+    ]) {
+      assert.ok(channelBlock.includes(`{nm:"${name}",num:${number},cat:"SOURCE",source:"v2preview",ns:"tv",previewKey:"${key}"}`), `${filename} must map ${number} to ${key}`);
+      assert.ok(html.includes(`"${key}":Object.assign({},V2_PREVIEW_PROFILES["ok-tv-channel"],{name:"${name}"})`), `${filename} must give ${key} an independent local history name`);
+      assert.ok(html.includes(`"${name}":{desc:"SOURCE SUITE · TV series that debuted in the ${String(number === 600 ? 1980 : number === 601 ? 1990 : 2000)}s`), `${filename} must explain the series-debut rule in the guide`);
+    }
+    assert.equal((channelBlock.match(/previewKey:"ok-tv-(?:1980|1990|2000)s"/g) || []).length, 3, `${filename} flag must expose exactly three pilot channels`);
+    assert.ok(html.includes('if(OK_DECADES_ENABLED)CH.push(...OK_DECADE_CHANNELS);'), `${filename} must omit the pilot records unless the flag is enabled`);
+    assert.ok(html.indexOf('if(OK_DECADES_ENABLED)CH.push(...OK_DECADE_CHANNELS);') < html.indexOf('const _byNumMap=new Map(CH.map'), `${filename} must register flagged channels before numeric tuning is built`);
+    assert.equal((html.match(/\{nm:"OK TV Channel", num:585,/g) || []).length, 1, `${filename} must leave channel 585 unchanged`);
+    assert.ok(html.includes('function v2Recent(key){var ids=store.get("v2recent:"+key,[])'), `${filename} must retain per-profile item history`);
+    assert.ok(html.includes('function v2RecentSeries(key){var rows=store.get("v2recentSeries:"+key,[])'), `${filename} must retain per-profile series history`);
+  }
+
   console.log('OK TV decade pilot passed: metadata, filtered parent manifests, isolated freshness, guide parity, and zero provider discovery.');
 })().catch((error) => {
   console.error(error);

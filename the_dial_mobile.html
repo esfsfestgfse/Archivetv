@@ -2253,6 +2253,12 @@ const CAT={NET:"#ffe06a",TOON:"#7fd8ff",MOV:"#ff9ab0",TV:"#9affb0",SPORTS:"#8fff
 const CATNAME={NET:"NETWORKS",TOON:"CARTOONS",MOV:"MOVIES",TV:"TELEVISION",SPORTS:"SPORTS SUITE",MUS:"MUSIC & RADIO",DOC:"NONFICTION",SOURCE:"SOURCE SUITE",LBRO:"LIVE BROADCAST",LDATA:"LIVE DATA",RETRO:"RETRO ARCHIVE",HOL:"HOLIDAY",BRIT:"BRITISH SUITE"};
 
 /* ---------- the dial (~36 channels) ---------- */
+const OK_DECADES_ENABLED=new URLSearchParams(location.search).get("okDecades")==="1";
+const OK_DECADE_CHANNELS=[
+ {nm:"OK TV: The 80s",num:600,cat:"SOURCE",source:"v2preview",ns:"tv",previewKey:"ok-tv-1980s"},
+ {nm:"OK TV: The 90s",num:601,cat:"SOURCE",source:"v2preview",ns:"tv",previewKey:"ok-tv-1990s"},
+ {nm:"OK TV: The 2000s",num:602,cat:"SOURCE",source:"v2preview",ns:"tv",previewKey:"ok-tv-2000s"}
+];
 const CH=[
  /* SPORTS SUITE · 50–79. Live scoreboard plus 29 intentionally separated archive lanes. */
  {nm:"Sports Center", num:50,             cat:"SPORTS", source:"sports", ns:"tv"},
@@ -2539,6 +2545,7 @@ const CH=[
  {nm:"The Game Room", num:510, cat:"RETRO", gl:"gameroom", era:[1970,2026], ns:"doc"},
  {nm:"The Detective", num:511, cat:"RETRO", gl:"detective", era:[1940,2026], ns:"tv"},
 ];
+if(OK_DECADES_ENABLED)CH.push(...OK_DECADE_CHANNELS);
 /* V3 CHANNEL HEALTH POLICY: the scorecard is now an executable lineup policy.
    Keep all verified lanes in the public dial; keep repair lanes addressable for
    diagnostics while they are rebuilt; remove retired/blocked lanes from the
@@ -2667,6 +2674,9 @@ const CHANNEL_META={
 "Indie Feature House":{desc:"SOURCE SUITE · YouTube + PeerTube independent, public/free and festival feature films from 1980-present; no Shorts, podcasts, trailers or parody uploads.",rel:["Modern Free Cinema","The Festival Circuit","Screen Test"]},
 "OK Movie Channel":{desc:"OK.RU SIGNED API + PUBLIC EMBED FALLBACK · English-language feature films from the 1980s through today; long-form landscape programming only, with no fan films, Shorts, trailers, podcasts or parody uploads.",rel:["Vimeo Movie Channel","Modern Free Cinema","Movie House"]},
 "OK TV Channel":{desc:"OK.RU SIGNED API + PUBLIC EMBED FALLBACK · English-language full television episodes and series from the 1980s through today; no Shorts, podcasts, trailers or fan-made uploads.",rel:["Vimeo TV Channel","TV Time Machine","Modern Rerun TV"]},
+"OK TV: The 80s":{desc:"SOURCE SUITE · TV series that debuted in the 1980s; 15-minute minimum, drawn from the shared verified OK TV catalog with independent freshness.",rel:["OK TV Channel","OK TV: The 90s"]},
+"OK TV: The 90s":{desc:"SOURCE SUITE · TV series that debuted in the 1990s; 15-minute minimum, drawn from the shared verified OK TV catalog with independent freshness.",rel:["OK TV: The 80s","OK TV: The 2000s"]},
+"OK TV: The 2000s":{desc:"SOURCE SUITE · TV series that debuted in the 2000s; 15-minute minimum, drawn from the shared verified OK TV catalog with independent freshness.",rel:["OK TV: The 90s","OK TV Channel"]},
 "OK Britannia":{desc:"OK.RU PUBLIC EMBEDS · Long-form British sitcoms, drama, mystery and science fiction from an identity-checked program roster.",rel:["OK TV Channel","British Comedy","British Drama"]},
 "OK Factory Floor":{desc:"OK.RU PUBLIC EMBEDS · Long-form shows about real factory floors, assembly lines, and how vehicles, machines, and products are made—no tutorials or AI-fantasy filler.",rel:["Manufacturing Marvels","The Workshop","OK Britannia"]},
 "Vimeo Movie Channel":{desc:"VIMEO API/PLAYER · English-language feature films from the 1980s through today, using official embeddable Vimeo playback; no Shorts, trailers, podcasts, fan films or parody uploads.",rel:["OK Movie Channel","Modern Free Cinema","Indie Feature House"]},
@@ -8389,6 +8399,11 @@ Object.assign(V2_PREVIEW_PROFILES,{
   ,"ok-soul-flow-channel":{"name":"OK Soul & Flow","queryLimit":32,"queryWindow":4,"providers":["ok-search","ok-manifest"],"intent":"music","serverOnly":true,"minRuntimeSeconds":120,"deepCatalog":true,"queries":["Janet Jackson music video","Whitney Houston music video","TLC music video","Aaliyah music video"],"match":["music video","r&b","soul","hip hop"],"deny":["lyrics","concert","podcast","fan edit","reaction","audio only"]}
   ,"ok-country-video-channel":{"name":"OK Country Video","queryLimit":32,"queryWindow":4,"providers":["ok-search","ok-manifest"],"intent":"music","serverOnly":true,"minRuntimeSeconds":120,"deepCatalog":true,"queries":["George Strait music video","Reba McEntire music video","Alan Jackson music video","Randy Travis music video"],"match":["music video","country","country pop","country rock"],"deny":["lyrics","concert","podcast","fan edit","reaction","audio only"]}
   ,"ok-video-hits-channel":{"name":"OK Video Hits","queryLimit":32,"queryWindow":4,"providers":["ok-search","ok-manifest"],"intent":"music","serverOnly":true,"minRuntimeSeconds":120,"deepCatalog":true,"queries":["Madonna music video","Cyndi Lauper music video","Duran Duran music video","Eurythmics music video"],"match":["music video","pop","rock","alternative","new wave"],"deny":["lyrics","concert","podcast","fan edit","reaction","audio only"]}
+});
+if(OK_DECADES_ENABLED)Object.assign(V2_PREVIEW_PROFILES,{
+  "ok-tv-1980s":Object.assign({},V2_PREVIEW_PROFILES["ok-tv-channel"],{name:"OK TV: The 80s"}),
+  "ok-tv-1990s":Object.assign({},V2_PREVIEW_PROFILES["ok-tv-channel"],{name:"OK TV: The 90s"}),
+  "ok-tv-2000s":Object.assign({},V2_PREVIEW_PROFILES["ok-tv-channel"],{name:"OK TV: The 2000s"})
 });
 /* Source Suite programming director. The original pilot overused “history” and
    “documentary” in every lane. These modes search for the actual program form

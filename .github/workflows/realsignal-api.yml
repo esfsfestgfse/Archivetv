@@ -26,6 +26,8 @@ on:
       - 'scripts/test-v3-api-contract.js'
       - 'scripts/test-ok-source-recovery.js'
       - 'scripts/test-ok-curated-tv.js'
+      - 'scripts/test-ok-tv-decades.js'
+      - 'scripts/certify-ok-tv-decades.js'
       - 'scripts/test-ia-canonical-pilot.js'
       - 'scripts/check-v2-api-contract.js'
       - 'scripts/test-version5-gate.js'
@@ -58,6 +60,7 @@ jobs:
           node scripts/test-ok-animation.js
           node scripts/test-ok-animation-depth.js
           node scripts/test-ok-curated-tv.js
+          node scripts/test-ok-tv-decades.js
           node scripts/test-ok-music.js
           node scripts/test-ok-country.js
           node scripts/test-ok-video-hits.js

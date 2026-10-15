@@ -93,6 +93,8 @@ jobs:
         run: node scripts/test-ok-source-recovery.js
       - name: Validate persistent OK discovery and deep episode rotation
         run: node scripts/test-ok-catalog-depth.js
+      - name: Validate guarded OK TV decade pilot
+        run: node scripts/test-ok-tv-decades.js
       - name: Validate separated OK animation families
         run: node scripts/test-ok-animation.js
       - name: Validate persistent OK animation catalogs and freshness

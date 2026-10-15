@@ -313,6 +313,19 @@ function insertEpisode(sql, { id, series, seriesIndex, decade, episode, seenAt }
     assert.ok(html.includes('function v2RecentSeries(key){var rows=store.get("v2recentSeries:"+key,[])'), `${filename} must retain per-profile series history`);
   }
 
+  const certifierPath = path.join(root, 'scripts', 'certify-ok-tv-decades.js');
+  assert.ok(fs.existsSync(certifierPath), 'the decade pilot must have a network certifier');
+  const certifier = fs.readFileSync(certifierPath, 'utf8');
+  for (const field of ['profileKey', 'distinctSeries', 'playableEpisodes', 'readyDepth', 'responseTimeMs', 'wrongDecadeCount', 'blockedFormatCount', 'exactRepeats', 'cooldownViolations', 'guideMismatchCount', 'reasons']) {
+    assert.ok(certifier.includes(field), `network certification must report ${field}`);
+  }
+  assert.ok(certifier.includes('--base-url'), 'network certification must require an explicit base URL');
+  assert.ok(certifier.includes('15'), 'network certification must exercise fifteen Next operations');
+  for (const workflow of ['ci.yml', 'realsignal-api.yml']) {
+    const source = fs.readFileSync(path.join(root, '.github', 'workflows', workflow), 'utf8');
+    assert.ok(source.includes('node scripts/test-ok-tv-decades.js'), `${workflow} must run the deterministic decade contract`);
+  }
+
   console.log('OK TV decade pilot passed: metadata, filtered parent manifests, isolated freshness, guide parity, and zero provider discovery.');
 })().catch((error) => {
   console.error(error);

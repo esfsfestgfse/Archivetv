@@ -1515,7 +1515,7 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
   const freshKeys = new Set(fresh.map(queueItemKey));
   const availableSeries = okCatalog && okKind === "tv" ? new Set(playableCatalog.map(okSeriesIdentity).filter(Boolean)).size : 0;
   const freshSeries = okCatalog && okKind === "tv" ? new Set(fresh.map(okSeriesIdentity).filter(Boolean)).size : 0;
-  const needsSeriesFallback = availableSeries > 1 && freshSeries < Math.min(requestedCount, availableSeries);
+  const needsSeriesFallback = availableSeries > 1 && freshSeries < availableSeries;
   /* Exact episode freshness must not let one deep show monopolize a TV shelf.
      When unseen rows come from too few series, append the oldest fallback
      rows and let the series balancer pick one show at a time. This can repeat
@@ -1540,6 +1540,18 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
   const seriesOrdered = okCatalog && okKind === "tv"
     ? okBalancedCandidates([okPreferUnseenSeries(ordered, recentSeries, requestedCount)], "tv", limit)
     : ordered;
+  /* The playable shelf may contain cooled fallback rows when an otherwise
+     healthy television lane has exhausted every episode from one series.
+     Keep those recovery rows out of the public background window: clients
+     use candidateItems as their unseen queue, so leaking a watched episode
+     there makes Next look stale even when the five-item shelf is balanced. */
+  const freshRotated = rotateCatalogItems(fresh, (Number(effectiveBody.rotation) || 0) * rotationStep);
+  const freshOrdered = okCatalog
+    ? okBalancedCandidates([freshRotated], channel === "ok-movie-channel" ? "movie" : "tv", limit)
+    : vimeoCatalog ? vimeoBalancedItems(freshRotated) : freshRotated;
+  const freshSeriesOrdered = okCatalog && okKind === "tv"
+    ? okBalancedCandidates([okPreferUnseenSeries(freshOrdered, recentSeries)], "tv", limit)
+    : freshOrdered;
   const shelf = seriesOrdered.slice(0, requestedCount);
   return shelf.length ? {
     /* Keep the public contract consistent with the live relay: `items` is the
@@ -1548,7 +1560,7 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
        transient relay outage look like a 96-program simultaneous queue and
        caused the guide/freshness layer to miscount repeats. */
     items: shelf,
-    candidateItems: deepCatalog ? seriesOrdered : filtered,
+    candidateItems: deepCatalog ? freshSeriesOrdered : filtered,
     ready: shelf.length,
     candidates: filtered.length,
     catalogDepth: filtered.length,

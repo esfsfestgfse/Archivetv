@@ -278,6 +278,34 @@ function insertEpisode(sql, { id, series, seriesIndex, decade, episode, seenAt }
       const unseen = (await post('ok-tv-1980s', { recentIds: cooledIds })).payload;
       assert.ok(unseen.items.every((item) => Number(item.seriesTitle.match(/(\d+)$/)?.[1]) > 10), 'ten cooled series must yield unseen series before cooled fallback');
 
+      for (let episode = 6; episode <= 130; episode += 1) {
+        insertEpisode(catalogSql, {
+          id: `199000${episode}`,
+          series: 'Verified 1990s Series 01',
+          seriesIndex: 0,
+          decade: 1990,
+          episode,
+          seenAt: now + 900000 + episode,
+        });
+      }
+      const deepSeriesWindow = (await post('ok-tv-1990s')).payload;
+      assert.equal(new Set(deepSeriesWindow.items.map((item) => item.seriesId)).size, 5,
+        'one deep series must not consume the bounded D1 read before other verified series are considered');
+
+      const cooledMinorityIds = [];
+      for (let seriesIndex = 6; seriesIndex < 15; seriesIndex += 1) {
+        for (let episode = 1; episode <= 5; episode += 1) cooledMinorityIds.push(`1990${String(seriesIndex).padStart(2, '0')}${episode}`);
+      }
+      const rotatedSeries = new Set();
+      const rotationHistory = cooledMinorityIds.slice();
+      for (let rotation = 0; rotation < 16; rotation += 1) {
+        const payload = (await post('ok-tv-1990s', { recentIds: rotationHistory, rotation })).payload;
+        for (const item of payload.items) rotatedSeries.add(item.seriesId);
+        if (payload.items[0]) rotationHistory.unshift(payload.items[0].id);
+      }
+      assert.equal(rotatedSeries.size, 15,
+        'series with exhausted episodes must remain in the long rotation instead of disappearing behind six deep shows');
+
       const skewedRecentIds = [];
       for (let seriesIndex = 1; seriesIndex < 15; seriesIndex += 1) {
         for (let episode = 1; episode <= 5; episode += 1) skewedRecentIds.push(`1990${String(seriesIndex).padStart(2, '0')}${episode}`);

@@ -29,6 +29,11 @@ const blockedItem = (item) => {
   const mediaUrl = String(item && (item.url || item.embedUrl || item.mediaUrl || item.media?.url) || '');
   return duration < 900 || (ratio > 0 && ratio <= 1) || !mediaUrl || blockedText.test(`${item && item.title || ''} ${item && item.description || ''}`);
 };
+const cachedResponseTimeMs = (rows) => {
+  const values = rows.map((row) => Number(row.responseTimeMs) || 0).sort((a, b) => a - b);
+  if (!values.length) return Infinity;
+  return values[Math.min(values.length - 1, Math.ceil(values.length * 0.95) - 1)];
+};
 
 async function requestJson(url, options) {
   const started = performance.now();
@@ -43,7 +48,7 @@ async function requestJson(url, options) {
 async function certify({ profileKey, decade }) {
   const endpoint = `${baseUrl}/source/catalog`;
   const headers = { 'content-type': 'application/json', 'x-realsignal-client': 'ok-decade-certifier' };
-  const seen = new Set();
+  const played = new Set();
   const series = new Set();
   const snapshots = [];
   let exactRepeats = 0;
@@ -55,7 +60,7 @@ async function certify({ profileKey, decade }) {
   let readySeriesDepth = Infinity;
 
   for (let rotation = 0; rotation <= 15; rotation += 1) {
-    const recentIds = Array.from(seen).slice(-256);
+    const recentIds = Array.from(played).slice(-256);
     const playedIds = rotation && snapshots.length ? [itemId(snapshots.at(-1).items[0])] : [];
     const result = await requestJson(endpoint, {
       method: 'POST', headers,
@@ -63,7 +68,8 @@ async function certify({ profileKey, decade }) {
     });
     const items = Array.isArray(result.payload.items) ? result.payload.items : [];
     snapshots.push({ status: result.response.status, responseTimeMs: result.responseTimeMs, payload: result.payload, items });
-    playableEpisodes = Math.max(playableEpisodes, Number(result.payload.catalogDepth || result.payload.playableCatalogDepth) || items.length);
+    const payload = result.payload;
+    playableEpisodes = Math.max(playableEpisodes, Number(payload.playableCatalogDepth ?? payload.catalogDepth) || items.length);
     readyDepth = Math.min(readyDepth, items.length);
     readySeriesDepth = Math.min(readySeriesDepth, new Set(items.map(seriesId).filter(Boolean)).size);
     const cooled = new Set((result.payload.providerAvailability?.cooldownProviders || []).map(providerKey));
@@ -72,20 +78,24 @@ async function certify({ profileKey, decade }) {
       if (Number(item.seriesDecade) !== decade) wrongDecadeCount += 1;
       if (blockedItem(item)) blockedFormatCount += 1;
       if (cooled.has(providerKey(item.provider))) cooldownViolations += 1;
-      if (id && seen.has(id) && result.payload.catalogExhausted !== true) exactRepeats += 1;
-      if (id) seen.add(id);
       const identity = seriesId(item);
       if (identity) series.add(identity);
     }
+    const selectedId = itemId(items[0]);
+    if (selectedId && played.has(selectedId) && played.size < playableEpisodes) exactRepeats += 1;
+    if (selectedId) played.add(selectedId);
   }
 
-  const finalPlayback = snapshots.at(-1);
+  const parityPlayback = await requestJson(endpoint, {
+    method: 'POST', headers,
+    body: JSON.stringify({ profileKey, count: 5, minimumReady: 5, staleReady: 2, rotation: 0, recentIds: [] }),
+  });
   const guide = await requestJson(`${baseUrl}/guide?channel=${encodeURIComponent(profileKey)}&limit=5`, { headers: { 'x-realsignal-client': 'ok-decade-certifier' } });
   const guideItems = Array.isArray(guide.payload.items) ? guide.payload.items : [];
-  const playbackIds = finalPlayback.items.map(itemId);
+  const playbackIds = (Array.isArray(parityPlayback.payload.items) ? parityPlayback.payload.items : []).map(itemId);
   const guideIds = guideItems.map(itemId);
   const guideMismatchCount = Math.max(playbackIds.length, guideIds.length) - playbackIds.filter((id, index) => id && guideIds[index] === id).length;
-  const responseTimeMs = Math.min(...snapshots.slice(1).map((row) => row.responseTimeMs));
+  const responseTimeMs = cachedResponseTimeMs(snapshots.slice(1));
   const reasons = [];
   if (snapshots.some((row) => row.status !== 200)) reasons.push('catalog request failed');
   if (series.size < 12) reasons.push(`distinct series ${series.size} < 12`);

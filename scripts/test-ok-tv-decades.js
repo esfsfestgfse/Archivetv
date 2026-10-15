@@ -328,6 +328,11 @@ function insertEpisode(sql, { id, series, seriesIndex, decade, episode, seenAt }
   }
   assert.ok(certifier.includes('--base-url'), 'network certification must require an explicit base URL');
   assert.ok(certifier.includes('15'), 'network certification must exercise fifteen Next operations');
+  assert.ok(certifier.includes('const played = new Set()'), 'network certification must track only actually selected programs as played');
+  assert.ok(certifier.includes('playableCatalogDepth ?? payload.catalogDepth'), 'playable depth must outrank raw catalog depth');
+  assert.ok(certifier.includes('cachedResponseTimeMs('), 'latency certification must use the cached-response distribution');
+  assert.ok(!certifier.includes('Math.min(...snapshots.slice(1)'), 'one lucky fast response cannot pass the latency gate');
+  assert.ok(certifier.includes('rotation: 0, recentIds: []'), 'guide parity must compare against playback with the same default selection context');
   for (const workflow of ['ci.yml', 'realsignal-api.yml']) {
     const source = fs.readFileSync(path.join(root, '.github', 'workflows', workflow), 'utf8');
     assert.ok(source.includes('node scripts/test-ok-tv-decades.js'), `${workflow} must run the deterministic decade contract`);

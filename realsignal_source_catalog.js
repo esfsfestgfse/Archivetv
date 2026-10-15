@@ -731,14 +731,15 @@ function accepted(profile, item, provider, checkAspect = true) {
   const duration = Number(item && item.duration) || 0;
   const ratio = aspectRatio(item);
   const source = provider || text(item && item.provider, 60);
+  const admissionProfileKey = profile.parentProfileKey || profile.profileKey;
   const minimumRuntime = Math.max(SOURCE_MIN_RUNTIME, Number(profile.minRuntimeSeconds) || 0);
   if (!item || !(item.id || item.uuid || item.rawId) || !title || duration < minimumRuntime || (checkAspect && ratio < SOURCE_MIN_ASPECT_RATIO)) return false;
   if (profile.titleRequiredTerms.length && !termsMatch(titleHaystack, profile.titleRequiredTerms)) return false;
   const qualityMovieTitle = okMovieTitleQualified(profile, item);
-  const okEpisode = source === "OK.ru" && profile.profileKey === "ok-tv-channel" && /\b(?:s\d{1,2}[ ._-]*e\d{1,3}|\d{1,2}x\d{1,3})\b/i.test(title);
+  const okEpisode = source === "OK.ru" && admissionProfileKey === "ok-tv-channel" && /\b(?:s\d{1,2}[ ._-]*e\d{1,3}|\d{1,2}x\d{1,3})\b/i.test(title);
   if (source === "OK.ru" && profile.profileKey === "ok-movie-channel" && termsMatch(haystack,
     [...OK_NON_MOVIE_TERMS, "full set", "dj set", "video tracklist", "festival set", "english subtitle movies"])) return false;
-  if (source === "OK.ru" && profile.profileKey === "ok-tv-channel" && /(?:\bbtth\b|battle through the heavens|sword of coming|renegade imm?ortal|slay the gods|apotheosis|donghua|\banime\b|chinese animation)/i.test(haystack)) return false;
+  if (source === "OK.ru" && admissionProfileKey === "ok-tv-channel" && /(?:\bbtth\b|battle through the heavens|sword of coming|renegade imm?ortal|slay the gods|apotheosis|donghua|\banime\b|chinese animation)/i.test(haystack)) return false;
   if (profile.minTitleYear) {
     const titleYears = Array.from(title.matchAll(/(?:^|[^0-9])((?:19|20)\d{2})(?:[^0-9]|$)/g)).map((match) => Number(match[1])).filter(Boolean);
     if (titleYears.some((year) => year < profile.minTitleYear)) return false;

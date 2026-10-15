@@ -144,6 +144,14 @@ function insertEpisode(sql, { id, series, seriesIndex, decade, episode, seenAt }
     assert.equal(decadeProfile.seriesDecade, seriesDecade);
     assert.equal(source.sourceCatalogKey(decadeProfile), 'ok-tv-channel');
     assert.ok(source.qualifySourceItem(decadeProfile, { ...verified, seriesDecade }), `${profileKey} must admit its own verified decade`);
+    assert.ok(source.qualifySourceItem(decadeProfile, {
+      ...verified,
+      id: `ok:${seriesDecade}99`,
+      title: 'Taxi.S01E01.DVDRip.x264',
+      description: '',
+      query: '',
+      seriesDecade,
+    }), `${profileKey} must inherit the parent OK TV episode-pattern admission rule`);
     assert.equal(source.qualifySourceItem(decadeProfile, { ...verified, seriesDecade: seriesDecade + 10 }), null, `${profileKey} must reject another decade`);
     assert.equal(source.qualifySourceItem(decadeProfile, { ...verified, seriesDecade: 0 }), null, `${profileKey} must reject unknown premiere years`);
     assert.equal(source.sourceCatalogTasks({ profileKey }, {}, 0, { maintenance: true }).tasks.length, 0, `${profileKey} maintenance cannot create provider tasks`);

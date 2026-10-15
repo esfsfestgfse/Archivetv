@@ -1513,17 +1513,12 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
      the real catalog depth from the guide. */
   const exhausted = !ignoreFreshness && effectiveBody.sourceCatalog === true && playableCatalog.length > 0 && fresh.length === 0;
   const freshKeys = new Set(fresh.map(queueItemKey));
-  const availableSeries = okCatalog && okKind === "tv" ? new Set(playableCatalog.map(okSeriesIdentity).filter(Boolean)).size : 0;
-  const freshSeries = okCatalog && okKind === "tv" ? new Set(fresh.map(okSeriesIdentity).filter(Boolean)).size : 0;
-  const needsSeriesFallback = availableSeries > 1 && (derivedCatalog
-    ? freshSeries < availableSeries
-    : freshSeries < Math.min(requestedCount, availableSeries));
-  /* Exact episode freshness must not let one deep show monopolize a TV shelf.
-     When unseen rows come from too few series, append the oldest fallback
-     rows and let the series balancer pick one show at a time. This can repeat
-     an explicitly exhausted singleton series, but it never hides the deeper
-     unseen episode catalog or turns a five-slot shelf into five Frasiers. */
-  const selected = ignoreFreshness || (fresh.length >= requestedCount && !needsSeriesFallback) ? fresh
+  /* Exact episode freshness outranks show-count diversity. An exhausted
+     singleton series must leave the shelf while unseen episodes remain;
+     otherwise Next can visibly repeat an old episode merely to represent
+     five different shows. Cooled fallback rows are admitted only when the
+     unseen catalog cannot fill the requested shelf at all. */
+  const selected = ignoreFreshness || fresh.length >= requestedCount ? fresh
     : fresh.concat(playableCatalog.filter(item => !freshKeys.has(queueItemKey(item))));
   const seenCount = Math.max(0, playableCatalog.length - fresh.length);
   const suppliedRecentSeries = Array.isArray(effectiveBody && effectiveBody.recentSeries)

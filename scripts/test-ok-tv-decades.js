@@ -297,22 +297,30 @@ function insertEpisode(sql, { id, series, seriesIndex, decade, episode, seenAt }
         for (let episode = 1; episode <= 5; episode += 1) cooledMinorityIds.push(`1990${String(seriesIndex).padStart(2, '0')}${episode}`);
       }
       const rotatedSeries = new Set();
+      const rotatedItems = new Set();
       const rotationHistory = cooledMinorityIds.slice();
       for (let rotation = 0; rotation < 16; rotation += 1) {
         const payload = (await post('ok-tv-1990s', { recentIds: rotationHistory, rotation })).payload;
-        for (const item of payload.items) rotatedSeries.add(item.seriesId);
-        if (payload.items[0]) rotationHistory.unshift(payload.items[0].id);
+        for (const item of payload.items) {
+          assert.ok(!rotationHistory.includes(item.id), 'a visible shelf cannot contain an exact watched episode while deep unseen episodes remain');
+          rotatedSeries.add(item.seriesId);
+        }
+        if (payload.items[0]) {
+          assert.ok(!rotatedItems.has(payload.items[0].id), 'an exhausted singleton series cannot force an exact repeat while deep unseen episodes remain');
+          rotatedItems.add(payload.items[0].id);
+          rotationHistory.unshift(payload.items[0].id);
+        }
       }
-      assert.equal(rotatedSeries.size, 15,
-        'series with exhausted episodes must remain in the long rotation instead of disappearing behind six deep shows');
+      assert.equal(rotatedSeries.size, 6,
+        'exhausted singleton series must cool while the six series with unseen episodes continue rotating');
 
       const skewedRecentIds = [];
       for (let seriesIndex = 1; seriesIndex < 15; seriesIndex += 1) {
         for (let episode = 1; episode <= 5; episode += 1) skewedRecentIds.push(`1990${String(seriesIndex).padStart(2, '0')}${episode}`);
       }
       const skewed = (await post('ok-tv-1990s', { recentIds: skewedRecentIds })).payload;
-      assert.equal(new Set(skewed.items.map((item) => item.seriesId)).size, 5,
-        'one deep unseen series must not monopolize a five-program television shelf');
+      assert.ok(skewed.items.every((item) => !skewedRecentIds.includes(item.id)),
+        'one deep unseen series is preferable to padding the shelf with exact watched episodes');
 
       const guideResponse = await workerModule.default.fetch(new Request('https://api.example/api/v3/guide?channel=ok-tv-1990s&limit=5'), env, ctx);
       const guide = await guideResponse.json();

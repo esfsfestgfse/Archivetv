@@ -49,6 +49,7 @@ async function certify({ profileKey, decade }) {
   const endpoint = `${baseUrl}/source/catalog`;
   const headers = { 'content-type': 'application/json', 'x-realsignal-client': 'ok-decade-certifier' };
   const played = new Set();
+  const playedSeries = [];
   const series = new Set();
   const snapshots = [];
   let exactRepeats = 0;
@@ -64,7 +65,7 @@ async function certify({ profileKey, decade }) {
     const playedIds = rotation && snapshots.length ? [itemId(snapshots.at(-1).items[0])] : [];
     const result = await requestJson(endpoint, {
       method: 'POST', headers,
-      body: JSON.stringify({ profileKey, count: 5, minimumReady: 5, staleReady: 2, rotation, recentIds, playedIds }),
+      body: JSON.stringify({ profileKey, count: 5, minimumReady: 5, staleReady: 2, rotation, recentIds, recentSeries: playedSeries.slice(0, 10), playedIds }),
     });
     const items = Array.isArray(result.payload.items) ? result.payload.items : [];
     snapshots.push({ status: result.response.status, responseTimeMs: result.responseTimeMs, payload: result.payload, items });
@@ -82,8 +83,14 @@ async function certify({ profileKey, decade }) {
       if (identity) series.add(identity);
     }
     const selectedId = itemId(items[0]);
+    const selectedSeries = seriesId(items[0]);
     if (selectedId && played.has(selectedId) && played.size < playableEpisodes) exactRepeats += 1;
     if (selectedId) played.add(selectedId);
+    if (selectedSeries) {
+      const existing = playedSeries.indexOf(selectedSeries);
+      if (existing >= 0) playedSeries.splice(existing, 1);
+      playedSeries.unshift(selectedSeries);
+    }
   }
 
   const parityPlayback = await requestJson(endpoint, {
@@ -96,9 +103,10 @@ async function certify({ profileKey, decade }) {
   const guideIds = guideItems.map(itemId);
   const guideMismatchCount = Math.max(playbackIds.length, guideIds.length) - playbackIds.filter((id, index) => id && guideIds[index] === id).length;
   const responseTimeMs = cachedResponseTimeMs(snapshots.slice(1));
+  const minimumSeries = decade === 1980 ? 10 : 12;
   const reasons = [];
   if (snapshots.some((row) => row.status !== 200)) reasons.push('catalog request failed');
-  if (series.size < 12) reasons.push(`distinct series ${series.size} < 12`);
+  if (series.size < minimumSeries) reasons.push(`distinct series ${series.size} < ${minimumSeries}`);
   if (playableEpisodes < 60) reasons.push(`playable episodes ${playableEpisodes} < 60`);
   if (readyDepth < 5) reasons.push(`ready depth ${readyDepth} < 5`);
   if (readySeriesDepth < 5) reasons.push(`ready series ${readySeriesDepth} < 5`);

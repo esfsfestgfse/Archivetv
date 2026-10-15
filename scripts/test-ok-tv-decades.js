@@ -278,6 +278,14 @@ function insertEpisode(sql, { id, series, seriesIndex, decade, episode, seenAt }
       const unseen = (await post('ok-tv-1980s', { recentIds: cooledIds })).payload;
       assert.ok(unseen.items.every((item) => Number(item.seriesTitle.match(/(\d+)$/)?.[1]) > 10), 'ten cooled series must yield unseen series before cooled fallback');
 
+      const skewedRecentIds = [];
+      for (let seriesIndex = 1; seriesIndex < 15; seriesIndex += 1) {
+        for (let episode = 1; episode <= 5; episode += 1) skewedRecentIds.push(`1990${String(seriesIndex).padStart(2, '0')}${episode}`);
+      }
+      const skewed = (await post('ok-tv-1990s', { recentIds: skewedRecentIds })).payload;
+      assert.equal(new Set(skewed.items.map((item) => item.seriesId)).size, 5,
+        'one deep unseen series must not monopolize a five-program television shelf');
+
       const guideResponse = await workerModule.default.fetch(new Request('https://api.example/api/v3/guide?channel=ok-tv-1990s&limit=5'), env, ctx);
       const guide = await guideResponse.json();
       const playback = (await post('ok-tv-1990s')).payload;

@@ -101,6 +101,13 @@ function insertEpisode(sql, { id, series, seriesIndex, decade, episode, seenAt }
   assert.equal(unknownIdentity.seriesDecade, undefined, 'unknown premiere stays master-only');
 
   const profile = source.sourceProfile({ profileKey: 'ok-tv-channel' });
+  const indexedQueries = search.okTitleSearchQueries(profile, 0, {
+    deep: true,
+    seriesTitles: ['Example Eighties Show', 'Example Nineties Show', 'Example Noughties Show'],
+  });
+  for (const title of ['Example Eighties Show', 'Example Nineties Show', 'Example Noughties Show']) {
+    assert.ok(indexedQueries.some((query) => query.startsWith(`${title} `) && /\b(?:1080p|DVDRip|BDRip|BluRay)\b/i.test(query)), `deep TV index query must pair ${title} with a release marker`);
+  }
   const verified = source.qualifySourceItem(profile, {
     id: 'ok:1984001',
     title: 'Example Show S01E01 DVDRip',

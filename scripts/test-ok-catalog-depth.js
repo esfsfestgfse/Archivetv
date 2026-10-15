@@ -35,7 +35,8 @@ const root = path.resolve(__dirname, '..');
   const queries = helpers.okTitleSearchQueries({ profileKey: 'ok-tv-channel' }, 1, { seriesTitles: indexedTitles, deep: true });
   assert.ok(queries.some(q => q.includes('Indexed Show')));
   assert.equal(queries.length, 10, 'deep television discovery must not stop after six narrow searches');
-  assert.deepEqual(queries, indexedTitles, 'a full maintenance pass must search all ten indexed series instead of spending two slots on generic queries');
+  assert.deepEqual(queries.map(query => query.replace(/\s+(?:1080p|DVDRip|BDRip|BluRay)$/i, '')), indexedTitles, 'a full maintenance pass must search all ten indexed series instead of spending two slots on generic queries');
+  assert.ok(queries.every(query => /\b(?:1080p|DVDRip|BDRip|BluRay)$/i.test(query)), 'indexed series searches must include an admissible release marker');
   const cooled = helpers.okPreferUnseenSeries([
     { id: 'a2', seriesId: 'show:a' }, { id: 'b2', seriesId: 'show:b' },
     { id: 'c1', seriesId: 'show:c' }, { id: 'd1', seriesId: 'show:d' }, { id: 'e1', seriesId: 'show:e' },

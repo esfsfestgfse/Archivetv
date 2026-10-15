@@ -116,7 +116,15 @@ export function okTitleSearchQueries(profile, rotation = 0, options = {}) {
   });
   // Search the whole show title; enforce release words on each result title.
   // Forcing BDRip on a modern series (or 1080p on an old VHS show) hid episodes.
-  const indexed = (options.seriesTitles || []).slice(0, options.deep && profile.profileKey === "ok-tv-channel" ? 10 : 3);
+  const indexedTitles = (options.seriesTitles || []).slice(0, options.deep && profile.profileKey === "ok-tv-channel" ? 10 : 3);
+  /* OK title search is release-title driven. Bare TVmaze names often return
+     no admissible rows even when full episodes exist, because the same words
+     also match clips and discussion. Pair every indexed series with the
+     release markers that the shared admission gate already requires. */
+  const indexedMarkers = ["1080p", "DVDRip", "BDRip", "BluRay"];
+  const indexed = profile.profileKey === "ok-tv-channel"
+    ? indexedTitles.map((title, index) => `${title} ${indexedMarkers[(offset + index) % indexedMarkers.length]}`)
+    : indexedTitles;
   // Bare release markers find programs outside every example/index list.
   const broad = profile.profileKey === "ok-tv-channel" ? ["DVDRip S01", "1080p S02", "BDRip S03", "VHS rip episode", "1080p S04", "4k S01"][offset % 6] : markers[offset % markers.length];
   const movieDepth = options.deep && profile.profileKey === "ok-movie-channel"

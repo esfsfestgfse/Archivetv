@@ -2169,6 +2169,24 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "match": ["television", "tv show", "tv series", "show", "full episode", "complete episode", "episode", "ep", "sitcom", "series", "serial", "program"],
     "deny": ["shorts", "short film", "vertical", "trailer", "teaser", "clip", "recap", "review", "reaction", "podcast", "how to", "tutorial", "fan film", "fan-made", "fan made", "fanmade", "fan animation", "unofficial", "parody", "mashup", "amv", "gacha", "roleplay", "my little pony", "pony", "music video", "commercial", "cartoon", "animation", "animated", "gameplay", "lecture", "seminar", "conference", "panel discussion", "full movie", "full film", "feature film", "complete movie", "movie", "cinema", "film", "anime", "donghua", "manhua", "manhwa", "xianxia", "wuxia", "cultivation", "k-drama", "korean drama", "j-drama", "telenovela", "turkish drama", "bollywood"]
   },
+  "ok-tv-1980s": {
+    "name": "OK TV: The 80s",
+    "parentProfileKey": "ok-tv-channel",
+    "derivedCatalogOnly": true,
+    "seriesDecade": 1980
+  },
+  "ok-tv-1990s": {
+    "name": "OK TV: The 90s",
+    "parentProfileKey": "ok-tv-channel",
+    "derivedCatalogOnly": true,
+    "seriesDecade": 1990
+  },
+  "ok-tv-2000s": {
+    "name": "OK TV: The 2000s",
+    "parentProfileKey": "ok-tv-channel",
+    "derivedCatalogOnly": true,
+    "seriesDecade": 2000
+  },
   "ok-kids-channel": {
     "name": "OKCartoon Kids",
     "queryLimit": 32,

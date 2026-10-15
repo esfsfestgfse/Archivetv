@@ -88,6 +88,44 @@ function d1(sql) {
   assert.equal(verified.seriesStartYear, 1984, 'source normalization must retain the canonical premiere year');
   assert.equal(verified.seriesDecade, 1980, 'source normalization must retain the canonical decade');
 
+  const decadeProfiles = [
+    ['ok-tv-1980s', 1980],
+    ['ok-tv-1990s', 1990],
+    ['ok-tv-2000s', 2000],
+  ];
+  for (const [profileKey, seriesDecade] of decadeProfiles) {
+    const decadeProfile = source.sourceProfile({ profileKey });
+    assert.ok(decadeProfile, `${profileKey} must be registered`);
+    assert.equal(decadeProfile.parentProfileKey, 'ok-tv-channel');
+    assert.equal(decadeProfile.derivedCatalogOnly, true);
+    assert.equal(decadeProfile.seriesDecade, seriesDecade);
+    assert.equal(source.sourceCatalogKey(decadeProfile), 'ok-tv-channel');
+    assert.ok(source.qualifySourceItem(decadeProfile, { ...verified, seriesDecade }), `${profileKey} must admit its own verified decade`);
+    assert.equal(source.qualifySourceItem(decadeProfile, { ...verified, seriesDecade: seriesDecade + 10 }), null, `${profileKey} must reject another decade`);
+    assert.equal(source.qualifySourceItem(decadeProfile, { ...verified, seriesDecade: 0 }), null, `${profileKey} must reject unknown premiere years`);
+    assert.equal(source.sourceCatalogTasks({ profileKey }, {}, 0, { maintenance: true }).tasks.length, 0, `${profileKey} maintenance cannot create provider tasks`);
+    assert.equal(source.sourceCatalogTasks({ profileKey }, {}, 0, { refresh: true }).tasks.length, 0, `${profileKey} refresh cannot create provider tasks`);
+    assert.equal(source.sourceRefreshTasks({ profileKey }, {}, 0, { maintenance: true }).length, 0, `${profileKey} refill cannot create provider tasks`);
+    const direct = await source.discoverSourceCatalog({ profileKey, maintenance: true }, {}, 0);
+    assert.equal(direct.reason, 'derived-catalog-only', `${profileKey} direct discovery must be typed and inert`);
+    assert.deepEqual(direct.items, []);
+  }
+
+  const oldFetch = globalThis.fetch;
+  try {
+    globalThis.fetch = async () => new Response(JSON.stringify({ success: false, result: { videos: { items: [] } } }), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    });
+    for (const profileKey of ['ok-tv-channel', 'ok-movie-channel', 'ok-kids-channel', 'ok-black-tv-channel', 'ok-soul-flow-channel']) {
+      const plan = source.sourceCatalogTasks({ profileKey }, {}, 0, { firstLane: true });
+      assert.ok(plan.tasks.length > 0, `${profileKey} must retain its existing discovery plan`);
+      await Promise.allSettled(plan.tasks);
+    }
+  } finally {
+    globalThis.fetch = oldFetch;
+  }
+
   const compact = workerModule.compactCatalogItem(verified);
   assert.equal(compact.seriesStartYear, 1984, 'catalog compaction must retain the canonical premiere year');
   assert.equal(compact.seriesDecade, 1980, 'catalog compaction must retain the canonical decade');

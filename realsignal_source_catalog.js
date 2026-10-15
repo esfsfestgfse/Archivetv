@@ -576,15 +576,17 @@ export function isOKSourceProfile(value) {
 
 export function qualifySourceItem(profile, item) {
   if (!profile || !item) return null;
+  if (profile.derivedCatalogOnly === true && Number(item.seriesDecade) !== Number(profile.seriesDecade)) return null;
   if (okAnimationFamily(profile) && !okAnimationVerified(profile,item)) return null;
   if (okCuratedChannel(profile) && !okCuratedVerified(profile,item)) return null;
   if (okMusicChannel(profile) && !okMusicVerified(profile,item)) return null;
   if (item.provider === "Vimeo" && (item.embedVerified !== true || item.publicEmbed !== true || !vimeoProgramOkay(item, profile.intent === "film" ? "movie" : "tv") || !vimeoLanguageKnown(item))) return null;
   if (item.provider === "Vimeo" && profile.intent === "television" && !item.seriesId && !vimeoOriginalSeriesEvidence(item)) return null;
-  if (/^ok-(?:movie|tv)-channel$/.test(profile.profileKey)) {
+  const identityProfileKey = profile.parentProfileKey || profile.profileKey;
+  if (/^ok-(?:movie|tv)-channel$/.test(identityProfileKey)) {
     // Search words and an English-looking title are not language evidence.
     // Recheck persisted rows too: legacy tag results included foreign animation.
-    const tv = profile.profileKey === "ok-tv-channel";
+    const tv = identityProfileKey === "ok-tv-channel";
     const reference = String(item.identityReference || "");
     if (item.language !== "en" || (tv
       ? !/^https:\/\/www\.tvmaze\.com\/shows\/\d+(?:\/|$)/.test(reference) || !/^tvmaze:\d+$/.test(String(item.seriesId || ""))
@@ -598,11 +600,22 @@ export function qualifySourceItem(profile, item) {
 
 function normalizedProfile(body) {
   const profileKey = text(body && (body.profileKey || body.channel || body.name), 120).toLowerCase().replace(/[^a-z0-9._:-]+/g, "-");
-  const approved = SOURCE_PROFILE_REGISTRY[profileKey];
-  if (!approved) return null;
+  const registered = SOURCE_PROFILE_REGISTRY[profileKey];
+  if (!registered) return null;
+  const derivedCatalogOnly = registered.derivedCatalogOnly === true;
+  const parentProfileKey = derivedCatalogOnly ? text(registered.parentProfileKey, 120).toLowerCase() : "";
+  const parent = derivedCatalogOnly ? SOURCE_PROFILE_REGISTRY[parentProfileKey] : null;
+  const seriesDecade = derivedCatalogOnly ? Number(registered.seriesDecade) : 0;
+  if (derivedCatalogOnly && (!parent || parent.intent !== "television" || !Array.isArray(parent.providers)
+      || !parent.providers.some((provider) => /^ok-(?:search|manifest|api)$/.test(provider))
+      || ![1980, 1990, 2000].includes(seriesDecade))) return null;
+  const approved = derivedCatalogOnly ? { ...parent, ...registered } : registered;
   const queryLimit = Math.max(SOURCE_MAX_QUERIES, Math.min(32, Number(approved.queryLimit) || SOURCE_MAX_QUERIES));
   return {
     profileKey,
+    parentProfileKey,
+    derivedCatalogOnly,
+    seriesDecade,
     name: approved.name,
     queries: list(approved.queries, queryLimit),
     okApiQueries: list(approved.okApiQueries, queryLimit),
@@ -1431,9 +1444,14 @@ export function sourceProfile(body) {
   return normalizedProfile(body);
 }
 
+export function sourceCatalogKey(profile) {
+  return String(profile && profile.derivedCatalogOnly === true ? profile.parentProfileKey : profile && profile.profileKey || "");
+}
+
 export async function discoverSourceCatalog(body, env, rotation = 0) {
   const profile = normalizedProfile(body);
   if (!profile) return { profileKey: "", items: [], lanes: [], ready: 0, candidates: 0, catalogVersion: "source-server-1", source: "server-source-catalog", error: "unknown source profile" };
+  if (profile.derivedCatalogOnly) return { profileKey: profile.profileKey, parentProfileKey: profile.parentProfileKey, items: [], lanes: [], ready: 0, candidates: 0, catalogVersion: "source-server-1", source: "derived-source-catalog", reason: "derived-catalog-only" };
   const lanes = await Promise.all(sourceTasks(profile, env, rotation).map((task) => task.catch((error) => ({ provider: "unknown", items: [], health: { error: text(error, 160) } }))));
   const items = unique(lanes.flatMap((lane) => lane.items || [])).slice(0, SOURCE_MAX_ITEMS);
   return { profileKey: profile.profileKey, items, lanes, ready: items.length, candidates: items.length, catalogVersion: "source-server-1", source: "server-source-catalog" };
@@ -1442,6 +1460,7 @@ export async function discoverSourceCatalog(body, env, rotation = 0) {
 export function sourceCatalogTasks(body, env, rotation = 0, options = {}) {
   const profile = normalizedProfile(body);
   if (!profile) return { profile: null, tasks: [] };
+  if (profile.derivedCatalogOnly) return { profile, tasks: [] };
   return { profile, tasks: sourceTasks(profile, env, rotation, options) };
 }
 
@@ -1453,6 +1472,7 @@ export function sourceCatalogTasks(body, env, rotation = 0, options = {}) {
 export function sourceRefreshTasks(body, env, rotation = 0, options = {}) {
   const profile = normalizedProfile(body);
   if (!profile) return [];
+  if (profile.derivedCatalogOnly) return [];
   // Choose the plan BEFORE starting promises; previously every refill launched
   // a discarded foreground discovery plus an identical maintenance discovery.
   return sourceTasks(profile, env, rotation, profile.providers.includes("ok-sitemap") ? { ...options, maintenance: true } : options);

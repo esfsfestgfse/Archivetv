@@ -137,6 +137,16 @@ export function okProgramName(title, kind) {
   return value.replace(/[()[\]{}]/g, " ").replace(/\s+/g, " ").trim().slice(0, 150);
 }
 
+export function okSeriesPremiere(show) {
+  const value = String(show && show.premiered || "");
+  const match = value.match(/^((?:19|20)\d{2})-(\d{2})-(\d{2})$/);
+  if (!match) return null;
+  const year = Number(match[1]), month = Number(match[2]), day = Number(match[3]);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return null;
+  return { seriesStartYear: year, seriesDecade: Math.floor(year / 10) * 10 };
+}
+
 export async function okProgramIdentity(item, kind, getJson, cache = new Map()) {
   const name = okProgramName(item.title, kind);
   if (!name) return null;
@@ -147,7 +157,8 @@ export async function okProgramIdentity(item, kind, getJson, cache = new Map()) 
       const compact = s => String(s || "").toLowerCase().replace(/^the\s+/, "").replace(/[^a-z0-9]/g, "");
       const show = (Array.isArray(rows) ? rows : []).map(row => row.show)
         .find(show => show && compact(show.name) === compact(name) && show.language === "English" && show.type !== "Animation");
-      return show ? { language: "en", seriesTitle: show.name, identityReference: show.url, identityProvider: "TVmaze", seriesId: `tvmaze:${show.id}` } : null;
+      const premiere = okSeriesPremiere(show);
+      return show ? { language: "en", seriesTitle: show.name, identityReference: show.url, identityProvider: "TVmaze", seriesId: `tvmaze:${show.id}`, ...(premiere || {}) } : null;
     }
     const year = String(item.title).match(/\b((?:19|20)\d{2})\b/)?.[1];
     const query = new URL("https://www.wikidata.org/w/api.php");

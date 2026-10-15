@@ -844,6 +844,8 @@ function normalized(item, provider, query) {
     language: text(item.language, 40),
     seriesTitle: text(item.seriesTitle, 150),
     seriesId: text(item.seriesId, 100),
+    seriesStartYear: Number(item.seriesStartYear) || 0,
+    seriesDecade: Number(item.seriesDecade) || 0,
     identityReference: text(item.identityReference, 300),
     identityProvider: text(item.identityProvider, 50),
     ...(item.musicVerified ? { musicVerified: true, musicVerificationVersion: item.musicVerificationVersion, musicFamily: item.musicFamily || "soul", musicArtist: text(item.musicArtist,100), musicArtistId: text(item.musicArtistId,80), musicTrack: text(item.musicTrack,160), musicTrackKey: text(item.musicTrackKey,300), musicRecordingId: text(item.musicRecordingId,80), musicReleaseYear: Number(item.musicReleaseYear) } : {}),

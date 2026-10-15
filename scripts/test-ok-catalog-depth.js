@@ -37,6 +37,24 @@ const root = path.resolve(__dirname, '..');
   assert.equal(queries.length, 10, 'deep television discovery must not stop after six narrow searches');
   assert.deepEqual(queries.map(query => query.replace(/\s+(?:1080p|DVDRip|BDRip|BluRay)$/i, '')), indexedTitles, 'a full maintenance pass must search all ten indexed series instead of spending two slots on generic queries');
   assert.ok(queries.every(query => /\b(?:1080p|DVDRip|BDRip|BluRay)$/i.test(query)), 'indexed series searches must include an admissible release marker');
+  const decadeShows = [
+    ...Array.from({ length: 8 }, (_, index) => ({ name: `Eighties Show ${index + 1}`, premiered: `198${index}-01-01`, language: 'English', type: 'Scripted', network: { country: { code: 'US' } } })),
+    ...Array.from({ length: 8 }, (_, index) => ({ name: `Nineties Show ${index + 1}`, premiered: `199${index}-01-01`, language: 'English', type: 'Scripted', network: { country: { code: 'US' } } })),
+    ...Array.from({ length: 20 }, (_, index) => ({ name: `Modern Show ${index + 1}`, premiered: `20${String(index).padStart(2, '0')}-01-01`, language: 'English', type: 'Scripted', network: { country: { code: 'US' } } })),
+    { name: 'Foreign Eighties', premiered: '1985-01-01', language: 'French', type: 'Scripted', network: { country: { code: 'FR' } } },
+    { name: 'Animated Nineties', premiered: '1995-01-01', language: 'English', type: 'Animation', network: { country: { code: 'US' } } },
+  ];
+  const decadeTitles = helpers.okTVDecadeIndexTitles(decadeShows, 0, 10, [1980, 1990]);
+  assert.equal(decadeTitles.length, 10, 'targeted discovery must spend all ten searches on underfilled decades');
+  assert.equal(decadeTitles.filter(title => title.startsWith('Eighties')).length, 5, 'targeted discovery must balance 1980s series');
+  assert.equal(decadeTitles.filter(title => title.startsWith('Nineties')).length, 5, 'targeted discovery must balance 1990s series');
+  assert.notDeepEqual(helpers.okTVDecadeIndexTitles(decadeShows, 1, 10, [1980, 1990]), decadeTitles, 'the targeted decade window must rotate between maintenance passes');
+  const targetedPlan = helpers.okTVIndexPagePlan(0);
+  assert.equal(targetedPlan.targeted, true);
+  assert.equal(targetedPlan.pages.length, 2);
+  assert.ok(targetedPlan.pages.every(page => page >= 1 && page <= 7), 'targeted discovery must use the measured TVmaze pages containing older US series');
+  assert.equal(new Set(targetedPlan.pages).size, 2, 'targeted discovery must inspect two different index pages');
+  assert.equal(helpers.okTVIndexPagePlan(2).targeted, false, 'every third pass must retain broad all-era discovery');
   const cooled = helpers.okPreferUnseenSeries([
     { id: 'a2', seriesId: 'show:a' }, { id: 'b2', seriesId: 'show:b' },
     { id: 'c1', seriesId: 'show:c' }, { id: 'd1', seriesId: 'show:d' }, { id: 'e1', seriesId: 'show:e' },

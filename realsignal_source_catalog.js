@@ -13,7 +13,7 @@
  */
 
 import { createHash } from "node:crypto";
-import { okSearchRows, okSearchResultRows, okSearchPageRequest, okQueryOffset, okEmbedMetadata, okTitleSearchQueries, okPublicSearchUrl, okProgramIdentity, okProgramName, okMovieIdentities, okBalancedCandidates, okTVIndexTitles, okDiscoveryCursor } from "./ok_public_search.js";
+import { okSearchRows, okSearchResultRows, okSearchPageRequest, okQueryOffset, okEmbedMetadata, okTitleSearchQueries, okPublicSearchUrl, okProgramIdentity, okProgramName, okMovieIdentities, okBalancedCandidates, okTVIndexTitles, okTVDecadeIndexTitles, okTVIndexPagePlan, okDiscoveryCursor } from "./ok_public_search.js";
 import { OK_VERIFIED_SEARCH_SEED } from "./ok_verified_search_seed.js";
 import { okAnimationFamily, okAnimationQueries, okAnimationIdentity, okAnimationPrecheck, okAnimationVerified } from "./ok_animation_catalog.js";
 import { okCuratedChannel, okCuratedQueries, okCuratedIdentity, okCuratedPrecheck, okCuratedVerified } from "./ok_curated_tv_catalog.js";
@@ -483,11 +483,16 @@ export async function okTitleSearch(profile, rotation, env, options = {}) {
   const errors = [];
   const cursor = firstLane ? rotation : await okDiscoveryCursor(env.realsignal_catalog, profile.profileKey, rotation);
   let seriesTitles = [];
-  const indexPage = Math.floor(cursor / 80);
+  let indexPages = [];
   if (!firstLane && profile.profileKey === "ok-tv-channel") {
     try {
-      const shows = await fetchJson(`https://api.tvmaze.com/shows?page=${indexPage}`, { cf: { cacheTtl: 86400, cacheEverything: true } });
-      seriesTitles = okTVIndexTitles(shows, cursor % 80);
+      const pagePlan = okTVIndexPagePlan(cursor);
+      indexPages = pagePlan.pages;
+      const pageRows = await Promise.all(indexPages.map(page => fetchJson(`https://api.tvmaze.com/shows?page=${page}`, { cf: { cacheTtl: 86400, cacheEverything: true } })));
+      const shows = pageRows.flat();
+      seriesTitles = pagePlan.targeted
+        ? okTVDecadeIndexTitles(shows, cursor, 10, [1980, 1990])
+        : okTVIndexTitles(shows, cursor, 10);
     } catch (error) { errors.push(`series index: ${text(error?.message, 100)}`); }
   }
   const queryLimit = firstLane ? 2 : profile.profileKey === "ok-tv-channel" ? 10 : 6;
@@ -560,7 +565,7 @@ export async function okTitleSearch(profile, rotation, env, options = {}) {
     } catch (_) { return null; }
   });
   return { provider: "OK.ru", items: verified.filter(Boolean), health: {
-    titleSearch: true, queries, queryPages: offsets, discoveryCursor: cursor, seriesIndexPage: seriesTitles.length ? indexPage : null, candidates: candidates.length,
+    titleSearch: true, queries, queryPages: offsets, discoveryCursor: cursor, seriesIndexPages: seriesTitles.length ? indexPages : [], candidates: candidates.length,
     verifiedEmbeds: verified.filter(Boolean).length, errors, firstLane,
     ...(animation ? { animationMisses } : {}),
     ...(curated ? { curatedMisses } : {}),

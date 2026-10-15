@@ -66,6 +66,46 @@ export function okTVIndexTitles(shows, cursor = 0, limit = 10) {
   return Array.from({ length: count }, (_, i) => eligible[(offset + i) % eligible.length].name);
 }
 
+export function okTVDecadeIndexTitles(shows, cursor = 0, limit = 10, decades = [1980, 1990]) {
+  const wanted = Array.from(new Set((Array.isArray(decades) ? decades : [])
+    .map(value => Math.floor(Number(value) / 10) * 10).filter(Number.isFinite)));
+  const groups = new Map(wanted.map(decade => [decade, []]));
+  for (const show of Array.isArray(shows) ? shows : []) {
+    if (show?.language !== "English" || show.type === "Animation" ||
+      (show.network?.country?.code !== "US" && show.webChannel?.country?.code !== "US")) continue;
+    const year = Number(String(show.premiered || "").match(/^((?:19|20)\d{2})-/)?.[1]);
+    const decade = Math.floor(year / 10) * 10;
+    if (groups.has(decade) && show.name && !groups.get(decade).includes(show.name)) groups.get(decade).push(show.name);
+  }
+  const maximum = Math.max(1, Math.floor(Number(limit) || 10));
+  const rotation = Math.abs(Math.floor(Number(cursor) || 0));
+  const stride = Math.max(1, Math.ceil(maximum / Math.max(1, wanted.length)));
+  const rotated = wanted.map(decade => {
+    const values = groups.get(decade) || [];
+    const offset = values.length ? (rotation * stride) % values.length : 0;
+    return values.slice(offset).concat(values.slice(0, offset));
+  });
+  const titles = [];
+  for (let row = 0; titles.length < maximum; row++) {
+    let added = false;
+    for (const values of rotated) {
+      if (values[row] && !titles.includes(values[row])) { titles.push(values[row]); added = true; }
+      if (titles.length >= maximum) break;
+    }
+    if (!added) break;
+  }
+  return titles;
+}
+
+// Two out of every three maintenance passes repair the measured 1980s/1990s
+// gap. The third retains broad all-era discovery so a targeted repair cannot
+// make the healthy modern catalog stale.
+export function okTVIndexPagePlan(cursor = 0) {
+  const rotation = Math.abs(Math.floor(Number(cursor) || 0));
+  if (rotation % 3 === 2) return { targeted: false, pages: [rotation % 8] };
+  return { targeted: true, pages: [1 + (rotation % 7), 1 + ((rotation + 4) % 7)] };
+}
+
 // Atomically advance discovery independently of a viewer's playback rotation.
 // The existing rules record carries the cursor; no schema migration is needed.
 export async function okDiscoveryCursor(db, profileKey, fallback = 0) {

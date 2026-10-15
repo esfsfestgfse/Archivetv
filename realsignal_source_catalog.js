@@ -485,6 +485,7 @@ export async function okTitleSearch(profile, rotation, env, options = {}) {
   let seriesTitles = [];
   let indexPages = [];
   let indexedMarker = "";
+  let seriesDecadeHints = new Map();
   if (!firstLane && profile.profileKey === "ok-tv-channel") {
     try {
       const pagePlan = okTVIndexPagePlan(cursor);
@@ -495,12 +496,25 @@ export async function okTitleSearch(profile, rotation, env, options = {}) {
       seriesTitles = pagePlan.targeted
         ? okTVDecadeIndexTitles(shows, cursor, 10, [1980, 1990])
         : okTVIndexTitles(shows, cursor, 10);
+      if (pagePlan.targeted) {
+        const selected = new Set(seriesTitles.map(title => title.toLowerCase()));
+        seriesDecadeHints = new Map(shows.map(show => [show, Number(String(show?.premiered || "").slice(0, 4))])
+          .filter(([show, year]) => selected.has(String(show?.name || "").toLowerCase()) && (year >= 1980 && year < 2000))
+          .map(([show, year]) => [String(show.name).toLowerCase(), Math.floor(year / 10) * 10]));
+      }
     } catch (error) { errors.push(`series index: ${text(error?.message, 100)}`); }
   }
   const queryLimit = firstLane ? 2 : profile.profileKey === "ok-tv-channel" ? 10 : 6;
   const queries = (music ? okMusicQueries(profile,cursor) : animation ? okAnimationQueries(profile, cursor) : curated ? okCuratedQueries(profile, cursor) : okTitleSearchQueries(profile, cursor, { seriesTitles, indexedMarker, deep: !firstLane })).slice(0, queryLimit);
   const offsets = [];
   const pages = await mapLimit(queries, 2, async (query) => {
+    const queryLower = query.toLowerCase();
+    const expectedSeriesDecade = Array.from(seriesDecadeHints.entries())
+      .find(([title]) => queryLower.startsWith(`${title} `))?.[1] || 0;
+    const tagExpectedDecade = (row) => {
+      const item = okApiItem(row, query);
+      return item && expectedSeriesDecade ? { ...item, expectedSeriesDecade } : item;
+    };
     try {
       const path = `$.okQueryOffsets.q${createHash("sha256").update(query.toLowerCase()).digest("hex").slice(0, 16)}`;
       const offset = firstLane ? 0 : await okQueryOffset(env.realsignal_catalog, profile.profileKey, path);
@@ -514,12 +528,12 @@ export async function okTitleSearch(profile, rotation, env, options = {}) {
       }
       const rows = okSearchResultRows(payload.result);
       if (!firstLane && (!payload.result.videos.hasMore || !rows.length)) await okQueryOffset(env.realsignal_catalog, profile.profileKey, path, true);
-      return rows.map((row) => okApiItem(row, query)).filter(Boolean);
+      return rows.map(tagExpectedDecade).filter(Boolean);
     } catch (error) {
       errors.push(text(error?.message, 120));
       try {
         const html = await fetchText(okPublicSearchUrl(query), { headers: { Accept: "text/html" } }, 6000);
-        return okSearchRows(html).map(row => okApiItem(row, query)).filter(Boolean);
+        return okSearchRows(html).map(tagExpectedDecade).filter(Boolean);
       } catch (_) { return []; }
     }
   });

@@ -199,13 +199,17 @@ export function okSeriesPremiere(show) {
 export async function okProgramIdentity(item, kind, getJson, cache = new Map()) {
   const name = okProgramName(item.title, kind);
   if (!name) return null;
-  const key = `${kind}:${name.toLowerCase()}`;
+  const expectedSeriesDecade = kind === "tv" ? Number(item.expectedSeriesDecade) || 0 : 0;
+  const key = `${kind}:${name.toLowerCase()}:${expectedSeriesDecade || "any"}`;
   if (!cache.has(key)) cache.set(key, (async () => {
     if (kind === "tv") {
       const rows = await getJson(`https://api.tvmaze.com/search/shows?q=${encodeURIComponent(name)}`);
       const compact = s => String(s || "").toLowerCase().replace(/^the\s+/, "").replace(/[^a-z0-9]/g, "");
-      const show = (Array.isArray(rows) ? rows : []).map(row => row.show)
-        .find(show => show && compact(show.name) === compact(name) && show.language === "English" && show.type !== "Animation");
+      const exact = (Array.isArray(rows) ? rows : []).map(row => row.show)
+        .filter(show => show && compact(show.name) === compact(name) && show.language === "English" && show.type !== "Animation");
+      const show = expectedSeriesDecade
+        ? exact.find(show => okSeriesPremiere(show)?.seriesDecade === expectedSeriesDecade)
+        : exact[0];
       const premiere = okSeriesPremiere(show);
       return show ? { language: "en", seriesTitle: show.name, identityReference: show.url, identityProvider: "TVmaze", seriesId: `tvmaze:${show.id}`, ...(premiere || {}) } : null;
     }

@@ -25,6 +25,16 @@ const root = path.resolve(__dirname, '..');
   assert.equal(JSON.parse(helpers.okSearchPageRequest('Taxi DVDRip', 40).options.body).parameters.videosOffset, 40);
   assert.equal(helpers.okProgramName('[site] The.Flash.2014.S01E03.1080p', 'tv'), 'The Flash');
   assert.equal(helpers.okProgramName('Taxi Episode 12 DVDRip','tv'),'Taxi','two-digit episode labels must not pollute the show identity');
+  const rebootRows = [
+    { show: { id: 222, name: 'Riptide', premiered: '2022-12-27', language: 'English', type: 'Scripted', url: 'https://www.tvmaze.com/shows/222/riptide' } },
+    { show: { id: 111, name: 'Riptide', premiered: '1984-01-03', language: 'English', type: 'Scripted', url: 'https://www.tvmaze.com/shows/111/riptide' } },
+  ];
+  const classicIdentity = await helpers.okProgramIdentity({ title: 'Riptide S01E01 DVDRip', expectedSeriesDecade: 1980 }, 'tv', async () => rebootRows);
+  assert.equal(classicIdentity.seriesId, 'tvmaze:111', 'targeted discovery must select the canonical show from the requested decade, not its reboot');
+  const mismatchedIdentity = await helpers.okProgramIdentity({ title: 'Secret Service S01E01 1080p', expectedSeriesDecade: 1980 }, 'tv', async () => [
+    { show: { id: 333, name: 'Secret Service', premiered: '2026-01-01', language: 'English', type: 'Scripted', url: 'https://www.tvmaze.com/shows/333/secret-service' } },
+  ]);
+  assert.equal(mismatchedIdentity, null, 'targeted discovery must reject a keyword match with no canonical show in the requested decade');
   const shows = [
     ...Array.from({ length: 24 }, (_, index) => ({ name: index ? `Indexed Show ${index + 1}` : 'Test Drama', language: 'English', type: 'Scripted', network: { country: { code: 'US' } } })),
     { name: 'Foreign Drama', language: 'French', type: 'Scripted', network: { country: { code: 'FR' } } },

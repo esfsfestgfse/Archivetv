@@ -13,7 +13,7 @@ import { okBalancedCandidates, okPlaybackIdentity, okPreferUnseenSeries, okSerie
 import { okMusicChannel } from "./ok_music_catalog.js";
 import { OK_VERIFIED_SEARCH_SEED } from "./ok_verified_search_seed.js";
 import { vimeoBalancedItems } from "./vimeo_catalog.js";
-import { mergeSourceLanes, sourceCatalogTasks, sourceRefreshTasks, sourceProfile, qualifySourceItem, isOKSourceProfile, SOURCE_LIMITS } from "./realsignal_source_catalog.js";
+import { mergeSourceLanes, sourceCatalogTasks, sourceRefreshTasks, sourceProfile, sourceCatalogKey, qualifySourceItem, isOKSourceProfile, SOURCE_LIMITS } from "./realsignal_source_catalog.js";
 import { IA_CANONICAL_PILOT_PROFILES, IA_CANONICAL_SCHEMA_VERSION, canonicalGuide, selectCanonicalItems } from "./ia_canonical_station.mjs";
 import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
@@ -767,8 +767,9 @@ function rotateCatalogItems(items, rotation) {
 
 function catalogFallbackAllowed(item, body) {
   if (body && body.iaRepair === true && body.sourceCatalog !== true && !qualifyIaFileRecord(item, body).accepted) return false;
-  if (body && body.sourceCatalog === true && (isOKSourceProfile(body.channel) || /^vimeo-(?:movie|tv)-channel$/.test(String(body.channel || "")))) {
-    return !!qualifySourceItem(sourceProfile({ profileKey: body.channel }), item);
+  const catalogProfile = body && body.sourceCatalog === true ? sourceProfile({ profileKey: body.channel }) : null;
+  if (body && body.sourceCatalog === true && (isOKSourceProfile(catalogProfile) || /^vimeo-(?:movie|tv)-channel$/.test(String(body.channel || "")))) {
+    return !!qualifySourceItem(catalogProfile, item);
   }
   const title = String(item && item.title || "").toLowerCase();
   const description = String(item && item.description || "").toLowerCase();
@@ -1006,7 +1007,7 @@ function catalogFallbackAllowed(item, body) {
 
 function sourceHistoryLimit(body) {
   const channel = String(body?.channel || body?.profileKey || "");
-  return isOKSourceProfile(channel) || /^vimeo-(?:movie|tv)-channel$/.test(channel) ? 1024 : 48;
+  return isOKSourceProfile(sourceProfile({ profileKey: channel })) || /^vimeo-(?:movie|tv)-channel$/.test(channel) ? 1024 : 48;
 }
 
 function recentCatalogIds(body) {
@@ -1208,12 +1209,13 @@ async function readFreshnessIds(env, channel, limit = FRESHNESS_LEDGER_LIMIT) {
   if (!env.realsignal_catalog || typeof env.realsignal_catalog.prepare !== "function") return [];
   const channelKey = normalizedChannelKey(channel);
   if (!channelKey) return [];
-  if (isOKSourceProfile(channelKey)) limit = sourceHistoryLimit({ channel: channelKey });
+  const deepHistory = isOKSourceProfile(sourceProfile({ profileKey: channelKey }));
+  if (deepHistory) limit = sourceHistoryLimit({ channel: channelKey });
   const now = Date.now();
   const cached = freshnessReadCache.get(channelKey);
   if (cached && now - cached.at < FRESHNESS_CACHE_TTL_MS) return cached.ids.slice(0, limit);
   try {
-    const result = await env.realsignal_catalog.prepare("SELECT program_id FROM channel_freshness WHERE channel_key=? ORDER BY last_served_at DESC LIMIT ?").bind(channelKey, Math.max(1, Math.min(isOKSourceProfile(channelKey) ? 1024 : 64, limit))).all();
+    const result = await env.realsignal_catalog.prepare("SELECT program_id FROM channel_freshness WHERE channel_key=? ORDER BY last_served_at DESC LIMIT ?").bind(channelKey, Math.max(1, Math.min(deepHistory ? 1024 : 64, limit))).all();
     const ids = (result.results || []).map((row) => String(row.program_id || "").trim().slice(0, 500)).filter(Boolean);
     freshnessReadCache.set(channelKey, { at: now, ids });
     return ids;
@@ -1340,7 +1342,11 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
       ? { ...body, recentIds: Array.isArray(body.recentIds) ? body.recentIds : [], freshnessLedger: false }
       : await withFreshnessLedger(env, body);
   const channel = normalizedChannelKey(effectiveBody.channel);
-  const okCatalog = effectiveBody.sourceCatalog === true && isOKSourceProfile(channel);
+  const catalogProfile = effectiveBody.sourceCatalog === true ? sourceProfile({ profileKey: channel }) : null;
+  const catalogChannel = normalizedChannelKey(effectiveBody.catalogChannel || sourceCatalogKey(catalogProfile) || channel);
+  const derivedCatalog = catalogProfile && catalogProfile.derivedCatalogOnly === true;
+  const derivedDecade = derivedCatalog ? Number(catalogProfile.seriesDecade) : 0;
+  const okCatalog = effectiveBody.sourceCatalog === true && isOKSourceProfile(catalogProfile);
   const vimeoCatalog = effectiveBody.sourceCatalog === true && /^vimeo-(?:movie|tv)-channel$/.test(channel);
   const repairCatalog = effectiveBody.iaRepair === true && effectiveBody.sourceCatalog !== true;
   const deepCatalog = okCatalog || vimeoCatalog;
@@ -1369,11 +1375,17 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
         FROM scored
       ) SELECT * FROM ranked ORDER BY qualification_rank, family_rank,
         CASE WHEN last_served_at IS NULL THEN 0 ELSE 1 END, last_served_at ASC, catalog_seen_at DESC, id LIMIT ? OFFSET ?`
+    : derivedCatalog
+    ? `SELECT p.* FROM programs p JOIN channel_programs cp ON cp.program_id=p.id LEFT JOIN channel_freshness cf ON cf.channel_key=? AND cf.program_id=p.id WHERE cp.channel_key=? AND p.status='active' AND p.media_url IS NOT NULL AND CAST(json_extract(CASE WHEN json_valid(p.metadata_json) THEN p.metadata_json ELSE '{}' END,'$.seriesDecade') AS INTEGER)=? ORDER BY CASE WHEN cf.last_served_at IS NULL THEN 0 ELSE 1 END, cf.last_served_at ASC, cp.last_seen_at DESC LIMIT ?`
     : deepCatalog
-    ? `SELECT p.* FROM programs p JOIN channel_programs cp ON cp.program_id=p.id LEFT JOIN channel_freshness cf ON cf.channel_key=cp.channel_key AND cf.program_id=p.id WHERE cp.channel_key=? AND p.status='active' AND p.media_url IS NOT NULL ORDER BY CASE WHEN cf.last_served_at IS NULL THEN 0 ELSE 1 END, cf.last_served_at ASC, cp.last_seen_at DESC LIMIT ?`
+    ? `SELECT p.* FROM programs p JOIN channel_programs cp ON cp.program_id=p.id LEFT JOIN channel_freshness cf ON cf.channel_key=? AND cf.program_id=p.id WHERE cp.channel_key=? AND p.status='active' AND p.media_url IS NOT NULL ORDER BY CASE WHEN cf.last_served_at IS NULL THEN 0 ELSE 1 END, cf.last_served_at ASC, cp.last_seen_at DESC LIMIT ?`
     : `SELECT p.* FROM programs p JOIN channel_programs cp ON cp.program_id=p.id WHERE cp.channel_key=? AND p.status='active' AND p.media_url IS NOT NULL ORDER BY cp.last_seen_at DESC LIMIT ?`;
   const now = Date.now();
-  const bindings = repairCatalog ? [channel, now - 86400_000, now + 60_000, iaMinimumFileRuntimeSeconds(effectiveBody), limit, 0] : [channel, limit];
+  const bindings = repairCatalog
+    ? [channel, now - 86400_000, now + 60_000, iaMinimumFileRuntimeSeconds(effectiveBody), limit, 0]
+    : derivedCatalog ? [channel, catalogChannel, derivedDecade, limit]
+      : deepCatalog ? [channel, catalogChannel, limit]
+        : [catalogChannel, limit];
   let result = await env.realsignal_catalog.prepare(query).bind(...bindings).all();
   const fromCatalogRow = (row) => {
     let metadata = {};
@@ -1479,7 +1491,7 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
   // Inactive originals still identify alternate uploads of a watched episode.
   if (okCatalog && !ignoreFreshness && recentIDs.size) {
     try {
-      const history = await env.realsignal_catalog.prepare("SELECT p.id,p.title,p.metadata_json FROM programs p JOIN channel_programs cp ON cp.program_id=p.id WHERE cp.channel_key=? AND p.id IN (SELECT value FROM json_each(?))").bind(channel, JSON.stringify([...recentIDs])).all();
+      const history = await env.realsignal_catalog.prepare("SELECT p.id,p.title,p.metadata_json FROM programs p JOIN channel_programs cp ON cp.program_id=p.id WHERE cp.channel_key=? AND p.id IN (SELECT value FROM json_each(?))").bind(catalogChannel, JSON.stringify([...recentIDs])).all();
       for (const row of history.results || []) {
         let metadata = {};
         try { metadata = JSON.parse(row.metadata_json || "{}"); } catch (_) { /* tolerate legacy rows */ }
@@ -2105,6 +2117,36 @@ async function handleGuide(request, env, ctx) {
   }
   if (!env.realsignal_catalog || typeof env.realsignal_catalog.prepare !== "function") return json({ error: "catalog binding is not configured" }, 503);
   const sourceProfileForGuide = sourceProfile({ profileKey: channel });
+  if (sourceProfileForGuide && sourceProfileForGuide.derivedCatalogOnly === true) {
+    const derived = await catalogFallback(env, {
+      channel: sourceProfileForGuide.profileKey,
+      catalogChannel: sourceCatalogKey(sourceProfileForGuide),
+      count: limit,
+      sourceCatalog: true,
+      freshnessLedger: true,
+    }, SOURCE_LIMITS.SOURCE_MAX_ITEMS, { blockedProviders: new Set() }).catch(() => null);
+    const items = Array.isArray(derived && derived.items) ? derived.items : [];
+    if (!items.length) return json({ error: "derived catalog is underfilled", channel, source: "d1-derived-source-catalog" }, 503);
+    return edgeJson(request, ctx, {
+      apiVersion: "v3",
+      release: V3_RELEASE,
+      channel,
+      current: items[0] || null,
+      next: items[1] || null,
+      items,
+      verified: true,
+      queueModel: "rolling-1-plus-2",
+      catalogDepth: Number(derived.catalogDepth) || items.length,
+      playableCatalogDepth: Number(derived.playableCatalogDepth) || items.length,
+      unseenCount: Number(derived.unseenCatalogItems) || 0,
+      seenCount: Number(derived.seenCatalogItems) || 0,
+      catalogExhausted: derived.catalogExhausted === true,
+      repeatAllowed: derived.repeatAllowed === true,
+      freshnessLedger: derived.freshnessLedger === true,
+      generatedAt: new Date().toISOString(),
+      source: "d1-derived-source-catalog",
+    }, 200, { "Cache-Control": "public, max-age=10, stale-while-revalidate=30", "X-RealSignal-Release": V3_RELEASE, "X-RealSignal-Source": "d1-derived-source-catalog" }, 10);
+  }
   const blockedProvidersForGuide = sourceProfileForGuide ? await readSourceCooldowns(env, sourceProfileForGuide.profileKey) : new Set();
   const guideLimit = Math.min(40, limit * Math.max(1, blockedProvidersForGuide.size + 1));
   let result;
@@ -2316,6 +2358,55 @@ function scheduleSourceRefresh(env, ctx, normalized, tasks, requestId, force = f
   return background;
 }
 
+async function handleDerivedSourceCatalog(env, ctx, id, body, profile, apiVersion) {
+  const rotation = Number(body.rotation) || 0;
+  const ledgerIds = await readFreshnessIds(env, profile.profileKey);
+  const playedIds = Array.from(new Set((Array.isArray(body.playedIds) ? body.playedIds : [])
+    .map((value) => String(value || "").trim().slice(0, 500)).filter(Boolean))).slice(0, 8);
+  const recentIds = Array.from(new Set((Array.isArray(body.recentIds) ? body.recentIds : []).concat(ledgerIds)))
+    .slice(0, sourceHistoryLimit({ channel: profile.profileKey }));
+  const cached = await catalogFallback(env, {
+    channel: profile.profileKey,
+    catalogChannel: sourceCatalogKey(profile),
+    count: body.count,
+    rotation,
+    sourceCatalog: true,
+    recentIds,
+    freshnessLedger: true,
+  }, SOURCE_LIMITS.SOURCE_MAX_ITEMS, { blockedProviders: new Set() }).catch((error) => {
+    console.warn(JSON.stringify({ event: "derived-source-catalog-read-failed", requestId: id, profileKey: profile.profileKey, error: String(error).slice(0, 160) }));
+    return null;
+  });
+  if (playedIds.length) await rememberFreshness(env, profile.profileKey, playedIds, ctx);
+  if (!cached || !Array.isArray(cached.items) || !cached.items.length) {
+    return json({
+      error: "derived catalog is underfilled",
+      profileKey: profile.profileKey,
+      parentProfileKey: sourceCatalogKey(profile),
+      ready: 0,
+      candidates: 0,
+      hydrating: false,
+      source: "d1-derived-source-catalog",
+      apiVersion,
+      release: apiVersion === "v3" ? V3_RELEASE : undefined,
+    }, 503, { "Cache-Control": "no-store", "X-RealSignal-Request": id, "X-RealSignal-Source": "d1-derived-source-catalog" });
+  }
+  return json({
+    ...cached,
+    profileKey: profile.profileKey,
+    parentProfileKey: sourceCatalogKey(profile),
+    catalogVersion: "source-server-1",
+    source: "d1-derived-source-catalog",
+    hydrating: false,
+    staleCatalog: false,
+    adaptiveFreshness: true,
+    freshnessLedger: true,
+    providerAvailability: sourceProviderAvailability(env, cached.candidateItems || cached.items, []),
+    apiVersion,
+    release: apiVersion === "v3" ? V3_RELEASE : undefined,
+  }, 200, { "Cache-Control": "public, max-age=10, stale-while-revalidate=60", "X-RealSignal-Request": id, "X-RealSignal-Source": "d1-derived-source-catalog", "X-RealSignal-Release": apiVersion === "v3" ? V3_RELEASE : "2.2.2" });
+}
+
 async function handleSourceCatalog(request, env, ctx, id) {
   let body;
   try { body = await readBoundedJson(request); }
@@ -2324,8 +2415,9 @@ async function handleSourceCatalog(request, env, ctx, id) {
   const maintenance = body.maintenance === true;
   const profile = sourceProfile(body);
   if (!profile) return json({ error: "unknown source profile", requestId: id }, 404);
-  if (!profile.queries.length) return json({ error: "source profile has no discovery queries", requestId: id }, 503);
   const apiVersion = new URL(request.url).pathname.startsWith(V3_PREFIX) ? "v3" : "v2";
+  if (profile.derivedCatalogOnly === true) return handleDerivedSourceCatalog(env, ctx, id, body, profile, apiVersion);
+  if (!profile.queries.length) return json({ error: "source profile has no discovery queries", requestId: id }, 503);
   const rotation = Number(body.rotation) || 0;
   const ledgerIds = await readFreshnessIds(env, profile.profileKey);
   const playedIds = Array.from(new Set((Array.isArray(body.playedIds) ? body.playedIds : [])

@@ -7,9 +7,11 @@ const { pathToFileURL } = require('node:url');
 
 const root = path.resolve(__dirname, '..');
 
-function d1(sql) {
+function d1(sql, metrics = {}) {
   return {
     prepare(query) {
+      metrics.queries = (metrics.queries || 0) + 1;
+      if (/\b(?:INSERT|UPDATE)\s+(?:INTO\s+)?channel_rules\b/i.test(query)) metrics.discoveryWrites = (metrics.discoveryWrites || 0) + 1;
       return {
         bind(...args) {
           return {
@@ -25,6 +27,40 @@ function d1(sql) {
       return statements.map((statement) => ({ results: sql.prepare(statement.query).all(...statement.args) }));
     },
   };
+}
+
+function migrate(sql) {
+  for (const file of ['0001_realsignal_catalog.sql', '0002_realsignal_v3_observability.sql', '0003_realsignal_v4_adaptive_catalog.sql']) {
+    sql.exec(fs.readFileSync(path.join(root, 'migrations', file), 'utf8'));
+  }
+}
+
+function insertEpisode(sql, { id, series, seriesIndex, decade, episode, seenAt }) {
+  const metadata = {
+    id,
+    sourceIdentifier: id,
+    title: `${series} S01E${String(episode).padStart(2, '0')} DVDRip`,
+    description: 'Full television episode',
+    provider: 'OK.ru',
+    duration: 1500,
+    durationUnit: 'seconds',
+    aspectRatio: 4 / 3,
+    mediaType: 'embed',
+    mediaUrl: `https://ok.ru/videoembed/${id.replace(/\D/g, '')}`,
+    sourceUrl: `https://ok.ru/video/${id.replace(/\D/g, '')}`,
+    embedAllowed: true,
+    language: 'en',
+    seriesTitle: series,
+    seriesId: `tvmaze:${decade + seriesIndex + 1}`,
+    identityProvider: 'TVmaze',
+    identityReference: `https://www.tvmaze.com/shows/${decade + seriesIndex + 1}/${series.toLowerCase().replace(/\s+/g, '-')}`,
+    seriesStartYear: decade + (seriesIndex % 10),
+    seriesDecade: decade,
+  };
+  sql.prepare("INSERT INTO programs (id,provider,source_identifier,title,description,duration_seconds,aspect_ratio,media_type,media_url,source_url,rights,year,metadata_json,first_seen_at,last_seen_at,status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'active')")
+    .run(id, metadata.provider, id, metadata.title, metadata.description, metadata.duration, metadata.aspectRatio, metadata.mediaType, metadata.mediaUrl, metadata.sourceUrl, '', String(metadata.seriesStartYear), JSON.stringify(metadata), seenAt, seenAt);
+  sql.prepare('INSERT INTO channel_programs (channel_key,program_id,score,last_seen_at) VALUES (?,?,0,?)')
+    .run('ok-tv-channel', id, seenAt);
 }
 
 (async () => {
@@ -132,9 +168,7 @@ function d1(sql) {
 
   const sql = new DatabaseSync(':memory:');
   try {
-    for (const file of ['0001_realsignal_catalog.sql', '0002_realsignal_v3_observability.sql', '0003_realsignal_v4_adaptive_catalog.sql']) {
-      sql.exec(fs.readFileSync(path.join(root, 'migrations', file), 'utf8'));
-    }
+    migrate(sql);
     const now = Date.now();
     sql.prepare("INSERT INTO programs (id,provider,source_identifier,title,description,duration_seconds,aspect_ratio,media_type,media_url,source_url,rights,year,metadata_json,first_seen_at,last_seen_at,status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'active')")
       .run(compact.id, compact.provider, compact.sourceIdentifier, compact.title, compact.description, compact.duration, compact.aspectRatio, compact.mediaType, compact.mediaUrl, compact.sourceUrl, compact.rights, compact.year, JSON.stringify(compact), now, now);
@@ -153,7 +187,109 @@ function d1(sql) {
     sql.close();
   }
 
-  console.log('OK TV decade metadata passed: canonical TVmaze boundaries, no title-year guessing, and D1 round-trip preservation.');
+  const catalogSql = new DatabaseSync(':memory:');
+  try {
+    migrate(catalogSql);
+    const now = Date.now();
+    for (let seriesIndex = 0; seriesIndex < 15; seriesIndex += 1) {
+      for (let episode = 1; episode <= 5; episode += 1) {
+        for (const decade of [2000, 1990, 1980]) {
+          insertEpisode(catalogSql, {
+            id: `${decade}${String(seriesIndex).padStart(2, '0')}${episode}`,
+            series: `Verified ${decade}s Series ${String(seriesIndex + 1).padStart(2, '0')}`,
+            seriesIndex,
+            decade,
+            episode,
+            seenAt: now + ((seriesIndex * 5 + episode) * 10) + decade,
+          });
+        }
+      }
+    }
+    insertEpisode(catalogSql, { id: '1979001', series: 'Boundary 1979', seriesIndex: 20, decade: 1970, episode: 1, seenAt: now + 99999 });
+    insertEpisode(catalogSql, { id: '2010001', series: 'Boundary 2010', seriesIndex: 21, decade: 2010, episode: 1, seenAt: now + 99998 });
+    const unknown = {
+      id: '0000001', provider: 'OK.ru', sourceIdentifier: '0000001', title: 'Unknown Series S01E01 DVDRip',
+      description: 'Full television episode', duration: 1500, durationUnit: 'seconds', aspectRatio: 4 / 3,
+      mediaType: 'embed', mediaUrl: 'https://ok.ru/videoembed/0000001', sourceUrl: 'https://ok.ru/video/0000001',
+      embedAllowed: true, language: 'en', seriesTitle: 'Unknown Series', seriesId: 'tvmaze:99999',
+      identityProvider: 'TVmaze', identityReference: 'https://www.tvmaze.com/shows/99999/unknown-series',
+    };
+    catalogSql.prepare("INSERT INTO programs (id,provider,source_identifier,title,description,duration_seconds,aspect_ratio,media_type,media_url,source_url,rights,year,metadata_json,first_seen_at,last_seen_at,status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'active')")
+      .run(unknown.id, unknown.provider, unknown.sourceIdentifier, unknown.title, unknown.description, unknown.duration, unknown.aspectRatio, unknown.mediaType, unknown.mediaUrl, unknown.sourceUrl, '', '', JSON.stringify(unknown), now, now);
+    catalogSql.prepare('INSERT INTO channel_programs (channel_key,program_id,score,last_seen_at) VALUES (?,?,0,?)').run('ok-tv-channel', unknown.id, now);
+
+    const metrics = {};
+    const waits = [];
+    const env = { realsignal_catalog: d1(catalogSql, metrics) };
+    const ctx = { waitUntil(promise) { waits.push(Promise.resolve(promise)); } };
+    const fetchCount = { value: 0 };
+    const providerFetch = globalThis.fetch;
+    globalThis.fetch = async () => { fetchCount.value += 1; throw new Error('provider outage'); };
+    const post = async (profileKey, extra = {}) => {
+      const response = await workerModule.default.fetch(new Request('https://api.example/api/v3/source/catalog', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ profileKey, count: 5, minimumReady: 5, staleReady: 2, ...extra }),
+      }), env, ctx);
+      const payload = await response.json();
+      return { response, payload };
+    };
+    try {
+      for (const [profileKey, decade] of decadeProfiles) {
+        const { response, payload } = await post(profileKey, { refresh: true });
+        assert.equal(response.status, 200, `${profileKey} must serve from the parent D1 catalog`);
+        assert.equal(payload.items.length, 5, `${profileKey} must return a full ready shelf`);
+        assert.ok(payload.items.every((item) => item.seriesDecade === decade), `${profileKey} cannot leak another decade`);
+        assert.equal(new Set(payload.items.map((item) => item.seriesId)).size, 5, `${profileKey} must balance five different series`);
+        assert.equal(payload.catalogDepth, 75, `${profileKey} must expose all 75 verified decade episodes`);
+        assert.equal(payload.source, 'd1-derived-source-catalog');
+      }
+
+      const first1980 = (await post('ok-tv-1980s')).payload.items[0];
+      await post('ok-tv-1980s', { playedIds: [first1980.id] });
+      await Promise.all(waits.splice(0));
+      const freshnessRows = catalogSql.prepare('SELECT channel_key FROM channel_freshness WHERE program_id=? ORDER BY channel_key').all(first1980.id);
+      assert.deepEqual(freshnessRows.map((row) => row.channel_key), ['ok-tv-1980s'], 'derived playback history must not contaminate its parent or sibling ledgers');
+      assert.ok(!(await post('ok-tv-1980s')).payload.items.some((item) => item.id === first1980.id), 'played item must be excluded from its own derived lane');
+
+      const cooledAt = now + 500000;
+      const cooledIds = [];
+      for (let seriesIndex = 0; seriesIndex < 10; seriesIndex += 1) {
+        for (let episode = 1; episode <= 5; episode += 1) {
+          const id = `1980${String(seriesIndex).padStart(2, '0')}${episode}`;
+          cooledIds.push(id);
+          catalogSql.prepare('INSERT INTO channel_freshness (channel_key,program_id,last_served_at,play_count) VALUES (?,?,?,1) ON CONFLICT(channel_key,program_id) DO UPDATE SET last_served_at=excluded.last_served_at').run('ok-tv-1980s', id, cooledAt);
+        }
+      }
+      const unseen = (await post('ok-tv-1980s', { recentIds: cooledIds })).payload;
+      assert.ok(unseen.items.every((item) => Number(item.seriesTitle.match(/(\d+)$/)?.[1]) > 10), 'ten cooled series must yield unseen series before cooled fallback');
+
+      const guideResponse = await workerModule.default.fetch(new Request('https://api.example/api/v3/guide?channel=ok-tv-1990s&limit=5'), env, ctx);
+      const guide = await guideResponse.json();
+      const playback = (await post('ok-tv-1990s')).payload;
+      assert.equal(guideResponse.status, 200);
+      assert.deepEqual(guide.items.map((item) => item.id), playback.items.map((item) => item.id), 'guide and playback must use the same derived manifest and freshness ordering');
+      assert.ok(guide.items.every((item) => item.seriesDecade === 1990));
+
+      const exhaustedIds = [];
+      for (const row of catalogSql.prepare("SELECT program_id FROM channel_programs WHERE channel_key='ok-tv-channel' AND program_id LIKE '1980%'").all()) {
+        exhaustedIds.push(row.program_id);
+        catalogSql.prepare('INSERT INTO channel_freshness (channel_key,program_id,last_served_at,play_count) VALUES (?,?,?,1) ON CONFLICT(channel_key,program_id) DO UPDATE SET last_served_at=excluded.last_served_at').run('ok-tv-1980s', row.program_id, cooledAt + 1);
+      }
+      const exhausted = (await post('ok-tv-1980s', { maintenance: true, recentIds: exhaustedIds })).payload;
+      assert.equal(exhausted.catalogExhausted, true, 'a truly exhausted lane must be explicit');
+      assert.equal(exhausted.repeatAllowed, true, 'a truly exhausted lane may repeat instead of returning No Signal');
+      assert.ok(exhausted.items.every((item) => item.seriesDecade === 1980), 'wrong-decade rows can never pad an exhausted shelf');
+      assert.equal(fetchCount.value, 0, 'derived playback, refresh, maintenance, Next, and guide must never call a provider');
+      assert.equal(metrics.discoveryWrites || 0, 0, 'derived requests must never advance discovery offsets');
+    } finally {
+      globalThis.fetch = providerFetch;
+      await Promise.all(waits.splice(0));
+    }
+  } finally {
+    catalogSql.close();
+  }
+
+  console.log('OK TV decade pilot passed: metadata, filtered parent manifests, isolated freshness, guide parity, and zero provider discovery.');
 })().catch((error) => {
   console.error(error);
   process.exitCode = 1;

@@ -263,8 +263,8 @@ function insertEpisode(sql, { id, series, seriesIndex, decade, episode, seenAt }
       await post('ok-tv-1980s', { playedIds: [first1980.id] });
       await Promise.all(waits.splice(0));
       const freshnessRows = catalogSql.prepare('SELECT channel_key FROM channel_freshness WHERE program_id=? ORDER BY channel_key').all(first1980.id);
-      assert.deepEqual(freshnessRows.map((row) => row.channel_key), ['ok-tv-1980s'], 'derived playback history must not contaminate its parent or sibling ledgers');
-      assert.ok(!(await post('ok-tv-1980s')).payload.items.some((item) => item.id === first1980.id), 'played item must be excluded from its own derived lane');
+      assert.deepEqual(freshnessRows.map((row) => row.channel_key), [], 'derived playback history must remain session-owned instead of contaminating a channel-wide ledger');
+      assert.ok(!(await post('ok-tv-1980s', { recentIds: [first1980.id] })).payload.items.some((item) => item.id === first1980.id), 'client session history must exclude a played item from its own derived lane');
 
       const cooledAt = now + 500000;
       const cooledIds = [];

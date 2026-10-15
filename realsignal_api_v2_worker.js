@@ -2382,10 +2382,13 @@ function scheduleSourceRefresh(env, ctx, normalized, tasks, requestId, force = f
 
 async function handleDerivedSourceCatalog(env, ctx, id, body, profile, apiVersion) {
   const rotation = Number(body.rotation) || 0;
-  const ledgerIds = await readFreshnessIds(env, profile.profileKey);
-  const playedIds = Array.from(new Set((Array.isArray(body.playedIds) ? body.playedIds : [])
-    .map((value) => String(value || "").trim().slice(0, 500)).filter(Boolean))).slice(0, 8);
-  const recentIds = Array.from(new Set((Array.isArray(body.recentIds) ? body.recentIds : []).concat(ledgerIds)))
+  /* Derived decade stations share one parent catalog, but their viewing
+     history must remain viewer/session-owned. A channel-wide D1 ledger makes
+     certification traffic and another viewer's plays exhaust singleton
+     series for everybody. Desktop/mobile already persist recentIds locally;
+     use that bounded history as the source of truth until per-session server
+     ledgers are introduced. */
+  const recentIds = Array.from(new Set(Array.isArray(body.recentIds) ? body.recentIds : []))
     .slice(0, sourceHistoryLimit({ channel: profile.profileKey }));
   const cached = await catalogFallback(env, {
     channel: profile.profileKey,
@@ -2394,12 +2397,12 @@ async function handleDerivedSourceCatalog(env, ctx, id, body, profile, apiVersio
     rotation,
     sourceCatalog: true,
     recentIds,
+    recentSeries: Array.isArray(body.recentSeries) ? body.recentSeries : [],
     freshnessLedger: true,
   }, SOURCE_LIMITS.SOURCE_MAX_ITEMS, { blockedProviders: new Set() }).catch((error) => {
     console.warn(JSON.stringify({ event: "derived-source-catalog-read-failed", requestId: id, profileKey: profile.profileKey, error: String(error).slice(0, 160) }));
     return null;
   });
-  if (playedIds.length) await rememberFreshness(env, profile.profileKey, playedIds, ctx);
   if (!cached || !Array.isArray(cached.items) || !cached.items.length) {
     return json({
       error: "derived catalog is underfilled",

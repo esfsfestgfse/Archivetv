@@ -6,7 +6,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { IA_CANONICAL_PILOT_PROFILES, canonicalItemAccepted, normalizeCanonicalItem } from "../ia_canonical_station.mjs";
+import { IA_CANONICAL_PILOT_PROFILES, canonicalItemAccepted, canonicalPromotionEligibility, normalizeCanonicalItem } from "../ia_canonical_station.mjs";
 import { IA_CANONICAL_PILOT_MANIFESTS } from "../ia_canonical_pilot_manifest.js";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -74,9 +74,18 @@ async function oldApiLane(profile) {
 const report = { schemaVersion: "ia-canonical-comparison-1", generatedAt: new Date().toISOString(), apiBase, rotations, lanes: {} };
 for (const profile of Object.values(IA_CANONICAL_PILOT_PROFILES)) {
   const manifest = IA_CANONICAL_PILOT_MANIFESTS[profile.profileKey] || { items: [], verified: false, catalogDepth: 0 };
-  const canonical = { ...metricSet(profile, manifest.items || []), uniqueDepth: unique(manifest.items || []).length, verified: manifest.verified === true, firstFrameMs: null, firstFrameStatus: "requires-browser-canary" };
+  const promotion = canonicalPromotionEligibility(profile, manifest.items || []);
+  const canonical = {
+    ...metricSet(profile, manifest.items || []),
+    uniqueDepth: unique(manifest.items || []).length,
+    verified: manifest.verified === true,
+    promotion,
+    firstFrameMs: null,
+    firstFrameStatus: "requires-browser-canary",
+  };
   const current = await oldApiLane(profile);
   report.lanes[profile.profileKey] = { channel: profile.channel, name: profile.name, profile, current, canonical, delta: { catalogDepth: canonical.catalogDepth - current.catalogDepth, genreAccuracy: canonical.genreAccuracy != null && current.genreAccuracy != null ? Number((canonical.genreAccuracy - current.genreAccuracy).toFixed(3)) : null, medianRuntimeSeconds: (canonical.medianRuntimeSeconds || 0) - (current.medianRuntimeSeconds || 0), repeats: canonical.repeats - current.repeats, queueResponseMs: null, firstFrameMs: null } };
 }
+fs.mkdirSync(path.dirname(output), { recursive: true });
 fs.writeFileSync(output, JSON.stringify(report, null, 2));
 console.log(`Wrote ${output}`);

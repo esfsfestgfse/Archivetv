@@ -58,4 +58,43 @@ const { pathToFileURL } = require('node:url');
   } finally {
     globalThis.fetch = originalFetch;
   }
+
+  /* Shadow reporting must be allowed for an underfilled manifest so it can
+     prove why promotion is blocked. This flag cannot alter normal playback. */
+  let shadowFetchCalls = 0;
+  const shadowEnv = {
+    IA_CANONICAL_SHADOW: 'on',
+    IA_CANONICAL_SHADOW_CHANNELS: '150',
+    RELAY: 'https://relay.example',
+    realsignal_catalog: env.realsignal_catalog,
+  };
+  shadowEnv.RELAY = {
+    async fetch() {
+      shadowFetchCalls += 1;
+      return new Response(JSON.stringify({
+        source: 'relay', ready: 5, candidates: 20, catalogDepth: 20,
+        items: [{ id: 'live-1', title: 'Public fallback item', url: 'https://archive.org/download/live-1/live-1.mp4' }],
+        candidateItems: [{ id: 'live-1', title: 'Public fallback item', url: 'https://archive.org/download/live-1/live-1.mp4' }],
+      }), { status: 200, headers: { 'content-type': 'application/json' } });
+    },
+  };
+  try {
+    const normalQueue = await worker.fetch(new Request('https://api.example/api/v3/ia/queue', {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ channel: 150, count: 2 }),
+    }), shadowEnv, ctx);
+    assert.equal(normalQueue.status, 200, 'shadow flag must not reroute the normal queue');
+
+    const shadow = await worker.fetch(new Request('https://api.example/api/v3/ia/canonical/shadow', {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ channel: 150, count: 5, recentIds: [] }),
+    }), shadowEnv, ctx);
+    assert.equal(shadow.status, 200);
+    const shadowBody = await shadow.json();
+    assert.equal(shadowBody.promotion.eligible, false, 'an underfilled/unbalanced shadow manifest must stay blocked');
+    assert.ok(shadowBody.promotion.reasons.length > 0);
+    assert.equal(shadowBody.comparison.promotionDecision, 'hold');
+    assert.ok(shadowFetchCalls >= 2, 'both public queue and shadow comparison must call the live fallback independently');
+    console.log('IA canonical shadow passed: underfilled gate is reported and normal playback remains on the relay.');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 })().catch((error) => { console.error(error.stack || error); process.exitCode = 1; });

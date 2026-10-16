@@ -14,7 +14,7 @@ import { okMusicChannel } from "./ok_music_catalog.js";
 import { OK_VERIFIED_SEARCH_SEED } from "./ok_verified_search_seed.js";
 import { vimeoBalancedItems } from "./vimeo_catalog.js";
 import { mergeSourceLanes, sourceCatalogTasks, sourceRefreshTasks, sourceProfile, sourceCatalogKey, qualifySourceItem, isOKSourceProfile, SOURCE_LIMITS } from "./realsignal_source_catalog.js";
-import { IA_CANONICAL_PILOT_PROFILES, IA_CANONICAL_SCHEMA_VERSION, canonicalGuide, selectCanonicalItems } from "./ia_canonical_station.mjs";
+import { IA_CANONICAL_PILOT_PROFILES, IA_CANONICAL_SCHEMA_VERSION, canonicalGuide, canonicalPromotionEligibility, selectCanonicalItems } from "./ia_canonical_station.mjs";
 import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
@@ -1058,9 +1058,11 @@ function canonicalShadowEnabled(env, channel) {
   const allowList = String(env && env.IA_CANONICAL_SHADOW_CHANNELS || "").split(",").map((value) => normalizedChannelKey(value)).filter(Boolean);
   if (allowList.length && !allowList.includes(normalized)) return false;
   const { profile, manifest } = canonicalPilotProfile(normalized);
-  const decadeCounts = manifest && manifest.decadeCounts && typeof manifest.decadeCounts === "object" ? manifest.decadeCounts : {};
-  const balanced = !!(profile && (profile.requiredDecades || []).every((decade) => Number(decadeCounts[String(decade)] || 0) > 0));
-  return !!(manifest && profile && manifest.verified === true && Array.isArray(manifest.items) && manifest.items.length >= Number(profile.minCatalog || 0) && balanced);
+  /* Shadow mode must inspect constrained manifests too. This route only
+     measures against the relay; it never selects canonical media for a
+     viewer, so requiring promotion eligibility here would hide the evidence
+     we need to repair an underfilled station. */
+  return !!(manifest && profile && Array.isArray(manifest.items));
 }
 
 function canonicalPilotPayload(manifest, profile, body, count) {
@@ -1117,7 +1119,7 @@ function canonicalShadowSummary(liveBody, liveStatus, canonicalPayload, profile,
   for (const key of canonicalKeys) if (liveKeys.has(key)) overlap += 1;
   const liveDepth = Number(liveBody && (liveBody.catalogDepth || liveBody.candidates || liveItems.length)) || 0;
   const canonicalDepth = Number(canonicalPayload.catalogDepth || canonicalItems.length) || 0;
-  const eligible = canonicalPayload.verified === true && canonicalDepth >= Number(profile.minCatalog || 0);
+  const promotion = canonicalPromotionEligibility(profile, canonicalPayload.candidateItems || canonicalItems);
   return {
     live: {
       status: Number(liveStatus) || 0,
@@ -1136,14 +1138,18 @@ function canonicalShadowSummary(liveBody, liveStatus, canonicalPayload, profile,
       unseen: canonicalPayload.unseenCatalogItems,
       repeatAllowed: canonicalPayload.repeatAllowed,
       freshnessExcluded: canonicalPayload.freshnessExcluded,
+      acceptedItems: promotion.catalogDepth,
+      distinctFamilies: promotion.distinctFamilies,
+      distinctCollections: promotion.distinctCollections,
     },
+    promotion,
     comparison: {
       overlappingItems: overlap,
       canonicalOnlyItems: Math.max(0, canonicalKeys.size - overlap),
       liveOnlyItems: Math.max(0, liveKeys.size - overlap),
       recentIdsConsidered: Array.isArray(recentIds) ? recentIds.length : 0,
-      canonicalEligible: eligible,
-      promotionDecision: eligible ? "needs-canary" : "hold",
+      canonicalEligible: promotion.eligible,
+      promotionDecision: promotion.eligible ? "needs-canary" : "hold",
     },
   };
 }

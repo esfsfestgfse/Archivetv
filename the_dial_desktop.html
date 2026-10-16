@@ -9,13 +9,13 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>REALSIGNAL · The Dial 5.5.92</title>
+<title>REALSIGNAL · The Dial 5.5.93</title>
 <meta name="realsignal-ia-repair-channels" content="10,150">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
-<script src="assets/ok-embed-runtime.js?v=5.5.92"></script>
-<script src="assets/ia-playback-shelf.js?v=5.5.92"></script>
+<script src="assets/ok-embed-runtime.js?v=5.5.93"></script>
+<script src="assets/ia-playback-shelf.js?v=5.5.93"></script>
 <script src="assets/vimeo-embed-runtime.js?v=5.5.85"></script>
 <!-- Source Suite starts verified YouTube playback on a cold tune. Warm the exact
      origins it uses so DNS/TLS setup is not serialized behind catalog discovery. -->
@@ -1711,7 +1711,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="5.5.92-desktop-ok-tv-decade-repair";
+window.__ATV_BUILD="5.5.93-desktop-ok-tv-decades";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -2244,7 +2244,6 @@ const CAT={NET:"#ffe06a",TOON:"#7fd8ff",MOV:"#ff9ab0",TV:"#9affb0",SPORTS:"#8fff
 const CATNAME={NET:"NETWORKS",TOON:"CARTOONS",MOV:"MOVIES",TV:"TELEVISION",SPORTS:"SPORTS SUITE",MUS:"MUSIC & RADIO",DOC:"NONFICTION",SOURCE:"SOURCE SUITE",LBRO:"LIVE BROADCAST",LDATA:"LIVE DATA",RETRO:"RETRO ARCHIVE",HOL:"HOLIDAY",BRIT:"BRITISH SUITE"};
 
 /* ---------- the dial (~36 channels) ---------- */
-const OK_DECADES_ENABLED=new URLSearchParams(location.search).get("okDecades")==="1";
 const OK_DECADE_CHANNELS=[
  {nm:"OK TV: The 80s",num:600,cat:"SOURCE",source:"v2preview",ns:"tv",previewKey:"ok-tv-1980s"},
  {nm:"OK TV: The 90s",num:601,cat:"SOURCE",source:"v2preview",ns:"tv",previewKey:"ok-tv-1990s"},
@@ -2536,7 +2535,7 @@ const CH=[
  {nm:"The Game Room", num:510, cat:"RETRO", gl:"gameroom", era:[1970,2026], ns:"doc"},
  {nm:"The Detective", num:511, cat:"RETRO", gl:"detective", era:[1940,2026], ns:"tv"},
 ];
-if(OK_DECADES_ENABLED)CH.push(...OK_DECADE_CHANNELS);
+CH.push(...OK_DECADE_CHANNELS);
 /* V3 CHANNEL HEALTH POLICY: the scorecard is now an executable lineup policy.
    Keep all verified lanes in the public dial; keep repair lanes addressable for
    diagnostics while they are rebuilt; remove retired/blocked lanes from the
@@ -8348,7 +8347,7 @@ Object.assign(V2_PREVIEW_PROFILES,{
   ,"ok-country-video-channel":{"name":"OK Country Video","queryLimit":32,"queryWindow":4,"providers":["ok-search","ok-manifest"],"intent":"music","serverOnly":true,"minRuntimeSeconds":120,"deepCatalog":true,"queries":["George Strait music video","Reba McEntire music video","Alan Jackson music video","Randy Travis music video"],"match":["music video","country","country pop","country rock"],"deny":["lyrics","concert","podcast","fan edit","reaction","audio only"]}
   ,"ok-video-hits-channel":{"name":"OK Video Hits","queryLimit":32,"queryWindow":4,"providers":["ok-search","ok-manifest"],"intent":"music","serverOnly":true,"minRuntimeSeconds":120,"deepCatalog":true,"queries":["Madonna music video","Cyndi Lauper music video","Duran Duran music video","Eurythmics music video"],"match":["music video","pop","rock","alternative","new wave"],"deny":["lyrics","concert","podcast","fan edit","reaction","audio only"]}
 });
-if(OK_DECADES_ENABLED)Object.assign(V2_PREVIEW_PROFILES,{
+Object.assign(V2_PREVIEW_PROFILES,{
   "ok-tv-1980s":Object.assign({},V2_PREVIEW_PROFILES["ok-tv-channel"],{name:"OK TV: The 80s"}),
   "ok-tv-1990s":Object.assign({},V2_PREVIEW_PROFILES["ok-tv-channel"],{name:"OK TV: The 90s"}),
   "ok-tv-2000s":Object.assign({},V2_PREVIEW_PROFILES["ok-tv-channel"],{name:"OK TV: The 2000s"})

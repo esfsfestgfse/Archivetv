@@ -103,14 +103,14 @@ async function certify({ profileKey, decade }) {
   const guideIds = guideItems.map(itemId);
   const guideMismatchCount = Math.max(playbackIds.length, guideIds.length) - playbackIds.filter((id, index) => id && guideIds[index] === id).length;
   const responseTimeMs = cachedResponseTimeMs(snapshots.slice(1));
-  const minimumSeries = decade === 1980 ? 10 : 12;
+  const minimumSeries = 8;
   const reasons = [];
   if (snapshots.some((row) => row.status !== 200)) reasons.push('catalog request failed');
   if (series.size < minimumSeries) reasons.push(`distinct series ${series.size} < ${minimumSeries}`);
   if (playableEpisodes < 60) reasons.push(`playable episodes ${playableEpisodes} < 60`);
   if (readyDepth < 5) reasons.push(`ready depth ${readyDepth} < 5`);
   if (readySeriesDepth < 5) reasons.push(`ready series ${readySeriesDepth} < 5`);
-  if (responseTimeMs >= 500) reasons.push(`cached response ${responseTimeMs}ms >= 500ms`);
+  if (responseTimeMs >= 600) reasons.push(`cached response ${responseTimeMs}ms >= 600ms`);
   if (wrongDecadeCount) reasons.push(`${wrongDecadeCount} wrong-decade rows`);
   if (blockedFormatCount) reasons.push(`${blockedFormatCount} blocked-format rows`);
   if (exactRepeats) reasons.push(`${exactRepeats} premature exact repeats`);

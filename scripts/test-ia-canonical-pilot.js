@@ -7,6 +7,7 @@ const { pathToFileURL } = require('node:url');
 
 (async () => {
   const { default: worker } = await import(pathToFileURL(path.join(__dirname, '..', 'realsignal_api_v2_worker.js')));
+  const { IA_CANONICAL_PILOT_MANIFESTS } = await import(pathToFileURL(path.join(__dirname, '..', 'ia_canonical_pilot_manifest.js')));
   const batches = [];
   let fetchCalls = 0;
   const env = {
@@ -91,8 +92,28 @@ const { pathToFileURL } = require('node:url');
     const shadowBody = await shadow.json();
     assert.equal(shadowBody.promotion.eligible, false, 'an underfilled/unbalanced shadow manifest must stay blocked');
     assert.ok(shadowBody.promotion.reasons.length > 0);
+    assert.equal(shadowBody.canonical.verified, false, 'shadow metadata must not claim an unverified manifest is verified');
     assert.equal(shadowBody.comparison.promotionDecision, 'hold');
     assert.ok(shadowFetchCalls >= 2, 'both public queue and shadow comparison must call the live fallback independently');
+
+    const constrained = IA_CANONICAL_PILOT_MANIFESTS['classic-cartoons'];
+    const priorItems = constrained.items;
+    const priorDepth = constrained.catalogDepth;
+    constrained.items = [];
+    constrained.catalogDepth = 0;
+    try {
+      const emptyShadow = await worker.fetch(new Request('https://api.example/api/v3/ia/canonical/shadow', {
+        method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ channel: 150, count: 5 }),
+      }), shadowEnv, ctx);
+      assert.equal(emptyShadow.status, 200, 'an empty enabled shadow should return an explicit hold report, not a generic error');
+      const emptyBody = await emptyShadow.json();
+      assert.equal(emptyBody.promotion.eligible, false);
+      assert.ok(emptyBody.promotion.reasons.includes('catalog-underfilled'));
+      assert.equal(emptyBody.comparison.promotionDecision, 'hold');
+    } finally {
+      constrained.items = priorItems;
+      constrained.catalogDepth = priorDepth;
+    }
     console.log('IA canonical shadow passed: underfilled gate is reported and normal playback remains on the relay.');
   } finally {
     globalThis.fetch = originalFetch;

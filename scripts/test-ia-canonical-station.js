@@ -10,6 +10,7 @@ const { pathToFileURL } = require('node:url');
     buildCanonicalManifest,
     canonicalGuide,
     canonicalPromotionEligibility,
+    normalizeCanonicalItem,
     selectCanonicalItems,
   } = station;
   const profile = IA_CANONICAL_PILOT_PROFILES['classic-cartoons'];
@@ -31,8 +32,9 @@ const { pathToFileURL } = require('node:url');
   assert.equal(exhausted.catalogExhausted, true);
   assert.equal(exhausted.repeatAllowed, true);
   const guide = canonicalGuide(manifest, [], 3);
-  assert.equal(guide.current.programId, manifest.items[0].programId);
-  assert.equal(guide.next.programId, manifest.items[1].programId);
+  const guideSelection = selectCanonicalItems(manifest, [], 3, 0);
+  assert.equal(guide.current.programId, guideSelection.items[0].programId, 'guide must reflect the balanced queue order');
+  assert.equal(guide.next.programId, guideSelection.items[1].programId, 'guide next must reflect the balanced queue order');
 
   const promotionProfile = { ...profile, minCatalog: 5, maxPerFamily: 2, maxPerCollection: 2 };
   const promotionCandidates = [
@@ -95,5 +97,15 @@ const { pathToFileURL } = require('node:url');
   assert.equal(new Set(balancedManifest.items.map((item) => item.programId)).size, balancedManifest.catalogDepth, 'episode files must retain distinct program IDs');
   assert.ok(balancedManifest.items.filter((item) => item.archiveId === 'popeye-complete-series').length <= 2, 'a complete-series upload cannot exceed its collection cap');
   assert.ok(balancedManifest.items.length < balanceProfile.targetCatalog, 'a shallow catalog should underfill rather than relax collection caps');
+
+  const familyFlood = [
+    ...Array.from({ length: 5 }, (_, index) => ({
+      ...promotionCandidates[0], archiveId: `popeye-flood-${index}`, file: `popeye-${index}.mp4`, title: `Popeye Cartoon Episode ${index}`, seriesTitle: 'Popeye', collection: `popeye_collection_${index}`,
+    })),
+    promotionCandidates[1],
+    promotionCandidates[2],
+  ].map((item) => normalizeCanonicalItem(item, promotionProfile));
+  const balancedShelf = selectCanonicalItems({ items: familyFlood, rules: { maxPerFamily: 3, maxPerCollection: 3 } }, [], 5, 0);
+  assert.ok(new Set(balancedShelf.items.map((item) => item.familyKey)).size >= 3, 'a promotable catalog must open with at least three program families when available');
   console.log('IA canonical station contract passed: filtering, runtime validation, freshness exhaustion, and guide data.');
 })().catch((error) => { console.error(error.stack || error); process.exitCode = 1; });

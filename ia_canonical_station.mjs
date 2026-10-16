@@ -410,8 +410,28 @@ export function selectCanonicalItems(manifest, recentIds = [], count = 3, rotati
   const unseen = catalog.filter((item) => !recent.has(item.programId));
   const pool = unseen.length ? unseen : catalog;
   const start = pool.length ? Math.abs(Number(rotation) || 0) % pool.length : 0;
+  const ordered = Array.from({ length: pool.length }, (_, offset) => pool[(start + offset) % pool.length]);
   const items = [];
-  for (let offset = 0; offset < pool.length && items.length < wanted; offset += 1) items.push(toQueueItem(pool[(start + offset) % pool.length]));
+  const selectedIds = new Set();
+  const familyCounts = new Map();
+  const collectionCounts = new Map();
+  const configuredFamilyCap = Number(manifest?.rules?.maxPerFamily || wanted);
+  const configuredCollectionCap = Number(manifest?.rules?.maxPerCollection || wanted);
+  const familyCap = Math.max(1, Math.min(wanted, Number.isFinite(configuredFamilyCap) ? configuredFamilyCap : wanted));
+  const collectionCap = Math.max(1, Math.min(wanted, Number.isFinite(configuredCollectionCap) ? configuredCollectionCap : wanted));
+  for (let diversityPass = 1; diversityPass <= Math.max(familyCap, collectionCap) && items.length < wanted; diversityPass += 1) {
+    for (const item of ordered) {
+      if (items.length >= wanted || selectedIds.has(item.programId)) continue;
+      const family = item.familyKey || item.archiveId || item.programId;
+      const collection = item.collection || item.archiveId || item.programId;
+      if ((familyCounts.get(family) || 0) >= Math.min(diversityPass, familyCap)) continue;
+      if ((collectionCounts.get(collection) || 0) >= Math.min(diversityPass, collectionCap)) continue;
+      selectedIds.add(item.programId);
+      familyCounts.set(family, (familyCounts.get(family) || 0) + 1);
+      collectionCounts.set(collection, (collectionCounts.get(collection) || 0) + 1);
+      items.push(toQueueItem(item));
+    }
+  }
   return {
     items,
     candidateItems: catalog.map(toQueueItem),

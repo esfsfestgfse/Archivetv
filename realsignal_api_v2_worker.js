@@ -1088,7 +1088,7 @@ function canonicalPilotPayload(manifest, profile, body, count) {
     canonicalSchemaVersion: IA_CANONICAL_SCHEMA_VERSION,
     canonicalProfileKey: profile.profileKey,
     canonicalGeneratedAt: manifest.generatedAt,
-    verified: true,
+    verified: manifest.verified === true,
     hydrating: false,
     v2: {
       sessionScoped: false,
@@ -1164,8 +1164,19 @@ async function handleCanonicalShadow(request, env, id) {
   const canonical = canonicalPilotProfile(body.channel);
   const count = Math.max(1, Math.min(5, Number(body.count) || 5));
   const recentIds = Array.isArray(body.recentIds) ? body.recentIds.slice(0, FRESHNESS_LEDGER_LIMIT) : [];
-  const canonicalPayload = canonicalPilotPayload(canonical.manifest, canonical.profile, { ...body, recentIds, freshnessLedger: true }, count);
-  if (!canonicalPayload) return json({ error: "canonical manifest has no selectable items", requestId: id }, 503);
+  const canonicalPayload = canonicalPilotPayload(canonical.manifest, canonical.profile, { ...body, recentIds, freshnessLedger: true }, count) || {
+    items: [],
+    candidateItems: [],
+    ready: 0,
+    candidates: 0,
+    catalogDepth: 0,
+    unseenCatalogItems: 0,
+    seenCatalogItems: 0,
+    catalogExhausted: false,
+    repeatAllowed: false,
+    freshnessExcluded: 0,
+    verified: canonical.manifest.verified === true,
+  };
 
   /* Shadow comparison is deliberately relay-only. It never enables the D1
      server catalog or returns canonical items as playback, so this endpoint

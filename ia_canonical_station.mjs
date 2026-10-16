@@ -253,6 +253,53 @@ export function canonicalItemAccepted(item, profile) {
   return true;
 }
 
+/* Promotion is deliberately stricter than manifest construction. A manifest
+   may be useful for measurement while still being too shallow or too
+   concentrated to replace public playback. This stays pure so the builder,
+   Worker shadow endpoint, and tests judge the exact same catalog. */
+export function canonicalPromotionEligibility(profile, rawItems) {
+  const normalized = (Array.isArray(rawItems) ? rawItems : []).map((item) => normalizeCanonicalItem(item, profile));
+  const acceptedById = new Map();
+  let forbiddenCount = 0;
+  for (const item of normalized) {
+    if (!canonicalItemAccepted(item, profile)) {
+      forbiddenCount += 1;
+      continue;
+    }
+    const identity = item.logicalId || item.programId;
+    const existing = acceptedById.get(identity);
+    if (!existing || item.runtimeSeconds > existing.runtimeSeconds) acceptedById.set(identity, item);
+  }
+  const accepted = [...acceptedById.values()];
+  const familyCounts = new Map();
+  const collectionCounts = new Map();
+  for (const item of accepted) {
+    const family = item.familyKey || item.archiveId || item.programId;
+    const collection = item.collection || item.archiveId || item.programId;
+    familyCounts.set(family, (familyCounts.get(family) || 0) + 1);
+    collectionCounts.set(collection, (collectionCounts.get(collection) || 0) + 1);
+  }
+  const catalogDepth = accepted.length;
+  const readyDepth = Math.min(5, catalogDepth);
+  const reasons = [];
+  if (catalogDepth < Number(profile?.minCatalog || 0)) reasons.push("catalog-underfilled");
+  if (readyDepth < 5) reasons.push("ready-shelf-underfilled");
+  if ([...familyCounts.values()].some((count) => count > Number(profile?.maxPerFamily || Infinity))) reasons.push("family-cap-exceeded");
+  if ([...collectionCounts.values()].some((count) => count > Number(profile?.maxPerCollection || Infinity))) reasons.push("collection-cap-exceeded");
+  /* A five-item shelf should visibly rotate across programs whenever the
+     catalog has enough depth. This is a promotion guard, not a filler rule. */
+  if (readyDepth === 5 && familyCounts.size < 3) reasons.push("ready-shelf-family-diversity-underfilled");
+  return {
+    eligible: reasons.length === 0,
+    reasons,
+    catalogDepth,
+    distinctFamilies: familyCounts.size,
+    distinctCollections: collectionCounts.size,
+    readyDepth,
+    forbiddenCount,
+  };
+}
+
 function targetForDecade(profile, decade) {
   return Number(profile.decadeTargets?.[decade] || 0);
 }

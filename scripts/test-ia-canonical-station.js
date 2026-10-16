@@ -5,7 +5,13 @@ const { pathToFileURL } = require('node:url');
 
 (async () => {
   const station = await import(pathToFileURL(path.join(__dirname, '..', 'ia_canonical_station.mjs')));
-  const { IA_CANONICAL_PILOT_PROFILES, buildCanonicalManifest, canonicalGuide, selectCanonicalItems } = station;
+  const {
+    IA_CANONICAL_PILOT_PROFILES,
+    buildCanonicalManifest,
+    canonicalGuide,
+    canonicalPromotionEligibility,
+    selectCanonicalItems,
+  } = station;
   const profile = IA_CANONICAL_PILOT_PROFILES['classic-cartoons'];
   const raw = [
     { archiveId: 'cartoon-a', file: 'a.mp4', title: 'Popeye Cartoon Episode', year: 1942, runtimeSeconds: 900, collection: 'classic_cartoons', mediaUrl: 'https://archive.org/download/cartoon-a/a.mp4' },
@@ -27,5 +33,40 @@ const { pathToFileURL } = require('node:url');
   const guide = canonicalGuide(manifest, [], 3);
   assert.equal(guide.current.programId, manifest.items[0].programId);
   assert.equal(guide.next.programId, manifest.items[1].programId);
+
+  const promotionProfile = { ...profile, minCatalog: 5, maxPerFamily: 2, maxPerCollection: 2 };
+  const promotionCandidates = [
+    { archiveId: 'popeye', file: 'episode-1.mp4', title: 'Popeye Cartoon Episode 1', seriesTitle: 'Popeye', year: 1942, runtimeSeconds: 900, collection: 'popeye_collection', mediaUrl: 'https://archive.org/download/popeye/episode-1.mp4' },
+    { archiveId: 'tom-jerry', file: 'episode-1.mp4', title: 'Tom and Jerry Cartoon Episode 1', seriesTitle: 'Tom and Jerry', year: 1952, runtimeSeconds: 900, collection: 'tom_jerry_collection', mediaUrl: 'https://archive.org/download/tom-jerry/episode-1.mp4' },
+    { archiveId: 'woody', file: 'episode-1.mp4', title: 'Woody Woodpecker Cartoon Episode 1', seriesTitle: 'Woody Woodpecker', year: 1960, runtimeSeconds: 900, collection: 'woody_collection', mediaUrl: 'https://archive.org/download/woody/episode-1.mp4' },
+    { archiveId: 'bugs', file: 'episode-1.mp4', title: 'Bugs Bunny Cartoon Episode 1', seriesTitle: 'Bugs Bunny', year: 1968, runtimeSeconds: 900, collection: 'bugs_collection', mediaUrl: 'https://archive.org/download/bugs/episode-1.mp4' },
+    { archiveId: 'fleischer', file: 'episode-1.mp4', title: 'Fleischer Cartoon Episode 1', seriesTitle: 'Fleischer', year: 1938, runtimeSeconds: 900, collection: 'fleischer_collection', mediaUrl: 'https://archive.org/download/fleischer/episode-1.mp4' },
+  ];
+  const promotion = canonicalPromotionEligibility(promotionProfile, promotionCandidates);
+  assert.equal(promotion.eligible, true, 'a balanced five-item shelf should qualify');
+  assert.equal(promotion.readyDepth, 5);
+  assert.equal(promotion.distinctFamilies, 5);
+
+  const underfilled = canonicalPromotionEligibility(promotionProfile, promotionCandidates.slice(0, 4));
+  assert.equal(underfilled.eligible, false);
+  assert.ok(underfilled.reasons.includes('catalog-underfilled'));
+  assert.ok(underfilled.reasons.includes('ready-shelf-underfilled'));
+
+  const portrait = canonicalPromotionEligibility(promotionProfile, [...promotionCandidates, {
+    archiveId: 'portrait-cartoon', file: 'portrait.mp4', title: 'Portrait Cartoon', year: 1955, runtimeSeconds: 900,
+    collection: 'portrait_collection', mediaUrl: 'https://archive.org/download/portrait-cartoon/portrait.mp4', aspectRatio: 0.75,
+  }]);
+  assert.equal(portrait.eligible, true, 'forbidden candidates cannot inflate catalog depth');
+  assert.equal(portrait.forbiddenCount, 1);
+
+  const oneFamily = canonicalPromotionEligibility(promotionProfile, promotionCandidates.map((candidate, index) => ({
+    ...candidate,
+    archiveId: `same-family-${index}`,
+    file: `episode-${index}.mp4`,
+    seriesTitle: 'Popeye',
+    collection: `different_collection_${index}`,
+  })));
+  assert.equal(oneFamily.eligible, false);
+  assert.ok(oneFamily.reasons.includes('family-cap-exceeded'));
   console.log('IA canonical station contract passed: filtering, runtime validation, freshness exhaustion, and guide data.');
 })().catch((error) => { console.error(error.stack || error); process.exitCode = 1; });

@@ -249,6 +249,14 @@ export class SessionRotation {
     const recent = new Set((Array.isArray(body.recentIds) ? body.recentIds : []).map(episodeKey));
     const eligible = catalog.filter(item => episodeKey(item) !== episodeKey(current.playing) && !cooldowns[episodeKey(item)]);
     let fresh = eligible.filter(item => !hasSeen(itemId(item)));
+    /* Exact-episode freshness is necessary but not sufficient for television.
+       A 500-item catalog can still feel repetitive when the next shelf chooses
+       another Jack Benny episode while dozens of entirely unseen shows remain.
+       Derive show history from committed items and exhaust unseen families
+       before returning to a different episode of a recently played series.
+       Reservations are deliberately excluded: preload alone is not a watch. */
+    const catalogByEpisode = new Map(catalog.map(item => [episodeKey(item), item]));
+    const seenFamilies = new Set(current.seen.map(id => catalogByEpisode.get(episodeKey(id))).filter(Boolean).map(familyId));
     const cycleReset = body.mode === "reserve" && !fresh.length && eligible.length > 0;
     const cycleGeneration = (current.cycleGeneration || 0) + (cycleReset ? 1 : 0);
     if (cycleReset) { seen.clear(); seenEpisodes.clear(); fresh = eligible; reserved = []; }
@@ -256,8 +264,17 @@ export class SessionRotation {
     let relaxed = false;
     if (body.mode === "reserve") {
       const offset = current.cursor || Number(body.rotation) || 0;
-      relaxed = appendBalanced(selected, rotate(fresh.filter(item => !recent.has(episodeKey(item))), offset), count, body.diversity);
-      if (selected.length < count) relaxed = appendBalanced(selected, rotate(fresh.filter(item => recent.has(episodeKey(item))), offset), count, body.diversity) || relaxed;
+      const unseenFamilies = fresh.filter(item => !seenFamilies.has(familyId(item)));
+      const repeatFamilies = fresh.filter(item => seenFamilies.has(familyId(item)));
+      for (const pool of [
+        unseenFamilies.filter(item => !recent.has(episodeKey(item))),
+        unseenFamilies.filter(item => recent.has(episodeKey(item))),
+        repeatFamilies.filter(item => !recent.has(episodeKey(item))),
+        repeatFamilies.filter(item => recent.has(episodeKey(item))),
+      ]) {
+        if (selected.length >= count) break;
+        relaxed = appendBalanced(selected, rotate(pool, offset), count, body.diversity) || relaxed;
+      }
       reserved = selected.map(itemId);
     }
     const next = { version: 3, catalog, seen: [...seen].slice(-MAX_RESERVATION_ITEMS), reserved,

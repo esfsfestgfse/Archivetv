@@ -57,6 +57,26 @@ test('episode uploads with unique identifiers still balance by their television 
   ]);
   assert.equal(selected.diversityRelaxed, false);
 });
+
+test('later shelves prefer unseen television families before another episode of a recent show', async () => {
+  const f = await fixture();
+  const episode = (family, number) => ({ identifier: family + '::episode-' + number + '.mp4',
+    sourceIdentifier: family, seriesId: family, title: family + ' · Episode ' + number,
+    language: 'eng', media: { type: 'video', url: 'https://archive.org/download/' + family + '/episode-' + number + '.mp4',
+      runtime: 1500, width: 640, height: 480, verification: 'transport', verifiedAt: Date.now() } });
+  const items = [episode('Alpha', 1), episode('Alpha', 2), episode('Beta', 1), episode('Gamma', 1),
+    episode('Delta', 1), episode('Epsilon', 1), episode('Zeta', 1)];
+  const send = async body => (await f.object.fetch(new Request('https://state.internal', {
+    method: 'POST', body: JSON.stringify(body),
+  }))).json();
+  const rules = { channel: '10', iaRepair: true };
+  const first = await send({ mode: 'reserve', items, count: 3, diversity: { maxPerFamily: 1 }, rules });
+  assert.deepEqual(first.items.map(item => item.seriesId.toLowerCase()), ['alpha', 'beta', 'gamma']);
+  for (const item of first.items) await send({ mode: 'commit', id: item.identifier, event: 'skipped' });
+  const second = await send({ mode: 'reserve', items, count: 3, diversity: { maxPerFamily: 1 }, rules });
+  assert.deepEqual(second.items.map(item => item.seriesId.toLowerCase()), ['delta', 'epsilon', 'zeta'],
+    'another episode of Alpha must wait while entirely unseen shows remain');
+});
 test('concurrent catalog updates preserve both discoveries, not last-writer wins', async () => {
   const f = await fixture(), row = id => ({ identifier: id, title: 'Episode ' + id, media: { url: 'https://archive.org/download/' + id + '/episode.mp4' } });
   await f.send({ kind: 'catalog', payload: { items: [row('base')], candidateItems: [row('base')] } });

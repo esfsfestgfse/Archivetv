@@ -13,7 +13,7 @@
  */
 
 import { createHash } from "node:crypto";
-import { okSearchRows, okSearchResultRows, okSearchPageRequest, okQueryOffset, okEmbedMetadata, okTitleSearchQueries, okPublicSearchUrl, okProgramIdentity, okProgramName, okMovieIdentities, okBalancedCandidates, okTVIndexTitles, okTVDecadeIndexTitles, okTVIndexPagePlan, okDiscoveryCursor, OK_TV_INDEX_DECADES } from "./ok_public_search.js";
+import { okSearchRows, okSearchResultRows, okSearchPageRequest, okQueryOffset, okEmbedMetadata, okTitleSearchQueries, okPublicSearchUrl, okProgramIdentity, okProgramName, okMovieIdentities, okBalancedCandidates, okTVIndexTitles, okTVDecadeIndexTitles, okTVIndexPagePlan, okDiscoveryCursor, OK_TV_INDEX_DECADES, okTVWeakDecadeSeedShows } from "./ok_public_search.js";
 import { OK_VERIFIED_SEARCH_SEED } from "./ok_verified_search_seed.js";
 import { okAnimationFamily, okAnimationQueries, okAnimationIdentity, okAnimationPrecheck, okAnimationVerified } from "./ok_animation_catalog.js";
 import { okCuratedChannel, okCuratedQueries, okCuratedIdentity, okCuratedPrecheck, okCuratedVerified } from "./ok_curated_tv_catalog.js";
@@ -494,7 +494,7 @@ export async function okTitleSearch(profile, rotation, env, options = {}) {
       indexPages = pagePlan.pages;
       indexedMarker = pagePlan.targeted ? (cursor % 2 === 0 ? "DVDRip" : "1080p") : "";
       const pageRows = await Promise.all(indexPages.map(page => fetchJson(`https://api.tvmaze.com/shows?page=${page}`, { cf: { cacheTtl: 86400, cacheEverything: true } })));
-      const shows = pageRows.flat();
+      const shows = pagePlan.targeted ? [...okTVWeakDecadeSeedShows(cursor), ...pageRows.flat()] : pageRows.flat();
       seriesTitles = pagePlan.targeted
         ? okTVDecadeIndexTitles(shows, cursor, 10, OK_TV_INDEX_DECADES)
         : okTVIndexTitles(shows, cursor, 10);

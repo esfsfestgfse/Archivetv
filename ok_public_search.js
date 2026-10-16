@@ -68,6 +68,26 @@ export function okTVIndexTitles(shows, cursor = 0, limit = 10) {
 
 export const OK_TV_INDEX_DECADES = Object.freeze([1950, 1960, 1970, 1980, 1990, 2000, 2010, 2020]);
 
+export const OK_TV_WEAK_DECADE_SEEDS = Object.freeze({
+  1950: ["I Love Lucy", "The Honeymooners", "Gunsmoke", "Perry Mason", "Leave It to Beaver", "Father Knows Best", "The Donna Reed Show", "Rawhide", "Maverick", "Alfred Hitchcock Presents", "Wagon Train", "The Rifleman", "The Twilight Zone"],
+  1960: ["The Andy Griffith Show", "The Dick Van Dyke Show", "Bewitched", "Gilligan's Island", "The Addams Family", "The Munsters", "Star Trek", "Mission: Impossible", "Hawaii Five-O", "Green Acres", "Get Smart", "The Fugitive", "I Dream of Jeannie", "That Girl", "Mannix", "Here's Lucy"],
+  2020: ["Abbott Elementary", "Ghosts", "Poker Face", "Reacher", "The Bear", "Only Murders in the Building", "Ted Lasso", "The Last of Us", "Wednesday", "Yellowjackets", "The White Lotus", "Tulsa King", "Tracker", "High Potential", "Elsbeth", "Matlock"]
+});
+
+// These are rotating discovery rails, not an admission whitelist. TVmaze still
+// verifies identity/premiere and the shared runtime/language/format gates still
+// decide whether any resulting episode may enter the parent catalog.
+export function okTVWeakDecadeSeedShows(cursor = 0) {
+  const rotation = Math.abs(Math.floor(Number(cursor) || 0));
+  return Object.entries(OK_TV_WEAK_DECADE_SEEDS).map(([decade, titles]) => ({
+    name: titles[rotation % titles.length],
+    premiered: `${decade}-01-01`,
+    language: "English",
+    type: "Scripted",
+    network: { country: { code: "US" } }
+  }));
+}
+
 export function okTVDecadeIndexTitles(shows, cursor = 0, limit = 10, decades = OK_TV_INDEX_DECADES) {
   const wanted = Array.from(new Set((Array.isArray(decades) ? decades : [])
     .map(value => Math.floor(Number(value) / 10) * 10).filter(Number.isFinite)));

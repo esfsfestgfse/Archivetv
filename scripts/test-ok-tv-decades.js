@@ -70,6 +70,13 @@ function insertEpisode(sql, { id, series, seriesIndex, decade, episode, seenAt }
 
   assert.deepEqual(search.OK_TV_INDEX_DECADES, [1950, 1960, 1970, 1980, 1990, 2000, 2010, 2020],
     'background TV indexing must cover every requested decade instead of only the already-healthy lanes');
+  const weakSeedsA = search.okTVWeakDecadeSeedShows(0);
+  const weakSeedsB = search.okTVWeakDecadeSeedShows(1);
+  assert.deepEqual(weakSeedsA.map((show) => Number(show.premiered.slice(0, 4))), [1950, 1960, 2020],
+    'every targeted maintenance pass must deliberately cover each weak decade');
+  assert.equal(new Set(weakSeedsA.map((show) => show.name)).size, 3);
+  assert.notDeepEqual(weakSeedsA.map((show) => show.name), weakSeedsB.map((show) => show.name),
+    'weak-decade discovery rails must rotate rather than reopen with the same titles');
   assert.equal(typeof search.okSeriesPremiere, 'function', 'TVmaze premiere classification must be exported');
   for (const [premiered, expectedYear, expectedDecade] of [
     ['1979-12-31', 1979, 1970], ['1980-01-01', 1980, 1980],

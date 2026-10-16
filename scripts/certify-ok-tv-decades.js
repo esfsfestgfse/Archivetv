@@ -2,9 +2,11 @@
 'use strict';
 
 const profiles = [
+  { profileKey: 'ok-tv-1970s', decade: 1970 },
   { profileKey: 'ok-tv-1980s', decade: 1980 },
   { profileKey: 'ok-tv-1990s', decade: 1990 },
   { profileKey: 'ok-tv-2000s', decade: 2000 },
+  { profileKey: 'ok-tv-2010s', decade: 2010 },
 ];
 const args = process.argv.slice(2);
 const valueFor = (name) => {

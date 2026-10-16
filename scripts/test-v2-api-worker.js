@@ -6,7 +6,10 @@ const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 
 (async () => {
-  const { default: worker, SessionRotation, freshnessExclusionIds } = await import(pathToFileURL(path.join(__dirname, '..', 'realsignal_api_v2_worker.js')));
+  const { default: worker, SessionRotation, freshnessExclusionIds, RATE_LIMITS } = await import(pathToFileURL(path.join(__dirname, '..', 'realsignal_api_v2_worker.js')));
+  /* A viewer can open the guide while quickly testing several Source Suite
+   * channels. Catalog requests must not self-throttle that normal burst. */
+  assert.equal(RATE_LIMITS['source-catalog'].max, 240, 'source-catalog supports a normal guide/channel-switch burst');
   const rotations = new Map();
   const calls = [];
   const queueMessages = [];
@@ -298,7 +301,7 @@ const { pathToFileURL } = require('node:url');
   assert.equal(badJson.status, 400);
 
   let limited;
-  for (let attempt = 0; attempt < 61; attempt += 1) {
+  for (let attempt = 0; attempt <= RATE_LIMITS['source-catalog'].max; attempt += 1) {
     limited = await worker.fetch(new Request('https://api.example/api/v2/source/catalog', {
       method: 'POST',
       headers: { 'content-type': 'application/json', 'CF-Connecting-IP': '198.51.100.7' },

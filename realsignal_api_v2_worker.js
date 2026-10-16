@@ -19,7 +19,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "5.5.97-ok-tv-weak-decade-depth";
+const V3_RELEASE = "5.5.98-source-catalog-burst";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -146,11 +146,11 @@ const YOUTUBE_SPORT_HANDLES = new Set([
   "WTA", "PDCTV", "WorldSnooker",
 ]);
 const YOUTUBE_TIMEOUT_MS = 6500;
-const RATE_LIMITS = Object.freeze({
+export const RATE_LIMITS = Object.freeze({
   /* A viewer can move through a large Source Suite without the edge guard
      mistaking normal tuning for abuse. Provider work is still deduplicated
      below and the upstream adapters remain bounded. */
-  "source-catalog": Object.freeze({ windowMs: 60_000, max: 60 }),
+  "source-catalog": Object.freeze({ windowMs: 60_000, max: 240 }),
   /* Queue traffic includes guide refreshes, fast channel surfing, and the
      certification sweep. Keep the guard, but do not let a normal burst of
      channel changes turn into a false empty shelf. Provider adapters remain

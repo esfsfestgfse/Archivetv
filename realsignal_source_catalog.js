@@ -487,6 +487,8 @@ export async function okTitleSearch(profile, rotation, env, options = {}) {
   let indexedMarker = "";
   let seriesDecadeHints = new Map();
   if (!firstLane && profile.profileKey === "ok-tv-channel") {
+    try { await repairStoredOKTVPremieres(env.realsignal_catalog, (url) => fetchJson(url, { cf: { cacheTtl: 604800, cacheEverything: true } })); }
+    catch (error) { errors.push(`premiere repair: ${text(error?.message, 100)}`); }
     try {
       const pagePlan = okTVIndexPagePlan(cursor);
       indexPages = pagePlan.pages;
@@ -587,6 +589,33 @@ export async function okTitleSearch(profile, rotation, env, options = {}) {
     ...(curated ? { curatedMisses } : {}),
     ...(errors.length === queries.length ? { error: "public title search unavailable" } : {}),
   } };
+}
+
+// Repair a small number of legacy canonical rows during background discovery.
+// This runs through the Worker's D1 binding, so deployment tokens do not need
+// direct D1 permissions and viewer-facing first-lane requests never wait on it.
+export async function repairStoredOKTVPremieres(db, fetcher, limit = 12) {
+  if (!db?.prepare || typeof fetcher !== "function") return { unresolved: 0, repaired: 0 };
+  const bounded = Math.max(1, Math.min(24, Math.floor(Number(limit) || 12)));
+  const result = await db.prepare("SELECT DISTINCT json_extract(CASE WHEN json_valid(p.metadata_json) THEN p.metadata_json ELSE '{}' END,'$.seriesId') AS series_id FROM programs p JOIN channel_programs cp ON cp.program_id=p.id WHERE cp.channel_key='ok-tv-channel' AND p.status='active' AND json_extract(CASE WHEN json_valid(p.metadata_json) THEN p.metadata_json ELSE '{}' END,'$.seriesId') LIKE 'tvmaze:%' AND COALESCE(CAST(json_extract(CASE WHEN json_valid(p.metadata_json) THEN p.metadata_json ELSE '{}' END,'$.seriesStartYear') AS INTEGER),0)=0 ORDER BY series_id LIMIT ?").bind(bounded).all();
+  const rows = Array.isArray(result?.results) ? result.results : [];
+  const repaired = (await mapLimit(rows, 3, async (row) => {
+    const seriesId = String(row?.series_id || "");
+    const id = seriesId.match(/^tvmaze:(\d+)$/)?.[1];
+    if (!id) return null;
+    try {
+      const show = await fetcher(`https://api.tvmaze.com/shows/${id}`);
+      const year = Number(String(show?.premiered || "").match(/^((?:19|20)\d{2})-/)?.[1]);
+      const decade = Math.floor(year / 10) * 10;
+      if (!Number.isInteger(year) || !OK_TV_INDEX_DECADES.includes(decade)) return null;
+      return { seriesId, year, decade };
+    } catch (_) { return null; }
+  })).filter(Boolean);
+  if (repaired.length && typeof db.batch === "function") {
+    const statements = repaired.map(({ seriesId, year, decade }) => db.prepare("UPDATE programs SET year=CASE WHEN year IS NULL OR year='' THEN ? ELSE year END, metadata_json=json_set(CASE WHEN json_valid(metadata_json) THEN metadata_json ELSE '{}' END,'$.seriesStartYear',?,'$.seriesDecade',?) WHERE id IN (SELECT cp.program_id FROM channel_programs cp WHERE cp.channel_key='ok-tv-channel') AND json_extract(CASE WHEN json_valid(metadata_json) THEN metadata_json ELSE '{}' END,'$.seriesId')=?").bind(String(year), year, decade, seriesId));
+    await db.batch(statements);
+  }
+  return { unresolved: rows.length, repaired: repaired.length };
 }
 
 // The identical gate is applied to newly discovered items AND old D1 rows.

@@ -102,6 +102,20 @@ function insertEpisode(sql, { id, series, seriesIndex, decade, episode, seenAt }
   assert.equal(unknownIdentity.seriesStartYear, undefined, 'a title year cannot replace missing TVmaze premiere evidence');
   assert.equal(unknownIdentity.seriesDecade, undefined, 'unknown premiere stays master-only');
 
+  const repairDb = new DatabaseSync(':memory:');
+  migrate(repairDb);
+  insertEpisode(repairDb, { id: 'ok:legacy44', series: 'Legacy Show', seriesIndex: 0, decade: 1980, episode: 1, seenAt: 1 });
+  repairDb.prepare("UPDATE programs SET year='', metadata_json=json_remove(metadata_json,'$.seriesStartYear','$.seriesDecade') WHERE id='ok:legacy44'").run();
+  const repairResult = await source.repairStoredOKTVPremieres(d1(repairDb), async (url) => {
+    assert.equal(url, 'https://api.tvmaze.com/shows/1981');
+    return { id: 1981, premiered: '1957-09-20' };
+  });
+  assert.deepEqual(repairResult, { unresolved: 1, repaired: 1 }, 'Worker-side repair must enrich bounded canonical rows through its D1 binding');
+  const repairedMetadata = JSON.parse(repairDb.prepare("SELECT metadata_json FROM programs WHERE id='ok:legacy44'").get().metadata_json);
+  assert.equal(repairedMetadata.seriesStartYear, 1957);
+  assert.equal(repairedMetadata.seriesDecade, 1950);
+  repairDb.close();
+
   const profile = source.sourceProfile({ profileKey: 'ok-tv-channel' });
   const indexedQueries = search.okTitleSearchQueries(profile, 0, {
     deep: true,

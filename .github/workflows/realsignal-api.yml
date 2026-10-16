@@ -115,3 +115,12 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: deploy --config wrangler.api.jsonc --keep-vars
+      - name: Install Wrangler for catalog maintenance
+        if: steps.credentials.outputs.configured == 'true'
+        run: npm install --prefix .wrangler-runtime --no-save wrangler@4
+      - name: Repair canonical OK TV premiere metadata
+        if: steps.credentials.outputs.configured == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: node scripts/backfill-ok-tv-decades.mjs --apply

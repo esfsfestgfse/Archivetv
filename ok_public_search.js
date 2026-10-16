@@ -66,7 +66,9 @@ export function okTVIndexTitles(shows, cursor = 0, limit = 10) {
   return Array.from({ length: count }, (_, i) => eligible[(offset + i) % eligible.length].name);
 }
 
-export function okTVDecadeIndexTitles(shows, cursor = 0, limit = 10, decades = [1980, 1990]) {
+export const OK_TV_INDEX_DECADES = Object.freeze([1950, 1960, 1970, 1980, 1990, 2000, 2010, 2020]);
+
+export function okTVDecadeIndexTitles(shows, cursor = 0, limit = 10, decades = OK_TV_INDEX_DECADES) {
   const wanted = Array.from(new Set((Array.isArray(decades) ? decades : [])
     .map(value => Math.floor(Number(value) / 10) * 10).filter(Number.isFinite)));
   const groups = new Map(wanted.map(decade => [decade, []]));

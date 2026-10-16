@@ -68,6 +68,8 @@ function insertEpisode(sql, { id, series, seriesIndex, decade, episode, seenAt }
   const source = await import(pathToFileURL(path.join(root, 'realsignal_source_catalog.js')));
   const workerModule = await import(pathToFileURL(path.join(root, 'realsignal_api_v2_worker.js')));
 
+  assert.deepEqual(search.OK_TV_INDEX_DECADES, [1950, 1960, 1970, 1980, 1990, 2000, 2010, 2020],
+    'background TV indexing must cover every requested decade instead of only the already-healthy lanes');
   assert.equal(typeof search.okSeriesPremiere, 'function', 'TVmaze premiere classification must be exported');
   for (const [premiered, expectedYear, expectedDecade] of [
     ['1979-12-31', 1979, 1970], ['1980-01-01', 1980, 1980],
@@ -136,6 +138,20 @@ function insertEpisode(sql, { id, series, seriesIndex, decade, episode, seenAt }
     ['ok-tv-1990s', 1990],
     ['ok-tv-2000s', 2000],
   ];
+  for (const [profileKey, seriesDecade] of [
+    ['ok-tv-1950s', 1950],
+    ['ok-tv-1960s', 1960],
+    ['ok-tv-1970s', 1970],
+    ['ok-tv-2010s', 2010],
+    ['ok-tv-2020s', 2020],
+  ]) {
+    const profile = source.sourceProfile({ profileKey });
+    assert.ok(profile, `${profileKey} must exist as a hidden server-side canary before any client channel is exposed`);
+    assert.equal(profile.parentProfileKey, 'ok-tv-channel');
+    assert.equal(profile.derivedCatalogOnly, true);
+    assert.equal(profile.seriesDecade, seriesDecade);
+    assert.equal(source.sourceCatalogKey(profile), 'ok-tv-channel');
+  }
   for (const [profileKey, seriesDecade] of decadeProfiles) {
     const decadeProfile = source.sourceProfile({ profileKey });
     assert.ok(decadeProfile, `${profileKey} must be registered`);

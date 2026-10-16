@@ -2175,6 +2175,24 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "derivedCatalogOnly": true,
     "seriesDecade": 1980
   },
+  "ok-tv-1950s": {
+    "name": "OK TV: The 50s",
+    "parentProfileKey": "ok-tv-channel",
+    "derivedCatalogOnly": true,
+    "seriesDecade": 1950
+  },
+  "ok-tv-1960s": {
+    "name": "OK TV: The 60s",
+    "parentProfileKey": "ok-tv-channel",
+    "derivedCatalogOnly": true,
+    "seriesDecade": 1960
+  },
+  "ok-tv-1970s": {
+    "name": "OK TV: The 70s",
+    "parentProfileKey": "ok-tv-channel",
+    "derivedCatalogOnly": true,
+    "seriesDecade": 1970
+  },
   "ok-tv-1990s": {
     "name": "OK TV: The 90s",
     "parentProfileKey": "ok-tv-channel",
@@ -2186,6 +2204,18 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
     "parentProfileKey": "ok-tv-channel",
     "derivedCatalogOnly": true,
     "seriesDecade": 2000
+  },
+  "ok-tv-2010s": {
+    "name": "OK TV: The 2010s",
+    "parentProfileKey": "ok-tv-channel",
+    "derivedCatalogOnly": true,
+    "seriesDecade": 2010
+  },
+  "ok-tv-2020s": {
+    "name": "OK TV: The 2020s",
+    "parentProfileKey": "ok-tv-channel",
+    "derivedCatalogOnly": true,
+    "seriesDecade": 2020
   },
   "ok-kids-channel": {
     "name": "OKCartoon Kids",

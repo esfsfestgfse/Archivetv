@@ -13,7 +13,7 @@
  */
 
 import { createHash } from "node:crypto";
-import { okSearchRows, okSearchResultRows, okSearchPageRequest, okQueryOffset, okEmbedMetadata, okTitleSearchQueries, okPublicSearchUrl, okProgramIdentity, okProgramName, okMovieIdentities, okBalancedCandidates, okTVIndexTitles, okTVDecadeIndexTitles, okTVIndexPagePlan, okDiscoveryCursor } from "./ok_public_search.js";
+import { okSearchRows, okSearchResultRows, okSearchPageRequest, okQueryOffset, okEmbedMetadata, okTitleSearchQueries, okPublicSearchUrl, okProgramIdentity, okProgramName, okMovieIdentities, okBalancedCandidates, okTVIndexTitles, okTVDecadeIndexTitles, okTVIndexPagePlan, okDiscoveryCursor, OK_TV_INDEX_DECADES } from "./ok_public_search.js";
 import { OK_VERIFIED_SEARCH_SEED } from "./ok_verified_search_seed.js";
 import { okAnimationFamily, okAnimationQueries, okAnimationIdentity, okAnimationPrecheck, okAnimationVerified } from "./ok_animation_catalog.js";
 import { okCuratedChannel, okCuratedQueries, okCuratedIdentity, okCuratedPrecheck, okCuratedVerified } from "./ok_curated_tv_catalog.js";
@@ -494,12 +494,12 @@ export async function okTitleSearch(profile, rotation, env, options = {}) {
       const pageRows = await Promise.all(indexPages.map(page => fetchJson(`https://api.tvmaze.com/shows?page=${page}`, { cf: { cacheTtl: 86400, cacheEverything: true } })));
       const shows = pageRows.flat();
       seriesTitles = pagePlan.targeted
-        ? okTVDecadeIndexTitles(shows, cursor, 10, [1980, 1990])
+        ? okTVDecadeIndexTitles(shows, cursor, 10, OK_TV_INDEX_DECADES)
         : okTVIndexTitles(shows, cursor, 10);
       if (pagePlan.targeted) {
         const selected = new Set(seriesTitles.map(title => title.toLowerCase()));
         seriesDecadeHints = new Map(shows.map(show => [show, Number(String(show?.premiered || "").slice(0, 4))])
-          .filter(([show, year]) => selected.has(String(show?.name || "").toLowerCase()) && (year >= 1980 && year < 2000))
+          .filter(([show, year]) => selected.has(String(show?.name || "").toLowerCase()) && OK_TV_INDEX_DECADES.includes(Math.floor(year / 10) * 10))
           .map(([show, year]) => [String(show.name).toLowerCase(), Math.floor(year / 10) * 10]));
       }
     } catch (error) { errors.push(`series index: ${text(error?.message, 100)}`); }
@@ -629,7 +629,7 @@ function normalizedProfile(body) {
   const seriesDecade = derivedCatalogOnly ? Number(registered.seriesDecade) : 0;
   if (derivedCatalogOnly && (!parent || parent.intent !== "television" || !Array.isArray(parent.providers)
       || !parent.providers.some((provider) => /^ok-(?:search|manifest|api)$/.test(provider))
-      || ![1980, 1990, 2000].includes(seriesDecade))) return null;
+      || !OK_TV_INDEX_DECADES.includes(seriesDecade))) return null;
   const approved = derivedCatalogOnly ? { ...parent, ...registered } : registered;
   const queryLimit = Math.max(SOURCE_MAX_QUERIES, Math.min(32, Number(approved.queryLimit) || SOURCE_MAX_QUERIES));
   return {

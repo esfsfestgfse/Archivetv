@@ -120,6 +120,7 @@ jobs:
         run: npm install --prefix .wrangler-runtime --no-save wrangler@4
       - name: Repair canonical OK TV premiere metadata
         if: steps.credentials.outputs.configured == 'true'
+        continue-on-error: true
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

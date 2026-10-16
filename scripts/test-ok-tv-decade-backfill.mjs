@@ -15,4 +15,6 @@ assert.match(workflow, /Install Wrangler for catalog maintenance[\s\S]*npm insta
   "API deployment must provision the pinned Wrangler runtime used by catalog maintenance");
 assert.match(workflow, /Repair canonical OK TV premiere metadata[\s\S]*node scripts\/backfill-ok-tv-decades\.mjs --apply/,
   "API deployment must repair unresolved canonical TV years after the Worker is live");
+assert.match(workflow, /Repair canonical OK TV premiere metadata[\s\S]*continue-on-error: true/,
+  "optional D1 metadata repair must not turn a successful Worker deployment red when the token lacks D1 edit permission");
 console.log("OK TV decade backfill contract passed.");

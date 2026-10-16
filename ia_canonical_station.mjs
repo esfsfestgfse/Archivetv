@@ -273,11 +273,13 @@ export function canonicalPromotionEligibility(profile, rawItems) {
   const accepted = [...acceptedById.values()];
   const familyCounts = new Map();
   const collectionCounts = new Map();
+  const decadeCounts = new Map();
   for (const item of accepted) {
     const family = item.familyKey || item.archiveId || item.programId;
     const collection = item.collection || item.archiveId || item.programId;
     familyCounts.set(family, (familyCounts.get(family) || 0) + 1);
     collectionCounts.set(collection, (collectionCounts.get(collection) || 0) + 1);
+    if (Number.isFinite(Number(item.decade))) decadeCounts.set(item.decade, (decadeCounts.get(item.decade) || 0) + 1);
   }
   const catalogDepth = accepted.length;
   const readyDepth = Math.min(5, catalogDepth);
@@ -286,6 +288,9 @@ export function canonicalPromotionEligibility(profile, rawItems) {
   if (readyDepth < 5) reasons.push("ready-shelf-underfilled");
   if ([...familyCounts.values()].some((count) => count > Number(profile?.maxPerFamily || Infinity))) reasons.push("family-cap-exceeded");
   if ([...collectionCounts.values()].some((count) => count > Number(profile?.maxPerCollection || Infinity))) reasons.push("collection-cap-exceeded");
+  if (decadeCounts.size < Number(profile?.minDecades || 0)) reasons.push("decade-diversity-underfilled");
+  if (catalogDepth && Math.max(0, ...decadeCounts.values()) / catalogDepth > Number(profile?.maxDecadeShare || 1)) reasons.push("decade-balance-exceeded");
+  if ((profile?.requiredDecades || []).some((decade) => !decadeCounts.has(Number(decade)))) reasons.push("required-decade-missing");
   /* A five-item shelf should visibly rotate across programs whenever the
      catalog has enough depth. This is a promotion guard, not a filler rule. */
   if (readyDepth === 5 && familyCounts.size < 3) reasons.push("ready-shelf-family-diversity-underfilled");
@@ -321,11 +326,11 @@ export function buildCanonicalManifest(profile, rawItems, generatedAt = new Date
   const selected = [];
   const ordered = [...pool].sort((a, b) => (targetForDecade(profile, b.decade) - targetForDecade(profile, a.decade)) || (b.runtimeSeconds - a.runtimeSeconds) || a.title.localeCompare(b.title));
   const desired = Math.min(profile.targetCatalog || 96, ordered.length);
-  const canAdd = (item, relax = false) => {
+  const canAdd = (item) => {
     const collectionCount = collectionCounts.get(item.collection || item.archiveId) || 0;
     const familyCount = familyCounts.get(item.familyKey || item.programId) || 0;
-    if (!relax && collectionCount >= profile.maxPerCollection) return false;
-    if (!relax && familyCount >= profile.maxPerFamily) return false;
+    if (collectionCount >= profile.maxPerCollection) return false;
+    if (familyCount >= profile.maxPerFamily) return false;
     return true;
   };
   const add = (item) => {
@@ -344,7 +349,11 @@ export function buildCanonicalManifest(profile, rawItems, generatedAt = new Date
   if (selected.length < desired) {
     for (const item of ordered) {
       if (selected.length >= desired || selected.some((candidate) => candidate.programId === item.programId)) continue;
-      if (canAdd(item, true)) add(item);
+      /* Do not relax editorial caps to reach target depth. An underfilled
+         shadow catalog is intentionally constrained and cannot be promoted;
+         flooding viewers with one complete-series upload is worse than an
+         honest underfill. */
+      if (canAdd(item)) add(item);
     }
   }
   return {

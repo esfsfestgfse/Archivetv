@@ -68,5 +68,32 @@ const { pathToFileURL } = require('node:url');
   })));
   assert.equal(oneFamily.eligible, false);
   assert.ok(oneFamily.reasons.includes('family-cap-exceeded'));
+
+  const oneDecade = canonicalPromotionEligibility({ ...promotionProfile, minDecades: 3, maxDecadeShare: 0.5 }, promotionCandidates.map((candidate, index) => ({
+    ...candidate,
+    archiveId: `same-decade-${index}`,
+    file: `episode-${index}.mp4`,
+    seriesTitle: `Cartoon ${index}`,
+    collection: `collection_${index}`,
+    year: 1942,
+  })));
+  assert.equal(oneDecade.eligible, false);
+  assert.ok(oneDecade.reasons.includes('decade-diversity-underfilled'));
+  assert.ok(oneDecade.reasons.includes('decade-balance-exceeded'));
+
+  const balanceProfile = { ...promotionProfile, targetCatalog: 7, minCatalog: 5, maxPerFamily: 3, maxPerCollection: 2 };
+  const fileLevelCandidates = [
+    { archiveId: 'popeye-complete-series', file: 'popeye-s01e01.mp4', title: 'Popeye Cartoon Episode 1', seriesTitle: 'Popeye', year: 1942, runtimeSeconds: 900, collection: 'popeye_complete_series', mediaUrl: 'https://archive.org/download/popeye-complete-series/popeye-s01e01.mp4' },
+    { archiveId: 'popeye-complete-series', file: 'popeye-s01e02.mp4', title: 'Popeye Cartoon Episode 2', seriesTitle: 'Popeye', year: 1942, runtimeSeconds: 900, collection: 'popeye_complete_series', mediaUrl: 'https://archive.org/download/popeye-complete-series/popeye-s01e02.mp4' },
+    { archiveId: 'popeye-complete-series', file: 'popeye-s01e03.mp4', title: 'Popeye Cartoon Episode 3', seriesTitle: 'Popeye', year: 1942, runtimeSeconds: 900, collection: 'popeye_complete_series', mediaUrl: 'https://archive.org/download/popeye-complete-series/popeye-s01e03.mp4' },
+    { archiveId: 'tom-jerry-complete', file: 'tom-jerry-s01e01.mp4', title: 'Tom and Jerry Cartoon Episode', seriesTitle: 'Tom and Jerry', year: 1952, runtimeSeconds: 900, collection: 'tom_jerry_complete', mediaUrl: 'https://archive.org/download/tom-jerry-complete/tom-jerry-s01e01.mp4' },
+    { archiveId: 'woody-complete', file: 'woody-s01e01.mp4', title: 'Woody Woodpecker Cartoon Episode', seriesTitle: 'Woody Woodpecker', year: 1960, runtimeSeconds: 900, collection: 'woody_complete', mediaUrl: 'https://archive.org/download/woody-complete/woody-s01e01.mp4' },
+    { archiveId: 'bugs-complete', file: 'bugs-s01e01.mp4', title: 'Bugs Bunny Cartoon Episode', seriesTitle: 'Bugs Bunny', year: 1968, runtimeSeconds: 900, collection: 'bugs_complete', mediaUrl: 'https://archive.org/download/bugs-complete/bugs-s01e01.mp4' },
+    { archiveId: 'fleischer-complete', file: 'fleischer-s01e01.mp4', title: 'Fleischer Cartoon Episode', seriesTitle: 'Fleischer', year: 1938, runtimeSeconds: 900, collection: 'fleischer_complete', mediaUrl: 'https://archive.org/download/fleischer-complete/fleischer-s01e01.mp4' },
+  ];
+  const balancedManifest = buildCanonicalManifest(balanceProfile, fileLevelCandidates, '2026-10-16T00:00:00.000Z');
+  assert.equal(new Set(balancedManifest.items.map((item) => item.programId)).size, balancedManifest.catalogDepth, 'episode files must retain distinct program IDs');
+  assert.ok(balancedManifest.items.filter((item) => item.archiveId === 'popeye-complete-series').length <= 2, 'a complete-series upload cannot exceed its collection cap');
+  assert.ok(balancedManifest.items.length < balanceProfile.targetCatalog, 'a shallow catalog should underfill rather than relax collection caps');
   console.log('IA canonical station contract passed: filtering, runtime validation, freshness exhaustion, and guide data.');
 })().catch((error) => { console.error(error.stack || error); process.exitCode = 1; });

@@ -19,7 +19,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "5.6.1-ia-broad-station-depth-recovery";
+const V3_RELEASE = "5.6.2-ia-three-lane-family-rotation";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -1729,12 +1729,13 @@ async function handleQueue(request, env, ctx, id) {
     }
   }
   const archiveFamilyRelayRail = IA_ARCHIVE_FAMILY_DEPTH_LANES.has(String(body.channel));
+  let shallowFastCatalog = null;
   if (useServerCatalog && IA_FAST_CATALOG_LANES.has(String(body.channel)) && !archiveFamilyRelayRail) {
     try {
       /* Feed the full verified D1 catalog into session rotation. The rotation
          object applies the persistent freshness ledger for the opening pick,
          then walks unseen rows from the larger catalog on later Next actions. */
-        const fastCatalog = await catalogFallback(env, body, catalogLimit, { ignoreFreshness: true });
+      const fastCatalog = await catalogFallback(env, body, catalogLimit, { ignoreFreshness: true });
       const fastDepthFloor = IA_BROAD_STATION_FAST_DEPTH.get(String(body.channel)) || IA_MIN_ROLLING_CATALOG_DEPTH;
       const fastDepth = Array.isArray(fastCatalog && fastCatalog.candidateItems) ? fastCatalog.candidateItems.length : 0;
       const emergencyShelfOnly = fastDepth > 0 && fastDepth <= count + 1;
@@ -1780,6 +1781,7 @@ async function handleQueue(request, env, ctx, id) {
         };
         return new Response(JSON.stringify(fastPayload), { status: 200, headers });
       }
+      if (fastCatalog && Array.isArray(fastCatalog.candidateItems) && fastCatalog.candidateItems.length) shallowFastCatalog = fastCatalog;
     } catch (error) {
       console.warn(JSON.stringify({ event: "fast-catalog-read-failed", requestId: id, channel: String(body.channel), error: String(error).slice(0, 160) }));
     }
@@ -1806,11 +1808,14 @@ async function handleQueue(request, env, ctx, id) {
       body,
       catalogLimit,
     );
+    const combinedUpstreamCandidates = shallowFastCatalog
+      ? stableCatalogItems([...shallowFastCatalog.candidateItems, ...upstreamCandidates], body, catalogLimit)
+      : upstreamCandidates;
     payload = limitPublicIaShelf({
       ...payload,
       items: upstreamItems,
-      candidateItems: upstreamCandidates,
-      candidates: upstreamCandidates.length,
+      candidateItems: combinedUpstreamCandidates,
+      candidates: combinedUpstreamCandidates.length,
       ready: Math.min(Number(payload && payload.ready) || upstreamItems.length, upstreamItems.length),
     }, count);
     const upstreamCandidateDepth = upstreamCandidates.length;

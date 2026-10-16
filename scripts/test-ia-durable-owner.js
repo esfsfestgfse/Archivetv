@@ -32,6 +32,31 @@ test('deep session reservations survive the storage value limit and a restart', 
   assert.equal(next.items.some(x => x.identifier === first.items[0].identifier), false);
   assert.equal(next.items[0].identifier, first.items[1].identifier);
 });
+
+test('episode uploads with unique identifiers still balance by their television series title', async () => {
+  const f = await fixture();
+  const episode = (identifier, title) => ({ identifier, sourceIdentifier: identifier, seriesId: identifier, title,
+    language: 'eng', media: { type: 'video', url: 'https://archive.org/download/' + identifier + '/episode.mp4',
+      runtime: 1500, width: 640, height: 480, verification: 'transport', verifiedAt: Date.now() } });
+  const items = [
+    episode('wml-1954-09-05', "What's My Line? — September 5, 1954"),
+    episode('wml-1954-08-22', "What's My Line? — August 22, 1954"),
+    episode('wml-1956-10-07', "What's My Line? — October 7, 1956"),
+    episode('beat-clock-1951', 'Beat the Clock — October 13, 1951'),
+    episode('secret-1966', "I've Got a Secret — January 17, 1966"),
+  ];
+  const response = await f.object.fetch(new Request('https://state.internal', { method: 'POST', body: JSON.stringify({
+    mode: 'reserve', items, count: 3, diversity: { maxPerFamily: 1 }, rules: { channel: '12', iaRepair: true },
+  }) }));
+  const selected = await response.json();
+  assert.equal(selected.items.length, 3);
+  assert.deepEqual(selected.items.map(item => item.title), [
+    "What's My Line? — September 5, 1954",
+    'Beat the Clock — October 13, 1951',
+    "I've Got a Secret — January 17, 1966",
+  ]);
+  assert.equal(selected.diversityRelaxed, false);
+});
 test('concurrent catalog updates preserve both discoveries, not last-writer wins', async () => {
   const f = await fixture(), row = id => ({ identifier: id, title: 'Episode ' + id, media: { url: 'https://archive.org/download/' + id + '/episode.mp4' } });
   await f.send({ kind: 'catalog', payload: { items: [row('base')], candidateItems: [row('base')] } });

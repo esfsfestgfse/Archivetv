@@ -61,13 +61,27 @@ function rotate(items, offset) {
   return items.slice(start).concat(items.slice(0, start));
 }
 
-function familyId(item) {
-  return String(item.seriesId || item.seriesTitle || item.family || item.sourceIdentifier || itemId(item).split("::")[0])
+function normalizedFamily(value) {
+  return String(value || "")
     .normalize('NFKD')
     .replace(/\p{Diacritic}/gu, '')
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, ' ')
     .trim();
+}
+
+function familyId(item) {
+  const source = item.sourceIdentifier || itemId(item).split("::")[0];
+  const explicit = item.seriesTitle || item.family || item.seriesId;
+  const title = String(item.title || "").trim();
+  const titleParts = title.split(/\s+[·—]\s+/, 2);
+  const titleFamily = titleParts.length > 1 && titleParts[0].trim().length >= 3 ? titleParts[0].trim() : "";
+  /* Archive commonly copies each upload identifier into `seriesId`, which
+     makes three episodes of the same show look like three unrelated families.
+     When that synthetic value matches the source identifier, prefer the
+     editorial series prefix already present in our normalized display title. */
+  const explicitIsUploadId = explicit && normalizedFamily(explicit) === normalizedFamily(source);
+  return normalizedFamily(titleFamily && (!explicit || explicitIsUploadId) ? titleFamily : (explicit || titleFamily || source));
 }
 
 function episodeKey(item) {

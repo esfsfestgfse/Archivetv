@@ -241,7 +241,9 @@ test('a shallow fast catalog cannot mask a deeper relay catalog', async () => {
     count: 3, queries: ['classic television full episode'], diversity: { maxPerFamily: 1 },
   })).json();
   assert.equal(payload.items.length, 3, 'the viewer still gets the small immediate shelf');
-  assert.ok(payload.candidateItems.length >= 30, 'the deeper relay union becomes the rotation catalog');
+  assert.ok(payload.candidateItems.length >= 39, 'the deeper relay union retains the verified cached history');
+  assert.ok(payload.candidateItems.some(item => item.identifier === 'benson::cached-0.mp4'),
+    'falling through for depth must not discard already verified programs');
   assert.ok(f.queueBodies.length >= 1, 'a shallow database shortcut must fall through to the source adapter');
   await Promise.all(f.pending);
 });

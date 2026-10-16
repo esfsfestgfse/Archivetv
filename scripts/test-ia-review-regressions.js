@@ -231,6 +231,21 @@ test('a playable fast catalog above fifteen keeps discovering in background with
   assert.ok(f.batches.flat().some(statement => /INSERT INTO programs/.test(statement.sql) && statement.args[0] === 'benson::new.mp4'));
 });
 
+test('a shallow fast catalog cannot mask a deeper relay catalog', async () => {
+  const cached = Array.from({ length: 9 }, (_, i) => row('cached-' + i + '.mp4', { seriesId: 'cached-' + i }));
+  const discovered = Array.from({ length: 30 }, (_, i) => row('discovered-' + i + '.mp4', { seriesId: 'show-' + i }));
+  const f = await catalogFixture(cached);
+  f.incoming(discovered);
+  const payload = await (await f.request('queue', {
+    channel: '10', iaRepair: true, serverCatalog: true, sessionId: 'shallow-fast-fallthrough',
+    count: 3, queries: ['classic television full episode'], diversity: { maxPerFamily: 1 },
+  })).json();
+  assert.equal(payload.items.length, 3, 'the viewer still gets the small immediate shelf');
+  assert.ok(payload.candidateItems.length >= 30, 'the deeper relay union becomes the rotation catalog');
+  assert.ok(f.queueBodies.length >= 1, 'a shallow database shortcut must fall through to the source adapter');
+  await Promise.all(f.pending);
+});
+
 test('same-sized qualified refreshes can add new episodes rather than preserving an old snapshot', async () => {
   const old = Array.from({ length: 24 }, (_, i) => row('old-' + i + '.mp4'));
   const f = await catalogFixture(old), replacement = Array.from({ length: 24 }, (_, i) => row('new-' + i + '.mp4'));

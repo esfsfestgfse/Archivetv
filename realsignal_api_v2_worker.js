@@ -19,7 +19,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "5.6.0-ia-three-lane-shadow-baseline";
+const V3_RELEASE = "5.6.1-ia-broad-station-depth-recovery";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -101,6 +101,11 @@ const IA_CANONICAL_PROFILE_BY_CHANNEL = new Map(Object.values(IA_CANONICAL_PILOT
    from D1; a healthy relay response that already carries enough candidates
    keeps the fastest handoff and does not pay for the read. */
 const IA_MIN_ROLLING_CATALOG_DEPTH = 15;
+/* Classic TV, Game Shows, and Classic Cartoons are broad stations. A nine-row
+   D1 cache is useful as emergency playback, but it is not deep enough to own
+   the station. Below this floor, fall through to the relay's full verified
+   union so the response and the durable catalog can grow in the same tune. */
+const IA_BROAD_STATION_FAST_DEPTH = new Map([["10", 24], ["12", 24], ["150", 24]]);
 /* These lanes additionally need stale-row re-scoring because their measured
    D1 history contained old genreVerified flags from before the current rules. */
 const IA_DEPTH_REPAIR_LANES = new Set([
@@ -1730,7 +1735,11 @@ async function handleQueue(request, env, ctx, id) {
          object applies the persistent freshness ledger for the opening pick,
          then walks unseen rows from the larger catalog on later Next actions. */
         const fastCatalog = await catalogFallback(env, body, catalogLimit, { ignoreFreshness: true });
-      if (fastCatalog && Array.isArray(fastCatalog.items) && fastCatalog.items.length) {
+      const fastDepthFloor = IA_BROAD_STATION_FAST_DEPTH.get(String(body.channel)) || IA_MIN_ROLLING_CATALOG_DEPTH;
+      const fastDepth = Array.isArray(fastCatalog && fastCatalog.candidateItems) ? fastCatalog.candidateItems.length : 0;
+      const emergencyShelfOnly = fastDepth > 0 && fastDepth <= count + 1;
+      if (fastCatalog && Array.isArray(fastCatalog.items) && fastCatalog.items.length
+        && Array.isArray(fastCatalog.candidateItems) && (emergencyShelfOnly || fastDepth >= fastDepthFloor)) {
         // Fifteen ready records prove availability, not catalog completeness.
         // Repaired IA stations keep importing new qualified identities on a
         // bounded background cadence, even when their old D1 shelf is full.

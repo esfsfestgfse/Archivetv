@@ -8776,7 +8776,50 @@ async function qualifyIaQueueResponse(response, body, cacheOrigin, ctx, env) {
   /* Qualification can enrich a URL-only emergency record after its refill
      was scheduled. Keep that knowledge in the same durable family so the
      background consumer can discover its sibling files on the next pass. */
-  if (qualified.lastGoodKey) sharedQueuePut(env, qualified.lastGoodKey, qualified, IA_QUEUE_TTL_SECONDS, strictContext);
+  /* The public shelf is intentionally small, but the two broad repaired
+     stations already have a much larger file-level episode bank. Qualifying
+     only the three on-air rows made that bank advance three files per viewer
+     tune, so a cold D1 catalog still looked shallow for several rotations.
+     Verify one bounded batch after the response and persist the enriched union
+     once. This keeps first-frame latency on the three-item path while the next
+     tune inherits up to eight additional transport-proven episodes. */
+  let backgroundDepthScheduled = false;
+  if (repairEpisodes.length && qualified.lastGoodKey && env && env.REALSIGNAL_QUEUE && ctx && typeof ctx.waitUntil === "function") {
+    const initialCandidates = Array.isArray(qualified.candidateItems) ? qualified.candidateItems : qualified.items || [];
+    const initialVerifiedDepth = initialCandidates.filter(item => item && item.media && item.media.verification === "transport" && Number(item.media.verifiedAt) > 0).length;
+    if (initialVerifiedDepth < initialCandidates.length) {
+      const task = (async () => {
+        const childWaits = [];
+        const backgroundContext = { ...strictContext, isIaBackground: true, waitUntil: promise => childWaits.push(Promise.resolve(promise)) };
+        let persisted = qualified;
+        try {
+          const previous = await sharedQueueGet(env, qualified.lastGoodKey);
+          const union = mergeIaCatalogCandidates(previous, qualified, { preserveOrder: true });
+          const verifiedDepth = union.filter(item => item && item.media && item.media.verification === "transport" && Number(item.media.verifiedAt) > 0).length;
+          const target = Math.min(union.length, Math.max(requested, verifiedDepth + IA_DEPTH_BACKGROUND_HYDRATE_BATCH));
+          const deep = await hydrateIaQueue({ ...qualified, candidateItems: union }, target, cacheOrigin, backgroundContext, mediaTypes, undefined, IA_BACKGROUND_HYDRATION_CONCURRENCY);
+          const candidateItems = mergeIaCatalogCandidates({ candidateItems: union }, deep, { preserveOrder: true });
+          const publicItems = (Array.isArray(deep.items) && deep.items.length ? deep.items : qualified.items || []).slice(0, requested);
+          persisted = {
+            ...qualified,
+            items: publicItems,
+            ready: Math.min(requested, publicItems.length),
+            partial: publicItems.length < requested,
+            hydrating: false,
+            candidateItems,
+            candidates: candidateItems.length,
+          };
+        } catch (error) {
+          console.warn(JSON.stringify({ event: "ia-repair-seed-background-qualification-failed", channel: String(body.channel || ""), message: String(error && error.message || error) }));
+        }
+        sharedQueuePut(env, qualified.lastGoodKey, persisted, IA_QUEUE_TTL_SECONDS, backgroundContext);
+        for (let cursor = 0; cursor < childWaits.length; cursor++) await childWaits[cursor];
+      })();
+      ctx.waitUntil(task);
+      backgroundDepthScheduled = true;
+    }
+  }
+  if (qualified.lastGoodKey && !backgroundDepthScheduled) sharedQueuePut(env, qualified.lastGoodKey, qualified, IA_QUEUE_TTL_SECONDS, strictContext);
   const headers = new Headers(response.headers);
   headers.set("X-Afterglow-Queue-Ready", String(qualified.ready));
   return new Response(JSON.stringify(qualified), { status: response.status, headers });

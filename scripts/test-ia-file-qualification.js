@@ -234,6 +234,31 @@ test('response qualification persists newly learned collection metadata for back
   assert.equal(puts.filter(key => key === 'family').length, 1, 'qualification must not double-write the same KV key');
 });
 
+test('broad repaired stations deepen verified collection files behind the hot shelf', async () => {
+  const f = relay();
+  const data = new Map(), waits = [];
+  const env = { REALSIGNAL_QUEUE: {
+    get: async key => JSON.parse(data.get(key) || 'null'),
+    put: async (key, value) => data.set(key, value),
+  } };
+  const ctx = { waitUntil: promise => waits.push(Promise.resolve(promise)) };
+  const response = await f.qualifyIaQueueResponse(Response.json({
+    channel: '10', lastGoodKey: 'family', candidateItems: [], items: [], ready: 0,
+  }), {
+    iaRepair: true, channel: '10', count: 3, mediaTypes: ['movies'], minRuntimeSeconds: 900,
+    diversity: { maxPerFamily: 1 },
+  }, 'https://relay.invalid', ctx, env);
+  const payload = await response.json();
+  assert.equal(payload.ready, 3, 'the foreground response remains a three-program hot shelf');
+  for (let cursor = 0; cursor < waits.length; cursor++) await waits[cursor];
+  const stored = JSON.parse(data.get('family') || 'null');
+  const verifiedDepth = (stored && stored.candidateItems || []).filter(item =>
+    item && item.media && item.media.verification === 'transport' && item.media.verifiedAt > 0).length;
+  assert.ok(verifiedDepth >= 11,
+    `one tune should verify the hot shelf plus a bounded eight-item background batch, got ${verifiedDepth}`);
+  assert.equal(payload.items.length, 3, 'deepening must not enlarge or delay the public shelf');
+});
+
 test('canary underfill lanes schedule discovery instead of returning an isolated emergency bank', async () => {
   const f = relay({ metadata: { language: 'eng' }, files: Array.from({ length: 4 }, (_, i) => ({ name: 'Race ' + i + '.mp4', length: 2400, width: 640, height: 480 })) });
   const data = new Map(), waits = [], jobs = [];

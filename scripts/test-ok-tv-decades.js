@@ -392,16 +392,18 @@ function insertEpisode(sql, { id, series, seriesIndex, decade, episode, seenAt }
     const channelEnd = html.indexOf('\n];', channelStart);
     assert.ok(channelStart > -1 && channelEnd > channelStart, `${filename} must define the guarded channel records`);
     const channelBlock = html.slice(channelStart, channelEnd);
-    for (const [number, key, name] of [
-      [600, 'ok-tv-1980s', 'OK TV: The 80s'],
-      [601, 'ok-tv-1990s', 'OK TV: The 90s'],
-      [602, 'ok-tv-2000s', 'OK TV: The 2000s'],
+    for (const [number, key, name, decade] of [
+      [600, 'ok-tv-1980s', 'OK TV: The 80s', 1980],
+      [601, 'ok-tv-1990s', 'OK TV: The 90s', 1990],
+      [602, 'ok-tv-2000s', 'OK TV: The 2000s', 2000],
+      [603, 'ok-tv-1970s', 'OK TV: The 70s', 1970],
+      [604, 'ok-tv-2010s', 'OK TV: The 2010s', 2010],
     ]) {
       assert.ok(channelBlock.includes(`{nm:"${name}",num:${number},cat:"SOURCE",source:"v2preview",ns:"tv",previewKey:"${key}"}`), `${filename} must map ${number} to ${key}`);
       assert.ok(html.includes(`"${key}":Object.assign({},V2_PREVIEW_PROFILES["ok-tv-channel"],{name:"${name}"})`), `${filename} must give ${key} an independent local history name`);
-      assert.ok(html.includes(`"${name}":{desc:"SOURCE SUITE · TV series that debuted in the ${String(number === 600 ? 1980 : number === 601 ? 1990 : 2000)}s`), `${filename} must explain the series-debut rule in the guide`);
+      assert.ok(html.includes(`"${name}":{desc:"SOURCE SUITE · TV series that debuted in the ${decade}s`), `${filename} must explain the series-debut rule in the guide`);
     }
-    assert.equal((channelBlock.match(/previewKey:"ok-tv-(?:1980|1990|2000)s"/g) || []).length, 3, `${filename} flag must expose exactly three pilot channels`);
+    assert.equal((channelBlock.match(/previewKey:"ok-tv-(?:1970|1980|1990|2000|2010)s"/g) || []).length, 5, `${filename} must expose only certified decade channels`);
     assert.ok(html.includes('CH.push(...OK_DECADE_CHANNELS);'), `${filename} must include certified decade stations in the normal lineup`);
     assert.ok(html.indexOf('CH.push(...OK_DECADE_CHANNELS);') < html.indexOf('const _byNumMap=new Map(CH.map'), `${filename} must register decade channels before numeric tuning is built`);
     assert.equal((html.match(/\{nm:"OK TV Channel", num:585,/g) || []).length, 1, `${filename} must leave channel 585 unchanged`);

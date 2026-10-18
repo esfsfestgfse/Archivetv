@@ -4,6 +4,26 @@ const SHORT_FORM = new Set(['13', '236', '501', '509']);
 const INTERNATIONAL = new Set(['106', '107', '114', '115', '119', '120', '151']);
 const FEATURES = new Set(['100', '101', '102', '103', '105', '106', '107', '108', '110', '111', '112', '114', '115', '116', '117', '119', '120', '124', '125', '132', '135', '700', '701', '702']);
 
+export function iaGameShowYear(item = {}) {
+  // Episode filenames and dates describe the broadcast; Archive year often
+  // describes a recent upload of a much older collection.
+  for (const text of [normalizeIaFileRecord(item).fileName, item.title]) {
+    const years = [...String(text || '').matchAll(/(?:^|[^0-9])((?:19|20)\d{2})(?=[^0-9]|$)/g)]
+      .map(match => Number(match[1])).filter(year => year >= 1940 && year <= 2026);
+    if (years.length && new Set(years.map(year => year < 1980)).size === 1) return years[0];
+  }
+  return Number(item.broadcastYear || item.year) || 0;
+}
+
+export function iaGameShowEraAllowed(item, channel) {
+  if (!['12', '22'].includes(String(channel))) return true;
+  const text = [item.title,item.subject,item.description,item.fileName].filter(Boolean).join(' ');
+  if (/\b(?:cryptography|cryptographic|password cracking|password manager|change password|reset password|aula|computer tutorial|software tutorial)\b/i.test(text)) return false;
+  if (/\b(?:gmod|garry.?s mod|roblox|minecraft|gameplay|walkthrough|speedrun|podcast|reaction|parody|fan[- ]?made|mock game|video essay|retrospective|press conference|interactive dvd|dvd game)\b/i.test(text)) return false;
+  const year = iaGameShowYear(item);
+  return String(channel) === '12' ? year >= 1940 && year <= 1979 : year >= 1980 && year <= 2026;
+}
+
 export function iaMinimumFileRuntimeSeconds(rules = {}) {
   if (Array.isArray(rules.mediaTypes) && rules.mediaTypes.length && !rules.mediaTypes.includes('movies') && !rules.mediaTypes.includes('video')) return 0;
   const requested = Math.max(0, Number(rules.minRuntimeSeconds) || 0), channel = String(rules.channel || '');
@@ -65,6 +85,7 @@ export function qualifyIaFileRecord(raw, rules = {}, now = Date.now()) {
   if (/\b(?:vertical|portrait|shorts|9\s*:\s*16)\b/i.test(text) || (item.aspectRatio && item.aspectRatio <= 1)) return reject('portrait-media');
   if (!item.aspectRatio) return reject('unknown-geometry', true);
   const channel = String(rules.channel || '');
+  if (!iaGameShowEraAllowed(item, channel)) return reject('wrong-era');
   const floor = iaMinimumFileRuntimeSeconds(rules);
   if (!item.runtimeSeconds) return reject('unknown-runtime', true);
   if (item.runtimeSeconds < floor) return reject('short-runtime');

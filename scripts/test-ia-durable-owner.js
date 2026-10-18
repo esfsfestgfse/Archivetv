@@ -77,6 +77,19 @@ test('later shelves prefer unseen television families before another episode of 
   assert.deepEqual(second.items.map(item => item.seriesId.toLowerCase()), ['delta', 'epsilon', 'zeta'],
     'another episode of Alpha must wait while entirely unseen shows remain');
 });
+
+test('game-show upload titles without separators still share one show identity', async () => {
+  const f = await fixture();
+  const titles = ['The $100,000 Pyramid NT391', 'The $100,000 Pyramid', 'Jeopardy! 1987 Episode'];
+  const items = titles.map((title,i) => ({ identifier:'upload-'+i, sourceIdentifier:'upload-'+i, seriesId:'upload-'+i,
+    title, year:1987, language:'eng', media:{type:'video',url:'https://archive.org/download/upload-'+i+'/episode.mp4',
+      runtime:1500,width:640,height:480,verification:'transport',verifiedAt:Date.now()} }));
+  const response = await f.object.fetch(new Request('https://state.internal',{method:'POST',body:JSON.stringify({
+    mode:'reserve',items,count:2,diversity:{maxPerFamily:1},rules:{channel:'22',iaRepair:true},
+  })}));
+  const payload = await response.json();
+  assert.deepEqual(payload.items.map(item=>item.identifier),['upload-0','upload-2']);
+});
 test('concurrent catalog updates preserve both discoveries, not last-writer wins', async () => {
   const f = await fixture(), row = id => ({ identifier: id, title: 'Episode ' + id, media: { url: 'https://archive.org/download/' + id + '/episode.mp4' } });
   await f.send({ kind: 'catalog', payload: { items: [row('base')], candidateItems: [row('base')] } });

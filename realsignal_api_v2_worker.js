@@ -6,7 +6,7 @@
  */
 
 import { SessionRotation } from "./realsignal_api_rotation.js";
-import { normalizeIaFileRecord, qualifyIaFileRecord, iaMinimumFileRuntimeSeconds } from "./ia_file_contract.js";
+import { normalizeIaFileRecord, qualifyIaFileRecord, iaMinimumFileRuntimeSeconds, iaGameShowEraAllowed, iaGameShowYear } from "./ia_file_contract.js";
 import { EdgeRateLimiter } from "./realsignal_api_rate_limit.js";
 import { RokuSession } from "./realsignal_roku_session.js";
 import { okBalancedCandidates, okPlaybackIdentity, okPreferUnseenSeries, okSeriesIdentity } from "./ok_public_search.js";
@@ -19,7 +19,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "5.6.4-ia-show-family-freshness";
+const V3_RELEASE = "5.6.5-game-show-era-depth";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -47,7 +47,7 @@ const IA_ROTATION_REFILL_LANES = new Set(["915"]);
    repeated fallback/slow switching while D1 already has verified media. */
 const IA_FAST_CATALOG_LANES = new Set([
   /* Verified D1 shelves keep cold tunes off the shared Archive burst path. */
-  "10", "11", "12", "56", "64", "69", "76", "110", "150", "154", "158", "205", "222", "231", "922",
+  "10", "11", "12", "22", "56", "64", "69", "76", "110", "150", "154", "158", "205", "222", "231", "922",
   /* These three relay-owned sports/automotive lanes passed availability but
      reopened the same shelf after rotation. Stable D1 ordering gives the
      session ledger a fixed union to walk instead of a moving relay window. */
@@ -78,7 +78,7 @@ const IA_CANONICAL_SHADOW_VALUES = new Set(["1", "true", "on", "shadow"]);
    soak passes; this lets us certify every IA lane without exposing production
    users to an unproven client rollout. */
 const IA_SESSION_CATALOG_CANARY_CHANNELS = new Set([
-  "2", "3", "10", "11", "12", "13", "14", "15", "17", "18", "19", "20", "21",
+  "2", "3", "10", "11", "12", "13", "14", "15", "17", "18", "19", "20", "21", "22",
   "51", "52", "53", "54", "55", "56", "57", "58", "59", "60", "61", "62", "63",
   "64", "65", "66", "67", "68", "69", "70", "71", "72", "73", "74", "75", "76",
   "77", "78", "79", "80", "81", "82", "83", "100", "101", "102", "103", "104",
@@ -105,7 +105,7 @@ const IA_MIN_ROLLING_CATALOG_DEPTH = 15;
    D1 cache is useful as emergency playback, but it is not deep enough to own
    the station. Below this floor, fall through to the relay's full verified
    union so the response and the durable catalog can grow in the same tune. */
-const IA_BROAD_STATION_FAST_DEPTH = new Map([["10", 24], ["12", 24], ["150", 24]]);
+const IA_BROAD_STATION_FAST_DEPTH = new Map([["10", 24], ["12", 48], ["22", 48], ["150", 24]]);
 /* These lanes additionally need stale-row re-scoring because their measured
    D1 history contained old genreVerified flags from before the current rules. */
 const IA_DEPTH_REPAIR_LANES = new Set([
@@ -513,7 +513,7 @@ function uniqueQueueItems(items, body, limit = body && body.iaRepair === true &&
     const key = queueItemIdentity(item);
     if (!key || seen.has(key) || !catalogFallbackAllowed(item, body)) continue;
     seen.add(key);
-    out.push(item);
+    out.push(["12", "22"].includes(String(body && body.channel)) ? { ...item, year: iaGameShowYear(item) } : item);
     if (out.length >= limit) break;
   }
   /* Collection expansion produces a parent index plus direct child files.
@@ -771,6 +771,7 @@ function rotateCatalogItems(items, rotation) {
 }
 
 function catalogFallbackAllowed(item, body) {
+  if (!iaGameShowEraAllowed(item, body && body.channel)) return false;
   if (body && body.iaRepair === true && body.sourceCatalog !== true && !qualifyIaFileRecord(item, body).accepted) return false;
   const catalogProfile = body && body.sourceCatalog === true ? sourceProfile({ profileKey: body.channel }) : null;
   if (body && body.sourceCatalog === true && (isOKSourceProfile(catalogProfile) || /^vimeo-(?:movie|tv)-channel$/.test(String(body.channel || "")))) {

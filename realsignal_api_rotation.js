@@ -74,6 +74,10 @@ function familyId(item) {
   const source = item.sourceIdentifier || itemId(item).split("::")[0];
   const explicit = item.seriesTitle || item.family || item.seriesId;
   const title = String(item.title || "").trim();
+  const gameTitle = normalizedFamily(title).replace(/^the /, '');
+  if (/^(?:\d+ )*pyramid(?: |$)/.test(gameTitle)) return 'pyramid';
+  const gameShow = gameTitle.match(/^(what s my line|to tell the truth|i ve got a secret|beat the clock|price is right|family feud|match game|password plus|super password|password|card sharks|press your luck|wheel of fortune|jeopardy|supermarket sweep|weakest link|figure it out|family game night|nickelodeon guts|divided|crystal maze|hollywood squares|newlywed game|let s make a deal|sale of the century|tic tac dough|joker s wild|concentration|you bet your life|queen for a day|strike it rich|treasure hunt|truth or consequences|do you trust your wife)(?: |$)/);
+  if (gameShow) return gameShow[1];
   const titleParts = title.split(/\s+[·—]\s+/, 2);
   const titleFamily = titleParts.length > 1 && titleParts[0].trim().length >= 3 ? titleParts[0].trim() : "";
   /* Archive commonly copies each upload identifier into `seriesId`, which

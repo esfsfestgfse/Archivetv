@@ -16,13 +16,13 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="RealSignal">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>REALSIGNAL · The Dial 5.6.4</title>
-<meta name="realsignal-ia-repair-channels" content="10,12,150">
+<title>REALSIGNAL · The Dial 5.6.5</title>
+<meta name="realsignal-ia-repair-channels" content="10,12,22,150">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
-<script src="assets/ok-embed-runtime.js?v=5.6.4"></script>
-<script src="assets/ia-playback-shelf.js?v=5.6.4"></script>
+<script src="assets/ok-embed-runtime.js?v=5.6.5"></script>
+<script src="assets/ia-playback-shelf.js?v=5.6.5"></script>
 <script src="assets/vimeo-embed-runtime.js?v=5.5.85"></script>
 <!-- Source Suite starts verified YouTube playback on a cold tune. Warm the exact
      origins it uses so DNS/TLS setup is not serialized behind catalog discovery. -->
@@ -1750,7 +1750,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="5.6.4-mobile-ia-show-family-freshness";
+window.__ATV_BUILD="5.6.5-mobile-game-show-era-depth";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -2315,7 +2315,8 @@ const CH=[
  {nm:"Darcys Playground", num:134, cat:"MOV", gl:"darcysplayground", era:[1970,2026], ns:"movie"},
  {nm:"Classic Rerun TV", num:10,  cat:"TV", gl:"sitcom",       era:[1930,1989], ns:"tv"},
  {nm:"Modern Rerun TV", num:11,   cat:"TV", gl:"sitcommodern", era:[1980,2026], ns:"tv"},
- {nm:"Game Show Channel", num:12, cat:"TV", gl:"gameshow",     era:[1940,2026], ns:"tv"},
+ {nm:"Classic Game Shows", num:12, cat:"TV", gl:"gameshow",     era:[1940,1979], ns:"tv"},
+ {nm:"Modern Game Shows", num:22, cat:"TV", gl:"gameshow",     era:[1980,2026], ns:"tv"},
  {nm:"Old Nick", num:19, cat:"TV", gl:"nickatnite", era:[1950,1985], ns:"tv"}, /* Nick at Nite era classic sitcoms — moved 13→19 to clear collision with Vintage Commercials */
  {nm:"The Court Room", num:20, cat:"TV", gl:"courtroom", era:[1980,2020], ns:"tv"}, /* Judge shows — People's Court, Judge Judy, Judge Wapner — moved 14→20 to clear Computer Chronicles collision */
  {nm:"Vintage Commercials", num:13,cat:"TV",gl:"commercials",  era:[1948,1985], ns:"tv"},
@@ -2691,7 +2692,7 @@ const CHANNEL_META={
 "Restoration Row":{desc:"SOURCE SUITE · film, artifact, museum and building preservation with restoration demonstrations and history.",rel:["The Darkroom","The Workshop"]},
 "Consumer Report":{desc:"SOURCE SUITE · consumer education, product safety, testing and household buying guidance — no ad-first programming.",rel:["Home Economics","Public Works"]},
 "The Map Room":{desc:"SOURCE SUITE · cartography, map making, geography, surveying and the history of how we map the world.",rel:["Field Notes","Earth From Above"]},
-"Archive Series Vault":{desc:"INTERNET ARCHIVE · verified episode-level television series from classic and modern shelves, rotated across collections instead of repeating one show.",rel:["Classic Rerun TV","Modern Rerun TV","Game Show Channel"]},
+"Archive Series Vault":{desc:"INTERNET ARCHIVE · verified episode-level television series from classic and modern shelves, rotated across collections instead of repeating one show.",rel:["Classic Rerun TV","Modern Rerun TV","Classic Game Shows"]},
 "Cartoon Reelhouse":{desc:"INTERNET ARCHIVE · a deep animated television and theatrical-cartoon shelf spanning classic shorts, Saturday morning series and 1990s–2000s episodes.",rel:["Classic Cartoons","Modern Cartoons","Saturday Morning"]},
 "Military Archive":{desc:"SOURCE SUITE · military history, public-domain training films, wartime documentation and technology history.",rel:["The Chronicle","Public Works"]},
 "Public Works":{desc:"SOURCE SUITE · civil engineering, municipal infrastructure, transit, utilities and the systems cities depend on.",rel:["Manufacturing Marvels","The Map Room"]},
@@ -2765,12 +2766,13 @@ const CHANNEL_META={
 "Western Channel":{desc:"B-westerns, singing cowboys and frontier serials.",best:"afternoons",rel:["Action & Serials"]},
 "Comedy Classics":{desc:"Screwball, slapstick and studio comedies.",best:"evenings",rel:["Silent Cinema","Classic Rerun TV"]},
 "Music Films":{desc:"Soundies, musical shorts and performance films.",best:"evenings",rel:["Live Concerts","Jukebox 78"]},
-"Classic Rerun TV":{desc:"1950s-60s television: sitcoms, anthologies, the rerun rotation.",best:"evenings",rel:["Modern Rerun TV","Game Show Channel"]},
+"Classic Rerun TV":{desc:"1950s-60s television: sitcoms, anthologies, the rerun rotation.",best:"evenings",rel:["Modern Rerun TV","Classic Game Shows"]},
 "Modern Rerun TV":{desc:"TV from the 1980s through today, taped and syndicated.",best:"anytime",rel:["Classic Rerun TV","VHS Vault"]},
 "Old Nick":{desc:"Nick at Nite classic-sitcom vault — I Love Lucy, Bewitched, Dick Van Dyke, Andy Griffith, Brady Bunch, Odd Couple, Taxi, Happy Days, Get Smart, Beverly Hillbillies.",best:"evenings",rel:["Classic Rerun TV","Modern Rerun TV"]},
 "The Court Room":{desc:"Judge shows and small-claims TV — People's Court, Judge Judy, Judge Wapner, Divorce Court, Judge Mathis, Judge Joe Brown, Judge Alex.",best:"afternoons",rel:["Court TV","Old Nick"]},
-"Game Show Channel":{desc:"Panel shows, quizzes and game shows across every era.",best:"daytime",rel:["Classic Rerun TV"]},
-"Vintage Commercials":{desc:"Wall-to-wall ad breaks from 1948-1985.",best:"anytime",rel:["Game Show Channel","VHS Vault"]},
+"Classic Game Shows":{desc:"Full game-show episodes from the dawn of television through 1979: panel shows, quizzes, pricing games and studio contests.",best:"anytime",rel:["Modern Game Shows","Classic Rerun TV"]},
+"Modern Game Shows":{desc:"1980s through today: Press Your Luck, Supermarket Sweep, Weakest Link, Jeopardy!, Figure It Out, Family Game Night and more, rotating complete episodes across shows.",best:"anytime",rel:["Classic Game Shows","Modern Rerun TV"]},
+"Vintage Commercials":{desc:"Wall-to-wall ad breaks from 1948-1985.",best:"anytime",rel:["Classic Game Shows","VHS Vault"]},
 "Black Cinema":{desc:"The full arc of Black cinema — Oscar Micheaux race films of the 1920s through Spike Lee, Julie Dash, Charles Burnett, Barry Jenkins, Ryan Coogler, Jordan Peele. 1915 through today.",best:"primetime",rel:["Blaxploitation","Classic Film"]},
 "Arcade Archive":{desc:"Videogame footage, longplays and arcade history.",best:"late night",rel:["Classic Cartoons","Computer Chronicles"]},
 "Manufacturing Marvels":{desc:"How things get made: industrial process films.",best:"afternoons",rel:["Prelinger Vault","Home Economics"]},
@@ -2849,7 +2851,7 @@ const CHANNEL_META={
 "Museum of Motion":{desc:"Film history, animation history, preservation and how moving pictures are made.",best:"anytime",rel:["Classic Film","Classic Cartoons"]},
 "Civic Cinema":{desc:"Public service films, city planning, community projects and the civic imagination.",best:"anytime",rel:["Prelinger Vault","Hometown History"]},
 "Earth From Above":{desc:"Earth seen from orbit: satellites, aerial science, landscapes and environmental observation.",best:"anytime",rel:["NASA Marathon","Global Quakes Map"]},
-"Archive Series Vault":{desc:"Verified television episodes from multiple Archive collections, with classic and modern series sharing a deep rotating shelf.",best:"anytime",rel:["Classic Rerun TV","Modern Rerun TV","Game Show Channel"]},
+"Archive Series Vault":{desc:"Verified television episodes from multiple Archive collections, with classic and modern series sharing a deep rotating shelf.",best:"anytime",rel:["Classic Rerun TV","Modern Rerun TV","Classic Game Shows"]},
 "Cartoon Reelhouse":{desc:"Animated television and theatrical cartoons from the Archive, spanning early shorts through the 1990s and 2000s.",best:"weekends",rel:["Classic Cartoons","Modern Cartoons","Saturday Morning"]},
 "The Game Room":{desc:"Arcades, consoles, toys, game shows and the culture of play across the decades.",best:"anytime",rel:["Arcade Archive","Computer Chronicles"]},
 "The Detective":{desc:"Crime, mystery, procedurals and private eyes from the television and film archive.",best:"anytime",rel:["Cop Show Classic","Noir & Mystery"]},
@@ -5697,13 +5699,14 @@ const PROGRAM = {
     subjRequired: true, noBlindFallback: true
   },
 
-  /* Game Show Channel — user asked for all-era game show content, not just 1950s.
+  /* Classic Game Shows — user asked for all-era game show content, not just 1950s.
      Enumerate every classic_tv decade bucket plus vhsvault, and load the subject
      list with the show titles IA uploaders actually put in metadata (Jeopardy!,
      Wheel of Fortune, Price Is Right, Family Feud, Match Game, Password, Pyramid,
      Newlywed Game, Hollywood Squares, Deal or No Deal, Millionaire, Cash Cab,
      Fear Factor). Era ceiling now 2026. */
-  "Game Show Channel": {
+  "Modern Game Shows": { genre:"gameshow", era:[1980,2026] },
+  "Classic Game Shows": {
     genre: "gameshow", era: [1950, 2026],
     /* A title-locked umbrella lane protects cold tunes when a decade-specific
        collection rail is thin or temporarily slow. */
@@ -6565,7 +6568,7 @@ const PROGRAM_EDITORIAL={
   "Darcys Playground":{eraBuckets:[[1984,1989],[1990,1995],[1996,2000],[2012,2018],[2019,2026]],topicBuckets:[["joe bob's drive-in theater"],["tnt monstervision","monstervision"],["joe bob briggs","monstervision"],["the last drive-in","last drive in"],["joe bob family reunion","joe bob tcm"]]},
   "Classic Rerun TV":{eraBuckets:[[1930,1939],[1940,1949],[1950,1959],[1960,1969],[1970,1979],[1980,1989]],topicBuckets:[["variety show","comedy variety"],["anthology series","television drama"],["family sitcom","situation comedy"],["detective tv","crime tv"],["variety show","comedy series"],["television comedy","television series"]]},
   "Modern Rerun TV":{eraBuckets:[[1980,1989],[1990,1999],[2000,2009],[2010,2026]],topicBuckets:[["family sitcom"],["workplace sitcom"],["ensemble sitcom"],["syndicated comedy"]]},
-  "Game Show Channel":{eraBuckets:[[1940,1949],[1950,1959],[1960,1969],[1970,1979],[1980,1989],[1990,1999],[2000,2026]],topicBuckets:[["panel show"],["quiz show"],["word game"],["pricing game"],["dating game"],["stunt game"],["game show","quiz show"]]},
+  "Classic Game Shows":{eraBuckets:[[1940,1949],[1950,1959],[1960,1969],[1970,1979],[1980,1989],[1990,1999],[2000,2026]],topicBuckets:[["panel show"],["quiz show"],["word game"],["pricing game"],["dating game"],["stunt game"],["game show","quiz show"]]},
   "Vintage Commercials":{eraBuckets:[[1930,1949],[1950,1959],[1960,1969],[1970,1979],[1980,1989],[1990,1999],[2000,2009],[2010,2019],[2020,2026]],topicBuckets:[["food commercial"],["automobile commercial"],["toy commercial"],["technology commercial"],["household commercial"],["public service announcement"],["brand commercial"],["product commercial"],["commercial break"]]},
   "Computer Chronicles":{eraBuckets:[[1975,1982],[1983,1989],[1990,1995],[1996,2005]],topicBuckets:[["home computer"],["business pc"],["software"],["networking"],["early internet"],["computer television"]]},
   "Public Access TV":{eraBuckets:[[1975,1984],[1985,1994],[1995,2005],[2006,2015]],topicBuckets:[["civic meeting"],["local arts"],["call-in show"],["local performance"],["community affairs"]]},
@@ -6682,13 +6685,13 @@ Object.assign(PROGRAM["Modern Cartoons"],{deepCollections:["animationandcartoons
 Object.assign(PROGRAM["Classic Rerun TV"],{deepCollections:["classic_tv","television","classic_tv_1950s","classic_tv_1960s","classic_tv_1970s","classic_tv_1980s","prelinger","vhsvault"],deepTitleTerms:["complete series","complete","episode","episodes","sitcom","television series","tv series","classic television","variety show","anthology","show","season","i love lucy","the honeymooners","jack benny","burns and allen","dick van dyke","andy griffith","phil silvers","the addams family","the munsters","bewitched","get smart","the twilight zone","bonanza","dragnet","green acres","the beverly hillbillies"]});
 Object.assign(PROGRAM["Classic Rerun TV"],{themeMinScore:2,queueTerms:["i love lucy","the honeymooners","jack benny","burns and allen","george burns","gracie allen","dick van dyke","mary tyler moore","andy griffith","mayberry","phil silvers","sgt bilko","ed sullivan","red skelton","jackie gleason","milton berle","leave it to beaver","beverly hillbillies","green acres","petticoat junction","the addams family","the munsters","bewitched","i dream of jeannie","mr ed","mister ed","hogan's heroes","gomer pyle","f troop","get smart","twilight zone","outer limits","alfred hitchcock","one step beyond","night gallery","classic television","golden age of television","sitcom","television comedy","variety show","anthology series"],fastSubjects:["i love lucy","the honeymooners","jack benny","burns and allen","dick van dyke","mary tyler moore","andy griffith","phil silvers","ed sullivan","red skelton","classic television","golden age of television"],fastCollections:["classic_tv","classic_tv_1950s","classic_tv_1960s","classic_tv_1970s","television"],diversity:{maxPerEra:2,maxPerLane:2,maxPerCreator:1,maxPerCollection:2,maxPerFamily:1}});
 Object.assign(PROGRAM["Modern Rerun TV"],{deepCollections:["classic_tv","television","vhsvault","classic_tv_1990s"],deepTitleTerms:["complete series","complete","episode","episodes","sitcom","television series","tv series","comedy series","situation comedy","syndicated","season","show"]});
-Object.assign(PROGRAM["Game Show Channel"],{deepCollections:["classic_tv_1950s","classic_tv_1960s","classic_tv_1970s","classic_tv_1980s","classic_tv_1990s","classic_tv_2000s","television","vhsvault","prelinger"],deepTitleTerms:["game show","quiz show","panel show","episode","episodes","complete series","jeopardy","price is right","family feud","match game","password","pyramid","newlywed game","hollywood squares","let's make a deal","what's my line","press your luck","double dare","millionaire","wheel of fortune","supermarket sweep","shop til you drop","shop 'til you drop","the weakest link","nickelodeon guts","figure it out","remote control","who wants to be a millionaire","catch 21","win lose or draw","to tell the truth","beat the clock","truth or consequences","treasure hunt"]});
+Object.assign(PROGRAM["Classic Game Shows"],{deepCollections:["classic_tv_1950s","classic_tv_1960s","classic_tv_1970s","classic_tv_1980s","classic_tv_1990s","classic_tv_2000s","television","vhsvault","prelinger"],deepTitleTerms:["game show","quiz show","panel show","episode","episodes","complete series","jeopardy","price is right","family feud","match game","password","pyramid","newlywed game","hollywood squares","let's make a deal","what's my line","press your luck","double dare","millionaire","wheel of fortune","supermarket sweep","shop til you drop","shop 'til you drop","the weakest link","nickelodeon guts","figure it out","remote control","who wants to be a millionaire","catch 21","win lose or draw","to tell the truth","beat the clock","truth or consequences","treasure hunt"]});
 /* Keep the full archive family in play. The query builder rotates these
    roots in bounded windows, so the first tune stays fast while later tunes
    reach 1980s TV, off-air/vault files, public-domain collections, and the
    less-famous game-show runs instead of reopening the same flagship titles. */
 Object.assign(PROGRAM["Classic Rerun TV"],{depthQuerySpread:true,deepCollections:rsAppendProgramTerms(PROGRAM["Classic Rerun TV"].deepCollections,["classic_tv_1980s","prelinger","vhsvault","avgeeks","opensource_movies"]),deepTitleTerms:rsAppendProgramTerms(PROGRAM["Classic Rerun TV"].deepTitleTerms,["full episode","full episodes","television episode","tv episode","broadcast episode","season one","season two","season three","anthology episode","variety episode","western episode","detective episode","medical drama episode"]) });
-Object.assign(PROGRAM["Game Show Channel"],{depthQuerySpread:true,deepCollections:rsAppendProgramTerms(PROGRAM["Game Show Channel"].deepCollections,["classic_tv_2010s","television","vhsvault","prelinger","opensource_movies"]),deepTitleTerms:rsAppendProgramTerms(PROGRAM["Game Show Channel"].deepTitleTerms,["full episode","full episodes","television episode","game show episode","quiz show episode","panel show episode","season one","season two","season three","classic game show","daytime game show","syndicated game show"]) });
+Object.assign(PROGRAM["Classic Game Shows"],{depthQuerySpread:true,deepCollections:rsAppendProgramTerms(PROGRAM["Classic Game Shows"].deepCollections,["classic_tv_2010s","television","vhsvault","prelinger","opensource_movies"]),deepTitleTerms:rsAppendProgramTerms(PROGRAM["Classic Game Shows"].deepTitleTerms,["full episode","full episodes","television episode","game show episode","quiz show episode","panel show episode","season one","season two","season three","classic game show","daytime game show","syndicated game show"]) });
 /* Core film families use the same collection-expansion path as television.
    Each station keeps its own theme/deny contract; these shared roots only
    expose the deeper feature-film and public-archive shelves to the profiler. */
@@ -6705,10 +6708,10 @@ PROGRAM["Classic Rerun TV"].deepTitleTerms=rsAppendProgramTerms(PROGRAM["Classic
 PROGRAM["Classic Rerun TV"].diversity=Object.assign({},PROGRAM["Classic Rerun TV"].diversity||{},{maxPerEra:2,maxPerLane:2,maxPerCreator:1,maxPerCollection:2,maxPerFamily:1});
 var RS_GAME_SHOW_DEPTH_ROOTS=["gameshows","gameshows_miscellaneous","game_shows","buzzr","classic_tv_1940s","classic_tv_1950s","classic_tv_1960s","classic_tv_1970s","classic_tv_1980s","classic_tv_1990s","classic_tv_2000s","classic_tv_2010s","television","vhsvault","prelinger","opensource_movies"];
 var RS_GAME_SHOW_DEPTH_TERMS=["full episode","full episodes","complete series","complete season","game show episode","quiz show episode","panel show episode","daytime game show","syndicated game show","classic game show","word game","pricing game","dating game","stunt game","celebrity game","reality competition","televised contest","panel game"];
-PROGRAM["Game Show Channel"].depthQuerySpread=true;
-PROGRAM["Game Show Channel"].deepCollections=rsAppendProgramTerms(PROGRAM["Game Show Channel"].deepCollections,RS_GAME_SHOW_DEPTH_ROOTS);
-PROGRAM["Game Show Channel"].deepTitleTerms=rsAppendProgramTerms(PROGRAM["Game Show Channel"].deepTitleTerms,RS_GAME_SHOW_DEPTH_TERMS);
-PROGRAM["Game Show Channel"].diversity=Object.assign({},PROGRAM["Game Show Channel"].diversity||{},{maxPerEra:2,maxPerLane:2,maxPerCreator:1,maxPerCollection:3,maxPerFamily:1});
+PROGRAM["Classic Game Shows"].depthQuerySpread=true;
+PROGRAM["Classic Game Shows"].deepCollections=rsAppendProgramTerms(PROGRAM["Classic Game Shows"].deepCollections,RS_GAME_SHOW_DEPTH_ROOTS);
+PROGRAM["Classic Game Shows"].deepTitleTerms=rsAppendProgramTerms(PROGRAM["Classic Game Shows"].deepTitleTerms,RS_GAME_SHOW_DEPTH_TERMS);
+PROGRAM["Classic Game Shows"].diversity=Object.assign({},PROGRAM["Classic Game Shows"].diversity||{},{maxPerEra:2,maxPerLane:2,maxPerCreator:1,maxPerCollection:3,maxPerFamily:1});
 var RS_MOVIE_DEPTH_NAMES=["Classic Film","Sunday Matinee","Midnight Matinee","The Drive-In","Sci-Fi Theater","Shock Theater","Comedy Classics","World Cinema","The Late Late Show","Silent Cinema","Noir & Mystery","Action & Serials","The 36th Chamber","Monster Island","Black Cinema","Blaxploitation","The Festival Circuit","Darcys Playground"];
 var RS_MOVIE_DEPTH_ROOTS=["feature_films","feature_films_unsorted","films","movies","opensource_movies","prelinger","FedFlix","SciFi_Horror","Film_Noir","publicdomain","cinemalibrestore","emergency_films"];
 var RS_MOVIE_DEPTH_TERMS=["feature film","feature-length film","full-length film","full movie","complete movie","complete film","restored print","public domain feature","archive feature","film print","cinema archive","motion picture","feature presentation"];
@@ -6864,14 +6867,14 @@ function rsApplyEraMix(name,range,buckets,topics,subjects,collections,deepCollec
   if(deepTitleTerms&&deepTitleTerms.length)p.deepTitleTerms=deepTitleTerms;
   p.diversity=Object.assign({},p.diversity||{},{maxPerEra:1,maxPerLane:1,maxPerCreator:1,maxPerCollection:2,maxPerFamily:1});
 }
-rsApplyEraMix("Game Show Channel",[1940,2026],
+rsApplyEraMix("Classic Game Shows",[1940,2026],
   [[1940,1949],[1950,1959],[1960,1969],[1970,1979],[1980,1989],[1990,1999],[2000,2009],[2010,2019],[2020,2026]],
   [["panel show"],["quiz show"],["word game"],["pricing game"],["dating game"],["stunt game"],["celebrity game"],["reality competition"],["modern game show"]],
   ["wheel of fortune","who wants to be a millionaire","deal or no deal","the chase","the wall","beat shazam","supermarket sweep","press your luck","card sharks","to tell the truth","family feud","jeopardy","double dare","legends of the hidden temple","nick arcade","fear factor","american gladiators","survivor","the weakest link","cash cab","minute to win it","million second quiz","hollywood game night"],
   ["classic_tv","classic_tv_1950s","classic_tv_1960s","classic_tv_1970s","classic_tv_1980s","classic_tv_1990s"],
   ["classic_tv_1980s","classic_tv_1990s","classic_tv_2000s","television"],
   ["game show","quiz show","panel show","episode","episodes","complete series","jeopardy","price is right","family feud","match game","password","pyramid","newlywed game","hollywood squares","let's make a deal","press your luck","double dare","millionaire","deal or no deal","cash cab","weakest link","the chase","game night"]);
-PROGRAM["Game Show Channel"].themeMinScore=2;
+PROGRAM["Classic Game Shows"].themeMinScore=2;
 rsApplyEraMix("World Cinema",[1930,2026],
   [[1930,1939],[1940,1949],[1950,1959],[1960,1969],[1970,1979],[1980,1989],[1990,1999],[2000,2009],[2010,2019],[2020,2026]],
   [["European cinema"],["Asian cinema"],["Latin American cinema"],["African cinema"],["Middle Eastern cinema"],["international drama"],["arthouse film"],["festival film"],["contemporary world cinema"]],
@@ -6950,14 +6953,14 @@ var RS_BROAD_MOVIE_SUBJECT_REJECTS=["episode","episodes","season","television","
 RS_BROAD_MOVIE_NAMES.forEach(function(name){rsAddProgramDeny(name,"title",RS_BROAD_MOVIE_TITLE_REJECTS);rsAddProgramDeny(name,"subject",RS_BROAD_MOVIE_SUBJECT_REJECTS);});
 rsAddProgramDeny("Classic Rerun TV","title",["podcast","reunion","airing","red carpet","interview","review","recap","trailer","commercial","news","newsreel","documentary","featurette","closing","opening","theme song","credits","daily mix"]);
 rsAddProgramDeny("Classic Rerun TV","subject",["podcast","reunion","airing","red carpet","interview","review","recap","trailer","commercial","news","newsreel","documentary","featurette","closing","opening","theme song","credits","daily mix"]);
-rsAddProgramDeny("Game Show Channel","title",["daily mix","battle rooms","analysis","retrospective","history of","best of","clip","clips","reaction","review","podcast","trailer","commercial"]);
-rsAddProgramDeny("Game Show Channel","subject",["daily mix","battle rooms","analysis","retrospective","history of","best of","clip","clips","reaction","review","podcast","trailer","commercial"]);
+rsAddProgramDeny("Classic Game Shows","title",["daily mix","battle rooms","analysis","retrospective","history of","best of","clip","clips","reaction","review","podcast","trailer","commercial"]);
+rsAddProgramDeny("Classic Game Shows","subject",["daily mix","battle rooms","analysis","retrospective","history of","best of","clip","clips","reaction","review","podcast","trailer","commercial"]);
 rsAddProgramDeny("Sci-Fi Theater","title",["white house attack","barron trump","tweet that predicted","political","prediction","explainer","commentary","ai generated"]);
 rsAddProgramDeny("Sci-Fi Theater","subject",["white house attack","barron trump","political","prediction","explainer","commentary","ai generated"]);
 rsAddProgramDeny("Classic Rerun TV","title",["chitty chitty bang bang","feature film","full movie","blu-ray","720p g","1080p g","2005","variety show part"]);
 rsAddProgramDeny("Classic Rerun TV","subject",["chitty chitty bang bang","feature film","full movie","blu-ray","movie soundtrack","2005"]);
-rsAddProgramDeny("Game Show Channel","title",["launches new game show","unpeeled","news report","press conference","history of game shows"]);
-rsAddProgramDeny("Game Show Channel","subject",["launches new game show","unpeeled","news report","press conference","history of game shows"]);
+rsAddProgramDeny("Classic Game Shows","title",["launches new game show","unpeeled","news report","press conference","history of game shows"]);
+rsAddProgramDeny("Classic Game Shows","subject",["launches new game show","unpeeled","news report","press conference","history of game shows"]);
 rsAddProgramDeny("Classic Film","title",["night america trembled","repubblicanesimo geopolitico","war of the worlds news","ai enhanced"]);
 rsAddProgramDeny("Classic Film","subject",["night america trembled","repubblicanesimo geopolitico","news broadcast","ai enhanced"]);
 rsAddProgramDeny("Sunday Matinee","title",["cover by","musical cover","somewhere hovering over indiana","great family film~","++++"]);
@@ -7123,7 +7126,7 @@ rsFamilyDepth("Thanksgiving TV",["thanksgiving television","thanksgiving tv epis
    discovery without turning a cartoon station into a generic kids shelf. */
 [["Christmas Cartoons",["christmas children's television","christmas kids special","holiday kids television","santa cartoon","snowman cartoon","yuletide cartoon","winter holiday animation"],["vintage_cartoons","childrens_television","cartoons","classic_cartoons","saturdaymorningcartoons"]],["Halloween Cartoons",["halloween children's television","halloween kids special","spooky kids television","haunted cartoon","skeleton cartoon","pumpkin cartoon","monster cartoon","witch cartoon","ghost cartoon","trick or treat cartoon"],["vintage_cartoons","childrens_television","cartoons","classic_cartoons","saturdaymorningcartoons"]],["Thanksgiving Cartoons",["thanksgiving children's television","thanksgiving kids special","turkey day cartoon","harvest animation","mayflower cartoon","autumn cartoon","fall holiday animation"],["vintage_cartoons","childrens_television","cartoons","classic_cartoons","saturdaymorningcartoons"]]].forEach(function(entry){var p=PROGRAM[entry[0]];if(!p)return;p.queueTerms=rsAppendProgramTerms(p.queueTerms,entry[1]);p.fastSubjects=rsAppendProgramTerms(p.fastSubjects,entry[1]);p.fastCollections=rsAppendProgramTerms(p.fastCollections,entry[2]);p.deepCollections=rsAppendProgramTerms(p.deepCollections,entry[2]);p.deepTitleTerms=rsAppendProgramTerms(p.deepTitleTerms,entry[1]);});
 [["Christmas TV",["christmas sitcom","holiday television special","santa television","yuletide television","christmas parade","christmas variety","classic christmas broadcast","muppet christmas","christmas anthology"],["television","classic_tv","prelinger","avgeeks","vhsvault"]],["Halloween TV",["halloween sitcom","halloween special","monstervision","last drive in","hosted horror television","ghost story television","spooky television","classic halloween broadcast","halloween anthology"],["television","classic_tv","SciFi_Horror","prelinger","avgeeks","vhsvault"]],["Thanksgiving TV",["thanksgiving sitcom","turkey day television","thanksgiving parade","thanksgiving variety","harvest television special","mayflower television","classic thanksgiving broadcast","thanksgiving anthology"],["television","classic_tv","prelinger","avgeeks","vhsvault"]]].forEach(function(entry){var p=PROGRAM[entry[0]];if(!p)return;p.queueTerms=rsAppendProgramTerms(p.queueTerms,entry[1]);p.fastSubjects=rsAppendProgramTerms(p.fastSubjects,entry[1]);p.fastCollections=rsAppendProgramTerms(p.fastCollections,entry[2]);p.deepCollections=rsAppendProgramTerms(p.deepCollections,entry[2]);p.deepTitleTerms=rsAppendProgramTerms(p.deepTitleTerms,entry[1]);});
-["Classic Rerun TV","Modern Rerun TV","Game Show Channel","Saturday Morning","Classic Cartoons","Modern Cartoons","Classic Film","Midnight Matinee","Sci-Fi Theater","Shock Theater","Comedy Classics","World Cinema","Sunday Matinee","The Drive-In","Tight Lines","Camp & Trail","Range & Field","Christmas Channel","Halloween Haunt","Christmas TV","Halloween TV","Thanksgiving TV","Home Economics"].forEach(function(name){if(PROGRAM[name])PROGRAM[name].depthQuerySpread=true;});
+["Classic Rerun TV","Modern Rerun TV","Classic Game Shows","Saturday Morning","Classic Cartoons","Modern Cartoons","Classic Film","Midnight Matinee","Sci-Fi Theater","Shock Theater","Comedy Classics","World Cinema","Sunday Matinee","The Drive-In","Tight Lines","Camp & Trail","Range & Field","Christmas Channel","Halloween Haunt","Christmas TV","Halloween TV","Thanksgiving TV","Home Economics"].forEach(function(name){if(PROGRAM[name])PROGRAM[name].depthQuerySpread=true;});
 /* Home Economics gets explicit domestic-science rails so its Archive files
    hydrate as cooking, homemaking, sewing, and household programming. */
 Object.assign(PROGRAM["Home Economics"],{
@@ -7137,6 +7140,30 @@ Object.assign(PROGRAM["Home Economics"],{
 /* Every IA station gets a compact editorial diversity policy. These caps shape
    a shelf of already-approved programs; they never relax the station's terms,
    era, media type, or deny list when Archive is sparse. */
+/* Separate episode eras while retaining the broad game-show discovery contract. */
+function rsGameShowStation(base,era,shows,collections,parents){
+  var p=JSON.parse(JSON.stringify(base));
+  p.era=era;p.minRuntimeSeconds=900;p.eraBuckets=programEraBuckets(era);
+  p.queueTerms=["game show","quiz show","panel show"].concat(shows);
+  p.fastSubjects=shows.concat(["game show","quiz show","panel show"]);
+  p.fastCollections=collections;p.deepCollections=collections;
+  p.deepTitleTerms=shows.concat(["game show","quiz show","panel show","full episode","episode collection"]);
+  p.require={title_any:p.deepTitleTerms};
+  p.providers=[{collections:collections,require_subj:p.queueTerms}];
+  p.topicBuckets=shows.map(function(show){return [show];});
+  p.catalogParents=parents;p.depthQuerySpread=true;
+  p.deny.subject=p.deny.subject.filter(function(term){return term!=="sports";});
+  p.diversity={maxPerEra:2,maxPerLane:2,maxPerCreator:1,maxPerCollection:3,maxPerFamily:1};
+  return p;
+}
+PROGRAM["Modern Game Shows"]=rsGameShowStation(PROGRAM["Classic Game Shows"],[1980,2026],
+  ["supermarket sweep","match game","weakest link","divided","the crystal maze","family game night","figure it out","press your luck","jeopardy","nickelodeon guts","family feud","wheel of fortune","millionaire","deal or no deal","cash cab","double dare","legends of the hidden temple","the chase","catch 21","lingo"],
+  ["gameshows","gameshows_miscellaneous","television","classic_tv_1980s","classic_tv_1990s","classic_tv_2000s","classic_tv_2010s","vhsvault","opensource_movies"],
+  ["pressyourluck-bmp","cardsharks1986-bmp","supermarketsweep-bmp","match-game-1990-abc-revival","weakestlinkepisodes","the-weakest-link-season-1","family-game-night-restoration","the-crystal-maze-season-1-1990","divided-full-episodes","figure_it_out_-_season_2_-_episode_06___578412314a427","jeopardy-james-holzhauer","PYL-Banks-Season-5","nickelodeon-guts-season-1"]);
+PROGRAM["Classic Game Shows"]=rsGameShowStation(PROGRAM["Classic Game Shows"],[1940,1979],
+  ["match game","card sharks","password","pyramid","price is right","family feud","wheel of fortune","hollywood squares","newlywed game","let's make a deal","what's my line","to tell the truth","i've got a secret","beat the clock","jeopardy","concentration","sale of the century","tic tac dough","joker's wild","you bet your life","queen for a day","strike it rich","treasure hunt","truth or consequences","do you trust your wife"],
+  ["classic_tv_1950s","classic_tv_1960s","classic_tv_1970s","gameshows","gameshows_miscellaneous","classic_tv","television","vhsvault","opensource_movies"],
+  ["matchgame1975-bmp","matchgame1973-BMP","cardsharks1978-bmp"]);
 const IA_EDITORIAL_DIVERSITY={maxPerEra:1,maxPerLane:1,maxPerCreator:1,maxPerCollection:2,maxPerFamily:1};
 Object.keys(PROGRAM).forEach(function(name){
   PROGRAM[name].diversity=Object.assign({},IA_EDITORIAL_DIVERSITY,PROGRAM[name].diversity||{});
@@ -7345,6 +7372,11 @@ function slotFor(ch,_ignoredHour,opts){
   return {show:ch.nm+((ch.nm==="Sports Vault"&&sportsEra!=="all")?(" ("+sportsEra+")"):""), genre:g, era, source:"ia", queries:buildQuery(g,era)};
 }
 function iaQueueQueries(sl){
+  if(sl&&sl.program&&sl.program.catalogParents){
+    var parentRail="mediatype:movies AND identifier:("+sl.program.catalogParents.map(programPhrase).join(" OR ")+")";
+    var collectionRail="mediatype:movies AND collection:("+sl.program.deepCollections.map(programPhrase).join(" OR ")+") AND title:("+sl.program.deepTitleTerms.map(programPhrase).join(" OR ")+")";
+    return [parentRail,collectionRail].concat(sl.queries||[]).filter(function(query,index,all){return all.indexOf(query)===index;}).slice(0,8);
+  }
   var all=(sl&&sl.queries||[]);if(all.length<=8)return all.slice();
   var last=all.length-1;
   var spread=!!(sl&&sl.program&&sl.program.depthQuerySpread);
@@ -7934,7 +7966,7 @@ let powered=false, curNum=(function(){
     return raw;
   })(), favOnly=false, muted=store.get("muted",false),
     vol=store.get("vol",0.8), soundOn=true, entryBuf="", entryTimer=null, clockTimer=null;
-var CH_RENAMES={"Sky Traffic":"Sky Beacon Live","Airport Board":"Sky Beacon Live","Air Traffic":"Sky Beacon Live","Volcano Watch":"Seismic Watch","Earthquake Bulletin":"Seismic Watch","Space & Sky":"Space","Cosmos":"Space","NASA Briefing Room":"Space","Storm Watch Radio":"Weather Watch","Newsreel Network":"News, News, News","National Archives":"News, News, News","Historic Footage":"News, News, News","Transportation":"Auto Racing","Silent Bijou":"Silent Cinema","Silent Comedy":"Silent Cinema","Noir Alley":"Noir & Mystery","Mystery Theater":"Noir & Mystery","Action Theater":"Action & Serials","Serial Cliffhangers":"Action & Serials","Golden Age Cinema":"Classic Film","The Movie House":"Classic Film","Toon Vault":"Classic Cartoons","Saturday Morning":"Classic Cartoons","Home Movies":"Home Movies & Travelogues","Travelogue":"Home Movies & Travelogues","Rock Archive":"Live Concerts","Concert Vault":"Live Concerts","Concert & Rock":"Live Concerts","Radio Mystery":"Fallout Radio","Old Time Radio":"Fallout Radio","Filmstrip Theater":"Prelinger Vault","Civil Defense Theater":"Prelinger Vault","The Morning Paper":"Historic Waco","Brazos River Watch":"River & Lake Watch","Rerun TV":"Classic Rerun TV","The Test Kitchen":"Home Economics"}; /* channel renames across versions */
+var CH_RENAMES={"Game Show Channel":"Classic Game Shows","Sky Traffic":"Sky Beacon Live","Airport Board":"Sky Beacon Live","Air Traffic":"Sky Beacon Live","Volcano Watch":"Seismic Watch","Earthquake Bulletin":"Seismic Watch","Space & Sky":"Space","Cosmos":"Space","NASA Briefing Room":"Space","Storm Watch Radio":"Weather Watch","Newsreel Network":"News, News, News","National Archives":"News, News, News","Historic Footage":"News, News, News","Transportation":"Auto Racing","Silent Bijou":"Silent Cinema","Silent Comedy":"Silent Cinema","Noir Alley":"Noir & Mystery","Mystery Theater":"Noir & Mystery","Action Theater":"Action & Serials","Serial Cliffhangers":"Action & Serials","Golden Age Cinema":"Classic Film","The Movie House":"Classic Film","Toon Vault":"Classic Cartoons","Saturday Morning":"Classic Cartoons","Home Movies":"Home Movies & Travelogues","Travelogue":"Home Movies & Travelogues","Rock Archive":"Live Concerts","Concert Vault":"Live Concerts","Concert & Rock":"Live Concerts","Radio Mystery":"Fallout Radio","Old Time Radio":"Fallout Radio","Filmstrip Theater":"Prelinger Vault","Civil Defense Theater":"Prelinger Vault","The Morning Paper":"Historic Waco","Brazos River Watch":"River & Lake Watch","Rerun TV":"Classic Rerun TV","The Test Kitchen":"Home Economics"}; /* channel renames across versions */
 favs=favs.map(function(n){return CH_RENAMES[n]||n;});
 if(CH_RENAMES[store.get("lastName",null)])store.set("lastName",CH_RENAMES[store.get("lastName",null)]);
 let ac=null;

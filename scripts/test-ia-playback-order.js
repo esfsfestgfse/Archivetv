@@ -26,9 +26,12 @@ test('partial production release activates only certified channels and keeps rol
   assert.equal(runtime('?castReceiver=1', '10,12,150').enabledForChannel(10), false, 'Cast remains on its separately certified protocol');
 });
 
-for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) test(file + ': promotes all three repaired IA stations', () => {
+for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) test(file + ': promotes repaired IA stations and the modern game-show split', () => {
   const source = fs.readFileSync(path.join(root, file), 'utf8');
-  assert.match(source, /<meta name="realsignal-ia-repair-channels" content="10,12,150">/);
+  const content = source.match(/<meta name="realsignal-ia-repair-channels" content="([^"]+)">/)?.[1];
+  const pilot = runtime('', content);
+  for (const channel of ['10', '12', '22', '150']) assert.equal(pilot.enabledForChannel(channel), true);
+  assert.equal(pilot.enabledForChannel('77'), false);
 });
 
 test('Cast connection dynamically returns promoted senders to legacy playback', () => {

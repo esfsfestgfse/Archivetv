@@ -69,6 +69,8 @@ jobs:
         run: node --test scripts/test-ia-audit-integrity.js
       - name: Test IA selected-file qualification and transport
         run: node --test scripts/test-ia-file-qualification.js
+      - name: Test classic and modern game-show eras and depth
+        run: node --test scripts/test-ia-gameshow-split.js
       - name: Test resumable IA search and episode discovery
         run: node --test scripts/test-ia-resumable-discovery.js
       - name: Test one IA playback order and post-start recovery

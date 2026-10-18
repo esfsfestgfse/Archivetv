@@ -85,6 +85,8 @@ export function qualifyIaFileRecord(raw, rules = {}, now = Date.now()) {
   if (/\b(?:vertical|portrait|shorts|9\s*:\s*16)\b/i.test(text) || (item.aspectRatio && item.aspectRatio <= 1)) return reject('portrait-media');
   if (!item.aspectRatio) return reject('unknown-geometry', true);
   const channel = String(rules.channel || '');
+  if (channel === '150' && /\b(?:noods|network ident|logo compilation|bumper compilation)\b/i.test(text)) return reject('off-genre');
+  if (!INTERNATIONAL.has(channel) && /\b(?:dansk tale|dublado|dublagem|deutsche fassung|deutschsprachig|(?:french|german|spanish|italian|portuguese|russian|danish) dub(?:bed)?|dubbed in (?:french|german|spanish|italian|portuguese|russian|danish))\b/i.test(text)) return reject('non-english-edition');
   if (!iaGameShowEraAllowed(item, channel)) return reject('wrong-era');
   const floor = iaMinimumFileRuntimeSeconds(rules);
   if (!item.runtimeSeconds) return reject('unknown-runtime', true);

@@ -79,6 +79,9 @@ function familyId(item) {
   const gameShow = gameTitle.match(/^(what s my line|to tell the truth|i ve got a secret|beat the clock|price is right|family feud|match game|password plus|super password|password|card sharks|press your luck|wheel of fortune|jeopardy|supermarket sweep|weakest link|figure it out|family game night|nickelodeon guts|divided|crystal maze|hollywood squares|newlywed game|let s make a deal|sale of the century|tic tac dough|joker s wild|concentration|you bet your life|queen for a day|strike it rich|treasure hunt|truth or consequences|do you trust your wife)(?: |$)/);
   if (gameShow) return gameShow[1];
   const titleParts = title.split(/\s+[·—]\s+/, 2);
+  // Re-score old guest-based labels using the host title, not episode guests.
+  const televisionShow = normalizedFamily(titleParts[0]).match(/\b(jack benny|burns and allen|i love lucy|honeymooners|dick van dyke|mary tyler moore|andy griffith|leave it to beaver|green acres|addams family|munsters|bewitched|i dream of jeannie|get smart|clutch cargo|space angel|top cat|pink panther show|new scooby doo movies|scooby doo show|flintstones|jetsons)\b/);
+  if (televisionShow) return televisionShow[1];
   const titleFamily = titleParts.length > 1 && titleParts[0].trim().length >= 3 ? titleParts[0].trim() : "";
   /* Archive commonly copies each upload identifier into `seriesId`, which
      makes three episodes of the same show look like three unrelated families.

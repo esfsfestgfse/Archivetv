@@ -19,7 +19,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "5.6.7-classic-cartoon-breadth";
+const V3_RELEASE = "5.6.8-classic-cartoon-live-depth";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -101,11 +101,11 @@ const IA_CANONICAL_PROFILE_BY_CHANNEL = new Map(Object.values(IA_CANONICAL_PILOT
    from D1; a healthy relay response that already carries enough candidates
    keeps the fastest handoff and does not pay for the read. */
 const IA_MIN_ROLLING_CATALOG_DEPTH = 15;
-/* Classic TV, Game Shows, and Classic Cartoons are broad stations. A nine-row
+/* Classic TV and both game-show stations use a minimum D1 depth. A nine-row
    D1 cache is useful as emergency playback, but it is not deep enough to own
    the station. Below this floor, fall through to the relay's full verified
    union so the response and the durable catalog can grow in the same tune. */
-const IA_BROAD_STATION_FAST_DEPTH = new Map([["10", 24], ["12", 48], ["22", 48], ["150", 24]]);
+const IA_BROAD_STATION_FAST_DEPTH = new Map([["10", 24], ["12", 48], ["22", 48]]);
 /* These lanes additionally need stale-row re-scoring because their measured
    D1 history contained old genreVerified flags from before the current rules. */
 const IA_DEPTH_REPAIR_LANES = new Set([
@@ -116,11 +116,13 @@ const IA_DEPTH_REPAIR_LANES = new Set([
      relay's verified file banks refill the catalog. */
   "3", "11", "20", "66", "81", "118", "212", "500", "902", "905", "906", "907", "914", "929",
 ]);
-/* The six lanes repaired from live Archive family manifests must not let an
+/* Lanes repaired from live Archive family manifests must not let an
    older D1 shelf mask the new file-level rail. The relay remains the fast,
    verified source of truth for these lanes while the complete union is
    persisted back to D1 asynchronously through the normal catalog job. */
-const IA_ARCHIVE_FAMILY_DEPTH_LANES = new Set(["11", "20", "81", "118", "914", "929"]);
+/* Classic Cartoons' 69-row production D1 window masked its 605-file reviewed
+   bank. Use the existing relay-owned path; D1 still recovers relay outages. */
+const IA_ARCHIVE_FAMILY_DEPTH_LANES = new Set(["11", "20", "81", "118", "150", "914", "929"]);
 /* Some IA collections store the genre in the series/film title rather than
    the child filename. These are deliberately lane-specific aliases for the
    two long-tail lanes that failed the serial certification when their relay

@@ -93,9 +93,10 @@ test('older qualified shows survive hundreds of newer incomplete catalog rows', 
   } finally { f.db.close(); }
 });
 
-test('repaired IA session rotation receives more than the old ninety-six-record window', async () => {
+test('repaired IA outage fallback retains more than the old ninety-six-record window', async () => {
   const records = Array.from({ length: 140 }, (_, i) => row('deep-' + i + '.mp4', { seriesId: 'show-' + i % 10 }));
   const f = await sqliteCatalogFixture(records, '150');
+  f.env.RELAY.fetch = async () => new Response('temporary relay outage', { status: 503 });
   try {
     const payload = await (await f.request('queue', { channel: '150', iaRepair: true, serverCatalog: true, sessionId: 'wide-window', count: 3 })).json();
     assert.equal(payload.v2.catalogSize, 140);
@@ -112,6 +113,7 @@ test('classic cartoon D1 fallback enforces its canonical editorial exclusions', 
     row('jetsons.mp4', { title: 'The Jetsons S01E01', subject: 'classic cartoon animation', seriesId: 'jetsons' }),
   ];
   const f = await sqliteCatalogFixture(records, '150');
+  f.env.RELAY.fetch = async () => new Response('temporary relay outage', { status: 503 });
   try {
     const payload = await (await f.request('queue', { channel: '150', iaRepair: true, serverCatalog: true,
       sessionId: 'cartoon-editorial', count: 3, themeTerms: ['cartoon', 'animation'] })).json();
@@ -121,6 +123,20 @@ test('classic cartoon D1 fallback enforces its canonical editorial exclusions', 
     assert.ok(payload.items.some(item => /top cat|popeye|jetsons/i.test(item.title)));
     await Promise.all(f.pending);
   } finally { f.db.close(); }
+});
+
+test('a full old cartoon D1 catalog cannot mask newly verified relay families', async () => {
+  const old=Array.from({length:50},(_,i)=>row('old-cartoon-'+i+'.mp4',{title:'Top Cat cartoon episode '+i,subject:'classic cartoon animation',seriesId:'top-cat'}));
+  const fresh=['Underdog','Jabberjaw','Wacky Races'].map(show=>row(show+'.mp4',{title:show+' · Complete Episode Collection',subject:'classic cartoon animation',seriesId:show}));
+  const f=await sqliteCatalogFixture(old,'150');f.incoming(fresh);
+  f.env.RELAY.fetch=async()=>Response.json({ready:3,items:fresh,candidateItems:fresh,rotationApplied:true});
+  try {
+    const payload=await(await f.request('queue',{channel:'150',iaRepair:true,serverCatalog:true,sessionId:'new-cartoon-families',count:3,themeTerms:['cartoon','animation'],diversity:{maxPerFamily:1}})).json();
+    assert.notEqual(payload.fastCatalogLane,true,'the small old D1 union cannot own the expanded cartoon station');
+    assert.equal(payload.items.length,3);
+    assert.ok(payload.items.every(item=>fresh.some(candidate=>candidate.identifier===item.identifier)),'new families must be selectable immediately');
+    await Promise.all(f.pending);
+  }finally{f.db.close();}
 });
 
 test('verified older metadata URLs remain available when the normalized URL column is empty', async () => {
@@ -252,7 +268,7 @@ test('same-sized qualified refreshes can add new episodes rather than preserving
   const old = Array.from({ length: 24 }, (_, i) => row('old-' + i + '.mp4'));
   const f = await catalogFixture(old), replacement = Array.from({ length: 24 }, (_, i) => row('new-' + i + '.mp4'));
   f.incoming(replacement);
-  const response = await f.request('queue', { channel: '150', iaRepair: true, serverCatalog: true, sessionId: 'same-depth', count: 3 });
+  const response = await f.request('queue', { channel: '10', iaRepair: true, serverCatalog: true, sessionId: 'same-depth', count: 3 });
   await Promise.all(f.pending);
   assert.equal((await response.json()).ready, 3);
   assert.ok(f.batches.flat().some(statement => /INSERT INTO programs/.test(statement.sql) && statement.args[0] === 'benson::new-0.mp4'),

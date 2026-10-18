@@ -54,7 +54,10 @@ export function normalizeIaFileRecord(raw = {}) {
   const height = Number(media.height || raw.height || raw.videoHeight) || 0;
   const aspectRatio = width > 0 && height > 0 ? width / height : Number(media.aspectRatio || raw.aspectRatio) || 0;
   const stem = fileName.toLowerCase().replace(/\.(?:mp4|m4v|mov|ogv|webm|mp3|flac|ogg|oga|wav|m4a|aac)$/i, '')
-    .replace(/(?:[._ -](?:ia|h\.?264|avc|x264|mpeg4|webm|ogv|\d{2,4}kb|orig|original|source|low|small|preview|proxy))+$/i, '');
+    .replace(/(?:[._ -](?:ia|h\.?264|avc|x264|mpeg4|webm|ogv|\d{2,4}kb|orig|original|source|low|small|preview|proxy))+$/i, '')
+    // Some collection derivatives repeat a matching episode index twice.
+    .replace(/^(\d+)\s+episode\s*,?\s*(\d+)\b/i, (all, index, episode) => Number(index) === Number(episode) ? 'episode ' + Number(episode) : all)
+    .replace(/^episode\s*,?\s*(\d+)\b/i, (_, episode) => 'episode ' + Number(episode));
   const logicalId = sourceIdentifier.toLowerCase() + (stem ? '::' + stem : '');
   return { ...raw, sourceIdentifier, fileName, logicalId, runtimeSeconds: runtime, duration: runtime || null,
     width, height, aspectRatio: aspectRatio || null,
@@ -85,7 +88,9 @@ export function qualifyIaFileRecord(raw, rules = {}, now = Date.now()) {
   if (/\b(?:vertical|portrait|shorts|9\s*:\s*16)\b/i.test(text) || (item.aspectRatio && item.aspectRatio <= 1)) return reject('portrait-media');
   if (!item.aspectRatio) return reject('unknown-geometry', true);
   const channel = String(rules.channel || '');
-  if (channel === '150' && /\b(?:noods|network ident|logo compilation|bumper compilation)\b/i.test(text)) return reject('off-genre');
+  if (channel === '150' && /\b(?:noods|network ident|logo compilation|bumper compilation|animated background|background video loop|stock animation|stock footage|motion graphics|screensaver)\b/i.test(text)) return reject('off-genre');
+  if (channel === '150' && /\b(?:pt[- _.]?br|dublado|dublagem|em portugu[eê]s)\b/i.test(text)) return reject('non-english-edition');
+  if (channel === '150' && item.sourceIdentifier === 'fat-albert-72' && /\((?:alternate version|attention study|1984 version|banned and uncensored version)\)/i.test(text)) return reject('duplicate-edition');
   if (!INTERNATIONAL.has(channel) && /\b(?:dansk tale|dublado|dublagem|deutsche fassung|deutschsprachig|(?:french|german|spanish|italian|portuguese|russian|danish) dub(?:bed)?|dubbed in (?:french|german|spanish|italian|portuguese|russian|danish))\b/i.test(text)) return reject('non-english-edition');
   if (!iaGameShowEraAllowed(item, channel)) return reject('wrong-era');
   const floor = iaMinimumFileRuntimeSeconds(rules);

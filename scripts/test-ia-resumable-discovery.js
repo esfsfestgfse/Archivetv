@@ -92,8 +92,8 @@ test('background collection discovery does not depend on foreground qualificatio
 test('classic cartoon repair supplies full episodes and keeps all collection parents for discovery', () => {
   const rows = relay().f.iaRepairCollectionSeeds('150');
   const parents = rows.filter(row => !row.media), episodes = rows.filter(row => row.media);
-  assert.equal(parents.length, 8); assert.ok(episodes.length >= 96);
-  assert.equal(new Set(episodes.map(row => row.seriesId)).size, 8);
+  assert.ok(parents.length >= 28); assert.ok(episodes.length >= 600);
+  assert.ok(new Set(episodes.map(row => row.seriesId)).size >= 28);
   assert.ok(episodes.every(row => row.media.runtime >= 900 && row.media.width > row.media.height));
   assert.equal(relay().f.iaRepairCollectionSeeds('10').filter(row => !row.media).length, 9);
 });

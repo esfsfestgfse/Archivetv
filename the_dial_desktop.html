@@ -9,13 +9,13 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>REALSIGNAL · The Dial 5.6.6</title>
+<title>REALSIGNAL · The Dial 5.6.7</title>
 <meta name="realsignal-ia-repair-channels" content="10,12,22,150">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
-<script src="assets/ok-embed-runtime.js?v=5.6.6"></script>
-<script src="assets/ia-playback-shelf.js?v=5.6.6"></script>
+<script src="assets/ok-embed-runtime.js?v=5.6.7"></script>
+<script src="assets/ia-playback-shelf.js?v=5.6.7"></script>
 <script src="assets/vimeo-embed-runtime.js?v=5.5.85"></script>
 <!-- Source Suite starts verified YouTube playback on a cold tune. Warm the exact
      origins it uses so DNS/TLS setup is not serialized behind catalog discovery. -->
@@ -1711,7 +1711,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="5.6.6-desktop-ia-deep-episode-delivery";
+window.__ATV_BUILD="5.6.7-desktop-classic-cartoon-breadth";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -7121,6 +7121,20 @@ PROGRAM["Classic Game Shows"]=rsGameShowStation(PROGRAM["Classic Game Shows"],[1
   ["match game","card sharks","password","pyramid","price is right","family feud","wheel of fortune","hollywood squares","newlywed game","let's make a deal","what's my line","to tell the truth","i've got a secret","beat the clock","jeopardy","concentration","sale of the century","tic tac dough","joker's wild","you bet your life","queen for a day","strike it rich","treasure hunt","truth or consequences","do you trust your wife"],
   ["classic_tv_1950s","classic_tv_1960s","classic_tv_1970s","gameshows","gameshows_miscellaneous","classic_tv","television","vhsvault","opensource_movies"],
   ["matchgame1975-bmp","matchgame1973-BMP","cardsharks1978-bmp"]);
+/* Classic Cartoons: full-program collection rails alongside broad discovery.
+   Old upload dates never exclude a reviewed original series; files still
+   pass runtime, geometry, language, genre and live transport admission. */
+(function(){
+  var p=PROGRAM["Classic Cartoons"],shows=["underdog","george of the jungle","wacky races","space ghost and dino boy","hong kong phooey","jabberjaw","josie and the pussycats","josie and the pussycats in outer space","fat albert","speed buggy","the archie show","hair bear bunch","the herculoids","the addams family animated","super friends","the new adventures of batman","aquaman","tom and jerry","huckleberry hound","the atom ant show","peter potamus","the bugs bunny show"];
+  p.catalogParents=["top-cat-s-01-e-27-dibble-breaks-the-rec","clutch-cargo_1959","space-angel","the-pink-panther-show-the-complete-series-1969-70","the-new-scooby-doo-movies-1972-season-1_202604","the-flintstones-season-2-d-3","the-jetsons-episode-3-jetsons-nite-out-watch-cartoons-onl","20240727_20240727_0523","theres-no-need-to-fear-underdog-is-here","watchoutforthattree","WackyR","Space_Ghost_and_Dino_Boy","hong-kong-phooey-s-01-e-08-mirror-mirror-on-the-wall-great-movie-mystery","jabberjaw_complete_collection","josie_and_the_pussycats","josie_and_the_pussycats_in_outer_space","fat-albert-72","speed_buggy_Lando18","The_Archie_Show_1968_Complete","HairBearBunch_Lando18_at_ext.to","the-herculoids-the-complete-original-series-d-1-1967-t-02","the-addams-family-e-13-the-voodoo-story","super-friends-1973-season-1","the-new-adventures-of-batman-and-robin-1977","aquaman_1967","tom-and-jerry-cartoon-compilation","tom-and-jerry-classic-collection-1995-uk-vhs","huckleberry-hound-full-1986-kids-klassics-vhs","banana-splits-show-present-atom-ant","the-atom-ant-show-6-26-24","peter-potamus-6-26-24","bugs-bunny-show-s1"];
+  p.queueTerms=rsAppendProgramTerms(p.queueTerms||p.fastSubjects,rsAppendProgramTerms(p.require&&p.require.title_any,shows));
+  p.fastSubjects=rsAppendProgramTerms(p.fastSubjects,shows);
+  p.deepTitleTerms=rsAppendProgramTerms(p.deepTitleTerms,shows);
+  p.require=Object.assign({},p.require,{title_any:rsAppendProgramTerms(p.require&&p.require.title_any,shows)});
+  p.topicBuckets=(p.topicBuckets||[]).concat(shows.map(function(show){return [show];}));
+  p.diversity=Object.assign({},p.diversity,{maxPerFamily:1});
+  p.depthQuerySpread=true;
+})();
 const IA_EDITORIAL_DIVERSITY={maxPerEra:1,maxPerLane:1,maxPerCreator:1,maxPerCollection:2,maxPerFamily:1};
 Object.keys(PROGRAM).forEach(function(name){
   PROGRAM[name].diversity=Object.assign({},IA_EDITORIAL_DIVERSITY,PROGRAM[name].diversity||{});

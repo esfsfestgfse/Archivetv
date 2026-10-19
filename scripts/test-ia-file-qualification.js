@@ -37,6 +37,21 @@ test('transport admission preserves the resolved same-file Archive CDN, not its 
   }
 });
 
+test('a reviewed modern game-show bank reaches transport admission before any cold Archive search',async()=>{
+  let searches=0;
+  const f=relay({},206,'',async url=>{
+    if(/advancedsearch|services\/search/.test(String(url))){searches++;return Response.json({response:{docs:[],numFound:0}});}
+    if(/\/metadata\//.test(String(url)))return Response.json({metadata:{},files:[]});
+    return new Response('x',{status:206,headers:{'content-type':'video/mp4'}});
+  });
+  const env={REALSIGNAL_QUEUE:{get:async()=>null,put:async()=>{}},IA_HARVEST_QUEUE:{send:async()=>{}}},pending=[];
+  const response=await f.worker.fetch(new Request('https://relay.invalid/ia/queue',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({channel:'22',iaRepair:true,count:3,queries:['mediatype:movies AND title:game'],themeTerms:['game show'],mediaTypes:['movies']})}),env,{waitUntil:p=>pending.push(p)});
+  const payload=await response.json();
+  assert.equal(payload.ready,3);
+  assert.equal(searches,0,'existing file-level depth must not wait behind synchronous discovery');
+  await Promise.all(pending);
+});
+
 test('the selected child runtime overrides the longer parent runtime', () => {
   assert.equal(relay().iaRuntimeAllowed({ runtime: 1800, media: { type: 'video', runtime: 120 } }, 900), false);
 });

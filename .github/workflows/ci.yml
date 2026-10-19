@@ -73,6 +73,8 @@ jobs:
         run: node --test scripts/test-ia-gameshow-split.js
       - name: Test broad IA file depth and show identity
         run: node --test scripts/test-ia-broad-station-depth.js
+      - name: Test merged IA programming admits both approved member formats
+        run: node --test scripts/test-ia-merged-admission.js
       - name: Test resumable IA search and episode discovery
         run: node --test scripts/test-ia-resumable-discovery.js
       - name: Test one IA playback order and post-start recovery

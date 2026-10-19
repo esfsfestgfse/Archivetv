@@ -44,7 +44,8 @@ const expectedRails = {
 for (const [channel, collection] of Object.entries(expectedRails)) {
   const row = manifest.find(item => String(item.channel) === channel);
   check(Boolean(row), `IA channel ${channel} is in the exported manifest`);
-  check(Boolean(row && row.queries.some(query => query.includes(`collection:${collection}`))), `IA channel ${channel} exposes ${collection} depth rail`);
+  check(Boolean(row && row.queries.some(query => query.includes(`collection:${collection}`) ||
+    [...query.matchAll(/collection:\(([^)]*)\)/g)].some(match => match[1].split(/\s+OR\s+/).some(term => term.replace(/^"|"$/g, '') === collection)))), `IA channel ${channel} exposes ${collection} depth rail`);
   if (['704', '705', '706', '707', '708', '709'].includes(channel)) {
     check(Boolean(row && row.requiredTitleTerms && row.requiredTitleTerms.length), `IA holiday animation channel ${channel} has a title gate`);
   }

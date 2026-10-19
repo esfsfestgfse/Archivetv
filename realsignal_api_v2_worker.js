@@ -6,7 +6,7 @@
  */
 
 import { SessionRotation } from "./realsignal_api_rotation.js";
-import { normalizeIaFileRecord, qualifyIaFileRecord, iaMinimumFileRuntimeSeconds, iaGameShowEraAllowed, iaGameShowYear } from "./ia_file_contract.js";
+import { normalizeIaFileRecord, qualifyIaFileRecord, iaMinimumFileRuntimeSeconds, iaGameShowEraAllowed, iaGameShowYear, iaReviewedCartoonSource } from "./ia_file_contract.js";
 import { EdgeRateLimiter } from "./realsignal_api_rate_limit.js";
 import { RokuSession } from "./realsignal_roku_session.js";
 import { okBalancedCandidates, okPlaybackIdentity, okPreferUnseenSeries, okSeriesIdentity } from "./ok_public_search.js";
@@ -19,7 +19,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "5.6.8-classic-cartoon-live-depth";
+const V3_RELEASE = "5.6.9-ia-depth-complete-cartoons";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -837,7 +837,7 @@ function catalogFallbackAllowed(item, body) {
     ? IA_CANONICAL_PROFILE_BY_CHANNEL.get(String(body.channel || ""))
     : "";
   const canonicalDenyTerms = canonicalProfileKey
-    ? IA_CANONICAL_PILOT_PROFILES[canonicalProfileKey]?.excludeAny || []
+    ? (IA_CANONICAL_PILOT_PROFILES[canonicalProfileKey]?.excludeAny || []).filter(term => !(String(body.channel) === "150" && iaReviewedCartoonSource(item) && term === "how to"))
     : [];
   const denyTerms = [...new Set([
     ...(Array.isArray(body && body.denyTerms) ? body.denyTerms : []),

@@ -16,13 +16,13 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="RealSignal">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>REALSIGNAL · The Dial 5.6.8</title>
+<title>REALSIGNAL · The Dial 5.6.9</title>
 <meta name="realsignal-ia-repair-channels" content="10,12,22,150">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
-<script src="assets/ok-embed-runtime.js?v=5.6.8"></script>
-<script src="assets/ia-playback-shelf.js?v=5.6.8"></script>
+<script src="assets/ok-embed-runtime.js?v=5.6.9"></script>
+<script src="assets/ia-playback-shelf.js?v=5.6.9"></script>
 <script src="assets/vimeo-embed-runtime.js?v=5.5.85"></script>
 <!-- Source Suite starts verified YouTube playback on a cold tune. Warm the exact
      origins it uses so DNS/TLS setup is not serialized behind catalog discovery. -->
@@ -1750,7 +1750,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="5.6.8-mobile-classic-cartoon-live-depth";
+window.__ATV_BUILD="5.6.9-mobile-ia-depth-complete-cartoons";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -7164,12 +7164,15 @@ PROGRAM["Classic Game Shows"]=rsGameShowStation(PROGRAM["Classic Game Shows"],[1
   ["match game","card sharks","password","pyramid","price is right","family feud","wheel of fortune","hollywood squares","newlywed game","let's make a deal","what's my line","to tell the truth","i've got a secret","beat the clock","jeopardy","concentration","sale of the century","tic tac dough","joker's wild","you bet your life","queen for a day","strike it rich","treasure hunt","truth or consequences","do you trust your wife"],
   ["classic_tv_1950s","classic_tv_1960s","classic_tv_1970s","gameshows","gameshows_miscellaneous","classic_tv","television","vhsvault","opensource_movies"],
   ["matchgame1975-bmp","matchgame1973-BMP","cardsharks1978-bmp"]);
-/* Classic Cartoons: full-program collection rails alongside broad discovery.
-   Old upload dates never exclude a reviewed original series; files still
-   pass runtime, geometry, language, genre and live transport admission. */
+/* Reviewed full programs and complete theatrical cartoons share one rolling
+   catalog. Discovery is background work; the ready shelf remains bounded. */
 (function(){
-  var p=PROGRAM["Classic Cartoons"],shows=["underdog","george of the jungle","wacky races","space ghost and dino boy","hong kong phooey","jabberjaw","josie and the pussycats","josie and the pussycats in outer space","fat albert","speed buggy","the archie show","hair bear bunch","the herculoids","the addams family animated","super friends","the new adventures of batman","aquaman","tom and jerry","huckleberry hound","the atom ant show","peter potamus","the bugs bunny show"];
-  p.catalogParents=["top-cat-s-01-e-27-dibble-breaks-the-rec","clutch-cargo_1959","space-angel","the-pink-panther-show-the-complete-series-1969-70","the-new-scooby-doo-movies-1972-season-1_202604","the-flintstones-season-2-d-3","the-jetsons-episode-3-jetsons-nite-out-watch-cartoons-onl","20240727_20240727_0523","theres-no-need-to-fear-underdog-is-here","watchoutforthattree","WackyR","Space_Ghost_and_Dino_Boy","hong-kong-phooey-s-01-e-08-mirror-mirror-on-the-wall-great-movie-mystery","jabberjaw_complete_collection","josie_and_the_pussycats","josie_and_the_pussycats_in_outer_space","fat-albert-72","speed_buggy_Lando18","The_Archie_Show_1968_Complete","HairBearBunch_Lando18_at_ext.to","the-herculoids-the-complete-original-series-d-1-1967-t-02","the-addams-family-e-13-the-voodoo-story","super-friends-1973-season-1","the-new-adventures-of-batman-and-robin-1977","aquaman_1967","tom-and-jerry-cartoon-compilation","tom-and-jerry-classic-collection-1995-uk-vhs","huckleberry-hound-full-1986-kids-klassics-vhs","banana-splits-show-present-atom-ant","the-atom-ant-show-6-26-24","peter-potamus-6-26-24","bugs-bunny-show-s1"];
+  var p=PROGRAM["Classic Cartoons"],shows=["top cat","clutch cargo","space angel","the pink panther","the new scooby-doo movies","the flintstones","the jetsons","the scooby doo show","underdog","george of the jungle","wacky races","space ghost and dino boy","hong kong phooey","jabberjaw","josie and the pussycats","josie and the pussycats in outer space","fat albert","speed buggy","the archie show","hair bear bunch","the herculoids","the addams family animated","super friends","the new adventures of batman","aquaman","tom and jerry","huckleberry hound","the atom ant show","peter potamus","looney tunes","rocky and bullwinkle","birdman and the galaxy trio","frankenstein jr. and the impossibles","fantastic four (1967)","the new fantastic four (1978)","the brady kids","the new adventures of gilligan","groovie goolies","the alvin show","the super 6","the mr. magoo show","the famous adventures of mr. magoo","the funky phantom","the amazing chan and the chan clan","inch high private eye","goober and the ghost chasers","wheelie and the chopper bunch","cattanooga cats","sabrina the teenage witch (animated)","my favorite martians","the houndcats","sealab 2020","the new shmoo","the jackson 5ive","baggy pants and the nitwits","the oddball couple","the beatles cartoon","wait till your father gets home","devlin","the secret squirrel show","the perils of penelope pitstop","tarzan lord of the jungle","the barkleys","partridge family 2200 a.d.","archie's funhouse","flash gordon (1979)","beany and cecil","jonny quest","the magilla gorilla show","clue club","the woody woodpecker show","felix the cat","popeye","roger ramjet","betty boop","dudley do-right","tennessee tuxedo","woody woodpecker","silly symphonies","pluto","goofy","colonel bleep","mighty mouse"];
+  p.catalogParents=["top-cat-s-01-e-27-dibble-breaks-the-rec","clutch-cargo_1959","space-angel","the-pink-panther-show-the-complete-series-1969-70","the-new-scooby-doo-movies-1972-season-1_202604","the-flintstones-season-2-d-3","the-jetsons-episode-3-jetsons-nite-out-watch-cartoons-onl","20240727_20240727_0523","theres-no-need-to-fear-underdog-is-here","watchoutforthattree","WackyR","Space_Ghost_and_Dino_Boy","hong-kong-phooey-s-01-e-08-mirror-mirror-on-the-wall-great-movie-mystery","jabberjaw_complete_collection","josie_and_the_pussycats","josie_and_the_pussycats_in_outer_space","fat-albert-72","speed_buggy_Lando18","The_Archie_Show_1968_Complete","HairBearBunch_Lando18_at_ext.to","the-herculoids-the-complete-original-series-d-1-1967-t-02","the-addams-family-e-13-the-voodoo-story","super-friends-1973-season-1","the-new-adventures-of-batman-and-robin-1977","aquaman_1967","tom-and-jerry-cartoon-compilation","tom-and-jerry-classic-collection-1995-uk-vhs","huckleberry-hound-full-1986-kids-klassics-vhs","banana-splits-show-present-atom-ant","the-atom-ant-show-6-26-24","peter-potamus-6-26-24","bugs-bunny-show-s1","show-1_20260614","birdman-and-the-galaxy-trio","00003_20260809_0334","the-fantastic-four-1967-season-1","the-new-fantastic-four-1978-complete-series","the-brady-kids-all-episodes","the-new-adventures-of-gilligan-s-02-e-04-wheels-on-parade","Groovie_Goolies_Lando18","the-alvin-show-e-07-alvins-alter-ego","Super6_Lando18","title_t02_202601","the-famous-adventures-of-mr-magoo","funky-phantom-e-01-dont-fool-with-a-phantom-ai-enhanced","the-amazing-chan-e-11-the-mummys-tomb-ai-enhanced","inch-high-private-eye-episode-1-diamonds-are-a-crooks-best-friend","goober-ghost-chasers","ep-01-double-cross-country-the-infiltrator-the-stunt-show","show-13_202602","sabrina-the-teenage-witch-1970","My_Favorite_Martians_Lando18","the-houndcats-1972","s.-2020.-s-01-e-11.-collision.of.the.-aquarius.-dvdrip.x-264-ti-megod-2","the-new-shmoo","the-jackson-5ive","BaggyPants_Lando18","the-oddball-couple","the-beatles-cartoon_2023","wait-till-your-father-gets-home","devlin-1974-hanna-barbera","the-secret-squirrel-show","the-perils-of-penelope-pitstop_202608","tarzan-s-01-e-12-tarzan-at-the-earths-core_202604","barkbarkley","partridge-family-2200-a.-d.-01-danny-the-invisible-man","archies-funhouse-1970","the_new_adventures_of_flash_gordon","a-bob-clampett-cartoooooooooooooooon","jonny-quest-e-07-calcutta-adventure","magillagorillas1","magillagorillas2","clue.club","me-tv-the-woody-woodpecker-show","felix-the-cat-1990s-syndication-of-the-1959-tv-series","popeye-the-sailor-the-complete-series","looney-tunes-complete","the-pink-panther-cartoon-collection","roger-ramjet","felix-the-cat-1959","017-betty-boop-rudy-vallee-melodies-1932-screen-songs-ld-rip","dudley-do-right-complete-720-540","tennessee-tuxedo-season-1","woody-woodpecker-filmography","tennessee-tuxedo-season-2","walt-disneys-silly-symphonies-the-complete-collection-1929-39","tennessee-tuxedo-season-3","WDTWaveFour_TheCompletePluto","WDTWaveTwo_TheCompleteGoofy","colonelbleep_s1","mighty-mouse_202305"];
+  p.minRuntimeSeconds=120;p.completeOriginalCartoons=true;
+  var metadataWords=["dvd","music","spot","meeting","news","crime","court","history","recording","panel","education","amateur","bumper","bumpers"];
+  p.deny=Object.assign({},p.deny);["title","subject"].forEach(function(key){p.deny[key]=(p.deny[key]||[]).filter(function(term){return metadataWords.indexOf(String(term).toLowerCase())<0;});});
+  p.deny.title=rsAppendProgramTerms(p.deny.title,["amateur film","amateur cartoon","panel discussion","panel interview","educational lecture","bumper compilation","station bumper","network bumper"]);
   p.queueTerms=rsAppendProgramTerms(p.queueTerms||p.fastSubjects,rsAppendProgramTerms(p.require&&p.require.title_any,shows));
   p.fastSubjects=rsAppendProgramTerms(p.fastSubjects,shows);
   p.deepTitleTerms=rsAppendProgramTerms(p.deepTitleTerms,shows);
@@ -7351,7 +7354,7 @@ function rsUniqueMergedValues(left,right){var seen={},out=[];[].concat(Array.isA
 function rsMergeProgramRecords(left,right,label,genreOverride){
   var out=Object.assign({},left||{}),arrayKeys=["queueTerms","fastSubjects","fastCollections","deepCollections","deepTitleTerms","queries","providers","formats","match","topics","strictTopicTerms","searchTerms"];
   arrayKeys.forEach(function(key){var merged=rsUniqueMergedValues(left&&left[key],right&&right[key]);if(merged.length)out[key]=merged;});
-  ["require","deny","diversity"].forEach(function(key){var a=(left&&left[key])||{},b=(right&&right[key])||{},nested=Object.assign({},a,b);Object.keys(a).concat(Object.keys(b)).forEach(function(child){if(Array.isArray(a[child])||Array.isArray(b[child]))nested[child]=rsUniqueMergedValues(a[child],b[child]);});if(Object.keys(nested).length)out[key]=nested;});
+  ["require","deny","diversity"].forEach(function(key){var a=(left&&left[key])||{},b=(right&&right[key])||{},nested=Object.assign({},a,b);Object.keys(a).concat(Object.keys(b)).forEach(function(child){if(Array.isArray(a[child])||Array.isArray(b[child])){var values=rsUniqueMergedValues(a[child],b[child]);if(key==="deny"&&label==="Comedy Archive"){values=values.filter(function(value){return !/^(?:stand[- ]?up (?:special|comedy)|sketch(?: comedy)?|sitcom)$/i.test(String(value).trim());});}nested[child]=values;}});if(Object.keys(nested).length)out[key]=nested;});
   var eras=[left&&left.era,right&&right.era].filter(function(era){return Array.isArray(era)&&era.length>=2;});if(eras.length)out.era=[Math.min.apply(null,eras.map(function(era){return Number(era[0]);})),Math.max.apply(null,eras.map(function(era){return Number(era[1]);}))];
   out.name=label;out.genre=genreOverride||out.genre||left&&left.genre||right&&right.genre||"movies";out.mt=out.mt||"movies";out.depthQuerySpread=true;out.channelMerge=true;return out;
 }
@@ -7387,9 +7390,20 @@ function slotFor(ch,_ignoredHour,opts){
 }
 function iaQueueQueries(sl){
   if(sl&&sl.program&&sl.program.catalogParents){
-    var parentRail="mediatype:movies AND identifier:("+sl.program.catalogParents.map(programPhrase).join(" OR ")+")";
-    var collectionRail="mediatype:movies AND collection:("+sl.program.deepCollections.map(programPhrase).join(" OR ")+") AND title:("+sl.program.deepTitleTerms.map(programPhrase).join(" OR ")+")";
-    return [parentRail,collectionRail].concat(sl.queries||[]).filter(function(query,index,all){return all.indexOf(query)===index;}).slice(0,8);
+    var rails=[];
+    function addRails(prefix,terms){
+      var tokens=[];
+      (terms||[]).forEach(function(term){
+        var token=programPhrase(term);
+        if((prefix+token+")").length>3200)return;
+        if(tokens.length&&(prefix+tokens.concat(token).join(" OR ")+")").length>3200){rails.push(prefix+tokens.join(" OR ")+")");tokens=[];}
+        tokens.push(token);
+      });
+      if(tokens.length)rails.push(prefix+tokens.join(" OR ")+")");
+    }
+    addRails("mediatype:movies AND identifier:(",sl.program.catalogParents);
+    if((sl.program.deepCollections||[]).length)addRails("mediatype:movies AND collection:("+sl.program.deepCollections.map(programPhrase).join(" OR ")+") AND title:(",sl.program.deepTitleTerms);
+    return rails.concat(sl.queries||[]).filter(function(query,index,all){return query.length<=3600&&all.indexOf(query)===index;}).slice(0,8);
   }
   var all=(sl&&sl.queries||[]);if(all.length<=8)return all.slice();
   var last=all.length-1;
@@ -7637,7 +7651,13 @@ function iaCachedProgramAllowed(ch,pl,sl){
   var meta=pl&&pl.meta||{},currentSl=sl||(typeof slotFor==="function"?slotFor(ch,0,{preview:true}):null);
   return !!(pl&&pl.id&&iaProgramAllowed({identifier:pl.id,title:pl.title||"",subject:meta.subject||meta.subjects||"",year:pl.year||meta.year||""},currentSl));
 }
-function iaProgramDenyTerms(sl){var p=sl&&sl.program||{},g=sl&&G[sl.genre]||{},out=[];["title","subject"].forEach(function(k){(p.deny&&p.deny[k]||[]).forEach(function(v){String(v||"").trim()&&out.push(String(v).trim());});});(g.not||[]).forEach(function(v){String(v||"").trim()&&out.push(String(v).trim());});return out.slice(0,256);}
+function iaProgramDenyTerms(sl){
+  var p=sl&&sl.program||{},g=sl&&G[sl.genre]||{},out=[];
+  ["title","subject"].forEach(function(k){(p.deny&&p.deny[k]||[]).forEach(function(v){String(v||"").trim()&&out.push(String(v).trim());});});
+  (g.not||[]).forEach(function(v){String(v||"").trim()&&out.push(String(v).trim());});
+  if(p.completeOriginalCartoons)out=out.filter(function(term){return ["dvd","music","spot","meeting","news","crime","court","history","recording","panel","education","amateur","bumper","bumpers"].indexOf(term.toLowerCase())<0;});
+  return out.filter(function(term,index,all){return all.indexOf(term)===index;}).slice(0,256);
+}
 function iaQueueDiversity(sl){var d=sl&&sl.program&&sl.program.diversity||{},cap=function(key,fallback){return Math.max(1,Math.min(5,Math.round(Number(d[key])||fallback)));};return {maxPerEra:cap("maxPerEra",1),maxPerLane:cap("maxPerLane",1),maxPerCreator:cap("maxPerCreator",1),maxPerCollection:cap("maxPerCollection",2),maxPerFamily:cap("maxPerFamily",1)};}
 function iaEmergencyItems(sl){var items=sl&&sl.program&&sl.program.emergencyItems;return Array.isArray(items)?items.filter(function(item){return item&&item.identifier&&item.media&&item.media.url;}).slice(0,5):[];}
 async function iaLocalQueueFallback(ch,sl){return iaLocalQueueFallbackMode(ch,sl,false);}

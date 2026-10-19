@@ -94,7 +94,7 @@ test('classic cartoon repair supplies full episodes and keeps all collection par
   const parents = rows.filter(row => !row.media), episodes = rows.filter(row => row.media);
   assert.ok(parents.length >= 28); assert.ok(episodes.length >= 600);
   assert.ok(new Set(episodes.map(row => row.seriesId)).size >= 28);
-  assert.ok(episodes.every(row => row.media.runtime >= 900 && row.media.width > row.media.height));
+  assert.ok(episodes.every(row => row.media.runtime >= 120 && row.media.width > row.media.height));
   assert.equal(relay().f.iaRepairCollectionSeeds('10').filter(row => !row.media).length, 9);
 });
 
@@ -106,7 +106,7 @@ test('classic station rails cover many distinct verified series rather than a ti
     assert.ok(new Set(parents.map(row => row.seriesId)).size >= 8, channel + ' needs at least eight real show families');
     assert.ok(episodes.length >= 24, channel + ' needs broad immediate file candidates behind its three-item shelf');
     assert.ok(parents.every(parent => /complete|collection|episodes/i.test(parent.title)), 'all known manifests remain eligible for full expansion');
-    assert.ok(episodes.every(row => row.year < 1990 && row.media.runtime >= 900 && row.media.width > row.media.height));
+    assert.ok(episodes.every(row => row.year < 1990 && row.media.runtime >= (channel === '150' ? 120 : 900) && row.media.width > row.media.height));
     const later = f.iaRepairCollectionSeeds(channel).filter(row => row.media);
     assert.deepEqual(episodes.map(row => row.media.metadataVerifiedAt),later.map(row => row.media.metadataVerifiedAt));
     assert.ok(episodes.every(row => row.media.metadataVerifiedAt > 0 && row.media.metadataVerifiedAt <= Date.now() && row.media.verification !== 'transport'),

@@ -328,6 +328,19 @@ test('watched derivative cannot replay while another episode is unseen', async (
   assert.equal(next.catalogSize, 2);
 });
 
+test('a played parent ID stays watched when the same exact file is later indexed canonically', async () => {
+  const [{ SessionRotation }] = await modules;
+  const object = new SessionRotation(rotationContext(), {});
+  const select = async body => (await object.fetch(new Request('https://rotation.internal/select', { method:'POST',body:JSON.stringify(body) }))).json();
+  const first={...row('episode.mp4'),identifier:'benson'};
+  await select({mode:'reserve',items:[first],count:1});
+  await select({mode:'commit',id:'benson',event:'skipped'});
+  const next=await select({mode:'reserve',items:[row('episode.mp4',{media:{...row('episode.mp4').media,verifiedAt:Date.now()+5}}),row('unseen.mp4'),row('also-unseen.mp4')],count:3});
+  assert.ok(next.items.every(item=>!item.identifier.includes('::episode.mp4')),'the played episode cannot occupy any ready slot');
+  assert.equal(next.items.length,2);
+  assert.equal(next.cycleReset,false,'an identity upgrade cannot erase playback history');
+});
+
 test('stored canary reservations cannot resurrect explicit failed media', async () => {
   const f = await fixture(), body = { channel: '10', iaRepair: true, serverCatalog: true, sessionId: 'failed', count: 3 };
   const before = await (await f.request('queue', body)).json(); assert.equal(before.items.length, 3);

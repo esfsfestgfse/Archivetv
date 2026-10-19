@@ -230,12 +230,19 @@ export class SessionRotation {
     const qualified = item => !rejected.has(episodeKey(item)) && (!body.rules || qualifyIaFileRecord(item, body.rules).accepted);
     const catalog = reservationCatalog(current.catalog.filter(qualified), cleanItems(body.items, MAX_RESERVATION_ITEMS).filter(qualified), current.seen);
     const ids = new Set(catalog.map(itemId)), now = Date.now();
-    const seen = new Set(current.seen);
-    let seenEpisodes = new Set(current.seen.map(episodeKey));
-    const hasSeen = id => seenEpisodes.has(episodeKey(id));
-    const cooldowns = Object.fromEntries(Object.entries(current.cooldowns || {}).filter(([, until]) => Number(until) > now).map(([id, until]) => [episodeKey(id), until]));
+    // Older shelves used a bare Archive parent ID even after resolving a file.
+    // Preserve that exact episode when later discovery upgrades it to parent::file.
+    const canonicalIds = new Map([...current.catalog, ...catalog].map(item => {
+      const record = normalizeIaFileRecord(item);
+      return [itemId(item), record.fileName ? record.sourceIdentifier + '::' + record.fileName : itemId(item)];
+    }));
+    const canonicalId = id => canonicalIds.get(id) || id;
+    const seen = new Set(current.seen.map(canonicalId));
+    let seenEpisodes = new Set([...seen].map(episodeKey));
+    const hasSeen = id => seenEpisodes.has(episodeKey(canonicalId(id)));
+    const cooldowns = Object.fromEntries(Object.entries(current.cooldowns || {}).filter(([, until]) => Number(until) > now).map(([id, until]) => [episodeKey(canonicalId(id)), until]));
     let reserved = (current.reserved || []).map(id => catalog.find(item => episodeKey(item) === episodeKey(id))).filter(Boolean).map(itemId)
-      .filter(id => ids.has(id) && episodeKey(id) !== episodeKey(current.playing) && !hasSeen(id) && !cooldowns[episodeKey(id)]);
+      .filter(id => ids.has(id) && episodeKey(canonicalId(id)) !== episodeKey(canonicalId(current.playing)) && !hasSeen(id) && !cooldowns[episodeKey(canonicalId(id))]);
     const requestedId = String(body.id || "").trim().slice(0, 500);
     const id = catalog.find(item => episodeKey(item) === episodeKey(requestedId))?.identifier || requestedId;
     let committed = false;
@@ -244,17 +251,17 @@ export class SessionRotation {
       reserved = reserved.filter(value => value !== id);
       if (body.mode === "commit") {
         committed = !hasSeen(id);
-        seen.add(id);
-        seenEpisodes.add(episodeKey(id));
+        seen.add(canonicalId(id));
+        seenEpisodes.add(episodeKey(canonicalId(id)));
         current.playing = body.event === "completed" || body.event === "skipped" ? "" : id;
       } else {
-        cooldowns[episodeKey(id)] = now + 5 * 60_000;
+        cooldowns[episodeKey(canonicalId(id))] = now + 5 * 60_000;
         if (current.playing === id) current.playing = "";
       }
     }
     const count = Math.max(1, Math.min(5, Number(body.count) || 3));
-    const recent = new Set((Array.isArray(body.recentIds) ? body.recentIds : []).map(episodeKey));
-    const eligible = catalog.filter(item => episodeKey(item) !== episodeKey(current.playing) && !cooldowns[episodeKey(item)]);
+    const recent = new Set((Array.isArray(body.recentIds) ? body.recentIds : []).map(id => episodeKey(canonicalId(id))));
+    const eligible = catalog.filter(item => episodeKey(item) !== episodeKey(canonicalId(current.playing)) && !cooldowns[episodeKey(item)]);
     let fresh = eligible.filter(item => !hasSeen(itemId(item)));
     /* Exact-episode freshness is necessary but not sufficient for television.
        A 500-item catalog can still feel repetitive when the next shelf chooses
@@ -263,7 +270,7 @@ export class SessionRotation {
        before returning to a different episode of a recently played series.
        Reservations are deliberately excluded: preload alone is not a watch. */
     const catalogByEpisode = new Map(catalog.map(item => [episodeKey(item), item]));
-    const seenFamilies = new Set(current.seen.map(id => catalogByEpisode.get(episodeKey(id))).filter(Boolean).map(familyId));
+    const seenFamilies = new Set([...seen].map(id => catalogByEpisode.get(episodeKey(id))).filter(Boolean).map(familyId));
     const cycleReset = body.mode === "reserve" && !fresh.length && eligible.length > 0;
     const cycleGeneration = (current.cycleGeneration || 0) + (cycleReset ? 1 : 0);
     if (cycleReset) { seen.clear(); seenEpisodes.clear(); fresh = eligible; reserved = []; }

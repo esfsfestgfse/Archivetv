@@ -1,8 +1,24 @@
 /* File qualification is distinct from discovery and from decoded-frame
    telemetry. Transport verification never claims device decode success. */
 const SHORT_FORM = new Set(['13', '236', '501', '509']);
+// Complete original cartoons, not arbitrary short uploads. The relay has the
+// same reviewed collection identities; admission parity is covered by tests.
+const COMPLETE_CARTOON_SHORT_PARENTS = new Set([
+  'looney-tunes-complete', 'popeye-the-sailor-the-complete-series',
+  'the-pink-panther-cartoon-collection', 'roger-ramjet', 'felix-the-cat-1959',
+  '017-betty-boop-rudy-vallee-melodies-1932-screen-songs-ld-rip',
+  'woody-woodpecker-filmography', 'dudley-do-right-complete-720-540',
+  'tennessee-tuxedo-season-1', 'tennessee-tuxedo-season-2', 'tennessee-tuxedo-season-3',
+  'walt-disneys-silly-symphonies-the-complete-collection-1929-39',
+  'WDTWaveTwo_TheCompleteGoofy', 'WDTWaveFour_TheCompletePluto',
+  'mighty-mouse_202305', 'colonelbleep_s1',
+]);
 const INTERNATIONAL = new Set(['106', '107', '114', '115', '119', '120', '151']);
 const FEATURES = new Set(['100', '101', '102', '103', '105', '106', '107', '108', '110', '111', '112', '114', '115', '116', '117', '119', '120', '124', '125', '132', '135', '700', '701', '702']);
+
+export function iaReviewedCartoonSource(raw = {}) {
+  return COMPLETE_CARTOON_SHORT_PARENTS.has(normalizeIaFileRecord(raw).sourceIdentifier);
+}
 
 export function iaGameShowYear(item = {}) {
   // Episode filenames and dates describe the broadcast; Archive year often
@@ -27,6 +43,7 @@ export function iaGameShowEraAllowed(item, channel) {
 export function iaMinimumFileRuntimeSeconds(rules = {}) {
   if (Array.isArray(rules.mediaTypes) && rules.mediaTypes.length && !rules.mediaTypes.includes('movies') && !rules.mediaTypes.includes('video')) return 0;
   const requested = Math.max(0, Number(rules.minRuntimeSeconds) || 0), channel = String(rules.channel || '');
+  if (channel === '150') return Math.max(requested, 120);
   return SHORT_FORM.has(channel) ? requested : Math.max(requested, FEATURES.has(channel) ? 3600 : 900);
 }
 
@@ -55,6 +72,7 @@ export function normalizeIaFileRecord(raw = {}) {
   const aspectRatio = width > 0 && height > 0 ? width / height : Number(media.aspectRatio || raw.aspectRatio) || 0;
   const stem = fileName.toLowerCase().replace(/\.(?:mp4|m4v|mov|ogv|webm|mp3|flac|ogg|oga|wav|m4a|aac)$/i, '')
     .replace(/(?:[._ -](?:ia|h\.?264|avc|x264|mpeg4|webm|ogv|\d{2,4}kb|orig|original|source|low|small|preview|proxy))+$/i, '')
+    .replace(/\s*\[comm\]\s*$/i, '').trim()
     // Some collection derivatives repeat a matching episode index twice.
     .replace(/^(\d+)\s+episode\s*,?\s*(\d+)\b/i, (all, index, episode) => Number(index) === Number(episode) ? 'episode ' + Number(episode) : all)
     .replace(/^episode\s*,?\s*(\d+)\b/i, (_, episode) => 'episode ' + Number(episode));
@@ -84,10 +102,12 @@ export function qualifyIaFileRecord(raw, rules = {}, now = Date.now()) {
     return { accepted: !Array.isArray(rules.mediaTypes) || !rules.mediaTypes.length || rules.mediaTypes.includes('audio'), reason: 'audio-contract', item };
   }
   const text = [item.title, item.description, item.subject, item.fileName].filter(Boolean).join(' ').toLowerCase();
-  if (/\b(?:podcast|vodcast|fan[- ]?made|fan[- ]?(?:film|movie|edit)|fanfic|unofficial remake|reaction video|parody|spoof)\b/i.test(text)) return reject('policy-contamination');
-  if (/\b(?:vertical|portrait|shorts|9\s*:\s*16)\b/i.test(text) || (item.aspectRatio && item.aspectRatio <= 1)) return reject('portrait-media');
-  if (!item.aspectRatio) return reject('unknown-geometry', true);
   const channel = String(rules.channel || '');
+  const completeCartoon = channel === '150' && COMPLETE_CARTOON_SHORT_PARENTS.has(item.sourceIdentifier)
+    && !/\b(?:clip|trailer|preview|teaser|promo|bumper|intro|introduction|outro|review|reaction|tutorial|interview|bonus|menu|featurette|tiktok|reels)\b|#shorts|youtube shorts/i.test(text);
+  if (/\b(?:podcast|vodcast|fan[- ]?made|fan[- ]?(?:film|movie|edit)|fanfic|unofficial remake|reaction video|parody|spoof)\b/i.test(text)) return reject('policy-contamination');
+  if (/\b(?:vertical|portrait|9\s*:\s*16)\b/i.test(text) || (/\bshorts\b/i.test(text) && !completeCartoon) || (item.aspectRatio && item.aspectRatio <= 1)) return reject('portrait-media');
+  if (!item.aspectRatio) return reject('unknown-geometry', true);
   if (channel === '150' && /\b(?:noods|network ident|logo compilation|bumper compilation|animated background|background video loop|stock animation|stock footage|motion graphics|screensaver)\b/i.test(text)) return reject('off-genre');
   if (channel === '150' && /\b(?:pt[- _.]?br|dublado|dublagem|em portugu[eê]s)\b/i.test(text)) return reject('non-english-edition');
   if (channel === '150' && item.sourceIdentifier === 'fat-albert-72' && /\((?:alternate version|attention study|1984 version|banned and uncensored version)\)/i.test(text)) return reject('duplicate-edition');
@@ -95,6 +115,7 @@ export function qualifyIaFileRecord(raw, rules = {}, now = Date.now()) {
   if (!iaGameShowEraAllowed(item, channel)) return reject('wrong-era');
   const floor = iaMinimumFileRuntimeSeconds(rules);
   if (!item.runtimeSeconds) return reject('unknown-runtime', true);
+  if (channel === '150' && item.runtimeSeconds < 900 && !completeCartoon) return reject('unreviewed-cartoon-short');
   if (item.runtimeSeconds < floor) return reject('short-runtime');
   if (!INTERNATIONAL.has(channel) && item.language && !/(?:^|[,; /])(?:eng|en|english)(?:$|[,; /])/.test(item.language)) return reject('non-english-edition');
   if (item.verification === 'failed' || raw.playability === 'failed') return reject('failed-media');

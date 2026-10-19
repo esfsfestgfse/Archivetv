@@ -55,6 +55,6 @@
 
 - [x] Inspect real Archive manifests from identified blocked collections at low concurrency; count deduplicated, landscape, runtime-qualified children by channel and parent.
 - [x] Exercise actual expansion against captured manifests, probe representative media, and compare old/new counts.
-- [ ] Run all repository CI commands and one bounded independent whole-change review; fix Important findings with RED/GREEN tests.
-- [ ] Canary real browser playback/Next/guide and perform low-concurrency hosted rotation checks after deployment.
-- [ ] Commit, push, and verify deployment of 5.6.11; publish evidence with remaining depth/genre limitations.
+- [x] Run all repository CI commands and one bounded independent whole-change review; fix Important findings with RED/GREEN tests.
+- [x] Canary real browser playback/Next/guide and perform low-concurrency hosted rotation checks after deployment. Record slow Next recovery and two reproducible repeat-heavy hosted lanes; do not claim a clean all-freshness gate.
+- [x] Commit, push, and verify deployment of 5.6.11; publish evidence with remaining depth/genre limitations.

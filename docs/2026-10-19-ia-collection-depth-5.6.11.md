@@ -49,9 +49,19 @@ Britcom and Adult Animation's sampled starters were single-program items and cor
 
 ## Rollout and remaining work
 
-Release/deployment and hosted checks are recorded after the production rollout. The previous runtime release was 5.6.10; desktop/mobile tab titles and visible build stamps, cache-busting asset parameters, and API health now identify 5.6.11.
+Runtime commit: **3c1cd81627cfe2cbbe854ff6f2cb72781e045c4a**, pushed normally to main. [Hosted CI](https://github.com/esfsfestgfse/Archivetv/actions/runs/39331258573), [API deployment](https://github.com/esfsfestgfse/Archivetv/actions/runs/39331258553), [relay deployment](https://github.com/esfsfestgfse/Archivetv/actions/runs/39331258496), [Publish RealSignal](https://github.com/esfsfestgfse/Archivetv/actions/runs/39331258597), and legacy Pages deployment all completed successfully.
 
-Next work should target actual underfilled catalogs—starting with Auto Archive's cold-ready depth and sampled single-program Britcom/Adult Animation parents—then measure longer viewer rotations. This release unlocks existing parent depth; it does not claim infinite inventory, zero provider outages, or complete physical-device certification.
+Public desktop/mobile HTML returned HTTP 200 with 5.6.11 in both tab titles and visible build strings. API health reports `5.6.11-ia-collection-depth-unlock`. The previous runtime release was 5.6.10.
+
+The published desktop build also decoded a deeper Modern Cartoons selection, **The Powerpuff Girls, Season 6 — West in Pieces**, at 720×540 with readyState 4 and advancing playback time. This is actual hosted video, not merely a metadata or queue response.
+
+Hosted availability checks covered **170 canonical IA channels**: zero request errors, zero empty shelves, zero missing media URLs, and three resolved items per shelf. The Weather Loop (509) reported only four catalog candidates. This is queue availability, not a 170-channel decoded first-frame certification. The initial local report write hit an operating-system file error after 42 completed lanes; the remaining lanes were resumed without repeating them, using a compact report.
+
+Twelve acknowledged skip rotations on each of 18 hosted lanes selected 216 programs, 207 unique per-lane selections, with zero request/admission errors. Sixteen lanes had no repeats: 10, 12, 22, 150, 153, 123, 220, 227, 243, 244, and 704–709. **Modern Rerun TV (11) repeated six selections; Blighty (118) repeated three.** A fresh-session retest reproduced repeats in both. These are remaining bugs, not legitimate exhaustion certificates. The test's telemetry uses queue selections and skip acknowledgements, not full episode playback.
+
+A later browser TV skip also needed slow recovery before decoding resumed. This release does not certify instantaneous switching or consistently fast Next behavior. The availability pass must not be used to hide that distinction.
+
+Next work should fix the **reproduced Modern Rerun TV / Blighty rotation failures and slow TV skip recovery first**, then deepen genuinely constrained catalogs (Auto Archive's empty-cache starters, sampled single-program Britcom/Adult Animation parents, and Weather Loop). Auto Archive's hosted 12-skip sample was repeat-free even though the isolated empty-cache session remained shallow. This release unlocks existing parent depth; it does not claim infinite inventory, zero provider outages, or complete physical-device certification.
 
 ## Decisions and tradeoffs
 

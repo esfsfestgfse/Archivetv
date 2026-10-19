@@ -19,7 +19,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "5.6.9-ia-depth-complete-cartoons";
+const V3_RELEASE = "5.6.10-ia-resolved-shelf-rotation";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -549,12 +549,12 @@ function stableCatalogItems(items, body, limit = body && body.iaRepair === true 
 function limitPublicIaShelf(payload, count) {
   if (!payload || typeof payload !== "object") return payload;
   const requested = Math.max(1, Math.min(5, Number(count) || 3));
-  const items = Array.isArray(payload.items) ? payload.items.slice(0, requested) : [];
+  const items = Array.isArray(payload.items) ? payload.items.filter(queueItemPlayable).slice(0, requested) : [];
   const rawReady = Number(payload.ready);
   const ready = Number.isFinite(rawReady)
     ? Math.min(requested, Math.max(0, rawReady), items.length)
     : items.length;
-  return { ...payload, items, ready };
+  return { ...payload, items, ready, partial: items.length < requested };
 }
 
 function catalogJob(body, payload) {
@@ -680,7 +680,7 @@ async function upsertCatalogJob(env, job) {
 async function rotateShelf(env, body, payload, request) {
   if (!env.ROTATION || typeof env.ROTATION.getByName !== "function") {
     if (body.iaRepair === true) throw new Error("IA reservation binding unavailable");
-    return { payload, rotation: { configured: false } };
+    return { payload: body.sourceCatalog === true ? payload : localRotationFallback(payload, body), rotation: { configured: false } };
   }
   const sessionHeader = request && request.headers ? request.headers.get("x-realsignal-session") : "";
   const session = safeSession(body.sessionId || body.session || sessionHeader || `ip-${requestClientKey(request)}`);
@@ -690,7 +690,8 @@ async function rotateShelf(env, body, payload, request) {
   const rawCandidates = Array.isArray(payload && payload.candidateItems) && payload.candidateItems.length
     ? payload.candidateItems
     : ((payload && payload.items) || []);
-  const candidates = uniqueQueueItems(rawCandidates, body);
+  const candidates = uniqueQueueItems(body.sourceCatalog === true || reservationMode ? rawCandidates
+    : [...(payload.items || []), ...rawCandidates], body);
   const count = Math.max(1, Math.min(5, Number(body.count) || 3));
   /* Freshness is bounded by the available catalog. Excluding a recent window
      larger than catalog size minus the requested shelf can leave the DO with
@@ -700,6 +701,7 @@ async function rotateShelf(env, body, payload, request) {
   const recentLimit = candidates.length >= count ? Math.max(0, candidates.length - count) : recentValues.length;
   const boundedRecentIds = freshnessExclusionIds(body, reservationMode ? recentValues.length : recentLimit);
   const selectBody = { items: candidates, recentIds: boundedRecentIds, count, rotation: Number(body.rotation) || 0,
+    ...(body.sourceCatalog !== true ? { requirePlayable: true } : {}),
     ...(reservationMode ? { mode: "reserve", diversity: body.diversity || {}, rules: body, rejectedIds: body.iaRejectedIds || [] } : {}) };
   const response = await stub.fetch(new Request("https://rotation.internal/select", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(selectBody) }));
   if (!response.ok) throw new Error(`rotation ${response.status}`);
@@ -735,9 +737,9 @@ async function rotateShelf(env, body, payload, request) {
     const media = item && item.media;
     return Boolean((media && media.url) || item && item.mediaUrl || item && item.url);
   }).length;
-  const selectedReady = Math.max(upstreamReady, playableSelected);
+  const selectedReady = body.sourceCatalog === true ? Math.max(upstreamReady, playableSelected) : playableSelected;
   const exhaustion = selected && selected.exhaustion && typeof selected.exhaustion === 'object' ? selected.exhaustion : {};
-  return { payload: { ...payload, items: selectedItems, candidateItems: selectedCatalog, candidates: selectedCatalog.length, ready: Math.min(selectedReady, selectedItems.length), v2: { sessionScoped: true, cursor: selected.cursor, cycleReset: !!selected.cycleReset, ...(reservationMode ? { cycleGeneration: Number(selected.cycleGeneration) || 0 } : {}), catalogSize: Number(selected.catalogSize) || selectedCatalog.length, catalogAdded: Number(selected.catalogAdded) || 0, unseen: Number(selected.unseen) || 0, seenInCatalog: Number(exhaustion.seenInCatalog) || 0, seenInCatalogBeforeSelection: Number(exhaustion.seenInCatalogBeforeSelection) || 0, unseenBeforeSelection: Number(exhaustion.unseenBeforeSelection) || 0, unseenAfterSelection: Number(exhaustion.unseenAfterSelection) || 0, catalogExhausted: !!exhaustion.catalogExhausted, repeatAllowed: !!exhaustion.repeatAllowed, selectionRepeatIds: Array.isArray(selected.selectionRepeatIds) ? selected.selectionRepeatIds : [] } }, rotation: selected };
+  return { payload: { ...payload, items: selectedItems, candidateItems: selectedCatalog, candidates: selectedCatalog.length, ready: Math.min(selectedReady, selectedItems.length), v2: { sessionScoped: true, cursor: selected.cursor, cycleReset: !!selected.cycleReset, ...(reservationMode ? { cycleGeneration: Number(selected.cycleGeneration) || 0 } : {}), ...(body.sourceCatalog !== true && !reservationMode ? { playableCatalogSize: Number(selected.playableCatalogSize) || 0, pendingCatalogSize: Number(selected.pendingCatalogSize) || 0, exhaustionScope: "resolved-session-window" } : {}), catalogSize: Number(selected.catalogSize) || selectedCatalog.length, catalogAdded: Number(selected.catalogAdded) || 0, unseen: Number(selected.unseen) || 0, seenInCatalog: Number(exhaustion.seenInCatalog) || 0, seenInCatalogBeforeSelection: Number(exhaustion.seenInCatalogBeforeSelection) || 0, unseenBeforeSelection: Number(exhaustion.unseenBeforeSelection) || 0, unseenAfterSelection: Number(exhaustion.unseenAfterSelection) || 0, catalogExhausted: !!exhaustion.catalogExhausted, repeatAllowed: !!exhaustion.repeatAllowed, selectionRepeatIds: Array.isArray(selected.selectionRepeatIds) ? selected.selectionRepeatIds : [] } }, rotation: selected };
 }
 
 async function handleIaPlayback(request, env, ctx, requestId) {
@@ -1320,14 +1322,14 @@ function localRotationFallback(payload, body) {
   const count = Math.max(1, Math.min(5, Number(body && body.count) || 3));
   const candidateItems = stableCatalogItems(
     Array.isArray(payload && payload.candidateItems) && payload.candidateItems.length
-      ? payload.candidateItems
+      ? body.sourceCatalog === true || body.iaRepair === true ? payload.candidateItems : [...(payload.items || []), ...payload.candidateItems]
       : ((payload && payload.items) || []),
     body,
     MAX_CATALOG_ITEMS,
   );
-  const fresh = applyFreshness(candidateItems, body);
+  const fresh = applyFreshness(body.sourceCatalog === true ? candidateItems : candidateItems.filter(queueItemPlayable), body);
   const playable = fresh.filter((item) => item && ((item.media && item.media.url) || item.mediaUrl || item.url));
-  const source = playable.length >= count ? playable : fresh;
+  const source = body.sourceCatalog !== true || playable.length >= count ? playable : fresh;
   const rotationStep = body && body.sourceCatalog === true ? 1 : count;
   const items = rotateCatalogItems(source, (Number(body && body.rotation) || 0) * rotationStep).slice(0, count);
   const playableSelected = items.filter((item) => item && ((item.media && item.media.url) || item.mediaUrl || item.url)).length;
@@ -1336,7 +1338,7 @@ function localRotationFallback(payload, body) {
     items,
     candidateItems,
     candidates: candidateItems.length,
-    ready: playable.length >= count ? playableSelected : items.length,
+    ready: body.sourceCatalog !== true || playable.length >= count ? playableSelected : items.length,
     fallback: true,
     v2: {
       sessionScoped: false,
@@ -1404,6 +1406,15 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
     ? `SELECT p.* FROM programs p JOIN channel_programs cp ON cp.program_id=p.id LEFT JOIN channel_freshness cf ON cf.channel_key=? AND cf.program_id=p.id WHERE cp.channel_key=? AND p.status='active' AND p.media_url IS NOT NULL AND CAST(json_extract(CASE WHEN json_valid(p.metadata_json) THEN p.metadata_json ELSE '{}' END,'$.seriesDecade') AS INTEGER)=? ORDER BY CASE WHEN cf.last_served_at IS NULL THEN 0 ELSE 1 END, cf.last_served_at ASC, cp.last_seen_at DESC LIMIT ?`
     : deepCatalog
     ? `SELECT p.* FROM programs p JOIN channel_programs cp ON cp.program_id=p.id LEFT JOIN channel_freshness cf ON cf.channel_key=? AND cf.program_id=p.id WHERE cp.channel_key=? AND p.status='active' AND p.media_url IS NOT NULL ORDER BY CASE WHEN cf.last_served_at IS NULL THEN 0 ELSE 1 END, cf.last_served_at ASC, cp.last_seen_at DESC LIMIT ?`
+    : effectiveBody.sourceCatalog !== true
+    ? `SELECT p.* FROM programs p JOIN channel_programs cp ON cp.program_id=p.id
+       WHERE cp.channel_key=? AND p.status='active' AND (p.media_url IS NOT NULL
+         OR json_extract(CASE WHEN json_valid(p.metadata_json) THEN p.metadata_json ELSE '{}' END,'$.mediaUrl') IS NOT NULL
+         OR json_extract(CASE WHEN json_valid(p.metadata_json) THEN p.metadata_json ELSE '{}' END,'$.media_url') IS NOT NULL)
+       ORDER BY CASE WHEN COALESCE(NULLIF(TRIM(p.media_url),''),
+         NULLIF(TRIM(json_extract(CASE WHEN json_valid(p.metadata_json) THEN p.metadata_json ELSE '{}' END,'$.mediaUrl')),''),
+         NULLIF(TRIM(json_extract(CASE WHEN json_valid(p.metadata_json) THEN p.metadata_json ELSE '{}' END,'$.media_url')),'')) IS NOT NULL
+         THEN 0 ELSE 1 END, cp.last_seen_at DESC LIMIT ?`
     : `SELECT p.* FROM programs p JOIN channel_programs cp ON cp.program_id=p.id WHERE cp.channel_key=? AND p.status='active' AND p.media_url IS NOT NULL ORDER BY cp.last_seen_at DESC LIMIT ?`;
   const now = Date.now();
   const bindings = repairCatalog
@@ -1740,7 +1751,7 @@ async function handleQueue(request, env, ctx, id) {
          then walks unseen rows from the larger catalog on later Next actions. */
       const fastCatalog = await catalogFallback(env, body, catalogLimit, { ignoreFreshness: true });
       const fastDepthFloor = IA_BROAD_STATION_FAST_DEPTH.get(String(body.channel)) || IA_MIN_ROLLING_CATALOG_DEPTH;
-      const fastDepth = Array.isArray(fastCatalog && fastCatalog.candidateItems) ? fastCatalog.candidateItems.length : 0;
+      const fastDepth = Array.isArray(fastCatalog && fastCatalog.candidateItems) ? fastCatalog.candidateItems.filter(queueItemPlayable).length : 0;
       const emergencyShelfOnly = fastDepth > 0 && fastDepth <= count + 1;
       if (fastCatalog && Array.isArray(fastCatalog.items) && fastCatalog.items.length
         && Array.isArray(fastCatalog.candidateItems) && (emergencyShelfOnly || fastDepth >= fastDepthFloor)) {
@@ -1748,12 +1759,12 @@ async function handleQueue(request, env, ctx, id) {
         // Repaired IA stations keep importing new qualified identities on a
         // bounded background cadence, even when their old D1 shelf is full.
         const repairRefresh = body.iaRepair === true;
-        if ((repairRefresh || fastCatalog.candidateItems.length < IA_MIN_ROLLING_CATALOG_DEPTH)
+        if ((repairRefresh || fastDepth < IA_MIN_ROLLING_CATALOG_DEPTH)
           && shouldRefreshShallowCatalog(body.channel, repairRefresh ? 300_000 : 30_000)) {
           /* Keep the first frame on the local verified shelf. Refill a shallow
              fast lane from the relay asynchronously so discovery never blocks
              a tune and the next visit sees a wider rotation catalog. */
-          ctx.waitUntil(refreshShallowCatalog(env, request, body, id, fastCatalog.candidateItems.length));
+          ctx.waitUntil(refreshShallowCatalog(env, request, body, id, fastDepth));
         }
         let fastRotated;
         try { fastRotated = await rotateShelf(env, body, fastCatalog, request); }
@@ -1807,7 +1818,9 @@ async function handleQueue(request, env, ctx, id) {
     }
     const upstreamItems = uniqueQueueItems(Array.isArray(payload && payload.items) ? payload.items : [], body, catalogLimit);
     const upstreamCandidates = uniqueQueueItems(
-      Array.isArray(payload && payload.candidateItems) && payload.candidateItems.length ? payload.candidateItems : upstreamItems,
+      Array.isArray(payload && payload.candidateItems) && payload.candidateItems.length
+        ? body.iaRepair === true ? payload.candidateItems : [...upstreamItems, ...payload.candidateItems]
+        : upstreamItems,
       body,
       catalogLimit,
     );

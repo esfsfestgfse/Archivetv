@@ -29,7 +29,11 @@ function cleanItems(items, limit = MAX_ITEMS) {
   return out;
 }
 
-function mergeCatalog(existing, incoming, seenIds, limit = MAX_ITEMS) {
+function resolvedMedia(item) {
+  return /^https?:\/\//i.test(String(item?.media?.url || item?.mediaUrl || item?.url || '').trim());
+}
+
+function mergeCatalog(existing, incoming, seenIds, limit = MAX_ITEMS, requirePlayable = false) {
   const played = new Set(Array.isArray(seenIds) ? seenIds : []);
   const merged = [];
   const positions = new Map();
@@ -52,6 +56,10 @@ function mergeCatalog(existing, incoming, seenIds, limit = MAX_ITEMS) {
      of the active upstream windows without letting the DO grow unbounded. */
   const unseen = merged.filter((item) => !played.has(itemId(item)));
   const playedItems = merged.filter((item) => played.has(itemId(item)));
+  // Pending discovery cannot occupy every bounded rotation slot while a
+  // resolved first-play item waits outside the window. D1 keeps the full index.
+  if (requirePlayable) return [...unseen.filter(resolvedMedia), ...playedItems.filter(resolvedMedia),
+    ...unseen.filter(item => !resolvedMedia(item)), ...playedItems.filter(item => !resolvedMedia(item))].slice(0, limit);
   return unseen.concat(playedItems).slice(0, limit);
 }
 
@@ -131,8 +139,9 @@ function appendBalanced(selected, pool, count, diversity = {}) {
 export class SessionRotation {
   constructor(ctx, env) { this.ctx = ctx; this.env = env; }
 
-  async state(limit = MAX_ITEMS) {
-    const value = (limit === MAX_RESERVATION_ITEMS && await readIaChunkedState(this.ctx.storage, 'ia-reservation')) || await this.ctx.storage.get("rotation");
+  async state(limit = MAX_ITEMS, requirePlayable = false) {
+    const prefix = limit === MAX_RESERVATION_ITEMS ? 'ia-reservation' : requirePlayable ? 'ia-rotation' : '';
+    const value = (prefix && await readIaChunkedState(this.ctx.storage, prefix)) || await this.ctx.storage.get("rotation");
     if (!value || typeof value !== "object") return { version: 2, catalog: [], seen: [], cursor: 0, updatedAt: 0 };
     return {
       version: 2,
@@ -162,20 +171,25 @@ export class SessionRotation {
       .map((value) => String(value || "").trim().slice(0, 500))
       .filter(Boolean)
       .slice(-48));
-    const current = await this.state();
-    const catalog = mergeCatalog(current.catalog, rawCandidates, current.seen);
+    const current = await this.state(MAX_ITEMS, body.requirePlayable === true);
+    const catalog = mergeCatalog(current.catalog, rawCandidates, current.seen, MAX_ITEMS, body.requirePlayable === true);
+    // Keep discovery records in the durable catalog, but never select them as
+    // on-air media or mark them seen while their playback URL is unresolved.
+    const eligible = body.requirePlayable === true
+      ? catalog.filter(resolvedMedia)
+      : catalog;
     const prior = new Set(current.seen);
-    const globallyFresh = recent.size ? catalog.filter((item) => !recent.has(itemId(item))) : catalog;
+    const globallyFresh = recent.size ? eligible.filter((item) => !recent.has(itemId(item))) : eligible;
     const sessionFresh = globallyFresh.filter((item) => !prior.has(itemId(item)));
     /* Prefer rows outside the cross-session freshness window, but fall back to
        any session-unseen row before resetting. The pool is the persisted union,
        not the latest upstream shelf, so changing relay pages cannot replay an
        item that this session has already consumed. */
-    const alternateSessionFresh = catalog.filter((item) => !prior.has(itemId(item)));
+    const alternateSessionFresh = eligible.filter((item) => !prior.has(itemId(item)));
     const candidates = cleanItems([...sessionFresh, ...alternateSessionFresh]);
     let fresh = candidates;
     let cycleReset = false;
-    if (!fresh.length && catalog.length) { fresh = catalog; cycleReset = true; }
+    if (!fresh.length && eligible.length) { fresh = eligible; cycleReset = true; }
     const limit = Math.max(1, Math.min(5, Number(body && body.count) || 3));
     /* When a catalog is genuinely exhausted, begin the new cycle at a shelf
        boundary. Advancing by one record here made the first post-exhaustion
@@ -190,9 +204,9 @@ export class SessionRotation {
     const selectedIds = selected.map(itemId).filter(Boolean);
     const selectionRepeatIds = cycleReset ? [] : selectedIds.filter((id) => prior.has(id));
     const seenAfterSelection = new Set(cycleReset ? selectedIds : current.seen.concat(selectedIds));
-    const seenInCatalogBeforeSelection = catalog.filter((item) => prior.has(itemId(item))).length;
-    const unseenAfterSelection = catalog.filter((item) => !seenAfterSelection.has(itemId(item))).length;
-    const seenInCatalog = catalog.length - unseenAfterSelection;
+    const seenInCatalogBeforeSelection = eligible.filter((item) => prior.has(itemId(item))).length;
+    const unseenAfterSelection = eligible.filter((item) => !seenAfterSelection.has(itemId(item))).length;
+    const seenInCatalog = eligible.length - unseenAfterSelection;
     const next = {
       version: 2,
       catalog,
@@ -200,7 +214,10 @@ export class SessionRotation {
       cursor: current.cursor + 1,
       updatedAt: Date.now(),
     };
-    await this.ctx.storage.put("rotation", next);
+    if (body.requirePlayable === true && (new TextEncoder().encode(JSON.stringify(next)).length >= 120_000
+      || await this.ctx.storage.get('ia-rotation:index'))) {
+      await this.ctx.storage.transaction(storage => writeIaChunkedState(storage, 'ia-rotation', next));
+    } else await this.ctx.storage.put("rotation", next);
     return Response.json({
       items: selected,
       catalog,
@@ -209,9 +226,11 @@ export class SessionRotation {
       seen: next.seen.length,
       catalogSize: catalog.length,
       catalogAdded: Math.max(0, catalog.length - current.catalog.length),
+      ...(body.requirePlayable === true ? { playableCatalogSize: eligible.length, pendingCatalogSize: catalog.length - eligible.length } : {}),
       unseen: unseenAfterSelection,
       exhaustion: {
         catalogSize: catalog.length,
+        ...(body.requirePlayable === true ? { scope: 'resolved-session-window', playableCatalogSize: eligible.length, pendingCatalogSize: catalog.length - eligible.length } : {}),
         seenInCatalog,
         seenInCatalogBeforeSelection,
         unseenBeforeSelection: cycleReset ? 0 : fresh.length,

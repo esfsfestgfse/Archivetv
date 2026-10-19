@@ -341,6 +341,118 @@ test('a played parent ID stays watched when the same exact file is later indexed
   assert.equal(next.cycleReset,false,'an identity upgrade cannot erase playback history');
 });
 
+test('standard IA D1 rotation cannot replace a resolved shelf with metadata-only catalog rows',async()=>{
+  const pending=Array.from({length:24},(_,i)=>row('pending-'+i+'.mp4',{media:{type:'video',url:''}}));
+  const ready=Array.from({length:24},(_,i)=>row('ready-'+i+'.mp4'));
+  const f=await sqliteCatalogFixture([...pending,...ready],'70');
+  const response=await f.request('queue',{channel:'70',serverCatalog:true,sessionId:'ready-only',count:3});
+  const payload=await response.json();
+  assert.equal(response.status,200);
+  assert.equal(response.headers.get('x-realsignal-source'),'d1-catalog-fast-lane+session-rotation');
+  assert.equal(payload.ready,3);
+  assert.ok(payload.items.every(item=>item.media?.url),'every ready row must have resolved media');
+  assert.equal(payload.candidateItems.length,48,'pending discovery is retained, not deleted');
+  await Promise.all(f.pending);
+});
+
+test('ordinary IA SQL windows prioritize older resolved media before a newer metadata-only burst',async()=>{
+  const pending=Array.from({length:130},(_,i)=>row('pending-'+i+'.mp4',{media:{type:'video',url:''}}));
+  const f=await sqliteCatalogFixture([...pending,row('older-A.mp4'),row('older-B.mp4'),row('older-C.mp4')],'70');
+  const response=await f.request('queue',{channel:'70',serverCatalog:true,sessionId:'older-ready',count:3});
+  const payload=await response.json();
+  assert.equal(payload.ready,3);
+  assert.deepEqual(payload.items.map(x=>x.identifier).sort(),['benson::older-A.mp4','benson::older-B.mp4','benson::older-C.mp4']);
+  assert.equal(response.headers.get('x-realsignal-source'),'d1-catalog-fast-lane+session-rotation','resolved D1 media must not wait for relay discovery');
+  await Promise.all(f.pending);
+});
+
+test('standard IA rotation keeps unresolved records out of the ready shelf and seen ledger',async()=>{
+  const [{SessionRotation}]=await modules,ctx=rotationContext(),object=new SessionRotation(ctx,{});
+  const select=async body=>(await object.fetch(new Request('https://rotation.internal/select',{method:'POST',body:JSON.stringify(body)}))).json();
+  const pending=Array.from({length:5},(_,i)=>({identifier:'pending-'+i,title:'Pending episode '+i,media:{type:'video',url:''}}));
+  const ready=[row('A.mp4'),row('B.mp4'),row('C.mp4')];
+  const first=await select({items:[...pending,...ready],count:3,requirePlayable:true});
+  assert.deepEqual(first.items.map(x=>x.identifier).sort(),['benson::A.mp4','benson::B.mp4','benson::C.mp4']);
+  assert.equal(first.catalog.length,8);
+  assert.ok(ctx.snapshot().seen.every(id=>!id.startsWith('pending-')),'a metadata preload is not a watch');
+  const hydrated={...pending[0],media:{type:'video',url:'https://archive.org/download/pending/episode.mp4'}};
+  const next=await select({items:[hydrated],count:3,requirePlayable:true});
+  assert.deepEqual(next.items.map(x=>x.identifier),['pending-0'],'newly hydrated inventory stays unseen until selected');
+  assert.equal(next.cycleReset,false);
+});
+
+test('standard IA state from an older deployment cannot inject unresolved rows into a later ready shelf',async()=>{
+  const [{SessionRotation}]=await modules,ctx=rotationContext({catalog:[{identifier:'legacy-pending',media:{url:''}},row('A.mp4'),row('B.mp4')],seen:[],cursor:0});
+  const object=new SessionRotation(ctx,{});
+  const result=await object.fetch(new Request('https://rotation.internal/select',{method:'POST',body:JSON.stringify({items:[row('C.mp4')],count:3,requirePlayable:true})}));
+  const payload=await result.json();
+  assert.ok(payload.items.every(x=>x.media?.url));
+  assert.equal(payload.items.length,3);assert.equal(payload.catalog.length,4);
+});
+
+test('a full legacy metadata window cannot crowd newly resolved IA media out of rotation',async()=>{
+  const [{SessionRotation}]=await modules;
+  const ctx=rotationContext({catalog:Array.from({length:96},(_,i)=>({identifier:'pending-'+i,media:{url:''}})),seen:[],cursor:0});
+  const object=new SessionRotation(ctx,{});
+  const result=await object.fetch(new Request('https://rotation.internal/select',{method:'POST',body:JSON.stringify({items:[row('A.mp4'),row('B.mp4'),row('C.mp4')],count:3,requirePlayable:true})}));
+  const payload=await result.json();
+  assert.equal(payload.items.length,3);assert.ok(payload.items.every(x=>x.media?.url));
+  assert.equal(payload.catalog.length,96,'keep the existing bounded window');
+});
+
+test('large IA session catalogs preserve the seen ledger within real storage value limits',async()=>{
+  const [{SessionRotation}]=await modules,ctx=rotationContext(),object=new SessionRotation(ctx,{});
+  const items=Array.from({length:96},(_,i)=>row('large-'+i+'.mp4',{description:'é'.repeat(2000)}));
+  const send=async body=>(await object.fetch(new Request('https://rotation.internal/select',{method:'POST',body:JSON.stringify(body)}))).json();
+  const first=await send({items,count:3,requirePlayable:true});
+  const next=await send({items,count:3,requirePlayable:true});
+  assert.equal(first.catalogSize,96);assert.equal(next.catalogSize,96);
+  assert.ok(next.items.every(item=>!first.items.some(old=>old.identifier===item.identifier)),'overflow must not discard rotation history');
+  for(const value of ctx.data.values())assert.ok(Buffer.byteLength(JSON.stringify(value))<128*1024);
+});
+
+test('resolved upstream IA shelf survives a separate metadata-only candidate list',async()=>{
+  const f=await fixture(),items=[row('ready-A.mp4'),row('ready-B.mp4'),row('ready-C.mp4')];
+  f.env.RELAY.fetch=async()=>Response.json({ready:3,items,candidateItems:Array.from({length:96},(_,i)=>row('pending-'+i+'.mp4',{media:{type:'video',url:''}}))});
+  const payload=await(await f.request('queue',{channel:'51',serverCatalog:true,sessionId:'separate-ready',count:3})).json();
+  assert.equal(payload.ready,3);assert.deepEqual(new Set(payload.items.map(x=>x.identifier)),new Set(items.map(x=>x.identifier)));
+  await Promise.all(f.pending);
+});
+
+test('one resolved IA item stays playable during rotation outage without padding readiness with metadata',async()=>{
+  const f=await fixture();delete f.env.ROTATION;
+  f.incoming([row('A-pending.mp4',{media:{type:'video',url:''}}),row('B-pending.mp4',{media:{type:'video',url:''}}),row('Z-ready.mp4')]);
+  const payload=await (await f.request('queue',{channel:'51',serverCatalog:true,sessionId:'outage',count:3})).json();
+  assert.equal(payload.ready,1);
+  assert.deepEqual(payload.items.map(x=>x.identifier),['benson::Z-ready.mp4']);
+  assert.equal(payload.candidateItems.length,3);
+  await Promise.all(f.pending);
+});
+
+test('outage fallback prefers a resolved recent item over an unresolved unseen catalog',async()=>{
+  const f=await fixture();delete f.env.ROTATION;
+  f.incoming([...Array.from({length:4},(_,i)=>row('pending-'+i+'.mp4',{media:{type:'video',url:''}})),row('ready.mp4')]);
+  const payload=await(await f.request('queue',{channel:'51',serverCatalog:true,sessionId:'recent-outage',recentIds:['benson::ready.mp4'],count:3})).json();
+  assert.equal(payload.ready,1);assert.equal(payload.items[0].identifier,'benson::ready.mp4');
+  await Promise.all(f.pending);
+});
+
+test('standard IA handoff repair does not reorder guarded upstream reservations',async()=>{
+  const f=await fixture(),candidateItems=[row('B.mp4'),row('C.mp4'),row('D.mp4')];
+  f.env.RELAY.fetch=async()=>Response.json({ready:1,items:[row('A.mp4')],candidateItems});
+  const payload=await(await f.request('queue',{channel:'10',iaRepair:true,serverCatalog:true,sessionId:'guarded-order',count:3})).json();
+  assert.deepEqual(payload.items.map(item=>item.identifier),candidateItems.map(item=>item.identifier));
+  await Promise.all(f.pending);
+});
+
+test('an unresolved-only IA catalog reports zero ready without discarding discovery',async()=>{
+  const f=await fixture();
+  f.incoming([row('A.mp4',{media:{type:'video',url:''}}),row('B.mp4',{media:{type:'video',url:''}})]);
+  const payload=await (await f.request('queue',{channel:'51',serverCatalog:true,sessionId:'pending-only',count:3})).json();
+  assert.equal(payload.ready,0);assert.equal(payload.items.length,0);assert.equal(payload.candidateItems.length,2);
+  await Promise.all(f.pending);
+});
+
 test('stored canary reservations cannot resurrect explicit failed media', async () => {
   const f = await fixture(), body = { channel: '10', iaRepair: true, serverCatalog: true, sessionId: 'failed', count: 3 };
   const before = await (await f.request('queue', body)).json(); assert.equal(before.items.length, 3);

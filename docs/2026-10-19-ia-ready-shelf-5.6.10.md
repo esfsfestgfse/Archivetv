@@ -35,6 +35,18 @@ No channels were hidden, removed, merged, or renumbered. No genre, runtime, port
 
 The visible desktop/mobile titles and build stamps, asset cache versions, and API health release are bumped to **5.6.10**.
 
+## Hosted release verification
+
+Runtime release commit: `20523f19a5360a5129801e40f9045b489dae4813`.
+
+- Archive TV CI, API deployment, Publish RealSignal, and Pages build/deployment all completed successfully.
+- Public API health reports `5.6.10-ia-resolved-shelf-rotation`; both hosted client titles/stamps report 5.6.10.
+- A fresh low-concurrency capture of all **170** hosted IA shelves returned **zero request errors and zero unresolved shelf items**, compared with 18 affected lanes before release.
+- Hosted rotations on 10, 12, 22, 70, 78, 110, 150, 152, 156, 208, and 701 completed all **132** selections and skip acknowledgements, with **132 unique selections, zero repeats, and zero queue errors**. This is a targeted 12-rotation result, not a claim of permanent global freshness.
+- In the deployed browser, Classic Film decoded a 1196×720 feature with an advancing playback clock. Screenshot capture through the browser tool timed out, so no screenshot proof is claimed.
+
+Post-release evidence: `artifacts/ia-ready-catalogs-570-hosted.json`, `artifacts/ia-session-rotations-569-hosted-5610.json`, and `artifacts/release-5610-status.json`. All remain untracked local audit artifacts.
+
 ## Limits and next work
 
 A media URL is not proof of a successful network transfer or visible frame. The 170-lane capture and replay are catalog/rotation checks, not a physical-device playback certification. They do not prove all catalog genres are correct or that every long-tail channel has sufficient show-family variety.

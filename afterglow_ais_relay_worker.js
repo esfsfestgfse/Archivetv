@@ -7522,7 +7522,7 @@ function normalizeIaFreshnessLedger(value) {
     if (typeof entry === "string") return { id: entry, era: "", collection: "", family: "", lane: "", issuedAt: 0 };
     if (!entry || !entry.id) return null;
     return {
-      id: String(entry.id).slice(0, 240),
+      id: String(entry.id).slice(0, 500),
       era: String(entry.era || "").slice(0, 12),
       collection: String(entry.collection || "").slice(0, 160),
       family: String(entry.family || "").slice(0, 160),
@@ -7553,6 +7553,18 @@ async function loadIaFreshnessLedger(env, channel) {
     console.warn(JSON.stringify({ event: "ia-freshness-ledger-read-failed", channel, message: String(error && error.message || error) }));
     return [];
   }
+}
+
+/* Viewer history is authoritative for this handoff even when a shared KV
+   played write is still propagating. Never persist these request exclusions
+   or make preparing a shelf count as watching it. */
+function iaViewerFreshnessLedger(history, body) {
+  const recent = Array.isArray(body && body.viewerRecentIds) ? body.viewerRecentIds : (body && body.recentIds);
+  const ids = (Array.isArray(recent) ? recent.slice(-IA_FRESHNESS_LEDGER_MAX) : [])
+    .filter(id => typeof id === "string" && id.trim() && id.length <= 500 && !/[\r\n]/.test(id)).map(id => id.trim());
+  const identities = new Set(ids.map(id => iaPlayableIdentity({ identifier: id }) || id));
+  const retained = normalizeIaFreshnessLedger(history).filter(entry => !identities.has(iaPlayableIdentity({ identifier: entry.id }) || entry.id));
+  return normalizeIaFreshnessLedger(retained.concat(ids));
 }
 
 function queueFreshnessDiffers(item, previous) {
@@ -7787,7 +7799,7 @@ function applyIaFreshness(payload, ledger, count) {
      even though the deeper catalog is present and playable. */
   const preserveRotatedFallback = Boolean(payload && payload.fallback) &&
     publicItems.length >= requested &&
-    fresh.length < requested &&
+    fresh.length === 0 &&
     unique.length < requested * 2 &&
     publicItems.every((item) => item && item.identifier && item.media && item.media.url);
   const items = preserveRotatedFallback
@@ -9776,7 +9788,8 @@ async function getIaQueue(request, url, env, ctx) {
   const freshnessLedgerPromise = loadIaFreshnessLedger(env, body.iaRepair === true ? "file-1:" + channel : channel);
   const edgeCache = caches.default;
   const edgeCachePromise = edgeCache.match(cacheKey);
-  const freshnessLedger = await freshnessLedgerPromise;
+  const sharedFreshnessLedger = await freshnessLedgerPromise;
+  const freshnessLedger = body.iaRepair === true ? sharedFreshnessLedger : iaViewerFreshnessLedger(sharedFreshnessLedger, body);
   /* A later skip should never wait for Archive recovery when this exact
      editorial family already has a durable, verified catalog. The old path
      reached the slow repair fallback first, which made a healthy channel feel
@@ -10144,7 +10157,14 @@ async function getIaQueue(request, url, env, ctx) {
               const candidateCount = iaCatalogCandidateBudget(themeMinScore, count);
               scheduleCachedIaHydration(cachedPayload, count, url.origin, cacheKey, sharedKey, lastGoodKey, env, ctx, mediaTypes, channel, themeTerms, denyTerms, requiredTitleTerms, diversity, themeMinScore, candidateCount, queries);
             }
-            return cached;
+            /* Even an exact three-item hit can have a viewer-specific order.
+               Returning the original Response here resurrects a watched
+               opening after freshness already moved an unseen item first. */
+            return cacheableJson(cachedShelf, 5, {
+              "X-Afterglow-Source": cached.headers.get("X-Afterglow-Source") || "program-director-cache",
+              "X-Afterglow-Cache": "edge-hit",
+              "X-Afterglow-Queue-Ready": String(cachedShelf.ready || cachedShelf.items.length),
+            });
           }
         }
       } catch {

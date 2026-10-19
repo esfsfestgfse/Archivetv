@@ -16,13 +16,13 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="RealSignal">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>REALSIGNAL · The Dial 5.6.11</title>
+<title>REALSIGNAL · The Dial 5.6.12</title>
 <meta name="realsignal-ia-repair-channels" content="10,12,22,150">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
-<script src="assets/ok-embed-runtime.js?v=5.6.11"></script>
-<script src="assets/ia-playback-shelf.js?v=5.6.11"></script>
+<script src="assets/ok-embed-runtime.js?v=5.6.12"></script>
+<script src="assets/ia-playback-shelf.js?v=5.6.12"></script>
 <script src="assets/vimeo-embed-runtime.js?v=5.5.85"></script>
 <!-- Source Suite starts verified YouTube playback on a cold tune. Warm the exact
      origins it uses so DNS/TLS setup is not serialized behind catalog discovery. -->
@@ -1750,7 +1750,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="5.6.11-mobile-ia-collection-depth-unlock";
+window.__ATV_BUILD="5.6.12-mobile-ia-viewer-freshness";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -7542,8 +7542,9 @@ var IA_API_BASE=RS_CANARY_API?(RS_CANARY_API+(RS_V3_CANARY?'v3':'v2')):(RS_V3_CA
 function iaSessionId(){var key="realsignal:v2-session",value="";try{value=localStorage.getItem(key)||"";if(!value){value="s-"+(crypto&&crypto.randomUUID?crypto.randomUUID():Date.now()+"-"+Math.random().toString(36).slice(2));localStorage.setItem(key,value);}}catch(e){}return String(value||"anonymous").slice(0,80);}
 /* One selected program, two hot verified candidates, and a deeper server
    catalog behind session rotation. The browser never owns freshness. */
-async function iaQueueFetch(body){var requestBody={...body,sessionId:iaSessionId(),serverCatalog:true};var options={method:"POST",mode:"cors",headers:{"content-type":"application/json","x-realsignal-session":iaSessionId()},body:JSON.stringify(requestBody)},v2Payload=null,v2Error=null;try{var response=await fetch(IA_API_BASE+"/ia/queue",options);if(response.ok){v2Payload=await response.json();if(v2Payload&&Array.isArray(v2Payload.items)&&v2Payload.items.length)return v2Payload;}else v2Error=new Error("v2 queue "+response.status);}catch(e){v2Error=e;}try{var legacy=await fetch(IA_RELAY_BASE+"/queue",options);if(legacy.ok){var legacyPayload=await legacy.json();if(legacyPayload&&Array.isArray(legacyPayload.items)&&legacyPayload.items.length)return legacyPayload;if(!v2Payload)return legacyPayload;}}catch(e){}if(v2Payload)return v2Payload;throw v2Error||new Error("queue unavailable");}
-function iaReportPlayed(ch,it,reason){if(!ch||!it||it.isAd||ch.source)return;var meta=it.meta||{},id=meta.identifier||meta.id||it.identifier||it.id;if(!id)return;try{fetch(IA_RELAY_BASE+"/played",{method:"POST",mode:"cors",headers:{"content-type":"application/json","x-realsignal-session":iaSessionId()},body:JSON.stringify({channel:String(ch.num||""),id:String(id),title:meta.title||it.title||ch.nm,subject:meta.subject||meta.subjects||it.subject||"",year:meta.year||it.year||"",collection:meta.collection||it.collection||"",lane:meta.lane||it.lane||"",reason:reason||"visible"})}).catch(function(){});}catch(e){}}
+async function iaQueueFetch(body){var requestBody={...body,sessionId:iaSessionId(),serverCatalog:true};requestBody.viewerRecentIds=iaViewerRecentIds(body.channel);requestBody.recentIds=requestBody.viewerRecentIds.concat(Array.isArray(body.recentIds)?body.recentIds:[]).slice(-256);var options={method:"POST",mode:"cors",headers:{"content-type":"application/json","x-realsignal-session":iaSessionId()},body:JSON.stringify(requestBody)},v2Payload=null,v2Error=null;try{var response=await fetch(IA_API_BASE+"/ia/queue",options);if(response.ok){v2Payload=await response.json();if(v2Payload&&Array.isArray(v2Payload.items)&&v2Payload.items.length)return v2Payload;}else v2Error=new Error("v2 queue "+response.status);}catch(e){v2Error=e;}try{var legacy=await fetch(IA_RELAY_BASE+"/queue",options);if(legacy.ok){var legacyPayload=await legacy.json();if(legacyPayload&&Array.isArray(legacyPayload.items)&&legacyPayload.items.length)return legacyPayload;if(!v2Payload)return legacyPayload;}}catch(e){}if(v2Payload)return v2Payload;throw v2Error||new Error("queue unavailable");}
+function iaReportPlayed(ch,it,reason){if(!ch||!it||it.isAd||ch.source)return;var meta=it.meta||{},id=meta.identifier||meta.id||it.identifier||it.id;if(!id)return;iaViewerRecentIds(ch.num,String(id));try{fetch(IA_RELAY_BASE+"/played",{method:"POST",mode:"cors",headers:{"content-type":"application/json","x-realsignal-session":iaSessionId()},body:JSON.stringify({channel:String(ch.num||""),id:String(id),title:meta.title||it.title||ch.nm,subject:meta.subject||meta.subjects||it.subject||"",year:meta.year||it.year||"",collection:meta.collection||it.collection||"",lane:meta.lane||it.lane||"",reason:reason||"visible"})}).catch(function(){});}catch(e){}}
+function iaViewerRecentIds(channel,playedId){try{var key="iaViewerRecent:"+String(channel),saved=store.get(key,[]),skipped=(store.get("iaSkipLedger",{})||{})[String(channel)],now=Date.now(),ids=(Array.isArray(skipped)?skipped:[]).filter(function(row){return row&&Number(row.at)>now-6*3600e3;}).slice(0,36).reverse().map(function(row){return row.id;}).concat(Array.isArray(saved)?saved:[]);if(playedId)ids.push(playedId);var seen={},out=[];for(var i=ids.length-1;i>=0;i--){var id=ids[i];if(typeof id!=="string"||!id.trim()||id.length>500||/[\r\n]/.test(id)||seen[id])continue;seen[id]=1;out.unshift(id);if(out.length>=256)break;}if(playedId)store.set(key,out);return out;}catch(e){return [];}}
 function iaRelaySearchURL(q,rows,page,sort){return IA_RELAY_BASE+"/search?"+[
   "q="+encodeURIComponent(q),"rows="+encodeURIComponent(rows),"page="+encodeURIComponent(page),"sort="+encodeURIComponent(sort||"downloads desc")].join("&");}
 function iaRelayMetadataURL(id){return IA_RELAY_BASE+"/metadata/"+encodeURIComponent(id);}

@@ -45,6 +45,15 @@ async function catalogFixture(rows) {
   return f;
 }
 
+test('API ledger enrichment preserves viewer-specific history separately on relay-owned IA lanes',async()=>{
+  const f=await catalogFixture([row('fresh.mp4')]),prepare=f.env.realsignal_catalog.prepare.bind(f.env.realsignal_catalog);
+  f.env.realsignal_catalog.prepare=sql=>/SELECT program_id/.test(sql)?{bind(){return {all:async()=>({results:Array.from({length:48},(_,i)=>({program_id:'other-viewer-'+i}))})};}}:prepare(sql);
+  const recent=['benson::watched.mp4'];
+  await f.request('queue',{channel:'11',serverCatalog:true,sessionId:'viewer-preservation',count:3,recentIds:recent,viewerRecentIds:recent});
+  assert.deepEqual(f.queueBodies[0].viewerRecentIds,recent,'shared D1 preference cannot crowd out this viewer');
+  await Promise.all(f.pending);
+});
+
 // Run the emitted SQL against SQLite, not a fake returning every database row.
 // A newest-first LIMIT before qualification must fail the older-episode tests.
 async function sqliteCatalogFixture(rows, channel = '10') {

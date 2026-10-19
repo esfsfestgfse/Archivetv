@@ -6,7 +6,7 @@ const {execFileSync}=require('node:child_process');
 function relay(options={}){
   const s={console,URL,URLSearchParams,Request,Response,Headers,AbortController,TextEncoder,Date,setTimeout,clearTimeout,...options};
   vm.createContext(s);vm.runInContext(fs.readFileSync(path.join(root,'afterglow_ais_relay_worker.js'),'utf8').replace('export default','const worker=')+
-    ';globalThis.f={iaRepairCollectionSeeds,orderedIaEmergencySeeds,queueTitleFamily,stationGate:iaStationQualityGate,archiveEpisodeKey,iaEffectiveVideoMinRuntimeSeconds,iaRepairPublicCatalog,strictRecoveryQueue,themeScore,matchesDeny,expandSeedArchiveContainers,queuePlayable,getIaQueue,scheduleIaExpansion,consume:(...args)=>worker.queue(...args),setHarvest:fn=>{expandAndCacheIaQueue=fn;}};',s);return s.f;
+    ';globalThis.f={iaRepairCollectionSeeds,orderedIaEmergencySeeds,queueTitleFamily,stationGate:iaStationQualityGate,archiveEpisodeKey,iaEffectiveVideoMinRuntimeSeconds,iaRepairPublicCatalog,strictRecoveryQueue,themeScore,matchesDeny,applyIaFreshness,expandSeedArchiveContainers,queuePlayable,getIaQueue,scheduleIaExpansion,consume:(...args)=>worker.queue(...args),setHarvest:fn=>{expandAndCacheIaQueue=fn;}};',s);return s.f;
 }
 
 function collectionFixture(options={}){
@@ -135,6 +135,77 @@ test('a standard cold tune uses its deeper genre-clean family without awaiting A
   assert.equal(rows.length,600,'the private family remains deep');
   assert.equal(payload.items.length,3);assert.equal(f.reads.length,0,'Archive discovery cannot block a cold tune');
   assert.ok(jobs.length>0,'deepening continues off the playback path');
+});
+
+for(const [channel,show] of [['11','Benson'],['118','Keeping Up Appearances']])test(channel+': cached openings respect viewer history before a shared played write arrives',async()=>{
+  const f=collectionFixture(),pending=[],writes=[];
+  const rows=Array.from({length:24},(_,i)=>({identifier:'series-'+channel+'::Episode '+i+'.mp4',sourceIdentifier:'series-'+channel,fileName:'Episode '+i+'.mp4',
+    title:show+' · Episode '+i,subject:'television sitcom british television',media:{type:'video',url:'https://archive.org/download/series/'+i+'.mp4',runtime:1320,width:640,height:480}}));
+  const family={channel,items:rows.slice(0,3),candidateItems:rows,candidates:rows.length,ready:3};
+  const env={REALSIGNAL_QUEUE:{get:async key=>key.includes(':last-good:')?family:null,put:async(key,value)=>writes.push({key,value})},IA_HARVEST_QUEUE:{send:async()=>{}}};
+  const rules={channel,count:3,rotation:1,queries:['mediatype:movies AND television'],themeTerms:[show.toLowerCase()],denyTerms:['podcast'],mediaTypes:['movies'],minRuntimeSeconds:900};
+  const get=async recent=>{const request=new Request('https://relay.invalid/ia/queue',{method:'POST',body:JSON.stringify({...rules,viewerRecentIds:recent})});
+    return(await f.f.getIaQueue(request,new URL(request.url),env,{waitUntil:p=>pending.push(p)})).json();};
+  const heard=[],selected=new Set();
+  for(let i=0;i<12;i++){const payload=await get(heard),first=payload.items[0];assert.ok(first?.media?.url);assert.ok(!selected.has(first.identifier),'a rapid repeat cannot be excused by a stale shared ledger: '+JSON.stringify({round:i,id:first.identifier,depth:payload.candidates,freshness:payload.freshness}));heard.push(first.identifier);selected.add(first.identifier);}
+  const other=await get([]);assert.equal(other.items[0].identifier,[...selected][0],'another viewer is not suppressed by private request history');
+  await Promise.all(pending);assert.equal(f.reads.length,0,'cached rotation does not discover Archive on the tune path');
+  assert.ok(writes.every(row=>!row.key.includes('freshness')),'queue selections do not become globally watched records');
+  assert.equal(family.candidateItems.length,24,'viewer suppression never deletes collection depth');
+});
+
+test('a rotation-zero edge hit returns the viewer-adjusted order without mutating the shared cached shelf',async()=>{
+  const pending=[],rows=Array.from({length:3},(_,i)=>({identifier:'benson::Episode '+i+'.mp4',sourceIdentifier:'benson',fileName:'Episode '+i+'.mp4',title:'Benson · Episode '+i,
+    media:{type:'video',url:'https://archive.org/download/benson/'+i+'.mp4',runtime:1320,width:640,height:480}}));
+  const original={channel:'11',items:rows,candidateItems:rows,candidates:3,ready:3};
+  const f=relay({crypto:require('node:crypto').webcrypto,fetch:async()=>{throw Error('foreground discovery must not run');},
+    caches:{default:{match:async()=>Response.json(original),put:async()=>{},delete:async()=>true}}});
+  const env={REALSIGNAL_QUEUE:{get:async()=>null,put:async()=>{}},IA_HARVEST_QUEUE:{send:async()=>{}}};
+  const get=async history=>{const request=new Request('https://relay.invalid/ia/queue',{method:'POST',body:JSON.stringify({channel:'11',count:3,rotation:0,viewerRecentIds:history,
+      queries:['mediatype:movies AND benson'],themeTerms:['benson'],mediaTypes:['movies'],minRuntimeSeconds:900})});
+    return(await f.getIaQueue(request,new URL(request.url),env,{waitUntil:p=>pending.push(p)})).json();};
+  const payload=await get([rows[0].identifier]);
+  assert.equal(payload.items[0].identifier,rows[1].identifier,'the raw cached response cannot restore a watched opening');
+  assert.equal(payload.items.length,3,'all programs remain available after exhaustion');
+  assert.equal((await get([])).items[0].identifier,rows[0].identifier,'personal ordering does not overwrite the shared cache');
+  await Promise.all(pending);
+});
+
+for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])test(file+': only played/skipped programs enter the persistent viewer history sent on queue requests',async()=>{
+  const source=fs.readFileSync(path.join(root,file),'utf8'),values=new Map(),packets=[];
+  const s={console,Response,Date,Promise,iaSessionId:()=> 'viewer-test',IA_API_BASE:'https://api.invalid/api/v3',IA_RELAY_BASE:'https://relay.invalid/ia',
+    store:{get:(key,fallback)=>structuredClone(values.has(key)?values.get(key):fallback),set:(key,value)=>values.set(key,structuredClone(value))},
+    fetch:async(url,options)=>{const body=JSON.parse(options.body);packets.push({url,body});if(url.endsWith('/played'))throw Error('temporary report outage');return Response.json({items:[{identifier:'queued-not-watched',media:{url:'https://archive.org/download/q/1.mp4'}}]});}};
+  vm.createContext(s);vm.runInContext(source.slice(source.indexOf('async function iaQueueFetch('),source.indexOf('function iaRelaySearchURL(')),s);
+  s.iaReportPlayed({num:11},{id:'old-parent-id',meta:{identifier:'series::Episode 1.mp4'}},'visible');
+  s.iaReportPlayed({num:11},{id:'series::Episode 2.mp4'},'skipped');
+  s.iaReportPlayed({num:118},{id:'other-station::Episode.mp4'},'visible');
+  s.iaReportPlayed({num:11},{id:'advertisement',isAd:true},'visible');
+  await s.iaQueueFetch({channel:'11',count:3});await s.iaQueueFetch({channel:'11',count:3});
+  const sent=packets.filter(x=>x.url.endsWith('/queue'));
+  assert.deepEqual(Array.from(sent[0].body.viewerRecentIds||[]),['series::Episode 1.mp4','series::Episode 2.mp4'],'network-report failure cannot erase local viewing history');
+  assert.deepEqual(sent[1].body.viewerRecentIds,sent[0].body.viewerRecentIds,'preload/queue preparation is not watching');
+  assert.deepEqual(sent[1].body.recentIds,sent[0].body.viewerRecentIds,'D1 fallback also receives viewer exclusions');
+  const legacyAt=Date.now();values.set('iaSkipLedger',{'11':[{id:'legacy-skip',at:legacyAt},{id:'expired-skip',at:legacyAt-7*3600e3}]});
+  await s.iaQueueFetch({channel:'11'});
+  const legacy=packets.at(-1).body.viewerRecentIds;assert.ok(legacy.includes('legacy-skip'));assert.ok(!legacy.includes('expired-skip'));
+  for(let i=0;i<260;i++)s.iaReportPlayed({num:11},{id:'watched-'+i},'visible');
+  await s.iaQueueFetch({channel:'11'});const bounded=packets.at(-1).body.viewerRecentIds;
+  assert.equal(bounded.length,256);assert.equal(bounded[0],'watched-4');assert.equal(bounded.at(-1),'watched-259');
+});
+
+test('freshness preserves a full accepted long file identity without banning its episode siblings',()=>{
+  const f=relay(),prefix='collection-'+ 'a'.repeat(230);
+  const item=(name)=>({identifier:prefix+'::'+name,title:'Benson · '+name,media:{type:'video',url:'https://archive.org/download/series/'+name}});
+  const a=item('Episode 1.mp4'),b=item('Episode 2.mp4');
+  const result=f.applyIaFreshness({channel:'11',items:[a],candidateItems:[a,b],ready:1},[{id:a.identifier}],1);
+  assert.equal(result.payload.items[0].identifier,b.identifier,'a long filename must stay excluded while the sibling remains unseen');
+});
+
+test('a constrained rotated fallback plays its last unseen program before permitting repeats',()=>{
+  const f=relay(),a={identifier:'a',media:{type:'video',url:'https://archive.org/download/a/a.mp4'}},b={identifier:'b',media:{type:'video',url:'https://archive.org/download/b/b.mp4'}};
+  const result=f.applyIaFreshness({channel:'11',items:[a,b],candidateItems:[a,b],ready:2,fallback:true},['a'],2);
+  assert.equal(result.payload.items[0].identifier,'b');assert.equal(result.payload.items.length,2,'exhaustion cannot manufacture No Signal');
 });
 
 test('deep family harvest jobs stay within queue limits without deleting the durable catalog',async()=>{

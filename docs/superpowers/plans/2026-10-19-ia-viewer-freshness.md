@@ -31,18 +31,18 @@
 **Files:** `afterglow_ais_relay_worker.js`, desktop/mobile HTML; existing broad IA and API regression tests.
 **Interfaces:** Existing `iaQueueFetch`, `iaReportPlayed`, `getIaQueue`, and `applyIaFreshness`; additional request-local `viewerRecentIds` stays separate from shared catalog keys.
 
-- [ ] Add failing real-route tests for repeated cached openings, sibling-file identity, viewer isolation, long IDs, and constrained exhaustion.
-- [ ] Add failing client tests: actual playback/skip records history; queue/preload does not; both clients send history even when playback-report networking fails.
-- [ ] Make the minimal handoff fix using the existing stores and queue payload; verify the API preserves the private request field through shared-ledger enrichment.
-- [ ] Run focused tests and all repository CI commands; investigate any remaining slow Next with actual browser playback before proposing another change.
-- [ ] Perform one bounded whole-diff review, fix Important findings with RED/GREEN tests, bump/commit/push 5.6.12, and verify deployments and hosted rotations.
-- [ ] Publish exact availability, rotation and visible-playback evidence, including any limits or unfinished bottleneck.
+- [x] Add failing real-route tests for repeated cached openings, sibling-file identity, viewer isolation, long IDs, and constrained exhaustion.
+- [x] Add failing client tests: actual playback/skip records history; queue/preload does not; both clients send history even when playback-report networking fails.
+- [x] Make the minimal handoff fix using the existing stores and queue payload; verify the API preserves the private request field through shared-ledger enrichment.
+- [x] Run focused tests and all repository CI commands; investigate any remaining slow Next with actual browser playback before proposing another change.
+- [x] Perform one bounded whole-diff review, fix Important findings with RED/GREEN tests, bump/commit/push 5.6.12, and verify deployments and hosted rotations.
+- [x] Publish exact availability, rotation and visible-playback evidence, including any limits or unfinished bottleneck.
 
 ### Task 2: Correct reproduced shared-history exhaustion
 
 Production 5.6.12 improved the two lanes to 17/18 unique selections but did not eliminate early repeats. A route test with an entirely watched shared catalog reproduced false personal exhaustion on 118.
 
-- [ ] Add a failing route test with populated shared history and a mostly unseen personal catalog.
-- [ ] When explicit nonempty viewer history exists, use it as the hard-exclusion ledger; shared records may enrich metadata but cannot exhaust another viewer's catalog. Preserve empty-viewer/legacy and guarded behavior.
-- [ ] Run focused tests and all CI commands; release the bounded follow-up as 5.6.13.
-- [ ] Verify hosted rotations with skip acknowledgements, public stamps, workflow success, and full canonical IA availability; publish exact remaining limits.
+- [x] Add a failing route test with populated shared history and a mostly unseen personal catalog.
+- [x] When explicit nonempty viewer history exists, use it as the hard-exclusion ledger; shared records may enrich metadata but cannot exhaust another viewer's catalog. Preserve empty-viewer/legacy and guarded behavior.
+- [x] Run focused tests and all CI commands; release the bounded follow-up as 5.6.13.
+- [x] Verify hosted rotations with skip acknowledgements, public stamps, workflow success, and full canonical IA availability; publish exact remaining limits.

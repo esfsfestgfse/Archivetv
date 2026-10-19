@@ -5610,7 +5610,7 @@ function iaIsVideoRecord(doc) {
 }
 
 function iaVideoPolicyText(doc) {
-  return String(doc && [doc.title, doc.subject, doc.description, doc.fileName, doc.identifier].filter(Boolean).join(" ") || "")
+  return String(doc && [doc.title, doc.subject, doc.description, doc.fileName, doc.name, doc.identifier].filter(Boolean).join(" ") || "")
     .replace(/<[^>]+>/g, " ")
     .normalize("NFKD")
     .toLowerCase();
@@ -7221,8 +7221,10 @@ function queueItem(doc, lane) {
    genuine collection containing dozens of independently playable episodes.
    These title/metadata hints keep expansion bounded while covering complete
    series, collections, anthologies, seasons, volumes, and chapter containers. */
-function archiveContainerHint(doc) {
-  const label = String(doc && doc.title || "") + " " + String(doc && doc.subject || "") + " " + String(doc && doc.collection || "");
+function archiveContainerHint(doc, readyFile = false) {
+  let label = String(doc && doc.title || "") + " " + String(doc && doc.subject || "") + " " + String(doc && doc.collection || "");
+  // A singular episode label is not evidence that a ready file has siblings.
+  if (readyFile) label = label.replace(/\bepisode\b/gi, "");
   return /(?:\bcomplete\b|全集|full\s+(?:series|serial|season|collection)|\b(?:series|season)\s*\d|\bserial\b|\bepisodes?\b|\bchapters?\b|\bcollection\b|\banthology\b|\b(?:box[ _-]?set|volume)\b)/i.test(label);
 }
 
@@ -7276,7 +7278,7 @@ async function expandArchiveContainer(doc, cacheOrigin, ctx, rotation = 0, salt 
       /* This runs only after first tune has already returned. Let a large but
          valid Archive manifest finish rather than borrowing the 4.2s
          first-frame deadline and silently losing its episode files. */
-      const upstream = await archiveFetch("https://archive.org/metadata/" + encodeURIComponent(doc.identifier), {}, ctx && ctx.isIaBackground ? 2800 : 8000);
+      const upstream = await archiveFetch("https://archive.org/metadata/" + encodeURIComponent(doc.identifier), {}, 8000);
       if (!upstream.ok) throw new Error("archive metadata " + upstream.status);
       return upstream.json();
     }, ctx);
@@ -7322,12 +7324,13 @@ async function expandArchiveContainer(doc, cacheOrigin, ctx, rotation = 0, salt 
         /* Archive `file.length` is byte size, not duration. Feeding it to
            runtime gates rejected valid episodes as millions of seconds long. */
         runtime: iaFileRuntimeSeconds(file),
+        language: file.language || md.language || doc.language || "",
         width: Number(file.width) || 0,
         height: Number(file.height) || 0,
         media: (function() {
           const urls = queueFileUrls(doc.identifier, payload, file.name);
           return urls.length ? { type: wantsAudio ? "audio" : "video", url: urls[0], alts: urls.slice(1, 8), runtime: iaFileRuntimeSeconds(file), width: Number(file.width) || 0, height: Number(file.height) || 0, sourceIdentifier: doc.identifier, fileName: file.name, sourceUrl: "https://archive.org/details/" + encodeURIComponent(doc.identifier), language: file.language || md.language || "", rights: md.licenseurl || md.rights || "", metadataVerifiedAt: Date.now(), verification: "metadata-only",
-            ...(ctx && ctx.iaRepair ? { sourceProgramCount: byEpisode.size } : {}) } : null;
+            sourceProgramCount: byEpisode.size, sourceTitle: String(md.title || "") } : null;
         })(),
         collection: Array.isArray(md.collection) ? (md.collection[0] || doc.collection) : (md.collection || doc.collection) };
     });
@@ -7956,7 +7959,7 @@ async function queuePlayable(id, cacheOrigin, ctx, mediaTypes = [], attempt = 0)
       /* A ready file may belong to an unlabelled multi-program item. Reuse
          this already-fetched manifest as evidence for background expansion;
          alternate encodes, previews and unsuitable extras are not depth. */
-      ...(ctx && ctx.iaRepair && isVideo ? { sourceProgramCount: new Set(video
+      ...(isVideo ? { sourceProgramCount: new Set(video
         .filter(file => iaFileRuntimeSeconds(file) >= 900 && Number(file.width) > Number(file.height) && Number(file.height) > 0)
         .map(archiveEpisodeKey)).size } : {}),
     } : null;
@@ -9140,12 +9143,30 @@ function scheduleCachedIaHydration(payload, requestedCount, cacheOrigin, cacheKe
    empty and used to make episode expansion silently disappear. Sample up to
    ten episode positions per parent, interleaved across parents, so a deep
    collection adds real variety without swallowing the entire station shelf. */
+function iaExpandedFileAllowed(channel, item) {
+  const media = item && item.media;
+  if (!media || media.type === "audio") return Boolean(media);
+  if (!(Number(media.width) > Number(media.height) && Number(media.height) > 0)) return false;
+  // Same international-lane exceptions as the canonical IA file contract.
+  const international = ["106", "107", "114", "115", "119", "120", "151"].includes(String(channel));
+  const language = String(media.language || item.language || "").toLowerCase();
+  if (!international && language && !/(?:^|[,; /])(?:eng|en|english)(?:$|[,; /])/.test(language)) return false;
+  if (!international && /\b(?:dansk tale|dublado|dublagem|deutsche fassung|deutschsprachig|(?:french|german|spanish|italian|portuguese|russian|danish) dub(?:bed)?|dubbed in (?:french|german|spanish|italian|portuguese|russian|danish))\b/i.test(iaVideoPolicyText(item))) return false;
+  const seasonalChannel = ({ "704": "707", "705": "708", "706": "709" })[String(channel)] || String(channel);
+  const seasonal = { "707": /\b(?:christmas|xmas|santa|yuletide|yule|noel|holiday special)\b/i,
+    "708": /\b(?:halloween|hallowe.en|treehouse of horror|scaretober|monstervision)\b/i,
+    "709": /\b(?:thanksgiving|turkey day|macy.s.*parade|thanksgiving parade)\b/i }[seasonalChannel];
+  if (seasonal && !seasonal.test([item.fileName, media.sourceTitle].filter(Boolean).join(" "))) return false;
+  return !iaHasGlobalVideoPolicyViolation(item);
+}
+
 async function expandSeedArchiveContainers(payload, cacheOrigin, ctx, channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, rotation, catalogLimit = IA_CATALOG_CANDIDATE_MAX) {
   const candidates = Array.isArray(payload && payload.candidateItems) && payload.candidateItems.length
     ? payload.candidateItems
     : ((payload && payload.items) || []);
   const seenParents = new Set();
-  const parents = candidates.slice().sort((a, b) => Number(archiveContainerHint(b)) - Number(archiveContainerHint(a))).filter((item) => {
+  const parentPriority = item => Number(item && item.media && item.media.sourceProgramCount) >= 3 ? 2 : Number(archiveContainerHint(item));
+  const parents = candidates.slice().sort((a, b) => parentPriority(b) - parentPriority(a)).filter((item) => {
     /* Direct-ready emergency items are already a single playable program.
        Expanded episode records are different: their `::file` identity points
        back to a parent container that must remain eligible for deeper sibling
@@ -9153,7 +9174,16 @@ async function expandSeedArchiveContainers(payload, cacheOrigin, ctx, channel, t
        complete-series lane could stay locked to its first five files. */
     const rawIdentifier = String(item && item.identifier || "");
     const expandedEpisode = Boolean(item && rawIdentifier.includes("::") && item.sourceIdentifier && item.fileName && !item.recoveryVerified);
-    const provenCollection = Boolean(ctx && ctx.iaRepair && Number(item && item.media && item.media.sourceProgramCount) >= 3);
+    const sourceProgramCount = Number(item && item.media && item.media.sourceProgramCount);
+    // Some legacy starters counted the selected file, not the entire parent.
+    // Strong complete-series evidence still deserves a bounded manifest read;
+    // a singular episode label plus a count of one does not.
+    if (item && item.media && item.media.url && sourceProgramCount === 1 && !archiveContainerHint(item, true)) return false;
+    // Recovery provenance describes the starter's safety, not the size of
+    // its parent. Standard IA collections deserve the same sibling discovery
+    // as guarded lanes; explicit container hints spend only background budget.
+    const provenCollection = sourceProgramCount >= 3
+      || Boolean(ctx && ctx.isIaBackground && archiveContainerHint(item));
     if (item && item.media && item.media.url && !expandedEpisode && !provenCollection) return false;
     /* A normal direct-ready Archive item is already a program, not a
        collection. Only explicit series/collection signals or a synthetic
@@ -9183,7 +9213,7 @@ async function expandSeedArchiveContainers(payload, cacheOrigin, ctx, channel, t
     const parentIdentifier = String(parent && parent.identifier || "");
     const parentSource = String(parent && parent.sourceIdentifier || parent && parent.media && parent.media.sourceIdentifier || (parentIdentifier.includes("::") ? parentIdentifier.split("::")[0] : parentIdentifier));
     const episodes = await expandArchiveContainer({ ...parent, identifier: parentSource, sourceIdentifier: parentSource }, cacheOrigin, ctx, rotation, index * 47, mediaTypes);
-    return episodes.filter((episode) => iaStationQualityGate(channel, episode) && matchesTheme(episode, themeTerms, themeMinScore, requiredTitleTerms) && !matchesDeny(episode, denyTerms));
+    return episodes.filter((episode) => iaExpandedFileAllowed(channel, episode) && iaStationQualityGate(channel, episode) && matchesTheme(episode, themeTerms, themeMinScore, requiredTitleTerms) && !matchesDeny(episode, denyTerms));
   });
   const balancedSets = episodeSets.map((episodes) => sampleArchiveSequence(episodes || [], IA_BACKGROUND_COLLECTION_EPISODES_PER_PARENT));
   const expanded = [];
@@ -9578,6 +9608,21 @@ async function expandAndCacheIaQueue(payload, reserveQueries, fallbackQueries, c
    rotation in flight, though: the foreground hydration and a later poll can
    both discover that the shelf needs help, and duplicate expansions just
    compete for the same Archive budget. */
+function boundedIaHarvestMessage(message) {
+  if (new TextEncoder().encode(JSON.stringify(message)).length <= 120000) return message;
+  const seed = message.seed || {};
+  const candidates = Array.isArray(seed.candidateItems) && seed.candidateItems.length ? seed.candidateItems : (seed.items || []);
+  const bootstrap = (Array.isArray(seed.items) && seed.items.length ? seed.items : candidates).slice(0, Math.max(1, Number(message.count) || 3));
+  const bounded = { ...message, seed: { channel: message.channel, rotation: message.rotation, lastGoodKey: seed.lastGoodKey,
+    minRuntimeSeconds: seed.minRuntimeSeconds, backgroundHarvestCursor: seed.backgroundHarvestCursor,
+    items: bootstrap, candidateItems: bootstrap, candidates: bootstrap.length,
+    catalogDepth: Math.max(candidates.length, Number(seed.catalogDepth) || 0) } };
+  while (bootstrap.length && new TextEncoder().encode(JSON.stringify(bounded)).length > 120000) {
+    bootstrap.pop(); bounded.seed.candidates = bootstrap.length;
+  }
+  return bounded;
+}
+
 function scheduleIaExpansion(seed, reserveQueries, fallbackQueries, channel, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, diversity, count, candidateCount, cacheOrigin, cacheKey, sharedKey, env, ctx, rotation, forceDiscovery = false) {
   /* The exact queue cache is per rotation, but the expensive Archive harvest
      is per channel/editorial fingerprint. Use the durable family key when it
@@ -9626,7 +9671,8 @@ function scheduleIaExpansion(seed, reserveQueries, fallbackQueries, channel, the
       rotation,
       forceDiscovery,
     };
-    const queued = env.IA_HARVEST_QUEUE.send(message)
+    // The consumer reloads the family; the queue carries a bounded bootstrap.
+    const queued = env.IA_HARVEST_QUEUE.send(boundedIaHarvestMessage(message))
       .catch((error) => {
         console.warn(JSON.stringify({ event: "ia-background-queue-send-failed", channel: String(channel || ""), message: String(error && error.message || error) }));
       })
@@ -9873,14 +9919,17 @@ async function getIaQueue(request, url, env, ctx) {
          that union here instead of returning the same direct five forever.
          This keeps cold start fast while making later skips consume the deep
          Archive harvest and its expanded collection episodes. */
-      // In repair mode every strict lane may already own a deeper file catalog.
-      // Keep the emergency bank as fallback, not as a permanent cold-start cap.
-      if (holidayFamily || ctx.iaRepair) {
+      // Every station may already own a deeper genre-approved family catalog.
+      // A cold tune must not throw that depth away for a tiny emergency bank.
+      {
         const familyShelf = await sharedQueueGet(env, lastGoodKey);
         const familyCandidates = Array.isArray(familyShelf && familyShelf.candidateItems) && familyShelf.candidateItems.length
           ? familyShelf.candidateItems
           : ((familyShelf && familyShelf.items) || []);
-        const familyPlayable = familyCandidates.filter((item) => item && item.identifier && item.media && item.media.url);
+        const familyPlayable = familyCandidates.filter((item) => item && item.identifier && item.media && item.media.url && iaExpandedFileAllowed(channel, item)
+          && (!mediaTypes.length || mediaTypes.includes(item.media.type === "audio" ? "audio" : "movies"))
+          && iaStationQualityGate(channel, item) && matchesTheme(item, themeTerms, themeMinScore, requiredTitleTerms)
+          && !matchesDeny(item, denyTerms) && iaRuntimeAllowed(item, minRuntimeSeconds));
         /* A deep emergency shelf is an instant handoff, not the end of
            discovery. Keep harvesting until the holiday family has roughly
            twelve complete five-item rotations. This is background-only and
@@ -9910,7 +9959,7 @@ async function getIaQueue(request, url, env, ctx) {
             ...(holidayFamily ? { holidayCatalog: true } : { repairFamilyCatalog: true }),
           }, rotation, count);
           const freshHoliday = applyIaFreshness(deepShelf, freshnessLedger, count);
-          return cacheableJson(freshHoliday.payload, 30, {
+          return cacheableJson(iaRepairPublicCatalog(freshHoliday.payload, { rotation, count }), 30, {
             "X-Afterglow-Source": holidayFamily ? "program-director-holiday-catalog" : "program-director-repair-family-catalog",
             "X-Afterglow-Queue-Ready": String(freshHoliday.payload.ready || freshHoliday.payload.items.length),
             "X-Afterglow-Queue-Deep": String(familyPlayable.length),
@@ -10781,7 +10830,7 @@ export default {
           iaRepair: payload.iaRepair === true,
           waitUntil(promise) {
             const work = Promise.resolve(promise);
-            if (payload.iaRepair === true) persistence.push(work);
+            persistence.push(work);
             work.catch(() => {});
           },
         };
@@ -10808,7 +10857,7 @@ export default {
         );
         // The queue acknowledgement is the durability boundary. A foreground
         // response remains fast; only the background consumer awaits storage.
-        if (payload.iaRepair === true) await Promise.all(persistence);
+        await Promise.all(persistence);
         /* One delivery advances one deterministic page window. Continue only
            for depth-recovery lanes, carry the richer verified union forward,
            and stop after a bounded number of passes. This keeps all Archive
@@ -10841,12 +10890,12 @@ export default {
           needsMoreDepth &&
           (nextCursor > 0 || hasIncompleteParent);
         if (canContinue && env.IA_HARVEST_QUEUE && typeof env.IA_HARVEST_QUEUE.send === "function") {
-          await env.IA_HARVEST_QUEUE.send({
+          await env.IA_HARVEST_QUEUE.send(boundedIaHarvestMessage({
             ...payload,
             seed: harvested,
             harvestPasses: harvestPasses + 1,
             forceDiscovery: true,
-          });
+          }));
         }
         message.ack();
       } catch (error) {

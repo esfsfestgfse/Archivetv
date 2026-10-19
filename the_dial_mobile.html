@@ -16,13 +16,13 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="RealSignal">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>REALSIGNAL · The Dial 5.6.10</title>
+<title>REALSIGNAL · The Dial 5.6.11</title>
 <meta name="realsignal-ia-repair-channels" content="10,12,22,150">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
-<script src="assets/ok-embed-runtime.js?v=5.6.10"></script>
-<script src="assets/ia-playback-shelf.js?v=5.6.10"></script>
+<script src="assets/ok-embed-runtime.js?v=5.6.11"></script>
+<script src="assets/ia-playback-shelf.js?v=5.6.11"></script>
 <script src="assets/vimeo-embed-runtime.js?v=5.5.85"></script>
 <!-- Source Suite starts verified YouTube playback on a cold tune. Warm the exact
      origins it uses so DNS/TLS setup is not serialized behind catalog discovery. -->
@@ -1750,7 +1750,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="5.6.10-mobile-ia-resolved-shelf-rotation";
+window.__ATV_BUILD="5.6.11-mobile-ia-collection-depth-unlock";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -7354,6 +7354,9 @@ function rsUniqueMergedValues(left,right){var seen={},out=[];[].concat(Array.isA
 function rsMergeProgramRecords(left,right,label,genreOverride){
   var out=Object.assign({},left||{}),arrayKeys=["queueTerms","fastSubjects","fastCollections","deepCollections","deepTitleTerms","queries","providers","formats","match","topics","strictTopicTerms","searchTerms"];
   arrayKeys.forEach(function(key){var merged=rsUniqueMergedValues(left&&left[key],right&&right[key]);if(merged.length)out[key]=merged;});
+  /* A queueTerms lock on one member must not erase its unlocked sibling's
+     original identity (for example Top Gear when merging Motor City). */
+  if((left&&left.queueTerms&&left.queueTerms.length)||(right&&right.queueTerms&&right.queueTerms.length))out.queueTerms=rsUniqueMergedValues(iaProgramThemeTerms({program:left,genre:left&&left.genre}),iaProgramThemeTerms({program:right,genre:right&&right.genre}));
   ["require","deny","diversity"].forEach(function(key){var a=(left&&left[key])||{},b=(right&&right[key])||{},nested=Object.assign({},a,b);Object.keys(a).concat(Object.keys(b)).forEach(function(child){if(Array.isArray(a[child])||Array.isArray(b[child])){var values=rsUniqueMergedValues(a[child],b[child]);if(key==="deny"&&label==="Comedy Archive"){values=values.filter(function(value){return !/^(?:stand[- ]?up (?:special|comedy)|sketch(?: comedy)?|sitcom)$/i.test(String(value).trim());});}nested[child]=values;}});if(Object.keys(nested).length)out[key]=nested;});
   var eras=[left&&left.era,right&&right.era].filter(function(era){return Array.isArray(era)&&era.length>=2;});if(eras.length)out.era=[Math.min.apply(null,eras.map(function(era){return Number(era[0]);})),Math.max.apply(null,eras.map(function(era){return Number(era[1]);}))];
   out.name=label;out.genre=genreOverride||out.genre||left&&left.genre||right&&right.genre||"movies";out.mt=out.mt||"movies";out.depthQuerySpread=true;out.channelMerge=true;return out;

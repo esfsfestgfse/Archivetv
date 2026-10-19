@@ -3,11 +3,181 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
 const root=path.join(__dirname,'..');
 const {execFileSync}=require('node:child_process');
-function relay(){
-  const s={console,URL,URLSearchParams,Request,Response,Headers,AbortController,TextEncoder,Date,setTimeout,clearTimeout};
+function relay(options={}){
+  const s={console,URL,URLSearchParams,Request,Response,Headers,AbortController,TextEncoder,Date,setTimeout,clearTimeout,...options};
   vm.createContext(s);vm.runInContext(fs.readFileSync(path.join(root,'afterglow_ais_relay_worker.js'),'utf8').replace('export default','const worker=')+
-    ';globalThis.f={iaRepairCollectionSeeds,orderedIaEmergencySeeds,queueTitleFamily,stationGate:iaStationQualityGate,archiveEpisodeKey,iaEffectiveVideoMinRuntimeSeconds,iaRepairPublicCatalog,strictRecoveryQueue,themeScore,matchesDeny};',s);return s.f;
+    ';globalThis.f={iaRepairCollectionSeeds,orderedIaEmergencySeeds,queueTitleFamily,stationGate:iaStationQualityGate,archiveEpisodeKey,iaEffectiveVideoMinRuntimeSeconds,iaRepairPublicCatalog,strictRecoveryQueue,themeScore,matchesDeny,expandSeedArchiveContainers,queuePlayable,getIaQueue,scheduleIaExpansion,consume:(...args)=>worker.queue(...args),setHarvest:fn=>{expandAndCacheIaQueue=fn;}};',s);return s.f;
 }
+
+function collectionFixture(options={}){
+  const payload={metadata:{title:'Cartoon Complete Series',language:'eng'},files:[
+    ...Array.from({length:4},(_,i)=>({name:'Episode '+(i+1)+'.mp4',format:'h.264',length:1320,width:640,height:480})),
+    {name:'Episode 1.ia.mp4',format:'h.264',length:1320,width:640,height:480},
+    {name:'Fan-made parody movie.mp4',format:'h.264',length:1320,width:640,height:480},
+    {name:'Portrait.mp4',format:'h.264',length:1320,width:360,height:640},
+  ]};
+  const reads=[];
+  const f=relay({crypto:require('node:crypto').webcrypto,fetch:async(url,init={})=>{
+    reads.push(String(url));
+    if(options.delayMs)await new Promise((resolve,reject)=>{const timer=setTimeout(resolve,options.delayMs);
+      init.signal?.addEventListener('abort',()=>{clearTimeout(timer);reject(init.signal.reason);},{once:true});});
+    return Response.json(options.metadataFor?options.metadataFor(String(url),payload):payload);
+  },
+    caches:{default:{match:async()=>undefined,put:async()=>{},delete:async()=>true}}});
+  const expand=(item)=>f.expandSeedArchiveContainers({items:[item],candidateItems:[item]},'https://relay.invalid',
+    {isIaBackground:true,waitUntil:()=>{}},'153',['cartoon'],['parody'],[],['movies'],1,0,96);
+  return {f,reads,expand,payload};
+}
+
+for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])test(file+': merged Auto Archive keeps both motoring shows and manufacturing identities',async()=>{
+  const {catalogFallbackAllowed}=await import('../realsignal_api_v2_worker.js');
+  const manifest=JSON.parse(execFileSync(process.execPath,[path.join(root,'scripts/export-ia-manifest.js'),path.join(root,file)],{encoding:'utf8',maxBuffer:16e6}));
+  const rules=manifest.find(x=>x.channel==='227');
+  const program=(title,subject)=>({identifier:title,provider:'Internet Archive',title,subject,media:{type:'video',url:'https://archive.org/download/auto/program.mp4',runtime:1800,width:640,height:480}});
+  assert.equal(catalogFallbackAllowed(program('Top Gear Series 15','top gear automotive television'),rules),true,'the merger cannot erase the original motoring-program identity');
+  assert.equal(catalogFallbackAllowed(program('Inside automobile manufacturing','automobile industry assembly line'),rules),true);
+  assert.equal(catalogFallbackAllowed(program('The Tonight Show Jay Leno monologue','late night television talk show'),rules),false);
+});
+
+test('a reviewed ready collection file still opens its sibling episodes in standard IA background work',async()=>{
+  const f=collectionFixture(),id='cartoon-complete-series';
+  const rows=await f.expand({identifier:id+'::Episode 1.mp4',sourceIdentifier:id,fileName:'Episode 1.mp4',title:'Cartoon Complete Series',recoveryVerified:true,
+    media:{type:'video',url:'https://archive.org/download/'+id+'/Episode%201.mp4'}});
+  assert.equal(rows.length,4,'a starter file is not the whole collection');
+  assert.equal(new Set(rows.map(x=>x.identifier)).size,4,'alternate encodes are not extra episodes');
+  assert.ok(rows.every(x=>x.media.width>x.media.height&&!/parody/i.test(x.title)));
+});
+
+test('metadata-proven unlabelled collections expand outside the four guarded IA lanes',async()=>{
+  const f=collectionFixture();
+  const rows=await f.expand({identifier:'unlabelled',title:'Cartoon Archive',recoveryVerified:true,
+    media:{type:'video',url:'https://archive.org/download/unlabelled/Episode%201.mp4',sourceProgramCount:4}});
+  assert.equal(rows.length,4);
+});
+
+test('a healthy background collection manifest is not aborted by the old 2.8-second tune-sized deadline',async()=>{
+  const f=collectionFixture({delayMs:3100});
+  const rows=await f.expand({identifier:'cartoon-complete-series',title:'Cartoon Complete Series',recoveryVerified:true,
+    media:{type:'video',url:'https://archive.org/download/cartoons/1.mp4',sourceProgramCount:4}});
+  assert.equal(rows.length,4,'slow metadata must complete off the foreground path rather than repeating an abort forever');
+});
+
+test('ordinary ready single-program recovery does not trigger background metadata scans',async()=>{
+  const f=collectionFixture();
+  assert.equal((await f.expand({identifier:'single-program',title:'Cartoon Special',recoveryVerified:true,
+    media:{type:'video',url:'https://archive.org/download/single/program.mp4'}})).length,0);
+  assert.equal(f.reads.length,0);
+});
+
+test('new standard collection children cannot smuggle foreign audio or unknown geometry through parent tags',async()=>{
+  const f=collectionFixture();
+  f.payload.files.push({name:'Episode 5.mp4',format:'h.264',length:1320,width:640,height:480,language:'hin'},
+    {name:'Episode 6.mp4',format:'h.264',length:1320});
+  const rows=await f.expand({identifier:'cartoon-complete-series',title:'Cartoon Complete Series',recoveryVerified:true,
+    media:{type:'video',url:'https://archive.org/download/cartoons/1.mp4',sourceProgramCount:6}});
+  assert.equal(rows.length,4,'only landscape English original programs reach the expanded catalog');
+});
+
+for(const [channel,season] of [['704','Christmas'],['705','Halloween'],['706','Thanksgiving'],['707','Christmas'],['708','Halloween'],['709','Thanksgiving']])test(channel+': holiday sibling discovery requires real seasonal identity, not the starter label',async()=>{
+  const f=collectionFixture();f.payload.metadata.title='Sitcom Complete Series';
+  f.payload.files.push({name:season+' Special.mp4',format:'h.264',length:1320,width:640,height:480});
+  const starter={identifier:'sitcom::Episode 1.mp4',sourceIdentifier:'sitcom',fileName:'Episode 1.mp4',title:season+(Number(channel)<=706?' Cartoon':' TV')+' Episode Collection',
+    recoveryVerified:true,media:{type:'video',url:'https://archive.org/download/sitcom/1.mp4',sourceProgramCount:5}};
+  const rows=await f.f.expandSeedArchiveContainers({items:[starter],candidateItems:[starter]},'https://relay.invalid',
+    {isIaBackground:true,waitUntil:()=>{}},channel,[season.toLowerCase()],[],[],['movies'],1,0,96);
+  assert.equal(rows.length,1,'one seasonal episode cannot relabel the entire series');
+  assert.equal(rows[0].fileName,season+' Special.mp4');
+});
+
+test('a metadata-proven singleton cannot starve a real collection of the parent budget',async()=>{
+  const f=collectionFixture({metadataFor:(url,payload)=>url.endsWith('/one-episode')?{...payload,files:payload.files.slice(0,1)}:payload});
+  const item=(id,title,count)=>({identifier:id,title,recoveryVerified:true,media:{type:'video',url:'https://archive.org/download/'+id+'/1.mp4',sourceProgramCount:count}});
+  const items=[item('one-episode','Cartoon Episode One',1),item('unlabelled','Cartoon Archive',4)];
+  const rows=await f.f.expandSeedArchiveContainers({items,candidateItems:items},'https://relay.invalid',
+    {isIaBackground:true,waitUntil:()=>{}},'153',['cartoon'],['parody'],[],['movies'],1,0,96);
+  assert.equal(rows.length,4,'the proven collection gets the bounded parent read');
+  assert.ok(f.reads.every(url=>!url.endsWith('/one-episode')),'known single programs do not spend the collection budget');
+});
+
+test('a complete short-cartoon collection is not a singleton just because only one file exceeds fifteen minutes',async()=>{
+  const f=collectionFixture();f.payload.files.slice(1,4).forEach(file=>{file.length=420;});
+  const starter={identifier:'looney-tunes-complete',title:'Looney Tunes Complete Collection',subject:'classic cartoons theatrical cartoon golden age animation',recoveryVerified:true,
+    media:{type:'video',url:'https://archive.org/download/cartoons/1.mp4',sourceProgramCount:1}};
+  const rows=await f.f.expandSeedArchiveContainers({items:[starter],candidateItems:[starter]},'https://relay.invalid',
+    {isIaBackground:true,waitUntil:()=>{}},'150',['cartoon'],['parody'],[],['movies'],1,0,96);
+  assert.equal(rows.length,4,'the existing program-count evidence counts long files, not complete short cartoons');
+});
+
+test('standard video metadata preserves distinct program-count evidence for later sibling discovery',async()=>{
+  const f=collectionFixture();
+  const media=await f.f.queuePlayable('unlabelled','https://relay.invalid',{isIaBackground:true,waitUntil:()=>{}},['movies']);
+  assert.equal(media.sourceProgramCount,4,'count landscape originals, not derivatives, portraits, or fan movies');
+});
+
+test('a standard cold tune uses its deeper genre-clean family without awaiting Archive discovery',async()=>{
+  const f=collectionFixture(),pending=[],jobs=[];
+  const rows=Array.from({length:600},(_,i)=>({identifier:'family-'+i,title:'Cartoon television episode '+i,subject:'cartoon animation',
+    media:{type:'video',url:'https://archive.org/download/family/'+i+'.mp4',runtime:1320,width:640,height:480}}));
+  const contaminated={...rows[0],identifier:'wrong',title:'Cartoon drawing podcast tutorial',subject:'cartoon animation'};
+  const foreign={...rows[0],identifier:'foreign',media:{...rows[0].media,language:'dan'}};
+  const unknownGeometry={...rows[0],identifier:'unknown-geometry',media:{...rows[0].media,width:0,height:0}};
+  const env={REALSIGNAL_QUEUE:{get:async key=>key.includes(':last-good:')?{items:rows.slice(0,3),candidateItems:[contaminated,foreign,unknownGeometry,...rows]}:null,put:async()=>{}},
+    IA_HARVEST_QUEUE:{send:async job=>{jobs.push(job);}}};
+  const request=new Request('https://relay.invalid/ia/queue',{method:'POST',body:JSON.stringify({channel:'153',count:3,rotation:0,
+    queries:['mediatype:movies AND cartoon'],themeTerms:['cartoon'],denyTerms:['podcast','tutorial'],mediaTypes:['movies'],minRuntimeSeconds:900})});
+  const response=await f.f.getIaQueue(request,new URL(request.url),env,{waitUntil:p=>pending.push(p)});
+  const payload=await response.json();await Promise.all(pending);
+  assert.ok(payload.candidateItems.some(x=>x.identifier==='family-17'),'a deep family must not be replaced by the emergency opening');
+  assert.ok(payload.candidateItems.every(x=>x.identifier!=='wrong'),'stale cached genre contamination stays excluded');
+  assert.ok(payload.candidateItems.every(x=>!['foreign','unknown-geometry'].includes(x.identifier)),'cold cached families pass file-level language and geometry admission');
+  assert.ok(payload.candidateItems.length<=512,'deep family recovery must not serialize its entire catalog on a tune');
+  assert.ok(payload.catalogDepth>=600,'retain the full family; approved recovery programs may add further depth');
+  assert.equal(rows.length,600,'the private family remains deep');
+  assert.equal(payload.items.length,3);assert.equal(f.reads.length,0,'Archive discovery cannot block a cold tune');
+  assert.ok(jobs.length>0,'deepening continues off the playback path');
+});
+
+test('deep family harvest jobs stay within queue limits without deleting the durable catalog',async()=>{
+  const f=collectionFixture(),pending=[],jobs=[];
+  const rows=Array.from({length:180},(_,i)=>({identifier:'episode-'+i,title:'Cartoon episode '+i,description:'é'.repeat(1000),
+    media:{type:'video',url:'https://archive.org/download/family/'+i+'.mp4',runtime:1320,width:640,height:480}}));
+  const seed={lastGoodKey:'existing-durable-family',items:rows.slice(0,3),candidateItems:rows,candidates:rows.length,minRuntimeSeconds:900};
+  const env={IA_HARVEST_QUEUE:{send:async job=>{assert.ok(Buffer.byteLength(JSON.stringify(job))<=120000,'queue envelope must fit the platform limit');jobs.push(job);}}};
+  f.f.scheduleIaExpansion(seed,['mediatype:movies AND cartoon'],[],'153',['cartoon'],[],[],['movies'],1,{},3,3072,
+    'https://relay.invalid',new Request('https://relay.invalid/cache/key'),'shared-cache-key',env,{waitUntil:p=>pending.push(p)},0,true);
+  await Promise.all(pending);assert.equal(jobs.length,1,'oversized seeds cannot silently disable background discovery');
+  assert.equal(jobs[0].seed.lastGoodKey,seed.lastGoodKey,'consumer reloads the complete existing family');
+  assert.equal(seed.candidateItems.length,180,'the original catalog is not truncated');
+});
+
+test('a cold cached family cannot substitute declared non-English or unproven video for recovery',async()=>{
+  const f=collectionFixture(),pending=[];
+  const rows=Array.from({length:12},(_,i)=>({identifier:'foreign-'+i,title:'Cartoon television episode '+i,subject:'cartoon animation',
+    media:{type:'video',url:'https://archive.org/download/foreign/'+i+'.mp4',runtime:1320,width:640,height:480,language:'dan'}}));
+  const env={REALSIGNAL_QUEUE:{get:async key=>key.includes(':last-good:')?{items:rows.slice(0,3),candidateItems:rows}:null,put:async()=>{}},
+    IA_HARVEST_QUEUE:{send:async()=>{}}};
+  const request=new Request('https://relay.invalid/ia/queue',{method:'POST',body:JSON.stringify({channel:'153',count:3,rotation:0,
+    queries:['mediatype:movies AND cartoon'],themeTerms:['cartoon'],denyTerms:['podcast','tutorial'],mediaTypes:['movies'],minRuntimeSeconds:900})});
+  const payload=await(await f.f.getIaQueue(request,new URL(request.url),env,{waitUntil:p=>pending.push(p)})).json();
+  await Promise.all(pending);assert.equal(payload.items.length,3,'approved recovery remains available');
+  assert.ok(payload.items.every(x=>!x.identifier.startsWith('foreign-')),'cached depth is not permission for foreign audio');
+});
+
+test('queued harvest continuations use the same bounded family-reference envelope',async()=>{
+  const f=collectionFixture(),jobs=[];let acknowledged=false,retried=false;
+  const rows=Array.from({length:180},(_,i)=>({identifier:'episode-'+i,title:'Cartoon episode '+i,description:'é'.repeat(1000),
+    media:{type:'video',url:'https://archive.org/download/family/'+i+'.mp4',runtime:1320,width:640,height:480}}));
+  const seed={lastGoodKey:'existing-durable-family',items:rows.slice(0,3),candidateItems:rows,candidates:rows.length,minRuntimeSeconds:900};
+  let persisted=false;
+  f.f.setHarvest(async(...args)=>{args[16].waitUntil(new Promise(resolve=>setTimeout(()=>{persisted=true;resolve();},5)));return {...seed,backgroundHarvestCursor:1};});
+  const env={IA_HARVEST_QUEUE:{send:async job=>{assert.equal(persisted,true,'persist the standard family before sending a compact continuation');assert.ok(Buffer.byteLength(JSON.stringify(job))<=120000);jobs.push(job);}}};
+  await f.f.consume({messages:[{body:{type:'ia-catalog-harvest',version:1,seed,channel:'153',count:3,candidateCount:3072,forceDiscovery:true},
+    ack(){acknowledged=true;},retry(){retried=true;}}]},env,{waitUntil:()=>{}});
+  assert.equal(retried,false,'an oversized continuation must not turn successful background work into a retry loop');
+  assert.equal(acknowledged,true);assert.equal(jobs.length,1);assert.equal(jobs[0].seed.lastGoodKey,seed.lastGoodKey);
+  assert.equal(jobs[0].seed.backgroundHarvestCursor,1,'compaction must retain the page cursor');
+  assert.equal(seed.candidateItems.length,180,'bounded transport does not shrink the private catalog');
+});
 test('broad stations retain deep, interleaved file-level recovery without waiting for collection discovery',()=>{
   const f=relay();
   for(const channel of ['10','150']){

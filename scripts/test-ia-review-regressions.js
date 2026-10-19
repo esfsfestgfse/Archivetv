@@ -445,6 +445,32 @@ test('standard IA handoff repair does not reorder guarded upstream reservations'
   await Promise.all(f.pending);
 });
 
+test('standard IA shelves balance available series instead of selecting three episodes from one show',async()=>{
+  const f=await fixture();
+  const rows=['show-A','show-B','show-C'].flatMap(seriesId=>Array.from({length:8},(_,i)=>row(seriesId+'-'+i+'.mp4',{seriesId})));
+  f.incoming(rows);const seen=new Set();
+  for(let rotation=0;rotation<4;rotation++){
+    const payload=await(await f.request('queue',{channel:'51',serverCatalog:true,sessionId:'standard-series',count:3,rotation,diversity:{maxPerFamily:1}})).json();
+    assert.equal(payload.items.length,3);assert.equal(new Set(payload.items.map(x=>x.seriesId)).size,3);
+    for(const item of payload.items){assert.ok(!seen.has(item.identifier));seen.add(item.identifier);}
+  }
+  await Promise.all(f.pending);
+});
+
+test('IA family diversity does not invent programs or underfill a single-series catalog',async()=>{
+  const [{SessionRotation}]=await modules,object=new SessionRotation(rotationContext(),{});
+  const rows=Array.from({length:4},(_,i)=>row('only-'+i+'.mp4',{seriesId:'only-show'}));
+  const payload=await(await object.fetch(new Request('https://rotation.internal/select',{method:'POST',body:JSON.stringify({items:rows,count:3,requirePlayable:true,diversity:{maxPerFamily:1}})}))).json();
+  assert.equal(payload.items.length,3);assert.ok(payload.items.every(x=>rows.some(r=>r.identifier===x.identifier)));
+});
+
+test('generic non-IA rotation retains its existing selection when given diversity fields',async()=>{
+  const [{SessionRotation}]=await modules,object=new SessionRotation(rotationContext(),{});
+  const rows=['A','A','A','B','C'].map((seriesId,i)=>row('generic-'+i+'.mp4',{seriesId}));
+  const payload=await(await object.fetch(new Request('https://rotation.internal/select',{method:'POST',body:JSON.stringify({items:rows,count:3,diversity:{maxPerFamily:1}})}))).json();
+  assert.deepEqual(payload.items.map(x=>x.identifier),['benson::generic-0.mp4','benson::generic-1.mp4','benson::generic-2.mp4']);
+});
+
 test('an unresolved-only IA catalog reports zero ready without discarding discovery',async()=>{
   const f=await fixture();
   f.incoming([row('A.mp4',{media:{type:'video',url:''}}),row('B.mp4',{media:{type:'video',url:''}})]);

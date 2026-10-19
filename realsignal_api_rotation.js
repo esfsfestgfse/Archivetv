@@ -200,7 +200,9 @@ export class SessionRotation {
     const nonrecent = fresh.filter(item => !recent.has(itemId(item)));
     const recentOnly = fresh.filter(item => recent.has(itemId(item)));
     const ordered = rotate(nonrecent, offset).concat(rotate(recentOnly, offset));
-    const selected = ordered.slice(0, limit);
+    const balanceFamilies = body.requirePlayable === true && Number(body.diversity?.maxPerFamily) > 0;
+    const selected = balanceFamilies ? [] : ordered.slice(0, limit);
+    if (balanceFamilies) appendBalanced(selected, ordered, limit, body.diversity);
     const selectedIds = selected.map(itemId).filter(Boolean);
     const selectionRepeatIds = cycleReset ? [] : selectedIds.filter((id) => prior.has(id));
     const seenAfterSelection = new Set(cycleReset ? selectedIds : current.seen.concat(selectedIds));

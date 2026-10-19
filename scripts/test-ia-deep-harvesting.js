@@ -47,7 +47,16 @@ check(/function iaHolidaySearchQueries\(channel, queries\)/.test(relay) && /quer
 check(/function iaHolidayThemeMatch\(doc, themeTerms\)/.test(relay) && /!holidayMatch\) return false/.test(relay), 'holiday stations use collection-aware acceptance without weakening the title gate globally');
 check(/const seenPlayableIds = new Set\(\)/.test(relay) && /seenPlayableIds\.has\(id\)/.test(relay), 'merged Archive rails cannot duplicate one playable file across adjacent shelves');
 check(/holidayCandidateCount = Math\.min\(IA_STRICT_CATALOG_CANDIDATE_MAX, Math\.max\(IA_DEPTH_PLAYABLE_TARGET/.test(relay) && /holidaySeed/.test(relay), 'holiday family shelves continue background harvesting until a deep playable target is reached');
-check(/const eligible = bank\.filter/.test(relay) && /const offset = eligible\.length > count/.test(relay), 'strict recovery rotates the verified bank after editorial filtering');
+{
+  const scope = { console, URL, URLSearchParams, Request, Response, Headers, AbortController, Date, setTimeout, clearTimeout };
+  require('node:vm').createContext(scope);
+  require('node:vm').runInContext(relay.replace('export default', 'const worker=') + ';globalThis.recovery=strictRecoveryQueue;', scope);
+  const a = scope.recovery('153', 0, 3, ['cartoon', 'animation'], ['powerpuff'], [], ['movies'], 900);
+  const b = scope.recovery('153', 1, 3, ['cartoon', 'animation'], ['powerpuff'], [], ['movies'], 900);
+  check(a.items.length === 3 && b.items.length === 3 && a.candidateItems.every(item => !/powerpuff/i.test(item.title))
+    && b.items.every(item => !a.items.some(prior => prior.identifier === item.identifier)),
+  'strict recovery rotates the verified bank after editorial filtering');
+}
 check(/const IA_DEEP_HARVEST_BANKS = Object\.freeze/.test(relay) && /"51": \[[\s\S]*dvd-transfer-95_202207[\s\S]*"57": \[[\s\S]*tulane-vs-usc[\s\S]*"58": \[[\s\S]*1989-nba-all-star-game[\s\S]*"69": \[[\s\S]*womeninsportsaninformalhistory[\s\S]*"124": \[[\s\S]*frankenstein-created-woman_202505[\s\S]*"209": \[[\s\S]*cstmaah_000049[\s\S]*"215": \[[\s\S]*gov\.fema\.9-1315[\s\S]*"232": \[[\s\S]*STS1LaunchTracking[\s\S]*"703": \[[\s\S]*DNALOUNGE-VIDEO-2022-12-24/.test(relay), 'Deep harvest adds verified family banks to the weak IA lanes');
 check(/hands-of-the-ripper-1971::Hands of the Ripper 1971\.mp4/.test(relay) && /the-vampire-lovers-1970_202608::The Vampire Lovers 1970\.mp4/.test(relay), 'Hammer House adds verified full-length Hammer features');
 check(/the-satanic-rites-of-dracula-1973::The Satanic Rites Of Dracula 1973\.ia\.mp4/.test(relay) && /dracula-has-risen-from-the-grave-1968_202406::Dracula Has Risen from the Grave 1968\.ia\.mp4/.test(relay), 'Hammer House adds a deeper Dracula-era feature rail');

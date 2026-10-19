@@ -19,7 +19,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "5.6.10-ia-resolved-shelf-rotation";
+const V3_RELEASE = "5.6.11-ia-collection-depth-unlock";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -701,7 +701,7 @@ async function rotateShelf(env, body, payload, request) {
   const recentLimit = candidates.length >= count ? Math.max(0, candidates.length - count) : recentValues.length;
   const boundedRecentIds = freshnessExclusionIds(body, reservationMode ? recentValues.length : recentLimit);
   const selectBody = { items: candidates, recentIds: boundedRecentIds, count, rotation: Number(body.rotation) || 0,
-    ...(body.sourceCatalog !== true ? { requirePlayable: true } : {}),
+    ...(body.sourceCatalog !== true ? { requirePlayable: true, diversity: body.diversity || {} } : {}),
     ...(reservationMode ? { mode: "reserve", diversity: body.diversity || {}, rules: body, rejectedIds: body.iaRejectedIds || [] } : {}) };
   const response = await stub.fetch(new Request("https://rotation.internal/select", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(selectBody) }));
   if (!response.ok) throw new Error(`rotation ${response.status}`);

@@ -171,6 +171,23 @@ test('a rotation-zero edge hit returns the viewer-adjusted order without mutatin
   await Promise.all(pending);
 });
 
+for(const channel of ['11','118'])test(channel+': other viewers cannot exhaust this viewer\'s unseen collection catalog',async()=>{
+  const f=collectionFixture(),pending=[],rows=Array.from({length:24},(_,i)=>({identifier:'benson::Episode '+i+'.mp4',sourceIdentifier:'benson',fileName:'Episode '+i+'.mp4',title:'Benson · Episode '+i,
+    media:{type:'video',url:'https://archive.org/download/benson/'+i+'.mp4',runtime:1320,width:640,height:480}}));
+  const family={channel,items:rows.slice(0,3),candidateItems:rows,candidates:24,ready:3};
+  const globalHistory={items:rows.map(row=>({id:row.identifier}))};
+  const env={REALSIGNAL_QUEUE:{get:async key=>key.includes(':last-good:')?family:key.includes('freshness')?globalHistory:null,put:async()=>{}},IA_HARVEST_QUEUE:{send:async()=>{}}};
+  const heard=[];
+  for(let i=0;i<12;i++){
+    const request=new Request('https://relay.invalid/ia/queue',{method:'POST',body:JSON.stringify({channel,count:3,rotation:1,viewerRecentIds:heard,
+      queries:['mediatype:movies AND benson'],themeTerms:['benson'],mediaTypes:['movies'],minRuntimeSeconds:900})});
+    const payload=await(await f.f.getIaQueue(request,new URL(request.url),env,{waitUntil:p=>pending.push(p)})).json();
+    assert.ok(!heard.includes(payload.items[0].identifier),'shared full-catalog history is not personal exhaustion at rotation '+i);
+    heard.push(payload.items[0].identifier);
+  }
+  await Promise.all(pending);assert.equal(family.candidateItems.length,24);
+});
+
 for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])test(file+': only played/skipped programs enter the persistent viewer history sent on queue requests',async()=>{
   const source=fs.readFileSync(path.join(root,file),'utf8'),values=new Map(),packets=[];
   const s={console,Response,Date,Promise,iaSessionId:()=> 'viewer-test',IA_API_BASE:'https://api.invalid/api/v3',IA_RELAY_BASE:'https://relay.invalid/ia',

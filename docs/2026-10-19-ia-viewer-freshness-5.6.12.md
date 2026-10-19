@@ -35,7 +35,13 @@ One bounded reviewer found the exact-edge-cache response issue. It was reproduce
 
 ## Release verification
 
-Local verification complete; production deployment and hosted rotation results will be recorded after the normal push completes.
+Commit `8f6077116dc7c3db48c4ff7a22cf8aaea65afe6d` reached main. All five GitHub CI/deployment workflows passed. The public desktop/mobile titles and stamps, plus API health, report 5.6.12.
+
+The hosted low-concurrency snapshot returned three resolved media URLs for each of 170 canonical IA channels, with zero request errors, empty responses, or unresolved shelf entries. This proves URL availability, not 170 decoded videos. All reported catalogs had at least five entries.
+
+Eight channels × 18 selections produced 142 per-channel unique selections out of 144. Six controls (10, 12, 22, 150, 153, 705) had no repeats. Channels 11 and 118 each repeated once (17 distinct selections each), despite their improvement over the 5.6.11 baseline. Those residual failures triggered the 5.6.13 follow-up rather than being concealed as clean certification.
+
+The hosted player decoded a Modern Cartoons episode (714×540, readyState 4, advancing time). This is a real decoded-video smoke check, separate from queue snapshots.
 
 ## Limits and next work
 

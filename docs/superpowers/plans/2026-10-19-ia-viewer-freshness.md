@@ -37,3 +37,12 @@
 - [ ] Run focused tests and all repository CI commands; investigate any remaining slow Next with actual browser playback before proposing another change.
 - [ ] Perform one bounded whole-diff review, fix Important findings with RED/GREEN tests, bump/commit/push 5.6.12, and verify deployments and hosted rotations.
 - [ ] Publish exact availability, rotation and visible-playback evidence, including any limits or unfinished bottleneck.
+
+### Task 2: Correct reproduced shared-history exhaustion
+
+Production 5.6.12 improved the two lanes to 17/18 unique selections but did not eliminate early repeats. A route test with an entirely watched shared catalog reproduced false personal exhaustion on 118.
+
+- [ ] Add a failing route test with populated shared history and a mostly unseen personal catalog.
+- [ ] When explicit nonempty viewer history exists, use it as the hard-exclusion ledger; shared records may enrich metadata but cannot exhaust another viewer's catalog. Preserve empty-viewer/legacy and guarded behavior.
+- [ ] Run focused tests and all CI commands; release the bounded follow-up as 5.6.13.
+- [ ] Verify hosted rotations with skip acknowledgements, public stamps, workflow success, and full canonical IA availability; publish exact remaining limits.

@@ -7563,7 +7563,15 @@ function iaViewerFreshnessLedger(history, body) {
   const ids = (Array.isArray(recent) ? recent.slice(-IA_FRESHNESS_LEDGER_MAX) : [])
     .filter(id => typeof id === "string" && id.trim() && id.length <= 500 && !/[\r\n]/.test(id)).map(id => id.trim());
   const identities = new Set(ids.map(id => iaPlayableIdentity({ identifier: id }) || id));
-  const retained = normalizeIaFreshnessLedger(history).filter(entry => !identities.has(iaPlayableIdentity({ identifier: entry.id }) || entry.id));
+  const shared = normalizeIaFreshnessLedger(history);
+  /* Other viewers may collectively have watched the entire small catalog.
+     That is not exhaustion for this viewer. Once a personal ledger exists,
+     only its entries are hard exclusions; retain shared metadata, not bans. */
+  if (Array.isArray(body && body.viewerRecentIds) && ids.length) {
+    const records = new Map(shared.map(entry => [iaPlayableIdentity({ identifier: entry.id }) || entry.id, entry]));
+    return normalizeIaFreshnessLedger(ids.map(id => ({ ...records.get(iaPlayableIdentity({ identifier: id }) || id), id })));
+  }
+  const retained = shared.filter(entry => !identities.has(iaPlayableIdentity({ identifier: entry.id }) || entry.id));
   return normalizeIaFreshnessLedger(retained.concat(ids));
 }
 

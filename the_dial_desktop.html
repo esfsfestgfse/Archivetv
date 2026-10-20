@@ -9,13 +9,13 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>REALSIGNAL · The Dial 5.6.16</title>
+<title>REALSIGNAL · The Dial 5.6.17</title>
 <meta name="realsignal-ia-repair-channels" content="10,12,22,150">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
-<script src="assets/ok-embed-runtime.js?v=5.6.16"></script>
-<script src="assets/ia-playback-shelf.js?v=5.6.16"></script>
+<script src="assets/ok-embed-runtime.js?v=5.6.17"></script>
+<script src="assets/ia-playback-shelf.js?v=5.6.17"></script>
 <script src="assets/vimeo-embed-runtime.js?v=5.5.85"></script>
 <!-- Source Suite starts verified YouTube playback on a cold tune. Warm the exact
      origins it uses so DNS/TLS setup is not serialized behind catalog discovery. -->
@@ -1711,7 +1711,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="5.6.16-desktop-complete-recovery-history";
+window.__ATV_BUILD="5.6.17-desktop-adult-games-played-freshness";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -2761,7 +2761,7 @@ const CHANNEL_META={
 "Old Nick":{desc:"Nick at Nite classic-sitcom vault — I Love Lucy, Bewitched, Dick Van Dyke, Andy Griffith, Brady Bunch, Odd Couple, Taxi, Happy Days, Get Smart, Beverly Hillbillies.",best:"evenings",rel:["Classic Rerun TV","Modern Rerun TV"]},
 "The Court Room":{desc:"Judge shows and small-claims TV — People's Court, Judge Judy, Judge Wapner, Divorce Court, Judge Mathis, Judge Joe Brown, Judge Alex.",best:"afternoons",rel:["Court TV","Old Nick"]},
 "Classic Game Shows":{desc:"Full game-show episodes from the dawn of television through 1979: panel shows, quizzes, pricing games and studio contests.",best:"anytime",rel:["Modern Game Shows","Classic Rerun TV"]},
-"Modern Game Shows":{desc:"1980s through today: Press Your Luck, Supermarket Sweep, Weakest Link, Jeopardy!, Figure It Out, Family Game Night and more, rotating complete episodes across shows.",best:"anytime",rel:["Classic Game Shows","Modern Rerun TV"]},
+"Modern Game Shows":{desc:"Adult and general-audience game shows from 1980 through today: The Price Is Right, Wheel of Fortune, Jeopardy!, Family Feud, Press Your Luck and more. Full episodes, no kids' game shows.",best:"anytime",rel:["Classic Game Shows","Modern Rerun TV"]},
 "Vintage Commercials":{desc:"Wall-to-wall ad breaks from 1948-1985.",best:"anytime",rel:["Classic Game Shows","VHS Vault"]},
 "Black Cinema":{desc:"The full arc of Black cinema — Oscar Micheaux race films of the 1920s through Spike Lee, Julie Dash, Charles Burnett, Barry Jenkins, Ryan Coogler, Jordan Peele. 1915 through today.",best:"primetime",rel:["Blaxploitation","Classic Film"]},
 "Arcade Archive":{desc:"Videogame footage, longplays and arcade history.",best:"late night",rel:["Classic Cartoons","Computer Chronicles"]},
@@ -7114,9 +7114,11 @@ function rsGameShowStation(base,era,shows,collections,parents){
   return p;
 }
 PROGRAM["Modern Game Shows"]=rsGameShowStation(PROGRAM["Classic Game Shows"],[1980,2026],
-  ["supermarket sweep","match game","weakest link","divided","the crystal maze","family game night","figure it out","press your luck","jeopardy","nickelodeon guts","family feud","wheel of fortune","millionaire","deal or no deal","cash cab","double dare","legends of the hidden temple","the chase","catch 21","lingo"],
+  ["price is right","wheel of fortune","jeopardy","family feud","millionaire","deal or no deal","press your luck","supermarket sweep","match game","weakest link","divided","the crystal maze","the chase","catch 21","lingo","card sharks","pyramid","hollywood squares","newlywed game","concentration","sale of the century","tic tac dough","joker's wild","password","let's make a deal","greed","1 vs 100","win ben stein's money"],
   ["gameshows","gameshows_miscellaneous","television","classic_tv_1980s","classic_tv_1990s","classic_tv_2000s","classic_tv_2010s","vhsvault","opensource_movies"],
-  ["pressyourluck-bmp","cardsharks1986-bmp","supermarketsweep-bmp","match-game-1990-abc-revival","weakestlinkepisodes","the-weakest-link-season-1","family-game-night-restoration","the-crystal-maze-season-1-1990","divided-full-episodes","figure_it_out_-_season_2_-_episode_06___578412314a427","jeopardy-james-holzhauer","PYL-Banks-Season-5","nickelodeon-guts-season-1"]);
+  ["tpir-5571d","TPIRDec1987","TPIRSeason50Archive","tpir-0474l","tpir-9961k","wheelnbc-7581-bmp","TPIRNov191996","tpir-3522k-sm","wheel-of-fortune-january-20-2025","wheel-of-fortune-friday-september-20-2002","wheel-of-fortune-wednesday-november-13-2002","wheel-of-fortune-season-23-episode-4303-september-28-2005_202601","wheel-of-fortune-september-5-1994-season-12-premiere-480","jeopardy-james-holzhauer","Jeopardy_2011-02-14_The_IBM_Challenge","jeopardy-who-2009-in-hd-1080p","jeopardy-1984-hq","wheel-of-fortune-monday-october-21-2002","j20011015","jeopardy-monday-november-13-2006","jeopardy-january-9-2003","supermarketsweep-bmp","match-game-1990-abc-revival","weakestlinkepisodes","the-weakest-link-season-1","the-crystal-maze-season-1-1990","divided-full-episodes","PYL-Banks-Season-5","pressyourluck-bmp","cardsharks1986-bmp"]);
+/* Modern is a broadcast era, not a children's-programming lane. */
+["title","subject"].forEach(function(field){PROGRAM["Modern Game Shows"].deny[field]=rsAppendProgramTerms(PROGRAM["Modern Game Shows"].deny[field],["nickelodeon","nick arcade","guts","figure it out","double dare","legends of the hidden temple","family game night","finders keepers","get the picture","make the grade","wild and crazy kids","brainsurge","brain surge","fun house","funhouse","masters of the maze","junior jeopardy","kids week","kid week","teen week","teen tournament","kids game show"]);});
 PROGRAM["Classic Game Shows"]=rsGameShowStation(PROGRAM["Classic Game Shows"],[1940,1979],
   ["match game","card sharks","password","pyramid","price is right","family feud","wheel of fortune","hollywood squares","newlywed game","let's make a deal","what's my line","to tell the truth","i've got a secret","beat the clock","jeopardy","concentration","sale of the century","tic tac dough","joker's wild","you bet your life","queen for a day","strike it rich","treasure hunt","truth or consequences","do you trust your wife"],
   ["classic_tv_1950s","classic_tv_1960s","classic_tv_1970s","gameshows","gameshows_miscellaneous","classic_tv","television","vhsvault","opensource_movies"],
@@ -7590,6 +7592,12 @@ function iaThemeMatches(item,sl){var terms=iaProgramThemeTerms(sl);if(!terms.len
 /* CH 11 has the same English-focus contract at the API boundary. Recheck old
    fast-tune/schedule records and direct recovery too; cached URLs are not an
    exemption from the station identity. Other stations keep their own rules. */
+function iaModernGameShowAllowed(item = {}) {
+  const meta = item.meta || {};
+  const text = [item.identifier || item.id, item.sourceIdentifier, item.title, item.seriesTitle,
+    item.fileName || item.media?.fileName, item.subject, item.subjects, meta.title, meta.subject, meta.subjects].filter(Boolean).join(' ').replace(/[_./-]+/g, ' ').replace(/['’]/g, '');
+  return !/\b(?:nickelodeon|nick arcade|guts|figure it out|double dare|legends of the hidden temple|family game night|finders keepers|get the picture|make the grade|wild and crazy kids|brainsurge|brain surge|fun house|funhouse|masters of the maze|junior jeopardy|kids? (?:week|game shows?|edition|tournament)|teen (?:week|tournament|edition))\b/i.test(text);
+}
 function iaEnglishRerunAllowed(item){
   var meta=item&&item.meta||{},language=String(item&&(item.language||(item.media&&item.media.language))||meta.language||"").trim();
   if(language&&!/(?:^|[,; /])(?:en(?:[-_][a-z]+)?|eng|english)(?:$|[,; /])/i.test(language))return false;
@@ -7605,6 +7613,7 @@ function iaProgramAllowed(item,sl){
   if(!item||!item.identifier||banned.indexOf(item.identifier)>=0||(!freshnessFallback&&isTemporarilySkipped(item.identifier))||blockedId(item.identifier)||iaProgramFailed(item.identifier))return false;
   var cur=(curItem&&typeof curItem==="object")?curItem.id:null;if(item.identifier===cur)return false;
   if(sl&&String(sl.channel)==="11"&&!iaEnglishRerunAllowed(item))return false;
+  if(sl&&String(sl.channel)==="22"&&!iaModernGameShowAllowed(item))return false;
   if(!sl)return true;var p=sl.program||{}, title=String(item.title||"").toLowerCase(), subj=String(item.subject||item.subjects||"").toLowerCase();
   if(sl.channel&&!freshnessFallback&&iaSkipBlocked(sl.channel,item))return false;
   if(!iaThemeMatches(item,sl))return false;
@@ -7622,6 +7631,7 @@ function iaProgramAllowed(item,sl){
   return !(p.require&&p.require.runtime_max_s&&item.runtime&&iaRuntimeSeconds(item.runtime)>p.require.runtime_max_s);
 }
 function iaCachedProgramAllowed(ch,pl,sl){
+  if(ch&&Number(ch.num)===22&&!iaModernGameShowAllowed(pl))return false;
   if(ch&&Number(ch.num)===11&&!iaEnglishRerunAllowed(pl))return false;
   if(!ch||ch.nm!=="Manufacturing Marvels")return true;
   var meta=pl&&pl.meta||{},currentSl=sl||(typeof slotFor==="function"?slotFor(ch,0,{preview:true}):null);

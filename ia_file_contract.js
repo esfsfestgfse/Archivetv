@@ -31,8 +31,16 @@ export function iaGameShowYear(item = {}) {
   return Number(item.broadcastYear || item.year) || 0;
 }
 
+export function iaModernGameShowAllowed(item = {}) {
+  const meta = item.meta || {};
+  const text = [item.identifier || item.id, item.sourceIdentifier, item.title, item.seriesTitle,
+    item.fileName || item.media?.fileName, item.subject, item.subjects, meta.title, meta.subject, meta.subjects].filter(Boolean).join(' ').replace(/[_./-]+/g, ' ').replace(/['’]/g, '');
+  return !/\b(?:nickelodeon|nick arcade|guts|figure it out|double dare|legends of the hidden temple|family game night|finders keepers|get the picture|make the grade|wild and crazy kids|brainsurge|brain surge|fun house|funhouse|masters of the maze|junior jeopardy|kids? (?:week|game shows?|edition|tournament)|teen (?:week|tournament|edition))\b/i.test(text);
+}
+
 export function iaGameShowEraAllowed(item, channel) {
   if (!['12', '22'].includes(String(channel))) return true;
+  if (String(channel) === '22' && !iaModernGameShowAllowed(item)) return false;
   const text = [item.title,item.subject,item.description,item.fileName].filter(Boolean).join(' ');
   if (/\b(?:cryptography|cryptographic|password cracking|password manager|change password|reset password|aula|computer tutorial|software tutorial)\b/i.test(text)) return false;
   if (/\b(?:gmod|garry.?s mod|roblox|minecraft|gameplay|walkthrough|speedrun|podcast|reaction|parody|fan[- ]?made|mock game|video essay|retrospective|press conference|interactive dvd|dvd game)\b/i.test(text)) return false;

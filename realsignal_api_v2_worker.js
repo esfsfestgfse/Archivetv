@@ -19,7 +19,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "5.6.16-complete-recovery-history";
+const V3_RELEASE = "5.6.17-adult-games-played-freshness";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -686,7 +686,10 @@ async function rotateShelf(env, body, payload, request) {
   const session = safeSession(body.sessionId || body.session || sessionHeader || `ip-${requestClientKey(request)}`);
   const channel = safeSession(body.channel || "unknown");
   const reservationMode = body.iaRepair === true && body.sourceCatalog !== true;
-  const stub = env.ROTATION.getByName(`${reservationMode ? "ia-repair:" : ""}session:${session}:channel:${channel}`);
+  // Previous standard game-show sessions may contain now-excluded kids' shows.
+  // Change only that catalog namespace; viewer playback history still applies.
+  const stationPolicy = !reservationMode && body.sourceCatalog !== true && channel === "22" ? ":adult-game-shows-1" : "";
+  const stub = env.ROTATION.getByName(`${reservationMode ? "ia-repair:" : ""}session:${session}:channel:${channel}${stationPolicy}`);
   const rawCandidates = Array.isArray(payload && payload.candidateItems) && payload.candidateItems.length
     ? payload.candidateItems
     : ((payload && payload.items) || []);
@@ -702,6 +705,8 @@ async function rotateShelf(env, body, payload, request) {
   const boundedRecentIds = freshnessExclusionIds(body, reservationMode ? recentValues.length : recentLimit);
   const selectBody = { items: candidates, recentIds: boundedRecentIds, count, rotation: Number(body.rotation) || 0,
     ...(body.sourceCatalog !== true ? { requirePlayable: true, diversity: body.diversity || {} } : {}),
+    ...(body.sourceCatalog !== true && !reservationMode && Array.isArray(body.viewerRecentIds)
+      ? { playedOnly: true, viewerRecentIds: body.viewerRecentIds } : {}),
     ...(reservationMode ? { mode: "reserve", diversity: body.diversity || {}, rules: body, rejectedIds: body.iaRejectedIds || [] } : {}) };
   const response = await stub.fetch(new Request("https://rotation.internal/select", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(selectBody) }));
   if (!response.ok) throw new Error(`rotation ${response.status}`);

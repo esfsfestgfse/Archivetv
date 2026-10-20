@@ -6,8 +6,24 @@ const {execFileSync}=require('node:child_process');
 function relay(options={}){
   const s={console,URL,URLSearchParams,Request,Response,Headers,AbortController,TextEncoder,Date,setTimeout,clearTimeout,...options};
   vm.createContext(s);vm.runInContext(fs.readFileSync(path.join(root,'afterglow_ais_relay_worker.js'),'utf8').replace('export default','const worker=')+
-    ';globalThis.f={iaRepairCollectionSeeds,orderedIaEmergencySeeds,queueTitleFamily,stationGate:iaStationQualityGate,archiveEpisodeKey,iaEffectiveVideoMinRuntimeSeconds,iaRepairPublicCatalog,strictRecoveryQueue,themeScore,matchesDeny,applyIaFreshness,expandSeedArchiveContainers,queuePlayable,getIaQueue,scheduleIaExpansion,consume:(...args)=>worker.queue(...args),setHarvest:fn=>{expandAndCacheIaQueue=fn;}};',s);return s.f;
+    ';globalThis.f={iaRepairCollectionSeeds,orderedIaEmergencySeeds,queueTitleFamily,stationGate:iaStationQualityGate,archiveEpisodeKey,iaEffectiveVideoMinRuntimeSeconds,iaRepairPublicCatalog,strictRecoveryQueue,themeScore,matchesDeny,applyIaFreshness,expandSeedArchiveContainers,queuePlayable,getIaQueue,scheduleIaExpansion,qualifyIaQueueResponse,consume:(...args)=>worker.queue(...args),setHarvest:fn=>{expandAndCacheIaQueue=fn;},setHydrate:fn=>{hydrateIaQueue=fn;}};',s);return s.f;
 }
+
+test('background game-show verification reaches different shows before a large single-series block',async()=>{
+  const f=relay(),pending=[],calls=[];
+  const make=(show,n)=>({identifier:show+'::'+n+'.mp4',sourceIdentifier:show,fileName:n+'.mp4',title:show+' full episode 1995',seriesId:show,year:1995,
+    media:{type:'video',url:'https://archive.org/download/'+show+'/'+n+'.mp4',runtime:1320,width:640,height:480}});
+  const rows=[...Array.from({length:40},(_,i)=>make('The Price Is Right',i)),make('Wheel of Fortune',0),make('Jeopardy!',0)];
+  f.setHydrate(async payload=>{calls.push(payload);return {...payload,items:rows.slice(0,3),ready:3,lastGoodKey:'game-show-background-test'};});
+  const kv={get:async()=>null,put:async()=>{}};
+  await f.qualifyIaQueueResponse(Response.json({items:rows.slice(0,3),candidateItems:rows,ready:3}),
+    {channel:'22',iaRepair:true,count:3,mediaTypes:['movies'],hydrationPreferredIds:rows.slice(0,3).map(x=>x.identifier)},'https://relay.invalid',
+    {waitUntil:p=>pending.push(p)},{REALSIGNAL_QUEUE:kv});
+  await Promise.all(pending);
+  assert.ok(calls.length>=2,'the test exercises real background scheduling');
+  assert.equal(new Set(calls[1].candidateItems.slice(0,3).map(item=>item.seriesId)).size,3,'Wheel and Jeopardy cannot wait behind forty Price episodes');
+  assert.ok(rows.every(row=>calls[1].candidateItems.some(item=>item.identifier===row.identifier)),'balancing cannot discard catalog depth');
+});
 
 function collectionFixture(options={}){
   const payload={metadata:{title:'Cartoon Complete Series',language:'eng'},files:[
@@ -28,6 +44,56 @@ function collectionFixture(options={}){
     {isIaBackground:true,waitUntil:()=>{}},'153',['cartoon'],['parody'],[],['movies'],1,0,96);
   return {f,reads,expand,payload};
 }
+
+test('Modern Game Shows rejects children show identities at relay and API admission while retaining adult staples',async()=>{
+  const f=relay(),{iaGameShowEraAllowed}=await import('../ia_file_contract.js');
+  const kids=['Nickelodeon GUTS','Figure It Out','Double Dare','Legends of the Hidden Temple','Family Game Night','Nick Arcade','Finders Keepers','Get the Picture','Make the Grade','Wild and Crazy Kids','BrainSurge','Fun House','Jeopardy! Kids Week','Jeopardy! Teen Tournament'];
+  for(const title of kids){const item={identifier:title.toLowerCase().replaceAll(' ','_')+'::episode.mp4',title,year:1995,media:{type:'video',url:'https://cdn.invalid/episode.mp4'}};
+    assert.equal(f.stationGate('22',item),false,title+' relay');assert.equal(iaGameShowEraAllowed(item,'22'),false,title+' API');}
+  for(const title of ['The Price Is Right','Wheel of Fortune','Jeopardy!','Family Feud','Who Wants to Be a Millionaire','Deal or No Deal','Press Your Luck','Jeopardy! College Championship']){
+    const item={identifier:'adult::episode.mp4',title,year:2005,media:{type:'video',url:'https://cdn.invalid/episode.mp4'}};
+    assert.equal(f.stationGate('22',item),true,title+' relay');assert.equal(iaGameShowEraAllowed(item,'22'),true,title+' API');}
+  assert.equal(iaGameShowEraAllowed({title:'The Price Is Right',year:1978},'22'),false);
+  assert.equal(iaGameShowEraAllowed({title:'The Price Is Right',year:1978},'12'),true);
+});
+
+test('modern game-show kids editions cannot hide in subject fields or possessive labels',async()=>{
+  const f=relay(),{iaModernGameShowAllowed}=await import('../ia_file_contract.js');
+  const variants=[{title:"Jeopardy! Kids' Week full episode 1995"},{title:'Jeopardy! Kids’ Week full episode 1995'},
+    {subject:['Teen Tournament']},{subjects:['Kids Edition']},{meta:{subjects:['Junior Jeopardy']}}];
+  for(const variant of variants){
+    const item={identifier:'jeopardy::episode.mp4',title:'Jeopardy! full episode 1995',year:1995,...variant};
+    assert.equal(iaModernGameShowAllowed(item),false,JSON.stringify(variant));assert.equal(f.stationGate('22',item),false);
+    for(const file of ['the_dial_desktop.html','the_dial_mobile.html']){
+      const source=fs.readFileSync(path.join(root,file),'utf8'),s={};vm.createContext(s);
+      vm.runInContext(source.slice(source.indexOf('function iaModernGameShowAllowed('),source.indexOf('function iaEnglishRerunAllowed('))+';f=iaModernGameShowAllowed;',s);
+      assert.equal(s.f(item),false,file+': '+JSON.stringify(variant));
+    }
+  }
+});
+
+test('Modern Game Shows indexes full dated Price Is Right, Wheel and Jeopardy episodes rather than relying on keyword discovery',()=>{
+  const f=relay(),rows=f.iaRepairCollectionSeeds('22').filter(item=>item.media?.url);
+  for(const [show,minimum] of [['The Price Is Right',100],['Wheel of Fortune',20],['Jeopardy!',30]])
+    assert.ok(rows.filter(item=>item.seriesTitle===show).length>=minimum,show+' needs a real file-level catalog');
+  assert.ok(rows.every(item=>item.year>=1980&&item.year<=2026));
+  assert.ok(rows.every(item=>item.media.runtime>=900&&item.media.width>item.media.height));
+  assert.ok(rows.every(item=>! /nickelodeon|figure it out|family game night|double dare|hidden temple/i.test(item.title)));
+  assert.ok(rows.some(item=>item.seriesTitle==='The Price Is Right'&&item.year<2000));
+  assert.ok(rows.some(item=>item.seriesTitle==='Wheel of Fortune'&&item.year<2000));
+  assert.ok(rows.some(item=>item.seriesTitle==='Jeopardy!'&&item.year>=2020));
+});
+
+for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])test(file+': Modern Game Shows excludes kids from saved/direct playback without banning Family Feud',()=>{
+  const source=fs.readFileSync(path.join(root,file),'utf8'),s={banned:[],curItem:null,isTemporarilySkipped:()=>false,blockedId:()=>false,iaProgramFailed:()=>false,iaSkipBlocked:()=>false,iaThemeMatches:()=>true};
+  vm.createContext(s);const begin=source.includes('function iaModernGameShowAllowed(')?source.indexOf('function iaModernGameShowAllowed('):source.indexOf('function iaEnglishRerunAllowed(');
+  vm.runInContext(source.slice(begin,source.indexOf('function iaProgramDenyTerms('))+';f={cached:iaCachedProgramAllowed,queue:iaProgramAllowed};',s);
+  const sl={channel:22,program:{}},ch={num:22,nm:'Modern Game Shows'};
+  assert.equal(s.f.cached(ch,{id:'nickelodeon-guts-season-1::Episode.mp4',title:'Episode 1'},sl),false);
+  assert.equal(s.f.queue({identifier:'figure_it_out::Episode.mp4',title:'Episode 1'},sl),false);
+  assert.equal(s.f.cached(ch,{id:'family-feud::Episode.mp4',title:'Family Feud'},sl),true);
+  assert.equal(s.f.queue({identifier:'wheel::1985.mp4',title:'Wheel of Fortune'},sl),true);
+});
 
 for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])for(const generic of [false,true])test(file+': first-tune inline media retains '+(generic?'file-derived':'editorial')+' episode labels',()=>{
   const source=fs.readFileSync(path.join(root,file),'utf8'),cached=[];

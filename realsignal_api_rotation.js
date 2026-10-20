@@ -33,7 +33,7 @@ function resolvedMedia(item) {
   return /^https?:\/\//i.test(String(item?.media?.url || item?.mediaUrl || item?.url || '').trim());
 }
 
-function mergeCatalog(existing, incoming, seenIds, limit = MAX_ITEMS, requirePlayable = false) {
+function mergeCatalog(existing, incoming, seenIds, limit = MAX_ITEMS, requirePlayable = false, historyIdentity = itemId) {
   const played = new Set(Array.isArray(seenIds) ? seenIds : []);
   const merged = [];
   const positions = new Map();
@@ -54,8 +54,8 @@ function mergeCatalog(existing, incoming, seenIds, limit = MAX_ITEMS, requirePla
   /* Keep the session catalog stable, but make room for newly discovered rows
      by evicting played entries before unseen ones. This preserves the union
      of the active upstream windows without letting the DO grow unbounded. */
-  const unseen = merged.filter((item) => !played.has(itemId(item)));
-  const playedItems = merged.filter((item) => played.has(itemId(item)));
+  const unseen = merged.filter((item) => !played.has(historyIdentity(item)));
+  const playedItems = merged.filter((item) => played.has(historyIdentity(item)));
   // Pending discovery cannot occupy every bounded rotation slot while a
   // resolved first-play item waits outside the window. D1 keeps the full index.
   if (requirePlayable) return [...unseen.filter(resolvedMedia), ...playedItems.filter(resolvedMedia),
@@ -172,20 +172,36 @@ export class SessionRotation {
       .filter(Boolean)
       .slice(-48));
     const current = await this.state(MAX_ITEMS, body.requirePlayable === true);
-    const catalog = mergeCatalog(current.catalog, rawCandidates, current.seen, MAX_ITEMS, body.requirePlayable === true);
+    // Standard IA clients report actual plays separately from the hot shelf.
+    // Old state counted every prefetched tail as watched and reset a 65-item
+    // catalog after only ~22 viewed programs. Never inherit that queued ledger
+    // when an explicit played-only history is available. Source Suite and the
+    // guarded reserve/commit protocol retain their existing ownership.
+    const playedOnly = body.requirePlayable === true && body.playedOnly === true && Array.isArray(body.viewerRecentIds);
+    const viewerIds = playedOnly ? body.viewerRecentIds.filter(id => typeof id === 'string' && !/[\r\n]/.test(id))
+      .map(id => id.trim().slice(0, 500)).filter(Boolean).slice(-256) : current.seen;
+    const historyIdentity = playedOnly ? episodeKey : itemId;
+    const prior = new Set(viewerIds.map(id => playedOnly ? episodeKey(id) : id));
+    const catalogIdentities = new Set();
+    const catalog = mergeCatalog(current.catalog, rawCandidates, [...prior], MAX_ITEMS, body.requirePlayable === true, historyIdentity)
+      .filter(item => {
+        if (!playedOnly) return true;
+        const key = historyIdentity(item);
+        if (catalogIdentities.has(key)) return false;
+        catalogIdentities.add(key); return true;
+      });
     // Keep discovery records in the durable catalog, but never select them as
     // on-air media or mark them seen while their playback URL is unresolved.
     const eligible = body.requirePlayable === true
       ? catalog.filter(resolvedMedia)
       : catalog;
-    const prior = new Set(current.seen);
     const globallyFresh = recent.size ? eligible.filter((item) => !recent.has(itemId(item))) : eligible;
-    const sessionFresh = globallyFresh.filter((item) => !prior.has(itemId(item)));
+    const sessionFresh = globallyFresh.filter((item) => !prior.has(historyIdentity(item)));
     /* Prefer rows outside the cross-session freshness window, but fall back to
        any session-unseen row before resetting. The pool is the persisted union,
        not the latest upstream shelf, so changing relay pages cannot replay an
        item that this session has already consumed. */
-    const alternateSessionFresh = eligible.filter((item) => !prior.has(itemId(item)));
+    const alternateSessionFresh = eligible.filter((item) => !prior.has(historyIdentity(item)));
     const candidates = cleanItems([...sessionFresh, ...alternateSessionFresh]);
     let fresh = candidates;
     let cycleReset = false;
@@ -204,15 +220,15 @@ export class SessionRotation {
     const selected = balanceFamilies ? [] : ordered.slice(0, limit);
     if (balanceFamilies) appendBalanced(selected, ordered, limit, body.diversity);
     const selectedIds = selected.map(itemId).filter(Boolean);
-    const selectionRepeatIds = cycleReset ? [] : selectedIds.filter((id) => prior.has(id));
-    const seenAfterSelection = new Set(cycleReset ? selectedIds : current.seen.concat(selectedIds));
-    const seenInCatalogBeforeSelection = eligible.filter((item) => prior.has(itemId(item))).length;
-    const unseenAfterSelection = eligible.filter((item) => !seenAfterSelection.has(itemId(item))).length;
+    const selectionRepeatIds = cycleReset ? [] : selectedIds.filter((id) => prior.has(playedOnly ? episodeKey(id) : id));
+    const seenAfterSelection = new Set(playedOnly ? [...prior] : cycleReset ? selectedIds : current.seen.concat(selectedIds));
+    const seenInCatalogBeforeSelection = eligible.filter((item) => prior.has(historyIdentity(item))).length;
+    const unseenAfterSelection = eligible.filter((item) => !seenAfterSelection.has(historyIdentity(item))).length;
     const seenInCatalog = eligible.length - unseenAfterSelection;
     const next = {
       version: 2,
       catalog,
-      seen: (cycleReset ? selectedIds : current.seen.concat(selectedIds)).slice(-MAX_SEEN),
+      seen: (playedOnly ? viewerIds : cycleReset ? selectedIds : current.seen.concat(selectedIds)).slice(-MAX_SEEN),
       cursor: current.cursor + 1,
       updatedAt: Date.now(),
     };

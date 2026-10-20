@@ -45,6 +45,55 @@ async function catalogFixture(rows) {
   return f;
 }
 
+test('standard IA prefetch does not mark its three buffered candidates watched',async()=>{
+  const f=await catalogFixture(Array.from({length:65},(_,i)=>row('holiday-'+i+'.mp4',{title:'Halloween cartoon animated special '+i,seriesId:'show-'+i%8})));
+  for(let rotation=0;rotation<2;rotation++){
+    const p=await(await f.request('queue',{channel:'705',serverCatalog:true,sessionId:'played-only-empty',count:3,rotation,viewerRecentIds:[],recentIds:[]})).json();
+    assert.equal(p.items.length,3);assert.equal(p.v2.seenInCatalog,0,'queued is not watched');
+  }
+  await Promise.all(f.pending);
+});
+
+test('48 actual IA first selections cannot exhaust a 65-program catalog by counting prefetched tails',async()=>{
+  const rows=Array.from({length:65},(_,i)=>row('holiday-'+i+'.mp4',{title:'Halloween cartoon animated special '+i,seriesId:'show-'+i%8})),f=await catalogFixture(rows),played=[];
+  for(let rotation=0;rotation<48;rotation++){
+    const p=await(await f.request('queue',{channel:'705',serverCatalog:true,sessionId:'played-only-48',count:3,rotation,viewerRecentIds:played,recentIds:played.slice(-36),diversity:{maxPerFamily:1}})).json();
+    assert.equal(p.items.length,3);assert.ok(!played.includes(p.items[0].identifier),'repeat at rotation '+rotation);
+    assert.equal(p.v2.cycleReset,false,'the viewer has not watched the complete catalog');played.push(p.items[0].identifier);
+  }
+  await Promise.all(f.pending);
+});
+
+test('played-only IA rotation ignores legacy queued-as-seen state and honors personal history beyond 48',async()=>{
+  const [{SessionRotation}]=await modules,rows=Array.from({length:65},(_,i)=>row('long-'+i+'.mp4'));
+  const ctx=rotationContext({catalog:rows,seen:rows.map(item=>item.identifier),cursor:23}),object=new SessionRotation(ctx,{});
+  const p=await(await object.fetch(new Request('https://rotation.internal/select',{method:'POST',body:JSON.stringify({items:rows,count:3,requirePlayable:true,playedOnly:true,viewerRecentIds:rows.slice(0,61).map(item=>item.identifier)})}))).json();
+  assert.equal(p.items.length,3);assert.equal(p.cycleReset,false);
+  assert.ok(p.items.every(item=>rows.slice(61).some(fresh=>fresh.identifier===item.identifier)),'all 61 real plays are excluded, not only the last 48');
+});
+
+test('standard Modern Game Shows cannot inherit kids from its previous session catalog',async()=>{
+  const rows=['A','B','C'].map(file=>row(file+'.mp4',{title:'Wheel of Fortune full episode 1995',year:1995})),f=await catalogFixture(rows);
+  const old=f.env.ROTATION.getByName('session:modern-policy:channel:22');
+  await old.ctx.storage.put('rotation',{catalog:[row('guts.mp4',{title:'Nickelodeon GUTS full episode 1995',year:1995})],seen:[],cursor:0});
+  const p=await(await f.request('queue',{channel:'22',serverCatalog:true,sessionId:'modern-policy',count:3,viewerRecentIds:[]})).json();
+  assert.equal(p.items.length,3);assert.ok(p.items.every(item=>! /guts|nickelodeon/i.test(item.title)));
+  await Promise.all(f.pending);
+});
+
+test('played-only IA history excludes another encoding but keeps unseen sibling episodes',async()=>{
+  const [{SessionRotation}]=await modules,object=new SessionRotation(rotationContext(),{});
+  const rows=['01','02','03'].map(n=>row('James Holzhauer Game '+n+'.mp4',{title:'Jeopardy! full episode 2019',year:2019}));
+  const p=await(await object.fetch(new Request('https://rotation.internal/select',{method:'POST',body:JSON.stringify({items:rows,count:3,requirePlayable:true,playedOnly:true,viewerRecentIds:['BENSON::James Holzhauer Game 01.ia.mp4']})}))).json();
+  assert.equal(p.items.length,2);assert.ok(p.items.every(item=>!item.identifier.includes('Game 01')));assert.equal(p.exhaustion.seenInCatalog,1);
+});
+
+test('played-only IA still returns playable fallback after real viewer exhaustion',async()=>{
+  const [{SessionRotation}]=await modules,rows=['A','B','C'].map(file=>row(file+'.mp4')),object=new SessionRotation(rotationContext(),{});
+  const p=await(await object.fetch(new Request('https://rotation.internal/select',{method:'POST',body:JSON.stringify({items:rows,count:3,requirePlayable:true,playedOnly:true,viewerRecentIds:rows.map(item=>item.identifier)})}))).json();
+  assert.equal(p.items.length,3);assert.equal(p.cycleReset,true);assert.equal(p.exhaustion.repeatAllowed,true);
+});
+
 for(const mode of ['private','legacy','canonical','exhausted'])test('relay-owned IA D1 recovery preserves '+mode+' viewer history after a slot fails admission',async()=>{
   const rows='ABCDEFGHIJKL'.split('').map(letter=>row(letter+'.mp4'));
   const f=await catalogFixture(rows),prepare=f.env.realsignal_catalog.prepare.bind(f.env.realsignal_catalog);

@@ -55,6 +55,88 @@ test('metadata-proven unlabelled collections expand outside the four guarded IA 
   assert.equal(rows.length,4);
 });
 
+test('re-expanding a collection sibling uses canonical series identity instead of accumulating the previous episode title',async()=>{
+  const f=collectionFixture();f.payload.metadata.title='The Powerpuff Girls';
+  f.payload.files=[{name:'Powerpuff Girls - 03,02 - Town and Out - Child Fearing.mp4',format:'h.264',length:1320,width:640,height:480},
+    {name:'Powerpuff Girls - 03,06 - Jewel of the Aisle - Super Zeroes.mp4',format:'h.264',length:1320,width:640,height:480},
+    {name:'Powerpuff Girls - 01,01 - Insect Inside - Powerpuff Bluff.mp4',format:'h.264',length:1320,width:640,height:480}];
+  const old={identifier:'powerpuff-girls-complete-series::old.mp4',sourceIdentifier:'powerpuff-girls-complete-series',fileName:'old.mp4',
+    title:'The Powerpuff Girls — Insect Inside / Powerpuff Bluff · Old Episode · Old Episode',subject:'cartoon animation',media:{type:'video',url:'https://archive.org/download/powerpuff/old.mp4',sourceProgramCount:3}};
+  const first=await f.expand(old),target=first.find(row=>row.fileName.includes('03,02'));
+  assert.ok(target,'the valid sibling file must be expanded');
+  assert.equal(target.title,'Powerpuff Girls - 03,02 - Town and Out - Child Fearing');
+  const second=await f.expand(target);
+  assert.equal(second.find(row=>row.fileName===target.fileName).title,target.title,'expansion is idempotent and cannot append another filename');
+  assert.ok(second.every(row=>!row.title.includes('Old Episode')));
+});
+
+test('Blighty fallback returns ready media while scheduling collection growth without foreground discovery',async()=>{
+  const f=collectionFixture(),pending=[],jobs=[];
+  const env={REALSIGNAL_QUEUE:{get:async()=>null,put:async()=>{}},IA_HARVEST_QUEUE:{send:async body=>jobs.push(body)}};
+  const request=new Request('https://relay.invalid/ia/queue',{method:'POST',body:JSON.stringify({channel:'118',count:3,rotation:0,queries:['mediatype:movies AND british'],
+    themeTerms:['british television'],denyTerms:['podcast','fan made'],mediaTypes:['movies'],minRuntimeSeconds:900})});
+  const payload=await(await f.f.getIaQueue(request,new URL(request.url),env,{waitUntil:p=>pending.push(p)})).json();await Promise.all(pending);
+  assert.equal(payload.items.length,3);assert.ok(payload.items.every(row=>row.media?.url));
+  assert.equal(f.reads.length,0,'metadata discovery stays off the ready playback request');
+  assert.equal(jobs.length,1,'returning a fallback cannot permanently disable its background collection harvest');
+  assert.ok(jobs[0].seed.lastGoodKey,'background growth must publish back to this editorial family');
+});
+
+test('Blighty indexes real episode files across British series rather than only its small starter bank',()=>{
+  const f=relay(),rows=f.iaRepairCollectionSeeds('118').filter(row=>row.media);
+  assert.ok(rows.length>=250,'the reviewed multi-series manifests must reach playback, not just an audit file');
+  for(const show of ['Only Fools and Horses',"Dad's Army",'Yes Minister','The Young Ones','One Foot in the Grave','Red Dwarf','Sherlock'])
+    assert.ok(rows.some(row=>row.title.includes(show)),show+' must have actual indexed episodes');
+  assert.ok(rows.some(row=>row.fileName==='S1E1 Big brother.mp4'));
+  assert.ok(rows.some(row=>row.fileName==='Space 1999 S01E24 The Last Enemy.mp4'||/S01E24/.test(row.fileName)),'later episodes must not disappear');
+  assert.ok(rows.every(row=>row.media.runtime>=900&&row.media.width>row.media.height));
+  assert.ok(rows.every(row=>!row.media.verifiedAt),'metadata is not live transport evidence');
+  assert.ok(rows.every(row=>! /\b(?:bonus|interview|extra|extras|commentary)\b/i.test(row.fileName)));
+  assert.equal(new Set(rows.map(row=>row.identifier)).size,rows.length);
+});
+
+test('Blighty cannot hide newly indexed British episodes behind an older shallow durable catalog',async()=>{
+  const f=collectionFixture(),pending=[],rows=Array.from({length:12},(_,i)=>({identifier:'old-keeping-up::Episode '+i+'.mp4',sourceIdentifier:'old-keeping-up',fileName:'Episode '+i+'.mp4',
+    title:'Keeping Up Appearances · Episode '+i,subject:'british television british sitcom',media:{type:'video',url:'https://archive.org/download/old/'+i+'.mp4',runtime:1740,width:640,height:480}}));
+  const bonus={...rows[0],identifier:'bbc-red-dwarf::Red Dwarf VI Disc 2 (Bonus Material)8.mp4',sourceIdentifier:'bbc-red-dwarf',fileName:'Red Dwarf VI Disc 2 (Bonus Material)8.mp4',title:'Red Dwarf · Bonus Material'};
+  const family={channel:'118',items:rows.slice(0,3),candidateItems:rows.concat(bonus),candidates:13,ready:3};
+  const env={REALSIGNAL_QUEUE:{get:async key=>key.includes(':last-good:')?family:null,put:async()=>{}},IA_HARVEST_QUEUE:{send:async()=>{}}};
+  const request=new Request('https://relay.invalid/ia/queue',{method:'POST',body:JSON.stringify({channel:'118',count:3,rotation:1,queries:['mediatype:movies AND british'],
+    themeTerms:['british television'],denyTerms:['podcast'],mediaTypes:['movies'],minRuntimeSeconds:900})});
+  const payload=await(await f.f.getIaQueue(request,new URL(request.url),env,{waitUntil:p=>pending.push(p)})).json();await Promise.all(pending);
+  assert.ok(payload.candidateItems.some(row=>row.sourceIdentifier==='Onlyfoolsandhorsesseries'),'a healthy old cache cannot erase new reviewed episodes');
+  assert.ok(payload.candidateItems.some(row=>row.identifier===rows[0].identifier),'previous approved programs are retained');
+  assert.ok(!payload.candidateItems.some(row=>row.identifier===bonus.identifier),'old shared DVD extras cannot bypass the corrected background admission');
+  assert.equal(new Set(payload.items.map(row=>f.f.queueTitleFamily(row))).size,3,'one series cannot occupy the entire ready shelf');
+  assert.equal(family.candidateItems.length,13,'the shared input is not mutated');
+  assert.equal(f.reads.length,0,'merged metadata is already indexed, not fetched during the tune');
+});
+
+for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])test(file+': cached recursive episode titles display the actual descriptive filename without changing editorial labels',()=>{
+  const source=fs.readFileSync(path.join(root,file),'utf8'),s={};vm.createContext(s);
+  vm.runInContext(source.slice(source.indexOf('function iaDisplayTitle('),source.indexOf('function adoptIAResolvedMedia(')),s);
+  const id='powerpuff-girls-complete-series::Powerpuff Girls - 03,02 - Town and Out - Child Fearing.mp4';
+  const old='The Powerpuff Girls — Insect Inside / Powerpuff Bluff · Powerpuff Girls - 01,01 - Insect Inside - Powerpuff Bluff · Powerpuff Girls - 01,01 - Insect Inside - Powerpuff Bluff · Powerpuff Girls - 03,02 - Town and Out - Child Fearing';
+  assert.equal(s.iaDisplayTitle({identifier:id,title:old},{nm:'Modern Cartoons'}),'Powerpuff Girls - 03,02 - Town and Out - Child Fearing');
+  const different='Powerpuff Girls · Powerpuff Girls - 01,01 - Insect Inside - Powerpuff Bluff · Powerpuff Girls - 03,02 - Town and Out - Child Fearing';
+  assert.equal(s.iaDisplayTitle({identifier:id,title:different},{nm:'Modern Cartoons'}),'Powerpuff Girls - 03,02 - Town and Out - Child Fearing','different accumulated fragments are still a recursive filename chain');
+  assert.equal(s.iaDisplayTitle({identifier:'bbc-red-dwarf::VTS_01_3.mp4',title:'Red Dwarf · The End'},{nm:'Blighty'}),'Red Dwarf · The End');
+  assert.equal(s.iaDisplayTitle({identifier:'something',title:'Arena · David Bowie · Five Years'},{nm:'Blighty'}),'Arena · David Bowie · Five Years');
+  assert.equal(s.iaDisplayTitle({identifier:'bbc-arena::BBC Arena.mp4',title:'Arena · David Bowie · Five Years'},{nm:'Blighty'}),'Arena · David Bowie · Five Years','a generic filename is not permission to erase editorial subtitles');
+});
+
+test('Blighty collection growth rejects DVD extras but retains an actual British interview documentary',async()=>{
+  const f=collectionFixture();f.payload.metadata.title='British Television Collection';
+  f.payload.files=[{name:'Red Dwarf VI Disc 1 (Main Feature)5.mp4',format:'h.264',length:1800,width:640,height:480},
+    {name:'Red Dwarf VI Disc 2 (Bonus Material)8.mp4',format:'h.264',length:1753,width:640,height:480},
+    {name:'BBC Omnibus - Interview with a Playwright.mp4',format:'h.264',length:2700,width:640,height:480}];
+  const item={identifier:'british-collection',title:'British Television Complete Collection',subject:'british television',media:{type:'video',url:'https://archive.org/download/british/start.mp4',sourceProgramCount:3}};
+  const rows=await f.f.expandSeedArchiveContainers({items:[item],candidateItems:[item]},'https://relay.invalid',{isIaBackground:true,waitUntil:()=>{}},'118',['british television'],[],[],['movies'],1,0,96);
+  assert.ok(rows.some(row=>row.fileName==='Red Dwarf VI Disc 1 (Main Feature)5.mp4'));
+  assert.ok(rows.some(row=>row.fileName==='BBC Omnibus - Interview with a Playwright.mp4'),'do not blanket-ban editorial documentaries');
+  assert.ok(!rows.some(row=>row.fileName.includes('Bonus Material')),'background expansion must apply the reviewed DVD-extra exclusion');
+});
+
 test('a healthy background collection manifest is not aborted by the old 2.8-second tune-sized deadline',async()=>{
   const f=collectionFixture({delayMs:3100});
   const rows=await f.expand({identifier:'cartoon-complete-series',title:'Cartoon Complete Series',recoveryVerified:true,

@@ -34,6 +34,54 @@ test('Courtroom TV requires a judge-show identity rather than an incidental desc
   assert.equal(f.stationGate('20',bad),false);assert.equal(catalogFallbackAllowed(bad,{channel:'20'}),false);
 });
 
+test('Cooking & Food cannot inherit etiquette and community broadcasts through food subject tags',async()=>{
+  const f=relay(),{catalogFallbackAllowed}=await import('../realsignal_api_v2_worker.js');
+  for(const title of ['Office Etiquette','Cindy Goes to a Party','Date With Your Family, A','A Better Minnesota 1937',
+    'Christmas Trees, COVID-19 Vaccines, Holiday Etiquette, & More! - Full Megacast',
+    '23. Building The Recipe View Part 2','21. Building The Recipe Model Part 2']){
+    const item={identifier:'legacy::program.mp4',title,subject:'cooking food home economics',media:{type:'video',url:'https://archive.org/download/legacy/program.mp4'}};
+    assert.equal(f.stationGate('201',item),false,title+' relay');assert.equal(catalogFallbackAllowed(item,{channel:'201'}),false,title+' API');
+  }
+  for(const title of ['The French Chef with Julia Child','Yan Can Cook','Great Chefs Of New Orleans','Good Eats: Season 2',"America's Test Kitchen",'How to Bake a Souffle']){
+    const item={identifier:'program::episode.mp4',title,media:{type:'video',url:'https://archive.org/download/program/episode.mp4'}};
+    assert.equal(f.stationGate('201',item),true,title);assert.equal(catalogFallbackAllowed(item,{channel:'201'}),true,title);
+  }
+});
+
+test('the full reviewed cooking bank survives seed construction, including Test Kitchen files',()=>{
+  const bank=relay().iaRepairCollectionSeeds('201').filter(x=>x.media?.url);
+  assert.equal(bank.length,349,'the count is measured before admission, not after silently discarding files');
+  assert.equal(bank.filter(x=>x.sourceIdentifier==='atk-season-eight-dvd').length,31);
+  assert.equal(bank.filter(x=>x.sourceIdentifier==='americas-test-kitchen-season-7').length,7);
+});
+
+test('reviewed factory edits cannot be alternate encodes of the same program',()=>{
+  const bank=relay().iaRepairCollectionSeeds('200').filter(x=>x.media?.url);
+  for(const parent of ['SteelASy1936','MenSteel1960','ThisIsth1957'])
+    assert.equal(bank.filter(x=>x.sourceIdentifier===parent).length,1,parent+' is one program, not two fresh plays');
+});
+
+for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])test(file+': every new food/factory file survives its actual client station profile',async()=>{
+  const source=fs.readFileSync(path.join(root,file),'utf8'),s={window:{},location:{search:''},URLSearchParams,console,sportsEra:'all',
+    localStorage:{getItem:()=>null,setItem:()=>{}},banned:[],curItem:null,isTemporarilySkipped:()=>false,blockedId:()=>false,iaProgramFailed:()=>false,iaSkipBlocked:()=>false};
+  vm.createContext(s);
+  const marker=source.indexOf('window.__atvIAManifest=function()'),end=source.indexOf('\nif(new URLSearchParams(location.search)',marker);
+  vm.runInContext(source.slice(source.indexOf('\nconst FNOT=')+1,end),s);
+  vm.runInContext(source.slice(source.indexOf('function iaRuntimeSeconds('),source.indexOf('async function iaQueueRequest('))+';f={queue:iaProgramAllowed,cached:iaCachedProgramAllowed,slot:ch=>slotFor(CH.find(x=>x.num===ch),0,{preview:true})};',s);
+  for(const channel of [200,201]){
+    const bank=relay().iaRepairCollectionSeeds(String(channel)).filter(x=>x.media?.url),slot=s.f.slot(channel);
+    const rejected=bank.filter(item=>!s.f.queue(item,slot)||!s.f.cached({num:channel,nm:channel===200?'Manufacturing Marvels':'Home Economics'},
+      {id:item.identifier,title:item.title,meta:{subject:item.subject}},slot));
+    assert.deepEqual(Array.from(rejected,x=>x.title),[],String(channel)+' real client cannot lose approved programs');
+  }
+  const mural={identifier:'fc-fc-2701',title:'Diego Rivera Industrial Mural, Detroit Institute of Arts / Ford V-8 Exhibit, State Fair',subject:'industrial factory'},slot=s.f.slot(200);
+  assert.equal(s.f.queue(mural,slot),false,'a filmed industrial mural is not a factory/process program');
+  assert.equal(s.f.cached({num:200,nm:'Manufacturing Marvels'},{id:mural.identifier,title:mural.title,meta:{subject:mural.subject}},slot),false);
+  const rules=s.window.__atvIAManifest().find(x=>String(x.channel)==='200'),{catalogFallbackAllowed}=await import('../realsignal_api_v2_worker.js');
+  assert.equal(catalogFallbackAllowed(mural,rules),false,'the real manifest also excludes it from D1/API admission');
+  assert.equal(relay().matchesDeny(mural,rules.denyTerms),true,'the relay receives the same exclusion');
+});
+
 test('relay freshness unifies a single-program parent and its matching file without excluding siblings',()=>{
   const f=relay(),parent='WTTG_20010911_140000_Divorce_Court',make=(id,file)=>({identifier:id,sourceIdentifier:parent,fileName:file,
     title:'Divorce Court',media:{type:'video',url:'https://archive.org/download/'+parent+'/'+file}});
@@ -46,7 +94,7 @@ test('relay freshness unifies a single-program parent and its matching file with
 test('measured shallow lanes expose expanded file banks through the actual strict recovery and client contracts',async()=>{
   const f=relay(),{catalogFallbackAllowed}=await import('../realsignal_api_v2_worker.js');
   const manifest=JSON.parse(execFileSync(process.execPath,[path.join(root,'scripts/export-ia-manifest.js')],{encoding:'utf8',maxBuffer:16e6}));
-  for(const [channel,minimum] of [['20',96],['65',20],['204',24],['510',96]]){
+  for(const [channel,minimum] of [['20',96],['65',20],['204',24],['510',96],['200',20],['201',96]]){
     const rules=manifest.find(x=>x.channel===channel),bank=f.iaRepairCollectionSeeds(channel).filter(x=>x.media?.url);
     assert.ok(bank.length>=minimum,channel+' must hold a real expanded bank, not another starter shelf');
     assert.ok(bank.every(x=>x.media.runtime>=900&&x.media.width>x.media.height&&x.media.metadataVerifiedAt>0));
@@ -54,8 +102,20 @@ test('measured shallow lanes expose expanded file banks through the actual stric
     assert.ok(payload.candidateItems.length>=minimum,channel+' cannot lose the bank to the old station vocabulary');
     assert.ok(bank.every(item=>catalogFallbackAllowed(item,rules)),channel+' API admission retains the reviewed files');
     assert.ok(bank.every(item=>payload.candidateItems.some(candidate=>candidate.identifier===item.identifier)),channel+' retains file-level depth behind its shelf');
-    if(['20','510'].includes(channel))assert.equal(new Set(payload.items.slice(0,3).map(x=>x.seriesId)).size,3,'opening shelf rotates television series, not just episode IDs');
+    if(['20','510','201'].includes(channel))assert.equal(new Set(payload.items.slice(0,3).map(x=>x.seriesId)).size,3,'opening shelf rotates television series, not just episode IDs');
   }
+});
+
+for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])test(file+': Cooking & Food rechecks stale direct and saved playback identities',()=>{
+  const source=fs.readFileSync(path.join(root,file),'utf8'),s={banned:[],curItem:null,isTemporarilySkipped:()=>false,blockedId:()=>false,iaProgramFailed:()=>false,iaSkipBlocked:()=>false,iaThemeMatches:()=>true};
+  vm.createContext(s);vm.runInContext(source.slice(source.indexOf('function iaKnownVideoPolicyViolation('),source.indexOf('function iaProgramDenyTerms('))+';f={cached:iaCachedProgramAllowed,queue:iaProgramAllowed};',s);
+  for(const title of ['Office Etiquette','Cindy Goes to a Party','Date With Your Family, A','23. Building The Recipe View Part 2','21. Building The Recipe Model Part 2']){
+    const item={id:'old',identifier:'old',title,subject:'cooking food home economics',type:'video'};
+    assert.equal(s.f.queue(item,{channel:201,program:{}}),false);assert.equal(s.f.cached({num:201},item),false);
+  }
+  assert.equal(s.f.cached({num:201},{id:'chef',title:'The French Chef with Julia Child',type:'video'}),true);
+  assert.equal(s.f.cached({num:201},{id:'atk-season-eight-dvd',title:"America's Test Kitchen",type:'video'}),true);
+  assert.equal(s.f.cached({num:201},null),false);
 });
 
 for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])test(file+': Sporting Life direct and cached playback enforce outdoor program identity',()=>{
@@ -67,7 +127,7 @@ for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])test(file+': 
     assert.equal(s.f.cached({num:65,nm:'The Sporting Life'},{id:'bad',title,type:'video'}),false,title);
   }
   assert.equal(s.f.cached({num:65,nm:'The Sporting Life'},{id:'bill-dance::episode.mp4',title:'Bill Dance Outdoors',type:'video'}),true);
-  assert.equal(s.f.cached({num:201,nm:'Documentary'},{id:'speech',title:'A Conversation with Secretary Sally Jewell',type:'video'}),true,'not a global ban on documentaries');
+  assert.equal(s.f.cached({num:204,nm:'Prelinger Vault'},{id:'speech',title:'A Conversation with Secretary Sally Jewell',type:'video'}),true,'not a global ban on documentaries outside Cooking & Food');
   const news={identifier:'news',id:'news',title:'Washington Week With Gwen Ifill',subject:'Judge Judy',type:'video'};
   assert.equal(s.f.queue(news,{channel:20,program:{}}),false);assert.equal(s.f.cached({num:20},news),false);
   assert.equal(s.f.cached({num:65},{id:'HuntingSeason::huntingonline_512kb.mp4',title:'Hunting Season',type:'video'}),false);

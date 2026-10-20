@@ -6,7 +6,7 @@
  */
 
 import { SessionRotation } from "./realsignal_api_rotation.js";
-import { normalizeIaFileRecord, qualifyIaFileRecord, iaMinimumFileRuntimeSeconds, iaGameShowEraAllowed, iaGameShowYear, iaReviewedCartoonSource, iaKnownVideoPolicyViolation, iaSportingLifeAllowed, iaCourtroomAllowed } from "./ia_file_contract.js";
+import { normalizeIaFileRecord, qualifyIaFileRecord, iaMinimumFileRuntimeSeconds, iaGameShowEraAllowed, iaGameShowYear, iaReviewedCartoonSource, iaKnownVideoPolicyViolation, iaSportingLifeAllowed, iaCourtroomAllowed, iaCookingAllowed } from "./ia_file_contract.js";
 import { EdgeRateLimiter } from "./realsignal_api_rate_limit.js";
 import { RokuSession } from "./realsignal_roku_session.js";
 import { okBalancedCandidates, okPlaybackIdentity, okPreferUnseenSeries, okSeriesIdentity } from "./ok_public_search.js";
@@ -19,7 +19,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "5.6.22-ia-expanded-file-depth";
+const V3_RELEASE = "5.6.23-ia-food-factory-guide";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -61,7 +61,9 @@ const IA_FAST_CATALOG_LANES = new Set([
      discovery path for every other channel. */
   "13", "19", "21", "54", "67", "70", "71", "73", "78", "83",
   "105", "109", "112", "114", "125", "129", "130", "131", "152", "156",
-  "201", "226", "242", "501", "502", "508", "900", "901", "912", "926",
+  // Cooking 201 must reach its expanded relay bank; an old full D1 window
+  // otherwise masks the new episodes. Normal session rotation stays intact.
+  "226", "242", "501", "502", "508", "900", "901", "912", "926",
 ]);
 /* These seasonal lanes have title-verified recovery shelves. Some older D1
    rows predate subject persistence, so a clearly seasonal title must remain
@@ -780,6 +782,7 @@ function rotateCatalogItems(items, rotation) {
 }
 
 function catalogFallbackAllowed(item, body) {
+  if (body && body.sourceCatalog !== true && String(body.channel) === '201' && !iaCookingAllowed(item)) return false;
   if (body && body.sourceCatalog !== true && String(body.channel) === '20' && !iaCourtroomAllowed(item)) return false;
   if (body && body.sourceCatalog !== true && String(body.channel) === '65' && !iaSportingLifeAllowed(item)) return false;
   if (body && body.sourceCatalog !== true && iaKnownVideoPolicyViolation(item)) return false;

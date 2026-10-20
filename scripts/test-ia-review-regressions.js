@@ -97,10 +97,22 @@ test('Sporting Life removes off-genre legacy session rows without resetting actu
   await Promise.all(f.pending);
 });
 
-for(const channel of ['65','204','510'])test('channel '+channel+' cannot stay frozen on an older full D1 shelf while its relay has a deeper episode bank',async()=>{
-  const f=await catalogFixture(Array.from({length:24},(_,i)=>row('old-'+i+'.mp4',{title:'Bill Dance Outdoors fishing program '+i})));
-  f.incoming(Array.from({length:96},(_,i)=>row('new-'+i+'.mp4',{title:'Bill Dance Outdoors fishing program '+i})));
-  const p=await(await f.request('queue',{channel,serverCatalog:true,sessionId:'file-bank-'+channel,count:3,viewerRecentIds:[]})).json();
+test('Cooking & Food prunes old etiquette records from D1 and durable rotation without forgetting real plays',async()=>{
+  const good=Array.from({length:24},(_,i)=>row('chef-'+i+'.mp4',{title:'The French Chef with Julia Child episode '+i}));
+  const bad=row('etiquette.mp4',{title:'Office Etiquette',subject:'food home economics cooking'}),f=await catalogFixture([bad,...good]);f.incoming(good);
+  const old=f.env.ROTATION.getByName('session:food-genre:channel:201');
+  await old.ctx.storage.put('rotation',{catalog:[bad,...good],seen:[],cursor:0});
+  const p=await(await f.request('queue',{channel:'201',serverCatalog:true,sessionId:'food-genre',count:3,viewerRecentIds:[good[0].identifier]})).json();
+  assert.equal(p.items.length,3);assert.ok(p.candidateItems.every(x=>x.identifier!==bad.identifier));
+  assert.ok(p.items.every(x=>x.identifier!==good[0].identifier),'actual watched episodes stay excluded');await Promise.all(f.pending);
+});
+
+for(const channel of ['65','200','201','204','510'])test('channel '+channel+' cannot stay frozen on an older full D1 shelf while its relay has a deeper episode bank',async()=>{
+  const title=channel==='201'?'The French Chef with Julia Child':channel==='200'?'Inside the Factory':'Bill Dance Outdoors fishing program';
+  const subject=channel==='200'?'factory manufacturing industrial production':'';
+  const f=await catalogFixture(Array.from({length:24},(_,i)=>row('old-'+i+'.mp4',{title:title+' '+i,subject})));
+  f.incoming(Array.from({length:96},(_,i)=>row('new-'+i+'.mp4',{title:title+' '+i,subject})));
+  const p=await(await f.request('queue',{channel,serverCatalog:true,sessionId:'file-bank-'+channel,count:3,viewerRecentIds:[],...(channel==='200'?{themeTerms:['factory']}: {})})).json();
   assert.ok(f.queueBodies.length>0,'a 24-row old shelf is not proof the new bank was imported');
   assert.ok(p.candidateItems.some(x=>x.identifier.includes('new-')),'expanded file identities reach the returned catalog');
   assert.equal(p.items.length,3);await Promise.all(f.pending);

@@ -33,6 +33,14 @@ export function iaKnownVideoPolicyViolation(item = {}) {
     || /\b(?:unofficial|homemade|bootleg)\b.{0,48}\b(?:film|movie|feature|parody|remake|reconstruction)\b|\b(?:film|movie|feature|parody|remake|reconstruction)\b.{0,48}\b(?:unofficial|homemade|bootleg)\b/.test(text);
 }
 
+export function iaCookingAllowed(item = {}) {
+  if (!item || typeof item !== 'object') return false;
+  const text = [item.title, item.seriesTitle, item.fileName, item.media?.sourceTitle,
+    item.sourceIdentifier, item.identifier || item.id, item.meta?.title]
+    .filter(Boolean).join(' ').toLowerCase().replace(/[_./-]+/g, ' ');
+  if (/\b(?:office etiquette|secretarial|sewing|laundry|housekeeping|home nursing|dating|good manners|table manners|city council|press conference|megacast|podcast|who is killing the great chefs|pbs member stations nightmare|recipe (?:view|model|app|application)|web development|software tutorial)\b/.test(text)) return false;
+  return /\b(?:cook(?:s|ing|ery|house)?|cuisine|culinary|food|chefs?|recipes?|bak(?:e|ing)|pastry|bread|grill(?:ing)?|barbecue|good eats|america['’]?s test kitchen|julia child|jacques p[eé]pin)\b/.test(text);
+}
 export function iaCourtroomAllowed(item = {}) {
   if (!item || typeof item !== 'object') return false;
   const text = [item.title, item.seriesTitle, item.fileName, item.media?.sourceTitle,

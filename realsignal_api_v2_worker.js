@@ -6,7 +6,7 @@
  */
 
 import { SessionRotation } from "./realsignal_api_rotation.js";
-import { normalizeIaFileRecord, qualifyIaFileRecord, iaMinimumFileRuntimeSeconds, iaGameShowEraAllowed, iaGameShowYear, iaReviewedCartoonSource, iaKnownVideoPolicyViolation, iaSportingLifeAllowed, iaCourtroomAllowed, iaCookingAllowed } from "./ia_file_contract.js";
+import { normalizeIaFileRecord, qualifyIaFileRecord, iaMinimumFileRuntimeSeconds, iaGameShowEraAllowed, iaGameShowYear, iaReviewedCartoonSource, iaKnownVideoPolicyViolation, iaSportingLifeAllowed, iaCourtroomAllowed, iaCookingAllowed, iaHuntingAllowed, iaReviewedFileAllowed } from "./ia_file_contract.js";
 import { EdgeRateLimiter } from "./realsignal_api_rate_limit.js";
 import { RokuSession } from "./realsignal_roku_session.js";
 import { okBalancedCandidates, okPlaybackIdentity, okPreferUnseenSeries, okSeriesIdentity } from "./ok_public_search.js";
@@ -19,7 +19,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "5.6.23-ia-food-factory-guide";
+const V3_RELEASE = "5.6.24-ia-nature-outdoor-depth";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -782,6 +782,8 @@ function rotateCatalogItems(items, rotation) {
 }
 
 function catalogFallbackAllowed(item, body) {
+  if (body && body.sourceCatalog !== true && !iaReviewedFileAllowed(item, body.channel)) return false;
+  if (body && body.sourceCatalog !== true && String(body.channel) === '80' && !iaHuntingAllowed(item)) return false;
   if (body && body.sourceCatalog !== true && String(body.channel) === '201' && !iaCookingAllowed(item)) return false;
   if (body && body.sourceCatalog !== true && String(body.channel) === '20' && !iaCourtroomAllowed(item)) return false;
   if (body && body.sourceCatalog !== true && String(body.channel) === '65' && !iaSportingLifeAllowed(item)) return false;

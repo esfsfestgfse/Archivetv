@@ -1,6 +1,6 @@
 /* Per-session rotation state for the Version 2 API. A session+channel is the
  * coordination atom; one viewer's Next action cannot consume another's. */
-import { normalizeIaFileRecord, qualifyIaFileRecord, iaKnownVideoPolicyViolation, iaSportingLifeAllowed, iaCourtroomAllowed, iaCookingAllowed } from './ia_file_contract.js';
+import { normalizeIaFileRecord, qualifyIaFileRecord, iaKnownVideoPolicyViolation, iaSportingLifeAllowed, iaCourtroomAllowed, iaCookingAllowed, iaHuntingAllowed, iaReviewedFileAllowed } from './ia_file_contract.js';
 import { handleIaOwnedState, readIaChunkedState, writeIaChunkedState } from './ia_durable_state.js';
 
 /* Keep enough verified candidates in the session shelf that a fresh tune is
@@ -167,6 +167,8 @@ export class SessionRotation {
       return this.ctx.blockConcurrencyWhile ? this.ctx.blockConcurrencyWhile(run) : run();
     }
     const allowed = item => body.requirePlayable !== true || (!iaKnownVideoPolicyViolation(item)
+      && iaReviewedFileAllowed(item, body.stationChannel)
+      && (String(body.stationChannel) !== '80' || iaHuntingAllowed(item))
       && (String(body.stationChannel) !== '201' || iaCookingAllowed(item))
       && (String(body.stationChannel) !== '20' || iaCourtroomAllowed(item))
       && (String(body.stationChannel) !== '65' || iaSportingLifeAllowed(item)));

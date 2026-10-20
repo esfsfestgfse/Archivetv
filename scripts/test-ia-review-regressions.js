@@ -107,8 +107,19 @@ test('Cooking & Food prunes old etiquette records from D1 and durable rotation w
   assert.ok(p.items.every(x=>x.identifier!==good[0].identifier),'actual watched episodes stay excluded');await Promise.all(f.pending);
 });
 
-for(const channel of ['65','200','201','204','510'])test('channel '+channel+' cannot stay frozen on an older full D1 shelf while its relay has a deeper episode bank',async()=>{
-  const title=channel==='201'?'The French Chef with Julia Child':channel==='200'?'Inside the Factory':'Bill Dance Outdoors fishing program';
+test('The Hunt prunes legacy fiction from D1 and durable state while retaining real viewing history',async()=>{
+  const good=Array.from({length:24},(_,i)=>row('hunting-'+i+'.mp4',{title:'Buckmasters hunting television episode '+i}));
+  const bad=row('fremont.mp4',{title:'The Adventures of Frontier Fremont a.k.a Spirit of the Wild',subject:'hunting show'}),f=await catalogFixture([bad,...good]);f.incoming(good);
+  const old=f.env.ROTATION.getByName('session:hunt-genre:channel:80');
+  await old.ctx.storage.put('rotation',{catalog:[bad,...good],seen:[],cursor:0});
+  const p=await(await f.request('queue',{channel:'80',serverCatalog:true,sessionId:'hunt-genre',count:3,viewerRecentIds:[good[0].identifier]})).json();
+  assert.equal(p.items.length,3);assert.ok(p.candidateItems.every(x=>x.identifier!==bad.identifier));
+  assert.ok(p.items.every(x=>x.identifier!==good[0].identifier),'actual watched episodes stay excluded');await Promise.all(f.pending);
+});
+
+for(const channel of ['65','66','80','200','201','204','212','510'])test('channel '+channel+' cannot stay frozen on an older full D1 shelf while its relay has a deeper episode bank',async()=>{
+  const title=channel==='66'?'Transworld Skateboarding':channel==='80'?'Buckmasters hunting television':channel==='212'?'Planet Earth nature documentary':
+    channel==='201'?'The French Chef with Julia Child':channel==='200'?'Inside the Factory':'Bill Dance Outdoors fishing program';
   const subject=channel==='200'?'factory manufacturing industrial production':'';
   const f=await catalogFixture(Array.from({length:24},(_,i)=>row('old-'+i+'.mp4',{title:title+' '+i,subject})));
   f.incoming(Array.from({length:96},(_,i)=>row('new-'+i+'.mp4',{title:title+' '+i,subject})));
@@ -537,6 +548,18 @@ test('a played parent ID stays watched when the same exact file is later indexed
   assert.ok(next.items.every(item=>!item.identifier.includes('::episode.mp4')),'the played episode cannot occupy any ready slot');
   assert.equal(next.items.length,2);
   assert.equal(next.cycleReset,false,'an identity upgrade cannot erase playback history');
+});
+
+for(const [parent,first,alias]of [['the-september-sessions','The September Sessions.mp4','The September Sessions The Tommorowland Story Brought To Life In Brilliant 16mm Film.mp4'],
+  ['411-vm-skateboarding-videos','411VM   50.mp4','411VM-Issue 50 (2002).mp4']])test(parent+': stored playback history excludes a rediscovered alternate title',async()=>{
+  const [{SessionRotation}]=await modules,object=new SessionRotation(rotationContext(),{});
+  const select=async body=>(await object.fetch(new Request('https://rotation.internal/select',{method:'POST',body:JSON.stringify(body)}))).json();
+  const media=name=>row(name,{identifier:parent+'::'+name,sourceIdentifier:parent});
+  await select({mode:'reserve',items:[media(first)],count:1});
+  await select({mode:'commit',id:parent+'::'+first,event:'skipped'});
+  const next=await select({mode:'reserve',items:[media(alias),row('unseen.mp4')],count:3});
+  assert.deepEqual(next.items.map(x=>x.identifier),['benson::unseen.mp4'],'an alternate title cannot bypass the seen ledger');
+  assert.equal(next.cycleReset,false,'unseen content still exists');
 });
 
 test('standard IA D1 rotation cannot replace a resolved shelf with metadata-only catalog rows',async()=>{

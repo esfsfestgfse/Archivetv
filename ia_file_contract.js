@@ -33,6 +33,27 @@ export function iaKnownVideoPolicyViolation(item = {}) {
     || /\b(?:unofficial|homemade|bootleg)\b.{0,48}\b(?:film|movie|feature|parody|remake|reconstruction)\b|\b(?:film|movie|feature|parody|remake|reconstruction)\b.{0,48}\b(?:unofficial|homemade|bootleg)\b/.test(text);
 }
 
+export function iaReviewedFileAllowed(item, channel) {
+  if (!item || typeof item !== 'object') return false;
+  const media = item.media || {}, id = String(item.identifier || item.id || '');
+  const source = String(media.sourceIdentifier || item.sourceIdentifier || id.split('::')[0]).replace(/^ia:/i, '');
+  let file = String(media.fileName || item.fileName || id.split('::')[1] || '');
+  if (!file) { try { file = decodeURIComponent(new URL(media.url || item.mediaUrl || item.url).pathname.split('/').pop()); } catch (_) {} }
+  file = file.split('/').pop();
+  if (String(channel) === '66' && (source === 'Skateboarding-Live_it_Breath_it_Love_it_Dig_it'
+    || (source === 'were-people-too' && /^were_people_too8\.mp4$/i.test(file)))) return false;
+  return !(String(channel) === '212' && source === 'the_blue_planet' && /^the_blue_planet_(?:09|1[0-3])(?:[_. -]|$)/i.test(file));
+}
+export function iaHuntingAllowed(item = {}) {
+  if (!item || typeof item !== 'object') return false;
+  if (/^HuntingSeason(?:::|$)/i.test(String(item.sourceIdentifier || item.identifier || item.id || ''))) return false;
+  const text = [item.title, item.seriesTitle, item.fileName, item.media?.sourceTitle,
+    item.sourceIdentifier, item.identifier || item.id, item.meta?.title]
+    .filter(Boolean).join(' ').toLowerCase().replace(/[_./-]+/g, ' ').replace(/\s+/g, ' ');
+  if (/\b(?:frontier fremont|bsd|corrupt justice|ensemble|analysis|party foul|dnr prepares|potential problems|news report|politics|political|bureaucrats?|press conference|interview|dr oz|nightly nuge|podcast|sermon|pastor|church service|concert|music video|good will hunting)\b/.test(text)) return false;
+  return /\b(?:hunting|bowhunting|whitetail|buckmasters|monster bucks|realtree|mossy oak|american sportsman|north american hunter|outdoor life)\b/.test(text)
+    || (/\bted nugent\b/.test(text) && /\b(?:spirit|call) of the wild\b/.test(text));
+}
 export function iaCookingAllowed(item = {}) {
   if (!item || typeof item !== 'object') return false;
   const text = [item.title, item.seriesTitle, item.fileName, item.media?.sourceTitle,
@@ -115,6 +136,25 @@ function seconds(value) {
   return 0;
 }
 
+// Publisher-specific identity proof; never merge unrelated same-title uploads.
+function iaReviewedEpisodeKey(sourceIdentifier, fileName) {
+  const source = String(sourceIdentifier || '').toLowerCase().replace(/^ia:/, '');
+  const raw = String(fileName || '').split('/').pop().toLowerCase().replace(/(?:\.ia)?\.(?:mp4|m4v|webm|ogv)$/, '');
+  const stem = raw.replace(/[._-]+/g, ' ').replace(/\s+/g, ' ').trim();
+  if (source === 'the-september-sessions' && ['the september sessions',
+    'the september sessions the tommorowland story brought to life in brilliant 16mm film'].includes(stem)) return 'the september sessions';
+  if (source !== '411-vm-skateboarding-videos' || /\b(?:disc|part)\s*\d+/.test(stem)) return '';
+  const volume = raw.match(/\b411vm[ _-]*(\d+)\.(\d+)/);
+  if (volume) return '411vm volume ' + volume[1] + '.' + volume[2];
+  const issue = stem.match(/\bissue\s*#?\s*0*(\d+)\b/) || stem.match(/\b411vm\s*#?\s*0*(\d+)\b/);
+  if (issue && !/greatest/.test(stem)) return '411vm issue ' + Number(issue[1]);
+  const best = stem.match(/best of.*?vol(?:ume)?\s*0*(\d+)/);
+  if (best) return '411vm best ' + Number(best[1]);
+  const europe = stem.match(/europe.*?((?:19|20)\d{2})/);
+  if (europe) return '411vm europe ' + europe[1];
+  if (/\blove affair\b/.test(stem)) return '411vm love affair';
+  return '';
+}
 export function normalizeIaFileRecord(raw = {}) {
   const media = raw.media || {};
   const identifier = String(raw.identifier || raw.id || '');
@@ -129,7 +169,7 @@ export function normalizeIaFileRecord(raw = {}) {
   const width = Number(media.width || raw.width || raw.videoWidth) || 0;
   const height = Number(media.height || raw.height || raw.videoHeight) || 0;
   const aspectRatio = width > 0 && height > 0 ? width / height : Number(media.aspectRatio || raw.aspectRatio) || 0;
-  const stem = fileName.toLowerCase().replace(/\.(?:mp4|m4v|mov|ogv|webm|mp3|flac|ogg|oga|wav|m4a|aac)$/i, '')
+  const stem = iaReviewedEpisodeKey(sourceIdentifier, fileName) || fileName.toLowerCase().replace(/\.(?:mp4|m4v|mov|ogv|webm|mp3|flac|ogg|oga|wav|m4a|aac)$/i, '')
     .replace(/(?:[._ -](?:ia|h\.?264|avc|x264|mpeg4|webm|ogv|\d{2,4}kb|orig|original|source|low|small|preview|proxy))+$/i, '')
     .replace(/\s*\[comm\]\s*$/i, '').trim()
     // Some collection derivatives repeat a matching episode index twice.
@@ -162,6 +202,7 @@ export function qualifyIaFileRecord(raw, rules = {}, now = Date.now()) {
   }
   const text = [item.title, item.description, item.subject, item.fileName].filter(Boolean).join(' ').toLowerCase();
   const channel = String(rules.channel || '');
+  if (!iaReviewedFileAllowed(item, channel)) return reject('off-genre-reviewed-collection');
   const completeCartoon = channel === '150' && COMPLETE_CARTOON_SHORT_PARENTS.has(item.sourceIdentifier)
     && !/\b(?:clip|trailer|preview|teaser|promo|bumper|intro|introduction|outro|review|reaction|tutorial|interview|bonus|menu|featurette|tiktok|reels)\b|#shorts|youtube shorts/i.test(text);
   if (/\b(?:podcast|vodcast|fan[- ]?made|fan[- ]?(?:film|movie|edit)|fanfic|unofficial remake|reaction video|parody|spoof)\b/i.test(text)) return reject('policy-contamination');

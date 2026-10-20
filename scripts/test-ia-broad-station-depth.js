@@ -34,6 +34,33 @@ test('Courtroom TV requires a judge-show identity rather than an incidental desc
   assert.equal(f.stationGate('20',bad),false);assert.equal(catalogFallbackAllowed(bad,{channel:'20'}),false);
 });
 
+test('The Hunt requires hunting programs, not films or commentary with hunting keywords',async()=>{
+  const f=relay(),{catalogFallbackAllowed}=await import('../realsignal_api_v2_worker.js');
+  const bad=[['imax.alaska.spirit.of.the.wild.720p.bluray.x264-hv','Alaska Spirit of the Wild'],
+    ['the-adventures-of-frontier-fremont','The Adventures of Frontier Fremont (1975) a.k.a Spirit of The Wild'],
+    ['HuntingSeason','Hunting Season'],['bsd','The Hunting Dogs: BSD’s Symbol Of Corrupt Justice || An Analysis On The Ensemble And Its Members'],
+    ['deer-news','DNR Prepares For Deer Opener'],['oh-deer','Oh Deer! with Party Foul Steve | Ep 4'],
+    ['nuge','Ted Nugent - The Nightly Nuge - Spirit of the Wild interview'],['oz','Ted Nugent talks to Dr. Oz about hunting']];
+  for(const [identifier,title]of bad){const item={identifier,title,subject:'hunting show deer hunting spirit of the wild',media:{type:'video',url:'https://archive.org/download/'+identifier+'/full.mp4'}};
+    assert.equal(f.stationGate('80',item),false,title+' relay');assert.equal(catalogFallbackAllowed(item,{channel:'80'}),false,title+' API');}
+  for(const title of ['Ted Nugent Spirit of the Wild S04E01','Ted Nugent Call of the Wild full episode',
+    'Buckmasters Scrape Hunting for Pressurized Bucks','Mossy Oak: Turkey School 3, The Mind Game','Monster Bucks XII: Volume 1',
+    "Bill Jordan's Realtree: Classic Hunts III",'Hunting Camp 1957-1958','Whitetail Madness 1']){
+    const item={identifier:'program::full.mp4',title,media:{type:'video',url:'https://archive.org/download/program/full.mp4'}};
+    assert.equal(f.stationGate('80',item),true,title+' relay');assert.equal(catalogFallbackAllowed(item,{channel:'80'}),true,title+' API');}
+});
+
+for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])test(file+': The Hunt rejects stale fiction and commentary without blocking real hunting shows',()=>{
+  const source=fs.readFileSync(path.join(root,file),'utf8'),s={banned:[],curItem:null,isTemporarilySkipped:()=>false,blockedId:()=>false,
+    iaProgramFailed:()=>false,iaSkipBlocked:()=>false,iaThemeMatches:()=>true};
+  vm.createContext(s);vm.runInContext(source.slice(source.indexOf('function iaKnownVideoPolicyViolation('),source.indexOf('function iaProgramDenyTerms('))+';f={cached:iaCachedProgramAllowed,queue:iaProgramAllowed};',s);
+  for(const title of ['Alaska Spirit of the Wild','The Adventures of Frontier Fremont','The Hunting Dogs: BSD Analysis','Oh Deer! with Party Foul Steve']){
+    const item={id:'old',identifier:'old',title,type:'video',subject:'hunting television'};
+    assert.equal(s.f.queue(item,{channel:80,program:{}}),false,title);assert.equal(s.f.cached({num:80},item),false,title);}
+  assert.equal(s.f.cached({num:80},{id:'buckmasters',title:'Buckmasters full program',type:'video'}),true);
+  assert.equal(s.f.cached({num:80},null),false);
+});
+
 test('Cooking & Food cannot inherit etiquette and community broadcasts through food subject tags',async()=>{
   const f=relay(),{catalogFallbackAllowed}=await import('../realsignal_api_v2_worker.js');
   for(const title of ['Office Etiquette','Cindy Goes to a Party','Date With Your Family, A','A Better Minnesota 1937',
@@ -61,14 +88,16 @@ test('reviewed factory edits cannot be alternate encodes of the same program',()
     assert.equal(bank.filter(x=>x.sourceIdentifier===parent).length,1,parent+' is one program, not two fresh plays');
 });
 
-for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])test(file+': every new food/factory file survives its actual client station profile',async()=>{
+for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])test(file+': every reviewed depth file survives its actual client station profile',async()=>{
   const source=fs.readFileSync(path.join(root,file),'utf8'),s={window:{},location:{search:''},URLSearchParams,console,sportsEra:'all',
     localStorage:{getItem:()=>null,setItem:()=>{}},banned:[],curItem:null,isTemporarilySkipped:()=>false,blockedId:()=>false,iaProgramFailed:()=>false,iaSkipBlocked:()=>false};
   vm.createContext(s);
   const marker=source.indexOf('window.__atvIAManifest=function()'),end=source.indexOf('\nif(new URLSearchParams(location.search)',marker);
   vm.runInContext(source.slice(source.indexOf('\nconst FNOT=')+1,end),s);
   vm.runInContext(source.slice(source.indexOf('function iaRuntimeSeconds('),source.indexOf('async function iaQueueRequest('))+';f={queue:iaProgramAllowed,cached:iaCachedProgramAllowed,slot:ch=>slotFor(CH.find(x=>x.num===ch),0,{preview:true})};',s);
-  for(const channel of [200,201]){
+  const monster={identifier:'monster-bucks-xii',title:'Monster Bucks XII: Volume 1',subject:'hunting television deer hunting',runtime:1800};
+  assert.equal(s.f.queue(monster,s.f.slot(80)),true,'a reviewed hunting series must survive the actual title contract');
+  for(const channel of [200,201,66,80,212]){
     const bank=relay().iaRepairCollectionSeeds(String(channel)).filter(x=>x.media?.url),slot=s.f.slot(channel);
     const rejected=bank.filter(item=>!s.f.queue(item,slot)||!s.f.cached({num:channel,nm:channel===200?'Manufacturing Marvels':'Home Economics'},
       {id:item.identifier,title:item.title,meta:{subject:item.subject}},slot));
@@ -94,7 +123,7 @@ test('relay freshness unifies a single-program parent and its matching file with
 test('measured shallow lanes expose expanded file banks through the actual strict recovery and client contracts',async()=>{
   const f=relay(),{catalogFallbackAllowed}=await import('../realsignal_api_v2_worker.js');
   const manifest=JSON.parse(execFileSync(process.execPath,[path.join(root,'scripts/export-ia-manifest.js')],{encoding:'utf8',maxBuffer:16e6}));
-  for(const [channel,minimum] of [['20',96],['65',20],['204',24],['510',96],['200',20],['201',96]]){
+  for(const [channel,minimum] of [['20',96],['65',20],['204',24],['510',96],['200',20],['201',96],['66',96],['80',12],['212',400]]){
     const rules=manifest.find(x=>x.channel===channel),bank=f.iaRepairCollectionSeeds(channel).filter(x=>x.media?.url);
     assert.ok(bank.length>=minimum,channel+' must hold a real expanded bank, not another starter shelf');
     assert.ok(bank.every(x=>x.media.runtime>=900&&x.media.width>x.media.height&&x.media.metadataVerifiedAt>0));
@@ -104,6 +133,53 @@ test('measured shallow lanes expose expanded file banks through the actual stric
     assert.ok(bank.every(item=>payload.candidateItems.some(candidate=>candidate.identifier===item.identifier)),channel+' retains file-level depth behind its shelf');
     if(['20','510','201'].includes(channel))assert.equal(new Set(payload.items.slice(0,3).map(x=>x.seriesId)).size,3,'opening shelf rotates television series, not just episode IDs');
   }
+});
+
+test('411 Video Magazine issues and alternate encodes cannot count as different fresh programs',()=>{
+  const bank=relay().iaRepairCollectionSeeds('66').filter(x=>x.media?.url);
+  assert.ok(bank.length>=96,'test a real expanded bank, not an empty array');
+  const issue50=bank.filter(x=>/411/i.test(x.seriesTitle||'')&&/411vm\s*[-_ ]*(?:issue\s*)?50\b/i.test(x.fileName));
+  assert.equal(issue50.length,1,'Issue 50 is one program across plain and Issue-labelled encodes');
+  assert.equal(bank.filter(x=>/10 greatest chaos/i.test(x.fileName)).length,1,'the .ia re-encode is not a fresh program');
+  assert.equal(bank.filter(x=>/411.*europe.*2001/i.test(x.fileName)).length,1,'duplicate-copy suffixes do not invent a new Europe program');
+  assert.ok(bank.some(x=>/mack dawg/i.test(x.seriesTitle)),'snowboarding is not discarded behind skateboarding');
+  assert.ok(bank.some(x=>/endless summer/i.test(x.seriesTitle)),'surfing is also represented');
+  assert.equal(bank.filter(x=>x.sourceIdentifier==='the-september-sessions').length,1,'the alternate encode is the same surf film');
+  assert.ok(bank.every(x=>x.sourceIdentifier!=='Skateboarding-Live_it_Breath_it_Love_it_Dig_it'),'the student mockumentary is not a sports program');
+  assert.ok(bank.every(x=>x.fileName!=='WERE_PEOPLE_TOO8.mp4'),'an opaque DVD fragment is held out');
+});
+
+test('reviewed collection exclusions apply before relay, API and file qualification, not just in the generated bank',async()=>{
+  const f=relay(),{catalogFallbackAllowed}=await import('../realsignal_api_v2_worker.js'),{qualifyIaFileRecord}=await import('../ia_file_contract.js');
+  for(const [channel,parent,file]of [['66','Skateboarding-Live_it_Breath_it_Love_it_Dig_it','Skateboarding-Live_it_Breath_it_Love_it_Dig_it_large_512kb.mp4'],
+    ['66','were-people-too','WERE_PEOPLE_TOO8.mp4'],...Array.from({length:5},(_,i)=>['212','the_blue_planet','the_blue_planet_'+String(i+9).padStart(2,'0')+'_extra.mp4'])]){
+    const item={identifier:parent+'::'+file,sourceIdentifier:parent,fileName:file,title:'Reviewed sports or wildlife program',
+      subject:'wildlife documentary skateboarding',media:{type:'video',url:'https://archive.org/download/'+parent+'/'+file,runtime:1800,width:640,height:480}};
+    assert.equal(f.stationGate(channel,item),false,parent+' relay');
+    assert.equal(catalogFallbackAllowed(item,{channel}),false,parent+' API');
+    assert.equal(qualifyIaFileRecord(item,{channel,requireTransport:false}).accepted,false,parent+' qualification');
+  }
+  assert.ok(f.stationGate('212',{identifier:'the_blue_planet::the_blue_planet_08_coasts.mp4',title:'The Blue Planet Coasts'}),'ordinary episodes stay eligible');
+});
+
+for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])test(file+': stale reviewed-collection extras and mockumentaries cannot play from local caches',()=>{
+  const source=fs.readFileSync(path.join(root,file),'utf8'),s={banned:[],curItem:null,isTemporarilySkipped:()=>false,blockedId:()=>false,
+    iaProgramFailed:()=>false,iaSkipBlocked:()=>false,iaThemeMatches:()=>true};
+  vm.createContext(s);vm.runInContext(source.slice(source.indexOf('function iaKnownVideoPolicyViolation('),source.indexOf('function iaProgramDenyTerms('))+';f={cached:iaCachedProgramAllowed,queue:iaProgramAllowed};',s);
+  for(const [channel,id]of [[66,'Skateboarding-Live_it_Breath_it_Love_it_Dig_it::film.mp4'],[66,'were-people-too::WERE_PEOPLE_TOO8.mp4'],
+    [212,'the_blue_planet::the_blue_planet_09_deep_trouble.mp4']]){
+    const item={identifier:id,id,title:'Old queued program',type:'video'};
+    assert.equal(s.f.queue(item,{channel,program:{}}),false);assert.equal(s.f.cached({num:channel},item),false);
+  }
+});
+
+test('background 411 expansion does not restore aliases as new episodes',async()=>{
+  const fixture=collectionFixture({metadataFor:()=>({metadata:{title:'411 VM Skateboarding Complete Collection',language:'eng'},files:
+    ['411VM   50.mp4','411VM-Issue 50 (2002).mp4','411VM Issue 51 (2002).mp4'].map(name=>({name,format:'h.264',length:3600,width:640,height:480}))})});
+  const starter={identifier:'411-vm-skateboarding-videos',title:'411 VM Skateboarding Complete Collection',subject:'skateboarding'};
+  const rows=await fixture.f.expandSeedArchiveContainers({items:[starter],candidateItems:[starter]},'https://relay.invalid',
+    {isIaBackground:true,waitUntil:()=>{}},'66',['skateboarding'],[],[],['movies'],1,0,96);
+  assert.equal(rows.filter(x=>x.media?.url).length,2,'two genuine issues, not three uploads');
 });
 
 for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])test(file+': Cooking & Food rechecks stale direct and saved playback identities',()=>{

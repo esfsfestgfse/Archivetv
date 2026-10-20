@@ -60,14 +60,23 @@ test('known-only policy is identical on server, desktop and mobile without banni
   const {iaKnownVideoPolicyViolation:server}=await import('../ia_file_contract.js'),vm=require('node:vm');
   const samples=[row('short.mp4',{title:'Original cartoon shorts'}),row('satire.mp4',{title:'A studio comedy parody'}),
     row('unknown.mp4',{title:'A complete episode',media:{type:'video',url:'https://archive.org/download/a/b.mp4'}}),
-    row('radio.mp3',{title:'Podcast',media:{type:'audio'}}),row('bad.mp4',{title:'Fan-made Movie'}),
+    row('radio.mp3',{title:'Podcast',media:{type:'audio'}}),row('feature.mp4',{title:'Portrait of Jennie'}),row('feature.mp4',{title:'Vertical Limit'}),row('bad.mp4',{title:'Fan-made Movie'}),
     row('bad.mp4',{title:'Video pod-cast'}),row('bad.mp4',{title:'A film',media:{type:'video',aspectRatio:0.5625}})];
-  assert.deepEqual(samples.map(server),[false,false,false,false,true,true,true]);
+  assert.deepEqual(samples.map(server),[false,false,false,false,false,false,true,true,true]);
   for(const file of ['the_dial_desktop.html','the_dial_mobile.html']){
     const text=fs.readFileSync(path.join(root,file),'utf8'),s={};vm.createContext(s);
     vm.runInContext(text.slice(text.indexOf('function iaKnownVideoPolicyViolation('),text.indexOf('function iaModernGameShowAllowed('))+';check=iaKnownVideoPolicyViolation;',s);
     assert.deepEqual(samples.map(s.check),samples.map(server),file);
   }
+});
+
+test('orientation admission uses geometry and explicit format labels, not ordinary movie names',async()=>{
+  const {iaKnownVideoPolicyViolation:bad}=await import('../ia_file_contract.js');
+  for(const title of ['Portrait of Jennie','Vertical Limit','A Portrait of an Artist'])
+    assert.equal(bad(row('feature.mp4',{title})),false,title+' is not an orientation declaration');
+  for(const title of ['Portrait video','Filmed in portrait','Vertical format','A clip 9:16','Boxing #shorts'])
+    assert.equal(bad({title}),true,title);
+  assert.equal(bad(row('feature.mp4',{title:'Portrait of Jennie',media:{type:'video',width:360,height:640}})),true,'actual portrait geometry still wins');
 });
 
 test('standard IA rotation prunes forbidden rows already stored in its durable catalog',async()=>{

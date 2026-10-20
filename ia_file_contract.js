@@ -29,7 +29,7 @@ export function iaKnownVideoPolicyViolation(item = {}) {
   const text = [item.title, item.description, item.subject, item.subjects, item.fileName, media.fileName,
     item.identifier || item.id, meta.title, meta.subject, meta.subjects].filter(Boolean).join(' ')
     .replace(/<[^>]+>/g, ' ').normalize('NFKD').toLowerCase().replace(/[_-]+/g, ' ');
-  return /\b(?:pod\s?cast|vodcast|fan\s?made|fan (?:film|movie|edit|production))\b|\b(?:portrait|vertical)\b|9\s*:\s*16|1080\s*[x×]\s*1920|#shorts\b|\byoutube shorts\b/.test(text)
+  return /\b(?:pod\s?cast|vodcast|fan\s?made|fan (?:film|movie|edit|production))\b|\b(?:portrait|vertical)\s+(?:video|format|orientation|mode|footage|clip)\b|\b(?:shot|filmed|recorded|uploaded) in (?:portrait|vertical)\b|9\s*:\s*16|1080\s*[x×]\s*1920|#shorts\b|\byoutube shorts\b/.test(text)
     || /\b(?:unofficial|homemade|bootleg)\b.{0,48}\b(?:film|movie|feature|parody|remake|reconstruction)\b|\b(?:film|movie|feature|parody|remake|reconstruction)\b.{0,48}\b(?:unofficial|homemade|bootleg)\b/.test(text);
 }
 

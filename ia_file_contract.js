@@ -16,6 +16,23 @@ const COMPLETE_CARTOON_SHORT_PARENTS = new Set([
 const INTERNATIONAL = new Set(['106', '107', '114', '115', '119', '120', '151']);
 const FEATURES = new Set(['100', '101', '102', '103', '105', '106', '107', '108', '110', '111', '112', '114', '115', '116', '117', '119', '120', '124', '125', '132', '135', '700', '701', '702']);
 
+// A narrow, synchronous admission gate for old catalogs and playback caches.
+// Unknown geometry/runtime is not a violation; full file qualification remains
+// a separate step. Original cartoon shorts and ordinary TV satire are allowed.
+export function iaKnownVideoPolicyViolation(item = {}) {
+  const media = item.media || {}, meta = item.meta || {};
+  if (String(media.type || item.type || item.mediaType || '').toLowerCase() === 'audio') return false;
+  const width = Number(media.width || item.width || item.videoWidth) || 0;
+  const height = Number(media.height || item.height || item.videoHeight) || 0;
+  const ratio = Number(media.aspectRatio || item.aspectRatio) || 0;
+  if ((width > 0 && height >= width) || (ratio > 0 && ratio <= 1)) return true;
+  const text = [item.title, item.description, item.subject, item.subjects, item.fileName, media.fileName,
+    item.identifier || item.id, meta.title, meta.subject, meta.subjects].filter(Boolean).join(' ')
+    .replace(/<[^>]+>/g, ' ').normalize('NFKD').toLowerCase().replace(/[_-]+/g, ' ');
+  return /\b(?:pod\s?cast|vodcast|fan\s?made|fan (?:film|movie|edit|production))\b|\b(?:portrait|vertical)\b|9\s*:\s*16|1080\s*[x×]\s*1920|#shorts\b|\byoutube shorts\b/.test(text)
+    || /\b(?:unofficial|homemade|bootleg)\b.{0,48}\b(?:film|movie|feature|parody|remake|reconstruction)\b|\b(?:film|movie|feature|parody|remake|reconstruction)\b.{0,48}\b(?:unofficial|homemade|bootleg)\b/.test(text);
+}
+
 export function iaReviewedCartoonSource(raw = {}) {
   return COMPLETE_CARTOON_SHORT_PARENTS.has(normalizeIaFileRecord(raw).sourceIdentifier);
 }

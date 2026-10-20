@@ -1,6 +1,6 @@
 /* Per-session rotation state for the Version 2 API. A session+channel is the
  * coordination atom; one viewer's Next action cannot consume another's. */
-import { normalizeIaFileRecord, qualifyIaFileRecord } from './ia_file_contract.js';
+import { normalizeIaFileRecord, qualifyIaFileRecord, iaKnownVideoPolicyViolation } from './ia_file_contract.js';
 import { handleIaOwnedState, readIaChunkedState, writeIaChunkedState } from './ia_durable_state.js';
 
 /* Keep enough verified candidates in the session shelf that a fresh tune is
@@ -166,7 +166,8 @@ export class SessionRotation {
       const run = () => this.reservation(body);
       return this.ctx.blockConcurrencyWhile ? this.ctx.blockConcurrencyWhile(run) : run();
     }
-    const rawCandidates = cleanItems(body && body.items);
+    const allowed = item => body.requirePlayable !== true || !iaKnownVideoPolicyViolation(item);
+    const rawCandidates = cleanItems(body && body.items).filter(allowed);
     const recent = new Set((Array.isArray(body && body.recentIds) ? body.recentIds : [])
       .map((value) => String(value || "").trim().slice(0, 500))
       .filter(Boolean)
@@ -189,7 +190,7 @@ export class SessionRotation {
       if (prior.has(episodeKey(itemId(item)))) prior.add(episodeKey(item));
     }
     const catalogIdentities = new Set();
-    const catalog = mergeCatalog(current.catalog, rawCandidates, [...prior], MAX_ITEMS, body.requirePlayable === true, historyIdentity)
+    const catalog = mergeCatalog(current.catalog.filter(allowed), rawCandidates, [...prior], MAX_ITEMS, body.requirePlayable === true, historyIdentity)
       .filter(item => {
         if (!playedOnly) return true;
         const key = historyIdentity(item);

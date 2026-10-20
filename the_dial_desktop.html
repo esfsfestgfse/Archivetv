@@ -9,13 +9,13 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>REALSIGNAL · The Dial 5.6.19</title>
+<title>REALSIGNAL · The Dial 5.6.20</title>
 <meta name="realsignal-ia-repair-channels" content="10,12,22,150">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
-<script src="assets/ok-embed-runtime.js?v=5.6.19"></script>
-<script src="assets/ia-playback-shelf.js?v=5.6.19"></script>
+<script src="assets/ok-embed-runtime.js?v=5.6.20"></script>
+<script src="assets/ia-playback-shelf.js?v=5.6.20"></script>
 <script src="assets/vimeo-embed-runtime.js?v=5.5.85"></script>
 <!-- Source Suite starts verified YouTube playback on a cold tune. Warm the exact
      origins it uses so DNS/TLS setup is not serialized behind catalog discovery. -->
@@ -1711,7 +1711,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="5.6.19-desktop-adult-games-identity-freshness";
+window.__ATV_BUILD="5.6.20-desktop-ia-lineup-policy-repair";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -7592,6 +7592,19 @@ function iaThemeMatches(item,sl){var terms=iaProgramThemeTerms(sl);if(!terms.len
 /* CH 11 has the same English-focus contract at the API boundary. Recheck old
    fast-tune/schedule records and direct recovery too; cached URLs are not an
    exemption from the station identity. Other stations keep their own rules. */
+function iaKnownVideoPolicyViolation(item = {}) {
+  const media = item.media || {}, meta = item.meta || {};
+  if (String(media.type || item.type || item.mediaType || '').toLowerCase() === 'audio') return false;
+  const width = Number(media.width || item.width || item.videoWidth) || 0;
+  const height = Number(media.height || item.height || item.videoHeight) || 0;
+  const ratio = Number(media.aspectRatio || item.aspectRatio) || 0;
+  if ((width > 0 && height >= width) || (ratio > 0 && ratio <= 1)) return true;
+  const text = [item.title, item.description, item.subject, item.subjects, item.fileName, media.fileName,
+    item.identifier || item.id, meta.title, meta.subject, meta.subjects].filter(Boolean).join(' ')
+    .replace(/<[^>]+>/g, ' ').normalize('NFKD').toLowerCase().replace(/[_-]+/g, ' ');
+  return /\b(?:pod\s?cast|vodcast|fan\s?made|fan (?:film|movie|edit|production))\b|\b(?:portrait|vertical)\b|9\s*:\s*16|1080\s*[x×]\s*1920|#shorts\b|\byoutube shorts\b/.test(text)
+    || /\b(?:unofficial|homemade|bootleg)\b.{0,48}\b(?:film|movie|feature|parody|remake|reconstruction)\b|\b(?:film|movie|feature|parody|remake|reconstruction)\b.{0,48}\b(?:unofficial|homemade|bootleg)\b/.test(text);
+}
 function iaModernGameShowAllowed(item = {}) {
   const meta = item.meta || {};
   const text = [item.identifier || item.id, item.sourceIdentifier, item.title, item.seriesTitle,
@@ -7616,6 +7629,7 @@ function iaProgramAllowed(item,sl){
      response as _freshnessFallback so a previously skipped item can return.
      Editorial gates, bans, and failed-media quarantine still apply. */
   var freshnessFallback=!!(item&&item._freshnessFallback);
+  if(item&&iaKnownVideoPolicyViolation(item))return false;
   if(!item||!item.identifier||banned.indexOf(item.identifier)>=0||(!freshnessFallback&&isTemporarilySkipped(item.identifier))||blockedId(item.identifier)||iaProgramFailed(item.identifier))return false;
   var cur=(curItem&&typeof curItem==="object")?curItem.id:null;if(item.identifier===cur)return false;
   if(sl&&String(sl.channel)==="11"&&!iaEnglishRerunAllowed(item))return false;
@@ -7637,6 +7651,7 @@ function iaProgramAllowed(item,sl){
   return !(p.require&&p.require.runtime_max_s&&item.runtime&&iaRuntimeSeconds(item.runtime)>p.require.runtime_max_s);
 }
 function iaCachedProgramAllowed(ch,pl,sl){
+  if(pl&&!(ch&&ch.audio)&&iaKnownVideoPolicyViolation(pl))return false;
   if(ch&&Number(ch.num)===22&&!iaModernGameShowAllowed(pl))return false;
   if(ch&&Number(ch.num)===11&&!iaEnglishRerunAllowed(pl))return false;
   if(!ch||ch.nm!=="Manufacturing Marvels")return true;

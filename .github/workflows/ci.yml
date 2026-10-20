@@ -53,6 +53,8 @@ jobs:
         run: node scripts/check-worker-contract.js
       - name: Validate IA collection-depth rails
         run: node scripts/test-ia-collection-depth.js
+      - name: Validate exhaustive IA audit coverage
+        run: node --test scripts/test-ia-audit-coverage.mjs
       - name: Validate Chromecast sender and receiver contract
         run: node scripts/check-cast-contract.js
       - name: Validate opt-in Roku preview contract

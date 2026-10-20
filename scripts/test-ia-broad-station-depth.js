@@ -9,6 +9,19 @@ function relay(options={}){
     ';globalThis.f={iaRepairCollectionSeeds,orderedIaEmergencySeeds,queueTitleFamily,stationGate:iaStationQualityGate,archiveEpisodeKey,iaEffectiveVideoMinRuntimeSeconds,iaRepairPublicCatalog,strictRecoveryQueue,themeScore,matchesDeny,applyIaFreshness,expandSeedArchiveContainers,queuePlayable,getIaQueue,scheduleIaExpansion,qualifyIaQueueResponse,consume:(...args)=>worker.queue(...args),setHarvest:fn=>{expandAndCacheIaQueue=fn;},setHydrate:fn=>{hydrateIaQueue=fn;}};',s);return s.f;
 }
 
+for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])test(file+': all ordinary IA queues and old playback caches apply the global TV policy',()=>{
+  const source=fs.readFileSync(path.join(root,file),'utf8'),s={banned:[],curItem:null,isTemporarilySkipped:()=>false,blockedId:()=>false,
+    iaProgramFailed:()=>false,iaSkipBlocked:()=>false,iaThemeMatches:()=>true};
+  vm.createContext(s);const start=source.includes('function iaKnownVideoPolicyViolation(')?source.indexOf('function iaKnownVideoPolicyViolation('):source.indexOf('function iaModernGameShowAllowed(');
+  vm.runInContext(source.slice(start,source.indexOf('function iaProgramDenyTerms('))+';f={cached:iaCachedProgramAllowed,queue:iaProgramAllowed};',s);
+  for(const channel of [54,65,79,82,100,202,204,705])for(const title of ['Video Podcast','Fanmade Movie','Boxing #shorts']){
+    assert.equal(s.f.queue({identifier:'bad',title},{channel,program:{}}),false,channel+': '+title);
+    assert.equal(s.f.cached({num:channel,nm:'IA station'},{id:'bad',type:'video',title,url:'https://archive.org/download/bad/video.mp4'}),false);
+  }
+  assert.equal(s.f.cached({num:900,audio:true},{id:'radio',type:'audio',title:'Audio Podcast',url:'https://archive.org/download/radio/track.mp3'}),true,'radio retains its audio contract');
+  assert.equal(s.f.queue({identifier:'original',title:'Original cartoon shorts',media:{type:'video',url:'https://archive.org/download/cartoon/full.mp4',runtime:420,width:640,height:480}},{channel:150,program:{}}),true);
+});
+
 test('background game-show verification reaches different shows before a large single-series block',async()=>{
   const f=relay(),pending=[],calls=[];
   const make=(show,n)=>({identifier:show+'::'+n+'.mp4',sourceIdentifier:show,fileName:n+'.mp4',title:show+' full episode 1995',seriesId:show,year:1995,
@@ -102,7 +115,7 @@ test('Modern Game Shows indexes full dated Price Is Right, Wheel and Jeopardy ep
 
 for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])test(file+': Modern Game Shows excludes kids from saved/direct playback without banning Family Feud',()=>{
   const source=fs.readFileSync(path.join(root,file),'utf8'),s={banned:[],curItem:null,isTemporarilySkipped:()=>false,blockedId:()=>false,iaProgramFailed:()=>false,iaSkipBlocked:()=>false,iaThemeMatches:()=>true};
-  vm.createContext(s);const begin=source.includes('function iaModernGameShowAllowed(')?source.indexOf('function iaModernGameShowAllowed('):source.indexOf('function iaEnglishRerunAllowed(');
+  vm.createContext(s);const begin=source.indexOf('function iaKnownVideoPolicyViolation(');
   vm.runInContext(source.slice(begin,source.indexOf('function iaProgramDenyTerms('))+';f={cached:iaCachedProgramAllowed,queue:iaProgramAllowed};',s);
   const sl={channel:22,program:{}},ch={num:22,nm:'Modern Game Shows'};
   assert.equal(s.f.cached(ch,{id:'nickelodeon-guts-season-1::Episode.mp4',title:'Episode 1'},sl),false);
@@ -137,7 +150,7 @@ for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])test(file+': 
 for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])test(file+': Modern Rerun cached and direct recovery cannot bypass its English-language identity',()=>{
   const source=fs.readFileSync(path.join(root,file),'utf8'),s={banned:[],curItem:null,isTemporarilySkipped:()=>false,blockedId:()=>false,
     iaProgramFailed:()=>false,iaSkipBlocked:()=>false,iaThemeMatches:()=>true};vm.createContext(s);
-  const start=source.includes('function iaEnglishRerunAllowed(')?source.indexOf('function iaEnglishRerunAllowed('):source.indexOf('function iaProgramAllowed(');
+  const start=source.indexOf('function iaKnownVideoPolicyViolation(');
   vm.runInContext(source.slice(start,source.indexOf('function iaProgramDenyTerms('))+';f={cached:iaCachedProgramAllowed,queue:iaProgramAllowed};',s);
   const ch={num:11,nm:'Modern Rerun TV'},sl={channel:11,program:{}},id='mahabharat-1988-tv-series::01 Raja Bharat.mp4';
   assert.equal(s.f.cached(ch,{id,title:'Mahabharat 1988 TV series (94 episodes)'},sl),false,'old fast-tune/schedule/preload entries must obey the existing server identity gate');

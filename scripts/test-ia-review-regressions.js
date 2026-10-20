@@ -45,6 +45,39 @@ async function catalogFixture(rows) {
   return f;
 }
 
+test('standard IA fast catalogs reject cached podcasts, fan productions and portraits without requiring unknown metadata',async()=>{
+  const bad=[row('podcast.mp4',{title:'A Bud & A Bowl Show HD 420 Podcast Winter Camping'}),row('fan.mp4',{title:'A Fanmade Movie'}),
+    row('portrait.mp4',{title:'Police vs Fire Boxing Tourny #shorts',media:{type:'video',url:'https://archive.org/download/boxing/short.mp4',runtime:1320,width:360,height:640}})];
+  const unknown=row('unknown.mp4',{title:'Original full sports program',media:{type:'video',url:'https://archive.org/download/program/full.mp4'}});
+  const f=await catalogFixture([...bad,unknown,...Array.from({length:18},(_,i)=>row('good-'+i+'.mp4'))]);
+  const p=await(await f.request('queue',{channel:'54',serverCatalog:true,sessionId:'global-video-policy',count:3,viewerRecentIds:[]})).json();
+  assert.equal(p.items.length,3);assert.ok(p.candidateItems.every(item=>!bad.some(b=>b.identifier===item.identifier)),'old D1 rows cannot bypass global TV policy');
+  assert.ok(p.candidateItems.some(item=>item.identifier===unknown.identifier),'missing metadata is not proof of forbidden content');
+  await Promise.all(f.pending);
+});
+
+test('known-only policy is identical on server, desktop and mobile without banning original short cartoons, radio or studio satire',async()=>{
+  const {iaKnownVideoPolicyViolation:server}=await import('../ia_file_contract.js'),vm=require('node:vm');
+  const samples=[row('short.mp4',{title:'Original cartoon shorts'}),row('satire.mp4',{title:'A studio comedy parody'}),
+    row('unknown.mp4',{title:'A complete episode',media:{type:'video',url:'https://archive.org/download/a/b.mp4'}}),
+    row('radio.mp3',{title:'Podcast',media:{type:'audio'}}),row('bad.mp4',{title:'Fan-made Movie'}),
+    row('bad.mp4',{title:'Video pod-cast'}),row('bad.mp4',{title:'A film',media:{type:'video',aspectRatio:0.5625}})];
+  assert.deepEqual(samples.map(server),[false,false,false,false,true,true,true]);
+  for(const file of ['the_dial_desktop.html','the_dial_mobile.html']){
+    const text=fs.readFileSync(path.join(root,file),'utf8'),s={};vm.createContext(s);
+    vm.runInContext(text.slice(text.indexOf('function iaKnownVideoPolicyViolation('),text.indexOf('function iaModernGameShowAllowed('))+';check=iaKnownVideoPolicyViolation;',s);
+    assert.deepEqual(samples.map(s.check),samples.map(server),file);
+  }
+});
+
+test('standard IA rotation prunes forbidden rows already stored in its durable catalog',async()=>{
+  const f=await catalogFixture(Array.from({length:18},(_,i)=>row('clean-'+i+'.mp4'))),old=f.env.ROTATION.getByName('session:old-podcast:channel:54');
+  await old.ctx.storage.put('rotation',{catalog:[row('podcast.mp4',{title:'Motor Sport Video Podcast'})],seen:[],cursor:0});
+  const p=await(await f.request('queue',{channel:'54',serverCatalog:true,sessionId:'old-podcast',count:3,viewerRecentIds:[]})).json();
+  assert.equal(p.items.length,3);assert.ok(p.candidateItems.every(item=>! /podcast/i.test(item.title)));
+  await Promise.all(f.pending);
+});
+
 test('standard IA prefetch does not mark its three buffered candidates watched',async()=>{
   const f=await catalogFixture(Array.from({length:65},(_,i)=>row('holiday-'+i+'.mp4',{title:'Halloween cartoon animated special '+i,seriesId:'show-'+i%8})));
   for(let rotation=0;rotation<2;rotation++){

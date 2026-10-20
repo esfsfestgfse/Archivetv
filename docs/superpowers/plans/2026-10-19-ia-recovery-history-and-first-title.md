@@ -15,7 +15,7 @@
 - No portrait, short, foreign-language, parody, podcast, or genre-gate relaxation.
 - No new foreground Archive discovery, database schema, binding, queue ownership, or shared viewing history mutations.
 - Keep guarded IA reservations, Source Suite, OK, FAST, radio, mobile, and Cast behavior intact.
-- Ship a new visible 5.6.15 stamp only after tests/review, then verify hosted playback and rotation.
+- Ship a new visible stamp only after tests/review, then verify hosted playback and rotation. The first candidate was 5.6.15; extended hosted validation requires final 5.6.16.
 
 ## Review Focus
 
@@ -36,5 +36,5 @@
 - [ ] Run focused suite; expected new tests fail for missing labels and repeated recovery selection, old 99 pass.
 - [ ] Apply minimal request-local recovery ordering and inline-media metadata changes; run focused suite green.
 - [ ] Run all workflow CI commands, title/deep-harvest contracts and whitespace checks. Use one bounded final reviewer; address important findings RED→GREEN in one pass.
-- [ ] Commit explicit files and push normally to main with visible 5.6.15 stamps. Verify all five deploy/CI jobs, public stamp/API health, channel 11 extended rotations and control lanes, and browser decoded playback/title/Next.
+- [ ] Commit explicit files and push normally to main with visible 5.6.16 stamps. Verify all applicable deploy/CI jobs, public stamp/API health, channel 11 extended rotations and control lanes, and browser decoded playback/title/Next. The unchanged relay's path-filtered job is not expected to redeploy.
 - [ ] Record measured evidence and limits, complete checkpoint, preserve unrelated artifacts.

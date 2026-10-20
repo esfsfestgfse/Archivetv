@@ -19,7 +19,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "5.6.15-recovery-freshness-and-labels";
+const V3_RELEASE = "5.6.16-complete-recovery-history";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -1924,9 +1924,13 @@ async function handleQueue(request, env, ctx, id) {
     const history = personal.length ? personal : Array.from(recentCatalogIds(body));
     if (history.length) {
       const excluded = new Set(history.map(identifier => queueItemIdentity({ identifier })));
+      // Legacy resolved records can retain a parent playback ID alongside a
+      // concrete filename. Honor that exact ID too, without banning siblings.
+      const playedIds = new Set(history.map(identifier => identifier.toLowerCase()));
+      const wasPlayed = item => playedIds.has(queueItemKey(item).toLowerCase()) || excluded.has(queueItemIdentity(item));
       const candidates = uniqueQueueItems([...(payload.items || []), ...(payload.candidateItems || [])], body, catalogLimit).filter(queueItemPlayable);
-      const unseen = candidates.filter(item => !excluded.has(queueItemIdentity(item)));
-      const repeated = candidates.filter(item => excluded.has(queueItemIdentity(item)));
+      const unseen = candidates.filter(item => !wasPlayed(item));
+      const repeated = candidates.filter(wasPlayed);
       const items = unseen.concat(repeated).slice(0, count);
       payload = { ...payload, items, ready: items.length, partial: items.length < count,
         freshness: { ...(payload.freshness || {}), ledgerSize: history.length, freshCount: unseen.length,

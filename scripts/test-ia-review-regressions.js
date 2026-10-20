@@ -87,6 +87,22 @@ for(const storage of ['no-d1','overlap'])test('a qualified underfilled relay she
   await Promise.all(f.pending);
 });
 
+test('recovery history matches a legacy parent playback ID without excluding unseen sibling episodes',async()=>{
+  const parent={...row('A.mp4'),identifier:'first-time-out-1995',sourceIdentifier:'first-time-out-1995',fileName:'First Time Out 1x01.mp4'};
+  const sibling={...row('B.mp4'),identifier:'first-time-out-1995::First Time Out 1x02.mp4',sourceIdentifier:'first-time-out-1995',fileName:'First Time Out 1x02.mp4'};
+  const others=[row('C.mp4'),row('D.mp4'),row('E.mp4')],rows=[parent,...others],f=await catalogFixture(rows);
+  f.env.RELAY.fetch=async()=>Response.json({rotationApplied:true,items:[parent],candidateItems:[parent],ready:1});
+  const payload=await(await f.request('queue',{channel:'11',serverCatalog:true,sessionId:'parent-id',count:3,rotation:1,viewerRecentIds:['first-time-out-1995']})).json();
+  assert.equal(payload.items.length,3);
+  assert.ok(payload.items.every(item=>item.identifier!=='first-time-out-1995'),'the actually reported playback ID must be excluded even when it is not the file-level identity');
+  await Promise.all(f.pending);
+  const g=await catalogFixture([sibling,...others]);
+  g.env.RELAY.fetch=async()=>Response.json({rotationApplied:true,items:[sibling],candidateItems:[sibling],ready:1});
+  const next=await(await g.request('queue',{channel:'11',serverCatalog:true,sessionId:'parent-sibling',count:3,rotation:1,viewerRecentIds:['first-time-out-1995']})).json();
+  assert.ok(next.items.some(item=>item.identifier===sibling.identifier),'playing one legacy parent record cannot ban its unplayed sibling');
+  await Promise.all(g.pending);
+});
+
 test('API ledger enrichment preserves viewer-specific history separately on relay-owned IA lanes',async()=>{
   const f=await catalogFixture([row('fresh.mp4')]),prepare=f.env.realsignal_catalog.prepare.bind(f.env.realsignal_catalog);
   f.env.realsignal_catalog.prepare=sql=>/SELECT program_id/.test(sql)?{bind(){return {all:async()=>({results:Array.from({length:48},(_,i)=>({program_id:'other-viewer-'+i}))})};}}:prepare(sql);

@@ -88,6 +88,15 @@ test('played-only IA history excludes another encoding but keeps unseen sibling 
   assert.equal(p.items.length,2);assert.ok(p.items.every(item=>!item.identifier.includes('Game 01')));assert.equal(p.exhaustion.seenInCatalog,1);
 });
 
+test('played-only IA resolves a reported parent alias to its actual file without blocking siblings',async()=>{
+  const [{SessionRotation}]=await modules,object=new SessionRotation(rotationContext(),{});
+  const first={...row('One.mp4'),identifier:'holiday-single',sourceIdentifier:'holiday-single',fileName:'One.mp4'};
+  const sibling={...row('Two.mp4'),identifier:'holiday-single::Two.mp4',sourceIdentifier:'holiday-single',fileName:'Two.mp4'};
+  const p=await(await object.fetch(new Request('https://rotation.internal/select',{method:'POST',body:JSON.stringify({items:[first,sibling,row('Other.mp4')],count:3,requirePlayable:true,playedOnly:true,viewerRecentIds:['holiday-single']})}))).json();
+  assert.equal(p.items.length,2);assert.ok(!p.items.some(item=>item.identifier==='holiday-single'));
+  assert.ok(p.items.some(item=>item.identifier===sibling.identifier));assert.equal(p.exhaustion.seenInCatalog,1);
+});
+
 test('played-only IA still returns playable fallback after real viewer exhaustion',async()=>{
   const [{SessionRotation}]=await modules,rows=['A','B','C'].map(file=>row(file+'.mp4')),object=new SessionRotation(rotationContext(),{});
   const p=await(await object.fetch(new Request('https://rotation.internal/select',{method:'POST',body:JSON.stringify({items:rows,count:3,requirePlayable:true,playedOnly:true,viewerRecentIds:rows.map(item=>item.identifier)})}))).json();

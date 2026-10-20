@@ -182,6 +182,12 @@ export class SessionRotation {
       .map(id => id.trim().slice(0, 500)).filter(Boolean).slice(-256) : current.seen;
     const historyIdentity = playedOnly ? episodeKey : itemId;
     const prior = new Set(viewerIds.map(id => playedOnly ? episodeKey(id) : id));
+    // Legacy playback reports may name the parent alias while this same row
+    // now carries its actual file. Resolve only matching reported row IDs;
+    // do not ban every unplayed sibling in that collection.
+    if (playedOnly) for (const item of [...current.catalog, ...rawCandidates]) {
+      if (prior.has(episodeKey(itemId(item)))) prior.add(episodeKey(item));
+    }
     const catalogIdentities = new Set();
     const catalog = mergeCatalog(current.catalog, rawCandidates, [...prior], MAX_ITEMS, body.requirePlayable === true, historyIdentity)
       .filter(item => {

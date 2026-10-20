@@ -1911,11 +1911,13 @@ async function handleQueue(request, env, ctx, id) {
   if (!useServerCatalog && !catalogRecovery && payload && payload.rotationApplied !== true && playableCandidateDepth > count) {
     payload = localRotationFallback(payload, body);
   }
-  if (catalogRecovery && archiveFamilyRelayRail && body.iaRepair !== true) {
+  if ((catalogRecovery || (payload && Array.isArray(payload.items) && payload.items.length < count)) && archiveFamilyRelayRail && body.iaRepair !== true) {
     /* Qualification can remove one relay slot (e.g. a foreign-language file).
        D1 may then fill the gap, but its modulo cursor must not resurrect the
        episode this viewer just skipped. Shared served history is only a cold
-       opening preference, never proof that this viewer exhausted the catalog. */
+       opening preference, never proof that this viewer exhausted the catalog.
+       The qualified relay union can already contain the missing unseen slot;
+       this repair must not depend on D1 adding another catalog identity. */
     const personal = (Array.isArray(body.viewerRecentIds) ? body.viewerRecentIds : [])
       .filter(value => typeof value === "string" && !/[\r\n]/.test(value))
       .map(value => value.trim().slice(0, 500)).filter(Boolean).slice(-256);

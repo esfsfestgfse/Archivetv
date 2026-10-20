@@ -76,6 +76,17 @@ test('a relay-owned recovery keeps the last unseen episode first before repeatin
   await Promise.all(f.pending);
 });
 
+for(const storage of ['no-d1','overlap'])test('a qualified underfilled relay shelf uses unseen candidates when recovery adds no '+storage+' identities',async()=>{
+  const rows='ABCDEFGHIJKL'.split('').map(letter=>row(letter+'.mp4')),f=storage==='no-d1'?await fixture():await catalogFixture(rows);
+  const rejected=row('podcast.mp4',{title:'Benson podcast discussion'});
+  f.env.RELAY.fetch=async()=>Response.json({channel:'11',rotation:28,rotationApplied:true,items:[rows[0],rows[1],rejected],candidateItems:rows,ready:3});
+  const recent=rows.slice(0,2).map(item=>item.identifier);
+  const payload=await(await f.request('queue',{channel:'11',serverCatalog:true,sessionId:'no-new-'+storage,count:3,rotation:28,denyTerms:['podcast'],viewerRecentIds:recent,recentIds:recent})).json();
+  assert.equal(payload.items.length,3,'ready candidates already exist; no new D1 identity is needed');
+  assert.ok(payload.items.every(item=>!recent.includes(item.identifier)),JSON.stringify(payload.items.map(item=>item.identifier)));
+  await Promise.all(f.pending);
+});
+
 test('API ledger enrichment preserves viewer-specific history separately on relay-owned IA lanes',async()=>{
   const f=await catalogFixture([row('fresh.mp4')]),prepare=f.env.realsignal_catalog.prepare.bind(f.env.realsignal_catalog);
   f.env.realsignal_catalog.prepare=sql=>/SELECT program_id/.test(sql)?{bind(){return {all:async()=>({results:Array.from({length:48},(_,i)=>({program_id:'other-viewer-'+i}))})};}}:prepare(sql);

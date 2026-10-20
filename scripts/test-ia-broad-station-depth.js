@@ -52,6 +52,34 @@ for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])test(file+': 
   assert.equal(s.result.title,'Keeping Up Appearances S04 E03');assert.equal(s.result.url,'https://cdn.invalid/episode.mp4');
 });
 
+for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])test(file+': Modern Rerun cached and direct recovery cannot bypass its English-language identity',()=>{
+  const source=fs.readFileSync(path.join(root,file),'utf8'),s={banned:[],curItem:null,isTemporarilySkipped:()=>false,blockedId:()=>false,
+    iaProgramFailed:()=>false,iaSkipBlocked:()=>false,iaThemeMatches:()=>true};vm.createContext(s);
+  const start=source.includes('function iaEnglishRerunAllowed(')?source.indexOf('function iaEnglishRerunAllowed('):source.indexOf('function iaProgramAllowed(');
+  vm.runInContext(source.slice(start,source.indexOf('function iaProgramDenyTerms('))+';f={cached:iaCachedProgramAllowed,queue:iaProgramAllowed};',s);
+  const ch={num:11,nm:'Modern Rerun TV'},sl={channel:11,program:{}},id='mahabharat-1988-tv-series::01 Raja Bharat.mp4';
+  assert.equal(s.f.cached(ch,{id,title:'Mahabharat 1988 TV series (94 episodes)'},sl),false,'old fast-tune/schedule/preload entries must obey the existing server identity gate');
+  assert.equal(s.f.queue({identifier:id,title:'Mahabharat · Episode 1'},sl),false,'direct recovery must not reintroduce a rejected source');
+  assert.equal(s.f.cached(ch,{id:'benson::S01E01.mp4',title:'Benson',meta:{language:'eng'}},sl),true);
+  assert.equal(s.f.queue({identifier:'benson::S01E01.mp4',title:'Benson',language:'eng'},sl),true);
+  assert.equal(s.f.queue({identifier:'benson::S01E01.mp4',title:'Benson',language:'fra'},sl),false);
+  assert.equal(s.f.cached({num:118,nm:'Blighty'},{id,title:'Mahabharat'},null),true,'this targeted parity repair cannot redefine other stations');
+});
+
+for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])test(file+': consuming a pending queue record cannot erase its editorial episode title or year',async()=>{
+  const source=fs.readFileSync(path.join(root,file),'utf8'),id='red-dwarf::VTS_01_3.mp4',item={identifier:id,title:'Red Dwarf · The End',year:1988},cached=[];
+  let complete;const resolution=new Promise(resolve=>complete=resolve);
+  const s={iaProgramQueues:{'118':[item]},iaQueueKey:ch=>String(ch.num),iaExpectedMedia:()=> 'video',iaProgramFailed:()=>false,
+    iaProgramMedia:{},iaProgramPendingAt:{},iaInterstitialMedia:()=>false,fastTuneGet:()=>null,fastTunePut:(channel,media)=>cached.push(media),
+    warmIAQueueHead:()=>{},iaReadyShelfSave:()=>{},resolvePlayable:()=>resolution};
+  const code=source.slice(source.indexOf('function iaArchiveDirectURL('),source.indexOf('function iaQueueHasReadyProgram('));
+  vm.createContext(s);vm.runInContext(code+';warmIAQueue({num:118,nm:"Blighty"},{},false,1);',s);
+  const pending=s.iaProgramMedia[id];s.iaProgramQueues['118']=[];
+  complete({id,type:'video',url:'https://cdn.invalid/program.mp4'});await pending;
+  assert.equal(s.iaProgramMedia[id].title,'Red Dwarf · The End');assert.equal(s.iaProgramMedia[id].year,1988);
+  assert.equal(cached[0].title,'Red Dwarf · The End');
+});
+
 for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])test(file+': merged Auto Archive keeps both motoring shows and manufacturing identities',async()=>{
   const {catalogFallbackAllowed}=await import('../realsignal_api_v2_worker.js');
   const manifest=JSON.parse(execFileSync(process.execPath,[path.join(root,'scripts/export-ia-manifest.js'),path.join(root,file)],{encoding:'utf8',maxBuffer:16e6}));

@@ -42,10 +42,35 @@ These are file-level records derived from real public Archive manifests, not inv
 
 One bounded reviewer found two Important issues: background expansion could reintroduce DVD bonus files, and cached recursive labels with distinct fragments were not cleaned. Both were reproduced in failing tests and fixed in one RED/GREEN pass; the 99-test suite and all CI commands passed afterward. No unresolved findings or deferred minors.
 
-Normal commit/push, production gates, visible stamps, hosted rotations and final decoded-playback results will be recorded after deployment.
+Runtime commit `e32f4fffe8ff032a8369bc6f095ee6acef7619d5` reached main through a normal fast-forward push. GitHub CI, Relay deployment, API deployment, Publish RealSignal and Pages deployment all succeeded. Actual desktop/mobile HTML titles and visible constants, plus API health, report 5.6.14; both HTML requests returned HTTP 200.
+
+The fresh concurrency-two snapshot returned three resolved media URLs for all 170 canonical IA channels: zero request errors, empty responses, unresolved shelf entries, or reported catalogs below five. This is URL availability, not decoded playback across the whole lineup.
+
+The hosted eight-lane canary ran 32 acknowledged skip rotations per channel: **256 selections, 255 per-channel unique, zero request errors**. Blighty and six controls were clean through all 32. Every lane's first 24 selections remained repeat-free, matching the previous release's test depth. Extending the test exposed one reproducible Modern Rerun TV repeat at zero-based round 28; a separate serial retry confirmed the same file. That remaining failure is not hidden as a clean all-channel freshness certification.
+
+| Channel | Distinct / selections | Repeats | Minimum reported catalog/window |
+| --- | ---: | ---: | ---: |
+| 10 Classic Rerun TV | 32/32 | 0 | 512 |
+| 11 Modern Rerun TV | 31/32 | 1 | 41 |
+| 12 Classic Game Shows | 32/32 | 0 | 350 |
+| 22 Modern Game Shows | 32/32 | 0 | 153 |
+| 118 Blighty | 32/32 | 0 | 96 |
+| 150 Classic Cartoons | 32/32 | 0 | 512 |
+| 153 Modern Cartoons | 32/32 | 0 | 96 |
+| 705 Halloween Cartoons | 32/32 | 0 | 65 |
+
+All responses retained at least two media URLs; one Halloween Cartoons response returned two rather than three. A reported response window of 96 is not a truncation of the 260-entry indexed British library. Candidate counts remain separate from decoded-video counts.
+
+The final public desktop player decoded Keeping Up Appearances S04 E03 (464×352), then a different S04 E04 file (496×368) after Next. Both had readyState 4, advancing time, and distinct media URLs. Next displayed the correct descriptive filename-derived label. The first fast-tune item showed only the channel name in the program-title area; this remaining label-population issue is recorded below rather than claimed fixed. Screenshot capture was unavailable; no physical mobile/Cast certification is claimed.
+
+Primary metadata examples: [Only Fools and Horses](https://archive.org/details/Onlyfoolsandhorsesseries), [Dad's Army series 3](https://archive.org/details/dads-army-3), and [Sherlock](https://archive.org/details/BBC_Sherlock2010).
 
 ## Remaining limits
 
-The five-minute readiness snapshot is not an all-episode playback certification. Metadata labels cannot prove spoken language. The 256-entry personal ledger is still bounded; genuine catalog exhaustion may repeat. Physical mobile/Cast behavior and universal instantaneous first-frame latency are not certified by this run. The actual response window can be smaller than the indexed library; it must not be confused with total available depth.
+Readiness snapshots are not all-episode playback certification. Metadata labels cannot prove spoken language. The 256-entry personal ledger is still bounded; genuine catalog exhaustion may repeat. Physical mobile/Cast behavior and universal instantaneous first-frame latency are not certified by this run. The actual response window can be smaller than the indexed library; it must not be confused with total available depth.
+
+Next measured work: trace channel 11's repeated `baywatch_202212::003-Heat Wave(REMASTERED VERSION).mp4` at round 28 (same result on serial retry), and fix first-fast-tune program-title population. These were not mixed into the approved British depth/recursive-title repair or mislabeled as resolved.
+
+Decision/ruling: retain the existing architecture and execute the two approved fixes inline in the existing isolated checkout with a normal release, rather than requesting a new planning/push menu. The scope follows the user's stated workflow; if that judgment is wrong, this bounded runtime commit is independently revertible. There were no deferred reviewer minors.
 
 Unrelated research artifacts, paused provider work and the managed checkout are preserved. Only this task's temporary review/checkpoint workspace is disposable; raw test/research evidence stays under artifacts.

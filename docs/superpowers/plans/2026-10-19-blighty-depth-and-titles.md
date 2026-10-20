@@ -32,9 +32,9 @@
 
 **Interfaces:** `expandArchiveContainer(doc, ...)` and `archiveEpisodeTitle(file, parentTitle)` produce stable series/file identity; `iaDisplayTitle(item, channel)` renders that identity without recursive suffixes; `orderedIaEmergencySeeds`, `iaRepairCollectionSeeds` and `getIaQueue` retain existing payload/cache/rotation contracts.
 
-- [ ] Capture/review Archive manifests for existing and additional British series; record qualified episode counts separately from transport probes.
-- [ ] Add failing real-route/expansion tests for skipped background growth, repeated title expansion, stable per-file labels, and balanced deeper British episodes. Expected: the current implementation fails these assertions for the reproduced reasons.
-- [ ] Make minimal title/identity changes and register metadata-qualified British collection episodes in the existing index. Schedule background growth on the measured British recovery path; retain an immediate playable response. Expected: no Archive fetch awaited on a ready queue; old 28-file ceiling removed.
-- [ ] Run focused tests, the complete CI command list, standalone depth contracts and representative actual media probes. Expected: no test failures, valid video range responses, no lowered gates.
-- [ ] Have one fresh reviewer examine the bounded diff; reproduce/fix Important findings in one RED/GREEN pass. Commit/push 5.6.14; verify API/public stamps and deployment gates.
-- [ ] Run hosted repeated rotations on 118 and representative TV/cartoon/game-show/holiday controls; verify actual decoded playback and stable titles where the browser is available. Publish exact limits, not universal claims.
+- [x] Capture/review Archive manifests for existing and additional British series; record qualified episode counts separately from transport probes.
+- [x] Add failing real-route/expansion tests for skipped background growth, repeated title expansion, stable per-file labels, and balanced deeper British episodes. Expected: the current implementation fails these assertions for the reproduced reasons.
+- [x] Make minimal title/identity changes and register metadata-qualified British collection episodes in the existing index. Schedule background growth on the measured British recovery path; retain an immediate playable response. Expected: no Archive fetch awaited on a ready queue; old 28-file ceiling removed.
+- [x] Run focused tests, the complete CI command list, standalone depth contracts and representative actual media probes. Expected: no test failures, valid video range responses, no lowered gates.
+- [x] Have one fresh reviewer examine the bounded diff; reproduce/fix Important findings in one RED/GREEN pass. Commit/push 5.6.14; verify API/public stamps and deployment gates.
+- [x] Run hosted repeated rotations on 118 and representative TV/cartoon/game-show/holiday controls; verify actual decoded playback and stable titles where the browser is available. Publish exact limits, not universal claims.

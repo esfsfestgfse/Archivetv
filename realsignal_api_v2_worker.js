@@ -19,7 +19,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "5.6.14-blighty-depth-and-titles";
+const V3_RELEASE = "5.6.15-recovery-freshness-and-labels";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -1910,6 +1910,26 @@ async function handleQueue(request, env, ctx, id) {
     : 0;
   if (!useServerCatalog && !catalogRecovery && payload && payload.rotationApplied !== true && playableCandidateDepth > count) {
     payload = localRotationFallback(payload, body);
+  }
+  if (catalogRecovery && archiveFamilyRelayRail && body.iaRepair !== true) {
+    /* Qualification can remove one relay slot (e.g. a foreign-language file).
+       D1 may then fill the gap, but its modulo cursor must not resurrect the
+       episode this viewer just skipped. Shared served history is only a cold
+       opening preference, never proof that this viewer exhausted the catalog. */
+    const personal = (Array.isArray(body.viewerRecentIds) ? body.viewerRecentIds : [])
+      .filter(value => typeof value === "string" && !/[\r\n]/.test(value))
+      .map(value => value.trim().slice(0, 500)).filter(Boolean).slice(-256);
+    const history = personal.length ? personal : Array.from(recentCatalogIds(body));
+    if (history.length) {
+      const excluded = new Set(history.map(identifier => queueItemIdentity({ identifier })));
+      const candidates = uniqueQueueItems([...(payload.items || []), ...(payload.candidateItems || [])], body, catalogLimit).filter(queueItemPlayable);
+      const unseen = candidates.filter(item => !excluded.has(queueItemIdentity(item)));
+      const repeated = candidates.filter(item => excluded.has(queueItemIdentity(item)));
+      const items = unseen.concat(repeated).slice(0, count);
+      payload = { ...payload, items, ready: items.length, partial: items.length < count,
+        freshness: { ...(payload.freshness || {}), ledgerSize: history.length, freshCount: unseen.length,
+          excludedCount: repeated.length, repeatedFallback: unseen.length < count } };
+    }
   }
   let rotated;
   if (body.iaRepair !== true && (!useServerCatalog || archiveFamilyRelayRail)) {

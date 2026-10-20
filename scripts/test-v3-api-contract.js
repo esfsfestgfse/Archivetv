@@ -34,7 +34,7 @@ const { pathToFileURL } = require('node:url');
   assert.equal(health.status, 200);
   const healthBody = await health.json();
   assert.equal(healthBody.apiVersion, 'v3');
-  assert.equal(healthBody.release, '5.6.14-blighty-depth-and-titles');
+assert.equal(healthBody.release, '5.6.15-recovery-freshness-and-labels');
   assert.ok(healthBody.capabilities.includes('server-telemetry'));
   assert.ok(healthBody.capabilities.includes('verified-guide'));
   assert.ok(healthBody.capabilities.includes('edge-manifests'));

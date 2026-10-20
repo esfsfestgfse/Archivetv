@@ -16,13 +16,13 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="RealSignal">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>REALSIGNAL · The Dial 5.6.14</title>
+<title>REALSIGNAL · The Dial 5.6.15</title>
 <meta name="realsignal-ia-repair-channels" content="10,12,22,150">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
-<script src="assets/ok-embed-runtime.js?v=5.6.14"></script>
-<script src="assets/ia-playback-shelf.js?v=5.6.14"></script>
+<script src="assets/ok-embed-runtime.js?v=5.6.15"></script>
+<script src="assets/ia-playback-shelf.js?v=5.6.15"></script>
 <script src="assets/vimeo-embed-runtime.js?v=5.5.85"></script>
 <!-- Source Suite starts verified YouTube playback on a cold tune. Warm the exact
      origins it uses so DNS/TLS setup is not serialized behind catalog discovery. -->
@@ -1750,7 +1750,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="5.6.14-mobile-blighty-depth-and-titles";
+window.__ATV_BUILD="5.6.15-mobile-recovery-freshness-and-labels";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -7717,7 +7717,7 @@ function iaDisplayTitle(it,ch){var title=String((it&&((it.title)||(it.meta&&it.m
 function adoptIAResolvedMedia(ch,sl,id,expected,editorial,pl){delete iaProgramPendingAt[id];if(!pl){iaMarkProgramFailed(id);setTimeout(function(){if(powered)refillIAQueue(ch,sl);},160);}var current=(iaProgramQueues[iaQueueKey(ch)]||[]).find(function(x){return x&&x.identifier===id;});if(pl){pl.title=pl.title||editorial.title||iaDisplayTitle(current||{identifier:id},ch);pl.year=pl.year||editorial.year||(current&&current.year)||"";pl.meta=Object.assign({},pl.meta||{},editorial);if(current)current.media={type:pl.type||expected,url:pl.url,alts:pl.alts||[]};if(!fastTuneGet(ch.num))fastTunePut(ch.num,Object.assign({},pl,{type:pl.type||expected}));iaReadyShelfSave(ch);}iaProgramMedia[id]=pl;warmIAQueueHead(ch);return pl;}
 var iaProgramResolvers={};
 function queueIAProgramMedia(ch,sl,it,expected,editorial){var id=it.identifier;if(iaProgramResolvers[id])return;var prior=iaProgramMedia[id]&&typeof iaProgramMedia[id]==="object"&&iaProgramMedia[id].url?iaProgramMedia[id]:null;iaProgramPendingAt[id]=Date.now();var pending=resolvePlayable(id,expected).then(function(pl){return adoptIAResolvedMedia(ch,sl,id,expected,editorial,pl);}).catch(function(){delete iaProgramPendingAt[id];if(!prior){iaMarkProgramFailed(id);iaProgramMedia[id]=null;}else iaProgramMedia[id]=prior;setTimeout(function(){if(powered)refillIAQueue(ch,sl);},160);return prior||null;}).finally(function(){delete iaProgramResolvers[id];});iaProgramResolvers[id]=pending;if(!prior)iaProgramMedia[id]=pending;}
-function warmIAQueue(ch,sl,hydrating,limit){var q=iaProgramQueues[iaQueueKey(ch)]||[],expected=iaExpectedMedia(ch);q.slice(0,limit===undefined?5:Math.max(0,Number(limit)||0)).forEach(function(it){if(!it||iaProgramFailed(it.identifier)||iaProgramMedia[it.identifier])return;var id=it.identifier,editorial={identifier:id,creator:it.creator||"",collection:it.collection||"",subject:it.subject||"",lane:it.lane};if(it.media&&it.media.url){if(it.media.type&&it.media.type!==expected){iaMarkProgramFailed(id);return;}var inlineUrls=(it.media.alts||[]).concat([it.media.url]).filter(Boolean),inlinePrimary=inlineUrls.find(iaArchiveDirectURL)||inlineUrls.find(function(u){return /archive\.org\/download\//i.test(String(u));})||inlineUrls[0];if(iaInterstitialMedia(inlinePrimary)){iaMarkProgramFailed(id);return;}if(!iaArchiveDirectURL(inlinePrimary)&&/archive\.org\/download\//i.test(String(inlinePrimary))){queueIAProgramMedia(ch,sl,it,expected,editorial);return;}var inline={type:it.media.type||expected,url:inlinePrimary,alts:inlineUrls.filter(function(u){return u!==inlinePrimary;}).slice(0,8),id:id,captions:null,meta:editorial};iaProgramMedia[id]=inline;if(!fastTuneGet(ch.num))fastTunePut(ch.num,inline);return;}queueIAProgramMedia(ch,sl,it,expected,editorial);});warmIAQueueHead(ch);}
+function warmIAQueue(ch,sl,hydrating,limit){var q=iaProgramQueues[iaQueueKey(ch)]||[],expected=iaExpectedMedia(ch);q.slice(0,limit===undefined?5:Math.max(0,Number(limit)||0)).forEach(function(it){if(!it||iaProgramFailed(it.identifier)||iaProgramMedia[it.identifier])return;var id=it.identifier,editorial={identifier:id,creator:it.creator||"",collection:it.collection||"",subject:it.subject||"",lane:it.lane};if(it.media&&it.media.url){if(it.media.type&&it.media.type!==expected){iaMarkProgramFailed(id);return;}var inlineUrls=(it.media.alts||[]).concat([it.media.url]).filter(Boolean),inlinePrimary=inlineUrls.find(iaArchiveDirectURL)||inlineUrls.find(function(u){return /archive\.org\/download\//i.test(String(u));})||inlineUrls[0];if(iaInterstitialMedia(inlinePrimary)){iaMarkProgramFailed(id);return;}if(!iaArchiveDirectURL(inlinePrimary)&&/archive\.org\/download\//i.test(String(inlinePrimary))){queueIAProgramMedia(ch,sl,it,expected,editorial);return;}var inline={type:it.media.type||expected,url:inlinePrimary,alts:inlineUrls.filter(function(u){return u!==inlinePrimary;}).slice(0,8),id:id,title:iaDisplayTitle(it,ch),year:it.year||"",captions:null,meta:editorial};iaProgramMedia[id]=inline;if(!fastTuneGet(ch.num))fastTunePut(ch.num,inline);return;}queueIAProgramMedia(ch,sl,it,expected,editorial);});warmIAQueueHead(ch);}
 function iaQueueHasReadyProgram(ch){var q=iaProgramQueues[iaQueueKey(ch)]||[];return q.some(function(it){var pl=it&&iaProgramMedia[it.identifier],w=it&&iaMediaWarmers[iaMediaWarmKey(ch,it)];return !!((w&&w.el.readyState>=2)||(pl&&typeof pl.then!=="function"&&pl.url));});}
 /* A queue can contain five perfectly valid identifiers while every media
    resolver is still pending (or has just failed). Treat that as an empty
@@ -8814,7 +8814,7 @@ try{if(Number(store.get("manufacturingMarvelsGateVersion",0))<2){delete fastTune
 function fastTuneGet(chNum){var e=fastTuneCache[String(chNum)],ch=typeof byNum==="function"?byNum(chNum):null,expected=iaExpectedMedia(ch);
   if(!e||!e.pl||!e.pl.url||e.pl.type!==expected||!iaCachedProgramAllowed(ch,e.pl)||Date.now()-e.at>FAST_TUNE_TTL||isTemporarilySkipped(e.pl.id)||iaProgramFailed(e.pl.id)||blockedId(e.pl.id)||(Array.isArray(banned)&&banned.indexOf(e.pl.id)>=0)){if(e){delete fastTuneCache[String(chNum)];store.set("fastTune",fastTuneCache);}return null;}
   return {type:e.pl.type,url:e.pl.url,alts:(e.pl.alts||[]).slice(),id:e.pl.id,captions:e.pl.captions||null,
-    meta:e.pl.meta||{},title:e.pl.title||"",year:e.pl.year||""};}
+    meta:e.pl.meta||{},title:e.pl.title||iaDisplayTitle(e.pl,ch),year:e.pl.year||""};}
 function fastTunePut(chNum,it){if(!it||!it.id||!it.url)return;
   fastTuneCache[String(chNum)]={at:Date.now(),pl:{type:it.type,url:it.url,alts:(it.alts||[]).slice(0,4),id:it.id,
     captions:it.captions||null,meta:it.meta||{},title:it.title||"",year:it.year||""}};

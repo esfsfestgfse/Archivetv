@@ -45,6 +45,37 @@ async function catalogFixture(rows) {
   return f;
 }
 
+for(const mode of ['private','legacy','canonical','exhausted'])test('relay-owned IA D1 recovery preserves '+mode+' viewer history after a slot fails admission',async()=>{
+  const rows='ABCDEFGHIJKL'.split('').map(letter=>row(letter+'.mp4'));
+  const f=await catalogFixture(rows),prepare=f.env.realsignal_catalog.prepare.bind(f.env.realsignal_catalog);
+  // Other viewers have received the whole database. That cannot exhaust this viewer.
+  f.env.realsignal_catalog.prepare=sql=>/SELECT program_id/.test(sql)?{bind(){return {all:async()=>({results:rows.map(item=>({program_id:item.identifier}))})};}}:prepare(sql);
+  const rejected=row('podcast.mp4',{title:'Benson podcast discussion'});
+  f.env.RELAY.fetch=async()=>Response.json({channel:'11',rotation:28,rotationApplied:true,ready:3,
+    items:[rows[1],rows[2],rejected],candidateItems:[rows[1],rows[2],rejected]});
+  const recent=mode==='exhausted'?rows.map(item=>item.identifier):[mode==='canonical'?'BENSON::A.webm':'benson::A.mp4','benson::C.mp4','benson::E.mp4'];
+  const request={channel:'11',serverCatalog:true,sessionId:'recovery-'+mode,count:3,rotation:28,recentIds:recent,denyTerms:['podcast']};
+  if(mode!=='legacy')request.viewerRecentIds=recent;
+  // The legacy case intentionally omits shared served rows to preserve its old semantics.
+  if(mode==='legacy')f.env.realsignal_catalog.prepare=prepare;
+  const payload=await(await f.request('queue',request)).json();
+  assert.equal(payload.catalogRecovery,true,'the fixture must exercise actual D1 recovery');
+  assert.equal(payload.items.length,3);assert.ok(payload.items.every(item=>item.media?.url));
+  assert.ok(!payload.items.some(item=>item.identifier===rejected.identifier),'recovery cannot weaken admission');
+  if(mode!=='exhausted')assert.ok(payload.items.every(item=>!['benson::A.mp4','benson::C.mp4','benson::E.mp4'].includes(item.identifier)),JSON.stringify(payload.items.map(item=>item.identifier)));
+  else assert.equal(payload.freshness?.repeatedFallback,true,'genuine exhaustion is visible rather than a dead signal');
+  await Promise.all(f.pending);
+});
+
+test('a relay-owned recovery keeps the last unseen episode first before repeating to fill the shelf',async()=>{
+  const rows='ABCDEF'.split('').map(letter=>row(letter+'.mp4')),f=await catalogFixture(rows);
+  f.env.RELAY.fetch=async()=>Response.json({rotationApplied:true,items:rows.slice(0,2),candidateItems:rows.slice(0,2),ready:2});
+  const recent=rows.slice(0,5).map(item=>item.identifier);
+  const payload=await(await f.request('queue',{channel:'11',serverCatalog:true,sessionId:'last-unseen',count:3,rotation:2,recentIds:recent,viewerRecentIds:recent})).json();
+  assert.equal(payload.items[0].identifier,'benson::F.mp4');assert.equal(payload.items.length,3);
+  await Promise.all(f.pending);
+});
+
 test('API ledger enrichment preserves viewer-specific history separately on relay-owned IA lanes',async()=>{
   const f=await catalogFixture([row('fresh.mp4')]),prepare=f.env.realsignal_catalog.prepare.bind(f.env.realsignal_catalog);
   f.env.realsignal_catalog.prepare=sql=>/SELECT program_id/.test(sql)?{bind(){return {all:async()=>({results:Array.from({length:48},(_,i)=>({program_id:'other-viewer-'+i}))})};}}:prepare(sql);

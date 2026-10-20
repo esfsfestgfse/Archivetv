@@ -29,6 +29,29 @@ function collectionFixture(options={}){
   return {f,reads,expand,payload};
 }
 
+for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])for(const generic of [false,true])test(file+': first-tune inline media retains '+(generic?'file-derived':'editorial')+' episode labels',()=>{
+  const source=fs.readFileSync(path.join(root,file),'utf8'),cached=[];
+  const id='keeping-up::Keeping_Up_Appearances_S04_E03.mp4',item={identifier:id,title:generic?'Blighty':'Keeping Up Appearances · Series 4 Episode 3',year:1993,
+    media:{type:'video',url:'https://dn720001.ca.archive.org/0/items/keeping-up/episode.mp4'}};
+  const s={iaProgramQueues:{'118':[item]},iaQueueKey:ch=>String(ch.num),iaExpectedMedia:()=> 'video',iaProgramFailed:()=>false,
+    iaProgramMedia:{},iaInterstitialMedia:()=>false,fastTuneGet:()=>null,fastTunePut:(channel,media)=>cached.push(media),warmIAQueueHead:()=>{}};
+  vm.createContext(s);
+  vm.runInContext(source.slice(source.indexOf('function iaArchiveDirectURL('),source.indexOf('function adoptIAResolvedMedia('))+
+    source.slice(source.indexOf('function warmIAQueue(ch,'),source.indexOf('function iaQueueHasReadyProgram('))+';warmIAQueue({num:118,nm:"Blighty"},{},false,1);',s);
+  const expected=generic?'Keeping Up Appearances S04 E03':'Keeping Up Appearances · Series 4 Episode 3';
+  assert.equal(s.iaProgramMedia[id].title,expected,'the actual playable record needs its label before the first frame');
+  assert.equal(s.iaProgramMedia[id].year,1993);assert.equal(cached[0].title,expected);
+});
+
+for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])test(file+': a legacy titleless fast-tune entry recovers its episode label without losing the playable cache',()=>{
+  const source=fs.readFileSync(path.join(root,file),'utf8'),s={fastTuneCache:{'118':{at:Date.now(),pl:{id:'keeping-up::Keeping_Up_Appearances_S04_E03.mp4',type:'video',url:'https://cdn.invalid/episode.mp4'}}},
+    byNum:()=>({num:118,nm:'Blighty'}),iaExpectedMedia:()=> 'video',iaCachedProgramAllowed:()=>true,FAST_TUNE_TTL:3600000,
+    isTemporarilySkipped:()=>false,iaProgramFailed:()=>false,blockedId:()=>false,banned:[]};
+  vm.createContext(s);vm.runInContext(source.slice(source.indexOf('function iaDisplayTitle('),source.indexOf('function adoptIAResolvedMedia('))+
+    source.slice(source.indexOf('function fastTuneGet('),source.indexOf('function fastTunePut('))+';result=fastTuneGet(118);',s);
+  assert.equal(s.result.title,'Keeping Up Appearances S04 E03');assert.equal(s.result.url,'https://cdn.invalid/episode.mp4');
+});
+
 for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])test(file+': merged Auto Archive keeps both motoring shows and manufacturing identities',async()=>{
   const {catalogFallbackAllowed}=await import('../realsignal_api_v2_worker.js');
   const manifest=JSON.parse(execFileSync(process.execPath,[path.join(root,'scripts/export-ia-manifest.js'),path.join(root,file)],{encoding:'utf8',maxBuffer:16e6}));

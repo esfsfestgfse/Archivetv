@@ -19,7 +19,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "5.6.18-adult-games-alias-freshness";
+const V3_RELEASE = "5.6.19-adult-games-identity-freshness";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -688,7 +688,7 @@ async function rotateShelf(env, body, payload, request) {
   const reservationMode = body.iaRepair === true && body.sourceCatalog !== true;
   // Previous standard game-show sessions may contain now-excluded kids' shows.
   // Change only that catalog namespace; viewer playback history still applies.
-  const stationPolicy = !reservationMode && body.sourceCatalog !== true && channel === "22" ? ":adult-game-shows-1" : "";
+  const stationPolicy = !reservationMode && body.sourceCatalog !== true && channel === "22" ? ":adult-game-shows-2" : "";
   const stub = env.ROTATION.getByName(`${reservationMode ? "ia-repair:" : ""}session:${session}:channel:${channel}${stationPolicy}`);
   const rawCandidates = Array.isArray(payload && payload.candidateItems) && payload.candidateItems.length
     ? payload.candidateItems

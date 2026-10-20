@@ -5862,7 +5862,13 @@ function iaModernGameShowAllowed(item = {}) {
   const meta = item.meta || {};
   const text = [item.identifier || item.id, item.sourceIdentifier, item.title, item.seriesTitle,
     item.fileName || item.media?.fileName, item.subject, item.subjects, meta.title, meta.subject, meta.subjects].filter(Boolean).join(' ').replace(/[_./-]+/g, ' ').replace(/['’]/g, '');
-  return !/\b(?:nickelodeon|nick arcade|guts|figure it out|double dare|legends of the hidden temple|family game night|finders keepers|get the picture|make the grade|wild and crazy kids|brainsurge|brain surge|fun house|funhouse|masters of the maze|junior jeopardy|kids? (?:week|game shows?|edition|tournament)|teen (?:week|tournament|edition))\b/i.test(text);
+  if (/\b(?:nickelodeon|nick arcade|guts|figure it out|double dare|legends of the hidden temple|family game night|finders keepers|get the picture|make the grade|wild and crazy kids|brainsurge|brain surge|fun house|funhouse|masters of the maze|junior jeopardy|kids? (?:week|game shows?|edition|tournament)|teen (?:week|tournament|edition)|philippines|filipino|tagalog|family feud ph|concentration camps?|major fraud|podcast|reaction|documentary|retrospective|press conference)\b/i.test(text)) return false;
+  // A phrase anywhere in an upload is not a show identity: e.g. a camp
+  // documentary is not Concentration, nor a news headline Deal or No Deal.
+  return [item.seriesTitle, item.title, meta.title, item.sourceIdentifier, item.identifier || item.id].filter(Boolean).some(value => {
+    const identity = String(value).toLowerCase().replace(/['’]/g, '').replace(/[^a-z0-9]+/g, ' ').trim().replace(/^(?:the )?(?:new )?/, '');
+    return /^(?:(?:19|20)\d{2} )?(?:price is right|wheel of fortune|jeopardy|family feud|who wants to be a millionaire|millionaire|deal or no deal|press your luck|supermarket sweep|match game|weakest link|divided|crystal maze|chase|catch 21|lingo|card sharks|(?:\d+ )*pyramid|hollywood squares|newlywed game|classic concentration|concentration|sale of the century|tic tac dough|jokers wild|(?:super )?password(?: plus)?|lets make a deal|greed|1 vs 100|win ben steins money|tpir)\b/.test(identity);
+  });
 }
 
 function iaStationQualityGate(channel, doc) {
@@ -9837,7 +9843,7 @@ async function getIaQueue(request, url, env, ctx) {
   /* The five-show recovery shelf spans rotations, but never editorial rules.
      That avoids stale genre bleed after a channel's source contract changes. */
   const fileContract = { ...(body && body.iaRepair === true ? { fileContract: "ia-file-1" } : {}),
-    ...(channel === "22" ? { stationPolicy: "adult-game-shows-1" } : {}) };
+    ...(channel === "22" ? { stationPolicy: "adult-game-shows-2" } : {}) };
   const familyFingerprint = JSON.stringify({ channel, queries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, minRuntimeSeconds, diversity, count, contentPolicy: IA_GLOBAL_VIDEO_POLICY_VERSION, ...fileContract });
   const lastGoodDigest = await stableKey(familyFingerprint);
   const fingerprint = JSON.stringify({ channel, queries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, minRuntimeSeconds, diversity, count, rotation, catalogBudget: IA_CATALOG_BUDGET_VERSION, contentPolicy: IA_GLOBAL_VIDEO_POLICY_VERSION, ...fileContract });

@@ -57,6 +57,22 @@ test('Modern Game Shows rejects children show identities at relay and API admiss
   assert.equal(iaGameShowEraAllowed({title:'The Price Is Right',year:1978},'12'),true);
 });
 
+test('modern game-show admission rejects unrelated keyword matches and non-English editions',async()=>{
+  const f=relay(),{iaModernGameShowAllowed}=await import('../ia_file_contract.js');
+  for(const title of ['Bergen-Belsen Concentration Camp','Sidekicks 1986 Ep 6: Thrill Of The Chase',
+    'LA! KEN PAXTON DEFEATS CORNYN IN TX IRANIAN DEAL OR NO DEAL?',
+    'Family Feud Philippines Premiere [2022] | TV RECORDING','It\'s Showtime on Family Feud PH | TV RECORDING',
+    '1991 Soaps, Family Feud','Who Wants to Be a Millionaire- Major Fraud(2003)']){
+    const item={identifier:'unrelated-upload::episode.mp4',title,year:2022};
+    assert.equal(iaModernGameShowAllowed(item),false,title);assert.equal(f.stationGate('22',item),false,title);
+    for(const file of ['the_dial_desktop.html','the_dial_mobile.html']){
+      const source=fs.readFileSync(path.join(root,file),'utf8'),s={};vm.createContext(s);
+      vm.runInContext(source.slice(source.indexOf('function iaModernGameShowAllowed('),source.indexOf('function iaEnglishRerunAllowed('))+';f=iaModernGameShowAllowed;',s);
+      assert.equal(s.f(item),false,file+': '+title);
+    }
+  }
+});
+
 test('modern game-show kids editions cannot hide in subject fields or possessive labels',async()=>{
   const f=relay(),{iaModernGameShowAllowed}=await import('../ia_file_contract.js');
   const variants=[{title:"Jeopardy! Kids' Week full episode 1995"},{title:'Jeopardy! Kids’ Week full episode 1995'},

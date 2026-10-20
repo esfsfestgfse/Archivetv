@@ -9,6 +9,74 @@ function relay(options={}){
     ';globalThis.f={iaRepairCollectionSeeds,orderedIaEmergencySeeds,queueTitleFamily,stationGate:iaStationQualityGate,archiveEpisodeKey,iaEffectiveVideoMinRuntimeSeconds,iaRepairPublicCatalog,strictRecoveryQueue,themeScore,matchesDeny,applyIaFreshness,expandSeedArchiveContainers,queuePlayable,getIaQueue,scheduleIaExpansion,qualifyIaQueueResponse,consume:(...args)=>worker.queue(...args),setHarvest:fn=>{expandAndCacheIaQueue=fn;},setHydrate:fn=>{hydrateIaQueue=fn;}};',s);return s.f;
 }
 
+test('Sporting Life cannot promote civic meetings or concert uploads through outdoor subject tags',async()=>{
+  const f=relay(),{catalogFallbackAllowed}=await import('../realsignal_api_v2_worker.js');
+  const rejected=['Oceanside City Council Meeting - December 7 2016 PART 1','A Conversation with Secretary Sally Jewell','Green Day - The Easter Show 1992 - FULL PERFORMANCE',
+    'In-Fisherman - Building an Enterprise Level Drupal Site - Paul Chason and Josh Estep','Outdoor Life Network Commercial Breaks (February 2000)',
+    'Ed Bassmaster','Easy Money S01E06 Bassmaster','Good Will Hunting full movie'];
+  for(const title of rejected){const item={identifier:'unrelated::program.mp4',title,subject:'outdoor recreation hunting sport',media:{type:'video',url:'https://archive.org/download/unrelated/program.mp4'}};
+    assert.equal(f.stationGate('65',item),false,title+' at relay');
+    assert.equal(catalogFallbackAllowed(item,{channel:'65'}),false,title+' at catalog admission');
+  }
+  for(const title of ['Bill Dance Outdoors','Realtree Hunting Adventures','Upland Hunting: Pheasants and Labs','Long Lake Ice Fishing Derby']){
+    const item={identifier:'outdoor::episode.mp4',title,media:{type:'video',url:'https://archive.org/download/outdoor/episode.mp4'}};
+    assert.equal(f.stationGate('65',item),true,title);assert.equal(catalogFallbackAllowed(item,{channel:'65'}),true,title);
+  }
+  const scavengerFilm={identifier:'HuntingSeason::huntingonline_512kb.mp4',title:'Hunting Season',subject:'outdoors hunting sports',media:{type:'video',url:'https://archive.org/download/HuntingSeason/huntingonline_512kb.mp4'}};
+  assert.equal(f.stationGate('65',scavengerFilm),false,'the observed scavenger-hunt film is not an outdoors show');
+  assert.equal(catalogFallbackAllowed(scavengerFilm,{channel:'65'}),false);
+});
+
+test('Courtroom TV requires a judge-show identity rather than an incidental description mention',async()=>{
+  const f=relay(),{catalogFallbackAllowed}=await import('../realsignal_api_v2_worker.js');
+  const bad={identifier:'KPIX_20130622_020000_Washington_Week_With_Gwen_Ifill',title:'Washington Week With Gwen Ifill',
+    description:'Broadcast schedule: Judge Judy, politics and news',subject:'Judge Judy small claims',media:{type:'video',url:'https://archive.org/download/news/full.mp4'}};
+  assert.equal(f.stationGate('20',bad),false);assert.equal(catalogFallbackAllowed(bad,{channel:'20'}),false);
+});
+
+test('relay freshness unifies a single-program parent and its matching file without excluding siblings',()=>{
+  const f=relay(),parent='WTTG_20010911_140000_Divorce_Court',make=(id,file)=>({identifier:id,sourceIdentifier:parent,fileName:file,
+    title:'Divorce Court',media:{type:'video',url:'https://archive.org/download/'+parent+'/'+file}});
+  const original=make(parent,parent+'.mp4'),alias=make(parent+'::'+parent+'.mp4',parent+'.mp4');
+  const sibling=make(parent+'::Another Episode.mp4','Another Episode.mp4');
+  const p=f.applyIaFreshness({channel:'20',rotation:1,items:[original,alias,sibling],candidateItems:[original,alias,sibling]},[{id:parent}],1).payload;
+  assert.equal(p.items[0].identifier,sibling.identifier,'a newly expanded file cannot replay the just-watched single-program parent');
+});
+
+test('measured shallow lanes expose expanded file banks through the actual strict recovery and client contracts',async()=>{
+  const f=relay(),{catalogFallbackAllowed}=await import('../realsignal_api_v2_worker.js');
+  const manifest=JSON.parse(execFileSync(process.execPath,[path.join(root,'scripts/export-ia-manifest.js')],{encoding:'utf8',maxBuffer:16e6}));
+  for(const [channel,minimum] of [['20',96],['65',20],['204',24],['510',96]]){
+    const rules=manifest.find(x=>x.channel===channel),bank=f.iaRepairCollectionSeeds(channel).filter(x=>x.media?.url);
+    assert.ok(bank.length>=minimum,channel+' must hold a real expanded bank, not another starter shelf');
+    assert.ok(bank.every(x=>x.media.runtime>=900&&x.media.width>x.media.height&&x.media.metadataVerifiedAt>0));
+    const payload=f.strictRecoveryQueue(channel,0,96,rules.themeTerms,rules.denyTerms,rules.requiredTitleTerms,rules.mediaTypes,rules.minRuntimeSeconds);
+    assert.ok(payload.candidateItems.length>=minimum,channel+' cannot lose the bank to the old station vocabulary');
+    assert.ok(bank.every(item=>catalogFallbackAllowed(item,rules)),channel+' API admission retains the reviewed files');
+    assert.ok(bank.every(item=>payload.candidateItems.some(candidate=>candidate.identifier===item.identifier)),channel+' retains file-level depth behind its shelf');
+    if(['20','510'].includes(channel))assert.equal(new Set(payload.items.slice(0,3).map(x=>x.seriesId)).size,3,'opening shelf rotates television series, not just episode IDs');
+  }
+});
+
+for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])test(file+': Sporting Life direct and cached playback enforce outdoor program identity',()=>{
+  const source=fs.readFileSync(path.join(root,file),'utf8'),s={banned:[],curItem:null,isTemporarilySkipped:()=>false,blockedId:()=>false,iaProgramFailed:()=>false,iaSkipBlocked:()=>false,iaThemeMatches:()=>true};
+  vm.createContext(s);vm.runInContext(source.slice(source.indexOf('function iaKnownVideoPolicyViolation('),source.indexOf('function iaProgramDenyTerms('))+';f={cached:iaCachedProgramAllowed,queue:iaProgramAllowed};',s);
+  for(const title of ['Oceanside City Council Meeting','A Conversation with Secretary Sally Jewell','Green Day - FULL PERFORMANCE',
+    'Ed Bassmaster','Easy Money S01E06 Bassmaster','Good Will Hunting full movie']){
+    assert.equal(s.f.queue({identifier:'bad',title,subject:'outdoor recreation'},{channel:65,program:{}}),false,title);
+    assert.equal(s.f.cached({num:65,nm:'The Sporting Life'},{id:'bad',title,type:'video'}),false,title);
+  }
+  assert.equal(s.f.cached({num:65,nm:'The Sporting Life'},{id:'bill-dance::episode.mp4',title:'Bill Dance Outdoors',type:'video'}),true);
+  assert.equal(s.f.cached({num:201,nm:'Documentary'},{id:'speech',title:'A Conversation with Secretary Sally Jewell',type:'video'}),true,'not a global ban on documentaries');
+  const news={identifier:'news',id:'news',title:'Washington Week With Gwen Ifill',subject:'Judge Judy',type:'video'};
+  assert.equal(s.f.queue(news,{channel:20,program:{}}),false);assert.equal(s.f.cached({num:20},news),false);
+  assert.equal(s.f.cached({num:65},{id:'HuntingSeason::huntingonline_512kb.mp4',title:'Hunting Season',type:'video'}),false);
+  for(const channel of [20,65]){
+    assert.equal(s.f.queue(null,{channel,program:{}}),false,'empty queues stay a normal miss');
+    assert.equal(s.f.cached({num:channel},null),false,'empty saved entries do not throw');
+  }
+});
+
 for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])test(file+': all ordinary IA queues and old playback caches apply the global TV policy',()=>{
   const source=fs.readFileSync(path.join(root,file),'utf8'),s={banned:[],curItem:null,isTemporarilySkipped:()=>false,blockedId:()=>false,
     iaProgramFailed:()=>false,iaSkipBlocked:()=>false,iaThemeMatches:()=>true};

@@ -6,7 +6,7 @@
  */
 
 import { SessionRotation } from "./realsignal_api_rotation.js";
-import { normalizeIaFileRecord, qualifyIaFileRecord, iaMinimumFileRuntimeSeconds, iaGameShowEraAllowed, iaGameShowYear, iaReviewedCartoonSource, iaKnownVideoPolicyViolation } from "./ia_file_contract.js";
+import { normalizeIaFileRecord, qualifyIaFileRecord, iaMinimumFileRuntimeSeconds, iaGameShowEraAllowed, iaGameShowYear, iaReviewedCartoonSource, iaKnownVideoPolicyViolation, iaSportingLifeAllowed, iaCourtroomAllowed } from "./ia_file_contract.js";
 import { EdgeRateLimiter } from "./realsignal_api_rate_limit.js";
 import { RokuSession } from "./realsignal_roku_session.js";
 import { okBalancedCandidates, okPlaybackIdentity, okPreferUnseenSeries, okSeriesIdentity } from "./ok_public_search.js";
@@ -19,7 +19,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "5.6.21-ia-lineup-policy-repair";
+const V3_RELEASE = "5.6.22-ia-expanded-file-depth";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -704,7 +704,7 @@ async function rotateShelf(env, body, payload, request) {
   const recentLimit = candidates.length >= count ? Math.max(0, candidates.length - count) : recentValues.length;
   const boundedRecentIds = freshnessExclusionIds(body, reservationMode ? recentValues.length : recentLimit);
   const selectBody = { items: candidates, recentIds: boundedRecentIds, count, rotation: Number(body.rotation) || 0,
-    ...(body.sourceCatalog !== true ? { requirePlayable: true, diversity: body.diversity || {} } : {}),
+    ...(body.sourceCatalog !== true ? { requirePlayable: true, stationChannel: String(body.channel || ''), diversity: body.diversity || {} } : {}),
     ...(body.sourceCatalog !== true && !reservationMode && Array.isArray(body.viewerRecentIds)
       ? { playedOnly: true, viewerRecentIds: body.viewerRecentIds } : {}),
     ...(reservationMode ? { mode: "reserve", diversity: body.diversity || {}, rules: body, rejectedIds: body.iaRejectedIds || [] } : {}) };
@@ -780,6 +780,8 @@ function rotateCatalogItems(items, rotation) {
 }
 
 function catalogFallbackAllowed(item, body) {
+  if (body && body.sourceCatalog !== true && String(body.channel) === '20' && !iaCourtroomAllowed(item)) return false;
+  if (body && body.sourceCatalog !== true && String(body.channel) === '65' && !iaSportingLifeAllowed(item)) return false;
   if (body && body.sourceCatalog !== true && iaKnownVideoPolicyViolation(item)) return false;
   if (!iaGameShowEraAllowed(item, body && body.channel)) return false;
   if (body && body.iaRepair === true && body.sourceCatalog !== true && !qualifyIaFileRecord(item, body).accepted) return false;

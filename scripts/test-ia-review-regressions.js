@@ -87,6 +87,25 @@ test('standard IA rotation prunes forbidden rows already stored in its durable c
   await Promise.all(f.pending);
 });
 
+test('Sporting Life removes off-genre legacy session rows without resetting actual viewing history',async()=>{
+  const good=Array.from({length:18},(_,i)=>row('outdoors-'+i+'.mp4',{title:'Bill Dance Outdoors full fishing episode '+i})),f=await catalogFixture(good);
+  const old=f.env.ROTATION.getByName('session:sporting-genre:channel:65');
+  await old.ctx.storage.put('rotation',{catalog:[row('council.mp4',{title:'Oceanside City Council Meeting',subject:'outdoor recreation'}),...good],seen:[],cursor:0});
+  const p=await(await f.request('queue',{channel:'65',serverCatalog:true,sessionId:'sporting-genre',count:3,viewerRecentIds:[good[0].identifier]})).json();
+  assert.equal(p.items.length,3);assert.ok(p.candidateItems.every(x=>! /council/i.test(x.title)));
+  assert.ok(p.items.every(x=>x.identifier!==good[0].identifier),'the real played file stays watched');
+  await Promise.all(f.pending);
+});
+
+for(const channel of ['65','204','510'])test('channel '+channel+' cannot stay frozen on an older full D1 shelf while its relay has a deeper episode bank',async()=>{
+  const f=await catalogFixture(Array.from({length:24},(_,i)=>row('old-'+i+'.mp4',{title:'Bill Dance Outdoors fishing program '+i})));
+  f.incoming(Array.from({length:96},(_,i)=>row('new-'+i+'.mp4',{title:'Bill Dance Outdoors fishing program '+i})));
+  const p=await(await f.request('queue',{channel,serverCatalog:true,sessionId:'file-bank-'+channel,count:3,viewerRecentIds:[]})).json();
+  assert.ok(f.queueBodies.length>0,'a 24-row old shelf is not proof the new bank was imported');
+  assert.ok(p.candidateItems.some(x=>x.identifier.includes('new-')),'expanded file identities reach the returned catalog');
+  assert.equal(p.items.length,3);await Promise.all(f.pending);
+});
+
 test('standard IA prefetch does not mark its three buffered candidates watched',async()=>{
   const f=await catalogFixture(Array.from({length:65},(_,i)=>row('holiday-'+i+'.mp4',{title:'Halloween cartoon animated special '+i,seriesId:'show-'+i%8})));
   for(let rotation=0;rotation<2;rotation++){

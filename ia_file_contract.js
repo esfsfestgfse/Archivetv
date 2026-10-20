@@ -33,6 +33,26 @@ export function iaKnownVideoPolicyViolation(item = {}) {
     || /\b(?:unofficial|homemade|bootleg)\b.{0,48}\b(?:film|movie|feature|parody|remake|reconstruction)\b|\b(?:film|movie|feature|parody|remake|reconstruction)\b.{0,48}\b(?:unofficial|homemade|bootleg)\b/.test(text);
 }
 
+export function iaCourtroomAllowed(item = {}) {
+  if (!item || typeof item !== 'object') return false;
+  const text = [item.title, item.seriesTitle, item.fileName, item.media?.sourceTitle,
+    item.sourceIdentifier, item.identifier || item.id, item.meta?.title]
+    .filter(Boolean).join(' ').toLowerCase().replace(/[_./-]+/g, ' ');
+  if (/\b(?:washington week|city council|press conference|political speech|political rally|podcast)\b/.test(text)) return false;
+  return /\b(?:judge (?:judy|joe brown|(?:greg )?mathis|wapner|milian|hatchett|alex|faith|jerry)|people'?s court|divorce court|hot bench|small claims (?:court|tv))\b/.test(text);
+}
+export function iaSportingLifeAllowed(item = {}) {
+  if (!item || typeof item !== 'object') return false;
+  // This specific legacy recovery upload is a scavenger-hunt fiction film.
+  if (/^HuntingSeason(?:::|$)/i.test(String(item.sourceIdentifier || item.identifier || item.id || ''))) return false;
+  // Identity comes from the program, not incidental tags on a civic upload.
+  const meta = item.meta || {};
+  const text = [item.title, item.seriesTitle, item.fileName, item.media?.sourceTitle,
+    item.sourceIdentifier, item.identifier || item.id, meta.title].filter(Boolean).join(' ').toLowerCase().replace(/[_./-]+/g, ' ');
+  if (/\b(?:city council|council meeting|committee hearing|press conference|politics|political|concert|full performance|music video|podcast|commercial breaks|logo compilation|drupal|wordpress|web development|software tutorial|ed bassmaster|easy money|good will hunting|funny or die|twitch)\b/.test(text)) return false;
+  return /\b(?:fishing|fisherman|hunting|angling|angler|archery|bowhunting|realtree|whitetail|bassmaster|sporting dogs|american sportsman|bill dance|jimmy houston|babe winkelman|orlando wilson|outdoors|outdoor (?:life|adventures?|recreation|competition|sports?))\b/.test(text);
+}
+
 export function iaReviewedCartoonSource(raw = {}) {
   return COMPLETE_CARTOON_SHORT_PARENTS.has(normalizeIaFileRecord(raw).sourceIdentifier);
 }

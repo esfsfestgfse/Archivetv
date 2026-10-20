@@ -358,12 +358,15 @@ test('IA and H.264 derivatives have the same logical episode identity', async ()
 test('strict file shelves are isolated without invalidating legacy cache identities', () => {
   const source = fs.readFileSync(path.join(root, 'afterglow_ais_relay_worker.js'), 'utf8');
   const section = source.slice(source.indexOf('  const fileContract ='), source.indexOf('  const digest = await stableKey(fingerprint);'));
+  const policy = source.slice(source.indexOf('const IA_MEASURED_DEPTH_CHANNELS ='), source.indexOf('function iaStrictRecoveryEnabled('));
   const args = { channel: '10', queries: ['tv'], themeTerms: [], denyTerms: [], requiredTitleTerms: [], mediaTypes: ['movies'], themeMinScore: 1, minRuntimeSeconds: 900, diversity: {}, count: 3, rotation: 0, IA_GLOBAL_VIDEO_POLICY_VERSION: 'policy', IA_CATALOG_BUDGET_VERSION: 'budget', stableKey: async value => value };
-  const run = body => vm.runInNewContext('(async()=>{' + section + ';return {familyFingerprint,fingerprint};})()', { ...args, body });
-  return Promise.all([run({}), run({ iaRepair: true })]).then(([legacy, strict]) => {
+  const run = (body,channel=args.channel) => vm.runInNewContext(policy+'\n(async()=>{' + section + ';return {familyFingerprint,fingerprint};})()', { ...args, channel, body });
+  return Promise.all([run({}), run({ iaRepair: true }),run({},'65'),run({},'12')]).then(([legacy, strict, measured, unchanged]) => {
     assert.equal(Object.hasOwn(JSON.parse(legacy.familyFingerprint), 'fileContract'), false);
     assert.equal(Object.hasOwn(JSON.parse(legacy.fingerprint), 'fileContract'), false);
     assert.equal(JSON.parse(strict.familyFingerprint).fileContract, 'ia-file-1');
     assert.notEqual(strict.fingerprint, legacy.fingerprint);
+    assert.ok(Object.hasOwn(JSON.parse(measured.familyFingerprint),'stationDepthPolicy'),'only the repaired lane gets the targeted cache revision');
+    assert.equal(Object.hasOwn(JSON.parse(unchanged.familyFingerprint),'stationDepthPolicy'),false,'other lane cache identities are unchanged');
   });
 });

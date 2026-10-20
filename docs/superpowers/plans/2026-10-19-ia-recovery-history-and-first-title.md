@@ -31,10 +31,10 @@
 
 **Interfaces:** Consumes existing `viewerRecentIds`, `recentIds`, `queueItemIdentity`, `uniqueQueueItems`, `warmIAQueue`, `iaDisplayTitle`, and the relay-owned response. Produces the same public item/media schema with an unseen-first recovery shelf and title/year retained. No new endpoint or persistent state.
 
-- [ ] Add API behavioral tests for a relay shelf reduced by policy, with D1 recovery and private recent IDs; assert no repeated first item while unseen files exist. Include exhausted, legacy, canonical-ID, and guarded controls.
-- [ ] Add desktop/mobile VM tests for actual inline warm-media title/year, with proper editorial and generic file-derived labels.
-- [ ] Run focused suite; expected new tests fail for missing labels and repeated recovery selection, old 99 pass.
-- [ ] Apply minimal request-local recovery ordering and inline-media metadata changes; run focused suite green.
-- [ ] Run all workflow CI commands, title/deep-harvest contracts and whitespace checks. Use one bounded final reviewer; address important findings RED→GREEN in one pass.
-- [ ] Commit explicit files and push normally to main with visible 5.6.16 stamps. Verify all applicable deploy/CI jobs, public stamp/API health, channel 11 extended rotations and control lanes, and browser decoded playback/title/Next. The unchanged relay's path-filtered job is not expected to redeploy.
-- [ ] Record measured evidence and limits, complete checkpoint, preserve unrelated artifacts.
+- [x] Add API behavioral tests for a relay shelf reduced by policy, with D1 recovery and private recent IDs; assert no repeated first item while unseen files exist. Include exhausted, legacy, canonical-ID, and guarded controls.
+- [x] Add desktop/mobile VM tests for actual inline warm-media title/year, with proper editorial and generic file-derived labels.
+- [x] Run focused suite; expected new tests fail for missing labels and repeated recovery selection, old 99 pass.
+- [x] Apply minimal request-local recovery ordering and inline-media metadata changes; run focused suite green.
+- [x] Run all workflow CI commands, title/deep-harvest contracts and whitespace checks. Use one bounded final reviewer; address important findings RED→GREEN in one pass.
+- [x] Commit explicit files and push normally to main with visible 5.6.16 stamps. Verify all applicable deploy/CI jobs, public stamp/API health, channel 11 extended rotations and control lanes, and browser decoded playback/title/Next. The unchanged relay's path-filtered job is not expected to redeploy.
+- [x] Record measured evidence and limits, complete checkpoint, preserve unrelated artifacts.

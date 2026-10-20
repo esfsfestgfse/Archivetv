@@ -25,7 +25,7 @@
 
 ## Release verification
 
-Final review is complete with its findings fixed and tests green. Push, five deployment gates, and hosted extended rotation/playback checks remain to be recorded. Queue selection/URL readiness is not a universal visible-first-frame or physical mobile/Cast certification.
+Final review completed with its findings fixed and tests green. Runtime `77a27f4` deployed with all four applicable workflows green (the relay is unchanged). The first hosted test passed 40/40 selections, but extending to 64 revealed a legacy parent-ID mismatch. The follow-up 5.6.16 report documents its fix and final hosted evidence. Queue selection/URL readiness is not a universal visible-first-frame or physical mobile/Cast certification.
 
 ## Review decisions
 

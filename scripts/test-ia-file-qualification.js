@@ -19,7 +19,7 @@ function relay(metadata = {}, mediaStatus = 206, redirectedUrl = '', fetchOverri
     } };
   vm.createContext(sandbox);
   vm.runInContext(fs.readFileSync(path.join(root, 'afterglow_ais_relay_worker.js'), 'utf8').replace('export default', 'const worker =') +
-    '\nglobalThis.contract={iaRuntimeAllowed, iaStationQualityGate, queuePlayable, iaPlayableIdentity, hydrateIaQueue, qualifyIaQueueResponse, verifyIaTransport,worker,holidaySeeds:IA_LONG_TAIL_EXPANSIONS["705"]};', sandbox);
+    '\nglobalThis.contract={iaRuntimeAllowed, iaStationQualityGate, queuePlayable, iaPlayableIdentity, hydrateIaQueue, qualifyIaQueueResponse, verifyIaTransport,worker,holidaySeeds:IA_LONG_TAIL_EXPANSIONS["705"],recoverySeeds:orderedIaEmergencySeeds,collectionSeeds:iaRepairCollectionSeeds};', sandbox);
   return sandbox.contract;
 }
 const verified = { identifier: 'series::episode.mp4', sourceIdentifier: 'series', title: 'Family sitcom episode',
@@ -125,6 +125,39 @@ test('old Halloween playlist ordinals cannot re-enter through persisted catalogs
   assert.equal(iaReviewedFileAllowed(row('1953 - UPA - The Tell Tale Heart.mp4'),'705'),true);
   assert.equal(iaReviewedFileAllowed(row('01-1929 - Disney -The Skeleton Dance.ia.mp4'),'705'),true,'an actually listed ordinal derivative remains valid');
   assert.equal(iaReviewedFileAllowed({identifier:'other::26-1953 - Cartoon.mp4',media:{url:'https://archive.org/download/other/26-1953%20-%20Cartoon.mp4'}},'705'),true,'no blanket filename ban');
+});
+
+test('closeout collection repairs retain the exact Mr. Rhodes and nested Colonial Naturalist files', () => {
+  const f=relay(),rhodes=f.recoverySeeds('11',0).find(x=>x.identifier.includes('mr.-rhodes-s-1e-08')&&x.identifier.includes('s1e06'));
+  assert.equal(rhodes.fileName,'Mr. Rhodes- s1e06 - Huge - Mr Rhodes - 1.06.ia.mp4');
+  for(const reel of [1,2]){
+    const row=f.recoverySeeds('217',0).find(x=>x.sourceIdentifier==='colonialnaturalist'&&x.title==='Colonial Naturalist · Reel '+reel);
+    assert.equal(row.fileName,'colonialnaturalist/colonialnaturalistreel'+reel+'.mp4');
+    assert.ok(decodeURIComponent(row.media.url).endsWith('/colonialnaturalist/colonialnaturalistreel'+reel+'.mp4'));
+  }
+});
+
+test('missing collection paths cannot survive in a persisted queue while corrected siblings remain admitted', async () => {
+  const {iaReviewedFileAllowed}=await import('../ia_file_contract.js');
+  for(const [source,oldFile,newFile]of [
+    ['mr.-rhodes-s-1e-08-looking-for-mrs.-goodbar-episode-8','Mr Rhodes- s1e06 - Huge - Mr Rhodes - 1.06.ia.mp4','Mr. Rhodes- s1e06 - Huge - Mr Rhodes - 1.06.ia.mp4'],
+    ['colonialnaturalist','colonialnaturalistreel1.mp4','colonialnaturalist/colonialnaturalistreel1.mp4'],
+    ['colonialnaturalist','colonialnaturalistreel2.mp4','colonialnaturalist/colonialnaturalistreel2.mp4'],
+  ]){
+    const item=file=>({identifier:source+'::'+file,fileName:file,media:{url:'https://archive.org/download/'+source+'/'+file.split('/').map(encodeURIComponent).join('/')}});
+    assert.equal(iaReviewedFileAllowed(item(oldFile),'11'),false,oldFile);
+    assert.equal(iaReviewedFileAllowed(item(newFile),'11'),true,newFile);
+  }
+});
+
+test('Range and Field has complete long-form competition and field programs beyond its old eight-item window', () => {
+  const f=relay(),rows=f.collectionSeeds('83').filter(x=>x.media);
+  assert.ok(rows.length>=23,'add measured long-form depth instead of padding the existing shelf');
+  const olympics=rows.filter(x=>x.sourceIdentifier==='2012_London_Olympics_Archery');
+  assert.equal(olympics.length,13,'full sessions only; hold out the two split morning-session files');
+  assert.ok(rows.some(x=>x.sourceIdentifier==='trap-and-skeet-shooting-full-vhs'));
+  assert.ok(rows.every(x=>x.media.runtime>=900&&x.media.width>x.media.height&&f.iaStationQualityGate('83',x)));
+  assert.equal(new Set(rows.map(x=>x.identifier)).size,rows.length,'alternate encodings do not inflate depth');
 });
 
 test('Halloween recovery records address the real cartoon files, not stale playlist ordinals', () => {

@@ -25,7 +25,22 @@ async function run(file) {
   return;
 }
 
-Promise.all(['the_dial_desktop.html', 'the_dial_mobile.html'].map(run)).catch(error => {
+async function darkroomAdmission() {
+  const { sourceProfile, qualifySourceItem } = await import('../realsignal_source_catalog.js');
+  const profile = sourceProfile({ profileKey: 'darkroom' });
+  const good = { id: 'youtube:photo-proof', provider: 'YouTube', title: 'The History of Camera Flashes', duration: 1700, aspectRatio: 16 / 9, language: 'en', rights: 'Standard YouTube license', url: 'https://www.youtube-nocookie.com/embed/photo-proof' };
+  assert.ok(qualifySourceItem(profile, good), 'photography programming remains admitted');
+  const badTitle = 'DARKROOM & X -RAY FILM PROCESSING |150 ONE-LINERS +100 MCQ | AIIMS CRE PHASE-4 |RADIOGRAPHER';
+  assert.equal(qualifySourceItem(profile, { ...good, title: badTitle }), null, 'clinical exam preparation is not photography programming');
+  for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
+    const row = fs.readFileSync(path.join(root, file), 'utf8').split('\n').find(line => line.trim().startsWith('"darkroom":'));
+    const client = vm.runInNewContext('({' + row.trim().replace(/,$/, '') + '})').darkroom;
+    assert.ok(client.deny.some(term => badTitle.toLowerCase().includes(term)), `${file}: retained client caches reject the same clinical result`);
+  }
+  console.log('Darkroom admission preserves photography and rejects clinical exam material.');
+}
+
+Promise.all([...['the_dial_desktop.html', 'the_dial_mobile.html'].map(run), darkroomAdmission()]).catch(error => {
   console.error(error.stack || error);
   process.exitCode = 1;
 });

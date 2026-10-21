@@ -62,6 +62,8 @@ export function iaReviewedFileAllowed(item, channel) {
   // A saved episode must never play another child while retaining its title.
   // Origin/encoding alternatives may differ; the Archive parent and program may not.
   const selected = String(media.fileName || item.fileName || id.slice(id.indexOf('::') + 2));
+  if (source === 'colonialnaturalist' && /^colonialnaturalistreel[12]\.mp4$/i.test(selected)) return false;
+  if (source === 'mr.-rhodes-s-1e-08-looking-for-mrs.-goodbar-episode-8' && selected === 'Mr Rhodes- s1e06 - Huge - Mr Rhodes - 1.06.ia.mp4') return false;
   if (id.includes('::') && /\.(?:mp4|m4v|webm|ogv|mov|mp3|ogg|m4a|flac)$/i.test(selected)) {
     const decode = value => { try { return decodeURIComponent(value); } catch (_) { return value; } };
     const program = value => String(value).replace(/(?:\.ia)?\.(?:mp4|m4v|webm|ogv|mov|mp3|ogg|m4a|flac)$/i, '').replace(/[._-](?:512kb|h264|h\.264|mpeg4|avc)$/i, '');

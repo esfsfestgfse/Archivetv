@@ -101,7 +101,12 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "cartoon",
       "gameplay",
       "wedding photography service",
-      "wedding"
+      "wedding",
+      "radiograph",
+      "radiology",
+      "x-ray",
+      "aiims",
+      "mcq"
     ]
   },
   "restoration-row": {

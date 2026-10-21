@@ -16,13 +16,13 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="RealSignal">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>REALSIGNAL · The Dial 5.6.24</title>
+<title>REALSIGNAL · The Dial 5.6.25</title>
 <meta name="realsignal-ia-repair-channels" content="10,12,22,150">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
-<script src="assets/ok-embed-runtime.js?v=5.6.24"></script>
-<script src="assets/ia-playback-shelf.js?v=5.6.24"></script>
+<script src="assets/ok-embed-runtime.js?v=5.6.25"></script>
+<script src="assets/ia-playback-shelf.js?v=5.6.25"></script>
 <script src="assets/vimeo-embed-runtime.js?v=5.5.85"></script>
 <!-- Source Suite starts verified YouTube playback on a cold tune. Warm the exact
      origins it uses so DNS/TLS setup is not serialized behind catalog discovery. -->
@@ -1750,7 +1750,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="5.6.24-mobile-ia-nature-outdoor-depth";
+window.__ATV_BUILD="5.6.25-mobile-ia-hunt-genre-recovery";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -7660,10 +7660,14 @@ function iaReviewedFileAllowed(item, channel) {
 function iaHuntingAllowed(item = {}) {
   if (!item || typeof item !== 'object') return false;
   if (/^HuntingSeason(?:::|$)/i.test(String(item.sourceIdentifier || item.identifier || item.id || ''))) return false;
+  // Observed 30-second app advertisement, not a hunting episode. Do not ban
+  // the provider's other uploads merely because they share an uploader.
+  const source = String(item.media?.sourceIdentifier || item.sourceIdentifier || item.identifier || item.id || '').replace(/^ia:/i, '').split('::')[0];
+  if (source === 'youtube-eFJ0FqQIPqc') return false;
   const text = [item.title, item.seriesTitle, item.fileName, item.media?.sourceTitle,
     item.sourceIdentifier, item.identifier || item.id, item.meta?.title]
     .filter(Boolean).join(' ').toLowerCase().replace(/[_./-]+/g, ' ').replace(/\s+/g, ' ');
-  if (/\b(?:frontier fremont|bsd|corrupt justice|ensemble|analysis|party foul|dnr prepares|potential problems|news report|politics|political|bureaucrats?|press conference|interview|dr oz|nightly nuge|podcast|sermon|pastor|church service|concert|music video|good will hunting)\b/.test(text)) return false;
+  if (/\b(?:frontier fremont|bsd|corrupt justice|ensemble|analysis|party foul|funny or die|lemonparty|this past weekend|theo von|caleb pressley|joy behar|wizardworks|dnr prepares|potential problems|news report|politics|political|bureaucrats?|press conference|interview|dr oz|nightly nuge|podcast|sermon|pastor|church service|concert|music video|good will hunting)\b/.test(text)) return false;
   return /\b(?:hunting|bowhunting|whitetail|buckmasters|monster bucks|realtree|mossy oak|american sportsman|north american hunter|outdoor life)\b/.test(text)
     || (/\bted nugent\b/.test(text) && /\b(?:spirit|call) of the wild\b/.test(text));
 }

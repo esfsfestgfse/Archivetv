@@ -5886,10 +5886,14 @@ function iaReviewedFileAllowed(item, channel) {
 function iaHuntingAllowed(item = {}) {
   if (!item || typeof item !== 'object') return false;
   if (/^HuntingSeason(?:::|$)/i.test(String(item.sourceIdentifier || item.identifier || item.id || ''))) return false;
+  // Observed 30-second app advertisement, not a hunting episode. Do not ban
+  // the provider's other uploads merely because they share an uploader.
+  const source = String(item.media?.sourceIdentifier || item.sourceIdentifier || item.identifier || item.id || '').replace(/^ia:/i, '').split('::')[0];
+  if (source === 'youtube-eFJ0FqQIPqc') return false;
   const text = [item.title, item.seriesTitle, item.fileName, item.media?.sourceTitle,
     item.sourceIdentifier, item.identifier || item.id, item.meta?.title]
     .filter(Boolean).join(' ').toLowerCase().replace(/[_./-]+/g, ' ').replace(/\s+/g, ' ');
-  if (/\b(?:frontier fremont|bsd|corrupt justice|ensemble|analysis|party foul|dnr prepares|potential problems|news report|politics|political|bureaucrats?|press conference|interview|dr oz|nightly nuge|podcast|sermon|pastor|church service|concert|music video|good will hunting)\b/.test(text)) return false;
+  if (/\b(?:frontier fremont|bsd|corrupt justice|ensemble|analysis|party foul|funny or die|lemonparty|this past weekend|theo von|caleb pressley|joy behar|wizardworks|dnr prepares|potential problems|news report|politics|political|bureaucrats?|press conference|interview|dr oz|nightly nuge|podcast|sermon|pastor|church service|concert|music video|good will hunting)\b/.test(text)) return false;
   return /\b(?:hunting|bowhunting|whitetail|buckmasters|monster bucks|realtree|mossy oak|american sportsman|north american hunter|outdoor life)\b/.test(text)
     || (/\bted nugent\b/.test(text) && /\b(?:spirit|call) of the wild\b/.test(text));
 }

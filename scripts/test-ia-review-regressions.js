@@ -109,11 +109,14 @@ test('Cooking & Food prunes old etiquette records from D1 and durable rotation w
 
 test('The Hunt prunes legacy fiction from D1 and durable state while retaining real viewing history',async()=>{
   const good=Array.from({length:24},(_,i)=>row('hunting-'+i+'.mp4',{title:'Buckmasters hunting television episode '+i}));
-  const bad=row('fremont.mp4',{title:'The Adventures of Frontier Fremont a.k.a Spirit of the Wild',subject:'hunting show'}),f=await catalogFixture([bad,...good]);f.incoming(good);
+  const bad=row('fremont.mp4',{title:'The Adventures of Frontier Fremont a.k.a Spirit of the Wild',subject:'hunting show'});
+  const leaked=[row('lemonparty.mp4',{title:'036 Ghetto Deer Hunting 036 Lemonparty'}),row('behar.mp4',{title:'JOY BEHAR SCREAMS ABOUT AR 15 AND DEER HUNTING'})];
+  const f=await catalogFixture([bad,...leaked,...good]);f.incoming([...leaked,...good]);
   const old=f.env.ROTATION.getByName('session:hunt-genre:channel:80');
-  await old.ctx.storage.put('rotation',{catalog:[bad,...good],seen:[],cursor:0});
+  await old.ctx.storage.put('rotation',{catalog:[bad,...leaked,...good],seen:[],cursor:0});
   const p=await(await f.request('queue',{channel:'80',serverCatalog:true,sessionId:'hunt-genre',count:3,viewerRecentIds:[good[0].identifier]})).json();
   assert.equal(p.items.length,3);assert.ok(p.candidateItems.every(x=>x.identifier!==bad.identifier));
+  assert.ok(p.candidateItems.every(x=>!leaked.some(b=>b.identifier===x.identifier)),'real production podcast/political matches cannot survive any catalog layer');
   assert.ok(p.items.every(x=>x.identifier!==good[0].identifier),'actual watched episodes stay excluded');await Promise.all(f.pending);
 });
 

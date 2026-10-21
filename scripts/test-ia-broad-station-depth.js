@@ -40,7 +40,13 @@ test('The Hunt requires hunting programs, not films or commentary with hunting k
     ['the-adventures-of-frontier-fremont','The Adventures of Frontier Fremont (1975) a.k.a Spirit of The Wild'],
     ['HuntingSeason','Hunting Season'],['bsd','The Hunting Dogs: BSD’s Symbol Of Corrupt Justice || An Analysis On The Ensemble And Its Members'],
     ['deer-news','DNR Prepares For Deer Opener'],['oh-deer','Oh Deer! with Party Foul Steve | Ep 4'],
-    ['nuge','Ted Nugent - The Nightly Nuge - Spirit of the Wild interview'],['oz','Ted Nugent talks to Dr. Oz about hunting']];
+    ['nuge','Ted Nugent - The Nightly Nuge - Spirit of the Wild interview'],['oz','Ted Nugent talks to Dr. Oz about hunting'],
+    ['036-ghetto-deer-hunting-036-lemonparty','036 Ghetto Deer Hunting 036 Lemonparty'],
+    ['funny_or_die_video_3117','Funny or Die Video 3117: OH DEER! NickyNik goes hunting at Ted Nugents'],
+    ['youtube-bFhxan4tdH0','Theo and Caleb Pressley Go Turkey Hunting'],['youtube-Nd250Ah5b0A','Theo Von on Deer Hunting'],
+    ['youtube-agMgmMN8B28','JOY BEHAR SCREAMS ABOUT AR 15 AND DEER HUNTING'],
+    ['youtube-eFJ0FqQIPqc','onX Hunt for Whitetail Deer Hunting'],
+    ['hunting-wizardworks-promotional-dvd','Hunting Whitetails, Wild Turkeys, and Waterfowl WizardWorks (2000) Promotional DVD']];
   for(const [identifier,title]of bad){const item={identifier,title,subject:'hunting show deer hunting spirit of the wild',media:{type:'video',url:'https://archive.org/download/'+identifier+'/full.mp4'}};
     assert.equal(f.stationGate('80',item),false,title+' relay');assert.equal(catalogFallbackAllowed(item,{channel:'80'}),false,title+' API');}
   for(const title of ['Ted Nugent Spirit of the Wild S04E01','Ted Nugent Call of the Wild full episode',
@@ -54,10 +60,14 @@ for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])test(file+': 
   const source=fs.readFileSync(path.join(root,file),'utf8'),s={banned:[],curItem:null,isTemporarilySkipped:()=>false,blockedId:()=>false,
     iaProgramFailed:()=>false,iaSkipBlocked:()=>false,iaThemeMatches:()=>true};
   vm.createContext(s);vm.runInContext(source.slice(source.indexOf('function iaKnownVideoPolicyViolation('),source.indexOf('function iaProgramDenyTerms('))+';f={cached:iaCachedProgramAllowed,queue:iaProgramAllowed};',s);
-  for(const title of ['Alaska Spirit of the Wild','The Adventures of Frontier Fremont','The Hunting Dogs: BSD Analysis','Oh Deer! with Party Foul Steve']){
+  for(const title of ['Alaska Spirit of the Wild','The Adventures of Frontier Fremont','The Hunting Dogs: BSD Analysis','Oh Deer! with Party Foul Steve',
+    '036 Ghetto Deer Hunting 036 Lemonparty','Funny or Die Video 3117: OH DEER! NickyNik goes hunting at Ted Nugents',
+    'Theo and Caleb Pressley Go Turkey Hunting','Theo Von on Deer Hunting','JOY BEHAR SCREAMS ABOUT AR 15 AND DEER HUNTING',
+    'Hunting Whitetails, Wild Turkeys, and Waterfowl WizardWorks (2000) Promotional DVD']){
     const item={id:'old',identifier:'old',title,type:'video',subject:'hunting television'};
     assert.equal(s.f.queue(item,{channel:80,program:{}}),false,title);assert.equal(s.f.cached({num:80},item),false,title);}
   assert.equal(s.f.cached({num:80},{id:'buckmasters',title:'Buckmasters full program',type:'video'}),true);
+  assert.equal(s.f.cached({num:80},{id:'youtube-eFJ0FqQIPqc',title:'onX Hunt for Whitetail Deer Hunting',type:'video'}),false,'the observed 30-second app advertisement');
   assert.equal(s.f.cached({num:80},null),false);
 });
 

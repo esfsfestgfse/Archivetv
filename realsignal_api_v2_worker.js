@@ -19,7 +19,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "5.6.25-ia-hunt-genre-recovery";
+const V3_RELEASE = "5.6.26-ia-lineup-catalog-cleanup";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -124,7 +124,7 @@ const IA_DEPTH_REPAIR_LANES = new Set([
    persisted back to D1 asynchronously through the normal catalog job. */
 /* Classic Cartoons' 69-row production D1 window masked its 605-file reviewed
    bank. Use the existing relay-owned path; D1 still recovers relay outages. */
-const IA_ARCHIVE_FAMILY_DEPTH_LANES = new Set(["11", "20", "81", "118", "150", "914", "929"]);
+const IA_ARCHIVE_FAMILY_DEPTH_LANES = new Set(["11", "20", "81", "83", "118", "150", "914", "929"]);
 /* Some IA collections store the genre in the series/film title rather than
    the child filename. These are deliberately lane-specific aliases for the
    two long-tail lanes that failed the serial certification when their relay
@@ -787,7 +787,7 @@ function catalogFallbackAllowed(item, body) {
   if (body && body.sourceCatalog !== true && String(body.channel) === '201' && !iaCookingAllowed(item)) return false;
   if (body && body.sourceCatalog !== true && String(body.channel) === '20' && !iaCourtroomAllowed(item)) return false;
   if (body && body.sourceCatalog !== true && String(body.channel) === '65' && !iaSportingLifeAllowed(item)) return false;
-  if (body && body.sourceCatalog !== true && iaKnownVideoPolicyViolation(item)) return false;
+  if (body && body.sourceCatalog !== true && iaKnownVideoPolicyViolation(item, body)) return false;
   if (!iaGameShowEraAllowed(item, body && body.channel)) return false;
   if (body && body.iaRepair === true && body.sourceCatalog !== true && !qualifyIaFileRecord(item, body).accepted) return false;
   const catalogProfile = body && body.sourceCatalog === true ? sourceProfile({ profileKey: body.channel }) : null;

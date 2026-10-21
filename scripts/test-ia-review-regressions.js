@@ -61,8 +61,9 @@ test('known-only policy is identical on server, desktop and mobile without banni
   const samples=[row('short.mp4',{title:'Original cartoon shorts'}),row('satire.mp4',{title:'A studio comedy parody'}),
     row('unknown.mp4',{title:'A complete episode',media:{type:'video',url:'https://archive.org/download/a/b.mp4'}}),
     row('radio.mp3',{title:'Podcast',media:{type:'audio'}}),row('feature.mp4',{title:'Portrait of Jennie'}),row('feature.mp4',{title:'Vertical Limit'}),row('bad.mp4',{title:'Fan-made Movie'}),
-    row('bad.mp4',{title:'Video pod-cast'}),row('bad.mp4',{title:'A film',media:{type:'video',aspectRatio:0.5625}})];
-  assert.deepEqual(samples.map(server),[false,false,false,false,false,false,true,true,true]);
+    row('bad.mp4',{title:'Video pod-cast'}),row('bad.mp4',{title:'A film',media:{type:'video',aspectRatio:0.5625}}),
+    row('FANEDIT Reconstruction.mp4',{title:'Halloween TV · MonsterVision'}),row('fanfic.mp4',{title:'Fanfic movie'}),row('reaction.mp4',{title:'A reaction video'})];
+  assert.deepEqual(samples.map(server),[false,false,false,false,false,false,true,true,true,true,true,true]);
   for(const file of ['the_dial_desktop.html','the_dial_mobile.html']){
     const text=fs.readFileSync(path.join(root,file),'utf8'),s={};vm.createContext(s);
     vm.runInContext(text.slice(text.indexOf('function iaKnownVideoPolicyViolation('),text.indexOf('function iaModernGameShowAllowed('))+';check=iaKnownVideoPolicyViolation;',s);
@@ -77,6 +78,58 @@ test('orientation admission uses geometry and explicit format labels, not ordina
   for(const title of ['Portrait video','Filmed in portrait','Vertical format','A clip 9:16','Boxing #shorts'])
     assert.equal(bad({title}),true,title);
   assert.equal(bad(row('feature.mp4',{title:'Portrait of Jennie',media:{type:'video',width:360,height:640}})),true,'actual portrait geometry still wins');
+});
+
+test('ordinary IA admission enforces known selected-file length and language without rejecting unknown metadata',async()=>{
+  const {catalogFallbackAllowed}=await import('../realsignal_api_v2_worker.js');
+  const cases=[
+    ['100',row('clip.mp4',{media:{type:'video',url:'https://archive.org/download/a/clip.mp4',runtime:240,width:640,height:480}}),false],
+    ['100',row('feature.mp4',{media:{type:'video',url:'https://archive.org/download/a/feature.mp4',runtime:5400,width:640,height:480}}),true],
+    ['700',row('rudolph.mp4',{title:'Rudolph the Red Nosed Reindeer',media:{type:'video',runtime:3206.84,url:'https://archive.org/download/a/rudolph.mp4'}}),true],
+    ['702',row('pooh.mp4',{title:'A Winnie the Pooh Thanksgiving',media:{type:'video',runtime:1643.78,url:'https://archive.org/download/a/pooh.mp4'}}),true],
+    ['107',row('silent.mp4',{title:'The Electric House',media:{type:'video',runtime:1232.72,url:'https://archive.org/download/a/silent.mp4'}}),true],
+    ['82',row('short.mp4',{runtime:7200,media:{type:'video',url:'https://archive.org/download/a/short.mp4',runtime:80,width:640,height:480}}),false],
+    ['82',row('foreign.mp4',{language:'dan'}),false],
+    ['82',row('regional.mp4',{language:'en-US'}),true],
+    ['106',row('world.mp4',{language:'fra',media:{type:'video',url:'https://archive.org/download/a/world.mp4',runtime:5400,width:640,height:480}}),true],
+    ['82',row('unknown.mp4',{language:'und',media:{type:'video',url:'https://archive.org/download/a/unknown.mp4'}}),true],
+    ['236',row('short-subject.mp4',{media:{type:'video',url:'https://archive.org/download/a/short.mp4',runtime:240,width:640,height:480}}),true],
+    ['150',row('cartoon.mp4',{sourceIdentifier:'looney-tunes-complete',media:{type:'video',url:'https://archive.org/download/looney-tunes-complete/Duck.mp4',runtime:420,width:640,height:480}}),true],
+    ['900',row('audio.mp3',{language:'fra',media:{type:'audio',url:'https://archive.org/download/a/audio.mp3',runtime:120}}),true],
+    ['900',{identifier:'jazz-track',title:'Jazz performance',mediatype:'audio',runtime:240},true],
+  ];
+  for(const [channel,item,want]of cases)assert.equal(catalogFallbackAllowed(item,{channel}),want,channel+' '+item.fileName+' '+item.identifier);
+});
+
+test('known invalid legacy rows are pruned from durable rotation without losing real feature history',async()=>{
+  const media={type:'video',url:'https://archive.org/download/a/full.mp4',runtime:5400,width:640,height:480};
+  const good=Array.from({length:20},(_,i)=>row('feature-'+i+'.mp4',{media}));
+  const bad=[row('short.mp4'),row('foreign.mp4',{language:'spa',media})],f=await catalogFixture([...bad,...good]);f.incoming([...bad,...good]);
+  const old=f.env.ROTATION.getByName('session:known-file-policy:channel:100');
+  await old.ctx.storage.put('rotation',{catalog:[...bad,...good],seen:[],cursor:0});
+  const p=await(await f.request('queue',{channel:'100',serverCatalog:true,sessionId:'known-file-policy',count:3,viewerRecentIds:[good[0].identifier]})).json();
+  assert.equal(p.items.length,3);assert.ok(p.candidateItems.every(x=>!bad.some(b=>b.identifier===x.identifier)));
+  assert.ok(p.items.every(x=>x.identifier!==good[0].identifier));await Promise.all(f.pending);
+});
+
+for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])test(file+': known runtime/language policy protects queued and cached programs',()=>{
+  const source=fs.readFileSync(path.join(root,file),'utf8'),s={banned:[],curItem:null,isTemporarilySkipped:()=>false,blockedId:()=>false,
+    iaProgramFailed:()=>false,iaSkipBlocked:()=>false,iaThemeMatches:()=>true};
+  require('node:vm').createContext(s);require('node:vm').runInContext(source.slice(source.indexOf('function iaKnownVideoPolicyViolation('),source.indexOf('function iaProgramDenyTerms('))+';f={cached:iaCachedProgramAllowed,queue:iaProgramAllowed};',s);
+  for(const extra of [{media:{type:'video',runtime:120}},{language:'spa'},{meta:{media:{type:'video',runtime:120}}}]){
+    const item={identifier:'old::film.mp4',id:'old::film.mp4',title:'A feature film',...extra};
+    assert.equal(s.f.queue(item,{channel:100,program:{}}),false);assert.equal(s.f.cached({num:100},item),false);
+  }
+  assert.equal(s.f.cached({num:100},{id:'unknown',title:'Unknown film metadata'}),true);
+});
+
+test('qualification does not mistake studio satire or a collection folder called Shorts for forbidden uploads',async()=>{
+  const {qualifyIaFileRecord}=await import('../ia_file_contract.js');
+  assert.equal(qualifyIaFileRecord(row('episode.mp4',{title:"Dr. Terrible's House of Horrible",subject:'BBC Comedy Parody'}),{channel:'131',requireTransport:false}).accepted,true);
+  assert.equal(qualifyIaFileRecord(row('The Regular Show + Movie + Shorts/Season 7/Episode.mp4'),{channel:'153',requireTransport:false}).accepted,true);
+  const feature=row('Portrait of Jennie.mp4',{title:'Portrait of Jennie',media:{type:'video',url:'https://archive.org/download/a/Portrait.mp4',runtime:5400,width:640,height:480}});
+  assert.equal(qualifyIaFileRecord(feature,{channel:'110',requireTransport:false}).accepted,true);
+  assert.equal(qualifyIaFileRecord({...feature,title:'Fan-made parody movie'},{channel:'110',requireTransport:false}).accepted,false);
 });
 
 test('standard IA rotation prunes forbidden rows already stored in its durable catalog',async()=>{
@@ -120,7 +173,7 @@ test('The Hunt prunes legacy fiction from D1 and durable state while retaining r
   assert.ok(p.items.every(x=>x.identifier!==good[0].identifier),'actual watched episodes stay excluded');await Promise.all(f.pending);
 });
 
-for(const channel of ['65','66','80','200','201','204','212','510'])test('channel '+channel+' cannot stay frozen on an older full D1 shelf while its relay has a deeper episode bank',async()=>{
+for(const channel of ['65','66','80','81','83','128','200','201','204','212','510'])test('channel '+channel+' cannot stay frozen on an older full D1 shelf while its relay has a deeper episode bank',async()=>{
   const title=channel==='66'?'Transworld Skateboarding':channel==='80'?'Buckmasters hunting television':channel==='212'?'Planet Earth nature documentary':
     channel==='201'?'The French Chef with Julia Child':channel==='200'?'Inside the Factory':'Bill Dance Outdoors fishing program';
   const subject=channel==='200'?'factory manufacturing industrial production':'';
@@ -130,6 +183,25 @@ for(const channel of ['65','66','80','200','201','204','212','510'])test('channe
   assert.ok(f.queueBodies.length>0,'a 24-row old shelf is not proof the new bank was imported');
   assert.ok(p.candidateItems.some(x=>x.identifier.includes('new-')),'expanded file identities reach the returned catalog');
   assert.equal(p.items.length,3);await Promise.all(f.pending);
+});
+
+test('specific fishing and British-film contamination is rejected without banning the whole source collection',async()=>{
+  const {iaReviewedFileAllowed}=await import('../ia_file_contract.js');
+  for(const [channel,source,title]of [
+    ['81','97232_hm_boats_and_fishing','Home Movie: Boats and Fishing'],
+    ['81','97234_hm_travel_and_fishing_in_california','Home Movie Travel and Fishing'],
+    ['81','bctvpa-Fishing_for_Fate_-_Virtual_Edition_8-6-20','Fishing for Fate Virtual Edition'],
+    ['81','thefarmingoffish','The Farming of Fish'],['81','AlaskaFishingDocumentaries','Alaska Fishing · Neets Bay Salmon Ranch'],
+    ['81','Fishing_with_a_Cop_North_Salina_Picnic_BBQ','Fishing with a Cop / North Salina Picnic BBQ'],
+    ['81','bptvpa-Lets_Talk_Tailwaggers_20th_Anniversary_Show_Fishing_memories','Lets Talk Tailwaggers Fishing Memories'],
+    ['81','daiwa-fishing-video-fun-to-fish-with-lure_202506','Daiwa Fishing: Fun to Fish with Lure'],
+    ['128','rebecca-1940-film-noir-thirller-hitchcock','Rebecca (1940)'],
+    ['128','0323_Little_Journey_to_England_and_France_July_7th_to_August_16th','Little Journey to England and France'],
+  ])assert.equal(iaReviewedFileAllowed({identifier:source+'::file.mp4',title},channel),false,title);
+  assert.equal(iaReviewedFileAllowed({identifier:'vts-01-1_20231104::Adventure Bound S10 ep 1-6/Disk 1/VIDEO_TS/VTS_01_1.mp4',title:'Adventure Bound Fishing'},'81'),false,'DVD chunks with known continuation siblings are not complete episodes');
+  assert.equal(iaReviewedFileAllowed({identifier:'vts-01-1_20231104::full-episode.mp4',title:'Adventure Bound Fishing'},'81'),true,'do not ban a future independently verified complete file');
+  assert.equal(iaReviewedFileAllowed({identifier:'gta-archery',title:'Skeet Shooting Cars With a Tank in GTA V'},'83'),false);
+  assert.equal(iaReviewedFileAllowed({identifier:'AlaskaFishingDocumentaries::other.mp4',title:'A full sport fishing program'},'81'),true,'do not ban every sibling in a mixed collection');
 });
 
 test('standard IA prefetch does not mark its three buffered candidates watched',async()=>{
@@ -506,8 +578,10 @@ test('committed items are excluded before the relay spends its next hydration bu
 
 test('movie hydration uses the feature floor before filling the small shelf', async () => {
   const f = await fixture();
-  await f.request('queue', { channel: '702', iaRepair: true, serverCatalog: true, sessionId: 'feature', count: 3 });
+  await f.request('queue', { channel: '100', iaRepair: true, serverCatalog: true, sessionId: 'feature', count: 3 });
   assert.equal(f.queueBodies.at(-1).minRuntimeSeconds, 3600);
+  await f.request('queue', { channel: '702', iaRepair: true, serverCatalog: true, sessionId: 'holiday-special', count: 3 });
+  assert.equal(f.queueBodies.at(-1).minRuntimeSeconds, 900, 'the mixed holiday station retains complete television specials');
   await f.request('queue', { channel: '10', iaRepair: true, serverCatalog: true, sessionId: 'tv', count: 3 });
   assert.equal(f.queueBodies.at(-1).minRuntimeSeconds, 900);
   await f.request('queue', { channel: '920', iaRepair: true, mediaTypes: ['audio'], sessionId: 'radio', count: 3 });

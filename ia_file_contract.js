@@ -14,14 +14,30 @@ const COMPLETE_CARTOON_SHORT_PARENTS = new Set([
   'mighty-mouse_202305', 'colonelbleep_s1',
 ]);
 const INTERNATIONAL = new Set(['106', '107', '114', '115', '119', '120', '151']);
-const FEATURES = new Set(['100', '101', '102', '103', '105', '106', '107', '108', '110', '111', '112', '114', '115', '116', '117', '119', '120', '124', '125', '132', '135', '700', '701', '702']);
+const FEATURES = new Set(['100', '101', '102', '103', '105', '106', '108', '110', '111', '112', '114', '115', '116', '119', '120', '124', '125', '132', '135', '701']);
 
 // A narrow, synchronous admission gate for old catalogs and playback caches.
 // Unknown geometry/runtime is not a violation; full file qualification remains
 // a separate step. Original cartoon shorts and ordinary TV satire are allowed.
-export function iaKnownVideoPolicyViolation(item = {}) {
-  const media = item.media || {}, meta = item.meta || {};
-  if (String(media.type || item.type || item.mediaType || '').toLowerCase() === 'audio') return false;
+export function iaKnownVideoPolicyViolation(item = {}, rules = {}) {
+  const meta = item.meta || {}, media = item.media || meta.media || {};
+  if (String(media.type || item.type || item.mediaType || item.mediatype || meta.mediatype || '').toLowerCase() === 'audio') return false;
+  const channel = String(rules.channel || '');
+  if (channel) {
+    const features = ['100','101','102','103','105','106','108','110','111','112','114','115','116','119','120','124','125','132','135','701'];
+    const shorts = ['13','236','501','509'];
+    const floor = Math.max(Number(rules.minRuntimeSeconds) || 0, channel === '150' ? 120 : shorts.includes(channel) ? 0 : features.includes(channel) ? 3600 : 900);
+    // A selected child with missing/short metadata must not borrow the parent runtime.
+    const fileRuntime = ['runtime','duration','length'].some(key => Object.prototype.hasOwnProperty.call(media,key));
+    const value = fileRuntime ? media.runtime || media.duration || media.length : item.runtimeSeconds || item.durationSeconds || item.duration || item.runtime || meta.runtimeSeconds || meta.durationSeconds || meta.duration || meta.runtime;
+    const parts = String(value || '').split(':').map(Number);
+    const runtime = parts.every(Number.isFinite) ? parts.reduce((total,part) => total * 60 + part,0) : 0;
+    if (runtime > 0 && runtime < floor) return true;
+    const international = ['106','107','114','115','119','120','151'];
+    const language = String(media.language || item.language || meta.language || '').trim().toLowerCase();
+    if (!international.includes(channel) && language && !/^(?:und|unknown|undetermined|n\/a)$/.test(language)
+      && !/(?:^|[,; /])(?:eng|en(?:[-_][a-z]+)?|english)(?:$|[,; /])/.test(language)) return true;
+  }
   const width = Number(media.width || item.width || item.videoWidth) || 0;
   const height = Number(media.height || item.height || item.videoHeight) || 0;
   const ratio = Number(media.aspectRatio || item.aspectRatio) || 0;
@@ -29,7 +45,7 @@ export function iaKnownVideoPolicyViolation(item = {}) {
   const text = [item.title, item.description, item.subject, item.subjects, item.fileName, media.fileName,
     item.identifier || item.id, meta.title, meta.subject, meta.subjects].filter(Boolean).join(' ')
     .replace(/<[^>]+>/g, ' ').normalize('NFKD').toLowerCase().replace(/[_-]+/g, ' ');
-  return /\b(?:pod\s?cast|vodcast|fan\s?made|fan (?:film|movie|edit|production))\b|\b(?:portrait|vertical)\s+(?:video|format|orientation|mode|footage|clip)\b|\b(?:shot|filmed|recorded|uploaded) in (?:portrait|vertical)\b|9\s*:\s*16|1080\s*[x×]\s*1920|#shorts\b|\byoutube shorts\b/.test(text)
+  return /\b(?:pod\s?cast|vodcast|fan\s?(?:made|film|movie|edit|production|fic)|reaction video)\b|\b(?:portrait|vertical)\s+(?:video|format|orientation|mode|footage|clip)\b|\b(?:shot|filmed|recorded|uploaded) in (?:portrait|vertical)\b|9\s*:\s*16|1080\s*[x×]\s*1920|#shorts\b|\byoutube shorts\b/.test(text)
     || /\b(?:unofficial|homemade|bootleg)\b.{0,48}\b(?:film|movie|feature|parody|remake|reconstruction)\b|\b(?:film|movie|feature|parody|remake|reconstruction)\b.{0,48}\b(?:unofficial|homemade|bootleg)\b/.test(text);
 }
 
@@ -40,6 +56,14 @@ export function iaReviewedFileAllowed(item, channel) {
   let file = String(media.fileName || item.fileName || id.split('::')[1] || '');
   if (!file) { try { file = decodeURIComponent(new URL(media.url || item.mediaUrl || item.url).pathname.split('/').pop()); } catch (_) {} }
   file = file.split('/').pop();
+  // This DVD parent has continuation chunks; title _1 alone is not a full episode.
+  if (source === 'vts-01-1_20231104' && (!file || /^VTS_\d+_\d+(?:\.ia)?\.mp4$/i.test(file))) return false;
+  const identity = [item.title, source, file].join(' ').toLowerCase().replace(/[_-]+/g, ' ');
+  if (String(channel) === '83' && /\b(?:gta|grand theft auto|gameplay|roblox|minecraft|news conference|press conference)\b/.test(identity)) return false;
+  if (String(channel) === '81' && (source === 'daiwa-fishing-video-fun-to-fish-with-lure_202506'
+    || /\b(?:home movies?|hm|fishing for fate|tailwaggers|farming of fish|salmon ranch|neets ?bay|fishing with a cop|drupal|wordpress|web development|software tutorial)\b/.test(identity))) return false;
+  if (String(channel) === '128' && (source === 'rebecca-1940-film-noir-thirller-hitchcock'
+    || /^032[34]_Little_Journey_to_England_and_France_/.test(source))) return false;
   if (String(channel) === '66' && (source === 'Skateboarding-Live_it_Breath_it_Love_it_Dig_it'
     || (source === 'were-people-too' && /^were_people_too8\.mp4$/i.test(file)))) return false;
   return !(String(channel) === '212' && source === 'the_blue_planet' && /^the_blue_planet_(?:09|1[0-3])(?:[_. -]|$)/i.test(file));
@@ -209,8 +233,8 @@ export function qualifyIaFileRecord(raw, rules = {}, now = Date.now()) {
   if (!iaReviewedFileAllowed(item, channel)) return reject('off-genre-reviewed-collection');
   const completeCartoon = channel === '150' && COMPLETE_CARTOON_SHORT_PARENTS.has(item.sourceIdentifier)
     && !/\b(?:clip|trailer|preview|teaser|promo|bumper|intro|introduction|outro|review|reaction|tutorial|interview|bonus|menu|featurette|tiktok|reels)\b|#shorts|youtube shorts/i.test(text);
-  if (/\b(?:podcast|vodcast|fan[- ]?made|fan[- ]?(?:film|movie|edit)|fanfic|unofficial remake|reaction video|parody|spoof)\b/i.test(text)) return reject('policy-contamination');
-  if (/\b(?:vertical|portrait|9\s*:\s*16)\b/i.test(text) || (/\bshorts\b/i.test(text) && !completeCartoon) || (item.aspectRatio && item.aspectRatio <= 1)) return reject('portrait-media');
+  if (/\b(?:podcast|vodcast|fan[- ]?made|fan[- ]?(?:film|movie|edit)|fanfic|unofficial remake|reaction video)\b/i.test(text)) return reject('policy-contamination');
+  if (/\b(?:portrait|vertical)\s+(?:video|format|orientation|mode|footage|clip)\b|\b(?:shot|filmed|recorded|uploaded) in (?:portrait|vertical)\b|9\s*:\s*16|#shorts\b|\byoutube shorts\b/i.test(text) || (item.aspectRatio && item.aspectRatio <= 1)) return reject('portrait-media');
   if (!item.aspectRatio) return reject('unknown-geometry', true);
   if (channel === '150' && /\b(?:noods|network ident|logo compilation|bumper compilation|animated background|background video loop|stock animation|stock footage|motion graphics|screensaver)\b/i.test(text)) return reject('off-genre');
   if (channel === '150' && /\b(?:pt[- _.]?br|dublado|dublagem|em portugu[eê]s)\b/i.test(text)) return reject('non-english-edition');
@@ -221,7 +245,8 @@ export function qualifyIaFileRecord(raw, rules = {}, now = Date.now()) {
   if (!item.runtimeSeconds) return reject('unknown-runtime', true);
   if (channel === '150' && item.runtimeSeconds < 900 && !completeCartoon) return reject('unreviewed-cartoon-short');
   if (item.runtimeSeconds < floor) return reject('short-runtime');
-  if (!INTERNATIONAL.has(channel) && item.language && !/(?:^|[,; /])(?:eng|en|english)(?:$|[,; /])/.test(item.language)) return reject('non-english-edition');
+  if (!INTERNATIONAL.has(channel) && item.language && !/^(?:und|unknown|undetermined|n\/a)$/.test(item.language)
+    && !/(?:^|[,; /])(?:eng|en(?:[-_][a-z]+)?|english)(?:$|[,; /])/.test(item.language)) return reject('non-english-edition');
   if (item.verification === 'failed' || raw.playability === 'failed') return reject('failed-media');
   if (rules.requireTransport !== false && !transportValid) return reject('unverified-transport', true);
   return { accepted: true, reason: 'file-qualified', needsHydration: false, item };

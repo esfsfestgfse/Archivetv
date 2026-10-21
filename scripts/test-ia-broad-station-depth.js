@@ -34,6 +34,16 @@ test('Courtroom TV requires a judge-show identity rather than an incidental desc
   assert.equal(f.stationGate('20',bad),false);assert.equal(catalogFallbackAllowed(bad,{channel:'20'}),false);
 });
 
+test('ordinary relay shelves cannot resurrect known short or non-English media from old catalogs',()=>{
+  const f=relay();
+  const media={type:'video',url:'https://archive.org/download/movie/full.mp4',runtime:5400,width:640,height:480};
+  assert.equal(f.stationGate('100',{identifier:'short',title:'A science fiction feature',media:{...media,runtime:300}}),false);
+  assert.equal(f.stationGate('82',{identifier:'foreign',title:'Camping adventure',language:'dan',media}),false);
+  assert.equal(f.stationGate('100',{identifier:'full',title:'A science fiction feature',language:'eng',media}),true);
+  assert.equal(f.stationGate('106',{identifier:'world',title:'A world cinema feature',language:'fra',media}),true);
+  assert.equal(f.stationGate('900',{identifier:'jazz-track',title:'Jazz performance',mediatype:'audio',runtime:240}),true);
+});
+
 test('The Hunt requires hunting programs, not films or commentary with hunting keywords',async()=>{
   const f=relay(),{catalogFallbackAllowed}=await import('../realsignal_api_v2_worker.js');
   const bad=[['imax.alaska.spirit.of.the.wild.720p.bluray.x264-hv','Alaska Spirit of the Wild'],
@@ -107,7 +117,7 @@ for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])test(file+': 
   vm.runInContext(source.slice(source.indexOf('function iaRuntimeSeconds('),source.indexOf('async function iaQueueRequest('))+';f={queue:iaProgramAllowed,cached:iaCachedProgramAllowed,slot:ch=>slotFor(CH.find(x=>x.num===ch),0,{preview:true})};',s);
   const monster={identifier:'monster-bucks-xii',title:'Monster Bucks XII: Volume 1',subject:'hunting television deer hunting',runtime:1800};
   assert.equal(s.f.queue(monster,s.f.slot(80)),true,'a reviewed hunting series must survive the actual title contract');
-  for(const channel of [200,201,66,80,212]){
+  for(const channel of [200,201,66,80,212,81,83,128]){
     const bank=relay().iaRepairCollectionSeeds(String(channel)).filter(x=>x.media?.url),slot=s.f.slot(channel);
     const rejected=bank.filter(item=>!s.f.queue(item,slot)||!s.f.cached({num:channel,nm:channel===200?'Manufacturing Marvels':'Home Economics'},
       {id:item.identifier,title:item.title,meta:{subject:item.subject}},slot));
@@ -133,7 +143,7 @@ test('relay freshness unifies a single-program parent and its matching file with
 test('measured shallow lanes expose expanded file banks through the actual strict recovery and client contracts',async()=>{
   const f=relay(),{catalogFallbackAllowed}=await import('../realsignal_api_v2_worker.js');
   const manifest=JSON.parse(execFileSync(process.execPath,[path.join(root,'scripts/export-ia-manifest.js')],{encoding:'utf8',maxBuffer:16e6}));
-  for(const [channel,minimum] of [['20',96],['65',20],['204',24],['510',96],['200',20],['201',96],['66',96],['80',12],['212',400]]){
+  for(const [channel,minimum] of [['20',96],['65',20],['204',24],['510',96],['200',20],['201',96],['66',96],['80',12],['212',400],['81',12],['83',3],['128',10]]){
     const rules=manifest.find(x=>x.channel===channel),bank=f.iaRepairCollectionSeeds(channel).filter(x=>x.media?.url);
     assert.ok(bank.length>=minimum,channel+' must hold a real expanded bank, not another starter shelf');
     assert.ok(bank.every(x=>x.media.runtime>=900&&x.media.width>x.media.height&&x.media.metadataVerifiedAt>0));

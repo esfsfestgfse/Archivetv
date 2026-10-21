@@ -166,7 +166,7 @@ export class SessionRotation {
       const run = () => this.reservation(body);
       return this.ctx.blockConcurrencyWhile ? this.ctx.blockConcurrencyWhile(run) : run();
     }
-    const allowed = item => body.requirePlayable !== true || (!iaKnownVideoPolicyViolation(item)
+    const allowed = item => body.requirePlayable !== true || (!iaKnownVideoPolicyViolation(item, { channel: body.stationChannel })
       && iaReviewedFileAllowed(item, body.stationChannel)
       && (String(body.stationChannel) !== '80' || iaHuntingAllowed(item))
       && (String(body.stationChannel) !== '201' || iaCookingAllowed(item))

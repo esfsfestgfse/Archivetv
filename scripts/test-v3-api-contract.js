@@ -34,7 +34,7 @@ const { pathToFileURL } = require('node:url');
   assert.equal(health.status, 200);
   const healthBody = await health.json();
   assert.equal(healthBody.apiVersion, 'v3');
-assert.equal(healthBody.release, '5.6.25-ia-hunt-genre-recovery');
+assert.equal(healthBody.release, '5.6.26-ia-lineup-catalog-cleanup');
   assert.ok(healthBody.capabilities.includes('server-telemetry'));
   assert.ok(healthBody.capabilities.includes('verified-guide'));
   assert.ok(healthBody.capabilities.includes('edge-manifests'));

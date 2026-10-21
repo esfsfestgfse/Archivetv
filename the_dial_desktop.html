@@ -9,13 +9,13 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>REALSIGNAL · The Dial 5.6.25</title>
+<title>REALSIGNAL · The Dial 5.6.26</title>
 <meta name="realsignal-ia-repair-channels" content="10,12,22,150">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
-<script src="assets/ok-embed-runtime.js?v=5.6.25"></script>
-<script src="assets/ia-playback-shelf.js?v=5.6.25"></script>
+<script src="assets/ok-embed-runtime.js?v=5.6.26"></script>
+<script src="assets/ia-playback-shelf.js?v=5.6.26"></script>
 <script src="assets/vimeo-embed-runtime.js?v=5.5.85"></script>
 <!-- Source Suite starts verified YouTube playback on a cold tune. Warm the exact
      origins it uses so DNS/TLS setup is not serialized behind catalog discovery. -->
@@ -1711,7 +1711,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="5.6.25-desktop-ia-hunt-genre-recovery";
+window.__ATV_BUILD="5.6.26-desktop-ia-lineup-catalog-cleanup";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -7592,9 +7592,25 @@ function iaThemeMatches(item,sl){var terms=iaProgramThemeTerms(sl);if(!terms.len
 /* CH 11 has the same English-focus contract at the API boundary. Recheck old
    fast-tune/schedule records and direct recovery too; cached URLs are not an
    exemption from the station identity. Other stations keep their own rules. */
-function iaKnownVideoPolicyViolation(item = {}) {
-  const media = item.media || {}, meta = item.meta || {};
-  if (String(media.type || item.type || item.mediaType || '').toLowerCase() === 'audio') return false;
+function iaKnownVideoPolicyViolation(item = {}, rules = {}) {
+  const meta = item.meta || {}, media = item.media || meta.media || {};
+  if (String(media.type || item.type || item.mediaType || item.mediatype || meta.mediatype || '').toLowerCase() === 'audio') return false;
+  const channel = String(rules.channel || '');
+  if (channel) {
+    const features = ['100','101','102','103','105','106','108','110','111','112','114','115','116','119','120','124','125','132','135','701'];
+    const shorts = ['13','236','501','509'];
+    const floor = Math.max(Number(rules.minRuntimeSeconds) || 0, channel === '150' ? 120 : shorts.includes(channel) ? 0 : features.includes(channel) ? 3600 : 900);
+    // A selected child with missing/short metadata must not borrow the parent runtime.
+    const fileRuntime = ['runtime','duration','length'].some(key => Object.prototype.hasOwnProperty.call(media,key));
+    const value = fileRuntime ? media.runtime || media.duration || media.length : item.runtimeSeconds || item.durationSeconds || item.duration || item.runtime || meta.runtimeSeconds || meta.durationSeconds || meta.duration || meta.runtime;
+    const parts = String(value || '').split(':').map(Number);
+    const runtime = parts.every(Number.isFinite) ? parts.reduce((total,part) => total * 60 + part,0) : 0;
+    if (runtime > 0 && runtime < floor) return true;
+    const international = ['106','107','114','115','119','120','151'];
+    const language = String(media.language || item.language || meta.language || '').trim().toLowerCase();
+    if (!international.includes(channel) && language && !/^(?:und|unknown|undetermined|n\/a)$/.test(language)
+      && !/(?:^|[,; /])(?:eng|en(?:[-_][a-z]+)?|english)(?:$|[,; /])/.test(language)) return true;
+  }
   const width = Number(media.width || item.width || item.videoWidth) || 0;
   const height = Number(media.height || item.height || item.videoHeight) || 0;
   const ratio = Number(media.aspectRatio || item.aspectRatio) || 0;
@@ -7602,7 +7618,7 @@ function iaKnownVideoPolicyViolation(item = {}) {
   const text = [item.title, item.description, item.subject, item.subjects, item.fileName, media.fileName,
     item.identifier || item.id, meta.title, meta.subject, meta.subjects].filter(Boolean).join(' ')
     .replace(/<[^>]+>/g, ' ').normalize('NFKD').toLowerCase().replace(/[_-]+/g, ' ');
-  return /\b(?:pod\s?cast|vodcast|fan\s?made|fan (?:film|movie|edit|production))\b|\b(?:portrait|vertical)\s+(?:video|format|orientation|mode|footage|clip)\b|\b(?:shot|filmed|recorded|uploaded) in (?:portrait|vertical)\b|9\s*:\s*16|1080\s*[x×]\s*1920|#shorts\b|\byoutube shorts\b/.test(text)
+  return /\b(?:pod\s?cast|vodcast|fan\s?(?:made|film|movie|edit|production|fic)|reaction video)\b|\b(?:portrait|vertical)\s+(?:video|format|orientation|mode|footage|clip)\b|\b(?:shot|filmed|recorded|uploaded) in (?:portrait|vertical)\b|9\s*:\s*16|1080\s*[x×]\s*1920|#shorts\b|\byoutube shorts\b/.test(text)
     || /\b(?:unofficial|homemade|bootleg)\b.{0,48}\b(?:film|movie|feature|parody|remake|reconstruction)\b|\b(?:film|movie|feature|parody|remake|reconstruction)\b.{0,48}\b(?:unofficial|homemade|bootleg)\b/.test(text);
 }
 function iaReviewedFileAllowed(item, channel) {
@@ -7612,6 +7628,14 @@ function iaReviewedFileAllowed(item, channel) {
   let file = String(media.fileName || item.fileName || id.split('::')[1] || '');
   if (!file) { try { file = decodeURIComponent(new URL(media.url || item.mediaUrl || item.url).pathname.split('/').pop()); } catch (_) {} }
   file = file.split('/').pop();
+  // This DVD parent has continuation chunks; title _1 alone is not a full episode.
+  if (source === 'vts-01-1_20231104' && (!file || /^VTS_\d+_\d+(?:\.ia)?\.mp4$/i.test(file))) return false;
+  const identity = [item.title, source, file].join(' ').toLowerCase().replace(/[_-]+/g, ' ');
+  if (String(channel) === '83' && /\b(?:gta|grand theft auto|gameplay|roblox|minecraft|news conference|press conference)\b/.test(identity)) return false;
+  if (String(channel) === '81' && (source === 'daiwa-fishing-video-fun-to-fish-with-lure_202506'
+    || /\b(?:home movies?|hm|fishing for fate|tailwaggers|farming of fish|salmon ranch|neets ?bay|fishing with a cop|drupal|wordpress|web development|software tutorial)\b/.test(identity))) return false;
+  if (String(channel) === '128' && (source === 'rebecca-1940-film-noir-thirller-hitchcock'
+    || /^032[34]_Little_Journey_to_England_and_France_/.test(source))) return false;
   if (String(channel) === '66' && (source === 'Skateboarding-Live_it_Breath_it_Love_it_Dig_it'
     || (source === 'were-people-too' && /^were_people_too8\.mp4$/i.test(file)))) return false;
   return !(String(channel) === '212' && source === 'the_blue_planet' && /^the_blue_planet_(?:09|1[0-3])(?:[_. -]|$)/i.test(file));
@@ -7684,7 +7708,7 @@ function iaProgramAllowed(item,sl){
      response as _freshnessFallback so a previously skipped item can return.
      Editorial gates, bans, and failed-media quarantine still apply. */
   var freshnessFallback=!!(item&&item._freshnessFallback);
-  if(item&&iaKnownVideoPolicyViolation(item))return false;
+  if(item&&iaKnownVideoPolicyViolation(item,{channel:sl&&sl.channel,minRuntimeSeconds:sl&&sl.program&&sl.program.minRuntimeSeconds}))return false;
   if(!item||!item.identifier||banned.indexOf(item.identifier)>=0||(!freshnessFallback&&isTemporarilySkipped(item.identifier))||blockedId(item.identifier)||iaProgramFailed(item.identifier))return false;
   var cur=(curItem&&typeof curItem==="object")?curItem.id:null;if(item.identifier===cur)return false;
   if(sl&&String(sl.channel)==="11"&&!iaEnglishRerunAllowed(item))return false;
@@ -7712,7 +7736,7 @@ function iaCachedProgramAllowed(ch,pl,sl){
   if(ch&&Number(ch.num)===201&&!iaCookingAllowed(pl))return false;
   if(ch&&Number(ch.num)===20&&!iaCourtroomAllowed(pl))return false;
   if(ch&&Number(ch.num)===65&&!iaSportingLifeAllowed(pl))return false;
-  if(pl&&!(ch&&ch.audio)&&iaKnownVideoPolicyViolation(pl))return false;
+  if(pl&&!(ch&&ch.audio)&&iaKnownVideoPolicyViolation(pl,{channel:ch&&ch.num}))return false;
   if(ch&&Number(ch.num)===22&&!iaModernGameShowAllowed(pl))return false;
   if(ch&&Number(ch.num)===11&&!iaEnglishRerunAllowed(pl))return false;
   if(!ch||ch.nm!=="Manufacturing Marvels")return true;

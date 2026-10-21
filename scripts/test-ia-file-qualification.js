@@ -117,6 +117,16 @@ test('selected-file validation respects legacy episode aliases and same-program 
   assert.equal(iaReviewedFileAllowed({identifier:'series::S1E2',fileName:'Season 1/02.mp4',media:{url:'https://archive.org/download/series/Season%201/01.mp4'}},'705'),false);
 });
 
+test('old Halloween playlist ordinals cannot re-enter through persisted catalogs', async () => {
+  const {iaReviewedFileAllowed}=await import('../ia_file_contract.js');
+  const parent='halloween-cartoon-collection_20231022';
+  const row=name=>({identifier:parent+'::'+name,fileName:name,media:{url:'https://archive.org/download/'+parent+'/'+encodeURIComponent(name)}});
+  assert.equal(iaReviewedFileAllowed(row('26-1953 - UPA - The Tell Tale Heart.mp4'),'705'),false);
+  assert.equal(iaReviewedFileAllowed(row('1953 - UPA - The Tell Tale Heart.mp4'),'705'),true);
+  assert.equal(iaReviewedFileAllowed(row('01-1929 - Disney -The Skeleton Dance.ia.mp4'),'705'),true,'an actually listed ordinal derivative remains valid');
+  assert.equal(iaReviewedFileAllowed({identifier:'other::26-1953 - Cartoon.mp4',media:{url:'https://archive.org/download/other/26-1953%20-%20Cartoon.mp4'}},'705'),true,'no blanket filename ban');
+});
+
 test('Halloween recovery records address the real cartoon files, not stale playlist ordinals', () => {
   const seeds = relay().holidaySeeds;
   for (const [title, expected] of [

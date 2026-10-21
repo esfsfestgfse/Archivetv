@@ -56,6 +56,9 @@ export function iaReviewedFileAllowed(item, channel) {
   let file = String(media.fileName || item.fileName || id.split('::')[1] || '');
   if (!file) { try { file = decodeURIComponent(new URL(media.url || item.mediaUrl || item.url).pathname.split('/').pop()); } catch (_) {} }
   file = file.split('/').pop();
+  // This parent's numbered original MP4 names were playlist labels, not files.
+  // Only the separately listed numbered .ia.mp4 derivatives actually exist.
+  if (source === 'halloween-cartoon-collection_20231022' && /^\d{2}-(?:19|20)\d{2}\b/.test(file) && !/\.ia\.mp4$/i.test(file)) return false;
   // A saved episode must never play another child while retaining its title.
   // Origin/encoding alternatives may differ; the Archive parent and program may not.
   const selected = String(media.fileName || item.fileName || id.slice(id.indexOf('::') + 2));

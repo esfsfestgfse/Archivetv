@@ -467,7 +467,7 @@ test('Blighty indexes real episode files across British series rather than only 
 
 test('Blighty cannot hide newly indexed British episodes behind an older shallow durable catalog',async()=>{
   const f=collectionFixture(),pending=[],rows=Array.from({length:12},(_,i)=>({identifier:'old-keeping-up::Episode '+i+'.mp4',sourceIdentifier:'old-keeping-up',fileName:'Episode '+i+'.mp4',
-    title:'Keeping Up Appearances · Episode '+i,subject:'british television british sitcom',media:{type:'video',url:'https://archive.org/download/old/'+i+'.mp4',runtime:1740,width:640,height:480}}));
+    title:'Keeping Up Appearances · Episode '+i,subject:'british television british sitcom',media:{type:'video',url:'https://archive.org/download/old-keeping-up/Episode%20'+i+'.mp4',runtime:1740,width:640,height:480}}));
   const bonus={...rows[0],identifier:'bbc-red-dwarf::Red Dwarf VI Disc 2 (Bonus Material)8.mp4',sourceIdentifier:'bbc-red-dwarf',fileName:'Red Dwarf VI Disc 2 (Bonus Material)8.mp4',title:'Red Dwarf · Bonus Material'};
   const family={channel:'118',items:rows.slice(0,3),candidateItems:rows.concat(bonus),candidates:13,ready:3};
   const env={REALSIGNAL_QUEUE:{get:async key=>key.includes(':last-good:')?family:null,put:async()=>{}},IA_HARVEST_QUEUE:{send:async()=>{}}};

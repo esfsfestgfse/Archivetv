@@ -48,7 +48,7 @@ async function catalogFixture(rows) {
 test('standard IA fast catalogs reject cached podcasts, fan productions and portraits without requiring unknown metadata',async()=>{
   const bad=[row('podcast.mp4',{title:'A Bud & A Bowl Show HD 420 Podcast Winter Camping'}),row('fan.mp4',{title:'A Fanmade Movie'}),
     row('portrait.mp4',{title:'Police vs Fire Boxing Tourny #shorts',media:{type:'video',url:'https://archive.org/download/boxing/short.mp4',runtime:1320,width:360,height:640}})];
-  const unknown=row('unknown.mp4',{title:'Original full sports program',media:{type:'video',url:'https://archive.org/download/program/full.mp4'}});
+  const unknown=row('unknown.mp4',{title:'Original full sports program',media:{type:'video',url:'https://archive.org/download/benson/unknown.mp4'}});
   const f=await catalogFixture([...bad,unknown,...Array.from({length:18},(_,i)=>row('good-'+i+'.mp4'))]);
   const p=await(await f.request('queue',{channel:'54',serverCatalog:true,sessionId:'global-video-policy',count:3,viewerRecentIds:[]})).json();
   assert.equal(p.items.length,3);assert.ok(p.candidateItems.every(item=>!bad.some(b=>b.identifier===item.identifier)),'old D1 rows cannot bypass global TV policy');
@@ -84,18 +84,18 @@ test('ordinary IA admission enforces known selected-file length and language wit
   const {catalogFallbackAllowed}=await import('../realsignal_api_v2_worker.js');
   const cases=[
     ['100',row('clip.mp4',{media:{type:'video',url:'https://archive.org/download/a/clip.mp4',runtime:240,width:640,height:480}}),false],
-    ['100',row('feature.mp4',{media:{type:'video',url:'https://archive.org/download/a/feature.mp4',runtime:5400,width:640,height:480}}),true],
-    ['700',row('rudolph.mp4',{title:'Rudolph the Red Nosed Reindeer',media:{type:'video',runtime:3206.84,url:'https://archive.org/download/a/rudolph.mp4'}}),true],
-    ['702',row('pooh.mp4',{title:'A Winnie the Pooh Thanksgiving',media:{type:'video',runtime:1643.78,url:'https://archive.org/download/a/pooh.mp4'}}),true],
-    ['107',row('silent.mp4',{title:'The Electric House',media:{type:'video',runtime:1232.72,url:'https://archive.org/download/a/silent.mp4'}}),true],
+    ['100',row('feature.mp4',{media:{type:'video',url:'https://archive.org/download/benson/feature.mp4',runtime:5400,width:640,height:480}}),true],
+    ['700',row('rudolph.mp4',{title:'Rudolph the Red Nosed Reindeer',media:{type:'video',runtime:3206.84,url:'https://archive.org/download/benson/rudolph.mp4'}}),true],
+    ['702',row('pooh.mp4',{title:'A Winnie the Pooh Thanksgiving',media:{type:'video',runtime:1643.78,url:'https://archive.org/download/benson/pooh.mp4'}}),true],
+    ['107',row('silent.mp4',{title:'The Electric House',media:{type:'video',runtime:1232.72,url:'https://archive.org/download/benson/silent.mp4'}}),true],
     ['82',row('short.mp4',{runtime:7200,media:{type:'video',url:'https://archive.org/download/a/short.mp4',runtime:80,width:640,height:480}}),false],
     ['82',row('foreign.mp4',{language:'dan'}),false],
     ['82',row('regional.mp4',{language:'en-US'}),true],
-    ['106',row('world.mp4',{language:'fra',media:{type:'video',url:'https://archive.org/download/a/world.mp4',runtime:5400,width:640,height:480}}),true],
-    ['82',row('unknown.mp4',{language:'und',media:{type:'video',url:'https://archive.org/download/a/unknown.mp4'}}),true],
-    ['236',row('short-subject.mp4',{media:{type:'video',url:'https://archive.org/download/a/short.mp4',runtime:240,width:640,height:480}}),true],
-    ['150',row('cartoon.mp4',{sourceIdentifier:'looney-tunes-complete',media:{type:'video',url:'https://archive.org/download/looney-tunes-complete/Duck.mp4',runtime:420,width:640,height:480}}),true],
-    ['900',row('audio.mp3',{language:'fra',media:{type:'audio',url:'https://archive.org/download/a/audio.mp3',runtime:120}}),true],
+    ['106',row('world.mp4',{language:'fra',media:{type:'video',url:'https://archive.org/download/benson/world.mp4',runtime:5400,width:640,height:480}}),true],
+    ['82',row('unknown.mp4',{language:'und',media:{type:'video',url:'https://archive.org/download/benson/unknown.mp4'}}),true],
+    ['236',row('short-subject.mp4',{media:{type:'video',url:'https://archive.org/download/benson/short-subject.mp4',runtime:240,width:640,height:480}}),true],
+    ['150',row('Duck.mp4',{identifier:'looney-tunes-complete::Duck.mp4',sourceIdentifier:'looney-tunes-complete',media:{type:'video',url:'https://archive.org/download/looney-tunes-complete/Duck.mp4',runtime:420,width:640,height:480}}),true],
+    ['900',row('audio.mp3',{language:'fra',media:{type:'audio',url:'https://archive.org/download/benson/audio.mp3',runtime:120}}),true],
     ['900',{identifier:'jazz-track',title:'Jazz performance',mediatype:'audio',runtime:240},true],
   ];
   for(const [channel,item,want]of cases)assert.equal(catalogFallbackAllowed(item,{channel}),want,channel+' '+item.fileName+' '+item.identifier);
@@ -103,8 +103,8 @@ test('ordinary IA admission enforces known selected-file length and language wit
 
 test('known invalid legacy rows are pruned from durable rotation without losing real feature history',async()=>{
   const media={type:'video',url:'https://archive.org/download/a/full.mp4',runtime:5400,width:640,height:480};
-  const good=Array.from({length:20},(_,i)=>row('feature-'+i+'.mp4',{media}));
-  const bad=[row('short.mp4'),row('foreign.mp4',{language:'spa',media})],f=await catalogFixture([...bad,...good]);f.incoming([...bad,...good]);
+  const good=Array.from({length:20},(_,i)=>row('feature-'+i+'.mp4',{media:{...media,url:'https://archive.org/download/benson/feature-'+i+'.mp4'}}));
+  const bad=[row('short.mp4'),row('foreign.mp4',{language:'spa',media:{...media,url:'https://archive.org/download/benson/foreign.mp4'}})],f=await catalogFixture([...bad,...good]);f.incoming([...bad,...good]);
   const old=f.env.ROTATION.getByName('session:known-file-policy:channel:100');
   await old.ctx.storage.put('rotation',{catalog:[...bad,...good],seen:[],cursor:0});
   const p=await(await f.request('queue',{channel:'100',serverCatalog:true,sessionId:'known-file-policy',count:3,viewerRecentIds:[good[0].identifier]})).json();
@@ -127,7 +127,7 @@ test('qualification does not mistake studio satire or a collection folder called
   const {qualifyIaFileRecord}=await import('../ia_file_contract.js');
   assert.equal(qualifyIaFileRecord(row('episode.mp4',{title:"Dr. Terrible's House of Horrible",subject:'BBC Comedy Parody'}),{channel:'131',requireTransport:false}).accepted,true);
   assert.equal(qualifyIaFileRecord(row('The Regular Show + Movie + Shorts/Season 7/Episode.mp4'),{channel:'153',requireTransport:false}).accepted,true);
-  const feature=row('Portrait of Jennie.mp4',{title:'Portrait of Jennie',media:{type:'video',url:'https://archive.org/download/a/Portrait.mp4',runtime:5400,width:640,height:480}});
+  const feature=row('Portrait of Jennie.mp4',{title:'Portrait of Jennie',media:{type:'video',url:'https://archive.org/download/benson/Portrait%20of%20Jennie.mp4',runtime:5400,width:640,height:480}});
   assert.equal(qualifyIaFileRecord(feature,{channel:'110',requireTransport:false}).accepted,true);
   assert.equal(qualifyIaFileRecord({...feature,title:'Fan-made parody movie'},{channel:'110',requireTransport:false}).accepted,false);
 });
@@ -250,7 +250,7 @@ test('played-only IA history excludes another encoding but keeps unseen sibling 
 test('played-only IA resolves a reported parent alias to its actual file without blocking siblings',async()=>{
   const [{SessionRotation}]=await modules,object=new SessionRotation(rotationContext(),{});
   const first={...row('One.mp4'),identifier:'holiday-single',sourceIdentifier:'holiday-single',fileName:'One.mp4'};
-  const sibling={...row('Two.mp4'),identifier:'holiday-single::Two.mp4',sourceIdentifier:'holiday-single',fileName:'Two.mp4'};
+  const sibling={...row('Two.mp4'),identifier:'holiday-single::Two.mp4',sourceIdentifier:'holiday-single',fileName:'Two.mp4',media:{...row('Two.mp4').media,url:'https://archive.org/download/holiday-single/Two.mp4'}};
   const p=await(await object.fetch(new Request('https://rotation.internal/select',{method:'POST',body:JSON.stringify({items:[first,sibling,row('Other.mp4')],count:3,requirePlayable:true,playedOnly:true,viewerRecentIds:['holiday-single']})}))).json();
   assert.equal(p.items.length,2);assert.ok(!p.items.some(item=>item.identifier==='holiday-single'));
   assert.ok(p.items.some(item=>item.identifier===sibling.identifier));assert.equal(p.exhaustion.seenInCatalog,1);
@@ -306,7 +306,7 @@ for(const storage of ['no-d1','overlap'])test('a qualified underfilled relay she
 
 test('recovery history matches a legacy parent playback ID without excluding unseen sibling episodes',async()=>{
   const parent={...row('A.mp4'),identifier:'first-time-out-1995',sourceIdentifier:'first-time-out-1995',fileName:'First Time Out 1x01.mp4'};
-  const sibling={...row('B.mp4'),identifier:'first-time-out-1995::First Time Out 1x02.mp4',sourceIdentifier:'first-time-out-1995',fileName:'First Time Out 1x02.mp4'};
+  const sibling={...row('B.mp4'),identifier:'first-time-out-1995::First Time Out 1x02.mp4',sourceIdentifier:'first-time-out-1995',fileName:'First Time Out 1x02.mp4',media:{...row('B.mp4').media,url:'https://archive.org/download/first-time-out-1995/First%20Time%20Out%201x02.mp4'}};
   const others=[row('C.mp4'),row('D.mp4'),row('E.mp4')],rows=[parent,...others],f=await catalogFixture(rows);
   f.env.RELAY.fetch=async()=>Response.json({rotationApplied:true,items:[parent],candidateItems:[parent],ready:1});
   const payload=await(await f.request('queue',{channel:'11',serverCatalog:true,sessionId:'parent-id',count:3,rotation:1,viewerRecentIds:['first-time-out-1995']})).json();

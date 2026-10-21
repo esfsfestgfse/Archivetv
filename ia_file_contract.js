@@ -56,6 +56,18 @@ export function iaReviewedFileAllowed(item, channel) {
   let file = String(media.fileName || item.fileName || id.split('::')[1] || '');
   if (!file) { try { file = decodeURIComponent(new URL(media.url || item.mediaUrl || item.url).pathname.split('/').pop()); } catch (_) {} }
   file = file.split('/').pop();
+  // A saved episode must never play another child while retaining its title.
+  // Origin/encoding alternatives may differ; the Archive parent and program may not.
+  const selected = String(media.fileName || item.fileName || id.slice(id.indexOf('::') + 2));
+  if (id.includes('::') && /\.(?:mp4|m4v|webm|ogv|mov|mp3|ogg|m4a|flac)$/i.test(selected)) {
+    const decode = value => { try { return decodeURIComponent(value); } catch (_) { return value; } };
+    const program = value => String(value).replace(/(?:\.ia)?\.(?:mp4|m4v|webm|ogv|mov|mp3|ogg|m4a|flac)$/i, '').replace(/[._-](?:512kb|h264|h\.264|mpeg4|avc)$/i, '');
+    const urls = [media.url || item.mediaUrl || item.url].concat(media.alts || item.alts || []).filter(Boolean);
+    for (const url of urls) {
+      const path = String(url).match(/^https?:\/\/(?:[a-z0-9.-]+\.)?archive\.org\/(?:download|\d+\/items)\/([^/]+)\/([^?#]+)/i);
+      if (path && (decode(path[1]) !== id.split('::')[0].replace(/^ia:/i, '') || program(decode(path[2])) !== program(selected))) return false;
+    }
+  }
   // This DVD parent has continuation chunks; title _1 alone is not a full episode.
   if (source === 'vts-01-1_20231104' && (!file || /^VTS_\d+_\d+(?:\.ia)?\.mp4$/i.test(file))) return false;
   const identity = [item.title, source, file].join(' ').toLowerCase().replace(/[_-]+/g, ' ');

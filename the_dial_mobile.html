@@ -16,13 +16,13 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="RealSignal">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>REALSIGNAL · The Dial 5.6.26</title>
+<title>REALSIGNAL · The Dial 5.6.27</title>
 <meta name="realsignal-ia-repair-channels" content="10,12,22,150">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
-<script src="assets/ok-embed-runtime.js?v=5.6.26"></script>
-<script src="assets/ia-playback-shelf.js?v=5.6.26"></script>
+<script src="assets/ok-embed-runtime.js?v=5.6.27"></script>
+<script src="assets/ia-playback-shelf.js?v=5.6.27"></script>
 <script src="assets/vimeo-embed-runtime.js?v=5.5.85"></script>
 <!-- Source Suite starts verified YouTube playback on a cold tune. Warm the exact
      origins it uses so DNS/TLS setup is not serialized behind catalog discovery. -->
@@ -1750,7 +1750,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="5.6.26-mobile-ia-lineup-catalog-cleanup";
+window.__ATV_BUILD="5.6.27-mobile-ia-halloween-file-identity";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -7669,6 +7669,18 @@ function iaReviewedFileAllowed(item, channel) {
   let file = String(media.fileName || item.fileName || id.split('::')[1] || '');
   if (!file) { try { file = decodeURIComponent(new URL(media.url || item.mediaUrl || item.url).pathname.split('/').pop()); } catch (_) {} }
   file = file.split('/').pop();
+  // A saved episode must never play another child while retaining its title.
+  // Origin/encoding alternatives may differ; the Archive parent and program may not.
+  const selected = String(media.fileName || item.fileName || id.slice(id.indexOf('::') + 2));
+  if (id.includes('::') && /\.(?:mp4|m4v|webm|ogv|mov|mp3|ogg|m4a|flac)$/i.test(selected)) {
+    const decode = value => { try { return decodeURIComponent(value); } catch (_) { return value; } };
+    const program = value => String(value).replace(/(?:\.ia)?\.(?:mp4|m4v|webm|ogv|mov|mp3|ogg|m4a|flac)$/i, '').replace(/[._-](?:512kb|h264|h\.264|mpeg4|avc)$/i, '');
+    const urls = [media.url || item.mediaUrl || item.url].concat(media.alts || item.alts || []).filter(Boolean);
+    for (const url of urls) {
+      const path = String(url).match(/^https?:\/\/(?:[a-z0-9.-]+\.)?archive\.org\/(?:download|\d+\/items)\/([^/]+)\/([^?#]+)/i);
+      if (path && (decode(path[1]) !== id.split('::')[0].replace(/^ia:/i, '') || program(decode(path[2])) !== program(selected))) return false;
+    }
+  }
   // This DVD parent has continuation chunks; title _1 alone is not a full episode.
   if (source === 'vts-01-1_20231104' && (!file || /^VTS_\d+_\d+(?:\.ia)?\.mp4$/i.test(file))) return false;
   const identity = [item.title, source, file].join(' ').toLowerCase().replace(/[_-]+/g, ' ');
@@ -8047,7 +8059,7 @@ async function resolvePlayable(id,wantType){
   if(exactVideo){if(wantType&&wantType!=="video")return null;const urls=mediaUrls(exactVideo);return {type:"video",url:urls[0],alts:urls.slice(1,8),id,captions:cap,meta};}
   const aud = requestedFile?files.find(f=>f&&f.name===requestedFile&&/\.mp3$|\.ogg$|\.m4a$|\.flac$/i.test(f.name)):(v(/\.mp3$/i)||v(/\.ogg$/i)||v(/\.m4a$/i)||v(/\.flac$/i));
   if(aud&&wantType!=="video"){ const urls=mediaUrls([aud.name]); return {type:"audio", url:urls[0], alts:urls.slice(1,4), id, captions:cap, meta}; }
-  if(requestedFile){nlog("files",false,"requested file missing in "+sourceId+"; selecting verified derivative");}
+  if(requestedFile){nlog("files",false,"requested file missing in "+sourceId+"; refusing a different program");return null;}
   if(cand.length){ if(wantType&&wantType!=="video")return null; const urls=mediaUrls(cand); return {type:"video", url:urls[0],
     alts:urls.slice(1,8), // CDN hosts first, then alternate playable files
     id, captions:cap, meta}; }
@@ -8938,6 +8950,15 @@ var fastTuneCache=store.get("fastTune",{}), FAST_TUNE_TTL=36*60*60*1000, FAST_TU
    other stations keep their fast-start shelf intact. Bump this fence whenever
    the factory-only contract changes again. */
 try{if(Number(store.get("manufacturingMarvelsGateVersion",0))<2){delete fastTuneCache["200"];store.set("fastTune",fastTuneCache);store.set("manufacturingMarvelsGateVersion",2);}}catch(e){}
+function iaMigrateHalloweenFiles(){
+  if(Number(store.get("halloweenFileIdentityVersion",0))>=1)return;
+  delete fastTuneCache["705"];store.set("fastTune",fastTuneCache);
+  delete schedMap["Halloween Cartoons"];store.set("sched",schedMap);
+  iaReadyShelves=iaReadyShelves||store.get("iaReadyShelves",{})||{};
+  delete iaReadyShelves["705"];store.set("iaReadyShelves",iaReadyShelves);
+  store.set("halloweenFileIdentityVersion",1);
+}
+iaMigrateHalloweenFiles();
 function fastTuneGet(chNum){var e=fastTuneCache[String(chNum)],ch=typeof byNum==="function"?byNum(chNum):null,expected=iaExpectedMedia(ch);
   if(!e||!e.pl||!e.pl.url||e.pl.type!==expected||!iaCachedProgramAllowed(ch,e.pl)||Date.now()-e.at>FAST_TUNE_TTL||isTemporarilySkipped(e.pl.id)||iaProgramFailed(e.pl.id)||blockedId(e.pl.id)||(Array.isArray(banned)&&banned.indexOf(e.pl.id)>=0)){if(e){delete fastTuneCache[String(chNum)];store.set("fastTune",fastTuneCache);}return null;}
   return {type:e.pl.type,url:e.pl.url,alts:(e.pl.alts||[]).slice(),id:e.pl.id,captions:e.pl.captions||null,

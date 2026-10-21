@@ -19,7 +19,7 @@ function relay(metadata = {}, mediaStatus = 206, redirectedUrl = '', fetchOverri
     } };
   vm.createContext(sandbox);
   vm.runInContext(fs.readFileSync(path.join(root, 'afterglow_ais_relay_worker.js'), 'utf8').replace('export default', 'const worker =') +
-    '\nglobalThis.contract={iaRuntimeAllowed, iaStationQualityGate, queuePlayable, iaPlayableIdentity, hydrateIaQueue, qualifyIaQueueResponse, verifyIaTransport,worker};', sandbox);
+    '\nglobalThis.contract={iaRuntimeAllowed, iaStationQualityGate, queuePlayable, iaPlayableIdentity, hydrateIaQueue, qualifyIaQueueResponse, verifyIaTransport,worker,holidaySeeds:IA_LONG_TAIL_EXPANSIONS["705"]};', sandbox);
   return sandbox.contract;
 }
 const verified = { identifier: 'series::episode.mp4', sourceIdentifier: 'series', title: 'Family sitcom episode',
@@ -58,6 +58,93 @@ test('the selected child runtime overrides the longer parent runtime', () => {
 test('missing explicit episode must not silently substitute the first file', async () => {
   const f = relay({ metadata: { language: 'eng' }, files: [{ name: 'other.mp4', format: 'h.264', length: 1320, width: 640, height: 480 }] });
   assert.equal(await f.queuePlayable('series::missing.mp4', 'https://relay.invalid', null, ['movies']), null);
+});
+
+// The browser resolver must obey the same selected-child contract as the relay.
+// Otherwise a stale holiday filename plays the first cartoon with the wrong title.
+for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
+  function clientResolver(files) {
+    const source = fs.readFileSync(path.join(root, file), 'utf8');
+    const metadata = { metadata: { language: 'eng' }, dir: '/0/items/halloween',
+      d1: 'ia800001.us.archive.org', files };
+    const scope = { IOS: false, console, iaRelayMetadataURL: id => id,
+      iaFastJSON: async () => metadata, iaFastProxy: async () => metadata,
+      firstOk: jobs => jobs[0].run(), withTO: promise => promise, nlog() {} };
+    vm.createContext(scope);
+    vm.runInContext(source.slice(source.indexOf('function mArr('), source.indexOf('/* NASA video */')), scope);
+    return scope.resolvePlayable;
+  }
+  test(file + ': a missing selected cartoon cannot become Skeleton Dance', async () => {
+    const resolve = clientResolver([{ name: 'The Skeleton Dance.ia.mp4', format: 'h.264' }]);
+    assert.equal(await resolve('halloween::The Haunted House.mp4', 'video'), null);
+  });
+  test(file + ': selected file alternates stay on that cartoon, not its siblings', async () => {
+    const resolve = clientResolver([
+      { name: 'The Skeleton Dance.ia.mp4', format: 'h.264' },
+      { name: 'The Haunted House.mp4', format: 'h.264' },
+    ]);
+    const selected = await resolve('halloween::The Haunted House.mp4', 'video');
+    assert.ok([selected.url, ...selected.alts].every(url => decodeURIComponent(url).endsWith('/The Haunted House.mp4')));
+    assert.equal(await resolve('halloween::The Haunted House.mp4', 'audio'), null);
+    assert.ok(await resolve('halloween', 'video'), 'unexpanded parent discovery still works');
+  });
+}
+
+test('saved playback cannot pair one cartoon identity with a different Archive file', async () => {
+  const { iaReviewedFileAllowed } = await import('../ia_file_contract.js');
+  const bad = { id: 'halloween::The Haunted House.mp4', title: 'The Haunted House', type: 'video',
+    url: 'https://ia800001.us.archive.org/0/items/halloween/The%20Skeleton%20Dance.ia.mp4' };
+  assert.equal(iaReviewedFileAllowed(bad, '705'), false);
+  assert.equal(iaReviewedFileAllowed({ ...bad, url: 'https://archive.org/download/halloween/The%20Haunted%20House.ia.mp4' }, '705'), true);
+  assert.equal(iaReviewedFileAllowed({ ...bad, url: 'https://archive.org/download/different/The%20Haunted%20House.mp4' }, '705'), false);
+  for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html', 'afterglow_ais_relay_worker.js']) {
+    const source = fs.readFileSync(path.join(root, file), 'utf8'), scope = {};
+    vm.createContext(scope);
+    vm.runInContext(source.slice(source.indexOf('function iaReviewedFileAllowed('), source.indexOf('function iaHuntingAllowed(')), scope);
+    assert.equal(scope.iaReviewedFileAllowed(bad, '705'), false, file);
+    assert.equal(scope.iaReviewedFileAllowed({ ...bad, url: 'https://archive.org/download/halloween/The%20Haunted%20House.mp4' }, '705'), true, file);
+  }
+});
+
+test('selected-file validation respects legacy episode aliases and same-program encodings', async () => {
+  const {iaReviewedFileAllowed}=await import('../ia_file_contract.js');
+  for(const item of [
+    {identifier:'series::S1E2',fileName:'Season 1/02.mp4',media:{url:'https://archive.org/download/series/Season%201/02.mp4'}},
+    {identifier:'series::1995',media:{url:'https://archive.org/download/series/Live%20in%201995.mp4'}},
+    {identifier:'series::Episode 1.mp4',media:{url:'https://archive.org/download/series/Episode%201_512kb.mp4'}},
+    {identifier:'series::Episode%2fPart.mp4',fileName:'Episode%2fPart.mp4',media:{url:'https://archive.org/download/series/Episode%252fPart.mp4'}},
+  ])assert.equal(iaReviewedFileAllowed(item,'705'),true,item.identifier);
+  assert.equal(iaReviewedFileAllowed({identifier:'series::S1E2',fileName:'Season 1/02.mp4',media:{url:'https://archive.org/download/series/Season%201/01.mp4'}},'705'),false);
+});
+
+test('Halloween recovery records address the real cartoon files, not stale playlist ordinals', () => {
+  const seeds = relay().holidaySeeds;
+  for (const [title, expected] of [
+    ['Mickey Mouse · The Haunted House', '1929 - Mickey Mouse -The Haunted House.mp4'],
+    ['Disney · The Old Mill', '1937 - Disney - The Old Mill.mp4'],
+    ['Pink Panther · Pink Panic', '1967 - Pink Panther - Pink Panic.mp4'],
+  ]) {
+    const row = seeds.find(item => item.title === title);
+    assert.equal(row.fileName, expected, title);
+    assert.equal(row.identifier, 'halloween-cartoon-collection_20231022::' + expected);
+    assert.ok(decodeURIComponent(row.media.url).endsWith('/' + expected));
+  }
+});
+
+for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) test(file + ': Halloween cache repair preserves other shelves and watched history', () => {
+  const source=fs.readFileSync(path.join(root,file),'utf8'), data={iaReadyShelves:{'705':{items:['stale']},'704':{items:['keep']}},iaSeen:['watched']};
+  const scope={store:{get:(key,fallback)=>data[key]??fallback,set:(key,value)=>{data[key]=value;}},
+    fastTuneCache:{'705':{pl:'wrong-cartoon'},'704':{pl:'keep'}},schedMap:{'Halloween Cartoons':{id:'stale'},'Classic TV':{id:'keep'}},iaReadyShelves:null};
+  vm.createContext(scope);
+  const start=source.indexOf('function iaMigrateHalloweenFiles('),end=source.indexOf('\niaMigrateHalloweenFiles();',start);
+  if(start>=0&&end>start)vm.runInContext(source.slice(start,end),scope);
+  if(scope.iaMigrateHalloweenFiles)scope.iaMigrateHalloweenFiles();
+  assert.equal(scope.fastTuneCache['705'],undefined);assert.ok(scope.fastTuneCache['704']);
+  assert.equal(data.iaReadyShelves['705'],undefined);assert.ok(data.iaReadyShelves['704']);
+  assert.equal(scope.schedMap['Halloween Cartoons'],undefined);assert.ok(scope.schedMap['Classic TV']);
+  assert.deepEqual(data.iaSeen,['watched']);
+  scope.fastTuneCache['705']={pl:'new-correct-cartoon'};scope.iaMigrateHalloweenFiles();
+  assert.equal(scope.fastTuneCache['705'].pl,'new-correct-cartoon','migration runs once, not every tune');
 });
 test('file hydration carries exact source, runtime, geometry, language and provenance', async () => {
   const f = relay({ metadata: { language: 'eng', licenseurl: 'https://creativecommons.org/licenses/by/4.0/' },

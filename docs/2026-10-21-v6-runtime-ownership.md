@@ -85,3 +85,18 @@ certification. No application runtime files were modified during this inventory.
 This is a local pre-release cleanup, not a new public version or a first-frame speed
 improvement. Production remains 5.6.29. Provider catalogs and viewing history remain
 untouched; no channel was added, removed, hidden, or renumbered.
+
+### Independent review and test fidelity
+
+The read-only reviewer confirmed no runtime regression and exact preservation of
+the active renderer. It found two test-double gaps: registering multiple click
+listeners discarded the earlier listener, and text updates escaped the write counter.
+Those gaps could mask future violations of the one-click/zero-hidden-write contracts,
+so the executor treated them as required test-coverage fixes despite their original
+Minor labels. The cost of that judgment is extra test-only code, not application work.
+
+Four in-memory renderer mutation checks (both gaps in each build) first failed to
+detect the violations. After fixing listener dispatch and text-write accounting,
+all sixteen tests passed. Production code did not change during this review fix.
+All 56 offline Node CI commands then passed again after those fixes. No review
+findings were deferred; there was no declined-to-judge item.

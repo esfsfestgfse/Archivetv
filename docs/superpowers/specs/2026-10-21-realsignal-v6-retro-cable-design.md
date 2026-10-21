@@ -1,6 +1,7 @@
 # RealSignal V6 — Polished Retro Cable
 
-Status: visual direction approved; written scope awaiting review.
+Status: written scope approved by the user's "And get to work!"; first cleanup
+implementation plan awaiting review before execution.
 Baseline: 5.6.29, commit `a52be2a53455407bb3bbef5dc832005e51448620`.
 This document does not authorize a production rollout or stamp the app as V6.
 

@@ -1,7 +1,7 @@
 # RealSignal V6 — Polished Retro Cable
 
-Status: written scope approved by the user's "And get to work!"; first cleanup
-implementation plan awaiting review before execution.
+Status: written scope and first cleanup implementation plan approved; native
+execution authorized 2026-10-21.
 Baseline: 5.6.29, commit `a52be2a53455407bb3bbef5dc832005e51448620`.
 This document does not authorize a production rollout or stamp the app as V6.
 
@@ -40,6 +40,11 @@ reintroduce a synchronous five-video startup requirement.
 
 - Let video dominate the window. Preserve its aspect ratio; never stretch or crop
   a program by default. Large 4:3 programs retain intentional side bars.
+- Fit the watching stage and essential controls inside the available browser
+  viewport, including short landscape windows and mobile browser chrome. Resize
+  the picture to available width and height; do not require page scrolling to reach
+  core controls or cut off the picture. Guide content can scroll within its own
+  bounded region. Verify resizing and portrait/landscape changes in real browsers.
 - Use charcoal surfaces, green tuner digits, restrained amber accents, and legible
   modern typography. Channel number, local time, and date belong in a compact dock.
 - Provide clearly labeled Power, Channel, Guide, Next, Info, Menu, volume, and mute

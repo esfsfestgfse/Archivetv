@@ -46,7 +46,7 @@ Each case belongs to the single task below. Deferred wrapper consolidation must 
 - Consumes existing inline `renderRail() -> void`, `visibleChannels() -> Channel[]`, `guideListing(ch) -> {now,next,detail}`, and DOM row/click behavior. Do not change those signatures.
 - Produces one `renderRail` declaration per build and a Node test script that exits nonzero on ownership or behavior regressions. No new browser API or runtime export.
 
-- [ ] **Step 1: Write the failing regression tests.**
+- [x] **Step 1: Write the failing regression tests.**
 
   In `scripts/test-guide-renderer-ownership.js`, use `node:test` to check both builds. Count declarations with `/\bfunction\s+renderRail\s*\(/g` and assert `count === 1`.
 
@@ -62,15 +62,15 @@ Each case belongs to the single task below. Deferred wrapper consolidation must 
   - `mobile selection closes sheets`: same input with `window.closeSheets` provided calls it once instead of `closeGuide`.
   - `row metadata stays escaped and stable`: malicious-looking sample title is escaped, current row has `on`, favorite mark remains, and current/next strings and channel key match supplied data. No legacy duplicate row or provider discovery occurs.
 
-- [ ] **Step 2: Confirm red and capture the effective renderer baseline.**
+- [x] **Step 2: Confirm red and capture the effective renderer baseline.**
 
   Run `node --test scripts/test-guide-renderer-ownership.js`. Expect only the two declaration-count cases to fail (`2 !== 1`); all behavioral cases must already pass. Resolve harness mistakes before removing code. Record the two current renderer-section hashes or retain the before/after diff for comparison; do not save large HTML snapshots.
 
-- [ ] **Step 3: Remove only the dead declaration, mobile first, then desktop.**
+- [x] **Step 3: Remove only the dead declaration, mobile first, then desktop.**
 
   Delete from the first `function renderRail(){ /* v9: honest CHANNEL BANK grid` through its closing brace immediately before `/* RealSignal guide-directory renderer`. Preserve the later renderer byte-for-byte. Do not edit open/close/tune wrappers, category registries, queue constants, scripts, or catalog data.
 
-- [ ] **Step 4: Verify green and neighboring contracts.**
+- [x] **Step 4: Verify green and neighboring contracts.**
 
   Run, checking every exit status:
 
@@ -86,11 +86,11 @@ Each case belongs to the single task below. Deferred wrapper consolidation must 
 
   Expect zero failures. Diff review must show the active renderer and runtime state/storage paths unchanged. These checks establish cleanup equivalence, not audiovisual health or first-frame gains.
 
-- [ ] **Step 5: Add the guard to CI and record evidence.**
+- [x] **Step 5: Add the guard to CI and record evidence.**
 
   Add `node --test scripts/test-guide-renderer-ownership.js` to `test-worker` next to the existing guide stability step. Re-run the new test and diff check. Append exact test results, deleted lines/bytes, and untouched boundaries to the ownership inventory. Do not claim a latency improvement without measurement.
 
-- [ ] **Step 6: Commit the reviewed local cleanup.**
+- [x] **Step 6: Commit the reviewed local cleanup.**
 
   Verify only the two HTML builds, test, CI guard, and inventory are staged. Run `git -c core.whitespace=cr-at-eol diff --cached --check`, then commit with `refactor: remove overridden guide renderers`. Preserve unrelated untracked files. No automatic push, deploy, cache reset, or V6 stamp.
 

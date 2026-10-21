@@ -3,7 +3,7 @@
 Read-only inventory against `8303b83`, with application code from 5.6.29.
 This records what is loaded today, not a claim that V6 is implemented.
 
-## Active paths
+## Baseline active paths (before cleanup)
 
 | Responsibility | Present owners | Cleanup boundary |
 | --- | --- | --- |
@@ -55,3 +55,33 @@ runs, rather than treating a text search as sufficient evidence.
 
 These are local offline checks, not a new media soak, latency measurement, or device
 certification. No application runtime files were modified during this inventory.
+
+## First cleanup implementation
+
+- Removed only the overridden `v9: honest CHANNEL BANK grid` function from each HTML
+  build: 44 lines / 3,379 UTF-8 bytes on mobile and 44 lines / 3,391 bytes on desktop.
+- Compared each resulting HTML with the baseline minus that exact function. All other
+  source, including CSS, playback, provider profiles, data, wrappers, and build stamps,
+  is unchanged. Both effective renderer sections have SHA-256
+  `0e5e353d6abbe549e63ee0278f368a96c5258954da5c55ecd1f205a61399a6d3`.
+- Added `scripts/test-guide-renderer-ownership.js` and its CI step. The first run
+  passed ten behavior tests and failed the two ownership tests (`2 !== 1`). After
+  deletion, all twelve passed. These execute the actual renderer with a small DOM
+  boundary double; they are not real-browser layout or audiovisual certification.
+- HTML syntax, guide row stability, registry, IA parity, Release 2 runtime, and Cast
+  runtime checks passed independently.
+- The first broad offline gate passed 55 of 56 commands. The audit checkpoint test
+  failed with an `EPERM` rename in the sandbox's temporary directory; its unchanged
+  eight-test suite passed when rerun outside the sandbox. No product fix was applied
+  to hide or weaken that test.
+- The complete set of 56 distinct offline Node commands from the CI workflow then
+  passed in one clean-environment run, including the new renderer guard. Browser
+  tune-all/regression jobs and physical-device playback were not run by that gate.
+- The user's viewport-fit requirement is explicit in the V6 design: the watching
+  stage and essential controls must fit browser width and height, including short
+  landscape windows and mobile chrome. This cleanup does not implement or claim the
+  new layout; that requires real-browser sizing checks in the watching-shell slice.
+
+This is a local pre-release cleanup, not a new public version or a first-frame speed
+improvement. Production remains 5.6.29. Provider catalogs and viewing history remain
+untouched; no channel was added, removed, hidden, or renumbered.

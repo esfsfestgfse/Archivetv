@@ -91,6 +91,8 @@ jobs:
         run: node scripts/test-live-data-lifecycle.js
       - name: Guard guide row stability during background queue warming
         run: node scripts/test-guide-row-stability.js
+      - name: Guard single guide renderer ownership and card behavior
+        run: node --test scripts/test-guide-renderer-ownership.js
       - name: Validate 2.2 health telemetry runtime
         run: node scripts/test-release2-runtime.js
       - name: Validate V3 API contract

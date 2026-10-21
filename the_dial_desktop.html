@@ -8285,50 +8285,6 @@ function noteLiveStreamGuide(c){
   try{refreshGuideData();}catch(e){}
 }
 var rsSetChanStatus=setChanStatus;setChanStatus=function(num,text){return rsSetChanStatus(num,String(text||"").replace(/QUEUE WARMING|BUFFER WARMING|WARMING SOURCE/gi,"PROGRAM DATA PENDING").replace(/BUFFER (\d+) \/ (\d+) CATALOG/gi,"$1 PROGRAMS READY"));};
-function renderRail(){ /* v9: honest CHANNEL BANK grid — replaces the horizontal scroll rail */
-  if(!chList)return;
-  if(!gwrap||!gwrap.classList.contains("show"))return; /* CYCLE-1 PERF: no rebuilds while the bank is hidden */
-  chList.innerHTML=""; const list=visibleChannels();
-  if(!list.length){chList.innerHTML='<div class="chempty">No favorites yet — press ★ FAV while watching a channel.</div>';return;}
-  /* Section dividers — inserted every time the CATEGORY changes as we walk the sorted
-     list. LDATA gets an extra-loud amber treatment because live-data channels are grouped
-     at the bottom of the guide and the user asked for a hard visual break. */
-  var _prevGuideCat=null;
-  var _sectionSubtitles={"LDATA":"real-time feeds · government + open APIs","MUS":"audio only · music library","SPORTS":"live scoreboard + 29 archive networks","HOL":"seasonal loops","RETRO":"found footage + vhs + infomercial","NET":"live streaming networks","TV":"television series + reruns","MOV":"feature films","TOON":"cartoons + animation","DOC":"documentaries + culture","SOURCE":"verified video hosts · five-item queues","LBRO":"library + civic feeds"};
-  list.forEach(ch=>{
-    if(ch.cat!==_prevGuideCat){
-      var _d=document.createElement("div");
-      _d.className="chsection"+(ch.cat==="LDATA"?" chsection-ldata":"");
-      var _label=(typeof CATNAME!=="undefined" && CATNAME[ch.cat])||ch.cat;
-      var _sub=_sectionSubtitles[ch.cat]||"";
-      _d.innerHTML='<span class="chsection-label">'+(ch.cat==="LDATA"?"◆ ":"")+esch(String(_label).toUpperCase())+'</span>'+
-        (_sub?'<span class="chsection-sub">'+esch(_sub)+'</span>':'');
-      chList.appendChild(_d);
-      _prevGuideCat=ch.cat;
-    }
-    const r=document.createElement("button"); r.type="button";
-    r.title=ch.nm+((CHANNEL_META[ch.nm]&&CHANNEL_META[ch.nm].desc)?(" \u2014 "+CHANNEL_META[ch.nm].desc):""); /* 1.3 */
-    r.className="chcell"+(ch.num===curNum?" on":"")+(ch.cat==="LDATA"?" chcell-ldata":"");
-    r.style.setProperty("--cat",CAT[ch.cat]||"#67ff86");
-    const listing=guideListing(ch);
-    /* F06 (2026-08-14): tiny IA thumbnail if we've watched this channel before, else a
-       channel-number glyph in the category color as a friendly placeholder. */
-    var _lid=(window.__chLastId||{})[ch.num];
-    var _thumbHtml;
-    if(_lid){
-      _thumbHtml='<span class="cc-thumb"><img src="https://archive.org/services/img/'+esch(_lid)+'" alt="" loading="lazy" decoding="async" onerror="this.parentNode.innerHTML=\'<span class=cc-thumb-glyph>'+ch.num+'</span>\'"></span>';
-    } else {
-      _thumbHtml='<span class="cc-thumb"><span class="cc-thumb-glyph">'+ch.num+'</span></span>';
-    }
-    r.innerHTML='<span class="cc-n">'+ch.num+'</span>'+_thumbHtml+'<span class="cc-nm">'+ch.nm+'</span>'+
-      '<span class="cc-program'+(listing.live?' live':'')+'"><span class="cc-now">'+esch(listing.now)+'</span><span class="cc-next">'+esch(listing.next)+'</span><span class="cc-status">'+esch(listing.detail)+'</span></span>'+
-      (isFav(ch.num)?'<span class="cc-f">★</span>':'');
-    r.addEventListener("click",(function(num){return function(){tuneNum(num);
-      if(window.closeSheets)window.closeSheets();                 // mobile: close the sheet on pick
-      else if(typeof closeGuide==="function")closeGuide();};})(ch.num)); // desktop: close the bank
-    chList.appendChild(r);
-  });
-}
 /* RealSignal guide-directory renderer: an intentional browse hierarchy and real queue data. */
 function renderRail(){
   if(!chList||!gwrap||!gwrap.classList.contains("show"))return;

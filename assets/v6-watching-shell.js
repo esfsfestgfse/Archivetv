@@ -16,6 +16,7 @@
     if (el && el.textContent !== value) el.textContent = value;
   }
   function visiblePanel(id) {
+    if (id === 'gwrap' && window.RealSignalGuide && window.RealSignalGuide.isOpen()) return true;
     var el = document.getElementById(id);
     return el && !el.classList.contains('hide') && (id !== 'gwrap' || el.classList.contains('show'));
   }

@@ -92,6 +92,14 @@ test('invalid channel and volume steps are rejected before playback sees them', 
   for (const n of [0, 1, -1, NaN, '.1']) assert.equal(h.context.RealSignalPresentation.command('volume-step', n), false);
   assert.equal(h.calls.length, 0);
 });
+
+test('the replacement guide keeps its dock awake and exposes expanded state without opening the legacy guide', () => {
+  const h = harness(); h.context.RealSignalGuide = { isOpen: () => true };
+  h.context.RealSignalWatchingShell.refresh(); h.idle();
+  assert.equal(h.ids.get('rsV6Guide').getAttribute('aria-expanded'), 'true');
+  assert.equal(h.ids.get('rsV6Dock').classList.contains('is-idle'), false);
+  assert.equal(h.guide.classList.contains('show'), false);
+});
 test('refresh renders real title, channel, local date and state as text without restarting media', () => {
   const h = harness(); h.context.RealSignalWatchingShell.refresh();
   assert.equal(h.ids.get('rsV6Title').textContent, '<b>Cartoon A</b>');

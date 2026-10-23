@@ -205,6 +205,7 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
       setTimeout: (fn, ms) => { const t = { fn, ms }; timers.push(t); return t; }, clearTimeout() {} };
     vm.createContext(scope);
     vm.runInContext(source.slice(source.indexOf('function acquireVideo('), source.indexOf('function unlockMedia(')), scope);
+    vm.runInContext(source.slice(source.indexOf('function iaKnownVideoPolicyViolation('), source.indexOf('function iaProgramDenyTerms(')), scope);
     vm.runInContext(source.slice(source.indexOf('function playFile('), source.indexOf('function showNow(')), scope);
     const pending = scope.playFile({ type: 'video', url: 'https://archive.org/download/series/episode.mp4', alts: ['https://ia800001.us.archive.org/12/items/series/episode.mp4'] }, { num: 10 }, {}, 1, 0);
     assert.ok(timers[0].ms <= 4000, 'a stalled origin must not hold Next for twelve seconds');

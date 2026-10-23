@@ -65,10 +65,29 @@ Local browser evidence used real external video, not mocked metadata:
 - Explicit `v6=0` on desktop/mobile opened only the legacy guide and mounted no
   V6 dock. Browser CI now operates visible V6 controls and separately tests rollback.
 
-Hosted CI and the Pages IA smoke/deployment must pass for the pushed release;
-the final user handoff records their results. The CI browser sweep mocks external
-providers and checks JavaScript/control regressions, not real playback of every
-channel. The Pages smoke checks queue availability, not decoded frames.
+Release commit: `86d107a8b31eded3e3a2ad0e199517538b4b0b7c`.
+[Hosted CI](https://github.com/esfsfestgfse/Archivetv/actions/runs/39948801786)
+passed all three jobs. Desktop and mobile each swept 281 registered entries with
+zero JavaScript page errors, passed all 12 functional checks (including explicit
+rollback), and passed the telemetry dashboard checks. This sweep mocks external
+providers; it is not real playback certification for 281 channels.
+
+[Pages release validation/deployment](https://github.com/esfsfestgfse/Archivetv/actions/runs/39948801826)
+passed. Its production IA smoke returned 24/24 first-play-ready and full-depth
+queues, zero duplicate items, zero timeouts and no flagged lanes to retry.
+Its average response was 596ms (274–2,108ms). These are queue measurements, not
+decoded frames.
+
+Public default desktop/mobile titles and visible stamps were checked after
+deployment. Production 226 played an advancing decoded documentary at 528ms;
+Next played a different episode at 681ms, with no recorded repeat/stall in those
+samples. The public 390x844 mobile guide rendered 268 canonical rows, no page
+overflow, and Watch bottom825px. Local proof: `output/v6-release/public-guide-6.0.0.png`.
+
+An additional native-control End-seek test hit buffering on the last bytes of an
+external file and did not establish a real commercial EOF cycle. Do not treat
+the automated cap/cancellation/EOF tests as a sustained visible-ad certification;
+seek recovery and real-provider break cycles remain in the next measured pass.
 
 Untuned guide rows can legitimately say pending; no invented schedules are used.
 Recursive upstream titles remain a metadata cleanup item. This release does not
@@ -79,7 +98,7 @@ external-provider availability, or newly tested physical Cast behavior.
 
 ### 1. Stabilize 6.0.x using real measurements
 
-First investigate the reproduced slow 150 start. Correlate channel command,
+First investigate the reproduced slow 150 start and seek-near-EOF buffering. Correlate channel command,
 catalog response, selected file, decoder events and first visible frame; compare
 cold and warm runs under the same conditions. Distinguish provider delay from
 client scheduling before changing either. Test rapid Next/channel changes and

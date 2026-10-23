@@ -9,7 +9,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>REALSIGNAL · The Dial 5.6.32</title>
+<title>REALSIGNAL · Retro Cable 6.0.0-rc.1</title>
 <meta name="realsignal-ia-repair-channels" content="10,12,22,150">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
@@ -1700,8 +1700,8 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
 @media(prefers-reduced-motion:reduce){.sports-screen *,.wx-screen *,.wr-cabinet *{animation-duration:.001ms!important;transition-duration:.001ms!important}}
 </style>
 <link rel="stylesheet" href="assets/guide-overhaul.css">
-<link rel="stylesheet" href="assets/v6-watching-shell.css?v=5.6.32">
-<link rel="stylesheet" href="assets/v6-guide.css?v=5.6.32">
+<link rel="stylesheet" href="assets/v6-watching-shell.css?v=6.0.0-rc.1">
+<link rel="stylesheet" href="assets/v6-guide.css?v=6.0.0-rc.1">
 </head>
 <body>
 <script>
@@ -1713,7 +1713,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="5.6.32-desktop-v6-guide-preview";
+window.__ATV_BUILD="6.0.0-rc.1-desktop-v6-guide";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -19251,10 +19251,10 @@ renderRail(); updateClocks();
 }catch(e){} })();
 showOv("REALSIGNAL","PRESS POWER","Grab the remote and hit the red button.");
 setSig("","STANDBY");
-/* Populate the build-number chip beside STANDBY. Just the increment ("v95"), not the whole
-   "1.7.7-desktop.108" — the small chip has room for a short tag and that's the part that changes. */
+/* Populate the build-number chip with the release version, retaining RC labels.
+   The full diagnostic stamp also includes the surface and implementation tag. */
 (function(){ try{
-    var b=String(window.__ATV_BUILD||""); var m=b.match(/^(\d+(?:\.\d+){0,2})/); var v=m ? m[1] : "";
+    var b=String(window.__ATV_BUILD||""); var m=b.match(/^(\d+(?:\.\d+){0,2}(?:-rc\.\d+)?)/); var v=m ? m[1] : "";
   if(!v) return;
   var el=document.getElementById("verChip"); if(el) el.textContent="v"+v;
   var stamp=document.getElementById("atv-build-stamp-value"); if(stamp) stamp.textContent=b;
@@ -19478,8 +19478,8 @@ window.__atvBootDone=true; /* app is up -- from here on, errors get logged, not 
 <script src="assets/release3-runtime.js"></script>
 <script src="assets/release31-runtime.js"></script>
 <script src="assets/guide-contract.js?v=v6-contract-1"></script>
-<script src="assets/guide-contract-client.js?v=5.6.32"></script>
-<script src="assets/v6-watching-shell.js?v=5.6.32"></script>
-<script src="assets/v6-guide.js?v=5.6.32"></script>
+<script src="assets/guide-contract-client.js?v=6.0.0-rc.1"></script>
+<script src="assets/v6-watching-shell.js?v=6.0.0-rc.1"></script>
+<script src="assets/v6-guide.js?v=6.0.0-rc.1"></script>
 </body>
 </html>

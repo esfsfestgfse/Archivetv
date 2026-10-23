@@ -30,6 +30,7 @@ on:
       - 'assets/source-catalog-client.js'
       - 'assets/guide-contract*.js'
       - 'assets/v6-watching-shell.*'
+      - 'assets/v6-guide.*'
       - 'assets/release2-runtime.js'
       - 'assets/release3-runtime.js'
       - 'sw.js'
@@ -105,6 +106,8 @@ jobs:
         run: node --test scripts/test-v6-guide.js
       - name: Validate 2.2 health telemetry runtime
         run: node scripts/test-release2-runtime.js
+      - name: Validate V6 prerelease and stale build stamp admission
+        run: node --test scripts/test-release-stamps.js
       - name: Validate V3 API contract
         run: node scripts/test-v3-api-contract.js
       - name: Validate YouTube catalog depth and diagnostics

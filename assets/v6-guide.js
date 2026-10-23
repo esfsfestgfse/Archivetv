@@ -56,13 +56,13 @@
       rowRefs[number].host.scrollIntoView({ block: 'nearest' });
     }
   }
-  function details() {
+  function details(currentSnapshot) {
     var entry = entries.find(function (item) { return item.number === selected; });
     refs.rsV6GuideWatch.disabled = !entry;
     put(refs.rsV6GuideChannelName, entry ? entry.name : 'Choose a channel');
     put(refs.rsV6GuideNumber, entry ? 'CH ' + entry.number : 'PROGRAM DETAILS');
     put(refs.rsV6GuideDescription, entry ? entry.description || entry.categoryLabel : 'Search or choose a category to browse.');
-    var s = entry ? snapshot(entry.number) : {}, p = programs(s);
+    var s = entry ? currentSnapshot || snapshot(entry.number) : {}, p = programs(s);
     put(refs.rsV6GuideProgram, p.first ? p.first.title : 'Program information pending');
     put(refs.rsV6GuideRuntime, [p.label, runtime(p.first), p.first && p.first.provider].filter(Boolean).join(' · '));
     put(refs.rsV6GuideFollowing, p.second ? 'Next · ' + p.second.title + (runtime(p.second) ? ' · ' + runtime(p.second) : '') : s.live ? 'Program information unavailable' : 'Next program pending');
@@ -180,12 +180,19 @@
   function refresh() {
     if (!opened) return;
     if (!api.enabled) { close(); return; }
-    var bounds = list.getBoundingClientRect();
-    entries.forEach(function (entry) {
+    // Read geometry in one pass. Interleaving text updates with the next row's
+    // bounds forces a fresh layout repeatedly on real, long channel directories.
+    var bounds = list.getBoundingClientRect(), selectedSnapshot;
+    var visible = entries.filter(function (entry) {
       var row = rowRefs[entry.number], rect = row.host.getBoundingClientRect();
-      if (rect.bottom >= bounds.top && rect.top <= bounds.bottom) updateRow(row, snapshot(entry.number));
+      return rect.bottom >= bounds.top && rect.top <= bounds.bottom;
     });
-    details();
+    visible.forEach(function (entry) {
+      var s = snapshot(entry.number);
+      if (entry.number === selected) selectedSnapshot = s;
+      updateRow(rowRefs[entry.number], s);
+    });
+    details(selectedSnapshot);
   }
   function legacyOpen() { var guide = document.getElementById('gwrap'); return !!(guide && guide.classList.contains('show')); }
   function open() {

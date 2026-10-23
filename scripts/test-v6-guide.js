@@ -7,12 +7,13 @@ const root = path.resolve(__dirname, '..');
 
 // DOM/clock boundaries only; exercise the actual presenter and command adapter.
 function harness(search = '?v6=1') {
-  const ids = new Map(), intervals = new Map(), calls = [], reads = [], offscreen = new Set(); let connected = false, serial = 0;
+  const ids = new Map(), intervals = new Map(), calls = [], reads = [], layout = [], offscreen = new Set(); let connected = false, serial = 0;
   class Node {
     constructor(tag) { this.tagName = tag.toUpperCase(); this.children = []; this.attrs = {}; this.listeners = {};
       this.dataset = {}; this.style = {}; this.hidden = false; this.textContent = ''; this.value = ''; this.scrollTop = 0; this.tabIndex = 0;
       const classes = new Set(); this.classList = { add: x => classes.add(x), remove: x => classes.delete(x), contains: x => classes.has(x),
         toggle: (x, on) => { on = on == null ? !classes.has(x) : on; on ? classes.add(x) : classes.delete(x); } }; }
+    set textContent(v) { this._text = v; if (this.parentNode) layout.push('write'); } get textContent() { return this._text; }
     set id(v) { this._id = v; ids.set(v, this); } get id() { return this._id; }
     appendChild(x) { this.children.push(x); x.parentNode = this; return x; }
     replaceChildren(...xs) { this.children.forEach(x => { x.parentNode = null; }); this.children = []; xs.forEach(x => this.appendChild(x)); }
@@ -21,7 +22,7 @@ function harness(search = '?v6=1') {
     contains(x) { return this === x || this.children.some(c => c.contains(x)); }
     get isConnected() { return document.body.contains(this); }
     focus() { document.activeElement = this; } blur() { document.activeElement = document.body; }
-    scrollIntoView() {} getBoundingClientRect() { return offscreen.has(Number(this.dataset.channelNum)) ? { top: 1800, bottom: 1900 } : { top: 0, bottom: 700 }; }
+    scrollIntoView() {} getBoundingClientRect() { layout.push('read'); return offscreen.has(Number(this.dataset.channelNum)) ? { top: 1800, bottom: 1900 } : { top: 0, bottom: 700 }; }
     getClientRects() { return this.hidden ? [] : [this.getBoundingClientRect()]; }
     querySelectorAll() { const out = []; const walk = el => el.children.forEach(c => { if (['BUTTON','INPUT','SELECT'].includes(c.tagName)) out.push(c); walk(c); }); walk(this); return out; }
     dispatch(type, extra = {}) {
@@ -66,7 +67,7 @@ function harness(search = '?v6=1') {
   vm.runInContext(fs.readFileSync(path.join(root, 'assets/guide-contract-client.js'), 'utf8'), context);
   const script = path.join(root, 'assets/v6-guide.js');
   if (fs.existsSync(script)) vm.runInContext(fs.readFileSync(script, 'utf8'), context);
-  return { context, document, opener, legacy, ids, calls, intervals, snapshots, reads, offscreen,
+  return { context, document, opener, legacy, ids, calls, intervals, snapshots, reads, layout, offscreen,
     connect(v) { connected = v; }, tick() { [...intervals.values()].forEach(fn => fn()); },
     visibleNumbers() { return ids.get('rsV6GuideList').children.map(x => Number(x.dataset.channelNum)); } };
 }
@@ -147,6 +148,23 @@ test('opening only reads on-screen program rows and the selected channel, not th
   assert.ok(!h.reads.includes(300), 'off-screen queue selection must not delay guide opening');
   h.offscreen.delete(300); h.tick();
   assert.equal(h.ids.get('rsV6GuideNow-300').textContent, 'Select a live channel');
+});
+
+test('refresh batches row measurements before text updates instead of forcing a layout per row', () => {
+  const h = harness(); h.context.openGuide(); h.layout.length = 0;
+  h.snapshots[150].current.title = 'Changed cartoon';
+  h.snapshots[226].next.title = 'Changed documentary';
+  h.tick();
+  assert.ok(h.layout.includes('write'), 'changed queue titles reach the actual rows');
+  const firstWrite = h.layout.indexOf('write');
+  assert.ok(!h.layout.slice(firstWrite).includes('read'), 'all geometry must be read before row text is written');
+  assert.equal(h.ids.get('rsV6GuideNow-226').textContent, 'Changed documentary');
+});
+
+test('refresh reads a visible selected program once so detail and row share a consistent snapshot', () => {
+  const h = harness(); h.context.openGuide(); h.reads.length = 0; h.tick();
+  assert.deepEqual(h.reads, [150,226,300]);
+  assert.equal(h.ids.get('rsV6GuideProgram').textContent, '<b>Duck Amuck</b>');
 });
 
 test('the real watching shell cannot override focus restored to a non-Guide opener', () => {

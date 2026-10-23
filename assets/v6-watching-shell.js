@@ -49,7 +49,7 @@
     element('small', '', 'CHANNEL', dial);
     element('strong', 'rsV6Channel', '—', dial);
     var copy = element('div', 'rsV6Copy', '', readout);
-    element('div', 'rsV6Brand', 'REALSIGNAL / V6 PREVIEW', copy);
+    element('div', 'rsV6Brand', 'REALSIGNAL / V6 RELEASE CANDIDATE', copy);
     element('div', 'rsV6Title', 'Television is off', copy);
     element('div', 'rsV6Status', 'STANDBY', copy);
     var clock = element('div', 'rsV6Clock', '', readout);

@@ -32,6 +32,7 @@ on:
       - 'assets/v6-watching-shell.*'
       - 'assets/v6-guide.*'
       - 'assets/fast-catalog.js'
+      - 'assets/weather-networks.*'
       - 'assets/commercial-scheduler.js'
       - 'assets/release2-runtime.js'
       - 'assets/release3-runtime.js'
@@ -96,6 +97,8 @@ jobs:
           node --test scripts/test-ia-certification-readiness.js
       - name: Test delayed live-data callbacks across channel changes
         run: node scripts/test-live-data-lifecycle.js
+      - name: Test Weather Watch network selection and cleanup
+        run: node --test scripts/test-weather-networks.js
       - name: Test FAST source selection, real-frame health, and manual Sports ownership
         run: |
           node --test scripts/test-live-tv-recovery.js

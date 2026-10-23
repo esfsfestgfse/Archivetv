@@ -9,7 +9,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>REALSIGNAL · Retro Cable 6.0.2</title>
+<title>REALSIGNAL · Retro Cable 6.0.3</title>
 <meta name="realsignal-ia-repair-channels" content="10,12,22,150">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
@@ -1700,10 +1700,12 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
 @media(prefers-reduced-motion:reduce){.sports-screen *,.wx-screen *,.wr-cabinet *{animation-duration:.001ms!important;transition-duration:.001ms!important}}
 </style>
 <link rel="stylesheet" href="assets/guide-overhaul.css">
-<link rel="stylesheet" href="assets/v6-watching-shell.css?v=6.0.2">
-<link rel="stylesheet" href="assets/v6-guide.css?v=6.0.2">
-<script src="assets/commercial-scheduler.js?v=6.0.2"></script>
-<script src="assets/fast-catalog.js?v=6.0.2"></script>
+<link rel="stylesheet" href="assets/v6-watching-shell.css?v=6.0.3">
+<link rel="stylesheet" href="assets/v6-guide.css?v=6.0.3">
+<script src="assets/commercial-scheduler.js?v=6.0.3"></script>
+<script src="assets/fast-catalog.js?v=6.0.3"></script>
+<link rel="stylesheet" href="assets/weather-networks.css?v=6.0.3">
+<script src="assets/weather-networks.js?v=6.0.3"></script>
 </head>
 <body>
 <script>
@@ -1715,7 +1717,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="6.0.2-desktop-retro-cable";
+window.__ATV_BUILD="6.0.3-desktop-retro-cable";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -2862,7 +2864,7 @@ const CHANNEL_META={
 "Aviation":{desc:"Airplanes and flight \u2014 aviation history from biplanes to jets.",best:"afternoons",rel:["Auto Racing","Railroad"]},
 "Live Radio":{desc:"LIVE: real broadcast stations worldwide on a spinnable 3D globe (radio-browser) \u2014 drag the earth, click a dot.",best:"anytime",rel:["Public Domain Art","Live TV"]},
 "Public Domain Art":{desc:"A rotating gallery of public-domain masterworks from The Met Open Access, with a classical-music bed.",best:"anytime",rel:["Historic Waco","Deep Space Jazz"]},
-"Weather Watch":{desc:"LIVE: current station observations, three NWS radar layers, hourly and extended forecasts, local alerts, a national warning watchboard, and automatic Open-Meteo failover.",best:"anytime",rel:["Local Radar","Tropical Watch"]},
+"Weather Watch":{desc:"LIVE: choose Local Forecast, FOX Weather, or The Weather Channel. Local coverage includes station observations, three radar layers, hourly and extended forecasts, alerts, a national watchboard, and Open-Meteo failover.",best:"anytime",rel:["Local Radar","Tropical Watch"]},
 "Aurora & Space Weather":{desc:"LIVE: NOAA Kp observations and 72-hour forecast, OVATION aurora oval, solar-wind speed, IMF Bz/Bt, location-aware visibility estimate, and current SWPC notices.",best:"anytime",rel:["Solar Dashboard","ISS Tracker"]},
 "Ham Radio":{desc:"LIVE: worldwide WSPR beacon paths with corrected amateur bands, exact frequencies, transmitter power, Maidenhead grids, path distance, and NOAA propagation conditions.",best:"anytime",rel:["Aurora & Space Weather","Live Radio"]},
 "ISS Tracker":{desc:"LIVE: International Space Station ground position, orbital track, altitude, velocity, visibility footprint, viewer-relative distance, future orbit samples, and current CelesTrak elements.",best:"anytime",rel:["Aurora & Space Weather","NASA Live"]},
@@ -12805,13 +12807,20 @@ async function playTV(c,my,list,idx,triedCount,proxyIdx,altIdx){
     pane.innerHTML='<div class="dc-media-cap">CASTING: '+esch(String(rootC.name).toUpperCase())+' · CONTROL FROM PHONE</div>';
     pane.classList.remove("tv3-connecting","tv3-error");pane.classList.add("tv3-playing");return;
   }
-  var v=document.createElement("video");v.setAttribute("playsinline","");v.muted=true;v.autoplay=true;v.controls=true;
+  var v=document.createElement("video");v.setAttribute("playsinline","");v.muted=c.followAppAudio?muted:true;if(c.followAppAudio)v.volume=vol;v.autoplay=true;v.controls=true;
   v.style.cssText="width:100%;height:100%;object-fit:contain;background:#000;display:block";
   pane.innerHTML="";pane.appendChild(v);
   var cap=document.createElement("div");cap.className="dc-media-cap";
   cap.textContent="LIVE: "+String(rootC.name).toUpperCase()+" · "+String(c.src||"IPTV");pane.appendChild(cap);
   var tuneStartedAt=Date.now(),settled=false,failed=false,watchdog=null,stallTimer=null,hls=null,lastTime=0;
   function active(){return !failed&&current();}
+  function startVideo(){
+    try{var playing=v.play();if(playing&&playing.catch)playing.catch(function(){
+      if(!active()||!c.followAppAudio||v.muted)return;
+      v.muted=true;try{needSound(true);}catch(_){}
+      try{var retry=v.play();if(retry&&retry.catch)retry.catch(function(){});}catch(_){}
+    });}catch(_){}
+  }
   function clearWatch(){if(watchdog){clearTimeout(watchdog);watchdog=null;}}
   function clearStall(){if(stallTimer){clearTimeout(stallTimer);stallTimer=null;}}
   function dispose(){
@@ -12868,7 +12877,7 @@ async function playTV(c,my,list,idx,triedCount,proxyIdx,altIdx){
   if(!active())return;
   if(!(Hls&&Hls.isSupported())){
     if(v.canPlayType("application/vnd.apple.mpegurl")){
-      v.src=src;try{var nativePlay=v.play();if(nativePlay&&nativePlay.catch)nativePlay.catch(function(){});}catch(_){}
+      v.src=src;startVideo();
       return;
     }
     fail("no HLS support on this device");return;
@@ -12879,7 +12888,7 @@ async function playTV(c,my,list,idx,triedCount,proxyIdx,altIdx){
     hls.on(Hls.Events.MANIFEST_PARSED,function(_,data){
       if(!active())return;
       if(manifestNeedsUnsupportedCodec(data)){fail("unsupported video codec");return;}
-      try{var playing=v.play();if(playing&&playing.catch)playing.catch(function(){});}catch(_){}
+      startVideo();
     });
     hls.on(Hls.Events.ERROR,function(_,d){
       if(!active()||!d||!d.fatal)return;
@@ -18597,9 +18606,27 @@ function ensureWxIconCSS(){ if($("wxIconCSS"))return; var st=document.createElem
     ".wx-fx-ic{display:inline-flex;align-items:center;gap:8px}.wx-fx-ic .wx-ic{width:36px;height:30px;margin:0}"+
     ".wx-day-fx,.wx-hr-fx{white-space:normal;overflow:hidden;text-overflow:ellipsis;line-height:1.2;max-height:2.5em}";
   document.head.appendChild(st); }
+function mountWeatherNetworks(ch,sl,my){
+  var owner=$("wxApp");
+  var controller=window.RealSignalWeather.mount(owner,{
+    isCurrent:function(){return my===token&&powered&&$("wxApp")===owner;},
+    stop:stopTVPlayback,
+    onSelect:function(feed){
+      if(feed){
+        stopIAJazz();stopAfdSpeech();
+        var routes=tvPlaybackProxies(feed).map(function(p){return proxiedVia(p,feed.url);});if(!routes.length)routes=[feed.url];
+        curItem={url:routes[0],alts:routes.slice(1),title:feed.name,type:"video",ch:ch.num,chName:ch.nm,isLive:true};
+        showNow(ch,sl,feed.name,"LIVE WEATHER");setChanStatus(ch.num,feed.name);playTV(feed,my);
+      }else{curItem=null;startIAJazz("gmjazz");showNow(ch,sl,"Weather Watch","");var t=$("wxBugTemp"),p=$("wxBugPlace");setChanStatus(ch.num,((t&&t.textContent)||"")+" · "+((p&&p.textContent)||"LOCAL FORECAST"));}
+    }
+  });
+  chanRT.teardowns.push(controller.dispose);return controller;
+}
 async function tuneWeather(ch,sl,my){
   if(my!==token)return; hideOv(); setSig("live","ON AIR"); showNow(ch,sl,"Weather Watch","");
   if(screenArea){ screenArea.innerHTML=
+    '<section class="wx-app" id="wxApp">'+
+      '<nav class="wx-network-nav" aria-label="Weather coverage"><button type="button" data-weather-view="local" aria-pressed="true">Local Forecast</button><button type="button" data-weather-view="fox" aria-pressed="false">FOX Weather</button><button type="button" data-weather-view="twc" aria-pressed="false">The Weather Channel</button></nav>'+
     '<div class="wx-screen" id="wxScreen">'+
       '<div class="wx-top"><span class="wx-loc">LOCATING\u2026</span><span class="wx-upd" id="wxUpd"></span></div>'+
       '<div class="wx-main" id="wxMain">'+
@@ -18622,7 +18649,8 @@ async function tuneWeather(ch,sl,my){
           '<span class="wx-bug-place" id="wxBugPlace">LOCATING\u2026</span><span class="wx-bug-alert" id="wxBugAlert"></span></div>'+
         '<div class="wx-bug-clock" id="wxBugClock">--:--</div>'+
       '</div>'+
-    '</div>'; }
+    '</div><section class="wx-network-view" id="wxNetwork" aria-label="Live weather television" hidden><div id="tvPane"></div></section></section>'; }
+  var weatherNetworks=mountWeatherNetworks(ch,sl,my);
   var radarMode=0,radarChoices=[]; /* NEXT or a radar click cycles LOCAL -> REGIONAL -> NATIONAL without refetching the forecast. */
   function paintRadar(){
     if(!radarChoices.length){quickBanner("RADAR FEED WARMING");return;}
@@ -18631,7 +18659,7 @@ async function tuneWeather(ch,sl,my){
     if(rs){rs.classList.remove("ready");rs.textContent="LOADING "+rm[0]+" RADAR\u2026";}
     if(ri){var hit=rm[1].match(/\/([^/]+)_loop\.gif$/),station=hit&&hit[1],pre=new Image();pre.onload=function(){if(my!==token)return;ri.onload=function(){if(rs)rs.classList.add("ready");};ri.src=pre.src;if(rs){rs.classList.add("ready");rs.textContent=rm[0]+" RADAR · LIVE";}};pre.onerror=function(){if(rs){rs.classList.remove("ready");rs.textContent=rm[0]+" RADAR DELAYED · HOLDING LAST SCAN";}};pre.src=station?"https://ais-relay.tdy1990.workers.dev/live/radar?station="+encodeURIComponent(station)+"&frame="+Math.floor(Date.now()/120000):rm[1]+"?_="+Date.now();}
   }
-  window.__weatherNext=function(){radarMode=(radarMode+1)%Math.max(1,radarChoices.length);paintRadar();if(radarChoices.length)quickBanner("RADAR \u00b7 "+radarChoices[radarMode][0]);};
+  window.__weatherNext=function(){if(weatherNetworks.current()!=="local"){quickBanner("LIVE WEATHER · USE THE COVERAGE BUTTONS TO SWITCH");return;}radarMode=(radarMode+1)%Math.max(1,radarChoices.length);paintRadar();if(radarChoices.length)quickBanner("RADAR \u00b7 "+radarChoices[radarMode][0]);};
   var rw=screenArea?screenArea.querySelector(".wx-radar-wrap"):null;
   if(rw){ rw.style.cursor="pointer"; rw.title="Switch radar layer";rw.setAttribute("role","button");rw.setAttribute("tabindex","0");
     rw.addEventListener("click",window.__weatherNext);rw.addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();window.__weatherNext();}}); }
@@ -18711,7 +18739,7 @@ async function tuneWeather(ch,sl,my){
       var curDesc = op&&op.textDescription ? op.textDescription : (per0.shortForecast||"Conditions unavailable");
       if(tEl)tEl.textContent=(curTempF!=null?curTempF+"\u00b0F":"--\u00b0");
       if(fEl)fEl.innerHTML='<span class="wx-fx-ic">'+wxIcon(curDesc,(per0.isDaytime!=null?per0.isDaytime:(function(){var h=new Date().getHours();return h>=7&&h<19;})()))+'<span>'+esch(curDesc)+'</span></span>';
-      if(curTempF!=null) setChanStatus(ch.num,curTempF+"\u00b0F \u00b7 "+curDesc);
+      if(curTempF!=null&&weatherNetworks.current()==="local") setChanStatus(ch.num,curTempF+"\u00b0F \u00b7 "+curDesc);
       /* feed the broadcast bug from the same values -- no extra requests */
       var bt=$("wxBugTemp"); if(bt&&curTempF!=null) bt.textContent=curTempF+"\u00b0";
       var bp=$("wxBugPlace");
@@ -18746,7 +18774,7 @@ async function tuneWeather(ch,sl,my){
         }).join("") || '<div class="pop-empty">Forecast unavailable</div>';
       }
       /* 1.6.6: short spoken recap (replaces the retired Storm Watch Radio AFD) — once per new forecast */
-      try{ if(soundOn&&!muted&&window.speechSynthesis&&periods.length){
+      try{ if(weatherNetworks.current()==="local"&&soundOn&&!muted&&window.speechSynthesis&&periods.length){
         var wxKey=(periods[0]&&periods[0].startTime)||"";
         if(wxKey&&window.__wxSpoke!==wxKey){ window.__wxSpoke=wxKey;
           var recap=periods.slice(0,3).map(function(p){ return (p.name||"")+": "+(p.shortForecast||"")+(p.temperature!=null?(", "+(p.isDaytime?"high ":"low ")+p.temperature+" degrees"):""); }).join(". ");
@@ -19348,8 +19376,8 @@ window.__atvBootDone=true; /* app is up -- from here on, errors get logged, not 
 <script src="assets/release3-runtime.js"></script>
 <script src="assets/release31-runtime.js"></script>
 <script src="assets/guide-contract.js?v=v6-contract-1"></script>
-<script src="assets/guide-contract-client.js?v=6.0.2"></script>
-<script src="assets/v6-watching-shell.js?v=6.0.2"></script>
-<script src="assets/v6-guide.js?v=6.0.2"></script>
+<script src="assets/guide-contract-client.js?v=6.0.3"></script>
+<script src="assets/v6-watching-shell.js?v=6.0.3"></script>
+<script src="assets/v6-guide.js?v=6.0.3"></script>
 </body>
 </html>

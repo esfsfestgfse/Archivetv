@@ -103,6 +103,23 @@ async def main():
         version_chip = await pg.evaluate("()=>{var e=document.getElementById('verChip');return e?e.textContent.trim():'';}")
         check("9. Visible build stamp matches runtime build", visible_build_matches(runtime_build, visible_build, version_chip))
 
+        # Weather network UI must use the full remaining stage, not the legacy
+        # live-TV thumbnail max-height. External video is deliberately mocked in CI.
+        await pg.evaluate("()=>tuneNum(950)")
+        await pg.locator('[data-weather-view="local"]').wait_for(state='visible')
+        check("13. Weather defaults to local forecast", await pg.locator('#wxScreen').is_visible() and not await pg.locator('#wxNetwork').is_visible())
+        await pg.locator('[data-weather-view="fox"]').click()
+        fits = await pg.evaluate("""()=>{
+            const host=document.getElementById('wxNetwork').getBoundingClientRect();
+            const pane=document.getElementById('tvPane').getBoundingClientRect();
+            const buttons=[...document.querySelectorAll('[data-weather-view]')];
+            return pane.height >= host.height-2 && pane.width >= host.width-2 &&
+              buttons.every(b=>{const r=b.getBoundingClientRect();return r.width>0&&r.left>=0&&r.right<=innerWidth+1;});
+        }""")
+        check("14. Weather network fills stage and controls fit", fits)
+        await pg.locator('[data-weather-view="local"]').click()
+        check("15. Local forecast returns and network media stops", await pg.locator('#wxScreen').is_visible() and await pg.evaluate("()=>!tvHls&&!document.querySelector('#tvPane video')?.getAttribute('src')"))
+
         # The rollback is an explicit supported presentation, not a hidden-control
         # workaround when the default guide fails.
         await pg.goto(TARGET + ('&' if '?' in TARGET else '?') + 'v6=0', wait_until='load')
@@ -119,7 +136,7 @@ async def main():
 
         await b.close()
 
-    print(f"\n=== {len(failures)} failures out of 12 checks ===")
+    print(f"\n=== {len(failures)} failures out of 15 checks ===")
     if errors:
         print(f"Page errors: {errors[:3]}")
     if failures:

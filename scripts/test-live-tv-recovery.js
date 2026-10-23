@@ -35,6 +35,17 @@ function playback(file){
  return {...h,instances,timers,health,pane,elements,Hls};
 }
 for(const file of ['the_dial_desktop.html','the_dial_mobile.html']){
+ test(file+': opted-in weather network video honors app volume and mute state',async()=>{
+  const h=playback(file);Object.assign(h.scope,{muted:false,vol:0.35});
+  await h.scope.playTV({name:'FOX Weather',url:'https://247wlive.foxweather.com/stream/index.m3u8',followAppAudio:true},1);
+  assert.equal(h.instances[0].video.muted,false);assert.equal(h.instances[0].video.volume,0.35);
+ });
+ test(file+': browser audio-autoplay rejection falls back to a visible muted weather video',async()=>{
+  const h=playback(file);let plays=0;Object.assign(h.scope,{muted:false,vol:0.35,needSound(){}});
+  await h.scope.playTV({name:'FOX Weather',url:'https://247wlive.foxweather.com/stream/index.m3u8',followAppAudio:true},1);
+  const v=h.instances[0].video;v.play=()=>++plays===1?Promise.reject(Error('NotAllowedError')):Promise.resolve();
+  h.instances[0].fire('manifest',{});await new Promise(r=>setImmediate(r));assert.equal(v.muted,true);assert.equal(plays,2);
+ });
  test(file+': Live TV opens on FAST services while keeping community IPTV selectable',()=>{
   const {scope,text}=catalog(file);const start=text.indexOf('  var TV_SRCS=IPTV_TABS.filter('),end=text.indexOf('  var sourceOwner=',start);
   vm.runInContext(text.slice(start,end),scope);assert.equal(scope.curSrc.label,'FAST · SERVICES');assert.ok(scope.TV_SRCS.some(x=>x.label==='IPTV ORG'));

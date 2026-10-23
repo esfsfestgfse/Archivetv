@@ -31,6 +31,7 @@ on:
       - 'assets/guide-contract*.js'
       - 'assets/v6-watching-shell.*'
       - 'assets/v6-guide.*'
+      - 'assets/fast-catalog.js'
       - 'assets/commercial-scheduler.js'
       - 'assets/release2-runtime.js'
       - 'assets/release3-runtime.js'
@@ -95,6 +96,11 @@ jobs:
           node --test scripts/test-ia-certification-readiness.js
       - name: Test delayed live-data callbacks across channel changes
         run: node scripts/test-live-data-lifecycle.js
+      - name: Test FAST source selection, real-frame health, and manual Sports ownership
+        run: |
+          node --test scripts/test-live-tv-recovery.js
+          node --test scripts/test-hls-proxy.mjs
+          node scripts/test-fast-recovery-contract.js
       - name: Guard guide row stability during background queue warming
         run: node scripts/test-guide-row-stability.js
       - name: Guard single guide renderer ownership and card behavior

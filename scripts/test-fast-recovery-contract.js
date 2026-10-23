@@ -15,7 +15,7 @@ for (const [name, source] of [['desktop', desktop], ['mobile', mobile]]) {
     'fastSeedCatalog(FAST_FEEDS.slice(0,6))',
     'FAST_PROVIDER_COOLDOWN_MS',
     'loadIptvCatalog()',
-    'label:"FAST · VERIFIED"',
+    'label:"FAST · SERVICES"',
     'FreeLiveSports',
     'freelivesports.m3u',
     'HP FAST',
@@ -26,7 +26,7 @@ for (const [name, source] of [['desktop', desktop], ['mobile', mobile]]) {
     'function tvHealthScore(e)',
     'c._healthScore',
     'tuneStartedAt=Date.now()',
-    'label:"Live now"',
+    'data-sports-live-mode="live"',
   ]) {
     if (!source.includes(needle)) throw new Error(`${name}: missing FAST recovery contract ${needle}`);
   }

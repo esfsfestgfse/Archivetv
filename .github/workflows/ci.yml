@@ -29,6 +29,7 @@ on:
       - 'migrations/**'
       - 'assets/source-catalog-client.js'
       - 'assets/guide-contract*.js'
+      - 'assets/v6-watching-shell.*'
       - 'assets/release2-runtime.js'
       - 'assets/release3-runtime.js'
       - 'sw.js'
@@ -96,6 +97,8 @@ jobs:
         run: node --test scripts/test-guide-renderer-ownership.js
       - name: Validate shared V6 guide snapshots and command routing
         run: node --test scripts/test-guide-contract.js
+      - name: Validate guarded V6 watching presentation
+        run: node --test scripts/test-v6-watching-shell.js
       - name: Validate 2.2 health telemetry runtime
         run: node scripts/test-release2-runtime.js
       - name: Validate V3 API contract

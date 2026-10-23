@@ -1,0 +1,41 @@
+/* All overrides are canary-scoped. Removing the root class restores the legacy UI. */
+#rsV6Dock[hidden]{display:none!important}
+html.rs-v6-watch{height:100%;overflow:hidden;--v6-dock:100px;--v6-edge:12px}
+.rs-v6-watch body{height:100vh;height:100dvh;min-height:0;margin:0;overflow:hidden;background:#090e0c;color:#edf1e9;font-family:Arial,Helvetica,sans-serif}
+.rs-v6-watch .room{position:fixed!important;inset:0 0 var(--v6-dock)!important;width:100%!important;height:auto!important;min-height:0!important;margin:0!important;padding:var(--v6-edge)!important;display:block!important;background:#090e0c!important;overflow:hidden!important}
+.rs-v6-watch .room::before,.rs-v6-watch .room::after,.rs-v6-watch .console::before,.rs-v6-watch .console::after{display:none!important}
+.rs-v6-watch .stage,.rs-v6-watch .console{position:relative!important;display:block!important;width:100%!important;max-width:none!important;height:100%!important;max-height:none!important;min-height:0!important;aspect-ratio:auto!important;margin:0!important;padding:0!important;border:0!important;background:none!important;box-shadow:none!important;transform:none!important}
+.rs-v6-watch .set{position:absolute!important;inset:0!important;width:auto!important;height:auto!important;display:block!important;min-height:0!important;margin:0!important;padding:0!important}
+.rs-v6-watch #tube{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;border:1px solid #344139!important;border-radius:9px!important;box-shadow:0 0 0 1px #020403!important;background:#000!important;overflow:hidden!important}
+.rs-v6-watch #screenArea{position:absolute!important;inset:0!important;width:100%!important;height:100%!important}
+.rs-v6-watch #screenArea>video,.rs-v6-watch #screenArea>iframe{width:100%!important;height:100%!important;object-fit:contain!important;border:0!important}
+.rs-v6-watch .marq-wall,.rs-v6-watch .lamp,.rs-v6-watch .speaker,.rs-v6-watch .console-legs,.rs-v6-watch .sidetable,.rs-v6-watch .hardware-remote,.rs-v6-watch .cab-controls,.rs-v6-watch .cab-pow-hit,.rs-v6-watch .cab-vfd-mask,.rs-v6-watch .cabinet-readout,.rs-v6-watch #glassDock,.rs-v6-watch #saBox,.rs-v6-watch .curve,.rs-v6-watch .aberration,.rs-v6-watch .tube>.grille,.rs-v6-watch #remoteToggle,.rs-v6-watch #remotePanel{display:none!important}
+.rs-v6-watch #rsV6Dock{position:fixed;z-index:70;inset:auto 0 0;box-sizing:border-box;height:var(--v6-dock);padding:10px 16px 14px;display:grid;grid-template-columns:minmax(240px,1fr) minmax(560px,1.5fr);gap:20px;align-items:center;background:linear-gradient(#1e2822,#111a15);border-top:1px solid #4a584b;box-shadow:0 -2px 20px #0007;color:#e8ede4;font-family:Arial,Helvetica,sans-serif;transition:opacity .25s ease}
+.rs-v6-watch #rsV6Dock.is-idle{opacity:.24}
+.rs-v6-watch #rsV6Dock:hover,.rs-v6-watch #rsV6Dock:focus-within{opacity:1}
+.rs-v6-watch #rsV6Readout{display:flex;align-items:center;gap:16px;min-width:0}
+.rs-v6-watch #rsV6Dial{flex:none;border-right:1px solid #556352;padding-right:16px;min-width:68px}
+.rs-v6-watch #rsV6Dial small{display:block;font:600 9px/1.2 monospace;letter-spacing:1.8px;color:#9caa97}
+.rs-v6-watch #rsV6Channel{display:block;color:#a6ffb3;font:500 38px/1.05 monospace;letter-spacing:1px;text-shadow:0 0 12px #80ff9a55}
+.rs-v6-watch #rsV6Copy{min-width:0;flex:1}
+.rs-v6-watch #rsV6Brand{font:700 9px/1.3 monospace;letter-spacing:1.5px;color:#bcbd95;margin-bottom:5px}
+.rs-v6-watch #rsV6Title{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px;font-weight:600;line-height:1.3}
+.rs-v6-watch #rsV6Status{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#a2b19f;font:10px/1.5 monospace;letter-spacing:.6px;margin-top:3px}
+.rs-v6-watch #rsV6Clock{flex:none;text-align:right;white-space:nowrap}
+.rs-v6-watch #rsV6Time{display:block;font:600 18px/1.3 monospace;color:#a6ffb3}
+.rs-v6-watch #rsV6Date{font:9px/1.5 monospace;letter-spacing:.8px;color:#bec7b7}
+.rs-v6-watch #rsV6Controls{display:grid;grid-template-columns:repeat(11,minmax(0,1fr));gap:5px;min-width:0}
+.rs-v6-watch #rsV6Controls button{appearance:none;box-sizing:border-box;min-height:44px;min-width:0;margin:0;padding:6px 3px;border:1px solid #536052;border-radius:6px;background:linear-gradient(#344136,#202c23);color:#e5eddf;font:600 11px/1.2 Arial,Helvetica,sans-serif;cursor:pointer;white-space:nowrap;touch-action:manipulation;box-shadow:inset 0 1px #ffffff10,0 2px 2px #0005}
+.rs-v6-watch #rsV6Controls button:hover{background:#445344;border-color:#a5b594}
+.rs-v6-watch #rsV6Controls button:active{transform:translateY(1px)}
+.rs-v6-watch #rsV6Controls button:focus-visible{outline:2px solid #baffb8;outline-offset:3px}
+.rs-v6-watch #rsV6Controls #rsV6Guide,.rs-v6-watch #rsV6Controls #rsV6Next{border-color:#b6bb85;color:#f0edc6;background:linear-gradient(#4c533b,#303b28)}
+.rs-v6-watch #rsV6Controls #rsV6Power{color:#ffb29b}
+.rs-v6-watch #rsV6Controls button[aria-pressed=true]{border-color:#a6ffb3;box-shadow:inset 0 -2px #a6ffb3}
+.rs-v6-watch .lower{max-width:calc(100% - 32px)!important;left:16px!important;right:16px!important;bottom:20px!important}
+.rs-v6-watch .info-panel,.rs-v6-watch .osd{max-height:calc(100% - 24px)!important;overflow:auto!important;box-sizing:border-box}
+.rs-v6-watch #atv-build-stamp{bottom:2px!important;color:#8a9a85!important;font-size:8px!important;z-index:71!important}
+@media(max-width:1200px){html.rs-v6-watch{--v6-dock:126px}.rs-v6-watch #rsV6Dock{grid-template-columns:minmax(0,1fr);gap:7px;padding:8px 14px 14px}.rs-v6-watch #rsV6Channel{font-size:28px}.rs-v6-watch #rsV6Dial{min-width:48px}.rs-v6-watch #rsV6Readout{gap:12px}.rs-v6-watch #rsV6Brand{margin-bottom:2px}.rs-v6-watch #rsV6Status{display:none}.rs-v6-watch #rsV6Controls{grid-template-columns:repeat(11,minmax(0,1fr))}}
+@media(max-width:600px){html.rs-v6-watch{--v6-dock:182px;--v6-edge:6px}.rs-v6-watch #rsV6Dock{padding:8px 10px max(16px,env(safe-area-inset-bottom));gap:7px}.rs-v6-watch #rsV6Controls{grid-template-columns:repeat(6,minmax(0,1fr));gap:5px}.rs-v6-watch #rsV6Controls button{font-size:10px}.rs-v6-watch #rsV6Title{font-size:13px}.rs-v6-watch #rsV6Clock{max-width:110px}.rs-v6-watch #rsV6Time{font-size:15px}.rs-v6-watch #rsV6Date{font-size:8px}.rs-v6-watch #rsV6Brand{font-size:8px;letter-spacing:1px}.rs-v6-watch #rsV6Dial{padding-right:10px;min-width:40px}.rs-v6-watch #tube{border-radius:5px!important}}
+@media(max-height:460px) and (min-width:601px){html.rs-v6-watch{--v6-dock:112px;--v6-edge:5px}.rs-v6-watch #rsV6Dock{padding:5px 12px 13px;gap:3px}.rs-v6-watch #rsV6Brand{display:none}.rs-v6-watch #rsV6Time{font-size:14px}.rs-v6-watch #rsV6Date{font-size:8px}.rs-v6-watch #rsV6Dial small{font-size:8px}.rs-v6-watch #rsV6Channel{font-size:24px}}
+@media(prefers-reduced-motion:reduce){.rs-v6-watch #rsV6Dock,.rs-v6-watch #rsV6Controls button{transition:none!important}.rs-v6-watch .scan,.rs-v6-watch .fx-scan{animation:none!important}}

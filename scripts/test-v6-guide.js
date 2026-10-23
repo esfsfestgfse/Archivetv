@@ -122,14 +122,19 @@ test('keyboard navigation and search stay inside the dialog; Escape restores foc
   h.ids.get('rsV6GuideSearch').press('Escape'); assert.equal(h.ids.get('rsV6GuidePanel').hidden, true);
   assert.equal(h.document.activeElement, h.opener); assert.equal(leaked, 0);
 });
-test('default and Cast modes keep legacy ownership; mode exit releases the open dialog', () => {
-  for (const search of ['', '?v6=1&castReceiver=1']) {
+test('explicit rollback and Cast modes keep legacy ownership; mode exit releases the open dialog', () => {
+  for (const search of ['?v6=0', '?v6=1&castReceiver=1']) {
     const h = harness(search); h.context.openGuide(); assert.deepEqual(h.calls, [['legacy-open']]);
     assert.ok(!h.ids.get('rsV6GuidePanel'));
   }
   const h = harness(); h.context.openGuide(); h.connect(true); h.tick();
   assert.equal(h.ids.get('rsV6GuidePanel').hidden, true); assert.equal(h.intervals.size, 0); assert.deepEqual(h.calls, []);
   h.context.openGuide(); assert.deepEqual(h.calls, [['legacy-open']]);
+});
+test('the full release opens the V6 guide without an opt-in URL', () => {
+  const h = harness(''); h.context.openGuide();
+  assert.equal(h.ids.get('rsV6GuidePanel')?.hidden, false);
+  assert.deepEqual(h.calls, []);
 });
 
 test('the replacement owner records guide interactions without making telemetry a dependency', () => {

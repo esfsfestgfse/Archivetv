@@ -31,6 +31,7 @@ on:
       - 'assets/guide-contract*.js'
       - 'assets/v6-watching-shell.*'
       - 'assets/v6-guide.*'
+      - 'assets/commercial-scheduler.js'
       - 'assets/release2-runtime.js'
       - 'assets/release3-runtime.js'
       - 'sw.js'
@@ -104,6 +105,8 @@ jobs:
         run: node --test scripts/test-v6-watching-shell.js
       - name: Validate guarded V6 guide browsing and focus
         run: node --test scripts/test-v6-guide.js
+      - name: Validate inter-program commercial scheduling and recovery
+        run: node --test scripts/test-v6-commercials.js
       - name: Validate 2.2 health telemetry runtime
         run: node scripts/test-release2-runtime.js
       - name: Validate V6 prerelease and stale build stamp admission

@@ -217,12 +217,16 @@ for (const file of ['the_dial_mobile.html', 'the_dial_desktop.html']) {
     assert.equal(api.command('unrecognized'), false);
     assert.deepEqual(calls, [['latest', 150], ['next'], ['open'], ['close']]);
   });
-  test(file + ': existing builds and cast receivers keep their current guide contract', () => {
-    assert.equal(browserAdapter(file, '').api.enabled, false);
+  test(file + ': explicit rollback and cast receivers keep their current guide contract', () => {
+    assert.equal(browserAdapter(file, '?v6=0').api.enabled, false);
     assert.equal(browserAdapter(file, '?v6=1&castReceiver=1').api.enabled, false);
-    const { api, calls } = browserAdapter(file, '');
+    const { api, calls } = browserAdapter(file, '?v6=0');
     assert.equal(api.command('next'), false);
     assert.deepEqual(calls, []);
+  });
+  test(file + ': release presentation is available and enabled without a query flag', () => {
+    const { api } = browserAdapter(file, '');
+    assert.equal(api.available, true); assert.equal(api.enabled, true);
   });
   test(file + ': reading eligibility does not prune expired skip or failure ledgers', () => {
     const { api, context } = browserAdapter(file), writes = [];

@@ -113,9 +113,11 @@ if (!commercialBlock) issues.push('commercial engine block is missing');
 else {
   if (!/AD_LANES=\[/.test(commercialBlock) || (commercialBlock.match(/years:\[/g) || []).length < 6) issues.push('commercial engine needs rotating multi-era lanes');
   if (!/\(ch&&ch\.audio\)\?"audio":"movies"/.test(commercialBlock)) issues.push('commercial searches must select audio only for audio channels');
-  if (!/pl\.type!==kind/.test(commercialBlock)) issues.push('commercial playback must reject a mismatched media type');
+  if (!/ready\.playable\.type!==kind/.test(commercialBlock)) issues.push('prepared commercial playback must reject a mismatched media type');
   if (!/mediatype:"\+mt/.test(commercialBlock)) issues.push('commercial queries must declare an explicit media type');
-  if (!/deadline=Date\.now\(\)\+4500/.test(commercialBlock)) issues.push('commercial discovery must have a whole-break deadline');
+  const nextAd = commercialBlock.slice(commercialBlock.indexOf('async function nextAd('));
+  if (/await\s+(?:pickAdItem|resolvePlayable|warmAd|pickFromQueries)\(/.test(nextAd)) issues.push('commercial playback must never discover or resolve media at a program boundary');
+  if (!/ready=adWarm\[key\]/.test(nextAd) || !/it\.isAd\?900:/.test(source)) issues.push('commercial playback must use a prepared item and a bounded startup deadline');
   if (!/adQueue=0;return false/.test(commercialBlock)) issues.push('failed or interrupted commercial breaks must clear their queue');
 }
 if (!/if\(adsOn&&adQueue>0\)/.test(source)) issues.push('queued ads must not play after commercials are disabled');

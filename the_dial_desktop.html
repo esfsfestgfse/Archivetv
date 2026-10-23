@@ -9,7 +9,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>REALSIGNAL · Retro Cable 6.0.0-rc.1</title>
+<title>REALSIGNAL · Retro Cable 6.0.0</title>
 <meta name="realsignal-ia-repair-channels" content="10,12,22,150">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
@@ -1700,8 +1700,9 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
 @media(prefers-reduced-motion:reduce){.sports-screen *,.wx-screen *,.wr-cabinet *{animation-duration:.001ms!important;transition-duration:.001ms!important}}
 </style>
 <link rel="stylesheet" href="assets/guide-overhaul.css">
-<link rel="stylesheet" href="assets/v6-watching-shell.css?v=6.0.0-rc.1">
-<link rel="stylesheet" href="assets/v6-guide.css?v=6.0.0-rc.1">
+<link rel="stylesheet" href="assets/v6-watching-shell.css?v=6.0.0">
+<link rel="stylesheet" href="assets/v6-guide.css?v=6.0.0">
+<script src="assets/commercial-scheduler.js?v=6.0.0"></script>
 </head>
 <body>
 <script>
@@ -1713,7 +1714,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="6.0.0-rc.1-desktop-v6-guide";
+window.__ATV_BUILD="6.0.0-desktop-retro-cable";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -9281,7 +9282,8 @@ function playFile(it,ch,sl,my,isFallback){return new Promise(res=>{
      instances take several seconds to expose the first decoded frame. Do not
      discard a good Source Suite item at the generic IA timeout. */
   const boundedIaStart=iaRepairEnabled(ch)&&!isAudio&&!it.isAd&&!it.isSignoff;
-  let done=false,to; const startTimeout=boundedIaStart?4000:(it.isAd?4000:(ch&&ch.source==="v2preview"&&/peertube/i.test(String(it.provider||""))?15000:(isFallback>0?7000:(isAudio?9000:12000))));
+  let done=false,to,adRecoveryTimer; const startTimeout=boundedIaStart?4000:(it.isAd?900:(ch&&ch.source==="v2preview"&&/peertube/i.test(String(it.provider||""))?15000:(isFallback>0?7000:(isAudio?9000:12000))));
+  function finishAd(){if(!it.isAd||my!==token||!powered||curVideo!==v)return false;clearTimeout(adRecoveryTimer);try{v.pause();}catch(e){}v.dispatchEvent(new Event("ended"));return true;}
   function armStart(){clearTimeout(to);to=setTimeout(function(){if(boundedIaStart&&tryAlternate())return;fin(false);},startTimeout);}
   armStart();
   function tryPlay(){ try{const p=v.play&&v.play();
@@ -9300,6 +9302,7 @@ function playFile(it,ch,sl,my,isFallback){return new Promise(res=>{
   }catch(e){} }
   var recovery=iaRepairEnabled(ch)&&!it.isAd&&!it.isSignoff?window.RealSignalIAShelf.lifecycle(function(){return my===token&&powered&&curNum===ch.num;},function(){iaRepairEvent(ch,it,"failed");fastTuneDrop(ch.num);tuneNum(ch.num);}):null;
   function programFits(){
+    if(it.isAd&&!isAudio&&v.videoWidth>0&&v.videoHeight>v.videoWidth)return false;
     if(!enforceIaProgram)return true;
     const decoded=Object.assign({},it,{media:Object.assign({},it.meta&&it.meta.media||{},
       {type:"video",runtime:v.duration,width:v.videoWidth,height:v.videoHeight})});
@@ -9344,6 +9347,7 @@ function playFile(it,ch,sl,my,isFallback){return new Promise(res=>{
   const altQ=(it.alts||(it.alt?[it.alt]:[])).filter(function(url,index,all){return url&&url!==it.url&&all.indexOf(url)===index;}).slice(0,boundedIaStart?2:8);
   function tryAlternate(){if(done||my!==token||!powered||!altQ.length)return false;const nx=altQ.shift();try{nlog("video",true,"retrying the same program on an alternate origin");v.src=nx;v.load();}catch(e){}if(boundedIaStart)armStart();tryPlay();return true;}
   v.addEventListener("error",()=>{try{nlog("video",false,"err"+((v.error&&v.error.code)||"?")+" "+((v.src||"").split("/").pop().slice(-40)));}catch(e){}
+    if(it.isAd&&done&&finishAd())return;
     if(tryAlternate())return;
     if(recovery&&recovery.fail())return;fin(false);},{signal:sig});
   v.addEventListener("ended",async ()=>{ if(token!==my) return; resetProgress();
@@ -9352,7 +9356,14 @@ function playFile(it,ch,sl,my,isFallback){return new Promise(res=>{
     if(ch&&ch.source==="v2preview"){ if(token===my&&powered&&typeof window.__v2PreviewNext==="function")window.__v2PreviewNext(); return; }
     if(!powered) return;
     if(it.isAd){ if(adsOn&&adQueue>0){ if(await nextAd(ch,sl,my)) return; } else adQueue=0;
+      fastTuneDrop(ch.num);
       if(token===my&&powered)tuneNum(curNum); return; }
+    schedClear(ch);fastTuneDrop(ch.num); // Clear both rejoin caches BEFORE an interstitial can return early.
+    if(adScheduler){
+      try{if(curVideo&&isFinite(curVideo.duration)){totalMs+=curVideo.duration*1000;store.set("totalMs",totalMs);}}catch(e){}
+      if(adsOn&&shouldInsertAdBreak(ch,Number(v.duration)||0)&&await playAdBreak(ch,sl,my))return;
+      if(token===my&&powered)tuneNum(curNum);return;
+    }
     /* Drive-In commercial line: use the dedicated bumper/intermission pool for this station.
        These are video-only interstitials and never become ordinary program items. Keep this
        before the generic bumper/ad path so The Drive-In gets its own identity. */
@@ -9376,9 +9387,10 @@ function playFile(it,ch,sl,my,isFallback){return new Promise(res=>{
     fastTuneDrop(ch.num); /* An ended program must advance, never restart from the return-tune cache. */
     if(token===my&&powered) tuneNum(curNum); },{signal:sig}); // 'ended' is still the ONLY advance path
   /* buffering / stall handling — show spinner, auto-recover if a feed hangs */
-  v.addEventListener("waiting",()=>{ if(my===token&&curVideo===v){ showBuffer(); armStall(my); } },{signal:sig});
-  v.addEventListener("stalled",()=>{ if(my===token&&curVideo===v){ showBuffer(); armStall(my); } },{signal:sig});
+  v.addEventListener("waiting",()=>{ if(my===token&&curVideo===v){if(it.isAd){clearTimeout(adRecoveryTimer);adRecoveryTimer=setTimeout(finishAd,1500);return;} showBuffer(); armStall(my); } },{signal:sig});
+  v.addEventListener("stalled",()=>{ if(my===token&&curVideo===v){if(it.isAd){clearTimeout(adRecoveryTimer);adRecoveryTimer=setTimeout(finishAd,1500);return;} showBuffer(); armStall(my); } },{signal:sig});
   v.addEventListener("playing",()=>{ if(my===token){
+    clearTimeout(adRecoveryTimer);
     /* Some Archive MP4 derivatives carry audio only. A TV channel may only
        commit after the decoder exposes a picture; otherwise let the bounded
        fallback chain try the next candidate instead of leaving audio on black. */
@@ -9392,7 +9404,7 @@ function playFile(it,ch,sl,my,isFallback){return new Promise(res=>{
   if(preservePicture){v.style.position="absolute";v.style.inset="0";v.style.zIndex="0";v.style.pointerEvents="none";}
   v.style.opacity="0"; v.style.transition="opacity .35s ease"; screenArea.appendChild(v); if(window.__rsPlaybackAudit)window.__rsPlaybackAudit.watch(v,it); // outgoing picture remains until this candidate has a real frame
   v.classList.toggle("ff-glitch",!!ch.glitch); /* 1.1: reused element — toggle, don't accumulate */
-  if(it.isAd){ setTimeout(()=>{ try{ if(my===token && curVideo===v && !v.ended && !v.paused) v.dispatchEvent(new Event("ended")); }catch(e){} },120000); } // ads capped at 2 min
+  if(it.isAd){ setTimeout(()=>{ try{if(!v.ended&&!v.paused)finishAd();}catch(e){} },60000); } // one prepared spot, capped at one minute
   if(isAudio){ audioScreen.classList.remove("hide"); audioTitle.textContent=it.title||ch.nm; }
   tryPlay(); // FIX: was v.play().catch(()=>{}) — a swallowed rejection left the video paused forever
 });}
@@ -18055,6 +18067,7 @@ nlog("boot",true,"engine v8.2 up · "+(fileMode?"file://":location.protocol));
    pool. Ads also have their own recent-history ledger because ordinary watch history skips
    ads by design. Movie stations remain video-only; audio stations remain audio-only. */
 var adsOn=store.get("ads",true), adQueue=0, adLaneCursor=Number(store.get("adLaneCursor",0))||0, adRecent=store.get("adRecent",{}),adFailed=store.get("adFailed",{}),adWarm={},adWarmMiss={};if(!adRecent||typeof adRecent!=="object")adRecent={};if(!adFailed||typeof adFailed!=="object")adFailed={};
+var adScheduler=typeof window!=="undefined"&&window.RealSignalCommercials?window.RealSignalCommercials.create(store):null;
 var AD_RECENT_TTL=7*24*3600e3,AD_FAILED_TTL=45*60e3;
 var AD_LANES=[
   {years:[1930,1949],topics:["television commercial","advertising","public service announcement","commercial reel"],collections:["prelinger","classic_tv_commercials"]},
@@ -18123,7 +18136,7 @@ var AD_HOLIDAY_LANES={
 var adHolidayCadence=store.get("adHolidayCadence",{});if(!adHolidayCadence||typeof adHolidayCadence!=="object")adHolidayCadence={};
 function holidayAdKey(ch){var name=String(ch&&ch.nm||"").toLowerCase();if(/christmas|xmas|yuletide/.test(name))return "christmas";if(/halloween|monster island|haunt/.test(name))return "halloween";if(/thanksgiving|turkey day/.test(name))return "thanksgiving";return "";}
 function holidayAdCadenceKey(ch){var holiday=holidayAdKey(ch);if(!holiday)return "";return holiday+":"+String(ch&&ch.nm||"station");}
-function shouldInsertAdBreak(ch){if(!ch||ch.audio)return true;var key=holidayAdCadenceKey(ch);if(!key)return true;var count=Number(adHolidayCadence[key]||0)+1;adHolidayCadence[key]=count;store.set("adHolidayCadence",adHolidayCadence);/* Holiday stations alternate two-program and three-program gaps so breaks feel scheduled, not machine-gunned. */var slot=(count-1)%5+1;return slot===2||slot===5;}
+function shouldInsertAdBreak(ch,seconds){if(adScheduler){var due=adScheduler.due(ch,seconds);if(!due||String(ch&&ch.cat).toUpperCase()==="TOON")return due;}if(!ch||ch.audio)return true;var key=holidayAdCadenceKey(ch);if(!key)return true;var count=Number(adHolidayCadence[key]||0)+1;adHolidayCadence[key]=count;store.set("adHolidayCadence",adHolidayCadence);/* Holiday stations alternate two-program and three-program gaps so breaks feel scheduled, not machine-gunned. */var slot=(count-1)%5+1;return slot===2||slot===5;}
 function adContextTopics(ch){
   if(ch&&ch.audio)return ["radio commercial","radio advertisement","sponsor message","radio spot"];
   var name=String(ch&&ch.nm||"").toLowerCase();
@@ -18168,6 +18181,7 @@ async function pickAdItem(ch,left){
      over a catalog item whose title/subjects actually match this station. */
   var contextual=fresh.filter(function(item){return adItemContextScore(item,ch)>0;});
   if(contextual.length)fresh=contextual;
+  if(adScheduler&&fresh.length)return adScheduler.choose(fresh,function(item){return adItemContextScore(item,ch);});
   if(fresh.length){
     /* Pick from the strongest station-matched band, but rotate inside that
        band so a reliable shelf does not become the same commercial forever. */
@@ -18179,36 +18193,39 @@ async function pickAdItem(ch,left){
 }
 function adWarmKey(ch){return String(ch&&ch.audio?"audio":"video")+":"+String(ch&&ch.cat||"TV")+":"+String(ch&&ch.nm||"");}
 function warmAd(ch){
-  if(!adsOn||!ch)return Promise.resolve(null);
+  if(!adsOn||!ch||!powered||curNum!==ch.num)return Promise.resolve(null);
   var key=adWarmKey(ch),existing=adWarm[key];
   if(existing&&existing.promise)return existing.promise;
   if(existing&&existing.item&&existing.playable&&!adFailed[existing.item.identifier])return Promise.resolve(existing);
   var row={item:null,playable:null,promise:null,at:Date.now()};adWarm[key]=row;
   var misses=Number(adWarmMiss[key]||0);
   row.promise=(async function(){
-    var item=await pickAdItem(ch,5200);if(!item)throw new Error("no commercial candidate");
+    var item=null;if(bumperOn&&!ch.audio&&ch.nm==="The Drive-In")item=await pickFromQueries(driveInBumperQueries());
+    else if(bumperOn&&!ch.audio&&Math.random()<0.4)item=await pickFromQueries(bumperQueries());
+    if(!item)item=await pickAdItem(ch,5200);if(!item)throw new Error("no commercial candidate");
     var playable=await resolvePlayable(item.identifier,ch.audio?"audio":"video");
     if(!playable)throw new Error("commercial has no matching playable media");
     row.item=item;row.playable=playable;row.at=Date.now();delete adWarmMiss[key];return row;
-  })().catch(function(){if(adWarm[key]===row)delete adWarm[key];adWarmMiss[key]=misses+1;if(misses<2)setTimeout(function(){warmAd(ch);},1200+misses*900);return null;}).finally(function(){delete row.promise;});
+  })().catch(function(){if(adWarm[key]===row)delete adWarm[key];adWarmMiss[key]=misses+1;if(misses<2)setTimeout(function(){if(powered&&curNum===ch.num)warmAd(ch);},1200+misses*900);return null;}).finally(function(){delete row.promise;});
   return row.promise;
 }
 async function playAdBreak(ch,sl,my){
   if(!adsOn||my!==token){adQueue=0;return false;}
-  var runtime=Number(curVideo&&curVideo.duration)||0;adQueue=(runtime>=45*60&&Math.random()<0.55?2:1);var played=await nextAd(ch,sl,my);if(!played)adQueue=0;return played;
+  adQueue=1;return nextAd(ch,sl,my);
 }
 async function nextAd(ch,sl,my){
-  var deadline=Date.now()+4500,attempts=0;
-  while(adQueue>0&&attempts<4){ if(my!==token||!adsOn){adQueue=0;return false;} adQueue--;attempts++;
-    try{ var left=deadline-Date.now();if(left<400)break;
-      const kind=(ch&&ch.audio)?"audio":"video",warm=adWarm[adWarmKey(ch)],ready=warm&&warm.item&&warm.playable&&!adFailed[warm.item.identifier]?warm:null;
-      const item=ready?ready.item:await withTO(pickAdItem(ch,left),left); if(my!==token||!adsOn){adQueue=0;return false;}if(!item)break;
-      left=deadline-Date.now();if(left<400)break;
-      const pl=ready?ready.playable:await withTO(resolvePlayable(item.identifier,kind),left);if(my!==token||!adsOn){adQueue=0;return false;}if(!pl||pl.type!==kind){adMarkFailed(item.identifier);delete adWarm[adWarmKey(ch)];if(attempts<4)adQueue++;continue;}
-      pl.title=item.title||"Commercial"; pl.year=(pl.meta&&pl.meta.date)||item.year; pl.isAd=true;
-      if(await playFile(pl,ch,{show:kind==="audio"?"AUDIO COMMERCIAL":"COMMERCIAL BREAK",isAd:true,genre:sl&&sl.genre,queries:sl&&sl.queries},my)){adRemember(item.identifier);delete adWarm[adWarmKey(ch)];warmAd(ch);return true;}adMarkFailed(item.identifier);delete adWarm[adWarmKey(ch)];if(attempts<4)adQueue++;
-    }catch(e){} }
-  adQueue=0;return false; }
+  var remaining=adQueue;adQueue=0;
+  if(!remaining||my!==token||!powered||!adsOn)return false;
+  var key=adWarmKey(ch),ready=adWarm[key],kind=ch&&ch.audio?"audio":"video";
+  if(!ready||!ready.item||!ready.playable||adFailed[ready.item.identifier])return false;
+  delete adWarm[key];
+  if(ready.playable.type!==kind||!ready.playable.url)return false;
+  var item=ready.item,pl=Object.assign({},ready.playable,{title:item.title||"Commercial",year:item.year,isAd:true});
+  try{var played=await playFile(pl,ch,{show:kind==="audio"?"AUDIO COMMERCIAL":"COMMERCIAL BREAK",isAd:true,genre:sl&&sl.genre,queries:sl&&sl.queries},my);
+    if(my!==token||!powered)return false;
+    if(played){adRemember(item.identifier);if(adScheduler)adScheduler.remember(item);return true;}
+    adMarkFailed(item.identifier);
+  }catch(e){}return false; }
 
 /* Station Bumpers (beta) — vintage broadcast/cable network idents ("HGTV 1998", "CBS Olympics",
    "CNN Station ID") pulled from classic_tv_commercials, played between programs on network-shaped
@@ -19478,8 +19495,8 @@ window.__atvBootDone=true; /* app is up -- from here on, errors get logged, not 
 <script src="assets/release3-runtime.js"></script>
 <script src="assets/release31-runtime.js"></script>
 <script src="assets/guide-contract.js?v=v6-contract-1"></script>
-<script src="assets/guide-contract-client.js?v=6.0.0-rc.1"></script>
-<script src="assets/v6-watching-shell.js?v=6.0.0-rc.1"></script>
-<script src="assets/v6-guide.js?v=6.0.0-rc.1"></script>
+<script src="assets/guide-contract-client.js?v=6.0.0"></script>
+<script src="assets/v6-watching-shell.js?v=6.0.0"></script>
+<script src="assets/v6-guide.js?v=6.0.0"></script>
 </body>
 </html>

@@ -1,7 +1,7 @@
-/* Opt-in presentation only. Existing playback, rotation and guide retain ownership. */
+/* Default V6 presentation. Existing playback/rotation retain ownership; v6=0 rolls back UI. */
 (function () {
   var api = window.RealSignalPresentation;
-  if (!api || new URLSearchParams(location.search).get('v6') !== '1' || new URLSearchParams(location.search).get('castReceiver') === '1') return;
+  if (!api || !api.available) return;
   var root = document.documentElement, dock, idleTimer, state, guideWasOpen = false, guideWasV6 = false;
   var refs = {};
   function element(tag, id, text, parent) {
@@ -49,7 +49,7 @@
     element('small', '', 'CHANNEL', dial);
     element('strong', 'rsV6Channel', '—', dial);
     var copy = element('div', 'rsV6Copy', '', readout);
-    element('div', 'rsV6Brand', 'REALSIGNAL / V6 RELEASE CANDIDATE', copy);
+    element('div', 'rsV6Brand', 'REALSIGNAL / RETRO CABLE', copy);
     element('div', 'rsV6Title', 'Television is off', copy);
     element('div', 'rsV6Status', 'STANDBY', copy);
     var clock = element('div', 'rsV6Clock', '', readout);

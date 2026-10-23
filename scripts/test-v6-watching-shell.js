@@ -74,12 +74,18 @@ test('opt-in activates a labeled dock without touching the current media node', 
   assert.equal(h.calls.length, 0);
 });
 test('flag-off and Cast receivers cannot change the existing presentation', () => {
-  for (const search of ['', '?castReceiver=1&v6=1']) {
+  for (const search of ['?v6=0', '?castReceiver=1&v6=1']) {
     const h = harness(search);
     assert.equal(h.document.documentElement.classList.contains('rs-v6-watch'), false);
     assert.ok(!h.ids.get('rsV6Dock') || h.ids.get('rsV6Dock').hidden);
     assert.equal(h.calls.length, 0);
   }
+});
+test('the full release activates the labeled V6 dock by default', () => {
+  const h = harness('');
+  assert.ok(h.document.documentElement.classList.contains('rs-v6-watch'));
+  assert.ok(h.ids.get('rsV6Guide'));
+  assert.equal(h.calls.length, 0);
 });
 test('explicit controls issue one command each through the latest playback wrappers', () => {
   const h = harness(); h.context.skipOne = () => h.calls.push(['latestNext']);

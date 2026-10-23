@@ -1,7 +1,7 @@
-/* One opt-in guide presenter. Reads shelves; never discovers or prepares media. */
+/* One default guide presenter. Reads shelves; never discovers or prepares media. */
 (function () {
-  var api = window.RealSignalPresentation, query = new URLSearchParams(location.search);
-  if (!api || query.get('v6') !== '1' || query.get('castReceiver') === '1') return;
+  var api = window.RealSignalPresentation;
+  if (!api || !api.available) return;
   var panel, list, refs = {}, rowRefs = {}, entries = [], selected = null, opener, timer, opened = false;
   var category = 'all', view = 'all', search = '', scroll = 0, focusId = '', renderedKey = '';
   var oldOpen = window.openGuide, oldClose = window.closeGuide;

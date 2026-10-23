@@ -1,12 +1,13 @@
 /* Presentation commands resolve the current wrapper at invocation time. */
 (function () {
   var query = new URLSearchParams(location.search);
-  var optedIn = query.get('v6') === '1' && query.get('castReceiver') !== '1';
+  var optedIn = query.get('v6') !== '0' && query.get('castReceiver') !== '1';
   function enabled() {
     return optedIn && !(typeof window.__rsCastIsConnected === 'function' && window.__rsCastIsConnected());
   }
   var commands = { tune: 'tuneNum', favorite: 'toggleFav', next: 'skipOne', 'guide-open': 'openGuide', 'guide-close': 'closeGuide', power: 'togglePower', info: 'toggleInfo', menu: 'toggleOsd', 'channel-step': 'step', 'volume-step': 'setVol', mute: 'toggleMute', cast: '__rsCastRequest' };
   var api = {
+    available: optedIn,
     categories: function () {
       return (typeof GUIDE_CATEGORIES !== 'undefined' ? GUIDE_CATEGORIES : []).map(function (group) {
         return { id: String(group.id), label: String(group.label) };

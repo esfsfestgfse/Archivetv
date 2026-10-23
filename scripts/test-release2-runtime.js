@@ -82,7 +82,7 @@ for (const file of builds) {
   check(html.includes('function iaQueueFetch(body)'), `${file}: IA queue keeps a direct-relay fallback`);
   check(html.includes('inlinePrimary=inlineUrls.find(iaArchiveDirectURL)') && html.includes('archive.org'), `${file}: stable Archive download URL is preferred for inline queue media`);
   check(html.includes('AD_RECENT_TTL=7*24*3600e3'), `${file}: extended ad freshness ledger`);
-  check(html.includes('runtime>=45*60'), `${file}: long-program ad budget`);
+  check(html.includes('adQueue=1;return nextAd(ch,sl,my)') && html.includes('60000); } // one prepared spot'), `${file}: single prepared ad with bounded break budget`);
 }
 
 if (failures) process.exitCode = 1;

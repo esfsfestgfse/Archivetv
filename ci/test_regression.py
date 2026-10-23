@@ -1,4 +1,4 @@
-"""CI: 10-point functional regression covering core channel-switching and panel behavior."""
+"""CI: functional regression for default V6 controls and explicit UI rollback."""
 import asyncio, sys
 from playwright.async_api import async_playwright
 from build_stamp import visible_build_matches
@@ -31,7 +31,10 @@ async def main():
         except Exception:
             pass
 
-        if IS_DESKTOP:
+        v6 = await pg.locator('#rsV6Power').is_visible()
+        if v6:
+            await pg.locator('#rsV6Power').click()
+        elif IS_DESKTOP:
             await pg.get_by_role("button", name="Turn television on or off").click(timeout=3000)
         else:
             await pg.click("#mTab", timeout=2000)
@@ -60,20 +63,19 @@ async def main():
         check("3. Channel name shows 'Sports Center'", nm and "Sports Center" in nm)
 
         # 4. Guide opens
-        if IS_DESKTOP:
+        if v6:
+            await pg.locator('#rsV6Guide').click()
+        elif IS_DESKTOP:
             await pg.get_by_role("button", name="GUIDE", exact=True).click(timeout=2000)
         else:
             # Mobile: guide button is in the bottom bar
-            try:
-                await pg.click("[data-act='guide']", timeout=2000)
-            except Exception:
-                await pg.evaluate("()=>{var g=document.getElementById('gwrap');if(g)g.classList.add('show');}")
+            await pg.locator('#mGuide').click(timeout=2000)
         await pg.wait_for_timeout(800)
-        guide_open = await pg.evaluate("()=>{var g=document.getElementById('gwrap');return g&&g.classList.contains('show');}")
+        guide_open = await pg.evaluate("()=>window.RealSignalGuide?window.RealSignalGuide.isOpen():document.getElementById('gwrap').classList.contains('show')")
         check("4. Guide opens", guide_open)
 
         # 5. Guide renders (at least the container is present)
-        gwrap = await pg.evaluate("()=>!!document.getElementById('gwrap')")
+        gwrap = await pg.evaluate("()=>{var g=document.getElementById('rsV6GuideList');return g?g.children.length>0:!!document.getElementById('gwrap');}")
         check("5. Guide container exists", gwrap)
 
         # 6. Channel unchanged after opening guide (regression: guide used to retune)
@@ -81,9 +83,12 @@ async def main():
         check("6. Channel unchanged after guide open", cur_after == 50)
 
         # 7. Guide closes without changing the tuned channel
-        await pg.evaluate("()=>{if(typeof closeGuide==='function')closeGuide();}")
+        if v6:
+            await pg.locator('#rsV6GuideClose').click()
+        else:
+            await pg.evaluate("()=>{if(typeof closeGuide==='function')closeGuide();}")
         await pg.wait_for_timeout(120)
-        guide_closed = await pg.evaluate("()=>{var g=document.getElementById('gwrap');return g&&!g.classList.contains('show');}")
+        guide_closed = await pg.evaluate("()=>window.RealSignalGuide?!window.RealSignalGuide.isOpen():!document.getElementById('gwrap').classList.contains('show')")
         check("7. Guide closes cleanly", guide_closed)
 
         # 8. Tune a different channel
@@ -98,12 +103,23 @@ async def main():
         version_chip = await pg.evaluate("()=>{var e=document.getElementById('verChip');return e?e.textContent.trim():'';}")
         check("9. Visible build stamp matches runtime build", visible_build_matches(runtime_build, visible_build, version_chip))
 
-        # 10. No page errors throughout
+        # The rollback is an explicit supported presentation, not a hidden-control
+        # workaround when the default guide fails.
+        await pg.goto(TARGET + ('&' if '?' in TARGET else '?') + 'v6=0', wait_until='load')
+        check("11. Explicit rollback leaves the V6 dock unmounted", await pg.locator('#rsV6Dock').count() == 0)
+        if IS_DESKTOP:
+            await pg.locator('#glassGuide').click()
+        else:
+            await pg.locator('#mTab').click()
+            await pg.locator('#mGuide').click()
+        check("12. Rollback opens only the legacy guide", await pg.evaluate("()=>document.getElementById('gwrap').classList.contains('show')&&!document.getElementById('rsV6GuidePanel')"))
+
+        # 10. No page errors throughout either supported presentation
         check("10. Zero page errors", len(errors) == 0)
 
         await b.close()
 
-    print(f"\n=== {len(failures)} failures out of 10 checks ===")
+    print(f"\n=== {len(failures)} failures out of 12 checks ===")
     if errors:
         print(f"Page errors: {errors[:3]}")
     if failures:

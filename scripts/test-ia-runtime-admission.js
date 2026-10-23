@@ -33,6 +33,38 @@ const program = extra => ({ id: 'program::episode.mp4', title: 'Complete televis
   url: 'https://archive.org/download/program/episode.mp4', ...extra });
 
 for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
+  test(file + ': the ad cap pauses playback before advancing the program', async () => {
+    const { scope, video, timers } = client(file), events = [];
+    video.paused = false;
+    video.pause = () => { video.paused = true; events.push('pause'); };
+    video.dispatchEvent = event => events.push(event.type); scope.Event = Event;
+    const pending = scope.playFile(program({ isAd: true }), { num: 10 }, {}, 1, 0);
+    scope.curVideo = video;
+    timers.find(timer => timer.ms === 60000).fn();
+    assert.deepEqual(events, ['pause', 'ended']);
+    assert.equal(video.paused, true);
+    timers[0].fn(); assert.equal(await pending, false);
+  });
+  test(file + ': a decoded portrait commercial is rejected before visible commit', async () => {
+    const { scope, handlers, video, calls } = client(file);
+    const pending = scope.playFile(program({ isAd: true }), { num: 10 }, {}, 1, 0);
+    video.duration = 30; video.videoWidth = 480; video.videoHeight = 854;
+    handlers.loadedmetadata();
+    assert.equal(calls.rollback, 1);
+    assert.equal(calls.progress, 0);
+    assert.equal(await pending, false);
+  });
+  test(file + ': an unstarted commercial yields within 900ms and its cap cannot advance a superseding tune', async () => {
+    const { scope, video, timers } = client(file), dispatched = [];
+    video.dispatchEvent = event => dispatched.push(event.type); scope.Event = Event;
+    const pending = scope.playFile(program({ isAd: true }), { num: 10 }, {}, 1, 0);
+    assert.equal(timers[0].ms, 900);
+    const cap = timers.find(timer => timer.ms === 60000);
+    assert.ok(cap, 'a break has a sixty-second cap');
+    scope.curVideo = video; scope.token = 2; cap.fn();
+    assert.deepEqual(dispatched, []);
+    timers[0].fn(); assert.equal(await pending, false);
+  });
   test(file + ': cached playback honors the station runtime, not just the generic TV floor', () => {
     const { scope } = client(file);
     assert.equal(scope.iaCachedProgramAllowed({ num: 10 }, program({ runtime: 1320 }),

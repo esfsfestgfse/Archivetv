@@ -42,7 +42,9 @@ async def main():
             pass
 
         # Power on
-        if IS_DESKTOP:
+        if await pg.locator('#rsV6Power').is_visible():
+            await pg.locator('#rsV6Power').click()
+        elif IS_DESKTOP:
             await pg.get_by_role("button", name="Turn television on or off").click(timeout=3000)
         else:
             await pg.click("#mTab", timeout=2000)

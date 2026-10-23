@@ -22,6 +22,15 @@ function harness(search = '?v6=1') {
     addEventListener(k, fn) { (this.listeners[k] ||= []).push(fn); }
     dispatch(k, props = {}) { const e = { target: this, preventDefault() {}, ...props }; for (const fn of this.listeners[k] || []) fn(e); }
     click() { this.dispatch('click'); }
+    press(key) {
+      const e = { key, target: this, defaultPrevented: false, cancelBubble: false,
+        preventDefault() { this.defaultPrevented = true; }, stopPropagation() { this.cancelBubble = true; } };
+      for (let at = this; at; at = at.parentNode) {
+        for (const fn of at.listeners.keydown || []) fn(e);
+        if (e.cancelBubble) break;
+      }
+      if (!e.defaultPrevented && (key === 'Enter' || key === ' ')) this.click();
+    }
     contains(x) { return this === x || this.children.some(c => c.contains(x)); }
     focus() { document.activeElement = this; this.dispatch('focusin'); }
   }
@@ -115,3 +124,15 @@ test('connecting Cast exits the canary and disables its commands; disconnect can
   assert.equal(h.ids.get('rsV6Dock').hidden, false);
   assert.ok(h.document.documentElement.classList.contains('rs-v6-watch'));
 });
+for (const file of ['the_dial_mobile.html', 'the_dial_desktop.html']) {
+  test(`${file}: native Enter activation survives the real channel-entry key handler`, () => {
+    const h = harness(), source = fs.readFileSync(path.join(root, file), 'utf8');
+    const start = source.indexOf('document.addEventListener("keydown",e=>{');
+    assert.ok(start >= 0);
+    h.context.osdOpen = () => false; h.context.gwrap = h.guide;
+    h.context.commitEntry = () => h.calls.push(['unwanted-channel-entry']);
+    vm.runInContext(source.slice(start, source.indexOf('\n});', start) + 4), h.context);
+    h.ids.get('rsV6Next').press('Enter');
+    assert.deepEqual(h.calls, [['skipOne']]);
+  });
+}

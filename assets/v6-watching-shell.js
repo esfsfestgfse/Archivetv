@@ -32,6 +32,10 @@
     var el = element('button', 'rsV6' + id, label, parent);
     el.type = 'button';
     if (aria) el.setAttribute('aria-label', aria);
+    el.addEventListener('keydown', function (event) {
+      // Keep native button activation; legacy document shortcuts must not consume it.
+      if (event.key === 'Enter' || event.key === ' ') event.stopPropagation();
+    });
     el.addEventListener('click', function () { api.command(name, value); wake(); refresh(); });
     return el;
   }

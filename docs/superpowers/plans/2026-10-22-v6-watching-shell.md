@@ -1,6 +1,6 @@
 # V6 Watching Shell Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans. Native execution; one final scoped review. Pending plan review before implementation.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans. Native execution; one final scoped review. User approved continuation and push on 2026-10-22.
 
 **Goal:** Give the approved retro-cable watching experience a large, uncropped picture and labeled controls that fit the browser viewport.
 
@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- Production remains 5.6.29; no automatic push, deployment, or V6 stamp.
+- Latest user authorization permits pushing the tested opt-in canary as 5.6.30. No final V6 stamp or default-mode rollout.
 - No channel, profile, catalog, source-selection, freshness, cooldown, commercial, or Cast-protocol changes.
 - Opt in with `v6=1`; normal users retain their current presentation.
 - Cast receiver and connected Cast sender retain the existing presentation and command routing until separately certified.
@@ -41,14 +41,14 @@
 - Apply all new CSS only under `.rs-v6-watch`; remove the class and disable/hide new controls when the canary is not eligible.
 - Use the existing `.room/.stage/.console/.set/#tube/#screenArea` media hierarchy and a new compact semantic dock. Hide obsolete decorative hardware only in the eligible canary.
 
-- [ ] Write behavioral tests first: opt-in/Cast guards; one command per explicit click; final-wrapper resolution; invalid step rejection; title/state/date rendering; no media replacement or discovery during refresh; keyboard/touch visibility and idle cancellation; mode exit restores old controls. Assert consumer-visible results with literal fixtures.
-- [ ] Run `node --test scripts/test-v6-watching-shell.js`; confirm the new behavior fails before implementation.
-- [ ] Implement the smallest guarded shell and command additions. Use bounded read-only updates, avoid full-DOM rerenders, and never create a second video. Keep metadata out of live announcement loops.
-- [ ] Run the new tests, `node --test scripts/test-guide-contract.js`, and `node scripts/check-html-syntax.js`; expect all green.
-- [ ] Run the exact offline Node CI command set with all HTML arguments retained. Record all failures; do not weaken unrelated checks.
-- [ ] Browser-check desktop at 1440×900 and 1024×600, mobile HTML at 390×844, and landscape at 844×390. Verify actual viewport bounds and no page overflow; restore temporary viewport overrides afterward.
-- [ ] In both builds, verify decoded/advancing video, one Next transition, Guide open/close, focus return, Menu/Info, power, volume/mute, scanline settings, and controls surviving resize. Check flag-off behavior separately. Report unsupported embedded-player volume honestly rather than simulating it.
-- [ ] Record evidence, make a local commit, obtain one independent scoped review, and fix substantive findings with RED→GREEN tests plus a green regression gate. Do not publish.
+- [x] Write behavioral tests first: opt-in/Cast guards; one command per explicit click; final-wrapper resolution; invalid step rejection; title/state/date rendering; no media replacement or discovery during refresh; keyboard/touch visibility and idle cancellation; mode exit restores old controls. Assert consumer-visible results with literal fixtures.
+- [x] Run `node --test scripts/test-v6-watching-shell.js`; confirm the new behavior fails before implementation.
+- [x] Implement the smallest guarded shell and command additions. Use bounded read-only updates, avoid full-DOM rerenders, and never create a second video. Keep metadata out of live announcement loops.
+- [x] Run the new tests, `node --test scripts/test-guide-contract.js`, and `node scripts/check-html-syntax.js`; expect all green.
+- [x] Run the exact offline Node CI command set with all HTML arguments retained. Record all failures; do not weaken unrelated checks.
+- [x] Finish browser validation and reset viewport overrides; see evidence report for completed sizes and sampled playback.
+- [x] Record final independent review and fix substantive findings with RED→GREEN tests plus a green regression gate.
+- [ ] Push the authorized preview and verify hosted Actions/Pages. No default V6 rollout.
 
 ## Subsequent slices, outside this plan
 

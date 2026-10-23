@@ -1,4 +1,4 @@
-# RealSignal 6.0.1 — Live TV and Sports recovery
+# RealSignal 6.0.2 — Live TV and Sports recovery
 
 ## Scope
 
@@ -10,6 +10,9 @@ rotation history, Cast protocol or Roku-device preview were changed.
 - Parse quoted commas and comma-separated playlist attributes without corrupting titles.
 - Consolidate same-name/quality-suffix duplicates into serializable provider variants.
 - Source views find alternate providers instead of inspecting only the primary row.
+- Open Live TV on FAST services by default; community IPTV remains selectable.
+- Completed background catalogs refresh the visible Live TV rows once, not just
+  the source dropdown. Stale-screen callbacks and reload loops are guarded.
 - A size-limited saved directory samples providers fairly instead of truncating away
   the later FAST services. Old catalog snapshots are refreshed to schema version 2.
 - Retrieve apsattv public catalogs through the existing relay when browser CORS fails;
@@ -45,7 +48,7 @@ This change does not bypass account, DRM or region restrictions.
 ## Verification before client publication
 
 - 65 unique offline CI commands passed after review fixes.
-- 54 actual-function client regression cases passed (desktop and mobile).
+- 62 actual-function client regression cases passed (desktop and mobile).
 - 3 relay tests passed: Roku final-base rewriting, blocked private/unapproved
   redirect targets, and binary key handling.
 - Independent scoped review found three edge cases; all three were reproduced
@@ -59,6 +62,8 @@ This change does not bypass account, DRM or region restrictions.
   preserved video and leaving the Live TV subview removed the player.
 
 Relay commit: `98630e4`; deployment workflow `39988657241` succeeded.
+The 6.0.1 public canary exposed the partial-directory refresh edge; 6.0.2
+includes its targeted repair and version bump before final handoff.
 Client hosted CI/Pages and final public-browser verification are release gates;
 their final results are recorded in the delivery message.
 

@@ -9,7 +9,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>REALSIGNAL · Retro Cable 6.0.1</title>
+<title>REALSIGNAL · Retro Cable 6.0.2</title>
 <meta name="realsignal-ia-repair-channels" content="10,12,22,150">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
@@ -1700,10 +1700,10 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
 @media(prefers-reduced-motion:reduce){.sports-screen *,.wx-screen *,.wr-cabinet *{animation-duration:.001ms!important;transition-duration:.001ms!important}}
 </style>
 <link rel="stylesheet" href="assets/guide-overhaul.css">
-<link rel="stylesheet" href="assets/v6-watching-shell.css?v=6.0.1">
-<link rel="stylesheet" href="assets/v6-guide.css?v=6.0.1">
-<script src="assets/commercial-scheduler.js?v=6.0.1"></script>
-<script src="assets/fast-catalog.js?v=6.0.1"></script>
+<link rel="stylesheet" href="assets/v6-watching-shell.css?v=6.0.2">
+<link rel="stylesheet" href="assets/v6-guide.css?v=6.0.2">
+<script src="assets/commercial-scheduler.js?v=6.0.2"></script>
+<script src="assets/fast-catalog.js?v=6.0.2"></script>
 </head>
 <body>
 <script>
@@ -1715,7 +1715,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="6.0.1-desktop-retro-cable";
+window.__ATV_BUILD="6.0.2-desktop-retro-cable";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -12939,8 +12939,12 @@ async function tuneLiveTV(ch,sl,my){
   var TV_SRCS=IPTV_TABS.filter(function(t){return !!t.src;});
   var TV_GENS=IPTV_TABS.filter(function(t){return !t.src;});
   var TV_SOURCE_MASTER=TV_SRCS.slice();
-  var curSrc=TV_SRCS[0], curGen=null;
+  var curSrc=TV_SRCS.find(function(t){return t.label==="FAST · SERVICES";})||TV_SRCS[0], curGen=null;
+  var sourceOwner=$("tvSrcSel"),sourceCatalogSeen=null;
   function refreshAvailableSources(all){
+    if(my!==token||!powered||$("tvSrcSel")!==sourceOwner)return;
+    if(!Array.isArray(all)||!all.length)return;
+    var catalogChanged=sourceCatalogSeen!==null&&sourceCatalogSeen!==all;sourceCatalogSeen=all;
     var ss=$("tvSrcSel"), available={};
     (all||[]).forEach(function(c){tvChannelVariants(c).forEach(function(row){if(row.src)available[String(row.src)]=1;});});
     var prior=curSrc&&curSrc.label;
@@ -12952,7 +12956,7 @@ async function tuneLiveTV(ch,sl,my){
     TV_SRCS=next;
     curSrc=TV_SRCS.find(function(t){return t.label===prior;})||TV_SRCS[0];
     if(ss){ss.innerHTML=TV_SRCS.map(function(t,i){return '<option value="'+i+'">SOURCE · '+esch(t.label)+'</option>';}).join("");ss.value=String(Math.max(0,TV_SRCS.indexOf(curSrc)));}
-    if(prior&&curSrc.label!==prior&&window.__tvReload)setTimeout(window.__tvReload,0);
+    if(prior&&(catalogChanged||curSrc.label!==prior)&&window.__tvReload){var reload=window.__tvReload;setTimeout(function(){if(my===token&&powered&&$("tvSrcSel")===ss)reload();},0);}
   }
   window.__tvRefreshSources=refreshAvailableSources;
   function currentTab(){
@@ -19344,8 +19348,8 @@ window.__atvBootDone=true; /* app is up -- from here on, errors get logged, not 
 <script src="assets/release3-runtime.js"></script>
 <script src="assets/release31-runtime.js"></script>
 <script src="assets/guide-contract.js?v=v6-contract-1"></script>
-<script src="assets/guide-contract-client.js?v=6.0.1"></script>
-<script src="assets/v6-watching-shell.js?v=6.0.1"></script>
-<script src="assets/v6-guide.js?v=6.0.1"></script>
+<script src="assets/guide-contract-client.js?v=6.0.2"></script>
+<script src="assets/v6-watching-shell.js?v=6.0.2"></script>
+<script src="assets/v6-guide.js?v=6.0.2"></script>
 </body>
 </html>

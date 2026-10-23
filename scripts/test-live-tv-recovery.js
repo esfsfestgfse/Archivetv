@@ -35,6 +35,33 @@ function playback(file){
  return {...h,instances,timers,health,pane,elements,Hls};
 }
 for(const file of ['the_dial_desktop.html','the_dial_mobile.html']){
+ test(file+': Live TV opens on FAST services while keeping community IPTV selectable',()=>{
+  const {scope,text}=catalog(file);const start=text.indexOf('  var TV_SRCS=IPTV_TABS.filter('),end=text.indexOf('  var sourceOwner=',start);
+  vm.runInContext(text.slice(start,end),scope);assert.equal(scope.curSrc.label,'FAST · SERVICES');assert.ok(scope.TV_SRCS.some(x=>x.label==='IPTV ORG'));
+ });
+ test(file+': completed Live TV catalogs refresh visible rows once without a reload loop',()=>{
+  const {scope,text}=catalog(file),selector={},timers=[];let reloads=0;
+  const start=text.indexOf('  function refreshAvailableSources(all){'),end=text.indexOf('  window.__tvRefreshSources=refreshAvailableSources;',start);
+  const allSource={label:'FAST',src:/./},pluto={label:'PLUTO',src:/^Pluto TV$/},tablo={label:'TABLO',src:/^Tablo$/};
+  Object.assign(scope,{my:1,token:1,powered:true,sourceOwner:selector,sourceCatalogSeen:null,$:()=>selector,TV_SOURCE_MASTER:[allSource,pluto,tablo],TV_SRCS:[],curSrc:allSource,esch:String,setTimeout:fn=>timers.push(fn)});
+  scope.window.__tvReload=()=>reloads++;vm.runInContext(text.slice(start,end),scope);
+  const seed=[{name:'A',src:'Pluto TV',url:'https://a/live'}],full=seed.concat([{name:'B',src:'Tablo',url:'https://b/live'}]);
+  scope.refreshAvailableSources(seed);scope.refreshAvailableSources(full);scope.refreshAvailableSources(full);
+  assert.equal(timers.length,1);timers[0]();assert.equal(reloads,1);assert.match(selector.innerHTML,/TABLO/);
+ });
+ test(file+': a stale Live TV source refresh cannot mutate the next screen',()=>{
+  const {scope,text}=catalog(file),oldSelector={},newSelector={innerHTML:'new screen'};
+  const start=text.indexOf('  function refreshAvailableSources(all){'),end=text.indexOf('  window.__tvRefreshSources=refreshAvailableSources;',start);
+  Object.assign(scope,{my:1,token:2,powered:true,sourceOwner:oldSelector,sourceCatalogSeen:null,$:()=>newSelector,TV_SOURCE_MASTER:[],TV_SRCS:[],curSrc:null,esch:String});
+  vm.runInContext(text.slice(start,end),scope);scope.refreshAvailableSources([]);assert.equal(newSelector.innerHTML,'new screen');
+ });
+ test(file+': repeated empty catalog completions never start a discovery/reload loop',()=>{
+  const {scope,text}=catalog(file),selector={},timers=[],source={label:'FAST',src:/./};
+  const start=text.indexOf('  function refreshAvailableSources(all){'),end=text.indexOf('  window.__tvRefreshSources=refreshAvailableSources;',start);
+  Object.assign(scope,{my:1,token:1,powered:true,sourceOwner:selector,sourceCatalogSeen:null,$:()=>selector,TV_SOURCE_MASTER:[source],TV_SRCS:[source],curSrc:source,esch:String,setTimeout:fn=>timers.push(fn)});
+  scope.window.__tvReload=()=>{};vm.runInContext(text.slice(start,end),scope);
+  for(let i=0;i<5;i++)scope.refreshAvailableSources([]);assert.equal(timers.length,0);
+ });
  test(file+': a recently working same-channel provider starts before a recently failed one',async()=>{
   const h=playback(file),at=Date.now();h.scope.tvHealthAll=()=>({'https://a/live.m3u8':{f:1,lastFail:at},'https://b/live.m3u8':{f:0,lastOk:at}});
   await h.scope.playTV({name:'One',src:'Tubi',url:'https://a/live.m3u8',alternates:[{name:'One',src:'Tablo',url:'https://b/live.m3u8'}]},1);

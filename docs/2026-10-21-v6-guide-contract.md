@@ -69,3 +69,10 @@ and advertised Birdman next; pressing Next played that same Birdman episode.
 Search narrowed to one Classic Cartoons card and survived closing/reopening the
 guide. Browser warnings/errors were empty for this check. This is sampled playback
 evidence, not a complete catalog soak or a latency/physical-device certification.
+
+The mobile HTML browser check also decoded and advanced Classic Cartoons at
+640×480. Its guide showed Underdog currently playing and Porky's Last Stand
+next; Skip played that exact Looney Tunes file. Reopening the guide retained
+the Classic Cartoons search and showed the new current program plus Clutch Cargo
+next. Browser warnings/errors were empty. This checks the mobile build in the
+desktop browser, not physical touch, responsive viewport fit, or Chromecast.

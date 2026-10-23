@@ -29,4 +29,4 @@
 - [x] Implement normalized daily/hourly/alerts and independent guarded loader, observe GREEN.
 - [x] Replace local forecast markup/rendering with shared manual views and scoped CSS; retain network integration.
 - [x] Validate real browser PC/phone layouts, actual NWS/radar, view switching, return from networks, Next, refresh and departure. Fallback/timezone/outage behavior covered by deterministic tests; not a physical device certification.
-- [ ] Run all offline CI commands, final review/fixes, bump6.0.4, commit/push, verify hosted CI/Pages and public app.
+- [x] Run all offline CI commands, final review/fixes, bump6.0.4, commit/push, verify hosted CI/Pages and public app.

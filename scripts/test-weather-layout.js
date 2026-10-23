@@ -45,7 +45,9 @@ async function inspectWeather(page,label,source){
       await page.goto(base+'/'+test.file+'?weather-layout-test=1&telemetry=0',{waitUntil:'domcontentloaded'});
       await page.locator('#rsV6Power').click();
       await page.locator('#rsV6Guide').click();
-      await page.getByRole('button',{name:'Live channels',exact:true}).click();
+      const category=page.getByRole('combobox',{name:'Category',exact:true});
+      if(await category.isVisible())await category.selectOption({label:'Live channels'});
+      else await page.getByRole('button',{name:'Live channels',exact:true}).click();
       await page.locator('#rsV6GuideRow-950').click();
       await page.locator('#rsV6GuideWatch').click();
       await inspectWeather(page,test.label,test.source);

@@ -186,6 +186,8 @@ jobs:
         run: python ci/test_tune_all.py http://localhost:8799/the_dial_mobile.html
       - name: Run regression (10-point functional check)
         run: python ci/test_regression.py http://localhost:8799/the_dial_mobile.html
+      - name: Validate visible prerelease chip matching
+        run: python -m unittest discover -s ci -p test_build_stamp.py
       - name: Test 2.2 telemetry dashboard
         run: python scripts/test-telemetry-dashboard.py http://localhost:8799/the_dial_mobile.html
       - name: Validate V3 API contract
@@ -240,6 +242,8 @@ jobs:
         run: python ci/test_tune_all.py http://localhost:8800/the_dial_desktop.html
       - name: Run regression (10-point functional check)
         run: python ci/test_regression.py http://localhost:8800/the_dial_desktop.html
+      - name: Validate visible prerelease chip matching
+        run: python -m unittest discover -s ci -p test_build_stamp.py
       - name: Test 2.2 telemetry dashboard
         run: python scripts/test-telemetry-dashboard.py http://localhost:8800/the_dial_desktop.html
       - name: Validate V3 API contract

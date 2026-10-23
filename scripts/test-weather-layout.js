@@ -1,117 +1,56 @@
 #!/usr/bin/env node
 "use strict";
 
+// Optional real-provider check; deterministic fixtures run in ci/test_regression.py.
 const { chromium } = require("playwright");
-
-const base = (process.env.ATV_TEST_URL || "http://127.0.0.1:4176").replace(/\/+$/, "");
-const chrome = process.env.CHROME_PATH || "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
-
-function fail(message) {
-  throw new Error(message);
+const base=(process.env.ATV_TEST_URL||"http://127.0.0.1:4176").replace(/\/+$/,"");
+const chrome=process.env.CHROME_PATH||"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
+function check(ok,message){if(!ok)throw Error(message);}
+async function inspectWeather(page,label,source){
+  await page.locator('#wxScreen').waitFor({state:'visible'});
+  await page.waitForFunction(()=>document.querySelectorAll('.wxl-day').length>=7,null,{timeout:40000});
+  const update=await page.locator('#wxUpd').innerText();
+  check(!source||update.includes(source),label+': wrong fallback source: '+update);
+  await page.locator('[data-wx-panel="week"]').click();
+  const forecast=await page.evaluate(()=>({
+    overflow:document.documentElement.scrollWidth-innerWidth,
+    days:[...document.querySelectorAll('.wxl-day')].map(e=>({name:e.querySelector('h4').textContent,width:e.clientWidth,clipped:e.scrollHeight>e.clientHeight+2,icon:!!e.querySelector('.wx-pixel-art')}))
+  }));
+  check(forecast.days.length===7&&forecast.days.every(d=>d.width>100&&!d.clipped&&d.icon),label+': seven readable animated day cards required');
+  check(forecast.overflow<=1,label+': page has horizontal overflow');
+  await page.locator('.wxl-day').last().scrollIntoViewIfNeeded();
+  check(await page.locator('.wxl-day').last().isVisible(),label+': final day unreachable');
+  await page.locator('[data-wx-panel="hourly"]').click();
+  check(await page.locator('.wxl-hour').count()>=6,label+': hourly feed missing');
+  await page.locator('[data-wx-panel="radar"]').click();
+  await page.locator('[data-wx-radar="local"]').click();
+  await page.locator('#rsV6Next').click();
+  check(await page.locator('[data-wx-radar="regional"]').getAttribute('aria-pressed')==='true',label+': Next must advance local to regional radar');
+  check(await page.locator('#wxRadar').evaluate(e=>getComputedStyle(e).objectFit==='contain'),label+': radar must preserve complete geography');
+  if(source==='OPEN-METEO')check((await page.locator('#wxTicker').innerText()).includes('unavailable'),label+': NWS outage must not claim no alerts');
+  console.log(label+': seven days, hourly, full map and Next passed | '+update);
 }
-
-async function inspectWeather(page, label, expectedSource) {
-  await page.waitForSelector("#wxScreen", { timeout: 15000 });
-  await page.waitForFunction(
-    () => /F$/.test((document.querySelector(".wx-temp") || {}).textContent || ""),
-    null,
-    { timeout: 35000 }
-  );
-  await page.waitForFunction(() => document.querySelector("#chNum")?.textContent.trim() === "950");
-
-  const result = await page.evaluate(() => {
-    const rect = (selector) => {
-      const el = document.querySelector(selector);
-      if (!el) return null;
-      if (getComputedStyle(el).display === "none") return null;
-      const r = el.getBoundingClientRect();
-      return { x: r.x, y: r.y, right: r.right, bottom: r.bottom, width: r.width, height: r.height };
-    };
-    const screen = rect("#wxScreen");
-    const selectors = ["#wxMain", ".wx-left", "#wxRadarWrap", "#wxFcGrid", "#wxTicker", "#hazTicker", "#wxBug"];
-    const boxes = Object.fromEntries(selectors.map((s) => [s, rect(s)]));
-    const within = Object.entries(boxes)
-      .filter(([, r]) => r && screen)
-      .filter(([, r]) => r.x < screen.x - 2 || r.right > screen.right + 2 || r.y < screen.y - 2 || r.bottom > screen.bottom + 2)
-      .map(([s]) => s);
-    return {
-      build: window.__ATV_BUILD,
-      channel: document.querySelector(".chnum")?.textContent.trim(),
-      temperature: document.querySelector(".wx-temp")?.textContent.trim(),
-      update: document.querySelector("#wxUpd")?.textContent.trim(),
-      radarLabel: document.querySelector("#wxRadarLbl")?.textContent.trim(),
-      musicGenre: typeof iaJazzGenre === "string" ? iaJazzGenre : "",
-      hourly: document.querySelectorAll(".wx-hr").length,
-      daily: document.querySelectorAll(".wx-day").length,
-      pixelDaily: document.querySelectorAll(".wx-day .wx-pixel-art").length,
-      alertProbe: (typeof wxAlertChip === "function") ? wxAlertChip({event: "Flash Flood Warning", areaDesc: "McLennan TX", severity: "Severe"}) : "",
-      screen,
-      boxes,
-      within
-    };
-  });
-
-  if (result.channel !== "950") fail(label + ": expected channel 950, got " + result.channel);
-  if (!/^(NWS|OPEN-METEO) \u00b7 /.test(result.update)) fail(label + ": observation/source freshness label missing");
-  if (expectedSource && !result.update.startsWith(expectedSource + " \u00b7 ")) fail(label + ": expected " + expectedSource + " data, got " + result.update);
-  if (result.hourly < 6) fail(label + ": expected at least six hourly periods");
-  if (result.daily < 4) fail(label + ": expected at least four forecast periods");
-  if (result.pixelDaily !== result.daily) fail(label + ": every forecast card must have an 8-bit animation");
-  if (!/FLASH FLOOD/.test(result.alertProbe) || !/McLennan TX/.test(result.alertProbe)) fail(label + ": alert probe is missing typed location data");
-  if (result.musicGenre !== "gmjazz") fail(label + ": thematic Weather Watch music bed was not selected");
-  if (result.within.length) fail(label + ": elements escaped Weather Watch frame: " + result.within.join(", "));
-  if (result.boxes["#wxMain"].height < result.screen.height * 0.25) fail(label + ": current/radar panel is too short (" + Math.round(result.boxes["#wxMain"].height) + " of " + Math.round(result.screen.height) + "px)");
-  if (result.boxes["#wxRadarWrap"].height < result.boxes["#wxMain"].height * 0.72) fail(label + ": radar is still vertically collapsed (" + Math.round(result.boxes["#wxRadarWrap"].height) + " of " + Math.round(result.boxes["#wxMain"].height) + "px)");
-  if (result.boxes["#wxFcGrid"] && result.boxes["#wxFcGrid"].height > result.screen.height * 0.35) fail(label + ": forecast rail consumes too much screen height");
-
-  const before = result.radarLabel;
-  await page.evaluate(() => skipOne());
-  await page.waitForFunction((oldLabel) => document.querySelector("#wxRadarLbl")?.textContent !== oldLabel, before);
-  const after = await page.locator("#wxRadarLbl").textContent();
-  if (before === after || !/REGIONAL/.test(after)) fail(label + ": NEXT did not advance to regional radar");
-
-  console.log(
-    label + ": " + result.build + " | " + result.temperature + " | radar " +
-    Math.round(result.boxes["#wxRadarWrap"].width) + "x" + Math.round(result.boxes["#wxRadarWrap"].height) +
-    " | " + result.hourly + " hourly / " + result.daily + " forecast | NEXT passed"
-  );
-}
-
-(async () => {
-  const browser = await chromium.launch({ headless: true, executablePath: chrome });
-  try {
-    const cases = [
-      { label: "desktop", file: "the_dial_desktop.html", viewport: { width: 1440, height: 900 } },
-      { label: "compact desktop", file: "the_dial_desktop.html", viewport: { width: 360, height: 900 } },
-      { label: "mobile", file: "the_dial_mobile.html", viewport: { width: 430, height: 900 } },
-      { label: "NWS outage fallback", file: "the_dial_desktop.html", viewport: { width: 1440, height: 900 }, blockNws: true, source: "OPEN-METEO" }
-    ];
-    for (const test of cases) {
-      const context = await browser.newContext({ viewport: test.viewport });
-      const page = await context.newPage();
-      const errors = [];
-      page.on("pageerror", (error) => errors.push(String(error)));
-      if (test.blockNws) {
-        await page.route("**/*", (route) => {
-          let url = route.request().url();
-          try { url = decodeURIComponent(url); } catch (_) {}
-          if (url.includes("api.weather.gov")) return route.abort("failed");
-          return route.continue();
-        });
-      }
-      await page.goto(base + "/" + test.file + "?weather-layout-test=1", { waitUntil: "domcontentloaded", timeout: 30000 });
-      await page.evaluate(() => { if (!document.body.classList.contains("atv-powered")) powerOn(); });
-      await page.waitForTimeout(900);
-      await page.evaluate(() => tuneNum(950));
-      await inspectWeather(page, test.label, test.source);
-      if (errors.length) fail(test.label + ": page errors: " + errors.join(" | "));
+(async()=>{
+  const browser=await chromium.launch({headless:true,executablePath:chrome});
+  try{
+    for(const test of [
+      {label:'desktop',file:'the_dial_desktop.html',viewport:{width:1440,height:900}},
+      {label:'compact desktop',file:'the_dial_desktop.html',viewport:{width:390,height:844}},
+      {label:'mobile',file:'the_dial_mobile.html',viewport:{width:430,height:900}},
+      {label:'NWS outage fallback',file:'the_dial_desktop.html',viewport:{width:1440,height:900},source:'OPEN-METEO'}
+    ]){
+      const context=await browser.newContext({viewport:test.viewport}),page=await context.newPage(),errors=[];
+      page.on('pageerror',e=>errors.push(String(e)));
+      if(test.source)await page.route('https://api.weather.gov/**',r=>r.abort('failed'));
+      await page.goto(base+'/'+test.file+'?weather-layout-test=1&telemetry=0',{waitUntil:'domcontentloaded'});
+      await page.locator('#rsV6Power').click();
+      await page.locator('#rsV6Guide').click();
+      await page.getByRole('button',{name:'Live channels',exact:true}).click();
+      await page.locator('#rsV6GuideRow-950').click();
+      await page.locator('#rsV6GuideWatch').click();
+      await inspectWeather(page,test.label,test.source);
+      check(!errors.length,test.label+': '+errors.join(' | '));
       await context.close();
     }
-    console.log("Weather Watch responsive layout and NEXT regression passed.");
-  } finally {
-    await browser.close();
-  }
-})().catch((error) => {
-  console.error(error && error.stack ? error.stack : error);
-  process.exit(1);
-});
+  }finally{await browser.close();}
+})().catch(error=>{console.error(error.stack||error);process.exitCode=1;});

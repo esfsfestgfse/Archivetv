@@ -1,5 +1,6 @@
 """CI: functional regression for default V6 controls and explicit UI rollback."""
 import asyncio, sys
+from datetime import datetime, timezone, timedelta
 from playwright.async_api import async_playwright
 from build_stamp import visible_build_matches
 
@@ -15,10 +16,32 @@ async def main():
         pg = await b.new_page(viewport=vp)
         pg.on("pageerror", lambda e: errors.append(str(e)))
 
+        weather_alerts_fail = False
+        weather_time = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0)
+        weather_periods = [{"name": "Period " + str(i), "startTime": (weather_time + timedelta(hours=i*12)).isoformat(), "endTime": (weather_time + timedelta(hours=(i+1)*12)).isoformat(), "isDaytime": i % 2 == 0, "temperature": 82 if i % 2 == 0 else 56, "shortForecast": "Sunny" if i % 2 == 0 else "Clear", "detailedForecast": "Readable fixture forecast.", "windSpeed": "5 mph", "windDirection": "S"} for i in range(14)]
+        weather_hours = [{"startTime": (weather_time + timedelta(hours=i)).isoformat(), "endTime": (weather_time + timedelta(hours=i+1)).isoformat(), "temperature": 80, "shortForecast": "Sunny", "isDaytime": True} for i in range(24)]
+
         async def route(r):
             u = r.request.url
             if "localhost" in u:
                 await r.continue_()
+            elif "api.weather.gov" in u:
+                if "/alerts/" in u:
+                    if weather_alerts_fail:
+                        await r.abort()
+                        return
+                    value = {"features": []}
+                elif "/points/" in u:
+                    value = {"properties": {"forecast": "https://api.weather.gov/ci/forecast", "forecastHourly": "https://api.weather.gov/ci/hourly", "observationStations": "https://api.weather.gov/ci/stations", "radarStation": "KGRK", "timeZone": "America/Chicago", "relativeLocation": {"properties": {"city": "Waco", "state": "TX"}}}}
+                elif u.endswith("/forecast"):
+                    value = {"properties": {"periods": weather_periods}}
+                elif u.endswith("/hourly"):
+                    value = {"properties": {"periods": weather_hours}}
+                elif u.endswith("/latest"):
+                    value = {"properties": {"timestamp": weather_time.isoformat(), "temperature": {"value": 28}, "textDescription": "Clear"}}
+                else:
+                    value = {"features": [{"properties": {"stationIdentifier": "KACT"}}]}
+                await r.fulfill(status=200, json=value, headers={"Access-Control-Allow-Origin": "*"})
             else:
                 await r.fulfill(status=200, body="")
         await pg.route("**/*", route)
@@ -119,6 +142,19 @@ async def main():
         check("14. Weather network fills stage and controls fit", fits)
         await pg.locator('[data-weather-view="local"]').click()
         check("15. Local forecast returns and network media stops", await pg.locator('#wxScreen').is_visible() and await pg.evaluate("()=>!tvHls&&!document.querySelector('#tvPane video')?.getAttribute('src')"))
+        await pg.locator('[data-wx-panel="week"]').click()
+        await pg.wait_for_function("()=>document.querySelectorAll('#wxDaily .wxl-day').length===7")
+        readable = await pg.evaluate("()=>[...document.querySelectorAll('#wxDaily .wxl-day')].every(e=>{const r=e.getBoundingClientRect();return r.width>100&&getComputedStyle(e).display!=='none'&&e.scrollHeight<=e.clientHeight+2;})")
+        check("16. All seven forecast days are reachable and unclipped", readable)
+        await pg.locator('[data-wx-panel="radar"]').click()
+        await pg.locator('[data-wx-radar="national"]').click()
+        check("17. Full radar map and explicit layer selection", await pg.evaluate("()=>document.querySelector('[data-wx-radar=national]').getAttribute('aria-pressed')==='true'&&getComputedStyle(document.querySelector('#wxRadar')).objectFit==='contain'"))
+        weather_alerts_fail = True
+        await pg.locator('#wxRefresh').wait_for(state='visible')
+        await pg.wait_for_function("()=>!document.getElementById('wxRefresh').disabled")
+        await pg.locator('#wxRefresh').click()
+        await pg.wait_for_function("()=>document.getElementById('wxTicker').textContent.includes('unavailable')")
+        check("18. Alert outages never claim an all-clear", "No active" not in await pg.locator('#wxTicker').inner_text())
 
         # The rollback is an explicit supported presentation, not a hidden-control
         # workaround when the default guide fails.
@@ -136,7 +172,7 @@ async def main():
 
         await b.close()
 
-    print(f"\n=== {len(failures)} failures out of 15 checks ===")
+    print(f"\n=== {len(failures)} failures out of 18 checks ===")
     if errors:
         print(f"Page errors: {errors[:3]}")
     if failures:

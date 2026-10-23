@@ -46,9 +46,15 @@ for(const name of ['the_dial_desktop.html','the_dial_mobile.html'])test(name+': 
  assert.equal(scope.curItem,null,'forecast must clear the previous video handoff');
  scope.token=2;assert.equal(options.isCurrent(),false);scope.chanRT.teardowns[0]();assert.ok(events.includes('dispose'));
 });
-for(const name of ['the_dial_desktop.html','the_dial_mobile.html'])test(name+': hidden forecast refresh cannot narrate over live network audio',()=>{
- const html=fs.readFileSync(path.join(root,name),'utf8'),start=html.indexOf('      /* 1.6.6: short spoken recap'),end=html.indexOf('      if(tk){',start);let spoken=0;
- const scope={soundOn:true,muted:false,weatherNetworks:{current:()=> 'fox'},periods:[{startTime:'now',name:'Today',shortForecast:'Sunny',isDaytime:true,temperature:82}],li:{city:'Waco'},loc:{},window:{speechSynthesis:{cancel(){},speak(){spoken++;}}},SpeechSynthesisUtterance:function(s){this.text=s;}};
- vm.createContext(scope);vm.runInContext(html.slice(start,end),scope);assert.equal(spoken,0);
- scope.weatherNetworks.current=()=> 'local';vm.runInContext(html.slice(start,end),scope);assert.equal(spoken,1);
+for(const name of ['the_dial_desktop.html','the_dial_mobile.html'])test(name+': forecast refresh cannot replace live-network status and departure releases both controllers',async()=>{
+ const html=fs.readFileSync(path.join(root,name),'utf8').replace(/\r\n/g,'\n'),start=html.indexOf('async function tuneWeather('),end=html.indexOf('\nupdateBanBtn();',start);
+ let viewOptions,loaderOptions,active='fox',updates=0,disposed=0;const statuses=[],owner={};
+ const scope={window:{RealSignalWeatherLocal:{markup:()=>'<div id="wxScreen"></div>',mount:(root,options)=>{viewOptions=options;return {update:()=>updates++,dispose:()=>disposed++,nextRadar(){}};},createLoader:options=>{loaderOptions=options;return {refresh:async()=>{},dispose:()=>disposed++};}}},
+  token:1,powered:true,hideOv(){},setSig(){},showNow(){},screenArea:{innerHTML:''},mountWeatherNetworks:()=>({current:()=>active}),$:()=>owner,getWxLocation:async()=>({lat:31,lon:-97}),locMode:'zip',homeLoc:{city:'Waco',state:'TX'},ensureWxIconCSS(){},rtInterval(){},readWeatherJSON(){},fetchOpenMeteoWeather(){},store:{get(){},set(){}},chanRT:{teardowns:[]},
+  wxIcon(){},wxPixelForecast(){},wxAlertKind(){},wxAlertChip(){},radarSector(){},wxC2F(){},wxKmh2Mph(){},wxPa2InHg(){},wxCompass(){},setChanStatus:(n,s)=>statuses.push(s),quickBanner(){},stopAfdSpeech(){},startIAJazz(){},startHazTicker(){}};
+ vm.createContext(scope);vm.runInContext(html.slice(start,end),scope);await scope.tuneWeather({num:950},{},1);
+ viewOptions.onStatus('82°F');assert.deepEqual(statuses,[],'background local updates must not overwrite FOX/TWC');
+ active='local';viewOptions.onStatus('82°F');assert.deepEqual(statuses,['82°F']);loaderOptions.onUpdate({});assert.equal(updates,1);
+ scope.token=2;viewOptions.onStatus('stale');assert.deepEqual(statuses,['82°F']);assert.equal(loaderOptions.isCurrent(),false);
+ scope.chanRT.teardowns.forEach(fn=>fn());assert.equal(disposed,2,'both loader and view must release their resources');
 });

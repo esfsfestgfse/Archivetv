@@ -1,0 +1,61 @@
+/* Local Forecast owns its layout; old fixed-height WeatherStar rules do not. */
+#wxScreen.wx6-local{height:100%;min-height:0;min-width:0;padding:12px;gap:8px;display:grid;grid-template-rows:auto auto minmax(0,1fr) auto auto auto;background:linear-gradient(150deg,#102958,#06142d 68%)!important;font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#e8f0ff;overflow:hidden;container-type:inline-size}
+#wxScreen.wx6-local::before{opacity:.035;pointer-events:none}
+#wxScreen .wx-top{display:flex;align-items:center;gap:12px;justify-content:space-between;background:none;border:0;padding:0;border-radius:0;text-shadow:none;letter-spacing:0}
+#wxScreen .wx-top::before{display:none}#wxScreen .wx-top>div{min-width:0}
+#wxScreen h2.wx-loc{margin:0;color:#ffe195;font-size:clamp(18px,2.2vw,27px);line-height:1.15;letter-spacing:.3px;white-space:normal;text-overflow:clip}
+#wxScreen .wx-upd{display:block;max-width:none;white-space:normal;margin:5px 0 0;font-size:12px;line-height:1.4;color:#a8bedf;letter-spacing:0}
+#wxScreen button{font:700 12px/1.25 system-ui,sans-serif;border:1px solid #486287;background:#102544;color:#dceaff;min-height:38px;padding:7px 12px;border-radius:6px;cursor:pointer}
+#wxScreen button:disabled{opacity:.5;cursor:default}#wxScreen button:focus-visible{outline:2px solid #8ce2ff;outline-offset:2px}
+#wxScreen button[aria-pressed=true]{border-color:#e5c979;background:#35405a;color:#ffe7a4}
+#wxScreen .wxl-tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;z-index:1}
+#wxScreen .wxl-tabs button{min-width:0;padding:8px 4px;font-size:13px}
+#wxScreen .wxl-scroll{min-height:0;min-width:0;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#597da9 #091b35;padding:2px 5px 5px 0;position:relative;z-index:1}
+#wxScreen .wx-main{display:grid;grid-template-columns:minmax(260px,.85fr) minmax(0,1.4fr);gap:12px;height:100%;min-height:310px;min-width:0}
+#wxScreen .wx-left,#wxScreen .wx-right{padding:16px;min-height:0;min-width:0;box-shadow:none;background:rgba(5,16,38,.68);border:1px solid #334c70;border-radius:10px}
+#wxScreen .wx-left{display:flex;flex-direction:column;gap:14px}
+#wxScreen .wx-now-main{padding:0;gap:6px}
+#wxScreen .wxl-eyebrow{margin:0;color:#9ab8de;letter-spacing:2px;font:700 11px/1.3 monospace}
+#wxScreen .wx-temp{font:800 clamp(52px,6.6vw,86px)/1 system-ui,sans-serif;letter-spacing:-3px;color:#ffe195;white-space:nowrap;text-shadow:none}
+#wxScreen .wx-fx{display:flex;align-items:center;gap:8px;font-size:18px;line-height:1.35;letter-spacing:0;margin:0}
+#wxScreen .wx-fx .wx-ic{flex:none;width:36px;height:30px;margin:0}
+#wxScreen .wxl-note,#wxScreen .wxl-summary{font:400 12px/1.5 system-ui,sans-serif;color:#adc4e1;margin:5px 0;white-space:normal}
+#wxScreen .wxl-summary{margin-top:auto;color:#e4edfa;font-size:14px;line-height:1.6;border-top:1px solid #334c70;padding-top:12px}
+#wxScreen .wx-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));min-width:0;min-height:0;gap:8px 16px;overflow:visible;align-content:start}
+#wxScreen .wx-stat{display:flex;flex-direction:column;gap:3px;white-space:normal;align-items:flex-start;padding:5px 0;border-bottom:1px solid #334c70;font:600 15px/1.3 system-ui,sans-serif;overflow:visible}
+#wxScreen .wx-stat b{font-size:11px;font-weight:600;color:#9ab8de;text-transform:uppercase;letter-spacing:.8px;overflow:visible}
+#wxScreen .wx-stat:nth-child(n){display:flex}
+#wxScreen .wx-right{display:flex;flex-direction:column;gap:8px}
+#wxScreen .wxl-radar-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+#wxScreen .wx-section-label{font:700 12px/1.4 monospace;letter-spacing:1px;margin:0;color:#b7d3fa}
+#wxScreen .wx-section-label::before{display:none}
+#wxScreen .wxl-layers{display:flex;gap:4px;flex-wrap:wrap}#wxScreen .wxl-layers button{padding:5px 9px;min-height:34px;font-size:11px}
+#wxScreen .wx-radar-wrap{flex:1;min-height:220px;position:relative;display:flex;align-items:center;justify-content:center;padding-bottom:30px;box-sizing:border-box;border:1px solid #334c70;border-radius:7px;box-shadow:none;background:#030a14;overflow:hidden}
+#wxScreen .wx-radar{width:100%;height:100%;position:absolute;inset:0 0 30px;max-height:calc(100% - 30px);object-fit:contain;object-position:center;display:block}
+#wxScreen .wxl-radar-status{position:absolute;bottom:0;left:0;right:0;margin:0;padding:6px 8px;line-height:1.4;font-size:11px;background:#10203c;color:#b8ceeb;min-height:18px}
+#wxScreen .wxl-hourly,#wxScreen .wxl-week,#wxScreen .wxl-alerts{display:none;min-width:0}
+#wxScreen .wxl-scroll h3{margin:4px 0;font-size:19px;line-height:1.4;color:#edf4ff}
+#wxScreen .wxl-hour-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(125px,1fr));gap:10px;margin-top:12px}
+#wxScreen .wxl-day-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-top:12px}
+#wxScreen .wxl-hour,#wxScreen .wxl-day{border:1px solid #3a5578;border-radius:9px;background:linear-gradient(145deg,#152c4c,#0a1b34);padding:14px;min-width:0;overflow:visible}
+#wxScreen .wxl-hour{text-align:center}#wxScreen .wxl-hour strong{font-size:27px;color:#ffe195}
+#wxScreen .wxl-hour h4,#wxScreen .wxl-day h4{margin:0 0 12px;font-size:15px;color:#c6dcfa}
+#wxScreen .wxl-hour p,#wxScreen .wxl-day p{line-height:1.5;white-space:normal;overflow-wrap:anywhere;margin:8px 0}
+#wxScreen .wxl-highlow{display:flex;flex-wrap:wrap;gap:4px 12px;color:#aac5ec;font-size:15px}#wxScreen .wxl-highlow b{color:#ffe195}
+#wxScreen .wx-pixel-art{margin:8px auto 14px;height:36px}
+#wxScreen details{font-size:12px;line-height:1.6;border-top:1px solid #3a5578;padding-top:10px;margin-top:12px}#wxScreen details summary{cursor:pointer;color:#9cddff}
+#wxScreen details p{white-space:pre-line}
+#wxScreen .wxl-empty,#wxScreen .wxl-warning,#wxScreen .wxl-clear{border:1px solid #486287;border-radius:8px;padding:16px;color:#c2d7ef;line-height:1.6}
+#wxScreen .wxl-warning{border-color:#aa7f41;color:#ffdfa1}
+#wxScreen .wxl-alert{border:1px solid var(--alert-color,#c9d7eb);border-left-width:4px;padding:14px;border-radius:7px;margin:12px 0;background:#0a1930}
+#wxScreen .wxl-alert p{font-size:14px;white-space:pre-line;line-height:1.6;overflow-wrap:anywhere}
+#wxScreen .wxl-alert .wx-alert-chip{display:flex;flex-wrap:wrap;white-space:normal;gap:6px;font-size:13px;line-height:1.5}
+#wxScreen .wxl-local-status{font:600 12px/1.4 system-ui,sans-serif;padding:7px 9px;background:#0c203a;border:1px solid #3b5579;border-radius:5px;color:#c4ddf5;white-space:normal;z-index:1}
+#wxScreen .haz-ticker{display:flex;min-height:22px;max-height:24px;flex:none;overflow:hidden;font-size:11px;background:#10172b;z-index:1}
+#wxScreen .wx-bug{position:static;min-width:0;width:100%;z-index:1;filter:none;min-height:28px}
+#wxScreen .wx-bug-id{font-size:10px;letter-spacing:1px;padding:5px 7px}#wxScreen .wx-bug-mid{padding:5px 8px;gap:8px;font-size:11px}#wxScreen .wx-bug-temp{font-size:15px}#wxScreen .wx-bug-clock{font-size:12px;letter-spacing:0;padding:5px 8px}
+#wxScreen[data-panel=hourly] .wx-main,#wxScreen[data-panel=week] .wx-main,#wxScreen[data-panel=alerts] .wx-main{display:none}
+#wxScreen[data-panel=hourly] .wxl-hourly,#wxScreen[data-panel=week] .wxl-week,#wxScreen[data-panel=alerts] .wxl-alerts{display:block}
+#wxScreen[data-panel=radar] .wx-main{grid-template-columns:minmax(0,1fr)}#wxScreen[data-panel=radar] .wx-left{display:none}
+@media(max-width:760px){#wxScreen.wx6-local{padding:8px;gap:6px}#wxScreen .wx-top{align-items:flex-start}#wxScreen h2.wx-loc{font-size:19px}#wxScreen .wx-upd{font-size:11px}#wxScreen .wx-top button{padding:6px 8px;font-size:11px}#wxScreen .wxl-tabs button{font-size:12px;min-height:40px}#wxScreen .wx-main{display:flex;flex-direction:column;height:auto;min-height:0;gap:10px}#wxScreen .wx-left,#wxScreen .wx-right{padding:13px}#wxScreen .wx-temp{font-size:59px}#wxScreen .wx-stats{grid-template-columns:repeat(2,minmax(0,1fr))}#wxScreen .wx-fx{font-size:16px}#wxScreen .wx-right{min-height:300px}#wxScreen .wx-radar-wrap{min-height:245px}#wxScreen[data-panel=radar] .wx-right{min-height:420px}#wxScreen .wxl-day-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}#wxScreen .wxl-day,#wxScreen .wxl-hour{padding:10px}#wxScreen .wxl-day h4{font-size:14px}#wxScreen .wxl-day p{font-size:12px}#wxScreen .wxl-highlow{flex-direction:column}#wxScreen .wx-bug-id{font-size:8px;letter-spacing:0}#wxScreen .wx-bug-mid{font-size:10px;gap:5px}#wxScreen .wx-bug-clock{font-size:10px}#wxScreen .wx-bug-place{white-space:nowrap}}
+@media(max-height:520px){#wxScreen.wx6-local{gap:4px;padding:6px}#wxScreen .wx-top{display:flex}#wxScreen h2.wx-loc{font-size:16px}#wxScreen .wx-upd{font-size:10px;margin-top:2px}#wxScreen .wxl-tabs button{min-height:34px}#wxScreen .haz-ticker{display:none}#wxScreen .wxl-local-status{font-size:10px;padding:4px}#wxScreen .wx-bug{display:none}}

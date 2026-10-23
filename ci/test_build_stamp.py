@@ -1,9 +1,27 @@
 """Version label fixtures need no Playwright, network, or app startup."""
 import unittest
+import ast
+import re
+from pathlib import Path
 from build_stamp import visible_build_matches
 
 
 class VisibleBuildTests(unittest.TestCase):
+    def test_real_dashboard_gate_admits_rc_but_rejects_malformed_builds(self):
+        source = Path(__file__).resolve().parents[1] / 'scripts' / 'test-telemetry-dashboard.py'
+        tree = ast.parse(source.read_text(encoding='utf-8'))
+        gate = next(node for node in ast.walk(tree) if isinstance(node, ast.Assert)
+                    and any(isinstance(child, ast.Name) and child.id == 'build' for child in ast.walk(node.test)))
+        expression = compile(ast.Expression(body=gate.test), str(source), 'eval')
+        for build, allowed in [
+            ('6.0.0-rc.1-desktop-v6-guide', True),
+            ('5.6.32-mobile-v6-guide-preview', True),
+            ('6.0.0-rc.bad-desktop-v6-guide', False),
+            ('5.anything', False), ('', False),
+        ]:
+            with self.subTest(build=build):
+                self.assertEqual(bool(eval(expression, {'re': re, 'build': build})), allowed)
+
     def test_rc_and_stable_chips_match_the_runtime(self):
         for build, chip in [
             ("6.0.0-rc.1-desktop-v6-guide", "v6.0.0-rc.1"),

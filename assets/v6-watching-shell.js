@@ -33,6 +33,7 @@
     el.type = 'button';
     if (aria) el.setAttribute('aria-label', aria);
     el.addEventListener('keydown', function (event) {
+      if (/^[0-9]$/.test(event.key)) { el.blur(); return; }
       // Keep native button activation; legacy document shortcuts must not consume it.
       if (event.key === 'Enter' || event.key === ' ') event.stopPropagation();
     });

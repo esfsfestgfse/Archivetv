@@ -33,6 +33,7 @@ function harness(search = '?v6=1') {
     }
     contains(x) { return this === x || this.children.some(c => c.contains(x)); }
     focus() { document.activeElement = this; this.dispatch('focusin'); }
+    blur() { if (document.activeElement === this) document.activeElement = null; this.dispatch('focusout'); }
   }
   const document = { createElement: tag => new Node(tag), getElementById: id => ids.get(id) || null, activeElement: null, addEventListener(k, f) { body.addEventListener(k, f); } };
   const body = document.body = new Node('body'); document.documentElement = new Node('html');
@@ -134,5 +135,16 @@ for (const file of ['the_dial_mobile.html', 'the_dial_desktop.html']) {
     vm.runInContext(source.slice(start, source.indexOf('\n});', start) + 4), h.context);
     h.ids.get('rsV6Next').press('Enter');
     assert.deepEqual(h.calls, [['skipOne']]);
+  });
+  test(`${file}: numeric channel entry releases dock focus so Enter cannot toggle Power`, () => {
+    const h = harness(), source = fs.readFileSync(path.join(root, file), 'utf8');
+    const start = source.indexOf('document.addEventListener("keydown",e=>{');
+    h.context.osdOpen = () => false; h.context.gwrap = h.guide;
+    h.context.pressDigit = n => h.calls.push(['digit', n]);
+    h.context.commitEntry = () => h.calls.push(['commit']);
+    vm.runInContext(source.slice(start, source.indexOf('\n});', start) + 4), h.context);
+    h.ids.get('rsV6Power').focus();
+    for (const key of ['1', '5', '0', 'Enter']) (h.document.activeElement || h.body).press(key);
+    assert.deepEqual(h.calls, [['digit','1'],['digit','5'],['digit','0'],['commit']]);
   });
 }

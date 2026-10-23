@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- Latest user authorization permits pushing the tested opt-in canary as 5.6.30. No final V6 stamp or default-mode rollout.
+- Latest user authorization permits pushing the tested opt-in canary as 5.6.31 (including the 5.6.30 initial preview). No final V6 stamp or default-mode rollout.
 - No channel, profile, catalog, source-selection, freshness, cooldown, commercial, or Cast-protocol changes.
 - Opt in with `v6=1`; normal users retain their current presentation.
 - Cast receiver and connected Cast sender retain the existing presentation and command routing until separately certified.
@@ -48,7 +48,7 @@
 - [x] Run the exact offline Node CI command set with all HTML arguments retained. Record all failures; do not weaken unrelated checks.
 - [x] Finish browser validation and reset viewport overrides; see evidence report for completed sizes and sampled playback.
 - [x] Record final independent review and fix substantive findings with RED→GREEN tests plus a green regression gate.
-- [ ] Push the authorized preview and verify hosted Actions/Pages. No default V6 rollout.
+- [x] Push the authorized preview and verify hosted Actions/Pages. Initial 5.6.30 CI/Pages passed; keyboard follow-up is 5.6.31. No default V6 rollout.
 
 ## Subsequent slices, outside this plan
 

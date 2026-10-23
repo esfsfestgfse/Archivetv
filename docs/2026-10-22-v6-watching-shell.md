@@ -1,4 +1,4 @@
-# V6 watching shell — 5.6.30 preview
+# V6 watching shell — 5.6.31 preview
 
 ## What changes
 
@@ -77,3 +77,19 @@ after push; local offline checks do not establish a successful deployment.
 - Preserve ignored audit evidence under the umbrella spec; cost: local disk space.
 - Keep actual-device certification and remaining V6 features as separate gates;
   cost: device-specific issues may still surface during preview testing.
+
+## Hosted numeric-entry follow-up
+
+The first hosted check's standby state was traced to a real keyboard conflict,
+not provider availability: Power retained focus, so Enter after typing a channel
+number activated Power a second time. Two real-handler regression tests failed
+with an unwanted `togglePower` call. Numeric entry now releases dock-button focus
+and continues to the existing channel-entry owner; native Enter on a deliberately
+focused button still works. The focused shell suite is now 12/12. This follow-up
+increments the visible stamp and cache keys to 5.6.31 rather than silently changing
+5.6.30. No provider or queue behavior changes.
+
+The exact Power → 150 → Enter sequence now preserves powered-on channel 150 in
+both real browser builds, with dock focus released. The final 5.6.31 offline gate
+passed 58/58 again. The initial 5.6.30 GitHub worker/desktop/mobile CI and both Pages
+deployments succeeded; the follow-up has its own normal push/deployment gate.

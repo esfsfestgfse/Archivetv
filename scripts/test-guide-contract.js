@@ -159,6 +159,34 @@ function actualFunctions(file, context, names) {
     vm.runInContext(source.slice(start, end), context);
   }
 }
+test('directory uses canonical identities, category ordering and existing favorites/recent without discovery', () => {
+  const { api, context, calls } = browserAdapter('the_dial_desktop.html');
+  const rows = [{ num: 226, key: 'doc', nm: 'Documentary', cat: 'DOC' },
+    { num: 21, key: 'alias', nm: 'Old Court', cat: 'TV' }, { num: 20, key: 'court', nm: 'Courtroom', cat: 'TV' }];
+  context.publicLineupChannels = () => rows;
+  context.isHiddenConsolidatedMember = ch => ch.num === 21;
+  context.GUIDE_CATEGORIES = [{ id: 'all', label: 'All channels' }, { id: 'tv', label: 'TV' }, { id: 'doc', label: 'Archive' }];
+  context.guideCategoryFor = ch => context.GUIDE_CATEGORIES[ch.cat === 'TV' ? 1 : 2];
+  context.canonicalChannelLabel = ch => ch.num === 20 ? 'Courtroom TV' : ch.nm;
+  context.CHANNEL_META = { Documentary: { desc: 'Full documentaries' } };
+  context.isFav = num => num === 226;
+  context.store = { get: (key, fallback) => key === 'realsignal:guide-recent' ? ['226', '20'] : fallback };
+  const before = JSON.stringify(rows), result = api.directory();
+  assert.deepEqual(Array.from(result, x => [x.number, x.name, x.categoryId, x.favorite, x.recentIndex]),
+    [[20, 'Courtroom TV', 'tv', false, 1], [226, 'Documentary', 'doc', true, 0]]);
+  assert.equal(result[1].description, 'Full documentaries');
+  result[0].name = 'changed';
+  assert.equal(JSON.stringify(rows), before);
+  assert.deepEqual(Array.from(api.categories(), x => x.id), ['all', 'tv', 'doc']);
+  assert.deepEqual(calls, []);
+});
+
+test('favorite command resolves its latest owner and preserves its target channel', () => {
+  const { api, context, calls } = browserAdapter('the_dial_desktop.html');
+  context.toggleFav = num => calls.push(['favorite', num]);
+  api.command('favorite', 226);
+  assert.deepEqual(calls, [['favorite', 226]]);
+});
 for (const file of ['the_dial_mobile.html', 'the_dial_desktop.html']) {
   test(file + ': guide reads actual IA current and resolved queue without discovery', () => {
     const { api, calls, context } = browserAdapter(file);

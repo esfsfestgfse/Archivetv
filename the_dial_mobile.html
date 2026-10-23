@@ -7608,7 +7608,7 @@ function iaReadyShelfRestore(ch,sl){
    failed identifier for a short period, then allow it back into rotation so
    a transient CDN/metadata failure never becomes a permanent ban. */
 var iaProgramFailures={}, IA_PROGRAM_FAILURE_TTL=12*60*1000;
-function iaProgramFailed(id){var at=iaProgramFailures[id]||0;if(!at)return false;if(at<=Date.now()){delete iaProgramFailures[id];return false;}return true;}
+function iaProgramFailed(id,readOnly){var at=iaProgramFailures[id]||0;if(!at)return false;if(at<=Date.now()){if(!readOnly)delete iaProgramFailures[id];return false;}return true;}
 function iaMarkProgramFailed(id){if(id)iaProgramFailures[id]=Date.now()+IA_PROGRAM_FAILURE_TTL;}
 /* FIRST-FRAME SHELF: queue discovery alone still left the next Archive CDN
    request until after a channel change. Keep one muted, preloading media element
@@ -7756,7 +7756,7 @@ function iaEnglishRerunAllowed(item){
   var signal=[item&&(item.identifier||item.id),item&&item.title,item&&(item.subject||item.subjects),meta.subject||meta.subjects].join(" ").replace(/[-_:.]+/g," ");
   return !/\b(?:hindi|indian|mahabharat|bhagwan|tamil|telugu|bengali|bangla|marathi|malayalam|kannada|punjabi|urdu|arabic|spanish|portuguese|french|german|russian|turkish|korean|japanese|mandarin)\b/i.test(signal);
 }
-function iaProgramAllowed(item,sl){
+function iaProgramAllowed(item,sl,readOnly){
   if(sl&&!iaReviewedFileAllowed(item,sl.channel))return false;
   if(sl&&String(sl.channel)==="80"&&!iaHuntingAllowed(item))return false;
   if(sl&&String(sl.channel)==="201"&&!iaCookingAllowed(item))return false;
@@ -7767,13 +7767,13 @@ function iaProgramAllowed(item,sl){
      Editorial gates, bans, and failed-media quarantine still apply. */
   var freshnessFallback=!!(item&&item._freshnessFallback);
   if(item&&iaKnownVideoPolicyViolation(item,{channel:sl&&sl.channel,minRuntimeSeconds:sl&&sl.program&&sl.program.minRuntimeSeconds}))return false;
-  if(!item||!item.identifier||banned.indexOf(item.identifier)>=0||(!freshnessFallback&&isTemporarilySkipped(item.identifier))||blockedId(item.identifier)||iaProgramFailed(item.identifier))return false;
+  if(!item||!item.identifier||banned.indexOf(item.identifier)>=0||(!freshnessFallback&&isTemporarilySkipped(item.identifier,readOnly))||blockedId(item.identifier)||iaProgramFailed(item.identifier,readOnly))return false;
   var cur=(curItem&&typeof curItem==="object")?curItem.id:null;if(item.identifier===cur)return false;
   if(sl&&String(sl.channel)==="11"&&!iaEnglishRerunAllowed(item))return false;
   if(sl&&String(sl.channel)==="22"&&!iaModernGameShowAllowed(item))return false;
   if(sl&&String(sl.channel)==="65"&&!iaSportingLifeAllowed(item))return false;
   if(!sl)return true;var p=sl.program||{}, title=String(item.title||"").toLowerCase(), subj=String(item.subject||item.subjects||"").toLowerCase();
-  if(sl.channel&&!freshnessFallback&&iaSkipBlocked(sl.channel,item))return false;
+  if(sl.channel&&!freshnessFallback&&iaSkipBlocked(sl.channel,item,readOnly))return false;
   if(!iaThemeMatches(item,sl))return false;
   if(p.deny){if((p.deny.title||[]).some(function(x){return title.indexOf(String(x).toLowerCase())>=0;}))return false;if((p.deny.subject||[]).some(function(x){return subj.indexOf(String(x).toLowerCase())>=0;}))return false;}
   if(p.require&&p.require.title_any&&p.require.title_any.length&&!p.require.title_any.some(function(x){return title.indexOf(String(x).toLowerCase())>=0;})){
@@ -8280,7 +8280,32 @@ function guideOKMusicListing(ch,verified){
   var unseen=candidates.filter(function(item){return heard.indexOf(String(item.id||""))<0&&programs.indexOf(window.RealSignalOKEmbed.programKey(item))<0;}).length;
   return {now:"NOW · "+guideItemTitle(current),next:next?("NEXT · "+guideItemTitle(next)+" · "+guideItemRuntime(next)):"NEXT · VERIFIED QUEUE REFRESHING",detail:(Number(verified&&verified.catalogDepth)||state.items.length)+" VERIFIED PROGRAMS · "+unseen+" UNSEEN · "+(current.provider||state.provider||"OK.ru"),state:"playing",live:false,ready:Math.min(5,state.items.length),capacity:5};
 }
+function guidePlaybackSnapshot(ch){
+  var current=ch&&ch.num===curNum&&curItem&&Number(curItem.ch)===Number(ch.num)?curItem:null;
+  var queue=[],position=current&&curVideo?{currentTime:curVideo.currentTime,duration:curVideo.duration}:null;
+  if(ch&&ch.source==="v2preview"){
+    var state=(window.__v2PreviewState||{})[ch.num],profile=V2_PREVIEW_PROFILES[ch.previewKey];
+    if(state&&Array.isArray(state.items)&&profile){
+      var preview=Object.assign({},state,{items:state.items.slice()});
+      var index=v2NextFreshIndex(profile,preview,current&&current.id||"");
+      if(index>=0){preview.cursor=index;index=v2FreshCursor(profile,preview);}
+      if(index>=0)queue=preview.items.slice(index).concat(preview.items.slice(0,index)).filter(function(item){return !(item&&item.meta&&item.meta.verification&&item.meta.verification.playback===false);});
+    }
+  }else if(ch&&!ch.source){
+    if(iaRepairEnabled(ch))queue=window.RealSignalIAShelf.client().rows(iaQueueKey(ch));
+    else{
+      var sl=slotFor(ch,0,{preview:true});
+      queue=(iaProgramQueues[iaQueueKey(ch)]||[]).filter(function(item){return iaProgramAllowed(item,sl,true)&&iaProgramMedia[item.identifier]!==null&&!iaPendingTooLong(item.identifier);}).map(function(item,index){
+        var media=iaProgramMedia[item.identifier];
+        var warmer=iaMediaWarmers[iaMediaWarmKey(ch,item)],warm=!!(warmer&&warmer.el.readyState>=2);
+        return media&&typeof media.then!=="function"&&media.url?{item:Object.assign({},item,{media:media}),warm:warm,index:index}:null;
+      }).filter(Boolean).sort(function(a,b){return Number(b.warm)-Number(a.warm)||a.index-b.index;}).map(function(row){return row.item;});
+    }
+  }
+  return window.RealSignalGuideContract.select({channel:ch,current:current,queue:queue,live:ch&&liveGuideState[ch.num],position:position,capacity:IA_READY_TARGET,powered:powered});
+}
 function guideListing(ch){
+  if(window.RealSignalPresentation&&window.RealSignalPresentation.enabled)return window.RealSignalGuideContract.listing(guidePlaybackSnapshot(ch));
   if(!ch)return {now:"OFF AIR",next:"TUNE A CHANNEL",detail:"STANDBY",state:"standby",live:false,ready:0,capacity:5};
   var verifiedGuide=(window.__rsVerifiedGuide||{})[String(ch.previewKey||ch.num)];
   var musicListing=guideOKMusicListing(ch,verifiedGuide);if(musicListing)return musicListing;
@@ -8886,7 +8911,7 @@ var schedMap=store.get("sched",{});
 var skipUntil=store.get("skipUntil",{}), SKIP_COOLDOWN=2*60*60*1000;
 var iaSkipLedger=store.get("iaSkipLedger",{})||{}, IA_SKIP_LEDGER_TTL=6*60*60*1000;
 function iaSkipPrune(channel){var key=String(channel||""),now=Date.now(),rows=Array.isArray(iaSkipLedger[key])?iaSkipLedger[key]:[];rows=rows.filter(function(row){return row&&Number(row.at||0)>now-IA_SKIP_LEDGER_TTL;});iaSkipLedger[key]=rows.slice(0,36);return iaSkipLedger[key];}
-function iaSkipBlocked(channel,item){var rows=iaSkipPrune(channel),id=String(item&&(item.identifier||item.id)||""),title=normTitle(item&&item.title||"");if(!id&&!title)return false;return rows.some(function(row){return (id&&String(row.id||"")===id)||(title&&String(row.title||"")===title);});}
+function iaSkipBlocked(channel,item,readOnly){var rows=readOnly?(Array.isArray(iaSkipLedger[String(channel)])?iaSkipLedger[String(channel)]:[]).filter(function(row){return row&&Number(row.at||0)>Date.now()-IA_SKIP_LEDGER_TTL;}).slice(0,36):iaSkipPrune(channel),id=String(item&&(item.identifier||item.id)||""),title=normTitle(item&&item.title||"");if(!id&&!title)return false;return rows.some(function(row){return (id&&String(row.id||"")===id)||(title&&String(row.title||"")===title);});}
 function markIaSkipped(channel,item){if(!channel||!item)return;var key=String(channel),rows=iaSkipPrune(key),id=String(item.id||item.identifier||""),title=normTitle(item.title||"");if(!id&&!title)return;rows=rows.filter(function(row){return String(row.id||"")!==id&&(!title||String(row.title||"")!==title);});rows.unshift({id:id,title:title,at:Date.now()});iaSkipLedger[key]=rows.slice(0,36);store.set("iaSkipLedger",iaSkipLedger);}
 /* One-time upgrade fence. Saved appointments and rapid-tune entries created by
    clock-scheduled builds can otherwise survive for hours and make the new
@@ -8897,7 +8922,7 @@ try{if(Number(store.get("iaTimelessIdentityVersion",0))<IA_TIMELESS_IDENTITY_VER
   schedMap={};store.set("sched",{});store.set("fastTune",{});store.set("plan",{});store.set("stationMgr",false);
   store.set("iaTimelessIdentityVersion",IA_TIMELESS_IDENTITY_VERSION);
 }}catch(e){}
-function isTemporarilySkipped(id){var until=skipUntil[id]||0;if(until&&until<=Date.now()){delete skipUntil[id];store.set("skipUntil",skipUntil);return false;}return until>Date.now();}
+function isTemporarilySkipped(id,readOnly){var until=skipUntil[id]||0;if(until&&until<=Date.now()){if(!readOnly){delete skipUntil[id];store.set("skipUntil",skipUntil);}return false;}return until>Date.now();}
 function markSkipped(id){if(!id)return;skipUntil[id]=Date.now()+SKIP_COOLDOWN;var ks=Object.keys(skipUntil);if(ks.length>200){ks.sort(function(a,b){return skipUntil[a]-skipUntil[b];});while(ks.length>200)delete skipUntil[ks.shift()];}store.set("skipUntil",skipUntil);}
 var lastMeta=null; /* 1.3: programming flow memory */
 var iaSkipTuneAt={}; /* A manual skip must not re-enter the just-played fast-tune cache. */
@@ -19633,5 +19658,7 @@ window.__atvBootDone=true; /* app is up -- from here on, errors get logged, not 
 <script src="assets/release2-runtime.js?v=health205"></script>
 <script src="assets/release3-runtime.js"></script>
 <script src="assets/release31-runtime.js"></script>
+<script src="assets/guide-contract.js?v=v6-contract-1"></script>
+<script src="assets/guide-contract-client.js?v=v6-contract-1"></script>
 </body>
 </html>

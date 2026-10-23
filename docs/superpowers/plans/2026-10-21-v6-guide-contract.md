@@ -33,10 +33,10 @@
 
 **Interfaces:** `RealSignalGuideContract.select({channel,current,queue,live,position,capacity,powered}) -> {channel,current,next,later,state,live,ready,capacity,position,remainingSeconds}`; `listing(snapshot) -> {now,next,detail,state,live,ready,capacity}`. Program records contain `id,title,durationSeconds,provider` and preserve exact source identity. Pure functions; no fetch, timers, storage, or DOM.
 
-- [ ] Write tests for wrong-channel current, real playing item versus stale catalog, exact file identity, duplicate/current exclusion, missing/unplayable queue rows, live service copy, powered-off state, malformed duration and playhead, and immutable inputs. Assert literal results.
-- [ ] Run `node --test scripts/test-guide-contract.js`; confirm missing contract fails.
-- [ ] Implement selector and compatibility listing with explicit pending/live copy.
-- [ ] Run focused tests and commit the selector plus tests.
+- [x] Write tests for wrong-channel current, real playing item versus stale catalog, exact file identity, duplicate/current exclusion, missing/unplayable queue rows, live service copy, powered-off state, malformed duration and playhead, and immutable inputs. Assert literal results.
+- [x] Run `node --test scripts/test-guide-contract.js`; confirm missing contract fails.
+- [x] Implement selector and compatibility listing with explicit pending/live copy.
+- [x] Run focused tests and commit the selector plus tests.
 
 ## Task 2: Browser adapter and guarded guide integration
 
@@ -44,11 +44,11 @@
 
 **Interfaces:** `window.RealSignalPresentation.snapshot(channelOrNumber)`, `.command(name, value)` and `.enabled`; commands `tune`, `next`, `guide-open`, `guide-close`, `power`, `info`, `menu` delegate lazily to existing commands. HTML helper `guidePlaybackSnapshot(ch)` supplies real current and ready queue records to Task 1.
 
-- [ ] Add executable tests for both HTML adapters, source cursor immutability, disabled-flag behavior, latest-wrapper delegation, and zero command/discovery work during snapshots.
-- [ ] Run focused tests; confirm integration failures before edits.
-- [ ] Read actual IA media maps and Source Suite state without fetching; expose shared selector; connect guide listing only for `v6=1`. Guard cast-receiver until physical-device testing.
-- [ ] Add CI coverage and syntax validation for new assets. Run guide ownership/stability, registry/parity, Cast/runtime, and the complete offline Node CI gate.
-- [ ] Commit, record evidence and limitations, and run one final independent review. Fix substantive findings with failing-then-passing tests. Preserve audit evidence.
+- [x] Add executable tests for both HTML adapters, source cursor immutability, disabled-flag behavior, latest-wrapper delegation, and zero command/discovery work during snapshots.
+- [x] Run focused tests; confirm integration failures before edits.
+- [x] Read actual IA media maps and Source Suite state without fetching; expose shared selector; connect guide listing only for `v6=1`. Guard cast-receiver until physical-device testing.
+- [x] Add CI coverage and syntax validation for new assets. Run guide ownership/stability, registry/parity, Cast/runtime, and the complete offline Node CI gate.
+- [x] Commit, record evidence and limitations, and run one final independent review. Fix substantive findings with failing-then-passing tests. Preserve audit evidence.
 
 ## Execution decision
 

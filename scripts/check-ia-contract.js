@@ -54,7 +54,7 @@ if (!/var globalQs = \[\]/.test(source) || !/qs\.concat\(globalQs\)/.test(source
 if (!/var permanentEra=prog\.era\|\|\[/.test(source) || !/var permanentSubjects=/.test(source)) issues.push('every PROGRAM channel needs a permanent full-era fast rail');
 if (/const NS=|const PROFILES=/.test(source)) issues.push('retired clock vocabulary and profiles must not remain in the app bundle');
 if (!/IA_MEDIA_WARM_MAX=6/.test(source)) issues.push('first-frame shelf must stay bounded to six media elements');
-if (!/IA_PROGRAM_FAILURE_TTL=12\*60\*1000/.test(source) || !/function iaMarkProgramFailed\(id\)/.test(source) || !/iaProgramFailed\(item\.identifier\)/.test(source)) issues.push('failed archive items must be temporarily quarantined before another queue pick');
+if (!/IA_PROGRAM_FAILURE_TTL=12\*60\*1000/.test(source) || !/function iaMarkProgramFailed\(id\)/.test(source) || !/iaProgramFailed\(item\.identifier(?:,readOnly)?\)/.test(source)) issues.push('failed archive items must be temporarily quarantined before another queue pick');
 if (!/for\(var queuedTry=0;queued&&queuedTry<3;queuedTry\+\+\)/.test(source) || !/iaMarkProgramFailed\(queued\.identifier\)/.test(source)) issues.push('a channel tune must exhaust three bounded queue candidates before returning to discovery');
 if (!/primeIACompanions\(ch,sl\)/.test(source)) issues.push('channel tuning must prioritize the active and neighboring IA queues');
 if (!/var companionRun=iaPrimeRun/.test(source) || !/companionRun!==iaPrimeRun/.test(source) || !/var warmDelay=index===0\?0:4200\+\(index-1\)\*3200/.test(source)) issues.push('companion queue warming must stagger behind the active station and cancel stale surfs');

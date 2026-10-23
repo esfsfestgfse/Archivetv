@@ -18,7 +18,7 @@
     if (!item) return null;
     var media = item.media || {}, meta = item.meta || {};
     return {
-      id: text(item.identifier || item.id || meta.identifier || meta.id),
+      id: String(item.identifier || item.id || meta.identifier || meta.id || ''),
       title: text(item.title || meta.title || item.identifier || item.id),
       durationSeconds: firstSeconds([item.duration, item.runtime, item.runtimeSeconds, item.duration_seconds, media.runtime, media.duration, meta.media && meta.media.runtime]),
       provider: text(item.provider || meta.provider || (item.source === 'archive' ? 'Internet Archive' : '')),

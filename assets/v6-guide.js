@@ -3,7 +3,7 @@
   var api = window.RealSignalPresentation, query = new URLSearchParams(location.search);
   if (!api || query.get('v6') !== '1' || query.get('castReceiver') === '1') return;
   var panel, list, refs = {}, rowRefs = {}, entries = [], selected = null, opener, timer, opened = false;
-  var category = 'all', view = 'all', search = '', scroll = 0;
+  var category = 'all', view = 'all', search = '', scroll = 0, focusId = '', renderedKey = '';
   var oldOpen = window.openGuide, oldClose = window.closeGuide;
   function el(tag, id, text, parent, cls) {
     var node = document.createElement(tag);
@@ -72,7 +72,7 @@
   }
   function favorite(number) {
     var focus = document.activeElement, oldScroll = list.scrollTop;
-    api.command('favorite', number); render(); list.scrollTop = oldScroll;
+    api.command('favorite', number); render(); list.scrollTop = oldScroll; refresh();
     var row = rowRefs[number];
     if (row && focus && focus.id === 'rsV6GuideFav-' + number) row.favorite.focus({ preventScroll: true });
     else if (focus && !panel.contains(focus)) refs.rsV6GuideFavorites.focus();
@@ -89,9 +89,12 @@
     });
     if (view === 'recent') entries.sort(function (a, b) { return a.recentIndex - b.recentIndex; });
     if (!entries.some(function (entry) { return entry.number === selected; })) selected = entries.length ? entries[0].number : null;
-    list.replaceChildren(); rowRefs = {};
+    var key = JSON.stringify([category, view, search, entries]);
+    if (key === renderedKey) { select(selected, false); return; }
+    renderedKey = key;
+    var hosts = []; rowRefs = {};
     entries.forEach(function (entry) {
-      var host = el('div', '', '', list, 'rsg-row'); host.dataset.channelNum = entry.number;
+      var host = el('div', '', '', null, 'rsg-row'); host.dataset.channelNum = entry.number; hosts.push(host);
       var choose = button('rsV6GuideRow-' + entry.number, '', host, function () { select(entry.number, false); }, 'rsg-select');
       var identity = el('span', '', '', choose, 'rsg-channel');
       el('strong', '', String(entry.number), identity, 'rsg-digits');
@@ -106,8 +109,9 @@
       fav.setAttribute('aria-label', (entry.favorite ? 'Remove ' : 'Save ') + entry.name + (entry.favorite ? ' from favorites' : ' to favorites'));
       fav.setAttribute('aria-pressed', entry.favorite);
       rowRefs[entry.number] = { host: host, button: choose, favorite: fav, now: now, meta: meta, next: next, nextMeta: nextMeta };
-      updateRow(rowRefs[entry.number], snapshot(entry.number));
+      updateRow(rowRefs[entry.number], {});
     });
+    list.replaceChildren.apply(list, hosts);
     refs.rsV6GuideEmpty.hidden = entries.length > 0;
     put(refs.rsV6GuideCount, entries.length + ' channels');
     ['All', 'Favorites', 'Recent'].forEach(function (name) {
@@ -117,7 +121,7 @@
     api.categories().forEach(function (group) { var node = refs['rsV6GuideCat-' + group.id]; if (node) node.setAttribute('aria-pressed', category === group.id); });
     select(selected, false);
   }
-  function filter() { render(); list.scrollTop = 0; }
+  function filter() { render(); list.scrollTop = 0; refresh(); }
   function keydown(event) {
     if (!opened) return;
     event.stopPropagation(); // Keep existing page shortcuts out of this dialog.
@@ -165,10 +169,11 @@
     list = el('div', 'rsV6GuideList', '', main); list.setAttribute('aria-label', 'Channels');
     el('p', 'rsV6GuideEmpty', 'No channels match. Try All or clear the search.', main);
     var detail = el('aside', '', '', body, 'rsg-detail'); detail.setAttribute('aria-label', 'Selected channel');
-    el('small', 'rsV6GuideNumber', '', detail); el('h2', 'rsV6GuideChannelName', '', detail);
-    el('p', 'rsV6GuideDescription', '', detail); el('div', '', 'PROGRAM', detail, 'rsg-eyebrow');
-    el('h3', 'rsV6GuideProgram', '', detail); el('p', 'rsV6GuideRuntime', '', detail);
-    el('p', 'rsV6GuideRemaining', '', detail); el('p', 'rsV6GuideFollowing', '', detail);
+    var copy = el('div', '', '', detail, 'rsg-detail-copy');
+    el('small', 'rsV6GuideNumber', '', copy); el('h2', 'rsV6GuideChannelName', '', copy);
+    el('p', 'rsV6GuideDescription', '', copy); el('div', '', 'PROGRAM', copy, 'rsg-eyebrow');
+    el('h3', 'rsV6GuideProgram', '', copy); el('p', 'rsV6GuideRuntime', '', copy);
+    el('p', 'rsV6GuideRemaining', '', copy); el('p', 'rsV6GuideFollowing', '', copy);
     button('rsV6GuideWatch', 'Watch channel →', detail, function () { if (selected == null) return; var number = selected; close(); api.command('tune', number); }, 'rsg-watch');
     panel.addEventListener('keydown', keydown);
   }
@@ -182,19 +187,24 @@
     });
     details();
   }
+  function legacyOpen() { var guide = document.getElementById('gwrap'); return !!(guide && guide.classList.contains('show')); }
   function open() {
     if (!api.enabled) return false;
     if (opened) return true;
     var started = now();
+    if (legacyOpen()) oldClose.call(window);
     if (!panel) mount();
     opener = document.activeElement; opened = true; panel.hidden = false;
     if (selected == null) { var current = api.snapshot(); selected = current.channel && current.channel.number; }
-    render(); list.scrollTop = scroll; refs.rsV6GuideSearch.focus({ preventScroll: true });
+    render(); list.scrollTop = scroll; refresh();
+    var restore = refs[focusId];
+    (restore && panel.contains(restore) && !restore.disabled ? restore : refs.rsV6GuideSearch).focus({ preventScroll: true });
     timer = setInterval(refresh, 1000); syncDock(); measured('open', started); return true;
   }
   function close() {
     if (!opened) return;
     var started = now();
+    focusId = panel.contains(document.activeElement) ? document.activeElement.id || '' : '';
     scroll = list.scrollTop; opened = false; clearInterval(timer); panel.hidden = true;
     if (api.enabled && opener && opener.isConnected) opener.focus({ preventScroll: true });
     else if (panel.contains(document.activeElement)) document.activeElement.blur();
@@ -203,5 +213,5 @@
   function syncDock() { if (window.RealSignalWatchingShell) window.RealSignalWatchingShell.refresh(); }
   window.RealSignalGuide = { open: open, close: close, refresh: refresh, isOpen: function () { return opened; } };
   window.openGuide = function () { if (api.enabled) return open(); return oldOpen.apply(this, arguments); };
-  window.closeGuide = function () { if (api.enabled) return close(); return oldClose.apply(this, arguments); };
+  window.closeGuide = function () { if (api.enabled && (opened || !legacyOpen())) return close(); return oldClose.apply(this, arguments); };
 })();

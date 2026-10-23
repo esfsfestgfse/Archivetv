@@ -2,7 +2,7 @@
 (function () {
   var api = window.RealSignalPresentation;
   if (!api || new URLSearchParams(location.search).get('v6') !== '1' || new URLSearchParams(location.search).get('castReceiver') === '1') return;
-  var root = document.documentElement, dock, idleTimer, state, guideWasOpen = false;
+  var root = document.documentElement, dock, idleTimer, state, guideWasOpen = false, guideWasV6 = false;
   var refs = {};
   function element(tag, id, text, parent) {
     var el = document.createElement(tag);
@@ -80,6 +80,7 @@
     if (!active) {
       if (dock) { dock.hidden = true; clearTimeout(idleTimer); }
       guideWasOpen = false;
+      guideWasV6 = false;
       return;
     }
     if (!dock) mount();
@@ -96,8 +97,9 @@
     refs.rsV6Mute.setAttribute('aria-pressed', typeof muted !== 'undefined' && !!muted);
     var guideOpen = !!visiblePanel('gwrap');
     refs.rsV6Guide.setAttribute('aria-expanded', guideOpen);
-    if (guideWasOpen && !guideOpen) refs.rsV6Guide.focus();
+    if (guideWasOpen && !guideOpen && !guideWasV6) refs.rsV6Guide.focus();
     guideWasOpen = guideOpen;
+    guideWasV6 = !!(window.RealSignalGuide && window.RealSignalGuide.isOpen());
     if (entering || keepAwake()) wake();
   }
   window.RealSignalWatchingShell = { refresh: refresh };

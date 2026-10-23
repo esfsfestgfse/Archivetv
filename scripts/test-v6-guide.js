@@ -7,7 +7,7 @@ const root = path.resolve(__dirname, '..');
 
 // DOM/clock boundaries only; exercise the actual presenter and command adapter.
 function harness(search = '?v6=1') {
-  const ids = new Map(), intervals = new Map(), calls = []; let connected = false, serial = 0;
+  const ids = new Map(), intervals = new Map(), calls = [], reads = [], offscreen = new Set(); let connected = false, serial = 0;
   class Node {
     constructor(tag) { this.tagName = tag.toUpperCase(); this.children = []; this.attrs = {}; this.listeners = {};
       this.dataset = {}; this.style = {}; this.hidden = false; this.textContent = ''; this.value = ''; this.scrollTop = 0; this.tabIndex = 0;
@@ -21,7 +21,7 @@ function harness(search = '?v6=1') {
     contains(x) { return this === x || this.children.some(c => c.contains(x)); }
     get isConnected() { return document.body.contains(this); }
     focus() { document.activeElement = this; } blur() { document.activeElement = document.body; }
-    scrollIntoView() {} getBoundingClientRect() { return { top: 0, bottom: 700 }; }
+    scrollIntoView() {} getBoundingClientRect() { return offscreen.has(Number(this.dataset.channelNum)) ? { top: 1800, bottom: 1900 } : { top: 0, bottom: 700 }; }
     getClientRects() { return this.hidden ? [] : [this.getBoundingClientRect()]; }
     querySelectorAll() { const out = []; const walk = el => el.children.forEach(c => { if (['BUTTON','INPUT','SELECT'].includes(c.tagName)) out.push(c); walk(c); }); walk(this); return out; }
     dispatch(type, extra = {}) {
@@ -53,19 +53,20 @@ function harness(search = '?v6=1') {
     guideCategoryFor: ch => ({ id: ch.cat, label: ch.cat }), canonicalChannelLabel: ch => ch.nm,
     CHANNEL_META: { 'Documentary Hour': { desc: 'Full documentaries, history and science.' } },
     isFav: n => favorites.has(n), store: { get: () => ['226', '150'] },
-    byNum: n => rows.find(x => x.num === n), guidePlaybackSnapshot: ch => snapshots[ch.num],
+    byNum: n => rows.find(x => x.num === n), guidePlaybackSnapshot: ch => { reads.push(ch.num); return snapshots[ch.num]; },
     __rsCastIsConnected: () => connected,
     openGuide: () => { calls.push(['legacy-open']); legacy.classList.add('show'); },
     closeGuide: () => { calls.push(['legacy-close']); legacy.classList.remove('show'); },
     tuneNum: n => calls.push(['tune', n]), toggleFav: n => { calls.push(['favorite', n]); favorites.has(n) ? favorites.delete(n) : favorites.add(n); },
     setInterval: fn => { const id = ++serial; intervals.set(id, fn); return id; }, clearInterval: id => intervals.delete(id),
+    setTimeout: () => ++serial, clearTimeout() {},
     fetch: () => { throw Error('guide must not fetch'); }, primeGuideQueues: () => { throw Error('guide must not prime'); },
   };
   context.window = context; vm.createContext(context);
   vm.runInContext(fs.readFileSync(path.join(root, 'assets/guide-contract-client.js'), 'utf8'), context);
   const script = path.join(root, 'assets/v6-guide.js');
   if (fs.existsSync(script)) vm.runInContext(fs.readFileSync(script, 'utf8'), context);
-  return { context, document, opener, legacy, ids, calls, intervals, snapshots,
+  return { context, document, opener, legacy, ids, calls, intervals, snapshots, reads, offscreen,
     connect(v) { connected = v; }, tick() { [...intervals.values()].forEach(fn => fn()); },
     visibleNumbers() { return ids.get('rsV6GuideList').children.map(x => Number(x.dataset.channelNum)); } };
 }
@@ -109,6 +110,7 @@ test('background refresh keeps focused rows, selection, search and scroll unchan
   assert.equal(h.ids.get('rsV6GuideList').scrollTop, 360); assert.equal(h.ids.get('rsV6GuideNow-226').textContent, 'New documentary');
   h.context.closeGuide(); h.context.openGuide(); assert.equal(h.ids.get('rsV6GuideList').scrollTop, 360);
   assert.equal(h.ids.get('rsV6GuideChannelName').textContent, 'Documentary Hour');
+  assert.ok(h.ids.get('rsV6GuideRow-226') === row, 'unchanged reopen must reuse its directory nodes');
 });
 test('keyboard navigation and search stay inside the dialog; Escape restores focus', () => {
   const h = harness(); h.context.openGuide(); let leaked = 0; h.document.body.addEventListener('keydown', () => leaked++);
@@ -138,4 +140,36 @@ test('the replacement owner records guide interactions without making telemetry 
   h.context.__rsRelease2Telemetry.record = () => { throw Error('telemetry unavailable'); };
   h.context.openGuide(); h.context.closeGuide();
   assert.equal(h.ids.get('rsV6GuidePanel').hidden, true);
+});
+
+test('opening only reads on-screen program rows and the selected channel, not the entire catalog', () => {
+  const h = harness(); h.offscreen.add(300); h.context.openGuide();
+  assert.ok(!h.reads.includes(300), 'off-screen queue selection must not delay guide opening');
+  h.offscreen.delete(300); h.tick();
+  assert.equal(h.ids.get('rsV6GuideNow-300').textContent, 'Select a live channel');
+});
+
+test('the real watching shell cannot override focus restored to a non-Guide opener', () => {
+  const h = harness();
+  vm.runInContext(fs.readFileSync(path.join(root, 'assets/v6-watching-shell.js'), 'utf8'), h.context);
+  const power = h.ids.get('rsV6Power'); power.focus();
+  h.context.openGuide(); h.context.closeGuide();
+  assert.equal(h.document.activeElement.id, power.id);
+});
+
+test('reopening restores the last focused dialog control along with selection and scroll', () => {
+  const h = harness(); h.context.openGuide();
+  h.ids.get('rsV6GuideRow-226').click(); h.ids.get('rsV6GuideRow-226').focus();
+  h.context.closeGuide(); h.context.openGuide();
+  assert.equal(h.document.activeElement.id, 'rsV6GuideRow-226');
+});
+
+test('disconnecting Cast cannot leave a legacy guide competing with or blocking the new owner', () => {
+  const h = harness(); h.connect(true); h.context.openGuide();
+  h.connect(false); h.context.openGuide();
+  assert.equal(h.legacy.classList.contains('show'), false);
+  assert.equal(h.ids.get('rsV6GuidePanel').hidden, false);
+  h.context.closeGuide();
+  h.connect(true); h.context.openGuide(); h.connect(false); h.context.closeGuide();
+  assert.equal(h.legacy.classList.contains('show'), false, 'close can still dismiss a legacy guide left by Cast');
 });

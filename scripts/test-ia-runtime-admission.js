@@ -70,6 +70,23 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
     assert.equal(await pending, false);
   });
 
+  test(file + ': a superseded startup failure cannot pause a newer tune reusing the same decoder', async () => {
+    const { source, scope, video, calls, timers } = client(file);
+    Object.assign(video, { load() {}, removeAttribute() {}, remove() {} });
+    scope.theVideo = video; scope.videoCtl = null;
+    vm.runInContext(source.slice(source.indexOf('function acquireVideo('), source.indexOf('function unlockMedia(')), scope);
+    const first = scope.playFile(program({}), { num: 226 }, { channel: 226, program: {} }, 1, 0);
+    scope.token = 2;
+    const second = scope.playFile(program({}), { num: 226 }, { channel: 226, program: {} }, 2, 0);
+    calls.paused = 0;
+    timers[0].fn();
+    assert.equal(calls.paused, 0, 'the stale timeout must not pause the reused current decoder');
+    assert.equal(await first, false);
+    timers[1].fn();
+    assert.equal(await second, false);
+    assert.equal(calls.paused, 1, 'the current failed candidate still stops');
+  });
+
   for (const [label, ch, extra, duration] of [
     ['original short cartoon', { num: 150 }, {}, 420],
     ['commercial', { num: 10 }, { isAd: true }, 30],

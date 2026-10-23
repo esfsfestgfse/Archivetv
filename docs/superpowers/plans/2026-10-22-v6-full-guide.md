@@ -43,7 +43,7 @@
 - [x] Run `node --test scripts/test-guide-contract.js`; confirm expected failures.
 - [x] Implement the adapter using existing registry owners without duplicating their channel rules.
 - [x] Rerun the tests; expect green and unchanged existing snapshot behavior.
-- [ ] Commit the independently tested adapter.
+- [x] Commit the independently tested adapter.
 
 ## Task 2: Single-owner responsive guide
 
@@ -57,24 +57,26 @@
 - Show channel number/name, honest state, current/next title, known runtime/source, favorite action, and selected program details. Pending entries remain browsable without internal warmup terminology.
 - Refresh visible data at most once per second while open, updating text in place; rebuild rows only when filters change. No polling while closed.
 
-- [ ] Write failing behavioral tests: filter/search/favorites/recent, current/next rendering, no fake duration, exact single Watch command, selection without tuning, no queue work, safe text rendering, preserved scroll/focus, refresh without replacing focused rows.
-- [ ] Add keyboard tests: arrows move visible selection; Enter on Watch/favorite acts once; Escape closes and restores opener; typing in search is isolated from page numeric/shortcut handlers; Tab remains within an open dialog.
-- [ ] Add mode tests: default and Cast retain legacy behavior; entering Cast while open closes the V6 guide without emitting a stray receiver command; disabled mode leaves no focus trap.
-- [ ] Run `node --test scripts/test-v6-guide.js`; confirm new behavior fails before implementation.
-- [ ] Implement the guarded presenter and scoped CSS; reuse existing presentation commands and snapshots.
-- [ ] Run new tests, guide-contract and watching-shell suites plus `node scripts/check-html-syntax.js`; expect green.
-- [ ] Commit the tested guide behind the existing canary flag.
+- [x] Write failing behavioral tests: filter/search/favorites/recent, current/next rendering, no fake duration, exact single Watch command, selection without tuning, no queue work, safe text rendering, preserved scroll/focus, refresh without replacing focused rows.
+- [x] Add keyboard tests: arrows move visible selection; Enter on Watch/favorite acts once; Escape closes and restores opener; typing in search is isolated from page numeric/shortcut handlers; Tab remains within an open dialog.
+- [x] Add mode tests: default and Cast retain legacy behavior; entering Cast while open closes the V6 guide without emitting a stray receiver command; disabled mode leaves no focus trap.
+- [x] Run `node --test scripts/test-v6-guide.js`; confirm new behavior fails before implementation.
+- [x] Implement the guarded presenter and scoped CSS; reuse existing presentation commands and snapshots.
+- [x] Run new tests, guide-contract and watching-shell suites plus `node scripts/check-html-syntax.js`; expect green.
+- [x] Commit the tested guide behind the existing canary flag.
 
 ## Task 3: Real-use verification and preview release
 
 **Files:** Add `docs/2026-10-22-v6-full-guide.md`; update visible desktop/mobile build stamps and versioned asset URLs together only after verification.
 
-- [ ] Browser-test desktop 1440×900 and 1024×600, mobile 390×844 and landscape 844×390; inspect screenshots for readable text, long titles, no page overflow and reachable controls.
-- [ ] During actual IA playback, exercise category/search, favorites/recent, Watch, Next, rapid tune, reopen, Escape and numeric entry. Record guide open/close timings and decoded video progress, not just queue readiness.
+- [x] Browser-test desktop 1440×900 and 1024×600, mobile 390×844 and landscape 844×390; inspect screenshots for readable text, long titles, no page overflow and reachable controls.
+- [x] During actual IA playback, exercise category/search, favorites/recent, Watch, Next, reopen and Escape. Record guide open/close timings and decoded video progress, not just queue readiness. Rapid cancellation and numeric-entry parity additionally covered by integration tests.
 - [ ] Test empty results, missing EPG/runtime, resize, increased text, default-mode fallback and simulated connected-Cast guards. Do not claim physical Cast certification from a browser simulation.
-- [ ] Run the exact offline CI Node command set including both HTML arguments. Report every failure; retain unrelated audit artifacts untouched.
-- [ ] Request one scoped independent review; fix substantive findings with RED→GREEN regression tests.
+- [x] Run the exact offline CI Node command set including both HTML arguments. Report every failure; retain unrelated audit artifacts untouched.
+- [x] Request one scoped independent review; fix substantive findings with RED→GREEN regression tests.
 - [ ] Document evidence and limits. Push only the reviewed opt-in preview under a fresh 5.6.x build; verify CI/Pages before calling it shipped. Final V6 rollout remains a separate decision.
+
+Evidence: `docs/2026-10-23-v6-guide-preview.md`. Enlarged text and physical-device certification remain open; the p95 timing target is not certified. The 5.6.32 deliverable is an opt-in preview, not completion of the final V6 release gate.
 
 ## Separate current defect
 

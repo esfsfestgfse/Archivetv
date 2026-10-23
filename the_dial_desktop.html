@@ -9337,7 +9337,7 @@ function playFile(it,ch,sl,my,isFallback){return new Promise(res=>{
       showNow(ch,sl,it.title||ch.nm, it.year?("· "+it.year):(it.source||""));
       bug.classList.remove("hide");
       requestAnimationFrame(()=>{ requestAnimationFrame(()=>{ if(v)v.style.opacity="1"; }); }); // fade IN
-    } else {try{v.pause();}catch(e){}av.rollback();}
+    } else {if(my===token){try{v.pause();}catch(e){}}av.rollback();}
     res(ok);
   }
   v.addEventListener("loadeddata",()=>{ if(resumeSeekSec>0){ try{v.currentTime=resumeSeekSec;}catch(e){} resumeSeekSec=0; } },{signal:sig});

@@ -14,6 +14,15 @@ function runtime(search = '?iaRepair=1', pilot = '', castConnected) {
 }
 const item = id => ({ identifier: id, title: id, media: { type: 'video', url: 'https://archive.org/download/series/' + id + '.mp4' } });
 
+for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])test(file+': video playback cannot reuse the audio-only player left by a music channel',()=>{
+ const media=tagName=>({tagName,pause(){},removeAttribute(){},load(){},remove(){}}),audio=media('AUDIO'),video=media('VIDEO');
+ const source=fs.readFileSync(path.join(root,file),'utf8'),scope={theVideo:audio,videoCtl:null,AbortController,document:{createElement:tag=>{assert.equal(tag,'video');return video;}}};
+ vm.createContext(scope);vm.runInContext(source.slice(source.indexOf('function acquireVideo('),source.indexOf('function unlockMedia(')),scope);
+ const next=scope.acquireVideo(null,false);assert.equal(next.v,video);assert.equal(scope.theVideo,video);
+ const warmed=media('AUDIO');assert.equal(scope.acquireVideo(warmed,false).v,warmed,'explicitly warmed audio remains usable on its own channel');
+ assert.equal(scope.acquireVideo(null,false).v,video,'returning to video cannot inherit the warmed audio tag');
+});
+
 test('partial production release activates only certified channels and keeps rollback available', () => {
   const pilot = runtime('', '10,12,150');
   assert.equal(pilot.enabledForChannel('10'), true);

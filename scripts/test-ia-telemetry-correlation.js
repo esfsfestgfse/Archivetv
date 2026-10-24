@@ -2,9 +2,9 @@ const { test } = require('node:test'), assert = require('node:assert/strict'), f
 function fixture(audio = false) {
   const events = [], handlers = {}, frames = [];
   const node = { dataset: {}, tagName: audio ? 'AUDIO' : 'VIDEO', isConnected: true, videoWidth: 640, readyState: 4, paused: false,
-    getBoundingClientRect: () => ({ width: 640, height: 480 }), addEventListener: (type, handler) => { handlers[type] = handler; }, requestVideoFrameCallback: fn => frames.push(fn) };
+    opacity: '1', getBoundingClientRect: () => ({ width: 640, height: 480 }), addEventListener: (type, handler) => { handlers[type] = handler; }, removeEventListener: (type, handler) => {if(handlers[type]===handler)delete handlers[type];}, requestVideoFrameCallback: fn => frames.push(fn) };
   const scope = { telemetryOn: true, activeTune: { seq: 1, channel: 10, at: 100 }, stamp: () => 200, currentTelemetryChannel: () => 10,
-    document: { hidden: false }, getComputedStyle: () => ({ opacity: '1' }), seenPrograms: [], currentProgramKey: () => 'episode', queueDepth: () => 3, push: e => events.push(e), requestAnimationFrame: fn => fn() };
+    document: { hidden: false }, currentChannel:()=>({num:10}), getComputedStyle: () => ({ opacity: node.opacity }), seenPrograms: [], currentProgramKey: () => 'episode', queueDepth: () => 3, push: e => events.push(e), requestAnimationFrame: fn => fn() };
   vm.createContext(scope);
   const source = fs.readFileSync(path.join(__dirname, '../assets/release2-runtime.js'), 'utf8');
   vm.runInContext(source.slice(source.indexOf('  function observeMedia('), source.indexOf('  function formatMs(')), scope);
@@ -23,4 +23,98 @@ test('audio start is not a visible video frame', () => {
 test('missing tune origin does not fabricate a first-frame latency', () => {
   const f = fixture(); f.scope.activeTune = null; f.scope.observeMedia(f.node); f.frames.shift()();
   assert.equal(f.events.filter(e => e.type === 'first-visible-frame').length, 0);
+});
+test('a staged first callback retries after promotion and records exactly one visible frame', () => {
+  const f = fixture();f.node.opacity='0';f.scope.observeMedia(f.node);f.frames.shift()();
+  assert.equal(f.events.length,0);assert.equal(f.frames.length,1,'wait for a real frame after the transparent staging callback');
+  f.node.opacity='1';f.frames.shift()();f.handlers.playing();
+  assert.equal(f.events.filter(e=>e.type==='first-visible-frame').length,1);assert.equal(f.frames.length,0);
+});
+test('staged retries stop when the media is disconnected or the tune is superseded', () => {
+  for(const disconnect of [false,true]){
+    const f=fixture();f.node.opacity='0';f.scope.observeMedia(f.node);f.frames.shift()();
+    assert.equal(f.frames.length,1);
+    if(disconnect)f.node.isConnected=false;else f.scope.activeTune={seq:2,channel:11,at:150};
+    f.frames.shift()();assert.equal(f.frames.length,0);assert.equal(f.events.length,0);
+  }
+});
+function metricScope(extra={}){
+  const source=fs.readFileSync(path.join(__dirname,'../assets/release2-runtime.js'),'utf8'),scope={...extra};vm.createContext(scope);
+  for(const [start,end]of [['  function queueDepth(','  function deviceStatus('],['  function percentile(','  function queueDepth('],['  function summary(','  function median('],['  function median(','  function remoteDepth(']]){
+    vm.runInContext(source.slice(source.indexOf(start),source.indexOf(end,source.indexOf(start))),scope);
+  }
+  return scope;
+}
+test('promoted IA queue depth comes from its real owner, not a stale legacy shelf',()=>{
+ const scope=metricScope({currentChannel:()=>({num:150}),curNum:150,iaProgramQueues:{150:[1,2,3,4,5]},iaRepairEnabled:()=>true,iaQueueKey:ch=>String(ch.num),window:{RealSignalIAShelf:{client:()=>({rows:key=>key==='150'?[{id:'next1'},{id:'next2'}]:[]})}}});
+ assert.equal(scope.queueDepth(),2);
+});
+test('an empty promoted shelf is measured as zero instead of falling back to stale entries',()=>{
+ const scope=metricScope({currentChannel:()=>({num:150}),curNum:150,iaProgramQueues:{150:[1,2,3]},iaRepairEnabled:()=>true,iaQueueKey:ch=>String(ch.num),window:{RealSignalIAShelf:{client:()=>({rows:()=>[]})}}});
+ assert.equal(scope.queueDepth(),0);
+});
+test('current queue depth comes from the live owner rather than the historical maximum',()=>{
+ const scope=metricScope({report:{events:[{type:'queue-sample',channel:150,depth:5},{type:'queue-sample',channel:150,depth:2}],sessions:1},seenPrograms:[],deviceStatus:()=>({}),currentChannel:()=>({num:150})});
+ scope.queueDepth=()=>2;
+ assert.equal(scope.summary().queueCurrent,2);assert.equal(scope.summary().queueMax,5);
+});
+test('unknown server measurements stay unknown, while measured zero remains valid',()=>{
+ const scope=metricScope();
+ assert.equal(scope.remoteMetric([{ms:null},{ms:2200}],'ms'),2200);
+ assert.equal(scope.remoteMetric([{ms:null},{}],'ms'),null);
+ assert.equal(scope.remoteMetric([{ms:0},{ms:2200}],'ms'),0);
+});
+test('current queue does not leak the latest sample from a different channel',()=>{
+ const report={events:[{type:'queue-sample',channel:150,depth:5},{type:'queue-sample',channel:54,depth:2}],sessions:1};
+ const scope=metricScope({report,seenPrograms:[],deviceStatus:()=>({}),currentChannel:()=>({num:905})});
+ scope.queueDepth=()=>null;
+ assert.equal(scope.summary().queueCurrent,null);
+ scope.queueDepth=()=>2;assert.equal(scope.summary().queueCurrent,2);
+});
+
+test('Source Suite candidate catalogs are not misreported as ready media',()=>{
+ const scope=metricScope({currentChannel:()=>({num:555,previewKey:'cartoon-time-machine'}),curNum:555,v2PreviewState:{555:{items:[1,2,3,4,5]}},window:{}});
+ assert.equal(scope.queueDepth(),null);
+});
+
+test('explicit embed failures appear in summary and per-channel counters',()=>{
+ const source=fs.readFileSync(path.join(__dirname,'../assets/release2-runtime.js'),'utf8'),report={events:[{type:'source-failure',channel:555,status:'start-timeout'}],sessions:1},row={channel:555,failures:0};
+ const scope=metricScope({report,seenPrograms:[],deviceStatus:()=>({}),currentChannel:()=>({num:555}),channelRecord:()=>row});scope.queueDepth=()=>null;
+ vm.runInContext(source.slice(source.indexOf('  function noteChannel('),source.indexOf('  function schedulePersist(')),scope);
+ scope.noteChannel(report.events[0]);assert.equal(row.failures,1);assert.equal(scope.summary().sourceFailures,1);
+});
+
+test('paint fallback retries staging and stops when paused',()=>{
+ const f=fixture(),paints=[];delete f.node.requestVideoFrameCallback;f.scope.requestAnimationFrame=fn=>paints.push(fn);f.node.opacity='0';f.scope.observeMedia(f.node);
+ paints.shift()();paints.shift()();assert.equal(paints.length,1);
+ f.node.paused=true;paints.shift()();paints.shift()();assert.equal(paints.length,0);assert.equal(f.events.length,0);
+ f.node.opacity='1';f.node.paused=false;f.handlers.playing();paints.shift()();paints.shift()();
+ assert.equal(f.events.filter(e=>e.type==='first-visible-frame').length,1);
+});
+
+test('a reused video is observed for its new tune without accepting stale callbacks',()=>{
+ const f=fixture();f.scope.observeMedia(f.node);const stale=f.frames.shift();
+ f.scope.activeTune={seq:2,channel:11,at:150};f.scope.observeMedia(f.node);
+ assert.equal(f.frames.length,1,'the same DOM video must be re-armed for a new tune');stale();assert.equal(f.events.length,0);
+ f.frames.shift()();assert.equal(f.events.filter(e=>e.type==='first-visible-frame').length,1);assert.equal(f.events[0].channel,11);
+ f.scope.observeMedia(f.node);assert.equal(f.frames.length,0,'same-tune mutations do not create duplicate listeners');
+});
+
+test('Blues MP3 playback in the shared VIDEO element is measured as audio, not missing video',()=>{
+ const f=fixture();f.node.videoWidth=0;f.scope.currentChannel=()=>({num:905,audio:true});f.scope.activeTune={seq:1,channel:905,at:100};f.scope.observeMedia(f.node);f.handlers.playing();
+ assert.equal(f.events.filter(e=>e.type==='source-success'&&e.media==='audio'&&e.channel===905).length,1);
+ assert.equal(f.events.filter(e=>e.type==='first-visible-frame').length,0);assert.equal(f.frames.length,0);
+});
+
+test('a failed destination tune cannot re-label retained outgoing media as its success',async()=>{
+ const f=fixture(),source=fs.readFileSync(path.join(__dirname,'../assets/release2-runtime.js'),'utf8');f.scope.observeMedia(f.node);
+ Object.assign(f.scope,{window:{tuneNum:async()=>false},tuneSeq:1,document:{...f.scope.document,querySelectorAll:()=>[f.node]}});
+ const start=source.indexOf("    if(typeof window.tuneNum==='function'){");vm.runInContext(source.slice(start,source.indexOf('    var observer=new MutationObserver',start)),f.scope);
+ await f.scope.window.tuneNum(54);while(f.frames.length)f.frames.shift()();
+ assert.equal(f.events.filter(e=>e.type==='first-visible-frame'&&e.channel===54).length,0);
+});
+
+test('legacy depth counts resolved media, not pending or failed catalog entries',()=>{
+ const scope=metricScope({currentChannel:()=>({num:54}),curNum:54,iaProgramQueues:{54:[{identifier:'ready'},{identifier:'pending'},{identifier:'failed'},{identifier:'metadata-only'}]},iaProgramMedia:{ready:{type:'video',url:'https://archive.org/download/ready/file.mp4'},pending:Promise.resolve({url:'later'}),failed:{type:'video',url:'https://archive.org/download/failed/file.mp4'}},iaProgramFailed:id=>id==='failed'});
+ assert.equal(scope.queueDepth(),1);
 });

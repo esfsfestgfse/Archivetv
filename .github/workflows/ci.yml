@@ -11,6 +11,7 @@ on:
       - 'realsignal_source_catalog.js'
       - 'vimeo_catalog.js'
       - 'assets/vimeo-embed-runtime.js'
+      - 'assets/youtube-embed-runtime.js'
       - 'ok_public_embed_catalog.js'
       - 'ok_public_search.js'
       - 'ok_animation_catalog.js'
@@ -157,6 +158,10 @@ jobs:
         run: node scripts/test-vimeo-catalog-depth.js
       - name: Validate actual Vimeo playback lifecycle
         run: node scripts/test-vimeo-embed-runtime.js
+      - name: Test YouTube player ownership and transient recovery
+        run: |
+          node scripts/test-youtube-embed-runtime.js
+          node scripts/test-youtube-client-recovery.js
       - name: Validate guarded IA canonical pilot
         run: node scripts/test-ia-canonical-pilot.js
       - name: Validate Version 4 hybrid lineup

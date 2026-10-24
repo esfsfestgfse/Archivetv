@@ -145,7 +145,7 @@ for (const file of files) {
     [/merged[^\n]+\.filter\(function\(item\)\{return [^;]*v2Landscape\(item\)&&v2ProfileRuntimeOkay\(item,profile\);\}\)/, 'the final source catalog merge must re-enforce the profile-specific runtime floor'],
     [/!v2Landscape\(item\)\|\|\(!musicOkay&&!v2ProgramRuntimeOkay\(item\)\)/, 'runtime qualification must be enforced at verification time'],
     [/musicOkay=window\.RealSignalOKEmbed\.musicProfile\(profile\)&&window\.RealSignalOKEmbed\.qualify\(profile,item\)/, 'the music runtime exception must be bound to an approved and verified music profile'],
-    [/Number\(data\.info\)===0\)advance\(\)/, 'YouTube embeds must advance immediately on their ended signal'],
+    [/Number\(data\.info\)===0\)advance\(\)|onEnded:function\(\)\{if\(current\(\)&&typeof window\.__v2PreviewNext==="function"\)window\.__v2PreviewNext\(\)/, 'YouTube embeds must advance on their ended signal (shared SDK EOF lifecycle is behavior-tested separately)'],
     [/function v2SourceHealth\(/, 'provider health must be persisted'],
     [/function v2Loc\(/, 'Library of Congress must have a runtime lane'],
     [/p==="youtube"\|\|p==="peertube"/, 'source-suite runtime must restrict providers to YouTube and PeerTube'],

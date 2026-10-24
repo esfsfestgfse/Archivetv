@@ -16,7 +16,7 @@ async def main():
         b = await p.chromium.launch(args=["--no-sandbox"])
         vp = {"width": 1400, "height": 900} if IS_DESKTOP else {"width": 412, "height": 915}
         pg = await b.new_page(viewport=vp)
-        pg.on("pageerror", lambda e: errors.append(str(e)))
+        pg.on("pageerror", lambda e: errors.append(str(e) + "\n" + str(getattr(e, "stack", ""))))
 
         # Mock all external APIs so CI doesn't depend on ESPN/NOAA/IA being up
         async def route(r):
@@ -79,6 +79,9 @@ async def main():
     if ch_errors:
         for n, nm, e in ch_errors:
             print(f"  ch {n} {nm}: {e}")
+        print("\nFull page-error stacks:")
+        for error in errors:
+            print(error)
         sys.exit(1)
     else:
         print("PASS")

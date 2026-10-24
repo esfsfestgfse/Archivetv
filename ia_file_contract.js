@@ -77,8 +77,9 @@ export function iaReviewedFileAllowed(item, channel) {
   if (source === 'vts-01-1_20231104' && (!file || /^VTS_\d+_\d+(?:\.ia)?\.mp4$/i.test(file))) return false;
   const identity = [item.title, source, file].join(' ').toLowerCase().replace(/[_-]+/g, ' ');
   // Channel-specific editorial evidence must survive stale catalogs and files.
-  if (String(channel) === '54' && /\b(?:\d{1,2}\s+news|news\s+at\s+\d|eyewitness news|nightly news|world news|newscast|television news|news broadcast|journal televise|slide\s*show)\b/.test(identity)) return false;
+  if (String(channel) === '54' && /\b(?:\d{1,2}\s+news|news\s+at\s+\d|eyewitness news|nightly news|world news|newscast|television news|news broadcast|journal televise|slide\s*show|watching videos|nascar or gamba|gone in (?:sixty|60) seconds|halicki)\b/.test(identity)) return false;
   if (String(channel) === '225') {
+    if (/\b(?:black baseball|negro leagues|oprah winfrey|the today show|who wants to see past the bs puppet show)\b/.test(identity)) return false;
     const performer = [identity,source.replace(/([a-z])([A-Z])/g,'$1 $2'),item.seriesTitle,media.sourceTitle,item.meta && item.meta.title,item.creator,item.account,item.meta && item.meta.creator].filter(Boolean).join(' ').toLowerCase();
     if (!/\b(?:def comedy jam|def jam comedy|comic\s?view|in living colou?r|chappelle|richard pryor|eddie murphy|chris rock|martin lawrence|bernie mac|cedric the entertainer|steve harvey|d[.\s]*l[.\s]*hughley|katt williams|redd foxx?|paul mooney|robin harris|eddie griffin|kevin hart|wanda sykes|sommore|adele givens|laura hayes|mo['’]?nique|tiffany haddish|hannibal buress|donald glover|jerrod carmichael|lil rel howery|damon wayans|david alan grier|tommy davidson|tracy morgan|arsenio hall|lavell[e]? crawford|drew fraser|kings of comedy|queens of comedy|key\s*(?:and|&)\s*peele|african american stand[ -]?up|black stand[ -]?up|black sketch comedy)\b/.test(performer)
       && !/\b(?:african american stand[ -]?up|black stand[ -]?up|black sketch comedy)\b/i.test([item.subject,item.subjects,item.meta && item.meta.subject,item.meta && item.meta.subjects].join(' '))

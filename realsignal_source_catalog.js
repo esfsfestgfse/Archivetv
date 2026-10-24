@@ -891,6 +891,8 @@ function normalized(item, provider, query) {
     tags: text(item.tags, 600),
     category: text(item.category, 120),
     account: text(item.account, 180),
+    channelId: text(item.channelId, 80),
+    ...(typeof item.containsSyntheticMedia === "boolean" ? { containsSyntheticMedia: item.containsSyntheticMedia } : {}),
     channelSeed: text(item.channelSeed, 120),
     channelDiscovered: item.channelDiscovered === true,
     year: text(item.year, 12).slice(0, 4),
@@ -1158,10 +1160,14 @@ async function youtube(profile, rotation, env, options = {}) {
     const hydrated = {
       ...candidate,
       title: text(item.snippet && item.snippet.title) || candidate.title,
-      description: text(item.snippet && item.snippet.description, 1800),
+      // Examine the complete public description before normalized() compacts
+      // accepted records. Disclosures are often below links and credits.
+      description: text(item.snippet && item.snippet.description, 10000),
       tags: text(item.snippet && item.snippet.tags, 600),
       category: text(item.snippet && item.snippet.categoryId, 120),
       account: text(item.snippet && item.snippet.channelTitle, 180),
+      channelId: text(item.snippet && item.snippet.channelId, 80),
+      ...(typeof item.status?.containsSyntheticMedia === "boolean" ? { containsSyntheticMedia: item.status.containsSyntheticMedia } : {}),
       year: text(item.snippet && item.snippet.publishedAt, 12),
       rights: "Standard YouTube license",
       duration: youtubeDuration(item.contentDetails && item.contentDetails.duration),
@@ -1219,7 +1225,7 @@ async function peerTube(profile, rotation, env, options = {}) {
           query,
           uuid: text(item.uuid || item.id, 140),
           title: text(item.name || item.title || "Untitled"),
-          description: text(item.description || item.truncatedDescription, 1800),
+          description: text(item.description || item.truncatedDescription, 10000),
           tags: text(item.tags, 600),
           category: text(item.category && item.category.label, 120),
           account: text(item.account && item.account.displayName, 180),
@@ -1258,6 +1264,7 @@ async function peerTube(profile, rotation, env, options = {}) {
     const hydrated = {
       ...item,
       id: `pt:${new URL(item.instance).hostname}/${item.uuid}`,
+      description: text([item.description, detail.description].filter(Boolean).join("\n"), 20000),
       rights: text((detail.licence && (detail.licence.label || detail.licence.name)) || item.rights, 240),
       duration: Number(detail.duration || item.duration) || 0,
       aspectRatio: aspectRatio(file) || item.aspectRatio || 16 / 9,

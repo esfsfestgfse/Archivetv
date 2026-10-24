@@ -9,7 +9,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>REALSIGNAL · Retro Cable 6.0.7</title>
+<title>REALSIGNAL · Retro Cable 6.0.8</title>
 <meta name="realsignal-ia-repair-channels" content="10,12,22,150">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
@@ -17,7 +17,7 @@
 <script src="assets/ok-embed-runtime.js?v=5.6.29"></script>
 <script src="assets/ia-playback-shelf.js?v=5.6.29"></script>
 <script src="assets/vimeo-embed-runtime.js?v=5.5.85"></script>
-<script src="assets/youtube-embed-runtime.js?v=6.0.7"></script>
+<script src="assets/youtube-embed-runtime.js?v=6.0.8"></script>
 <!-- Source Suite starts verified YouTube playback on a cold tune. Warm the exact
      origins it uses so DNS/TLS setup is not serialized behind catalog discovery. -->
 <link rel="preconnect" href="https://www.googleapis.com" crossorigin>
@@ -1701,15 +1701,15 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
 @media(prefers-reduced-motion:reduce){.sports-screen *,.wx-screen *,.wr-cabinet *{animation-duration:.001ms!important;transition-duration:.001ms!important}}
 </style>
 <link rel="stylesheet" href="assets/guide-overhaul.css">
-<link rel="stylesheet" href="assets/v6-watching-shell.css?v=6.0.7">
-<link rel="stylesheet" href="assets/v6-guide.css?v=6.0.7">
-<script src="assets/commercial-scheduler.js?v=6.0.7"></script>
-<script src="assets/fast-catalog.js?v=6.0.7"></script>
-<link rel="stylesheet" href="assets/weather-networks.css?v=6.0.7">
-<script src="assets/weather-networks.js?v=6.0.7"></script>
-<link rel="stylesheet" href="assets/weather-local.css?v=6.0.7">
-<script src="assets/weather-local.js?v=6.0.7"></script>
-<script src="assets/source-program-policy.js?v=6.0.7"></script>
+<link rel="stylesheet" href="assets/v6-watching-shell.css?v=6.0.8">
+<link rel="stylesheet" href="assets/v6-guide.css?v=6.0.8">
+<script src="assets/commercial-scheduler.js?v=6.0.8"></script>
+<script src="assets/fast-catalog.js?v=6.0.8"></script>
+<link rel="stylesheet" href="assets/weather-networks.css?v=6.0.8">
+<script src="assets/weather-networks.js?v=6.0.8"></script>
+<link rel="stylesheet" href="assets/weather-local.css?v=6.0.8">
+<script src="assets/weather-local.js?v=6.0.8"></script>
+<script src="assets/source-program-policy.js?v=6.0.8"></script>
 </head>
 <body>
 <script>
@@ -1721,7 +1721,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="6.0.7-desktop-retro-cable";
+window.__ATV_BUILD="6.0.8-desktop-retro-cable";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -8648,7 +8648,8 @@ function v2TermHit(hay,term){var t=v2Text(term).toLowerCase();if(!t)return false
 function v2QueryTokens(values){var out=[];(values||[]).forEach(function(value){v2Text(value).toLowerCase().split(/\s+/).forEach(function(word){word=word.replace(/^[^a-z0-9]+|[^a-z0-9]+$/g,"");if(word.length<4||/^(?:and|the|for|with|from|this|that|into|over|from|some|more)$/.test(word)||out.indexOf(word)>=0)return;out.push(word);});});return out;}
 function v2StrictProgramFallback(profile,item){var mode=profile.intent||"";if(!/^(?:animation|film|television|performance)$/.test(mode))return false;var title=v2Text(item&&item.title).toLowerCase(),hay=v2Text([item&&item.title,item&&item.description,item&&item.tags,item&&item.category,item&&item.account,item&&item.query]).toLowerCase();if(v2ProgramDeny(profile).some(function(t){return v2TermHit(hay,t)||hay.indexOf(v2Text(t).toLowerCase())>=0;}))return false;if(v2ProgramTitleDeny(profile).some(function(t){return v2TermHit(title,t);}))return false;return v2ProgramFormats(profile).some(function(t){return v2TermHit(title,t);});}
 function v2Relevant(profile,item){var title=v2Text(item.title).toLowerCase(),hay=v2Text([item.title,item.description,item.tags,item.subject,item.category,item.account,item.query]).toLowerCase(),identity=v2Text([item.title,item.tags,item.subject,item.category,item.account,item.query]).toLowerCase(),deny=v2ProgramDeny(profile),titleDeny=v2ProgramTitleDeny(profile),topics=v2ProgramTopics(profile),formats=v2ProgramFormats(profile),strict=/^(?:animation|film|television|performance)$/.test(profile.intent||"");if(!v2ProgramCategoryOkay(profile,item))return false;if(deny.some(function(t){return v2TermHit(hay,t)||hay.indexOf(v2Text(t).toLowerCase())>=0;}))return false;if(titleDeny.some(function(t){return v2TermHit(title,t);} ))return false;var topicIdentity=topics.some(function(t){return v2TermHit(identity,t);}),topicEvidence=topicIdentity||topics.some(function(t){return v2TermHit(hay,t);}),formatIdentity=formats.some(function(t){return v2TermHit(identity,t);}),formatEvidence=formatIdentity||formats.some(function(t){return v2TermHit(hay,t);});if(strict)return (topicEvidence&&formatEvidence&&formatIdentity)||v2StrictProgramFallback(profile,item);var focus=v2SourceTokens(topics),focusHit=focus.some(function(t){return v2TermHit(identity,t);}),distinctive=focus.filter(function(t){return !/^(?:classic|production|network|broadcast|current|world|science|film|films|television|tv|video|videos|show|shows|program|programs|channel|media|story|stories)$/.test(t);}).some(function(t){return v2TermHit(identity,t);}),query=v2QueryTokens([item.query]),queryHits=query.filter(function(t){return v2TermHit(identity,t);}).length;return topicIdentity||distinctive||(topicEvidence&&formatEvidence)||(focusHit&&queryHits>=2);}
-function v2SourceProgramAllowed(profile,item){return profile.profileKey!=="cartoon-time-machine"||!!(window.RealSignalSourcePrograms&&typeof window.RealSignalSourcePrograms.allow==="function"&&window.RealSignalSourcePrograms.allow(profile.profileKey,item));}
+function v2SourceProgramAllowed(profile,item){if(window.RealSignalSourcePrograms&&typeof window.RealSignalSourcePrograms.allow==="function")return window.RealSignalSourcePrograms.allow(profile.profileKey,item);return profile.profileKey!=="cartoon-time-machine";}
+function v2PruneSourcePrograms(profile,state){var prior=state.items||[],active=prior.length?String(prior[(Number(state.cursor)||0)%prior.length].id||""):"",items=prior.filter(function(item){return v2SourceProgramAllowed(profile,item);});if(items.length===prior.length)return;state.items=items;var index=items.findIndex(function(item){return String(item.id||"")===active;});state.cursor=index>=0?index:0;if(state.currentId&&!items.some(function(item){return item.id===state.currentId;})){state.currentId="";state.currentTitle="";state.currentDuration=0;}if(state.pendingId&&!items.some(function(item){return item.id===state.pendingId;}))state.pendingId="";}
 function v2CandidateRelevant(profile,item){if(!v2SourceProgramAllowed(profile,item))return false;var mode=profile.intent||"",title=v2Text(item&&item.title).toLowerCase(),identity=v2Text([item&&item.title,item&&item.tags,item&&item.subject,item&&item.category,item&&item.account]).toLowerCase();if(mode==="animation"&&/(?:educational|instructional|informational|public service|\bpsa\b|safety film|training|classroom)/i.test(identity))return false;if(profile.profileKey==="cooks-table"){var cookIdentity=v2Text([item&&item.title,item&&item.tags,item&&item.subject,item&&item.category,item&&item.account]).toLowerCase();if(/(?:\bted\b|talk|challenge|hack|gaming|gameplay|digimon|podcast|reaction|shorts?|interview|jukebox|minidisc|hardware|software|igem|laboratory|lab|technology|engineering)/i.test(cookIdentity))return false;if(/(?:cook|cuisine|culinary|recipe|chef|food|bake|baking|kitchen|meal|restaurant|dinner|lunch|bread|dessert|grocery|market|nutrition)/i.test(cookIdentity))return true;return false;}if(Array.isArray(profile&&profile.titleRequiredTerms)&&profile.titleRequiredTerms.length&&!profile.titleRequiredTerms.some(function(term){return v2TermHit(title,term);}))return false;if(v2Relevant(profile,item))return true;if(!/^(?:animation|film|television|performance)$/.test(mode))return false;if(v2ProgramTitleDeny(profile).some(function(t){return v2TermHit(title,t);}))return false;return v2ProgramFormats(profile).some(function(t){return v2TermHit(title,t);});}
 function v2TextUnique(items){return items.filter(function(value,index,list){value=v2Text(value);return value&&list.findIndex(function(other){return v2Text(other).toLowerCase()===value.toLowerCase();})===index;});}
 function v2PeerTubeFallbackQueries(profile,used){var seen=(used||[]).map(function(q){return v2Text(q).toLowerCase();}),candidates=v2ProgramQueries(profile).concat(v2ProgramTopics(profile));return v2TextUnique(candidates).filter(function(q){return seen.indexOf(v2Text(q).toLowerCase())<0;}).slice(0,6);}
@@ -8712,8 +8713,10 @@ async function v2Loc(profile){try{var jobs=profile.queries.slice(0,5),found=awai
 async function v2Provider(name,profile){var rotation=arguments[2]||0,onFirst=typeof arguments[3]==="function"?arguments[3]:null;if(name==="server")return v2ServerSourceCatalog(profile,rotation,arguments[4]===true);if(name==="peertube")return v2PeerTubeCold(profile,rotation,onFirst);if(name==="youtube")return v2YouTube(profile,rotation,onFirst);if(name==="archive")return v2Archive(profile);if(name==="loc")return v2Loc(profile);return {provider:name,items:[],health:{skipped:true,reason:"provider not configured"}};}
 async function v2LoadProfile(ch,profile,my){
   var key=profile.name,state=v2PreviewState[ch.num]||(v2PreviewState[ch.num]={items:[],cursor:0,currentTitle:"",provider:"SOURCE PILOT"});
+  v2PruneSourcePrograms(profile,state);
   if(v2PreviewInflight[key])return v2PreviewFirstReady[key]||v2PreviewInflight[key];
   var force=arguments[3]===true,cached=store.get("v2source:"+key,null),cacheValid=!!cached&&Number(cached.version||0)===V2_SOURCE_CACHE_VERSION,retainedItems=Array.isArray(cached&&cached.items)?cached.items.map(function(item){return profile.profileKey.indexOf("ok-")===0?window.RealSignalOKEmbed.normalize(item):item;}).filter(function(item){return (profile.profileKey.indexOf("ok-")===0?window.RealSignalOKEmbed.qualify(profile,item):profile.profileKey.indexOf("vimeo-")===0?v2VimeoVerified(profile,item):v2CandidateRelevant(profile,item))&&v2Landscape(item)&&v2ProfileRuntimeOkay(item,profile);}):[],cachedItems=retainedItems,cacheFresh=!force&&cacheValid&&cachedItems.length>=V2_SOURCE_MIN_CATALOG&&Date.now()-Number(cached.at||0)<V2_SOURCE_CACHE_TTL;
+  if(cached&&Array.isArray(cached.items)&&retainedItems.length!==cached.items.length)store.set("v2source:"+key,Object.assign({},cached,{items:retainedItems}));
   /* A verified catalog is still playable after its rotation timer expires.
      Take the air from that shelf immediately, then refresh it in the
      background. A timer is a freshness signal, never a reason to blank TV. */
@@ -8754,6 +8757,7 @@ function playV2Embed(item,ch,sl,my){if(item.provider==="Vimeo")return playVimeoE
 async function tuneV2Preview(ch,sl,my){
   var profile=V2_PREVIEW_PROFILES[ch.previewKey],state=v2PreviewState[ch.num]||(v2PreviewState[ch.num]={items:[],cursor:0,currentTitle:"",currentDuration:0,currentId:"",provider:"SOURCE PILOT"});
   if(!profile)return;
+  v2PruneSourcePrograms(profile,state);
   if(state.items.length&&state.items.length<=V2_SOURCE_READY_BUFFER&&!v2PreviewInflight[profile.name])v2LoadProfile(ch,profile,my,true).catch(function(){});
   if(!state.items.length){showOv("SOURCE SUITE","BUILDING QUEUE","Loading qualified sources for “"+ch.nm+"”…");setSig("tuning","BUILDING QUEUE");await withTO(v2LoadProfile(ch,profile,my),11000).catch(function(){});if(my!==token)return;}
   v2FreshCursor(profile,state);
@@ -8763,7 +8767,7 @@ while(state.items.length&&attempts<Math.min(V2_SOURCE_READY_BUFFER+3,state.items
   state.currentTitle="";setChanStatus(ch.num,state.items.length?"QUEUE RETRYING · BUFFER "+Math.min(V2_SOURCE_READY_BUFFER,state.items.length)+" / "+state.items.length+" CATALOG":"SOURCE CATALOG RETRYING");showOv("SOURCE SUITE","RECONNECTING","The source catalog is retrying — no permanent channel failure.");clearTimeout(retryTimer);retryTimer=setTimeout(function(){if(my===token&&powered)tuneNum(curNum);},2500);
 }
 function v2TuneRefreshed(ch,state,profile,currentId,my){var key=profile.name;if(v2PreviewAdvance[key])return v2PreviewAdvance[key];var load=v2LoadProfile(ch,profile,my,true),settled=v2PreviewInflight[key]||load,run=settled.then(function(){if(my!==token||!powered||curNum!==ch.num)return;var recent=v2Recent(profile.name),next=typeof v2NextFreshIndex==="function"?v2NextFreshIndex(profile,state,currentId):state.items.findIndex(function(item){var id=String(item&&item.id||"");return id&&id!==currentId&&recent.indexOf(id)<0;});if(next<0&&window.RealSignalOKEmbed.musicProfile(profile)&&state.items.some(function(item){return String(item&&item.id||"")!==currentId;})){window.__v2PreviewNext(true);return;}if(next<0){quickBanner("SOURCE SUITE · STILL FINDING NEXT PROGRAM");clearTimeout(retryTimer);retryTimer=setTimeout(function(){if(my===token&&powered&&curNum===ch.num)v2TuneRefreshed(ch,state,profile,currentId,my).catch(function(){});},2500);return;}state.cursor=next;state.currentTitle="";quickBanner("SOURCE SUITE · NEXT");tuneNum(curNum);});v2PreviewAdvance[key]=run.finally(function(){delete v2PreviewAdvance[key];});return v2PreviewAdvance[key];}
-window.__v2PreviewNext=function(manual){var ch=byNum(curNum),state=ch&&v2PreviewState[ch.num],profile=ch&&V2_PREVIEW_PROFILES[ch.previewKey];if(!ch||ch.source!=="v2preview")return false;if(!state||!state.items.length){quickBanner("SOURCE SUITE · QUEUE WARMING");if(profile)v2LoadProfile(ch,profile,token,true).catch(function(){});return true;}var currentId=String(state.pendingId||state.currentId||state.items[Number(state.cursor||0)%state.items.length].id||""),recent=profile?v2Recent(profile.name):[],next=profile&&typeof v2NextFreshIndex==="function"?v2NextFreshIndex(profile,state,currentId):state.items.findIndex(function(item){var id=String(item&&item.id||"");return id&&id!==currentId&&recent.indexOf(id)<0;});if(next<0&&manual){var oldestRank=-1;next=state.items.reduce(function(best,item,index){var id=String(item&&item.id||"");if(!id||id===currentId)return best;var rank=recent.indexOf(id);if(rank>oldestRank){oldestRank=rank;return index;}return best;},-1);if(next>=0){state.cursor=next;state.currentTitle="";if(profile)v2LoadProfile(ch,profile,token,true).catch(function(){});quickBanner("SOURCE SUITE · NEXT AVAILABLE PROGRAM");tuneNum(curNum);return true;}}if(next>=0){state.cursor=next;state.currentTitle="";if(profile&&state.items.length<=V2_SOURCE_READY_BUFFER)v2LoadProfile(ch,profile,token,true).catch(function(){});quickBanner("SOURCE SUITE · NEXT");tuneNum(curNum);return true;}if(profile){quickBanner("SOURCE SUITE · FINDING NEXT PROGRAM");v2TuneRefreshed(ch,state,profile,currentId,token).catch(function(){});}return true;};
+window.__v2PreviewNext=function(manual){var ch=byNum(curNum),state=ch&&v2PreviewState[ch.num],profile=ch&&V2_PREVIEW_PROFILES[ch.previewKey];if(!ch||ch.source!=="v2preview")return false;if(profile&&state)v2PruneSourcePrograms(profile,state);if(!state||!state.items.length){quickBanner("SOURCE SUITE · QUEUE WARMING");if(profile)v2LoadProfile(ch,profile,token,true).catch(function(){});return true;}var currentId=String(state.pendingId||state.currentId||state.items[Number(state.cursor||0)%state.items.length].id||""),recent=profile?v2Recent(profile.name):[],next=profile&&typeof v2NextFreshIndex==="function"?v2NextFreshIndex(profile,state,currentId):state.items.findIndex(function(item){var id=String(item&&item.id||"");return id&&id!==currentId&&recent.indexOf(id)<0;});if(next<0&&manual){var oldestRank=-1;next=state.items.reduce(function(best,item,index){var id=String(item&&item.id||"");if(!id||id===currentId)return best;var rank=recent.indexOf(id);if(rank>oldestRank){oldestRank=rank;return index;}return best;},-1);if(next>=0){state.cursor=next;state.currentTitle="";if(profile)v2LoadProfile(ch,profile,token,true).catch(function(){});quickBanner("SOURCE SUITE · NEXT AVAILABLE PROGRAM");tuneNum(curNum);return true;}}if(next>=0){state.cursor=next;state.currentTitle="";if(profile&&state.items.length<=V2_SOURCE_READY_BUFFER)v2LoadProfile(ch,profile,token,true).catch(function(){});quickBanner("SOURCE SUITE · NEXT");tuneNum(curNum);return true;}if(profile){quickBanner("SOURCE SUITE · FINDING NEXT PROGRAM");v2TuneRefreshed(ch,state,profile,currentId,token).catch(function(){});}return true;};
 
 async function tuneNum(n){
   if(!powered)return;
@@ -19228,12 +19232,12 @@ window.__atvBootDone=true; /* app is up -- from here on, errors get logged, not 
 <script src="assets/verified-guide-client.js"></script>
 <script src="assets/guide-overhaul.js"></script>
 <script src="assets/playback-audit.js"></script>
-<script src="assets/release2-runtime.js?v=6.0.7"></script>
+<script src="assets/release2-runtime.js?v=6.0.8"></script>
 <script src="assets/release3-runtime.js"></script>
 <script src="assets/release31-runtime.js"></script>
 <script src="assets/guide-contract.js?v=v6-contract-1"></script>
-<script src="assets/guide-contract-client.js?v=6.0.7"></script>
-<script src="assets/v6-watching-shell.js?v=6.0.7"></script>
-<script src="assets/v6-guide.js?v=6.0.7"></script>
+<script src="assets/guide-contract-client.js?v=6.0.8"></script>
+<script src="assets/v6-watching-shell.js?v=6.0.8"></script>
+<script src="assets/v6-guide.js?v=6.0.8"></script>
 </body>
 </html>

@@ -10,6 +10,7 @@ const path = require('node:path');
     let rejects=0,remembers=0,retries=0;
     const state={items,cursor:0};
     const ctx={window:{},token:1,powered:true,curNum:555,V2_PREVIEW_PROFILES:{cartoons:{name:'Cartoons'}},v2PreviewState:{555:state},v2PreviewInflight:{},V2_SOURCE_READY_BUFFER:5,v2FreshCursor(){},v2YouTubeSDKEnabled:()=>true,playV2Embed:async()=>null,v2Reject(){rejects++;},v2Remember(){remembers++;},refreshGuideData(){},setChanStatus(){},showOv(){},clearTimeout(){},setTimeout(){retries++;},retryTimer:null};
+    for(const name of ['v2SourceProgramAllowed','v2PruneSourcePrograms'])vm.runInNewContext(html.split(/\r?\n/).find(line=>line.startsWith('function '+name+'(')),ctx);
     vm.runInNewContext(tune,ctx);await ctx.tuneV2Preview({num:555,previewKey:'cartoons'},null,1);
     assert.equal(state.items.length,6,`${file}: transient player startup must preserve the catalog`);
     assert.equal(rejects,0,`${file}: startup timeout is not a bad-video rejection`);

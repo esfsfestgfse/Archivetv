@@ -14,12 +14,13 @@ import { okMusicChannel } from "./ok_music_catalog.js";
 import { OK_VERIFIED_SEARCH_SEED } from "./ok_verified_search_seed.js";
 import { vimeoBalancedItems } from "./vimeo_catalog.js";
 import { mergeSourceLanes, sourceCatalogTasks, sourceRefreshTasks, sourceProfile, sourceCatalogKey, qualifySourceItem, isOKSourceProfile, SOURCE_LIMITS } from "./realsignal_source_catalog.js";
+import SourcePrograms from "./assets/source-program-policy.js";
 import { IA_CANONICAL_PILOT_PROFILES, IA_CANONICAL_SCHEMA_VERSION, canonicalGuide, canonicalPromotionEligibility, selectCanonicalItems } from "./ia_canonical_station.mjs";
 import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "6.0.5-cartoon-program-admission";
+const V3_RELEASE = "6.0.8-source-ai-admission";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -450,6 +451,8 @@ function compactCatalogItem(item) {
     tags: String(item.tags || "").slice(0, 1200),
     category: String(item.category || "").slice(0, 240),
     account: String(item.account || "").slice(0, 240),
+    channelId: String(item.channelId || "").slice(0, 80),
+    ...(typeof item.containsSyntheticMedia === "boolean" ? { containsSyntheticMedia: item.containsSyntheticMedia } : {}),
     query: String(item.query || "").slice(0, 240),
     duration: Number(item.duration || item.runtime) || null,
     durationUnit: provider === "OK.ru" ? "seconds" : "",
@@ -782,6 +785,7 @@ function rotateCatalogItems(items, rotation) {
 }
 
 function catalogFallbackAllowed(item, body) {
+  if (body && body.sourceCatalog === true && !SourcePrograms.allow(body.channel, item)) return false;
   if (body && body.sourceCatalog !== true && !iaReviewedFileAllowed(item, body.channel)) return false;
   if (body && body.sourceCatalog !== true && String(body.channel) === '80' && !iaHuntingAllowed(item)) return false;
   if (body && body.sourceCatalog !== true && String(body.channel) === '201' && !iaCookingAllowed(item)) return false;
@@ -1468,6 +1472,8 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
       tags: metadata.tags || "",
       category: metadata.category || "",
       account: metadata.account || "",
+      channelId: metadata.channelId || "",
+      ...(typeof metadata.containsSyntheticMedia === "boolean" ? { containsSyntheticMedia: metadata.containsSyntheticMedia } : {}),
       query: metadata.query || "",
       genreVerified: metadata.genreVerified === true,
       recoveryVerified: metadata.recoveryVerified === true,

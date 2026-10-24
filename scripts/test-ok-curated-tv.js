@@ -87,6 +87,7 @@ const { pathToFileURL } = require('node:url');
     const race = { token: 1, V2_PREVIEW_PROFILES: { black: { name: channel } }, v2PreviewState: { 596: { items: raceItems, cursor: 0 } },
       V2_SOURCE_READY_BUFFER: 5, v2PreviewInflight: { [channel]: true }, v2FreshCursor() {}, v2Reject() { rejected++; },
       playV2Embed: () => new Promise(resolve => { finishPlayer = resolve; }), window: {} };
+    for(const name of ['v2SourceProgramAllowed','v2PruneSourcePrograms'])vm.runInNewContext(html.split(/\r?\n/).find(line=>line.startsWith('function '+name+'(')),race);
     vm.runInNewContext(html.slice(html.indexOf('async function tuneV2Preview('), html.indexOf('function v2TuneRefreshed(')), race);
     pending.type = 'embed'; pending.provider = 'OK.ru';
     const tune = race.tuneV2Preview({ num: 596, previewKey: 'black' }, {}, 1);

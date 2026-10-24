@@ -9,6 +9,7 @@ on:
       - 'realsignal_api_rotation.js'
       - 'realsignal_api_rate_limit.js'
       - 'realsignal_source_catalog.js'
+      - 'assets/source-program-policy.js'
       - 'vimeo_catalog.js'
       - 'ok_public_search.js'
       - 'ok_animation_catalog.js'
@@ -24,6 +25,7 @@ on:
       - 'migrations/**'
       - 'scripts/test-v2-api-worker.js'
       - 'scripts/test-v3-api-contract.js'
+      - 'scripts/test-cartoon-program-admission.mjs'
       - 'scripts/test-ok-source-recovery.js'
       - 'scripts/test-ok-curated-tv.js'
       - 'scripts/test-ok-tv-decades.js'
@@ -73,6 +75,7 @@ jobs:
           node scripts/test-v3-api-contract.js
           node scripts/test-ia-canonical-pilot.js
           node scripts/test-source-catalog-bridge.js
+          node --test scripts/test-cartoon-program-admission.mjs
           node --check realsignal_api_v2_worker.js
           node --check realsignal_api_rotation.js
           node --check realsignal_api_rate_limit.js

@@ -20,6 +20,7 @@ import { okCuratedChannel, okCuratedQueries, okCuratedIdentity, okCuratedPrechec
 import { okMusicChannel, okMusicQueries, okMusicPrecheck, okMusicVerified, okMusicIdentities } from "./ok_music_catalog.js";
 import { OK_ANIMATION_VERIFIED_SEED } from "./ok_animation_verified_seed.js";
 import { SOURCE_PROFILE_REGISTRY } from "./source_suite_profile_registry.js";
+import SourcePrograms from "./assets/source-program-policy.js";
 import { OK_PUBLIC_EMBED_MANIFEST } from "./ok_public_embed_catalog.js";
 import { VIMEO_FIELDS, vimeoDiscoveryCursor, vimeoSearchPage, vimeoItem, vimeoOEmbedVerified, vimeoBalancedItems, vimeoJson, vimeoProgramOkay, vimeoProgramIdentity, vimeoLanguageKnown, vimeoOriginalSeriesEvidence } from "./vimeo_catalog.js";
 
@@ -765,6 +766,7 @@ function okMovieTitleQualified(profile, item) {
 }
 
 function accepted(profile, item, provider, checkAspect = true) {
+  if (!SourcePrograms.allow(profile.profileKey, item)) return false;
   if (okMusicChannel(profile)) return okMusicPrecheck(profile,item,checkAspect);
   if (okAnimationFamily(profile)) return okAnimationPrecheck(profile,item,checkAspect);
   if (okCuratedChannel(profile)) return okCuratedPrecheck(profile,item,checkAspect);

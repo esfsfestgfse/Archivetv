@@ -28,6 +28,7 @@ on:
       - 'wrangler.api.jsonc'
       - 'migrations/**'
       - 'assets/source-catalog-client.js'
+      - 'assets/source-program-policy.js'
       - 'assets/guide-contract*.js'
       - 'assets/v6-watching-shell.*'
       - 'assets/v6-guide.*'
@@ -127,6 +128,8 @@ jobs:
         run: node scripts/test-v3-api-contract.js
       - name: Validate YouTube catalog depth and diagnostics
         run: node scripts/test-youtube-catalog-depth.js
+      - name: Reject cartoon commentary on discovery, stored rows, and client shelves
+        run: node --test scripts/test-cartoon-program-admission.mjs
       - name: Validate OK title search and playback recovery
         run: node scripts/test-ok-source-recovery.js
       - name: Validate persistent OK discovery and deep episode rotation

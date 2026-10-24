@@ -37,3 +37,7 @@ Full offline gate: **86 commands, zero failures**. Visible-build fixtures: **3/3
 Auto Racing admitted a newscast; Uptown Comedy's generic recovery seeds require correction; Blues needs spoken-editorial filtering based on item metadata. Playback testing additionally exposed cartoon gameplay and theme-song quizzes, which need a targeted cartoon admission rule. These content issues are not claimed fixed by this player release. No Version 7 stamp is applied.
 
 SDK reference: https://developers.google.com/youtube/iframe_api_reference
+
+## CI fixture correction
+
+The initial hosted tune-all run exposed a test-isolation defect: a substring check treated YouTube's `origin=localhost` query as a local asset and let its iframe escape the external-response mock. YouTube then ran against empty mocked scripts (`writeEmbed is not defined`, followed by network errors). The fixture now compares the actual request origin to the local app origin. Regression cases cover misleading query strings, lookalike hosts, credentials, wrong ports and schemes. Tune-all also fails on any page error, including errors outside an individual channel's observation window. No page errors are suppressed, and the production player is unchanged by this CI-only correction.

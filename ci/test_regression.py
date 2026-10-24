@@ -2,6 +2,7 @@
 import asyncio, sys
 from datetime import datetime, timezone, timedelta
 from playwright.async_api import async_playwright
+from fixture_network import is_local_fixture_url
 from build_stamp import visible_build_matches
 
 TARGET = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:8799/the_dial_mobile.html"
@@ -23,7 +24,7 @@ async def main():
 
         async def route(r):
             u = r.request.url
-            if "localhost" in u:
+            if is_local_fixture_url(u, TARGET):
                 await r.continue_()
             elif "api.weather.gov" in u:
                 if "/alerts/" in u:

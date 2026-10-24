@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from playwright.async_api import async_playwright
+from fixture_network import is_local_fixture_url
 
 
 CI_DIR = Path(__file__).resolve().parent
@@ -96,7 +97,7 @@ async def browser_regressions(fixtures: dict[str, Any]) -> None:
                 else:
                     await request_route.fulfill(status=200, body=json.dumps(item), content_type="application/json")
                 return
-            if "localhost" in url or "127.0.0.1" in url:
+            if is_local_fixture_url(url, TARGET):
                 await request_route.continue_()
             else:
                 await request_route.fulfill(status=200, body="")

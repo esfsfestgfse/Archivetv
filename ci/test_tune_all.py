@@ -1,6 +1,7 @@
 """CI: Tune all channels in sequence, assert zero JavaScript page errors."""
 import asyncio, sys
 from playwright.async_api import async_playwright
+from fixture_network import is_local_fixture_url
 
 TARGET = sys.argv[1] if len(sys.argv) > 1 else "http://localhost:8799/the_dial_mobile.html"
 IS_DESKTOP = "desktop" in TARGET
@@ -21,7 +22,7 @@ async def main():
         # Mock all external APIs so CI doesn't depend on ESPN/NOAA/IA being up
         async def route(r):
             u = r.request.url
-            if "localhost" in u:
+            if is_local_fixture_url(u, TARGET):
                 await r.continue_()
             elif "scoreboard" in u or "standings" in u:
                 await r.fulfill(status=200, content_type="application/json", body='{"events":[]}')
@@ -76,7 +77,7 @@ async def main():
         await b.close()
 
     print(f"\n=== {len(ch_errors)} channels with page errors out of {len(nums)} ===")
-    if ch_errors:
+    if errors:
         for n, nm, e in ch_errors:
             print(f"  ch {n} {nm}: {e}")
         print("\nFull page-error stacks:")

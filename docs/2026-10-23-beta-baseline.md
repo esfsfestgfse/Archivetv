@@ -82,6 +82,44 @@ selection displayed an advancing animated video; guide current/next showed its
 actual title and runtime and the next Franklin episode. This does not establish
 fast first-frame performance or a clean end-to-end Source Suite latency gate.
 
+## Published verification
+
+Application commit:13cea55cb57379cd7a9a54b340dc702bdcaf69ab.
+The public HTML titles/runtime stamps show6.0.5 and the API health/status
+responses identify6.0.5-cartoon-program-admission. The shared policy asset is
+served publicly; status returned91 catalog candidates after requalification.
+
+All release workflows succeeded:
+
+- [App CI](https://github.com/esfsfestgfse/Archivetv/actions/runs/40055671575)
+- [API deployment](https://github.com/esfsfestgfse/Archivetv/actions/runs/40055671605)
+- [Publication gate](https://github.com/esfsfestgfse/Archivetv/actions/runs/40055671579)
+- [Pages deployment](https://github.com/esfsfestgfse/Archivetv/actions/runs/40055670765)
+
+The public Chrome canary also reproduced long embed tuning. An independent
+in-app browser sample played Curious George, then a different Merrie Melodies
+compilation. The latter was decoded1280×720, advancing at22.7seconds,
+readyState4 and not paused. Tune-complete events were1,424ms and793ms;
+these are not claimed as first-frame times. Guide open/close was46.3/3.9ms.
+
+At390×844, the public mobile HTML played Franklin, decoded640×480 and advancing
+at12.8seconds with no page horizontal overflow. Next selected a different
+92-minute program; player promotion/tune completion was recorded, not an audited
+first-frame timestamp. Mobile tune-complete events were1,244/1,154ms and guide
+close30.2ms. These samples preserve the earlier failed attempts; they do not
+establish physical-phone, Cast or fleet-wide reliability.
+
+Chrome also contained a third-party video popup and extension errors. No
+extension/settings were changed, and this observation alone is not proof that
+the extension caused the stalls. Follow up with a matched-program comparison.
+
+Decisions: preserve the existing broad profile instead of narrowing it by new
+topic/description rules (remaining genre bleed remains possible); scope this
+patch to admission instead of bundling latency, telemetry or IA-language changes
+(those issues remain open); verify report/tests/deployments here while leaving
+physical-device and p95 certification explicitly open (Version7 cannot be
+claimed on this evidence).
+
 ## Findings still open, in priority order
 
 1. Source Suite embed startup/recovery is still slow in some samples. Measure

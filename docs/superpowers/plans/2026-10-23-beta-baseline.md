@@ -6,7 +6,7 @@
 
 **Spec:** User request to establish the beta baseline and fix the worst reproducible failure; existing docs/2026-10-23-v6-release-and-roadmap.md. User explicitly requested continuous implementation. This is a targeted repair, not a new feature design.
 
-**Architecture:** Preserve existing catalog IDs, playback, freshness and source adapters. A small shared title-policy module guards Cartoon Time Machine on server admission, stored-row reuse, client caches and fresh shelf installation. Strengthen that approved profile's television intent while leaving other profiles unchanged. No discovery on the playback path.
+**Architecture:** Preserve existing catalog IDs, playback, freshness and source adapters. A small shared title-policy module guards Cartoon Time Machine on server admission, stored-row reuse, client caches and fresh shelf installation. Following review, retain the existing broad profile rather than activating new description-based intent exclusions. No discovery on the playback path.
 
 ## Constraints / review focus
 
@@ -25,10 +25,10 @@ Files: assets/source-program-policy.js; source_suite_profile_registry.js; realsi
 Interfaces: shared `RealSignalSourcePrograms.allow(profileKey,item)` / CommonJS export; pure boolean, no I/O or state. Existing sourceProfile(), qualifySourceItem(), catalogFallbackAllowed() and v2LoadProfile() remain the integration boundaries.
 
 - [x] Sample real IA150/10/12, Source Suite555, Live TV300 and Radio924 with existing local diagnostics; collect phone sample. Identify commentary admission and missing ordinary first-frame metrics separately.
-- [ ] Add failing tests for actual observed facts/explainer titles, retained bad rows and fresh/onFirst shelf publication; positive full episodes, marathons and unrelated documentary lanes must survive.
-- [ ] Run new test with Node `--test`; expect admission assertions to fail before repair.
-- [ ] Implement the shared scoped title gate, explicit cartoon program descriptor, stored-row requalification and client shelf requalification.
-- [ ] Re-run new tests and existing API/catalog/rotation suites; expect zero failures and valid cartoon depth retained.
-- [ ] Validate locally in Chrome and compare real program selection, guide return and startup; no fabricated embed frame times.
-- [ ] Obtain one read-only review, fix Important/Critical findings with RED→GREEN tests, run full offline CI and check syntax/stamps.
-- [ ] Bump6.0.5, push normal main, verify API/CI/Pages deployment and public PC/phone samples; record limits and rollback baseline dcb497e.
+- [x] Add failing tests for actual observed facts/explainer titles, retained bad rows and fresh/onFirst shelf publication; positive full episodes, marathons and unrelated documentary lanes must survive.
+- [x] Run new test with Node `--test`; admission assertions failed before repair.
+- [x] Implement the shared scoped title gate, stored-row requalification and client shelf requalification; withdraw the new registry restrictions after review exposed depth regressions.
+- [x] Re-run12 targeted tests and83 offline API/catalog/rotation/validation commands: zero failures.
+- [x] Validate locally in Chrome and compare real program selection, guide return and startup; record slow starts as failures, not fabricated frame times.
+- [x] Obtain one read-only review and fix Important findings with RED→GREEN tests; syntax/stamps/diff checks pass.
+- [x] Ship6.0.5 as13cea55; public API/CI/Pages pass. Public PC/phone-size samples documented, including stalled Chrome samples. No physical-device/p95/Version7 certification claim.

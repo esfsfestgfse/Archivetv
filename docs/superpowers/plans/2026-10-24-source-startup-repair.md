@@ -42,3 +42,17 @@ Interface: `RealSignalYouTubeEmbed.play(options)` resolves `{status, code}`; sta
 - [ ] Commit explicit files, push normally under standing authorization, check CI/Pages and public playback. No Worker deployment is necessary for client-only work.
 
 Auto Racing, Uptown Comedy and Blues editorial work remains the next separate scoped repair; do not mix Worker admission changes into an unresolved player experiment.
+
+## Task 3: Prepared transport, isolated program ownership (continuation)
+
+The matched single-player test reproduced blank delayed iframe creation. Preparing an empty official player synchronously, then loading the selected program after 600ms, decoded 1280×720 video and played at 1.076s. Keep the physical player across YouTube program changes; cancel and replace only its program owner. This avoids requiring a new iframe at natural EOF.
+
+- Add preparation/reuse/cancellation fixtures before code. Preserve the existing clock, timeout, volume, EOF and error contracts.
+- Prepare before catalog awaits. Retain only the owned YouTube frame through compatible Source Suite handoffs; leaving that family or powering off destroys it. Other provider playback remains independent.
+- Ignore stale program events using ownership and selected video identity; delayed startup must preserve catalogs/history.
+- Verify real visible frames, Next, guide, rapid changes and mobile layout before promoting the SDK to default. Keep `youtubeSDK=0` as a rollback flag.
+- Run full gates, obtain one independent final review, then ship 6.0.9 with hosted verification. If real playback fails, continue investigation rather than promoting.
+
+## Task 4: Confirmed editorial repair (separate release)
+
+After the player release: reproduce and reject Auto Racing newscasts, repair Uptown Comedy recovery rails while preserving Black programming, and examine the actual Blues item before deciding whether it is music or spoken editorial. Use targeted fixtures and tests; no broad catalog/freshness reset.

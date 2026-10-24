@@ -24,7 +24,7 @@ const vm = require('node:vm');
           },
           window:{RealSignalOKEmbed:{musicProfile:p=>p?.profileKey===profileKey}}
         };
-        for(const name of ['v2SourceProgramAllowed','v2PruneSourcePrograms'])vm.runInNewContext(html.split(/\r?\n/).find(line=>line.startsWith('function '+name+'(')),context);
+        for(const name of ['v2SourceProgramAllowed','v2PruneSourcePrograms','v2CanPrepareYouTube'])vm.runInNewContext(html.split(/\r?\n/).find(line=>line.startsWith('function '+name+'(')),context);
         vm.runInNewContext(html.split(/\r?\n/).find(line=>line.startsWith('function v2TuneRefreshed(')),context);
         vm.runInNewContext(html.split(/\r?\n/).find(line=>line.startsWith('window.__v2PreviewNext=')),context);
         context.window.__v2PreviewNext(scenario==='manual');

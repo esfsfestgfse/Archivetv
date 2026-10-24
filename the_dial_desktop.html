@@ -9,7 +9,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>REALSIGNAL · Retro Cable 6.0.8</title>
+<title>REALSIGNAL · Retro Cable 6.0.9</title>
 <meta name="realsignal-ia-repair-channels" content="10,12,22,150">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
@@ -17,7 +17,7 @@
 <script src="assets/ok-embed-runtime.js?v=5.6.29"></script>
 <script src="assets/ia-playback-shelf.js?v=5.6.29"></script>
 <script src="assets/vimeo-embed-runtime.js?v=5.5.85"></script>
-<script src="assets/youtube-embed-runtime.js?v=6.0.8"></script>
+<script src="assets/youtube-embed-runtime.js?v=6.0.9"></script>
 <!-- Source Suite starts verified YouTube playback on a cold tune. Warm the exact
      origins it uses so DNS/TLS setup is not serialized behind catalog discovery. -->
 <link rel="preconnect" href="https://www.googleapis.com" crossorigin>
@@ -1701,15 +1701,15 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
 @media(prefers-reduced-motion:reduce){.sports-screen *,.wx-screen *,.wr-cabinet *{animation-duration:.001ms!important;transition-duration:.001ms!important}}
 </style>
 <link rel="stylesheet" href="assets/guide-overhaul.css">
-<link rel="stylesheet" href="assets/v6-watching-shell.css?v=6.0.8">
-<link rel="stylesheet" href="assets/v6-guide.css?v=6.0.8">
-<script src="assets/commercial-scheduler.js?v=6.0.8"></script>
-<script src="assets/fast-catalog.js?v=6.0.8"></script>
-<link rel="stylesheet" href="assets/weather-networks.css?v=6.0.8">
-<script src="assets/weather-networks.js?v=6.0.8"></script>
-<link rel="stylesheet" href="assets/weather-local.css?v=6.0.8">
-<script src="assets/weather-local.js?v=6.0.8"></script>
-<script src="assets/source-program-policy.js?v=6.0.8"></script>
+<link rel="stylesheet" href="assets/v6-watching-shell.css?v=6.0.9">
+<link rel="stylesheet" href="assets/v6-guide.css?v=6.0.9">
+<script src="assets/commercial-scheduler.js?v=6.0.9"></script>
+<script src="assets/fast-catalog.js?v=6.0.9"></script>
+<link rel="stylesheet" href="assets/weather-networks.css?v=6.0.9">
+<script src="assets/weather-networks.js?v=6.0.9"></script>
+<link rel="stylesheet" href="assets/weather-local.css?v=6.0.9">
+<script src="assets/weather-local.js?v=6.0.9"></script>
+<script src="assets/source-program-policy.js?v=6.0.9"></script>
 </head>
 <body>
 <script>
@@ -1721,7 +1721,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="6.0.8-desktop-retro-cable";
+window.__ATV_BUILD="6.0.9-desktop-retro-cable";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -8102,7 +8102,7 @@ function rtInterval(fn,ms){var id=setInterval(fn,ms);chanRT.timers.push(id);retu
 function rtTeardown(){chanRT.timers.forEach(clearInterval);chanRT.timers.length=0;var clean=chanRT.teardowns.splice(0);clean.forEach(function(fn){try{fn();}catch(e){}});}
 /* ---- CYCLE-1 FIX (real leak): a playing media element removed from the DOM keeps playing
    audio and downloading until GC. Every removal now pauses and detaches the source first. */
-function killMedia(){try{if(window.RealSignalYouTubeEmbed)window.RealSignalYouTubeEmbed.stop();}catch(e){}try{stopTVPlayback();}catch(e){}try{if(window.RealSignalVimeoEmbed)window.RealSignalVimeoEmbed.stop();}catch(e){}try{if(window.RealSignalOKEmbed)window.RealSignalOKEmbed.stop();}catch(e){}try{if(typeof stopRadioHls==="function")stopRadioHls();}catch(e){}if(!screenArea)return;
+function killMedia(keepYouTube){try{if(!keepYouTube&&window.RealSignalYouTubeEmbed)window.RealSignalYouTubeEmbed.stop();}catch(e){}try{stopTVPlayback();}catch(e){}try{if(window.RealSignalVimeoEmbed)window.RealSignalVimeoEmbed.stop();}catch(e){}try{if(window.RealSignalOKEmbed)window.RealSignalOKEmbed.stop();}catch(e){}try{if(typeof stopRadioHls==="function")stopRadioHls();}catch(e){}if(!screenArea)return;
   screenArea.querySelectorAll("video,audio").forEach(function(el){
     try{el.pause();el.removeAttribute("src");el.load();}catch(e){}});}
 /* FIX (structural, flagged many times): favorites and "last channel" used to be keyed by raw
@@ -8456,7 +8456,7 @@ function setSig(s,l){led.className="led "+(s||"");sigText.textContent=l;
 function showOv(big,standby,sub){ov.classList.remove("hide");ovBig.textContent=big;
   ovStandby.style.display=standby?"block":"none";if(standby)ovStandby.textContent=standby;ovSub.textContent=sub||"";}
 function hideOv(){ov.classList.add("hide");}
-function clearScreen(keepMedia){if(!keepMedia){killMedia();screenArea.innerHTML="";}bars.style.display="none";audioScreen.classList.add("hide");
+function clearScreen(keepMedia,keepYouTube){if(!keepMedia){killMedia(keepYouTube);if(!keepYouTube)screenArea.innerHTML="";}bars.style.display="none";audioScreen.classList.add("hide");
   rtTeardown(); stopAfdSpeech(); stopIAJazz(); stopHazTicker(); /* registry teardown replaces the old hand-maintained 12-timer list */
   if(shipSocket){ try{shipSocket.close();}catch(e){} shipSocket=null; } /* AIS websocket isn't a setInterval timer, needs its own explicit teardown */
   if(!keepMedia){curVideo=null;curItem=null;}resetProgress();hideBuffer();clearStall();} /* 1.2.3: data channels no longer inherit the last video's identity */
@@ -8751,12 +8751,14 @@ function v2FreshCursor(profile,state){if(!profile||!state||!state.items.length)r
    forward YouTube postMessage events. */
 function playOKEmbed(item,ch,sl,my){if(my!==token)return Promise.resolve(false);killMedia();screenArea.innerHTML="";return window.RealSignalOKEmbed.play({item:item,container:screenArea,isCurrent:function(){return my===token&&powered&&curNum===ch.num;},onReady:function(){hideOv();hideBuffer();setSig("live","PLAYER READY");curVideo=null;setCurItem(Object.assign({},item,{embedded:true,type:"video",url:item.embedUrl||item.url}),ch,sl);showNow(ch,sl,item.title,item.provider);bug.classList.remove("hide");},onStarted:function(){setSig("live","ON AIR");var profile=V2_PREVIEW_PROFILES[ch.previewKey];if(profile)v2Remember(profile.name,item);},onEnded:function(){if(typeof window.__v2PreviewNext==="function")window.__v2PreviewNext();},onError:function(){v2RejectEmbed(item,ch,my);}});}
 function playVimeoEmbed(item,ch,sl,my){if(my!==token)return Promise.resolve(false);killMedia();screenArea.innerHTML="";var selectedAt=performance.now();return window.RealSignalVimeoEmbed.play({item:item,container:screenArea,isCurrent:function(){return my===token&&powered&&curNum===ch.num;},onReady:function(){hideOv();hideBuffer();setSig("live","PLAYER READY");curVideo=null;setCurItem(Object.assign({},item,{embedded:true,type:"video",url:item.embedUrl||item.url}),ch,sl);showNow(ch,sl,item.title,item.provider);bug.classList.remove("hide");},onStarted:function(){setSig("live","ON AIR");var profile=V2_PREVIEW_PROFILES[ch.previewKey];if(profile)v2Remember(profile.name,item);applyAV();if(window.__rsRelease2Telemetry)window.__rsRelease2Telemetry.record({type:"first-visible-frame",channel:ch.num,source:"Vimeo",ms:Math.round(performance.now()-selectedAt),programKey:item.id});},onEnded:function(){if(typeof window.__v2PreviewNext==="function")window.__v2PreviewNext();},onError:function(){v2RejectEmbed(item,ch,my);}});}
-function v2YouTubeSDKEnabled(){return new URLSearchParams(location.search).get("youtubeSDK")==="1";}
+function v2YouTubeSDKEnabled(){return new URLSearchParams(location.search).get("youtubeSDK")!=="0";}
+function v2CanPrepareYouTube(profile){return !!(window.RealSignalYouTubeEmbed&&typeof window.RealSignalYouTubeEmbed.prepare==="function"&&v2YouTubeSDKEnabled()&&profile&&Array.isArray(profile.providers)&&profile.providers.indexOf("youtube")>=0&&!(typeof window.__rsCastIsConnected==="function"&&window.__rsCastIsConnected()));}
 function playLegacyYouTubeEmbed(item,ch,sl,my){if(item.provider==="Vimeo")return playVimeoEmbed(item,ch,sl,my);if(item.provider==="OK.ru"||/^https:\/\/ok\.ru\/videoembed\//i.test(item.embedUrl||item.url||""))return playOKEmbed(item,ch,sl,my);return new Promise(function(resolve){if(my!==token){resolve(false);return;}killMedia();screenArea.innerHTML="";var frame=document.createElement("iframe"),done=false,rejected=false,advanced=false,tm;function cleanup(){clearTimeout(tm);window.removeEventListener("message",onMessage);}function advance(){if(advanced||!done||my!==token||!powered||curNum!==ch.num)return;advanced=true;if(typeof window.__v2PreviewNext==="function")window.__v2PreviewNext();}function start(){if(done||rejected)return;done=true;clearTimeout(tm);if(my!==token){cleanup();try{frame.remove();}catch(e){}resolve(false);return;}frame.style.opacity="1";hideOv();hideBuffer();setSig("live","ON AIR");curVideo=null;setCurItem(Object.assign({},item,{embedded:true,type:"video",url:item.url}),ch,sl);showNow(ch,sl,item.title,item.provider);bug.classList.remove("hide");if(Number(item.duration)>20){var started=Date.now();rtInterval(function(){if(my===token&&powered&&Date.now()-started>=Number(item.duration)*1000-1500)advance();},1000);}resolve(true);}function reject(){if(rejected)return;rejected=true;cleanup();try{frame.remove();}catch(e){}if(!done){done=true;resolve(false);return;}v2RejectEmbed(item,ch,my);}function onMessage(event){if(event.source!==frame.contentWindow||!/^https:\/\/www\.youtube(?:-nocookie)?\.com$/.test(String(event.origin||"")))return;var data=event.data;try{if(typeof data==="string")data=JSON.parse(data);}catch(e){return;}if(data&&data.event==="onError")reject();if(data&&data.event==="onStateChange"){if(Number(data.info)===1)start();else if(Number(data.info)===0)advance();}}window.addEventListener("message",onMessage);frame.title=item.title||ch.nm;frame.src=item.url+(item.url.indexOf("?")>=0?"&":"?")+"autoplay=1&controls=1&muted=1&enablejsapi=1&origin="+encodeURIComponent(location.origin);frame.allow="autoplay; encrypted-media; picture-in-picture; fullscreen";frame.allowFullscreen=true;frame.referrerPolicy="strict-origin-when-cross-origin";frame.style.opacity="0";frame.style.transition="opacity .35s ease";screenArea.appendChild(frame);tm=setTimeout(function(){if(!done)reject();},8500);frame.onload=function(){if(rejected||done)return;try{frame.contentWindow.postMessage(JSON.stringify({event:"listening",id:"v2player"}),"*");frame.contentWindow.postMessage(JSON.stringify({event:"command",func:"addEventListener",args:["onError"]}),"*");frame.contentWindow.postMessage(JSON.stringify({event:"command",func:"addEventListener",args:["onStateChange"]}),"*");}catch(e){}clearTimeout(tm);tm=setTimeout(function(){if(!done)start();},3500);};});}
-function playV2Embed(item,ch,sl,my){if(item.provider==="Vimeo")return playVimeoEmbed(item,ch,sl,my);if(item.provider==="OK.ru"||/^https:\/\/ok\.ru\/videoembed\//i.test(item.embedUrl||item.url||""))return playOKEmbed(item,ch,sl,my);if(!v2YouTubeSDKEnabled())return playLegacyYouTubeEmbed(item,ch,sl,my);if(my!==token)return Promise.resolve(false);killMedia();screenArea.innerHTML="";var selectedAt=performance.now(),announced=false;function current(){return my===token&&powered&&curNum===ch.num;}chanRT.teardowns.push(function(){window.RealSignalYouTubeEmbed.stop();});return window.RealSignalYouTubeEmbed.play({item:item,container:screenArea,isCurrent:current,volume:vol,muted:muted,onReady:function(){hideOv();hideBuffer();setSig("tuning","PLAYER READY");},onMuted:function(){needSound(true);},onStarted:function(){if(!current()||announced)return;announced=true;hideOv();hideBuffer();setSig("live","ON AIR");curVideo=null;setCurItem(Object.assign({},item,{embedded:true,type:"video",url:item.url}),ch,sl);showNow(ch,sl,item.title,item.provider);bug.classList.remove("hide");var profile=V2_PREVIEW_PROFILES[ch.previewKey],state=v2PreviewState[ch.num];if(profile)v2Remember(profile.name,item);if(state){state.currentTitle=item.title;state.currentDuration=Number(item.duration)||0;state.currentId=item.id||"";state.provider=item.provider;state.pendingId="";}refreshGuideData();if(window.__rsRelease2Telemetry)window.__rsRelease2Telemetry.record({type:"source-success",channel:ch.num,source:"YouTube-clock",media:"video",ms:Math.round(performance.now()-selectedAt),programKey:item.id});},onPending:function(error){if(!current())return;hideOv();hideBuffer();setSig("tuning","PRESS PLAY");setChanStatus(ch.num,"PLAYER WAITING · PLAY OR NEXT");quickBanner("PLAYER WAITING · USE PLAY OR NEXT");if(window.__rsRelease2Telemetry)window.__rsRelease2Telemetry.record({type:"embed-pending",channel:ch.num,source:"YouTube",code:error.code,programKey:item.id});},onEnded:function(){if(current()&&typeof window.__v2PreviewNext==="function")window.__v2PreviewNext();},onError:function(){v2RejectEmbed(item,ch,my);}}).then(function(result){return result.status==="playing"?true:result.status==="unavailable"?false:null;});}
+function playV2Embed(item,ch,sl,my){if(item.provider==="Vimeo")return playVimeoEmbed(item,ch,sl,my);if(item.provider==="OK.ru"||/^https:\/\/ok\.ru\/videoembed\//i.test(item.embedUrl||item.url||""))return playOKEmbed(item,ch,sl,my);if(!v2YouTubeSDKEnabled())return playLegacyYouTubeEmbed(item,ch,sl,my);if(my!==token)return Promise.resolve(false);var selectedAt=performance.now(),announced=false;function current(){return my===token&&powered&&curNum===ch.num;}return window.RealSignalYouTubeEmbed.play({item:item,container:screenArea,isCurrent:current,volume:vol,muted:muted,onReady:function(){hideOv();hideBuffer();setSig("tuning","PLAYER READY");},onMuted:function(){needSound(true);},onStarted:function(){if(!current()||announced)return;announced=true;hideOv();hideBuffer();setSig("live","ON AIR");curVideo=null;setCurItem(Object.assign({},item,{embedded:true,type:"video",url:item.url}),ch,sl);showNow(ch,sl,item.title,item.provider);bug.classList.remove("hide");var profile=V2_PREVIEW_PROFILES[ch.previewKey],state=v2PreviewState[ch.num];if(profile)v2Remember(profile.name,item);if(state){state.currentTitle=item.title;state.currentDuration=Number(item.duration)||0;state.currentId=item.id||"";state.provider=item.provider;state.pendingId="";}refreshGuideData();if(window.__rsRelease2Telemetry)window.__rsRelease2Telemetry.record({type:"source-success",channel:ch.num,source:"YouTube-clock",media:"video",ms:Math.round(performance.now()-selectedAt),programKey:item.id});},onPending:function(error){if(!current())return;hideOv();hideBuffer();setSig("tuning","PRESS PLAY");setChanStatus(ch.num,"PLAYER WAITING · PLAY OR NEXT");quickBanner("PLAYER WAITING · USE PLAY OR NEXT");if(window.__rsRelease2Telemetry)window.__rsRelease2Telemetry.record({type:"embed-pending",channel:ch.num,source:"YouTube",code:error.code,programKey:item.id});},onEnded:function(){if(current()&&typeof window.__v2PreviewNext==="function")window.__v2PreviewNext();},onError:function(){v2RejectEmbed(item,ch,my);}}).then(function(result){return result.status==="playing"?true:result.status==="unavailable"?false:null;});}
 async function tuneV2Preview(ch,sl,my){
   var profile=V2_PREVIEW_PROFILES[ch.previewKey],state=v2PreviewState[ch.num]||(v2PreviewState[ch.num]={items:[],cursor:0,currentTitle:"",currentDuration:0,currentId:"",provider:"SOURCE PILOT"});
   if(!profile)return;
+  if(v2CanPrepareYouTube(profile))window.RealSignalYouTubeEmbed.prepare({container:screenArea,volume:vol,muted:muted});
   v2PruneSourcePrograms(profile,state);
   if(state.items.length&&state.items.length<=V2_SOURCE_READY_BUFFER&&!v2PreviewInflight[profile.name])v2LoadProfile(ch,profile,my,true).catch(function(){});
   if(!state.items.length){showOv("SOURCE SUITE","BUILDING QUEUE","Loading qualified sources for “"+ch.nm+"”…");setSig("tuning","BUILDING QUEUE");await withTO(v2LoadProfile(ch,profile,my),11000).catch(function(){});if(my!==token)return;}
@@ -8802,7 +8804,7 @@ async function tuneNum(n){
   }
   else if(!holdPicture) showOv("TUNING…","PLEASE STAND BY","“"+ch.nm+"” — "+sl.show);
   else hideOv();
-  clearScreen(holdPicture);
+  clearScreen(holdPicture,sl.source==="v2preview"&&v2CanPrepareYouTube(V2_PREVIEW_PROFILES[ch.previewKey]));
   /* QA FIX: data channels (source-based) never set lastMeta, so it retained whatever the last
      content channel wrote — contaminating every subsequent soak sample with stale metadata. */
   if(sl.source){ lastMeta=null; if(ch.cat==="LDATA")startLiveDataBed(ch,sl); }
@@ -19232,12 +19234,12 @@ window.__atvBootDone=true; /* app is up -- from here on, errors get logged, not 
 <script src="assets/verified-guide-client.js"></script>
 <script src="assets/guide-overhaul.js"></script>
 <script src="assets/playback-audit.js"></script>
-<script src="assets/release2-runtime.js?v=6.0.8"></script>
+<script src="assets/release2-runtime.js?v=6.0.9"></script>
 <script src="assets/release3-runtime.js"></script>
 <script src="assets/release31-runtime.js"></script>
 <script src="assets/guide-contract.js?v=v6-contract-1"></script>
-<script src="assets/guide-contract-client.js?v=6.0.8"></script>
-<script src="assets/v6-watching-shell.js?v=6.0.8"></script>
-<script src="assets/v6-guide.js?v=6.0.8"></script>
+<script src="assets/guide-contract-client.js?v=6.0.9"></script>
+<script src="assets/v6-watching-shell.js?v=6.0.9"></script>
+<script src="assets/v6-guide.js?v=6.0.9"></script>
 </body>
 </html>

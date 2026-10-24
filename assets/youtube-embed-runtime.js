@@ -119,7 +119,7 @@
       frame.referrerPolicy='strict-origin-when-cross-origin';frame.dataset.playbackState='preparing';
       state={frame:frame,container:options.container,player:null,ready:false,level:options.volume,muted:!!options.muted};
       transport=state;options.container.appendChild(frame);
-      loadSDK().then(function(Player){
+      function bind(Player){
         if(transport!==state)return;
         state.player=new Player(frame,{events:{
           onReady:function(event){
@@ -128,7 +128,9 @@
             if(owner)activate(owner);
           }
         }});
-      }).catch(function(){if(transport!==state)return;state.failed=true;if(owner)pending(owner,'sdk-unavailable');});
+      }
+      if(root.YT&&root.YT.Player)bind(root.YT.Player);
+      else loadSDK().then(bind).catch(function(){if(transport!==state)return;state.failed=true;if(owner)pending(owner,'sdk-unavailable');});
     }
     if(options.volume!==undefined)state.level=options.volume;
     if(options.muted!==undefined)state.muted=!!options.muted;
@@ -149,4 +151,7 @@
     });
   }
   root.RealSignalYouTubeEmbed = {prepare:prepare,play:play,stop:stop,volume:volume,toggle:toggle};
+  // Fetch before interaction to avoid a serial SDK request on a cold tune.
+  // If still pending, bind once ready; stop() invalidates that continuation.
+  loadSDK().catch(function(){});
 })(window);

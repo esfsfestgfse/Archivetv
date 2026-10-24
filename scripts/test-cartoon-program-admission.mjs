@@ -117,6 +117,7 @@ test('PeerTube detail disclosures also prevent publishing generated programs',as
  try{const result=await discoverSourceCatalog({profileKey:key},{},0);assert.equal(result.items.length,0);}finally{globalThis.fetch=original;}
 });
 test('cartoon-only policy rejects explainers without poisoning unrelated documentary or actual episode descriptions',()=>{
+ for(const title of ['Family Dog Full Game Longplay (SNES) | Forgotten 90s Cartoon Classic Full Walkthrough',"Guess The Cartoon THEME SONG Challenge (50 Shows from the 1980’s)",'THE LIFE AND TIMES OF PUBLIC DOMAIN VHS (PART TWO)'])assert.equal(policy.allow(key,item(title)),false,title);
  assert.equal(policy.allow(key,item(bad)),false);
  assert.equal(policy.allow(key,item('What Happened To Thundercats? Animated Series Explained')),false);
  assert.equal(policy.allow(key,item('Giu dal Nido - A new animated series made in Blender combined')),false);

@@ -9,7 +9,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>REALSIGNAL · Retro Cable 6.0.9</title>
+<title>REALSIGNAL · Retro Cable 6.0.10</title>
 <meta name="realsignal-ia-repair-channels" content="10,12,22,150">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
@@ -17,7 +17,7 @@
 <script src="assets/ok-embed-runtime.js?v=5.6.29"></script>
 <script src="assets/ia-playback-shelf.js?v=5.6.29"></script>
 <script src="assets/vimeo-embed-runtime.js?v=5.5.85"></script>
-<script src="assets/youtube-embed-runtime.js?v=6.0.9"></script>
+<script src="assets/youtube-embed-runtime.js?v=6.0.10"></script>
 <!-- Source Suite starts verified YouTube playback on a cold tune. Warm the exact
      origins it uses so DNS/TLS setup is not serialized behind catalog discovery. -->
 <link rel="preconnect" href="https://www.googleapis.com" crossorigin>
@@ -1701,15 +1701,15 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
 @media(prefers-reduced-motion:reduce){.sports-screen *,.wx-screen *,.wr-cabinet *{animation-duration:.001ms!important;transition-duration:.001ms!important}}
 </style>
 <link rel="stylesheet" href="assets/guide-overhaul.css">
-<link rel="stylesheet" href="assets/v6-watching-shell.css?v=6.0.9">
-<link rel="stylesheet" href="assets/v6-guide.css?v=6.0.9">
-<script src="assets/commercial-scheduler.js?v=6.0.9"></script>
-<script src="assets/fast-catalog.js?v=6.0.9"></script>
-<link rel="stylesheet" href="assets/weather-networks.css?v=6.0.9">
-<script src="assets/weather-networks.js?v=6.0.9"></script>
-<link rel="stylesheet" href="assets/weather-local.css?v=6.0.9">
-<script src="assets/weather-local.js?v=6.0.9"></script>
-<script src="assets/source-program-policy.js?v=6.0.9"></script>
+<link rel="stylesheet" href="assets/v6-watching-shell.css?v=6.0.10">
+<link rel="stylesheet" href="assets/v6-guide.css?v=6.0.10">
+<script src="assets/commercial-scheduler.js?v=6.0.10"></script>
+<script src="assets/fast-catalog.js?v=6.0.10"></script>
+<link rel="stylesheet" href="assets/weather-networks.css?v=6.0.10">
+<script src="assets/weather-networks.js?v=6.0.10"></script>
+<link rel="stylesheet" href="assets/weather-local.css?v=6.0.10">
+<script src="assets/weather-local.js?v=6.0.10"></script>
+<script src="assets/source-program-policy.js?v=6.0.10"></script>
 </head>
 <body>
 <script>
@@ -1721,7 +1721,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="6.0.9-desktop-retro-cable";
+window.__ATV_BUILD="6.0.10-desktop-retro-cable";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -3682,7 +3682,7 @@ const PROGRAM = {
     providers: [
       { collections: ["opensource_movies", "vhsvault", "Comedy_Films"], require_subj: [
         "def comedy jam","def jam comedy","russell simmons def comedy jam","stan lathan","stan lathan def comedy",
-        "def poetry","def poetry jam","russell simmons def poetry","hbo def","hbo def comedy","hbo def poetry",
+        "hbo def comedy","redd foxx","sinbad","paul mooney","robin harris","comicview",
         "in living color","in living color fox","the wayans brothers","damon wayans","keenan ivory wayans",
         "shawn wayans","marlon wayans","the wayans","marlon and shawn","david alan grier","tommy davidson",
         "chris rock","the chris rock show","chris rock hbo","never scared","kill the messenger","bring the pain",
@@ -3700,15 +3700,12 @@ const PROGRAM = {
         "wanda sykes","wanda sykes im a be me","cedric the entertainer starting here","katt williams",
         "katt williams pimp chronicles","pimp chronicles","katt williams american hustle","american hustle katt",
         "hannibal buress","donald glover","weirdo donald glover","childish gambino","tiffany haddish","tiffany haddish she ready",
-        "lil rel howery","jerrod carmichael","carmichael show","the carmichael show","ali wong","ali wong baby cobra"
+        "lil rel howery","jerrod carmichael","carmichael show","the carmichael show","key and peele","lavell crawford"
       ] },
       { collections: ["opensource_movies", "vhsvault", "Comedy_Films"], require_subj: [
-        "black comedy","black stand-up","black stand up","african american comedy","african american stand-up",
-        "black comedian","african american comedian","black sketch","black comedy sketch","black comedy show",
-        "urban comedy","urban comic","hbo comedy special","comedy central presents","black comedy central",
-        "showtime at the apollo","showtime at the apollo showtime","apollo theater comedy","apollo comedy",
-        "stand-up comedy","stand up comedy","stand-up special","comedy special","live comedy",
-        "comedy performance","live comedy performance","sketch comedy","comedy variety"
+        "black stand-up","black stand up","african american stand-up","black sketch comedy",
+        "black comedian","african american comedian","showtime at the apollo","apollo theater comedy",
+        "def comedy jam","comicview","original kings of comedy","queens of comedy"
       ] }
     ],
     deny: {
@@ -7658,6 +7655,19 @@ function iaReviewedFileAllowed(item, channel) {
   // This DVD parent has continuation chunks; title _1 alone is not a full episode.
   if (source === 'vts-01-1_20231104' && (!file || /^VTS_\d+_\d+(?:\.ia)?\.mp4$/i.test(file))) return false;
   const identity = [item.title, source, file].join(' ').toLowerCase().replace(/[_-]+/g, ' ');
+  // Channel-specific editorial evidence must survive stale catalogs and files.
+  if (String(channel) === '54' && /\b(?:\d{1,2}\s+news|news\s+at\s+\d|eyewitness news|nightly news|world news|newscast|television news|news broadcast|journal televise|slide\s*show)\b/.test(identity)) return false;
+  if (String(channel) === '225') {
+    const performer = [identity,source.replace(/([a-z])([A-Z])/g,'$1 $2'),item.seriesTitle,media.sourceTitle,item.meta && item.meta.title,item.creator,item.account,item.meta && item.meta.creator].filter(Boolean).join(' ').toLowerCase();
+    if (!/\b(?:def comedy jam|def jam comedy|comic\s?view|in living colou?r|chappelle|richard pryor|eddie murphy|chris rock|martin lawrence|bernie mac|cedric the entertainer|steve harvey|d[.\s]*l[.\s]*hughley|katt williams|redd foxx?|paul mooney|robin harris|eddie griffin|kevin hart|wanda sykes|sommore|adele givens|laura hayes|mo['’]?nique|tiffany haddish|hannibal buress|donald glover|jerrod carmichael|lil rel howery|damon wayans|david alan grier|tommy davidson|tracy morgan|arsenio hall|lavell[e]? crawford|drew fraser|kings of comedy|queens of comedy|key\s*(?:and|&)\s*peele|african american stand[ -]?up|black stand[ -]?up|black sketch comedy)\b/.test(performer)
+      && !/\b(?:african american stand[ -]?up|black stand[ -]?up|black sketch comedy)\b/i.test([item.subject,item.subjects,item.meta && item.meta.subject,item.meta && item.meta.subjects].join(' '))
+      && !(/\bsinbad\b/.test(performer) && /comedy|stand[ -]?up|afros|bellbottoms|brain damaged|preacher/.test([performer,item.subject,item.subjects].join(' ')))) return false;
+  }
+  if (String(channel) === '905') {
+    const editorial = [identity,item.description,item.subject,item.subjects,item.creator,item.meta && item.meta.description,item.meta && item.meta.subject,item.meta && item.meta.subjects].filter(Boolean).join(' ').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/ı/g,'i').toLowerCase();
+    if (source === '477-Robert-Johnson-Kavsaktaki-Adam-17-Agustos-2026' || /\b(?:pod\s?casts?|spoken word|talk shows?|radio documentaries|radio documentary|artist interviews?)\b|babil['’]?\s*den\s+sonra|ruzgar[a]?\s+birakilmis\s+sesler/.test(editorial)) return false;
+  }
+
   if (String(channel) === '83' && /\b(?:gta|grand theft auto|gameplay|roblox|minecraft|news conference|press conference)\b/.test(identity)) return false;
   if (String(channel) === '81' && (source === 'daiwa-fishing-video-fun-to-fish-with-lure_202506'
     || /\b(?:home movies?|hm|fishing for fate|tailwaggers|farming of fish|salmon ranch|neets ?bay|fishing with a cop|drupal|wordpress|web development|software tutorial)\b/.test(identity))) return false;
@@ -9259,6 +9269,7 @@ function unlockMedia(){ /* must be called from inside a real user gesture (power
 
 /* play a direct media file in a <video> (audio uses it too) */
 function playFile(it,ch,sl,my,isFallback){return new Promise(res=>{
+  if(ch&&String(ch.num)==="905"&&!iaReviewedFileAllowed(it,"905"))return res(false);
   const expectedType=(ch&&ch.audio)?"audio":"video";
   if(!it||!it.url||it.type!==expectedType){try{nlog("media",false,"rejected "+(it&&it.type||"unknown")+" for "+expectedType+" channel");}catch(e){}return res(false);}
   const isAudio = it.type==="audio";
@@ -19234,12 +19245,12 @@ window.__atvBootDone=true; /* app is up -- from here on, errors get logged, not 
 <script src="assets/verified-guide-client.js"></script>
 <script src="assets/guide-overhaul.js"></script>
 <script src="assets/playback-audit.js"></script>
-<script src="assets/release2-runtime.js?v=6.0.9"></script>
+<script src="assets/release2-runtime.js?v=6.0.10"></script>
 <script src="assets/release3-runtime.js"></script>
 <script src="assets/release31-runtime.js"></script>
 <script src="assets/guide-contract.js?v=v6-contract-1"></script>
-<script src="assets/guide-contract-client.js?v=6.0.9"></script>
-<script src="assets/v6-watching-shell.js?v=6.0.9"></script>
-<script src="assets/v6-guide.js?v=6.0.9"></script>
+<script src="assets/guide-contract-client.js?v=6.0.10"></script>
+<script src="assets/v6-watching-shell.js?v=6.0.10"></script>
+<script src="assets/v6-guide.js?v=6.0.10"></script>
 </body>
 </html>

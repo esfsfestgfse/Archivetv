@@ -33,12 +33,19 @@ function harness(withSDK = true) {
   assert.ok(api, 'shared YouTube lifecycle is installed');
   let ready=0, started=0, ended=0, pending=0, failures=[];
   const options = {item:{id:'youtube:RQinquBq338',url:'https://www.youtube-nocookie.com/embed/RQinquBq338',title:'Full program',duration:1200},container:{children:[],appendChild(node){nodes.push(node);this.children.push(node);node.parentNode=this;}},isCurrent:()=>true,volume:0.6,muted:false,onReady(){ready++;},onStarted(){started++;},onEnded(){ended++;},onPending(){pending++;},onError(error){failures.push(error);}};
-  return {api,options,players,nodes,window,timeouts,intervals,tick(){[...intervals.values()].forEach(fn=>fn());},expire(){[...timeouts.values()].forEach(fn=>fn());},expireAt(ms){[...timeouts].forEach(([id,fn])=>{if(delays.get(id)===ms){timeouts.delete(id);delays.delete(id);fn();}});},counts:()=>({ready,started,ended,pending,failures})};
+  return {api,options,players,nodes,window,Player,timeouts,intervals,tick(){[...intervals.values()].forEach(fn=>fn());},expire(){[...timeouts.values()].forEach(fn=>fn());},expireAt(ms){[...timeouts].forEach(([id,fn])=>{if(delays.get(id)===ms){timeouts.delete(id);delays.delete(id);fn();}});},counts:()=>({ready,started,ended,pending,failures})};
 }
 async function flush(){for(let i=0;i<5;i++)await Promise.resolve();}
 function handler(player,name){return player.listeners&&player.listeners.get(name)||player.events[name];}
 (async()=>{
   let h=harness(),result;
+  const cold=harness(false);assert.equal(cold.nodes.filter(n=>n.tagName==='SCRIPT').length,1,'SDK loading starts before Power/catalog selection, not after iframe creation');
+  let coldPlay=cold.api.play(cold.options);cold.api.volume(0.2,true);assert.equal(cold.players.length,0);
+  cold.window.YT={Player:cold.Player};cold.window.onYouTubeIframeAPIReady();await flush();
+  const coldPlayer=cold.players[0];coldPlayer.emit('onReady');assert.equal(coldPlayer.volume,20);assert.equal(coldPlayer.muted,true);
+  coldPlayer.emit('onStateChange',1);coldPlayer.time=1;cold.tick();coldPlayer.time=1.4;cold.tick();assert.equal((await coldPlay).status,'playing');cold.api.stop();
+  const abandoned=harness(false);coldPlay=abandoned.api.play(abandoned.options);abandoned.api.stop();assert.equal((await coldPlay).status,'cancelled');
+  abandoned.window.YT={Player:abandoned.Player};abandoned.window.onYouTubeIframeAPIReady();await flush();assert.equal(abandoned.players.length,0,'cold SDK readiness cannot resurrect a stopped transport');
   let late=h.api.play(h.options);await flush();let latePlayer=h.players[0];h.expireAt(12000);await late;latePlayer.emit('onReady');latePlayer.emit('onStateChange',1);latePlayer.time=1;h.tick();latePlayer.time=1.4;h.tick();h.api.prepare(h.options);await flush();assert.equal(h.players.length,1,'late readiness must clear failure so Next retains the recovered transport');h.api.stop();
   h=harness();let queued=h.api.play(h.options);await flush();let queuedPlayer=h.players[0];queuedPlayer.emit('onReady');queuedPlayer.emit('onStateChange',1);queuedPlayer.time=1;h.tick();queuedPlayer.time=1.4;h.tick();await queued;
   const oldState=handler(queuedPlayer,'onStateChange'),oldError=handler(queuedPlayer,'onError');
@@ -48,7 +55,7 @@ function handler(player,name){return player.listeners&&player.listeners.get(name
   oldState({target:queuedPlayer,data:0});oldError({target:queuedPlayer,data:150});assert.equal(h.counts().ended,0,'queued old EOF cannot advance a different program');assert.equal(h.counts().failures.length,0,'queued old permanent error cannot reject a different program');h.api.stop();
   h=harness();
   assert.equal(typeof h.api.prepare,'function','prepare must create the player before discovery awaits');
-  h.api.prepare(h.options);const prepared=h.nodes.find(n=>n.tagName==='IFRAME');await flush();let preparedPlayer=h.players[0];preparedPlayer.emit('onReady');
+  h.api.prepare(h.options);assert.equal(h.players.length,1,'an available SDK binds during preparation, without an asynchronous owner gap');const prepared=h.nodes.find(n=>n.tagName==='IFRAME');await flush();let preparedPlayer=h.players[0];preparedPlayer.emit('onReady');
   assert.equal(h.counts().started,0,'preparing transport cannot count an unselected video as played');
   let preparedPlay=h.api.play(h.options);await flush();assert.equal(h.players.length,1,'catalog completion must reuse the prepared player');
   assert.equal(h.nodes.filter(n=>n.tagName==='IFRAME').length,1,'delayed selection cannot navigate a replacement iframe');

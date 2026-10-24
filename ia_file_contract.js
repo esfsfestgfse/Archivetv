@@ -76,6 +76,19 @@ export function iaReviewedFileAllowed(item, channel) {
   // This DVD parent has continuation chunks; title _1 alone is not a full episode.
   if (source === 'vts-01-1_20231104' && (!file || /^VTS_\d+_\d+(?:\.ia)?\.mp4$/i.test(file))) return false;
   const identity = [item.title, source, file].join(' ').toLowerCase().replace(/[_-]+/g, ' ');
+  // Channel-specific editorial evidence must survive stale catalogs and files.
+  if (String(channel) === '54' && /\b(?:\d{1,2}\s+news|news\s+at\s+\d|eyewitness news|nightly news|world news|newscast|television news|news broadcast|journal televise|slide\s*show)\b/.test(identity)) return false;
+  if (String(channel) === '225') {
+    const performer = [identity,source.replace(/([a-z])([A-Z])/g,'$1 $2'),item.seriesTitle,media.sourceTitle,item.meta && item.meta.title,item.creator,item.account,item.meta && item.meta.creator].filter(Boolean).join(' ').toLowerCase();
+    if (!/\b(?:def comedy jam|def jam comedy|comic\s?view|in living colou?r|chappelle|richard pryor|eddie murphy|chris rock|martin lawrence|bernie mac|cedric the entertainer|steve harvey|d[.\s]*l[.\s]*hughley|katt williams|redd foxx?|paul mooney|robin harris|eddie griffin|kevin hart|wanda sykes|sommore|adele givens|laura hayes|mo['’]?nique|tiffany haddish|hannibal buress|donald glover|jerrod carmichael|lil rel howery|damon wayans|david alan grier|tommy davidson|tracy morgan|arsenio hall|lavell[e]? crawford|drew fraser|kings of comedy|queens of comedy|key\s*(?:and|&)\s*peele|african american stand[ -]?up|black stand[ -]?up|black sketch comedy)\b/.test(performer)
+      && !/\b(?:african american stand[ -]?up|black stand[ -]?up|black sketch comedy)\b/i.test([item.subject,item.subjects,item.meta && item.meta.subject,item.meta && item.meta.subjects].join(' '))
+      && !(/\bsinbad\b/.test(performer) && /comedy|stand[ -]?up|afros|bellbottoms|brain damaged|preacher/.test([performer,item.subject,item.subjects].join(' ')))) return false;
+  }
+  if (String(channel) === '905') {
+    const editorial = [identity,item.description,item.subject,item.subjects,item.creator,item.meta && item.meta.description,item.meta && item.meta.subject,item.meta && item.meta.subjects].filter(Boolean).join(' ').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/ı/g,'i').toLowerCase();
+    if (source === '477-Robert-Johnson-Kavsaktaki-Adam-17-Agustos-2026' || /\b(?:pod\s?casts?|spoken word|talk shows?|radio documentaries|radio documentary|artist interviews?)\b|babil['’]?\s*den\s+sonra|ruzgar[a]?\s+birakilmis\s+sesler/.test(editorial)) return false;
+  }
+
   if (String(channel) === '83' && /\b(?:gta|grand theft auto|gameplay|roblox|minecraft|news conference|press conference)\b/.test(identity)) return false;
   if (String(channel) === '81' && (source === 'daiwa-fishing-video-fun-to-fish-with-lure_202506'
     || /\b(?:home movies?|hm|fishing for fate|tailwaggers|farming of fish|salmon ranch|neets ?bay|fishing with a cop|drupal|wordpress|web development|software tutorial)\b/.test(identity))) return false;
@@ -242,6 +255,7 @@ export function qualifyIaFileRecord(raw, rules = {}, now = Date.now()) {
   if (item.verification === 'failed' || raw.playability === 'failed') return reject('failed-media');
   const transportValid = item.verification === 'transport' && item.verifiedAt > 0 && now - item.verifiedAt <= 86400_000 && item.verifiedAt <= now + 60_000;
   if (type === 'audio') {
+    if (String(rules.channel) === '905' && !iaReviewedFileAllowed(item, '905')) return reject('off-genre-reviewed-collection');
     if (rules.iaRepair === true && rules.requireTransport !== false && !transportValid) return reject('unverified-transport', true);
     return { accepted: !Array.isArray(rules.mediaTypes) || !rules.mediaTypes.length || rules.mediaTypes.includes('audio'), reason: 'audio-contract', item };
   }

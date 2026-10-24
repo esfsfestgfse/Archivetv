@@ -26,6 +26,7 @@
     if(profileKey!=='cartoon-time-machine')return true;
     var title=String(item&&item.title||'').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();
     if(!title)return false;
+    if(/\b(?:gameplay|walkthrough|longplay|speedrun|let['’]?s play|(?:guess|name)\s+(?:the\s+)?(?:cartoon\s+)?theme\s+song|theme\s+song\s+(?:quiz|challenge)|the life and times of public domain vhs)\b/i.test(title))return false;
     // Match the video's editorial framing, not account/description boilerplate.
     // "Just the Facts (Full Episode)" is not the same as "Facts About [show]".
     return !/\b(?:facts?\s+(?:about|you)|things\s+you\s+(?:didn['’]?t|never)\s+know|trivia|rankings?|ranked|countdown|top\s+(?:\d+|ten)|video\s+essay|analysis|explained|explored|retrospective|history\s+of|what\s+happened\s+to|why\s+you\s+should|reviews?|reactions?|animation\s+(?:history|tutorial)|made\s+in\s+blender)\b/i.test(title);

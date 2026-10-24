@@ -26,6 +26,56 @@ const verified = { identifier: 'series::episode.mp4', sourceIdentifier: 'series'
   language: 'eng', media: { type: 'video', url: 'https://archive.org/download/series/episode.mp4',
     runtime: 1320, width: 640, height: 480, verifiedAt: Date.now(), verification: 'transport' } };
 
+test('reviewed editorial admission rejects the reproduced contamination in every IA surface',async()=>{
+  const {iaReviewedFileAllowed,qualifyIaFileRecord}=await import('../ia_file_contract.js');
+  const {catalogFallbackAllowed}=await import('../realsignal_api_v2_worker.js');
+  const checks=[
+    ['54',{identifier:'WBAL_20100213_230000_11_News',title:'11 News',subject:'NASCAR auto racing'},false],
+    ['54',{identifier:'motor-view-01',title:'Motor-View 01 (UHD): Cool Cars & Guitar Grooves — 4K Slide Show',subject:'auto racing'},false],
+    ['54',{identifier:'race-1990',title:'1990 Daytona 500 Full Race',subject:'NASCAR auto racing'},true],
+    ['54',{identifier:'racing-magazine',title:'NASCAR Race Review',subject:'motorsport'},true],
+    ['225',{identifier:'hyperbolic-matthew-broussard-full-comedy-special',title:'Matthew Broussard — Hyperbolic',subject:'stand-up comedy'},false],
+    ['225',{identifier:'peter-kay-live',title:'Peter Kay Live',subject:'stand-up comedy'},false],
+    ['225',{identifier:'in-living-color-season-2',title:'In Living Color — Full Episode',subject:'Black sketch comedy'},true],
+    ['225',{identifier:'richard-pryor-live',title:'Richard Pryor Live',subject:'stand-up comedy'},true],
+    ['225',{identifier:'sinbad_afrosbellbottoms',title:'Sinbad: Afros & Bellbottoms',subject:'stand-up comedy'},true],
+    ['225',{identifier:'InLivingColor::Episode2',title:'Episode 2',media:{sourceTitle:'In Living Color'}},true],
+    ['225',{identifier:'new-comedian-full-special',title:'New Comedian Full Special',subject:'Black stand-up comedy'},true],
+    ['225',{id:'new-comedian-full-special',title:'New Comedian Full Special',meta:{subject:'Black stand-up comedy'}},true],
+    ['905',{identifier:'477-Robert-Johnson-Kavsaktaki-Adam-17-Agustos-2026',title:'477- Robert Johnson Kavşaktaki Adam',type:'audio',language:'tur',description:'Rüzgara bırakılmış sesler...'},false],
+    ['905',{identifier:'blues-podcast',title:'Robert Johnson Podcast',subject:'Delta Blues',type:'audio'},false],
+    ['905',{identifier:'blues-podcasts',title:'Blues Podcasts',type:'audio'},false],
+    ['905',{id:'hosted-program',title:'Robert Johnson Story',type:'audio',meta:{subject:'podcast'}},false],
+    ['905',{identifier:'MuddyWaters-FolkSinger',title:'Muddy Waters — Folk Singer',type:'audio',subject:'blues'},true],
+    ['905',{identifier:'instrumental-blues',title:'Instrumental Blues Guitar',type:'audio',language:'und',subject:'blues'},true],
+    ['905',{identifier:'talking-blues',title:'Talking Blues',type:'audio',language:'fra',subject:'blues music'},true],
+    ['202',{identifier:'peter-kay-live',title:'Peter Kay Live',subject:'stand-up comedy'},true],
+  ];
+  const gates=[iaReviewedFileAllowed];
+  for(const file of ['the_dial_desktop.html','the_dial_mobile.html','afterglow_ais_relay_worker.js']){
+    const source=fs.readFileSync(path.join(root,file),'utf8'),scope={};vm.createContext(scope);
+    vm.runInContext(source.slice(source.indexOf('function iaReviewedFileAllowed('),source.indexOf('function iaHuntingAllowed(')),scope);gates.push(scope.iaReviewedFileAllowed);
+  }
+  for(const [channel,item,allowed] of checks){
+    for(const gate of gates)assert.equal(gate(item,channel),allowed,channel+' '+item.title);
+    if(!allowed){assert.equal(catalogFallbackAllowed(item,{channel}),false,'stored '+item.title);const f=relay();assert.equal(f.iaStationQualityGate(channel,item),false,'relay '+item.title);}
+  }
+  const bad=checks.find(x=>x[0]==='905'&&!x[2])[1];
+  assert.equal(qualifyIaFileRecord({...bad,media:{type:'audio',url:'https://archive.org/download/'+bad.identifier+'/episode.mp3'}},{channel:'905',mediaTypes:['audio']}).accepted,false,'audio qualification cannot bypass channel policy');
+});
+
+test('stale Blues audio is rejected before local playback or Cast publication',async()=>{
+  for(const file of ['the_dial_desktop.html','the_dial_mobile.html']){
+    const source=fs.readFileSync(path.join(root,file),'utf8');let cast=0;
+    const scope={window:{__rsCastIsConnected:()=>true,__rsCastPublishMedia(){cast++;return true;}},token:1,curVideo:null,screenArea:{},audioScreen:{classList:{add(){}}},killMedia(){},hideOv(){},hideBuffer(){},clearStall(){},setSig(){},setCurItem(){},showNow(){},bug:{classList:{remove(){}}}};vm.createContext(scope);
+    vm.runInContext(source.slice(source.indexOf('function iaReviewedFileAllowed('),source.indexOf('function iaHuntingAllowed(')),scope);
+    vm.runInContext(source.slice(source.indexOf('function playFile('),source.indexOf('function showNow(')),scope);
+    const bad={id:'477-Robert-Johnson-Kavsaktaki-Adam-17-Agustos-2026',title:'Robert Johnson Kavşaktaki Adam',type:'audio',url:'https://archive.org/download/blues/episode.mp3'};
+    assert.equal(await scope.playFile(bad,{num:905,audio:true},{},1,false),false,file);assert.equal(cast,0);
+    assert.equal(await scope.playFile({...bad,id:'MuddyWaters-FolkSinger',title:'Muddy Waters Folk Singer'},{num:905,audio:true},{},1,false),true,file);assert.equal(cast,1);
+  }
+});
+
 test('transport admission preserves the resolved same-file Archive CDN, not its redirect', async () => {
   const url = 'https://ia800001.us.archive.org/12/items/series/episode.mp4';
   const media = { ...verified.media, sourceIdentifier: 'series', fileName: 'episode.mp4', verification: undefined, verifiedAt: 0 };

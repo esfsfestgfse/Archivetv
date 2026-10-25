@@ -10,6 +10,70 @@ function fixture(audio = false) {
   vm.runInContext(source.slice(source.indexOf('  function observeMedia('), source.indexOf('  function formatMs(')), scope);
   return { scope, node, events, handlers, frames };
 }
+
+function programFixture(){
+ const events=[],scope={activeTune:{seq:1,channel:10},seenPrograms:[],stamp:()=>100,
+  report:{events},noteChannel(){},schedulePersist(){},queueRemote(){},document:{getElementById:()=>null},renderHealthView(){},syncLocalHealthPolicy(){}};
+ vm.createContext(scope);const source=fs.readFileSync(path.join(__dirname,'../assets/release2-runtime.js'),'utf8');
+ const tracker=source.indexOf('  function trackProgramStart(');
+ if(tracker>=0)vm.runInContext(source.slice(tracker,source.indexOf('  function push(',tracker)),scope);
+ vm.runInContext(source.slice(source.indexOf('  function push('),source.indexOf('  function boundedPush(')),scope);
+ return {scope,events,start(key,channel=10,extra={}){scope.push({type:'first-visible-frame',channel,programKey:key,...extra});}};
+}
+
+test('confirmed A/B/A starts count a repeat without requiring another channel tune',()=>{
+ const f=programFixture();for(const key of ['A','B','A'])f.start(key);
+ assert.equal(f.events.filter(e=>e.type==='repeat').length,1);
+ assert.equal(f.events.filter(e=>e.type==='repeat')[0].programKey,'A');
+});
+
+test('duplicate callbacks, empty identities and the same program on another channel are not repeats',()=>{
+ const f=programFixture();f.start('A');f.start('A');f.start('');f.start('A',11);
+ assert.equal(f.events.filter(e=>e.type==='repeat').length,0);
+ f.scope.activeTune={seq:2,channel:10};f.start('A');assert.equal(f.events.filter(e=>e.type==='repeat').length,1);
+});
+
+test('verified YouTube clock starts join freshness history without fabricating visible frames',()=>{
+ const f=programFixture();for(const key of ['A','B','A'])f.start(key,555,{type:'source-success',source:'YouTube-clock'});
+ assert.equal(f.events.filter(e=>e.type==='repeat').length,1);
+ assert.equal(f.events.filter(e=>e.type==='first-visible-frame').length,0);
+ const empty=programFixture();empty.start('A',555,{type:'media-ready'});empty.start('A',555,{type:'source-success',source:'transport-probe'});
+ assert.equal(empty.scope.seenPrograms.length,0,'load/probe readiness is not program playback');
+});
+
+test('confirmed program history is bounded',()=>{
+ const f=programFixture();for(let i=0;i<300;i++)f.start('episode-'+i);
+ assert.equal(f.scope.seenPrograms.length,250);
+});
+
+test('a pooled video changing files within one tune is re-armed and old frames stay stale',()=>{
+ const f=fixture();f.node.src='https://media.example/A.mp4';f.scope.observeMedia(f.node);const stale=f.frames.shift();
+ f.node.src='https://media.example/B.mp4';f.scope.currentProgramKey=()=> 'B';f.scope.observeMedia(f.node);
+ assert.equal(f.frames.length,1);stale();assert.equal(f.events.length,0);
+ f.frames.shift()();assert.equal(f.events.filter(e=>e.type==='first-visible-frame').length,1);
+});
+
+test('pooled native A/B/A frames reach the shared repeat counter',()=>{
+ const media=fixture(),program=programFixture();media.scope.push=program.scope.push;
+ for(const key of ['A','B','A']){media.node.src='https://media.example/'+key+'.mp4';media.scope.currentProgramKey=()=>key;media.scope.observeMedia(media.node);media.frames.shift()();}
+ assert.equal(program.events.filter(e=>e.type==='first-visible-frame'||e.type==='source-success'&&e.source==='video-frame').length,3);
+ assert.equal(program.events.filter(e=>e.type==='repeat').length,1);
+});
+
+test('automatic next program cannot reuse the original channel first-frame latency',()=>{
+ const media=fixture(),program=programFixture();media.scope.push=program.scope.push;
+ for(const key of ['A','B']){media.node.src='https://media.example/'+key+'.mp4';media.scope.currentProgramKey=()=>key;media.scope.observeMedia(media.node);media.frames.shift()();}
+ assert.equal(program.events.filter(e=>e.type==='first-visible-frame').length,1);
+ assert.equal(program.events.filter(e=>e.type==='source-success'&&e.source==='video-frame'&&e.programKey==='B').length,1);
+});
+
+test('long-running automatic progression tracks starts without inventing tune latency',()=>{
+ const media=fixture(),program=programFixture();media.scope.push=program.scope.push;media.scope.stamp=()=>200000;
+ for(const key of ['A','B','A']){media.node.src='https://media.example/'+key+'.mp4';media.scope.currentProgramKey=()=>key;media.scope.observeMedia(media.node);media.frames.shift()();}
+ assert.equal(program.events.filter(e=>e.type==='first-visible-frame').length,0);
+ assert.equal(program.events.filter(e=>e.type==='repeat').length,1);
+ assert.ok(program.events.filter(e=>e.type==='source-success').every(e=>e.ms==null));
+});
 test('superseded media cannot report stalls or errors against a newer channel', () => {
   const f = fixture(); f.scope.observeMedia(f.node); f.scope.activeTune = { seq: 2, channel: 11, at: 150 };
   f.handlers.stalled(); f.handlers.error();
@@ -75,6 +139,18 @@ test('current queue does not leak the latest sample from a different channel',()
 test('Source Suite candidate catalogs are not misreported as ready media',()=>{
  const scope=metricScope({currentChannel:()=>({num:555,previewKey:'cartoon-time-machine'}),curNum:555,v2PreviewState:{555:{items:[1,2,3,4,5]}},window:{}});
  assert.equal(scope.queueDepth(),null);
+});
+
+test('unique programs counts identities rather than repeat-start records',()=>{
+ const scope=metricScope({report:{events:[],sessions:1},seenPrograms:[{key:'A'},{key:'B'},{key:'A'}],deviceStatus:()=>({}),currentChannel:()=>({num:10})});scope.queueDepth=()=>null;
+ assert.equal(scope.summary().uniquePrograms,2);
+});
+
+test('advertisements, signoff and missing identity cannot become channel-program freshness',()=>{
+ const source=fs.readFileSync(path.join(__dirname,'../assets/release2-runtime.js'),'utf8'),scope={curItem:null};vm.createContext(scope);
+ vm.runInContext(source.slice(source.indexOf('  function currentProgramKey('),source.indexOf('  function recoverSource(')),scope);
+ assert.equal(scope.currentProgramKey(),'');scope.curItem={id:'spot',isAd:true};assert.equal(scope.currentProgramKey(),'');
+ scope.curItem={id:'signoff',isSignoff:true};assert.equal(scope.currentProgramKey(),'');scope.curItem={id:'episode'};assert.equal(scope.currentProgramKey(),'episode');
 });
 
 test('explicit embed failures appear in summary and per-channel counters',()=>{

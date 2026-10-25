@@ -34,8 +34,25 @@
     if(remoteQueue.length>=8){flushRemote();return;}
     if(!remoteTimer)remoteTimer=setTimeout(function(){remoteTimer=0;flushRemote();},2500);
   }
+  function trackProgramStart(event){
+    var measured=event.type==='first-visible-frame'||event.type==='source-success'&&/^(?:YouTube-clock|audio-playing|video-frame)$/.test(String(event.source||''));
+    var key=String(event.programKey||'').trim(),channel=String(event.channel||'');
+    if(!measured||!key||!channel)return false;
+    var seq=activeTune&&String(activeTune.channel)===channel?activeTune.seq:0,last=null,prior=false;
+    for(var i=seenPrograms.length-1;i>=0;i--){
+      var entry=seenPrograms[i];if(entry.channel!==channel)continue;
+      if(!last)last=entry;if(entry.key===key)prior=true;
+    }
+    // A resume/repeated callback is not another program start. A/B/A is,
+    // even when automatic progression has not changed the channel tune.
+    if(last&&last.key===key&&last.tune===seq)return false;
+    seenPrograms.push({key:key,channel:channel,tune:seq});
+    if(seenPrograms.length>250)seenPrograms.shift();
+    event.repeat=prior;return prior;
+  }
   function push(event){
     event=Object.assign({at:stamp()},event||{});
+    var repeated=trackProgramStart(event);
     noteChannel(event);
     report.events.push(event);
     if(report.events.length>500)report.events.shift();
@@ -44,6 +61,7 @@
     var node=document.getElementById('rs-release2-telemetry');
     if(node)node.textContent=JSON.stringify(report);
     renderHealthView();syncLocalHealthPolicy();
+    if(repeated)push({type:'repeat',channel:event.channel,programKey:event.programKey,source:event.source});
   }
   function boundedPush(list,value,max){if(!Array.isArray(list)||!Number.isFinite(value))return;list.push(value);if(list.length>max)list.splice(0,list.length-max);}
   function channelMeta(num){try{var row=typeof byNum==='function'?byNum(Number(num)):null;return {name:row&&row.nm||('CHANNEL '+num),cat:row&&row.cat||'',source:row&&row.source||row&&row.gl||''};}catch(_){return {name:'CHANNEL '+num,cat:'',source:''};}}
@@ -84,7 +102,7 @@
         depths=report.events.filter(function(e){return e.type==='queue-sample'&&Number.isFinite(e.depth);}).map(function(e){return e.depth;}).sort(function(a,b){return a-b;}),
         failures=report.events.filter(function(e){return e.type==='media-error'||e.type==='tune-failed'||e.type==='source-recovery-failed'||e.type==='source-failure';}).length,
         status=deviceStatus();
-    return {version:4,events:report.events.length,sessions:report.sessions,tunes:tunes.length,frames:frames.length,uniquePrograms:seenPrograms.length,repeats:report.events.filter(function(e){return e.type==='repeat';}).length,skips:report.events.filter(function(e){return e.type==='control'&&e.action==='skip';}).length,tuneP50:percentile(tunes,.5),tuneP95:percentile(tunes,.95),frameP50:percentile(frames,.5),frameP95:percentile(frames,.95),guideOpenP50:percentile(opens,.5),guideOpenP95:percentile(opens,.95),guideCloseP50:percentile(closes,.5),guideCloseP95:percentile(closes,.95),queueSamples:depths.length,queueCurrent:queueDepth(),queueMin:depths.length?depths[0]:null,queueMax:depths.length?depths[depths.length-1]:null,sourceFailures:failures,sourceRecoveries:report.events.filter(function(e){return e.type==='source-recovery';}).length,sourceRecoveryFailures:report.events.filter(function(e){return e.type==='source-recovery-failed';}).length,timeouts:report.events.filter(function(e){return e.type==='startup-timeout';}).length,stalls:report.events.filter(function(e){return e.type==='stall';}).length,errors:report.events.filter(function(e){return e.type==='media-error';}).length,surface:status.surface,castConnected:status.cast,statusLabel:status.label};
+    return {version:4,events:report.events.length,sessions:report.sessions,tunes:tunes.length,frames:frames.length,uniquePrograms:new Set(seenPrograms.map(function(entry){return entry.key;})).size,repeats:report.events.filter(function(e){return e.type==='repeat';}).length,skips:report.events.filter(function(e){return e.type==='control'&&e.action==='skip';}).length,tuneP50:percentile(tunes,.5),tuneP95:percentile(tunes,.95),frameP50:percentile(frames,.5),frameP95:percentile(frames,.95),guideOpenP50:percentile(opens,.5),guideOpenP95:percentile(opens,.95),guideCloseP50:percentile(closes,.5),guideCloseP95:percentile(closes,.95),queueSamples:depths.length,queueCurrent:queueDepth(),queueMin:depths.length?depths[0]:null,queueMax:depths.length?depths[depths.length-1]:null,sourceFailures:failures,sourceRecoveries:report.events.filter(function(e){return e.type==='source-recovery';}).length,sourceRecoveryFailures:report.events.filter(function(e){return e.type==='source-recovery-failed';}).length,timeouts:report.events.filter(function(e){return e.type==='startup-timeout';}).length,stalls:report.events.filter(function(e){return e.type==='stall';}).length,errors:report.events.filter(function(e){return e.type==='media-error';}).length,surface:status.surface,castConnected:status.cast,statusLabel:status.label};
   }
   function median(values){var copy=(values||[]).filter(Number.isFinite).slice().sort(function(a,b){return a-b;});return copy.length?copy[Math.floor((copy.length-1)/2)]:null;}
   function remoteMetric(rows,key){var values=(Array.isArray(rows)?rows:[]).map(function(row){var value=row&&row[key];return value==null||value===''?NaN:Number(value);}).filter(Number.isFinite);return median(values);}
@@ -158,7 +176,7 @@
   }
   function htmlSafe(value){return String(value==null?'':value).replace(/[&<>"']/g,function(ch){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];});}
   function currentChannel(){try{if(typeof curNum!=='undefined'&&typeof byNum==='function')return byNum(curNum);}catch(_){ }return null;}
-  function currentProgramKey(){try{var item=typeof curItem!=='undefined'?curItem:null,ch=currentChannel(),key=item&&(item.id||item.url||item.src||item.title);return String(key||(ch&&((ch.num||0)+'|'+(ch.nm||'')))||'');}catch(_){return '';}}
+  function currentProgramKey(){try{var item=typeof curItem!=='undefined'?curItem:null;if(!item||item.isAd||item.isSignoff)return '';return String(item.id||item.url||item.src||item.title||'');}catch(_){return '';}}
   function recoverSource(reason){
     try{
       var ch=currentChannel();
@@ -173,13 +191,14 @@
   function observeMedia(node){
     if(!telemetryOn||!node)return;
     var tune=activeTune?{at:activeTune.at,channel:activeTune.channel,seq:activeTune.seq}:{at:stamp(),channel:currentTelemetryChannel(),seq:0};
-    if(node.dataset.release2Observed===String(tune.seq))return;
+    var selectedSource=String(node.getAttribute&&node.getAttribute('src')||node.src||''),observation=String(tune.seq)+'|'+selectedSource;
+    if(node.dataset.release2Observed===observation)return;
     if(typeof node.__rsRelease2Unobserve==='function')node.__rsRelease2Unobserve();
-    node.dataset.release2Observed=String(tune.seq);
+    node.dataset.release2Observed=observation;
     var channel=currentChannel(),audioMedia=node.tagName==='AUDIO'||node.tagName==='VIDEO'&&!!(channel&&channel.audio),first=false,framePending=false,stopped=false,bindings=[];
     function listen(type,handler){node.addEventListener(type,handler,{passive:true});bindings.push([type,handler]);}
     node.__rsRelease2Unobserve=function(){stopped=true;bindings.forEach(function(pair){node.removeEventListener(pair[0],pair[1]);});bindings.length=0;};
-    function current(){return !stopped&&node.isConnected&&(!tune.seq||!!activeTune&&activeTune.seq===tune.seq);}
+    function current(){return !stopped&&node.isConnected&&String(node.getAttribute&&node.getAttribute('src')||node.src||'')===selectedSource&&(!tune.seq||!!activeTune&&activeTune.seq===tune.seq);}
     function visible(){
       if(audioMedia)return true;
       if(document.hidden||!node.isConnected)return false;
@@ -191,14 +210,13 @@
       if(node.tagName==='VIDEO'&&!audioMedia&&(!node.videoWidth||node.readyState<2))return;
       if(tune.seq&&activeTune&&activeTune.seq!==tune.seq)return;
       first=true;
-      if(audioMedia){push({type:'source-success',channel:tune.channel||0,media:'audio',source:'audio-playing',ms:tune.seq?Math.max(0,stamp()-tune.at):null});return;}
-      if(!tune.seq||stamp()-tune.at>120000){push({type:'media-ready',channel:tune.channel||0,status:'unknown-tune-latency'});return;}
+      if(audioMedia){push({type:'source-success',channel:tune.channel||0,media:'audio',source:'audio-playing',programKey:currentProgramKey(),ms:tune.seq?Math.max(0,stamp()-tune.at):null});return;}
+      if(!tune.seq||stamp()-tune.at>120000||activeTune&&activeTune.frameRecorded){if(node.tagName==='VIDEO')push({type:'source-success',channel:tune.channel||0,programKey:currentProgramKey(),source:'video-frame'});push({type:'media-ready',channel:tune.channel||0,status:'unknown-tune-latency'});return;}
       if(node.tagName==='IFRAME'){push({type:'media-ready',channel:tune.channel||0,status:'embed-loaded-not-frame-verified'});return;}
-      var key=currentProgramKey(),prior=false,depth=queueDepth();
-      if(key){prior=seenPrograms.some(function(entry){return entry.key===key&&entry.tune!==tune.seq;});if(!seenPrograms.some(function(entry){return entry.key===key&&entry.tune===tune.seq;}))seenPrograms.push({key:key,tune:tune.seq});if(seenPrograms.length>250)seenPrograms.shift();}
-      push({type:'first-visible-frame',channel:tune.channel||0,media:node.tagName.toLowerCase(),ms:Math.max(0,stamp()-tune.at),programKey:key,repeat:prior,queueDepth:depth,source:evidence||'visible-media'});
+      var key=currentProgramKey(),depth=queueDepth();
+      if(activeTune)activeTune.frameRecorded=true;
+      push({type:'first-visible-frame',channel:tune.channel||0,media:node.tagName.toLowerCase(),ms:Math.max(0,stamp()-tune.at),programKey:key,queueDepth:depth,source:evidence||'visible-media'});
       if(Number.isFinite(depth))push({type:'queue-sample',channel:tune.channel||0,depth:depth,reason:'first-frame'});
-      if(prior)push({type:'repeat',channel:tune.channel||0,programKey:key});
     }
     function requestVisibleVideoFrame(){
       if(first||framePending||!current()||node.tagName!=='VIDEO')return;

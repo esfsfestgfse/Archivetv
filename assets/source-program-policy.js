@@ -26,6 +26,12 @@
   function allow(profileKey,item){
     if(!/^(?:ok|vimeo)-/.test(String(profileKey||''))){
       if(synthetic(item))return false;
+      // A podcast named in the program title is its format. A companion
+      // podcast link in a later description/footer is not that evidence.
+      var formatTitle=clean(item&&item.title);
+      var podcastSubject=/\b(?:history of|documentary (?:about|on)|rise of)\s+(?:pod\s?casts?|vodcasts?)\b/i.test(formatTitle)
+        && /\bdocumentary\b/i.test([formatTitle,item&&item.description].join(' '));
+      if(/\b(?:pod\s?casts?|vodcasts?)\b/i.test(formatTitle)&&!podcastSubject)return false;
       // Program self-identification belongs to the opening sentence. Later
       // companion-podcast promotions must not veto a real documentary.
       var introduction=clean(item&&item.description).trim().split(/[.!?](?:\s+|$)|\n/)[0];

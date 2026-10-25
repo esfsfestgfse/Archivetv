@@ -20,7 +20,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "6.0.14-garden-ledger-depth";
+const V3_RELEASE = "6.0.15-genre-guide-admission";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -2257,26 +2257,66 @@ async function handleGuide(request, env, ctx) {
     }, 200, { "Cache-Control": "public, max-age=10, stale-while-revalidate=30", "X-RealSignal-Release": V3_RELEASE, "X-RealSignal-Source": "d1-derived-source-catalog" }, 10);
   }
   const blockedProvidersForGuide = sourceProfileForGuide ? await readSourceCooldowns(env, sourceProfileForGuide.profileKey) : new Set();
-  const guideLimit = Math.min(40, limit * Math.max(1, blockedProvidersForGuide.size + 1));
-  let result;
-  try {
-    result = await env.realsignal_catalog.prepare(`SELECT p.id, p.title, p.description, p.provider, p.duration_seconds, p.media_type, p.media_url, p.source_url, p.rights, p.year, cp.last_seen_at, cf.last_served_at, cf.play_count, COUNT(*) OVER () AS catalog_depth, SUM(CASE WHEN cf.last_served_at IS NULL THEN 1 ELSE 0 END) OVER () AS unseen_count FROM programs p JOIN channel_programs cp ON cp.program_id=p.id LEFT JOIN channel_freshness cf ON cf.channel_key=cp.channel_key AND cf.program_id=p.id WHERE cp.channel_key=? AND p.status='active' AND p.media_url IS NOT NULL ORDER BY CASE WHEN cf.last_served_at IS NULL THEN 0 ELSE 1 END, cf.last_served_at ASC, cp.last_seen_at DESC LIMIT ?`).bind(channel, guideLimit).all();
-  } catch (_) {
-    /* Serve the verified guide during the short migration window before the
-       V4 freshness table has been applied in every environment. */
-    result = await env.realsignal_catalog.prepare(`SELECT p.id, p.title, p.description, p.provider, p.duration_seconds, p.media_type, p.media_url, p.source_url, p.rights, p.year, cp.last_seen_at, COUNT(*) OVER () AS catalog_depth FROM programs p JOIN channel_programs cp ON cp.program_id=p.id WHERE cp.channel_key=? AND p.status='active' AND p.media_url IS NOT NULL ORDER BY cp.last_seen_at DESC LIMIT ?`).bind(channel, guideLimit).all();
+  const guideBody = sourceProfileForGuide ? sourceCatalogReadBody(sourceProfileForGuide) : { channel };
+  const requalifySource = sourceProfileForGuide && !isOKSourceProfile(sourceProfileForGuide) && !/^vimeo-/.test(channel);
+  const guideLimit = Math.min(96, Math.max(32, limit * Math.max(1, blockedProvidersForGuide.size + 1)));
+  const items = [];
+  let storedCatalogDepth = 0, storedUnseenCount = 0, readRows = 0, rejectedRows = 0, unseenRejected = 0;
+  let complete = false;
+  // Qualification must not let old rejected rows consume the guide window.
+  // Refill from bounded D1 pages only; never discover providers or mark plays.
+  for (let page = 0; page < 4; page++) {
+    let result;
+    try {
+      result = await env.realsignal_catalog.prepare(`SELECT p.id, p.title, p.description, p.provider, p.duration_seconds, p.media_type, p.media_url, p.source_url, p.rights, p.year, p.metadata_json, p.aspect_ratio, cp.last_seen_at, cf.last_served_at, cf.play_count, COUNT(*) OVER () AS catalog_depth, SUM(CASE WHEN cf.last_served_at IS NULL THEN 1 ELSE 0 END) OVER () AS unseen_count FROM programs p JOIN channel_programs cp ON cp.program_id=p.id LEFT JOIN channel_freshness cf ON cf.channel_key=cp.channel_key AND cf.program_id=p.id WHERE cp.channel_key=? AND p.status='active' AND p.media_url IS NOT NULL ORDER BY CASE WHEN cf.last_served_at IS NULL THEN 0 ELSE 1 END, cf.last_served_at ASC, cp.last_seen_at DESC, p.id LIMIT ? OFFSET ?`).bind(channel, guideLimit, page * guideLimit).all();
+    } catch (_) {
+      // Keep guide reads available while the freshness table is migrating.
+      result = await env.realsignal_catalog.prepare(`SELECT p.id, p.title, p.description, p.provider, p.duration_seconds, p.media_type, p.media_url, p.source_url, p.rights, p.year, p.metadata_json, p.aspect_ratio, cp.last_seen_at, COUNT(*) OVER () AS catalog_depth FROM programs p JOIN channel_programs cp ON cp.program_id=p.id WHERE cp.channel_key=? AND p.status='active' AND p.media_url IS NOT NULL ORDER BY cp.last_seen_at DESC, p.id LIMIT ? OFFSET ?`).bind(channel, guideLimit, page * guideLimit).all();
+    }
+    const rows = result.results || [];
+    if (rows.length && !storedCatalogDepth) {
+      storedCatalogDepth = Number(rows[0].catalog_depth) || rows.length;
+      storedUnseenCount = rows[0].unseen_count == null ? storedCatalogDepth : Number(rows[0].unseen_count) || 0;
+    }
+    for (const row of rows) {
+      readRows++;
+      let metadata = {};
+      try { metadata = JSON.parse(row.metadata_json || "{}"); } catch (_) { /* tolerate legacy rows */ }
+      const item = { ...metadata, id: row.id, identifier: row.id, title: row.title,
+        description: row.description || "", provider: row.provider,
+        duration: row.duration_seconds || metadata.duration, runtime: row.duration_seconds || metadata.runtime,
+        aspectRatio: row.aspect_ratio || metadata.aspectRatio, rights: row.rights,
+        type: row.media_type || metadata.type, url: row.media_url,
+        media: { ...(metadata.media || {}), type: row.media_type || metadata.type,
+          url: row.media_url || metadata.mediaUrl } };
+      const allowed = !blockedProvidersForGuide.has(sourceProviderKey(row.provider)) && (requalifySource
+        ? catalogFallbackAllowed(item, guideBody)
+        : sourceProfileForGuide || (!iaKnownVideoPolicyViolation(item, guideBody) && iaReviewedFileAllowed(item, channel)));
+      if (!allowed) { rejectedRows++; if (row.last_served_at == null) unseenRejected++; continue; }
+      const { metadata_json, aspect_ratio, ...publicRow } = row;
+      items.push({ ...publicRow, duration: Number(row.duration_seconds) || null,
+        runtime: Number(row.duration_seconds) || null, provider: row.provider || "verified catalog" });
+    }
+    complete = readRows >= storedCatalogDepth;
+    if (complete || rows.length < guideLimit || items.length >= limit) break;
   }
-  const items = (result.results || []).map((item) => ({
-    ...item,
-    duration: Number(item.duration_seconds || 0) || null,
-    runtime: Number(item.duration_seconds || 0) || null,
-    provider: item.provider || "verified catalog",
-  })).filter((item) => !blockedProvidersForGuide.has(sourceProviderKey(item.provider))).slice(0, limit);
-  const catalogDepth = Number(items[0] && items[0].catalog_depth) || items.length;
-  const unseenCount = Number.isFinite(Number(items[0] && items[0].unseen_count)) ? Number(items[0].unseen_count) : catalogDepth;
+  // Keep stored depth distinct from the qualified page evidence. Only report
+  // a qualified total when the entire stored catalog was actually inspected.
+  const catalogDepth = complete ? items.length : storedCatalogDepth;
+  const unseenCount = complete ? Math.max(0, storedUnseenCount - unseenRejected) : storedUnseenCount;
   const seenCount = Math.max(0, catalogDepth - unseenCount);
-  const catalogExhausted = catalogDepth > 0 && unseenCount === 0;
-  return edgeJson(request, ctx, { apiVersion: "v3", release: V3_RELEASE, channel, current: items[0] || null, next: items[1] || null, items, verified: true, queueModel: "rolling-1-plus-2", catalogDepth, unseenCount, seenCount, catalogExhausted, repeatAllowed: catalogExhausted, freshnessLedger: items.some((item) => item.last_served_at != null), generatedAt: new Date().toISOString(), source: "d1-verified-catalog" }, 200, { "Cache-Control": "public, max-age=10, stale-while-revalidate=30", "X-RealSignal-Release": V3_RELEASE }, 10);
+  const catalogExhausted = items.length > 0 && unseenCount === 0;
+  const shelf = items.slice(0, limit);
+  return edgeJson(request, ctx, { apiVersion: "v3", release: V3_RELEASE, channel,
+    current: shelf[0] || null, next: shelf[1] || null, items: shelf, verified: shelf.length > 0,
+    queueModel: "rolling-1-plus-2", catalogDepth, storedCatalogDepth,
+    qualifiedCatalogDepth: complete ? items.length : null, catalogDepthVerified: complete,
+    guideReadRows: readRows, guideRejectedRows: rejectedRows, guideReadTruncated: !complete && shelf.length < limit,
+    unseenCount, seenCount, catalogExhausted, repeatAllowed: catalogExhausted,
+    freshnessLedger: shelf.some((item) => item.last_served_at != null),
+    generatedAt: new Date().toISOString(), source: requalifySource ? "d1-requalified-source-catalog" : "d1-verified-catalog",
+  }, 200, { "Cache-Control": "public, max-age=10, stale-while-revalidate=30", "X-RealSignal-Release": V3_RELEASE }, 10);
+
 }
 
 async function firstSourceLane(tasks) {
@@ -2347,31 +2387,26 @@ async function readSourceCooldowns(env, profileKey) {
    /source/catalog it never schedules provider discovery, so health audits can
    inspect the editorially requalified D1 shelf without turning an audit into
    a search burst. */
+function sourceCatalogReadBody(profile) {
+  return {
+    channel: profile.profileKey, sourceCatalog: true,
+    denyTerms: profile.deny, themeTerms: profile.match, intent: profile.intent,
+    topics: profile.topics, strictTopicTerms: profile.strictTopicTerms,
+    programFormats: profile.formats, minTitleYear: profile.minTitleYear,
+    minContentYear: profile.minContentYear, minRuntimeSeconds: profile.minRuntimeSeconds,
+    movieLane: profile.movieLane, laneRequired: profile.laneRequired, laneDeny: profile.laneDeny,
+    persistedRelaxed: profile.persistedRelaxed, persistedMatch: profile.persistedMatch,
+    themeMinScore: 1,
+  };
+}
+
 async function handleSourceStatus(request, env, ctx) {
   const url = new URL(request.url);
   const profileKey = String(url.searchParams.get("profileKey") || url.searchParams.get("channel") || "").slice(0, 120);
   const profile = sourceProfile({ profileKey });
   if (!profile) return json({ error: "unknown source profile" }, 404);
   const cooldowns = await readSourceCooldowns(env, profile.profileKey);
-  const cached = await catalogFallback(env, {
-    channel: profile.profileKey,
-    sourceCatalog: true,
-    denyTerms: profile.deny,
-    themeTerms: profile.match,
-    intent: profile.intent,
-    topics: profile.topics,
-    strictTopicTerms: profile.strictTopicTerms,
-    programFormats: profile.formats,
-    minTitleYear: profile.minTitleYear,
-    minContentYear: profile.minContentYear,
-    minRuntimeSeconds: profile.minRuntimeSeconds,
-    movieLane: profile.movieLane,
-    laneRequired: profile.laneRequired,
-    laneDeny: profile.laneDeny,
-    persistedRelaxed: profile.persistedRelaxed,
-    persistedMatch: profile.persistedMatch,
-    themeMinScore: 1,
-  }, SOURCE_LIMITS.SOURCE_MAX_ITEMS, { ignoreFreshness: true, blockedProviders: cooldowns });
+  const cached = await catalogFallback(env, sourceCatalogReadBody(profile), SOURCE_LIMITS.SOURCE_MAX_ITEMS, { ignoreFreshness: true, blockedProviders: cooldowns });
   let items = cached && Array.isArray(cached.candidateItems) ? cached.candidateItems : [];
   let source = cached ? "d1-requalified-source-catalog" : "d1-requalified-source-catalog-empty";
   if (!items.length && Array.isArray(profile.fallbackProfiles) && profile.fallbackProfiles.length) {

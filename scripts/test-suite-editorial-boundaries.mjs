@@ -1,0 +1,108 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+import {createRequire} from 'node:module';
+import worker,{catalogFallbackAllowed} from '../realsignal_api_v2_worker.js';
+import {sourceProfile,qualifySourceItem} from '../realsignal_source_catalog.js';
+import {iaKnownVideoPolicyViolation,qualifyIaFileRecord} from '../ia_file_contract.js';
+const require=createRequire(import.meta.url),policy=require('../assets/source-program-policy.js');
+const observed=[
+ ['restoration-row','The Godfather Restoration & Film Preservation with James Mockoski | The Films At Home Podcast'],
+ ['public-works','The Public Works Podcast: Norman Woods, Jr Episode'],
+ ['green-culture','NAPTIME Bioactive Podcast: Exploring Cannabis Science and Community'],
+ ['christmas-cartoon-club','PKnJ Cartoon Podcast - Frosty & The Simpsons Christmas Spectacular!'],
+];
+const program=(title,extra={})=>({id:'yt:abcdefghijk',title,description:'A substantial original television program.',provider:'YouTube',type:'embed',url:'https://www.youtube-nocookie.com/embed/abcdefghijk',duration:1800,aspectRatio:16/9,language:'en',rights:'Standard YouTube license',...extra});
+for(const [key,title] of observed)test(key+': observed podcast cannot enter fresh or cached playback',()=>{
+ const item=program(title);assert.equal(policy.allow(key,item),false);
+ assert.equal(qualifySourceItem(sourceProfile({profileKey:key}),item),null);
+ assert.equal(catalogFallbackAllowed(item,{sourceCatalog:true,channel:key}),false);
+});
+test('companion-podcast footers and podcasting subjects do not veto real programs',()=>{
+ for(const key of ['restoration-row','public-works','green-culture','christmas-cartoon-club']){
+  assert.equal(policy.allow(key,program('A Complete Original Program',{description:'Full television program. Listen to our companion podcast below.'})),true);
+  assert.equal(policy.allow(key,program('A Complete Original Program',{description:'This video contains no AI-generated footage.'})),true);
+ }
+ for(const title of ['A History of Podcasting | Full Documentary','A History of Podcasts | Full Documentary']){
+  const item=program(title,{description:'A substantial history documentary.'});assert.equal(policy.allow('documentary-desk',item),true);
+  assert.ok(qualifySourceItem(sourceProfile({profileKey:'documentary-desk'}),item));
+  assert.equal(catalogFallbackAllowed(item,{sourceCatalog:true,channel:'documentary-desk'}),true);
+ }
+ for(const title of ['Weekly Infrastructure Podcasts','Infrastructure Vodcast'])assert.equal(policy.allow('public-works',program(title)),false);
+});
+const ia=(title,extra={})=>({id:'archive-program::program.mp4',title,type:'video',language:'eng',media:{type:'video',url:'https://archive.org/download/archive-program/program.mp4',runtime:1800,width:640,height:480,verification:'transport',verifiedAt:Date.now()},...extra});
+test('IA plural podcast rejection preserves legitimate audio and original cartoon shorts',()=>{
+ const bad=ia('My Own Bowling Videos (Podcasts)');assert.equal(iaKnownVideoPolicyViolation(bad,{channel:'79'}),true);
+ assert.equal(qualifyIaFileRecord(bad,{channel:'79'}).accepted,false);
+ const audio=ia('Weekly Gardening Podcasts',{type:'audio',media:{type:'audio',url:'https://archive.org/download/archive-program/podcast.mp3'}});
+ assert.equal(iaKnownVideoPolicyViolation(audio,{channel:'203'}),false);
+ assert.equal(qualifyIaFileRecord(audio,{channel:'203',mediaTypes:['audio'],requireTransport:false}).accepted,true);
+ const cartoon=ia('Looney Tunes - Complete Original Cartoon',{id:'looney-tunes-complete::original.mp4',media:{type:'video',sourceIdentifier:'looney-tunes-complete',fileName:'original.mp4',url:'https://archive.org/download/looney-tunes-complete/original.mp4',runtime:420,width:640,height:480,verification:'transport',verifiedAt:Date.now()}});
+ assert.equal(qualifyIaFileRecord(cartoon,{channel:'150'}).accepted,true);
+ assert.equal(iaKnownVideoPolicyViolation(ia('An Original Television Satire'),{channel:'202'}),false);
+});
+for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])test(file+': cached IA video also rejects plural podcast labels',()=>{
+ const html=fs.readFileSync(new URL('../'+file,import.meta.url),'utf8'),start=html.indexOf('function iaKnownVideoPolicyViolation('),end=html.indexOf('function iaProgramDenyTerms(',start),scope={};
+ vm.runInNewContext(html.slice(start,end),scope);
+ assert.equal(scope.iaKnownVideoPolicyViolation(ia('Infrastructure Vodcasts'),{channel:204}),true);
+ assert.equal(scope.iaKnownVideoPolicyViolation(ia('My Own Bowling Videos (Podcasts)'),{channel:79}),true);
+});
+function row(item){return {id:item.id,title:item.title,description:item.description,provider:item.provider,duration_seconds:item.duration,aspect_ratio:item.aspectRatio,media_type:item.type,media_url:item.url,rights:item.rights,metadata_json:JSON.stringify(item),catalog_depth:17,unseen_count:12,last_seen_at:Date.now()};}
+function db(rows){return {prepare(sql){return {bind(...args){return {async all(){
+ if(!/FROM programs/.test(sql))return {results:[]};
+ const limit=Number(args[1])||rows.length,offset=Number(args[2])||0;
+ return {results:rows.slice(offset,offset+limit).map(r=>{
+  const out={...r,catalog_depth:rows.length,unseen_count:rows.filter(x=>x.last_served_at==null).length};
+  if(!/SELECT\s+p\.\*|metadata_json/.test(sql))delete out.metadata_json;
+  if(!/SELECT\s+p\.\*|aspect_ratio/.test(sql))delete out.aspect_ratio;
+  return out;
+ })};
+},async first(){return null;}};}};}};}
+
+test('Source guide cannot advertise stale podcast or synthetic rows as verified current/next',async()=>{
+ const rows=[row(program(observed[0][1],{id:'podcast'})),row(program('Car Restoration Full Documentary',{id:'synthetic',containsSyntheticMedia:true})),...Array.from({length:12},(_,i)=>row(program('Furniture Restoration Full Documentary '+i,{id:'good-'+i,description:'Original furniture restoration program.'})))];
+ const response=await worker.fetch(new Request('https://api.example/api/v3/guide?channel=restoration-row&limit=8'),{realsignal_catalog:db(rows)},{waitUntil(){}});
+ assert.equal(response.status,200);const guide=await response.json();assert.ok(guide.items.length>=2);
+ assert.ok(guide.items.every(x=>/^good-/.test(x.id)));assert.equal(guide.current.id,'good-0');assert.equal(guide.next.id,'good-1');
+ assert.equal(guide.catalogDepth,12,'eligible depth must exclude rejected programs');
+});
+test('Source guide retains uploader identity and language for generic gardening-show titles',async()=>{
+ const rows=[row(program('Hydrangea Trial Gardens',{id:'valid-garden',account:'Growing a Greener World'})),row(program('GardenSMART Full Program',{id:'french',account:'GardenSMARTTV',language:'fr'}))];
+ const response=await worker.fetch(new Request('https://api.example/api/v3/guide?channel=garden-ledger'),{realsignal_catalog:db(rows)},{waitUntil(){}});
+ assert.equal(response.status,200);const guide=await response.json();assert.equal(guide.current.id,'valid-garden');assert.deepEqual(guide.items.map(x=>x.id),['valid-garden']);
+});
+test('IA guide excludes known bad formats while keeping ordinary episodes',async()=>{
+ const rows=[row(program('Fan-made Space Movie',{id:'fan',provider:'Internet Archive',type:'video'})),row(program('Weekly Television Podcasts',{id:'podcasts',provider:'Internet Archive',type:'video'})),row(program('Complete Original Television Episode',{id:'episode',provider:'Internet Archive',type:'video'}))];
+ const response=await worker.fetch(new Request('https://api.example/api/v3/guide?channel=10'),{realsignal_catalog:db(rows)},{waitUntil(){}});
+ assert.equal(response.status,200);const guide=await response.json();assert.deepEqual(guide.items.map(x=>x.id),['episode']);
+});
+
+test('guides refill past rejected D1 pages without discovery or consuming freshness',async()=>{
+ for(const [channel,badCount] of [['10',8],['public-works',96]]){
+  const rows=[...Array.from({length:badCount},(_,i)=>row(program('Weekly Infrastructure Podcasts',{id:'pod-'+i}))),...Array.from({length:12},(_,i)=>row(program('Public Works Infrastructure Full Documentary '+i,{id:'valid-'+i})))];
+  const response=await worker.fetch(new Request('https://api.example/api/v3/guide?channel='+channel+'&limit=8'),{realsignal_catalog:db(rows)},{waitUntil(){throw new Error('guide must not schedule work');}});
+  const guide=await response.json();assert.equal(guide.items.length,8);assert.equal(guide.verified,true);
+  assert.equal(guide.catalogDepth,12);assert.equal(guide.qualifiedCatalogDepth,12);
+  assert.ok(guide.items.every(x=>x.id.startsWith('valid-')));
+  assert.ok(guide.items.every(x=>!('metadata_json' in x)));
+ }
+});
+test('Source guide preserves requested listing count and deep stored catalog totals',async()=>{
+ const rows=Array.from({length:120},(_,i)=>row(program('Furniture Restoration Full Documentary '+i,{id:'valid-'+i})));
+ const response=await worker.fetch(new Request('https://api.example/api/v3/guide?channel=restoration-row&limit=8'),{realsignal_catalog:db(rows)},{waitUntil(){}});
+ const guide=await response.json();assert.equal(guide.items.length,8);assert.equal(guide.catalogDepth,120);
+ assert.equal(guide.storedCatalogDepth,120);assert.equal(guide.qualifiedCatalogDepth,null);assert.equal(guide.catalogDepthVerified,false);
+});
+test('an all-rejected bounded guide is pending, not verified or exhausted',async()=>{
+ const rows=Array.from({length:140},(_,i)=>row(program('Weekly Infrastructure Podcasts',{id:'bad-'+i})));
+ const response=await worker.fetch(new Request('https://api.example/api/v3/guide?channel=public-works'),{realsignal_catalog:db(rows)},{waitUntil(){}});
+ const guide=await response.json();assert.equal(guide.items.length,0);assert.equal(guide.verified,false);
+ assert.equal(guide.catalogExhausted,false);assert.equal(guide.guideReadTruncated,true);assert.equal(guide.qualifiedCatalogDepth,null);
+});
+
+test('previously served rejected rows cannot grant repeat permission',async()=>{
+ const rows=Array.from({length:140},(_,i)=>({...row(program('Weekly Infrastructure Podcasts',{id:'bad-'+i})),last_served_at:Date.now()}));
+ const response=await worker.fetch(new Request('https://api.example/api/v3/guide?channel=public-works'),{realsignal_catalog:db(rows)},{waitUntil(){}});
+ const guide=await response.json();assert.equal(guide.verified,false);assert.equal(guide.catalogExhausted,false);assert.equal(guide.repeatAllowed,false);
+});

@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import {createRequire} from 'node:module';
 import {fileURLToPath} from 'node:url';
-import {sourceProfile,qualifySourceItem,discoverSourceCatalog} from '../realsignal_source_catalog.js';
+import {sourceProfile,qualifySourceItem,discoverSourceCatalog,sourceCatalogTasks} from '../realsignal_source_catalog.js';
 import worker,{catalogFallbackAllowed,compactCatalogItem} from '../realsignal_api_v2_worker.js';
 const require=createRequire(import.meta.url),key='cartoon-time-machine';
 const policyPath=new URL('../assets/source-program-policy.js',import.meta.url);
@@ -200,8 +200,8 @@ test('cartoon-only policy rejects explainers without poisoning unrelated documen
  assert.equal(policy.allow('documentary-desk',item('The History of Animation - Facts About Thundercats')),true);
  assert.equal(policy.allow(key,{...item('Classic Cartoon Full Episode'),description:'Our channel also discusses facts about animation.'}),true);
 });
-function legacyRelevance(source,scope,profile){
- scope.V2_PREVIEW_PROFILES={[key]:profile};scope.V2_SOURCE_TOPIC_OVERRIDES={};scope.V2_SOURCE_QUERY_SUFFIXES={};scope.V2_SOURCE_COMMON_DENY=[];scope.v2DiscoveryQueries=()=>[];
+function legacyRelevance(source,scope,profile,initialized=false){
+ scope.V2_PREVIEW_PROFILES={[profile.profileKey||key]:profile};scope.V2_SOURCE_TOPIC_OVERRIDES={};scope.V2_SOURCE_QUERY_SUFFIXES={};scope.V2_SOURCE_COMMON_DENY=[];scope.v2DiscoveryQueries=()=>[];
  for(const name of ['v2Text','v2TextUnique','v2SourceTokens','v2QueryTokens','v2TermHit','v2ProgramTopics','v2ProgramDeny','v2ProgramTitleDeny','v2ProgramCategoryOkay','v2ProgramFormats','v2StrictProgramFallback','v2Relevant','v2SourceProgramAllowed','v2CandidateRelevant']){
   const line=source.match(new RegExp('^ ?function '+name+'\\([^\\n]+','m'));
   if(line)vm.runInContext(line[0],scope);
@@ -211,16 +211,17 @@ function legacyRelevance(source,scope,profile){
  }
  const final=source.indexOf('var baseDiscovery=v2DiscoveryQueries,baseRelevant=v2Relevant;'),start=source.lastIndexOf('(function(){',final),end=source.indexOf('</script>',final);
  vm.runInContext(source.slice(start,end),scope);
+ if(initialized)vm.runInContext(source.slice(source.indexOf('const V2_SOURCE_MODE_GROUPS='),source.indexOf('function v2ProgramTopics(')),scope);
 }
 function client(file,programs,options={}){
  const source=fs.readFileSync(new URL('../'+file,import.meta.url),'utf8').replace(/\r\n/g,'\n'),start=source.indexOf('async function v2LoadProfile('),end=source.indexOf('\nfunction v2RejectEmbed(',start),saved=[];
- let lane;
+ let lane,providerCalls=0;
  const profile={...sourceProfile({profileKey:key}),name:'Cartoon Time Machine',intent:'animation',providers:['youtube'],serverOnly:true,...options.profile},state={items:options.active||[],cursor:0};
  const scope={window:{RealSignalSourcePrograms:policy},v2PreviewState:{555:state},v2PreviewInflight:{},v2PreviewFirstReady:{},V2_SOURCE_CACHE_VERSION:50,V2_SOURCE_MIN_CATALOG:12,V2_SOURCE_CACHE_TTL:60000,V2_SOURCE_CATALOG_SIZE:96,
- store:{get:k=>k==='v2source:'+profile.name?options.cached||null:null,set:(_key,value)=>saved.push(value)},v2NextRotation:()=>0,v2Provider:async(_n,_p,_r,onFirst)=>{onFirst(lane);return lane;},
+ store:{get:k=>k==='v2source:'+profile.name?options.cached||null:null,set:(_key,value)=>saved.push(value)},v2NextRotation:()=>0,v2Provider:async(_n,_p,_r,onFirst)=>{providerCalls++;onFirst(lane);return lane;},
  v2RoundRobin:rows=>rows.flat(),v2Unique:xs=>[...new Map(xs.map(x=>[x.id,x])).values()],v2MergeCatalog:(_p,a,b)=>[...new Map(a.concat(b).map(x=>[x.id,x])).values()],v2CatalogOrder:(_k,x)=>x,v2Landscape:()=>true,v2ProfileRuntimeOkay:()=>true,v2SourceHealth:()=>({}),refreshGuideData(){},nlog(){},setTimeout:()=>0,Date,Promise};
- vm.createContext(scope);legacyRelevance(source,scope,profile);const prune=source.match(/^function v2PruneSourcePrograms\([^\n]+/m);if(prune)vm.runInContext(prune[0],scope);vm.runInContext(source.slice(start,end),scope);
- return {state,saved,async load(){lane={provider:'Server Catalog',items:programs||[item(bad,'bad'),item('Classic Cartoon Full Episode','good')]};await scope.v2LoadProfile({num:555},profile,1);await new Promise(r=>setImmediate(r));}};
+ vm.createContext(scope);legacyRelevance(source,scope,profile,options.initialized);const prune=source.match(/^function v2PruneSourcePrograms\([^\n]+/m);if(prune)vm.runInContext(prune[0],scope);vm.runInContext(source.slice(start,end),scope);
+ return {state,saved,get providerCalls(){return providerCalls;},async load(){lane={provider:'Server Catalog',items:programs||[item(bad,'bad'),item('Classic Cartoon Full Episode','good')]};await scope.v2LoadProfile({num:555},profile,1);await new Promise(r=>setImmediate(r));}};
 }
 for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])test(file+': AI rows are removed from fresh server replies, saved caches and active shelves',async()=>{
  const good=item('Classic Cartoon Full Episode','good'),badRow={...synthetic[5],id:'ai'};
@@ -255,4 +256,70 @@ for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])test(file+': 
  delete scope.window.RealSignalSourcePrograms;
  assert.equal(scope.v2CandidateRelevant({profileKey:'documentary-desk'},item('Facts About Cartoons')),true);
  assert.equal(scope.v2CandidateRelevant({profileKey:key},item('Full Cartoon Episode')),false);
+});
+
+const gardenEpisode=(title="Growing a Greener World Episode 1202 - In Susan's Garden",extra={})=>({...item(title,'yt:gN0-WLMyQPc'),account:'Growing a Greener World',channelSeed:'@ggwtv',description:'A tour of a home vegetable and botanical garden.',duration:1526,...extra});
+test('Garden Ledger uses bounded TV upload feeds instead of quota-sensitive broad searches',()=>{
+ const p=sourceProfile({profileKey:'garden-ledger'});
+ assert.ok(p.youtubeChannelHandles.includes('@ggwtv'));
+ assert.ok(p.youtubeChannelHandles.includes('@GardenSMARTTV'));
+ assert.equal(p.youtubeSearchOnViewer,false);assert.equal(p.youtubeSearchOnMaintenance,false);
+ assert.ok(p.youtubeChannelPageWindow>=2);assert.equal(p.youtubeChannelDiscoveryOnMaintenance,false);
+});
+test('Garden Ledger qualifies named full gardening shows without mistaking their footer for the program',()=>{
+ const p=sourceProfile({profileKey:'garden-ledger'});
+ for(const row of [gardenEpisode(),gardenEpisode('GardenSMART @ Gibbs Gardens',{account:'GardenSMARTTV',description:'A botanical garden tour. Listen to our companion podcast. Affiliate links support the program.'})]){
+  assert.ok(qualifySourceItem(p,row),row.title);
+  assert.equal(catalogFallbackAllowed(row,{sourceCatalog:true,channel:'garden-ledger'}),true,'stored '+row.title);
+ }
+});
+test('Garden Ledger rejects the actual podcast variants and unrelated livestock while preserving real garden tours',()=>{
+ for(const row of [gardenEpisode('Episode 299 - Solutions: Guerrilla Gardening',{account:'corbett',description:'Original post https://corbettreport.com/episode-299-solutions-guerrilla-gardening/'}),gardenEpisode('A Small Farm Needs Animals and Grains: The Real Difference From a Garden'),gardenEpisode('Livestock Auction | Full Program')]){
+  assert.equal(policy.allow('garden-ledger',row),false,row.title);
+  assert.equal(catalogFallbackAllowed(row,{sourceCatalog:true,channel:'garden-ledger'}),false);
+ }
+ assert.equal(policy.allow('garden-ledger',gardenEpisode('Guerrilla Gardening | Full Garden Tour',{account:'Community Garden TV'})),true);
+});
+test('Garden Ledger enforces full-program runtime, landscape and declared English on stored rows',()=>{
+ for(const row of [gardenEpisode(undefined,{duration:899}),gardenEpisode(undefined,{aspectRatio:9/16}),gardenEpisode(undefined,{language:'fr'}),gardenEpisode(undefined,{description:'This video contains AI-generated content.'})])assert.equal(catalogFallbackAllowed(row,{sourceCatalog:true,channel:'garden-ledger'}),false);
+});
+test('Garden Ledger rejects program self-described podcasts, tutorials and political commentary without rejecting companion promotion',()=>{
+ for(const description of ['A gardening podcast about growing vegetables.','This full program is a how-to tutorial on growing vegetables.','Political commentary on the current election.']){
+  const row=gardenEpisode('Vegetable Gardening | Full Program',{description});
+  assert.equal(qualifySourceItem(sourceProfile({profileKey:'garden-ledger'}),row),null,description);
+  assert.equal(catalogFallbackAllowed(row,{sourceCatalog:true,channel:'garden-ledger'}),false,description);
+ }
+ assert.ok(qualifySourceItem(sourceProfile({profileKey:'garden-ledger'}),gardenEpisode(undefined,{description:'Touring a vegetable garden. Listen to our companion podcast.'})));
+});
+test('Garden Ledger retains the pre-existing on-topic long-form food-forest program',()=>{
+ const row=gardenEpisode('Food Forest⧸Medicine Forest | Phantom Rickshaw Life',{account:'Phantom Rickshaw Life',provider:'PeerTube',type:'video',url:'https://video.example/forest.mp4',rights:'Creative Commons Attribution',duration:1467,description:'Emily explains the planning of her food forest.'});
+ assert.ok(qualifySourceItem(sourceProfile({profileKey:'garden-ledger'}),row));
+});
+test('Garden Ledger upload hydration does not let one series consume the entire candidate budget',async()=>{
+ const original=globalThis.fetch;let searches=0,hydratedIds=[];
+ globalThis.fetch=async input=>{
+  const u=new URL(String(input));let body={items:[],data:[]};
+  if(u.pathname.endsWith('/search'))searches++;
+  if(u.pathname.endsWith('/channels')){const family=/gardensmart/i.test(u.search)?'gsm':'ggw';body={items:[{contentDetails:{relatedPlaylists:{uploads:family}}}]};}
+  if(u.pathname.endsWith('/playlistItems')){const family=u.searchParams.get('playlistId'),page=Number(u.searchParams.get('pageToken')||0);body={items:Array.from({length:50},(_,i)=>({snippet:{resourceId:{videoId:family+String(page*50+i).padStart(8,'0')},title:(family==='ggw'?'Growing a Greener World':'GardenSMART')+' Episode '+(page*50+i),channelTitle:family==='ggw'?'Growing a Greener World':'GardenSMARTTV'}})),...(page<3?{nextPageToken:String(page+1)}:{})};}
+  if(u.pathname.endsWith('/videos')&&u.hostname==='www.googleapis.com'){const ids=u.searchParams.get('id').split(',');hydratedIds.push(...ids);body={items:ids.map(id=>({id,snippet:{title:(id.startsWith('ggw')?'Growing a Greener World':'GardenSMART')+' Episode '+id.slice(3),description:'Botanical garden tour and vegetable gardening.',channelTitle:id.startsWith('ggw')?'Growing a Greener World':'GardenSMARTTV',defaultAudioLanguage:'en'},contentDetails:{duration:'PT25M'},status:{embeddable:true}}))};}
+  return Response.json(body);
+ };
+ try{const plan=sourceCatalogTasks({profileKey:'garden-ledger'},{YOUTUBE_API_KEY:'test-only'},0,{maintenance:true}),lanes=await Promise.all(plan.tasks),result={items:lanes.flatMap(x=>x.items||[])};assert.equal(searches,0);assert.equal(hydratedIds.length,150);assert.equal(hydratedIds.filter(id=>id.startsWith('ggw')).length,75);assert.ok(result.items.length>=20);assert.ok(result.items.some(x=>x.account==='Growing a Greener World'));assert.ok(result.items.some(x=>x.account==='GardenSMARTTV'));assert.equal(new Set(result.items.map(x=>x.id)).size,result.items.length);}
+ finally{globalThis.fetch=original;}
+});
+for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])test(file+': initialized Garden Ledger retains cached full programs without a refetch',async()=>{
+ const good=gardenEpisode('GardenSMART @ Gibbs Gardens',{account:'GardenSMARTTV',description:'Botanical garden tour. Companion podcast and affiliate links below.'});
+ const cached={version:50,at:Date.now(),items:Array.from({length:12},(_,i)=>({...good,id:'good-'+i}))};
+ const h=client(file,[],{profile:sourceProfile({profileKey:'garden-ledger'}),cached,initialized:true});await h.load();assert.equal(h.state.items.length,12);assert.equal(h.providerCalls,0);assert.ok(h.saved.every(value=>value.at===cached.at));
+});
+for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])test(file+': actual source client retains a GardenSMART episode with a podcast footer',async()=>{
+ const good=gardenEpisode('GardenSMART @ Gibbs Gardens',{account:'GardenSMARTTV',description:'Botanical garden tour. Subscribe to our companion podcast; affiliate links below.'});
+ const bad=gardenEpisode('Episode 299 - Solutions: Guerrilla Gardening',{id:'pt:old-podcast',account:'corbett',description:'Original post https://corbettreport.com/episode-299-solutions-guerrilla-gardening/'});
+ const h=client(file,[bad,good],{profile:sourceProfile({profileKey:'garden-ledger'})});await h.load();assert.deepEqual(Array.from(h.state.items,x=>x.title),[good.title]);
+});
+for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])test(file+': Garden Ledger does not bypass editorial checks if its policy asset is missing',()=>{
+ const source=fs.readFileSync(new URL('../'+file,import.meta.url),'utf8'),scope={window:{},v2Text:v=>String(v||''),v2Relevant:()=>true};
+ vm.createContext(scope);vm.runInContext(source.match(/^function v2SourceProgramAllowed\([^\n]+/m)[0]+'\n'+source.match(/^function v2CandidateRelevant\([^\n]+/m)[0],scope);
+ assert.equal(scope.v2CandidateRelevant({profileKey:'garden-ledger'},gardenEpisode()),false);
 });

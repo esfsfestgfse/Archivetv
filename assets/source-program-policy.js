@@ -37,6 +37,14 @@
       if(/^(?:pt:indymotion\.fr\/)(?:2f2b99fa-3fe2-4141-8520-14296e580125|bf85b376-fad9-41df-b97f-f9453743d0d9|db41bbcc-fb64-4526-92c1-520756c638fd)$/.test(String(item&&item.id||'')))return false;
     }
     var title=String(item&&item.title||'').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();
+    if(profileKey==='garden-ledger'){
+      var gardenIdentity=[title,item&&item.account,item&&item.channelTitle].join(' ');
+      var gardenOpening=clean(item&&item.description).trim().split(/[.!?](?:\s+|$)|\n/)[0];
+      if(/^(?:an?\s+)?(?:gardening\s+|garden\s+|horticulture\s+)?podcast\b|^(?:an?\s+)?political (?:commentary|debate)\b|\b(?:this|our)\s+(?:full\s+)?(?:program|programme|episode|video)\s+is\s+(?:an?\s+)?(?:how[ -]+to\s+)?(?:tutorial|political commentary|commentary)\b/i.test(gardenOpening))return false;
+      if(/\b(?:podcasts?|commentary|political|politics|debate|livestock|animal husbandry|horse meat|horsemeat|horse slaughter|meat processing|tractor|hunting|fishing)\b|farm needs animals/i.test(title))return false;
+      if(/guerrilla gardening/i.test(title)&&/corbett|episode\s*299/i.test([gardenIdentity,item&&item.description,item&&item.sourceUrl].join(' ')))return false;
+      if(!/\b(?:gardening|gardeners?|horticulture|botanical|permaculture|greenhouse|vegetable|pollinator|compost)\b|garden (?:tour|design|restoration)|food forest|plant cultivation|growing a greener world|gardensmart/i.test(gardenIdentity))return false;
+    }
     if(profileKey==='game-show-archive'&&/\b(?:timelapse|gameplay|walkthrough|longplay|speedrun|final fantasy|ffxiv|fan festival)\b/i.test(title))return false;
     if(profileKey==='documentary-desk'&&/\bdeep dive\s*:\s*(?:ep\.?|episode)\s*\d+/i.test(title))return false;
     if(!/^(?:cartoon-time-machine|(?:holiday|christmas|halloween)-cartoon-club)$/.test(String(profileKey||'')))return true;

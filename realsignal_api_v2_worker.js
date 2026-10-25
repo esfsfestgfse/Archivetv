@@ -20,7 +20,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "6.0.13-source-genre-language";
+const V3_RELEASE = "6.0.14-garden-ledger-depth";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -795,7 +795,7 @@ function catalogFallbackAllowed(item, body) {
   if (!iaGameShowEraAllowed(item, body && body.channel)) return false;
   if (body && body.iaRepair === true && body.sourceCatalog !== true && !qualifyIaFileRecord(item, body).accepted) return false;
   const catalogProfile = body && body.sourceCatalog === true ? sourceProfile({ profileKey: body.channel }) : null;
-  if (body && body.sourceCatalog === true && (isOKSourceProfile(catalogProfile) || /^vimeo-(?:movie|tv)-channel$/.test(String(body.channel || "")) || catalogProfile && catalogProfile.profileKey === "cartoon-time-machine")) {
+  if (body && body.sourceCatalog === true && (isOKSourceProfile(catalogProfile) || /^vimeo-(?:movie|tv)-channel$/.test(String(body.channel || "")) || catalogProfile && /^(?:cartoon-time-machine|garden-ledger)$/.test(catalogProfile.profileKey))) {
     return !!qualifySourceItem(catalogProfile, item);
   }
   const title = String(item && item.title || "").toLowerCase();

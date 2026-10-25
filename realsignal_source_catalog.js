@@ -800,8 +800,9 @@ function accepted(profile, item, provider, checkAspect = true) {
     const contentYears = Array.from(haystack.matchAll(/(?:^|[^0-9])((?:19|20)\d{2})(?:[^0-9]|$)/g)).map((match) => Number(match[1])).filter(Boolean);
     if (contentYears.some((year) => year < profile.minContentYear)) return false;
   }
-  if (/(?:#?shorts?\b|vertical\s+video|how[ -]+to|tutorial|reaction|trailer|teaser|promo|advertisement|commercial|fan\s+edit|lyrics\s+video)/i.test(haystack)) return false;
-  if (profile.deny.some((term) => haystack.includes(text(term, 180).toLowerCase()))) return false;
+  const editorialText = profile.profileKey === "garden-ledger" ? titleHaystack : haystack;
+  if (/(?:#?shorts?\b|vertical\s+video|how[ -]+to|tutorial|reaction|trailer|teaser|promo|advertisement|commercial|fan\s+edit|lyrics\s+video)/i.test(editorialText)) return false;
+  if (profile.deny.some((term) => editorialText.includes(text(term, 180).toLowerCase()))) return false;
   if (!rightsOkay(item, source)) return false;
   if (["YouTube", "Vimeo", "OK.ru"].includes(source) && !englishOkay(item)) return false;
   /* A channel seed is only a starting point. Re-check the returned channel
@@ -1064,7 +1065,9 @@ async function youtubeChannelUploads(profile, rotation, env, options = {}) {
     catch (error) { return { seed: "", resolved: false, pages: 0, items: [], error: text(error && (error.providerDetail || error.message), 180) || "channel upload request failed" }; }
   })).filter(Boolean);
   return {
-    items: unique(lanes.flatMap((lane) => lane.items || [])),
+    items: unique(profile.profileKey === "garden-ledger"
+      ? Array.from({length: Math.max(0, ...lanes.map(lane => (lane.items || []).length))}, (_, index) => lanes.map(lane => (lane.items || [])[index]).filter(Boolean)).flat()
+      : lanes.flatMap((lane) => lane.items || [])),
     health: {
       seeds: seeds.length,
       resolved: lanes.filter((lane) => lane.resolved).length,
@@ -1167,6 +1170,7 @@ async function youtube(profile, rotation, env, options = {}) {
       category: text(item.snippet && item.snippet.categoryId, 120),
       account: text(item.snippet && item.snippet.channelTitle, 180),
       channelId: text(item.snippet && item.snippet.channelId, 80),
+      language: text(item.snippet && (item.snippet.defaultAudioLanguage || item.snippet.defaultLanguage) || candidate.language, 40),
       ...(typeof item.status?.containsSyntheticMedia === "boolean" ? { containsSyntheticMedia: item.status.containsSyntheticMedia } : {}),
       year: text(item.snippet && item.snippet.publishedAt, 12),
       rights: "Standard YouTube license",

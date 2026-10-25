@@ -51,6 +51,13 @@
       if(/guerrilla gardening/i.test(title)&&/corbett|episode\s*299/i.test([gardenIdentity,item&&item.description,item&&item.sourceUrl].join(' ')))return false;
       if(!/\b(?:gardening|gardeners?|horticulture|botanical|permaculture|greenhouse|vegetable|pollinator|compost)\b|garden (?:tour|design|restoration)|food forest|plant cultivation|growing a greener world|gardensmart/i.test(gardenIdentity))return false;
     }
+    if(profileKey==='restoration-row'){
+      // Restoring objects and buildings is the programme subject. Software,
+      // medical restoration and upload-restoration credits are different uses.
+      var restorationTitle=clean(title);
+      if(/\b(?:software game|software restoration|software preservation|sight restoration|restor(?:ing|ation of) (?:eyesight|vision)|eye banks?|organ donations?|team presentations?|conference talks?|keynote|seminars?|webinars?)\b/i.test(restorationTitle)
+        || /\bhome movies?\b.{0,100}\brestoration by\b/i.test(restorationTitle))return false;
+    }
     if(profileKey==='game-show-archive'&&/\b(?:timelapse|gameplay|walkthrough|longplay|speedrun|final fantasy|ffxiv|fan festival)\b/i.test(title))return false;
     if(profileKey==='documentary-desk'&&/\bdeep dive\s*:\s*(?:ep\.?|episode)\s*\d+/i.test(title))return false;
     if(!/^(?:cartoon-time-machine|(?:holiday|christmas|halloween)-cartoon-club)$/.test(String(profileKey||'')))return true;

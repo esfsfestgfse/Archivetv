@@ -27,6 +27,7 @@ on:
       - 'scripts/test-v3-api-contract.js'
       - 'scripts/test-cartoon-program-admission.mjs'
       - 'scripts/test-suite-editorial-boundaries.mjs'
+      - 'scripts/test-restoration-program-admission.mjs'
       - 'scripts/test-ok-source-recovery.js'
       - 'scripts/test-ok-curated-tv.js'
       - 'scripts/test-ok-tv-decades.js'
@@ -78,6 +79,7 @@ jobs:
           node scripts/test-source-catalog-bridge.js
           node --test scripts/test-cartoon-program-admission.mjs
           node --test scripts/test-suite-editorial-boundaries.mjs
+          node --test scripts/test-restoration-program-admission.mjs
           node --check realsignal_api_v2_worker.js
           node --check realsignal_api_rotation.js
           node --check realsignal_api_rate_limit.js

@@ -77,8 +77,14 @@ export function iaReviewedFileAllowed(item, channel) {
   if (source === 'vts-01-1_20231104' && (!file || /^VTS_\d+_\d+(?:\.ia)?\.mp4$/i.test(file))) return false;
   const identity = [item.title, source, file].join(' ').toLowerCase().replace(/[_-]+/g, ' ');
   // Channel-specific editorial evidence must survive stale catalogs and files.
+  // A racing subject tag does not turn the 2001 fictional feature into a race.
+  if (String(channel) === '54' && /\bdriven\s*\(?2001(?:\)|\b)/.test(identity)) return false;
   if (String(channel) === '54' && /\b(?:\d{1,2}\s+news|news\s+at\s+\d|eyewitness news|nightly news|world news|newscast|television news|news broadcast|journal televise|slide\s*show|watching videos|nascar or gamba|gone in (?:sixty|60) seconds|halicki)\b/.test(identity)) return false;
   if (String(channel) === '225') {
+    // A comedian appearing in an interview or podcast is not a stand-up/sketch
+    // programme. Use show-format identity, not a guest's name or promo footer.
+    const comedyFormat = [identity,item.subject,item.subjects,item.meta && item.meta.subject,item.meta && item.meta.subjects,media.sourceTitle].filter(Boolean).join(' ').toLowerCase();
+    if (/\b(?:h3podcast|h3tv|(?:the\s+)?howard stern show|late night with conan o['’]?\s*brien)\b/.test(comedyFormat)) return false;
     if (/\b(?:black baseball|negro leagues|oprah winfrey|the today show|who wants to see past the bs puppet show)\b/.test(identity)) return false;
     const performer = [identity,source.replace(/([a-z])([A-Z])/g,'$1 $2'),item.seriesTitle,media.sourceTitle,item.meta && item.meta.title,item.creator,item.account,item.meta && item.meta.creator].filter(Boolean).join(' ').toLowerCase();
     if (!/\b(?:def comedy jam|def jam comedy|comic\s?view|in living colou?r|chappelle|richard pryor|eddie murphy|chris rock|martin lawrence|bernie mac|cedric the entertainer|steve harvey|d[.\s]*l[.\s]*hughley|katt williams|redd foxx?|paul mooney|robin harris|eddie griffin|kevin hart|wanda sykes|sommore|adele givens|laura hayes|mo['’]?nique|tiffany haddish|hannibal buress|donald glover|jerrod carmichael|lil rel howery|damon wayans|david alan grier|tommy davidson|tracy morgan|arsenio hall|lavell[e]? crawford|drew fraser|kings of comedy|queens of comedy|key\s*(?:and|&)\s*peele|african american stand[ -]?up|black stand[ -]?up|black sketch comedy)\b/.test(performer)
@@ -86,6 +92,7 @@ export function iaReviewedFileAllowed(item, channel) {
       && !(/\bsinbad\b/.test(performer) && /comedy|stand[ -]?up|afros|bellbottoms|brain damaged|preacher/.test([performer,item.subject,item.subjects].join(' ')))) return false;
   }
   if (String(channel) === '905') {
+    if (/\bradio\s+(?:adverts?|advertisements?|commercials?)\b/.test(identity)) return false;
     const editorial = [identity,item.description,item.subject,item.subjects,item.creator,item.meta && item.meta.description,item.meta && item.meta.subject,item.meta && item.meta.subjects].filter(Boolean).join(' ').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/ı/g,'i').toLowerCase();
     if (source === '477-Robert-Johnson-Kavsaktaki-Adam-17-Agustos-2026' || /\b(?:pod\s?casts?|spoken word|talk shows?|radio documentaries|radio documentary|artist interviews?)\b|babil['’]?\s*den\s+sonra|ruzgar[a]?\s+birakilmis\s+sesler/.test(editorial)) return false;
   }

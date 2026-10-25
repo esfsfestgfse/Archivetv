@@ -78,6 +78,22 @@ test('IA guide excludes known bad formats while keeping ordinary episodes',async
  assert.equal(response.status,200);const guide=await response.json();assert.deepEqual(guide.items.map(x=>x.id),['episode']);
 });
 
+test('IA current/next omits confirmed keyword collisions while preserving real performances',async()=>{
+ const cases=[
+  ['54',['Driven (2001) - 4K AI Upscale'],'1990 Daytona 500 Full Race'],
+  ['225',['Will Smith, Chris Rock & Academy Awards - H3TV #29','Howard Stern Show on E! (1997) Chris Rock',"Late Night With Conan O' Brien With Damon Wayans, Gabrielle Reece, Kurt Anderson"],'The Chris Rock Show — Full Episode'],
+  ['905',['Pink Floyd — The Final Cut Radio Advert'],'Muddy Waters — Radio Session Concert'],
+ ];
+ for(const [channel,badTitles,goodTitle] of cases){
+  const mediaType=channel==='905'?'audio':'video';
+  const entry=(title,id)=>row(program(title,{id,provider:'Internet Archive',type:mediaType,url:'https://archive.org/download/fixture/'+id+(mediaType==='audio'?'.mp3':'.mp4')}));
+  const rows=[...badTitles.map((title,i)=>entry(title,'bad-'+i)),entry(goodTitle,'good')];
+  const response=await worker.fetch(new Request('https://api.example/api/v3/guide?channel='+channel),{realsignal_catalog:db(rows)},{waitUntil(){throw new Error('guide must not initiate discovery');}});
+  assert.equal(response.status,200);const guide=await response.json();
+  assert.deepEqual(guide.items.map(x=>x.id),['good'],channel);assert.equal(guide.current.title,goodTitle);assert.equal(guide.next,null);
+ }
+});
+
 test('guides refill past rejected D1 pages without discovery or consuming freshness',async()=>{
  for(const [channel,badCount] of [['10',8],['public-works',96]]){
   const rows=[...Array.from({length:badCount},(_,i)=>row(program('Weekly Infrastructure Podcasts',{id:'pod-'+i}))),...Array.from({length:12},(_,i)=>row(program('Public Works Infrastructure Full Documentary '+i,{id:'valid-'+i})))];

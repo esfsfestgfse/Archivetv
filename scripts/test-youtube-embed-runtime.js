@@ -39,6 +39,20 @@ async function flush(){for(let i=0;i<5;i++)await Promise.resolve();}
 function handler(player,name){return player.listeners&&player.listeners.get(name)||player.events[name];}
 (async()=>{
   let h=harness(),result;
+  assert.equal(typeof h.api.suspend,'function','direct playback must retain the prepared transport');
+  let suspendedPlay=h.api.play(h.options),suspendedPlayer=h.players[0],suspendedFrame=h.options.container.children[0];
+  suspendedPlayer.emit('onReady');const staleEnd=handler(suspendedPlayer,'onStateChange');
+  assert.equal(h.api.suspend(),suspendedFrame);assert.equal((await suspendedPlay).status,'cancelled');
+  assert.equal(suspendedPlayer.stopped,true);assert.equal(suspendedPlayer.destroyed,undefined);assert.equal(suspendedFrame.hidden,true);
+  assert.equal(suspendedFrame.parentNode,h.options.container);assert.equal(h.timeouts.size,0);assert.equal(h.intervals.size,0);
+  staleEnd({target:suspendedPlayer,data:0});assert.equal(h.counts().ended,0,'suspended callbacks cannot advance native playback');
+  suspendedPlay=h.api.play(h.options);assert.equal(h.players.length,1);assert.equal(suspendedFrame.hidden,false);
+  suspendedPlayer.emit('onStateChange',1);suspendedPlayer.time=1;h.tick();suspendedPlayer.time=1.4;h.tick();assert.equal((await suspendedPlay).status,'playing');
+  h.api.stop();assert.equal(suspendedPlayer.destroyed,true);assert.equal(suspendedFrame.removed,true);
+  h=harness();h.api.prepare(h.options);suspendedPlayer=h.players[0];suspendedFrame=h.api.suspend();suspendedPlayer.emit('onReady');
+  assert.equal(suspendedPlayer.loads,undefined,'late readiness while suspended cannot start hidden media');assert.equal(suspendedFrame.hidden,true);
+  suspendedPlay=h.api.play(h.options);assert.equal(h.players.length,1);suspendedPlayer.emit('onStateChange',1);suspendedPlayer.time=1;h.tick();suspendedPlayer.time=1.4;h.tick();assert.equal((await suspendedPlay).status,'playing');h.api.stop();
+  h=harness();
   const cold=harness(false);assert.equal(cold.nodes.filter(n=>n.tagName==='SCRIPT').length,1,'SDK loading starts before Power/catalog selection, not after iframe creation');
   let coldPlay=cold.api.play(cold.options);cold.api.volume(0.2,true);assert.equal(cold.players.length,0);
   cold.window.YT={Player:cold.Player};cold.window.onYouTubeIframeAPIReady();await flush();

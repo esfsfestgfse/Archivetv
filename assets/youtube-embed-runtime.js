@@ -40,6 +40,16 @@
     if(old.player){try{old.player.destroy();}catch(_){}}
     old.frame.remove();
   }
+  // A direct-media attempt must not destroy the already navigated iframe.
+  // Cancel its program and stop playback while retaining only the transport.
+  function suspend() {
+    cancel(owner);
+    if(!transport)return null;
+    transport.suspended=true;
+    if(transport.ready){try{transport.player.stopVideo();}catch(_){}}
+    transport.frame.hidden=true;transport.frame.style.display='none';
+    return transport.frame;
+  }
   function volume(level, muted) {
     if (!transport) return false;
     transport.level = level; transport.muted = !!muted;
@@ -125,6 +135,7 @@
           onReady:function(event){
             if(transport!==state)return;
             state.player=event.target;state.ready=true;state.failed=false;frame.dataset.playbackState='ready';volume(state.level,state.muted);
+            if(state.suspended){try{state.player.stopVideo();}catch(_){}return;}
             if(owner)activate(owner);
           }
         }});
@@ -134,6 +145,7 @@
     }
     if(options.volume!==undefined)state.level=options.volume;
     if(options.muted!==undefined)state.muted=!!options.muted;
+    state.suspended=false;state.frame.hidden=false;state.frame.style.display='';
     Array.prototype.slice.call(options.container.children||[]).forEach(function(node){if(node!==state.frame)node.remove();});
     return state.frame;
   }
@@ -150,7 +162,7 @@
       activate(job);
     });
   }
-  root.RealSignalYouTubeEmbed = {prepare:prepare,play:play,stop:stop,volume:volume,toggle:toggle};
+  root.RealSignalYouTubeEmbed = {prepare:prepare,play:play,suspend:suspend,stop:stop,volume:volume,toggle:toggle};
   // Fetch before interaction to avoid a serial SDK request on a cold tune.
   // If still pending, bind once ready; stop() invalidates that continuation.
   loadSDK().catch(function(){});

@@ -164,6 +164,7 @@ jobs:
       - name: Test YouTube player ownership and transient recovery
         run: |
           node scripts/test-youtube-embed-runtime.js
+          node --test scripts/test-youtube-direct-handoff.mjs
           node scripts/test-youtube-client-recovery.js
       - name: Validate guarded IA canonical pilot
         run: node scripts/test-ia-canonical-pilot.js

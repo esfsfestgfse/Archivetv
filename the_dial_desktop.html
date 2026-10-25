@@ -9,7 +9,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>REALSIGNAL · Retro Cable 6.0.16</title>
+<title>REALSIGNAL · Retro Cable 6.0.17</title>
 <meta name="realsignal-ia-repair-channels" content="10,12,22,150">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
@@ -17,7 +17,7 @@
 <script src="assets/ok-embed-runtime.js?v=5.6.29"></script>
 <script src="assets/ia-playback-shelf.js?v=5.6.29"></script>
 <script src="assets/vimeo-embed-runtime.js?v=5.5.85"></script>
-<script src="assets/youtube-embed-runtime.js?v=6.0.16"></script>
+<script src="assets/youtube-embed-runtime.js?v=6.0.17"></script>
 <!-- Source Suite starts verified YouTube playback on a cold tune. Warm the exact
      origins it uses so DNS/TLS setup is not serialized behind catalog discovery. -->
 <link rel="preconnect" href="https://www.googleapis.com" crossorigin>
@@ -1701,15 +1701,15 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
 @media(prefers-reduced-motion:reduce){.sports-screen *,.wx-screen *,.wr-cabinet *{animation-duration:.001ms!important;transition-duration:.001ms!important}}
 </style>
 <link rel="stylesheet" href="assets/guide-overhaul.css">
-<link rel="stylesheet" href="assets/v6-watching-shell.css?v=6.0.16">
-<link rel="stylesheet" href="assets/v6-guide.css?v=6.0.16">
-<script src="assets/commercial-scheduler.js?v=6.0.16"></script>
-<script src="assets/fast-catalog.js?v=6.0.16"></script>
-<link rel="stylesheet" href="assets/weather-networks.css?v=6.0.16">
-<script src="assets/weather-networks.js?v=6.0.16"></script>
-<link rel="stylesheet" href="assets/weather-local.css?v=6.0.16">
-<script src="assets/weather-local.js?v=6.0.16"></script>
-<script src="assets/source-program-policy.js?v=6.0.16"></script>
+<link rel="stylesheet" href="assets/v6-watching-shell.css?v=6.0.17">
+<link rel="stylesheet" href="assets/v6-guide.css?v=6.0.17">
+<script src="assets/commercial-scheduler.js?v=6.0.17"></script>
+<script src="assets/fast-catalog.js?v=6.0.17"></script>
+<link rel="stylesheet" href="assets/weather-networks.css?v=6.0.17">
+<script src="assets/weather-networks.js?v=6.0.17"></script>
+<link rel="stylesheet" href="assets/weather-local.css?v=6.0.17">
+<script src="assets/weather-local.js?v=6.0.17"></script>
+<script src="assets/source-program-policy.js?v=6.0.17"></script>
 </head>
 <body>
 <script>
@@ -1721,7 +1721,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="6.0.16-desktop-retro-cable";
+window.__ATV_BUILD="6.0.17-desktop-retro-cable";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -9291,7 +9291,12 @@ function playFile(it,ch,sl,my,isFallback){return new Promise(res=>{
   const staged=(!it.isAd&&!it.isSignoff&&ch&&ch.num>0)?takeIAMediaWarmer(ch,it):null;
   const outgoing=(curVideo&&curVideo.tagName==="VIDEO"&&curVideo.parentNode===screenArea&&curVideo!==staged)?curVideo:null;
   const preservePicture=!!outgoing;
-  if(!preservePicture){killMedia();screenArea.innerHTML="";}else{try{outgoing.muted=true;}catch(e){}}
+  const retainedYouTube=(!isAudio&&!it.isAd&&!it.isSignoff&&ch&&ch.source==='v2preview'&&v2CanPrepareYouTube(V2_PREVIEW_PROFILES[ch.previewKey])&&window.RealSignalYouTubeEmbed&&typeof window.RealSignalYouTubeEmbed.suspend==='function')?window.RealSignalYouTubeEmbed.suspend():null;
+  if(!preservePicture){
+    killMedia(!!retainedYouTube);
+    if(retainedYouTube)Array.from(screenArea.children).forEach(node=>{if(node!==retainedYouTube)node.remove();});
+    else screenArea.innerHTML="";
+  }else{try{outgoing.muted=true;}catch(e){}}
   const av=acquireVideo(staged,preservePicture), v=av.v, sig=av.sig; /* stage cold media behind the outgoing picture, then swap atomically */
   if(!staged)v.src=it.url; v.autoplay=true; v.controls=!isAudio; v.playsInline=true; v.setAttribute("playsinline","");v.setAttribute("webkit-playsinline","");
   const castReceiverMode=document.body.classList.contains("cast-receiver");
@@ -19246,12 +19251,12 @@ window.__atvBootDone=true; /* app is up -- from here on, errors get logged, not 
 <script src="assets/verified-guide-client.js"></script>
 <script src="assets/guide-overhaul.js"></script>
 <script src="assets/playback-audit.js"></script>
-<script src="assets/release2-runtime.js?v=6.0.16"></script>
+<script src="assets/release2-runtime.js?v=6.0.17"></script>
 <script src="assets/release3-runtime.js"></script>
 <script src="assets/release31-runtime.js"></script>
 <script src="assets/guide-contract.js?v=v6-contract-1"></script>
-<script src="assets/guide-contract-client.js?v=6.0.16"></script>
-<script src="assets/v6-watching-shell.js?v=6.0.16"></script>
-<script src="assets/v6-guide.js?v=6.0.16"></script>
+<script src="assets/guide-contract-client.js?v=6.0.17"></script>
+<script src="assets/v6-watching-shell.js?v=6.0.17"></script>
+<script src="assets/v6-guide.js?v=6.0.17"></script>
 </body>
 </html>

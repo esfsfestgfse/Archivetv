@@ -12,6 +12,72 @@ const policy=fs.existsSync(policyPath)?require(fileURLToPath(policyPath)):{allow
 const bad="15 Dark & Amazing Facts About Thundercats (1980's) Animated Series - Explored";
 const item=(title,id='yt:fixture')=>({id,title,provider:'YouTube',type:'embed',url:'https://www.youtube.com/embed/abcdefghijk',duration:1800,aspectRatio:16/9,language:'en',description:'Classic animated series full episode.',account:'Cartoon Television',embedAllowed:true,query:'classic cartoons full episodes'});
 
+const observedFormatErrors=[
+ ['game-show-archive',item('Timelapse - Topaz and Sidney about to play The Killing Game Show')],
+ ['game-show-archive',item('The Roulette Game Show | FINAL FANTASY XIV Fan Festival 2026 in Anaheim')],
+ ['halloween-cartoon-club',item('Cozy Great Pumpkin Halloween Night | Charlie Brown-Inspired Fall Ambience & Jazz')],
+ ['halloween-cartoon-club',item("Halloween Night in the 1990s | It's the Great Pumpkin, Charlie Brown | Fireplace Ambience")],
+ ['halloween-cartoon-club',item('GARFIELD SCARY EPISODES DEEP DIVE! SPOOKEASY MANOR SEASON 3')],
+ ['documentary-desk',item('INSIDE the Tupac trial with filmmaker & witness Mike Dorsey, NEW REVELATIONS - DEEP DIVE: Ep 40')],
+ ['garden-ledger',{...item('Permaculture humaine #1 Présentation de la série','pt:indymotion.fr/2f2b99fa-3fe2-4141-8520-14296e580125'),language:'',provider:'PeerTube'}],
+];
+test('observed wrong-format source programs cannot enter fresh or stored catalogs',()=>{
+ for(const [profileKey,row] of observedFormatErrors){
+  assert.equal(policy.allow(profileKey,row),false,profileKey+': '+row.title);
+  assert.equal(catalogFallbackAllowed(row,{sourceCatalog:true,channel:profileKey}),false,'stored '+row.title);
+ }
+ for(const profileKey of ['cartoon-time-machine','christmas-cartoon-club','holiday-cartoon-club']){
+  assert.equal(policy.allow(profileKey,item('Classic Cartoon Fireplace Ambience & Jazz')),false,profileKey);
+ }
+});
+test('legitimate shows, documentaries and cartoon compilations retain eligibility',()=>{
+ for(const [profileKey,title] of [
+  ['game-show-archive','The Newlywed Game (1967) | FULL EPISODE | Game Show Rewind'],
+  ['game-show-archive','Master Minds | FREE FULL EPISODE | Game Show Network'],
+  ['halloween-cartoon-club','Casper the Friendly Ghost | Halloween Special | Full Episode'],
+  ['christmas-cartoon-club','A Charlie Brown Christmas | Full Special'],
+  ['documentary-desk','Murder Rap | Documentary Film'],
+  ['documentary-desk','Deep Dive into Ocean Life | Full Documentary'],
+  ['garden-ledger','Growing a Vegetable Garden | Full Program']
+ ])assert.equal(policy.allow(profileKey,item(title)),true,title);
+});
+test('declared foreign-language PeerTube records cannot survive source catalog reads',()=>{
+ const row={...item('Vegetable Gardening | Full Program'),provider:'PeerTube',language:'fr'};
+ assert.equal(policy.allow('garden-ledger',row),false);
+ assert.equal(catalogFallbackAllowed(row,{sourceCatalog:true,channel:'garden-ledger'}),false);
+ assert.equal(policy.allow('garden-ledger',{...row,language:'en-US'}),true);
+});
+test('English PeerTube programs may discuss foreign places and traditions',()=>{
+ const row={...item('Japanese Gardening | Full Documentary'),provider:'PeerTube',type:'video',url:'https://peertube.test/garden.mp4',rights:'Creative Commons Attribution',account:'Garden Programs',description:'A gardening program about Japanese landscape design.',language:'en'};
+ assert.ok(qualifySourceItem(sourceProfile({profileKey:'garden-ledger'}),row));
+});
+test('self-described podcasts are rejected while unrelated podcast promotion is not evidence',()=>{
+ for(const description of ['This podcast releases on Mondays - the least favorite day of Garfield.',"In this episode of the Backseat Driver Podcast, I discuss James Bond's cars."]){
+  for(const profileKey of ['gearhead-garage','halloween-cartoon-club','documentary-desk']){
+   const row={...item("Garfield's Halloween Adventure"),description};
+   assert.equal(policy.allow(profileKey,row),false,description);
+   assert.equal(catalogFallbackAllowed(row,{sourceCatalog:true,channel:profileKey}),false);
+  }
+ }
+ for(const description of ['Full documentary. Plus, enjoy ad-free access to our podcast network.','Full documentary. Listen to our companion podcast below. This podcast releases on Mondays.','Featuring a racing driver and a podcast host.'])assert.equal(policy.allow('gearhead-garage',{...item('Racing with Giants | Full Documentary'),description}),true);
+});
+test('PeerTube detail hydration retains English language and rejects declared French before publication',async()=>{
+ const original=globalThis.fetch;
+ globalThis.fetch=async input=>{
+  const u=new URL(String(input));let body={items:[],data:[]};
+  if(u.pathname.endsWith('/search/videos'))body={data:['fr','en','unknown'].map(lang=>({uuid:'language-'+lang,name:'Vegetable Gardening Full Program',language:{id:null,label:'Unknown'},duration:1800,aspectRatio:16/9,url:'https://peertube.test/videos/watch/language-'+lang,licence:{label:'Creative Commons Attribution'},account:{displayName:'Garden Programs'}}))};
+  else if(u.pathname.includes('/api/v1/videos/'))body={duration:1800,description:'Vegetable gardening program',language:{id:u.pathname.endsWith('-unknown')?null:u.pathname.endsWith('-fr')?'fr':'en'},licence:{label:'Creative Commons Attribution'},files:[{fileUrl:'https://peertube.test/program.mp4',width:1280,height:720}]};
+  return Response.json(body);
+ };
+ try{
+  const result=await discoverSourceCatalog({profileKey:'garden-ledger'},{PEERTUBE_INSTANCES:'https://peertube.test'},0);
+  const rows=result.items.filter(x=>x.provider==='PeerTube');
+  assert.equal(rows.length,2,'reject declared French without coercing an empty language object to a false foreign-language code');
+  assert.equal(rows.find(x=>x.id.endsWith('-en')).language,'en');
+  assert.equal(rows.find(x=>x.id.endsWith('-unknown')).language,'');
+ }finally{globalThis.fetch=original;}
+});
+
 const synthetic=[
  {...item('Classic Cartoon Full Episode'),containsSyntheticMedia:true},
  {...item('Classic Cartoon Full Episode'),status:{containsSyntheticMedia:true}},
@@ -20,6 +86,9 @@ const synthetic=[
  {...item('Classic Cartoon Full Episode'),description:'All visuals were generated with Sora.'},
  {...item('Classic Cartoon Full Episode'),description:'This is an AI-generated video for entertainment purposes.'},
  {...item('Classic Cartoon Full Episode'),description:'Created using AI.'},
+ {...item('Car Restoration Full Program'),description:'This video contains AI-generated content. The restoration footage is created using AI video generation tools.'},
+ {...item('Car Restoration Full Program'),description:'This video is created as a cinematic AI-generated automotive restoration documentary.'},
+ {...item('Classic Cartoon Full Episode'),description:'The footage was created with the assistance of AI.'},
  {...item('Classic Cartoon Full Episode'),account:'EyeBible'},
  {...item('Classic Cartoon Full Episode'),channelId:'UCEKndy_m0UI1TALDsivTDUg'},
  {...item('The Most FEARLESS Woman in the BIBLE (2026): Full Movie of Judith | Animated Bible Story','youtube:0yGHkKFFvE0'),url:'https://www.youtube-nocookie.com/embed/0yGHkKFFvE0'}
@@ -156,6 +225,15 @@ for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])test(file+': 
  assert.ok(retained.state.items.length);assert.ok(retained.state.items.every(x=>x.id!=='ai'));
  assert.ok(retained.saved.length);assert.ok(retained.saved.every(x=>x.items.every(i=>i.id!=='ai')));
  assert.equal(retained.saved[0].at,cached.at,'pruning must not reset cache age');
+});
+for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])test(file+': holiday ambience is pruned from early replies, active shelves and saved caches',async()=>{
+ const good=item('Casper Halloween Special Full Episode','good'),badRow=item('Charlie Brown Halloween Fireplace Ambience & Jazz','bad');
+ const profile={profileKey:'halloween-cartoon-club',intent:'television',match:['halloween','casper'],topics:['halloween'],formats:['full episode'],deny:[]};
+ const fresh=client(file,[badRow,good],{profile});await fresh.load();assert.deepEqual(Array.from(fresh.state.items,x=>x.id),['good']);
+ const cached={version:50,at:Date.now(),items:[badRow,...Array.from({length:12},(_,i)=>({...good,id:'good-'+i}))]};
+ const retained=client(file,[],{profile,cached,active:[badRow,good]});await retained.load();
+ assert.ok(retained.state.items.length);assert.ok(retained.state.items.every(x=>x.id!=='bad'));
+ assert.ok(retained.saved.every(x=>x.items.every(i=>i.id!=='bad')));assert.equal(retained.saved[0].at,cached.at);
 });
 for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])test(file+': both early and final server shelves are requalified before cache/guide publication',async()=>{
  const h=client(file);await h.load();assert.deepEqual(Array.from(h.state.items,x=>x.id),['good']);assert.ok(h.saved.length);assert.ok(h.saved.every(x=>x.items.every(i=>i.id==='good')));

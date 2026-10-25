@@ -1,0 +1,9 @@
+# RealSignal 6.0.13 — hosted cartoon correction
+
+6.0.12 deployed successfully (CI40156037118, API40156037189, Pages40156036518, publish40156037148). Live source-status reads confirmed its 14 observed rejections. Hosted video/Next/guide worked, but visual inspection of the saved screenshot showed **The Shady Market of Public Domain Cartoon Tapes**, a video essay, in Cartoon Time Machine. Advancing frames were playback evidence, not evidence of a correct genre.
+
+Before final handoff, the complete saved 95-title cartoon sample was inspected. Seven additional records are clear commentary, artwork or fan-animation mismatches: the public-domain-tape essay, Bit City's adults-talking-about-cartoons episode, a speedpaint, two Minecraft fan animations, the unofficial EPIC animation compilation, and the It Came From Public Domain commentary program. Their descriptions supplied explicit framing. Regression cases failed before the added shared guard and pass afterward.
+
+The guard uses the observed title classes and explicit program-framing descriptions. It preserves original cartoon compilations, full episodes, feature animation and restored/upscaled originals. The sampled cartoon catalog retains **88 of 95** records; across the original twelve-profile sample the final guard retains **609 of 630**, rejecting 21 confirmed wrong-format, foreign-language, disclosed-synthetic or podcast records.
+
+No player runtime, channel numbering, catalog history or freshness ledger changed. Client/API stamps advance to 6.0.13 because 6.0.12 was already public. The prior release's limits remain: Garden Ledger is shallow, only sampled programs were semantically checked, physical phone/Cast certification was not performed, and the regular-Chrome-profile delayed-iframe issue awaits the optional OpenVideo comparison. No browser extensions or settings were changed.

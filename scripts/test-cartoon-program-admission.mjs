@@ -20,6 +20,12 @@ const observedFormatErrors=[
  ['halloween-cartoon-club',item('GARFIELD SCARY EPISODES DEEP DIVE! SPOOKEASY MANOR SEASON 3')],
  ['documentary-desk',item('INSIDE the Tupac trial with filmmaker & witness Mike Dorsey, NEW REVELATIONS - DEEP DIVE: Ep 40')],
  ['garden-ledger',{...item('Permaculture humaine #1 Présentation de la série','pt:indymotion.fr/2f2b99fa-3fe2-4141-8520-14296e580125'),language:'',provider:'PeerTube'}],
+ ['cartoon-time-machine',{...item('The Shady Market of Public Domain Cartoon Tapes'),description:'My first video essay and my first video after a nearly 3 month hiatus.'}],
+ ['cartoon-time-machine',{...item('These Cartoons Should NOT Exist | Bit City'),description:'Watch adults talk about cartoons for 45 minutes straight.'}],
+ ['cartoon-time-machine',item('PUBLIC DOMAIN CARTOONS as HORRORS (Realm of Hopeful Horrors Lore & Speedpaint)')],
+ ['cartoon-time-machine',item('Alex and Steve Life - FULL MOVIE 1 (Minecraft Animation)')],
+ ['cartoon-time-machine',{...item('EPIC: The Musical - FULL MOVIE (with Canon Animations and Subtitles)'),description:'I edited my favourite animations together. This is not an official movie.'}],
+ ['cartoon-time-machine',{...item('It Came From Public Domain! Episode 12: Space Thunder Kids'),description:'An old episode with a handful of funny commentators.'}],
 ];
 test('observed wrong-format source programs cannot enter fresh or stored catalogs',()=>{
  for(const [profileKey,row] of observedFormatErrors){

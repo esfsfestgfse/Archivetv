@@ -41,6 +41,10 @@
     if(profileKey==='documentary-desk'&&/\bdeep dive\s*:\s*(?:ep\.?|episode)\s*\d+/i.test(title))return false;
     if(!/^(?:cartoon-time-machine|(?:holiday|christmas|halloween)-cartoon-club)$/.test(String(profileKey||'')))return true;
     if(!title)return false;
+    var opening=clean(item&&item.description).trim().split(/[.!?](?:\s+|$)|\n/)[0];
+    if(/\b(?:my first video essay|watch adults talk about cartoons)\b/i.test(opening)
+      ||/\bthis is not an official (?:movie|film)\s*[.!]/i.test(clean(item&&item.description)))return false;
+    if(/\b(?:minecraft animation|speedpaint|shady market of public domain)\b|^it came from public domain[!:]/i.test(title))return false;
     if(/\b(?:ambience|ambient|fireplace|relaxing jazz|sleep music)\b|\bdeep dive\s*[!:]/i.test(title))return false;
     if(/\b(?:gameplay|walkthrough|longplay|speedrun|let['’]?s play|(?:guess|name)\s+(?:the\s+)?(?:cartoon\s+)?theme\s+song|theme\s+song\s+(?:quiz|challenge)|the life and times of public domain vhs)\b/i.test(title))return false;
     // Match the video's editorial framing, not account/description boilerplate.

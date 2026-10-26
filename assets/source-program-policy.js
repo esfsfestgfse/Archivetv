@@ -8,7 +8,10 @@
     // Confirmed on the player: EyeBible's Judith movie carries YouTube's AI
     // disclosure. Match uploader identity, never a passing mention in a story.
     if(String(item.channelId||'')==='UCEKndy_m0UI1TALDsivTDUg'||/^@?eyebible$/i.test(String(item.account||item.channelTitle||'').trim()))return true;
-    if([item.id,item.embedUrl,item.url,item.sourceUrl].some(function(value){return /(?:^|[:/=])0yGHkKFFvE0(?:[?&#/]|$)/.test(String(value||''));}))return true;
+    // Ai Clash Zone's ant movie was also confirmed with the player's AI label.
+    // Keep that evidence effective for old catalog rows missing disclosure data.
+    if(String(item.channelId||'')==='UCa56NpS_ul3xsCBatFQ7kgA'||/^@?ai\s*clash\s*zone$/i.test(String(item.account||item.channelTitle||'').trim()))return true;
+    if([item.id,item.identifier,item.embedUrl,item.url,item.sourceUrl].some(function(value){return /(?:^|[:/=])(?:0yGHkKFFvE0|Sx05wFa494k)(?:[?&#/]|$)/.test(String(value||''));}))return true;
     var title=clean(item.title),description=clean(item.description),ai='(?:AI|artificial intelligence)',made='(?:generated|created|animated|produced|made)',tools='(?:AI|artificial intelligence|Sora|Veo(?:\\s*\\d+(?:\\.\\d+)?)?|Midjourney|Runway|Pika|Kling)',qualifier='(?:(?:entirely|fully|solely|completely|partially|100%)\\s+)*',production=made+'\\s+'+qualifier+'(?:with|using|by)\\s+(?:the\\s+assistance\\s+of\\s+)?'+tools;
     function disclosed(sentence){
       // A negated disclosure is not evidence that the program was generated.

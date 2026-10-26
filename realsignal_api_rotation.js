@@ -296,13 +296,20 @@ export class SessionRotation {
     const id = catalog.find(item => episodeKey(item) === episodeKey(requestedId))?.identifier || requestedId;
     let committed = false;
     if (body.mode === "commit" || body.mode === "release") {
-      if (!id || !ids.has(id)) return Response.json({ error: "unknown program identity" }, { status: 400 });
+      // The bounded catalog can evict an already played episode while a large
+      // collection is imported. Its terminal acknowledgement is still owned by
+      // this session's durable seen ledger. Rejecting it poisons the client's
+      // ordered outbox, so every later refill retries the same 400 forever.
+      // This is acknowledgement only: it cannot admit or start unknown media.
+      const terminal = body.mode === "commit" && (body.event === "completed" || body.event === "skipped");
+      if (!id || !ids.has(id) && !(terminal && hasSeen(id))) return Response.json({ error: "unknown program identity" }, { status: 400 });
       reserved = reserved.filter(value => value !== id);
       if (body.mode === "commit") {
         committed = !hasSeen(id);
         seen.add(canonicalId(id));
         seenEpisodes.add(episodeKey(canonicalId(id)));
-        current.playing = body.event === "completed" || body.event === "skipped" ? "" : id;
+        if (!terminal) current.playing = id;
+        else if (episodeKey(canonicalId(current.playing)) === episodeKey(canonicalId(id))) current.playing = "";
       } else {
         cooldowns[episodeKey(canonicalId(id))] = now + 5 * 60_000;
         if (current.playing === id) current.playing = "";

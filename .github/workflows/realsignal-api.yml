@@ -75,6 +75,7 @@ jobs:
           node scripts/test-vimeo-embed-runtime.js
           node scripts/test-v2-api-worker.js
           node scripts/test-v3-api-contract.js
+          node --test scripts/test-ia-reservation-continuity.mjs
           node scripts/test-ia-canonical-pilot.js
           node scripts/test-source-catalog-bridge.js
           node --test scripts/test-cartoon-program-admission.mjs

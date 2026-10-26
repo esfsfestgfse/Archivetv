@@ -13,6 +13,9 @@ const bad="15 Dark & Amazing Facts About Thundercats (1980's) Animated Series - 
 const item=(title,id='yt:fixture')=>({id,title,provider:'YouTube',type:'embed',url:'https://www.youtube.com/embed/abcdefghijk',duration:1800,aspectRatio:16/9,language:'en',description:'Classic animated series full episode.',account:'Cartoon Television',embedAllowed:true,query:'classic cartoons full episodes'});
 
 const observedFormatErrors=[
+ ['cartoon-time-machine',{...item('Black Ants vs Red Ants | The Final Battle | Full Animated Movie','yt:Sx05wFa494k'),containsSyntheticMedia:false}],
+ ['cartoon-time-machine',{...item('Original Animated Full Episode'),channelId:'UCa56NpS_ul3xsCBatFQ7kgA'}],
+ ['cartoon-time-machine',{...item('Original Animated Full Episode'),account:'Ai Clash Zone'}],
  ['game-show-archive',item('Timelapse - Topaz and Sidney about to play The Killing Game Show')],
  ['game-show-archive',item('The Roulette Game Show | FINAL FANTASY XIV Fan Festival 2026 in Anaheim')],
  ['halloween-cartoon-club',item('Cozy Great Pumpkin Halloween Night | Charlie Brown-Inspired Fall Ambience & Jazz')],

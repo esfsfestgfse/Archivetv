@@ -90,6 +90,8 @@ jobs:
         run: node --test scripts/test-ia-resumable-discovery.js
       - name: Test one IA playback order and post-start recovery
         run: node --test scripts/test-ia-playback-order.js
+      - name: Verify IA reservation continuity after catalog eviction
+        run: node --test scripts/test-ia-reservation-continuity.mjs
       - name: Test selected IA file runtime and decoded admission
         run: node --test scripts/test-ia-runtime-admission.js
       - name: Validate IA review regressions and durable catalog ownership

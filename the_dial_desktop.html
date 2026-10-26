@@ -9,7 +9,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>REALSIGNAL · Retro Cable 6.0.20</title>
+<title>REALSIGNAL · Retro Cable 6.0.21</title>
 <meta name="realsignal-ia-repair-channels" content="10,12,22,150">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
@@ -17,7 +17,7 @@
 <script src="assets/ok-embed-runtime.js?v=5.6.29"></script>
 <script src="assets/ia-playback-shelf.js?v=5.6.29"></script>
 <script src="assets/vimeo-embed-runtime.js?v=5.5.85"></script>
-<script src="assets/youtube-embed-runtime.js?v=6.0.20"></script>
+<script src="assets/youtube-embed-runtime.js?v=6.0.21"></script>
 <!-- Source Suite starts verified YouTube playback on a cold tune. Warm the exact
      origins it uses so DNS/TLS setup is not serialized behind catalog discovery. -->
 <link rel="preconnect" href="https://www.googleapis.com" crossorigin>
@@ -1701,15 +1701,15 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
 @media(prefers-reduced-motion:reduce){.sports-screen *,.wx-screen *,.wr-cabinet *{animation-duration:.001ms!important;transition-duration:.001ms!important}}
 </style>
 <link rel="stylesheet" href="assets/guide-overhaul.css">
-<link rel="stylesheet" href="assets/v6-watching-shell.css?v=6.0.20">
-<link rel="stylesheet" href="assets/v6-guide.css?v=6.0.20">
-<script src="assets/commercial-scheduler.js?v=6.0.20"></script>
-<script src="assets/fast-catalog.js?v=6.0.20"></script>
-<link rel="stylesheet" href="assets/weather-networks.css?v=6.0.20">
-<script src="assets/weather-networks.js?v=6.0.20"></script>
-<link rel="stylesheet" href="assets/weather-local.css?v=6.0.20">
-<script src="assets/weather-local.js?v=6.0.20"></script>
-<script src="assets/source-program-policy.js?v=6.0.20"></script>
+<link rel="stylesheet" href="assets/v6-watching-shell.css?v=6.0.21">
+<link rel="stylesheet" href="assets/v6-guide.css?v=6.0.21">
+<script src="assets/commercial-scheduler.js?v=6.0.21"></script>
+<script src="assets/fast-catalog.js?v=6.0.21"></script>
+<link rel="stylesheet" href="assets/weather-networks.css?v=6.0.21">
+<script src="assets/weather-networks.js?v=6.0.21"></script>
+<link rel="stylesheet" href="assets/weather-local.css?v=6.0.21">
+<script src="assets/weather-local.js?v=6.0.21"></script>
+<script src="assets/source-program-policy.js?v=6.0.21"></script>
 </head>
 <body>
 <script>
@@ -1721,7 +1721,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="6.0.20-desktop-retro-cable";
+window.__ATV_BUILD="6.0.21-desktop-retro-cable";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -9073,7 +9073,16 @@ function primeIACompanions(ch,activeSlot){
 }
 
 function iaRepairEnabled(ch){return !!(ch&&!ch.source&&window.RealSignalIAShelf&&(window.RealSignalIAShelf.enabledForChannel?window.RealSignalIAShelf.enabledForChannel(ch.num):window.RealSignalIAShelf.enabled));}
-function iaRepairBody(ch,sl){return {queries:iaQueueQueries(sl),themeTerms:iaProgramThemeTerms(sl),denyTerms:iaProgramDenyTerms(sl),requiredTitleTerms:(sl&&sl.program&&sl.program.require&&sl.program.require.title_any)||[],diversity:iaQueueDiversity(sl),mediaTypes:ch.audio?["audio"]:["movies"],themeMinScore:Math.max(1,Number(sl&&sl.program&&sl.program.themeMinScore)||1),minRuntimeSeconds:Number(sl&&sl.program&&sl.program.minRuntimeSeconds)||0};}
+var iaRepairPlans=Object.create(null);
+function iaRepairBody(ch,sl){
+  // A changing search cursor is not a different station. Keep one editorial
+  // plan for this page session so Next can reuse the verified server catalog.
+  // Background discovery still advances; actual profile edits invalidate it.
+  var key=String(ch.num),profile=JSON.stringify([sl&&sl.genre,sl&&sl.era,sl&&sl.program,!!ch.audio]);
+  var cached=iaRepairPlans[key];if(cached&&cached.profile===profile)return cached.body;
+  var body={queries:iaQueueQueries(sl),themeTerms:iaProgramThemeTerms(sl),denyTerms:iaProgramDenyTerms(sl),requiredTitleTerms:(sl&&sl.program&&sl.program.require&&sl.program.require.title_any)||[],diversity:iaQueueDiversity(sl),mediaTypes:ch.audio?["audio"]:["movies"],themeMinScore:Math.max(1,Number(sl&&sl.program&&sl.program.themeMinScore)||1),minRuntimeSeconds:Number(sl&&sl.program&&sl.program.minRuntimeSeconds)||0};
+  iaRepairPlans[key]={profile:profile,body:body};return body;
+}
 function iaRepairEvent(ch,it,event){if(!iaRepairEnabled(ch)||!it||it.isAd||it.isSignoff||it.ch!=null&&Number(it.ch)!==Number(ch.num))return Promise.resolve();return window.RealSignalIAShelf.client().event(iaQueueKey(ch),it,event).catch(function(error){nlog("ia-repair-event",false,String(error));});}
 async function tuneIARepair(ch,sl,my){
   var shelf=window.RealSignalIAShelf.client(),key=iaQueueKey(ch);
@@ -19258,12 +19267,12 @@ window.__atvBootDone=true; /* app is up -- from here on, errors get logged, not 
 <script src="assets/verified-guide-client.js"></script>
 <script src="assets/guide-overhaul.js"></script>
 <script src="assets/playback-audit.js"></script>
-<script src="assets/release2-runtime.js?v=6.0.20"></script>
+<script src="assets/release2-runtime.js?v=6.0.21"></script>
 <script src="assets/release3-runtime.js"></script>
 <script src="assets/release31-runtime.js"></script>
 <script src="assets/guide-contract.js?v=v6-contract-1"></script>
-<script src="assets/guide-contract-client.js?v=6.0.20"></script>
-<script src="assets/v6-watching-shell.js?v=6.0.20"></script>
-<script src="assets/v6-guide.js?v=6.0.20"></script>
+<script src="assets/guide-contract-client.js?v=6.0.21"></script>
+<script src="assets/v6-watching-shell.js?v=6.0.21"></script>
+<script src="assets/v6-guide.js?v=6.0.21"></script>
 </body>
 </html>

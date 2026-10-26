@@ -10026,10 +10026,46 @@ function iaRepairCollectionSeeds(channel) {
   if (parents.length) iaRepairCollectionSeedCache.set(String(channel), qualified);
   return qualified;
 }
+function iaTransportCurrent(media, now = Date.now()) {
+  return Boolean(media && media.url && media.verification === "transport" && Number(media.verifiedAt) > now - 86400000 && Number(media.verifiedAt) <= now + 60000);
+}
+
+function iaVerificationCurrent(item, now = Date.now()) {
+  const media = item && item.media;
+  return Boolean(media && iaFileRuntimeSeconds(media) > 0 && (media.type === "audio" || Number(media.width) > Number(media.height) && Number(media.height) > 0) && iaTransportCurrent(media, now));
+}
+
+// Repair a small number of pending records, not the entire old verified count.
+// An expired transport check is inventory, not currently playable depth.
+function iaBackgroundVerificationBatch(items, limit = IA_DEPTH_BACKGROUND_HYDRATE_BATCH, now = Date.now()) {
+  const groups = new Map(), identities = new Set();
+  for (const item of items || []) {
+    const id = iaPlayableIdentity(item);
+    if (!id || identities.has(id)) continue;
+    identities.add(id);
+    const family = queueDiversityKeys(item, item.lane).family || `unknown:${id}`;
+    let group = groups.get(family);
+    if (!group) { group = { ready: 0, cursor: 0, pending: [] }; groups.set(family, group); }
+    if (iaVerificationCurrent(item, now)) group.ready++;
+    else if (!(Number(item.transportRetryAt) > now)) group.pending.push(item);
+  }
+  const batch = [];
+  while (batch.length < limit) {
+    let next;
+    for (const group of groups.values()) {
+      if (group.cursor >= group.pending.length) continue;
+      if (!next || group.ready + group.cursor < next.ready + next.cursor) next = group;
+    }
+    if (!next) break;
+    batch.push(next.pending[next.cursor++]);
+  }
+  return batch;
+}
+
 async function verifyIaTransport(media) {
   if (!media || !media.url) return null;
   const memo = iaVerifiedTransports.get(media.url), now = Date.now();
-  if (media.verification === "transport" && Number(media.verifiedAt) > now - 86400000 && Number(media.verifiedAt) <= now + 60000) return media;
+  if (iaTransportCurrent(media, now)) return media;
   if (memo && memo.verifiedAt > now - 86400000) return { ...media, ...memo };
   // These alternate origins resolve the same exact file, not another episode.
   const urls = Array.from(new Set([media.url, ...(media.alts || [])])).slice(0, 3);
@@ -10136,8 +10172,7 @@ async function qualifyIaQueueResponse(response, body, cacheOrigin, ctx, env) {
   let backgroundDepthScheduled = false;
   if (repairEpisodes.length && qualified.lastGoodKey && env && env.REALSIGNAL_QUEUE && ctx && typeof ctx.waitUntil === "function") {
     const initialCandidates = Array.isArray(qualified.candidateItems) ? qualified.candidateItems : qualified.items || [];
-    const initialVerifiedDepth = initialCandidates.filter(item => item && item.media && item.media.verification === "transport" && Number(item.media.verifiedAt) > 0).length;
-    if (initialVerifiedDepth < initialCandidates.length) {
+    if (iaBackgroundVerificationBatch(initialCandidates).length) {
       const task = (async () => {
         const childWaits = [];
         const backgroundContext = { ...strictContext, isIaBackground: true, waitUntil: promise => childWaits.push(Promise.resolve(promise)) };
@@ -10145,13 +10180,17 @@ async function qualifyIaQueueResponse(response, body, cacheOrigin, ctx, env) {
         try {
           const previous = await sharedQueueGet(env, qualified.lastGoodKey);
           const union = mergeIaCatalogCandidates(previous, qualified, { preserveOrder: true });
-          const verifiedDepth = union.filter(item => item && item.media && item.media.verification === "transport" && Number(item.media.verifiedAt) > 0).length;
-          const target = Math.min(union.length, Math.max(requested, verifiedDepth + IA_DEPTH_BACKGROUND_HYDRATE_BATCH));
-          // Discover a playable episode from every show before spending the
-          // bounded batch on a large same-series block. Keep the full union.
-          const deep = await hydrateIaQueue({ ...qualified, candidateItems: familyBalancedIaWindow(union, 0, union.length, 1) }, target, cacheOrigin, backgroundContext, mediaTypes, undefined, IA_BACKGROUND_HYDRATION_CONCURRENCY);
-          const candidateItems = mergeIaCatalogCandidates({ candidateItems: union }, deep, { preserveOrder: true });
-          const publicItems = (Array.isArray(deep.items) && deep.items.length ? deep.items : qualified.items || []).slice(0, requested);
+          // Favor shows with the least current playable depth, then spread
+          // the bounded batch across those shows. Merge every learned record
+          // back into the full union; neither the hot shelf nor catalog shrinks.
+          const batch = iaBackgroundVerificationBatch(union);
+          const deep = batch.length ? await hydrateIaQueue({ ...qualified, candidateItems: batch, hydrationFamilyLimit: 0 }, batch.length, cacheOrigin, backgroundContext, mediaTypes, undefined, IA_BACKGROUND_HYDRATION_CONCURRENCY) : { items: [], candidateItems: [] };
+          const attempted = new Set(batch.map(item => iaPlayableIdentity(item)));
+          const candidateItems = mergeIaCatalogCandidates({ candidateItems: union }, deep, { preserveOrder: true }).map(item => {
+            if (!attempted.has(iaPlayableIdentity(item))) return item;
+            return { ...item, transportRetryAt: iaVerificationCurrent(item) ? 0 : Date.now() + 5 * 60000 };
+          });
+          const publicItems = mergeIaCatalogCandidates({ candidateItems: qualified.items || [] }, { candidateItems: deep.items || [] }, { preserveOrder: true }).slice(0, requested);
           persisted = {
             ...qualified,
             items: publicItems,

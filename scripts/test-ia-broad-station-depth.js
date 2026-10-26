@@ -252,14 +252,15 @@ test('background game-show verification reaches different shows before a large s
     media:{type:'video',url:'https://archive.org/download/'+show+'/'+n+'.mp4',runtime:1320,width:640,height:480}});
   const rows=[...Array.from({length:40},(_,i)=>make('The Price Is Right',i)),make('Wheel of Fortune',0),make('Jeopardy!',0)];
   f.setHydrate(async payload=>{calls.push(payload);return {...payload,items:rows.slice(0,3),ready:3,lastGoodKey:'game-show-background-test'};});
-  const kv={get:async()=>null,put:async()=>{}};
+  let stored;const kv={get:async()=>null,put:async(key,value)=>{stored=JSON.parse(value);}};
   await f.qualifyIaQueueResponse(Response.json({items:rows.slice(0,3),candidateItems:rows,ready:3}),
     {channel:'22',iaRepair:true,count:3,mediaTypes:['movies'],hydrationPreferredIds:rows.slice(0,3).map(x=>x.identifier)},'https://relay.invalid',
     {waitUntil:p=>pending.push(p)},{REALSIGNAL_QUEUE:kv});
   await Promise.all(pending);
   assert.ok(calls.length>=2,'the test exercises real background scheduling');
   assert.equal(new Set(calls[1].candidateItems.slice(0,3).map(item=>item.seriesId)).size,3,'Wheel and Jeopardy cannot wait behind forty Price episodes');
-  assert.ok(rows.every(row=>calls[1].candidateItems.some(item=>item.identifier===row.identifier)),'balancing cannot discard catalog depth');
+  assert.ok(calls[1].candidateItems.length<=8,'verification must remain a bounded batch');
+  assert.ok(rows.every(row=>stored.candidateItems.some(item=>item.identifier===row.identifier)),'batch verification must retain the full persisted catalog');
 });
 
 function collectionFixture(options={}){

@@ -84,6 +84,7 @@ async function namedProgramDepth(){
     vm.runInContext(html.slice(html.indexOf('const V2_SOURCE_MODE_GROUPS='),html.indexOf('function v2ProgramTopics(')),scope);
     const names=['v2ProgramTopics','v2ProgramDeny','v2ProgramTitleDeny','v2ProgramCategoryOkay','v2ProgramFormats','v2Text','v2TextUnique','v2SourceTokens','v2TermHit','v2QueryTokens','v2StrictProgramFallback','v2Relevant','v2SourceProgramAllowed','v2CandidateRelevant'];
     vm.runInContext(names.map(name=>html.split('\n').find(l=>l.trim().startsWith('function '+name+'('))).join('\n'),scope);
+    const recoveryStart=html.indexOf('/* SOURCE SUITE PLAYBACK RECOVERY:'),recoveryEnd=html.indexOf('</script>',recoveryStart);assert.ok(recoveryStart>0);vm.runInContext(html.slice(recoveryStart,recoveryEnd),scope);
     for(const [key,title,description]of positives)assert.ok(scope.v2CandidateRelevant(profiles[key],{...base,id:'youtube:client-proof',title,description}),file+': viewer must retain the admitted named program '+title);
     for(const [key,title]of [['black-stage','A Raisin in the Sun - FULL AUDIO'],['classroom','Neil deGrasse Tyson and Bill Nye Catch Up'],['foodways',"The Most Elite Plays in Hell's Kitchen History"]])assert.equal(scope.v2CandidateRelevant(profiles[key],{...base,id:'youtube:bad-client',title}),false,file+': retain client editorial rejection');
   }

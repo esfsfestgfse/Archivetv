@@ -54,6 +54,14 @@ const assert = require('node:assert/strict');
     vm.runInContext(source.slice(start,end),scope);
     const result=await scope.v2ServerSourceCatalog({name:'The Darkroom',profileKey:'darkroom'},0,false);
     assert.equal(result.items.length,140,file+': consume the qualified catalog, not only five ready items');
+    // Exercise the complete runtime composition: the late bridge wraps v2Provider.
+    scope.window.v2Provider=async(name,profile,rotation)=>scope.v2ServerSourceCatalog(profile,rotation,false);
+    scope.window.fetch=scope.fetch;scope.setTimeout=()=>0;scope.clearTimeout=()=>{};
+    scope.localStorage={getItem:()=>null,setItem:()=>{}};
+    vm.runInContext(fs.readFileSync(path.join(root,'assets/source-catalog-client.js'),'utf8'),scope);
+    const wrapped=await scope.window.v2Provider('server',{name:'The Darkroom',profileKey:'darkroom',providers:['youtube','peertube']},0);
+    assert.equal(wrapped.items.length,140,file+': the bridge must preserve the canonical server adapter and its entire admitted catalog');
+
     assert.equal(sent.recentIds.length,180,file+': send actual-play history beyond the old 24-item cap');
     assert.equal(values.size,0,'fetching candidates must not mark them played');
     const remember=source.slice(source.indexOf('function v2Remember('),source.indexOf('\nfunction v2Rejected('));

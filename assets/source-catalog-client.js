@@ -119,6 +119,9 @@
   }
 
   window.v2Provider = async function (name, profile, rotation, onFirst) {
+    // The canonical adapter already carries the qualified candidate union and full history.
+    // Do not replace it with this legacy five-item compatibility response.
+    if (name === "server") return originalProvider.apply(this, arguments);
     if (!profile || !Array.isArray(profile.providers) || (profile.providers.indexOf("youtube") < 0 && profile.providers.indexOf("peertube") < 0)) return originalProvider.apply(this, arguments);
     var profileKey = String(profile.profileKey || profile.name || "").toLowerCase().replace(/[^a-z0-9._:-]+/g, "-");
     var key = profileKey + "|" + String(Number(rotation) || 0);

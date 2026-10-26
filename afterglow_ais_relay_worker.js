@@ -5914,7 +5914,14 @@ function iaReviewedFileAllowed(item, channel) {
     if (/\b(?:on[ -]set interviews?|(?:movie|film|cast) interviews?|(?:movie|film) (?:trailers?|reviews?|recaps?)|roblox|minecraft|fortnite|war thunder|gameplay|walkthrough|playthrough|speedrun|video games?|twitch(?: ?vod)?|literacy gap)\b/.test(disasterFormat)) return false;
   }
   // A traditional cultural performance is not Saturday-morning children's TV.
-  if (String(channel) === '158' && source.toLowerCase() === 'indonesianpuppetshow') return false;
+  if (String(channel) === '158') {
+    if (source.toLowerCase() === 'indonesianpuppetshow') return false;
+    // Generic puppet recordings need actual television-program evidence.
+    // Do not mistake community/church performances for Saturday-morning TV.
+    const puppetFormat = [identity,item.subject,item.subjects,item.seriesTitle,item.meta && item.meta.title,item.meta && item.meta.subject,item.meta && item.meta.subjects].filter(Boolean).join(' ').toLowerCase().replace(/[_-]+/g,' ');
+    if (/\bpuppet(?:ry)? shows?\b/.test(puppetFormat)
+      && !/\b(?:television|tv series|sesame street|muppets?|colby['’]?s clubhouse|lamb chop|shari lewis|mister rogers|mr\.? rogers|fraggle rock|eureeka['’]?s castle|allegra['’]?s window)\b/.test(puppetFormat)) return false;
+  }
   // Channel-specific editorial evidence must survive stale catalogs and files.
   // A racing subject tag does not turn the 2001 fictional feature into a race.
   if (String(channel) === '54' && /\bdriven\s*\(?2001(?:\)|\b)/.test(identity)) return false;

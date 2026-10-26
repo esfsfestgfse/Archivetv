@@ -30,6 +30,13 @@ test('reviewed editorial admission rejects the reproduced contamination in every
   const {iaReviewedFileAllowed,qualifyIaFileRecord}=await import('../ia_file_contract.js');
   const {catalogFallbackAllowed}=await import('../realsignal_api_v2_worker.js');
   const checks=[
+    ['10',{identifier:'13-american-tv-with-mitchell-hadley-mary-tyler-moore',title:'13 American TV With Mitchell Hadley Mary Tyler Moore',subject:'Mary Tyler Moore sitcom'},false],
+    ['10',{identifier:'tv-discussion',title:'Mary Tyler Moore: Television History Discussion',subject:'classic television'},false],
+    ['10',{identifier:'tv-essay',title:'Video Essay About Classic Television: The Addams Family',subject:'classic television'},false],
+    ['10',{identifier:'mary-tyler-moore::S01E01.mp4',title:'The Mary Tyler Moore Show · Love Is All Around',subject:'sitcom'},true],
+    ['10',{identifier:'benson::S01E01.mp4',title:'Benson · Change',description:'A discussion about politics in the governor office.',subject:'sitcom'},true],
+    ['10',{identifier:'dick-van-dyke::The Interview.mp4',title:'The Dick Van Dyke Show · The Interview',subject:'sitcom'},true],
+    ['202',{identifier:'tv-history-discussion',title:'Television History Discussion'},true],
     ['54',{identifier:'WBAL_20100213_230000_11_News',title:'11 News',subject:'NASCAR auto racing'},false],
     ['54',{identifier:'motor-view-01',title:'Motor-View 01 (UHD): Cool Cars & Guitar Grooves — 4K Slide Show',subject:'auto racing'},false],
     ['54',{identifier:'berrycrepe-2026',title:'BerryCrepe — I LOST MY VOICE HELP ME FIND IT | yap -> watching videos -> nascar or gamba idk',subject:'NASCAR'},false],

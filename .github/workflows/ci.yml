@@ -98,6 +98,7 @@ jobs:
         run: |
           node --test scripts/test-ia-review-regressions.js
           node --test scripts/test-ia-background-reverification.js
+          node --test scripts/test-ia-classic-refresh.mjs
           node --test scripts/test-ia-repair-contract-stability.js
           node --test scripts/test-ia-durable-owner.js
           node --test scripts/test-ia-telemetry-correlation.js

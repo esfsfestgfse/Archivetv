@@ -20,7 +20,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "6.0.21-ia-verification-balance";
+const V3_RELEASE = "6.0.22-classic-catalog-repair";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -1778,8 +1778,14 @@ async function handleQueue(request, env, ctx, id) {
         // Repaired IA stations keep importing new qualified identities on a
         // bounded background cadence, even when their old D1 shelf is full.
         const repairRefresh = body.iaRepair === true;
+        // A playable but shallow Classic TV shelf previously imported each
+        // repaired batch only every five minutes, leaving old series dominant.
+        // Coalesce active repairs for 30s until the normal 96-item catalog is
+        // qualified; deep catalogs retain the conservative five-minute cadence.
+        const refreshInterval = repairRefresh && String(body.channel) === "10" && fastDepth < MAX_CATALOG_ITEMS
+          ? 30_000 : repairRefresh ? 300_000 : 30_000;
         if ((repairRefresh || fastDepth < IA_MIN_ROLLING_CATALOG_DEPTH)
-          && shouldRefreshShallowCatalog(body.channel, repairRefresh ? 300_000 : 30_000)) {
+          && shouldRefreshShallowCatalog(body.channel, refreshInterval)) {
           /* Keep the first frame on the local verified shelf. Refill a shallow
              fast lane from the relay asynchronously so discovery never blocks
              a tune and the next visit sees a wider rotation catalog. */

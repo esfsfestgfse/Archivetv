@@ -67,3 +67,14 @@ test('a genuinely single-series catalog can still fill the shelf and reports con
  const p=await(await call(r,{mode:'reserve',items:rows,count:3,diversity:{maxPerFamily:1}})).json();
  assert.equal(p.items.length,3);assert.equal(new Set(p.items.map(x=>x.identifier)).size,3);assert.equal(p.diversityRelaxed,true);
 });
+
+
+test('legacy and refreshed labels of one complete-series parent cannot take two family slots',async()=>{
+ const parent='benson-complete-series-1979-1986',forms=['Benson · Complete Episode Collection · Season 4/Benson_S04E04_Thy Brother Keeper','Benson Complete Series (1979-1986) · Benson S04E21 A View From The Roof'];
+ const benson=forms.map((title,i)=>({...item('Benson',i),identifier:parent+'::episode-'+i+'.mp4',sourceIdentifier:parent,seriesId:parent,seriesTitle:'',title}));
+ const known=[item('Beaver',0),item('Munsters',0)],rows=[...benson,...known,item('Beaver',1),item('Munsters',1)];
+ const r=new SessionRotation(rotationContext({catalog:rows,seen:known.map(x=>x.identifier),reserved:[],playing:'',cursor:0}),{});
+ const p=await(await call(r,{mode:'reserve',items:rows,count:3,diversity:{maxPerFamily:1}})).json();
+ assert.equal(p.items.filter(x=>x.identifier.startsWith(parent+'::')).length,1,'display-title refreshes must not split Benson into independent series');
+ assert.equal(p.items.length,3);assert.ok(p.items.some(x=>x.seriesTitle==='Beaver'));assert.ok(p.items.some(x=>x.seriesTitle==='Munsters'));
+});

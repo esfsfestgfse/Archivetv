@@ -87,6 +87,12 @@ function familyId(item) {
   const gameShow = gameTitle.match(/^(what s my line|to tell the truth|i ve got a secret|beat the clock|price is right|family feud|match game|password plus|super password|password|card sharks|press your luck|wheel of fortune|jeopardy|supermarket sweep|weakest link|figure it out|family game night|nickelodeon guts|divided|crystal maze|hollywood squares|newlywed game|let s make a deal|sale of the century|tic tac dough|joker s wild|concentration|you bet your life|queen for a day|strike it rich|treasure hunt|truth or consequences|do you trust your wife)(?: |$)/);
   if (gameShow) return gameShow[1];
   const titleParts = title.split(/\s+[·—]\s+/, 2);
+  const explicitIsUploadId = explicit && normalizedFamily(explicit) === normalizedFamily(source);
+  // Old and refreshed complete-series labels identify the same Benson show.
+  // Preserve an explicitly different editorial series; a title mention alone
+  // must not overwrite its identity.
+  if ((!explicit || explicitIsUploadId || normalizedFamily(explicit) === 'benson') &&
+    /\bbenson\b/.test(normalizedFamily([titleParts[0], source, explicit].join(' ')))) return 'benson';
   // Re-score old guest-based labels using the host title, not episode guests.
   const televisionShow = normalizedFamily(titleParts[0]).match(/\b(jack benny|burns and allen|i love lucy|honeymooners|dick van dyke|mary tyler moore|andy griffith|leave it to beaver|green acres|addams family|munsters|bewitched|i dream of jeannie|get smart|clutch cargo|space angel|top cat|pink panther show|new scooby doo movies|scooby doo show|flintstones|jetsons)\b/);
   if (televisionShow) return televisionShow[1];
@@ -95,7 +101,6 @@ function familyId(item) {
      makes three episodes of the same show look like three unrelated families.
      When that synthetic value matches the source identifier, prefer the
      editorial series prefix already present in our normalized display title. */
-  const explicitIsUploadId = explicit && normalizedFamily(explicit) === normalizedFamily(source);
   return normalizedFamily(titleFamily && (!explicit || explicitIsUploadId) ? titleFamily : (explicit || titleFamily || source));
 }
 

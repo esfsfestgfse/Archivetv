@@ -20,7 +20,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "6.0.27-ia-television-format-admission";
+const V3_RELEASE = "6.0.28-source-catalog-handoff-and-freshness";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -1034,7 +1034,8 @@ function catalogFallbackAllowed(item, body) {
 
 function sourceHistoryLimit(body) {
   const channel = String(body?.channel || body?.profileKey || "");
-  return isOKSourceProfile(sourceProfile({ profileKey: channel })) || /^vimeo-(?:movie|tv)-channel$/.test(channel) ? 1024 : 48;
+  const profile = sourceProfile({ profileKey: channel });
+  return isOKSourceProfile(profile) || /^vimeo-(?:movie|tv)-channel$/.test(channel) || profile?.providers?.some(provider => provider === "youtube" || provider === "peertube") ? 1024 : 48;
 }
 
 function recentCatalogIds(body) {
@@ -1253,7 +1254,8 @@ async function readFreshnessIds(env, channel, limit = FRESHNESS_LEDGER_LIMIT) {
   if (!env.realsignal_catalog || typeof env.realsignal_catalog.prepare !== "function") return [];
   const channelKey = normalizedChannelKey(channel);
   if (!channelKey) return [];
-  const deepHistory = isOKSourceProfile(sourceProfile({ profileKey: channelKey }));
+  const historyProfile = sourceProfile({ profileKey: channelKey });
+  const deepHistory = isOKSourceProfile(historyProfile) || historyProfile?.providers?.some(provider => provider === "youtube" || provider === "peertube");
   if (deepHistory) limit = sourceHistoryLimit({ channel: channelKey });
   const now = Date.now();
   const cached = freshnessReadCache.get(channelKey);
@@ -1394,6 +1396,7 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
   const vimeoCatalog = effectiveBody.sourceCatalog === true && /^vimeo-(?:movie|tv)-channel$/.test(channel);
   const repairCatalog = effectiveBody.iaRepair === true && effectiveBody.sourceCatalog !== true;
   const deepCatalog = okCatalog || vimeoCatalog;
+  const rotatingSourceCatalog = !deepCatalog && catalogProfile?.providers?.some(provider => provider === "youtube" || provider === "peertube");
   const limit = repairCatalog ? IA_REPAIR_CATALOG_WINDOW : deepCatalog ? OK_CATALOG_WINDOW : Math.max(1, Math.min(SOURCE_LIMITS.SOURCE_MAX_ITEMS, Number(requestedLimit) || SOURCE_LIMITS.SOURCE_MAX_ITEMS));
   // The database keeps the full union. This bounded playback window prefers
   // unseen/oldest-served rows, so older episodes don't vanish behind new writes.
@@ -1444,13 +1447,13 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
         FROM scored
       ) SELECT * FROM ranked ORDER BY resolved_rank,family_rank,
         CASE WHEN last_served_at IS NULL THEN 0 ELSE 1 END,last_served_at ASC,catalog_seen_at DESC,id LIMIT ?`
-    : `SELECT p.* FROM programs p JOIN channel_programs cp ON cp.program_id=p.id WHERE cp.channel_key=? AND p.status='active' AND p.media_url IS NOT NULL ORDER BY cp.last_seen_at DESC LIMIT ?`;
+    : `SELECT p.* FROM programs p JOIN channel_programs cp ON cp.program_id=p.id LEFT JOIN channel_freshness cf ON cf.channel_key=cp.channel_key AND cf.program_id=p.id WHERE cp.channel_key=? AND p.status='active' AND p.media_url IS NOT NULL ORDER BY CASE WHEN p.id IN (SELECT value FROM json_each(?)) THEN 1 ELSE 0 END, CASE WHEN cf.last_served_at IS NULL THEN 0 ELSE 1 END, cf.last_served_at ASC, cp.last_seen_at DESC, p.id LIMIT ?`;
   const now = Date.now();
   const bindings = repairCatalog
     ? [channel, now - 86400_000, now + 60_000, iaMinimumFileRuntimeSeconds(effectiveBody), limit, 0]
     : derivedCatalog ? [channel, catalogChannel, derivedDecade, limit]
       : deepCatalog ? [channel, catalogChannel, limit]
-        : [catalogChannel, limit];
+        : rotatingSourceCatalog ? [catalogChannel, JSON.stringify(Array.from(recentCatalogIds(effectiveBody))), limit] : [catalogChannel, limit];
   let result = await env.realsignal_catalog.prepare(query).bind(...bindings).all();
   const fromCatalogRow = (row) => {
     let metadata = {};
@@ -1570,7 +1573,7 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
       console.warn(JSON.stringify({ event: "ok-canonical-history-read-failed", channel, error: String(error).slice(0, 160) }));
     }
   }
-  const strictOKFreshness = deepCatalog;
+  const strictOKFreshness = deepCatalog || rotatingSourceCatalog;
   const fresh = ignoreFreshness ? playableCatalog : strictOKFreshness
     ? playableCatalog.filter(item => !recentIDs.has(queueItemKey(item)) && (!okCatalog || !recentPrograms.has(okPlaybackIdentity(item, okKind))))
     : applyFreshness(playableCatalog, effectiveBody);
@@ -1599,7 +1602,9 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
      recovery rail must advance by a complete shelf or the API fallback will
      return four of the same five programs on every Next action. */
   const rotationStep = effectiveBody && effectiveBody.sourceCatalog === true ? 1 : requestedCount;
-  const rotated = rotateCatalogItems(selected, (Number(effectiveBody.rotation) || 0) * rotationStep);
+  const rotated = rotatingSourceCatalog && !ignoreFreshness && fresh.length
+    ? rotateCatalogItems(fresh, (Number(effectiveBody.rotation) || 0) * rotationStep).concat(playableCatalog.filter(item => !freshKeys.has(queueItemKey(item))))
+    : rotateCatalogItems(selected, (Number(effectiveBody.rotation) || 0) * rotationStep);
   const ordered = okCatalog ? okBalancedCandidates([rotated], channel === "ok-movie-channel" ? "movie" : "tv", limit) : vimeoCatalog ? vimeoBalancedItems(rotated) : rotated;
   const seriesOrdered = okCatalog && okKind === "tv"
     ? okBalancedCandidates([okPreferUnseenSeries(ordered, recentSeries, requestedCount)], "tv", limit)
@@ -2667,18 +2672,24 @@ async function handleSourceCatalog(request, env, ctx, id) {
      rows. A shallow shelf is served immediately and refilled in the
      background; a deep shelf is served as a normal cache hit. */
   const staleReady = Math.max(1, Math.min(3, Number(body.staleReady) || 2));
+  const sourceSuiteCatalog = profile.providers.some(provider => provider === "youtube" || provider === "peertube");
+  // A five-item ready shelf is not a five-item catalog. Do not launch provider
+  // searches on every tune merely because the public shelf is smaller than 12.
+  const cachedDepth = sourceSuiteCatalog
+    ? Number(cached?.playableCatalogDepth ?? cached?.catalogDepth ?? cached?.items?.length) || 0
+    : Number(cached?.items?.length) || 0;
   const hasFreshFallback = cached && Array.isArray(cached.items) && cached.items.length > 0 && sourceRecentIds.length > 0;
-  const forceDeepRefresh = body.refresh === true && cached && Array.isArray(cached.items) && cached.items.length < minimumReady;
+  const forceDeepRefresh = body.refresh === true && cached && Array.isArray(cached.items) && cachedDepth < minimumReady;
   /* Refresh is a hint to refill, never permission to strand a viewer on a
      503. If a verified shelf exists, serve it immediately and let the source
      adapters replace it in the background. */
   if (!maintenance && cached && Array.isArray(cached.items) && (cached.items.length >= staleReady || hasFreshFallback) && !forceDeepRefresh) {
-    if (cached.items.length < minimumReady || /^(?:ok|vimeo)-/.test(profile.profileKey) && body.refresh === true) {
+    if (cachedDepth < minimumReady || sourceSuiteCatalog && cached.catalogExhausted === true || /^(?:ok|vimeo)-/.test(profile.profileKey) && body.refresh === true) {
       const normalized = sourceProfile(body);
       const tasks = () => sourceRefreshTasks(body, env, rotation, { disabledProviders });
       scheduleSourceRefresh(env, ctx, normalized, tasks, id);
     }
-    const hydrating = body.refresh === true || cached.items.length < minimumReady;
+    const hydrating = body.refresh === true || cachedDepth < minimumReady || sourceSuiteCatalog && cached.catalogExhausted === true;
     if (playedIds.length) rememberFreshness(env, profile.profileKey, playedIds, ctx);
     return json({ ...cached, profileKey: profile.profileKey, catalogVersion: "source-server-1", source: "d1-source-catalog", hydrating, staleCatalog: hydrating, adaptiveFreshness: true, freshnessLedger: true, providerAvailability: sourceProviderAvailability(env, cached.items, Array.from(disabledProviders)), apiVersion, release: apiVersion === "v3" ? V3_RELEASE : undefined }, 200, { "Cache-Control": "public, max-age=10, stale-while-revalidate=60", "X-RealSignal-Request": id, "X-RealSignal-Source": "d1-source-catalog", "X-RealSignal-Release": apiVersion === "v3" ? V3_RELEASE : "2.2.2" });
   }

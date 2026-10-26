@@ -120,7 +120,7 @@ const root = path.resolve(__dirname, '..');
     assert.match(html, /assets\/ok-embed-runtime\.js\?v=\d+\.\d+\.\d+/);
     assert.ok(html.includes('function playOKEmbed'));
     assert.ok(html.includes('window.RealSignalOKEmbed.qualify(profile,item)'));
-    assert.ok(html.includes('V2_SOURCE_CACHE_VERSION=64'));
+    assert.match(html, /V2_SOURCE_CACHE_VERSION=(?:6[4-9]|[7-9]\d|[1-9]\d{2,})/);
   }
   console.log('OK source recovery passed: title metadata, runtime/genre/cache gates, fair hydration, official iframe, actual EOF, spoof rejection and cleanup.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

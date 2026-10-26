@@ -836,3 +836,42 @@ test('ordinary IA windows advance within each series to unserved episodes outsid
   await Promise.all(f.pending);
  }finally{f.db.close();}
 });
+
+
+test('ordinary Source Suite reads older unserved programs beyond a played newest-96 window',async()=>{
+  const records=Array.from({length:140},(_,i)=>({id:'youtube:source-depth-'+i,identifier:'youtube:source-depth-'+i,
+    provider:'YouTube',title:'Photography camera history documentary '+i,language:'en',rights:'Standard YouTube license',
+    duration:1800,aspectRatio:16/9,type:'embed',url:'https://www.youtube-nocookie.com/embed/source-depth-'+i,
+    embedUrl:'https://www.youtube-nocookie.com/embed/source-depth-'+i,embedAllowed:true,genreVerified:true,recoveryVerified:true,
+    account:'Camera Studio '+i%8}));
+  const f=await sqliteCatalogFixture(records,'darkroom');
+  const served=f.db.prepare('INSERT INTO channel_freshness(channel_key,program_id,last_served_at,play_count) VALUES (?,?,?,1)');
+  records.slice(0,110).forEach((x,i)=>served.run('darkroom',x.id,Date.now()-i));
+  const recent=records.slice(0,110).map(x=>x.id);
+  try{
+    const response=await (await import('../realsignal_api_v2_worker.js')).default.fetch(new Request('https://api.invalid/api/v3/source/catalog',{
+      method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({profileKey:'darkroom',count:3,rotation:7,recentIds:recent})}),f.env,{waitUntil:p=>f.pending.push(p)});
+    const p=await response.json();assert.equal(response.status,200);assert.equal(p.items.length,3);
+    assert.ok(p.items.every(x=>!recent.includes(x.id||x.identifier)),'all recent actual plays must stay excluded');
+    assert.ok(p.candidateItems.some(x=>(x.id||x.identifier)===records[139].id),'the older unserved tail must remain reachable');
+    assert.equal(p.catalogExhausted,false);assert.equal(p.hydrating,false,'a healthy catalog must not refill just because its ready shelf has only three items');await Promise.all(f.pending);
+  }finally{f.db.close();}
+});
+
+test('Source Suite personal history can reach older unseen rows even without server ledger entries',async()=>{
+  const records=Array.from({length:140},(_,i)=>({id:'youtube:source-depth-'+i,identifier:'youtube:source-depth-'+i,
+    provider:'YouTube',title:'Photography camera history documentary '+i,language:'en',rights:'Standard YouTube license',
+    duration:1800,aspectRatio:16/9,type:'embed',url:'https://www.youtube-nocookie.com/embed/source-depth-'+i,
+    embedUrl:'https://www.youtube-nocookie.com/embed/source-depth-'+i,embedAllowed:true,genreVerified:true,recoveryVerified:true,
+    account:'Camera Studio '+i%8}));
+  const f=await sqliteCatalogFixture(records,'darkroom');
+  const recent=records.slice(0,110).map(x=>x.id);
+  try{
+    const response=await (await import('../realsignal_api_v2_worker.js')).default.fetch(new Request('https://api.invalid/api/v3/source/catalog',{
+      method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({profileKey:'darkroom',count:3,rotation:7,recentIds:recent})}),f.env,{waitUntil:p=>f.pending.push(p)});
+    const p=await response.json();assert.equal(response.status,200);assert.equal(p.items.length,3);
+    assert.ok(p.items.every(x=>!recent.includes(x.id||x.identifier)),'all recent actual plays must stay excluded');
+    assert.ok(p.candidateItems.some(x=>(x.id||x.identifier)===records[139].id),'the older unserved tail must remain reachable');
+    assert.equal(p.catalogExhausted,false);assert.equal(p.hydrating,false,'a healthy catalog must not refill just because its ready shelf has only three items');await Promise.all(f.pending);
+  }finally{f.db.close();}
+});

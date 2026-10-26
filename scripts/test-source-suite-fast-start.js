@@ -77,6 +77,16 @@ async function namedProgramDepth(){
     ['foodways',"The Most Elite Plays in Hell's Kitchen History","Hell's Kitchen"],
     ['foodways','The Life and Death of Anthony Bourdain: What Really Happened?','Factinate']
   ])assert.equal(qualifySourceItem(sourceProfile({profileKey:key}),{...base,id:'youtube:measured-contamination',title,account}),null,key+': reject measured format contamination');
+  for(const file of ['the_dial_desktop.html','the_dial_mobile.html']){
+    const html=fs.readFileSync(path.join(root,file),'utf8'),profiles={};
+    for(const key of [...new Set(positives.map(row=>row[0]))]){const line=html.split('\n').find(l=>l.trim().startsWith('"'+key+'":'));profiles[key]=vm.runInNewContext('({'+line.trim().replace(/,$/,'')+'})')[key];}
+    const scope={window:{RealSignalSourcePrograms:require('../assets/source-program-policy.js')},V2_PREVIEW_PROFILES:profiles};vm.createContext(scope);
+    vm.runInContext(html.slice(html.indexOf('const V2_SOURCE_MODE_GROUPS='),html.indexOf('function v2ProgramTopics(')),scope);
+    const names=['v2ProgramTopics','v2ProgramDeny','v2ProgramTitleDeny','v2ProgramCategoryOkay','v2ProgramFormats','v2Text','v2TextUnique','v2SourceTokens','v2TermHit','v2QueryTokens','v2StrictProgramFallback','v2Relevant','v2SourceProgramAllowed','v2CandidateRelevant'];
+    vm.runInContext(names.map(name=>html.split('\n').find(l=>l.trim().startsWith('function '+name+'('))).join('\n'),scope);
+    for(const [key,title,description]of positives)assert.ok(scope.v2CandidateRelevant(profiles[key],{...base,id:'youtube:client-proof',title,description}),file+': viewer must retain the admitted named program '+title);
+    for(const [key,title]of [['black-stage','A Raisin in the Sun - FULL AUDIO'],['classroom','Neil deGrasse Tyson and Bill Nye Catch Up'],['foodways',"The Most Elite Plays in Hell's Kitchen History"]])assert.equal(scope.v2CandidateRelevant(profiles[key],{...base,id:'youtube:bad-client',title}),false,file+': retain client editorial rejection');
+  }
   for(const item of [{language:'fr'}, {language:'en',title:positives[4][1]+' - Spanish dubbed'}, {language:'en',description:'Full episode [FR] French'}])assert.equal(qualifySourceItem(sourceProfile({profileKey:'foodways'}),{...base,id:'youtube:language-negative',title:positives[4][1],description:positives[4][2],...item}),null,'subject-language exception must not admit a non-English release');
   console.log('Named Source Suite programs deepen four profiles without weakening runtime, orientation or format admission.');
 }

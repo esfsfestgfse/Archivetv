@@ -20,7 +20,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "6.0.25-ia-genre-and-identity-audit";
+const V3_RELEASE = "6.0.26-ia-balanced-catalog-windows";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -1424,14 +1424,26 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
     : deepCatalog
     ? `SELECT p.* FROM programs p JOIN channel_programs cp ON cp.program_id=p.id LEFT JOIN channel_freshness cf ON cf.channel_key=? AND cf.program_id=p.id WHERE cp.channel_key=? AND p.status='active' AND p.media_url IS NOT NULL ORDER BY CASE WHEN cf.last_served_at IS NULL THEN 0 ELSE 1 END, cf.last_served_at ASC, cp.last_seen_at DESC LIMIT ?`
     : effectiveBody.sourceCatalog !== true
-    ? `SELECT p.* FROM programs p JOIN channel_programs cp ON cp.program_id=p.id
-       WHERE cp.channel_key=? AND p.status='active' AND (p.media_url IS NOT NULL
-         OR json_extract(CASE WHEN json_valid(p.metadata_json) THEN p.metadata_json ELSE '{}' END,'$.mediaUrl') IS NOT NULL
-         OR json_extract(CASE WHEN json_valid(p.metadata_json) THEN p.metadata_json ELSE '{}' END,'$.media_url') IS NOT NULL)
-       ORDER BY CASE WHEN COALESCE(NULLIF(TRIM(p.media_url),''),
-         NULLIF(TRIM(json_extract(CASE WHEN json_valid(p.metadata_json) THEN p.metadata_json ELSE '{}' END,'$.mediaUrl')),''),
-         NULLIF(TRIM(json_extract(CASE WHEN json_valid(p.metadata_json) THEN p.metadata_json ELSE '{}' END,'$.media_url')),'')) IS NOT NULL
-         THEN 0 ELSE 1 END, cp.last_seen_at DESC LIMIT ?`
+    ? `WITH catalog_rows AS (
+        SELECT p.*,cp.last_seen_at AS catalog_seen_at,cf.last_served_at,
+          CASE WHEN json_valid(p.metadata_json) THEN p.metadata_json ELSE '{}' END AS safe_metadata
+        FROM programs p JOIN channel_programs cp ON cp.program_id=p.id
+        LEFT JOIN channel_freshness cf ON cf.channel_key=cp.channel_key AND cf.program_id=p.id
+        WHERE cp.channel_key=? AND p.status='active' AND (p.media_url IS NOT NULL
+          OR json_extract(CASE WHEN json_valid(p.metadata_json) THEN p.metadata_json ELSE '{}' END,'$.mediaUrl') IS NOT NULL
+          OR json_extract(CASE WHEN json_valid(p.metadata_json) THEN p.metadata_json ELSE '{}' END,'$.media_url') IS NOT NULL)
+      ), scored AS (
+        SELECT *,CASE WHEN COALESCE(NULLIF(TRIM(media_url),''),
+          NULLIF(TRIM(json_extract(safe_metadata,'$.mediaUrl')),''),
+          NULLIF(TRIM(json_extract(safe_metadata,'$.media_url')),'')) IS NOT NULL THEN 0 ELSE 1 END AS resolved_rank
+        FROM catalog_rows
+      ), ranked AS (
+        SELECT *,ROW_NUMBER() OVER (PARTITION BY resolved_rank,
+          COALESCE(NULLIF(json_extract(safe_metadata,'$.seriesTitle'),''),NULLIF(json_extract(safe_metadata,'$.seriesId'),''),source_identifier,id)
+          ORDER BY CASE WHEN last_served_at IS NULL THEN 0 ELSE 1 END,last_served_at ASC,catalog_seen_at DESC,id) AS family_rank
+        FROM scored
+      ) SELECT * FROM ranked ORDER BY resolved_rank,family_rank,
+        CASE WHEN last_served_at IS NULL THEN 0 ELSE 1 END,last_served_at ASC,catalog_seen_at DESC,id LIMIT ?`
     : `SELECT p.* FROM programs p JOIN channel_programs cp ON cp.program_id=p.id WHERE cp.channel_key=? AND p.status='active' AND p.media_url IS NOT NULL ORDER BY cp.last_seen_at DESC LIMIT ?`;
   const now = Date.now();
   const bindings = repairCatalog

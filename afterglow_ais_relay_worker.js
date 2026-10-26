@@ -5906,9 +5906,15 @@ function iaReviewedFileAllowed(item, channel) {
   // Actor/show names also appear in long discussion programs. Their format
   // identity must not pass as an episode merely because the subject names a sitcom.
   if (String(channel) === '10' && /\b(?:american tv with mitchell hadley|(?:television|tv|sitcom) (?:history )?(?:discussion|retrospective|video essay|analysis)|(?:discussion|retrospective|video essay) (?:about|of) (?:classic )?(?:television|tv|sitcoms?))\b/.test(identity)) return false;
-  // Movie publicity is not a historical-disaster documentary. Eyewitness
-  // interviews and documentary discussion remain eligible on this station.
-  if (String(channel) === '234' && /\b(?:on[ -]set interviews?|(?:movie|film|cast) interviews?|(?:movie|film) (?:trailers?|reviews?|recaps?))\b/.test(identity)) return false;
+  // Classify the selected program's format, including persisted subject tags.
+  // Incidental description links are not genre evidence. Real eyewitness
+  // interviews remain eligible; gaming streams and movie publicity do not.
+  if (String(channel) === '234') {
+    const disasterFormat = [identity,item.subject,item.subjects,item.tags,item.meta && item.meta.title,item.meta && item.meta.subject,item.meta && item.meta.subjects,item.meta && item.meta.tags].filter(Boolean).join(' ').toLowerCase().replace(/[_-]+/g,' ');
+    if (/\b(?:on[ -]set interviews?|(?:movie|film|cast) interviews?|(?:movie|film) (?:trailers?|reviews?|recaps?)|roblox|minecraft|fortnite|war thunder|gameplay|walkthrough|playthrough|speedrun|video games?|twitch(?: ?vod)?|literacy gap)\b/.test(disasterFormat)) return false;
+  }
+  // A traditional cultural performance is not Saturday-morning children's TV.
+  if (String(channel) === '158' && source.toLowerCase() === 'indonesianpuppetshow') return false;
   // Channel-specific editorial evidence must survive stale catalogs and files.
   // A racing subject tag does not turn the 2001 fictional feature into a race.
   if (String(channel) === '54' && /\bdriven\s*\(?2001(?:\)|\b)/.test(identity)) return false;

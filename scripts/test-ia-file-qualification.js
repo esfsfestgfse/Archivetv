@@ -30,6 +30,16 @@ test('reviewed editorial admission rejects the reproduced contamination in every
   const {iaReviewedFileAllowed,qualifyIaFileRecord}=await import('../ia_file_contract.js');
   const {catalogFallbackAllowed}=await import('../realsignal_api_v2_worker.js');
   const checks=[
+    ['234',{identifier:'natural-disaster-survival',title:'The Incredibly Weird History of Natural Disaster Survival',subject:'Roblox History Video Essay'},false],
+    ['234',{id:'generic-stream',title:'Natural Disaster Stream',meta:{subject:'TwitchVod;video;'}},false],
+    ['234',{identifier:'real-rescue',title:'Flood Rescue Documentary',subject:'natural disaster',description:'Related links include a Minecraft game.'},true],
+    ['234',{identifier:'nsd-roblox',title:'The Incredibly Weird History of Natural Disaster Survival',subject:'Roblox History Video Essay'},false],
+    ['234',{identifier:'twitch-vod-v2263888410',title:'becoming monkey | STREAM NATURAL DISASTER | !gg',subject:'TwitchVod;video;'},false],
+    ['234',{identifier:'game-footage',title:'Natural Disaster Minecraft Gameplay',subject:'disaster'},false],
+    ['234',{identifier:'literacy',title:'Literacy Gap Problem Needs to Be Approached Like a Natural Disaster',subject:'natural disaster'},false],
+    ['158',{identifier:'IndonesianPuppetShow',title:'Indonesian Shadow Puppet Show, 1994',subject:'puppet show',language:'eng'},false],
+    ['158',{identifier:'sesame-street',title:'Sesame Street: Quiet Time',subject:'puppet show'},true],
+    ['206',{identifier:'IndonesianPuppetShow',title:'Indonesian Shadow Puppet Show, 1994',subject:'puppet show'},true],
     ['234',{identifier:'youtube-S9l3YWYYcSU',title:'GREENLAND | Gerard Butler "John Garrity" On-set Interview',subject:'disaster film natural disaster'},false],
     ['234',{identifier:'youtube-KuOu6XpafK4',title:'GREENLAND | Ric Roman Waugh "Director" On-set Interview',subject:'natural disaster'},false],
     ['234',{identifier:'youtube-qC1Y8Ekk168',title:'GREENLAND | Morena Baccarin "Allison" On-set Interview',subject:'natural disaster'},false],

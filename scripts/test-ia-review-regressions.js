@@ -809,3 +809,30 @@ test('repeated start acknowledgements do not double-write watched telemetry', as
   await f.request('playback', started); await f.request('playback', started); await Promise.all(f.pending);
   assert.equal(f.forwarded.filter(path => path === '/ia/played').length, 1);
 });
+
+
+test('ordinary IA fast catalog windows retain older series behind a newly imported large collection',async()=>{
+ const dominant=Array.from({length:180},(_,i)=>row('new-documentary-'+i+'.mp4',{seriesId:'American Experience',title:'American Experience Documentary '+i,subject:'documentary'}));
+ const older=['Nature','Science','History'].map(seriesId=>row('older-'+seriesId+'.mp4',{seriesId,title:seriesId+' Documentary',subject:'documentary'}));
+ const f=await sqliteCatalogFixture(dominant.concat(older),'226');
+ try{
+  const p=await(await f.request('queue',{channel:'226',serverCatalog:true,sessionId:'ordinary-family-window',count:3,themeTerms:['documentary'],diversity:{maxPerFamily:1}})).json();
+  assert.equal(p.items.length,3);assert.equal(new Set(p.items.map(x=>x.seriesId)).size,3,'one newly imported collection must not fill the entire window');
+  for(const series of ['Nature','Science','History'])assert.ok(p.candidateItems.some(x=>x.seriesId===series),'older '+series+' remains reachable');
+  await Promise.all(f.pending);
+ }finally{f.db.close();}
+});
+
+
+test('ordinary IA windows advance within each series to unserved episodes outside the old first ninety-six',async()=>{
+ const records=Array.from({length:140},(_,i)=>row('documentary-'+i+'.mp4',{seriesId:'American Experience',title:'American Experience Documentary '+i,subject:'documentary'}));
+ const f=await sqliteCatalogFixture(records,'226');
+ try{
+  const served=f.db.prepare('INSERT INTO channel_freshness (channel_key,program_id,last_served_at) VALUES (?,?,?)');
+  for(const x of records.slice(0,110))served.run('226',x.identifier,Date.now());
+  const p=await(await f.request('queue',{channel:'226',serverCatalog:true,sessionId:'ordinary-unseen-tail',count:3,themeTerms:['documentary'],viewerRecentIds:records.slice(0,110).map(x=>x.identifier)})).json();
+  assert.ok(p.candidateItems.some(x=>x.identifier===records[139].identifier),'unserved tail episodes must enter the bounded playback window');
+  assert.ok(p.items.every(x=>records.slice(110).some(y=>y.identifier===x.identifier)),'this viewer advances to unseen tail episodes instead of repeating its watched opening window');
+  await Promise.all(f.pending);
+ }finally{f.db.close();}
+});

@@ -119,12 +119,12 @@ function reservationCatalog(existing, incoming, seen) {
 /* Apply editorial balance to the small shelf, never to the stored inventory.
    A sparse family pool may relax the cap only after all other families get a
    turn; the result explicitly reports that constrained condition. */
-function appendBalanced(selected, pool, count, diversity = {}) {
+function appendBalanced(selected, pool, count, diversity = {}, allowRelaxation = true) {
   const ids = new Set(selected.map(itemId)), families = new Map();
   selected.forEach(item => families.set(familyId(item), (families.get(familyId(item)) || 0) + 1));
   const cap = Math.max(1, Math.min(count, Number(diversity.maxPerFamily) || count));
   let relaxed = false;
-  for (const loosen of [false, true]) {
+  for (const loosen of allowRelaxation ? [false, true] : [false]) {
     for (const item of pool) {
       if (selected.length >= count) return relaxed;
       const id = itemId(item), family = familyId(item);
@@ -336,15 +336,19 @@ export class SessionRotation {
       const offset = current.cursor || Number(body.rotation) || 0;
       const unseenFamilies = fresh.filter(item => !seenFamilies.has(familyId(item)));
       const repeatFamilies = fresh.filter(item => seenFamilies.has(familyId(item)));
-      for (const pool of [
+      const pools = [
         unseenFamilies.filter(item => !recent.has(episodeKey(item))),
         unseenFamilies.filter(item => recent.has(episodeKey(item))),
         repeatFamilies.filter(item => !recent.has(episodeKey(item))),
         repeatFamilies.filter(item => recent.has(episodeKey(item))),
-      ]) {
+      ].map(pool => rotate(pool, offset));
+      // Priority does not waive diversity. Try every eligible series before
+      // filling duplicate-series slots from a genuinely constrained catalog.
+      for (const pool of pools) {
         if (selected.length >= count) break;
-        relaxed = appendBalanced(selected, rotate(pool, offset), count, body.diversity) || relaxed;
+        appendBalanced(selected, pool, count, body.diversity, false);
       }
+      if (selected.length < count) relaxed = appendBalanced(selected, pools.flat(), count, body.diversity);
       reserved = selected.map(itemId);
     }
     const next = { version: 3, catalog, seen: [...seen].slice(-MAX_RESERVATION_ITEMS), reserved,

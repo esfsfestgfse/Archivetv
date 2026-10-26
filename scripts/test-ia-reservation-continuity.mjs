@@ -51,3 +51,19 @@ test('returning families alternate after each has played once while fresh episod
  assert.equal(new Set(starts.map(x=>x.identifier)).size,15);
  for(let i=3;i<starts.length;i++)assert.notEqual(starts[i].seriesTitle,starts[i-1].seriesTitle,'one series must not monopolize the shelf after the first family pass');
 });
+
+
+test('unseen-series priority cannot relax the family cap before other eligible series get a turn',async()=>{
+ const known=[item('Beaver',0),item('Munsters',0)],rows=[...Array.from({length:8},(_,i)=>item('Benson',i)),...known,item('Beaver',1),item('Munsters',1)];
+ const ctx=rotationContext({catalog:rows,seen:known.map(x=>x.identifier),reserved:[],playing:'',cursor:2}),r=new SessionRotation(ctx,{});
+ const p=await(await call(r,{mode:'reserve',items:rows,count:3,diversity:{maxPerFamily:1}})).json();
+ assert.equal(new Set(p.items.map(x=>x.seriesTitle)).size,3,'unwatched Benson must not fill all three reservations while fresh Beaver and Munsters episodes exist');
+ assert.equal(p.diversityRelaxed,false);
+ assert.deepEqual(ctx.snapshot().seen,known.map(x=>x.identifier),'preparation still does not consume viewing history');
+});
+
+test('a genuinely single-series catalog can still fill the shelf and reports constrained diversity',async()=>{
+ const r=new SessionRotation(rotationContext(),{}),rows=Array.from({length:8},(_,i)=>item('Benson',i));
+ const p=await(await call(r,{mode:'reserve',items:rows,count:3,diversity:{maxPerFamily:1}})).json();
+ assert.equal(p.items.length,3);assert.equal(new Set(p.items.map(x=>x.identifier)).size,3);assert.equal(p.diversityRelaxed,true);
+});

@@ -30,6 +30,7 @@ on:
       - 'migrations/**'
       - 'assets/source-catalog-client.js'
       - 'assets/source-program-policy.js'
+      - 'assets/peertube-media.js'
       - 'assets/guide-contract*.js'
       - 'assets/v6-watching-shell.*'
       - 'assets/v6-guide.*'
@@ -103,6 +104,7 @@ jobs:
           node --test scripts/test-ia-durable-owner.js
           node --test scripts/test-ia-telemetry-correlation.js
           node --test scripts/test-playback-audit-correlation.js
+          node --test scripts/test-peertube-media.js
           node --test scripts/test-ia-certification-readiness.js
       - name: Test delayed live-data callbacks across channel changes
         run: node scripts/test-live-data-lifecycle.js

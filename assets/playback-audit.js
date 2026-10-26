@@ -14,6 +14,15 @@
       report.tunes.push(active);if(report.tunes.length>100)report.tunes.shift();publish();
     },
     control(action){const row={action,started:performance.now()};report.controls.push(row);if(report.controls.length>100)report.controls.shift();requestAnimationFrame(()=>requestAnimationFrame(()=>{row.paintMs=Math.round(performance.now()-row.started);row.guideOpen=!!document.querySelector('#gwrap.show');publish();}));},
+    source(channel){
+      const tune=active;
+      return function(stage,details){
+        if(!tune||active!==tune||tune.channel!==channel)return;
+        if(!tune.sourceStages)tune.sourceStages=[];
+        if(tune.sourceStages.length<50)tune.sourceStages.push({stage,ms:Math.round(performance.now()-tune.started),...(details||{})});
+        publish();
+      };
+    },
     watch(v,item){
       const tune=active;if(!tune)return;
       const previous=owners.get(v);if(previous)previous.stop();

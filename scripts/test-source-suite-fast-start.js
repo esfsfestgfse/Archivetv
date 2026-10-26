@@ -44,3 +44,29 @@ Promise.all([...['the_dial_desktop.html', 'the_dial_mobile.html'].map(run), dark
   console.error(error.stack || error);
   process.exitCode = 1;
 });
+
+async function namedProgramDepth(){
+  const {sourceProfile,qualifySourceItem}=await import('../realsignal_source_catalog.js');
+  const base={provider:'YouTube',duration:1800,aspectRatio:16/9,language:'en',rights:'Standard YouTube license',url:'https://www.youtube-nocookie.com/embed/program-proof'};
+  const positives=[
+    ['classroom','The Mechanical Universe: Newtons Laws','David Goodstein teaches mechanics in this educational television episode.'],
+    ['classroom','Bill Nye The Science Guy - Full Episode - Electricity','An episode about electricity with science demonstrations.'],
+    ['comfort-television','The New Yankee Workshop - Farmhouse Table - Full Episode','Norm Abram makes a farmhouse table.'],
+    ['comfort-television','The Joy of Painting - Mountain Lake - Full Episode','Bob Ross paints a mountain lake.'],
+    ['foodways',"Rick Stein's Spain - Episode 1",'A journey through regional Spanish cooking and culinary heritage.'],
+    ['foodways','Food Safari - Lebanese Cuisine - Full Episode','A documentary about Lebanese cuisine and traditional food.'],
+    ['black-stage','August Wilsons The Piano Lesson - Full Stage Production','A complete theatrical production of the play by August Wilson.']
+  ];
+  for(const [key,title,description]of positives){const profile=sourceProfile({profileKey:key});assert.equal(profile.longForm,true,key+': the normalized search profile must retain its long-form discovery contract');assert.ok(qualifySourceItem(profile,{...base,id:'youtube:'+key+title,title,description}),key+': preserve the actual named program '+title);}
+  for(const [key,title,description]of [
+    ['classroom','Product training webinar for classroom software','Training for a classroom software product.'],
+    ['comfort-television','New Yankee Workshop Simulator Gameplay','A fictional workshop in a video game.'],
+    ['foodways','Food Safari Podcast - Culinary History Discussion','A podcast about food culture.'],
+    ['black-stage','August Wilson Interview - The Piano Lesson','An interview discussing the playwrights work.']
+  ])assert.equal(qualifySourceItem(sourceProfile({profileKey:key}),{...base,id:'youtube:bad-'+key,title,description}),null,key+': reject the wrong format');
+  for(const [key,title,description]of positives){const profile=sourceProfile({profileKey:key});assert.equal(qualifySourceItem(profile,{...base,id:'youtube:short-'+key,title,description,duration:120}),null);assert.equal(qualifySourceItem(profile,{...base,id:'youtube:portrait-'+key,title,description,aspectRatio:9/16}),null);}
+  assert.equal(qualifySourceItem(sourceProfile({profileKey:'comfort-television'}),{...base,id:'youtube:wrong-comfort',title:'Chariots of the Gods? The Mysteries Continue (1996)',description:'Hosted by Richard Karn of Home Improvement fame, a documentary about ancient astronauts.'}),null,'an actors Home Improvement credit does not make a documentary crafts television');
+  for(const item of [{language:'fr'}, {language:'en',title:positives[4][1]+' - Spanish dubbed'}, {language:'en',description:'Full episode [FR] French'}])assert.equal(qualifySourceItem(sourceProfile({profileKey:'foodways'}),{...base,id:'youtube:language-negative',title:positives[4][1],description:positives[4][2],...item}),null,'subject-language exception must not admit a non-English release');
+  console.log('Named Source Suite programs deepen four profiles without weakening runtime, orientation or format admission.');
+}
+namedProgramDepth().catch(error=>{console.error(error.stack||error);process.exitCode=1;});

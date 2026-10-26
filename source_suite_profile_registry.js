@@ -442,7 +442,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   },
   "classroom": {
     "name": "The Classroom",
-    "queryLimit": 8,
+    "queryLimit": 24,
     "providers": [
       "peertube",
       "youtube"
@@ -452,7 +452,15 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "science teaching film",
       "civics educational film",
       "school instructional film",
-      "educational documentary archive"
+      "educational documentary archive",
+      "The Mechanical Universe full episode Caltech",
+      "Bill Nye The Science Guy full episode",
+      "Beakmans World full episode",
+      "Annenberg physics telecourse full program",
+      "Royal Institution Christmas Lectures full",
+      "Project Mathematics Caltech full program",
+      "civics educational television full program",
+      "PBS educational science full episode"
     ],
     "match": [
       "educational film",
@@ -460,7 +468,14 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "science teaching",
       "civics",
       "school instructional",
-      "educational documentary"
+      "educational documentary",
+      "mechanical universe",
+      "bill nye",
+      "beakman",
+      "physics telecourse",
+      "christmas lectures",
+      "project mathematics",
+      "educational television"
     ],
     "deny": [
       "fictional",
@@ -470,7 +485,8 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "gameplay",
       "lecture advertisement",
       "product training"
-    ]
+    ],
+    "longForm": true
   },
   "newsreel-exchange": {
     "name": "Newsreel Exchange",
@@ -532,7 +548,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   },
   "foodways": {
     "name": "Foodways",
-    "queryLimit": 8,
+    "queryLimit": 24,
     "providers": [
       "peertube",
       "youtube"
@@ -542,7 +558,15 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "food culture documentary",
       "regional cuisine film",
       "kitchen history film",
-      "culinary traditions documentary"
+      "culinary traditions documentary",
+      "Rick Stein food travel full episode",
+      "Food Safari full episode SBS",
+      "Madhur Jaffrey food culture full episode",
+      "Anthony Bourdain food documentary full",
+      "Ainsley Harriott street food full episode",
+      "culinary heritage full documentary",
+      "traditional cuisine full documentary",
+      "food history regional cuisine full documentary"
     ],
     "match": [
       "cooking history",
@@ -551,7 +575,14 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "kitchen history",
       "culinary tradition",
       "foodways",
-      "food history"
+      "food history",
+      "rick stein",
+      "food safari",
+      "madhur jaffrey",
+      "anthony bourdain",
+      "ainsley harriott",
+      "culinary heritage",
+      "traditional cuisine"
     ],
     "deny": [
       "fictional",
@@ -562,7 +593,8 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "unboxing",
       "influencer",
       "affiliate"
-    ]
+    ],
+    "longForm": true
   },
   "wild-earth-desk": {
     "name": "Wild Earth Desk",
@@ -904,7 +936,7 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   },
   "comfort-television": {
     "name": "Comfort Television",
-    "queryLimit": 8,
+    "queryLimit": 24,
     "providers": [
       "peertube",
       "youtube"
@@ -914,7 +946,15 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "home improvement history film",
       "gardening television documentary",
       "quiet making documentary",
-      "public television lifestyle"
+      "public television lifestyle",
+      "The New Yankee Workshop full episode",
+      "The Woodwrights Shop full episode",
+      "The Joy of Painting full episode Bob Ross",
+      "This Old House full episode",
+      "Sewing with Nancy full episode",
+      "The American Woodshop full episode",
+      "Gardeners World full episode",
+      "The Victory Garden full episode"
     ],
     "match": [
       "craft demonstration",
@@ -923,7 +963,16 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "quiet making",
       "lifestyle television",
       "home workshop",
-      "public television"
+      "public television",
+      "new yankee workshop",
+      "woodwright",
+      "joy of painting",
+      "bob ross",
+      "this old house",
+      "sewing with nancy",
+      "american woodshop",
+      "gardeners world",
+      "victory garden"
     ],
     "deny": [
       "fictional",
@@ -935,7 +984,9 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "influencer",
       "affiliate",
       "reality dating"
-    ]
+    ],
+    "longForm": true,
+    "strictTopicTerms": ["craft","woodwork","woodwright","woodshop","yankee workshop","joy of painting","bob ross","this old house","sewing","gardening","garden","quilting","carpentry","home renovation","renovating houses"]
   },
   "comedy-circuit": {
     "name": "Comedy Circuit",
@@ -1040,13 +1091,16 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
   },
   "black-stage": {
     "name": "Black Stage",
-    "queryLimit": 16,
+    "queryLimit": 32,
     "queryWindow": 6,
     "peerTubeQueryWindow": 6,
     "peerTubeFallbackQueryWindow": 6,
     "peerTubeInstanceLimit": 2,
     "peerTubeDetailLimit": 24,
-    "peerTubeInstances": ["https://search.joinpeertube.org", "https://tilvids.com"],
+    "peerTubeInstances": [
+      "https://search.joinpeertube.org",
+      "https://tilvids.com"
+    ],
     "intent": "performance",
     "formatRelaxed": true,
     "strictTopicTerms": [
@@ -1057,7 +1111,14 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "soul performance",
       "black comedy",
       "black performance",
-      "black stage"
+      "black stage",
+      "august wilson",
+      "lorraine hansberry",
+      "piano lesson",
+      "raisin in the sun",
+      "black nativity",
+      "langston hughes",
+      "ntozake shange"
     ],
     "topics": [
       "Black theatre",
@@ -1069,7 +1130,14 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "soul performance",
       "stage play",
       "dance performance",
-      "live performance"
+      "live performance",
+      "august wilson",
+      "lorraine hansberry",
+      "piano lesson",
+      "raisin in the sun",
+      "black nativity",
+      "langston hughes",
+      "ntozake shange"
     ],
     "formats": [
       "full performance",
@@ -1078,7 +1146,10 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "complete show",
       "full episode",
       "live performance",
-      "full concert"
+      "full concert",
+      "full play",
+      "full stage play",
+      "full stage production"
     ],
     "providers": [
       "peertube",
@@ -1098,7 +1169,15 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "Black stage play complete",
       "Black live performance full show",
       "African American dance full performance",
-      "Black performance archive full"
+      "Black performance archive full",
+      "August Wilson full stage play",
+      "Lorraine Hansberry full stage play",
+      "The Piano Lesson full stage production",
+      "A Raisin in the Sun full stage play",
+      "Black Nativity full stage performance",
+      "Langston Hughes full theatre performance",
+      "Ntozake Shange complete performance",
+      "African American theatre full stage production"
     ],
     "match": [
       "Black theatre",
@@ -1111,7 +1190,14 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "stage play",
       "dance performance",
       "live performance",
-      "Black performance"
+      "Black performance",
+      "august wilson",
+      "lorraine hansberry",
+      "piano lesson",
+      "raisin in the sun",
+      "black nativity",
+      "langston hughes",
+      "ntozake shange"
     ],
     "deny": [
       "fictional",
@@ -1142,8 +1228,14 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "electronic music",
       "synthesizer",
       "discography",
-      "album"
-    ]
+      "album",
+      "interview",
+      "panel discussion",
+      "acting audition",
+      "scene study",
+      "book review"
+    ],
+    "longForm": true
   },
   "documentary-desk": {
     "name": "Documentary Desk",

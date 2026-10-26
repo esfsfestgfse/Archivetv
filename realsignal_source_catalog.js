@@ -21,6 +21,7 @@ import { okMusicChannel, okMusicQueries, okMusicPrecheck, okMusicVerified, okMus
 import { OK_ANIMATION_VERIFIED_SEED } from "./ok_animation_verified_seed.js";
 import { SOURCE_PROFILE_REGISTRY } from "./source_suite_profile_registry.js";
 import SourcePrograms from "./assets/source-program-policy.js";
+import PeerTubeMedia from "./assets/peertube-media.js";
 import { OK_PUBLIC_EMBED_MANIFEST } from "./ok_public_embed_catalog.js";
 import { VIMEO_FIELDS, vimeoDiscoveryCursor, vimeoSearchPage, vimeoItem, vimeoOEmbedVerified, vimeoBalancedItems, vimeoJson, vimeoProgramOkay, vimeoProgramIdentity, vimeoLanguageKnown, vimeoOriginalSeriesEvidence } from "./vimeo_catalog.js";
 
@@ -679,6 +680,7 @@ function normalizedProfile(body) {
     peerTubeDetailLimit: Math.max(SOURCE_MIN_READY, Math.min(32, Number(approved.peerTubeDetailLimit) || 32)),
     peerTubeFallbackQueryWindow: Math.max(1, Math.min(approved.deepCatalog === true ? 10 : SOURCE_MAX_QUERY_WINDOW, Number(approved.peerTubeFallbackQueryWindow) || SOURCE_QUERY_WINDOW)),
     deepCatalog: approved.deepCatalog === true,
+    longForm: approved.longForm === true,
     match: list(approved.match, 40),
     deny: list(approved.deny, 96),
     intent: text(approved.intent, 40).toLowerCase(),
@@ -735,10 +737,14 @@ function rightsOkay(item, provider) {
   return !!value && !/(?:unknown|all rights reserved)/i.test(value) && /(?:creative commons|public domain|no known copyright|no known restriction|attribution|free culture|unlicense|government work|copyright free|royalty[- ]free|open publication|free art|cc[- ]?(?:by|0|nc|sa))/i.test(value);
 }
 
-function englishOkay(item) {
+function englishOkay(item, englishSubject = false) {
   const declared = text(item && (item.language || item.defaultAudioLanguage || item.defaultLanguage), 40).toLowerCase();
   if (declared && !/^en(?:[-_]|$)/i.test(declared)) return false;
-  const sample = text([item && item.title, item && item.description, item && item.account].join(" "), 3000);
+  let sample = text([item && item.title, item && item.description, item && item.account].join(" "), 3000);
+  // An English-language program about Spanish cooking is not a Spanish dub.
+  // Preserve explicit release/language labels; only subject noun phrases are
+  // removed, and only for a declared-English ordinary YouTube source item.
+  if (englishSubject && /^en(?:[-_]|$)/i.test(declared)) sample = sample.replace(/\b(?:spanish|french|german|italian|portuguese|japanese|korean|turkish|russian|chinese)\s+(?:cuisine|cooking|food|gardening|gardens|history|culture|theatre|theater)\b/gi, "subject");
   if (/[\u0400-\u04ff\u0600-\u06ff\u0900-\u097f\u1100-\u11ff\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af\u0590-\u05ff\u0e00-\u0e7f]/.test(sample)) return false;
   if (/(?:[._ -](?:FRENCH|GERMAN|PORTUGUESE|SPANISH|ITALIAN|LATINO|CASTELLANO|HINDI|CHINESE)[._ -]|\bes-ES\b|\besp\b|\bsubbed\b|\bdonghua\b)/i.test(sample)) return false;
   if (/(?:\b(?:TRUEFRENCH|VOSTFR|SUBFRENCH|SUBESP|HUN|RUS|LAT|DUBLADO|DUBBED|DUAL|MULTI)\b|\[(?:TR|FR|ES|RU)\])/i.test(sample)) return false;
@@ -804,7 +810,7 @@ function accepted(profile, item, provider, checkAspect = true) {
   if (/(?:#?shorts?\b|vertical\s+video|how[ -]+to|tutorial|reaction|trailer|teaser|promo|advertisement|commercial|fan\s+edit|lyrics\s+video)/i.test(editorialText)) return false;
   if (profile.deny.some((term) => editorialText.includes(text(term, 180).toLowerCase()))) return false;
   if (!rightsOkay(item, source)) return false;
-  if (["YouTube", "Vimeo", "OK.ru"].includes(source) && !englishOkay(item)) return false;
+  if (["YouTube", "Vimeo", "OK.ru"].includes(source) && !englishOkay(item, source === "YouTube")) return false;
   /* A channel seed is only a starting point. Re-check the returned channel
      identity so an approved handle cannot silently turn into a fan-upload or
      unrelated mirror later. This is intentionally separate from video-topic
@@ -1199,14 +1205,7 @@ function peerTubeInstances(env, profile) {
   return pool.slice(0, limit);
 }
 
-function peerTubeFile(detail) {
-  const files = (detail && Array.isArray(detail.files) ? detail.files : []).concat((detail && Array.isArray(detail.streamingPlaylists) ? detail.streamingPlaylists : []).flatMap((playlist) => Array.isArray(playlist && playlist.files) ? playlist.files : []));
-  return files.filter((file) => {
-    const url = text(file && file.fileUrl, 1400);
-    const mime = text(file && (file.mimetype || file.mimeType || file.type), 80);
-    return url && (file.hasVideo !== false) && (/\.(?:mp4|webm|ogv)(?:[?#]|$)/i.test(url) || /^video\//i.test(mime));
-  }).sort((a, b) => Math.abs(Number(a.resolution && a.resolution.id || 720) - 720) - Math.abs(Number(b.resolution && b.resolution.id || 720) - 720))[0] || null;
-}
+function peerTubeFile(detail) { return PeerTubeMedia.select(detail); }
 
 async function peerTube(profile, rotation, env, options = {}) {
   const firstLane = options.firstLane === true;

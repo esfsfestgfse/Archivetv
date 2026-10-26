@@ -66,6 +66,17 @@ async function namedProgramDepth(){
   ])assert.equal(qualifySourceItem(sourceProfile({profileKey:key}),{...base,id:'youtube:bad-'+key,title,description}),null,key+': reject the wrong format');
   for(const [key,title,description]of positives){const profile=sourceProfile({profileKey:key});assert.equal(qualifySourceItem(profile,{...base,id:'youtube:short-'+key,title,description,duration:120}),null);assert.equal(qualifySourceItem(profile,{...base,id:'youtube:portrait-'+key,title,description,aspectRatio:9/16}),null);}
   assert.equal(qualifySourceItem(sourceProfile({profileKey:'comfort-television'}),{...base,id:'youtube:wrong-comfort',title:'Chariots of the Gods? The Mysteries Continue (1996)',description:'Hosted by Richard Karn of Home Improvement fame, a documentary about ancient astronauts.'}),null,'an actors Home Improvement credit does not make a documentary crafts television');
+  for(const [key,title,account] of [
+    ['black-stage','A Raisin in the Sun Audio Act 1 Scene 2','Hedaya Kelani'],
+    ['black-stage','A Raisin in the Sun - FULL AUDIO','Mackintosh Legagneur'],
+    ['black-stage','Family, legacy and conflict in August Wilsons The Piano Lesson','WDET 101.9 FM Detroit'],
+    ['black-stage','Stage@Home RERUNS | Revisiting August Wilsons Fences','FloridaRepTheatre'],
+    ['black-stage','The Gallery - The Piano Lesson','University of Central Florida'],
+    ['classroom','Neil deGrasse Tyson and Bill Nye Catch Up','StarTalk'],
+    ['classroom','Bill Nye Debates Ken Ham - HD (Official)','Answers in Genesis'],
+    ['foodways',"The Most Elite Plays in Hell's Kitchen History","Hell's Kitchen"],
+    ['foodways','The Life and Death of Anthony Bourdain: What Really Happened?','Factinate']
+  ])assert.equal(qualifySourceItem(sourceProfile({profileKey:key}),{...base,id:'youtube:measured-contamination',title,account}),null,key+': reject measured format contamination');
   for(const item of [{language:'fr'}, {language:'en',title:positives[4][1]+' - Spanish dubbed'}, {language:'en',description:'Full episode [FR] French'}])assert.equal(qualifySourceItem(sourceProfile({profileKey:'foodways'}),{...base,id:'youtube:language-negative',title:positives[4][1],description:positives[4][2],...item}),null,'subject-language exception must not admit a non-English release');
   console.log('Named Source Suite programs deepen four profiles without weakening runtime, orientation or format admission.');
 }

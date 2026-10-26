@@ -484,7 +484,12 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "cartoon",
       "gameplay",
       "lecture advertisement",
-      "product training"
+      "product training",
+      "startalk",
+      "catch up",
+      "debates ken ham",
+      "debate with ken ham",
+      "panel discussion"
     ],
     "longForm": true
   },
@@ -592,7 +597,13 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "gameplay",
       "unboxing",
       "influencer",
-      "affiliate"
+      "affiliate",
+      "hell's kitchen",
+      "hell’s kitchen",
+      "life and death",
+      "what really happened",
+      "most delusional",
+      "worst team challenges"
     ],
     "longForm": true
   },
@@ -1233,7 +1244,23 @@ export const SOURCE_PROFILE_REGISTRY = Object.freeze({
       "panel discussion",
       "acting audition",
       "scene study",
-      "book review"
+      "book review",
+      "audio act",
+      "full audio",
+      "narrative audio",
+      "american lit audio",
+      "wdet 101.9",
+      "revisiting",
+      "stage@home",
+      "the life and work",
+      "the gallery -",
+      "in the spotlight",
+      "scene and heard",
+      "read along",
+      "read aloud",
+      "book reading",
+      "table read",
+      "audio recording"
     ],
     "longForm": true
   },

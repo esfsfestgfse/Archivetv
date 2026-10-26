@@ -78,6 +78,17 @@ function normalizedFamily(value) {
     .trim();
 }
 
+// Audited single-series parents, not mixed-show or multi-film collections.
+// Their legacy display labels cannot manufacture extra rotation families.
+const IA_REVIEWED_SINGLE_SERIES_FAMILIES = Object.freeze({
+  'pokemon-indigo-league-season-1-1998': 'pokemon',
+  'american-experience-episodes': 'american experience',
+  'blackadder-remastered': 'blackadder',
+  'ghost-stories-for-christmas-2000': 'ghost stories for christmas',
+  'thequatermassconclusion1979': 'quatermass',
+  'freakylinks-complete-series-2000': 'freakylinks',
+});
+
 function familyId(item) {
   const source = item.sourceIdentifier || itemId(item).split("::")[0];
   const explicit = item.seriesTitle || item.family || item.seriesId;
@@ -88,6 +99,9 @@ function familyId(item) {
   if (gameShow) return gameShow[1];
   const titleParts = title.split(/\s+[·—]\s+/, 2);
   const explicitIsUploadId = explicit && normalizedFamily(explicit) === normalizedFamily(source);
+  const reviewedParent = String(source).toLowerCase();
+  const reviewedFamily = Object.hasOwn(IA_REVIEWED_SINGLE_SERIES_FAMILIES, reviewedParent) ? IA_REVIEWED_SINGLE_SERIES_FAMILIES[reviewedParent] : null;
+  if (reviewedFamily && (!explicit || explicitIsUploadId || normalizedFamily(explicit) === reviewedFamily)) return reviewedFamily;
   // Old and refreshed complete-series labels identify the same Benson show.
   // Preserve an explicitly different editorial series; a title mention alone
   // must not overwrite its identity.

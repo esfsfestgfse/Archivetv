@@ -30,6 +30,14 @@ test('reviewed editorial admission rejects the reproduced contamination in every
   const {iaReviewedFileAllowed,qualifyIaFileRecord}=await import('../ia_file_contract.js');
   const {catalogFallbackAllowed}=await import('../realsignal_api_v2_worker.js');
   const checks=[
+    ['234',{identifier:'youtube-S9l3YWYYcSU',title:'GREENLAND | Gerard Butler "John Garrity" On-set Interview',subject:'disaster film natural disaster'},false],
+    ['234',{identifier:'youtube-KuOu6XpafK4',title:'GREENLAND | Ric Roman Waugh "Director" On-set Interview',subject:'natural disaster'},false],
+    ['234',{identifier:'youtube-qC1Y8Ekk168',title:'GREENLAND | Morena Baccarin "Allison" On-set Interview',subject:'natural disaster'},false],
+    ['234',{identifier:'movie-promo',title:'Twister Movie Trailer',subject:'disaster'},false],
+    ['234',{identifier:'greenland-science',title:'Greenland Ice Sheet Documentary',subject:'natural disaster climate'},true],
+    ['234',{identifier:'katrina-interviews',title:'Hurricane Katrina Eyewitness Interviews',subject:'natural disaster'},true],
+    ['234',{identifier:'northridge',title:'25th Anniversary of the Northridge Earthquake',subject:'disaster documentary'},true],
+    ['202',{identifier:'movie-interview',title:'Movie Cast Interview'},true],
     ['10',{identifier:'13-american-tv-with-mitchell-hadley-mary-tyler-moore',title:'13 American TV With Mitchell Hadley Mary Tyler Moore',subject:'Mary Tyler Moore sitcom'},false],
     ['10',{identifier:'tv-discussion',title:'Mary Tyler Moore: Television History Discussion',subject:'classic television'},false],
     ['10',{identifier:'tv-essay',title:'Video Essay About Classic Television: The Addams Family',subject:'classic television'},false],

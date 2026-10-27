@@ -55,6 +55,9 @@
       if(/^(?:pt:indymotion\.fr\/)(?:2f2b99fa-3fe2-4141-8520-14296e580125|bf85b376-fad9-41df-b97f-f9453743d0d9|db41bbcc-fb64-4526-92c1-520756c638fd)$/.test(String(item&&item.id||'')))return false;
     }
     var title=String(item&&item.title||'').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();
+    // A sitcom/cast retrospective is not a home-project or craft program.
+    // Keep this title-format rule local; garden/project history remains valid.
+    if(profileKey==='comfort-television'&&/\b(?:cast\s*[:|-]?\s*then\s+(?:and|&)\s+now|where\s+are\s+they\s+now|who(?:['’]s|\s+is)\s+still\s+alive)\b/i.test(title))return false;
     if(profileKey==='garden-ledger'){
       var gardenIdentity=[title,item&&item.account,item&&item.channelTitle].join(' ');
       var gardenOpening=clean(item&&item.description).trim().split(/[.!?](?:\s+|$)|\n/)[0];

@@ -173,3 +173,24 @@ test('exact no-picture phrases used as a documentary subject or negated label ar
 test('documentary subjects cannot exempt a separate affirmative no-picture edition label',()=>{
  for(const title of ['How Earth Was Made | Full Documentary (Audio Only)','The History of Rome | Documentary - Black Screen','Why TVs Show a Black Screen | Full Documentary - Black Screen Edition'])assert.equal(policy.allow('documentary-desk',program(title)),false,title);
 });
+
+test('Comfort Television rejects cast retrospectives without rejecting real craft programming',async()=>{
+ const profile=sourceProfile({profileKey:'comfort-television'});
+ const bad=program('Home Improvement Then and Now 2026 | Who’s Still Alive After 35 Years?',{id:'yt:kBiuwdqHyvA'});
+ for(const title of [bad.title,'Home Improvement Cast Then & Now','The Joy of Painting Cast: Where Are They Now?']){
+  const item={...bad,title};assert.equal(policy.allow(profile.profileKey,item),false,title);
+  assert.equal(qualifySourceItem(profile,item),null,title);
+  assert.equal(catalogFallbackAllowed(item,{sourceCatalog:true,channel:profile.profileKey}),false,title);
+ }
+ for(const title of ['The Joy of Painting - Covered Bridge - Full Episode','The Woodwrights Shop - Case of the Corner Cupboard','This Old House - Restoring a Victorian Porch','Gardening Then and Now: Restoring a Historic Garden'])assert.ok(qualifySourceItem(profile,program(title,{description:'A complete craft and gardening television program.'})),title);
+ const good=program('The Joy of Painting - Covered Bridge - Full Episode',{id:'yt:good',description:'Bob Ross paints a landscape.'});
+ const response=await worker.fetch(new Request('https://api.test/api/v3/guide?channel=comfort-television'),{realsignal_catalog:db([row(bad),row(good)])},{waitUntil(){}}),body=await response.json();
+ assert.equal(response.status,200);assert.ok(!JSON.stringify(body).includes(bad.id));assert.ok(JSON.stringify(body).includes(good.id));
+ for(const file of ['the_dial_desktop.html','the_dial_mobile.html']){
+  const html=fs.readFileSync(new URL('../'+file,import.meta.url),'utf8'),scope={window:{RealSignalSourcePrograms:policy}};vm.createContext(scope);
+  vm.runInContext(['v2SourceProgramAllowed','v2PruneSourcePrograms'].map(name=>html.split('\n').find(line=>line.startsWith('function '+name+'('))).join('\n'),scope);
+  const state={items:[good,bad],cursor:1,currentId:bad.id,pendingId:bad.id};scope.v2PruneSourcePrograms(profile,state);
+  assert.equal(state.items.length,1,file);assert.equal(state.items[0].id,good.id,file);assert.equal(state.currentId,'',file);
+ }
+ assert.equal(policy.allow('documentary-desk',bad),true,'Comfort-only subject rules do not restrict general documentaries');
+});

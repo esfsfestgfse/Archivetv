@@ -122,3 +122,54 @@ test('previously served rejected rows cannot grant repeat permission',async()=>{
  const response=await worker.fetch(new Request('https://api.example/api/v3/guide?channel=public-works'),{realsignal_catalog:db(rows)},{waitUntil(){}});
  const guide=await response.json();assert.equal(guide.verified,false);assert.equal(guide.catalogExhausted,false);assert.equal(guide.repeatAllowed,false);
 });
+
+// A live 6.0.32 session reached this six-hour black-screen upload at EOF.
+// A moving HTML video clock is not sufficient evidence of television content.
+test('explicit black-screen/audio-only formats never enter Source Suite discovery or retained rows',()=>{
+ for(const title of ['Black Screen Bob Ross The Joy of Painting Season 3','The Joy of Painting - BLACK-SCREEN Edition','Bob Ross - Blank Screen','The Joy of Painting (audio only)','Bob Ross - Screen Off','Bob Ross - No Video']){
+  const x=program(title,{id:'yt:rH0pfX6gXFc',duration:20994.041,description:'Bob Ross paints landscapes.'});
+  assert.equal(policy.allow('comfort-television',x),false,title);
+  assert.equal(qualifySourceItem(sourceProfile({profileKey:'comfort-television'}),x),null,title);
+  assert.equal(catalogFallbackAllowed(x,{sourceCatalog:true,channel:'comfort-television'}),false,title);
+ }
+});
+
+test('the no-picture format guard is shared by all ordinary Source Suite profiles',async()=>{
+ const {SOURCE_PROFILE_REGISTRY}=await import('../source_suite_profile_registry.js');
+ for(const key of Object.keys(SOURCE_PROFILE_REGISTRY).filter(key=>! /^(?:ok|vimeo)-/.test(key))){
+  assert.equal(policy.allow(key,program('Original Full Program - Black Screen')),false,key);
+ }
+ // Neither a promotional footer nor a documentary subject is a format label.
+ for(const x of [program('Bob Ross - Covered Bridge (Season 3 Episode 6)',{description:'Bob Ross paints a landscape. A black screen audio edition is linked below.'}),program('Why Television Screens Go Black | Full Documentary')])assert.equal(policy.allow('comfort-television',x),true,x.title);
+ assert.ok(qualifySourceItem(sourceProfile({profileKey:'comfort-television'}),program('Bob Ross - Covered Bridge (Season 3 Episode 6)',{description:'The Joy of Painting. Bob Ross paints a landscape.'})));
+ for(const key of ['ok-tv-channel','vimeo-tv-channel'])assert.equal(policy.allow(key,program('Black Screen Bob Ross The Joy of Painting Season 3')),true,'unrelated provider contracts stay unchanged');
+});
+
+for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])test(file+': a retained no-picture program is pruned before playback/Next without clearing the good catalog',()=>{
+ const html=fs.readFileSync(new URL('../'+file,import.meta.url),'utf8');
+ const names=['v2SourceProgramAllowed','v2PruneSourcePrograms'];
+ const scope={window:{RealSignalSourcePrograms:policy}};
+ vm.createContext(scope);
+ vm.runInContext(names.map(name=>html.split('\n').find(line=>line.startsWith('function '+name+'('))).join('\n'),scope);
+ const good=program('Bob Ross - Covered Bridge (Season 3 Episode 6)',{id:'yt:good'}),bad=program('Black Screen Bob Ross The Joy of Painting Season 3',{id:'yt:rH0pfX6gXFc'});
+ const state={items:[good,bad],cursor:1,currentId:bad.id,pendingId:bad.id,currentTitle:bad.title,currentDuration:20994};
+ scope.v2PruneSourcePrograms({profileKey:'comfort-television'},state);
+ assert.equal(state.items.length,1);assert.equal(state.items[0].id,good.id);assert.equal(state.cursor,0);assert.equal(state.currentId,'');assert.equal(state.pendingId,'');
+});
+
+test('source guide excludes retained black-screen rows while keeping actual painting television',async()=>{
+ const bad=program('Black Screen Bob Ross The Joy of Painting Season 3',{id:'yt:rH0pfX6gXFc',duration:20994.041}),good=program('Bob Ross - Covered Bridge (Season 3 Episode 6)',{id:'yt:good',description:'The Joy of Painting full episode.'});
+ const tasks=[],response=await worker.fetch(new Request('https://api.test/api/v3/guide?channel=comfort-television'),{realsignal_catalog:db([row(bad),row(good)])},{waitUntil:p=>tasks.push(p)});
+ const body=await response.json();await Promise.all(tasks);
+ assert.equal(response.status,200);
+ assert.ok(!JSON.stringify(body).includes(bad.id),'guide must not advertise a retained no-picture program');
+ assert.ok(JSON.stringify(body).includes(good.id),'the good program must remain available');
+});
+
+test('exact no-picture phrases used as a documentary subject or negated label are not formats',()=>{
+ for(const title of ['Why TVs Show a Black Screen | Full Documentary','Bob Ross - Covered Bridge (No Black Screen)','Bob Ross - Covered Bridge (without a blank screen)','Bob Ross - Covered Bridge - Not Audio Only'])assert.equal(policy.allow('comfort-television',program(title)),true,title);
+});
+
+test('documentary subjects cannot exempt a separate affirmative no-picture edition label',()=>{
+ for(const title of ['How Earth Was Made | Full Documentary (Audio Only)','The History of Rome | Documentary - Black Screen','Why TVs Show a Black Screen | Full Documentary - Black Screen Edition'])assert.equal(policy.allow('documentary-desk',program(title)),false,title);
+});

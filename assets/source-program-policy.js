@@ -32,6 +32,15 @@
       // A podcast named in the program title is its format. A companion
       // podcast link in a later description/footer is not that evidence.
       var formatTitle=clean(item&&item.title);
+      // Explicit no-picture editions are audio formats even when the provider
+      // reports a landscape video track. Recheck retained catalogs and guides.
+      var pictureTitle=formatTitle.replace(/\b(?:no|not|without)\s+(?:an?\s+)?(?:black[ -]?screen|blank[ -]?screen|screen[ -]?off|audio[ -]+only)\b/gi,'');
+      var pictureParts=pictureTitle.split(/\s+-\s+|[|()[\]]/);
+      if(pictureParts.some(function(part){
+        var subject=/^(?:(?:why|how|what|when)\b|(?:the\s+)?(?:history|science|story)\s+of\b|(?:a\s+)?documentary\s+(?:about|on)\b)/i.test(part.trim())&&/\bdocumentary\b/i.test(formatTitle);
+        if(/\b(?:screen[ -]?off|no[ -]+(?:video|picture)|audio[ -]+only)\b/i.test(part))return true;
+        return /\b(?:black[ -]?screen|blank[ -]?screen)\b/i.test(part)&&!subject;
+      }))return false;
       var podcastSubject=/\b(?:history of|documentary (?:about|on)|rise of)\s+(?:pod\s?casts?|vodcasts?)\b/i.test(formatTitle)
         && /\bdocumentary\b/i.test([formatTitle,item&&item.description].join(' '));
       if(/\b(?:pod\s?casts?|vodcasts?)\b/i.test(formatTitle)&&!podcastSubject)return false;

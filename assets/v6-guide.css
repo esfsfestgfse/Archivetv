@@ -33,6 +33,9 @@
 #rsV6GuidePanel .rsg-columns { display:grid; grid-template-columns:minmax(150px,.9fr) minmax(0,1fr) minmax(0,.85fr); gap:14px; padding:10px 58px 8px 16px; color:var(--rsg-muted); font-size:10px; text-transform:uppercase; letter-spacing:.1em; }
 #rsV6GuideList { overflow:auto; min-height:0; padding:0 6px 12px; overscroll-behavior:contain; scrollbar-color:#5b7b67 #111c16; scrollbar-width:thin; }
 #rsV6GuidePanel .rsg-row { display:grid; grid-template-columns:minmax(0,1fr) 44px; align-items:stretch; border:1px solid #26382f; border-radius:10px; margin-bottom:6px; background:#111c17; }
+/* Retain every channel and native keyboard navigation while avoiding layout of
+   hundreds of offscreen row subtrees whenever the dialog restores its scroll. */
+#rsV6GuidePanel .rsg-row { content-visibility:auto; contain-intrinsic-block-size:auto 92px; }
 #rsV6GuidePanel .rsg-row.is-selected { border-color:#8ccc9e; box-shadow:inset 3px 0 #95f4b2; }
 #rsV6GuidePanel .rsg-select { display:grid; grid-template-columns:minmax(150px,.9fr) minmax(0,1fr) minmax(0,.85fr); align-items:center; gap:14px; min-width:0; min-height:90px; background:transparent; border:0; padding:13px 10px; }
 #rsV6GuidePanel .rsg-channel { display:grid; grid-template-columns:42px minmax(0,1fr); align-items:center; gap:9px; min-width:0; }
@@ -67,6 +70,7 @@
   #rsV6GuidePanel .rsg-watch { grid-column:2; grid-row:1; align-self:end; }
 }
 @media(max-width:700px) {
+  #rsV6GuidePanel .rsg-row { contain-intrinsic-block-size:auto 90px; }
   #rsV6GuidePanel { inset:6px; border-radius:12px; }
   #rsV6GuidePanel .rsg-header { gap:10px; padding:8px 12px; }
   #rsV6GuidePanel .rsg-brand { font-size:11px; letter-spacing:.05em; }

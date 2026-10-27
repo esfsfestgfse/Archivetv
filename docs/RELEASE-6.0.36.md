@@ -1,0 +1,13 @@
+# RealSignal 6.0.36 — Guide and picture-reveal latency
+
+Repeated public guide openings measured80.6-250.6ms. Local phase probes isolated51.5-69.8ms of a64.8-75.5ms opening in scroll restoration: it forced layout across268 channel rows. CSS content visibility and remembered intrinsic row heights defer offscreen subtree layout while preserving every channel, existing keyboard/focus behavior and scroll restoration. Matched local prototype openings measured28.3ms initially and5.9-11.5ms thereafter. These synchronous handler timings are not painted-latency/device-p95 benchmarks.
+
+A native-player trace reported playing1614ms and completed showNow1619ms, but the old double-animation-frame callback kept the validated picture transparent until3071ms (first visible frame3205ms). The player now sets opacity immediately after its existing current-token, decoded picture/runtime/genre checks and commit. The CSS fade remains. New desktop/mobile regressions reproduced a ready picture stranded at opacity0 when animation callbacks were delayed; stale candidates and audio-only starts remain hidden.
+
+The isolated reveal prototype removed the client wait; one warmed-catalog sample exposed a visible frame at1030ms. Different media/reservation/cache states prevent treating that as a controlled cold-start comparison or a universal provider-speed guarantee. External queue/CDN/decoder latency remains measurable separately.
+
+This is a frontend-only release. Client visible stamps and asset URLs move to6.0.36; the unchanged API stays6.0.35. There is no catalog/history/schema/lineup migration or new warmup/discovery. Temporary probes stay outside the repository. All 94 existing offline gate commands passed, including 28 native-playback and 15 guide tests; scoped review found no blocking issue. Unmodified local guide openings measured 21.7ms initially and6.5-10.3ms warm. Keyboard access to row999, focus/scroll retention,390x844 and320x568 layouts passed. Native samples reached visible frames at2690ms on a fresh start (viewport resized during the observation) and3218ms on Next; the latter spent137ms from playing to visible versus1586ms in the instrumented control. Media/provider/cache differences mean these are not controlled total-start or p95 claims. Hosted results are recorded separately. Version7 remains a separate gate.
+
+References: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/content-visibility and https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/contain-intrinsic-block-size
+
+Rollback: revert this release through a new commit and normal Pages deployment. No data rollback is necessary.

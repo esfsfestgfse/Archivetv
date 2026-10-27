@@ -6,6 +6,43 @@ const { test } = require('node:test');
 const { pathToFileURL } = require('node:url');
 const { rotationContext } = require('./ia-storage-test-helper');
 const root = path.join(__dirname, '..');
+
+function readyVideoFixture(file) {
+  const handlers = {}, timers = [], frames = [];
+  const video = { tagName: 'VIDEO', videoWidth: 640, videoHeight: 480, duration: 1800, style: {},
+    classList: { toggle() {} }, pause() {}, load() {}, remove() {}, removeAttribute() {}, setAttribute() {},
+    play: () => Promise.resolve(), addEventListener: (type, fn) => { handlers[type] = fn; } };
+  const scope = { window: {}, document: { createElement: () => video, body: { classList: { contains: () => false } } },
+    theVideo: video, videoCtl: null, curVideo: null, AbortController, Date, token: 1, powered: true, curNum: 10,
+    screenArea: { innerHTML: '', appendChild(v) { v.parentNode = this; } }, audioScreen: { classList: { add() {}, remove() {} } },
+    bug: { classList: { remove() {} } }, V2_PREVIEW_PROFILES: { proof: {} }, v2CanPrepareYouTube: () => false,
+    iaRepairEnabled: () => false, takeIAMediaWarmer: () => null, killMedia() {}, nlog() {}, hideOv() {}, hideBuffer() {},
+    setSig() {}, clearStall() {}, setCurItem() {}, attachCaptions() {}, showNow() {}, muted: false, vol: 0.5,
+    lastGesture: Date.now(), requestAnimationFrame: fn => { frames.push(fn); },
+    setTimeout: (fn, ms) => { const timer = { fn, ms }; timers.push(timer); return timer; }, clearTimeout() {} };
+  const source = fs.readFileSync(path.join(root, file), 'utf8'); vm.createContext(scope);
+  vm.runInContext(source.slice(source.indexOf('function acquireVideo('), source.indexOf('function unlockMedia(')), scope);
+  vm.runInContext(source.slice(source.indexOf('function playFile('), source.indexOf('function showNow(')), scope);
+  return { scope, video, handlers, timers, frames,
+    start: () => scope.playFile({ type: 'video', id: 'ready-program', url: 'https://archive.org/download/series/episode.mp4' }, { num: 10, source: 'v2preview', previewKey: 'proof' }, {}, 1, 0) };
+}
+
+for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
+  test(file + ': a decoded current picture is revealed without waiting on throttled animation frames', async () => {
+    const h = readyVideoFixture(file), pending = h.start();
+    assert.equal(h.video.style.opacity, '0', 'unready media stays hidden');
+    h.handlers.playing(); assert.equal(await pending, true);
+    assert.equal(h.scope.curVideo, h.video);
+    assert.equal(h.video.style.opacity, '1', 'a decoded picture must not wait for two animation callbacks');
+  });
+  test(file + ': superseded or audio-only candidates stay hidden', async () => {
+    const stale = readyVideoFixture(file), pending = stale.start(); stale.scope.token = 2; stale.handlers.playing();
+    assert.equal(stale.video.style.opacity, '0'); stale.timers[0].fn(); assert.equal(await pending, false);
+    const audio = readyVideoFixture(file); audio.video.videoWidth = 0; const audioPending = audio.start(); audio.handlers.playing();
+    assert.equal(audio.video.style.opacity, '0'); audio.timers.find(timer => timer.ms === 500).fn(); assert.equal(await audioPending, false);
+    assert.equal(audio.video.style.opacity, '0');
+  });
+}
 function runtime(search = '?iaRepair=1', pilot = '', castConnected) {
   const scope = { window: { __rsCastIsConnected: castConnected }, URLSearchParams, location: { search }, document: { querySelector: () => pilot ? { content: pilot } : null }, Date, Promise, setTimeout, clearTimeout };
   vm.createContext(scope);

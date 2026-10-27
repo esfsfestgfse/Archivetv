@@ -194,3 +194,9 @@ test('Comfort Television rejects cast retrospectives without rejecting real craf
  }
  assert.equal(policy.allow('documentary-desk',bad),true,'Comfort-only subject rules do not restrict general documentaries');
 });
+
+test('Comfort Television excludes the ten observed show-cancellation commentaries',()=>{
+ const titles=["What Happened to The New Yankee Workshop After Norm Abram Walked Away?", "The Real Reason The New Yankee Workshop Ended — And Why Norm Abram Never Explained It", "Why The New Yankee Workshop Really Ended — What Happened to Norm Abram After TV", "The Real Reason Norm Abram Left The New Yankee Workshop", "The Real Reason The New Yankee Workshop Ended (Norm Abram Finally Revealed)", "The New Yankee Workshop Officially ENDED After This Happened...", "At 77, Norm Abram Tells the Truth about The New Yankee Workshop.", "At 76, The New Yankee Workshop's Norm Abram FINALLY Admits What We All Suspected", "Why The New Yankee Workshop Suddenly Ended — The Real Truth Will Shock Everyone", "The Real Reason ''The New Yankee Workshop'' Came To An End Is Out"];
+ for(const title of titles){const item=program(title);assert.equal(policy.allow('comfort-television',item),false,title);assert.equal(qualifySourceItem(sourceProfile({profileKey:'comfort-television'}),item),null,title);assert.equal(catalogFallbackAllowed(item,{sourceCatalog:true,channel:'comfort-television'}),false,title);}
+ assert.ok(qualifySourceItem(sourceProfile({profileKey:'comfort-television'}),program('The New Yankee Workshop - Farmhouse Table - Full Episode',{description:'Norm Abram builds a table.'})));
+});

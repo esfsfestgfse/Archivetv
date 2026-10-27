@@ -58,6 +58,8 @@
     // A sitcom/cast retrospective is not a home-project or craft program.
     // Keep this title-format rule local; garden/project history remains valid.
     if(profileKey==='comfort-television'&&/\b(?:cast\s*[:|-]?\s*then\s+(?:and|&)\s+now|where\s+are\s+they\s+now|who(?:['’]s|\s+is)\s+still\s+alive)\b/i.test(title))return false;
+    if(profileKey==='comfort-television'&&/\b(?:new yankee workshop|norm abram)\b/i.test(title)
+      &&/\b(?:what happened to|the real reason|officially ended|(?:really|suddenly) ended|finally (?:admits|revealed)|tells the truth)\b/i.test(title))return false;
     if(profileKey==='garden-ledger'){
       var gardenIdentity=[title,item&&item.account,item&&item.channelTitle].join(' ');
       var gardenOpening=clean(item&&item.description).trim().split(/[.!?](?:\s+|$)|\n/)[0];

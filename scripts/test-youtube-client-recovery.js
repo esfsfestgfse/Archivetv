@@ -40,6 +40,13 @@ const path = require('node:path');
     vm.runInNewContext(html.match(/^function playV2Embed\(.*$/m)[0],playerCtx);
     assert.equal(await playerCtx.playV2Embed(items[0],{num:555},null,1),null,`${file}: the verified prepared player owns normal playback`);
     assert.equal(legacyCalls,0);assert.equal(sdkCalls,1);
+    const stages=[];
+    Object.assign(playerCtx,{hideOv(){},hideBuffer(){},setSig(){},setChanStatus(){},quickBanner(){}});
+    playerCtx.window.__rsPlaybackAudit={source:()=> (stage,data)=>stages.push({stage,...data})};
+    playerCtx.window.RealSignalYouTubeEmbed.play=options=>{options.onReady();options.onPending({code:'startup-timeout',ready:false});return Promise.resolve({status:'pending'});};
+    await playerCtx.playV2Embed(items[0],{num:555},null,1);
+    assert.deepEqual(stages.map(x=>x.stage),['embed-selected','embed-ready','embed-pending'],'startup trace must distinguish selection, API readiness and blocked playback');
+    assert.equal(stages[2].ready,false);assert.equal(stages[2].code,'startup-timeout');
     playerCtx.location.search='?youtubeSDK=0';
     assert.equal(await playerCtx.playV2Embed(items[0],{num:555},null,1),true);assert.equal(legacyCalls,1);
   }

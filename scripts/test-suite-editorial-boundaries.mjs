@@ -38,6 +38,15 @@ test('spoken-language evidence survives misleading English metadata in fresh, re
   assert.deepEqual(Array.from(state.items,x=>x.id),[good.id]);assert.equal(state.currentId,'');assert.equal(state.pendingId,'');
  }
 });
+test('reviewed Hindi and unverified competition uploads cannot re-enter the English comedy lane',async()=>{
+ const key='comedy-circuit',profile=sourceProfile({profileKey:key});
+ const rejected=[program("BIN BOLE BOL EP02 | India's Live Comedy Game Show",{id:'yt:SpSsy62IImo',language:'en'}),program('3RD ROUND COMEDIAN SEARCH PART-1',{id:'yt:ggG8Jn0r7ks',language:'en'})];
+ const good=program('Josh Johnson - Full Stand Up Comedy Performance',{id:'yt:good',defaultAudioLanguage:'en'});
+ for(const item of rejected){assert.equal(policy.allow(key,item),false);assert.equal(qualifySourceItem(profile,item),null);assert.equal(catalogFallbackAllowed(item,{sourceCatalog:true,channel:key}),false);}
+ const response=await worker.fetch(new Request('https://api.test/api/v3/source/status?profileKey='+key),{realsignal_catalog:db([...rejected.map(row),row(good)])},{waitUntil(){}});
+ assert.deepEqual((await response.json()).items.map(x=>x.id),[good.id]);
+ assert.equal(policy.allow(key,program('Stand Up Comedy Full Performance',{id:'yt:eynG7hGrEHs',defaultAudioLanguage:'en-US'})),true,'actual English audio version stays available');
+});
 for(const [key,title] of observed)test(key+': observed podcast cannot enter fresh or cached playback',()=>{
  const item=program(title);assert.equal(policy.allow(key,item),false);
  assert.equal(qualifySourceItem(sourceProfile({profileKey:key}),item),null);

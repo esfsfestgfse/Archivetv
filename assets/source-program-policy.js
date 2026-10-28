@@ -54,6 +54,11 @@
       // Official player checked: German speech-derived captions, no alternate
       // audio selector. Its English subtitles/metadata are not English audio.
       if([item&&item.id,item&&item.identifier,item&&item.sourceUrl,item&&item.embedUrl].some(function(value){return /(?:^|[:/=])c5PIN8CRSzs(?:[?&#/]|$)/.test(String(value||''));}))return false;
+      // Reviewed uploads: Bin Bole Bol exposes Hindi speech captions with no
+      // English audio track. The competition upload's English ASR label does
+      // not verify an English performance; hold that exact item for review.
+      // This is not a publisher/country ban or a provider-failure cooldown.
+      if([item&&item.id,item&&item.identifier,item&&item.sourceUrl,item&&item.embedUrl].some(function(value){return /(?:^|[:/=])(?:SpSsy62IImo|ggG8Jn0r7ks)(?:[?&#/]|$)/.test(String(value||''));}))return false;
       // Old normalized PeerTube rows lost language. These three were checked
       // against the original provider; future rows retain the declared code.
       if(/^(?:pt:indymotion\.fr\/)(?:2f2b99fa-3fe2-4141-8520-14296e580125|bf85b376-fad9-41df-b97f-f9453743d0d9|db41bbcc-fb64-4526-92c1-520756c638fd)$/.test(String(item&&item.id||'')))return false;

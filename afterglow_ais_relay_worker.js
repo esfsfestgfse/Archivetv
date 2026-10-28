@@ -7393,6 +7393,9 @@ function iaReviewedEpisodeKey(sourceIdentifier, fileName) {
   const source = String(sourceIdentifier || '').toLowerCase().replace(/^ia:/, '');
   const raw = String(fileName || '').split('/').pop().toLowerCase().replace(/(?:\.ia)?\.(?:mp4|m4v|webm|ogv)$/, '');
   const stem = raw.replace(/[._-]+/g, ' ').replace(/\s+/g, ' ').trim();
+  // These cached names were verified against Archive's identical SHA-1 and
+  // explicit original-file relationship; never strip DVD title numbers globally.
+  if (source === 'dvd-transfer-224' && /^(?:title 1 )?super bowl x \(2023 nfl network rebroadcast\)$/.test(stem)) return 'super bowl x (2023 nfl network rebroadcast)';
   if (source === 'the-september-sessions' && ['the september sessions',
     'the september sessions the tommorowland story brought to life in brilliant 16mm film'].includes(stem)) return 'the september sessions';
   if (source !== '411-vm-skateboarding-videos' || /\b(?:disc|part)\s*\d+/.test(stem)) return '';
@@ -7430,6 +7433,50 @@ function archiveEpisodeTitle(file, parentTitle) {
   return raw && raw.toLowerCase() !== String(parentTitle || "").toLowerCase()
     ? String(parentTitle || "Archive program") + " · " + raw
     : String(parentTitle || "Archive program");
+}
+
+/* Merge only relationships established by this parent's own file manifest.
+   Keep the chosen file/URL untouched; titles and runtimes are not proof that
+   two episodes are the same. No extra metadata or media request is needed. */
+function archiveEpisodeGroups(files, sourceIdentifier) {
+  // Originals can be MKV/AVI/etc. even when the playable derivatives are MP4.
+  // Artwork and other sidecars must never connect two otherwise distinct films.
+  files = files.filter(file => file && /\.(?:mp4|m4v|webm|ogv|mov|mkv|avi|mpe?g|m2t?s|wmv|vob|mp3|ogg|oga|m4a|flac|wav|aac|aiff?)$/i.test(file.name));
+  const byName = new Map(files.map(file => [file.name, file]));
+  const keys = new Map(files.map(file => [file.name, archiveEpisodeKey(file, sourceIdentifier)]));
+  const roots = new Map([...keys.values()].map(key => [key, key]));
+  const durations = new Map();
+  for (const file of files) {
+    const key = keys.get(file.name), duration = iaFileRuntimeSeconds(file);
+    if (duration > 0) { const known = durations.get(key) || [duration, duration]; durations.set(key, [Math.min(known[0], duration), Math.max(known[1], duration)]); }
+  }
+  const find = key => { let root = key; while (roots.get(root) !== root) root = roots.get(root); while (key !== root) { const next = roots.get(key); roots.set(key, root); key = next; } return root; };
+  const join = (a, b) => {
+    const left = find(keys.get(a.name)), right = find(keys.get(b.name));
+    if (left === right) return;
+    const known = (durations.get(left) || []).concat(durations.get(right) || []);
+    const min = Math.min(...known), max = Math.max(...known);
+    if (known.length && max - min > Math.max(3, min * 0.02)) return;
+    roots.set(left, right);
+    if (known.length) durations.set(right, [min, max]);
+    durations.delete(left);
+  };
+  const hashes = new Map();
+  for (const file of files) {
+    let original = file;
+    const visited = new Set();
+    while (original && original.source === 'derivative' && original.original) {
+      if (visited.has(original.name) || visited.size >= 32) { original = null; break; }
+      visited.add(original.name); original = byName.get(original.original);
+    }
+    if (original && original !== file) join(file, original);
+    const hash = String(file.sha1 || '').toLowerCase(), size = Number(file.size);
+    if (!/^[a-f0-9]{40}$/.test(hash) || !Number.isSafeInteger(size) || size <= 0) continue;
+    const fingerprint = hash + ':' + size;
+    if (hashes.has(fingerprint)) join(file, hashes.get(fingerprint));
+    else hashes.set(fingerprint, file);
+  }
+  return new Map([...keys].map(([name, key]) => [name, find(key)]));
 }
 
 /* Archive collections frequently expose title cards, intros, previews, and
@@ -7474,9 +7521,9 @@ async function expandArchiveContainer(doc, cacheOrigin, ctx, rotation = 0, salt 
       && !archiveInterstitialFile(file.name)
       && !iaHasGlobalVideoPolicyViolation(file)
       && !/(?:cover|torrent|\.txt$|\.xml$|_files$|_meta$|_archive$)/i.test(file.name));
-    const byEpisode = new Map();
+    const byEpisode = new Map(), episodeGroups = archiveEpisodeGroups(files, doc.identifier);
     for (const file of playableCandidates) {
-      const key = archiveEpisodeKey(file, doc.identifier);
+      const key = episodeGroups.get(file.name);
       if (!key) continue;
       const previous = byEpisode.get(key);
       const score = (candidate) => wantsAudio
@@ -8668,6 +8715,8 @@ function iaPlayableIdentity(item) {
   const fileName = String(item && item.fileName || (rawIdentifier.includes("::") ? rawIdentifier.slice(rawIdentifier.indexOf("::") + 2) : "")).trim().toLowerCase();
   if (!source) return "";
   if (!fileName) return source;
+  const reviewed = iaReviewedEpisodeKey(source, fileName);
+  if (reviewed) return `${source}::${reviewed}`;
   const stem = fileName
     .replace(/\.(?:mp4|m4v|mov|ogv|webm|mp3|flac|ogg|oga|wav|m4a|aac)(?:[?#].*)?$/i, "")
     .replace(/(?:[._-](?:orig|original|source|512kb|256kb|128kb|64kb|low|small|preview|proxy))$/i, "");

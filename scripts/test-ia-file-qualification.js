@@ -19,7 +19,7 @@ function relay(metadata = {}, mediaStatus = 206, redirectedUrl = '', fetchOverri
     } };
   vm.createContext(sandbox);
   vm.runInContext(fs.readFileSync(path.join(root, 'afterglow_ais_relay_worker.js'), 'utf8').replace('export default', 'const worker =') +
-    '\nglobalThis.contract={expandArchiveContainer,iaRuntimeAllowed, iaStationQualityGate, queuePlayable, iaPlayableIdentity, hydrateIaQueue, qualifyIaQueueResponse, verifyIaTransport,worker,holidaySeeds:IA_LONG_TAIL_EXPANSIONS["705"],recoverySeeds:orderedIaEmergencySeeds,collectionSeeds:iaRepairCollectionSeeds};', sandbox);
+    '\nglobalThis.contract={archiveEpisodeGroups,expandArchiveContainer,iaRuntimeAllowed, iaStationQualityGate, queuePlayable, iaPlayableIdentity, hydrateIaQueue, qualifyIaQueueResponse, verifyIaTransport,worker,holidaySeeds:IA_LONG_TAIL_EXPANSIONS["705"],recoverySeeds:orderedIaEmergencySeeds,collectionSeeds:iaRepairCollectionSeeds};', sandbox);
   return sandbox.contract;
 }
 const verified = { identifier: 'series::episode.mp4', sourceIdentifier: 'series', title: 'Family sitcom episode',
@@ -604,6 +604,83 @@ test('IA and H.264 derivatives have the same logical episode identity', async ()
   assert.equal(key('Episode 1.ia.mp4'), key('Episode 1.mp4'));
   assert.equal(key('Episode 1_h264.mp4'), key('Episode 1.mp4'));
   assert.notEqual(key('Episode 2.mp4'), key('Episode 1.mp4'));
+});
+
+test('Archive hash/original relationships do not inflate collection episode depth', async () => {
+  const original = 'Title 1 - Super Bowl X (2023 NFL Network Rebroadcast).mp4';
+  const file = (name, extra = {}) => ({name, format:'MPEG4', length:'1800', width:640, height:480, ...extra});
+  const f = relay({metadata:{title:'Complete sports collection', language:'eng'},files:[
+    file(original,{source:'original',sha1:'eaa862e891787ba54d52b845e8fb201a61f0ba2a',size:'1017282341'}),
+    file('Super Bowl X (2023 NFL Network Rebroadcast).ia.mp4',{source:'derivative',original,sha1:'953f9770cf346f8ec0e9a16894278de93550a208',size:'1017282341'}),
+    file('Title 1 - Super Bowl X (2023 NFL Network Rebroadcast).ia.mp4',{source:'derivative',original,sha1:'953f9770cf346f8ec0e9a16894278de93550a208',size:'1017282341'}),
+    file('Renamed identical copy.mp4',{sha1:'953f9770cf346f8ec0e9a16894278de93550a208',size:'1017282341'}),
+    file('Episode 2 Part 1.mp4'),file('Episode 2 Part 2.mp4'),
+  ]});
+  const rows = await f.expandArchiveContainer({identifier:'sports-collection-fixture',title:'Complete sports collection'},'https://relay.test',{waitUntil(){}},0,0,['movies']);
+  assert.equal(rows.length,3,'one complete game and two distinct continuation parts, not six filenames');
+  assert.ok(rows.some(row=>row.fileName==='Episode 2 Part 1.mp4'));
+  assert.ok(rows.some(row=>row.fileName==='Episode 2 Part 2.mp4'));
+  assert.ok(rows.every(row=>decodeURIComponent(new URL(row.media.url).pathname).endsWith('/'+row.fileName)),'identity grouping must never graft one filename onto another media URL');
+});
+
+test('the hash-confirmed cached Super Bowl aliases retain one logical program', async () => {
+  const {normalizeIaFileRecord}=await import('../ia_file_contract.js');
+  const key=(parent,file)=>normalizeIaFileRecord({identifier:parent+'::'+file}).logicalId;
+  const movie='Super Bowl X (2023 NFL Network Rebroadcast).ia.mp4';
+  assert.equal(key('dvd-transfer-224',movie),key('dvd-transfer-224','Title 1 - '+movie));
+  assert.notEqual(key('other-parent',movie),key('other-parent','Title 1 - '+movie),'do not infer equivalence for unreviewed uploads');
+  assert.notEqual(key('dvd-transfer-224',movie),key('dvd-transfer-224','Title 2 - Super Bowl Highlights.mp4'));
+});
+
+test('ambiguous names, corrupt hashes and original-file cycles cannot merge distinct episodes', () => {
+  const groups=relay().archiveEpisodeGroups([
+    {name:'Episode 1 Part 1.mp4',title:'Same show',sha1:'a'.repeat(40),size:'100'},
+    {name:'Episode 1 Part 2.mp4',title:'Same show',sha1:'a'.repeat(40),size:'200'},
+    {name:'Episode 2.mp4',sha1:'not-a-hash',size:'100'},
+    {name:'Episode 3.mp4',sha1:'not-a-hash',size:'100'},
+    {name:'Episode 4.mp4',source:'derivative',original:'missing-file.mp4'},
+    {name:'Episode 5.mp4',source:'derivative',original:'Episode 6.mp4'},
+    {name:'Episode 6.mp4',source:'derivative',original:'Episode 5.mp4'},
+    {name:'Episode 7 excerpt.mp4',source:'derivative',original:'Episode 8.mp4',length:'900'},
+    {name:'Episode 8.mp4',length:'3600'},
+  ],'unreviewed-series');
+  assert.equal(new Set(groups.values()).size,9);
+});
+
+test('collection identity resolves non-playable originals without merging incompatible editions', async () => {
+  const file=(name,extra={})=>({name,format:'MPEG4',length:'1800',width:640,height:480,...extra});
+  const f=relay({metadata:{title:'Complete episode collection',language:'eng'},files:[
+    file('Original master.mkv',{source:'original'}),
+    file('Episode Alpha.mp4',{source:'derivative',original:'Original master.mkv'}),
+    file('Alternate Alpha.mp4',{source:'derivative',original:'Original master.mkv'}),
+    file('Unknown master.mkv',{source:'original',length:''}),
+    file('Short edition.mp4',{source:'derivative',original:'Unknown master.mkv',length:'900'}),
+    file('Long edition.mp4',{source:'derivative',original:'Unknown master.mkv',length:'3600'}),
+    {name:'Poster A.jpg',source:'derivative',original:'Episode Alpha.mp4',sha1:'a'.repeat(40),size:'100'},
+    {name:'Poster B.jpg',source:'derivative',original:'Short edition.mp4',sha1:'a'.repeat(40),size:'100'},
+  ]});
+  const rows=await f.expandArchiveContainer({identifier:'unreviewed-series',title:'Complete episode collection'},'https://relay.test',{waitUntil(){}},0,0,['movies']);
+  assert.equal(rows.length,3,'one Alpha encoding plus both distinct-duration editions; artwork cannot bridge programs');
+  assert.ok(rows.some(row=>row.fileName==='Short edition.mp4'));
+  assert.ok(rows.some(row=>row.fileName==='Long edition.mp4'));
+});
+
+test('relay freshness and hydration exclusions share the reviewed cached copy identity', () => {
+  const f=relay(),sourceIdentifier='dvd-transfer-224',name='Super Bowl X (2023 NFL Network Rebroadcast).ia.mp4';
+  const item=fileName=>({identifier:sourceIdentifier+'::'+fileName,sourceIdentifier,fileName});
+  assert.equal(f.iaPlayableIdentity(item(name)),f.iaPlayableIdentity(item('Title 1 - '+name)));
+  assert.notEqual(f.iaPlayableIdentity(item(name)),f.iaPlayableIdentity(item('Title 2 - Super Bowl Highlights.mp4')));
+});
+
+test('a matching hash on an unknown master cannot bridge conflicting derivative durations in either order', () => {
+  const master={name:'Master.mkv',source:'original',sha1:'a'.repeat(40),size:'1000'};
+  const long={name:'Long edition.mp4',source:'derivative',original:master.name,length:'3600',sha1:'b'.repeat(40),size:'2000'};
+  const short={name:'Short edition.mp4',source:'derivative',original:master.name,length:'900',sha1:master.sha1,size:master.size};
+  const f=relay();
+  for(const files of [[master,long,short],[master,short,long]]){
+    const groups=f.archiveEpisodeGroups(files,'unreviewed-series');
+    assert.notEqual(groups.get(long.name),groups.get(short.name),'file order cannot let an unknown runtime connect different known editions');
+  }
 });
 
 test('strict file shelves are isolated without invalidating legacy cache identities', () => {

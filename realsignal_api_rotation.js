@@ -309,8 +309,8 @@ export class SessionRotation {
     let seenEpisodes = new Set([...seen].map(episodeKey));
     const hasSeen = id => seenEpisodes.has(episodeKey(canonicalId(id)));
     const cooldowns = Object.fromEntries(Object.entries(current.cooldowns || {}).filter(([, until]) => Number(until) > now).map(([id, until]) => [episodeKey(canonicalId(id)), until]));
-    let reserved = (current.reserved || []).map(id => catalog.find(item => episodeKey(item) === episodeKey(id))).filter(Boolean).map(itemId)
-      .filter(id => ids.has(id) && episodeKey(canonicalId(id)) !== episodeKey(canonicalId(current.playing)) && !hasSeen(id) && !cooldowns[episodeKey(canonicalId(id))]);
+    let reserved = [...new Set((current.reserved || []).map(id => catalog.find(item => episodeKey(item) === episodeKey(id))).filter(Boolean).map(itemId)
+      .filter(id => ids.has(id) && episodeKey(canonicalId(id)) !== episodeKey(canonicalId(current.playing)) && !hasSeen(id) && !cooldowns[episodeKey(canonicalId(id))]))];
     const requestedId = String(body.id || "").trim().slice(0, 500);
     const id = catalog.find(item => episodeKey(item) === episodeKey(requestedId))?.identifier || requestedId;
     let committed = false;

@@ -244,6 +244,9 @@ function iaReviewedEpisodeKey(sourceIdentifier, fileName) {
   const source = String(sourceIdentifier || '').toLowerCase().replace(/^ia:/, '');
   const raw = String(fileName || '').split('/').pop().toLowerCase().replace(/(?:\.ia)?\.(?:mp4|m4v|webm|ogv)$/, '');
   const stem = raw.replace(/[._-]+/g, ' ').replace(/\s+/g, ' ').trim();
+  // These cached names were verified against Archive's identical SHA-1 and
+  // explicit original-file relationship; never strip DVD title numbers globally.
+  if (source === 'dvd-transfer-224' && /^(?:title 1 )?super bowl x \(2023 nfl network rebroadcast\)$/.test(stem)) return 'super bowl x (2023 nfl network rebroadcast)';
   if (source === 'the-september-sessions' && ['the september sessions',
     'the september sessions the tommorowland story brought to life in brilliant 16mm film'].includes(stem)) return 'the september sessions';
   if (source !== '411-vm-skateboarding-videos' || /\b(?:disc|part)\s*\d+/.test(stem)) return '';

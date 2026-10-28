@@ -6,6 +6,43 @@ const {rotationContext}=createRequire(import.meta.url)('./ia-storage-test-helper
 const item=(family,n)=>({identifier:family+'::episode-'+n+'.mp4',seriesTitle:family,title:family+' · Episode '+n,media:{url:'https://archive.org/download/'+family+'/episode-'+n+'.mp4'}});
 const call=(rotation,body)=>rotation.fetch(new Request('https://rotation.internal/select',{method:'POST',body:JSON.stringify(body)}));
 
+test('played-only history excludes both hash-confirmed cached filenames while preserving unseen programs',async()=>{
+ const parent='dvd-transfer-224',name='Super Bowl X (2023 NFL Network Rebroadcast).ia.mp4';
+ const copy=file=>({identifier:parent+'::'+file,title:'Super Bowl X',media:{url:'https://archive.org/download/'+parent+'/'+encodeURIComponent(file)}});
+ const a=copy(name),b=copy('Title 1 - '+name),unseen=item('other-football-program',1);
+ const ctx=rotationContext({catalog:[a,b,unseen],seen:[],cursor:0}),r=new SessionRotation(ctx,{});
+ const response=await call(r,{items:[a,b,unseen],requirePlayable:true,playedOnly:true,viewerRecentIds:[a.identifier],count:3});
+ const body=await response.json();
+ assert.deepEqual(body.items.map(x=>x.identifier),[unseen.identifier]);
+ assert.equal(body.cycleReset,false);
+ assert.equal(body.catalogSize,2,'cached duplicate records cannot count as separate unseen depth');
+ assert.ok(ctx.snapshot().seen.includes(a.identifier),'existing viewing history is retained');
+});
+
+test('reserve/commit rotation does not reserve a second cached encoding after the first one plays',async()=>{
+ const parent='dvd-transfer-224',name='Super Bowl X (2023 NFL Network Rebroadcast).ia.mp4';
+ const copy=file=>({identifier:parent+'::'+file,title:'Super Bowl X',media:{url:'https://archive.org/download/'+parent+'/'+encodeURIComponent(file)}});
+ const a=copy(name),b=copy('Title 1 - '+name),unseen=item('other-football-program',1);
+ const ctx=rotationContext(),r=new SessionRotation(ctx,{});
+ await call(r,{mode:'reserve',items:[a,b,unseen],count:1});
+ assert.equal((await call(r,{mode:'commit',id:a.identifier,event:'started'})).status,200);
+ await call(r,{mode:'commit',id:a.identifier,event:'completed'});
+ const body=await (await call(r,{mode:'reserve',items:[a,b,unseen],count:3})).json();
+ assert.deepEqual(body.items.map(x=>x.identifier),[unseen.identifier]);
+ assert.equal(body.catalogSize,2);
+ assert.equal(body.cycleReset,false);
+});
+
+test('an existing two-copy reservation collapses to one slot without discarding unseen programs',async()=>{
+ const parent='dvd-transfer-224',name='Super Bowl X (2023 NFL Network Rebroadcast).ia.mp4';
+ const copy=file=>({identifier:parent+'::'+file,title:'Super Bowl X',media:{url:'https://archive.org/download/'+parent+'/'+encodeURIComponent(file)}});
+ const a=copy(name),b=copy('Title 1 - '+name),unseen=item('other-football-program',1);
+ const ctx=rotationContext({catalog:[a,b,unseen],seen:[],reserved:[a.identifier,b.identifier],cursor:0}),r=new SessionRotation(ctx,{});
+ const body=await (await call(r,{mode:'reserve',items:[],count:3})).json();
+ assert.deepEqual(body.items.map(x=>x.identifier),[a.identifier,unseen.identifier]);
+ assert.equal(body.reserved,2);
+});
+
 test('a played item evicted by a deep catalog refresh still accepts its skip acknowledgement',async()=>{
  const ctx=rotationContext(),r=new SessionRotation(ctx,{}),first=item('cartoons',0);
  await call(r,{mode:'reserve',items:[first],count:1});

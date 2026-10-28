@@ -9,7 +9,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>REALSIGNAL · Retro Cable 6.0.40</title>
+<title>REALSIGNAL · Retro Cable 6.0.41</title>
 <meta name="realsignal-ia-repair-channels" content="10,12,22,150">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
@@ -17,7 +17,7 @@
 <script src="assets/ok-embed-runtime.js?v=5.6.29"></script>
 <script src="assets/ia-playback-shelf.js?v=5.6.29"></script>
 <script src="assets/vimeo-embed-runtime.js?v=5.5.85"></script>
-<script src="assets/youtube-embed-runtime.js?v=6.0.40"></script>
+<script src="assets/youtube-embed-runtime.js?v=6.0.41"></script>
 <!-- Source Suite starts verified YouTube playback on a cold tune. Warm the exact
      origins it uses so DNS/TLS setup is not serialized behind catalog discovery. -->
 <link rel="preconnect" href="https://www.googleapis.com" crossorigin>
@@ -1701,16 +1701,16 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
 @media(prefers-reduced-motion:reduce){.sports-screen *,.wx-screen *,.wr-cabinet *{animation-duration:.001ms!important;transition-duration:.001ms!important}}
 </style>
 <link rel="stylesheet" href="assets/guide-overhaul.css">
-<link rel="stylesheet" href="assets/v6-watching-shell.css?v=6.0.40">
-<link rel="stylesheet" href="assets/v6-guide.css?v=6.0.40">
-<script src="assets/commercial-scheduler.js?v=6.0.40"></script>
-<script src="assets/fast-catalog.js?v=6.0.40"></script>
-<link rel="stylesheet" href="assets/weather-networks.css?v=6.0.40">
-<script src="assets/weather-networks.js?v=6.0.40"></script>
-<link rel="stylesheet" href="assets/weather-local.css?v=6.0.40">
-<script src="assets/weather-local.js?v=6.0.40"></script>
-<script src="assets/source-program-policy.js?v=6.0.40"></script>
-<script src="assets/peertube-media.js?v=6.0.40"></script>
+<link rel="stylesheet" href="assets/v6-watching-shell.css?v=6.0.41">
+<link rel="stylesheet" href="assets/v6-guide.css?v=6.0.41">
+<script src="assets/commercial-scheduler.js?v=6.0.41"></script>
+<script src="assets/fast-catalog.js?v=6.0.41"></script>
+<link rel="stylesheet" href="assets/weather-networks.css?v=6.0.41">
+<script src="assets/weather-networks.js?v=6.0.41"></script>
+<link rel="stylesheet" href="assets/weather-local.css?v=6.0.41">
+<script src="assets/weather-local.js?v=6.0.41"></script>
+<script src="assets/source-program-policy.js?v=6.0.41"></script>
+<script src="assets/peertube-media.js?v=6.0.41"></script>
 </head>
 <body>
 <script>
@@ -1722,7 +1722,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="6.0.40-desktop-retro-cable";
+window.__ATV_BUILD="6.0.41-desktop-retro-cable";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -7862,6 +7862,14 @@ async function iaQueueRequest(ch,sl,count){
   try{var d=await withTO(iaQueueFetch({channel:iaQueueKey(ch),rotation:iaQueueRotationFor(ch),queries:qs,themeTerms:iaProgramThemeTerms(sl),denyTerms:iaProgramDenyTerms(sl),requiredTitleTerms:(sl&&sl.program&&sl.program.require&&sl.program.require.title_any)||[],diversity:iaQueueDiversity(sl),mediaTypes:ch&&ch.audio?["audio"]:["movies"],themeMinScore:Math.max(1,Math.min(12,Number(sl&&sl.program&&sl.program.themeMinScore)||1)),minRuntimeSeconds:Math.max(0,Number(sl&&sl.program&&sl.program.minRuntimeSeconds)||0),count:Math.max(1,Math.min(5,count||5))}),6500);
     var rawItems=Array.isArray(d&&d.items)?d.items:[];
     var out=rawItems.filter(function(it){return iaProgramAllowed(it,sl);});
+    /* A stale/inflight shelf can overlap local skips while its deeper catalog
+       still has unseen resolved episodes. Try that existing depth before
+       declaring freshness exhaustion; metadata-only candidates must not block
+       the handoff or trigger another discovery request. */
+    if(!out.length&&Array.isArray(d&&d.candidateItems)){
+      var viewerRecent=iaViewerRecentIds(iaQueueKey(ch)),candidateSeen={};
+      out=d.candidateItems.filter(function(it){var id=it&&it.identifier;if(!id||candidateSeen[id]||viewerRecent.indexOf(id)>=0||!it.media||!it.media.url||!iaProgramAllowed(it,sl))return false;candidateSeen[id]=1;return true;}).slice(0,Math.max(1,Math.min(5,count||5)));
+    }
     /* A channel can have a healthy, genre-verified catalog while this device's
        six-hour skip ledger has temporarily touched every item returned by the
        current rotation. Reuse only the same server-verified records, and only
@@ -19306,16 +19314,16 @@ window.__atvBootDone=true; /* app is up -- from here on, errors get logged, not 
   };
 })();
 </script>
-<script src="assets/source-catalog-client.js?v=6.0.40"></script>
+<script src="assets/source-catalog-client.js?v=6.0.41"></script>
 <script src="assets/verified-guide-client.js"></script>
 <script src="assets/guide-overhaul.js"></script>
 <script src="assets/playback-audit.js"></script>
-<script src="assets/release2-runtime.js?v=6.0.40"></script>
+<script src="assets/release2-runtime.js?v=6.0.41"></script>
 <script src="assets/release3-runtime.js"></script>
 <script src="assets/release31-runtime.js"></script>
 <script src="assets/guide-contract.js?v=v6-contract-1"></script>
-<script src="assets/guide-contract-client.js?v=6.0.40"></script>
-<script src="assets/v6-watching-shell.js?v=6.0.40"></script>
-<script src="assets/v6-guide.js?v=6.0.40"></script>
+<script src="assets/guide-contract-client.js?v=6.0.41"></script>
+<script src="assets/v6-watching-shell.js?v=6.0.41"></script>
+<script src="assets/v6-guide.js?v=6.0.41"></script>
 </body>
 </html>

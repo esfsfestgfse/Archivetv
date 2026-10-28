@@ -32,6 +32,23 @@ async function test(file) {
   s.iaQueueFetch=async()=>({items:[item],ready:5,candidates:5,rotation:0});
   await vm.runInContext('refillIAQueue({num:12},{})',s);
   assert.equal(s.iaQueueRetries['12'],0,'successful response resets backoff');
+  // An overlapping/stale five-item response is not catalog exhaustion. The
+  // API can already contain an unseen, resolved program beyond that shelf.
+  const watched = {identifier:'already-skipped', media:{url:'https://example.com/seen.mp4'}};
+  const unseen = {identifier:'unseen-episode', media:{url:'https://example.com/unseen.mp4'}};
+  const unrelated = {identifier:'off-genre', media:{url:'https://example.com/unrelated.mp4'}};
+  const pending = {identifier:'metadata-only'};
+  s.iaViewerRecentIds=()=>[watched.identifier];
+  s.iaProgramAllowed=it=>it.identifier!==unrelated.identifier && (it.identifier!==watched.identifier || it._freshnessFallback);
+  s.iaQueueFetch=async()=>({items:[watched],candidateItems:[watched,pending,unrelated,unseen,unseen],ready:1,candidates:5,rotation:0});
+  const deep = await vm.runInContext('iaQueueRequest({num:12},{},5)',s);
+  assert.deepEqual(Array.from(deep,it=>it.identifier),[unseen.identifier],file+': use unseen playable catalog depth before repeating a skipped shelf');
+  assert.equal(deep[0]._freshnessFallback,undefined,'unseen program is not an exhaustion fallback');
+  s.iaQueueFetch=async()=>({items:[watched],candidateItems:[watched,pending,unrelated],ready:1,candidates:3,rotation:0});
+  const exhausted = await vm.runInContext('iaQueueRequest({num:12},{},5)',s);
+  assert.equal(exhausted[0].identifier,watched.identifier,'genuine ready-catalog exhaustion still has a recovery fallback');
+  assert.equal(exhausted[0]._freshnessFallback,true);
+  s.iaProgramAllowed=()=>true;
   s.iaQueueFetch=async()=>{throw Error('timeout');};
   await vm.runInContext('refillIAQueue({num:12},{})',s);
   assert.equal(timers.at(-1).ms,5000);

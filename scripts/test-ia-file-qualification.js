@@ -38,6 +38,8 @@ test('reviewed editorial admission rejects the reproduced contamination in every
     ['209',{identifier:'army-air-forces-newsreels::Reel 1.mp4',title:'US Army Air Forces Newsreels · Reel 1'},true],
     ['209',{identifier:'generic::clip.mp4',title:'Airport Commission Meeting - October 2026',subject:'aircraft aviation'},false],
     ['209',{identifier:'MIT6_832S09',title:'MIT 6.832 Underactuated Robotics, Spring 2009',subject:'aircraft; swimming; flapping flight'},false],
+    ['209',{identifier:'Led_Zeppelin_Rare_2_1969-1988',title:'Led Zeppelin Rare 2 1969 1988',genreVerified:true},false],
+    ['209',{identifier:'ntvva-Navigator_Public_Art_at_Norfolk_International_Airport',title:'Navigator Public Art at Norfolk International Airport'},false],
     ['209',{identifier:'cstmaah_000052::cstmaah_000052_access.mp4',title:'Winning His Wings'},true],
     ['209',{identifier:'200594_Hawaii_at_Your_Wingtip::200594_Hawaii_at_Your_Wingtip_master.intros.mp4',title:'Hawaii at Your Wingtip'},true],
     ['209',{identifier:'the-big-plane-trip-b-1-t-00::THE_BIG_PLANE_TRIP-B1_t00.ia.mp4',title:'The Big Plane Trip'},true],

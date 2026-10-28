@@ -82,6 +82,7 @@ export function iaReviewedFileAllowed(item, channel) {
     const topic = /\b(?:aviation|aircraft|airplanes?|aeroplanes?|airships?|airlines?|airports?|aviators?|helicopters?|zeppelins?|air\s+forces?|flight|flying fortress|fighter jets?|corsair|tomcat|vulcan bomber|dogfights?)\b/i;
     const title = String(item.title || '').replace(/[_-]+/g, ' '), parts = title.split(/\s+·\s+/);
     const child = parts.length > 1 ? parts[parts.length - 1] : title;
+    if (/\bled zeppelin\b|\bpublic art\b/i.test(child)) return false;
     const fileTitle = file.replace(/(?:\.ia)?\.[^.]+$/, '').replace(/[._-]+/g, ' ');
     const genericChild = /^(?:(?:episode|ep|part|reel|disc|disk|video|chapter)\s*\d+[a-z]?|\d+)$/i.test(child.trim());
     const reviewed = (source === 'cstmaah_000052' && /^cstmaah_000052_access(?:\.ia)?\.mp4$/i.test(file))

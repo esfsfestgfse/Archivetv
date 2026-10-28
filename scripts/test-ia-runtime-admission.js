@@ -40,6 +40,13 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
     assert.equal(await scope.playFile(bad,{num:209},{},1,false),false);
     assert.equal(calls.created,0);assert.equal(calls.published,0);
   });
+  test(file + ': Aviation saved shelves defer unknown-duration clips to qualification', () => {
+    const {scope}=client(file),item=program({title:'Aviation history',genreVerified:true});
+    assert.equal(scope.iaCachedProgramAllowed({num:209},item,{}),false);
+    assert.equal(scope.iaCachedProgramAllowed({num:209},{...item,runtime:30},{}),false);
+    assert.equal(scope.iaCachedProgramAllowed({num:209},{...item,runtime:1800},{}),true);
+    assert.equal(scope.iaCachedProgramAllowed({num:209},{...item,media:{runtime:1800}},{}),true);
+  });
   test(file + ': the ad cap pauses playback before advancing the program', async () => {
     const { scope, video, timers } = client(file), events = [];
     video.paused = false;

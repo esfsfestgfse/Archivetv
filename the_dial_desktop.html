@@ -9,7 +9,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>REALSIGNAL · Retro Cable 6.0.38</title>
+<title>REALSIGNAL · Retro Cable 6.0.39</title>
 <meta name="realsignal-ia-repair-channels" content="10,12,22,150">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
@@ -17,7 +17,7 @@
 <script src="assets/ok-embed-runtime.js?v=5.6.29"></script>
 <script src="assets/ia-playback-shelf.js?v=5.6.29"></script>
 <script src="assets/vimeo-embed-runtime.js?v=5.5.85"></script>
-<script src="assets/youtube-embed-runtime.js?v=6.0.38"></script>
+<script src="assets/youtube-embed-runtime.js?v=6.0.39"></script>
 <!-- Source Suite starts verified YouTube playback on a cold tune. Warm the exact
      origins it uses so DNS/TLS setup is not serialized behind catalog discovery. -->
 <link rel="preconnect" href="https://www.googleapis.com" crossorigin>
@@ -1701,16 +1701,16 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
 @media(prefers-reduced-motion:reduce){.sports-screen *,.wx-screen *,.wr-cabinet *{animation-duration:.001ms!important;transition-duration:.001ms!important}}
 </style>
 <link rel="stylesheet" href="assets/guide-overhaul.css">
-<link rel="stylesheet" href="assets/v6-watching-shell.css?v=6.0.38">
-<link rel="stylesheet" href="assets/v6-guide.css?v=6.0.38">
-<script src="assets/commercial-scheduler.js?v=6.0.38"></script>
-<script src="assets/fast-catalog.js?v=6.0.38"></script>
-<link rel="stylesheet" href="assets/weather-networks.css?v=6.0.38">
-<script src="assets/weather-networks.js?v=6.0.38"></script>
-<link rel="stylesheet" href="assets/weather-local.css?v=6.0.38">
-<script src="assets/weather-local.js?v=6.0.38"></script>
-<script src="assets/source-program-policy.js?v=6.0.38"></script>
-<script src="assets/peertube-media.js?v=6.0.38"></script>
+<link rel="stylesheet" href="assets/v6-watching-shell.css?v=6.0.39">
+<link rel="stylesheet" href="assets/v6-guide.css?v=6.0.39">
+<script src="assets/commercial-scheduler.js?v=6.0.39"></script>
+<script src="assets/fast-catalog.js?v=6.0.39"></script>
+<link rel="stylesheet" href="assets/weather-networks.css?v=6.0.39">
+<script src="assets/weather-networks.js?v=6.0.39"></script>
+<link rel="stylesheet" href="assets/weather-local.css?v=6.0.39">
+<script src="assets/weather-local.js?v=6.0.39"></script>
+<script src="assets/source-program-policy.js?v=6.0.39"></script>
+<script src="assets/peertube-media.js?v=6.0.39"></script>
 </head>
 <body>
 <script>
@@ -1722,7 +1722,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="6.0.38-desktop-retro-cable";
+window.__ATV_BUILD="6.0.39-desktop-retro-cable";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -7816,8 +7816,6 @@ function iaProgramAllowed(item,sl,readOnly){
 function iaCachedProgramAllowed(ch,pl,sl){
   var currentSl=sl||(typeof slotFor==="function"?slotFor(ch,0,{preview:true}):null);
   if(ch&&!iaReviewedFileAllowed(pl,ch.num))return false;
-  // An unqualified saved URL is a candidate, not an instant-play shelf item.
-  if(ch&&Number(ch.num)===209&&!(Number(pl&&(pl.media&&pl.media.runtime||pl.runtimeSeconds||pl.duration||pl.runtime||pl.meta&&pl.meta.runtime))>=Math.max(900,Number(currentSl&&currentSl.program&&currentSl.program.minRuntimeSeconds)||0)))return false;
   if(ch&&Number(ch.num)===80&&!iaHuntingAllowed(pl))return false;
   if(ch&&Number(ch.num)===201&&!iaCookingAllowed(pl))return false;
   if(ch&&Number(ch.num)===20&&!iaCourtroomAllowed(pl))return false;
@@ -7887,7 +7885,7 @@ function iaDisplayTitle(it,ch){var title=String((it&&((it.title)||(it.meta&&it.m
 function adoptIAResolvedMedia(ch,sl,id,expected,editorial,pl){delete iaProgramPendingAt[id];if(!pl){iaMarkProgramFailed(id);setTimeout(function(){if(powered)refillIAQueue(ch,sl);},160);}var current=(iaProgramQueues[iaQueueKey(ch)]||[]).find(function(x){return x&&x.identifier===id;});if(pl){pl.title=pl.title||editorial.title||iaDisplayTitle(current||{identifier:id},ch);pl.year=pl.year||editorial.year||(current&&current.year)||"";pl.meta=Object.assign({},pl.meta||{},editorial);if(current)current.media={type:pl.type||expected,url:pl.url,alts:pl.alts||[]};if(!fastTuneGet(ch.num))fastTunePut(ch.num,Object.assign({},pl,{type:pl.type||expected}));iaReadyShelfSave(ch);}iaProgramMedia[id]=pl;warmIAQueueHead(ch);return pl;}
 var iaProgramResolvers={};
 function queueIAProgramMedia(ch,sl,it,expected,editorial){var id=it.identifier;if(iaProgramResolvers[id])return;var prior=iaProgramMedia[id]&&typeof iaProgramMedia[id]==="object"&&iaProgramMedia[id].url?iaProgramMedia[id]:null;iaProgramPendingAt[id]=Date.now();var pending=resolvePlayable(id,expected).then(function(pl){return adoptIAResolvedMedia(ch,sl,id,expected,editorial,pl);}).catch(function(){delete iaProgramPendingAt[id];if(!prior){iaMarkProgramFailed(id);iaProgramMedia[id]=null;}else iaProgramMedia[id]=prior;setTimeout(function(){if(powered)refillIAQueue(ch,sl);},160);return prior||null;}).finally(function(){delete iaProgramResolvers[id];});iaProgramResolvers[id]=pending;if(!prior)iaProgramMedia[id]=pending;}
-function warmIAQueue(ch,sl,hydrating,limit){var q=iaProgramQueues[iaQueueKey(ch)]||[],expected=iaExpectedMedia(ch);q.slice(0,limit===undefined?5:Math.max(0,Number(limit)||0)).forEach(function(it){if(!it||iaProgramFailed(it.identifier)||iaProgramMedia[it.identifier])return;var id=it.identifier,editorial={identifier:id,title:iaDisplayTitle(it,ch),year:it.year||"",creator:it.creator||"",collection:it.collection||"",subject:it.subject||"",lane:it.lane};if(it.media&&it.media.url){if(it.media.type&&it.media.type!==expected){iaMarkProgramFailed(id);return;}var inlineUrls=(it.media.alts||[]).concat([it.media.url]).filter(Boolean),inlinePrimary=inlineUrls.find(iaArchiveDirectURL)||inlineUrls.find(function(u){return /archive\.org\/download\//i.test(String(u));})||inlineUrls[0];if(iaInterstitialMedia(inlinePrimary)){iaMarkProgramFailed(id);return;}/* Archive download redirects are resolved to an item-specific CDN host before promotion. */if(!iaArchiveDirectURL(inlinePrimary)&&/archive\.org\/download\//i.test(String(inlinePrimary))){queueIAProgramMedia(ch,sl,it,expected,editorial);return;}var inline={type:it.media.type||expected,url:inlinePrimary,alts:inlineUrls.filter(function(u){return u!==inlinePrimary;}).slice(0,8),id:id,title:iaDisplayTitle(it,ch),year:it.year||"",captions:null,meta:editorial};iaProgramMedia[id]=inline;if(!fastTuneGet(ch.num))fastTunePut(ch.num,inline);return;}/* Resolve all five in parallel and replace the Promise with its settled value so tuning can choose whichever candidate is actually ready. */queueIAProgramMedia(ch,sl,it,expected,editorial);});warmIAQueueHead(ch);}
+function warmIAQueue(ch,sl,hydrating,limit){var q=iaProgramQueues[iaQueueKey(ch)]||[],expected=iaExpectedMedia(ch);q.slice(0,limit===undefined?5:Math.max(0,Number(limit)||0)).forEach(function(it){if(!it||iaProgramFailed(it.identifier)||iaProgramMedia[it.identifier])return;var id=it.identifier,editorial={identifier:id,title:iaDisplayTitle(it,ch),year:it.year||"",creator:it.creator||"",collection:it.collection||"",subject:it.subject||"",lane:it.lane};if(it.media&&it.media.url){if(it.media.type&&it.media.type!==expected){iaMarkProgramFailed(id);return;}var inlineUrls=(it.media.alts||[]).concat([it.media.url]).filter(Boolean),inlinePrimary=inlineUrls.find(iaArchiveDirectURL)||inlineUrls.find(function(u){return /archive\.org\/download\//i.test(String(u));})||inlineUrls[0];if(iaInterstitialMedia(inlinePrimary)){iaMarkProgramFailed(id);return;}/* Archive download redirects are resolved to an item-specific CDN host before promotion. */if(!iaArchiveDirectURL(inlinePrimary)&&/archive\.org\/download\//i.test(String(inlinePrimary))){queueIAProgramMedia(ch,sl,it,expected,editorial);return;}var inline={type:it.media.type||expected,url:inlinePrimary,alts:inlineUrls.filter(function(u){return u!==inlinePrimary;}).slice(0,8),id:id,title:iaDisplayTitle(it,ch),year:it.year||"",captions:null,runtime:iaRuntimeSeconds(it.media.runtime||it.runtime)||null,width:Number(it.media.width)||0,height:Number(it.media.height)||0,meta:editorial};iaProgramMedia[id]=inline;if(!fastTuneGet(ch.num))fastTunePut(ch.num,inline);return;}/* Resolve all five in parallel and replace the Promise with its settled value so tuning can choose whichever candidate is actually ready. */queueIAProgramMedia(ch,sl,it,expected,editorial);});warmIAQueueHead(ch);}
 function iaQueueHasReadyProgram(ch){var q=iaProgramQueues[iaQueueKey(ch)]||[];return q.some(function(it){var pl=it&&iaProgramMedia[it.identifier],w=it&&iaMediaWarmers[iaMediaWarmKey(ch,it)];return !!((w&&w.el.readyState>=2)||(pl&&typeof pl.then!=="function"&&pl.url));});}
 /* A queue can contain five perfectly valid identifiers while every media
    resolver is still pending (or has just failed). Treat that as an empty
@@ -8980,12 +8978,12 @@ function iaMigrateHalloweenFiles(){
 }
 iaMigrateHalloweenFiles();
 function fastTuneGet(chNum){var e=fastTuneCache[String(chNum)],ch=typeof byNum==="function"?byNum(chNum):null,expected=iaExpectedMedia(ch);
-  if(!e||!e.pl||!e.pl.url||e.pl.type!==expected||!iaCachedProgramAllowed(ch,e.pl)||Date.now()-e.at>FAST_TUNE_TTL||isTemporarilySkipped(e.pl.id)||iaProgramFailed(e.pl.id)||blockedId(e.pl.id)||(Array.isArray(banned)&&banned.indexOf(e.pl.id)>=0)){if(e){delete fastTuneCache[String(chNum)];store.set("fastTune",fastTuneCache);}return null;}
+  if(!e||!e.pl||!e.pl.url||e.pl.type!==expected||(Number(chNum)===209&&!(Number(e.pl.runtime||e.pl.duration||e.pl.meta&&e.pl.meta.runtime)>=900))||!iaCachedProgramAllowed(ch,e.pl)||Date.now()-e.at>FAST_TUNE_TTL||isTemporarilySkipped(e.pl.id)||iaProgramFailed(e.pl.id)||blockedId(e.pl.id)||(Array.isArray(banned)&&banned.indexOf(e.pl.id)>=0)){if(e){delete fastTuneCache[String(chNum)];store.set("fastTune",fastTuneCache);}return null;}
   return {type:e.pl.type,url:e.pl.url,alts:(e.pl.alts||[]).slice(),id:e.pl.id,captions:e.pl.captions||null,
-    meta:e.pl.meta||{},title:e.pl.title||iaDisplayTitle(e.pl,ch),year:e.pl.year||""};}
+    meta:e.pl.meta||{},runtime:e.pl.runtime||null,width:e.pl.width||0,height:e.pl.height||0,title:e.pl.title||iaDisplayTitle(e.pl,ch),year:e.pl.year||""};}
 function fastTunePut(chNum,it){if(!it||!it.id||!it.url)return;
   fastTuneCache[String(chNum)]={at:Date.now(),pl:{type:it.type,url:it.url,alts:(it.alts||[]).slice(0,4),id:it.id,
-    captions:it.captions||null,meta:it.meta||{},title:it.title||"",year:it.year||""}};
+    captions:it.captions||null,meta:it.meta||{},runtime:iaRuntimeSeconds(it.runtime||it.media&&it.media.runtime||it.meta&&it.meta.runtime)||null,width:it.width||it.media&&it.media.width||0,height:it.height||it.media&&it.media.height||0,title:it.title||"",year:it.year||""}};
   var keys=Object.keys(fastTuneCache).sort(function(a,b){return fastTuneCache[a].at-fastTuneCache[b].at;});
   while(keys.length>FAST_TUNE_MAX)delete fastTuneCache[keys.shift()]; store.set("fastTune",fastTuneCache);}
 function fastTuneDrop(chNum){if(fastTuneCache[String(chNum)]){delete fastTuneCache[String(chNum)];store.set("fastTune",fastTuneCache);}}
@@ -19308,16 +19306,16 @@ window.__atvBootDone=true; /* app is up -- from here on, errors get logged, not 
   };
 })();
 </script>
-<script src="assets/source-catalog-client.js?v=6.0.38"></script>
+<script src="assets/source-catalog-client.js?v=6.0.39"></script>
 <script src="assets/verified-guide-client.js"></script>
 <script src="assets/guide-overhaul.js"></script>
 <script src="assets/playback-audit.js"></script>
-<script src="assets/release2-runtime.js?v=6.0.38"></script>
+<script src="assets/release2-runtime.js?v=6.0.39"></script>
 <script src="assets/release3-runtime.js"></script>
 <script src="assets/release31-runtime.js"></script>
 <script src="assets/guide-contract.js?v=v6-contract-1"></script>
-<script src="assets/guide-contract-client.js?v=6.0.38"></script>
-<script src="assets/v6-watching-shell.js?v=6.0.38"></script>
-<script src="assets/v6-guide.js?v=6.0.38"></script>
+<script src="assets/guide-contract-client.js?v=6.0.39"></script>
+<script src="assets/v6-watching-shell.js?v=6.0.39"></script>
+<script src="assets/v6-guide.js?v=6.0.39"></script>
 </body>
 </html>

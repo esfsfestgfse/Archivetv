@@ -352,15 +352,17 @@ for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])test(file+': 
 for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])for(const generic of [false,true])test(file+': first-tune inline media retains '+(generic?'file-derived':'editorial')+' episode labels',()=>{
   const source=fs.readFileSync(path.join(root,file),'utf8'),cached=[];
   const id='keeping-up::Keeping_Up_Appearances_S04_E03.mp4',item={identifier:id,title:generic?'Blighty':'Keeping Up Appearances · Series 4 Episode 3',year:1993,
-    media:{type:'video',url:'https://dn720001.ca.archive.org/0/items/keeping-up/episode.mp4'}};
+    media:{type:'video',url:'https://dn720001.ca.archive.org/0/items/keeping-up/episode.mp4',runtime:1800,width:640,height:480}};
   const s={iaProgramQueues:{'118':[item]},iaQueueKey:ch=>String(ch.num),iaExpectedMedia:()=> 'video',iaProgramFailed:()=>false,
     iaProgramMedia:{},iaInterstitialMedia:()=>false,fastTuneGet:()=>null,fastTunePut:(channel,media)=>cached.push(media),warmIAQueueHead:()=>{}};
   vm.createContext(s);
+  vm.runInContext(source.split('\n').find(line=>line.startsWith('function iaRuntimeSeconds(')),s);
   vm.runInContext(source.slice(source.indexOf('function iaArchiveDirectURL('),source.indexOf('function adoptIAResolvedMedia('))+
     source.slice(source.indexOf('function warmIAQueue(ch,'),source.indexOf('function iaQueueHasReadyProgram('))+';warmIAQueue({num:118,nm:"Blighty"},{},false,1);',s);
   const expected=generic?'Keeping Up Appearances S04 E03':'Keeping Up Appearances · Series 4 Episode 3';
   assert.equal(s.iaProgramMedia[id].title,expected,'the actual playable record needs its label before the first frame');
   assert.equal(s.iaProgramMedia[id].year,1993);assert.equal(cached[0].title,expected);
+  assert.equal(cached[0].runtime,1800);assert.equal(cached[0].width,640);assert.equal(cached[0].height,480);
 });
 
 for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])test(file+': a legacy titleless fast-tune entry recovers its episode label without losing the playable cache',()=>{

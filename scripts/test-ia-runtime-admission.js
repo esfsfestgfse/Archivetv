@@ -41,11 +41,14 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
     assert.equal(calls.created,0);assert.equal(calls.published,0);
   });
   test(file + ': Aviation saved shelves defer unknown-duration clips to qualification', () => {
-    const {scope}=client(file),item=program({title:'Aviation history',genreVerified:true});
-    assert.equal(scope.iaCachedProgramAllowed({num:209},item,{}),false);
+    const {scope,source}=client(file),item=program({title:'Aviation history',genreVerified:true});
+    Object.assign(scope,{fastTuneCache:{},FAST_TUNE_TTL:86400000,FAST_TUNE_MAX:10,byNum:()=>({num:209}),iaExpectedMedia:()=> 'video',store:{set(){}}});
+    vm.runInContext(source.split('\n').find(line=>line.startsWith('function iaRuntimeSeconds(')),scope);
+    vm.runInContext(source.slice(source.indexOf('function fastTuneGet('),source.indexOf('var rapidWarmVideo=',source.indexOf('function fastTuneGet('))),scope);
+    scope.fastTunePut(209,item);assert.equal(scope.fastTuneGet(209),null,'unqualified saved item cannot use the instant path');
+    scope.fastTunePut(209,{...item,runtime:1800});assert.equal(scope.fastTuneGet(209).runtime,1800,'duration must survive both cache boundaries');
+    assert.equal(scope.iaCachedProgramAllowed({num:209},item,{}),true,'fresh unresolved programs must reach metadata/decoder qualification');
     assert.equal(scope.iaCachedProgramAllowed({num:209},{...item,runtime:30},{}),false);
-    assert.equal(scope.iaCachedProgramAllowed({num:209},{...item,runtime:1800},{}),true);
-    assert.equal(scope.iaCachedProgramAllowed({num:209},{...item,media:{runtime:1800}},{}),true);
   });
   test(file + ': the ad cap pauses playback before advancing the program', async () => {
     const { scope, video, timers } = client(file), events = [];

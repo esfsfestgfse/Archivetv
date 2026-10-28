@@ -23,6 +23,8 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
     ['rejects regional-language channel identity with blank API language', {title:'Baby Looney Tunes compilation cartoon for kids', account:'Cartoon Network India'}, false],
     ['accepts an English cartoon about India from a neutral account', {title:'The History of Animation in India', account:'Archive Television'}, true],
     ['rejects declared non-English audio', {title:'Classic cartoon full episode', defaultAudioLanguage:'es', account:'Cartoon Vault'}, false],
+    ['audio declaration overrides an English metadata locale', {title:'Comedy Full Performance', defaultAudioLanguage:'de',language:'en-US'}, false],
+    ['English audio is not rejected for a translated metadata locale', {title:'Comedy Full Performance', defaultAudioLanguage:'en-US',defaultLanguage:'de'}, true],
     ['rejects non-Latin titles', {title:'日本のアニメ 完全版', account:'Animation Vault'}, false],
     ['accepts an English full episode from an unbranded account', {title:'Classic Cartoon Full Episode', account:'Cartoon Vault'}, true],
   ];

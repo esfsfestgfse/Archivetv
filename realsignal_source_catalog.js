@@ -738,7 +738,7 @@ function rightsOkay(item, provider) {
 }
 
 function englishOkay(item, englishSubject = false) {
-  const declared = text(item && (item.language || item.defaultAudioLanguage || item.defaultLanguage), 40).toLowerCase();
+  const declared = text(item && (item.defaultAudioLanguage || item.language || item.defaultLanguage), 40).toLowerCase();
   if (declared && !/^en(?:[-_]|$)/i.test(declared)) return false;
   let sample = text([item && item.title, item && item.description, item && item.account].join(" "), 3000);
   // An English-language program about Spanish cooking is not a Spanish dub.
@@ -917,6 +917,8 @@ function normalized(item, provider, query) {
     embedAllowed: item.embedAllowed === true,
     ...(provider === "Vimeo" ? { embedVerified: item.embedVerified === true, publicEmbed: item.publicEmbed === true, verifiedAt: Number(item.verifiedAt) || 0 } : {}),
     language: text(item.language, 40),
+    defaultAudioLanguage: text(item.defaultAudioLanguage, 40),
+    defaultLanguage: text(item.defaultLanguage, 40),
     seriesTitle: text(item.seriesTitle, 150),
     seriesId: text(item.seriesId, 100),
     seriesStartYear: Number(item.seriesStartYear) || 0,
@@ -1132,6 +1134,8 @@ async function youtube(profile, rotation, env, options = {}) {
         account: text(item.snippet && item.snippet.channelTitle, 180),
         year: text(item.snippet && item.snippet.publishedAt, 12),
         language: text(item.snippet && (item.snippet.defaultAudioLanguage || item.snippet.defaultLanguage), 40),
+        defaultAudioLanguage: text(item.snippet && item.snippet.defaultAudioLanguage, 40),
+        defaultLanguage: text(item.snippet && item.snippet.defaultLanguage, 40),
       })).filter((item) => item.rawId));
       pageToken = text(data.nextPageToken, 120);
       if (!pageToken) break;
@@ -1177,6 +1181,8 @@ async function youtube(profile, rotation, env, options = {}) {
       account: text(item.snippet && item.snippet.channelTitle, 180),
       channelId: text(item.snippet && item.snippet.channelId, 80),
       language: text(item.snippet && (item.snippet.defaultAudioLanguage || item.snippet.defaultLanguage) || candidate.language, 40),
+      defaultAudioLanguage: text(item.snippet && item.snippet.defaultAudioLanguage || candidate.defaultAudioLanguage, 40),
+      defaultLanguage: text(item.snippet && item.snippet.defaultLanguage || candidate.defaultLanguage, 40),
       ...(typeof item.status?.containsSyntheticMedia === "boolean" ? { containsSyntheticMedia: item.status.containsSyntheticMedia } : {}),
       year: text(item.snippet && item.snippet.publishedAt, 12),
       rights: "Standard YouTube license",

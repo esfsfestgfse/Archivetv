@@ -9,7 +9,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>REALSIGNAL · Retro Cable 6.0.36</title>
+<title>REALSIGNAL · Retro Cable 6.0.37</title>
 <meta name="realsignal-ia-repair-channels" content="10,12,22,150">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
@@ -17,7 +17,7 @@
 <script src="assets/ok-embed-runtime.js?v=5.6.29"></script>
 <script src="assets/ia-playback-shelf.js?v=5.6.29"></script>
 <script src="assets/vimeo-embed-runtime.js?v=5.5.85"></script>
-<script src="assets/youtube-embed-runtime.js?v=6.0.36"></script>
+<script src="assets/youtube-embed-runtime.js?v=6.0.37"></script>
 <!-- Source Suite starts verified YouTube playback on a cold tune. Warm the exact
      origins it uses so DNS/TLS setup is not serialized behind catalog discovery. -->
 <link rel="preconnect" href="https://www.googleapis.com" crossorigin>
@@ -1701,16 +1701,16 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
 @media(prefers-reduced-motion:reduce){.sports-screen *,.wx-screen *,.wr-cabinet *{animation-duration:.001ms!important;transition-duration:.001ms!important}}
 </style>
 <link rel="stylesheet" href="assets/guide-overhaul.css">
-<link rel="stylesheet" href="assets/v6-watching-shell.css?v=6.0.36">
-<link rel="stylesheet" href="assets/v6-guide.css?v=6.0.36">
-<script src="assets/commercial-scheduler.js?v=6.0.36"></script>
-<script src="assets/fast-catalog.js?v=6.0.36"></script>
-<link rel="stylesheet" href="assets/weather-networks.css?v=6.0.36">
-<script src="assets/weather-networks.js?v=6.0.36"></script>
-<link rel="stylesheet" href="assets/weather-local.css?v=6.0.36">
-<script src="assets/weather-local.js?v=6.0.36"></script>
-<script src="assets/source-program-policy.js?v=6.0.36"></script>
-<script src="assets/peertube-media.js?v=6.0.36"></script>
+<link rel="stylesheet" href="assets/v6-watching-shell.css?v=6.0.37">
+<link rel="stylesheet" href="assets/v6-guide.css?v=6.0.37">
+<script src="assets/commercial-scheduler.js?v=6.0.37"></script>
+<script src="assets/fast-catalog.js?v=6.0.37"></script>
+<link rel="stylesheet" href="assets/weather-networks.css?v=6.0.37">
+<script src="assets/weather-networks.js?v=6.0.37"></script>
+<link rel="stylesheet" href="assets/weather-local.css?v=6.0.37">
+<script src="assets/weather-local.js?v=6.0.37"></script>
+<script src="assets/source-program-policy.js?v=6.0.37"></script>
+<script src="assets/peertube-media.js?v=6.0.37"></script>
 </head>
 <body>
 <script>
@@ -1722,7 +1722,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="6.0.36-desktop-retro-cable";
+window.__ATV_BUILD="6.0.37-desktop-retro-cable";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -7656,6 +7656,23 @@ function iaReviewedFileAllowed(item, channel) {
   // This DVD parent has continuation chunks; title _1 alone is not a full episode.
   if (source === 'vts-01-1_20231104' && (!file || /^VTS_\d+_\d+(?:\.ia)?\.mp4$/i.test(file))) return false;
   const identity = [item.title, source, file].join(' ').toLowerCase().replace(/[_-]+/g, ' ');
+  if (String(channel) === '209') {
+    // Collection subjects describe every sibling together. They cannot qualify
+    // Peeping Tom just because another film is about missing aircraft.
+    const topic = /\b(?:aviation|aircraft|airplanes?|aeroplanes?|airships?|airlines?|airports?|aviators?|helicopters?|zeppelins?|air\s+forces?|flight|flying fortress|fighter jets?|corsair|tomcat|vulcan bomber|dogfights?)\b/i;
+    const title = String(item.title || '').replace(/[_-]+/g, ' '), parts = title.split(/\s+·\s+/);
+    const child = parts.length > 1 ? parts[parts.length - 1] : title;
+    const fileTitle = file.replace(/(?:\.ia)?\.[^.]+$/, '').replace(/[._-]+/g, ' ');
+    const genericChild = /^(?:(?:episode|ep|part|reel|disc|disk|video|chapter)\s*\d+[a-z]?|\d+)$/i.test(child.trim());
+    const reviewed = (source === 'cstmaah_000052' && /^cstmaah_000052_access(?:\.ia)?\.mp4$/i.test(file))
+      || (source === 'ARC-39163' && /^ARC-39163(?:\.ia)?\.mp4$/i.test(file))
+      || (source === '33-312' && /^33-312-r1(?:\.ia)?\.mp4$/i.test(file))
+      || (source === '200594_Hawaii_at_Your_Wingtip' && file === '200594_Hawaii_at_Your_Wingtip_master.intros.mp4')
+      || (source === 'the-big-plane-trip-b-1-t-00' && file === 'THE_BIG_PLANE_TRIP-B1_t00.ia.mp4');
+    if (/\b(?:commission(?:ers)?|authority|council|board)\s+(?:meetings?|sessions?)\b|\b(?:phone|airplane mode)\b/i.test(child)) return false;
+    if (!reviewed && !topic.test(child) && !topic.test(fileTitle)
+      && !(parts.length > 1 && genericChild && topic.test(parts.slice(0, -1).join(' ')))) return false;
+  }
   // Actor/show names also appear in long discussion programs. Their format
   // identity must not pass as an episode merely because the subject names a sitcom.
   if (String(channel) === '10' && /\b(?:american tv with mitchell hadley|(?:television|tv|sitcom) (?:history )?(?:discussion|retrospective|video essay|analysis)|(?:discussion|retrospective|video essay) (?:about|of) (?:classic )?(?:television|tv|sitcoms?))\b/.test(identity)) return false;
@@ -8679,7 +8696,7 @@ function v2YouTubeShort(item){var hay=v2Text([item.title,item.description,item.t
    Treat an explicit language/region brand as a hard signal instead of trusting an
    English-looking title. This catches channels such as Cartoon Network India while
    leaving genuinely English uploads from any country eligible. */
-function v2YouTubeEnglish(item){var declared=v2Text([item.defaultAudioLanguage,item.defaultLanguage,item.language]).toLowerCase();if(declared&&!/^en(?:[-_]|$)/i.test(declared))return false;var titleText=v2Text([item.title,item.description,item.tags]).replace(/https?:\/\/\S+/g," "),account=v2Text([item.account,item.channelTitle]).toLowerCase(),sample=titleText+" "+account;if(/[\u0400-\u04ff\u0600-\u06ff\u0900-\u097f\u1100-\u11ff\u3040-\u30ff\u3130-\u318f\u3400-\u9fff\uac00-\ud7af\u0590-\u05ff\u0e00-\u0e7f\u0370-\u03ff]/.test(sample))return false;if(/\b(?:india|hindi|tamil|telugu|bengali|bangla|marathi|malayalam|kannada|punjabi|urdu|pakistan|indonesia|indonesian|vietnamese|thai|arabic|español|espanol|portugu[eê]s|fran[cç]ais|deutsch|russian|русский|turkish|türk[çc]e|korean|japanese|日本|中文|mandarin)\b/.test(account))return false;var lower=titleText.toLowerCase(),foreign=(lower.match(/\b(el|los|las|una|unos|unas|para|por|con|del|que|una|des|der|die|das|und|ein|eine|den|dem|auf|nicht|ist|che|gli|della|delle|una|per|con|dei|van|het|een|voor|met)\b/g)||[]).length,english=(lower.match(/\b(the|and|for|with|from|this|that|how|what|when|where|history|documentary|film|archive|channel|episode|cartoon|movie|show|full|complete)\b/g)||[]).length;return foreign<2||english>=foreign;}
+function v2YouTubeEnglish(item){var declared=v2Text(item.defaultAudioLanguage||item.language||item.defaultLanguage).toLowerCase();if(declared&&!/^en(?:[-_]|$)/i.test(declared))return false;var titleText=v2Text([item.title,item.description,item.tags]).replace(/https?:\/\/\S+/g," "),account=v2Text([item.account,item.channelTitle]).toLowerCase(),sample=titleText+" "+account;if(/[\u0400-\u04ff\u0600-\u06ff\u0900-\u097f\u1100-\u11ff\u3040-\u30ff\u3130-\u318f\u3400-\u9fff\uac00-\ud7af\u0590-\u05ff\u0e00-\u0e7f\u0370-\u03ff]/.test(sample))return false;if(/\b(?:india|hindi|tamil|telugu|bengali|bangla|marathi|malayalam|kannada|punjabi|urdu|pakistan|indonesia|indonesian|vietnamese|thai|arabic|español|espanol|portugu[eê]s|fran[cç]ais|deutsch|russian|русский|turkish|türk[çc]e|korean|japanese|日本|中文|mandarin)\b/.test(account))return false;var lower=titleText.toLowerCase(),foreign=(lower.match(/\b(el|los|las|una|unos|unas|para|por|con|del|que|una|des|der|die|das|und|ein|eine|den|dem|auf|nicht|ist|che|gli|della|delle|una|per|con|dei|van|het|een|voor|met)\b/g)||[]).length,english=(lower.match(/\b(the|and|for|with|from|this|that|how|what|when|where|history|documentary|film|archive|channel|episode|cartoon|movie|show|full|complete)\b/g)||[]).length;return foreign<2||english>=foreign;}
 function v2YouTubeBlocked(item){return /\bhow[\s-]+to\b/i.test(v2Text([item.title,item.description,item.tags,item.subject,item.category]))||v2YouTubeShort(item)||!v2YouTubeEnglish(item);}
 function v2SourceTokens(values){var out=[];(values||[]).forEach(function(value){v2Text(value).toLowerCase().split(/\s+/).forEach(function(word){word=word.replace(/^[^a-z0-9]+|[^a-z0-9]+$/g,"");if(word.length<4||/^(?:and|the|for|with|from|this|that|film|films|documentary|documentaries|history|archive|archival|television|tv|video|videos|show|shows|program|programs|channel|network|room|desk|lab|public|current|media|story|stories|short|shorts)$/.test(word)||out.indexOf(word)>=0)return;out.push(word);});});return out;}
 function v2TermHit(hay,term){var t=v2Text(term).toLowerCase();if(!t)return false;if(t.indexOf(" ")>=0)return hay.indexOf(t)>=0;return hay.split(/[^a-z0-9]+/).indexOf(t)>=0;}
@@ -19288,16 +19305,16 @@ window.__atvBootDone=true; /* app is up -- from here on, errors get logged, not 
   };
 })();
 </script>
-<script src="assets/source-catalog-client.js?v=6.0.36"></script>
+<script src="assets/source-catalog-client.js?v=6.0.37"></script>
 <script src="assets/verified-guide-client.js"></script>
 <script src="assets/guide-overhaul.js"></script>
 <script src="assets/playback-audit.js"></script>
-<script src="assets/release2-runtime.js?v=6.0.36"></script>
+<script src="assets/release2-runtime.js?v=6.0.37"></script>
 <script src="assets/release3-runtime.js"></script>
 <script src="assets/release31-runtime.js"></script>
 <script src="assets/guide-contract.js?v=v6-contract-1"></script>
-<script src="assets/guide-contract-client.js?v=6.0.36"></script>
-<script src="assets/v6-watching-shell.js?v=6.0.36"></script>
-<script src="assets/v6-guide.js?v=6.0.36"></script>
+<script src="assets/guide-contract-client.js?v=6.0.37"></script>
+<script src="assets/v6-watching-shell.js?v=6.0.37"></script>
+<script src="assets/v6-guide.js?v=6.0.37"></script>
 </body>
 </html>

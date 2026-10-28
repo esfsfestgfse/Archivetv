@@ -33,6 +33,13 @@ const program = extra => ({ id: 'program::episode.mp4', title: 'Complete televis
   url: 'https://archive.org/download/program/episode.mp4', ...extra });
 
 for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
+  test(file + ': off-genre Aviation cannot escape through a saved shelf or direct Cast publication', async () => {
+    const {scope,calls}=client(file);
+    const bad=program({id:'filmography::Peeping Tom.mp4',title:'Complete Filmography · Peeping Tom',subject:'aircraft',genreVerified:true,url:'https://archive.org/download/filmography/Peeping%20Tom.mp4',runtime:5400});
+    assert.equal(scope.iaCachedProgramAllowed({num:209},bad,{}),false);
+    assert.equal(await scope.playFile(bad,{num:209},{},1,false),false);
+    assert.equal(calls.created,0);assert.equal(calls.published,0);
+  });
   test(file + ': the ad cap pauses playback before advancing the program', async () => {
     const { scope, video, timers } = client(file), events = [];
     video.paused = false;

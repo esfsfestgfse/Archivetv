@@ -19,7 +19,7 @@ function relay(metadata = {}, mediaStatus = 206, redirectedUrl = '', fetchOverri
     } };
   vm.createContext(sandbox);
   vm.runInContext(fs.readFileSync(path.join(root, 'afterglow_ais_relay_worker.js'), 'utf8').replace('export default', 'const worker =') +
-    '\nglobalThis.contract={iaRuntimeAllowed, iaStationQualityGate, queuePlayable, iaPlayableIdentity, hydrateIaQueue, qualifyIaQueueResponse, verifyIaTransport,worker,holidaySeeds:IA_LONG_TAIL_EXPANSIONS["705"],recoverySeeds:orderedIaEmergencySeeds,collectionSeeds:iaRepairCollectionSeeds};', sandbox);
+    '\nglobalThis.contract={expandArchiveContainer,iaRuntimeAllowed, iaStationQualityGate, queuePlayable, iaPlayableIdentity, hydrateIaQueue, qualifyIaQueueResponse, verifyIaTransport,worker,holidaySeeds:IA_LONG_TAIL_EXPANSIONS["705"],recoverySeeds:orderedIaEmergencySeeds,collectionSeeds:iaRepairCollectionSeeds};', sandbox);
   return sandbox.contract;
 }
 const verified = { identifier: 'series::episode.mp4', sourceIdentifier: 'series', title: 'Family sitcom episode',
@@ -30,6 +30,19 @@ test('reviewed editorial admission rejects the reproduced contamination in every
   const {iaReviewedFileAllowed,qualifyIaFileRecord}=await import('../ia_file_contract.js');
   const {catalogFallbackAllowed}=await import('../realsignal_api_v2_worker.js');
   const checks=[
+    ['209',{identifier:'powell-filmography::Peeping Tom 1960.mp4',title:'Powell and Pressburger: The Complete Filmography · Peeping Tom 1960',subject:'One of Our Aircraft Is Missing; aviation',genreVerified:true},false],
+    ['209',{identifier:'powell-filmography::49th Parallel.mp4',title:'Powell and Pressburger: The Complete Filmography · 49th Parallel',subject:'One of Our Aircraft Is Missing',genreVerified:true},false],
+    ['209',{identifier:'powell-filmography::One of Our Aircraft Is Missing.mp4',title:'Powell and Pressburger: The Complete Filmography · One of Our Aircraft Is Missing',subject:'filmography'},true],
+    ['209',{identifier:'aviation-documentaries::Episode 2.mp4',title:'Aviation Documentary Collection · Episode 2',subject:'aviation'},true],
+    ['209',{identifier:'aviation-documentaries::Peeping Tom.mp4',title:'Aviation Documentary Collection · Peeping Tom',subject:'aviation'},false],
+    ['209',{identifier:'army-air-forces-newsreels::Reel 1.mp4',title:'US Army Air Forces Newsreels · Reel 1'},true],
+    ['209',{identifier:'generic::clip.mp4',title:'Airport Commission Meeting - October 2026',subject:'aircraft aviation'},false],
+    ['209',{identifier:'MIT6_832S09',title:'MIT 6.832 Underactuated Robotics, Spring 2009',subject:'aircraft; swimming; flapping flight'},false],
+    ['209',{identifier:'cstmaah_000052::cstmaah_000052_access.mp4',title:'Winning His Wings'},true],
+    ['209',{identifier:'200594_Hawaii_at_Your_Wingtip::200594_Hawaii_at_Your_Wingtip_master.intros.mp4',title:'Hawaii at Your Wingtip'},true],
+    ['209',{identifier:'the-big-plane-trip-b-1-t-00::THE_BIG_PLANE_TRIP-B1_t00.ia.mp4',title:'The Big Plane Trip'},true],
+    ['209',{identifier:'200594_Hawaii_at_Your_Wingtip::Unrelated Movie.mp4',title:'Unrelated Movie'},false],
+    ['202',{identifier:'powell-filmography::Peeping Tom.mp4',title:'Peeping Tom 1960'},true],
     ['234',{identifier:'natural-disaster-survival',title:'The Incredibly Weird History of Natural Disaster Survival',subject:'Roblox History Video Essay'},false],
     ['234',{id:'generic-stream',title:'Natural Disaster Stream',meta:{subject:'TwitchVod;video;'}},false],
     ['234',{identifier:'real-rescue',title:'Flood Rescue Documentary',subject:'natural disaster',description:'Related links include a Minecraft game.'},true],
@@ -110,6 +123,14 @@ test('reviewed editorial admission rejects the reproduced contamination in every
   }
   const bad=checks.find(x=>x[0]==='905'&&!x[2])[1];
   assert.equal(qualifyIaFileRecord({...bad,media:{type:'audio',url:'https://archive.org/download/'+bad.identifier+'/episode.mp3'}},{channel:'905',mediaTypes:['audio']}).accepted,false,'audio qualification cannot bypass channel policy');
+});
+
+test('fresh mixed-filmography expansion admits the aviation sibling, not its inherited subjects',async()=>{
+  const names=['Peeping Tom 1960.mp4','49th Parallel.mp4','One of Our Aircraft Is Missing.mp4'];
+  const f=relay({metadata:{language:'eng'},files:names.map(name=>({name,format:'h.264',length:5400,width:1280,height:720}))});
+  const expanded=await f.expandArchiveContainer({identifier:'powell-filmography',title:'Powell and Pressburger: The Complete Filmography',subject:'One of Our Aircraft Is Missing; aircraft'},'https://relay.invalid',null,20,0);
+  assert.equal(expanded.length,3);
+  assert.deepEqual(Array.from(expanded.filter(item=>f.iaStationQualityGate('209',item)),item=>item.identifier),['powell-filmography::One of Our Aircraft Is Missing.mp4']);
 });
 
 test('stale Blues audio is rejected before local playback or Cast publication',async()=>{

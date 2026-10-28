@@ -5903,6 +5903,23 @@ function iaReviewedFileAllowed(item, channel) {
   // This DVD parent has continuation chunks; title _1 alone is not a full episode.
   if (source === 'vts-01-1_20231104' && (!file || /^VTS_\d+_\d+(?:\.ia)?\.mp4$/i.test(file))) return false;
   const identity = [item.title, source, file].join(' ').toLowerCase().replace(/[_-]+/g, ' ');
+  if (String(channel) === '209') {
+    // Collection subjects describe every sibling together. They cannot qualify
+    // Peeping Tom just because another film is about missing aircraft.
+    const topic = /\b(?:aviation|aircraft|airplanes?|aeroplanes?|airships?|airlines?|airports?|aviators?|helicopters?|zeppelins?|air\s+forces?|flight|flying fortress|fighter jets?|corsair|tomcat|vulcan bomber|dogfights?)\b/i;
+    const title = String(item.title || '').replace(/[_-]+/g, ' '), parts = title.split(/\s+·\s+/);
+    const child = parts.length > 1 ? parts[parts.length - 1] : title;
+    const fileTitle = file.replace(/(?:\.ia)?\.[^.]+$/, '').replace(/[._-]+/g, ' ');
+    const genericChild = /^(?:(?:episode|ep|part|reel|disc|disk|video|chapter)\s*\d+[a-z]?|\d+)$/i.test(child.trim());
+    const reviewed = (source === 'cstmaah_000052' && /^cstmaah_000052_access(?:\.ia)?\.mp4$/i.test(file))
+      || (source === 'ARC-39163' && /^ARC-39163(?:\.ia)?\.mp4$/i.test(file))
+      || (source === '33-312' && /^33-312-r1(?:\.ia)?\.mp4$/i.test(file))
+      || (source === '200594_Hawaii_at_Your_Wingtip' && file === '200594_Hawaii_at_Your_Wingtip_master.intros.mp4')
+      || (source === 'the-big-plane-trip-b-1-t-00' && file === 'THE_BIG_PLANE_TRIP-B1_t00.ia.mp4');
+    if (/\b(?:commission(?:ers)?|authority|council|board)\s+(?:meetings?|sessions?)\b|\b(?:phone|airplane mode)\b/i.test(child)) return false;
+    if (!reviewed && !topic.test(child) && !topic.test(fileTitle)
+      && !(parts.length > 1 && genericChild && topic.test(parts.slice(0, -1).join(' ')))) return false;
+  }
   // Actor/show names also appear in long discussion programs. Their format
   // identity must not pass as an episode merely because the subject names a sitcom.
   if (String(channel) === '10' && /\b(?:american tv with mitchell hadley|(?:television|tv|sitcom) (?:history )?(?:discussion|retrospective|video essay|analysis)|(?:discussion|retrospective|video essay) (?:about|of) (?:classic )?(?:television|tv|sitcoms?))\b/.test(identity)) return false;

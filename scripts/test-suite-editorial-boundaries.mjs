@@ -14,6 +14,30 @@ const observed=[
  ['christmas-cartoon-club','PKnJ Cartoon Podcast - Frosty & The Simpsons Christmas Spectacular!'],
 ];
 const program=(title,extra={})=>({id:'yt:abcdefghijk',title,description:'A substantial original television program.',provider:'YouTube',type:'embed',url:'https://www.youtube-nocookie.com/embed/abcdefghijk',duration:1800,aspectRatio:16/9,language:'en',rights:'Standard YouTube license',...extra});
+test('spoken-language evidence survives misleading English metadata in fresh, retained and cached Source programs',async()=>{
+ const key='comedy-circuit',profile=sourceProfile({profileKey:key});
+ const german=program('Ganze Folge mit Atze Schröder | Lucky Punch Comedy Club',{id:'yt:c5PIN8CRSzs',account:'BR Kabarett & Comedy',language:'en-US'});
+ const conflict=program('Stand Up Comedy Full Performance',{id:'yt:conflict',language:'en-US',defaultAudioLanguage:'de',defaultLanguage:'en'});
+ const good=program('Stand Up Comedy Full Performance',{id:'yt:good',defaultAudioLanguage:'en-US',defaultLanguage:'de'});
+ for(const bad of [german,conflict]){
+  assert.equal(policy.allow(key,bad),false);assert.equal(qualifySourceItem(profile,bad),null);
+  assert.equal(catalogFallbackAllowed(bad,{sourceCatalog:true,channel:key}),false);
+ }
+ const normalized=qualifySourceItem(profile,good);assert.ok(normalized);
+ assert.equal(normalized.defaultAudioLanguage,'en-US');assert.equal(normalized.defaultLanguage,'de');
+ assert.equal(policy.allow('documentary-desk',program('German History | Full Documentary',{defaultAudioLanguage:'en'})),true);
+ const response=await worker.fetch(new Request('https://api.test/api/v3/guide?channel='+key),{realsignal_catalog:db([row(german),row(conflict),row(good)])},{waitUntil(){}});
+ const guide=await response.json();assert.deepEqual(guide.items.map(x=>x.id),[good.id]);
+ const statusResponse=await worker.fetch(new Request('https://api.test/api/v3/source/status?profileKey='+key),{realsignal_catalog:db([row(german),row(conflict),row(good)])},{waitUntil(){}});
+ const status=await statusResponse.json();assert.deepEqual(status.items.map(x=>x.id),[good.id]);
+ assert.equal(status.items[0].defaultAudioLanguage,'en-US');assert.equal(status.items[0].defaultLanguage,'de');
+ for(const file of ['the_dial_desktop.html','the_dial_mobile.html']){
+  const html=fs.readFileSync(new URL('../'+file,import.meta.url),'utf8'),scope={window:{RealSignalSourcePrograms:policy}};vm.createContext(scope);
+  vm.runInContext(['v2SourceProgramAllowed','v2PruneSourcePrograms'].map(name=>html.split('\n').find(line=>line.startsWith('function '+name+'('))).join('\n'),scope);
+  const state={items:[german,conflict,good],cursor:0,currentId:german.id,pendingId:conflict.id};scope.v2PruneSourcePrograms(profile,state);
+  assert.deepEqual(Array.from(state.items,x=>x.id),[good.id]);assert.equal(state.currentId,'');assert.equal(state.pendingId,'');
+ }
+});
 for(const [key,title] of observed)test(key+': observed podcast cannot enter fresh or cached playback',()=>{
  const item=program(title);assert.equal(policy.allow(key,item),false);
  assert.equal(qualifySourceItem(sourceProfile({profileKey:key}),item),null);
@@ -51,7 +75,7 @@ for(const file of ['the_dial_desktop.html','the_dial_mobile.html'])test(file+': 
 function row(item){return {id:item.id,title:item.title,description:item.description,provider:item.provider,duration_seconds:item.duration,aspect_ratio:item.aspectRatio,media_type:item.type,media_url:item.url,rights:item.rights,metadata_json:JSON.stringify(item),catalog_depth:17,unseen_count:12,last_seen_at:Date.now()};}
 function db(rows){return {prepare(sql){return {bind(...args){return {async all(){
  if(!/FROM programs/.test(sql))return {results:[]};
- const limit=Number(args[1])||rows.length,offset=Number(args[2])||0;
+  const paged=/OFFSET\s+\?/i.test(sql),limit=Number(args[paged?args.length-2:args.length-1])||rows.length,offset=paged?Number(args[args.length-1])||0:0;
  return {results:rows.slice(offset,offset+limit).map(r=>{
   const out={...r,catalog_depth:rows.length,unseen_count:rows.filter(x=>x.last_served_at==null).length};
   if(!/SELECT\s+p\.\*|metadata_json/.test(sql))delete out.metadata_json;
@@ -76,6 +100,12 @@ test('IA guide excludes known bad formats while keeping ordinary episodes',async
  const rows=[row(program('Fan-made Space Movie',{id:'fan',provider:'Internet Archive',type:'video'})),row(program('Weekly Television Podcasts',{id:'podcasts',provider:'Internet Archive',type:'video'})),row(program('Complete Original Television Episode',{id:'episode',provider:'Internet Archive',type:'video'}))];
  const response=await worker.fetch(new Request('https://api.example/api/v3/guide?channel=10'),{realsignal_catalog:db(rows)},{waitUntil(){}});
  assert.equal(response.status,200);const guide=await response.json();assert.deepEqual(guide.items.map(x=>x.id),['episode']);
+});
+test('Aviation current/next requalifies trusted mixed-filmography rows',async()=>{
+ const entry=(title,id)=>row(program(title,{id,provider:'Internet Archive',type:'video',subject:'aircraft',genreVerified:true,url:'https://archive.org/download/filmography/'+encodeURIComponent(id.split('::')[1])}));
+ const bad=entry('Complete Filmography · Peeping Tom','filmography::Peeping Tom.mp4'),good=entry('Complete Filmography · One of Our Aircraft Is Missing','filmography::One of Our Aircraft Is Missing.mp4');
+ const response=await worker.fetch(new Request('https://api.test/api/v3/guide?channel=209'),{realsignal_catalog:db([bad,good])},{waitUntil(){}});
+ const guide=await response.json();assert.deepEqual(guide.items.map(x=>x.id),[good.id]);
 });
 
 test('IA current/next omits confirmed keyword collisions while preserving real performances',async()=>{

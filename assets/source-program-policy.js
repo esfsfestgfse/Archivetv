@@ -48,8 +48,12 @@
       // companion-podcast promotions must not veto a real documentary.
       var introduction=clean(item&&item.description).trim().split(/[.!?](?:\s+|$)|\n/)[0];
       if(/\bthis podcast (?:releases?|is|covers?|features?|explores?|discusses?)\b|\bin this episode of\b[^.!?\n]{0,100}\bpodcast\b/i.test(introduction))return false;
-      var language=String(item&&(item.language||item.defaultAudioLanguage||item.defaultLanguage)||'').trim();
+      // Spoken-language metadata takes precedence over title/description locale.
+      var language=String(item&&(item.defaultAudioLanguage||item.language||item.defaultLanguage)||'').trim();
       if(language&&!/^en(?:[-_]|$)/i.test(language))return false;
+      // Official player checked: German speech-derived captions, no alternate
+      // audio selector. Its English subtitles/metadata are not English audio.
+      if([item&&item.id,item&&item.identifier,item&&item.sourceUrl,item&&item.embedUrl].some(function(value){return /(?:^|[:/=])c5PIN8CRSzs(?:[?&#/]|$)/.test(String(value||''));}))return false;
       // Old normalized PeerTube rows lost language. These three were checked
       // against the original provider; future rows retain the declared code.
       if(/^(?:pt:indymotion\.fr\/)(?:2f2b99fa-3fe2-4141-8520-14296e580125|bf85b376-fad9-41df-b97f-f9453743d0d9|db41bbcc-fb64-4526-92c1-520756c638fd)$/.test(String(item&&item.id||'')))return false;

@@ -78,6 +78,7 @@ test('reviewed editorial admission rejects the reproduced contamination in every
     ['54',{identifier:'race-night',title:'Race Night 2019 Brent Marks 410 World of Outlaws Driver'},false],
     ['54',{identifier:'imsa-2011',title:'2011 Baltimore Grand Prix ALMS',runtime:5422},true],
     ['54',{identifier:'gp-short',title:'1979 Italian Grand Prix (Monza)',runtime:1469},false],
+    ['54',{identifier:'gp-condensed',title:'1979 Monaco Grand Prix (Monte Carlo)',runtime:2463},false],
     ['54',{identifier:'gp-full',title:'1995 Canadian Grand Prix',runtime:6000},true],
     ['54',{identifier:'gp-post',title:'2023 Post GP Bugatti Le Mans',runtime:6000},false],
     ['54',{identifier:'gp-onboard',title:'2023 On Board Le Mans Francia',runtime:600},false],

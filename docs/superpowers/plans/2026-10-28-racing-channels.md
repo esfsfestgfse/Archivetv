@@ -19,3 +19,5 @@
 **Production canary:** 6.0.47 exposed Workers rejecting fetch redirect:error; this suppressed background discovery and incorrectly quarantined healthy seeded playback. Corrected to manual redirects (3xx are rejected without following) and separate discoveryError from playback health. Follow-up build 6.0.48; added Workers-mode discovery and fallback-health regressions before the fix.
 
 **Hosted content check:** NASCAR server discovery now adds actual new races (32+ verified records; no discovery errors); production 720p first frame 2.893 seconds, subsequent starts 1.28 seconds. IA named-event metadata also admitted short/post-race/on-board clips, so require substantial runtime for unlabelled race titles, reject explicitly partial/post-race coverage, and retain explicit full-race broadcasts. Added cross-surface regressions; final stamp 6.0.49.
+
+**Final format canary:** a 41-minute Grand Prix was abbreviated coverage despite lacking a highlights label. Unlabelled named events now require at least one hour; explicitly identified full races and vetted full-broadcast files retain their own admission. Final stamp 6.0.50.

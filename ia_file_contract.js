@@ -76,6 +76,10 @@ export function iaReviewedFileAllowed(item, channel) {
   // This DVD parent has continuation chunks; title _1 alone is not a full episode.
   if (source === 'vts-01-1_20231104' && (!file || /^VTS_\d+_\d+(?:\.ia)?\.mp4$/i.test(file))) return false;
   const identity = [item.title, source, file].join(' ').toLowerCase().replace(/[_-]+/g, ' ');
+  if (String(channel) === '51') {
+    const broadcast = source.match(/^([a-z0-9]{3,12})_(?:19|20)\d{6}_\d{6}_(.+)$/i);
+    if (broadcast && !/^nfl/i.test(broadcast[1]) && !/\b(?:nfl|football|super bowl|hard knocks|gridiron|america'?s game|america s game)\b/i.test(broadcast[2].replace(/_/g,' '))) return false;
+  }
   // Incidental NFL tags cannot turn a newscast or the wrestling film named
   // "Hard Knocks" into football programming, including in old saved shelves.
   if (String(channel) === '51' && /\b(?:cbs this morning|cbs evening news|nbc nightly news|abc world news|early today|world business|eyewitness news|(?:morning|evening|nightly|world|local) news|news at \d{1,2}|wwf|wwe|wcw|ecw|mick foley|pro wrestling)\b/.test(identity)) return false;

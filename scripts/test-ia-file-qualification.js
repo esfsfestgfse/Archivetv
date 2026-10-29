@@ -30,6 +30,10 @@ test('reviewed editorial admission rejects the reproduced contamination in every
   const {iaReviewedFileAllowed,qualifyIaFileRecord}=await import('../ia_file_contract.js');
   const {catalogFallbackAllowed}=await import('../realsignal_api_v2_worker.js');
   const checks=[
+    ['51',{identifier:'MSNBCW_20120919_093000_Way_Too_Early_With_Willie_Geist',title:'Way Too Early With Willie Geist',subject:'NFL Films football'},false],
+    ['51',{identifier:'CNNW_20120919_140000_CNN_Newsroom',title:'Football in America',subject:'NFL Films'},false],
+    ['51',{identifier:'KPIX_20120919_010000_NFL_Football',title:'NFL Football'},true],
+    ['51',{identifier:'NFLNET_20120919_010000_Americas_Game',title:"America's Game"},true],
     ['51',{identifier:'WHUT_20100810_220000_World_Business',title:'World Business',subject:'NFL Films football hard knocks'},false],
     ['51',{identifier:'KPIX_20120919_003000_CBS_Evening_News_With_Scott_Pelley',title:'CBS Evening News With Scott Pelley',subject:'NFL Films'},false],
     ['51',{identifier:'KPIX_20120203_150000_CBS_This_Morning',title:'CBS This Morning',subject:'football'},false],

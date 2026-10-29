@@ -5992,10 +5992,13 @@ function iaReviewedFileAllowed(item, channel) {
     if (/\b(?:grand prix[ (]*(?:1966|2010)|rush[ (]*2013|days of thunder|ford v ferrari|talladega[ ._-]+nights|ricky[ ._-]+bobby)\b/i.test(String(item.title || ''))) return false;
     const raceTitle = [item.title,file].join(' ').replace(/[._-]+/g,' ');
     const fullRace = /\b(?:full race|complete race|race replay|full broadcast|full event|complete coverage|raw satellite feed)\b/i.test(raceTitle);
+    if (!fullRace && /\b(?:on[ -]?board|post gp|post race|pre race|race preview|press conference)\b|\((?:most|partial|incomplete)\)/i.test(raceTitle)) return false;
+    const raceParts = String(media.runtime || item.runtime || item.duration || item.meta && item.meta.runtime || 0).split(':').map(Number);
+    const raceSeconds = raceParts.every(Number.isFinite) ? raceParts.reduce((total,part) => total * 60 + part,0) : 0;
     const event = /\b(?:nascar|formula [123e]|formula one|grand prix|indycar|indianapolis 500|indy 500|daytona|talladega|le mans|imsa|sebring|nhra|us nationals|world of outlaws|knoxville nationals|wrc|motocross|supercross|truck racing|drag racing|kart racing|karting|usac|world rally|rally racing|rallycross|dakar|rally monte carlo|monte carlo rally|sprint car|dirt track|winston cup|goodwrench|pontiac excitement|budweiser|winston|craftsman truck)\b/i.test(raceTitle);
     const namedEvent = /\b(?:(?:canadian|dutch|japanese|british|italian|belgian|monaco|baltimore|long beach|australian|mexican|chinese|spanish|german|french) grand prix|grand prix of|indianapolis 500|indy 500|daytona 500|talladega 500|knoxville nationals|us nationals|le mans|sebring|winston cup|southern 500|coca cola 600|pontiac excitement|goodwrench|budweiser|pennzoil world of outlaws)\b/i.test(raceTitle);
     const vettedNumberedRace = (item.recoveryVerified === true || item.meta && item.meta.recoveryVerified === true) && /\b(?:nascar|stock car racing)\b/i.test(String(item.subject || item.meta && item.meta.subject || '')) && /\b(?:300|400|500|600)\b/.test(raceTitle) && /\b(?:19|20)\d{2}\b/.test(raceTitle);
-    if ((!event && !vettedNumberedRace) || (!fullRace && !vettedNumberedRace && !(namedEvent && /\b(?:19|20)\d{2}\b/.test(raceTitle)))) return false;
+    if ((!event && !vettedNumberedRace) || (!fullRace && !vettedNumberedRace && !(namedEvent && raceSeconds >= 1800 && /\b(?:19|20)\d{2}\b/.test(raceTitle)))) return false;
   }
   // Channel-specific editorial evidence must survive stale catalogs and files.
   // A racing subject tag does not turn the 2001 fictional feature into a race.

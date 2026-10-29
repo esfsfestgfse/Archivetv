@@ -9,7 +9,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>REALSIGNAL · Retro Cable 6.0.48</title>
+<title>REALSIGNAL · Retro Cable 6.0.49</title>
 <meta name="realsignal-ia-repair-channels" content="10,12,22,150">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
@@ -17,7 +17,7 @@
 <script src="assets/ok-embed-runtime.js?v=5.6.29"></script>
 <script src="assets/ia-playback-shelf.js?v=5.6.29"></script>
 <script src="assets/vimeo-embed-runtime.js?v=5.5.85"></script>
-<script src="assets/youtube-embed-runtime.js?v=6.0.48"></script>
+<script src="assets/youtube-embed-runtime.js?v=6.0.49"></script>
 <!-- Source Suite starts verified YouTube playback on a cold tune. Warm the exact
      origins it uses so DNS/TLS setup is not serialized behind catalog discovery. -->
 <link rel="preconnect" href="https://www.googleapis.com" crossorigin>
@@ -1701,16 +1701,16 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
 @media(prefers-reduced-motion:reduce){.sports-screen *,.wx-screen *,.wr-cabinet *{animation-duration:.001ms!important;transition-duration:.001ms!important}}
 </style>
 <link rel="stylesheet" href="assets/guide-overhaul.css">
-<link rel="stylesheet" href="assets/v6-watching-shell.css?v=6.0.48">
-<link rel="stylesheet" href="assets/v6-guide.css?v=6.0.48">
-<script src="assets/commercial-scheduler.js?v=6.0.48"></script>
-<script src="assets/fast-catalog.js?v=6.0.48"></script>
-<link rel="stylesheet" href="assets/weather-networks.css?v=6.0.48">
-<script src="assets/weather-networks.js?v=6.0.48"></script>
-<link rel="stylesheet" href="assets/weather-local.css?v=6.0.48">
-<script src="assets/weather-local.js?v=6.0.48"></script>
-<script src="assets/source-program-policy.js?v=6.0.48"></script>
-<script src="assets/peertube-media.js?v=6.0.48"></script>
+<link rel="stylesheet" href="assets/v6-watching-shell.css?v=6.0.49">
+<link rel="stylesheet" href="assets/v6-guide.css?v=6.0.49">
+<script src="assets/commercial-scheduler.js?v=6.0.49"></script>
+<script src="assets/fast-catalog.js?v=6.0.49"></script>
+<link rel="stylesheet" href="assets/weather-networks.css?v=6.0.49">
+<script src="assets/weather-networks.js?v=6.0.49"></script>
+<link rel="stylesheet" href="assets/weather-local.css?v=6.0.49">
+<script src="assets/weather-local.js?v=6.0.49"></script>
+<script src="assets/source-program-policy.js?v=6.0.49"></script>
+<script src="assets/peertube-media.js?v=6.0.49"></script>
 </head>
 <body>
 <script>
@@ -1722,7 +1722,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="6.0.48-desktop-retro-cable";
+window.__ATV_BUILD="6.0.49-desktop-retro-cable";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -7713,10 +7713,13 @@ function iaReviewedFileAllowed(item, channel) {
     if (/\b(?:grand prix[ (]*(?:1966|2010)|rush[ (]*2013|days of thunder|ford v ferrari|talladega[ ._-]+nights|ricky[ ._-]+bobby)\b/i.test(String(item.title || ''))) return false;
     const raceTitle = [item.title,file].join(' ').replace(/[._-]+/g,' ');
     const fullRace = /\b(?:full race|complete race|race replay|full broadcast|full event|complete coverage|raw satellite feed)\b/i.test(raceTitle);
+    if (!fullRace && /\b(?:on[ -]?board|post gp|post race|pre race|race preview|press conference)\b|\((?:most|partial|incomplete)\)/i.test(raceTitle)) return false;
+    const raceParts = String(media.runtime || item.runtime || item.duration || item.meta && item.meta.runtime || 0).split(':').map(Number);
+    const raceSeconds = raceParts.every(Number.isFinite) ? raceParts.reduce((total,part) => total * 60 + part,0) : 0;
     const event = /\b(?:nascar|formula [123e]|formula one|grand prix|indycar|indianapolis 500|indy 500|daytona|talladega|le mans|imsa|sebring|nhra|us nationals|world of outlaws|knoxville nationals|wrc|motocross|supercross|truck racing|drag racing|kart racing|karting|usac|world rally|rally racing|rallycross|dakar|rally monte carlo|monte carlo rally|sprint car|dirt track|winston cup|goodwrench|pontiac excitement|budweiser|winston|craftsman truck)\b/i.test(raceTitle);
     const namedEvent = /\b(?:(?:canadian|dutch|japanese|british|italian|belgian|monaco|baltimore|long beach|australian|mexican|chinese|spanish|german|french) grand prix|grand prix of|indianapolis 500|indy 500|daytona 500|talladega 500|knoxville nationals|us nationals|le mans|sebring|winston cup|southern 500|coca cola 600|pontiac excitement|goodwrench|budweiser|pennzoil world of outlaws)\b/i.test(raceTitle);
     const vettedNumberedRace = (item.recoveryVerified === true || item.meta && item.meta.recoveryVerified === true) && /\b(?:nascar|stock car racing)\b/i.test(String(item.subject || item.meta && item.meta.subject || '')) && /\b(?:300|400|500|600)\b/.test(raceTitle) && /\b(?:19|20)\d{2}\b/.test(raceTitle);
-    if ((!event && !vettedNumberedRace) || (!fullRace && !vettedNumberedRace && !(namedEvent && /\b(?:19|20)\d{2}\b/.test(raceTitle)))) return false;
+    if ((!event && !vettedNumberedRace) || (!fullRace && !vettedNumberedRace && !(namedEvent && raceSeconds >= 1800 && /\b(?:19|20)\d{2}\b/.test(raceTitle)))) return false;
   }
   // Channel-specific editorial evidence must survive stale catalogs and files.
   // A racing subject tag does not turn the 2001 fictional feature into a race.
@@ -19388,16 +19391,16 @@ window.__atvBootDone=true; /* app is up -- from here on, errors get logged, not 
   };
 })();
 </script>
-<script src="assets/source-catalog-client.js?v=6.0.48"></script>
+<script src="assets/source-catalog-client.js?v=6.0.49"></script>
 <script src="assets/verified-guide-client.js"></script>
 <script src="assets/guide-overhaul.js"></script>
 <script src="assets/playback-audit.js"></script>
-<script src="assets/release2-runtime.js?v=6.0.48"></script>
+<script src="assets/release2-runtime.js?v=6.0.49"></script>
 <script src="assets/release3-runtime.js"></script>
 <script src="assets/release31-runtime.js"></script>
 <script src="assets/guide-contract.js?v=v6-contract-1"></script>
-<script src="assets/guide-contract-client.js?v=6.0.48"></script>
-<script src="assets/v6-watching-shell.js?v=6.0.48"></script>
-<script src="assets/v6-guide.js?v=6.0.48"></script>
+<script src="assets/guide-contract-client.js?v=6.0.49"></script>
+<script src="assets/v6-watching-shell.js?v=6.0.49"></script>
+<script src="assets/v6-guide.js?v=6.0.49"></script>
 </body>
 </html>

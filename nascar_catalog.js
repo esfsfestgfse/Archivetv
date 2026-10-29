@@ -26,7 +26,7 @@ async function boundedText(response, max = 2 * 1024 * 1024) {
   } finally { try { await reader.cancel(); } catch {} }
 }
 async function read(url, request, headers) {
-  return boundedText(await request(url, { headers, redirect: 'error', signal: AbortSignal.timeout(3500) }));
+  return boundedText(await request(url, { headers, redirect: 'manual', signal: AbortSignal.timeout(3500) }));
 }
 export async function nascarMediaProof(url, request = fetch) {
   if (!mediaUrl(url)) return null;
@@ -43,7 +43,7 @@ export async function nascarMediaProof(url, request = fetch) {
     const first = body.split(/\r?\n/).find(line => line.trim() && !line.startsWith('#'));
     if (duration < 3600 || !first) return null;
     const segment = new URL(first.trim(), variant.url).href; if (!mediaUrl(segment)) return null;
-    const response = await request(segment, { headers: { Range: 'bytes=0-2047' }, redirect: 'error', signal: AbortSignal.timeout(3500) });
+    const response = await request(segment, { headers: { Range: 'bytes=0-2047' }, redirect: 'manual', signal: AbortSignal.timeout(3500) });
     try { if (![200,206].includes(response.status)) return null; } finally { if (response.body) await response.body.cancel(); }
     return { duration: Math.round(duration), width: variant.width, height: variant.height, aspectRatio: variant.width / variant.height, verification: 'hls-vod-segment', verifiedAt: Date.now() };
   } catch { return null; }
@@ -84,6 +84,6 @@ export async function nascarCatalog(profile, rotation = 0, options = {}, request
     }}));
     return { provider: 'NASCAR Classics', items: [...items,...seeds].filter((item,i,all) => all.findIndex(x => x.id===item.id)===i),
       health: { discovered: items.length, verifiedSeed: seeds.length, year, page, pages, errors } };
-  } catch (e) { return { provider: 'NASCAR Classics', items: seeds, health: { verifiedSeed: true, error: String(e.message || e).slice(0,100) } }; }
+  } catch (e) { return { provider: 'NASCAR Classics', items: seeds, health: { verifiedSeed: true, discoveryError: String(e.message || e).slice(0,100) } }; }
   finally { clearTimeout(timer); }
 }

@@ -68,3 +68,25 @@ test('persisted NASCAR records are served from D1 rather than falling back to th
   assert.ok(body.items.every(catalog.nascarReplayAllowed));await Promise.allSettled(pending);
  }finally{globalThis.fetch=original;}
 });
+
+
+test('background discovery uses Workers-supported redirect mode and admits a newly verified race',async()=>{
+ const request=async(url,init={})=>{
+  assert.equal(init.redirect,'manual','Workers supports follow/manual, not redirect:error');
+  if(String(url).includes('/sections/'))return Response.json({data:[{token:'freshRace',input:{state:'vod',name:'Daytona 500 1998'}}],paging:{total_pages:1}});
+  if(String(url).includes('/content/'))return Response.json({input:{token:'freshRace',state:'vod',name:'Daytona 500 1998',src:'https://va.aws.nascar.com/fresh/race.m3u8',metadata:{year:1998,track:'daytona'}}});
+  if(String(url).endsWith('/race.m3u8'))return new Response('#EXTM3U\n#EXT-X-STREAM-INF:CODECS="avc1.4d401f,mp4a.40.2",RESOLUTION=1280x720\n720.m3u8\n');
+  if(String(url).endsWith('/720.m3u8'))return new Response('#EXTM3U\n#EXTINF:4000,\n1.ts\n#EXT-X-ENDLIST\n');
+  return new Response('segment',{status:206});
+ };
+ const lane=await catalog.nascarCatalog({},0,{maintenance:true},request);
+ assert.equal(lane.health.discovered,1);
+ assert.ok(lane.items.some(i=>i.id==='nascar:freshRace'));
+});
+
+test('discovery failure cannot quarantine a healthy verified NASCAR playback shelf',async()=>{
+ const lane=await catalog.nascarCatalog({},0,{maintenance:true},async()=>{throw Error('discovery unavailable');});
+ assert.ok(lane.items.length>=20);assert.ok(lane.items.every(catalog.nascarReplayAllowed));
+ assert.equal(lane.health.error,undefined,'catalog discovery failure is not a playback provider failure');
+ assert.match(lane.health.discoveryError,/discovery unavailable/);
+});

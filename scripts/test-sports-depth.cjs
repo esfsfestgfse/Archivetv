@@ -45,3 +45,18 @@ test('expanded golf rail is not hidden behind an older full D1 shelf',async()=>{
  const r=await api.fetch(new Request('https://api.invalid/api/v3/ia/queue',{method:'POST',body:JSON.stringify({channel:'71',serverCatalog:true,count:3,queries:['golf'],mediaTypes:['movies'],minRuntimeSeconds:900})}),env,{waitUntil:p=>pending.push(p)});
  const d=await r.json();assert.equal(r.status,200);assert.equal(relayCalls,1,'the new relay bank must be reached');assert.ok(d.candidateItems.some(x=>x.sourceIdentifier==='golf_20201004'));await Promise.allSettled(pending);
 });
+test('relay-owned sports rotation honors this viewer rather than excluding another viewer\'s played programs',async()=>{
+ const {default:api}=await import('../realsignal_api_v2_worker.js?viewer-rotation-test');
+ const bank=relay.sports.seeds('60',0).filter(x=>x.media?.url&&Number(x.media.runtime)>=3600).slice(0,12);
+ assert.ok(bank.length>=11);
+ const otherViewer=bank.slice(0,4).map(x=>x.identifier),personal=[bank[10].identifier],pending=[],forwarded=[];
+ const env={realsignal_catalog:{prepare(sql){return{bind(){return this;},all:async()=>({results:/SELECT program_id FROM channel_freshness/.test(sql)?otherViewer.map(program_id=>({program_id})):[]}),first:async()=>null,run:async()=>({success:true})};},batch:async()=>[]},RELAY:{fetch:async request=>{
+  forwarded.push(await request.json());
+  return Response.json({channel:'60',items:bank.slice(0,5),candidateItems:bank,ready:5,candidates:bank.length,rotationApplied:true});
+ }}};
+ const r=await api.fetch(new Request('https://api.invalid/api/v3/ia/queue',{method:'POST',body:JSON.stringify({channel:'60',count:5,serverCatalog:true,rotation:1,recentIds:personal,viewerRecentIds:personal,queries:['ice hockey'],mediaTypes:['movies']})}),env,{waitUntil:p=>pending.push(p)});
+ const d=await r.json();await Promise.allSettled(pending);assert.ok(forwarded[0].recentIds.includes(otherViewer[0]),'shared opening preference is still forwarded');assert.equal(r.status,200);assert.equal(d.ready,5);assert.equal(d.items.length,5);assert.deepEqual(new Set(d.items.map(x=>x.identifier)),new Set(bank.slice(0,5).map(x=>x.identifier)));assert.ok(d.items.every(x=>!personal.includes(x.identifier)));
+ const played=personal.concat(bank[0].identifier);
+ const next=await api.fetch(new Request('https://api.invalid/api/v3/ia/queue',{method:'POST',body:JSON.stringify({channel:'60',count:5,serverCatalog:true,rotation:2,recentIds:played,viewerRecentIds:played,queries:['ice hockey'],mediaTypes:['movies']})}),env,{waitUntil:p=>pending.push(p)});
+ const nextShelf=await next.json();await Promise.allSettled(pending);assert.equal(nextShelf.ready,5);assert.equal(nextShelf.items.length,5);assert.ok(nextShelf.items.every(x=>!played.includes(x.identifier)),'the viewer\'s own watched programs remain excluded');
+});

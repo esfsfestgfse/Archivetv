@@ -32,3 +32,9 @@
 - 31 sports integration tests, 56 affected admission/playback tests, and all 96 existing CI/API Node command groups passed.
 - Chrome visible frames: golf, hockey and tennis; representative Next and guide behavior. Phone-size Chrome mobile HTML played a 99-minute Masters round. No physical Cast/phone re-certification is claimed.
 - API, relay and visible desktop/mobile stamp set to 6.1.1. Hosted verification remains part of the publish task.
+
+## Hosted follow-up: 6.1.2
+- 6.1.1 was published as 88c9cda; the public canary reproduced hockey shelves shrinking to 5/4/3 despite 32 admitted candidates.
+- Root cause: the relay honors the personal played-only ledger, but API sports selection re-applied shared D1 history as hard exclusions. Other viewers could shrink the final shelf.
+- Regression reproduced a full relay shelf shrinking to one program when four had been watched by another viewer. API sports selection now uses the personal ledger when present, keeping shared history as an opening preference. The same test verifies this viewer's own watched item is excluded and the shelf refills. No discovery, catalog, admission or Cast ownership changes.
+- Follow-up release verification pending.

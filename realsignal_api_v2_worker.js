@@ -21,7 +21,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "6.1.1-sports-broadcast-depth";
+const V3_RELEASE = "6.1.2-sports-broadcast-depth";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -559,7 +559,12 @@ function sportsShelf(payload, body) {
   const channel=body && (body.channel || body.profileKey);
   if (!Sports.enabled(channel) || !payload) return payload;
   const inventory=Array.isArray(payload.candidateItems) ? payload.candidateItems : payload.items || [];
-  const history=Sports.history(inventory,Array.from(recentCatalogIds(body)).reverse());
+  /* The relay uses this viewer's played ledger as hard exclusions once it
+     exists. Shared D1 history is only an opening preference; filtering the
+     rotated shelf against other viewers again silently underfilled it. */
+  const personal=Array.isArray(body && body.viewerRecentIds)
+    ? Array.from(recentCatalogIds({...body,recentIds:body.viewerRecentIds})) : [];
+  const history=Sports.history(inventory,personal.length ? personal : Array.from(recentCatalogIds(body)).reverse());
   const selected=Sports.select(payload.items || [],{channel,count:Math.max(1,Math.min(5,Number(body.count)||3)),history});
   const items=selected.map(item=>{const key=Sports.describe(item,channel).eventId;
     const copies=key?inventory.filter(other=>queueItemKey(other)!==queueItemKey(item)&&queueItemPlayable(other)&&Sports.describe(other,channel).eventId===key).slice(0,2).map(other=>{const row={...other};delete row.sportsCopies;return row;}):[];

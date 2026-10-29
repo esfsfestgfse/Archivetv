@@ -14,13 +14,14 @@ import { okMusicChannel } from "./ok_music_catalog.js";
 import { OK_VERIFIED_SEARCH_SEED } from "./ok_verified_search_seed.js";
 import { vimeoBalancedItems } from "./vimeo_catalog.js";
 import { mergeSourceLanes, sourceCatalogTasks, sourceRefreshTasks, sourceProfile, sourceCatalogKey, qualifySourceItem, isOKSourceProfile, SOURCE_LIMITS } from "./realsignal_source_catalog.js";
+import Sports from "./assets/sports-programs.js";
 import SourcePrograms from "./assets/source-program-policy.js";
 import { IA_CANONICAL_PILOT_PROFILES, IA_CANONICAL_SCHEMA_VERSION, canonicalGuide, canonicalPromotionEligibility, selectCanonicalItems } from "./ia_canonical_station.mjs";
 import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "6.0.51-race-broadcasts";
+const V3_RELEASE = "6.1.0-sports-event-rotation";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -554,7 +555,20 @@ function stableCatalogItems(items, body, limit = body && body.iaRepair === true 
    them as `items` makes clients refill from the catalog head and repeat the
    same opening programs. Keep the deep union in `candidateItems` while
    enforcing the small, predictable playback contract at the API edge. */
-function limitPublicIaShelf(payload, count) {
+function sportsShelf(payload, body) {
+  const channel=body && (body.channel || body.profileKey);
+  if (!Sports.enabled(channel) || !payload) return payload;
+  const inventory=Array.isArray(payload.candidateItems) ? payload.candidateItems : payload.items || [];
+  const history=Sports.history(inventory,Array.from(recentCatalogIds(body)).reverse());
+  const selected=Sports.select(payload.items || [],{channel,count:Math.max(1,Math.min(5,Number(body.count)||3)),history});
+  const items=selected.map(item=>{const key=Sports.describe(item,channel).eventId;
+    const copies=key?inventory.filter(other=>queueItemKey(other)!==queueItemKey(item)&&queueItemPlayable(other)&&Sports.describe(other,channel).eventId===key).slice(0,2).map(other=>{const row={...other};delete row.sportsCopies;return row;}):[];
+    return {...item,sportsCopies:copies.length?copies:item.sportsCopies||[]};});
+  return {...payload,items,ready:items.length,uniqueEvents:Sports.uniqueCount(inventory,channel)};
+}
+
+function limitPublicIaShelf(payload, count, body) {
+  if(body)payload=sportsShelf(payload,body);
   if (!payload || typeof payload !== "object") return payload;
   const requested = Math.max(1, Math.min(5, Number(count) || 3));
   const items = Array.isArray(payload.items) ? payload.items.filter(queueItemPlayable).slice(0, requested) : [];
@@ -1333,6 +1347,12 @@ function applyFreshness(items, body) {
     const fresh = items.filter(item => !recent.has(queueItemKey(item)) && !heardSongs.has(okPlaybackIdentity(item, "music")));
     return fresh.length ? fresh : items;
   }
+  if (Sports.enabled(body && (body.channel || body.profileKey))) {
+    const channel=body.channel || body.profileKey, recent=recentCatalogIds(body);
+    const played=new Set([...recent].filter(key=>key.startsWith('sports:')).concat(Sports.history(items,[...recent]).map(item=>Sports.key(item,channel))));
+    const fresh=items.filter(item=>!recent.has(queueItemKey(item))&&!played.has(Sports.key(item,channel)));
+    return fresh.length?fresh:items;
+  }
   const requestedCount = Math.max(1, Math.min(5, Number(body && body.count) || 3));
   const recentLimit = items.length >= requestedCount ? Math.max(0, items.length - requestedCount) : recentCatalogIds(body).size;
   const boundedRecent = new Set(freshnessExclusionIds(body, recentLimit));
@@ -1353,7 +1373,8 @@ function localRotationFallback(payload, body) {
   const playable = fresh.filter((item) => item && ((item.media && item.media.url) || item.mediaUrl || item.url));
   const source = body.sourceCatalog !== true || playable.length >= count ? playable : fresh;
   const rotationStep = body && body.sourceCatalog === true ? 1 : count;
-  const items = rotateCatalogItems(source, (Number(body && body.rotation) || 0) * rotationStep).slice(0, count);
+  const ordered = rotateCatalogItems(source, (Number(body && body.rotation) || 0) * rotationStep);
+  const items = Sports.enabled(body.channel) ? Sports.select(ordered,{channel:body.channel,count,history:Sports.history(candidateItems,[...recentCatalogIds(body)].reverse())}) : ordered.slice(0,count);
   const playableSelected = items.filter((item) => item && ((item.media && item.media.url) || item.mediaUrl || item.url)).length;
   return {
     ...payload,
@@ -1581,8 +1602,9 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
     }
   }
   const strictOKFreshness = deepCatalog || rotatingSourceCatalog;
+  const sportsPlayed = new Set(Sports.enabled(channel) ? [...recentIDs].filter(key=>key.startsWith('sports:')).concat(Sports.history(playableCatalog,[...recentIDs]).map(item=>Sports.key(item,channel))) : []);
   const fresh = ignoreFreshness ? playableCatalog : strictOKFreshness
-    ? playableCatalog.filter(item => !recentIDs.has(queueItemKey(item)) && (!okCatalog || !recentPrograms.has(okPlaybackIdentity(item, okKind))))
+    ? playableCatalog.filter(item => !recentIDs.has(queueItemKey(item)) && !sportsPlayed.has(Sports.key(item,channel)) && (!okCatalog || !recentPrograms.has(okPlaybackIdentity(item, okKind))))
     : applyFreshness(playableCatalog, effectiveBody);
   const requestedCount = Math.max(1, Math.min(5, Number(effectiveBody && effectiveBody.count) || 3));
   /* Source Suite may legitimately exhaust a small catalog. Repeat only after
@@ -1628,7 +1650,8 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
   const freshSeriesOrdered = okCatalog && okKind === "tv"
     ? okBalancedCandidates([okPreferUnseenSeries(freshOrdered, recentSeries)], "tv", limit)
     : freshOrdered;
-  const shelf = seriesOrdered.slice(0, requestedCount);
+  const shelf = Sports.enabled(channel) ? Sports.select(seriesOrdered,{channel,count:requestedCount,
+    history:Sports.history(playableCatalog,[...recentIDs].reverse()),seenKeys:[...sportsPlayed]}) : seriesOrdered.slice(0, requestedCount);
   return shelf.length ? {
     /* Keep the public contract consistent with the live relay: `items` is the
        immediately playable shelf, while `candidateItems` is the larger
@@ -1636,6 +1659,7 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
        transient relay outage look like a 96-program simultaneous queue and
        caused the guide/freshness layer to miscount repeats. */
     items: shelf,
+    ...(Sports.enabled(channel)?{uniqueEvents:Sports.uniqueCount(playableCatalog,channel)}:{}),
     candidateItems: deepCatalog ? freshSeriesOrdered : filtered,
     ready: shelf.length,
     candidates: filtered.length,
@@ -1832,7 +1856,7 @@ async function handleQueue(request, env, ctx, id) {
            generic catalog-fallback flags on it makes clients immediately start
            another hydration loop, which showed up in telemetry as stalls and
            duplicate queue work on the proven weak lane. */
-        const fastPayload = {
+        const fastPayload = sportsShelf({
           ...fastRotated.payload,
           fallback: false,
           stale: false,
@@ -1841,7 +1865,7 @@ async function handleQueue(request, env, ctx, id) {
           apiVersion,
           release: apiVersion === "v3" ? V3_RELEASE : undefined,
           fastCatalogLane: true,
-        };
+        },body);
         return new Response(JSON.stringify(fastPayload), { status: 200, headers });
       }
       if (fastCatalog && Array.isArray(fastCatalog.candidateItems) && fastCatalog.candidateItems.length) shallowFastCatalog = fastCatalog;
@@ -1882,7 +1906,7 @@ async function handleQueue(request, env, ctx, id) {
       candidateItems: combinedUpstreamCandidates,
       candidates: combinedUpstreamCandidates.length,
       ready: Math.min(Number(payload && payload.ready) || upstreamItems.length, upstreamItems.length),
-    }, count);
+    }, count, body);
     const upstreamCandidateDepth = upstreamCandidates.length;
     const upstreamPlayableCandidateDepth = upstreamCandidates.filter(queueItemPlayable).length;
     const relayOwnsRotatedShelf = payload && payload.rotationApplied === true && upstreamItems.length >= count;
@@ -1932,7 +1956,7 @@ async function handleQueue(request, env, ctx, id) {
             ready: Math.min(mergedItems.length, count),
             candidates: mergedCandidates.length,
             catalogRecovery: true,
-          }, count);
+          }, count, body);
           catalogRecovery = true;
         }
       } catch (error) { console.warn(JSON.stringify({ event: "catalog-shallow-recovery-failed", requestId: id, error: String(error).slice(0, 160) })); }
@@ -2022,7 +2046,7 @@ async function handleQueue(request, env, ctx, id) {
       console.warn(JSON.stringify({ event: "rotation-refill-failed", requestId: id, channel: String(body.channel), error: String(error).slice(0, 160) }));
     }
   }
-  rotated = { ...rotated, payload: limitPublicIaShelf(rotated.payload, count) };
+  rotated = { ...rotated, payload: limitPublicIaShelf(rotated.payload, count, body) };
   if (catalogJob(body, rotated.payload)) ctx.waitUntil(enqueueCatalog(env, body, rotated.payload));
   const headers = new Headers(corsHeaders());
   headers.set("X-RealSignal-API", apiVersion);
@@ -2792,7 +2816,8 @@ async function handleSourceCatalog(request, env, ctx, id) {
   const catalogExhausted = discoveredItems.length > 0 && unseenFirstItems.length === 0;
   const freshFirstItems = catalogExhausted ? discoveredItems : unseenFirstItems;
   if (playedIds.length) rememberFreshness(env, normalized.profileKey, playedIds, ctx);
-  return json({ profileKey: normalized.profileKey, items: freshFirstItems, ready: freshFirstItems.length, candidates: discoveredItems.length, catalogDepth: discoveredItems.length, unseenCatalogItems: unseenFirstItems.length, seenCatalogItems: Math.max(0, discoveredItems.length - unseenFirstItems.length), catalogExhausted, repeatAllowed: catalogExhausted, lanes: first.lanes, hydrating: true, adaptiveFreshness: true, freshnessLedger: true, freshnessExcluded: Math.max(0, discoveredItems.length - unseenFirstItems.length), freshnessWindow: recentCatalogIds(freshnessBody).size, catalogVersion: "source-server-1", source: forceDeepRefresh ? "server-source-catalog-refresh" : "server-source-catalog", providerAvailability: sourceProviderAvailability(env, freshFirstItems, Array.from(disabledProviders)), limits: SOURCE_LIMITS, apiVersion, release: apiVersion === "v3" ? V3_RELEASE : undefined }, freshFirstItems.length ? 200 : 503, { "Cache-Control": "no-store", "X-RealSignal-Request": id, "X-RealSignal-Source": "server-source-catalog", "X-RealSignal-Release": apiVersion === "v3" ? V3_RELEASE : "2.2.2" });
+  const sportsFirst = Sports.enabled(normalized.profileKey) ? sportsShelf({items:freshFirstItems,candidateItems:discoveredItems},{...body,channel:normalized.profileKey,count:body.count||5}) : null;
+  return json({ profileKey: normalized.profileKey, items: sportsFirst ? sportsFirst.items : freshFirstItems, ...(sportsFirst?{candidateItems:discoveredItems,uniqueEvents:sportsFirst.uniqueEvents}:{}), ready: sportsFirst ? sportsFirst.items.length : freshFirstItems.length, candidates: discoveredItems.length, catalogDepth: discoveredItems.length, unseenCatalogItems: unseenFirstItems.length, seenCatalogItems: Math.max(0, discoveredItems.length - unseenFirstItems.length), catalogExhausted, repeatAllowed: catalogExhausted, lanes: first.lanes, hydrating: true, adaptiveFreshness: true, freshnessLedger: true, freshnessExcluded: Math.max(0, discoveredItems.length - unseenFirstItems.length), freshnessWindow: recentCatalogIds(freshnessBody).size, catalogVersion: "source-server-1", source: forceDeepRefresh ? "server-source-catalog-refresh" : "server-source-catalog", providerAvailability: sourceProviderAvailability(env, freshFirstItems, Array.from(disabledProviders)), limits: SOURCE_LIMITS, apiVersion, release: apiVersion === "v3" ? V3_RELEASE : undefined }, freshFirstItems.length ? 200 : 503, { "Cache-Control": "no-store", "X-RealSignal-Request": id, "X-RealSignal-Source": "server-source-catalog", "X-RealSignal-Release": apiVersion === "v3" ? V3_RELEASE : "2.2.2" });
 }
 
 const worker = {

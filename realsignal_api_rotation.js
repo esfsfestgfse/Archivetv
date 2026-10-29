@@ -1,6 +1,7 @@
 /* Per-session rotation state for the Version 2 API. A session+channel is the
  * coordination atom; one viewer's Next action cannot consume another's. */
 import { normalizeIaFileRecord, qualifyIaFileRecord, iaKnownVideoPolicyViolation, iaSportingLifeAllowed, iaCourtroomAllowed, iaCookingAllowed, iaHuntingAllowed, iaReviewedFileAllowed } from './ia_file_contract.js';
+import Sports from './assets/sports-programs.js';
 import { handleIaOwnedState, readIaChunkedState, writeIaChunkedState } from './ia_durable_state.js';
 
 /* Keep enough verified candidates in the session shelf that a fresh tune is
@@ -172,6 +173,8 @@ export class SessionRotation {
       reserved: Array.isArray(value.reserved) ? value.reserved.slice(0, 5) : [],
       cooldowns: value.cooldowns && typeof value.cooldowns === "object" ? value.cooldowns : {},
       playing: String(value.playing || ""),
+      sportsSeen: Array.isArray(value.sportsSeen) ? value.sportsSeen.filter(x => typeof x === "string").slice(-MAX_SEEN) : [],
+      sportsChannel: Sports.enabled(value.sportsChannel) ? String(value.sportsChannel) : '',
     };
   }
 
@@ -205,8 +208,12 @@ export class SessionRotation {
     const playedOnly = body.requirePlayable === true && body.playedOnly === true && Array.isArray(body.viewerRecentIds);
     const viewerIds = playedOnly ? body.viewerRecentIds.filter(id => typeof id === 'string' && !/[\r\n]/.test(id))
       .map(id => id.trim().slice(0, 500)).filter(Boolean).slice(-256) : current.seen;
-    const historyIdentity = playedOnly ? episodeKey : itemId;
-    const prior = new Set(viewerIds.map(id => playedOnly ? episodeKey(id) : id));
+    const sportsChannel = body.stationChannel, sportsEnabled = Sports.enabled(sportsChannel);
+    const knownSportsItems = [...current.catalog, ...rawCandidates];
+    const knownById = new Map(knownSportsItems.map(item => [itemId(item), item]));
+    const historyIdentity = item => sportsEnabled && typeof item !== 'string' && Sports.describe(item,sportsChannel).eventId || (playedOnly ? episodeKey(item) : itemId(item));
+    const prior = new Set(viewerIds.map(id => knownById.has(id) ? historyIdentity(knownById.get(id)) : playedOnly ? episodeKey(id) : id));
+    if (sportsEnabled && playedOnly) for (const key of current.sportsSeen || []) prior.add(key);
     // Legacy playback reports may name the parent alias while this same row
     // now carries its actual file. Resolve only matching reported row IDs;
     // do not ban every unplayed sibling in that collection.
@@ -217,7 +224,7 @@ export class SessionRotation {
     const catalog = mergeCatalog(current.catalog.filter(allowed), rawCandidates, [...prior], MAX_ITEMS, body.requirePlayable === true, historyIdentity)
       .filter(item => {
         if (!playedOnly) return true;
-        const key = historyIdentity(item);
+        const key = episodeKey(item);
         if (catalogIdentities.has(key)) return false;
         catalogIdentities.add(key); return true;
       });
@@ -248,10 +255,11 @@ export class SessionRotation {
     const recentOnly = fresh.filter(item => recent.has(itemId(item)));
     const ordered = rotate(nonrecent, offset).concat(rotate(recentOnly, offset));
     const balanceFamilies = body.requirePlayable === true && Number(body.diversity?.maxPerFamily) > 0;
-    const selected = balanceFamilies ? [] : ordered.slice(0, limit);
-    if (balanceFamilies) appendBalanced(selected, ordered, limit, body.diversity);
+    const selected = sportsEnabled ? Sports.select(ordered, {channel:sportsChannel,count:limit,
+      history:Sports.history(knownSportsItems,viewerIds),seenKeys:cycleReset?[]:[...prior]}) : balanceFamilies ? [] : ordered.slice(0, limit);
+    if (balanceFamilies && !sportsEnabled) appendBalanced(selected, ordered, limit, body.diversity);
     const selectedIds = selected.map(itemId).filter(Boolean);
-    const selectionRepeatIds = cycleReset ? [] : selectedIds.filter((id) => prior.has(playedOnly ? episodeKey(id) : id));
+    const selectionRepeatIds = cycleReset ? [] : selectedIds.filter((id) => prior.has(knownById.has(id) ? historyIdentity(knownById.get(id)) : playedOnly ? episodeKey(id) : id));
     const seenAfterSelection = new Set(playedOnly ? [...prior] : cycleReset ? selectedIds : current.seen.concat(selectedIds));
     const seenInCatalogBeforeSelection = eligible.filter((item) => prior.has(historyIdentity(item))).length;
     const unseenAfterSelection = eligible.filter((item) => !seenAfterSelection.has(historyIdentity(item))).length;
@@ -261,6 +269,7 @@ export class SessionRotation {
       catalog,
       seen: (playedOnly ? viewerIds : cycleReset ? selectedIds : current.seen.concat(selectedIds)).slice(-MAX_SEEN),
       cursor: current.cursor + 1,
+      ...(sportsEnabled ? {sportsSeen:(cycleReset ? [] : [...prior].filter(key => key.startsWith('sports:'))).slice(-MAX_SEEN)} : {}),
       updatedAt: Date.now(),
     };
     if (body.requirePlayable === true && (new TextEncoder().encode(JSON.stringify(next)).length >= 120_000
@@ -307,7 +316,11 @@ export class SessionRotation {
     const canonicalId = id => canonicalIds.get(id) || id;
     const seen = new Set(current.seen.map(canonicalId));
     let seenEpisodes = new Set([...seen].map(episodeKey));
-    const hasSeen = id => seenEpisodes.has(episodeKey(canonicalId(id)));
+    const sportsChannel = body.rules?.channel || body.stationChannel || current.sportsChannel, sportsEnabled = Sports.enabled(sportsChannel);
+    const sportsById = new Map([...current.catalog,...catalog].flatMap(row => [[itemId(row),row],[canonicalId(itemId(row)),row]]));
+    const sportsHistory = values => values.map(id => sportsById.get(id)).filter(Boolean);
+    const sportsSeen = new Set(sportsEnabled ? (current.sportsSeen || []).concat(sportsHistory(current.seen).map(row => Sports.key(row,sportsChannel))) : []);
+    const hasSeen = id => seenEpisodes.has(episodeKey(canonicalId(id))) || sportsEnabled && sportsById.has(id) && sportsSeen.has(Sports.key(sportsById.get(id),sportsChannel));
     const cooldowns = Object.fromEntries(Object.entries(current.cooldowns || {}).filter(([, until]) => Number(until) > now).map(([id, until]) => [episodeKey(canonicalId(id)), until]));
     let reserved = [...new Set((current.reserved || []).map(id => catalog.find(item => episodeKey(item) === episodeKey(id))).filter(Boolean).map(itemId)
       .filter(id => ids.has(id) && episodeKey(canonicalId(id)) !== episodeKey(canonicalId(current.playing)) && !hasSeen(id) && !cooldowns[episodeKey(canonicalId(id))]))];
@@ -326,6 +339,7 @@ export class SessionRotation {
       if (body.mode === "commit") {
         committed = !hasSeen(id);
         seen.add(canonicalId(id));
+        if (sportsEnabled && sportsById.has(id)) sportsSeen.add(Sports.key(sportsById.get(id),sportsChannel));
         seenEpisodes.add(episodeKey(canonicalId(id)));
         if (!terminal) current.playing = id;
         else if (episodeKey(canonicalId(current.playing)) === episodeKey(canonicalId(id))) current.playing = "";
@@ -348,7 +362,7 @@ export class SessionRotation {
     const seenFamilies = new Set([...seen].map(id => catalogByEpisode.get(episodeKey(id))).filter(Boolean).map(familyId));
     const cycleReset = body.mode === "reserve" && !fresh.length && eligible.length > 0;
     const cycleGeneration = (current.cycleGeneration || 0) + (cycleReset ? 1 : 0);
-    if (cycleReset) { seen.clear(); seenEpisodes.clear(); fresh = eligible; reserved = []; }
+    if (cycleReset) { seen.clear(); seenEpisodes.clear(); sportsSeen.clear(); fresh = eligible; reserved = []; }
     const selected = reserved.map(id => catalog.find(item => itemId(item) === id)).filter(Boolean);
     let relaxed = false;
     if (body.mode === "reserve") {
@@ -368,10 +382,12 @@ export class SessionRotation {
         appendBalanced(selected, pool, count, body.diversity, false);
       }
       if (selected.length < count) relaxed = appendBalanced(selected, pools.flat(), count, body.diversity);
+      if (sportsEnabled) selected.splice(0,selected.length,...Sports.select([...selected,...pools.flat()],{channel:sportsChannel,count,
+        history:sportsHistory([...seen]),seenKeys:[...sportsSeen]}));
       reserved = selected.map(itemId);
     }
     const next = { version: 3, catalog, seen: [...seen].slice(-MAX_RESERVATION_ITEMS), reserved,
-      cooldowns, playing: current.playing || "", cursor: current.cursor + (committed ? 1 : 0), cycleGeneration, updatedAt: now };
+      cooldowns, ...(sportsEnabled ? {sportsChannel:String(sportsChannel),sportsSeen:[...sportsSeen].slice(-MAX_SEEN)} : {}), playing: current.playing || "", cursor: current.cursor + (committed ? 1 : 0), cycleGeneration, updatedAt: now };
     if (body.mode !== "peek") {
       const write = storage => writeIaChunkedState(storage, 'ia-reservation', next);
       await this.ctx.storage.transaction(write);

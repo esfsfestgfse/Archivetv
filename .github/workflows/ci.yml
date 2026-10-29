@@ -8,6 +8,7 @@ on:
       - 'afterglow_ais_relay_worker.js'
       - 'realsignal_api_v2_worker.js'
       - 'realsignal_api_rotation.js'
+      - 'assets/sports-programs.js'
       - 'realsignal_source_catalog.js'
       - 'vimeo_catalog.js'
       - 'nascar_catalog.js'
@@ -61,6 +62,8 @@ jobs:
         with:
           node-version: '22'
           package-manager-cache: false
+      - name: Verify sports event rotation and recovery
+        run: node --test scripts/test-sports-programs.cjs scripts/test-sports-rotation.mjs scripts/test-sports-client.cjs
       - name: Validate IA relay Worker contract
         run: node scripts/check-worker-contract.js
       - name: Validate IA collection-depth rails

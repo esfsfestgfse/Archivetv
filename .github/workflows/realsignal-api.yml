@@ -7,6 +7,7 @@ on:
       - 'realsignal_api_v2_worker.js'
       - 'realsignal_roku_session.js'
       - 'realsignal_api_rotation.js'
+      - 'assets/sports-programs.js'
       - 'realsignal_api_rate_limit.js'
       - 'realsignal_source_catalog.js'
       - 'assets/source-program-policy.js'
@@ -76,6 +77,7 @@ jobs:
           node scripts/test-ok-music-exhaustion.js
           node scripts/test-vimeo-catalog-depth.js
           node --test scripts/test-nascar-classics.mjs
+          node --test scripts/test-sports-programs.cjs scripts/test-sports-rotation.mjs scripts/test-sports-client.cjs
           node scripts/test-vimeo-embed-runtime.js
           node scripts/test-v2-api-worker.js
           node scripts/test-v3-api-contract.js

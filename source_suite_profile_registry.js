@@ -2,6 +2,36 @@
  * The API owns this registry; callers may select a profile key but cannot
  * replace its provider, query, match, or deny rules. */
 export const SOURCE_PROFILE_REGISTRY = Object.freeze({
+  "nascar-classics": {
+    "name": "NASCAR Classics",
+    "providers": [
+      "nascar"
+    ],
+    "queries": [
+      "NASCAR full race broadcast"
+    ],
+    "match": [
+      "nascar",
+      "stock car racing"
+    ],
+    "deny": [
+      "podcast",
+      "highlights",
+      "recap",
+      "condensed",
+      "qualifying",
+      "practice",
+      "gameplay"
+    ],
+    "intent": "sports",
+    "topics": [
+      "nascar",
+      "stock car racing"
+    ],
+    "minRuntimeSeconds": 3600,
+    "deepCatalog": true
+  },
+
   "public-health-archive": {
     "name": "Public Health Archive",
     "queryLimit": 8,

@@ -20,6 +20,7 @@ import { okCuratedChannel, okCuratedQueries, okCuratedIdentity, okCuratedPrechec
 import { okMusicChannel, okMusicQueries, okMusicPrecheck, okMusicVerified, okMusicIdentities } from "./ok_music_catalog.js";
 import { OK_ANIMATION_VERIFIED_SEED } from "./ok_animation_verified_seed.js";
 import { SOURCE_PROFILE_REGISTRY } from "./source_suite_profile_registry.js";
+import { nascarCatalog, nascarReplayAllowed } from "./nascar_catalog.js";
 import SourcePrograms from "./assets/source-program-policy.js";
 import PeerTubeMedia from "./assets/peertube-media.js";
 import { OK_PUBLIC_EMBED_MANIFEST } from "./ok_public_embed_catalog.js";
@@ -727,6 +728,7 @@ function termsMatch(haystack, terms) {
 }
 
 function rightsOkay(item, provider) {
+  if (provider === "NASCAR Classics") return nascarReplayAllowed(item);
   const rights = text(item && item.rights, 240);
   if (provider === "YouTube") return true;
   /* Vimeo/OK rows are admitted only when the platform has explicitly exposed
@@ -905,6 +907,7 @@ function normalized(item, provider, query) {
     year: text(item.year, 12).slice(0, 4),
     rights: text(item.rights, 240),
     provider,
+    ...(provider === "NASCAR Classics" ? { officialReplay: item.officialReplay === true, verification: item.verification, verifiedAt: Number(item.verifiedAt) || 0, raceTrack: item.raceTrack, raceSeries: item.raceSeries } : {}),
     durationUnit: provider === "OK.ru" ? "seconds" : "",
     query: text(query, 180),
     type: item.type || "video",
@@ -1482,12 +1485,13 @@ function providers(profile, rotation, env, options = {}) {
   return profile.providers
     .filter((provider) => !disabled.has(String(provider).toLowerCase()))
     .map((provider) => {
-      const label = provider === "youtube" ? "YouTube" : provider === "peertube" ? "PeerTube" : provider === "vimeo" ? "Vimeo" : provider.startsWith("ok") ? "OK.ru" : provider;
+      const label = provider === "youtube" ? "YouTube" : provider === "peertube" ? "PeerTube" : provider === "nascar" ? "NASCAR Classics" : provider === "vimeo" ? "Vimeo" : provider.startsWith("ok") ? "OK.ru" : provider;
       const startedAt = Date.now();
       const task = Promise.resolve()
         .then(() => provider === "youtube" ? youtube(profile, rotation, env, options)
           : provider === "peertube" ? peerTube(profile, rotation, env, options)
           : provider === "vimeo" ? vimeo(profile, rotation, env, options)
+          : provider === "nascar" ? nascarCatalog(profile, rotation, options)
           : provider === "ok-api" ? okApi(profile, rotation, env, options)
           : provider === "ok-search" ? okTitleSearch(profile, rotation, env, options)
           : provider === "ok-sitemap" ? okSitemap(profile, rotation, env, options)
@@ -1546,7 +1550,7 @@ export function sourceRefreshTasks(body, env, rotation = 0, options = {}) {
   if (profile.derivedCatalogOnly) return [];
   // Choose the plan BEFORE starting promises; previously every refill launched
   // a discarded foreground discovery plus an identical maintenance discovery.
-  return sourceTasks(profile, env, rotation, profile.providers.includes("ok-sitemap") ? { ...options, maintenance: true } : options);
+  return sourceTasks(profile, env, rotation, profile.providers.some(provider => provider === "ok-sitemap" || provider === "nascar") ? { ...options, maintenance: true } : options);
 }
 
 /* Holiday family lanes can be sparse even when their seasonal children are

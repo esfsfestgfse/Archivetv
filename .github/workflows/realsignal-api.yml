@@ -12,6 +12,8 @@ on:
       - 'assets/source-program-policy.js'
       - 'assets/peertube-media.js'
       - 'vimeo_catalog.js'
+      - 'nascar_catalog.js'
+      - 'nascar_verified_seed.js'
       - 'ok_public_search.js'
       - 'ok_animation_catalog.js'
       - 'ok_curated_tv_catalog.js'
@@ -73,6 +75,7 @@ jobs:
           node scripts/test-ok-video-hits.js
           node scripts/test-ok-music-exhaustion.js
           node scripts/test-vimeo-catalog-depth.js
+          node --test scripts/test-nascar-classics.mjs
           node scripts/test-vimeo-embed-runtime.js
           node scripts/test-v2-api-worker.js
           node scripts/test-v3-api-contract.js

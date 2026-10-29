@@ -3780,6 +3780,14 @@ const IA_LONG_TAIL_MEDIA_FILES = Object.freeze({
    They are a seed for the rolling catalog, not a bypass around the editorial
    theme, runtime, deny, or freshness gates. */
 const IA_DEEP_HARVEST_BANKS = Object.freeze({
+  "54": [
+    ...(IA_EMERGENCY_SEEDS["76"] || []),
+    iaDirectRecovery("grandam-americanlemans-imsa-full-race-archival::2011 Baltimore Grand Prix ALMS (358p_30fps_H264-128kbit_AAC).ia.mp4", "grandam-americanlemans-imsa-full-race-archival", "2011 Baltimore Grand Prix ALMS (358p_30fps_H264-128kbit_AAC).ia.mp4", "2011 Baltimore Grand Prix ALMS \u2014 Full Race", "auto racing motorsport imsa endurance racing le mans full race broadcast", 2011, "video", 5422.49, 640, 358),
+    iaDirectRecovery("indy-car-series-2005-bombardier-learjet-500k-at-texas-tomas-scheckter-onboard-full-race::IndyCar Series 2005 - Bombardier Learjet 500k at Texas - Tomas Scheckter Onboard (Full Race).mp4", "indy-car-series-2005-bombardier-learjet-500k-at-texas-tomas-scheckter-onboard-full-race", "IndyCar Series 2005 - Bombardier Learjet 500k at Texas - Tomas Scheckter Onboard (Full Race).mp4", "IndyCar Series 2005 - Bombardier Learjet 500k At Texas - Tomas Scheckter Onboard (Full Race)", "auto racing motorsport full race broadcast indycar indianapolis 500", 2005, "video", 7066.65, 640, 360),
+    iaDirectRecovery("1995-indianapolis-500-full-race-satellite-feed::1995 Indianapolis 500 (Full Race) (Satellite Feed).mp4", "1995-indianapolis-500-full-race-satellite-feed", "1995 Indianapolis 500 (Full Race) (Satellite Feed).mp4", "1995 Indianapolis 500 (Full Race) (Satellite Feed)", "auto racing motorsport full race broadcast indycar indianapolis 500", 1995, "video", 17208.54, 640, 360),
+    iaDirectRecovery("formula-dutch-grand-prix-2023::Formula Dutch Grand Prix 2023.mp4", "formula-dutch-grand-prix-2023", "Formula Dutch Grand Prix 2023.mp4", "2023 FORMULA ONE DUTCH GRAND PRIX ROUND 13 (FULL RACE)", "auto racing motorsport full race broadcast formula one", 2023, "video", 10390.08, 1280, 720),
+    iaDirectRecovery("formula-canadian-grand-prix-2023::Formula Canadian Grand Prix 2023.mp4", "formula-canadian-grand-prix-2023", "Formula Canadian Grand Prix 2023.mp4", "2023 FORMULA ONE CANADIAN GRAND PRIX ROUND 8 (FULL RACE)", "auto racing motorsport full race broadcast formula one", 2023, "video", 7414.68, 1280, 720),
+  ],
   "51": [
     // v6.0.46: exact, transport-checked long-form NFL files; no DVD continuation chunks.
     iaDirectRecovery("youtube-s1EBPLDBv5w::s1EBPLDBv5w.ia.mp4", "youtube-s1EBPLDBv5w", "s1EBPLDBv5w.ia.mp4", "Tom Brady vs. Peyton Manning: 2006 AFC Championship | Patriots vs Colts | NFL Full Game", "nfl professional football full game playoffs nfl history sports television", 2007, "video", 8155.78, 1920, 1080),
@@ -5978,6 +5986,16 @@ function iaReviewedFileAllowed(item, channel) {
     const puppetFormat = [identity,item.subject,item.subjects,item.seriesTitle,item.meta && item.meta.title,item.meta && item.meta.subject,item.meta && item.meta.subjects].filter(Boolean).join(' ').toLowerCase().replace(/[_-]+/g,' ');
     if (/\bpuppet(?:ry)? shows?\b/.test(puppetFormat)
       && !/\b(?:television|tv series|sesame street|muppets?|colby['’]?s clubhouse|lamb chop|shari lewis|mister rogers|mr\.? rogers|fraggle rock|eureeka['’]?s castle|allegra['’]?s window)\b/.test(puppetFormat)) return false;
+  }
+  if (String(channel) === '54') {
+    if (/\b(?:documentary|highlights?|recap|qualifying|practice|interview|podcast|gameplay|simulation|car review|road test|training|car restoration|crash compilation|race compilation|music video|trailer|feature film|fan movie|fan film|fanmade|fan made|parody|automobile design|f1 challenge|season mod|assetto corsa|i racing|iracing|r factor|arcade|longplay|playthrough|psx|trump|biden|political|campaign speech|organic rally)\b/.test(identity)) return false;
+    if (/\b(?:grand prix[ (]*(?:1966|2010)|rush[ (]*2013|days of thunder|ford v ferrari|talladega[ ._-]+nights|ricky[ ._-]+bobby)\b/i.test(String(item.title || ''))) return false;
+    const raceTitle = [item.title,file].join(' ').replace(/[._-]+/g,' ');
+    const fullRace = /\b(?:full race|complete race|race replay|full broadcast|full event|complete coverage|raw satellite feed)\b/i.test(raceTitle);
+    const event = /\b(?:nascar|formula [123e]|formula one|grand prix|indycar|indianapolis 500|indy 500|daytona|talladega|le mans|imsa|sebring|nhra|us nationals|world of outlaws|knoxville nationals|wrc|motocross|supercross|truck racing|drag racing|kart racing|karting|usac|world rally|rally racing|rallycross|dakar|rally monte carlo|monte carlo rally|sprint car|dirt track|winston cup|goodwrench|pontiac excitement|budweiser|winston|craftsman truck)\b/i.test(raceTitle);
+    const namedEvent = /\b(?:(?:canadian|dutch|japanese|british|italian|belgian|monaco|baltimore|long beach|australian|mexican|chinese|spanish|german|french) grand prix|grand prix of|indianapolis 500|indy 500|daytona 500|talladega 500|knoxville nationals|us nationals|le mans|sebring|winston cup|southern 500|coca cola 600|pontiac excitement|goodwrench|budweiser|pennzoil world of outlaws)\b/i.test(raceTitle);
+    const vettedNumberedRace = (item.recoveryVerified === true || item.meta && item.meta.recoveryVerified === true) && /\b(?:nascar|stock car racing)\b/i.test(String(item.subject || item.meta && item.meta.subject || '')) && /\b(?:300|400|500|600)\b/.test(raceTitle) && /\b(?:19|20)\d{2}\b/.test(raceTitle);
+    if ((!event && !vettedNumberedRace) || (!fullRace && !vettedNumberedRace && !(namedEvent && /\b(?:19|20)\d{2}\b/.test(raceTitle)))) return false;
   }
   // Channel-specific editorial evidence must survive stale catalogs and files.
   // A racing subject tag does not turn the 2001 fictional feature into a race.
@@ -8859,6 +8877,9 @@ function orderedIaEmergencySeeds(channel, rotation) {
   }
   const seen = new Set();
   const seeds = rawSeeds.filter((item) => {
+    // This lane now promises race broadcasts. Direct cold-start recovery must
+    // apply the same admission as search, cached catalogs, and the player.
+    if (String(channel) === "54" && !iaStationQualityGate(channel,item)) return false;
     const rawIdentifier = String(item && item.identifier || "");
     const source = String(item && item.sourceIdentifier || (rawIdentifier.includes("::") ? rawIdentifier.split("::")[0] : rawIdentifier));
     const fileName = String(item && item.fileName || (rawIdentifier.includes("::") ? rawIdentifier.slice(rawIdentifier.indexOf("::") + 2) : ""));

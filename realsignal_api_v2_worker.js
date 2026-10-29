@@ -20,7 +20,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "6.0.46-hard-count-super-bowl";
+const V3_RELEASE = "6.0.47-race-broadcasts";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -463,6 +463,9 @@ function compactCatalogItem(item) {
     mediaType: okEmbed ? "embed" : String((item.media && item.media.type) || item.type || "video").slice(0, 30),
     mediaUrl,
     embedAllowed: item.embedAllowed === true,
+    ...(provider === "NASCAR Classics" ? { officialReplay: item.officialReplay === true,
+      verification: String(item.verification || "").slice(0,80), verifiedAt: Number(item.verifiedAt) || 0,
+      raceTrack: String(item.raceTrack || "").slice(0,80), raceSeries: String(item.raceSeries || "").slice(0,40) } : {}),
     ...(provider === "Vimeo" ? { embedVerified: item.embedVerified === true, publicEmbed: item.publicEmbed === true, verifiedAt: Number(item.verifiedAt) || 0 } : {}),
     language: String(item.language || "").slice(0, 40),
     seriesTitle: String(item.seriesTitle || "").slice(0, 150),
@@ -795,7 +798,7 @@ function catalogFallbackAllowed(item, body) {
   if (!iaGameShowEraAllowed(item, body && body.channel)) return false;
   if (body && body.iaRepair === true && body.sourceCatalog !== true && !qualifyIaFileRecord(item, body).accepted) return false;
   const catalogProfile = body && body.sourceCatalog === true ? sourceProfile({ profileKey: body.channel }) : null;
-  if (body && body.sourceCatalog === true && (isOKSourceProfile(catalogProfile) || /^vimeo-(?:movie|tv)-channel$/.test(String(body.channel || "")) || catalogProfile && /^(?:cartoon-time-machine|garden-ledger)$/.test(catalogProfile.profileKey))) {
+  if (body && body.sourceCatalog === true && (isOKSourceProfile(catalogProfile) || /^vimeo-(?:movie|tv)-channel$/.test(String(body.channel || "")) || catalogProfile && /^(?:cartoon-time-machine|garden-ledger|nascar-classics)$/.test(catalogProfile.profileKey))) {
     return !!qualifySourceItem(catalogProfile, item);
   }
   const title = String(item && item.title || "").toLowerCase();
@@ -1035,7 +1038,7 @@ function catalogFallbackAllowed(item, body) {
 function sourceHistoryLimit(body) {
   const channel = String(body?.channel || body?.profileKey || "");
   const profile = sourceProfile({ profileKey: channel });
-  return isOKSourceProfile(profile) || /^vimeo-(?:movie|tv)-channel$/.test(channel) || profile?.providers?.some(provider => provider === "youtube" || provider === "peertube") ? 1024 : 48;
+  return isOKSourceProfile(profile) || /^vimeo-(?:movie|tv)-channel$/.test(channel) || profile?.providers?.some(provider => provider === "youtube" || provider === "peertube" || provider === "nascar") ? 1024 : 48;
 }
 
 function recentCatalogIds(body) {
@@ -1255,7 +1258,7 @@ async function readFreshnessIds(env, channel, limit = FRESHNESS_LEDGER_LIMIT) {
   const channelKey = normalizedChannelKey(channel);
   if (!channelKey) return [];
   const historyProfile = sourceProfile({ profileKey: channelKey });
-  const deepHistory = isOKSourceProfile(historyProfile) || historyProfile?.providers?.some(provider => provider === "youtube" || provider === "peertube");
+  const deepHistory = isOKSourceProfile(historyProfile) || historyProfile?.providers?.some(provider => provider === "youtube" || provider === "peertube" || provider === "nascar");
   if (deepHistory) limit = sourceHistoryLimit({ channel: channelKey });
   const now = Date.now();
   const cached = freshnessReadCache.get(channelKey);
@@ -1396,7 +1399,7 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
   const vimeoCatalog = effectiveBody.sourceCatalog === true && /^vimeo-(?:movie|tv)-channel$/.test(channel);
   const repairCatalog = effectiveBody.iaRepair === true && effectiveBody.sourceCatalog !== true;
   const deepCatalog = okCatalog || vimeoCatalog;
-  const rotatingSourceCatalog = !deepCatalog && catalogProfile?.providers?.some(provider => provider === "youtube" || provider === "peertube");
+  const rotatingSourceCatalog = !deepCatalog && catalogProfile?.providers?.some(provider => provider === "youtube" || provider === "peertube" || provider === "nascar");
   const limit = repairCatalog ? IA_REPAIR_CATALOG_WINDOW : deepCatalog ? OK_CATALOG_WINDOW : Math.max(1, Math.min(SOURCE_LIMITS.SOURCE_MAX_ITEMS, Number(requestedLimit) || SOURCE_LIMITS.SOURCE_MAX_ITEMS));
   // The database keeps the full union. This bounded playback window prefers
   // unseen/oldest-served rows, so older episodes don't vanish behind new writes.
@@ -1492,6 +1495,8 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
       query: metadata.query || "",
       genreVerified: metadata.genreVerified === true,
       recoveryVerified: metadata.recoveryVerified === true,
+      ...(provider === "NASCAR Classics" ? { officialReplay: metadata.officialReplay === true,
+        raceTrack: metadata.raceTrack || "", raceSeries: metadata.raceSeries || "" } : {}),
       language: metadata.language || metadata.defaultAudioLanguage || metadata.defaultLanguage || "",
       defaultAudioLanguage: metadata.defaultAudioLanguage || "",
       defaultLanguage: metadata.defaultLanguage || "",
@@ -1724,7 +1729,7 @@ function sourceProvidersFromItems(items) {
   const providers = new Set();
   for (const item of Array.isArray(items) ? items : []) {
     const provider = sourceProviderKey(item && item.provider);
-    if (provider === "youtube" || provider === "peertube") providers.add(provider);
+    if (provider === "youtube" || provider === "peertube" || provider === "nascar") providers.add(provider);
   }
   return providers;
 }
@@ -2368,6 +2373,7 @@ async function firstSourceLane(tasks) {
 
 function sourceProviderKey(value) {
   const normalized = String(value || "").toLowerCase();
+  if (normalized.includes("nascar")) return "nascar";
   if (normalized.includes("youtube")) return "youtube";
   if (normalized.includes("peertube")) return "peertube";
   if (normalized.includes("vimeo")) return "vimeo";
@@ -2388,6 +2394,7 @@ function sourceProviderAvailability(env, items = [], disabled = [], cooldownProv
   const configured = {
     youtube: Boolean(env && env.YOUTUBE_API_KEY),
     peertube: true,
+    nascar: true,
     vimeo: Boolean(env && env.VIMEO_ACCESS_TOKEN),
     ok: okConfigured,
     okApi: okApiConfigured,
@@ -2674,7 +2681,7 @@ async function handleSourceCatalog(request, env, ctx, id) {
      rows. A shallow shelf is served immediately and refilled in the
      background; a deep shelf is served as a normal cache hit. */
   const staleReady = Math.max(1, Math.min(3, Number(body.staleReady) || 2));
-  const sourceSuiteCatalog = profile.providers.some(provider => provider === "youtube" || provider === "peertube");
+  const sourceSuiteCatalog = profile.providers.some(provider => provider === "youtube" || provider === "peertube" || provider === "nascar");
   // A five-item ready shelf is not a five-item catalog. Do not launch provider
   // searches on every tune merely because the public shelf is smaller than 12.
   const cachedDepth = sourceSuiteCatalog
@@ -2686,7 +2693,7 @@ async function handleSourceCatalog(request, env, ctx, id) {
      503. If a verified shelf exists, serve it immediately and let the source
      adapters replace it in the background. */
   if (!maintenance && cached && Array.isArray(cached.items) && (cached.items.length >= staleReady || hasFreshFallback) && !forceDeepRefresh) {
-    if (cachedDepth < minimumReady || sourceSuiteCatalog && cached.catalogExhausted === true || /^(?:ok|vimeo)-/.test(profile.profileKey) && body.refresh === true) {
+    if (cachedDepth < minimumReady || sourceSuiteCatalog && cached.catalogExhausted === true || /^(?:(?:ok|vimeo)-|nascar-classics$)/.test(profile.profileKey) && body.refresh === true) {
       const normalized = sourceProfile(body);
       const tasks = () => sourceRefreshTasks(body, env, rotation, { disabledProviders });
       scheduleSourceRefresh(env, ctx, normalized, tasks, id);

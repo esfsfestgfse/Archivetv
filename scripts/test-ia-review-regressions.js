@@ -45,12 +45,13 @@ async function catalogFixture(rows) {
   return f;
 }
 
+// Queue-policy fixtures use the general TV lane; the race-only lane must reject Benson.
 test('standard IA fast catalogs reject cached podcasts, fan productions and portraits without requiring unknown metadata',async()=>{
   const bad=[row('podcast.mp4',{title:'A Bud & A Bowl Show HD 420 Podcast Winter Camping'}),row('fan.mp4',{title:'A Fanmade Movie'}),
     row('portrait.mp4',{title:'Police vs Fire Boxing Tourny #shorts',media:{type:'video',url:'https://archive.org/download/boxing/short.mp4',runtime:1320,width:360,height:640}})];
   const unknown=row('unknown.mp4',{title:'Original full sports program',media:{type:'video',url:'https://archive.org/download/benson/unknown.mp4'}});
   const f=await catalogFixture([...bad,unknown,...Array.from({length:18},(_,i)=>row('good-'+i+'.mp4'))]);
-  const p=await(await f.request('queue',{channel:'54',serverCatalog:true,sessionId:'global-video-policy',count:3,viewerRecentIds:[]})).json();
+  const p=await(await f.request('queue',{channel:'2',serverCatalog:true,sessionId:'global-video-policy',count:3,viewerRecentIds:[]})).json();
   assert.equal(p.items.length,3);assert.ok(p.candidateItems.every(item=>!bad.some(b=>b.identifier===item.identifier)),'old D1 rows cannot bypass global TV policy');
   assert.ok(p.candidateItems.some(item=>item.identifier===unknown.identifier),'missing metadata is not proof of forbidden content');
   await Promise.all(f.pending);
@@ -133,9 +134,9 @@ test('qualification does not mistake studio satire or a collection folder called
 });
 
 test('standard IA rotation prunes forbidden rows already stored in its durable catalog',async()=>{
-  const f=await catalogFixture(Array.from({length:18},(_,i)=>row('clean-'+i+'.mp4'))),old=f.env.ROTATION.getByName('session:old-podcast:channel:54');
+  const f=await catalogFixture(Array.from({length:18},(_,i)=>row('clean-'+i+'.mp4'))),old=f.env.ROTATION.getByName('session:old-podcast:channel:2');
   await old.ctx.storage.put('rotation',{catalog:[row('podcast.mp4',{title:'Motor Sport Video Podcast'})],seen:[],cursor:0});
-  const p=await(await f.request('queue',{channel:'54',serverCatalog:true,sessionId:'old-podcast',count:3,viewerRecentIds:[]})).json();
+  const p=await(await f.request('queue',{channel:'2',serverCatalog:true,sessionId:'old-podcast',count:3,viewerRecentIds:[]})).json();
   assert.equal(p.items.length,3);assert.ok(p.candidateItems.every(item=>! /podcast/i.test(item.title)));
   await Promise.all(f.pending);
 });

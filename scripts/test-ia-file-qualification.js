@@ -26,10 +26,60 @@ const verified = { identifier: 'series::episode.mp4', sourceIdentifier: 'series'
   language: 'eng', media: { type: 'video', url: 'https://archive.org/download/series/episode.mp4',
     runtime: 1320, width: 640, height: 480, verifiedAt: Date.now(), verification: 'transport' } };
 
+test('Auto Racing cold recovery contains actual race broadcasts before it can report a ready shelf', () => {
+  const r=relay(),items=r.recoverySeeds('54',7);
+  assert.ok(items.length>=5);
+  assert.ok(items.every(item=>r.iaStationQualityGate('54',item)), 'the direct emergency path must not bypass race-format admission');
+  assert.ok(items.some(item=>/formula one|formula 1/i.test(item.title)));
+  assert.ok(items.some(item=>/indycar|indianapolis/i.test(item.title)));
+  const ids=new Set(items.map(x=>x.identifier));
+  const stockCar=r.recoverySeeds('76',0).filter(x=>x.sourceIdentifier==='01-1990-daytona-500-full-broadcast'&&Number(x.media?.runtime)>=3600);
+  assert.ok(stockCar.length>=12);
+  assert.ok(stockCar.every(x=>ids.has(x.identifier)),'keep the already-verified complete NASCAR broadcasts, even when their sponsor names are unfamiliar');
+});
+
+test('Auto Racing keeps verification through client warming and saved shelves', () => {
+  const item=relay().recoverySeeds('76',0).find(x=>/Motorcraft Quality/.test(x.title));
+  assert.ok(item);
+  for(const file of ['the_dial_desktop.html','the_dial_mobile.html']){
+    const source=fs.readFileSync(path.join(root,file),'utf8');
+    const c={console,URL,Date,iaProgramQueues:{'54':[item]},iaProgramMedia:{},iaReadyShelves:null,
+      IA_READY_SHELF_MAX:6,banned:[],curItem:null,store:{get:()=>({}),set:()=>{}},
+      iaQueueKey:()=> '54',iaReadyShelfKey:()=> '54',iaQueueRotationFor:()=>0,
+      iaExpectedMedia:()=> 'video',iaProgramFailed:()=>false,iaSkipBlocked:()=>false,
+      isTemporarilySkipped:()=>false,blockedId:()=>false,iaThemeMatches:()=>true,
+      iaArchiveDirectURL:()=>true,iaInterstitialMedia:()=>false,iaDisplayTitle:x=>x.title,
+      iaRuntimeSeconds:Number,fastTuneGet:()=>({}),warmIAQueueHead:()=>{}};
+    vm.createContext(c);
+    vm.runInContext(source.slice(source.indexOf('function iaKnownVideoPolicyViolation('),source.indexOf('function iaProgramDenyTerms(')),c);
+    vm.runInContext(source.slice(source.indexOf('function warmIAQueue('),source.indexOf('function iaQueueHasReadyProgram(')),c);
+    vm.runInContext(source.slice(source.indexOf('function iaReadyShelfAllowed('),source.indexOf('async function fetchSkyMetar(')),c);
+    const ch={num:54,nm:'Auto Racing'},sl={channel:54,program:{}};
+    c.warmIAQueue(ch,sl,false,1);
+    assert.equal(c.iaCachedProgramAllowed(ch,c.iaProgramMedia[item.identifier],sl),true,file+' must retain editorial proof on the playable record');
+    c.iaReadyShelfSave(ch);
+    assert.equal(c.iaProgramAllowed(c.iaReadyShelves['54'].items[0],sl),true,file+' must retain editorial proof after saving');
+    assert.equal(c.iaReviewedFileAllowed({...item,recoveryVerified:false},54),false,'subject tags alone cannot assert verification');
+  }
+});
+
 test('reviewed editorial admission rejects the reproduced contamination in every IA surface',async()=>{
   const {iaReviewedFileAllowed,qualifyIaFileRecord}=await import('../ia_file_contract.js');
   const {catalogFallbackAllowed}=await import('../realsignal_api_v2_worker.js');
   const checks=[
+    ['54',{identifier:'indy-1995',title:'1995 Indianapolis 500 Full Race'},true],
+    ['54',{identifier:'suzuka-2005',title:'Formula 1 2005 Japanese Grand Prix Full Race'},true],
+    ['54',{identifier:'nhra-2005',title:'NHRA US Nationals 2005 Full Event'},true],
+    ['54',{identifier:'race-review',title:'NASCAR 1990 Season Highlights Compilation'},false],
+    ['54',{identifier:'auto-film',title:'Automobile Design Documentary',subject:'auto racing'},false],
+    ['54',{identifier:'racing-game',title:'Formula One Full Race Gameplay'},false],
+    ['54',{identifier:'rally-politics',title:'2016 Donald Trump Rally Full Event'},false],
+    ['54',{identifier:'f1-game',title:'Formula 1 Season Mod Full Race F1 Challenge 99 02'},false],
+    ['54',{identifier:'race-night',title:'Race Night 2019 Brent Marks 410 World of Outlaws Driver'},false],
+    ['54',{identifier:'imsa-2011',title:'2011 Baltimore Grand Prix ALMS'},true],
+    ['54',{identifier:'talladega-nights-2006',title:'Talladega. Nights. The. Ballad.of. Ricky. Bobby. 2006.1080p. MAX. WEB DL'},false],
+    ['54',{identifier:'grand-prix-2010',title:'Grand Prix (2010)',subject:'auto racing'},false],
+    ['54',{identifier:'race-movie',title:'NASCAR Full Race Fan Movie 2020'},false],
     ['51',{identifier:'nfl-life::Kurt Warner.mp4',title:'A Football Life: Kurt Warner'},true],
     ['51',{identifier:'inside-the-nfl::2008 Week 3.mp4',title:'Inside the NFL: 2008 Week 3'},true],
     ['51',{identifier:'nfl-game::NFL Full Game.mp4',title:'NFL Full Game: Saints vs Colts'},true],
@@ -116,9 +166,9 @@ test('reviewed editorial admission rejects the reproduced contamination in every
     ['54',{identifier:'berrycrepe-2026',title:'BerryCrepe — I LOST MY VOICE HELP ME FIND IT | yap -> watching videos -> nascar or gamba idk',subject:'NASCAR'},false],
     ['54',{identifier:'halicki-trilogy',title:'Hi-Def Halicki: Gone In Sixty Seconds HD Trilogy (1974) (Restored 1080p)',subject:'car racing'},false],
     ['54',{identifier:'race-1990',title:'1990 Daytona 500 Full Race',subject:'NASCAR auto racing'},true],
-    ['54',{identifier:'racing-magazine',title:'NASCAR Race Review',subject:'motorsport'},true],
+    ['54',{identifier:'racing-magazine',title:'NASCAR Race Review',subject:'motorsport'},false],
     ['54',{identifier:'driven-2001',title:'Driven (2001) - 4K AI Upscale',subject:'Indycar racing movie'},false],
-    ['54',{identifier:'driven-to-win',title:'Driven to Win — NASCAR Full Race Documentary',subject:'motorsport'},true],
+    ['54',{identifier:'driven-to-win',title:'Driven to Win — NASCAR Full Race Documentary',subject:'motorsport'},false],
     ['225',{identifier:'hyperbolic-matthew-broussard-full-comedy-special',title:'Matthew Broussard — Hyperbolic',subject:'stand-up comedy'},false],
     ['225',{identifier:'peter-kay-live',title:'Peter Kay Live',subject:'stand-up comedy'},false],
     ['225',{identifier:'black-baseball',title:'Black Baseball In Living Color The Story Of The Negro Leagues',subject:'Black comedy'},false],

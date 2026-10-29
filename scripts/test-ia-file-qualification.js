@@ -81,6 +81,8 @@ test('reviewed editorial admission rejects the reproduced contamination in every
     ['54',{identifier:'gp-condensed',title:'1979 Monaco Grand Prix (Monte Carlo)',runtime:2463},false],
     ['54',{identifier:'gp-full',title:'1995 Canadian Grand Prix',runtime:6000},true],
     ['54',{identifier:'gp-post',title:'2023 Post GP Bugatti Le Mans',runtime:6000},false],
+    ['54',{identifier:'indy-post',title:'1986 Indianapolis 500 Post Race Raw Satellite Feed',runtime:6000},false],
+    ['54',{identifier:'indy-rain',title:'1986 Indianapolis 500 Original Sunday Rainout Coverage',runtime:6000},false],
     ['54',{identifier:'gp-onboard',title:'2023 On Board Le Mans Francia',runtime:600},false],
     ['54',{identifier:'gp-incomplete',title:'1987 Grand Prix Of Brazil (most)',runtime:6000},false],
     ['54',{identifier:'talladega-nights-2006',title:'Talladega. Nights. The. Ballad.of. Ricky. Bobby. 2006.1080p. MAX. WEB DL'},false],

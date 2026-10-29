@@ -127,7 +127,7 @@ export function iaReviewedFileAllowed(item, channel) {
       && !/\b(?:television|tv series|sesame street|muppets?|colby['’]?s clubhouse|lamb chop|shari lewis|mister rogers|mr\.? rogers|fraggle rock|eureeka['’]?s castle|allegra['’]?s window)\b/.test(puppetFormat)) return false;
   }
   if (String(channel) === '54') {
-    if (/\b(?:documentary|highlights?|recap|qualifying|practice|interview|podcast|gameplay|simulation|car review|road test|training|car restoration|crash compilation|race compilation|music video|trailer|feature film|fan movie|fan film|fanmade|fan made|parody|automobile design|f1 challenge|season mod|assetto corsa|i racing|iracing|r factor|arcade|longplay|playthrough|psx|trump|biden|political|campaign speech|organic rally)\b/.test(identity)) return false;
+    if (/\b(?:documentary|highlights?|recap|qualifying|practice|interview|podcast|gameplay|simulation|car review|road test|training|car restoration|crash compilation|race compilation|music video|trailer|feature film|fan movie|fan film|fanmade|fan made|parody|automobile design|f1 challenge|season mod|assetto corsa|i racing|iracing|r factor|arcade|longplay|playthrough|psx|trump|biden|political|campaign speech|organic rally|post race|post gp|rainout|rain out)\b/.test(identity)) return false;
     if (/\b(?:grand prix[ (]*(?:1966|2010)|rush[ (]*2013|days of thunder|ford v ferrari|talladega[ ._-]+nights|ricky[ ._-]+bobby)\b/i.test(String(item.title || ''))) return false;
     const raceTitle = [item.title,file].join(' ').replace(/[._-]+/g,' ');
     const fullRace = /\b(?:full race|complete race|race replay|full broadcast|full event|complete coverage|raw satellite feed)\b/i.test(raceTitle);

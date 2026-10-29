@@ -5906,6 +5906,11 @@ function iaReviewedFileAllowed(item, channel) {
   if (String(channel) === '51') {
     const broadcast = source.match(/^([a-z0-9]{3,12})_(?:19|20)\d{6}_\d{6}_(.+)$/i);
     if (broadcast && !/^nfl/i.test(broadcast[1]) && !/\b(?:nfl|football|super bowl|hard knocks|gridiron|america'?s game|america s game)\b/i.test(broadcast[2].replace(/_/g,' '))) return false;
+    const topic = /\b(?:nfl|football|super bowl|hard knocks|gridiron|sabol|facenda|america'?s game|america s game|steel curtain|doomsday defense|fearsome foursome|monsters of the midway|purple people eaters|new york sack exchange|greatest show on turf|giants (?:yearbook|forever)|jersey guys rooting for big blue)\b|\bwk\s*\d{1,2}\b.*\bgotw\b/i;
+    const parts = String(item.title || item.meta && item.meta.title || '').replace(/[_-]+/g,' ').split(/\s+(?:\u00c2)?·\s+/), selectedTitle = parts[parts.length-1];
+    const fileTitle = file.replace(/(?:\.ia)?\.[^.]+$/,'').replace(/[._-]+/g,' ');
+    const genericName = /^(?:vts\s*\d+(?:\s+\d+)*|(?:episode|ep|part|reel|disc|disk|video|chapter)\s*\d+[a-z]?|\d+)$/i, generic = genericName.test(fileTitle || selectedTitle) && genericName.test(selectedTitle);
+    if (!topic.test(selectedTitle) && !topic.test(fileTitle) && !(generic && topic.test(parts.slice(0,-1).join(' ')))) return false;
   }
   // Incidental NFL tags cannot turn a newscast or the wrestling film named
   // "Hard Knocks" into football programming, including in old saved shelves.

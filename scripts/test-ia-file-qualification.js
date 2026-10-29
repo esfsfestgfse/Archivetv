@@ -30,6 +30,16 @@ test('reviewed editorial admission rejects the reproduced contamination in every
   const {iaReviewedFileAllowed,qualifyIaFileRecord}=await import('../ia_file_contract.js');
   const {catalogFallbackAllowed}=await import('../realsignal_api_v2_worker.js');
   const checks=[
+    ['51',{identifier:'aapb-cpb-aacip-512-gb1xd0rs58',title:'China: The 700 Million',subject:'NFL Films football',genreVerified:true},false],
+    ['51',{identifier:'nfl-films-collection::China Documentary.mp4',title:'NFL Films Collection · China Documentary',subject:'football'},false],
+    ['51',{identifier:'nfl-films-collection::2.mp4',title:'NFL Films Collection · China Documentary',subject:'football'},false],
+    ['51',{identifier:'nfl-films-collection::2.mp4',title:'NFL Films Collection · Episode 2'},true],
+    ['51',{identifier:'nfl-films-collection::China Documentary.mp4',title:'NFL Films Collection Â· China Documentary',subject:'football'},false],
+    ['51',{identifier:'nfl-films-collection::Episode 2.mp4',title:'NFL Films Collection · Episode 2'},true],
+    ['51',{identifier:'1990-giants-yearbook-true-blue',title:'New York Giants Yearbook: True Blue (1990)'},true],
+    ['51',{identifier:'1986-wk-11-giants-at-minnesota-gotw',title:'1986 WK 11 Giants At Minnesota GOTW'},true],
+    ['51',{identifier:'tape-14-part-b',title:'Tape 14',subject:'NFL Films'},false],
+    ['226',{identifier:'aapb-cpb-aacip-512-gb1xd0rs58',title:'China: The 700 Million'},true],
     ['51',{identifier:'MSNBCW_20120919_093000_Way_Too_Early_With_Willie_Geist',title:'Way Too Early With Willie Geist',subject:'NFL Films football'},false],
     ['51',{identifier:'CNNW_20120919_140000_CNN_Newsroom',title:'Football in America',subject:'NFL Films'},false],
     ['51',{identifier:'KPIX_20120919_010000_NFL_Football',title:'NFL Football'},true],

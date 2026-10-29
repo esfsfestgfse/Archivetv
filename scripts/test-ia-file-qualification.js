@@ -30,6 +30,18 @@ test('reviewed editorial admission rejects the reproduced contamination in every
   const {iaReviewedFileAllowed,qualifyIaFileRecord}=await import('../ia_file_contract.js');
   const {catalogFallbackAllowed}=await import('../realsignal_api_v2_worker.js');
   const checks=[
+    ['51',{identifier:'WHUT_20100810_220000_World_Business',title:'World Business',subject:'NFL Films football hard knocks'},false],
+    ['51',{identifier:'KPIX_20120919_003000_CBS_Evening_News_With_Scott_Pelley',title:'CBS Evening News With Scott Pelley',subject:'NFL Films'},false],
+    ['51',{identifier:'KPIX_20120203_150000_CBS_This_Morning',title:'CBS This Morning',subject:'football'},false],
+    ['51',{identifier:'KNTV_20120919_003000_NBC_Nightly_News',title:'NBC Nightly News',subject:'NFL Films'},false],
+    ['51',{identifier:'KNTV_20120919_110000_Early_Today',title:'Early Today',subject:'NFL'},false],
+    ['51',{identifier:'KRON_20120919_060000_KRON_4_News_at_11',title:'KRON 4 News at 11',subject:'football NFL Films'},false],
+    ['51',{identifier:'wwf-mick-foley-hard-knocks-cheap-pops',title:'WWF Mick Foley Hard Knocks & Cheap Pops',subject:'hard knocks'},false],
+    ['51',{identifier:'sports-illustrated-presents-football-follies',title:'Sports Illustrated Presents Football Follies'},true],
+    ['51',{identifier:'hard-knocks-seahawks-episode-1',title:'Hard Knocks Seattle Seahawks Episode 1'},true],
+    ['51',{identifier:'nfl-on-cbs',title:'NFL on CBS Full Game'},true],
+    ['51',{identifier:'nfl-network-news',title:'NFL Network News and Highlights'},true],
+    ['210',{identifier:'WHUT_20100810_220000_World_Business',title:'World Business'},true],
     ['209',{identifier:'powell-filmography::Peeping Tom 1960.mp4',title:'Powell and Pressburger: The Complete Filmography · Peeping Tom 1960',subject:'One of Our Aircraft Is Missing; aviation',genreVerified:true},false],
     ['209',{identifier:'powell-filmography::49th Parallel.mp4',title:'Powell and Pressburger: The Complete Filmography · 49th Parallel',subject:'One of Our Aircraft Is Missing',genreVerified:true},false],
     ['209',{identifier:'powell-filmography::One of Our Aircraft Is Missing.mp4',title:'Powell and Pressburger: The Complete Filmography · One of Our Aircraft Is Missing',subject:'filmography'},true],

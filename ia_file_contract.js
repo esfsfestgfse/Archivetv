@@ -76,6 +76,9 @@ export function iaReviewedFileAllowed(item, channel) {
   // This DVD parent has continuation chunks; title _1 alone is not a full episode.
   if (source === 'vts-01-1_20231104' && (!file || /^VTS_\d+_\d+(?:\.ia)?\.mp4$/i.test(file))) return false;
   const identity = [item.title, source, file].join(' ').toLowerCase().replace(/[_-]+/g, ' ');
+  // Incidental NFL tags cannot turn a newscast or the wrestling film named
+  // "Hard Knocks" into football programming, including in old saved shelves.
+  if (String(channel) === '51' && /\b(?:cbs this morning|cbs evening news|nbc nightly news|abc world news|early today|world business|eyewitness news|(?:morning|evening|nightly|world|local) news|news at \d{1,2}|wwf|wwe|wcw|ecw|mick foley|pro wrestling)\b/.test(identity)) return false;
   if (String(channel) === '209') {
     // Collection subjects describe every sibling together. They cannot qualify
     // Peeping Tom just because another film is about missing aircraft.

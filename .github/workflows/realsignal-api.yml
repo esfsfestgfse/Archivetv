@@ -77,7 +77,7 @@ jobs:
           node scripts/test-ok-music-exhaustion.js
           node scripts/test-vimeo-catalog-depth.js
           node --test scripts/test-nascar-classics.mjs
-          node --test scripts/test-sports-programs.cjs scripts/test-sports-rotation.mjs scripts/test-sports-client.cjs
+          node --test scripts/test-sports-programs.cjs scripts/test-sports-rotation.mjs scripts/test-sports-client.cjs scripts/test-sports-depth.cjs
           node scripts/test-vimeo-embed-runtime.js
           node scripts/test-v2-api-worker.js
           node scripts/test-v3-api-contract.js

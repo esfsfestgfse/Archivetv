@@ -23,10 +23,22 @@ export function iaKnownVideoPolicyViolation(item = {}, rules = {}) {
   const meta = item.meta || {}, media = item.media || meta.media || {};
   if (String(media.type || item.type || item.mediaType || item.mediatype || meta.mediatype || '').toLowerCase() === 'audio') return false;
   const channel = String(rules.channel || '');
+  if (['60','71','72'].includes(channel)) {
+    // Judge the selected program and original identity, not incidental words
+    // in descriptions of intermission coverage inside a complete broadcast.
+    const sportsText = [item.title,item.identifier || item.id,item.sourceIdentifier,item.fileName,media.fileName,meta.title,meta.sourceIdentifier,meta.fileName].filter(Boolean).join(' ').toLowerCase().replace(/[_./-]+/g,' ').replace(/\b(?:with|without)(?: original)? commercial(?: break)?s\b/g,' ');
+    if (/\b(?:highlights?|clips?|recaps?|condensed|abridged|incomplete|partial|previews?|trailers?|promos?|commercials?|interviews?|post match|press conference|gameplay|longplay|playthrough|video games?|simulation|ytp|youtube poop|grand slam tennis 2|andre agassi tennis|asg golf)\b/.test(sportsText)) return true;
+    if (channel === '60' && /\b(?:pickup ?hockey|field hockey|underwater hockey|street hockey|floor hockey)\b/.test(sportsText)) return true;
+    if (/\bea sports\b/.test(sportsText) || /\b20020617 2336 channel 5 nhl stanley cup finals and more\b/.test(sportsText)) return true;
+    // The Archive source labels this recording incomplete; old editorial
+    // shelf titles omitted that fact. Its source identity remains excluded.
+    if (channel === '72' && /\bwimbledon wilandermcenroe 19890705\b/.test(sportsText)) return true;
+  }
   if (channel) {
     const features = ['100','101','102','103','105','106','108','110','111','112','114','115','116','119','120','124','125','132','135','701'];
     const shorts = ['13','236','501','509'];
-    const floor = Math.max(Number(rules.minRuntimeSeconds) || 0, channel === '150' ? 120 : shorts.includes(channel) ? 0 : features.includes(channel) ? 3600 : 900);
+    const sportsNhl = channel === '60' && /\bnhl\b|\bstanley[-_. ]cup\b/i.test([item.title,item.identifier || item.id,item.sourceIdentifier,item.fileName,media.fileName,meta.title].filter(Boolean).join(' '));
+    const floor = Math.max(Number(rules.minRuntimeSeconds) || 0, sportsNhl ? 3600 : channel === '71' ? 2700 : ['60','72'].includes(channel) ? 1800 : 0, channel === '150' ? 120 : shorts.includes(channel) ? 0 : features.includes(channel) ? 3600 : 900);
     // A selected child with missing/short metadata must not borrow the parent runtime.
     const fileRuntime = ['runtime','duration','length'].some(key => Object.prototype.hasOwnProperty.call(media,key));
     const value = fileRuntime ? media.runtime || media.duration || media.length : item.runtimeSeconds || item.durationSeconds || item.duration || item.runtime || meta.runtimeSeconds || meta.durationSeconds || meta.duration || meta.runtime;
@@ -252,6 +264,8 @@ export function iaGameShowEraAllowed(item, channel) {
 export function iaMinimumFileRuntimeSeconds(rules = {}) {
   if (Array.isArray(rules.mediaTypes) && rules.mediaTypes.length && !rules.mediaTypes.includes('movies') && !rules.mediaTypes.includes('video')) return 0;
   const requested = Math.max(0, Number(rules.minRuntimeSeconds) || 0), channel = String(rules.channel || '');
+  if (channel === '71') return Math.max(requested, 2700);
+  if (['60','72'].includes(channel)) return Math.max(requested, 1800);
   if (channel === '150') return Math.max(requested, 120);
   return SHORT_FORM.has(channel) ? requested : Math.max(requested, FEATURES.has(channel) ? 3600 : 900);
 }
@@ -335,6 +349,7 @@ export function qualifyIaFileRecord(raw, rules = {}, now = Date.now()) {
   }
   const text = [item.title, item.description, item.subject, item.fileName].filter(Boolean).join(' ').toLowerCase();
   const channel = String(rules.channel || '');
+  if (['60','71','72'].includes(channel) && iaKnownVideoPolicyViolation(item, rules)) return reject('off-genre-sports');
   if (!iaReviewedFileAllowed(item, channel)) return reject('off-genre-reviewed-collection');
   const completeCartoon = channel === '150' && COMPLETE_CARTOON_SHORT_PARENTS.has(item.sourceIdentifier)
     && !/\b(?:clip|trailer|preview|teaser|promo|bumper|intro|introduction|outro|review|reaction|tutorial|interview|bonus|menu|featurette|tiktok|reels)\b|#shorts|youtube shorts/i.test(text);

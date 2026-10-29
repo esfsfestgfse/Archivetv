@@ -44,6 +44,11 @@
    var name=named?named[1].replace(/^indy 500$/,'indianapolis 500'):stem;
    if(named||/\b(?:300|400|500|600|1000|24 hours|12 hours)\b/.test(name))result.eventId='sports:'+result.competition+':'+year+':'+clean(name).replace(/ /g,'-')+suffix+(/\bon ?board\b/.test(text)?':onboard':'');
   }
+  var masters=text.match(/\bmasters(?: tournament)?(?: (?:19|20)\d{2})? (final|first|second|third|fourth|round [1-4])\b/);
+  if(Number(channel)===71&&year&&masters&&/\bbroadcast\b/.test(text)){
+   var round=({final:4,first:1,second:2,third:3,fourth:4})[masters[1]]||Number(masters[1].slice(-1));
+   result.competition='pga';result.eventId='sports:golf:masters:'+year+':round-'+round+suffix;
+  }
   var versus=text.replace(/\b(?:nfl|nba|wnba|nhl|mlb|ncaa|fifa|ufc|pride|full|complete|game|match|fight|bout|event|broadcast|replay|season|playoffs?)\b/g,' ').replace(/\b(?:19|20)\d{2}(?: \d{2} \d{2})?\b/g,' ').replace(/\s+/g,' ').trim().match(/^(.+?)\s+(?:vs?|versus|at)\s+(.+)$/);
   if(versus)result.participants=[clean(versus[1]),clean(versus[2])].filter(Boolean).map(function(v){return v.slice(0,90);}).sort();
   var card=text.match(/\b(ufc|pride)\s+(\d{1,3})\b/);

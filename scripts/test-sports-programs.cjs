@@ -58,6 +58,14 @@ test('race sessions remain separate and Super Bowl numbering has one identity',(
  assert.ok(roman.eventId);assert.equal(roman.eventId,numeric.eventId);
  assert.equal(sports.describe(game('invalid','1998-02-31','Chicago Bulls vs Utah Jazz'),58).eventId,'');
 });
+test('Masters round identities group annual broadcast copies without merging rounds or films',()=>{
+ const first=sports.describe(race('a','1969 Masters Tournament Final Round Broadcast'),71);
+ assert.ok(first.eventId);
+ assert.equal(first.eventId,sports.describe(race('b','Masters Final Round Broadcast 1969'),71).eventId);
+ assert.notEqual(first.eventId,sports.describe(race('c','1969 Masters Third Round Broadcast'),71).eventId);
+ assert.equal(sports.describe(race('film','1969 Masters Official Film Documentary'),71).eventId,'');
+ assert.equal(sports.describe(race('other','1969 Masters of Magic Final Round Broadcast'),71).eventId,'');
+});
 test('shelves group duplicate events while preserving full recovery records and inventory',()=>{
  assert.equal(typeof sports.select,'function');
  const a=race('a','Daytona 500 1990 Full Race'),b=race('b','Daytona 500 1990 Full Race'),c=race('c','1991 Indianapolis 500 Full Race');

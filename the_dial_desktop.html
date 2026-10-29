@@ -9,7 +9,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>REALSIGNAL · Retro Cable 6.0.45</title>
+<title>REALSIGNAL · Retro Cable 6.0.46</title>
 <meta name="realsignal-ia-repair-channels" content="10,12,22,150">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
@@ -17,7 +17,7 @@
 <script src="assets/ok-embed-runtime.js?v=5.6.29"></script>
 <script src="assets/ia-playback-shelf.js?v=5.6.29"></script>
 <script src="assets/vimeo-embed-runtime.js?v=5.5.85"></script>
-<script src="assets/youtube-embed-runtime.js?v=6.0.45"></script>
+<script src="assets/youtube-embed-runtime.js?v=6.0.46"></script>
 <!-- Source Suite starts verified YouTube playback on a cold tune. Warm the exact
      origins it uses so DNS/TLS setup is not serialized behind catalog discovery. -->
 <link rel="preconnect" href="https://www.googleapis.com" crossorigin>
@@ -1701,16 +1701,16 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
 @media(prefers-reduced-motion:reduce){.sports-screen *,.wx-screen *,.wr-cabinet *{animation-duration:.001ms!important;transition-duration:.001ms!important}}
 </style>
 <link rel="stylesheet" href="assets/guide-overhaul.css">
-<link rel="stylesheet" href="assets/v6-watching-shell.css?v=6.0.45">
-<link rel="stylesheet" href="assets/v6-guide.css?v=6.0.45">
-<script src="assets/commercial-scheduler.js?v=6.0.45"></script>
-<script src="assets/fast-catalog.js?v=6.0.45"></script>
-<link rel="stylesheet" href="assets/weather-networks.css?v=6.0.45">
-<script src="assets/weather-networks.js?v=6.0.45"></script>
-<link rel="stylesheet" href="assets/weather-local.css?v=6.0.45">
-<script src="assets/weather-local.js?v=6.0.45"></script>
-<script src="assets/source-program-policy.js?v=6.0.45"></script>
-<script src="assets/peertube-media.js?v=6.0.45"></script>
+<link rel="stylesheet" href="assets/v6-watching-shell.css?v=6.0.46">
+<link rel="stylesheet" href="assets/v6-guide.css?v=6.0.46">
+<script src="assets/commercial-scheduler.js?v=6.0.46"></script>
+<script src="assets/fast-catalog.js?v=6.0.46"></script>
+<link rel="stylesheet" href="assets/weather-networks.css?v=6.0.46">
+<script src="assets/weather-networks.js?v=6.0.46"></script>
+<link rel="stylesheet" href="assets/weather-local.css?v=6.0.46">
+<script src="assets/weather-local.js?v=6.0.46"></script>
+<script src="assets/source-program-policy.js?v=6.0.46"></script>
+<script src="assets/peertube-media.js?v=6.0.46"></script>
 </head>
 <body>
 <script>
@@ -1722,7 +1722,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="6.0.45-desktop-retro-cable";
+window.__ATV_BUILD="6.0.46-desktop-retro-cable";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -2265,7 +2265,7 @@ const OK_DECADE_CHANNELS=[
 const CH=[
  /* SPORTS SUITE · 50–79. Live scoreboard plus 29 intentionally separated archive lanes. */
  {nm:"Sports Center", num:50,             cat:"SPORTS", source:"sports", ns:"tv"},
- {nm:"Hard Count", num:51,                cat:"SPORTS", gl:"nflfilms", era:[1965,2026], ns:"doc"},
+ {nm:"Hard Count", num:51,                cat:"SPORTS", gl:"nflfilms", era:[1920,2026], ns:"doc"},
  {nm:"The Octagon", num:52,               cat:"SPORTS", gl:"combat", era:[1960,2026], ns:"doc"},
  {nm:"Sports Vault", num:53,              cat:"SPORTS", gl:"sportsvault", era:[1920,2026], ns:"doc"},
  {nm:"Auto Racing", num:54,               cat:"SPORTS", gl:"autoracing", era:[1930,2026], ns:"doc"},
@@ -2936,7 +2936,7 @@ const CHANNEL_META={
 "Mic Night":{desc:"Stand-up specials only — comedy clubs, comedy hours, one-mic-one-audience. No sketch, no sitcoms. Just microphones.",best:"late night",rel:["Joke Joint","Comedy Classics"]},
 "The 36th Chamber":{desc:"Kung fu theater — Shaw Brothers, Golden Harvest, dubbed 70s Hong Kong chopsocky and wuxia.",best:"Saturday afternoons",rel:["Action & Serials","The Drive-In"]},
 "Monster Island":{desc:"Kaiju cinema — Godzilla, Gamera, Toho / Daiei monster movies. Giant lizards vs. tanks, in glorious rubber suits.",best:"Saturday nights",rel:["Sci-Fi Theater","Shock Theater"]},
-"Hard Count":{desc:"NFL Films from the golden era — Steve Sabol's cameras, John Facenda's voice, gridiron poetry set to French horns.",best:"Fall Sundays",rel:["Sports Vault","Sports Center"]},
+"Hard Count":{desc:"NFL games, playoff classics, NFL Films, team histories, player profiles, draft coverage and behind-the-scenes football — across eras.",best:"Fall Sundays",rel:["Sports Vault","Sports Center"]},
 "The Hearth":{desc:"A crackling yule log, all night. Vintage Christmas jazz on the audio. Best in December but on year-round.",best:"December evenings",rel:["Christmas Channel","Bob Ross & Comfort TV"]},
 "The Long Shot":{desc:"Slow TV — Norwegian NRK-style long-form: train rides, sunsets, waterfalls, ferry crossings. Meditative watching.",best:"late nights + Sunday afternoons",rel:["Nature Channel","Home Movies & Travelogues"]},
 "Blaxploitation":{desc:"70s Black action cinema — Shaft, Superfly, Foxy Brown, Coffy, Cleopatra Jones, Sweet Sweetback, Truck Turner, Dolemite.",best:"Saturday nights",rel:["Black Cinema","The Drive-In"]},
@@ -3460,10 +3460,10 @@ const PROGRAM = {
   /* Hard Count (ch 51) — Phase 5 overhaul 2026-08-08. NFL Films golden era —
      Sabol / Facenda / gridiron poetry. */
   "Hard Count": {
-    genre: "nflfilms", era: [1965, 2026],
+    genre: "nflfilms", era: [1920, 2026],
     providers: [
       { collections: ["sports", "sportstelevision", "opensource_movies", "vhssports"], require_subj: [
-        "nfl films","nfl film","steve sabol","ed sabol","sabol nfl","john facenda","facenda","voice of god facenda",
+        "nfl full game","nfl playoffs","nfl championship","nfl draft","nfl scouting combine","inside the nfl","nfl turning point","nfl micd up","nfl timeline","nfl films","nfl film","steve sabol","ed sabol","sabol nfl","john facenda","facenda","voice of god facenda",
         "sam spence","sam spence nfl","nfl films music","nfl films soundtrack","nfl films score","nfl films film",
         "the autumn wind","autumn wind raiders","nfl films highlight","nfl films highlights",
         "nfl films yearbook","nfl films team highlight","team highlight film","hard knocks","hard knocks hbo",
@@ -3487,8 +3487,8 @@ const PROGRAM = {
       ] }
     ],
     deny: {
-      title: ["fantasy","commercial","cartoon","instructional","training"],
-      subject: ["fantasy football","cartoon","animated","commercial","training","instructional","college football"]
+      title: ["fantasy","commercial","cartoon","instructional","podcast","reaction","madden nfl gameplay","video game","parody"],
+      subject: ["fantasy football","cartoon","animated","commercial","podcast","video game","instructional","college football"]
     },
     subjRotate: true, subjRequired: true, noBlindFallback: true
   },
@@ -7657,9 +7657,10 @@ function iaReviewedFileAllowed(item, channel) {
   if (source === 'vts-01-1_20231104' && (!file || /^VTS_\d+_\d+(?:\.ia)?\.mp4$/i.test(file))) return false;
   const identity = [item.title, source, file].join(' ').toLowerCase().replace(/[_-]+/g, ' ');
   if (String(channel) === '51') {
+    if (/\b(?:podcast|reactions?|video game|simulation|fantasy football)|\bmadden\s+(?:nfl\s+\d{2,4}|gameplay|playthrough)\b/i.test(identity)) return false;
     const broadcast = source.match(/^([a-z0-9]{3,12})_(?:19|20)\d{6}_\d{6}_(.+)$/i);
     if (broadcast && !/^nfl/i.test(broadcast[1]) && !/\b(?:nfl|football|super bowl|hard knocks|gridiron|america'?s game|america s game)\b/i.test(broadcast[2].replace(/_/g,' '))) return false;
-    const topic = /\b(?:nfl|football|super bowl|hard knocks|gridiron|sabol|facenda|america'?s game|america s game|steel curtain|doomsday defense|fearsome foursome|monsters of the midway|purple people eaters|new york sack exchange|greatest show on turf|giants (?:yearbook|forever)|jersey guys rooting for big blue)\b|\bwk\s*\d{1,2}\b.*\bgotw\b/i;
+    const topic = /\b(?:nfl|football|super bowl|hard knocks|gridiron|sabol|facenda|a football life|inside the nfl|america'?s game|america s game|steel curtain|doomsday defense|fearsome foursome|monsters of the midway|purple people eaters|new york sack exchange|greatest show on turf|giants (?:yearbook|forever)|jersey guys rooting for big blue)\b|\bwk\s*\d{1,2}\b.*\bgotw\b/i;
     const parts = String(item.title || item.meta && item.meta.title || '').replace(/[_-]+/g,' ').split(/\s+(?:\u00c2)?·\s+/), selectedTitle = parts[parts.length-1];
     const fileTitle = file.replace(/(?:\.ia)?\.[^.]+$/,'').replace(/[._-]+/g,' ');
     const genericName = /^(?:vts\s*\d+(?:\s+\d+)*|(?:episode|ep|part|reel|disc|disk|video|chapter)\s*\d+[a-z]?|\d+)$/i, generic = genericName.test(fileTitle || selectedTitle) && genericName.test(selectedTitle);
@@ -9516,7 +9517,7 @@ function playFile(it,ch,sl,my,isFallback){return new Promise(res=>{
   if(preservePicture){v.style.position="absolute";v.style.inset="0";v.style.zIndex="0";v.style.pointerEvents="none";}
   v.style.opacity="0"; v.style.transition="opacity .35s ease"; screenArea.appendChild(v); if(window.__rsPlaybackAudit)window.__rsPlaybackAudit.watch(v,it); // outgoing picture remains until this candidate has a real frame
   v.classList.toggle("ff-glitch",!!ch.glitch); /* 1.1: reused element — toggle, don't accumulate */
-  if(it.isAd){ setTimeout(()=>{ try{if(!v.ended&&!v.paused)finishAd();}catch(e){} },60000); } // one prepared spot, capped at one minute
+  if(it.isAd){ setTimeout(()=>{ try{if(!v.ended&&!v.paused)finishAd();}catch(e){} },Math.min(128000,Number(it.adMaxMs)||60000)); } // one prepared spot; allow a verified Super Bowl spot to finish
   if(isAudio){ audioScreen.classList.remove("hide"); audioTitle.textContent=it.title||ch.nm; }
   tryPlay(); // FIX: was v.play().catch(()=>{}) — a swallowed rejection left the video paused forever
 });}
@@ -18143,11 +18144,57 @@ function adQueries(ch){
   });
   return qs;
 }
+
+/* Dedicated Hard Count inventory: verified seeds are immediately usable; two
+   discovery rails refresh independently while the program is already playing. */
+var adSuperBowlPool=null,adSuperBowlRefresh=null,adSuperBowlAt=0,adSuperBowlAttempts=store.get("adSuperBowlAttempts",{});
+if(!adSuperBowlAttempts||typeof adSuperBowlAttempts!=="object")adSuperBowlAttempts={};
+function isSuperBowlAdChannel(ch){return typeof window!=="undefined"&&window.RealSignalCommercials&&window.RealSignalCommercials.isSuperBowlChannel(ch);}
+function refreshSuperBowlAds(){
+  if(adSuperBowlRefresh||Date.now()-adSuperBowlAt<6*3600e3)return adSuperBowlRefresh||Promise.resolve();
+  var policy=window.RealSignalCommercials,queries=policy.superBowlQueries(),cursor=Number(store.get("adSuperBowlCursor",0))||0;
+  var selected=[queries[cursor%queries.length],queries[(cursor+1)%queries.length]];
+  store.set("adSuperBowlCursor",(cursor+2)%queries.length);adSuperBowlAt=Date.now();
+  adSuperBowlRefresh=Promise.all(selected.map(async function(q){
+    try{
+      var item=await withTO(pickIA(q,true),2600);if(!item)return;
+      var id=String(item.identifier||"").split("::")[0];
+      var metadata=await withTO(iaFastJSON(iaRelayMetadataURL(id)),4200);
+      var candidates=policy.superBowlFiles(item,metadata).slice(0,6);
+      for(var i=0;i<candidates.length;i++){
+        var spot=candidates[i],response=null,controller=new AbortController(),timer=setTimeout(function(){controller.abort();},2200);
+        try{
+          response=await fetch(spot.media.url,{headers:{Range:"bytes=0-1023"},signal:controller.signal});
+          if((response.status===200||response.status===206)&&/video|octet-stream/i.test(response.headers.get("content-type")||"")){
+            if(!adSuperBowlPool)adSuperBowlPool=policy.superBowlSeeds();
+            if(!adSuperBowlPool.some(function(row){return row.identifier===spot.identifier;}))adSuperBowlPool.push(spot);
+          }
+        }catch(e){}finally{clearTimeout(timer);if(response&&response.body)try{await response.body.cancel();}catch(e){}}
+      }
+    }catch(e){}
+  })).finally(function(){adSuperBowlRefresh=null;});
+  return adSuperBowlRefresh;
+}
+
 function adPruneRecent(){var now=Date.now();Object.keys(adRecent||{}).forEach(function(id){if(now-Number(adRecent[id]||0)>AD_RECENT_TTL)delete adRecent[id];});Object.keys(adFailed||{}).forEach(function(id){if(now-Number(adFailed[id]||0)>AD_FAILED_TTL)delete adFailed[id];});}
 function adRemember(id){if(!id)return;adPruneRecent();adRecent[id]=Date.now();store.set("adRecent",adRecent);}
 function adMarkFailed(id){if(!id)return;adPruneRecent();adFailed[id]=Date.now();store.set("adFailed",adFailed);}
 async function pickAdItem(ch,left){
   adPruneRecent();
+  if(isSuperBowlAdChannel(ch)){
+    if(!adSuperBowlPool)adSuperBowlPool=window.RealSignalCommercials.superBowlSeeds();
+    refreshSuperBowlAds().catch(function(){});
+    var pool=adSuperBowlPool.filter(function(item){return !adFailed[item.identifier];});
+    if(!pool.length)return null;
+    /* Attempt history is separate from watched history. Long games must not
+       let an expired cooldown return the same broken first seed forever. */
+    var least=Math.min.apply(null,pool.map(function(item){return Number(adSuperBowlAttempts[item.identifier]||0);}));
+    pool=pool.filter(function(item){return Number(adSuperBowlAttempts[item.identifier]||0)===least;});
+    var unseen=pool.filter(function(item){return !adRecent[item.identifier];});if(unseen.length)pool=unseen;
+    var choice=adScheduler?adScheduler.choose(pool):pool[0]||null;
+    if(choice){adSuperBowlAttempts[choice.identifier]=least+1;store.set("adSuperBowlAttempts",adSuperBowlAttempts);}
+    return choice;
+  }
   var qs=adQueries(ch).slice(0,24),pulls=await Promise.all(qs.map(function(q){return withTO(pickIA(q,true),Math.max(700,Math.min(2600,left||2600))).catch(function(){return null;});})),seen={},items=[];
   pulls.forEach(function(item){var id=String(item&&item.identifier||"");if(id&&!seen[id]){seen[id]=1;items.push(item);}});
   if(!items.length)return null;
@@ -18177,9 +18224,9 @@ function warmAd(ch){
   var misses=Number(adWarmMiss[key]||0);
   row.promise=(async function(){
     var item=null;if(bumperOn&&!ch.audio&&ch.nm==="The Drive-In")item=await pickFromQueries(driveInBumperQueries());
-    else if(bumperOn&&!ch.audio&&Math.random()<0.4)item=await pickFromQueries(bumperQueries());
+    else if(bumperOn&&!ch.audio&&!isSuperBowlAdChannel(ch)&&Math.random()<0.4)item=await pickFromQueries(bumperQueries());
     if(!item)item=await pickAdItem(ch,5200);if(!item)throw new Error("no commercial candidate");
-    var playable=await resolvePlayable(item.identifier,ch.audio?"audio":"video");
+    var playable=isSuperBowlAdChannel(ch)&&item.media?Object.assign({},item.media,{id:item.identifier}):await resolvePlayable(item.identifier,ch.audio?"audio":"video");
     if(!playable)throw new Error("commercial has no matching playable media");
     row.item=item;row.playable=playable;row.at=Date.now();delete adWarmMiss[key];return row;
   })().catch(function(){if(adWarm[key]===row)delete adWarm[key];adWarmMiss[key]=misses+1;if(misses<2)setTimeout(function(){if(powered&&curNum===ch.num)warmAd(ch);},1200+misses*900);return null;}).finally(function(){delete row.promise;});
@@ -18196,7 +18243,7 @@ async function nextAd(ch,sl,my){
   if(!ready||!ready.item||!ready.playable||adFailed[ready.item.identifier])return false;
   delete adWarm[key];
   if(ready.playable.type!==kind||!ready.playable.url)return false;
-  var item=ready.item,pl=Object.assign({},ready.playable,{title:item.title||"Commercial",year:item.year,isAd:true});
+  var item=ready.item,pl=Object.assign({},ready.playable,{title:item.title||"Commercial",year:item.year,isAd:true,adMaxMs:isSuperBowlAdChannel(ch)?Math.min(128000,(Number(ready.playable.runtime)||60)*1000+2000):60000});
   try{var played=await playFile(pl,ch,{show:kind==="audio"?"AUDIO COMMERCIAL":"COMMERCIAL BREAK",isAd:true,genre:sl&&sl.genre,queries:sl&&sl.queries},my);
     if(my!==token||!powered)return false;
     if(played){adRemember(item.identifier);if(adScheduler)adScheduler.remember(item);return true;}
@@ -19326,16 +19373,16 @@ window.__atvBootDone=true; /* app is up -- from here on, errors get logged, not 
   };
 })();
 </script>
-<script src="assets/source-catalog-client.js?v=6.0.45"></script>
+<script src="assets/source-catalog-client.js?v=6.0.46"></script>
 <script src="assets/verified-guide-client.js"></script>
 <script src="assets/guide-overhaul.js"></script>
 <script src="assets/playback-audit.js"></script>
-<script src="assets/release2-runtime.js?v=6.0.45"></script>
+<script src="assets/release2-runtime.js?v=6.0.46"></script>
 <script src="assets/release3-runtime.js"></script>
 <script src="assets/release31-runtime.js"></script>
 <script src="assets/guide-contract.js?v=v6-contract-1"></script>
-<script src="assets/guide-contract-client.js?v=6.0.45"></script>
-<script src="assets/v6-watching-shell.js?v=6.0.45"></script>
-<script src="assets/v6-guide.js?v=6.0.45"></script>
+<script src="assets/guide-contract-client.js?v=6.0.46"></script>
+<script src="assets/v6-watching-shell.js?v=6.0.46"></script>
+<script src="assets/v6-guide.js?v=6.0.46"></script>
 </body>
 </html>

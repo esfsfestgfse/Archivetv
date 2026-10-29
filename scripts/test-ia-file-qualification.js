@@ -30,6 +30,14 @@ test('reviewed editorial admission rejects the reproduced contamination in every
   const {iaReviewedFileAllowed,qualifyIaFileRecord}=await import('../ia_file_contract.js');
   const {catalogFallbackAllowed}=await import('../realsignal_api_v2_worker.js');
   const checks=[
+    ['51',{identifier:'nfl-life::Kurt Warner.mp4',title:'A Football Life: Kurt Warner'},true],
+    ['51',{identifier:'inside-the-nfl::2008 Week 3.mp4',title:'Inside the NFL: 2008 Week 3'},true],
+    ['51',{identifier:'nfl-game::NFL Full Game.mp4',title:'NFL Full Game: Saints vs Colts'},true],
+    ['51',{identifier:'nfl-podcast',title:'NFL Full Game Reaction Podcast'},false],
+    ['51',{identifier:'madden-game',title:'Madden NFL Super Bowl Full Game Simulation'},false],
+    ['51',{identifier:'john-madden',title:'NFL Films: John Madden'},true],
+    ['51',{identifier:'john-madden-2017',title:'NFL Films: John Madden (2017)'},true],
+    ['51',{identifier:'madden-nfl-24-full-game',title:'Madden NFL 24 Full Game'},false],
     ['51',{identifier:'aapb-cpb-aacip-512-gb1xd0rs58',title:'China: The 700 Million',subject:'NFL Films football',genreVerified:true},false],
     ['51',{identifier:'nfl-films-collection::China Documentary.mp4',title:'NFL Films Collection · China Documentary',subject:'football'},false],
     ['51',{identifier:'nfl-films-collection::2.mp4',title:'NFL Films Collection · China Documentary',subject:'football'},false],

@@ -17,12 +17,26 @@ const INTERNATIONAL = new Set(['106', '107', '114', '115', '119', '120', '151'])
 const FEATURES = new Set(['100', '101', '102', '103', '105', '106', '108', '110', '111', '112', '114', '115', '116', '119', '120', '124', '125', '132', '135', '701']);
 
 // A narrow, synchronous admission gate for old catalogs and playback caches.
-// Unknown geometry/runtime is not a violation; full file qualification remains
-// a separate step. Original cartoon shorts and ordinary TV satire are allowed.
+// Unknown geometry/runtime normally defers; boxing ready files require runtime.
+// Full file qualification is separate. Original cartoon shorts and TV satire remain allowed.
 export function iaKnownVideoPolicyViolation(item = {}, rules = {}) {
   const meta = item.meta || {}, media = item.media || meta.media || {};
   if (String(media.type || item.type || item.mediaType || item.mediatype || meta.mediatype || '').toLowerCase() === 'audio') return false;
   const channel = String(rules.channel || '');
+  if (channel === '56') {
+    // Subject tags can describe a guest actor rather than the program. Require
+    // boxing-program evidence in the selected title/file, including on old shelves.
+    const selected = [item.title,item.fileName,media.fileName,meta.title,meta.fileName].filter(Boolean).join(' ').replace(/([a-z])([A-Z])/g,'$1 $2').toLowerCase().replace(/[_./-]+/g,' ');
+    const identity = [selected,item.identifier || item.id,item.sourceIdentifier,media.sourceIdentifier,meta.sourceIdentifier].filter(Boolean).join(' ').replace(/([a-z])([A-Z])/g,'$1 $2').toLowerCase().replace(/[_./-]+/g,' ').replace(/\b(?:with|without)(?: original)? commercial(?: break)?s\b/g,' ');
+    const classification = [item.subject,item.subjects,item.collection,meta.subject,meta.subjects,meta.collection].filter(Boolean).join(' ').toLowerCase();
+    if (/\b(?:killer'?s? wife|abbott and costello|rocky balboa|apollo creed|bloodsport|fox[yie] boxing|sports talk|striptease|erotic|video games?|boxing games?|gameplay|longplay|playthrough|simulation|fight night champion|fight night round|punch out|ea sports)\b/.test(identity)) return true;
+    if (/\b(?:highlights?|clips?|recaps?|condensed|abridged|incomplete|partial|previews?|trailers?|press conference|interviews?|meet the press|talk of the town|rose city report|tutorials?|mittwork|workout|injuries|training|countdown show|pre fight countdown|watch[ -]?alongs?|watch part(?:y|ies)|no (?:fight|bout|event|match) footage|commentary only|audio only|reaction streams?|boxing (?:analysis|predictions?|breakdown)|fight analysis|fight predictions?|fight breakdown|now sanctioned|still fixed|fights (?:pt|part))\b/.test(selected)) return true;
+    if (/\b(?:cartoons?|animation|anime|sitcom|feature film|fiction film|fictional)\b/.test(classification) || /\b(?:ufc|mma|mixed martial arts|professional wrestling|wwe|wwf)\b/.test(identity)) return true;
+    const boxing = /\b(?:boxing|golden gloves|prizefight(?:ing)?|pugilis[mt]|muhammad ali|cassius clay|mike tyson|lennox lewis|evander holyfield|floyd patterson|sonny liston|jack dempsey|joe louis|max schmeling|max baer|james braddock|manny pacquiao|floyd mayweather|roberto duran|sugar ray leonard|marvin hagler|roy jones|george foreman)\b/.test(selected+' '+classification);
+    const event = boxing && (/\b(?:vs?|versus)\b/.test(selected) || /\b(?:full (?:fight|bout|card|event|broadcast)|boxing (?:match|tournament|broadcast|night)|championship boxing|golden gloves)\b/.test(selected) || /\bboxing\b/.test(selected) && /\b(?:19|20)\d{2}\b/.test(selected));
+    const documentary = boxing && /\b(?:documentary|documentaries|ringside history|boxing history|fallen champ)\b/.test(selected);
+    if (!event && !documentary) return true;
+  }
   if (['60','71','72'].includes(channel)) {
     // Judge the selected program and original identity, not incidental words
     // in descriptions of intermission coverage inside a complete broadcast.
@@ -44,6 +58,8 @@ export function iaKnownVideoPolicyViolation(item = {}, rules = {}) {
     const value = fileRuntime ? media.runtime || media.duration || media.length : item.runtimeSeconds || item.durationSeconds || item.duration || item.runtime || meta.runtimeSeconds || meta.durationSeconds || meta.duration || meta.runtime;
     const parts = String(value || '').split(':').map(Number);
     const runtime = parts.every(Number.isFinite) ? parts.reduce((total,part) => total * 60 + part,0) : 0;
+    // A legacy direct URL with no duration must hydrate before it can be ready.
+    if (channel === '56' && !runtime && (media.url || item.url || item.mediaUrl)) return true;
     if (runtime > 0 && runtime < floor) return true;
     const international = ['106','107','114','115','119','120','151'];
     const language = String(media.language || item.language || meta.language || '').trim().toLowerCase();
@@ -349,7 +365,7 @@ export function qualifyIaFileRecord(raw, rules = {}, now = Date.now()) {
   }
   const text = [item.title, item.description, item.subject, item.fileName].filter(Boolean).join(' ').toLowerCase();
   const channel = String(rules.channel || '');
-  if (['60','71','72'].includes(channel) && iaKnownVideoPolicyViolation(item, rules)) return reject('off-genre-sports');
+  if (['56','60','71','72'].includes(channel) && iaKnownVideoPolicyViolation(item, rules)) return reject('off-genre-sports');
   if (!iaReviewedFileAllowed(item, channel)) return reject('off-genre-reviewed-collection');
   const completeCartoon = channel === '150' && COMPLETE_CARTOON_SHORT_PARENTS.has(item.sourceIdentifier)
     && !/\b(?:clip|trailer|preview|teaser|promo|bumper|intro|introduction|outro|review|reaction|tutorial|interview|bonus|menu|featurette|tiktok|reels)\b|#shorts|youtube shorts/i.test(text);

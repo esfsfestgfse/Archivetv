@@ -9,16 +9,16 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>REALSIGNAL · Retro Cable 6.1.2</title>
+<title>REALSIGNAL · Retro Cable 6.1.3</title>
 <meta name="realsignal-ia-repair-channels" content="10,12,22,150">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
 <script src="assets/ok-embed-runtime.js?v=5.6.29"></script>
 <script src="assets/ia-playback-shelf.js?v=5.6.29"></script>
-<script src="assets/sports-programs.js?v=6.1.2"></script>
+<script src="assets/sports-programs.js?v=6.1.3"></script>
 <script src="assets/vimeo-embed-runtime.js?v=5.5.85"></script>
-<script src="assets/youtube-embed-runtime.js?v=6.1.2"></script>
+<script src="assets/youtube-embed-runtime.js?v=6.1.3"></script>
 <!-- Source Suite starts verified YouTube playback on a cold tune. Warm the exact
      origins it uses so DNS/TLS setup is not serialized behind catalog discovery. -->
 <link rel="preconnect" href="https://www.googleapis.com" crossorigin>
@@ -1702,16 +1702,16 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
 @media(prefers-reduced-motion:reduce){.sports-screen *,.wx-screen *,.wr-cabinet *{animation-duration:.001ms!important;transition-duration:.001ms!important}}
 </style>
 <link rel="stylesheet" href="assets/guide-overhaul.css">
-<link rel="stylesheet" href="assets/v6-watching-shell.css?v=6.1.2">
-<link rel="stylesheet" href="assets/v6-guide.css?v=6.1.2">
-<script src="assets/commercial-scheduler.js?v=6.1.2"></script>
-<script src="assets/fast-catalog.js?v=6.1.2"></script>
-<link rel="stylesheet" href="assets/weather-networks.css?v=6.1.2">
-<script src="assets/weather-networks.js?v=6.1.2"></script>
-<link rel="stylesheet" href="assets/weather-local.css?v=6.1.2">
-<script src="assets/weather-local.js?v=6.1.2"></script>
-<script src="assets/source-program-policy.js?v=6.1.2"></script>
-<script src="assets/peertube-media.js?v=6.1.2"></script>
+<link rel="stylesheet" href="assets/v6-watching-shell.css?v=6.1.3">
+<link rel="stylesheet" href="assets/v6-guide.css?v=6.1.3">
+<script src="assets/commercial-scheduler.js?v=6.1.3"></script>
+<script src="assets/fast-catalog.js?v=6.1.3"></script>
+<link rel="stylesheet" href="assets/weather-networks.css?v=6.1.3">
+<script src="assets/weather-networks.js?v=6.1.3"></script>
+<link rel="stylesheet" href="assets/weather-local.css?v=6.1.3">
+<script src="assets/weather-local.js?v=6.1.3"></script>
+<script src="assets/source-program-policy.js?v=6.1.3"></script>
+<script src="assets/peertube-media.js?v=6.1.3"></script>
 </head>
 <body>
 <script>
@@ -1723,7 +1723,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="6.1.2-desktop-retro-cable";
+window.__ATV_BUILD="6.1.3-desktop-retro-cable";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -7607,6 +7607,20 @@ function iaKnownVideoPolicyViolation(item = {}, rules = {}) {
   const meta = item.meta || {}, media = item.media || meta.media || {};
   if (String(media.type || item.type || item.mediaType || item.mediatype || meta.mediatype || '').toLowerCase() === 'audio') return false;
   const channel = String(rules.channel || '');
+  if (channel === '56') {
+    // Subject tags can describe a guest actor rather than the program. Require
+    // boxing-program evidence in the selected title/file, including on old shelves.
+    const selected = [item.title,item.fileName,media.fileName,meta.title,meta.fileName].filter(Boolean).join(' ').replace(/([a-z])([A-Z])/g,'$1 $2').toLowerCase().replace(/[_./-]+/g,' ');
+    const identity = [selected,item.identifier || item.id,item.sourceIdentifier,media.sourceIdentifier,meta.sourceIdentifier].filter(Boolean).join(' ').replace(/([a-z])([A-Z])/g,'$1 $2').toLowerCase().replace(/[_./-]+/g,' ').replace(/\b(?:with|without)(?: original)? commercial(?: break)?s\b/g,' ');
+    const classification = [item.subject,item.subjects,item.collection,meta.subject,meta.subjects,meta.collection].filter(Boolean).join(' ').toLowerCase();
+    if (/\b(?:killer'?s? wife|abbott and costello|rocky balboa|apollo creed|bloodsport|fox[yie] boxing|sports talk|striptease|erotic|video games?|boxing games?|gameplay|longplay|playthrough|simulation|fight night champion|fight night round|punch out|ea sports)\b/.test(identity)) return true;
+    if (/\b(?:highlights?|clips?|recaps?|condensed|abridged|incomplete|partial|previews?|trailers?|press conference|interviews?|meet the press|talk of the town|rose city report|tutorials?|mittwork|workout|injuries|training|countdown show|pre fight countdown|watch[ -]?alongs?|watch part(?:y|ies)|no (?:fight|bout|event|match) footage|commentary only|audio only|reaction streams?|boxing (?:analysis|predictions?|breakdown)|fight analysis|fight predictions?|fight breakdown|now sanctioned|still fixed|fights (?:pt|part))\b/.test(selected)) return true;
+    if (/\b(?:cartoons?|animation|anime|sitcom|feature film|fiction film|fictional)\b/.test(classification) || /\b(?:ufc|mma|mixed martial arts|professional wrestling|wwe|wwf)\b/.test(identity)) return true;
+    const boxing = /\b(?:boxing|golden gloves|prizefight(?:ing)?|pugilis[mt]|muhammad ali|cassius clay|mike tyson|lennox lewis|evander holyfield|floyd patterson|sonny liston|jack dempsey|joe louis|max schmeling|max baer|james braddock|manny pacquiao|floyd mayweather|roberto duran|sugar ray leonard|marvin hagler|roy jones|george foreman)\b/.test(selected+' '+classification);
+    const event = boxing && (/\b(?:vs?|versus)\b/.test(selected) || /\b(?:full (?:fight|bout|card|event|broadcast)|boxing (?:match|tournament|broadcast|night)|championship boxing|golden gloves)\b/.test(selected) || /\bboxing\b/.test(selected) && /\b(?:19|20)\d{2}\b/.test(selected));
+    const documentary = boxing && /\b(?:documentary|documentaries|ringside history|boxing history|fallen champ)\b/.test(selected);
+    if (!event && !documentary) return true;
+  }
   if (['60','71','72'].includes(channel)) {
     // Judge the selected program and original identity, not incidental words
     // in descriptions of intermission coverage inside a complete broadcast.
@@ -7628,6 +7642,8 @@ function iaKnownVideoPolicyViolation(item = {}, rules = {}) {
     const value = fileRuntime ? media.runtime || media.duration || media.length : item.runtimeSeconds || item.durationSeconds || item.duration || item.runtime || meta.runtimeSeconds || meta.durationSeconds || meta.duration || meta.runtime;
     const parts = String(value || '').split(':').map(Number);
     const runtime = parts.every(Number.isFinite) ? parts.reduce((total,part) => total * 60 + part,0) : 0;
+    // A legacy direct URL with no duration must hydrate before it can be ready.
+    if (channel === '56' && !runtime && (media.url || item.url || item.mediaUrl)) return true;
     if (runtime > 0 && runtime < floor) return true;
     const international = ['106','107','114','115','119','120','151'];
     const language = String(media.language || item.language || meta.language || '').trim().toLowerCase();
@@ -19429,16 +19445,16 @@ window.__atvBootDone=true; /* app is up -- from here on, errors get logged, not 
   };
 })();
 </script>
-<script src="assets/source-catalog-client.js?v=6.1.2"></script>
+<script src="assets/source-catalog-client.js?v=6.1.3"></script>
 <script src="assets/verified-guide-client.js"></script>
 <script src="assets/guide-overhaul.js"></script>
 <script src="assets/playback-audit.js"></script>
-<script src="assets/release2-runtime.js?v=6.1.2"></script>
+<script src="assets/release2-runtime.js?v=6.1.3"></script>
 <script src="assets/release3-runtime.js"></script>
 <script src="assets/release31-runtime.js"></script>
 <script src="assets/guide-contract.js?v=v6-contract-1"></script>
-<script src="assets/guide-contract-client.js?v=6.1.2"></script>
-<script src="assets/v6-watching-shell.js?v=6.1.2"></script>
-<script src="assets/v6-guide.js?v=6.1.2"></script>
+<script src="assets/guide-contract-client.js?v=6.1.3"></script>
+<script src="assets/v6-watching-shell.js?v=6.1.3"></script>
+<script src="assets/v6-guide.js?v=6.1.3"></script>
 </body>
 </html>

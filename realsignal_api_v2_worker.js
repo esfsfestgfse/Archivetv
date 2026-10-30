@@ -21,7 +21,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "6.1.2-sports-broadcast-depth";
+const V3_RELEASE = "6.1.3-boxing-genre-repair";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -126,7 +126,7 @@ const IA_DEPTH_REPAIR_LANES = new Set([
    persisted back to D1 asynchronously through the normal catalog job. */
 /* Classic Cartoons' 69-row production D1 window masked its 605-file reviewed
    bank. Use the existing relay-owned path; D1 still recovers relay outages. */
-const IA_ARCHIVE_FAMILY_DEPTH_LANES = new Set(["11", "20", "60", "71", "72", "81", "83", "118", "150", "914", "929"]);
+const IA_ARCHIVE_FAMILY_DEPTH_LANES = new Set(["11", "20", "56", "60", "71", "72", "81", "83", "118", "150", "914", "929"]);
 /* Some IA collections store the genre in the series/film title rather than
    the child filename. These are deliberately lane-specific aliases for the
    two long-tail lanes that failed the serial certification when their relay
@@ -886,6 +886,8 @@ function catalogFallbackAllowed(item, body) {
   ])];
   if (denyTerms.some((term) => {
     const needle = String(term || "").trim().toLowerCase();
+    // The boxing profile excludes MMA, not the letters inside Muhammad Ali.
+    if (String(body && body.channel) === "56" && needle === "mma") return /\bmma\b/.test(denyHaystack);
     return needle && denyHaystack.includes(needle);
   })) return false;
   const strictTopicExclusions = IA_STRICT_TOPIC_EXCLUSIONS.get(holidayChannel);

@@ -17,12 +17,34 @@ const INTERNATIONAL = new Set(['106', '107', '114', '115', '119', '120', '151'])
 const FEATURES = new Set(['100', '101', '102', '103', '105', '106', '108', '110', '111', '112', '114', '115', '116', '119', '120', '124', '125', '132', '135', '701']);
 
 // A narrow, synchronous admission gate for old catalogs and playback caches.
-// Unknown geometry/runtime normally defers; boxing ready files require runtime.
+// Unknown geometry/runtime normally defers; combat channels require runtime for ready files.
 // Full file qualification is separate. Original cartoon shorts and TV satire remain allowed.
 export function iaKnownVideoPolicyViolation(item = {}, rules = {}) {
   const meta = item.meta || {}, media = item.media || meta.media || {};
   if (String(media.type || item.type || item.mediaType || item.mediatype || meta.mediatype || '').toLowerCase() === 'audio') return false;
   const channel = String(rules.channel || '');
+  if (channel === '52') {
+    // Promotion names in tags are not proof of an actual combat-sports program.
+    const selected = [item.title,item.fileName,media.fileName,meta.title,meta.fileName].filter(Boolean).join(' ').replace(/([a-z])([A-Z])/g,'$1 $2').toLowerCase().replace(/[_./-]+/g,' ');
+    const identity = [selected,item.identifier || item.id,item.sourceIdentifier,media.sourceIdentifier,meta.sourceIdentifier].filter(Boolean).join(' ').replace(/([a-z])([A-Z])/g,'$1 $2').toLowerCase().replace(/[_./-]+/g,' ');
+    const classification = [item.subject,item.subjects,item.collection,meta.subject,meta.subjects,meta.collection].filter(Boolean).join(' ').toLowerCase();
+    if (/\b(?:video games?|gameplay|longplay|playthrough|simulation|ufc undisputed|ea sports|ufc 3 game|ufc 4 game|ufc league|mma onslaught|fight night champion|playstation|xbox|free download|kung ?fu monk|chuck norris|wwe|wwf|wrestlemania|professional wrestling)\b/.test(identity)) return true;
+    if (/\b(?:highlights?|clips?|recaps?|condensed|abridged|incomplete|partial|previews?|trailers?|press conference|interviews?|podcasts?|tutorials?|workout|training demo|gym demo|weigh[ -]?ins?|seminars?|lectures?|panel discussion|countdown show|best of|top ufc|trilogies|compilations?|watch[ -]?alongs?|watch part(?:y|ies)|no (?:fight|bout|event|match) footage|commentary only|audio only|reaction streams?|predictions?|news analysis|sports diplomacy|teatime|political speech|fight analysis|fight breakdown)\b/.test(selected)) return true;
+    if (/\b(?:cartoons?|animation|anime|sitcom|feature film|fiction film|fictional)\b/.test(classification) || /\b(?:full (?:hd )?movie|formula (?:one|1)|latino|espa[nñ]ol|dublado|(?:japanese|thai|russian|spanish|portuguese) (?:broadcast|commentary|audio))\b/.test(selected)) return true;
+    // This reviewed parent explicitly contains the original Japanese live editions.
+    if (/\b2002 08 28 dynamite summer night fever in kunitachi\b/.test(identity)) return true;
+    const source = String(media.sourceIdentifier || item.sourceIdentifier || String(item.identifier || item.id || '').split('::')[0]).replace(/^ia:/i,'');
+    let file = String(media.fileName || item.fileName || String(item.identifier || item.id || '').split('::')[1] || '');
+    try { if (!file) file = decodeURIComponent(new URL(media.url || item.url || item.mediaUrl).pathname.split('/').pop()); } catch (_) {}
+    // These originals reproduced audio-only playback; their H.264 derivatives render video.
+    if (source === 'BigFight_Bellator-237-plus-BONUS-FIGHTS-12.28.19' && /(?:^|\/)(?:9|10|12|13)\s*-/.test(file) && /\.mp4$/i.test(file) && !/\.ia\.mp4$/i.test(file)) return true;
+    const promotion = /\b(?:ufc|ultimate fighting championship|pride (?:fc|fighting)|bellator|strikeforce|pancrase|one championship|pfl|invicta|iafc|k 1|glory kickboxing)\b/.test(selected);
+    const discipline = /\b(?:mma|mixed martial arts|vale tudo|kickboxing|muay thai|cage fighting|lethwei)\b/.test(selected+' '+classification);
+    if (/\b(?:strikeforce|pfl|invicta)\b/.test(selected) && !discipline) return true;
+    const event = (promotion || discipline) && (/\b(?:vs?|versus|full (?:fight|bout|card|event|broadcast)|tournament|championship|grand prix|main card|preliminary card|prelims)\b/.test(selected) || promotion && /\b(?:ufc|pride(?: fc)?|bellator|pancrase|one championship)\s*\d{1,4}\b/.test(selected));
+    const documentary = (promotion || discipline) && /\b(?:documentary|documentaries|ringside history|mma history)\b/.test(selected);
+    if (!event && !documentary) return true;
+  }
   if (channel === '56') {
     // Subject tags can describe a guest actor rather than the program. Require
     // boxing-program evidence in the selected title/file, including on old shelves.
@@ -59,7 +81,7 @@ export function iaKnownVideoPolicyViolation(item = {}, rules = {}) {
     const parts = String(value || '').split(':').map(Number);
     const runtime = parts.every(Number.isFinite) ? parts.reduce((total,part) => total * 60 + part,0) : 0;
     // A legacy direct URL with no duration must hydrate before it can be ready.
-    if (channel === '56' && !runtime && (media.url || item.url || item.mediaUrl)) return true;
+    if (['52','56'].includes(channel) && !runtime && (media.url || item.url || item.mediaUrl)) return true;
     if (runtime > 0 && runtime < floor) return true;
     const international = ['106','107','114','115','119','120','151'];
     const language = String(media.language || item.language || meta.language || '').trim().toLowerCase();
@@ -365,7 +387,7 @@ export function qualifyIaFileRecord(raw, rules = {}, now = Date.now()) {
   }
   const text = [item.title, item.description, item.subject, item.fileName].filter(Boolean).join(' ').toLowerCase();
   const channel = String(rules.channel || '');
-  if (['56','60','71','72'].includes(channel) && iaKnownVideoPolicyViolation(item, rules)) return reject('off-genre-sports');
+  if (['52','56','60','71','72'].includes(channel) && iaKnownVideoPolicyViolation(item, rules)) return reject('off-genre-sports');
   if (!iaReviewedFileAllowed(item, channel)) return reject('off-genre-reviewed-collection');
   const completeCartoon = channel === '150' && COMPLETE_CARTOON_SHORT_PARENTS.has(item.sourceIdentifier)
     && !/\b(?:clip|trailer|preview|teaser|promo|bumper|intro|introduction|outro|review|reaction|tutorial|interview|bonus|menu|featurette|tiktok|reels)\b|#shorts|youtube shorts/i.test(text);

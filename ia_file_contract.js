@@ -45,6 +45,23 @@ export function iaKnownVideoPolicyViolation(item = {}, rules = {}) {
     const documentary = (promotion || discipline) && /\b(?:documentary|documentaries|ringside history|mma history)\b/.test(selected);
     if (!event && !documentary) return true;
   }
+  if (channel === '55') {
+    const selected = [item.title,item.fileName,media.fileName,meta.title,meta.fileName].filter(Boolean).join(' ').replace(/([a-z])([A-Z])/g,'$1 $2').toLowerCase().replace(/[_./-]+/g,' ');
+    const identity = [selected,item.identifier || item.id,item.sourceIdentifier,media.sourceIdentifier,meta.sourceIdentifier].filter(Boolean).join(' ').replace(/([a-z])([A-Z])/g,'$1 $2').toLowerCase().replace(/[_./-]+/g,' ');
+    const classification = [item.subject,item.subjects,item.collection,meta.subject,meta.subjects,meta.collection].filter(Boolean).join(' ').toLowerCase();
+    const source = String(media.sourceIdentifier || item.sourceIdentifier || String(item.identifier || item.id || '').split('::')[0]).replace(/^ia:/i,'');
+    // These reviewed legacy collections explicitly reconstruct the broadcast from fan edits.
+    if (['wce93','wce96v3','recdub94','recdub2000540','re-c-dub-1995-complete','Roller_Derby'].includes(source)) return true;
+    if (/\b(?:video games?|gameplay|longplay|playthrough|simulation|wwe ?2k\d*|wwf no mercy|wrestlemania 2000 nintendo|nintendo 64|n64|playstation|xbox|rollerball|whip it|the wrestler 2008|ready to rumble|no holds barred|oil wrestling|mud wrestling|bikini wrestling|straight outta compton)\b/.test(identity)) return true;
+    if (/\b(?:highlights?|clips?|recaps?|condensed|abridged|incomplete|partial|trailers?|previews?|shoot interviews?|interviews?|podcasts?|tutorials?|workout|training|practice|seminars?|lectures?|watch[ -]?alongs?|no (?:match|event|fight) footage|commentary only|audio only|reaction streams?)\b/.test(selected)) return true;
+    if (/\b(?:cartoons?|anime|sitcom|feature film|fiction film|fictional)\b/.test(classification) || /\b(?:full (?:hd )?movie|latino|espa[nñ]ol|dublado|(?:japanese|thai|russian|spanish|portuguese) (?:broadcast|commentary|audio))\b/.test(selected)) return true;
+    const derby = /\b(?:roller derby|roller games|rollergames)\b/.test(selected);
+    const wrestling = /\b(?:professional wrestling|pro wrestling|world (?:class championship|championship|wrestling federation)|wrestling society x|wrestling championship|wrestling television|wrestling tv|wrestling broadcast|wrestling match|wrestling event|wcw|wccw|njpw|wwf|wwe|ecw|tna wrestling|aew)\b/.test(selected) || /\b(?:awa|nwa)\b/.test(selected) && /\bwrestling\b/.test(selected+' '+classification);
+    const program = /\bs\d{1,3}e\d{1,3}\b/.test(selected) || /\b(?:vs?|versus|full (?:show|match|event|broadcast)|episode|raw|nitro|smackdown|superstars|saturday night|wrestlemania|royal rumble|championship|wrestling society x|complete collection)\b/.test(selected) || /\b(?:19|20)\d{2}\b/.test(selected);
+    const documentary = /\b(?:documentary|documentaries|ringside history|banked track history)\b/.test(selected);
+    if ((!derby && !wrestling) || (!program && !documentary)) return true;
+    if (/\bwwf\b/.test(selected) && /\b(?:wildlife|conservation|pandas?|nature)\b/.test(selected)) return true;
+  }
   if (channel === '56') {
     // Subject tags can describe a guest actor rather than the program. Require
     // boxing-program evidence in the selected title/file, including on old shelves.
@@ -81,7 +98,7 @@ export function iaKnownVideoPolicyViolation(item = {}, rules = {}) {
     const parts = String(value || '').split(':').map(Number);
     const runtime = parts.every(Number.isFinite) ? parts.reduce((total,part) => total * 60 + part,0) : 0;
     // A legacy direct URL with no duration must hydrate before it can be ready.
-    if (['52','56'].includes(channel) && !runtime && (media.url || item.url || item.mediaUrl)) return true;
+    if (['52','55','56'].includes(channel) && !runtime && (media.url || item.url || item.mediaUrl)) return true;
     if (runtime > 0 && runtime < floor) return true;
     const international = ['106','107','114','115','119','120','151'];
     const language = String(media.language || item.language || meta.language || '').trim().toLowerCase();
@@ -387,7 +404,7 @@ export function qualifyIaFileRecord(raw, rules = {}, now = Date.now()) {
   }
   const text = [item.title, item.description, item.subject, item.fileName].filter(Boolean).join(' ').toLowerCase();
   const channel = String(rules.channel || '');
-  if (['52','56','60','71','72'].includes(channel) && iaKnownVideoPolicyViolation(item, rules)) return reject('off-genre-sports');
+  if (['52','55','56','60','71','72'].includes(channel) && iaKnownVideoPolicyViolation(item, rules)) return reject('off-genre-sports');
   if (!iaReviewedFileAllowed(item, channel)) return reject('off-genre-reviewed-collection');
   const completeCartoon = channel === '150' && COMPLETE_CARTOON_SHORT_PARENTS.has(item.sourceIdentifier)
     && !/\b(?:clip|trailer|preview|teaser|promo|bumper|intro|introduction|outro|review|reaction|tutorial|interview|bonus|menu|featurette|tiktok|reels)\b|#shorts|youtube shorts/i.test(text);

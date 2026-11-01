@@ -21,7 +21,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "6.1.4-octagon-genre-repair";
+const V3_RELEASE = "6.1.5-derby-wrestling-repair";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -126,7 +126,7 @@ const IA_DEPTH_REPAIR_LANES = new Set([
    persisted back to D1 asynchronously through the normal catalog job. */
 /* Classic Cartoons' 69-row production D1 window masked its 605-file reviewed
    bank. Use the existing relay-owned path; D1 still recovers relay outages. */
-const IA_ARCHIVE_FAMILY_DEPTH_LANES = new Set(["11", "20", "52", "56", "60", "71", "72", "81", "83", "118", "150", "914", "929"]);
+const IA_ARCHIVE_FAMILY_DEPTH_LANES = new Set(["11", "20", "52", "55", "56", "60", "71", "72", "81", "83", "118", "150", "914", "929"]);
 /* Some IA collections store the genre in the series/film title rather than
    the child filename. These are deliberately lane-specific aliases for the
    two long-tail lanes that failed the serial certification when their relay
@@ -565,7 +565,16 @@ function sportsShelf(payload, body) {
   const personal=Array.isArray(body && body.viewerRecentIds)
     ? Array.from(recentCatalogIds({...body,recentIds:body.viewerRecentIds})) : [];
   const history=Sports.history(inventory,personal.length ? personal : Array.from(recentCatalogIds(body)).reverse());
-  const selected=Sports.select(payload.items || [],{channel,count:Math.max(1,Math.min(5,Number(body.count)||3)),history});
+  let pool=payload.items || [];
+  if(String(channel)==='55' && body.iaRepair!==true){
+    // The relay's short window can contain only derby. Balance this lane from
+    // its already playable catalog, preserving this viewer's own exclusions.
+    // Reservation-owned shelves already enforce their failed-file cooldowns.
+    const seen=new Set(Array.isArray(body && body.viewerRecentIds)?personal:Array.from(recentCatalogIds(body)));
+    const unseen=inventory.filter(item=>queueItemPlayable(item)&&!seen.has(queueItemKey(item))&&!iaKnownVideoPolicyViolation(item,{channel:'55'}));
+    if(unseen.length)pool=unseen;
+  }
+  const selected=Sports.select(pool,{channel,count:Math.max(1,Math.min(5,Number(body.count)||3)),history});
   const items=selected.map(item=>{const key=Sports.describe(item,channel).eventId;
     const copies=key?inventory.filter(other=>queueItemKey(other)!==queueItemKey(item)&&queueItemPlayable(other)&&Sports.describe(other,channel).eventId===key).slice(0,2).map(other=>{const row={...other};delete row.sportsCopies;return row;}):[];
     return {...item,sportsCopies:copies.length?copies:item.sportsCopies||[]};});

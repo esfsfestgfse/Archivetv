@@ -15,6 +15,16 @@
   return parent+(part&&!/\b(?:part|pt|disc)\s*\d+\b/i.test(parent)?' Part '+part[1]:'');
  }
  function competition(text,channel){
+  if(Number(channel)===55){
+   if(/\b(?:roller ?derby|rollergames|roller games)\b/.test(text))return 'roller-derby';
+   if(/\b(?:wcw|world championship wrestling)\b/.test(text))return 'wcw';
+   if(/\b(?:njpw|new japan pro wrestling)\b/.test(text))return 'njpw';
+   if(/\b(?:wccw|world class championship wrestling)\b/.test(text))return 'wccw';
+   if(/\b(?:ecw|extreme championship wrestling)\b/.test(text))return 'ecw';
+   if(/\bwrestling society x\b/.test(text))return 'wsx';
+   if(/\b(?:awa|american wrestling association)\b/.test(text))return 'awa';
+   if(/\b(?:nwa|national wrestling alliance)\b/.test(text))return 'nwa';
+  }
   var formula=text.match(/\bformula (one|two|three|[123e])\b/);
   if(formula)return 'formula-'+({one:'1',two:'2',three:'3'}[formula[1]]||formula[1]);
   var pairs=[['nascar',/\bnascar\b|\b(?:daytona|talladega) 500\b/],['indycar',/\bindycar\b|\bindianapolis 500\b|\bindy 500\b/],['imsa',/\b(?:imsa|alms|uscc)\b/],['formula',/\bformula (?:one|[123e])\b|\bgrand prix\b/],['ufc',/\bufc\b/],['pride',/\bpride (?:fc|fighting|\d)\b/],['nfl',/\bnfl\b|\bsuper bowl\b/],['nba',/\bnba\b/],['wnba',/\bwnba\b/],['nhl',/\bnhl\b/],['mlb',/\bmlb\b|\bworld series\b/],['ncaa',/\bncaa\b|\bcollege (?:football|basketball|baseball)\b/],['olympics',/\bolympic(?:s)?\b/],['fifa',/\bfifa\b|\bfifa world cup\b/],['nhra',/\bnhra\b/],['pga',/\bpga\b/],['atp',/\batp\b/],['wta',/\bwta\b/],['wwe',/\b(?:wwe|wwf)\b/]];
@@ -23,7 +33,8 @@
  }
  function describe(item,channel){
   item=item||{};var raw=selectedTitle(item),text=clean(raw),yearMatch=raw.match(/\b((?:19|20)\d{2})\b/),year=Number(yearMatch?yearMatch[1]:String(item.year||'').slice(0,4))||0;
-  var result={eventId:'',competition:competition(text,channel),year:year,era:year?Math.floor(year/10)*10:0,participants:[],format:'program'};
+  var competitionText=Number(channel)===55?text+' '+clean(item.title)+' '+clean(item.seriesTitle):text;
+  var result={eventId:'',competition:competition(competitionText,channel),year:year,era:year?Math.floor(year/10)*10:0,participants:[],format:'program'};
   if(!enabled(channel))return result;
   if(/\b(?:documentary|documentaries|history|biography|retrospective|nfl films|a football life|behind the scenes)\b/.test(text)){result.format='documentary';return result;}
   if(/\b(?:highlights?|recap|condensed|compilation|post race|post game|post gp|rainout|podcast|gameplay|simulation)\b/.test(text))return result;

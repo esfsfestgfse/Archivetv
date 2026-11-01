@@ -77,7 +77,7 @@ jobs:
           node scripts/test-ok-music-exhaustion.js
           node scripts/test-vimeo-catalog-depth.js
           node --test scripts/test-nascar-classics.mjs
-          node --test scripts/test-sports-programs.cjs scripts/test-sports-rotation.mjs scripts/test-sports-client.cjs scripts/test-sports-depth.cjs scripts/test-boxing-admission.cjs scripts/test-octagon-admission.cjs scripts/test-derby-wrestling-admission.cjs
+          node --test scripts/test-sports-programs.cjs scripts/test-sports-rotation.mjs scripts/test-sports-client.cjs scripts/test-sports-depth.cjs scripts/test-boxing-admission.cjs scripts/test-octagon-admission.cjs scripts/test-derby-wrestling-admission.cjs scripts/test-basketball-admission.cjs
           node scripts/test-vimeo-embed-runtime.js
           node scripts/test-v2-api-worker.js
           node scripts/test-v3-api-contract.js

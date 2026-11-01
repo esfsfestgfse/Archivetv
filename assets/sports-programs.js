@@ -33,7 +33,7 @@
  }
  function describe(item,channel){
   item=item||{};var raw=selectedTitle(item),text=clean(raw),yearMatch=raw.match(/\b((?:19|20)\d{2})\b/),year=Number(yearMatch?yearMatch[1]:String(item.year||'').slice(0,4))||0;
-  var competitionText=Number(channel)===55?text+' '+clean(item.title)+' '+clean(item.seriesTitle):text;
+  var competitionText=[55,58].includes(Number(channel))?text+' '+clean(item.title)+' '+clean(item.seriesTitle):text;
   var result={eventId:'',competition:competition(competitionText,channel),year:year,era:year?Math.floor(year/10)*10:0,participants:[],format:'program'};
   if(!enabled(channel))return result;
   if(/\b(?:documentary|documentaries|history|biography|retrospective|nfl films|a football life|behind the scenes)\b/.test(text)){result.format='documentary';return result;}
@@ -67,6 +67,14 @@
   else if(!racing&&date&&result.participants.length===2&&(full||seconds(item)>=900))result.eventId='sports:'+result.competition+':'+date+':'+result.participants.join('-vs-')+suffix;
   var bowl=text.match(/\bsuper bowl\s+(\d{1,3}|[ivxlcdm]+)\b/);
   if(bowl&&full){var number=Number(bowl[1]);if(!number){var values={i:1,v:5,x:10,l:50,c:100,d:500,m:1000},last=0;number=0;for(var r=bowl[1].length-1;r>=0;r--){var value=values[bowl[1][r]];number+=value<last?-value:value;last=Math.max(last,value);}}if(number>0&&number<200)result.eventId='sports:nfl:super-bowl-'+number+suffix;}
+  if(Number(channel)===58&&year){
+   var label=clean(raw+' '+String(item.title||'')).replace(/\b(?:19|20)\d{2}\b/g,' ').replace(/\s+/g,' ').trim();
+   var allStar=label.match(/\b(nba|wnba|aba) all star game\b/),finals=label.match(/\b(nba|wnba|aba) finals\b/),game=label.match(/\bgame\s+(\d{1,2})\b/);
+   // Legacy All-Star broadcasts have one known event; newer formats stay
+   // ungrouped until their individual tournament games are identified.
+   if(allStar&&year<=2024&&!/\b(?:celebrity|rising stars|rookie|skills|dunk|three point|semifinal)\b/.test(label))result.eventId='sports:'+allStar[1]+':all-star:'+year+suffix;
+   else if(finals&&game&&Number(game[1])>=1&&Number(game[1])<=7)result.eventId='sports:'+finals[1]+':finals:'+year+':game-'+Number(game[1])+suffix;
+  }
   if(result.eventId||full)result.format=result.format==='bout'?'bout':'event';
   return result;
  }

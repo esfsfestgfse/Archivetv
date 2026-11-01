@@ -21,7 +21,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "6.1.5-derby-wrestling-repair";
+const V3_RELEASE = "6.1.6-basketball-program-repair";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -126,7 +126,7 @@ const IA_DEPTH_REPAIR_LANES = new Set([
    persisted back to D1 asynchronously through the normal catalog job. */
 /* Classic Cartoons' 69-row production D1 window masked its 605-file reviewed
    bank. Use the existing relay-owned path; D1 still recovers relay outages. */
-const IA_ARCHIVE_FAMILY_DEPTH_LANES = new Set(["11", "20", "52", "55", "56", "60", "71", "72", "81", "83", "118", "150", "914", "929"]);
+const IA_ARCHIVE_FAMILY_DEPTH_LANES = new Set(["11", "20", "52", "55", "56", "58", "60", "71", "72", "81", "83", "118", "150", "914", "929"]);
 /* Some IA collections store the genre in the series/film title rather than
    the child filename. These are deliberately lane-specific aliases for the
    two long-tail lanes that failed the serial certification when their relay
@@ -566,12 +566,12 @@ function sportsShelf(payload, body) {
     ? Array.from(recentCatalogIds({...body,recentIds:body.viewerRecentIds})) : [];
   const history=Sports.history(inventory,personal.length ? personal : Array.from(recentCatalogIds(body)).reverse());
   let pool=payload.items || [];
-  if(String(channel)==='55' && body.iaRepair!==true){
-    // The relay's short window can contain only derby. Balance this lane from
-    // its already playable catalog, preserving this viewer's own exclusions.
+  if([55,58].includes(Number(channel)) && body.iaRepair!==true){
+    // A short window can favor one sport or collapse after event deduplication.
+    // Refill from the playable catalog, preserving this viewer's exclusions.
     // Reservation-owned shelves already enforce their failed-file cooldowns.
     const seen=new Set(Array.isArray(body && body.viewerRecentIds)?personal:Array.from(recentCatalogIds(body)));
-    const unseen=inventory.filter(item=>queueItemPlayable(item)&&!seen.has(queueItemKey(item))&&!iaKnownVideoPolicyViolation(item,{channel:'55'}));
+    const unseen=inventory.filter(item=>queueItemPlayable(item)&&!seen.has(queueItemKey(item))&&!seen.has(Sports.key(item,channel))&&!iaKnownVideoPolicyViolation(item,{channel:String(channel)}));
     if(unseen.length)pool=unseen;
   }
   const selected=Sports.select(pool,{channel,count:Math.max(1,Math.min(5,Number(body.count)||3)),history});

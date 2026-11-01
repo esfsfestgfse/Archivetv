@@ -45,6 +45,28 @@ export function iaKnownVideoPolicyViolation(item = {}, rules = {}) {
     const documentary = (promotion || discipline) && /\b(?:documentary|documentaries|ringside history|mma history)\b/.test(selected);
     if (!event && !documentary) return true;
   }
+  if (channel === '59') {
+    // Reviewed parent packages old-time radio audio inside MP4 containers.
+    const source=String(media.sourceIdentifier || item.sourceIdentifier || String(item.identifier || item.id || '').split('::')[0]).replace(/^ia:/i,'');
+    if(source==='MajorLeagueBaseball1948WorldSeriesGame5BostonBravesAtClevelandIndians_201705')return true;
+    const selectedFile=String(media.fileName || item.fileName || String(item.identifier || item.id || '').split('::')[1] || '');
+    if(source==='therewasalwayssunshiningsomeplacelifeinthenegroleagues' && /reel[12](?:\.ia)?\.mp4$/i.test(selectedFile))return true;
+    const selected = [item.title,item.fileName,media.fileName,meta.title,meta.fileName].filter(Boolean).join(' ').replace(/([a-z])([A-Z])/g,'$1 $2').toLowerCase().replace(/[_./-]+/g,' ');
+    const identity = [selected,item.identifier || item.id,item.sourceIdentifier,media.sourceIdentifier,meta.sourceIdentifier].filter(Boolean).join(' ').toLowerCase().replace(/[_./-]+/g,' ');
+    const classification = [item.subject,item.subjects,item.collection,meta.subject,meta.subjects,meta.collection].filter(Boolean).join(' ').toLowerCase();
+    if (/\b(?:video games?|gameplay|longplay|playthrough|simulation|mlb the show|mlb\s*2k\d*|mvp baseball|rbi baseball|nintendo|playstation|xbox|field of dreams|the sandlot|league of their own|bad news bears|race across the world|babies their wonderful world|hetalia|klay world|stampy|transhuman|world series of (?:golf|poker))\b/.test(identity)) return true;
+    if (/\b(?:highlights?|clips?|recaps?|condensed|abridged|incomplete|partial|previews?|trailers?|interviews?|podcasts?|tutorials?|workout|training|practice|commissioner on|luncheon|speech|press club|panel discussion|lectures?|seminars?|battle of the movies|tonight show|(?:11|10|6|5)pm news|performs?|concert|music video|watch[ -]?alongs?|no (?:game|event) footage|commentary only|audio only|reaction streams?|reel\s*[1-9]|inning [1-9]|innings [1-9]|seinfeld|family matters|television news|newscast)\b/.test(selected) || /\(most\)/i.test(String(item.title||''))) return true;
+    if (/\b(?:cartoons?|animation|anime|sitcom|feature film|fiction film|fictional)\b/.test(classification) || /\b(?:full (?:hd )?movie|football|nfl|hockey|nhl|basketball|nba|soccer|softball|latino|espa[nñ]ol|dublado|(?:japanese|russian|spanish|portuguese) (?:broadcast|commentary|audio))\b/.test(selected)) return true;
+    const topic = /\b(?:baseball|mlb|world series|negro leagues)\b/.test(selected+' '+classification);
+    const documentary = topic && /\b(?:documentary|documentaries|baseball history|story of the negro leagues|life in the negro leagues)\b/.test(selected+' '+classification);
+    const game = topic && /\b(?:vs?|versus|at|full game|complete game|full broadcast|all star game|game\s*\d+|baseball broadcast|baseball tournament|baseball championship|baseball classic)\b|\bbaseball\s*\d{8}\b/.test(selected);
+    const index = !media.url && !item.url && !item.mediaUrl && !item.fileName && !String(item.identifier || item.id || '').includes('::');
+    if (!game && !documentary && !(index && topic && /\b(?:games?|season|collection|classics)\b/.test(selected))) return true;
+    const fileRuntime=['runtime','duration','length'].some(key=>Object.prototype.hasOwnProperty.call(media,key));
+    const value=String((fileRuntime ? media.runtime || media.duration || media.length : item.runtimeSeconds || item.durationSeconds || item.runtime || item.duration || meta.runtime) || '');
+    const parts=value.split(':').map(Number), runtime=parts.every(Number.isFinite)?parts.reduce((n,x)=>n*60+x,0):0;
+    if (!documentary && runtime>0 && runtime<2700) return true;
+  }
   if (channel === '58') {
     // Reviewed recording explicitly states that its first quarter is missing.
     const source=String(media.sourceIdentifier || item.sourceIdentifier || String(item.identifier || item.id || '').split('::')[0]).replace(/^ia:/i,'');
@@ -117,7 +139,7 @@ export function iaKnownVideoPolicyViolation(item = {}, rules = {}) {
     const parts = String(value || '').split(':').map(Number);
     const runtime = parts.every(Number.isFinite) ? parts.reduce((total,part) => total * 60 + part,0) : 0;
     // A legacy direct URL with no duration must hydrate before it can be ready.
-    if (['52','55','56','58'].includes(channel) && !runtime && (media.url || item.url || item.mediaUrl)) return true;
+    if (['52','55','56','58','59'].includes(channel) && !runtime && (media.url || item.url || item.mediaUrl)) return true;
     if (runtime > 0 && runtime < floor) return true;
     const international = ['106','107','114','115','119','120','151'];
     const language = String(media.language || item.language || meta.language || '').trim().toLowerCase();
@@ -423,7 +445,7 @@ export function qualifyIaFileRecord(raw, rules = {}, now = Date.now()) {
   }
   const text = [item.title, item.description, item.subject, item.fileName].filter(Boolean).join(' ').toLowerCase();
   const channel = String(rules.channel || '');
-  if (['52','55','56','58','60','71','72'].includes(channel) && iaKnownVideoPolicyViolation(item, rules)) return reject('off-genre-sports');
+  if (['52','55','56','58','59','60','71','72'].includes(channel) && iaKnownVideoPolicyViolation(item, rules)) return reject('off-genre-sports');
   if (!iaReviewedFileAllowed(item, channel)) return reject('off-genre-reviewed-collection');
   const completeCartoon = channel === '150' && COMPLETE_CARTOON_SHORT_PARENTS.has(item.sourceIdentifier)
     && !/\b(?:clip|trailer|preview|teaser|promo|bumper|intro|introduction|outro|review|reaction|tutorial|interview|bonus|menu|featurette|tiktok|reels)\b|#shorts|youtube shorts/i.test(text);

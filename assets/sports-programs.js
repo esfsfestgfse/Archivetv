@@ -15,6 +15,13 @@
   return parent+(part&&!/\b(?:part|pt|disc)\s*\d+\b/i.test(parent)?' Part '+part[1]:'');
  }
  function competition(text,channel){
+  if(Number(channel)===59){
+   if(/\blittle league\b/.test(text))return 'little-league';
+   if(/\b(?:ncaa|college baseball|college world series)\b/.test(text))return 'ncaa';
+   if(/\bworld baseball classic\b/.test(text))return 'wbc';
+   if(/\bnegro leagues\b/.test(text))return 'negro-leagues';
+   if(/\b(?:mlb|major league baseball|world series)\b/.test(text))return 'mlb';
+  }
   if(Number(channel)===55){
    if(/\b(?:roller ?derby|rollergames|roller games)\b/.test(text))return 'roller-derby';
    if(/\b(?:wcw|world championship wrestling)\b/.test(text))return 'wcw';
@@ -33,11 +40,12 @@
  }
  function describe(item,channel){
   item=item||{};var raw=selectedTitle(item),text=clean(raw),yearMatch=raw.match(/\b((?:19|20)\d{2})\b/),year=Number(yearMatch?yearMatch[1]:String(item.year||'').slice(0,4))||0;
-  var competitionText=[55,58].includes(Number(channel))?text+' '+clean(item.title)+' '+clean(item.seriesTitle):text;
+  var competitionText=[55,58,59].includes(Number(channel))?text+' '+clean(item.title)+' '+clean(item.seriesTitle):text;
   var result={eventId:'',competition:competition(competitionText,channel),year:year,era:year?Math.floor(year/10)*10:0,participants:[],format:'program'};
   if(!enabled(channel))return result;
   if(/\b(?:documentary|documentaries|history|biography|retrospective|nfl films|a football life|behind the scenes)\b/.test(text)){result.format='documentary';return result;}
-  if(/\b(?:highlights?|recap|condensed|compilation|post race|post game|post gp|rainout|podcast|gameplay|simulation)\b/.test(text))return result;
+  var formatText=Number(channel)===59?text.replace(/\b(?:with|without|no) post ?game\b/g,''):text;
+  if(/\b(?:highlights?|recap|condensed|compilation|post race|post game|post gp|rainout|podcast|gameplay|simulation)\b/.test(formatText))return result;
   var full=/\b(?:full|complete) (?:race|game|match|event|fight|bout|card|broadcast|coverage|meet|round|final)\b|\braw satellite feed\b/.test(text);
   var part=text.match(/\b(?:part|pt|disc)\s*(\d+)\b/),suffix=part?':part-'+part[1]:'';
   if(/\b(?:qualifying|practice|warm up|weigh in)\b/.test(text)){result.format='session';return result;}
@@ -74,6 +82,11 @@
    // ungrouped until their individual tournament games are identified.
    if(allStar&&year<=2024&&!/\b(?:celebrity|rising stars|rookie|skills|dunk|three point|semifinal)\b/.test(label))result.eventId='sports:'+allStar[1]+':all-star:'+year+suffix;
    else if(finals&&game&&Number(game[1])>=1&&Number(game[1])<=7)result.eventId='sports:'+finals[1]+':finals:'+year+':game-'+Number(game[1])+suffix;
+  }
+  if(Number(channel)===59&&year&&result.competition==='mlb'){
+   var baseballLabel=clean(raw),ws=/\b(?:world series|ws)\b/.test(baseballLabel),baseballGame=baseballLabel.match(/\b(?:world series|ws)(?:\s+(?:19|20)\d{2})?\s+game\s*(\d{1,2})\b/);
+   if(ws&&baseballGame&&Number(baseballGame[1])>=1&&Number(baseballGame[1])<=(year<=1921?9:7))result.eventId='sports:mlb:world-series:'+year+':game-'+Number(baseballGame[1])+suffix;
+   else if(/\b(?:mlb|major league baseball)\b/.test(baseballLabel)&&/\ball star game\b/.test(baseballLabel)&&!/\b(?:home run|derby|futures|celebrity)\b/.test(baseballLabel))result.eventId='sports:mlb:all-star:'+year+suffix;
   }
   if(result.eventId||full)result.format=result.format==='bout'?'bout':'event';
   return result;

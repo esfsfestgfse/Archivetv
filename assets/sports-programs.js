@@ -15,6 +15,11 @@
   return parent+(part&&!/\b(?:part|pt|disc)\s*\d+\b/i.test(parent)?' Part '+part[1]:'');
  }
  function competition(text,channel){
+  if(Number(channel)===61){
+   var disciplines=[['ceremony',/\bceremon(?:y|ies)\b/],['swimming',/\bswimming\b/],['diving',/\bdiving\b/],['water-polo',/\bwater polo\b/],['basketball',/\bbasketball\b/],['volleyball',/\bvolleyball\b/],['soccer',/\b(?:soccer|football)\b/],['archery',/\barchery\b/],['gymnastics',/\bgymnastics\b/],['athletics',/\b(?:athletics|track and field|race walking|marathon|steeplechase|hurdles|javelin|discus|shot put|pole vault|high jump|long jump|triple jump|heptathlon|decathlon)\b/],['hockey',/\bhockey\b/],['skating',/\b(?:skating|short track)\b/],['skiing',/\b(?:skiing|ski|biathlon|nordic combined)\b/],['snowboard',/\bsnowboard(?:ing)?\b/],['sliding',/\b(?:bobsleigh|bobsled|luge|skeleton)\b/],['cycling',/\bcycling\b/],['racquet',/\b(?:tennis|badminton)\b/],['combat',/\b(?:boxing|wrestling|judo|taekwondo|fencing)\b/],['rowing',/\b(?:rowing|canoe|kayak|sailing)\b/],['weightlifting',/\bweightlifting\b/],['equestrian',/\b(?:equestrian|dressage)\b/],['breaking',/\b(?:breaking|breakdancing|raygun)\b/]];
+   for(var d=0;d<disciplines.length;d++)if(disciplines[d][1].test(text))return 'olympics-'+disciplines[d][0];
+  }
+
   if(Number(channel)===57){
    if(/\b(?:lingerie football league|legends football league|lfl)\b/.test(text))return 'lfl';
    if(/\b(?:high school football|school football|varsity football)\b/.test(text))return 'high-school';
@@ -52,7 +57,7 @@
    for(var v=0;v<vaultLanes.length;v++)if(vaultLanes[v][2].test(vaultText))return Object.assign(describe(item,vaultLanes[v][0]),{sport:vaultLanes[v][1]});
   }
   var raw=selectedTitle(item,channel),text=clean(raw),yearMatch=raw.match(/\b((?:19|20)\d{2})\b/),year=Number(yearMatch?yearMatch[1]:String(item.year||'').slice(0,4))||0;
-  var competitionText=[55,57,58,59].includes(Number(channel))?text+' '+clean(item.title)+' '+clean(item.seriesTitle):text;
+  var competitionText=[55,57,58,59,61].includes(Number(channel))?text+' '+clean(item.title)+' '+clean(item.seriesTitle):text;
   var result={eventId:'',competition:competition(competitionText,channel),year:year,era:year?Math.floor(year/10)*10:0,participants:[],format:'program'};
   if(!enabled(channel))return result;
   if(/\b(?:documentary|documentaries|history|biography|retrospective|nfl films|a football life|behind the scenes)\b/.test(text)){result.format='documentary';return result;}

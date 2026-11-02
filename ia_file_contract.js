@@ -76,6 +76,17 @@ export function iaKnownVideoPolicyViolation(item = {}, rules = {}) {
     const parts=value.split(':').map(Number), runtime=parts.every(Number.isFinite)?parts.reduce((n,x)=>n*60+x,0):0;
     if (!documentary && runtime>0 && runtime<2700) return true;
   }
+  if (channel === '61') {
+    // Require the selected Olympic program, not a passing news/guest mention.
+    const selected = [item.title,item.fileName,media.fileName,meta.title,meta.fileName].filter(Boolean).join(' ').replace(/([a-z])([A-Z])/g,'$1 $2').toLowerCase().replace(/[_./()\[\]-]+/g,' ').replace(/\s+/g,' ');
+    const identity = [selected,item.identifier || item.id,item.sourceIdentifier,media.sourceIdentifier,meta.sourceIdentifier].filter(Boolean).join(' ').replace(/([a-z])([A-Z])/g,'$1 $2').toLowerCase().replace(/[_./()\[\]-]+/g,' ').replace(/\s+/g,' ');
+    const classification = [item.subject,item.subjects,item.collection,meta.subject,meta.subjects,meta.collection].filter(Boolean).join(' ').toLowerCase().replace(/[_-]+/g,' ');
+    if (/\b(?:world news|newshour|newscast|capitol hill|hearings|cspan|late night with|jimmy fallon|seth meyers|maria bartiromo|benson|tv land|countdown|torch relay|medal display|olympic medals|home movies?|highlights?|clips?|recaps?|condensed|abridged|incomplete|partial|podcasts?|press conference|security update|watch[ -]?alongs?|no (?:game|event) footage|commentary only|audio only|reaction streams?|differences between|computers and the olympics|gameplay|longplay|playthrough|simulation|video games?|mario|sonic|nintendo|playstation|xbox|trojan games|pain olympics|sex olympics|terrytoons|cartoons?|anime|running man philippines)\b/.test(identity)) return true;
+    if (/\b(?:cartoons?|animation|anime|sitcom|feature films?|fiction films?|fictional|adult sex|erotic|video games?|sports simulation)\b/.test(classification)) return true;
+    if (/\b(?:language (?:spanish|french|russian|german|portuguese)|(?:spanish|french|russian|german|portuguese|italian) (?:broadcast|commentary|audio)|dublado|dubbed (?:russian|spanish))\b/.test(selected)) return true;
+    const topic=/\bolympic(?:s)?\b/.test(selected) || /\b(?:this is your life jesse owens|flame in the snow)\b/.test(selected);
+    if (!topic) return true;
+  }
   if (channel === '59') {
     // Reviewed parent packages old-time radio audio inside MP4 containers.
     const source=String(media.sourceIdentifier || item.sourceIdentifier || String(item.identifier || item.id || '').split('::')[0]).replace(/^ia:/i,'');
@@ -170,7 +181,7 @@ export function iaKnownVideoPolicyViolation(item = {}, rules = {}) {
     const parts = String(value || '').split(':').map(Number);
     const runtime = parts.every(Number.isFinite) ? parts.reduce((total,part) => total * 60 + part,0) : 0;
     // A legacy direct URL with no duration must hydrate before it can be ready.
-    if (['52','53','55','56','57','58','59'].includes(channel) && !runtime && (media.url || item.url || item.mediaUrl)) return true;
+    if (['52','53','55','56','57','58','59','61'].includes(channel) && !runtime && (media.url || item.url || item.mediaUrl)) return true;
     if (runtime > 0 && runtime < floor) return true;
     const international = ['106','107','114','115','119','120','151'];
     const language = String(media.language || item.language || meta.language || '').trim().toLowerCase();
@@ -476,7 +487,7 @@ export function qualifyIaFileRecord(raw, rules = {}, now = Date.now()) {
   }
   const text = [item.title, item.description, item.subject, item.fileName].filter(Boolean).join(' ').toLowerCase();
   const channel = String(rules.channel || '');
-  if (['52','53','55','56','57','58','59','60','71','72'].includes(channel) && iaKnownVideoPolicyViolation(item, rules)) return reject('off-genre-sports');
+  if (['52','53','55','56','57','58','59','60','61','71','72'].includes(channel) && iaKnownVideoPolicyViolation(item, rules)) return reject('off-genre-sports');
   if (!iaReviewedFileAllowed(item, channel)) return reject('off-genre-reviewed-collection');
   const completeCartoon = channel === '150' && COMPLETE_CARTOON_SHORT_PARENTS.has(item.sourceIdentifier)
     && !/\b(?:clip|trailer|preview|teaser|promo|bumper|intro|introduction|outro|review|reaction|tutorial|interview|bonus|menu|featurette|tiktok|reels)\b|#shorts|youtube shorts/i.test(text);

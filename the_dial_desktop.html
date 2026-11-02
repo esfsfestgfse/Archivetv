@@ -9,16 +9,16 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>REALSIGNAL · Retro Cable 6.1.8</title>
+<title>REALSIGNAL · Retro Cable 6.1.9</title>
 <meta name="realsignal-ia-repair-channels" content="10,12,22,150">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
 <script src="assets/ok-embed-runtime.js?v=5.6.29"></script>
 <script src="assets/ia-playback-shelf.js?v=5.6.29"></script>
-<script src="assets/sports-programs.js?v=6.1.8"></script>
+<script src="assets/sports-programs.js?v=6.1.9"></script>
 <script src="assets/vimeo-embed-runtime.js?v=5.5.85"></script>
-<script src="assets/youtube-embed-runtime.js?v=6.1.8"></script>
+<script src="assets/youtube-embed-runtime.js?v=6.1.9"></script>
 <!-- Source Suite starts verified YouTube playback on a cold tune. Warm the exact
      origins it uses so DNS/TLS setup is not serialized behind catalog discovery. -->
 <link rel="preconnect" href="https://www.googleapis.com" crossorigin>
@@ -1702,16 +1702,16 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
 @media(prefers-reduced-motion:reduce){.sports-screen *,.wx-screen *,.wr-cabinet *{animation-duration:.001ms!important;transition-duration:.001ms!important}}
 </style>
 <link rel="stylesheet" href="assets/guide-overhaul.css">
-<link rel="stylesheet" href="assets/v6-watching-shell.css?v=6.1.8">
-<link rel="stylesheet" href="assets/v6-guide.css?v=6.1.8">
-<script src="assets/commercial-scheduler.js?v=6.1.8"></script>
-<script src="assets/fast-catalog.js?v=6.1.8"></script>
-<link rel="stylesheet" href="assets/weather-networks.css?v=6.1.8">
-<script src="assets/weather-networks.js?v=6.1.8"></script>
-<link rel="stylesheet" href="assets/weather-local.css?v=6.1.8">
-<script src="assets/weather-local.js?v=6.1.8"></script>
-<script src="assets/source-program-policy.js?v=6.1.8"></script>
-<script src="assets/peertube-media.js?v=6.1.8"></script>
+<link rel="stylesheet" href="assets/v6-watching-shell.css?v=6.1.9">
+<link rel="stylesheet" href="assets/v6-guide.css?v=6.1.9">
+<script src="assets/commercial-scheduler.js?v=6.1.9"></script>
+<script src="assets/fast-catalog.js?v=6.1.9"></script>
+<link rel="stylesheet" href="assets/weather-networks.css?v=6.1.9">
+<script src="assets/weather-networks.js?v=6.1.9"></script>
+<link rel="stylesheet" href="assets/weather-local.css?v=6.1.9">
+<script src="assets/weather-local.js?v=6.1.9"></script>
+<script src="assets/source-program-policy.js?v=6.1.9"></script>
+<script src="assets/peertube-media.js?v=6.1.9"></script>
 </head>
 <body>
 <script>
@@ -1723,7 +1723,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="6.1.8-desktop-retro-cable";
+window.__ATV_BUILD="6.1.9-desktop-retro-cable";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -7606,6 +7606,17 @@ function iaKnownVideoPolicyViolation(item = {}, rules = {}) {
     const documentary = (promotion || discipline) && /\b(?:documentary|documentaries|ringside history|mma history)\b/.test(selected);
     if (!event && !documentary) return true;
   }
+  if (channel === '53') {
+    // The flagship carries substantial programs, not anything tagged sports.
+    // Incidental halftime interviews/commercials inside a full broadcast stay.
+    const selected = [item.title,item.fileName,media.fileName,meta.title,meta.fileName].filter(Boolean).join(' ').replace(/([a-z])([A-Z])/g,'$1 $2').toLowerCase().replace(/[_./-]+/g,' ');
+    const identity = [selected,item.identifier || item.id,item.sourceIdentifier,media.sourceIdentifier,meta.sourceIdentifier].filter(Boolean).join(' ').replace(/([a-z])([A-Z])/g,'$1 $2').toLowerCase().replace(/[_./-]+/g,' ');
+    const classification = [item.subject,item.subjects,item.collection,meta.subject,meta.subjects,meta.collection].filter(Boolean).join(' ').toLowerCase();
+    if (/\b(?:countdown clock|torch relay|medal display|olympic medals|home movies?|training|tutorials?|practice|workout|ski with a ranger|highlights?|clips?|recaps?|condensed|quick ?cut|abridged|incomplete|partial|previews?|trailers?|podcasts?|press conference|security update|ceremonies|parades?|watch[ -]?along|watch party|no (?:game|event|fight) footage|commentary only|audio only|reaction streams?|gameplay|longplay|playthrough|simulation|video games?|madden|ncaa football (?:0[0-9]|1[0-4])|ea sports college football \d{2}|nintendo|playstation|xbox)\b/.test(identity)) return true;
+    if (/\b(?:cartoons?|animation|anime|sitcom|feature film|fiction film|fictional|video ?games?|sports simulation)\b/.test(classification) || /\b(?:full (?:hd )?movie|rocky balboa|peeping tom|basketball diaries|golf specialist)\b/.test(selected)) return true;
+    const topic = /\b(?:baseball|basketball|football|gridiron|cfl|usfl|xfl|ufl|grey cup|pancrase|strikeforce|pfl|invicta|one championship|muay thai|vale tudo|glory kickboxing|hockey|boxing|mma|ufc|pride fc|bellator|kickboxing|wrestling|roller ?derby|rollergames|olympic(?:s)?|golf|masters tournament|tennis|soccer|rugby|cricket|cycling|athletics|track and field|swimming|skiing|skating|snowboarding|volleyball|rodeo|nascar|indycar|formula (?:one|[123e])|grand prix|nfl|nba|wnba|aba|mlb|nhl|fifa|world series|rose bowl|sugar bowl|orange bowl|cotton bowl|fiesta bowl|peach bowl|camellia bowl|super bowl|sports documentary)\b/.test(selected+' '+classification);
+    if (!topic) return true;
+  }
   if (channel === '57') {
     const selected = [item.title,item.fileName,media.fileName,meta.title,meta.fileName].filter(Boolean).join(' ').replace(/([a-z])([A-Z])/g,'$1 $2').replace(/([a-z])([0-9])/g,'$1 $2').toLowerCase().replace(/[_./-]+/g,' ');
     const identity = [selected,item.identifier || item.id,item.sourceIdentifier,media.sourceIdentifier,meta.sourceIdentifier].filter(Boolean).join(' ').replace(/([a-z])([A-Z])/g,'$1 $2').replace(/([a-z])([0-9])/g,'$1 $2').toLowerCase().replace(/[_./-]+/g,' ');
@@ -7720,7 +7731,7 @@ function iaKnownVideoPolicyViolation(item = {}, rules = {}) {
     const parts = String(value || '').split(':').map(Number);
     const runtime = parts.every(Number.isFinite) ? parts.reduce((total,part) => total * 60 + part,0) : 0;
     // A legacy direct URL with no duration must hydrate before it can be ready.
-    if (['52','55','56','57','58','59'].includes(channel) && !runtime && (media.url || item.url || item.mediaUrl)) return true;
+    if (['52','53','55','56','57','58','59'].includes(channel) && !runtime && (media.url || item.url || item.mediaUrl)) return true;
     if (runtime > 0 && runtime < floor) return true;
     const international = ['106','107','114','115','119','120','151'];
     const language = String(media.language || item.language || meta.language || '').trim().toLowerCase();
@@ -7737,7 +7748,6 @@ function iaKnownVideoPolicyViolation(item = {}, rules = {}) {
   return /\b(?:pod\s?casts?|vodcasts?|fan\s?(?:made|film|movie|edit|production|fic)|reaction video)\b|\b(?:portrait|vertical)\s+(?:video|format|orientation|mode|footage|clip)\b|\b(?:shot|filmed|recorded|uploaded) in (?:portrait|vertical)\b|9\s*:\s*16|1080\s*[x×]\s*1920|#shorts\b|\byoutube shorts\b/.test(text)
     || /\b(?:unofficial|homemade|bootleg)\b.{0,48}\b(?:film|movie|feature|parody|remake|reconstruction)\b|\b(?:film|movie|feature|parody|remake|reconstruction)\b.{0,48}\b(?:unofficial|homemade|bootleg)\b/.test(text);
 }
-
 function iaReviewedFileAllowed(item, channel) {
   if (!item || typeof item !== 'object') return false;
   const media = item.media || {}, id = String(item.identifier || item.id || '');
@@ -19523,16 +19533,16 @@ window.__atvBootDone=true; /* app is up -- from here on, errors get logged, not 
   };
 })();
 </script>
-<script src="assets/source-catalog-client.js?v=6.1.8"></script>
+<script src="assets/source-catalog-client.js?v=6.1.9"></script>
 <script src="assets/verified-guide-client.js"></script>
 <script src="assets/guide-overhaul.js"></script>
 <script src="assets/playback-audit.js"></script>
-<script src="assets/release2-runtime.js?v=6.1.8"></script>
+<script src="assets/release2-runtime.js?v=6.1.9"></script>
 <script src="assets/release3-runtime.js"></script>
 <script src="assets/release31-runtime.js"></script>
 <script src="assets/guide-contract.js?v=v6-contract-1"></script>
-<script src="assets/guide-contract-client.js?v=6.1.8"></script>
-<script src="assets/v6-watching-shell.js?v=6.1.8"></script>
-<script src="assets/v6-guide.js?v=6.1.8"></script>
+<script src="assets/guide-contract-client.js?v=6.1.9"></script>
+<script src="assets/v6-watching-shell.js?v=6.1.9"></script>
+<script src="assets/v6-guide.js?v=6.1.9"></script>
 </body>
 </html>

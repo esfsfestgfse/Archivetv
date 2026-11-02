@@ -5909,6 +5909,17 @@ function iaKnownVideoPolicyViolation(item = {}, rules = {}) {
     const documentary = (promotion || discipline) && /\b(?:documentary|documentaries|ringside history|mma history)\b/.test(selected);
     if (!event && !documentary) return true;
   }
+  if (channel === '53') {
+    // The flagship carries substantial programs, not anything tagged sports.
+    // Incidental halftime interviews/commercials inside a full broadcast stay.
+    const selected = [item.title,item.fileName,media.fileName,meta.title,meta.fileName].filter(Boolean).join(' ').replace(/([a-z])([A-Z])/g,'$1 $2').toLowerCase().replace(/[_./-]+/g,' ');
+    const identity = [selected,item.identifier || item.id,item.sourceIdentifier,media.sourceIdentifier,meta.sourceIdentifier].filter(Boolean).join(' ').replace(/([a-z])([A-Z])/g,'$1 $2').toLowerCase().replace(/[_./-]+/g,' ');
+    const classification = [item.subject,item.subjects,item.collection,meta.subject,meta.subjects,meta.collection].filter(Boolean).join(' ').toLowerCase();
+    if (/\b(?:countdown clock|torch relay|medal display|olympic medals|home movies?|training|tutorials?|practice|workout|ski with a ranger|highlights?|clips?|recaps?|condensed|quick ?cut|abridged|incomplete|partial|previews?|trailers?|podcasts?|press conference|security update|ceremonies|parades?|watch[ -]?along|watch party|no (?:game|event|fight) footage|commentary only|audio only|reaction streams?|gameplay|longplay|playthrough|simulation|video games?|madden|ncaa football (?:0[0-9]|1[0-4])|ea sports college football \d{2}|nintendo|playstation|xbox)\b/.test(identity)) return true;
+    if (/\b(?:cartoons?|animation|anime|sitcom|feature film|fiction film|fictional|video ?games?|sports simulation)\b/.test(classification) || /\b(?:full (?:hd )?movie|rocky balboa|peeping tom|basketball diaries|golf specialist)\b/.test(selected)) return true;
+    const topic = /\b(?:baseball|basketball|football|gridiron|cfl|usfl|xfl|ufl|grey cup|pancrase|strikeforce|pfl|invicta|one championship|muay thai|vale tudo|glory kickboxing|hockey|boxing|mma|ufc|pride fc|bellator|kickboxing|wrestling|roller ?derby|rollergames|olympic(?:s)?|golf|masters tournament|tennis|soccer|rugby|cricket|cycling|athletics|track and field|swimming|skiing|skating|snowboarding|volleyball|rodeo|nascar|indycar|formula (?:one|[123e])|grand prix|nfl|nba|wnba|aba|mlb|nhl|fifa|world series|rose bowl|sugar bowl|orange bowl|cotton bowl|fiesta bowl|peach bowl|camellia bowl|super bowl|sports documentary)\b/.test(selected+' '+classification);
+    if (!topic) return true;
+  }
   if (channel === '57') {
     const selected = [item.title,item.fileName,media.fileName,meta.title,meta.fileName].filter(Boolean).join(' ').replace(/([a-z])([A-Z])/g,'$1 $2').replace(/([a-z])([0-9])/g,'$1 $2').toLowerCase().replace(/[_./-]+/g,' ');
     const identity = [selected,item.identifier || item.id,item.sourceIdentifier,media.sourceIdentifier,meta.sourceIdentifier].filter(Boolean).join(' ').replace(/([a-z])([A-Z])/g,'$1 $2').replace(/([a-z])([0-9])/g,'$1 $2').toLowerCase().replace(/[_./-]+/g,' ');
@@ -6023,7 +6034,7 @@ function iaKnownVideoPolicyViolation(item = {}, rules = {}) {
     const parts = String(value || '').split(':').map(Number);
     const runtime = parts.every(Number.isFinite) ? parts.reduce((total,part) => total * 60 + part,0) : 0;
     // A legacy direct URL with no duration must hydrate before it can be ready.
-    if (['52','55','56','57','58','59'].includes(channel) && !runtime && (media.url || item.url || item.mediaUrl)) return true;
+    if (['52','53','55','56','57','58','59'].includes(channel) && !runtime && (media.url || item.url || item.mediaUrl)) return true;
     if (runtime > 0 && runtime < floor) return true;
     const international = ['106','107','114','115','119','120','151'];
     const language = String(media.language || item.language || meta.language || '').trim().toLowerCase();
@@ -6040,7 +6051,6 @@ function iaKnownVideoPolicyViolation(item = {}, rules = {}) {
   return /\b(?:pod\s?casts?|vodcasts?|fan\s?(?:made|film|movie|edit|production|fic)|reaction video)\b|\b(?:portrait|vertical)\s+(?:video|format|orientation|mode|footage|clip)\b|\b(?:shot|filmed|recorded|uploaded) in (?:portrait|vertical)\b|9\s*:\s*16|1080\s*[x×]\s*1920|#shorts\b|\byoutube shorts\b/.test(text)
     || /\b(?:unofficial|homemade|bootleg)\b.{0,48}\b(?:film|movie|feature|parody|remake|reconstruction)\b|\b(?:film|movie|feature|parody|remake|reconstruction)\b.{0,48}\b(?:unofficial|homemade|bootleg)\b/.test(text);
 }
-
 function iaReviewedFileAllowed(item, channel) {
   if (!item || typeof item !== 'object') return false;
   const media = item.media || {}, id = String(item.identifier || item.id || '');
@@ -8974,7 +8984,10 @@ function familyBalancedIaWindowInternal(candidates, start, requested, maxPerFami
 }
 
 function orderedIaEmergencySeeds(channel, rotation) {
-  const rawSeeds = (IA_HOLIDAY_CONTAINER_SEEDS[String(channel)] || [])
+  const vaultBanks = String(channel) === "53" ? [52,55,56,57,58,59,60,71,72].map(member => iaRepairCollectionSeeds(String(member)).filter(item => item.media && iaStationQualityGate(String(member),item))) : [];
+  const vaultFiles = [];
+  for (let i = 0; i < Math.max(0,...vaultBanks.map(bank => bank.length)); i++) for (const bank of vaultBanks) if (bank[i]) vaultFiles.push(bank[i]);
+  const rawSeeds = vaultFiles.concat(IA_HOLIDAY_CONTAINER_SEEDS[String(channel)] || [])
     .concat(["10", "12", "20", "22", "52", "55", "56", "57", "58", "59", "60", "65", "66", "71", "72", "80", "81", "83", "118", "128", "150", "200", "201", "204", "212", "510"].includes(String(channel)) ? iaRepairCollectionSeeds(channel).filter(item => item.media) : [])
     .concat(IA_EMERGENCY_SEEDS[String(channel)] || [])
     .concat(IA_LONG_TAIL_EXPANSIONS[String(channel)] || [])
@@ -9013,7 +9026,7 @@ function orderedIaEmergencySeeds(channel, rotation) {
   const seeds = rawSeeds.filter((item) => {
     // This lane now promises race broadcasts. Direct cold-start recovery must
     // apply the same admission as search, cached catalogs, and the player.
-    if (["52","54","55","56","57","58","59","60","71","72"].includes(String(channel)) && !iaStationQualityGate(channel,item)) return false;
+    if (["52","53","54","55","56","57","58","59","60","71","72"].includes(String(channel)) && !iaStationQualityGate(channel,item)) return false;
     const rawIdentifier = String(item && item.identifier || "");
     const source = String(item && item.sourceIdentifier || (rawIdentifier.includes("::") ? rawIdentifier.split("::")[0] : rawIdentifier));
     const fileName = String(item && item.fileName || (rawIdentifier.includes("::") ? rawIdentifier.slice(rawIdentifier.indexOf("::") + 2) : ""));
@@ -11269,6 +11282,7 @@ async function getIaQueue(request, url, env, ctx) {
     ...(channel === "58" ? { stationSportsPolicy: "basketball-programs-616" } : {}),
     ...(channel === "59" ? { stationSportsPolicy: "baseball-programs-617" } : {}),
     ...(channel === "57" ? { stationSportsPolicy: "gridiron-programs-618" } : {}),
+    ...(channel === "53" ? { stationSportsPolicy: "vault-programs-619" } : {}),
     ...(channel === "22" ? { stationPolicy: "adult-game-shows-2" } : {}) };
   const familyFingerprint = JSON.stringify({ channel, queries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, minRuntimeSeconds, diversity, count, contentPolicy: IA_GLOBAL_VIDEO_POLICY_VERSION, ...fileContract });
   const lastGoodDigest = await stableKey(familyFingerprint);

@@ -51,6 +51,17 @@
  }
  function describe(item,channel){
   item=item||{};
+  if(Number(channel)===62){
+   var collegeText=clean([selectedTitle(item,62),item.title,item.seriesTitle].filter(Boolean).join(' '));
+   var collegeLanes=[[58,'basketball',/\bbasketball\b/],[59,'baseball',/\bbaseball\b/],[57,'football',/\b(?:football|gridiron|rose bowl|sugar bowl|cotton bowl|fiesta bowl|orange bowl|peach bowl|camellia bowl)\b/]];
+   for(var k=0;k<collegeLanes.length;k++)if(collegeLanes[k][2].test(collegeText))return Object.assign(describe(item,collegeLanes[k][0]),{competition:'college-'+collegeLanes[k][1],sport:collegeLanes[k][1]});
+   var collegeSport=collegeText.match(/\b(volleyball|soccer|softball|lacrosse|hockey|wrestling|swimming|diving|gymnastics|tennis|golf|rowing|track|athletics|fencing)\b/);
+   if(collegeSport){
+    var collegeInfo=describe(item,65),collegeDiscipline='college-'+collegeSport[1];
+    if(collegeInfo.eventId)collegeInfo.eventId=collegeInfo.eventId.replace(/^sports:[^:]+:/,'sports:'+collegeDiscipline+':');
+    return Object.assign(collegeInfo,{competition:collegeDiscipline,sport:collegeSport[1]});
+   }
+  }
   if(Number(channel)===53){
    var vaultText=clean([selectedTitle(item,53),item.title,item.seriesTitle].filter(Boolean).join(' '));
    var vaultLanes=[[58,'basketball',/\b(?:basketball|nba|wnba|aba)\b/],[59,'baseball',/\b(?:baseball|mlb|world series|negro leagues)\b/],[60,'hockey',/\b(?:hockey|nhl|stanley cup)\b/],[52,'mma',/\b(?:mma|ufc|pride fc|bellator|kickboxing|mixed martial arts)\b/],[55,'wrestling-derby',/\b(?:wrestling|wwf|wwe|wcw|njpw|awa|nwa|roller ?derby|rollergames)\b/],[56,'boxing',/\b(?:boxing|muhammad ali|floyd patterson|joe louis|joe frazier|mike tyson)\b/],[63,'soccer',/\b(?:soccer|fifa|uefa|premier league|champions league)\b/],[57,'football',/\b(?:football|gridiron|nfl|cfl|usfl|xfl|ufl|super bowl|rose bowl|sugar bowl|orange bowl|cotton bowl|fiesta bowl|peach bowl|camellia bowl)\b/],[71,'golf',/\b(?:golf|pga|masters tournament)\b/],[72,'tennis',/\b(?:tennis|wimbledon|atp|wta)\b/],[54,'racing',/\b(?:nascar|indycar|formula (?:one|[123e])|grand prix)\b/]];

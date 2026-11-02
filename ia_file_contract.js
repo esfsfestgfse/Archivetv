@@ -76,6 +76,23 @@ export function iaKnownVideoPolicyViolation(item = {}, rules = {}) {
     const parts=value.split(':').map(Number), runtime=parts.every(Number.isFinite)?parts.reduce((n,x)=>n*60+x,0):0;
     if (!documentary && runtime>0 && runtime<2700) return true;
   }
+  if (channel === '62') {
+    const selected=[item.title,item.fileName,media.fileName,meta.title,meta.fileName].filter(Boolean).join(' ').replace(/([a-z])([A-Z])/g,'$1 $2').toLowerCase().replace(/[_./()\[\]-]+/g,' ').replace(/\s+/g,' ');
+    const context=[selected,item.seriesTitle,meta.seriesTitle,item.subject,item.subjects,meta.subject,meta.subjects].filter(Boolean).join(' ').toLowerCase();
+    const identity=[selected,item.identifier || item.id,item.sourceIdentifier,media.sourceIdentifier,meta.sourceIdentifier].filter(Boolean).join(' ').replace(/([a-z])([A-Z])/g,'$1 $2').toLowerCase().replace(/[_./-]+/g,' ');
+    if (/\b(?:nfl|nba|wnba|mlb|nhl|usfl|cfl|xfl|ufl|high school|prep football|prep basketball|varsity high|junior varsity|madden|ncaa football (?:0[0-9]|1[0-4])|ea sports college football \d{2}|gameplay|longplay|playthrough|simulation|video games?|nintendo|playstation|xbox|animal house|revenge of the nerds)\b/.test(identity) || /\bhigh school\b/.test(context)) return true;
+    if (/\b(?:ban college football|intelligence squared|debates?|after the whistle|raptor report|year in review|highlights?|clips?|recaps?|condensed|quick ?cut|abridged|incomplete|partial|(?:first|second|1st|2nd)\s*half|rained out|rainout|ring ceremon(?:y|ies)|podcasts?|previews?|trailers?|interviews?|press conference|press club|lectures?|seminars?|panel discussion|recruiting|signing day|training|practice|workout|tutorials?|watch[ -]?alongs?|no (?:game|event) footage|commentary only|audio only|reaction streams?|security update)\b/.test(identity)) return true;
+    if (/\b(?:homecoming|parades?|pep rally|statue|unveiling|banquet|stadium tour)\b/.test(selected) && !/\b(?:full|complete) (?:game|match|broadcast)\b/.test(selected)) return true;
+    if (/\b(?:cartoons?|animation|anime|sitcom|feature films?|fiction films?|fictional|sports simulation)\b/.test(context) || /\b(?:full (?:hd )?movie|language (?:spanish|french|russian|german|portuguese)|(?:spanish|russian|portuguese) (?:broadcast|commentary|audio)|dublado)\b/.test(selected)) return true;
+    const collegiate=/\b(?:college|university|ncaa|naia|njcaa|intercollegiate|collegiate|community college)\b/.test(context);
+    const sport=/\b(?:football|basketball|baseball|volleyball|soccer|softball|lacrosse|hockey|wrestling|swimming|diving|gymnastics|tennis|golf|rowing|track|athletics|cross country|fencing|water polo)\b/.test(context);
+    const documentary=/\b(?:documentary|documentaries|sports history|athletics history|breaking the huddle)\b/.test(context);
+    const game=/\b(?:vs?|versus|at|full (?:game|match|meet|broadcast|event)|complete (?:game|match|meet|broadcast|event)|championship|tournament|final|semi final|game\s*\d+|bowl|football on (?:abc|cbs|nbc|fox))\b|@/.test(selected);
+    const index=!media.url && !item.url && !item.mediaUrl && !item.fileName && !String(item.identifier || item.id || '').includes('::');
+    if (!collegiate || !sport || !game && !documentary && !(index && /\b(?:games?|season|collection)\b/.test(selected))) return true;
+    const fileRuntime=['runtime','duration','length'].some(key=>Object.prototype.hasOwnProperty.call(media,key)),value=String((fileRuntime?media.runtime||media.duration||media.length:item.runtimeSeconds||item.durationSeconds||item.runtime||item.duration||meta.runtime)||''),parts=value.split(':').map(Number),runtime=parts.every(Number.isFinite)?parts.reduce((n,x)=>n*60+x,0):0;
+    if (!documentary && runtime>0 && runtime<(/\b(?:football|baseball)\b/.test(context)?2700:/\bbasketball\b/.test(context)?1800:900)) return true;
+  }
   if (channel === '61') {
     // Require the selected Olympic program, not a passing news/guest mention.
     const selected = [item.title,item.fileName,media.fileName,meta.title,meta.fileName].filter(Boolean).join(' ').replace(/([a-z])([A-Z])/g,'$1 $2').toLowerCase().replace(/[_./()\[\]-]+/g,' ').replace(/\s+/g,' ');
@@ -181,7 +198,7 @@ export function iaKnownVideoPolicyViolation(item = {}, rules = {}) {
     const parts = String(value || '').split(':').map(Number);
     const runtime = parts.every(Number.isFinite) ? parts.reduce((total,part) => total * 60 + part,0) : 0;
     // A legacy direct URL with no duration must hydrate before it can be ready.
-    if (['52','53','55','56','57','58','59','61'].includes(channel) && !runtime && (media.url || item.url || item.mediaUrl)) return true;
+    if (['52','53','55','56','57','58','59','61','62'].includes(channel) && !runtime && (media.url || item.url || item.mediaUrl)) return true;
     if (runtime > 0 && runtime < floor) return true;
     const international = ['106','107','114','115','119','120','151'];
     const language = String(media.language || item.language || meta.language || '').trim().toLowerCase();
@@ -487,7 +504,7 @@ export function qualifyIaFileRecord(raw, rules = {}, now = Date.now()) {
   }
   const text = [item.title, item.description, item.subject, item.fileName].filter(Boolean).join(' ').toLowerCase();
   const channel = String(rules.channel || '');
-  if (['52','53','55','56','57','58','59','60','61','71','72'].includes(channel) && iaKnownVideoPolicyViolation(item, rules)) return reject('off-genre-sports');
+  if (['52','53','55','56','57','58','59','60','61','62','71','72'].includes(channel) && iaKnownVideoPolicyViolation(item, rules)) return reject('off-genre-sports');
   if (!iaReviewedFileAllowed(item, channel)) return reject('off-genre-reviewed-collection');
   const completeCartoon = channel === '150' && COMPLETE_CARTOON_SHORT_PARENTS.has(item.sourceIdentifier)
     && !/\b(?:clip|trailer|preview|teaser|promo|bumper|intro|introduction|outro|review|reaction|tutorial|interview|bonus|menu|featurette|tiktok|reels)\b|#shorts|youtube shorts/i.test(text);

@@ -2,7 +2,16 @@
 (function(root,factory){if(typeof module==='object'&&module.exports)module.exports=factory();else root.RealSignalSports=factory();})(typeof globalThis!=='undefined'?globalThis:this,function(){
  'use strict';
  function enabled(channel){return channel==='nascar-classics'||Number(channel)>=51&&Number(channel)<=84;}
- function id(item){return String(item&&(item.identifier||item.id)||'');}
+ function id(item){
+  var value=String(item&&(item.identifier||item.id)||'');
+  // Old rapid-tune records sometimes used the CDN URL as their identifier.
+  // Preserve the exact Archive file identity across cache and catalog records.
+  if(/^https?:\/\//i.test(value))try{
+   var parsed=new URL(value),file=parsed.pathname.match(/^\/(?:download|\d+\/items)\/([^/]+)\/(.+)$/);
+   if(/(?:^|\.)archive\.org$/i.test(parsed.hostname)&&file)return decodeURIComponent(file[1])+'::'+decodeURIComponent(file[2]);
+  }catch(_){}
+  return value;
+ }
  function url(item){return String(item&&(item.media&&item.media.url||item.mediaUrl||item.url)||'');}
  function clean(value){return String(value||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();}
  function seconds(item){var m=item&&item.media||{},meta=item&&item.meta||{},v=m.runtime||item&&item.runtime||item&&item.duration||meta.runtime||0;var p=String(v).split(':').map(Number);return p.every(Number.isFinite)?p.reduce(function(a,b){return a*60+b;},0):0;}

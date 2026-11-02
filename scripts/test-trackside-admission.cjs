@@ -73,3 +73,41 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
     assert.equal(result.items[0].identifier, fresh.identifier);
   });
 }
+
+test('legacy Archive CDN playback IDs retain the same program identity as catalog files', () => {
+  const Sports = require('../assets/sports-programs.js');
+  const item = c.track.seeds('64', 0).find(x => x.sourceIdentifier === 'this_is_your_life_jesse_owens');
+  const legacy = {id: item.media.url, title: item.title};
+  assert.equal(Sports.key(legacy, 64), Sports.key(item, 64));
+  for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
+    const source = fs.readFileSync(file, 'utf8'), seen = [];
+    const context = {window: {RealSignalSports: Sports}, iaViewerRecentIds(channel, id) {seen.push(id);},
+      IA_RELAY_BASE: 'https://relay.invalid/ia', iaSessionId: () => 'test', fetch: async () => ({ok: true})};
+    vm.createContext(context);
+    vm.runInContext(source.slice(source.indexOf('function iaReportPlayed('), source.indexOf('function iaViewerRecentIds(')), context);
+    context.iaReportPlayed({num: 64}, legacy);
+    assert.ok(seen.includes(item.identifier), 'legacy CDN start must exclude its file-level catalog entry');
+  }
+});
+
+for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
+  test(file + ' rejects the current sports program from stale warm queues across cache and event copies', () => {
+    const Sports = require('../assets/sports-programs.js'), source = fs.readFileSync(file, 'utf8');
+    const bank = c.track.seeds('64', 0), doc = bank.find(x => x.sourceIdentifier === 'this_is_your_life_jesse_owens');
+    const copies = bank.filter(x => /day-10-evening/.test(x.fileName || ''));
+    const context = {window: {RealSignalSports: Sports}, banned: [],
+      iaReviewedFileAllowed: () => true, iaKnownVideoPolicyViolation: () => false,
+      isTemporarilySkipped: () => false, blockedId: () => false, iaProgramFailed: () => false,
+      iaSkipBlocked: () => false, iaThemeMatches: () => true};
+    vm.createContext(context);
+    vm.runInContext(source.slice(source.indexOf('function iaProgramAllowed('), source.indexOf('function iaCachedProgramAllowed(')), context);
+    const slot = {channel: 64, program: {}};
+    context.curItem = {id: doc.media.url, title: doc.title, ch: 64};
+    assert.equal(context.iaProgramAllowed(doc, slot), false, 'cached CDN program is already on air');
+    context.curItem = {id: copies[0].identifier, title: copies[0].title, ch: 64, meta: copies[0]};
+    assert.equal(context.iaProgramAllowed(copies[1], slot), false, 'alternate upload is the current event');
+    assert.equal(context.iaProgramAllowed(doc, slot), true, 'another program remains eligible');
+    context.curItem.ch = 63;
+    assert.equal(context.iaProgramAllowed(copies[1], slot), true, 'another channel cannot exclude this station');
+  });
+}

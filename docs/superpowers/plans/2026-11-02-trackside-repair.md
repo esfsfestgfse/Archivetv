@@ -21,4 +21,9 @@ Hosted 6.1.13: CI and all four deploy/publish runs succeeded; both public titles
 Follow-up found by a real second skip: after a played upload left the returned catalog, its alternate Olympic-session recording could reappear. Legacy client history stored only the upload ID. A reproduced desktop/mobile regression now stores the stable sports event key alongside that ID; the existing API excludes it without rediscovery or a new freshness owner. Both original and alternate remain available for same-event recovery.
 
 6.1.14: 40 affected sports/client tests and 90 guide/playback/telemetry tests pass, plus API contract and both HTML syntax/stamp checks. The original 96-command / 148-sports-test 6.1.13 gate remains valid for unchanged catalog/admission/recovery code.
-- [ ] Publish and confirm hosted 6.1.14, then verify several visible Next actions retain event freshness.
+- [x] Publish 6.1.14 (4628489); continue the bounded browser rotation check. Superseded by the cache-identity follow-up below.
+
+6.1.15 follow-up: an old rapid-tune record used its Archive CDN URL as its ID, so the same file could re-enter the queue under parent::filename. Normalize Archive-owned direct URLs to that exact file identity in the shared sports helper, persist the distinct canonical key, and reject current-event copies from stale client queues. No source/cache/history clearing or new discovery service. The reproduced cached Jesse Owens → athletics → Jesse Owens sequence now advances to different programs.
+
+Final local gate: all 96 commands pass, including 153 sports tests. One extracted-function test initially failed because no browser window exists in its VM; the optional sports adapter now has an explicit environment guard. Re-ran that 99-test depth suite and all affected sports, playback, guide, API and HTML checks successfully.
+- [ ] Push 6.1.15 and verify hosted visible playback, skips, guide and version stamps.

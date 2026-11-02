@@ -8,10 +8,17 @@ Architecture: reuse qualified Olympic athletics files through the existing relay
 - [x] Reproduce these admission failures at relay, file/API and saved desktop/mobile boundaries. Require selected-file runtime and athletics identity; preserve real sessions and original intermissions.
 - [x] Reuse the reviewed Olympic athletics bank, inspect more athletics/road-race/documentary files, verify transport, and preserve date/discipline/gender/session identity and balanced rotation.
 - [x] Check repeated rotations and representative decoded video, Next and guide; complete one bounded review and correct its three reproduced findings.
-- [ ] Complete the final CI/API gate, publish, and verify hosted 6.1.13.
+- [x] Complete the final CI/API gate, publish, and verify hosted 6.1.13 (2609ec1).
 
 Review focus: mixed Olympic parent labels must not approve unrelated children; school/college “athletics” can mean other sports; scheduled sessions/rounds and gender stay distinct; derivative copies of one event should not bypass history; reservation cooldowns and saved-media metadata survive. Whole-video completeness and physical phone/Cast certification are outside this bounded check. Preserve unrelated artifacts.
 
 Local evidence: 106 reviewed files / 94 event identities, eight athletics categories; six API rotations with 30 distinct selections and no policy rejections; eight representative recordings decoded visible landscape frames. The fresh-origin app reached its first frame in 2.408 seconds, Next in 505 ms, and guide open/close retained playback.
 
 Review repairs: reject unrelated children hidden under mixed Olympic parent labels; preserve gender/group/discipline identity through compaction and generic filenames; remove temporarily failed files from nested recovery copies until cooldown expiry. A final client parity check reproduced 40 valid files rejected by the old theme vocabulary; both clients now admit all 106 while the stricter selected-file policy continues to reject contamination.
+
+Hosted 6.1.13: CI and all four deploy/publish runs succeeded; both public titles and API release matched. Six rotations returned 30 distinct selections, five ready each / 96 candidates. Actual Chrome first frame was 2.765 seconds and Next was 570 ms.
+
+Follow-up found by a real second skip: after a played upload left the returned catalog, its alternate Olympic-session recording could reappear. Legacy client history stored only the upload ID. A reproduced desktop/mobile regression now stores the stable sports event key alongside that ID; the existing API excludes it without rediscovery or a new freshness owner. Both original and alternate remain available for same-event recovery.
+
+6.1.14: 40 affected sports/client tests and 90 guide/playback/telemetry tests pass, plus API contract and both HTML syntax/stamp checks. The original 96-command / 148-sports-test 6.1.13 gate remains valid for unchanged catalog/admission/recovery code.
+- [ ] Publish and confirm hosted 6.1.14, then verify several visible Next actions retain event freshness.

@@ -41,3 +41,35 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
     for (const item of bank) assert.equal(context.iaThemeMatches(item, slot), true, item.title);
   });
 }
+
+for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
+  test(file + ' remembers the visible athletics event after its played upload leaves the catalog', async () => {
+    const source = fs.readFileSync(file, 'utf8');
+    const Sports = require('../assets/sports-programs.js');
+    const bank = c.track.seeds('64', 0).filter(x => /day-10-evening/.test(x.fileName || ''));
+    assert.equal(bank.length, 2);
+    const seen = [];
+    const context = {
+      window: {RealSignalSports: Sports}, iaViewerRecentIds(channel, id) { seen.push(id); },
+      IA_RELAY_BASE: 'https://relay.invalid/ia', iaSessionId: () => 'test',
+      fetch: async () => ({ok: true})
+    };
+    vm.createContext(context);
+    vm.runInContext(source.slice(source.indexOf('function iaReportPlayed('), source.indexOf('function iaViewerRecentIds(')), context);
+    const played = bank[0];
+    context.iaReportPlayed({num: 64}, {id: played.identifier, title: played.title, meta: played});
+    assert.ok(seen.includes(played.identifier));
+    assert.ok(seen.includes(Sports.key(played, 64)), 'event identity must survive catalog eviction');
+    const {default: api} = await import('../realsignal_api_v2_worker.js');
+    const fresh = row('fresh-meet', 'State Track and Field Championships 2024');
+    const pending = [];
+    const response = await api.fetch(new Request('https://api.invalid/api/v3/ia/queue', {
+      method: 'POST', body: JSON.stringify({channel: '64', serverCatalog: true, count: 1,
+        queries: ['athletics'], mediaTypes: ['movies'], minRuntimeSeconds: 900, viewerRecentIds: seen})
+    }), {RELAY: {fetch: async () => Response.json({items: [bank[1]], candidateItems: [bank[1], fresh], ready: 1})}},
+    {waitUntil: p => pending.push(p)});
+    const result = await response.json();
+    await Promise.allSettled(pending);
+    assert.equal(result.items[0].identifier, fresh.identifier);
+  });
+}

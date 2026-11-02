@@ -45,6 +45,26 @@ export function iaKnownVideoPolicyViolation(item = {}, rules = {}) {
     const documentary = (promotion || discipline) && /\b(?:documentary|documentaries|ringside history|mma history)\b/.test(selected);
     if (!event && !documentary) return true;
   }
+  if (channel === '57') {
+    const selected = [item.title,item.fileName,media.fileName,meta.title,meta.fileName].filter(Boolean).join(' ').replace(/([a-z])([A-Z])/g,'$1 $2').replace(/([a-z])([0-9])/g,'$1 $2').toLowerCase().replace(/[_./-]+/g,' ');
+    const identity = [selected,item.identifier || item.id,item.sourceIdentifier,media.sourceIdentifier,meta.sourceIdentifier].filter(Boolean).join(' ').replace(/([a-z])([A-Z])/g,'$1 $2').replace(/([a-z])([0-9])/g,'$1 $2').toLowerCase().replace(/[_./-]+/g,' ');
+    const classification = [item.subject,item.subjects,item.collection,meta.subject,meta.subjects,meta.collection].filter(Boolean).join(' ').replace(/([a-z])([A-Z])/g,'$1 $2').toLowerCase();
+    if (/\b(?:soccer|fifa|uefa|premier league|champions league|australian rules|gaelic football|rugby|madden|ncaa football (?:0[0-9]|1[0-4])|ea sports college football \d{2}|bowl bound college football|video games?|gameplay|longplay|playthrough|simulation|nintendo|playstation|xbox|remember the titans|the waterboy|n3on|my final stream|just chatting)\b/.test(identity)) return true;
+    if (/\bworld cup\b/.test(identity) && !/\b(?:ifaf|american football world cup)\b/.test(selected)) return true;
+    if (/\b(?:highlights?|clips?|recaps?|condensed|quick ?cut|sports weekly|college gameday|abridged|incomplete|partial|previews?|trailers?|interviews?|podcasts?|tutorials?|workout|training|practice|security update|security briefing|cartoons?|carebears|childrens shows|action news|press conference|lectures?|seminars?|panel discussion|watch[ -]?alongs?|no (?:game|event) footage|commentary only|audio only|reaction streams?|(?:first|second|1st|2nd)\s*half|reel\s*[1-9]|seinfeld|television news|newscast)\b/.test(selected+' '+identity)) return true;
+    if (/\b(?:parades?|tournament of roses|statues?|unveiling|ceremonies|stadium tour|stadium dedication|groundbreaking|pep rally|luncheon|banquet)\b/.test(selected) && !/\b(?:full|complete) game\b/.test(selected)) return true;
+    if (/\b(?:cartoons?|animation|anime|sitcom|feature film|fiction film|fictional)\b/.test(classification) || /\b(?:full (?:hd )?movie|hockey|nhl|basketball|nba|baseball|mlb|latino|espa[nñ]ol|dublado|(?:japanese|russian|spanish|portuguese) (?:broadcast|commentary|audio))\b/.test(selected)) return true;
+    if (/\b(?:video ?games?|gameplay|sports simulation|electronic arts)\b/.test(classification)) return true;
+    const topic = /\b(?:college football|high school football|prep football|varsity football|american football|gridiron|nfl|ncaa football|cfl|usfl|xfl|ufl|super bowl|grey cup|rose bowl|sugar bowl|orange bowl|cotton bowl|fiesta bowl|peach bowl|football bowl)\b/.test(selected+' '+classification) || /\bfootball\b/.test(selected+' '+classification) && /\b(?:high ?school|prep|varsity|college|university)\b/.test(selected+' '+classification);
+    const documentary = topic && /\b(?:documentary|documentaries|football history|history of the gridiron|football biography|nfl films|breaking the huddle)\b/.test(selected);
+    const game = topic && /\b(?:vs?|versus|at|full game|complete game|full broadcast|game\s*\d+|football broadcast|football game|football championship|super bowl|grey cup|rose bowl|sugar bowl|orange bowl|cotton bowl|fiesta bowl|peach bowl|football on (?:abc|fox|cbs|nbc)|week\s*\d+)\b|\bfootball\s*\d{8}\b/.test(selected);
+    const index = !media.url && !item.url && !item.mediaUrl && !item.fileName && !String(item.identifier || item.id || '').includes('::');
+    if (!game && !documentary && !(index && topic && /\b(?:games?|season|collection|classics)\b/.test(selected))) return true;
+    const fileRuntime=['runtime','duration','length'].some(key=>Object.prototype.hasOwnProperty.call(media,key));
+    const value=String((fileRuntime ? media.runtime || media.duration || media.length : item.runtimeSeconds || item.durationSeconds || item.runtime || item.duration || meta.runtime) || '');
+    const parts=value.split(':').map(Number), runtime=parts.every(Number.isFinite)?parts.reduce((n,x)=>n*60+x,0):0;
+    if (!documentary && runtime>0 && runtime<2700) return true;
+  }
   if (channel === '59') {
     // Reviewed parent packages old-time radio audio inside MP4 containers.
     const source=String(media.sourceIdentifier || item.sourceIdentifier || String(item.identifier || item.id || '').split('::')[0]).replace(/^ia:/i,'');
@@ -139,7 +159,7 @@ export function iaKnownVideoPolicyViolation(item = {}, rules = {}) {
     const parts = String(value || '').split(':').map(Number);
     const runtime = parts.every(Number.isFinite) ? parts.reduce((total,part) => total * 60 + part,0) : 0;
     // A legacy direct URL with no duration must hydrate before it can be ready.
-    if (['52','55','56','58','59'].includes(channel) && !runtime && (media.url || item.url || item.mediaUrl)) return true;
+    if (['52','55','56','57','58','59'].includes(channel) && !runtime && (media.url || item.url || item.mediaUrl)) return true;
     if (runtime > 0 && runtime < floor) return true;
     const international = ['106','107','114','115','119','120','151'];
     const language = String(media.language || item.language || meta.language || '').trim().toLowerCase();
@@ -445,7 +465,7 @@ export function qualifyIaFileRecord(raw, rules = {}, now = Date.now()) {
   }
   const text = [item.title, item.description, item.subject, item.fileName].filter(Boolean).join(' ').toLowerCase();
   const channel = String(rules.channel || '');
-  if (['52','55','56','58','59','60','71','72'].includes(channel) && iaKnownVideoPolicyViolation(item, rules)) return reject('off-genre-sports');
+  if (['52','55','56','57','58','59','60','71','72'].includes(channel) && iaKnownVideoPolicyViolation(item, rules)) return reject('off-genre-sports');
   if (!iaReviewedFileAllowed(item, channel)) return reject('off-genre-reviewed-collection');
   const completeCartoon = channel === '150' && COMPLETE_CARTOON_SHORT_PARENTS.has(item.sourceIdentifier)
     && !/\b(?:clip|trailer|preview|teaser|promo|bumper|intro|introduction|outro|review|reaction|tutorial|interview|bonus|menu|featurette|tiktok|reels)\b|#shorts|youtube shorts/i.test(text);

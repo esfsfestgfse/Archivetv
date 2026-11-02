@@ -23,6 +23,26 @@ export function iaKnownVideoPolicyViolation(item = {}, rules = {}) {
   const meta = item.meta || {}, media = item.media || meta.media || {};
   if (String(media.type || item.type || item.mediaType || item.mediatype || meta.mediatype || '').toLowerCase() === 'audio') return false;
   const channel = String(rules.channel || '');
+  if (channel === '64') {
+    const titleParts=String(item.title||'').split(' \u00b7 ');
+    if (titleParts.length>2&&titleParts.slice(0,-1).some((part,index,parts)=>parts.indexOf(part)!==index)) return true;
+    const selected=[item.title,item.fileName,media.fileName,meta.title,meta.fileName].filter(Boolean).join(' ').replace(/([a-z])([A-Z])/g,'$1 $2').toLowerCase().replace(/&/g,' and ').replace(/[_./-]+/g,' ');
+    const identity=[selected,item.identifier||item.id,item.sourceIdentifier,media.sourceIdentifier].filter(Boolean).join(' ').replace(/([a-z])([A-Z])/g,'$1 $2').toLowerCase().replace(/[_./-]+/g,' ');
+    if (/\b(?:game ?boy|longplay|gameplay|playthrough|simulation|video games?|nintendo|xbox|playstation|dance marathon|state of the city|city council|board meeting|shadow government|conspiracy|cspan|case on|bombers?|lecture|speech|book discussion|chariots of fire|running brave|prefontaine full movie|oakland athletics|baseball|basketball|swimming|diving|soccer|football|nfl|nhl|hockey|motor racing|race car|road racing motorcycle|isle of man|horse rac(?:e|ing)|equestrian|cycling|skiing|cross country ski|full movie)\b/.test(identity)) return true;
+    if (/\b(?:highlights?|clips?|recaps?|condensed|abridged|incomplete|partial|previews?|trailers?|promos?|podcasts?|interviews?|press conference|tutorials?|how to|coaching|training|workout|technique|newscast|television news|reviews?|reviewed|talk show|bombing|terrorist|audio only|commentary only|(?:russian|spanish|portuguese|french|german|italian|japanese) (?:commentary|broadcast|audio))\b/.test(selected)) return true;
+    const athletics=/\b(?:track and field|track meet|track feed|athletics|road running|running race|marathon|race walk(?:ing)?|decathlon|heptathlon|steeplechase|hurdles|javelin|discus|shot put|pole vault|high jump|long jump|triple jump)\b/;
+    const athlete=/\b(?:jesse owens|steve prefontaine|wilma rudolph|carl lewis|usain bolt|mo farah|eliud kipchoge|abebe bikila|haile gebrselassie|sebastian coe|paula radcliffe|jackie joyner kersee|faith kipyegon|sifan hassan)\b/;
+    // The old label called this mixed-sports TV container an athletics collection.
+    const source=String(item.sourceIdentifier||media.sourceIdentifier||String(item.identifier||item.id||'').split('::')[0]);
+    const file=String(item.fileName||media.fileName||String(item.identifier||item.id||'').split('::')[1]||'').split('/').pop().toLowerCase().replace(/[_./-]+/g,' ');
+    if (['Olympics.2012.BBC','2008_Beijing_Olympics','2016_Rio_Olympics_Track_and_Field'].includes(source)&&!athletics.test(file)) return true;
+    const topic=athletics.test(selected)||athlete.test(selected);
+    if (!topic) return true;
+    const documentary=(athletics.test(selected)||athlete.test(selected))&&/\b(?:documentary|documentaries|history|biography|this is your life|american experience|fire on the track)\b/.test(selected);
+    const event=athletics.test(selected)&&/\b(?:meet|championship|championships|olympic(?:s)?|session|final|finals|race|marathon|competition|trials|grand prix|diamond league|(?:vs?|versus))\b/.test(selected);
+    const index=!media.url&&!item.url&&!item.mediaUrl&&!item.fileName&&!String(item.identifier||item.id||'').includes('::');
+    if (!event&&!documentary&&!(index&&/\b(?:collection|games|athletics)\b/.test(selected))) return true;
+  }
   if (channel === '63') {
     // Generic soccer/world-cup tags cannot turn coaching, news or another sport into a match.
     const selected=[item.title,item.fileName,media.fileName,meta.title,meta.fileName].filter(Boolean).join(' ').replace(/([a-z])([A-Z])/g,'$1 $2').toLowerCase().replace(/[_./-]+/g,' ').replace(/\b(?:with|without|no)(?: original)? commercials\b/g,' ');
@@ -216,7 +236,7 @@ export function iaKnownVideoPolicyViolation(item = {}, rules = {}) {
     const parts = String(value || '').split(':').map(Number);
     const runtime = parts.every(Number.isFinite) ? parts.reduce((total,part) => total * 60 + part,0) : 0;
     // A legacy direct URL with no duration must hydrate before it can be ready.
-    if (['52','53','55','56','57','58','59','61','62','63'].includes(channel) && !runtime && (media.url || item.url || item.mediaUrl)) return true;
+    if (['52','53','55','56','57','58','59','61','62','63','64'].includes(channel) && !runtime && (media.url || item.url || item.mediaUrl)) return true;
     if (runtime > 0 && runtime < floor) return true;
     const international = ['106','107','114','115','119','120','151'];
     const language = String(media.language || item.language || meta.language || '').trim().toLowerCase();
@@ -522,7 +542,7 @@ export function qualifyIaFileRecord(raw, rules = {}, now = Date.now()) {
   }
   const text = [item.title, item.description, item.subject, item.fileName].filter(Boolean).join(' ').toLowerCase();
   const channel = String(rules.channel || '');
-  if (['52','53','55','56','57','58','59','60','61','62','63','71','72'].includes(channel) && iaKnownVideoPolicyViolation(item, rules)) return reject('off-genre-sports');
+  if (['52','53','55','56','57','58','59','60','61','62','63','64','71','72'].includes(channel) && iaKnownVideoPolicyViolation(item, rules)) return reject('off-genre-sports');
   if (!iaReviewedFileAllowed(item, channel)) return reject('off-genre-reviewed-collection');
   const completeCartoon = channel === '150' && COMPLETE_CARTOON_SHORT_PARENTS.has(item.sourceIdentifier)
     && !/\b(?:clip|trailer|preview|teaser|promo|bumper|intro|introduction|outro|review|reaction|tutorial|interview|bonus|menu|featurette|tiktok|reels)\b|#shorts|youtube shorts/i.test(text);

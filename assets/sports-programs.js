@@ -77,8 +77,33 @@
   if(result.eventId||/\b(?:full|complete) (?:match|game|broadcast)\b/.test(text))result.format='event';
   return result;
  }
+ function athleticsDescription(item){
+  var raw=selectedTitle(item,64),file=String(item.fileName||id(item).split('::')[1]||''),text=clean(raw+' '+file),label=clean(raw+' '+String(item.title||'')+' '+String(item.seriesTitle||''));
+  var y=(file+' '+raw).match(/\b((?:19|20)\d{2})\b/),year=Number(y?y[1]:String(item.year||'').slice(0,4))||0,discipline='meet';
+  var types=[['combined',/\b(?:heptathlon|decathlon)\b/],['road',/\b(?:marathon|road running|road race)\b/],['walk',/\brace walk(?:ing)?\b/],['jumps',/\b(?:high jump|long jump|triple jump|pole vault)\b/],['throws',/\b(?:discus|shot put|javelin|hammer)\b/],['hurdles',/\b(?:hurdles|steeplechase)\b/],['distance',/\b(?:[135]\d{3}|10000)m\b/],['sprints',/\b(?:100|200|400|800)m\b|\brelay\b/]];
+  for(var d=0;d<types.length;d++)if(types[d][1].test(text)){discipline=types[d][0];break;}
+  var result={eventId:'',competition:'athletics-'+discipline,sport:'athletics',year:year,era:year?Math.floor(year/10)*10:0,participants:[],format:'program'};
+  if(/\b(?:documentary|history|biography|american experience|this is your life|fire on the track)\b/.test(label)){result.format='documentary';return result;}
+  var date=String(item.eventDate||''),iso=(file+' '+raw).match(/\b((?:19|20)\d{2})[-_.](\d{2})[-_.](\d{2})\b/);
+  if(!date&&iso)date=iso[1]+'-'+iso[2]+'-'+iso[3];
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||!Number.isFinite(Date.parse(date))||new Date(date).toISOString().slice(0,10)!==date)date='';
+  if(date){result.year=Number(date.slice(0,4));result.era=Math.floor(result.year/10)*10;}
+  var leaf=file.split('/').pop()?.replace(/(?:\.ia)?\.mp4$/i,'')||'',generic=/^(?:(?:event|video|recording|file|title|part|disc|vts)[ _.-]*\d*|\d+)$/i.test(leaf);
+  var part=(text.match(/\b(?:part|pt|disc)\s*(\d+)\b/)||[])[1]||'',stem=clean(!leaf||generic?raw:leaf)
+   .replace(/\b(?:hdtv|pdtv|webrip|web dl|h264|h 264|x264|x265|aac|dd)\b.*$/,' ').replace(/\b(?:1080[pi]|720p|576p|480p|432p|360p|2160p|hd|sd|bbc|nbc|muxed)\b/g,' ').replace(/\b(?:19|20)\d{2}(?: \d{2} \d{2})?\b/g,' ').replace(/\s+/g,' ').trim();
+  var olympic=/\bolympic(?:s)?\b/.test(label+' '+clean(item.sourceIdentifier||''));
+  if(olympic)stem=stem.replace(/\b(?:rio|beijing|london|olympic(?:s)?(?: games)?|athletics|track and field)\b/g,' ').replace(/\s+/g,' ').trim();
+  var session=(text.match(/\b(morning|afternoon|evening)\b/)||[])[1];
+  if(olympic&&discipline==='meet'&&session){
+   var qualifiers=Array.from(new Set((text.match(/\b(?:women(?:s)?|men(?:s)?|mixed|group\s*[a-z]|heats?|finals?|qualif(?:ying|ication)|round\s*\d+)\b/g)||[]).map(function(v){return v.replace(/^(women|men)s$/,'$1').replace(/\s+/g,'-');}))).sort();
+   stem=session+'-session'+(qualifiers.length?'-'+qualifiers.join('-'):'');
+  }
+  if(date&&stem){result.eventId='sports:athletics:'+(olympic?'olympic-'+result.year:result.competition)+':'+date+':'+stem.replace(/ /g,'-')+(part?':part-'+part:'');result.format='event';}
+  return result;
+ }
  function describe(item,channel){
   item=item||{};
+  if(Number(channel)===64)return athleticsDescription(item);
   if(Number(channel)===63)return soccerDescription(item);
   if(Number(channel)===62){
    var collegeText=clean([selectedTitle(item,62),item.title,item.seriesTitle].filter(Boolean).join(' '));

@@ -9,16 +9,16 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>REALSIGNAL · Retro Cable 6.1.12</title>
+<title>REALSIGNAL · Retro Cable 6.1.13</title>
 <meta name="realsignal-ia-repair-channels" content="10,12,22,150">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
 <script src="assets/ok-embed-runtime.js?v=5.6.29"></script>
 <script src="assets/ia-playback-shelf.js?v=5.6.29"></script>
-<script src="assets/sports-programs.js?v=6.1.12"></script>
+<script src="assets/sports-programs.js?v=6.1.13"></script>
 <script src="assets/vimeo-embed-runtime.js?v=5.5.85"></script>
-<script src="assets/youtube-embed-runtime.js?v=6.1.12"></script>
+<script src="assets/youtube-embed-runtime.js?v=6.1.13"></script>
 <!-- Source Suite starts verified YouTube playback on a cold tune. Warm the exact
      origins it uses so DNS/TLS setup is not serialized behind catalog discovery. -->
 <link rel="preconnect" href="https://www.googleapis.com" crossorigin>
@@ -1702,16 +1702,16 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
 @media(prefers-reduced-motion:reduce){.sports-screen *,.wx-screen *,.wr-cabinet *{animation-duration:.001ms!important;transition-duration:.001ms!important}}
 </style>
 <link rel="stylesheet" href="assets/guide-overhaul.css">
-<link rel="stylesheet" href="assets/v6-watching-shell.css?v=6.1.12">
-<link rel="stylesheet" href="assets/v6-guide.css?v=6.1.12">
-<script src="assets/commercial-scheduler.js?v=6.1.12"></script>
-<script src="assets/fast-catalog.js?v=6.1.12"></script>
-<link rel="stylesheet" href="assets/weather-networks.css?v=6.1.12">
-<script src="assets/weather-networks.js?v=6.1.12"></script>
-<link rel="stylesheet" href="assets/weather-local.css?v=6.1.12">
-<script src="assets/weather-local.js?v=6.1.12"></script>
-<script src="assets/source-program-policy.js?v=6.1.12"></script>
-<script src="assets/peertube-media.js?v=6.1.12"></script>
+<link rel="stylesheet" href="assets/v6-watching-shell.css?v=6.1.13">
+<link rel="stylesheet" href="assets/v6-guide.css?v=6.1.13">
+<script src="assets/commercial-scheduler.js?v=6.1.13"></script>
+<script src="assets/fast-catalog.js?v=6.1.13"></script>
+<link rel="stylesheet" href="assets/weather-networks.css?v=6.1.13">
+<script src="assets/weather-networks.js?v=6.1.13"></script>
+<link rel="stylesheet" href="assets/weather-local.css?v=6.1.13">
+<script src="assets/weather-local.js?v=6.1.13"></script>
+<script src="assets/source-program-policy.js?v=6.1.13"></script>
+<script src="assets/peertube-media.js?v=6.1.13"></script>
 </head>
 <body>
 <script>
@@ -1723,7 +1723,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="6.1.12-desktop-retro-cable";
+window.__ATV_BUILD="6.1.13-desktop-retro-cable";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -6417,7 +6417,7 @@ const PROGRAM = {
     deny:{title:["video game","fantasy sports","ban college football","podcast"],subject:["video game","fantasy sports"]}, subjRotate:true,subjRequired:true,noBlindFallback:true
   },
   "The Pitch":{genre:"soccer",era:[1930,2026],show:"The Pitch",minRuntimeSeconds:900,eraBuckets:[[1930,1949],[1950,1969],[1970,1989],[1990,2026]],topicBuckets:[["association football","soccer match"],["soccer broadcast","football club"],["world cup","international football"],["women's soccer","soccer history"]],fastSubjects:["soccer","association football","soccer match"],fastCollections:["sports","sportstelevision"],providers:[{collections:["sports","sportstelevision","vhssports","opensource_movies"],require_subj:["soccer","association football","soccer match","soccer broadcast","football club","world cup","international football","women's soccer"]}],deny:{title:["video game","american football"],subject:["video game","american football"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
-  "Trackside":{genre:"trackfield",era:[1920,2026],show:"Trackside",eraBuckets:[[1920,1949],[1950,1969],[1970,1989],[1990,2026]],topicBuckets:[["track and field","athletics meet"],["running race","road race"],["field events","relay race"],["athletics history","women's athletics"]],fastSubjects:["track and field","athletics meet","track meet"],fastCollections:["sports","opensource_movies"],providers:[{collections:["sports","sportstelevision","opensource_movies","FedFlix"],require_subj:["track and field","athletics meet","track meet","running race","road race","field events","relay race","athletics history"]}],deny:{title:["race car","horse race","movie marathon","movie","video game","shooting","archery"],subject:["motor racing","horse racing","movie marathon","movie","video game","shooting","archery"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
+  "Trackside":{genre:"trackfield",era:[1920,2026],show:"Trackside",minRuntimeSeconds:900,eraBuckets:[[1920,1949],[1950,1969],[1970,1989],[1990,2026]],topicBuckets:[["track and field","athletics meet"],["running race","road race"],["field events","relay race"],["athletics history","women's athletics"]],fastSubjects:["track and field","athletics meet","track meet","athletics","marathon"],fastCollections:["sports","opensource_movies"],providers:[{collections:["sports","sportstelevision","opensource_movies","FedFlix"],require_subj:["track and field","athletics meet","track meet","running race","road race","field events","relay race","athletics history"]}],deny:{title:["race car","horse race","movie marathon","movie","video game","rifle shooting","archery"],subject:["motor racing","horse racing","movie marathon","movie","video game","rifle shooting","archery"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
   "The Sporting Life":{genre:"outdoorsport",era:[1930,2026],show:"The Sporting Life",eraBuckets:[[1930,1949],[1950,1969],[1970,1989],[1990,2026]],topicBuckets:[["sport fishing","fishing tournament"],["hunting sport","field sport"],["outdoor competition","archery"],["sporting dogs","outdoor recreation"]],fastSubjects:["sport fishing","hunting sport","outdoor recreation"],fastCollections:["sports","opensource_movies"],providers:[{collections:["sports","opensource_movies","prelinger","FedFlix"],require_subj:["sport fishing","fishing tournament","hunting sport","field sport","outdoor competition","archery","sporting dogs","outdoor recreation"]}],deny:{title:["wildlife documentary","video game"],subject:["wildlife documentary","video game"]},subjRotate:true,subjRequired:true,noBlindFallback:true},
   /* OUTDOORS SUITE · channels 80–84. Each channel has a hard editorial lane
      so the block is intentional hunting, fishing and field life—not one vague
@@ -7597,6 +7597,26 @@ function iaKnownVideoPolicyViolation(item = {}, rules = {}) {
   const meta = item.meta || {}, media = item.media || meta.media || {};
   if (String(media.type || item.type || item.mediaType || item.mediatype || meta.mediatype || '').toLowerCase() === 'audio') return false;
   const channel = String(rules.channel || '');
+  if (channel === '64') {
+    const titleParts=String(item.title||'').split(' \u00b7 ');
+    if (titleParts.length>2&&titleParts.slice(0,-1).some((part,index,parts)=>parts.indexOf(part)!==index)) return true;
+    const selected=[item.title,item.fileName,media.fileName,meta.title,meta.fileName].filter(Boolean).join(' ').replace(/([a-z])([A-Z])/g,'$1 $2').toLowerCase().replace(/&/g,' and ').replace(/[_./-]+/g,' ');
+    const identity=[selected,item.identifier||item.id,item.sourceIdentifier,media.sourceIdentifier].filter(Boolean).join(' ').replace(/([a-z])([A-Z])/g,'$1 $2').toLowerCase().replace(/[_./-]+/g,' ');
+    if (/\b(?:game ?boy|longplay|gameplay|playthrough|simulation|video games?|nintendo|xbox|playstation|dance marathon|state of the city|city council|board meeting|shadow government|conspiracy|cspan|case on|bombers?|lecture|speech|book discussion|chariots of fire|running brave|prefontaine full movie|oakland athletics|baseball|basketball|swimming|diving|soccer|football|nfl|nhl|hockey|motor racing|race car|road racing motorcycle|isle of man|horse rac(?:e|ing)|equestrian|cycling|skiing|cross country ski|full movie)\b/.test(identity)) return true;
+    if (/\b(?:highlights?|clips?|recaps?|condensed|abridged|incomplete|partial|previews?|trailers?|promos?|podcasts?|interviews?|press conference|tutorials?|how to|coaching|training|workout|technique|newscast|television news|reviews?|reviewed|talk show|bombing|terrorist|audio only|commentary only|(?:russian|spanish|portuguese|french|german|italian|japanese) (?:commentary|broadcast|audio))\b/.test(selected)) return true;
+    const athletics=/\b(?:track and field|track meet|track feed|athletics|road running|running race|marathon|race walk(?:ing)?|decathlon|heptathlon|steeplechase|hurdles|javelin|discus|shot put|pole vault|high jump|long jump|triple jump)\b/;
+    const athlete=/\b(?:jesse owens|steve prefontaine|wilma rudolph|carl lewis|usain bolt|mo farah|eliud kipchoge|abebe bikila|haile gebrselassie|sebastian coe|paula radcliffe|jackie joyner kersee|faith kipyegon|sifan hassan)\b/;
+    // The old label called this mixed-sports TV container an athletics collection.
+    const source=String(item.sourceIdentifier||media.sourceIdentifier||String(item.identifier||item.id||'').split('::')[0]);
+    const file=String(item.fileName||media.fileName||String(item.identifier||item.id||'').split('::')[1]||'').split('/').pop().toLowerCase().replace(/[_./-]+/g,' ');
+    if (['Olympics.2012.BBC','2008_Beijing_Olympics','2016_Rio_Olympics_Track_and_Field'].includes(source)&&!athletics.test(file)) return true;
+    const topic=athletics.test(selected)||athlete.test(selected);
+    if (!topic) return true;
+    const documentary=(athletics.test(selected)||athlete.test(selected))&&/\b(?:documentary|documentaries|history|biography|this is your life|american experience|fire on the track)\b/.test(selected);
+    const event=athletics.test(selected)&&/\b(?:meet|championship|championships|olympic(?:s)?|session|final|finals|race|marathon|competition|trials|grand prix|diamond league|(?:vs?|versus))\b/.test(selected);
+    const index=!media.url&&!item.url&&!item.mediaUrl&&!item.fileName&&!String(item.identifier||item.id||'').includes('::');
+    if (!event&&!documentary&&!(index&&/\b(?:collection|games|athletics)\b/.test(selected))) return true;
+  }
   if (channel === '63') {
     // Generic soccer/world-cup tags cannot turn coaching, news or another sport into a match.
     const selected=[item.title,item.fileName,media.fileName,meta.title,meta.fileName].filter(Boolean).join(' ').replace(/([a-z])([A-Z])/g,'$1 $2').toLowerCase().replace(/[_./-]+/g,' ').replace(/\b(?:with|without|no)(?: original)? commercials\b/g,' ');
@@ -7790,7 +7810,7 @@ function iaKnownVideoPolicyViolation(item = {}, rules = {}) {
     const parts = String(value || '').split(':').map(Number);
     const runtime = parts.every(Number.isFinite) ? parts.reduce((total,part) => total * 60 + part,0) : 0;
     // A legacy direct URL with no duration must hydrate before it can be ready.
-    if (['52','53','55','56','57','58','59','61','62','63'].includes(channel) && !runtime && (media.url || item.url || item.mediaUrl)) return true;
+    if (['52','53','55','56','57','58','59','61','62','63','64'].includes(channel) && !runtime && (media.url || item.url || item.mediaUrl)) return true;
     if (runtime > 0 && runtime < floor) return true;
     const international = ['106','107','114','115','119','120','151'];
     const language = String(media.language || item.language || meta.language || '').trim().toLowerCase();
@@ -19592,16 +19612,16 @@ window.__atvBootDone=true; /* app is up -- from here on, errors get logged, not 
   };
 })();
 </script>
-<script src="assets/source-catalog-client.js?v=6.1.12"></script>
+<script src="assets/source-catalog-client.js?v=6.1.13"></script>
 <script src="assets/verified-guide-client.js"></script>
 <script src="assets/guide-overhaul.js"></script>
 <script src="assets/playback-audit.js"></script>
-<script src="assets/release2-runtime.js?v=6.1.12"></script>
+<script src="assets/release2-runtime.js?v=6.1.13"></script>
 <script src="assets/release3-runtime.js"></script>
 <script src="assets/release31-runtime.js"></script>
 <script src="assets/guide-contract.js?v=v6-contract-1"></script>
-<script src="assets/guide-contract-client.js?v=6.1.12"></script>
-<script src="assets/v6-watching-shell.js?v=6.1.12"></script>
-<script src="assets/v6-guide.js?v=6.1.12"></script>
+<script src="assets/guide-contract-client.js?v=6.1.13"></script>
+<script src="assets/v6-watching-shell.js?v=6.1.13"></script>
+<script src="assets/v6-guide.js?v=6.1.13"></script>
 </body>
 </html>

@@ -215,12 +215,13 @@ const { pathToFileURL } = require('node:url');
   assert.match(shallowRecovered.headers.get('X-RealSignal-Source'), /d1-catalog/);
   assert.equal((await shallowRecovered.json()).items[0].title, 'Factory Packaging Line');
 
+  // Use an unchanged generic fast lane; Trackside 64 now owns a repaired athletics relay rail.
   let fastLaneRelayCalls = 0;
   const fastLaneEnv = {
     ...fallbackEnv,
     RELAY: { async fetch() { fastLaneRelayCalls += 1; return new Response(JSON.stringify({ ready: 0, items: [] }), { status: 503, headers: { 'content-type': 'application/json' } }); } },
   };
-  const fastLane = await worker.fetch(new Request('https://api.example/api/v2/ia/queue', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ channel: '64', sessionId: 'fast-lane-viewer', serverCatalog: true, rotation: 0, count: 1, themeTerms: ['factory'], requiredTitleTerms: ['factory'], denyTerms: ['cartoon'], mediaTypes: ['movies'], themeMinScore: 1 }) }), fastLaneEnv, ctx);
+  const fastLane = await worker.fetch(new Request('https://api.example/api/v2/ia/queue', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ channel: '205', sessionId: 'fast-lane-viewer', serverCatalog: true, rotation: 0, count: 1, themeTerms: ['factory'], requiredTitleTerms: ['factory'], denyTerms: ['cartoon'], mediaTypes: ['movies'], themeMinScore: 1 }) }), fastLaneEnv, ctx);
   assert.equal(fastLane.status, 200);
   assert.match(fastLane.headers.get('X-RealSignal-Source'), /d1-catalog-fast-lane/);
   /* A shallow fast lane still returns immediately from D1, but now schedules

@@ -23,6 +23,24 @@ export function iaKnownVideoPolicyViolation(item = {}, rules = {}) {
   const meta = item.meta || {}, media = item.media || meta.media || {};
   if (String(media.type || item.type || item.mediaType || item.mediatype || meta.mediatype || '').toLowerCase() === 'audio') return false;
   const channel = String(rules.channel || '');
+  if (channel === '63') {
+    // Generic soccer/world-cup tags cannot turn coaching, news or another sport into a match.
+    const selected=[item.title,item.fileName,media.fileName,meta.title,meta.fileName].filter(Boolean).join(' ').replace(/([a-z])([A-Z])/g,'$1 $2').toLowerCase().replace(/[_./-]+/g,' ').replace(/\b(?:with|without|no)(?: original)? commercials\b/g,' ');
+    const identity=[selected,item.identifier||item.id,item.sourceIdentifier,media.sourceIdentifier].filter(Boolean).join(' ').replace(/([a-z])([A-Z])/g,'$1 $2').toLowerCase().replace(/[_./-]+/g,' ');
+    const context=selected+' '+[item.seriesTitle,item.subject,item.subjects,meta.subject,meta.subjects].filter(Boolean).join(' ').toLowerCase();
+    if (/\b(?:4chan|babbies|fifa\s+(?:[0-2]?\d)|ea sports|efootball|pro evolution soccer|pes\s+\d+|football manager|video games?|gameplay|longplay|playthrough|simulation|nintendo|xbox|playstation|playboy|escape to victory|bend it like beckham)\b/.test(identity)) return true;
+    if (/\b(?:highlights?|clips?|recaps?|condensed|abridged|incomplete|partial|previews?|trailers?|promos?|podcasts?|interviews?|talks to|discussion|press conference|hot tips?|improve your|how to|tutorials?|coaching|training|workout|aerobics|great goals|best goals|tribute|home movie|team preparation|awards|newscast|television news|news at|fox \d news|season review|pre match|post match|trophy lift|all time xi|where are they now|compilation|watch along|audio only|commentary only|(?:first|second|1st|2nd) half|(?:italian|spanish|portuguese|russian|french|german|arabic|japanese) (?:commentary|broadcast|audio)|latino|dublado)\b/.test(identity)) return true;
+    if (/\b(?:basketball|fibau?\d*|cricket|icc|t20|rugby|american football|nfl|gridiron|baseball|volleyball|hockey|futsal|beach soccer|full (?:hd )?movie)\b/.test(context)) return true;
+    const topic=/\b(?:soccer|association football|fifa|uefa|premier league|la liga|bundesliga|serie a|fa cup|football club|champions league|world cup|olympic football)\b/.test(context);
+    const documentary=topic&&/\b(?:documentary|documentaries|soccer history|football history|history of|official centenary|soccer legends|premier league years)\b/.test(selected);
+    const match=topic&&/\b(?:vs?|versus|at|full match|complete match|full broadcast|final|soccer game|soccer match|soccer championship)\b/.test(selected);
+    const index=!media.url&&!item.url&&!item.mediaUrl&&!item.fileName&&!String(item.identifier||item.id||'').includes('::');
+    if (!match&&!documentary&&!(index&&topic&&/\b(?:matches|games|collection|classics)\b/.test(selected))) return true;
+    const fileRuntime=['runtime','duration','length'].some(key=>Object.prototype.hasOwnProperty.call(media,key));
+    const value=String((fileRuntime?media.runtime||media.duration||media.length:item.runtimeSeconds||item.durationSeconds||item.runtime||item.duration||meta.runtime)||'');
+    const parts=value.split(':').map(Number),runtime=parts.every(Number.isFinite)?parts.reduce((n,x)=>n*60+x,0):0;
+    if (!documentary&&runtime>0&&runtime<(/\b(?:high school|school soccer|boys soccer|girls soccer)\b/.test(context)?3600:4500)) return true;
+  }
   if (channel === '52') {
     // Promotion names in tags are not proof of an actual combat-sports program.
     const selected = [item.title,item.fileName,media.fileName,meta.title,meta.fileName].filter(Boolean).join(' ').replace(/([a-z])([A-Z])/g,'$1 $2').toLowerCase().replace(/[_./-]+/g,' ');
@@ -198,7 +216,7 @@ export function iaKnownVideoPolicyViolation(item = {}, rules = {}) {
     const parts = String(value || '').split(':').map(Number);
     const runtime = parts.every(Number.isFinite) ? parts.reduce((total,part) => total * 60 + part,0) : 0;
     // A legacy direct URL with no duration must hydrate before it can be ready.
-    if (['52','53','55','56','57','58','59','61','62'].includes(channel) && !runtime && (media.url || item.url || item.mediaUrl)) return true;
+    if (['52','53','55','56','57','58','59','61','62','63'].includes(channel) && !runtime && (media.url || item.url || item.mediaUrl)) return true;
     if (runtime > 0 && runtime < floor) return true;
     const international = ['106','107','114','115','119','120','151'];
     const language = String(media.language || item.language || meta.language || '').trim().toLowerCase();
@@ -504,7 +522,7 @@ export function qualifyIaFileRecord(raw, rules = {}, now = Date.now()) {
   }
   const text = [item.title, item.description, item.subject, item.fileName].filter(Boolean).join(' ').toLowerCase();
   const channel = String(rules.channel || '');
-  if (['52','53','55','56','57','58','59','60','61','62','71','72'].includes(channel) && iaKnownVideoPolicyViolation(item, rules)) return reject('off-genre-sports');
+  if (['52','53','55','56','57','58','59','60','61','62','63','71','72'].includes(channel) && iaKnownVideoPolicyViolation(item, rules)) return reject('off-genre-sports');
   if (!iaReviewedFileAllowed(item, channel)) return reject('off-genre-reviewed-collection');
   const completeCartoon = channel === '150' && COMPLETE_CARTOON_SHORT_PARENTS.has(item.sourceIdentifier)
     && !/\b(?:clip|trailer|preview|teaser|promo|bumper|intro|introduction|outro|review|reaction|tutorial|interview|bonus|menu|featurette|tiktok|reels)\b|#shorts|youtube shorts/i.test(text);

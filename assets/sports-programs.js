@@ -49,8 +49,37 @@
   for(var i=0;i<pairs.length;i++)if(pairs[i][1].test(text))return pairs[i][0];
   return ({51:'nfl',52:'mma',56:'boxing',57:'football',58:'basketball',59:'baseball',60:'hockey',61:'olympics',62:'college',63:'soccer',64:'athletics',70:'rodeo',71:'golf',72:'racquet',73:'equestrian',74:'winter-sport',75:'water-sport',76:'stockcar',77:'formula',80:'hunting',81:'fishing',82:'backcountry',83:'field-sport',84:'nascar','nascar-classics':'nascar'})[channel]||'sport';
  }
+ function soccerDescription(item){
+  var raw=selectedTitle(item,63),selectedFile=String(item.fileName||id(item).split('::')[1]||''),segments=selectedFile.split('/'),leaf=segments.pop()||'',folder=segments.pop()||'';
+  // Broadcaster/copy-number leaves belong to the fixture named by their folder.
+  if(!/\b(?:vs?|versus)\b/i.test(leaf)&&/\b(?:vs?|versus)\b/i.test(folder)&&/\b(?:19|20)\d{2}\b/.test(folder))raw=folder;
+  var text=clean(raw),context=clean(raw+' '+String(item.title||'')+' '+String(item.seriesTitle||'')+' '+String(item.subject||''));
+  var women=/\bwomen(?:s)?\b|\bgirls\b/.test(context),kind='soccer';
+  var leagues=[['world-cup',/\b(?:fifa|world cup)\b/],['champions-league',/\b(?:champions league|ucl)\b/],['fa-cup',/\bfa cup\b/],['premier-league',/\b(?:premier league|epl)\b/],['la-liga',/\b(?:la liga|laliga)\b/],['olympic',/\bolympic(?:s)?\b/],['college',/\b(?:college|university|ncaa|njcaa|naia)\b/],['school',/\b(?:high school|varsity|boys soccer|girls soccer)\b/]];
+  for(var l=0;l<leagues.length;l++)if(leagues[l][1].test(context)){kind=leagues[l][0];break;}
+  var y=raw.match(/\b((?:19|20)\d{2})\b/),year=Number(y?y[1]:String(item.year||'').slice(0,4))||0;
+  var result={eventId:'',competition:'soccer-'+kind+(women?'-women':'-men'),sport:'soccer',year:year,era:year?Math.floor(year/10)*10:0,participants:[],format:'program'};
+  if(/\b(?:documentary|history of|official centenary|soccer legends|premier league years)\b/.test(context)){result.format='documentary';return result;}
+  var date=String(item.eventDate||''),file=String(item.fileName||id(item).split('::')[1]||''),iso=(file+' '+raw).match(/\b((?:19|20)\d{2})[-_.](\d{2})[-_.](\d{2})\b/);
+  if(!date&&iso)date=iso[1]+'-'+iso[2]+'-'+iso[3];
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||!Number.isFinite(Date.parse(date))||new Date(date).toISOString().slice(0,10)!==date)date='';
+  if(date){result.year=Number(date.slice(0,4));result.era=Math.floor(result.year/10)*10;}
+  var stage=(text.match(/\b(quarter ?finals?|semi ?finals?|third place|round of 16|group [a-h]|final)\b/)||[])[1]||'',leg=(text.match(/\b((?:1st|2nd|first|second) leg|replay)\b/)||[])[1]||'';
+  var names=text.replace(/\b(?:one ddl com|oneddl com|zmovie4u com)\b/g,' ').replace(/\b(?:19|20)\d{2}(?: \d{2} \d{2})?\b/g,' ')
+   .replace(/\b(?:fifa|uefa|world cup|champions league|ucl|fa cup|premier league|epl|la liga|laliga|olympic(?:s)?(?: games)?|soccer|football|high school|varsity|college|women(?:s)?|men(?:s)?|boys|girls|full|complete|match|game|broadcast|coverage|quarter ?finals?|semi ?finals?|third place|round of 16|group [a-h]|final|(?:1st|2nd|first|second) leg|replay)\b/g,' ')
+   .replace(/\b(?:hdtv|pdtv|webrip|web dl|h264|h 264|x264|x265|aac|ac3|dd|uploaded by)\b.*$/,' ').replace(/\b(?:1080[pi]|720p|2160p|4k|hd|uhd|bbc|itv|espn|english|eng)\b/g,' ').replace(/^\d+\s+/,' ').replace(/\s+/g,' ').trim().replace(/\s+[a-z0-9]+ (?:org|com|net)$/,'');
+  var pair=names.match(/^(.+?)\s+(?:vs?|versus|x|at)\s+(.+)$/);
+  if(pair)result.participants=[clean(pair[1]),clean(pair[2])].sort();
+  if(result.participants.length===2){
+   if(date)result.eventId='sports:'+result.competition+':'+date+':'+result.participants.join('-vs-');
+   else if(year&&stage&&(kind==='world-cup'||kind==='olympic'||stage==='final'||leg))result.eventId='sports:'+result.competition+':'+year+':'+stage.replace(/ /g,'-')+':'+result.participants.join('-vs-')+(leg?':'+leg.replace(/ /g,'-'):'');
+  }
+  if(result.eventId||/\b(?:full|complete) (?:match|game|broadcast)\b/.test(text))result.format='event';
+  return result;
+ }
  function describe(item,channel){
   item=item||{};
+  if(Number(channel)===63)return soccerDescription(item);
   if(Number(channel)===62){
    var collegeText=clean([selectedTitle(item,62),item.title,item.seriesTitle].filter(Boolean).join(' '));
    var collegeLanes=[[58,'basketball',/\bbasketball\b/],[59,'baseball',/\bbaseball\b/],[57,'football',/\b(?:football|gridiron|rose bowl|sugar bowl|cotton bowl|fiesta bowl|orange bowl|peach bowl|camellia bowl)\b/]];

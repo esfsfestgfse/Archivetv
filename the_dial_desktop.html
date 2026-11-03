@@ -9,16 +9,16 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>REALSIGNAL · Retro Cable 6.1.18</title>
+<title>REALSIGNAL · Retro Cable 6.1.19</title>
 <meta name="realsignal-ia-repair-channels" content="10,12,22,150">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
 <script src="assets/ok-embed-runtime.js?v=5.6.29"></script>
 <script src="assets/ia-playback-shelf.js?v=5.6.29"></script>
-<script src="assets/sports-programs.js?v=6.1.18"></script>
+<script src="assets/sports-programs.js?v=6.1.19"></script>
 <script src="assets/vimeo-embed-runtime.js?v=5.5.85"></script>
-<script src="assets/youtube-embed-runtime.js?v=6.1.18"></script>
+<script src="assets/youtube-embed-runtime.js?v=6.1.19"></script>
 <!-- Source Suite starts verified YouTube playback on a cold tune. Warm the exact
      origins it uses so DNS/TLS setup is not serialized behind catalog discovery. -->
 <link rel="preconnect" href="https://www.googleapis.com" crossorigin>
@@ -1702,16 +1702,16 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
 @media(prefers-reduced-motion:reduce){.sports-screen *,.wx-screen *,.wr-cabinet *{animation-duration:.001ms!important;transition-duration:.001ms!important}}
 </style>
 <link rel="stylesheet" href="assets/guide-overhaul.css">
-<link rel="stylesheet" href="assets/v6-watching-shell.css?v=6.1.18">
-<link rel="stylesheet" href="assets/v6-guide.css?v=6.1.18">
-<script src="assets/commercial-scheduler.js?v=6.1.18"></script>
-<script src="assets/fast-catalog.js?v=6.1.18"></script>
-<link rel="stylesheet" href="assets/weather-networks.css?v=6.1.18">
-<script src="assets/weather-networks.js?v=6.1.18"></script>
-<link rel="stylesheet" href="assets/weather-local.css?v=6.1.18">
-<script src="assets/weather-local.js?v=6.1.18"></script>
-<script src="assets/source-program-policy.js?v=6.1.18"></script>
-<script src="assets/peertube-media.js?v=6.1.18"></script>
+<link rel="stylesheet" href="assets/v6-watching-shell.css?v=6.1.19">
+<link rel="stylesheet" href="assets/v6-guide.css?v=6.1.19">
+<script src="assets/commercial-scheduler.js?v=6.1.19"></script>
+<script src="assets/fast-catalog.js?v=6.1.19"></script>
+<link rel="stylesheet" href="assets/weather-networks.css?v=6.1.19">
+<script src="assets/weather-networks.js?v=6.1.19"></script>
+<link rel="stylesheet" href="assets/weather-local.css?v=6.1.19">
+<script src="assets/weather-local.js?v=6.1.19"></script>
+<script src="assets/source-program-policy.js?v=6.1.19"></script>
+<script src="assets/peertube-media.js?v=6.1.19"></script>
 </head>
 <body>
 <script>
@@ -1723,7 +1723,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="6.1.18-desktop-retro-cable";
+window.__ATV_BUILD="6.1.19-desktop-retro-cable";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -7559,7 +7559,7 @@ function iaReadyShelfRestore(ch,sl){
   if(!row||Date.now()-Number(row.at||0)>IA_READY_SHELF_TTL){if(row){delete iaReadyShelves[key];store.set("iaReadyShelves",iaReadyShelves);}return;}
   var restored=(row.items||[]).filter(function(it){return iaReadyShelfAllowed(it,sl,ch)&&!iaProgramMedia[it.identifier];});
   if(!restored.length)return;
-  var old=iaProgramQueues[key]||[],byId={},order=[];old.concat(restored).forEach(function(it){if(!it||!it.identifier||!iaReadyShelfAllowed(it,sl,ch)||byId[it.identifier])return;byId[it.identifier]=it;order.push(it.identifier);iaProgramMedia[it.identifier]=it.media;});
+  var old=iaProgramQueues[key]||[],byId={},order=[];old.concat(restored).forEach(function(it){if(!it||!it.identifier||!iaReadyShelfAllowed(it,sl,ch)||byId[it.identifier])return;byId[it.identifier]=it;order.push(it.identifier);iaProgramMedia[it.identifier]=Object.assign({},it.media,{id:it.identifier,title:it.title||it.identifier,year:it.year||"",meta:it});});
   /* Restore one last-good item only; the next two hot items come from the
      current rotation instead of replaying an old shelf after reload. */
   iaProgramQueues[key]=order.map(function(id){return byId[id];}).slice(0,1);
@@ -19618,16 +19618,16 @@ window.__atvBootDone=true; /* app is up -- from here on, errors get logged, not 
   };
 })();
 </script>
-<script src="assets/source-catalog-client.js?v=6.1.18"></script>
+<script src="assets/source-catalog-client.js?v=6.1.19"></script>
 <script src="assets/verified-guide-client.js"></script>
 <script src="assets/guide-overhaul.js"></script>
 <script src="assets/playback-audit.js"></script>
-<script src="assets/release2-runtime.js?v=6.1.18"></script>
+<script src="assets/release2-runtime.js?v=6.1.19"></script>
 <script src="assets/release3-runtime.js"></script>
 <script src="assets/release31-runtime.js"></script>
 <script src="assets/guide-contract.js?v=v6-contract-1"></script>
-<script src="assets/guide-contract-client.js?v=6.1.18"></script>
-<script src="assets/v6-watching-shell.js?v=6.1.18"></script>
-<script src="assets/v6-guide.js?v=6.1.18"></script>
+<script src="assets/guide-contract-client.js?v=6.1.19"></script>
+<script src="assets/v6-watching-shell.js?v=6.1.19"></script>
+<script src="assets/v6-guide.js?v=6.1.19"></script>
 </body>
 </html>

@@ -34,4 +34,9 @@ Final affected verification: 166 sports tests, 99 broad depth tests, playback/gu
 - [x] Publish 6.1.17 (e9a560f); use further visible skips to catch remaining genre bleed.
 
 The next actual public skip exposed a conservation lecture titled Balancing Outdoor Recreation with Wildlife Conservation in Protected Lands. Root cause: the positive identity vocabulary accepted generic outdoors/outdoor recreation as program identity. Tighten positive identity to specific fishing/hunting/field-sport terms and recognized outdoor programs; explicit seminar/webinar formats are excluded. All 63 reviewed files still pass. Added a failing observed-title fixture at every API/file/relay/cache boundary before the change. Final follow-up is 6.1.18; no service or discovery rewrite.
-- [ ] Verify and publish 6.1.18; confirm actual programs, five visible skips, guide, CI and stamps.
+- [x] Publish 6.1.18 (efac881); full CI/deployments passed. Further actual saved-cache skipping reproduced the shared identity defect below.
+
+Shared ready-shelf root cause (6.1.19): iaReadyShelfRestore assigned the bare media object to iaProgramMedia, losing the containing program identifier and editorial metadata. Playback then had no item ID; Next skipped its history write, and the same warmed URL could return repeatedly even though the API selected fresh programs. Added failing desktop/mobile tests of the actual restore function and sports playback facade (undefined ID), then restore a complete playable object with id/title/year/meta. Preserve file identity, source facts and same-event recovery copies.
+
+Actual existing-shelf local playback now uses full parent::filename IDs and advanced from Bowhunting for Whitetail Deer to Bill Dance, Archery Strategies, and Gary Borger; no repeats. The fresh full 96-command local gate is green. This is a source fix shared by legacy IA saved-shelf playback, not a catalog reset or a source ban.
+- [ ] Publish and confirm 6.1.19 with actual production saved-cache skips, guide and version stamps.

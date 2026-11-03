@@ -425,8 +425,9 @@ export function iaCoachingAllowed(item = {}) {
   if (!item || typeof item !== 'object') return false;
   const selected = String(item.fileName || item.media?.fileName || String(item.identifier || item.id || '').split('::')[1] || '').replace(/[_./-]+/g,' ');
   if (/\b(?:interviews?|full (?:game|match)|dvd menus?|trailers?|music videos?|bonus features?|podcasts?)\b/i.test(selected)) return false;
-  if (/\b(?:full|complete)(?: [a-z]+){0,3} (?:game|match|broadcast)\b|\bgame\s+\d+\b/i.test(selected)) return false;
-  if (/\b(?:vs?|versus)\b/i.test(selected) && !/\b(?:coaching|clinic|instruction|drills?|skills?|fundamentals?|tactics|techniques?|training|conditioning|practice)\b/i.test(selected)) return false;
+  if (/\b(?:full|complete)(?: [a-z]+){0,3} (?:game|match|broadcast)\b/i.test(selected)) return false;
+  const selectedLesson = /\b(?:coaching|clinic|instruction(?:al)?|lessons?|drills?|skills?|fundamentals?|tactics|techniques?|training|conditioning|practice)\b/i.test(selected);
+  if (!selectedLesson && /\b(?:vs?|versus)\b|\bgame\s+\d{1,3}\b/i.test(selected)) return false;
   const text = [item.title,item.seriesTitle,item.fileName,item.media?.sourceTitle,item.meta?.title,item.sourceIdentifier,item.identifier || item.id]
     .filter(Boolean).join(' ').toLowerCase().replace(/[_./-]+/g,' ');
   if (/\b(?:coach and captains|coach captains|coach & captains|coach shev|coaching news|sports news|news broadcast|tv spot|career|health sciences|health leaders|kinesiology 101|courtside clinician|guilty secrets|doctors tennis|pro evolution soccer|video games?|gameplay|life coaching|business coaching|civic engagement|social skills|panel discussion|project play summit|access spotlight|podcasts?|interviews?|press conference|city council|school committee|retirement|honored following|twitch|funny or die)\b/.test(text)) return false;

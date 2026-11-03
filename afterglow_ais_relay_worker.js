@@ -6268,8 +6268,9 @@ function iaCoachingAllowed(item = {}) {
   if (!item || typeof item !== 'object') return false;
   const selected = String(item.fileName || item.media?.fileName || String(item.identifier || item.id || '').split('::')[1] || '').replace(/[_./-]+/g,' ');
   if (/\b(?:interviews?|full (?:game|match)|dvd menus?|trailers?|music videos?|bonus features?|podcasts?)\b/i.test(selected)) return false;
-  if (/\b(?:full|complete)(?: [a-z]+){0,3} (?:game|match|broadcast)\b|\bgame\s+\d+\b/i.test(selected)) return false;
-  if (/\b(?:vs?|versus)\b/i.test(selected) && !/\b(?:coaching|clinic|instruction|drills?|skills?|fundamentals?|tactics|techniques?|training|conditioning|practice)\b/i.test(selected)) return false;
+  if (/\b(?:full|complete)(?: [a-z]+){0,3} (?:game|match|broadcast)\b/i.test(selected)) return false;
+  const selectedLesson = /\b(?:coaching|clinic|instruction(?:al)?|lessons?|drills?|skills?|fundamentals?|tactics|techniques?|training|conditioning|practice)\b/i.test(selected);
+  if (!selectedLesson && /\b(?:vs?|versus)\b|\bgame\s+\d{1,3}\b/i.test(selected)) return false;
   const text = [item.title,item.seriesTitle,item.fileName,item.media?.sourceTitle,item.meta?.title,item.sourceIdentifier,item.identifier || item.id]
     .filter(Boolean).join(' ').toLowerCase().replace(/[_./-]+/g,' ');
   if (/\b(?:coach and captains|coach captains|coach & captains|coach shev|coaching news|sports news|news broadcast|tv spot|career|health sciences|health leaders|kinesiology 101|courtside clinician|guilty secrets|doctors tennis|pro evolution soccer|video games?|gameplay|life coaching|business coaching|civic engagement|social skills|panel discussion|project play summit|access spotlight|podcasts?|interviews?|press conference|city council|school committee|retirement|honored following|twitch|funny or die)\b/.test(text)) return false;
@@ -11395,7 +11396,7 @@ async function getIaQueue(request, url, env, ctx) {
     ...(channel === "64" ? { stationSportsPolicy: "athletics-programs-6113" } : {}),
     ...(channel === "65" ? { stationSportsPolicy: "outdoor-programs-6120" } : {}),
     ...(channel === "66" ? { stationSportsPolicy: "action-programs-6121" } : {}),
-    ...(channel === "68" ? { stationSportsPolicy: "coaching-programs-6122" } : {}),
+    ...(channel === "68" ? { stationSportsPolicy: "coaching-programs-6123" } : {}),
     ...(channel === "22" ? { stationPolicy: "adult-game-shows-2" } : {}) };
   const familyFingerprint = JSON.stringify({ channel, queries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, minRuntimeSeconds, diversity, count, contentPolicy: IA_GLOBAL_VIDEO_POLICY_VERSION, ...fileContract });
   const lastGoodDigest = await stableKey(familyFingerprint);

@@ -24,6 +24,11 @@
   return parent+(part&&!/\b(?:part|pt|disc)\s*\d+\b/i.test(parent)?' Part '+part[1]:'');
  }
  function competition(text,channel){
+  if(Number(channel)===70){
+   var families=[['superstars',/\brodeo superstars|superstars rodeo\b/],['franklin',/\bfranklin\b/],['winter-series',/\bwinter series|diamond fork\b/],['houston',/\bhouston\b/],['orick',/\borick\b/],['valemount',/\b(?:valemount|canoe mountain)\b/],['vhs',/\b(?:bloopers|worst wrecks)\b/],['historic',/\b(?:historic|callister|documentary)\b/]];
+   for(var i=0;i<families.length;i++)if(families[i][1].test(text))return 'rodeo-'+families[i][0];
+   return 'rodeo-events';
+  }
   if(Number(channel)===69){
    var disciplines=[['olympics',/\bolympi(?:c|cs|ad)\b/],['racing',/\b(?:formula 1|grand prix|indianapolis|le mans|race film)\b/],['basketball',/\b(?:nba|basketball|globetrotters)\b/],['golf',/\b(?:golf|british open)\b/],['football',/\b(?:football|nfl|giants|bears|simpson)\b/],['boxing',/\b(?:boxing|sonny liston|leotis martin)\b/],['tennis',/\btennis\b/]];
    for(var i=0;i<disciplines.length;i++)if(disciplines[i][1].test(text))return 'news-'+disciplines[i][0];
@@ -153,8 +158,16 @@
    for(var v=0;v<vaultLanes.length;v++)if(vaultLanes[v][2].test(vaultText))return Object.assign(describe(item,vaultLanes[v][0]),{sport:vaultLanes[v][1]});
   }
   var raw=selectedTitle(item,channel),text=clean(raw),yearMatch=raw.match(/\b((?:19|20)\d{2})\b/),year=Number(yearMatch?yearMatch[1]:String(item.year||'').slice(0,4))||0;
-  var competitionText=[55,57,58,59,61,65,66,68,69].includes(Number(channel))?text+' '+clean(item.title)+' '+clean(item.seriesTitle):text;
+  var competitionText=[55,57,58,59,61,65,66,68,69,70].includes(Number(channel))?text+' '+clean(item.title)+' '+clean(item.seriesTitle):text;
   var result={eventId:'',competition:competition(competitionText,channel),year:year,era:year?Math.floor(year/10)*10:0,participants:[],format:'program'};
+  if(Number(channel)===70){
+   var rodeoTitle=clean(item.title||raw),show=rodeoTitle.match(/\bshow\s*(\d+)\b/);
+   if(result.competition==='rodeo-superstars'&&year&&(show||year===1978||year===1979))result.eventId='sports:rodeo:superstars:'+year+(show?':show-'+Number(show[1]):'');
+   if(!result.eventId){
+    var source=String(item.sourceIdentifier||id(item).split('::')[0]),file=String(item.fileName||item.media&&item.media.fileName||id(item).split('::')[1]||'').replace(/(?:\.ia)?\.(?:mp4|m4v|webm|mov|ogv)$/i,'').replace(/(?:_512kb|_3mb)$/i,'');
+    if(source&&file)result.eventId='sports:rodeo:file:'+source+':'+clean(file);
+   }
+  }
   if(Number(channel)===66){
    var actionText=clean(raw+' '+String(item.title||'')+' '+String(item.seriesTitle||'')+' '+id(item));
    var brand=actionText.match(/\b(411 ?vm|411 video magazine|transworld|mack dawg|xcorps|world industries|endless summer)\b/);

@@ -640,11 +640,12 @@ for(const [parent,first,alias]of [['the-september-sessions','The September Sessi
   assert.equal(next.cycleReset,false,'unseen content still exists');
 });
 
+// Use an ordinary D1-owned lane: 70 now deliberately refreshes its reviewed relay bank.
 test('standard IA D1 rotation cannot replace a resolved shelf with metadata-only catalog rows',async()=>{
   const pending=Array.from({length:24},(_,i)=>row('pending-'+i+'.mp4',{media:{type:'video',url:''}}));
   const ready=Array.from({length:24},(_,i)=>row('ready-'+i+'.mp4'));
-  const f=await sqliteCatalogFixture([...pending,...ready],'70');
-  const response=await f.request('queue',{channel:'70',serverCatalog:true,sessionId:'ready-only',count:3});
+  const f=await sqliteCatalogFixture([...pending,...ready],'73');
+  const response=await f.request('queue',{channel:'73',serverCatalog:true,sessionId:'ready-only',count:3});
   const payload=await response.json();
   assert.equal(response.status,200);
   assert.equal(response.headers.get('x-realsignal-source'),'d1-catalog-fast-lane+session-rotation');
@@ -656,8 +657,8 @@ test('standard IA D1 rotation cannot replace a resolved shelf with metadata-only
 
 test('ordinary IA SQL windows prioritize older resolved media before a newer metadata-only burst',async()=>{
   const pending=Array.from({length:130},(_,i)=>row('pending-'+i+'.mp4',{media:{type:'video',url:''}}));
-  const f=await sqliteCatalogFixture([...pending,row('older-A.mp4'),row('older-B.mp4'),row('older-C.mp4')],'70');
-  const response=await f.request('queue',{channel:'70',serverCatalog:true,sessionId:'older-ready',count:3});
+  const f=await sqliteCatalogFixture([...pending,row('older-A.mp4'),row('older-B.mp4'),row('older-C.mp4')],'73');
+  const response=await f.request('queue',{channel:'73',serverCatalog:true,sessionId:'older-ready',count:3});
   const payload=await response.json();
   assert.equal(payload.ready,3);
   assert.deepEqual(payload.items.map(x=>x.identifier).sort(),['benson::older-A.mp4','benson::older-B.mp4','benson::older-C.mp4']);

@@ -6270,6 +6270,8 @@ function iaSportingLifeAllowed(item = {}) {
   const text = [item.title, item.seriesTitle, item.fileName, item.media?.sourceTitle,
     item.sourceIdentifier, item.identifier || item.id, meta.title].filter(Boolean).join(' ').toLowerCase().replace(/[_./-]+/g, ' ');
   if (/\b(?:city council|council meeting|committee hearing|press conference|politics|political|concert|full performance|music video|podcast|commercial breaks|logo compilation|drupal|wordpress|web development|software tutorial|ed bassmaster|easy money|good will hunting|funny or die|twitch|full movie|feature film|cartoons?|animation|swimming|basketball|football|baseball|video games?|gameplay|simulation)\b/.test(text)) return false;
+  // Equipment-buying listicles are not an outdoor program or field event.
+  if (/\b(?:rifles?|guns?|crossbows?|hunting gear|hunting equipment)\b/.test(text) && /\b(?:you should avoid|quietly avoiding|poor accuracy|outdated designs|before you buy|buying guide)\b/.test(text)) return false;
   return /\b(?:fishing|fisherman|hunting|angling|angler|archery|bowhunting|realtree|whitetail|bassmaster|buckmasters|mossy oak|trap and skeet|sporting clays|sporting dogs|american sportsman|bill dance|jimmy houston|babe winkelman|orlando wilson|outdoors|outdoor (?:life|adventures?|recreation|competition|sports?))\b/.test(text);
 }
 
@@ -11357,7 +11359,7 @@ async function getIaQueue(request, url, env, ctx) {
     ...(channel === "62" ? { stationSportsPolicy: "college-programs-6111" } : {}),
     ...(channel === "63" ? { stationSportsPolicy: "soccer-programs-6112" } : {}),
     ...(channel === "64" ? { stationSportsPolicy: "athletics-programs-6113" } : {}),
-    ...(channel === "65" ? { stationSportsPolicy: "outdoor-programs-6116" } : {}),
+    ...(channel === "65" ? { stationSportsPolicy: "outdoor-programs-6117" } : {}),
     ...(channel === "22" ? { stationPolicy: "adult-game-shows-2" } : {}) };
   const familyFingerprint = JSON.stringify({ channel, queries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, minRuntimeSeconds, diversity, count, contentPolicy: IA_GLOBAL_VIDEO_POLICY_VERSION, ...fileContract });
   const lastGoodDigest = await stableKey(familyFingerprint);

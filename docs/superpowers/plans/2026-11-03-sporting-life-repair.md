@@ -16,7 +16,7 @@
 - [x] Route 65 to repaired catalog ownership and balance selected-program topics (not inherited subject tags); preserve reservations/cooldowns.
 - [x] Fresh transport probes and representative decoded video; repeated API and actual browser Next/guide checks.
 - [x] Run affected checks plus existing CI/API gate; one bounded review and fix any reproduced finding.
-- [ ] Commit, push/deploy 6.1.16; verify hosted playback, rotations, stamps and CI.
+- [x] Commit/push/deploy 6.1.16 (a409b59); production CI and all deployments passed, all 63 candidates connected.
 
 Review focus: field-sport copies from mixed Olympic parents must retain their actual sport; outdoor brand names must not approve politics, fiction or tags-only matches; source-language and selected-file duration survive cache/API paths; outdoor topic balancing does not weaken current freshness/cooldown safeguards; an older D1 shelf cannot mask the connected inventory.
 
@@ -25,3 +25,10 @@ Evidence: the connected bank has 63 reviewed files from 51 Archive parents: 15 f
 The single fresh review reproduced an older-history bug: recentCatalogIds truncated viewer exclusions to 48, allowing watched field programs back into a balanced shelf. Added a failing 60-watched/30-unseen API test, then preserved the full sanitized 256-entry client ledger. Topic scoring remains bounded by the existing selector. Reviewer closed after reporting.
 
 Final local verification: all 96 CI/API commands pass, including 165 sports tests. The older Sporting Life genre fixture had URL-only ready records; updated positive and negative fixtures with known 1800-second landscape media so the test continues to exercise genre admission, while separate tests explicitly reject unknown/short selected runtimes. Physical phone/Cast and whole-video completeness are outside this bounded check.
+
+Production-driven quality follow-up (6.1.17): the fifth Next reached a 16-minute rifle-buying listicle from live discovery. Added a failing observed-title admission fixture and reject equipment-buying clickbait across relay/API/file/cache boundaries. Do not assert that undisclosed AI has been universally detected; the observed defect is program identity.
+
+Also measured an upscaled In-Fisherman file at 7.402 seconds to visible video. Metadata inspection confirmed its only MP4 is a 7.82 GB original; the other inspected fishing original is 8.08 GB. No smaller Archive derivative exists for either. Preserve all 63 distinct files, but apply a channel-65 ready-selection preference for available standard-resolution programs. A failing selector fixture proves large originals remain playable when they are the unseen inventory. Local 6.1.17 opened a normal-resolution In-Fisherman program in 1.541 seconds and advanced to Best of Buckmasters. This is a preference, not a guarantee of constant upstream latency.
+
+Final affected verification: 166 sports tests, 99 broad depth tests, playback/guide/API/HTML checks pass. Reuse the unchanged checks from the full 96-command baseline; GitHub runs the complete gate again for the shipped commit.
+- [ ] Publish and verify final 6.1.17 hosted playback, five skips, guide and stamps.

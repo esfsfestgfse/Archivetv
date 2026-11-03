@@ -26,6 +26,7 @@ export function iaKnownVideoPolicyViolation(item = {}, rules = {}) {
   if (channel === '65' && !iaSportingLifeAllowed(item)) return true;
   if (channel === '66' && !iaSurfSkateSnowAllowed(item)) return true;
   if (channel === '68' && !iaCoachingAllowed(item)) return true;
+  if (channel === '69' && !iaSportsNewsreelAllowed(item)) return true;
   if (channel === '64') {
     const titleParts=String(item.title||'').split(' \u00b7 ');
     if (titleParts.length>2&&titleParts.slice(0,-1).some((part,index,parts)=>parts.indexOf(part)!==index)) return true;
@@ -239,7 +240,7 @@ export function iaKnownVideoPolicyViolation(item = {}, rules = {}) {
     const parts = String(value || '').split(':').map(Number);
     const runtime = parts.every(Number.isFinite) ? parts.reduce((total,part) => total * 60 + part,0) : 0;
     // A legacy direct URL with no duration must hydrate before it can be ready.
-    if (['52','53','55','56','57','58','59','61','62','63','64','65','66','68'].includes(channel) && !runtime && (media.url || item.url || item.mediaUrl)) return true;
+    if (['52','53','55','56','57','58','59','61','62','63','64','65','66','68','69'].includes(channel) && !runtime && (media.url || item.url || item.mediaUrl)) return true;
     if (runtime > 0 && runtime < floor) return true;
     const international = ['106','107','114','115','119','120','151'];
     const language = String(media.language || item.language || meta.language || '').trim().toLowerCase();
@@ -421,6 +422,40 @@ export function iaSportingLifeAllowed(item = {}) {
   return /\b(?:fishing|fisherman|hunting|angling|angler|archery|bowhunting|realtree|whitetail|bassmaster|buckmasters|mossy oak|trap and skeet|sporting clays|sporting dogs|american sportsman|bill dance|jimmy houston|babe winkelman|orlando wilson)\b/.test(text);
 }
 
+export function iaSportsNewsreelAllowed(item = {}) {
+  const media=item.media||{},meta=item.meta||{},id=String(item.identifier||item.id||'');
+  const source=String(item.sourceIdentifier||media.sourceIdentifier||id.split('::')[0]);
+  // These old seeds were fiction and television engineering, respectively.
+  if (['On_Your_Toes_P1','Magicint1955'].includes(source)) return false;
+  let file=String(item.fileName||media.fileName||id.split('::')[1]||'');
+  try { file=decodeURIComponent(file); } catch (_) {}
+  const norm=value=>String(value||'').replace(/([a-z])([A-Z])/g,'$1 $2').toLowerCase().replace(/[_./–-]+/g,' ');
+  const selected=norm(file),title=norm(item.title||meta.title),text=title+' '+selected;
+  if (/\b(?:dvd menus?|trailers?|bonus features?|podcasts?|movie reviews?|movies you may have missed|city council|policy meeting|video yearbook|high school yearbook|television engineering|full movie|feature film|gameplay|video games?|playthrough|longplay|nintendo|playstation|nfl 2k\d*|nba 2k\d*)\b/.test(text)) return false;
+  // A selected child has its own identity; a collection heading cannot turn a game into a report.
+  const magazine=/\b(?:abc )?wide world of sports\b/.test(text);
+  const report=/\b(?:newsreel|news features?|highlights?|reviews?|yearbook|athlete profile|sports documentary|informal history|the great years|juice on the loose|race film|tales from the vault)\b/;
+  const game=/\b(?:full|complete) (?:game|match|race|broadcast)\b|\ball star game\b|\bgame\s+\d{1,2}\b|\b(?:vs?|versus)\b/;
+  const edited=/\b(?:highlights?|reviews?|yearbook|athlete profile|documentary|history|race film)\b/;
+  // These three inspected files are 41–72-minute edited ABC race reports,
+  // despite uploader filenames calling the three-hour events "Full Race".
+  const reviewedRaceReport=source==='full-race-broadcast-1970-indianapolis-500' && [
+    '1967 Indianapolis 500 Full Race).mp4',
+    '1968 Indianapolis 500 _ INDYCAR Classic Full-Race Rewind.mp4',
+    'Full Race Broadcast_ 1970 Indianapolis 500.mp4'
+  ].includes(file);
+  if (game.test(selected) && !edited.test(selected) && !/\bwide world of sports\b/.test(selected) && !reviewedRaceReport) return false;
+  if (!game.test(selected) && game.test(title) && !edited.test(title) && !magazine) return false;
+  const sport=/\b(?:sports?|athlet(?:e|es|ics)|football|nfl|giants|bears|simpson|basketball|nba|globetrotters|golf|british open|formula 1|grand prix|indianapolis|le mans|olympi(?:c|cs|ad)|tennis|boxing|baseball|soccer|hockey|wrestling|track and field|racing)\b/.test(text);
+  if (!sport || !(report.test(text)||magazine)) return false;
+  // Select the covered event year before an uploader/reissue date. Do not read 1920x1080 as a year.
+  const years=value=>[...String(value||'').matchAll(/(?:^|[^\d])((?:19|20)\d{2})(?!\d|\s*[x×]\s*\d)/g)].map(m=>Number(m[1]));
+  // A later parenthesized release/reissue year must not replace the leading event year.
+  const fileYears=years(file),titleYears=years(item.title||meta.title),year=(fileYears.length?fileYears:titleYears)[0]||Number(item.year||meta.year)||0;
+  const parent=!media.url&&!item.url&&!item.mediaUrl&&!file&&!id.includes('::');
+  return parent&&!year || year>=1920&&year<=1985;
+}
+
 export function iaCoachingAllowed(item = {}) {
   if (!item || typeof item !== 'object') return false;
   const selected = String(item.fileName || item.media?.fileName || String(item.identifier || item.id || '').split('::')[1] || '').replace(/[_./-]+/g,' ');
@@ -579,7 +614,7 @@ export function qualifyIaFileRecord(raw, rules = {}, now = Date.now()) {
   }
   const text = [item.title, item.description, item.subject, item.fileName].filter(Boolean).join(' ').toLowerCase();
   const channel = String(rules.channel || '');
-  if (['52','53','55','56','57','58','59','60','61','62','63','64','65','66','68','71','72'].includes(channel) && iaKnownVideoPolicyViolation(item, rules)) return reject('off-genre-sports');
+  if (['52','53','55','56','57','58','59','60','61','62','63','64','65','66','68','69','71','72'].includes(channel) && iaKnownVideoPolicyViolation(item, rules)) return reject('off-genre-sports');
   if (!iaReviewedFileAllowed(item, channel)) return reject('off-genre-reviewed-collection');
   const completeCartoon = channel === '150' && COMPLETE_CARTOON_SHORT_PARENTS.has(item.sourceIdentifier)
     && !/\b(?:clip|trailer|preview|teaser|promo|bumper|intro|introduction|outro|review|reaction|tutorial|interview|bonus|menu|featurette|tiktok|reels)\b|#shorts|youtube shorts/i.test(text);

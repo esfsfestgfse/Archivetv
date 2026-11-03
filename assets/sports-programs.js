@@ -24,6 +24,11 @@
   return parent+(part&&!/\b(?:part|pt|disc)\s*\d+\b/i.test(parent)?' Part '+part[1]:'');
  }
  function competition(text,channel){
+  if(Number(channel)===69){
+   var disciplines=[['olympics',/\bolympi(?:c|cs|ad)\b/],['racing',/\b(?:formula 1|grand prix|indianapolis|le mans|race film)\b/],['basketball',/\b(?:nba|basketball|globetrotters)\b/],['golf',/\b(?:golf|british open)\b/],['football',/\b(?:football|nfl|giants|bears|simpson)\b/],['boxing',/\b(?:boxing|sonny liston|leotis martin)\b/],['tennis',/\btennis\b/]];
+   for(var i=0;i<disciplines.length;i++)if(disciplines[i][1].test(text))return 'news-'+disciplines[i][0];
+   return 'news-multisport';
+  }
   if(Number(channel)===68){
    if(/\bcoerver\b/.test(text))return 'coaching-soccer';
    var sport=text.match(/\b(basketball|baseball|soccer|football|tennis|golf|volleyball|wrestling|swimming|hockey|kayaking|rowing|boxing|rodeo)\b/);
@@ -148,7 +153,7 @@
    for(var v=0;v<vaultLanes.length;v++)if(vaultLanes[v][2].test(vaultText))return Object.assign(describe(item,vaultLanes[v][0]),{sport:vaultLanes[v][1]});
   }
   var raw=selectedTitle(item,channel),text=clean(raw),yearMatch=raw.match(/\b((?:19|20)\d{2})\b/),year=Number(yearMatch?yearMatch[1]:String(item.year||'').slice(0,4))||0;
-  var competitionText=[55,57,58,59,61,65,66,68].includes(Number(channel))?text+' '+clean(item.title)+' '+clean(item.seriesTitle):text;
+  var competitionText=[55,57,58,59,61,65,66,68,69].includes(Number(channel))?text+' '+clean(item.title)+' '+clean(item.seriesTitle):text;
   var result={eventId:'',competition:competition(competitionText,channel),year:year,era:year?Math.floor(year/10)*10:0,participants:[],format:'program'};
   if(Number(channel)===66){
    var actionText=clean(raw+' '+String(item.title||'')+' '+String(item.seriesTitle||'')+' '+id(item));

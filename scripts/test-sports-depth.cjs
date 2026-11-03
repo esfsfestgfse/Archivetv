@@ -25,7 +25,7 @@ test('sports broadcast policy rejects misleading source IDs and fragments at rel
 });
 test('full programs survive incidental highlights in their description and unrelated sports formats remain valid',async()=>{
  const {iaKnownVideoPolicyViolation,qualifyIaFileRecord}=await import('../ia_file_contract.js');
- for(const[ch,title]of [[60,'NHL Chicago Blackhawks vs Pittsburgh Penguins 1988'],[60,'NHL Chicago Blackhawks vs Pittsburgh Penguins 1988 Full Game with Commercials'],[72,'2013 Wimbledon Full Match without Commercials'],[71,'1999 Masters Tournament Final Round Broadcast'],[72,'2013 Roland Garros Djokovic vs Nadal ENG Full Match'],[69,'Sports Newsreel - Tennis Highlights'],[68,'Golf Coaching Clinic']]){
+ for(const[ch,title]of [[60,'NHL Chicago Blackhawks vs Pittsburgh Penguins 1988'],[60,'NHL Chicago Blackhawks vs Pittsburgh Penguins 1988 Full Game with Commercials'],[72,'2013 Wimbledon Full Match without Commercials'],[71,'1999 Masters Tournament Final Round Broadcast'],[72,'2013 Roland Garros Djokovic vs Nadal ENG Full Match'],[69,'Sports Newsreel - Tennis Highlights (1984)'],[68,'Golf Coaching Clinic']]){
  const item={...row('broadcast',title),description:'Includes intermission highlights and interviews during the complete broadcast'};assert.equal(relay.sports.gate(ch,item),true,title);assert.equal(iaKnownVideoPolicyViolation(item,{channel:ch}),false,title);assert.equal(qualifyIaFileRecord(item,{channel:ch,mediaTypes:['movies']}).accepted,true,title);
  }
 });

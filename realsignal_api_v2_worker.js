@@ -21,7 +21,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "6.1.20-outdoor-cache-cleanup";
+const V3_RELEASE = "6.1.21-action-sports-rotation";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -126,7 +126,7 @@ const IA_DEPTH_REPAIR_LANES = new Set([
    persisted back to D1 asynchronously through the normal catalog job. */
 /* Classic Cartoons' 69-row production D1 window masked its 605-file reviewed
    bank. Use the existing relay-owned path; D1 still recovers relay outages. */
-const IA_ARCHIVE_FAMILY_DEPTH_LANES = new Set(["11", "20", "52", "53", "55", "56", "57", "58", "59", "60", "61", "62", "63", "64", "65", "71", "72", "81", "83", "118", "150", "914", "929"]);
+const IA_ARCHIVE_FAMILY_DEPTH_LANES = new Set(["11", "20", "52", "53", "55", "56", "57", "58", "59", "60", "61", "62", "63", "64", "65", "66", "71", "72", "81", "83", "118", "150", "914", "929"]);
 /* Some IA collections store the genre in the series/film title rather than
    the child filename. These are deliberately lane-specific aliases for the
    two long-tail lanes that failed the serial certification when their relay
@@ -524,12 +524,12 @@ function queueItemIdentity(item) {
 
 function uniqueQueueItems(items, body, limit = body && body.iaRepair === true && body.sourceCatalog !== true ? IA_REPAIR_CATALOG_WINDOW : MAX_CATALOG_ITEMS) {
   if (!Array.isArray(items)) return [];
-  if (["61", "62", "63", "64", "65"].includes(String(body && body.channel)) && items.length > limit) {
+  if (["61", "62", "63", "64", "65", "66"].includes(String(body && body.channel)) && items.length > limit) {
     // Stable collection order is not a broadcast mix. Interleave before the
     // API window cap so a large edition or college sport cannot hide the mix.
     const families = new Map();
     for (const item of items) {
-      const info = Sports.describe(item, body.channel), family = String(String(body.channel) === "61" ? info.year || 0 : info.era || 0) + ":" + info.competition;
+      const info = Sports.describe(item, body.channel), family = String(String(body.channel) === "61" ? info.year || 0 : info.era || 0) + ":" + info.competition + (String(body.channel) === "66" ? ":" + info.programFamily : "");
       if (!families.has(family)) families.set(family, []);
       families.get(family).push(item);
     }
@@ -589,11 +589,12 @@ function sportsShelf(payload, body) {
     .map(value => value.trim().slice(0,500)).filter(Boolean).slice(-256);
   const history=Sports.history(inventory,personal.length ? personal : Array.from(recentCatalogIds(body)).reverse());
   let pool=payload.items || [];
-  if([53,55,57,58,59,61,62,63,64,65].includes(Number(channel)) && body.iaRepair!==true){
+  if([53,55,57,58,59,61,62,63,64,65,66].includes(Number(channel)) && body.iaRepair!==true){
     // A short window can favor one sport or collapse after event deduplication.
     // Refill from the playable catalog, preserving this viewer's exclusions.
     // Reservation-owned shelves already enforce their failed-file cooldowns.
     const seen=new Set(Array.isArray(body && body.viewerRecentIds)?personal:Array.from(recentCatalogIds(body)));
+    if(Number(channel)===66)for(const raw of [...seen])seen.add(Sports.key({identifier:raw},channel));
     const unseen=inventory.filter(item=>queueItemPlayable(item)&&!seen.has(queueItemKey(item))&&!seen.has(Sports.key(item,channel))&&!iaKnownVideoPolicyViolation(item,{channel:String(channel)}));
     if(unseen.length)pool=unseen;
   }

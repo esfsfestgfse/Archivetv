@@ -24,6 +24,7 @@ export function iaKnownVideoPolicyViolation(item = {}, rules = {}) {
   if (String(media.type || item.type || item.mediaType || item.mediatype || meta.mediatype || '').toLowerCase() === 'audio') return false;
   const channel = String(rules.channel || '');
   if (channel === '65' && !iaSportingLifeAllowed(item)) return true;
+  if (channel === '66' && !iaSurfSkateSnowAllowed(item)) return true;
   if (channel === '64') {
     const titleParts=String(item.title||'').split(' \u00b7 ');
     if (titleParts.length>2&&titleParts.slice(0,-1).some((part,index,parts)=>parts.indexOf(part)!==index)) return true;
@@ -237,7 +238,7 @@ export function iaKnownVideoPolicyViolation(item = {}, rules = {}) {
     const parts = String(value || '').split(':').map(Number);
     const runtime = parts.every(Number.isFinite) ? parts.reduce((total,part) => total * 60 + part,0) : 0;
     // A legacy direct URL with no duration must hydrate before it can be ready.
-    if (['52','53','55','56','57','58','59','61','62','63','64','65'].includes(channel) && !runtime && (media.url || item.url || item.mediaUrl)) return true;
+    if (['52','53','55','56','57','58','59','61','62','63','64','65','66'].includes(channel) && !runtime && (media.url || item.url || item.mediaUrl)) return true;
     if (runtime > 0 && runtime < floor) return true;
     const international = ['106','107','114','115','119','120','151'];
     const language = String(media.language || item.language || meta.language || '').trim().toLowerCase();
@@ -419,6 +420,22 @@ export function iaSportingLifeAllowed(item = {}) {
   return /\b(?:fishing|fisherman|hunting|angling|angler|archery|bowhunting|realtree|whitetail|bassmaster|buckmasters|mossy oak|trap and skeet|sporting clays|sporting dogs|american sportsman|bill dance|jimmy houston|babe winkelman|orlando wilson)\b/.test(text);
 }
 
+export function iaSurfSkateSnowAllowed(item = {}) {
+  if (!item || typeof item !== 'object') return false;
+  const source = String(item.sourceIdentifier || item.media?.sourceIdentifier || item.identifier || item.id || '').replace(/^ia:/i, '').split('::')[0];
+  const selected = String(item.fileName || item.media?.fileName || String(item.identifier || item.id || '').split('::')[1] || '').replace(/[_./-]+/g,' ');
+  // A parent film identity cannot turn an explicitly labelled DVD extra into the film.
+  if (/\b(?:bonus interview|interviews?|music videos?|making of|featurettes?|dvd menus?|deleted scenes?|trailers?)\b/i.test(selected)) return false;
+  // Metadata review: these old entries are talk/music/sailing/skydiving, despite shared sports tags.
+  if (['ian-and-jay-space-out-2024-07-07','Xcorps16TheMUSIChd2','Xcorps64NoodSailingHD2_201802','Xcorps4AIRBORNEhd2'].includes(source)) return false;
+  const text = [item.title,item.seriesTitle,item.fileName,item.media?.sourceTitle,source,item.identifier || item.id,item.meta?.title]
+    .filter(Boolean).join(' ').toLowerCase().replace(/[_./-]+/g,' ');
+  if (/\b(?:city council|council meeting|public hearing|politics|political|podcasts?|talk show|full movie comedy|surf school|surf nazis|surf ninjas|surf s up|johnny tsunami|johnny kapahala|chalet girl|out cold|fan made|parody|gameplay|video games?|simulator|press conference|software tutorial)\b/.test(text)) return false;
+  // Specific reviewed mixed episodes contain actual skating, unlike the excluded sibling episodes.
+  if (['Xcorps21ASRhd2','Xcorps25MOTOSK8hd2','Xcorps47BIGAIRhd2','heroin-roger-homage-2022','element-bams-or-bust-2008','girl-chocolate-badass-meets-dumbass-2007','fourstar-gang-of-fourstar-2009'].includes(source)) return true;
+  return /\b(?:surf(?:ing)?|skateboard(?:ing)?|snowboard(?:ing)?|skiing|skate video|skate film|transworld|411 ?vm|411 video magazine|mack dawg|endless summer|september sessions|world industries|tree fort|lo fi skate explosion)\b/.test(text);
+}
+
 export function iaReviewedCartoonSource(raw = {}) {
   return COMPLETE_CARTOON_SHORT_PARENTS.has(normalizeIaFileRecord(raw).sourceIdentifier);
 }
@@ -545,7 +562,7 @@ export function qualifyIaFileRecord(raw, rules = {}, now = Date.now()) {
   }
   const text = [item.title, item.description, item.subject, item.fileName].filter(Boolean).join(' ').toLowerCase();
   const channel = String(rules.channel || '');
-  if (['52','53','55','56','57','58','59','60','61','62','63','64','65','71','72'].includes(channel) && iaKnownVideoPolicyViolation(item, rules)) return reject('off-genre-sports');
+  if (['52','53','55','56','57','58','59','60','61','62','63','64','65','66','71','72'].includes(channel) && iaKnownVideoPolicyViolation(item, rules)) return reject('off-genre-sports');
   if (!iaReviewedFileAllowed(item, channel)) return reject('off-genre-reviewed-collection');
   const completeCartoon = channel === '150' && COMPLETE_CARTOON_SHORT_PARENTS.has(item.sourceIdentifier)
     && !/\b(?:clip|trailer|preview|teaser|promo|bumper|intro|introduction|outro|review|reaction|tutorial|interview|bonus|menu|featurette|tiktok|reels)\b|#shorts|youtube shorts/i.test(text);

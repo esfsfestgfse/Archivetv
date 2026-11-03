@@ -4277,10 +4277,10 @@ const IA_UNDERFILL_DEPTH_BANKS = Object.freeze({
   "66": [
     iaDirectRecovery("Xcorps16TheMUSIChd2::Xcorps16TheMUSIChd2.mp4", "Xcorps16TheMUSIChd2", "Xcorps16TheMUSIChd2.mp4", "Xcorps Action Sports Music TV 16: The Music", "action sports extreme sports skateboarding surfing snowboarding bmx motorsports outdoor television", 2004, "video", 1341.81, 640, 360),
     iaDirectRecovery("Xcorps21ASRhd2::Xcorps21ASRhd2.mp4", "Xcorps21ASRhd2", "Xcorps21ASRhd2.mp4", "Xcorps Action Sports 21: ASR", "action sports extreme sports skateboarding surfing snowboarding bmx motorsports outdoor television", 2005, "video", 1332.48, 640, 360),
-    iaDirectRecovery("Xcorps4AIRBORNEhd2::Xcorps4AIRBORNEhd2.mov", "Xcorps4AIRBORNEhd2", "Xcorps4AIRBORNEhd2.mov", "Xcorps Action Sports: Airborne", "action sports extreme sports skateboarding surfing snowboarding bmx motorsports outdoor television", 2002, "video", 1382.28, 1280, 720),
+    iaDirectRecovery("Xcorps4AIRBORNEhd2::Xcorps4AIRBORNEhd2.mp4", "Xcorps4AIRBORNEhd2", "Xcorps4AIRBORNEhd2.mp4", "Xcorps Action Sports: Airborne", "action sports extreme sports skateboarding surfing snowboarding bmx motorsports outdoor television", 2002, "video", 1382.28, 640, 360),
     iaDirectRecovery("Xcorps64NoodSailingHD2_201802::Xcorps64NoodSailingHD2.mp4", "Xcorps64NoodSailingHD2_201802", "Xcorps64NoodSailingHD2.mp4", "Xcorps Action Sports 64: NOOD Sailing", "action sports extreme sports skateboarding surfing snowboarding bmx sailing outdoor television", 2016, "video", 1320.19, 640, 360),
-    iaDirectRecovery("Xcorps25MOTOSK8hd2::Xcorps25MOTOSK8hd2.mov", "Xcorps25MOTOSK8hd2", "Xcorps25MOTOSK8hd2.mov", "Xcorps Action Sports 25: Motosk8", "action sports extreme sports skateboarding surfing snowboarding bmx motorsports outdoor television", 2005, "video", 1330.13, 1280, 720),
-    iaDirectRecovery("Xcorps47BIGAIRhd2::Xcorps47BIGAIRhd2.mov", "Xcorps47BIGAIRhd2", "Xcorps47BIGAIRhd2.mov", "Xcorps Action Sports 47: Big Air", "action sports extreme sports skateboarding surfing snowboarding bmx motorsports outdoor television", 2009, "video", 1324.99, 1280, 720),
+    iaDirectRecovery("Xcorps25MOTOSK8hd2::Xcorps25MOTOSK8hd2.mp4", "Xcorps25MOTOSK8hd2", "Xcorps25MOTOSK8hd2.mp4", "Xcorps Action Sports 25: Motosk8", "action sports extreme sports skateboarding surfing snowboarding bmx motorsports outdoor television", 2005, "video", 1330.13, 640, 360),
+    iaDirectRecovery("Xcorps47BIGAIRhd2::Xcorps47BIGAIRhd2.mp4", "Xcorps47BIGAIRhd2", "Xcorps47BIGAIRhd2.mp4", "Xcorps Action Sports 47: Big Air", "action sports extreme sports skateboarding surfing snowboarding bmx motorsports outdoor television", 2009, "video", 1324.99, 640, 360),
   ],
   "81": [
     iaDirectRecovery("daiwa-fishing-video-fun-to-fish-with-lure_202506::DAIWA FISHING VIDEO Fun to fish with Lure ブラックバス用 ベイト タックル編.ia.mp4", "daiwa-fishing-video-fun-to-fish-with-lure_202506", "DAIWA FISHING VIDEO Fun to fish with Lure ブラックバス用 ベイト タックル編.ia.mp4", "Daiwa Fishing: Fun to Fish with Lure", "fishing angling bass fishing lure fishing fly fishing outdoor recreation television", 1993, "video", 1576.4, 960, 720),
@@ -4643,8 +4643,8 @@ const IA_DEPTH_EXPANSION_OVERLAYS = Object.freeze({
     iaDirectRecovery("heroin-roger-homage-2022::Heroin & Roger - Homage (2022).mp4", "heroin-roger-homage-2022", "Heroin & Roger - Homage (2022).mp4", "Heroin & Roger · Homage (2022)", "action sports skateboarding street skating outdoor television", 2022, "video", 1403.14, 1920, 1080),
     iaDirectRecovery("ian-and-jay-space-out-2024-07-07::ian-and-jay-space-out-2024-07-07.ia.mp4", "ian-and-jay-space-out-2024-07-07", "ian-and-jay-space-out-2024-07-07.ia.mp4", "Ian and Jay · Space Out", "action sports skateboarding outdoor television", 2024, "video", 4301.7, 1280, 720),
     iaDirectRecovery("element-bams-or-bust-2008::Element - Bam's Or Bust (2008).ia.mp4", "element-bams-or-bust-2008", "Element - Bam's Or Bust (2008).ia.mp4", "Element · Bam's Or Bust (2008)", "action sports skateboarding street skating outdoor television", 2008, "video", 1018.08, 853, 480),
-    iaDirectRecovery("channel-one-lo-fi-skate-explosion::Channel_One_LoFi_Skate_Explosion_cap_1.mov", "channel-one-lo-fi-skate-explosion", "Channel_One_LoFi_Skate_Explosion_cap_1.mov", "Channel One · Lo-Fi Skate Explosion (1995)", "action sports skateboarding street skating outdoor television", 1995, "video", 1544.55, 720, 486),
-    iaDirectRecovery("world-industries-world-war-iii-2001::World Industries - World War III (2001).ia.mp4", "world-industries-world-war-iii-2001", "World Industries - World War III (2001).ia.mp4", "World Industries · World War III (2001)", "action sports skateboarding street skating outdoor television", 2001, "video", 1230.06, 751, 572),
+    iaDirectRecovery("channel-one-lo-fi-skate-explosion::Channel_One_LoFi_Skate_Explosion_deinterlaced_480p_29fps.ia.mp4", "channel-one-lo-fi-skate-explosion", "Channel_One_LoFi_Skate_Explosion_deinterlaced_480p_29fps.ia.mp4", "Channel One · Lo-Fi Skate Explosion (1995)", "action sports skateboarding street skating outdoor television", 1995, "video", 1487.81, 640, 480),
+    iaDirectRecovery("world-industries-world-war-iii-2001::World Industries - WWIII (2001).ia.mp4", "world-industries-world-war-iii-2001", "World Industries - WWIII (2001).ia.mp4", "World Industries · World War III (2001)", "action sports skateboarding street skating outdoor television", 2001, "video", 1230.06, 751, 572),
     iaDirectRecovery("girl-chocolate-badass-meets-dumbass-2007::Girl & Chocolate - Badass Meets Dumbass (2007).mp4", "girl-chocolate-badass-meets-dumbass-2007", "Girl & Chocolate - Badass Meets Dumbass (2007).mp4", "Girl and Chocolate · Badass Meets Dumbass (2007)", "action sports skateboarding street skating outdoor television", 2007, "video", 1475.4, 654, 480),
     iaDirectRecovery("fourstar-gang-of-fourstar-2009::Fourstar - Gang Of Fourstar (2009).ia.mp4", "fourstar-gang-of-fourstar-2009", "Fourstar - Gang Of Fourstar (2009).ia.mp4", "Fourstar · Gang of Fourstar (2009)", "action sports skateboarding street skating outdoor television", 2009, "video", 1025.02, 853, 478),
   ],
@@ -5881,6 +5881,7 @@ function iaKnownVideoPolicyViolation(item = {}, rules = {}) {
   if (String(media.type || item.type || item.mediaType || item.mediatype || meta.mediatype || '').toLowerCase() === 'audio') return false;
   const channel = String(rules.channel || '');
   if (channel === '65' && !iaSportingLifeAllowed(item)) return true;
+  if (channel === '66' && !iaSurfSkateSnowAllowed(item)) return true;
   if (channel === '64') {
     const titleParts=String(item.title||'').split(' \u00b7 ');
     if (titleParts.length>2&&titleParts.slice(0,-1).some((part,index,parts)=>parts.indexOf(part)!==index)) return true;
@@ -6094,7 +6095,7 @@ function iaKnownVideoPolicyViolation(item = {}, rules = {}) {
     const parts = String(value || '').split(':').map(Number);
     const runtime = parts.every(Number.isFinite) ? parts.reduce((total,part) => total * 60 + part,0) : 0;
     // A legacy direct URL with no duration must hydrate before it can be ready.
-    if (['52','53','55','56','57','58','59','61','62','63','64','65'].includes(channel) && !runtime && (media.url || item.url || item.mediaUrl)) return true;
+    if (['52','53','55','56','57','58','59','61','62','63','64','65','66'].includes(channel) && !runtime && (media.url || item.url || item.mediaUrl)) return true;
     if (runtime > 0 && runtime < floor) return true;
     const international = ['106','107','114','115','119','120','151'];
     const language = String(media.language || item.language || meta.language || '').trim().toLowerCase();
@@ -6261,6 +6262,22 @@ function iaCourtroomAllowed(item = {}) {
   if (/\b(?:washington week|city council|press conference|political speech|political rally|podcast)\b/.test(text)) return false;
   return /\b(?:judge (?:judy|joe brown|(?:greg )?mathis|wapner|milian|hatchett|alex|faith|jerry)|people'?s court|divorce court|hot bench|small claims (?:court|tv))\b/.test(text);
 }
+function iaSurfSkateSnowAllowed(item = {}) {
+  if (!item || typeof item !== 'object') return false;
+  const source = String(item.sourceIdentifier || item.media?.sourceIdentifier || item.identifier || item.id || '').replace(/^ia:/i, '').split('::')[0];
+  const selected = String(item.fileName || item.media?.fileName || String(item.identifier || item.id || '').split('::')[1] || '').replace(/[_./-]+/g,' ');
+  // A parent film identity cannot turn an explicitly labelled DVD extra into the film.
+  if (/\b(?:bonus interview|interviews?|music videos?|making of|featurettes?|dvd menus?|deleted scenes?|trailers?)\b/i.test(selected)) return false;
+  // Metadata review: these old entries are talk/music/sailing/skydiving, despite shared sports tags.
+  if (['ian-and-jay-space-out-2024-07-07','Xcorps16TheMUSIChd2','Xcorps64NoodSailingHD2_201802','Xcorps4AIRBORNEhd2'].includes(source)) return false;
+  const text = [item.title,item.seriesTitle,item.fileName,item.media?.sourceTitle,source,item.identifier || item.id,item.meta?.title]
+    .filter(Boolean).join(' ').toLowerCase().replace(/[_./-]+/g,' ');
+  if (/\b(?:city council|council meeting|public hearing|politics|political|podcasts?|talk show|full movie comedy|surf school|surf nazis|surf ninjas|surf s up|johnny tsunami|johnny kapahala|chalet girl|out cold|fan made|parody|gameplay|video games?|simulator|press conference|software tutorial)\b/.test(text)) return false;
+  // Specific reviewed mixed episodes contain actual skating, unlike the excluded sibling episodes.
+  if (['Xcorps21ASRhd2','Xcorps25MOTOSK8hd2','Xcorps47BIGAIRhd2','heroin-roger-homage-2022','element-bams-or-bust-2008','girl-chocolate-badass-meets-dumbass-2007','fourstar-gang-of-fourstar-2009'].includes(source)) return true;
+  return /\b(?:surf(?:ing)?|skateboard(?:ing)?|snowboard(?:ing)?|skiing|skate video|skate film|transworld|411 ?vm|411 video magazine|mack dawg|endless summer|september sessions|world industries|tree fort|lo fi skate explosion)\b/.test(text);
+}
+
 function iaSportingLifeAllowed(item = {}) {
   if (!item || typeof item !== 'object') return false;
   // These observed legacy uploads are fiction or general home movies, not outdoor programs.
@@ -9090,7 +9107,7 @@ function orderedIaEmergencySeeds(channel, rotation) {
   const seeds = rawSeeds.filter((item) => {
     // This lane now promises race broadcasts. Direct cold-start recovery must
     // apply the same admission as search, cached catalogs, and the player.
-    if (["52","53","54","55","56","57","58","59","60","61","62","63","64","71","72"].includes(String(channel)) && !iaStationQualityGate(channel,item)) return false;
+    if (["52","53","54","55","56","57","58","59","60","61","62","63","64","66","71","72"].includes(String(channel)) && !iaStationQualityGate(channel,item)) return false;
     const rawIdentifier = String(item && item.identifier || "");
     const source = String(item && item.sourceIdentifier || (rawIdentifier.includes("::") ? rawIdentifier.split("::")[0] : rawIdentifier));
     const fileName = String(item && item.fileName || (rawIdentifier.includes("::") ? rawIdentifier.slice(rawIdentifier.indexOf("::") + 2) : ""));
@@ -10377,7 +10394,7 @@ function iaRepairCollectionSeeds(channel) {
     const [fileName, runtime, width, height, observedUrl, programTitle, fileAlts, reviewedEventDate] = parent.files[i];
     rows.push({ identifier: parent.identifier + "::" + fileName, sourceIdentifier: parent.identifier, fileName,
       ...(["57","63"].includes(String(channel)) && reviewedEventDate ? {eventDate:reviewedEventDate} : {}),
-      title: programTitle || (String(channel) === "118" ? archiveEpisodeTitle({name:fileName},parent.seriesTitle || parent.title) : parent.title + " · " + fileName.replace(/\.mp4$/, "")), seriesId: parent.seriesTitle || (["12", "22"].includes(String(channel)) ? parent.title.split(" · ")[0] : parent.identifier), seriesTitle: parent.seriesTitle, year: ["12", "22"].includes(String(channel)) ? iaGameShowYear({ fileName, year: parent.year }) : ["52","55","56","57","58","59","60","61","62","63","64","71","72"].includes(String(channel)) ? Number((String(programTitle || fileName).match(/\b(?:19|20)\d{2}\b/) || [])[0]) || parent.year : parent.year,
+      title: programTitle || (String(channel) === "118" ? archiveEpisodeTitle({name:fileName},parent.seriesTitle || parent.title) : parent.title + " · " + fileName.replace(/\.mp4$/, "")), seriesId: parent.seriesTitle || (["12", "22"].includes(String(channel)) ? parent.title.split(" · ")[0] : parent.identifier), seriesTitle: parent.seriesTitle, year: ["12", "22"].includes(String(channel)) ? iaGameShowYear({ fileName, year: parent.year }) : ["52","55","56","57","58","59","60","61","62","63","64","66","71","72"].includes(String(channel)) ? Number((String(programTitle || fileName).match(/\b(?:19|20)\d{2}\b/) || [])[0]) || parent.year : parent.year,
       language: parent.language || "", subject: parent.subject || subject, rights: parent.rights || "", genreVerified: true,
       media: { type: "video", url: observedUrl || (parent.mediaBases?.[0] || "https://archive.org/download/" + encodeURIComponent(parent.identifier)) + "/" + encodeURIComponent(fileName),
         alts: Array.isArray(fileAlts) ? fileAlts.slice(0, 3) : parent.mediaBases?.length ? parent.mediaBases.slice(1).map(base => base + "/" + encodeURIComponent(fileName)).concat("https://archive.org/download/" + encodeURIComponent(parent.identifier) + "/" + encodeURIComponent(fileName)) : [],
@@ -11360,6 +11377,7 @@ async function getIaQueue(request, url, env, ctx) {
     ...(channel === "63" ? { stationSportsPolicy: "soccer-programs-6112" } : {}),
     ...(channel === "64" ? { stationSportsPolicy: "athletics-programs-6113" } : {}),
     ...(channel === "65" ? { stationSportsPolicy: "outdoor-programs-6120" } : {}),
+    ...(channel === "66" ? { stationSportsPolicy: "action-programs-6121" } : {}),
     ...(channel === "22" ? { stationPolicy: "adult-game-shows-2" } : {}) };
   const familyFingerprint = JSON.stringify({ channel, queries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, minRuntimeSeconds, diversity, count, contentPolicy: IA_GLOBAL_VIDEO_POLICY_VERSION, ...fileContract });
   const lastGoodDigest = await stableKey(familyFingerprint);

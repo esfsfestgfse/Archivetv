@@ -24,6 +24,12 @@
   return parent+(part&&!/\b(?:part|pt|disc)\s*\d+\b/i.test(parent)?' Part '+part[1]:'');
  }
  function competition(text,channel){
+  if(Number(channel)===66){
+   if(/\b(?:surf(?:ing)?|endless summer|september sessions)\b/.test(text))return 'action-surf';
+   if(/\b(?:skateboard(?:ing)?|skate|transworld|411 ?vm|411 video magazine|sick boys|tree fort|world industries|heroin|bams or bust|badass meets dumbass|fourstar)\b/.test(text))return 'action-skate';
+   if(/\b(?:snowboard(?:ing)?|skiing|mack dawg)\b/.test(text))return 'action-snow';
+   return 'action-mixed';
+  }
   if(Number(channel)===65){
    if(/\b(?:fishing|fisherman|angler|angling|in fisherman|catfish|panfish|bassin|bill dance|jimmy houston|babe winkelman|orlando wilson)\b/.test(text))return 'outdoor-fishing';
    if(/\b(?:hunting|bowhunting|whitetail|realtree|real tree|monster bucks|buckmasters|mossy oak|turkey school|sports afield|eastmans|capstick)\b/.test(text))return 'outdoor-hunting';
@@ -137,8 +143,26 @@
    for(var v=0;v<vaultLanes.length;v++)if(vaultLanes[v][2].test(vaultText))return Object.assign(describe(item,vaultLanes[v][0]),{sport:vaultLanes[v][1]});
   }
   var raw=selectedTitle(item,channel),text=clean(raw),yearMatch=raw.match(/\b((?:19|20)\d{2})\b/),year=Number(yearMatch?yearMatch[1]:String(item.year||'').slice(0,4))||0;
-  var competitionText=[55,57,58,59,61,65].includes(Number(channel))?text+' '+clean(item.title)+' '+clean(item.seriesTitle):text;
+  var competitionText=[55,57,58,59,61,65,66].includes(Number(channel))?text+' '+clean(item.title)+' '+clean(item.seriesTitle):text;
   var result={eventId:'',competition:competition(competitionText,channel),year:year,era:year?Math.floor(year/10)*10:0,participants:[],format:'program'};
+  if(Number(channel)===66){
+   var actionText=clean(raw+' '+String(item.title||'')+' '+String(item.seriesTitle||'')+' '+id(item));
+   var brand=actionText.match(/\b(411 ?vm|411 video magazine|transworld|mack dawg|xcorps|world industries|endless summer)\b/);
+   result.programFamily=brand?brand[1].replace(/^411.*$/,'411vm'):String(item.sourceIdentifier||id(item).split('::')[0]||clean(raw));
+   var actionSource=String(item.sourceIdentifier||item.media&&item.media.sourceIdentifier||id(item).split('::')[0]);
+   if(actionSource==='411-vm-skateboarding-videos'){
+    var actionFile=String(item.fileName||item.media&&item.media.fileName||id(item).split('::')[1]||''),stem=clean(actionFile),episode='',volume=actionFile.match(/\b411vm[ _-]*(\d+)\.(\d+)/i);
+    if(!/\b(?:disc|part)\s*\d+/.test(stem)){
+     var issue=stem.match(/\bissue\s*0*(\d+)\b/)||stem.match(/\b411vm\s*0*(\d+)\b/),best=stem.match(/best of.*?vol(?:ume)?\s*0*(\d+)/),europe=stem.match(/europe.*?((?:19|20)\d{2})/);
+     if(volume)episode='volume-'+volume[1]+'.'+volume[2];
+     else if(issue&&!/greatest/.test(stem))episode='issue-'+Number(issue[1]);
+     else if(best)episode='best-'+Number(best[1]);
+     else if(europe)episode='europe-'+europe[1];
+     else if(/\blove affair\b/.test(stem))episode='love-affair';
+    }
+    if(episode)result.eventId='sports:action-skate:411vm:'+episode;
+   }
+  }
   if(!enabled(channel))return result;
   if(/\b(?:documentary|documentaries|history|biography|retrospective|nfl films|a football life|behind the scenes)\b/.test(text)){result.format='documentary';return result;}
   var formatText=Number(channel)===59?text.replace(/\b(?:with|without|no) post ?game\b/g,''):text;
@@ -212,7 +236,7 @@
   var unseen=inventory.filter(function(group){return !seen.has(group.key);}),pool=(unseen.length?unseen:inventory).slice(),selected=[],recent=history.slice(-12).map(function(row){return describe(row,channel);});
   while(pool.length&&selected.length<count){
    var best=0,bestScore=Infinity,docDue=(recent.length+1)%5===0;
-   pool.forEach(function(group,index){var info=group.info,score=0;if(Number(channel)===65){var media=group.rows[0].media||group.rows[0];if(Number(media.width)>1920||Number(media.height)>1080)score+=16;}recent.slice(-8).forEach(function(prior){if(Number(channel)===53&&prior.sport&&prior.sport===info.sport)score+=16;if(prior.competition===info.competition)score+=4;if(prior.era&&prior.era===info.era)score+=1;info.participants.forEach(function(p){if(prior.participants.includes(p))score+=3;});});
+   pool.forEach(function(group,index){var info=group.info,score=0;if(Number(channel)===65){var media=group.rows[0].media||group.rows[0];if(Number(media.width)>1920||Number(media.height)>1080)score+=16;}recent.slice(-8).forEach(function(prior){if(Number(channel)===53&&prior.sport&&prior.sport===info.sport)score+=16;if(Number(channel)===66&&prior.programFamily&&prior.programFamily===info.programFamily)score+=12;if(prior.competition===info.competition)score+=4;if(prior.era&&prior.era===info.era)score+=1;info.participants.forEach(function(p){if(prior.participants.includes(p))score+=3;});});
     if(![68,69,78,80,81,82,83].includes(Number(channel))&&info.format==='documentary')score+=docDue?-8:8;
     if(score<bestScore){best=index;bestScore=score;}
    });

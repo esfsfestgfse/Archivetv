@@ -5880,6 +5880,7 @@ function iaKnownVideoPolicyViolation(item = {}, rules = {}) {
   const meta = item.meta || {}, media = item.media || meta.media || {};
   if (String(media.type || item.type || item.mediaType || item.mediatype || meta.mediatype || '').toLowerCase() === 'audio') return false;
   const channel = String(rules.channel || '');
+  if (channel === '65' && !iaSportingLifeAllowed(item)) return true;
   if (channel === '64') {
     const titleParts=String(item.title||'').split(' \u00b7 ');
     if (titleParts.length>2&&titleParts.slice(0,-1).some((part,index,parts)=>parts.indexOf(part)!==index)) return true;
@@ -6093,7 +6094,7 @@ function iaKnownVideoPolicyViolation(item = {}, rules = {}) {
     const parts = String(value || '').split(':').map(Number);
     const runtime = parts.every(Number.isFinite) ? parts.reduce((total,part) => total * 60 + part,0) : 0;
     // A legacy direct URL with no duration must hydrate before it can be ready.
-    if (['52','53','55','56','57','58','59','61','62','63','64'].includes(channel) && !runtime && (media.url || item.url || item.mediaUrl)) return true;
+    if (['52','53','55','56','57','58','59','61','62','63','64','65'].includes(channel) && !runtime && (media.url || item.url || item.mediaUrl)) return true;
     if (runtime > 0 && runtime < floor) return true;
     const international = ['106','107','114','115','119','120','151'];
     const language = String(media.language || item.language || meta.language || '').trim().toLowerCase();
@@ -6264,11 +6265,12 @@ function iaSportingLifeAllowed(item = {}) {
   if (!item || typeof item !== 'object') return false;
   // This specific legacy recovery upload is a scavenger-hunt fiction film.
   if (/^HuntingSeason(?:::|$)/i.test(String(item.sourceIdentifier || item.identifier || item.id || ''))) return false;
+  // Identity comes from the program, not incidental tags on a civic upload.
   const meta = item.meta || {};
   const text = [item.title, item.seriesTitle, item.fileName, item.media?.sourceTitle,
     item.sourceIdentifier, item.identifier || item.id, meta.title].filter(Boolean).join(' ').toLowerCase().replace(/[_./-]+/g, ' ');
-  if (/\b(?:city council|council meeting|committee hearing|press conference|politics|political|concert|full performance|music video|podcast|commercial breaks|logo compilation|drupal|wordpress|web development|software tutorial|ed bassmaster|easy money|good will hunting|funny or die|twitch)\b/.test(text)) return false;
-  return /\b(?:fishing|fisherman|hunting|angling|angler|archery|bowhunting|realtree|whitetail|bassmaster|sporting dogs|american sportsman|bill dance|jimmy houston|babe winkelman|orlando wilson|outdoors|outdoor (?:life|adventures?|recreation|competition|sports?))\b/.test(text);
+  if (/\b(?:city council|council meeting|committee hearing|press conference|politics|political|concert|full performance|music video|podcast|commercial breaks|logo compilation|drupal|wordpress|web development|software tutorial|ed bassmaster|easy money|good will hunting|funny or die|twitch|full movie|feature film|cartoons?|animation|swimming|basketball|football|baseball|video games?|gameplay|simulation)\b/.test(text)) return false;
+  return /\b(?:fishing|fisherman|hunting|angling|angler|archery|bowhunting|realtree|whitetail|bassmaster|buckmasters|mossy oak|trap and skeet|sporting clays|sporting dogs|american sportsman|bill dance|jimmy houston|babe winkelman|orlando wilson|outdoors|outdoor (?:life|adventures?|recreation|competition|sports?))\b/.test(text);
 }
 
 function iaStationQualityGate(channel, doc) {
@@ -9043,8 +9045,8 @@ function familyBalancedIaWindowInternal(candidates, start, requested, maxPerFami
 }
 
 function orderedIaEmergencySeeds(channel, rotation) {
-  const memberChannels = String(channel) === "53" ? [52,55,56,57,58,59,60,71,72] : String(channel) === "62" ? [62,57,58,59] : String(channel) === "63" ? [63,62] : String(channel) === "64" ? [64,61] : [];
-  const vaultBanks = memberChannels.map(member => iaRepairCollectionSeeds(String(member)).filter(item => item.media && iaStationQualityGate(String(member),item) && (!["62","63","64"].includes(String(channel)) || iaStationQualityGate(channel,item))));
+  const memberChannels = String(channel) === "53" ? [52,55,56,57,58,59,60,71,72] : String(channel) === "62" ? [62,57,58,59] : String(channel) === "63" ? [63,62] : String(channel) === "64" ? [64,61] : String(channel) === "65" ? [65,80,81,83] : [];
+  const vaultBanks = memberChannels.map(member => iaRepairCollectionSeeds(String(member)).filter(item => item.media && iaStationQualityGate(String(member),item) && (!["62","63","64","65"].includes(String(channel)) || iaStationQualityGate(channel,item))));
   const vaultFiles = [];
   for (let i = 0; i < Math.max(0,...vaultBanks.map(bank => bank.length)); i++) for (const bank of vaultBanks) if (bank[i]) vaultFiles.push(bank[i]);
   const rawSeeds = vaultFiles.concat(IA_HOLIDAY_CONTAINER_SEEDS[String(channel)] || [])
@@ -11355,6 +11357,7 @@ async function getIaQueue(request, url, env, ctx) {
     ...(channel === "62" ? { stationSportsPolicy: "college-programs-6111" } : {}),
     ...(channel === "63" ? { stationSportsPolicy: "soccer-programs-6112" } : {}),
     ...(channel === "64" ? { stationSportsPolicy: "athletics-programs-6113" } : {}),
+    ...(channel === "65" ? { stationSportsPolicy: "outdoor-programs-6116" } : {}),
     ...(channel === "22" ? { stationPolicy: "adult-game-shows-2" } : {}) };
   const familyFingerprint = JSON.stringify({ channel, queries, themeTerms, denyTerms, requiredTitleTerms, mediaTypes, themeMinScore, minRuntimeSeconds, diversity, count, contentPolicy: IA_GLOBAL_VIDEO_POLICY_VERSION, ...fileContract });
   const lastGoodDigest = await stableKey(familyFingerprint);

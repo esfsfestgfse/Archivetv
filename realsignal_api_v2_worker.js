@@ -21,7 +21,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "6.1.15-sports-cache-identity";
+const V3_RELEASE = "6.1.16-outdoor-program-repair";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -126,7 +126,7 @@ const IA_DEPTH_REPAIR_LANES = new Set([
    persisted back to D1 asynchronously through the normal catalog job. */
 /* Classic Cartoons' 69-row production D1 window masked its 605-file reviewed
    bank. Use the existing relay-owned path; D1 still recovers relay outages. */
-const IA_ARCHIVE_FAMILY_DEPTH_LANES = new Set(["11", "20", "52", "53", "55", "56", "57", "58", "59", "60", "61", "62", "63", "64", "71", "72", "81", "83", "118", "150", "914", "929"]);
+const IA_ARCHIVE_FAMILY_DEPTH_LANES = new Set(["11", "20", "52", "53", "55", "56", "57", "58", "59", "60", "61", "62", "63", "64", "65", "71", "72", "81", "83", "118", "150", "914", "929"]);
 /* Some IA collections store the genre in the series/film title rather than
    the child filename. These are deliberately lane-specific aliases for the
    two long-tail lanes that failed the serial certification when their relay
@@ -524,7 +524,7 @@ function queueItemIdentity(item) {
 
 function uniqueQueueItems(items, body, limit = body && body.iaRepair === true && body.sourceCatalog !== true ? IA_REPAIR_CATALOG_WINDOW : MAX_CATALOG_ITEMS) {
   if (!Array.isArray(items)) return [];
-  if (["61", "62", "63", "64"].includes(String(body && body.channel)) && items.length > limit) {
+  if (["61", "62", "63", "64", "65"].includes(String(body && body.channel)) && items.length > limit) {
     // Stable collection order is not a broadcast mix. Interleave before the
     // API window cap so a large edition or college sport cannot hide the mix.
     const families = new Map();
@@ -582,11 +582,14 @@ function sportsShelf(payload, body) {
   /* The relay uses this viewer's played ledger as hard exclusions once it
      exists. Shared D1 history is only an opening preference; filtering the
      rotated shelf against other viewers again silently underfilled it. */
-  const personal=Array.isArray(body && body.viewerRecentIds)
-    ? Array.from(recentCatalogIds({...body,recentIds:body.viewerRecentIds})) : [];
+  // Hard viewer exclusions retain the complete client ledger; the short
+  // scoring history must not make older watched programs fresh again.
+  const personal=(Array.isArray(body && body.viewerRecentIds) ? body.viewerRecentIds : [])
+    .filter(value => typeof value === "string" && !/[\r\n]/.test(value))
+    .map(value => value.trim().slice(0,500)).filter(Boolean).slice(-256);
   const history=Sports.history(inventory,personal.length ? personal : Array.from(recentCatalogIds(body)).reverse());
   let pool=payload.items || [];
-  if([53,55,57,58,59,61,62,63,64].includes(Number(channel)) && body.iaRepair!==true){
+  if([53,55,57,58,59,61,62,63,64,65].includes(Number(channel)) && body.iaRepair!==true){
     // A short window can favor one sport or collapse after event deduplication.
     // Refill from the playable catalog, preserving this viewer's exclusions.
     // Reservation-owned shelves already enforce their failed-file cooldowns.

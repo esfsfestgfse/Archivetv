@@ -14,15 +14,15 @@ test('Sporting Life cannot promote civic meetings or concert uploads through out
   const rejected=['Oceanside City Council Meeting - December 7 2016 PART 1','A Conversation with Secretary Sally Jewell','Green Day - The Easter Show 1992 - FULL PERFORMANCE',
     'In-Fisherman - Building an Enterprise Level Drupal Site - Paul Chason and Josh Estep','Outdoor Life Network Commercial Breaks (February 2000)',
     'Ed Bassmaster','Easy Money S01E06 Bassmaster','Good Will Hunting full movie'];
-  for(const title of rejected){const item={identifier:'unrelated::program.mp4',title,subject:'outdoor recreation hunting sport',media:{type:'video',url:'https://archive.org/download/unrelated/program.mp4'}};
+  for(const title of rejected){const item={identifier:'unrelated::program.mp4',title,subject:'outdoor recreation hunting sport',media:{type:'video',url:'https://archive.org/download/unrelated/program.mp4',runtime:1800,width:640,height:480}};
     assert.equal(f.stationGate('65',item),false,title+' at relay');
     assert.equal(catalogFallbackAllowed(item,{channel:'65'}),false,title+' at catalog admission');
   }
   for(const title of ['Bill Dance Outdoors','Realtree Hunting Adventures','Upland Hunting: Pheasants and Labs','Long Lake Ice Fishing Derby']){
-    const item={identifier:'outdoor::episode.mp4',title,media:{type:'video',url:'https://archive.org/download/outdoor/episode.mp4'}};
+    const item={identifier:'outdoor::episode.mp4',title,media:{type:'video',url:'https://archive.org/download/outdoor/episode.mp4',runtime:1800,width:640,height:480}};
     assert.equal(f.stationGate('65',item),true,title);assert.equal(catalogFallbackAllowed(item,{channel:'65'}),true,title);
   }
-  const scavengerFilm={identifier:'HuntingSeason::huntingonline_512kb.mp4',title:'Hunting Season',subject:'outdoors hunting sports',media:{type:'video',url:'https://archive.org/download/HuntingSeason/huntingonline_512kb.mp4'}};
+  const scavengerFilm={identifier:'HuntingSeason::huntingonline_512kb.mp4',title:'Hunting Season',subject:'outdoors hunting sports',media:{type:'video',url:'https://archive.org/download/HuntingSeason/huntingonline_512kb.mp4',runtime:1800,width:640,height:480}};
   assert.equal(f.stationGate('65',scavengerFilm),false,'the observed scavenger-hunt film is not an outdoors show');
   assert.equal(catalogFallbackAllowed(scavengerFilm,{channel:'65'}),false);
 });

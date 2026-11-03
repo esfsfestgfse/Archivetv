@@ -28,6 +28,7 @@ export function iaKnownVideoPolicyViolation(item = {}, rules = {}) {
   if (channel === '68' && !iaCoachingAllowed(item)) return true;
   if (channel === '69' && !iaSportsNewsreelAllowed(item)) return true;
   if (channel === '70' && !iaRodeoAllowed(item)) return true;
+  if (channel === '74' && !iaWinterSportsAllowed(item)) return true;
   if (channel === '73' && !iaEquestrianAllowed(item)) return true;
   if (channel === '64') {
     const titleParts=String(item.title||'').split(' \u00b7 ');
@@ -242,7 +243,7 @@ export function iaKnownVideoPolicyViolation(item = {}, rules = {}) {
     const parts = String(value || '').split(':').map(Number);
     const runtime = parts.every(Number.isFinite) ? parts.reduce((total,part) => total * 60 + part,0) : 0;
     // A legacy direct URL with no duration must hydrate before it can be ready.
-    if (['52','53','55','56','57','58','59','61','62','63','64','65','66','68','69','70','73'].includes(channel) && !runtime && (media.url || item.url || item.mediaUrl)) return true;
+    if (['52','53','55','56','57','58','59','61','62','63','64','65','66','68','69','70','73','74'].includes(channel) && !runtime && (media.url || item.url || item.mediaUrl)) return true;
     if (runtime > 0 && runtime < floor) return true;
     const international = ['106','107','114','115','119','120','151'];
     const language = String(media.language || item.language || meta.language || '').trim().toLowerCase();
@@ -422,6 +423,29 @@ export function iaSportingLifeAllowed(item = {}) {
   // Equipment-buying listicles are not an outdoor program or field event.
   if (/\b(?:rifles?|guns?|crossbows?|hunting gear|hunting equipment)\b/.test(text) && /\b(?:you should avoid|quietly avoiding|poor accuracy|outdated designs|before you buy|buying guide)\b/.test(text)) return false;
   return /\b(?:fishing|fisherman|hunting|angling|angler|archery|bowhunting|realtree|whitetail|bassmaster|buckmasters|mossy oak|trap and skeet|sporting clays|sporting dogs|american sportsman|bill dance|jimmy houston|babe winkelman|orlando wilson)\b/.test(text);
+}
+
+export function iaWinterSportsAllowed(item = {}) {
+  const media=item.media||{},meta=item.meta||{},id=String(item.identifier||item.id||'');
+  let source=String(item.sourceIdentifier||media.sourceIdentifier||id.split('::')[0]);
+  let file=String(item.fileName||media.fileName||id.split('::')[1]||'');
+  const path=String(media.url||item.url||item.mediaUrl||id).match(/^https?:\/\/[^/]+\/(?:download|\d+\/items)\/([^/?#]+)\/([^?#]+)/i);
+  if(path){if(!file)file=path[2];if(!item.sourceIdentifier&&!media.sourceIdentifier)try{source=decodeURIComponent(path[1]);}catch(_){}}
+  try{file=decodeURIComponent(file);}catch(_){}
+  const norm=value=>String(value||'').replace(/([a-z])([A-Z])/g,'$1 $2').toLowerCase().replace(/[_./-]+/g,' ');
+  const selected=norm(file),text=norm([item.title,meta.title,file,source].filter(Boolean).join(' '));
+  // Shared winter tags cannot qualify a game, resort promo or unrelated collection child.
+  if(/\b(?:gameplay|video games?|gamevideoarchive|c64|playthrough|longplay|simulation|nintendo|anime|cartoon|bob the builder|little bear|full movie|feature film|podcasts?|talk show|news report|newscast|press conference|politics|protest|home movies?|family scenes|vacation|resort tour|opening day|open house|ribbon cutting|fundraiser|music video|concert|hair|ice hockey|roller skat(?:e|ing)|water ski(?:ing)?|waterskiing|tutorial|how to|lesson|workout|ski better|ski with a ranger)\b/.test(text))return false;
+  if(/\b(?:partial|fragment|incomplete|trailers?|promos?|previews?|teasers?|highlights?|clips?|recaps?|scenes|best of the meet|run of the meet)\b|\b(?:part|pt|cd|disc)\s*\d+\b/.test(text))return false;
+  if(/\b(?:opening|closing) ceremon(?:y|ies)\b/.test(text)||/\bceremon(?:y|ies)\b/.test(selected)&&!/\b(?:finals?|competition|runs?)\b/.test(selected))return false;
+  if(/\b(?:swedish|swehd|schaatsen|norsk|norwegian|sloveni[ae]n|sd slo|german|russian|rus|italian|japanese|spanish|french|dublado|subtitulado)\b/.test(norm(file.toLowerCase())))return false;
+  if(/\b(?:athletics|marathon|football|basketball|volleyball|swimming|tennis|boxing|nascar|wrestling|ice hockey|hockey)\b/.test(selected))return false;
+  const winter=/\b(?:winter sports?|winter olympic(?:s)?|ski(?:ing)?|ski jump(?:ing)?|moguls|snowboard(?:ing)?|figure skat(?:e|ing)|speed ?skat(?:e|ing)|short track|ice danc(?:e|ing)|curling|biathlon|bobsle(?:d|igh)|luge|skeleton|nordic combined)\b/;
+  if(source==='2010_Vancouver_Olympics'&&file&&!winter.test(selected))return false;
+  // Do not count multiple frame-rate conversions of the same Reno VHS broadcast.
+  if(source==='salt-lake-olympics'&&file!=='2002olympics-60fps.mp4')return false;
+  if(!winter.test(text))return false;
+  return /\b(?:olympic(?:s)?|championships?|world cup|finals?|qualif(?:ication|ications|ying)|session|coverage|broadcast|program|documentary|history|film|warren miller|vs?|meet|ski jumping|biathlon|skiing|snowboarding|curling)\b/.test(text);
 }
 
 export function iaEquestrianAllowed(item = {}) {
@@ -655,7 +679,7 @@ export function qualifyIaFileRecord(raw, rules = {}, now = Date.now()) {
   }
   const text = [item.title, item.description, item.subject, item.fileName].filter(Boolean).join(' ').toLowerCase();
   const channel = String(rules.channel || '');
-  if (['52','53','55','56','57','58','59','60','61','62','63','64','65','66','68','69','70','71','72','73'].includes(channel) && iaKnownVideoPolicyViolation(item, rules)) return reject('off-genre-sports');
+  if (['52','53','55','56','57','58','59','60','61','62','63','64','65','66','68','69','70','71','72','73','74'].includes(channel) && iaKnownVideoPolicyViolation(item, rules)) return reject('off-genre-sports');
   if (!iaReviewedFileAllowed(item, channel)) return reject('off-genre-reviewed-collection');
   const completeCartoon = channel === '150' && COMPLETE_CARTOON_SHORT_PARENTS.has(item.sourceIdentifier)
     && !/\b(?:clip|trailer|preview|teaser|promo|bumper|intro|introduction|outro|review|reaction|tutorial|interview|bonus|menu|featurette|tiktok|reels)\b|#shorts|youtube shorts/i.test(text);

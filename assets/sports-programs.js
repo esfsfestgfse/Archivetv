@@ -24,6 +24,11 @@
   return parent+(part&&!/\b(?:part|pt|disc)\s*\d+\b/i.test(parent)?' Part '+part[1]:'');
  }
  function competition(text,channel){
+  if(Number(channel)===74){
+   var winters=[['biathlon',/\bbiathlon\b/],['curling',/\bcurling\b/],['snowboard',/\bsnowboard(?:ing)?\b/],['sliding',/\b(?:bobsleigh|bobsled|luge|skeleton)\b/],['ski-jumping',/\bski jump(?:ing)?\b/],['nordic',/\b(?:cross country skiing|nordic combined)\b/],['figure-skating',/\b(?:figure skat(?:ing|ng)|ice dance)\b/],['speed-skating',/\b(?:speed ?skating|short track)\b/],['freestyle-skiing',/\b(?:freestyle|moguls|ski cross|slopestyle|halfpipe)\b/],['alpine-skiing',/\b(?:skiing|slalom|downhill)\b/]];
+   for(var w=0;w<winters.length;w++)if(winters[w][1].test(text))return 'winter-'+winters[w][0];
+   return 'winter-multisport';
+  }
   if(Number(channel)===73){
    if(/\b(?:eventing|cross country)\b/.test(text))return 'horse-eventing';
    if(/\b(?:horse racing|horseracing|thoroughbred|harness horse|kentucky derby|breeders.? cup|belmont stakes|preakness|secretariat|seabiscuit|triple crown)\b/.test(text))return 'horse-racing';
@@ -165,8 +170,17 @@
    for(var v=0;v<vaultLanes.length;v++)if(vaultLanes[v][2].test(vaultText))return Object.assign(describe(item,vaultLanes[v][0]),{sport:vaultLanes[v][1]});
   }
   var raw=selectedTitle(item,channel),text=clean(raw),yearMatch=raw.match(/\b((?:19|20)\d{2})\b/),year=Number(yearMatch?yearMatch[1]:String(item.year||'').slice(0,4))||0;
-  var competitionText=[55,57,58,59,61,65,66,68,69,70,73].includes(Number(channel))?text+' '+clean(item.title)+' '+clean(item.seriesTitle):text;
+  var competitionText=[55,57,58,59,61,65,66,68,69,70,73,74].includes(Number(channel))?text+' '+clean(item.title)+' '+clean(item.seriesTitle):text;
+  if(Number(channel)===74)competitionText+=' '+clean(item.fileName||id(item).split('::')[1]||'');
   var result={eventId:'',competition:competition(competitionText,channel),year:year,era:year?Math.floor(year/10)*10:0,participants:[],format:'program'};
+  if(Number(channel)===74){
+   var winterSource=String(item.sourceIdentifier||id(item).split('::')[0]),winterFile=String(item.fileName||item.media&&item.media.fileName||id(item).split('::')[1]||'').split('/').pop().replace(/(?:\.ia)?\.mp4$/i,'');
+   // Resolution/codec variants share an event; distances, rounds and sessions do not.
+   winterFile=winterFile.split(/[ ._-](?:\d{3,4}[pi]|hdtv|pdtv|webrip|sdtv|sd[ .]eng|x264|xvid|dd5)/i)[0];
+   var winterIdentity=clean(winterFile).replace(/\bwomans\b|\bladies\b/g,'womens');
+   if(/^2014_Sochi_Olympics_/.test(winterSource))winterIdentity=winterIdentity.replace(/^(?:2014 sochi olympics|2014 winter olympics|winter olympics 2014|sochi winter olympics 2014|olympics2014) /,'');
+   if(winterSource&&winterFile)result.eventId='sports:winter:file:'+winterSource+':'+winterIdentity;
+  }
   if(Number(channel)===73){
    var source=String(item.sourceIdentifier||id(item).split('::')[0]),file=String(item.fileName||item.media&&item.media.fileName||id(item).split('::')[1]||'').replace(/(?:\.ia)?\.(?:mp4|m4v|webm|mov|ogv)$/i,'').replace(/(?:_512kb|_3mb)$/i,'');
    if(source==='2016_Rio_Olympics_Equestrian' && /^(?:equestrian-team-jumping-finals-432p|Rio\.Olympics\.2016\.08\.17\.Equestrian\.Jumping\.Team\.Final\.720p\.iP\.WEBRip\.AAC2\.0\.H\.264-BTW)$/i.test(file))result.eventId='sports:horse:rio-2016:team-jumping-final';

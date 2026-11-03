@@ -28,6 +28,7 @@ export function iaKnownVideoPolicyViolation(item = {}, rules = {}) {
   if (channel === '68' && !iaCoachingAllowed(item)) return true;
   if (channel === '69' && !iaSportsNewsreelAllowed(item)) return true;
   if (channel === '70' && !iaRodeoAllowed(item)) return true;
+  if (channel === '73' && !iaEquestrianAllowed(item)) return true;
   if (channel === '64') {
     const titleParts=String(item.title||'').split(' \u00b7 ');
     if (titleParts.length>2&&titleParts.slice(0,-1).some((part,index,parts)=>parts.indexOf(part)!==index)) return true;
@@ -241,7 +242,7 @@ export function iaKnownVideoPolicyViolation(item = {}, rules = {}) {
     const parts = String(value || '').split(':').map(Number);
     const runtime = parts.every(Number.isFinite) ? parts.reduce((total,part) => total * 60 + part,0) : 0;
     // A legacy direct URL with no duration must hydrate before it can be ready.
-    if (['52','53','55','56','57','58','59','61','62','63','64','65','66','68','69','70'].includes(channel) && !runtime && (media.url || item.url || item.mediaUrl)) return true;
+    if (['52','53','55','56','57','58','59','61','62','63','64','65','66','68','69','70','73'].includes(channel) && !runtime && (media.url || item.url || item.mediaUrl)) return true;
     if (runtime > 0 && runtime < floor) return true;
     const international = ['106','107','114','115','119','120','151'];
     const language = String(media.language || item.language || meta.language || '').trim().toLowerCase();
@@ -421,6 +422,31 @@ export function iaSportingLifeAllowed(item = {}) {
   // Equipment-buying listicles are not an outdoor program or field event.
   if (/\b(?:rifles?|guns?|crossbows?|hunting gear|hunting equipment)\b/.test(text) && /\b(?:you should avoid|quietly avoiding|poor accuracy|outdated designs|before you buy|buying guide)\b/.test(text)) return false;
   return /\b(?:fishing|fisherman|hunting|angling|angler|archery|bowhunting|realtree|whitetail|bassmaster|buckmasters|mossy oak|trap and skeet|sporting clays|sporting dogs|american sportsman|bill dance|jimmy houston|babe winkelman|orlando wilson)\b/.test(text);
+}
+
+export function iaEquestrianAllowed(item = {}) {
+  const media=item.media||{},meta=item.meta||{},id=String(item.identifier||item.id||'');
+  let source=String(item.sourceIdentifier||media.sourceIdentifier||id.split('::')[0]);
+  let file=String(item.fileName||media.fileName||id.split('::')[1]||'');
+  // Old rapid-tune caches stored only a direct URL. Recover the same selected
+  // path before checking a mixed collection; a missing field is not a genre exemption.
+  const path=String(media.url||item.url||item.mediaUrl||id).match(/^https?:\/\/[^/]+\/(?:download|\d+\/items)\/([^/?#]+)\/([^?#]+)/i);
+  if (path) {
+    if (!file) file=path[2];
+    if (!item.sourceIdentifier&&!media.sourceIdentifier) { try { source=decodeURIComponent(path[1]); } catch (_) {} }
+  }
+  try { file=decodeURIComponent(file); } catch (_) {}
+  const norm=value=>String(value||'').replace(/([a-z])([A-Z])/g,'$1 $2').toLowerCase().replace(/[_./-]+/g,' ');
+  const selected=norm(file),text=norm([item.title,meta.title,file,source].filter(Boolean).join(' '));
+  // Generic horse-sport subject tags cannot qualify a poem, game, movie or unrelated Olympic child.
+  if (/\b(?:poetry|poems?|poet|umamusume|uma musume|anime|cartoon|equestria girls|my little pony|video games?|gameplay|playthrough|board games?|android device|nintendo|podcasts?|talk show|people are talking|good morning shrewsbury|sportsline|press conference|simulcast agreement|action news|newscast|news minute|ribbon cutting|statue|portraitist|home movies?|family scenes|firefighting|fire fighting|travelogue|tourism|politics|political|council|gala|party|fundraiser|balloon|steamboat|music video|concert|full movie|feature film|blu ray|dvdrip|tutorial|how to|coaching|instruction(?:al)?|training lesson|road safety|therapy|therapeutic)\b/.test(text)) return false;
+  if (/\b(?:partial|incomplete|fragment|trailers?|promos?|previews?|teasers?|dvd menus?|bonus features?)\b|\b(?:part|pt)\s*(?:\d+|[ivx]+)\b/.test(text)) return false;
+  if (/\b(?:athletics|marathon|football|basketball|volleyball|swimming|table tennis|t tennis|boxing|badminton|gymnastics|nascar|motor racing|wrestling)\b/.test(selected)) return false;
+  const horse=/\b(?:equestrian|dressage|eventing|show jumping|horse rac(?:e|es|ing)|horseracing|thoroughbred|harness horse|kentucky derby|breeders.? cup|belmont stakes|preakness|secretariat|seabiscuit|steeplechase)\b/;
+  if (['2008_Beijing_Olympics','Olympics.2012.BBC'].includes(source) && file && !horse.test(selected)) return false;
+  if (!horse.test(text)) return false;
+  const format=/\b(?:broadcast|championship|finals?|session|event(?:s|ing)?|meet|olympic(?:s)?|grand prix|cross country|documentary|history|story|profile|biography|racing legend|life and times|last race|best of|thrills and spills|saddle up)\b/;
+  return format.test(text);
 }
 
 export function iaRodeoAllowed(item = {}) {
@@ -629,7 +655,7 @@ export function qualifyIaFileRecord(raw, rules = {}, now = Date.now()) {
   }
   const text = [item.title, item.description, item.subject, item.fileName].filter(Boolean).join(' ').toLowerCase();
   const channel = String(rules.channel || '');
-  if (['52','53','55','56','57','58','59','60','61','62','63','64','65','66','68','69','70','71','72'].includes(channel) && iaKnownVideoPolicyViolation(item, rules)) return reject('off-genre-sports');
+  if (['52','53','55','56','57','58','59','60','61','62','63','64','65','66','68','69','70','71','72','73'].includes(channel) && iaKnownVideoPolicyViolation(item, rules)) return reject('off-genre-sports');
   if (!iaReviewedFileAllowed(item, channel)) return reject('off-genre-reviewed-collection');
   const completeCartoon = channel === '150' && COMPLETE_CARTOON_SHORT_PARENTS.has(item.sourceIdentifier)
     && !/\b(?:clip|trailer|preview|teaser|promo|bumper|intro|introduction|outro|review|reaction|tutorial|interview|bonus|menu|featurette|tiktok|reels)\b|#shorts|youtube shorts/i.test(text);

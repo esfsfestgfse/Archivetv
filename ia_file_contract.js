@@ -25,6 +25,7 @@ export function iaKnownVideoPolicyViolation(item = {}, rules = {}) {
   const channel = String(rules.channel || '');
   if (channel === '65' && !iaSportingLifeAllowed(item)) return true;
   if (channel === '66' && !iaSurfSkateSnowAllowed(item)) return true;
+  if (channel === '68' && !iaCoachingAllowed(item)) return true;
   if (channel === '64') {
     const titleParts=String(item.title||'').split(' \u00b7 ');
     if (titleParts.length>2&&titleParts.slice(0,-1).some((part,index,parts)=>parts.indexOf(part)!==index)) return true;
@@ -238,7 +239,7 @@ export function iaKnownVideoPolicyViolation(item = {}, rules = {}) {
     const parts = String(value || '').split(':').map(Number);
     const runtime = parts.every(Number.isFinite) ? parts.reduce((total,part) => total * 60 + part,0) : 0;
     // A legacy direct URL with no duration must hydrate before it can be ready.
-    if (['52','53','55','56','57','58','59','61','62','63','64','65','66'].includes(channel) && !runtime && (media.url || item.url || item.mediaUrl)) return true;
+    if (['52','53','55','56','57','58','59','61','62','63','64','65','66','68'].includes(channel) && !runtime && (media.url || item.url || item.mediaUrl)) return true;
     if (runtime > 0 && runtime < floor) return true;
     const international = ['106','107','114','115','119','120','151'];
     const language = String(media.language || item.language || meta.language || '').trim().toLowerCase();
@@ -420,6 +421,21 @@ export function iaSportingLifeAllowed(item = {}) {
   return /\b(?:fishing|fisherman|hunting|angling|angler|archery|bowhunting|realtree|whitetail|bassmaster|buckmasters|mossy oak|trap and skeet|sporting clays|sporting dogs|american sportsman|bill dance|jimmy houston|babe winkelman|orlando wilson)\b/.test(text);
 }
 
+export function iaCoachingAllowed(item = {}) {
+  if (!item || typeof item !== 'object') return false;
+  const selected = String(item.fileName || item.media?.fileName || String(item.identifier || item.id || '').split('::')[1] || '').replace(/[_./-]+/g,' ');
+  if (/\b(?:interviews?|full (?:game|match)|dvd menus?|trailers?|music videos?|bonus features?|podcasts?)\b/i.test(selected)) return false;
+  if (/\b(?:full|complete)(?: [a-z]+){0,3} (?:game|match|broadcast)\b|\bgame\s+\d+\b/i.test(selected)) return false;
+  if (/\b(?:vs?|versus)\b/i.test(selected) && !/\b(?:coaching|clinic|instruction|drills?|skills?|fundamentals?|tactics|techniques?|training|conditioning|practice)\b/i.test(selected)) return false;
+  const text = [item.title,item.seriesTitle,item.fileName,item.media?.sourceTitle,item.meta?.title,item.sourceIdentifier,item.identifier || item.id]
+    .filter(Boolean).join(' ').toLowerCase().replace(/[_./-]+/g,' ');
+  if (/\b(?:coach and captains|coach captains|coach & captains|coach shev|coaching news|sports news|news broadcast|tv spot|career|health sciences|health leaders|kinesiology 101|courtside clinician|guilty secrets|doctors tennis|pro evolution soccer|video games?|gameplay|life coaching|business coaching|civic engagement|social skills|panel discussion|project play summit|access spotlight|podcasts?|interviews?|press conference|city council|school committee|retirement|honored following|twitch|funny or die)\b/.test(text)) return false;
+  if (/\bcoerver method\b/.test(text)) return true;
+  const sport=/\b(?:basketball|baseball|football|soccer|tennis|golf|volleyball|wrestling|swimming|track and field|hockey|kayaking|rowing|boxing|rodeo|track|athletic conditioning|physical education)\b/.test(text);
+  const lesson=/\b(?:coaching|clinic|instruction(?:al)?|fundamentals?|skills|drills|techniques?|tactics|playbook|training|conditioning|footwork|ball handling|player development|team play|practice|how to play|lesson with|tennis kqed|vic braden)\b/.test(text);
+  return sport && lesson;
+}
+
 export function iaSurfSkateSnowAllowed(item = {}) {
   if (!item || typeof item !== 'object') return false;
   const source = String(item.sourceIdentifier || item.media?.sourceIdentifier || item.identifier || item.id || '').replace(/^ia:/i, '').split('::')[0];
@@ -562,7 +578,7 @@ export function qualifyIaFileRecord(raw, rules = {}, now = Date.now()) {
   }
   const text = [item.title, item.description, item.subject, item.fileName].filter(Boolean).join(' ').toLowerCase();
   const channel = String(rules.channel || '');
-  if (['52','53','55','56','57','58','59','60','61','62','63','64','65','66','71','72'].includes(channel) && iaKnownVideoPolicyViolation(item, rules)) return reject('off-genre-sports');
+  if (['52','53','55','56','57','58','59','60','61','62','63','64','65','66','68','71','72'].includes(channel) && iaKnownVideoPolicyViolation(item, rules)) return reject('off-genre-sports');
   if (!iaReviewedFileAllowed(item, channel)) return reject('off-genre-reviewed-collection');
   const completeCartoon = channel === '150' && COMPLETE_CARTOON_SHORT_PARENTS.has(item.sourceIdentifier)
     && !/\b(?:clip|trailer|preview|teaser|promo|bumper|intro|introduction|outro|review|reaction|tutorial|interview|bonus|menu|featurette|tiktok|reels)\b|#shorts|youtube shorts/i.test(text);

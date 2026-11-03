@@ -24,6 +24,11 @@
   return parent+(part&&!/\b(?:part|pt|disc)\s*\d+\b/i.test(parent)?' Part '+part[1]:'');
  }
  function competition(text,channel){
+  if(Number(channel)===68){
+   if(/\bcoerver\b/.test(text))return 'coaching-soccer';
+   var sport=text.match(/\b(basketball|baseball|soccer|football|tennis|golf|volleyball|wrestling|swimming|hockey|kayaking|rowing|boxing|rodeo)\b/);
+   return 'coaching-'+(sport?sport[1]:/\btrack and field\b/.test(text)?'athletics':'conditioning');
+  }
   if(Number(channel)===66){
    if(/\b(?:surf(?:ing)?|endless summer|september sessions)\b/.test(text))return 'action-surf';
    if(/\b(?:skateboard(?:ing)?|skate|transworld|411 ?vm|411 video magazine|sick boys|tree fort|world industries|heroin|bams or bust|badass meets dumbass|fourstar)\b/.test(text))return 'action-skate';
@@ -143,7 +148,7 @@
    for(var v=0;v<vaultLanes.length;v++)if(vaultLanes[v][2].test(vaultText))return Object.assign(describe(item,vaultLanes[v][0]),{sport:vaultLanes[v][1]});
   }
   var raw=selectedTitle(item,channel),text=clean(raw),yearMatch=raw.match(/\b((?:19|20)\d{2})\b/),year=Number(yearMatch?yearMatch[1]:String(item.year||'').slice(0,4))||0;
-  var competitionText=[55,57,58,59,61,65,66].includes(Number(channel))?text+' '+clean(item.title)+' '+clean(item.seriesTitle):text;
+  var competitionText=[55,57,58,59,61,65,66,68].includes(Number(channel))?text+' '+clean(item.title)+' '+clean(item.seriesTitle):text;
   var result={eventId:'',competition:competition(competitionText,channel),year:year,era:year?Math.floor(year/10)*10:0,participants:[],format:'program'};
   if(Number(channel)===66){
    var actionText=clean(raw+' '+String(item.title||'')+' '+String(item.seriesTitle||'')+' '+id(item));

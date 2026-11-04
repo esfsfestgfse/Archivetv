@@ -32,10 +32,9 @@ test('Auto Racing cold recovery contains actual race broadcasts before it can re
   assert.ok(items.every(item=>r.iaStationQualityGate('54',item)), 'the direct emergency path must not bypass race-format admission');
   assert.ok(items.some(item=>/formula one|formula 1/i.test(item.title)));
   assert.ok(items.some(item=>/indycar|indianapolis/i.test(item.title)));
-  const ids=new Set(items.map(x=>x.identifier));
-  const stockCar=r.recoverySeeds('76',0).filter(x=>x.sourceIdentifier==='01-1990-daytona-500-full-broadcast'&&Number(x.media?.runtime)>=3600);
+  const stockCar=items.filter(x=>x.sourceIdentifier==='01-1990-daytona-500-full-broadcast'&&Number(x.media?.runtime)>=3600);
   assert.ok(stockCar.length>=12);
-  assert.ok(stockCar.every(x=>ids.has(x.identifier)),'keep the already-verified complete NASCAR broadcasts, even when their sponsor names are unfamiliar');
+  assert.ok(stockCar.every(x=>x.recoveryVerified&&r.iaStationQualityGate('54',x)),'Auto Racing retains its verified complete NASCAR broadcasts independently of Stock Car Nation catalog growth');
 });
 
 test('Auto Racing keeps verification through client warming and saved shelves', () => {

@@ -28,6 +28,7 @@ export function iaKnownVideoPolicyViolation(item = {}, rules = {}) {
   if (channel === '68' && !iaCoachingAllowed(item)) return true;
   if (channel === '69' && !iaSportsNewsreelAllowed(item)) return true;
   if (channel === '70' && !iaRodeoAllowed(item)) return true;
+  if (channel === '76' && !iaStockCarAllowed(item)) return true;
   if (channel === '75' && !iaWaterSportsAllowed(item)) return true;
   if (channel === '74' && !iaWinterSportsAllowed(item)) return true;
   if (channel === '73' && !iaEquestrianAllowed(item)) return true;
@@ -244,7 +245,7 @@ export function iaKnownVideoPolicyViolation(item = {}, rules = {}) {
     const parts = String(value || '').split(':').map(Number);
     const runtime = parts.every(Number.isFinite) ? parts.reduce((total,part) => total * 60 + part,0) : 0;
     // A legacy direct URL with no duration must hydrate before it can be ready.
-    if (['52','53','55','56','57','58','59','61','62','63','64','65','66','68','69','70','73','74','75'].includes(channel) && !runtime && (media.url || item.url || item.mediaUrl)) return true;
+    if (['52','53','55','56','57','58','59','61','62','63','64','65','66','68','69','70','73','74','75','76'].includes(channel) && !runtime && (media.url || item.url || item.mediaUrl)) return true;
     if (runtime > 0 && runtime < floor) return true;
     const international = ['106','107','114','115','119','120','151'];
     const language = String(media.language || item.language || meta.language || '').trim().toLowerCase();
@@ -424,6 +425,34 @@ export function iaSportingLifeAllowed(item = {}) {
   // Equipment-buying listicles are not an outdoor program or field event.
   if (/\b(?:rifles?|guns?|crossbows?|hunting gear|hunting equipment)\b/.test(text) && /\b(?:you should avoid|quietly avoiding|poor accuracy|outdated designs|before you buy|buying guide)\b/.test(text)) return false;
   return /\b(?:fishing|fisherman|hunting|angling|angler|archery|bowhunting|realtree|whitetail|bassmaster|buckmasters|mossy oak|trap and skeet|sporting clays|sporting dogs|american sportsman|bill dance|jimmy houston|babe winkelman|orlando wilson)\b/.test(text);
+}
+
+export function iaStockCarAllowed(item = {}) {
+  const media=item.media||{},meta=item.meta||{},id=String(item.identifier||item.id||'');
+  let source=String(item.sourceIdentifier||media.sourceIdentifier||id.split('::')[0]),file=String(item.fileName||media.fileName||id.split('::')[1]||'');
+  const path=String(media.url||item.url||item.mediaUrl||id).match(/^https?:\/\/[^/]+\/(?:download|\d+\/items)\/([^/?#]+)\/([^?#]+)/i);
+  if(path){if(!file)file=path[2];if(!item.sourceIdentifier&&!media.sourceIdentifier)try{source=decodeURIComponent(path[1]);}catch(_){}}
+  try{file=decodeURIComponent(file);}catch(_){}
+  // These filenames failed actual MP4 header checks; admit replacements only after format verification.
+  if(source==='nascar-cup-series-full-races-archival'&&["2001 Winston All Star Race (Full race).mp4","2022 AutoTrader EchoPark Automotive 500 - NASCAR Cup Series Full Race Replay.mp4","2006 Charlotte 600 NASCAR Cup Full Race May 28, 2006.mp4","2010 Coke Zero 400 (HD).mp4","2011 Daytona 500.mp4","2006 Darlington NASCAR Cup Series Full Race May 13, 2006.mp4","2006 Pocono NASCAR Cup Series Full Race June 11, 2006.mp4","2009 NASCAR Sprint Cup Series Coke Zero 400.mp4","2006 Dover NASCAR Cup Full Race June 6, 2006.mp4","2007 Toyota-Save Mart 350.mp4","2006 Infineon, (aka- Sears Point or Sonoma) NASCAR Cup Full Race June 25, 2006.mp4","2001 NASCAR Winston Cup Series Harrah's 500.mp4","2006 Talladega NASCAR Cup Series Full Race October 8, 2006.mp4","2012 Hollywood Casino 400.mp4","2006 All Star NASCAR Cup Full Race May 20, 2006.mp4","2006 Daytona Dual 150's February 16, 2006 Full Race.mp4","2006 Michigan NASCAR Cup Full Race June 18, 2006.mp4","2006 Daytona Bud Shootout February 2, 2006 Full Race.mp4"].includes(file))return false;
+  const norm=value=>String(value||'').replace(/([a-z])([A-Z])/g,'$1 $2').toLowerCase().replace(/[_./-]+/g,' '),leaf=file.split('/').pop().replace(/(?:\.ia)?\.[^.]+$/i,''),generic=/^(?:(?:video|program|race|drag|title|vts)\W*\d*|\d+)$/i.test(leaf);
+  const selected=norm(file&&!generic?file:[item.title,meta.title,file].filter(Boolean).join(' ')),text=selected+' '+norm(source);
+  if(/^(?:CNN|FOXNEWS|HLN|KGO|KPIX|KNTV|KRON|WBAL|WJZ|WPVI|WTSP|WUSA|TELEARUBA)[A-Z0-9]*_/i.test(source))return false;
+  if(/\b(?:newsroom|anderson cooper|fox friends|fox news|hannity|jesse watters|political|politics|newscast|eyewitness news|news report|o reilly factor|bonnie hunt|louder with crowder|podcasts?|press conference|interview|driver education|driver safety|slot cars|model cars|video games?|gameplay|playthrough|longplay|simulation|nintendo|test drive unlimited|nascar racers|cartoons?|anime|talladega nights|full movie|feature film|tutorial|how to|spark plug|promo|promotional|film trailer)\b/.test(text))return false;
+  if(/\b(?:formula (?:one|1|two|2|three|3)|f1|grand prix|indycar|indy car|indianapolis 500|indy 500|imsa|alms|le mans|endurance racing|motorcycle racing|motocross|bicycle racing)\b/.test(text))return false;
+  const edition=norm(file.toLowerCase());
+  if(/\b(?:dublado|subtitulado)\b|\b(?:russian|german|french|spanish|japanese|portuguese) (?:audio|commentary|broadcast|dubbed|subtitles|720p|1080p|mp4)\b/.test(edition))return false;
+  const reviewed=['01-1990-daytona-500-full-broadcast','2004-nascar-nextel-cup-series','nascar-cup-series-full-races-archival'].includes(source),index=!file&&!media.url&&!item.url&&!item.mediaUrl;
+  if(index&&reviewed)return true;
+  if(/\b(?:partial|incomplete|fragment|highlights?|recaps?|clips?|previews?|trailers?|post race|rainout|year in review|season review|qualifying|practice|happy hour|on ?board|in car only)\b|\b(?:part|pt|cd|disc)\s*\d+\b/.test(selected))return false;
+  if(/\bdays of thunder\b/.test(selected)&&!/\b(?:daytona 500|full race|full broadcast)\b/.test(selected))return false;
+  if(reviewed&&file&&!/^(?:\d{1,2} +)?(?:(?:nascar|nsc) +)?(?:19|20)\d{2}\b/.test(norm(leaf)))return false;
+  const topic=/\b(?:nascar|stock ?car|dirt track|short track|sprint car|world of outlaws|late model racing|arca|nhra|drag rac(?:e|es|ing)|hot rod rac(?:e|es|ing)|daytona 500|talladega|brickyard)\b/;
+  if(!topic.test(text))return false;
+  const format=/\b(?:rac(?:e|es|ing)|full broadcast|raw satellite feed|championships?|finals?|event|round|documentary|history)\b/.test(selected);
+  const declared=/\b(?:full|complete) (?:race|broadcast|event)|\braw satellite feed\b|\b(?:documentary|history)\b/.test(selected);
+  const value=String(media.runtime||item.runtime||item.duration||0).split(':').map(Number),seconds=value.every(Number.isFinite)?value.reduce((sum,v)=>sum*60+v,0):0;
+  return (format||reviewed)&&(reviewed||declared||seconds>=3600||index);
 }
 
 export function iaWaterSportsAllowed(item = {}) {
@@ -701,7 +730,7 @@ export function qualifyIaFileRecord(raw, rules = {}, now = Date.now()) {
   }
   const text = [item.title, item.description, item.subject, item.fileName].filter(Boolean).join(' ').toLowerCase();
   const channel = String(rules.channel || '');
-  if (['52','53','55','56','57','58','59','60','61','62','63','64','65','66','68','69','70','71','72','73','74','75'].includes(channel) && iaKnownVideoPolicyViolation(item, rules)) return reject('off-genre-sports');
+  if (['52','53','55','56','57','58','59','60','61','62','63','64','65','66','68','69','70','71','72','73','74','75','76'].includes(channel) && iaKnownVideoPolicyViolation(item, rules)) return reject('off-genre-sports');
   if (!iaReviewedFileAllowed(item, channel)) return reject('off-genre-reviewed-collection');
   const completeCartoon = channel === '150' && COMPLETE_CARTOON_SHORT_PARENTS.has(item.sourceIdentifier)
     && !/\b(?:clip|trailer|preview|teaser|promo|bumper|intro|introduction|outro|review|reaction|tutorial|interview|bonus|menu|featurette|tiktok|reels)\b|#shorts|youtube shorts/i.test(text);

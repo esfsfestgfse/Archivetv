@@ -28,6 +28,7 @@ export function iaKnownVideoPolicyViolation(item = {}, rules = {}) {
   if (channel === '68' && !iaCoachingAllowed(item)) return true;
   if (channel === '69' && !iaSportsNewsreelAllowed(item)) return true;
   if (channel === '70' && !iaRodeoAllowed(item)) return true;
+  if (channel === '75' && !iaWaterSportsAllowed(item)) return true;
   if (channel === '74' && !iaWinterSportsAllowed(item)) return true;
   if (channel === '73' && !iaEquestrianAllowed(item)) return true;
   if (channel === '64') {
@@ -243,7 +244,7 @@ export function iaKnownVideoPolicyViolation(item = {}, rules = {}) {
     const parts = String(value || '').split(':').map(Number);
     const runtime = parts.every(Number.isFinite) ? parts.reduce((total,part) => total * 60 + part,0) : 0;
     // A legacy direct URL with no duration must hydrate before it can be ready.
-    if (['52','53','55','56','57','58','59','61','62','63','64','65','66','68','69','70','73','74'].includes(channel) && !runtime && (media.url || item.url || item.mediaUrl)) return true;
+    if (['52','53','55','56','57','58','59','61','62','63','64','65','66','68','69','70','73','74','75'].includes(channel) && !runtime && (media.url || item.url || item.mediaUrl)) return true;
     if (runtime > 0 && runtime < floor) return true;
     const international = ['106','107','114','115','119','120','151'];
     const language = String(media.language || item.language || meta.language || '').trim().toLowerCase();
@@ -423,6 +424,27 @@ export function iaSportingLifeAllowed(item = {}) {
   // Equipment-buying listicles are not an outdoor program or field event.
   if (/\b(?:rifles?|guns?|crossbows?|hunting gear|hunting equipment)\b/.test(text) && /\b(?:you should avoid|quietly avoiding|poor accuracy|outdated designs|before you buy|buying guide)\b/.test(text)) return false;
   return /\b(?:fishing|fisherman|hunting|angling|angler|archery|bowhunting|realtree|whitetail|bassmaster|buckmasters|mossy oak|trap and skeet|sporting clays|sporting dogs|american sportsman|bill dance|jimmy houston|babe winkelman|orlando wilson)\b/.test(text);
+}
+
+export function iaWaterSportsAllowed(item = {}) {
+  const media=item.media||{},meta=item.meta||{},id=String(item.identifier||item.id||'');
+  let source=String(item.sourceIdentifier||media.sourceIdentifier||id.split('::')[0]),file=String(item.fileName||media.fileName||id.split('::')[1]||'');
+  const path=String(media.url||item.url||item.mediaUrl||id).match(/^https?:\/\/[^/]+\/(?:download|\d+\/items)\/([^/?#]+)\/([^?#]+)/i);
+  if(path){if(!file)file=path[2];if(!item.sourceIdentifier&&!media.sourceIdentifier)try{source=decodeURIComponent(path[1]);}catch(_){}}
+  try{file=decodeURIComponent(file);}catch(_){}
+  if(/twitch/i.test(source))return false;
+  const norm=value=>String(value||'').replace(/([a-z])([A-Z])/g,'$1 $2').toLowerCase().replace(/[_./-]+/g,' '),selected=norm(file),text=norm([item.title,meta.title,file,source].filter(Boolean).join(' '));
+  // A water-sport tag is not proof of actual competition footage.
+  if(/\b(?:video games?|gameplay|playthrough|longplay|simulation|minecraft|sea of thieves|twitch|nintendo|mario|sonic|cartoon|anime|full movie|feature film|podcasts?|talk show|newscast|news report|press conference|home movies?|family scenes|vlog|travelogue|travel diary|sailing the mediterranean|scuba|shipwreck|marine wildlife|tourism|cruise ship|boat building|building a boat|cardboard|model sailboat|toy boat|rubber duck|fishing|opening day|open house|ribbon cutting|fundraiser|music video|concert|tutorial|how to|swimming lesson|workout|training tips)\b/.test(text))return false;
+  if(/\b(?:partial|fragment|incomplete|highlights?|clips?|recaps?|previews?|promos?|trailers?|teasers?|opening ceremony|closing ceremony)\b|\b(?:part|pt|cd|disc|p)\s*\d+\b/.test(text))return false;
+  const languageFile=norm(file.toLowerCase());
+  if(/\b(?:swehd|schaatsen|purjehdus|olympiakisat|naisten|sd slo|dublado|subtitulado)\b/.test(languageFile))return false;
+  if(/\b(?:swedish|norsk|finnish|russian|german|italian|spanish|japanese|french) (?:audio|commentary|broadcast|dubbed|subtitles|720p|1080p|hdtv|pdtv|webrip|mp4|m4v|webm)\b|\b(?:audio|commentary|language) (?:swedish|finnish|russian|german|italian|spanish|japanese|french)\b/.test(languageFile))return false;
+  if(/\b(?:athletics|equestrian|dressage|basketball|football|hockey|tennis|volleyball|boxing|skiing|snowboard|wrestling)\b/.test(selected))return false;
+  const water=/\b(?:sailing|sail regatta|sailboat rac(?:e|ing)|yacht rac(?:e|ing)|regatta|rowing|crew rac(?:e|ing)|canoe(?:ing)?|kayak(?:ing)?|swimming|diving|water ?polo|w polo|w w polo|aquatics)\b/;
+  if(['2008_Beijing_Olympics','2016_Rio_Olympics_Aquatics'].includes(source)&&file&&!water.test(selected))return false;
+  if(!water.test(text))return false;
+  return /\b(?:olympic(?:s)?|championships?|finals?|heats?|repechages?|race|races|racing|regatta|session|coverage|broadcast|full show|program|documentary|history|vs?|match|meet)\b/.test(text);
 }
 
 export function iaWinterSportsAllowed(item = {}) {
@@ -679,7 +701,7 @@ export function qualifyIaFileRecord(raw, rules = {}, now = Date.now()) {
   }
   const text = [item.title, item.description, item.subject, item.fileName].filter(Boolean).join(' ').toLowerCase();
   const channel = String(rules.channel || '');
-  if (['52','53','55','56','57','58','59','60','61','62','63','64','65','66','68','69','70','71','72','73','74'].includes(channel) && iaKnownVideoPolicyViolation(item, rules)) return reject('off-genre-sports');
+  if (['52','53','55','56','57','58','59','60','61','62','63','64','65','66','68','69','70','71','72','73','74','75'].includes(channel) && iaKnownVideoPolicyViolation(item, rules)) return reject('off-genre-sports');
   if (!iaReviewedFileAllowed(item, channel)) return reject('off-genre-reviewed-collection');
   const completeCartoon = channel === '150' && COMPLETE_CARTOON_SHORT_PARENTS.has(item.sourceIdentifier)
     && !/\b(?:clip|trailer|preview|teaser|promo|bumper|intro|introduction|outro|review|reaction|tutorial|interview|bonus|menu|featurette|tiktok|reels)\b|#shorts|youtube shorts/i.test(text);

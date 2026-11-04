@@ -24,6 +24,11 @@
   return parent+(part&&!/\b(?:part|pt|disc)\s*\d+\b/i.test(parent)?' Part '+part[1]:'');
  }
  function competition(text,channel){
+  if(Number(channel)===75){
+   var waters=[['polo',/\b(?:water ?polo|w polo|w wpolo|m wpolo)\b/],['sailing',/\b(?:sailing|regatta|yacht racing|nood)\b/],['rowing',/\b(?:rowing|crew racing)\b/],['paddling',/\b(?:canoe(?:ing)?|kayak(?:ing)?)\b/],['artistic-swimming',/\b(?:synchroni[sz]ed swimming|artistic swimming)\b/],['diving',/\b(?:diving|springboard|platform)\b/],['swimming',/\bswimming\b/]];
+   for(var w=0;w<waters.length;w++)if(waters[w][1].test(text))return 'water-'+waters[w][0];
+   return 'water-multisport';
+  }
   if(Number(channel)===74){
    var winters=[['biathlon',/\bbiathlon\b/],['curling',/\bcurling\b/],['snowboard',/\bsnowboard(?:ing)?\b/],['sliding',/\b(?:bobsleigh|bobsled|luge|skeleton)\b/],['ski-jumping',/\bski jump(?:ing)?\b/],['nordic',/\b(?:cross country skiing|nordic combined)\b/],['figure-skating',/\b(?:figure skat(?:ing|ng)|ice dance)\b/],['speed-skating',/\b(?:speed ?skating|short track)\b/],['freestyle-skiing',/\b(?:freestyle|moguls|ski cross|slopestyle|halfpipe)\b/],['alpine-skiing',/\b(?:skiing|slalom|downhill)\b/]];
    for(var w=0;w<winters.length;w++)if(winters[w][1].test(text))return 'winter-'+winters[w][0];
@@ -170,9 +175,21 @@
    for(var v=0;v<vaultLanes.length;v++)if(vaultLanes[v][2].test(vaultText))return Object.assign(describe(item,vaultLanes[v][0]),{sport:vaultLanes[v][1]});
   }
   var raw=selectedTitle(item,channel),text=clean(raw),yearMatch=raw.match(/\b((?:19|20)\d{2})\b/),year=Number(yearMatch?yearMatch[1]:String(item.year||'').slice(0,4))||0;
-  var competitionText=[55,57,58,59,61,65,66,68,69,70,73,74].includes(Number(channel))?text+' '+clean(item.title)+' '+clean(item.seriesTitle):text;
-  if(Number(channel)===74)competitionText+=' '+clean(item.fileName||id(item).split('::')[1]||'');
+  var competitionText=[55,57,58,59,61,65,66,68,69,70,73,74,75].includes(Number(channel))?text+' '+clean(item.title)+' '+clean(item.seriesTitle):text;
+  if([74,75].includes(Number(channel)))competitionText+=' '+clean(item.fileName||id(item).split('::')[1]||'');
   var result={eventId:'',competition:competition(competitionText,channel),year:year,era:year?Math.floor(year/10)*10:0,participants:[],format:'program'};
+  if(Number(channel)===75){
+   var waterSource=String(item.sourceIdentifier||id(item).split('::')[0]),waterFile=String(item.fileName||item.media&&item.media.fileName||id(item).split('::')[1]||'').replace(/(?:\.ia)?\.mp4$/i,'');
+   var waterIdentity=(waterFile.split('/').pop()||'').split(/[ ._-](?:\d{3,4}[pi]|hdtv|pdtv|webrip|sdtv|x264|xvid)/i)[0];
+   if(/^(?:finals?|heats?|session|program|\d+)$/i.test(waterIdentity))waterIdentity=waterFile;
+   if(/^Xcorps64NoodSailingHD2(?:_201802)?$/.test(waterSource))result.eventId='sports:water:sailing:xcorps-64-nood';
+   else if(waterSource==='2012_London_Olympics_Swimming'){
+    var label=clean(waterIdentity),day=label.match(/\bday\s*(\d+)\b/),date=label.match(/^2012(\d{2})(\d{2})\b/),phase=/\b(?:heats|preliminaries)\b/.test(label)?'heats':/\b(?:finals|evening)\b/.test(label)?'finals':'';
+    if(date){var offset=Math.round((Date.UTC(2012,Number(date[1])-1,Number(date[2]))-Date.UTC(2012,6,28))/86400000);if(offset>=0&&offset<8)day=[null,String(offset+1)];}
+    if(day&&phase&&!/\b(?:womens|mens|4x\d+)\b/.test(label))result.eventId='sports:water:swimming:london2012:day-'+Number(day[1])+':'+phase;
+   }
+   if(!result.eventId&&waterSource&&waterIdentity)result.eventId='sports:water:file:'+waterSource+':'+clean(waterIdentity);
+  }
   if(Number(channel)===74){
    var winterSource=String(item.sourceIdentifier||id(item).split('::')[0]),winterFile=String(item.fileName||item.media&&item.media.fileName||id(item).split('::')[1]||'').split('/').pop().replace(/(?:\.ia)?\.mp4$/i,'');
    // Resolution/codec variants share an event; distances, rounds and sessions do not.
@@ -248,7 +265,7 @@
   if(versus)result.participants=[clean(versus[1]),clean(versus[2])].filter(Boolean).map(function(v){return v.slice(0,90);}).sort();
   var card=text.match(/\b(ufc|pride)\s+(\d{1,3})\b/);
   if(card&&full){result.format=versus?'bout':'event';result.eventId='sports:'+card[1]+':'+card[2]+(versus?':bout:'+result.participants.join('-vs-'):'')+suffix;}
-  else if(!racing&&date&&result.participants.length===2&&(full||seconds(item)>=900))result.eventId='sports:'+result.competition+':'+date+':'+result.participants.join('-vs-')+suffix;
+  else if(Number(channel)!==75&&!racing&&date&&result.participants.length===2&&(full||seconds(item)>=900))result.eventId='sports:'+result.competition+':'+date+':'+result.participants.join('-vs-')+suffix;
   var bowl=text.match(/\bsuper bowl\s+(\d{1,3}|[ivxlcdm]+)\b/);
   if(bowl&&full){var number=Number(bowl[1]);if(!number){var values={i:1,v:5,x:10,l:50,c:100,d:500,m:1000},last=0;number=0;for(var r=bowl[1].length-1;r>=0;r--){var value=values[bowl[1][r]];number+=value<last?-value:value;last=Math.max(last,value);}}if(number>0&&number<200)result.eventId='sports:nfl:super-bowl-'+number+suffix;}
   if(Number(channel)===58&&year){

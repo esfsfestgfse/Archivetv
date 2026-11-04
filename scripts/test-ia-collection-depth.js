@@ -85,7 +85,7 @@ check(/"115": \[/.test(relay) && /1989gojirataibiorante/.test(relay) && /theretu
 check(/"154": \[/.test(relay) && /DragnetEpisode18TheBigSeventeenwcommercials/.test(relay) && /hawaii-five-o-S2E3-480p/.test(relay), 'Cop Show Classic has verified police-procedural recovery media');
 check(/"157": \[/.test(relay) && /powerpuff-girls-complete-series/.test(relay) && /StarWarsCloneWars2003/.test(relay), 'After School has verified kids-animation recovery media');
 check(/"228": \[/.test(relay) && /WETA_20131009_140000_Frontline/.test(relay) && /KYW_20141012_230000_60_Minutes/.test(relay), 'Deadline has verified newsmagazine recovery media');
-check(/"75": \[/.test(relay) && /XcorpsNOODregattaSEG2/.test(relay) && /jseALNAIRracing94ver2/.test(relay), 'Regatta has real IA water-sports recovery media');
+check(/"75": \[/.test(relay) && /Xcorps64NoodSailingHD2/.test(relay) && /jseALNAIRracing94ver2/.test(relay), 'Regatta has complete IA water-sports recovery programs');
 check(/IA_STRICT_CATALOG_CANDIDATE_MAX\s*=\s*4096/.test(relay) && /IA_CATALOG_CANDIDATE_MAX\s*=\s*3072/.test(relay) && /const target = strict \? 4096 : 3072/.test(relay), 'Relay retains thousands-deep rolling catalog budgets');
 check(/candidateLimit = Math\.max\(count, Math\.min\(IA_STRICT_CATALOG_CANDIDATE_MAX/.test(relay), 'Relay builds the candidate shelf from the expanded budget');
 check(/const expandedSources = new Set\(expanded\.map/.test(relay) && /const approvedPrograms = approved\.filter/.test(relay), 'Relay drops parent indexes after episode expansion');

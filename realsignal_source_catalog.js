@@ -681,12 +681,6 @@ function normalizedProfile(body) {
     peerTubeDetailLimit: Math.max(SOURCE_MIN_READY, Math.min(32, Number(approved.peerTubeDetailLimit) || 32)),
     peerTubeFallbackQueryWindow: Math.max(1, Math.min(approved.deepCatalog === true ? 10 : SOURCE_MAX_QUERY_WINDOW, Number(approved.peerTubeFallbackQueryWindow) || SOURCE_QUERY_WINDOW)),
     deepCatalog: approved.deepCatalog === true,
-    youtubeSports: approved.youtubeSports === true,
-    sportsFormat: approved.sportsFormat || "",
-    sportsPlaylists: approved.sportsPlaylists || {},
-    sportsArchives: approved.sportsArchives || {},
-    sportsVideos: approved.sportsVideos || {},
-    sportsThroughYear: Number(approved.sportsThroughYear) || 0,
     longForm: approved.longForm === true,
     match: list(approved.match, 40),
     deny: list(approved.deny, 96),
@@ -779,46 +773,6 @@ function okMovieTitleQualified(profile, item) {
   return strongRelease || titleEvidence || movieContext;
 }
 
-function sportsReplayTitle(profile, title) {
-  if (/\b(?:highlights?|recap|condensed|preview|reaction|watchalong|watch along|podcast|press conference|interview|gameplay|simulation|sim racing|video game|e-?sports|e-?sailing|virtual regatta|shorts|trailer|promo|teaser|top \d+|awards ceremony|awards \d{4})\b/i.test(title)) return false;
-  if (profile.sportsFormat === "race" && /\b(?:practice|qualifying|warm[ -]?up|testing|pre[ -]?race|post[ -]?race|part\s+\d+)\b/i.test(title)) return false;
-  if (profile.profileKey === "yt-sports-baseball" && /\b(?:baseball5|softball|home run derby|batting practice)\b/i.test(title)) return false;
-  if (profile.sportsFormat === "fight" && /\b(?:weigh[ -]?ins?|face[ -]?offs?|pressers?)\b/i.test(title)) return false;
-  if (profile.profileKey === "yt-sports-gridiron" && !/\b(?:acc football|american football|efa|european football alliance)\b/i.test(title)) return false;
-  if (profile.profileKey === "yt-sports-octagon" && /\b(?:kickboxing|muay thai|submission grappling)\b/i.test(title)) return false;
-  if (profile.profileKey === "yt-sports-range-field" && /\b(?:familiarisation|familiarization|opening ceremony|equipment control)\b/i.test(title)) return false;
-  if (profile.profileKey === "yt-sports-rodeo" && /\bbest of\b/i.test(title)) return false;
-  if (profile.sportsThroughYear) {
-    const eventYear = Number(title.match(/\b(?:19|20)\d{2}\b/)?.[0]);
-    if (!eventYear || eventYear > profile.sportsThroughYear) return false;
-  }
-  if (profile.sportsFormat === "program") {
-    if (/\b(?:behind the scenes|speaker series|product launch|gear review)\b/i.test(title)) return false;
-    if (profile.profileKey === "yt-sports-hard-count" && /\bdeep blue\b/i.test(title)) return true;
-    if (profile.profileKey === "yt-sports-hunt") {
-      if (/\b(?:politic(?:s|al)|campaign|rally|news|press briefing|gear setup|how to)\b/i.test(title)) return false;
-      if (/\b(?:eastmans. hunting tv|mossy oak classics)\b/i.test(title)) return true;
-    }
-    return /\b(?:full (?:tv )?episode|full film|documentary|full program|complete episode|season \d+|episode \d+|ep\.?\s*\d+|a football life|nfl films presents|america.s game|(?:game ?day|nfl) all access|throwback originals)\b/i.test(title);
-  }
-  if (profile.sportsFormat === "clinic") {
-    return /\b(?:clinic|coach education|coach development|coaching seminar|coaching workshop)\b/i.test(title);
-  }
-  if (/\b(?:s\d+\s*ep?\.?\s*\d+|episode\s+\d+|extended cut|all goals|every goal|best goals)\b/i.test(title)) return false;
-  const complete = /\b(?:full|complete|entire)\s+(?:length\s+)?(?:race|match|game|fight|bout|event|session|coverage|broadcast|round|replay)\b|\b(?:race|match|game|fight|event|round)\s+(?:replay|broadcast)\b/i;
-  if (complete.test(title)) return true;
-  const matchup = /\b(?:vs\.?|versus|v)\s|\s(?:@|at)\s/i.test(title);
-  switch (profile.sportsFormat) {
-    case "race": return /\b(?:race\s+\d+|race day|day\s+\d+|round\s+\d+|hours? of|grand prix|e-prix|\d{3}\s+at)\b/i.test(title) && /\b(?:live|replay|race broadcast)\b/i.test(title);
-    case "round": return /\b(?:final round|round\s+\d+|round replay)\b/i.test(title);
-    case "cue": return /\bchampionship league\b/i.test(title) && /\b(?:table|session|day)\s*\d+/i.test(title) || matchup && /\b(?:finals?|semi[- ]?finals?|quarter[- ]?finals?|last \d+|round \d+)\b/i.test(title);
-    case "game": return matchup || /\b(?:world series|playoffs?|championship)\b.*\bgame\s+\d+\b/i.test(title);
-    case "fight": return matchup && /\b(?:fight|bout|boxing|mma)\b/i.test(title);
-    case "match": return matchup && /\b(?:finals?|round|championships?|court)\b/i.test(title);
-    default: return /\b(?:live|replay|finals|broadcast)\b/i.test(title) && /\b(?:finals?|championships?|qualifiers?|round|day\s+\d+|session)\b/i.test(title);
-  }
-}
-
 function accepted(profile, item, provider, checkAspect = true) {
   if (!SourcePrograms.allow(profile.profileKey, item)) return false;
   if (okMusicChannel(profile)) return okMusicPrecheck(profile,item,checkAspect);
@@ -840,18 +794,6 @@ function accepted(profile, item, provider, checkAspect = true) {
   const admissionProfileKey = profile.parentProfileKey || profile.profileKey;
   const minimumRuntime = Math.max(SOURCE_MIN_RUNTIME, Number(profile.minRuntimeSeconds) || 0);
   if (!item || !(item.id || item.uuid || item.rawId) || !title || duration < minimumRuntime || (checkAspect && ratio < SOURCE_MIN_ASPECT_RATIO)) return false;
-  if (profile.youtubeSports) {
-    const id = String(item.id || "").match(/^yt:([A-Za-z0-9_-]{11})$/)?.[1];
-    const topicEvidence = [title, item.account];
-    if (profile.profileKey === "yt-sports-sporting-life" && /^Full Film · /.test(title)) topicEvidence.push(text(item.description, 400));
-    return source === "YouTube" && item.embedAllowed === true && !!item.channelId
-      && profile.youtubeChannelHandles.includes(item.channelSeed) && !!id
-      && item.embedUrl === "https://www.youtube-nocookie.com/embed/" + id
-      && item.url === item.embedUrl
-      && englishOkay({ ...item, account: "", description: "" }, true)
-      && sportsReplayTitle(profile, title)
-      && termsMatch(text(topicEvidence.join(" "), 1400).toLowerCase(), profile.match);
-  }
   if (profile.titleRequiredTerms.length && !termsMatch(titleHaystack, profile.titleRequiredTerms)) return false;
   const qualityMovieTitle = okMovieTitleQualified(profile, item);
   const okEpisode = source === "OK.ru" && admissionProfileKey === "ok-tv-channel" && /\b(?:s\d{1,2}[ ._-]*e\d{1,3}|\d{1,2}x\d{1,3})\b/i.test(title);
@@ -1089,82 +1031,52 @@ async function youtubeChannelUploads(profile, rotation, env, options = {}) {
     if (/^UC[a-zA-Z0-9_-]{20,}$/.test(seed)) channelParams.set("id", seed);
     else channelParams.set("forHandle", String(seed).replace(/^@/, ""));
     const channel = await fetchJson("https://www.googleapis.com/youtube/v3/channels?" + channelParams, { headers: { Referer: "https://esfsfestgfse.github.io/Archivetv/" } });
-    const publisher = channel?.items?.[0];
-    const curatedVideos = profile.sportsVideos?.[seed];
-    const direct = (curatedVideos?.ids || []).map(rawId => ({
-      id: "yt:" + rawId, rawId, query: "channel:" + seed,
-      channelSeed: seed, publisherId: publisher?.id,
-      curated: true,
-      title: curatedVideos.label, playlistLabel: curatedVideos.label,
-    }));
-    const curatedPlaylist = profile.sportsPlaylists?.[seed];
-    const playlistId = curatedPlaylist?.id || publisher?.contentDetails?.relatedPlaylists?.uploads;
-    if (!playlistId || (profile.youtubeSports && !publisher?.id)) return { seed, resolved: false, items: [] };
+    const playlistId = channel && channel.items && channel.items[0] && channel.items[0].contentDetails && channel.items[0].contentDetails.relatedPlaylists && channel.items[0].contentDetails.relatedPlaylists.uploads;
+    if (!playlistId) return { seed, resolved: false, items: [] };
     /* One upload page is enough for a cold start. Maintenance rotates through
        older upload pages so a deep channel does not keep reopening the same
        newest fifty videos. Playlist pagination is cheap compared with
        videos.list and remains bounded to four pages per approved seed. */
     const pageWindow = options.maintenance === true ? profile.youtubeChannelPageWindow : 1;
-    const archiveRails = options.maintenance === true && !firstLane ? profile.sportsArchives?.[seed] || [] : [];
-    const archiveTurn = Math.abs(Math.trunc(Number(rotation) || 0));
-    const archive = archiveRails.length ? archiveRails[archiveTurn % archiveRails.length] : null;
-    const archivePage = archive ? Math.floor(archiveTurn / archiveRails.length) % 3 : 0;
-    const pageStart = options.maintenance === true && !curatedPlaylist && !archive
+    const pageStart = options.maintenance === true
       ? Math.abs((Number(rotation) || 0) + seed.split("").reduce((sum, char) => sum + char.charCodeAt(0), 0)) % pageWindow
       : 0;
-    const readPlaylist = async (id, start, limit) => {
-      const items = [];
-      let pages = 0, pageToken = "";
-      for (let page = 0; page < limit; page += 1) {
-        const params = new URLSearchParams({ part: "snippet", playlistId: id, maxResults: firstLane ? "25" : "50", key });
-        if (pageToken) params.set("pageToken", pageToken);
-        const result = await fetchJson("https://www.googleapis.com/youtube/v3/playlistItems?" + params, { headers: { Referer: "https://esfsfestgfse.github.io/Archivetv/" } });
-        pages += 1;
-        pageToken = text(result?.nextPageToken, 120);
-        if (page >= start || (!pageToken && !items.length)) items.push(...(result?.items || []));
-        if (!pageToken) break;
-      }
-      return { items, pages };
-    };
-    // One current page plus at most three pages of one official archive.
-    // Neither a broken archive nor a broken uploads page erases the other.
-    const [current, older] = await Promise.all([
-      readPlaylist(playlistId, pageStart, archive ? 1 : Math.min(4, pageStart + pageWindow))
-        .catch(error => { if (!archive) throw error; return { items: [], pages: 0 }; }),
-      archive ? readPlaylist(archive.id, archivePage, archivePage + 1).catch(() => null) : null,
-    ]);
-    const candidatesFor = (pageItems, label, isArchive) => pageItems.map((item) => {
+    const pageLimit = Math.min(4, pageStart + pageWindow);
+    let pageToken = "";
+    const pageItems = [];
+    let pagesFetched = 0;
+    for (let page = 0; page < pageLimit; page += 1) {
+      const uploadsParams = new URLSearchParams({ part: "snippet", playlistId, maxResults: firstLane ? "25" : "50", key });
+      if (pageToken) uploadsParams.set("pageToken", pageToken);
+      const uploads = await fetchJson("https://www.googleapis.com/youtube/v3/playlistItems?" + uploadsParams, { headers: { Referer: "https://esfsfestgfse.github.io/Archivetv/" } });
+      pagesFetched += 1;
+      if (page >= pageStart) pageItems.push(...(uploads && uploads.items || []));
+      pageToken = text(uploads && uploads.nextPageToken, 120);
+      if (!pageToken) break;
+    }
+    const items = pageItems.map((item) => {
       const videoId = text(item && item.snippet && item.snippet.resourceId && item.snippet.resourceId.videoId, 120);
       const snippet = item && item.snippet || {};
-      const title = text(snippet.title);
-      const playlistLabel = isArchive && sportsReplayTitle(profile, title) ? "" : label || "";
       return videoId ? {
         id: `yt:${videoId}`,
         rawId: videoId,
         query: `channel:${seed}`,
         channelSeed: seed,
-        publisherId: publisher.id,
         channelDiscovered: seedInfo.discovered === true,
-        playlistLabel,
-        title: [playlistLabel, title].filter(Boolean).join(" · "),
+        title: text(snippet.title),
         description: text(snippet.description, 1800),
         account: text(snippet.videoOwnerChannelTitle || snippet.channelTitle, 180),
         year: text(snippet.publishedAt, 12),
       } : null;
     }).filter(Boolean);
-    const recent = candidatesFor(current.items, curatedPlaylist?.label, false);
-    const history = candidatesFor(older?.items || [], archive?.label, true);
-    const items = archive ? Array.from({ length: Math.max(recent.length, history.length) },
-      (_, i) => [history[i], recent[i]].filter(Boolean)).flat() : recent;
-    return { seed, publisherId: publisher.id, resolved: true, pages: current.pages + (older?.pages || 0), items: direct.concat(items) };
+    return { seed, resolved: true, pages: pagesFetched, items };
   });
   const lanes = (await mapLimit(jobs, 2, async (job) => {
     try { return await job(); }
     catch (error) { return { seed: "", resolved: false, pages: 0, items: [], error: text(error && (error.providerDetail || error.message), 180) || "channel upload request failed" }; }
   })).filter(Boolean);
   return {
-    publishers: lanes.filter(lane => lane.publisherId).map(({ seed, publisherId }) => ({ seed, publisherId })),
-    items: unique(profile.youtubeSports || profile.profileKey === "garden-ledger"
+    items: unique(profile.profileKey === "garden-ledger"
       ? Array.from({length: Math.max(0, ...lanes.map(lane => (lane.items || []).length))}, (_, index) => lanes.map(lane => (lane.items || [])[index]).filter(Boolean)).flat()
       : lanes.flatMap((lane) => lane.items || [])),
     health: {
@@ -1241,35 +1153,7 @@ async function youtube(profile, rotation, env, options = {}) {
   const channelLane = await youtubeChannelUploads(profile, rotation, env, options);
   const searchResponses = await mapLimit(jobs, SOURCE_YOUTUBE_QUERY_CONCURRENCY, (job) => job());
   const searchCandidates = searchResponses.flatMap((response) => Array.isArray(response && response.items) ? response.items : []);
-  let uploads = channelLane.items || [];
-  if (profile.youtubeSports) {
-    uploads = uploads.filter(candidate => candidate.curated || sportsReplayTitle(profile, candidate.title)
-      || /\b(?:day|table|session|round)\s+\d+\b|\bfinals\b/i.test(candidate.title) && sportsReplayTitle(profile, "Replay " + candidate.title));
-    // Maintenance can look deeper within a resolved publisher when recent
-    // uploads do not contain enough full programs. Viewer tunes use uploads.
-    const publishers = channelLane.publishers || [];
-    if (options.maintenance === true && uploads.length < 40 && publishers.length) {
-      const publisher = publishers[0];
-      const preferred = {
-        "yt-sports-hard-count": publisher.seed === "@DallasCowboys" ? "deep blue" : "legacy full documentary",
-        "yt-sports-sports-newsreel": "sports documentary | olympic film",
-        "yt-sports-fishing": "bassmaster live | bass pro tour full episode",
-        "yt-sports-regatta": "full race | race day | finals replay",
-        "yt-sports-hunt": "full episode | turkey season | deer season | elk hunt",
-      }[profile.profileKey];
-      const format = preferred || (profile.sportsThroughYear ? "classic full race replay" :
-        { program: "full episode | full documentary", clinic: "coaching clinic", race: "full race | race replay", round: "full round | round replay", fight: "full fight", cue: "full match | championship league", game: "full game | full match", match: "full match" }[profile.sportsFormat] || "full event | replay");
-      const params = new URLSearchParams({ part: "snippet", type: "video", channelId: publisher.publisherId, q: format, videoDuration: "long", videoEmbeddable: "true", regionCode: "US", maxResults: "50", key });
-      const scoped = await fetchJson("https://www.googleapis.com/youtube/v3/search?" + params, { headers: { Referer: "https://esfsfestgfse.github.io/Archivetv/" } }).catch(() => null);
-      for (const row of scoped?.items || []) {
-        const rawId = row.id?.videoId;
-        if (rawId && sportsReplayTitle(profile, row.snippet?.title || "")) {
-          searchCandidates.push({ id: "yt:" + rawId, rawId, query: "channel:" + publisher.seed, channelSeed: publisher.seed, publisherId: publisher.publisherId });
-        }
-      }
-    }
-  }
-  const candidates = unique([...uploads, ...searchCandidates]);
+  const candidates = unique([...(channelLane.items || []), ...searchCandidates]);
   const totalResults = searchResponses.reduce((sum, response) => sum + Number(response && response.totalResults || 0), 0);
   const pages = searchResponses.reduce((sum, response) => sum + Number(response && response.pagesFetched || 0), 0);
   const ids = unique(candidates).map((item) => item.rawId).slice(0, firstLane ? 25 : (profile.deepCatalog === true ? 150 : 75));
@@ -1277,12 +1161,7 @@ async function youtube(profile, rotation, env, options = {}) {
   /* videos.list accepts at most 50 IDs. Chunking also means one oversized
      discovery pass cannot invalidate an otherwise healthy YouTube lane. */
   const detailBatches = await mapLimit(Array.from({ length: Math.ceil(ids.length / 50) }, (_, index) => ids.slice(index * 50, index * 50 + 50)), firstLane ? 1 : 2, async (batch) => {
-    const params = new URLSearchParams({ part: "snippet,contentDetails,status,player", id: batch.join(","), key });
-    if (profile.youtubeSports) {
-      params.set("maxWidth", "960");
-      params.set("part", params.get("part") + ",liveStreamingDetails");
-    }
-    const detailUrl = "https://www.googleapis.com/youtube/v3/videos?" + params;
+    const detailUrl = "https://www.googleapis.com/youtube/v3/videos?" + new URLSearchParams({ part: "snippet,contentDetails,status,player", id: batch.join(","), key });
     return fetchJson(detailUrl);
   });
   const detailItems = detailBatches.filter(Boolean).flatMap((batch) => batch.items || []);
@@ -1293,27 +1172,10 @@ async function youtube(profile, rotation, env, options = {}) {
     // YouTube may omit player dimensions even for a normal landscape video.
     // The long-form search gate prevents Shorts and short clips while this
     // fallback keeps valid TV-length videos from being discarded as unknown.
-    let ratio = aspectRatio(item.player);
-    if (profile.youtubeSports) {
-      const region = item.contentDetails?.regionRestriction;
-      if (item.status?.privacyStatus !== "public" || item.status?.embeddable !== true
-        || !candidate.publisherId || candidate.publisherId !== item.snippet?.channelId
-        || item.snippet?.liveBroadcastContent !== "none"
-        || item.contentDetails?.contentRating?.ytRating === "ytAgeRestricted"
-        || region?.blocked?.includes("US") || (region?.allowed && !region.allowed.includes("US"))) return null;
-    } else {
-      ratio ||= 16 / 9;
-    }
-    let title = text(item.snippet && item.snippet.title) || candidate.title;
-    const startTime = item.liveStreamingDetails?.actualStartTime;
-    if (profile.youtubeSports && startTime && item.liveStreamingDetails?.actualEndTime) {
-      const eventDate = startTime.slice(0, 10) + (profile.sportsFormat === "cue" ? " " + startTime.slice(11, 16) + " UTC" : "");
-      title = "Replay · " + title.replace(/^\W*(?:(?:watch |re-)?live)\b[\s|:–-]*/i, "") + " (" + eventDate + ")";
-    }
-    if (candidate.playlistLabel) title = candidate.playlistLabel + " · " + title;
+    const ratio = aspectRatio(item.player) || 16 / 9;
     const hydrated = {
       ...candidate,
-      title,
+      title: text(item.snippet && item.snippet.title) || candidate.title,
       // Examine the complete public description before normalized() compacts
       // accepted records. Disclosures are often below links and credits.
       description: text(item.snippet && item.snippet.description, 10000),
@@ -1330,7 +1192,6 @@ async function youtube(profile, rotation, env, options = {}) {
       duration: youtubeDuration(item.contentDetails && item.contentDetails.duration),
       aspectRatio: ratio,
       type: "embed",
-      ...(profile.youtubeSports ? { embedAllowed: true } : {}),
       url: `https://www.youtube-nocookie.com/embed/${candidate.rawId}`,
       embedUrl: `https://www.youtube-nocookie.com/embed/${candidate.rawId}`,
       sourceUrl: `https://www.youtube.com/watch?v=${candidate.rawId}`,

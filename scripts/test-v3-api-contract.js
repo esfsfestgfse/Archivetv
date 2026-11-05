@@ -34,11 +34,24 @@ const { pathToFileURL } = require('node:url');
   assert.equal(health.status, 200);
   const healthBody = await health.json();
   assert.equal(healthBody.apiVersion, 'v3');
-  assert.equal(healthBody.release, '6.2.4-sports-archives');
+  assert.equal(healthBody.release, '6.2.5-lineup-cleanup');
   assert.ok(healthBody.capabilities.includes('server-telemetry'));
   assert.ok(healthBody.capabilities.includes('verified-guide'));
   assert.ok(healthBody.capabilities.includes('edge-manifests'));
   assert.ok(healthBody.capabilities.includes('durable-rate-limit'));
+  assert.ok(!healthBody.capabilities.includes('youtube-sports'));
+
+  const retiredKey = 'yt-sports-gridiron';
+  for (const route of ['source/status?profileKey=', 'guide?channel=', 'catalog?channel=']) {
+    const retired = await worker.fetch(new Request('https://api.example/api/v3/' + route + retiredKey), env, ctx);
+    assert.equal(retired.status, 404, route);
+  }
+  for (const [route, body] of [['source/catalog', { profileKey: retiredKey }], ['ia/queue', { channel: retiredKey }]]) {
+    const retired = await worker.fetch(new Request('https://api.example/api/v3/' + route, {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body),
+    }), env, ctx);
+    assert.equal(retired.status, 404, route);
+  }
 
   const telemetry = await worker.fetch(new Request('https://api.example/api/v3/telemetry', {
     method: 'POST',

@@ -15,14 +15,15 @@ import { OK_VERIFIED_SEARCH_SEED } from "./ok_verified_search_seed.js";
 import { vimeoBalancedItems } from "./vimeo_catalog.js";
 import { mergeSourceLanes, sourceCatalogTasks, sourceRefreshTasks, sourceProfile, sourceCatalogKey, qualifySourceItem, isOKSourceProfile, SOURCE_LIMITS } from "./realsignal_source_catalog.js";
 import Sports from "./assets/sports-programs.js";
-import YouTubeSports from "./assets/youtube-sports-lineup.js";
 import SourcePrograms from "./assets/source-program-policy.js";
 import { IA_CANONICAL_PILOT_PROFILES, IA_CANONICAL_SCHEMA_VERSION, canonicalGuide, canonicalPromotionEligibility, selectCanonicalItems } from "./ia_canonical_station.mjs";
 import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "6.2.4-sports-archives";
+const V3_RELEASE = "6.2.5-lineup-cleanup";
+// Old clients and stored catalogs can still reference this retired lineup.
+const retiredChannel = channel => /^yt-sports-/i.test(String(channel || "").trim());
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -378,7 +379,7 @@ async function handleYouTubeUploads(request, env, id) {
     const uploads = await fetchYouTubeJson(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${encodeURIComponent(playlistId)}&maxResults=12&key=${key}`);
     return json({ handle, playlistId, items: uploads && Array.isArray(uploads.items) ? uploads.items : [], requestId: id }, 200, { "Cache-Control": "public, max-age=60, stale-while-revalidate=300" });
   } catch (error) {
-    console.warn(JSON.stringify({ event: "youtube-sports-fetch-failed", requestId: id, handle, error: String(error).slice(0, 160) }));
+    console.warn(JSON.stringify({ event: "youtube-uploads-fetch-failed", requestId: id, handle, error: String(error).slice(0, 160) }));
     return json({ error: "YouTube provider temporarily unavailable", requestId: id }, 503, { "Cache-Control": "no-store" });
   }
 }
@@ -459,7 +460,6 @@ function compactCatalogItem(item) {
     category: String(item.category || "").slice(0, 240),
     account: String(item.account || "").slice(0, 240),
     channelId: String(item.channelId || "").slice(0, 80),
-    ...(item.channelSeed ? { channelSeed: String(item.channelSeed).slice(0, 120) } : {}),
     ...(typeof item.containsSyntheticMedia === "boolean" ? { containsSyntheticMedia: item.containsSyntheticMedia } : {}),
     query: String(item.query || "").slice(0, 240),
     duration: Number(item.duration || item.runtime) || null,
@@ -732,7 +732,7 @@ async function refreshShallowCatalog(env, request, body, id, currentDepth) {
 }
 
 async function upsertCatalogJob(env, job) {
-  if (!env.realsignal_catalog || typeof env.realsignal_catalog.batch !== "function" || !job || !Array.isArray(job.items)) return;
+  if (!env.realsignal_catalog || typeof env.realsignal_catalog.batch !== "function" || !job || retiredChannel(job.channelKey) || !Array.isArray(job.items)) return;
   const now = Date.now();
   const statements = [];
   for (const rawItem of job.items.slice(0, job.iaRepair === true ? IA_REPAIR_CATALOG_WINDOW : MAX_CATALOG_ITEMS)) {
@@ -860,25 +860,6 @@ function rotateCatalogItems(items, rotation) {
   return items.slice(offset).concat(items.slice(0, offset));
 }
 
-function balanceSportsReplayCatalog(items) {
-  const programs = new Set();
-  const publishers = new Map();
-  for (const item of items) {
-    const key = YouTubeSports.programKey(item);
-    if (programs.has(key)) continue;
-    programs.add(key);
-    const publisher = item.seriesId || item.channelId || item.account || item.provider;
-    if (!publishers.has(publisher)) publishers.set(publisher, []);
-    publishers.get(publisher).push(item);
-  }
-  const groups = [...publishers.values()];
-  const balanced = [];
-  for (let index = 0; index < Math.max(0, ...groups.map(group => group.length)); index++) {
-    for (const group of groups) if (group[index]) balanced.push(group[index]);
-  }
-  return balanced;
-}
-
 function catalogFallbackAllowed(item, body) {
   if (body && body.sourceCatalog === true && !SourcePrograms.allow(body.channel, item)) return false;
   if (body && body.sourceCatalog !== true && !iaReviewedFileAllowed(item, body.channel)) return false;
@@ -890,7 +871,7 @@ function catalogFallbackAllowed(item, body) {
   if (!iaGameShowEraAllowed(item, body && body.channel)) return false;
   if (body && body.iaRepair === true && body.sourceCatalog !== true && !qualifyIaFileRecord(item, body).accepted) return false;
   const catalogProfile = body && body.sourceCatalog === true ? sourceProfile({ profileKey: body.channel }) : null;
-  if (body && body.sourceCatalog === true && (catalogProfile?.youtubeSports || isOKSourceProfile(catalogProfile) || /^vimeo-(?:movie|tv)-channel$/.test(String(body.channel || "")) || catalogProfile && /^(?:cartoon-time-machine|garden-ledger|nascar-classics)$/.test(catalogProfile.profileKey))) {
+  if (body && body.sourceCatalog === true && (isOKSourceProfile(catalogProfile) || /^vimeo-(?:movie|tv)-channel$/.test(String(body.channel || "")) || catalogProfile && /^(?:cartoon-time-machine|garden-ledger|nascar-classics)$/.test(catalogProfile.profileKey))) {
     return !!qualifySourceItem(catalogProfile, item);
   }
   const title = String(item && item.title || "").toLowerCase();
@@ -1500,8 +1481,7 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
   const vimeoCatalog = effectiveBody.sourceCatalog === true && /^vimeo-(?:movie|tv)-channel$/.test(channel);
   const repairCatalog = effectiveBody.iaRepair === true && effectiveBody.sourceCatalog !== true;
   const deepCatalog = okCatalog || vimeoCatalog;
-  const sportsReplay = catalogProfile?.youtubeSports === true;
-  const rotatingSourceCatalog = !deepCatalog && (sportsReplay || catalogProfile?.providers?.some(provider => provider === "youtube" || provider === "peertube" || provider === "nascar"));
+  const rotatingSourceCatalog = !deepCatalog && catalogProfile?.providers?.some(provider => provider === "youtube" || provider === "peertube" || provider === "nascar");
   const limit = repairCatalog ? IA_REPAIR_CATALOG_WINDOW : deepCatalog ? OK_CATALOG_WINDOW : Math.max(1, Math.min(SOURCE_LIMITS.SOURCE_MAX_ITEMS, Number(requestedLimit) || SOURCE_LIMITS.SOURCE_MAX_ITEMS));
   // The database keeps the full union. This bounded playback window prefers
   // unseen/oldest-served rows, so older episodes don't vanish behind new writes.
@@ -1622,7 +1602,6 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
       animationVerificationVersion: Number(metadata.animationVerificationVersion) || 0,
       animationEpisodeRuntime: Number(metadata.animationEpisodeRuntime) || 0,
       ...(provider === "OK.ru" ? { embedAllowed: metadata.embedAllowed === true } : {}),
-      ...(provider === "YouTube" ? { channelSeed: metadata.channelSeed || "", embedAllowed: metadata.embedAllowed === true } : {}),
       ...(provider === "Vimeo" ? { embedAllowed: metadata.embedAllowed === true, publicEmbed: metadata.publicEmbed === true, embedVerified: metadata.embedVerified === true, verifiedAt: Number(metadata.verifiedAt) || 0 } : {}),
       provider,
       year: row.year || "",
@@ -1663,14 +1642,10 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
      candidate union while measuring depth/freshness and selecting the public
      shelf only from rows that can actually start. */
   const playable = filtered.filter(queueItemPlayable);
-  const playableCatalog = okCatalog ? okBalancedCandidates([playable], okMusicChannel({profileKey:channel}) ? "music" : channel === "ok-movie-channel" ? "movie" : "tv", limit) : vimeoCatalog ? vimeoBalancedItems(playable) : sportsReplay ? balanceSportsReplayCatalog(playable) : playable;
+  const playableCatalog = okCatalog ? okBalancedCandidates([playable], okMusicChannel({profileKey:channel}) ? "music" : channel === "ok-movie-channel" ? "movie" : "tv", limit) : vimeoCatalog ? vimeoBalancedItems(playable) : playable;
   const recentIDs = recentCatalogIds(effectiveBody);
   const okKind = okMusicChannel({profileKey:channel}) ? "music" : channel === "ok-movie-channel" ? "movie" : "tv";
   const recentPrograms = okCatalog ? new Set(playable.filter(item => recentIDs.has(queueItemKey(item))).map(item => okPlaybackIdentity(item, okKind))) : new Set();
-  const recentSportsPrograms = sportsReplay
-    ? new Set([...recentIDs].filter(id => id.startsWith("yt-replay:"))
-      .concat(playable.filter(item => recentIDs.has(queueItemKey(item))).map(YouTubeSports.programKey)))
-    : new Set();
   const recentSeriesById = new Map(playable.filter(item => recentIDs.has(queueItemKey(item))).map(item => [queueItemKey(item), okSeriesIdentity(item)]));
   // Resolve watched identities independently of the bounded playable window.
   // Inactive originals still identify alternate uploads of a watched episode.
@@ -1691,9 +1666,7 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
   const strictOKFreshness = deepCatalog || rotatingSourceCatalog;
   const sportsPlayed = new Set(Sports.enabled(channel) ? [...recentIDs].filter(key=>key.startsWith('sports:')).concat(Sports.history(playableCatalog,[...recentIDs]).map(item=>Sports.key(item,channel))) : []);
   const fresh = ignoreFreshness ? playableCatalog : strictOKFreshness
-    ? playableCatalog.filter(item => !recentIDs.has(queueItemKey(item)) && !sportsPlayed.has(Sports.key(item,channel))
-      && (!okCatalog || !recentPrograms.has(okPlaybackIdentity(item, okKind)))
-      && (!sportsReplay || !recentSportsPrograms.has(YouTubeSports.programKey(item))))
+    ? playableCatalog.filter(item => !recentIDs.has(queueItemKey(item)) && !sportsPlayed.has(Sports.key(item,channel)) && (!okCatalog || !recentPrograms.has(okPlaybackIdentity(item, okKind))))
     : applyFreshness(playableCatalog, effectiveBody);
   const requestedCount = Math.max(1, Math.min(5, Number(effectiveBody && effectiveBody.count) || 3));
   /* Source Suite may legitimately exhaust a small catalog. Repeat only after
@@ -1853,6 +1826,7 @@ async function handleQueue(request, env, ctx, id) {
   catch (error) { return json({ error: error instanceof RangeError ? error.message : "invalid JSON body", requestId: id }, error instanceof RangeError ? 413 : 400); }
   if (!body || typeof body !== "object" || Array.isArray(body)) return json({ error: "queue payload must be an object", requestId: id }, 400);
   if (!String(body.channel || "").trim()) return json({ error: "channel is required", requestId: id }, 400);
+  if (retiredChannel(body.channel) || retiredChannel(body.catalogChannel)) return json({ error: "channel not found", requestId: id }, 404);
   /* IA freshness is owned by the relay/client played-only ledger. This API
      route is an adapter and must not turn a queued shelf into watched history
      or let stale D1 rows suppress the same candidates on every tune. Keep the
@@ -2152,10 +2126,11 @@ async function handleQueue(request, env, ctx, id) {
 }
 
 async function handleCatalog(request, env, ctx) {
-  if (!env.realsignal_catalog || typeof env.realsignal_catalog.prepare !== "function") return json({ error: "catalog binding is not configured" }, 503);
   const url = new URL(request.url);
   const channel = String(url.searchParams.get("channel") || "").slice(0, 120);
   if (!channel) return json({ error: "channel is required" }, 400);
+  if (retiredChannel(channel)) return json({ error: "channel not found" }, 404);
+  if (!env.realsignal_catalog || typeof env.realsignal_catalog.prepare !== "function") return json({ error: "catalog binding is not configured" }, 503);
   const limit = Math.max(1, Math.min(MAX_CATALOG_ITEMS, Number(url.searchParams.get("limit")) || 20));
   const result = await env.realsignal_catalog.prepare(`SELECT p.* FROM programs p JOIN channel_programs cp ON cp.program_id=p.id WHERE cp.channel_key=? AND p.status='active' ORDER BY cp.last_seen_at DESC LIMIT ?`).bind(channel, limit).all();
   return edgeJson(request, ctx, { channel, items: result.results || [], source: "d1-catalog" }, 200, { "Cache-Control": "public, max-age=15, stale-while-revalidate=60" }, 15);
@@ -2346,6 +2321,7 @@ async function handleGuide(request, env, ctx) {
   const url = new URL(request.url);
   const channel = String(url.searchParams.get("channel") || "").replace(/[^a-zA-Z0-9._:-]/g, "").slice(0, 120);
   if (!channel) return json({ error: "channel is required" }, 400);
+  if (retiredChannel(channel)) return json({ error: "channel not found" }, 404);
   const limit = Math.max(2, Math.min(20, Number(url.searchParams.get("limit")) || 8));
   const canonical = canonicalPilotProfile(channel);
   if (canonicalPilotEnabled(env, channel)) {
@@ -2919,7 +2895,7 @@ const worker = {
     try {
       if (route && route.kind === "health") {
         const v3 = route.apiVersion === "v3";
-        return json({ service: "realsignal-api", apiVersion: v3 ? "v3" : "v2", release: v3 ? V3_RELEASE : "2.2.2", status: "ready", capabilities: ["ia-search", "ia-metadata", "ia-queue", "session-rotation", "catalog-jobs", "source-catalog", "adaptive-catalog", "freshness-ledger", ...(v3 ? ["verified-guide", "server-telemetry", "source-health", "edge-manifests", "durable-rate-limit", "queue-dead-letter", "version5-gate", "roku-session", ...(IA_CANONICAL_PILOT_VALUES.has(String(env.IA_CANONICAL_PILOT || "").trim().toLowerCase()) ? ["ia-canonical-pilot"] : []), ...(IA_CANONICAL_SHADOW_VALUES.has(String(env.IA_CANONICAL_SHADOW || "").trim().toLowerCase()) ? ["ia-canonical-shadow"] : [])] : []), "youtube-sports"], bindings: { relay: !!env.RELAY, rotation: !!env.ROTATION, rateLimiter: !!env.RATE_LIMITER, rokuSession: !!env.ROKU_SESSION, catalog: !!env.realsignal_catalog, refreshQueue: !!env.realsignal_catalog_refresh }, checkedAt: new Date().toISOString() }, 200, { "Cache-Control": "no-store", "X-RealSignal-Request": id, "X-RealSignal-Release": v3 ? V3_RELEASE : "2.2.2" });
+        return json({ service: "realsignal-api", apiVersion: v3 ? "v3" : "v2", release: v3 ? V3_RELEASE : "2.2.2", status: "ready", capabilities: ["ia-search", "ia-metadata", "ia-queue", "session-rotation", "catalog-jobs", "source-catalog", "adaptive-catalog", "freshness-ledger", ...(v3 ? ["verified-guide", "server-telemetry", "source-health", "edge-manifests", "durable-rate-limit", "queue-dead-letter", "version5-gate", "roku-session", ...(IA_CANONICAL_PILOT_VALUES.has(String(env.IA_CANONICAL_PILOT || "").trim().toLowerCase()) ? ["ia-canonical-pilot"] : []), ...(IA_CANONICAL_SHADOW_VALUES.has(String(env.IA_CANONICAL_SHADOW || "").trim().toLowerCase()) ? ["ia-canonical-shadow"] : [])] : []), "youtube-uploads"], bindings: { relay: !!env.RELAY, rotation: !!env.ROTATION, rateLimiter: !!env.RATE_LIMITER, rokuSession: !!env.ROKU_SESSION, catalog: !!env.realsignal_catalog, refreshQueue: !!env.realsignal_catalog_refresh }, checkedAt: new Date().toISOString() }, 200, { "Cache-Control": "no-store", "X-RealSignal-Request": id, "X-RealSignal-Release": v3 ? V3_RELEASE : "2.2.2" });
       }
       if (route && route.kind === "ia-playback") {
         if (request.method !== "POST") return json({ error: "method not allowed" }, 405, { Allow: "POST,OPTIONS" });

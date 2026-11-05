@@ -780,11 +780,13 @@ function okMovieTitleQualified(profile, item) {
 
 function sportsReplayTitle(profile, title) {
   if (/\b(?:highlights?|recap|condensed|preview|reaction|watchalong|watch along|podcast|press conference|interview|gameplay|simulation|sim racing|video game|e-?sports|e-?sailing|virtual regatta|shorts|trailer|promo|teaser|top \d+|awards ceremony|awards \d{4})\b/i.test(title)) return false;
-  if (profile.sportsFormat === "race" && /\b(?:practice|qualifying|warm[ -]?up|testing|part\s+\d+)\b/i.test(title)) return false;
+  if (profile.sportsFormat === "race" && /\b(?:practice|qualifying|warm[ -]?up|testing|pre[ -]?race|post[ -]?race|part\s+\d+)\b/i.test(title)) return false;
   if (profile.profileKey === "yt-sports-baseball" && /\b(?:baseball5|softball|home run derby|batting practice)\b/i.test(title)) return false;
   if (profile.sportsFormat === "fight" && /\b(?:weigh[ -]?ins?|face[ -]?offs?|pressers?)\b/i.test(title)) return false;
   if (profile.profileKey === "yt-sports-gridiron" && !/\b(?:acc football|american football|efa|european football alliance)\b/i.test(title)) return false;
   if (profile.profileKey === "yt-sports-octagon" && /\b(?:kickboxing|muay thai|submission grappling)\b/i.test(title)) return false;
+  if (profile.profileKey === "yt-sports-range-field" && /\b(?:familiarisation|familiarization|opening ceremony|equipment control)\b/i.test(title)) return false;
+  if (profile.profileKey === "yt-sports-rodeo" && /\bbest of\b/i.test(title)) return false;
   if (profile.sportsThroughYear) {
     const eventYear = Number(title.match(/\b(?:19|20)\d{2}\b/)?.[0]);
     if (!eventYear || eventYear > profile.sportsThroughYear) return false;

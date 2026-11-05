@@ -119,6 +119,9 @@ test("sports upload and cache admission reject unrelated, restricted and unverif
       ["boxing", "@MatchroomBoxing", "Matchroom Boxing", "Dalton Smith vs Alberto Puello | Full Fight", "Dalton Smith Vs Alberto Puello Weigh In | Matchroom Boxing"],
       ["baseball", "@MLB", "MLB", "Brewers vs. Rays World Series Game 5 | Full Game", "Brewers vs. Rays World Series Game 5 LIVE Batting Practice"],
       ["gridiron", "@ACCDigitalNetwork", "ACC Digital Network", "Alabama vs. Florida State Full Game Replay | 2025 ACC Football", "Duke vs. Louisville Full Game Replay | ACC Basketball"],
+      ["grand-prix", "@Formula1", "FORMULA 1", "British Grand Prix Full Race Replay", "Replay · United States Grand Prix Post-Race Show (2026-10-25)"],
+      ["range-field", "@WorldArcheryTV", "World Archery", "Hyundai Archery World Cup Final | Full Event", "Replay · Familiarisation | Saltillo 2026 Hyundai Archery World Cup Final (2026-09-11)"],
+      ["rodeo", "@PRCAProRodeo", "PRCA PRORODEO", "2012 National Finals Rodeo | Full Event", "2012 National Finals Rodeo Best Of Team Roping"],
     ]) {
       const replayProfile = sourceProfile({ profileKey: "yt-sports-" + key });
       const candidate = { ...item, channelSeed, account, title: replay, duration: 7200 };

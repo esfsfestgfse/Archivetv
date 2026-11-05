@@ -297,3 +297,34 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) for (const
     }
     assert.deepEqual(calls, ['reserve', 'play:bad-file', 'failed:bad-file', ...(!hasSpare ? ['reserve'] : []), 'play:ready-spare', 'started:ready-spare']);
   });
+
+for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) test(file + ': prepares and reuses the next reserved video with companion warming off', async () => {
+  const current = item('on-air'), next = item('next-program'), spare = item('spare');
+  const events = [], loads = [];
+  const shelf = runtime().create({
+    queue: async () => ({ items: [current, next, spare] }),
+    report: async packet => { events.push(packet.event); }
+  });
+  await shelf.reserve('10', {});
+  await shelf.event('10', current, 'started');
+  const source = fs.readFileSync(path.join(root, file), 'utf8');
+  const scope = {
+    window: { RealSignalIAShelf: { enabled: true, client: () => shelf } },
+    powered: true, token: 1, curNum: 10, Date,
+    document: { createElement: tag => ({ tagName: tag.toUpperCase(), load() { loads.push(this.src); } }) },
+    iaRepairEnabled: () => true, iaRepairBody: () => ({}), nlog() {}, setTimeout() {}, clearTimeout() {}
+  };
+  vm.createContext(scope);
+  vm.runInContext(source.slice(source.indexOf('var iaMediaWarmers='), source.indexOf('function warmIAQueueHead(')), scope);
+  vm.runInContext(source.slice(source.indexOf('async function preloadNext('), source.indexOf('function schedulePreload(')), scope);
+  const channel = { num: 10 };
+  await scope.preloadNext(channel, {}, 1);
+  await scope.preloadNext(channel, {}, 1);
+  assert.deepEqual(loads, [next.media.url], 'only the next reservation should start a media load, once');
+  assert.equal(shelf.peek('10').identifier, next.identifier, 'preloading must not consume a reservation');
+  assert.deepEqual(events, ['started'], 'only the on-air program is marked started');
+  assert.equal(scope.takeIAMediaWarmer(channel, { id: next.identifier }).src, next.media.url);
+  scope.token = 2;
+  await scope.preloadNext(channel, {}, 1);
+  assert.deepEqual(loads, [next.media.url], 'a superseded tune must not stage media');
+});

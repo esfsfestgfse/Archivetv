@@ -9,7 +9,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>REALSIGNAL · Retro Cable 7.0.1</title>
+<title>REALSIGNAL · Retro Cable 7.0.2</title>
 <meta name="realsignal-ia-repair-channels" content="10,12,22,150">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
@@ -1723,7 +1723,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="7.0.1-desktop-retro-cable";
+window.__ATV_BUILD="7.0.2-desktop-retro-cable";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -9502,7 +9502,15 @@ async function preloadNext(ch,sl,my){
   if(iaRepairEnabled(ch)){
     if(!powered||my!==token||curNum!==ch.num)return;
     var shelf=window.RealSignalIAShelf.client(),key=iaQueueKey(ch);
-    try{await shelf.reserve(key,iaRepairBody(ch,sl));if(!powered||my!==token||curNum!==ch.num)return;var next=shelf.peek(key);if(next)stageIAMediaWarmer(ch,next,{...next.media,id:next.identifier,title:next.title,meta:next});}catch(error){nlog("ia-repair-preload",false,String(error));}
+    try {
+      await shelf.reserve(key,iaRepairBody(ch,sl));
+      if(!powered||my!==token||curNum!==ch.num)return;
+      var next=shelf.peek(key);
+      if(!next)return;
+      // The reserved shelf skips companion warming. Allow its own next program to preload.
+      iaWarmWanted[key]=Date.now()+120000;
+      stageIAMediaWarmer(ch,next,next.media);
+    } catch(error){nlog("ia-repair-preload",false,String(error));}
     return;
   }
   /* This cache belongs to the channel, not a single tune token. Let it complete
@@ -9893,7 +9901,7 @@ function playFileOnce(it,ch,sl,my,isFallback,sportsControl){return new Promise(r
   function finishAd(){if(!it.isAd||my!==token||!powered||curVideo!==v)return false;clearTimeout(adRecoveryTimer);try{v.pause();}catch(e){}v.dispatchEvent(new Event("ended"));return true;}
   function armStart(){clearTimeout(to);to=setTimeout(function(){if(boundedIaStart&&tryAlternate())return;fin(false);},startTimeout);}
   armStart();
-  if(window.__rsPlaybackAudit)window.__rsPlaybackAudit.source(ch.num)("native-source",{id:it.id,provider:it.provider,hls:!!sourceHls});
+  if(window.__rsPlaybackAudit)window.__rsPlaybackAudit.source(ch.num)("native-source",{id:it.id,provider:it.provider,hls:!!sourceHls,preloadedReadyState:staged?staged.readyState:null});
   if(sourceHls)window.RealSignalPeerTubeMedia.attach(v,it.url,{signal:sig,isCurrent:function(){return my===token&&powered;},loadHls:loadHlsLib,onReady:tryPlay,onError:function(){if(done&&typeof sportsControl!=="undefined"&&sportsControl){sportsControl.onFailure(sportsControl.stallPosition==null?v.currentTime:sportsControl.stallPosition,v.duration);return;}if(done)v2RejectEmbed(it,ch,my);else fin(false);}});
   function tryPlay(){ try{const p=v.play&&v.play();
     if(p&&p.catch)p.catch(()=>{ /* audible autoplay blocked -> mute & retry so the queue continues */

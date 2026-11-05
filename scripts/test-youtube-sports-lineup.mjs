@@ -67,6 +67,15 @@ test("sports upload and cache admission reject unrelated, restricted and unverif
     assert.equal(catalogFallbackAllowed({ ...item, title: "Snooker highlights" }, { channel: profile.profileKey, sourceCatalog: true }), false);
     assert.equal(qualifySourceItem(profile, { ...item, embedAllowed: false }), null);
     assert.equal(qualifySourceItem(profile, { ...item, provider: "Internet Archive" }), null);
+    for (const [key, channelSeed, account, replay, offGenre] of [
+      ["boxing", "@MatchroomBoxing", "Matchroom Boxing", "Dalton Smith vs Alberto Puello | Full Fight", "Dalton Smith Vs Alberto Puello Weigh In | Matchroom Boxing"],
+      ["baseball", "@MLB", "MLB", "Brewers vs. Rays World Series Game 5 | Full Game", "Brewers vs. Rays World Series Game 5 LIVE Batting Practice"],
+    ]) {
+      const replayProfile = sourceProfile({ profileKey: "yt-sports-" + key });
+      const candidate = { ...item, channelSeed, account, title: replay, duration: 7200 };
+      assert.ok(qualifySourceItem(replayProfile, candidate), replay);
+      assert.equal(qualifySourceItem(replayProfile, { ...candidate, title: offGenre }), null, offGenre);
+    }
     const compact = compactCatalogItem(item);
     const row = { id: compact.id, provider: compact.provider, title: compact.title,
       duration_seconds: compact.duration, aspect_ratio: compact.aspectRatio,

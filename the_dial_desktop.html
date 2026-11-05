@@ -9,16 +9,17 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>REALSIGNAL · Retro Cable 6.1.31</title>
+<title>REALSIGNAL · Retro Cable 6.2.0</title>
 <meta name="realsignal-ia-repair-channels" content="10,12,22,150">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
 <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"></script>
 <script src="assets/ok-embed-runtime.js?v=5.6.29"></script>
 <script src="assets/ia-playback-shelf.js?v=5.6.29"></script>
-<script src="assets/sports-programs.js?v=6.1.31"></script>
+<script src="assets/sports-programs.js?v=6.2.0"></script>
+<script src="assets/youtube-sports-lineup.js?v=6.2.0"></script>
 <script src="assets/vimeo-embed-runtime.js?v=5.5.85"></script>
-<script src="assets/youtube-embed-runtime.js?v=6.1.31"></script>
+<script src="assets/youtube-embed-runtime.js?v=6.2.0"></script>
 <!-- Source Suite starts verified YouTube playback on a cold tune. Warm the exact
      origins it uses so DNS/TLS setup is not serialized behind catalog discovery. -->
 <link rel="preconnect" href="https://www.googleapis.com" crossorigin>
@@ -1702,16 +1703,16 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
 @media(prefers-reduced-motion:reduce){.sports-screen *,.wx-screen *,.wr-cabinet *{animation-duration:.001ms!important;transition-duration:.001ms!important}}
 </style>
 <link rel="stylesheet" href="assets/guide-overhaul.css">
-<link rel="stylesheet" href="assets/v6-watching-shell.css?v=6.1.31">
-<link rel="stylesheet" href="assets/v6-guide.css?v=6.1.31">
-<script src="assets/commercial-scheduler.js?v=6.1.31"></script>
-<script src="assets/fast-catalog.js?v=6.1.31"></script>
-<link rel="stylesheet" href="assets/weather-networks.css?v=6.1.31">
-<script src="assets/weather-networks.js?v=6.1.31"></script>
-<link rel="stylesheet" href="assets/weather-local.css?v=6.1.31">
-<script src="assets/weather-local.js?v=6.1.31"></script>
-<script src="assets/source-program-policy.js?v=6.1.31"></script>
-<script src="assets/peertube-media.js?v=6.1.31"></script>
+<link rel="stylesheet" href="assets/v6-watching-shell.css?v=6.2.0">
+<link rel="stylesheet" href="assets/v6-guide.css?v=6.2.0">
+<script src="assets/commercial-scheduler.js?v=6.2.0"></script>
+<script src="assets/fast-catalog.js?v=6.2.0"></script>
+<link rel="stylesheet" href="assets/weather-networks.css?v=6.2.0">
+<script src="assets/weather-networks.js?v=6.2.0"></script>
+<link rel="stylesheet" href="assets/weather-local.css?v=6.2.0">
+<script src="assets/weather-local.js?v=6.2.0"></script>
+<script src="assets/source-program-policy.js?v=6.2.0"></script>
+<script src="assets/peertube-media.js?v=6.2.0"></script>
 </head>
 <body>
 <script>
@@ -1723,7 +1724,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    fatal. Now: (1) that specific benign message is never treated as fatal, ever, and (2) once the
    app finishes its first successful boot, later errors are logged quietly instead of taking over
    the screen -- the app clearly isn't "failed to start" if it already started. */
-window.__ATV_BUILD="6.1.31-desktop-retro-cable";
+window.__ATV_BUILD="6.2.0-desktop-retro-cable";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -2552,6 +2553,7 @@ const CH=[
  {nm:"The Detective", num:511, cat:"RETRO", gl:"detective", era:[1940,2026], ns:"tv"},
 ];
 CH.push(...OK_DECADE_CHANNELS);
+CH.push(...(window.RealSignalYouTubeSports?.channels || []));
 /* V3 CHANNEL HEALTH POLICY: the scorecard is now an executable lineup policy.
    Keep all verified lanes in the public dial; keep repair lanes addressable for
    diagnostics while they are rebuilt; remove retired/blocked lanes from the
@@ -2594,6 +2596,7 @@ const GUIDE_CATEGORIES=[
   {id:"movies",label:"Movies",meta:"Feature films, serials and cinema archives",color:"#8ee6ff",cats:["MOV"]},
   {id:"animation",label:"Cartoons & kids",meta:"Cartoons, anime and family viewing",color:"#9ab8ff",cats:["TOON"]},
   {id:"sports",label:"Sports",meta:"Competition, archives and scoreboards",color:"#c8ff84",cats:["SPORTS"]},
+  {id:"youtube-sports",label:"YouTube Sports",meta:"Full replays and programs from official publishers",color:"#ff9e95",cats:["YTSPORTS"]},
   {id:"archive",label:"Documentary & archive",meta:"History, science, culture and documentary",color:"#ffd590",cats:["DOC"]},
   {id:"source",label:"Source suite",meta:"Verified programming from independent video archives and hosts",color:"#ffcf75",cats:["SOURCE"]},
   {id:"music",label:"Music & radio",meta:"Concerts, music libraries and live radio",color:"#ffb4d0",cats:["MUS"]},
@@ -2601,7 +2604,7 @@ const GUIDE_CATEGORIES=[
   {id:"retro",label:"Retro & holidays",meta:"Found footage, VHS, holiday and archive loops",color:"#f4b978",cats:["RETRO","HOL"]}
 ];
 const GUIDE_CATEGORY_BY_ID=Object.fromEntries(GUIDE_CATEGORIES.map(function(group){return [group.id,group];}));
-const GUIDE_SUBGENRES={NET:"Network television",TV:"Television & reruns",MOV:"Movies",TOON:"Animation",SPORTS:"Sports",MUS:"Music & audio",DOC:"Archive & ideas",SOURCE:"Source suite",LBRO:"Live video",LDATA:"Live data",RETRO:"Retro archive",HOL:"Seasonal",BRIT:"World & culture"};
+const GUIDE_SUBGENRES={NET:"Network television",TV:"Television & reruns",MOV:"Movies",TOON:"Animation",SPORTS:"Sports",YTSPORTS:"YouTube Sports",MUS:"Music & audio",DOC:"Archive & ideas",SOURCE:"Source suite",LBRO:"Live video",LDATA:"Live data",RETRO:"Retro archive",HOL:"Seasonal",BRIT:"World & culture"};
 /* Consolidated family lineup. `lineup=legacy` is an emergency rollback view;
    no channel record is deleted or mutated by the merge. */
 const GUIDE_MERGE_AUDIT_ENABLED=/(?:^|[?&])mergeAudit=1(?:&|$)/.test(String(location.search||""));
@@ -9143,6 +9146,7 @@ const V2_SOURCE_TOPIC_OVERRIDES={
 };
 const V2_SOURCE_QUERY_SUFFIXES={sports:["full race","complete race broadcast","full event"],archive:["original archival film","complete educational film","primary source footage","full newsreel"],practical:["full episode","complete program","project video","television show"],field:["full program","field footage","expedition video","complete episode"],education:["complete lesson","educational program","classroom film","instructional program"],performance:["full performance","complete show","live performance","full episode"],documentary:["full documentary","feature documentary","complete documentary","documentary film"],animation:["full cartoon","cartoon episode","animated short film","cartoon compilation"],film:["full movie","feature film","complete film","short film"],television:["full episode","complete episode","television program","TV show"]};
 const V2_SOURCE_COMMON_DENY=["how to","tutorial","shorts","vertical video","reaction","podcast","trailer","teaser","promo","advertisement","commercial","fan edit","lyrics video"];
+Object.assign(V2_PREVIEW_PROFILES, window.RealSignalYouTubeSports?.profiles || {});
 Object.keys(V2_PREVIEW_PROFILES).forEach(function(key){V2_PREVIEW_PROFILES[key].profileKey=key;});Object.keys(V2_SOURCE_MODE_GROUPS).forEach(function(mode){V2_SOURCE_MODE_GROUPS[mode].forEach(function(key){if(V2_PREVIEW_PROFILES[key])V2_PREVIEW_PROFILES[key].intent=mode;});});
 /* Black Stage uses the approved stage/performance profile, not the retired TV override. */
 function v2ProgramTopics(profile){var direct=V2_SOURCE_TOPIC_OVERRIDES[profile.profileKey||""];if(direct)return /^(?:black-stage|classroom|comfort-television|foodways)$/.test(profile.profileKey||"")?v2TextUnique(direct.concat(profile.match||[])):direct.slice();return v2TextUnique((profile.match||[]).map(function(term){return v2Text(term).replace(/\b(?:history|historical|documentary|archive|archival|retrospective|profile)\b/gi," ").replace(/\s+/g," ").trim();}).filter(function(term){return term.length>2;}));}
@@ -19870,16 +19874,16 @@ window.__atvBootDone=true; /* app is up -- from here on, errors get logged, not 
   };
 })();
 </script>
-<script src="assets/source-catalog-client.js?v=6.1.31"></script>
+<script src="assets/source-catalog-client.js?v=6.2.0"></script>
 <script src="assets/verified-guide-client.js"></script>
 <script src="assets/guide-overhaul.js"></script>
 <script src="assets/playback-audit.js"></script>
-<script src="assets/release2-runtime.js?v=6.1.31"></script>
+<script src="assets/release2-runtime.js?v=6.2.0"></script>
 <script src="assets/release3-runtime.js"></script>
 <script src="assets/release31-runtime.js"></script>
 <script src="assets/guide-contract.js?v=v6-contract-1"></script>
-<script src="assets/guide-contract-client.js?v=6.1.31"></script>
-<script src="assets/v6-watching-shell.js?v=6.1.31"></script>
-<script src="assets/v6-guide.js?v=6.1.31"></script>
+<script src="assets/guide-contract-client.js?v=6.2.0"></script>
+<script src="assets/v6-watching-shell.js?v=6.2.0"></script>
+<script src="assets/v6-guide.js?v=6.2.0"></script>
 </body>
 </html>

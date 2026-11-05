@@ -1101,7 +1101,7 @@ async function youtubeChannelUploads(profile, rotation, env, options = {}) {
     if (curatedVideos?.only) return { seed, publisherId: publisher?.id, resolved: !!publisher?.id, pages: 0, items: publisher?.id ? direct : [] };
     const curatedPlaylist = profile.sportsPlaylists?.[seed];
     const playlistId = curatedPlaylist?.id || publisher?.contentDetails?.relatedPlaylists?.uploads;
-    if (!publisher?.id || !playlistId) return { seed, resolved: false, items: [] };
+    if (!playlistId || (profile.youtubeSports && !publisher?.id)) return { seed, resolved: false, items: [] };
     /* One upload page is enough for a cold start. Maintenance rotates through
        older upload pages so a deep channel does not keep reopening the same
        newest fifty videos. Playlist pagination is cheap compared with

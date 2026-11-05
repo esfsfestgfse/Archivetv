@@ -24,6 +24,23 @@
   return parent+(part&&!/\b(?:part|pt|disc)\s*\d+\b/i.test(parent)?' Part '+part[1]:'');
  }
  function competition(text,channel){
+  if(Number(channel)===77){
+   if(/\b(?:imsa|alms|le mans|endurance|rolex 24)\b/.test(text))return 'grandprix-endurance';
+   if(/\b(?:indy ?car|indianapolis|indy 500|irl|cart|champ ?car)\b/.test(text))return 'grandprix-indycar';
+   return 'grandprix-formula';
+  }
+  if(Number(channel)===78){
+   if(/\b(?:weightlifting|weight lifting|gymnastics)\b/.test(text))return 'fitness-competition';
+   if(/\b(?:bodybuilding|champion within|pumping iron|comeback)\b/.test(text))return 'fitness-strength';
+   if(/\b(?:pilates|balletcise)\b/.test(text))return 'fitness-pilates';
+   return 'fitness-workout';
+  }
+  if(Number(channel)===79){
+   if(/\bdarts?\b/.test(text))return 'recreation-darts';
+   if(/\b(?:bowling|candlepin)\b/.test(text))return 'recreation-bowling';
+   if(/\bsnooker\b/.test(text))return 'recreation-snooker';
+   return 'recreation-pool';
+  }
   if(Number(channel)===76){
    if(/\b(?:nhra|drag rac(?:e|es|ing))\b/.test(text))return 'stockcar-drag';
    if(/\barca\b/.test(text))return 'stockcar-arca';
@@ -182,9 +199,27 @@
    for(var v=0;v<vaultLanes.length;v++)if(vaultLanes[v][2].test(vaultText))return Object.assign(describe(item,vaultLanes[v][0]),{sport:vaultLanes[v][1]});
   }
   var raw=selectedTitle(item,channel),text=clean(raw),yearMatch=raw.match(/\b((?:19|20)\d{2})\b/),year=Number(yearMatch?yearMatch[1]:String(item.year||'').slice(0,4))||0;
-  var competitionText=[55,57,58,59,61,65,66,68,69,70,73,74,75,76].includes(Number(channel))?text+' '+clean(item.title)+' '+clean(item.seriesTitle):text;
-  if([74,75,76].includes(Number(channel)))competitionText+=' '+clean(item.fileName||id(item).split('::')[1]||'')+(Number(channel)===76?' '+clean(item.sourceIdentifier||id(item).split('::')[0]):'');
+  var competitionText=[55,57,58,59,61,65,66,68,69,70,73,74,75,76,77,78,79].includes(Number(channel))?text+' '+clean(item.title)+' '+clean(item.seriesTitle):text;
+  if([74,75,76,77,78,79].includes(Number(channel)))competitionText+=' '+clean(item.fileName||id(item).split('::')[1]||'')+(Number(channel)===76?' '+clean(item.sourceIdentifier||id(item).split('::')[0]):'');
   var result={eventId:'',competition:competition(competitionText,channel),year:year,era:year?Math.floor(year/10)*10:0,participants:[],format:'program'};
+  if([77,78,79].includes(Number(channel))){
+   var finalSource=String(item.sourceIdentifier||id(item).split('::')[0]),finalFile=String(item.fileName||item.media&&item.media.fileName||id(item).split('::')[1]||'').split('/').pop().replace(/(?:\.ia)?\.mp4$/i,''),label=clean(item.title||finalFile);
+   var fileLabel=clean(finalFile.replace(/\([^)]*(?:\d{3,4}p|h264|h\.264|\dfps|kbit)[^)]*\)/ig,'')),sourceYear=finalSource.match(/f1-((?:19|20)\d{2})/i);
+   if(sourceYear){year=Number(sourceYear[1]);result.year=year;result.era=Math.floor(year/10)*10;}
+   if(Number(channel)===77){
+    var raceLabel=finalFile&&!/^(?:program|video|videoplayback|[0-9 ._-]+)$/i.test(finalFile)?fileLabel:label;result.competition=competition(raceLabel+(/cart-indycar/.test(finalSource)?' indycar':''),77);var raceYear=raceLabel.match(/\b((?:19|20)\d{2})\b/);if(raceYear&&!sourceYear){year=Number(raceYear[1]);result.year=year;result.era=Math.floor(year/10)*10;}var raceText=raceLabel.replace(/\bf1\b|\bformula one\b/g,'formula 1').replace(/\bgp\b/g,'grand prix'),country=raceText.match(/\b(australian|brazilian|san marino|spanish|monaco|canadian|british|french|german|hungarian|belgian|italian|portuguese|european|japanese|united states|us|dutch|qatar|chinese|miami|mexican|saudi arabian) (?:grand prix|race)\b/);
+    if(year&&result.competition==='grandprix-formula'&&country)result.eventId='sports:grandprix:formula:'+year+':'+country[1].replace(/ /g,'-')+(/\bsprint\b/.test(raceText)?':sprint':'');
+    else if(year&&/\b(?:indianapolis 500|indy 500)\b/.test(raceText))result.eventId='sports:grandprix:indy500:'+year;
+   }
+   if(Number(channel)===78){
+    var programLabel=label.replace(/\b(?:vhs|vintage|60 fps|full|complete|\d{4}|2000s)\b/g,' ').replace(/\s+/g,' ').trim();
+    if(/\brichard simmons\b/.test(programLabel)&&/\breach for fitness\b/.test(programLabel))programLabel='richard simmons reach for fitness';
+    if(programLabel&&!/\bweightlifting\b/.test(programLabel))result.eventId='sports:fitness:program:'+programLabel;
+   }
+   if(!result.eventId&&finalSource&&finalFile)result.eventId='sports:final:'+channel+':file:'+finalSource+':'+fileLabel.replace(/^\d{1,2} (?=(?:19|20)\d{2})/,'');
+   if(/\b(?:documentary|history|champion within)\b/.test(label))result.format='documentary';
+   return result;
+  }
   if(Number(channel)===76){
    var stockSource=String(item.sourceIdentifier||id(item).split('::')[0]),stockFile=String(item.fileName||item.media&&item.media.fileName||id(item).split('::')[1]||'').split('/').pop().replace(/(?:\.ia)?\.mp4$/i,'');
    var stockIdentity=stockFile.replace(/\([^)]*(?:\d{3,4}p|h264|h\.264|\dfps|kbit)[^)]*\)/ig,'').replace(/\((?:RAW SATELLITE FEED|FULL RACE REPLAY)\)/ig,'').replace(/^\d{1,2}\s+(?=(?:19|20)\d{2})/,'');
@@ -320,7 +355,7 @@
   var unseen=inventory.filter(function(group){return !seen.has(group.key);}),pool=(unseen.length?unseen:inventory).slice(),selected=[],recent=history.slice(-12).map(function(row){return describe(row,channel);});
   while(pool.length&&selected.length<count){
    var best=0,bestScore=Infinity,docDue=(recent.length+1)%5===0;
-   pool.forEach(function(group,index){var info=group.info,score=0;if(Number(channel)===65){var media=group.rows[0].media||group.rows[0];if(Number(media.width)>1920||Number(media.height)>1080)score+=16;}recent.slice(-8).forEach(function(prior){if(Number(channel)===53&&prior.sport&&prior.sport===info.sport)score+=16;if(Number(channel)===66&&prior.programFamily&&prior.programFamily===info.programFamily)score+=12;if(prior.competition===info.competition)score+=4;if(prior.era&&prior.era===info.era)score+=1;info.participants.forEach(function(p){if(prior.participants.includes(p))score+=3;});});
+   pool.forEach(function(group,index){var info=group.info,score=0;if(Number(channel)===79&&!['recreation-pool','recreation-snooker'].includes(info.competition)&&pool.some(g=>['recreation-pool','recreation-snooker'].includes(g.info.competition))&&recent.slice(-4).some(r=>!['recreation-pool','recreation-snooker'].includes(r.competition)))score+=100;if(Number(channel)===65){var media=group.rows[0].media||group.rows[0];if(Number(media.width)>1920||Number(media.height)>1080)score+=16;}recent.slice(-8).forEach(function(prior){if(Number(channel)===53&&prior.sport&&prior.sport===info.sport)score+=16;if(Number(channel)===66&&prior.programFamily&&prior.programFamily===info.programFamily)score+=12;if(prior.competition===info.competition)score+=4;if(prior.era&&prior.era===info.era)score+=1;info.participants.forEach(function(p){if(prior.participants.includes(p))score+=3;});});
     if(![68,69,78,80,81,82,83].includes(Number(channel))&&info.format==='documentary')score+=docDue?-8:8;
     if(score<bestScore){best=index;bestScore=score;}
    });

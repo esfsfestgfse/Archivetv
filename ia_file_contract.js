@@ -28,6 +28,7 @@ export function iaKnownVideoPolicyViolation(item = {}, rules = {}) {
   if (channel === '68' && !iaCoachingAllowed(item)) return true;
   if (channel === '69' && !iaSportsNewsreelAllowed(item)) return true;
   if (channel === '70' && !iaRodeoAllowed(item)) return true;
+  if (['77','78','79'].includes(channel) && !iaFinalSportsAllowed(item,channel)) return true;
   if (channel === '76' && !iaStockCarAllowed(item)) return true;
   if (channel === '75' && !iaWaterSportsAllowed(item)) return true;
   if (channel === '74' && !iaWinterSportsAllowed(item)) return true;
@@ -245,7 +246,7 @@ export function iaKnownVideoPolicyViolation(item = {}, rules = {}) {
     const parts = String(value || '').split(':').map(Number);
     const runtime = parts.every(Number.isFinite) ? parts.reduce((total,part) => total * 60 + part,0) : 0;
     // A legacy direct URL with no duration must hydrate before it can be ready.
-    if (['52','53','55','56','57','58','59','61','62','63','64','65','66','68','69','70','73','74','75','76'].includes(channel) && !runtime && (media.url || item.url || item.mediaUrl)) return true;
+    if (['52','53','55','56','57','58','59','61','62','63','64','65','66','68','69','70','73','74','75','76','77','78','79'].includes(channel) && !runtime && (media.url || item.url || item.mediaUrl)) return true;
     if (runtime > 0 && runtime < floor) return true;
     const international = ['106','107','114','115','119','120','151'];
     const language = String(media.language || item.language || meta.language || '').trim().toLowerCase();
@@ -425,6 +426,45 @@ export function iaSportingLifeAllowed(item = {}) {
   // Equipment-buying listicles are not an outdoor program or field event.
   if (/\b(?:rifles?|guns?|crossbows?|hunting gear|hunting equipment)\b/.test(text) && /\b(?:you should avoid|quietly avoiding|poor accuracy|outdated designs|before you buy|buying guide)\b/.test(text)) return false;
   return /\b(?:fishing|fisherman|hunting|angling|angler|archery|bowhunting|realtree|whitetail|bassmaster|buckmasters|mossy oak|trap and skeet|sporting clays|sporting dogs|american sportsman|bill dance|jimmy houston|babe winkelman|orlando wilson)\b/.test(text);
+}
+
+export function iaFinalSportsAllowed(item = {}, channel = '') {
+  const media=item.media||{},meta=item.meta||{},id=String(item.identifier||item.id||'');
+  let source=String(item.sourceIdentifier||media.sourceIdentifier||id.split('::')[0]),file=String(item.fileName||media.fileName||id.split('::')[1]||'');
+  const path=String(media.url||item.url||item.mediaUrl||id).match(/^https?:\/\/[^/]+\/(?:download|\d+\/items)\/([^/?#]+)\/([^?#]+)/i);
+  if(path){if(!file)file=path[2];if(!item.sourceIdentifier&&!media.sourceIdentifier)try{source=decodeURIComponent(path[1]);}catch(_){}}
+  try{file=decodeURIComponent(file);}catch(_){}
+  const norm=value=>String(value||'').replace(/([a-z])([A-Z])/g,'$1 $2').toLowerCase().replace(/[^a-z0-9]+/g,' ').replace(/\s+/g,' '),leaf=file.split('/').pop().replace(/(?:\.ia)?\.[^.]+$/i,''),generic=/^(?:(?:video|videoplayback|program|race|title|vts|r)\W*\d*|[\d _.-]+)$/i.test(leaf);
+  const selected=norm(file&&!generic?file:[item.title,meta.title,file].filter(Boolean).join(' ')),index=!file&&!media.url&&!item.url&&!item.mediaUrl;
+  const language=String(media.language||item.language||meta.language||'').toLowerCase();
+  if(language&&!/^(?:und|unknown|undetermined|n\/a)$/.test(language)&&!/(?:^|[,; /])(?:eng|en(?:[-_][a-z]+)?|english)(?:$|[,; /])/.test(language))return false;
+  const value=String((['runtime','duration','length'].some(k=>Object.prototype.hasOwnProperty.call(media,k))?media.runtime||media.duration||media.length:item.runtime||item.duration)||0).split(':').map(Number),runtime=value.every(Number.isFinite)?value.reduce((a,b)=>a*60+b,0):0;
+  if(!index&&runtime<900||Number(media.width||item.width)>0&&Number(media.height||item.height)>=Number(media.width||item.width))return false;
+  if(/^(?:CNN|FOXNEWS|HLN|KGO|KPIX|KNTV|KRON|WBAL|WJZ|WPVI|WTSP|WUSA|TELEARUBA)[A-Z0-9]*_/i.test(source))return false;
+  if(/\b(?:video games?|f1 ?challenge|gameplay|playthrough|longplay|simulation|simulator|nintendo|yoshi|super mario|xbox|playstation|wii fit|podcasts?|watch along|commentary only|audio only|reaction streams?|newscast|news report|press conference|full movie|feature film|fiction film|cartoons?|sitcom|fan film|fanmade|ai generated|fetish|naked|hotties|sex lies|photo slide show|bloopers|trailers?|promos?|incomplete|partial|fragment|clips?)\b/.test(selected)||/F1Challenge|Formula1SeasonMod|roosterteeth/i.test(source))return false;
+  if(/\b(?:russian|spanish|portuguese|french|german|arabic|japanese) (?:audio|commentary|broadcast|aerobics|workout)\b|\b(?:latino|dublado)\b/.test(selected))return false;
+  if(String(channel)==='77'){
+    if(source==='cart-indycar-series-full-races-archival'&&/^(?:2001 Indy Racing League Casino Magic 500k At Texas Motor Speedway|2011 IZOD IndyCar Series Kentucky Indy 300)\.mp4$/i.test(file))return false;
+    const reviewed=/^(?:cart-indycar-series-full-races-archival|grandam-americanlemans-imsa-full-race-archival|f1-(?:1990|1998|2000|2001)-full-race-replys?-grand-prix-highlights-and-reviews)$/.test(source);
+    if(index&&reviewed)return true;
+    if(/\b(?:highlights?|in review|reviews?|recaps?|condensed|abridged|classic telecast version|qualifying|practice|on ?board|post race|pre race only|accident coverage|sportscenter|speed news|start of race|tuesday conclusion|monday coverage|happy hour|cancelled|canceled|rainout|nascar|stock car|moto ?gp|motorcycle|motocross|bowling|cycling|chess|gymnastics|1966 full)\b|\b(?:part|pt|cd|disc)\s*\d+\b/.test(selected))return false;
+    const topic=/\b(?:formula ?(?:one|1|two|2|three|3|e)|f[123]|indy ?car|indianapolis 500|indy 500|irl|cart|champ ?car|grand prix|le mans|imsa|alms|endurance rac(?:e|ing))\b/.test(selected);
+    const format=/\b(?:race|racing|grand prix|gp|500|200|300|400|600|championship|documentary|history)\b/.test(selected);
+    return (topic||reviewed)&&(index||format||reviewed)&&(index||runtime>=3600||/\b(?:full|complete) (?:sprint )?(?:race|broadcast|event)\b|\b(?:documentary|history)\b/.test(selected));
+  }
+  if(String(channel)==='78'){
+    if(/\b(?:friends|elmos?|teletubbies|off topic|meat zone|emergency response|medical|health seminar|politic(?:s|al)|talk show|news|children|kids|sex fiends|watch first|side\s*[12]|part\s*\d+)\b/.test(selected))return false;
+    const reviewed=source==='TheChampionWithin'&&/^The\.Infinite\.Voyage\.S03E04\.The\.Champion\.Within\.1989\./i.test(file)||/^Scvtv20-(?:ymffd25537|YM_FFD_240283-2)$/.test(source)&&/^Scvtv20-(?:ymffd25537|YM_FFD_240283)_512kb\.mp4$/i.test(file);
+    return reviewed||/\b(?:fitness|workout|work out|exercise|bodybuilding|weightlifting|weight lifting|strength training|aerobics?|pilates|gymnastics|athletic (?:training|conditioning)|physical fitness|pumping iron|balletcise|ab doer)\b/.test(selected);
+  }
+  if(String(channel)==='79'){
+    // Cue sports lead this channel. Retain the finals-day specials from these
+    // large darts packages, not every long preliminary-day recording.
+    if(/^(?:03-wsdt-|wsdt-world-darts-|20260205_20260205_2255)/.test(source)&&!index&&!/\bfinals? day\b/.test(selected))return false;
+    if(/\b(?:swimming|swim|pool party|hot tub|swimming pool|hotel|parks and recreation|city council|council meeting|the hustler|the color of money|kingpin|big lebowski|trick shots?|highlights?|recaps?|tutorial shorts|bowling for columbine)\b|\b(?:part|pt|disc)\s*\d+\b/.test(selected))return false;
+    return /\b(?:bowling|candlepin|billiards?|snooker|darts?|power pool|(?:9|8|nine|eight) ball (?:tournament|championship|match)|pool (?:tournament|championship|match|competition)|(?:exhibition )?pool tournament)\b/.test(selected);
+  }
+  return true;
 }
 
 export function iaStockCarAllowed(item = {}) {
@@ -730,7 +770,7 @@ export function qualifyIaFileRecord(raw, rules = {}, now = Date.now()) {
   }
   const text = [item.title, item.description, item.subject, item.fileName].filter(Boolean).join(' ').toLowerCase();
   const channel = String(rules.channel || '');
-  if (['52','53','55','56','57','58','59','60','61','62','63','64','65','66','68','69','70','71','72','73','74','75','76'].includes(channel) && iaKnownVideoPolicyViolation(item, rules)) return reject('off-genre-sports');
+  if (['52','53','55','56','57','58','59','60','61','62','63','64','65','66','68','69','70','71','72','73','74','75','76','77','78','79'].includes(channel) && iaKnownVideoPolicyViolation(item, rules)) return reject('off-genre-sports');
   if (!iaReviewedFileAllowed(item, channel)) return reject('off-genre-reviewed-collection');
   const completeCartoon = channel === '150' && COMPLETE_CARTOON_SHORT_PARENTS.has(item.sourceIdentifier)
     && !/\b(?:clip|trailer|preview|teaser|promo|bumper|intro|introduction|outro|review|reaction|tutorial|interview|bonus|menu|featurette|tiktok|reels)\b|#shorts|youtube shorts/i.test(text);

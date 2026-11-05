@@ -777,28 +777,30 @@ function okMovieTitleQualified(profile, item) {
 }
 
 function sportsReplayTitle(profile, title) {
-  if (/\b(?:highlights?|recap|condensed|preview|reaction|watchalong|watch along|podcast|press conference|interview|gameplay|simulation|e-?sports|shorts|trailer|promo|teaser|top \d+)\b/i.test(title)) return false;
+  if (/\b(?:highlights?|recap|condensed|preview|reaction|watchalong|watch along|podcast|press conference|interview|gameplay|simulation|e-?sports|shorts|trailer|promo|teaser|top \d+|awards ceremony|awards \d{4})\b/i.test(title)) return false;
+  if (profile.sportsFormat === "race" && /\b(?:practice|qualifying|warm[ -]?up|testing|part\s+\d+)\b/i.test(title)) return false;
+  if (profile.profileKey === "yt-sports-octagon" && /\b(?:kickboxing|muay thai|submission grappling)\b/i.test(title)) return false;
   if (profile.sportsThroughYear) {
     const eventYear = Number(title.match(/\b(?:19|20)\d{2}\b/)?.[0]);
     if (!eventYear || eventYear > profile.sportsThroughYear) return false;
   }
   if (profile.sportsFormat === "program") {
-    return /\b(?:full episode|full film|documentary|full program|complete episode|season \d+|episode \d+|ep\.?\s*\d+)\b/i.test(title);
+    return /\b(?:full (?:tv )?episode|full film|documentary|full program|complete episode|season \d+|episode \d+|ep\.?\s*\d+|a football life|nfl films presents|america.s game|(?:game ?day|nfl) all access|throwback originals)\b/i.test(title);
   }
   if (profile.sportsFormat === "clinic") {
     return /\b(?:clinic|coach education|coach development|coaching seminar|coaching workshop)\b/i.test(title);
   }
   const complete = /\b(?:full|complete|entire)\s+(?:length\s+)?(?:race|match|game|fight|bout|event|session|coverage|broadcast|round|replay)\b|\b(?:race|match|game|fight|event|round)\s+(?:replay|broadcast)\b/i;
   if (complete.test(title)) return true;
-  const matchup = /\b(?:vs\.?|versus|v)\s|\s@\s/i.test(title);
+  const matchup = /\b(?:vs\.?|versus|v)\s|\s(?:@|at)\s/i.test(title);
   switch (profile.sportsFormat) {
-    case "race": return /\b(?:race\s+\d+|race day|round\s+\d+|hours? of|grand prix|e-prix|\d{3}\s+at)\b/i.test(title) && /\b(?:live|replay|race broadcast|part\s+\d+)\b/i.test(title);
+    case "race": return /\b(?:race\s+\d+|race day|day\s+\d+|round\s+\d+|hours? of|grand prix|e-prix|\d{3}\s+at)\b/i.test(title) && /\b(?:live|replay|race broadcast)\b/i.test(title);
     case "round": return /\b(?:final round|round\s+\d+|round replay)\b/i.test(title);
     case "cue": return /\bchampionship league\b/i.test(title) && /\b(?:table|session|day)\s*\d+/i.test(title) || matchup && /\b(?:finals?|semi[- ]?finals?|quarter[- ]?finals?|last \d+|round \d+)\b/i.test(title);
     case "game": return matchup || /\b(?:world series|playoffs?|championship)\b.*\bgame\s+\d+\b/i.test(title);
     case "fight": return matchup && /\b(?:fight|bout|boxing|mma)\b/i.test(title);
     case "match": return matchup && /\b(?:finals?|round|championships?|court)\b/i.test(title);
-    default: return /\b(?:live|replay)\b/i.test(title) && /\b(?:finals?|championships?|qualifiers?|round|day\s+\d+|session)\b/i.test(title);
+    default: return /\b(?:live|replay|finals|broadcast)\b/i.test(title) && /\b(?:finals?|championships?|qualifiers?|round|day\s+\d+|session)\b/i.test(title);
   }
 }
 
@@ -829,8 +831,9 @@ function accepted(profile, item, provider, checkAspect = true) {
       && profile.youtubeChannelHandles.includes(item.channelSeed) && !!id
       && item.embedUrl === "https://www.youtube-nocookie.com/embed/" + id
       && item.url === item.embedUrl
-      && englishOkay({ ...item, account: "", description: String(item.description || "").replace(/\bMatchroom Multi Sport\b/gi, "Matchroom Sport") }, true)
-      && sportsReplayTitle(profile, title) && termsMatch(haystack, profile.match);
+      && englishOkay({ ...item, account: "", description: "" }, true)
+      && sportsReplayTitle(profile, title)
+      && termsMatch(text([title, item.account].join(" "), 1000).toLowerCase(), profile.match);
   }
   if (profile.titleRequiredTerms.length && !termsMatch(titleHaystack, profile.titleRequiredTerms)) return false;
   const qualityMovieTitle = okMovieTitleQualified(profile, item);
@@ -1196,13 +1199,21 @@ async function youtube(profile, rotation, env, options = {}) {
   const searchCandidates = searchResponses.flatMap((response) => Array.isArray(response && response.items) ? response.items : []);
   let uploads = channelLane.items || [];
   if (profile.youtubeSports) {
-    uploads = uploads.filter(candidate => sportsReplayTitle(profile, candidate.title));
+    uploads = uploads.filter(candidate => sportsReplayTitle(profile, candidate.title)
+      || /\b(?:day|table|session|round)\s+\d+\b|\bfinals\b/i.test(candidate.title) && sportsReplayTitle(profile, "Replay " + candidate.title));
     // Maintenance can look deeper within a resolved publisher when recent
     // uploads do not contain enough full programs. Viewer tunes use uploads.
     const publishers = channelLane.publishers || [];
     if (options.maintenance === true && uploads.length < 40 && publishers.length) {
-      const publisher = publishers[Math.abs(rotation) % publishers.length];
-      const format = { program: "full episode | full documentary", clinic: "coaching clinic", race: "full race | race replay", round: "full round | round replay", fight: "full fight", cue: "full match | championship league", game: "full game | full match", match: "full match" }[profile.sportsFormat] || "full event | replay";
+      const publisher = publishers[0];
+      const preferred = {
+        "yt-sports-hard-count": "a football life | nfl films presents | all access",
+        "yt-sports-sports-newsreel": "sports documentary | olympic film",
+        "yt-sports-fishing": "bassmaster live | bass pro tour full episode",
+        "yt-sports-regatta": "full race | race day | finals replay",
+      }[profile.profileKey];
+      const format = preferred || (profile.sportsThroughYear ? "classic full race replay" :
+        { program: "full episode | full documentary", clinic: "coaching clinic", race: "full race | race replay", round: "full round | round replay", fight: "full fight", cue: "full match | championship league", game: "full game | full match", match: "full match" }[profile.sportsFormat] || "full event | replay");
       const params = new URLSearchParams({ part: "snippet", type: "video", channelId: publisher.publisherId, q: format, videoDuration: "long", videoEmbeddable: "true", regionCode: "US", maxResults: "50", key });
       const scoped = await fetchJson("https://www.googleapis.com/youtube/v3/search?" + params, { headers: { Referer: "https://esfsfestgfse.github.io/Archivetv/" } }).catch(() => null);
       for (const row of scoped?.items || []) {
@@ -1222,7 +1233,10 @@ async function youtube(profile, rotation, env, options = {}) {
      discovery pass cannot invalidate an otherwise healthy YouTube lane. */
   const detailBatches = await mapLimit(Array.from({ length: Math.ceil(ids.length / 50) }, (_, index) => ids.slice(index * 50, index * 50 + 50)), firstLane ? 1 : 2, async (batch) => {
     const params = new URLSearchParams({ part: "snippet,contentDetails,status,player", id: batch.join(","), key });
-    if (profile.youtubeSports) params.set("maxWidth", "960");
+    if (profile.youtubeSports) {
+      params.set("maxWidth", "960");
+      params.set("part", params.get("part") + ",liveStreamingDetails");
+    }
     const detailUrl = "https://www.googleapis.com/youtube/v3/videos?" + params;
     return fetchJson(detailUrl);
   });
@@ -1245,9 +1259,15 @@ async function youtube(profile, rotation, env, options = {}) {
     } else {
       ratio ||= 16 / 9;
     }
+    let title = text(item.snippet && item.snippet.title) || candidate.title;
+    const startTime = item.liveStreamingDetails?.actualStartTime;
+    if (profile.youtubeSports && startTime && item.liveStreamingDetails?.actualEndTime) {
+      const eventDate = startTime.slice(0, 10);
+      title = "Replay · " + title.replace(/^\W*(?:(?:watch |re-)?live)\b[\s|:–-]*/i, "") + " (" + eventDate + ")";
+    }
     const hydrated = {
       ...candidate,
-      title: text(item.snippet && item.snippet.title) || candidate.title,
+      title,
       // Examine the complete public description before normalized() compacts
       // accepted records. Disclosures are often below links and credits.
       description: text(item.snippet && item.snippet.description, 10000),

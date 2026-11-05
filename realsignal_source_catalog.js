@@ -783,6 +783,7 @@ function sportsReplayTitle(profile, title) {
   if (profile.sportsFormat === "race" && /\b(?:practice|qualifying|warm[ -]?up|testing|part\s+\d+)\b/i.test(title)) return false;
   if (profile.profileKey === "yt-sports-baseball" && /\b(?:baseball5|softball|home run derby|batting practice)\b/i.test(title)) return false;
   if (profile.sportsFormat === "fight" && /\b(?:weigh[ -]?ins?|face[ -]?offs?|pressers?)\b/i.test(title)) return false;
+  if (profile.profileKey === "yt-sports-gridiron" && !/\b(?:acc football|american football|efa|european football alliance)\b/i.test(title)) return false;
   if (profile.profileKey === "yt-sports-octagon" && /\b(?:kickboxing|muay thai|submission grappling)\b/i.test(title)) return false;
   if (profile.sportsThroughYear) {
     const eventYear = Number(title.match(/\b(?:19|20)\d{2}\b/)?.[0]);
@@ -790,6 +791,11 @@ function sportsReplayTitle(profile, title) {
   }
   if (profile.sportsFormat === "program") {
     if (/\b(?:behind the scenes|speaker series|product launch|gear review)\b/i.test(title)) return false;
+    if (profile.profileKey === "yt-sports-hard-count" && /\bdeep blue\b/i.test(title)) return true;
+    if (profile.profileKey === "yt-sports-hunt") {
+      if (/\b(?:politic(?:s|al)|campaign|rally|news|press briefing|gear setup|how to)\b/i.test(title)) return false;
+      if (/\b(?:eastmans. hunting tv|mossy oak classics)\b/i.test(title)) return true;
+    }
     return /\b(?:full (?:tv )?episode|full film|documentary|full program|complete episode|season \d+|episode \d+|ep\.?\s*\d+|a football life|nfl films presents|america.s game|(?:game ?day|nfl) all access|throwback originals)\b/i.test(title);
   }
   if (profile.sportsFormat === "clinic") {
@@ -1108,6 +1114,7 @@ async function youtubeChannelUploads(profile, rotation, env, options = {}) {
     const direct = (curatedVideos?.ids || []).map(rawId => ({
       id: "yt:" + rawId, rawId, query: "channel:" + seed,
       channelSeed: seed, publisherId: publisher.id,
+      curated: true,
       title: curatedVideos.label, playlistLabel: curatedVideos.label,
     }));
     const items = pageItems.map((item) => {
@@ -1135,7 +1142,7 @@ async function youtubeChannelUploads(profile, rotation, env, options = {}) {
   })).filter(Boolean);
   return {
     publishers: lanes.filter(lane => lane.publisherId).map(({ seed, publisherId }) => ({ seed, publisherId })),
-    items: unique(profile.profileKey === "garden-ledger"
+    items: unique(profile.youtubeSports || profile.profileKey === "garden-ledger"
       ? Array.from({length: Math.max(0, ...lanes.map(lane => (lane.items || []).length))}, (_, index) => lanes.map(lane => (lane.items || [])[index]).filter(Boolean)).flat()
       : lanes.flatMap((lane) => lane.items || [])),
     health: {
@@ -1214,7 +1221,7 @@ async function youtube(profile, rotation, env, options = {}) {
   const searchCandidates = searchResponses.flatMap((response) => Array.isArray(response && response.items) ? response.items : []);
   let uploads = channelLane.items || [];
   if (profile.youtubeSports) {
-    uploads = uploads.filter(candidate => sportsReplayTitle(profile, candidate.title)
+    uploads = uploads.filter(candidate => candidate.curated || sportsReplayTitle(profile, candidate.title)
       || /\b(?:day|table|session|round)\s+\d+\b|\bfinals\b/i.test(candidate.title) && sportsReplayTitle(profile, "Replay " + candidate.title));
     // Maintenance can look deeper within a resolved publisher when recent
     // uploads do not contain enough full programs. Viewer tunes use uploads.
@@ -1222,7 +1229,7 @@ async function youtube(profile, rotation, env, options = {}) {
     if (options.maintenance === true && uploads.length < 40 && publishers.length) {
       const publisher = publishers[0];
       const preferred = {
-        "yt-sports-hard-count": "a football life | nfl films presents | all access",
+        "yt-sports-hard-count": publisher.seed === "@DallasCowboys" ? "deep blue" : "legacy full documentary",
         "yt-sports-sports-newsreel": "sports documentary | olympic film",
         "yt-sports-fishing": "bassmaster live | bass pro tour full episode",
         "yt-sports-regatta": "full race | race day | finals replay",

@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { test } from "node:test";
+import { runInNewContext } from "node:vm";
 import YouTubeSports from "../assets/youtube-sports-lineup.js";
 import { qualifySourceItem, sourceCatalogTasks, sourceProfile } from "../realsignal_source_catalog.js";
 import api, { catalogFallbackAllowed, compactCatalogItem } from "../realsignal_api_v2_worker.js";
@@ -20,6 +22,22 @@ test("the full companion lineup has isolated YouTube profiles", () => {
   }
   assert.equal(keys.size, 34);
   assert.equal(sourceProfile({ profileKey: "nascar-classics" }).youtubeSports, false);
+});
+
+test("replay identity ignores title punctuation and failed embeds stay out of both player queues", () => {
+  assert.equal(YouTubeSports.programKey({ title: "Team A vs Team B | Full Game" }),
+    YouTubeSports.programKey({ title: "TEAM A vs Team B — Full Game" }));
+  for (const surface of ["desktop", "mobile"]) {
+    const html = readFileSync(new URL("../the_dial_" + surface + ".html", import.meta.url), "utf8");
+    const rows = new Map();
+    const store = { get: (key, fallback) => rows.get(key) ?? fallback, set: (key, value) => rows.set(key, value) };
+    const rejection = html.split(/\r?\n/).filter(line => /^function v2Reject(?:ed)?\(/.test(line)).join("\n");
+    const context = { store };
+    runInNewContext(rejection, context);
+    context.v2Reject("Gridiron", { id: "yt:first" });
+    context.v2Reject("Gridiron", { id: "yt:second" });
+    assert.deepEqual(Array.from(context.v2Rejected("Gridiron")), ["yt:second", "yt:first"]);
+  }
 });
 
 test("sports upload and cache admission reject unrelated, restricted and unverified videos", async () => {
@@ -70,12 +88,17 @@ test("sports upload and cache admission reject unrelated, restricted and unverif
     for (const [key, channelSeed, account, replay, offGenre] of [
       ["boxing", "@MatchroomBoxing", "Matchroom Boxing", "Dalton Smith vs Alberto Puello | Full Fight", "Dalton Smith Vs Alberto Puello Weigh In | Matchroom Boxing"],
       ["baseball", "@MLB", "MLB", "Brewers vs. Rays World Series Game 5 | Full Game", "Brewers vs. Rays World Series Game 5 LIVE Batting Practice"],
+      ["gridiron", "@ACCDigitalNetwork", "ACC Digital Network", "Alabama vs. Florida State Full Game Replay | 2025 ACC Football", "Duke vs. Louisville Full Game Replay | ACC Basketball"],
     ]) {
       const replayProfile = sourceProfile({ profileKey: "yt-sports-" + key });
       const candidate = { ...item, channelSeed, account, title: replay, duration: 7200 };
       assert.ok(qualifySourceItem(replayProfile, candidate), replay);
       assert.equal(qualifySourceItem(replayProfile, { ...candidate, title: offGenre }), null, offGenre);
     }
+    assert.equal(qualifySourceItem(sourceProfile({ profileKey: "yt-sports-gridiron" }), {
+      ...item, channelSeed: "@NFL", account: "NFL", duration: 7200,
+      title: "Los Angeles Rams vs. Seattle Seahawks FULL GAME | NFL 2025 Season NFC Conference Championship",
+    }), null);
     const compact = compactCatalogItem(item);
     const row = { id: compact.id, provider: compact.provider, title: compact.title,
       duration_seconds: compact.duration, aspect_ratio: compact.aspectRatio,
@@ -93,4 +116,3 @@ test("sports upload and cache admission reject unrelated, restricted and unverif
     globalThis.fetch = originalFetch;
   }
 });
-

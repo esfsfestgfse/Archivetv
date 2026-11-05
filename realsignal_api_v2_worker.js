@@ -15,13 +15,14 @@ import { OK_VERIFIED_SEARCH_SEED } from "./ok_verified_search_seed.js";
 import { vimeoBalancedItems } from "./vimeo_catalog.js";
 import { mergeSourceLanes, sourceCatalogTasks, sourceRefreshTasks, sourceProfile, sourceCatalogKey, qualifySourceItem, isOKSourceProfile, SOURCE_LIMITS } from "./realsignal_source_catalog.js";
 import Sports from "./assets/sports-programs.js";
+import YouTubeSports from "./assets/youtube-sports-lineup.js";
 import SourcePrograms from "./assets/source-program-policy.js";
 import { IA_CANONICAL_PILOT_PROFILES, IA_CANONICAL_SCHEMA_VERSION, canonicalGuide, canonicalPromotionEligibility, selectCanonicalItems } from "./ia_canonical_station.mjs";
 import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "6.2.0-youtube-sports";
+const V3_RELEASE = "6.2.1-sports-replay-recovery";
 const MAX_BODY_BYTES = 128 * 1024;
 /* D1 is a rolling catalog, not a second five-item shelf. Persist enough
    verified candidates for three public rotations so API fallback does not
@@ -859,6 +860,25 @@ function rotateCatalogItems(items, rotation) {
   return items.slice(offset).concat(items.slice(0, offset));
 }
 
+function balanceSportsReplayCatalog(items) {
+  const programs = new Set();
+  const publishers = new Map();
+  for (const item of items) {
+    const key = YouTubeSports.programKey(item);
+    if (programs.has(key)) continue;
+    programs.add(key);
+    const publisher = item.seriesId || item.channelId || item.account || item.provider;
+    if (!publishers.has(publisher)) publishers.set(publisher, []);
+    publishers.get(publisher).push(item);
+  }
+  const groups = [...publishers.values()];
+  const balanced = [];
+  for (let index = 0; index < Math.max(0, ...groups.map(group => group.length)); index++) {
+    for (const group of groups) if (group[index]) balanced.push(group[index]);
+  }
+  return balanced;
+}
+
 function catalogFallbackAllowed(item, body) {
   if (body && body.sourceCatalog === true && !SourcePrograms.allow(body.channel, item)) return false;
   if (body && body.sourceCatalog !== true && !iaReviewedFileAllowed(item, body.channel)) return false;
@@ -1480,7 +1500,8 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
   const vimeoCatalog = effectiveBody.sourceCatalog === true && /^vimeo-(?:movie|tv)-channel$/.test(channel);
   const repairCatalog = effectiveBody.iaRepair === true && effectiveBody.sourceCatalog !== true;
   const deepCatalog = okCatalog || vimeoCatalog;
-  const rotatingSourceCatalog = !deepCatalog && catalogProfile?.providers?.some(provider => provider === "youtube" || provider === "peertube" || provider === "nascar");
+  const sportsReplay = catalogProfile?.youtubeSports === true;
+  const rotatingSourceCatalog = !deepCatalog && (sportsReplay || catalogProfile?.providers?.some(provider => provider === "youtube" || provider === "peertube" || provider === "nascar"));
   const limit = repairCatalog ? IA_REPAIR_CATALOG_WINDOW : deepCatalog ? OK_CATALOG_WINDOW : Math.max(1, Math.min(SOURCE_LIMITS.SOURCE_MAX_ITEMS, Number(requestedLimit) || SOURCE_LIMITS.SOURCE_MAX_ITEMS));
   // The database keeps the full union. This bounded playback window prefers
   // unseen/oldest-served rows, so older episodes don't vanish behind new writes.
@@ -1642,10 +1663,14 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
      candidate union while measuring depth/freshness and selecting the public
      shelf only from rows that can actually start. */
   const playable = filtered.filter(queueItemPlayable);
-  const playableCatalog = okCatalog ? okBalancedCandidates([playable], okMusicChannel({profileKey:channel}) ? "music" : channel === "ok-movie-channel" ? "movie" : "tv", limit) : vimeoCatalog ? vimeoBalancedItems(playable) : playable;
+  const playableCatalog = okCatalog ? okBalancedCandidates([playable], okMusicChannel({profileKey:channel}) ? "music" : channel === "ok-movie-channel" ? "movie" : "tv", limit) : vimeoCatalog ? vimeoBalancedItems(playable) : sportsReplay ? balanceSportsReplayCatalog(playable) : playable;
   const recentIDs = recentCatalogIds(effectiveBody);
   const okKind = okMusicChannel({profileKey:channel}) ? "music" : channel === "ok-movie-channel" ? "movie" : "tv";
   const recentPrograms = okCatalog ? new Set(playable.filter(item => recentIDs.has(queueItemKey(item))).map(item => okPlaybackIdentity(item, okKind))) : new Set();
+  const recentSportsPrograms = sportsReplay
+    ? new Set([...recentIDs].filter(id => id.startsWith("yt-replay:"))
+      .concat(playable.filter(item => recentIDs.has(queueItemKey(item))).map(YouTubeSports.programKey)))
+    : new Set();
   const recentSeriesById = new Map(playable.filter(item => recentIDs.has(queueItemKey(item))).map(item => [queueItemKey(item), okSeriesIdentity(item)]));
   // Resolve watched identities independently of the bounded playable window.
   // Inactive originals still identify alternate uploads of a watched episode.
@@ -1666,7 +1691,9 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
   const strictOKFreshness = deepCatalog || rotatingSourceCatalog;
   const sportsPlayed = new Set(Sports.enabled(channel) ? [...recentIDs].filter(key=>key.startsWith('sports:')).concat(Sports.history(playableCatalog,[...recentIDs]).map(item=>Sports.key(item,channel))) : []);
   const fresh = ignoreFreshness ? playableCatalog : strictOKFreshness
-    ? playableCatalog.filter(item => !recentIDs.has(queueItemKey(item)) && !sportsPlayed.has(Sports.key(item,channel)) && (!okCatalog || !recentPrograms.has(okPlaybackIdentity(item, okKind))))
+    ? playableCatalog.filter(item => !recentIDs.has(queueItemKey(item)) && !sportsPlayed.has(Sports.key(item,channel))
+      && (!okCatalog || !recentPrograms.has(okPlaybackIdentity(item, okKind)))
+      && (!sportsReplay || !recentSportsPrograms.has(YouTubeSports.programKey(item))))
     : applyFreshness(playableCatalog, effectiveBody);
   const requestedCount = Math.max(1, Math.min(5, Number(effectiveBody && effectiveBody.count) || 3));
   /* Source Suite may legitimately exhaust a small catalog. Repeat only after

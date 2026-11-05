@@ -8,13 +8,19 @@
   "use strict";
 
   const lineup = [
-    { number: 800, key: "hard-count", name: "Football Films", publishers: ["@NFL", "@NFLFilms", "@NFLThrowback"], topics: ["nfl", "football"], format: "program", minutes: 20 },
+    { number: 800, key: "hard-count", name: "Football Films", publishers: ["@DallasCowboys", "@packers"], topics: ["nfl", "football", "dallas cowboys", "green bay packers"], format: "program", minutes: 20,
+      playlists: { "@packers": { id: "PLNr-Ivaq2_0Bdm_Lto1YZ_BBHJot5Zgra", label: "Full Film" } },
+      videos: {
+        "@DallasCowboys": { ids: ["lCgREwSdCCY", "jIk8uxTWzSs"] },
+        "@packers": { ids: ["DxPl3nlltdM"], label: "Full Film" },
+      } },
     { number: 801, key: "octagon", name: "MMA Replays", publishers: ["@ONEChampionship", "@PFLMMA", "@ufc"], topics: ["mma", "mixed martial arts", "one championship", "pfl", "ufc"], format: "fight", minutes: 15 },
     { number: 802, key: "sports-vault", name: "Sports Replay Vault", publishers: ["@Olympics", "@MLBVault", "@FIBA", "@FIFA"], topics: ["olympic", "baseball", "basketball", "football", "championship", "world cup"], format: "event", minutes: 30 },
     { number: 803, key: "auto-racing", name: "Sports Car Replays", publishers: ["@imsaofficial", "@GTWorld", "@FIAWEC"], topics: ["imsa", "gtworld", "gt world", "gt3", "endurance", "le mans", "weathertech", "wec"], format: "race", minutes: 35 },
     { number: 804, key: "derby-wrestling", name: "Derby & Wrestling Replays", publishers: ["UC7eMWpvytqd3gYAqxTl9w7g", "@unitedworldwrestling", "@WWE", "@FloWrestling"], topics: ["roller derby", "wftda", "wrestling", "greco-roman", "freestyle", "wwe"], format: "game", minutes: 20 },
     { number: 805, key: "boxing", name: "Boxing Replays", publishers: ["@toprank", "@PremierBoxingChampions", "@MatchroomBoxing"], topics: ["boxing", "top rank", "pbc", "matchroom boxing"], format: "fight", minutes: 15 },
-    { number: 806, key: "gridiron", name: "Gridiron Replays", publishers: ["@NFL", "@NFLThrowback", "@CFL"], topics: ["nfl", "cfl", "american football", "super bowl", "grey cup"], format: "game", minutes: 60 },
+    { number: 806, key: "gridiron", name: "American Football Replays", publishers: ["@ACCDigitalNetwork", "@EuroFootballAlliance"], topics: ["football", "european football alliance", "efa"], format: "game", minutes: 60,
+      videos: { "@ACCDigitalNetwork": { ids: ["qmROAOJceTc", "lz2j-ID-JeA"] } } },
     { number: 807, key: "basketball", name: "Basketball Replays", publishers: ["@FIBA", "@NBAGLeague", "@NBA", "@WNBA"], topics: ["basketball", "fiba", "nba", "wnba", "g league"], format: "game", minutes: 45 },
     { number: 808, key: "baseball", name: "Baseball Replays", publishers: ["@MLBVault", "@MLB", "@WBSC"], topics: ["baseball", "mlb", "world series", "all-star game", "wbsc"], format: "game", minutes: 60 },
     { number: 809, key: "hockey", name: "Hockey Replays", publishers: ["@thepwhlofficial", "@IIHFWorlds", "@NHL"], topics: ["hockey", "pwhl", "iihf", "nhl", "stanley cup"], format: "game", minutes: 45 },
@@ -45,7 +51,14 @@
     { number: 826, key: "grand-prix", name: "Grand Prix Replays", publishers: ["@IndyCar", "@FormulaE", "@Formula1"], topics: ["formula 1", "formula e", "indycar", "grand prix", "e-prix", "indy 500"], format: "race", minutes: 40 },
     { number: 827, key: "gymnasium", name: "Gymnastics & Strength Replays", publishers: ["@USAGymnastics", "@gymnastics", "@IWFWeightlifting"], topics: ["gymnastics", "weightlifting", "gymnast", "iwf", "all-around"], format: "event", minutes: 25 },
     { number: 828, key: "cue-sports", name: "Pool & Snooker Replays", publishers: ["@MatchroomMultiSport", "UC-YHhXeWjF80OkVxR-HE2Xw", "@WorldSnookerTour"], topics: ["snooker", "pool", "billiards", "mosconi cup", "nineball", "9-ball", "8-ball"], format: "cue", minutes: 25 },
-    { number: 829, key: "hunt", name: "Hunting Programs", publishers: ["@MossyOak", "@MeatEater", "@OutdoorChannel"], topics: ["hunting", "hunt", "deer season", "elk season", "turkey season", "waterfowl"], format: "program", minutes: 20 },
+    { number: 829, key: "hunt", name: "Hunting Programs", publishers: ["@MeatEaterTV", "@EastmansHuntingJournals", "@MyOutdoorTV", "@MossyOak", "@OutdoorChannel"],
+      topics: ["hunting", "hunt", "meateater", "whitetail", "turkey", "mule deer", "big game", "waterfowl"], format: "program", minutes: 15,
+      playlists: { "@MossyOak": { id: "PLAn10MBzyX9T8lb98vJIZYLIIwoMVQWDb", label: "Full Episode" } },
+      videos: {
+        "@MeatEaterTV": { ids: ["SFKbFQWdArI"] },
+        "@EastmansHuntingJournals": { ids: ["dPNCe2Z2O1Q"] },
+        "@MyOutdoorTV": { ids: ["PAmfkFva7LY"] },
+      } },
     { number: 830, key: "fishing", name: "Fishing Programs", publishers: ["UCmovLz7KR-NS7VQ_cdfdh9A", "@Bassmaster", "@InFishermanTV"], topics: ["fishing", "angling edge", "bassmaster", "angler"], format: "program", minutes: 15,
       playlists: { "UCmovLz7KR-NS7VQ_cdfdh9A": { id: "PLG880RKfZvnWANWB1z5ncDxvOoEUIU7_e", label: "Full Episode" } } },
     { number: 831, key: "camp-trail", name: "Camp & Trail Films", publishers: ["@BackpackerMagazine", "@rei", "@TheNorthFace"], topics: ["backpacker", "camping", "backpacking", "hiking", "trail", "expedition", "thru-hike"], format: "program", minutes: 15,
@@ -75,6 +88,11 @@
     channels.push({ nm: name, num: entry.number, cat: "YTSPORTS", source: "v2preview", ns: "tv", previewKey: key });
   }
 
-  return Object.freeze({ profiles: Object.freeze(profiles), channels: Object.freeze(channels) });
+  function programKey(item) {
+    const title = String(item?.title || "").normalize("NFKC").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+    return title ? "yt-replay:" + title : "";
+  }
+
+  return Object.freeze({ profiles: Object.freeze(profiles), channels: Object.freeze(channels), programKey });
 });
 

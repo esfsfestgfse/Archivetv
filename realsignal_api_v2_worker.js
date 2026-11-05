@@ -458,6 +458,7 @@ function compactCatalogItem(item) {
     category: String(item.category || "").slice(0, 240),
     account: String(item.account || "").slice(0, 240),
     channelId: String(item.channelId || "").slice(0, 80),
+    ...(item.channelSeed ? { channelSeed: String(item.channelSeed).slice(0, 120) } : {}),
     ...(typeof item.containsSyntheticMedia === "boolean" ? { containsSyntheticMedia: item.containsSyntheticMedia } : {}),
     query: String(item.query || "").slice(0, 240),
     duration: Number(item.duration || item.runtime) || null,
@@ -869,7 +870,7 @@ function catalogFallbackAllowed(item, body) {
   if (!iaGameShowEraAllowed(item, body && body.channel)) return false;
   if (body && body.iaRepair === true && body.sourceCatalog !== true && !qualifyIaFileRecord(item, body).accepted) return false;
   const catalogProfile = body && body.sourceCatalog === true ? sourceProfile({ profileKey: body.channel }) : null;
-  if (body && body.sourceCatalog === true && (isOKSourceProfile(catalogProfile) || /^vimeo-(?:movie|tv)-channel$/.test(String(body.channel || "")) || catalogProfile && /^(?:cartoon-time-machine|garden-ledger|nascar-classics)$/.test(catalogProfile.profileKey))) {
+  if (body && body.sourceCatalog === true && (catalogProfile?.youtubeSports || isOKSourceProfile(catalogProfile) || /^vimeo-(?:movie|tv)-channel$/.test(String(body.channel || "")) || catalogProfile && /^(?:cartoon-time-machine|garden-ledger|nascar-classics)$/.test(catalogProfile.profileKey))) {
     return !!qualifySourceItem(catalogProfile, item);
   }
   const title = String(item && item.title || "").toLowerCase();
@@ -1600,6 +1601,7 @@ async function catalogFallback(env, body, requestedLimit = SOURCE_LIMITS.SOURCE_
       animationVerificationVersion: Number(metadata.animationVerificationVersion) || 0,
       animationEpisodeRuntime: Number(metadata.animationEpisodeRuntime) || 0,
       ...(provider === "OK.ru" ? { embedAllowed: metadata.embedAllowed === true } : {}),
+      ...(provider === "YouTube" ? { channelSeed: metadata.channelSeed || "", embedAllowed: metadata.embedAllowed === true } : {}),
       ...(provider === "Vimeo" ? { embedAllowed: metadata.embedAllowed === true, publicEmbed: metadata.publicEmbed === true, embedVerified: metadata.embedVerified === true, verifiedAt: Number(metadata.verifiedAt) || 0 } : {}),
       provider,
       year: row.year || "",

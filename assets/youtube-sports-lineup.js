@@ -1,0 +1,68 @@
+/* Companion guide entries and publisher policies for YouTube Sports.
+ * The server resolves these handles, checks upload ownership and verifies embeds.
+ */
+(function (root, factory) {
+  if (typeof module === "object" && module.exports) module.exports = factory();
+  else root.RealSignalYouTubeSports = factory();
+})(typeof globalThis !== "undefined" ? globalThis : this, function () {
+  "use strict";
+
+  const lineup = [
+    { number: 800, key: "hard-count", name: "Football Films", publishers: ["@NFLThrowback", "@NFL"], topics: ["nfl", "football"], format: "program", minutes: 20 },
+    { number: 801, key: "octagon", name: "MMA Replays", publishers: ["@ONEChampionship", "@PFLMMA", "@ufc"], topics: ["mma", "mixed martial arts", "one championship", "pfl", "ufc"], format: "fight", minutes: 15 },
+    { number: 802, key: "sports-vault", name: "Sports Replay Vault", publishers: ["@Olympics", "@MLBVault", "@FIBA", "@FIFA"], topics: ["olympic", "baseball", "basketball", "football", "championship", "world cup"], format: "event", minutes: 30 },
+    { number: 803, key: "auto-racing", name: "Endurance Racing", publishers: ["@imsaofficial", "@GTWorld", "@FIAWEC"], topics: ["imsa", "gt world", "gt3", "endurance", "le mans", "weathertech", "wec"], format: "race", minutes: 35 },
+    { number: 804, key: "derby-wrestling", name: "Derby & Wrestling Replays", publishers: ["@WFTDA", "@unitedworldwrestling", "@FloWrestling"], topics: ["roller derby", "wftda", "wrestling", "greco-roman", "freestyle"], format: "event", minutes: 20 },
+    { number: 805, key: "boxing", name: "Boxing Replays", publishers: ["@toprank", "@PremierBoxingChampions", "@MatchroomBoxing"], topics: ["boxing", "top rank", "pbc", "matchroom boxing"], format: "fight", minutes: 15 },
+    { number: 806, key: "gridiron", name: "Gridiron Replays", publishers: ["@NFL", "@NFLThrowback", "@CFL"], topics: ["nfl", "cfl", "american football", "super bowl", "grey cup"], format: "game", minutes: 60 },
+    { number: 807, key: "basketball", name: "Basketball Replays", publishers: ["@FIBA", "@NBAGLeague", "@NBA", "@WNBA"], topics: ["basketball", "fiba", "nba", "wnba", "g league"], format: "game", minutes: 45 },
+    { number: 808, key: "baseball", name: "Baseball Replays", publishers: ["@MLBVault", "@MLB", "@WBSC"], topics: ["baseball", "mlb", "world series", "all-star game", "wbsc"], format: "game", minutes: 60 },
+    { number: 809, key: "hockey", name: "Hockey Replays", publishers: ["@thepwhlofficial", "@IIHFWorlds", "@NHL"], topics: ["hockey", "pwhl", "iihf", "nhl", "stanley cup"], format: "game", minutes: 45 },
+    { number: 810, key: "olympics", name: "Olympic Replays", publishers: ["@Olympics", "@OlympicsAquatics"], topics: ["olympic", "tokyo 2020", "paris 2024", "rio 2016", "london 2012", "beijing 2022"], format: "event", minutes: 25 },
+    { number: 811, key: "college", name: "College Sports Replays", publishers: ["@MarchMadness", "@NCAAChampionships", "@BigTenNetwork"], topics: ["ncaa", "college", "march madness", "big ten", "final four"], format: "game", minutes: 45 },
+    { number: 812, key: "soccer", name: "Soccer Replays", publishers: ["@FIFA", "@Concacaf", "@MLS", "@USSoccer"], topics: ["fifa", "concacaf", "mls", "soccer", "world cup", "nations league"], format: "game", minutes: 55 },
+    { number: 813, key: "track-field", name: "Track & Field Replays", publishers: ["@WorldAthletics", "@DiamondLeague", "@Olympics"], topics: ["athletics", "diamond league", "track & field", "track and field", "marathon", "long jump"], format: "event", minutes: 25 },
+    { number: 814, key: "sporting-life", name: "Outdoor Sports Films", publishers: ["@RedBull", "@salomon", "@TheNorthFace"], topics: ["mountaineering", "climbing", "trail running", "expedition", "outdoor", "skiing"], format: "program", minutes: 20 },
+    { number: 815, key: "action-sports", name: "Surf, Skate & Snow Replays", publishers: ["@wsl", "@StreetLeague", "@XGames", "@fissnowboard"], topics: ["surf", "skateboard", "snowboard", "x games", "street league"], format: "event", minutes: 25 },
+    { number: 816, key: "women-in-sport", name: "Women’s Sports Replays", publishers: ["@NWSL", "@WNBA", "@thepwhlofficial", "@womenssixnations"], topics: ["women", "nwsl", "wnba", "pwhl"], format: "game", minutes: 45 },
+    { number: 817, key: "coaches-clinic", name: "Coaching Programs", publishers: ["@usabasketball", "@usavolleyball", "@USSoccer"], topics: ["coaching", "clinic", "coach education", "coach development"], format: "clinic", minutes: 20 },
+    { number: 818, key: "sports-newsreel", name: "Sports History Films", publishers: ["@BritishPathe", "@Olympics", "@NFLThrowback", "@MLBVault"], topics: ["sports history", "olympic", "nfl", "baseball", "newsreel", "football", "boxing"], format: "program", minutes: 20 },
+    { number: 819, key: "rodeo", name: "Rodeo Replays", publishers: ["@PBR", "@PRCAProRodeo", "@WRANGLERNFR"], topics: ["rodeo", "pbr", "bull riding", "nfr", "prca"], format: "event", minutes: 25 },
+    { number: 820, key: "golf", name: "Golf Replays", publishers: ["@TheMasters", "@TheOpen", "@USGA", "@PGATOUR"], topics: ["golf", "masters", "usga", "the open", "pga tour"], format: "round", minutes: 45 },
+    { number: 821, key: "racquet", name: "Racquet Sports Replays", publishers: ["@usopen", "@Wimbledon", "@AustralianOpen", "@bwftv", "@WTTGlobal"], topics: ["tennis", "badminton", "table tennis", "wimbledon", "australian open", "us open", "wtt"], format: "match", minutes: 25 },
+    { number: 822, key: "equestrian", name: "Equestrian Replays", publishers: ["@feichannel", "@USEquestrian", "@ClipMyHorseTV"], topics: ["equestrian", "dressage", "jumping", "eventing", "fei"], format: "event", minutes: 25 },
+    { number: 823, key: "winter", name: "Winter Sports Replays", publishers: ["@fisski", "@ISUSkating", "@WorldCurling", "@Olympics"], topics: ["skiing", "skating", "curling", "bobsleigh", "luge", "biathlon", "winter olympic"], format: "event", minutes: 25 },
+    { number: 824, key: "regatta", name: "Regatta Replays", publishers: ["@WorldRowing", "@WorldSailingTV", "@SailGP", "@americascup"], topics: ["rowing", "sailing", "regatta", "sailgp", "america's cup"], format: "race", minutes: 25 },
+    { number: 825, key: "stock-car", name: "Stock Car Replays", publishers: ["@NASCAR", "@NASCARRegional", "@ARCARacing"], topics: ["nascar", "stock car", "arca", "truck series", "xfinity", "modified tour"], format: "race", minutes: 40 },
+    { number: 826, key: "grand-prix", name: "Grand Prix Replays", publishers: ["@IndyCar", "@FormulaE", "@Formula1"], topics: ["formula 1", "formula e", "indycar", "grand prix", "e-prix", "indy 500"], format: "race", minutes: 40 },
+    { number: 827, key: "gymnasium", name: "Gymnastics & Strength Replays", publishers: ["@USAGymnastics", "@gymnastics", "@IWFWeightlifting"], topics: ["gymnastics", "weightlifting", "gymnast", "iwf", "all-around"], format: "event", minutes: 25 },
+    { number: 828, key: "cue-sports", name: "Pool & Snooker Replays", publishers: ["@MatchroomMultiSport", "@MatchroomPool", "@WorldSnookerTour", "@MosconiCupOfficial"], topics: ["snooker", "pool", "billiards", "mosconi cup", "nineball", "9-ball", "8-ball"], format: "cue", minutes: 25 },
+    { number: 829, key: "hunt", name: "Hunting Programs", publishers: ["@MeatEater", "@MossyOak", "@OutdoorChannel"], topics: ["hunting", "hunt", "deer season", "elk season", "waterfowl"], format: "program", minutes: 20 },
+    { number: 830, key: "fishing", name: "Fishing Replays", publishers: ["@MajorLeagueFishing", "@Bassmaster", "@InFishermanTV"], topics: ["fishing", "bassmaster", "bass pro tour", "angler"], format: "event", minutes: 25 },
+    { number: 831, key: "camp-trail", name: "Camp & Trail Films", publishers: ["@rei", "@TheNorthFace", "@BackpackerMagazine", "@salomon"], topics: ["camping", "backpacking", "hiking", "trail", "expedition", "thru-hike"], format: "program", minutes: 20 },
+    { number: 832, key: "range-field", name: "Target Sports Replays", publishers: ["@WorldArcheryTV", "@issfchannel", "@ArcheryGB"], topics: ["archery", "shooting sport", "issf", "recurve", "compound", "skeet", "trap"], format: "event", minutes: 25 },
+    { number: 833, key: "nascar-classics", name: "NASCAR Replay Vault", publishers: ["@NASCAR"], topics: ["nascar", "daytona", "talladega", "cup series"], format: "race", minutes: 60, throughYear: 2019 },
+  ];
+
+  const profiles = {};
+  const channels = [];
+  for (const entry of lineup) {
+    const key = "yt-sports-" + entry.key;
+    const name = entry.name + " · YouTube";
+    const profile = {
+      name, profileKey: key, youtubeSports: true, intent: "sports",
+      providers: ["youtube"], queries: [entry.topics[0] + " full replay"],
+      match: entry.topics, topics: entry.topics, deny: [],
+      minRuntimeSeconds: entry.minutes * 60, sportsFormat: entry.format,
+      sportsThroughYear: entry.throughYear || 0,
+      youtubeChannelHandles: entry.publishers, youtubeChannelWindow: entry.publishers.length,
+      youtubeChannelPageWindow: 3, youtubeChannelDiscoveryOnMaintenance: false,
+      youtubeSearchOnViewer: false, youtubeSearchOnMaintenance: false, deepCatalog: true,
+    };
+    profiles[key] = profile;
+    channels.push({ nm: name, num: entry.number, cat: "YTSPORTS", source: "v2preview", ns: "tv", previewKey: key });
+  }
+
+  return Object.freeze({ profiles: Object.freeze(profiles), channels: Object.freeze(channels) });
+});
+

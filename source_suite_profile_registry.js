@@ -1,7 +1,10 @@
 /* Generated from the approved Source Suite descriptors in the client build.
  * The API owns this registry; callers may select a profile key but cannot
  * replace its provider, query, match, or deny rules. */
+import YouTubeSports from "./assets/youtube-sports-lineup.js";
+
 export const SOURCE_PROFILE_REGISTRY = Object.freeze({
+  ...YouTubeSports.profiles,
   "nascar-classics": {
     "name": "NASCAR Classics",
     "providers": [

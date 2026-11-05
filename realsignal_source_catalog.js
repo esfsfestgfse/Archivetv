@@ -683,6 +683,7 @@ function normalizedProfile(body) {
     deepCatalog: approved.deepCatalog === true,
     youtubeSports: approved.youtubeSports === true,
     sportsFormat: approved.sportsFormat || "",
+    sportsPlaylists: approved.sportsPlaylists || {},
     sportsThroughYear: Number(approved.sportsThroughYear) || 0,
     longForm: approved.longForm === true,
     match: list(approved.match, 40),
@@ -777,7 +778,7 @@ function okMovieTitleQualified(profile, item) {
 }
 
 function sportsReplayTitle(profile, title) {
-  if (/\b(?:highlights?|recap|condensed|preview|reaction|watchalong|watch along|podcast|press conference|interview|gameplay|simulation|e-?sports|shorts|trailer|promo|teaser|top \d+|awards ceremony|awards \d{4})\b/i.test(title)) return false;
+  if (/\b(?:highlights?|recap|condensed|preview|reaction|watchalong|watch along|podcast|press conference|interview|gameplay|simulation|sim racing|video game|e-?sports|e-?sailing|virtual regatta|shorts|trailer|promo|teaser|top \d+|awards ceremony|awards \d{4})\b/i.test(title)) return false;
   if (profile.sportsFormat === "race" && /\b(?:practice|qualifying|warm[ -]?up|testing|part\s+\d+)\b/i.test(title)) return false;
   if (profile.profileKey === "yt-sports-octagon" && /\b(?:kickboxing|muay thai|submission grappling)\b/i.test(title)) return false;
   if (profile.sportsThroughYear) {
@@ -785,6 +786,7 @@ function sportsReplayTitle(profile, title) {
     if (!eventYear || eventYear > profile.sportsThroughYear) return false;
   }
   if (profile.sportsFormat === "program") {
+    if (/\b(?:behind the scenes|speaker series|product launch|gear review)\b/i.test(title)) return false;
     return /\b(?:full (?:tv )?episode|full film|documentary|full program|complete episode|season \d+|episode \d+|ep\.?\s*\d+|a football life|nfl films presents|america.s game|(?:game ?day|nfl) all access|throwback originals)\b/i.test(title);
   }
   if (profile.sportsFormat === "clinic") {
@@ -1073,7 +1075,8 @@ async function youtubeChannelUploads(profile, rotation, env, options = {}) {
     else channelParams.set("forHandle", String(seed).replace(/^@/, ""));
     const channel = await fetchJson("https://www.googleapis.com/youtube/v3/channels?" + channelParams, { headers: { Referer: "https://esfsfestgfse.github.io/Archivetv/" } });
     const publisher = channel?.items?.[0];
-    const playlistId = publisher?.contentDetails?.relatedPlaylists?.uploads;
+    const curatedPlaylist = profile.sportsPlaylists?.[seed];
+    const playlistId = curatedPlaylist?.id || publisher?.contentDetails?.relatedPlaylists?.uploads;
     if (!playlistId) return { seed, resolved: false, items: [] };
     /* One upload page is enough for a cold start. Maintenance rotates through
        older upload pages so a deep channel does not keep reopening the same
@@ -1106,7 +1109,8 @@ async function youtubeChannelUploads(profile, rotation, env, options = {}) {
         channelSeed: seed,
         publisherId: publisher.id,
         channelDiscovered: seedInfo.discovered === true,
-        title: text(snippet.title),
+        playlistLabel: curatedPlaylist?.label || "",
+        title: [curatedPlaylist?.label, text(snippet.title)].filter(Boolean).join(" · "),
         description: text(snippet.description, 1800),
         account: text(snippet.videoOwnerChannelTitle || snippet.channelTitle, 180),
         year: text(snippet.publishedAt, 12),
@@ -1211,6 +1215,7 @@ async function youtube(profile, rotation, env, options = {}) {
         "yt-sports-sports-newsreel": "sports documentary | olympic film",
         "yt-sports-fishing": "bassmaster live | bass pro tour full episode",
         "yt-sports-regatta": "full race | race day | finals replay",
+        "yt-sports-hunt": "full episode | turkey season | deer season | elk hunt",
       }[profile.profileKey];
       const format = preferred || (profile.sportsThroughYear ? "classic full race replay" :
         { program: "full episode | full documentary", clinic: "coaching clinic", race: "full race | race replay", round: "full round | round replay", fight: "full fight", cue: "full match | championship league", game: "full game | full match", match: "full match" }[profile.sportsFormat] || "full event | replay");
@@ -1265,6 +1270,7 @@ async function youtube(profile, rotation, env, options = {}) {
       const eventDate = startTime.slice(0, 10);
       title = "Replay · " + title.replace(/^\W*(?:(?:watch |re-)?live)\b[\s|:–-]*/i, "") + " (" + eventDate + ")";
     }
+    if (candidate.playlistLabel) title = candidate.playlistLabel + " · " + title;
     const hydrated = {
       ...candidate,
       title,

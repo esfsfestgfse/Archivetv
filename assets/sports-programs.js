@@ -216,6 +216,11 @@
     if(/\brichard simmons\b/.test(programLabel)&&/\breach for fitness\b/.test(programLabel))programLabel='richard simmons reach for fitness';
     if(programLabel&&!/\bweightlifting\b/.test(programLabel))result.eventId='sports:fitness:program:'+programLabel;
    }
+   if(Number(channel)===79){
+    var recreationLabel=label+' '+fileLabel;
+    if(/\b(?:instruction(?:al)?|learn|play better|standard video|power pool|tips|tactics)\b/.test(recreationLabel))result.format='instruction';
+    else if(/\b(?:tournament|championships?|full match|full broadcast|competition|vs?|apa pro women|us amateur women)\b/.test(recreationLabel))result.format='event';
+   }
    if(!result.eventId&&finalSource&&finalFile)result.eventId='sports:final:'+channel+':file:'+finalSource+':'+fileLabel.replace(/^\d{1,2} (?=(?:19|20)\d{2})/,'');
    if(/\b(?:documentary|history|champion within)\b/.test(label))result.format='documentary';
    return result;
@@ -355,7 +360,11 @@
   var unseen=inventory.filter(function(group){return !seen.has(group.key);}),pool=(unseen.length?unseen:inventory).slice(),selected=[],recent=history.slice(-12).map(function(row){return describe(row,channel);});
   while(pool.length&&selected.length<count){
    var best=0,bestScore=Infinity,docDue=(recent.length+1)%5===0;
-   pool.forEach(function(group,index){var info=group.info,score=0;if(Number(channel)===79&&!['recreation-pool','recreation-snooker'].includes(info.competition)&&pool.some(g=>['recreation-pool','recreation-snooker'].includes(g.info.competition))&&recent.slice(-4).some(r=>!['recreation-pool','recreation-snooker'].includes(r.competition)))score+=100;if(Number(channel)===65){var media=group.rows[0].media||group.rows[0];if(Number(media.width)>1920||Number(media.height)>1080)score+=16;}recent.slice(-8).forEach(function(prior){if(Number(channel)===53&&prior.sport&&prior.sport===info.sport)score+=16;if(Number(channel)===66&&prior.programFamily&&prior.programFamily===info.programFamily)score+=12;if(prior.competition===info.competition)score+=4;if(prior.era&&prior.era===info.era)score+=1;info.participants.forEach(function(p){if(prior.participants.includes(p))score+=3;});});
+   pool.forEach(function(group,index){var info=group.info,score=0;if(Number(channel)===79&&!['recreation-pool','recreation-snooker'].includes(info.competition)&&pool.some(g=>['recreation-pool','recreation-snooker'].includes(g.info.competition))&&recent.slice(-4).some(r=>!['recreation-pool','recreation-snooker'].includes(r.competition)))score+=100;if(Number(channel)===79){
+     var cue=['recreation-pool','recreation-snooker'],cueAvailable=pool.some(g=>cue.includes(g.info.competition)),matchAvailable=pool.some(g=>cue.includes(g.info.competition)&&g.info.format==='event');
+     if(cueAvailable&&!cue.includes(info.competition))score+=40;
+     if(matchAvailable&&cue.includes(info.competition)&&info.format!=='event')score+=32;
+    }if(Number(channel)===65){var media=group.rows[0].media||group.rows[0];if(Number(media.width)>1920||Number(media.height)>1080)score+=16;}recent.slice(-8).forEach(function(prior){if(Number(channel)===53&&prior.sport&&prior.sport===info.sport)score+=16;if(Number(channel)===66&&prior.programFamily&&prior.programFamily===info.programFamily)score+=12;if(prior.competition===info.competition)score+=4;if(prior.era&&prior.era===info.era)score+=1;info.participants.forEach(function(p){if(prior.participants.includes(p))score+=3;});});
     if(![68,69,78,80,81,82,83].includes(Number(channel))&&info.format==='documentary')score+=docDue?-8:8;
     if(score<bestScore){best=index;bestScore=score;}
    });

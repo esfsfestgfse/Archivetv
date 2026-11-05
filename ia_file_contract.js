@@ -461,7 +461,11 @@ export function iaFinalSportsAllowed(item = {}, channel = '') {
     // Cue sports lead this channel. Retain the finals-day specials from these
     // large darts packages, not every long preliminary-day recording.
     if(/^(?:03-wsdt-|wsdt-world-darts-|20260205_20260205_2255)/.test(source)&&!index&&!/\bfinals? day\b/.test(selected))return false;
-    if(/\b(?:swimming|swim|pool party|hot tub|swimming pool|hotel|parks and recreation|city council|council meeting|the hustler|the color of money|kingpin|big lebowski|trick shots?|highlights?|recaps?|tutorial shorts|bowling for columbine)\b|\b(?:part|pt|disc)\s*\d+\b/.test(selected))return false;
+    if(/\b(?:swimming|swim|pool party|hot tub|swimming pool|hotel|parks and recreation|ozzie and harriet|city council|council meeting|the hustler|the color of money|kingpin|big lebowski|trick shots?|highlights?|recaps?|tutorial shorts|bowling for columbine)\b|\b(?:part|pt|disc)\s*\d+\b/.test(selected))return false;
+    // These broadcaster filenames name players instead of the sport. Admit
+    // only the reviewed media file; unrelated siblings still pass every veto above.
+    const poolBroadcasts=['AH-show_offs_strickland_v_reyes_8_ball','AH-the_show_offs_us_amateur_women_3-2016','AH-the_show_offs_apa_pro_women','AH-the_show_offs_massey_vs_morris_3-2017'];
+    if(poolBroadcasts.includes(source)&&(index||file===source+'.mp4'))return true;
     return /\b(?:bowling|candlepin|billiards?|snooker|darts?|power pool|(?:9|8|nine|eight) ball (?:tournament|championship|match)|pool (?:tournament|championship|match|competition)|(?:exhibition )?pool tournament)\b/.test(selected);
   }
   return true;

@@ -784,7 +784,7 @@ function sportsReplayTitle(profile, title) {
   if (profile.sportsFormat === "race" && /\b(?:practice|qualifying|warm[ -]?up|testing|pre[ -]?race|post[ -]?race|part\s+\d+)\b/i.test(title)) return false;
   if (profile.profileKey === "yt-sports-baseball" && /\b(?:baseball5|softball|home run derby|batting practice)\b/i.test(title)) return false;
   if (profile.sportsFormat === "fight" && /\b(?:weigh[ -]?ins?|face[ -]?offs?|pressers?)\b/i.test(title)) return false;
-  if (profile.profileKey === "yt-sports-gridiron" && !/\b(?:acc football|american football|efa|european football alliance|nfl)\b/i.test(title)) return false;
+  if (profile.profileKey === "yt-sports-gridiron" && !/\b(?:acc football|american football|efa|european football alliance)\b/i.test(title)) return false;
   if (profile.profileKey === "yt-sports-octagon" && /\b(?:kickboxing|muay thai|submission grappling)\b/i.test(title)) return false;
   if (profile.profileKey === "yt-sports-range-field" && /\b(?:familiarisation|familiarization|opening ceremony|equipment control)\b/i.test(title)) return false;
   if (profile.profileKey === "yt-sports-rodeo" && /\bbest of\b/i.test(title)) return false;
@@ -804,6 +804,7 @@ function sportsReplayTitle(profile, title) {
   if (profile.sportsFormat === "clinic") {
     return /\b(?:clinic|coach education|coach development|coaching seminar|coaching workshop)\b/i.test(title);
   }
+  if (/\b(?:s\d+\s*ep?\.?\s*\d+|episode\s+\d+|extended cut|all goals|every goal|best goals)\b/i.test(title)) return false;
   const complete = /\b(?:full|complete|entire)\s+(?:length\s+)?(?:race|match|game|fight|bout|event|session|coverage|broadcast|round|replay)\b|\b(?:race|match|game|fight|event|round)\s+(?:replay|broadcast)\b/i;
   if (complete.test(title)) return true;
   const matchup = /\b(?:vs\.?|versus|v)\s|\s(?:@|at)\s/i.test(title);
@@ -841,12 +842,10 @@ function accepted(profile, item, provider, checkAspect = true) {
   if (!item || !(item.id || item.uuid || item.rawId) || !title || duration < minimumRuntime || (checkAspect && ratio < SOURCE_MIN_ASPECT_RATIO)) return false;
   if (profile.youtubeSports) {
     const id = String(item.id || "").match(/^yt:([A-Za-z0-9_-]{11})$/)?.[1];
-    const pinned = profile.sportsVideos?.[item.channelSeed];
     const topicEvidence = [title, item.account];
     if (profile.profileKey === "yt-sports-sporting-life" && /^Full Film · /.test(title)) topicEvidence.push(text(item.description, 400));
     return source === "YouTube" && item.embedAllowed === true && !!item.channelId
       && profile.youtubeChannelHandles.includes(item.channelSeed) && !!id
-      && (!pinned?.only || pinned.ids.includes(id))
       && item.embedUrl === "https://www.youtube-nocookie.com/embed/" + id
       && item.url === item.embedUrl
       && englishOkay({ ...item, account: "", description: "" }, true)
@@ -1098,7 +1097,6 @@ async function youtubeChannelUploads(profile, rotation, env, options = {}) {
       curated: true,
       title: curatedVideos.label, playlistLabel: curatedVideos.label,
     }));
-    if (curatedVideos?.only) return { seed, publisherId: publisher?.id, resolved: !!publisher?.id, pages: 0, items: publisher?.id ? direct : [] };
     const curatedPlaylist = profile.sportsPlaylists?.[seed];
     const playlistId = curatedPlaylist?.id || publisher?.contentDetails?.relatedPlaylists?.uploads;
     if (!playlistId || (profile.youtubeSports && !publisher?.id)) return { seed, resolved: false, items: [] };
@@ -1249,7 +1247,7 @@ async function youtube(profile, rotation, env, options = {}) {
       || /\b(?:day|table|session|round)\s+\d+\b|\bfinals\b/i.test(candidate.title) && sportsReplayTitle(profile, "Replay " + candidate.title));
     // Maintenance can look deeper within a resolved publisher when recent
     // uploads do not contain enough full programs. Viewer tunes use uploads.
-    const publishers = (channelLane.publishers || []).filter(({ seed }) => !profile.sportsVideos?.[seed]?.only);
+    const publishers = channelLane.publishers || [];
     if (options.maintenance === true && uploads.length < 40 && publishers.length) {
       const publisher = publishers[0];
       const preferred = {

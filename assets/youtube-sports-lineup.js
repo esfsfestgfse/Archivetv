@@ -40,13 +40,12 @@
       ] } },
     { number: 804, key: "derby-wrestling", name: "Derby & Wrestling Replays", publishers: ["UC7eMWpvytqd3gYAqxTl9w7g", "@unitedworldwrestling", "@WWE", "@FloWrestling"], topics: ["roller derby", "wftda", "wrestling", "greco-roman", "freestyle", "wwe"], format: "game", minutes: 20 },
     { number: 805, key: "boxing", name: "Boxing Replays", publishers: ["@toprank", "@PremierBoxingChampions", "@MatchroomBoxing"], topics: ["boxing", "top rank", "pbc", "matchroom boxing"], format: "fight", minutes: 15 },
-    { number: 806, key: "gridiron", name: "American Football Replays", publishers: ["@ACCDigitalNetwork", "@EuroFootballAlliance", "@NFL"], topics: ["football", "european football alliance", "efa", "nfl"], format: "game", minutes: 60,
-      videos: {
-        "@ACCDigitalNetwork": { ids: ["qmROAOJceTc", "lz2j-ID-JeA"] },
-        // Full NFL games can declare embedding support and still refuse to
-        // play. Add IDs here only after a real third-party playback check.
-        "@NFL": { ids: ["2ES28KSI0Cs"], only: true },
-      } },
+    { number: 806, key: "gridiron", name: "American Football Replays", publishers: ["@ACCDigitalNetwork", "@EuroFootballAlliance"], topics: ["football", "european football alliance", "efa"], format: "game", minutes: 60,
+      archives: {
+        "@ACCDigitalNetwork": [{ id: "PLCreZZbflNIQ", label: "Full Game" }],
+        "@EuroFootballAlliance": [{ id: "PLmQVnpSOhWcs9B-0jq-bmiOCZen_tjhzE", label: "Full Game" }],
+      },
+      videos: { "@ACCDigitalNetwork": { ids: ["qmROAOJceTc", "lz2j-ID-JeA"] } } },
     { number: 807, key: "basketball", name: "Basketball Replays", publishers: ["@FIBA", "@NBAGLeague", "@NBA", "@WNBA"], topics: ["basketball", "fiba", "nba", "wnba", "g league"], format: "game", minutes: 45 },
     { number: 808, key: "baseball", name: "Baseball Replays", publishers: ["@MLBVault", "@MLB", "@WBSC"], topics: ["baseball", "mlb", "world series", "all-star game", "wbsc"], format: "game", minutes: 60,
       archives: { "@MLBVault": mlbArchives } },
@@ -81,6 +80,10 @@
         { id: "PL_2A0MxHOgdaneHVlaxliKb0KqOJ5nJC4", label: "Full Match" },
         { id: "PL_2A0MxHOgdYNA0GLetzrLWZIp-8kWP_v", label: "Full Match" },
         { id: "PLDq1x7qnJ698", label: "Full Match" },
+      ], "@Wimbledon": [
+        { id: "PLwx9gNibGUz5GfZcUDhqzRgIJ_dweFbSU", label: "Full Match" },
+        { id: "PLwx9gNibGUz70mC4ZPJgE2Ibw0zGGxEdZ" },
+        { id: "PLwx9gNibGUz7uVN6uRXATVF7mZstKVvLd" },
       ] } },
     { number: 822, key: "equestrian", name: "Equestrian Replays", publishers: ["@feichannel", "@USEquestrian", "@ClipMyHorseTV"], topics: ["equestrian", "dressage", "jumping", "eventing", "fei"], format: "event", minutes: 25 },
     { number: 823, key: "winter", name: "Winter Sports Replays", publishers: ["@WorldCurling", "@fisski", "@ISUSkating", "@Olympics", "@IBSFsliding"], topics: ["skiing", "skating", "curling", "bobsleigh", "luge", "biathlon", "winter olympic"], format: "event", minutes: 25 },

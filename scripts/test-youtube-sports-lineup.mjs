@@ -167,6 +167,8 @@ test("sports upload and cache admission reject unrelated, restricted and unverif
       ["boxing", "@MatchroomBoxing", "Matchroom Boxing", "Dalton Smith vs Alberto Puello | Full Fight", "Dalton Smith Vs Alberto Puello Weigh In | Matchroom Boxing"],
       ["baseball", "@MLB", "MLB", "Brewers vs. Rays World Series Game 5 | Full Game", "Brewers vs. Rays World Series Game 5 LIVE Batting Practice"],
       ["gridiron", "@ACCDigitalNetwork", "ACC Digital Network", "Alabama vs. Florida State Full Game Replay | 2025 ACC Football", "Duke vs. Louisville Full Game Replay | ACC Basketball"],
+      ["women-in-sport", "@thepwhlofficial", "The PWHL", "Toronto vs. Boston | PWHL Full Game", "CANADA VS USA REMATCH TIME! S2 EP04 WITH CAITLIN KRAEMER"],
+      ["sports-vault", "@FIFA", "FIFA", "Argentina vs. France | World Cup Final | Full Match", "ALL GOALS | Quarter-Finals To Final | FIFA World Cup 2026"],
       ["grand-prix", "@Formula1", "FORMULA 1", "British Grand Prix Full Race Replay", "Replay · United States Grand Prix Post-Race Show (2026-10-25)"],
       ["range-field", "@WorldArcheryTV", "World Archery", "Hyundai Archery World Cup Final | Full Event", "Replay · Familiarisation | Saltillo 2026 Hyundai Archery World Cup Final (2026-09-11)"],
       ["rodeo", "@PRCAProRodeo", "PRCA PRORODEO", "2012 National Finals Rodeo | Full Event", "2012 National Finals Rodeo Best Of Team Roping"],
@@ -181,11 +183,11 @@ test("sports upload and cache admission reject unrelated, restricted and unverif
       url: "https://www.youtube-nocookie.com/embed/3spDLtPhepE", embedUrl: "https://www.youtube-nocookie.com/embed/3spDLtPhepE",
       title: "Los Angeles Rams vs. Seattle Seahawks FULL GAME | NFL 2025 Season NFC Conference Championship",
     }), null);
-    assert.ok(qualifySourceItem(sourceProfile({ profileKey: "yt-sports-gridiron" }), {
+    assert.equal(qualifySourceItem(sourceProfile({ profileKey: "yt-sports-gridiron" }), {
       ...item, id: "yt:2ES28KSI0Cs", channelSeed: "@NFL", account: "NFL", duration: 7200,
       url: "https://www.youtube-nocookie.com/embed/2ES28KSI0Cs", embedUrl: "https://www.youtube-nocookie.com/embed/2ES28KSI0Cs",
       title: "Cowboys Dominate the Broncos in Super Bowl XII | NFL Full Game",
-    }));
+    }), null);
     const compact = compactCatalogItem(item);
     const row = { id: compact.id, provider: compact.provider, title: compact.title,
       duration_seconds: compact.duration, aspect_ratio: compact.aspectRatio,

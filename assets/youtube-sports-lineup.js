@@ -12,7 +12,7 @@
     { number: 801, key: "octagon", name: "MMA Replays", publishers: ["@ONEChampionship", "@PFLMMA", "@ufc"], topics: ["mma", "mixed martial arts", "one championship", "pfl", "ufc"], format: "fight", minutes: 15 },
     { number: 802, key: "sports-vault", name: "Sports Replay Vault", publishers: ["@Olympics", "@MLBVault", "@FIBA", "@FIFA"], topics: ["olympic", "baseball", "basketball", "football", "championship", "world cup"], format: "event", minutes: 30 },
     { number: 803, key: "auto-racing", name: "Sports Car Replays", publishers: ["@imsaofficial", "@GTWorld", "@FIAWEC"], topics: ["imsa", "gtworld", "gt world", "gt3", "endurance", "le mans", "weathertech", "wec"], format: "race", minutes: 35 },
-    { number: 804, key: "derby-wrestling", name: "Derby & Wrestling Replays", publishers: ["@WFTDA", "@unitedworldwrestling", "@WWE", "@FloWrestling"], topics: ["roller derby", "wftda", "wrestling", "greco-roman", "freestyle", "wwe"], format: "game", minutes: 20 },
+    { number: 804, key: "derby-wrestling", name: "Derby & Wrestling Replays", publishers: ["UC7eMWpvytqd3gYAqxTl9w7g", "@unitedworldwrestling", "@WWE", "@FloWrestling"], topics: ["roller derby", "wftda", "wrestling", "greco-roman", "freestyle", "wwe"], format: "game", minutes: 20 },
     { number: 805, key: "boxing", name: "Boxing Replays", publishers: ["@toprank", "@PremierBoxingChampions", "@MatchroomBoxing"], topics: ["boxing", "top rank", "pbc", "matchroom boxing"], format: "fight", minutes: 15 },
     { number: 806, key: "gridiron", name: "Gridiron Replays", publishers: ["@NFL", "@NFLThrowback", "@CFL"], topics: ["nfl", "cfl", "american football", "super bowl", "grey cup"], format: "game", minutes: 60 },
     { number: 807, key: "basketball", name: "Basketball Replays", publishers: ["@FIBA", "@NBAGLeague", "@NBA", "@WNBA"], topics: ["basketball", "fiba", "nba", "wnba", "g league"], format: "game", minutes: 45 },
@@ -22,12 +22,17 @@
     { number: 811, key: "college", name: "College Sports Replays", publishers: ["@MarchMadness", "@NCAAChampionships", "@BigTenNetwork"], topics: ["ncaa", "college", "march madness", "big ten", "final four"], format: "game", minutes: 45 },
     { number: 812, key: "soccer", name: "Soccer Replays", publishers: ["@FIFA", "@Concacaf", "@MLS", "@USSoccer"], topics: ["fifa", "concacaf", "mls", "soccer", "world cup", "nations league"], format: "game", minutes: 55 },
     { number: 813, key: "track-field", name: "Track & Field Replays", publishers: ["@EuropeanAthletics", "@WorldAthletics", "@DiamondLeague", "@usatf", "@Olympics"], topics: ["athletics", "diamond league", "track & field", "track and field", "marathon", "long jump"], format: "event", minutes: 25 },
-    { number: 814, key: "sporting-life", name: "Outdoor Sports Films", publishers: ["@TheNorthFace", "@RedBull", "@rei"], topics: ["north face", "mountaineering", "climbing", "trail running", "expedition", "outdoor", "skiing"], format: "program", minutes: 15,
-      playlists: { "@TheNorthFace": { id: "PLb8M2N__cpL88meaT5c7uELJX287v_iNL", label: "Full Film" } } },
+    { number: 814, key: "sporting-life", name: "Outdoor Sports Films", publishers: ["@TheNorthFace", "UCl3xZ-f3cQhOHvH6f-7-ssQ", "@RedBull", "@rei"], topics: ["north face", "mountaineering", "climbing", "trail running", "expedition", "outdoor", "skiing", "snowboarding", "surfing"], format: "program", minutes: 15,
+      playlists: { "@TheNorthFace": { id: "PLb8M2N__cpL88meaT5c7uELJX287v_iNL", label: "Full Film" },
+        "UCl3xZ-f3cQhOHvH6f-7-ssQ": { id: "PLJQsrK_W2jnhITiPMzU_q6o2jxsvMXmVT", label: "Full Film" } } },
     { number: 815, key: "action-sports", name: "Surf, Skate & Snow Replays", publishers: ["@wsl", "@StreetLeague", "@XGames", "@fissnowboard"], topics: ["surf", "skateboard", "snowboard", "x games", "street league"], format: "event", minutes: 25 },
     { number: 816, key: "women-in-sport", name: "Women’s Sports Replays", publishers: ["@FIBA", "@thepwhlofficial", "@WNBA", "@NWSLsoccer"], topics: ["women", "nwsl", "wnba", "pwhl"], format: "game", minutes: 45 },
     { number: 817, key: "coaches-clinic", name: "Coaching Programs", publishers: ["@FIBA", "@usabasketball", "@usavolleyball", "@USSoccer"], topics: ["coaching", "clinic", "coach education", "coach development"], format: "clinic", minutes: 15,
-      playlists: { "@FIBA": { id: "PLCXERy73Oiz-DZ_xhlxecnB2vRz5--FaF", label: "Coaching Clinic" } } },
+      // FIBA's clinic and Africa coaching resource pages link these recordings.
+      videos: { "@FIBA": { label: "Coaching Clinic", ids: [
+        "iMLpZIjVCx0", "7WlwWhegq-s", "9uXjyH54toM", "xnyvHbJInQ4", "RzDoqf4ANl8", "4BuyAX-QEl4", "rE1fMRWHnUE", "06BcyZ50-zE", "mrbppxQ8Tms",
+        "wZGEwQ5qW9E", "DbiZg7phuaw", "aq5I_ddQLjc", "LiTNdFKu8zE", "rxuJLXQh1H4", "p5wMK59kCp0", "dHUU78BucSM", "2L4usJ_mtL0", "wJvCEsf64lM", "SKovmwvgf_A", "Uu75nq0F9H4", "93G0FiGsAk0",
+      ] } } },
     { number: 818, key: "sports-newsreel", name: "Sports History Films", publishers: ["@Olympics", "@NFLFilms", "@MLBVault", "@BritishPathe"], topics: ["sport", "sports", "athlete", "olympic", "olympics", "nfl", "baseball", "football", "boxing"], format: "program", minutes: 20,
       playlists: { "@Olympics": { id: "PL-292yfpAFGYp7Ha9qTi_tPDhnY6feCxx", label: "Olympic Documentary" } } },
     { number: 819, key: "rodeo", name: "Rodeo Replays", publishers: ["@PBR", "@PRCAProRodeo", "@WRANGLERNFR"], topics: ["rodeo", "pbr", "bull riding", "nfr", "prca"], format: "event", minutes: 25 },
@@ -53,13 +58,14 @@
   const channels = [];
   for (const entry of lineup) {
     const key = "yt-sports-" + entry.key;
-    const name = entry.name + " · YouTube";
+    const name = entry.name;
     const profile = {
       name, profileKey: key, youtubeSports: true, intent: "sports",
       providers: ["youtube"], queries: [entry.topics[0] + " full replay"],
       match: entry.topics, topics: entry.topics, deny: [],
       minRuntimeSeconds: entry.minutes * 60, sportsFormat: entry.format,
       sportsPlaylists: entry.playlists || {},
+      sportsVideos: entry.videos || {},
       sportsThroughYear: entry.throughYear || 0,
       youtubeChannelHandles: entry.publishers, youtubeChannelWindow: entry.publishers.length,
       youtubeChannelPageWindow: 3, youtubeChannelDiscoveryOnMaintenance: false,

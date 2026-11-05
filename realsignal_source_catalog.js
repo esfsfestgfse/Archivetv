@@ -684,6 +684,7 @@ function normalizedProfile(body) {
     youtubeSports: approved.youtubeSports === true,
     sportsFormat: approved.sportsFormat || "",
     sportsPlaylists: approved.sportsPlaylists || {},
+    sportsVideos: approved.sportsVideos || {},
     sportsThroughYear: Number(approved.sportsThroughYear) || 0,
     longForm: approved.longForm === true,
     match: list(approved.match, 40),
@@ -780,6 +781,7 @@ function okMovieTitleQualified(profile, item) {
 function sportsReplayTitle(profile, title) {
   if (/\b(?:highlights?|recap|condensed|preview|reaction|watchalong|watch along|podcast|press conference|interview|gameplay|simulation|sim racing|video game|e-?sports|e-?sailing|virtual regatta|shorts|trailer|promo|teaser|top \d+|awards ceremony|awards \d{4})\b/i.test(title)) return false;
   if (profile.sportsFormat === "race" && /\b(?:practice|qualifying|warm[ -]?up|testing|part\s+\d+)\b/i.test(title)) return false;
+  if (profile.profileKey === "yt-sports-baseball" && /\b(?:baseball5|softball|home run derby)\b/i.test(title)) return false;
   if (profile.profileKey === "yt-sports-octagon" && /\b(?:kickboxing|muay thai|submission grappling)\b/i.test(title)) return false;
   if (profile.sportsThroughYear) {
     const eventYear = Number(title.match(/\b(?:19|20)\d{2}\b/)?.[0]);
@@ -829,13 +831,15 @@ function accepted(profile, item, provider, checkAspect = true) {
   if (!item || !(item.id || item.uuid || item.rawId) || !title || duration < minimumRuntime || (checkAspect && ratio < SOURCE_MIN_ASPECT_RATIO)) return false;
   if (profile.youtubeSports) {
     const id = String(item.id || "").match(/^yt:([A-Za-z0-9_-]{11})$/)?.[1];
+    const topicEvidence = [title, item.account];
+    if (profile.profileKey === "yt-sports-sporting-life" && /^Full Film · /.test(title)) topicEvidence.push(text(item.description, 400));
     return source === "YouTube" && item.embedAllowed === true && !!item.channelId
       && profile.youtubeChannelHandles.includes(item.channelSeed) && !!id
       && item.embedUrl === "https://www.youtube-nocookie.com/embed/" + id
       && item.url === item.embedUrl
       && englishOkay({ ...item, account: "", description: "" }, true)
       && sportsReplayTitle(profile, title)
-      && termsMatch(text([title, item.account].join(" "), 1000).toLowerCase(), profile.match);
+      && termsMatch(text(topicEvidence.join(" "), 1400).toLowerCase(), profile.match);
   }
   if (profile.titleRequiredTerms.length && !termsMatch(titleHaystack, profile.titleRequiredTerms)) return false;
   const qualityMovieTitle = okMovieTitleQualified(profile, item);
@@ -1099,6 +1103,12 @@ async function youtubeChannelUploads(profile, rotation, env, options = {}) {
       pageToken = text(uploads && uploads.nextPageToken, 120);
       if (!pageToken) break;
     }
+    const curatedVideos = profile.sportsVideos?.[seed];
+    const direct = (curatedVideos?.ids || []).map(rawId => ({
+      id: "yt:" + rawId, rawId, query: "channel:" + seed,
+      channelSeed: seed, publisherId: publisher.id,
+      title: curatedVideos.label, playlistLabel: curatedVideos.label,
+    }));
     const items = pageItems.map((item) => {
       const videoId = text(item && item.snippet && item.snippet.resourceId && item.snippet.resourceId.videoId, 120);
       const snippet = item && item.snippet || {};
@@ -1116,7 +1126,7 @@ async function youtubeChannelUploads(profile, rotation, env, options = {}) {
         year: text(snippet.publishedAt, 12),
       } : null;
     }).filter(Boolean);
-    return { seed, publisherId: publisher.id, resolved: true, pages: pagesFetched, items };
+    return { seed, publisherId: publisher.id, resolved: true, pages: pagesFetched, items: direct.concat(items) };
   });
   const lanes = (await mapLimit(jobs, 2, async (job) => {
     try { return await job(); }
@@ -1267,7 +1277,7 @@ async function youtube(profile, rotation, env, options = {}) {
     let title = text(item.snippet && item.snippet.title) || candidate.title;
     const startTime = item.liveStreamingDetails?.actualStartTime;
     if (profile.youtubeSports && startTime && item.liveStreamingDetails?.actualEndTime) {
-      const eventDate = startTime.slice(0, 10);
+      const eventDate = startTime.slice(0, 10) + (profile.sportsFormat === "cue" ? " " + startTime.slice(11, 16) + " UTC" : "");
       title = "Replay · " + title.replace(/^\W*(?:(?:watch |re-)?live)\b[\s|:–-]*/i, "") + " (" + eventDate + ")";
     }
     if (candidate.playlistLabel) title = candidate.playlistLabel + " · " + title;

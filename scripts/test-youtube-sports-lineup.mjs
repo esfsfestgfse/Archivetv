@@ -70,6 +70,54 @@ test("maintenance rotations retain one-page curated sports playlists", async () 
   }
 });
 
+test("sports maintenance rotates older archives and keeps current uploads available", async () => {
+  const originalFetch = globalThis.fetch;
+  const publisher = "UC1234567890123456789012";
+  const profileKey = "yt-sports-racquet";
+  const archives = YouTubeSports.profiles[profileKey].sportsArchives["@usopen"];
+  const ids = ["currentOpen", "oldArchive1", "oldArchive2", "oldArchive3"];
+  const readIds = [];
+  let failArchive = false;
+  const titleFor = id => "US Open: Player A vs Player " + ids.indexOf(id);
+  globalThis.fetch = async input => {
+    const url = new URL(input);
+    if (url.pathname.endsWith("/channels")) return Response.json({
+      items: url.searchParams.get("forHandle") === "usopen" ? [{ id: publisher, contentDetails: { relatedPlaylists: { uploads: "uploads" } } }] : [],
+    });
+    if (url.pathname.endsWith("/playlistItems")) {
+      const list = url.searchParams.get("playlistId");
+      readIds.push(list);
+      if (failArchive && list !== "uploads") return Response.json({ error: { message: "gone" } }, { status: 404 });
+      const id = list === "uploads" ? ids[0] : ids[1 + archives.findIndex(archive => archive.id === list)];
+      return Response.json({ items: [{ snippet: { title: list === "uploads" ? "Full Match · " + titleFor(id) : titleFor(id), resourceId: { videoId: id } } }] });
+    }
+    if (url.pathname.endsWith("/search")) return Response.json({ items: [] });
+    assert.ok(url.pathname.endsWith("/videos"));
+    return Response.json({ items: url.searchParams.get("id").split(",").map(id => ({
+      id, snippet: { title: id === ids[0] ? "Full Match · " + titleFor(id) : titleFor(id), channelId: publisher, channelTitle: "US Open Tennis", defaultAudioLanguage: "en", liveBroadcastContent: "none" },
+      contentDetails: { duration: "PT2H" }, status: { privacyStatus: "public", embeddable: true },
+      player: { embedWidth: 960, embedHeight: 540 },
+    })) });
+  };
+  try {
+    const collect = async (rotation, options) => {
+      readIds.length = 0;
+      const { tasks } = sourceCatalogTasks({ profileKey }, { YOUTUBE_API_KEY: "test-fixture" }, rotation, options);
+      return (await Promise.all(tasks))[0].items.map(item => item.id);
+    };
+    assert.deepEqual(new Set(await collect(0, { maintenance: true })), new Set(["yt:currentOpen", "yt:oldArchive1"]));
+    assert.deepEqual(readIds, ["uploads", archives[0].id]);
+    assert.deepEqual(new Set(await collect(1, { maintenance: true })), new Set(["yt:currentOpen", "yt:oldArchive2"]));
+    assert.deepEqual(readIds, ["uploads", archives[1].id]);
+    assert.deepEqual(await collect(0, { firstLane: true }), ["yt:currentOpen"]);
+    assert.deepEqual(readIds, ["uploads"]);
+    failArchive = true;
+    assert.deepEqual(await collect(0, { maintenance: true }), ["yt:currentOpen"]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("sports upload and cache admission reject unrelated, restricted and unverified videos", async () => {
   const originalFetch = globalThis.fetch;
   const publisher = "UC1234567890123456789012";
@@ -129,9 +177,15 @@ test("sports upload and cache admission reject unrelated, restricted and unverif
       assert.equal(qualifySourceItem(replayProfile, { ...candidate, title: offGenre }), null, offGenre);
     }
     assert.equal(qualifySourceItem(sourceProfile({ profileKey: "yt-sports-gridiron" }), {
-      ...item, channelSeed: "@NFL", account: "NFL", duration: 7200,
+      ...item, id: "yt:3spDLtPhepE", channelSeed: "@NFL", account: "NFL", duration: 7200,
+      url: "https://www.youtube-nocookie.com/embed/3spDLtPhepE", embedUrl: "https://www.youtube-nocookie.com/embed/3spDLtPhepE",
       title: "Los Angeles Rams vs. Seattle Seahawks FULL GAME | NFL 2025 Season NFC Conference Championship",
     }), null);
+    assert.ok(qualifySourceItem(sourceProfile({ profileKey: "yt-sports-gridiron" }), {
+      ...item, id: "yt:2ES28KSI0Cs", channelSeed: "@NFL", account: "NFL", duration: 7200,
+      url: "https://www.youtube-nocookie.com/embed/2ES28KSI0Cs", embedUrl: "https://www.youtube-nocookie.com/embed/2ES28KSI0Cs",
+      title: "Cowboys Dominate the Broncos in Super Bowl XII | NFL Full Game",
+    }));
     const compact = compactCatalogItem(item);
     const row = { id: compact.id, provider: compact.provider, title: compact.title,
       duration_seconds: compact.duration, aspect_ratio: compact.aspectRatio,

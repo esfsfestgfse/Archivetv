@@ -684,6 +684,7 @@ function normalizedProfile(body) {
     youtubeSports: approved.youtubeSports === true,
     sportsFormat: approved.sportsFormat || "",
     sportsPlaylists: approved.sportsPlaylists || {},
+    sportsArchives: approved.sportsArchives || {},
     sportsVideos: approved.sportsVideos || {},
     sportsThroughYear: Number(approved.sportsThroughYear) || 0,
     longForm: approved.longForm === true,
@@ -783,7 +784,7 @@ function sportsReplayTitle(profile, title) {
   if (profile.sportsFormat === "race" && /\b(?:practice|qualifying|warm[ -]?up|testing|pre[ -]?race|post[ -]?race|part\s+\d+)\b/i.test(title)) return false;
   if (profile.profileKey === "yt-sports-baseball" && /\b(?:baseball5|softball|home run derby|batting practice)\b/i.test(title)) return false;
   if (profile.sportsFormat === "fight" && /\b(?:weigh[ -]?ins?|face[ -]?offs?|pressers?)\b/i.test(title)) return false;
-  if (profile.profileKey === "yt-sports-gridiron" && !/\b(?:acc football|american football|efa|european football alliance)\b/i.test(title)) return false;
+  if (profile.profileKey === "yt-sports-gridiron" && !/\b(?:acc football|american football|efa|european football alliance|nfl)\b/i.test(title)) return false;
   if (profile.profileKey === "yt-sports-octagon" && /\b(?:kickboxing|muay thai|submission grappling)\b/i.test(title)) return false;
   if (profile.profileKey === "yt-sports-range-field" && /\b(?:familiarisation|familiarization|opening ceremony|equipment control)\b/i.test(title)) return false;
   if (profile.profileKey === "yt-sports-rodeo" && /\bbest of\b/i.test(title)) return false;
@@ -840,10 +841,12 @@ function accepted(profile, item, provider, checkAspect = true) {
   if (!item || !(item.id || item.uuid || item.rawId) || !title || duration < minimumRuntime || (checkAspect && ratio < SOURCE_MIN_ASPECT_RATIO)) return false;
   if (profile.youtubeSports) {
     const id = String(item.id || "").match(/^yt:([A-Za-z0-9_-]{11})$/)?.[1];
+    const pinned = profile.sportsVideos?.[item.channelSeed];
     const topicEvidence = [title, item.account];
     if (profile.profileKey === "yt-sports-sporting-life" && /^Full Film · /.test(title)) topicEvidence.push(text(item.description, 400));
     return source === "YouTube" && item.embedAllowed === true && !!item.channelId
       && profile.youtubeChannelHandles.includes(item.channelSeed) && !!id
+      && (!pinned?.only || pinned.ids.includes(id))
       && item.embedUrl === "https://www.youtube-nocookie.com/embed/" + id
       && item.url === item.embedUrl
       && englishOkay({ ...item, account: "", description: "" }, true)
@@ -1088,40 +1091,55 @@ async function youtubeChannelUploads(profile, rotation, env, options = {}) {
     else channelParams.set("forHandle", String(seed).replace(/^@/, ""));
     const channel = await fetchJson("https://www.googleapis.com/youtube/v3/channels?" + channelParams, { headers: { Referer: "https://esfsfestgfse.github.io/Archivetv/" } });
     const publisher = channel?.items?.[0];
+    const curatedVideos = profile.sportsVideos?.[seed];
+    const direct = (curatedVideos?.ids || []).map(rawId => ({
+      id: "yt:" + rawId, rawId, query: "channel:" + seed,
+      channelSeed: seed, publisherId: publisher?.id,
+      curated: true,
+      title: curatedVideos.label, playlistLabel: curatedVideos.label,
+    }));
+    if (curatedVideos?.only) return { seed, publisherId: publisher?.id, resolved: !!publisher?.id, pages: 0, items: publisher?.id ? direct : [] };
     const curatedPlaylist = profile.sportsPlaylists?.[seed];
     const playlistId = curatedPlaylist?.id || publisher?.contentDetails?.relatedPlaylists?.uploads;
-    if (!playlistId) return { seed, resolved: false, items: [] };
+    if (!publisher?.id || !playlistId) return { seed, resolved: false, items: [] };
     /* One upload page is enough for a cold start. Maintenance rotates through
        older upload pages so a deep channel does not keep reopening the same
        newest fifty videos. Playlist pagination is cheap compared with
        videos.list and remains bounded to four pages per approved seed. */
     const pageWindow = options.maintenance === true ? profile.youtubeChannelPageWindow : 1;
-    const pageStart = options.maintenance === true && !curatedPlaylist
+    const archiveRails = options.maintenance === true && !firstLane ? profile.sportsArchives?.[seed] || [] : [];
+    const archiveTurn = Math.abs(Math.trunc(Number(rotation) || 0));
+    const archive = archiveRails.length ? archiveRails[archiveTurn % archiveRails.length] : null;
+    const archivePage = archive ? Math.floor(archiveTurn / archiveRails.length) % 3 : 0;
+    const pageStart = options.maintenance === true && !curatedPlaylist && !archive
       ? Math.abs((Number(rotation) || 0) + seed.split("").reduce((sum, char) => sum + char.charCodeAt(0), 0)) % pageWindow
       : 0;
-    const pageLimit = Math.min(4, pageStart + pageWindow);
-    let pageToken = "";
-    const pageItems = [];
-    let pagesFetched = 0;
-    for (let page = 0; page < pageLimit; page += 1) {
-      const uploadsParams = new URLSearchParams({ part: "snippet", playlistId, maxResults: firstLane ? "25" : "50", key });
-      if (pageToken) uploadsParams.set("pageToken", pageToken);
-      const uploads = await fetchJson("https://www.googleapis.com/youtube/v3/playlistItems?" + uploadsParams, { headers: { Referer: "https://esfsfestgfse.github.io/Archivetv/" } });
-      pagesFetched += 1;
-      pageToken = text(uploads && uploads.nextPageToken, 120);
-      if (page >= pageStart || (!pageToken && !pageItems.length)) pageItems.push(...(uploads && uploads.items || []));
-      if (!pageToken) break;
-    }
-    const curatedVideos = profile.sportsVideos?.[seed];
-    const direct = (curatedVideos?.ids || []).map(rawId => ({
-      id: "yt:" + rawId, rawId, query: "channel:" + seed,
-      channelSeed: seed, publisherId: publisher.id,
-      curated: true,
-      title: curatedVideos.label, playlistLabel: curatedVideos.label,
-    }));
-    const items = pageItems.map((item) => {
+    const readPlaylist = async (id, start, limit) => {
+      const items = [];
+      let pages = 0, pageToken = "";
+      for (let page = 0; page < limit; page += 1) {
+        const params = new URLSearchParams({ part: "snippet", playlistId: id, maxResults: firstLane ? "25" : "50", key });
+        if (pageToken) params.set("pageToken", pageToken);
+        const result = await fetchJson("https://www.googleapis.com/youtube/v3/playlistItems?" + params, { headers: { Referer: "https://esfsfestgfse.github.io/Archivetv/" } });
+        pages += 1;
+        pageToken = text(result?.nextPageToken, 120);
+        if (page >= start || (!pageToken && !items.length)) items.push(...(result?.items || []));
+        if (!pageToken) break;
+      }
+      return { items, pages };
+    };
+    // One current page plus at most three pages of one official archive.
+    // Neither a broken archive nor a broken uploads page erases the other.
+    const [current, older] = await Promise.all([
+      readPlaylist(playlistId, pageStart, archive ? 1 : Math.min(4, pageStart + pageWindow))
+        .catch(error => { if (!archive) throw error; return { items: [], pages: 0 }; }),
+      archive ? readPlaylist(archive.id, archivePage, archivePage + 1).catch(() => null) : null,
+    ]);
+    const candidatesFor = (pageItems, label, isArchive) => pageItems.map((item) => {
       const videoId = text(item && item.snippet && item.snippet.resourceId && item.snippet.resourceId.videoId, 120);
       const snippet = item && item.snippet || {};
+      const title = text(snippet.title);
+      const playlistLabel = isArchive && sportsReplayTitle(profile, title) ? "" : label || "";
       return videoId ? {
         id: `yt:${videoId}`,
         rawId: videoId,
@@ -1129,14 +1147,18 @@ async function youtubeChannelUploads(profile, rotation, env, options = {}) {
         channelSeed: seed,
         publisherId: publisher.id,
         channelDiscovered: seedInfo.discovered === true,
-        playlistLabel: curatedPlaylist?.label || "",
-        title: [curatedPlaylist?.label, text(snippet.title)].filter(Boolean).join(" · "),
+        playlistLabel,
+        title: [playlistLabel, title].filter(Boolean).join(" · "),
         description: text(snippet.description, 1800),
         account: text(snippet.videoOwnerChannelTitle || snippet.channelTitle, 180),
         year: text(snippet.publishedAt, 12),
       } : null;
     }).filter(Boolean);
-    return { seed, publisherId: publisher.id, resolved: true, pages: pagesFetched, items: direct.concat(items) };
+    const recent = candidatesFor(current.items, curatedPlaylist?.label, false);
+    const history = candidatesFor(older?.items || [], archive?.label, true);
+    const items = archive ? Array.from({ length: Math.max(recent.length, history.length) },
+      (_, i) => [history[i], recent[i]].filter(Boolean)).flat() : recent;
+    return { seed, publisherId: publisher.id, resolved: true, pages: current.pages + (older?.pages || 0), items: direct.concat(items) };
   });
   const lanes = (await mapLimit(jobs, 2, async (job) => {
     try { return await job(); }
@@ -1227,7 +1249,7 @@ async function youtube(profile, rotation, env, options = {}) {
       || /\b(?:day|table|session|round)\s+\d+\b|\bfinals\b/i.test(candidate.title) && sportsReplayTitle(profile, "Replay " + candidate.title));
     // Maintenance can look deeper within a resolved publisher when recent
     // uploads do not contain enough full programs. Viewer tunes use uploads.
-    const publishers = channelLane.publishers || [];
+    const publishers = (channelLane.publishers || []).filter(({ seed }) => !profile.sportsVideos?.[seed]?.only);
     if (options.maintenance === true && uploads.length < 40 && publishers.length) {
       const publisher = publishers[0];
       const preferred = {

@@ -1094,7 +1094,7 @@ async function youtubeChannelUploads(profile, rotation, env, options = {}) {
        newest fifty videos. Playlist pagination is cheap compared with
        videos.list and remains bounded to four pages per approved seed. */
     const pageWindow = options.maintenance === true ? profile.youtubeChannelPageWindow : 1;
-    const pageStart = options.maintenance === true
+    const pageStart = options.maintenance === true && !curatedPlaylist
       ? Math.abs((Number(rotation) || 0) + seed.split("").reduce((sum, char) => sum + char.charCodeAt(0), 0)) % pageWindow
       : 0;
     const pageLimit = Math.min(4, pageStart + pageWindow);
@@ -1106,8 +1106,8 @@ async function youtubeChannelUploads(profile, rotation, env, options = {}) {
       if (pageToken) uploadsParams.set("pageToken", pageToken);
       const uploads = await fetchJson("https://www.googleapis.com/youtube/v3/playlistItems?" + uploadsParams, { headers: { Referer: "https://esfsfestgfse.github.io/Archivetv/" } });
       pagesFetched += 1;
-      if (page >= pageStart) pageItems.push(...(uploads && uploads.items || []));
       pageToken = text(uploads && uploads.nextPageToken, 120);
+      if (page >= pageStart || (!pageToken && !pageItems.length)) pageItems.push(...(uploads && uploads.items || []));
       if (!pageToken) break;
     }
     const curatedVideos = profile.sportsVideos?.[seed];

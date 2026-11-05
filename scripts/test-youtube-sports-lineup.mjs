@@ -40,6 +40,36 @@ test("replay identity ignores title punctuation and failed embeds stay out of bo
   }
 });
 
+test("maintenance rotations retain one-page curated sports playlists", async () => {
+  const originalFetch = globalThis.fetch;
+  const publisher = "UCJtI-l6La0zniodFtSHYrBg";
+  const videoId = "examplePack";
+  const title = "1970-1979 | Great Losses";
+  globalThis.fetch = async input => {
+    const url = new URL(input);
+    if (url.pathname.endsWith("/channels")) return Response.json({
+      items: url.searchParams.get("forHandle") === "packers" ? [{ id: publisher, contentDetails: { relatedPlaylists: { uploads: "packers-uploads" } } }] : [],
+    });
+    if (url.pathname.endsWith("/playlistItems")) return Response.json({
+      items: [{ snippet: { title, resourceId: { videoId } } }],
+    });
+    if (url.pathname.endsWith("/search")) return Response.json({ items: [] });
+    assert.ok(url.pathname.endsWith("/videos"));
+    return Response.json({ items: url.searchParams.get("id").split(",").filter(id => id === videoId).map(id => ({
+      id, snippet: { title, channelId: publisher, channelTitle: "Green Bay Packers", defaultAudioLanguage: "en", liveBroadcastContent: "none" },
+      contentDetails: { duration: "PT1H" }, status: { privacyStatus: "public", embeddable: true },
+      player: { embedWidth: 960, embedHeight: 540 },
+    })) });
+  };
+  try {
+    const { tasks } = sourceCatalogTasks({ profileKey: "yt-sports-hard-count" }, { YOUTUBE_API_KEY: "test-fixture" }, 5, { maintenance: true });
+    const [lane] = await Promise.all(tasks);
+    assert.deepEqual(lane.items.map(item => item.id), ["yt:" + videoId]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("sports upload and cache admission reject unrelated, restricted and unverified videos", async () => {
   const originalFetch = globalThis.fetch;
   const publisher = "UC1234567890123456789012";

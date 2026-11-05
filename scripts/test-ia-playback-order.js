@@ -261,3 +261,39 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
     assert.equal(await pending, false, 'exhaustion is bounded, not a reconnecting loop');
   });
 }
+
+for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) for (const hasSpare of [true, false]) test(
+  file + ': a failed start ' + (hasSpare ? 'tries the reserved spare before acknowledgement' : 'flushes the failure before requesting a replacement'),
+  async () => {
+    let acknowledge;
+    const calls = [], failed = item('bad-file'), spare = item('ready-spare');
+    const shelf = runtime().create({
+      queue: async () => {
+        calls.push('reserve');
+        return { items: calls.length === 1 ? (hasSpare ? [failed, spare] : [failed]) : [spare] };
+      },
+      report: async event => {
+        calls.push(event.event + ':' + event.id);
+        if (event.event === 'failed') await new Promise(resolve => { acknowledge = resolve; });
+      }
+    });
+    await shelf.reserve('10', {});
+    const source = fs.readFileSync(path.join(root, file), 'utf8');
+    const scope = { window: { RealSignalIAShelf: { enabled: true, client: () => shelf } }, powered: true, token: 1, curNum: 10,
+      iaQueueKey: ch => String(ch.num), iaQueueQueries: () => [], iaProgramThemeTerms: () => [], iaProgramDenyTerms: () => [], iaQueueDiversity: () => ({}), iaDisplayTitle: it => it.title,
+      nlog: () => {}, iaRetry: () => assert.fail('unexpected retry'),
+      playFile: async media => { calls.push('play:' + media.id); if (media.id === failed.identifier) return false; shelf.event('10', media, 'started'); return true; } };
+    vm.createContext(scope);
+    const begin = source.indexOf('function iaRepairEnabled(');
+    vm.runInContext(source.slice(begin, source.indexOf('async function tuneIA(ch,sl,my)', begin)), scope);
+    const tuning = scope.tuneIARepair({ num: 10 }, {}, 1);
+    await new Promise(setImmediate);
+    try {
+      assert.deepEqual(calls, ['reserve', 'play:bad-file', 'failed:bad-file', ...(hasSpare ? ['play:ready-spare'] : [])]);
+    } finally {
+      acknowledge();
+      await tuning;
+      await new Promise(setImmediate);
+    }
+    assert.deepEqual(calls, ['reserve', 'play:bad-file', 'failed:bad-file', ...(!hasSpare ? ['reserve'] : []), 'play:ready-spare', 'started:ready-spare']);
+  });

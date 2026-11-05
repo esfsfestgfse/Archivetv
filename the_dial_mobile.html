@@ -16,7 +16,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="RealSignal">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>REALSIGNAL · Retro Cable 7.0.0</title>
+<title>REALSIGNAL · Retro Cable 7.0.1</title>
 <meta name="realsignal-ia-repair-channels" content="10,12,22,150">
 <!-- Google Cast sender: the published receiver ID is built in; Settings can override it for development. -->
 <script>window.__rsCastSdkRetryCount=window.__rsCastSdkRetryCount||0;window.__onGCastApiAvailable=function(available){window.__rsCastSdkReady=!!available;window.__rsCastSdkAvailable=!!available;if(typeof window.__rsCastInit==="function")window.__rsCastInit();};</script>
@@ -1762,7 +1762,7 @@ body.cast-remote-mode .ov,body.cast-remote-mode .buff-ov{display:none!important}
    treated as fatal, ever, and (2) once the app finishes its first successful boot, later errors are
    logged quietly instead of taking over the screen -- the app clearly isn't "failed to start" if
    it already started. */
-window.__ATV_BUILD="7.0.0-mobile-retro-cable";
+window.__ATV_BUILD="7.0.1-mobile-retro-cable";
 window.REALSIGNAL_CAST_RECEIVER_ID="A0A5CD01";
 window.__atvBootErrors=[];
 window.__atvBootDone=false;
@@ -9677,7 +9677,9 @@ async function tuneIARepair(ch,sl,my){
       var media={...item.media,id:item.identifier,title:iaDisplayTitle(item,ch),year:item.year,meta:item};
       if(await playFile(media,ch,sl,my,0))return;
       if(my!==token||!powered||curNum!==ch.num)return;
-      await iaRepairEvent(ch,media,"failed");
+      // Removing the failure from the local shelf is synchronous. Try a reserved spare
+      // immediately; reserve() still flushes events before asking for more items.
+      iaRepairEvent(ch,media,"failed");
     }
   }catch(error){nlog("ia-repair-tune",false,String(error));}
   if(my===token&&powered&&curNum===ch.num)iaRetry(ch,my);

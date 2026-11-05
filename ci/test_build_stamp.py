@@ -15,6 +15,7 @@ class VisibleBuildTests(unittest.TestCase):
         expression = compile(ast.Expression(body=gate.test), str(source), 'eval')
         for build, allowed in [
             ('6.0.0-rc.1-desktop-v6-guide', True),
+            ('7.0.0-desktop-retro-cable', True),
             ('5.6.32-mobile-v6-guide-preview', True),
             ('6.0.0-rc.bad-desktop-v6-guide', False),
             ('5.anything', False), ('', False),

@@ -60,7 +60,7 @@ async def main():
         lanes = page.locator("#rsHealthLanes .rs-health-lane")
         # Validate complete release/surface stamps, including V6 RCs, rather
         # than a prefix allowlist that accepts junk yet rejects a new release.
-        assert re.fullmatch(r"(?:2\.2\.[12]|[3-6]\.\d+\.\d+(?:-rc\.[1-9]\d*)?)-(?:desktop|mobile|source-suite)[.-][a-z0-9.-]+", build), build
+        assert re.fullmatch(r"(?:2\.2\.[12]|[3-7]\.\d+\.\d+(?:-rc\.[1-9]\d*)?)-(?:desktop|mobile|source-suite)[.-][a-z0-9.-]+", build), build
         assert summary["sessions"] == 3, summary
         assert await lanes.count() == 2
         assert await lanes.nth(0).get_attribute("data-rs-channel") == "11"

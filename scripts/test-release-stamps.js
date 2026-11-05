@@ -8,7 +8,7 @@ const { test } = require('node:test');
 // In particular, accepting a prerelease must not disable malformed/stale checks.
 for (const file of ['check-cast-contract.js', 'check-source-suite-contract.js', 'test-release2-runtime.js']) {
   for (const [version, allowed] of [
-    ['5.6.32', true], ['6.0.0-rc.1', true], ['6.0.0', true],
+    ['5.6.32', true], ['6.0.0-rc.1', true], ['6.0.0', true], ['7.0.0', true],
     ['6.0.0-rc.bad', false], ['6.0.0-rc.0', false], ['1.7.10', false],
     ['6.0', false], ['6.0.0-rc.1-bogus', false],
   ]) {

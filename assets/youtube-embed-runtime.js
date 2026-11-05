@@ -98,8 +98,14 @@
     job.handlers={
       onStateChange:function(event){
         if(!current(job)||!matches(job))return;
-        if(Number(event.data)===0&&player.getPlayerState()===0&&job.started&&!job.advanced){job.advanced=true;if(job.options.onEnded)job.options.onEnded();}
-        else sample(job);
+        if (Number(event.data) === 0 && player.getPlayerState() === 0 && job.started && !job.advanced) {
+          job.advanced = true;
+          if (job.options.onEnded) {
+            var evidence;
+            try { evidence = { position: player.getCurrentTime(), duration: player.getDuration() }; } catch (_) {}
+            job.options.onEnded(evidence);
+          }
+        } else sample(job);
       },
       onAutoplayBlocked:function(){
         if(!current(job)||job.mutedRetry)return;

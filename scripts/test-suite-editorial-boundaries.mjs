@@ -47,6 +47,22 @@ test('reviewed Hindi and unverified competition uploads cannot re-enter the Engl
  assert.deepEqual((await response.json()).items.map(x=>x.id),[good.id]);
  assert.equal(policy.allow(key,program('Stand Up Comedy Full Performance',{id:'yt:eynG7hGrEHs',defaultAudioLanguage:'en-US'})),true,'actual English audio version stays available');
 });
+test('Comedy Circuit rejects Debian conference talks framed as stand-up',async()=>{
+ const key='comedy-circuit',profile=sourceProfile({profileKey:key});
+ const talks=[
+  ['32bdffd7-a65a-4577-b69e-471e3ad5ba9a',"Enrico's semi serious stand up comedy",'by Enrico Zini At: DebConf15. I will ramble freely about Debian and everything else I care about.'],
+  ['fdcff0e4-a8b0-4ddc-89a0-ef0562fdd53e','Semi-serious stand up comedy, 10 years later','by Enrico Zini At: DebConf25. I will again ramble freely about Debian.'],
+ ].map(([id,title,description])=>program(title,{id:'pt:peertube.debian.social/'+id,description,provider:'PeerTube',url:'https://peertube.debian.social/videos/embed/'+id}));
+ const good=program('Roast Battle DFW #14 | FULL SHOW',{id:'yt:Azr7XuLb9iI',description:'Live at Dallas Comedy Club.'});
+ for(const talk of talks){
+  assert.equal(policy.allow(key,talk),false);
+  assert.equal(qualifySourceItem(profile,talk),null);
+  assert.equal(catalogFallbackAllowed(talk,{sourceCatalog:true,channel:key}),false);
+ }
+ assert.ok(qualifySourceItem(profile,good));
+ const response=await worker.fetch(new Request('https://api.test/api/v3/source/status?profileKey='+key),{realsignal_catalog:db([...talks.map(row),row(good)])},{waitUntil(){}});
+ assert.deepEqual((await response.json()).items.map(x=>x.id),[good.id]);
+});
 for(const [key,title] of observed)test(key+': observed podcast cannot enter fresh or cached playback',()=>{
  const item=program(title);assert.equal(policy.allow(key,item),false);
  assert.equal(qualifySourceItem(sourceProfile({profileKey:key}),item),null);

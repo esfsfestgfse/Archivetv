@@ -21,7 +21,7 @@ import { IA_CANONICAL_PILOT_MANIFESTS } from "./ia_canonical_pilot_manifest.js";
 
 const API_PREFIX = "/api/v2";
 const V3_PREFIX = "/api/v3";
-const V3_RELEASE = "6.2.5-lineup-cleanup";
+const V3_RELEASE = "6.2.6-comedy-circuit";
 // Old clients and stored catalogs can still reference this retired lineup.
 const retiredChannel = channel => /^yt-sports-/i.test(String(channel || "").trim());
 const MAX_BODY_BYTES = 128 * 1024;

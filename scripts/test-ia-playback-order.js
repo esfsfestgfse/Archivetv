@@ -241,10 +241,16 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
     assert.equal(scope.theVideo, newer.v);
   });
 
-  test(file + ': a stalled canary origin tries the same-program alternate within a bounded startup', async () => {
+  for (const hasSpare of [false, true]) test(file + (hasSpare
+    ? ': a buffered reserve replaces a stalled video before spending time on its alternate'
+    : ': a stalled origin can still try its alternate when no reserve is ready'), async () => {
     const source = fs.readFileSync(path.join(root, file), 'utf8'), timers = [], handlers = {};
     const video = { tagName: 'VIDEO', style: {}, classList: { toggle() {} }, pause() {}, removeAttribute() {}, load() {}, remove() {}, setAttribute() {}, play: () => Promise.resolve(), addEventListener: (type, fn) => { handlers[type] = fn; } };
-    const scope = { window: { RealSignalIAShelf: runtime() }, document: { createElement: () => video, body: { classList: { contains: () => false } } },
+    const spare = item('different-reserved-episode'), primary = item('stalled-primary');
+    const warmer = {}, load = [];
+    const scope = { window: { RealSignalIAShelf: { ...runtime(), client: () => ({ rows: () => hasSpare ? [primary, spare] : [primary] }) } },
+      iaQueueKey: ch => String(ch.num), iaMediaWarmKey: (ch, row) => ch.num + ':' + row.identifier, iaMediaWarmers: warmer, iaWarmWanted: {},
+      stageIAMediaWarmer: (ch, row, media) => { load.push(media.url); warmer[ch.num + ':' + row.identifier] = { el: { readyState: 4, videoWidth: 640 } }; }, document: { createElement: () => video, body: { classList: { contains: () => false } } },
       theVideo: video, videoCtl: null, AbortController, curVideo: null, screenArea: { innerHTML: '', appendChild() {} },
       iaRepairEnabled: () => true, takeIAMediaWarmer: () => null, killMedia() {}, nlog() {}, token: 1, powered: true, curNum: 10,
       soundBlocked: false, muted: false, vol: 0.5, lastGesture: Date.now(), Date,
@@ -252,9 +258,22 @@ for (const file of ['the_dial_desktop.html', 'the_dial_mobile.html']) {
     vm.createContext(scope);
     vm.runInContext(source.slice(source.indexOf('function acquireVideo('), source.indexOf('function unlockMedia(')), scope);
     vm.runInContext(source.slice(source.indexOf('function iaKnownVideoPolicyViolation('), source.indexOf('function iaProgramDenyTerms(')), scope);
+    const repairStart = source.indexOf('function iaRepairEvent(');
+    vm.runInContext(source.slice(repairStart, source.indexOf('async function tuneIA(ch,sl,my)', repairStart)), scope);
     vm.runInContext(source.slice(source.indexOf('function playFile('), source.indexOf('function showNow(')), scope);
-    const pending = scope.playFile({ type: 'video', url: 'https://archive.org/download/series/episode.mp4', alts: ['https://ia800001.us.archive.org/12/items/series/episode.mp4'] }, { num: 10 }, {}, 1, 0);
+    const pending = scope.playFile({ id: primary.identifier, ...primary.media, alts: ['https://ia800001.us.archive.org/12/items/series/episode.mp4'] }, { num: 10 }, {}, 1, 0);
     assert.ok(timers[0].ms <= 4000, 'a stalled origin must not hold Next for twelve seconds');
+    assert.deepEqual(load, [], 'a fast startup should never need to load the spare');
+    if (hasSpare) {
+      const standby = timers.find(timer => timer.ms > 0 && timer.ms < timers[0].ms);
+      assert.ok(standby, 'start preparing one spare before the primary times out');
+      standby.fn();
+      assert.deepEqual(load, [spare.media.url]);
+      timers[0].fn();
+      assert.equal(await pending, false, 'the tune loop can move to the buffered reserve');
+      assert.equal(video.src, primary.media.url, 'do not start the alternate after the first timeout');
+      return;
+    }
     timers[0].fn();
     assert.match(video.src, /ia800001/);
     timers[1].fn();

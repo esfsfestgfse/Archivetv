@@ -8,3 +8,8 @@ audit-archive/
 .pnpm-cache/
 .pnpm-store/
 scripts/__pycache__/
+
+# Dependencies & Environment
+node_modules/
+.env*
+.testdriver/

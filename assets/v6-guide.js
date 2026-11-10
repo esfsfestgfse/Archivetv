@@ -2,6 +2,9 @@
 (function () {
   var api = window.RealSignalPresentation;
   if (!api || !api.available) return;
+  var guideMode = new URLSearchParams(location.search).get('guidePreview');
+  var preview = guideMode !== '0';
+  var active = {}, tuned = null;
   var panel, list, refs = {}, rowRefs = {}, entries = [], selected = null, opener, timer, opened = false;
   var category = 'all', view = 'all', search = '', scroll = 0, focusId = '', renderedKey = '';
   var oldOpen = window.openGuide, oldClose = window.closeGuide;
@@ -38,10 +41,38 @@
   }
   function updateRow(row, s) {
     var p = programs(s);
-    put(row.now, p.first ? p.first.title : 'Program information pending');
-    put(row.next, p.second ? p.second.title : s.live ? 'Program information unavailable' : 'Next program pending');
-    put(row.meta, [p.label, runtime(p.first)].filter(Boolean).join(' · '));
+    if (preview) row.host.classList.toggle('is-pending', !p.first);
+    put(row.now, p.first ? p.first.title : preview ? 'Pending' : 'Program information pending');
+    put(row.next, p.second ? p.second.title : preview ? '—' : s.live ? 'Program information unavailable' : 'Next program pending');
+    put(row.meta, preview && !p.first ? '' : [p.label, runtime(p.first)].filter(Boolean).join(' · '));
     put(row.nextMeta, runtime(p.second));
+  }
+  function markTuned(row, on) {
+    row.button.setAttribute('aria-current', on ? 'true' : 'false');
+    row.host.classList.toggle('is-tuned', on);
+    row.tuned.hidden = !on;
+  }
+  function updateActive(s) {
+    active = s;
+    var number = s.state !== 'standby' && s.channel ? s.channel.number : null;
+    if (number !== tuned) {
+      if (rowRefs[tuned]) markTuned(rowRefs[tuned], false);
+      tuned = number;
+      if (rowRefs[tuned]) markTuned(rowRefs[tuned], true);
+    }
+    put(refs.rsGuidePreviewStation, tuned == null ? 'STANDBY' : 'TUNED TO ' + tuned + ' · ' + s.channel.name);
+    put(refs.rsGuidePreviewNow, s.current ? s.current.title : tuned == null ? 'Press Power to start watching' : 'Waiting for the current program');
+    put(refs.rsGuidePreviewNext, s.next ? 'Up next · ' + s.next.title : '');
+    var screen = document.getElementById('screenArea');
+    var video = screen && screen.querySelector('video');
+    var picture = s.state === 'playing' && screen && (video && video.videoWidth > 0 || screen.querySelector('iframe'));
+    document.documentElement.classList.toggle('rs-guide-picture', !!picture);
+    put(refs.rsGuidePreviewVideo, tuned == null ? 'REAL SIGNAL / STANDBY' : 'REAL SIGNAL / CHANNEL ' + tuned);
+  }
+  function watch(number) {
+    if (number == null || preview && active.state === 'standby') return;
+    close();
+    if (!preview || number !== tuned || !active.current) api.command('tune', number);
   }
   function select(number, focus) {
     selected = number;
@@ -58,17 +89,27 @@
   }
   function details(currentSnapshot) {
     var entry = entries.find(function (item) { return item.number === selected; });
-    refs.rsV6GuideWatch.disabled = !entry;
+    refs.rsV6GuideWatch.disabled = !entry || preview && active.state === 'standby';
     put(refs.rsV6GuideChannelName, entry ? entry.name : 'Choose a channel');
     put(refs.rsV6GuideNumber, entry ? 'CH ' + entry.number : 'PROGRAM DETAILS');
     put(refs.rsV6GuideDescription, entry ? entry.description || entry.categoryLabel : 'Search or choose a category to browse.');
-    var s = entry ? currentSnapshot || snapshot(entry.number) : {}, p = programs(s);
+    var s = entry ? currentSnapshot || (preview && entry.number === tuned ? active : snapshot(entry.number)) : {}, p = programs(s);
     put(refs.rsV6GuideProgram, p.first ? p.first.title : 'Program information pending');
-    put(refs.rsV6GuideRuntime, [p.label, runtime(p.first), p.first && p.first.provider].filter(Boolean).join(' · '));
+    put(refs.rsV6GuideRuntime, [p.label, preview && p.first && p.first.year, runtime(p.first), p.first && p.first.provider].filter(Boolean).join(' · '));
     put(refs.rsV6GuideFollowing, p.second ? 'Next · ' + p.second.title + (runtime(p.second) ? ' · ' + runtime(p.second) : '') : s.live ? 'Program information unavailable' : 'Next program pending');
     var remaining = s.remainingSeconds;
-    put(refs.rsV6GuideRemaining, remaining != null && Number.isFinite(Number(remaining)) ? Math.ceil(remaining / 60) + ' min remaining' : '');
-    put(refs.rsV6GuideWatch, entry ? 'Watch channel ' + entry.number + ' →' : 'Watch channel');
+    put(refs.rsV6GuideRemaining, remaining != null && Number.isFinite(Number(remaining)) ?
+      preview ? remaining === 0 ? 'Ending now' : runtime({ durationSeconds: remaining }) + ' remaining' :
+      Math.ceil(remaining / 60) + ' min remaining' : '');
+    put(refs.rsV6GuideWatch, preview && active.state === 'standby' ? 'Press Power to watch' :
+      preview && entry && entry.number === tuned && active.current ? 'Return to watching ↗' :
+      entry ? 'Watch channel ' + entry.number + ' →' : 'Watch channel');
+    if (preview) {
+      panel.classList.toggle('is-showing-tuned', !!(entry && entry.number === tuned && active.current));
+      var progress = refs.rsGuidePreviewProgress, duration = s.current && s.current.durationSeconds;
+      progress.hidden = !(duration > 0 && s.position != null);
+      if (!progress.hidden) { progress.max = duration; progress.value = s.position; }
+    }
   }
   function favorite(number) {
     var focus = document.activeElement, oldScroll = list.scrollTop;
@@ -98,7 +139,8 @@
       var choose = button('rsV6GuideRow-' + entry.number, '', host, function () { select(entry.number, false); }, 'rsg-select');
       var identity = el('span', '', '', choose, 'rsg-channel');
       el('strong', '', String(entry.number), identity, 'rsg-digits');
-      el('span', '', entry.name, identity, 'rsg-channel-name');
+      var name = el('span', '', entry.name, identity, 'rsg-channel-name');
+      var marker = preview ? el('span', '', 'Tuned', name, 'rsg-tuned') : null;
       var playing = el('span', '', '', choose, 'rsg-program');
       var now = el('span', 'rsV6GuideNow-' + entry.number, '', playing, 'rsg-program-title');
       var meta = el('small', '', '', playing);
@@ -108,7 +150,8 @@
       var fav = button('rsV6GuideFav-' + entry.number, entry.favorite ? '★' : '☆', host, function () { favorite(entry.number); }, 'rsg-favorite');
       fav.setAttribute('aria-label', (entry.favorite ? 'Remove ' : 'Save ') + entry.name + (entry.favorite ? ' from favorites' : ' to favorites'));
       fav.setAttribute('aria-pressed', entry.favorite);
-      rowRefs[entry.number] = { host: host, button: choose, favorite: fav, now: now, meta: meta, next: next, nextMeta: nextMeta };
+      rowRefs[entry.number] = { host: host, button: choose, favorite: fav, now: now, meta: meta, next: next, nextMeta: nextMeta, tuned: marker };
+      if (preview) markTuned(rowRefs[entry.number], entry.number === tuned);
       updateRow(rowRefs[entry.number], {});
     });
     list.replaceChildren.apply(list, hosts);
@@ -134,7 +177,18 @@
       return;
     }
     var row = entries.findIndex(function (entry) { return event.target === rowRefs[entry.number].button; });
-    if (row >= 0 && ['ArrowUp','ArrowDown','Home','End'].includes(event.key)) {
+    var input = refs.rsV6GuideSearch;
+    if (preview && event.key === 'Enter' && row >= 0) {
+      event.preventDefault(); watch(entries[row].number);
+    } else if (preview && event.target === input && event.key === 'Enter' && /^\d{1,3}$/.test(search.trim())) {
+      event.preventDefault();
+      var number = Number(search.trim());
+      if (api.directory().some(function (entry) { return entry.number === number; })) watch(number);
+    } else if (preview && event.target === input && event.key === 'ArrowDown' && selected != null) {
+      event.preventDefault(); select(selected, true);
+    } else if (preview && row >= 0 && /^\d$/.test(event.key) && !event.ctrlKey && !event.metaKey && !event.altKey) {
+      event.preventDefault(); input.value = search = event.key; input.focus(); filter();
+    } else if (row >= 0 && ['ArrowUp','ArrowDown','Home','End'].includes(event.key)) {
       event.preventDefault();
       var index = event.key === 'Home' ? 0 : event.key === 'End' ? entries.length - 1 : Math.max(0, Math.min(entries.length - 1, row + (event.key === 'ArrowDown' ? 1 : -1)));
       select(entries[index].number, true);
@@ -143,43 +197,57 @@
   }
   function mount() {
     panel = el('section', 'rsV6GuidePanel', '', document.body); panel.hidden = true;
+    if (preview) panel.classList.add('rsg-preview');
     panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-modal', 'true'); panel.setAttribute('aria-labelledby', 'rsV6GuideHeading');
     var header = el('header', '', '', panel, 'rsg-header');
     el('span', '', '◉ REALSIGNAL', header, 'rsg-brand'); el('h1', 'rsV6GuideHeading', 'Program guide', header);
+    if (guideMode === '1') el('span', '', 'PREVIEW', header, 'rsg-preview-tag');
     el('span', 'rsV6GuideCount', '', header, 'rsg-count');
     button('rsV6GuideClose', 'Close ✕', header, close);
     var toolbar = el('div', '', '', panel, 'rsg-toolbar');
-    var label = el('label', '', 'Search the lineup', toolbar, 'rsg-search-label');
-    var input = el('input', 'rsV6GuideSearch', '', label); input.type = 'search'; input.placeholder = 'Channel, genre or program'; input.autocomplete = 'off';
+    var label = el('label', '', preview ? '' : 'Search the lineup', toolbar, 'rsg-search-label');
+    var input = el('input', 'rsV6GuideSearch', '', label); input.type = 'search'; input.placeholder = preview ? 'Search channels or enter a number' : 'Channel, genre or program'; input.autocomplete = 'off';
+    if (preview) input.setAttribute('aria-label', 'Search channels or enter a channel number');
     input.addEventListener('input', function () { search = input.value; filter(); });
     var modes = el('nav', '', '', toolbar, 'rsg-views'); modes.setAttribute('aria-label', 'Channel views');
     ['All','Favorites','Recent'].forEach(function (name) { button('rsV6Guide' + name, name, modes, function () { view = name.toLowerCase(); filter(); }); });
     var body = el('div', '', '', panel, 'rsg-body');
-    var categories = el('nav', '', '', body, 'rsg-categories'); categories.setAttribute('aria-label', 'Guide categories');
-    var categoryLabel = el('label', '', 'Category', categories, 'rsg-mobile-category');
+    var categories = el('nav', '', '', preview ? toolbar : body, 'rsg-categories'); categories.setAttribute('aria-label', 'Guide categories');
+    var categoryLabel = el('label', '', preview ? '' : 'Category', categories, 'rsg-mobile-category');
     var selectCategory = el('select', 'rsV6GuideCategory', '', categoryLabel);
+    if (preview) selectCategory.setAttribute('aria-label', 'Guide category');
     api.categories().forEach(function (group) {
       var option = el('option', '', group.label, selectCategory); option.value = group.id;
-      button('rsV6GuideCat-' + group.id, group.label, categories, function () { category = group.id; filter(); });
+      if (!preview) button('rsV6GuideCat-' + group.id, group.label, categories, function () { category = group.id; filter(); });
     });
     selectCategory.addEventListener('change', function () { category = selectCategory.value; filter(); });
     var main = el('div', '', '', body, 'rsg-main');
     var columns = el('div', '', '', main, 'rsg-columns'); columns.setAttribute('aria-hidden', 'true');
-    ['Channel','Playing / coming up','Next'].forEach(function (title) { el('span', '', title, columns); });
+    ['Channel', preview ? 'Playing / ready' : 'Playing / coming up', preview ? 'Up next' : 'Next'].forEach(function (title) { el('span', '', title, columns); });
     list = el('div', 'rsV6GuideList', '', main); list.setAttribute('aria-label', 'Channels');
     el('p', 'rsV6GuideEmpty', 'No channels match. Try All or clear the search.', main);
     var detail = el('aside', '', '', body, 'rsg-detail'); detail.setAttribute('aria-label', 'Selected channel');
+    if (preview) {
+      var onAir = el('section', '', '', detail, 'rsg-preview-onair');
+      onAir.setAttribute('aria-label', 'Now playing on your television');
+      el('div', 'rsGuidePreviewVideo', '', onAir, 'rsg-preview-video').setAttribute('aria-hidden', 'true');
+      el('small', 'rsGuidePreviewStation', '', onAir);
+      el('p', 'rsGuidePreviewNow', '', onAir);
+      el('p', 'rsGuidePreviewNext', '', onAir);
+    }
     var copy = el('div', '', '', detail, 'rsg-detail-copy');
     el('small', 'rsV6GuideNumber', '', copy); el('h2', 'rsV6GuideChannelName', '', copy);
     el('p', 'rsV6GuideDescription', '', copy); el('div', '', 'PROGRAM', copy, 'rsg-eyebrow');
     el('h3', 'rsV6GuideProgram', '', copy); el('p', 'rsV6GuideRuntime', '', copy);
+    if (preview) el('progress', 'rsGuidePreviewProgress', '', copy).setAttribute('aria-label', 'Selected program progress');
     el('p', 'rsV6GuideRemaining', '', copy); el('p', 'rsV6GuideFollowing', '', copy);
-    button('rsV6GuideWatch', 'Watch channel →', detail, function () { if (selected == null) return; var number = selected; close(); api.command('tune', number); }, 'rsg-watch');
+    button('rsV6GuideWatch', 'Watch channel →', detail, function () { watch(selected); }, 'rsg-watch');
     panel.addEventListener('keydown', keydown);
   }
-  function refresh() {
+  function refresh(currentSnapshot) {
     if (!opened) return;
     if (!api.enabled) { close(); return; }
+    if (preview) updateActive(currentSnapshot || snapshot());
     // Read geometry in one pass. Interleaving text updates with the next row's
     // bounds forces a fresh layout repeatedly on real, long channel directories.
     var bounds = list.getBoundingClientRect(), selectedSnapshot;
@@ -188,7 +256,7 @@
       return rect.bottom >= bounds.top && rect.top <= bounds.bottom;
     });
     visible.forEach(function (entry) {
-      var s = snapshot(entry.number);
+      var s = preview && entry.number === tuned ? active : snapshot(entry.number);
       if (entry.number === selected) selectedSnapshot = s;
       updateRow(rowRefs[entry.number], s);
     });
@@ -202,10 +270,17 @@
     if (legacyOpen()) oldClose.call(window);
     if (!panel) mount();
     opener = document.activeElement; opened = true; panel.hidden = false;
-    if (selected == null) { var current = api.snapshot(); selected = current.channel && current.channel.number; }
-    render(); list.scrollTop = scroll; refresh();
+    if (preview) {
+      document.documentElement.classList.add('rs-guide-browsing');
+      updateActive(snapshot());
+    }
+    if (selected == null) { var current = preview ? active : api.snapshot(); selected = current.channel && current.channel.number; }
+    render(); list.scrollTop = scroll;
+    if (preview && !focusId && rowRefs[selected]) rowRefs[selected].host.scrollIntoView({ block: 'center' });
+    refresh(preview ? active : null);
     var restore = refs[focusId];
-    (restore && panel.contains(restore) && !restore.disabled ? restore : refs.rsV6GuideSearch).focus({ preventScroll: true });
+    var initial = preview && rowRefs[selected] ? rowRefs[selected].button : refs.rsV6GuideSearch;
+    (restore && panel.contains(restore) && !restore.disabled ? restore : initial).focus({ preventScroll: true });
     timer = setInterval(refresh, 1000); syncDock(); measured('open', started); return true;
   }
   function close() {
@@ -213,6 +288,10 @@
     var started = now();
     focusId = panel.contains(document.activeElement) ? document.activeElement.id || '' : '';
     scroll = list.scrollTop; opened = false; clearInterval(timer); panel.hidden = true;
+    if (preview) {
+      document.documentElement.classList.remove('rs-guide-browsing');
+      document.documentElement.classList.remove('rs-guide-picture');
+    }
     if (api.enabled && opener && opener.isConnected) opener.focus({ preventScroll: true });
     else if (panel.contains(document.activeElement)) document.activeElement.blur();
     syncDock(); measured('close', started);

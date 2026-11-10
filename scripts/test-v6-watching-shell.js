@@ -85,7 +85,14 @@ test('the full release activates the labeled V6 dock by default', () => {
   const h = harness('');
   assert.ok(h.document.documentElement.classList.contains('rs-v6-watch'));
   assert.ok(h.ids.get('rsV6Guide'));
-  assert.equal(h.calls.length, 0);
+  const more = h.ids.get('rsV6More');
+  assert.equal(h.ids.get('rsV6MoreControls').hidden, true);
+  more.click();
+  assert.equal(h.ids.get('rsV6MoreControls').hidden, false);
+  h.ids.get('rsV6Mute').click();
+  assert.deepEqual(h.calls, [['toggleMute']]);
+  more.press('Escape');
+  assert.equal(h.ids.get('rsV6MoreControls').hidden, true);
 });
 test('explicit controls issue one command each through the latest playback wrappers', () => {
   const h = harness(); h.context.skipOne = () => h.calls.push(['latestNext']);

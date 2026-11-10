@@ -40,3 +40,36 @@ html.rs-v6-watch{height:100%;overflow:hidden;--v6-dock:100px;--v6-edge:12px}
 @media(max-width:600px){html.rs-v6-watch{--v6-dock:182px;--v6-edge:6px}.rs-v6-watch #rsV6Dock{padding:8px 10px max(16px,env(safe-area-inset-bottom));gap:7px}.rs-v6-watch #rsV6Controls{grid-template-columns:repeat(6,minmax(0,1fr));gap:5px}.rs-v6-watch #rsV6Controls button{font-size:10px}.rs-v6-watch #rsV6Title{font-size:13px}.rs-v6-watch #rsV6Clock{max-width:110px}.rs-v6-watch #rsV6Time{font-size:15px}.rs-v6-watch #rsV6Date{font-size:8px}.rs-v6-watch #rsV6Brand{font-size:8px;letter-spacing:1px}.rs-v6-watch #rsV6Dial{padding-right:10px;min-width:40px}.rs-v6-watch #tube{border-radius:5px!important}}
 @media(max-height:460px) and (min-width:601px){html.rs-v6-watch{--v6-dock:112px;--v6-edge:5px}.rs-v6-watch #rsV6Dock{padding:5px 12px 13px;gap:3px}.rs-v6-watch #rsV6Brand{display:none}.rs-v6-watch #rsV6Time{font-size:14px}.rs-v6-watch #rsV6Date{font-size:8px}.rs-v6-watch #rsV6Dial small{font-size:8px}.rs-v6-watch #rsV6Channel{font-size:24px}}
 @media(prefers-reduced-motion:reduce){.rs-v6-watch #rsV6Dock,.rs-v6-watch #rsV6Controls button{transition:none!important}.rs-v6-watch .scan,.rs-v6-watch .fx-scan{animation:none!important}}
+
+/* The opt-in guide uses a compact floating remote so the stage fills the window. */
+html.rs-v6-watch.rs-guide-preview { --v6-dock:0px; --v6-edge:5px; }
+.rs-guide-preview.rs-v6-watch #rsV6Dock {
+  inset:auto 12px max(10px,env(safe-area-inset-bottom)); height:auto; max-width:1020px; margin:auto;
+  grid-template-columns:minmax(0,1fr) auto; gap:10px; padding:7px 9px 7px 12px;
+  border:1px solid #465771; border-radius:10px; background:#121b2bef; color:#edf2f8;
+}
+.rs-guide-preview.rs-v6-watch #rsV6Dock.is-idle { opacity:.20; }
+.rs-guide-preview.rs-v6-watch #rsV6Dock:hover,.rs-guide-preview.rs-v6-watch #rsV6Dock:focus-within { opacity:1; }
+.rs-guide-preview.rs-v6-watch #rsV6Brand,.rs-guide-preview.rs-v6-watch #rsV6Status { display:none; }
+.rs-guide-preview.rs-v6-watch #rsV6Dial { padding-right:9px; min-width:0; border-color:#53627b; }
+.rs-guide-preview.rs-v6-watch #rsV6Channel { font-size:24px; color:#b4e7cf; }
+.rs-guide-preview.rs-v6-watch #rsV6Time { font-size:14px; color:#b4e7cf; }
+.rs-guide-preview.rs-v6-watch #rsV6Controls { grid-template-columns:repeat(6,auto); position:relative; }
+.rs-guide-preview.rs-v6-watch #rsV6Controls button {
+  min-height:40px; padding:5px 10px; border-color:#465771; background:#202d42;
+}
+.rs-guide-preview.rs-v6-watch #rsV6Controls button:hover { background:#30425f; }
+.rs-guide-preview.rs-v6-watch #rsV6Controls #rsV6Guide,.rs-guide-preview.rs-v6-watch #rsV6Controls #rsV6Next {
+  border-color:#967d52; color:#ffe3aa; background:#352e24;
+}
+.rs-guide-preview #rsV6MoreControls {
+  position:absolute; right:0; bottom:calc(100% + 9px); z-index:1; width:min(100%,300px);
+  display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:5px; padding:8px;
+  border:1px solid #465771; border-radius:9px; background:#121b2b; box-shadow:0 5px 25px #0009;
+}
+.rs-guide-preview #rsV6MoreControls[hidden] { display:none; }
+@media(max-width:790px) {
+  .rs-guide-preview.rs-v6-watch #rsV6Dock { inset-inline:7px; grid-template-columns:minmax(0,1fr); padding:7px; gap:6px; }
+  .rs-guide-preview.rs-v6-watch #rsV6Controls { grid-template-columns:repeat(6,minmax(0,1fr)); }
+  .rs-guide-preview.rs-v6-watch #rsV6Controls button { min-height:44px; padding-inline:3px; }
+}

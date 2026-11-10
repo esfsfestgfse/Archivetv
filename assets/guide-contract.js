@@ -17,13 +17,16 @@
   function program(item) {
     if (!item) return null;
     var media = item.media || {}, meta = item.meta || {};
-    return {
+    var result = {
       id: String(item.identifier || item.id || meta.identifier || meta.id || ''),
       title: text(item.title || meta.title || item.identifier || item.id),
       durationSeconds: firstSeconds([item.duration, item.runtime, item.runtimeSeconds, item.duration_seconds, media.runtime, media.duration, meta.media && meta.media.runtime]),
       provider: text(item.provider || meta.provider || (item.source === 'archive' ? 'Internet Archive' : '')),
       isAd: !!item.isAd
     };
+    var year = text(item.year || meta.year);
+    if (/^\d{4}$/.test(year)) result.year = Number(year);
+    return result;
   }
   function playable(item) {
     var media = item && item.media || {};

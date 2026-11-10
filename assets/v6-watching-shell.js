@@ -2,7 +2,8 @@
 (function () {
   var api = window.RealSignalPresentation;
   if (!api || !api.available) return;
-  var root = document.documentElement, dock, idleTimer, state, guideWasOpen = false, guideWasV6 = false;
+  var preview = new URLSearchParams(location.search).get('guidePreview') !== '0';
+  var root = document.documentElement, dock, more, idleTimer, state, guideWasOpen = false, guideWasV6 = false;
   var refs = {};
   function element(tag, id, text, parent) {
     var el = document.createElement(tag);
@@ -21,7 +22,8 @@
     return el && !el.classList.contains('hide') && (id !== 'gwrap' || el.classList.contains('show'));
   }
   function keepAwake() {
-    return !state || state.state !== 'playing' || dock.contains(document.activeElement) || visiblePanel('gwrap') || visiblePanel('infoPanel') || visiblePanel('osdMenu');
+    return !state || (state.state !== 'playing' && (!preview || state.state !== 'live')) || dock.contains(document.activeElement) ||
+      more && !more.hidden || visiblePanel('gwrap') || visiblePanel('infoPanel') || visiblePanel('osdMenu');
   }
   function wake() {
     if (!dock || dock.hidden) return;
@@ -38,8 +40,16 @@
       // Keep native button activation; legacy document shortcuts must not consume it.
       if (event.key === 'Enter' || event.key === ' ') event.stopPropagation();
     });
-    el.addEventListener('click', function () { api.command(name, value); wake(); refresh(); });
+    el.addEventListener('click', function () {
+      if (parent === more && ['info','menu','cast'].includes(name)) { showMore(false); refs.rsV6More.focus(); }
+      api.command(name, value); wake(); refresh();
+    });
     return el;
+  }
+  function showMore(open) {
+    more.hidden = !open;
+    refs.rsV6More.setAttribute('aria-expanded', open);
+    wake();
   }
   function mount() {
     dock = element('section', 'rsV6Dock', '', document.body);
@@ -62,12 +72,29 @@
     button('ChUp', 'CH +', 'channel-step', 1, controls, 'Next channel');
     button('Guide', 'Guide', 'guide-open', null, controls);
     button('Next', 'Next ▶', 'next', null, controls, 'Play the next program');
-    button('Info', 'Info', 'info', null, controls);
-    button('Menu', 'Menu', 'menu', null, controls);
-    button('VolDown', 'VOL −', 'volume-step', -0.1, controls, 'Lower volume');
-    button('VolUp', 'VOL +', 'volume-step', 0.1, controls, 'Raise volume');
-    button('Mute', 'Mute', 'mute', null, controls);
-    button('Cast', 'Cast', 'cast', null, controls, 'Cast RealSignal to a television');
+    if (preview) {
+      var toggle = element('button', 'rsV6More', 'More', controls);
+      toggle.type = 'button';
+      toggle.setAttribute('aria-controls', 'rsV6MoreControls');
+      toggle.addEventListener('click', function () { showMore(more.hidden); });
+      more = element('div', 'rsV6MoreControls', '', controls);
+      showMore(false);
+      document.addEventListener('pointerdown', function (event) {
+        if (!more.hidden && !dock.contains(event.target)) showMore(false);
+      });
+      dock.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && !more.hidden) {
+          event.stopPropagation(); showMore(false); toggle.focus();
+        }
+      });
+    }
+    var extra = more || controls;
+    button('Info', 'Info', 'info', null, extra);
+    button('Menu', 'Menu', 'menu', null, extra);
+    button('VolDown', 'VOL −', 'volume-step', -0.1, extra, 'Lower volume');
+    button('VolUp', 'VOL +', 'volume-step', 0.1, extra, 'Raise volume');
+    button('Mute', 'Mute', 'mute', null, extra);
+    button('Cast', 'Cast', 'cast', null, extra, 'Cast RealSignal to a television');
     document.addEventListener('pointermove', wake);
     document.addEventListener('pointerdown', wake);
     document.addEventListener('keydown', wake);
@@ -77,6 +104,7 @@
   function refresh() {
     var active = !!api.enabled;
     root.classList.toggle('rs-v6-watch', active);
+    if (preview) root.classList.toggle('rs-guide-preview', active);
     if (!active) {
       if (dock) { dock.hidden = true; clearTimeout(idleTimer); }
       guideWasOpen = false;
@@ -97,6 +125,7 @@
     refs.rsV6Mute.setAttribute('aria-pressed', typeof muted !== 'undefined' && !!muted);
     var guideOpen = !!visiblePanel('gwrap');
     refs.rsV6Guide.setAttribute('aria-expanded', guideOpen);
+    if (guideOpen && more && !more.hidden) showMore(false);
     if (guideWasOpen && !guideOpen && !guideWasV6) refs.rsV6Guide.focus();
     guideWasOpen = guideOpen;
     guideWasV6 = !!(window.RealSignalGuide && window.RealSignalGuide.isOpen());

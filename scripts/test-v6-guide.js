@@ -6,7 +6,7 @@ const { test } = require('node:test');
 const root = path.resolve(__dirname, '..');
 
 // DOM/clock boundaries only; exercise the actual presenter and command adapter.
-function harness(search = '?v6=1') {
+function harness(search = '?guidePreview=0') {
   const ids = new Map(), intervals = new Map(), calls = [], reads = [], layout = [], offscreen = new Set(); let connected = false, serial = 0;
   class Node {
     constructor(tag) { this.tagName = tag.toUpperCase(); this.children = []; this.attrs = {}; this.listeners = {};
@@ -88,6 +88,31 @@ test('selection only previews; Watch issues exactly one tune then restores opene
   h.ids.get('rsV6GuideWatch').press('Enter');
   assert.deepEqual(h.calls, [['tune',226]]); assert.equal(h.ids.get('rsV6GuidePanel').hidden, true);
   assert.equal(h.document.activeElement, h.opener); assert.equal(h.intervals.size, 0);
+});
+
+test('the cable guide distinguishes what is tuned from what is selected and keeps tuned playback on Watch', () => {
+  const h = harness(''); h.context.openGuide();
+  const current = h.ids.get('rsV6GuideRow-150'), other = h.ids.get('rsV6GuideRow-226');
+  assert.equal(current.getAttribute('aria-current'), 'true');
+  other.click();
+  assert.equal(other.getAttribute('aria-pressed'), 'true');
+  assert.equal(current.getAttribute('aria-current'), 'true');
+  assert.equal(h.ids.get('rsGuidePreviewNow').textContent, '<b>Duck Amuck</b>');
+  assert.deepEqual(h.calls, []);
+  current.press('Enter');
+  assert.deepEqual(h.calls, []);
+  assert.equal(h.ids.get('rsV6GuidePanel').hidden, true);
+});
+
+test('the cable guide tunes only on a confirmed number or Enter on a focused row', () => {
+  const h = harness(''); h.context.openGuide();
+  const input = h.ids.get('rsV6GuideSearch');
+  input.value = '226'; input.dispatch('input');
+  assert.deepEqual(h.calls, []);
+  input.press('Enter');
+  assert.deepEqual(h.calls, [['tune',226]]);
+  h.context.openGuide(); h.ids.get('rsV6GuideRow-226').press('Enter');
+  assert.deepEqual(h.calls, [['tune',226], ['tune',226]]);
 });
 test('search matches real known programs and empty results never invent listings', () => {
   const h = harness(); h.context.openGuide(); const input = h.ids.get('rsV6GuideSearch');

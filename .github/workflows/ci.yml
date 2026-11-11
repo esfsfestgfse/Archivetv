@@ -25,8 +25,11 @@ on:
       - 'assets/ok-embed-runtime.js'
       - 'ia_canonical_station.mjs'
       - 'ia_file_contract.js'
+      - 'broadcast_schedule.mjs'
+      - 'broadcast_preview.html'
       - 'ia_durable_state.js'
       - 'assets/ia-playback-shelf.js'
+      - 'assets/broadcast-*.mjs'
       - 'ia_canonical_pilot_manifest.js'
       - 'source_suite_profile_registry.js'
       - 'wrangler.api.jsonc'
@@ -66,6 +69,8 @@ jobs:
         run: node --test scripts/test-sports-programs.cjs scripts/test-sports-rotation.mjs scripts/test-sports-client.cjs scripts/test-sports-depth.cjs scripts/test-boxing-admission.cjs scripts/test-octagon-admission.cjs scripts/test-derby-wrestling-admission.cjs scripts/test-basketball-admission.cjs scripts/test-baseball-admission.cjs scripts/test-gridiron-admission.cjs scripts/test-sports-vault-admission.cjs scripts/test-olympic-admission.cjs scripts/test-college-admission.cjs scripts/test-pitch-admission.cjs scripts/test-trackside-admission.cjs scripts/test-sporting-life-admission.cjs scripts/test-surf-skate-snow-admission.cjs scripts/test-coaches-clinic-admission.cjs scripts/test-sports-newsreel-admission.cjs scripts/test-rodeo-admission.cjs scripts/test-equestrian-admission.cjs scripts/test-winter-games-admission.cjs scripts/test-regatta-admission.cjs scripts/test-stock-car-admission.cjs scripts/test-grand-prix-admission.cjs scripts/test-gymnasium-admission.cjs scripts/test-recreation-admission.cjs scripts/test-recreation-match-depth.cjs
       - name: Validate IA relay Worker contract
         run: node scripts/check-worker-contract.js
+      - name: Verify broadcast scheduling, freshness, and playback
+        run: node --test scripts/test-broadcast-schedule.mjs scripts/test-broadcast-player.mjs
       - name: Validate IA collection-depth rails
         run: node scripts/test-ia-collection-depth.js
       - name: Validate exhaustive IA audit coverage

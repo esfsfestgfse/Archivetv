@@ -1,0 +1,10 @@
+{
+  "$schema": "https://unpkg.com/wrangler/config-schema.json",
+  "name": "realsignal-broadcast-canary",
+  "compatibility_date": "2026-11-11",
+  "workers_dev": true,
+  "assets": {
+    "directory": "./output/broadcast-hosted-site",
+    "html_handling": "none"
+  }
+}

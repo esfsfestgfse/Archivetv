@@ -90,7 +90,7 @@ const IA_REVIEWED_SINGLE_SERIES_FAMILIES = Object.freeze({
   'freakylinks-complete-series-2000': 'freakylinks',
 });
 
-function familyId(item) {
+export function familyId(item) {
   const source = item.sourceIdentifier || itemId(item).split("::")[0];
   const explicit = item.seriesTitle || item.family || item.seriesId;
   const title = String(item.title || "").trim();

@@ -45,7 +45,7 @@ jobs:
           fi
           test -s "$CHECKPOINT/schedule.json"
       - name: Verify broadcast scheduling and playback
-        run: node --test scripts/test-broadcast-schedule.mjs scripts/test-broadcast-player.mjs scripts/test-youtube-embed-runtime.js
+        run: node --test scripts/test-broadcast-schedule.mjs scripts/test-broadcast-player.mjs scripts/test-youtube-embed-runtime.js scripts/test-peertube-media.js
       - name: Refresh and validate the broadcast lineup
         run: |
           node scripts/build-broadcast-pilot.mjs "$CHECKPOINT" --all --sources

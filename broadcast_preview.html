@@ -74,6 +74,24 @@ const stations = new Map();
 const search = document.querySelector('#channelSearch');
 const category = document.querySelector('#channelCategory');
 let tuned, ahead, refreshTimer, refreshing = false, closed = false;
+let hlsLibrary;
+function loadHls() {
+  if (window.Hls) return Promise.resolve(window.Hls);
+  if (!hlsLibrary) {
+    hlsLibrary = new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.15/hls.min.js';
+      script.onload = () => resolve(window.Hls);
+      script.onerror = () => { script.remove(); reject(new Error('HLS unavailable')); };
+      document.head.append(script);
+    }).catch(error => { hlsLibrary = null; throw error; });
+  }
+  return hlsLibrary;
+}
+async function attachHls(video, url, options) {
+  await import('./assets/peertube-media.js');
+  if (!options.signal.aborted) window.RealSignalPeerTubeMedia.attach(video, url, { ...options, loadHls });
+}
 const embed = {
   async play({ slot, current, startSeconds, onPlaying, onEnded, onFailure }) {
     await import('./assets/youtube-embed-runtime.js');
@@ -92,7 +110,7 @@ const embed = {
   }
 };
 const player = createBroadcastPlayer({
-  video, embed,
+  video, embed, attachHls,
   onCard: showCard,
   onPlaying(slot) {
     nativeLink.hidden = true;

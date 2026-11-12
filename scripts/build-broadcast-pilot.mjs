@@ -100,7 +100,7 @@ async function checkSpot(id, fileName, title) {
 }
 
 async function renewProgram(item) {
-  if (item.provider === 'YouTube' || item.provider === 'PeerTube') return verifyBroadcastSource(item);
+  if (['YouTube', 'PeerTube', 'NASCAR Classics'].includes(item.provider)) return verifyBroadcastSource(item);
   let url = new URL(item.media.url);
   const signal = AbortSignal.timeout(7000);
   for (let redirect = 0; redirect < 4; redirect++) {
@@ -237,7 +237,7 @@ async function refreshStation([channel, station]) {
         const saved = collectBroadcastCatalog({ rules, candidates, previous: earlier }).catalog;
         const available = new Map([...candidates, ...saved].map(item => [item.logicalId, item]));
         const verifiedDepth = earlier?.catalog?.length || 0;
-        const budget = selected ? 24 : earlier?.status === 'held' && verifiedDepth >= 8
+        const budget = selected || station.profileKey === 'nascar-classics' ? 24 : earlier?.status === 'held' && verifiedDepth >= 8
           ? Math.min(24, Math.max(12, 30 - verifiedDepth)) : 12;
         renewed = await renewUnseen({ ...earlier, catalog: [...available.values()] }, candidates, rotation / 6, budget);
         candidates.push(...renewed);
@@ -258,7 +258,7 @@ async function refreshStation([channel, station]) {
       programs.length + ' distinct programs in the window, ' + added + ' new files, ' + renewed.length + ' rechecked');
     return { ...schedule, nextRotation: rotation, category: station.category, status: 'ready' };
   }
-  const canRetain = earlier && firstRejectedBroadcastSlot(earlier, Date.now(), rules.cooledProviders) < 0;
+  const canRetain = earlier && firstRejectedBroadcastSlot(earlier, Date.now(), rules) < 0;
   const { catalog } = collectBroadcastCatalog({ rules, candidates, previous: earlier });
   console.error(channel + ' HELD: ' + reason);
   return { ...(canRetain ? earlier : {}), channel, name: station.name, category: station.category,

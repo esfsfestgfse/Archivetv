@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildBroadcastWindow } from '../broadcast_schedule.mjs';
+import { buildBroadcastWindow, firstRejectedBroadcastSlot } from '../broadcast_schedule.mjs';
 import { retainPublishedSlots, slotAt } from '../assets/broadcast-clock.mjs';
 
 const now = 1794319200000;
@@ -31,6 +31,24 @@ const wrongPrograms = wrongTitles.map(([sourceIdentifier, title, subject]) => ({
   seriesId: sourceIdentifier, fileName: 'recording.mp4', title, subject, genreVerified: true,
   media: { ...candidates[0].media, url: 'https://archive.org/download/' + sourceIdentifier + '/recording.mp4' }
 }));
+
+test('a saved PeerTube fragment cannot survive as a scheduled program', () => {
+  const host = 'https://peertube.example';
+  const directory = host + '/static/streaming-playlists/hls/b79ee051-facb-4611-8d2e-8f5b504089f3/';
+  const saved = {
+    channel: '527',
+    catalog: [
+      { logicalId: 'verified', provider: 'PeerTube', sourceUrl: host + '/w/good', media: { url: directory + 'master.m3u8' } },
+      { logicalId: 'fragment', provider: 'PeerTube', sourceUrl: host + '/w/bad', media: { url: directory + '480-fragmented.mp4' } }
+    ],
+    slots: [
+      { logicalId: 'verified', kind: 'program', endsAt: now + minute },
+      { logicalId: 'fragment', kind: 'program', endsAt: now + 2 * minute }
+    ]
+  };
+  assert.equal(firstRejectedBroadcastSlot(saved, now, { sourceCatalog: true }), 1);
+  assert.equal(firstRejectedBroadcastSlot(saved, now, { sourceCatalog: true, cooledProviders: new Set(['peertube']) }), 0);
+});
 
 test('Classic Reruns schedules episodes and rerun blocks, rejecting incidental show and actor mentions', () => {
   const block = { ...candidates[0], title: '1994 Nick@Nite I Love Lucy Block' };

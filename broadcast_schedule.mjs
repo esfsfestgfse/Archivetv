@@ -1,7 +1,7 @@
 import { qualifyIaFileRecord } from './ia_file_contract.js';
 import { familyId } from './realsignal_api_rotation.js';
 import Sports from './assets/sports-programs.js';
-import { broadcastSourceType } from './broadcast_source_catalog.mjs';
+import { broadcastSourceCooling, broadcastSourceType } from './broadcast_source_catalog.mjs';
 
 const hour = 3_600_000;
 export const broadcastProofMs = 24 * hour;
@@ -47,10 +47,12 @@ function programAllowed(item, channel) {
   return format.test(title) || (episode.test(item.title + ' ' + file) && format.test(String(item.subject || '')));
 }
 
-export function firstRejectedBroadcastSlot(previous, now, cooledProviders) {
-  if (cooledProviders?.size && previous?.slots) {
+export function firstRejectedBroadcastSlot(previous, now, rules = {}) {
+  if (rules.sourceCatalog && previous?.slots) {
+    const eligible = new Set(previous.catalog.filter(item => broadcastSourceType(item) &&
+      !broadcastSourceCooling(item, rules.cooledProviders)).map(item => item.logicalId));
     return previous.slots.findIndex(slot => slot.endsAt > now && slot.kind === 'program' &&
-      cooledProviders.has(String(slot.provider).toLowerCase()));
+      !eligible.has(slot.logicalId));
   }
   if (previous?.channel !== '10') return -1;
   const allowed = new Set(previous.catalog.filter(item => programAllowed(item, '10')).map(item => item.logicalId));
@@ -84,12 +86,14 @@ export function collectBroadcastCatalog({ rules, candidates, now = Date.now(), p
   const channel = String(rules.channel);
   const mediaType = rules.mediaTypes?.[0] === 'audio' ? 'audio' : 'video';
   const savedCatalog = previous?.catalog || [];
-  const eligibleSaved = savedCatalog.filter(item => programAllowed(item, channel));
+  const eligibleSaved = savedCatalog.filter(item => rules.sourceCatalog
+    ? broadcastSourceType(item) && !broadcastSourceCooling(item, rules.cooledProviders)
+    : programAllowed(item, channel));
   const qualified = new Map();
   for (const candidate of [...eligibleSaved, ...candidates]) {
     if (rules.sourceCatalog) {
       if (candidate.verification !== 'source-admitted' || !broadcastSourceType(candidate) ||
-          rules.cooledProviders?.has(candidate.provider.toLowerCase()) ||
+          broadcastSourceCooling(candidate, rules.cooledProviders) ||
           !(candidate.runtimeSeconds >= 900 && candidate.verifiedAt > 0 && candidate.verifiedAt <= now + 60_000)) continue;
       const saved = qualified.get(candidate.logicalId);
       if (!saved || candidate.verifiedAt >= saved.verifiedAt) {
@@ -139,7 +143,7 @@ export function buildBroadcastWindow({ rules, candidates, spots = [], now = Date
 
   // Keep the announced prefix. Rebuild from the first ineligible program's
   // start so a clean show already on air keeps its clock and the guide agrees.
-  const rejectedIndex = firstRejectedBroadcastSlot(previous, now, rules.cooledProviders);
+  const rejectedIndex = firstRejectedBroadcastSlot(previous, now, rules);
   const cutoff = rejectedIndex < 0 ? Infinity : previous.slots[rejectedIndex].startsAt;
   const slots = (previous?.slots || []).filter(slot => slot.endsAt > now && slot.startsAt < cutoff);
   let cursor = slots.at(-1)?.endsAt ?? now;

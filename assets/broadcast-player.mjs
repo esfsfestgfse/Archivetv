@@ -1,6 +1,6 @@
 /* Each source owns its callbacks, timer and decoded picture. */
 export function createBroadcastPlayer({ video, now = Date.now, onCard, onPlaying, onEnded,
-  setTimer = setTimeout, clearTimer = clearTimeout, embed }) {
+  setTimer = setTimeout, clearTimer = clearTimeout, embed, attachHls }) {
   let loaded;
   let generation = 0;
   let events;
@@ -91,8 +91,13 @@ export function createBroadcastPlayer({ video, now = Date.now, onCard, onPlaying
     video.addEventListener('ended', () => {
       if (current()) onEnded(slot, live);
     }, { signal });
-    video.src = slot.url;
-    video.load();
+    if (slot.mediaType === 'hls') {
+      if (!attachHls) { failed(); return; }
+      attachHls(video, slot.url, { signal, isCurrent: current, onReady() {}, onError: failed }).catch(failed);
+    } else {
+      video.src = slot.url;
+      video.load();
+    }
   }
 
   function dispose() {

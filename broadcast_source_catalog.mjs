@@ -1,4 +1,5 @@
 import PeerTubeMedia from './assets/peertube-media.js';
+import SourcePrograms from './assets/source-program-policy.js';
 import { nascarMediaProof, nascarReplayAllowed } from './nascar_catalog.js';
 
 // Source Suite keeps its existing editorial filters and provider cooldowns.
@@ -6,6 +7,13 @@ import { nascarMediaProof, nascarReplayAllowed } from './nascar_catalog.js';
 const providerKey = { 'NASCAR Classics': 'nascar', YouTube: 'youtube', PeerTube: 'peertube' };
 export function broadcastSourceCooling(item, cooledProviders) {
   return cooledProviders?.has(providerKey[item.provider]);
+}
+
+export function broadcastSourceProgramAllowed(profileKey, item) {
+  if (!SourcePrograms.allow(profileKey, item)) return false;
+  if (profileKey !== 'screen-test') return true;
+  const subject = [item.title, item.subject].filter(Boolean).join(' ');
+  return /\b(?:cinematography|film[- ]?making|film editing|movie editing|film production|movie production|film studios?|movie studios?|movie cameras?|film cameras?|production design|motion picture technology|cinema technology|camera technology|special effects|film lighting|colour grading|color grading)\b/i.test(subject);
 }
 
 export function broadcastSourceType(item) {
@@ -39,6 +47,7 @@ export async function readSourceBroadcastInventory(profileKey) {
     const runtime = Number(row.runtimeSeconds || row.runtime || row.duration);
     const resolvePeerTube = row.provider === 'PeerTube' && PeerTubeMedia.fragment(mediaUrl);
     if ((!type && !resolvePeerTube) || broadcastSourceCooling(row, cooledProviders) || !row.title || !row.sourceIdentifier ||
+        !broadcastSourceProgramAllowed(profileKey, row) ||
         (row.provider === 'NASCAR Classics' && !nascarReplayAllowed(row)) ||
         row.embedAllowed === false || !Number.isFinite(runtime) || runtime < 900 ||
         (row.aspectRatio && Number(row.aspectRatio) <= 1)) return [];
@@ -46,6 +55,9 @@ export async function readSourceBroadcastInventory(profileKey) {
       identifier: row.identifier || row.id, sourceIdentifier: row.sourceIdentifier,
       logicalId: row.provider + ':' + row.sourceIdentifier, provider: row.provider,
       seriesTitle: row.seriesTitle || row.raceTrack || '', seriesId: row.seriesId || '', title: row.title,
+      subject: row.subject, description: row.description, account: row.account, channelId: row.channelId,
+      defaultAudioLanguage: row.defaultAudioLanguage, language: row.language, defaultLanguage: row.defaultLanguage,
+      containsSyntheticMedia: row.containsSyntheticMedia === true || row.status?.containsSyntheticMedia === true,
       year: row.year || null, runtimeSeconds: runtime, sourceUrl: row.sourceUrl,
       officialReplay: row.officialReplay === true, media: { type, url: mediaUrl },
       verification: '', verifiedAt: 0

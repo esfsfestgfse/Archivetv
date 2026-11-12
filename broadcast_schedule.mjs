@@ -1,7 +1,7 @@
 import { qualifyIaFileRecord } from './ia_file_contract.js';
 import { familyId } from './realsignal_api_rotation.js';
 import Sports from './assets/sports-programs.js';
-import { broadcastSourceCooling, broadcastSourceType } from './broadcast_source_catalog.mjs';
+import { broadcastSourceCooling, broadcastSourceProgramAllowed, broadcastSourceType } from './broadcast_source_catalog.mjs';
 
 const hour = 3_600_000;
 export const broadcastProofMs = 24 * hour;
@@ -60,6 +60,7 @@ function programAllowed(item, channel) {
 export function firstRejectedBroadcastSlot(previous, now, rules = {}) {
   if (rules.sourceCatalog && previous?.slots) {
     const eligible = new Set(previous.catalog.filter(item => broadcastSourceType(item) &&
+      broadcastSourceProgramAllowed(rules.profileKey, item) &&
       !broadcastSourceCooling(item, rules.cooledProviders)).map(item => item.logicalId));
     return previous.slots.findIndex(slot => slot.endsAt > now && slot.kind === 'program' &&
       !eligible.has(slot.logicalId));
@@ -97,12 +98,14 @@ export function collectBroadcastCatalog({ rules, candidates, now = Date.now(), p
   const mediaType = rules.mediaTypes?.[0] === 'audio' ? 'audio' : 'video';
   const savedCatalog = previous?.catalog || [];
   const eligibleSaved = savedCatalog.filter(item => rules.sourceCatalog
-    ? broadcastSourceType(item) && !broadcastSourceCooling(item, rules.cooledProviders)
+    ? broadcastSourceType(item) && broadcastSourceProgramAllowed(rules.profileKey, item) &&
+      !broadcastSourceCooling(item, rules.cooledProviders)
     : programAllowed(item, channel));
   const qualified = new Map();
   for (const candidate of [...eligibleSaved, ...candidates]) {
     if (rules.sourceCatalog) {
       if (candidate.verification !== 'source-admitted' || !broadcastSourceType(candidate) ||
+          !broadcastSourceProgramAllowed(rules.profileKey, candidate) ||
           broadcastSourceCooling(candidate, rules.cooledProviders) ||
           !(candidate.runtimeSeconds >= 900 && candidate.verifiedAt > 0 && candidate.verifiedAt <= now + 60_000)) continue;
       const saved = qualified.get(candidate.logicalId);

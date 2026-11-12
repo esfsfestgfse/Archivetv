@@ -4,7 +4,7 @@ import { spawnSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, unlinkSync, rmdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { buildBroadcastWindow, firstRejectedBroadcastSlot } from '../broadcast_schedule.mjs';
+import { buildBroadcastWindow, collectBroadcastCatalog, firstRejectedBroadcastSlot } from '../broadcast_schedule.mjs';
 import { retainPublishedSlots, slotAt } from '../assets/broadcast-clock.mjs';
 
 const now = 1794319200000;
@@ -97,6 +97,24 @@ test('a saved PeerTube fragment cannot survive as a scheduled program', () => {
   };
   assert.equal(firstRejectedBroadcastSlot(saved, now, { sourceCatalog: true }), 1);
   assert.equal(firstRejectedBroadcastSlot(saved, now, { sourceCatalog: true, cooledProviders: new Set(['peertube']) }), 0);
+});
+
+test('Screen Test schedules filmmaking programs and drops an off-topic published slot', () => {
+  const make = (id, title) => ({
+    identifier: id, logicalId: id, title, provider: 'YouTube', runtimeSeconds: 1800,
+    verification: 'source-admitted', verifiedAt: now,
+    media: { url: 'https://www.youtube.com/embed/' + id, type: 'youtube' }
+  });
+  const history = make('Abcdefghijk', 'Desert Victory WWII British Documentary');
+  const craft = make('Lmnopqrstuv', 'The Art of Film Editing');
+  const stationRules = { channel: '562', profileKey: 'screen-test', sourceCatalog: true };
+  const previous = {
+    channel: '562', catalog: [history, craft],
+    slots: [{ kind: 'program', logicalId: history.logicalId, endsAt: now + minute }]
+  };
+  assert.equal(firstRejectedBroadcastSlot(previous, now, stationRules), 0);
+  assert.deepEqual(collectBroadcastCatalog({ rules: stationRules, candidates: [history, craft], previous, now })
+    .catalog.map(item => item.title), [craft.title]);
 });
 
 test('The Pitch keeps other match recordings when dropping a file that failed to start', () => {

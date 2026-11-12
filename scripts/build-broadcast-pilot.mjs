@@ -197,7 +197,7 @@ const [toySpot, carSpot] = await Promise.all([
 ]);
 async function refreshStation([channel, station]) {
   const sourceCatalog = station.source === 'v2preview';
-  const rules = { ...registry.get(channel), channel, name: station.name, sourceCatalog };
+  const rules = { ...registry.get(channel), channel, name: station.name, sourceCatalog, profileKey: station.profileKey };
   const earlier = previous.stations.find(row => row.channel === channel);
   const pilot = pilotStations.has(channel);
   const sessionId = 'broadcast-publisher-' + channel;

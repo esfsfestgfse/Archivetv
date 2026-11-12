@@ -4,7 +4,7 @@ on:
   push:
     branches: [broadcast-canary]
   schedule:
-    - cron: '17 * * * *'
+    - cron: '29 * * * *'
   workflow_dispatch:
 
 permissions:

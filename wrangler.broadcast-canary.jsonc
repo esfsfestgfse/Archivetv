@@ -1,9 +1,12 @@
 {
   "$schema": "https://unpkg.com/wrangler/config-schema.json",
   "name": "realsignal-broadcast-canary",
+  "main": "broadcast_manifest_worker.mjs",
   "compatibility_date": "2026-11-11",
   "workers_dev": true,
   "assets": {
+    "binding": "ASSETS",
+    "run_worker_first": ["/output/broadcast-pilot-preview/preview.json"],
     "directory": "./output/broadcast-hosted-site",
     "html_handling": "none"
   }

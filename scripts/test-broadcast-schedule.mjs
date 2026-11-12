@@ -93,6 +93,22 @@ test('two viewers share the same program and a break occupies its published time
   assert.equal(slotAt(window, window.slots.at(-1).endsAt), null);
 });
 
+test('short-form Archive channels keep enough unique material for their hourly refresh', () => {
+  const spots = Array.from({ length: 48 }, (_, index) => {
+    const item = candidates[index % candidates.length];
+    const sourceIdentifier = 'vintage-tv-spot-' + index;
+    return { ...item, sourceIdentifier, identifier: sourceIdentifier + '::spot.mp4',
+      fileName: 'spot.mp4', title: 'Vintage Television Commercial ' + index,
+      media: { ...item.media, runtime: 4 * 60, url: 'https://archive.org/download/' + sourceIdentifier + '/spot.mp4' } };
+  });
+  const window = buildBroadcastWindow({ rules: { channel: '13', name: 'Vintage Commercials' }, candidates: spots, now });
+  assert.equal(window.depth.episodes, 48);
+  assert.equal(window.slots.at(-1).endsAt, now + 120 * minute);
+  assert.equal(window.slots.length, 30);
+  assert.equal(new Set(window.slots.map(slot => slot.logicalId)).size, 30);
+  assert.ok(window.slots.every(slot => slot.kind === 'program'));
+});
+
 test('window updates preserve published slots and rotate through unseen programs first', () => {
   const first = buildBroadcastWindow({ rules, candidates, now });
   const later = now + 3 * 60 * minute;

@@ -175,8 +175,9 @@ async function renewUnseen(previous, incoming, rotation, budget) {
   const familyOrder = new Map(previous.familyOrder);
   const grouped = new Map();
   for (const row of due) {
-    if (!grouped.has(row.broadcastFamily)) grouped.set(row.broadcastFamily, []);
-    grouped.get(row.broadcastFamily).push(row);
+    const family = row.broadcastFamily || familyId(row);
+    if (!grouped.has(family)) grouped.set(family, []);
+    grouped.get(family).push(row);
   }
   const families = [...grouped.keys()].sort((a, b) => (familyOrder.get(a) ?? -1) - (familyOrder.get(b) ?? -1));
   const selected = [];
@@ -228,6 +229,11 @@ async function refreshStation([channel, station]) {
         renewed = await renewUnseen(earlier, candidates, rotation / 6, 24);
         candidates.push(...renewed);
         candidates.push(...await collectNewEpisodes(rules, earlier, candidates, rotation / 6));
+      } else if (earlier?.status === 'ready') {
+        const known = new Set(earlier.catalog.map(item => item.logicalId));
+        const newFiles = candidates.filter(item => !known.has(item.logicalId));
+        renewed = await renewUnseen({ ...earlier, catalog: newFiles }, candidates, rotation / 6, 4);
+        candidates.push(...renewed);
       }
       const spots = (channel === '150' ? [toySpot] : pilot ? [carSpot] : []).filter(Boolean);
       try {
@@ -239,8 +245,9 @@ async function refreshStation([channel, station]) {
         const verifiedDepth = earlier?.catalog?.length || 0;
         const budget = selected || station.profileKey === 'nascar-classics' ? 24 : earlier?.status === 'held' && verifiedDepth >= 8
           ? Math.min(24, Math.max(12, 30 - verifiedDepth)) : 12;
-        renewed = await renewUnseen({ ...earlier, catalog: [...available.values()] }, candidates, rotation / 6, budget);
-        candidates.push(...renewed);
+        const checked = await renewUnseen({ ...earlier, catalog: [...available.values()] }, candidates, rotation / 6, budget);
+        renewed.push(...checked);
+        candidates.push(...checked);
         schedule = buildBroadcastWindow({ rules, candidates, spots, previous: earlier });
       }
       break;

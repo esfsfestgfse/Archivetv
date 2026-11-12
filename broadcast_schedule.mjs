@@ -123,9 +123,11 @@ export function collectBroadcastCatalog({ rules, candidates, now = Date.now(), p
   };
 }
 
-export function buildBroadcastWindow({ rules, candidates, spots = [], now = Date.now(), previous, horizonMs = 6 * hour }) {
+export function buildBroadcastWindow({ rules, candidates, spots = [], now = Date.now(), previous, horizonMs }) {
   const channel = String(rules.channel);
   const mediaType = rules.mediaTypes?.[0] === 'audio' ? 'audio' : 'video';
+  const shortFormat = mediaType === 'audio' || channel === '13';
+  horizonMs ??= (shortFormat ? 2 : 6) * hour;
   if (previous && previous.channel !== channel) throw new Error('Schedule belongs to another station');
   if (!Number.isFinite(now) || !(horizonMs > 0 && horizonMs <= 12 * hour)) throw new Error('Invalid schedule time');
   const { catalog, baseline } = collectBroadcastCatalog({ rules, candidates, now, previous });
@@ -135,7 +137,7 @@ export function buildBroadcastWindow({ rules, candidates, spots = [], now = Date
   const floor = {
     episodes: Math.max(24, baseline?.episodes || 0),
     families: Math.max(6, baseline?.families || 0),
-    hours: Math.max(8, horizonMs / hour, baseline?.hours || 0)
+    hours: Math.max(shortFormat ? 3 : 8, horizonMs / hour, baseline?.hours || 0)
   };
   if (depth.episodes < floor.episodes || depth.families < floor.families || depth.hours + 1e-8 < floor.hours) {
     throw new Error('Station ' + channel + ' depth ' + JSON.stringify(depth) + ' below ' + JSON.stringify(floor));
@@ -181,7 +183,7 @@ export function buildBroadcastWindow({ rules, candidates, spots = [], now = Date
     lastFamily = item.broadcastFamily;
     familyOrder.set(lastFamily, startsAt);
     blockMs += cursor - startsAt;
-    if (rules.sourceCatalog || mediaType === 'audio' || containsCommercials(item)) {
+    if (rules.sourceCatalog || shortFormat || containsCommercials(item)) {
       blockMs = 0;
     } else if (channel !== '150' || blockMs >= cartoonBlockMs) {
       const spot = spots.find(row => trustedArchiveMedia(row.url) && row.durationMs >= 10_000 && row.durationMs <= 61_000 &&

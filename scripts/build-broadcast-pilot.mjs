@@ -215,9 +215,6 @@ async function refreshStation([channel, station]) {
       } else {
         candidates.push(...await (pilot ? readCatalog(rules, rotation, sessionId) : readArchiveInventory(rules)));
       }
-      if (!pilot && !sourceCatalog && candidates.length < 12 && (earlier?.catalog?.length || 0) < 24) {
-        candidates.push(...await readCatalog(rules, rotation, sessionId));
-      }
     } catch (error) {
       reason = error.message;
     }
@@ -240,6 +237,10 @@ async function refreshStation([channel, station]) {
         schedule = buildBroadcastWindow({ rules, candidates, spots, previous: earlier });
       } catch (error) {
         if (pilot) throw error;
+        if (!sourceCatalog && earlier?.status !== 'ready') {
+          const queue = await readCatalog(rules, rotation, sessionId).catch(() => []);
+          candidates.push(...queue);
+        }
         const saved = collectBroadcastCatalog({ rules, candidates, previous: earlier }).catalog;
         const available = new Map([...candidates, ...saved].map(item => [item.logicalId, item]));
         const verifiedDepth = earlier?.catalog?.length || 0;

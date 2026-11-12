@@ -1,5 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { spawnSync } from 'node:child_process';
+import { mkdtempSync, readFileSync, unlinkSync, rmdirSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { buildBroadcastWindow, firstRejectedBroadcastSlot } from '../broadcast_schedule.mjs';
 import { retainPublishedSlots, slotAt } from '../assets/broadcast-clock.mjs';
 
@@ -31,6 +35,51 @@ const wrongPrograms = wrongTitles.map(([sourceIdentifier, title, subject]) => ({
   seriesId: sourceIdentifier, fileName: 'recording.mp4', title, subject, genreVerified: true,
   media: { ...candidates[0].media, url: 'https://archive.org/download/' + sourceIdentifier + '/recording.mp4' }
 }));
+
+test('the publisher checks the regular Archive queue when its cached inventory is too shallow', t => {
+  const directory = mkdtempSync(path.join(tmpdir(), 'realsignal-broadcast-'));
+  t.after(() => {
+    for (const name of ['schedule.json', 'preview.json']) {
+      try { unlinkSync(path.join(directory, name)); }
+      catch (error) { if (error.code !== 'ENOENT') throw error; }
+    }
+    rmdirSync(directory);
+  });
+  const verifiedAt = Date.now();
+  const programs = candidates.map(item => ({
+    ...item,
+    year: 1991,
+    genreVerified: true,
+    media: { ...item.media, runtime: 30 * 60, verifiedAt }
+  }));
+  const inventory = programs.slice(0, 21).map(item => ({
+    id: item.identifier,
+    source_identifier: item.sourceIdentifier,
+    title: item.title,
+    year: item.year,
+    media_type: 'video',
+    media_url: item.media.url,
+    duration_seconds: item.media.runtime,
+    metadata_json: JSON.stringify({ fileName: item.fileName, seriesId: item.seriesId,
+      width: item.media.width, height: item.media.height, genreVerified: true,
+      verification: 'transport', verifiedAt })
+  }));
+  const mock = `
+    globalThis.fetch = async value => {
+      const route = new URL(value).pathname;
+      if (route.endsWith('/catalog')) return Response.json({ items: ${JSON.stringify(inventory)} });
+      if (route.endsWith('/ia/queue')) return Response.json({ items: ${JSON.stringify(programs.slice(21))} });
+      if (route.startsWith('/metadata/')) return Response.json({ files: [] });
+      throw new Error('Unexpected request to ' + route);
+    };
+  `;
+  const result = spawnSync(process.execPath, ['--import', 'data:text/javascript,' + encodeURIComponent(mock),
+    'scripts/build-broadcast-pilot.mjs', directory, '--channels=11'], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr || result.error?.message);
+  const { stations } = JSON.parse(readFileSync(path.join(directory, 'schedule.json'), 'utf8'));
+  assert.equal(stations[0].status, 'ready');
+  assert.equal(stations[0].depth.episodes, 30);
+});
 
 test('a saved PeerTube fragment cannot survive as a scheduled program', () => {
   const host = 'https://peertube.example';
